@@ -35,9 +35,9 @@
     "active": true,
     "category": "DeveloperTool",
     "shortDescription": "文枢",
-    "longDescription": "Installs 文枢 on your machine. Drives scripts/install.ps1 (Windows) and scripts/install.sh (macOS/Linux).",,
-    "publisher": "Nous Research",
-    "copyright": "Copyright © 2026 Nous Research",
+    "longDescription": "Installs 文枢 on your machine. Drives scripts/install.ps1 (Windows) and scripts/install.sh (macOS/Linux).",
+    "publisher": "文枢 Project",
+    "copyright": "Copyright © 2026 文枢 Project",
     "targets": [
       "app",
       "dmg",
