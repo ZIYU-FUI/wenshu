@@ -407,6 +407,7 @@ if (INSTALL_STAMP) {
     '[hermes] WARNING: no install-stamp.json found in packaged build. First-launch bootstrap will not have a pinned ref to install.'
   )
 }
+if (!process.env.HERMES_HOME) process.env.HERMES_HOME = path.join(os.homedir(), '.wenshu-hermes')
 
 // HERMES_HOME — the user-facing root for everything 文枢-related. Mirrors
 // scripts/install.ps1's $HermesHome and scripts/install.sh's $HERMES_HOME.

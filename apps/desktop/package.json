@@ -208,7 +208,8 @@
         "CFBundleName": "文枢",
         "CFBundleIdentifier": "com.wenshu.app",
         "NSAudioCaptureUsageDescription": "文枢 uses audio capture for voice conversations.",
-        "NSMicrophoneUsageDescription": "文枢 uses the microphone for voice input and voice conversations."
+        "NSMicrophoneUsageDescription": "文枢 uses the microphone for voice input and voice conversations.",
+        "LSEnvironment": { "HERMES_HOME": "$HOME/.wenshu-hermes" }
       },
       "gatekeeperAssess": false,
       "hardenedRuntime": true,
