@@ -591,7 +591,7 @@ def _resolve_for_skill_ownership(path) -> Path:
 def is_external_skill_path(path) -> bool:
     """Return True when ``path`` lives under a configured external skills dir.
 
-    ``skills.external_dirs`` are externally owned: Hermes can discover and view
+    ``skills.external_dirs`` are externally owned: 文枢 can discover and view
     their skills, and foreground user-directed tool calls may still edit them,
     but autonomous lifecycle maintenance must treat them as read-only. This
     helper centralizes the ownership boundary so curator/reporting/tool paths do
@@ -797,7 +797,7 @@ def extract_skill_description(frontmatter: Dict[str, Any]) -> str:
 def iter_skill_index_files(skills_dir: Path, filename: str):
     """Walk skills_dir yielding sorted paths matching *filename*.
 
-    Excludes Hermes metadata, VCS, virtualenv/dependency, cache, and skill
+    Excludes 文枢 metadata, VCS, virtualenv/dependency, cache, and skill
     support directories. Support directories (references/templates/assets/
     scripts) can contain arbitrary markdown and even archived package
     ``SKILL.md`` files, but they are progressive-disclosure data loaded through

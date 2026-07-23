@@ -1,4 +1,4 @@
-"""ACP agent server — exposes Hermes Agent via the Agent Client Protocol."""
+"""ACP agent server — exposes 文枢 via the Agent Client Protocol."""
 
 from __future__ import annotations
 
@@ -156,7 +156,7 @@ def _path_from_file_uri(uri: str) -> Path | None:
 
     Zed may send POSIX file URIs from Linux/WSL workspaces or Windows-ish paths
     when launched through wsl.exe. Translate the common Windows drive form to
-    /mnt/<drive>/... so Hermes running in WSL can read it.
+    /mnt/<drive>/... so 文枢 running in WSL can read it.
     """
     raw = (uri or "").strip()
     if not raw:
@@ -237,7 +237,7 @@ def _resource_link_to_parts(block: ResourceContentBlock) -> list[dict[str, Any]]
                 uri=uri,
                 name=name,
                 title=title,
-                body="[Resource link only; Hermes cannot read non-file ACP resource URIs directly.]",
+                body="[Resource link only; 文枢 cannot read non-file ACP resource URIs directly.]",
             ),
         }]
 
@@ -448,7 +448,7 @@ def _content_blocks_to_openai_user_content(
 
 
 class HermesACPAgent(acp.Agent):
-    """ACP Agent implementation wrapping Hermes AIAgent."""
+    """ACP Agent implementation wrapping 文枢 AIAgent."""
 
     _SLASH_COMMANDS = {
         "help": "Show available commands",
@@ -459,7 +459,7 @@ class HermesACPAgent(acp.Agent):
         "compact": "Compress conversation context",
         "steer": "Inject guidance into the currently running agent turn",
         "queue": "Queue a prompt to run after the current turn finishes",
-        "version": "Show Hermes version",
+        "version": "Show 文枢 version",
     }
 
     _ADVERTISED_COMMANDS = (
@@ -500,7 +500,7 @@ class HermesACPAgent(acp.Agent):
         },
         {
             "name": "version",
-            "description": "Show Hermes version",
+            "description": "Show 文枢 version",
         },
     )
 
@@ -536,7 +536,7 @@ class HermesACPAgent(acp.Agent):
 
         Zed renders ``config_options`` in the prominent selector slot where the
         model picker was visible. Claude/Codex expose policy-like controls as ACP
-        modes, which coexist with the model picker, so Hermes maps edit approval
+        modes, which coexist with the model picker, so 文枢 maps edit approval
         policy onto modes instead of advertising config options.
         """
 
@@ -667,7 +667,7 @@ class HermesACPAgent(acp.Agent):
 
         Zed's circular context indicator is driven by ACP ``usage_update``
         session updates: ``size`` is the model context window and ``used`` is
-        the current request pressure.  Hermes estimates ``used`` from the same
+        the current request pressure.  文枢 estimates ``used`` from the same
         buckets it sends to providers: system prompt, conversation history, and
         tool schemas.
         """
@@ -741,9 +741,9 @@ class HermesACPAgent(acp.Agent):
         current_hermes_session_id: Optional[str] = None,
         previous_hermes_session_id: Optional[str] = None,
     ) -> None:
-        """Send ACP native session metadata after Hermes changes it.
+        """Send ACP native session metadata after 文枢 changes it.
 
-        When the internal Hermes head rotated (e.g. compression-driven session
+        When the internal 文枢 head rotated (e.g. compression-driven session
         split during a turn), pass ``previous_hermes_session_id`` so the
         attached ``_meta.hermes.sessionProvenance`` flags the rotation reason.
         """
@@ -1030,7 +1030,7 @@ class HermesACPAgent(acp.Agent):
 
         Replays the conversation as user/assistant chunks, thinking-mode
         thought chunks, plus reconstructed tool-call start/completion
-        notifications. Merely restoring server-side state makes Hermes
+        notifications. Merely restoring server-side state makes 文枢
         remember context, but leaves the editor looking like a clean thread.
         """
         if not self._conn or not state.history:
@@ -1305,7 +1305,7 @@ class HermesACPAgent(acp.Agent):
         session_id: str,
         **kwargs: Any,
     ) -> PromptResponse:
-        """Run Hermes on the user's prompt and stream events back to the editor."""
+        """Run 文枢 on the user's prompt and stream events back to the editor."""
         state = self.session_manager.get_session(session_id)
         if state is None:
             logger.error("prompt: session %s not found", session_id)
@@ -2015,7 +2015,7 @@ class HermesACPAgent(acp.Agent):
         return f"Queued for the next turn. ({depth} queued)"
 
     def _cmd_version(self, args: str, state: SessionState) -> str:
-        return f"Hermes Agent v{HERMES_VERSION}"
+        return f"文枢 v{HERMES_VERSION}"
 
     # ---- Model switching (ACP protocol method) -------------------------------
 
@@ -2072,7 +2072,7 @@ class HermesACPAgent(acp.Agent):
     async def set_config_option(
         self, config_id: str, session_id: str, value: str, **kwargs: Any
     ) -> SetSessionConfigOptionResponse | None:
-        """Accept ACP config option updates even when Hermes has no typed ACP config surface yet."""
+        """Accept ACP config option updates even when 文枢 has no typed ACP config surface yet."""
         state = self.session_manager.get_session(session_id)
         if state is None:
             logger.warning("Session %s: config update requested for missing session", session_id)

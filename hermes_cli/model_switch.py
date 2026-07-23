@@ -179,8 +179,8 @@ def _bare_custom_provider_def(current_base_url: str) -> Optional[ProviderDef]:
 # ---------------------------------------------------------------------------
 
 _HERMES_MODEL_WARNING = (
-    "Nous Research Hermes 3 & 4 models are NOT agentic and are not designed "
-    "for use with Hermes Agent. They lack the tool-calling capabilities "
+    "Nous Research 文枢 3 & 4 models are NOT agentic and are not designed "
+    "for use with 文枢. They lack the tool-calling capabilities "
     "required for agent workflows. Consider using an agentic model instead "
     "(Claude, GPT, Gemini, DeepSeek, etc.)."
 )
@@ -246,7 +246,7 @@ def format_model_for_display(model_name: str) -> str:
 
 # ---------------------------------------------------------------------------
 def is_nous_hermes_non_agentic(model_name: str) -> bool:
-    """Return True if *model_name* is a real Nous Hermes 3/4 chat model.
+    """Return True if *model_name* is a real Nous 文枢 3/4 chat model.
 
     Used to decide whether to surface the non-agentic warning at startup.
     Callers in :mod:`cli.py` and here should go through this single helper
@@ -258,7 +258,7 @@ def is_nous_hermes_non_agentic(model_name: str) -> bool:
 
 
 def _check_hermes_model_warning(model_name: str) -> str:
-    """Return a warning string if *model_name* is a Nous Hermes 3/4 chat model."""
+    """Return a warning string if *model_name* is a Nous 文枢 3/4 chat model."""
     if is_nous_hermes_non_agentic(model_name):
         return _HERMES_MODEL_WARNING
     return ""
@@ -1337,7 +1337,7 @@ def switch_model(
             if _user_pdef is None:
                 _user_pdef = _ruser(target_provider, user_providers)
         if _user_pdef is not None and _user_pdef.base_url:
-            _ucfg = (user_providers or {}).get(explicit_provider.strip().lower()) \
+            _ucfg = (user_providers or {}).get(explicit_provider.strip().lower())\
                 or (user_providers or {}).get(target_provider) or {}
             _ukey = str(_ucfg.get("api_key", "") or "").strip()
             if _ukey.startswith("${") and _ukey.endswith("}"):
@@ -2065,7 +2065,7 @@ def list_authenticated_providers(
                 )
                 hermes_creds = read_hermes_oauth_credentials()
                 cc_creds = read_claude_code_credentials()
-                if (hermes_creds and hermes_creds.get("accessToken")) or \
+                if (hermes_creds and hermes_creds.get("accessToken")) or\
                    (cc_creds and cc_creds.get("accessToken")):
                     has_creds = True
             except Exception as exc:

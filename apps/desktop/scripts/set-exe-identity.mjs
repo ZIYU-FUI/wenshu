@@ -62,10 +62,10 @@ async function stampExeIdentity(exe, desktopRoot = resolve(import.meta.dirname, 
   await rcedit(exe, {
     icon,
     'version-string': {
-      ProductName: 'Hermes',
-      FileDescription: 'Hermes',
-      CompanyName: 'Nous Research',
-      LegalCopyright: 'Copyright (c) 2026 Nous Research'
+      ProductName: '文枢',
+      FileDescription: '文枢',
+      CompanyName: '文枢 (Wenshu)',
+      LegalCopyright: 'Copyright (c) 2026 安百强'
     }
   })
 

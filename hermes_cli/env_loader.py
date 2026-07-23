@@ -1,4 +1,4 @@
-"""Helpers for loading Hermes .env files consistently across entrypoints."""
+"""Helpers for loading 文枢 .env files consistently across entrypoints."""
 
 from __future__ import annotations
 
@@ -191,7 +191,7 @@ def _sanitize_env_file_if_needed(path: Path) -> None:
     UTF-32-LE's BOM starts with UTF-16-LE's FF FE.
 
     We delegate to ``hermes_cli.config._sanitize_env_lines`` which
-    already knows all valid Hermes env-var names and can split
+    already knows all valid 文枢 env-var names and can split
     concatenated lines correctly.
     """
     if not path.exists():
@@ -290,7 +290,7 @@ def load_hermes_dotenv(
     hermes_home: str | os.PathLike | None = None,
     project_env: str | os.PathLike | None = None,
 ) -> list[Path]:
-    """Load Hermes environment files with user config taking precedence.
+    """Load 文枢 environment files with user config taking precedence.
 
     Behavior:
     - `~/.hermes/.env` overrides stale shell-exported values when present.
@@ -374,7 +374,7 @@ def _apply_external_secret_sources(home_path: Path) -> None:
     """Pull secrets from every enabled external source into env.
 
     Runs AFTER dotenv loads so .env values are visible (sources use them
-    to locate bootstrap tokens) but BEFORE the rest of Hermes reads
+    to locate bootstrap tokens) but BEFORE the rest of 文枢 reads
     ``os.environ`` for credentials.  Any failure here is logged and
     swallowed — external secret sources must never block startup.
 

@@ -22,12 +22,12 @@ Design summary
   same point in startup as the Bitwarden source).
 * Authentication is whatever the user's ``op`` CLI already uses — a
   service-account token (``OP_SERVICE_ACCOUNT_TOKEN``) for headless boxes,
-  or a desktop/interactive session (``OP_SESSION_*``).  Hermes never
+  or a desktop/interactive session (``OP_SESSION_*``).  文枢 never
   authenticates on the user's behalf; it shells out to an already-trusted,
   already-authenticated CLI.
 * Failures NEVER block startup.  A missing ``op`` binary, expired auth, a
   bad reference, or a permission error each surface a one-line warning and
-  Hermes continues with whatever credentials ``.env`` already had.
+  文枢 continues with whatever credentials ``.env`` already had.
 
 The atomic-write / ``0600`` / TTL cache mechanics are shared with the other
 backends via :mod:`agent.secret_sources._cache` — successful, complete pulls
@@ -613,7 +613,7 @@ def _classify_op_error(message: str) -> ErrorKind:
     lowered = message.lower()
     if "timed out" in lowered:
         return ErrorKind.TIMEOUT
-    if "not found on path" in lowered or "not an executable" in lowered \
+    if "not found on path" in lowered or "not an executable" in lowered\
             or "failed to invoke" in lowered:
         return ErrorKind.BINARY_MISSING
     if any(tok in lowered for tok in ("unauthorized", "not signed in",

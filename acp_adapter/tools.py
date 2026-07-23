@@ -211,7 +211,7 @@ def _json_loads_maybe(value: Optional[str]) -> Any:
 
 
 def _tool_result_failed(result: Optional[str], tool_name: str | None = None) -> bool:
-    """Return True when a structured Hermes tool result clearly failed.
+    """Return True when a structured 文枢 tool result clearly failed.
 
     Keep this deliberately conservative. Plain text can contain words like
     "error" because tests failed or a command printed diagnostics; Zed should

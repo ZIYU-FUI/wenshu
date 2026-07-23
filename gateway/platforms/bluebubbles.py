@@ -169,7 +169,7 @@ class BlueBubblesAdapter(BasePlatformAdapter):
         """Compile group-mention wake words from config/env.
 
         ``raw`` is a list (from config or env JSON), a string (raw env var:
-        JSON list, or comma/newline-separated), or None (use Hermes defaults).
+        JSON list, or comma/newline-separated), or None (use 文枢 defaults).
         """
         if raw is None:
             patterns = list(DEFAULT_MENTION_PATTERNS)

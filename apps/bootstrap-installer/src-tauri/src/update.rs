@@ -230,15 +230,15 @@ async fn run_update(app: AppHandle) -> Result<()> {
     // already exited and waited for the install locks to clear before launching
     // us, and wait_for_install_locks_free below force-kills any straggler — so by the
     // time `hermes update` runs there is no legitimate hermes.exe to protect,
-    // and the guard would only produce a false "Hermes is still running" stop.
+    // and the guard would only produce a false "文枢 is still running" stop.
     //
     // NOTE: --force does NOT bypass the venv-python holder guard (that needs
-    // an explicit `--force-venv`, which we deliberately do not pass). Our lock
+    // an explicit --force-venv, which we deliberately do not pass). Our lock
     // probe only checks the hermes.exe shim and app.asar, so an external venv
     // python holding a native .pyd (a user terminal, an unmanaged gateway)
     // could still be alive here — mutating the venv under it would strand the
     // install half-updated. If that guard fires, it exits 2 and the match arm
-    // below surfaces the correct "close all Hermes windows" message.
+    // below surfaces the correct "close all 文枢 windows" message.
     update_args.push("--force".into());
     update_args.push("--branch".into());
     update_args.push(update_branch);
@@ -266,7 +266,7 @@ async fn run_update(app: AppHandle) -> Result<()> {
     // second `hermes update` runs clean because the now-current module is loaded
     // from the start. Rather than make the parked user click Update twice (and
     // stare at a scary crash first), retry once automatically. Skip the retry
-    // for the concurrent-instance guard (exit 2) — that's a "close Hermes" state
+    // for the concurrent-instance guard (exit 2) — that's a "close 文枢" state
     // a retry can't fix.
     if !matches!(update.exit_code, Some(0) | Some(UPDATE_EXIT_CONCURRENT)) {
         emit_log(
@@ -293,7 +293,7 @@ async fn run_update(app: AppHandle) -> Result<()> {
             emit_stage(&app, "update", StageState::Succeeded, Some(update_ms), None);
         }
         Some(code) if code == UPDATE_EXIT_CONCURRENT => {
-            let msg = "Hermes is still running. Close all Hermes windows and try \
+            let msg = "文枢 is still running. Close all 文枢 windows and try \
                        the update again."
                 .to_string();
             emit_stage(
@@ -460,7 +460,7 @@ async fn run_update(app: AppHandle) -> Result<()> {
                 &app,
                 None,
                 LogStream::Stderr,
-                &format!("[update] could not auto-launch desktop: {err}. Launch Hermes manually."),
+                &format!("[update] could not auto-launch desktop: {err}. Launch 文枢 manually."),
             );
         }
     } else if let Err(err) =
@@ -473,7 +473,7 @@ async fn run_update(app: AppHandle) -> Result<()> {
             &app,
             None,
             LogStream::Stdout,
-            &format!("[update] could not auto-launch desktop: {err}. Launch Hermes manually."),
+            &format!("[update] could not auto-launch desktop: {err}. Launch 文枢 manually."),
         );
     }
 
@@ -487,7 +487,7 @@ pub(crate) async fn wait_for_install_locks_free(install_root: &Path, app: &AppHa
     let lock_targets = install_lock_probe_paths(install_root);
     let deadline = Instant::now() + DESKTOP_EXIT_WAIT;
 
-    emit_log(app, Some(stage), LogStream::Stdout, "[handoff] waiting for Hermes to exit…");
+    emit_log(app, Some(stage), LogStream::Stdout, "[handoff] waiting for 文枢 to exit…");
 
     loop {
         let locked = locked_paths(&lock_targets);
@@ -495,20 +495,20 @@ pub(crate) async fn wait_for_install_locks_free(install_root: &Path, app: &AppHa
             return;
         }
         if Instant::now() >= deadline {
-            // Last resort: a backend hermes.exe (or the desktop Hermes.exe
+            // Last resort: a backend hermes.exe (or the desktop 文枢.exe
             // itself) is still holding one of the update-sensitive files. The
             // desktop should have reaped its tree before handing off, but
             // SIGTERM races / detached grandchildren / AV handles can leave a
             // straggler. Rather than "proceed anyway" straight into uv's
             // "Access is denied" or install.ps1's locked app.asar failure,
-            // force-kill every Hermes.exe except ourselves, then give the OS a
+            // force-kill every 文枢.exe except ourselves, then give the OS a
             // beat to unload the image.
             emit_log(
                 app,
                 Some(stage),
                 LogStream::Stdout,
                 &format!(
-                    "[handoff] Hermes still holding install files ({}); force-killing stragglers…",
+                    "[handoff] 文枢 still holding install files ({}); force-killing stragglers…",
                     format_locked_paths(&locked)
                 ),
             );
@@ -554,8 +554,8 @@ fn desktop_app_payload_paths(install_root: &Path) -> Vec<PathBuf> {
         ]
     } else if cfg!(target_os = "macos") {
         vec![
-            release.join("mac").join("Hermes.app").join("Contents").join("Resources").join("app.asar"),
-            release.join("mac-arm64").join("Hermes.app").join("Contents").join("Resources").join("app.asar"),
+            release.join("mac").join("文枢.app").join("Contents").join("Resources").join("app.asar"),
+            release.join("mac-arm64").join("文枢.app").join("Contents").join("Resources").join("app.asar"),
         ]
     } else {
         vec![release.join("linux-unpacked").join("resources").join("app.asar")]
@@ -597,7 +597,7 @@ fn force_kill_other_hermes() {
                 "/F",
                 "/T",
                 "/IM",
-                "hermes.exe",
+                "文枢.exe",
                 "/FI",
                 &format!("PID ne {my_pid}"),
             ])
@@ -821,7 +821,7 @@ async fn install_macos_app_update(
 
     let rebuilt_app = crate::bootstrap::resolve_hermes_desktop_app(install_root).ok_or_else(|| {
         anyhow!(
-            "desktop rebuild succeeded but no Hermes.app was found under {}",
+            "desktop rebuild succeeded but no 文枢.app was found under {}",
             install_root.join("apps").join("desktop").join("release").display()
         )
     })?;
@@ -1193,8 +1193,8 @@ mod tests {
     #[test]
     fn parses_only_app_targets() {
         assert_eq!(
-            target_app_from_args(["--update", "--target-app", "/Applications/Hermes.app"]),
-            Some(PathBuf::from("/Applications/Hermes.app"))
+            target_app_from_args(["--update", "--target-app", "/Applications/文枢.app"]),
+            Some(PathBuf::from("/Applications/文枢.app"))
         );
         assert_eq!(target_app_from_args(["--target-app", "/tmp/not-an-app"]), None);
     }
@@ -1221,9 +1221,9 @@ mod tests {
     #[tokio::test]
     async fn swap_installs_new_bundle_and_cleans_up() {
         let base = unique_tmp_dir("ok");
-        let target = base.join("Hermes.app");
-        let tmp = base.join("Hermes.app.hermes-update-new");
-        let old = base.join("Hermes.app.hermes-update-old");
+        let target = base.join("文枢.app");
+        let tmp = base.join("文枢.app.hermes-update-new");
+        let old = base.join("文枢.app.hermes-update-old");
         write_marker(&target, "OLD");
         write_marker(&tmp, "NEW");
 
@@ -1251,9 +1251,9 @@ mod tests {
         //  - `old` is a NON-EMPTY dir  -> rename(target, old) fails
         //  - `tmp` does not exist       -> rename(tmp, target) fails
         let base = unique_tmp_dir("fail");
-        let target = base.join("Hermes.app");
-        let tmp = base.join("Hermes.app.hermes-update-new"); // intentionally absent
-        let old = base.join("Hermes.app.hermes-update-old");
+        let target = base.join("文枢.app");
+        let tmp = base.join("文枢.app.hermes-update-new"); // intentionally absent
+        let old = base.join("文枢.app.hermes-update-old");
         write_marker(&target, "OLD");
         write_marker(&old, "OCCUPIED"); // non-empty => rename(target,old) fails
 
@@ -1274,9 +1274,9 @@ mod tests {
         // Move-aside succeeds but installing the staged bundle fails (tmp
         // absent). The original must be rolled back from `old` to `target`.
         let base = unique_tmp_dir("rollback");
-        let target = base.join("Hermes.app");
-        let tmp = base.join("Hermes.app.hermes-update-new"); // absent
-        let old = base.join("Hermes.app.hermes-update-old");
+        let target = base.join("文枢.app");
+        let tmp = base.join("文枢.app.hermes-update-new"); // absent
+        let old = base.join("文枢.app.hermes-update-old");
         write_marker(&target, "OLD");
 
         let result = swap_in_new_bundle(&tmp, &target, &old).await;

@@ -1,5 +1,5 @@
 """
-Single source of truth for provider identity in Hermes Agent.
+Single source of truth for provider identity in 文枢.
 
 Two data sources, merged at runtime:
 
@@ -7,7 +7,7 @@ Two data sources, merged at runtime:
    names, and full model metadata (context, cost, capabilities).  This is
    the primary database.
 
-2. **Hermes overlays** — transport type, auth patterns, aggregator flags,
+2. **文枢 overlays** — transport type, auth patterns, aggregator flags,
    and additional env vars that models.dev doesn't track.  Small dict,
    maintained here.
 
@@ -421,8 +421,8 @@ def get_provider(name: str) -> Optional[ProviderDef]:
     """Look up a built-in provider by id or alias.
 
     Resolution order:
-      1. Hermes overlays (for providers not in models.dev: nous, openai-codex, etc.)
-      2. models.dev catalog + Hermes overlay
+      1. 文枢 overlays (for providers not in models.dev: nous, openai-codex, etc.)
+      2. models.dev catalog + 文枢 overlay
 
     User-defined providers from config.yaml (``providers:`` / ``custom_providers:``)
     are resolved by :func:`resolve_provider_full`, which layers ``resolve_user_provider``

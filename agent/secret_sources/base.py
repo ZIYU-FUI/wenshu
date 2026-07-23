@@ -3,7 +3,7 @@
 A *secret source* resolves credentials from an external secret manager
 (Bitwarden Secrets Manager, 1Password, an OS keystore, a user script, ...)
 into environment-variable-shaped values at process startup, AFTER
-``~/.hermes/.env`` has loaded and BEFORE the rest of Hermes reads
+``~/.hermes/.env`` has loaded and BEFORE the rest of 文枢 reads
 ``os.environ``.
 
 Scope of the contract (deliberate, please do not widen):
@@ -229,9 +229,9 @@ def run_secret_cli(
     * The child gets ``PATH``/``HOME``/locale basics plus only the env
       vars named in ``allow_env`` (auth/session vars) and ``extra_env``
       — never a copy of the full post-dotenv ``os.environ``, which by
-      this point holds every credential Hermes knows about.
+      this point holds every credential 文枢 knows about.
     * ``NO_COLOR=1`` is set and stderr/stdout are ANSI-scrubbed so
-      helper diagnostics can't smuggle escape sequences into Hermes
+      helper diagnostics can't smuggle escape sequences into 文枢
       output.
     * stdin is ``/dev/null`` so a helper that decides to prompt fails
       fast instead of hanging startup.

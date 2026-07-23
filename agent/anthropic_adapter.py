@@ -1,6 +1,6 @@
-"""Anthropic Messages API adapter for Hermes Agent.
+"""Anthropic Messages API adapter for 文枢.
 
-Translates between Hermes's internal OpenAI-style message format and
+Translates between 文枢's internal OpenAI-style message format and
 Anthropic's Messages API. Follows the same pattern as the codex_responses
 adapter — all provider-specific logic is isolated here.
 
@@ -1103,7 +1103,7 @@ def _refresh_oauth_token(creds: Dict[str, Any]) -> Optional[str]:
     Claude Code's OAuth refresh tokens are single-use: a successful refresh
     rotates the pair and invalidates the old refresh token. Claude Code itself
     also refreshes on its own schedule (IDE/CLI activity), so by the time
-    Hermes notices an expired token, Claude Code may have already rotated it.
+    文枢 notices an expired token, Claude Code may have already rotated it.
     POSTing our now-stale refresh token in that window races Claude Code and
     fails with ``invalid_grant``.
 
@@ -1236,7 +1236,7 @@ def _resolve_claude_code_token_from_credentials(creds: Optional[Dict[str, Any]] 
 def _prefer_refreshable_claude_code_token(env_token: str, creds: Optional[Dict[str, Any]]) -> Optional[str]:
     """Prefer Claude Code creds when a persisted env OAuth token would shadow refresh.
 
-    Hermes historically persisted setup tokens into ANTHROPIC_TOKEN. That makes
+    文枢 historically persisted setup tokens into ANTHROPIC_TOKEN. That makes
     later refresh impossible because the static env token wins before we ever
     inspect Claude Code's refreshable credential file. If we have a refreshable
     Claude Code credential record, prefer it over the static env OAuth token.
@@ -1299,7 +1299,7 @@ def resolve_anthropic_token() -> Optional[str]:
     """Resolve an Anthropic token from all available sources.
 
     Priority:
-      1. ANTHROPIC_TOKEN env var (OAuth/setup token saved by Hermes)
+      1. ANTHROPIC_TOKEN env var (OAuth/setup token saved by 文枢)
       2. CLAUDE_CODE_OAUTH_TOKEN env var
       3. Claude Code credentials (~/.claude.json or ~/.claude/.credentials.json)
          — with automatic refresh if expired and a refresh token is available
@@ -1455,7 +1455,7 @@ def run_hermes_oauth_login_pure() -> Optional[Dict[str, Any]]:
     auth_url = f"https://claude.ai/oauth/authorize?{urlencode(params)}"
 
     print()
-    print("Authorize Hermes with your Claude Pro/Max subscription.")
+    print("Authorize 文枢 with your Claude Pro/Max subscription.")
     print()
     print("╭─ Claude Pro/Max Authorization ────────────────────╮")
     print("│                                                   │")
@@ -1570,7 +1570,7 @@ def read_hermes_oauth_credentials() -> Optional[Dict[str, Any]]:
             if data.get("accessToken"):
                 return data
         except (json.JSONDecodeError, OSError, IOError) as e:
-            logger.debug("Failed to read Hermes OAuth credentials: %s", e)
+            logger.debug("Failed to read 文枢 OAuth credentials: %s", e)
     return None
 
 
@@ -2566,8 +2566,8 @@ def build_anthropic_kwargs(
         for block in system:
             if isinstance(block, dict) and block.get("type") == "text":
                 text = block.get("text", "")
-                text = text.replace("Hermes Agent", "Claude Code")
-                text = text.replace("Hermes agent", "Claude Code")
+                text = text.replace("文枢", "Claude Code")
+                text = text.replace("文枢 agent", "Claude Code")
                 text = text.replace("hermes-agent", "claude-code")
                 text = text.replace("Nous Research", "Anthropic")
                 block["text"] = text

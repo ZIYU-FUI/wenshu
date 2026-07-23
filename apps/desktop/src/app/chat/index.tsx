@@ -329,7 +329,7 @@ export function ChatView({
       }
 
       if (!gateway) {
-        throw new Error('Hermes gateway unavailable')
+        throw new Error('文枢 gateway unavailable')
       }
 
       return gateway.request<ModelOptionsResponse>('model.options', {

@@ -1,11 +1,11 @@
 """
-Session Insights Engine for Hermes Agent.
+Session Insights Engine for 文枢.
 
 Analyzes historical session data from the SQLite state database to produce
 comprehensive usage insights — token consumption, cost estimates, tool usage
 patterns, activity trends, model/platform breakdowns, and session metrics.
 
-Inspired by Claude Code's /insights command, adapted for Hermes Agent's
+Inspired by Claude Code's /insights command, adapted for 文枢's
 multi-platform architecture with additional cost estimation and platform
 breakdown capabilities.
 
@@ -900,7 +900,7 @@ class InsightsEngine:
         # Header
         lines.append("")
         lines.append("  ╔══════════════════════════════════════════════════════════╗")
-        lines.append("  ║                    📊 Hermes Insights                    ║")
+        lines.append("  ║                    📊 文枢 Insights                    ║")
         period_label = f"Last {days} days"
         if src_filter:
             period_label += f" ({src_filter})"
@@ -1035,7 +1035,7 @@ class InsightsEngine:
         o = report["overview"]
         days = report["days"]
 
-        lines.append(f"📊 **Hermes Insights** — Last {days} days\n")
+        lines.append(f"📊 **文枢 Insights** — Last {days} days\n")
 
         # Overview
         lines.append(f"**Sessions:** {o['total_sessions']} | **Messages:** {o['total_messages']:,} | **Tool calls:** {o['total_tool_calls']:,}")

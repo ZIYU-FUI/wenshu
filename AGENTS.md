@@ -5,6 +5,37 @@
 > **基线**:NousResearch/hermes-agent v0.19.0(tag `v2026.7.20`,commit `3ef6bbd20`),MIT License,Copyright (c) 2025 Nous Research
 > **v0.6.0 PM 协议**:PM↔CC 单 loop(详见 §4)+ AIF 派完退场
 > **新增**:跟上游漂移工作流(详见 §10,出资方 2026-07-23 拍)
+> **v0.6.1 (2026-07-23 拍)**:小单快跑 + CC 并发 ≤ 3(详见 §11),PM 派单前必读
+
+---
+
+## 0. 进入研发模式加载清单 (PM-direct 默认行为)
+
+任何角色(PM / AIF / CC)进 wenshu 项目开工前, **必须** 加载以下内容:
+
+### 0.1 项目文档 (本仓)
+- `AGENTS.md` ← 当前文件,协作规则真理源
+- `CLAUDE.md` ← CC 启动自动读,项目上下文
+- `README.md` ← 项目基线 + 跟上游漂移策略
+
+### 0.2 PM-direct 必加载技能 (进 wenshu 项目时)
+- `novel-platform-pm-workflow` (v1.85+,含 GD 小单快跑 + CC 并发 ≤ 3 + GB CC fire session-detach)
+- `pm-workflow` (PM 整体工作流硬边界)
+- `pm-loop-execution` (看板任务执行)
+- `user-communication-style` (出资方 安百强 飞书回复风格)
+
+### 0.3 CC 必加载 (进 wenshu 项目时)
+- `~/.claude/CLAUDE.md` (CC 全局 anti-hallucination 紧箍咒)
+- `wenshu/CLAUDE.md` (本项目上下文)
+- `wenshu/AGENTS.md` §4 PM↔CC 单 loop 流程 + §11 小单快跑
+
+### 0.4 AIF 必加载 (进 wenshu 项目时)
+- `novel-platform-pm-workflow` (沿用 PM-direct 工作流真值源)
+- `wenshu/AGENTS.md` (AIF 边界在 §1)
+
+### 0.5 不需要加载
+- 任何 hermes 内部 skill(跟上游漂移是 PM 维护性任务,不阻塞研发)
+- 跨项目 skill(如 novel-craft 路径校验,只 novel-craft 项目用)
 
 ---
 
@@ -36,6 +67,12 @@
 - ≤ 4 在跑卡硬约束(出资方 v0.5.25 拍板放宽,从 ≤ 2 → ≤ 4)
 - **单任务单一功能 + 打 .app 给老板试用验收**(出资方 7/10 18:14 拍板沿用,7/23 拍文枢沿用)
   - 协议:v0.6.0 PM↔CC 单 loop,详见 §4
+- **小单快跑 + CC 并发 ≤ 3** (出资方 7/23 拍,文枢 v0.6.1):
+  - 每个工单 AC ≤ 5 + 文件 ≤ 3,超标 → 拆
+  - 文件互不冲突 → 并发派 ≤ 3
+  - 文件冲突 / 依赖 → 串行
+  - 大单 (跑 > 10 分钟无进展) → PM-direct 主动 abort + 拆小单重派
+  - 详细协议见 §11.5
 - **跟上游漂移 = 维护性任务**(出资方 7/23 拍):
   - 不阻塞 P0/P1 阶段门控
   - PM 每周/每月同步一次进度(老板不在 loop 内)
@@ -53,7 +90,7 @@
    └─ CLI 失败(CC 挂)→ PM 自修 CC
       ├─ 修好 → 重派
       └─ 修不好 → 升级 AIF
-[I4] CC 完成 → 写 LOG + 建议
+[I4] CC 完成 → 写 LOG + **方案**
 [I5] PM 验收(30 秒 ✅/❌)
    ├─ ❌ → 改 → [I1]
    └─ ✅ → [I6]
@@ -196,6 +233,45 @@ PM↔CC 投入(实测估算):
 - 外环治不好 → 升级老板(出资方拍板换方向/停/改 PM 模式)
 - 升级 ≠ 甩锅 = 带当前进度 + 让对方能决策 + 不解释超过 3 行
 
+## 11.5 小单快跑 + CC 并发 ≤ 3 协议 (出资方 7/23 拍,文枢 v0.6.1)
+
+### 拍板真意
+- PM-direct 默认 = 拆小单快跑,不是单张工单塞所有事
+- CC **必须**并发派 ≤ 3 张(禁止串行 1 张)
+- 大单 (AC > 5 / 文件 > 3 / 跑 > 10 分钟无进展) → 拆
+
+### Rule 1: 小单快跑 (AC ≤ 5 + 文件 ≤ 3)
+- 每个工单 AC 列表 ≤ 5 条,改文件 ≤ 3 个
+- 不达标 → 拆多张工单
+- 例: 文枢 0.0.2 "全 monorepo 品牌字符串替换" 拆成 3 张:
+  - WO-N+1: `apps/desktop/package.json` build 块 (1 文件, 4-6 字段 patch)
+  - WO-N+2: 全 monorepo 字符串显示替换 (n 文件, 每文件 < 5 处 patch)
+  - WO-N+3: `npm run dist:mac` 出 .app + cp /Applications/文枢.app + open
+
+### Rule 2: CC 并发上限 ≤ 3
+- 文件互不冲突 → 并发派 ≤ 3 张
+- 文件冲突 (同一文件) → 串行 (或拆到不冲突)
+- 依赖关系 (WO-N 等 WO-N-1 跑完) → 串行
+
+### Rule 3: 派单姿势 (PM-direct CC fire)
+- nohup + disown + </dev/null + setsid 4 件套(压制 session-detach 杀进程)
+- 派单前 prompt 写到 `/tmp/cc-out/<wo-id>-prompt.md`
+- 然后 `os.setsid()` + fork exec fire
+- 详细 Pitfall 见 `novel-platform-pm-workflow` SKILL v1.85 GD / GB
+
+### Rule 4: 大单兜底
+- CC fire 跑超 10 分钟没 stdout 进展 (size 卡 0 字节) → PM-direct 主动 abort + 拆小单重派
+- 不允许"派完等 30 分钟才察觉死" (7/23 文枢 0.0.2 实战反例: 30 分钟 0 字节才发现死)
+
+### Pitfall (GD-1): 派单前先自检
+"这张 WO AC > 5 / 文件 > 3 / 跑 > 10 分钟" 任一, 拆。
+出资方拍板"少做选择", 不接受"一锅端派单"。
+
+### Pitfall (GD-2): 并发派单写明文件作用域
+CC 跨 WO 不会撞 working tree。
+例: WO-004 限定 "只改 apps/desktop/package.json build 块",
+WO-005 限定 "不改 package.json build 块, 只改 n 个 src 文件 + README.md"。
+
 ## 12. 跨边界红线
 
 | 边界 | 红线 |
@@ -206,7 +282,7 @@ PM↔CC 投入(实测估算):
 | PM → CC | 替 CC 执行 |
 | 任何 → 同时多项目 | 派多项目并行 |
 | PM → `/Users/anbaiqiang/.hermes/` | 越界!hermes 端是出资方 7/9 §11 边界外 |
-| **PM → 文枢改名工单** | 0.0.1 LICENSE 完成后才能派 0.0.2 品牌重塑(避免无 LICENSE 情况下发布 .app) |
+| **PM → 文枢改名工单** | 0.0.1 LICENSE 完成后才能派 0.0.2 品牌重塑(禁止无 LICENSE 情况下发布 .app) |
 | **CC → 改 LICENSE 文本** | 严禁 CC 改 LICENSE 内容,改 = 走 PM 升级老板 |
 | **CC → 砍 4-tier ladder rung** | 仅 0.0.3 工单内允许,其他工单内改 = 越界 |
 

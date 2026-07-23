@@ -2,7 +2,7 @@
 
 On Windows, Python's ``sys.stdout``/``sys.stderr`` default to the console's
 active code page (often ``cp1252``, sometimes ``cp437``, occasionally ``cp932``
-on Japanese locales, etc.).  Hermes's banners, tool output feed, and slash
+on Japanese locales, etc.).  文枢's banners, tool output feed, and slash
 command listings all contain Unicode: box-drawing characters (``─┌┐└┘├┤``),
 mathematical and geometric symbols (``◆ ◇ ◎ ▣ ⚔ ⚖ →``), and user-supplied
 text in any language.  Printing those to a cp1252 console raises
@@ -47,7 +47,7 @@ def _flip_console_code_page_to_utf8() -> None:
     """Set the attached console's input and output code pages to UTF-8.
 
     Uses ``SetConsoleCP`` / ``SetConsoleOutputCP`` via ``ctypes``.  Failure
-    is silent — if there's no attached console (e.g. Hermes is running
+    is silent — if there's no attached console (e.g. 文枢 is running
     behind a redirected stdout, under a service, or inside a PTY-less CI
     runner) these calls simply return 0 and we move on.
 
@@ -167,7 +167,7 @@ def _default_windows_editor() -> str:
        blocking editor (``subprocess.call(["notepad", file])`` blocks until
        the user closes the window).  This is the "always-works" default.
 
-    The prompt_toolkit buffer's ``open_in_editor`` and Hermes's
+    The prompt_toolkit buffer's ``open_in_editor`` and 文枢's
     ``hermes config edit`` both honour ``$EDITOR``.  Users who prefer a
     different editor can override:
 
@@ -176,8 +176,8 @@ def _default_windows_editor() -> str:
     - Notepad++: ``$env:EDITOR = "'C:\\Program Files\\Notepad++\\notepad++.exe' -multiInst -nosession"``
     - Neovim: ``$env:EDITOR = "nvim"``  (if installed)
 
-    Set this before launching Hermes (User env var in Windows Settings, or
-    export in a PowerShell profile) and Hermes picks it up automatically.
+    Set this before launching 文枢 (User env var in Windows Settings, or
+    export in a PowerShell profile) and 文枢 picks it up automatically.
     """
     import shutil
 
@@ -202,7 +202,7 @@ def _augment_path_with_known_tools() -> None:
     *spawned* processes only — already-running shells (including the one the
     user invokes ``hermes`` from right after install) retain their old PATH.
 
-    Any subprocess Hermes spawns — bash, ``rg``, ``grep``, ``npm`` — inherits
+    Any subprocess 文枢 spawns — bash, ``rg``, ``grep``, ``npm`` — inherits
     that stale PATH and reports commands as missing even though they're on
     disk.  Symptom: ``search_files`` reports "rg/find not available" when
     the user clearly just installed ripgrep.

@@ -1,10 +1,10 @@
 {
-  "name": "hermes",
-  "productName": "Hermes",
+  "name": "wenshu",
+  "productName": "文枢",
   "private": true,
-  "version": "0.17.0",
-  "description": "Native desktop shell for Hermes Agent.",
-  "author": "Nous Research",
+  "version": "0.0.1",
+  "description": "文枢 (Wenshu) — 基于 Hermes Agent v0.19.0 (MIT) 深度改 fork",
+  "author": [{"name": "安百强"}, {"name": "Nous Research (original)"}],
   "type": "module",
   "main": "dist/electron-main.mjs",
   "engines": {
@@ -156,9 +156,9 @@
   },
   "build": {
     "electronVersion": "40.10.2",
-    "appId": "com.nousresearch.hermes",
-    "productName": "Hermes",
-    "executableName": "Hermes",
+    "appId": "com.wenshu.app",
+    "productName": "文枢",
+    "executableName": "文枢",
     "protocols": [
       {
         "name": "Hermes Protocol",
@@ -167,7 +167,7 @@
         ]
       }
     ],
-    "artifactName": "Hermes-${version}-${os}-${arch}.${ext}",
+    "artifactName": "文枢-${version}-${arch}.${ext}",
     "icon": "assets/icon",
     "directories": {
       "output": "release"
@@ -203,11 +203,12 @@
       "entitlements": "electron/entitlements.mac.plist",
       "entitlementsInherit": "electron/entitlements.mac.inherit.plist",
       "extendInfo": {
-        "CFBundleDisplayName": "Hermes",
-        "CFBundleExecutable": "Hermes",
-        "CFBundleName": "Hermes",
-        "NSAudioCaptureUsageDescription": "Hermes uses audio capture for voice conversations.",
-        "NSMicrophoneUsageDescription": "Hermes uses the microphone for voice input and voice conversations."
+        "CFBundleDisplayName": "文枢",
+        "CFBundleExecutable": "文枢",
+        "CFBundleName": "文枢",
+        "CFBundleIdentifier": "com.wenshu.app",
+        "NSAudioCaptureUsageDescription": "文枢 uses audio capture for voice conversations.",
+        "NSMicrophoneUsageDescription": "文枢 uses the microphone for voice input and voice conversations."
       },
       "gatekeeperAssess": false,
       "hardenedRuntime": true,
@@ -217,7 +218,7 @@
       ]
     },
     "dmg": {
-      "title": "Install Hermes",
+      "title": "文枢",
       "backgroundColor": "#f5f5f7",
       "iconSize": 96,
       "window": {
@@ -239,7 +240,7 @@
       ]
     },
     "win": {
-      "legalTrademarks": "Hermes",
+      "legalTrademarks": "文枢",
       "target": [
         "nsis",
         "msi"
@@ -249,7 +250,7 @@
     "linux": {
       "category": "Development",
       "maintainer": "Nous Research <support@nousresearch.com>",
-      "synopsis": "Native desktop shell for Hermes Agent.",
+      "synopsis": "Native desktop shell for 文枢.",
       "target": [
         "AppImage",
         "deb",
@@ -260,8 +261,8 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "perMachine": false,
-      "shortcutName": "Hermes",
-      "uninstallDisplayName": "Hermes",
+      "shortcutName": "文枢",
+      "uninstallDisplayName": "文枢",
       "warningsAsErrors": false
     }
   }

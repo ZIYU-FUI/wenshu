@@ -1,4 +1,4 @@
-"""Shared ANSI color utilities for Hermes CLI modules."""
+"""Shared ANSI color utilities for 文枢 CLI modules."""
 
 import os
 import sys

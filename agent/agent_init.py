@@ -546,7 +546,7 @@ def init_agent(
     # AIAgent is created for every gateway request, so without the guard
     # each message leaks one OS thread and the process eventually exhausts
     # the system thread limit (RuntimeError: can't start new thread).
-    if (agent.provider == "openrouter" or agent._is_openrouter_url()) and \
+    if (agent.provider == "openrouter" or agent._is_openrouter_url()) and\
             not _ra()._openrouter_prewarm_done.is_set():
         _ra()._openrouter_prewarm_done.set()
         threading.Thread(
@@ -1940,7 +1940,7 @@ def init_agent(
         raise ValueError(
             f"Model {agent.model} has a context window of {_ctx:,} tokens, "
             f"which is below the minimum {MINIMUM_CONTEXT_LENGTH:,} required "
-            f"by Hermes Agent.  Choose a model with at least "
+            f"by 文枢.  Choose a model with at least "
             f"{MINIMUM_CONTEXT_LENGTH // 1000}K context.  If your server "
             f"reports a window smaller than the model's true window, set "
             f"model.context_length in config.yaml to the real value "
@@ -1961,7 +1961,7 @@ def init_agent(
             _hermes_warn = _check_hermes_model_warning(agent.model or "")
             if _hermes_warn:
                 _user_msg = (
-                    "⚠ Nous Research Hermes 3 & 4 models are NOT agentic — they "
+                    "⚠ Nous Research 文枢 3 & 4 models are NOT agentic — they "
                     "lack reliable tool-calling for agent workflows (delegation, "
                     "cron, proactive tools). Consider an agentic model instead "
                     "(Claude, GPT, Gemini, Qwen-Coder, etc.)."

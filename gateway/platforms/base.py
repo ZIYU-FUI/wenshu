@@ -56,7 +56,7 @@ def _thread_metadata_for_source(source, reply_to_message_id: str | None = None) 
     """Build platform-aware thread metadata for adapter sends.
 
     Most platforms route threaded sends with a generic ``thread_id`` metadata
-    value. Telegram private-chat topics created through Hermes' DM-topic helper
+    value. Telegram private-chat topics created through 文枢' DM-topic helper
     are exposed in updates as ``message_thread_id`` plus a reply anchor. Live
     user-message replies route with ``message_thread_id`` + ``reply_to_message_id``;
     synthetic/resumed sends that have no reply anchor fall back to Telegram's
@@ -1056,7 +1056,7 @@ _MEDIA_DELIVERY_CACHE_SUBDIRS = (
 
 
 def _profile_cache_roots() -> List[Path]:
-    """Return per-profile canonical cache roots under the shared Hermes root.
+    """Return per-profile canonical cache roots under the shared 文枢 root.
 
     Profile gateways write generated artifacts to
     ``<root>/profiles/<name>/cache/{images,audio,...}``. The static safe-roots
@@ -1219,7 +1219,7 @@ def _path_under_denied_prefix(resolved: Path) -> bool:
     denylist so that a non-root gateway can't deliver another user's home, but
     on a root-run gateway ``$HOME=/root`` and the operator's own deliverables
     (``/root/work/proposal.docx``) live directly under it. The credential
-    sub-directories inside home (``~/.ssh``, ``~/.aws``, ...) and Hermes
+    sub-directories inside home (``~/.ssh``, ``~/.aws``, ...) and 文枢
     secrets (``~/.hermes/.env``, ``auth.json``) are *separate, more-specific*
     denied paths, so they stay blocked regardless of this exception — it can
     only un-block a plain file sitting in the running user's home tree, never a
@@ -2617,7 +2617,7 @@ class BasePlatformAdapter(ABC):
         final-editing the preview.
 
         Some adapters can send richer final messages than their current edit
-        implementation supports. Telegram is the motivating case: Hermes sends
+        implementation supports. Telegram is the motivating case: 文枢 sends
         final replies through ``sendRichMessage`` but still finalizes streamed
         previews through its existing MarkdownV2 edit path until Bot API 10.1's
         ``rich_message`` edit parameter is wired directly. Such adapters
@@ -3485,7 +3485,7 @@ class BasePlatformAdapter(ABC):
         Override in subclasses to send audio as voice bubbles (Telegram)
         or file attachments (Discord). Default falls back to a friendly
         notice — never echo the local audio_path into chat, since it is a
-        host filesystem path that would leak the Hermes home layout.
+        host filesystem path that would leak the 文枢 home layout.
         """
         # audio_path is intentionally NOT included in the chat text — it is a
         # host-local path that leaks filesystem layout. The path is logged for
@@ -3535,7 +3535,7 @@ class BasePlatformAdapter(ABC):
         Override in subclasses to send videos as inline playable media.
         Default falls back to a friendly notice — never echo the local
         video_path into chat, since it is a host filesystem path that
-        would leak the Hermes home layout.
+        would leak the 文枢 home layout.
         """
         # See send_voice for the rationale: do not echo host paths into chat.
         logger.warning(
@@ -3563,7 +3563,7 @@ class BasePlatformAdapter(ABC):
         Override in subclasses to send files as downloadable attachments.
         Default falls back to a friendly notice — never echo the local
         file_path into chat, since it is a host filesystem path that
-        would leak the Hermes home layout.
+        would leak the 文枢 home layout.
         """
         # See send_voice for the rationale: do not echo host paths into chat.
         logger.warning(
@@ -3597,7 +3597,7 @@ class BasePlatformAdapter(ABC):
         Override in subclasses for native photo attachments. Default falls
         back to a friendly notice — never echo the local image_path into
         chat, since it is a host filesystem path that would leak the
-        Hermes home layout.
+        文枢 home layout.
         """
         # See send_voice for the rationale: do not echo host paths into chat.
         logger.warning(

@@ -1,5 +1,5 @@
 """
-Hermes Plugin System
+文枢 Plugin System
 ====================
 
 Discovers, loads, and manages plugins from four sources:
@@ -103,7 +103,7 @@ def _install_plugin_debug_handler(force: bool = False) -> None:
     """When HERMES_PLUGINS_DEBUG is on, tee plugin logs to stderr at DEBUG.
 
     Idempotent: only attaches the handler once per process unless ``force``
-    is passed. Does not touch the root logger or other Hermes loggers.
+    is passed. Does not touch the root logger or other 文枢 loggers.
     """
     global _DEBUG_HANDLER_INSTALLED, _PLUGINS_DEBUG
     if force:
@@ -368,7 +368,7 @@ class PluginContext:
 
     @property
     def profile_name(self) -> str:
-        """Return the active Hermes profile name (e.g. ``"default"``).
+        """Return the active 文枢 profile name (e.g. ``"default"``).
 
         Derived from ``HERMES_HOME`` via
         :func:`hermes_cli.profiles.get_active_profile_name`, so it works in
@@ -450,7 +450,7 @@ class PluginContext:
     def _tool_override_allowed(self, tool_name: str) -> bool:
         """Return True if this plugin is configured to override built-in tools.
 
-        Bundled plugins (shipped with Hermes core) are trusted by default —
+        Bundled plugins (shipped with 文枢 core) are trusted by default —
         an override there is a deliberate maintainer choice, not a third-party
         plugin trying to elevate privilege. For every other source, require
         ``allow_tool_override: true`` under
@@ -805,7 +805,7 @@ class PluginContext:
         ``source`` must be an instance of
         :class:`agent.secret_sources.base.SecretSource`.  Registered
         sources run during ``load_hermes_dotenv()`` startup — after
-        ``~/.hermes/.env`` loads, before Hermes reads credentials — when
+        ``~/.hermes/.env`` loads, before 文枢 reads credentials — when
         their ``secrets.<source.name>`` config section is enabled.  The
         orchestrator (``agent.secret_sources.registry.apply_all``) owns
         ordering, mapped-vs-bulk precedence, conflict warnings, and
@@ -815,7 +815,7 @@ class PluginContext:
         the first ``load_hermes_dotenv()`` call, so a plugin-registered
         source is not consulted by the initial env load of the process
         that discovers it.  It IS consulted by every subsequently
-        spawned Hermes process (gateway children, cron sessions,
+        spawned 文枢 process (gateway children, cron sessions,
         subagents), and immediately after a
         ``reset_secret_source_cache()`` re-pull.  Plugin sources are
         therefore best for supplying credentials to the running fleet;
@@ -991,7 +991,7 @@ class PluginContext:
     ) -> None:
         """Register a Slack Block Kit action handler from a plugin.
 
-        Hermes' Slack adapter wires registered handlers into its
+        文枢' Slack adapter wires registered handlers into its
         ``slack_bolt.AsyncApp`` at connect time. The callback is invoked
         when a user clicks a button (or interacts with another Block Kit
         action element) whose ``action_id`` matches.

@@ -28,7 +28,7 @@ def _resolve_requests_verify() -> bool | str:
     """Resolve SSL verify setting for `requests` calls from env vars.
 
     The `requests` library only honours REQUESTS_CA_BUNDLE / CURL_CA_BUNDLE
-    by default. Hermes also honours HERMES_CA_BUNDLE (its own convention)
+    by default. 文枢 also honours HERMES_CA_BUNDLE (its own convention)
     and SSL_CERT_FILE (used by the stdlib `ssl` module and by httpx), so
     that a single env var can cover both `requests` and `httpx` callsites
     inside the same process.
@@ -590,7 +590,7 @@ def _maybe_cache_local_context_length(
     base_url: str,
     length: int,
 ) -> None:
-    """Persist a locally probed context length only when it meets Hermes minimum.
+    """Persist a locally probed context length only when it meets 文枢 minimum.
 
     Sub-minimum live windows (e.g. vLLM ``--max-model-len 32768``) are still
     returned to callers so ``agent_init`` can fail with the existing
@@ -2693,7 +2693,7 @@ def estimate_request_tokens_rough(
 ) -> int:
     """Rough token estimate for a full chat-completions request.
 
-    Includes the major payload buckets Hermes sends to providers:
+    Includes the major payload buckets 文枢 sends to providers:
     system prompt, conversation messages, and tool schemas.  With 50+
     tools enabled, schemas alone can add 20-30K tokens — a significant
     blind spot when only counting messages. Image content is counted

@@ -414,7 +414,7 @@ def check_compression_model_feasibility(agent: Any) -> None:
             raise ValueError(
                 f"Auxiliary compression model {aux_model} has a context "
                 f"window of {aux_context:,} tokens, which is below the "
-                f"minimum {MINIMUM_CONTEXT_LENGTH:,} required by Hermes "
+                f"minimum {MINIMUM_CONTEXT_LENGTH:,} required by 文枢 "
                 f"Agent.  Choose a compression model with at least "
                 f"{MINIMUM_CONTEXT_LENGTH // 1000}K context (set "
                 f"auxiliary.compression.model in config.yaml), or set "
@@ -1511,9 +1511,9 @@ def _compress_context_via_codex_app_server(
 ) -> Tuple[list, str]:
     """Route compaction to Codex app-server for Codex-owned threads.
 
-    Hermes' normal compressor rewrites the local OpenAI-style transcript.
+    文枢' normal compressor rewrites the local OpenAI-style transcript.
     That does not shrink the actual Codex app-server thread context. For this
-    runtime, ask Codex to compact its own thread and keep Hermes' transcript
+    runtime, ask Codex to compact its own thread and keep 文枢' transcript
     unchanged.
     """
     auto_mode = str(

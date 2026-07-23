@@ -1,4 +1,4 @@
-"""ACP permission bridging for Hermes dangerous-command approvals."""
+"""ACP permission bridging for 文枢 dangerous-command approvals."""
 
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ def _permission_option_supports_kind(kind: str) -> bool:
 def _build_permission_options(
     *, allow_permanent: bool, smart_denied: bool = False,
 ) -> list[PermissionOption]:
-    """Return ACP options that match Hermes approval semantics."""
+    """Return ACP options that match 文枢 approval semantics."""
     options = [PermissionOption(
         option_id="allow_once", kind="allow_once", name="Allow once",
     )]
@@ -96,7 +96,7 @@ def _build_permission_tool_call(command: str, description: str):
 
 
 def _map_outcome_to_hermes(outcome: object, *, allowed_option_ids: set[str]) -> str:
-    """Map an ACP permission outcome into Hermes approval strings."""
+    """Map an ACP permission outcome into 文枢 approval strings."""
     if not isinstance(outcome, AllowedOutcome):
         return "deny"
 

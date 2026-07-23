@@ -1,6 +1,6 @@
 """Session adapter for codex app-server runtime.
 
-Owns one Codex thread per Hermes session. Drives `turn/start`, consumes
+Owns one Codex thread per 文枢 session. Drives `turn/start`, consumes
 streaming notifications via CodexEventProjector, handles server-initiated
 approval requests (apply_patch, exec command), translates cancellation,
 and returns a clean turn result that AIAgent.run_conversation() can splice
@@ -190,7 +190,7 @@ class _ServerRequestRouting:
 
 
 class CodexAppServerSession:
-    """One Codex thread per Hermes session, lifetime owned by AIAgent.
+    """One Codex thread per 文枢 session, lifetime owned by AIAgent.
 
     Not thread-safe — one caller drives it at a time, matching how AIAgent's
     run_conversation() loop is structured today. The codex client itself can
@@ -249,7 +249,7 @@ class CodexAppServerSession:
             )
         self._client.initialize(
             client_name="hermes",
-            client_title="Hermes Agent",
+            client_title="文枢",
             client_version=_get_hermes_version(),
         )
         # Permission selection is intentionally NOT sent on thread/start.
@@ -373,7 +373,7 @@ class CodexAppServerSession:
     ) -> TurnResult:
         """Send a user message and block until turn/completed, while
         forwarding server-initiated approval requests and projecting items
-        into Hermes' messages shape.
+        into 文枢' messages shape.
 
         post_tool_quiet_timeout: if codex emits a tool completion and then
         goes quiet for this many seconds without emitting another item or
@@ -815,7 +815,7 @@ class CodexAppServerSession:
             logger.warning("turn/interrupt timed out")
 
     def _handle_server_request(self, req: dict) -> None:
-        """Translate a codex server request (approval) into Hermes' approval
+        """Translate a codex server request (approval) into 文枢' approval
         flow, then send the response.
 
         Method names verified live against codex 0.130.0 (Apr 2026):
@@ -1043,10 +1043,10 @@ def _apply_compaction_notification(result: TurnResult, note: dict) -> None:
 
 
 def _approval_choice_to_codex_decision(choice: str) -> str:
-    """Map Hermes approval choices onto codex's CommandExecutionApprovalDecision
+    """Map 文枢 approval choices onto codex's CommandExecutionApprovalDecision
     / FileChangeApprovalDecision wire values.
 
-    Hermes returns 'once', 'session', 'always', or 'deny'.
+    文枢 returns 'once', 'session', 'always', or 'deny'.
     Codex expects 'accept', 'acceptForSession', 'decline', or 'cancel'
     (verified against codex-rs/app-server-protocol/src/protocol/v2/item.rs
     on codex 0.130.0).
@@ -1077,7 +1077,7 @@ def _has_turn_aborted_marker(text: str) -> bool:
 
 
 def _get_hermes_version() -> str:
-    """Best-effort Hermes version string for codex's userAgent line."""
+    """Best-effort 文枢 version string for codex's userAgent line."""
     try:
         from importlib.metadata import version
 

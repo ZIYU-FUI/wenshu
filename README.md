@@ -15,9 +15,13 @@
 - **跟上游漂移** — hermes 上游每月 1-3 次 release(实测 GitHub Releases),文枢每次手动 cherry-pick + 三方 merge(ours/theirs/wenshu-patches),用户用老内核是常态,大版本跳变有滞后
 - **文枢项目仓库独立** — `github.com/ZIYU-FUI/wenshu`(取代 `gitee.com/zi-yu1983/novel-platform`),从 `git@github.com:NousResearch/hermes-agent.git` upstream fork,版本号从 `0.0.0` 开始
 
+文枢基于 Hermes Agent v0.19.0 (MIT) 深度改 fork。
+原作者 © 2025 Nous Research, 文枢修改 © 2026 安百强。
+上游: https://github.com/NousResearch/hermes-agent
+
 ## 2. 不是什么
 
-- ❌ **不是 Tauri** — 文枢 = Hermes Electron 桌面 app(沿用上游 `apps/desktop` Electron + React + TypeScript stack,改的是品牌 + 资源 + 文案)
+- ❌ **不是 Tauri** — 文枢 = 文枢 Electron 桌面 app(沿用上游 `apps/desktop` Electron + React + TypeScript stack,改的是品牌 + 资源 + 文案)
 - ❌ **不是 4 栏布局** — 沿用 hermes app 现有 UI 布局(Updates overlay / Command palette / Right sidebar / Settings),**视觉和交互跟上游一致**,只改产品名和 logo
 - ❌ **不是 sparse clone** — 0.0.0 项目基线是 monorepo 完整 fork(`apps/desktop` + `apps/shared` + `apps/bootstrap-installer` + `agent/` + `gateway/` + `hermes_cli/` + `cli.py` + 全 monorepo),**不是 apps/desktop 单子目录 sparse**
 - ❌ **不是连本机 hermes** — 上游 4-tier ladder(HERMES_DESKTOP_HERMES_ROOT / SOURCE_REPO_ROOT / bootstrap / PATH / install.sh)**整段砍掉**,文枢只用自己的自包含内核
@@ -26,7 +30,7 @@
 ## 3. 架构
 
 ```
-文枢 (Hermes monorepo fork, Electron + React + TypeScript + Python)
+文枢 (文枢 monorepo fork, Electron + React + TypeScript + Python)
 ├── apps/desktop/              (Electron 桌面 app,改 name=文枢 + productName=文枢 + appId=com.wenshu.app)
 │   ├── electron/              (主进程,main.cjs / preload.cjs / bootstrap-runner.cjs — 改:4-tier ladder 砍掉 rung 1-4,只留 rung 5 = 自包含内核)
 │   ├── src/                   (React + TS 前端,改:About 组件文案 / Settings 标题 / 启动页 logo)
@@ -52,7 +56,7 @@
 |------|------|------|
 | **0.0.0** | 项目基线 = 0.0.0.0 文档交付(README/AGENTS/CLAUDE 落档,本地 commit 0.0.0) | 🔄 当前 |
 | **0.0.1** | LICENSE 合规(0.0.0.1 工单:改 productName + appId + About 鸣谢 + README 鸣谢 + LICENSE copyright 追加 + commit "chore(wenshu): 0.0.0.1 LICENSE 合规" + push origin main) | ⏸ 待派 PM |
-| **0.0.2** | 品牌重塑(全 monorepo 字符串替换 Hermes → 文枢,Settings / About / 启动页 / logo / 启动 banner / 命令输出 / CLI 文案 全部到位) | ⏸ |
+| **0.0.2** | 品牌重塑(全 monorepo 字符串替换 文枢 → 文枢,Settings / About / 启动页 / logo / 启动 banner / 命令输出 / CLI 文案 全部到位) | ⏸ |
 | **0.0.3** | 砍 4-tier ladder rung 1-4(只剩 rung 5 = 自包含内核,启动时不再检测本机 hermes) | ⏸ |
 | **0.0.4** | 跑通 build(pnpm install + pnpm build + electron-builder --mac,出 文枢.app + 文枢.dmg) | ⏸ |
 | **0.0.5** | 装到 /Applications/文枢.app + 启动验证(自包含内核起来,About 显示 "文枢 v0.0.x · 基于 Hermes Agent v0.19.0 (MIT) 修改") | ⏸ |
@@ -75,7 +79,7 @@
 - ❌ 不复用 hermes 上游 4-tier ladder rung 1-4(本机检测)
 - ❌ 不改 hermes Python venv 的核心逻辑(我们改品牌 + 资源,不改业务)
 - ❌ 不带 novel-platform Tauri / Rust / SQLite / Vue 3 痕迹
-- ❌ 不复用 novel-craft / Hermes-Slate-Desk 旧 V0.5.1/V0.5.4 协议
+- ❌ 不复用 novel-craft / 旧 Slate-Desk 旧 V0.5.1/V0.5.4 协议
 - ❌ 不动 `/Users/anbaiqiang/.hermes/`(hermes 端是出资方 7/9 §11 边界外)
 - ❌ 不用 hermes 上游 `apps/desktop` 的 0.17.0 子版本号(我们从 0.0.0 重新起)
 
@@ -85,7 +89,7 @@
 |--------|------|------|------|
 | **完全改 hermes 源码**(方案二) | 老板 | 2026-07-23 15:25 | 不走方案一(整体内核化 + 双层更新),直接深入改 |
 | **不复用用户本机 hermes** | 老板 | 2026-07-23 15:25 | 文枢 .app 自包含内核,无论用户本机有没有 hermes |
-| **锁 0.19.0 tag 起步** | 老板 | 2026-07-23 16:48 | `v2026.7.20` tag = Hermes 0.19.0(commit 3ef6bbd20),先稳再升 |
+| **锁 0.19.0 tag 起步** | 老板 | 2026-07-23 16:48 | `v2026.7.20` tag = 文枢 0.19.0(commit 3ef6bbd20),先稳再升 |
 | **项目仓库 = github.com/ZIYU-FUI/wenshu** | 老板 | 2026-07-23 18:55 | 取代 Gitee `zi-yu1983/novel-platform`(已 rename) |
 | **upstream = github.com/NousResearch/hermes-agent** | 老板 | 2026-07-23 16:34 | fork 关系,跟上游漂移 |
 | **版本号从 0.0.0 开始** | 老板 | 2026-07-23 15:25 | 不用上游 `apps/desktop` 的 0.17.0 子版本,文枢独立版本 |
@@ -156,7 +160,7 @@
 **漂移流程**:
 1. PM 监测 `upstream/main` 新 commit / 新 release tag(GitHub watch + RSS + cron)
 2. PM 拉新 release → 跟当前文枢 fork diff
-3. PM 评估:哪些改动影响文枢的 "Hermes → 文枢" 字符串替换 / appId / brand?
+3. PM 评估:哪些改动影响文枢的 "文枢 → 文枢" 字符串替换 / appId / brand?
 4. PM 拆工单,CC 跑三方 merge(ours / theirs / wenshu-patches)
 5. PM 验证 .app 起来 + 主流程 + About 显示版本正确
 6. PM 同步老板(每周/每月一次)
