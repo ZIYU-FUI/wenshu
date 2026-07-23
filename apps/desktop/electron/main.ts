@@ -497,6 +497,14 @@ const VENV_ROOT = path.join(ACTIVE_HERMES_ROOT, 'venv')
 // We deliberately put the marker INSIDE ACTIVE_HERMES_ROOT (not alongside)
 // so that deleting the checkout to start fresh also deletes the marker --
 // avoids the confusing "marker exists but checkout is gone" state.
+//
+// Marker filename keeps the historical `.hermes-bootstrap-complete` form
+// (NOT renamed to `.wenshu-bootstrap-complete`) for cross-compat with
+// install.ps1 + bootstrap-runner.ts + a future migration that might want to
+// share the marker layout with upstream Hermes. The .hermes- prefix is a
+// file-internal naming convention only; the surrounding directory is
+// wenshu-isolated (ACTIVE_HERMES_ROOT = ~/.wenshu-hermes), so this does NOT
+// pollute ~/.hermes.
 const BOOTSTRAP_COMPLETE_MARKER = path.join(ACTIVE_HERMES_ROOT, '.hermes-bootstrap-complete')
 const BOOTSTRAP_MARKER_SCHEMA_VERSION = 1
 
