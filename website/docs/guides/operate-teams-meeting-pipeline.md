@@ -52,7 +52,7 @@ hermes teams-pipeline maintain-subscriptions --dry-run
 
 You MUST run `maintain-subscriptions` on a schedule. Pick one of these three options:
 
-#### Option 1: Hermes cron (recommended if you already run the WenShu gateway)
+#### Option 1: Hermes cron (recommended if you already run the Hermes gateway)
 
 Hermes ships a built-in cron scheduler. The `--no-agent` mode runs a script as the job (rather than using an LLM), and `--script` must point at a file under `~/.hermes/scripts/`. First create the script:
 

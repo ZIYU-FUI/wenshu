@@ -1,14 +1,14 @@
 ---
-title: "Openclaw Migration — Migrate a user's OpenClaw customization footprint into WenShu Agent"
+title: "Openclaw Migration — Migrate a user's OpenClaw customization footprint into Hermes Agent"
 sidebar_label: "Openclaw Migration"
-description: "Migrate a user's OpenClaw customization footprint into WenShu Agent"
+description: "Migrate a user's OpenClaw customization footprint into Hermes Agent"
 ---
 
 {/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
 
 # Openclaw Migration
 
-Migrate a user's OpenClaw customization footprint into WenShu Agent. Imports WenShu-compatible memories, SOUL.md, command allowlists, user skills, and selected workspace assets from ~/.openclaw, then reports exactly what could not be migrated and why.
+Migrate a user's OpenClaw customization footprint into Hermes Agent. Imports Hermes-compatible memories, SOUL.md, command allowlists, user skills, and selected workspace assets from ~/.openclaw, then reports exactly what could not be migrated and why.
 
 ## Skill metadata
 
@@ -17,7 +17,7 @@ Migrate a user's OpenClaw customization footprint into WenShu Agent. Imports Wen
 | Source | Optional — install with `hermes skills install official/migration/openclaw-migration` |
 | Path | `optional-skills/migration/openclaw-migration` |
 | Version | `1.0.0` |
-| Author | WenShu Agent (Nous Research) |
+| Author | Hermes Agent (Nous Research) |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `Migration`, `OpenClaw`, `Hermes`, `Memory`, `Persona`, `Import` |
@@ -31,7 +31,7 @@ The following is the complete skill definition that Hermes loads when this skill
 
 # OpenClaw -> Hermes Migration
 
-Use this skill when a user wants to move their OpenClaw setup into WenShu Agent with minimal manual cleanup.
+Use this skill when a user wants to move their OpenClaw setup into Hermes Agent with minimal manual cleanup.
 
 ## CLI Command
 
@@ -56,7 +56,7 @@ It uses `scripts/openclaw_to_hermes.py` to:
 - import `SOUL.md` into the Hermes home directory as `SOUL.md`
 - transform OpenClaw `MEMORY.md` and `USER.md` into Hermes memory entries
 - merge OpenClaw command approval patterns into Hermes `command_allowlist`
-- migrate WenShu-compatible messaging settings such as `TELEGRAM_ALLOWED_USERS`, and map OpenClaw workspace settings to Hermes working-directory configuration
+- migrate Hermes-compatible messaging settings such as `TELEGRAM_ALLOWED_USERS`, and map OpenClaw workspace settings to Hermes working-directory configuration
 - copy OpenClaw skills into `~/.hermes/skills/openclaw-imports/`
 - optionally copy the OpenClaw workspace instructions file into a chosen Hermes workspace
 - mirror compatible workspace assets such as `workspace/tts/` into `~/.hermes/tts/`
@@ -82,7 +82,7 @@ Before running the helper:
 3. Only use `find` as a fallback if the installed location is missing or the skill was moved manually.
 4. When calling the terminal tool, do not pass `workdir: "~"`. Use an absolute directory such as the user's home directory, or omit `workdir` entirely.
 
-With `--migrate-secrets`, it will also import a small allowlisted set of WenShu-compatible secrets, currently:
+With `--migrate-secrets`, it will also import a small allowlisted set of Hermes-compatible secrets, currently:
 
 - `TELEGRAM_BOT_TOKEN`
 
@@ -102,7 +102,7 @@ With `--migrate-secrets`, it will also import a small allowlisted set of WenShu-
 
 ## User interaction protocol
 
-WenShu CLI supports the `clarify` tool for interactive prompts, but it is limited to:
+Hermes CLI supports the `clarify` tool for interactive prompts, but it is limited to:
 
 - one choice at a time
 - up to 4 predefined choices

@@ -1,7 +1,7 @@
 ---
 sidebar_position: 6
 title: "Signal"
-description: "Set up WenShu Agent as a Signal messenger bot via signal-cli daemon"
+description: "Set up Hermes Agent as a Signal messenger bot via signal-cli daemon"
 ---
 
 # Signal Setup
@@ -195,7 +195,7 @@ You can still see tool activity in the CLI, and final Signal replies can include
 
 All phone numbers are automatically redacted in logs:
 - `+15551234567` → `+155****4567`
-- This applies to both WenShu gateway logs and the global redaction system
+- This applies to both Hermes gateway logs and the global redaction system
 
 ### Note to Self (Single-Number Setup)
 

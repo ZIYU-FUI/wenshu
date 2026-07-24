@@ -1,13 +1,13 @@
 ---
 title: "Windows (WSL2) Guide"
-description: "Run WenShu Agent on Windows via WSL2 — setup, filesystem access between Windows and Linux, networking, and common pitfalls"
+description: "Run Hermes Agent on Windows via WSL2 — setup, filesystem access between Windows and Linux, networking, and common pitfalls"
 sidebar_label: "Windows (WSL2)"
 sidebar_position: 2
 ---
 
 # Windows (WSL2) Guide
 
-WenShu Agent now supports **both** native Windows and WSL2.  This page covers the WSL2 path; for the native PowerShell install see the dedicated **[Windows (Native) Guide](./windows-native.md)**.
+Hermes Agent now supports **both** native Windows and WSL2.  This page covers the WSL2 path; for the native PowerShell install see the dedicated **[Windows (Native) Guide](./windows-native.md)**.
 
 **When to pick WSL2 over native:**
 - You want to use the dashboard's embedded terminal (`/chat` tab) — that pane requires a POSIX PTY and is WSL2-only.
@@ -34,9 +34,9 @@ WSL2 runs a real Linux kernel in a lightweight VM, so Hermes inside it is essent
 
 Practical consequences of WSL2:
 
-- The WenShu CLI, gateway, sessions, memory, skills, and tool runtimes all live inside the Linux VM.
+- The Hermes CLI, gateway, sessions, memory, skills, and tool runtimes all live inside the Linux VM.
 - Windows programs (browsers, native apps, Chrome with your logged-in profile) live outside it.
-- Every time you want the two to talk — share files, open URLs, control Chrome, hit a local model server, expose the WenShu gateway to your phone — you cross a boundary. Those boundaries are what this guide is about.
+- Every time you want the two to talk — share files, open URLs, control Chrome, hit a local model server, expose the Hermes gateway to your phone — you cross a boundary. Those boundaries are what this guide is about.
 
 ## Install WSL2
 

@@ -1,7 +1,7 @@
 ---
 sidebar_position: 12
 title: "Video Generation Provider Plugins"
-description: "How to build a video-generation backend plugin for WenShu Agent"
+description: "How to build a video-generation backend plugin for Hermes Agent"
 ---
 
 # Building a Video Generation Provider Plugin

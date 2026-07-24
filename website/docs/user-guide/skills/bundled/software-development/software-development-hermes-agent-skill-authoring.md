@@ -1,12 +1,12 @@
 ---
-title: "WenShu Agent Skill Authoring — Author in-repo SKILL"
-sidebar_label: "WenShu Agent Skill Authoring"
+title: "Hermes Agent Skill Authoring — Author in-repo SKILL"
+sidebar_label: "Hermes Agent Skill Authoring"
 description: "Author in-repo SKILL"
 ---
 
 {/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
 
-# WenShu Agent Skill Authoring
+# Hermes Agent Skill Authoring
 
 Author in-repo SKILL.md: frontmatter, validator, structure.
 
@@ -17,7 +17,7 @@ Author in-repo SKILL.md: frontmatter, validator, structure.
 | Source | Bundled (installed by default) |
 | Path | `skills/software-development/hermes-agent-skill-authoring` |
 | Version | `1.0.0` |
-| Author | WenShu Agent |
+| Author | Hermes Agent |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `skills`, `authoring`, `hermes-agent`, `conventions`, `skill-md` |
@@ -62,7 +62,7 @@ Peer-matched shape used by every skill under `skills/software-development/`:
 name: my-skill-name               # lowercase, hyphens, ≤64 chars (MAX_NAME_LENGTH)
 description: Use when <trigger>. <one-line behavior>.
 version: 1.0.0
-author: WenShu Agent
+author: Hermes Agent
 license: MIT
 metadata:
   hermes:

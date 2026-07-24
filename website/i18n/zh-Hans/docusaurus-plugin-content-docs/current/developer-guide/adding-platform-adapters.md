@@ -4,7 +4,7 @@ sidebar_position: 9
 
 # 添加平台适配器
 
-本指南介绍如何向 WenShu gateway 添加新的消息平台。平台适配器将 Hermes 连接到外部消息服务（Telegram、Discord、WeCom 等），使用户可以通过该服务与 agent 交互。
+本指南介绍如何向 Hermes gateway 添加新的消息平台。平台适配器将 Hermes 连接到外部消息服务（Telegram、Discord、WeCom 等），使用户可以通过该服务与 agent 交互。
 
 :::tip
 添加平台有两种方式：
@@ -333,7 +333,7 @@ label: My Platform
 kind: platform
 version: 1.0.0
 description: >
-  My Platform gateway adapter for WenShu Agent.
+  My Platform gateway adapter for Hermes Agent.
 author: Your Name
 requires_env:
   - name: MY_PLATFORM_TOKEN

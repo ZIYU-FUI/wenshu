@@ -17,7 +17,7 @@ description: "调试 Python：pdb REPL + debugpy 远程（DAP）"
 | 来源 | 内置（默认安装） |
 | 路径 | `skills/software-development/python-debugpy` |
 | 版本 | `1.0.0` |
-| 作者 | WenShu Agent |
+| 作者 | Hermes Agent |
 | 许可证 | MIT |
 | 平台 | linux, macos |
 | 标签 | `debugging`, `python`, `pdb`, `debugpy`, `breakpoints`, `dap`, `post-mortem` |
@@ -164,7 +164,7 @@ sys.excepthook = excepthook
 
 ## 方案 5：使用 debugpy 进行远程调试（附加到运行中的进程）
 
-适用于长期运行的进程：WenShu gateway、tui_gateway、daemon，或已出现异常且无法干净重启的进程。
+适用于长期运行的进程：Hermes gateway、tui_gateway、daemon，或已出现异常且无法干净重启的进程。
 
 ### 安装
 

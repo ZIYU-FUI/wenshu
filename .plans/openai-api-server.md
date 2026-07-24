@@ -1,4 +1,4 @@
-# OpenAI-Compatible API Server for WenShu Agent
+# OpenAI-Compatible API Server for Hermes Agent
 
 ## Motivation
 

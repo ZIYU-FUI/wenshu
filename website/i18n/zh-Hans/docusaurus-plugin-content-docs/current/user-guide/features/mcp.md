@@ -1,12 +1,12 @@
 ---
 sidebar_position: 4
 title: "MCP（模型上下文协议）"
-description: "通过 MCP 将 WenShu Agent 连接到外部工具服务器，并精确控制 Hermes 加载哪些 MCP 工具"
+description: "通过 MCP 将 Hermes Agent 连接到外部工具服务器，并精确控制 Hermes 加载哪些 MCP 工具"
 ---
 
 # MCP（模型上下文协议）
 
-MCP 让 WenShu Agent 连接到外部工具服务器，使 agent 能够使用 Hermes 本身之外的工具——GitHub、数据库、文件系统、浏览器栈、内部 API 等等。
+MCP 让 Hermes Agent 连接到外部工具服务器，使 agent 能够使用 Hermes 本身之外的工具——GitHub、数据库、文件系统、浏览器栈、内部 API 等等。
 
 如果你曾经希望 Hermes 使用某个已经存在于其他地方的工具，MCP 通常是最简洁的方式。
 
@@ -492,7 +492,7 @@ mcp_servers:
 
 - 你希望 Claude Code、Cursor 或其他编程 agent 通过 Hermes 发送和读取 Telegram/Discord/Slack 消息
 - 你需要一个单一的 MCP 服务器，同时桥接 Hermes 所有已连接的消息平台
-- 你已经有一个运行中的 WenShu gateway，并已连接各平台
+- 你已经有一个运行中的 Hermes gateway，并已连接各平台
 
 ### 快速开始
 

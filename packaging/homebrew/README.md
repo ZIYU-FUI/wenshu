@@ -1,4 +1,4 @@
-Homebrew packaging notes for WenShu Agent.
+Homebrew packaging notes for Hermes Agent.
 
 Use `packaging/homebrew/hermes-agent.rb` as a tap or `homebrew-core` starting point.
 

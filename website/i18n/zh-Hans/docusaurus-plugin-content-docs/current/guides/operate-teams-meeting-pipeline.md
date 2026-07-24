@@ -52,7 +52,7 @@ hermes teams-pipeline maintain-subscriptions --dry-run
 
 你**必须**按计划运行 `maintain-subscriptions`。从以下三种方式中选择一种：
 
-#### 方式一：Hermes cron（若已运行 WenShu gateway，推荐此方式）
+#### 方式一：Hermes cron（若已运行 Hermes gateway，推荐此方式）
 
 Hermes 内置 cron 调度器。`--no-agent` 模式以脚本作为任务执行（而非使用 LLM），`--script` 必须指向 `~/.hermes/scripts/` 下的文件。首先创建脚本：
 

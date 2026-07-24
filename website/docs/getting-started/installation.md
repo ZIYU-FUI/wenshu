@@ -1,12 +1,12 @@
 ---
 sidebar_position: 2
 title: "Installation"
-description: "Install WenShu Agent on Linux, macOS, WSL2, native Windows, or Android via Termux"
+description: "Install Hermes Agent on Linux, macOS, WSL2, native Windows, or Android via Termux"
 ---
 
 # Installation
 
-Get WenShu Agent up and running in under two minutes!
+Get Hermes Agent up and running in under two minutes!
 
 :::tip Platform Support
 For the full platform support matrix (which OSes, distribution methods, and
@@ -14,11 +14,11 @@ platform-gated features are supported), see **[Platform Support](./platform-supp
 :::
 
 ## Quick Install
-### With the WenShu Desktop installer on macOS or Windows (recommended)
-To easily install the command-line and desktop applications, [download the WenShu Desktop installer](https://hermes-agent.nousresearch.com/) from our website and run it.
+### With the Hermes Desktop installer on macOS or Windows (recommended)
+To easily install the command-line and desktop applications, [download the Hermes Desktop installer](https://hermes-agent.nousresearch.com/) from our website and run it.
 
-### Without WenShu Desktop:
-For a command-line only install without WenShu Desktop, run:
+### Without Hermes Desktop:
+For a command-line only install without Hermes Desktop, run:
 
 #### Linux / macOS / WSL2 / Android (Termux)
 ```bash
@@ -32,7 +32,7 @@ Run in powershell:
 iex (irm https://hermes-agent.nousresearch.com/install.ps1) 
 ```
 
-If you want to install & run WenShu Desktop after a command-line only install, simply run
+If you want to install & run Hermes Desktop after a command-line only install, simply run
 ```bash
 hermes desktop
 ```

@@ -1,7 +1,7 @@
 ---
 sidebar_position: 6
 title: "Signal"
-description: "通过 signal-cli 守护进程将 WenShu Agent 设置为 Signal 机器人"
+description: "通过 signal-cli 守护进程将 Hermes Agent 设置为 Signal 机器人"
 ---
 
 # Signal 配置
@@ -190,7 +190,7 @@ Signal 消息以**原生格式**渲染，而非显示原始 markdown 字符。�
 
 所有手机号在日志中自动脱敏：
 - `+15551234567` → `+155****4567`
-- 适用于 WenShu gateway 日志和全局脱敏系统
+- 适用于 Hermes gateway 日志和全局脱敏系统
 
 ### 给自己发消息（单号码配置）
 

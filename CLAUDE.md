@@ -8,7 +8,7 @@
 
 ## 1. Project Overview
 
-> **文枢 = WenShu Agent v0.19.0 深度改 fork**(完整 monorepo,不是 sparse clone)
+> **文枢 = Hermes Agent v0.19.0 深度改 fork**(完整 monorepo,不是 sparse clone)
 > 完整愿景见 `README.md §1`
 
 **项目基线**(老板 2026-07-23 18:55 拍板):
@@ -107,7 +107,7 @@ wenshu/                                            ← 项目根(0.0.0 基线)
 │   │   │   │   ├── settings/                      ←   改:Settings 标题 + 标签 "文枢"
 │   │   │   │   ├── chat/
 │   │   │   │   ├── session/
-│   │   │   │   └── about/                         ←   0.0.1 改:About 显示 "文枢 v0.0.1 · 基于 WenShu Agent v0.19.0 (MIT) 修改"
+│   │   │   │   └── about/                         ←   0.0.1 改:About 显示 "文枢 v0.0.1 · 基于 Hermes Agent v0.19.0 (MIT) 修改"
 │   │   │   ├── components/                        ←   ~几十文件,所有 "Hermes" → "文枢"
 │   │   │   ├── store/
 │   │   │   ├── lib/
@@ -168,7 +168,7 @@ wenshu/                                            ← 项目根(0.0.0 基线)
 | Updates Overlay | `apps/desktop/src/app/updates-overlay.tsx` | 文枢自我更新 UI | 改:标题 "文枢更新" |
 | Statusbar | `apps/desktop/src/app/p0-1-frame/BottomBar.tsx` | 右下角版本号 | 改:"文枢 v0.0.x · 内核 Hermes 0.19.0" |
 | Window Title | `apps/desktop/src/app/.../App.tsx` | 窗口标题 "文枢" | 0.0.1 改 |
-| About | `apps/desktop/src/app/about/...` | About 页面 | 0.0.1 改:"文枢 v0.0.1 · 基于 WenShu Agent v0.19.0 (MIT) 修改" |
+| About | `apps/desktop/src/app/about/...` | About 页面 | 0.0.1 改:"文枢 v0.0.1 · 基于 Hermes Agent v0.19.0 (MIT) 修改" |
 | Settings | `apps/desktop/src/app/settings/...` | Settings 页面 | 0.0.2 改:标题 + 标签 |
 | CLI 主入口 | `cli.py` + `hermes_cli/main.py` | CLI 命令 | 改:启动 banner + 版本号 + 输出文案 |
 | Gateway Web UI | `gateway/server.py` | FastAPI dashboard | 改:Web UI 标题 "文枢" |
@@ -248,7 +248,7 @@ grep -r "Hermes" --include="*.py" --include="*.ts" --include="*.tsx" --include="
 **CC 改的 4 个 metadata 字段(0.0.1 工单)**:
 - `apps/desktop/package.json` → `name=wenshu`, `productName=文枢`, `version=0.0.1`, `build.appId=com.wenshu.app`
 - `apps/desktop/src/app/.../App.tsx` 或 window 配置文件 → `title="文枢"`
-- `apps/desktop/src/app/about/...` → About 显示 "文枢 v0.0.1 · 基于 WenShu Agent v0.19.0 (MIT) 修改"
+- `apps/desktop/src/app/about/...` → About 显示 "文枢 v0.0.1 · 基于 Hermes Agent v0.19.0 (MIT) 修改"
 - `LICENSE` → 在原 MIT 块下追加 "文枢 (Wenshu) modifications copyright (c) 2026 安百强"
 
 **CC 改的全 monorepo 字符串(0.0.2 工单)**:
@@ -257,7 +257,7 @@ grep -r "Hermes" --include="*.py" --include="*.ts" --include="*.tsx" --include="
   - upstream URL `github.com/NousResearch/hermes-agent`
   - commit hash 引用(在 CHANGELOG / 注释里)
   - LICENSE 文件里的 "Copyright (c) 2025 Nous Research" 原文
-  - 任何"基于 WenShu Agent v0.19.0" 的鸣谢文案
+  - 任何"基于 Hermes Agent v0.19.0" 的鸣谢文案
 
 **CC 改的 4-tier ladder(0.0.3 工单)**:
 - `apps/desktop/electron/main.ts:resolveHermesBackend()` 砍 rung 1-4

@@ -2,7 +2,7 @@
 sidebar_position: 8
 sidebar_label: "SMS (Twilio)"
 title: "SMS (Twilio)"
-description: "通过 Twilio 将 WenShu Agent 设置为 SMS 聊天机器人"
+description: "通过 Twilio 将 Hermes Agent 设置为 SMS 聊天机器人"
 ---
 
 # SMS 设置（Twilio）
@@ -190,7 +190,7 @@ SMS 没有内置加密。除非你了解相关安全风险，否则不要通过 
 
 1. 检查 `TWILIO_PHONE_NUMBER` 是否正确设置（E.164 格式，带 `+`）
 2. 验证你的 Twilio 账户是否有支持 SMS 的号码
-3. 查看 WenShu gateway 日志中的 Twilio API 错误
+3. 查看 Hermes gateway 日志中的 Twilio API 错误
 
 ### Webhook 端口冲突
 

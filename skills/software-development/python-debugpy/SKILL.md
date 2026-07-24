@@ -2,7 +2,7 @@
 name: python-debugpy
 description: "Debug Python: pdb REPL + debugpy remote (DAP)."
 version: 1.0.0
-author: WenShu Agent
+author: Hermes Agent
 license: MIT
 platforms: [linux, macos]
 metadata:
@@ -146,7 +146,7 @@ sys.excepthook = excepthook
 
 ## Recipe 5: Remote debug with debugpy (attach to running process)
 
-For long-lived processes: WenShu gateway, tui_gateway, a daemon, a process that's already misbehaving and can't be restarted clean.
+For long-lived processes: Hermes gateway, tui_gateway, a daemon, a process that's already misbehaving and can't be restarted clean.
 
 ### Setup
 

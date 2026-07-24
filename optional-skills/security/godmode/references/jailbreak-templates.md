@@ -89,7 +89,7 @@ Z={QUERY}
 
 ---
 
-## Using with WenShu Agent
+## Using with Hermes Agent
 
 ### As ephemeral system prompt (config.yaml)
 

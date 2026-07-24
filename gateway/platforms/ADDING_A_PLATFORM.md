@@ -1,6 +1,6 @@
 # Adding a New Messaging Platform
 
-There are two ways to add a platform to the WenShu gateway:
+There are two ways to add a platform to the Hermes gateway:
 
 ## Plugin Path (Recommended for Community/Third-Party)
 

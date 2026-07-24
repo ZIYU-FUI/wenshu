@@ -2,7 +2,7 @@
 name: github-auth
 description: "GitHub auth setup: HTTPS tokens, SSH keys, gh CLI login."
 version: 1.1.0
-author: WenShu Agent
+author: Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]
 metadata:

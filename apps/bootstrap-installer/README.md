@@ -1,6 +1,6 @@
 # 文枢 Setup (Bootstrap Installer)
 
-> 文枢 (Wenshu) 是 WenShu Agent v0.19.0 的 fork。
+> 文枢 (Wenshu) 是 Hermes Agent v0.19.0 的 fork。
 > 这个 Tauri app 引导装机 user 完成文枢的"首次装 + 在线更新"流程。
 
 ## 它做什么
