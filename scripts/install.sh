@@ -3121,9 +3121,24 @@ has_webkit() {
     return 0
 }
 
+# WO-026: reverse-derive dmg-internal React UI from the running script path
+# (<installer>.app/Contents/MacOS/<bin> -> Contents/Resources/dist/index.html).
+find_dmg_frontend_url() {
+    local self dist
+    self="$(realpath "$0" 2>/dev/null || echo "$0")"
+    dist="$(dirname "$(dirname "$self")")/Resources/dist/index.html"
+    if [ -f "$dist" ]; then
+        echo "file://$dist"
+    else
+        echo -e "${YELLOW}⚠ dmg React UI not found at $dist; using placeholder URL${NC}" >&2
+        echo "${WENSHU_FRONTEND_URL:-https://wenshu.example.com}"
+    fi
+}
+
 webkit_safari_fallback() {
     echo -e "${YELLOW}⚠ WebKit cryptex unavailable — opening front-end in Safari (AppleScript fallback)${NC}"
-    local url="${WENSHU_FRONTEND_URL:-https://wenshu.example.com}"
+    local url
+    url="$(find_dmg_frontend_url)"
     osascript -e "tell application \"Safari\" to activate" \
               -e "tell application \"Safari\" to open location \"$url\"" >/dev/null 2>&1 \
         || echo -e "${YELLOW}⚠ osascript failed; user must open Safari manually: $url${NC}"

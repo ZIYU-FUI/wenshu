@@ -43,7 +43,14 @@ case "$webkit_ok" in
         ;;
     FAIL|MISSING)
         echo "WARN WebKit cryptex unavailable (status=$webkit_ok); opening front-end in Safari."
-        FRONTEND_URL="${WENSHU_FRONTEND_URL:-https://wenshu.example.com}"
+        # WO-026: reverse-derive dmg-internal React UI from the built Setup.app.
+        DIST="$REPO_ROOT/apps/bootstrap-installer/src-tauri/target/release/bundle/macos/文枢 Setup.app/Contents/Resources/dist/index.html"
+        if [ -f "$DIST" ]; then
+            FRONTEND_URL="file://$DIST"
+        else
+            echo "WARN dmg React UI not found at $DIST; falling back to placeholder URL for installing user"
+            FRONTEND_URL="${WENSHU_FRONTEND_URL:-https://wenshu.example.com}"
+        fi
         osascript -e "tell application \"Safari\" to activate" \
                   -e "tell application \"Safari\" to open location \"$FRONTEND_URL\"" \
             >/dev/null 2>&1 \
