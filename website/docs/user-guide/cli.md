@@ -1,12 +1,12 @@
 ---
 sidebar_position: 1
 title: "CLI Interface"
-description: "Master the Hermes Agent terminal interface — commands, keybindings, personalities, and more"
+description: "Master the WenShu Agent terminal interface — commands, keybindings, personalities, and more"
 ---
 
 # CLI Interface
 
-Hermes Agent's CLI is a full terminal user interface (TUI) — not a web UI. It features multiline editing, slash-command autocomplete, conversation history, interrupt-and-redirect, and streaming tool output. Built for people who live in the terminal.
+WenShu Agent's CLI is a full terminal user interface (TUI) — not a web UI. It features multiline editing, slash-command autocomplete, conversation history, interrupt-and-redirect, and streaming tool output. Built for people who live in the terminal.
 
 :::tip First-time setup
 One command — `hermes setup --portal` — and you're ready to `hermes chat`. See [Nous Portal](/integrations/nous-portal).
@@ -53,8 +53,8 @@ hermes -w -z "Fix issue #123"     # Single query in worktree
 
 ## Interface Layout
 
-<img className="docs-terminal-figure" src="/docs/img/docs/cli-layout.svg" alt="Stylized preview of the Hermes CLI layout showing the banner, conversation area, and fixed input prompt." />
-<p className="docs-figure-caption">The Hermes CLI banner, conversation stream, and fixed input prompt rendered as a stable docs figure instead of fragile text art.</p>
+<img className="docs-terminal-figure" src="/docs/img/docs/cli-layout.svg" alt="Stylized preview of the WenShu CLI layout showing the banner, conversation area, and fixed input prompt." />
+<p className="docs-figure-caption">The WenShu CLI banner, conversation stream, and fixed input prompt rendered as a stable docs figure instead of fragile text art.</p>
 
 The welcome banner shows your model, terminal backend, working directory, available tools, and installed skills at a glance.
 
@@ -288,7 +288,7 @@ The very first time you press Enter while Hermes is working, Hermes prints a one
 On Unix systems, press **`Ctrl+Z`** to suspend Hermes to the background — just like any terminal process. The shell prints a confirmation:
 
 ```
-Hermes Agent has been suspended. Run `fg` to bring Hermes Agent back.
+WenShu Agent has been suspended. Run `fg` to bring WenShu Agent back.
 ```
 
 Type `fg` in your shell to resume the session exactly where you left off. This is not supported on Windows.

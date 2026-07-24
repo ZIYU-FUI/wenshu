@@ -1,7 +1,7 @@
 ---
 sidebar_position: 3
 title: "Nix & NixOS Setup"
-description: "Install and deploy Hermes Agent with Nix — from quick `nix run` to fully declarative NixOS module with container mode"
+description: "Install and deploy WenShu Agent with Nix — from quick `nix run` to fully declarative NixOS module with container mode"
 ---
 
 # Nix & NixOS Setup
@@ -12,7 +12,7 @@ Nix and NixOS are [Tier 2 platforms](./platform-support.md#tier-2). The flake an
 For a supported setup, use one of the standard [installation](./installation.md) paths - either Docker or an FHS environment.
 :::
 
-Hermes Agent ships a Nix flake & a NixOS module.
+WenShu Agent ships a Nix flake & a NixOS module.
 
 | Level | Who it's for | What you get |
 |-------|-------------|--------------|
@@ -416,7 +416,7 @@ The file is only copied if `auth.json` doesn't already exist (unless `authFileFo
 
 ## Documents
 
-The `documents` option installs files into the agent's working directory (the `workingDirectory`, which the agent reads as its workspace). Hermes looks for specific filenames by convention:
+The `documents` option installs files into the agent's working directory (the `workingDirectory`, which the agent reads as its workspace). WenShu looks for specific filenames by convention:
 
 - **`USER.md`** — context about the user the agent is interacting with.
 - Any other files you place here are visible to the agent as workspace files.

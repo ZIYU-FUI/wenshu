@@ -2,7 +2,7 @@
 name: petdex
 description: Install and select animated petdex mascots for Hermes.
 version: 1.0.0
-author: Hermes Agent
+author: WenShu Agent
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
@@ -17,7 +17,7 @@ metadata:
 Browse, install, and select animated "pet" mascots from the public
 [petdex](https://github.com/crafter-station/petdex) gallery. An installed pet
 reacts to agent activity (idle, running a tool, reviewing, error, done) across
-the Hermes CLI, TUI, and desktop app. This skill drives the `hermes pets` CLI
+the WenShu CLI, TUI, and desktop app. This skill drives the `hermes pets` CLI
 and the `display.pet` config — it does not generate sprites.
 
 ## When to Use

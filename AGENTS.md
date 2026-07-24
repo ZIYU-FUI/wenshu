@@ -166,7 +166,7 @@
 | 阶段 | 节点 | 验收标准 |
 |------|------|---------|
 | **0.0.0** | AIF 3 文档落档 | README/AGENTS/CLAUDE 跟本项目根,本地 commit |
-| **0.0.1** | LICENSE 合规 | 4 文件改完(packjson / LICENSE / README / About),build 出 .app,About 显示 "文枢 v0.0.1 · 基于 Hermes Agent v0.19.0 (MIT) 修改",push origin main |
+| **0.0.1** | LICENSE 合规 | 4 文件改完(packjson / LICENSE / README / About),build 出 .app,About 显示 "文枢 v0.0.1 · 基于 WenShu Agent v0.19.0 (MIT) 修改",push origin main |
 | **0.0.2** | 品牌重塑 | 全 monorepo "Hermes" → "文枢" 字符串替换,Settings/About/启动页/logo/启动 banner/CLI 文案 全部到位 |
 | **0.0.3** | 砍 4-tier ladder rung 1-4 | rung 1-4 砍,只留 rung 5 = 自包含内核,启动不再检测本机 hermes |
 | **0.0.4** | build 跑通 | `pnpm install` + `pnpm build` + `electron-builder --mac` 出 `文枢.app` + `文枢.dmg` |

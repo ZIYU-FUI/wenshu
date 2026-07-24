@@ -1,7 +1,7 @@
 ---
 sidebar_position: 5
 title: "Bundled Skills Catalog"
-description: "Catalog of bundled skills that ship with Hermes Agent"
+description: "Catalog of bundled skills that ship with WenShu Agent"
 ---
 
 # Bundled Skills Catalog
@@ -28,7 +28,7 @@ If a skill is missing from this list but present in the repo, the catalog is reg
 |-------|-------------|------|
 | [`claude-code`](/docs/user-guide/skills/bundled/autonomous-ai-agents/autonomous-ai-agents-claude-code) | Delegate coding to Claude Code CLI (features, PRs). | `autonomous-ai-agents/claude-code` |
 | [`codex`](/docs/user-guide/skills/bundled/autonomous-ai-agents/autonomous-ai-agents-codex) | Delegate coding to OpenAI Codex CLI (features, PRs). | `autonomous-ai-agents/codex` |
-| [`hermes-agent`](/docs/user-guide/skills/bundled/autonomous-ai-agents/autonomous-ai-agents-hermes-agent) | Configure, extend, or contribute to Hermes Agent. | `autonomous-ai-agents/hermes-agent` |
+| [`hermes-agent`](/docs/user-guide/skills/bundled/autonomous-ai-agents/autonomous-ai-agents-hermes-agent) | Configure, extend, or contribute to WenShu Agent. | `autonomous-ai-agents/hermes-agent` |
 | [`opencode`](/docs/user-guide/skills/bundled/autonomous-ai-agents/autonomous-ai-agents-opencode) | Delegate coding to OpenCode CLI (features, PR review). | `autonomous-ai-agents/opencode` |
 
 ## creative
@@ -126,7 +126,7 @@ If a skill is missing from this list but present in the repo, the catalog is reg
 | [`ocr-and-documents`](/docs/user-guide/skills/bundled/productivity/productivity-ocr-and-documents) | Extract text from PDFs/scans (pymupdf, marker-pdf). | `productivity/ocr-and-documents` |
 | [`petdex`](/docs/user-guide/skills/bundled/productivity/productivity-petdex) | Install and select animated petdex mascots for Hermes. | `productivity/petdex` |
 | [`powerpoint`](/docs/user-guide/skills/bundled/productivity/productivity-powerpoint) | Create, read, edit .pptx decks, slides, notes, templates. | `productivity/powerpoint` |
-| [`teams-meeting-pipeline`](/docs/user-guide/skills/bundled/productivity/productivity-teams-meeting-pipeline) | Operate the Teams meeting summary pipeline via Hermes CLI — summarize meetings, inspect pipeline status, replay jobs, manage Microsoft Graph subscriptions. | `productivity/teams-meeting-pipeline` |
+| [`teams-meeting-pipeline`](/docs/user-guide/skills/bundled/productivity/productivity-teams-meeting-pipeline) | Operate the Teams meeting summary pipeline via WenShu CLI — summarize meetings, inspect pipeline status, replay jobs, manage Microsoft Graph subscriptions. | `productivity/teams-meeting-pipeline` |
 
 ## research
 

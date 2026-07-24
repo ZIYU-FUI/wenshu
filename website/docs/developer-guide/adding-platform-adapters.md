@@ -4,7 +4,7 @@ sidebar_position: 9
 
 # Adding a Platform Adapter
 
-This guide covers adding a new messaging platform to the Hermes gateway. A platform adapter connects Hermes to an external messaging service (Telegram, Discord, WeCom, etc.) so users can interact with the agent through that service.
+This guide covers adding a new messaging platform to the WenShu gateway. A platform adapter connects Hermes to an external messaging service (Telegram, Discord, WeCom, etc.) so users can interact with the agent through that service.
 
 :::tip
 There are two ways to add a platform:
@@ -336,7 +336,7 @@ label: My Platform
 kind: platform
 version: 1.0.0
 description: >
-  My Platform gateway adapter for Hermes Agent.
+  My Platform gateway adapter for WenShu Agent.
 author: Your Name
 requires_env:
   - name: MY_PLATFORM_TOKEN

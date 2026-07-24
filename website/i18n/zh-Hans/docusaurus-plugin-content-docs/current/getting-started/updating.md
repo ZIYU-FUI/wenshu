@@ -1,7 +1,7 @@
 ---
 sidebar_position: 3
 title: "更新与卸载"
-description: "如何将 Hermes Agent 更新至最新版本或将其卸载"
+description: "如何将 WenShu Agent 更新至最新版本或将其卸载"
 ---
 
 # 更新与卸载
@@ -54,7 +54,7 @@ updates:
 
 ### Windows：另一个 `hermes.exe` 正在运行
 
-在 Windows 上，如果 `hermes update` 检测到另一个 `hermes.exe` 进程持有 venv 入口点可执行文件的句柄，它将拒绝运行 — 最常见的情况是 Hermes Desktop 应用启动的后端进程、另一个终端中打开的 `hermes` REPL，或正在运行的 gateway：
+在 Windows 上，如果 `hermes update` 检测到另一个 `hermes.exe` 进程持有 venv 入口点可执行文件的句柄，它将拒绝运行 — 最常见的情况是 WenShu Desktop 应用启动的后端进程、另一个终端中打开的 `hermes` REPL，或正在运行的 gateway：
 
 ```
 $ hermes update
@@ -64,7 +64,7 @@ $ hermes update
   Updating now would fail to overwrite ...\venv\Scripts\hermes.exe because
   Windows blocks REPLACE on a running executable.
 
-  Close Hermes Desktop, exit any open `hermes` REPLs, and
+  Close WenShu Desktop, exit any open `hermes` REPLs, and
   stop the gateway (`hermes gateway stop`) before retrying.
   Override with `hermes update --force` if you've already
   confirmed those processes will not write to the venv.
@@ -76,7 +76,7 @@ $ hermes update
 
 ```
 $ hermes update
-Updating Hermes Agent...
+Updating WenShu Agent...
 📥 Pulling latest code...
 Already up to date.  (or: Updating abc1234..def5678)
 📦 Updating dependencies...
@@ -85,7 +85,7 @@ Already up to date.  (or: Updating abc1234..def5678)
 ✅ Config is up to date  (or: Found 2 new options — running migration...)
 🔄 Restarting gateways...
 ✅ Gateway restarted
-✅ Hermes Agent updated successfully!
+✅ WenShu Agent updated successfully!
 ```
 
 ### 更新后建议的验证步骤

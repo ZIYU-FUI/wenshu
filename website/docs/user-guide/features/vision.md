@@ -1,13 +1,13 @@
 ---
 title: Vision & Image Paste
-description: Paste images from your clipboard into the Hermes CLI for multimodal vision analysis.
+description: Paste images from your clipboard into the WenShu CLI for multimodal vision analysis.
 sidebar_label: Vision & Image Paste
 sidebar_position: 7
 ---
 
 # Vision & Image Paste
 
-Hermes Agent supports **multimodal vision** — you can paste images from your clipboard directly into the CLI and ask the agent to analyze, describe, or work with them. Images are sent to the model as base64-encoded content blocks, so any vision-capable model can process them.
+WenShu Agent supports **multimodal vision** — you can paste images from your clipboard directly into the CLI and ask the agent to analyze, describe, or work with them. Images are sent to the model as base64-encoded content blocks, so any vision-capable model can process them.
 
 :::tip
 Portal subscribers get vision-capable models (Claude, GPT-5, Gemini) in the same catalog — no extra credentials needed. See [Nous Portal](/integrations/nous-portal).
@@ -151,7 +151,7 @@ powershell.exe -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms;
 
 ## SSH & Remote Sessions
 
-**Clipboard image paste does not fully work over SSH.** When you SSH into a remote machine, the Hermes CLI runs on the remote host. Clipboard tools (`xclip`, `wl-paste`, `powershell.exe`, `osascript`) read the clipboard of the machine they run on — which is the remote server, not your local machine. Your local clipboard image is therefore inaccessible from the remote side.
+**Clipboard image paste does not fully work over SSH.** When you SSH into a remote machine, the WenShu CLI runs on the remote host. Clipboard tools (`xclip`, `wl-paste`, `powershell.exe`, `osascript`) read the clipboard of the machine they run on — which is the remote server, not your local machine. Your local clipboard image is therefore inaccessible from the remote side.
 
 Text can sometimes still bridge through terminal paste or OSC52, but image clipboard access and local screenshot temp paths remain tied to the machine running Hermes.
 
@@ -203,7 +203,7 @@ When a user attaches an image — from the CLI clipboard, the gateway (Telegram/
 | **Vision-capable** (GPT-4V, Claude with vision, Gemini, Qwen-VL, MiMo-VL, etc.) | Sent as **real pixels** using the provider's native image content format above. No text summary layer. |
 | **Text-only** (DeepSeek V3, smaller open-source models, older chat-only endpoints) | Routed through the `vision_analyze` auxiliary tool — an auxiliary vision model describes the image, and the text description is injected into the conversation. |
 
-You don't configure this — Hermes looks up your current model's capability in the provider metadata and picks the right path automatically. The practical effect: you can switch between vision and non-vision models mid-session and image handling "just works" without changing your workflow. Text-only models get coherent context about the image rather than a broken multimodal payload they'd have to reject.
+You don't configure this — WenShu looks up your current model's capability in the provider metadata and picks the right path automatically. The practical effect: you can switch between vision and non-vision models mid-session and image handling "just works" without changing your workflow. Text-only models get coherent context about the image rather than a broken multimodal payload they'd have to reject.
 
 Which auxiliary model handles the text-description path is configurable under `auxiliary.vision` — see [Auxiliary Models](/user-guide/configuration#auxiliary-models).
 

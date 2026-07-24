@@ -1,12 +1,12 @@
 ---
 sidebar_position: 7
 title: "Docker"
-description: "Running Hermes Agent in Docker and using Docker as a terminal backend"
+description: "Running WenShu Agent in Docker and using Docker as a terminal backend"
 ---
 
-# Hermes Agent — Docker
+# WenShu Agent — Docker
 
-There are two distinct ways Docker intersects with Hermes Agent:
+There are two distinct ways Docker intersects with WenShu Agent:
 
 1. **Running Hermes IN Docker** — the agent itself runs inside a container (this page's primary focus)
 2. **Docker as a terminal backend** — the agent runs on your host but executes every command inside a single, persistent Docker sandbox container that survives across tool calls, `/new`, and subagents for the life of the Hermes process (see [Configuration → Docker Backend](./configuration.md#docker-backend))
@@ -15,7 +15,7 @@ This page covers option 1. The container stores all user data (config, API keys,
 
 ## Quick start
 
-If this is your first time running Hermes Agent, create a data directory on the host and start the container interactively to run the setup wizard:
+If this is your first time running WenShu Agent, create a data directory on the host and start the container interactively to run the setup wizard:
 
 :::caution Avoid browser-based VPS consoles for the install commands
 Some VPS providers (Hetzner Cloud, and several others) offer a browser-based
@@ -231,7 +231,7 @@ Under the hood, `hermes gateway start/stop/restart` inside the container is inte
 
 Two different surfaces reach a profile's gateway from outside, and they behave differently — don't conflate them:
 
-**Hermes Desktop (and the web dashboard).** The Desktop app's **Remote Gateway** connection talks to a `hermes dashboard` backend (default **port 9119**, enabled by `HERMES_DASHBOARD=1`) — *not* the OpenAI API server. One dashboard backend serves **every** co-located profile: the app's profile switcher sends the target profile with each request and the backend opens that profile's `HERMES_HOME` on disk. So you do **not** need a second port — or a second connection — per profile for Desktop; one `:9119` connection covers them all through the switcher.
+**WenShu Desktop (and the web dashboard).** The Desktop app's **Remote Gateway** connection talks to a `hermes dashboard` backend (default **port 9119**, enabled by `HERMES_DASHBOARD=1`) — *not* the OpenAI API server. One dashboard backend serves **every** co-located profile: the app's profile switcher sends the target profile with each request and the backend opens that profile's `HERMES_HOME` on disk. So you do **not** need a second port — or a second connection — per profile for Desktop; one `:9119` connection covers them all through the switcher.
 
 **OpenAI-compatible API clients (Open WebUI, LobeChat, `/v1/...`).** These talk to each profile's **API server**, which binds **port 8642 for every profile** (resolved from `API_SERVER_PORT` / `platforms.api_server.extra.port` — there is no auto-allocation and no `config.yaml`/`gateway.port` key). If you want a client to reach a *specific* second profile, give that profile a distinct `API_SERVER_PORT` in **its own** `.env`, otherwise its gateway tries to bind 8642 too and conflicts with the default profile:
 
@@ -637,7 +637,7 @@ From inside the Hermes container, the sidecar is reachable at `http://my-tool:<p
 
 ### Broadly useful tools — open an issue or pull request
 
-If a tool is likely to be useful to most Hermes Agent users, consider contributing it upstream rather than carrying it in a private derived image. Open an issue or pull request on the [hermes-agent repository](https://github.com/NousResearch/hermes-agent) describing the tool and its use case. Tools that get bundled into the official image benefit every user and avoid the maintenance overhead of a downstream fork.
+If a tool is likely to be useful to most WenShu Agent users, consider contributing it upstream rather than carrying it in a private derived image. Open an issue or pull request on the [hermes-agent repository](https://github.com/NousResearch/hermes-agent) describing the tool and its use case. Tools that get bundled into the official image benefit every user and avoid the maintenance overhead of a downstream fork.
 
 ## Connecting to local inference servers (vLLM, Ollama, etc.)
 

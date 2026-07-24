@@ -1,7 +1,7 @@
 ---
 sidebar_position: 6
 title: "WhatsApp Business (Cloud API)"
-description: "Set up Hermes Agent as a WhatsApp bot via Meta's official Business Cloud API"
+description: "Set up WenShu Agent as a WhatsApp bot via Meta's official Business Cloud API"
 ---
 
 # WhatsApp Business Cloud API Setup
@@ -12,7 +12,7 @@ In exchange:
 
 - You need a **Meta Business account** (not personal WhatsApp).
 - The bot operates on a dedicated business phone number, not your personal number.
-- The Hermes gateway needs a **public HTTPS URL** so Meta can deliver inbound messages via webhook.
+- The WenShu gateway needs a **public HTTPS URL** so Meta can deliver inbound messages via webhook.
 - Replies more than 24 hours after the user's last message require a pre-approved **template** (this is Meta's "customer service window" rule, not a Hermes limit).
 
 If those constraints don't work for your use case, the [Baileys bridge integration](./whatsapp.md) is the alternative — personal account, no public URL needed, but unofficial and ban-prone.
@@ -88,7 +88,7 @@ System User tokens don't expire unless you explicitly revoke them.
 
 ## Exposing Hermes to the internet
 
-The Cloud API delivers inbound messages by HTTPS POST to your webhook URL — that means the Hermes gateway has to be reachable from Meta's servers.  Three common ways:
+The Cloud API delivers inbound messages by HTTPS POST to your webhook URL — that means the WenShu gateway has to be reachable from Meta's servers.  Three common ways:
 
 ### Cloudflare Tunnel (recommended)
 
@@ -143,7 +143,7 @@ Once your tunnel is running:
    python -c "import secrets; print(secrets.token_urlsafe(32))"
    ```
    Save it as `WHATSAPP_CLOUD_VERIFY_TOKEN` in `~/.hermes/.env`.
-3. Start the Hermes gateway: `hermes gateway`.
+3. Start the WenShu gateway: `hermes gateway`.
 4. In the Meta App Dashboard → **WhatsApp → Configuration** (or **Use cases → Customize → Configuration** depending on UI version) → click **Edit** on the Webhook section.
 5. Fill in:
    - **Callback URL**: `https://abc123.trycloudflare.com/whatsapp/webhook`

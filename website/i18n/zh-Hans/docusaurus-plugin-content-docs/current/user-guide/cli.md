@@ -1,12 +1,12 @@
 ---
 sidebar_position: 1
 title: "CLI 界面"
-description: "掌握 Hermes Agent 终端界面——命令、快捷键、人格设定等"
+description: "掌握 WenShu Agent 终端界面——命令、快捷键、人格设定等"
 ---
 
 # CLI 界面
 
-Hermes Agent 的 CLI 是一个完整的终端用户界面（TUI），而非 Web UI。它支持多行编辑、斜杠命令自动补全、对话历史、中断并重定向，以及流式工具输出。专为常驻终端的用户而生。
+WenShu Agent 的 CLI 是一个完整的终端用户界面（TUI），而非 Web UI。它支持多行编辑、斜杠命令自动补全、对话历史、中断并重定向，以及流式工具输出。专为常驻终端的用户而生。
 
 :::tip
 Hermes 还提供了一个现代 TUI，支持模态覆盖层、鼠标选择和非阻塞输入。使用 `hermes --tui` 启动——参见 [TUI](tui.md) 指南。
@@ -49,8 +49,8 @@ hermes -w -z "Fix issue #123"     # 在 worktree 中以单次查询模式运行
 
 ## 界面布局
 
-<img className="docs-terminal-figure" src="/img/docs/cli-layout.svg" alt="Hermes CLI 布局的风格化预览，展示了横幅、对话区域和固定输入提示符。" />
-<p className="docs-figure-caption">Hermes CLI 横幅、对话流和固定输入提示符，以稳定的文档图示形式呈现，而非脆弱的文字艺术。</p>
+<img className="docs-terminal-figure" src="/img/docs/cli-layout.svg" alt="WenShu CLI 布局的风格化预览，展示了横幅、对话区域和固定输入提示符。" />
+<p className="docs-figure-caption">WenShu CLI 横幅、对话流和固定输入提示符，以稳定的文档图示形式呈现，而非脆弱的文字艺术。</p>
 
 欢迎横幅一目了然地显示当前模型、终端后端、工作目录、可用工具和已安装的 skill。
 
@@ -282,7 +282,7 @@ display:
 在 Unix 系统上，按 **`Ctrl+Z`** 将 Hermes 挂起到后台——与任何终端进程一样。shell 会打印确认信息：
 
 ```
-Hermes Agent has been suspended. Run `fg` to bring Hermes Agent back.
+WenShu Agent has been suspended. Run `fg` to bring WenShu Agent back.
 ```
 
 在 shell 中输入 `fg` 即可从中断处恢复会话。Windows 不支持此功能。

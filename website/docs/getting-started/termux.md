@@ -1,7 +1,7 @@
 ---
 sidebar_position: 3
 title: "Android / Termux"
-description: "Run Hermes Agent directly on an Android phone with Termux"
+description: "Run WenShu Agent directly on an Android phone with Termux"
 ---
 
 # Hermes on Android with Termux
@@ -10,7 +10,7 @@ description: "Run Hermes Agent directly on an Android phone with Termux"
 Termux (Android) is a [Tier 2 platform](./platform-support.md#tier-2). The installer script and documentation here are maintained on a best-effort basis only. Commits to `main` may break these packages at any point in time.
 :::
 
-Hermes Agent can run directly on an Android phone through [Termux](https://termux.dev/).
+WenShu Agent can run directly on an Android phone through [Termux](https://termux.dev/).
 
 It gives you a working local CLI on the phone, plus the core extras that are currently known to install cleanly on Android.
 
@@ -18,7 +18,7 @@ It gives you a working local CLI on the phone, plus the core extras that are cur
 
 The tested Termux bundle installs:
 
-- the Hermes CLI
+- the WenShu CLI
 - cron support
 - PTY/background terminal support
 - Telegram gateway support (manual / best-effort background runs)

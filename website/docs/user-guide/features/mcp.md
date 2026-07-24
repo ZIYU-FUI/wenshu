@@ -1,12 +1,12 @@
 ---
 sidebar_position: 4
 title: "MCP (Model Context Protocol)"
-description: "Connect Hermes Agent to external tool servers via MCP — and control exactly which MCP tools Hermes loads"
+description: "Connect WenShu Agent to external tool servers via MCP — and control exactly which MCP tools Hermes loads"
 ---
 
 # MCP (Model Context Protocol)
 
-MCP lets Hermes Agent connect to external tool servers so the agent can use tools that live outside Hermes itself — GitHub, databases, file systems, browser stacks, internal APIs, and more.
+MCP lets WenShu Agent connect to external tool servers so the agent can use tools that live outside Hermes itself — GitHub, databases, file systems, browser stacks, internal APIs, and more.
 
 If you have ever wanted Hermes to use a tool that already exists somewhere else, MCP is usually the cleanest way to do it.
 
@@ -719,7 +719,7 @@ In addition to connecting **to** MCP servers, Hermes can also **be** an MCP serv
 
 - You want Claude Code, Cursor, or another coding agent to send and read Telegram/Discord/Slack messages through Hermes
 - You want a single MCP server that bridges to all of Hermes's connected messaging platforms at once
-- You already have a running Hermes gateway with connected platforms
+- You already have a running WenShu gateway with connected platforms
 
 ### Quick start
 

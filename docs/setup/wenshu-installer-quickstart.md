@@ -1,6 +1,6 @@
 # 文枢装机指南 (Wenshu Quickstart)
 
-> 文枢 (Wenshu) 是 Hermes Agent v0.19.0 的 fork.
+> 文枢 (Wenshu) 是 WenShu Agent v0.19.0 的 fork.
 > 本指南是"装机 user 走通"流程 — 不是开发者.
 
 ## TL;DR (3 步)

@@ -2,7 +2,7 @@
 sidebar_position: 8
 sidebar_label: "SMS (Twilio)"
 title: "SMS (Twilio)"
-description: "Set up Hermes Agent as an SMS chatbot via Twilio"
+description: "Set up WenShu Agent as an SMS chatbot via Twilio"
 ---
 
 # SMS Setup (Twilio)
@@ -190,7 +190,7 @@ SMS has no built-in encryption. Don't use SMS for sensitive operations unless yo
 
 1. Check `TWILIO_PHONE_NUMBER` is set correctly (E.164 format with `+`)
 2. Verify your Twilio account has SMS-capable numbers
-3. Check Hermes gateway logs for Twilio API errors
+3. Check WenShu gateway logs for Twilio API errors
 
 ### Webhook port conflicts
 

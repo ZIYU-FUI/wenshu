@@ -194,7 +194,7 @@ To check current state without changing anything:
 You can also set it manually in `~/.hermes/config.yaml`:
 ```yaml
 model:
-  openai_runtime: codex_app_server   # default is "auto" (= Hermes runtime)
+  openai_runtime: codex_app_server   # default is "auto" (= WenShu runtime)
 ```
 
 ## Self-improvement loop (memory + skill nudges)
@@ -204,7 +204,7 @@ Hermes' background self-improvement fires on counter thresholds:
 - Every 10 user prompts → a forked review agent looks at the conversation and decides whether anything should be saved to memory.
 - Every 10 tool iterations within a single turn → same idea but for skills (`skill_manage` writes).
 
-**Both keep working on the codex runtime.** The codex path projects each completed `commandExecution` / `fileChange` / `mcpToolCall` / `dynamicToolCall` item into a synthetic `assistant tool_call` + `tool` result message, so by the time the review runs it sees the same shape it sees on the default Hermes runtime.
+**Both keep working on the codex runtime.** The codex path projects each completed `commandExecution` / `fileChange` / `mcpToolCall` / `dynamicToolCall` item into a synthetic `assistant tool_call` + `tool` result message, so by the time the review runs it sees the same shape it sees on the default WenShu runtime.
 
 How the wiring stays equivalent:
 
@@ -378,7 +378,7 @@ When the model calls `web_search` (or another exposed Hermes tool), codex spawns
 
 **Tools available via the callback:** `web_search`, `web_extract`, `browser_navigate`, `browser_click`, `browser_type`, `browser_press`, `browser_snapshot`, `browser_scroll`, `browser_back`, `browser_get_images`, `browser_console`, `browser_vision`, `vision_analyze`, `image_generate`, `skill_view`, `skills_list`, `text_to_speech`.
 
-**Tools NOT available:** `delegate_task`, `memory`, `session_search`, `todo`. These need the running AIAgent context to dispatch (mid-loop state) and a stateless MCP callback can't drive them. Use the default Hermes runtime (`/codex-runtime auto`) when you need these.
+**Tools NOT available:** `delegate_task`, `memory`, `session_search`, `todo`. These need the running AIAgent context to dispatch (mid-loop state) and a stateless MCP callback can't drive them. Use the default WenShu runtime (`/codex-runtime auto`) when you need these.
 
 ## Disabling
 
@@ -392,7 +392,7 @@ Effective on the next session. The Codex managed block stays in `~/.codex/config
 
 ## Limitations
 
-This runtime is **opt-in beta**. Working as of Hermes Agent 2026.5 + Codex CLI 0.130.0:
+This runtime is **opt-in beta**. Working as of WenShu Agent 2026.5 + Codex CLI 0.130.0:
 
 - Multi-turn conversations
 - `commandExecution` and `fileChange` (apply_patch) approvals via Hermes UI

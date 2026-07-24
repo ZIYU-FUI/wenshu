@@ -1,12 +1,12 @@
 ---
 sidebar_label: "Desktop Plugin SDK"
 title: "Desktop Plugin SDK (@hermes/plugin-sdk)"
-description: "Extend the native Hermes Desktop app — panes, pages, sidebar nav, status bar, palette commands, keybinds, themes, and a scoped backend namespace, with one import and no build step."
+description: "Extend the native WenShu Desktop app — panes, pages, sidebar nav, status bar, palette commands, keybinds, themes, and a scoped backend namespace, with one import and no build step."
 ---
 
 # Desktop Plugin SDK
 
-The native [Hermes Desktop](/user-guide/desktop) app is contribution-driven: every
+The native [WenShu Desktop](/user-guide/desktop) app is contribution-driven: every
 surface in the window — panes, routes, sidebar nav, status-bar items, palette
 entries, keybinds, themes — registers into one central registry. Core registers
 its surfaces exactly the way a plugin does, so the plugin story is the real one,

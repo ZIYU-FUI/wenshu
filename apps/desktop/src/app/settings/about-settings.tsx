@@ -102,7 +102,7 @@ export function AboutSettings() {
           <p className="mt-1 text-xs text-muted-foreground">
             {version?.appVersion ? a.version(version.appVersion) : a.versionUnavailable}
           </p>
-          <p className="text-xs text-muted-foreground">文枢 v0.0.1 · 基于 Hermes Agent v0.19.0 (MIT) 修改</p>
+          <p className="text-xs text-muted-foreground">文枢 v0.0.1 · 基于 WenShu Agent v0.19.0 (MIT) 修改</p>
         </div>
       </div>
 

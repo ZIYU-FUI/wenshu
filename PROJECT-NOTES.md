@@ -154,7 +154,7 @@ STILL_ALIVE at 12:25:28 (elapsed 33s)
 
 ### GR-1: wenshu fork = 复用 hermes 全套 + 只改
 
-**装机 user 真意**: wenshu 是 Hermes Agent v0.19.0 fork, 复用 hermes 全套现有能力 (installer / self-update / monorepo / CLI / gateway / skills / MCP / Feishu / 排程). PM-direct 只做品牌 + 隔离路径 + LOGO + LICENSE 鸣谢 + 参数化.
+**装机 user 真意**: wenshu 是 WenShu Agent v0.19.0 fork, 复用 hermes 全套现有能力 (installer / self-update / monorepo / CLI / gateway / skills / MCP / Feishu / 排程). PM-direct 只做品牌 + 隔离路径 + LOGO + LICENSE 鸣谢 + 参数化.
 
 ### GR-2: installer-only 安装策略 (不再手包 desktop dmg)
 

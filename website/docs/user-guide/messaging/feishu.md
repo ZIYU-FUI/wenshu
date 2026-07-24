@@ -1,12 +1,12 @@
 ---
 sidebar_position: 11
 title: "Feishu / Lark"
-description: "Set up Hermes Agent as a Feishu or Lark bot"
+description: "Set up WenShu Agent as a Feishu or Lark bot"
 ---
 
 # Feishu / Lark Setup
 
-Hermes Agent integrates with Feishu and Lark as a full-featured bot. Once connected, you can chat with the agent in direct messages or group chats, receive cron job results in a home chat, and send text, images, audio, and file attachments through the normal gateway flow.
+WenShu Agent integrates with Feishu and Lark as a full-featured bot. Once connected, you can chat with the agent in direct messages or group chats, receive cron job results in a home chat, and send text, images, audio, and file attachments through the normal gateway flow.
 
 The integration supports both connection modes:
 
@@ -573,7 +573,7 @@ WebSocket and per-group ACL settings are configured via `config.yaml` under `pla
 | `websockets not installed; websocket mode unavailable` | Install websockets: `pip install websockets` |
 | `aiohttp not installed; webhook mode unavailable` | Install aiohttp: `pip install aiohttp` |
 | `FEISHU_APP_ID or FEISHU_APP_SECRET not set` | Set both env vars or configure via `hermes gateway setup` |
-| `Another local Hermes gateway is already using this Feishu app_id` | Only one Hermes instance can use the same app_id at a time. Stop the other gateway first. |
+| `Another local WenShu gateway is already using this Feishu app_id` | Only one Hermes instance can use the same app_id at a time. Stop the other gateway first. |
 | Bot doesn't respond in groups | Ensure the bot is @mentioned, check `FEISHU_GROUP_POLICY`, and verify the sender is in `FEISHU_ALLOWED_USERS` if policy is `allowlist` |
 | `Webhook rejected: invalid verification token` | Ensure `FEISHU_VERIFICATION_TOKEN` matches the token in your Feishu app's Event Subscriptions config |
 | `Webhook rejected: invalid signature` | Ensure `FEISHU_ENCRYPT_KEY` matches the encrypt key in your Feishu app config |

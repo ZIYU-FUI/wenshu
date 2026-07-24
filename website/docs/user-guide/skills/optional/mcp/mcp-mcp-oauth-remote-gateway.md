@@ -17,7 +17,7 @@ Manual OAuth for remote MCP servers on headless gateways.
 | Source | Optional — install with `hermes skills install official/mcp/mcp-oauth-remote-gateway` |
 | Path | `optional-skills/mcp/mcp-oauth-remote-gateway` |
 | Version | `1.0.0` |
-| Author | Ben Barclay (benbarclay), Hermes Agent |
+| Author | Ben Barclay (benbarclay), WenShu Agent |
 | License | MIT |
 | Platforms | linux, macos |
 | Tags | `MCP`, `OAuth`, `PKCE`, `Remote-Deployment` |
@@ -93,9 +93,9 @@ Both require an interactive terminal to the Hermes host. The rest of this skill
 is for when there is NO interactive TTY — Hermes running purely as a messaging
 gateway/bot where `/reload-mcp` triggers the flow with nobody at a prompt.
 
-## Preferred Front Door: the Hermes Dashboard (try this BEFORE manual token surgery)
+## Preferred Front Door: the WenShu Dashboard (try this BEFORE manual token surgery)
 
-A remote Hermes gateway often also runs the **dashboard** web UI as a SEPARATE
+A remote WenShu gateway often also runs the **dashboard** web UI as a SEPARATE
 process (e.g. `hermes dashboard --host 0.0.0.0 --port <port>`; check with
 `ps aux | grep 'hermes dashboard'`). It exposes a connector/MCP console —
 endpoints like `/api/mcp/servers`, `/api/mcp/status`, and `/connectors` (all
@@ -199,7 +199,7 @@ POST to the `registration_endpoint` with:
 
 ```json
 {
-  "client_name": "Hermes Agent (manual OAuth)",
+  "client_name": "WenShu Agent (manual OAuth)",
   "redirect_uris": ["http://127.0.0.1:8765/callback"],
   "grant_types": ["authorization_code", "refresh_token"],
   "response_types": ["code"],

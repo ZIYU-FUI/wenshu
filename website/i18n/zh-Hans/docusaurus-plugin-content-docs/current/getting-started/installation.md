@@ -1,12 +1,12 @@
 ---
 sidebar_position: 2
 title: "安装"
-description: "在 Linux、macOS、WSL2、原生 Windows 或通过 Termux 在 Android 上安装 Hermes Agent"
+description: "在 Linux、macOS、WSL2、原生 Windows 或通过 Termux 在 Android 上安装 WenShu Agent"
 ---
 
 # 安装
 
-使用一行安装命令，两分钟内即可启动并运行 Hermes Agent。
+使用一行安装命令，两分钟内即可启动并运行 WenShu Agent。
 
 ## 快速安装
 
@@ -41,7 +41,7 @@ iex (irm https://hermes-agent.nousresearch.com/install.ps1)
 
 如果你偏好 WSL2，上方的 Linux 安装程序可在其中运行；原生安装和 WSL 安装可以共存而不冲突（原生数据位于 `%LOCALAPPDATA%\hermes`，WSL 数据位于 `~/.hermes`）。
 
-**桌面安装程序（替代方案）：** 也提供一个轻量 GUI 安装程序——下载 Hermes Desktop，运行 `.exe`，首次启动时它会在后台调用 `install.ps1` 来配置 Python（通过 `uv`）、Node、PortableGit 及其余依赖。桌面应用和 PowerShell 安装的 CLI 共享相同的安装目录和数据目录，可以单独或同时使用。详见 [Windows（原生）指南](../user-guide/windows-native#desktop-installer-alternative)。
+**桌面安装程序（替代方案）：** 也提供一个轻量 GUI 安装程序——下载 WenShu Desktop，运行 `.exe`，首次启动时它会在后台调用 `install.ps1` 来配置 Python（通过 `uv`）、Node、PortableGit 及其余依赖。桌面应用和 PowerShell 安装的 CLI 共享相同的安装目录和数据目录，可以单独或同时使用。详见 [Windows（原生）指南](../user-guide/windows-native#desktop-installer-alternative)。
 
 ### Android / Termux
 

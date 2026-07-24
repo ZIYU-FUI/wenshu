@@ -1,7 +1,7 @@
 ---
 sidebar_position: 15
 title: "微信（Weixin）"
-description: "通过 iLink Bot API 将 Hermes Agent 连接到个人微信账号"
+description: "通过 iLink Bot API 将 WenShu Agent 连接到个人微信账号"
 ---
 
 # 微信（Weixin / WeChat）
@@ -299,7 +299,7 @@ iLink Bot API 要求在每条出站消息中回传 `context_token`（针对特�
 | `Weixin startup failed: aiohttp and cryptography are required` | 安装两者：`pip install aiohttp cryptography` |
 | `Weixin startup failed: WEIXIN_TOKEN is required` | 运行 `hermes gateway setup` 完成扫码登录，或手动设置 `WEIXIN_TOKEN` |
 | `Weixin startup failed: WEIXIN_ACCOUNT_ID is required` | 在 `.env` 中设置 `WEIXIN_ACCOUNT_ID`，或运行 `hermes gateway setup` |
-| `Another local Hermes gateway is already using this Weixin token` | 先停止另一个网关实例——每个 token 只允许一个轮询器 |
+| `Another local WenShu gateway is already using this Weixin token` | 先停止另一个网关实例——每个 token 只允许一个轮询器 |
 | 会话过期（`errcode=-14`） | 登录会话已过期。重新运行 `hermes gateway setup` 扫描新二维码 |
 | 配置过程中二维码过期 | 二维码最多自动刷新 3 次。若持续过期，请检查网络连接 |
 | Bot 不响应私信 | 检查 `WEIXIN_DM_POLICY`——若设置为 `allowlist`，发送方必须在 `WEIXIN_ALLOWED_USERS` 中 |

@@ -10,7 +10,7 @@ metadata:
     related_skills: []
 ---
 
-# Hermes Desktop Plugins Skill
+# WenShu Desktop Plugins Skill
 
 Write plugins for the Hermes desktop app: statusbar items, layout panes,
 command-palette commands, keybinds, routes, and themes. A plugin is a single

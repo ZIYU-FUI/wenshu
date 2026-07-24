@@ -7,7 +7,7 @@ sidebar_position: 5
 
 # 浏览器自动化
 
-Hermes Agent 内置完整的浏览器自动化工具集，支持多种后端选项：
+WenShu Agent 内置完整的浏览器自动化工具集，支持多种后端选项：
 
 - **Browserbase 云端模式** — 通过 [Browserbase](https://browserbase.com) 使用托管云端浏览器及反机器人工具
 - **Browser Use 云端模式** — 通过 [Browser Use](https://browser-use.com) 作为备选云端浏览器提供商
@@ -322,7 +322,7 @@ google-chrome \
   --no-default-browser-check &
 ```
 
-然后启动 Hermes CLI 并运行 `/browser connect`。
+然后启动 WenShu CLI 并运行 `/browser connect`。
 
 **为什么需要 `--user-data-dir`？** 若不指定，在普通实例已运行时启动 Chromium 系浏览器通常只会在现有进程上打开新窗口 — 而该进程启动时未带 `--remote-debugging-port`，因此端口 9222 永远不会开启。专用的 user-data-dir 会强制启动新的浏览器进程，使调试端口正常监听。`--no-first-run --no-default-browser-check` 跳过新 profile 的首次启动向导。
 :::

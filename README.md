@@ -1,13 +1,13 @@
 # 文枢 (Wenshu)
 
-> **Hermes Agent v0.19.0 深度改 fork** · Electron + React + TypeScript + Python + 自包含 hermes 内核
+> **WenShu Agent v0.19.0 深度改 fork** · Electron + React + TypeScript + Python + 自包含 hermes 内核
 > 老板(出资方):安百强 · 状态:**P0 项目基线(2026-07-23 拍板)** · 策略:**完全改源码实现文枢 + 跟上游漂移 + 单任务单一功能 + 打 .app 给老板试用验收**
 
 ---
 
 ## 1. 是什么
 
-**文枢 = Hermes Agent v0.19.0 深度改 fork**。在 NousResearch/hermes-agent 0.19.0(tag `v2026.7.20`,commit `3ef6bbd20`)基础上**全面改源码**,把 "Hermes" 全部替换成 "文枢",鸣谢 + About 体现 MIT 开源协议 + 致敬 Nous Research,代码层完全独立,跟上游长期漂移。
+**文枢 = WenShu Agent v0.19.0 深度改 fork**。在 NousResearch/hermes-agent 0.19.0(tag `v2026.7.20`,commit `3ef6bbd20`)基础上**全面改源码**,把 "Hermes" 全部替换成 "文枢",鸣谢 + About 体现 MIT 开源协议 + 致敬 Nous Research,代码层完全独立,跟上游长期漂移。
 
 **核心承诺**(2026-07-23 老板拍板):
 - **不复用用户本机 hermes** — 文枢 .app **自包含 hermes 内核**,不读本机 `~/.hermes/hermes-agent/`,用户装一次文枢就有独立完整的 hermes 环境
@@ -15,7 +15,7 @@
 - **跟上游漂移** — hermes 上游每月 1-3 次 release(实测 GitHub Releases),文枢每次手动 cherry-pick + 三方 merge(ours/theirs/wenshu-patches),用户用老内核是常态,大版本跳变有滞后
 - **文枢项目仓库独立** — `github.com/ZIYU-FUI/wenshu`(取代 `gitee.com/zi-yu1983/novel-platform`),从 `git@github.com:NousResearch/hermes-agent.git` upstream fork,版本号从 `0.0.0` 开始
 
-文枢基于 Hermes Agent v0.19.0 (MIT) 深度改 fork。
+文枢基于 WenShu Agent v0.19.0 (MIT) 深度改 fork。
 原作者 © 2025 Nous Research, 文枢修改 © 2026 安百强。
 上游: https://github.com/NousResearch/hermes-agent
 
@@ -59,7 +59,7 @@
 | **0.0.2** | 品牌重塑(全 monorepo 字符串替换 文枢 → 文枢,Settings / About / 启动页 / logo / 启动 banner / 命令输出 / CLI 文案 全部到位) | ⏸ |
 | **0.0.3** | 砍 4-tier ladder rung 1-4(只剩 rung 5 = 自包含内核,启动时不再检测本机 hermes) | ⏸ |
 | **0.0.4** | 跑通 build(pnpm install + pnpm build + electron-builder --mac,出 文枢.app + 文枢.dmg) | ⏸ |
-| **0.0.5** | 装到 /Applications/文枢.app + 启动验证(自包含内核起来,About 显示 "文枢 v0.0.x · 基于 Hermes Agent v0.19.0 (MIT) 修改") | ⏸ |
+| **0.0.5** | 装到 /Applications/文枢.app + 启动验证(自包含内核起来,About 显示 "文枢 v0.0.x · 基于 WenShu Agent v0.19.0 (MIT) 修改") | ⏸ |
 | **0.1.0** | PM↔CC 单 loop 跑加功能(每个任务 = 单一功能 + 打 .app 给老板试用验收) | ⏸ |
 | **0.2.0+** | 跟上游漂移(hermes 0.20.0 release 时,cherry-pick + 三方 merge) | ⏸ |
 
@@ -170,7 +170,7 @@
 - 大版本(0.x → 0.x+1):**1-2 月**(PM-direct 1-3 天,CC 1-3 天)
 
 **用户用老内核是常态**,关键缓解:
-- About 显示文枢版本 + 标注 "基于 Hermes Agent v0.19.0 (MIT)"
+- About 显示文枢版本 + 标注 "基于 WenShu Agent v0.19.0 (MIT)"
 - 用户用 .app 时会知道当前是 0.0.x + 内核 0.19.0,内核升级滞后是产品设计的一部分
 
 ## 11. 关键路径速查
