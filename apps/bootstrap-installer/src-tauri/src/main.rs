@@ -14,6 +14,37 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+#[cfg(target_os = "macos")]
+use std::process::Command;
+
+#[cfg(target_os = "macos")]
+const WEBKIT_PATH: &str = "/System/Library/Frameworks/WebKit.framework/Versions/A/WebKit";
+
+#[cfg(target_os = "macos")]
+fn has_webkit() -> bool {
+    std::path::Path::new(WEBKIT_PATH).exists()
+}
+
+#[cfg(target_os = "macos")]
+fn open_safari_fallback() {
+    let _ = Command::new("osascript")
+        .args([
+            "-e",
+            "tell application \"Safari\" to open location \"file:///Applications/文枢.app/Contents/Resources/dist/index.html\"",
+        ])
+        .output();
+
+    let _ = Command::new("osascript")
+        .args(["-e", "display dialog \"WebKit 不在, 启动 Safari fallback\""])
+        .output();
+}
+
 fn main() {
+    #[cfg(target_os = "macos")]
+    if !has_webkit() {
+        open_safari_fallback();
+        return;
+    }
+
     hermes_bootstrap_lib::run()
 }
