@@ -102,7 +102,55 @@ wenshu-fire-cc <wo-id> <prompt-path> [--allowedTools "..."] [--add-dir ...]
 
 ---
 
-## v1.97 GR (7/24 wenshu fork 战略 + installer-only + AIF 边界)
+## v1.99 GT (7/24) — CC mid-output in-flight 监控 拍板
+
+老板 7/24 12:24 拍: "你要能监控 CC". 真意: **PM-direct 必须能看 CC in-flight 状态**, 不只是死/活 0/1. v1.98 GS-2 解决了死活问题 (0 byte ≠ 死, sentinel > pgrep), 但还有"CC 在 thinking / 等 API reply"状 态 不可见 — .out 0 byte + PID alive + sample 在 `kevent64` 等 IO syscall = GS-2 看到 alive 但**没产出**, 老板 看 "0 byte 没动" 误以为死.
+
+**修法 (v1.99 GT-1)**: 派单 prompt 必含 mid-output 协议:
+
+- 每 tool call 前 echo "STAGE: <name> starting at $(date +%H:%M:%S)"
+- 每 tool call 后 echo "STAGE: <name> done at $(date +%H:%M:%S) took <N>s"
+- 每等 API reply echo "WAITING_API at $(date +%H:%M:%S)"
+- 每 30s 没 tool call 也 echo "STILL_ALIVE at $(date +%H:%M:%S)"
+- stderr 同时 echo "STDERR: <excerpt>"
+
+**wenshu-fire-cc helper v3** (2026-07-24 12:30) 自动 append mid-output 段到 prompt, 即使老板 / PM-direct 写时忘了 helper 也加。
+
+**PM-direct 5min 巡检姿势 (整合 GS-2 + GT-1)**:
+
+| 时点 | 动作 |
+|---|---|
+| t=0 | fire CC, 看 pgrep / sample 输出 (kevent64 = thinking) |
+| t=5min | 第 1 次巡检: .out + ps + sample |
+| t=10min | 第 2 次巡检 |
+| 每 5min 重复, 直到 sentinel 见 |
+| t=30min | 0 byte + alive + kevent64 → ⚠ SIGTERM 重 fire |
+| t=30min | 0 byte + alive + CPU 100% → ⚠ 可能卡 tool |
+| t=30min | PID 没了 → ✗ 真死 |
+
+**CC mid-output 看 live** 例子:
+
+```bash
+# 5min 后
+$ tail -30 /tmp/cc-out/wo-20260724-021.out
+STAGE: read_mount starting at 12:24:55
+STAGE: read_mount done at 12:24:57 took 2s
+WAITING_API at 12:24:58 (elapsed 3s)
+STILL_ALIVE at 12:25:28 (elapsed 33s)
+...
+```
+
+→ 老板 5min 后看 .out 看到 STAGE / WAITING_API / STILL_ALIVE 行 = **CC 在思考**, 不慌.
+
+**5 个可见性手段** (老板 / PM-direct 看 CC 在干):
+
+1. `claude agents --json` — pid / kind / session / startedAt
+2. `ps -p <PID>` — CPU/MEM/STAT
+3. `sample <PID> 2` — main thread stack (kevent64 = thinking, tool call = 跑 tool, etc)
+4. `lsof -p <PID>` — open files + connections
+5. `tail /tmp/cc-out/<wo>.out` — CC 真实工作内容 (mid-output 协议保证不沉默)
+
+## v1.98 GS (7/24 wenshu fork 战略 + installer-only + AIF 边界)
 
 ### GR-1: wenshu fork = 复用 hermes 全套 + 只改
 
