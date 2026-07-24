@@ -7,7 +7,7 @@ import { startInstall } from '../store'
  * Welcome screen.
  *
  * Mirrors the desktop's chat intro (apps/desktop/src/components/chat/intro.tsx):
- *   - 文枢 wordmark rendered in Collapse Bold, uppercase, tracked
+ *   - WERMES wordmark rendered in Collapse Bold, uppercase, tracked
  *   - mix-blend-plus-lighter so the type "glows" on the canvas
  *   - fit-text utility so the wordmark sizes itself to the column
  *
@@ -31,18 +31,17 @@ export default function Welcome() {
           }
         >
           <span>
-            <span>HERMES AGENT</span>
+            <span>WERMES AGENT</span>
           </span>
-          <span aria-hidden="true">HERMES AGENT</span>
+          <span aria-hidden="true">WERMES AGENT</span>
         </p>
 
         <p className="m-0 text-center text-base leading-normal tracking-tight text-muted-foreground">
-          The agent that grows with you. We&rsquo;ll set things up in the
-          background &mdash; takes a few minutes.
+          与你一同成长的智能体。系统将自动为你配置环境，约需几分钟。
         </p>
       </div>
 
-      <HackeryButton label="Install" onClick={() => void startInstall()} />
+      <HackeryButton label="安装文枢" onClick={() => void startInstall()} />
     </div>
   )
 }
