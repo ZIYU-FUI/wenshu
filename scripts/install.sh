@@ -6,7 +6,7 @@
 # Uses uv for desktop/server installs and Python's stdlib venv + pip on Termux.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/ZIYU-FUI/wenshu/main/scripts/install.sh | bash
+#   curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
 #
 # Or with options:
 #   curl -fsSL ... | bash -s -- --no-venv --skip-setup
@@ -61,7 +61,7 @@ NODE_VERSION="22"
 
 # FHS-style root install layout (set by resolve_install_layout when applicable):
 #   code at /usr/local/lib/hermes-agent, command at /usr/local/bin/hermes,
-#   data still at /root/.wenshu-hermes (HERMES_HOME).  Matches Claude Code / Codex CLI
+#   data still at /root/.hermes (HERMES_HOME).  Matches Claude Code / Codex CLI
 #   and keeps Docker bind-mounted /root/ volumes lean.
 ROOT_FHS_LAYOUT=false
 DETECTED_BROWSER_EXECUTABLE=""
@@ -74,7 +74,7 @@ NO_SKILLS=false
 BRANCH="main"
 INSTALL_COMMIT=""
 ENSURE_DEPS=""
-POSTINSTALL_MODE=false
+
 MANIFEST_MODE=false
 STAGE_NAME=""
 JSON_OUTPUT=false
@@ -150,10 +150,7 @@ while [[ $# -gt 0 ]]; do
             ENSURE_DEPS="$2"
             shift 2
             ;;
-        --postinstall)
-            POSTINSTALL_MODE=true
-            shift
-            ;;
+
         -h|--help)
             echo "Hermes Agent Installer"
             echo ""
@@ -174,9 +171,9 @@ while [[ $# -gt 0 ]]; do
             echo "  --non-interactive  Skip stages that require user input"
             echo "  --include-desktop  Also build the desktop app (apps/desktop -> Hermes.app)"
             echo "  --dir PATH     Installation directory"
-            echo "                   default (non-root):  ~/.wenshu-hermes/hermes-agent"
+            echo "                   default (non-root):  ~/.hermes/hermes-agent"
             echo "                   default (root, Linux): /usr/local/lib/hermes-agent"
-            echo "  --hermes-home PATH  Data directory (default: ~/.wenshu-hermes, or \$HERMES_HOME)"
+            echo "  --hermes-home PATH  Data directory (default: ~/.hermes, or \$HERMES_HOME)"
             echo "  -h, --help     Show this help"
             echo ""
             echo "Notes:"
@@ -184,15 +181,13 @@ while [[ $# -gt 0 ]]; do
             echo "  /usr/local/lib/hermes-agent and links the command into"
             echo "  /usr/local/bin/hermes (FHS layout — matches Claude Code / Codex CLI)."
             echo "  Data, config, sessions, and logs still live in \$HERMES_HOME"
-            echo "  (default /root/.wenshu-hermes).  This keeps Docker bind-mounted volumes"
+            echo "  (default /root/.hermes).  This keeps Docker bind-mounted volumes"
             echo "  small and ensures the command is on PATH for all shells."
             echo "  Existing installs at \$HERMES_HOME/hermes-agent are preserved in-place."
             echo "  --ensure DEPS  Install only specified deps (comma-separated)"
             echo "                   Supported: node, browser, ripgrep, ffmpeg"
             echo "                   Does NOT clone repo or create venv"
-            echo "  --postinstall  Run post-install setup only (for pip users)"
-            echo "                   Installs optional deps + runs hermes setup"
-            echo "                   Does NOT clone repo or create venv"
+
             exit 0
             ;;
         *)
@@ -527,7 +522,7 @@ detect_os() {
             OS="windows"
             DISTRO="windows"
             log_error "Windows detected. Please use the PowerShell installer:"
-            log_info "  iex (irm https://raw.githubusercontent.com/ZIYU-FUI/wenshu/main/scripts/install.ps1)"
+            log_info "  iex (irm https://hermes-agent.nousresearch.com/install.ps1)"
             exit 1
             ;;
         *)
@@ -1549,7 +1544,7 @@ try:
     specs = data["project"]["optional-dependencies"]["all"]
     extras = []
     for s in specs:
-        m = re.search(r"hermes-agent\[([\w-]+)\]|\b([\w-]+)\b", s)
+        m = re.search(r"hermes-agent\[([\w-]+)\]", s)
         if m:
             extras.append(m.group(1))
     print(",".join(extras))
@@ -2584,29 +2579,6 @@ ensure_mode() {
     done
 }
 
-postinstall_mode() {
-    print_banner
-    detect_os
-
-    log_info "Post-install mode: setting up Hermes for pip install"
-
-    check_node
-    check_network_prerequisites
-    install_system_packages
-
-    if [ "$HAS_NODE" = true ] && [ "$SKIP_BROWSER" = false ]; then
-        ensure_browser
-    fi
-
-    HERMES_CMD="$(command -v hermes 2>/dev/null || echo "")"
-    if [ -n "$HERMES_CMD" ]; then
-        log_info "Running hermes setup..."
-        "$HERMES_CMD" setup
-    else
-        log_warn "hermes command not found on PATH"
-        log_info "Try: python -m hermes_cli.main setup"
-    fi
-}
 
 # Clear the cached Electron download + any half-written unpacked output so the
 # next `npm run pack` re-downloads and re-stages from scratch. A corrupt zip in
@@ -3106,46 +3078,6 @@ run_stage_protocol() {
 }
 
 # ============================================================================
-# macOS WebKit cryptex fallback (MacOS 27 beta)
-# ============================================================================
-# macOS 27 beta ships WebKit inside a cryptex that may not be mounted at
-# install time, breaking any Tauri/Electron front-end that links WKWebView.
-# Probes Safari.app + the WebKit framework directory (read-only) and, on
-# FAIL, opens the front-end in Safari via AppleScript so the user has a
-# usable UI even though Tauri cannot render.  See WO-20260724-025.
-
-has_webkit() {
-    [ "$OS" = "macos" ] || return 0
-    [ -d "/Applications/Safari.app" ] || return 1
-    [ -d "/System/Library/Frameworks/WebKit.framework" ] || return 1
-    return 0
-}
-
-# WO-026: reverse-derive dmg-internal React UI from the running script path
-# (<installer>.app/Contents/MacOS/<bin> -> Contents/Resources/dist/index.html).
-find_dmg_frontend_url() {
-    local self dist
-    self="$(realpath "$0" 2>/dev/null || echo "$0")"
-    dist="$(dirname "$(dirname "$self")")/Resources/dist/index.html"
-    if [ -f "$dist" ]; then
-        echo "file://$dist"
-    else
-        echo -e "${YELLOW}⚠ dmg React UI not found at $dist; using placeholder URL${NC}" >&2
-        echo "${WENSHU_FRONTEND_URL:-https://wenshu.example.com}"
-    fi
-}
-
-webkit_safari_fallback() {
-    echo -e "${YELLOW}⚠ WebKit cryptex unavailable — opening front-end in Safari (AppleScript fallback)${NC}"
-    local url
-    url="$(find_dmg_frontend_url)"
-    osascript -e "tell application \"Safari\" to activate" \
-              -e "tell application \"Safari\" to open location \"$url\"" >/dev/null 2>&1 \
-        || echo -e "${YELLOW}⚠ osascript failed; user must open Safari manually: $url${NC}"
-    return 0
-}
-
-# ============================================================================
 # Main
 # ============================================================================
 
@@ -3153,14 +3085,6 @@ main() {
     print_banner
 
     detect_os
-
-    # First branch: macOS WebKit probe (MacOS 27 beta cryptex).
-    # Runs before any other install step so a missing cryptex surfaces early
-    # and the user gets a Safari-fronted UI even when Tauri can't render.
-    if [ "$OS" = "macos" ] && ! has_webkit; then
-        webkit_safari_fallback
-    fi
-
     resolve_install_layout
     install_uv
     check_python
@@ -3198,8 +3122,6 @@ elif [ -n "$STAGE_NAME" ]; then
     run_stage_protocol "$STAGE_NAME"
 elif [ -n "$ENSURE_DEPS" ]; then
     ensure_mode
-elif [ "$POSTINSTALL_MODE" = true ]; then
-    postinstall_mode
 else
     main
 fi
