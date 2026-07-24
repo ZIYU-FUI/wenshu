@@ -170,9 +170,8 @@ pub async fn launch_hermes_desktop(
     let install_root = PathBuf::from(install_root);
     let exe_path = resolve_hermes_desktop_exe(&install_root).ok_or_else(|| {
         format!(
-            "Couldn't find a built 文枢 desktop at {}. The desktop build step \
-             may have been skipped or failed. Run `hermes desktop` from a \
-             terminal to build and launch it.",
+            "在 {} 找不到已构建的文枢桌面应用。桌面应用构建步骤可能被跳过或失败。\
+             请在终端运行 `hermes desktop` 重新构建并启动。",
             install_root.join("apps").join("desktop").join("release").display()
         )
     })?;
