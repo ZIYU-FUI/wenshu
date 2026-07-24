@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "WenShu-Setup",
+  "productName": "文枢",
   "version": "0.0.1",
   "identifier": "com.wenshu.app.setup",
   "build": {
@@ -43,13 +43,7 @@
       "dmg",
       "appimage"
     ],
-    "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico"
-    ],
+    "icon": [],
     "windows": {
       "webviewInstallMode": {
         "type": "embedBootstrapper"
@@ -58,7 +52,7 @@
     "macOS": {
       "minimumSystemVersion": "11.0",
       "hardenedRuntime": true,
-      "bundleName": "WenShu-Setup"
+      "bundleName": "文枢"
     }
   },
   "plugins": {
