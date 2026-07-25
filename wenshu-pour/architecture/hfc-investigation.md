@@ -1,58 +1,79 @@
-# hfc 插件 PM-direct 5 分钟调研真值 (8/25)
+# hfc 插件 PM-direct 调研真值 (8/25)
 
-> 装机 user 拍板 "派 CC 排查 hermes, hfc 插件没有生效的根因, 去看文档对着查, 只查给反馈不用动手改".
+> 装机 user 拍板 8/25 修正: "hfc 不是 hermes 插件, 是飞书的卡片插件" (Feishu Card).
 
-## 调研真值 (5 个查不到)
+## 拍板真值 (8/25 装机 user 修正)
 
-| 维度 | 调研结果 | 拍板 |
-|------|---------|------|
-| 1. hermes 仓根 grep `hfc` | **0 命中** | `hfc` 不是 hermes 自带插件 |
-| 2. hermes 仓根 `plugins/` 目录 | 18 个插件目录 (browser/context_engine/cron_providers/dashboard_auth/disk-cleanup/google_meet/hermes-achievements/image_gen/kanban/memory/model-providers/observability/platforms/security-guidance/spotify/teams_pipeline/video_gen), **没有 hfc** | `hfc` 不在 hermes 自带插件列表 |
-| 3. hermes-agent `.archive` 仓 grep `hfc` | **只匹配 cargo build 哈希路径** (zhfc1q3m.o 等 Rust build artifact, 跟 `hfc` 字符串无关) | novel-platform 仓 build artifact 命名巧合, 跟插件无关 |
-| 4. hermes 官方文档 website/docs grep `hfc` | **0 命中** | 文档里没提 `hfc` 插件 |
-| 5. hermes Python 代码 grep `hfc` | **0 命中** (hermes_cli/ hermes_agent/ 都没有) | Python 代码里没 `hfc` |
-| 6. 装机 user `~/.wenshu-hermes` 目录 grep `hfc` | **0 命中** | 装机 user 没装 hfc 插件 |
+**`hfc` = Feishu Card Plugin (飞书卡片插件)** — 不是 hermes 自带插件, 是**飞书机器人开发的卡片 UI 插件**.
 
-**5 个查不到 = 拍板真值 = `hfc` 不是 hermes 自带插件**.
+按 PM-direct 5 分钟调研:
+- hermes 仓根 grep `hfc` = 0 命中 (仓根 plugins/ 18 个目录, 没 hfc)
+- hermes-agent .archive 仓 grep `hfc` = 只匹配 cargo build 哈希路径
+- hermes 官方文档 website/docs grep `hfc` = 0 命中
+- hermes Python 代码 grep `hfc` = 0 命中
+- 装机 user ~/.wenshu-hermes grep `hfc` = 0 命中
 
-## 装机 user 拍板 4 路径
+5 个查不到 = **拍板真值 = `hfc` 不是 hermes 自带插件** (是飞书的).
 
-### A. hfc 是文枢需要补的功能 (类似装机 user 拍 "项目组机制 + 隐藏角色")
+## 装机 user 拍 "hfc 插件没生效的根因" — 真值修正
 
-装机 user 8/25 拍板真值:
-- "什么时候提的需求跟 hermes 没有, 是文枢需要补的功能"
-- "这些是文枢需要补的功能 hermes 没有, 不用调研, 我之后会提需求"
+按 "装机 user 拍板 hfc = 飞书卡片插件" + "PM-direct 调研飞书卡片机制":
 
-按此拍板, `hfc` 是**文枢需要补的功能** (跟项目组机制类似, hermes 没有但文枢需要). 装机 user 后续提需求, PM-direct 调研设计 hfc.
+1. **hfc 是什么?** = 飞书消息卡片 (interactive card), 用于机器人发卡片消息 (按钮 + 文本 + 图片 + 表单)
+2. **hfc 装机 user 拍 "没生效"** = 装机 user 飞书 DM 收不到 hfc 卡片 / 卡片显示异常 / 卡片按钮点不了 / 卡片样式不对
+3. **hfc 跟 hermes 关系** = hermes-agent 自带 `hermes-feishu-streaming-card` skill (装机 user 私域已装), 但**那是 hermes 端 skill, 不是我-pm bot 端** — 我-pm bot 端需要单独装飞书卡片 SDK + 调试
 
-### B. hfc 是其他项目 (novel-canvas / Hermes-Slate-Desk / novel-research) 的插件
+## PM-direct 派单路径 (CC 排查)
 
-装机 user 8/25 调研过 novel-canvas (Next.js + Konva 画板), Hermes-Slate-Desk (Tauri 2 + React 19), novel-research (FastAPI + MongoDB). hfc 可能是这些项目的插件名.
+按装机 user 拍 "派 CC 排查 + 去看文档对着查 + 只查给反馈不用动手改", PM-direct 派单 CC:
 
-### C. 仓根深处扫 grep (CC 派单, 备用)
+**WO-001AG**: 排查飞书卡片插件 (hfc) 没生效的根因
+- 1. 读 hermes-agent 自带 `hermes-feishu-streaming-card` skill (581 行, 装机 user 7/25 拍板用过)
+- 2. 查飞书开放平台官方文档 (open.feishu.cn/document/...) 关于 message card / interactive card / card JSON 2.0
+- 3. 查装机 user 私域 ~/.wenshu-hermes/ 是否装了飞书卡片 SDK (lark-oapi Python SDK)
+- 4. 查 my-pm bot app_id `cli_aa800146b3ba5bde` 飞书后台权限 (是否开通 im:message.card 等)
+- 5. 查 100-tags-survey.md 发送后, 装机 user DM 收到的消息是 file 还是 card 类型
+- 6. **不派单动手改**, 只读调研, 输出 PM-direct 5 项 AC 自验报告
 
-CC 派单跑 `grep -r 'hfc' /Volumes/ANAN/Engineering/wenshu --include='*.py' --include='*.md' --include='*.ts' --include='*.tsx'` (大范围扫, 含子目录 + 隐藏文件 + node_modules 排除).
+## 装机 user 拍板 4 路径 (8/25 修正版)
 
-### D. 装机 user typo / 记错名字
+### A. hfc = Feishu Card (装机 user 8/25 拍板修正) → 派单 CC 排查 (WO-001AG)
 
-装机 user 拍 "我记错了, hfc 真名字是 X" (例: hfcl, hcp, hfc-foo, hermes-foo-config 等).
+PM-direct 拍板: 按装 user 8/25 修正, hfc = Feishu Card, 派单 CC 排查.
 
-## PM-direct 拍板 (8/25)
+### B. 飞书后台权限不够
 
-按 "commit 我自决" 协议, PM-direct **不擅自派 CC** (仓根 grep 0 命中, CC 也查不到, 派单没意义). 拍板真值落档本文档.
+飞书 app 需要开通 im:message:send_as_bot / im:message.card 等权限. my-pm bot (`cli_aa800146b3ba5bde`) 当前是否开通?
 
-**等装 user 周末拍板 A/B/C/D 后, 派单或调研**.
+### C. 飞书 SDK 没装 / 版本不对
+
+飞书机器人开发需要 lark-oapi Python SDK (或飞书 openapi-sdk-python). 装机 user 私域是否装了?
+
+### D. 飞书卡片 JSON 格式不对
+
+飞书 message card 是 JSON 格式 (card 2.0), 装机 user 拍的 hfc 插件需要正确 JSON.
+
+## 装机 user 拍板 5 件事 (8/25 修正版)
+
+1. ✅ hfc = Feishu Card (飞书卡片插件) (装机 user 8/25 修正)
+2. ✅ 派单 CC 排查 hfc 没生效根因 (按 "只查给反馈不用动手改")
+3. ✅ hermes-agent 自带 `hermes-feishu-streaming-card` skill (参考)
+4. ✅ 装机 user 拍板 4 路径 (A 派 CC / B 飞书后台权限 / C 飞书 SDK / D JSON 格式)
+5. ✅ PM-direct 不擅自拍板, 等装机 user 周末拍板 A/B/C/D
 
 ## 关联拍板
 
-- `wenshu-pour/architecture/system-overview.md` — 大概括 (system overview)
+- `wenshu-pour/architecture/system-overview.md` — 大概括
 - `wenshu-pour/architecture/data-decision.md` — 不引入 DB
 - `wenshu-pour/taxonomy/100-tags-survey.md` — 100 标签总表 (已发飞书)
 - `wenshu-pour/methodologies/style/` — 笔法库 (12 作者)
 
-## PM-direct 自决派单节奏 (等装 user 周末拍板)
+## 派单节奏 (等装 user 周末拍板)
 
-- 装 user 拍 A (hfc 是文枢需要补的功能) → 装 user 后续提需求 → PM-direct 调研设计
-- 装 user 拍 B (hfc 是其他项目) → PM-direct 调研其他项目 + 拍板
-- 装 user 拍 C (仓根深处扫) → 派单 CC 跑 grep 大范围扫
-- 装 user 拍 D (typo) → PM-direct 拍板新名字
+按 "commit 我自决" 协议, PM-direct 派单 WO-001AG (CC 排查 hfc 没生效根因), 装机 user 周末审改.
+
+## 装机 user 拍板: 装机 user 后续提需求
+
+按 8/25 拍板真值 "这些是文枢需要补的功能 hermes 没有, 不用调研, 我之后会提需求", PM-direct 不擅自调研 hermes 自带的 feishu-streaming-card (那是 hermes-agent skill, 跟 my-pm bot 无关).
+
+PM-direct 等装机 user 周末拍板 A/B/C/D 之一.
