@@ -2155,7 +2155,7 @@ def _hex_to_ansi(hex_color: str, *, bold: bool = False) -> str:
 # ────────────────────────────────────────────────────────────────────────
 # Light/dark terminal mode detection.
 #
-# Mirrors ui-tui/src/theme.ts detectLightMode().  Used to decide whether
+# Mirrors the terminal UI theme module detectLightMode().  Used to decide whether
 # to remap "near-white" skin colors (e.g. #FFF8DC banner_text, #B8860B
 # banner_dim) to darker equivalents that are readable on a light
 # Terminal.app / iTerm2 background.
@@ -9650,7 +9650,7 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
         turn (the same UX failure mode that motivated this entire fix), since
         ``_session_yolo`` is keyed by session id.
 
-        Mirrors ``tui_gateway/server.py`` (~line 1297-1305) which performs the
+        Mirrors ``the desktop chat server`` (~line 1297-1305) which performs the
         same transfer for the TUI's session-rename path. No-op when YOLO
         wasn't enabled or when the ids match.
         """
@@ -9699,7 +9699,7 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
 
         Per-session toggle that mirrors the gateway and TUI ``/yolo`` handlers
         (see ``gateway/run.py:_handle_yolo_command`` and
-        ``tui_gateway/server.py`` key=="yolo"). We deliberately do NOT mutate
+        ``the desktop chat server`` key=="yolo"). We deliberately do NOT mutate
         ``HERMES_YOLO_MODE`` here — that env var is read once at module import
         time into ``tools.approval._YOLO_MODE_FROZEN`` to keep prompt-injected
         skills from flipping the bypass mid-session, so setting it after CLI
@@ -12037,7 +12037,7 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin, CLIBillingMixin):
                 # ``tools.approval.is_current_session_yolo_enabled()`` resolves
                 # against the same key that ``/yolo`` toggles under (see
                 # ``_toggle_yolo`` → ``enable_session_yolo(self.session_id)``).
-                # Mirrors ``tui_gateway/server.py`` and ``gateway/run.py`` which
+                # Mirrors ``the desktop chat server`` and ``gateway/run.py`` which
                 # bind the same contextvar before invoking the agent.
                 try:
                     from tools.approval import (

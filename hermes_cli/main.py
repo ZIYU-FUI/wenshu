@@ -1591,9 +1591,9 @@ def _tui_need_npm_install(root: Path) -> bool:
 
     With npm workspaces the single ``package-lock.json`` and the hoisted
     ``node_modules/`` live at the workspace root (the parent of the
-    ``ui-tui/`` directory).  The lockfile / ink / marker checks use that
+    ``legacy-terminal-ui/`` directory).  The lockfile / ink / marker checks use that
     workspace root; only the prebuilt-bundle sentinel stays relative to
-    *root* (``ui-tui/dist/entry.js``).
+    *root* (``legacy-terminal-ui/dist/entry.js``).
 
     Compares ``package-lock.json`` against ``node_modules/.package-lock.json``
     (npm's hidden lockfile) by **content**, not mtime: git checkouts and npm
@@ -1685,7 +1685,7 @@ _TUI_BUILD_INPUT_SUFFIXES = frozenset(
 
 
 def _iter_tui_build_inputs(root: Path):
-    """Yield source/config files that affect ``ui-tui/dist/entry.js``."""
+    """Yield source/config files that affect ``legacy-terminal-ui/dist/entry.js``."""
     for rel in _TUI_BUILD_INPUT_FILES:
         path = root / rel
         if path.is_file():
@@ -1795,9 +1795,9 @@ def _find_bundled_tui(hermes_cli_dir: Path | None = None) -> Path | None:
 
 
 def _restore_tui_workspace(tui_dir: Path) -> bool:
-    """Try to restore a missing ``ui-tui/`` from git, returning True on success.
+    """Try to restore a missing ``legacy-terminal-ui/`` from git, returning True on success.
 
-    On Windows an antivirus / NTFS filter driver can leave tracked ``ui-tui/``
+    On Windows an antivirus / NTFS filter driver can leave tracked ``legacy-terminal-ui/``
     files deleted in the working tree after ``hermes update`` (HEAD stays
     intact; the files just vanish — see issue #49145). Those files are tracked,
     so ``git restore`` puts them back deterministically. Best-effort: returns
@@ -1822,10 +1822,10 @@ def _restore_tui_workspace(tui_dir: Path) -> bool:
 
 
 def _ensure_tui_workspace(tui_dir: Path) -> None:
-    """Ensure ``ui-tui/`` exists before any npm/node subprocess uses it as cwd.
+    """Ensure ``legacy-terminal-ui/`` exists before any npm/node subprocess uses it as cwd.
 
     Without this, a missing workspace falls through to ``subprocess.run(...,
-    cwd=<missing ui-tui>)``, which crashes with ``NotADirectoryError``
+    cwd=<missing legacy-terminal-ui>)``, which crashes with ``NotADirectoryError``
     (``WinError 267`` on Windows) instead of a usable message (#49145). We
     first try to self-heal via ``git restore``; only if that can't recover the
     directory do we abort with concrete manual-recovery steps.
@@ -1841,9 +1841,9 @@ def _ensure_tui_workspace(tui_dir: Path) -> None:
     print(
         "Error: the TUI workspace is missing from this 文枢 checkout.\n"
         f"Expected directory: {tui_dir}\n"
-        "This usually means `hermes update` left tracked ui-tui files deleted.\n"
+        "This usually means `hermes update` left tracked legacy-terminal-ui files deleted.\n"
         "Recovery:\n"
-        "  1. From the 文枢 checkout, run `git restore -- ui-tui`\n"
+        "  1. From the 文枢 checkout, run `git restore -- legacy-terminal-ui`\n"
         "  2. Run `npm install --silent --no-fund --no-audit --progress=false`\n"
         "  3. Retry `hermes --tui`\n"
         "If the checkout is still inconsistent, run `hermes update --force`.",
@@ -1888,7 +1888,7 @@ def _make_tui_argv(tui_dir: Path, tui_dev: bool) -> tuple[list[str], Path]:
     # 1. Prebuilt bundle (nix / packaged release): just run it.
     #
     # This must run BEFORE _ensure_tui_workspace() below. A pip/pipx install
-    # ships hermes_cli/tui_dist/entry.js in the wheel but never ships ui-tui/
+    # ships hermes_cli/tui_dist/entry.js in the wheel but never ships legacy-terminal-ui/
     # at all (that directory only exists in a git checkout) — so requiring
     # the workspace to exist first made every pip/pipx dashboard Chat tab
     # connection hard-exit before it ever got a chance to try the bundled
@@ -1914,7 +1914,7 @@ def _make_tui_argv(tui_dir: Path, tui_dev: bool) -> tuple[list[str], Path]:
     # 2. Normal flow: npm install if needed, always esbuild, then node dist/entry.js.
     #    --dev flow: npm install if needed, then tsx src/entry.tsx.
     #    Existing desktop behaviour runs npm from the workspace root.  Termux
-    #    scopes the install to ui-tui so launch does not pull desktop/web
+    #    scopes the install to legacy-terminal-ui so launch does not pull desktop/web
     #    dependencies into the hot path.
     did_install = False
     termux_startup = _is_termux_startup_environment()
@@ -1933,13 +1933,13 @@ def _make_tui_argv(tui_dir: Path, tui_dev: bool) -> tuple[list[str], Path]:
         if not os.environ.get("HERMES_QUIET"):
             print("Installing TUI dependencies…")
         npm_cwd = _workspace_root(tui_dir)
-        # --workspace ui-tui avoids resolving apps/desktop (Electron + node-pty).
+        # --workspace legacy-terminal-ui avoids resolving apps/desktop (Electron + node-pty).
         # See #38772.
-        # When ui-tui/ has its own package-lock.json (e.g. curl install),
+        # When legacy-terminal-ui/ has its own package-lock.json (e.g. curl install),
         # _workspace_root() returns tui_dir itself.  Passing --workspace in
-        # that case fails because npm cannot find a workspace named "ui-tui"
-        # inside ui-tui/.  See #42973.
-        npm_workspace_args: tuple[str, ...] = () if npm_cwd == tui_dir else ("--workspace", "ui-tui")
+        # that case fails because npm cannot find a workspace named "legacy-terminal-ui"
+        # inside legacy-terminal-ui/.  See #42973.
+        npm_workspace_args: tuple[str, ...] = () if npm_cwd == tui_dir else ("--workspace", "legacy-terminal-ui")
         if termux_startup:
             npm_cwd, npm_workspace_args = _termux_workspace_install_context(
                 tui_dir,
@@ -1950,7 +1950,7 @@ def _make_tui_argv(tui_dir: Path, tui_dev: bool) -> tuple[list[str], Path]:
                 npm,
                 "install",
                 *npm_workspace_args,
-                # --include=dev: ui-tui's build toolchain (esbuild, typescript)
+                # --include=dev: legacy-terminal-ui's build toolchain (esbuild, typescript)
                 # lives in devDependencies. An inherited NODE_ENV=production
                 # (e.g. from a container shell or a parent TUI launch) or an
                 # npm `omit=dev` config would silently skip them and the TUI
@@ -2182,7 +2182,9 @@ def _launch_tui(
     accept_hooks: bool = False,
 ):
     """Replace current process with the TUI."""
-    tui_dir = PROJECT_ROOT / "ui-tui"
+    # The legacy terminal UI was removed; retain this compatibility path so
+    # callers still receive the deterministic missing-workspace error.
+    tui_dir = PROJECT_ROOT / "legacy-terminal-ui"
 
     import tempfile
 
@@ -2284,7 +2286,7 @@ def _launch_tui(
     # in the user's shell would otherwise make a plain `hermes --tui` try to
     # resume a non-existent session and leave the UI at "error: session not
     # found" with no live session.  Only forward a resume id that argparse
-    # resolved for this invocation; direct `node ui-tui/dist/entry.js` users can
+    # resolved for this invocation; direct `node legacy-terminal-ui/dist/entry.js` users can
     # still set HERMES_TUI_RESUME themselves.
     env.pop("HERMES_TUI_RESUME", None)
     if resume_session_id:
@@ -6435,7 +6437,7 @@ def _atomic_replace_dir(src: str, dst: str) -> None:
     the copy fails partway (common on the Windows ZIP-update path, which only
     runs because file I/O is already flaky on that machine), the old directory
     is already gone and nothing replaced it — the install is left with a
-    deleted tree (issue #49145, where ``ui-tui/`` vanished and broke the TUI).
+    deleted tree (issue #49145, where ``legacy-terminal-ui/`` vanished and broke the TUI).
 
     Instead, stage the new copy into a sibling temp dir first; only once that
     fully succeeds do we swap it in. A failure during staging raises with the
@@ -8463,7 +8465,7 @@ def _resolve_node_runtime_npm() -> str | None:
     On WSL/Linux ``shutil.which("npm")`` may resolve a Windows npm exposed
     through PATH interop. Running that Windows npm against the Linux checkout
     operates over ``\\wsl.localhost\\...`` UNC paths and fails with EISDIR /
-    symlink errors in symlink-heavy trees like ``ui-tui`` (#30271). Refuse a
+    symlink errors in symlink-heavy trees like ``legacy-terminal-ui`` (#30271). Refuse a
     Windows npm on a POSIX host and re-scan PATH (skipping ``/mnt/*`` interop
     entries) for a Linux-native npm. Returns the npm path, or ``None`` when
     no suitable npm is reachable.
@@ -8508,7 +8510,7 @@ def _update_node_dependencies() -> list[str]:
     npm = _resolve_node_runtime_npm()
     if not npm:
         # If the only npm reachable inside this WSL shell is the Windows one,
-        # flag it loudly: silently skipping leaves ui-tui deps stale while the
+        # flag it loudly: silently skipping leaves legacy-terminal-ui deps stale while the
         # rest of the update proceeds, and running it would corrupt the tree.
         from hermes_constants import is_wsl
 
@@ -8521,9 +8523,9 @@ def _update_node_dependencies() -> list[str]:
             failed = ["repo root"]
             if any(
                 (PROJECT_ROOT / workspace / "package.json").exists()
-                for workspace in ("ui-tui", "web")
+                for workspace in ("legacy-terminal-ui", "web")
             ):
-                failed.append("ui-tui, web workspaces")
+                failed.append("legacy-terminal-ui, web workspaces")
             return failed
         return []
 
@@ -8580,9 +8582,9 @@ def _update_node_dependencies() -> list[str]:
             print(f"    {stderr.splitlines()[-1]}")
         return _partial_update_failure("repo root")
 
-    # Step 2: install only the workspaces update needs (ui-tui, web).
+    # Step 2: install only the workspaces update needs (legacy-terminal-ui, web).
     # --workspace selects specific workspaces; the rest (desktop) are skipped.
-    ws_args = [*extra_args, "--workspace", "ui-tui", "--workspace", "web"]
+    ws_args = [*extra_args, "--workspace", "legacy-terminal-ui", "--workspace", "web"]
     ws_result = _run_npm_install_deterministic(
         npm,
         PROJECT_ROOT,
@@ -8592,14 +8594,14 @@ def _update_node_dependencies() -> list[str]:
     )
     if ws_result.returncode == 0:
         _record_npm_lockfile_hash(shared_hermes_root)
-        print("  ✓ repo root + ui-tui, web workspaces (desktop skipped)")
+        print("  ✓ repo root + legacy-terminal-ui, web workspaces (desktop skipped)")
         return []
 
     print("  ⚠ npm workspace install failed")
     stderr = (ws_result.stderr or "").strip() if ws_result.stderr else ""
     if stderr:
         print(f"    {stderr.splitlines()[-1]}")
-    return _partial_update_failure("ui-tui, web workspaces")
+    return _partial_update_failure("legacy-terminal-ui, web workspaces")
 
 
 class _UpdateOutputStream:
@@ -12642,8 +12644,7 @@ def cmd_dashboard(args):
     # Bridge terminal.* config into the TERMINAL_* env vars for THIS process,
     # mirroring the CLI (cli.py env_mappings) and gateway (gateway/run.py
     # _terminal_env_map) startup bridges. The dashboard/serve backend runs
-    # agents in-process (tui_gateway.ws → server._make_agent) and ticks cron
-    # jobs itself when desktop-spawned — without this bridge those consumers
+    # agents in-process and ticks cron jobs itself when desktop-spawned — without this bridge those consumers
     # saw an unset TERMINAL_ENV and silently ran every command on the host
     # even when config.yaml selects `terminal.backend: docker`
     # (#63141, #54449, #61115, #65696). PTY chat spawns already bridge their
@@ -12713,12 +12714,10 @@ def cmd_dashboard(args):
         print(f"⚠ Plugin discovery failed: {exc}", file=sys.stderr)
 
     # Desktop chat uses the dashboard's in-process /api/ws gateway, which builds
-    # agents via tui_gateway.server._make_agent.  That path only snapshots the
-    # tool registry — it never starts MCP discovery (the stdio TUI does that in
-    # tui_gateway/entry.py, which the dashboard process doesn't run).  Without
-    # this, a profile's configured MCP servers never connect, so desktop
-    # sessions show no MCP tools.  Spawn discovery in the background here so a
-    # slow/dead server can't block dashboard startup.
+    # agents and only snapshots the tool registry — it never starts MCP
+    # discovery. Without this, a profile's configured MCP servers never
+    # connect, so desktop sessions show no MCP tools. Spawn discovery in the
+    # background here so a slow/dead server can't block dashboard startup.
     try:
         from hermes_cli.mcp_startup import start_background_mcp_discovery
 

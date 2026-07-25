@@ -86,7 +86,7 @@ export function ModelSettingsSkeleton() {
 const EFFORT_VALUES = ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max', 'ultra'] as const
 
 // agent.service_tier stores "fast"/"priority"/"on" for fast; anything else is
-// normal (mirrors tui_gateway _load_service_tier).
+// normal (mirrors the desktop server's _load_service_tier).
 const isFastTier = (tier: unknown): boolean =>
   ['fast', 'priority', 'on'].includes(
     String(tier ?? '')

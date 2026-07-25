@@ -16,7 +16,7 @@ domain reads the same resolved object instead of probing git/config itself:
   * **System prompt** — ``RuntimeMode.system_blocks()`` → the operating brief +
     a live git/workspace snapshot (``agent/system_prompt.py``).
   * **Toolset** — ``RuntimeMode.toolset_selection()`` → the ``coding`` toolset
-    plus the user's enabled MCP servers (``cli.py`` / ``tui_gateway``). Only
+    plus the user's enabled MCP servers (``cli.py`` / desktop chat). Only
     under the opt-in ``focus`` mode: the default posture is prompt-only and
     never touches the user's configured toolsets (toolsets like messaging /
     smart-home / music are off-by-default anyway, and someone who explicitly

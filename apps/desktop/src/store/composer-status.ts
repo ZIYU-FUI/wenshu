@@ -208,7 +208,7 @@ const writeBackground = (sid: string, items: ComposerStatusItem[]) => {
   $backgroundStatusBySession.set(next)
 }
 
-// `tui_gateway` process.list entry (tools/process_registry.list_sessions + output_tail).
+// desktop server's process.list entry (tools/process_registry.list_sessions + output_tail).
 interface GatewayProcessEntry {
   command?: string
   exit_code?: number

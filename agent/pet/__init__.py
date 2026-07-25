@@ -8,7 +8,7 @@ an 8-column × 9-row atlas; older Hermes/petdex sheets used an 8-row atlas.
 idle/run/review/failed/wave/jump.
 
 This package is the **single source of truth** for the feature so the base
-CLI (Python) and TUI (Ink, via ``tui_gateway``) never duplicate the hard
+CLI (Python) and TUI (Ink, via ``desktop chat transport``) never duplicate the hard
 parts:
 
 - :mod:`agent.pet.constants` — frame geometry + the :class:`PetState` enum.

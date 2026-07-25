@@ -37,14 +37,13 @@ def test_dockerfile_disables_runtime_install_mutations() -> None:
 
     assert "ENV PYTHONDONTWRITEBYTECODE=1" in text
     assert "ENV HERMES_DISABLE_LAZY_INSTALLS=1" in text
-    assert "HERMES_TUI_DIR=/opt/hermes/ui-tui" in text
+    assert "HERMES_TUI_DIR=" in text
 
 
 def test_dockerfile_does_not_chown_install_trees_to_hermes() -> None:
     text = _dockerfile_text()
     forbidden_patterns = (
         r"chown\s+-R\s+hermes:hermes\s+/opt/hermes/\.venv",
-        r"chown\s+-R\s+hermes:hermes\s+/opt/hermes/ui-tui",
         r"chown\s+-R\s+hermes:hermes\s+/opt/hermes/gateway",
         r"chown\s+-R\s+hermes:hermes\s+/opt/hermes/node_modules",
     )

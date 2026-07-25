@@ -303,7 +303,7 @@ def _gateway_command_subcommand(command: str | None) -> str | None:
     Lifecycle decisions (is the gateway up? did restart relaunch it?) must not
     fire on loose substring matches.  The previous ``"... gateway" in cmdline``
     test also matched ``hermes_cli.main gateway status`` and even unrelated
-    processes like ``python -m tui_gateway`` -- which made ``restart()`` race
+    processes like ``python -m legacy_chat_transport`` -- which made ``restart()`` race
     against a still-draining old process and ``status``/``start`` report false
     positives.  This requires the actual ``gateway`` subcommand followed by
     ``run`` (or one of the gateway-dedicated entrypoints), excluding the other

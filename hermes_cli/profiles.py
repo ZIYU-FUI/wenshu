@@ -1322,7 +1322,7 @@ def _profile_bound_backend_pids(canon: str, profile_dir: Path) -> list[int]:
         current_user = None
 
     backend_tokens = {"serve", "dashboard", "gateway"}
-    hermes_markers = ("hermes_cli.main", "hermes-gateway", "tui_gateway")
+    hermes_markers = ("hermes_cli.main", "hermes-gateway")
     pids: list[int] = []
 
     for proc in psutil.process_iter(["pid", "name", "username", "cmdline"]):

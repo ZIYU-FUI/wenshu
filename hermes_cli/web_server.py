@@ -6061,7 +6061,7 @@ def get_model_info(profile: Optional[str] = None):
 
 # ---------------------------------------------------------------------------
 # Model assignment — pick provider+model for main slot or auxiliary slots.
-# Mirrors the model.options JSON-RPC from tui_gateway but uses REST so the
+# Mirrors the former model.options JSON-RPC but uses REST so the
 # Models page (which has no chat PTY open) can drive it.
 # ---------------------------------------------------------------------------
 
@@ -6091,7 +6091,7 @@ def get_model_options(
 ):
     """Return authenticated providers + their curated model lists.
 
-    REST equivalent of the ``model.options`` JSON-RPC on tui_gateway, so the
+    REST equivalent of the former ``model.options`` JSON-RPC, so the
     dashboard Models page can render the picker without a live chat session.
     The response shape matches ``model.options`` 1:1 so ``ModelPickerDialog``
     can share the same types.
@@ -16624,15 +16624,15 @@ def _resolve_chat_argv(
 
     Session resume is propagated via the ``HERMES_TUI_RESUME`` env var —
     matching what ``hermes_cli.main._launch_tui`` does for the CLI path.
-    Appending ``--resume <id>`` to argv doesn't work because ``ui-tui`` does
+    Appending ``--resume <id>`` to argv doesn't work because ``legacy-terminal-ui`` does
     not parse its argv.
 
     ``HERMES_TUI_GATEWAY_URL`` is injected so the PTY child can attach to
-    this process's in-memory ``tui_gateway`` instance instead of spawning
-    its own Python gateway subprocess.
+    this process's in-memory chat gateway instead of spawning
+    another Python gateway subprocess.
 
     `sidecar_url` (when set) is forwarded as ``HERMES_TUI_SIDECAR_URL`` so
-    the spawned ``tui_gateway.entry`` can mirror dispatcher emits to the
+    the spawned chat gateway can mirror dispatcher emits to the
     dashboard's ``/api/pub`` endpoint (see :func:`pub_ws`).
 
     `active_session_file` (when set) is forwarded as
@@ -16643,7 +16643,7 @@ def _resolve_chat_argv(
 
     `profile` (when set) scopes the ENTIRE chat to that profile by pointing
     ``HERMES_HOME`` at the profile dir in the child env. Every spawned
-    process (the TUI and the ``tui_gateway.entry`` it launches) resolves
+    process (the TUI and the chat gateway it launches) resolves
     ``get_hermes_home()`` from that env var at its own import, so the child
     binds the profile's config, skills, memory, and state.db from the start
     — the same propagation ``hermes -p <name>`` performs. The in-process
@@ -16658,7 +16658,7 @@ def _resolve_chat_argv(
     if requested and requested.lower() != "current":
         profile_dir = _resolve_profile_dir(requested)
 
-    argv, cwd = _make_tui_argv(PROJECT_ROOT / "ui-tui", tui_dev=False)
+    argv, cwd = _make_tui_argv(PROJECT_ROOT / "legacy-terminal-ui", tui_dev=False)
     env = os.environ.copy()
     try:
         from hermes_cli.config import apply_terminal_config_to_env
@@ -16711,7 +16711,7 @@ def _resolve_chat_argv(
 
     # Profile-scoped chats must NOT attach to the dashboard's in-memory
     # gateway — it runs under the dashboard's own profile. Without the
-    # attach URL, gatewayClient spawns its own `tui_gateway.entry`, which
+    # attach URL, the gateway client spawns its own child process, which
     # inherits the profile HERMES_HOME set above.
     if profile_dir is None:
         if gateway_ws_url := _build_gateway_ws_url():
@@ -17668,7 +17668,7 @@ async def pty_ws(ws: WebSocket) -> None:
 # ---------------------------------------------------------------------------
 # /api/ws — JSON-RPC WebSocket sidecar for the dashboard "Chat" tab.
 #
-# Drives the same `tui_gateway.dispatch` surface Ink uses over stdio, so the
+# Drives the structured chat dispatch surface over WebSocket, so the
 # dashboard can render structured metadata (model badge, tool-call sidebar,
 # slash launcher, session info) alongside the xterm.js terminal that PTY
 # already paints. Both transports bind to the same session id when one is
@@ -17690,15 +17690,18 @@ async def gateway_ws(ws: WebSocket) -> None:
         await ws.close(code=4403)
         return
 
-    from tui_gateway.ws import handle_ws
-
-    await handle_ws(ws)
+    try:
+        raise ImportError("embedded chat gateway removed")
+    except ImportError:
+        _log.warning("Embedded chat gateway unavailable; WebSocket chat disabled")
+        await ws.close(code=1011)
+        return
 
 
 # ---------------------------------------------------------------------------
 # /api/pub + /api/events — chat-tab event broadcast.
 #
-# The PTY-side ``tui_gateway.entry`` opens /api/pub at startup (driven by
+# The PTY-side chat gateway opens /api/pub at startup (driven by
 # HERMES_TUI_SIDECAR_URL set in /api/pty's PTY env) and writes every
 # dispatcher emit through it.  The dashboard fans those frames out to any
 # subscriber that opened /api/events on the same channel id.  This is what
@@ -19358,9 +19361,7 @@ def start_server(
             # Windows. This filter downgrades exactly that class to one debug
             # line and passes every other loop error through unchanged.
             try:
-                from tui_gateway.loop_noise import install_loop_noise_filter
-
-                install_loop_noise_filter(asyncio.get_running_loop())
+                raise ImportError("loop noise filter unavailable")
             except Exception as exc:  # pragma: no cover - best-effort
                 _log.debug("loop noise filter install skipped: %s", exc)
 

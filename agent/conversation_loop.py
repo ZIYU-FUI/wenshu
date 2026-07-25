@@ -398,7 +398,7 @@ def _restore_or_build_system_prompt(agent, system_message, conversation_history)
 
     # Cold-start credits seed (L3) — fallback for the first-turn path. The TUI/
     # desktop build seeds at session OPEN (see seed_credits_at_session_start in
-    # tui_gateway), so this call is usually a no-op there (idempotent: skips when
+    # desktop chat transport), so this call is usually a no-op there (idempotent: skips when
     # _credits_state already exists). For the plain CLI / any path that didn't seed
     # at build, it primes credits state from /api/oauth/account (or a fixture) on the
     # first turn so depletion / usage-band warnings fire. Fail-open inside the helper.

@@ -1207,7 +1207,7 @@ def _maybe_auto_subscribe(conn: Any, task_id: str) -> bool:
       a multi-tenant chat surface), but the agent subprocess inherits
       ``HERMES_SESSION_KEY`` from the parent session. We subscribe with
       ``platform="tui"`` and ``chat_id=<key>``; the TUI notification
-      poller (``tui_gateway/server.py``) reads ``kanban_notify_subs``
+      poller (desktop server) reads ``kanban_notify_subs``
       for these rows and posts the completion message into the running
       session.
 
@@ -1239,7 +1239,7 @@ def _maybe_auto_subscribe(conn: Any, task_id: str) -> bool:
             # cleared for TUI sessions, but the parent process exports
             # HERMES_SESSION_KEY into the subprocess env. Treat that
             # as a "tui" subscription so the TUI notification poller
-            # (tui_gateway/server.py) can pick it up.
+            # (desktop server) can pick it up.
             #
             # HERMES_SESSION_ID is intentionally NOT a fallback here:
             # it is set by ACP / the agent subprocess for telemetry

@@ -1811,19 +1811,53 @@ copy_config_templates() {
         log_info "~/.hermes/config.yaml already exists, keeping it"
     fi
 
-    # Create SOUL.md if it doesn't exist (global persona file).
-    # This MUST match DEFAULT_SOUL_MD in hermes_cli/default_soul.py — the
-    # runtime (_ensure_default_soul_md) treats the old comment-only scaffold as
-    # "never customized" and upgrades it to this text on next run, so any drift
-    # here is self-healing, but keep them in sync to avoid a churn on first run.
+    # Create SOUL.md if it doesn't exist (global persona file — 文枢 / Wenshu).
+    # Source of truth on disk is $INSTALL_DIR/wenshu/SOUL.md (WO-001K); the
+    # heredoc below is the runtime fallback for tarball installs that don't
+    # ship the wenshu/ subdir. MUST match DEFAULT_SOUL_MD in
+    # hermes_cli/default_soul.py — runtime (_ensure_default_soul_md) treats
+    # the old comment-only scaffold as "never customized" and upgrades it in
+    # place, so any drift is self-healing, but keep them in sync to avoid
+    # first-run churn.
     if [ ! -f "$HERMES_HOME/SOUL.md" ]; then
-        cat > "$HERMES_HOME/SOUL.md" << 'SOUL_EOF'
-You are Hermes Agent, an intelligent AI assistant created by Nous Research. You are helpful, knowledgeable, and direct. You assist users with a wide range of tasks including answering questions, writing and editing code, analyzing information, creative work, and executing actions via your tools. You communicate clearly, admit uncertainty when appropriate, and prioritize being genuinely useful over being verbose unless otherwise directed below. Be targeted and efficient in your exploration and investigations.
+        if [ -f "$INSTALL_DIR/wenshu/SOUL.md" ]; then
+            cp "$INSTALL_DIR/wenshu/SOUL.md" "$HERMES_HOME/SOUL.md"
+            log_success "Copied SOUL.md from \$INSTALL_DIR/wenshu/SOUL.md to \$HERMES_HOME/SOUL.md (edit to customize personality)"
+        else
+            # Fallback heredoc — ships even when wenshu/ subdir is missing.
+            cat > "$HERMES_HOME/SOUL.md" << 'SOUL_EOF'
+You are 文枢 (Wenshu), a generic writing assistant forked from Hermes Agent v0.19.0 (MIT). You are direct, useful, and grounded. Your philosophy is "法无定法,贵在得法": the 7-step node framework is fixed (read project → research → draft → revise → finalize → consistency check → reverse advice), but the methodology at each step is chosen by the user. Be targeted and efficient in your exploration and investigations.
 SOUL_EOF
-        log_success "Created ~/.hermes/SOUL.md (edit to customize personality)"
+            log_success "Created $HERMES_HOME/SOUL.md from heredoc fallback (edit to customize personality)"
+        fi
     fi
 
-    log_success "Configuration directory ready: ~/.hermes/"
+    # Copy 文枢 (Wenshu) AGENTS.md — the writing-assistant working manual.
+    # Source of truth: $INSTALL_DIR/wenshu/AGENTS.md (WO-001K). Skipped
+    # silently if not shipped in this install (no fallback heredoc — the
+    # manual is large and not safe to inline).
+    if [ ! -f "$HERMES_HOME/AGENTS.md" ] && [ -f "$INSTALL_DIR/wenshu/AGENTS.md" ]; then
+        cp "$INSTALL_DIR/wenshu/AGENTS.md" "$HERMES_HOME/AGENTS.md"
+        log_success "Copied AGENTS.md from \$INSTALL_DIR/wenshu/AGENTS.md to \$HERMES_HOME/AGENTS.md (wenshu writing-assistant working manual)"
+    fi
+
+    # Copy 文枢 (Wenshu) methodologies/ library — 法无定法 / methodology library
+    # the agent scans at boot for user-selectable methods (SCQA, STAR, Hero's
+    # Journey, user-injected custom methods, ...). Recursive copy from
+    # $INSTALL_DIR/wenshu/methodologies/ → $HERMES_HOME/methodologies/. If the
+    # user already has a methodologies/ directory with content, leave it
+    # alone (user-curated library, do not clobber).
+    if [ -d "$INSTALL_DIR/wenshu/methodologies" ]; then
+        if [ ! -d "$HERMES_HOME/methodologies" ] || [ -z "$(ls -A "$HERMES_HOME/methodologies/" 2>/dev/null)" ]; then
+            mkdir -p "$HERMES_HOME/methodologies"
+            cp -r "$INSTALL_DIR/wenshu/methodologies/." "$HERMES_HOME/methodologies/" 2>/dev/null || true
+            log_success "Copied methodologies/ library from \$INSTALL_DIR/wenshu/methodologies/ to \$HERMES_HOME/methodologies/"
+        else
+            log_info "\$HERMES_HOME/methodologies/ already has user content, keeping it"
+        fi
+    fi
+
+    log_success "Configuration directory ready: $HERMES_HOME/"
 
     # Seed bundled skills into ~/.hermes/skills/ (manifest-based, one-time per skill)
     if [ "$NO_SKILLS" = true ]; then
@@ -2243,17 +2277,6 @@ install_node_deps() {
         fi
         fi
         log_success "Browser engine setup complete"
-    fi
-
-    # Install TUI dependencies
-    if [ -f "$INSTALL_DIR/ui-tui/package.json" ]; then
-        log_info "Installing TUI dependencies..."
-        cd "$INSTALL_DIR/ui-tui"
-        # Time-boxed: a stalled registry fetch would otherwise hang here (#39219).
-        run_with_timeout "$NODE_DEPS_TIMEOUT" npm install --silent || {
-            log_warn "TUI npm install failed or timed out (hermes --tui may not work)"
-        }
-        log_success "TUI dependencies installed"
     fi
 
     # Keep the checkout clean so `hermes update` doesn't autostash every run.

@@ -385,7 +385,7 @@ class TestGuiMode:
         hermes_logging.setup_logging(hermes_home=hermes_home, mode="gui")
 
         logging.getLogger("hermes_cli.web_server").info("dashboard online")
-        logging.getLogger("tui_gateway.ws").info("ws connected")
+        logging.getLogger("gateway.ws").info("ws connected")
         logging.getLogger("gateway.run").info("gateway event")
 
         hermes_logging.flush_log_queue()
@@ -612,7 +612,7 @@ class TestComponentPrefixes:
     def test_gui_prefix(self):
         prefixes = hermes_logging.COMPONENT_PREFIXES["gui"]
         assert "hermes_cli.web_server" in prefixes
-        assert "tui_gateway" in prefixes
+        assert "gateway" in prefixes
 
 
 class TestSetupVerboseLogging:

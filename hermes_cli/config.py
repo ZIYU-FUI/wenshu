@@ -2052,8 +2052,7 @@ DEFAULT_CONFIG = {
     # Web dashboard settings
     "dashboard": {
         "theme": "default",  # Dashboard visual theme: "default", "midnight", "ember", "mono", "cyberpunk", "rose"
-        # Process-isolation rollout controls. Runtime reads these through the
-        # raw config loader, so tui_gateway.server also owns explicit defaults.
+        # raw config loader owns explicit defaults for these settings.
         "turn_isolation": False,
         "compute_host_heartbeat_secs": 15,
         "compute_host_respawn_max": 3,

@@ -87,7 +87,7 @@ function isUpdateToastSnoozed(): boolean {
   return Number.isFinite(until) && Date.now() < until
 }
 
-// Must match tui_gateway's DESKTOP_BACKEND_CONTRACT that this build was written
+// Must match the desktop server's DESKTOP_BACKEND_CONTRACT that this build was written
 // against. The backend reports its own value in session runtime info; a lower
 // value (or none — a pre-GUI checkout) means GUI<->backend skew.
 // v2: requires the file.attach RPC (remote-gateway non-image file upload).

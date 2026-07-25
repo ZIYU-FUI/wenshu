@@ -55,7 +55,7 @@ _HERMES_CORE_TOOLS = [
     # NOTE: the desktop Project tools (project_list/create/switch) are
     # deliberately NOT here. They only make sense where a GUI can follow the
     # move, so they live in the `project` toolset and are enabled solely by the
-    # GUI gateway (tui_gateway/server.py::_load_enabled_toolsets) — keeping them
+    # GUI gateway (the desktop chat server::_load_enabled_toolsets) — keeping them
     # off every CLI/messaging/cron schema (narrow waist).
     # Session history search
     "session_search",

@@ -18,7 +18,7 @@ from typing import Callable, Optional
 
 from tools.registry import registry
 
-# Set by the GUI gateway (tui_gateway) at session wiring. Receives
+# Set by the GUI gateway at session wiring. Receives
 # ``(task_id, primary_path, project_name)`` and re-anchors that session's
 # workspace + refreshes the sidebar. ``None`` in CLI / messaging contexts — the
 # DB write still happens; there's just no live GUI session to move.

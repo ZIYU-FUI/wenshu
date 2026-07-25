@@ -607,9 +607,9 @@ def hermes_subprocess_env(*, inherit_credentials: bool = False) -> dict[str, str
     # global under a concurrent multi-session host. A caller that re-binds the
     # session identity explicitly (slash_worker/ACP via --session-key argv) is
     # unaffected — bound ContextVars win here — but a caller that spawns without
-    # re-binding (e.g. tui_gateway cli.exec) would otherwise inherit a FOREIGN
-    # session's identity. Strip _UNSET session vars when engaged so that can't
-    # happen; single uniform policy across every spawn surface.
+    # re-binding would otherwise inherit a FOREIGN session's identity. Strip
+    # _UNSET session vars when engaged so that can't happen; single uniform
+    # policy across every spawn surface.
     _inject_session_context_env(env)
 
     return env

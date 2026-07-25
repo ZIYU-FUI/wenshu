@@ -444,7 +444,7 @@ class TestSaveAndLoadRoundtrip:
         """The shared chokepoint every sibling write site routes through must
         fail closed on an unreadable existing config.yaml — this locks in the
         whole bug class (gateway slash commands, doctor --fix, yuanbao/telegram
-        auto-sethome, tui_gateway _save_cfg), not just the three named paths."""
+        auto-sethome, gateway _save_cfg), not just the three named paths."""
         from hermes_cli.config import atomic_config_write
 
         config_path = tmp_path / "config.yaml"

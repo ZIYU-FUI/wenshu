@@ -587,7 +587,7 @@ export function useGatewayEventHandler(deps: GatewayEventDeps) {
       } else if (event.type === 'clarify.request') {
         // Surface the clarify tool's overlay. The Python side is blocked on
         // `clarify.respond`, so without this handler the agent would hang
-        // forever (see tools/clarify_tool.py + tui_gateway/server.py:_block).
+        // forever (see tools/clarify_tool.py + the chat server:_block).
         //
         // Store the request for whichever session raised it — even a background
         // one. clarify.request is a one-shot event; if we dropped it for an

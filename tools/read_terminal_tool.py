@@ -3,9 +3,9 @@
 
 The embedded terminal's buffer lives in the desktop renderer (xterm.js), so this
 tool round-trips through the gateway's blocking-prompt bridge — the same one
-`clarify` uses: tui_gateway emits ``terminal.read.request``, the renderer answers
-with ``terminal.read.respond``. This module is just schema + a thin dispatcher
-over the platform-injected callback.
+`clarify` uses: the chat session emits ``terminal.read.request`` and the
+renderer answers with ``terminal.read.respond``. This module is just schema +
+a thin dispatcher over the platform-injected callback.
 """
 
 import json

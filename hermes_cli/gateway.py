@@ -352,7 +352,7 @@ def _scan_gateway_pids(
     # Strict command-line matcher shared with gateway.status: requires the
     # actual ``gateway run`` subcommand (or the dedicated entrypoints), so this
     # scan no longer false-matches ``gateway status``/``dashboard`` siblings or
-    # unrelated processes like ``python -m tui_gateway``. Lazy import mirrors the
+    # other unrelated Python entrypoints. Lazy import mirrors the
     # circular-import avoidance used elsewhere in this module.
     from gateway.status import (
         looks_like_gateway_command_line,

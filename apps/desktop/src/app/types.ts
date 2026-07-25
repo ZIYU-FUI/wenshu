@@ -63,7 +63,7 @@ export interface SessionSteerResponse {
 export interface SessionTitleResponse {
   title?: string
   // True when the session row isn't persisted yet and the title was queued
-  // to be applied on the first turn (see tui_gateway session.title handler).
+  // to be applied on the first turn (see the desktop server's session.title handler).
   pending?: boolean
   session_key?: string
 }

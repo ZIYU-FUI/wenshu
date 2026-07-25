@@ -3,7 +3,7 @@ import type { ProjectInfo, SessionInfo } from '@/hermes'
 import { normalize } from '@/lib/text'
 
 // Session grouping is now computed authoritatively on the backend
-// (`tui_gateway/project_tree.py`, exposed via `projects.tree` /
+// (the chat project-tree service, exposed via `projects.tree` /
 // `projects.project_sessions`). The desktop is a thin renderer: this module
 // only holds the render contract (the three tree interfaces) plus a couple of
 // pure helpers and the VISUAL-ONLY worktree enhancer that injects empty lanes
