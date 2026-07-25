@@ -75,6 +75,44 @@ credit: Barbara Minto (金字塔原理 origin) / 文枢示例改造
 
 用户装文枢后可自行加:STAR / 金字塔原理 / 七步成诗 / Hero's Journey / 三幕剧 / 自己拍的套路。
 
-## 6. 版本
+## 6. 翻译公版授权
 
+**策略**(2026-07-25 装机 user 拍):**公版优先, 商业书避免**。
+
+文枢翻译方法论的硬约束:
+- ✅ **公版 / 公开教学**:可直接翻译, 引用概念名 + 必要引文, 不复述大段原文。
+- ⚠️ **商业书**(Save the Cat / StoryBrand / Minto 金字塔原理 / 4P / 等):**需装机 user 单独派单授权** — CC 严禁自行翻译。
+- ❌ **仍在版权期** 的学术书:**概念名引用 OK, 不复述大段内容** — CC 翻译前先确认作者逝世年限 (中国 50 年 / 美 70 年)。
+
+### 6.1 已翻译列表 (公版 + 公开教学, 9 套)
+
+| 目录 | 方法论 | 原作者 | 公版 / 公开 | 状态 |
+|------|--------|--------|------------|------|
+| foundations/ | [three-act-aristotle.md](foundations/three-act-aristotle.md) | Aristotle《Poetics》~335 BC | 公版 ~2300 年 | ✅ v1.0.0 |
+| foundations/ | [freytag-pyramid.md](foundations/freytag-pyramid.md) | Gustav Freytag《Die Technik des Dramas》1863 | 公版 ~163 年 | ✅ v1.0.0 |
+| foundations/ | [hero-journey-campbell.md](foundations/hero-journey-campbell.md) | Joseph Campbell《The Hero with a Thousand Faces》1949 | 公版国家公版 / 中国 2027+ | ✅ v1.0.0 |
+| foundations/ | [snowflake-ingermanson.md](foundations/snowflake-ingermanson.md) | Randy Ingermanson 1996 公开网站 | 公开教学 (CC-BY 风格) | ✅ v1.0.0 |
+| foundations/ | [seven-basic-plots-booker.md](foundations/seven-basic-plots-booker.md) | Christopher Booker《The Seven Basic Plots》2004 | 公版国家 2049+ / 中国 2069+ / 概念名公用 | ✅ v1.0.0 |
+| classical/ | [five-ws-one-h.md](classical/five-ws-one-h.md) | 西方新闻学传统 (Kipling 1898 诗) | 公版 19 世纪末 | ✅ v1.0.0 |
+| classical/ | [inverted-pyramid.md](classical/inverted-pyramid.md) | 西方新闻学 19 世纪电报时代 | 公版 19 世纪中期 | ✅ v1.0.0 |
+| classical/ | [imrad.md](classical/imrad.md) | 20 世纪科学界通用结构 | 公版 (ANSI 1972 标准化) | ✅ v1.0.0 |
+| commercial/ | [aida-lewis.md](commercial/aida-lewis.md) | E. St. Elmo Lewis 1898 | 公版 ~96 年 (Lewis 1928 逝世) | ✅ v1.0.0 |
+
+### 6.2 待翻译列表 (商业书, **需装机 user 拍授权**)
+
+> **强边界**: 装机 user 未授权前, CC 严禁翻译这些商业书 — 一动 = 立即撤回 + 升级装机 user。
+
+| 方法论 | 作者 | 商业书 | 授权状态 |
+|--------|------|--------|---------|
+| Save the Cat | Blake Snyder 2005 | 《Save the Cat!》 | ⏳ 装机 user 待拍 |
+| StoryBrand | Donald Miller 2017 | 《Building a StoryBrand》 | ⏳ 装机 user 待拍 |
+| Pyramid Principle | Barbara Minto 1987+ | 《The Pyramid Principle》 | ⏳ 装机 user 待拍 |
+| 4P 营销 | E. Jerome McCarthy 1960 | 《Basic Marketing: A Managerial Approach》 | ⏳ 装机 user 待拍 |
+| Hero's Journey 12 阶段 (Vogler 简化版) | Christopher Vogler 1992+ | 《The Writer's Journey》 | ⏳ 装机 user 待拍 (注意: Campbell 17 阶段公版版已在 foundations/) |
+
+**派单流程**: 装机 user 拍授权 → PM 派工单 → CC 翻译 → 自验 → 装机 user 验收。
+
+## 7. 版本
+
+- v0.2 (2026-07-25):加翻译公版授权段 + 已翻译 9 套列表 + 待翻译商业书列表
 - v0.1 (2026-07-24):方法论库架构 + 单文件格式 + 用户可注入路径 + SCQA 示例
