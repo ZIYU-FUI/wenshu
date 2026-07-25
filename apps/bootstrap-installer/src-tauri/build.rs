@@ -83,6 +83,20 @@ fn main() {
     println!("cargo:rerun-if-env-changed=HERMES_BUILD_PIN_BRANCH");
 
     // -----------------------------------------------------------------
+    // Frontend asset rebuild trigger — `tauri-build::try_build` below
+    // embeds apps/bootstrap-installer/dist/ via include_bytes!. Without
+    // this rerun-if-changed line, cargo has no signal that the build
+    // script's output depends on ../dist, so a `npm run build` that
+    // changes vite asset hashes (e.g. KaTeX_Main-Regular-ypZvNtVU.ttf)
+    // does NOT trigger a rebuild. The resulting binary contains stale
+    // embedded files, the webview's index.html references asset hashes
+    // that no longer exist in the binary, and the user sees a blue
+    // screen at launch. Forcing the build script to re-run on any dist
+    // mutation makes the embed pipeline self-healing.
+    // -----------------------------------------------------------------
+    println!("cargo:rerun-if-changed=../dist");
+
+    // -----------------------------------------------------------------
     // Tauri windows manifest. See hermes-setup.manifest for rationale —
     // declares level="asInvoker" so Windows's installer-detection
     // heuristic doesn't refuse to launch us without UAC elevation.

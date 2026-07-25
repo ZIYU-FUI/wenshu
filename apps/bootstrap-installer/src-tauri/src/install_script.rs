@@ -93,6 +93,8 @@ pub(crate) fn cache_plan(immutable: bool, cached_exists: bool) -> CachePlan {
     }
 }
 
+const INSTALL_SCRIPT_REPOSITORY: &str = "ZIYU-FUI/wenshu";
+
 /// Resolves the install script to use for this run.
 ///
 /// `pin` is the commit-or-branch from either Hermes-Setup's build-time
@@ -163,14 +165,17 @@ pub async fn resolve(
         }
         CachePlan::Fetch { stale_ok } => {
             emit_log(&format!(
-                "[bootstrap] downloading {} for {} {} from GitHub",
+                "[bootstrap] downloading {} for {} {} from https://raw.githubusercontent.com/{}/{}/scripts/{}",
                 kind.filename(),
                 if immutable {
                     "commit"
                 } else {
                     "mutable ref"
                 },
-                truncate_ref(&commit_or_ref)
+                truncate_ref(&commit_or_ref),
+                INSTALL_SCRIPT_REPOSITORY,
+                commit_or_ref,
+                kind.filename()
             ));
 
             match download(kind, &commit_or_ref, &cached).await {
@@ -324,7 +329,8 @@ fn upgrade_cached_script(kind: ScriptKind, cached: &Path, emit_log: &impl Fn(&st
 /// falling back to the cached script.
 async fn download(kind: ScriptKind, commit_or_ref: &str, dest_path: &Path) -> Result<()> {
     let url = format!(
-        "https://raw.githubusercontent.com/NousResearch/hermes-agent/{}/scripts/{}",
+        "https://raw.githubusercontent.com/{}/{}/scripts/{}",
+        INSTALL_SCRIPT_REPOSITORY,
         commit_or_ref,
         kind.filename()
     );

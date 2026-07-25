@@ -113,6 +113,10 @@ pub fn run() {
         .manage(Arc::new(AppState::new(mode)))
         .setup(move |app| {
             use tauri::Manager;
+            eprintln!(
+                "[wenshu-setup] setup entered: mode={mode:?}, force_setup={force_setup}"
+            );
+            tracing::info!(?mode, force_setup, "setup callback entered");
             // Launcher fast path (macOS only): a bare ("Install") launch when
             // 文枢 is already installed should NOT show the installer or
             // rebuild — it should just open the app, so the /Applications
@@ -160,7 +164,7 @@ pub fn run() {
                     }
                 }
                 None => {
-                    tracing::error!("main installer window not found; installer UI will not appear");
+                    tracing::error!("main installer webview not found; installer UI will not appear");
                 }
             }
             Ok(())
