@@ -98,6 +98,39 @@ pub fn run() {
     // debug builds.
     let _guard = paths::init_logging();
 
+    // WO-001AO (8/26 system-prerequisites bug v4): on a fresh install the
+    // prerequisites stage can hang silently for 2+ minutes on captive-portal
+    // / filtered-DNS networks because install.sh's `curl -LsSf
+    // https://astral.sh/uv/install.sh` has no `--max-time`. A `tracing` info
+    // line here gives support (and the bootstrap-installer.log forensic
+    // trail) an immediate "we entered the installer, HERMES_HOME is at X"
+    // anchor — without it, a 2-minute silent hang leaves zero breadcrumbs
+    // and the support reply is "we don't know where it hung".
+    let hermes_home_for_diag = paths::hermes_home();
+    tracing::info!(
+        hermes_home = %hermes_home_for_diag.display(),
+        "wenshu setup diagnostics: HERMES_HOME resolved"
+    );
+    if let Some(parent) = hermes_home_for_diag.parent() {
+        let probe = parent.join(".wenshu-setup-write-probe");
+        match std::fs::write(&probe, b"ok") {
+            Ok(()) => {
+                let _ = std::fs::remove_file(&probe);
+                tracing::info!(
+                    probe = %probe.display(),
+                    "HERMES_HOME parent is writable"
+                );
+            }
+            Err(err) => {
+                tracing::error!(
+                    probe = %probe.display(),
+                    error = %err,
+                    "HERMES_HOME parent is NOT writable — installer UI will fail to start.                      Move 文枢.app to a writable Applications folder, or chmod+chown its parent."
+                );
+            }
+        }
+    }
+
     let mode = AppMode::from_args(std::env::args().skip(1));
     // Escape hatch: `--reinstall`/`--repair` forces the installer UI even when
     // 文枢 is already installed, so users can re-run setup to repair a broken
@@ -135,7 +168,15 @@ pub fn run() {
             // repaired by re-running setup instead of launching the bad app.
             if cfg!(target_os = "macos") && mode == AppMode::Install && !force_setup {
                 let install_root = paths::hermes_home().join("hermes-agent");
-                if bootstrap::hermes_is_installed(&install_root) {
+                let managed_uv = paths::hermes_home().join("bin").join("uv");
+                // WO-001AO: refuse to fast-path when managed uv is missing.
+                // The 8/26 hang proved the launcher silently skipping
+                // re-install when uv disappeared left the user in a broken
+                // state — they'd double-click /Applications/文枢.app and
+                // get nothing. If uv is gone, treat the install as broken
+                // and show the installer UI so prerequisites can re-run.
+                let uv_present = managed_uv.is_file();
+                if bootstrap::hermes_is_installed(&install_root) && uv_present {
                     match bootstrap::spawn_installed_desktop(&install_root) {
                         Ok(()) => {
                             // Brief grace so the spawned app is registered
@@ -154,6 +195,11 @@ pub fn run() {
                             );
                         }
                     }
+                } else if !uv_present {
+                    tracing::warn!(
+                        managed_uv = %managed_uv.display(),
+                        "managed uv missing — refusing launcher fast path; showing installer UI"
+                    );
                 }
             }
             // First run / repair install, or Update mode: reveal the UI.

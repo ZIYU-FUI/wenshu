@@ -57,6 +57,24 @@ export default defineConfig({
   build: {
     target: 'esnext',
     outDir: 'dist',
-    emptyOutDir: true
+    emptyOutDir: true,
+    // WO-001AO (8/26 system-prerequisites bug v4): emit source maps in the
+    // Tauri-bundled dist so users hitting a hang can `devtools` the
+    // WebView and point support at the exact failing chunk. Default Vite
+    // strips source maps from the production bundle; `hidden` keeps the
+    // .map files emitted to dist/ without advertising them via
+    // `//# sourceMappingURL=` (cleaner for the installer window's devtools).
+    sourcemap: 'hidden',
+    // WO-001AO: bump the per-asset budget so the bootstrap-installer
+    // bundle (≈ 2.5 MB minified after the WO-001AN dedupe fix) never
+    // trips the 500 KB default. The installer is a one-shot UI, not a
+    // hot path; the extra latency saving from chunking is not worth the
+    // risk of a budget-exceeded build failure.
+    chunkSizeWarningLimit: 4096,
+    rollupOptions: {
+      output: {
+        manualChunks: undefined
+      }
+    }
   }
 })

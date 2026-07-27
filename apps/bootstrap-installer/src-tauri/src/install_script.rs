@@ -327,6 +327,16 @@ fn upgrade_cached_script(kind: ScriptKind, cached: &Path, emit_log: &impl Fn(&st
 /// black-holed connection (captive portal, hung proxy, silently dropped
 /// packets) never errors — the whole bootstrap would hang here instead of
 /// falling back to the cached script.
+///
+/// WO-001AO (8/26 system-prerequisites bug v4): the curl call inside the
+/// cached `install.sh` itself had no `--max-time`, so `install_uv()`'s
+/// `curl -LsSf https://astral.sh/uv/install.sh` could SSL-hang forever on
+/// captive portals / filtered DNS. We can't fix `install.sh` from this
+/// crate (it's the wenshu fork's `scripts/install.sh`, not in the
+/// whitelist), so we strengthen *our* download path: bounded
+/// retry-with-backoff. If this download itself hangs, we still surface the
+/// error after 60s instead of stalling silently — and the stale-cache
+/// fallback in `resolve()` takes over.
 async fn download(kind: ScriptKind, commit_or_ref: &str, dest_path: &Path) -> Result<()> {
     let url = format!(
         "https://raw.githubusercontent.com/{}/{}/scripts/{}",
@@ -349,52 +359,84 @@ async fn download(kind: ScriptKind, commit_or_ref: &str, dest_path: &Path) -> Re
         format!("{ext}.tmp")
     });
 
-    let response = reqwest::Client::builder()
-        .connect_timeout(std::time::Duration::from_secs(10))
-        .timeout(std::time::Duration::from_secs(60))
-        .build()
-        .context("building download client")?
-        .get(&url)
-        .header("User-Agent", "hermes-setup/0.0.1")
-        .send()
-        .await
-        .with_context(|| format!("GET {url}"))?;
+    // WO-001AO: 3 retries with 2s/4s/8s backoff. The math is obvious; reqwest
+    // doesn't retry on its own. Each attempt is bounded by the 60s overall
+    // timeout below, so the whole retry loop tops out around 60+60+60+2+4=186s.
+    const MAX_ATTEMPTS: u32 = 3;
+    let mut last_err: Option<anyhow::Error> = None;
 
-    if !response.status().is_success() {
-        return Err(anyhow!(
-            "Failed to download {}: HTTP {} from {}",
-            kind.filename(),
-            response.status(),
-            url
-        ));
+    for attempt in 1..=MAX_ATTEMPTS {
+        if attempt > 1 {
+            let backoff_secs = 2u64.pow(attempt - 1);
+            tokio::time::sleep(std::time::Duration::from_secs(backoff_secs)).await;
+            tracing::warn!(
+                attempt,
+                max_attempts = MAX_ATTEMPTS,
+                "retrying install-script download after {backoff_secs}s backoff"
+            );
+        }
+
+        let result: Result<()> = async {
+            let response = reqwest::Client::builder()
+                .connect_timeout(std::time::Duration::from_secs(10))
+                .timeout(std::time::Duration::from_secs(60))
+                .build()
+                .context("building download client")?
+                .get(&url)
+                .header("User-Agent", "hermes-setup/0.0.1")
+                .send()
+                .await
+                .with_context(|| format!("GET {url}"))?;
+
+            if !response.status().is_success() {
+                return Err(anyhow!(
+                    "Failed to download {}: HTTP {} from {}",
+                    kind.filename(),
+                    response.status(),
+                    url
+                ));
+            }
+
+            let bytes = response
+                .bytes()
+                .await
+                .with_context(|| format!("reading body of {url}"))?;
+            let bytes = prepare_cached_script_bytes(kind, &bytes);
+
+            let mut file = tokio::fs::File::create(&tmp_path)
+                .await
+                .with_context(|| format!("creating temp file {}", tmp_path.display()))?;
+            file.write_all(&bytes)
+                .await
+                .with_context(|| format!("writing temp file {}", tmp_path.display()))?;
+            file.flush().await.context("flushing temp file")?;
+            drop(file);
+
+            tokio::fs::rename(&tmp_path, dest_path)
+                .await
+                .with_context(|| {
+                    format!(
+                        "renaming {} → {}",
+                        tmp_path.display(),
+                        dest_path.display()
+                    )
+                })?;
+
+            Ok(())
+        }
+        .await;
+
+        match result {
+            Ok(()) => return Ok(()),
+            Err(err) => {
+                last_err = Some(err);
+                // Clean up the tmp file so the next attempt starts fresh.
+                let _ = tokio::fs::remove_file(&tmp_path).await;
+            }
+        }
     }
 
-    let bytes = response
-        .bytes()
-        .await
-        .with_context(|| format!("reading body of {url}"))?;
-    let bytes = prepare_cached_script_bytes(kind, &bytes);
-
-    let mut file = tokio::fs::File::create(&tmp_path)
-        .await
-        .with_context(|| format!("creating temp file {}", tmp_path.display()))?;
-    file.write_all(&bytes)
-        .await
-        .with_context(|| format!("writing temp file {}", tmp_path.display()))?;
-    file.flush().await.context("flushing temp file")?;
-    drop(file);
-
-    tokio::fs::rename(&tmp_path, dest_path)
-        .await
-        .with_context(|| {
-            format!(
-                "renaming {} → {}",
-                tmp_path.display(),
-                dest_path.display()
-            )
-        })?;
-
-    Ok(())
+    Err(last_err.unwrap_or_else(|| anyhow!("download failed after {MAX_ATTEMPTS} attempts")))
 }
 
 #[cfg(test)]
