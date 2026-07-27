@@ -568,7 +568,7 @@ install_uv() {
     local _uv_install_log _uv_installer
     _uv_install_log="$(mktemp 2>/dev/null || echo "/tmp/hermes-uv-install.$$.log")"
     _uv_installer="$(mktemp 2>/dev/null || echo "/tmp/hermes-uv-installer.$$.sh")"
-    if ! curl -LsSf https://astral.sh/uv/install.sh -o "$_uv_installer" 2>"$_uv_install_log"; then
+    if ! curl -LsSf --max-time 60 --retry 3 --retry-all-errors https://astral.sh/uv/install.sh -o "$_uv_installer" 2>"$_uv_install_log"; then
         log_error "Failed to download uv installer from https://astral.sh/uv/install.sh"
         log_info "curl output:"
         sed 's/^/    /' "$_uv_install_log" >&2
@@ -865,13 +865,13 @@ install_node() {
     # Resolve the latest v22.x.x tarball name from the index page
     local index_url="https://nodejs.org/dist/latest-v${NODE_VERSION}.x/"
     local tarball_name
-    tarball_name=$(curl -fsSL "$index_url" \
+    tarball_name=$(curl -fsSL --max-time 30 --retry 2 "$index_url" \
         | grep -oE "node-v${NODE_VERSION}\.[0-9]+\.[0-9]+-${node_os}-${node_arch}\.tar\.xz" \
         | head -1)
 
     # Fallback to .tar.gz if .tar.xz not available
     if [ -z "$tarball_name" ]; then
-        tarball_name=$(curl -fsSL "$index_url" \
+        tarball_name=$(curl -fsSL --max-time 30 --retry 2 "$index_url" \
             | grep -oE "node-v${NODE_VERSION}\.[0-9]+\.[0-9]+-${node_os}-${node_arch}\.tar\.gz" \
             | head -1)
     fi
@@ -888,7 +888,7 @@ install_node() {
     tmp_dir=$(mktemp -d)
 
     log_info "Downloading $tarball_name..."
-    if ! curl -fsSL "$download_url" -o "$tmp_dir/$tarball_name"; then
+    if ! curl -fsSL --max-time 120 --retry 3 --retry-all-errors "$download_url" -o "$tmp_dir/$tarball_name"; then
         log_warn "Download failed"
         rm -rf "$tmp_dir"
         HAS_NODE=false

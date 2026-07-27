@@ -9,9 +9,19 @@
 use anyhow::{Context, Result};
 use std::path::Path;
 use std::process::Stdio;
+use std::sync::{Arc, Mutex as StdMutex};
+use std::time::Duration;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::{Child, Command};
 use tokio::sync::mpsc;
+
+/// WO-001AR STEP 2: hard 30-min timeout for install.sh / install.ps1.
+/// Without this, the install script can hang for 23+ minutes on a stalled
+/// Astral/GitHub release download before v5 "exit code 1" surfaces, and the
+/// UI freezes with no visible progress. 30 minutes is generous enough for
+/// every legitimately slow stage (Python deps, Node.js, electron-builder)
+/// but cuts off any single network-bound stage that overruns its budget.
+const SCRIPT_TIMEOUT: Duration = Duration::from_secs(1800);
 
 /// CP1252 mapping for bytes `0x80..=0x9F` (the range that differs from Latin-1).
 /// Undefined slots keep the C1 control code points, matching Windows-1252
@@ -133,12 +143,63 @@ pub type CancelRx = mpsc::Receiver<()>;
 ///
 /// `hermes_home_override` propagates to the child as $HERMES_HOME so the
 /// install script writes to the same directory the installer is reading from.
+/// Spawns install.ps1 / install.sh with the given args and streams output.
+///
+/// `hermes_home_override` propagates to the child as $HERMES_HOME so the
+/// install script writes to the same directory the installer is reading from.
+///
+/// WO-001AR STEP 2: the entire call is wrapped in [`SCRIPT_TIMEOUT`] so a
+/// stuck uv-installer download (v5 BUG, 23+ min hang) cannot freeze the UI
+/// indefinitely. On timeout we kill the child best-effort and return an
+/// error so the bootstrap stage reports "exit code 1" with a clear message
+/// instead of a silent 23-minute wait.
 pub async fn run_script(
     script_path: &Path,
     args: &[String],
     sink: StreamSink,
     hermes_home_override: Option<&str>,
+    cancel_rx: Option<CancelRx>,
+) -> Result<ScriptResult> {
+    // Shared child handle so the outer timeout can kill the inner process
+    // even after tokio::time::timeout drops the inner future.
+    let child_holder: Arc<StdMutex<Option<Child>>> = Arc::new(StdMutex::new(None));
+
+    let inner = run_script_inner(
+        script_path,
+        args,
+        sink,
+        hermes_home_override,
+        cancel_rx,
+        child_holder.clone(),
+    );
+
+    match tokio::time::timeout(SCRIPT_TIMEOUT, inner).await {
+        Ok(result) => result,
+        Err(_elapsed) => {
+            tracing::error!(
+                timeout_secs = SCRIPT_TIMEOUT.as_secs(),
+                "install script hard timeout — killing child (WO-001AR v5 兜底)"
+            );
+            if let Ok(mut guard) = child_holder.lock() {
+                if let Some(child) = guard.as_mut() {
+                    let _ = child.start_kill();
+                }
+            }
+            anyhow::bail!(
+                "install script timed out after {} seconds — likely stuck on Astral/GitHub release download",
+                SCRIPT_TIMEOUT.as_secs()
+            )
+        }
+    }
+}
+
+async fn run_script_inner(
+    script_path: &Path,
+    args: &[String],
+    sink: StreamSink,
+    hermes_home_override: Option<&str>,
     mut cancel_rx: Option<CancelRx>,
+    child_holder: Arc<StdMutex<Option<Child>>>,
 ) -> Result<ScriptResult> {
     let mut cmd = build_command(script_path, args);
 
@@ -173,6 +234,15 @@ pub async fn run_script(
 
     let stdout = child.stdout.take().expect("stdout was piped");
     let stderr = child.stderr.take().expect("stderr was piped");
+
+    // Register child for outer hard-timeout kill before entering the
+    // select loop. The holder is a std::sync::Mutex (not tokio) so the
+    // lock is held only briefly; the child lives inside the holder for
+    // the rest of this function and is taken back at the bottom for
+    // wait(). Cancels inside the loop also reach into the holder.
+    if let Ok(mut guard) = child_holder.lock() {
+        *guard = Some(child);
+    }
 
     // Byte-oriented readers + [`decode_console_bytes`]: do NOT use
     // `BufReader::lines()`, which requires valid UTF-8 and hides localized
@@ -224,8 +294,12 @@ pub async fn run_script(
             _ = recv_cancel(&mut cancel_rx) => {
                 tracing::warn!("cancellation received — killing child");
                 killed = true;
-                // best-effort kill; don't propagate errors
-                let _ = child.start_kill();
+                // best-effort kill via shared holder; don't propagate errors
+                if let Ok(mut guard) = child_holder.lock() {
+                    if let Some(child) = guard.as_mut() {
+                        let _ = child.start_kill();
+                    }
+                }
                 break;
             }
         }
@@ -242,6 +316,13 @@ pub async fn run_script(
         combined_stderr.push_str(&l);
         combined_stderr.push('\n');
     }
+
+    // Take child back from the shared holder so we can wait() on it.
+    let mut child = child_holder
+        .lock()
+        .ok()
+        .and_then(|mut g| g.take())
+        .ok_or_else(|| anyhow::anyhow!("child handle missing from holder"))?;
 
     let status = child
         .wait()

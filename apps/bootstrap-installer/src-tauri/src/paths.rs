@@ -16,10 +16,11 @@
 //! writes to one place and the installer reads from another, breaking
 //! the bootstrap-complete check.
 
+use std::io;
 use std::path::{Path, PathBuf};
 #[cfg(target_os = "macos")]
 use std::process::Command;
-use tracing_appender::non_blocking::WorkerGuard;
+use tracing_appender::non_blocking::{NonBlocking, WorkerGuard};
 
 /// Returns the canonical Hermes home directory, respecting $HERMES_HOME if set.
 pub fn hermes_home() -> PathBuf {
@@ -152,7 +153,15 @@ fn repair_macos_installer_helper(_path: &Path) {}
 /// Initializes tracing to bootstrap-installer.log under HERMES_HOME/logs/.
 /// Returns a guard that flushes the appender on drop — keep it alive for
 /// the lifetime of the process.
-pub fn init_logging() -> Option<WorkerGuard> {
+///
+/// WO-001AR STEP 3: in addition to the primary sink at
+/// `~/.wenshu-hermes/logs/bootstrap-installer.log`, also tee to
+/// `~/Desktop/bootstrap-installer.log` so the 装机 user can read the
+/// log via Finder without having to discover the hidden
+/// `.wenshu-hermes/` directory first. If `~/Desktop/` does not exist
+/// (headless macOS, deleted Desktop folder, etc.) the tee is skipped
+/// and the function falls back to single-sink behaviour identical to v5.
+pub fn init_logging() -> Option<CompositeGuard> {
     let dir = log_dir();
     if let Err(err) = std::fs::create_dir_all(&dir) {
         // No log dir → log to stderr only. Don't panic; the installer
@@ -161,20 +170,142 @@ pub fn init_logging() -> Option<WorkerGuard> {
         return None;
     }
 
-    let file_appender = tracing_appender::rolling::never(&dir, "bootstrap-installer.log");
-    let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
+    // Primary sink: ~/.wenshu-hermes/logs/bootstrap-installer.log (v5 path).
+    let log_appender = tracing_appender::rolling::never(&dir, "bootstrap-installer.log");
+    let (primary_nb, primary_guard) = tracing_appender::non_blocking(log_appender);
 
     let env_filter = tracing_subscriber::EnvFilter::try_from_env("HERMES_BOOTSTRAP_LOG")
         .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"));
 
+    // Desktop mirror: best-effort. If Desktop is missing, fall through to
+    // single-sink (preserves v5 behaviour when the macOS Finder default
+    // location is unavailable).
+    if let Some(desktop_path) = desktop_log_path() {
+        match std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&desktop_path)
+        {
+            Ok(desktop_file) => {
+                let (desktop_nb, desktop_guard) =
+                    tracing_appender::non_blocking(desktop_file);
+                tracing_subscriber::fmt()
+                    .with_env_filter(env_filter)
+                    .with_writer(TeeWriter::tee(
+                        primary_nb.clone(),
+                        desktop_nb,
+                    ))
+                    .with_ansi(false)
+                    .with_target(true)
+                    .init();
+                tracing::info!(
+                    desktop_log = %desktop_path.display(),
+                    "WO-001AR STEP 3: tee bootstrap-installer.log to Desktop"
+                );
+                return Some(CompositeGuard {
+                    // Drop order is reverse of field declaration: desktop
+                    // first (flushes its background thread), then primary.
+                    // This guarantees the desktop mirror is fully written
+                    // before the primary log buffer drops.
+                    desktop: Some(desktop_guard),
+                    primary: primary_guard,
+                });
+            }
+            Err(err) => {
+                eprintln!(
+                    "[hermes-setup] could not open Desktop log {desktop_path:?}: {err}                      (falling back to single-sink)"
+                );
+            }
+        }
+    }
+
+    // Single-sink fallback (v5 behaviour).
     tracing_subscriber::fmt()
         .with_env_filter(env_filter)
-        .with_writer(non_blocking)
+        .with_writer(primary_nb)
         .with_ansi(false)
         .with_target(true)
         .init();
 
-    Some(guard)
+    Some(CompositeGuard {
+        desktop: None,
+        primary: primary_guard,
+    })
+}
+
+/// Resolves `~/Desktop/bootstrap-installer.log` if and only if the Desktop
+/// directory exists. Returns None on headless macOS or if the user has
+/// moved/renamed their Desktop folder.
+fn desktop_log_path() -> Option<PathBuf> {
+    let home = dirs::home_dir()?;
+    let desktop_dir = home.join("Desktop");
+    if !desktop_dir.is_dir() {
+        return None;
+    }
+    Some(desktop_dir.join("bootstrap-installer.log"))
+}
+
+/// Composite guard that holds WorkerGuards for the primary log sink and
+/// (optionally) the Desktop mirror. Drop order is reverse of field
+/// declaration, so the Desktop mirror's background thread is flushed
+/// before the primary log's — guaranteeing the user-visible Desktop log
+/// is complete even if the primary buffer had pending writes.
+#[allow(dead_code)] // fields are owned and dropped via Drop, never explicitly read
+pub struct CompositeGuard {
+    desktop: Option<WorkerGuard>,
+    primary: WorkerGuard,
+}
+
+/// `io::Write` adapter that forwards each write/flush to one or two
+/// `NonBlocking` sinks. tracing_appender's `NonBlocking` already routes
+/// writes through a background thread + bounded channel, so adding a
+/// second sink here simply means each log line is enqueued twice
+/// (once per sink). All per-sink failures are swallowed because we want
+/// tee to be best-effort: a broken Desktop log must never break the
+/// primary log.
+struct TeeWriter {
+    primary: NonBlocking,
+    desktop: Option<NonBlocking>,
+}
+
+impl TeeWriter {
+    fn tee(primary: NonBlocking, desktop: NonBlocking) -> Self {
+        Self {
+            primary,
+            desktop: Some(desktop),
+        }
+    }
+}
+
+impl<'a> tracing_subscriber::fmt::MakeWriter<'a> for TeeWriter {
+    type Writer = TeeWriter;
+    fn make_writer(&'a self) -> TeeWriter {
+        // NonBlocking is Clone (internally an Arc); cloning per call gives
+        // each log line its own sink handle that shares the same background
+        // channel — same semantics as a direct NonBlocking MakeWriter.
+        TeeWriter {
+            primary: self.primary.clone(),
+            desktop: self.desktop.clone(),
+        }
+    }
+}
+
+impl io::Write for TeeWriter {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        let _ = self.primary.write(buf);
+        if let Some(d) = self.desktop.as_mut() {
+            let _ = d.write(buf);
+        }
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        let _ = self.primary.flush();
+        if let Some(d) = self.desktop.as_mut() {
+            let _ = d.flush();
+        }
+        Ok(())
+    }
 }
 
 // ---------------------------------------------------------------------------
