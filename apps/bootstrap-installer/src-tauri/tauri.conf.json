@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "WenShu-Setup",
+        "title": "文枢",
         "width": 880,
         "height": 620,
         "minWidth": 720,
@@ -23,7 +23,8 @@
         "decorations": true,
         "transparent": false,
         "center": true,
-        "visible": false
+        "visible": false,
+        "url": "index.html"
       }
     ],
     "security": {
