@@ -26,6 +26,13 @@ export default defineConfig({
   base: './',
   plugins: [react(), tailwindcss()],
   resolve: {
+    // This app has its own React 19 install, while the monorepo root also has
+    // React for apps/desktop. @nanostores/react is currently resolved from the
+    // workspace root, so without dedupe Vite bundles multiple React runtimes;
+    // its useStore() then calls useRef() through a runtime whose hook dispatcher
+    // was never initialized, leaving the production WebView as a solid blue
+    // background. Force every peer import onto this app's React instance.
+    dedupe: ['react', 'react-dom'],
     alias: {
       '@': path.resolve(__dirname, './src')
     }
