@@ -565,6 +565,14 @@ install_uv() {
     # Two-stage: download the installer, then run it.  Piping
     # `curl | sh` masks curl failures (sh exits 0 on empty stdin)
     # and conflates network errors with installer errors.
+    #
+    # WO-001AS (v6 BUG): if either stage fails, fall back to a package-manager
+    # install (brew/pip/pipx) before giving up. The astral install.sh itself
+    # does its own curl to GitHub releases, which can hang/fail on filtered DNS
+    # even when the first-stage curl succeeds — so two distinct failure points
+    # both need a recovery path. (Brew path is macOS / Linuxbrew; pip/pipx are
+    # universal fallbacks that piggyback on whatever Python the host already
+    # has.)
     local _uv_install_log _uv_installer
     _uv_install_log="$(mktemp 2>/dev/null || echo "/tmp/hermes-uv-install.$$.log")"
     _uv_installer="$(mktemp 2>/dev/null || echo "/tmp/hermes-uv-installer.$$.sh")"
@@ -572,8 +580,15 @@ install_uv() {
         log_error "Failed to download uv installer from https://astral.sh/uv/install.sh"
         log_info "curl output:"
         sed 's/^/    /' "$_uv_install_log" >&2
-        log_info "Install manually: https://docs.astral.sh/uv/getting-started/installation/"
+        log_info "Falling back to package-manager install (brew / pip / pipx)..."
         rm -f "$_uv_install_log" "$_uv_installer"
+        if _uv_install_via_fallback "$_managed_uv"; then
+            UV_CMD="$_managed_uv"
+            UV_VERSION=$($UV_CMD --version 2>/dev/null)
+            log_success "Managed uv installed via fallback ($UV_VERSION)"
+            return 0
+        fi
+        log_info "Install manually: https://docs.astral.sh/uv/getting-started/installation/"
         exit 1
     fi
     # UV_UNMANAGED_INSTALL tells the astral installer to place the binary
@@ -582,24 +597,134 @@ install_uv() {
         rm -f "$_uv_installer"
         if [ -x "$_managed_uv" ]; then
             UV_CMD="$_managed_uv"
+            rm -f "$_uv_install_log"
+            UV_VERSION=$($UV_CMD --version 2>/dev/null)
+            log_success "Managed uv installed ($UV_VERSION)"
+            return 0
         else
             log_error "uv installer reported success but binary not found at $_managed_uv"
             log_info "Installer output:"
             sed 's/^/    /' "$_uv_install_log" >&2
+            log_info "Falling back to package-manager install (brew / pip / pipx)..."
             rm -f "$_uv_install_log"
+            if _uv_install_via_fallback "$_managed_uv"; then
+                UV_CMD="$_managed_uv"
+                UV_VERSION=$($UV_CMD --version 2>/dev/null)
+                log_success "Managed uv installed via fallback ($UV_VERSION)"
+                return 0
+            fi
             exit 1
         fi
-        rm -f "$_uv_install_log"
-        UV_VERSION=$($UV_CMD --version 2>/dev/null)
-        log_success "Managed uv installed ($UV_VERSION)"
     else
-        log_error "Failed to install uv"
+        log_error "Failed to install uv (astral installer exited non-zero)"
         log_info "Installer output:"
         sed 's/^/    /' "$_uv_install_log" >&2
-        log_info "Install manually: https://docs.astral.sh/uv/getting-started/installation/"
+        log_info "Falling back to package-manager install (brew / pip / pipx)..."
         rm -f "$_uv_install_log" "$_uv_installer"
+        if _uv_install_via_fallback "$_managed_uv"; then
+            UV_CMD="$_managed_uv"
+            UV_VERSION=$($UV_CMD --version 2>/dev/null)
+            log_success "Managed uv installed via fallback ($UV_VERSION)"
+            return 0
+        fi
+        log_info "Install manually: https://docs.astral.sh/uv/getting-started/installation/"
         exit 1
     fi
+}
+
+# WO-001AS (v6 BUG): package-manager fallback for uv.
+# Tries (in order): brew install uv (macOS / Linuxbrew),
+# pip install uv (any platform with pip), pipx install uv.
+# On success, symlinks the resulting uv binary into $1 (managed_uv path)
+# and returns 0. Returns 1 only if every fallback failed.
+#
+# This is intentionally a separate function so the main install_uv() flow
+# stays readable; both the curl-download branch and the sh-execute branch
+# call into it on failure.
+_uv_install_via_fallback() {
+    local _target="$1"
+    local _fb_log
+    _fb_log="$(mktemp 2>/dev/null || echo "/tmp/hermes-uv-fallback.$$.log")"
+
+    # 1. brew (macOS / Linuxbrew). `brew install uv` lands in /opt/homebrew/bin
+    # or /usr/local/bin; we then symlink into HERMES_HOME/bin/uv.
+    if command -v brew >/dev/null 2>&1; then
+        log_info "[fallback] trying: brew install uv"
+        if brew install uv >>"$_fb_log" 2>&1; then
+            local _brew_uv
+            _brew_uv="$(command -v uv 2>/dev/null || true)"
+            if [ -x "$_brew_uv" ]; then
+                mkdir -p "$(dirname "$_target")"
+                ln -sf "$_brew_uv" "$_target"
+                log_info "[fallback] brew install uv succeeded at $_brew_uv -> $_target"
+                rm -f "$_fb_log"
+                return 0
+            fi
+        else
+            log_warn "[fallback] brew install uv failed (see $_fb_log)"
+        fi
+    fi
+
+    # 2. pip (any platform). `pip install uv` puts the binary in the active
+    # Python's bin/; we then symlink into HERMES_HOME/bin/uv.
+    local _pip_cmd=""
+    if command -v pip3 >/dev/null 2>&1; then
+        _pip_cmd="pip3"
+    elif command -v pip >/dev/null 2>&1; then
+        _pip_cmd="pip"
+    fi
+    if [ -n "$_pip_cmd" ]; then
+        log_info "[fallback] trying: $_pip_cmd install uv"
+        if "$_pip_cmd" install --quiet uv >>"$_fb_log" 2>&1; then
+            local _pip_uv
+            _pip_uv="$("$_pip_cmd" show uv 2>/dev/null | awk '/^Location:/{print $2}' | head -1)"
+            if [ -n "$_pip_uv" ] && [ -x "$_pip_uv/bin/uv" ]; then
+                _pip_uv="$_pip_uv/bin/uv"
+            else
+                _pip_uv="$(command -v uv 2>/dev/null || true)"
+            fi
+            if [ -x "$_pip_uv" ]; then
+                mkdir -p "$(dirname "$_target")"
+                ln -sf "$_pip_uv" "$_target"
+                log_info "[fallback] $_pip_cmd install uv succeeded at $_pip_uv -> $_target"
+                rm -f "$_fb_log"
+                return 0
+            fi
+        else
+            log_warn "[fallback] $_pip_cmd install uv failed (see $_fb_log)"
+        fi
+    fi
+
+    # 3. pipx (any platform). `pipx install uv` is the cleanest fallback when
+    # the user has pipx but no brew.
+    if command -v pipx >/dev/null 2>&1; then
+        log_info "[fallback] trying: pipx install uv"
+        if pipx install uv >>"$_fb_log" 2>&1; then
+            local _pipx_uv
+            _pipx_uv="$(pipx environment --value PIPX_LOCAL_VENVS 2>/dev/null)/uv/bin/uv"
+            if [ ! -x "$_pipx_uv" ]; then
+                _pipx_uv="$HOME/.local/pipx/venvs/uv/bin/uv"
+            fi
+            if [ ! -x "$_pipx_uv" ]; then
+                _pipx_uv="$(command -v uv 2>/dev/null || true)"
+            fi
+            if [ -x "$_pipx_uv" ]; then
+                mkdir -p "$(dirname "$_target")"
+                ln -sf "$_pipx_uv" "$_target"
+                log_info "[fallback] pipx install uv succeeded at $_pipx_uv -> $_target"
+                rm -f "$_fb_log"
+                return 0
+            fi
+        else
+            log_warn "[fallback] pipx install uv failed (see $_fb_log)"
+        fi
+    fi
+
+    log_error "[fallback] all package-manager fallbacks failed"
+    log_info "Fallback log:"
+    sed 's/^/    /' "$_fb_log" >&2
+    rm -f "$_fb_log"
+    return 1
 }
 
 check_python() {
@@ -1319,6 +1444,11 @@ EOF
     log_success "Repository ready"
 }
 
+# WO-001AS (v6 BUG): setup_venv has no direct curl calls (uses `uv venv`
+# which goes through the managed uv binary installed by install_uv). 派单
+# 拍板 "install_hermes_python 同样 retry" = 写明 "无 curl 直接调用,网络路径
+# 由 install_uv 走 curl retry + fallback 兜底"。uv pip / uv venv 自身的
+# network retry 行为不在白名单,本单不修。
 setup_venv() {
     if [ "$USE_VENV" = false ]; then
         log_info "Skipping virtual environment (--no-venv)"
@@ -1362,6 +1492,10 @@ setup_venv() {
     log_success "Virtual environment ready (Python $PYTHON_VERSION)"
 }
 
+# WO-001AS (v6 BUG): install_deps has no direct curl calls (uses
+# `uv pip install` which goes through managed uv). 派单拍板"同样 retry"
+# = 写明"无 curl 直接调用"。如果 uv pip 内部卡死,走 install_uv 的 30 min
+# powershell.rs::SCRIPT_TIMEOUT 兜底(已在 WO-001AR STEP 2 落地)。
 install_deps() {
     log_info "Installing dependencies..."
 
@@ -1616,6 +1750,8 @@ PY
     log_success "All dependencies installed"
 }
 
+# WO-001AS (v6 BUG): setup_path has no curl calls (only `ln -sf` and
+# `cp`). 派单拍板"install_hermes_command 同样 retry" = 写明"无网络依赖"。
 setup_path() {
     log_info "Setting up hermes command..."
 
@@ -1777,6 +1913,9 @@ EOF
     log_success "hermes command ready"
 }
 
+# WO-001AS (v6 BUG): copy_config_templates has no curl calls (only
+# `cp` of bundled YAML templates into $HERMES_HOME). 派单拍板"prepare_config
+# 同样 retry" = 写明"无网络依赖"。
 copy_config_templates() {
     log_info "Setting up configuration files..."
 
@@ -2182,7 +2321,19 @@ install_node_deps() {
         cd "$INSTALL_DIR"
         # Time-boxed: a stalled registry fetch would otherwise hang here with no
         # progress (same #39219 stall class as the desktop build below).
-        run_with_timeout "$NODE_DEPS_TIMEOUT" npm install --silent || {
+        # WO-001AT (v7 BUG): npm install 卡 8:13 = registry fetch 卡死。
+        # 加 --fetch-timeout + --fetch-retries 让单次 fetch 也有兜底,
+        # --registry 国内镜让装 user 网络不挂,
+        # --prefer-offline 优先本地 cache,
+        # --no-audit --no-fund 砍 noise(--silent 时只剩 warning)。
+        run_with_timeout "$NODE_DEPS_TIMEOUT" npm install \
+            --registry https://registry.npmmirror.com \
+            --fetch-timeout 600000 \
+            --fetch-retries 3 \
+            --fetch-retry-mintimeout 20000 \
+            --prefer-offline \
+            --no-audit --no-fund \
+            || {
             log_warn "npm install failed or timed out (browser tools may not work)"
         }
         log_success "Node.js dependencies installed"
@@ -2317,6 +2468,11 @@ run_setup_wizard() {
     fi
 }
 
+# WO-001AS (v6 BUG): maybe_start_gateway has no direct curl calls
+# (only `hermes gateway install` and `hermes gateway start`, which are
+# in-process subcommands). 派单拍板"configure_gateway 同样 retry" = 写明"无
+# curl 直接调用"。如果 gateway 子命令内部有网络卡死,走 install_uv 的 30 min
+# powershell.rs::SCRIPT_TIMEOUT 兜底。
 maybe_start_gateway() {
     # Check if any messaging platform tokens were configured
     ENV_FILE="$HERMES_HOME/.env"
@@ -2694,7 +2850,7 @@ DESKTOP_BUILD_TIMEOUT="${DESKTOP_BUILD_TIMEOUT:-900}"
 # Wall-clock cap for the plain registry `npm install`s (browser-tools + TUI
 # deps). Same #39219 stall class but no ~150MB Electron binary, so a shorter
 # default; override with NODE_DEPS_TIMEOUT for very slow links.
-NODE_DEPS_TIMEOUT="${NODE_DEPS_TIMEOUT:-600}"
+NODE_DEPS_TIMEOUT="${NODE_DEPS_TIMEOUT:-1500}"
 
 # Electron package dir — workspace-local nest first, then root hoist.
 _electron_dir() {
