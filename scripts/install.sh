@@ -2971,12 +2971,12 @@ install_desktop() {
     # "Build desktop app … exit code 1" failure (Vite crashes on old Node).
     check_node
     if ! command -v npm >/dev/null 2>&1; then
-        log_error "Cannot build desktop app: Node.js / npm unavailable"
-        log_info "Install Node.js and retry: cd $desktop_dir && npm run pack"
+        log_error "无法构建桌面应用:未找到 Node.js / npm"
+        log_info "请先安装 Node.js,然后重试: cd $desktop_dir && npm run pack"
         return 1
     fi
     if [ ! -f "$desktop_dir/package.json" ]; then
-        log_warn "Skipping desktop build (apps/desktop not present in checkout)"
+        log_warn "跳过桌面构建 (检出目录中没有 apps/desktop)"
         return 0
     fi
 
