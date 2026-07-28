@@ -408,7 +408,22 @@ if (INSTALL_STAMP) {
   )
 }
 
-if (!process.env.HERMES_HOME) {process.env.HERMES_HOME = path.join(os.homedir(), '.wenshu-hermes')}
+// HERMES_HOME 兜底 — 处理 macOS LSEnvironment 注入 literal "$HOME/.wenshu-hermes" 的情况
+// (apps/desktop/package.json mac.extendInfo.LSEnvironment 设置了字面 $HOME 占位符,
+//  macOS LSEnvironment **不展开** $HOME → Electron main 进程继承到字面 HERMES_HOME="$HOME/.wenshu-hermes";
+//  下游 main.ts:467 resolveHermesHome() 经 path.resolve() 给字面相对路径前置 "/" →
+//  HERMES_HOME="/$HOME/.wenshu-hermes" → spawn Python hermes-cli 时 env 传过去 →
+//  hermes_constants.get_hermes_home() 拿到 Path("/$HOME/.wenshu-hermes") →
+//  hermes_logging.setup_logging() 试图 mkdir "/$HOME/.wenshu-hermes/logs" → ENOENT fail,
+//  桌面 app 弹 "文枢 couldn't start" 错误 — WO-001BE v15 BUG 根因).
+// 触发条件: 空 / 包含 $HOME 或 ${HOME} 字面 / 以 ~ 开头 → 用 os.homedir() 解析成绝对路径.
+{
+  const _rawHome = process.env.HERMES_HOME
+  const _hasDollarHomePlaceholder = !!_rawHome && (/\$\{?HOME\}?/.test(_rawHome) || _rawHome.trim().startsWith("~"))
+  if (!_rawHome || _hasDollarHomePlaceholder) {
+    process.env.HERMES_HOME = path.join(os.homedir(), ".wenshu-hermes")
+  }
+}
 
 // HERMES_HOME — the user-facing root for everything 文枢-related. Mirrors
 // scripts/install.ps1's $HermesHome and scripts/install.sh's $HERMES_HOME.
