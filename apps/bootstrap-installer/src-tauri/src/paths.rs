@@ -111,7 +111,7 @@ pub fn copy_self_to_hermes_home() -> std::io::Result<()> {
         _ => src == dest,
     };
     if same {
-        tracing::info!(?dest, "installer already at destination; skipping self-copy");
+        tracing::info!(?dest, "安装程序已在目标位置,跳过自拷贝");
         return Ok(());
     }
 
@@ -120,7 +120,7 @@ pub fn copy_self_to_hermes_home() -> std::io::Result<()> {
     }
     std::fs::copy(&src, &dest)?;
     repair_macos_installer_helper(&dest);
-    tracing::info!(?src, ?dest, "copied installer to HERMES_HOME");
+    tracing::info!(?src, ?dest, "已将安装程序复制到 HERMES_HOME");
     Ok(())
 }
 

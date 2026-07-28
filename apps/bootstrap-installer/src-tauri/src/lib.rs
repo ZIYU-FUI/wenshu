@@ -149,7 +149,7 @@ pub fn run() {
             eprintln!(
                 "[wenshu-setup] setup entered: mode={mode:?}, force_setup={force_setup}"
             );
-            tracing::info!(?mode, force_setup, "setup callback entered");
+            tracing::info!(?mode, force_setup, "setup 回调已触发");
             // Launcher fast path (macOS only): a bare ("Install") launch when
             // 文枢 is already installed should NOT show the installer or
             // rebuild — it should just open the app, so the /Applications
@@ -183,7 +183,7 @@ pub fn run() {
                             // before we exit (mirrors launch_hermes_desktop).
                             std::thread::sleep(std::time::Duration::from_millis(200));
                             tracing::info!(
-                                "hermes already installed — relaunched desktop; exiting installer"
+                                "hermes 已安装 — 已重新启动桌面端,安装程序即将退出"
                             );
                             app.handle().exit(0);
                             return Ok(());
@@ -191,14 +191,14 @@ pub fn run() {
                         Err(err) => {
                             tracing::warn!(
                                 ?err,
-                                "relaunch of installed desktop failed; showing installer UI"
+                                "重新启动桌面端失败,显示安装程序界面"
                             );
                         }
                     }
                 } else if !uv_present {
                     tracing::warn!(
                         managed_uv = %managed_uv.display(),
-                        "managed uv missing — refusing launcher fast path; showing installer UI"
+                        "managed uv 缺失 — 拒绝启动快速通道,显示安装程序界面"
                     );
                 }
             }
@@ -206,11 +206,11 @@ pub fn run() {
             match app.get_webview_window("main") {
                 Some(win) => {
                     if let Err(err) = win.show() {
-                        tracing::error!(?err, "failed to show main installer window");
+                        tracing::error!(?err, "无法显示主安装窗口");
                     }
                 }
                 None => {
-                    tracing::error!("main installer webview not found; installer UI will not appear");
+                    tracing::error!("找不到主安装 WebView,安装程序界面将不显示");
                 }
             }
             Ok(())

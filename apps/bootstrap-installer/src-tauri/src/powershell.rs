@@ -271,7 +271,7 @@ async fn run_script_inner(
                         break;
                     }
                     Err(e) => {
-                        tracing::warn!("stdout read error: {e}");
+                        tracing::warn!("读取 stdout 失败: {e}");
                         break;
                     }
                 }
@@ -287,12 +287,12 @@ async fn run_script_inner(
                         // stderr EOF — keep draining stdout.
                     }
                     Err(e) => {
-                        tracing::warn!("stderr read error: {e}");
+                        tracing::warn!("读取 stderr 失败: {e}");
                     }
                 }
             }
             _ = recv_cancel(&mut cancel_rx) => {
-                tracing::warn!("cancellation received — killing child");
+                tracing::warn!("收到取消请求,正在终止子进程");
                 killed = true;
                 // best-effort kill via shared holder; don't propagate errors
                 if let Ok(mut guard) = child_holder.lock() {

@@ -169,7 +169,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --stage NAME   Run one desktop bootstrap stage"
             echo "  --json         Print a JSON result frame for --stage"
             echo "  --non-interactive  Skip stages that require user input"
-            echo "  --include-desktop  Also build the desktop app (apps/desktop -> Hermes.app)"
+            echo "  --include-desktop  同时构建桌面应用 (apps/desktop -> 文枢.app)"
             echo "  --dir PATH     Installation directory"
             echo "                   default (non-root):  ~/.hermes/hermes-agent"
             echo "                   default (root, Linux): /usr/local/lib/hermes-agent"
@@ -313,9 +313,9 @@ emit_manifest() {
     # desktop from inside the already-running app would clobber it).
     local desktop_stage=""
     if [ "$INCLUDE_DESKTOP" = true ]; then
-        desktop_stage='{"name":"desktop","title":"Build desktop app","category":"runtime","needs_user_input":false},'
+        desktop_stage='{"name":"desktop","title":"构建桌面应用","category":"runtime","needs_user_input":false},'
     fi
-    printf '%s' '{"protocol_version":1,"stages":[{"name":"prerequisites","title":"System prerequisites","category":"runtime","needs_user_input":false},{"name":"repository","title":"Download Hermes Agent","category":"runtime","needs_user_input":false},{"name":"venv","title":"Create Python virtual environment","category":"runtime","needs_user_input":false},{"name":"python-deps","title":"Install Python dependencies","category":"runtime","needs_user_input":false},{"name":"node-deps","title":"Install browser-tool dependencies","category":"runtime","needs_user_input":false},{"name":"path","title":"Install hermes command","category":"runtime","needs_user_input":false},{"name":"config","title":"Prepare config and skills","category":"configuration","needs_user_input":false},{"name":"setup","title":"Configure API keys and settings","category":"configuration","needs_user_input":true},{"name":"gateway","title":"Configure gateway service","category":"configuration","needs_user_input":true},'"$desktop_stage"'{"name":"complete","title":"Finish install","category":"runtime","needs_user_input":false}]}'
+    printf '%s' '{"protocol_version":1,"stages":[{"name":"prerequisites","title":"检查系统环境","category":"runtime","needs_user_input":false},{"name":"repository","title":"下载文枢源码","category":"runtime","needs_user_input":false},{"name":"venv","title":"创建 Python 虚拟环境","category":"runtime","needs_user_input":false},{"name":"python-deps","title":"安装 Python 依赖","category":"runtime","needs_user_input":false},{"name":"node-deps","title":"安装浏览器工具依赖","category":"runtime","needs_user_input":false},{"name":"path","title":"配置命令行入口","category":"runtime","needs_user_input":false},{"name":"config","title":"准备配置和技能","category":"configuration","needs_user_input":false},{"name":"setup","title":"配置 API 密钥和设置","category":"configuration","needs_user_input":true},{"name":"gateway","title":"配置网关服务","category":"configuration","needs_user_input":true},'"$desktop_stage"'{"name":"complete","title":"完成安装","category":"runtime","needs_user_input":false}]}'
     printf '\n'
 }
 
@@ -2909,6 +2909,48 @@ _restore_electron_dist_with_fallback() {
         || { [ -z "${ELECTRON_MIRROR:-}" ] && _restore_electron_dist "$install_dir" "$DESKTOP_ELECTRON_FALLBACK_MIRROR"; }
 }
 
+# Resolve the native artifact produced by electron-builder. The desktop package
+# uses productName/executableName "文枢"; the old Hermes names remain in the
+# candidate list so an already-cached legacy checkout can still be repaired.
+# Keep this lookup independent of the display brand: the build is successful
+# only when the artifact that the launcher can use is actually present.
+_find_built_desktop() {
+    local desktop_dir="$1"
+    local release_dir="$desktop_dir/release"
+    local cand
+
+    if [ "$OS" = "linux" ]; then
+        for cand in \
+            "$release_dir/linux-unpacked/文枢" \
+            "$release_dir/linux-unpacked/WenShu" \
+            "$release_dir/linux-unpacked/wenshu" \
+            "$release_dir/linux-unpacked/Hermes" \
+            "$release_dir/linux-unpacked/hermes"; do
+            if [ -x "$cand" ]; then
+                printf '%s\n' "$cand"
+                return 0
+            fi
+        done
+    else
+        for cand in \
+            "$release_dir/mac-arm64/文枢.app" \
+            "$release_dir/mac/文枢.app" \
+            "$release_dir/mac-universal/文枢.app" \
+            "$release_dir/mac-x64/文枢.app" \
+            "$release_dir/mac-arm64/WenShu.app" \
+            "$release_dir/mac/WenShu.app" \
+            "$release_dir/mac-arm64/Hermes.app" \
+            "$release_dir/mac/Hermes.app"; do
+            if [ -d "$cand" ]; then
+                printf '%s\n' "$cand"
+                return 0
+            fi
+        done
+    fi
+
+    return 1
+}
+
 # Build apps/desktop into a launchable native app. Mirrors install.ps1's
 # Install-Desktop: a root-level npm install so the apps/* workspace resolves
 # the desktop's own deps (Electron ~150MB), then `npm run pack`
@@ -2963,7 +3005,7 @@ install_desktop() {
     #    would double the worst-case hang. We compute a single deadline and pass
     #    the remaining seconds to the fallback (min 30s so it still gets a real
     #    attempt if `npm ci` failed fast rather than stalling).
-    log_info "Installing desktop workspace dependencies (includes Electron ~150MB, 1-3min)..."
+    log_info "正在安装桌面应用依赖 (包含 Electron 约 150MB,预计 1-3 分钟)..."
     local _deps_start _deps_remaining
     _deps_start=$(date +%s)
     # WO-001AY (v11 BUG): GitHub (`20.205.243.166`) is throttled/blocked from
@@ -2985,35 +3027,35 @@ install_desktop() {
     )
     if ELECTRON_MIRROR="$DESKTOP_ELECTRON_FALLBACK_MIRROR" \
         run_with_timeout "$DESKTOP_BUILD_TIMEOUT" bash -c 'cd "$1" && npm ci "${@:2}"' _ "$INSTALL_DIR" "${_desktop_npm_common[@]}"; then
-        log_success "Desktop workspace dependencies installed"
+        log_success "桌面应用依赖安装完成"
     elif _deps_remaining=$(( DESKTOP_BUILD_TIMEOUT - ($(date +%s) - _deps_start) )); \
          [ "$_deps_remaining" -lt 30 ] && _deps_remaining=30; \
          ELECTRON_MIRROR="$DESKTOP_ELECTRON_FALLBACK_MIRROR" \
          run_with_timeout "$_deps_remaining" bash -c 'cd "$1" && npm install "${@:2}"' _ "$INSTALL_DIR" "${_desktop_npm_common[@]}"; then
-        log_success "Desktop workspace dependencies installed"
+        log_success "桌面应用依赖安装完成"
     elif _electron_pkg_staged_missing_dist "$INSTALL_DIR"; then
-        log_warn "Desktop dependency install failed with a missing Electron dist; attempting self-heal..."
+        log_warn "桌面应用依赖安装失败且 Electron 文件不完整,正在尝试自动修复..."
         _restore_electron_dist_with_fallback "$INSTALL_DIR" || true
     else
         # WO-001AY: even when _electron_dist_ok returned true (a 0-byte or
         # partial Electron binary survived the failed postinstall), force a
         # mirror-driven recovery so the install self-heals instead of bailing
         # with the opaque "exit code 1" that drops the user back into the DMG.
-        log_warn "Desktop workspace npm install failed - purging partial Electron dist and retrying via mirror..."
+        log_warn "桌面应用依赖安装失败,正在清理不完整的 Electron 文件并通过镜像重试..."
         clear_electron_build_cache "$desktop_dir" >/dev/null 2>&1 || true
         if _restore_electron_dist "$INSTALL_DIR" "$DESKTOP_ELECTRON_FALLBACK_MIRROR"; then
-            log_info "Mirror-recovered Electron dist - retrying the pack step with ELECTRON_MIRROR set..."
+            log_info "已通过镜像恢复 Electron 文件,正在使用镜像重新打包..."
         else
-            log_error "Desktop workspace npm install failed"
+            log_error "桌面应用依赖安装失败"
             # Common cause: a previous 'sudo npm'/'sudo npx' left root-owned files in
             # ~/.npm, so this non-root install can't write the shared cache. npm hides
             # it behind a confusing EEXIST / "File exists" message while the real errno
             # is EACCES (-13). Point the user at the fix instead of a raw npm trace.
-            log_info "If the errors above mention EACCES / 'permission denied' / EEXIST while"
-            log_info "writing the npm cache, your ~/.npm likely holds root-owned files from an"
-            log_info "earlier 'sudo npm' or 'sudo npx'. Reclaim ownership and retry:"
+            log_info "如果上面的错误包含 EACCES / 'permission denied' / EEXIST,说明 npm 缓存可能没有写入权限"
+            log_info "请检查 ~/.npm 中是否存在由 root 创建的文件"
+            log_info "可先修复目录权限后重试:"
             log_info "  sudo chown -R \"$(id -un)\" ~/.npm && npm cache verify"
-            log_info "Then re-run this installer, or build manually:"
+            log_info "然后重新运行安装程序,或手动构建:"
             log_info "  cd \"$INSTALL_DIR\" && npm ci && cd apps/desktop && npm run pack"
             return 1
         fi
@@ -3026,7 +3068,7 @@ install_desktop() {
     #         retry (matches install.ps1 / `hermes desktop`),
     #      c) on still-failing, fall back to a public Electron mirror — this is
     #         the GitHub-blocked/throttled case (the repeating "retrying" log).
-    log_info "Building desktop app (this takes 1-3 minutes)..."
+    log_info "正在构建桌面应用 (预计 1-3 分钟)..."
     local pack_ok=false
     if run_with_timeout "$DESKTOP_BUILD_TIMEOUT" _desktop_pack "$desktop_dir"; then
         pack_ok=true
@@ -3038,7 +3080,7 @@ install_desktop() {
             if _restore_electron_dist "$INSTALL_DIR"; then restored=true; fi
         fi
         if [ "$restored" = true ]; then
-            log_warn "Desktop build failed; refreshed the Electron download and retrying once..."
+            log_warn "桌面应用构建失败,已刷新 Electron 下载内容,正在重试一次..."
             if run_with_timeout "$DESKTOP_BUILD_TIMEOUT" _desktop_pack "$desktop_dir"; then
                 pack_ok=true
             fi
@@ -3047,9 +3089,9 @@ install_desktop() {
 
     # (c) GitHub blocked → mirror fallback (#47266).
     if [ "$pack_ok" = false ] && [ -z "${ELECTRON_MIRROR:-}" ]; then
-        log_warn "Desktop build still failing — the Electron download from GitHub looks blocked."
-        log_warn "Re-downloading Electron via a public mirror ($DESKTOP_ELECTRON_FALLBACK_MIRROR), then rebuilding..."
-        log_warn "  (set ELECTRON_MIRROR yourself to use a different/trusted mirror)"
+        log_warn "桌面应用构建仍然失败,从 GitHub 下载 Electron 可能被阻断。"
+        log_warn "正在通过公共镜像 ($DESKTOP_ELECTRON_FALLBACK_MIRROR) 重新下载 Electron,然后再次构建..."
+        log_warn "  (如需使用其他可信镜像,可自行设置 ELECTRON_MIRROR)"
         _electron_dist_ok "$INSTALL_DIR" || _restore_electron_dist "$INSTALL_DIR" "$DESKTOP_ELECTRON_FALLBACK_MIRROR" || true
         if run_with_timeout "$DESKTOP_BUILD_TIMEOUT" _desktop_pack "$desktop_dir" "$DESKTOP_ELECTRON_FALLBACK_MIRROR"; then
             pack_ok=true
@@ -3057,41 +3099,25 @@ install_desktop() {
     fi
 
     if [ "$pack_ok" = false ]; then
-        log_error "Desktop app build failed"
+        log_error "桌面应用构建失败"
         # If the log shows repeated "retrying" lines fetching the Electron zip,
         # the binary download is blocked/throttled (firewall, proxy, region) and
         # the mirror fallback above also couldn't reach a host. Try a mirror you
         # trust and rebuild (@electron/get honors ELECTRON_MIRROR):
-        log_info "If the log shows Electron download retries, rebuild via a reachable mirror:"
+        log_info "如果日志显示 Electron 下载反复重试,请通过可访问的镜像重新构建:"
         log_info "  ELECTRON_MIRROR=<mirror-base-url> \\"
         log_info "    bash -c 'cd \"$desktop_dir\" && CSC_IDENTITY_AUTO_DISCOVERY=false npm run pack'"
-        log_info "Otherwise build manually: cd $desktop_dir && npm run pack"
+        log_info "否则可手动构建: cd $desktop_dir && npm run pack"
         return 1
     fi
 
     local app=""
-    if [ "$OS" = "linux" ]; then
-        if [ -x "$desktop_dir/release/linux-unpacked/Hermes" ]; then
-            app="$desktop_dir/release/linux-unpacked/Hermes"
-        elif [ -x "$desktop_dir/release/linux-unpacked/hermes" ]; then
-            app="$desktop_dir/release/linux-unpacked/hermes"
-        fi
-    else
-        local cand
-        for cand in \
-            "$desktop_dir/release/mac-arm64/Hermes.app" \
-            "$desktop_dir/release/mac/Hermes.app"; do
-            if [ -d "$cand" ]; then
-                app="$cand"
-                break
-            fi
-        done
-    fi
-    if [ -z "$app" ]; then
-        log_error "Desktop build completed but no app was found under $desktop_dir/release/"
+    if ! app="$(_find_built_desktop "$desktop_dir")"; then
+        log_error "桌面应用构建已结束,但在 $desktop_dir/release/ 下没有找到可启动的应用"
+        log_info "已检查文枢和兼容旧名称的 macOS/Linux 构建目录"
         return 1
     fi
-    log_success "Desktop app built: $app"
+    log_success "桌面应用构建完成: $app"
 
     # Linux: Electron's chrome-sandbox helper needs root:root 4755 or the
     # sandboxed renderer will abort on startup.  Check the file is a regular
@@ -3102,16 +3128,16 @@ install_desktop() {
         if [ -f "$sandbox" ] && [ ! -L "$sandbox" ]; then
             if [ "$(id -u)" -eq 0 ]; then
                 chown root:root "$sandbox" && chmod 4755 "$sandbox" || {
-                    log_error "Cannot configure Electron sandbox helper: $sandbox"
+                    log_error "无法配置 Electron 沙箱助手: $sandbox"
                     return 1
                 }
             elif command -v sudo >/dev/null 2>&1; then
                 sudo chown root:root "$sandbox" && sudo chmod 4755 "$sandbox" || {
-                    log_error "Cannot configure Electron sandbox helper (sudo failed): $sandbox"
+                    log_error "无法配置 Electron 沙箱助手 (sudo 失败): $sandbox"
                     return 1
                 }
             else
-                log_error "Cannot configure Electron sandbox helper without sudo: $sandbox"
+                log_error "没有 sudo,无法配置 Electron 沙箱助手: $sandbox"
                 return 1
             fi
         fi
@@ -3240,7 +3266,7 @@ run_stage_body() {
             echo "git" > "$INSTALL_DIR/.install_method"
             ;;
         *)
-            log_error "Unknown stage: $stage"
+            log_error "未知安装阶段: $stage"
             return 2
             ;;
     esac
@@ -3249,15 +3275,15 @@ run_stage_body() {
 run_stage_protocol() {
     local stage="$1"
     if [ -z "$stage" ]; then
-        log_error "--stage requires a stage name"
+        log_error "--stage 需要提供阶段名称"
         if [ "$JSON_OUTPUT" = true ]; then
-            emit_stage_json "" false false "missing stage name"
+            emit_stage_json "" false false "缺少阶段名称"
         fi
         return 2
     fi
 
     if [ "$NON_INTERACTIVE" = true ] && stage_needs_user_input "$stage"; then
-        log_info "Skipping $stage (non-interactive bootstrap)"
+        log_info "跳过 $stage (非交互式安装)"
         if [ "$JSON_OUTPUT" = true ]; then
             emit_stage_json "$stage" true true
         fi
@@ -3279,7 +3305,7 @@ run_stage_protocol() {
         if [ "$code" -eq 0 ]; then
             emit_stage_json "$stage" true false
         else
-            emit_stage_json "$stage" false false "exit code $code"
+            emit_stage_json "$stage" false false "退出码 $code"
         fi
     fi
     return "$code"
