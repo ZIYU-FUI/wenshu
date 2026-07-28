@@ -2966,28 +2966,57 @@ install_desktop() {
     log_info "Installing desktop workspace dependencies (includes Electron ~150MB, 1-3min)..."
     local _deps_start _deps_remaining
     _deps_start=$(date +%s)
-    if run_with_timeout "$DESKTOP_BUILD_TIMEOUT" bash -c 'cd "$1" && npm ci' _ "$INSTALL_DIR"; then
+    # WO-001AY (v11 BUG): GitHub (`20.205.243.166`) is throttled/blocked from
+    # the operator's network. Pre-set ELECTRON_MIRROR so @electron/get routes
+    # the Electron binary fetch through npmmirror.com (instead of GitHub) and
+    # pass --registry + --fetch-timeout/--fetch-retries (same flags as the
+    # node-deps stage for browser-tools, #39219 / WO-001AT). Without this the
+    # install hits GitHub twice (~110s wasted) and the
+    # _electron_pkg_staged_missing_dist gate below sees a partially-extracted
+    # Electron.app, returning false and short-circuiting the mirror fallback
+    # that would otherwise rescue the install.
+    local _desktop_npm_common=(
+        --registry https://registry.npmmirror.com
+        --fetch-timeout 600000
+        --fetch-retries 3
+        --fetch-retry-mintimeout 20000
+        --prefer-offline
+        --no-audit --no-fund
+    )
+    if ELECTRON_MIRROR="$DESKTOP_ELECTRON_FALLBACK_MIRROR" \
+        run_with_timeout "$DESKTOP_BUILD_TIMEOUT" bash -c 'cd "$1" && npm ci "${@:2}"' _ "$INSTALL_DIR" "${_desktop_npm_common[@]}"; then
         log_success "Desktop workspace dependencies installed"
     elif _deps_remaining=$(( DESKTOP_BUILD_TIMEOUT - ($(date +%s) - _deps_start) )); \
          [ "$_deps_remaining" -lt 30 ] && _deps_remaining=30; \
-         run_with_timeout "$_deps_remaining" bash -c 'cd "$1" && npm install' _ "$INSTALL_DIR"; then
+         ELECTRON_MIRROR="$DESKTOP_ELECTRON_FALLBACK_MIRROR" \
+         run_with_timeout "$_deps_remaining" bash -c 'cd "$1" && npm install "${@:2}"' _ "$INSTALL_DIR" "${_desktop_npm_common[@]}"; then
         log_success "Desktop workspace dependencies installed"
     elif _electron_pkg_staged_missing_dist "$INSTALL_DIR"; then
         log_warn "Desktop dependency install failed with a missing Electron dist; attempting self-heal..."
         _restore_electron_dist_with_fallback "$INSTALL_DIR" || true
     else
-        log_error "Desktop workspace npm install failed"
-        # Common cause: a previous 'sudo npm'/'sudo npx' left root-owned files in
-        # ~/.npm, so this non-root install can't write the shared cache. npm hides
-        # it behind a confusing EEXIST / "File exists" message while the real errno
-        # is EACCES (-13). Point the user at the fix instead of a raw npm trace.
-        log_info "If the errors above mention EACCES / 'permission denied' / EEXIST while"
-        log_info "writing the npm cache, your ~/.npm likely holds root-owned files from an"
-        log_info "earlier 'sudo npm' or 'sudo npx'. Reclaim ownership and retry:"
-        log_info "  sudo chown -R \"\$(id -un)\" ~/.npm && npm cache verify"
-        log_info "Then re-run this installer, or build manually:"
-        log_info "  cd \"$INSTALL_DIR\" && npm ci && cd apps/desktop && npm run pack"
-        return 1
+        # WO-001AY: even when _electron_dist_ok returned true (a 0-byte or
+        # partial Electron binary survived the failed postinstall), force a
+        # mirror-driven recovery so the install self-heals instead of bailing
+        # with the opaque "exit code 1" that drops the user back into the DMG.
+        log_warn "Desktop workspace npm install failed - purging partial Electron dist and retrying via mirror..."
+        clear_electron_build_cache "$desktop_dir" >/dev/null 2>&1 || true
+        if _restore_electron_dist "$INSTALL_DIR" "$DESKTOP_ELECTRON_FALLBACK_MIRROR"; then
+            log_info "Mirror-recovered Electron dist - retrying the pack step with ELECTRON_MIRROR set..."
+        else
+            log_error "Desktop workspace npm install failed"
+            # Common cause: a previous 'sudo npm'/'sudo npx' left root-owned files in
+            # ~/.npm, so this non-root install can't write the shared cache. npm hides
+            # it behind a confusing EEXIST / "File exists" message while the real errno
+            # is EACCES (-13). Point the user at the fix instead of a raw npm trace.
+            log_info "If the errors above mention EACCES / 'permission denied' / EEXIST while"
+            log_info "writing the npm cache, your ~/.npm likely holds root-owned files from an"
+            log_info "earlier 'sudo npm' or 'sudo npx'. Reclaim ownership and retry:"
+            log_info "  sudo chown -R \"$(id -un)\" ~/.npm && npm cache verify"
+            log_info "Then re-run this installer, or build manually:"
+            log_info "  cd \"$INSTALL_DIR\" && npm ci && cd apps/desktop && npm run pack"
+            return 1
+        fi
     fi
 
     # 2. Build, with up to three escalating attempts so a transient/blocked
