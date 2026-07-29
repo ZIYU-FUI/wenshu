@@ -32,6 +32,22 @@ fi
 # wrong user's home directory when running under sudo -u <user>.  See #21269.
 export UV_NO_CONFIG=1
 
+# Force Python packages through domestic mirrors so installer failures are not
+# confused with pypi.org / download.pytorch.org connectivity problems. The
+# primary is Tsinghua TUNA; dependency-install retries switch to Aliyun.
+PYPI_MIRROR_PRIMARY="https://pypi.tuna.tsinghua.edu.cn/simple"
+PYPI_MIRROR_FALLBACK="https://mirrors.aliyun.com/pypi/simple/"
+export UV_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+export UV_DEFAULT_INDEX=https://pypi.tuna.tsinghua.edu.cn/simple
+export PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+# uv's real maximum-in-flight download setting (the requested
+# upload.max_pypi_connections equivalent). uv defaults lower; 100 keeps large
+# dependency sets moving on domestic mirrors.
+export UV_CONCURRENT_DOWNLOADS=100
+# An inherited torch backend makes uv bypass the configured index and contact
+# download.pytorch.org. Generic torch wheels must use the domestic mirror too.
+unset UV_TORCH_BACKEND
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -226,6 +242,16 @@ log_warn() {
 
 log_error() {
     echo -e "${RED}✗${NC} $1"
+}
+
+activate_python_package_mirror() {
+    local mirror="$1"
+    local label="$2"
+    export UV_INDEX_URL="$mirror"
+    export UV_DEFAULT_INDEX="$mirror"
+    export PIP_INDEX_URL="$mirror"
+    unset UV_TORCH_BACKEND
+    log_info "Python package source: $label ($mirror)"
 }
 
 json_escape() {
@@ -555,7 +581,7 @@ install_uv() {
     if [ -x "$_managed_uv" ]; then
         UV_CMD="$_managed_uv"
         UV_VERSION=$($UV_CMD --version 2>/dev/null)
-        log_success "Managed uv found ($UV_VERSION)"
+        log_success "Managed uv found ($UV_VERSION; default source: $UV_INDEX_URL)"
         return 0
     fi
 
@@ -674,8 +700,19 @@ _uv_install_via_fallback() {
         _pip_cmd="pip"
     fi
     if [ -n "$_pip_cmd" ]; then
+        local _pip_install_ok=false
+        activate_python_package_mirror "$PYPI_MIRROR_PRIMARY" "清华 TUNA"
         log_info "[fallback] trying: $_pip_cmd install uv"
         if "$_pip_cmd" install --quiet uv >>"$_fb_log" 2>&1; then
+            _pip_install_ok=true
+        else
+            log_warn "[fallback] 清华 TUNA failed; retrying uv from Aliyun"
+            activate_python_package_mirror "$PYPI_MIRROR_FALLBACK" "阿里云 fallback"
+            if "$_pip_cmd" install --quiet uv >>"$_fb_log" 2>&1; then
+                _pip_install_ok=true
+            fi
+        fi
+        if [ "$_pip_install_ok" = true ]; then
             local _pip_uv
             _pip_uv="$("$_pip_cmd" show uv 2>/dev/null | awk '/^Location:/{print $2}' | head -1)"
             if [ -n "$_pip_uv" ] && [ -x "$_pip_uv/bin/uv" ]; then
@@ -691,7 +728,7 @@ _uv_install_via_fallback() {
                 return 0
             fi
         else
-            log_warn "[fallback] $_pip_cmd install uv failed (see $_fb_log)"
+            log_warn "[fallback] $_pip_cmd install uv failed on both domestic mirrors (see $_fb_log)"
         fi
     fi
 
@@ -1067,7 +1104,7 @@ check_network_prerequisites() {
 
     local url
     local failed=false
-    local checks=("https://pypi.org/simple/" "https://duckduckgo.com/")
+    local checks=("$PYPI_MIRROR_PRIMARY/" "$PYPI_MIRROR_FALLBACK")
 
     if ! command -v curl >/dev/null 2>&1; then
         log_warn "curl not found; skipping connectivity probes"
@@ -1090,7 +1127,7 @@ check_network_prerequisites() {
         log_warn "Termux network prerequisites may be incomplete."
         log_info "Try: pkg install -y ca-certificates curl && pkg update"
         log_info "If mirrors are stale: termux-change-repo"
-        log_info "Then test: curl -I https://pypi.org/simple/ && curl -I https://duckduckgo.com/"
+        log_info "Then test: curl -I $PYPI_MIRROR_PRIMARY/ && curl -I $PYPI_MIRROR_FALLBACK"
     else
         log_warn "Network checks failed. Wenshu install may complete, but web search and dependency downloads can fail."
         log_info "Verify internet/DNS and retry if pip install fails."
@@ -1609,7 +1646,7 @@ install_deps() {
     # hash verification — they exist to keep installs working when the
     # lockfile is stale, missing, or out-of-sync with the current
     # extras spec, NOT because they're equivalent in posture.
-    if [ -f "uv.lock" ]; then
+    if [ -f "uv.lock" ] && [ "$UV_INDEX_URL" = "https://pypi.org/simple" ]; then
         log_info "Trying tier: hash-verified (uv.lock) ..."
         log_info "(this resolves + downloads the curated [all] set — first run on a"
         log_info " fresh venv can take 1-5 minutes; uv prints progress below)"
@@ -1639,9 +1676,14 @@ install_deps() {
             log_success "All dependencies installed"
             return 0
         fi
-        log_warn "uv.lock sync failed (see uv output above), falling back to PyPI resolve..."
+        log_warn "uv.lock sync failed (see uv output above), falling back to mirror resolve..."
+    elif [ -f "uv.lock" ]; then
+        # uv.lock records pypi.org/files.pythonhosted.org artifact URLs. Running
+        # it with --locked would either reject the mirror override or download
+        # from the official hosts, defeating this ticket's network isolation.
+        log_info "Skipping uv.lock official-host artifacts; resolving from $UV_INDEX_URL"
     else
-        log_info "uv.lock not found — falling back to PyPI resolve (no hash verification)"
+        log_info "uv.lock not found — falling back to mirror resolve (no hash verification)"
     fi
 
     # Multi-tier fallback. The point of the tiers is that ONE compromised
@@ -1726,9 +1768,14 @@ PY
         return 1
     }
 
-    install_tier "all" ".[all]" \
-        || install_tier "all minus known-broken (${_BROKEN_EXTRAS[*]:-none})" "$_SAFE_SPEC" \
-        || install_tier "core only (no extras)" "."
+    activate_python_package_mirror "$PYPI_MIRROR_PRIMARY" "清华 TUNA"
+    if ! install_tier "all (清华 TUNA)" ".[all]"; then
+        log_warn "清华 TUNA 安装失败，切换阿里云镜像重试完整依赖集..."
+        activate_python_package_mirror "$PYPI_MIRROR_FALLBACK" "阿里云 fallback"
+        install_tier "all (阿里云 fallback)" ".[all]" \
+            || install_tier "all minus known-broken (${_BROKEN_EXTRAS[*]:-none})" "$_SAFE_SPEC" \
+            || install_tier "core only (no extras)" "."
+    fi
 
     rm -f "$ALL_INSTALL_LOG"
 

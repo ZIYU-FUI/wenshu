@@ -95,6 +95,37 @@ pub(crate) fn cache_plan(immutable: bool, cached_exists: bool) -> CachePlan {
 
 const INSTALL_SCRIPT_REPOSITORY: &str = "ZIYU-FUI/wenshu";
 
+/// Domestic package-index policy for installer child processes.
+///
+/// `scripts/install.sh` exports the same values itself. Setting them here as
+/// well is intentional: the GUI resolver launches both install.sh and
+/// install.ps1, and every child must inherit the mirror even when a stale
+/// cached script predates the shell-side defaults.
+const PYPI_MIRROR_PRIMARY: &str = "https://pypi.tuna.tsinghua.edu.cn/simple";
+const PYPI_MAX_CONCURRENT_DOWNLOADS: &str = "100";
+
+fn configure_package_index_environment(emit_log: &impl Fn(&str)) {
+    for (key, value) in [
+        ("UV_INDEX_URL", PYPI_MIRROR_PRIMARY),
+        ("UV_DEFAULT_INDEX", PYPI_MIRROR_PRIMARY),
+        ("PIP_INDEX_URL", PYPI_MIRROR_PRIMARY),
+        ("UV_CONCURRENT_DOWNLOADS", PYPI_MAX_CONCURRENT_DOWNLOADS),
+    ] {
+        // The resolver runs before any install-script child is spawned, so the
+        // child inherits one consistent package-index environment.
+        std::env::set_var(key, value);
+    }
+
+    // uv's optional torch backend bypasses configured indexes and talks to
+    // download.pytorch.org. Remove an inherited override so torch and related
+    // packages resolve through the domestic PyPI mirror too.
+    std::env::remove_var("UV_TORCH_BACKEND");
+
+    emit_log(&format!(
+        "[bootstrap] Python package index: {PYPI_MIRROR_PRIMARY} (uv/pip; max {PYPI_MAX_CONCURRENT_DOWNLOADS} concurrent downloads)"
+    ));
+}
+
 /// Resolves the install script to use for this run.
 ///
 /// `pin` is the commit-or-branch from either Wenshu-Setup's build-time
@@ -104,6 +135,8 @@ pub async fn resolve(
     pin: &Pin,
     emit_log: &impl Fn(&str),
 ) -> Result<ResolvedScript> {
+    configure_package_index_environment(emit_log);
+
     // 1. Dev shortcut.
     if let Ok(repo_root) = std::env::var("WENSHU_SETUP_DEV_REPO_ROOT") {
         let candidate = PathBuf::from(repo_root).join("scripts").join(kind.filename());

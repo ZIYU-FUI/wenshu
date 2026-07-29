@@ -37,6 +37,25 @@ Tauri 端 `update.rs` 实现:
 - 跑 `wenshu desktop --build-only` (rebuild 文枢 desktop, 不真装)
 - 启动新文枢 desktop
 
+## Python 包国内镜像（默认）
+
+GUI 装包器和 `scripts/install.sh` 都会强制把 uv / pip 指向清华 TUNA，避免
+`pypi.org` 或 `download.pytorch.org` 在国内网络不稳定时掩盖代码问题：
+
+```text
+UV_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+UV_CONCURRENT_DOWNLOADS=100
+✓ Managed uv found (uv 0.11.32 ...; default source: https://pypi.tuna.tsinghua.edu.cn/simple)
+```
+
+- 清华源安装失败后，Python 依赖会切到阿里云
+  `https://mirrors.aliyun.com/pypi/simple/` 重试。
+- 装包器会清除继承的 `UV_TORCH_BACKEND`，防止 torch 等包绕过镜像访问
+  `download.pytorch.org`。
+- 当前 `uv.lock` 记录的是官方站 artifact URL。强制镜像模式会跳过该 locked
+  下载路径，改用镜像重新解析，确保实际下载不回到官方站。
+
 ## 开发者 (本机 build)
 
 ```bash
