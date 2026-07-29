@@ -95,6 +95,12 @@ export function I18nProvider({ children, configClient = defaultConfigClient, ini
   }, [locale])
 
   useEffect(() => {
+    if (initialLocale !== undefined) {
+      setLocaleState(normalizeLocale(initialLocale))
+    }
+  }, [initialLocale])
+
+  useEffect(() => {
     if (!configClient) {
       return
     }
@@ -126,7 +132,7 @@ export function I18nProvider({ children, configClient = defaultConfigClient, ini
     return () => {
       cancelled = true
     }
-  }, [configClient, initialLocale])
+  }, [configClient])
 
   const setLocale = useCallback(
     async (next: Locale) => {

@@ -1142,6 +1142,9 @@ delegation:
 # Display
 # =============================================================================
 display:
+  # Desktop UI language. Fresh 文枢 installs start in Simplified Chinese.
+  language: zh
+
   # Use compact banner mode (hides the ASCII-art banner, shows a single line).
   #   true:  Compact single-line banner
   #   false: Full ASCII banner with tool/skill summary (default)
