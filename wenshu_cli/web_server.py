@@ -17700,12 +17700,35 @@ async def gateway_ws(ws: WebSocket) -> None:
         await ws.close(code=4403)
         return
 
+    # R42: Was `raise ImportError("embedded chat gateway removed")` then close(1011).
+    # The desktop Electron renderer still opens this endpoint (see wsUrl built at
+    # apps/desktop/electron/main.ts ~7331) — 1011 on every reconnect surfaces as
+    # "无法连接到文枢网关" and gates boot. Keep the endpoint alive, accept the
+    # connection, log a hello, and idle (the real chat broadcast lives at
+    # /api/pub + /api/events; this endpoint is a legacy JSON-RPC surface the
+    # desktop boot probe only needs to reach open()).
+    _log.info("Desktop /api/ws connected: peer=%s headers=%s", ws.client, dict(ws.headers or {}))
     try:
-        raise ImportError("embedded chat gateway removed")
-    except ImportError:
-        _log.warning("Embedded chat gateway unavailable; WebSocket chat disabled")
-        await ws.close(code=1011)
-        return
+        await ws.send_json({"type": "ready", "endpoint": "/api/ws", "server": "wenshu-isolated"})
+        # Block until the client disconnects — keeps open() true so the
+        # renderer-side `gateway.connect()` resolves the "ready" event instead
+        # of timing out on close. No inbound messages are dispatched here
+        # because all chat traffic now flows through /api/pub + /api/events.
+        while True:
+            try:
+                msg = await ws.receive_text()
+            except Exception:
+                break
+            if not msg:
+                break
+            # Ignore inbound — the endpoint is server-push only.
+    except Exception as exc:  # noqa: BLE001 — handler stays alive until disconnect
+        _log.warning("Desktop /api/ws handler exited: %s", exc)
+    finally:
+        try:
+            await ws.close()
+        except Exception:
+            pass
 
 
 # ---------------------------------------------------------------------------
