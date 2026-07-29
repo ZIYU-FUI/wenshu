@@ -9,10 +9,10 @@
  *   import { runBootstrap }from './bootstrap-runner'
  *   const result = await runBootstrap({
  *     installStamp,        // INSTALL_STAMP from main.ts (may be null in dev)
- *     activeRoot,          // ACTIVE_HERMES_ROOT
+ *     activeRoot,          // ACTIVE_WENSHU_ROOT
  *     sourceRepoRoot,      // SOURCE_REPO_ROOT (for dev install.ps1 lookup)
- *     hermesHome,          // HERMES_HOME
- *     logRoot,             // HERMES_HOME/logs
+ *     wenshuHome,          // WENSHU_HOME
+ *     logRoot,             // WENSHU_HOME/logs
  *     emit: ev => {...}    // event sink (sender.send or similar)
  *   })
  *
@@ -36,26 +36,29 @@ import { execFileSync, spawn } from 'node:child_process'
 import fs from 'node:fs'
 import fsp from 'node:fs/promises'
 import https from 'node:https'
-import path from 'node:path'
 import os from 'node:os'
+import path from 'node:path'
 
+import { canLaunchWenshuGateway } from './backend-probes'
 import { hiddenWindowsChildOptions } from './windows-child-options'
 
 const IS_WINDOWS = process.platform === 'win32'
 
-// _resolveHermesHomeSafe — expand literal "$HOME/.wenshu-hermes" (or "~") placeholders
+// _resolveWenshuHomeSafe — expand literal "$HOME/.wenshu-hermes" (or "~") placeholders
 // into a real absolute path. macOS LSEnvironment injects LSEnvironment vars as literal
-// strings (no shell expansion), so the desktop process can inherit HERMES_HOME="$HOME/..."
+// strings (no shell expansion), so the desktop process can inherit WENSHU_HOME="$HOME/..."
 // from apps/desktop/package.json mac.extendInfo.LSEnvironment. Passing that literal down
-// to install.ps1 / install.sh / Python hermes-cli causes ENOENT mkdir "$HOME/.wenshu-hermes/logs".
-// main.ts:411 already filters process.env.HERMES_HOME globally; this is defense in depth
-// for cases where bootstrap-runner.ts is called with an explicit hermesHome arg that
+// to install.ps1 / install.sh / Python wenshu-cli causes ENOENT mkdir "$HOME/.wenshu-hermes/logs".
+// main.ts:411 already filters process.env.WENSHU_HOME globally; this is defense in depth
+// for cases where bootstrap-runner.ts is called with an explicit wenshuHome arg that
 // itself came from a similarly-polluted source (e.g. a stale shell init file).
-function _resolveHermesHomeSafe(hermesHome: string | undefined | null): string {
-  const raw = hermesHome ?? process.env.HERMES_HOME
+function _resolveWenshuHomeSafe(wenshuHome: string | undefined | null): string {
+  const raw = wenshuHome ?? process.env.WENSHU_HOME
+
   if (!raw || (/\$\{?HOME\}?/.test(raw) || raw.trim().startsWith('~'))) {
     return path.join(os.homedir(), '.wenshu-hermes')
   }
+
   return raw
 }
 
@@ -107,7 +110,7 @@ function readExistingPinnedCommit(activeRoot: string | null | undefined): string
   }
 
   try {
-    const raw = fs.readFileSync(path.join(activeRoot, '.hermes-bootstrap-complete'), 'utf8')
+    const raw = fs.readFileSync(path.join(activeRoot, '.wenshu-bootstrap-complete'), 'utf8')
     const parsed = JSON.parse(raw)
 
     return parsed && isPinnedCommit(parsed.pinnedCommit) ? parsed.pinnedCommit : null
@@ -180,6 +183,51 @@ function installRefForStamp(installStamp) {
 // install.ps1 source resolution
 // ---------------------------------------------------------------------------
 
+function isolatedRuntimePaths(activeRoot: string) {
+  const binDir = path.join(activeRoot, 'venv', IS_WINDOWS ? 'Scripts' : 'bin')
+  const python = path.join(binDir, IS_WINDOWS ? 'python.exe' : 'python')
+
+  const cliCandidates = IS_WINDOWS
+    ? [path.join(binDir, 'wenshu.exe'), path.join(binDir, 'wenshu.cmd')]
+    : [path.join(binDir, 'wenshu')]
+
+  return { binDir, cliCandidates, python }
+}
+
+function validateIsolatedGatewayRuntime(activeRoot: string, wenshuHome: string) {
+  const { cliCandidates, python } = isolatedRuntimePaths(activeRoot)
+
+  const cli = cliCandidates.find(candidate => {
+    try {
+      return fs.statSync(candidate).isFile()
+    } catch {
+      return false
+    }
+  })
+
+  if (!fs.existsSync(python)) {
+    throw new Error(`文枢 isolated Python is missing: ${python}`)
+  }
+
+  if (!cli) {
+    throw new Error(`文枢 isolated CLI wrapper is missing: ${cliCandidates.join(' or ')}`)
+  }
+
+  if (
+    !canLaunchWenshuGateway(python, {
+      cwd: activeRoot,
+      env: {
+        WENSHU_HOME: _resolveWenshuHomeSafe(wenshuHome),
+        PYTHONPATH: [activeRoot, process.env.PYTHONPATH].filter(Boolean).join(path.delimiter)
+      }
+    })
+  ) {
+    throw new Error(`文枢 isolated gateway probe failed: ${python} -m wenshu_cli.main gateway run --help`)
+  }
+
+  return { cli, python }
+}
+
 function installScriptName() {
   return process.platform === 'win32' ? 'install.ps1' : 'install.sh'
 }
@@ -204,20 +252,20 @@ function resolveLocalInstallScript(sourceRepoRoot) {
   }
 }
 
-function bootstrapCacheDir(hermesHome) {
-  return path.join(hermesHome, 'bootstrap-cache')
+function bootstrapCacheDir(wenshuHome) {
+  return path.join(wenshuHome, 'bootstrap-cache')
 }
 
 // The install.sh / install.ps1 that ships inside the already-installed agent
-// checkout under ~/.hermes/hermes-agent. Used as a last-resort fallback when
+// checkout under ~/.wenshu-hermes/wenshu-agent. Used as a last-resort fallback when
 // the pinned commit can't be fetched from GitHub (e.g. a locally-built desktop
 // app stamped to an unpushed HEAD).
-function installedAgentInstallScript(hermesHome) {
-  if (!hermesHome) {
+function installedAgentInstallScript(wenshuHome) {
+  if (!wenshuHome) {
     return null
   }
 
-  const candidate = path.join(hermesHome, 'hermes-agent', 'scripts', installScriptName())
+  const candidate = path.join(wenshuHome, 'wenshu-agent', 'scripts', installScriptName())
 
   try {
     fs.accessSync(candidate, fs.constants.R_OK)
@@ -240,8 +288,8 @@ function hasExistingGitCheckout(activeRoot) {
   }
 }
 
-function cachedScriptPath(hermesHome, commit) {
-  return path.join(bootstrapCacheDir(hermesHome), `install-${commit}.${process.platform === 'win32' ? 'ps1' : 'sh'}`)
+function cachedScriptPath(wenshuHome, commit) {
+  return path.join(bootstrapCacheDir(wenshuHome), `install-${commit}.${process.platform === 'win32' ? 'ps1' : 'sh'}`)
 }
 
 function downloadInstallScript(ref, destPath) {
@@ -250,7 +298,7 @@ function downloadInstallScript(ref, destPath) {
   // ref so local builds can still bootstrap without pretending the all-zero
   // placeholder is a real GitHub commit.
   const scriptName = installScriptName()
-  const url = `https://raw.githubusercontent.com/NousResearch/hermes-agent/${ref}/scripts/${scriptName}`
+  const url = `https://raw.githubusercontent.com/NousResearch/wenshu-agent/${ref}/scripts/${scriptName}`
 
   return new Promise((resolve, reject) => {
     fs.mkdirSync(path.dirname(destPath), { recursive: true })
@@ -334,7 +382,7 @@ function downloadInstallScript(ref, destPath) {
 async function resolveInstallScript({
   installStamp,
   sourceRepoRoot,
-  hermesHome,
+  wenshuHome,
   emit,
   _download = downloadInstallScript
 }) {
@@ -361,7 +409,7 @@ async function resolveInstallScript({
     )
   }
 
-  const cached = cachedScriptPath(hermesHome, installRef.cacheKey)
+  const cached = cachedScriptPath(wenshuHome, installRef.cacheKey)
   const resolvedCommit = installRef.pinned ? installRef.ref : null
 
   try {
@@ -394,7 +442,7 @@ async function resolveInstallScript({
     // write-build-stamp.mjs fromLocalGit). Fall back to the installer that
     // ships inside the already-installed agent checkout so dev/self-builds can
     // still bootstrap instead of dying with a fatal 404.
-    const installed = installedAgentInstallScript(hermesHome)
+    const installed = installedAgentInstallScript(wenshuHome)
 
     if (installed) {
       emit({
@@ -473,7 +521,7 @@ function resolveWindowsPowerShell() {
   return 'powershell.exe'
 }
 
-function spawnPowerShell(scriptPath, args, { emit, stageName, abortSignal, hermesHome }: any = {}) {
+function spawnPowerShell(scriptPath, args, { emit, stageName, abortSignal, wenshuHome }: any = {}) {
   return new Promise<any>((resolve, reject) => {
     const ps = process.platform === 'win32' ? resolveWindowsPowerShell() : 'pwsh'
     const fullArgs = ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath, ...args]
@@ -485,9 +533,9 @@ function spawnPowerShell(scriptPath, args, { emit, stageName, abortSignal, herme
         stdio: ['ignore', 'pipe', 'pipe'],
         env: {
           ...process.env,
-          // Pass HERMES_HOME through so install.ps1 respects the caller's
+          // Pass WENSHU_HOME through so install.ps1 respects the caller's
           // choice rather than re-computing the default.
-          HERMES_HOME: _resolveHermesHomeSafe(hermesHome)
+          WENSHU_HOME: _resolveWenshuHomeSafe(wenshuHome)
         }
       })
     )
@@ -577,13 +625,13 @@ function spawnPowerShell(scriptPath, args, { emit, stageName, abortSignal, herme
   })
 }
 
-function spawnBash(scriptPath, args, { emit, stageName, abortSignal, hermesHome }: any = {}) {
+function spawnBash(scriptPath, args, { emit, stageName, abortSignal, wenshuHome }: any = {}) {
   return new Promise<any>((resolve, reject) => {
     const child = spawn('bash', [scriptPath, ...args], {
       stdio: ['ignore', 'pipe', 'pipe'],
       env: {
         ...process.env,
-          HERMES_HOME: _resolveHermesHomeSafe(hermesHome)
+          WENSHU_HOME: _resolveWenshuHomeSafe(wenshuHome)
       }
     })
 
@@ -693,8 +741,8 @@ function buildPinArgs(installStamp, { pinCommit = true } = {}) {
   return args
 }
 
-function buildPosixPinArgs({ installStamp, activeRoot, hermesHome, pinCommit = true }) {
-  const args = ['--dir', activeRoot, '--hermes-home', hermesHome]
+function buildPosixPinArgs({ installStamp, activeRoot, wenshuHome, pinCommit = true }) {
+  const args = ['--dir', activeRoot, '--wenshu-home', wenshuHome]
 
   if (installStamp && installStamp.branch) {
     args.push('--branch', installStamp.branch)
@@ -707,17 +755,17 @@ function buildPosixPinArgs({ installStamp, activeRoot, hermesHome, pinCommit = t
   return args
 }
 
-async function fetchManifest({ scriptPath, installerKind, emit, hermesHome, activeRoot, installStamp, pinCommit }) {
+async function fetchManifest({ scriptPath, installerKind, emit, wenshuHome, activeRoot, installStamp, pinCommit }) {
   const isPosix = installerKind === 'posix'
 
   const args = isPosix
-    ? ['--manifest', ...buildPosixPinArgs({ installStamp, activeRoot, hermesHome, pinCommit })]
+    ? ['--manifest', ...buildPosixPinArgs({ installStamp, activeRoot, wenshuHome, pinCommit })]
     : ['-Manifest', ...buildPinArgs(installStamp, { pinCommit })]
 
   const result = await (isPosix ? spawnBash : spawnPowerShell)(scriptPath, args, {
     emit,
     stageName: '__manifest__',
-    hermesHome
+    wenshuHome
   })
 
   if (result.code !== 0) {
@@ -774,7 +822,7 @@ async function runStage({
   installerKind,
   stage,
   emit,
-  hermesHome,
+  wenshuHome,
   activeRoot,
   abortSignal,
   installStamp,
@@ -791,7 +839,7 @@ async function runStage({
         stage.name,
         '--non-interactive',
         '--json',
-        ...buildPosixPinArgs({ installStamp, activeRoot, hermesHome, pinCommit })
+        ...buildPosixPinArgs({ installStamp, activeRoot, wenshuHome, pinCommit })
       ]
     : ['-Stage', stage.name, '-NonInteractive', '-Json', ...buildPinArgs(installStamp, { pinCommit })]
 
@@ -799,7 +847,7 @@ async function runStage({
     emit,
     stageName: stage.name,
     abortSignal,
-    hermesHome
+    wenshuHome
   })
 
   const durationMs = Date.now() - startedAt
@@ -878,7 +926,7 @@ async function runBootstrap(opts) {
     installStamp,
     activeRoot,
     sourceRepoRoot,
-    hermesHome,
+    wenshuHome,
     logRoot,
     onEvent,
     abortSignal,
@@ -900,7 +948,7 @@ async function runBootstrap(opts) {
     return { ok: false, cancelled: true }
   }
 
-  const runLog = openRunLog(logRoot || path.join(hermesHome, 'logs'))
+  const runLog = openRunLog(logRoot || path.join(wenshuHome, 'logs'))
 
   // Tee every event to the runLog AND the caller's onEvent. This gives us a
   // forensic trail per bootstrap run AND lets the renderer subscribe live.
@@ -944,7 +992,7 @@ async function runBootstrap(opts) {
     }
 
     // 1. Resolve the platform installer.
-    const scriptInfo = await resolveInstallScript({ installStamp, sourceRepoRoot, hermesHome, emit })
+    const scriptInfo = await resolveInstallScript({ installStamp, sourceRepoRoot, wenshuHome, emit })
     const installerKind = scriptInfo.kind || 'powershell'
 
     // 2. Fetch manifest
@@ -952,7 +1000,7 @@ async function runBootstrap(opts) {
       scriptPath: scriptInfo.path,
       installerKind,
       emit,
-      hermesHome,
+      wenshuHome,
       activeRoot,
       installStamp,
       pinCommit
@@ -980,7 +1028,7 @@ async function runBootstrap(opts) {
         installerKind,
         stage,
         emit,
-        hermesHome,
+        wenshuHome,
         activeRoot,
         abortSignal,
         installStamp,
@@ -994,7 +1042,18 @@ async function runBootstrap(opts) {
       }
     }
 
-    // 4. Write the bootstrap-complete marker. Fallback (all-zero) stamps are
+    // 4. Validate the exact isolated gateway launch chain before trusting the
+    // install marker. This catches a partial venv or a missing CLI wrapper after
+    // the ten installer stages, instead of letting the desktop spawn ~/.wenshu.
+    const runtime = validateIsolatedGatewayRuntime(activeRoot, wenshuHome)
+    emit({
+      type: 'log',
+      line:
+        `[bootstrap] isolated gateway runtime ready: ${runtime.python} ` +
+        `-m wenshu_cli.main gateway run (wrapper=${runtime.cli}, WENSHU_HOME=${_resolveWenshuHomeSafe(wenshuHome)})`
+    })
+
+    // 5. Write the bootstrap-complete marker. Fallback (all-zero) stamps are
     // not real pins -- resolve HEAD from the checkout we just installed so
     // isBootstrapComplete() (pinnedCommit.length >= 7) accepts the marker
     // instead of re-running bootstrap on every launch (#50823 review).
@@ -1043,6 +1102,7 @@ export {
   hasExistingGitCheckout,
   installedAgentInstallScript,
   installRefForStamp,
+  isolatedRuntimePaths,
   isPinnedCommit,
   // Exposed for testability
   parseStageResult,
@@ -1050,5 +1110,6 @@ export {
   resolveInstallScript,
   resolveLocalInstallScript,
   resolveMarkerPinnedCommit,
-  runBootstrap
+  runBootstrap,
+  validateIsolatedGatewayRuntime
 }

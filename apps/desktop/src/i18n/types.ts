@@ -114,7 +114,7 @@ export interface Translations {
       loadingSettings: string
       loadingSessions: string
       startingDesktopConnection: string
-      startingHermesDesktop: string
+      startingWenshuDesktop: string
     }
     errors: {
       backgroundExited: string
@@ -166,7 +166,7 @@ export interface Translations {
     backendOutOfDateTitle: string
     backendOutOfDateMessage: string
     installMethodUnsupportedTitle: string
-    updateHermes: string
+    updateWenshu: string
     updateReadyTitle: string
     updateReadyMessage: (count: number) => string
     seeWhatsNew: string
@@ -1010,10 +1010,10 @@ export interface Translations {
     noSessions: string
     gatewayRunning: string
     gatewayStopped: string
-    hermesActiveSessions: (version: string, count: number) => string
+    wenshuActiveSessions: (version: string, count: number) => string
     restartGateway: string
     gatewayRestartFailed: string
-    updateHermes: string
+    updateWenshu: string
     actionRunning: string
     actionDone: string
     actionFailed: string
@@ -1627,6 +1627,10 @@ export interface Translations {
 
   install: {
     stageStates: Record<string, string>
+    /** Installer stage name → customer-facing Chinese label. Maps the kebab-case
+     *  PowerShell stage names (uv, repository, venv, …) onto the 10 high-level
+     *  i18n keys the user sees in the progress overlay. WO-001BI-R25. */
+    stageNames: Record<string, string>
     oneTimeTitle: string
     unsupportedDesc: (platform: string) => string
     installCommand: string

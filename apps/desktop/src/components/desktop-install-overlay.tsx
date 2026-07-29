@@ -67,6 +67,36 @@ function formatStageName(name: string): string {
     .join(' ')
 }
 
+/**
+ * Map PowerShell stage names (as emitted by scripts/install.ps1's $InstallStages
+ * manifest) onto the 10 high-level i18n keys defined in src/i18n/<locale>.ts's
+ * install.stageNames dict. WO-001BI-R25 — mirrors the bootstrap-installer's
+ * STAGE_NAME_TO_STEP_KEY in apps/bootstrap-installer/src/routes/progress.tsx
+ * so the desktop progress overlay shows the same Chinese labels the installer
+ * app does (vs the raw kebab-case machine name).
+ *
+ * Returns `null` for stages that don't have a clear home; the caller falls
+ * through to the raw `formatStageName(name)` so no information is lost.
+ */
+const STAGE_NAME_TO_STEP_KEY: Record<string, string> = {
+  uv: 'uv',
+  python: 'python',
+  git: 'git',
+  node: 'node',
+  'system-packages': 'system-packages',
+  repository: 'repository',
+  venv: 'venv',
+  dependencies: 'dependencies',
+  'node-deps': 'node-deps',
+  desktop: 'desktop',
+  path: 'path',
+  'config-templates': 'config-templates',
+  'platform-sdks': 'platform-sdks',
+  'bootstrap-marker': 'bootstrap-marker',
+  configure: 'configure',
+  gateway: 'gateway'
+}
+
 function formatDuration(ms: number | null | undefined): string {
   if (typeof ms !== 'number' || !Number.isFinite(ms)) {
     return ''
@@ -101,6 +131,20 @@ function formatElapsed(ms: number): string {
   return `${m}:${String(s - m * 60).padStart(2, '0')}`
 }
 
+/**
+ * Resolve a stage's customer-facing label from the i18n stageNames dict; fall
+ * through to the raw machine name when no mapping exists. WO-001BI-R25.
+ */
+function translateStageLabel(stageName: string, stageNames: Record<string, string>, fallback: string): string {
+  const key = STAGE_NAME_TO_STEP_KEY[stageName]
+
+  if (key && stageNames[key]) {
+    return stageNames[key]
+  }
+
+  return fallback
+}
+
 function StageRow({ descriptor, result, now }: StageRowProps) {
   const { t } = useI18n()
   const copy = t.install
@@ -130,6 +174,7 @@ function StageRow({ descriptor, result, now }: StageRowProps) {
   }, [state])
 
   const reason = result?.json?.reason || result?.error || null
+  const stageLabel = translateStageLabel(descriptor.name, copy.stageNames, formatStageName(descriptor.name))
 
   return (
     <li className="flex items-center gap-3 px-3 py-1">
@@ -139,7 +184,7 @@ function StageRow({ descriptor, result, now }: StageRowProps) {
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <span className={cn('truncate text-sm', state === 'running' ? 'font-medium' : 'text-muted-foreground')}>
-            {formatStageName(descriptor.name)}
+            {stageLabel}
           </span>
           {state !== 'running' && <span className="flex size-4 shrink-0 items-center justify-center">{icon}</span>}
         </div>
@@ -266,7 +311,7 @@ export function DesktopInstallOverlay({ enabled = true }: DesktopInstallOverlayP
       return
     }
 
-    const desktop = window.hermesDesktop
+    const desktop = window.wenshuDesktop
 
     if (!desktop || typeof desktop.onBootstrapEvent !== 'function') {
       return
@@ -369,7 +414,7 @@ export function DesktopInstallOverlay({ enabled = true }: DesktopInstallOverlayP
               </Button>
               <Button
                 onClick={() => {
-                  window.hermesDesktop?.openExternal?.(ups.docsUrl)
+                  window.wenshuDesktop?.openExternal?.(ups.docsUrl)
                 }}
                 size="sm"
                 variant="ghost"
@@ -430,7 +475,8 @@ export function DesktopInstallOverlay({ enabled = true }: DesktopInstallOverlayP
               <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
                 <span>
                   {copy.progress(completedCount, totalCount)}
-                  {currentStage && copy.currentStage(formatStageName(currentStage))}
+                  {currentStage &&
+                    copy.currentStage(translateStageLabel(currentStage, copy.stageNames, formatStageName(currentStage)))}
                   {currentElapsed && ` (${currentElapsed})`}
                 </span>
                 <span className="tabular-nums">{progressPct}%</span>
@@ -512,7 +558,7 @@ export function DesktopInstallOverlay({ enabled = true }: DesktopInstallOverlayP
                   setCancelling(true)
 
                   try {
-                    await window.hermesDesktop?.cancelBootstrap?.()
+                    await window.wenshuDesktop?.cancelBootstrap?.()
                   } catch {
                     // ignore -- the failed/cancelled event will surface the result
                   }
@@ -533,7 +579,7 @@ export function DesktopInstallOverlay({ enabled = true }: DesktopInstallOverlayP
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs text-muted-foreground">
                 {copy.transcriptSaved}{' '}
-                <code className="font-mono text-(--ui-text-secondary)">%LOCALAPPDATA%\hermes\logs\</code>
+                <code className="font-mono text-(--ui-text-secondary)">%LOCALAPPDATA%\wenshu\logs\</code>
               </span>
               <div className="flex gap-2">
                 <Button
@@ -564,7 +610,7 @@ export function DesktopInstallOverlay({ enabled = true }: DesktopInstallOverlayP
                     // and main short-circuits to the latched error without
                     // re-running install.ps1.
                     try {
-                      await window.hermesDesktop?.resetBootstrap?.()
+                      await window.wenshuDesktop?.resetBootstrap?.()
                     } catch {
                       // best-effort -- continue with reload regardless
                     }

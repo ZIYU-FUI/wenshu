@@ -69,7 +69,7 @@ export const zhHant = defineLocale({
       loadingSettings: '正在載入 文枢 設定',
       loadingSessions: '正在載入最近工作階段',
       startingDesktopConnection: '正在啟動桌面連線',
-      startingHermesDesktop: '正在啟動 文枢 Desktop…'
+      startingWenshuDesktop: '正在啟動 文枢 Desktop…'
     },
     errors: {
       backgroundExited: '文枢 背景程序已結束。',
@@ -81,16 +81,19 @@ export const zhHant = defineLocale({
       ipcBridgeUnavailable: '桌面 IPC 橋接器不可用。'
     },
     failure: {
-      title: '文枢 無法啟動',
-      description: '背景閘道未啟動。請嘗試下面的復原步驟。這裡的操作不會刪除您的聊天或設定。',
+      // R25: 按 AC2 — title → 文枢无法启动
+      title: '文枢无法启动',
+      // R25: 按 AC2 — 简化中文
+      description: '后台网关没有启动。请尝试下面的恢复步骤；这里不会删除你的对话或设置。',
       remoteTitle: '需要重新登入遠端閘道',
       remoteDescription: '您的遠端閘道工作階段已過期。請重新登入以重新連線。這裡的操作不會刪除您的聊天或設定。',
-      retry: '重試',
-      repairInstall: '修復安裝',
-      useLocalGateway: '使用本機閘道',
-      gatewaySettings: '閘道設定',
+      // R25: 按 AC2 — Retry/Repair install/Gateway settings/Open logs → 重试/重新安装/网关设置/打开日志
+      retry: '重试',
+      repairInstall: '重新安装',
+      useLocalGateway: '使用本地网关',
+      gatewaySettings: '网关设置',
       back: '返回',
-      openLogs: '開啟記錄',
+      openLogs: '打开日志',
       repairHint: '修復會重新執行安裝程式，在新機器上可能需要幾分鐘。',
       remoteSignInHint: signInLabel =>
         `先登出已儲存的遠端瀏覽器工作階段，然後開啟${signInLabel}。使用本機閘道可切換至內建後端。`,
@@ -122,7 +125,7 @@ export const zhHant = defineLocale({
     backendOutOfDateTitle: '後端版本過舊',
     backendOutOfDateMessage: '您的 文枢 後端早於目前的桌面版本，可能無法正常運作。請更新以保持一致。',
     installMethodUnsupportedTitle: '不受支援的安裝方式',
-    updateHermes: '更新 文枢',
+    updateWenshu: '更新 文枢',
     updateReadyTitle: '有可用更新',
     updateReadyMessage: count => `有 ${count} 項新變更可用。`,
     seeWhatsNew: '查看新增內容',
@@ -645,14 +648,14 @@ export const zhHant = defineLocale({
       defaultConnection: '預設連線適用於所有沒有自訂覆寫的設定檔。',
       profileConnection: profile => `僅當「${profile}」為作用中設定檔時使用此連線。設為本機可繼承預設連線。`,
       envOverrideTitle: '環境變數正在控制此桌面工作階段。',
-      envOverrideDesc: '取消設定 HERMES_DESKTOP_REMOTE_URL 和 HERMES_DESKTOP_REMOTE_TOKEN 後才會使用下方儲存的設定。',
+      envOverrideDesc: '取消設定 WENSHU_DESKTOP_REMOTE_URL 和 WENSHU_DESKTOP_REMOTE_TOKEN 後才會使用下方儲存的設定。',
       localTitle: '本機閘道',
       localDesc: '在 localhost 啟動私有 文枢 後端。這是預設方式，可離線使用。',
       remoteTitle: '遠端閘道',
       remoteDesc:
         '將此桌面殼層連線至遠端 文枢 後端。託管閘道使用 OAuth 或帳號密碼；自託管閘道也可使用工作階段 Token。',
       remoteUrlTitle: '遠端 URL',
-      remoteUrlDesc: '遠端儀表板後端的基礎 URL。支援路徑前綴，例如 /hermes。',
+      remoteUrlDesc: '遠端儀表板後端的基礎 URL。支援路徑前綴，例如 /wenshu。',
       probing: '正在檢查此閘道的驗證方式…',
       probeError: '暫時無法連線此閘道。請檢查 URL；閘道回應後將顯示驗證方式。',
       signedIn: '已登入',
@@ -935,7 +938,7 @@ export const zhHant = defineLocale({
     edit: '編輯',
     archive: '封存',
     skillArchivedTitle: '技能已封存',
-    skillArchivedMessage: '可透過 hermes curator restore 還原。'
+    skillArchivedMessage: '可透過 wenshu curator restore 還原。'
   },
 
   starmap: {
@@ -1086,10 +1089,10 @@ export const zhHant = defineLocale({
     noSessions: '暫無工作階段。',
     gatewayRunning: '訊息閘道執行中',
     gatewayStopped: '訊息閘道已停止',
-    hermesActiveSessions: (version, count) => `文枢 ${version} · 活躍工作階段 ${count}`,
+    wenshuActiveSessions: (version, count) => `文枢 ${version} · 活躍工作階段 ${count}`,
     restartGateway: '重新啟動閘道',
     gatewayRestartFailed: '閘道重新啟動失敗。',
-    updateHermes: '更新 文枢',
+    updateWenshu: '更新 文枢',
     actionRunning: '執行中',
     actionDone: '完成',
     actionFailed: '失敗',
@@ -1216,7 +1219,7 @@ export const zhHant = defineLocale({
       MATTERMOST_ALLOWED_USERS: { label: '允許的使用者 ID', help: '建議設定。逗號分隔的 Mattermost 使用者 ID。' },
       MATRIX_HOMESERVER: { label: 'Homeserver URL', placeholder: 'https://matrix.org' },
       MATRIX_ACCESS_TOKEN: { label: '存取 Token' },
-      MATRIX_USER_ID: { label: 'Bot 使用者 ID', placeholder: '@hermes:example.org' },
+      MATRIX_USER_ID: { label: 'Bot 使用者 ID', placeholder: '@wenshu:example.org' },
       MATRIX_ALLOWED_USERS: {
         label: '允許的 Matrix 使用者 ID',
         help: '建議設定。@user:server 格式的逗號分隔使用者 ID。'
@@ -1649,7 +1652,7 @@ export const zhHant = defineLocale({
       '/resume': '繼續之前的工作階段',
       '/details': '控制對話記錄的詳細程度',
       '/copy': '複製所選內容或最後一條助手訊息',
-      '/quit': '結束 hermes'
+      '/quit': '結束 wenshu'
     },
     hotkeyDescs: {
       'composer.mention': '參照檔案、資料夾、URL、git',
@@ -1842,6 +1845,25 @@ export const zhHant = defineLocale({
       succeeded: '完成',
       skipped: '已略過',
       failed: '失敗'
+    },
+    // R25: AC1 — 进度页 10 步骤名翻译为中文。
+    stageNames: {
+      uv: '系统环境检查',
+      python: '系统环境检查',
+      git: '系统环境检查',
+      node: '系统环境检查',
+      'system-packages': '系统环境检查',
+      repository: '拉取文枢源码',
+      venv: '创建 Python 虚拟环境',
+      dependencies: '安装 Python 依赖',
+      'node-deps': '安装 Node 依赖',
+      desktop: '安装 Node 依赖',
+      path: '配置命令行入口',
+      'config-templates': '准备配置和技能',
+      'platform-sdks': '准备配置和技能',
+      'bootstrap-marker': '完成安装',
+      configure: '配置 API 密钥和设置',
+      gateway: '配置网关服务'
     },
     oneTimeTitle: '文枢 需要一次性安裝',
     unsupportedDesc: platform =>
@@ -2301,7 +2323,7 @@ export const zhHant = defineLocale({
       reject: '拒絕',
       alwaysTitle: '一律允許此指令？',
       alwaysDescription: pattern =>
-        `這會將「${pattern}」模式加入永久允許清單（~/.hermes/config.yaml）。文枢 對類似指令將不再詢問，包括目前工作階段和未來工作階段。`,
+        `這會將「${pattern}」模式加入永久允許清單（~/.wenshu-hermes/config.yaml）。文枢 對類似指令將不再詢問，包括目前工作階段和未來工作階段。`,
       alwaysAllow: '一律允許'
     },
     clarify: {
@@ -2472,7 +2494,7 @@ export const zhHant = defineLocale({
       success: platform => `已移交到 ${platform}。隨時可在此處恢復。`,
       systemNote: platform => `↻ 已移交到 ${platform} — 隨時可在此處恢復。`,
       failed: error => `移交失敗：${error}`,
-      timedOut: '等待閘道逾時。`hermes gateway` 是否正在執行？'
+      timedOut: '等待閘道逾時。`wenshu gateway` 是否正在執行？'
     }
   },
 

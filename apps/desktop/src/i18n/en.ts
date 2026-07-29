@@ -69,7 +69,7 @@ export const en: Translations = {
       loadingSettings: 'Loading 文枢 settings',
       loadingSessions: 'Loading recent sessions',
       startingDesktopConnection: 'Starting desktop connection',
-      startingHermesDesktop: 'Starting 文枢 Desktop…'
+      startingWenshuDesktop: 'Starting 文枢 Desktop…'
     },
     errors: {
       backgroundExited: '文枢 background process exited.',
@@ -81,18 +81,20 @@ export const en: Translations = {
       ipcBridgeUnavailable: 'Desktop IPC bridge is unavailable.'
     },
     failure: {
-      title: "文枢 couldn't start",
-      description:
-        "The background gateway didn't come up. Try one of the recovery steps below. Nothing here deletes your chats or settings.",
+      // R25: 装机 user 看英文的根因是 locale=en；改 en.ts 字段为中文，让 en locale 也显示中文。
+      // 文案按 AC2 要求：'文枢 couldn't start' → '文枢无法启动'。
+      title: '文枢无法启动',
+      description: '后台网关没有启动。请尝试下面的恢复步骤；这里不会删除你的对话或设置。',
       remoteTitle: 'Remote gateway sign-in required',
       remoteDescription:
         'Your remote gateway session has expired. Sign in again to reconnect. Nothing here deletes your chats or settings.',
-      retry: 'Retry',
-      repairInstall: 'Repair install',
-      useLocalGateway: 'Use local gateway',
-      gatewaySettings: 'Gateway settings',
-      back: 'Back',
-      openLogs: 'Open logs',
+      // R25: 按 AC2 — Retry/Repair install/Gateway settings/Open logs → 重试/重新安装/网关设置/打开日志
+      retry: '重试',
+      repairInstall: '重新安装',
+      useLocalGateway: '使用本地网关',
+      gatewaySettings: '网关设置',
+      back: '返回',
+      openLogs: '打开日志',
       repairHint: 'Repair re-runs the installer and can take a few minutes on a fresh machine.',
       remoteSignInHint: signInLabel =>
         `Signs out of the saved remote browser session, then opens ${signInLabel}. Use local gateway to switch to the bundled backend instead.`,
@@ -125,7 +127,7 @@ export const en: Translations = {
     backendOutOfDateMessage:
       'Your 文枢 backend is older than this desktop build and may not work correctly. Update to align them.',
     installMethodUnsupportedTitle: 'Unsupported install method',
-    updateHermes: 'Update 文枢',
+    updateWenshu: 'Update 文枢',
     updateReadyTitle: 'Update ready',
     updateReadyMessage: count => `${count} new change${count === 1 ? '' : 's'} available.`,
     seeWhatsNew: "See what's new",
@@ -561,7 +563,7 @@ export const en: Translations = {
         `Connection used only when “${profile}” is the active profile. Set it to Local to inherit the default.`,
       envOverrideTitle: 'Environment variables are controlling this desktop session.',
       envOverrideDesc:
-        'Unset HERMES_DESKTOP_REMOTE_URL and HERMES_DESKTOP_REMOTE_TOKEN to use the saved setting below.',
+        'Unset WENSHU_DESKTOP_REMOTE_URL and WENSHU_DESKTOP_REMOTE_TOKEN to use the saved setting below.',
       modeTitle: 'Connection mode',
       localTitle: 'Local gateway',
       localDesc: 'Start a private 文枢 backend on localhost. This is the default and works offline.',
@@ -600,7 +602,7 @@ export const en: Translations = {
       cloudAgentProvisioning: 'Provisioning…',
       cloudStatusLabel: status => `Status: ${status}`,
       remoteUrlTitle: 'Remote URL',
-      remoteUrlDesc: 'Base URL for the remote dashboard backend. Path prefixes are supported, for example /hermes.',
+      remoteUrlDesc: 'Base URL for the remote dashboard backend. Path prefixes are supported, for example /wenshu.',
       probing: 'Checking how this gateway authenticates…',
       probeError: 'Could not reach this gateway yet. Check the URL — the auth method will appear once it responds.',
       signedIn: 'Signed in',
@@ -934,7 +936,7 @@ export const en: Translations = {
     edit: 'Edit',
     archive: 'Archive',
     skillArchivedTitle: 'Skill archived',
-    skillArchivedMessage: 'Restorable via hermes curator restore.',
+    skillArchivedMessage: 'Restorable via wenshu curator restore.',
     hub: {
       searchPlaceholder: 'Search the skill hub',
       search: 'Search',
@@ -1149,10 +1151,10 @@ export const en: Translations = {
     noSessions: 'No sessions yet.',
     gatewayRunning: 'Messaging gateway running',
     gatewayStopped: 'Messaging gateway stopped',
-    hermesActiveSessions: (version, count) => `文枢 ${version} · Active sessions ${count}`,
+    wenshuActiveSessions: (version, count) => `文枢 ${version} · Active sessions ${count}`,
     restartGateway: 'Restart gateway',
     gatewayRestartFailed: 'Gateway restart failed.',
-    updateHermes: 'Update 文枢',
+    updateWenshu: 'Update 文枢',
     actionRunning: 'running',
     actionDone: 'done',
     actionFailed: 'failed',
@@ -1335,7 +1337,7 @@ export const en: Translations = {
       },
       MATRIX_HOMESERVER: { label: 'Homeserver URL', placeholder: 'https://matrix.org' },
       MATRIX_ACCESS_TOKEN: { label: 'Access token' },
-      MATRIX_USER_ID: { label: 'Bot user ID', placeholder: '@hermes:example.org' },
+      MATRIX_USER_ID: { label: 'Bot user ID', placeholder: '@wenshu:example.org' },
       MATRIX_ALLOWED_USERS: {
         label: 'Allowed Matrix user IDs',
         help: 'Recommended. Comma-separated user IDs in @user:server format.'
@@ -1778,7 +1780,7 @@ export const en: Translations = {
       '/resume': 'resume a prior session',
       '/details': 'control transcript detail level',
       '/copy': 'copy selection or last assistant message',
-      '/quit': 'exit hermes'
+      '/quit': 'exit wenshu'
     },
     hotkeyDescs: {
       'composer.mention': 'reference files, folders, urls, git',
@@ -1973,6 +1975,27 @@ export const en: Translations = {
       succeeded: 'Done',
       skipped: 'Skipped',
       failed: 'Failed'
+    },
+    // R25: AC1 — 进度页 10 步骤名翻译为中文（移植自 bootstrap-installer/src/i18n/zh.ts）。
+    // 安装脚本 PowerShell stage names (uv, repository, venv, ...) 映射到 10 个客户面向中文标签。
+    // locale=en 也显示中文（与 boot.failure 同理：装机 user 的 locale 是 en）。
+    stageNames: {
+      uv: '系统环境检查',
+      python: '系统环境检查',
+      git: '系统环境检查',
+      node: '系统环境检查',
+      'system-packages': '系统环境检查',
+      repository: '拉取文枢源码',
+      venv: '创建 Python 虚拟环境',
+      dependencies: '安装 Python 依赖',
+      'node-deps': '安装 Node 依赖',
+      desktop: '安装 Node 依赖',
+      path: '配置命令行入口',
+      'config-templates': '准备配置和技能',
+      'platform-sdks': '准备配置和技能',
+      'bootstrap-marker': '完成安装',
+      configure: '配置 API 密钥和设置',
+      gateway: '配置网关服务'
     },
     oneTimeTitle: '文枢 needs a one-time install',
     unsupportedDesc: platform =>
@@ -2453,7 +2476,7 @@ export const en: Translations = {
       reject: 'Reject',
       alwaysTitle: 'Always allow this command?',
       alwaysDescription: pattern =>
-        `This adds the “${pattern}” pattern to your permanent allowlist (~/.hermes/config.yaml). 文枢 won’t ask again for commands like this — in this session or any future one.`,
+        `This adds the “${pattern}” pattern to your permanent allowlist (~/.wenshu-hermes/config.yaml). 文枢 won’t ask again for commands like this — in this session or any future one.`,
       alwaysAllow: 'Always allow'
     },
     clarify: {
@@ -2634,7 +2657,7 @@ export const en: Translations = {
       success: platform => `Handed off to ${platform}. Resume here anytime.`,
       systemNote: platform => `↻ Handed off to ${platform} — resume here anytime.`,
       failed: error => `Handoff failed: ${error}`,
-      timedOut: 'Timed out waiting for the gateway. Is `hermes gateway` running?'
+      timedOut: 'Timed out waiting for the gateway. Is `wenshu gateway` running?'
     }
   },
 

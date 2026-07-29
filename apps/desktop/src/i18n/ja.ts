@@ -69,7 +69,7 @@ export const ja = defineLocale({
       loadingSettings: '文枢 の設定を読み込み中',
       loadingSessions: '最近のセッションを読み込み中',
       startingDesktopConnection: 'デスクトップ接続を開始中',
-      startingHermesDesktop: '文枢 Desktop を起動中…'
+      startingWenshuDesktop: '文枢 Desktop を起動中…'
     },
     errors: {
       backgroundExited: '文枢 バックグラウンドプロセスが終了しました。',
@@ -81,18 +81,20 @@ export const ja = defineLocale({
       ipcBridgeUnavailable: 'デスクトップ IPC ブリッジが利用できません。'
     },
     failure: {
-      title: '文枢 を起動できませんでした',
-      description:
-        'バックグラウンドゲートウェイが起動しませんでした。以下の回復手順をお試しください。チャットや設定は削除されません。',
+      // R25: 按 AC2 — title → 文枢无法启动
+      title: '文枢无法启动',
+      // R25: 按 AC2 — 简化中文
+      description: '后台网关没有启动。请尝试下面的恢复步骤；这里不会删除你的对话或设置。',
       remoteTitle: 'リモートゲートウェイへのサインインが必要です',
       remoteDescription:
         'リモートゲートウェイのセッションが期限切れです。再接続するにはもう一度サインインしてください。チャットや設定は削除されません。',
-      retry: '再試行',
-      repairInstall: 'インストールを修復',
-      useLocalGateway: 'ローカルゲートウェイを使用',
-      gatewaySettings: 'ゲートウェイ設定',
-      back: '戻る',
-      openLogs: 'ログを開く',
+      // R25: 按 AC2 — Retry/Repair install/Gateway settings/Open logs → 重试/重新安装/网关设置/打开日志
+      retry: '重试',
+      repairInstall: '重新安装',
+      useLocalGateway: '使用本地网关',
+      gatewaySettings: '网关设置',
+      back: '返回',
+      openLogs: '打开日志',
       repairHint: '修復はインストーラーを再実行します。新しいマシンでは数分かかる場合があります。',
       remoteSignInHint: signInLabel =>
         `保存済みのリモートブラウザセッションからサインアウトし、${signInLabel}を開きます。代わりにバンドルされたバックエンドに切り替えるには「ローカルゲートウェイを使用」を選択してください。`,
@@ -126,7 +128,7 @@ export const ja = defineLocale({
     backendOutOfDateMessage:
       '文枢 バックエンドがこのデスクトップビルドより古く、正常に動作しない場合があります。更新して揃えてください。',
     installMethodUnsupportedTitle: 'サポート対象外のインストール方法',
-    updateHermes: '文枢 を更新',
+    updateWenshu: '文枢 を更新',
     updateReadyTitle: '更新の準備ができました',
     updateReadyMessage: count => `${count} 件の新しい変更が利用可能です。`,
     seeWhatsNew: '新機能を見る',
@@ -659,7 +661,7 @@ export const ja = defineLocale({
         `"${profile}" がアクティブプロファイルのときのみ使用される接続。ローカルに設定するとデフォルトを継承します。`,
       envOverrideTitle: '環境変数がこのデスクトップセッションを制御しています。',
       envOverrideDesc:
-        '保存された設定を使用するには HERMES_DESKTOP_REMOTE_URL と HERMES_DESKTOP_REMOTE_TOKEN の設定を解除してください。',
+        '保存された設定を使用するには WENSHU_DESKTOP_REMOTE_URL と WENSHU_DESKTOP_REMOTE_TOKEN の設定を解除してください。',
       localTitle: 'ローカルゲートウェイ',
       localDesc:
         'ローカルホストでプライベートな 文枢 バックエンドを起動します。これがデフォルトで、オフラインでも動作します。',
@@ -668,7 +670,7 @@ export const ja = defineLocale({
         'このデスクトップシェルをリモートの 文枢 バックエンドに接続します。ホスト型ゲートウェイは OAuth またはユーザー名とパスワードを使用します。自己ホスト型はセッショントークンを使用する場合があります。',
       remoteUrlTitle: 'リモート URL',
       remoteUrlDesc:
-        'リモートダッシュボードバックエンドのベース URL。/hermes などのパスプレフィックスもサポートしています。',
+        'リモートダッシュボードバックエンドのベース URL。/wenshu などのパスプレフィックスもサポートしています。',
       probing: 'このゲートウェイの認証方法を確認中…',
       probeError: 'このゲートウェイにまだ到達できません。URL を確認してください。応答後に認証方法が表示されます。',
       signedIn: 'サインイン済み',
@@ -965,7 +967,7 @@ export const ja = defineLocale({
     edit: '編集',
     archive: 'アーカイブ',
     skillArchivedTitle: 'スキルをアーカイブしました',
-    skillArchivedMessage: 'hermes curator restore で復元できます。'
+    skillArchivedMessage: 'wenshu curator restore で復元できます。'
   },
 
   starmap: {
@@ -1116,10 +1118,10 @@ export const ja = defineLocale({
     noSessions: 'セッションはまだありません。',
     gatewayRunning: 'メッセージングゲートウェイが実行中',
     gatewayStopped: 'メッセージングゲートウェイが停止中',
-    hermesActiveSessions: (version, count) => `文枢 ${version} · アクティブセッション ${count}`,
+    wenshuActiveSessions: (version, count) => `文枢 ${version} · アクティブセッション ${count}`,
     restartGateway: 'ゲートウェイを再起動',
     gatewayRestartFailed: 'ゲートウェイの再起動に失敗しました。',
-    updateHermes: '文枢 を更新',
+    updateWenshu: '文枢 を更新',
     actionRunning: '実行中',
     actionDone: '完了',
     actionFailed: '失敗',
@@ -1259,7 +1261,7 @@ export const ja = defineLocale({
       },
       MATRIX_HOMESERVER: { label: 'ホームサーバー URL', placeholder: 'https://matrix.org' },
       MATRIX_ACCESS_TOKEN: { label: 'アクセストークン' },
-      MATRIX_USER_ID: { label: 'ボットユーザー ID', placeholder: '@hermes:example.org' },
+      MATRIX_USER_ID: { label: 'ボットユーザー ID', placeholder: '@wenshu:example.org' },
       MATRIX_ALLOWED_USERS: {
         label: '許可する Matrix ユーザー ID',
         help: '推奨。@user:server 形式のカンマ区切りユーザー ID。'
@@ -1701,7 +1703,7 @@ export const ja = defineLocale({
       '/resume': '以前のセッションを再開',
       '/details': 'トランスクリプトの詳細レベルを制御',
       '/copy': '選択または最後のアシスタントメッセージをコピー',
-      '/quit': 'hermes を終了'
+      '/quit': 'wenshu を終了'
     },
     hotkeyDescs: {
       'composer.mention': 'ファイル、フォルダー、URL、Git を参照',
@@ -1899,6 +1901,25 @@ export const ja = defineLocale({
       succeeded: '完了',
       skipped: 'スキップ',
       failed: '失敗'
+    },
+    // R25: AC1 — 进度页 10 步骤名翻译为中文。
+    stageNames: {
+      uv: '系统环境检查',
+      python: '系统环境检查',
+      git: '系统环境检查',
+      node: '系统环境检查',
+      'system-packages': '系统环境检查',
+      repository: '拉取文枢源码',
+      venv: '创建 Python 虚拟环境',
+      dependencies: '安装 Python 依赖',
+      'node-deps': '安装 Node 依赖',
+      desktop: '安装 Node 依赖',
+      path: '配置命令行入口',
+      'config-templates': '准备配置和技能',
+      'platform-sdks': '准备配置和技能',
+      'bootstrap-marker': '完成安装',
+      configure: '配置 API 密钥和设置',
+      gateway: '配置网关服务'
     },
     oneTimeTitle: '文枢 には一度限りのインストールが必要です',
     unsupportedDesc: platform =>
@@ -2373,7 +2394,7 @@ export const ja = defineLocale({
       reject: '拒否',
       alwaysTitle: 'このコマンドを常に許可しますか？',
       alwaysDescription: pattern =>
-        `これにより "${pattern}" パターンが永続的な許可リスト (~/.hermes/config.yaml) に追加されます。文枢 はこのセッションや将来のセッションで、このようなコマンドについて再度尋ねません。`,
+        `これにより "${pattern}" パターンが永続的な許可リスト (~/.wenshu-hermes/config.yaml) に追加されます。文枢 はこのセッションや将来のセッションで、このようなコマンドについて再度尋ねません。`,
       alwaysAllow: '常に許可'
     },
     clarify: {
@@ -2572,7 +2593,7 @@ export const ja = defineLocale({
       success: platform => `${platform} に引き継ぎました。いつでもここで再開できます。`,
       systemNote: platform => `↻ ${platform} に引き継ぎました — いつでもここで再開できます。`,
       failed: error => `引き継ぎに失敗しました: ${error}`,
-      timedOut: 'ゲートウェイの待機がタイムアウトしました。`hermes gateway` は起動していますか？'
+      timedOut: 'ゲートウェイの待機がタイムアウトしました。`wenshu gateway` は起動していますか？'
     }
   },
 
