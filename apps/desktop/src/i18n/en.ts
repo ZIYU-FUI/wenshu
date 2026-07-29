@@ -1995,7 +1995,13 @@ export const en: Translations = {
       'platform-sdks': '准备配置和技能',
       'bootstrap-marker': '完成安装',
       configure: '配置 API 密钥和设置',
-      gateway: '配置网关服务'
+      gateway: '配置网关服务',
+      // R41 (PM-direct 8/29 拍, 装机 user locale=en 也看中文, 同步 zh 补 5 key)
+      prerequisites: '系统环境检查',
+      'python-deps': '安装 Python 依赖',
+      config: '准备配置和技能',
+      setup: '配置 API 密钥和设置',
+      complete: '完成安装'
     },
     oneTimeTitle: '文枢 needs a one-time install',
     unsupportedDesc: platform =>

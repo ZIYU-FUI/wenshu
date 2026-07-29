@@ -2155,6 +2155,7 @@ export const zh: Translations = {
       failed: '失败'
     },
     // R25: AC1 — 进度页 10 步骤名翻译为中文。
+    // R41 (PM-direct 8/29 拍板): 补 5 个 install.sh manifest 用 dict 没存的 key.
     stageNames: {
       uv: '系统环境检查',
       python: '系统环境检查',
@@ -2171,7 +2172,13 @@ export const zh: Translations = {
       'platform-sdks': '准备配置和技能',
       'bootstrap-marker': '完成安装',
       configure: '配置 API 密钥和设置',
-      gateway: '配置网关服务'
+      gateway: '配置网关服务',
+      // R41 (PM-direct 拍, scripts/install.sh:344 manifest 真实 stage name)
+      prerequisites: '系统环境检查',
+      'python-deps': '安装 Python 依赖',
+      config: '准备配置和技能',
+      setup: '配置 API 密钥和设置',
+      complete: '完成安装'
     },
     oneTimeTitle: '文枢 需要一次性安装',
     unsupportedDesc: platform =>

@@ -17,7 +17,9 @@
 
 /** Build the isolated messaging gateway argv. */
 export function gatewayBackendArgs() {
-  return ['gateway', 'run']
+  // R41 (PM-direct 8/29 拍, R40 候选 A): --replace 顶旧 pidfile,
+  // 避免上一轮 desktop 关闭后残留 gateway 进程锁住新 spawn.
+  return ['gateway', 'run', '--replace']
 }
 
 /**

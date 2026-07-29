@@ -94,7 +94,15 @@ const STAGE_NAME_TO_STEP_KEY: Record<string, string> = {
   'platform-sdks': 'platform-sdks',
   'bootstrap-marker': 'bootstrap-marker',
   configure: 'configure',
-  gateway: 'gateway'
+  gateway: 'gateway',
+  // R41 (PM-direct 8/29 拍板, 装机 user macOS 走 scripts/install.sh:344):
+  // macOS manifest 用 5 个 dict 没有的 kebab-case stage name — 必中 dict key.
+  // 不迫在加 'Prerequisites'/'Venv'/etc. capitalize+空格名 — 装机 user 实机不返.
+  prerequisites: 'prerequisites',
+  'python-deps': 'python-deps',
+  config: 'config',
+  setup: 'setup',
+  complete: 'complete'
 }
 
 function formatDuration(ms: number | null | undefined): string {
