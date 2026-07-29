@@ -35,38 +35,65 @@ async function fetchPublicText(url, options: any = {}) {
   return text
 }
 
-function extractInjectedDashboardToken(html) {
-  const match = /window\.__WENSHU_SESSION_TOKEN__\s*=\s*("(?:\\.|[^"\\])*")/.exec(String(html || ''))
+async function fetchPublicJson(url, options: any = {}) {
+  // Auth-free JSON fetch for the public /api/status readiness probe. The probe
+  // is in ``PUBLIC_API_PATHS`` on every bind (loopback and gated), so no
+  // ``X-Wenshu-Session-Token`` header is sent -- this avoids leaking a token
+  // to a path that doesn't need one, and matches the desktop's existing
+  // ``fetchPublicJson`` contract in main.ts. ``options.fetchText`` is the
+  // test-injectable seam so unit tests can avoid hitting the network.
+  const fetchText = options.fetchText || fetchPublicText
+  const text = await fetchText(url, options)
 
-  if (!match) {
+  if (!text) {
     return null
   }
 
   try {
-    return JSON.parse(match[1])
-  } catch {
-    return null
+    return JSON.parse(text)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    throw new Error(`Invalid JSON from ${url}: ${message}`)
   }
+}
+
+function dashboardStatusUrl(baseUrl) {
+  return `${String(baseUrl || '').replace(/\/+$/, '')}/api/status`
 }
 
 function dashboardIndexUrl(baseUrl) {
   return `${String(baseUrl || '').replace(/\/+$/, '')}/`
 }
 
+// ``/api/status`` is the source of truth for the session token the backend
+// actually serves -- in loopback mode the live ``_SESSION_TOKEN`` is included
+// in the JSON body (see wenshu_cli/web_server.py::get_status), so a JSON
+// fetch is BOTH the liveness probe AND the token pickup, replacing the
+// HTML-scrape path that the headless ``wenshu serve`` backend cannot serve
+// (it has no SPA index, ``/`` returns 404 with
+// "Headless backend (wenshu serve): web UI disabled"). Reading the token
+// off /api/status also means a SPA-less build can never strand the desktop.
 async function resolveServedDashboardToken(baseUrl, fallbackToken, options: any = {}) {
-  const fetchText = options.fetchText || fetchPublicText
-
-  const html = await fetchText(dashboardIndexUrl(baseUrl), {
+  const fetcher = options.fetchJson || fetchPublicJson
+  const status = await fetcher(dashboardStatusUrl(baseUrl), {
     timeoutMs: options.timeoutMs ?? DEFAULT_TOKEN_FETCH_TIMEOUT_MS
   })
 
-  const servedToken = extractInjectedDashboardToken(html)
+  // ``/api/status`` is allowed to omit ``authToken`` on gated binds (the OAuth
+  // gate does not inject the legacy ``_SESSION_TOKEN`` -- cookie auth is
+  // authoritative there). For our headless ``wenshu serve`` loopback case the
+  // field is always present.
+  const servedToken = status && typeof status === 'object' ? status.authToken : null
 
-  if (servedToken && servedToken !== fallbackToken && typeof options.rememberLog === 'function') {
+  if (typeof servedToken !== 'string' || servedToken.length === 0) {
+    return fallbackToken
+  }
+
+  if (servedToken !== fallbackToken && typeof options.rememberLog === 'function') {
     options.rememberLog('[boot] dashboard served a different session token; using served token for WebSocket auth')
   }
 
-  return servedToken || fallbackToken
+  return servedToken
 }
 
 /**
@@ -104,8 +131,9 @@ async function adoptServedDashboardToken(baseUrl, spawnToken, { childAlive, labe
 export {
   adoptServedDashboardToken,
   dashboardIndexUrl,
+  dashboardStatusUrl,
   DEFAULT_TOKEN_FETCH_TIMEOUT_MS,
-  extractInjectedDashboardToken,
+  fetchPublicJson,
   fetchPublicText,
   isForeignBackendToken,
   resolveServedDashboardToken

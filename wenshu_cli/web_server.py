@@ -2989,6 +2989,16 @@ async def get_status(profile: Optional[str] = None):
                 "gateway_pid": gateway_pid,
                 "gateway_health_url": _GATEWAY_HEALTH_URL,
                 "gateways": topology["gateways"],
+                # Loopback-only: surface the live session token so the desktop
+                # shell can adopt the value the backend actually serves
+                # (matters for ``wenshu serve`` / headless backends, which
+                # have no SPA index to scrape the token from). The desktop
+                # passes its spawn-time token via WENSHU_DASHBOARD_SESSION_TOKEN
+                # and only falls back to it if ``/api/status`` is unreachable;
+                # a served-token mismatch is a regenerate signal, not auth
+                # bypass -- the desktop pins the same trust envelope we already
+                # use to inject the token into the SPA HTML at this bind.
+                "authToken": _SESSION_TOKEN,
             })
 
         return status

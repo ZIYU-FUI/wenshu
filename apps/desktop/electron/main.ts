@@ -7293,10 +7293,20 @@ async function startWenshu() {
     backendReady = true
     backendStartFailure = null
 
+    // R34: read the live session token from ``/api/status`` JSON. The desktop
+    // passes the spawn-time token via WENSHU_DASHBOARD_SESSION_TOKEN, but the
+    // backend is the source of truth: if it regenerated the token (env pin
+    // lost across spawn), the renderer must use the served value, not the
+    // stale spawn value, or /api/ws 401s and the composer sticks on
+    // "Could not connect to 文枢 gateway". ``/api/status`` is in
+    // ``PUBLIC_API_PATHS`` on every bind (loopback + gated), so the probe
+    // works against ``wenshu serve`` and the legacy ``dashboard`` equally.
     const authToken = await adoptServedDashboardToken(baseUrl, token, {
       childAlive: () => wenshuProcess.exitCode === null && !wenshuProcess.killed,
       rememberLog
     })
+
+    rememberLog(`[boot] finalize: served token adopted (matches=${authToken === token})`)
 
     updateBootProgress({
       phase: 'backend.ready',
@@ -7306,13 +7316,38 @@ async function startWenshu() {
       error: null
     })
 
+    // R34: stamp each finalize step so a stuck boot has a deterministic
+    // "last successful step" line in the log. The renderer reads its own
+    // boot-progress channel for the overlay, but the desktop boot path
+    // (window.show / bootProgress dismiss) lives on the main side and was
+    // previously a black box once we hit phase ``backend.ready``.
+    rememberLog('[boot] finalize: stage=window.show pending')
+    if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
+      mainWindow.show()
+    }
+    rememberLog('[boot] finalize: stage=window.show done')
+
+    rememberLog(`[boot] finalize: stage=wsUrl mount (token prefix=${authToken.slice(0, 6)}\xe2\x80\xa6)`)
+    const wsUrl = `ws://127.0.0.1:${port}/api/ws?token=${encodeURIComponent(authToken)}`
+    rememberLog('[boot] finalize: stage=wsUrl mount done')
+
+    rememberLog('[boot] finalize: stage=bootProgress dismiss pending')
+    updateBootProgress({
+      phase: 'finalize.done',
+      message: '文枢 desktop startup complete',
+      progress: 100,
+      running: false,
+      error: null
+    })
+    rememberLog('[boot] finalize: stage=bootProgress dismiss done')
+
     return {
       baseUrl,
       mode: 'local',
       source: 'local',
       authMode: 'token',
       token: authToken,
-      wsUrl: `ws://127.0.0.1:${port}/api/ws?token=${encodeURIComponent(authToken)}`,
+      wsUrl,
       logs: wenshuLog.slice(-80),
       ...getWindowState()
     }

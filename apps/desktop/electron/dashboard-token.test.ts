@@ -12,40 +12,48 @@ import { test } from 'vitest'
 import {
   adoptServedDashboardToken,
   dashboardIndexUrl,
-  extractInjectedDashboardToken,
+  dashboardStatusUrl,
+  fetchPublicJson,
   fetchPublicText,
   isForeignBackendToken,
   resolveServedDashboardToken
 } from './dashboard-token'
 
-test('extractInjectedDashboardToken reads the JSON-encoded dashboard token', () => {
-  const html = '<script>window.__WENSHU_SESSION_TOKEN__="served-token";window.__WENSHU_BASE_PATH__=""</script>'
-  assert.equal(extractInjectedDashboardToken(html), 'served-token')
+test('dashboardStatusUrl normalises trailing slashes and targets /api/status', () => {
+  assert.equal(dashboardStatusUrl('http://127.0.0.1:9120'), 'http://127.0.0.1:9120/api/status')
+  assert.equal(dashboardStatusUrl('https://host.example/wenshu/'), 'https://host.example/wenshu/api/status')
 })
 
-test('extractInjectedDashboardToken handles escaped token strings', () => {
-  const html = '<script>window.__WENSHU_SESSION_TOKEN__="served\\\\token\\"quoted";</script>'
-  assert.equal(extractInjectedDashboardToken(html), 'served\\token"quoted')
-})
-
-test('extractInjectedDashboardToken returns null for missing or malformed values', () => {
-  assert.equal(extractInjectedDashboardToken('<html></html>'), null)
-  assert.equal(extractInjectedDashboardToken('<script>window.__WENSHU_SESSION_TOKEN__={bad}</script>'), null)
-})
-
-test('dashboardIndexUrl preserves dashboard path prefixes', () => {
+test('dashboardIndexUrl preserves dashboard path prefixes (legacy compat)', () => {
   assert.equal(dashboardIndexUrl('http://127.0.0.1:9120'), 'http://127.0.0.1:9120/')
   assert.equal(dashboardIndexUrl('https://host.example/wenshu/'), 'https://host.example/wenshu/')
 })
 
-test('resolveServedDashboardToken uses the served token and logs when it differs', async () => {
+test('fetchPublicJson parses a JSON body', async () => {
+  const body = await fetchPublicJson('http://127.0.0.1:9120/api/status', {
+    fetchText: async () => JSON.stringify({ authToken: 'served-token', version: '0.0.1' })
+  })
+  assert.deepEqual(body, { authToken: 'served-token', version: '0.0.1' })
+})
+
+test('fetchPublicJson surfaces a clear error when the body is not JSON', async () => {
+  await assert.rejects(
+    () =>
+      fetchPublicJson('http://127.0.0.1:9120/api/status', {
+        fetchText: async () => '<html></html>'
+      }),
+    /Invalid JSON from http:\/\/127\.0\.0\.1:9120\/api\/status/
+  )
+})
+
+test('resolveServedDashboardToken reads authToken from /api/status JSON', async () => {
   const logs = []
 
   const token = await resolveServedDashboardToken('http://127.0.0.1:9120', 'spawn-token', {
-    fetchText: async url => {
-      assert.equal(url, 'http://127.0.0.1:9120/')
+    fetchJson: async url => {
+      assert.equal(url, 'http://127.0.0.1:9120/api/status')
 
-      return '<script>window.__WENSHU_SESSION_TOKEN__="served-token";</script>'
+      return { authToken: 'served-token', version: '0.0.1' }
     },
     rememberLog: line => logs.push(line)
   })
@@ -55,9 +63,9 @@ test('resolveServedDashboardToken uses the served token and logs when it differs
   assert.match(logs[0], /served a different session token/)
 })
 
-test('resolveServedDashboardToken falls back when the served HTML has no token', async () => {
+test('resolveServedDashboardToken falls back when the status body omits authToken', async () => {
   const token = await resolveServedDashboardToken('http://127.0.0.1:9120', 'spawn-token', {
-    fetchText: async () => '<html></html>',
+    fetchJson: async () => ({ version: '0.0.1' }),
     rememberLog: () => {
       throw new Error('should not log when no served token is present')
     }
@@ -68,7 +76,7 @@ test('resolveServedDashboardToken falls back when the served HTML has no token',
 
 test('resolveServedDashboardToken does not log when served token matches fallback', async () => {
   const token = await resolveServedDashboardToken('http://127.0.0.1:9120', 'same-token', {
-    fetchText: async () => '<script>window.__WENSHU_SESSION_TOKEN__="same-token";</script>',
+    fetchJson: async () => ({ authToken: 'same-token' }),
     rememberLog: () => {
       throw new Error('should not log when token already matches')
     }
@@ -81,7 +89,7 @@ test('resolveServedDashboardToken propagates fetch errors so callers can fall ba
   await assert.rejects(
     () =>
       resolveServedDashboardToken('http://127.0.0.1:9120', 'spawn-token', {
-        fetchText: async () => {
+        fetchJson: async () => {
           throw new Error('boom')
         }
       }),
@@ -112,7 +120,7 @@ test('isForeignBackendToken only flags a mismatched token from a dead child', ()
 test('adoptServedDashboardToken adopts drift from a live child', async () => {
   const token = await adoptServedDashboardToken('http://127.0.0.1:9120', 'spawn-token', {
     childAlive: () => true,
-    fetchText: async () => '<script>window.__WENSHU_SESSION_TOKEN__="served-token";</script>'
+    fetchJson: async () => ({ authToken: 'served-token' })
   })
 
   assert.equal(token, 'served-token')
@@ -123,7 +131,7 @@ test('adoptServedDashboardToken refuses a foreign token when our child is dead',
     () =>
       adoptServedDashboardToken('http://127.0.0.1:9120', 'spawn-token', {
         childAlive: () => false,
-        fetchText: async () => '<script>window.__WENSHU_SESSION_TOKEN__="squatter-token";</script>',
+        fetchJson: async () => ({ authToken: 'squatter-token' }),
         label: '文枢 backend for profile "work"'
       }),
     /profile "work".*process we did not spawn/
@@ -135,7 +143,7 @@ test('adoptServedDashboardToken falls back to the spawn token when the fetch fai
 
   const token = await adoptServedDashboardToken('http://127.0.0.1:9120', 'spawn-token', {
     childAlive: () => true,
-    fetchText: async () => {
+    fetchJson: async () => {
       throw new Error('boom')
     },
     rememberLog: line => logs.push(line)
