@@ -1964,6 +1964,53 @@ EOF
     log_success "wenshu command ready"
 }
 
+# Ensure a newly-created config explicitly records the desktop locale instead
+# of relying only on the renderer fallback. Existing configs are never passed
+# here, so a user's language choice remains untouched on update/reinstall.
+seed_fresh_install_language() {
+    local config_path="$1"
+
+    if [ ! -f "$config_path" ]; then
+        cat > "$config_path" <<'EOF'
+display:
+  language: zh
+EOF
+        return 0
+    fi
+
+    # The shipped template already contains this key. Keep this fallback for
+    # bootstrap/tarball layouts carrying an older template, while preserving
+    # the template's comments and all unrelated settings.
+    if awk '
+        /^[^[:space:]#][^:]*:/ { in_display = ($0 ~ /^display:[[:space:]]*(#.*)?$/) }
+        in_display && /^[[:space:]]+language:[[:space:]]*zh([[:space:]]*(#.*)?)?$/ { found = 1 }
+        END { exit(found ? 0 : 1) }
+    ' "$config_path"; then
+        return 0
+    fi
+
+    local config_tmp="${config_path}.language.$$"
+    awk '
+        BEGIN { inserted = 0 }
+        !inserted && /^display:[[:space:]]*(#.*)?$/ {
+            print
+            print "  language: zh"
+            inserted = 1
+            next
+        }
+        { print }
+        END {
+            if (!inserted) {
+                print ""
+                print "# Desktop UI language (fresh 文枢 installs default to Simplified Chinese)."
+                print "display:"
+                print "  language: zh"
+            }
+        }
+    ' "$config_path" > "$config_tmp"
+    mv "$config_tmp" "$config_path"
+}
+
 # WO-001AS (v6 BUG): copy_config_templates has no curl calls (only
 # `cp` of bundled YAML templates into $WENSHU_HOME). 派单拍板"prepare_config
 # 同样 retry" = 写明"无网络依赖"。
@@ -1997,6 +2044,8 @@ copy_config_templates() {
             cp "$INSTALL_DIR/cli-config.yaml.example" "$WENSHU_HOME/config.yaml"
             log_success "Created ~/.wenshu-hermes/config.yaml from template"
         fi
+        seed_fresh_install_language "$WENSHU_HOME/config.yaml"
+        log_success "Defaulted desktop language to Simplified Chinese"
     else
         log_info "~/.wenshu-hermes/config.yaml already exists, keeping it"
     fi

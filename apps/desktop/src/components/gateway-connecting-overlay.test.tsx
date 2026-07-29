@@ -51,16 +51,37 @@ function resetStores() {
 beforeEach(resetStores)
 afterEach(cleanup)
 
-// The connecting overlay renders "CONN" + a scrambled tail inside one
-// uppercase span; match that node specifically so the recovery overlay's
-// "Lost connection…" copy doesn't read as a false positive.
+// The connecting overlay renders the first four localized characters plus a
+// scrambled tail inside one span. Match that node specifically so recovery
+// copy doesn't read as a false positive. The matcher also accepts the English
+// branch for users who explicitly select it; fresh installs use Chinese.
 const isConnectingShown = () =>
-  screen.queryAllByText((_, el) => /^CONN[/\\|\-_=+<>~:*A-Z]*$/.test(el?.textContent?.trim() ?? '')).length > 0
+  screen.queryAllByText((_, el) => /^(?:CONN.*|正在连接.*)$/.test(el?.textContent?.trim() ?? '')).length > 0
 
 const isRecoveryShown = () =>
-  Boolean(screen.queryByText(/use local gateway/i) || screen.queryByText(/retry/i) || screen.queryByText(/sign in/i))
+  Boolean(
+    screen.queryByText(/use local gateway|使用本地网关/i) ||
+      screen.queryByText(/retry|重试/i) ||
+      screen.queryByText(/sign in|登录/i)
+  )
 
 describe('connecting overlay vs recovery surface', () => {
+  it('renders the cold-start connection message in Simplified Chinese by default', () => {
+    $desktopBoot.set({
+      ...$desktopBoot.get(),
+      message: '正在连接桌面网关',
+      phase: 'renderer.gateway.connect',
+      progress: 95,
+      running: true,
+      visible: true
+    })
+
+    render(<GatewayConnectingOverlay />)
+
+    expect(screen.getByText('正在连接桌面网关')).toBeTruthy()
+    expect(screen.queryByText('CONNECTING')).toBeNull()
+  })
+
   it('hard initial-boot failure surfaces the recovery overlay (the working path)', async () => {
     // failDesktopBoot() ran: error set, gateway never opened.
     $desktopBoot.set({
@@ -193,7 +214,7 @@ describe('connecting overlay vs recovery surface', () => {
 
     // Escape hatch is now reachable; the connecting overlay bows out.
     expect(isRecoveryShown()).toBe(true)
-    expect(screen.getByRole('button', { name: /gateway settings/i })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /gateway settings|网关设置/i })).toBeTruthy()
     expect(isConnectingShown()).toBe(false)
   })
 })
