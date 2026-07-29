@@ -17707,8 +17707,18 @@ async def gateway_ws(ws: WebSocket) -> None:
     # connection, log a hello, and idle (the real chat broadcast lives at
     # /api/pub + /api/events; this endpoint is a legacy JSON-RPC surface the
     # desktop boot probe only needs to reach open()).
+    # R45: Must `await ws.accept()` BEFORE `await ws.send_json(...)`. ASGI requires
+    # the server to send `websocket.accept` before any `websocket.send`; sending
+    # first triggers "Expected ASGI message 'websocket.accept', 'websocket.close'
+    # or 'websocket.http.response.start', but got 'websocket.send'", the handler
+    # exits immediately, the renderer sees the socket close mid-handshake,
+    # `gateway.connect()` rejects with 'WebSocket connection failed', and the
+    # desktop boot loop flips into failDesktopBoot -> BootFailureOverlay -> user
+    # clicks Repair -> full bootstrap rerun -> 20003-line log (zhuang ji user 8/29
+    # 'ka 100%' zhen gen yin).
     _log.info("Desktop /api/ws connected: peer=%s headers=%s", ws.client, dict(ws.headers or {}))
     try:
+        await ws.accept()
         await ws.send_json({"type": "ready", "endpoint": "/api/ws", "server": "wenshu-isolated"})
         # Block until the client disconnects — keeps open() true so the
         # renderer-side `gateway.connect()` resolves the "ready" event instead

@@ -9179,3 +9179,125 @@ class TestDesktopCronTicker:
 
         with self._client():
             assert not called.wait(0.5), "ticker must not run outside the desktop app"
+
+
+class TestR45DesktopApiWsAccept:
+    """R45 regression: /api/ws must `await ws.accept()` BEFORE `await ws.send_json(...)`.
+
+    ASGI requires the server to send `websocket.accept` before any other
+    websocket frame. R42 kept the endpoint alive but sent `{ready}` without
+    accepting first; the server's ASGI implementation then exited the handler
+    with "Expected ASGI message 'websocket.accept', 'websocket.close' or
+    'websocket.http.response.start', but got 'websocket.send'", the renderer
+    saw the socket close mid-handshake, `gateway.connect()` rejected, and the
+    desktop boot loop flipped into failDesktopBoot -> BootFailureOverlay ->
+    user clicks Repair -> full bootstrap rerun -> 20003-line log.
+
+    These tests pin the structural ordering (accept before send) so a future
+    refactor can't reintroduce the bug silently.
+    """
+
+    def _client(self):
+        try:
+            from starlette.testclient import TestClient
+        except ImportError:
+            pytest.skip("fastapi/starlette not installed")
+        from wenshu_cli.web_server import app
+
+        return TestClient(app)
+
+    def test_accept_called_before_send_json(self):
+        """Source-level guard: `await ws.accept()` must appear before
+        `await ws.send_json(...)` in gateway_ws."""
+        import inspect
+        from wenshu_cli import web_server
+
+        src = inspect.getsource(web_server.gateway_ws)
+        accept_pos = src.find("await ws.accept()")
+        send_pos = src.find("await ws.send_json")
+        assert accept_pos != -1, "/api/ws handler no longer calls await ws.accept()"
+        assert send_pos != -1, "/api/ws handler no longer calls await ws.send_json"
+        assert accept_pos < send_pos, (
+            "R45 regression: /api/ws sends `{ready}` BEFORE accepting the "
+            "WebSocket — ASGI rejects this with 'Expected ASGI message "
+            "\"websocket.accept\", ... but got websocket.send', the handler "
+            "exits, and the desktop boot loop hits 'WebSocket connection failed'"
+        )
+
+    def test_endpoint_accepts_then_sends_ready(self, monkeypatch, _isolate_wenshu_home):
+        """End-to-end: WebSocket connect -> server sends `{ready}` hello -> client
+        receives it without the connection being torn down.
+
+        Reproduces the boot probe path: connect to /api/ws with a loopback token,
+        assert the `{type: "ready", endpoint: "/api/ws"}` frame arrives (R42
+        intent), and assert the socket is still open after recv (R45 fix: the
+        handler no longer aborts due to ASGI protocol violation).
+        """
+        try:
+            import websockets
+            import socket
+        except ImportError:
+            pytest.skip("websockets not installed")
+
+        from wenshu_cli import web_server
+
+        # Bind to an ephemeral loopback port via uvicorn in a thread.
+        import threading
+        import time
+        import uvicorn
+
+        port = _free_port()
+        config = uvicorn.Config(
+            web_server.app,
+            host="127.0.0.1",
+            port=port,
+            log_level="warning",
+            ws_ping_interval=None,
+            ws_ping_timeout=None,
+        )
+        server = uvicorn.Server(config)
+        thread = threading.Thread(target=server.run, daemon=True)
+        thread.start()
+
+        # Wait for the server to bind.
+        deadline = time.time() + 10
+        while time.time() < deadline and not server.started:
+            time.sleep(0.05)
+        if not server.started:
+            server.should_exit = True
+            thread.join(timeout=5)
+            pytest.fail("uvicorn never started")
+
+        token = web_server._SESSION_TOKEN
+        url = f"ws://127.0.0.1:{port}/api/ws?token={token}"
+
+        try:
+            async def _run():
+                async with websockets.connect(url, open_timeout=5) as ws:
+                    msg = await asyncio.wait_for(ws.recv(), timeout=3)
+                    return json.loads(msg)
+
+            loop = asyncio.new_event_loop()
+            try:
+                payload = loop.run_until_complete(_run())
+            finally:
+                loop.close()
+
+            assert payload.get("type") == "ready", payload
+            assert payload.get("endpoint") == "/api/ws", payload
+        finally:
+            server.should_exit = True
+            thread.join(timeout=5)
+
+
+def _free_port() -> int:
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(("127.0.0.1", 0))
+    port = s.getsockname()[1]
+    s.close()
+    return port
+
+
+import asyncio
+import json
