@@ -37,7 +37,7 @@ export default function Welcome() {
         </p>
 
         <p className="m-0 text-center text-base leading-normal tracking-tight text-muted-foreground">
-          WENSHU 修改而来，帮助你写作的智能体。系统将自动为你配置环境，约需几分钟。
+          基于 Hermes 修改而来，WENSHU 是一个帮助你写作的智能体。系统将自动为你配置环境，约需几分钟。
         </p>
       </div>
 
