@@ -45,7 +45,7 @@ import { clearActiveSessionTodos } from '@/store/todos'
 import { recordToolDiff } from '@/store/tool-diffs'
 import { reportInstallMethodWarning } from '@/store/updates'
 import { notifyWorkspaceChanged, toolChangedPath, toolMayMutateFiles } from '@/store/workspace-events'
-import type { RpcEvent } from '@/types/hermes'
+import type { RpcEvent } from '@/types/wenshu'
 
 import type { ClientSessionState } from '../../../types'
 
@@ -77,7 +77,7 @@ interface GatewayEventDeps {
   flushQueuedDeltas: (sessionId?: string) => void
   finalizeInterimAssistantMessage: (sessionId: string, text: string) => void
   queryClient: QueryClient
-  refreshHermesConfig: () => Promise<void>
+  refreshWenshuConfig: () => Promise<void>
   sessionInterrupted: (sessionId: string) => boolean
   sessionStateByRuntimeIdRef: MutableRefObject<Map<string, ClientSessionState>>
   updateSessionState: (
@@ -107,7 +107,7 @@ export function useGatewayEventHandler(deps: GatewayEventDeps) {
     flushQueuedDeltas,
     finalizeInterimAssistantMessage,
     queryClient,
-    refreshHermesConfig,
+    refreshWenshuConfig,
     sessionInterrupted,
     sessionStateByRuntimeIdRef,
     updateSessionState,
@@ -118,7 +118,7 @@ export function useGatewayEventHandler(deps: GatewayEventDeps) {
 
   // session.info arrives in bursts (agent build ready + turn end + title /
   // MCP / compress edges within the same second). Each used to fire its own
-  // refreshHermesConfig — two REST calls (config + defaults) per event, per
+  // refreshWenshuConfig — two REST calls (config + defaults) per event, per
   // turn, including for BACKGROUND sessions whose values the fetch can't even
   // apply. Coalesce to one trailing fetch per burst; the caller gates on
   // `apply` so background traffic doesn't schedule anything.
@@ -130,16 +130,16 @@ export function useGatewayEventHandler(deps: GatewayEventDeps) {
     }
 
     if (typeof window === 'undefined') {
-      void refreshHermesConfig()
+      void refreshWenshuConfig()
 
       return
     }
 
     configRefreshTimerRef.current = window.setTimeout(() => {
       configRefreshTimerRef.current = null
-      void refreshHermesConfig()
+      void refreshWenshuConfig()
     }, 300)
-  }, [refreshHermesConfig])
+  }, [refreshWenshuConfig])
 
   useEffect(
     () => () => {
@@ -345,7 +345,7 @@ export function useGatewayEventHandler(deps: GatewayEventDeps) {
         if (apply) {
           reportInstallMethodWarning(payload?.install_warning)
           // Config refetch is only meaningful for the foreground context —
-          // everything refreshHermesConfig applies is either active-session
+          // everything refreshWenshuConfig applies is either active-session
           // guarded or a composer/global pref. Background sessions' heartbeats
           // used to trigger it too (two REST calls each, every turn).
           scheduleConfigRefresh()

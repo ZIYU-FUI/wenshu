@@ -51,7 +51,7 @@ void watchTheme()
 
 // WO-001AO (8/26 system-prerequisites bug v4): boot the bootstrap store as
 // soon as the React tree mounts so the progress screen can show
-// `get_log_path` + `get_hermes_home` diagnostics and the live `bootstrap`
+// `get_log_path` + `get_wenshu_home` diagnostics and the live `bootstrap`
 // event subscription is wired before the user clicks INSTALL. Previously
 // the welcome screen had no log-path affordance — a 2-minute silent hang
 // in `install_uv()` left the user with no recourse but to wait. Now the

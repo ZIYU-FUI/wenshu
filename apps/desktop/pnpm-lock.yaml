@@ -44,7 +44,7 @@ importers:
       '@dnd-kit/utilities':
         specifier: ^3.2.2
         version: 3.2.2(react@19.2.8)
-      '@hermes/shared':
+      '@wenshu/shared':
         specifier: file:../shared
         version: file:../shared
       '@icons-pack/react-simple-icons':
@@ -933,7 +933,7 @@ packages:
   '@hapi/topo@6.0.2':
     resolution: {integrity: sha512-KR3rD5inZbGMrHmgPxsJ9dbi6zEK+C3ZwUwTa+eMwWLz7oijWUTWD2pMSNNYJAU6Qq+65NkxXjqHr/7LM2Xkqg==}
 
-  '@hermes/shared@file:../shared':
+  '@wenshu/shared@file:../shared':
     resolution: {directory: ../shared, type: directory}
 
   '@humanfs/core@0.19.2':
@@ -6730,7 +6730,7 @@ snapshots:
     dependencies:
       '@hapi/hoek': 11.0.7
 
-  '@hermes/shared@file:../shared': {}
+  '@wenshu/shared@file:../shared': {}
 
   '@humanfs/core@0.19.2':
     dependencies:

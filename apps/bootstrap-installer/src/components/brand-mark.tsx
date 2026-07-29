@@ -2,12 +2,12 @@ import { cn } from '../lib/utils'
 
 const assetPath = (path: string) => `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`
 
-// Brand badge: WENSHU logo mark (白底黑字), identical in light/dark.
-// Ported from apps/desktop's BrandMark; asset lives in this app's public/.
+// Brand badge: 文枢毛笔字 (wenshu-logo.png), identical in light/dark.
+// Asset lives in this app's public/ (R23 替换 R17/R21 上一代 LOGO → 文枢自有毛笔字 LOGO, 装机 user 8/28 拍).
 export function BrandMark({ className, ...props }: React.ComponentProps<'span'>) {
   return (
     <span className={cn('inline-flex size-14 shrink-0 items-center justify-center bg-white', className)} {...props}>
-      <img alt="文枢 Logo" className="size-full object-contain" src={assetPath('wenshu-logo.png')} />
+      <img alt="" className="size-full object-contain" src={assetPath('wenshu-logo.png')} />
     </span>
   )
 }

@@ -6,16 +6,48 @@ import { useEffect, useRef, useState } from 'react'
 import { BrandMark } from '../components/brand-mark'
 import { Button } from '../components/button'
 import { Loader } from '../components/loader'
-import {
-  $mode,
-  $progress,
-  type BootstrapStateModel,
-  cancelInstall,
-  type StageState
-} from '../store'
+import { tStep } from '../i18n'
+import { $mode, $progress, type BootstrapStateModel, cancelInstall, type StageState } from '../store'
 
 interface ProgressProps {
   bootstrap: BootstrapStateModel
+}
+
+/*
+ * Map PowerShell stage names (as emitted by scripts/install.ps1's
+ * $InstallStages manifest) onto the 10 high-level i18n keys defined in
+ * src/i18n/zh.ts. Stages that don't have a clear home fall through to
+ * the original English title from `rec.info.title` so we never lose
+ * information; the i18n layer only translates the categories the
+ * customer-facing UI groups stages into.
+ */
+const STAGE_NAME_TO_STEP_KEY: Record<string, string> = {
+  uv: 'Prerequisites',
+  python: 'Prerequisites',
+  git: 'Prerequisites',
+  node: 'Prerequisites',
+  'system-packages': 'Prerequisites',
+  repository: 'Repository',
+  venv: 'Venv',
+  dependencies: 'Python deps',
+  'node-deps': 'Node deps',
+  desktop: 'Node deps',
+  path: 'Path',
+  'config-templates': 'Config',
+  'platform-sdks': 'Config',
+  'bootstrap-marker': 'Complete',
+  configure: 'Setup',
+  gateway: 'Gateway'
+}
+
+function translateStageTitle(stageName: string, fallback: string): string {
+  const key = STAGE_NAME_TO_STEP_KEY[stageName]
+
+  if (!key) {
+    return fallback
+  }
+
+  return tStep(key)
 }
 
 /*
@@ -59,7 +91,7 @@ export default function ProgressScreen({ bootstrap }: ProgressProps) {
   const pct = Math.round(progress.fraction * 100)
 
   return (
-    <div className="hermes-fade-in flex h-full flex-col">
+    <div className="wenshu-fade-in flex h-full flex-col">
       {/* Header: brand + title + description, matching the desktop install overlay. */}
       <div className="flex shrink-0 items-start gap-4 px-6 pt-6 pb-4">
         <BrandMark className="size-11" />
@@ -93,10 +125,12 @@ export default function ProgressScreen({ bootstrap }: ProgressProps) {
               muted. Running loader overhangs left so labels stay aligned; the
               terminal check/cross sits right of the label. */}
           <ol className="space-y-0.5">
-            {bootstrap.stageOrder.map((name) => {
+            {bootstrap.stageOrder.map(name => {
               const rec = bootstrap.stages[name]
 
-              if (!rec) {return null}
+              if (!rec) {
+                return null
+              }
 
               const meta =
                 rec.state === 'running' && rec.startedAt != null
@@ -109,14 +143,12 @@ export default function ProgressScreen({ bootstrap }: ProgressProps) {
                 <li
                   className={clsx(
                     'flex items-center gap-2.5 px-3 py-1.5 text-sm',
-                    rec.state === 'running'
-                      ? 'font-medium text-foreground'
-                      : 'text-muted-foreground'
+                    rec.state === 'running' ? 'font-medium text-foreground' : 'text-muted-foreground'
                   )}
                   key={name}
                 >
                   {rec.state === 'running' && <Loader className="-ml-2 size-6 shrink-0" />}
-                  <span className="flex-1 truncate">{rec.info.title}</span>
+                  <span className="flex-1 truncate">{translateStageTitle(name, rec.info.title)}</span>
                   {meta && <span className="text-xs tabular-nums text-muted-foreground/70">{meta}</span>}
                   <StateIcon state={rec.state ?? null} />
                 </li>
@@ -152,7 +184,7 @@ export default function ProgressScreen({ bootstrap }: ProgressProps) {
       <div className="flex shrink-0 items-center justify-between border-t border-(--stroke-nous) px-6 py-3">
         <button
           className="inline-flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-          onClick={() => setShowLogs((v) => !v)}
+          onClick={() => setShowLogs(v => !v)}
           type="button"
         >
           <FileText size={14} />
@@ -190,9 +222,13 @@ function StateIcon({ state }: { state: StageState | null }) {
 }
 
 function formatDuration(ms: number): string {
-  if (ms < 1000) {return `${ms}ms`}
+  if (ms < 1000) {
+    return `${ms}ms`
+  }
 
-  if (ms < 60000) {return `${(ms / 1000).toFixed(1)}s`}
+  if (ms < 60000) {
+    return `${(ms / 1000).toFixed(1)}s`
+  }
   const m = Math.floor(ms / 60000)
   const s = Math.round((ms % 60000) / 1000)
 
@@ -203,7 +239,9 @@ function formatDuration(ms: number): string {
 function formatElapsed(ms: number): string {
   const s = Math.max(0, Math.floor(ms / 1000))
 
-  if (s < 60) {return `${s}s`}
+  if (s < 60) {
+    return `${s}s`
+  }
   const m = Math.floor(s / 60)
 
   return `${m}:${String(s - m * 60).padStart(2, '0')}`

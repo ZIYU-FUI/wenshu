@@ -4,7 +4,7 @@ Reported during the TUI v2 blitz retest:
   - typing `@folder:` (and `@folder` with no colon yet) surfaced files
     alongside directories — the gateway-side completion lives in
     `legacy_chat_transport/server.py` and was never touched by the earlier fix to
-    `hermes_cli/commands.py`.
+    `wenshu_cli/commands.py`.
   - typing `@appChrome` required the full `@legacy-terminal-ui/src/components/app…`
     path to find the file — users expect Cmd-P-style fuzzy basename
     matching across the repo, not a strict directory prefix filter.

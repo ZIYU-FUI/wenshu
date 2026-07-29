@@ -1,6 +1,6 @@
 """Upload a 文枢 session transcript to Hugging Face as an agent trace.
 
-文枢 stores sessions in its own SQLite store (``hermes_state.SessionDB``),
+文枢 stores sessions in its own SQLite store (``wenshu_state.SessionDB``),
 so we reconstruct the conversation and emit it in the **Claude Code JSONL**
 shape — one of the three formats the Hugging Face Agent Trace Viewer
 auto-detects (Claude Code / Codex / Pi). No dataset-side preprocessing is
@@ -11,7 +11,7 @@ Docs: https://huggingface.co/docs/hub/agent-traces
 Design notes
 ------------
 * **Zero LLM turn.** This is a deterministic export — it never spends a
-  model call. The ``hermes trace upload`` subcommand calls
+  model call. The ``wenshu trace upload`` subcommand calls
   :func:`upload_session_trace` directly.
 * **Private by default.** Traces can contain prompts, tool output, local
   paths, and secrets. The dataset is created private and every text body
@@ -34,8 +34,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DATASET_NAME = "hermes-traces"
-_HERMES_VERSION = "hermes-agent"
+DEFAULT_DATASET_NAME = "wenshu-traces"
+_WENSHU_VERSION = "wenshu-agent"
 _REDACTION_BLOCKED_MESSAGE = (
     "Trace upload blocked: secret redaction failed, so the transcript may "
     "still contain credentials or other sensitive data. Fix the redactor or "
@@ -48,7 +48,7 @@ class TraceRedactionError(RuntimeError):
 
 
 # ---------------------------------------------------------------------------
-# Conversion: Hermes OpenAI-format messages -> Claude Code JSONL
+# Conversion: Wenshu OpenAI-format messages -> Claude Code JSONL
 # ---------------------------------------------------------------------------
 
 def _now_iso() -> str:
@@ -176,7 +176,7 @@ def build_trace_jsonl(
             "userType": "external",
             "cwd": cwd or os.getcwd(),
             "sessionId": session_id,
-            "version": _HERMES_VERSION,
+            "version": _WENSHU_VERSION,
             "gitBranch": git_branch,
             "uuid": turn_uuid,
             "timestamp": base_ts,
@@ -258,9 +258,9 @@ _NO_TOKEN_MESSAGE = (
     "\n"
     "1. Create a token with WRITE access at https://huggingface.co/settings/tokens\n"
     "   (New token -> type \"Write\" -> copy it).\n"
-    "2. Add it to your environment as HF_TOKEN (e.g. in ~/.hermes/.env):\n"
+    "2. Add it to your environment as HF_TOKEN (e.g. in ~/.wenshu-hermes/.env):\n"
     "     HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxx\n"
-    "3. Run /upload-trace again (or `hermes trace upload`)."
+    "3. Run /upload-trace again (or `wenshu trace upload`)."
 )
 
 
@@ -334,7 +334,7 @@ def load_session_messages(
     Returns ``(messages, meta)``. ``meta`` is ``{}`` when the session row is
     missing (messages may still be present for a live, untitled session).
     """
-    from hermes_state import SessionDB
+    from wenshu_state import SessionDB
     db = SessionDB(db_path=db_path) if db_path else SessionDB()
     resolved = db.resolve_session_id(session_id) or session_id
     meta = db.get_session(resolved) or {}
@@ -356,7 +356,7 @@ def upload_session_trace(
     """Top-level entry point used by the CLI/gateway/subcommand.
 
     Loads the session, converts it to Claude Code JSONL, and uploads it to
-    the user's private ``{user}/hermes-traces`` dataset. Returns a
+    the user's private ``{user}/wenshu-traces`` dataset. Returns a
     user-facing status string and never raises.
     """
     if not session_id:

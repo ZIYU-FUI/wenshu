@@ -20,35 +20,35 @@ else
 fi
 
 echo
-echo "=== 2. install.sh 拉 wenshu repo (不是 hermes 上游) ==="
+echo "=== 2. install.sh 拉 wenshu repo (不是 wenshu 上游) ==="
 WENSHU_HOME="${WENSHU_HOME:-$HOME/.wenshu-hermes}"
 if [ ! -d "$WENSHU_HOME" ]; then
   ok "(skip) $WENSHU_HOME 不存在 — 装机 user 没跑 installer (fresh 状态)"
 else
-  if [ -d "$WENSHU_HOME/hermes-agent/.git" ]; then
-    REMOTE=$(git -C "$WENSHU_HOME/hermes-agent" config --get remote.origin.url 2>/dev/null || echo "")
+  if [ -d "$WENSHU_HOME/wenshu-agent/.git" ]; then
+    REMOTE=$(git -C "$WENSHU_HOME/wenshu-agent" config --get remote.origin.url 2>/dev/null || echo "")
     if [[ "$REMOTE" == *"ZIYU-FUI/wenshu.git"* ]]; then
       ok "git remote = $REMOTE (隔离 ✓)"
     else
       no "git remote = $REMOTE (期望 ZIYU-FUI/wenshu.git)"
     fi
   else
-    no "$WENSHU_HOME/hermes-agent 不是一个 git checkout"
+    no "$WENSHU_HOME/wenshu-agent 不是一个 git checkout"
   fi
 fi
 
 echo
-echo "=== 3. 隔离验证: ~/.hermes 没被污染 ==="
-if [ -d "$HOME/.hermes" ]; then
-  WENSHU_MTIME=$(stat -f '%m' "$WENSHU_HOME/hermes-agent" 2>/dev/null || echo 0)
-  HERMES_MTIME=$(stat -f '%m' "$HOME/.hermes" 2>/dev/null || echo 0)
-  if [ "$HERMES_MTIME" -lt "$WENSHU_MTIME" ] || [ "$HERMES_MTIME" = "0" ]; then
-    ok "✓ ~/.hermes 没被 wenshu 装污染 (mtime 比 wenshu 旧)"
+echo "=== 3. 隔离验证: ~/.wenshu 没被污染 ==="
+if [ -d "$HOME/.wenshu-hermes" ]; then
+  WENSHU_MTIME=$(stat -f '%m' "$WENSHU_HOME/wenshu-agent" 2>/dev/null || echo 0)
+  WENSHU_MTIME=$(stat -f '%m' "$HOME/.wenshu-hermes" 2>/dev/null || echo 0)
+  if [ "$WENSHU_MTIME" -lt "$WENSHU_MTIME" ] || [ "$WENSHU_MTIME" = "0" ]; then
+    ok "✓ ~/.wenshu 没被 wenshu 装污染 (mtime 比 wenshu 旧)"
   else
-    echo "  WARN: ~/.hermes mtime $HERMES_MTIME 比 wenshu $WENSHU_MTIME 新 — 可能装机 user 自己动过"
+    echo "  WARN: ~/.wenshu mtime $WENSHU_MTIME 比 wenshu $WENSHU_MTIME 新 — 可能装机 user 自己动过"
   fi
 else
-  ok "(skip) ~/.hermes 不存在 — 装机 user 本来就没装 hermes"
+  ok "(skip) ~/.wenshu 不存在 — 装机 user 本来就没装 wenshu"
 fi
 
 echo
@@ -63,7 +63,7 @@ else
   if [ "$DISPLAY_NAME" = "文枢" ]; then ok "CFBundleDisplayName = 文枢"; else no "CFBundleDisplayName = $DISPLAY_NAME"; fi
   if [ "$IDENTIFIER" = "com.wenshu.app" ]; then ok "CFBundleIdentifier = com.wenshu.app"; else no "CFBundleIdentifier = $IDENTIFIER"; fi
   if [ "$VERSION" = "0.0.1" ]; then ok "CFBundleShortVersionString = 0.0.1"; else no "version = $VERSION"; fi
-  # wenshu 二进制名 (不是 Hermes)
+  # wenshu 二进制名 (不是 Wenshu)
   EXEC_NAME=$(plutil -extract CFBundleExecutable raw "$APP/Contents/Info.plist" 2>/dev/null)
   if [ "$EXEC_NAME" = "文枢" ]; then ok "CFBundleExecutable = 文枢"; else no "CFBundleExecutable = $EXEC_NAME"; fi
 fi

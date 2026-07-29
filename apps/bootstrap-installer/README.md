@@ -1,6 +1,6 @@
 # 文枢 Setup (Bootstrap Installer)
 
-> 文枢 (Wenshu) 是 Hermes Agent v0.19.0 的 fork。
+> 文枢 (Wenshu) 是 Wenshu Agent v0.19.0 的 fork。
 > 这个 Tauri app 引导装机 user 完成文枢的"首次装 + 在线更新"流程。
 
 ## 它做什么
@@ -9,32 +9,32 @@
 Tauri 端 (React UI + Rust backend) 弹出 onboarding 向导, 引导装机 user 走 11 阶段安装:
 
 1. **prerequisites** — 系统依赖检查 (Python, git, uv)
-2. **repository** — git clone `github.com/ZIYU-FUI/wenshu` 到 `~/.wenshu-hermes/hermes-agent/`
+2. **repository** — git clone `github.com/ZIYU-FUI/wenshu` 到 `~/.wenshu-hermes/wenshu-agent/`
 3. **venv** — 建 Python venv
-4. **python-deps** — `uv pip install -e .` 装 hermes-agent 包
+4. **python-deps** — `uv pip install -e .` 装 wenshu-agent 包
 5. **node-deps** — 装 node-side 依赖 (browser tool 等)
-6. **path** — `hermes` 命令 wrapper 写到 `~/.wenshu-hermes/bin/`
+6. **path** — `wenshu` 命令 wrapper 写到 `~/.wenshu-hermes/bin/`
 7. **config** — 生成 `~/.wenshu-hermes/config.yaml` 模板
 8. **setup** — API keys 配置 (交互)
 9. **gateway** — Feishu/微信 gateway 配置
 10. **complete** — 写安装完成 marker
 
-## 跟原 hermes installer 区别
+## 跟原 wenshu installer 区别
 
-| 项 | hermes | 文枢 |
+| 项 | wenshu | 文枢 |
 |---|---|---|
-| 装路径 | `~/.hermes/` | `~/.wenshu-hermes/` (避免跟用户已有 hermes 冲突) |
+| 装路径 | `~/.wenshu-hermes/` | `~/.wenshu-hermes/` (避免跟用户已有 wenshu 冲突) |
 | 默认 repo | `github.com/NousResearch/hermes-agent` | `github.com/ZIYU-FUI/wenshu` |
-| 应用名 | `Hermes-Setup` / `com.nousresearch.hermes.setup` | `文枢-Setup` / `com.wenshu.app.setup` |
-| 装好之后 | `~/.hermes/bin/hermes` | `~/.wenshu-hermes/bin/hermes` (wrapper, 调 hermes-agent CLI) |
+| 应用名 | `Wenshu-Setup` / `com.nousresearch.wenshu.setup` | `文枢-Setup` / `com.wenshu.app.setup` |
+| 装好之后 | `~/.wenshu-hermes/bin/wenshu` | `~/.wenshu-hermes/bin/wenshu` (wrapper, 调 wenshu-agent CLI) |
 
 ## 在线更新 (Update)
 
 Tauri 端 `update.rs` 实现:
 - 装机 user 重启 "文枢 Setup.app" + 选 "Update"
 - 等文枢 desktop 进程退出 (释放 venv + asar 锁)
-- 跑 `hermes update --yes --gateway` (Python/repo update)
-- 跑 `hermes desktop --build-only` (rebuild 文枢 desktop, 不真装)
+- 跑 `wenshu update --yes --gateway` (Python/repo update)
+- 跑 `wenshu desktop --build-only` (rebuild 文枢 desktop, 不真装)
 - 启动新文枢 desktop
 
 ## 开发者 (本机 build)
@@ -61,7 +61,7 @@ apps/bootstrap-installer/
 │   │   ├── bootstrap.rs    # 装流程 orchestration, 跑 install.ps1
 │   │   ├── update.rs       # 在线更新流程
 │   │   ├── install_script.rs # 拉 install.ps1 (dev/cache/downloaded)
-│   │   ├── paths.rs        # HERMES_HOME 路径解析
+│   │   ├── paths.rs        # WENSHU_HOME 路径解析
 │   │   ├── powershell.rs   # Windows install.ps1 适配 (跨平台预留)
 │   │   └── events.rs       # Tauri event schema
 │   ├── tauri.conf.json
@@ -76,4 +76,4 @@ apps/bootstrap-installer/
 
 本 app 调 `../../scripts/install.sh` (macOS/Linux) 或 `install.ps1` (Windows).
 这些脚本不在本目录, 跟文仓根的 `scripts/` 共享.
-脚本本身是 hermes 项目的 install.sh/ps1 改造, 默认值改 wenshu (参见 `scripts/install.sh` L46-48).
+脚本本身是 wenshu 项目的 install.sh/ps1 改造, 默认值改 wenshu (参见 `scripts/install.sh` L46-48).

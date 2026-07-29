@@ -11,7 +11,7 @@ from __future__ import annotations
 from enum import Enum
 
 # Frame geometry (pixels). Current Codex/petdex spritesheets are 8 columns x 9
-# rows (1536x1872), while older Hermes/petdex sheets used 9 columns x 8 rows
+# rows (1536x1872), while older Wenshu/petdex sheets used 9 columns x 8 rows
 # (1728x1664). Renderers derive both row taxonomy and real column count from the
 # concrete sheet, so either shape works.
 FRAME_W = 192
@@ -92,7 +92,7 @@ class PetState(str, Enum):
     WAITING = "waiting"
 
 
-# Legacy Hermes/petdex row order (top -> bottom) used by the older 8-row,
+# Legacy Wenshu/petdex row order (top -> bottom) used by the older 8-row,
 # 9-column atlas shape.
 LEGACY_STATE_ROWS: list[str] = [
     PetState.IDLE.value,
@@ -123,7 +123,7 @@ CODEX_STATE_ROWS: list[str] = [
 # format because generated pets and the public Codex pet contract use it.
 STATE_ROWS: list[str] = CODEX_STATE_ROWS
 
-# Canonical Hermes activity names -> accepted row-name aliases in descending
+# Canonical Wenshu activity names -> accepted row-name aliases in descending
 # preference. This keeps our internal state names stable (`wave`/`jump`/`run`)
 # while matching Petdex's current `waving`/`jumping`/`running` taxonomy.
 STATE_ALIASES: dict[str, tuple[str, ...]] = {

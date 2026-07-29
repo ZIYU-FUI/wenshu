@@ -1,12 +1,12 @@
 //! Filesystem paths + logging setup.
 //!
-//! Mirrors `hermes_constants.get_hermes_home()` from the Python CLI:
-//!   Windows: %LOCALAPPDATA%\wenshu-hermes
+//! Mirrors `wenshu_constants.get_wenshu_home()` from the Python CLI:
+//!   Windows: %LOCALAPPDATA%\wenshu-wenshu
 //!   macOS:   ~/.wenshu-hermes
-//!   Linux:   ~/.wenshu-hermes  (override via $HERMES_HOME)
+//!   Linux:   ~/.wenshu-hermes  (override via $WENSHU_HOME)
 //!
-//! NOTE (macOS): Python's get_hermes_home(), scripts/install.sh, and the
-//! Electron desktop's resolveHermesHome() ALL use ~/.wenshu-hermes on macOS — there
+//! NOTE (macOS): Python's get_wenshu_home(), scripts/install.sh, and the
+//! Electron desktop's resolveWenshuHome() ALL use ~/.wenshu-hermes on macOS — there
 //! is no ~/Library/Application Support branch anywhere else. An earlier
 //! version of this file used Application Support, which drifted from every
 //! other component: the installer wrote the install to one dir and the
@@ -22,9 +22,9 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use tracing_appender::non_blocking::{NonBlocking, WorkerGuard};
 
-/// Returns the canonical Hermes home directory, respecting $HERMES_HOME if set.
-pub fn hermes_home() -> PathBuf {
-    if let Ok(override_path) = std::env::var("HERMES_HOME") {
+/// Returns the canonical Wenshu home directory, respecting $WENSHU_HOME if set.
+pub fn wenshu_home() -> PathBuf {
+    if let Ok(override_path) = std::env::var("WENSHU_HOME") {
         if !override_path.trim().is_empty() {
             return PathBuf::from(override_path);
         }
@@ -32,14 +32,14 @@ pub fn hermes_home() -> PathBuf {
 
     #[cfg(target_os = "windows")]
     {
-        // %LOCALAPPDATA%\wenshu-hermes — matches scripts/install.ps1's $HermesHome.
+        // %LOCALAPPDATA%\wenshu-wenshu — matches scripts/install.ps1's $WenshuHome.
         if let Some(local_app_data) = dirs::data_local_dir() {
-            return local_app_data.join("wenshu-hermes");
+            return local_app_data.join("wenshu-wenshu");
         }
     }
 
-    // macOS + Linux + fallback: ~/.wenshu-hermes (matches Python get_hermes_home(),
-    // install.sh, and the Electron desktop's resolveHermesHome()).
+    // macOS + Linux + fallback: ~/.wenshu-hermes (matches Python get_wenshu_home(),
+    // install.sh, and the Electron desktop's resolveWenshuHome()).
     if let Some(home) = dirs::home_dir() {
         return home.join(".wenshu-hermes");
     }
@@ -50,7 +50,7 @@ pub fn hermes_home() -> PathBuf {
 }
 
 pub fn log_dir() -> PathBuf {
-    hermes_home().join("logs")
+    wenshu_home().join("logs")
 }
 
 pub fn log_path() -> PathBuf {
@@ -58,37 +58,37 @@ pub fn log_path() -> PathBuf {
 }
 
 pub fn bootstrap_cache_dir() -> PathBuf {
-    hermes_home().join("bootstrap-cache")
+    wenshu_home().join("bootstrap-cache")
 }
 
 /// Stable location the installer copies itself to after a successful install.
 /// The desktop app re-invokes this with `--update`, and the start-menu /
 /// desktop shortcuts can point users back to it. Lives directly under
-/// HERMES_HOME so it survives repo checkout deletion (unlike anything under
-/// hermes-agent/).
+/// WENSHU_HOME so it survives repo checkout deletion (unlike anything under
+/// wenshu-agent/).
 ///
-/// On Windows this is `%LOCALAPPDATA%\hermes\hermes-setup.exe`; on other
+/// On Windows this is `%LOCALAPPDATA%\wenshu\wenshu-setup.exe`; on other
 /// platforms the extension differs but the directory is the same.
 pub fn installer_dest() -> PathBuf {
     let name = if cfg!(target_os = "windows") {
-        "hermes-setup.exe"
+        "wenshu-setup.exe"
     } else {
-        "hermes-setup"
+        "wenshu-setup"
     };
-    hermes_home().join(name)
+    wenshu_home().join(name)
 }
 
 /// Marker the updater writes for the duration of an in-app update and removes
 /// when it finishes (see update.rs `UpdateMarkerGuard`). A freshly-launched
 /// desktop checks this before spawning its own local backend: spawning one
-/// mid-update re-locks the venv shim and triggers `force_kill_other_hermes`,
+/// mid-update re-locks the venv shim and triggers `force_kill_other_wenshu`,
 /// which then kills that legitimate backend in a respawn loop (#50238).
 ///
-/// Lives directly under HERMES_HOME (same rationale as `installer_dest`) so the
-/// Electron desktop — which resolves HERMES_HOME identically and pins it into
+/// Lives directly under WENSHU_HOME (same rationale as `installer_dest`) so the
+/// Electron desktop — which resolves WENSHU_HOME identically and pins it into
 /// the updater's env — agrees on the exact path.
 pub fn update_in_progress_marker() -> PathBuf {
-    hermes_home().join(".hermes-update-in-progress")
+    wenshu_home().join(".wenshu-update-in-progress")
 }
 
 /// Copy the currently-running installer binary to `installer_dest()` so it's
@@ -99,7 +99,7 @@ pub fn update_in_progress_marker() -> PathBuf {
 /// that path), where copying onto ourselves would be a Windows sharing
 /// violation. Best-effort: a failure here must not fail the install, so the
 /// caller logs and continues.
-pub fn copy_self_to_hermes_home() -> std::io::Result<()> {
+pub fn copy_self_to_wenshu_home() -> std::io::Result<()> {
     let src = std::env::current_exe()?;
     let dest = installer_dest();
 
@@ -120,7 +120,7 @@ pub fn copy_self_to_hermes_home() -> std::io::Result<()> {
     }
     std::fs::copy(&src, &dest)?;
     repair_macos_installer_helper(&dest);
-    tracing::info!(?src, ?dest, "已将安装程序复制到 HERMES_HOME");
+    tracing::info!(?src, ?dest, "已将安装程序复制到 WENSHU_HOME");
     Ok(())
 }
 
@@ -150,7 +150,7 @@ fn repair_macos_installer_helper(path: &Path) {
 #[cfg(not(target_os = "macos"))]
 fn repair_macos_installer_helper(_path: &Path) {}
 
-/// Initializes tracing to bootstrap-installer.log under HERMES_HOME/logs/.
+/// Initializes tracing to bootstrap-installer.log under WENSHU_HOME/logs/.
 /// Returns a guard that flushes the appender on drop — keep it alive for
 /// the lifetime of the process.
 ///
@@ -166,7 +166,7 @@ pub fn init_logging() -> Option<CompositeGuard> {
     if let Err(err) = std::fs::create_dir_all(&dir) {
         // No log dir → log to stderr only. Don't panic; the installer
         // should still be usable on an exotic filesystem.
-        eprintln!("[hermes-setup] could not create log dir {dir:?}: {err}");
+        eprintln!("[wenshu-setup] could not create log dir {dir:?}: {err}");
         return None;
     }
 
@@ -174,7 +174,7 @@ pub fn init_logging() -> Option<CompositeGuard> {
     let log_appender = tracing_appender::rolling::never(&dir, "bootstrap-installer.log");
     let (primary_nb, primary_guard) = tracing_appender::non_blocking(log_appender);
 
-    let env_filter = tracing_subscriber::EnvFilter::try_from_env("HERMES_BOOTSTRAP_LOG")
+    let env_filter = tracing_subscriber::EnvFilter::try_from_env("WENSHU_BOOTSTRAP_LOG")
         .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"));
 
     // Desktop mirror: best-effort. If Desktop is missing, fall through to
@@ -213,7 +213,7 @@ pub fn init_logging() -> Option<CompositeGuard> {
             }
             Err(err) => {
                 eprintln!(
-                    "[hermes-setup] could not open Desktop log {desktop_path:?}: {err}                      (falling back to single-sink)"
+                    "[wenshu-setup] could not open Desktop log {desktop_path:?}: {err}                      (falling back to single-sink)"
                 );
             }
         }
@@ -318,8 +318,8 @@ pub fn get_log_path() -> String {
 }
 
 #[tauri::command]
-pub fn get_hermes_home() -> String {
-    hermes_home().to_string_lossy().into_owned()
+pub fn get_wenshu_home() -> String {
+    wenshu_home().to_string_lossy().into_owned()
 }
 
 #[tauri::command]

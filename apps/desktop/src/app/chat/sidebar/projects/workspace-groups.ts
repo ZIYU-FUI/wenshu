@@ -1,5 +1,5 @@
-import type { HermesGitWorktree } from '@/global'
-import type { ProjectInfo, SessionInfo } from '@/hermes'
+import type { WenshuGitWorktree } from '@/global'
+import type { ProjectInfo, SessionInfo } from '@/wenshu'
 import { normalize } from '@/lib/text'
 
 // Session grouping is now computed authoritatively on the backend
@@ -163,7 +163,7 @@ export function sortWorktreeGroups(groups: SidebarSessionGroup[]): SidebarSessio
  */
 export function mergeRepoWorktreeGroups(
   repo: Pick<SidebarWorkspaceTree, 'groups' | 'id' | 'path'>,
-  discoveredWorktrees?: HermesGitWorktree[]
+  discoveredWorktrees?: WenshuGitWorktree[]
 ): SidebarSessionGroup[] {
   // Branch-primary labels: a linked worktree's identity in every git UI (VS
   // Code, JetBrains, lazygit, …) is its CHECKED-OUT BRANCH, not the directory it

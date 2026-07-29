@@ -7,7 +7,7 @@
 //!      venv shim and packaged app.asar are free; otherwise `wenshu update`
 //!      or repair bootstrap can race locked files),
 //!   2. run `wenshu update --yes --gateway` (Python/repo update; this does NOT
-//!      rebuild apps/desktop by design — see cmd_update in hermes_cli/main.py),
+//!      rebuild apps/desktop by design — see cmd_update in wenshu_cli/main.py),
 //!   3. run `wenshu desktop --build-only` (the rebuild step update skips),
 //!   4. launch the freshly-built desktop (reuses bootstrap::launch logic).
 //!
@@ -18,7 +18,7 @@
 //! sees discrete steps (with the live log underneath) instead of one bar.
 //!
 //! Cross-platform note: `wenshu update` already handles macOS/Linux (git/pip).
-//! The only OS-specific bits here are the venv shim path (resolve_hermes) and
+//! The only OS-specific bits here are the venv shim path (resolve_wenshu) and
 //! the no-window creation flag — both already cfg-gated. Keep new logic
 //! OS-agnostic so the mac/linux port stays "fill in the paths".
 
@@ -37,9 +37,9 @@ use tokio::process::Command;
 use crate::events::{BootstrapEvent, LogStream, StageInfo, StageState};
 use crate::powershell::read_decoded_line;
 
-/// `wenshu update` exit code meaning "another hermes process is holding the
+/// `wenshu update` exit code meaning "another wenshu process is holding the
 /// venv shim open / dirty precondition" — see _cmd_update_impl in
-/// hermes_cli/main.py (sys.exit(2)). We surface a targeted message for this.
+/// wenshu_cli/main.py (sys.exit(2)). We surface a targeted message for this.
 const UPDATE_EXIT_CONCURRENT: i32 = 2;
 
 /// How long to wait for the old desktop process to release files under the
@@ -143,13 +143,13 @@ impl Drop for UpdateMarkerGuard {
 }
 
 async fn run_update(app: AppHandle) -> Result<()> {
-    let hermes_home = crate::paths::hermes_home();
-    let install_root = hermes_home.join("hermes-agent");
+    let wenshu_home = crate::paths::wenshu_home();
+    let install_root = wenshu_home.join("wenshu-agent");
 
     // Mutual exclusion (#50238): publish an "update in progress" marker for the
     // entire duration of this update. A desktop instance the user relaunches
     // mid-update consults this before spawning its own local backend — without
-    // it, that backend re-locks the venv shim, our `force_kill_other_hermes`
+    // it, that backend re-locks the venv shim, our `force_kill_other_wenshu`
     // straggler-cleanup kills it, and the relaunch/kill cycle loops. The guard
     // removes the marker on every exit path (incl. early returns / panics).
     let _update_marker = UpdateMarkerGuard::acquire(crate::paths::update_in_progress_marker());
@@ -163,7 +163,7 @@ async fn run_update(app: AppHandle) -> Result<()> {
         None
     };
 
-    let hermes = resolve_hermes(&install_root).ok_or_else(|| {
+    let wenshu = resolve_wenshu(&install_root).ok_or_else(|| {
         let msg = format!(
             "Could not find the wenshu CLI under {}. Is 文枢 installed? \
              Re-run the installer to repair the install.",
@@ -229,12 +229,12 @@ async fn run_update(app: AppHandle) -> Result<()> {
     // `sys.exit(2)` and dead-end the handoff). By contract the desktop has
     // already exited and waited for the install locks to clear before launching
     // us, and wait_for_install_locks_free below force-kills any straggler — so by the
-    // time `wenshu update` runs there is no legitimate hermes.exe to protect,
+    // time `wenshu update` runs there is no legitimate wenshu.exe to protect,
     // and the guard would only produce a false "文枢 is still running" stop.
     //
     // NOTE: --force does NOT bypass the venv-python holder guard (that needs
     // an explicit --force-venv, which we deliberately do not pass). Our lock
-    // probe only checks the hermes.exe shim and app.asar, so an external venv
+    // probe only checks the wenshu.exe shim and app.asar, so an external venv
     // python holding a native .pyd (a user terminal, an unmanaged gateway)
     // could still be alive here — mutating the venv under it would strand the
     // install half-updated. If that guard fires, it exits 2 and the match arm
@@ -247,7 +247,7 @@ async fn run_update(app: AppHandle) -> Result<()> {
     let started = Instant::now();
     let mut update = run_streamed(
         &app,
-        &hermes,
+        &wenshu,
         &update_args,
         &install_root,
         &child_env,
@@ -278,7 +278,7 @@ async fn run_update(app: AppHandle) -> Result<()> {
         );
         update = run_streamed(
             &app,
-            &hermes,
+            &wenshu,
             &update_args,
             &install_root,
             &child_env,
@@ -316,7 +316,7 @@ async fn run_update(app: AppHandle) -> Result<()> {
             let msg = format!(
                 "wenshu update failed (exit {:?}). See {} for details.",
                 other,
-                crate::paths::hermes_home()
+                crate::paths::wenshu_home()
                     .join("logs")
                     .join("update.log")
                     .display()
@@ -347,7 +347,7 @@ async fn run_update(app: AppHandle) -> Result<()> {
     let rebuild_args: Vec<String> = vec!["desktop".into(), "--build-only".into()];
     let mut rebuild = run_streamed(
         &app,
-        &hermes,
+        &wenshu,
         &rebuild_args,
         &install_root,
         &child_env,
@@ -373,7 +373,7 @@ async fn run_update(app: AppHandle) -> Result<()> {
         );
         rebuild = run_streamed(
             &app,
-            &hermes,
+            &wenshu,
             &rebuild_args,
             &install_root,
             &child_env,
@@ -464,7 +464,7 @@ async fn run_update(app: AppHandle) -> Result<()> {
             );
         }
     } else if let Err(err) =
-        crate::bootstrap::launch_hermes_desktop(app.clone(), install_root.to_string_lossy().into_owned()).await
+        crate::bootstrap::launch_wenshu_desktop(app.clone(), install_root.to_string_lossy().into_owned()).await
     {
         // Launch failed: don't hard-fail the update (it succeeded); surface a
         // log line so the success screen can still tell the user to launch
@@ -495,7 +495,7 @@ pub(crate) async fn wait_for_install_locks_free(install_root: &Path, app: &AppHa
             return;
         }
         if Instant::now() >= deadline {
-            // Last resort: a backend hermes.exe (or the desktop 文枢.exe
+            // Last resort: a backend wenshu.exe (or the desktop 文枢.exe
             // itself) is still holding one of the update-sensitive files. The
             // desktop should have reaped its tree before handing off, but
             // SIGTERM races / detached grandchildren / AV handles can leave a
@@ -512,7 +512,7 @@ pub(crate) async fn wait_for_install_locks_free(install_root: &Path, app: &AppHa
                     format_locked_paths(&locked)
                 ),
             );
-            force_kill_other_hermes();
+            force_kill_other_wenshu();
             tokio::time::sleep(Duration::from_millis(800)).await;
             let locked_after_kill = locked_paths(&lock_targets);
             if locked_after_kill.is_empty() {
@@ -540,7 +540,7 @@ pub(crate) async fn wait_for_install_locks_free(install_root: &Path, app: &AppHa
 }
 
 fn install_lock_probe_paths(install_root: &Path) -> Vec<PathBuf> {
-    let mut paths = vec![venv_hermes(install_root)];
+    let mut paths = vec![venv_wenshu(install_root)];
     paths.extend(desktop_app_payload_paths(install_root));
     paths
 }
@@ -570,21 +570,21 @@ fn format_locked_paths(paths: &[PathBuf]) -> String {
     paths.iter().map(|p| p.display().to_string()).collect::<Vec<_>>().join(", ")
 }
 
-/// Force-kill any `hermes.exe` other than this process. Windows-only; a no-op
+/// Force-kill any `wenshu.exe` other than this process. Windows-only; a no-op
 /// elsewhere (POSIX has no mandatory-lock contention). We can't selectively
 /// target "the backend" by PID here — the desktop already exited and we never
-/// knew its children — so we kill the whole `hermes.exe` image tree via
+/// knew its children — so we kill the whole `wenshu.exe` image tree via
 /// taskkill, excluding our own PID.
 ///
 /// Safe w.r.t. our own update child: this runs inside the install-lock wait,
-/// which completes BEFORE we spawn `venv\Scripts\hermes.exe update`. And a
+/// which completes BEFORE we spawn `venv\Scripts\wenshu.exe update`. And a
 /// desktop the user relaunches mid-update will NOT have spawned a backend —
-/// `startHermes()` in the desktop gates local-backend startup on our
+/// `startWenshu()` in the desktop gates local-backend startup on our
 /// update-in-progress marker and parks until we finish (#50238). So the only
-/// hermes.exe images here are stragglers from the old desktop — exactly what
+/// wenshu.exe images here are stragglers from the old desktop — exactly what
 /// we want gone. (`/FI PID ne <self>` also spares this Tauri process, though it
-/// isn't named hermes.exe.)
-fn force_kill_other_hermes() {
+/// isn't named wenshu.exe.)
+fn force_kill_other_wenshu() {
     if !cfg!(target_os = "windows") {
         return;
     }
@@ -702,23 +702,23 @@ struct CmdResult {
 }
 
 /// Path to the venv wenshu shim under an install root, regardless of existence.
-fn venv_hermes(install_root: &Path) -> PathBuf {
+fn venv_wenshu(install_root: &Path) -> PathBuf {
     if cfg!(target_os = "windows") {
-        install_root.join("venv").join("Scripts").join("hermes.exe")
+        install_root.join("venv").join("Scripts").join("wenshu.exe")
     } else {
-        install_root.join("venv").join("bin").join("hermes")
+        install_root.join("venv").join("bin").join("wenshu")
     }
 }
 
 /// Resolve the wenshu CLI to drive. Prefer the venv shim in the install we
 /// just updated; fall back to `wenshu` on PATH.
-fn resolve_hermes(install_root: &Path) -> Option<PathBuf> {
-    let shim = venv_hermes(install_root);
+fn resolve_wenshu(install_root: &Path) -> Option<PathBuf> {
+    let shim = venv_wenshu(install_root);
     if shim.exists() {
         return Some(shim);
     }
     // PATH fallback. which-style probe via env, kept dependency-free.
-    let exe = if cfg!(target_os = "windows") { "hermes.exe" } else { "hermes" };
+    let exe = if cfg!(target_os = "windows") { "wenshu.exe" } else { "wenshu" };
     if let Ok(path) = std::env::var("PATH") {
         let sep = if cfg!(target_os = "windows") { ';' } else { ':' };
         for dir in path.split(sep) {
@@ -732,10 +732,10 @@ fn resolve_hermes(install_root: &Path) -> Option<PathBuf> {
 }
 
 fn update_child_env(install_root: &Path) -> Vec<(String, OsString)> {
-    let hermes_home = crate::paths::hermes_home();
+    let wenshu_home = crate::paths::wenshu_home();
     let mut envs = vec![(
-        "HERMES_HOME".to_string(),
-        hermes_home.as_os_str().to_os_string(),
+        "WENSHU_HOME".to_string(),
+        wenshu_home.as_os_str().to_os_string(),
     )];
     // `wenshu update` is a Python CLI writing to a pipe here, so CPython
     // block-buffers its stdout: nothing reaches run_streamed (and the live
@@ -745,7 +745,7 @@ fn update_child_env(install_root: &Path) -> Vec<(String, OsString)> {
     // output instead.
     envs.push(("PYTHONUNBUFFERED".to_string(), OsString::from("1")));
     if let Some(path) = path_with_prepended_entries(&[
-        hermes_home.join("node").join("bin"),
+        wenshu_home.join("node").join("bin"),
         venv_bin_dir(install_root),
     ]) {
         envs.push(("PATH".to_string(), path));
@@ -819,7 +819,7 @@ async fn install_macos_app_update(
         ));
     }
 
-    let rebuilt_app = crate::bootstrap::resolve_hermes_desktop_app(install_root).ok_or_else(|| {
+    let rebuilt_app = crate::bootstrap::resolve_wenshu_desktop_app(install_root).ok_or_else(|| {
         anyhow!(
             "desktop rebuild succeeded but no 文枢.app was found under {}",
             install_root.join("apps").join("desktop").join("release").display()
@@ -857,15 +857,15 @@ async fn install_macos_app_update(
     if let Some(parent) = target_app.parent() {
         tokio::fs::create_dir_all(parent).await?;
     }
-    let tmp = PathBuf::from(format!("{}.hermes-update-new", target_app.display()));
-    let old = PathBuf::from(format!("{}.hermes-update-old", target_app.display()));
+    let tmp = PathBuf::from(format!("{}.wenshu-update-new", target_app.display()));
+    let old = PathBuf::from(format!("{}.wenshu-update-old", target_app.display()));
     remove_dir_if_exists(&tmp).await;
     remove_dir_if_exists(&old).await;
 
     let ditto = Command::new("/usr/bin/ditto")
         .arg(&rebuilt_app)
         .arg(&tmp)
-        .current_dir(crate::paths::hermes_home())
+        .current_dir(crate::paths::wenshu_home())
         .status()
         .await
         .map_err(|e| anyhow!("running ditto: {e}"))?;
@@ -885,7 +885,7 @@ async fn install_macos_app_update(
         .arg("-dr")
         .arg("com.apple.quarantine")
         .arg(target_app)
-        .current_dir(crate::paths::hermes_home())
+        .current_dir(crate::paths::wenshu_home())
         .status()
         .await;
 
@@ -1045,9 +1045,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn venv_hermes_is_under_install_root() {
-        let root = Path::new("/x/hermes-agent");
-        let shim = venv_hermes(root);
+    fn venv_wenshu_is_under_install_root() {
+        let root = Path::new("/x/wenshu-agent");
+        let shim = venv_wenshu(root);
         assert!(shim.starts_with(root));
         assert!(shim.to_string_lossy().contains("venv"));
     }
@@ -1059,7 +1059,7 @@ mod tests {
 
     #[test]
     fn update_child_env_forces_unbuffered_python() {
-        let envs = update_child_env(Path::new("/x/hermes-agent"));
+        let envs = update_child_env(Path::new("/x/wenshu-agent"));
         assert!(
             envs.iter()
                 .any(|(k, v)| k == "PYTHONUNBUFFERED" && v.to_str() == Some("1")),
@@ -1069,11 +1069,11 @@ mod tests {
 
     #[test]
     fn lock_probe_paths_include_desktop_app_payload() {
-        let root = Path::new("/x/hermes-agent");
+        let root = Path::new("/x/wenshu-agent");
         let probes = install_lock_probe_paths(root);
 
         assert!(
-            probes.iter().any(|p| p == &venv_hermes(root)),
+            probes.iter().any(|p| p == &venv_wenshu(root)),
             "venv shim remains part of the update lock probe"
         );
         assert!(
@@ -1089,7 +1089,7 @@ mod tests {
 
     #[test]
     fn locked_paths_ignores_missing_payloads() {
-        let root = Path::new("/nonexistent/hermes-agent");
+        let root = Path::new("/nonexistent/wenshu-agent");
         let probes = install_lock_probe_paths(root);
 
         assert!(locked_paths(&probes).is_empty());
@@ -1099,7 +1099,7 @@ mod tests {
     fn update_marker_guard_writes_then_removes_on_drop() {
         let dir = unique_tmp_dir("marker-guard");
         std::fs::create_dir_all(&dir).unwrap();
-        let marker = dir.join(".hermes-update-in-progress");
+        let marker = dir.join(".wenshu-update-in-progress");
 
         {
             let _g = UpdateMarkerGuard::acquire(marker.clone());
@@ -1125,7 +1125,7 @@ mod tests {
     fn update_marker_guard_drop_is_quiet_when_already_gone() {
         let dir = unique_tmp_dir("marker-guard-gone");
         std::fs::create_dir_all(&dir).unwrap();
-        let marker = dir.join(".hermes-update-in-progress");
+        let marker = dir.join(".wenshu-update-in-progress");
 
         let guard = UpdateMarkerGuard::acquire(marker.clone());
         // Simulate an external cleanup (e.g. the desktop pruned a marker it
@@ -1202,7 +1202,7 @@ mod tests {
     // Helpers for the swap tests: make a throwaway dir tree we can rename.
     fn unique_tmp_dir(tag: &str) -> PathBuf {
         let base = std::env::temp_dir().join(format!(
-            "hermes-swap-test-{tag}-{}-{}",
+            "wenshu-swap-test-{tag}-{}-{}",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
@@ -1222,8 +1222,8 @@ mod tests {
     async fn swap_installs_new_bundle_and_cleans_up() {
         let base = unique_tmp_dir("ok");
         let target = base.join("文枢.app");
-        let tmp = base.join("文枢.app.hermes-update-new");
-        let old = base.join("文枢.app.hermes-update-old");
+        let tmp = base.join("文枢.app.wenshu-update-new");
+        let old = base.join("文枢.app.wenshu-update-old");
         write_marker(&target, "OLD");
         write_marker(&tmp, "NEW");
 
@@ -1252,8 +1252,8 @@ mod tests {
         //  - `tmp` does not exist       -> rename(tmp, target) fails
         let base = unique_tmp_dir("fail");
         let target = base.join("文枢.app");
-        let tmp = base.join("文枢.app.hermes-update-new"); // intentionally absent
-        let old = base.join("文枢.app.hermes-update-old");
+        let tmp = base.join("文枢.app.wenshu-update-new"); // intentionally absent
+        let old = base.join("文枢.app.wenshu-update-old");
         write_marker(&target, "OLD");
         write_marker(&old, "OCCUPIED"); // non-empty => rename(target,old) fails
 
@@ -1275,8 +1275,8 @@ mod tests {
         // absent). The original must be rolled back from `old` to `target`.
         let base = unique_tmp_dir("rollback");
         let target = base.join("文枢.app");
-        let tmp = base.join("文枢.app.hermes-update-new"); // absent
-        let old = base.join("文枢.app.hermes-update-old");
+        let tmp = base.join("文枢.app.wenshu-update-new"); // absent
+        let old = base.join("文枢.app.wenshu-update-old");
         write_marker(&target, "OLD");
 
         let result = swap_in_new_bundle(&tmp, &target, &old).await;

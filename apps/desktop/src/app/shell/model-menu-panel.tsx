@@ -16,7 +16,7 @@ import {
   DropdownMenuSubTrigger
 } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { HermesGateway } from '@/hermes'
+import type { WenshuGateway } from '@/wenshu'
 import { useI18n } from '@/i18n'
 import { ChevronDown, ChevronRight } from '@/lib/icons'
 import { requestModelOptions } from '@/lib/model-options'
@@ -39,7 +39,7 @@ import {
   setModelVisibilityOpen
 } from '@/store/model-visibility'
 import { $collapsedProviders, toggleCollapsedProvider } from '@/store/provider-collapse'
-import type { ModelOptionProvider, ModelOptionsResponse } from '@/types/hermes'
+import type { ModelOptionProvider, ModelOptionsResponse } from '@/types/wenshu'
 
 import { ModelEditSubmenu, resolveFastControl } from './model-edit-submenu'
 
@@ -57,7 +57,7 @@ export interface ModelSelection {
 }
 
 interface ModelMenuPanelProps {
-  gateway?: HermesGateway
+  gateway?: WenshuGateway
   onSelectModel: (selection: ModelSelection) => Promise<boolean> | void
   requestGateway: <T>(method: string, params?: Record<string, unknown>) => Promise<T>
 }

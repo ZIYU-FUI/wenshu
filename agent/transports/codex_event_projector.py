@@ -83,7 +83,7 @@ class CodexEventProjector:
 
         # We only materialize messages on `item/completed`. Streaming deltas
         # (`item/<type>/outputDelta`, `item/<type>/delta`) are display-only and
-        # don't enter the messages list — same way Hermes already only writes
+        # don't enter the messages list — same way Wenshu already only writes
         # the assistant message after the streaming completion event.
         if method != "item/completed":
             return ProjectionResult()
@@ -127,7 +127,7 @@ class CodexEventProjector:
     def _project_user_message(self, item: dict) -> ProjectionResult:
         # codex's userMessage content is a list of UserInput variants. For
         # projection purposes we flatten any text fragments and ignore
-        # non-text parts (images, etc.) — Hermes' messages store text only.
+        # non-text parts (images, etc.) — Wenshu' messages store text only.
         text_parts: list[str] = []
         for fragment in item.get("content") or []:
             if isinstance(fragment, dict):

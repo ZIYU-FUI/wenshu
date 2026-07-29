@@ -50,11 +50,11 @@ MAX_TEXT_LENGTH = 4000
 
 # BlueBubbles/iMessage does not expose a stable bot mention identity like
 # Slack (<@U...>), Telegram (@botname), or Matrix (MXID). When users opt into
-# group mention gating without custom aliases, use conservative Hermes wake
+# group mention gating without custom aliases, use conservative Wenshu wake
 # words so `require_mention: true` is a one-line enablement path.
 DEFAULT_MENTION_PATTERNS = [
-    r"(?<![\w@])@?hermes\s+agent\b[,:\-]?",
-    r"(?<![\w@])@?hermes\b[,:\-]?",
+    r"(?<![\w@])@?wenshu\s+agent\b[,:\-]?",
+    r"(?<![\w@])@?wenshu\b[,:\-]?",
 ]
 
 # Tapback reaction codes (BlueBubbles associatedMessageType values)

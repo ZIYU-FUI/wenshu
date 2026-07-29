@@ -1,25 +1,25 @@
-# nix/desktop.nix — Hermes Desktop (Electron) app build + wrapper
+# nix/desktop.nix — Wenshu Desktop (Electron) app build + wrapper
 #
-# `hermesAgent` is the fully-built `.#default` package — it ships the
-# `hermes` binary with the venv, runtime PATH, bundled skills/plugins, etc.
+# `wenshuAgent` is the fully-built `.#default` package — it ships the
+# `wenshu` binary with the venv, runtime PATH, bundled skills/plugins, etc.
 # already wired up.  We point the desktop at it via the existing
-# `HERMES_DESKTOP_HERMES` override env var, so the desktop's resolver
-# uses our fully wrapped binary at step 4 ("existing Hermes CLI").
+# `WENSHU_DESKTOP_WENSHU` override env var, so the desktop's resolver
+# uses our fully wrapped binary at step 4 ("existing Wenshu CLI").
 # No reimplementation of the agent resolution in this wrapper.
 {
   pkgs,
   lib,
   stdenv,
   makeWrapper,
-  hermesNpmLib,
+  wenshuNpmLib,
   electron,
-  hermesAgent,
+  wenshuAgent,
   ...
 }:
 let
   # apps/shared ships as a file: workspace dep of apps/desktop, so its
   # source must be in the filtered src tree too.
-  npm = hermesNpmLib.mkNpmPassthru {
+  npm = wenshuNpmLib.mkNpmPassthru {
     dirs = [
       "apps/desktop"
       "apps/shared"
@@ -43,7 +43,7 @@ let
     else if stdenv.hostPlatform.isLinux then
       "linux"
     else
-      throw "hermes-desktop: unsupported host platform for node-pty staging";
+      throw "wenshu-desktop: unsupported host platform for node-pty staging";
 
   targetArch =
     if stdenv.hostPlatform.isAarch64 then
@@ -51,13 +51,13 @@ let
     else if stdenv.hostPlatform.isx86_64 then
       "x64"
     else
-      throw "hermes-desktop: unsupported host arch for node-pty staging";
+      throw "wenshu-desktop: unsupported host arch for node-pty staging";
 
   # Build the renderer (dist/ + electron/ + package.json).
   renderer = pkgs.buildNpmPackage (
     npm
     // {
-      pname = "hermes-desktop-renderer";
+      pname = "wenshu-desktop-renderer";
       inherit version;
       doCheck = true;
 
@@ -145,7 +145,7 @@ in
 
 # Electron wrapper: nixpkgs' electron binary pointed at the renderer dir.
 stdenv.mkDerivation {
-  pname = "hermes-desktop";
+  pname = "wenshu-desktop";
   inherit version;
 
   dontUnpack = true;
@@ -156,24 +156,24 @@ stdenv.mkDerivation {
   installPhase = ''
     runHook preInstall
 
-    mkdir -p $out/share/hermes-desktop $out/bin
-    cp -r ${renderer}/* $out/share/hermes-desktop/
+    mkdir -p $out/share/wenshu-desktop $out/bin
+    cp -r ${renderer}/* $out/share/wenshu-desktop/
 
     # Standard nixpkgs pattern for electron-builder apps: patch process.resourcesPath
     # to point to the app's directory. In Nix, unpackaged electron defaults this
     # to the electron distribution's resources path, breaking extraResources lookups.
-    substituteInPlace $out/share/hermes-desktop/dist/electron-main.mjs \
-      --replace-fail "process.resourcesPath" "'$out/share/hermes-desktop'"
+    substituteInPlace $out/share/wenshu-desktop/dist/electron-main.mjs \
+      --replace-fail "process.resourcesPath" "'$out/share/wenshu-desktop'"
 
     # Wrap the nixpkgs electron binary to launch our app.  Set
-    # HERMES_DESKTOP_HERMES to the absolute path of the nix-built `hermes`
-    # binary so the desktop's resolver step 4 ("existing Hermes CLI on
+    # WENSHU_DESKTOP_WENSHU to the absolute path of the nix-built `wenshu`
+    # binary so the desktop's resolver step 4 ("existing Wenshu CLI on
     # PATH") uses our fully wrapped binary — venv with all deps,
     # bundled skills/plugins, runtime PATH (ripgrep/git/ffmpeg/etc).
     # No reimplementation of the agent resolver in the wrapper.
-    makeWrapper ${lib.getExe electron} $out/bin/hermes-desktop \
-      --add-flags "$out/share/hermes-desktop" \
-      --set HERMES_DESKTOP_HERMES "${lib.getExe hermesAgent}" \
+    makeWrapper ${lib.getExe electron} $out/bin/wenshu-desktop \
+      --add-flags "$out/share/wenshu-desktop" \
+      --set WENSHU_DESKTOP_WENSHU "${lib.getExe wenshuAgent}" \
       --set ELECTRON_IS_DEV 0
 
     runHook postInstall
@@ -184,10 +184,10 @@ stdenv.mkDerivation {
   };
 
   meta = with lib; {
-    description = "Native Electron desktop shell for Hermes Agent";
+    description = "Native Electron desktop shell for Wenshu Agent";
     homepage = "https://github.com/NousResearch/hermes-agent";
     license = licenses.mit;
     platforms = platforms.unix;
-    mainProgram = "hermes-desktop";
+    mainProgram = "wenshu-desktop";
   };
 }

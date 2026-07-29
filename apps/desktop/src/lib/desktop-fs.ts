@@ -1,13 +1,13 @@
 import type {
-  HermesConnection,
-  HermesReadDirResult,
-  HermesReadFileTextResult,
-  HermesSelectPathsOptions
+  WenshuConnection,
+  WenshuReadDirResult,
+  WenshuReadFileTextResult,
+  WenshuSelectPathsOptions
 } from '@/global'
 import { $connection } from '@/store/session'
 
 export interface DesktopFsRemotePicker {
-  selectPaths: (options?: HermesSelectPathsOptions) => Promise<string[]>
+  selectPaths: (options?: WenshuSelectPathsOptions) => Promise<string[]>
 }
 
 let remotePicker: DesktopFsRemotePicker | null = null
@@ -16,7 +16,7 @@ export function setDesktopFsRemotePicker(next: DesktopFsRemotePicker | null) {
   remotePicker = next
 }
 
-function connectionCacheKey(connection: HermesConnection | null) {
+function connectionCacheKey(connection: WenshuConnection | null) {
   if (!connection) {
     return 'local:'
   }
@@ -43,7 +43,7 @@ function fsPath(endpoint: string, filePath: string) {
 }
 
 function bridge() {
-  const desktop = window.hermesDesktop
+  const desktop = window.wenshuDesktop
 
   if (!desktop) {
     throw new Error('文枢 Desktop bridge is unavailable')
@@ -58,20 +58,20 @@ function remoteFsApi<T>(path: string, body?: Record<string, unknown>): Promise<T
   )
 }
 
-export async function readDesktopDir(path: string): Promise<HermesReadDirResult> {
+export async function readDesktopDir(path: string): Promise<WenshuReadDirResult> {
   if (!isDesktopFsRemoteMode()) {
     return bridge().readDir(path)
   }
 
-  return remoteFsApi<HermesReadDirResult>(fsPath('list', path))
+  return remoteFsApi<WenshuReadDirResult>(fsPath('list', path))
 }
 
-export async function readDesktopFileText(path: string): Promise<HermesReadFileTextResult> {
+export async function readDesktopFileText(path: string): Promise<WenshuReadFileTextResult> {
   if (!isDesktopFsRemoteMode()) {
     return bridge().readFileText(path)
   }
 
-  return remoteFsApi<HermesReadFileTextResult>(fsPath('read-text', path))
+  return remoteFsApi<WenshuReadFileTextResult>(fsPath('read-text', path))
 }
 
 // Save UTF-8 text back to a file. Local writes go through the hardened Electron
@@ -171,7 +171,7 @@ export async function desktopFileDiff(repoRoot: string, filePath: string): Promi
   return git?.fileDiff ? git.fileDiff(repoRoot, filePath) : ''
 }
 
-export async function selectDesktopPaths(options?: HermesSelectPathsOptions): Promise<string[]> {
+export async function selectDesktopPaths(options?: WenshuSelectPathsOptions): Promise<string[]> {
   const desktop = bridge()
 
   if (!isDesktopFsRemoteMode()) {

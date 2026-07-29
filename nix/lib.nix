@@ -71,7 +71,7 @@ let
   # Python source: everything except JS/TS/docs/infra directories.
   pythonSrc = lib.cleanSourceWith {
     src = repoRoot;
-    name = "hermes-python-source";
+    name = "wenshu-python-source";
     filter =
       path: type:
       let
@@ -101,8 +101,8 @@ let
             "plans"
             # Nix build definitions (Python build doesn't need these)
             "nix"
-            # Skills are shipped via HERMES_BUNDLED_SKILLS /
-            # HERMES_OPTIONAL_SKILLS (see hermes-agent.nix), not via the
+            # Skills are shipped via WENSHU_BUNDLED_SKILLS /
+            # WENSHU_OPTIONAL_SKILLS (see wenshu-agent.nix), not via the
             # wheel's data_files — setup.py's _data_file_tree returns []
             # for a missing dir, so the wheel builds fine without them.
             # This keeps SKILL.md edits from rebuilding the Python venv.
@@ -131,7 +131,7 @@ let
           "SECURITY.md"
           "README.zh-CN.md"
           ".gitignore"
-          "setup-hermes.sh"
+          "setup-wenshu.sh"
         ];
       in
       if relPath == "" then
@@ -225,10 +225,10 @@ in
   # e.g. apps/desktop depends on apps/shared.
   #
   # Usage:
-  #   npm = hermesNpmLib.mkNpmPassthru { dirs = [ "ui-tui" ]; };
-  #   npm = hermesNpmLib.mkNpmPassthru { dirs = [ "apps/desktop" "apps/shared" ]; };
+  #   npm = wenshuNpmLib.mkNpmPassthru { dirs = [ "ui-tui" ]; };
+  #   npm = wenshuNpmLib.mkNpmPassthru { dirs = [ "apps/desktop" "apps/shared" ]; };
   #   pkgs.buildNpmPackage (npm // {
-  #     pname = "hermes-tui";
+  #     pname = "wenshu-tui";
   #     inherit version;
   #     buildPhase = '' ... '';
   #     installPhase = '' ... '';

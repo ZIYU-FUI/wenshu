@@ -7,7 +7,7 @@ import {
   DropdownMenuSub,
   DropdownMenuSubTrigger
 } from '@/components/ui/dropdown-menu'
-import type * as HermesApi from '@/hermes'
+import type * as WenshuApi from '@/wenshu'
 import { $modelPresets, getModelPreset } from '@/store/model-presets'
 import {
   $activeSessionId,
@@ -21,8 +21,8 @@ import {
 
 import { type FastControl, ModelEditSubmenu } from './model-edit-submenu'
 
-vi.mock('@/hermes', async importOriginal => {
-  const actual = await importOriginal<typeof HermesApi>()
+vi.mock('@/wenshu', async importOriginal => {
+  const actual = await importOriginal<typeof WenshuApi>()
 
   return { ...actual, setApiRequestProfile: vi.fn() }
 })

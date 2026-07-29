@@ -6,7 +6,7 @@ from typing import Any, Dict
 
 # Gemini's ``FunctionDeclaration.parameters`` field accepts the ``Schema``
 # object, which is only a subset of OpenAPI 3.0 / JSON Schema.  Strip fields
-# outside that subset before sending Hermes tool schemas to Google.
+# outside that subset before sending Wenshu tool schemas to Google.
 _GEMINI_SCHEMA_ALLOWED_KEYS = {
     "type",
     "format",

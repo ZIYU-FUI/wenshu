@@ -33,11 +33,11 @@ from agent.gemini_schema import sanitize_gemini_tool_parameters
 logger = logging.getLogger(__name__)
 
 try:
-    import hermes_cli as _hermes_cli
+    import wenshu_cli as _wenshu_cli
 
-    _HERMES_VERSION = str(_hermes_cli.__version__)
+    _WENSHU_VERSION = str(_wenshu_cli.__version__)
 except Exception:
-    _HERMES_VERSION = "0.0.0"
+    _WENSHU_VERSION = "0.0.0"
 
 DEFAULT_GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 
@@ -108,7 +108,7 @@ def probe_gemini_tier(
                 json=payload,
                 headers={
                     "Content-Type": "application/json",
-                    "X-Goog-Api-Client": f"hermes-agent/{_HERMES_VERSION}",
+                    "X-Goog-Api-Client": f"wenshu-agent/{_WENSHU_VERSION}",
                 },
             )
     except Exception as exc:
@@ -462,7 +462,7 @@ def build_gemini_request(
         # Gemini's native generateContent does NOT treat an omitted
         # maxOutputTokens as "use the model's full output budget" — it applies
         # a low internal default and the model stops early with
-        # finishReason=MAX_TOKENS, truncating tool calls mid-stream (Hermes
+        # finishReason=MAX_TOKENS, truncating tool calls mid-stream (Wenshu
         # then retries 3× and refuses the incomplete call). Every current
         # Gemini text model (2.5 + 3.x, flash / flash-lite / pro) caps at
         # 65,535 output tokens, so default to that ceiling when the caller
@@ -877,8 +877,8 @@ class GeminiNativeClient:
         if not (api_key or "").strip():
             raise RuntimeError(
                 "Gemini native client requires an API key, but none was provided. "
-                "Set GOOGLE_API_KEY or GEMINI_API_KEY in your environment / ~/.hermes/.env "
-                "(get one at https://aistudio.google.com/app/apikey), or run `hermes setup` "
+                "Set GOOGLE_API_KEY or GEMINI_API_KEY in your environment / ~/.wenshu-hermes/.env "
+                "(get one at https://aistudio.google.com/app/apikey), or run `wenshu setup` "
                 "to configure the Google provider."
             )
         self.api_key = api_key
@@ -911,11 +911,11 @@ class GeminiNativeClient:
             "Content-Type": "application/json",
             "Accept": "application/json",
             "x-goog-api-key": self.api_key,
-            # Include Hermes client context following Gemini's partner
+            # Include Wenshu client context following Gemini's partner
             # integration guidance.
             # See https://ai.google.dev/gemini-api/docs/partner-integration
-            "User-Agent": f"hermes-agent/{_HERMES_VERSION} (gemini-native)",
-            "X-Goog-Api-Client": f"hermes-agent/{_HERMES_VERSION}",
+            "User-Agent": f"wenshu-agent/{_WENSHU_VERSION} (gemini-native)",
+            "X-Goog-Api-Client": f"wenshu-agent/{_WENSHU_VERSION}",
         }
         headers.update(self._default_headers)
         return headers

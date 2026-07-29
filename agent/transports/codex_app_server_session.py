@@ -50,9 +50,9 @@ _STDERR_TAIL_LINES = 12
 
 
 # Permission profile mapping mirrors the docstring in PR proposal:
-# Hermes' tools.terminal.security_mode → Codex's permissions profile id.
+# Wenshu' tools.terminal.security_mode → Codex's permissions profile id.
 # Defaults if config is missing → workspace-write (matches Codex's own default).
-_HERMES_TO_CODEX_PERMISSION_PROFILE = {
+_WENSHU_TO_CODEX_PERMISSION_PROFILE = {
     "auto": "workspace-write",
     "approval-required": "read-only-with-approval",
     "unrestricted": "full-access",
@@ -93,7 +93,7 @@ _TURN_ABORTED_MARKERS = ("<turn_aborted>", "<turn_aborted/>")
 
 
 def _coerce_turn_input_text(user_input: Any) -> str:
-    """Collapse Hermes/OpenAI rich content into app-server text input.
+    """Collapse Wenshu/OpenAI rich content into app-server text input.
 
     The current `turn/start` path sends text items only. TUI image attachment
     can hand us OpenAI-style content parts, so keep the text/path hints and
@@ -214,8 +214,8 @@ class CodexAppServerSession:
         self._codex_bin = codex_bin
         self._codex_home = codex_home
         self._permission_profile = (
-            permission_profile or _HERMES_TO_CODEX_PERMISSION_PROFILE.get(
-                os.environ.get("HERMES_TERMINAL_SECURITY_MODE", "auto"),
+            permission_profile or _WENSHU_TO_CODEX_PERMISSION_PROFILE.get(
+                os.environ.get("WENSHU_TERMINAL_SECURITY_MODE", "auto"),
                 "workspace-write",
             )
         )
@@ -248,9 +248,9 @@ class CodexAppServerSession:
                 codex_bin=self._codex_bin, codex_home=self._codex_home
             )
         self._client.initialize(
-            client_name="hermes",
+            client_name="wenshu",
             client_title="文枢",
-            client_version=_get_hermes_version(),
+            client_version=_get_wenshu_version(),
         )
         # Permission selection is intentionally NOT sent on thread/start.
         # Two reasons (live-tested against codex 0.130.0):
@@ -406,7 +406,7 @@ class CodexAppServerSession:
         user_input_text = _coerce_turn_input_text(user_input)
 
         # Send turn/start with the user input. Text-only for now (codex
-        # supports rich content but Hermes' text path is the common case).
+        # supports rich content but Wenshu' text path is the common case).
         try:
             ts = self._client.request(
                 "turn/start",
@@ -847,14 +847,14 @@ class CodexAppServerSession:
         elif method == "mcpServer/elicitation/request":
             # Codex's MCP layer asks the user for structured input on
             # behalf of an MCP server (e.g. tool-call confirmation,
-            # OAuth, form data). For our own hermes-tools callback we
-            # auto-accept — the user already approved Hermes' tools
+            # OAuth, form data). For our own wenshu-tools callback we
+            # auto-accept — the user already approved Wenshu' tools
             # by enabling the runtime, and we never expose anything
             # codex's built-in shell can't already do. For other MCP
             # servers we decline so the user explicitly opts in via
             # codex's own auth flow.
             server_name = params.get("serverName") or ""
-            if server_name == "hermes-tools":
+            if server_name == "wenshu-tools":
                 self._client.respond(
                     rid,
                     {"action": "accept", "content": None, "_meta": None},
@@ -1076,11 +1076,11 @@ def _has_turn_aborted_marker(text: str) -> bool:
     return False
 
 
-def _get_hermes_version() -> str:
+def _get_wenshu_version() -> str:
     """Best-effort 文枢 version string for codex's userAgent line."""
     try:
         from importlib.metadata import version
 
-        return version("hermes-agent")
+        return version("wenshu-agent")
     except Exception:  # pragma: no cover
         return "0.0.0"
