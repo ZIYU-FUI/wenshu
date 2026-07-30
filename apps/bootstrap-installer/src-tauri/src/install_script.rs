@@ -403,16 +403,13 @@ fn upgrade_cached_script(kind: ScriptKind, cached: &Path, emit_log: &impl Fn(&st
 /// error after 60s instead of stalling silently — and the stale-cache
 /// fallback in `resolve()` takes over.
 async fn download(kind: ScriptKind, commit_or_ref: &str, dest_path: &Path) -> Result<()> {
+    // R81b: primary stays GitHub raw; if blocked, scripts/install.sh + install.ps1
+    // (bundled R57 build, executed below) curl-falls-back to gitcode.com/ZIYU1983/wenshu.
     let url = format!(
         "https://raw.githubusercontent.com/{}/{}/scripts/{}",
-        // R81: AtomGit fallback for China users
-        "https://atomgit.com/{}/{}/raw/{}/scripts/{}",
         INSTALL_SCRIPT_REPOSITORY,
         commit_or_ref,
         kind.filename(),
-        ATOMGIT_REPOSITORY,
-        commit_or_ref,
-        kind.filename()
     );
 
     if let Some(parent) = dest_path.parent() {
