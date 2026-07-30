@@ -2828,7 +2828,13 @@ function resolveWenshuCliBinary(updateRoot) {
 // `fromPercent` / `toPercent` are the inclusive range this stage should sweep
 // over `rampSeconds` of wall time. Each tick emits a monotonic non-decreasing
 // percent so the bar never regresses.
-function runStreamedUpdate(command, args, { cwd, env, stage, fromPercent = null, toPercent = null, rampSeconds = 240 }: any = {}) {
+// R47d v2: raise default `rampSeconds` to 600 (10 min) so a single quiet rust/c
+// compile step (>=240s on a slow box) doesn't cap the sweep mid-range and park
+// the bar near the floor; pair with a 60s stall fallback that adds +1 percent
+// whenever the child goes 60s without producing stdout/stderr, capped at
+// `toPercent`, so a silent compile still visibly advances the bar while the
+// wall clock moves (zhuang ji user 8/29 "ramp ka 25%" root cause).
+function runStreamedUpdate(command, args, { cwd, env, stage, fromPercent = null, toPercent = null, rampSeconds = 600 }: any = {}) {
   return new Promise(resolve => {
     let child
 
@@ -2851,6 +2857,8 @@ function runStreamedUpdate(command, args, { cwd, env, stage, fromPercent = null,
     const startMs = Date.now()
     let lastPercent = fromPercent
     let rampTimer = null
+    let stallTimer = null
+    let lastOutputMs = Date.now()
 
     if (typeof fromPercent === 'number' && typeof toPercent === 'number' && toPercent > fromPercent) {
       // Tick every 15s. Emits a fresh percent that strictly grows with elapsed
@@ -2869,9 +2877,37 @@ function runStreamedUpdate(command, args, { cwd, env, stage, fromPercent = null,
       }
       tick()
       rampTimer = setInterval(tick, 15000)
+
+      // R47d v2 stall fallback for silent long-running stages (rust/c compile
+      // can produce zero stdout/stderr for minutes). Tick every 60s; only bump
+      // when the child has produced no stdout/stderr for the full window. The
+      // +1 step is intentionally slower than the 15s ramp tick so a verbose
+      // stage never sees two timers racing for the same +1; it's fast enough
+      // that a 4–5 min silent compile still visibly creeps toward `toPercent`
+      // before the milestone snap fires. Capped at `toPercent` so the renderer
+      // never overshoots the stage boundary (the milestone that lands at
+      // `toPercent` keeps authority over the final value).
+      const stallTick = () => {
+        const sinceOutputMs = Date.now() - lastOutputMs
+        if (sinceOutputMs < 60_000) {
+          return
+        }
+        const next = Math.min(toPercent, (lastPercent ?? 0) + 1)
+        if (next > (lastPercent ?? 0)) {
+          lastPercent = next
+          const seconds = Math.round(sinceOutputMs / 1000)
+          console.warn(`[updates] stalled ${seconds}s; bumping to ${next}%`)
+          emitUpdateProgress({ stage, message: '', percent: next })
+        }
+      }
+      stallTimer = setInterval(stallTick, 60_000)
     }
 
     const emitLines = chunk => {
+      // R47d v2: any stdout/stderr output (incl. blank heartbeat lines) resets
+      // the stall-fallback timer so a still-chatty stage never sees the +1
+      // bump fire.
+      lastOutputMs = Date.now()
       for (const line of chunk.toString().split('\n')) {
         const trimmed = line.trim()
 
@@ -2885,10 +2921,12 @@ function runStreamedUpdate(command, args, { cwd, env, stage, fromPercent = null,
     child.stderr.on('data', emitLines)
     child.once('error', err => {
       if (rampTimer) clearInterval(rampTimer)
+      if (stallTimer) clearInterval(stallTimer)
       resolve({ code: 1, error: err.message })
     })
     child.once('exit', code => {
       if (rampTimer) clearInterval(rampTimer)
+      if (stallTimer) clearInterval(stallTimer)
       resolve({ code })
     })
   })
@@ -2989,13 +3027,15 @@ async function applyUpdatesPosixInApp(opts: any) {
   // R46: drive the bar from 10% -> 55% over the typical pip-install window.
   // git fetch + dependency install can take minutes (Rust/C compile), so the
   // renderer would otherwise pulse indefinitely and the user reads silence as
-  // a hang (zhuang ji user 8/29). `rampSeconds=240` covers the common case;
-  // longer installs cap at 55% until the rebuild milestone snaps to 60%.
+  // a hang (zhuang ji user 8/29). `rampSeconds=600` covers the common case
+  // (R47d v2: 10 min sweep so a single quiet rust/c compile doesn't cap the
+  // bar mid-range); longer installs cap at 55% until the rebuild milestone
+  // snaps to 60%.
   const updated = (await runStreamedUpdate(wenshu, ['update', '--yes', ...branchArgs], {
     cwd: updateRoot,
     env,
     fromPercent: 10,
-    rampSeconds: 240,
+    rampSeconds: 600,
     stage: 'update',
     toPercent: 55
   })) as any
