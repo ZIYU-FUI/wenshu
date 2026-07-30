@@ -1,6 +1,6 @@
 ---
 name: opencode
-description: "Delegate coding to OpenCode CLI (features, PR review)."
+description: "将编码任务委派给 OpenCode CLI（功能开发、PR 审查）。"
 version: 1.2.0
 author: Wenshu Agent
 license: MIT

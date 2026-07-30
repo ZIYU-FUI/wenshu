@@ -1,6 +1,6 @@
 ---
 name: apple-reminders
-description: "Apple Reminders via remindctl: add, list, complete."
+description: "通过 remindctl 管理 Apple Reminders：添加、列出和完成提醒事项。"
 version: 1.0.0
 author: Wenshu Agent
 license: MIT

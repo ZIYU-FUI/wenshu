@@ -1,6 +1,6 @@
 ---
 name: xurl
-description: "X/Twitter via xurl CLI: post, search, DM, media, v2 API."
+description: "通过 xurl CLI 使用 X/Twitter：发帖、搜索、私信、媒体和 v2 API。"
 version: 1.1.1
 author: xdevplatform + openclaw + Wenshu Agent
 license: MIT

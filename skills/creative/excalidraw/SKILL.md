@@ -1,6 +1,6 @@
 ---
 name: excalidraw
-description: "Hand-drawn Excalidraw JSON diagrams (arch, flow, seq)."
+description: "创建手绘风格的 Excalidraw JSON 图表（架构图、流程图、时序图）。"
 version: 1.0.0
 author: Wenshu Agent
 license: MIT

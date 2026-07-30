@@ -1,6 +1,6 @@
 ---
 name: sketch
-description: "Throwaway HTML mockups: 2-3 design variants to compare."
+description: "创建一次性 HTML 样稿，提供 2–3 个设计方案供比较。"
 version: 1.0.0
 author: Wenshu Agent (adapted from gsd-build/get-shit-done)
 license: MIT

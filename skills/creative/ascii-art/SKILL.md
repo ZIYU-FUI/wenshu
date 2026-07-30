@@ -1,6 +1,6 @@
 ---
 name: ascii-art
-description: "ASCII art: pyfiglet, cowsay, boxes, image-to-ascii."
+description: "创建 ASCII 艺术：支持 pyfiglet、cowsay、boxes 和图像转 ASCII。"
 version: 4.0.0
 author: 0xbyt4, Wenshu Agent
 license: MIT

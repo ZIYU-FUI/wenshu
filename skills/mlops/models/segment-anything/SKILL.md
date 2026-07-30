@@ -1,6 +1,6 @@
 ---
 name: segment-anything-model
-description: "SAM: zero-shot image segmentation via points, boxes, masks."
+description: "使用 SAM 通过点、边界框和掩码进行零样本图像分割。"
 version: 1.0.0
 author: Orchestra Research
 license: MIT

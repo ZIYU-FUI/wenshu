@@ -1,6 +1,6 @@
 ---
 name: simplify-code
-description: "Parallel 3-agent cleanup of recent code changes."
+description: "让 3 个 Agent 并行清理近期代码变更。"
 version: 1.0.0
 author: Wenshu Agent (inspired by Claude Code /simplify)
 license: MIT

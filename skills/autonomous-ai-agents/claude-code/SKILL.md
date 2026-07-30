@@ -1,6 +1,6 @@
 ---
 name: claude-code
-description: "Delegate coding to Claude Code CLI (features, PRs)."
+description: "将编码任务委派给 Claude Code CLI（功能开发、PR 等）。"
 version: 2.2.0
 author: Wenshu Agent + Teknium
 license: MIT

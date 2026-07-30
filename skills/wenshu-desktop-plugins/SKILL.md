@@ -1,6 +1,6 @@
 ---
 name: wenshu-desktop-plugins
-description: Write desktop app plugins that add UI panes and commands.
+description: "编写桌面应用插件，添加 UI 面板和命令。"
 version: 1.0.0
 platforms: [linux, macos, windows]
 metadata:

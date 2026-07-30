@@ -1,6 +1,6 @@
 ---
 name: airtable
-description: Airtable REST API via curl. Records CRUD, filters, upserts.
+description: "通过 curl 使用 Airtable REST API：创建、读取、更新、删除记录，并进行筛选和 upsert。"
 version: 1.1.0
 author: community
 license: MIT

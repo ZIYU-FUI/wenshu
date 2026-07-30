@@ -1,6 +1,6 @@
 ---
 name: petdex
-description: Install and select animated petdex mascots for Wenshu.
+description: "为 Wenshu 安装并选择 petdex 动画吉祥物。"
 version: 1.0.0
 author: Wenshu Agent
 license: MIT

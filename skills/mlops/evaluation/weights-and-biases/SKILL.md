@@ -1,6 +1,6 @@
 ---
 name: weights-and-biases
-description: "W&B: log ML experiments, sweeps, model registry, dashboards."
+description: "使用 W&B 记录机器学习实验、超参数扫描、模型注册表和仪表板。"
 version: 1.0.0
 author: Orchestra Research
 license: MIT

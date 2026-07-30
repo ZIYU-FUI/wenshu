@@ -1,6 +1,6 @@
 ---
 name: systematic-debugging
-description: "4-phase root cause debugging: understand bugs before fixing."
+description: "分 4 个阶段进行根因调试：先理解 bug，再着手修复。"
 version: 1.1.0
 author: Wenshu Agent (adapted from obra/superpowers)
 license: MIT

@@ -1,6 +1,6 @@
 ---
 name: test-driven-development
-description: "TDD: enforce RED-GREEN-REFACTOR, tests before code."
+description: "测试驱动开发：严格执行 RED-GREEN-REFACTOR，在编写代码前先写测试。"
 version: 1.1.0
 author: Wenshu Agent (adapted from obra/superpowers)
 license: MIT

@@ -1,6 +1,6 @@
 ---
 name: ascii-video
-description: "ASCII video: convert video/audio to colored ASCII MP4/GIF."
+description: "将视频或音频转换为彩色 ASCII MP4/GIF 视频。"
 platforms: [linux, macos, windows]
 ---
 

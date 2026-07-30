@@ -1,6 +1,6 @@
 ---
 name: github-repo-management
-description: "Clone/create/fork repos; manage remotes, releases."
+description: "克隆、创建和 fork 仓库；管理远程仓库与 release。"
 version: 1.1.0
 author: Wenshu Agent
 license: MIT

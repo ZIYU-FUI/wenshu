@@ -1,6 +1,6 @@
 ---
 name: wenshu-agent-skill-authoring
-description: "Author in-repo SKILL.md: frontmatter, validator, structure, and writing-quality principles."
+description: "编写仓库内 SKILL.md：遵循 frontmatter、验证器、结构和写作质量原则。"
 version: 1.1.0
 author: Wenshu Agent
 license: MIT

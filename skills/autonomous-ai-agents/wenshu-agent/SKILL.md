@@ -1,6 +1,6 @@
 ---
 name: wenshu-agent
-description: "Configure, extend, or contribute to Wenshu Agent."
+description: "配置、扩展或贡献到 Wenshu Agent。"
 version: 2.3.0
 author: Wenshu Agent + Teknium
 license: MIT

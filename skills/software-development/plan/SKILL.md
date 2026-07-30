@@ -1,6 +1,6 @@
 ---
 name: plan
-description: "Plan mode: write an actionable markdown plan to .wenshu-hermes/plans/, no execution. Bite-sized tasks, exact paths, complete code."
+description: "规划模式：将可执行的 Markdown 计划写入 .wenshu-hermes/plans/，不执行任务。任务粒度小，路径准确，代码完整。"
 version: 2.0.0
 author: Wenshu Agent (writing-craft adapted from obra/superpowers)
 license: MIT
