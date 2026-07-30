@@ -1,5 +1,5 @@
 name: openrouter-provider
 kind: model-provider
 version: 1.0.0
-description: OpenRouter aggregator
+description: "OpenRouter 聚合器"
 author: Nous Research

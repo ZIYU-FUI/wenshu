@@ -1,5 +1,5 @@
 name: copilot-acp-provider
 kind: model-provider
 version: 1.0.0
-description: GitHub Copilot via ACP subprocess
+description: "通过 ACP 子进程的 GitHub Copilot"
 author: Nous Research

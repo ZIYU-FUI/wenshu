@@ -2,11 +2,7 @@ name: teams-platform
 label: Microsoft Teams
 kind: platform
 version: 1.0.0
-description: >
-  Microsoft Teams gateway adapter for Wenshu Agent.
-  Connects to Microsoft Teams via the Bot Framework and relays messages
-  between Teams chats (personal DMs, group chats, channel posts) and
-  the Wenshu agent. Supports Adaptive Card approval prompts.
+description: "Microsoft Teams 网关适配器 (Wenshu Agent). 通过 Bot Framework 接入 Microsoft Teams, 在 Teams 聊天 (个人 DM, 群聊, 频道帖) 和 Wenshu agent 之间中继消息. 支持 Adaptive Card 审批弹窗."
 author: Aamir Jawaid
 # ``requires_env`` entries are surfaced in ``wenshu config`` UI via the
 # platform-plugin env var injector in ``wenshu_cli/config.py``.

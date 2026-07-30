@@ -2,12 +2,7 @@ name: whatsapp-platform
 label: WhatsApp
 kind: platform
 version: 1.0.0
-description: >
-  WhatsApp gateway adapter for Wenshu Agent.
-  Connects to WhatsApp via a local Node.js bridge (WhatsApp Web client) over
-  an HTTP API and relays messages between WhatsApp chats and the Wenshu agent.
-  Supports DM/group policies, mention gating, free-response chats, and
-  per-user allowlists.
+description: "WhatsApp 网关适配器 (Wenshu Agent). 通过本地 Node.js bridge (WhatsApp Web 客户端) 走 HTTP API 接入 WhatsApp, 在 WhatsApp 聊天和 Wenshu agent 之间中继消息. 支持 DM/群策略, mention 门控, 自由回复聊天, 每用户白名单."
 author: NousResearch
 requires_env:
   - name: WHATSAPP_ENABLED

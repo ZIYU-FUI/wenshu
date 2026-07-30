@@ -1,5 +1,5 @@
 name: fireworks-provider
 kind: model-provider
 version: 1.0.0
-description: Fireworks AI — fast inference for open and proprietary models
+description: "Fireworks AI — 开源和专有模型的快速推理"
 author: Alex Jestin Taylor (@alex-fireworks) + Wenshu Agent

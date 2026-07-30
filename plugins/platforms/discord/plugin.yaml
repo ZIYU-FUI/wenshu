@@ -2,12 +2,7 @@ name: discord-platform
 label: Discord
 kind: platform
 version: 1.0.0
-description: >
-  Discord gateway adapter for Wenshu Agent.
-  Connects to Discord via the discord.py library and relays messages
-  between Discord guilds/DMs and the Wenshu agent. Supports voice mode,
-  slash commands, free-response channels, role-based DM auth, threads,
-  reactions, and channel skill bindings.
+description: "Discord 网关适配器 (Wenshu Agent). 通过 discord.py 库接入 Discord, 在 Discord 群组/私信和 Wenshu agent 之间中继消息. 支持语音模式, 斜杠命令, 自由回复频道, 基于角色的私信鉴权, 话题, 反应, 频道技能绑定."
 author: NousResearch
 requires_env:
   - name: DISCORD_BOT_TOKEN

@@ -92,27 +92,29 @@ from wenshu_cli.cli_output import (  # noqa: E402 — late import block
 # Toolsets shown in the configurator, grouped for display.
 # Each entry: (toolset_name, label, description)
 # These map to keys in toolsets.py TOOLSETS dict.
+# R78 (装机 user 8/30 拍): label + description 全译中文 (国内用户英文不好).
+# 20 行数组结构 / 顺序 / 数量保持 R65 验证 (web/browser/.../computer_use).
 CONFIGURABLE_TOOLSETS = [
-    ("web",             "🔍 Web Search & Scraping",    "web_search, web_extract"),
-    ("browser",         "🌐 Browser Automation",       "navigate, click, type, scroll"),
-    ("terminal",        "💻 Terminal & Processes",      "terminal, process"),
-    ("file",            "📁 File Operations",           "read, write, patch, search"),
-    ("code_execution",  "⚡ Code Execution",            "execute_code"),
-    ("vision",          "👁️  Vision / Image Analysis",  "vision_analyze"),
-    ("video",           "🎬 Video Analysis",            "video_analyze (requires video-capable model)"),
-    ("image_gen",       "🎨 Image Generation",          "image_generate"),
-    ("video_gen",       "🎬 Video Generation",          "video_generate (text/image/reference)"),
-    ("tts",             "🔊 Text-to-Speech",            "text_to_speech"),
-    ("skills",          "📚 Skills",                    "list, view, manage"),
-    ("todo",            "📋 Task Planning",             "todo"),
-    ("memory",          "💾 Memory",                    "persistent memory across sessions"),
-    ("context_engine",  "🧩 Context Engine",            "runtime tools from the active context engine"),
-    ("session_search",  "🔎 Session Search",            "search past conversations"),
-    ("clarify",         "❓ Clarifying Questions",      "clarify"),
-    ("delegation",      "👥 Task Delegation",           "delegate_task"),
-    ("cronjob",         "⏰ Cron Jobs",                 "create/list/update/pause/resume/run, with optional attached skills"),
-    ("yuanbao",          "🤖 Yuanbao",                  "group info, member queries, DM"),
-    ("computer_use",     "🖱️  Computer Use (macOS/Windows/Linux)", "background desktop control via cua-driver"),
+    ("web",             "🔍 网页搜索与抓取",            "web_search, web_extract"),
+    ("browser",         "🌐 浏览器自动化",               "导航, 点击, 输入, 滚动"),
+    ("terminal",        "💻 终端与进程",                  "terminal, process"),
+    ("file",            "📁 文件操作",                   "读取, 写入, 修补, 搜索"),
+    ("code_execution",  "⚡ 代码执行",                    "execute_code"),
+    ("vision",          "👁️  视觉/图像分析",            "vision_analyze"),
+    ("video",           "🎬 视频分析",                    "video_analyze (需支持视频的模型)"),
+    ("image_gen",       "🎨 图像生成",                    "image_generate"),
+    ("video_gen",       "🎬 视频生成",                    "video_generate (文本/图像/参考)"),
+    ("tts",             "🔊 文字转语音",                  "text_to_speech"),
+    ("skills",          "📚 技能",                        "列表, 查看, 管理"),
+    ("todo",            "📋 任务规划",                    "todo"),
+    ("memory",          "💾 记忆",                        "跨会话持久化记忆"),
+    ("context_engine",  "🧩 上下文引擎",                  "来自当前上下文引擎的运行时工具"),
+    ("session_search",  "🔎 会话搜索",                    "搜索历史会话"),
+    ("clarify",         "❓ 澄清问题",                    "clarify"),
+    ("delegation",      "👥 任务委派",                    "delegate_task"),
+    ("cronjob",         "⏰ 定时任务",                    "创建/列表/更新/暂停/恢复/运行, 可绑定技能"),
+    ("yuanbao",          "🤖 元宝",                      "群信息, 成员查询, 私信"),
+    ("computer_use",     "🖱️  桌面控制 (macOS/Windows/Linux)", "通过 cua-driver 后台控制桌面"),
 ]
 
 

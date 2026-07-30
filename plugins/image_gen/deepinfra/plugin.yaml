@@ -1,6 +1,6 @@
 name: deepinfra
 version: 1.0.0
-description: "DeepInfra image generation backend (FLUX, Qwen-Image, …) via OpenAI-compatible /v1/images/generations. Catalog discovered live from api.deepinfra.com."
+description: "DeepInfra 图像生成后端 (FLUX, Qwen-Image, …) 通过 OpenAI 兼容的 /v1/images/generations 接口. 模型清单实时从 api.deepinfra.com 发现."
 author: Georgi Atsev
 kind: backend
 requires_env:

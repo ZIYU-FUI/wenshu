@@ -2,10 +2,7 @@ name: sms-platform
 label: SMS (Twilio)
 kind: platform
 version: 1.0.0
-description: >
-  SMS gateway adapter for Wenshu Agent via Twilio. Sends and receives SMS
-  through the Twilio REST API + inbound webhook, relaying texts between phone
-  numbers and the Wenshu agent. Markdown is stripped to plain text.
+description: "SMS 网关适配器 (Wenshu Agent, 通过 Twilio). 通过 Twilio REST API + 入站 webhook 收发 SMS, 在电话号码和 Wenshu agent 之间中继短信. Markdown 自动剥离为纯文本."
 author: NousResearch
 requires_env:
   - name: TWILIO_ACCOUNT_SID

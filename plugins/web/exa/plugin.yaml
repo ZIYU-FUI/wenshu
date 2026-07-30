@@ -1,6 +1,6 @@
 name: web-exa
 version: 1.0.0
-description: "Exa web search and content extraction. Requires EXA_API_KEY — sign up at https://exa.ai."
+description: "Exa 网页搜索 + 内容提取. 需要 EXA_API_KEY — 在 https://exa.ai 注册."
 author: NousResearch
 kind: backend
 provides_web_providers:

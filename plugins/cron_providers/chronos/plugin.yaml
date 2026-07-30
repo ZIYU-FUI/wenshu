@@ -1,9 +1,4 @@
 name: chronos
-description: >-
-  Chronos — NAS-mediated managed cron provider for scale-to-zero hosted agents.
-  Delegates the "wake me at time T" trigger to Nous infrastructure so an idle
-  gateway can scale to zero and still fire cron jobs. The agent computes each
-  job's next-fire time and asks NAS to arm a one-shot; NAS calls the agent back
-  at fire time over an authenticated webhook. Inert unless cron.provider=chronos.
+description: "Chronos — 通过 NAS 中介的托管 cron 提供方, 用于 scale-to-zero 宿主型 agent. 把'在时间 T 叫醒我'的触发器委托给 Nous 基础设施, 让闲置的 gateway 能 scale to zero 仍能触发 cron 任务. Agent 计算每个任务的下次触发时间, 让 NAS 武装一个一次性触发器; NAS 在触发时间通过认证 webhook 回调 agent. 只有 cron.provider=chronos 时才生效."
 version: 1.0.0
 author: Nous Research

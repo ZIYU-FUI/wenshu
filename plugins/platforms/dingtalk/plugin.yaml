@@ -2,12 +2,7 @@ name: dingtalk-platform
 label: DingTalk
 kind: platform
 version: 1.0.0
-description: >
-  DingTalk gateway adapter for Wenshu Agent.
-  Connects to DingTalk via the dingtalk-stream SDK (Stream Mode) and relays
-  messages between DingTalk chats and the Wenshu agent. Supports text, images,
-  audio, video, rich text, files, group @mention gating, free-response chats,
-  and per-user allowlists.
+description: "钉钉网关适配器 (Wenshu Agent). 通过 dingtalk-stream SDK (Stream 模式) 接入钉钉, 在钉钉聊天和 Wenshu agent 之间中继消息. 支持文本, 图片, 音频, 视频, 富文本, 文件, 群 @mention 门控, 自由回复会话, 每用户白名单."
 author: NousResearch
 requires_env:
   - name: DINGTALK_CLIENT_ID

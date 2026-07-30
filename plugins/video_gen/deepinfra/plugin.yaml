@@ -1,6 +1,6 @@
 name: deepinfra
 version: 1.0.0
-description: "DeepInfra video generation (text-to-video & image-to-video) via the OpenAI-compatible /v1/openai/videos endpoint. Catalog discovered live from api.deepinfra.com."
+description: "DeepInfra 视频生成 (文生视频 + 图生视频) 通过 OpenAI 兼容的 /v1/openai/videos 端点. 模型清单实时从 api.deepinfra.com 发现."
 author: Georgi Atsev
 kind: backend
 requires_env:

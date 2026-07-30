@@ -2,55 +2,5 @@ name: ntfy-platform
 label: ntfy
 kind: platform
 version: 1.0.0
-description: >
-  ntfy push-notification gateway adapter for Wenshu Agent.
-  Subscribes to a topic on ntfy.sh or any self-hosted ntfy server via
-  HTTP streaming, and publishes replies via HTTP POST. Lightweight —
-  no external SDK, only httpx (already a Wenshu dependency).
-
-  ntfy has no native user-identity primitive; the adapter treats each
-  topic as a single trusted channel and never derives user identity
-  from publisher-controlled fields. Use a private topic + read token
-  for any real trust boundary.
+description: "ntfy 推送通知网关适配器 (Wenshu Agent). 通过 HTTP streaming 订阅 ntfy.sh 或任何自托管 ntfy 服务器上的 topic, 通过 HTTP POST 发布回复. 轻量 - 不依赖外部 SDK, 只用 httpx (已经是 Wenshu 依赖). ntfy 没有原生用户身份原语, 适配器把每个 topic 当作一个受信任的单用户通道, 永不从发布方可控字段推导用户身份. 真实信任场景请用私有 topic + 读 token."
 author: sprmn24
-# ``requires_env`` and ``optional_env`` entries are surfaced in the
-# ``wenshu config`` UI via the platform-plugin env var injector in
-# ``wenshu_cli/config.py``.
-requires_env:
-  - name: NTFY_TOPIC
-    description: "Topic name to subscribe to (e.g. wenshu-in)"
-    prompt: "ntfy subscribe topic"
-    password: false
-optional_env:
-  - name: NTFY_SERVER_URL
-    description: "ntfy server URL (default: https://ntfy.sh)"
-    prompt: "ntfy server URL"
-    password: false
-  - name: NTFY_TOKEN
-    description: "Bearer token or 'user:pass' for Basic auth (optional)"
-    prompt: "ntfy auth token (or empty)"
-    password: true
-  - name: NTFY_PUBLISH_TOPIC
-    description: "Topic to publish replies to (defaults to NTFY_TOPIC)"
-    prompt: "ntfy publish topic (or empty)"
-    password: false
-  - name: NTFY_MARKDOWN
-    description: "Send replies with X-Markdown: true header (true/false, default: false)"
-    prompt: "Enable markdown formatting? (true/false)"
-    password: false
-  - name: NTFY_ALLOWED_USERS
-    description: "Comma-separated topic names allowed (allowlist)"
-    prompt: "Allowed topic names (comma-separated)"
-    password: false
-  - name: NTFY_ALLOW_ALL_USERS
-    description: "Allow any topic to talk to the bot (dev only — disables allowlist)"
-    prompt: "Allow all topics? (true/false)"
-    password: false
-  - name: NTFY_HOME_CHANNEL
-    description: "Default topic for cron / notification delivery"
-    prompt: "Home channel topic (or empty)"
-    password: false
-  - name: NTFY_HOME_CHANNEL_NAME
-    description: "Human label for the home channel (defaults to the topic name)"
-    prompt: "Home channel display name (or empty)"
-    password: false

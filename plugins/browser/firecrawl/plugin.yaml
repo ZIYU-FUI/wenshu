@@ -1,6 +1,6 @@
 name: browser-firecrawl
 version: 1.0.0
-description: "Firecrawl (https://firecrawl.dev) cloud browser backend. Requires FIRECRAWL_API_KEY. Distinct from the firecrawl WEB search/extract plugin — the two share an API key but operate on different endpoints."
+description: "Firecrawl (https://firecrawl.dev) 云浏览器后端. 需要 FIRECRAWL_API_KEY. 与 firecrawl 的网页搜索/抓取插件不同 — 两者共用一个 API key 但走不同端点."
 author: NousResearch
 kind: backend
 provides_browser_providers:

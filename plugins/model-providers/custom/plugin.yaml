@@ -1,5 +1,5 @@
 name: custom-provider
 kind: model-provider
 version: 1.0.0
-description: Custom / Ollama / local OpenAI-compatible endpoint
+description: "自定义 / Ollama / 本地 OpenAI 兼容端点"
 author: Nous Research

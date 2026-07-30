@@ -1,6 +1,6 @@
 name: openai
 version: 1.0.0
-description: "OpenAI image generation backend (gpt-image-2). Saves generated images to $WENSHU_HOME/cache/images/."
+description: "OpenAI 图像生成后端 (gpt-image-2). 生成的图片保存到 $WENSHU_HOME/cache/images/."
 author: NousResearch
 kind: backend
 requires_env:

@@ -1,6 +1,6 @@
 name: krea
 version: 1.1.0
-description: "Krea image generation backend (Krea 2 Large + Medium + Medium Turbo foundation models). Direct KREA_API_KEY or managed Nous Subscription gateway."
+description: "Krea 图像生成后端 (Krea 2 Large / Medium / Medium Turbo 基础模型). 支持 KREA_API_KEY 直连或 Nous 托管订阅网关."
 author: NousResearch
 kind: backend
 requires_env:

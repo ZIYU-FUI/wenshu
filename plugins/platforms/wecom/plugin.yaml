@@ -2,11 +2,7 @@ name: wecom-platform
 label: WeCom (Enterprise WeChat)
 kind: platform
 version: 1.0.0
-description: >
-  WeCom / Enterprise WeChat gateway adapter for Wenshu Agent. Registers two
-  platforms: ``wecom`` (Smart Robot over WebSocket) and ``wecom_callback``
-  (self-built apps over an HTTP callback endpoint with AES message crypto).
-  Relays messages between WeCom chats and the Wenshu agent.
+description: "企业微信 / WeCom 网关适配器 (Wenshu Agent). 注册两个平台: ``wecom`` (智能机器人, WebSocket 接入) 和 ``wecom_callback`` (自建应用, HTTP 回调端点 + AES 消息加密). 在企业微信聊天和 Wenshu agent 之间中继消息."
 author: NousResearch
 requires_env:
   - name: WECOM_BOT_ID

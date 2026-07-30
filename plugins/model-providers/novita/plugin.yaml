@@ -1,5 +1,5 @@
 name: novita-provider
 kind: model-provider
 version: 1.0.0
-description: NovitaAI AI-native cloud for builders and agents
+description: "NovitaAI — 给开发者和 agent 用的 AI 原生云"
 author: Nous Research

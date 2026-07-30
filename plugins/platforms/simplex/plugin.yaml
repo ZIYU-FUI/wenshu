@@ -2,13 +2,7 @@ name: simplex-platform
 label: SimpleX Chat
 kind: platform
 version: 1.1.0
-description: >
-  SimpleX Chat gateway adapter for Wenshu Agent.
-  Connects to a local simplex-chat daemon via WebSocket and relays
-  messages between SimpleX contacts/groups and the Wenshu agent.
-  SimpleX is decentralised and assigns no persistent user IDs —
-  every contact is an opaque internal ID generated at connection
-  time, making it one of the most private messengers available.
+description: "SimpleX Chat 网关适配器 (Wenshu Agent). 通过 WebSocket 接入本地 simplex-chat 守护进程, 在 SimpleX 联系人/群组和 Wenshu agent 之间中继消息. SimpleX 去中心化且不分配持久用户 ID — 每个联系人都是一个连接时生成的不透明内部 ID, 是最私密的聊天工具之一."
 author: Mibayy, jooray
 # ``requires_env`` and ``optional_env`` entries are surfaced in the
 # ``wenshu config`` UI via the platform-plugin env var injector in

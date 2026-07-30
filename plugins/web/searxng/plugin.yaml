@@ -1,6 +1,6 @@
 name: web-searxng
 version: 1.0.0
-description: "SearXNG web search — free, self-hosted, privacy-respecting metasearch engine. Requires SEARXNG_URL pointing at your instance."
+description: "SearXNG 网页搜索 — 免费, 自托管, 隐私友好的元搜索引擎. 需要 SEARXNG_URL 指向你的实例."
 author: NousResearch
 kind: backend
 provides_web_providers:

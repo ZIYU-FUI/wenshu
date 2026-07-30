@@ -2,13 +2,7 @@ name: telegram-platform
 label: Telegram
 kind: platform
 version: 1.0.0
-description: >
-  Telegram gateway adapter for Wenshu Agent.
-  Connects to Telegram via python-telegram-bot and relays messages between
-  Telegram chats/groups/topics and the Wenshu agent. Supports threads/topics,
-  streaming edits, native media, inline keyboards, slash commands, fallback
-  network transport (direct-IP failover), notification modes, mention gating,
-  and per-user/chat allowlists.
+description: "Telegram 网关适配器 (Wenshu Agent). 通过 python-telegram-bot 接入 Telegram, 在 Telegram 聊天/群组/话题和 Wenshu agent 之间中继消息. 支持话题/Topic, 流式编辑, 原生媒体, 内联键盘, 斜杠命令, 直连 IP 故障切换, 通知模式, mention 门控, 每用户/每聊天白名单."
 author: NousResearch
 requires_env:
   - name: TELEGRAM_BOT_TOKEN

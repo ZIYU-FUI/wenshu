@@ -2,12 +2,7 @@ name: slack-platform
 label: Slack
 kind: platform
 version: 1.0.0
-description: >
-  Slack gateway adapter for Wenshu Agent.
-  Connects to Slack via slack-bolt in Socket Mode and relays messages
-  between Slack channels/DMs and the Wenshu agent. Supports slash
-  commands, threads, mrkdwn rendering, approval blocks, free-response
-  channels, mention gating, and channel skill bindings.
+description: "Slack 网关适配器 (Wenshu Agent). 通过 slack-bolt Socket Mode 接入 Slack, 在 Slack 频道/私信和 Wenshu agent 之间中继消息. 支持斜杠命令, 话题, mrkdwn 渲染, 审批块, 自由回复频道, mention 门控, 频道技能绑定."
 author: NousResearch
 requires_env:
   - name: SLACK_BOT_TOKEN

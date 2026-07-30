@@ -1,6 +1,6 @@
 name: xai
 version: 1.0.0
-description: "xAI Grok Imagine video generation backend. Supports text-to-video, image-to-video, reference-to-video, video editing, video extension, and stored public URLs via the xAI async videos API."
+description: "xAI Grok Imagine 视频生成后端. 支持文生视频, 图生视频, 参考视频, 视频编辑, 视频扩展, 以及通过 xAI 异步 videos API 存储的公网 URL."
 author: NousResearch
 kind: backend
 requires_env:

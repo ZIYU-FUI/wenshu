@@ -1,6 +1,6 @@
 name: web-xai
 version: 1.0.0
-description: "xAI Web Search — search the web via Grok's agentic web_search tool (Responses API). Requires xAI Grok OAuth (via `wenshu auth`) or XAI_API_KEY (https://x.ai)."
+description: "xAI 网页搜索 — 通过 Grok 的 agentic web_search 工具 (Responses API) 搜网页. 需要 xAI Grok OAuth (走 `wenshu auth`) 或 XAI_API_KEY (https://x.ai)."
 author: NousResearch
 kind: backend
 provides_web_providers:

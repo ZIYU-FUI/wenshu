@@ -1,5 +1,5 @@
 name: openai-codex
 version: 1.0.0
-description: "OpenAI image generation backed by ChatGPT/Codex OAuth (gpt-image-2 via the Responses image_generation tool). Saves generated images to $WENSHU_HOME/cache/images/."
+description: "OpenAI 图像生成, 由 ChatGPT/Codex OAuth 驱动 (通过 Responses image_generation 工具调用 gpt-image-2). 生成的图片保存到 $WENSHU_HOME/cache/images/."
 author: NousResearch
 kind: backend

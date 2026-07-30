@@ -1,6 +1,6 @@
 name: web-parallel
 version: 1.0.0
-description: "Parallel.ai web search + content extraction. Search returns objective-tuned results; extract uses the async SDK for parallel page fetches. Requires PARALLEL_API_KEY — sign up at https://parallel.ai."
+description: "Parallel.ai 网页搜索 + 内容提取. 搜索返回客观调优结果; 提取用异步 SDK 并行抓取页面. 需要 PARALLEL_API_KEY — 在 https://parallel.ai 注册."
 author: NousResearch
 kind: backend
 provides_web_providers:

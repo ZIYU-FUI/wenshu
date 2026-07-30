@@ -2,13 +2,7 @@ name: feishu-platform
 label: Feishu / Lark
 kind: platform
 version: 1.0.0
-description: >
-  Feishu / Lark gateway adapter for Wenshu Agent.
-  Connects to Feishu (China) or Lark (International) via the official
-  lark-oapi SDK over WebSocket or webhook and relays messages between
-  Feishu/Lark chats and the Wenshu agent. Supports text, images, video,
-  voice, documents, threads, DM pairing, group @mention gating, drive
-  comment events, and meeting invites.
+description: "飞书 / Lark 网关适配器 (Wenshu Agent). 通过官方 lark-oapi SDK 的 WebSocket 或 Webhook 接入飞书 (中国) 或 Lark (国际), 在飞书/Lark 聊天和 Wenshu agent 之间中继消息. 支持文本, 图片, 视频, 语音, 文档, 话题串, DM 配对, 群 @mention 门控, 云空间评论事件, 会议邀请."
 author: NousResearch
 requires_env:
   - name: FEISHU_APP_ID

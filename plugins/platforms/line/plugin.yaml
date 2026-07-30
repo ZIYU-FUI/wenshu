@@ -2,15 +2,7 @@ name: line-platform
 label: LINE
 kind: platform
 version: 1.0.0
-description: >
-  LINE Messaging API gateway adapter for Wenshu Agent.
-  Runs an aiohttp webhook server that receives LINE webhook events
-  (with HMAC-SHA256 signature verification) and relays messages between
-  LINE chats (1:1, groups, rooms) and the Wenshu agent. Outbound replies
-  prefer the free reply token and fall back to the metered Push API
-  when the token has expired or is absent. Slow LLM responses surface a
-  Template Buttons postback bubble so the user can fetch the answer with
-  a fresh reply token (free) once it's ready.
+description: "LINE Messaging API 网关适配器 (Wenshu Agent). 运行 aiohttp webhook 服务器接收 LINE webhook 事件 (含 HMAC-SHA256 签名校验), 在 LINE 聊天 (1:1, 群, 聊天室) 和 Wenshu agent 之间中继消息. 出站回复优先用 free reply token, token 过期或缺失时回退到按量计费的 Push API. 慢的 LLM 响应会先发一个 Template Buttons 气泡, 让用户在回复准备好后用新的 reply token (免费) 取回答案."
 author: Wenshu Agent contributors
 # ``requires_env`` and ``optional_env`` entries are surfaced in the
 # ``wenshu config`` UI via the platform-plugin env var injector in

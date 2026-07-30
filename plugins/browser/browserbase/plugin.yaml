@@ -1,6 +1,6 @@
 name: browser-browserbase
 version: 1.0.0
-description: "Browserbase (https://browserbase.com) cloud browser backend. Requires BROWSERBASE_API_KEY + BROWSERBASE_PROJECT_ID. Supports stealth, proxies, and keep-alive sessions; auto-falls-back when paid features are unavailable."
+description: "Browserbase (https://browserbase.com) 云浏览器后端. 需要 BROWSERBASE_API_KEY + BROWSERBASE_PROJECT_ID. 支持隐身, 代理, 长连接会话; 付费功能不可用时自动回退."
 author: NousResearch
 kind: backend
 provides_browser_providers:
