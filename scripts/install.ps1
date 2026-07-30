@@ -143,9 +143,9 @@ foreach ($tmpVar in @('TEMP', 'TMP')) {
 $RepoUrlSsh = "git@github.com:ZIYU-FUI/wenshu.git"
 $RepoUrlHttps = "https://github.com/ZIYU-FUI/wenshu.git"
 # WO-001BI R81 (装机 user 8/30 拍板): 国内镜像. raw.githubusercontent.com 拉取
-# 可能 30s 超时, AtomGit (atomgit.com, GitLab CE 系) 国内 0.6s. Try GitHub first,
-# fallback AtomGit. AtomGit 仓 = ziyu-fui/wenshu (lowercase org; 装机 user 自建).
-$RepoAtomRaw = "https://atomgit.com/ziyu-fui/wenshu/raw/main"
+# 可能 30s 超时, AtomGit/GitCode (gitcode.com) 国内 0.6s. Try GitHub first,
+# fallback AtomGit mirror. AtomGit 仓 = ZIYU1983/wenshu (装机 user 实际仓).
+$RepoAtomRaw = "https://gitcode.com/ZIYU1983/wenshu/raw/main"  # AtomGit 域名镜像 (同家公司 gitcode.com)
 $PythonVersion = "3.11"
 # Minor versions the installer accepts when the requested $PythonVersion isn't
 # available, in preference order.  uv discovers both uv-managed and system
@@ -243,7 +243,7 @@ function Write-Err {
 }
 
 # WO-001BI R81 (装机 user 8/30 拍板): raw.githubusercontent.com 国内可能 30s
-# 超时, AtomGit (atomgit.com) 国内 0.6s. Try GitHub first; if that fails
+# 超时, AtomGit/GitCode (gitcode.com) 国内 0.6s. Try GitHub first; if that fails
 # (HTTP non-2xx, DNS, timeout, conn-reset), try AtomGit mirror as fallback.
 #
 # Args:
@@ -3933,7 +3933,7 @@ try {
     Write-Info "If the error is unclear, try downloading and running the script directly:"
     Write-Host "  Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/ZIYU-FUI/wenshu/main/scripts/install.ps1' -OutFile install.ps1" -ForegroundColor Yellow
     Write-Host "  # 如果 GitHub 拉不动, 换国内 AtomGit 镜像:" -ForegroundColor Yellow
-    Write-Host "  Invoke-WebRequest -Uri 'https://atomgit.com/ziyu-fui/wenshu/raw/main/scripts/install.ps1' -OutFile install.ps1" -ForegroundColor Yellow
+    Write-Host "  Invoke-WebRequest -Uri 'https://gitcode.com/ZIYU1983/wenshu/raw/main/scripts/install.ps1' -OutFile install.ps1" -ForegroundColor Yellow
     Write-Host "  .\install.ps1" -ForegroundColor Yellow
     Write-Host ""
 }
