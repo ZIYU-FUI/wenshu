@@ -27,7 +27,11 @@ export interface RuntimeReadinessResult {
   source: 'fallback' | 'runtime_check' | 'setup_status'
 }
 
-export type RuntimeReadinessRequester = <T = unknown>(method: string, params?: Record<string, unknown>) => Promise<T>
+export type RuntimeReadinessRequester = <T = unknown>(
+  method: string,
+  params?: Record<string, unknown>,
+  options?: { signal?: AbortSignal }
+) => Promise<T>
 
 const DEFAULT_NOT_READY_REASON = 'Add a provider credential before sending your first message.'
 

@@ -330,12 +330,22 @@ async function completeWithModelConfirm(
     }
   }
 
-  const runtime = await checkRuntime(ctx, preferredSlugs[0])
+  // R46: The API-key path intentionally doesn't gate on the runtime check
+  // (it rejected too many legitimate users behind corporate proxies /
+  // regional blocks / rate-limited probes). Skip the RPC entirely here --
+  // it would otherwise wait the full request timeout (30s) on every key
+  // save against a backend whose /api/ws does not implement
+  // setup.runtime_check, freezing the onboarding overlay after the user
+  // pastes a valid key (zhuang ji user 8/29 "pei zhi KEY hou ka zhu").
+  let runtime: RuntimeReadinessResult | null = null
+  if (!ignoreRuntimeGate) {
+    runtime = await checkRuntime(ctx, preferredSlugs[0])
 
-  if (!runtime.ready && !ignoreRuntimeGate) {
-    onFail(runtime.reason)
+    if (!runtime.ready) {
+      onFail(runtime.reason)
 
-    return
+      return
+    }
   }
 
   if (!defaults) {

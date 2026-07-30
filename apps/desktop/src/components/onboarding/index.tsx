@@ -603,7 +603,10 @@ export function ApiKeyForm({
   // or unusual key can't block the user from continuing.
   const canSave = value.trim().length >= 1
   const optionCopy = t.onboarding.apiKeyOptions[option.id]
-  const optionDescription = optionCopy?.description ?? option.description
+  // R46: For non-curated options (backend-tagged providers not in the
+  // curated API_KEY_OPTIONS map) the option carries no description field;
+  // route through the i18n fallback so it tracks the active locale.
+  const optionDescription = optionCopy?.description ?? t.onboarding.apiKeyFallback(option.name)
 
   const submit = async () => {
     if (!canSave || saving) {
