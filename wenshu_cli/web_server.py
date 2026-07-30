@@ -570,7 +570,8 @@ async def _plugin_api_runtime_gate(request: Request, call_next):
 
 @app.middleware("http")
 async def _dashboard_auth_gate(request: Request, call_next):
-    return await gated_auth_middleware(request, call_next)
+    # R92: dashboard_auth deleted (R69). Stub - skip auth gate.
+    return await call_next(request)
 
 
 @app.middleware("http")
@@ -607,7 +608,8 @@ async def _token_auth_seam(request: Request, call_next):
     cookie/session gates skip enforcement. Non-token routes pass straight
     through untouched.
     """
-    return await token_auth_middleware(request, call_next)
+    # R92: dashboard_auth deleted (R69). Stub - skip token auth.
+    return await call_next(request)
 
 
 # ---------------------------------------------------------------------------
