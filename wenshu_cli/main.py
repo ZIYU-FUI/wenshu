@@ -2899,9 +2899,14 @@ def cmd_whatsapp_cloud(args):
 
 def cmd_serve(args):
     """Headless backend (formerly `wenshu dashboard --no-open`)."""
-    # Reuse start_server with browser suppressed
+    # Reuse start_server with browser suppressed.
+    # R95: args is argparse.Namespace; convert to keyword args for start_server.
     from wenshu_cli.web_server import start_server
-    return start_server(args)
+    return start_server(
+        host=args.host,
+        port=args.port,
+        open_browser=False,  # --no-open default for headless
+    )
 
 
 def cmd_setup(args):

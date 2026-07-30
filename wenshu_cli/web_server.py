@@ -17803,7 +17803,8 @@ def _normalise_prefix(raw: Optional[str]) -> str:
     the gate middleware, the OAuth routes, the cookie helpers, and the
     SPA mount all agree on validation rules.
     """
-    return normalise_prefix(raw)
+    # R96: dashboard_auth deleted (R69). Stub.
+    return raw
 
 
 def _render_active_theme_bootstrap_css() -> str:
