@@ -1675,6 +1675,7 @@ export interface Translations {
     fireworksPitch: string
     openRouterPitch: string
     apiKeyOptions: Record<string, { short: string; description: string }>
+    apiKeyFallback: (provider: string) => string
     backToSignIn: string
     getKey: string
     replaceCurrent: string

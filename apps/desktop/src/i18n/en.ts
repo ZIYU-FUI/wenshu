@@ -2066,6 +2066,7 @@ export const en: Translations = {
         description: 'Point 文枢 at a local or self-hosted OpenAI-compatible endpoint (vLLM, llama.cpp, Ollama, etc).'
       }
     },
+    apiKeyFallback: provider => `Direct API access to ${provider}.`,
     backToSignIn: 'Back to sign in',
     getKey: 'Get a key',
     replaceCurrent: 'Replace current value',

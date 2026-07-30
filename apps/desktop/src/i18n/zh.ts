@@ -2236,6 +2236,7 @@ export const zh: Translations = {
         description: '将 文枢 指向本地或自托管的 OpenAI 兼容端点 (vLLM、llama.cpp、Ollama 等)。'
       }
     },
+    apiKeyFallback: provider => `直接 API 接入 ${provider}。`,
     backToSignIn: '返回登录',
     getKey: '获取密钥',
     replaceCurrent: '替换当前值',
