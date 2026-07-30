@@ -10274,16 +10274,96 @@ def _cmd_update_impl(args, gateway_mode: bool):
             # ff-only 拉取, 不增长 pack size。开发者场景 (WENSHU_DEV_INSTALL=1) 不
             # 走 Python 子进程而是开发者自己 cd 仓库 git pull, 这里一概走浅拉取
             # 是用户场景的合理默认; dev 想要完整历史自己 reset 即可。
-            pull_result = subprocess.run(
-                git_cmd + ["pull", "--ff-only", "--depth", "1", "origin", branch],
-                cwd=PROJECT_ROOT,
-                capture_output=True,
-                text=True,
-            )
-            if pull_result.returncode != 0:
+            # WO-001BI R58 commit-pin (装机 user 8/30 拍 #2 修法 A):
+            # 内网 / 网络隔离环境 GitHub 拉不到时, 重试 3 次 (每次间隔 2s) 仍
+            # 失败 → 读 .git/wenshu-pinned-commit → git fetch --depth=1 origin
+            # <pinned-sha> + git checkout <pinned-sha> → 继续 update flow (不报
+            # fail, exit 0)。  已有 git reset --hard 不删 (Pitfall #68)。
+            pull_result = None
+            for _r58_attempt in range(3):
+                pull_result = subprocess.run(
+                    git_cmd + ["pull", "--ff-only", "--depth", "1", "origin", branch],
+                    cwd=PROJECT_ROOT,
+                    capture_output=True,
+                    text=True,
+                )
+                if pull_result.returncode == 0:
+                    break
+                if _r58_attempt < 2:
+                    _time.sleep(2)
+            # R58: pull 3 次都失败 — 在已有 divergence reset 之前先试 pinned-commit
+            # 回退 (修法 A 拍板真值)。  命中 → fetch + checkout + 继续;  不命中
+            # (无文件 / 非 40-hex / fetch 失败) → warn + exit 0 (不报错)。
+            _r58_pinned_recovered = False
+            if pull_result is not None and pull_result.returncode != 0:
+                pinned_commit_path = PROJECT_ROOT / ".git" / "wenshu-pinned-commit"
+                if pinned_commit_path.exists():
+                    try:
+                        _r58_pinned_raw = pinned_commit_path.read_text().strip()
+                    except OSError:
+                        _r58_pinned_raw = ""
+                    _r58_pinned_sha = None
+                    if (
+                        len(_r58_pinned_raw) == 40
+                        and all(c in "0123456789abcdef" for c in _r58_pinned_raw.lower())
+                    ):
+                        _r58_pinned_sha = _r58_pinned_raw.lower()
+                    if _r58_pinned_sha:
+                        print(
+                            f"⚠ wenshu update: GitHub 拉不到, 回退到 pinned-commit {_r58_pinned_sha[:10]}"
+                        )
+                        fetch_pinned = subprocess.run(
+                            git_cmd + ["fetch", "--depth", "1", "origin", _r58_pinned_sha],
+                            cwd=PROJECT_ROOT,
+                            capture_output=True,
+                            text=True,
+                        )
+                        if fetch_pinned.returncode == 0:
+                            checkout_pinned = subprocess.run(
+                                git_cmd + ["checkout", _r58_pinned_sha],
+                                cwd=PROJECT_ROOT,
+                                capture_output=True,
+                                text=True,
+                            )
+                            if checkout_pinned.returncode == 0:
+                                print(
+                                    f"  ✓ wenshu update: pinned-commit {_r58_pinned_sha[:10]} checkout 成功, 继续 update flow"
+                                )
+                                _r58_pinned_recovered = True
+                            else:
+                                _chk_err = (checkout_pinned.stderr or "").strip()
+                                if _chk_err:
+                                    _chk_err = _chk_err.splitlines()[0][:120]
+                                print(
+                                    f"⚠ wenshu update: pinned-commit checkout 失败 ({_chk_err}), 已 fetch, 请手动跑 git checkout {_r58_pinned_sha}"
+                                )
+                                sys.exit(0)
+                        else:
+                            _fch_err = (fetch_pinned.stderr or "").strip()
+                            if _fch_err:
+                                _fch_err = _fch_err.splitlines()[0][:120]
+                            print(
+                                f"⚠ wenshu update: GitHub 拉不到且 fetch pinned-commit 也失败 ({_fch_err}), 已回退"
+                            )
+                            sys.exit(0)
+                    else:
+                        print(
+                            "⚠ wenshu update: .git/wenshu-pinned-commit 内容不是 40-char hex, 已忽略"
+                        )
+                else:
+                    print(
+                        "⚠ wenshu update: GitHub 拉不到且无 pinned-commit, 请手动跑 wenshu update 重试"
+                    )
+                    sys.exit(0)
+            if (
+                pull_result is not None
+                and pull_result.returncode != 0
+                and not _r58_pinned_recovered
+            ):
                 # ff-only failed — local and remote have diverged (e.g. upstream
                 # force-pushed or rebase).  Since local changes are already
-                # stashed, reset to match the remote exactly.
+                # stashed, reset to match the remote exactly. (原有逻辑, R58
+                # 不动, Pitfall #68 不删 --hard, 仅在 pinned-commit 未命中时跑。)
                 print(
                     "  ⚠ Fast-forward not possible (history diverged), resetting to match remote..."
                 )
