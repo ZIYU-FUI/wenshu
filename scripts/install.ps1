@@ -352,6 +352,61 @@ function Write-BrowserEnv {
     Add-Content -Path $envFile -Value "AGENT_BROWSER_EXECUTABLE_PATH=$BrowserPath" -Encoding UTF8
 }
 
+function Seed-FreshInstallLanguage {
+    # Mirrors scripts/install.sh seed_fresh_install_language (R43, commit
+    # b51352de5). On a fresh install (config.yaml does not yet exist) seed
+    # an explicit `display.language: zh` so the desktop UI boots in
+    # Simplified Chinese without relying on the renderer fallback.
+    # Existing configs are never reset, so a user's language choice
+    # remains untouched on update/reinstall.
+    #
+    # Three cases mirror the bash version's behaviour:
+    #   1. config.yaml absent                -> create with display: { language: zh }
+    #   2. config.yaml exists, already has it -> no-op
+    #   3. config.yaml exists, display: block present without language ->
+    #      insert `  language: zh` immediately after the `display:` line
+    #   4. config.yaml exists, no display: block -> append a fresh
+    #      `display: { language: zh }` block at the end
+    #
+    # Uses .NET UTF8Encoding($false) to keep the file BOM-free (Wenshu's
+    # prompt-injection scanner flags a BOM as an invisible unicode
+    # character and refuses to load the file -- same hazard as SOUL.md
+    # below).
+    param([string]$ConfigPath)
+
+    $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+
+    if (-not (Test-Path $ConfigPath)) {
+        $seed = "display:`r`n  language: zh`r`n"
+        [System.IO.File]::WriteAllText($ConfigPath, $seed, $utf8NoBom)
+        return
+    }
+
+    $lines = [System.IO.File]::ReadAllLines($ConfigPath)
+    $inDisplay = $false
+    foreach ($line in $lines) {
+        if ($line -match '^\s*display\s*:\s*(\s*#.*)?$') { $inDisplay = $true; continue }
+        if ($inDisplay -and $line -match '^\s+language\s*:\s*zh\s*(\s*#.*)?$') { return }
+    }
+
+    $output = New-Object System.Collections.Generic.List[string]
+    $inserted = $false
+    foreach ($line in $lines) {
+        $null = $output.Add($line)
+        if (-not $inserted -and $line -match '^\s*display\s*:\s*(\s*#.*)?$') {
+            $null = $output.Add("  language: zh")
+            $inserted = $true
+        }
+    }
+    if (-not $inserted) {
+        $null = $output.Add("")
+        $null = $output.Add("# Desktop UI language (fresh Wenshu installs default to Simplified Chinese).")
+        $null = $output.Add("display:")
+        $null = $output.Add("  language: zh")
+    }
+    [System.IO.File]::WriteAllLines($ConfigPath, $output, $utf8NoBom)
+}
+
 function Install-AgentBrowser {
     param([switch]$SkipChromium)
     $npm = Resolve-NpmCmd
@@ -2410,7 +2465,15 @@ function Copy-ConfigTemplates {
     } else {
         Write-Info "$configPath already exists, keeping it"
     }
-    
+
+    # R71: explicitly seed `display.language: zh` on fresh installs so the
+    # desktop boots in Simplified Chinese without relying on the renderer
+    # fallback. Idempotent: a user's existing language choice is preserved
+    # on update/reinstall. Mirrors scripts/install.sh
+    # seed_fresh_install_language (R43, commit b51352de5).
+    Seed-FreshInstallLanguage -ConfigPath $configPath
+    Write-Success "Defaulted desktop language to Simplified Chinese"
+
     # Create SOUL.md if it doesn't exist (global persona file).
     # IMPORTANT: write without a BOM.  Windows PowerShell 5.1's
     # ``Set-Content -Encoding UTF8`` writes UTF-8 WITH a byte-order-mark
