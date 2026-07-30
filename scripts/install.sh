@@ -2059,7 +2059,10 @@ copy_config_templates() {
     # Create .env at ~/.wenshu-hermes/.env (top level, easy to find)
     if [ ! -f "$WENSHU_HOME/.env" ]; then
         if [ -f "$INSTALL_DIR/.env.example" ]; then
-            cp "$INSTALL_DIR/.env.example" "$WENSHU_HOME/.env"
+            # TERMINAL_CWD is deprecated in .env. Users should configure the
+            # working directory with terminal.cwd in config.yaml instead.
+            awk '!/^[[:space:]#]*TERMINAL_CWD[[:space:]]*=/' \
+                "$INSTALL_DIR/.env.example" > "$WENSHU_HOME/.env"
             log_success "Created ~/.wenshu-hermes/.env from template"
         else
             touch "$WENSHU_HOME/.env"
