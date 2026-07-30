@@ -629,13 +629,8 @@ group_sessions_per_user: true
 # global model configured in the ``model:`` section above, and an explicit
 # session /model override always wins over a route.
 #
-# Configure via the ``platforms.api_server.extra.model_routes`` gateway
-# config block:
-#
-#   platforms:
-#     api_server:
-#       enabled: true
-#       extra:
+# Configure via ``model_routes`` (see the model_routes section above or the
+# gateway config doc for full syntax).
 #         key: "your-api-server-secret"
 #         model_routes:
 #           # Xiaozhi clients send model="minimax-m2" → routed to MiniMax via OpenRouter
@@ -800,54 +795,45 @@ agent:
 # If a platform isn't listed here, its built-in default is used.
 #
 # You can use EITHER:
-#   - A preset like "wenshu-cli" or "wenshu-telegram" (curated tool set)
+#   - A preset like "wenshu-cli" or "wenshu-feishu" (curated tool set)
 #   - A list of individual toolsets to compose your own (see list below)
 #
-# Supported platform keys: cli, telegram, discord, whatsapp, slack, qqbot, teams, google_chat
+# Supported platform keys: cli, feishu, dingtalk, wecom, wecom_callback, weixin, qqbot, yuanbao
 #
 # Examples:
 #
 #   # Use presets (same as defaults):
 #   platform_toolsets:
 #     cli: [wenshu-cli]
-#     telegram: [wenshu-telegram]
+#     feishu: [wenshu-feishu]
 #
-#   # Custom: give Telegram only web + terminal + file + planning:
+#   # Custom: give Feishu only web + terminal + file + planning:
 #   platform_toolsets:
-#     telegram: [web, terminal, file, todo]
+#     feishu: [web, terminal, file, todo]
 #
 #   # Custom: CLI without browser or image gen:
 #   platform_toolsets:
 #     cli: [web, terminal, file, skills, todo, tts, cronjob]
 #
-#   # Restrictive: Discord gets read-only tools only:
-#   platform_toolsets:
-#     discord: [web, vision, skills, todo]
-#
 # If not set, defaults are:
-#   cli:           wenshu-cli            (everything + cronjob management)
-#   telegram:      wenshu-telegram       (terminal, file, web, vision, image, tts, browser, skills, todo, cronjob, messaging)
-#   discord:       wenshu-discord        (same as telegram)
-#   whatsapp:      wenshu-whatsapp       (same as telegram)
-#   slack:         wenshu-slack          (same as telegram)
-#   signal:        wenshu-signal         (same as telegram)
-#   homeassistant: wenshu-homeassistant  (same as telegram)
-#   qqbot:            wenshu-qqbot            (same as telegram)
-#   teams:            wenshu-teams            (same as telegram)
-#   google_chat:      wenshu-google_chat      (same as telegram)
+#   cli:            wenshu-cli             (everything + cronjob management)
+#   feishu:         wenshu-feishu          (core + feishu_doc/drive tools)
+#   dingtalk:       wenshu-dingtalk        (core tools)
+#   wecom:          wenshu-wecom           (core tools)
+#   wecom_callback: wenshu-wecom-callback  (core tools)
+#   weixin:         wenshu-weixin          (core tools)
+#   qqbot:          wenshu-qqbot           (core tools)
+#   yuanbao:        wenshu-yuanbao         (core + yuanbao group/DM/sticker tools)
 #
 platform_toolsets:
   cli: [wenshu-cli]
-  telegram: [wenshu-telegram]
-  discord: [wenshu-discord]
-  whatsapp: [wenshu-whatsapp]
-  slack: [wenshu-slack]
-  signal: [wenshu-signal]
-  homeassistant: [wenshu-homeassistant]
+  feishu: [wenshu-feishu]
+  dingtalk: [wenshu-dingtalk]
+  wecom: [wenshu-wecom]
+  wecom_callback: [wenshu-wecom-callback]
+  weixin: [wenshu-weixin]
   qqbot: [wenshu-qqbot]
   yuanbao: [wenshu-yuanbao]
-  teams: [wenshu-teams]
-  google_chat: [wenshu-google_chat]
 
 # =============================================================================
 # Gateway Platform Settings
@@ -856,42 +842,20 @@ platform_toolsets:
 # Platform-specific knobs live under `extra`.
 #
 # platforms:
-#   telegram:
+#   feishu:
 #     reply_to_mode: "first"  # off | first | all
-#     # guest_mode lets explicit @mentions from non-allowlisted groups through.
-#     # Default false; ordinary messages, replies, and regex wake words stay blocked.
 #     guest_mode: false
-#     # allowed_chats: ["-1001234567890"]
 #     extra:
-#       disable_link_previews: false  # Set true to suppress Telegram URL previews in bot messages
-#       rich_messages: false          # Bot API 10.1 rich messages (tables/task lists/details/math); default false for copyable legacy MarkdownV2, set true to opt in
-#       rich_drafts: false            # Experimental rich draft previews during Telegram DM streaming; default false because Telegram Desktop/macOS can visually overlay draft frames
 #       command_menu:
-#         # Telegram allows up to 100 BotCommands; Wenshu defaults to 60 so
-#         # all built-in commands plus common skill commands stay visible
-#         # while remaining under Telegram's payload-size limit. Clamped 1..100.
 #         max_commands: 60
-#         # prepend = user priority first, then Wenshu defaults
-#         # append  = Wenshu defaults first, then user priority
-#         # replace = only the list below defines priority
 #         priority_mode: prepend
 #         priority:
 #           - my_plugin_command
-#   webhook:
-#     extra:
-#       # Route scripts default to a 30 second timeout. Scripts must live under
-#       # the active profile's scripts directory and receive webhook JSON on stdin.
-#       script_timeout_seconds: 30
 #
-# Discord-specific settings (config.yaml top-level, not under platforms:):
+# Feishu-specific settings (config.yaml top-level, not under platforms:):
 #
-# discord:
+# feishu:
 #   require_mention: true            # Require @mention in server channels (default: true)
-#   auto_thread: true                # Auto-create thread on @mention (default: true)
-#   free_response_channels: ""       # Channel IDs where no mention is needed
-#   reactions: true                  # Show processing reactions (default: true)
-#   history_backfill: true           # Recover missed channel messages on mention (default: true)
-#   history_backfill_limit: 50       # Max messages to scan backwards (default: 50)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Available toolsets (use these names in platform_toolsets or the toolsets list)
@@ -917,12 +881,14 @@ platform_toolsets:
 #   cronjob      - cronjob (create/list/update/pause/resume/run/remove scheduled tasks)
 #
 # PRESETS (curated bundles):
-#   wenshu-cli       - All of the above except send_message
-#   wenshu-telegram  - terminal, file, web, vision, image_gen, tts, browser,
-#                      skills, todo, cronjob, send_message
-#   wenshu-discord   - Same as wenshu-telegram
-#   wenshu-whatsapp  - Same as wenshu-telegram
-#   wenshu-slack     - Same as wenshu-telegram
+#   wenshu-cli           - All of the above except send_message
+#   wenshu-feishu        - core + feishu_doc/drive tools
+#   wenshu-dingtalk      - core tools
+#   wenshu-wecom         - core tools
+#   wenshu-wecom-callback - core tools
+#   wenshu-weixin        - core tools
+#   wenshu-qqbot         - core tools
+#   wenshu-yuanbao       - core + yuanbao group/DM/sticker tools
 #
 # COMPOSITE:
 #   debugging    - terminal + web + file
@@ -1159,28 +1125,28 @@ display:
   # Toggle at runtime with /verbose in the CLI
   tool_progress: all
 
-  # Per-platform defaults can be quieter than the global setting. Telegram
+  # Per-platform defaults can be quieter than the global setting. Feishu
   # tunes for mobile: tool_progress and busy_ack_detail default off (no
   # per-tool breadcrumb stream, no "iteration 21/60" debug detail in busy
   # acks or heartbeats), but interim_assistant_messages and
   # long_running_notifications STAY ON so the user has real signal between
   # turn start and final answer (mid-turn assistant commentary + a single
   # edit-in-place "⏳ Working — N min" heartbeat). Override under
-  # display.platforms.telegram.
+  # display.platforms.feishu.
 
   # Auto-cleanup of temporary progress bubbles after the final response lands.
-  # On platforms that support message deletion (currently Telegram), this
+  # On platforms that support message deletion (currently Feishu), this
   # removes the tool-progress bubble, "⏳ Still working..." notices, and
   # context-pressure status messages once the final reply has been delivered —
   # keeping long-running turns visible live, then tidy afterward. Failed runs
   # leave the bubbles in place as breadcrumbs. Off by default.
-  # Per-platform override: display.platforms.telegram.cleanup_progress
+  # Per-platform override: display.platforms.feishu.cleanup_progress
   #   true:  Delete tracked progress/status bubbles on successful turn
   #   false: Leave everything in place (default)
   # Example:
   #   display:
   #     platforms:
-  #       telegram:
+  #       feishu:
   #         cleanup_progress: true
   cleanup_progress: false
 

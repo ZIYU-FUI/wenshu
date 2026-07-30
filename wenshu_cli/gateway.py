@@ -5018,128 +5018,15 @@ def run_gateway(verbose: int = 0, quiet: bool = False, replace: bool = False, fo
 # Per-platform config: each entry defines the env vars, setup instructions,
 # and prompts needed to configure a messaging platform.
 _PLATFORMS = [
-    # Telegram moved to plugins/platforms/telegram/ — setup metadata discovered
-    # dynamically via the platform registry entry registered by
-    # plugins/platforms/telegram/adapter.py::register(). #41112.
-    # Discord moved to plugins/platforms/discord/ — its setup metadata is
-    # discovered dynamically via _all_platforms() from the platform registry
-    # entry registered by plugins/platforms/discord/adapter.py::register().
-    # Slack moved to plugins/platforms/slack/ for the same reason — its setup
-    # metadata is discovered dynamically via the platform registry entry
-    # registered by plugins/platforms/slack/adapter.py::register(). #41112.
-    # Matrix moved to plugins/platforms/matrix/ — setup metadata discovered
-    # dynamically via the platform registry entry registered by
-    # plugins/platforms/matrix/adapter.py::register(). #41112.
-    {
-        "key": "mattermost",
-        "label": "Mattermost",
-        "emoji": "💬",
-        "token_var": "MATTERMOST_TOKEN",
-        "setup_instructions": [
-            "1. In Mattermost: Integrations → Bot Accounts → Add Bot Account",
-            "   (System Console → Integrations → Bot Accounts must be enabled)",
-            "2. Give it a username (e.g. wenshu) and copy the bot token",
-            "3. Works with any self-hosted Mattermost instance — enter your server URL",
-            "4. To find your user ID: click your avatar (top-left) → Profile",
-            "   Your user ID is displayed there — click it to copy.",
-            "   ⚠ This is NOT your username — it's a 26-character alphanumeric ID.",
-            "5. To get a channel ID: click the channel name → View Info → copy the ID",
-        ],
-        "vars": [
-            {
-                "name": "MATTERMOST_URL",
-                "prompt": "Server URL (e.g. https://mm.example.com)",
-                "password": False,
-                "help": "Your Mattermost server URL. Works with any self-hosted instance.",
-            },
-            {
-                "name": "MATTERMOST_TOKEN",
-                "prompt": "Bot token",
-                "password": True,
-                "help": "Paste the bot token from step 2 above.",
-            },
-            {
-                "name": "MATTERMOST_ALLOWED_USERS",
-                "prompt": "Allowed user IDs (comma-separated)",
-                "password": False,
-                "is_allowlist": True,
-                "help": "Your Mattermost user ID from step 4 above.",
-            },
-            {
-                "name": "MATTERMOST_HOME_CHANNEL",
-                "prompt": "Home channel ID (for cron/notification delivery, or empty to set later with /set-home)",
-                "password": False,
-                "help": "Channel ID where 文枢 delivers cron results and notifications.",
-            },
-            {
-                "name": "MATTERMOST_REPLY_MODE",
-                "prompt": "Reply mode — 'off' for flat messages, 'thread' for threaded replies (default: off)",
-                "password": False,
-                "help": "off = flat channel messages, thread = replies nest under your message.",
-            },
-        ],
-    },
-    # WhatsApp moved to plugins/platforms/whatsapp/ — setup metadata discovered
-    # dynamically via the platform registry entry registered by
-    # plugins/platforms/whatsapp/adapter.py::register(). #41112.
-    {
-        "key": "signal",
-        "label": "Signal",
-        "emoji": "📡",
-        "token_var": "SIGNAL_HTTP_URL",
-    },
-    # Email and SMS moved to plugins/platforms/{email,sms}/ — setup metadata
-    # discovered dynamically via the platform registry entries registered by
-    # plugins/platforms/{email,sms}/adapter.py::register(). #41112.
+    # 国内常用平台 setup 元数据保留 (飞书/钉钉/企业微信/企业微信回调/微信/QQ Bot/元宝)。
+    # Telegram/Discord/Slack/Mattermost/Signal/BlueBubbles 等非国内平台于 R64 砍掉,
+    # 它们的 setup 元数据由 plugins/platforms/* 插件动态注册 (若需要可重新开启)。
+    # WhatsApp/Email/SMS/Matrix 同上: 已迁至 plugins/platforms/, 由 platform_registry 发现。
     {
         "key": "weixin",
         "label": "Weixin / WeChat",
         "emoji": "💬",
         "token_var": "WEIXIN_ACCOUNT_ID",
-    },
-    {
-        "key": "bluebubbles",
-        "label": "BlueBubbles (iMessage)",
-        "emoji": "💬",
-        "token_var": "BLUEBUBBLES_SERVER_URL",
-        "setup_instructions": [
-            "1. Install BlueBubbles on a Mac that will act as your iMessage server:",
-            "   https://bluebubbles.app/",
-            "2. Complete the BlueBubbles setup wizard — sign in with your Apple ID",
-            "3. In BlueBubbles Settings → API, note the Server URL and password",
-            "4. The server URL is typically http://<your-mac-ip>:1234",
-            "5. 文枢 connects via the BlueBubbles REST API and receives",
-            "   incoming messages via a local webhook",
-            "6. To authorize users, use DM pairing: wenshu pairing generate bluebubbles",
-            "   Share the code — the user sends it via iMessage to get approved",
-        ],
-        "vars": [
-            {
-                "name": "BLUEBUBBLES_SERVER_URL",
-                "prompt": "BlueBubbles server URL (e.g. http://192.168.1.10:1234)",
-                "password": False,
-                "help": "The URL shown in BlueBubbles Settings → API.",
-            },
-            {
-                "name": "BLUEBUBBLES_PASSWORD",
-                "prompt": "BlueBubbles server password",
-                "password": True,
-                "help": "The password shown in BlueBubbles Settings → API.",
-            },
-            {
-                "name": "BLUEBUBBLES_ALLOWED_USERS",
-                "prompt": "Pre-authorized phone numbers or iMessage IDs (comma-separated, or leave empty for DM pairing)",
-                "password": False,
-                "is_allowlist": True,
-                "help": "Optional — pre-authorize specific users. Leave empty to use DM pairing instead (recommended).",
-            },
-            {
-                "name": "BLUEBUBBLES_HOME_CHANNEL",
-                "prompt": "Home channel (phone number or iMessage ID for cron/notifications, or empty)",
-                "password": False,
-                "help": "Phone number or Apple ID to deliver cron results and notifications to.",
-            },
-        ],
     },
     {
         "key": "qqbot",

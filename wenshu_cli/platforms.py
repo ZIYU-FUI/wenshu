@@ -18,19 +18,9 @@ class PlatformInfo(NamedTuple):
 
 
 # Ordered so that TUI menus are deterministic.
+# R64 砍非国内平台: 只保留国内常用 7 个 + CLI = 8 个。
 PLATFORMS: OrderedDict[str, PlatformInfo] = OrderedDict([
     ("cli",            PlatformInfo(label="🖥️  CLI",            default_toolset="wenshu-cli")),
-    ("telegram",       PlatformInfo(label="📱 Telegram",        default_toolset="wenshu-telegram")),
-    ("discord",        PlatformInfo(label="💬 Discord",         default_toolset="wenshu-discord")),
-    ("slack",          PlatformInfo(label="💼 Slack",           default_toolset="wenshu-slack")),
-    ("whatsapp",       PlatformInfo(label="📱 WhatsApp",        default_toolset="wenshu-whatsapp")),
-    ("whatsapp_cloud", PlatformInfo(label="📱 WhatsApp Business (Cloud)", default_toolset="wenshu-whatsapp")),
-    ("signal",         PlatformInfo(label="📡 Signal",          default_toolset="wenshu-signal")),
-    ("bluebubbles",    PlatformInfo(label="💙 BlueBubbles",     default_toolset="wenshu-bluebubbles")),
-    ("email",          PlatformInfo(label="📧 Email",           default_toolset="wenshu-email")),
-    ("homeassistant",  PlatformInfo(label="🏠 Home Assistant",  default_toolset="wenshu-homeassistant")),
-    ("mattermost",     PlatformInfo(label="💬 Mattermost",      default_toolset="wenshu-mattermost")),
-    ("matrix",         PlatformInfo(label="💬 Matrix",          default_toolset="wenshu-matrix")),
     ("dingtalk",       PlatformInfo(label="💬 DingTalk",        default_toolset="wenshu-dingtalk")),
     ("feishu",         PlatformInfo(label="🪽 Feishu",          default_toolset="wenshu-feishu")),
     ("wecom",          PlatformInfo(label="💬 WeCom",           default_toolset="wenshu-wecom")),
@@ -38,9 +28,6 @@ PLATFORMS: OrderedDict[str, PlatformInfo] = OrderedDict([
     ("weixin",         PlatformInfo(label="💬 Weixin",          default_toolset="wenshu-weixin")),
     ("qqbot",          PlatformInfo(label="💬 QQBot",           default_toolset="wenshu-qqbot")),
     ("yuanbao",        PlatformInfo(label="🤖 Yuanbao",         default_toolset="wenshu-yuanbao")),
-    ("webhook",        PlatformInfo(label="🔗 Webhook",         default_toolset="wenshu-webhook")),
-    ("api_server",     PlatformInfo(label="🌐 API Server",      default_toolset="wenshu-api-server")),
-    ("cron",           PlatformInfo(label="⏰ Cron",            default_toolset="wenshu-cron")),
 ])
 
 

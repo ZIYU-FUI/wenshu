@@ -150,7 +150,7 @@ def gui_toolset_label(label: str) -> str:
 # `wenshu tools` → X (Twitter) Search setup walks users through credential
 # setup. The tool's check_fn means the schema still won't appear to the
 # model if the credential later goes missing or expires.
-_DEFAULT_OFF_TOOLSETS = {"homeassistant", "spotify", "discord", "discord_admin", "video", "video_gen", "x_search"}
+_DEFAULT_OFF_TOOLSETS = {"spotify", "video", "video_gen", "x_search"}
 
 
 def _xai_credentials_present() -> bool:
@@ -1701,14 +1701,13 @@ def _exempt_explicit_platform_native(
 ) -> None:
     """Let platform-native default-off toolsets through on explicit config.
 
-    Toolsets that are both in ``_DEFAULT_OFF_TOOLSETS`` and restricted to
-    ``platform`` via ``_TOOLSET_PLATFORM_RESTRICTIONS`` (currently
-    ``discord``/``discord_admin`` on the discord platform) are the platform's
-    own native tools. They are kept off for *unconfigured* platforms (security
-    opt-in), but once a user explicitly saves a toolset list for the platform
-    the composite they chose (e.g. ``wenshu-discord``, which contains those
-    tools) is an opt-in — stripping them silently defeats the explicit
-    configuration (#35527). Mutates ``default_off`` in place.
+    Toolsets that are both in ``_DEFAULT_OFF_TOOLSETS`` and restricted to a
+    specific ``platform`` via ``_TOOLSET_PLATFORM_RESTRICTIONS`` are the
+    platform's own native tools. They are kept off for *unconfigured* platforms
+    (security opt-in), but once a user explicitly saves a toolset list for the
+    platform the composite they chose is an opt-in — stripping them silently
+    defeats the explicit configuration (#35527). Mutates ``default_off`` in
+    place.
     """
     if not explicitly_configured:
         return
@@ -1731,7 +1730,7 @@ def _get_platform_tools(
     toolset_names = platform_toolsets.get(platform)
     # Track whether the user explicitly saved a toolset list for this platform
     # (vs. falling back to the platform default). An explicit composite (e.g.
-    # ``wenshu-discord``) is an opt-in to the platform's native default-off
+    # ``wenshu-feishu``) is an opt-in to the platform's native default-off
     # toolsets — see _exempt_explicit_platform_native (#35527).
     explicitly_configured = isinstance(toolset_names, list)
 
@@ -2035,7 +2034,7 @@ def _save_platform_tools(config: dict, platform: str, enabled_toolset_keys: Set[
     plugin_keys = _get_plugin_toolset_keys()
     configurable_keys |= plugin_keys
 
-    # Also exclude platform default toolsets (wenshu-cli, wenshu-telegram, etc.)
+    # Also exclude platform default toolsets (e.g. wenshu-cli, wenshu-feishu)
     # These are "super" toolsets that resolve to ALL tools, so preserving them
     # would silently override the user's unchecked selections on the next read.
     platform_default_keys = {p["default_toolset"] for p in PLATFORMS.values()}

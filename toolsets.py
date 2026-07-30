@@ -396,115 +396,8 @@ TOOLSETS = {
         "includes": []
     },
 
-    "wenshu-api-server": {
-        "description": "OpenAI-compatible API server — full agent tools accessible via HTTP (no interactive UI tools like clarify or send_message)",
-        "tools": [
-            # Web
-            "web_search", "web_extract",
-            # Terminal + process management
-            "terminal", "process",
-            # File manipulation
-            "read_file", "write_file", "patch", "search_files",
-            # Vision + image generation
-            "vision_analyze", "image_generate",
-            # Skills
-            "skills_list", "skill_view", "skill_manage",
-            # Browser automation
-            "browser_navigate", "browser_snapshot", "browser_click",
-            "browser_type", "browser_scroll", "browser_back",
-            "browser_press", "browser_get_images",
-            "browser_vision", "browser_console", "browser_cdp", "browser_dialog",
-            # Planning & memory
-            "todo", "memory",
-            # Session history search
-            "session_search",
-            # Code execution + delegation
-            "execute_code", "delegate_task",
-            # Cronjob management
-            "cronjob",
-            # Home Assistant smart home control (gated on HASS_TOKEN via check_fn)
-            "ha_list_entities", "ha_get_state", "ha_list_services", "ha_call_service",
-
-        ],
-        "includes": []
-    },
-    
     "wenshu-cli": {
         "description": "Full interactive CLI toolset - all default tools plus cronjob management",
-        "tools": _WENSHU_CORE_TOOLS,
-        "includes": []
-    },
-
-    "wenshu-cron": {
-        # Mirrors wenshu-cli so cron's "default" toolset is the same set of
-        # core tools users see interactively — then `wenshu tools` filters
-        # them down per the platform config. _DEFAULT_OFF_TOOLSETS (moa,
-        # homeassistant) are excluded by _get_platform_tools() unless
-        # the user explicitly enables them.
-        "description": "Default cron toolset - same core tools as wenshu-cli; gated by `wenshu tools`",
-        "tools": _WENSHU_CORE_TOOLS,
-        "includes": []
-    },
-
-    "wenshu-telegram": {
-        "description": "Telegram bot toolset - full access for personal use (terminal has safety checks)",
-        "tools": _WENSHU_CORE_TOOLS,
-        "includes": []
-    },
-    
-    "wenshu-discord": {
-        "description": "Discord bot toolset - full access (terminal has safety checks via dangerous command approval)",
-        "tools": _WENSHU_CORE_TOOLS + [
-            "discord",
-            "discord_admin",
-        ],
-        "includes": []
-    },
-    
-    "wenshu-whatsapp": {
-        "description": "WhatsApp bot toolset - similar to Telegram (personal messaging, more trusted)",
-        "tools": _WENSHU_CORE_TOOLS,
-        "includes": []
-    },
-    
-    "wenshu-slack": {
-        "description": "Slack bot toolset - full access for workspace use (terminal has safety checks)",
-        "tools": _WENSHU_CORE_TOOLS,
-        "includes": []
-    },
-    
-    "wenshu-signal": {
-        "description": "Signal bot toolset - encrypted messaging platform (full access)",
-        "tools": _WENSHU_CORE_TOOLS,
-        "includes": []
-    },
-
-    "wenshu-bluebubbles": {
-        "description": "BlueBubbles iMessage bot toolset - Apple iMessage via local BlueBubbles server",
-        "tools": _WENSHU_CORE_TOOLS,
-        "includes": []
-    },
-
-    "wenshu-homeassistant": {
-        "description": "Home Assistant bot toolset - smart home event monitoring and control",
-        "tools": _WENSHU_CORE_TOOLS,
-        "includes": []
-    },
-
-    "wenshu-email": {
-        "description": "Email bot toolset - interact with Wenshu via email (IMAP/SMTP)",
-        "tools": _WENSHU_CORE_TOOLS,
-        "includes": []
-    },
-
-    "wenshu-mattermost": {
-        "description": "Mattermost bot toolset - self-hosted team messaging (full access)",
-        "tools": _WENSHU_CORE_TOOLS,
-        "includes": []
-    },
-
-    "wenshu-matrix": {
-        "description": "Matrix bot toolset - decentralized encrypted messaging (full access)",
         "tools": _WENSHU_CORE_TOOLS,
         "includes": []
     },
@@ -564,22 +457,10 @@ TOOLSETS = {
         "includes": []
     },
 
-    "wenshu-sms": {
-        "description": "SMS bot toolset - interact with Wenshu via SMS (Twilio)",
-        "tools": _WENSHU_CORE_TOOLS,
-        "includes": []
-    },
-
-    "wenshu-webhook": {
-        "description": "Webhook toolset - receive and process external webhook events",
-        "tools": _WENSHU_WEBHOOK_SAFE_TOOLS,
-        "includes": []
-    },
-
     "wenshu-gateway": {
         "description": "Gateway toolset - union of all messaging platform tools",
         "tools": [],
-        "includes": ["wenshu-telegram", "wenshu-discord", "wenshu-whatsapp", "wenshu-slack", "wenshu-signal", "wenshu-bluebubbles", "wenshu-homeassistant", "wenshu-email", "wenshu-sms", "wenshu-mattermost", "wenshu-matrix", "wenshu-dingtalk", "wenshu-feishu", "wenshu-wecom", "wenshu-wecom-callback", "wenshu-weixin", "wenshu-qqbot", "wenshu-webhook", "wenshu-yuanbao"]
+        "includes": ["wenshu-dingtalk", "wenshu-feishu", "wenshu-wecom", "wenshu-wecom-callback", "wenshu-weixin", "wenshu-qqbot", "wenshu-yuanbao"]
     }
 }
 
