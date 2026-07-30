@@ -8,6 +8,10 @@
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/ZIYU-FUI/wenshu/main/scripts/install.sh | bash
 #
+# If raw.githubusercontent.com is unreachable from your network, fetch the
+# AtomGit mirror (国内备用) and pipe that to bash instead:
+#   curl -fsSL https://atomgit.com/ziyu-fui/wenshu/raw/main/scripts/install.sh | bash
+#
 # Or with options:
 #   curl -fsSL ... | bash -s -- --no-venv --skip-setup
 #
@@ -61,6 +65,10 @@ BOLD='\033[1m'
 # Configuration
 REPO_URL_SSH="git@github.com:ZIYU-FUI/wenshu.git"
 REPO_URL_HTTPS="https://github.com/ZIYU-FUI/wenshu.git"
+# WO-001BI R81 (装机 user 8/30 拍板): 国内镜像. raw.githubusercontent.com 拉取
+# 可能 30s 超时, AtomGit (atomgit.com, GitLab CE 系) 国内 0.6s。Try GitHub first,
+# fallback AtomGit。AtomGit 仓 = ziyu-fui/wenshu (lowercase org; 装机 user 自建)。
+REPO_ATOM_RAW="https://atomgit.com/ziyu-fui/wenshu/raw/main"
 WENSHU_HOME="${WENSHU_HOME:-$HOME/.wenshu-hermes}"
 # WO-001BI R53: 共享 uv cache 跨 wenshu update 重装
 UV_CACHE_DIR_DEFAULT="$WENSHU_HOME/cache/uv"
@@ -269,6 +277,54 @@ activate_python_package_mirror() {
     export PIP_INDEX_URL="$mirror"
     unset UV_TORCH_BACKEND
     log_info "Python package source: $label ($mirror)"
+}
+
+# WO-001BI R81 (装机 user 8/30 拍板): raw.githubusercontent.com 国内可能 30s
+# 超时, AtomGit (atomgit.com) 国内 0.6s。Try GitHub first; if that fails (HTTP
+# non-2xx, DNS, timeout, conn-reset), try AtomGit mirror as fallback.
+#
+# Args:
+#   $1  relative path under the wenshu repo root (e.g. "scripts/install.sh")
+#   $2  destination file path
+#   $3  optional ref/branch (default: main)
+#
+# Behavior:
+#   - Tries GitHub first with bounded --max-time 30 --retry 1.
+#   - If GitHub fails, tries AtomGit with the same flags.
+#   - On both failing, exits 1 with a clear error.
+#   - Logs which source was used so support can diagnose.
+#
+# This helper exists so future code paths (or chained-script downloads from
+# install.sh) can re-use the same fallback policy without re-implementing it.
+# install.sh itself is fetched externally via `curl ... | bash`, so the
+# common path doesn't call this — it's a defensive helper for any
+# install.sh-internal download that needs GitHub raw today.
+download_with_atomgit_fallback() {
+    local rel_path="$1"
+    local dest="$2"
+    local ref="${3:-main}"
+    local gh_url="https://raw.githubusercontent.com/ZIYU-FUI/wenshu/${ref}/${rel_path}"
+    local atom_url="${REPO_ATOM_RAW}/${rel_path}"
+
+    log_info "Fetching ${rel_path} (ref=${ref}) — try GitHub, fallback AtomGit"
+
+    if curl -fsSL --max-time 30 --retry 1 --retry-all-errors \
+            "$gh_url" -o "$dest" 2>/dev/null; then
+        log_success "Downloaded from GitHub: $gh_url"
+        return 0
+    fi
+    log_warn "GitHub raw fetch failed for $gh_url; falling back to AtomGit mirror"
+
+    if curl -fsSL --max-time 30 --retry 1 --retry-all-errors \
+            "$atom_url" -o "$dest" 2>/dev/null; then
+        log_success "Downloaded from AtomGit mirror: $atom_url"
+        return 0
+    fi
+
+    log_error "Both GitHub and AtomGit mirror fetches failed for ${rel_path}"
+    log_error "  GitHub:   $gh_url"
+    log_error "  AtomGit:  $atom_url"
+    return 1
 }
 
 json_escape() {
@@ -566,6 +622,8 @@ detect_os() {
             DISTRO="windows"
             log_error "Windows detected. Please use the PowerShell installer:"
             log_info "  iex (irm https://raw.githubusercontent.com/ZIYU-FUI/wenshu/main/scripts/install.ps1)"
+            log_info "  # 如果 GitHub 拉不动, 换国内 AtomGit 镜像:"
+            log_info "  iex (irm https://atomgit.com/ziyu-fui/wenshu/raw/main/scripts/install.ps1)"
             exit 1
             ;;
         *)

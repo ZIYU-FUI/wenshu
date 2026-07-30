@@ -7,6 +7,10 @@
 # Usage:
 #   iex (irm https://raw.githubusercontent.com/ZIYU-FUI/wenshu/main/scripts/install.ps1)
 #
+# If raw.githubusercontent.com is unreachable from your network, fetch the
+# AtomGit mirror (国内备用) and pipe that to iex instead:
+#   iex (irm https://atomgit.com/ziyu-fui/wenshu/raw/main/scripts/install.ps1)
+#
 # Or download and run with options:
 #   .\install.ps1 -NoVenv -SkipSetup
 #
@@ -138,6 +142,10 @@ foreach ($tmpVar in @('TEMP', 'TMP')) {
 
 $RepoUrlSsh = "git@github.com:ZIYU-FUI/wenshu.git"
 $RepoUrlHttps = "https://github.com/ZIYU-FUI/wenshu.git"
+# WO-001BI R81 (装机 user 8/30 拍板): 国内镜像. raw.githubusercontent.com 拉取
+# 可能 30s 超时, AtomGit (atomgit.com, GitLab CE 系) 国内 0.6s. Try GitHub first,
+# fallback AtomGit. AtomGit 仓 = ziyu-fui/wenshu (lowercase org; 装机 user 自建).
+$RepoAtomRaw = "https://atomgit.com/ziyu-fui/wenshu/raw/main"
 $PythonVersion = "3.11"
 # Minor versions the installer accepts when the requested $PythonVersion isn't
 # available, in preference order.  uv discovers both uv-managed and system
@@ -232,6 +240,53 @@ function Write-Warn {
 function Write-Err {
     param([string]$Message)
     Write-Host "[X] $Message" -ForegroundColor Red
+}
+
+# WO-001BI R81 (装机 user 8/30 拍板): raw.githubusercontent.com 国内可能 30s
+# 超时, AtomGit (atomgit.com) 国内 0.6s. Try GitHub first; if that fails
+# (HTTP non-2xx, DNS, timeout, conn-reset), try AtomGit mirror as fallback.
+#
+# Args:
+#   -RelativePath  path under the wenshu repo root (e.g. "scripts/install.ps1")
+#   -Ref           optional ref/branch (default: main)
+#   -OutFile       destination file path
+#
+# Behavior:
+#   - Tries GitHub first (5s connect, 30s total).
+#   - If GitHub fails, tries AtomGit with the same timeout.
+#   - On both failing, throws with both URLs in the error so support can
+#     diagnose. install.ps1 itself is fetched externally via `irm | iex`,
+#     so the common path doesn't call this — it's a defensive helper for
+#     any install.ps1-internal download that needs GitHub raw today.
+function Invoke-WebRequestWithFallback {
+    param(
+        [Parameter(Mandatory = $true)][string]$RelativePath,
+        [string]$Ref = "main",
+        [Parameter(Mandatory = $true)][string]$OutFile
+    )
+
+    $ghUrl = "https://raw.githubusercontent.com/ZIYU-FUI/wenshu/$Ref/$RelativePath"
+    $atomUrl = "$RepoAtomRaw/$RelativePath"
+
+    Write-Info "Fetching $RelativePath (ref=$Ref) - try GitHub, fallback AtomGit"
+
+    try {
+        Invoke-WebRequest -Uri $ghUrl -OutFile $OutFile -UseBasicParsing `
+            -TimeoutSec 30 -ConnectionTimeoutSeconds 5 -ErrorAction Stop
+        Write-Success "Downloaded from GitHub: $ghUrl"
+        return
+    } catch {
+        Write-Warn "GitHub raw fetch failed for $ghUrl; falling back to AtomGit mirror ($($_.Exception.Message))"
+    }
+
+    try {
+        Invoke-WebRequest -Uri $atomUrl -OutFile $OutFile -UseBasicParsing `
+            -TimeoutSec 30 -ConnectionTimeoutSeconds 5 -ErrorAction Stop
+        Write-Success "Downloaded from AtomGit mirror: $atomUrl"
+        return
+    } catch {
+        throw "Both GitHub and AtomGit mirror fetches failed for $RelativePath. GitHub: $ghUrl. AtomGit: $atomUrl. Last error: $($_.Exception.Message)"
+    }
 }
 
 function Invoke-NativeWithRelaxedErrorAction {
@@ -3877,6 +3932,8 @@ try {
     Write-Host ""
     Write-Info "If the error is unclear, try downloading and running the script directly:"
     Write-Host "  Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/ZIYU-FUI/wenshu/main/scripts/install.ps1' -OutFile install.ps1" -ForegroundColor Yellow
+    Write-Host "  # 如果 GitHub 拉不动, 换国内 AtomGit 镜像:" -ForegroundColor Yellow
+    Write-Host "  Invoke-WebRequest -Uri 'https://atomgit.com/ziyu-fui/wenshu/raw/main/scripts/install.ps1' -OutFile install.ps1" -ForegroundColor Yellow
     Write-Host "  .\install.ps1" -ForegroundColor Yellow
     Write-Host ""
 }
