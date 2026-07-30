@@ -2,7 +2,7 @@
   "name": "wenshu",
   "productName": "文枢",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "文枢 (Wenshu) — 基于 Hermes Agent v0.19.0 (MIT) 深度改 fork",
   "author": [
     {

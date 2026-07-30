@@ -73,7 +73,7 @@ open /Applications/文枢.app
 
 # Desktop
 open /Applications/文枢.app
-# 启动后应该看到 "文枢 v0.0.1" splash + About 页
+# 启动后应该看到 "文枢 v0.1.0" splash + About 页
 
 # 隔离验证
 ls -la ~/.hermes
