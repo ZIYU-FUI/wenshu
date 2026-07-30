@@ -570,10 +570,6 @@ async def _plugin_api_runtime_gate(request: Request, call_next):
 
 @app.middleware("http")
 async def _dashboard_auth_gate(request: Request, call_next):
-    try:
-        from wenshu_cli.dashboard_auth.middleware import gated_auth_middleware
-    except ImportError:
-        pass  # R74: dashboard_auth deleted (R69)
     return await gated_auth_middleware(request, call_next)
 
 
@@ -611,10 +607,6 @@ async def _token_auth_seam(request: Request, call_next):
     cookie/session gates skip enforcement. Non-token routes pass straight
     through untouched.
     """
-    try:
-        from wenshu_cli.dashboard_auth.token_auth import token_auth_middleware
-    except ImportError:
-        pass  # R74: dashboard_auth deleted (R69)
     return await token_auth_middleware(request, call_next)
 
 
@@ -2911,10 +2903,6 @@ async def get_status(profile: Optional[str] = None):
         auth_required = bool(getattr(app.state, "auth_required", False))
         auth_providers: list[str] = []
         try:
-            try:
-                from wenshu_cli.dashboard_auth import list_providers as _list_providers
-            except ImportError:
-                pass  # R74: dashboard_auth deleted (R69)
             auth_providers = [p.name for p in _list_providers()]
         except Exception:
             # Module not importable yet (early startup) — leave as [].
@@ -12238,10 +12226,6 @@ def _mcp_oauth_callback_url(request: Request, server_name: str) -> str:
     """Build the externally reachable callback URL for a dashboard flow."""
     from urllib.parse import urlparse, urlunparse
 
-    try:
-        from wenshu_cli.dashboard_auth.prefix import prefix_from_request, resolve_public_url
-    except ImportError:
-        pass  # R74: dashboard_auth deleted (R69)
 
     from urllib.parse import quote
 
@@ -16571,18 +16555,6 @@ def _ws_auth_reason(ws: "WebSocket") -> tuple[Optional[str], str]:
     if auth_required:
         # Lazy import — keeps this function importable in test harnesses
         # that don't bring in the dashboard_auth layer.
-        try:
-            from wenshu_cli.dashboard_auth.audit import AuditEvent, audit_log
-        except ImportError:
-            pass  # R74: dashboard_auth deleted (R69)
-        try:
-            from wenshu_cli.dashboard_auth.ws_tickets import (
-        except ImportError:
-            pass  # R74: dashboard_auth deleted (R69)
-            TicketInvalid,
-            consume_internal_credential,
-            consume_ticket,
-        )
 
         # Server-spawned children (PTY child → /api/ws, /api/pub) present the
         # multi-use internal credential rather than a single-use ticket, so
@@ -16592,7 +16564,7 @@ def _ws_auth_reason(ws: "WebSocket") -> tuple[Optional[str], str]:
             try:
                 consume_internal_credential(internal)
                 return None, "internal"
-            except TicketInvalid as exc:
+            except Exception as exc:
                 audit_log(
                     AuditEvent.WS_TICKET_REJECTED,
                     reason=f"internal: {exc}",
@@ -16608,7 +16580,7 @@ def _ws_auth_reason(ws: "WebSocket") -> tuple[Optional[str], str]:
         try:
             consume_ticket(ticket)
             return None, "ticket"
-        except TicketInvalid as exc:
+        except Exception as exc:
             audit_log(
                 AuditEvent.WS_TICKET_REJECTED,
                 reason=str(exc),
@@ -16809,10 +16781,6 @@ def _build_gateway_ws_url() -> Optional[str]:
     )
 
     if getattr(app.state, "auth_required", False):
-        try:
-            from wenshu_cli.dashboard_auth.ws_tickets import internal_ws_credential
-        except ImportError:
-            pass  # R74: dashboard_auth deleted (R69)
 
         qs = urllib.parse.urlencode({"internal": internal_ws_credential()})
     else:
@@ -16877,10 +16845,6 @@ def _build_sidecar_url(channel: str) -> Optional[str]:
     if getattr(app.state, "auth_required", False):
         # Gated mode — use the internal credential so the WS upgrade survives
         # _ws_auth_ok and the child can reconnect.
-        try:
-            from wenshu_cli.dashboard_auth.ws_tickets import internal_ws_credential
-        except ImportError:
-            pass  # R74: dashboard_auth deleted (R69)
 
         qs = urllib.parse.urlencode(
             {"internal": internal_ws_credential(), "channel": channel}
@@ -17863,10 +17827,6 @@ def _normalise_prefix(raw: Optional[str]) -> str:
     the gate middleware, the OAuth routes, the cookie helpers, and the
     SPA mount all agree on validation rules.
     """
-    try:
-        from wenshu_cli.dashboard_auth.prefix import normalise_prefix
-    except ImportError:
-        pass  # R74: dashboard_auth deleted (R69)
     return normalise_prefix(raw)
 
 
@@ -19268,10 +19228,6 @@ def start_server(
         # The gate engages on every non-loopback bind. Require at least one
         # provider to be registered, else fail closed — there is no longer an
         # escape hatch that serves the dashboard without authentication.
-        try:
-            from wenshu_cli.dashboard_auth import list_providers
-        except ImportError:
-            pass  # R74: dashboard_auth deleted (R69)
         if not list_providers():
             # Surface the *specific* reason any bundled provider declined
             # to register (e.g. missing WENSHU_DASHBOARD_OAUTH_CLIENT_ID).
