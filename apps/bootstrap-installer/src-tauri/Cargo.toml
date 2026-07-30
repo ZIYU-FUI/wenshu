@@ -5,6 +5,7 @@ description = "文枢 Setup — signed installer that drives scripts/install.ps1
 authors = ["文枢 Project <wenshu@wenshu.local>"]
 edition = "2021"
 rust-version = "1.77"
+build = "build.rs"
 
 # Rename the output binary so the distributed artifact is literally
 # `WenShu-Setup` on disk — not `wenshu-setup`. The DMG packaging step

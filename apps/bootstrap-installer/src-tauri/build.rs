@@ -96,6 +96,13 @@ fn main() {
     // -----------------------------------------------------------------
     println!("cargo:rerun-if-changed=../dist");
 
+    // R57: bundled install scripts (tauri.conf.json bundle.resources points
+    // at these). Without these lines, editing scripts/install.sh between
+    // builds would not trigger cargo rebuild, and the .app would keep
+    // shipping the stale embedded copy.
+    println!("cargo:rerun-if-changed=../../../scripts/install.sh");
+    println!("cargo:rerun-if-changed=../../../scripts/install.ps1");
+
     // -----------------------------------------------------------------
     // Tauri windows manifest. See wenshu-setup.manifest for rationale —
     // declares level="asInvoker" so Windows's installer-detection
