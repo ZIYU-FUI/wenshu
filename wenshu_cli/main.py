@@ -2895,6 +2895,15 @@ def cmd_whatsapp_cloud(args):
     return run_whatsapp_cloud_setup()
 
 
+
+
+def cmd_serve(args):
+    """Headless backend (formerly `wenshu dashboard --no-open`)."""
+    # Reuse start_server with browser suppressed
+    from wenshu_cli.web_server import start_server
+    return start_server(args)
+
+
 def cmd_setup(args):
     """Interactive setup wizard."""
     from wenshu_cli.setup import run_setup_wizard
@@ -13357,6 +13366,21 @@ def main():
     build_gateway_parser(
         subparsers, cmd_gateway=cmd_gateway, cmd_proxy=cmd_proxy, cmd_gateway_enroll=cmd_gateway_enroll
     )
+
+    # =========================================================================
+    # serve command (R90 装机 user 8/30 拍)
+    # Headless backend (formerly `wenshu dashboard --no-open`, deleted in R75).
+    # Desktop .app spawnBackendArgs returns ['serve', '--host', '127.0.0.1', '--port', '0']
+    # =========================================================================
+    serve_parser = subparsers.add_parser(
+        'serve',
+        aliases=['dashboard'],  # R90: 别名 'dashboard' 给 desktop 老 fallback 用 (R75 之前叫 dashboard)
+        help='Run the headless backend (HTTP/WebSocket gateway) without the web UI.',
+    )
+    serve_parser.add_argument('--host', default='127.0.0.1', help='Bind host (default: 127.0.0.1)')
+    serve_parser.add_argument('--port', type=int, default=0, help='Bind port (0=ephemeral; default: 0)')
+    serve_parser.add_argument('--no-open', action='store_true', help='No-op (legacy compat)')
+    serve_parser.set_defaults(func=cmd_serve)
 
     # =========================================================================
     # lsp command
