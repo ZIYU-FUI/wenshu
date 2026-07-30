@@ -17724,14 +17724,21 @@ async def gateway_ws(ws: WebSocket) -> None:
         # renderer-side `gateway.connect()` resolves the "ready" event instead
         # of timing out on close. No inbound messages are dispatched here
         # because all chat traffic now flows through /api/pub + /api/events.
+        # R50: 用 asyncio.wait_for + timeout 防 GIL 卡住 event loop.
+        # 旧 while True: await ws.receive_text() 会 阻塞单线程 event loop 14s+,
+        # 触发 'event loop stalled (GIL pressure suspected)' warning.
+        # 新: 等 30s 后主动 close, 让 renderer 重连 拿 fresh socket.
         while True:
             try:
-                msg = await ws.receive_text()
+                msg = await asyncio.wait_for(ws.receive_text(), timeout=30.0)
+            except asyncio.TimeoutError:
+                _log.info('Desktop /api/ws 30s idle, closing (R50 self-close)')
+                break
             except Exception:
                 break
             if not msg:
                 break
-            # Ignore inbound — the endpoint is server-push only.
+            # Ignore inbound — endpoint is server-push only.
     except Exception as exc:  # noqa: BLE001 — handler stays alive until disconnect
         _log.warning("Desktop /api/ws handler exited: %s", exc)
     finally:
