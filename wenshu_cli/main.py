@@ -10268,8 +10268,14 @@ def _cmd_update_impl(args, gateway_mode: bool):
         # the bad commit and the fix landing).
         pre_pull_sha = _capture_head_sha(git_cmd, PROJECT_ROOT)
         try:
+            # WO-001BI R53 (装机 user 8/30 拍板): 用户场景 浅拉取, 避免 .git/ 历史
+            # 在多次 wenshu update 中累积 (4.5GB → 800MB 瘦身的一部分)。
+            # --depth=1 是 pull 端的等价参数: 跟 fetch --depth 1 配合, 单 commit
+            # ff-only 拉取, 不增长 pack size。开发者场景 (WENSHU_DEV_INSTALL=1) 不
+            # 走 Python 子进程而是开发者自己 cd 仓库 git pull, 这里一概走浅拉取
+            # 是用户场景的合理默认; dev 想要完整历史自己 reset 即可。
             pull_result = subprocess.run(
-                git_cmd + ["pull", "--ff-only", "origin", branch],
+                git_cmd + ["pull", "--ff-only", "--depth", "1", "origin", branch],
                 cwd=PROJECT_ROOT,
                 capture_output=True,
                 text=True,

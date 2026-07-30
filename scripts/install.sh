@@ -47,6 +47,14 @@ export UV_CONCURRENT_DOWNLOADS=100
 # An inherited torch backend makes uv bypass the configured index and contact
 # download.pytorch.org. Generic torch wheels must use the domestic mirror too.
 unset UV_TORCH_BACKEND
+# WO-001BI R53: 共享 uv cache 跨 wenshu update 重装。
+# 默认 uv cache 在 ~/.cache/uv (按 OS 变化, root 重装会归零), 移到 $WENSHU_HOME/cache/uv:
+#   - user 模式: 多次 wenshu update 不重下 wheel (~1.5GB 反复装的省)
+#   - dev 模式: 同样共享 (开发期间多次重装也省)
+# $WENSHU_HOME 此时已定 (line 64), mkdir -p 推迟到 install_uv/setup_venv 实际使用时,
+# 避免无 PYTHON 阶段的 --ensure=... 路径误建空目录。
+UV_CACHE_DIR_DEFAULT="$WENSHU_HOME/cache/uv"
+export UV_CACHE_DIR="${UV_CACHE_DIR:-$UV_CACHE_DIR_DEFAULT}"
 
 # Colors
 RED='\033[0;31m'
@@ -74,6 +82,20 @@ else
 fi
 PYTHON_VERSION="3.11"
 NODE_VERSION="22"
+
+# WO-001BI R53 (装机 user 8/30 拍板): 用户场景瘦身 4.5G → 800MB。
+# - 默认 (用户): 浅克隆 + filter=blob:none (.git/ 不带历史/不拉 blob)
+# - WENSHU_DEV_INSTALL=1 (开发者): 完整 git clone，可看历史/可 reset/diff
+#
+# 装机 user 真值: "我安装测试，别把我当开发者，我装的就是一个用户端"。
+# Default 选用户侧。开发者场景需显式 export WENSHU_DEV_INSTALL=1 后再跑。
+if [ "${WENSHU_DEV_INSTALL:-0}" = "1" ]; then
+    echo "DEV mode: full git clone (WENSHU_DEV_INSTALL=1)"
+    GIT_DEPTH=""
+else
+    echo "USER mode: shallow git clone (set WENSHU_DEV_INSTALL=1 for full clone)"
+    GIT_DEPTH="--depth=1 --filter=blob:none"
+fi
 
 # FHS-style root install layout (set by resolve_install_layout when applicable):
 #   code at /usr/local/lib/wenshu-agent, command at /usr/local/bin/wenshu,
@@ -1383,7 +1405,12 @@ clone_repo() {
             # checkout has diverged (or has local-only commits), ff-only pull
             # cannot succeed — mirror ``wenshu update`` and reset to the
             # fetched remote so bootstrap/install can recover.
-            if ! git pull --ff-only origin "$BRANCH"; then
+            #
+            # WO-001BI R53: --depth=1 keeps the .git/ directory bounded across
+            # repeated wenshu update runs (otherwise .git/ grows ~commit-size
+            # per fetch). --ff-only stays: divergence still falls back to
+            # reset --hard origin/$BRANCH below.
+            if ! git pull --ff-only --depth=1 origin "$BRANCH"; then
                 log_warn "Fast-forward not possible; resetting managed install to origin/$BRANCH..."
                 git reset --hard "origin/$BRANCH"
             fi
@@ -1453,13 +1480,16 @@ EOF
         # GIT_SSH_COMMAND disables interactive prompts and sets a short timeout
         # so SSH fails fast instead of hanging when no key is configured.
         log_info "Trying SSH clone..."
+        # WO-001BI R53: $GIT_DEPTH comes from WENSHU_DEV_INSTALL detection at script top:
+        #   - USER (default): --depth=1 --filter=blob:none (shallow + no blob fetch)
+        #   - DEV (WENSHU_DEV_INSTALL=1): "" (full clone, with history)
         if GIT_SSH_COMMAND="ssh -o BatchMode=yes -o ConnectTimeout=5" \
-           git clone --depth 1 --branch "$BRANCH" "$REPO_URL_SSH" "$INSTALL_DIR" 2>/dev/null; then
+           git clone $GIT_DEPTH --branch "$BRANCH" "$REPO_URL_SSH" "$INSTALL_DIR" 2>/dev/null; then
             log_success "Cloned via SSH"
         else
             rm -rf "$INSTALL_DIR" 2>/dev/null  # Clean up partial SSH clone
             log_info "SSH failed, trying HTTPS..."
-            if git clone --depth 1 --branch "$BRANCH" "$REPO_URL_HTTPS" "$INSTALL_DIR"; then
+            if git clone $GIT_DEPTH --branch "$BRANCH" "$REPO_URL_HTTPS" "$INSTALL_DIR"; then
                 log_success "Cloned via HTTPS"
             else
                 log_error "Failed to clone repository"
@@ -1491,6 +1521,11 @@ setup_venv() {
         log_info "Skipping virtual environment (--no-venv)"
         return 0
     fi
+
+    # WO-001BI R53: ensure uv cache dir exists before the first uv invocation.
+    # Otherwise uv auto-creates it on first download inside ~/.cache/uv and
+    # silently bypasses our $UV_CACHE_DIR override.
+    mkdir -p "$UV_CACHE_DIR" 2>/dev/null || true
 
     if [ "$DISTRO" = "termux" ]; then
         log_info "Creating virtual environment with Termux Python..."
@@ -1535,6 +1570,12 @@ setup_venv() {
 # powershell.rs::SCRIPT_TIMEOUT 兜底(已在 WO-001AR STEP 2 落地)。
 install_deps() {
     log_info "Installing dependencies..."
+
+    # WO-001BI R53: re-ensure uv cache dir exists when running install_deps as a
+    # separate bootstrap stage (setup_venv's mkdir is in the parent's env, not
+    # the child's). The venv stage runs first and creates the cache, but if
+    # --stage python-deps is invoked directly, this is the first touch.
+    mkdir -p "$UV_CACHE_DIR" 2>/dev/null || true
 
     # Re-pin UV_PYTHON to the venv interpreter. setup_venv already does this,
     # but the bootstrap runs install stages (`venv`, `python-deps`) as separate
@@ -3441,6 +3482,48 @@ main() {
     fi
 
     print_success
+
+    # WO-001BI R53: 末尾清理 bootstrap-cache (装完不留 500MB)。
+    # bootstrap-cache/install-<sha>.sh 是 installer 启动时由 Electron 桌面 / Rust bootstrap
+    # 下载并缓存的 (apps/desktop/electron/bootstrap-runner.ts:292)。install.sh 跑完后这份
+    # 文件对当前会话已无用, 下次再装会重新下载 (~135KB, 几秒)。
+    #
+    # 关键: 若 install.sh 本身正被运行在 bootstrap-cache 下 (eg /home/foo/.wenshu-hermes/
+    # bootstrap-cache/install-main.sh), 不能 rm 自己所在的目录, 但可以安全删其他文件
+    # (electron 缓存的 wheel / archive / 临时产物)。
+    cleanup_bootstrap_cache() {
+        local cache_dir="$WENSHU_HOME/bootstrap-cache"
+        [ -d "$cache_dir" ] || return 0
+
+        local self_path
+        # 解析 $0 的真实路径, 不依赖 GNU readlink -f (macOS /bin/readlink 不支持 -f)。
+        # fallback 链: readlink -f → python3 -c → echo $0 原值。
+        if command -v readlink >/dev/null 2>&1 && readlink -f "$0" >/dev/null 2>&1; then
+            self_path="$(readlink -f "$0" 2>/dev/null)"
+        elif command -v python3 >/dev/null 2>&1; then
+            self_path="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$0" 2>/dev/null)"
+        elif command -v python >/dev/null 2>&1; then
+            self_path="$(python -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$0" 2>/dev/null)"
+        else
+            self_path="$0"
+        fi
+
+        if [ -n "$self_path" ] && [ -f "$self_path" ] && [[ "$self_path" == "$cache_dir/"* ]]; then
+            log_info "Cleaning bootstrap-cache (preserving running script: $self_path)..."
+            find "$cache_dir" -mindepth 1 \
+                ! -path "$self_path" \
+                -exec rm -rf {} + 2>/dev/null || true
+        else
+            log_info "Cleaning bootstrap-cache..."
+            # 用 glob 清空文件, 不用 rm -rf "$cache_dir" (强删空目录 electron 自己后续启动会判 existing dir 决定复用/重下)
+            local _entry
+            for _entry in "$cache_dir"/* "$cache_dir"/.[!.]*; do
+                [ -e "$_entry" ] || continue
+                rm -rf "$_entry" 2>/dev/null || true
+            done
+        fi
+    }
+    cleanup_bootstrap_cache || true
 
     # Code-scoped stamp: write next to the install tree, not into $WENSHU_HOME.
     # $WENSHU_HOME is a shared data dir (it can be bind-mounted into a Docker
