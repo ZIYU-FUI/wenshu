@@ -1,11 +1,9 @@
-"""``wenshu dashboard`` / ``wenshu serve`` subcommand parsers.
+"""``wenshu serve`` subcommand parser — headless backend server.
 
-``dashboard`` is the browser web UI; ``serve`` is the same gateway, headless —
-what the desktop app and remote backends run. ``serve`` also skips the web UI
-build (``headless_backend=True``): pure JSON-RPC/WS clients never load the SPA.
-Both share one handler (``cmd_dashboard`` → ``start_server``). Extracted from
-``wenshu_cli/main.py:main()`` (god-file Phase 2); handler injected to avoid
-importing ``main``.
+``serve`` is the headless backend that the desktop app and remote clients
+connect to. It skips the web UI build (``headless_backend=True``) and serves
+pure JSON-RPC/WS — no SPA. Extracted from ``wenshu_cli/main.py:main()``
+(god-file Phase 2); handler injected to avoid importing ``main``.
 """
 
 from __future__ import annotations
@@ -72,20 +70,10 @@ def _add_server_runtime_args(parser) -> None:
     # service manager and no PID file, so these scan the process table for
     # `wenshu dashboard` / `wenshu serve` cmdlines and SIGTERM them directly —
     # the same path `wenshu update` uses to clean up stale servers.
-    parser.add_argument(
-        "--stop",
-        action="store_true",
-        help="Stop all running 文枢 web server processes and exit",
-    )
-    parser.add_argument(
-        "--status",
-        action="store_true",
-        help="List running 文枢 web server processes and exit",
-    )
 
 
 def build_dashboard_parser(
-    subparsers, *, cmd_dashboard: Callable, cmd_dashboard_register: Callable
+    subparsers, *, cmd_dashboard: Callable
 ) -> None:
     """Attach the ``dashboard`` and ``serve`` subcommands.
 
@@ -95,35 +83,6 @@ def build_dashboard_parser(
     "launches" the other — so the desktop app spawns ``serve``, never
     ``dashboard``.
     """
-    # =========================================================================
-    # dashboard command — the browser web UI
-    # =========================================================================
-    dashboard_parser = subparsers.add_parser(
-        "dashboard",
-        help="Start the web UI dashboard",
-        description="Launch the 文枢 web dashboard for managing config, API keys, and sessions",
-    )
-    _add_server_runtime_args(dashboard_parser)
-    dashboard_parser.add_argument(
-        "--no-open", action="store_true", help="Don't open browser automatically"
-    )
-    # Backward-compat shim: older Wenshu desktop app shells (<= 0.15.x) spawn the
-    # backend as `wenshu dashboard --no-open --tui --host ... --port ...`. The
-    # `--tui` flag was removed from this subcommand in cae6b5486 (embedded chat is
-    # always on now). When a user's CLI updates past that commit but their desktop
-    # app binary has not, argparse used to hard-error with "unrecognized arguments:
-    # --tui" and exit(2) — the backend died before becoming ready and the GUI just
-    # showed "Wenshu couldn't start" with no actionable cause. Accept and silently
-    # ignore the flag so an old app + new CLI degrades gracefully instead of
-    # bricking. Hidden from --help; safe to delete once the floor app version is
-    # well past 0.16.0.
-    dashboard_parser.add_argument(
-        "--tui",
-        action="store_true",
-        help=argparse.SUPPRESS,
-    )
-    dashboard_parser.set_defaults(func=cmd_dashboard)
-
     # =========================================================================
     # serve command — the headless backend server
     #
@@ -143,17 +102,9 @@ def build_dashboard_parser(
         ),
     )
     _add_server_runtime_args(serve_parser)
-    # Accepted but redundant: `serve` is always headless (see set_defaults
-    # below). Kept so callers that pass the legacy `--no-open` flag (e.g. the
-    # desktop backend spawn) don't trip "unrecognized arguments".
-    serve_parser.add_argument(
-        "--no-open", action="store_true", help=argparse.SUPPRESS
-    )
     # `headless_backend` marks the lean path: desktop/remote clients speak pure
-    # JSON-RPC/WS, so `serve` skips the web UI build AND never serves the SPA
-    # (cmd_dashboard exports WENSHU_SERVE_HEADLESS=1). `dashboard` leaves it
-    # unset and serves the browser UI as before.
-    serve_parser.set_defaults(func=cmd_dashboard, no_open=True, headless_backend=True)
+    # JSON-RPC/WS, so `serve` skips the web UI build.
+    serve_parser.set_defaults(func=cmd_dashboard, headless_backend=True)
 
     # `wenshu dashboard register` — register a self-hosted dashboard OAuth
     # client with Nous Portal and write the client_id into ~/.wenshu-hermes/.env.

@@ -7,7 +7,6 @@ export type EmbedProvider =
   | 'instagram'
   | 'openstreetmap'
   | 'pinterest'
-  | 'spotify'
   | 'tiktok'
   | 'twitter'
   | 'vimeo'
@@ -19,7 +18,7 @@ export type EmbedRenderer = 'frame' | 'tweet'
 interface EmbedLayout {
   /** Frame aspect ratio (width / height). For video/maps. */
   aspectRatio?: number
-  /** Fixed pixel height for non-ratio embeds (Instagram, Pinterest, Spotify). */
+  /** Fixed pixel height for non-ratio embeds (Instagram, Pinterest). */
   height?: number
   /** Max rendered width in px; falls back to the conversation column. */
   maxWidth?: number

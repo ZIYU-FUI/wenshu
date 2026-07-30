@@ -1847,22 +1847,8 @@ DEFAULT_CONFIG = {
         # "Steered into current run" confirmation bubble by setting this false.
         # The mid-turn steering itself still happens.
         "busy_steer_ack_enabled": True,
-        # Which interface bare `wenshu` (and `wenshu chat`) launches by default:
-        #   "cli" — the classic prompt_toolkit REPL (default, preserves prior behavior)
-        #   "tui" — the modern Ink TUI (same as passing `--tui`)
-        # Explicit flags always win over this setting: `--cli` forces the classic
-        # REPL and `--tui` (or WENSHU_TUI=1) forces the TUI regardless of config.
-        "interface": "cli",
-        # When true, `wenshu --tui` auto-resumes the most recent human-
-        # facing session on launch instead of forging a fresh one.
-        # Mirrors `wenshu -c` muscle memory.  Default off so existing
-        # users aren't surprised.  WENSHU_TUI_RESUME=<id> always wins.
-        "tui_auto_resume_recent": False,
-        # When true (default), `wenshu --tui` drops a one-time hint
-        # ("subagents working · /agents to watch live") the first time a turn
-        # starts delegating, nudging the user toward the live spawn-tree
-        # dashboard. Set false to suppress the hint.
-        "tui_agents_nudge": True,
+        # Interface: bare `wenshu` always launches the classic prompt_toolkit REPL.
+        # The TUI mode was removed in R69; only the CLI REPL is supported.
         "bell_on_complete": False,
         # Stream the model's reasoning/thinking live before the response.
         # Default ON: on thinking models the reasoning phase can run tens of
@@ -1920,9 +1906,6 @@ DEFAULT_CONFIG = {
         # responses, log lines, tool outputs, or slash-command descriptions.
         # Supported: en, zh, ja, de, es, fr, tr, uk.  Unknown values fall back to en.
         "language": "en",
-        # TUI busy indicator style: kaomoji (default), emoji, unicode (braille
-        # spinner), or ascii.  Live-swappable via `/indicator <style>`.
-        "tui_status_indicator": "kaomoji",
         # Seconds between prompt_toolkit redraws in the classic CLI when idle.
         # Default 1.0 keeps the wall-clock status-bar read-outs (idle-since-
         # last-turn) ticking and keeps the bottom chrome alive during idle —
@@ -2074,50 +2057,6 @@ DEFAULT_CONFIG = {
         "oauth": {
             "client_id": "",  # agent:{instance_id} — Portal provisions this
             "portal_url": "",  # blank → use plugin default (production Portal)
-        },
-        # Username/password gate configuration — read by the bundled
-        # ``dashboard_auth/basic`` plugin (a self-hosted "just put a
-        # password on my dashboard" provider that needs no OAuth IDP).
-        # The plugin registers a password provider when ``username`` plus
-        # either ``password_hash`` (preferred — no plaintext at rest) or
-        # ``password`` (plaintext, hashed in-memory at load) are set. Each
-        # key is overridable by an env var
-        # (``WENSHU_DASHBOARD_BASIC_AUTH_USERNAME`` /
-        # ``_PASSWORD_HASH`` / ``_PASSWORD`` / ``_SECRET`` /
-        # ``_TTL_SECONDS``), env winning when non-empty. Leave ``username``
-        # empty (the default) to keep the plugin a no-op — loopback /
-        # ``--insecure`` operators and OAuth users are unaffected.
-        #
-        # ``secret`` is the HMAC key used to sign the stateless session
-        # tokens this provider mints. When empty, a random per-process key
-        # is generated — fine for a single process, but sessions then
-        # don't survive a restart or span multiple workers. Set an
-        # explicit ``secret`` (32+ random bytes, base64/hex/raw) for
-        # stable multi-worker / restart-surviving sessions. Compute a
-        # ``password_hash`` with
-        # ``python -c "from plugins.dashboard_auth.basic import hash_password; print(hash_password('PW'))"``.
-        "basic_auth": {
-            "username": "",  # blank → plugin no-op (no password provider)
-            "password_hash": "",  # scrypt$... (preferred — no plaintext at rest)
-            "password": "",  # plaintext fallback (hashed in-memory at load)
-            "secret": "",  # token-signing key; blank → random per-process
-            "session_ttl_seconds": 0,  # 0 → plugin default (12h)
-        },
-        # Drain-control service-credential configuration — read by the
-        # bundled ``dashboard_auth/drain`` plugin (the first consumer of the
-        # generic non-interactive token-auth capability). The SECRET itself
-        # is a credential and is NOT configured here: it is provisioned by
-        # nous-account-service at deploy time via the
-        # ``WENSHU_DASHBOARD_DRAIN_SECRET`` env var (the .env-is-for-secrets
-        # rule). These are the behavioural knobs only. The plugin is a no-op
-        # unless that env var is set to a >=256-bit secret; a weak secret is
-        # rejected at registration (fail-closed) and the drain endpoint stays
-        # disabled. ``scope`` is the capability label attached to the verified
-        # principal; ``min_secret_chars`` is the entropy bar (url-safe-b64
-        # chars; 43 ~= 256 bits).
-        "drain_auth": {
-            "scope": "drain",
-            "min_secret_chars": 43,
         },
         # Public URL override (env: ``WENSHU_DASHBOARD_PUBLIC_URL``).
         # When set, this is the complete authority — scheme + host +

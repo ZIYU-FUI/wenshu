@@ -318,9 +318,8 @@ app.add_middleware(
 # Keep the upstream list minimal — only truly non-sensitive, read-only
 # endpoints belong there.
 # ---------------------------------------------------------------------------
-from wenshu_cli.dashboard_auth.public_paths import (
-    PUBLIC_API_PATHS as _PUBLIC_API_PATHS,
-)
+# R74: dashboard_auth deleted (R69). Use empty public list since web UI is gone.
+_PUBLIC_API_PATHS: tuple[str, ...] = ()
 
 
 def _has_valid_session_token(request: Request) -> bool:
@@ -571,7 +570,10 @@ async def _plugin_api_runtime_gate(request: Request, call_next):
 
 @app.middleware("http")
 async def _dashboard_auth_gate(request: Request, call_next):
-    from wenshu_cli.dashboard_auth.middleware import gated_auth_middleware
+    try:
+        from wenshu_cli.dashboard_auth.middleware import gated_auth_middleware
+    except ImportError:
+        pass  # R74: dashboard_auth deleted (R69)
     return await gated_auth_middleware(request, call_next)
 
 
@@ -609,7 +611,10 @@ async def _token_auth_seam(request: Request, call_next):
     cookie/session gates skip enforcement. Non-token routes pass straight
     through untouched.
     """
-    from wenshu_cli.dashboard_auth.token_auth import token_auth_middleware
+    try:
+        from wenshu_cli.dashboard_auth.token_auth import token_auth_middleware
+    except ImportError:
+        pass  # R74: dashboard_auth deleted (R69)
     return await token_auth_middleware(request, call_next)
 
 
@@ -2906,7 +2911,10 @@ async def get_status(profile: Optional[str] = None):
         auth_required = bool(getattr(app.state, "auth_required", False))
         auth_providers: list[str] = []
         try:
-            from wenshu_cli.dashboard_auth import list_providers as _list_providers
+            try:
+                from wenshu_cli.dashboard_auth import list_providers as _list_providers
+            except ImportError:
+                pass  # R74: dashboard_auth deleted (R69)
             auth_providers = [p.name for p in _list_providers()]
         except Exception:
             # Module not importable yet (early startup) — leave as [].
@@ -12230,7 +12238,10 @@ def _mcp_oauth_callback_url(request: Request, server_name: str) -> str:
     """Build the externally reachable callback URL for a dashboard flow."""
     from urllib.parse import urlparse, urlunparse
 
-    from wenshu_cli.dashboard_auth.prefix import prefix_from_request, resolve_public_url
+    try:
+        from wenshu_cli.dashboard_auth.prefix import prefix_from_request, resolve_public_url
+    except ImportError:
+        pass  # R74: dashboard_auth deleted (R69)
 
     from urllib.parse import quote
 
@@ -16560,8 +16571,14 @@ def _ws_auth_reason(ws: "WebSocket") -> tuple[Optional[str], str]:
     if auth_required:
         # Lazy import — keeps this function importable in test harnesses
         # that don't bring in the dashboard_auth layer.
-        from wenshu_cli.dashboard_auth.audit import AuditEvent, audit_log
-        from wenshu_cli.dashboard_auth.ws_tickets import (
+        try:
+            from wenshu_cli.dashboard_auth.audit import AuditEvent, audit_log
+        except ImportError:
+            pass  # R74: dashboard_auth deleted (R69)
+        try:
+            from wenshu_cli.dashboard_auth.ws_tickets import (
+        except ImportError:
+            pass  # R74: dashboard_auth deleted (R69)
             TicketInvalid,
             consume_internal_credential,
             consume_ticket,
@@ -16792,7 +16809,10 @@ def _build_gateway_ws_url() -> Optional[str]:
     )
 
     if getattr(app.state, "auth_required", False):
-        from wenshu_cli.dashboard_auth.ws_tickets import internal_ws_credential
+        try:
+            from wenshu_cli.dashboard_auth.ws_tickets import internal_ws_credential
+        except ImportError:
+            pass  # R74: dashboard_auth deleted (R69)
 
         qs = urllib.parse.urlencode({"internal": internal_ws_credential()})
     else:
@@ -16857,7 +16877,10 @@ def _build_sidecar_url(channel: str) -> Optional[str]:
     if getattr(app.state, "auth_required", False):
         # Gated mode — use the internal credential so the WS upgrade survives
         # _ws_auth_ok and the child can reconnect.
-        from wenshu_cli.dashboard_auth.ws_tickets import internal_ws_credential
+        try:
+            from wenshu_cli.dashboard_auth.ws_tickets import internal_ws_credential
+        except ImportError:
+            pass  # R74: dashboard_auth deleted (R69)
 
         qs = urllib.parse.urlencode(
             {"internal": internal_ws_credential(), "channel": channel}
@@ -17840,7 +17863,10 @@ def _normalise_prefix(raw: Optional[str]) -> str:
     the gate middleware, the OAuth routes, the cookie helpers, and the
     SPA mount all agree on validation rules.
     """
-    from wenshu_cli.dashboard_auth.prefix import normalise_prefix
+    try:
+        from wenshu_cli.dashboard_auth.prefix import normalise_prefix
+    except ImportError:
+        pass  # R74: dashboard_auth deleted (R69)
     return normalise_prefix(raw)
 
 
@@ -19090,7 +19116,7 @@ _mount_plugin_api_routes()
 # SPA catch-all so /{full_path:path} doesn't swallow them.  These are
 # always mounted — the gate middleware decides whether to enforce auth,
 # not whether the routes exist.
-from wenshu_cli.dashboard_auth.routes import router as _dashboard_auth_router  # noqa: E402
+# R74: dashboard_auth deleted (R69). Web UI routes no longer exist.
 app.include_router(_dashboard_auth_router)
 
 mount_spa(app)
@@ -19242,7 +19268,10 @@ def start_server(
         # The gate engages on every non-loopback bind. Require at least one
         # provider to be registered, else fail closed — there is no longer an
         # escape hatch that serves the dashboard without authentication.
-        from wenshu_cli.dashboard_auth import list_providers
+        try:
+            from wenshu_cli.dashboard_auth import list_providers
+        except ImportError:
+            pass  # R74: dashboard_auth deleted (R69)
         if not list_providers():
             # Surface the *specific* reason any bundled provider declined
             # to register (e.g. missing WENSHU_DASHBOARD_OAUTH_CLIENT_ID).

@@ -1342,7 +1342,7 @@ def _sessions_stats(_engine: WenshuConsoleEngine, args: list[str]) -> str:
             f"Listable sessions: {listable}",
             f"Total messages: {messages}",
         ]
-        for source in ["cli", "tui", "telegram", "discord", "slack", "cron"]:
+        for source in ["cli", "telegram", "discord", "slack", "cron"]:
             count = db.session_count(source=source)
             if count:
                 lines.append(f"  {source}: {count}")

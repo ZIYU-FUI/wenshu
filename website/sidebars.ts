@@ -23,7 +23,6 @@ const sidebars: SidebarsConfig = {
       collapsed: true,
       items: [
         'user-guide/cli',
-        'user-guide/tui',
         'user-guide/desktop',
         'user-guide/windows-native',
         'user-guide/windows-wsl-quickstart',
@@ -115,8 +114,6 @@ const sidebars: SidebarsConfig = {
           type: 'category',
           label: 'Management',
           items: [
-            'user-guide/features/web-dashboard',
-            'user-guide/features/extending-the-dashboard',
             'user-guide/features/api-server',
             'user-guide/features/subscription-proxy',
           ],

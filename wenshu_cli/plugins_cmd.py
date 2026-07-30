@@ -26,7 +26,6 @@ from wenshu_cli.secret_prompt import masked_secret_prompt
 
 logger = logging.getLogger(__name__)
 
-
 @functools.lru_cache(maxsize=1)
 def _resolve_git_executable() -> Optional[str]:
     """Resolve a git binary for subprocess use when ``PATH`` may be minimal.
@@ -61,23 +60,19 @@ def _resolve_git_executable() -> Optional[str]:
             return c
     return None
 
-
 class PluginOperationError(Exception):
     """Recoverable plugin install/update failure (CLI exits; HTTP maps to 4xx)."""
-
 
 # Minimum manifest version this installer understands.
 # Plugins may declare ``manifest_version: 1`` in plugin.yaml;
 # future breaking changes to the manifest schema bump this.
 _SUPPORTED_MANIFEST_VERSION = 1
 
-
 def _plugins_dir() -> Path:
     """Return the user plugins directory, creating it if needed."""
     plugins = get_wenshu_home() / "plugins"
     plugins.mkdir(parents=True, exist_ok=True)
     return plugins
-
 
 def _sanitize_plugin_name(
     name: str,
@@ -134,7 +129,6 @@ def _sanitize_plugin_name(
 
     return target
 
-
 _GITHUB_BROWSER_SEGMENTS = {
     "actions",
     "blob",
@@ -147,7 +141,6 @@ _GITHUB_BROWSER_SEGMENTS = {
     "tree",
     "wiki",
 }
-
 
 def _resolve_git_url(identifier: str) -> tuple[str, Optional[str]]:
     """Turn an identifier into a cloneable Git URL and optional subdirectory.
@@ -215,7 +208,6 @@ def _resolve_git_url(identifier: str) -> tuple[str, Optional[str]]:
         "'owner/repo/path/to/plugin')."
     )
 
-
 def _resolve_subdir_within(clone_root: Path, subdir: str) -> Path:
     """Resolve ``subdir`` inside ``clone_root``, rejecting path traversal.
 
@@ -244,7 +236,6 @@ def _resolve_subdir_within(clone_root: Path, subdir: str) -> Path:
 
     return candidate
 
-
 def _repo_name_from_url(url: str) -> str:
     """Extract the repo name from a Git URL for the plugin directory name."""
     # Strip trailing .git and slashes
@@ -257,7 +248,6 @@ def _repo_name_from_url(url: str) -> str:
     if ":" in name:
         name = name.rsplit(":", 1)[-1].rsplit("/", 1)[-1]
     return name
-
 
 def _read_manifest(plugin_dir: Path) -> dict:
     """Read plugin.yaml and return the parsed dict, or empty dict."""
@@ -272,7 +262,6 @@ def _read_manifest(plugin_dir: Path) -> dict:
     except Exception as e:
         logger.warning("Failed to read plugin.yaml in %s: %s", plugin_dir, e)
         return {}
-
 
 def _copy_example_files(plugin_dir: Path, console) -> None:
     """Copy any .example files to their real names if they don't already exist.
@@ -294,7 +283,6 @@ def _copy_example_files(plugin_dir: Path, console) -> None:
                     f"[yellow]Warning:[/yellow] Failed to copy {example_file.name}: {e}"
                 )
 
-
 def _missing_requires_env_names(manifest: dict) -> list[str]:
     """Return declared ``requires_env`` names that are unset in ``~/.wenshu-hermes/.env``."""
     requires_env = manifest.get("requires_env") or []
@@ -311,7 +299,6 @@ def _missing_requires_env_names(manifest: dict) -> list[str]:
             env_specs.append(entry)
 
     return [s["name"] for s in env_specs if s.get("name") and not get_env_value(s["name"])]
-
 
 def _prompt_plugin_env_vars(manifest: dict, console) -> None:
     """Prompt for required environment variables declared in plugin.yaml.
@@ -387,7 +374,6 @@ def _prompt_plugin_env_vars(manifest: dict, console) -> None:
 
     console.print()
 
-
 def _display_after_install(plugin_dir: Path, identifier: str) -> None:
     """Show after-install.md if it exists, otherwise a default message."""
     from rich.console import Console
@@ -416,7 +402,6 @@ def _display_after_install(plugin_dir: Path, identifier: str) -> None:
         )
         console.print()
 
-
 def _display_removed(name: str, plugins_dir: Path) -> None:
     """Show confirmation after removing a plugin."""
     from rich.console import Console
@@ -425,7 +410,6 @@ def _display_removed(name: str, plugins_dir: Path) -> None:
     console.print()
     console.print(f"[red]✗[/red] Plugin [bold]{name}[/bold] removed from {plugins_dir}")
     console.print()
-
 
 def _require_installed_plugin(name: str, plugins_dir: Path, console) -> Path:
     """Return the plugin path if it exists, or exit with an error listing installed plugins."""
@@ -439,11 +423,9 @@ def _require_installed_plugin(name: str, plugins_dir: Path, console) -> Path:
         sys.exit(1)
     return target
 
-
 # ---------------------------------------------------------------------------
 # Commands
 # ---------------------------------------------------------------------------
-
 
 def _install_plugin_core(identifier: str, *, force: bool) -> tuple[Path, dict, str]:
     """Clone Git plugin into ``~/.wenshu-hermes/plugins``.
@@ -545,7 +527,6 @@ def _install_plugin_core(identifier: str, *, force: bool) -> tuple[Path, dict, s
     installed_name = installed_manifest.get("name") or target.name
     return target, installed_manifest, installed_name
 
-
 def cmd_install(
     identifier: str,
     force: bool = False,
@@ -631,7 +612,6 @@ def cmd_install(
     console.print("[dim]  wenshu gateway restart[/dim]")
     console.print()
 
-
 def cmd_update(name: str) -> None:
     """Update an installed plugin by pulling latest from its git remote."""
     from rich.console import Console
@@ -671,7 +651,6 @@ def cmd_update(name: str) -> None:
         console.print(f"[green]✓[/green] Plugin [bold]{name}[/bold] updated.")
         console.print(f"[dim]{out}[/dim]")
 
-
 def cmd_remove(name: str) -> None:
     """Remove an installed plugin by name."""
     from rich.console import Console
@@ -688,7 +667,6 @@ def cmd_remove(name: str) -> None:
     shutil.rmtree(target)
     _display_removed(name, plugins_dir)
 
-
 def _get_disabled_set() -> set:
     """Read the disabled plugins set from config.yaml.
 
@@ -703,7 +681,6 @@ def _get_disabled_set() -> set:
     except Exception:
         return set()
 
-
 def _save_disabled_set(disabled: set) -> None:
     """Write the disabled plugins list to config.yaml."""
     from wenshu_cli.config import load_config, save_config
@@ -712,34 +689,6 @@ def _save_disabled_set(disabled: set) -> None:
         config["plugins"] = {}
     config["plugins"]["disabled"] = sorted(disabled)
     save_config(config)
-
-
-_BASIC_AUTH_PLUGIN_KEYS = frozenset({"basic", "dashboard_auth/basic"})
-
-
-def ensure_basic_auth_plugin_enabled_in_config(cfg: dict) -> bool:
-    """Re-enable the bundled basic dashboard-auth plugin in *cfg*.
-
-    ``wenshu setup`` / ``wenshu plugins disable basic`` can park the plugin
-    in ``plugins.disabled`` while ``dashboard.basic_auth`` is configured.
-    The basic provider is a bundled backend that still respects the
-    deny-list, so password auth silently fails until the block is removed.
-
-    Returns True when ``plugins.disabled`` was modified.
-    """
-    plugins_cfg = cfg.get("plugins")
-    if not isinstance(plugins_cfg, dict):
-        return False
-    disabled = plugins_cfg.get("disabled")
-    if not isinstance(disabled, list):
-        return False
-    if not (set(disabled) & _BASIC_AUTH_PLUGIN_KEYS):
-        return False
-    plugins_cfg["disabled"] = sorted(
-        set(disabled) - _BASIC_AUTH_PLUGIN_KEYS
-    )
-    return True
-
 
 def _get_enabled_set() -> set:
     """Read the enabled plugins allow-list from config.yaml.
@@ -758,7 +707,6 @@ def _get_enabled_set() -> set:
     except Exception:
         return set()
 
-
 def _save_enabled_set(enabled: set) -> None:
     """Write the enabled plugins list to config.yaml."""
     from wenshu_cli.config import load_config, save_config
@@ -767,7 +715,6 @@ def _save_enabled_set(enabled: set) -> None:
         config["plugins"] = {}
     config["plugins"]["enabled"] = sorted(enabled)
     save_config(config)
-
 
 def _resolve_plugin_key(name: str) -> Optional[str]:
     """Resolve a user-supplied plugin identifier to its canonical registry key.
@@ -795,7 +742,6 @@ def _resolve_plugin_key(name: str) -> Optional[str]:
         return leaf_matches[0]
     return None
 
-
 def _resolve_plugin_key_and_source(name: str) -> Optional[tuple]:
     """Resolve *name* to ``(canonical_key, source)`` or ``None`` if no match.
 
@@ -816,7 +762,6 @@ def _resolve_plugin_key_and_source(name: str) -> Optional[tuple]:
         return leaf_matches[0]
     return None
 
-
 def _set_plugin_entry_flag(plugin_id: str, key: str, value: bool) -> None:
     """Write ``plugins.entries.<plugin_id>.<key> = value`` into config.yaml."""
     from wenshu_cli.config import load_config, save_config
@@ -835,7 +780,6 @@ def _set_plugin_entry_flag(plugin_id: str, key: str, value: bool) -> None:
         entries[plugin_id] = entry
     entry[key] = bool(value)
     save_config(config)
-
 
 def cmd_enable(name: str, allow_tool_override: Optional[bool] = None) -> None:
     """Add a plugin to the enabled allow-list (and remove it from disabled).
@@ -897,7 +841,6 @@ def cmd_enable(name: str, allow_tool_override: Optional[bool] = None) -> None:
 
     _resolve_tool_override_grant(console, key, allow_tool_override)
 
-
 def _resolve_tool_override_grant(
     console, key: str, allow_tool_override: Optional[bool]
 ) -> None:
@@ -937,7 +880,6 @@ def _resolve_tool_override_grant(
             "this later.[/dim]"
         )
 
-
 def cmd_disable(name: str) -> None:
     """Remove a plugin from the enabled allow-list (and add to disabled)."""
     from rich.console import Console
@@ -969,11 +911,9 @@ def cmd_disable(name: str) -> None:
         "Takes effect on next session."
     )
 
-
 def _plugin_exists(name: str) -> bool:
     """Return True if a plugin with *name* (bare name or key) exists."""
     return _resolve_plugin_key(name) is not None
-
 
 def _read_manifest_info(d: Path, prefix: str):
     """Read a plugin.yaml manifest and return (name, version, description, key).
@@ -1003,7 +943,6 @@ def _read_manifest_info(d: Path, prefix: str):
             pass
     key = f"{prefix}/{d.name}" if prefix else name
     return name, version, description, key
-
 
 def _scan_level(
     base: Path,
@@ -1039,7 +978,6 @@ def _scan_level(
         sub_prefix = f"{prefix}/{d.name}" if prefix else d.name
         _scan_level(d, source, set(), sub_prefix, depth + 1, seen)
 
-
 def _discover_all_plugins() -> list:
     """Return a list of (name, version, description, source, dir_path, key) for
     every plugin the loader can see — user + bundled + project + entry point.
@@ -1063,7 +1001,6 @@ def _discover_all_plugins() -> list:
     for name, version, description, path in _discover_entrypoint_plugins():
         seen[name] = (name, version, description, "entrypoint", path, name)
     return list(seen.values())
-
 
 def _discover_entrypoint_plugins() -> list[tuple[str, str, str, str]]:
     """Return plugin entries advertised through ``wenshu_agent.plugins``.
@@ -1098,7 +1035,6 @@ def _discover_entrypoint_plugins() -> list[tuple[str, str, str, str]]:
         entries.append((ep.name, version, description, ep.value))
     return entries
 
-
 def _plugin_status(name: str, enabled: set, disabled: set, key: str = "") -> str:
     """Return the user-facing activation state for a plugin name or key."""
     if name in disabled or key in disabled:
@@ -1106,7 +1042,6 @@ def _plugin_status(name: str, enabled: set, disabled: set, key: str = "") -> str
     if name in enabled or key in enabled:
         return "enabled"
     return "not enabled"
-
 
 def _filter_plugin_entries(entries: list, args: Any, enabled: set, disabled: set) -> list:
     """Apply ``wenshu plugins list`` CLI filters."""
@@ -1119,7 +1054,6 @@ def _filter_plugin_entries(entries: list, args: Any, enabled: set, disabled: set
             if _plugin_status(entry[0], enabled, disabled, key=entry[5]) == "enabled"
         ]
     return filtered
-
 
 def cmd_list(args: Any | None = None) -> None:
     """List all plugins (bundled + user) with enabled/disabled state."""
@@ -1186,11 +1120,9 @@ def cmd_list(args: Any | None = None) -> None:
     console.print("[dim]Enable/disable:[/dim] wenshu plugins enable/disable <name>")
     console.print("[dim]Plugins are opt-in by default — only 'enabled' plugins load.[/dim]")
 
-
 # ---------------------------------------------------------------------------
 # Provider plugin discovery helpers
 # ---------------------------------------------------------------------------
-
 
 def _discover_memory_providers() -> list[tuple[str, str]]:
     """Return [(name, description), ...] for available memory providers."""
@@ -1199,7 +1131,6 @@ def _discover_memory_providers() -> list[tuple[str, str]]:
         return [(name, desc) for name, desc, _avail in discover_memory_providers()]
     except Exception:
         return []
-
 
 def _discover_context_engines() -> list[tuple[str, str]]:
     """Return [(name, description), ...] for available context engines.
@@ -1232,7 +1163,6 @@ def _discover_context_engines() -> list[tuple[str, str]]:
 
     return engines
 
-
 def _get_current_memory_provider() -> str:
     """Return the current memory.provider from config (empty = built-in)."""
     try:
@@ -1241,7 +1171,6 @@ def _get_current_memory_provider() -> str:
         return cfg_get(config, "memory", "provider", default="") or ""
     except Exception:
         return ""
-
 
 def _get_current_context_engine() -> str:
     """Return the current context.engine from config."""
@@ -1252,7 +1181,6 @@ def _get_current_context_engine() -> str:
     except Exception:
         return "compressor"
 
-
 def _save_memory_provider(name: str) -> None:
     """Persist memory.provider to config.yaml."""
     from wenshu_cli.config import load_config, save_config
@@ -1262,7 +1190,6 @@ def _save_memory_provider(name: str) -> None:
     config["memory"]["provider"] = name
     save_config(config)
 
-
 def _save_context_engine(name: str) -> None:
     """Persist context.engine to config.yaml."""
     from wenshu_cli.config import load_config, save_config
@@ -1271,7 +1198,6 @@ def _save_context_engine(name: str) -> None:
         config["context"] = {}
     config["context"]["engine"] = name
     save_config(config)
-
 
 def _configure_memory_provider() -> bool:
     """Launch a radio picker for memory providers. Returns True if changed."""
@@ -1310,7 +1236,6 @@ def _configure_memory_provider() -> bool:
         return True
     return False
 
-
 def _configure_context_engine() -> bool:
     """Launch a radio picker for context engines. Returns True if changed."""
     from wenshu_cli.curses_ui import curses_radiolist
@@ -1348,11 +1273,9 @@ def _configure_context_engine() -> bool:
         return True
     return False
 
-
 # ---------------------------------------------------------------------------
 # Composite plugins UI
 # ---------------------------------------------------------------------------
-
 
 def cmd_toggle() -> None:
     """Interactive composite UI — general plugins + provider plugin categories."""
@@ -1424,7 +1347,6 @@ def cmd_toggle() -> None:
         _run_composite_fallback(plugin_keys, plugin_labels, plugin_selected,
                                 disabled_set, categories, console)
 
-
 def _run_composite_ui(curses, plugin_keys, plugin_labels, plugin_selected,
                       disabled, categories, console):
     """Custom curses screen with checkboxes + category action rows."""
@@ -1488,7 +1410,6 @@ def _run_composite_ui(curses, plugin_keys, plugin_labels, plugin_selected,
             # Determine which items are visible based on scroll
             # We need to map logical cursor positions to screen rows
             # accounting for non-navigable separator/headers
-
 
             # --- General Plugins section ---
             if n_plugins > 0:
@@ -1691,7 +1612,6 @@ def _run_composite_ui(curses, plugin_keys, plugin_labels, plugin_selected,
         console.print("[dim]Changes take effect on next session.[/dim]")
     console.print()
 
-
 def _run_composite_fallback(plugin_keys, plugin_labels, plugin_selected,
                             disabled, categories, console):
     """Text-based fallback for the composite plugins UI."""
@@ -1757,56 +1677,6 @@ def _run_composite_fallback(plugin_keys, plugin_labels, plugin_selected,
 
     print()
 
-
-def dashboard_install_plugin(
-    identifier: str,
-    *,
-    force: bool,
-    enable: bool,
-) -> dict[str, Any]:
-    """Non-interactive install for the web dashboard. Returns a JSON-serializable dict."""
-    warnings: list[str] = []
-    try:
-        git_url, _subdir = _resolve_git_url(identifier)
-        if git_url.startswith(("http://", "file://")):
-            warnings.append(
-                "Insecure URL scheme; prefer https:// or git@ for production installs.",
-            )
-    except ValueError:
-        pass
-
-    try:
-        target, installed_manifest, installed_name = _install_plugin_core(
-            identifier,
-            force=force,
-        )
-    except PluginOperationError as exc:
-        return {"ok": False, "error": str(exc)}
-
-    missing_env = _missing_requires_env_names(installed_manifest)
-    if enable:
-        en = _get_enabled_set()
-        dis = _get_disabled_set()
-        en.add(installed_name)
-        dis.discard(installed_name)
-        _save_enabled_set(en)
-        _save_disabled_set(dis)
-
-    hint: str | None = None
-    ap = target / "after-install.md"
-    if ap.exists():
-        hint = str(ap)
-
-    return {
-        "ok": True,
-        "plugin_name": installed_name,
-        "warnings": warnings,
-        "missing_env": missing_env,
-        "after_install_path": hint,
-        "enabled": enable,
-    }
-
-
 def _get_plugin_toolset_key(name: str) -> Optional[str]:
     """Return the toolset key a plugin registers its tools under, or None.
 
@@ -1852,7 +1722,6 @@ def _get_plugin_toolset_key(name: str) -> Optional[str]:
 
     return None
 
-
 def _toggle_plugin_toolset(name: str, *, enable: bool) -> None:
     """Add or remove a plugin's toolset from platform_toolsets for all platforms.
 
@@ -1890,40 +1759,6 @@ def _toggle_plugin_toolset(name: str, *, enable: bool) -> None:
     if changed:
         save_config(config)
 
-
-def dashboard_set_agent_plugin_enabled(name: str, *, enabled: bool) -> dict[str, Any]:
-    """Enable or disable a plugin in ``config.yaml`` (runtime allow/deny lists).
-
-    For plugins that provide tools (toolsets), also toggles the toolset in
-    ``platform_toolsets`` so the agent actually sees the tools in sessions.
-    """
-    if not _plugin_exists(name):
-        return {"ok": False, "error": f"Plugin '{name}' is not installed or bundled."}
-
-    en = _get_enabled_set()
-    dis = _get_disabled_set()
-
-    if enabled:
-        if name in en and name not in dis:
-            return {"ok": True, "name": name, "unchanged": True}
-        en.add(name)
-        dis.discard(name)
-        _save_enabled_set(en)
-        _save_disabled_set(dis)
-        _toggle_plugin_toolset(name, enable=True)
-        return {"ok": True, "name": name, "unchanged": False}
-
-    if name not in en and name in dis:
-        return {"ok": True, "name": name, "unchanged": True}
-
-    en.discard(name)
-    dis.add(name)
-    _save_enabled_set(en)
-    _save_disabled_set(dis)
-    _toggle_plugin_toolset(name, enable=False)
-    return {"ok": True, "name": name, "unchanged": False}
-
-
 def _user_installed_plugin_dir(name: str) -> Optional[Path]:
     """Resolved path under ``~/.wenshu-hermes/plugins/<name>`` if it exists."""
     plugins_dir = _plugins_dir()
@@ -1932,33 +1767,6 @@ def _user_installed_plugin_dir(name: str) -> Optional[Path]:
     except ValueError:
         return None
     return target if target.is_dir() else None
-
-
-def dashboard_update_user_plugin(name: str) -> dict[str, Any]:
-    """``git pull`` inside ``~/.wenshu-hermes/plugins/<name>``."""
-    target = _user_installed_plugin_dir(name)
-    if target is None:
-        return {
-            "ok": False,
-            "error": f"Plugin '{name}' was not found under {_plugins_dir()}.",
-        }
-
-    if not (target / ".git").exists():
-        return {
-            "ok": False,
-            "error": f"Plugin '{name}' is not a git checkout; cannot pull updates.",
-        }
-
-    ok, msg = _git_pull_plugin_dir(target)
-    if not ok:
-        return {"ok": False, "error": msg}
-
-    from rich.console import Console
-
-    _copy_example_files(target, Console())
-    unchanged = "Already up to date" in msg
-    return {"ok": True, "name": name, "output": msg, "unchanged": unchanged}
-
 
 def _git_pull_plugin_dir(target: Path) -> tuple[bool, str]:
     git_exe = _resolve_git_executable()
@@ -1981,25 +1789,6 @@ def _git_pull_plugin_dir(target: Path) -> tuple[bool, str]:
         err = (result.stderr or "").strip() or result.stdout.strip()
         return False, err or "git pull failed."
     return True, result.stdout.strip()
-
-
-def dashboard_remove_user_plugin(name: str) -> dict[str, Any]:
-    """Delete a plugin tree under ``~/.wenshu-hermes/plugins/`` only."""
-    plugins_dir = _plugins_dir()
-    for n, _ver, _d, src, _path, _key in _discover_all_plugins():
-        if n == name and src == "bundled":
-            return {"ok": False, "error": "Bundled plugins cannot be removed from the dashboard."}
-
-    target = _user_installed_plugin_dir(name)
-    if target is None:
-        return {
-            "ok": False,
-            "error": f"Plugin '{name}' was not found under {plugins_dir}.",
-        }
-
-    shutil.rmtree(target)
-    return {"ok": True, "name": name}
-
 
 def plugins_command(args) -> None:
     """Dispatch wenshu plugins subcommands."""
