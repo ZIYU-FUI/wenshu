@@ -2819,7 +2819,16 @@ function resolveWenshuCliBinary(updateRoot) {
 }
 
 // Spawn a command and stream each output line to the update progress channel.
-function runStreamedUpdate(command, args, { cwd, env, stage }: any = {}) {
+// R46: Also drive a time-based percent forward so the progress bar visibly
+// advances during long-running stages (git fetch + pip install can stay quiet
+// for minutes when compiling Rust/C extensions). Without this the renderer
+// falls back to an indeterminate pulse and the user reads silence as a hang
+// (zhuang ji user 8/29 "ka 25% (still installing dependencies 120s elapsed)").
+//
+// `fromPercent` / `toPercent` are the inclusive range this stage should sweep
+// over `rampSeconds` of wall time. Each tick emits a monotonic non-decreasing
+// percent so the bar never regresses.
+function runStreamedUpdate(command, args, { cwd, env, stage, fromPercent = null, toPercent = null, rampSeconds = 240 }: any = {}) {
   return new Promise(resolve => {
     let child
 
@@ -2839,6 +2848,29 @@ function runStreamedUpdate(command, args, { cwd, env, stage }: any = {}) {
       return
     }
 
+    const startMs = Date.now()
+    let lastPercent = fromPercent
+    let rampTimer = null
+
+    if (typeof fromPercent === 'number' && typeof toPercent === 'number' && toPercent > fromPercent) {
+      // Tick every 15s. Emits a fresh percent that strictly grows with elapsed
+      // time, capped at `toPercent`. The renderer's percent store ignores
+      // null/missing payloads and keeps the last numeric value on null streamed
+      // lines (see apps/desktop/src/store/updates.ts), so the bar advances even
+      // between heartbeat log lines.
+      const tick = () => {
+        const elapsedSec = (Date.now() - startMs) / 1000
+        const ratio = Math.max(0, Math.min(1, elapsedSec / rampSeconds))
+        const nextPercent = Math.round(fromPercent + (toPercent - fromPercent) * ratio)
+        if (nextPercent > (lastPercent ?? 0)) {
+          lastPercent = nextPercent
+          emitUpdateProgress({ stage, message: '', percent: nextPercent })
+        }
+      }
+      tick()
+      rampTimer = setInterval(tick, 15000)
+    }
+
     const emitLines = chunk => {
       for (const line of chunk.toString().split('\n')) {
         const trimmed = line.trim()
@@ -2851,8 +2883,14 @@ function runStreamedUpdate(command, args, { cwd, env, stage }: any = {}) {
 
     child.stdout.on('data', emitLines)
     child.stderr.on('data', emitLines)
-    child.once('error', err => resolve({ code: 1, error: err.message }))
-    child.once('exit', code => resolve({ code }))
+    child.once('error', err => {
+      if (rampTimer) clearInterval(rampTimer)
+      resolve({ code: 1, error: err.message })
+    })
+    child.once('exit', code => {
+      if (rampTimer) clearInterval(rampTimer)
+      resolve({ code })
+    })
   })
 }
 
@@ -2948,10 +2986,18 @@ async function applyUpdatesPosixInApp(opts: any) {
 
   emitUpdateProgress({ stage: 'update', message: 'Updating 文枢 (git + dependencies)…', percent: 10 })
 
+  // R46: drive the bar from 10% -> 55% over the typical pip-install window.
+  // git fetch + dependency install can take minutes (Rust/C compile), so the
+  // renderer would otherwise pulse indefinitely and the user reads silence as
+  // a hang (zhuang ji user 8/29). `rampSeconds=240` covers the common case;
+  // longer installs cap at 55% until the rebuild milestone snaps to 60%.
   const updated = (await runStreamedUpdate(wenshu, ['update', '--yes', ...branchArgs], {
     cwd: updateRoot,
     env,
-    stage: 'update'
+    fromPercent: 10,
+    rampSeconds: 240,
+    stage: 'update',
+    toPercent: 55
   })) as any
 
   if (updated.code !== 0) {
@@ -2970,7 +3016,17 @@ async function applyUpdatesPosixInApp(opts: any) {
       emitUpdateProgress({ stage: 'rebuild', message: 'Retrying the desktop rebuild…', percent: 60 })
     }
 
-    return runStreamedUpdate(wenshu, ['desktop', '--build-only'], { cwd: updateRoot, env, stage: 'rebuild' })
+    // Rebuild can also take 1-3 minutes (vite + electron download). Drive
+    // the bar from 60% -> 90% over a 180s window so the user can see the
+    // rebuild is making progress.
+    return runStreamedUpdate(wenshu, ['desktop', '--build-only'], {
+      cwd: updateRoot,
+      env,
+      fromPercent: 60,
+      rampSeconds: 180,
+      stage: 'rebuild',
+      toPercent: 90
+    })
   })
 
   if (rebuilt.code !== 0) {

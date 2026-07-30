@@ -38,13 +38,10 @@ export const EMPTY_SELECT_VALUE = '__wenshu_empty__'
 export const CONTROL_TEXT = 'text-xs'
 
 export const PROVIDER_GROUPS: ProviderPrefix[] = [
-  {
-    prefix: 'NOUS_',
-    name: 'Nous Portal',
-    description: 'Hosted 文枢 & Nous-trained models',
-    docsUrl: 'https://portal.nousresearch.com',
-    priority: 0
-  },
+  // R46: NOUS_ removed from the desktop Settings -> Keys catalog (zhuang ji
+  // user 8/29 "Nous Portal quan tao ke yi qing diao"). Existing NOUS_API_KEY
+  // env vars still work - the backend resolver still reads them - they just
+  // no longer get their own card in the Settings UI.
   {
     prefix: 'FIREWORKS_',
     name: 'Fireworks AI',

@@ -56,45 +56,52 @@ afterEach(() => {
 })
 
 describe('onboarding Picker', () => {
-  it('features Nous Portal and hides other providers behind a disclosure', () => {
-    setProviders([provider('anthropic', 'Anthropic Claude'), provider('nous', 'Nous Portal')])
-    render(<Picker ctx={ctx} />)
-
-    expect(screen.getByText('Nous Portal')).toBeTruthy()
-    expect(screen.getByText('Recommended')).toBeTruthy()
-    // Fireworks is the always-visible #2 slot (after Nous), even while OAuth
-    // alternatives stay collapsed behind the disclosure.
-    expect(screen.getByText('Fireworks AI')).toBeTruthy()
-    expect(screen.queryByText('Anthropic API Key')).toBeNull()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Other providers' }))
-
-    expect(screen.getByText('Anthropic API Key')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Collapse' })).toBeTruthy()
-  })
-
-  it('shows Fireworks in slot #2 ahead of other OAuth providers', () => {
+  // R46: Nous Portal removed from the desktop picker. The picker now renders
+  // every OAuth provider directly with no "featured" anchor and no
+  // "Other providers" disclosure (FEATURED_ID === null).
+  it('renders every OAuth provider directly with no disclosure', () => {
     setProviders([
+      provider('anthropic', 'Anthropic Claude'),
       provider('openai-codex', 'OpenAI Codex / ChatGPT'),
-      provider('minimax-oauth', 'MiniMax'),
       provider('nous', 'Nous Portal')
     ])
     render(<Picker ctx={ctx} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Other providers' }))
+
+    expect(screen.getByText('Fireworks AI')).toBeTruthy()
+    expect(screen.getByText('Anthropic API Key')).toBeTruthy()
+    expect(screen.getByText('OpenAI OAuth (ChatGPT)')).toBeTruthy()
+    // Nous Portal filtered out at render time (R46).
+    expect(screen.queryByText('Nous Portal')).toBeNull()
+    // No "Other providers" disclosure when there is no featured anchor.
+    expect(screen.queryByRole('button', { name: 'Other providers' })).toBeNull()
+    // No "Recommended" tag when nothing is featured.
+    expect(screen.queryByText('Recommended')).toBeNull()
+  })
+
+  it('shows Fireworks ahead of OpenAI OAuth and MiniMax in the rendered order', () => {
+    // R46: Nous Portal removed; the remaining curated order is OpenAI Codex
+    // -> MiniMax -> Qwen -> xAI -> Anthropic API -> Claude Code, with
+    // Fireworks as the always-visible #1 quick-key slot.
+    setProviders([
+      provider('openai-codex', 'OpenAI Codex / ChatGPT'),
+      provider('minimax-oauth', 'MiniMax')
+    ])
+    render(<Picker ctx={ctx} />)
 
     const labels = screen
       .getAllByRole('button')
       .map(el => el.textContent ?? '')
-      .filter(text => /Nous Portal|Fireworks AI|OpenAI OAuth|MiniMax|OpenRouter/.test(text))
+      .filter(text => /Fireworks AI|OpenAI OAuth|MiniMax|OpenRouter/.test(text))
 
     const indexOf = (needle: string) => labels.findIndex(text => text.includes(needle))
-    expect(indexOf('Nous Portal')).toBeGreaterThanOrEqual(0)
-    expect(indexOf('Fireworks AI')).toBeGreaterThan(indexOf('Nous Portal'))
+    expect(indexOf('Fireworks AI')).toBeGreaterThanOrEqual(0)
     expect(indexOf('OpenAI OAuth')).toBeGreaterThan(indexOf('Fireworks AI'))
     expect(indexOf('MiniMax')).toBeGreaterThan(indexOf('OpenAI OAuth'))
   })
 
-  it('shows every provider directly when Nous Portal is absent', () => {
+  it('shows every OAuth provider directly with no disclosure or recommended tag', () => {
+    // R46: picker no longer has a featured / "recommended" anchor and no
+    // "Other providers" disclosure; every provider renders flat.
     setProviders([provider('anthropic', 'Anthropic Claude'), provider('openai-codex', 'OpenAI Codex / ChatGPT')])
     render(<Picker ctx={ctx} />)
 
@@ -106,7 +113,7 @@ describe('onboarding Picker', () => {
   })
 
   it('offers "choose later" on first run and persists the skip', () => {
-    setProviders([provider('nous', 'Nous Portal')])
+    setProviders([provider('openai-codex', 'OpenAI Codex / ChatGPT')])
     render(<Picker ctx={ctx} />)
 
     const skip = screen.getByRole('button', { name: "I'll choose a provider later" })
@@ -118,7 +125,7 @@ describe('onboarding Picker', () => {
   })
 
   it('hides "choose later" in manual (add-provider) mode', () => {
-    setProviders([provider('nous', 'Nous Portal')])
+    setProviders([provider('openai-codex', 'OpenAI Codex / ChatGPT')])
     $desktopOnboarding.set({ ...$desktopOnboarding.get(), manual: true })
     render(<Picker ctx={ctx} />)
 

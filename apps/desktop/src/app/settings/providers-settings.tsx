@@ -139,7 +139,14 @@ function OAuthPicker({
   const { t } = useI18n()
   const p = t.settings.providers
   const [showAll, setShowAll] = useState(false)
-  const ordered = useMemo(() => sortProviders(providers), [providers])
+  // R46: Nous Portal removed from the desktop picker (zhuang ji user 8/29
+  // "Nous Portal quan tao ke yi qing diao"). Backend may still return it,
+  // so we filter at render time. Mirrors the same filter in the onboarding
+  // Picker so the two surfaces stay visually identical.
+  const ordered = useMemo(
+    () => sortProviders(providers).filter(p => p.id !== 'nous'),
+    [providers]
+  )
 
   if (ordered.length === 0) {
     return null

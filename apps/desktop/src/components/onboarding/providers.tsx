@@ -4,15 +4,19 @@ import { Check, ChevronRight, Terminal } from '@/lib/icons'
 import type { OAuthProvider } from '@/types/wenshu'
 
 const PROVIDER_DISPLAY: Record<string, { order: number; title: string }> = {
-  nous: { order: 0, title: 'Nous Portal' },
-  'openai-codex': { order: 1, title: 'OpenAI OAuth (ChatGPT)' },
-  'minimax-oauth': { order: 2, title: 'MiniMax' },
-  'qwen-oauth': { order: 3, title: 'Qwen Code' },
-  'xai-oauth': { order: 4, title: 'xAI Grok' },
+  // R46: Nous Portal removed from the desktop provider picker (zhuang ji user
+  // 8/29 "Nous Portal quan tao ke yi qing diao"). The OAuth flow code path
+  // stays intact - anyone already on a Nous subscription can still auth via
+  // the terminal `wenshu login nous`, and the backend resolver still
+  // recognizes the provider slug. We just stop showing it in the picker.
+  'openai-codex': { order: 0, title: 'OpenAI OAuth (ChatGPT)' },
+  'minimax-oauth': { order: 1, title: 'MiniMax' },
+  'qwen-oauth': { order: 2, title: 'Qwen Code' },
+  'xai-oauth': { order: 3, title: 'xAI Grok' },
   // Both Anthropic entries sit at the bottom: the API-key path first, then
   // the subscription OAuth path (only works with extra usage credits).
-  anthropic: { order: 5, title: 'Anthropic API Key' },
-  'claude-code': { order: 6, title: 'Anthropic OAuth: Required Extra Usage Credits to Use Subscription' }
+  anthropic: { order: 4, title: 'Anthropic API Key' },
+  'claude-code': { order: 5, title: 'Anthropic OAuth: Required Extra Usage Credits to Use Subscription' }
 }
 
 const assetPath = (path: string) => `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`
@@ -76,7 +80,7 @@ function ConnectedTag() {
 const PROVIDER_ROW_CLASS =
   'group flex w-full items-center justify-between gap-3 rounded-[6px] px-3 py-2.5 text-left transition-colors hover:bg-(--ui-control-hover-background)'
 
-/** Quick-key row for API-key providers (Fireworks #2 after Nous, OpenRouter further down). */
+/** Quick-key row for API-key providers (Fireworks #1, OpenRouter further down). */
 export function KeyProviderRow({ onClick, pitch, title }: { onClick: () => void; pitch: string; title: string }) {
   return (
     <RowButton className={PROVIDER_ROW_CLASS} onClick={onClick}>

@@ -24,13 +24,16 @@ vi.mock('@/store/onboarding', () => ({
 }))
 
 function provider(id: string, loggedIn: boolean, patch: Partial<OAuthProvider> = {}): OAuthProvider {
+  // R46: the 'nous' id is filtered out of the rendered picker. Switch the
+  // test fixtures to 'openai-codex' so the disconnect / select flows still
+  // have a provider to act on.
   return {
     cli_command: `wenshu auth add ${id}`,
     disconnectable: true,
     docs_url: '',
     flow: 'device_code',
     id,
-    name: id === 'nous' ? 'Nous Portal' : 'MiniMax',
+    name: id === 'openai-codex' ? 'OpenAI Codex / ChatGPT' : 'MiniMax',
     status: {
       logged_in: loggedIn
     },
@@ -60,9 +63,12 @@ function keyVar(patch: Partial<EnvVarInfo> = {}): EnvVarInfo {
 beforeEach(() => {
   onboarding.set({ manual: false })
   getEnvVars.mockResolvedValue({})
-  disconnectOAuthProvider.mockResolvedValue({ ok: true, provider: 'nous' })
+  // R46: 'nous' is filtered out of the rendered picker. Use 'openai-codex'
+  // (connected) and 'minimax-oauth' (not connected) so the visible list is
+  // non-empty and the disconnect button has a real target.
+  disconnectOAuthProvider.mockResolvedValue({ ok: true, provider: 'openai-codex' })
   listOAuthProviders.mockResolvedValue({
-    providers: [provider('nous', true), provider('minimax-oauth', false)]
+    providers: [provider('openai-codex', true), provider('minimax-oauth', false)]
   })
   vi.spyOn(window, 'confirm').mockReturnValue(true)
 })
@@ -85,14 +91,16 @@ async function renderProvidersSettings() {
 
 describe('ProvidersSettings', () => {
   it('disconnects a connected provider account and refreshes the accounts list', async () => {
+    // R46: Nous Portal removed from the rendered list; the connected
+    // provider in this test is now OpenAI Codex / ChatGPT.
     await renderProvidersSettings()
 
-    const remove = await screen.findByRole('button', { name: 'Remove Nous Portal' })
+    const remove = await screen.findByRole('button', { name: 'Remove OpenAI Codex / ChatGPT' })
     await act(async () => {
       fireEvent.click(remove)
     })
 
-    await waitFor(() => expect(disconnectOAuthProvider).toHaveBeenCalledWith('nous'))
+    await waitFor(() => expect(disconnectOAuthProvider).toHaveBeenCalledWith('openai-codex'))
     expect(listOAuthProviders).toHaveBeenCalledTimes(2)
   })
 
@@ -100,10 +108,10 @@ describe('ProvidersSettings', () => {
     await renderProvidersSettings()
 
     await act(async () => {
-      fireEvent.click(await screen.findByText('Nous Portal'))
+      fireEvent.click(await screen.findByText('OpenAI Codex / ChatGPT'))
     })
 
-    expect(startManualProviderOAuth).toHaveBeenCalledWith('nous')
+    expect(startManualProviderOAuth).toHaveBeenCalledWith('openai-codex')
     expect(disconnectOAuthProvider).not.toHaveBeenCalled()
   })
 

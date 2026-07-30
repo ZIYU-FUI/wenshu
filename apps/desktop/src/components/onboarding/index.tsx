@@ -159,7 +159,8 @@ function useApiKeyCatalog(): ApiKeyOption[] {
         id: row.slug,
         name: row.name,
         envKey,
-        description: `Direct API access to ${row.name}.`,
+        // Description is rendered via the i18n fallback at use-site (ApiKeyForm)
+        // so it picks up the active locale; we don't store it on the option.
         docsUrl: ''
       })
     }
@@ -392,7 +393,12 @@ function Header() {
   )
 }
 
-export const FEATURED_ID = 'nous'
+// R46: Nous Portal removed from the desktop picker, so there is no longer a
+// featured / "recommended" anchor. Setting FEATURED_ID to null makes the
+// Picker render the full provider list directly (no "Other providers"
+// disclosure). Anyone on a Nous subscription still authenticates via
+// `wenshu login nous` in a terminal; the picker just doesn't advertise it.
+export const FEATURED_ID: string | null = null
 const SHOW_ALL_KEY = 'wenshu-onboarding-show-all-v1'
 
 const readShowAll = () => {
@@ -426,7 +432,14 @@ export function Picker({ ctx }: { ctx: OnboardingContext }) {
     setOnboardingMode('apikey')
   }
 
-  const ordered = useMemo(() => (providers ? sortProviders(providers) : []), [providers])
+  // R46: Nous Portal removed from the desktop picker. Backend may still
+  // return it (the OAuth flow path stays alive for users with an existing
+  // subscription), so we filter it out at render time instead of touching
+  // the provider catalog or the OAuth backend wiring.
+  const ordered = useMemo(
+    () => (providers ? sortProviders(providers).filter(p => p.id !== 'nous') : []),
+    [providers]
+  )
   const hasOauth = ordered.length > 0
   const apiKeyOptions = useApiKeyCatalog()
 

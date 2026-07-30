@@ -151,7 +151,9 @@ describe('settings helpers', () => {
   describe('providerGroup', () => {
     it('maps a provider env var to its labeled group', () => {
       expect(providerGroup('XAI_API_KEY')).toBe('xAI')
-      expect(providerGroup('NOUS_API_KEY')).toBe('Nous Portal')
+      // R46: NOUS_ removed from PROVIDER_GROUPS; the env var still resolves
+      // through the backend but no longer gets its own card.
+      expect(providerGroup('NOUS_API_KEY')).toBe('Other')
       expect(providerGroup('FIREWORKS_API_KEY')).toBe('Fireworks AI')
       expect(providerGroup('OPENROUTER_API_KEY')).toBe('OpenRouter')
     })
