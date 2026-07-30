@@ -345,10 +345,9 @@ wenshu auth remove openrouter 2                          # 按索引删除
 wenshu auth reset openrouter                             # 清除冷却时间
 wenshu auth status anthropic                             # 显示某 provider 的认证状态
 wenshu auth logout anthropic                             # 登出并清除已存储的认证状态
-wenshu auth spotify                                      # 通过 PKCE 将 Wenshu 与 Spotify 认证
 ```
 
-子命令：`add`、`list`、`remove`、`reset`、`status`、`logout`、`spotify`。不带子命令调用时，启动交互式管理向导。
+子命令：`add`、`list`、`remove`、`reset`、`status`、`logout`。不带子命令调用时，启动交互式管理向导。
 
 ## `wenshu status`
 

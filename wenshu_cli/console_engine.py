@@ -760,17 +760,12 @@ class WenshuConsoleEngine:
                     ("add",),
                     ("remove",),
                     ("logout",),
-                    ("spotify", "status"),
-                    ("spotify", "login"),
-                    ("spotify", "logout"),
                 ],
                 {
                     ("reset",),
                     ("add",),
                     ("remove",),
                     ("logout",),
-                    ("spotify", "login"),
-                    ("spotify", "logout"),
                 },
             ),
             "pairing": (

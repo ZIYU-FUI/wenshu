@@ -49,7 +49,7 @@ wenshu tools
 wenshu tools
 ```
 
-Common toolsets include `web`, `search`, `terminal`, `file`, `browser`, `vision`, `image_gen`, `skills`, `tts`, `todo`, `memory`, `session_search`, `cronjob`, `code_execution`, `delegation`, `clarify`, `homeassistant`, `messaging`, `spotify`, `discord`, `discord_admin`, `debugging`, and `safe`.
+Common toolsets include `web`, `search`, `terminal`, `file`, `browser`, `vision`, `image_gen`, `skills`, `tts`, `todo`, `memory`, `session_search`, `cronjob`, `code_execution`, `delegation`, `clarify`, `homeassistant`, `messaging`, `discord`, `discord_admin`, `debugging`, and `safe`.
 
 See [Toolsets Reference](/reference/toolsets-reference) for the full set, including platform presets such as `wenshu-cli`, `wenshu-telegram`, and dynamic MCP toolsets like `mcp-<server>`.
 

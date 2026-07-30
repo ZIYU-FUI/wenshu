@@ -106,7 +106,6 @@ const sidebars: SidebarsConfig = {
             'user-guide/features/computer-use',
             'user-guide/features/vision',
             'user-guide/features/image-generation',
-            'user-guide/features/spotify',
             'user-guide/features/pets',
             'user-guide/features/tts',
             'user-guide/features/deliverable-mode',
@@ -274,7 +273,6 @@ const sidebars: SidebarsConfig = {
                     'user-guide/skills/bundled/productivity/productivity-ocr-and-documents',
                     'user-guide/skills/bundled/productivity/productivity-petdex',
                     'user-guide/skills/bundled/productivity/productivity-powerpoint',
-                    'user-guide/skills/bundled/productivity/productivity-teams-meeting-pipeline',
                   ],
                 },
                 {
@@ -625,8 +623,6 @@ const sidebars: SidebarsConfig = {
           label: 'Microsoft 365',
           items: [
             'user-guide/messaging/teams',
-            'user-guide/messaging/teams-meetings',
-            'user-guide/messaging/msgraph-webhook',
           ],
         },
         {
@@ -707,7 +703,6 @@ const sidebars: SidebarsConfig = {
         'guides/xai-grok-oauth',
         'guides/oauth-over-ssh',
         'guides/microsoft-graph-app-registration',
-        'guides/operate-teams-meeting-pipeline',
       ],
     },
     {

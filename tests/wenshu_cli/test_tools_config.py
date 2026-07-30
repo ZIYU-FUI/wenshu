@@ -262,9 +262,9 @@ def test_discord_composite_only_enables_discord_toolsets():
 
 
 def test_discord_composite_plus_configurable_enables_discord_toolsets():
-    """Layer 2: mixing the composite with a configurable key (e.g. spotify)
+    """Layer 2: mixing the composite with a configurable key (e.g. kanban)
     still opts into the Discord toolsets carried by the composite."""
-    config = {"platform_toolsets": {"discord": ["wenshu-discord", "spotify"]}}
+    config = {"platform_toolsets": {"discord": ["wenshu-discord", "kanban"]}}
     enabled = _get_platform_tools(config, "discord")
     assert "discord" in enabled
     assert "discord_admin" in enabled
@@ -348,19 +348,19 @@ def test_get_platform_tools_x_search_respects_explicit_config(monkeypatch):
         "wenshu_cli.tools_config._xai_credentials_present", lambda: True
     )
 
-    # User explicitly opted into spotify but not x_search via `wenshu tools`.
-    config = {"platform_toolsets": {"cli": ["wenshu-cli", "spotify"]}}
+    # User explicitly opted into kanban but not x_search via `wenshu tools`.
+    config = {"platform_toolsets": {"cli": ["wenshu-cli", "kanban"]}}
     enabled = _get_platform_tools(config, "cli")
     assert "x_search" not in enabled
-    assert "spotify" in enabled
+    assert "kanban" in enabled
 
 
 def test_get_platform_tools_expands_composite_when_mixed_with_configurable():
-    """``[wenshu-cli, spotify]`` (composite + configurable) must keep the full
-    ``wenshu-cli`` toolset alongside the explicit Spotify opt-in. The
+    """``[wenshu-cli, kanban]`` (composite + configurable) must keep the full
+    ``wenshu-cli`` toolset alongside the explicit kanban opt-in. The
     has_explicit_config branch used to drop ``wenshu-cli`` on the floor,
-    leaving sessions with only ``{spotify, kanban}``."""
-    config = {"platform_toolsets": {"cli": ["wenshu-cli", "spotify"]}}
+    leaving sessions with only ``{kanban}``."""
+    config = {"platform_toolsets": {"cli": ["wenshu-cli", "kanban"]}}
 
     enabled = _get_platform_tools(config, "cli", include_default_mcp_servers=False)
 
@@ -368,8 +368,8 @@ def test_get_platform_tools_expands_composite_when_mixed_with_configurable():
     for ts in ("terminal", "file", "web", "browser", "memory", "delegation",
                "code_execution", "todo", "session_search", "skills"):
         assert ts in enabled, f"{ts} should be enabled when wenshu-cli is listed"
-    # User explicitly opted into Spotify — must survive _DEFAULT_OFF_TOOLSETS subtraction.
-    assert "spotify" in enabled
+    # User explicitly opted into kanban — must survive _DEFAULT_OFF_TOOLSETS subtraction.
+    assert "kanban" in enabled
 
 
 def test_get_platform_tools_composite_only_unchanged():
@@ -1518,7 +1518,7 @@ def test_get_platform_tools_feishu_tools_not_on_other_platforms():
 
 
 def test_get_effective_configurable_toolsets_dedupes_bundled_plugins():
-    """Bundled plugins (plugins/spotify) share their toolset key with the
+    """Bundled plugins (e.g. model-providers) share their toolset key with the
     built-in CONFIGURABLE_TOOLSETS entry. The effective list must not list
     them twice — otherwise `wenshu tools` → "reconfigure existing" shows
     the same toolset two rows in a row.
@@ -1531,11 +1531,10 @@ def test_get_effective_configurable_toolsets_dedupes_bundled_plugins():
         f"duplicate toolset keys in effective list: "
         f"{[k for k in keys if keys.count(k) > 1]}"
     )
-    # Spotify specifically — the bug that motivated the dedupe.
-    spotify_rows = [t for t in all_ts if t[0] == "spotify"]
-    assert len(spotify_rows) == 1, spotify_rows
-    # Built-in label wins over the plugin label.
-    assert spotify_rows[0][1] == "🎵 Spotify"
+    # Sanity check on a representative bundled toolset (model-providers
+    # is bundled today; replace the symbolic name if it ever leaves the bundle).
+    model_rows = [t for t in all_ts if t[0] == "model-providers"]
+    assert len(model_rows) == 1, model_rows
 
 
 @pytest.mark.parametrize("provider,config_key,expected", [

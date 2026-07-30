@@ -131,7 +131,6 @@ def test_discovery_skipped_for_builtins(argv):
 @pytest.mark.parametrize(
     "argv",
     [
-        ["wenshu", "meet", "join"],          # potential google_meet plugin
         ["wenshu", "honcho", "status"],      # potential memory plugin
         ["wenshu", "unknown-subcmd"],
     ],

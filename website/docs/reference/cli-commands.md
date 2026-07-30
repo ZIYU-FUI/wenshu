@@ -517,10 +517,9 @@ wenshu auth remove openrouter 2                          # Remove by index
 wenshu auth reset openrouter                             # Clear cooldowns
 wenshu auth status anthropic                             # Show auth status for a provider
 wenshu auth logout anthropic                             # Log out and clear stored auth state
-wenshu auth spotify                                      # Authenticate Wenshu with Spotify via PKCE
 ```
 
-Subcommands: `add`, `list`, `remove`, `reset`, `status`, `logout`, `spotify`. When called with no subcommand, launches the interactive management wizard.
+Subcommands: `add`, `list`, `remove`, `reset`, `status`, `logout`. When called with no subcommand, launches the interactive management wizard.
 
 ## `wenshu status`
 

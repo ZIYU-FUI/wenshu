@@ -138,26 +138,17 @@ def gui_toolset_label(label: str) -> str:
 # Video gen is off by default — it's a niche, paid, slow feature. Users
 # who want it opt in via `wenshu tools` → Video Generation, which walks
 # them through provider + model selection.
-#
-# X search is off by default for users without xAI credentials, but
-# auto-enables when SuperGrok OAuth tokens are stored OR XAI_API_KEY is
-# set — mirroring the HASS_TOKEN → homeassistant auto-enable below. The
-# `wenshu tools` → X (Twitter) Search setup walks users through credential
-# setup. The tool's check_fn means the schema still won't appear to the
-# model if the credential later goes missing or expires.
-_DEFAULT_OFF_TOOLSETS = {"spotify", "video", "video_gen", "x_search"}
+_DEFAULT_OFF_TOOLSETS = {"video", "video_gen"}
 
 
 def _xai_credentials_present() -> bool:
     """Cheap, side-effect-free check for usable xAI credentials.
 
-    Used to auto-enable the ``x_search`` toolset when the user has either
-    completed xAI Grok OAuth (SuperGrok / Premium+) or set
-    ``XAI_API_KEY``. Does NOT hit the network — only inspects the local
-    auth store and environment. The tool's runtime ``check_fn`` still
-    gates schema registration if creds later expire or get revoked.
-    Also reused by ``provider_readiness_status`` for ``post_setup:
-    "xai_grok"`` picker rows (xAI TTS, Grok OAuth x_search).
+    Used by ``provider_readiness_status`` for ``post_setup:
+    "xai_grok"`` picker rows (xAI TTS). Does NOT hit the network —
+    only inspects the local auth store and environment. Runtime
+    ``check_fn`` gating still applies if creds later expire or get
+    revoked.
     """
     try:
         from wenshu_cli.auth import _read_xai_oauth_tokens
@@ -179,13 +170,10 @@ def _xai_credentials_present() -> bool:
 # these platforms, and only resolve/save for these platforms.  A toolset
 # absent from this map is available on every platform (current behaviour).
 #
-# Use this for tools whose APIs only make sense on one platform (Discord
-# server admin, Slack workspace admin, etc.).  Keeps every other platform's
-# checklist from filling up with irrelevant toggles.
-_TOOLSET_PLATFORM_RESTRICTIONS: Dict[str, Set[str]] = {
-    "discord": {"discord"},
-    "discord_admin": {"discord"},
-}
+# Use this for tools whose APIs only make sense on one platform.  Keeps
+# every other platform's checklist from filling up with irrelevant
+# toggles.
+_TOOLSET_PLATFORM_RESTRICTIONS: Dict[str, Set[str]] = {}
 
 
 def _toolset_allowed_for_platform(ts_key: str, platform: str) -> bool:
@@ -216,11 +204,9 @@ def _get_effective_configurable_toolsets():
 
     Plugin toolsets are appended at the end so they appear after the
     built-in toolsets in the TUI checklist. A plugin whose toolset key
-    already appears in ``CONFIGURABLE_TOOLSETS`` is skipped — bundled
-    plugins (e.g. ``plugins/spotify``) share their toolset key with the
-    built-in entry, and we want the built-in label/description to win.
-    Without the dedupe, ``wenshu tools`` → "reconfigure existing" would
-    list the same toolset twice.
+    already appears in ``CONFIGURABLE_TOOLSETS`` is skipped so the built-in
+    label/description wins. Without the dedupe, ``wenshu tools`` →
+    "reconfigure existing" would list the same toolset twice.
     """
     result = list(CONFIGURABLE_TOOLSETS)
     seen = {ts_key for ts_key, _, _ in result}
@@ -465,39 +451,6 @@ TOOL_CATEGORIES = {
             },
         ],
     },
-    "x_search": {
-        "name": "X (Twitter) Search",
-        "setup_title": "Select xAI Credential Source",
-        "setup_note": (
-            "文枢 routes X searches through xAI's built-in x_search "
-            "Responses tool. Both credential sources hit the same "
-            "https://api.x.ai/v1/responses endpoint — pick whichever you "
-            "already have. SuperGrok OAuth is preferred when both are set "
-            "(uses your subscription quota instead of API spend)."
-        ),
-        "icon": "🐦",
-        "providers": [
-            {
-                "name": "xAI Grok OAuth (SuperGrok / Premium+)",
-                "badge": "subscription",
-                "tag": "Browser login at accounts.x.ai — no API key required",
-                "env_vars": [],
-                "post_setup": "xai_grok",
-            },
-            {
-                "name": "xAI API key",
-                "badge": "paid",
-                "tag": "Direct xAI API billing via XAI_API_KEY",
-                "env_vars": [
-                    {
-                        "key": "XAI_API_KEY",
-                        "prompt": "xAI API key",
-                        "url": "https://console.x.ai/",
-                    },
-                ],
-            },
-        ],
-    },
     "browser": {
         "name": "Browser Automation",
         "icon": "🌐",
@@ -548,32 +501,6 @@ TOOL_CATEGORIES = {
             },
         ],
     },
-    "homeassistant": {
-        "name": "Smart Home",
-        "icon": "🏠",
-        "providers": [
-            {
-                "name": "Home Assistant",
-                "tag": "REST API integration",
-                "env_vars": [
-                    {"key": "HASS_TOKEN", "prompt": "Home Assistant Long-Lived Access Token"},
-                    {"key": "HASS_URL", "prompt": "Home Assistant URL", "default": "http://homeassistant.local:8123"},
-                ],
-            },
-        ],
-    },
-    "spotify": {
-        "name": "Spotify",
-        "icon": "🎵",
-        "providers": [
-            {
-                "name": "Spotify Web API",
-                "tag": "PKCE OAuth — opens the setup wizard",
-                "env_vars": [],
-                "post_setup": "spotify",
-            },
-        ],
-    },
     "computer_use": {
         "name": "Computer Use (macOS/Windows/Linux)",
         "icon": "🖱️",
@@ -595,31 +522,6 @@ TOOL_CATEGORIES = {
                     # version-pin env var.
                 ],
                 "post_setup": "cua_driver",
-            },
-        ],
-    },
-    "langfuse": {
-        "name": "Langfuse Observability",
-        "icon": "📊",
-        "providers": [
-            {
-                "name": "Langfuse Cloud",
-                "tag": "Hosted Langfuse (cloud.langfuse.com)",
-                "env_vars": [
-                    {"key": "WENSHU_LANGFUSE_PUBLIC_KEY", "prompt": "Langfuse public key (pk-lf-...)", "url": "https://cloud.langfuse.com"},
-                    {"key": "WENSHU_LANGFUSE_SECRET_KEY", "prompt": "Langfuse secret key (sk-lf-...)", "url": "https://cloud.langfuse.com"},
-                ],
-                "post_setup": "langfuse",
-            },
-            {
-                "name": "Langfuse Self-Hosted",
-                "tag": "Self-hosted Langfuse instance",
-                "env_vars": [
-                    {"key": "WENSHU_LANGFUSE_PUBLIC_KEY", "prompt": "Langfuse public key (pk-lf-...)"},
-                    {"key": "WENSHU_LANGFUSE_SECRET_KEY", "prompt": "Langfuse secret key (sk-lf-...)"},
-                    {"key": "WENSHU_LANGFUSE_BASE_URL", "prompt": "Langfuse server URL (e.g. http://localhost:3000)", "default": "http://localhost:3000"},
-                ],
-                "post_setup": "langfuse",
             },
         ],
     },
@@ -1433,65 +1335,6 @@ def _run_post_setup(post_setup_key: str):
         _print_info("    No API key required. DuckDuckGo enforces server-side rate limits.")
         _print_info("    Pair with an extract provider if you also need web_extract.")
 
-    elif post_setup_key == "spotify":
-        # Run the full `wenshu auth spotify` flow — if the user has no
-        # client_id yet, this drops them into the interactive wizard
-        # (opens the Spotify dashboard, prompts for client_id, persists
-        # to ~/.wenshu-hermes/.env), then continues straight into PKCE. If they
-        # already have an app, it skips the wizard and just does OAuth.
-        from types import SimpleNamespace
-        try:
-            from wenshu_cli.auth import login_spotify_command
-        except Exception as exc:
-            _print_warning(f"    Could not load Spotify auth: {exc}")
-            _print_info("    Run manually: wenshu auth spotify")
-            return
-        _print_info("    Starting Spotify login...")
-        try:
-            login_spotify_command(SimpleNamespace(
-                client_id=None, redirect_uri=None, scope=None,
-                no_browser=False, timeout=None,
-            ))
-            _print_success("    Spotify authenticated")
-        except SystemExit as exc:
-            # User aborted the wizard, or OAuth failed — don't fail the
-            # toolset enable; they can retry with `wenshu auth spotify`.
-            _print_warning(f"    Spotify login did not complete: {exc}")
-            _print_info("    Run later: wenshu auth spotify")
-        except Exception as exc:
-            _print_warning(f"    Spotify login failed: {exc}")
-            _print_info("    Run manually: wenshu auth spotify")
-
-    elif post_setup_key == "langfuse":
-        # Install the langfuse SDK.
-        try:
-            __import__("langfuse")
-            _print_success("    langfuse SDK already installed")
-        except ImportError:
-            _print_info("    Installing langfuse SDK...")
-            result = _pip_install(["langfuse", "--quiet"], timeout=120)
-            if result.returncode == 0:
-                _print_success("    langfuse SDK installed")
-            else:
-                _print_warning("    langfuse SDK install failed — run manually: uv pip install langfuse")
-        # Opt the bundled observability/langfuse plugin into plugins.enabled.
-        # The plugin ships in the repo but doesn't load until the user enables
-        # it (standalone plugins are opt-in).
-        try:
-            from wenshu_cli.plugins_cmd import _get_enabled_set, _save_enabled_set
-            enabled = _get_enabled_set()
-            if "observability/langfuse" in enabled or "langfuse" in enabled:
-                _print_success("    Plugin observability/langfuse already enabled")
-            else:
-                enabled.add("observability/langfuse")
-                _save_enabled_set(enabled)
-                _print_success("    Plugin observability/langfuse enabled")
-        except Exception as exc:
-            _print_warning(f"    Could not enable plugin automatically: {exc}")
-            _print_info("    Run manually: wenshu plugins enable observability/langfuse")
-        _print_info("    Restart 文枢 for tracing to take effect.")
-        _print_info("    Verify: wenshu plugins list")
-
     elif post_setup_key == "xai_grok":
         # Shared credential bootstrap for any picker entry that talks to xAI
         # (TTS, Video Gen, future Image Gen, etc.). Accepts either a
@@ -1629,8 +1472,6 @@ def _get_enabled_platforms() -> List[str]:
     enabled = ["cli"]
     if get_env_value("TELEGRAM_BOT_TOKEN"):
         enabled.append("telegram")
-    if get_env_value("DISCORD_BOT_TOKEN"):
-        enabled.append("discord")
     if get_env_value("SLACK_BOT_TOKEN"):
         enabled.append("slack")
     if get_env_value("WHATSAPP_ENABLED"):
@@ -1759,12 +1600,11 @@ def _get_platform_tools(
             if ts in configurable_keys and _toolset_allowed_for_platform(ts, platform)
         }
         # Mixed config: composite toolset alongside configurables (e.g.
-        # ``[wenshu-cli, spotify]`` after enabling Spotify via ``wenshu
-        # tools``). Without expansion the composite name is silently dropped,
-        # leaving sessions with only the configurable opt-ins and no native
-        # tools. Mirror the else-branch's subset inference, but apply
-        # _DEFAULT_OFF_TOOLSETS only to the implicit expansion — anything the
-        # user explicitly listed (e.g. ``spotify``) must survive.
+        # ``[wenshu-cli, video_gen]``). Without expansion the composite name is
+        # silently dropped, leaving sessions with only the configurable opt-ins
+        # and no native tools. Mirror the else-branch's subset inference, but
+        # apply _DEFAULT_OFF_TOOLSETS only to the implicit expansion — anything
+        # the user explicitly listed (e.g. ``video_gen``) must survive.
         composite_tools = set()
         for ts_name in toolset_names:
             if ts_name in configurable_keys or ts_name in plugin_ts_keys:
@@ -1789,8 +1629,6 @@ def _get_platform_tools(
             default_off = set(_DEFAULT_OFF_TOOLSETS)
             if platform in default_off and platform not in _TOOLSET_PLATFORM_RESTRICTIONS:
                 default_off.remove(platform)
-            if "homeassistant" in default_off and os.getenv("HASS_TOKEN"):
-                default_off.remove("homeassistant")
             _exempt_explicit_platform_native(
                 default_off, platform, explicitly_configured=explicitly_configured
             )
@@ -1817,51 +1655,19 @@ def _get_platform_tools(
             if ts_tools and ts_tools.issubset(all_tool_names):
                 enabled_toolsets.add(ts_key)
 
-        # Auto-enable ``x_search`` when xAI credentials are configured.
-        # Unlike ``homeassistant`` (whose ``ha_*`` tools live inside the
-        # platform composite and thus pass the subset check above),
-        # ``x_search`` is its own one-tool toolset that the composite does
-        # NOT include, so the subset loop never picks it up. Inject it
-        # directly here, mirroring the HASS_TOKEN → ``homeassistant`` rule
-        # below: once you have working creds, you don't have to also click
-        # through ``wenshu tools`` to flip the toolset on. Only fires when
-        # the user has not yet saved an explicit toolset list — once they
-        # do, the saved list is authoritative.
-        x_search_auto_enabled = (
-            _toolset_allowed_for_platform("x_search", platform)
-            and _xai_credentials_present()
-        )
-        if x_search_auto_enabled:
-            enabled_toolsets.add("x_search")
-
         default_off = set(_DEFAULT_OFF_TOOLSETS)
         # Legacy safety: if the platform's own name matches a default-off
-        # toolset (e.g. `homeassistant` platform + `homeassistant` toolset),
-        # keep that toolset enabled on first install.  Skip this dodge for
-        # platform-restricted toolsets — those are always opt-in even on
-        # their own platform (e.g. `discord` + `discord` should stay OFF).
+        # toolset, keep that toolset enabled on first install.  Skip this
+        # dodge for platform-restricted toolsets — those are always opt-in
+        # even on their own platform.
         if platform in default_off and platform not in _TOOLSET_PLATFORM_RESTRICTIONS:
             default_off.remove(platform)
-        # Home Assistant is already runtime-gated by its check_fn (requires
-        # HASS_TOKEN to register any tools). When a user has configured
-        # HASS_TOKEN, they've explicitly opted in — don't also strip it via
-        # _DEFAULT_OFF_TOOLSETS, which would silently drop HA from platforms
-        # (e.g. cron) that run through _get_platform_tools without an
-        # explicit saved toolset list. Without this, Norbert's HA cron jobs
-        # regressed after #14798 made cron honor per-platform tool config.
-        if "homeassistant" in default_off and os.getenv("HASS_TOKEN"):
-            default_off.remove("homeassistant")
-        # Symmetric carve-out for x_search auto-enable (see the inject
-        # block above). Without this, the default_off subtraction would
-        # strip the entry we just added.
-        if x_search_auto_enabled and "x_search" in default_off:
-            default_off.remove("x_search")
         _exempt_explicit_platform_native(
             default_off, platform, explicitly_configured=explicitly_configured
         )
         enabled_toolsets -= default_off
 
-    # Recover non-configurable platform toolsets (e.g. discord, feishu_doc,
+    # Recover non-configurable platform toolsets (e.g. feishu_doc,
     # feishu_drive).  These are part of the platform's default composite but
     # absent from CONFIGURABLE_TOOLSETS, so they can't appear in the TUI
     # checklist or in a user-saved config.  Must run in BOTH branches —
@@ -1900,12 +1706,10 @@ def _get_platform_tools(
             enabled_toolsets.add(ts_key)
             claimed.update(ts_tools)
 
-    # Plugin toolsets: enabled by default unless explicitly disabled, or
-    # unless the toolset is in _DEFAULT_OFF_TOOLSETS (e.g. spotify —
-    # shipped as a bundled plugin but user must opt in via `wenshu tools`
-    # so we don't ship 7 Spotify tool schemas to users who don't use it).
-    # A plugin toolset is "known" for a platform once `wenshu tools`
-    # has been saved for that platform (tracked via known_plugin_toolsets).
+    # Plugin toolsets are enabled by default unless explicitly disabled, or
+    # unless the toolset is in _DEFAULT_OFF_TOOLSETS. A plugin toolset is
+    # "known" for a platform once `wenshu tools` has been saved for that
+    # platform (tracked via known_plugin_toolsets).
     # Unknown plugins default to enabled; known-but-absent = disabled.
     if plugin_ts_keys:
         known_map = config.get("known_plugin_toolsets", {}) or {}
@@ -2018,7 +1822,8 @@ def _save_platform_tools(config: dict, platform: str, enabled_toolset_keys: Set[
 
     # Drop platform-scoped toolsets that don't apply here.  Prevents the
     # "Configure all platforms" checklist (or a hand-edited config.yaml)
-    # from turning on, say, the `discord` toolset for Telegram.
+    # from turning on a toolset that is restricted to a different
+    # platform.
     enabled_toolset_keys = {
         ts for ts in enabled_toolset_keys
         if _toolset_allowed_for_platform(ts, platform)
@@ -2720,7 +2525,6 @@ _POST_SETUP_READY: dict = {
     "kittentts": lambda: _module_installed("kittentts"),
     "piper": lambda: _module_installed("piper"),
     "ddgs": lambda: _module_installed("ddgs"),
-    "langfuse": lambda: _module_installed("langfuse"),
     "agent_browser": lambda: _agent_browser_installed(),
     "browserbase": lambda: _cloud_agent_browser_installed(),
     "camofox": lambda: _camofox_installed(),

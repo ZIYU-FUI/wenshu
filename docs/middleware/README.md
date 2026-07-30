@@ -7,8 +7,8 @@ itself.
 
 This contract is intentionally backend-neutral. A plugin can use it for local
 policy, request shaping, tracing, adaptive routing, cache control, sandbox
-selection, or handoff to runtimes such as NeMo Relay without changing Hermes'
-planner, model provider adapters, tool registry, memory, or CLI UX.
+selection, or handoff to external runtimes without changing Hermes' planner,
+model provider adapters, tool registry, memory, or CLI UX.
 
 With middleware enabled, plugins can:
 
@@ -139,8 +139,8 @@ uv run hermes chat --query 'Reply exactly ok'
 
 ## Generic Plugin Examples
 
-The examples below are intentionally small. They show the middleware contract
-shape without depending on NeMo Relay.
+The examples below are intentionally small and show the middleware contract
+without depending on a specific external runtime.
 
 ### LLM Request Middleware
 
@@ -233,8 +233,6 @@ Execution middleware may call `next_call(modified_args)` to pass a changed
 payload to later middleware and the base tool dispatcher.
 
 Plugin-specific examples should live with the plugin that owns the behavior.
-For NeMo Relay adaptive execution middleware, see
-[`plugins/observability/nemo_relay/README.md`](../../plugins/observability/nemo_relay/README.md).
 
 ## Safety Notes
 

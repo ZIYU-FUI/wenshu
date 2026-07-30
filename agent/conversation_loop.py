@@ -1344,11 +1344,9 @@ def run_conversation(
                         # and base64 image on every API call.
                         #
                         # The ``request_messages`` and ``conversation_history``
-                        # kwargs below are pre-existing raw passthroughs
-                        # consumed by the bundled langfuse plugin
-                        # (``plugins/observability/langfuse/__init__.py:_coerce_request_messages``).
-                        # They predate ``request`` and are intentionally NOT
-                        # sanitised — secrets are not expected here because
+                        # kwargs below are pre-existing raw passthroughs kept for
+                        # compatibility with observer plugins. They predate
+                        # ``request`` and are intentionally NOT sanitised — secrets
                         # ``api_kwargs`` is the same object passed to the
                         # provider client.  New consumers should read the
                         # sanitised view from ``request["body"]["messages"]``.

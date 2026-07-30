@@ -185,8 +185,7 @@ _ENV_VAR_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 #   the dashboard. ``config.yaml`` is the supported surface for these.
 #
 # IMPORTANT: ``WENSHU_*`` overall is NOT blocked. Many legitimate
-# integration credentials follow that prefix (WENSHU_LANGFUSE_PUBLIC_KEY,
-# WENSHU_SPOTIFY_CLIENT_ID, ...). The
+# integration credentials follow that prefix (WENSHU_GEMINI_API_KEY, etc.).
 # denylist is name-by-name on purpose so the gate stays narrow and
 # doesn't accidentally break provider setup wizards.
 #
@@ -209,8 +208,8 @@ _ENV_VAR_NAME_DENYLIST: frozenset[str] = frozenset({
     # Git
     "GIT_SSH_COMMAND", "GIT_EXEC_PATH", "GIT_SHELL",
     # Wenshu runtime location — never via dashboard env writer.
-    # NOT a WENSHU_* blanket: integration credentials (WENSHU_GEMINI_*,
-    # WENSHU_LANGFUSE_*, WENSHU_SPOTIFY_*, ...) ARE allowed.
+    # NOT a WENSHU_* blanket: integration credentials (WENSHU_GEMINI_*, etc.)
+    # ARE allowed.
     "WENSHU_HOME", "WENSHU_PROFILE", "WENSHU_CONFIG", "WENSHU_ENV",
 })
 
@@ -301,18 +300,6 @@ _EXTRA_ENV_KEYS = frozenset({
     "MATRIX_PASSWORD", "MATRIX_ENCRYPTION", "MATRIX_DEVICE_ID", "MATRIX_HOME_ROOM",
     "MATRIX_REQUIRE_MENTION", "MATRIX_FREE_RESPONSE_ROOMS", "MATRIX_AUTO_THREAD", "MATRIX_DM_AUTO_THREAD",
     "MATRIX_RECOVERY_KEY",
-    # Langfuse observability plugin — optional tuning keys + standard SDK vars.
-    # Activation is via plugins.enabled (opt-in through `wenshu plugins enable
-    # observability/langfuse` or `wenshu tools → Langfuse`); credentials gate
-    # the plugin at runtime.
-    "WENSHU_LANGFUSE_ENV",
-    "WENSHU_LANGFUSE_RELEASE",
-    "WENSHU_LANGFUSE_SAMPLE_RATE",
-    "WENSHU_LANGFUSE_MAX_CHARS",
-    "WENSHU_LANGFUSE_DEBUG",
-    "LANGFUSE_PUBLIC_KEY",
-    "LANGFUSE_SECRET_KEY",
-    "LANGFUSE_BASE_URL",
 })
 import yaml
 
@@ -4235,30 +4222,6 @@ OPTIONAL_ENV_VARS = {
     "OPENVIKING_ENDPOINT": {
         "description": "OpenViking server URL (default: http://127.0.0.1:1933)",
         "prompt": "OpenViking endpoint",
-        "category": "tool",
-        "advanced": True,
-    },
-
-    # ── Langfuse observability ──
-    "WENSHU_LANGFUSE_PUBLIC_KEY": {
-        "description": "Langfuse project public key (pk-lf-...)",
-        "prompt": "Langfuse public key",
-        "url": "https://cloud.langfuse.com",
-        "password": False,
-        "category": "tool",
-    },
-    "WENSHU_LANGFUSE_SECRET_KEY": {
-        "description": "Langfuse project secret key (sk-lf-...)",
-        "prompt": "Langfuse secret key",
-        "url": "https://cloud.langfuse.com",
-        "password": True,
-        "category": "tool",
-    },
-    "WENSHU_LANGFUSE_BASE_URL": {
-        "description": "Langfuse server URL (default: https://cloud.langfuse.com)",
-        "prompt": "Langfuse server URL (leave empty for cloud.langfuse.com)",
-        "url": None,
-        "password": False,
         "category": "tool",
         "advanced": True,
     },

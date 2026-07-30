@@ -176,22 +176,6 @@ Secrets consumed by specific bundled / optional skills. Each is only needed if y
 | `AIRTABLE_API_KEY` | `airtable` | Airtable personal access token. |
 | `TENOR_API_KEY` | `gif-search` | Tenor API key for GIF search. |
 
-### Langfuse Observability
-
-Environment variables for the bundled [`observability/langfuse`](/user-guide/features/built-in-plugins#observabilitylangfuse) plugin. Set these in `~/.wenshu-hermes/.env`. The plugin must also be enabled (`wenshu plugins enable observability/langfuse`, or check the box in `wenshu plugins`) before any of these take effect.
-
-| Variable | Description |
-|----------|-------------|
-| `WENSHU_LANGFUSE_PUBLIC_KEY` | Langfuse project public key (`pk-lf-...`). Required. |
-| `WENSHU_LANGFUSE_SECRET_KEY` | Langfuse project secret key (`sk-lf-...`). Required. |
-| `WENSHU_LANGFUSE_BASE_URL` | Langfuse server URL (default: `https://cloud.langfuse.com`). Set for self-hosted. |
-| `WENSHU_LANGFUSE_ENV` | Environment tag on traces (`production`, `staging`, …) |
-| `WENSHU_LANGFUSE_RELEASE` | Release/version tag on traces |
-| `WENSHU_LANGFUSE_SAMPLE_RATE` | SDK sampling rate 0.0–1.0 (default: `1.0`) |
-| `WENSHU_LANGFUSE_MAX_CHARS` | Per-field truncation for serialized payloads (default: `12000`) |
-| `WENSHU_LANGFUSE_DEBUG` | `true` enables verbose plugin logging to `agent.log` |
-| `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` / `LANGFUSE_BASE_URL` | Standard Langfuse SDK names. Accepted as fallbacks when the `WENSHU_LANGFUSE_*` equivalents are unset. |
-
 ### Nous Tool Gateway
 
 These variables configure the [Tool Gateway](/user-guide/features/tool-gateway) for paid Nous subscribers or self-hosted gateway deployments. Most users don't need to set these — the gateway is configured automatically via `wenshu model` or `wenshu tools`.
@@ -536,19 +520,6 @@ Inbound change-notification listener for Graph events (Teams meetings, calendar,
 | `MSGRAPH_WEBHOOK_CLIENT_STATE` | Shared secret Graph echoes in every notification; compared with `hmac.compare_digest`. Generate with `openssl rand -hex 32`. |
 | `MSGRAPH_WEBHOOK_ACCEPTED_RESOURCES` | Comma-separated allowlist of Graph resource paths/patterns (e.g. `communications/onlineMeetings,chats/*/messages`). Trailing `*` is prefix-matching. Empty = accept all. |
 | `MSGRAPH_WEBHOOK_ALLOWED_SOURCE_CIDRS` | Comma-separated CIDR ranges allowed to POST to the listener (e.g. `52.96.0.0/14,52.104.0.0/14`). Empty = allow all (default). Restrict to Microsoft Graph's published egress ranges in production. |
-
-### Teams Meeting Summary Delivery
-
-Only used when the [`teams_pipeline` plugin](/user-guide/messaging/msgraph-webhook) is enabled. Settings are also configurable under `platforms.teams.extra` in `config.yaml` — env vars take priority when both are set. See [Microsoft Teams → Meeting Summary Delivery](/user-guide/messaging/teams#meeting-summary-delivery-teams-meeting-pipeline).
-
-| Variable | Description |
-|----------|-------------|
-| `TEAMS_DELIVERY_MODE` | `graph` or `incoming_webhook`. |
-| `TEAMS_INCOMING_WEBHOOK_URL` | Teams-generated webhook URL; required when `TEAMS_DELIVERY_MODE=incoming_webhook`. |
-| `TEAMS_GRAPH_ACCESS_TOKEN` | Pre-acquired delegated access token for Graph delivery. Rarely needed — the writer falls back to the `MSGRAPH_*` app credentials when unset. |
-| `TEAMS_TEAM_ID` | Target Team ID for channel delivery (`graph` mode). |
-| `TEAMS_CHANNEL_ID` | Target channel ID (paired with `TEAMS_TEAM_ID`). |
-| `TEAMS_CHAT_ID` | Target 1:1 or group chat ID (alternative to team+channel for `graph` mode). |
 
 ### LINE Messaging API
 

@@ -8,7 +8,7 @@ description: "Authoritative reference for Wenshu built-in tools, grouped by tool
 
 This page documents Wenshu' built-in tools, grouped by toolset. Availability varies by platform, credentials, and enabled toolsets.
 
-**Quick counts (current registry):** ~73 tools — 10 browser tools (core) + 2 CDP-gated browser tools, 4 file tools, 4 Home Assistant tools, 3 terminal tools (`terminal`, `process`, `read_terminal`), 2 web tools, 5 Feishu tools, 7 Spotify tools (registered by the bundled `spotify` plugin), 5 Yuanbao tools, 9 kanban tools (registered when the kanban dispatcher spawns the agent), 3 project tools (desktop/GUI sessions), 2 Discord tools, and a handful of standalone tools (`memory`, `clarify`, `delegate_task`, `execute_code`, `cronjob`, `session_search`, `skill_view`/`skill_manage`/`skills_list`, `text_to_speech`, `image_generate`, `video_generate`, `vision_analyze`, `video_analyze`, `todo`, `computer_use`).
+**Quick counts (current registry):** ~66 tools — 10 browser tools (core) + 2 CDP-gated browser tools, 4 file tools, 4 Home Assistant tools, 3 terminal tools (`terminal`, `process`, `read_terminal`), 2 web tools, 5 Feishu tools, 5 Yuanbao tools, 9 kanban tools (registered when the kanban dispatcher spawns the agent), 3 project tools (desktop/GUI sessions), 2 Discord tools, and a handful of standalone tools (`memory`, `clarify`, `delegate_task`, `execute_code`, `cronjob`, `session_search`, `skill_view`/`skill_manage`/`skills_list`, `text_to_speech`, `image_generate`, `video_generate`, `vision_analyze`, `video_analyze`, `todo`, `computer_use`).
 
 :::tip MCP Tools
 In addition to built-in tools, Wenshu can load tools dynamically from MCP servers. MCP tools appear with the prefix `mcp_<server>_` (e.g., `mcp_github_create_issue` for the `github` MCP server). See [MCP Integration](/user-guide/features/mcp) for configuration.
@@ -239,20 +239,6 @@ Registered on the `wenshu-discord` platform toolset. Moderation actions require 
 | Tool | Description | Requires environment |
 |------|-------------|----------------------|
 | `discord_admin` | Manage a Discord server via the REST API: list guilds/channels/roles, create/edit/delete channels, manage role grants, timeouts, kicks, and bans. | `DISCORD_BOT_TOKEN` + bot permissions |
-
-## `spotify` toolset
-
-Registered by the bundled `spotify` plugin. Requires an OAuth token — run `wenshu auth spotify` once to authorize.
-
-| Tool | Description | Requires environment |
-|------|-------------|----------------------|
-| `spotify_playback` | Control Spotify playback, inspect the active playback state, or fetch recently played tracks. | Spotify OAuth |
-| `spotify_devices` | List Spotify Connect devices or transfer playback to a different device. | Spotify OAuth |
-| `spotify_queue` | Inspect the user's Spotify queue or add an item to it. | Spotify OAuth |
-| `spotify_search` | Search the Spotify catalog for tracks, albums, artists, playlists, shows, or episodes. | Spotify OAuth |
-| `spotify_playlists` | List, inspect, create, update, and modify Spotify playlists. | Spotify OAuth |
-| `spotify_albums` | Fetch Spotify album metadata or album tracks. | Spotify OAuth |
-| `spotify_library` | List, save, or remove the user's saved Spotify tracks or albums. | Spotify OAuth |
 
 ## `wenshu-yuanbao` toolset
 

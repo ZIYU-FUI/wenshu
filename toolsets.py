@@ -317,16 +317,6 @@ TOOLSETS = {
         "includes": []
     },
 
-    "spotify": {
-        "description": "Native Spotify playback, search, playlist, album, and library tools",
-        "tools": [
-            "spotify_playback", "spotify_devices", "spotify_queue", "spotify_search",
-            "spotify_playlists", "spotify_albums", "spotify_library",
-        ],
-        "includes": []
-    },
-
-
     # Scenario-specific toolsets
     
     "debugging": {
@@ -344,7 +334,7 @@ TOOLSETS = {
     # Coding posture (base Wenshu — CLI/TUI/desktop/ACP). Auto-selected in a
     # code workspace; see agent/coding_context.py. Keeps everything you reach
     # for while pairing on code and drops the rest (messaging, tts, image_gen,
-    # spotify, home-assistant, cron, computer-use).
+    # home-assistant, cron, computer-use).
     "coding": {
         "description": "Coding-focused toolset: files, terminal, search, web docs, skills, todo, delegate, vision, browser",
         "tools": [

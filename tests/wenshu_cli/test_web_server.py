@@ -51,7 +51,7 @@ def _install_example_plugin(_isolate_wenshu_home):
     The user-plugin source is preferred over a transient
     ``WENSHU_BUNDLED_PLUGINS`` override because the bundled dir is
     resolved per-call (other tests in the suite implicitly rely on the
-    real bundled plugins — kanban, wenshu-achievements, model providers
+    real bundled plugins — kanban, model providers
     — being available, and globally swapping that root would yank them
     all). User plugins are first in the discovery search order, so
     laying down the fixture here is enough.
@@ -8108,12 +8108,13 @@ class TestPluginAPIAuth:
         """Auth must be plugin-agnostic, not kanban-specific.
 
         The middleware fix is at the gate level (no per-plugin allowlist),
-        so any plugin's API surface — kanban, wenshu-achievements, future
-        plugins — must require the session token. Hit a non-kanban plugin
-        path to lock that in.
+        so any plugin's API surface — kanban, future plugins — must
+        require the session token. Hit a non-kanban plugin path to lock
+        that in.
         """
-        # Real plugin path (wenshu-achievements is loaded by default).
-        resp = self.client.get("/api/plugins/wenshu-achievements/overview")
+        # Real plugin path (any non-kanban bundled plugin would do; we
+        # use the model-providers namespace which is shipped by default).
+        resp = self.client.get("/api/plugins/model-providers/overview")
         assert resp.status_code == 401
         # Same for an arbitrary plugin namespace that doesn't even exist —
         # the middleware should 401 before routing decides 404, so an

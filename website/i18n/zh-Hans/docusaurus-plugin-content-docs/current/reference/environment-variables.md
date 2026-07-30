@@ -152,22 +152,6 @@ description: "Wenshu Agent 使用的所有环境变量完整参考"
 | `SUPERMEMORY_API_KEY` | 支持 profile 召回和会话摄取的语义长期记忆（[supermemory.ai](https://supermemory.ai)） |
 | `DAYTONA_API_KEY` | Daytona 云沙箱（[daytona.io](https://daytona.io/)） |
 
-### Langfuse 可观测性
-
-内置 [`observability/langfuse`](/user-guide/features/built-in-plugins#observabilitylangfuse) 插件的环境变量。在 `~/.wenshu-hermes/.env` 中设置。在这些变量生效之前，还必须启用该插件（`wenshu plugins enable observability/langfuse`，或在 `wenshu plugins` 中勾选）。
-
-| 变量 | 描述 |
-|----------|-------------|
-| `WENSHU_LANGFUSE_PUBLIC_KEY` | Langfuse 项目公钥（`pk-lf-...`）。必填。 |
-| `WENSHU_LANGFUSE_SECRET_KEY` | Langfuse 项目密钥（`sk-lf-...`）。必填。 |
-| `WENSHU_LANGFUSE_BASE_URL` | Langfuse 服务器 URL（默认：`https://cloud.langfuse.com`）。自托管时设置。 |
-| `WENSHU_LANGFUSE_ENV` | trace 上的环境标签（`production`、`staging` 等） |
-| `WENSHU_LANGFUSE_RELEASE` | trace 上的发布/版本标签 |
-| `WENSHU_LANGFUSE_SAMPLE_RATE` | SDK 采样率 0.0–1.0（默认：`1.0`） |
-| `WENSHU_LANGFUSE_MAX_CHARS` | 序列化载荷的每字段截断长度（默认：`12000`） |
-| `WENSHU_LANGFUSE_DEBUG` | `true` 可将详细插件日志输出到 `agent.log` |
-| `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` / `LANGFUSE_BASE_URL` | 标准 Langfuse SDK 变量名。当对应的 `WENSHU_LANGFUSE_*` 未设置时作为回退。 |
-
 ### Nous Tool Gateway
 
 这些变量为付费 Nous 订阅者或自托管 gateway 部署配置 [Tool Gateway](/user-guide/features/tool-gateway)。大多数用户无需设置——gateway 通过 `wenshu model` 或 `wenshu tools` 自动配置。
@@ -436,19 +420,6 @@ Graph 事件（Teams 会议、日历、聊天等）的入站变更通知监听�
 | `MSGRAPH_WEBHOOK_CLIENT_STATE` | Graph 在每次通知中回传的共享密钥；与 `hmac.compare_digest` 比较。使用 `openssl rand -hex 32` 生成。 |
 | `MSGRAPH_WEBHOOK_ACCEPTED_RESOURCES` | 逗号分隔的 Graph 资源路径/模式白名单（例如 `communications/onlineMeetings,chats/*/messages`）。末尾 `*` 为前缀匹配。为空则接受所有。 |
 | `MSGRAPH_WEBHOOK_ALLOWED_SOURCE_CIDRS` | 允许 POST 到监听器的逗号分隔 CIDR 范围（例如 `52.96.0.0/14,52.104.0.0/14`）。为空则允许所有（默认）。生产环境中应限制为 Microsoft Graph 公布的出口范围。 |
-
-### Teams 会议摘要投递
-
-仅在启用 [`teams_pipeline` 插件](/user-guide/messaging/msgraph-webhook)时使用。设置也可在 `config.yaml` 的 `platforms.teams.extra` 下配置——两者都设置时环境变量优先。参见 [Microsoft Teams → 会议摘要投递](/user-guide/messaging/teams#meeting-summary-delivery-teams-meeting-pipeline)。
-
-| 变量 | 描述 |
-|----------|-------------|
-| `TEAMS_DELIVERY_MODE` | `graph` 或 `incoming_webhook`。 |
-| `TEAMS_INCOMING_WEBHOOK_URL` | Teams 生成的 webhook URL；`TEAMS_DELIVERY_MODE=incoming_webhook` 时必填。 |
-| `TEAMS_GRAPH_ACCESS_TOKEN` | Graph 投递的预获取委托访问 token。极少需要——未设置时 writer 回退到 `MSGRAPH_*` 应用凭证。 |
-| `TEAMS_TEAM_ID` | 频道投递的目标 Team ID（`graph` 模式）。 |
-| `TEAMS_CHANNEL_ID` | 目标频道 ID（与 `TEAMS_TEAM_ID` 配对）。 |
-| `TEAMS_CHAT_ID` | 目标 1:1 或群聊 ID（`graph` 模式下 team+channel 的替代方案）。 |
 
 ### LINE Messaging API
 
