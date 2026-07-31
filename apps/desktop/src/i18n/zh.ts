@@ -1781,6 +1781,7 @@ export const zh: Translations = {
     noProject: '无项目',
     projectEmpty: '暂无会话',
     noSessions: '暂无会话',
+    newSessionButton: '新建会话',
     projects: {
       sectionLabel: '项目',
       newButton: '新建项目',

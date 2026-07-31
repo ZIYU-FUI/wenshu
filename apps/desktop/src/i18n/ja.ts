@@ -1548,6 +1548,7 @@ export const ja = defineLocale({
     noProject: 'プロジェクトなし',
     projectEmpty: 'セッションはまだありません',
     noSessions: 'セッションはまだありません',
+    newSessionButton: '新規セッション',
     projects: {
       sectionLabel: 'プロジェクト',
       newButton: '新規プロジェクト',

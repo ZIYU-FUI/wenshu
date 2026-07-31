@@ -1500,6 +1500,7 @@ export const zhHant = defineLocale({
     noProject: '無專案',
     projectEmpty: '尚無工作階段',
     noSessions: '尚無工作階段',
+    newSessionButton: '新增工作階段',
     projects: {
       sectionLabel: '專案',
       newButton: '新增專案',

@@ -1342,6 +1342,7 @@ export interface Translations {
     noProject: string
     projectEmpty: string
     noSessions: string
+    newSessionButton: string
     projects: {
       sectionLabel: string
       newButton: string
