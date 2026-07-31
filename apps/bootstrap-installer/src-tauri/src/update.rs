@@ -314,7 +314,7 @@ async fn run_update(app: AppHandle) -> Result<()> {
         }
         other => {
             let msg = format!(
-                "wenshu update failed (exit {:?}). See {} for details.",
+                "文枢 更新失败 (退出码 {:?})。详情请查看 {}。",
                 other,
                 crate::paths::wenshu_home()
                     .join("logs")
