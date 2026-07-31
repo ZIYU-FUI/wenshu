@@ -17732,9 +17732,9 @@ async def gateway_ws(ws: WebSocket) -> None:
         # 新: 等 30s 后主动 close, 让 renderer 重连 拿 fresh socket.
         while True:
             try:
-                msg = await asyncio.wait_for(ws.receive_text(), timeout=30.0)
+                msg = await asyncio.wait_for(ws.receive_text(), timeout=300.0)
             except asyncio.TimeoutError:
-                _log.info('Desktop /api/ws 30s idle, closing (R50 self-close)')
+                _log.info('Desktop /api/ws 300s idle, closing (R97 self-close)')
                 break
             except Exception:
                 break
