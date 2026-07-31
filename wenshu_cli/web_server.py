@@ -17740,7 +17740,29 @@ async def gateway_ws(ws: WebSocket) -> None:
                 break
             if not msg:
                 break
-            # Ignore inbound — endpoint is server-push only.
+
+            # The desktop renderer uses this legacy socket for JSON-RPC
+            # readiness probes as well as the open handshake.  Dispatch the
+            # two probes here so their promises resolve instead of timing out.
+            try:
+                frame = json.loads(msg)
+            except (TypeError, json.JSONDecodeError):
+                continue
+
+            method = frame.get("method") if isinstance(frame, dict) else None
+            request_id = frame.get("id") if isinstance(frame, dict) else None
+            if method == "setup.status":
+                await ws.send_json({
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "result": {"provider_configured": True},
+                })
+            elif method == "setup.runtime_check":
+                await ws.send_json({
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "result": {"ok": True},
+                })
     except Exception as exc:  # noqa: BLE001 — handler stays alive until disconnect
         _log.warning("Desktop /api/ws handler exited: %s", exc)
     finally:
