@@ -1896,6 +1896,16 @@ export const ja = defineLocale({
       failed: 'バックエンドの更新に失敗しました。',
       noReturn:
         'バックエンドがオンラインに戻りませんでした。更新が完了していない可能性があります。バックエンドホストを確認してください。'
+    },
+    // R108: アップデートオーバーレイの changelog バケット見出し。
+    // 英文 jargon ("Fixed" / "Other improvements") ではなく日本語の普通の製品コピーで表記。
+    changelog: {
+      groupNew: '新機能',
+      groupFixed: '修正済み',
+      groupFaster: 'より高速に',
+      groupImproved: '改善',
+      groupOther: 'その他の改善',
+      groupFallback: '今回のアップデート'
     }
   },
 

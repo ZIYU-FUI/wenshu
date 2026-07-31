@@ -1966,6 +1966,16 @@ export const en: Translations = {
       notAvailable: 'Update not available for this backend.',
       failed: 'Backend update failed.',
       noReturn: 'Backend didn’t come back online. The update may not have completed — check the backend host.'
+    },
+    // R108: user-facing changelog bucket headings in the update overlay.
+    // Kept in English as the default; non-English locales override.
+    changelog: {
+      groupNew: "What's new",
+      groupFixed: 'Fixed',
+      groupFaster: 'Faster',
+      groupImproved: 'Improved',
+      groupOther: 'Other improvements',
+      groupFallback: 'In this update'
     }
   },
 

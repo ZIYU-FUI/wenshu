@@ -80,6 +80,42 @@ describe('buildCommitChangelog', () => {
     expect(groups).toEqual([{ id: 'other', items: ['Improvements and fixes'], label: 'In this update' }])
   })
 
+  it('strips PM-direct R-number prefixes (e.g. R107 -) from subjects so end users never see them', () => {
+    const groups = buildCommitChangelog([
+      { summary: 'fix(wenshu): R107 - logo .icns 真值修 (仓根 desktop assets + Tauri icons 都换成白字, 装 user 截图确认)' },
+      { summary: 'fix(wenshu): R108 - 更新通知 changelog 中文化' }
+    ])
+
+    expect(groups[0].items).toEqual([
+      'Logo .icns 真值修 (仓根 desktop assets + Tauri icons 都换成白字, 装 user 截图确认)',
+      '更新通知 changelog 中文化'
+    ])
+  })
+
+  it('honors caller-provided localized labels for bucket headings', () => {
+    const groups = buildCommitChangelog(
+      [{ summary: 'fix(sidebar): jitter when dragging' }],
+      {
+        labels: {
+          fallback: '本次更新',
+          fixed: '已修复',
+          faster: '更快速',
+          improved: '已改进',
+          new: '新功能',
+          other: '其他改进'
+        }
+      }
+    )
+
+    expect(groups[0]).toMatchObject({ id: 'fixed', label: '已修复' })
+  })
+
+  it('falls back to English labels when caller only provides a partial labels map', () => {
+    const groups = buildCommitChangelog([{ summary: 'fix: jitter' }], { labels: { fixed: '已修复' } })
+
+    expect(groups[0]).toMatchObject({ id: 'fixed', label: '已修复' })
+  })
+
   it('dedupes identical subjects and caps the items per group', () => {
     const groups = buildCommitChangelog(
       [

@@ -1625,6 +1625,20 @@ export interface Translations {
       failed: string
       noReturn: string
     }
+    /** R108: localized changelog bucket headings shown in the update overlay.
+     *  Bucket ids come from `@/lib/commit-changelog` CommitGroupId; `fallback`
+     *  is the heading shown when every commit was hidden (chore/ci/docs).
+     *  These are sourced from the PM-direct changelog copy (装机 user 8/31 拍:
+     *  "用中文 + 用人话" — labels must read as ordinary product copy, not
+     *  English jargon like "Fixed" / "Other improvements".) */
+    changelog: {
+      groupNew: string
+      groupFixed: string
+      groupFaster: string
+      groupImproved: string
+      groupOther: string
+      groupFallback: string
+    }
   }
 
   install: {

@@ -1,8 +1,10 @@
 /**
  * Tiny user-facing changelog builder. Takes a list of raw commit summaries,
  * parses the Conventional Commits 1.0 header (`type(scope)!: subject`),
- * filters internal noise (chore/ci/docs/...), and groups the rest into
- * friendly buckets for end users (What's new, Fixed, Faster, Improved).
+ * filters internal noise (chore/ci/docs/...), strips PM-direct R-numbers
+ * (e.g. `R107 - `) from subjects so end users don't see internal ticket ids,
+ * and groups the rest into friendly buckets for the locale's translation
+ * keys (新功能 / 已修复 / 更快速 / 已改进 / 其他改进 / 本次更新).
  *
  * Inlined (rather than depending on `conventional-commits-parser`) because
  * that package's index re-exports a Node `stream` helper which won't load
@@ -31,18 +33,45 @@ export interface CommitChangelogInput {
   summary?: string
 }
 
-interface BuildOptions {
+export interface BuildOptions {
   maxGroups?: number
   maxPerGroup?: number
   maxTotal?: number
+  /** Localized bucket headings. Missing keys fall back to English. */
+  labels?: Partial<CommitChangelogLabels>
 }
 
-const GROUP_META: Record<CommitGroupId, { label: string; order: number }> = {
-  new: { label: "What's new", order: 0 },
-  fixed: { label: 'Fixed', order: 1 },
-  faster: { label: 'Faster', order: 2 },
-  improved: { label: 'Improved', order: 3 },
-  other: { label: 'Other improvements', order: 4 }
+/**
+ * Bucket label set. Callers pass translated strings via the `labels` option
+ * on `buildCommitChangelog`; when omitted we fall back to English so the
+ * helper stays usable from unit tests and from contexts without an i18n
+ * provider. R108: localized labels are sourced from `i18n.{en,zh,ja,zh-hant}`
+ * `updates.changelog.group*` keys.
+ */
+export interface CommitChangelogLabels {
+  new: string
+  fixed: string
+  faster: string
+  improved: string
+  other: string
+  fallback: string
+}
+
+const DEFAULT_LABELS: CommitChangelogLabels = {
+  new: "What's new",
+  fixed: 'Fixed',
+  faster: 'Faster',
+  improved: 'Improved',
+  other: 'Other improvements',
+  fallback: 'In this update'
+}
+
+const GROUP_ORDER: Record<CommitGroupId, number> = {
+  new: 0,
+  fixed: 1,
+  faster: 2,
+  improved: 3,
+  other: 4
 }
 
 const TYPE_TO_GROUP: Record<string, CommitGroupId> = {
@@ -76,9 +105,14 @@ const HIDDEN_TYPES = new Set([
   'wip'
 ])
 
-const FALLBACK_GROUP: CommitGroup = { id: 'other', items: ['Improvements and fixes'], label: 'In this update' }
-
 const CONVENTIONAL_HEADER = /^(?<type>[a-zA-Z][a-zA-Z0-9_-]*)(?:\((?<scope>[^)]+)\))?(?<bang>!)?:\s+(?<subject>.+)$/
+
+/** PM-direct R-number prefix used in commit subjects (e.g. `R107 -`). Internal
+ *  ticket ids must not appear in the user-facing changelog; strip them here so
+ *  end users see plain-language notes. `git log` keeps the full subject. */
+const R_NUMBER_PREFIX = /^R\d+\s*[-–—:]\s*/
+
+const FALLBACK_ITEMS = ['Improvements and fixes']
 
 /** Parse a single commit header line per Conventional Commits 1.0. */
 export function parseCommitHeader(raw: string): ParsedCommit {
@@ -103,7 +137,8 @@ export function parseCommitHeader(raw: string): ParsedCommit {
 }
 
 function tidySubject(subject: string): string {
-  const cleaned = subject
+  const stripped = subject.replace(R_NUMBER_PREFIX, '')
+  const cleaned = stripped
     .replace(/\s+/g, ' ')
     .replace(/[.;,\s]+$/, '')
     .trim()
@@ -119,12 +154,15 @@ function tidySubject(subject: string): string {
  * Build a small grouped changelog from a list of raw commits.
  * Always returns at least one group; falls back to a neutral placeholder
  * when every commit was filtered or unparseable.
+ *
+ * Pass `labels` to localize the bucket headings for the active locale.
  */
 export function buildCommitChangelog(
   commits: readonly CommitChangelogInput[] | undefined,
   options: BuildOptions = {}
 ): CommitGroup[] {
-  const { maxGroups = 3, maxPerGroup = 4, maxTotal = 6 } = options
+  const { maxGroups = 3, maxPerGroup = 4, maxTotal = 6, labels } = options
+  const l: CommitChangelogLabels = { ...DEFAULT_LABELS, ...(labels ?? {}) }
   const groups = new Map<CommitGroupId, string[]>()
   const seen = new Set<string>()
   let total = 0
@@ -166,13 +204,13 @@ export function buildCommitChangelog(
   }
 
   const result = Array.from(groups.entries())
-    .map(([id, items]) => ({ id, items, label: GROUP_META[id].label, order: GROUP_META[id].order }))
-    .sort((a, b) => a.order - b.order)
+    .map(([id, items]) => ({ id, items, label: l[id] }))
+    .sort((a, b) => GROUP_ORDER[a.id] - GROUP_ORDER[b.id])
     .slice(0, maxGroups)
     .map(({ id, items, label }): CommitGroup => ({ id, items, label }))
 
   if (result.length === 0) {
-    return [FALLBACK_GROUP]
+    return [{ id: 'other', items: [...FALLBACK_ITEMS], label: l.fallback }]
   }
 
   return result

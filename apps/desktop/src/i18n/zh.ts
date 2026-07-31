@@ -2127,6 +2127,16 @@ export const zh: Translations = {
       notAvailable: '此后端无法更新。',
       failed: '后端更新失败。',
       noReturn: '后端未恢复在线。更新可能未完成——请检查后端主机。'
+    },
+    // R108: 用户面向 changelog 分类标签。装机 user 8/31 拍: 中文 + 用人话。
+    // 不要再用英文 "Fixed" / "Other improvements" 这种 jargon。
+    changelog: {
+      groupNew: '新功能',
+      groupFixed: '已修复',
+      groupFaster: '更快速',
+      groupImproved: '已改进',
+      groupOther: '其他改进',
+      groupFallback: '本次更新'
     }
   },
 

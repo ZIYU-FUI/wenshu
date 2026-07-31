@@ -219,7 +219,19 @@ function IdleView({
     )
   }
 
-  const groups = buildCommitChangelog(commits)
+  const groups = buildCommitChangelog(commits, {
+    // R108: bucket headings now come from the active locale so end users see
+    // ordinary product copy ("已修复" / "新功能" / "本次更新") instead of
+    // English jargon ("Fixed" / "What's new" / "In this update").
+    labels: {
+      fallback: u.changelog.groupFallback,
+      faster: u.changelog.groupFaster,
+      fixed: u.changelog.groupFixed,
+      improved: u.changelog.groupImproved,
+      new: u.changelog.groupNew,
+      other: u.changelog.groupOther
+    }
+  })
   const shownItems = totalItems(groups)
   const remaining = Math.max(0, behind - shownItems)
 

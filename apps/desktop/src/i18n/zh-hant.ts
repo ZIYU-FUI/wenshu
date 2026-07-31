@@ -1839,6 +1839,15 @@ export const zhHant = defineLocale({
       notAvailable: '此後端無法更新。',
       failed: '後端更新失敗。',
       noReturn: '後端未恢復連線。更新可能未完成——請檢查後端主機。'
+    },
+    // R108: 使用者面向 changelog 分類標題。改為繁體中文，不要再用英文 jargon。
+    changelog: {
+      groupNew: '新功能',
+      groupFixed: '已修復',
+      groupFaster: '更快速',
+      groupImproved: '已改進',
+      groupOther: '其他改進',
+      groupFallback: '本次更新'
     }
   },
 
