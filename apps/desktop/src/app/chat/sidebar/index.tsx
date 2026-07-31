@@ -12,6 +12,7 @@ import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from '@/component
 import { GlyphSpinner } from '@/components/ui/glyph-spinner'
 import { KbdGroup } from '@/components/ui/kbd'
 import { SearchField } from '@/components/ui/search-field'
+import { SegmentedControl } from '@/components/ui/segmented-control'
 import {
   Sidebar,
   SidebarContent,
@@ -1191,6 +1192,19 @@ export function ChatSidebar({
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {showSessionSections && !showAllProfiles && (
+          <div className="shrink-0 px-2 pb-1 pt-1">
+            <SegmentedControl
+              onChange={id => setSidebarAgentsGrouped(id === 'projects')}
+              options={[
+                { id: 'sessions', label: s.segments.sessions },
+                { id: 'projects', label: s.segments.projects }
+              ]}
+              value={agentsGrouped ? 'projects' : 'sessions'}
+            />
+          </div>
+        )}
 
         {showSessionSections && (
           <div className="shrink-0 px-2 pb-1 pt-1">

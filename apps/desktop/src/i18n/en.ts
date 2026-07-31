@@ -1615,6 +1615,10 @@ export const en: Translations = {
     noProject: 'No project',
     projectEmpty: 'No sessions yet',
     noSessions: 'No sessions yet',
+    segments: {
+      sessions: 'Sessions',
+      projects: 'Projects'
+    },
     projects: {
       sectionLabel: 'Projects',
       newButton: 'New project',
