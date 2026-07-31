@@ -1280,7 +1280,9 @@ export function ChatSidebar({
                   showSessionSkeletons ? (
                     <SidebarSessionSkeletons />
                   ) : (
-                    <SidebarBlankState onNewSession={() => onNewSessionSplit('right')} />
+                    <div className="grid min-h-16 place-items-center rounded-lg px-2 text-center text-xs text-(--ui-text-tertiary)">
+                      {inProject ? s.projectEmpty : pinnedSessions.length > 0 ? s.allPinned : s.noSessions}
+                    </div>
                   )
                 }
                 footer={
@@ -1474,7 +1476,7 @@ export function ChatSidebar({
           </div>
         )}
 
-        {!showSessionSections && <SidebarBlankState onNewSession={() => onNewSessionSplit('right')} />}
+        {!showSessionSections && <SidebarBlankState onNewProject={openProjectCreate} />}
 
         <div className="shrink-0 px-0.5 pb-1 pt-0.5">
           <ProfileRail />

@@ -213,13 +213,21 @@ export function useSessionListActions({ profileScope }: UseSessionListActionsArg
         setMessagingTruncated(result.messaging.sessions.length >= MESSAGING_SECTION_LIMIT)
       }
     } finally {
-      // Always dismiss the initial skeleton. A newer refresh may supersede this
-      // request, but it must not leave the shared loading flag stuck forever
-      // (R110 root cause: a newer refresh's requestId clobbered the original,
-      // so the requestId-gated dismiss never fired and $sessionsLoading
-      // stayed true → sidebar showed an eternal skeleton that hid the empty
-      // state and the "新建会话" button).
-      setSessionsLoading(false)
+      // Dismiss the initial skeleton even if a newer refresh has already
+      // superseded this request. Upstream's requestId-gated guard skipped the
+      // dismiss when `current !== requestId`, but a request that opened the
+      // skeleton (`showLoading`) is the *only* one that set the loading flag
+      // in the first place — if it never fires, the skeleton stays up forever
+      // because subsequent requests compute `showLoading` against an empty
+      // `$sessions` snapshot that no longer matches reality after the
+      // superseding refresh ran. R114 keeps the upstream guard for the
+      // non-`showLoading` case (so we never churn subscribers twice per
+      // turn) but always clears the flag we set ourselves.
+      if (showLoading) {
+        setSessionsLoading(false)
+      } else if (refreshSessionsRequestRef.current === requestId) {
+        setSessionsLoading(false)
+      }
     }
 
     // Cron *jobs* are a distinct API (getCronJobs), not a session slice.
