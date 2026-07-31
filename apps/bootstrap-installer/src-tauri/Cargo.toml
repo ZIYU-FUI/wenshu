@@ -1,6 +1,6 @@
 [package]
 name = "wenshu-setup"
-version = "0.1.0"
+version = "0.1.4"
 description = "文枢 Setup — signed installer that drives scripts/install.ps1"
 authors = ["文枢 Project <wenshu@wenshu.local>"]
 edition = "2021"
