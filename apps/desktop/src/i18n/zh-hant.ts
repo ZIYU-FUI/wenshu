@@ -514,6 +514,29 @@ export const zhHant = defineLocale({
         reasoningEffort: '子代理推理強度'
       },
       updates: {
+    stageMessages: {
+      handoff: '正在準備更新',
+      download: '正在下載最新版本',
+      rebuild: '正在重新建置桌面應用程式…',
+      rebuildRetry: '正在重試桌面應用程式重新建置…',
+      install: '正在安裝更新並重新啟動…',
+      restart: '正在重新啟動 文樞…',
+      done: '更新完成',
+      manual: '請在終端機中更新',
+      errorUpdateFailed: 'wenshu update 失敗。',
+      errorRebuildFailed: '後端已更新, 但桌面應用程式重新建置失敗。重新啟動 文樞 重試。',
+      errorLockHeld: '更新已中止: 另一個進程正佔用 文樞 安裝(可能開了第二個 文樞 視窗或在終端機跑 wenshu)。請關閉後重試。',
+      restartQuitReopen: '後端已更新。結束並重新打開 文樞 載入新版本。',
+      restartGuiSkew: '後端已更新, 但桌面應用程式套件未變更。更新或重新安裝 文樞 桌面應用程式。',
+      restartSandboxBlocked: '後端已更新。重新建置的應用程式無法自動啟動(sandbox helper 需要 root)。結束並重新打開 文樞 完成更新。',
+      restartDone: '後端已更新。重新啟動 文樞 載入新版本。',
+      restartDoneGui: '後端與應用程式已更新。重新啟動 文樞 載入新版本。',
+      handoffWindow: '正在更新 文樞 — 此視窗將關閉,更新完成後會自動重新啟動。無需手動重新打開 文樞。',
+      backendWaiting: '正在等待啟動 文樞 後端',
+      backendUpdating: '正在更新 文樞 (git + 依賴)…',
+      waitingToStart: '正在等待啟動 文樞 後端',
+    },
+
         nonInteractiveLocalChanges: '應用程式內更新的本機變更'
       }
     }),

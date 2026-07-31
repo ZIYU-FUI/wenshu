@@ -623,6 +623,29 @@ export const zh: Translations = {
         reasoningEffort: '子智能体推理强度'
       },
       updates: {
+    stageMessages: {
+      handoff: '正在准备更新',
+      download: '正在下载最新版本',
+      rebuild: '正在重新构建桌面应用…',
+      rebuildRetry: '正在重试桌面应用重新构建…',
+      install: '正在安装更新并重新启动…',
+      restart: '正在重启 文枢…',
+      done: '更新完成',
+      manual: '请在终端中更新',
+      errorUpdateFailed: 'wenshu update 失败。',
+      errorRebuildFailed: '后端已更新, 但桌面应用重新构建失败。重启 文枢 重试。',
+      errorLockHeld: '更新已中止: 另一个进程正占用 文枢 安装(可能开了第二个 文枢 窗口或在终端跑 wenshu)。请关闭后重试。',
+      restartQuitReopen: '后端已更新。退出并重新打开 文枢 加载新版本。',
+      restartGuiSkew: '后端已更新, 但桌面应用包未变化。更新或重新安装 文枢 桌面应用。',
+      restartSandboxBlocked: '后端已更新。重新构建的应用无法自动启动(sandbox helper 需要 root)。退出并重新打开 文枢 完成更新。',
+      restartDone: '后端已更新。重启 文枢 加载新版本。',
+      restartDoneGui: '后端与应用已更新。重启 文枢 加载新版本。',
+      handoffWindow: '正在更新 文枢 — 此窗口将关闭,更新完成后会自动重启。无需手动重新打开 文枢。',
+      backendWaiting: '正在等待启动 文枢 后端',
+      backendUpdating: '正在更新 文枢 (git + 依赖)…',
+      waitingToStart: '正在等待启动 文枢 后端',
+    },
+
         nonInteractiveLocalChanges: '应用内更新本地更改'
       }
     }),

@@ -1924,6 +1924,36 @@ export const en: Translations = {
       guiSkew: 'Update the desktop app',
       error: 'Update paused'
     },
+    // R111: backend-streamed progress messages from emitUpdateProgress.
+    // These are the strings the Electron main process used to push verbatim
+    // (hardcoded English) and the renderer showed in the update overlay /
+    // 装包器 progress UI. The main process now emits these keys instead and
+    // the renderer translates via t(`updates.stageMessages.${key}`).
+    stageMessages: {
+      handoff: 'Preparing to update',
+      download: 'Downloading the latest version',
+      rebuild: 'Rebuilding the desktop app…',
+      rebuildRetry: 'Retrying the desktop rebuild…',
+      install: 'Installing the updated app and restarting…',
+      restart: 'Restarting 文枢…',
+      done: 'Update complete',
+      manual: 'Update from your terminal',
+      errorUpdateFailed: 'wenshu update failed.',
+      errorRebuildFailed: 'Backend updated, but the desktop rebuild failed. Restart 文枢 to retry.',
+      errorLockHeld:
+        'Update aborted: another process is holding the 文枢 install open (a second 文枢 window or a terminal running wenshu?). Close it and retry.',
+      restartQuitReopen: 'Backend updated. Quit and reopen 文枢 to load the new version.',
+      restartGuiSkew:
+        'Backend updated, but the desktop app package was not changed. Update or reinstall the 文枢 desktop app to match.',
+      restartSandboxBlocked:
+        'Backend updated. The rebuilt app can’t relaunch automatically (sandbox helper needs root). Quit and reopen 文枢 to finish.',
+      restartDone: 'Backend updated. Restart 文枢 to load the new version.',
+      restartDoneGui: 'Backend + app updated. Restart 文枢 to load the new version.',
+      handoffWindow: 'Updating 文枢 — this window will close and the updater will open. Don’t reopen 文枢 yourself; it restarts automatically when the update finishes.',
+      backendWaiting: 'Waiting to start 文枢 backend',
+      backendUpdating: 'Updating 文枢 (git + dependencies)…',
+      waitingToStart: 'Waiting to start 文枢 backend'
+    },
     message: '文枢 is updating to the latest version — please wait.',
     stallHint: 'Compiling Rust/C extensions can take several minutes',
     checking: 'Looking for updates…',

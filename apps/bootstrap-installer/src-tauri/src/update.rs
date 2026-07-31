@@ -976,13 +976,16 @@ fn stage_info(name: &str, title: &str) -> StageInfo {
 /// app-swap stage. Both the happy path and the re-entrancy guard build the
 /// manifest here so the two can never drift apart.
 fn update_stages(include_install: bool) -> Vec<StageInfo> {
+    // R112: 装机 user 8/31 拍"基础版本不 bump, 中文 UI" — 装包器 update UI 4 步
+    // 直接用中文 stage title (PM-direct 自家改 Rust, 不经 i18n). stage key 保留
+    // 不变以避免 breaking change (desktop overlay + progress.tsx 仍用 key 路由).
     let mut stages = vec![
-        stage_info("handoff", "Preparing to update"),
-        stage_info("update", "Downloading the latest version"),
-        stage_info("rebuild", "Rebuilding the desktop app"),
+        stage_info("handoff", "正在准备更新"),
+        stage_info("update", "正在下载最新版本"),
+        stage_info("rebuild", "正在重建桌面应用"),
     ];
     if include_install {
-        stages.push(stage_info("install", "Installing the update"));
+        stages.push(stage_info("install", "正在安装更新"));
     }
     stages
 }

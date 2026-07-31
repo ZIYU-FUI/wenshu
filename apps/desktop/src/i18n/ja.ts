@@ -524,6 +524,29 @@ export const ja = defineLocale({
         reasoningEffort: 'サブエージェント推論強度'
       },
       updates: {
+    stageMessages: {
+      handoff: '更新を準備中',
+      download: '最新バージョンをダウンロード中',
+      rebuild: 'デスクトップアプリを再ビルド中…',
+      rebuildRetry: 'デスクトップアプリの再ビルドを再試行中…',
+      install: 'アップデートをインストールして再起動中…',
+      restart: '文枢 を再起動中…',
+      done: 'アップデート完了',
+      manual: 'ターミナルから更新してください',
+      errorUpdateFailed: 'wenshu update に失敗しました。',
+      errorRebuildFailed: 'バックエンドは更新済みですが、デスクトップアプリの再ビルドに失敗しました。文枢 を再起動して再試行してください。',
+      errorLockHeld: 'アップデートが中断されました: 別のプロセスが 文枢 のインストールを保持しています(2 つ目の 文枢 ウィンドウまたはターミナルで wenshu を実行中)。閉じてから再試行してください。',
+      restartQuitReopen: 'バックエンドは更新済みです。終了して 文枢 を再度開いて新しいバージョンをロードしてください。',
+      restartGuiSkew: 'バックエンドは更新済みですが、デスクトップアプリパッケージは変更されていません。文枢 デスクトップアプリを更新または再インストールしてください。',
+      restartSandboxBlocked: 'バックエンドは更新済みです。再ビルドされたアプリは自動起動できません(sandbox ヘルパーに root が必要)。終了して 文枢 を再度開いて更新を完了してください。',
+      restartDone: 'バックエンドは更新済みです。文枢 を再起動して新しいバージョンをロードしてください。',
+      restartDoneGui: 'バックエンドとアプリは更新済みです。文枢 を再起動して新しいバージョンをロードしてください。',
+      handoffWindow: '文枢 を更新中 — このウィンドウは閉じられ、アップデーターが開きます。更新完了時に自動再起動されるため、手動で 文枢 を開かないでください。',
+      backendWaiting: '文枢 バックエンドの起動を待機中',
+      backendUpdating: '文枢 を更新中 (git + 依存関係)…',
+      waitingToStart: '文枢 バックエンドの起動を待機中',
+    },
+
         nonInteractiveLocalChanges: 'アプリ内更新時のローカル変更'
       }
     }),

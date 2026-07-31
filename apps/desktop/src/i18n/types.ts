@@ -1583,6 +1583,13 @@ export interface Translations {
 
   updates: {
     stages: Record<string, string>
+    /** R111: backend-streamed progress messages translated for the UI. The
+     *  Electron main process (apps/desktop/electron/main.ts emitUpdateProgress)
+     *  used to push hardcoded English strings that the renderer showed verbatim
+     *  in the update overlay. The keys here mirror the stages the main process
+     *  emits (prepare / download / rebuild / install / restart / done / error /
+     *  manual / handoff / etc.) plus ad-hoc error messages from the same flow. */
+    stageMessages: Record<string, string>
     message: string
     stallHint: string
     checking: string
