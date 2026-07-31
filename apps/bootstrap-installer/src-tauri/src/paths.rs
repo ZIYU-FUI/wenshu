@@ -22,6 +22,130 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use tracing_appender::non_blocking::{NonBlocking, WorkerGuard};
 
+// ---------------------------------------------------------------------------
+// WO-001BI R117: install-stamp commit comparison
+// ---------------------------------------------------------------------------
+// Bug fixed: when the bootstrap installer was re-launched after install, the
+// launcher fast-path detected `.wenshu-bootstrap-complete` and skipped the
+// install phase entirely — going straight to spawning the existing .app. The
+// .app on disk was built from a commit that the source repo at
+// `$WENSHU_HOME/wenshu-agent` had long since moved past (e.g. user pulled
+// upstream manually, or a prior `wenshu update` failed mid-flight). Result:
+// the user double-clicked /Applications/文枢.app and got an OLD app, with the
+// OLD self-update code baked in.
+//
+// Fix: when the launcher fast-path is about to take the shortcut, also
+// compare the .app's bundled `install-stamp.json` commit against the source
+// repo's current `HEAD`. If they differ, route through the existing R113
+// update flow (`start_update`) instead — that runs `wenshu update --yes`
+// (git pull + deps), rebuilds the desktop app, and copies the fresh .app
+// into place. Only after that do we launch.
+
+/// `install-stamp.json` schema version, mirrors the writer at
+/// `apps/desktop/scripts/write-build-stamp.mjs`. Only matching schemas are
+/// honoured so a future bump on the writer side doesn't crash the reader
+/// with a panic.
+pub const INSTALL_STAMP_SCHEMA_VERSION: u32 = 1;
+
+/// A successful load of `install-stamp.json`. Mirrors the runtime shape the
+/// desktop uses (`apps/desktop/electron/main.ts:loadInstallStamp`).
+#[derive(Debug, Clone)]
+pub struct InstallStamp {
+    pub commit: String,
+    pub branch: Option<String>,
+}
+
+/// Read install-stamp.json from a desktop bundle path (the existing .app
+/// we'll fast-path into). Returns `None` for missing / malformed / schema
+/// mismatch — callers must treat `None` as "we don't know how stale this
+/// build is" and fall through to the launch-as-is path.
+pub fn load_install_stamp_from_bundle(bundle: &Path) -> Option<InstallStamp> {
+    // Mirrors the candidate list in apps/desktop/electron/main.ts: packaged
+    // builds ship at <bundle>/Contents/Resources/install-stamp.json via
+    // electron-builder's extraResources entry; source-mode builds write to
+    // <install_root>/apps/desktop/build/install-stamp.json during `pnpm build`.
+    let bundle_stamp = if cfg!(target_os = "macos") {
+        bundle
+            .join("Contents")
+            .join("Resources")
+            .join("install-stamp.json")
+    } else {
+        // Windows / Linux electron-builder layout puts resources/ next to
+        // the unpacked exe. The launch path always hands us a binary path;
+        // its parent is the dir containing the .exe, so climb one more for
+        // the resources/ dir that ships extraResources.
+        bundle
+            .parent()
+            .map(|p| p.join("resources").join("install-stamp.json"))
+            .unwrap_or_default()
+    };
+
+    let raw = std::fs::read_to_string(&bundle_stamp).ok()?;
+    let parsed: serde_json::Value = serde_json::from_str(&raw).ok()?;
+    if parsed.get("schemaVersion").and_then(|v| v.as_u64())
+        != Some(INSTALL_STAMP_SCHEMA_VERSION as u64)
+    {
+        tracing::warn!(
+            path = %bundle_stamp.display(),
+            "install-stamp.json schema mismatch; ignoring"
+        );
+        return None;
+    }
+    let commit = parsed.get("commit").and_then(|v| v.as_str())?.to_string();
+    if commit.len() < 7 {
+        return None;
+    }
+    let branch = parsed
+        .get("branch")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    Some(InstallStamp { commit, branch })
+}
+
+/// Read the source repo's current HEAD SHA under `repo_dir` (which is
+/// `$WENSHU_HOME/wenshu-agent`). Returns `None` if the dir isn't a git
+/// checkout, or git is unavailable, or HEAD is unborn.
+///
+/// WO-001BI R117: the comparison target for the launcher fast-path. When
+/// the source repo's HEAD differs from the .app's install-stamp commit, the
+/// installed build is behind the source the user has — fall through to the
+/// R113 update flow instead of launching stale.
+pub fn repo_head_commit(repo_dir: &Path) -> Option<String> {
+    if !repo_dir.join(".git").exists() {
+        return None;
+    }
+    let out = std::process::Command::new("git")
+        .args(["rev-parse", "HEAD"])
+        .current_dir(repo_dir)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let sha = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    if sha.is_empty() {
+        return None;
+    }
+    Some(sha)
+}
+
+/// Return `true` when the install-stamp commit (built into the .app) differs
+/// from the source repo's current HEAD. A None stamp or None repo HEAD is
+/// treated as "can't decide, assume in sync" — failing safe (no spurious
+/// update on missing metadata) is preferable to spuriously triggering a
+/// rebuild that wipes `/Applications/文枢.app` mid-session.
+pub fn installed_commit_is_stale(
+    install_stamp: Option<&InstallStamp>,
+    repo_head: Option<&str>,
+) -> bool {
+    match (install_stamp, repo_head) {
+        (Some(stamp), Some(head)) => !head.starts_with(&stamp.commit),
+        _ => false,
+    }
+}
+
 /// Returns the canonical Wenshu home directory, respecting $WENSHU_HOME if set.
 pub fn wenshu_home() -> PathBuf {
     if let Ok(override_path) = std::env::var("WENSHU_HOME") {

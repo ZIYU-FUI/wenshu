@@ -11,8 +11,8 @@
 mod bootstrap;
 mod events;
 mod install_script;
-mod powershell;
 mod paths;
+mod powershell;
 mod update;
 
 use std::sync::Arc;
@@ -146,9 +146,7 @@ pub fn run() {
         .manage(Arc::new(AppState::new(mode)))
         .setup(move |app| {
             use tauri::Manager;
-            eprintln!(
-                "[wenshu-setup] setup entered: mode={mode:?}, force_setup={force_setup}"
-            );
+            eprintln!("[wenshu-setup] setup entered: mode={mode:?}, force_setup={force_setup}");
             tracing::info!(?mode, force_setup, "setup 回调已触发");
             // Launcher fast path (macOS only): a bare ("Install") launch when
             // 文枢 is already installed should NOT show the installer or
@@ -177,22 +175,68 @@ pub fn run() {
                 // and show the installer UI so prerequisites can re-run.
                 let uv_present = managed_uv.is_file();
                 if bootstrap::wenshu_is_installed(&install_root) && uv_present {
-                    match bootstrap::spawn_installed_desktop(&install_root) {
-                        Ok(()) => {
-                            // Brief grace so the spawned app is registered
-                            // before we exit (mirrors launch_wenshu_desktop).
-                            std::thread::sleep(std::time::Duration::from_millis(200));
-                            tracing::info!(
-                                "wenshu 已安装 — 已重新启动桌面端,安装程序即将退出"
-                            );
-                            app.handle().exit(0);
-                            return Ok(());
-                        }
-                        Err(err) => {
-                            tracing::warn!(
-                                ?err,
-                                "重新启动桌面端失败,显示安装程序界面"
-                            );
+                    // WO-001BI R120: stale-check before fast-path. The
+                    // installed .app was built from whatever commit was
+                    // HEAD when pnpm build last ran. If the user (or a
+                    // prior `wenshu update`) has since advanced the source
+                    // repo under `$WENSHU_HOME/wenshu-agent`, the .app on
+                    // disk is older than the source — fast-pathing into
+                    // it silently strands the user on the old self-update
+                    // code (R117 feedback, 8/31). Compare the bundled
+                    // install-stamp.json commit against the source repo's
+                    // current HEAD; if they differ, refuse the fast-path
+                    // and route through the R113 update flow (which
+                    // rebuilds the .app, copies it into place, then the
+                    // user's NEXT launch of /Applications/文枢.app picks
+                    // up the fresh build via this same fast-path). The
+                    // user's CURRENT launch gets the installer UI with
+                    // update stages, mirrors what `--update` mode already
+                    // does.
+                    let app_bundle = bootstrap::resolve_wenshu_desktop_app(&install_root);
+                    let install_stamp = app_bundle
+                        .as_ref()
+                        .and_then(|b| paths::load_install_stamp_from_bundle(b));
+                    let repo_head = paths::repo_head_commit(&install_root);
+                    let stale = paths::installed_commit_is_stale(
+                        install_stamp.as_ref(),
+                        repo_head.as_deref(),
+                    );
+                    if stale {
+                        let stamp_commit = install_stamp.as_ref().map(|s| s.commit.clone());
+                        tracing::warn!(
+                            app_bundle = ?app_bundle.as_ref().map(|p| p.display().to_string()),
+                            stamp_commit = ?stamp_commit,
+                            repo_head = ?repo_head,
+                            "R120: 已安装的 .app 落后于源码仓库 — 拒绝快速通道,改走更新流程"
+                        );
+                        // Fire the R113 update flow async; emitting the
+                        // `manifest` event from start_update flips the
+                        // frontend's `route` to 'progress' so the user
+                        // lands on the existing update UI (same UX as a
+                        // desktop-launched --update handoff).
+                        let app_for_update = app.handle().clone();
+                        tauri::async_runtime::spawn(async move {
+                            if let Err(err) = update::start_update(app_for_update).await {
+                                tracing::error!(?err, "R120 stale-path: start_update 失败");
+                            }
+                        });
+                        // Fall through to the UI-display block below —
+                        // do NOT exit, the user needs to see (and
+                        // survive) the update progress. exit(0) here
+                        // would race the spawned update task.
+                    } else {
+                        match bootstrap::spawn_installed_desktop(&install_root) {
+                            Ok(()) => {
+                                // Brief grace so the spawned app is registered
+                                // before we exit (mirrors launch_wenshu_desktop).
+                                std::thread::sleep(std::time::Duration::from_millis(200));
+                                tracing::info!("wenshu 已安装 — 已重新启动桌面端,安装程序即将退出");
+                                app.handle().exit(0);
+                                return Ok(());
+                            }
+                            Err(err) => {
+                                tracing::warn!(?err, "重新启动桌面端失败,显示安装程序界面");
+                            }
                         }
                     }
                 } else if !uv_present {
