@@ -6,7 +6,7 @@
 # Uses uv for desktop/server installs and Python's stdlib venv + pip on Termux.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/ZIYU-FUI/wenshu/main/scripts/install.sh | bash
+#   curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
 #
 # Or with options:
 #   curl -fsSL ... | bash -s -- --no-venv --skip-setup
@@ -61,7 +61,7 @@ NODE_VERSION="22"
 
 # FHS-style root install layout (set by resolve_install_layout when applicable):
 #   code at /usr/local/lib/hermes-agent, command at /usr/local/bin/hermes,
-#   data still at /root/.wenshu-hermes (HERMES_HOME).  Matches Claude Code / Codex CLI
+#   data still at /root/.hermes (HERMES_HOME).  Matches Claude Code / Codex CLI
 #   and keeps Docker bind-mounted /root/ volumes lean.
 ROOT_FHS_LAYOUT=false
 DETECTED_BROWSER_EXECUTABLE=""
@@ -74,7 +74,7 @@ NO_SKILLS=false
 BRANCH="main"
 INSTALL_COMMIT=""
 ENSURE_DEPS=""
-POSTINSTALL_MODE=false
+
 MANIFEST_MODE=false
 STAGE_NAME=""
 JSON_OUTPUT=false
@@ -150,10 +150,7 @@ while [[ $# -gt 0 ]]; do
             ENSURE_DEPS="$2"
             shift 2
             ;;
-        --postinstall)
-            POSTINSTALL_MODE=true
-            shift
-            ;;
+
         -h|--help)
             echo "Hermes Agent Installer"
             echo ""
@@ -172,11 +169,11 @@ while [[ $# -gt 0 ]]; do
             echo "  --stage NAME   Run one desktop bootstrap stage"
             echo "  --json         Print a JSON result frame for --stage"
             echo "  --non-interactive  Skip stages that require user input"
-            echo "  --include-desktop  Also build the desktop app (apps/desktop -> Hermes.app)"
+            echo "  --include-desktop  同时构建桌面应用 (apps/desktop -> 文枢.app)"
             echo "  --dir PATH     Installation directory"
-            echo "                   default (non-root):  ~/.wenshu-hermes/hermes-agent"
+            echo "                   default (non-root):  ~/.hermes/hermes-agent"
             echo "                   default (root, Linux): /usr/local/lib/hermes-agent"
-            echo "  --hermes-home PATH  Data directory (default: ~/.wenshu-hermes, or \$HERMES_HOME)"
+            echo "  --hermes-home PATH  Data directory (default: ~/.hermes, or \$HERMES_HOME)"
             echo "  -h, --help     Show this help"
             echo ""
             echo "Notes:"
@@ -184,15 +181,13 @@ while [[ $# -gt 0 ]]; do
             echo "  /usr/local/lib/hermes-agent and links the command into"
             echo "  /usr/local/bin/hermes (FHS layout — matches Claude Code / Codex CLI)."
             echo "  Data, config, sessions, and logs still live in \$HERMES_HOME"
-            echo "  (default /root/.wenshu-hermes).  This keeps Docker bind-mounted volumes"
+            echo "  (default /root/.hermes).  This keeps Docker bind-mounted volumes"
             echo "  small and ensures the command is on PATH for all shells."
             echo "  Existing installs at \$HERMES_HOME/hermes-agent are preserved in-place."
             echo "  --ensure DEPS  Install only specified deps (comma-separated)"
             echo "                   Supported: node, browser, ripgrep, ffmpeg"
             echo "                   Does NOT clone repo or create venv"
-            echo "  --postinstall  Run post-install setup only (for pip users)"
-            echo "                   Installs optional deps + runs hermes setup"
-            echo "                   Does NOT clone repo or create venv"
+
             exit 0
             ;;
         *)
@@ -318,9 +313,9 @@ emit_manifest() {
     # desktop from inside the already-running app would clobber it).
     local desktop_stage=""
     if [ "$INCLUDE_DESKTOP" = true ]; then
-        desktop_stage='{"name":"desktop","title":"Build desktop app","category":"runtime","needs_user_input":false},'
+        desktop_stage='{"name":"desktop","title":"构建桌面应用","category":"runtime","needs_user_input":false},'
     fi
-    printf '%s' '{"protocol_version":1,"stages":[{"name":"prerequisites","title":"System prerequisites","category":"runtime","needs_user_input":false},{"name":"repository","title":"Download Hermes Agent","category":"runtime","needs_user_input":false},{"name":"venv","title":"Create Python virtual environment","category":"runtime","needs_user_input":false},{"name":"python-deps","title":"Install Python dependencies","category":"runtime","needs_user_input":false},{"name":"node-deps","title":"Install browser-tool dependencies","category":"runtime","needs_user_input":false},{"name":"path","title":"Install hermes command","category":"runtime","needs_user_input":false},{"name":"config","title":"Prepare config and skills","category":"configuration","needs_user_input":false},{"name":"setup","title":"Configure API keys and settings","category":"configuration","needs_user_input":true},{"name":"gateway","title":"Configure gateway service","category":"configuration","needs_user_input":true},'"$desktop_stage"'{"name":"complete","title":"Finish install","category":"runtime","needs_user_input":false}]}'
+    printf '%s' '{"protocol_version":1,"stages":[{"name":"prerequisites","title":"检查系统环境","category":"runtime","needs_user_input":false},{"name":"repository","title":"下载文枢源码","category":"runtime","needs_user_input":false},{"name":"venv","title":"创建 Python 虚拟环境","category":"runtime","needs_user_input":false},{"name":"python-deps","title":"安装 Python 依赖","category":"runtime","needs_user_input":false},{"name":"node-deps","title":"安装浏览器工具依赖","category":"runtime","needs_user_input":false},{"name":"path","title":"配置命令行入口","category":"runtime","needs_user_input":false},{"name":"config","title":"准备配置和技能","category":"configuration","needs_user_input":false},{"name":"setup","title":"配置 API 密钥和设置","category":"configuration","needs_user_input":true},{"name":"gateway","title":"配置网关服务","category":"configuration","needs_user_input":true},'"$desktop_stage"'{"name":"complete","title":"完成安装","category":"runtime","needs_user_input":false}]}'
     printf '\n'
 }
 
@@ -527,7 +522,7 @@ detect_os() {
             OS="windows"
             DISTRO="windows"
             log_error "Windows detected. Please use the PowerShell installer:"
-            log_info "  iex (irm https://raw.githubusercontent.com/ZIYU-FUI/wenshu/main/scripts/install.ps1)"
+            log_info "  iex (irm https://hermes-agent.nousresearch.com/install.ps1)"
             exit 1
             ;;
         *)
@@ -570,15 +565,30 @@ install_uv() {
     # Two-stage: download the installer, then run it.  Piping
     # `curl | sh` masks curl failures (sh exits 0 on empty stdin)
     # and conflates network errors with installer errors.
+    #
+    # WO-001AS (v6 BUG): if either stage fails, fall back to a package-manager
+    # install (brew/pip/pipx) before giving up. The astral install.sh itself
+    # does its own curl to GitHub releases, which can hang/fail on filtered DNS
+    # even when the first-stage curl succeeds — so two distinct failure points
+    # both need a recovery path. (Brew path is macOS / Linuxbrew; pip/pipx are
+    # universal fallbacks that piggyback on whatever Python the host already
+    # has.)
     local _uv_install_log _uv_installer
     _uv_install_log="$(mktemp 2>/dev/null || echo "/tmp/hermes-uv-install.$$.log")"
     _uv_installer="$(mktemp 2>/dev/null || echo "/tmp/hermes-uv-installer.$$.sh")"
-    if ! curl -LsSf https://astral.sh/uv/install.sh -o "$_uv_installer" 2>"$_uv_install_log"; then
+    if ! curl -LsSf --max-time 60 --retry 3 --retry-all-errors https://astral.sh/uv/install.sh -o "$_uv_installer" 2>"$_uv_install_log"; then
         log_error "Failed to download uv installer from https://astral.sh/uv/install.sh"
         log_info "curl output:"
         sed 's/^/    /' "$_uv_install_log" >&2
-        log_info "Install manually: https://docs.astral.sh/uv/getting-started/installation/"
+        log_info "Falling back to package-manager install (brew / pip / pipx)..."
         rm -f "$_uv_install_log" "$_uv_installer"
+        if _uv_install_via_fallback "$_managed_uv"; then
+            UV_CMD="$_managed_uv"
+            UV_VERSION=$($UV_CMD --version 2>/dev/null)
+            log_success "Managed uv installed via fallback ($UV_VERSION)"
+            return 0
+        fi
+        log_info "Install manually: https://docs.astral.sh/uv/getting-started/installation/"
         exit 1
     fi
     # UV_UNMANAGED_INSTALL tells the astral installer to place the binary
@@ -587,24 +597,134 @@ install_uv() {
         rm -f "$_uv_installer"
         if [ -x "$_managed_uv" ]; then
             UV_CMD="$_managed_uv"
+            rm -f "$_uv_install_log"
+            UV_VERSION=$($UV_CMD --version 2>/dev/null)
+            log_success "Managed uv installed ($UV_VERSION)"
+            return 0
         else
             log_error "uv installer reported success but binary not found at $_managed_uv"
             log_info "Installer output:"
             sed 's/^/    /' "$_uv_install_log" >&2
+            log_info "Falling back to package-manager install (brew / pip / pipx)..."
             rm -f "$_uv_install_log"
+            if _uv_install_via_fallback "$_managed_uv"; then
+                UV_CMD="$_managed_uv"
+                UV_VERSION=$($UV_CMD --version 2>/dev/null)
+                log_success "Managed uv installed via fallback ($UV_VERSION)"
+                return 0
+            fi
             exit 1
         fi
-        rm -f "$_uv_install_log"
-        UV_VERSION=$($UV_CMD --version 2>/dev/null)
-        log_success "Managed uv installed ($UV_VERSION)"
     else
-        log_error "Failed to install uv"
+        log_error "Failed to install uv (astral installer exited non-zero)"
         log_info "Installer output:"
         sed 's/^/    /' "$_uv_install_log" >&2
-        log_info "Install manually: https://docs.astral.sh/uv/getting-started/installation/"
+        log_info "Falling back to package-manager install (brew / pip / pipx)..."
         rm -f "$_uv_install_log" "$_uv_installer"
+        if _uv_install_via_fallback "$_managed_uv"; then
+            UV_CMD="$_managed_uv"
+            UV_VERSION=$($UV_CMD --version 2>/dev/null)
+            log_success "Managed uv installed via fallback ($UV_VERSION)"
+            return 0
+        fi
+        log_info "Install manually: https://docs.astral.sh/uv/getting-started/installation/"
         exit 1
     fi
+}
+
+# WO-001AS (v6 BUG): package-manager fallback for uv.
+# Tries (in order): brew install uv (macOS / Linuxbrew),
+# pip install uv (any platform with pip), pipx install uv.
+# On success, symlinks the resulting uv binary into $1 (managed_uv path)
+# and returns 0. Returns 1 only if every fallback failed.
+#
+# This is intentionally a separate function so the main install_uv() flow
+# stays readable; both the curl-download branch and the sh-execute branch
+# call into it on failure.
+_uv_install_via_fallback() {
+    local _target="$1"
+    local _fb_log
+    _fb_log="$(mktemp 2>/dev/null || echo "/tmp/hermes-uv-fallback.$$.log")"
+
+    # 1. brew (macOS / Linuxbrew). `brew install uv` lands in /opt/homebrew/bin
+    # or /usr/local/bin; we then symlink into HERMES_HOME/bin/uv.
+    if command -v brew >/dev/null 2>&1; then
+        log_info "[fallback] trying: brew install uv"
+        if brew install uv >>"$_fb_log" 2>&1; then
+            local _brew_uv
+            _brew_uv="$(command -v uv 2>/dev/null || true)"
+            if [ -x "$_brew_uv" ]; then
+                mkdir -p "$(dirname "$_target")"
+                ln -sf "$_brew_uv" "$_target"
+                log_info "[fallback] brew install uv succeeded at $_brew_uv -> $_target"
+                rm -f "$_fb_log"
+                return 0
+            fi
+        else
+            log_warn "[fallback] brew install uv failed (see $_fb_log)"
+        fi
+    fi
+
+    # 2. pip (any platform). `pip install uv` puts the binary in the active
+    # Python's bin/; we then symlink into HERMES_HOME/bin/uv.
+    local _pip_cmd=""
+    if command -v pip3 >/dev/null 2>&1; then
+        _pip_cmd="pip3"
+    elif command -v pip >/dev/null 2>&1; then
+        _pip_cmd="pip"
+    fi
+    if [ -n "$_pip_cmd" ]; then
+        log_info "[fallback] trying: $_pip_cmd install uv"
+        if "$_pip_cmd" install --quiet uv >>"$_fb_log" 2>&1; then
+            local _pip_uv
+            _pip_uv="$("$_pip_cmd" show uv 2>/dev/null | awk '/^Location:/{print $2}' | head -1)"
+            if [ -n "$_pip_uv" ] && [ -x "$_pip_uv/bin/uv" ]; then
+                _pip_uv="$_pip_uv/bin/uv"
+            else
+                _pip_uv="$(command -v uv 2>/dev/null || true)"
+            fi
+            if [ -x "$_pip_uv" ]; then
+                mkdir -p "$(dirname "$_target")"
+                ln -sf "$_pip_uv" "$_target"
+                log_info "[fallback] $_pip_cmd install uv succeeded at $_pip_uv -> $_target"
+                rm -f "$_fb_log"
+                return 0
+            fi
+        else
+            log_warn "[fallback] $_pip_cmd install uv failed (see $_fb_log)"
+        fi
+    fi
+
+    # 3. pipx (any platform). `pipx install uv` is the cleanest fallback when
+    # the user has pipx but no brew.
+    if command -v pipx >/dev/null 2>&1; then
+        log_info "[fallback] trying: pipx install uv"
+        if pipx install uv >>"$_fb_log" 2>&1; then
+            local _pipx_uv
+            _pipx_uv="$(pipx environment --value PIPX_LOCAL_VENVS 2>/dev/null)/uv/bin/uv"
+            if [ ! -x "$_pipx_uv" ]; then
+                _pipx_uv="$HOME/.local/pipx/venvs/uv/bin/uv"
+            fi
+            if [ ! -x "$_pipx_uv" ]; then
+                _pipx_uv="$(command -v uv 2>/dev/null || true)"
+            fi
+            if [ -x "$_pipx_uv" ]; then
+                mkdir -p "$(dirname "$_target")"
+                ln -sf "$_pipx_uv" "$_target"
+                log_info "[fallback] pipx install uv succeeded at $_pipx_uv -> $_target"
+                rm -f "$_fb_log"
+                return 0
+            fi
+        else
+            log_warn "[fallback] pipx install uv failed (see $_fb_log)"
+        fi
+    fi
+
+    log_error "[fallback] all package-manager fallbacks failed"
+    log_info "Fallback log:"
+    sed 's/^/    /' "$_fb_log" >&2
+    rm -f "$_fb_log"
+    return 1
 }
 
 check_python() {
@@ -870,13 +990,13 @@ install_node() {
     # Resolve the latest v22.x.x tarball name from the index page
     local index_url="https://nodejs.org/dist/latest-v${NODE_VERSION}.x/"
     local tarball_name
-    tarball_name=$(curl -fsSL "$index_url" \
+    tarball_name=$(curl -fsSL --max-time 30 --retry 2 "$index_url" \
         | grep -oE "node-v${NODE_VERSION}\.[0-9]+\.[0-9]+-${node_os}-${node_arch}\.tar\.xz" \
         | head -1)
 
     # Fallback to .tar.gz if .tar.xz not available
     if [ -z "$tarball_name" ]; then
-        tarball_name=$(curl -fsSL "$index_url" \
+        tarball_name=$(curl -fsSL --max-time 30 --retry 2 "$index_url" \
             | grep -oE "node-v${NODE_VERSION}\.[0-9]+\.[0-9]+-${node_os}-${node_arch}\.tar\.gz" \
             | head -1)
     fi
@@ -893,7 +1013,7 @@ install_node() {
     tmp_dir=$(mktemp -d)
 
     log_info "Downloading $tarball_name..."
-    if ! curl -fsSL "$download_url" -o "$tmp_dir/$tarball_name"; then
+    if ! curl -fsSL --max-time 120 --retry 3 --retry-all-errors "$download_url" -o "$tmp_dir/$tarball_name"; then
         log_warn "Download failed"
         rm -rf "$tmp_dir"
         HAS_NODE=false
@@ -1324,6 +1444,11 @@ EOF
     log_success "Repository ready"
 }
 
+# WO-001AS (v6 BUG): setup_venv has no direct curl calls (uses `uv venv`
+# which goes through the managed uv binary installed by install_uv). 派单
+# 拍板 "install_hermes_python 同样 retry" = 写明 "无 curl 直接调用,网络路径
+# 由 install_uv 走 curl retry + fallback 兜底"。uv pip / uv venv 自身的
+# network retry 行为不在白名单,本单不修。
 setup_venv() {
     if [ "$USE_VENV" = false ]; then
         log_info "Skipping virtual environment (--no-venv)"
@@ -1367,6 +1492,10 @@ setup_venv() {
     log_success "Virtual environment ready (Python $PYTHON_VERSION)"
 }
 
+# WO-001AS (v6 BUG): install_deps has no direct curl calls (uses
+# `uv pip install` which goes through managed uv). 派单拍板"同样 retry"
+# = 写明"无 curl 直接调用"。如果 uv pip 内部卡死,走 install_uv 的 30 min
+# powershell.rs::SCRIPT_TIMEOUT 兜底(已在 WO-001AR STEP 2 落地)。
 install_deps() {
     log_info "Installing dependencies..."
 
@@ -1549,7 +1678,7 @@ try:
     specs = data["project"]["optional-dependencies"]["all"]
     extras = []
     for s in specs:
-        m = re.search(r"hermes-agent\[([\w-]+)\]|\b([\w-]+)\b", s)
+        m = re.search(r"hermes-agent\[([\w-]+)\]", s)
         if m:
             extras.append(m.group(1))
     print(",".join(extras))
@@ -1621,6 +1750,8 @@ PY
     log_success "All dependencies installed"
 }
 
+# WO-001AS (v6 BUG): setup_path has no curl calls (only `ln -sf` and
+# `cp`). 派单拍板"install_hermes_command 同样 retry" = 写明"无网络依赖"。
 setup_path() {
     log_info "Setting up hermes command..."
 
@@ -1782,6 +1913,9 @@ EOF
     log_success "hermes command ready"
 }
 
+# WO-001AS (v6 BUG): copy_config_templates has no curl calls (only
+# `cp` of bundled YAML templates into $HERMES_HOME). 派单拍板"prepare_config
+# 同样 retry" = 写明"无网络依赖"。
 copy_config_templates() {
     log_info "Setting up configuration files..."
 
@@ -1816,19 +1950,53 @@ copy_config_templates() {
         log_info "~/.hermes/config.yaml already exists, keeping it"
     fi
 
-    # Create SOUL.md if it doesn't exist (global persona file).
-    # This MUST match DEFAULT_SOUL_MD in hermes_cli/default_soul.py — the
-    # runtime (_ensure_default_soul_md) treats the old comment-only scaffold as
-    # "never customized" and upgrades it to this text on next run, so any drift
-    # here is self-healing, but keep them in sync to avoid a churn on first run.
+    # Create SOUL.md if it doesn't exist (global persona file — 文枢 / Wenshu).
+    # Source of truth on disk is $INSTALL_DIR/wenshu/SOUL.md (WO-001K); the
+    # heredoc below is the runtime fallback for tarball installs that don't
+    # ship the wenshu/ subdir. MUST match DEFAULT_SOUL_MD in
+    # hermes_cli/default_soul.py — runtime (_ensure_default_soul_md) treats
+    # the old comment-only scaffold as "never customized" and upgrades it in
+    # place, so any drift is self-healing, but keep them in sync to avoid
+    # first-run churn.
     if [ ! -f "$HERMES_HOME/SOUL.md" ]; then
-        cat > "$HERMES_HOME/SOUL.md" << 'SOUL_EOF'
-You are Hermes Agent, an intelligent AI assistant created by Nous Research. You are helpful, knowledgeable, and direct. You assist users with a wide range of tasks including answering questions, writing and editing code, analyzing information, creative work, and executing actions via your tools. You communicate clearly, admit uncertainty when appropriate, and prioritize being genuinely useful over being verbose unless otherwise directed below. Be targeted and efficient in your exploration and investigations.
+        if [ -f "$INSTALL_DIR/wenshu/SOUL.md" ]; then
+            cp "$INSTALL_DIR/wenshu/SOUL.md" "$HERMES_HOME/SOUL.md"
+            log_success "Copied SOUL.md from \$INSTALL_DIR/wenshu/SOUL.md to \$HERMES_HOME/SOUL.md (edit to customize personality)"
+        else
+            # Fallback heredoc — ships even when wenshu/ subdir is missing.
+            cat > "$HERMES_HOME/SOUL.md" << 'SOUL_EOF'
+You are 文枢 (Wenshu), a generic writing assistant forked from Hermes Agent v0.19.0 (MIT). You are direct, useful, and grounded. Your philosophy is "法无定法,贵在得法": the 7-step node framework is fixed (read project → research → draft → revise → finalize → consistency check → reverse advice), but the methodology at each step is chosen by the user. Be targeted and efficient in your exploration and investigations.
 SOUL_EOF
-        log_success "Created ~/.hermes/SOUL.md (edit to customize personality)"
+            log_success "Created $HERMES_HOME/SOUL.md from heredoc fallback (edit to customize personality)"
+        fi
     fi
 
-    log_success "Configuration directory ready: ~/.hermes/"
+    # Copy 文枢 (Wenshu) AGENTS.md — the writing-assistant working manual.
+    # Source of truth: $INSTALL_DIR/wenshu/AGENTS.md (WO-001K). Skipped
+    # silently if not shipped in this install (no fallback heredoc — the
+    # manual is large and not safe to inline).
+    if [ ! -f "$HERMES_HOME/AGENTS.md" ] && [ -f "$INSTALL_DIR/wenshu/AGENTS.md" ]; then
+        cp "$INSTALL_DIR/wenshu/AGENTS.md" "$HERMES_HOME/AGENTS.md"
+        log_success "Copied AGENTS.md from \$INSTALL_DIR/wenshu/AGENTS.md to \$HERMES_HOME/AGENTS.md (wenshu writing-assistant working manual)"
+    fi
+
+    # Copy 文枢 (Wenshu) methodologies/ library — 法无定法 / methodology library
+    # the agent scans at boot for user-selectable methods (SCQA, STAR, Hero's
+    # Journey, user-injected custom methods, ...). Recursive copy from
+    # $INSTALL_DIR/wenshu/methodologies/ → $HERMES_HOME/methodologies/. If the
+    # user already has a methodologies/ directory with content, leave it
+    # alone (user-curated library, do not clobber).
+    if [ -d "$INSTALL_DIR/wenshu/methodologies" ]; then
+        if [ ! -d "$HERMES_HOME/methodologies" ] || [ -z "$(ls -A "$HERMES_HOME/methodologies/" 2>/dev/null)" ]; then
+            mkdir -p "$HERMES_HOME/methodologies"
+            cp -r "$INSTALL_DIR/wenshu/methodologies/." "$HERMES_HOME/methodologies/" 2>/dev/null || true
+            log_success "Copied methodologies/ library from \$INSTALL_DIR/wenshu/methodologies/ to \$HERMES_HOME/methodologies/"
+        else
+            log_info "\$HERMES_HOME/methodologies/ already has user content, keeping it"
+        fi
+    fi
+
+    log_success "Configuration directory ready: $HERMES_HOME/"
 
     # Seed bundled skills into ~/.hermes/skills/ (manifest-based, one-time per skill)
     if [ "$NO_SKILLS" = true ]; then
@@ -2153,7 +2321,19 @@ install_node_deps() {
         cd "$INSTALL_DIR"
         # Time-boxed: a stalled registry fetch would otherwise hang here with no
         # progress (same #39219 stall class as the desktop build below).
-        run_with_timeout "$NODE_DEPS_TIMEOUT" npm install --silent || {
+        # WO-001AT (v7 BUG): npm install 卡 8:13 = registry fetch 卡死。
+        # 加 --fetch-timeout + --fetch-retries 让单次 fetch 也有兜底,
+        # --registry 国内镜让装 user 网络不挂,
+        # --prefer-offline 优先本地 cache,
+        # --no-audit --no-fund 砍 noise(--silent 时只剩 warning)。
+        run_with_timeout "$NODE_DEPS_TIMEOUT" npm install \
+            --registry https://registry.npmmirror.com \
+            --fetch-timeout 600000 \
+            --fetch-retries 3 \
+            --fetch-retry-mintimeout 20000 \
+            --prefer-offline \
+            --no-audit --no-fund \
+            || {
             log_warn "npm install failed or timed out (browser tools may not work)"
         }
         log_success "Node.js dependencies installed"
@@ -2250,17 +2430,6 @@ install_node_deps() {
         log_success "Browser engine setup complete"
     fi
 
-    # Install TUI dependencies
-    if [ -f "$INSTALL_DIR/ui-tui/package.json" ]; then
-        log_info "Installing TUI dependencies..."
-        cd "$INSTALL_DIR/ui-tui"
-        # Time-boxed: a stalled registry fetch would otherwise hang here (#39219).
-        run_with_timeout "$NODE_DEPS_TIMEOUT" npm install --silent || {
-            log_warn "TUI npm install failed or timed out (hermes --tui may not work)"
-        }
-        log_success "TUI dependencies installed"
-    fi
-
     # Keep the checkout clean so `hermes update` doesn't autostash every run.
     restore_dirty_lockfiles "$INSTALL_DIR"
 }
@@ -2299,6 +2468,11 @@ run_setup_wizard() {
     fi
 }
 
+# WO-001AS (v6 BUG): maybe_start_gateway has no direct curl calls
+# (only `hermes gateway install` and `hermes gateway start`, which are
+# in-process subcommands). 派单拍板"configure_gateway 同样 retry" = 写明"无
+# curl 直接调用"。如果 gateway 子命令内部有网络卡死,走 install_uv 的 30 min
+# powershell.rs::SCRIPT_TIMEOUT 兜底。
 maybe_start_gateway() {
     # Check if any messaging platform tokens were configured
     ENV_FILE="$HERMES_HOME/.env"
@@ -2584,29 +2758,6 @@ ensure_mode() {
     done
 }
 
-postinstall_mode() {
-    print_banner
-    detect_os
-
-    log_info "Post-install mode: setting up Hermes for pip install"
-
-    check_node
-    check_network_prerequisites
-    install_system_packages
-
-    if [ "$HAS_NODE" = true ] && [ "$SKIP_BROWSER" = false ]; then
-        ensure_browser
-    fi
-
-    HERMES_CMD="$(command -v hermes 2>/dev/null || echo "")"
-    if [ -n "$HERMES_CMD" ]; then
-        log_info "Running hermes setup..."
-        "$HERMES_CMD" setup
-    else
-        log_warn "hermes command not found on PATH"
-        log_info "Try: python -m hermes_cli.main setup"
-    fi
-}
 
 # Clear the cached Electron download + any half-written unpacked output so the
 # next `npm run pack` re-downloads and re-stages from scratch. A corrupt zip in
@@ -2699,7 +2850,7 @@ DESKTOP_BUILD_TIMEOUT="${DESKTOP_BUILD_TIMEOUT:-900}"
 # Wall-clock cap for the plain registry `npm install`s (browser-tools + TUI
 # deps). Same #39219 stall class but no ~150MB Electron binary, so a shorter
 # default; override with NODE_DEPS_TIMEOUT for very slow links.
-NODE_DEPS_TIMEOUT="${NODE_DEPS_TIMEOUT:-600}"
+NODE_DEPS_TIMEOUT="${NODE_DEPS_TIMEOUT:-1500}"
 
 # Electron package dir — workspace-local nest first, then root hoist.
 _electron_dir() {
@@ -2758,6 +2909,48 @@ _restore_electron_dist_with_fallback() {
         || { [ -z "${ELECTRON_MIRROR:-}" ] && _restore_electron_dist "$install_dir" "$DESKTOP_ELECTRON_FALLBACK_MIRROR"; }
 }
 
+# Resolve the native artifact produced by electron-builder. The desktop package
+# uses productName/executableName "文枢"; the old Hermes names remain in the
+# candidate list so an already-cached legacy checkout can still be repaired.
+# Keep this lookup independent of the display brand: the build is successful
+# only when the artifact that the launcher can use is actually present.
+_find_built_desktop() {
+    local desktop_dir="$1"
+    local release_dir="$desktop_dir/release"
+    local cand
+
+    if [ "$OS" = "linux" ]; then
+        for cand in \
+            "$release_dir/linux-unpacked/文枢" \
+            "$release_dir/linux-unpacked/WenShu" \
+            "$release_dir/linux-unpacked/wenshu" \
+            "$release_dir/linux-unpacked/Hermes" \
+            "$release_dir/linux-unpacked/hermes"; do
+            if [ -x "$cand" ]; then
+                printf '%s\n' "$cand"
+                return 0
+            fi
+        done
+    else
+        for cand in \
+            "$release_dir/mac-arm64/文枢.app" \
+            "$release_dir/mac/文枢.app" \
+            "$release_dir/mac-universal/文枢.app" \
+            "$release_dir/mac-x64/文枢.app" \
+            "$release_dir/mac-arm64/WenShu.app" \
+            "$release_dir/mac/WenShu.app" \
+            "$release_dir/mac-arm64/Hermes.app" \
+            "$release_dir/mac/Hermes.app"; do
+            if [ -d "$cand" ]; then
+                printf '%s\n' "$cand"
+                return 0
+            fi
+        done
+    fi
+
+    return 1
+}
+
 # Build apps/desktop into a launchable native app. Mirrors install.ps1's
 # Install-Desktop: a root-level npm install so the apps/* workspace resolves
 # the desktop's own deps (Electron ~150MB), then `npm run pack`
@@ -2812,31 +3005,60 @@ install_desktop() {
     #    would double the worst-case hang. We compute a single deadline and pass
     #    the remaining seconds to the fallback (min 30s so it still gets a real
     #    attempt if `npm ci` failed fast rather than stalling).
-    log_info "Installing desktop workspace dependencies (includes Electron ~150MB, 1-3min)..."
+    log_info "正在安装桌面应用依赖 (包含 Electron 约 150MB,预计 1-3 分钟)..."
     local _deps_start _deps_remaining
     _deps_start=$(date +%s)
-    if run_with_timeout "$DESKTOP_BUILD_TIMEOUT" bash -c 'cd "$1" && npm ci' _ "$INSTALL_DIR"; then
-        log_success "Desktop workspace dependencies installed"
+    # WO-001AY (v11 BUG): GitHub (`20.205.243.166`) is throttled/blocked from
+    # the operator's network. Pre-set ELECTRON_MIRROR so @electron/get routes
+    # the Electron binary fetch through npmmirror.com (instead of GitHub) and
+    # pass --registry + --fetch-timeout/--fetch-retries (same flags as the
+    # node-deps stage for browser-tools, #39219 / WO-001AT). Without this the
+    # install hits GitHub twice (~110s wasted) and the
+    # _electron_pkg_staged_missing_dist gate below sees a partially-extracted
+    # Electron.app, returning false and short-circuiting the mirror fallback
+    # that would otherwise rescue the install.
+    local _desktop_npm_common=(
+        --registry https://registry.npmmirror.com
+        --fetch-timeout 600000
+        --fetch-retries 3
+        --fetch-retry-mintimeout 20000
+        --prefer-offline
+        --no-audit --no-fund
+    )
+    if ELECTRON_MIRROR="$DESKTOP_ELECTRON_FALLBACK_MIRROR" \
+        run_with_timeout "$DESKTOP_BUILD_TIMEOUT" bash -c 'cd "$1" && npm ci "${@:2}"' _ "$INSTALL_DIR" "${_desktop_npm_common[@]}"; then
+        log_success "桌面应用依赖安装完成"
     elif _deps_remaining=$(( DESKTOP_BUILD_TIMEOUT - ($(date +%s) - _deps_start) )); \
          [ "$_deps_remaining" -lt 30 ] && _deps_remaining=30; \
-         run_with_timeout "$_deps_remaining" bash -c 'cd "$1" && npm install' _ "$INSTALL_DIR"; then
-        log_success "Desktop workspace dependencies installed"
+         ELECTRON_MIRROR="$DESKTOP_ELECTRON_FALLBACK_MIRROR" \
+         run_with_timeout "$_deps_remaining" bash -c 'cd "$1" && npm install "${@:2}"' _ "$INSTALL_DIR" "${_desktop_npm_common[@]}"; then
+        log_success "桌面应用依赖安装完成"
     elif _electron_pkg_staged_missing_dist "$INSTALL_DIR"; then
-        log_warn "Desktop dependency install failed with a missing Electron dist; attempting self-heal..."
+        log_warn "桌面应用依赖安装失败且 Electron 文件不完整,正在尝试自动修复..."
         _restore_electron_dist_with_fallback "$INSTALL_DIR" || true
     else
-        log_error "Desktop workspace npm install failed"
-        # Common cause: a previous 'sudo npm'/'sudo npx' left root-owned files in
-        # ~/.npm, so this non-root install can't write the shared cache. npm hides
-        # it behind a confusing EEXIST / "File exists" message while the real errno
-        # is EACCES (-13). Point the user at the fix instead of a raw npm trace.
-        log_info "If the errors above mention EACCES / 'permission denied' / EEXIST while"
-        log_info "writing the npm cache, your ~/.npm likely holds root-owned files from an"
-        log_info "earlier 'sudo npm' or 'sudo npx'. Reclaim ownership and retry:"
-        log_info "  sudo chown -R \"\$(id -un)\" ~/.npm && npm cache verify"
-        log_info "Then re-run this installer, or build manually:"
-        log_info "  cd \"$INSTALL_DIR\" && npm ci && cd apps/desktop && npm run pack"
-        return 1
+        # WO-001AY: even when _electron_dist_ok returned true (a 0-byte or
+        # partial Electron binary survived the failed postinstall), force a
+        # mirror-driven recovery so the install self-heals instead of bailing
+        # with the opaque "exit code 1" that drops the user back into the DMG.
+        log_warn "桌面应用依赖安装失败,正在清理不完整的 Electron 文件并通过镜像重试..."
+        clear_electron_build_cache "$desktop_dir" >/dev/null 2>&1 || true
+        if _restore_electron_dist "$INSTALL_DIR" "$DESKTOP_ELECTRON_FALLBACK_MIRROR"; then
+            log_info "已通过镜像恢复 Electron 文件,正在使用镜像重新打包..."
+        else
+            log_error "桌面应用依赖安装失败"
+            # Common cause: a previous 'sudo npm'/'sudo npx' left root-owned files in
+            # ~/.npm, so this non-root install can't write the shared cache. npm hides
+            # it behind a confusing EEXIST / "File exists" message while the real errno
+            # is EACCES (-13). Point the user at the fix instead of a raw npm trace.
+            log_info "如果上面的错误包含 EACCES / 'permission denied' / EEXIST,说明 npm 缓存可能没有写入权限"
+            log_info "请检查 ~/.npm 中是否存在由 root 创建的文件"
+            log_info "可先修复目录权限后重试:"
+            log_info "  sudo chown -R \"$(id -un)\" ~/.npm && npm cache verify"
+            log_info "然后重新运行安装程序,或手动构建:"
+            log_info "  cd \"$INSTALL_DIR\" && npm ci && cd apps/desktop && npm run pack"
+            return 1
+        fi
     fi
 
     # 2. Build, with up to three escalating attempts so a transient/blocked
@@ -2846,7 +3068,7 @@ install_desktop() {
     #         retry (matches install.ps1 / `hermes desktop`),
     #      c) on still-failing, fall back to a public Electron mirror — this is
     #         the GitHub-blocked/throttled case (the repeating "retrying" log).
-    log_info "Building desktop app (this takes 1-3 minutes)..."
+    log_info "正在构建桌面应用 (预计 1-3 分钟)..."
     local pack_ok=false
     if run_with_timeout "$DESKTOP_BUILD_TIMEOUT" _desktop_pack "$desktop_dir"; then
         pack_ok=true
@@ -2858,7 +3080,7 @@ install_desktop() {
             if _restore_electron_dist "$INSTALL_DIR"; then restored=true; fi
         fi
         if [ "$restored" = true ]; then
-            log_warn "Desktop build failed; refreshed the Electron download and retrying once..."
+            log_warn "桌面应用构建失败,已刷新 Electron 下载内容,正在重试一次..."
             if run_with_timeout "$DESKTOP_BUILD_TIMEOUT" _desktop_pack "$desktop_dir"; then
                 pack_ok=true
             fi
@@ -2867,9 +3089,9 @@ install_desktop() {
 
     # (c) GitHub blocked → mirror fallback (#47266).
     if [ "$pack_ok" = false ] && [ -z "${ELECTRON_MIRROR:-}" ]; then
-        log_warn "Desktop build still failing — the Electron download from GitHub looks blocked."
-        log_warn "Re-downloading Electron via a public mirror ($DESKTOP_ELECTRON_FALLBACK_MIRROR), then rebuilding..."
-        log_warn "  (set ELECTRON_MIRROR yourself to use a different/trusted mirror)"
+        log_warn "桌面应用构建仍然失败,从 GitHub 下载 Electron 可能被阻断。"
+        log_warn "正在通过公共镜像 ($DESKTOP_ELECTRON_FALLBACK_MIRROR) 重新下载 Electron,然后再次构建..."
+        log_warn "  (如需使用其他可信镜像,可自行设置 ELECTRON_MIRROR)"
         _electron_dist_ok "$INSTALL_DIR" || _restore_electron_dist "$INSTALL_DIR" "$DESKTOP_ELECTRON_FALLBACK_MIRROR" || true
         if run_with_timeout "$DESKTOP_BUILD_TIMEOUT" _desktop_pack "$desktop_dir" "$DESKTOP_ELECTRON_FALLBACK_MIRROR"; then
             pack_ok=true
@@ -2877,41 +3099,25 @@ install_desktop() {
     fi
 
     if [ "$pack_ok" = false ]; then
-        log_error "Desktop app build failed"
+        log_error "桌面应用构建失败"
         # If the log shows repeated "retrying" lines fetching the Electron zip,
         # the binary download is blocked/throttled (firewall, proxy, region) and
         # the mirror fallback above also couldn't reach a host. Try a mirror you
         # trust and rebuild (@electron/get honors ELECTRON_MIRROR):
-        log_info "If the log shows Electron download retries, rebuild via a reachable mirror:"
+        log_info "如果日志显示 Electron 下载反复重试,请通过可访问的镜像重新构建:"
         log_info "  ELECTRON_MIRROR=<mirror-base-url> \\"
         log_info "    bash -c 'cd \"$desktop_dir\" && CSC_IDENTITY_AUTO_DISCOVERY=false npm run pack'"
-        log_info "Otherwise build manually: cd $desktop_dir && npm run pack"
+        log_info "否则可手动构建: cd $desktop_dir && npm run pack"
         return 1
     fi
 
     local app=""
-    if [ "$OS" = "linux" ]; then
-        if [ -x "$desktop_dir/release/linux-unpacked/Hermes" ]; then
-            app="$desktop_dir/release/linux-unpacked/Hermes"
-        elif [ -x "$desktop_dir/release/linux-unpacked/hermes" ]; then
-            app="$desktop_dir/release/linux-unpacked/hermes"
-        fi
-    else
-        local cand
-        for cand in \
-            "$desktop_dir/release/mac-arm64/Hermes.app" \
-            "$desktop_dir/release/mac/Hermes.app"; do
-            if [ -d "$cand" ]; then
-                app="$cand"
-                break
-            fi
-        done
-    fi
-    if [ -z "$app" ]; then
-        log_error "Desktop build completed but no app was found under $desktop_dir/release/"
+    if ! app="$(_find_built_desktop "$desktop_dir")"; then
+        log_error "桌面应用构建已结束,但在 $desktop_dir/release/ 下没有找到可启动的应用"
+        log_info "已检查文枢和兼容旧名称的 macOS/Linux 构建目录"
         return 1
     fi
-    log_success "Desktop app built: $app"
+    log_success "桌面应用构建完成: $app"
 
     # Linux: Electron's chrome-sandbox helper needs root:root 4755 or the
     # sandboxed renderer will abort on startup.  Check the file is a regular
@@ -2922,16 +3128,16 @@ install_desktop() {
         if [ -f "$sandbox" ] && [ ! -L "$sandbox" ]; then
             if [ "$(id -u)" -eq 0 ]; then
                 chown root:root "$sandbox" && chmod 4755 "$sandbox" || {
-                    log_error "Cannot configure Electron sandbox helper: $sandbox"
+                    log_error "无法配置 Electron 沙箱助手: $sandbox"
                     return 1
                 }
             elif command -v sudo >/dev/null 2>&1; then
                 sudo chown root:root "$sandbox" && sudo chmod 4755 "$sandbox" || {
-                    log_error "Cannot configure Electron sandbox helper (sudo failed): $sandbox"
+                    log_error "无法配置 Electron 沙箱助手 (sudo 失败): $sandbox"
                     return 1
                 }
             else
-                log_error "Cannot configure Electron sandbox helper without sudo: $sandbox"
+                log_error "没有 sudo,无法配置 Electron 沙箱助手: $sandbox"
                 return 1
             fi
         fi
@@ -3060,7 +3266,7 @@ run_stage_body() {
             echo "git" > "$INSTALL_DIR/.install_method"
             ;;
         *)
-            log_error "Unknown stage: $stage"
+            log_error "未知安装阶段: $stage"
             return 2
             ;;
     esac
@@ -3069,15 +3275,15 @@ run_stage_body() {
 run_stage_protocol() {
     local stage="$1"
     if [ -z "$stage" ]; then
-        log_error "--stage requires a stage name"
+        log_error "--stage 需要提供阶段名称"
         if [ "$JSON_OUTPUT" = true ]; then
-            emit_stage_json "" false false "missing stage name"
+            emit_stage_json "" false false "缺少阶段名称"
         fi
         return 2
     fi
 
     if [ "$NON_INTERACTIVE" = true ] && stage_needs_user_input "$stage"; then
-        log_info "Skipping $stage (non-interactive bootstrap)"
+        log_info "跳过 $stage (非交互式安装)"
         if [ "$JSON_OUTPUT" = true ]; then
             emit_stage_json "$stage" true true
         fi
@@ -3099,7 +3305,7 @@ run_stage_protocol() {
         if [ "$code" -eq 0 ]; then
             emit_stage_json "$stage" true false
         else
-            emit_stage_json "$stage" false false "exit code $code"
+            emit_stage_json "$stage" false false "退出码 $code"
         fi
     fi
     return "$code"
@@ -3150,8 +3356,6 @@ elif [ -n "$STAGE_NAME" ]; then
     run_stage_protocol "$STAGE_NAME"
 elif [ -n "$ENSURE_DEPS" ]; then
     ensure_mode
-elif [ "$POSTINSTALL_MODE" = true ]; then
-    postinstall_mode
 else
     main
 fi
