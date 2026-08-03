@@ -76,3 +76,6 @@ codegen-units = 1
 lto = true
 opt-level = "s"
 strip = true
+
+[target.'cfg(target_os = "macos")']
+macos-deployment-target = "14.0"
