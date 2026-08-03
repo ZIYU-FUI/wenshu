@@ -407,7 +407,8 @@ if (INSTALL_STAMP) {
     '[wenshu] WARNING: no install-stamp.json found in packaged build. First-launch bootstrap will not have a pinned ref to install.'
   )
 }
-if (!process.env.HERMES_HOME) process.env.HERMES_HOME = path.join(os.homedir(), '.wenshu-hermes')
+
+if (!process.env.HERMES_HOME) {process.env.HERMES_HOME = path.join(os.homedir(), '.wenshu-hermes')}
 
 // WENSHU_HOME 兜底 — 处理 macOS LSEnvironment 注入 literal "$HOME/.wenshu-hermes" 的情况
 // (apps/desktop/package.json mac.extendInfo.LSEnvironment 设置了字面 $HOME 占位符,
