@@ -5028,33 +5028,38 @@ def _run_npm_install_deterministic(
     capture_output: bool = True,
     env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess:
-    """Run a deterministic npm install that does not mutate ``package-lock.json``.
+    """Run a deterministic npm install that can regenerate ``package-lock.json``.
 
-    Prefers ``npm ci`` (strict, lockfile-preserving) when a lockfile is present;
-    falls back to ``npm install`` only if ``npm ci`` fails (e.g. lockfile out of
-    sync on a WIP checkout).  Without this, ``npm install`` on npm ≥ 10 silently
-    rewrites committed lockfiles (stripping ``"peer": true`` etc.), which leaves
-    the working tree dirty and causes the next ``wenshu update`` to stash the
-    lockfile — repeatedly.
+    Prefers ``npm ci`` (strict, lockfile-preserving) when a lockfile is
+    present; falls back to ``npm install`` only if ``npm ci`` fails (e.g.
+    lockfile out of sync on a WIP fork/branch). The wenshu fork routinely
+    bumps workspace dependencies without re-running ``npm install`` in CI
+    (R123: the lockfile under ``package-lock.json`` was 16+ days stale after
+    R113, breaking every ``wenshu update`` with
+    ``Invalid: lock file's X does not satisfy X``). A bare ``npm install``
+    is silently self-healing there — it rewrites the lockfile against the
+    current ``package.json`` material on disk and unblocks the update.
 
-    ``--include=dev`` is forced on every invocation: the callers are frontend
-    builds (web UI / TUI / desktop workspaces), and those builds need the dev
-    toolchain (``tsc``, ``vite``, ``electron-builder`` — all
+    ``--include=dev`` is forced on every invocation: the callers are
+    frontend builds (web UI / TUI / desktop workspaces), and those builds
+    need the dev toolchain (``tsc``, ``vite``, ``electron-builder`` — all
     ``devDependencies``).  If the caller's environment has
-    ``NODE_ENV=production`` (or npm config ``omit=dev``) — which leaks in from
-    a shell profile, a container image, or the bundled TUI launcher that sets
-    ``NODE_ENV=production`` on its subprocess env — npm silently omits
-    devDependencies (exit 0, no error), so the build toolchain never installs
-    and the subsequent build dies with ``tsc: command not found`` (exit 127).
-    The flag overrides both the env var and npm config, unlike scrubbing
-    ``NODE_ENV`` from the environment which only fixes the env-leak case.
+    ``NODE_ENV=production`` (or npm config ``omit=dev``) — which leaks in
+    from a shell profile, a container image, or the bundled TUI launcher
+    that sets ``NODE_ENV=production`` on its subprocess env — npm silently
+    omits devDependencies (exit 0, no error), so the build toolchain never
+    installs and the subsequent build dies with ``tsc: command not found``
+    (exit 127). The flag overrides both the env var and npm config, unlike
+    scrubbing ``NODE_ENV`` from the environment which only fixes the
+    env-leak case.
 
-    ``--no-save`` on the ``npm install`` fallback keeps it true to this
-    function's contract: never mutate ``package-lock.json``.  Without it, an
-    out-of-sync lockfile gets rewritten by the fallback, which drifts the
-    committed lockfile and makes every future ``npm ci`` fail — a
-    self-reinforcing cycle where web devDeps never install and a stale dist
-    is served on every update (PR #65595).
+    The ``npm install`` fallback is intentionally ``--no-save``-less on the
+    wenshu fork — we *want* the lockfile to be regenerated on a stale-
+    lockfile failure so future ``npm ci`` invocations succeed. The previous
+    ``--no-save`` behaviour kept the user's broken lockfile around forever
+    and turned the first ``npm ci`` failure into a permanent loop. The
+    updated behaviour regenerates the lockfile once and the next run
+    works ``npm ci`` cleanly.
     """
     # unicode-animations' postinstall animates to /dev/tty (bypasses
     # --silent/capture_output). It no-ops when CI is set — same as the TUI
@@ -5076,9 +5081,11 @@ def _run_npm_install_deterministic(
         )
         if ci_result.returncode == 0:
             return ci_result
-        # Fall through to `npm install` — lockfile may be out of sync on a
-        # WIP fork/branch, or `npm ci` may not be available on very old npm.
-    install_cmd = [npm, "install", "--no-save", "--include=dev", *extra_args]
+        # Fall through to `npm install` — lockfile is out of sync on a
+        # WIP fork/branch (R123) or `npm ci` may not be available on very
+        # old npm. We deliberately let `npm install` regenerate the lockfile
+        # here so the next `wenshu update` does not hit the same drift.
+    install_cmd = [npm, "install", "--include=dev", *extra_args]
     return subprocess.run(
         install_cmd,
         cwd=cwd,
@@ -8510,6 +8517,59 @@ def _resolve_node_runtime_npm() -> str | None:
     return None
 
 
+def _wenshu_update_workspace_args(project_root: Path) -> list[str]:
+    """Build the ``--workspace <name>`` arg list for a wenshu ``update`` run.
+
+    The wenshu fork's ``package.json`` declares its workspaces as ``apps/*``
+    (e.g. ``apps/bootstrap-installer``, ``apps/shared``). Older versions of
+    the upstream codebase exposed ``legacy-terminal-ui`` and ``web`` as
+    top-level workspaces — those have been folded into ``apps/*`` on the
+    fork, so passing them to ``npm install --workspace`` now fails with
+    ``No workspaces found: --workspace=legacy-terminal-ui --workspace=web``
+    (R123).
+
+    This helper:
+      1. Reads the actual workspace list from the root ``package.json``.
+      2. Skips any workspace path that contains ``desktop`` (the Electron
+         desktop launcher pulls a ~200MB binary on postinstall; most users
+         don't need it during a plain ``wenshu update``).
+      3. Falls back to the legacy two-workspace list when the root
+         ``package.json`` is missing or unreadable, so an old checkout
+         keeps working.
+    """
+    root_pkg = project_root / "package.json"
+    try:
+        data = json.loads(root_pkg.read_text(encoding="utf-8"))
+        workspaces = data.get("workspaces", [])
+        if isinstance(workspaces, dict):  # legacy {"packages": [...]} form
+            workspaces = workspaces.get("packages", [])
+    except (OSError, json.JSONDecodeError, TypeError):
+        return ["--workspace", "legacy-terminal-ui", "--workspace", "web"]
+
+    args: list[str] = []
+    for pattern in workspaces:
+        for match in sorted(project_root.glob(str(pattern))):
+            if not (match / "package.json").is_file():
+                continue
+            # Skip desktop — see docstring.
+            if "desktop" in match.parts:
+                continue
+            args.extend(["--workspace", str(match.relative_to(project_root))])
+    if not args:
+        # Old-style non-glob workspace list (legacy-terminal-ui, web).
+        for name in workspaces:
+            if isinstance(name, str) and name:
+                args.extend(["--workspace", name])
+    return args
+
+
+def _wenshu_update_workspace_label(project_root: Path) -> str:
+    """Human-readable label for the workspaces installed by ``wenshu update``."""
+    args = _wenshu_update_workspace_args(project_root)
+    names = [args[i + 1] for i in range(0, len(args), 2)]
+    return ", ".join(names) if names else "no workspaces"
+
+
 def _update_node_dependencies() -> list[str]:
     """Refresh Node deps in the repo root and update workspaces.
 
@@ -8595,9 +8655,15 @@ def _update_node_dependencies() -> list[str]:
             print(f"    {stderr.splitlines()[-1]}")
         return _partial_update_failure("repo root")
 
-    # Step 2: install only the workspaces update needs (legacy-terminal-ui, web).
-    # --workspace selects specific workspaces; the rest (desktop) are skipped.
-    ws_args = [*extra_args, "--workspace", "legacy-terminal-ui", "--workspace", "web"]
+    # Step 2: install only the workspaces update needs.
+    # The wenshu fork uses apps/* workspaces (bootstrap-installer, desktop, shared).
+    # Older versions had legacy-terminal-ui and web workspaces — those have been
+    # folded into apps/* and must NOT be passed to --workspace or npm errors with
+    # "No workspaces found: --workspace=legacy-terminal-ui --workspace=web".
+    # Desktop stays skipped (the bootstrap-installer pulls its own deps, and
+    # desktop is a 200MB Electron download that most users don't need on
+    # `wenshu update`).
+    ws_args = [*extra_args] + _wenshu_update_workspace_args(PROJECT_ROOT)
     ws_result = _run_npm_install_deterministic(
         npm,
         PROJECT_ROOT,
@@ -8607,14 +8673,14 @@ def _update_node_dependencies() -> list[str]:
     )
     if ws_result.returncode == 0:
         _record_npm_lockfile_hash(shared_wenshu_root)
-        print("  ✓ repo root + legacy-terminal-ui, web workspaces (desktop skipped)")
+        print(f"  ✓ repo root + {_wenshu_update_workspace_label(PROJECT_ROOT)} (desktop skipped)")
         return []
 
     print("  ⚠ npm workspace install failed")
     stderr = (ws_result.stderr or "").strip() if ws_result.stderr else ""
     if stderr:
         print(f"    {stderr.splitlines()[-1]}")
-    return _partial_update_failure("legacy-terminal-ui, web workspaces")
+    return _partial_update_failure(_wenshu_update_workspace_label(PROJECT_ROOT))
 
 
 class _UpdateOutputStream:
