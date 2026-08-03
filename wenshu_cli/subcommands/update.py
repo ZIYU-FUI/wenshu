@@ -49,10 +49,16 @@ def _run_update_build_step(command: list[str], cwd: Path) -> None:
     # R128: ensure child subprocess inherits a PATH that includes the same
     # fallback directories we just searched, otherwise `pnpm dist:mac` would
     # in turn spawn pnpm-managed scripts that can't find their own pnpm shim.
+    # R129: also inject ELECTRON_MIRROR so @electron/get can fetch the Electron
+    # tarball (the public npmmirror.com/mirrors/electron/ is what install.sh
+    # uses — otherwise the download tries github.com and times out on networks
+    # that block it).
     child_env = os.environ.copy()
     extra = os.pathsep.join(p for p in _R128_FALLBACK_PATHS if Path(p).is_dir())
     if extra:
         child_env["PATH"] = f"{child_env.get('PATH', '')}{os.pathsep}{extra}"
+    if "ELECTRON_MIRROR" not in child_env and "ELECTRON_DOWNLOAD" not in child_env:
+        child_env["ELECTRON_MIRROR"] = "https://npmmirror.com/mirrors/electron/"
     subprocess.run(command, cwd=cwd, check=True, env=child_env)
 
 
