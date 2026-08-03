@@ -133,10 +133,10 @@ pub fn run() {
 
     let mode = AppMode::from_args(std::env::args().skip(1));
     // Escape hatch: `--reinstall`/`--repair` forces the installer UI even when
-    // Hermes is already installed, so users can re-run setup to repair a broken
+    // 文枢 is already installed, so users can re-run setup to repair a broken
     // install instead of the launcher fast path silently relaunching the app.
     let force_setup = force_setup_from_args(std::env::args().skip(1));
-    tracing::info!(?mode, force_setup, "Hermes installer starting");
+    tracing::info!(?mode, force_setup, "文枢 installer starting");
 
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -146,16 +146,20 @@ pub fn run() {
         .manage(Arc::new(AppState::new(mode)))
         .setup(move |app| {
             use tauri::Manager;
+            eprintln!(
+                "[wenshu-setup] setup entered: mode={mode:?}, force_setup={force_setup}"
+            );
+            tracing::info!(?mode, force_setup, "setup 回调已触发");
             // Launcher fast path (macOS only): a bare ("Install") launch when
-            // Hermes is already installed should NOT show the installer or
+            // 文枢 is already installed should NOT show the installer or
             // rebuild — it should just open the app, so the /Applications
-            // "Hermes" doubles as a normal launcher (first run installs, every
+            // "文枢" doubles as a normal launcher (first run installs, every
             // later run launches instantly). The window is kept hidden until
             // here via `"visible": false` so this path never flashes a window.
             //
             // Gated to macOS deliberately: on Windows/Linux the installer keeps
             // its existing behavior (Windows users relaunch via the Start
-            // Menu/Desktop "Hermes" shortcuts that install.ps1 creates, and a
+            // Menu/Desktop "文枢" shortcuts that install.ps1 creates, and a
             // reliable detached relaunch there needs the DETACHED_PROCESS +
             // startup-grace handling used by launch_hermes_desktop — out of
             // scope here). So this is a pure no-op on non-macOS.
@@ -179,7 +183,7 @@ pub fn run() {
                             // before we exit (mirrors launch_hermes_desktop).
                             std::thread::sleep(std::time::Duration::from_millis(200));
                             tracing::info!(
-                                "hermes already installed — relaunched desktop; exiting installer"
+                                "hermes 已安装 — 已重新启动桌面端,安装程序即将退出"
                             );
                             app.handle().exit(0);
                             return Ok(());
@@ -187,14 +191,14 @@ pub fn run() {
                         Err(err) => {
                             tracing::warn!(
                                 ?err,
-                                "relaunch of installed desktop failed; showing installer UI"
+                                "重新启动桌面端失败,显示安装程序界面"
                             );
                         }
                     }
                 } else if !uv_present {
                     tracing::warn!(
                         managed_uv = %managed_uv.display(),
-                        "managed uv missing — refusing launcher fast path; showing installer UI"
+                        "managed uv 缺失 — 拒绝启动快速通道,显示安装程序界面"
                     );
                 }
             }
@@ -202,11 +206,11 @@ pub fn run() {
             match app.get_webview_window("main") {
                 Some(win) => {
                     if let Err(err) = win.show() {
-                        tracing::error!(?err, "failed to show main installer window");
+                        tracing::error!(?err, "无法显示主安装窗口");
                     }
                 }
                 None => {
-                    tracing::error!("main installer window not found; installer UI will not appear");
+                    tracing::error!("找不到主安装 WebView,安装程序界面将不显示");
                 }
             }
             Ok(())
@@ -228,7 +232,7 @@ pub fn run() {
             paths::open_log_dir,
         ])
         .run(tauri::generate_context!())
-        .expect("error while running Hermes Setup");
+        .expect("error while running 文枢 Setup");
 }
 
 #[cfg(test)]
