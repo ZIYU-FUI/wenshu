@@ -423,7 +423,7 @@ from wenshu_cli.subcommands.import_cmd import build_import_cmd_parser
 from wenshu_cli.subcommands.config import build_config_parser
 from wenshu_cli.subcommands.console import build_console_parser
 from wenshu_cli.subcommands.version import build_version_parser
-from wenshu_cli.subcommands.update import build_update_parser
+from wenshu_cli.subcommands.update import build_and_stage_macos_release, build_update_parser
 from wenshu_cli.subcommands.uninstall import build_uninstall_parser
 from wenshu_cli.subcommands.gui import build_gui_parser
 from wenshu_cli.subcommands.logs import build_logs_parser
@@ -10592,6 +10592,16 @@ def _cmd_update_impl(args, gateway_mode: bool):
                 print(f"  Full build log: {_dhh()}/logs/update.log")
             else:
                 print("  ✓ Desktop app up to date")
+
+        # R113: the macOS update must also produce the user-installable DMGs.
+        # Keep this outside the desktop content-stamp path: a matching source
+        # stamp does not prove that the release DMGs or bootstrap bundle exist.
+        if sys.platform == "darwin":
+            try:
+                build_and_stage_macos_release(PROJECT_ROOT)
+            except (OSError, RuntimeError, subprocess.CalledProcessError) as exc:
+                print(f"✗ macOS release rebuild failed: {exc}")
+                sys.exit(1)
 
         print()
         print("✓ Code updated!")
