@@ -13,10 +13,47 @@ from pathlib import Path
 from typing import Callable
 
 
+# R128: bootstrap-installed wenshu-cli runs from the installer's PATH context,
+# which often lacks the locations where `pnpm` and `cargo` actually live
+# (`~/.local/bin`, `/opt/homebrew/bin`, `~/.cargo/bin`). Without an explicit
+# probe the update flow falls back to RuntimeError("pnpm was not found on PATH")
+# even though the binaries are installed (e.g. ~/.local/share/pnpm/pnpm).
+_R128_FALLBACK_PATHS = (
+    "/Users/anbaiqiang/.local/bin",
+    "/Users/anbaiqiang/.local/share/pnpm",
+    "/opt/homebrew/bin",
+    "/usr/local/bin",
+    str(Path.home() / ".cargo" / "bin"),
+)
+
+
+def _resolve_executable(name: str) -> str | None:
+    """Return absolute path for ``name`` or None.
+
+    Search order: shutil.which on the inherited PATH, then a curated list of
+    well-known user-installed locations (npm/pnpm global, cargo, Homebrew).
+    """
+    found = shutil.which(name)
+    if found:
+        return found
+    for directory in _R128_FALLBACK_PATHS:
+        candidate = Path(directory) / name
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            return str(candidate)
+    return None
+
+
 def _run_update_build_step(command: list[str], cwd: Path) -> None:
     """Run a release step without shell splitting macOS paths."""
     print(f"→ Running: {' '.join(command)} (cwd={cwd})")
-    subprocess.run(command, cwd=cwd, check=True)
+    # R128: ensure child subprocess inherits a PATH that includes the same
+    # fallback directories we just searched, otherwise `pnpm dist:mac` would
+    # in turn spawn pnpm-managed scripts that can't find their own pnpm shim.
+    child_env = os.environ.copy()
+    extra = os.pathsep.join(p for p in _R128_FALLBACK_PATHS if Path(p).is_dir())
+    if extra:
+        child_env["PATH"] = f"{child_env.get('PATH', '')}{os.pathsep}{extra}"
+    subprocess.run(command, cwd=cwd, check=True, env=child_env)
 
 
 def build_and_stage_macos_release(project_root: Path) -> dict[str, Path]:
@@ -26,12 +63,18 @@ def build_and_stage_macos_release(project_root: Path) -> dict[str, Path]:
 
     desktop_dir = project_root / "apps" / "desktop"
     installer_dir = project_root / "apps" / "bootstrap-installer"
-    pnpm = shutil.which("pnpm")
-    cargo = shutil.which("cargo")
+    pnpm = _resolve_executable("pnpm")
+    cargo = _resolve_executable("cargo")
     if not pnpm:
-        raise RuntimeError("pnpm was not found on PATH")
+        raise RuntimeError(
+            "pnpm was not found on PATH (searched PATH + "
+            + ", ".join(_R128_FALLBACK_PATHS) + ")"
+        )
     if not cargo:
-        raise RuntimeError("cargo was not found on PATH")
+        raise RuntimeError(
+            "cargo was not found on PATH (searched PATH + "
+            + ", ".join(_R128_FALLBACK_PATHS) + ")"
+        )
 
     _run_update_build_step([pnpm, "dist:mac"], desktop_dir)
     _run_update_build_step([cargo, "tauri", "build"], installer_dir)
