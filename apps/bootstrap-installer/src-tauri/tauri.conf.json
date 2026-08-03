@@ -23,19 +23,18 @@
         "decorations": true,
         "transparent": false,
         "center": true,
-        "visible": false,
-        "url": "tauri://localhost"
+        "visible": false
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost"
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost"
     },
     "withGlobalTauri": false
   },
   "bundle": {
     "active": true,
     "category": "DeveloperTool",
-    "shortDescription": "WenShu-Setup",
+    "shortDescription": "文枢",
     "longDescription": "Installs 文枢 on your machine. Drives scripts/install.ps1 (Windows) and scripts/install.sh (macOS/Linux).",
     "publisher": "文枢 Project",
     "copyright": "Copyright © 2026 文枢 Project",
@@ -51,10 +50,6 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": [
-      "../../../scripts/install.sh",
-      "../../../scripts/install.ps1"
-    ],
     "windows": {
       "webviewInstallMode": {
         "type": "embedBootstrapper"
@@ -62,8 +57,7 @@
     },
     "macOS": {
       "minimumSystemVersion": "11.0",
-      "hardenedRuntime": true,
-      "bundleName": "文枢"
+      "hardenedRuntime": true
     }
   },
   "plugins": {
