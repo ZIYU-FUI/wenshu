@@ -149,15 +149,6 @@ fn repair_macos_installer_helper(path: &Path) {
 #[cfg(not(target_os = "macos"))]
 fn repair_macos_installer_helper(_path: &Path) {}
 
-/// Where install.ps1 writes the bootstrap-complete marker (existence-only file
-/// the Electron app also checks). Per main.ts:
-///   const BOOTSTRAP_COMPLETE_MARKER = path.join(ACTIVE_HERMES_ROOT, '.hermes-bootstrap-complete')
-/// We don't always know ACTIVE_HERMES_ROOT until install.ps1 reports it, so
-/// this is a probe helper, not a definitive path.
-pub fn likely_bootstrap_marker(install_root: &Path) -> PathBuf {
-    install_root.join(".hermes-bootstrap-complete")
-}
-
 /// Initializes tracing to bootstrap-installer.log under HERMES_HOME/logs/.
 /// Returns a guard that flushes the appender on drop — keep it alive for
 /// the lifetime of the process.
