@@ -51,7 +51,7 @@ jobs:
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: cd apps/desktop && pnpm run test
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: vitest-logs
@@ -95,7 +95,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: cd apps/bootstrap-installer && pnpm install
       - run: cd apps/bootstrap-installer && CSC_IDENTITY_AUTO_DISCOVERY=false pnpm run tauri:build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: wenshu-setup-dmg
           path: apps/bootstrap-installer/src-tauri/target/release/bundle/dmg/
@@ -115,7 +115,7 @@ jobs:
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: cd apps/desktop && CSC_IDENTITY_AUTO_DISCOVERY=false pnpm run dist:mac
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: wenshu-desktop-mac
           path: apps/desktop/release/
