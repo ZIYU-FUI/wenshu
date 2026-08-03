@@ -1456,11 +1456,7 @@ export const en: Translations = {
       completed: 'completed'
     },
     deliveryLabels: {
-      local: 'This desktop',
-      telegram: 'Telegram',
-      discord: 'Discord',
-      slack: 'Slack',
-      email: 'Email'
+      local: 'This desktop'
     },
     scheduleLabels: {
       daily: 'Daily',
