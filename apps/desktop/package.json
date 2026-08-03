@@ -142,6 +142,7 @@
     "@typescript-eslint/eslint-plugin": "^8.59.1",
     "@typescript-eslint/parser": "^8.59.1",
     "@vitejs/plugin-react": "^6.0.1",
+    "concat-map": "^0.0.2",
     "concurrently": "^10.0.3",
     "cross-env": "^10.1.0",
     "electron": "40.10.2",
