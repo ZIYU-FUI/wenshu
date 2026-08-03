@@ -1503,6 +1503,17 @@ EOF
         git checkout --detach "$INSTALL_COMMIT"
     fi
 
+    # R58 commit-pin (WO-001BI-R58, 装机 user 8/30 拍 #2 修法 A):
+    # 装时记录当前 commit 到 .git/wenshu-pinned-commit, 供 wenshu update 在
+    # GitHub 拉不到时回退到这个 commit (而非 exit fail)。 只追加, 不删任何
+    # 已有 git fetch / checkout / reset --hard (Pitfall #68)。
+    if [ -d "$WENSHU_HOME/wenshu-agent/.git" ]; then
+        pinned_sha=$(git -C "$WENSHU_HOME/wenshu-agent" rev-parse HEAD 2>/dev/null || true)
+        if [ -n "$pinned_sha" ]; then
+            echo "$pinned_sha" > "$WENSHU_HOME/wenshu-agent/.git/wenshu-pinned-commit"
+        fi
+    fi
+
     log_success "Repository ready"
 }
 
