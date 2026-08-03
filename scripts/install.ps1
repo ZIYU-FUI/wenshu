@@ -2384,7 +2384,12 @@ function Copy-ConfigTemplates {
     if (-not (Test-Path $envPath)) {
         $examplePath = "$InstallDir\.env.example"
         if (Test-Path $examplePath) {
-            Copy-Item $examplePath $envPath
+            # TERMINAL_CWD is deprecated in .env. Users should configure the
+            # working directory with terminal.cwd in config.yaml instead.
+            $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+            $envLines = [System.IO.File]::ReadAllLines($examplePath) |
+                Where-Object { $_ -notmatch '^\s*#?\s*TERMINAL_CWD\s*=' }
+            [System.IO.File]::WriteAllLines($envPath, $envLines, $utf8NoBom)
             Write-Success "Created $envPath from template"
         } else {
             New-Item -ItemType File -Force -Path $envPath | Out-Null
