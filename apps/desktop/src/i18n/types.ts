@@ -1804,6 +1804,8 @@ export interface Translations {
 
   updates: {
     stages: Record<string, string>
+    message: string
+    stallHint: string
     checking: string
     checkFailedTitle: string
     tryAgain: string

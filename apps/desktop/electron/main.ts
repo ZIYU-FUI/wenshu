@@ -2191,6 +2191,23 @@ function emitUpdateProgress(payload) {
   const merged = { stage: 'idle', message: '', percent: null, error: null, ...payload, at: Date.now() }
   rememberLog(`[updates] ${merged.stage}: ${merged.message || merged.error || ''}`)
 
+  // R51: bilingual console output for the online update flow (zh-CN 友好提示 + en 原文, dev 排查用)
+  const zhMap: Record<string, string> = {
+    update: '正在更新文枢 Agent',
+    download: '下载最新版本',
+    rebuild: '正在重建桌面应用',
+    restart: '正在重启文枢',
+    install: '正在安装更新',
+    complete: '更新完成',
+    manual: '从终端更新',
+    error: '更新已暂停'
+  }
+  const stageLabel = String(merged.stage)
+  const zh = zhMap[stageLabel]
+  if (zh) {
+    console.log(`[updates] zh-CN: ${zh}（en: ${merged.message || stageLabel}）`)
+  }
+
   for (const window of BrowserWindow.getAllWindows()) {
     window.webContents.send('wenshu:updates:progress', merged)
   }
