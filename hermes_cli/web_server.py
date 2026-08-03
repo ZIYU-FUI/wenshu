@@ -318,8 +318,33 @@ app.add_middleware(
 # Keep the upstream list minimal — only truly non-sensitive, read-only
 # endpoints belong there.
 # ---------------------------------------------------------------------------
-# R74: dashboard_auth deleted (R69). Use empty public list since web UI is gone.
-_PUBLIC_API_PATHS: tuple[str, ...] = ()
+# R97: desktop `.app` IPC needs auth-free access to its core readiness +
+# update endpoints. The desktop Electron main process already mints and
+# injects ``WENSHU_DASHBOARD_SESSION_TOKEN`` at spawn, but the SPA's
+# renderer-side IPC bridge (`window.wenshuDesktop`) pings these five
+# endpoints before any token round-trip (e.g. `/api/status` is the
+# liveness probe that `adoptServedDashboardToken` reads the served token
+# from). Without this allowlist the first caller hits 401, the desktop
+# SPA flags "Desktop IPC bridge is unavailable", and the boot flow
+# dead-ends before the token-echoed `/api/*` calls can authenticate.
+#
+# Notes on the choices:
+#   * /api/status, /api/wenshu/update, /api/wenshu/update/check — used by
+#     the Electron main process + desktop SPA boot (read before any
+#     session token is in hand).
+#   * /api/health, /api/state — reserved names for future readiness /
+#     state surfaces; harmless to add now (non-existent routes 404, not
+#     401), keeps the desktop's probe list stable.
+#
+# R74: dashboard_auth deleted (R69). The web UI is gone, but the desktop
+# `.app` inherits the same loopback bind and needs the same probe list.
+_PUBLIC_API_PATHS: tuple[str, ...] = (
+    '/api/status',
+    '/api/health',
+    '/api/state',
+    '/api/wenshu/update',
+    '/api/wenshu/update/check',
+)
 
 
 def _has_valid_session_token(request: Request) -> bool:
@@ -333,6 +358,20 @@ def _has_valid_session_token(request: Request) -> bool:
     session_header = request.headers.get(_SESSION_HEADER_NAME, "")
     if session_header and hmac.compare_digest(
         session_header.encode(),
+        _SESSION_TOKEN.encode(),
+    ):
+        return True
+
+    # R97: desktop-origin token alias. The Electron main process mints the
+    # same ``_SESSION_TOKEN`` at spawn and injects it via
+    # ``WENSHU_DASHBOARD_SESSION_TOKEN``; the IPC bridge additionally forwards
+    # it as ``X-Wenshu-Desktop-Token`` so the renderer's first boot probe
+    # (before any ``X-Wenshu-Session-Token`` round-trip) is enough to authorise
+    # the rest of the SPA. Same secret, same compare_digest — just an alias
+    # that makes the desktop-origin intent explicit at the wire.
+    desktop_header = request.headers.get("X-Wenshu-Desktop-Token", "")
+    if desktop_header and hmac.compare_digest(
+        desktop_header.encode(),
         _SESSION_TOKEN.encode(),
     ):
         return True
