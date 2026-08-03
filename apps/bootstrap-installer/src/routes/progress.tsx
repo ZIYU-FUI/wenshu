@@ -50,11 +50,11 @@ export default function ProgressScreen({ bootstrap }: ProgressProps) {
   }, [bootstrap.status])
 
   const isUpdate = mode === 'update'
-  const title = bootstrap.status === 'completed' ? 'Done' : isUpdate ? 'Updating WENSHU' : 'Setting up WENSHU'
+  const title = bootstrap.status === 'completed' ? '完成' : isUpdate ? '正在更新 WENSHU' : '正在安装 WENSHU'
 
   const description = isUpdate
-    ? 'WENSHU is updating to the latest version — this only takes a moment.'
-    : 'This is a one-time setup. The WENSHU installer is downloading dependencies and configuring your machine. Subsequent launches will skip this step.'
+    ? 'WENSHU 正在更新到最新版本 — 稍等片刻。'
+    : '这是首次安装。WENSHU 安装程序正在下载依赖并配置您的机器。后续启动将跳过此步骤。'
 
   const pct = Math.round(progress.fraction * 100)
 
@@ -72,12 +72,12 @@ export default function ProgressScreen({ bootstrap }: ProgressProps) {
       <div className="flex flex-1 overflow-hidden">
         <div className="flex-1 overflow-y-auto px-6 pt-2 pb-4">
           {/* Progress line + bar; the count shimmers while the install runs.
-              pt-2 matches the log header's py-2 so the "steps complete" line and
-              the "Live output" header share a baseline. */}
+              pt-2 matches the log header's py-2 so the "已完成 X/Y 步" line and
+              the "实时输出" header share a baseline. */}
           <div className="mb-4">
             <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
               <span className={clsx(bootstrap.status === 'running' && 'shimmer')}>
-                {progress.done} of {progress.total} steps complete
+                共 {progress.total} 步,已完成 {progress.done} 步
               </span>
               <span className="tabular-nums">{pct}%</span>
             </div>
@@ -128,8 +128,8 @@ export default function ProgressScreen({ bootstrap }: ProgressProps) {
         {showLogs && (
           <div className="flex w-1/2 flex-col border-l border-(--stroke-nous)">
             <div className="flex shrink-0 items-center justify-between border-b border-(--stroke-nous) px-3 py-2 text-xs">
-              <span className="font-medium text-foreground/80">Live output</span>
-              <span className="tabular-nums text-muted-foreground">{bootstrap.logs.length} lines</span>
+              <span className="font-medium text-foreground/80">实时输出</span>
+              <span className="tabular-nums text-muted-foreground">{bootstrap.logs.length} 行</span>
             </div>
             <div className="flex-1 overflow-y-auto px-3 py-2 font-mono text-[10.5px] leading-relaxed">
               {bootstrap.logs.map((entry, idx) => (
@@ -156,13 +156,13 @@ export default function ProgressScreen({ bootstrap }: ProgressProps) {
           type="button"
         >
           <FileText size={14} />
-          {showLogs ? 'Hide details' : 'Show details'}
+          {showLogs ? '隐藏详情' : '显示详情'}
           <ChevronRight className={clsx('transition-transform', showLogs && 'rotate-90')} size={12} />
         </button>
 
         {bootstrap.status === 'running' && (
           <Button onClick={() => void cancelInstall()} size="sm" variant="outline">
-            Cancel
+            取消
           </Button>
         )}
       </div>
