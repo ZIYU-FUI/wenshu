@@ -376,7 +376,7 @@ async fn run_bootstrap(
     };
 
     // 1. Resolve install.ps1
-    let script = install_script::resolve(kind, &pin, &emit_log)
+    let script = install_script::resolve(kind, &pin, &app, &emit_log)
         .await
         .map_err(|e| {
             let msg = format!("resolve install script failed: {e:#}");

@@ -133,6 +133,7 @@ fn configure_package_index_environment(emit_log: &impl Fn(&str)) {
 pub async fn resolve(
     kind: ScriptKind,
     pin: &Pin,
+    app: &tauri::AppHandle,
     emit_log: &impl Fn(&str),
 ) -> Result<ResolvedScript> {
     configure_package_index_environment(emit_log);
@@ -155,7 +156,35 @@ pub async fn resolve(
         }
     }
 
-    // 2. (Not implemented) bundled fallback.
+    // 2. Bundled fallback (R57): scripts/install.{sh,ps1} is embedded as a
+    //    Tauri resource (see tauri.conf.json `bundle.resources`). When the
+    //    build bundled it, resolve via Tauri's resource path resolver — no
+    //    GitHub access, no cache read. The resource dir layout mirrors the
+    //    bundler's `resource_relpath` (ParentDir → `_up_`), so the same
+    //    relative-from-src-tauri path works at build and runtime.
+    //    Falls through to Network when the resource isn't present (dev build
+    //    with empty `bundle.resources`, or a build that explicitly didn't
+    //    ship the script).
+    {
+        use tauri::path::BaseDirectory;
+        use tauri::Manager;
+        let bundle_path = format!("../../../scripts/{}", kind.filename());
+        if let Ok(candidate) = app.path().resolve(&bundle_path, BaseDirectory::Resource) {
+            if candidate.exists() {
+                emit_log(&format!(
+                    "[bootstrap] using bundled {} at {}",
+                    kind.filename(),
+                    candidate.display()
+                ));
+                return Ok(ResolvedScript {
+                    path: candidate,
+                    source: ScriptSource::Bundled,
+                    commit: pin.commit.clone(),
+                    branch: pin.branch.clone(),
+                });
+            }
+        }
+    }
 
     // 3. Network. Pin must be a real commit or a branch ref.
     //
