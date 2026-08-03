@@ -68,7 +68,8 @@ REPO_URL_HTTPS="https://github.com/ZIYU-FUI/wenshu.git"
 # WO-001BI R81 (装机 user 8/30 拍板): 国内镜像. raw.githubusercontent.com 拉取
 # 可能 30s 超时, AtomGit (atomgit.com, GitLab CE 系) 国内 0.6s。Try GitHub first,
 # fallback AtomGit。AtomGit 仓 = ziyu-fui/wenshu (lowercase org; 装机 user 自建)。
-REPO_ATOM_RAW="https://atomgit.com/ziyu-fui/wenshu/raw/main"
+REPO_ATOM_RAW="https://gitcode.com/ZIYU1983/wenshu/raw/main"  # AtomGit 域名镜像 (同家公司 gitcode.com)
+REPO_GITCODE_RAW="https://gitcode.com/ZIYU1983/wenshu/raw/main"
 WENSHU_HOME="${WENSHU_HOME:-$HOME/.wenshu-hermes}"
 # WO-001BI R53: 共享 uv cache 跨 wenshu update 重装
 UV_CACHE_DIR_DEFAULT="$WENSHU_HOME/cache/uv"
@@ -305,8 +306,9 @@ download_with_atomgit_fallback() {
     local ref="${3:-main}"
     local gh_url="https://raw.githubusercontent.com/ZIYU-FUI/wenshu/${ref}/${rel_path}"
     local atom_url="${REPO_ATOM_RAW}/${rel_path}"
+    local gitcode_url="${REPO_GITCODE_RAW}/${rel_path}"
 
-    log_info "Fetching ${rel_path} (ref=${ref}) — try GitHub, fallback AtomGit"
+    log_info "Fetching ${rel_path} (ref=${ref}) — try GitHub, fallback AtomGit, fallback GitCode"
 
     if curl -fsSL --max-time 30 --retry 1 --retry-all-errors \
             "$gh_url" -o "$dest" 2>/dev/null; then
@@ -320,10 +322,18 @@ download_with_atomgit_fallback() {
         log_success "Downloaded from AtomGit mirror: $atom_url"
         return 0
     fi
+    log_warn "AtomGit mirror failed for $atom_url; falling back to GitCode mirror"
 
-    log_error "Both GitHub and AtomGit mirror fetches failed for ${rel_path}"
+    if curl -fsSL --max-time 30 --retry 1 --retry-all-errors \
+            "$gitcode_url" -o "$dest" 2>/dev/null; then
+        log_success "Downloaded from GitCode mirror: $gitcode_url"
+        return 0
+    fi
+
+    log_error "All 3 mirrors failed for ${rel_path}"
     log_error "  GitHub:   $gh_url"
     log_error "  AtomGit:  $atom_url"
+    log_error "  GitCode:  $gitcode_url"
     return 1
 }
 
@@ -623,7 +633,7 @@ detect_os() {
             log_error "Windows detected. Please use the PowerShell installer:"
             log_info "  iex (irm https://raw.githubusercontent.com/ZIYU-FUI/wenshu/main/scripts/install.ps1)"
             log_info "  # 如果 GitHub 拉不动, 换国内 AtomGit 镜像:"
-            log_info "  iex (irm https://atomgit.com/ziyu-fui/wenshu/raw/main/scripts/install.ps1)"
+            log_info "  iex (irm https://gitcode.com/ZIYU1983/wenshu/raw/main/scripts/install.ps1)"
             exit 1
             ;;
         *)

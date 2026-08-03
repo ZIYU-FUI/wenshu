@@ -94,8 +94,9 @@ pub(crate) fn cache_plan(immutable: bool, cached_exists: bool) -> CachePlan {
 }
 
 const INSTALL_SCRIPT_REPOSITORY: &str = "ZIYU-FUI/wenshu";
-const ATOMGIT_REPOSITORY: &str = "ziyu-fui/wenshu";
-const ATOMGIT_RAW_BASE: &str = "https://atomgit.com";
+// R81b: AtomGit 镜像实际指向 gitcode.com (AtomGit/GitCode 同家公司)
+const ATOMGIT_REPOSITORY: &str = "ZIYU1983/wenshu";
+const ATOMGIT_RAW_BASE: &str = "https://gitcode.com";
 
 /// Domestic package-index policy for installer child processes.
 ///
