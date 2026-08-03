@@ -1,0 +1,58 @@
+From b4ac4c55af9a000f7126305d86d5f0ad64bf6086 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?= <anbaiqiang@wenshu.local>
+Date: Mon, 3 Aug 2026 14:57:55 +0800
+Subject: [PATCH 165/168] =?UTF-8?q?fix(wenshu):=20R132=20-=20=E4=BF=AE=20W?=
+ =?UTF-8?q?enShu-Setup.app=20=E9=97=AA=E9=80=80=20(=E9=94=81=20macOS=20dep?=
+ =?UTF-8?q?loyment=20target=2014.0)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+装机 user 跑 WenShu-Setup.dmg 装出来的 文枢.app 启动崩:
+[wenshu-setup] setup entered: mode=Install, force_setup=false
+RBSRequestErrorDomain Code=5 'Launch failed.'
+NSPOSIXErrorDomain Code=111 'Launchd job spawn failed'
+
+真根因: WenShu-Setup binary link macOS 27 era framework (AppKit 2768 / CoreFoundation 5027 / WebKit 625), minimumSystemVersion='11.0' 没锁 shim path, macOS 27 beta launchd 拒 spawn。
+
+修法 (跟 novel-platform-pm-workflow GT-13 拍板真值一致):
+- Cargo.toml 加 [target.'cfg(target_os = "macos")] macos-deployment-target = '14.0'
+- tauri.conf.json minimumSystemVersion 11.0 → 14.0
+
+让 binary 走 macOS stability shim path (跟 Hermes upstream 同样), macOS 27 forwards-compat 装载 framework 而不是直接 dlopen OS cryptex。
+
+Scope: 仅 2 文件, 4 insertions。working tree 干净。
+
+Files: apps/bootstrap-installer/src-tauri/Cargo.toml, apps/bootstrap-installer/src-tauri/tauri.conf.json
+---
+ apps/bootstrap-installer/src-tauri/Cargo.toml      | 3 +++
+ apps/bootstrap-installer/src-tauri/tauri.conf.json | 2 +-
+ 2 files changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/apps/bootstrap-installer/src-tauri/Cargo.toml b/apps/bootstrap-installer/src-tauri/Cargo.toml
+index 79447b564..77b8e6910 100644
+--- a/apps/bootstrap-installer/src-tauri/Cargo.toml
++++ b/apps/bootstrap-installer/src-tauri/Cargo.toml
+@@ -76,3 +76,6 @@ codegen-units = 1
+ lto = true
+ opt-level = "s"
+ strip = true
++
++[target.'cfg(target_os = "macos")']
++macos-deployment-target = "14.0"
+diff --git a/apps/bootstrap-installer/src-tauri/tauri.conf.json b/apps/bootstrap-installer/src-tauri/tauri.conf.json
+index a1d44b445..3f638c2a1 100644
+--- a/apps/bootstrap-installer/src-tauri/tauri.conf.json
++++ b/apps/bootstrap-installer/src-tauri/tauri.conf.json
+@@ -61,7 +61,7 @@
+       }
+     },
+     "macOS": {
+-      "minimumSystemVersion": "11.0",
++      "minimumSystemVersion": "14.0",
+       "hardenedRuntime": true,
+       "bundleName": "文枢"
+     }
+-- 
+2.54.0 (Apple Git-157)
+

@@ -1,0 +1,176 @@
+From 5268f29393272e03c25486a270a32fc5f5e37997 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?= <anbaiqiang@wenshu.local>
+Date: Thu, 30 Jul 2026 10:54:34 +0800
+Subject: [PATCH 094/168] =?UTF-8?q?fix(wenshu):=20R51=20-=20online=20updat?=
+ =?UTF-8?q?e=20stage=20labels=20+=20bilingual=20log=20line=20=E4=B8=AD?=
+ =?UTF-8?q?=E6=96=87=E5=8C=96?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+WO-001BI-R51 装机 user 8/29 拍 '这个页面没有翻译, 需要全面翻译'
+→ 在线更新页 4 个 stage label + 实时输出 log line 中文化
+
+i18n (zh.ts / en.ts):
+- updates.stages.update: '正在更新 文枢…' → '正在更新文枢 Agent'
+- updates.stages.rebuild: '正在重新构建桌面应用…' → '正在重建桌面应用'
+- 新增 updates.stages.download / install / complete key
+- 新增顶层 updates.message / stallHint key
+- types.ts: 同步声明 message / stallHint string 字段
+
+electron/main.ts:
+- emitUpdateProgress 函数体加 zhMap (8 stage: update/download/rebuild/restart/
+  install/complete/manual/error)
+- console.log 双语输出 '[updates] zh-CN: 中文提示（en: 原始 message 或 stage）'
+- 不重构 i18n 架构, 仅在 emitUpdateProgress 调用处加 zh-CN fallback
+
+白名单保留 (hermes 字面量, welcome.tsx 致谢语, hermes-agent.nousresearch.com,
+上游仓 fork, node_modules, MIT 版权).
+
+PM-direct 自验 5 项 AC 全过:
+- AC1 zh.ts stage labels 全中文化 ✓
+- AC2 en.ts 镜像对称 ✓
+- AC3 main.ts zhMap + console.log ✓
+- AC4 typecheck 0 error + diff --stat 5 文件 ✓
+- AC5 wenshu-pour/architecture/R51-online-update-i18n-2026-08-30.md 落档 ✓
+
+Co-Authored-By: Claude (claude-opus-4-5) <noreply@anthropic.com>
+---
+ apps/desktop/electron/main.ts                 | 17 +++++++++++++
+ apps/desktop/src/i18n/en.ts                   |  9 +++++--
+ apps/desktop/src/i18n/types.ts                |  2 ++
+ apps/desktop/src/i18n/zh.ts                   |  9 +++++--
+ .../R51-online-update-i18n-2026-08-30.md      | 24 +++++++++++++++++++
+ 5 files changed, 57 insertions(+), 4 deletions(-)
+ create mode 100644 wenshu-pour/architecture/R51-online-update-i18n-2026-08-30.md
+
+diff --git a/apps/desktop/electron/main.ts b/apps/desktop/electron/main.ts
+index 068742bbc..e21be79af 100644
+--- a/apps/desktop/electron/main.ts
++++ b/apps/desktop/electron/main.ts
+@@ -2191,6 +2191,23 @@ function emitUpdateProgress(payload) {
+   const merged = { stage: 'idle', message: '', percent: null, error: null, ...payload, at: Date.now() }
+   rememberLog(`[updates] ${merged.stage}: ${merged.message || merged.error || ''}`)
+ 
++  // R51: bilingual console output for the online update flow (zh-CN 友好提示 + en 原文, dev 排查用)
++  const zhMap: Record<string, string> = {
++    update: '正在更新文枢 Agent',
++    download: '下载最新版本',
++    rebuild: '正在重建桌面应用',
++    restart: '正在重启文枢',
++    install: '正在安装更新',
++    complete: '更新完成',
++    manual: '从终端更新',
++    error: '更新已暂停'
++  }
++  const stageLabel = String(merged.stage)
++  const zh = zhMap[stageLabel]
++  if (zh) {
++    console.log(`[updates] zh-CN: ${zh}（en: ${merged.message || stageLabel}）`)
++  }
++
+   for (const window of BrowserWindow.getAllWindows()) {
+     window.webContents.send('wenshu:updates:progress', merged)
+   }
+diff --git a/apps/desktop/src/i18n/en.ts b/apps/desktop/src/i18n/en.ts
+index 9d7486a32..9d94c236e 100644
+--- a/apps/desktop/src/i18n/en.ts
++++ b/apps/desktop/src/i18n/en.ts
+@@ -1914,16 +1914,21 @@ export const en: Translations = {
+       idle: 'Getting ready…',
+       prepare: 'Getting ready…',
+       fetch: 'Downloading…',
++      download: 'Downloading the latest version',
+       pull: 'Almost there…',
+       pydeps: 'Finishing up…',
+-      update: 'Updating 文枢…',
+-      rebuild: 'Rebuilding the desktop app…',
++      update: 'Updating 文枢',
++      rebuild: 'Rebuilding the desktop app',
+       restart: 'Restarting 文枢…',
+       done: 'Update complete',
++      complete: 'Update complete',
++      install: 'Installing the update',
+       manual: 'Update from your terminal',
+       guiSkew: 'Update the desktop app',
+       error: 'Update paused'
+     },
++    message: '文枢 is updating to the latest version — please wait.',
++    stallHint: 'Compiling Rust/C extensions can take several minutes',
+     checking: 'Looking for updates…',
+     checkFailedTitle: 'Couldn’t check for updates',
+     tryAgain: 'Try again',
+diff --git a/apps/desktop/src/i18n/types.ts b/apps/desktop/src/i18n/types.ts
+index c2f67dd3a..6b5762e46 100644
+--- a/apps/desktop/src/i18n/types.ts
++++ b/apps/desktop/src/i18n/types.ts
+@@ -1582,6 +1582,8 @@ export interface Translations {
+ 
+   updates: {
+     stages: Record<string, string>
++    message: string
++    stallHint: string
+     checking: string
+     checkFailedTitle: string
+     tryAgain: string
+diff --git a/apps/desktop/src/i18n/zh.ts b/apps/desktop/src/i18n/zh.ts
+index 26f5ed692..e8eec5374 100644
+--- a/apps/desktop/src/i18n/zh.ts
++++ b/apps/desktop/src/i18n/zh.ts
+@@ -2093,16 +2093,21 @@ export const zh: Translations = {
+       idle: '准备中…',
+       prepare: '准备中…',
+       fetch: '下载中…',
++      download: '下载最新版本',
+       pull: '马上完成…',
+       pydeps: '收尾中…',
+-      update: '正在更新 文枢…',
+-      rebuild: '正在重新构建桌面应用…',
++      update: '正在更新文枢 Agent',
++      rebuild: '正在重建桌面应用',
+       restart: '正在重启 文枢…',
+       done: '更新完成',
++      complete: '更新完成',
++      install: '正在安装更新',
+       manual: '从终端更新',
+       guiSkew: '请更新桌面应用',
+       error: '更新已暂停'
+     },
++    message: '文枢 正在更新到最新版本 — 稍等片刻。',
++    stallHint: '编译 Rust/C 扩展可能需要几分钟',
+     checking: '正在检查更新…',
+     checkFailedTitle: '无法检查更新',
+     tryAgain: '重试',
+diff --git a/wenshu-pour/architecture/R51-online-update-i18n-2026-08-30.md b/wenshu-pour/architecture/R51-online-update-i18n-2026-08-30.md
+new file mode 100644
+index 000000000..991a78469
+--- /dev/null
++++ b/wenshu-pour/architecture/R51-online-update-i18n-2026-08-30.md
+@@ -0,0 +1,24 @@
++# R51 在线更新 i18n 与实时输出中文化
++
++- 工单：WO-001BI-R51
++- 落档日期：2026-08-30
++- 基线 HEAD（改动尚未 commit）：`25a747642b7bfbaf44d6aefcb177d70d5301197b`
++
++## 改动文件
++
++- `apps/desktop/src/i18n/zh.ts`：补齐在线更新阶段和用户提示的中文文案。
++- `apps/desktop/src/i18n/en.ts`：镜像新增 key，保留英文原文语义。
++- `apps/desktop/src/i18n/types.ts`：声明更新页顶层 `message` / `stallHint`。
++- `apps/desktop/electron/main.ts`：`emitUpdateProgress` 输出 zh-CN 阶段提示及 en 原文。
++
++## 新增 i18n key
++
++zh/en 的 `updates.stages` 均新增：`download`、`install`、`complete`；同时新增顶层：`updates.message`、`updates.stallHint`。
++
++阶段文案同步调整：`update`、`rebuild`。原有 `done` 保留。
++
++## Electron zhMap
++
++`update`、`download`、`rebuild`、`restart`、`install`、`complete`、`manual`、`error`。
++
++每个已映射阶段打印：`[updates] zh-CN: 中文提示（en: 原始 message 或 stage）`。
+-- 
+2.54.0 (Apple Git-157)
+

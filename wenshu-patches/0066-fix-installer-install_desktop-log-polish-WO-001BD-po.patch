@@ -1,0 +1,50 @@
+From 4897fd6acb8167694ff754945094b667cea0f267 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?=
+ <9528147+zi-yu1983@user.noreply.gitee.com>
+Date: Tue, 28 Jul 2026 10:49:05 +0800
+Subject: [PATCH 066/168] =?UTF-8?q?fix(installer):=20install=5Fdesktop()?=
+ =?UTF-8?q?=20=E6=97=A9=E6=9C=9F=E9=94=99=E8=AF=AF=E8=B7=AF=E5=BE=84=20log?=
+ =?UTF-8?q?=20=E4=B8=AD=E6=96=87=E7=BF=BB=E8=AF=91=20polish=20(WO-001BD=20?=
+ =?UTF-8?q?=E5=90=8E=E7=BD=AE=20polish)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+v14 BUG 修 (8b411f0e7) 已 push 37 处中文翻译,但 install_desktop() 函数最前面
+3 处 Node.js / npm unavailable + 跳过 desktop build 的 log 还是英文。
+
+本 commit 补这 3 处,跟 v14 BUG 修的'能用中文的地方用中文'策略一致:
+
+- 'Cannot build desktop app: Node.js / npm unavailable' → '无法构建桌面应用:未找到 Node.js / npm'
+- 'Install Node.js and retry: cd X && npm run pack' → '请先安装 Node.js,然后重试: cd X && npm run pack'
+- 'Skipping desktop build (apps/desktop not present in checkout)' → '跳过桌面构建 (检出目录中没有 apps/desktop)'
+
+派单:WO-001BD (装机 user 8/28 拍'把右边输出也都翻译一下')
+parent: 8b411f0e7 (v14 BUG 修 + 中文翻译主 commit, 已 push)
+---
+ scripts/install.sh | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/scripts/install.sh b/scripts/install.sh
+index fd39ad7bc..84182f55b 100755
+--- a/scripts/install.sh
++++ b/scripts/install.sh
+@@ -2971,12 +2971,12 @@ install_desktop() {
+     # "Build desktop app … exit code 1" failure (Vite crashes on old Node).
+     check_node
+     if ! command -v npm >/dev/null 2>&1; then
+-        log_error "Cannot build desktop app: Node.js / npm unavailable"
+-        log_info "Install Node.js and retry: cd $desktop_dir && npm run pack"
++        log_error "无法构建桌面应用:未找到 Node.js / npm"
++        log_info "请先安装 Node.js,然后重试: cd $desktop_dir && npm run pack"
+         return 1
+     fi
+     if [ ! -f "$desktop_dir/package.json" ]; then
+-        log_warn "Skipping desktop build (apps/desktop not present in checkout)"
++        log_warn "跳过桌面构建 (检出目录中没有 apps/desktop)"
+         return 0
+     fi
+ 
+-- 
+2.54.0 (Apple Git-157)
+

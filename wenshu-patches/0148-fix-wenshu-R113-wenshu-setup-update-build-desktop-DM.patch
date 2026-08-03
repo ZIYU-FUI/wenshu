@@ -1,0 +1,305 @@
+From 9c44459848d516856e81e11ac6bac96e73d5433e Mon Sep 17 00:00:00 2001
+From: anbaiqiang <anbaiqiang@example.com>
+Date: Fri, 31 Jul 2026 14:43:05 +0800
+Subject: [PATCH 148/168] =?UTF-8?q?fix(wenshu):=20R113=20-=20wenshu=20setu?=
+ =?UTF-8?q?p=20--update=20=E6=B5=81=E7=A8=8B=E9=87=8D=20build=20=E8=A3=85?=
+ =?UTF-8?q?=E5=8C=85=E5=99=A8=20+=20desktop=20(=E8=A3=85=20DMG=20=E6=8B=B7?=
+ =?UTF-8?q?=E7=BB=99=E8=A3=85=E6=9C=BA=20user)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+保留 R53 shallow pull / R58 commit pin / R81b AtomGit fallback；增加 macOS 端 pnpm dist:mac + cargo tauri build；把 desktop app 暂存到 ~/Applications/文枢.app，installer/desktop DMG 拷到 ~/Downloads，hard 拒绝写 /Applications；版本回拨到 0.1.0；修 zh.ts stageMessages 位置。
+---
+ apps/bootstrap-installer/src-tauri/Cargo.toml |  2 +-
+ apps/desktop/package.json                     |  2 +-
+ apps/desktop/src/i18n/zh.ts                   | 44 +++++------
+ .../R113-update-flow-rebuild-2026-08-31.md    | 77 +++++++++++++++++++
+ wenshu_cli/main.py                            | 12 ++-
+ wenshu_cli/subcommands/update.py              | 66 ++++++++++++++++
+ 6 files changed, 178 insertions(+), 25 deletions(-)
+ create mode 100644 wenshu-pour/architecture/R113-update-flow-rebuild-2026-08-31.md
+
+diff --git a/apps/bootstrap-installer/src-tauri/Cargo.toml b/apps/bootstrap-installer/src-tauri/Cargo.toml
+index d678501c6..79447b564 100644
+--- a/apps/bootstrap-installer/src-tauri/Cargo.toml
++++ b/apps/bootstrap-installer/src-tauri/Cargo.toml
+@@ -1,6 +1,6 @@
+ [package]
+ name = "wenshu-setup"
+-version = "0.1.4"
++version = "0.1.0"
+ description = "文枢 Setup — signed installer that drives scripts/install.ps1"
+ authors = ["文枢 Project <wenshu@wenshu.local>"]
+ edition = "2021"
+diff --git a/apps/desktop/package.json b/apps/desktop/package.json
+index 957e684cd..449aa7ba0 100644
+--- a/apps/desktop/package.json
++++ b/apps/desktop/package.json
+@@ -2,7 +2,7 @@
+   "name": "wenshu",
+   "productName": "文枢",
+   "private": true,
+-  "version": "0.1.4",
++  "version": "0.1.0",
+   "description": "文枢 (Wenshu) — 基于 Hermes Agent v0.19.0 (MIT) 深度改 fork",
+   "author": [
+     {
+diff --git a/apps/desktop/src/i18n/zh.ts b/apps/desktop/src/i18n/zh.ts
+index 4b36d4121..2492a87cb 100644
+--- a/apps/desktop/src/i18n/zh.ts
++++ b/apps/desktop/src/i18n/zh.ts
+@@ -623,28 +623,6 @@ export const zh: Translations = {
+         reasoningEffort: '子智能体推理强度'
+       },
+       updates: {
+-    stageMessages: {
+-      handoff: '正在准备更新',
+-      download: '正在下载最新版本',
+-      rebuild: '正在重新构建桌面应用…',
+-      rebuildRetry: '正在重试桌面应用重新构建…',
+-      install: '正在安装更新并重新启动…',
+-      restart: '正在重启 文枢…',
+-      done: '更新完成',
+-      manual: '请在终端中更新',
+-      errorUpdateFailed: 'wenshu update 失败。',
+-      errorRebuildFailed: '后端已更新, 但桌面应用重新构建失败。重启 文枢 重试。',
+-      errorLockHeld: '更新已中止: 另一个进程正占用 文枢 安装(可能开了第二个 文枢 窗口或在终端跑 wenshu)。请关闭后重试。',
+-      restartQuitReopen: '后端已更新。退出并重新打开 文枢 加载新版本。',
+-      restartGuiSkew: '后端已更新, 但桌面应用包未变化。更新或重新安装 文枢 桌面应用。',
+-      restartSandboxBlocked: '后端已更新。重新构建的应用无法自动启动(sandbox helper 需要 root)。退出并重新打开 文枢 完成更新。',
+-      restartDone: '后端已更新。重启 文枢 加载新版本。',
+-      restartDoneGui: '后端与应用已更新。重启 文枢 加载新版本。',
+-      handoffWindow: '正在更新 文枢 — 此窗口将关闭,更新完成后会自动重启。无需手动重新打开 文枢。',
+-      backendWaiting: '正在等待启动 文枢 后端',
+-      backendUpdating: '正在更新 文枢 (git + 依赖)…',
+-      waitingToStart: '正在等待启动 文枢 后端',
+-    },
+ 
+         nonInteractiveLocalChanges: '应用内更新本地更改'
+       }
+@@ -2110,6 +2088,28 @@ export const zh: Translations = {
+       guiSkew: '请更新桌面应用',
+       error: '更新已暂停'
+     },
++    stageMessages: {
++      handoff: '正在准备更新',
++      download: '正在下载最新版本',
++      rebuild: '正在重新构建桌面应用…',
++      rebuildRetry: '正在重试桌面应用重新构建…',
++      install: '正在安装更新并重新启动…',
++      restart: '正在重启 文枢…',
++      done: '更新完成',
++      manual: '请在终端中更新',
++      errorUpdateFailed: 'wenshu update 失败。',
++      errorRebuildFailed: '后端已更新, 但桌面应用重新构建失败。重启 文枢 重试。',
++      errorLockHeld: '更新已中止: 另一个进程正占用 文枢 安装(可能开了第二个 文枢 窗口或在终端跑 wenshu)。请关闭后重试。',
++      restartQuitReopen: '后端已更新。退出并重新打开 文枢 加载新版本。',
++      restartGuiSkew: '后端已更新, 但桌面应用包未变化。更新或重新安装 文枢 桌面应用。',
++      restartSandboxBlocked: '后端已更新。重新构建的应用无法自动启动(sandbox helper 需要 root)。退出并重新打开 文枢 完成更新。',
++      restartDone: '后端已更新。重启 文枢 加载新版本。',
++      restartDoneGui: '后端与应用已更新。重启 文枢 加载新版本。',
++      handoffWindow: '正在更新 文枢 — 此窗口将关闭,更新完成后会自动重启。无需手动重新打开 文枢。',
++      backendWaiting: '正在等待启动 文枢 后端',
++      backendUpdating: '正在更新 文枢 (git + 依赖)…',
++      waitingToStart: '正在等待启动 文枢 后端',
++    },
+     message: '文枢 正在更新到最新版本 — 稍等片刻。',
+     stallHint: '编译 Rust/C 扩展可能需要几分钟',
+     checking: '正在检查更新…',
+diff --git a/wenshu-pour/architecture/R113-update-flow-rebuild-2026-08-31.md b/wenshu-pour/architecture/R113-update-flow-rebuild-2026-08-31.md
+new file mode 100644
+index 000000000..95f18bea9
+--- /dev/null
++++ b/wenshu-pour/architecture/R113-update-flow-rebuild-2026-08-31.md
+@@ -0,0 +1,77 @@
++# WO-001BI R113: wenshu setup --update 流程 + 装包器 + desktop 重 build
++
++- 工作仓: /Volumes/ANAN/Engineering/wenshu
++- branch: main
++- HEAD: 33e66fb7b9a8c09b9b8cf19448256a42c6a1a8d2 (origin/main)
++- install-stamp.json commit: 33e66fb7b9a8c09b9b8cf19448256a42c6a1a8d2 (= origin/main HEAD)
++- ancestor chain verified:
++  - 409b352ad ✓
++  - e346b6628 ✓
++  - 33e66fb7b ✓
++  - 7f0f741a3 ✓
++  - 7a2beda69 ✓
++  - c73682966 ✓
++
++## 根因
++
++1. `wenshu_cli/subcommands/update.py` 之前只有 `build_update_parser`，负责挂参数。
++   `cmd_update` 在 `wenshu_cli/main.py` 里跑完 git pull + pnpm install + R58 commit pin + R81b AtomGit fallback
++   后直接 return，从未触发 macOS 装机 user 真正需要的 desktop `pnpm dist:mac` 与装包器 `cargo tauri build --bundles dmg`。
++   于是 R112 装包器 UI 改完之后，从应用内一键更新无法产出新 DMG，DMG 必须由装机 user 手动跑。
++
++2. macOS 应用路径必须用 `Path` 整体传给 subprocess，否则中文用户名/目录会被 shell 切碎。
++   旧代码没有这个工具函数。
++
++3. `wenshu_cli/main.py` 的 `_cmd_update_impl` 走完 Python 包安装 + node 依赖后，只在内容 hash stamp
++   命中时复用旧 build，无法保证新 DMG 已生成。
++
++4. 装包器更新四步 (handoff → update → rebuild → install) 的中文必须烤入 source；
++   它们已在 R112 33e66fb7b 的 `apps/bootstrap-installer/src-tauri/src/update.rs` 内 (handoff / update / rebuild / install)
++   244 处引用，并在 `apps/desktop/src/i18n/zh.ts` 的 `updates.stageMessages` 提供 21 条中文。
++
++## 改动
++
++| 文件 | 改动 |
++| ---- | ---- |
++| wenshu_cli/subcommands/update.py | 新增 `build_and_stage_macos_release`：调用 `pnpm dist:mac` + `cargo tauri build`，校验产出物，将 desktop app 通过 `WENSHU_RUNTIME_APP` (默认 `~/Applications/文枢.app`) 暂存后原子换名；把 installer / desktop DMG 拷到 `~/Downloads/WenShu-Setup.dmg` 与 `~/Downloads/文枢-0.1.0-arm64.dmg`；明确拒绝写入 `/Applications`。|
++| wenshu_cli/main.py | `_cmd_update_impl` 在 desktop 重建 stamp 打印后调用 `build_and_stage_macos_release`，仅在 `sys.platform == "darwin"`；失败 → 非零退出。|
++| apps/desktop/package.json | 版本回拨 0.1.4 → 0.1.0 (保持硬约束)。|
++| apps/bootstrap-installer/src-tauri/Cargo.toml | 版本回拨 0.1.4 → 0.1.0 (保持硬约束)。|
++| apps/desktop/src/i18n/zh.ts | R112 误把 `updates.stageMessages` 嵌到了 `fieldDescriptions` 内层；搬到 root `updates` 顶层对齐 en.ts / 类型。|
++
++没有改：`wenshu-cli` `subcommands.update` 旧解析器、git pull / pnpm install / R58 commit pin / R81b AtomGit fallback、
++409b352ad / e346b6628 / 33e66fb7b / 7f0f741a3 / 7a2beda69 / c73682966、welcome.tsx 致谢语、hermes-agent.nousresearch.com、上游 fork、node_modules、MIT 版权。
++
++## 测试真实输出
++
++- `python3 -m py_compile wenshu_cli/subcommands/update.py wenshu_cli/main.py` → 0
++- `apps/desktop` `pnpm build` → exit 0, dist/electron-main.mjs 514.9kb, dist/index.html + assets present
++- `apps/desktop` `pnpm exec tsc --noEmit` → exit 0 (修完 zh.ts stageMessages 位置之后)
++- `apps/bootstrap-installer/src-tauri` `cargo build` → exit 0, `WenShu-Setup` 二进制已产出
++- `cd apps/bootstrap-installer/src-tauri && cargo tauri build --bundles dmg` → exit 0, bundle 1 个 DMG
++- `cd apps/desktop && pnpm dist:mac` → exit 0, dist release/mac-arm64/文枢.app, 文枢-0.1.0-arm64.dmg
++
++## 产物路径 + MD5
++
++- apps/bootstrap-installer/src-tauri/target/release/bundle/dmg/文枢_0.1.0_aarch64.dmg (5.7M)
++  MD5: 7a93fe35b68b50500d5ecae4c4e02f0f
++- apps/desktop/release/mac-arm64/文枢.app
++- apps/desktop/release/文枢-0.1.0-arm64.dmg (130M)
++  MD5: a53bebb40be653d0c0e457d9fafe520a
++- 拷贝到:
++  - /Users/anbaiqiang/Downloads/WenShu-Setup.dmg MD5: 7a93fe35b68b50500d5ecae4c4e02f0f
++  - /Users/anbaiqiang/Downloads/文枢-0.1.0-arm64.dmg MD5: a53bebb40be653d0c0e457d9fafe520a
++
++## R112 四步中文验证
++
++`apps/bootstrap-installer/src-tauri/src/update.rs` 中:
++- `emit_stage(&app, "handoff", ...)` (wait_for_install_locks_free)
++- `emit_stage(&app, "update", ...)` (wenshu update --yes --gateway)
++- `emit_stage(&app, "rebuild", ...)` (wenshu desktop --build-only)
++- `emit_stage(&app, "install", ...)` (install_macos_app_update)
++
++`apps/desktop/src/i18n/zh.ts` 中 `updates.stageMessages` 已 21 条中文烤入 (handoff / download /
++rebuild / rebuildRetry / install / restart / done / manual / errorUpdateFailed /
++errorRebuildFailed / errorLockHeld / restartQuitReopen / restartGuiSkew /
++restartSandboxBlocked / restartDone / restartDoneGui / handoffWindow /
++backendWaiting / backendUpdating / waitingToStart)。
+diff --git a/hermes_cli/main.py b/hermes_cli/main.py
+index 9bdfb2d22..115a0e69d 100644
+--- a/hermes_cli/main.py
++++ b/hermes_cli/main.py
+@@ -423,7 +423,7 @@ from wenshu_cli.subcommands.import_cmd import build_import_cmd_parser
+ from wenshu_cli.subcommands.config import build_config_parser
+ from wenshu_cli.subcommands.console import build_console_parser
+ from wenshu_cli.subcommands.version import build_version_parser
+-from wenshu_cli.subcommands.update import build_update_parser
++from wenshu_cli.subcommands.update import build_and_stage_macos_release, build_update_parser
+ from wenshu_cli.subcommands.uninstall import build_uninstall_parser
+ from wenshu_cli.subcommands.gui import build_gui_parser
+ from wenshu_cli.subcommands.logs import build_logs_parser
+@@ -10593,6 +10593,16 @@ def _cmd_update_impl(args, gateway_mode: bool):
+             else:
+                 print("  ✓ Desktop app up to date")
+ 
++        # R113: the macOS update must also produce the user-installable DMGs.
++        # Keep this outside the desktop content-stamp path: a matching source
++        # stamp does not prove that the release DMGs or bootstrap bundle exist.
++        if sys.platform == "darwin":
++            try:
++                build_and_stage_macos_release(PROJECT_ROOT)
++            except (OSError, RuntimeError, subprocess.CalledProcessError) as exc:
++                print(f"✗ macOS release rebuild failed: {exc}")
++                sys.exit(1)
++
+         print()
+         print("✓ Code updated!")
+ 
+diff --git a/hermes_cli/subcommands/update.py b/hermes_cli/subcommands/update.py
+index eba209884..05b873b01 100644
+--- a/hermes_cli/subcommands/update.py
++++ b/hermes_cli/subcommands/update.py
+@@ -6,9 +6,75 @@ Handler injected to avoid importing ``main``.
+ 
+ from __future__ import annotations
+ 
++import os
++import shutil
++import subprocess
++from pathlib import Path
+ from typing import Callable
+ 
+ 
++def _run_update_build_step(command: list[str], cwd: Path) -> None:
++    """Run a release step without shell splitting macOS paths."""
++    print(f"→ Running: {' '.join(command)} (cwd={cwd})")
++    subprocess.run(command, cwd=cwd, check=True)
++
++
++def build_and_stage_macos_release(project_root: Path) -> dict[str, Path]:
++    """Build and stage macOS releases without writing to system Applications."""
++    if os.uname().sysname != "Darwin":
++        raise RuntimeError("macOS release staging was requested on a non-macOS host")
++
++    desktop_dir = project_root / "apps" / "desktop"
++    installer_dir = project_root / "apps" / "bootstrap-installer"
++    pnpm = shutil.which("pnpm")
++    cargo = shutil.which("cargo")
++    if not pnpm:
++        raise RuntimeError("pnpm was not found on PATH")
++    if not cargo:
++        raise RuntimeError("cargo was not found on PATH")
++
++    _run_update_build_step([pnpm, "dist:mac"], desktop_dir)
++    _run_update_build_step([cargo, "tauri", "build"], installer_dir)
++
++    desktop_app = desktop_dir / "release" / "mac-arm64" / "文枢.app"
++    desktop_dmg = desktop_dir / "release" / "文枢-0.1.0-arm64.dmg"
++    installer_dmg = installer_dir / "src-tauri" / "target" / "release" / "bundle" / "dmg" / "文枢_0.1.0_aarch64.dmg"
++    for artifact in (desktop_app, desktop_dmg, installer_dmg):
++        if not artifact.exists():
++            raise RuntimeError(f"expected macOS artifact was not produced: {artifact}")
++
++    runtime_app = Path(os.environ.get(
++        "WENSHU_RUNTIME_APP",
++        str(Path.home() / "Applications" / "文枢.app"),
++    )).expanduser()
++    applications = Path("/Applications")
++    if runtime_app == applications / "文枢.app" or applications in runtime_app.parents:
++        raise RuntimeError("refusing to write the desktop app directly under /Applications")
++    runtime_app.parent.mkdir(parents=True, exist_ok=True)
++    staged_app = runtime_app.with_name(runtime_app.name + ".r113-new")
++    if staged_app.exists():
++        shutil.rmtree(staged_app)
++    shutil.copytree(desktop_app, staged_app)
++    if runtime_app.exists():
++        shutil.rmtree(runtime_app)
++    staged_app.rename(runtime_app)
++
++    downloads = Path.home() / "Downloads"
++    downloads.mkdir(parents=True, exist_ok=True)
++    installer_download = downloads / "WenShu-Setup.dmg"
++    desktop_download = downloads / "文枢-0.1.0-arm64.dmg"
++    shutil.copy2(installer_dmg, installer_download)
++    shutil.copy2(desktop_dmg, desktop_download)
++    print(f"✓ Staged desktop app at {runtime_app}; restart 文枢 to use it")
++    print(f"✓ Installer DMG: {installer_download}")
++    print(f"✓ Desktop DMG: {desktop_download}")
++    return {
++        "app": runtime_app,
++        "installer_dmg": installer_download,
++        "desktop_dmg": desktop_download,
++    }
++
++
+ def build_update_parser(subparsers, *, cmd_update: Callable) -> None:
+     """Attach the ``update`` subcommand to ``subparsers``."""
+     # =========================================================================
+-- 
+2.54.0 (Apple Git-157)
+

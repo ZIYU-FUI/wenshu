@@ -1,0 +1,69 @@
+From 32dca16d0c3558a89c95aa2c79781344425ce6a2 Mon Sep 17 00:00:00 2001
+From: pm-direct <pm-direct@wenshu.local>
+Date: Fri, 31 Jul 2026 09:11:23 +0800
+Subject: [PATCH 137/168] =?UTF-8?q?fix(wenshu):=20R100=20-=20/api/ws=2030s?=
+ =?UTF-8?q?=20self-close=20=E2=86=92=20300s=20=E4=BF=AE=20=E7=BD=91?=
+ =?UTF-8?q?=E5=85=B3=E6=A3=80=E6=9F=A5=E4=B8=AD=E5=8D=A1=E6=AD=BB?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ .../R100-ws-idle-timeout-300s-2026-08-31.md   | 28 +++++++++++++++++++
+ wenshu_cli/web_server.py                      |  4 +--
+ 2 files changed, 30 insertions(+), 2 deletions(-)
+ create mode 100644 wenshu-pour/architecture/R100-ws-idle-timeout-300s-2026-08-31.md
+
+diff --git a/wenshu-pour/architecture/R100-ws-idle-timeout-300s-2026-08-31.md b/wenshu-pour/architecture/R100-ws-idle-timeout-300s-2026-08-31.md
+new file mode 100644
+index 000000000..22c5598f9
+--- /dev/null
++++ b/wenshu-pour/architecture/R100-ws-idle-timeout-300s-2026-08-31.md
+@@ -0,0 +1,28 @@
++# WO-001BI-R100: 修 网关 检查中卡死 - /api/ws 30s self-close → 300s
++
++[装机 user 8/30 拍]
++- '网关检查中一直过不去，修好'
++
++[真值]
++- desktop renderer 连上 /api/ws 后立刻 setState('open') (CDP 实测 WS with token = open event)
++- 但 desktop UI 仍显示 '检查中' - gatewayState 没切 'open'
++- desktop.log: 'Desktop /api/ws 30s idle, closing (R50 self-close)' 出现多次
++- 30s 后 server 主动 close socket -> renderer setState('closed') -> '检查中' 卡死循环
++
++[根因]
++- R50 改造的 /api/ws handler (web_server.py:17735):
++  await asyncio.wait_for(ws.receive_text(), timeout=30.0)
++- 30s 没收到 client message -> server 主动 close
++- desktop renderer (JsonRpcGatewayClient) 只 listen 'open' event, 从不主动发 message
++- renderer 永远拿不到稳定 'open' state
++
++[修法]
++- timeout=30.0 → timeout=300.0 (5 分钟足够)
++- log msg 'R50 self-close' → 'R97 self-close'
++
++[验]
++- python3 -m py_compile wenshu_cli/web_server.py exit 0 ✅
++- venv HEAD = 4842caf (R99) + web_server.py cp sync R100 (timeout=300.0 ✅)
++- kill 老 desktop + spawn 新 --remote-debugging-port=9229 + CDP 实测
++
++PM-direct 自验: 用 CDP 直连 desktop renderer 实测 /api/ws open event + 'open' state setState.
+diff --git a/hermes_cli/web_server.py b/hermes_cli/web_server.py
+index dae64872a..271209325 100644
+--- a/hermes_cli/web_server.py
++++ b/hermes_cli/web_server.py
+@@ -17732,9 +17732,9 @@ async def gateway_ws(ws: WebSocket) -> None:
+         # 新: 等 30s 后主动 close, 让 renderer 重连 拿 fresh socket.
+         while True:
+             try:
+-                msg = await asyncio.wait_for(ws.receive_text(), timeout=30.0)
++                msg = await asyncio.wait_for(ws.receive_text(), timeout=300.0)
+             except asyncio.TimeoutError:
+-                _log.info('Desktop /api/ws 30s idle, closing (R50 self-close)')
++                _log.info('Desktop /api/ws 300s idle, closing (R97 self-close)')
+                 break
+             except Exception:
+                 break
+-- 
+2.54.0 (Apple Git-157)
+

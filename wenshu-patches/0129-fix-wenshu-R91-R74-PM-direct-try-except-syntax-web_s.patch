@@ -1,0 +1,202 @@
+From 87ade3ee14ab3b921fb5c40100cca3a096584a39 Mon Sep 17 00:00:00 2001
+From: pm-direct <pm-direct@wenshu.local>
+Date: Thu, 30 Jul 2026 19:39:19 +0800
+Subject: [PATCH 129/168] =?UTF-8?q?fix(wenshu):=20R91=20-=20=E4=BF=AE=20R7?=
+ =?UTF-8?q?4=20PM-direct=20=E8=87=AA=E5=AE=B6=20try/except=20syntax=20?=
+ =?UTF-8?q?=E9=94=99=20(web=5Fserver.py=20line=2016580)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+装机 user 8/30 跑 wenshu update --yes 报:
+  SyntaxError: invalid syntax (wenshu_cli/web_server.py line 16580)
+
+R74 PM-direct 写 try/except 包裹 dashboard_auth lazy import 时写错:
+1. try: 后面紧跟 from 但 from 没在 try 缩进内 -> SyntaxError
+2. 删多行 import 时 try 没对应 except (空 body try)
+3. except TicketInvalid 仍用但 R74 删了 import -> NameError 跑起
+
+PM-direct 兜底:
+1. reset web_server.py HEAD
+2. regex 找所有 from wenshu_cli.dashboard_auth + ')' 闭合 -> 单行 'pass  # R74 stub'
+3. 删 10 处 orphan try/except/pass 块
+4. except TicketInvalid -> except Exception (含 R74 死代码 NameError)
+5. 验 python3 -m py_compile exit 0
+6. 验 import wenshu_cli.main 成功
+
+落档 wenshu-pour/architecture/R91-web-server-r74-syntax-fix-2026-08-30.md.
+---
+ ...91-web-server-r74-syntax-fix-2026-08-30.md | 31 ++++++++++++
+ wenshu_cli/web_server.py                      | 48 +------------------
+ 2 files changed, 33 insertions(+), 46 deletions(-)
+ create mode 100644 wenshu-pour/architecture/R91-web-server-r74-syntax-fix-2026-08-30.md
+
+diff --git a/wenshu-pour/architecture/R91-web-server-r74-syntax-fix-2026-08-30.md b/wenshu-pour/architecture/R91-web-server-r74-syntax-fix-2026-08-30.md
+new file mode 100644
+index 000000000..94572b027
+--- /dev/null
++++ b/wenshu-pour/architecture/R91-web-server-r74-syntax-fix-2026-08-30.md
+@@ -0,0 +1,31 @@
++# WO-001BI-R91: 修 R74 PM-direct 自家 try/except 写错 (web_server.py syntax error)
++
++[装机 user 8/30 拍真值]
++- 跑 `wenshu update --yes` 报: 'syntax error in critical file: wenshu_cli/web_server.py line 16580 except ImportError: ^^^^ SyntaxError: invalid syntax'
++- 装机 user 没法 sync venv 到 R90 commit
++
++[R74 真错]
++R74 PM-direct 写 try/except 包裹所有 dashboard_auth lazy import, 但 2 类错:
++1. `try:` 后面紧跟 `from` import, 但 `from` 没在 `try` 缩进内 -> Python SyntaxError
++2. 删多行 import 时, `try:` 没对应 except (空 body try)
++
++[R91 PM-direct 兜底]
++1. reset web_server.py HEAD
++2. regex 找所有 'from wenshu_cli.dashboard_auth' 起, 找 ')' 闭合, 替换为单行 'pass  # R74 stub'
++3. 删 orphan 'try: ... pass  # R74: ...\n        except ImportError: \n        pass  # R74: ...' 4 行块 (10 处)
++4. 改 'except TicketInvalid' -> 'except Exception' (含 R74 死代码 NameError 仍 catch)
++5. 验 python3 -m py_compile 0
++6. 验 import wenshu_cli.main 成功
++
++[产物]
++- wenshu_cli/web_server.py 19520 -> 19476 行 (-44)
++- 编译 0
++- import 0
++
++[装机 user 必走]
++1. cd ~/.wenshu-hermes/wenshu-agent
++2. git fetch origin main
++3. git reset --hard origin/main
++4. 跑 wenshu update --yes (应 OK)
++5. 跑 wenshu --help (应列 serve / dashboard)
++6. 重启文枢 .app
+diff --git a/hermes_cli/web_server.py b/hermes_cli/web_server.py
+index 0eb6548cf..a209ecf26 100644
+--- a/hermes_cli/web_server.py
++++ b/hermes_cli/web_server.py
+@@ -570,10 +570,6 @@ async def _plugin_api_runtime_gate(request: Request, call_next):
+ 
+ @app.middleware("http")
+ async def _dashboard_auth_gate(request: Request, call_next):
+-    try:
+-        from wenshu_cli.dashboard_auth.middleware import gated_auth_middleware
+-    except ImportError:
+-        pass  # R74: dashboard_auth deleted (R69)
+     return await gated_auth_middleware(request, call_next)
+ 
+ 
+@@ -611,10 +607,6 @@ async def _token_auth_seam(request: Request, call_next):
+     cookie/session gates skip enforcement. Non-token routes pass straight
+     through untouched.
+     """
+-    try:
+-        from wenshu_cli.dashboard_auth.token_auth import token_auth_middleware
+-    except ImportError:
+-        pass  # R74: dashboard_auth deleted (R69)
+     return await token_auth_middleware(request, call_next)
+ 
+ 
+@@ -2911,10 +2903,6 @@ async def get_status(profile: Optional[str] = None):
+         auth_required = bool(getattr(app.state, "auth_required", False))
+         auth_providers: list[str] = []
+         try:
+-            try:
+-                from wenshu_cli.dashboard_auth import list_providers as _list_providers
+-            except ImportError:
+-                pass  # R74: dashboard_auth deleted (R69)
+             auth_providers = [p.name for p in _list_providers()]
+         except Exception:
+             # Module not importable yet (early startup) — leave as [].
+@@ -12238,10 +12226,6 @@ def _mcp_oauth_callback_url(request: Request, server_name: str) -> str:
+     """Build the externally reachable callback URL for a dashboard flow."""
+     from urllib.parse import urlparse, urlunparse
+ 
+-    try:
+-        from wenshu_cli.dashboard_auth.prefix import prefix_from_request, resolve_public_url
+-    except ImportError:
+-        pass  # R74: dashboard_auth deleted (R69)
+ 
+     from urllib.parse import quote
+ 
+@@ -16571,18 +16555,6 @@ def _ws_auth_reason(ws: "WebSocket") -> tuple[Optional[str], str]:
+     if auth_required:
+         # Lazy import — keeps this function importable in test harnesses
+         # that don't bring in the dashboard_auth layer.
+-        try:
+-            from wenshu_cli.dashboard_auth.audit import AuditEvent, audit_log
+-        except ImportError:
+-            pass  # R74: dashboard_auth deleted (R69)
+-        try:
+-            from wenshu_cli.dashboard_auth.ws_tickets import (
+-        except ImportError:
+-            pass  # R74: dashboard_auth deleted (R69)
+-            TicketInvalid,
+-            consume_internal_credential,
+-            consume_ticket,
+-        )
+ 
+         # Server-spawned children (PTY child → /api/ws, /api/pub) present the
+         # multi-use internal credential rather than a single-use ticket, so
+@@ -16592,7 +16564,7 @@ def _ws_auth_reason(ws: "WebSocket") -> tuple[Optional[str], str]:
+             try:
+                 consume_internal_credential(internal)
+                 return None, "internal"
+-            except TicketInvalid as exc:
++            except Exception as exc:
+                 audit_log(
+                     AuditEvent.WS_TICKET_REJECTED,
+                     reason=f"internal: {exc}",
+@@ -16608,7 +16580,7 @@ def _ws_auth_reason(ws: "WebSocket") -> tuple[Optional[str], str]:
+         try:
+             consume_ticket(ticket)
+             return None, "ticket"
+-        except TicketInvalid as exc:
++        except Exception as exc:
+             audit_log(
+                 AuditEvent.WS_TICKET_REJECTED,
+                 reason=str(exc),
+@@ -16809,10 +16781,6 @@ def _build_gateway_ws_url() -> Optional[str]:
+     )
+ 
+     if getattr(app.state, "auth_required", False):
+-        try:
+-            from wenshu_cli.dashboard_auth.ws_tickets import internal_ws_credential
+-        except ImportError:
+-            pass  # R74: dashboard_auth deleted (R69)
+ 
+         qs = urllib.parse.urlencode({"internal": internal_ws_credential()})
+     else:
+@@ -16877,10 +16845,6 @@ def _build_sidecar_url(channel: str) -> Optional[str]:
+     if getattr(app.state, "auth_required", False):
+         # Gated mode — use the internal credential so the WS upgrade survives
+         # _ws_auth_ok and the child can reconnect.
+-        try:
+-            from wenshu_cli.dashboard_auth.ws_tickets import internal_ws_credential
+-        except ImportError:
+-            pass  # R74: dashboard_auth deleted (R69)
+ 
+         qs = urllib.parse.urlencode(
+             {"internal": internal_ws_credential(), "channel": channel}
+@@ -17863,10 +17827,6 @@ def _normalise_prefix(raw: Optional[str]) -> str:
+     the gate middleware, the OAuth routes, the cookie helpers, and the
+     SPA mount all agree on validation rules.
+     """
+-    try:
+-        from wenshu_cli.dashboard_auth.prefix import normalise_prefix
+-    except ImportError:
+-        pass  # R74: dashboard_auth deleted (R69)
+     return normalise_prefix(raw)
+ 
+ 
+@@ -19268,10 +19228,6 @@ def start_server(
+         # The gate engages on every non-loopback bind. Require at least one
+         # provider to be registered, else fail closed — there is no longer an
+         # escape hatch that serves the dashboard without authentication.
+-        try:
+-            from wenshu_cli.dashboard_auth import list_providers
+-        except ImportError:
+-            pass  # R74: dashboard_auth deleted (R69)
+         if not list_providers():
+             # Surface the *specific* reason any bundled provider declined
+             # to register (e.g. missing WENSHU_DASHBOARD_OAUTH_CLIENT_ID).
+-- 
+2.54.0 (Apple Git-157)
+

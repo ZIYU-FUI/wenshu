@@ -1,0 +1,53 @@
+From bddce874d3503299436aa4827cd6a42a4a318144 Mon Sep 17 00:00:00 2001
+From: cc <cc@wenshu.local>
+Date: Fri, 24 Jul 2026 15:06:05 +0800
+Subject: [PATCH 027/168] =?UTF-8?q?fix(installer):=20welcome.tsx=20?=
+ =?UTF-8?q?=E6=96=87=E6=A1=88=E6=94=B9=E4=B8=AD=E6=96=87=20=E6=96=87?=
+ =?UTF-8?q?=E6=9E=A2=20(WO-038)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+装机 user 7/24 拍板: UI 严格用中文 文枢, 其他 code ID 保持 wenshu。
+
+- L10 comment: WERMES wordmark → 文枢 wordmark
+- L34: <span>WERMES AGENT</span> → <span>文枢 AGENT</span>
+- L36: aria-hidden WERMES AGENT → aria-hidden 文枢 AGENT
+
+AC 验证:
+- grep WERMES apps/bootstrap-installer/src → 0 hits
+- grep "HERMES AGENT" apps/bootstrap-installer/src → 0 hits
+- grep 文枢 apps/bootstrap-installer/src → 13 hits (≥3)
+- com.wenshu identifier 保留 (Cargo.toml name, tauri.conf.json id)
+---
+ apps/bootstrap-installer/src/routes/welcome.tsx | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/apps/bootstrap-installer/src/routes/welcome.tsx b/apps/bootstrap-installer/src/routes/welcome.tsx
+index 007b997e5..dd4e4e73b 100644
+--- a/apps/bootstrap-installer/src/routes/welcome.tsx
++++ b/apps/bootstrap-installer/src/routes/welcome.tsx
+@@ -7,7 +7,7 @@ import { startInstall } from '../store'
+  * Welcome screen.
+  *
+  * Mirrors the desktop's chat intro (apps/desktop/src/components/chat/intro.tsx):
+- *   - WERMES wordmark rendered in Collapse Bold, uppercase, tracked
++ *   - 文枢 wordmark rendered in Collapse Bold, uppercase, tracked
+  *   - mix-blend-plus-lighter so the type "glows" on the canvas
+  *   - fit-text utility so the wordmark sizes itself to the column
+  *
+@@ -31,9 +31,9 @@ export default function Welcome() {
+           }
+         >
+           <span>
+-            <span>WERMES AGENT</span>
++            <span>文枢 AGENT</span>
+           </span>
+-          <span aria-hidden="true">WERMES AGENT</span>
++          <span aria-hidden="true">文枢 AGENT</span>
+         </p>
+ 
+         <p className="m-0 text-center text-base leading-normal tracking-tight text-muted-foreground">
+-- 
+2.54.0 (Apple Git-157)
+

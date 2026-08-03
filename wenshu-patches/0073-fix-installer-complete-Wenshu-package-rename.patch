@@ -1,0 +1,48 @@
+From 162c5b42951dc62503dcd3f3aff756ee9223a552 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?= <anbaiqiang@wenshu.local>
+Date: Wed, 29 Jul 2026 11:31:27 +0800
+Subject: [PATCH 073/168] fix(installer): complete Wenshu package rename
+
+---
+ scripts/install.ps1 | 2 +-
+ scripts/install.sh  | 4 ++--
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/scripts/install.ps1 b/scripts/install.ps1
+index cc416c9f7..c28d7c6d1 100644
+--- a/scripts/install.ps1
++++ b/scripts/install.ps1
+@@ -2085,7 +2085,7 @@ try:
+     specs = data['project']['optional-dependencies']['all']
+     out = []
+     for s in specs:
+-        m = re.search(r'wenshu\[([\w-]+)\]', s)
++        m = re.search(r'wenshu-agent\[([\w-]+)\]', s)
+         if m: out.append(m.group(1))
+     print(','.join(out))
+ except Exception:
+diff --git a/scripts/install.sh b/scripts/install.sh
+index f7225c733..5b029ef46 100755
+--- a/scripts/install.sh
++++ b/scripts/install.sh
+@@ -6,7 +6,7 @@
+ # Uses uv for desktop/server installs and Python's stdlib venv + pip on Termux.
+ #
+ # Usage:
+-#   curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
++#   curl -fsSL https://raw.githubusercontent.com/ZIYU-FUI/wenshu/main/scripts/install.sh | bash
+ #
+ # Or with options:
+ #   curl -fsSL ... | bash -s -- --no-venv --skip-setup
+@@ -522,7 +522,7 @@ detect_os() {
+             OS="windows"
+             DISTRO="windows"
+             log_error "Windows detected. Please use the PowerShell installer:"
+-            log_info "  iex (irm https://hermes-agent.nousresearch.com/install.ps1)"
++            log_info "  iex (irm https://raw.githubusercontent.com/ZIYU-FUI/wenshu/main/scripts/install.ps1)"
+             exit 1
+             ;;
+         *)
+-- 
+2.54.0 (Apple Git-157)
+

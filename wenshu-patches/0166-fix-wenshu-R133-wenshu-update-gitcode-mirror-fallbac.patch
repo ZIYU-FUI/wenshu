@@ -1,0 +1,129 @@
+From 303486fd39a9aeb8facfebac0c4688745d779426 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?= <anbaiqiang@wenshu.local>
+Date: Mon, 3 Aug 2026 15:10:46 +0800
+Subject: [PATCH 166/168] fix(wenshu): R133 - wenshu update gitcode mirror
+ fallback
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+装机 user 跑 wenshu update --yes 14:54 -> 卡 'GitHub 拉不到, 回退到 pinned-commit 55802cad5c'。
+pinned-commit 是 R128b 旧, 没拿到 R130/R131/R132 修复 -> pnpm dist:mac 撞 DMG vendor toolset cache crash (R130 绕开未生效)。
+
+真根因:
+- 装机 user .git/config 只有 origin = github.com 单 remote
+- wenshu_cli/main.py fetch/pull/rev-list 全硬编码 'origin'
+- 装机 user 网络拉不到 GitHub -> fetch fail -> R58 fallback 命中 pinned-commit (老 commit)
+
+修法 (扩展 R58 协议):
+- _try_add_mirror_remote helper (line 10002)
+- _cmd_update_impl mirror rotation: origin / gitcode (国内 mirror) / old-origin 依次试
+- rev-list + pull 用 _fetched_remote 替换硬编码 'origin'
+- R58 pinned-commit fallback 段保持原状
+
+Scope: 仅 wenshu_cli/main.py, 48 insertions / 11 deletions。
+---
+ wenshu_cli/main.py | 59 +++++++++++++++++++++++++++++++++++++---------
+ 1 file changed, 48 insertions(+), 11 deletions(-)
+
+diff --git a/hermes_cli/main.py b/hermes_cli/main.py
+index f4dcd7fec..c8d13008f 100644
+--- a/hermes_cli/main.py
++++ b/hermes_cli/main.py
+@@ -9999,6 +9999,23 @@ def _cmd_update_pip(args):
+     print("✓ Update complete! Restart wenshu to use the new version.")
+ 
+ 
++def _try_add_mirror_remote(git_cmd: list[str], project_root: Path, name: str, url: str) -> bool:
++    """WO-20260901-002: 静默 add mirror remote — 失败 (通常 remote 已存在) 返回 False。
++
++    给 wenshu update 在国内网络拉不到 GitHub 时一个回退选项 (gitcode.com mirror,
++    URL = ``git@gitcode.com:ZIYU1983/wenshu.git``)。不抛异常, 不阻塞原 update flow —
++    RemoteAlreadyExists 等都静默吞掉。
++    """
++    add_result = subprocess.run(
++        git_cmd + ["remote", "add", name, url],
++        cwd=project_root,
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++    return add_result.returncode == 0
++
++
+ def _cmd_update_impl(args, gateway_mode: bool):
+     """Body of ``cmd_update`` — kept separate so the wrapper can always
+     restore stdio even on ``sys.exit``."""
+@@ -10160,14 +10177,34 @@ def _cmd_update_impl(args, gateway_mode: bool):
+         branch = _resolve_update_branch(args)
+ 
+         print("→ Fetching updates...")
+-        fetch_result = subprocess.run(
+-            git_cmd + ["fetch", "origin", branch],
+-            cwd=PROJECT_ROOT,
+-            capture_output=True,
+-            text=True,
+-        )
+-        if fetch_result.returncode != 0:
+-            stderr = fetch_result.stderr.strip()
++        # WO-20260901-002: 多 mirror 拉取 — origin 失败时依次试 gitcode / old-origin,
++        # 任一成功即继续; 全失败走原 sys.exit(1) (fetch 阶段还没进 R58 fallback)。
++        # R58 fallback 段 (下段 pull 失败时触发) 保持原状 — pinned-commit 只走 origin。
++        _update_mirrors = [
++            # origin 先试 (装机 user 默认 remote); 失败 → 国内 gitcode.com mirror;
++            # 仍失败 → explicit old-origin (GitHub 新 owner URL)。
++            ("origin", None),
++            ("gitcode", "git@gitcode.com:ZIYU1983/wenshu.git"),
++            ("old-origin", "git@github.com:ZIYU-FUI/wenshu.git"),
++        ]
++        _fetched_remote = None
++        _last_fetch_err = ""
++        for _mname, _murl in _update_mirrors:
++            if _murl:
++                _try_add_mirror_remote(git_cmd, PROJECT_ROOT, _mname, _murl)
++            _mir_fetch = subprocess.run(
++                git_cmd + ["fetch", _mname, branch],
++                cwd=PROJECT_ROOT,
++                capture_output=True,
++                text=True,
++                check=False,
++            )
++            if _mir_fetch.returncode == 0:
++                _fetched_remote = _mname
++                break
++            _last_fetch_err = (_mir_fetch.stderr or "").strip()
++        if _fetched_remote is None:
++            stderr = _last_fetch_err
+             if "Could not resolve host" in stderr or "unable to access" in stderr:
+                 print("✗ Network error — cannot reach the remote repository.")
+                 print(f"  {stderr.splitlines()[0]}" if stderr else "")
+@@ -10178,7 +10215,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
+                     "✗ Authentication failed — check your git credentials or SSH key."
+                 )
+             else:
+-                print("✗ Failed to fetch updates from origin.")
++                print("✗ Failed to fetch updates from all mirrors (origin / gitcode / old-origin).")
+                 if stderr:
+                     print(f"  {stderr.splitlines()[0]}")
+             sys.exit(1)
+@@ -10250,7 +10287,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
+ 
+         # Check if there are updates
+         result = subprocess.run(
+-            git_cmd + ["rev-list", f"HEAD..origin/{branch}", "--count"],
++            git_cmd + ["rev-list", f"HEAD..{_fetched_remote}/{branch}", "--count"],
+             cwd=PROJECT_ROOT,
+             capture_output=True,
+             text=True,
+@@ -10361,7 +10398,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
+             pull_result = None
+             for _r58_attempt in range(3):
+                 pull_result = subprocess.run(
+-                    git_cmd + ["pull", "--ff-only", "--depth", "1", "origin", branch],
++                    git_cmd + ["pull", "--ff-only", "--depth", "1", _fetched_remote, branch],
+                     cwd=PROJECT_ROOT,
+                     capture_output=True,
+                     text=True,
+-- 
+2.54.0 (Apple Git-157)
+

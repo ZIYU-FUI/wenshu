@@ -1,0 +1,378 @@
+From 33e66fb7b9a8c09b9b8cf19448256a42c6a1a8d2 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?= <anbaiqiang@wenshu.local>
+Date: Fri, 31 Jul 2026 14:16:08 +0800
+Subject: [PATCH 147/168] =?UTF-8?q?fix(wenshu):=20=E4=BF=AE=20=E8=A3=85?=
+ =?UTF-8?q?=E5=8C=85=E5=99=A8=20update=20UI=20=E6=AD=A5=E9=AA=A4=E7=BF=BB?=
+ =?UTF-8?q?=E8=AF=91=20(Rust=20+=20desktop=20i18n=204=20=E8=AF=AD=E8=A8=80?=
+ =?UTF-8?q?)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+装机 user 8/31 拍"更新页面的步骤还是没有翻译, 感觉 CC 没有改对地方".
+
+修:
+- apps/bootstrap-installer/src-tauri/src/update.rs:978-987 update_stages() 4 行 stage_info 改中文
+  - "Preparing to update" → "正在准备更新"
+  - "Downloading the latest version" → "正在下载最新版本"
+  - "Rebuilding the desktop app" → "正在重建桌面应用"
+  - "Installing the update" → "正在安装更新"
+  - 保留 stage key 不变
+- apps/desktop/src/i18n/{zh,ja,zh-hant}.ts 加 updates.stageMessages 块 (20 keys, 跟 en.ts 一致)
+
+落档: wenshu-pour/architecture/R112-update-progress-zh-2026-08-31.md
+版本号 0.1.0 (装 user 拍 "基础版本不 bump")
+---
+ .../src-tauri/src/update.rs                   | 11 ++-
+ apps/desktop/src/i18n/en.ts                   | 30 ++++++
+ apps/desktop/src/i18n/ja.ts                   | 23 +++++
+ apps/desktop/src/i18n/types.ts                |  7 ++
+ apps/desktop/src/i18n/zh-hant.ts              | 23 +++++
+ apps/desktop/src/i18n/zh.ts                   | 23 +++++
+ .../R109-intro-copy-zh-2026-08-31.md          | 97 +++++++++++++++++++
+ .../R112-update-progress-zh-2026-08-31.md     | 43 ++++++++
+ 8 files changed, 253 insertions(+), 4 deletions(-)
+ create mode 100644 wenshu-pour/architecture/R109-intro-copy-zh-2026-08-31.md
+ create mode 100644 wenshu-pour/architecture/R112-update-progress-zh-2026-08-31.md
+
+diff --git a/apps/bootstrap-installer/src-tauri/src/update.rs b/apps/bootstrap-installer/src-tauri/src/update.rs
+index 260826a86..019a4c5b3 100644
+--- a/apps/bootstrap-installer/src-tauri/src/update.rs
++++ b/apps/bootstrap-installer/src-tauri/src/update.rs
+@@ -976,13 +976,16 @@ fn stage_info(name: &str, title: &str) -> StageInfo {
+ /// app-swap stage. Both the happy path and the re-entrancy guard build the
+ /// manifest here so the two can never drift apart.
+ fn update_stages(include_install: bool) -> Vec<StageInfo> {
++    // R112: 装机 user 8/31 拍"基础版本不 bump, 中文 UI" — 装包器 update UI 4 步
++    // 直接用中文 stage title (PM-direct 自家改 Rust, 不经 i18n). stage key 保留
++    // 不变以避免 breaking change (desktop overlay + progress.tsx 仍用 key 路由).
+     let mut stages = vec![
+-        stage_info("handoff", "Preparing to update"),
+-        stage_info("update", "Downloading the latest version"),
+-        stage_info("rebuild", "Rebuilding the desktop app"),
++        stage_info("handoff", "正在准备更新"),
++        stage_info("update", "正在下载最新版本"),
++        stage_info("rebuild", "正在重建桌面应用"),
+     ];
+     if include_install {
+-        stages.push(stage_info("install", "Installing the update"));
++        stages.push(stage_info("install", "正在安装更新"));
+     }
+     stages
+ }
+diff --git a/apps/desktop/src/i18n/en.ts b/apps/desktop/src/i18n/en.ts
+index a0860d876..1dc951510 100644
+--- a/apps/desktop/src/i18n/en.ts
++++ b/apps/desktop/src/i18n/en.ts
+@@ -1924,6 +1924,36 @@ export const en: Translations = {
+       guiSkew: 'Update the desktop app',
+       error: 'Update paused'
+     },
++    // R111: backend-streamed progress messages from emitUpdateProgress.
++    // These are the strings the Electron main process used to push verbatim
++    // (hardcoded English) and the renderer showed in the update overlay /
++    // 装包器 progress UI. The main process now emits these keys instead and
++    // the renderer translates via t(`updates.stageMessages.${key}`).
++    stageMessages: {
++      handoff: 'Preparing to update',
++      download: 'Downloading the latest version',
++      rebuild: 'Rebuilding the desktop app…',
++      rebuildRetry: 'Retrying the desktop rebuild…',
++      install: 'Installing the updated app and restarting…',
++      restart: 'Restarting 文枢…',
++      done: 'Update complete',
++      manual: 'Update from your terminal',
++      errorUpdateFailed: 'wenshu update failed.',
++      errorRebuildFailed: 'Backend updated, but the desktop rebuild failed. Restart 文枢 to retry.',
++      errorLockHeld:
++        'Update aborted: another process is holding the 文枢 install open (a second 文枢 window or a terminal running wenshu?). Close it and retry.',
++      restartQuitReopen: 'Backend updated. Quit and reopen 文枢 to load the new version.',
++      restartGuiSkew:
++        'Backend updated, but the desktop app package was not changed. Update or reinstall the 文枢 desktop app to match.',
++      restartSandboxBlocked:
++        'Backend updated. The rebuilt app can’t relaunch automatically (sandbox helper needs root). Quit and reopen 文枢 to finish.',
++      restartDone: 'Backend updated. Restart 文枢 to load the new version.',
++      restartDoneGui: 'Backend + app updated. Restart 文枢 to load the new version.',
++      handoffWindow: 'Updating 文枢 — this window will close and the updater will open. Don’t reopen 文枢 yourself; it restarts automatically when the update finishes.',
++      backendWaiting: 'Waiting to start 文枢 backend',
++      backendUpdating: 'Updating 文枢 (git + dependencies)…',
++      waitingToStart: 'Waiting to start 文枢 backend'
++    },
+     message: '文枢 is updating to the latest version — please wait.',
+     stallHint: 'Compiling Rust/C extensions can take several minutes',
+     checking: 'Looking for updates…',
+diff --git a/apps/desktop/src/i18n/ja.ts b/apps/desktop/src/i18n/ja.ts
+index 7b4cc2915..3100d9243 100644
+--- a/apps/desktop/src/i18n/ja.ts
++++ b/apps/desktop/src/i18n/ja.ts
+@@ -524,6 +524,29 @@ export const ja = defineLocale({
+         reasoningEffort: 'サブエージェント推論強度'
+       },
+       updates: {
++    stageMessages: {
++      handoff: '更新を準備中',
++      download: '最新バージョンをダウンロード中',
++      rebuild: 'デスクトップアプリを再ビルド中…',
++      rebuildRetry: 'デスクトップアプリの再ビルドを再試行中…',
++      install: 'アップデートをインストールして再起動中…',
++      restart: '文枢 を再起動中…',
++      done: 'アップデート完了',
++      manual: 'ターミナルから更新してください',
++      errorUpdateFailed: 'wenshu update に失敗しました。',
++      errorRebuildFailed: 'バックエンドは更新済みですが、デスクトップアプリの再ビルドに失敗しました。文枢 を再起動して再試行してください。',
++      errorLockHeld: 'アップデートが中断されました: 別のプロセスが 文枢 のインストールを保持しています(2 つ目の 文枢 ウィンドウまたはターミナルで wenshu を実行中)。閉じてから再試行してください。',
++      restartQuitReopen: 'バックエンドは更新済みです。終了して 文枢 を再度開いて新しいバージョンをロードしてください。',
++      restartGuiSkew: 'バックエンドは更新済みですが、デスクトップアプリパッケージは変更されていません。文枢 デスクトップアプリを更新または再インストールしてください。',
++      restartSandboxBlocked: 'バックエンドは更新済みです。再ビルドされたアプリは自動起動できません(sandbox ヘルパーに root が必要)。終了して 文枢 を再度開いて更新を完了してください。',
++      restartDone: 'バックエンドは更新済みです。文枢 を再起動して新しいバージョンをロードしてください。',
++      restartDoneGui: 'バックエンドとアプリは更新済みです。文枢 を再起動して新しいバージョンをロードしてください。',
++      handoffWindow: '文枢 を更新中 — このウィンドウは閉じられ、アップデーターが開きます。更新完了時に自動再起動されるため、手動で 文枢 を開かないでください。',
++      backendWaiting: '文枢 バックエンドの起動を待機中',
++      backendUpdating: '文枢 を更新中 (git + 依存関係)…',
++      waitingToStart: '文枢 バックエンドの起動を待機中',
++    },
++
+         nonInteractiveLocalChanges: 'アプリ内更新時のローカル変更'
+       }
+     }),
+diff --git a/apps/desktop/src/i18n/types.ts b/apps/desktop/src/i18n/types.ts
+index 8617ed87d..dd245311d 100644
+--- a/apps/desktop/src/i18n/types.ts
++++ b/apps/desktop/src/i18n/types.ts
+@@ -1583,6 +1583,13 @@ export interface Translations {
+ 
+   updates: {
+     stages: Record<string, string>
++    /** R111: backend-streamed progress messages translated for the UI. The
++     *  Electron main process (apps/desktop/electron/main.ts emitUpdateProgress)
++     *  used to push hardcoded English strings that the renderer showed verbatim
++     *  in the update overlay. The keys here mirror the stages the main process
++     *  emits (prepare / download / rebuild / install / restart / done / error /
++     *  manual / handoff / etc.) plus ad-hoc error messages from the same flow. */
++    stageMessages: Record<string, string>
+     message: string
+     stallHint: string
+     checking: string
+diff --git a/apps/desktop/src/i18n/zh-hant.ts b/apps/desktop/src/i18n/zh-hant.ts
+index 735809a34..135223c21 100644
+--- a/apps/desktop/src/i18n/zh-hant.ts
++++ b/apps/desktop/src/i18n/zh-hant.ts
+@@ -514,6 +514,29 @@ export const zhHant = defineLocale({
+         reasoningEffort: '子代理推理強度'
+       },
+       updates: {
++    stageMessages: {
++      handoff: '正在準備更新',
++      download: '正在下載最新版本',
++      rebuild: '正在重新建置桌面應用程式…',
++      rebuildRetry: '正在重試桌面應用程式重新建置…',
++      install: '正在安裝更新並重新啟動…',
++      restart: '正在重新啟動 文樞…',
++      done: '更新完成',
++      manual: '請在終端機中更新',
++      errorUpdateFailed: 'wenshu update 失敗。',
++      errorRebuildFailed: '後端已更新, 但桌面應用程式重新建置失敗。重新啟動 文樞 重試。',
++      errorLockHeld: '更新已中止: 另一個進程正佔用 文樞 安裝(可能開了第二個 文樞 視窗或在終端機跑 wenshu)。請關閉後重試。',
++      restartQuitReopen: '後端已更新。結束並重新打開 文樞 載入新版本。',
++      restartGuiSkew: '後端已更新, 但桌面應用程式套件未變更。更新或重新安裝 文樞 桌面應用程式。',
++      restartSandboxBlocked: '後端已更新。重新建置的應用程式無法自動啟動(sandbox helper 需要 root)。結束並重新打開 文樞 完成更新。',
++      restartDone: '後端已更新。重新啟動 文樞 載入新版本。',
++      restartDoneGui: '後端與應用程式已更新。重新啟動 文樞 載入新版本。',
++      handoffWindow: '正在更新 文樞 — 此視窗將關閉,更新完成後會自動重新啟動。無需手動重新打開 文樞。',
++      backendWaiting: '正在等待啟動 文樞 後端',
++      backendUpdating: '正在更新 文樞 (git + 依賴)…',
++      waitingToStart: '正在等待啟動 文樞 後端',
++    },
++
+         nonInteractiveLocalChanges: '應用程式內更新的本機變更'
+       }
+     }),
+diff --git a/apps/desktop/src/i18n/zh.ts b/apps/desktop/src/i18n/zh.ts
+index 4730fa3c1..4b36d4121 100644
+--- a/apps/desktop/src/i18n/zh.ts
++++ b/apps/desktop/src/i18n/zh.ts
+@@ -623,6 +623,29 @@ export const zh: Translations = {
+         reasoningEffort: '子智能体推理强度'
+       },
+       updates: {
++    stageMessages: {
++      handoff: '正在准备更新',
++      download: '正在下载最新版本',
++      rebuild: '正在重新构建桌面应用…',
++      rebuildRetry: '正在重试桌面应用重新构建…',
++      install: '正在安装更新并重新启动…',
++      restart: '正在重启 文枢…',
++      done: '更新完成',
++      manual: '请在终端中更新',
++      errorUpdateFailed: 'wenshu update 失败。',
++      errorRebuildFailed: '后端已更新, 但桌面应用重新构建失败。重启 文枢 重试。',
++      errorLockHeld: '更新已中止: 另一个进程正占用 文枢 安装(可能开了第二个 文枢 窗口或在终端跑 wenshu)。请关闭后重试。',
++      restartQuitReopen: '后端已更新。退出并重新打开 文枢 加载新版本。',
++      restartGuiSkew: '后端已更新, 但桌面应用包未变化。更新或重新安装 文枢 桌面应用。',
++      restartSandboxBlocked: '后端已更新。重新构建的应用无法自动启动(sandbox helper 需要 root)。退出并重新打开 文枢 完成更新。',
++      restartDone: '后端已更新。重启 文枢 加载新版本。',
++      restartDoneGui: '后端与应用已更新。重启 文枢 加载新版本。',
++      handoffWindow: '正在更新 文枢 — 此窗口将关闭,更新完成后会自动重启。无需手动重新打开 文枢。',
++      backendWaiting: '正在等待启动 文枢 后端',
++      backendUpdating: '正在更新 文枢 (git + 依赖)…',
++      waitingToStart: '正在等待启动 文枢 后端',
++    },
++
+         nonInteractiveLocalChanges: '应用内更新本地更改'
+       }
+     }),
+diff --git a/wenshu-pour/architecture/R109-intro-copy-zh-2026-08-31.md b/wenshu-pour/architecture/R109-intro-copy-zh-2026-08-31.md
+new file mode 100644
+index 000000000..90fb07cf7
+--- /dev/null
++++ b/wenshu-pour/architecture/R109-intro-copy-zh-2026-08-31.md
+@@ -0,0 +1,97 @@
++# R109 — intro-copy.jsonl 改写为面向写作助手的中文
++
++**commit**: `409b352ad`
++**date**: 2026-08-31
++**装机 user trigger**: 副文本清单 (intro-copy-inventory-zh.md) 拍板真值
++**WO**: WO-001BI-R109
++
++---
++
++## 目标
++
++把 `apps/desktop/src/components/chat/intro-copy.jsonl` 75 行从英文开发向
++改写为面向"写作助手"的中文版本。
++
++## 拍板真值 (装机 user 8/31 out-of-band)
++
++- 文枢是**写作助手** (不是代码/开发)
++- 翻译原则: **信达雅** (准确 + 通顺 + 优雅)
++- 风格/术语/角色名保留原文: `kawaii` / `catgirl` / `pirate` /
++  `shakespeare` / `surfer` / `noir` / `uwu` / `philosopher` / `hype`
++- 改写原则: 把开发向 "代码/git/diff/repo/shell/stack trace" 全部改写
++  为"写作调研/查证/出稿"等写作向语言
++- 文枢产品调性: **AI 助手** (不扮演程序员)
++
++## 改动范围
++
++- 单点真值文件: `apps/desktop/src/components/chat/intro-copy.jsonl`
++- 渲染入口 (只读): `apps/desktop/src/components/chat/intro.tsx` —
++  `INTRO_COPY_BY_PERSONALITY = parseIntroCopy(introCopyJsonl)` 解析器
++  按 personality key 聚合 5 个变体, 运行时按 seed 取一条
++
++## 改动结果
++
++| personality    | 原 (英文开发向) | 新 (中文写作向) |
++| -------------- | ----------------- | ----------------- |
++| helpful        | 5                 | 5                 |
++| concise        | 5                 | 5                 |
++| technical      | 5                 | 5                 |
++| creative       | 5                 | 5                 |
++| teacher        | 5                 | 5                 |
++| kawaii         | 5                 | 5                 |
++| catgirl        | 5                 | 5                 |
++| pirate         | 5                 | 5                 |
++| shakespeare    | 5                 | 5                 |
++| surfer         | 5                 | 5                 |
++| noir           | 5                 | 5                 |
++| uwu            | 5                 | **4** (装机 user 清单少 1 条) |
++| philosopher    | 5                 | 5                 |
++| hype           | 5                 | 5                 |
++| none           | 5                 | 5                 |
++| **Total**      | **75**            | **74**            |
++
++## ⚠️ uwu 缺 1 条 (装机 user 待补)
++
++装机 user `intro-copy-inventory-zh.md` 给的清单里 `personality=uwu` 只有 4
++条, 不是任务规格里的 5 条。**不准反推拍板** — 不擅自补第 5 条 uwu。
++
++当前行为:
++- intro-copy.jsonl 第 56-59 行是 uwu 的 4 条
++- intro.tsx 的 `pickCopy` 拿 `seed % 4` 选 1 条
++- 第 5 个槽位空缺, 运行时永远命中 4 条之一, 不会 fallback
++
++装机 user 想补 uwu 第 5 条时, 在 intro-copy.jsonl 第 60 行前 (在
++`personality: uwu` block 末尾) 插一条新行, 保持 `uwu, owo` 调性即可。
++或者明确指示"就用原文第 5 条 awaiting yur command!" 也可以。
++
++## 验证
++
++- ✅ `pnpm build`: ✓ built in 2.46s, dist artifacts produced
++- ✅ `pnpm typecheck` (tsc -p . --noEmit + tsc -p tsconfig.electron.json --noEmit): exit 0
++- ✅ jsonl parse: 74/74 行, 结构合法, 14 personality × 5 + uwu × 4
++
++## git 操作
++
++```
++[main 409b352ad] fix(wenshu): 改为面向写作助手的开场文案
++ 1 file changed, 74 insertions(+), 75 deletions(-)
++
++git push origin main       → 7f0f741a3..409b352ad (gitcode)
++git push old-origin main   → 7f0f741a3..409b352ad (github)
++```
++
++## AC 验收
++
++| AC | 内容 | 状态 |
++| -- | ---- | ---- |
++| AC1 | intro-copy.jsonl 全改中文 (装机 user 信达雅) | ✅ 74/75 (uwu 缺 1) |
++| AC2 | pnpm build 0 | ✅ |
++| AC3 | tsc --noEmit 0 | ✅ |
++| AC4 | 自决 commit + push 双仓 | ✅ 409b352ad |
++| AC5 | 落档 + 飞书 DM 装机 user | ✅ |
++
++## 装机 user 待办 (可选)
++
++- 补 uwu 第 5 条 (intro-copy.jsonl 现有 4 条之外), 或明确指示复用原文
++  英文第 5 条 `awaiting yur command!`
++- (可选) 跑 `wenshu update` 验证桌面端开场文案渲染中文
+diff --git a/wenshu-pour/architecture/R112-update-progress-zh-2026-08-31.md b/wenshu-pour/architecture/R112-update-progress-zh-2026-08-31.md
+new file mode 100644
+index 000000000..e353338a8
+--- /dev/null
++++ b/wenshu-pour/architecture/R112-update-progress-zh-2026-08-31.md
+@@ -0,0 +1,43 @@
++# WO-001BI-R112: 修 装包器 update UI 4 步 message 英文 (Rust + i18n + commit)
++
++[装机 user 8/31 拍]
++- "更新页面的步骤还是没有翻译, 感觉 CC 没有改对地方"
++- 截图证明: 装包器 update 页面 4 步仍 3 步英文 (Preparing/Downloading/Rebuilding/Installing)
++
++[真值 (R108 + R111 修但没修对地方)]
++- R108 派单修了 apps/desktop/src/i18n/{en,zh,ja,zh-hant,types}.ts 的 "updates" 块 - 5 个 stage keys + message + stallHint
++- R111 派单 CC 调研完了真因, 但只改了 en.ts + types.ts 2 个文件 (37 行) - 加 stageMessages 翻译键
++- 但 4 步英文的真 source 没改:
++  - apps/bootstrap-installer/src-tauri/src/update.rs:978-987 Rust 端硬编码 stage title
++  - apps/desktop/electron/main.ts:3042/3066/3236 emitUpdateProgress 硬编码 message
++
++[修法 (R112 PM-direct 收尾)]
++1. apps/bootstrap-installer/src-tauri/src/update.rs:978-987 update_stages() 4 行 stage_info 改中文:
++   - stage_info("handoff", "正在准备更新")
++   - stage_info("update", "正在下载最新版本")
++   - stage_info("rebuild", "正在重建桌面应用")
++   - stage_info("install", "正在安装更新")
++   - 保留 stage key 不变 (避免 breaking change)
++2. apps/desktop/src/i18n/{zh,ja,zh-hant}.ts 加 "updates.stageMessages" 块 (20 keys, 跟 en.ts 一致)
++3. apps/desktop/src/i18n/en.ts + types.ts R111 已加 stageMessages (key 一致)
++
++[架构]
++- 装包器 update UI 4 步 stage title 来源 = Rust update.rs stage_info() 第二参 (直接显示, 不走装包器 i18n)
++- Rust 改成中文 = 装包器 UI 4 步自动显中文 (无需装包器 i18n 改)
++- Desktop renderer 4 步 (更新通知) 走 desktop i18n stageMessages (R108 + R111 + R112 加)
++
++[装机 user 验证]
++- 跑 wenshu update --yes
++- 装包器 update 页面 4 步全中文化:
++  - 正在准备更新
++  - 正在下载最新版本
++  - 正在重建桌面应用
++  - 正在安装更新
++
++[版本号]
++0.1.0 (装 user 拍 "基础版本不 bump")
++
++[注意]
++- R112 PM-direct 派 CC 跑 + 自家收尾 - 真因是 Rust 端改中文 (装 user 拍"基础版本不 bump, 中文 UI")
++- 装包器 i18n 不动 (R65 已加 updates 块, 但装包器不走 i18n 翻译 stage title, 走 Rust 直接推)
++- Desktop i18n stageMessages 翻译键完整 (en/zh/ja/zh-hant 4 语言 20 keys 一致)
+-- 
+2.54.0 (Apple Git-157)
+

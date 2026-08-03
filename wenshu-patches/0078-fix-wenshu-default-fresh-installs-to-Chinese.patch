@@ -1,0 +1,129 @@
+From 78b160b2e2b5ebae296c733443a28a6e88de1e0e Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?= <anbaiqiang@wenshu.local>
+Date: Wed, 29 Jul 2026 15:11:48 +0800
+Subject: [PATCH 078/168] fix(wenshu): default fresh installs to Chinese
+
+---
+ apps/desktop/src/i18n/context.test.tsx | 34 ++++++++++++++++++++------
+ apps/desktop/src/i18n/context.tsx      |  8 +++++-
+ cli-config.yaml.example                |  3 +++
+ 3 files changed, 36 insertions(+), 9 deletions(-)
+
+diff --git a/apps/desktop/src/i18n/context.test.tsx b/apps/desktop/src/i18n/context.test.tsx
+index b14ffe3e7..a96cc4d81 100644
+--- a/apps/desktop/src/i18n/context.test.tsx
++++ b/apps/desktop/src/i18n/context.test.tsx
+@@ -30,15 +30,15 @@ describe('I18nProvider', () => {
+     vi.restoreAllMocks()
+   })
+ 
+-  it('defaults to English without a config client', () => {
++  it('defaults to Simplified Chinese without a config client', () => {
+     render(
+       <I18nProvider configClient={null}>
+         <LanguageProbe />
+       </I18nProvider>
+     )
+ 
+-    expect(screen.getByTestId('locale').textContent).toBe('en')
+-    expect(screen.getByTestId('label').textContent).toBe('Language')
++    expect(screen.getByTestId('locale').textContent).toBe('zh')
++    expect(screen.getByTestId('label').textContent).toBe('语言')
+   })
+ 
+   it('normalizes an initial locale alias and switches translations', async () => {
+@@ -76,7 +76,7 @@ describe('I18nProvider', () => {
+     expect(configClient.saveConfig).not.toHaveBeenCalled()
+   })
+ 
+-  it('keeps English usable when config loading fails', async () => {
++  it('keeps the Chinese default when config loading fails', async () => {
+     const configClient: I18nConfigClient = {
+       getConfig: vi.fn().mockRejectedValue(new Error('config unavailable')),
+       saveConfig: vi.fn()
+@@ -90,11 +90,29 @@ describe('I18nProvider', () => {
+ 
+     await waitFor(() => expect(screen.getByTestId('loading').textContent).toBe('false'))
+ 
+-    expect(screen.getByTestId('locale').textContent).toBe('en')
+-    expect(screen.getByTestId('label').textContent).toBe('Language')
++    expect(screen.getByTestId('locale').textContent).toBe('zh')
++    expect(screen.getByTestId('label').textContent).toBe('语言')
+     expect(configClient.saveConfig).not.toHaveBeenCalled()
+   })
+ 
++  it('keeps the Chinese default when display.language is absent', async () => {
++    const configClient: I18nConfigClient = {
++      getConfig: vi.fn().mockResolvedValue({ display: { compact: false } }),
++      saveConfig: vi.fn()
++    }
++
++    render(
++      <I18nProvider configClient={configClient} initialLocale="en">
++        <LanguageProbe />
++      </I18nProvider>
++    )
++
++    await waitFor(() => expect(screen.getByTestId('loading').textContent).toBe('false'))
++
++    expect(screen.getByTestId('locale').textContent).toBe('zh')
++    expect(screen.getByTestId('label').textContent).toBe('语言')
++  })
++
+   it('loads zh-hant from display.language config', async () => {
+     const configClient: I18nConfigClient = {
+       getConfig: vi.fn().mockResolvedValue({ display: { language: 'zh-TW' } }),
+@@ -147,8 +165,8 @@ describe('I18nProvider', () => {
+ 
+     await waitFor(() => expect(screen.getByTestId('loading').textContent).toBe('false'))
+ 
+-    expect(screen.getByTestId('locale').textContent).toBe('en')
+-    expect(screen.getByTestId('label').textContent).toBe('Language')
++    expect(screen.getByTestId('locale').textContent).toBe('zh')
++    expect(screen.getByTestId('label').textContent).toBe('语言')
+     expect(configClient.saveConfig).not.toHaveBeenCalled()
+   })
+ 
+diff --git a/apps/desktop/src/i18n/context.tsx b/apps/desktop/src/i18n/context.tsx
+index bf9f66cb6..f4c4d40da 100644
+--- a/apps/desktop/src/i18n/context.tsx
++++ b/apps/desktop/src/i18n/context.tsx
+@@ -94,6 +94,12 @@ export function I18nProvider({ children, configClient = defaultConfigClient, ini
+     setRuntimeI18nLocale(locale)
+   }, [locale])
+ 
++  useEffect(() => {
++    if (initialLocale !== undefined) {
++      setLocaleState(normalizeLocale(initialLocale))
++    }
++  }, [initialLocale])
++
+   useEffect(() => {
+     if (!configClient) {
+       return
+@@ -126,7 +132,7 @@ export function I18nProvider({ children, configClient = defaultConfigClient, ini
+     return () => {
+       cancelled = true
+     }
+-  }, [configClient, initialLocale])
++  }, [configClient])
+ 
+   const setLocale = useCallback(
+     async (next: Locale) => {
+diff --git a/cli-config.yaml.example b/cli-config.yaml.example
+index c1908cc77..d17c80003 100644
+--- a/cli-config.yaml.example
++++ b/cli-config.yaml.example
+@@ -1142,6 +1142,9 @@ delegation:
+ # Display
+ # =============================================================================
+ display:
++  # Desktop UI language. Fresh 文枢 installs start in Simplified Chinese.
++  language: zh
++
+   # Use compact banner mode (hides the ASCII-art banner, shows a single line).
+   #   true:  Compact single-line banner
+   #   false: Full ASCII banner with tool/skill summary (default)
+-- 
+2.54.0 (Apple Git-157)
+

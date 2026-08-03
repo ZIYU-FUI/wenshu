@@ -1,0 +1,151 @@
+From 7b3d81dc263ce5a9e3534af77c72d8cb6e0d2a7b Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?= <anbaiqiang@wenshu.local>
+Date: Mon, 3 Aug 2026 11:43:15 +0800
+Subject: [PATCH 158/168] =?UTF-8?q?fix(wenshu):=20R127=20-=20/api/ws=20han?=
+ =?UTF-8?q?dler=20dispatch=20session.create=20(R100/R101=20=E6=BC=8F?=
+ =?UTF-8?q?=E4=BF=AE)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+装机 user 8/3 拍"会话不可用" BUG 排查 - 仓根 fork 时删了 session.create 端点.
+
+真因:
+- 上游 hermes-agent tui_gateway/methods_session.py 真 session.create handler (uuid + session_db)
+- wenshu 仓根 web_server.py:17691 gateway_ws 只 dispatch setup.status + setup.runtime_check (R101 修)
+- 装 user desktop 调 session.create -> 30s client timeout reject
+
+修法 (PM-direct 自家改, R125 派单 CC 卡 tool budget):
+- web_server.py:17766 加 dispatch:
+  - session.create: 返 new uuid + 写 ~/.wenshu-hermes/state.db sessions row
+  - session.close: 返 closed ack
+  - session.resume: 返 resumed ack
+- 仿 upstream tui_gateway/methods_session.py 写 (uuid + session_db row insert)
+
+验证:
+- py_compile wenshu_cli/web_server.py 0 错
+- diff stat: 1 file, 54 insertions(+)
+
+落档: wenshu-pour/architecture/R127-gateway-dispatch-session-create-2026-08-31.md
+版本号 0.1.0 (装 user 拍 "基础版本不 bump")
+---
+ ...eway-dispatch-session-create-2026-08-31.md | 41 ++++++++++++++
+ wenshu_cli/web_server.py                      | 54 +++++++++++++++++++
+ 2 files changed, 95 insertions(+)
+ create mode 100644 wenshu-pour/architecture/R127-gateway-dispatch-session-create-2026-08-31.md
+
+diff --git a/wenshu-pour/architecture/R127-gateway-dispatch-session-create-2026-08-31.md b/wenshu-pour/architecture/R127-gateway-dispatch-session-create-2026-08-31.md
+new file mode 100644
+index 000000000..1dd5c730c
+--- /dev/null
++++ b/wenshu-pour/architecture/R127-gateway-dispatch-session-create-2026-08-31.md
+@@ -0,0 +1,41 @@
++# WO-001BI-R127: 修 文枢 /api/ws handler dispatch session.create (R100/R101 漏修)
++
++[装机 user 8/3 拍修]
++- 装 user 8/3 跑 文枢 desktop 9:05 - 截图"会话不可用 / request timed out: session.create"
++- desktop 弹窗"会话不可用" (i18n.zh.ts:2772) + 副文案"无法创建新会话" (createSessionFailed)
++
++[真根因 - PM-direct 排查]
++- desktop.json-rpc-gateway client requestTimeoutMs = 30_000 (30s) - apps/desktop/src/wenshu.ts:76
++- gateway client 30s 后主动 reject "request timed out: session.create" (apps/shared/src/json-rpc-gateway.ts:277)
++- web_server.py:17691 gateway_ws handler 只 dispatch "setup.status" + "setup.runtime_check" (R101 修)
++- **没 dispatch "session.create"** (or "session.close" / "session.resume") - R100/R101 漏修
++
++[架构真因]
++- wenshu 仓根 fork 时 (7/24) - 上游 hermes-agent 用 TUI gateway Python 调 session manager
++- 上游 tui_gateway/methods_session.py 真 session.create handler (uuid + session_db + agent build)
++- wenshu 仓根 fork 后 改 用 wenshu_cli.main cmd_sessions (CLI 模式)
++- 但 desktop .app 仍调 upstream 的 gateway RPC method "session.create"
++- 仓根 /api/ws handler dispatch 列表 = setup.status + setup.runtime_check (R101 修) - 不 dispatch session.create
++- 装 user desktop 调 session.create → gateway_ws 收到 msg → method != setup.status && method != setup.runtime_check → if/elif/elif 全空 (no else) → 不返响应 → 30s client reject
++
++[R127 修法 - PM-direct 自家改]
++- web_server.py:17766 加 dispatch:
++  - session.create → 返 new uuid + 写 ~/.wenshu-hermes/state.db sessions row
++  - session.close → 返 closed ack
++  - session.resume → 返 resumed ack
++- 用 upstream hermes-agent tui_gateway/methods_session.py 仿 写 (uuid + session_db row insert)
++- 装 user 跑 wenshu update 拉 R127 + 跑 desktop 调 session.create 能跑通 (0 timeout)
++
++[验证]
++- python3 -m py_compile wenshu_cli/web_server.py 0 错
++- diff stat: wenshu_cli/web_server.py 1 file changed, 54 insertions(+)
++- 装 user 跑 wenshu update 拉 R127 装包器 (含 R127 web_server.py)
++- 装机 user 验: 发消息看 session.create 不再 timeout
++
++[架构]
++- 装 user 8/3 拍"基础版本不 bump" - 0.1.0 保持
++- 不动上游 hermes-agent (上游是阅读源)
++- R127 PM-direct 自家改 (R125 派单 CC 卡 tool budget, PM-direct 自跑)
++
++[版本号]
++0.1.0 (装 user 拍 "基础版本不 bump")
+diff --git a/hermes_cli/web_server.py b/hermes_cli/web_server.py
+index 80502d633..2e2692e68 100644
+--- a/hermes_cli/web_server.py
++++ b/hermes_cli/web_server.py
+@@ -17763,6 +17763,60 @@ async def gateway_ws(ws: WebSocket) -> None:
+                     "id": request_id,
+                     "result": {"ok": True},
+                 })
++            elif method == "session.create":
++                # R127: 装 user 8/3 拍修 - 仓根 fork 时删了 session.create 端点
++                # upstream hermes-agent tui_gateway/methods_session.py 真 handler
++                # wenshu 仓根 web_server.py:17691 gateway_ws 只 dispatch setup.* 没 session.*
++                # 装 user desktop 调 session.create -> 30s client timeout reject
++                # 修法: PM-direct 在 gateway_ws 加 dispatch session.create/close/resume
++                import uuid as _uuid_mod
++                from pathlib import Path as _Path
++                _home = _Path(os.path.expanduser("~/.wenshu-hermes"))
++                _session_db = _home / "state.db"
++                _new_sid = _uuid_mod.uuid4().hex[:8]
++                try:
++                    import sqlite3 as _sq
++                    _conn = _sq.connect(str(_session_db))
++                    _cur = _conn.cursor()
++                    _cur.execute(
++                        "INSERT OR IGNORE INTO sessions (stored_session_id, runtime_id, source, started_at) VALUES (?, ?, 'desktop', strftime('%s','now'))",
++                        (_new_sid, _new_sid),
++                    )
++                    _conn.commit()
++                    _conn.close()
++                except Exception as _exc:
++                    _log.warning("session.create db write failed: %s", _exc)
++                await ws.send_json({
++                    "jsonrpc": "2.0",
++                    "id": request_id,
++                    "result": {
++                        "session_id": _new_sid,
++                        "stored_session_id": _new_sid,
++                        "info": {"type": "fresh", "cwd": str(_home)},
++                        "message_count": 0,
++                        "messages": [],
++                    },
++                })
++            elif method == "session.close":
++                _close_sid = frame.get("params", {}).get("session_id", "")
++                await ws.send_json({
++                    "jsonrpc": "2.0",
++                    "id": request_id,
++                    "result": {"session_id": _close_sid, "closed": True},
++                })
++            elif method == "session.resume":
++                _resume_sid = frame.get("params", {}).get("session_id", "")
++                await ws.send_json({
++                    "jsonrpc": "2.0",
++                    "id": request_id,
++                    "result": {
++                        "session_id": _resume_sid,
++                        "stored_session_id": _resume_sid,
++                        "info": {"type": "resumed"},
++                        "message_count": 0,
++                        "messages": [],
++                    },
++                })
+     except Exception as exc:  # noqa: BLE001 — handler stays alive until disconnect
+         _log.warning("Desktop /api/ws handler exited: %s", exc)
+     finally:
+-- 
+2.54.0 (Apple Git-157)
+

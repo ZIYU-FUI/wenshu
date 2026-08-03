@@ -1,0 +1,51 @@
+From 59c51d3ef89659511b6221ffdbcfcab6ceba7a0f Mon Sep 17 00:00:00 2001
+From: pm-direct <pm-direct@wenshu.local>
+Date: Thu, 30 Jul 2026 09:38:16 +0800
+Subject: [PATCH 087/168] fix(wenshu): R47a - add apiKeyFallback i18n key
+ (provider-aware 'Direct API access to X')
+
+---
+ apps/desktop/src/i18n/en.ts    | 1 +
+ apps/desktop/src/i18n/types.ts | 1 +
+ apps/desktop/src/i18n/zh.ts    | 1 +
+ 3 files changed, 3 insertions(+)
+
+diff --git a/apps/desktop/src/i18n/en.ts b/apps/desktop/src/i18n/en.ts
+index 426f9c2e9..9d7486a32 100644
+--- a/apps/desktop/src/i18n/en.ts
++++ b/apps/desktop/src/i18n/en.ts
+@@ -2066,6 +2066,7 @@ export const en: Translations = {
+         description: 'Point 文枢 at a local or self-hosted OpenAI-compatible endpoint (vLLM, llama.cpp, Ollama, etc).'
+       }
+     },
++    apiKeyFallback: provider => `Direct API access to ${provider}.`,
+     backToSignIn: 'Back to sign in',
+     getKey: 'Get a key',
+     replaceCurrent: 'Replace current value',
+diff --git a/apps/desktop/src/i18n/types.ts b/apps/desktop/src/i18n/types.ts
+index 1bc9093d6..c2f67dd3a 100644
+--- a/apps/desktop/src/i18n/types.ts
++++ b/apps/desktop/src/i18n/types.ts
+@@ -1675,6 +1675,7 @@ export interface Translations {
+     fireworksPitch: string
+     openRouterPitch: string
+     apiKeyOptions: Record<string, { short: string; description: string }>
++    apiKeyFallback: (provider: string) => string
+     backToSignIn: string
+     getKey: string
+     replaceCurrent: string
+diff --git a/apps/desktop/src/i18n/zh.ts b/apps/desktop/src/i18n/zh.ts
+index 8f0e8b6a2..26f5ed692 100644
+--- a/apps/desktop/src/i18n/zh.ts
++++ b/apps/desktop/src/i18n/zh.ts
+@@ -2236,6 +2236,7 @@ export const zh: Translations = {
+         description: '将 文枢 指向本地或自托管的 OpenAI 兼容端点 (vLLM、llama.cpp、Ollama 等)。'
+       }
+     },
++    apiKeyFallback: provider => `直接 API 接入 ${provider}。`,
+     backToSignIn: '返回登录',
+     getKey: '获取密钥',
+     replaceCurrent: '替换当前值',
+-- 
+2.54.0 (Apple Git-157)
+

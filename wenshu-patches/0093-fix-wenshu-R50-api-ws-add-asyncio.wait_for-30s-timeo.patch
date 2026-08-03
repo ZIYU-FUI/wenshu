@@ -1,0 +1,53 @@
+From 25a747642b7bfbaf44d6aefcb177d70d5301197b Mon Sep 17 00:00:00 2001
+From: pm-direct <pm-direct@wenshu.local>
+Date: Thu, 30 Jul 2026 10:39:09 +0800
+Subject: [PATCH 093/168] fix(wenshu): R50 - /api/ws add asyncio.wait_for 30s
+ timeout to prevent GIL stall
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+装机 user 8/29 报错: 'gateway 连不上' + WS 握手后 backend 'event loop stalled 14.0s (GIL pressure suspected)'
+
+R42 加的 while True: await ws.receive_text() 单线程阻塞, 每条 WS 占用 event loop 14s+, 触发 GIL stall warning.
+
+改为 asyncio.wait_for(receive_text, 30s), timeout 后 self-close, 让 renderer 重连拿 fresh socket.
+
+白名单保留 hermes 字面量 (apps/bootstrap-installer/src/routes/welcome.tsx 致谢语 + hermes-agent.nousresearch.com URL + 上游仓 fork + node_modules/ + MIT 版权).
+
+sync 到 venv: ~/.wenshu-hermes/wenshu-agent/wenshu_cli/web_server.py
+---
+ wenshu_cli/web_server.py | 11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/wenshu_cli/web_server.py b/wenshu_cli/web_server.py
+index 51713b600..fa7d3f23b 100644
+--- a/wenshu_cli/web_server.py
++++ b/wenshu_cli/web_server.py
+@@ -17724,14 +17724,21 @@ async def gateway_ws(ws: WebSocket) -> None:
+         # renderer-side `gateway.connect()` resolves the "ready" event instead
+         # of timing out on close. No inbound messages are dispatched here
+         # because all chat traffic now flows through /api/pub + /api/events.
++        # R50: 用 asyncio.wait_for + timeout 防 GIL 卡住 event loop.
++        # 旧 while True: await ws.receive_text() 会 阻塞单线程 event loop 14s+,
++        # 触发 'event loop stalled (GIL pressure suspected)' warning.
++        # 新: 等 30s 后主动 close, 让 renderer 重连 拿 fresh socket.
+         while True:
+             try:
+-                msg = await ws.receive_text()
++                msg = await asyncio.wait_for(ws.receive_text(), timeout=30.0)
++            except asyncio.TimeoutError:
++                _log.info('Desktop /api/ws 30s idle, closing (R50 self-close)')
++                break
+             except Exception:
+                 break
+             if not msg:
+                 break
+-            # Ignore inbound — the endpoint is server-push only.
++            # Ignore inbound — endpoint is server-push only.
+     except Exception as exc:  # noqa: BLE001 — handler stays alive until disconnect
+         _log.warning("Desktop /api/ws handler exited: %s", exc)
+     finally:
+-- 
+2.54.0 (Apple Git-157)
+

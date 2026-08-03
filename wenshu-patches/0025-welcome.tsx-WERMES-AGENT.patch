@@ -1,0 +1,56 @@
+From 0aba063997839d9e5df2460b0be832713f971dd6 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?=
+ <9528147+zi-yu1983@user.noreply.gitee.com>
+Date: Fri, 24 Jul 2026 14:35:33 +0800
+Subject: [PATCH 025/168] =?UTF-8?q?welcome.tsx=20WERMES=20AGENT=20+=20?=
+ =?UTF-8?q?=E5=AE=89=E8=A3=85=E6=96=87=E6=9E=A2?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- wordmark: HERMES AGENT → WERMES AGENT (装机 user 拍板 7/24)
+- 副文案英→中，与你一同成长的智能体...
+- 安装按钮 Install → 安装文枢
+---
+ apps/bootstrap-installer/src/routes/welcome.tsx | 11 +++++------
+ 1 file changed, 5 insertions(+), 6 deletions(-)
+
+diff --git a/apps/bootstrap-installer/src/routes/welcome.tsx b/apps/bootstrap-installer/src/routes/welcome.tsx
+index b9002e905..007b997e5 100644
+--- a/apps/bootstrap-installer/src/routes/welcome.tsx
++++ b/apps/bootstrap-installer/src/routes/welcome.tsx
+@@ -7,7 +7,7 @@ import { startInstall } from '../store'
+  * Welcome screen.
+  *
+  * Mirrors the desktop's chat intro (apps/desktop/src/components/chat/intro.tsx):
+- *   - 文枢 wordmark rendered in Collapse Bold, uppercase, tracked
++ *   - WERMES wordmark rendered in Collapse Bold, uppercase, tracked
+  *   - mix-blend-plus-lighter so the type "glows" on the canvas
+  *   - fit-text utility so the wordmark sizes itself to the column
+  *
+@@ -31,18 +31,17 @@ export default function Welcome() {
+           }
+         >
+           <span>
+-            <span>HERMES AGENT</span>
++            <span>WERMES AGENT</span>
+           </span>
+-          <span aria-hidden="true">HERMES AGENT</span>
++          <span aria-hidden="true">WERMES AGENT</span>
+         </p>
+ 
+         <p className="m-0 text-center text-base leading-normal tracking-tight text-muted-foreground">
+-          The agent that grows with you. We&rsquo;ll set things up in the
+-          background &mdash; takes a few minutes.
++          与你一同成长的智能体。系统将自动为你配置环境，约需几分钟。
+         </p>
+       </div>
+ 
+-      <HackeryButton label="Install" onClick={() => void startInstall()} />
++      <HackeryButton label="安装文枢" onClick={() => void startInstall()} />
+     </div>
+   )
+ }
+-- 
+2.54.0 (Apple Git-157)
+

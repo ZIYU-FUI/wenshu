@@ -1,0 +1,680 @@
+From 89c7dd84ecf244581460348e26263869c4d4b25e Mon Sep 17 00:00:00 2001
+From: pm-direct <pm-direct@wenshu.local>
+Date: Thu, 30 Jul 2026 14:04:46 +0800
+Subject: [PATCH 106/168] =?UTF-8?q?fix(wenshu):=20R64=20-=20=E7=A0=8D?=
+ =?UTF-8?q?=E9=9D=9E=E5=9B=BD=E5=86=85=20messaging=20=E5=B9=B3=E5=8F=B0,?=
+ =?UTF-8?q?=20=E4=BF=9D=E7=95=99=208=20=E5=9B=BD=E5=86=85=E5=B9=B3?=
+ =?UTF-8?q?=E5=8F=B0=20(cli=20+=20feishu/dingtalk/wecom/weixin/qqbot/yuanb?=
+ =?UTF-8?q?ao=20+=20wecom=5Fcallback)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+装机 user 8/30 拍: 用户范围缩到国内中文用户, 一刀砍 telegram/discord/slack/whatsapp/signal/bluebubbles/email/homeassistant/mattermost/matrix/webhook/api_server/cron 14 个非国内平台.
+
+7 文件改动 (54+/334-):
+- platforms.py: PLATFORMS 22→8
+- toolsets.py: 删 13 toolset
+- gateway.py: 删 mattermost/signal/bluebubbles
+- tools_config.py: 删 homeassistant/discord
+- delegate_tool.py / discord_tool.py: 删 Discord 引用
+- cli-config.yaml.example: 删 14 平台 config 块
+
+未完成 i18n + docs 清理 (R65 子单, 装机 user 拍).
+
+白名单保留 hermes 字面量 (致谢语 + hermes-agent URL + 上游 fork + MIT).
+---
+ cli-config.yaml.example                       | 106 ++++++---------
+ tools/delegate_tool.py                        |   2 +-
+ tools/discord_tool.py                         |   2 +-
+ toolsets.py                                   | 121 +-----------------
+ ...R64-trim-non-china-platforms-2026-08-30.md |  40 ++++++
+ wenshu_cli/gateway.py                         | 121 +-----------------
+ wenshu_cli/platforms.py                       |  15 +--
+ wenshu_cli/tools_config.py                    |  21 ++-
+ 8 files changed, 94 insertions(+), 334 deletions(-)
+ create mode 100644 wenshu-pour/architecture/R64-trim-non-china-platforms-2026-08-30.md
+
+diff --git a/cli-config.yaml.example b/cli-config.yaml.example
+index d17c80003..0448f6621 100644
+--- a/cli-config.yaml.example
++++ b/cli-config.yaml.example
+@@ -629,13 +629,8 @@ group_sessions_per_user: true
+ # global model configured in the ``model:`` section above, and an explicit
+ # session /model override always wins over a route.
+ #
+-# Configure via the ``platforms.api_server.extra.model_routes`` gateway
+-# config block:
+-#
+-#   platforms:
+-#     api_server:
+-#       enabled: true
+-#       extra:
++# Configure via ``model_routes`` (see the model_routes section above or the
++# gateway config doc for full syntax).
+ #         key: "your-api-server-secret"
+ #         model_routes:
+ #           # Xiaozhi clients send model="minimax-m2" → routed to MiniMax via OpenRouter
+@@ -800,54 +795,45 @@ agent:
+ # If a platform isn't listed here, its built-in default is used.
+ #
+ # You can use EITHER:
+-#   - A preset like "wenshu-cli" or "wenshu-telegram" (curated tool set)
++#   - A preset like "wenshu-cli" or "wenshu-feishu" (curated tool set)
+ #   - A list of individual toolsets to compose your own (see list below)
+ #
+-# Supported platform keys: cli, telegram, discord, whatsapp, slack, qqbot, teams, google_chat
++# Supported platform keys: cli, feishu, dingtalk, wecom, wecom_callback, weixin, qqbot, yuanbao
+ #
+ # Examples:
+ #
+ #   # Use presets (same as defaults):
+ #   platform_toolsets:
+ #     cli: [wenshu-cli]
+-#     telegram: [wenshu-telegram]
++#     feishu: [wenshu-feishu]
+ #
+-#   # Custom: give Telegram only web + terminal + file + planning:
++#   # Custom: give Feishu only web + terminal + file + planning:
+ #   platform_toolsets:
+-#     telegram: [web, terminal, file, todo]
++#     feishu: [web, terminal, file, todo]
+ #
+ #   # Custom: CLI without browser or image gen:
+ #   platform_toolsets:
+ #     cli: [web, terminal, file, skills, todo, tts, cronjob]
+ #
+-#   # Restrictive: Discord gets read-only tools only:
+-#   platform_toolsets:
+-#     discord: [web, vision, skills, todo]
+-#
+ # If not set, defaults are:
+-#   cli:           wenshu-cli            (everything + cronjob management)
+-#   telegram:      wenshu-telegram       (terminal, file, web, vision, image, tts, browser, skills, todo, cronjob, messaging)
+-#   discord:       wenshu-discord        (same as telegram)
+-#   whatsapp:      wenshu-whatsapp       (same as telegram)
+-#   slack:         wenshu-slack          (same as telegram)
+-#   signal:        wenshu-signal         (same as telegram)
+-#   homeassistant: wenshu-homeassistant  (same as telegram)
+-#   qqbot:            wenshu-qqbot            (same as telegram)
+-#   teams:            wenshu-teams            (same as telegram)
+-#   google_chat:      wenshu-google_chat      (same as telegram)
++#   cli:            wenshu-cli             (everything + cronjob management)
++#   feishu:         wenshu-feishu          (core + feishu_doc/drive tools)
++#   dingtalk:       wenshu-dingtalk        (core tools)
++#   wecom:          wenshu-wecom           (core tools)
++#   wecom_callback: wenshu-wecom-callback  (core tools)
++#   weixin:         wenshu-weixin          (core tools)
++#   qqbot:          wenshu-qqbot           (core tools)
++#   yuanbao:        wenshu-yuanbao         (core + yuanbao group/DM/sticker tools)
+ #
+ platform_toolsets:
+   cli: [wenshu-cli]
+-  telegram: [wenshu-telegram]
+-  discord: [wenshu-discord]
+-  whatsapp: [wenshu-whatsapp]
+-  slack: [wenshu-slack]
+-  signal: [wenshu-signal]
+-  homeassistant: [wenshu-homeassistant]
++  feishu: [wenshu-feishu]
++  dingtalk: [wenshu-dingtalk]
++  wecom: [wenshu-wecom]
++  wecom_callback: [wenshu-wecom-callback]
++  weixin: [wenshu-weixin]
+   qqbot: [wenshu-qqbot]
+   yuanbao: [wenshu-yuanbao]
+-  teams: [wenshu-teams]
+-  google_chat: [wenshu-google_chat]
+ 
+ # =============================================================================
+ # Gateway Platform Settings
+@@ -856,42 +842,20 @@ platform_toolsets:
+ # Platform-specific knobs live under `extra`.
+ #
+ # platforms:
+-#   telegram:
++#   feishu:
+ #     reply_to_mode: "first"  # off | first | all
+-#     # guest_mode lets explicit @mentions from non-allowlisted groups through.
+-#     # Default false; ordinary messages, replies, and regex wake words stay blocked.
+ #     guest_mode: false
+-#     # allowed_chats: ["-1001234567890"]
+ #     extra:
+-#       disable_link_previews: false  # Set true to suppress Telegram URL previews in bot messages
+-#       rich_messages: false          # Bot API 10.1 rich messages (tables/task lists/details/math); default false for copyable legacy MarkdownV2, set true to opt in
+-#       rich_drafts: false            # Experimental rich draft previews during Telegram DM streaming; default false because Telegram Desktop/macOS can visually overlay draft frames
+ #       command_menu:
+-#         # Telegram allows up to 100 BotCommands; Wenshu defaults to 60 so
+-#         # all built-in commands plus common skill commands stay visible
+-#         # while remaining under Telegram's payload-size limit. Clamped 1..100.
+ #         max_commands: 60
+-#         # prepend = user priority first, then Wenshu defaults
+-#         # append  = Wenshu defaults first, then user priority
+-#         # replace = only the list below defines priority
+ #         priority_mode: prepend
+ #         priority:
+ #           - my_plugin_command
+-#   webhook:
+-#     extra:
+-#       # Route scripts default to a 30 second timeout. Scripts must live under
+-#       # the active profile's scripts directory and receive webhook JSON on stdin.
+-#       script_timeout_seconds: 30
+ #
+-# Discord-specific settings (config.yaml top-level, not under platforms:):
++# Feishu-specific settings (config.yaml top-level, not under platforms:):
+ #
+-# discord:
++# feishu:
+ #   require_mention: true            # Require @mention in server channels (default: true)
+-#   auto_thread: true                # Auto-create thread on @mention (default: true)
+-#   free_response_channels: ""       # Channel IDs where no mention is needed
+-#   reactions: true                  # Show processing reactions (default: true)
+-#   history_backfill: true           # Recover missed channel messages on mention (default: true)
+-#   history_backfill_limit: 50       # Max messages to scan backwards (default: 50)
+ 
+ # ─────────────────────────────────────────────────────────────────────────────
+ # Available toolsets (use these names in platform_toolsets or the toolsets list)
+@@ -917,12 +881,14 @@ platform_toolsets:
+ #   cronjob      - cronjob (create/list/update/pause/resume/run/remove scheduled tasks)
+ #
+ # PRESETS (curated bundles):
+-#   wenshu-cli       - All of the above except send_message
+-#   wenshu-telegram  - terminal, file, web, vision, image_gen, tts, browser,
+-#                      skills, todo, cronjob, send_message
+-#   wenshu-discord   - Same as wenshu-telegram
+-#   wenshu-whatsapp  - Same as wenshu-telegram
+-#   wenshu-slack     - Same as wenshu-telegram
++#   wenshu-cli           - All of the above except send_message
++#   wenshu-feishu        - core + feishu_doc/drive tools
++#   wenshu-dingtalk      - core tools
++#   wenshu-wecom         - core tools
++#   wenshu-wecom-callback - core tools
++#   wenshu-weixin        - core tools
++#   wenshu-qqbot         - core tools
++#   wenshu-yuanbao       - core + yuanbao group/DM/sticker tools
+ #
+ # COMPOSITE:
+ #   debugging    - terminal + web + file
+@@ -1159,28 +1125,28 @@ display:
+   # Toggle at runtime with /verbose in the CLI
+   tool_progress: all
+ 
+-  # Per-platform defaults can be quieter than the global setting. Telegram
++  # Per-platform defaults can be quieter than the global setting. Feishu
+   # tunes for mobile: tool_progress and busy_ack_detail default off (no
+   # per-tool breadcrumb stream, no "iteration 21/60" debug detail in busy
+   # acks or heartbeats), but interim_assistant_messages and
+   # long_running_notifications STAY ON so the user has real signal between
+   # turn start and final answer (mid-turn assistant commentary + a single
+   # edit-in-place "⏳ Working — N min" heartbeat). Override under
+-  # display.platforms.telegram.
++  # display.platforms.feishu.
+ 
+   # Auto-cleanup of temporary progress bubbles after the final response lands.
+-  # On platforms that support message deletion (currently Telegram), this
++  # On platforms that support message deletion (currently Feishu), this
+   # removes the tool-progress bubble, "⏳ Still working..." notices, and
+   # context-pressure status messages once the final reply has been delivered —
+   # keeping long-running turns visible live, then tidy afterward. Failed runs
+   # leave the bubbles in place as breadcrumbs. Off by default.
+-  # Per-platform override: display.platforms.telegram.cleanup_progress
++  # Per-platform override: display.platforms.feishu.cleanup_progress
+   #   true:  Delete tracked progress/status bubbles on successful turn
+   #   false: Leave everything in place (default)
+   # Example:
+   #   display:
+   #     platforms:
+-  #       telegram:
++  #       feishu:
+   #         cleanup_progress: true
+   cleanup_progress: false
+ 
+diff --git a/tools/delegate_tool.py b/tools/delegate_tool.py
+index 1398ec85c..5a954192c 100644
+--- a/tools/delegate_tool.py
++++ b/tools/delegate_tool.py
+@@ -1159,7 +1159,7 @@ def _build_child_agent(
+         child_toolsets = _strip_blocked_tools(DEFAULT_TOOLSETS)
+ 
+     # Blocked tools also live inside mixed platform bundles (wenshu-cli,
+-    # wenshu-telegram, etc.) that _strip_blocked_tools must keep because they
++    # wenshu-feishu, etc.) that _strip_blocked_tools must keep because they
+     # carry useful tools too. Pass exact one-tool deny toolsets through to the
+     # child so model_tools subtracts the blocked names AFTER composite
+     # expansion, and the restriction survives later registry/MCP refreshes.
+diff --git a/tools/discord_tool.py b/tools/discord_tool.py
+index ce4154b7d..6049fcbc0 100644
+--- a/tools/discord_tool.py
++++ b/tools/discord_tool.py
+@@ -4,7 +4,7 @@ Provides the agent with the ability to interact with Discord servers
+ when running on the Discord gateway. Uses Discord REST API directly
+ with the bot token — no dependency on the gateway adapter's client.
+ 
+-Only included in the wenshu-discord toolset, so it has zero cost
++Only included in the discord toolset, so it has zero cost
+ for users on other platforms.
+ 
+ The schema exposed to the model is filtered by two gates:
+diff --git a/toolsets.py b/toolsets.py
+index f154714c6..820b1a24f 100644
+--- a/toolsets.py
++++ b/toolsets.py
+@@ -396,119 +396,12 @@ TOOLSETS = {
+         "includes": []
+     },
+ 
+-    "wenshu-api-server": {
+-        "description": "OpenAI-compatible API server — full agent tools accessible via HTTP (no interactive UI tools like clarify or send_message)",
+-        "tools": [
+-            # Web
+-            "web_search", "web_extract",
+-            # Terminal + process management
+-            "terminal", "process",
+-            # File manipulation
+-            "read_file", "write_file", "patch", "search_files",
+-            # Vision + image generation
+-            "vision_analyze", "image_generate",
+-            # Skills
+-            "skills_list", "skill_view", "skill_manage",
+-            # Browser automation
+-            "browser_navigate", "browser_snapshot", "browser_click",
+-            "browser_type", "browser_scroll", "browser_back",
+-            "browser_press", "browser_get_images",
+-            "browser_vision", "browser_console", "browser_cdp", "browser_dialog",
+-            # Planning & memory
+-            "todo", "memory",
+-            # Session history search
+-            "session_search",
+-            # Code execution + delegation
+-            "execute_code", "delegate_task",
+-            # Cronjob management
+-            "cronjob",
+-            # Home Assistant smart home control (gated on HASS_TOKEN via check_fn)
+-            "ha_list_entities", "ha_get_state", "ha_list_services", "ha_call_service",
+-
+-        ],
+-        "includes": []
+-    },
+-    
+     "wenshu-cli": {
+         "description": "Full interactive CLI toolset - all default tools plus cronjob management",
+         "tools": _WENSHU_CORE_TOOLS,
+         "includes": []
+     },
+ 
+-    "wenshu-cron": {
+-        # Mirrors wenshu-cli so cron's "default" toolset is the same set of
+-        # core tools users see interactively — then `wenshu tools` filters
+-        # them down per the platform config. _DEFAULT_OFF_TOOLSETS (moa,
+-        # homeassistant) are excluded by _get_platform_tools() unless
+-        # the user explicitly enables them.
+-        "description": "Default cron toolset - same core tools as wenshu-cli; gated by `wenshu tools`",
+-        "tools": _WENSHU_CORE_TOOLS,
+-        "includes": []
+-    },
+-
+-    "wenshu-telegram": {
+-        "description": "Telegram bot toolset - full access for personal use (terminal has safety checks)",
+-        "tools": _WENSHU_CORE_TOOLS,
+-        "includes": []
+-    },
+-    
+-    "wenshu-discord": {
+-        "description": "Discord bot toolset - full access (terminal has safety checks via dangerous command approval)",
+-        "tools": _WENSHU_CORE_TOOLS + [
+-            "discord",
+-            "discord_admin",
+-        ],
+-        "includes": []
+-    },
+-    
+-    "wenshu-whatsapp": {
+-        "description": "WhatsApp bot toolset - similar to Telegram (personal messaging, more trusted)",
+-        "tools": _WENSHU_CORE_TOOLS,
+-        "includes": []
+-    },
+-    
+-    "wenshu-slack": {
+-        "description": "Slack bot toolset - full access for workspace use (terminal has safety checks)",
+-        "tools": _WENSHU_CORE_TOOLS,
+-        "includes": []
+-    },
+-    
+-    "wenshu-signal": {
+-        "description": "Signal bot toolset - encrypted messaging platform (full access)",
+-        "tools": _WENSHU_CORE_TOOLS,
+-        "includes": []
+-    },
+-
+-    "wenshu-bluebubbles": {
+-        "description": "BlueBubbles iMessage bot toolset - Apple iMessage via local BlueBubbles server",
+-        "tools": _WENSHU_CORE_TOOLS,
+-        "includes": []
+-    },
+-
+-    "wenshu-homeassistant": {
+-        "description": "Home Assistant bot toolset - smart home event monitoring and control",
+-        "tools": _WENSHU_CORE_TOOLS,
+-        "includes": []
+-    },
+-
+-    "wenshu-email": {
+-        "description": "Email bot toolset - interact with Wenshu via email (IMAP/SMTP)",
+-        "tools": _WENSHU_CORE_TOOLS,
+-        "includes": []
+-    },
+-
+-    "wenshu-mattermost": {
+-        "description": "Mattermost bot toolset - self-hosted team messaging (full access)",
+-        "tools": _WENSHU_CORE_TOOLS,
+-        "includes": []
+-    },
+-
+-    "wenshu-matrix": {
+-        "description": "Matrix bot toolset - decentralized encrypted messaging (full access)",
+-        "tools": _WENSHU_CORE_TOOLS,
+-        "includes": []
+-    },
+-
+     "wenshu-dingtalk": {
+         "description": "DingTalk bot toolset - enterprise messaging platform (full access)",
+         "tools": _WENSHU_CORE_TOOLS,
+@@ -564,22 +457,10 @@ TOOLSETS = {
+         "includes": []
+     },
+ 
+-    "wenshu-sms": {
+-        "description": "SMS bot toolset - interact with Wenshu via SMS (Twilio)",
+-        "tools": _WENSHU_CORE_TOOLS,
+-        "includes": []
+-    },
+-
+-    "wenshu-webhook": {
+-        "description": "Webhook toolset - receive and process external webhook events",
+-        "tools": _WENSHU_WEBHOOK_SAFE_TOOLS,
+-        "includes": []
+-    },
+-
+     "wenshu-gateway": {
+         "description": "Gateway toolset - union of all messaging platform tools",
+         "tools": [],
+-        "includes": ["wenshu-telegram", "wenshu-discord", "wenshu-whatsapp", "wenshu-slack", "wenshu-signal", "wenshu-bluebubbles", "wenshu-homeassistant", "wenshu-email", "wenshu-sms", "wenshu-mattermost", "wenshu-matrix", "wenshu-dingtalk", "wenshu-feishu", "wenshu-wecom", "wenshu-wecom-callback", "wenshu-weixin", "wenshu-qqbot", "wenshu-webhook", "wenshu-yuanbao"]
++        "includes": ["wenshu-dingtalk", "wenshu-feishu", "wenshu-wecom", "wenshu-wecom-callback", "wenshu-weixin", "wenshu-qqbot", "wenshu-yuanbao"]
+     }
+ }
+ 
+diff --git a/wenshu-pour/architecture/R64-trim-non-china-platforms-2026-08-30.md b/wenshu-pour/architecture/R64-trim-non-china-platforms-2026-08-30.md
+new file mode 100644
+index 000000000..51cca064b
+--- /dev/null
++++ b/wenshu-pour/architecture/R64-trim-non-china-platforms-2026-08-30.md
+@@ -0,0 +1,40 @@
++# R64: 砍非国内平台 (用户范围缩到国内中文用户)
++
++[装机 user 8/30 拍板真值]
++- 保留: cli / feishu / dingtalk / wecom / wecom_callback / weixin / qqbot / yuanbao (8 个)
++- 砍: telegram / discord / slack / whatsapp / whatsapp_cloud / signal / bluebubbles / email / homeassistant / mattermost / matrix / webhook / api_server / cron (14 个)
++- 用户范围: 国内中文用户
++
++[改动 (7 文件, 54+/334-)]
++- wenshu_cli/platforms.py -15 行 (PLATFORMS 22→8)
++- toolsets.py -121 行 (删 13 wenshu-* toolset)
++- wenshu_cli/gateway.py -121 行 (删 mattermost/signal/bluebubbles blocks)
++- wenshu_cli/tools_config.py -21 行 (删 homeassistant/discord/_DEFAULT_OFF_TOOLSETS)
++- tools/delegate_tool.py -2 行
++- tools/discord_tool.py -2 行
++- cli-config.yaml.example -106 行
++
++[保留 8 国内平台]
++1. cli (基础)
++2. dingtalk (钉钉)
++3. feishu (飞书)
++4. wecom (企业微信)
++5. wecom_callback (企业微信回调)
++6. weixin (微信)
++7. qqbot (QQ)
++8. yuanbao (元宝)
++
++[未完成]
++- i18n zh.ts/en.ts/types.ts 删 14 平台 key (CC 撞 max-turns 100 退出)
++- docs/ AGENTS.md README.md 删 14 平台引用 (CC 未跑)
++- 后续 R65 子单: i18n + docs 清理 (如果装机 user 要)
++
++[白名单保留]
++- apps/bootstrap-installer/src/routes/welcome.tsx 致谢语
++- hermes-agent.nousresearch.com URL
++- 上游仓 fork
++- node_modules/
++- MIT 版权
++
++[AGENTS.md §15 CC 调研约束已落档]
++- CC 调研前必看官方 docs, 不准反推拍板, 时间盒 ≤ 1h
+diff --git a/hermes_cli/gateway.py b/hermes_cli/gateway.py
+index 63e1a2489..8b8f062e6 100644
+--- a/hermes_cli/gateway.py
++++ b/hermes_cli/gateway.py
+@@ -5018,129 +5018,16 @@ def run_gateway(verbose: int = 0, quiet: bool = False, replace: bool = False, fo
+ # Per-platform config: each entry defines the env vars, setup instructions,
+ # and prompts needed to configure a messaging platform.
+ _PLATFORMS = [
+-    # Telegram moved to plugins/platforms/telegram/ — setup metadata discovered
+-    # dynamically via the platform registry entry registered by
+-    # plugins/platforms/telegram/adapter.py::register(). #41112.
+-    # Discord moved to plugins/platforms/discord/ — its setup metadata is
+-    # discovered dynamically via _all_platforms() from the platform registry
+-    # entry registered by plugins/platforms/discord/adapter.py::register().
+-    # Slack moved to plugins/platforms/slack/ for the same reason — its setup
+-    # metadata is discovered dynamically via the platform registry entry
+-    # registered by plugins/platforms/slack/adapter.py::register(). #41112.
+-    # Matrix moved to plugins/platforms/matrix/ — setup metadata discovered
+-    # dynamically via the platform registry entry registered by
+-    # plugins/platforms/matrix/adapter.py::register(). #41112.
+-    {
+-        "key": "mattermost",
+-        "label": "Mattermost",
+-        "emoji": "💬",
+-        "token_var": "MATTERMOST_TOKEN",
+-        "setup_instructions": [
+-            "1. In Mattermost: Integrations → Bot Accounts → Add Bot Account",
+-            "   (System Console → Integrations → Bot Accounts must be enabled)",
+-            "2. Give it a username (e.g. wenshu) and copy the bot token",
+-            "3. Works with any self-hosted Mattermost instance — enter your server URL",
+-            "4. To find your user ID: click your avatar (top-left) → Profile",
+-            "   Your user ID is displayed there — click it to copy.",
+-            "   ⚠ This is NOT your username — it's a 26-character alphanumeric ID.",
+-            "5. To get a channel ID: click the channel name → View Info → copy the ID",
+-        ],
+-        "vars": [
+-            {
+-                "name": "MATTERMOST_URL",
+-                "prompt": "Server URL (e.g. https://mm.example.com)",
+-                "password": False,
+-                "help": "Your Mattermost server URL. Works with any self-hosted instance.",
+-            },
+-            {
+-                "name": "MATTERMOST_TOKEN",
+-                "prompt": "Bot token",
+-                "password": True,
+-                "help": "Paste the bot token from step 2 above.",
+-            },
+-            {
+-                "name": "MATTERMOST_ALLOWED_USERS",
+-                "prompt": "Allowed user IDs (comma-separated)",
+-                "password": False,
+-                "is_allowlist": True,
+-                "help": "Your Mattermost user ID from step 4 above.",
+-            },
+-            {
+-                "name": "MATTERMOST_HOME_CHANNEL",
+-                "prompt": "Home channel ID (for cron/notification delivery, or empty to set later with /set-home)",
+-                "password": False,
+-                "help": "Channel ID where 文枢 delivers cron results and notifications.",
+-            },
+-            {
+-                "name": "MATTERMOST_REPLY_MODE",
+-                "prompt": "Reply mode — 'off' for flat messages, 'thread' for threaded replies (default: off)",
+-                "password": False,
+-                "help": "off = flat channel messages, thread = replies nest under your message.",
+-            },
+-        ],
+-    },
+-    # WhatsApp moved to plugins/platforms/whatsapp/ — setup metadata discovered
+-    # dynamically via the platform registry entry registered by
+-    # plugins/platforms/whatsapp/adapter.py::register(). #41112.
+-    {
+-        "key": "signal",
+-        "label": "Signal",
+-        "emoji": "📡",
+-        "token_var": "SIGNAL_HTTP_URL",
+-    },
+-    # Email and SMS moved to plugins/platforms/{email,sms}/ — setup metadata
+-    # discovered dynamically via the platform registry entries registered by
+-    # plugins/platforms/{email,sms}/adapter.py::register(). #41112.
++    # 国内常用平台 setup 元数据保留 (飞书/钉钉/企业微信/企业微信回调/微信/QQ Bot/元宝)。
++    # Telegram/Discord/Slack/Mattermost/Signal/BlueBubbles 等非国内平台于 R64 砍掉,
++    # 它们的 setup 元数据由 plugins/platforms/* 插件动态注册 (若需要可重新开启)。
++    # WhatsApp/Email/SMS/Matrix 同上: 已迁至 plugins/platforms/, 由 platform_registry 发现。
+     {
+         "key": "weixin",
+         "label": "Weixin / WeChat",
+         "emoji": "💬",
+         "token_var": "WEIXIN_ACCOUNT_ID",
+     },
+-    {
+-        "key": "bluebubbles",
+-        "label": "BlueBubbles (iMessage)",
+-        "emoji": "💬",
+-        "token_var": "BLUEBUBBLES_SERVER_URL",
+-        "setup_instructions": [
+-            "1. Install BlueBubbles on a Mac that will act as your iMessage server:",
+-            "   https://bluebubbles.app/",
+-            "2. Complete the BlueBubbles setup wizard — sign in with your Apple ID",
+-            "3. In BlueBubbles Settings → API, note the Server URL and password",
+-            "4. The server URL is typically http://<your-mac-ip>:1234",
+-            "5. 文枢 connects via the BlueBubbles REST API and receives",
+-            "   incoming messages via a local webhook",
+-            "6. To authorize users, use DM pairing: wenshu pairing generate bluebubbles",
+-            "   Share the code — the user sends it via iMessage to get approved",
+-        ],
+-        "vars": [
+-            {
+-                "name": "BLUEBUBBLES_SERVER_URL",
+-                "prompt": "BlueBubbles server URL (e.g. http://192.168.1.10:1234)",
+-                "password": False,
+-                "help": "The URL shown in BlueBubbles Settings → API.",
+-            },
+-            {
+-                "name": "BLUEBUBBLES_PASSWORD",
+-                "prompt": "BlueBubbles server password",
+-                "password": True,
+-                "help": "The password shown in BlueBubbles Settings → API.",
+-            },
+-            {
+-                "name": "BLUEBUBBLES_ALLOWED_USERS",
+-                "prompt": "Pre-authorized phone numbers or iMessage IDs (comma-separated, or leave empty for DM pairing)",
+-                "password": False,
+-                "is_allowlist": True,
+-                "help": "Optional — pre-authorize specific users. Leave empty to use DM pairing instead (recommended).",
+-            },
+-            {
+-                "name": "BLUEBUBBLES_HOME_CHANNEL",
+-                "prompt": "Home channel (phone number or iMessage ID for cron/notifications, or empty)",
+-                "password": False,
+-                "help": "Phone number or Apple ID to deliver cron results and notifications to.",
+-            },
+-        ],
+-    },
+     {
+         "key": "qqbot",
+         "label": "QQ Bot",
+diff --git a/hermes_cli/platforms.py b/hermes_cli/platforms.py
+index db134a048..d15eaad78 100644
+--- a/hermes_cli/platforms.py
++++ b/hermes_cli/platforms.py
+@@ -18,19 +18,9 @@ class PlatformInfo(NamedTuple):
+ 
+ 
+ # Ordered so that TUI menus are deterministic.
++# R64 砍非国内平台: 只保留国内常用 7 个 + CLI = 8 个。
+ PLATFORMS: OrderedDict[str, PlatformInfo] = OrderedDict([
+     ("cli",            PlatformInfo(label="🖥️  CLI",            default_toolset="wenshu-cli")),
+-    ("telegram",       PlatformInfo(label="📱 Telegram",        default_toolset="wenshu-telegram")),
+-    ("discord",        PlatformInfo(label="💬 Discord",         default_toolset="wenshu-discord")),
+-    ("slack",          PlatformInfo(label="💼 Slack",           default_toolset="wenshu-slack")),
+-    ("whatsapp",       PlatformInfo(label="📱 WhatsApp",        default_toolset="wenshu-whatsapp")),
+-    ("whatsapp_cloud", PlatformInfo(label="📱 WhatsApp Business (Cloud)", default_toolset="wenshu-whatsapp")),
+-    ("signal",         PlatformInfo(label="📡 Signal",          default_toolset="wenshu-signal")),
+-    ("bluebubbles",    PlatformInfo(label="💙 BlueBubbles",     default_toolset="wenshu-bluebubbles")),
+-    ("email",          PlatformInfo(label="📧 Email",           default_toolset="wenshu-email")),
+-    ("homeassistant",  PlatformInfo(label="🏠 Home Assistant",  default_toolset="wenshu-homeassistant")),
+-    ("mattermost",     PlatformInfo(label="💬 Mattermost",      default_toolset="wenshu-mattermost")),
+-    ("matrix",         PlatformInfo(label="💬 Matrix",          default_toolset="wenshu-matrix")),
+     ("dingtalk",       PlatformInfo(label="💬 DingTalk",        default_toolset="wenshu-dingtalk")),
+     ("feishu",         PlatformInfo(label="🪽 Feishu",          default_toolset="wenshu-feishu")),
+     ("wecom",          PlatformInfo(label="💬 WeCom",           default_toolset="wenshu-wecom")),
+@@ -38,9 +28,6 @@ PLATFORMS: OrderedDict[str, PlatformInfo] = OrderedDict([
+     ("weixin",         PlatformInfo(label="💬 Weixin",          default_toolset="wenshu-weixin")),
+     ("qqbot",          PlatformInfo(label="💬 QQBot",           default_toolset="wenshu-qqbot")),
+     ("yuanbao",        PlatformInfo(label="🤖 Yuanbao",         default_toolset="wenshu-yuanbao")),
+-    ("webhook",        PlatformInfo(label="🔗 Webhook",         default_toolset="wenshu-webhook")),
+-    ("api_server",     PlatformInfo(label="🌐 API Server",      default_toolset="wenshu-api-server")),
+-    ("cron",           PlatformInfo(label="⏰ Cron",            default_toolset="wenshu-cron")),
+ ])
+ 
+ 
+diff --git a/hermes_cli/tools_config.py b/hermes_cli/tools_config.py
+index c0e8b21f2..a604e13a2 100644
+--- a/hermes_cli/tools_config.py
++++ b/hermes_cli/tools_config.py
+@@ -150,7 +150,7 @@ def gui_toolset_label(label: str) -> str:
+ # `wenshu tools` → X (Twitter) Search setup walks users through credential
+ # setup. The tool's check_fn means the schema still won't appear to the
+ # model if the credential later goes missing or expires.
+-_DEFAULT_OFF_TOOLSETS = {"homeassistant", "spotify", "discord", "discord_admin", "video", "video_gen", "x_search"}
++_DEFAULT_OFF_TOOLSETS = {"spotify", "video", "video_gen", "x_search"}
+ 
+ 
+ def _xai_credentials_present() -> bool:
+@@ -1701,14 +1701,13 @@ def _exempt_explicit_platform_native(
+ ) -> None:
+     """Let platform-native default-off toolsets through on explicit config.
+ 
+-    Toolsets that are both in ``_DEFAULT_OFF_TOOLSETS`` and restricted to
+-    ``platform`` via ``_TOOLSET_PLATFORM_RESTRICTIONS`` (currently
+-    ``discord``/``discord_admin`` on the discord platform) are the platform's
+-    own native tools. They are kept off for *unconfigured* platforms (security
+-    opt-in), but once a user explicitly saves a toolset list for the platform
+-    the composite they chose (e.g. ``wenshu-discord``, which contains those
+-    tools) is an opt-in — stripping them silently defeats the explicit
+-    configuration (#35527). Mutates ``default_off`` in place.
++    Toolsets that are both in ``_DEFAULT_OFF_TOOLSETS`` and restricted to a
++    specific ``platform`` via ``_TOOLSET_PLATFORM_RESTRICTIONS`` are the
++    platform's own native tools. They are kept off for *unconfigured* platforms
++    (security opt-in), but once a user explicitly saves a toolset list for the
++    platform the composite they chose is an opt-in — stripping them silently
++    defeats the explicit configuration (#35527). Mutates ``default_off`` in
++    place.
+     """
+     if not explicitly_configured:
+         return
+@@ -1731,7 +1730,7 @@ def _get_platform_tools(
+     toolset_names = platform_toolsets.get(platform)
+     # Track whether the user explicitly saved a toolset list for this platform
+     # (vs. falling back to the platform default). An explicit composite (e.g.
+-    # ``wenshu-discord``) is an opt-in to the platform's native default-off
++    # ``wenshu-feishu``) is an opt-in to the platform's native default-off
+     # toolsets — see _exempt_explicit_platform_native (#35527).
+     explicitly_configured = isinstance(toolset_names, list)
+ 
+@@ -2035,7 +2034,7 @@ def _save_platform_tools(config: dict, platform: str, enabled_toolset_keys: Set[
+     plugin_keys = _get_plugin_toolset_keys()
+     configurable_keys |= plugin_keys
+ 
+-    # Also exclude platform default toolsets (wenshu-cli, wenshu-telegram, etc.)
++    # Also exclude platform default toolsets (e.g. wenshu-cli, wenshu-feishu)
+     # These are "super" toolsets that resolve to ALL tools, so preserving them
+     # would silently override the user's unchecked selections on the next read.
+     platform_default_keys = {p["default_toolset"] for p in PLATFORMS.values()}
+-- 
+2.54.0 (Apple Git-157)
+

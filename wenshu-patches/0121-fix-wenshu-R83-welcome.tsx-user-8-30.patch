@@ -1,0 +1,36 @@
+From 19cb7de7b738d6b0558f4ed0e1e7d0677d77dcda Mon Sep 17 00:00:00 2001
+From: pm-direct <pm-direct@wenshu.local>
+Date: Thu, 30 Jul 2026 18:32:47 +0800
+Subject: [PATCH 121/168] =?UTF-8?q?fix(wenshu):=20R83=20-=20welcome.tsx=20?=
+ =?UTF-8?q?=E5=89=AF=E6=96=87=E6=A1=88=E6=99=BA=E8=83=BD=E4=BD=93=E5=90=8E?=
+ =?UTF-8?q?=E5=8A=A0=E6=8D=A2=E8=A1=8C=20(=E8=A3=85=E6=9C=BA=20user=208/30?=
+ =?UTF-8?q?=20=E6=8B=8D=E6=9D=BF=E5=BC=8F=E8=B0=83=E6=95=B4)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+原本: '基于 Hermes 修改而来, WENSHU 是一个帮助你写作的智能体. 系统将自动为你配置环境, 约需几分钟.'
+改: 在'智能体.' 后加 \n 拆两行, 板式更好看.
+
+落档: 无 (单文件 1 行改).
+---
+ apps/bootstrap-installer/src/routes/welcome.tsx | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/apps/bootstrap-installer/src/routes/welcome.tsx b/apps/bootstrap-installer/src/routes/welcome.tsx
+index e188b6156..a91644e4c 100644
+--- a/apps/bootstrap-installer/src/routes/welcome.tsx
++++ b/apps/bootstrap-installer/src/routes/welcome.tsx
+@@ -37,7 +37,8 @@ export default function Welcome() {
+         </p>
+ 
+         <p className="m-0 text-center text-base leading-normal tracking-tight text-muted-foreground">
+-          基于 Hermes 修改而来，WENSHU 是一个帮助你写作的智能体。系统将自动为你配置环境，约需几分钟。
++          基于 Hermes 修改而来，WENSHU 是一个帮助你写作的智能体。
++          系统将自动为你配置环境，约需几分钟。
+         </p>
+       </div>
+ 
+-- 
+2.54.0 (Apple Git-157)
+

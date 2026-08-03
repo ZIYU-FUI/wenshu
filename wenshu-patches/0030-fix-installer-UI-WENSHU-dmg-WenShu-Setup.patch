@@ -1,0 +1,198 @@
+From 9f9c7412de97d80ec38f3838ec5ae1828c47d052 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?=
+ <9528147+zi-yu1983@user.noreply.gitee.com>
+Date: Fri, 24 Jul 2026 15:26:23 +0800
+Subject: [PATCH 030/168] =?UTF-8?q?fix(installer):=20UI=20=E6=96=87?=
+ =?UTF-8?q?=E6=A1=88=20WENSHU=20+=20dmg=20=E5=91=BD=E5=90=8D=20WenShu-Setu?=
+ =?UTF-8?q?p?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+装机 user 7/24 拍板 (二次拍板, 改前 2 次误读):
+- UI 文案: 英文大写 WENSHU (前 2 次误改成中文"文枢")
+- 其他: wenshu 小写 (code ID 保留)
+- dmg 文件名: WenShu-Setup.dmg (WenShu camelCase, 跟 Hermes-Setup 上游范式一致)
+- Cargo.toml [[bin]].name: WenShu-Setup
+- Tauri bundle.title: WenShu-Setup
+
+revert commit bddce874d (前误改的中文"文枢"), 改用 WENSHU 英文大写.
+---
+ apps/bootstrap-installer/src-tauri/Cargo.toml      | 10 ++++++----
+ apps/bootstrap-installer/src-tauri/tauri.conf.json |  9 +++++----
+ apps/bootstrap-installer/src/app.tsx               |  4 ++--
+ apps/bootstrap-installer/src/routes/progress.tsx   |  6 +++---
+ apps/bootstrap-installer/src/routes/success.tsx    |  8 ++++----
+ apps/bootstrap-installer/src/routes/welcome.tsx    |  6 +++---
+ apps/bootstrap-installer/src/store.ts              |  2 +-
+ 7 files changed, 24 insertions(+), 21 deletions(-)
+
+diff --git a/apps/bootstrap-installer/src-tauri/Cargo.toml b/apps/bootstrap-installer/src-tauri/Cargo.toml
+index 1ae267695..34ec93b22 100644
+--- a/apps/bootstrap-installer/src-tauri/Cargo.toml
++++ b/apps/bootstrap-installer/src-tauri/Cargo.toml
+@@ -7,11 +7,13 @@ edition = "2021"
+ rust-version = "1.77"
+ 
+ # Rename the output binary so the distributed artifact is literally
+-# `文枢-Setup.exe` on disk — not `hermes-bootstrap.exe`. Grandma sees
+-# what we hand her, period. Tauri honors [[bin]] over [package].name
+-# for the produced executable name.
++# `WenShu-Setup` on disk — not `wenshu-setup`. The DMG packaging step
++# derives its filename from `productName` in tauri.conf.json, so this
++# [[bin]] name drives the .app/Contents/MacOS/WenShu-Setup executable
++# while productName drives the outer .app bundle and DMG volume name.
++# CamelCase is the macOS standard for binary names.
+ [[bin]]
+-name = "文枢-Setup"
++name = "WenShu-Setup"
+ path = "src/main.rs"
+ 
+ # The library target name MUST match the `withGlobalTauri` binding name that
+diff --git a/apps/bootstrap-installer/src-tauri/tauri.conf.json b/apps/bootstrap-installer/src-tauri/tauri.conf.json
+index 17bbd0a3b..311fbc320 100644
+--- a/apps/bootstrap-installer/src-tauri/tauri.conf.json
++++ b/apps/bootstrap-installer/src-tauri/tauri.conf.json
+@@ -1,6 +1,6 @@
+ {
+   "$schema": "https://schema.tauri.app/config/2",
+-  "productName": "文枢",
++  "productName": "WenShu-Setup",
+   "version": "0.0.1",
+   "identifier": "com.wenshu.app.setup",
+   "build": {
+@@ -13,7 +13,7 @@
+     "windows": [
+       {
+         "label": "main",
+-        "title": "文枢",
++        "title": "WenShu-Setup",
+         "width": 880,
+         "height": 620,
+         "minWidth": 720,
+@@ -34,7 +34,7 @@
+   "bundle": {
+     "active": true,
+     "category": "DeveloperTool",
+-    "shortDescription": "文枢",
++    "shortDescription": "WenShu-Setup",
+     "longDescription": "Installs 文枢 on your machine. Drives scripts/install.ps1 (Windows) and scripts/install.sh (macOS/Linux).",
+     "publisher": "文枢 Project",
+     "copyright": "Copyright © 2026 文枢 Project",
+@@ -57,7 +57,8 @@
+     },
+     "macOS": {
+       "minimumSystemVersion": "11.0",
+-      "hardenedRuntime": true
++      "hardenedRuntime": true,
++      "bundleName": "WenShu-Setup"
+     }
+   },
+   "plugins": {
+diff --git a/apps/bootstrap-installer/src/app.tsx b/apps/bootstrap-installer/src/app.tsx
+index 398a4473e..33f14bccb 100644
+--- a/apps/bootstrap-installer/src/app.tsx
++++ b/apps/bootstrap-installer/src/app.tsx
+@@ -8,9 +8,9 @@ import Welcome from './routes/welcome'
+ import { $bootstrap, $route, initialize } from './store'
+ 
+ /*
+- * App shell — 文枢 Setup.
++ * App shell — WENSHU Setup.
+  *
+- * No header chrome (the OS title bar already says "文枢 Setup"; an
++ * No header chrome (the OS title bar already says "WENSHU Setup"; an
+  * in-window repeat of the H mark + words was redundant slop).
+  *
+  * Route state lives in a single $route atom — 4 screens, no react-router.
+diff --git a/apps/bootstrap-installer/src/routes/progress.tsx b/apps/bootstrap-installer/src/routes/progress.tsx
+index 3f46fa64b..c731862f8 100644
+--- a/apps/bootstrap-installer/src/routes/progress.tsx
++++ b/apps/bootstrap-installer/src/routes/progress.tsx
+@@ -50,11 +50,11 @@ export default function ProgressScreen({ bootstrap }: ProgressProps) {
+   }, [bootstrap.status])
+ 
+   const isUpdate = mode === 'update'
+-  const title = bootstrap.status === 'completed' ? 'Done' : isUpdate ? 'Updating 文枢' : 'Setting up 文枢'
++  const title = bootstrap.status === 'completed' ? 'Done' : isUpdate ? 'Updating WENSHU' : 'Setting up WENSHU'
+ 
+   const description = isUpdate
+-    ? '文枢 is updating to the latest version — this only takes a moment.'
+-    : 'This is a one-time setup. The 文枢 installer is downloading dependencies and configuring your machine. Subsequent launches will skip this step.'
++    ? 'WENSHU is updating to the latest version — this only takes a moment.'
++    : 'This is a one-time setup. The WENSHU installer is downloading dependencies and configuring your machine. Subsequent launches will skip this step.'
+ 
+   const pct = Math.round(progress.fraction * 100)
+ 
+diff --git a/apps/bootstrap-installer/src/routes/success.tsx b/apps/bootstrap-installer/src/routes/success.tsx
+index 33b3a3ea7..5fe9947cd 100644
+--- a/apps/bootstrap-installer/src/routes/success.tsx
++++ b/apps/bootstrap-installer/src/routes/success.tsx
+@@ -6,12 +6,12 @@ import { HackeryButton } from '../components/hackery-button'
+ import { launchHermesDesktop } from '../store'
+ 
+ /*
+- * Success screen. 文枢 wordmark stays as the visual anchor
++ * Success screen. WENSHU wordmark stays as the visual anchor
+  * (same Collapse Bold treatment as Welcome + the desktop chat intro),
+  * with a status line below.
+  *
+  * Launching the desktop can fail (e.g. Stage-Desktop was skipped and
+- * 文枢.exe doesn't exist). We catch the Tauri error and surface it
++ * WENSHU.exe doesn't exist). We catch the Tauri error and surface it
+  * inline rather than silently doing nothing — the previous version
+  * had `onClick={() => void launchHermesDesktop()}` which swallowed
+  * the rejection and left the user staring at an unresponsive button.
+@@ -48,9 +48,9 @@ export default function Success() {
+           }
+         >
+           <span>
+-            <span>文枢 is ready</span>
++            <span>WENSHU is ready</span>
+           </span>
+-          <span aria-hidden="true">文枢 is ready</span>
++          <span aria-hidden="true">WENSHU is ready</span>
+         </p>
+ 
+         <p className="m-0 text-center text-base leading-normal tracking-tight text-muted-foreground">
+diff --git a/apps/bootstrap-installer/src/routes/welcome.tsx b/apps/bootstrap-installer/src/routes/welcome.tsx
+index dd4e4e73b..eb79ef5e4 100644
+--- a/apps/bootstrap-installer/src/routes/welcome.tsx
++++ b/apps/bootstrap-installer/src/routes/welcome.tsx
+@@ -7,7 +7,7 @@ import { startInstall } from '../store'
+  * Welcome screen.
+  *
+  * Mirrors the desktop's chat intro (apps/desktop/src/components/chat/intro.tsx):
+- *   - 文枢 wordmark rendered in Collapse Bold, uppercase, tracked
++ *   - WENSHU wordmark rendered in Collapse Bold, uppercase, tracked
+  *   - mix-blend-plus-lighter so the type "glows" on the canvas
+  *   - fit-text utility so the wordmark sizes itself to the column
+  *
+@@ -31,9 +31,9 @@ export default function Welcome() {
+           }
+         >
+           <span>
+-            <span>文枢 AGENT</span>
++            <span>WENSHU AGENT</span>
+           </span>
+-          <span aria-hidden="true">文枢 AGENT</span>
++          <span aria-hidden="true">WENSHU AGENT</span>
+         </p>
+ 
+         <p className="m-0 text-center text-base leading-normal tracking-tight text-muted-foreground">
+diff --git a/apps/bootstrap-installer/src/store.ts b/apps/bootstrap-installer/src/store.ts
+index ada8897be..1237119b1 100644
+--- a/apps/bootstrap-installer/src/store.ts
++++ b/apps/bootstrap-installer/src/store.ts
+@@ -389,7 +389,7 @@ const FAKE_INSTALL_STAGES: FakeStage[] = [
+   { name: 'system-packages', title: 'System packages' },
+   { name: 'uv', title: 'uv' },
+   { name: 'python', title: 'Python environment' },
+-  { name: 'repo', title: '文枢 repository' },
++  { name: 'repo', title: 'WENSHU repository' },
+   { name: 'dependencies', title: 'Python dependencies' },
+   { name: 'node', title: 'Node runtime' },
+   { name: 'desktop', title: 'Desktop app' }
+-- 
+2.54.0 (Apple Git-157)
+

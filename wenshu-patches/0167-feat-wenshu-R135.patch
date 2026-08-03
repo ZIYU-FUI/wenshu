@@ -1,0 +1,492 @@
+From c6aacf6058a6b0f7ffb0b09dfdbd8400bad53820 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?= <anbaiqiang@wenshu.local>
+Date: Mon, 3 Aug 2026 16:33:58 +0800
+Subject: [PATCH 167/168] =?UTF-8?q?feat(wenshu):=20R135=20-=20=E6=96=B0?=
+ =?UTF-8?q?=E5=BB=BA=E9=A1=B9=E7=9B=AE=E5=AF=B9=E8=AF=9D=E6=A1=86=E6=94=B9?=
+ =?UTF-8?q?=E9=80=A0=20(=E6=8C=87=E5=AE=9A=E4=BD=8D=E7=BD=AE=20+=20?=
+ =?UTF-8?q?=E8=87=AA=E5=8A=A8=E5=BB=BA=E5=AD=90=E6=96=87=E4=BB=B6=E5=A4=B9?=
+ =?UTF-8?q?)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+装机 user 拍板新需求: 改 '新建项目' 对话框, 文件夹 → 指定位置 + 自动建子文件夹.
+
+改动:
+- i18n (zh/en/zh-hant/ja): 改 createDesc/foldersLabel/noFolders/addFolder/ideaPlaceholder 文案 + 新增 previewPath
+- project-dialog.tsx: folders array → parentFolder 单值, 加 previewPath useMemo 实时算子目录路径, submit 前调 mkdirProjectFolder IPC 创子目录
+- electron/mkdir-project.ts (NEW): sanitize project name (空白/分隔符/控制字符 → _) + 重复名自动加 -2/-3 + fs.promises.mkdir recursive
+- electron/main.ts + preload.ts + global.d.ts: 注册 + 暴露 fs:mkdir-project IPC handler
+- i18n/types.ts: 加 previewPath 类型
+
+Scope: 仅 apps/desktop/. 9 文件, 91 insertions / 62 deletions.
+
+Files:
+- apps/desktop/electron/main.ts
+- apps/desktop/electron/preload.ts
+- apps/desktop/electron/mkdir-project.ts (new)
+- apps/desktop/src/global.d.ts
+- apps/desktop/src/app/chat/sidebar/project-dialog.tsx
+- apps/desktop/src/i18n/en.ts
+- apps/desktop/src/i18n/ja.ts
+- apps/desktop/src/i18n/types.ts
+- apps/desktop/src/i18n/zh-hant.ts
+- apps/desktop/src/i18n/zh.ts
+---
+ apps/desktop/electron/main.ts                 |  7 ++
+ apps/desktop/electron/mkdir-project.ts        | 86 +++++++++++++++++
+ apps/desktop/electron/preload.ts              |  2 +
+ .../src/app/chat/sidebar/project-dialog.tsx   | 96 +++++++++++--------
+ apps/desktop/src/global.d.ts                  |  4 +
+ apps/desktop/src/i18n/en.ts                   | 11 ++-
+ apps/desktop/src/i18n/ja.ts                   | 11 ++-
+ apps/desktop/src/i18n/types.ts                |  1 +
+ apps/desktop/src/i18n/zh-hant.ts              | 11 ++-
+ apps/desktop/src/i18n/zh.ts                   | 11 ++-
+ 10 files changed, 178 insertions(+), 62 deletions(-)
+ create mode 100644 apps/desktop/electron/mkdir-project.ts
+
+diff --git a/apps/desktop/electron/main.ts b/apps/desktop/electron/main.ts
+index e21be79af..7712cdb60 100644
+--- a/apps/desktop/electron/main.ts
++++ b/apps/desktop/electron/main.ts
+@@ -163,6 +163,7 @@ import { readWindowsUserEnvVar } from './windows-user-env'
+ import { isPackagedInstallPath as isPackagedInstallPathUnderRoots } from './workspace-cwd'
+ import { readWslWindowsClipboardImage } from './wsl-clipboard-image'
+ import { resolvePickerDefaultPath } from './wsl-path-bridge'
++import { installMkdirProjectIpc } from './mkdir-project'
+ 
+ const USER_DATA_OVERRIDE = process.env.WENSHU_DESKTOP_USER_DATA_DIR
+ 
+@@ -9237,6 +9238,12 @@ ipcMain.handle('wenshu:fs:writeText', async (_event, filePath, content) => {
+   return { path: resolved }
+ })
+ 
++// Create the dedicated folder for a freshly-named new project (sanitizes the
++// name, picks a non-conflicting `-2`/`-3` suffix, and returns the absolute
++// path that landed on disk). Renderer reaches this from the new-project
++// dialog via `wenshuDesktop.mkdirProjectFolder`.
++installMkdirProjectIpc()
++
+ // Move a file/folder to the OS trash (recoverable) — the VS Code "Delete"
+ // default. `shell.trashItem` routes to Finder/Explorer/Files trash per platform.
+ ipcMain.handle('wenshu:fs:trash', async (_event, targetPath) => {
+diff --git a/apps/desktop/electron/mkdir-project.ts b/apps/desktop/electron/mkdir-project.ts
+new file mode 100644
+index 000000000..69f145874
+--- /dev/null
++++ b/apps/desktop/electron/mkdir-project.ts
+@@ -0,0 +1,86 @@
++import fs from 'node:fs'
++import path from 'node:path'
++
++import { ipcMain } from 'electron'
++
++// Replace whitespace, path separators, and control characters in a project
++// name with `_` so the result is safe to splice directly into a filesystem
++// path. Empty / whitespace-only names collapse to "project" so the caller
++// always gets a non-empty segment.
++function sanitizeProjectName(name: string): string {
++  let cleaned = String(name || '')
++    .replace(/[\s/\\<>:"|?*]+/g, '_')
++    .replace(/^\.+/, '')
++    .replace(/\.+$/, '')
++
++  if (!cleaned) {
++    cleaned = 'project'
++  }
++
++  return cleaned
++}
++
++// Compose the absolute directory where the project should live. Trailing
++// slashes on the parent are normalized so we always produce a clean path.
++function composeTargetDir(parentDir: string, sanitizedName: string): string {
++  const parent = String(parentDir || '').replace(/[\\/]+$/, '')
++
++  return path.join(parent, sanitizedName)
++}
++
++// Pick a non-conflicting target under `parentDir`. If
++// `<parentDir>/<sanitizedName>` already exists, try `-2`, `-3`, ... up to a
++// hard cap so the loop is bounded even on a polled filesystem that keeps
++// racing with the caller.
++function resolveConflictPath(parentDir: string, sanitizedName: string): string {
++  const base = composeTargetDir(parentDir, sanitizedName)
++
++  if (!fs.existsSync(base)) {
++    return base
++  }
++
++  for (let suffix = 2; suffix <= 1000; suffix += 1) {
++    const candidate = composeTargetDir(parentDir, `${sanitizedName}-${suffix}`)
++
++    if (!fs.existsSync(candidate)) {
++      return candidate
++    }
++  }
++
++  throw new Error('Could not find an available project folder suffix')
++}
++
++// Main-process entry point used by the new-project dialog. Sanitizes the name,
++// picks a non-conflicting path under `parentDir`, creates it recursively, and
++// returns the absolute path that actually landed on disk.
++export async function mkdirProjectFolder(
++  parentDir: string,
++  projectName: string
++): Promise<string> {
++  const trimmedParent = String(parentDir || '').trim()
++
++  if (!trimmedParent) {
++    throw new Error('Project parent directory is required')
++  }
++
++  const sanitized = sanitizeProjectName(projectName)
++  const target = resolveConflictPath(trimmedParent, sanitized)
++
++  await fs.promises.mkdir(target, { recursive: true })
++
++  return target
++}
++
++// Register the IPC handler. Called from `electron/main.ts` once at startup;
++// the renderer reaches the helper via the preload bridge as
++// `wenshuDesktop.mkdirProjectFolder`.
++export function installMkdirProjectIpc(): void {
++  ipcMain.handle('wenshu:fs:mkdir-project', async (_event, parentDir, projectName) => {
++    const target = await mkdirProjectFolder(
++      String(parentDir || ''),
++      String(projectName || '')
++    )
++
++    return { path: target }
++  })
++}
+diff --git a/apps/desktop/electron/preload.ts b/apps/desktop/electron/preload.ts
+index 06d1f8cf5..5c1afc928 100644
+--- a/apps/desktop/electron/preload.ts
++++ b/apps/desktop/electron/preload.ts
+@@ -110,6 +110,8 @@ contextBridge.exposeInMainWorld('wenshuDesktop', {
+   openDir: dirPath => ipcRenderer.invoke('wenshu:fs:openDir', dirPath),
+   renamePath: (targetPath, newName) => ipcRenderer.invoke('wenshu:fs:rename', targetPath, newName),
+   writeTextFile: (filePath, content) => ipcRenderer.invoke('wenshu:fs:writeText', filePath, content),
++  mkdirProjectFolder: (parentDir, projectName) =>
++    ipcRenderer.invoke('wenshu:fs:mkdir-project', parentDir, projectName),
+   trashPath: targetPath => ipcRenderer.invoke('wenshu:fs:trash', targetPath),
+   git: {
+     worktreeList: repoPath => ipcRenderer.invoke('wenshu:git:worktreeList', repoPath),
+diff --git a/apps/desktop/src/app/chat/sidebar/project-dialog.tsx b/apps/desktop/src/app/chat/sidebar/project-dialog.tsx
+index 5d0fc29db..407ca2063 100644
+--- a/apps/desktop/src/app/chat/sidebar/project-dialog.tsx
++++ b/apps/desktop/src/app/chat/sidebar/project-dialog.tsx
+@@ -1,5 +1,5 @@
+ import { useStore } from '@nanostores/react'
+-import { useEffect, useRef, useState } from 'react'
++import { useEffect, useMemo, useRef, useState } from 'react'
+ 
+ import { Button } from '@/components/ui/button'
+ import { Codicon } from '@/components/ui/codicon'
+@@ -16,7 +16,6 @@ import { Input } from '@/components/ui/input'
+ import { Textarea } from '@/components/ui/textarea'
+ import { useI18n } from '@/i18n'
+ import { type ProjectIdeaTemplate, randomIdeaTemplates } from '@/lib/project-idea-templates'
+-import { cn } from '@/lib/utils'
+ import { notifyError } from '@/store/notifications'
+ import {
+   $projectDialog,
+@@ -39,7 +38,7 @@ export function ProjectDialog() {
+   const mode = state?.mode ?? 'create'
+ 
+   const [name, setName] = useState('')
+-  const [folders, setFolders] = useState<string[]>([])
++  const [parentFolder, setParentFolder] = useState('')
+   const [idea, setIdea] = useState('')
+   const [templates, setTemplates] = useState<ProjectIdeaTemplate[]>([])
+   const [generatingIdea, setGeneratingIdea] = useState(false)
+@@ -49,7 +48,7 @@ export function ProjectDialog() {
+   useEffect(() => {
+     if (open) {
+       setName(state?.name ?? '')
+-      setFolders([])
++      setParentFolder('')
+       setIdea('')
+       setTemplates(randomIdeaTemplates())
+       setGeneratingIdea(false)
+@@ -102,12 +101,31 @@ export function ProjectDialog() {
+         return
+       }
+ 
+-      setFolders(prev => (prev.includes(dir) ? prev : [...prev, dir]))
++      setParentFolder(dir)
+     } catch (err) {
+       notifyError(err, p.createFailed)
+     }
+   }
+ 
++  // Mirror the main-process helper rules so the live preview matches what
++  // `wenshu:fs:mkdir-project` will compute on the actual fs.
++  const previewPath = useMemo(() => {
++    if (!parentFolder) {
++      return ''
++    }
++
++    const trimmed = name.trim()
++    let sanitized = trimmed.replace(/[\s/\\<>:"|?*]+/g, '_').replace(/^\.+/, '').replace(/\.+$/, '')
++
++    if (!sanitized) {
++      sanitized = 'project'
++    }
++
++    const parent = parentFolder.replace(/[/\\]+$/, '')
++
++    return parent ? `${parent}/${sanitized}/` : `${sanitized}/`
++  }, [name, parentFolder])
++
+   const submit = async () => {
+     const trimmed = name.trim()
+     const projectId = state?.projectId
+@@ -120,10 +138,21 @@ export function ProjectDialog() {
+       return
+     }
+ 
+-    // A project owns sessions by folder (cwd-prefix), so creation requires at
+-    // least one — a folder-less project couldn't hold a session anyway.
+-    if (mode === 'create' && trimmed && folders.length) {
+-      await runSubmit(() => createProject({ folders, idea: idea.trim() || undefined, name: trimmed, use: true }))
++    // A project owns sessions by folder (cwd-prefix), so creation requires
++    // exactly one — a folder-less project couldn't hold a session anyway.
++    if (mode === 'create' && trimmed && parentFolder) {
++      const mkdir = window.wenshuDesktop?.mkdirProjectFolder
++
++      if (!mkdir) {
++        return
++      }
++
++      const folderPath = await mkdir(parentFolder, trimmed)
++      const folder = String(folderPath || '').replace(/[/\\]+$/, '')
++
++      await runSubmit(() =>
++        createProject({ folders: [folder], idea: idea.trim() || undefined, name: trimmed, primaryPath: folder, use: true })
++      )
+     }
+   }
+ 
+@@ -177,39 +206,22 @@ export function ProjectDialog() {
+         {mode === 'create' && (
+           <div className="flex flex-col gap-1.5">
+             <span className="text-[0.6875rem] font-medium text-(--ui-text-tertiary)">{p.foldersLabel}</span>
+-            {folders.length === 0 ? (
+-              <span className="text-[0.75rem] text-(--ui-text-quaternary)">{p.noFolders}</span>
++            {parentFolder ? (
++              <span
++                className="flex items-center gap-2 rounded-md bg-(--ui-control-hover-background) px-2 py-1 text-[0.75rem]"
++                title={parentFolder}
++              >
++                <Codicon className="shrink-0 text-(--ui-text-tertiary)" name="folder" size="0.75rem" />
++                <span className="min-w-0 flex-1 truncate">{parentFolder}</span>
++              </span>
+             ) : (
+-              <ul className="flex flex-col gap-1">
+-                {folders.map((folder, index) => (
+-                  <li
+-                    className={cn(
+-                      'flex items-center gap-2 rounded-md bg-(--ui-control-hover-background) px-2 py-1 text-[0.75rem]'
+-                    )}
+-                    key={folder}
+-                  >
+-                    <Codicon className="shrink-0 text-(--ui-text-tertiary)" name="folder" size="0.75rem" />
+-                    <span className="min-w-0 flex-1 truncate" title={folder}>
+-                      {folder}
+-                    </span>
+-                    {index === 0 && (
+-                      <span className="shrink-0 text-[0.625rem] uppercase text-(--ui-text-quaternary)">
+-                        {p.primaryBadge}
+-                      </span>
+-                    )}
+-                    <Button
+-                      aria-label={p.removeFolder}
+-                      className="size-5 shrink-0 text-(--ui-text-quaternary) hover:text-foreground"
+-                      onClick={() => setFolders(prev => prev.filter(f => f !== folder))}
+-                      size="icon-xs"
+-                      type="button"
+-                      variant="ghost"
+-                    >
+-                      <Codicon name="close" size="0.75rem" />
+-                    </Button>
+-                  </li>
+-                ))}
+-              </ul>
++              <span className="text-[0.75rem] text-(--ui-text-quaternary)">{p.noFolders}</span>
++            )}
++            {parentFolder && previewPath && (
++              <span className="text-[0.6875rem] text-(--ui-text-quaternary)">
++                {/* p.previewPath -> 将创建: {path} / Will create: {path} */}
++                {p.previewPath.replace('{path}', previewPath)}
++              </span>
+             )}
+             <Button
+               className="self-start"
+@@ -286,7 +298,7 @@ export function ProjectDialog() {
+               {t.common.cancel}
+             </Button>
+             <Button
+-              disabled={submitting || !name.trim() || (mode === 'create' && folders.length === 0)}
++              disabled={submitting || !name.trim() || (mode === 'create' && !parentFolder)}
+               onClick={() => void submit()}
+               type="button"
+             >
+diff --git a/apps/desktop/src/global.d.ts b/apps/desktop/src/global.d.ts
+index 150aef87c..70ec5d87b 100644
+--- a/apps/desktop/src/global.d.ts
++++ b/apps/desktop/src/global.d.ts
+@@ -115,6 +115,10 @@ declare global {
+       renamePath?: (path: string, newName: string) => Promise<{ path: string }>
+       // Write a small UTF-8 text file (hardened path, parent must exist).
+       writeTextFile?: (path: string, content: string) => Promise<{ path: string }>
++      // Create the per-project directory under the chosen parent, sanitizing the
++      // project name and adding a `-2`/`-3` suffix on collision. Returns the
++      // absolute path that actually landed on disk.
++      mkdirProjectFolder?: (parentDir: string, projectName: string) => Promise<{ path: string }>
+       // Move a file/folder to the OS trash (recoverable).
+       trashPath?: (path: string) => Promise<boolean>
+       // Git-driven worktree management for the "Start work" flow.
+diff --git a/apps/desktop/src/i18n/en.ts b/apps/desktop/src/i18n/en.ts
+index fd1e31aa5..6d9bd4bcf 100644
+--- a/apps/desktop/src/i18n/en.ts
++++ b/apps/desktop/src/i18n/en.ts
+@@ -1623,20 +1623,21 @@ export const en: Translations = {
+       sectionLabel: 'Projects',
+       newButton: 'New project',
+       createTitle: 'New project',
+-      createDesc: 'Name a workspace and add one or more folders.',
++      createDesc: 'Name your project and choose a folder. Wenshu will automatically save everything you produce under the folder you specify.',
+       renameTitle: 'Rename project',
+       addFolderTitle: 'Add folder',
+       namePlaceholder: 'e.g. Skunkworks',
+-      foldersLabel: 'Folders',
++      foldersLabel: 'Project location',
+       ideaLabel: 'Idea',
+-      ideaPlaceholder: "What's this project about? (saved to IDEA.md)",
++      ideaPlaceholder: 'What do you want to write? Briefly describe it here and the Wenshu assistant will guide you to fill it out fully.',
+       ideaGenerate: 'Generate idea',
+       ideaGenerating: 'Generating…',
+       ideaShuffle: 'Shuffle templates',
+-      noFolders: 'No folders added yet.',
+-      addFolder: 'Add folder',
++      noFolders: 'No location chosen yet.',
++      addFolder: 'Choose project location',
+       primaryBadge: 'primary',
+       removeFolder: 'Remove',
++      previewPath: 'Will create: {path}',
+       create: 'Create',
+       menu: 'Project actions',
+       menuRename: 'Rename',
+diff --git a/apps/desktop/src/i18n/ja.ts b/apps/desktop/src/i18n/ja.ts
+index 083389c8b..df1105953 100644
+--- a/apps/desktop/src/i18n/ja.ts
++++ b/apps/desktop/src/i18n/ja.ts
+@@ -1579,20 +1579,21 @@ export const ja = defineLocale({
+       sectionLabel: 'プロジェクト',
+       newButton: '新規プロジェクト',
+       createTitle: '新規プロジェクト',
+-      createDesc: 'ワークスペースに名前を付け、1つ以上のフォルダを追加します。',
++      createDesc: 'プロジェクト名を付け、プロジェクトフォルダを指定してください。Wenshu はすべての成果物を指定したフォルダに自動的に保存します。',
+       renameTitle: 'プロジェクト名を変更',
+       addFolderTitle: 'フォルダを追加',
+       namePlaceholder: '例: Skunkworks',
+-      foldersLabel: 'フォルダ',
++      foldersLabel: 'プロジェクト位置',
+       ideaLabel: 'アイデア',
+-      ideaPlaceholder: 'このプロジェクトは何ですか？（IDEA.md に保存）',
++      ideaPlaceholder: '何を書きたいですか？ここに簡潔に記述すると、Wenshu アシスタントが完全な出力をガイドします。',
+       ideaGenerate: 'アイデアを生成',
+       ideaGenerating: '生成中…',
+       ideaShuffle: 'テンプレートをシャッフル',
+-      noFolders: 'まだフォルダがありません。',
+-      addFolder: 'フォルダを追加',
++      noFolders: '位置が指定されていません。',
++      addFolder: 'プロジェクト位置を指定',
+       primaryBadge: 'メイン',
+       removeFolder: '削除',
++      previewPath: '作成先: {path}',
+       create: '作成',
+       menu: 'プロジェクト操作',
+       menuRename: '名前を変更',
+diff --git a/apps/desktop/src/i18n/types.ts b/apps/desktop/src/i18n/types.ts
+index 492be16b5..b4b855026 100644
+--- a/apps/desktop/src/i18n/types.ts
++++ b/apps/desktop/src/i18n/types.ts
+@@ -1364,6 +1364,7 @@ export interface Translations {
+       addFolder: string
+       primaryBadge: string
+       removeFolder: string
++      previewPath: string
+       create: string
+       menu: string
+       menuRename: string
+diff --git a/apps/desktop/src/i18n/zh-hant.ts b/apps/desktop/src/i18n/zh-hant.ts
+index 34c5aaf8c..69543a907 100644
+--- a/apps/desktop/src/i18n/zh-hant.ts
++++ b/apps/desktop/src/i18n/zh-hant.ts
+@@ -1531,20 +1531,21 @@ export const zhHant = defineLocale({
+       sectionLabel: '專案',
+       newButton: '新增專案',
+       createTitle: '新增專案',
+-      createDesc: '為工作區命名並新增一個或多個資料夾。',
++      createDesc: '為專案命名，並指定一個專案資料夾，文樞會將所有產出自動儲存在你指定的資料夾下。',
+       renameTitle: '重新命名專案',
+       addFolderTitle: '新增資料夾',
+       namePlaceholder: '例如 Skunkworks',
+-      foldersLabel: '資料夾',
++      foldersLabel: '專案位置',
+       ideaLabel: '想法',
+-      ideaPlaceholder: '這個專案是關於什麼的？（儲存到 IDEA.md）',
++      ideaPlaceholder: '你想寫什麼？你可以在這裡簡述，文樞助手會基於簡述引導你完整輸出你的想法。',
+       ideaGenerate: '產生想法',
+       ideaGenerating: '產生中…',
+       ideaShuffle: '隨機範本',
+-      noFolders: '尚未新增資料夾。',
+-      addFolder: '新增資料夾',
++      noFolders: '尚未指定位置。',
++      addFolder: '指定專案位置',
+       primaryBadge: '主要',
+       removeFolder: '移除',
++      previewPath: '將建立: {path}',
+       create: '建立',
+       menu: '專案操作',
+       menuRename: '重新命名',
+diff --git a/apps/desktop/src/i18n/zh.ts b/apps/desktop/src/i18n/zh.ts
+index 21b5db2b8..e3e8e5692 100644
+--- a/apps/desktop/src/i18n/zh.ts
++++ b/apps/desktop/src/i18n/zh.ts
+@@ -1790,20 +1790,21 @@ export const zh: Translations = {
+       sectionLabel: '项目',
+       newButton: '新建项目',
+       createTitle: '新建项目',
+-      createDesc: '为工作区命名并添加一个或多个文件夹。',
++      createDesc: '为项目命名,并指定一个项目文件夹,文枢会将所有产出自动存储在你指定的文件夹下。',
+       renameTitle: '重命名项目',
+       addFolderTitle: '添加文件夹',
+       namePlaceholder: '例如 Skunkworks',
+-      foldersLabel: '文件夹',
++      foldersLabel: '项目位置',
+       ideaLabel: '想法',
+-      ideaPlaceholder: '这个项目是关于什么的？（保存到 IDEA.md）',
++      ideaPlaceholder: '你想写什么?你可以在这里简述,文枢助手会基于简述引导你完整输出你的想法。',
+       ideaGenerate: '生成想法',
+       ideaGenerating: '生成中…',
+       ideaShuffle: '随机模板',
+-      noFolders: '尚未添加文件夹。',
+-      addFolder: '添加文件夹',
++      noFolders: '尚未指定位置。',
++      addFolder: '指定项目位置',
+       primaryBadge: '主',
+       removeFolder: '移除',
++      previewPath: '将创建: {path}',
+       create: '创建',
+       menu: '项目操作',
+       menuRename: '重命名',
+-- 
+2.54.0 (Apple Git-157)
+

@@ -1,0 +1,130 @@
+From 6c2fb4ae716395278bda9bee76bc1f49417a53d2 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?= <anbaiqiang@wenshu.local>
+Date: Fri, 31 Jul 2026 20:11:09 +0800
+Subject: [PATCH 156/168] =?UTF-8?q?fix(wenshu):=20R126=20-=20sidebar=20?=
+ =?UTF-8?q?=E9=A1=B6=E9=83=A8=E5=8A=A0=20SegmentedControl=20(=E9=A1=B9?=
+ =?UTF-8?q?=E7=9B=AE=20/=20=E5=85=A8=E9=83=A8=20sessions=20=E6=98=BE?=
+ =?UTF-8?q?=E5=BC=8F=E5=88=87=E6=8D=A2)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ apps/desktop/src/app/chat/sidebar/index.tsx | 14 ++++++++++++++
+ apps/desktop/src/i18n/en.ts                 |  4 ++++
+ apps/desktop/src/i18n/ja.ts                 |  4 ++++
+ apps/desktop/src/i18n/types.ts              |  4 ++++
+ apps/desktop/src/i18n/zh-hant.ts            |  4 ++++
+ apps/desktop/src/i18n/zh.ts                 |  4 ++++
+ 6 files changed, 34 insertions(+)
+
+diff --git a/apps/desktop/src/app/chat/sidebar/index.tsx b/apps/desktop/src/app/chat/sidebar/index.tsx
+index b2d8f1c20..9de30bf38 100644
+--- a/apps/desktop/src/app/chat/sidebar/index.tsx
++++ b/apps/desktop/src/app/chat/sidebar/index.tsx
+@@ -12,6 +12,7 @@ import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from '@/component
+ import { GlyphSpinner } from '@/components/ui/glyph-spinner'
+ import { KbdGroup } from '@/components/ui/kbd'
+ import { SearchField } from '@/components/ui/search-field'
++import { SegmentedControl } from '@/components/ui/segmented-control'
+ import {
+   Sidebar,
+   SidebarContent,
+@@ -1192,6 +1193,19 @@ export function ChatSidebar({
+           </SidebarGroupContent>
+         </SidebarGroup>
+ 
++        {showSessionSections && !showAllProfiles && (
++          <div className="shrink-0 px-2 pb-1 pt-1">
++            <SegmentedControl
++              onChange={id => setSidebarAgentsGrouped(id === 'projects')}
++              options={[
++                { id: 'sessions', label: s.segments.sessions },
++                { id: 'projects', label: s.segments.projects }
++              ]}
++              value={agentsGrouped ? 'projects' : 'sessions'}
++            />
++          </div>
++        )}
++
+         {showSessionSections && (
+           <div className="shrink-0 px-2 pb-1 pt-1">
+             <SearchField
+diff --git a/apps/desktop/src/i18n/en.ts b/apps/desktop/src/i18n/en.ts
+index 17d18ec50..fd1e31aa5 100644
+--- a/apps/desktop/src/i18n/en.ts
++++ b/apps/desktop/src/i18n/en.ts
+@@ -1615,6 +1615,10 @@ export const en: Translations = {
+     noProject: 'No project',
+     projectEmpty: 'No sessions yet',
+     noSessions: 'No sessions yet',
++    segments: {
++      sessions: 'Sessions',
++      projects: 'Projects'
++    },
+     projects: {
+       sectionLabel: 'Projects',
+       newButton: 'New project',
+diff --git a/apps/desktop/src/i18n/ja.ts b/apps/desktop/src/i18n/ja.ts
+index 00067ecc0..083389c8b 100644
+--- a/apps/desktop/src/i18n/ja.ts
++++ b/apps/desktop/src/i18n/ja.ts
+@@ -1571,6 +1571,10 @@ export const ja = defineLocale({
+     noProject: 'プロジェクトなし',
+     projectEmpty: 'セッションはまだありません',
+     noSessions: 'セッションはまだありません',
++    segments: {
++      sessions: 'セッション',
++      projects: 'プロジェクト'
++    },
+     projects: {
+       sectionLabel: 'プロジェクト',
+       newButton: '新規プロジェクト',
+diff --git a/apps/desktop/src/i18n/types.ts b/apps/desktop/src/i18n/types.ts
+index fb1fdde56..492be16b5 100644
+--- a/apps/desktop/src/i18n/types.ts
++++ b/apps/desktop/src/i18n/types.ts
+@@ -1342,6 +1342,10 @@ export interface Translations {
+     noProject: string
+     projectEmpty: string
+     noSessions: string
++    segments: {
++      sessions: string
++      projects: string
++    }
+     projects: {
+       sectionLabel: string
+       newButton: string
+diff --git a/apps/desktop/src/i18n/zh-hant.ts b/apps/desktop/src/i18n/zh-hant.ts
+index 35fd8d840..34c5aaf8c 100644
+--- a/apps/desktop/src/i18n/zh-hant.ts
++++ b/apps/desktop/src/i18n/zh-hant.ts
+@@ -1523,6 +1523,10 @@ export const zhHant = defineLocale({
+     noProject: '無專案',
+     projectEmpty: '尚無工作階段',
+     noSessions: '尚無工作階段',
++    segments: {
++      sessions: '全部工作階段',
++      projects: '專案'
++    },
+     projects: {
+       sectionLabel: '專案',
+       newButton: '新增專案',
+diff --git a/apps/desktop/src/i18n/zh.ts b/apps/desktop/src/i18n/zh.ts
+index 0afba9ecb..21b5db2b8 100644
+--- a/apps/desktop/src/i18n/zh.ts
++++ b/apps/desktop/src/i18n/zh.ts
+@@ -1782,6 +1782,10 @@ export const zh: Translations = {
+     noProject: '无项目',
+     projectEmpty: '暂无会话',
+     noSessions: '暂无会话',
++    segments: {
++      sessions: '全部会话',
++      projects: '项目'
++    },
+     projects: {
+       sectionLabel: '项目',
+       newButton: '新建项目',
+-- 
+2.54.0 (Apple Git-157)
+

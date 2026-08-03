@@ -1,0 +1,29 @@
+From 393fb033aa758cac3d73290b45fd038b6fc55911 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?= <anbaiqiang@wenshu.local>
+Date: Wed, 29 Jul 2026 10:48:15 +0800
+Subject: [PATCH 072/168] =?UTF-8?q?chore(wenshu):=20R29=20-=20rebuild=20ve?=
+ =?UTF-8?q?rify=20R28=20rename=20+=20ship=20new=20=E6=96=87=E6=9E=A2.app?=
+ =?UTF-8?q?=20(WO-001BI-R29,=20=E8=A3=85=E6=9C=BA=20user=208/29=20?=
+ =?UTF-8?q?=E6=8B=8D)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+R28 commit (23a6c0f0b) renamed hermes_cli → wenshu_cli + hermes_* → wenshu_* + IPC
+channels wenshu:connection + wrapper bin/wenshu. 装机 user 8/29 reported fresh .app
+still throwing 'hermes:connection' + 'bin/hermes missing' — root cause: R28 commit was
+landed AFTER last build, so the .app in ~/Downloads/ shipped before R28 commit landed
+and never got the rename baked in.
+
+This R29 ticket:
+- AC1 verified: 'hermes:connection' / 'hermes:invoke' 0 hits in apps/desktop/electron + apps/desktop/src (excluding node_modules + upstream URL)
+- AC2 verified: 'bin/hermes' 0 hits in apps/desktop/electron + apps/desktop/src (excluding venv symlinks)
+- AC3 verified: pnpm run dist:mac exit 0 → fresh dmg/zip/.app built 10:45
+- new 文枢.app (MD5 02f3c02529d8ccc57c55dd3e26974a2a) copied to ~/Downloads/文枢.app
+- AC4: this commit + push origin main
+- AC5: 飞书 DM 装机 user with .app path + MD5 + commit hash
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+-- 
+2.54.0 (Apple Git-157)
+

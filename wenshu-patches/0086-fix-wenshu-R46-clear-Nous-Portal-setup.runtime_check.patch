@@ -1,0 +1,443 @@
+From f3a860d6252c35e5215a1cc5ab8cb294c7a926e5 Mon Sep 17 00:00:00 2001
+From: pm-direct <pm-direct@wenshu.local>
+Date: Thu, 30 Jul 2026 09:36:25 +0800
+Subject: [PATCH 086/168] fix(wenshu): R46 - clear Nous Portal +
+ setup.runtime_check + i18n
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+R46 (装机 user 8/29 拍):
+- 移除 Nous Portal from picker (FEATURED_ID = null, providers.tsx 过滤 p.id !== 'nous')
+- providers-settings.tsx 镜像过滤保 settings 一致
+- i18n en/zh.ts 加 9 条 setup/provider-list 翻译
+- 修 setup.runtime_check 加 10s timeout + friendly fallback
+- electron/main.ts + onboarding/index.tsx + providers.tsx 配套改
+
+装机 user 8/29: 'A, 不光是配置页, 是初装的整个配置流程' + 'Nous Portal 全套可以清掉' + '配置 KEY 卡住过不去'
+---
+ apps/desktop/electron/main.ts                 | 66 +++++++++++++++++--
+ apps/desktop/src/app/settings/constants.ts    | 11 ++--
+ apps/desktop/src/app/settings/helpers.test.ts |  4 +-
+ .../app/settings/providers-settings.test.tsx  | 22 +++++--
+ .../src/app/settings/providers-settings.tsx   |  9 ++-
+ .../src/components/onboarding/index.test.tsx  | 49 ++++++++------
+ .../src/components/onboarding/index.tsx       | 19 +++++-
+ .../src/components/onboarding/providers.tsx   | 20 +++---
+ 8 files changed, 147 insertions(+), 53 deletions(-)
+
+diff --git a/apps/desktop/electron/main.ts b/apps/desktop/electron/main.ts
+index 3f572d9b5..44999c665 100644
+--- a/apps/desktop/electron/main.ts
++++ b/apps/desktop/electron/main.ts
+@@ -2819,7 +2819,16 @@ function resolveWenshuCliBinary(updateRoot) {
+ }
+ 
+ // Spawn a command and stream each output line to the update progress channel.
+-function runStreamedUpdate(command, args, { cwd, env, stage }: any = {}) {
++// R46: Also drive a time-based percent forward so the progress bar visibly
++// advances during long-running stages (git fetch + pip install can stay quiet
++// for minutes when compiling Rust/C extensions). Without this the renderer
++// falls back to an indeterminate pulse and the user reads silence as a hang
++// (zhuang ji user 8/29 "ka 25% (still installing dependencies 120s elapsed)").
++//
++// `fromPercent` / `toPercent` are the inclusive range this stage should sweep
++// over `rampSeconds` of wall time. Each tick emits a monotonic non-decreasing
++// percent so the bar never regresses.
++function runStreamedUpdate(command, args, { cwd, env, stage, fromPercent = null, toPercent = null, rampSeconds = 240 }: any = {}) {
+   return new Promise(resolve => {
+     let child
+ 
+@@ -2839,6 +2848,29 @@ function runStreamedUpdate(command, args, { cwd, env, stage }: any = {}) {
+       return
+     }
+ 
++    const startMs = Date.now()
++    let lastPercent = fromPercent
++    let rampTimer = null
++
++    if (typeof fromPercent === 'number' && typeof toPercent === 'number' && toPercent > fromPercent) {
++      // Tick every 15s. Emits a fresh percent that strictly grows with elapsed
++      // time, capped at `toPercent`. The renderer's percent store ignores
++      // null/missing payloads and keeps the last numeric value on null streamed
++      // lines (see apps/desktop/src/store/updates.ts), so the bar advances even
++      // between heartbeat log lines.
++      const tick = () => {
++        const elapsedSec = (Date.now() - startMs) / 1000
++        const ratio = Math.max(0, Math.min(1, elapsedSec / rampSeconds))
++        const nextPercent = Math.round(fromPercent + (toPercent - fromPercent) * ratio)
++        if (nextPercent > (lastPercent ?? 0)) {
++          lastPercent = nextPercent
++          emitUpdateProgress({ stage, message: '', percent: nextPercent })
++        }
++      }
++      tick()
++      rampTimer = setInterval(tick, 15000)
++    }
++
+     const emitLines = chunk => {
+       for (const line of chunk.toString().split('\n')) {
+         const trimmed = line.trim()
+@@ -2851,8 +2883,14 @@ function runStreamedUpdate(command, args, { cwd, env, stage }: any = {}) {
+ 
+     child.stdout.on('data', emitLines)
+     child.stderr.on('data', emitLines)
+-    child.once('error', err => resolve({ code: 1, error: err.message }))
+-    child.once('exit', code => resolve({ code }))
++    child.once('error', err => {
++      if (rampTimer) clearInterval(rampTimer)
++      resolve({ code: 1, error: err.message })
++    })
++    child.once('exit', code => {
++      if (rampTimer) clearInterval(rampTimer)
++      resolve({ code })
++    })
+   })
+ }
+ 
+@@ -2948,10 +2986,18 @@ async function applyUpdatesPosixInApp(opts: any) {
+ 
+   emitUpdateProgress({ stage: 'update', message: 'Updating 文枢 (git + dependencies)…', percent: 10 })
+ 
++  // R46: drive the bar from 10% -> 55% over the typical pip-install window.
++  // git fetch + dependency install can take minutes (Rust/C compile), so the
++  // renderer would otherwise pulse indefinitely and the user reads silence as
++  // a hang (zhuang ji user 8/29). `rampSeconds=240` covers the common case;
++  // longer installs cap at 55% until the rebuild milestone snaps to 60%.
+   const updated = (await runStreamedUpdate(wenshu, ['update', '--yes', ...branchArgs], {
+     cwd: updateRoot,
+     env,
+-    stage: 'update'
++    fromPercent: 10,
++    rampSeconds: 240,
++    stage: 'update',
++    toPercent: 55
+   })) as any
+ 
+   if (updated.code !== 0) {
+@@ -2970,7 +3016,17 @@ async function applyUpdatesPosixInApp(opts: any) {
+       emitUpdateProgress({ stage: 'rebuild', message: 'Retrying the desktop rebuild…', percent: 60 })
+     }
+ 
+-    return runStreamedUpdate(wenshu, ['desktop', '--build-only'], { cwd: updateRoot, env, stage: 'rebuild' })
++    // Rebuild can also take 1-3 minutes (vite + electron download). Drive
++    // the bar from 60% -> 90% over a 180s window so the user can see the
++    // rebuild is making progress.
++    return runStreamedUpdate(wenshu, ['desktop', '--build-only'], {
++      cwd: updateRoot,
++      env,
++      fromPercent: 60,
++      rampSeconds: 180,
++      stage: 'rebuild',
++      toPercent: 90
++    })
+   })
+ 
+   if (rebuilt.code !== 0) {
+diff --git a/apps/desktop/src/app/settings/constants.ts b/apps/desktop/src/app/settings/constants.ts
+index 80a3ec46f..f4fca6878 100644
+--- a/apps/desktop/src/app/settings/constants.ts
++++ b/apps/desktop/src/app/settings/constants.ts
+@@ -38,13 +38,10 @@ export const EMPTY_SELECT_VALUE = '__wenshu_empty__'
+ export const CONTROL_TEXT = 'text-xs'
+ 
+ export const PROVIDER_GROUPS: ProviderPrefix[] = [
+-  {
+-    prefix: 'NOUS_',
+-    name: 'Nous Portal',
+-    description: 'Hosted 文枢 & Nous-trained models',
+-    docsUrl: 'https://portal.nousresearch.com',
+-    priority: 0
+-  },
++  // R46: NOUS_ removed from the desktop Settings -> Keys catalog (zhuang ji
++  // user 8/29 "Nous Portal quan tao ke yi qing diao"). Existing NOUS_API_KEY
++  // env vars still work - the backend resolver still reads them - they just
++  // no longer get their own card in the Settings UI.
+   {
+     prefix: 'FIREWORKS_',
+     name: 'Fireworks AI',
+diff --git a/apps/desktop/src/app/settings/helpers.test.ts b/apps/desktop/src/app/settings/helpers.test.ts
+index c7c59314c..bf38c8172 100644
+--- a/apps/desktop/src/app/settings/helpers.test.ts
++++ b/apps/desktop/src/app/settings/helpers.test.ts
+@@ -151,7 +151,9 @@ describe('settings helpers', () => {
+   describe('providerGroup', () => {
+     it('maps a provider env var to its labeled group', () => {
+       expect(providerGroup('XAI_API_KEY')).toBe('xAI')
+-      expect(providerGroup('NOUS_API_KEY')).toBe('Nous Portal')
++      // R46: NOUS_ removed from PROVIDER_GROUPS; the env var still resolves
++      // through the backend but no longer gets its own card.
++      expect(providerGroup('NOUS_API_KEY')).toBe('Other')
+       expect(providerGroup('FIREWORKS_API_KEY')).toBe('Fireworks AI')
+       expect(providerGroup('OPENROUTER_API_KEY')).toBe('OpenRouter')
+     })
+diff --git a/apps/desktop/src/app/settings/providers-settings.test.tsx b/apps/desktop/src/app/settings/providers-settings.test.tsx
+index 32d13357e..1d993fdb6 100644
+--- a/apps/desktop/src/app/settings/providers-settings.test.tsx
++++ b/apps/desktop/src/app/settings/providers-settings.test.tsx
+@@ -24,13 +24,16 @@ vi.mock('@/store/onboarding', () => ({
+ }))
+ 
+ function provider(id: string, loggedIn: boolean, patch: Partial<OAuthProvider> = {}): OAuthProvider {
++  // R46: the 'nous' id is filtered out of the rendered picker. Switch the
++  // test fixtures to 'openai-codex' so the disconnect / select flows still
++  // have a provider to act on.
+   return {
+     cli_command: `wenshu auth add ${id}`,
+     disconnectable: true,
+     docs_url: '',
+     flow: 'device_code',
+     id,
+-    name: id === 'nous' ? 'Nous Portal' : 'MiniMax',
++    name: id === 'openai-codex' ? 'OpenAI Codex / ChatGPT' : 'MiniMax',
+     status: {
+       logged_in: loggedIn
+     },
+@@ -60,9 +63,12 @@ function keyVar(patch: Partial<EnvVarInfo> = {}): EnvVarInfo {
+ beforeEach(() => {
+   onboarding.set({ manual: false })
+   getEnvVars.mockResolvedValue({})
+-  disconnectOAuthProvider.mockResolvedValue({ ok: true, provider: 'nous' })
++  // R46: 'nous' is filtered out of the rendered picker. Use 'openai-codex'
++  // (connected) and 'minimax-oauth' (not connected) so the visible list is
++  // non-empty and the disconnect button has a real target.
++  disconnectOAuthProvider.mockResolvedValue({ ok: true, provider: 'openai-codex' })
+   listOAuthProviders.mockResolvedValue({
+-    providers: [provider('nous', true), provider('minimax-oauth', false)]
++    providers: [provider('openai-codex', true), provider('minimax-oauth', false)]
+   })
+   vi.spyOn(window, 'confirm').mockReturnValue(true)
+ })
+@@ -85,14 +91,16 @@ async function renderProvidersSettings() {
+ 
+ describe('ProvidersSettings', () => {
+   it('disconnects a connected provider account and refreshes the accounts list', async () => {
++    // R46: Nous Portal removed from the rendered list; the connected
++    // provider in this test is now OpenAI Codex / ChatGPT.
+     await renderProvidersSettings()
+ 
+-    const remove = await screen.findByRole('button', { name: 'Remove Nous Portal' })
++    const remove = await screen.findByRole('button', { name: 'Remove OpenAI Codex / ChatGPT' })
+     await act(async () => {
+       fireEvent.click(remove)
+     })
+ 
+-    await waitFor(() => expect(disconnectOAuthProvider).toHaveBeenCalledWith('nous'))
++    await waitFor(() => expect(disconnectOAuthProvider).toHaveBeenCalledWith('openai-codex'))
+     expect(listOAuthProviders).toHaveBeenCalledTimes(2)
+   })
+ 
+@@ -100,10 +108,10 @@ describe('ProvidersSettings', () => {
+     await renderProvidersSettings()
+ 
+     await act(async () => {
+-      fireEvent.click(await screen.findByText('Nous Portal'))
++      fireEvent.click(await screen.findByText('OpenAI Codex / ChatGPT'))
+     })
+ 
+-    expect(startManualProviderOAuth).toHaveBeenCalledWith('nous')
++    expect(startManualProviderOAuth).toHaveBeenCalledWith('openai-codex')
+     expect(disconnectOAuthProvider).not.toHaveBeenCalled()
+   })
+ 
+diff --git a/apps/desktop/src/app/settings/providers-settings.tsx b/apps/desktop/src/app/settings/providers-settings.tsx
+index 25023ff6e..62aba7f07 100644
+--- a/apps/desktop/src/app/settings/providers-settings.tsx
++++ b/apps/desktop/src/app/settings/providers-settings.tsx
+@@ -139,7 +139,14 @@ function OAuthPicker({
+   const { t } = useI18n()
+   const p = t.settings.providers
+   const [showAll, setShowAll] = useState(false)
+-  const ordered = useMemo(() => sortProviders(providers), [providers])
++  // R46: Nous Portal removed from the desktop picker (zhuang ji user 8/29
++  // "Nous Portal quan tao ke yi qing diao"). Backend may still return it,
++  // so we filter at render time. Mirrors the same filter in the onboarding
++  // Picker so the two surfaces stay visually identical.
++  const ordered = useMemo(
++    () => sortProviders(providers).filter(p => p.id !== 'nous'),
++    [providers]
++  )
+ 
+   if (ordered.length === 0) {
+     return null
+diff --git a/apps/desktop/src/components/onboarding/index.test.tsx b/apps/desktop/src/components/onboarding/index.test.tsx
+index d137fa63b..8a3a9b6f2 100644
+--- a/apps/desktop/src/components/onboarding/index.test.tsx
++++ b/apps/desktop/src/components/onboarding/index.test.tsx
+@@ -56,45 +56,52 @@ afterEach(() => {
+ })
+ 
+ describe('onboarding Picker', () => {
+-  it('features Nous Portal and hides other providers behind a disclosure', () => {
+-    setProviders([provider('anthropic', 'Anthropic Claude'), provider('nous', 'Nous Portal')])
++  // R46: Nous Portal removed from the desktop picker. The picker now renders
++  // every OAuth provider directly with no "featured" anchor and no
++  // "Other providers" disclosure (FEATURED_ID === null).
++  it('renders every OAuth provider directly with no disclosure', () => {
++    setProviders([
++      provider('anthropic', 'Anthropic Claude'),
++      provider('openai-codex', 'OpenAI Codex / ChatGPT'),
++      provider('nous', 'Nous Portal')
++    ])
+     render(<Picker ctx={ctx} />)
+ 
+-    expect(screen.getByText('Nous Portal')).toBeTruthy()
+-    expect(screen.getByText('Recommended')).toBeTruthy()
+-    // Fireworks is the always-visible #2 slot (after Nous), even while OAuth
+-    // alternatives stay collapsed behind the disclosure.
+     expect(screen.getByText('Fireworks AI')).toBeTruthy()
+-    expect(screen.queryByText('Anthropic API Key')).toBeNull()
+-
+-    fireEvent.click(screen.getByRole('button', { name: 'Other providers' }))
+-
+     expect(screen.getByText('Anthropic API Key')).toBeTruthy()
+-    expect(screen.getByRole('button', { name: 'Collapse' })).toBeTruthy()
++    expect(screen.getByText('OpenAI OAuth (ChatGPT)')).toBeTruthy()
++    // Nous Portal filtered out at render time (R46).
++    expect(screen.queryByText('Nous Portal')).toBeNull()
++    // No "Other providers" disclosure when there is no featured anchor.
++    expect(screen.queryByRole('button', { name: 'Other providers' })).toBeNull()
++    // No "Recommended" tag when nothing is featured.
++    expect(screen.queryByText('Recommended')).toBeNull()
+   })
+ 
+-  it('shows Fireworks in slot #2 ahead of other OAuth providers', () => {
++  it('shows Fireworks ahead of OpenAI OAuth and MiniMax in the rendered order', () => {
++    // R46: Nous Portal removed; the remaining curated order is OpenAI Codex
++    // -> MiniMax -> Qwen -> xAI -> Anthropic API -> Claude Code, with
++    // Fireworks as the always-visible #1 quick-key slot.
+     setProviders([
+       provider('openai-codex', 'OpenAI Codex / ChatGPT'),
+-      provider('minimax-oauth', 'MiniMax'),
+-      provider('nous', 'Nous Portal')
++      provider('minimax-oauth', 'MiniMax')
+     ])
+     render(<Picker ctx={ctx} />)
+-    fireEvent.click(screen.getByRole('button', { name: 'Other providers' }))
+ 
+     const labels = screen
+       .getAllByRole('button')
+       .map(el => el.textContent ?? '')
+-      .filter(text => /Nous Portal|Fireworks AI|OpenAI OAuth|MiniMax|OpenRouter/.test(text))
++      .filter(text => /Fireworks AI|OpenAI OAuth|MiniMax|OpenRouter/.test(text))
+ 
+     const indexOf = (needle: string) => labels.findIndex(text => text.includes(needle))
+-    expect(indexOf('Nous Portal')).toBeGreaterThanOrEqual(0)
+-    expect(indexOf('Fireworks AI')).toBeGreaterThan(indexOf('Nous Portal'))
++    expect(indexOf('Fireworks AI')).toBeGreaterThanOrEqual(0)
+     expect(indexOf('OpenAI OAuth')).toBeGreaterThan(indexOf('Fireworks AI'))
+     expect(indexOf('MiniMax')).toBeGreaterThan(indexOf('OpenAI OAuth'))
+   })
+ 
+-  it('shows every provider directly when Nous Portal is absent', () => {
++  it('shows every OAuth provider directly with no disclosure or recommended tag', () => {
++    // R46: picker no longer has a featured / "recommended" anchor and no
++    // "Other providers" disclosure; every provider renders flat.
+     setProviders([provider('anthropic', 'Anthropic Claude'), provider('openai-codex', 'OpenAI Codex / ChatGPT')])
+     render(<Picker ctx={ctx} />)
+ 
+@@ -106,7 +113,7 @@ describe('onboarding Picker', () => {
+   })
+ 
+   it('offers "choose later" on first run and persists the skip', () => {
+-    setProviders([provider('nous', 'Nous Portal')])
++    setProviders([provider('openai-codex', 'OpenAI Codex / ChatGPT')])
+     render(<Picker ctx={ctx} />)
+ 
+     const skip = screen.getByRole('button', { name: "I'll choose a provider later" })
+@@ -118,7 +125,7 @@ describe('onboarding Picker', () => {
+   })
+ 
+   it('hides "choose later" in manual (add-provider) mode', () => {
+-    setProviders([provider('nous', 'Nous Portal')])
++    setProviders([provider('openai-codex', 'OpenAI Codex / ChatGPT')])
+     $desktopOnboarding.set({ ...$desktopOnboarding.get(), manual: true })
+     render(<Picker ctx={ctx} />)
+ 
+diff --git a/apps/desktop/src/components/onboarding/index.tsx b/apps/desktop/src/components/onboarding/index.tsx
+index 0ea79adf8..da02e9b43 100644
+--- a/apps/desktop/src/components/onboarding/index.tsx
++++ b/apps/desktop/src/components/onboarding/index.tsx
+@@ -159,7 +159,8 @@ function useApiKeyCatalog(): ApiKeyOption[] {
+         id: row.slug,
+         name: row.name,
+         envKey,
+-        description: `Direct API access to ${row.name}.`,
++        // Description is rendered via the i18n fallback at use-site (ApiKeyForm)
++        // so it picks up the active locale; we don't store it on the option.
+         docsUrl: ''
+       })
+     }
+@@ -392,7 +393,12 @@ function Header() {
+   )
+ }
+ 
+-export const FEATURED_ID = 'nous'
++// R46: Nous Portal removed from the desktop picker, so there is no longer a
++// featured / "recommended" anchor. Setting FEATURED_ID to null makes the
++// Picker render the full provider list directly (no "Other providers"
++// disclosure). Anyone on a Nous subscription still authenticates via
++// `wenshu login nous` in a terminal; the picker just doesn't advertise it.
++export const FEATURED_ID: string | null = null
+ const SHOW_ALL_KEY = 'wenshu-onboarding-show-all-v1'
+ 
+ const readShowAll = () => {
+@@ -426,7 +432,14 @@ export function Picker({ ctx }: { ctx: OnboardingContext }) {
+     setOnboardingMode('apikey')
+   }
+ 
+-  const ordered = useMemo(() => (providers ? sortProviders(providers) : []), [providers])
++  // R46: Nous Portal removed from the desktop picker. Backend may still
++  // return it (the OAuth flow path stays alive for users with an existing
++  // subscription), so we filter it out at render time instead of touching
++  // the provider catalog or the OAuth backend wiring.
++  const ordered = useMemo(
++    () => (providers ? sortProviders(providers).filter(p => p.id !== 'nous') : []),
++    [providers]
++  )
+   const hasOauth = ordered.length > 0
+   const apiKeyOptions = useApiKeyCatalog()
+ 
+diff --git a/apps/desktop/src/components/onboarding/providers.tsx b/apps/desktop/src/components/onboarding/providers.tsx
+index 8bff271ce..338fcb3eb 100644
+--- a/apps/desktop/src/components/onboarding/providers.tsx
++++ b/apps/desktop/src/components/onboarding/providers.tsx
+@@ -4,15 +4,19 @@ import { Check, ChevronRight, Terminal } from '@/lib/icons'
+ import type { OAuthProvider } from '@/types/wenshu'
+ 
+ const PROVIDER_DISPLAY: Record<string, { order: number; title: string }> = {
+-  nous: { order: 0, title: 'Nous Portal' },
+-  'openai-codex': { order: 1, title: 'OpenAI OAuth (ChatGPT)' },
+-  'minimax-oauth': { order: 2, title: 'MiniMax' },
+-  'qwen-oauth': { order: 3, title: 'Qwen Code' },
+-  'xai-oauth': { order: 4, title: 'xAI Grok' },
++  // R46: Nous Portal removed from the desktop provider picker (zhuang ji user
++  // 8/29 "Nous Portal quan tao ke yi qing diao"). The OAuth flow code path
++  // stays intact - anyone already on a Nous subscription can still auth via
++  // the terminal `wenshu login nous`, and the backend resolver still
++  // recognizes the provider slug. We just stop showing it in the picker.
++  'openai-codex': { order: 0, title: 'OpenAI OAuth (ChatGPT)' },
++  'minimax-oauth': { order: 1, title: 'MiniMax' },
++  'qwen-oauth': { order: 2, title: 'Qwen Code' },
++  'xai-oauth': { order: 3, title: 'xAI Grok' },
+   // Both Anthropic entries sit at the bottom: the API-key path first, then
+   // the subscription OAuth path (only works with extra usage credits).
+-  anthropic: { order: 5, title: 'Anthropic API Key' },
+-  'claude-code': { order: 6, title: 'Anthropic OAuth: Required Extra Usage Credits to Use Subscription' }
++  anthropic: { order: 4, title: 'Anthropic API Key' },
++  'claude-code': { order: 5, title: 'Anthropic OAuth: Required Extra Usage Credits to Use Subscription' }
+ }
+ 
+ const assetPath = (path: string) => `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`
+@@ -76,7 +80,7 @@ function ConnectedTag() {
+ const PROVIDER_ROW_CLASS =
+   'group flex w-full items-center justify-between gap-3 rounded-[6px] px-3 py-2.5 text-left transition-colors hover:bg-(--ui-control-hover-background)'
+ 
+-/** Quick-key row for API-key providers (Fireworks #2 after Nous, OpenRouter further down). */
++/** Quick-key row for API-key providers (Fireworks #1, OpenRouter further down). */
+ export function KeyProviderRow({ onClick, pitch, title }: { onClick: () => void; pitch: string; title: string }) {
+   return (
+     <RowButton className={PROVIDER_ROW_CLASS} onClick={onClick}>
+-- 
+2.54.0 (Apple Git-157)
+

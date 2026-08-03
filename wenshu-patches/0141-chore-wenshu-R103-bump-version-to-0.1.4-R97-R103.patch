@@ -1,0 +1,57 @@
+From c149e5ae71c36c25291f1e2a156603ef71db7c69 Mon Sep 17 00:00:00 2001
+From: pm-direct <pm-direct@wenshu.local>
+Date: Fri, 31 Jul 2026 10:58:10 +0800
+Subject: [PATCH 141/168] =?UTF-8?q?chore(wenshu):=20R103=20-=20bump=20vers?=
+ =?UTF-8?q?ion=20to=200.1.4=20(=E5=90=AB=20R97-R103=20=E5=85=A8=E9=83=A8?=
+ =?UTF-8?q?=E4=BF=AE)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ apps/bootstrap-installer/src-tauri/Cargo.toml | 2 +-
+ apps/desktop/package.json                     | 2 +-
+ pyproject.toml                                | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/apps/bootstrap-installer/src-tauri/Cargo.toml b/apps/bootstrap-installer/src-tauri/Cargo.toml
+index 79447b564..d678501c6 100644
+--- a/apps/bootstrap-installer/src-tauri/Cargo.toml
++++ b/apps/bootstrap-installer/src-tauri/Cargo.toml
+@@ -1,6 +1,6 @@
+ [package]
+ name = "wenshu-setup"
+-version = "0.1.0"
++version = "0.1.4"
+ description = "文枢 Setup — signed installer that drives scripts/install.ps1"
+ authors = ["文枢 Project <wenshu@wenshu.local>"]
+ edition = "2021"
+diff --git a/apps/desktop/package.json b/apps/desktop/package.json
+index 449aa7ba0..957e684cd 100644
+--- a/apps/desktop/package.json
++++ b/apps/desktop/package.json
+@@ -2,7 +2,7 @@
+   "name": "wenshu",
+   "productName": "文枢",
+   "private": true,
+-  "version": "0.1.0",
++  "version": "0.1.4",
+   "description": "文枢 (Wenshu) — 基于 Hermes Agent v0.19.0 (MIT) 深度改 fork",
+   "author": [
+     {
+diff --git a/pyproject.toml b/pyproject.toml
+index 739ab2c0e..d66f1f56e 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
+ 
+ [project]
+ name = "wenshu-agent"
+-version = "0.1.0"
++version = "0.1.4"
+ description = "The self-improving AI agent — creates skills from experience, improves them during use, and runs anywhere"
+ readme = "README.md"
+ # Upper bound is load-bearing, not cosmetic. uv resolves the project's
+-- 
+2.54.0 (Apple Git-157)
+

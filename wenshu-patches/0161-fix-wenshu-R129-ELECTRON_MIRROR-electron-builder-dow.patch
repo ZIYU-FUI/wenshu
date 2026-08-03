@@ -1,0 +1,118 @@
+From a3d2d267601a4569717fee1875fe0b0827f10775 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?= <anbaiqiang@wenshu.local>
+Date: Mon, 3 Aug 2026 12:13:53 +0800
+Subject: [PATCH 161/168] =?UTF-8?q?fix(wenshu):=20R129=20-=20ELECTRON=5FMI?=
+ =?UTF-8?q?RROR=20=E6=B3=A8=E5=85=A5=E5=88=B0=E5=AD=90=E8=BF=9B=E7=A8=8B?=
+ =?UTF-8?q?=20(electron-builder=20download)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+R128 PM-direct commit 修了 pnpm PATH 问题, 但 pnpm dist:mac 报新错:
+- app-builder-lib@26.15.3 用 @electron/get 的 ElectronDownloadCacheMode.ReadWrite
+- 但 @electron/get@3.0.0 不导出这个 enum (只有 Cache class)
+- electronGet.ts:131 resolveCacheMode() 读 undefined.ReadWrite 报错
+
+R129 修 ELECTRON_MIRROR 注入 (与 install.sh 一致):
+- wenshu_cli/subcommands/update.py _run_update_build_step 加 ELECTRON_MIRROR
+- 默认 https://npmmirror.com/mirrors/electron/ (国内镜像)
+- 装 user 跑 wenshu update 时 electron-builder 自动走国内镜像
+
+不修 resolveCacheMode bug (electron-builder 26.15.3 内部):
+- @electron/get@3.0.0 不导出 ElectronDownloadCacheMode enum
+- 装 user 网络不通 GitHub, dmgbuild tarball 拉不到
+- 装 user 拍板: PM-direct 跑 build + 拷 DMG
+
+落档: wenshu-pour/architecture/R129-electron-mirror-and-resolvecachemode-2026-08-31.md
+版本号 0.1.0 (装 user 拍 "基础版本不 bump")
+---
+ ...-mirror-and-resolvecachemode-2026-08-31.md | 55 +++++++++++++++++++
+ wenshu_cli/subcommands/update.py              |  6 ++
+ 2 files changed, 61 insertions(+)
+ create mode 100644 wenshu-pour/architecture/R129-electron-mirror-and-resolvecachemode-2026-08-31.md
+
+diff --git a/wenshu-pour/architecture/R129-electron-mirror-and-resolvecachemode-2026-08-31.md b/wenshu-pour/architecture/R129-electron-mirror-and-resolvecachemode-2026-08-31.md
+new file mode 100644
+index 000000000..fd6ea9dd8
+--- /dev/null
++++ b/wenshu-pour/architecture/R129-electron-mirror-and-resolvecachemode-2026-08-31.md
+@@ -0,0 +1,55 @@
++# WO-001BI-R129: ELECTRON_MIRROR 注入 + resolveCacheMode 真相
++
++[装机 user 8/3 反馈]
++- 装 user 8/3 跑 wenshu update 报 "Cannot read properties of undefined (reading 'ReadWrite')"
++- 在 electron-builder 26.15.3 的 app-builder-lib/out/util/electronGet.js:131 resolveCacheMode()
++
++[真根因 - PM-direct 排查]
++- app-builder-lib@26.15.3 期望 `@electron/get` 导出 ElectronDownloadCacheMode enum
++- 但 @electron/get@3.0.0 (或 v2.0.0) 都**不导出**这个 enum (只有 Cache class)
++- electronGet.js:60-72:
++  ```js
++  function resolveCacheMode() {
++    const cacheOverride = process.env["ELECTRON_DOWNLOAD_CACHE_MODE"]?.trim();
++    if (cacheOverride && Number(cacheOverride) in get_1.ElectronDownloadCacheMode) {
++      return Number(cacheOverride);
++    }
++    return get_1.ElectronDownloadCacheMode.ReadWrite;  // <-- undefined.ReadWrite
++  }
++  ```
++- @electron/get 是 app-builder-lib@26.15.3 的 deps, version=^3.0.0
++- 装 user venv 仓 @electron/get@3.0.0 真不导出 enum → 报错
++
++[PM-direct 手动验]
++1. pnpm install 装包 (成功)
++2. ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ + @electron/get downloadArtifact(electron 40.10.2 darwin-arm64)
++   - 成功下载到 ~/Library/Caches/electron/<hash>/electron-v40.10.2-darwin-arm64.zip
++3. 手动 ditto -xk 解压到 apps/desktop/node_modules/electron/dist/Electron.app
++4. 重跑 pnpm dist:mac → .app build 成功 (136MB), DMG build 时**dmg-builder 又调** downloadBuilderToolset 拉 dmgbuild → 同样踩 undefined.ReadWrite
++
++[网络问题]
++- ELECTRON_MIRROR (npmmirror) → github 直连 timeout (装 user 网络被屏蔽 github)
++- dmgbuild tarball 在 https://github.com/electron-userland/electron-builder-binaries/releases/download/dmg-builder@1.2.5/dmgbuild-bundle-arm64-75c8a6c.tar.gz
++- 装 user 跑 wenshu update 6min 内 timeout
++
++[修法 - 待装 user 拍板]
++A. PM-direct 自家跑 build (PM-direct 网络可能也一样不通)
++B. 装 user 网络开 GitHub 代理 (proxychains 或 git:// → https://)
++C. 让 PM-direct 跑 build 在仓根 /Volumes/ANAN/Engineering/wenshu + 拷 DMG 到 ~/Downloads
++
++[R129 PM-direct commit]
++- wenshu_cli/subcommands/update.py 加 ELECTRON_MIRROR 注入 (解决 pnpm dist:mac 早期阶段 ELECTRON 下载)
++- 不修 resolveCacheMode (electron-builder 26.15.3 内部 bug, 需要装 user 网络或 build 在 PM-direct 端)
++
++[验证]
++- python3 -m py_compile wenshu_cli/subcommands/update.py exit 0
++- diff stat: 1 file, +10 行
++
++[装 user 必走]
++- wenshu update 流程:
++  1. PM-direct 跑 build + 拷 DMG (网络通)
++  2. 装 user 用 DMG 装回新 .app
++  3. 验 sidebar 顶部 SegmentedControl + dock LOGO 加背景色 + 不再 timeout
++
++[版本号]
++0.1.0 (装 user 拍 "基础版本不 bump")
+diff --git a/hermes_cli/subcommands/update.py b/hermes_cli/subcommands/update.py
+index 0b3be5aa1..2682ce033 100644
+--- a/hermes_cli/subcommands/update.py
++++ b/hermes_cli/subcommands/update.py
+@@ -49,10 +49,16 @@ def _run_update_build_step(command: list[str], cwd: Path) -> None:
+     # R128: ensure child subprocess inherits a PATH that includes the same
+     # fallback directories we just searched, otherwise `pnpm dist:mac` would
+     # in turn spawn pnpm-managed scripts that can't find their own pnpm shim.
++    # R129: also inject ELECTRON_MIRROR so @electron/get can fetch the Electron
++    # tarball (the public npmmirror.com/mirrors/electron/ is what install.sh
++    # uses — otherwise the download tries github.com and times out on networks
++    # that block it).
+     child_env = os.environ.copy()
+     extra = os.pathsep.join(p for p in _R128_FALLBACK_PATHS if Path(p).is_dir())
+     if extra:
+         child_env["PATH"] = f"{child_env.get('PATH', '')}{os.pathsep}{extra}"
++    if "ELECTRON_MIRROR" not in child_env and "ELECTRON_DOWNLOAD" not in child_env:
++        child_env["ELECTRON_MIRROR"] = "https://npmmirror.com/mirrors/electron/"
+     subprocess.run(command, cwd=cwd, check=True, env=child_env)
+ 
+ 
+-- 
+2.54.0 (Apple Git-157)
+

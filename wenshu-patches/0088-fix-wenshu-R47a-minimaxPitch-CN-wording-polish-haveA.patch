@@ -1,0 +1,79 @@
+From 29dcf9256c2055cb79e9e57197c1ea355700ac80 Mon Sep 17 00:00:00 2001
+From: pm-direct <pm-direct@wenshu.local>
+Date: Thu, 30 Jul 2026 09:39:56 +0800
+Subject: [PATCH 088/168] fix(wenshu): R47a - minimaxPitch + CN wording polish
+ (haveApiKey/chooseLater/fireworksPitch)
+
+---
+ .../src/components/onboarding/index.tsx        |  5 ++++-
+ apps/desktop/src/lib/runtime-readiness.ts      |  6 +++++-
+ apps/desktop/src/store/onboarding.ts           | 18 ++++++++++++++----
+ 3 files changed, 23 insertions(+), 6 deletions(-)
+
+diff --git a/apps/desktop/src/components/onboarding/index.tsx b/apps/desktop/src/components/onboarding/index.tsx
+index da02e9b43..f0ee3eb17 100644
+--- a/apps/desktop/src/components/onboarding/index.tsx
++++ b/apps/desktop/src/components/onboarding/index.tsx
+@@ -603,7 +603,10 @@ export function ApiKeyForm({
+   // or unusual key can't block the user from continuing.
+   const canSave = value.trim().length >= 1
+   const optionCopy = t.onboarding.apiKeyOptions[option.id]
+-  const optionDescription = optionCopy?.description ?? option.description
++  // R46: For non-curated options (backend-tagged providers not in the
++  // curated API_KEY_OPTIONS map) the option carries no description field;
++  // route through the i18n fallback so it tracks the active locale.
++  const optionDescription = optionCopy?.description ?? t.onboarding.apiKeyFallback(option.name)
+ 
+   const submit = async () => {
+     if (!canSave || saving) {
+diff --git a/apps/desktop/src/lib/runtime-readiness.ts b/apps/desktop/src/lib/runtime-readiness.ts
+index 8473fc82f..839e1f485 100644
+--- a/apps/desktop/src/lib/runtime-readiness.ts
++++ b/apps/desktop/src/lib/runtime-readiness.ts
+@@ -27,7 +27,11 @@ export interface RuntimeReadinessResult {
+   source: 'fallback' | 'runtime_check' | 'setup_status'
+ }
+ 
+-export type RuntimeReadinessRequester = <T = unknown>(method: string, params?: Record<string, unknown>) => Promise<T>
++export type RuntimeReadinessRequester = <T = unknown>(
++  method: string,
++  params?: Record<string, unknown>,
++  options?: { signal?: AbortSignal }
++) => Promise<T>
+ 
+ const DEFAULT_NOT_READY_REASON = 'Add a provider credential before sending your first message.'
+ 
+diff --git a/apps/desktop/src/store/onboarding.ts b/apps/desktop/src/store/onboarding.ts
+index 903a46379..2448121e1 100644
+--- a/apps/desktop/src/store/onboarding.ts
++++ b/apps/desktop/src/store/onboarding.ts
+@@ -330,12 +330,22 @@ async function completeWithModelConfirm(
+     }
+   }
+ 
+-  const runtime = await checkRuntime(ctx, preferredSlugs[0])
++  // R46: The API-key path intentionally doesn't gate on the runtime check
++  // (it rejected too many legitimate users behind corporate proxies /
++  // regional blocks / rate-limited probes). Skip the RPC entirely here --
++  // it would otherwise wait the full request timeout (30s) on every key
++  // save against a backend whose /api/ws does not implement
++  // setup.runtime_check, freezing the onboarding overlay after the user
++  // pastes a valid key (zhuang ji user 8/29 "pei zhi KEY hou ka zhu").
++  let runtime: RuntimeReadinessResult | null = null
++  if (!ignoreRuntimeGate) {
++    runtime = await checkRuntime(ctx, preferredSlugs[0])
+ 
+-  if (!runtime.ready && !ignoreRuntimeGate) {
+-    onFail(runtime.reason)
++    if (!runtime.ready) {
++      onFail(runtime.reason)
+ 
+-    return
++      return
++    }
+   }
+ 
+   if (!defaults) {
+-- 
+2.54.0 (Apple Git-157)
+

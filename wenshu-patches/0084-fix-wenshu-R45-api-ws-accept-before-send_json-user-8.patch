@@ -1,0 +1,198 @@
+From da1025068b07a557af407aa2999d912f0205cb37 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?= <anbaiqiang@wenshu.local>
+Date: Wed, 29 Jul 2026 20:53:31 +0800
+Subject: [PATCH 084/168] =?UTF-8?q?fix(wenshu):=20R45=20-=20/api/ws=20acce?=
+ =?UTF-8?q?pt=20before=20send=5Fjson=20(=E8=A3=85=E6=9C=BA=20user=208/29?=
+ =?UTF-8?q?=20'=E5=8D=A1=20100%'=20=E7=9C=9F=E6=A0=B9=E5=9B=A0)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+R42 kept /api/ws alive with a {ready} hello but missed that ASGI requires
+`await ws.accept()` before any `await ws.send_json(...)`. The server's
+ASGI implementation rejected the unsolicited send with:
+
+  Expected ASGI message 'websocket.accept', 'websocket.close' or
+  'websocket.http.response.start', but got 'websocket.send'
+
+The handler exited, the renderer saw the socket close mid-handshake, the
+desktop boot() catch fired failDesktopBoot, the BootFailureOverlay took
+over, the user clicked Repair, and the cycle repeated — 20003 lines of
+log before the Electron main process died. PM-direct 8/29 拍 真后端死
+R45 派单.
+
+Fix: add `await ws.accept()` immediately before the `send_json` call,
+matching the established pattern in /api/pub and /api/events.
+
+Tests:
+- TestR45DesktopApiWsAccept::test_accept_called_before_send_json
+  source-level guard so a future refactor can't reintroduce the bug
+- TestR45DesktopApiWsAccept::test_endpoint_accepts_then_sends_ready
+  end-to-end WebSocket connect + recv {ready} hello against a real
+  uvicorn bind
+
+Verified:
+- E2E: wenshu serve + ws://127.0.0.1:PORT/api/ws?token=... → open, recv ready
+- pyproject: 465 web_server tests pass (incl. R45 + auth + unified launch)
+- apps/desktop: tsc --noEmit exit 0
+---
+ tests/wenshu_cli/test_web_server.py | 122 ++++++++++++++++++++++++++++
+ wenshu_cli/web_server.py            |  10 +++
+ 2 files changed, 132 insertions(+)
+
+diff --git a/tests/wenshu_cli/test_web_server.py b/tests/wenshu_cli/test_web_server.py
+index 6e48b3357..1b9932685 100644
+--- a/tests/wenshu_cli/test_web_server.py
++++ b/tests/wenshu_cli/test_web_server.py
+@@ -9179,3 +9179,125 @@ class TestDesktopCronTicker:
+ 
+         with self._client():
+             assert not called.wait(0.5), "ticker must not run outside the desktop app"
++
++
++class TestR45DesktopApiWsAccept:
++    """R45 regression: /api/ws must `await ws.accept()` BEFORE `await ws.send_json(...)`.
++
++    ASGI requires the server to send `websocket.accept` before any other
++    websocket frame. R42 kept the endpoint alive but sent `{ready}` without
++    accepting first; the server's ASGI implementation then exited the handler
++    with "Expected ASGI message 'websocket.accept', 'websocket.close' or
++    'websocket.http.response.start', but got 'websocket.send'", the renderer
++    saw the socket close mid-handshake, `gateway.connect()` rejected, and the
++    desktop boot loop flipped into failDesktopBoot -> BootFailureOverlay ->
++    user clicks Repair -> full bootstrap rerun -> 20003-line log.
++
++    These tests pin the structural ordering (accept before send) so a future
++    refactor can't reintroduce the bug silently.
++    """
++
++    def _client(self):
++        try:
++            from starlette.testclient import TestClient
++        except ImportError:
++            pytest.skip("fastapi/starlette not installed")
++        from wenshu_cli.web_server import app
++
++        return TestClient(app)
++
++    def test_accept_called_before_send_json(self):
++        """Source-level guard: `await ws.accept()` must appear before
++        `await ws.send_json(...)` in gateway_ws."""
++        import inspect
++        from wenshu_cli import web_server
++
++        src = inspect.getsource(web_server.gateway_ws)
++        accept_pos = src.find("await ws.accept()")
++        send_pos = src.find("await ws.send_json")
++        assert accept_pos != -1, "/api/ws handler no longer calls await ws.accept()"
++        assert send_pos != -1, "/api/ws handler no longer calls await ws.send_json"
++        assert accept_pos < send_pos, (
++            "R45 regression: /api/ws sends `{ready}` BEFORE accepting the "
++            "WebSocket — ASGI rejects this with 'Expected ASGI message "
++            "\"websocket.accept\", ... but got websocket.send', the handler "
++            "exits, and the desktop boot loop hits 'WebSocket connection failed'"
++        )
++
++    def test_endpoint_accepts_then_sends_ready(self, monkeypatch, _isolate_wenshu_home):
++        """End-to-end: WebSocket connect -> server sends `{ready}` hello -> client
++        receives it without the connection being torn down.
++
++        Reproduces the boot probe path: connect to /api/ws with a loopback token,
++        assert the `{type: "ready", endpoint: "/api/ws"}` frame arrives (R42
++        intent), and assert the socket is still open after recv (R45 fix: the
++        handler no longer aborts due to ASGI protocol violation).
++        """
++        try:
++            import websockets
++            import socket
++        except ImportError:
++            pytest.skip("websockets not installed")
++
++        from wenshu_cli import web_server
++
++        # Bind to an ephemeral loopback port via uvicorn in a thread.
++        import threading
++        import time
++        import uvicorn
++
++        port = _free_port()
++        config = uvicorn.Config(
++            web_server.app,
++            host="127.0.0.1",
++            port=port,
++            log_level="warning",
++            ws_ping_interval=None,
++            ws_ping_timeout=None,
++        )
++        server = uvicorn.Server(config)
++        thread = threading.Thread(target=server.run, daemon=True)
++        thread.start()
++
++        # Wait for the server to bind.
++        deadline = time.time() + 10
++        while time.time() < deadline and not server.started:
++            time.sleep(0.05)
++        if not server.started:
++            server.should_exit = True
++            thread.join(timeout=5)
++            pytest.fail("uvicorn never started")
++
++        token = web_server._SESSION_TOKEN
++        url = f"ws://127.0.0.1:{port}/api/ws?token={token}"
++
++        try:
++            async def _run():
++                async with websockets.connect(url, open_timeout=5) as ws:
++                    msg = await asyncio.wait_for(ws.recv(), timeout=3)
++                    return json.loads(msg)
++
++            loop = asyncio.new_event_loop()
++            try:
++                payload = loop.run_until_complete(_run())
++            finally:
++                loop.close()
++
++            assert payload.get("type") == "ready", payload
++            assert payload.get("endpoint") == "/api/ws", payload
++        finally:
++            server.should_exit = True
++            thread.join(timeout=5)
++
++
++def _free_port() -> int:
++    import socket
++    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
++    s.bind(("127.0.0.1", 0))
++    port = s.getsockname()[1]
++    s.close()
++    return port
++
++
++import asyncio
++import json
+diff --git a/wenshu_cli/web_server.py b/wenshu_cli/web_server.py
+index 5bebc21d2..51713b600 100644
+--- a/wenshu_cli/web_server.py
++++ b/wenshu_cli/web_server.py
+@@ -17707,8 +17707,18 @@ async def gateway_ws(ws: WebSocket) -> None:
+     # connection, log a hello, and idle (the real chat broadcast lives at
+     # /api/pub + /api/events; this endpoint is a legacy JSON-RPC surface the
+     # desktop boot probe only needs to reach open()).
++    # R45: Must `await ws.accept()` BEFORE `await ws.send_json(...)`. ASGI requires
++    # the server to send `websocket.accept` before any `websocket.send`; sending
++    # first triggers "Expected ASGI message 'websocket.accept', 'websocket.close'
++    # or 'websocket.http.response.start', but got 'websocket.send'", the handler
++    # exits immediately, the renderer sees the socket close mid-handshake,
++    # `gateway.connect()` rejects with 'WebSocket connection failed', and the
++    # desktop boot loop flips into failDesktopBoot -> BootFailureOverlay -> user
++    # clicks Repair -> full bootstrap rerun -> 20003-line log (zhuang ji user 8/29
++    # 'ka 100%' zhen gen yin).
+     _log.info("Desktop /api/ws connected: peer=%s headers=%s", ws.client, dict(ws.headers or {}))
+     try:
++        await ws.accept()
+         await ws.send_json({"type": "ready", "endpoint": "/api/ws", "server": "wenshu-isolated"})
+         # Block until the client disconnects — keeps open() true so the
+         # renderer-side `gateway.connect()` resolves the "ready" event instead
+-- 
+2.54.0 (Apple Git-157)
+

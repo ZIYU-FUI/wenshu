@@ -1,0 +1,43 @@
+From 162f3ed4f460ada58b76b323a4a3fa87ba0bb617 Mon Sep 17 00:00:00 2001
+From: pm-direct <pm-direct@wenshu.local>
+Date: Thu, 30 Jul 2026 09:40:52 +0800
+Subject: [PATCH 089/168] fix(wenshu): R47b - setup.runtime_check 10s timeout +
+ friendly fallback (and any stale R47a tail changes)
+
+---
+ apps/desktop/src/lib/runtime-readiness.ts | 16 +++++++++++++---
+ 1 file changed, 13 insertions(+), 3 deletions(-)
+
+diff --git a/apps/desktop/src/lib/runtime-readiness.ts b/apps/desktop/src/lib/runtime-readiness.ts
+index 839e1f485..790f57625 100644
+--- a/apps/desktop/src/lib/runtime-readiness.ts
++++ b/apps/desktop/src/lib/runtime-readiness.ts
+@@ -60,12 +60,22 @@ function normalizeMessage(value: null | string | undefined): null | string {
+ async function requestWithFallback<T>(
+   requestGateway: RuntimeReadinessRequester,
+   method: string,
+-  params?: Record<string, unknown>
++  params?: Record<string, unknown>,
++  timeoutMs = 10_000
+ ): Promise<{ error: null | string; value: null | T }> {
++  const ac = new AbortController()
++  const timer = setTimeout(() => ac.abort(), timeoutMs)
+   try {
+-    return { error: null, value: await requestGateway<T>(method, params) }
++    return { error: null, value: await requestGateway<T>(method, params, { signal: ac.signal }) }
+   } catch (error) {
+-    return { error: toErrorMessage(error), value: null }
++    const msg = toErrorMessage(error)
++    // R47b: AbortError or 5xx timeout → friendly fallback (not "request timed out")
++    if (msg && (msg.toLowerCase().includes('abort') || msg.toLowerCase().includes('timed out'))) {
++      return { error: 'Connection check timed out. You can continue anyway.', value: null }
++    }
++    return { error: msg, value: null }
++  } finally {
++    clearTimeout(timer)
+   }
+ }
+ 
+-- 
+2.54.0 (Apple Git-157)
+

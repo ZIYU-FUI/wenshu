@@ -1,0 +1,36 @@
+From e1fa3d405e470e2e4cd6c86eea665a2ecd53d521 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?= <anbaiqiang@wenshu.local>
+Date: Wed, 29 Jul 2026 11:54:54 +0800
+Subject: [PATCH 074/168] =?UTF-8?q?chore(wenshu):=20R32=20-=20rebuild=20ve?=
+ =?UTF-8?q?rify=20R23=20LOGO=20+=20R14=20i18n=20+=20R30=20install.sh=20bak?=
+ =?UTF-8?q?ed=20(WO-001BI-R32,=20=E8=A3=85=E6=9C=BA=20user=208/29=20?=
+ =?UTF-8?q?=E6=8B=8D=E6=9D=BF=E7=9C=9F=E5=80=BC)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+装机 user 8/29 拍板: '在项目安装和网关还没有解决的时候, 能不能保证, 每次都用安装包验证, 然后保证 GIT 上的代码最新, 每次安装包拉都是拉最新的, 一直到我们能进到 APP 主页面, 网关能正常链接.'
+
+3 个保证:
+1. 每次都重 build 安装包 (装包器端 .app + 装包 DMG)
+2. 保持 GIT 最新 (commit + push 立即做)
+3. 每次安装包从 GIT 拉最新 install.sh
+4. 直到能进 APP 主页面 + gateway 正常链接
+
+当前问题 (装机 user 截图): 配置页 LOGO 仍是 hermes 女孩头 + 10 步骤英文.
+仓内 brand-mark.tsx 已用 wenshu-logo.png (R23) + progress.tsx 已走 tStep i18n (R14), 但 .app binary 是 brotli 压缩, 装机 user grep 看 0 命中以为是没烤进.
+
+This R32 ticket:
+- AC1 verified: 'pnpm tauri build' exit 0 → 1m07s, 11:52 11:53 出 .app + DMG
+- AC2 verified: 解压 .app 内 brotli 资产后 wenshu-logo.png SHA256 bdfb9b30cc037737410382b3fa4fb36d8a64e5197a42087cceb89b34d6f3b920 与仓内 dist/wenshu-logo.png 完全一致 ✅
+- AC3 verified: 解压 .app 内 brotli 资产后 10 步中文全命中 (系统环境检查 / 拉取文枢源码 / 创建 Python 虚拟环境 / 安装 Python 依赖 / 安装 Node 依赖 / 配置命令行入口 / 准备配置和技能 / 配置 API 密钥和设置 / 配置网关服务 / 完成安装) ✅
+- AC4 verified: cp ~/Downloads/WenShu-Setup.dmg (5,543,301 bytes), mtime 11:54
+- AC5: this commit + push origin + 飞书 DM 装机 user
+
+install.sh 沿用 R30 (git@github.com:ZIYU-FUI/wenshu.git main 分支, 运行时拉最新).
+WENSHU_HOME 默认 ~/.wenshu-hermes/, 文枢 app spawn 起来, 不读本机 ~/.hermes/.
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+-- 
+2.54.0 (Apple Git-157)
+

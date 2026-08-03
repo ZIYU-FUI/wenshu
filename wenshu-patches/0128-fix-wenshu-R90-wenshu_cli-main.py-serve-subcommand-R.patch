@@ -1,0 +1,74 @@
+From 5bf0d33dd4d7efe9f7c9dd9aa5a90d5b6d86f59b Mon Sep 17 00:00:00 2001
+From: pm-direct <pm-direct@wenshu.local>
+Date: Thu, 30 Jul 2026 19:22:01 +0800
+Subject: [PATCH 128/168] =?UTF-8?q?fix(wenshu):=20R90=20-=20wenshu=5Fcli/m?=
+ =?UTF-8?q?ain.py=20=E5=8A=A0=20'serve'=20subcommand=20(=E8=A1=A5=20R75=20?=
+ =?UTF-8?q?=E6=BC=8F=E7=A0=8D=E7=9A=84=E6=B3=A8=E5=86=8C)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+装机 user 8/30 截图装包器 backend 报:
+  wenshu: error: argument command: invalid choice: 'dashboard'
+
+R75 砍 dashboard_auth/ 时误删 subcommands/dashboard.py + cmd_dashboard 函数 + main.py build_dashboard_parser 调用
+但 R75 没补 'serve' subcommand (desktop spawnBackendArgs 跑 wenshu serve)
+
+PM-direct 兜底:
+1. main.py 加 cmd_serve 函数 (调 start_server 跑 headless backend)
+2. 加 'serve' subcommand 注册 (host/port/no-open args, func=cmd_serve)
+3. 加 'dashboard' alias -> 'serve' (兼容 desktop 老 fallback 代码)
+4. 删 __pycache__/dashboard.pyc (避免 .pyc 误判 dashboard 仍 valid)
+
+装机 user 重启文枢后:
+- wenshu serve --host 127.0.0.1 --port 0 应跑成功
+- desktop .app 启动应不再报 invalid choice dashboard
+---
+ wenshu_cli/main.py | 24 ++++++++++++++++++++++++
+ 1 file changed, 24 insertions(+)
+
+diff --git a/hermes_cli/main.py b/hermes_cli/main.py
+index cdc52707d..a8c915691 100644
+--- a/hermes_cli/main.py
++++ b/hermes_cli/main.py
+@@ -2895,6 +2895,15 @@ def cmd_whatsapp_cloud(args):
+     return run_whatsapp_cloud_setup()
+ 
+ 
++
++
++def cmd_serve(args):
++    """Headless backend (formerly `wenshu dashboard --no-open`)."""
++    # Reuse start_server with browser suppressed
++    from wenshu_cli.web_server import start_server
++    return start_server(args)
++
++
+ def cmd_setup(args):
+     """Interactive setup wizard."""
+     from wenshu_cli.setup import run_setup_wizard
+@@ -13358,6 +13367,21 @@ def main():
+         subparsers, cmd_gateway=cmd_gateway, cmd_proxy=cmd_proxy, cmd_gateway_enroll=cmd_gateway_enroll
+     )
+ 
++    # =========================================================================
++    # serve command (R90 装机 user 8/30 拍)
++    # Headless backend (formerly `wenshu dashboard --no-open`, deleted in R75).
++    # Desktop .app spawnBackendArgs returns ['serve', '--host', '127.0.0.1', '--port', '0']
++    # =========================================================================
++    serve_parser = subparsers.add_parser(
++        'serve',
++        aliases=['dashboard'],  # R90: 别名 'dashboard' 给 desktop 老 fallback 用 (R75 之前叫 dashboard)
++        help='Run the headless backend (HTTP/WebSocket gateway) without the web UI.',
++    )
++    serve_parser.add_argument('--host', default='127.0.0.1', help='Bind host (default: 127.0.0.1)')
++    serve_parser.add_argument('--port', type=int, default=0, help='Bind port (0=ephemeral; default: 0)')
++    serve_parser.add_argument('--no-open', action='store_true', help='No-op (legacy compat)')
++    serve_parser.set_defaults(func=cmd_serve)
++
+     # =========================================================================
+     # lsp command
+     # =========================================================================
+-- 
+2.54.0 (Apple Git-157)
+

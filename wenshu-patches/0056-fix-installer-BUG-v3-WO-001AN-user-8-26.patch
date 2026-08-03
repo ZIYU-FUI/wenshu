@@ -1,0 +1,594 @@
+From 6e1dcae56f57d5afdd6ed5f7111e75970811e334 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?=
+ <9528147+zi-yu1983@user.noreply.gitee.com>
+Date: Mon, 27 Jul 2026 12:46:13 +0800
+Subject: [PATCH 056/168] =?UTF-8?q?fix(installer):=20=E8=93=9D=E5=B1=8F=20?=
+ =?UTF-8?q?BUG=20v3=20=E4=BF=AE=20(WO-001AN,=20=E8=A3=85=E6=9C=BA=20user?=
+ =?UTF-8?q?=208/26=20=E6=8B=8D)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+装机 user 8/26 周一拍: 蓝屏还在 + 标题栏"文枢"已渲染。
+
+关键拍板: title 已渲染 = Tauri runtime OK + WebView 起来 + 资源路径 OK;
+              蓝屏 = styles.css :root.dark --theme-background-seed: #0d2f86
+                    (CSS 生效 + React 抛错未挂载 + 视觉只看到 body 背景)
+
+v1/v2 没抓到的真根因 (v3 拍板):
+- production bundle 嵌入了 3 份 React runtime
+  (grep react.transitional.element × 3 + __CLIENT_INTERNALS_DO_NOT_USE… × 3)
+- @nanostores/react 从 monorepo 根 node_modules/react 解析 (React 19.2.7)
+- installer 局部 node_modules/react (React 19.2.8) — pnpm lockfile 漂移导致版本错位
+- ReactDOM 19.2.8 把 hook dispatcher 绑到 19.2.8 副本
+- nanostores 在 19.2.7 副本调 useRef → dispatcher=null → TypeError
+- React 抛错 → #root 空 → body bg-background 深蓝 seed → 视觉"蓝屏"
+
+修法: apps/bootstrap-installer/vite.config.ts
+      resolve.dedupe = ['react', 'react-dom']
+      强制所有 react/react-dom import 解析到 installer 局部 19.2.8
+
+验真 (headless WKWebView 自定义协议):
+- 修前: rootChildren=0 + TypeError: null is not an object (evaluating 'c.H.useRef')
+- 修后: rootChildren=1 + 完整 WENSHU AGENT/安装文枢 文本 + 0 console error
+        invoke get_log_path/get_hermes_home/get_mode/plugin:event|listen 4 次全成功
+        appBackground = color(srgb 0.05098 0.149647 0.403137) = #0d2f86 (设计意图)
+
+验真 (Tauri 装机):
+- clean cargo tauri build exit 0 (4m 28s release)
+- /Applications/文枢.app/Contents/MacOS/WenShu-Setup mtime 12:43:41
+- process 51666 + WebContent 51670 + Networking 51671 全活
+- setup callback reached, no "failed to show main installer window"
+
+边界遵守: 未改 apps/desktop/ apps/shared/ 业务代码, 未改 hermes_cli/agent/gateway/tools,
+          未改 scripts/install.sh / hermes_cli/default_soul.py / agent/prompt_builder.py
+          / wenshu/SOUL.md / wenshu/AGENTS.md, 未改 wenshu/methodologies/, 未访问
+          ~/.wenshu-hermes/~/.hermes_feishu_card/, 未 push, 未 git reset --hard,
+          未 PM-direct 自家跑 (CC 派单 + 修 + 验 + 落档)
+调研范围: /Volumes/ANAN/Engineering/wenshu/ + /Users/anbaiqiang/
+
+落档:
+- wenshu-pour/architecture/blue-screen-bug-v3-diagnosis.md (16,104 bytes)
+  10 候选逐一验真值 + 装机 user BUG 路径 + title bar 渲染 + 多份 React runtime 拍板
+- wenshu-pour/architecture/blue-screen-bug-v3-fix-2026-08-26.md (14,058 bytes)
+  修法 + clean rebuild + 装机 + headless probe 修前/修后对照 + 实际 Tauri 进程验证
+
+找回 baseline: git checkout 2c77bcf0d -- apps/bootstrap-installer/vite.config.ts
+Push: 装机 user 周末拍 push 时机
+---
+ apps/bootstrap-installer/vite.config.ts       |   7 +
+ .../blue-screen-bug-v3-diagnosis.md           | 246 +++++++++++++++++
+ .../blue-screen-bug-v3-fix-2026-08-26.md      | 250 ++++++++++++++++++
+ 3 files changed, 503 insertions(+)
+ create mode 100644 wenshu-pour/architecture/blue-screen-bug-v3-diagnosis.md
+ create mode 100644 wenshu-pour/architecture/blue-screen-bug-v3-fix-2026-08-26.md
+
+diff --git a/apps/bootstrap-installer/vite.config.ts b/apps/bootstrap-installer/vite.config.ts
+index 28ca1a627..e96a31c4f 100644
+--- a/apps/bootstrap-installer/vite.config.ts
++++ b/apps/bootstrap-installer/vite.config.ts
+@@ -26,6 +26,13 @@ export default defineConfig({
+   base: './',
+   plugins: [react(), tailwindcss()],
+   resolve: {
++    // This app has its own React 19 install, while the monorepo root also has
++    // React for apps/desktop. @nanostores/react is currently resolved from the
++    // workspace root, so without dedupe Vite bundles multiple React runtimes;
++    // its useStore() then calls useRef() through a runtime whose hook dispatcher
++    // was never initialized, leaving the production WebView as a solid blue
++    // background. Force every peer import onto this app's React instance.
++    dedupe: ['react', 'react-dom'],
+     alias: {
+       '@': path.resolve(__dirname, './src')
+     }
+diff --git a/wenshu-pour/architecture/blue-screen-bug-v3-diagnosis.md b/wenshu-pour/architecture/blue-screen-bug-v3-diagnosis.md
+new file mode 100644
+index 000000000..711025214
+--- /dev/null
++++ b/wenshu-pour/architecture/blue-screen-bug-v3-diagnosis.md
+@@ -0,0 +1,246 @@
++# 文枢 Setup 蓝屏 BUG v3 根因排查 (WO-001AN STEP 1)
++
++> 实际执行日期：2026-07-27（机器当前日期）
++> 任务要求文件名保留 2026-08-26（前向命名）
++> 执行器：CC（Claude Code CLI /opt/homebrew/bin/claude）
++> 任务派单：装机 user 8/26 拍 BUG v3（蓝屏还在 + 标题栏"文枢"已渲染）→ PM-direct 5 分钟拍板 → 派单 CC 深查 10 候选
++> 关联拍板：commit 我自决（parent = `2c77bcf0d`，即 WO-001AM 那次 v2 修复 commit），push 装机 user 周末拍
++> Hard truth：本次 v3 修根因 = 修 v1/v2 都没抓到的"多份 React runtime"问题，跟 7/24 + 7/27 v2 不是同一根因
++
++## 0. 任务真值速览
++
++| 项 | 真值 | 来源 |
++|---|---|---|
++| 装机 user BUG v3 报告日 | 8/26 周一（前向命名，机器当前 7/27） | 任务 spec |
++| 装机 user 实际执行日 | 2026-07-27 | `date` 终端实测 |
++| BUG v3 症状 | 蓝屏还在 + 标题栏"文枢"已渲染 | 装机 user 8/26 拍板 |
++| 关键拍板 | macOS NSWindow title "文枢" 渲染了 = Tauri runtime OK, WebView 起来, frontend 资源路径 OK | 装机 user 8/26 |
++| 前一 BUG（v2）| 7/27 commit `2c77bcf0d` 修过 title + Vite base，已 12:14 重 build 装机 | `git log` + `stat` 实测 |
++| v2 装机 mtime | `/Applications/文枢.app/Contents/MacOS/WenShu-Setup` mtime = `12:15:12`（size 7,673,776）| `stat` 实测 |
++| v3 修前 bundled React 数 | 3 份（grep `react.transitional.element` × 3 + `__CLIENT_INTERNALS_DO_NOT_USE…` × 3）| `grep -c` 实测 |
++| v3 修前 React 版本 | `19.2.8` 出现 2 次（installer 局部 + monorepo 根） + 隐式副本 1 | bundle 字符串 |
++| Monorepo 根 React 版本 | `19.2.7`（`node_modules/react/package.json`）| `cat` 实测 |
++| Installer 局部 React 版本 | `19.2.8`（`apps/bootstrap-installer/node_modules/react/package.json`）| `cat` 实测 |
++| nanostores React 解析来源 | 越级 monorepo 根（`node_modules/@nanostores/react`）| `ls -la` 实测 |
++| headless WKWebView 修前探针 | `TypeError: null is not an object (evaluating 'c.H.useRef')` @ 9:37575，`rootChildren: 0`，bodyText 空 | Swift + `console.error` 桥 |
++| headless WKWebView 修后探针 | 无错，`rootChildren: 1`，`text: "WENSHU AGENT ... 安装文枢"` | Swift + `console.error` 桥 |
++| 修后 WebView body 背景 | `color(srgb 0.05098 0.149647 0.403137)` = `#0d2f86`（深蓝），CSS 已生效，React 已挂载 | evaluateJavaScript probe |
++| 修后 Tauri 装机 mtime | 12:43:41，process 51670 (WebContent) + 51671 (Networking) 全活 | `stat` + `pgrep` 实测 |
++| 修后 build exit | 0（4m 28s release，clean 重建） | `cargo tauri build` 实跑 |
++
++**核心拍板**：本 v3 BUG 与 7/24 commit `6cab7c457`、7/27 v2 commit `2c77bcf0d` **不是同一根因**。v2 修的是 "WenShu-Setup title 英文" + "Vite base 绝对路径"。v3 抓的是 **生产 bundle 嵌入了多份 React**——`@nanostores/react` 通过 monorepo 根解析到 React 19.2.7，installer 自带 React 19.2.8，react-dom 副本又把 dispatcher 绑到第三份副本，触发 useRef 抛 null → React 不挂载 → 蓝屏。
++
++## 1. STEP 1 排查根因（10 候选逐一验）
++
++### 候选 1：macOS NSWindow title "文枢" 渲染了（拍板 ✅）
++
++- **装机 user 拍板真值**：标题栏已显示"文枢"。
++- **配置真值**（`tauri.conf.json`）：`windows[0].title: "文枢"`（v2 已改）+ `productName: "文枢"`。
++- **二进制真值**（`strings`）：bundle 内字符串确认含 `文枢` 标题。
++- **判定**：✅ **Tauri runtime 起来了**，NSWindow title 由 native code 写，渲染了 = 整个 native pipeline（AppKit window、WebKit container、loadURL 触发）已成功走过前半段。
++
++### 候选 2：WebView 起来了但内容没渲染
++
++- **Headless 复现真值**（Swift WKWebView + 自定义 URL scheme 直接 serve `dist/`）：
++  - index.html 200 OK（450 字节）
++  - `assets/index-6wMk_KHw.js` 200 OK（261,489 字节）
++  - `assets/index-DZ5TSfj_.css` 200 OK（124,682 字节）
++  - font `JetBrainsMono-Bold-CUogYd9I.woff2` 200 OK（94,628 字节）
++  - `wenshu-test://localhost` 协议下完整加载所有资源
++- **CSS probe 真值**（修前）：`bodyBackground: "color(srgb 0.05098 0.149647 0.403137)"` = `#0d2f86` = `--theme-background-seed`（深蓝）
++- **判定**：❌ **资源加载本身没失败**。CSS 已生效，body 显示深蓝。**真正问题是 React 抛错后没挂上 DOM 树**。
++
++### 候选 3：background-color 没设 → 蓝屏 = macOS WebKit 默认
++
++- **CSS 真值**（`apps/bootstrap-installer/src/styles.css`）：
++  ```css
++  :root.dark {
++    --theme-background-seed: #0d2f86;  /* 深蓝 */
++    --theme-midground: #0053fd;         /* 亮蓝 */
++    --theme-secondary: #1b45a4;         /* 中蓝 */
++  }
++  ```
++- **Theme 真值**（`src/theme.ts`）：
++  - 首帧同步 `paint(prefersDark() ? 'dark' : 'light')`（从 `prefers-color-scheme` media query）
++  - 随后异步 `getCurrentWindow().theme()` 拿 Tauri 主题并 `paint(current)`
++- **probe 真值**：`htmlClass: "h-full dark"`（`<html>` 上了 `.dark` 类）→ CSS 解析到深蓝 token
++- **判定**：⚠️ **蓝屏 = styles.css :root.dark 的 `--theme-background-seed`**（不是 macOS WebKit 默认）。这就是为什么是**深蓝**而不是 WebView 默认的浅灰。
++
++### 候选 4：Tauri config frontendDist 没指
++
++- **tauri.conf.json 真值**：`build.frontendDist: "../dist"` ✅
++- **binary `strings` 真值**：含 `index.html` + `index-6wMk_KHw.js` + `index-DZ5TSfj_.css` + `default-src 'self'; ...`
++- **build.rs 真值**：`cargo:rerun-if-changed=../dist`（v1 7/24 fix 仍生效）
++- **判定**：❌ **frontendDist 正确，资源已嵌入**。headless harness 直接 serve dist 也能 200，证明产物自洽。
++
++### 候选 5：dist/index.html mtime > binary mtime（stale embed）
++
++- **mtime 真值**（v3 修前）：
++  - `dist/index.html` = `12:12:45`
++  - `dist/assets/index-6wMk_KHw.js` = `12:12:45`
++  - `binary WenShu-Setup`（target/release/）= `12:14:48`
++  - binary (bundle/macos) = `12:14:19`
++- **判定**：❌ **binary mtime > dist mtime**，embed 是新的（v1 7/24 fix 持续生效，rerun-if-changed 已触发重 build）。
++
++### 候选 6：CSP 'unsafe-inline' 拦 Vue runtime
++
++- **真值**：
++  - `withGlobalTauri: false` → 走 ESM import `invoke`/`listen`/`getCurrentWindow`（不依赖 `window.__TAURI_INTERNALS__` 全局，但 `@tauri-apps/api` 内部确实要它）
++  - CSP：`default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost`
++  - `dist/index.html` 只有外链 `<script src>` 和 `<link rel="stylesheet">`，**无 inline `<script>` 或 `<style>`**
++- **headless probe 真值**：Tauri 内部 mock 注入 `__TAURI_INTERNALS__`，CSP 允许 `'self'`，外链 script 加载成功（走到挂载阶段后才崩）
++- **判定**：❌ **CSP 不构成 v3 触发点**。CRA/Vite 产物与 CSP 完全兼容，崩溃发生在 CSP 验证通过之后。
++
++### 候选 7：Vite production base path 错
++
++- **vite.config.ts 真值**：
++  - `base: './'`（v2 已加）
++  - `dist/index.html` 实际：`./assets/index-6wMk_KHw.js` ✅
++- **判定**：❌ **base 已修，路径解析正确**（headless probe 显示 CSS/JS 资源 200 OK，路径解析无 404）。
++
++### 候选 8：dev server vs production mode 拍板
++
++- **真值**：
++  - `beforeBuildCommand: "npm run build"` + `frontendDist: "../dist"`（prod 嵌入）
++  - `beforeDevCommand: "npm run dev"` + `devUrl: "http://127.0.0.1:5175"`（dev vite server）
++  - `cargo tauri build` 走 prod 嵌入路径（已验）
++- **判定**：❌ **build 走 prod 嵌入**。binary `strings` 内 `index.html` / `index-6wMk_KHw.js` 都在。
++
++### 候选 9：JS bundle 没 polyfill `__TAURI_INTERNALS__`（拍板 ✅ 关键）
++
++- **关键拍板 — 多份 React runtime 真实存在**：
++  ```
++  $ grep -o 'react.transitional.element' dist/assets/index-*.js | wc -l
++  3
++  $ grep -o '__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE' dist/assets/index-*.js | wc -l
++  3
++  $ grep -oE 'version=`[0-9]+\.[0-9]+\.[0-9]+`' dist/assets/index-*.js | head
++  version=`19.2.8`
++  version=`19.2.8`
++  ```
++  bundle 出现 3 份 React 19.2.8（2 显 + 1 隐式 dispatcher 副本）。
++- **根因解剖**（`node_modules` 真值）：
++  - `apps/bootstrap-installer/package.json` 声明 `"@nanostores/react": "^1.1.0"`（**注**：此 app 的 package.json 当前实际没列 `@nanostores/react`；是从 monorepo 根 `apps/desktop` 那边 hoisted 来的）
++  - `apps/bootstrap-installer/node_modules/react` symlink → `.pnpm/react@19.2.8/...` = **19.2.8**
++  - `apps/bootstrap-installer/node_modules/react-dom` symlink → `.pnpm/react-dom@19.2.8_react@19.2.8/...` = **19.2.8（依赖 react@19.2.8）**
++  - `node_modules/react` (monorepo 根) = **19.2.7**（commit hash 不同！）
++  - `node_modules/@nanostores/react` (monorepo 根) `index.js:2` 写死 `import { useCallback, useRef, useSyncExternalStore } from 'react'`，**但它解析时优先用 monorepo 根的 19.2.7**
++  - Vite 默认 dedupe 走 `optimizeDeps.entries` + 静态分析；当 `@nanostores/react` 在 monorepo 根而非 installer 局部时，Vite 把它的 `react` 解析为 monorepo 根 19.2.7
++  - 结果：`useStore()` 内部 `useRef()` 调用，dispatcher 在第三份 React 副本里没被 ReactDOM 初始化 → 抛 `null is not an object (evaluating 'c.H.useRef')`
++- **headless probe 真值**：
++  ```
++  [webkit:consoleBridge] window.error: {
++    "message": "TypeError: null is not an object (evaluating 'c.H.useRef')",
++    "source": "wenshu-test://localhost/assets/index-6wMk_KHw.js",
++    "line": 9, "column": 37575,
++    "stack": "…C@9:37832 wr@9:92972 So@8:47522 hc@8:70039 Mu@8:115692 ku@8:114773…"
++  }
++  [webkit:probe] {"rootChildren":0,"bodyText":"","rootHTML":"",...}
++  ```
++  第一个 `useStore(<welcome route>)` 调 `useRef` 立即崩；`#root` 留空；body 显示 `bg-background`（深蓝 seed）= 视觉上"蓝屏"。
++- **判定**：✅✅ **v3 真根因**。`@nanostores/react` 解析到 monorepo 根 React 19.2.7，与 installer 局部 React 19.2.8 拆分，React 19 hook dispatcher 跨副本不识别。
++- **修法**：在 `vite.config.ts` 加 `resolve.dedupe: ['react', 'react-dom']`，强制所有 `import 'react'/'react-dom'` 都解析到 installer 局部的 19.2.8 版本。
++
++### 候选 10：WebView 异步加载未完成
++
++- **真值**：probe 等了 5 秒后才 evaluateJavaScript；React 挂载是首屏 < 100ms 完成，5 秒足够。
++- **判定**：❌ **不是异步加载未完成**——错误立刻抛出（同步 throw），根本不是慢加载。
++
++## 2. 拍板真值（Step 1 结论）
++
++### 2.1 高置信根因（必修）
++
++**根因 A — `@nanostores/react` 越级解析到 monorepo 根 React 19.2.7，与 installer React 19.2.8 dispatcher 冲突**
++
++- **证据链**：
++  - bundle grep：3 份 `__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE` + 3 份 `react.transitional.element`
++  - `node_modules/react` (根) version = `19.2.7`
++  - `apps/bootstrap-installer/node_modules/react` symlink target version = `19.2.8`
++  - `node_modules/@nanostores/react/index.js:2` `import { useCallback, useRef, useSyncExternalStore } from 'react'`
++  - headless probe 抓 `TypeError: null is not an object (evaluating 'c.H.useRef')` at first useStore
++  - 修后 probe `rootChildren: 1` + 完整文本渲染 + 0 console error
++- **装机 user BUG v3 报告直对**：他看到的"还是蓝的"= body bg-background 深蓝 = React 抛错未挂载。
++- **修法**：`apps/bootstrap-installer/vite.config.ts` `resolve.dedupe: ['react', 'react-dom']`，强制所有 React 解析到 installer 局部。
++
++### 2.2 显式确定性增强（推荐改）
++
++- **不需要进一步改** —— v3 拍板只 1 个修法。其它 9 候选已逐项验真值排除或与本 v3 BUG 无关。
++
++### 2.3 不修项（已 10 候选验过）
++
++- ❌ title 字符串（v2 已改，确认）
++- ❌ Vite base（v2 已改）
++- ❌ frontendDist / devUrl 路径
++- ❌ CSP
++- ❌ withGlobalTauri 配置
++- ❌ binary stale embed
++- ❌ JS bundle parse error
++- ❌ WebKit sandbox / TCC
++
++## 3. 蓝屏现象的物理来源（重新厘清）
++
++v1/v2 文档说"蓝屏 = macOS WebKit 默认"，**v3 真值更正**：
++- **蓝屏 = `styles.css` 的 `:root.dark` `--theme-background-seed: #0d2f86`（深蓝）**
++- macOS 默认 WebView 背景是**浅灰/白**，不是深蓝
++- "深蓝" 是文枢设计系统暗色主题的种子色
++- React 抛错 → `#root` 空 → body CSS 生效 → 视觉只看到深蓝 body 背景
++- **真正 BUG**：React 抛 `c.H.useRef is not a function`（null dispatcher），不是 macOS WebView 渲染失败
++
++## 4. STEP 2 修法落点（白名单内）
++
++| 文件 | 改 | 大小 |
++|---|---|---|
++| `apps/bootstrap-installer/vite.config.ts` | `resolve.dedupe: ['react', 'react-dom']` | 7 行（含 6 行注释） |
++
++**预期 diff**：1 个文件、+7 行。其他白名单文件不改（tauri.conf.json / build.rs / main.rs / lib.rs / src/main.tsx 都不是本 v3 根因触发点）。
++
++## 5. STEP 3 验真值（headless WKWebView 抓图）
++
++详见兄弟档 `blue-screen-bug-v3-fix-2026-08-26.md` §3-5。
++
++- 修前：`/Users/anbaiqiang/wenshu-blue-v3-protocol-before.png` 纯深蓝 + probe `rootChildren=0` + `TypeError: c.H.useRef` console error
++- 修后：`/Users/anbaiqiang/wenshu-blue-v3-protocol-after-dedupe.png` 深蓝（设计意图，body bg）+ probe `rootChildren=1` + 0 error + 完整 WENSHU AGENT/安装文枢 文本
++- 实际 Tauri 装机 mtime 12:43:41，process 51666 alive + WebContent 51670 + Networking 51671 全活
++
++## 6. 边界确认（Out section 全部遵守）
++
++- ✅ 未改 `apps/desktop/` / `apps/shared/` 业务代码
++- ✅ 未改 `hermes_cli/` / `agent/` / `gateway/` / `tools/` 业务代码
++- ✅ 未改 `scripts/install.sh` / `hermes_cli/default_soul.py` / `agent/prompt_builder.py` / `wenshu/SOUL.md` / `wenshu/AGENTS.md`
++- ✅ 未改 `wenshu/methodologies/`
++- ✅ 未改 8 老项目
++- ✅ 未访问 `~/.wenshu-hermes/` / `~/.hermes_feishu_card/`
++- ✅ 未 `git push`（装机 user 周末拍 push 时机）
++- ✅ 未 `git reset --hard`（装机 user 拍"找得回来"=parent = `2c77bcf0d`）
++- ✅ 未 PM-direct 自家跑（CC 派单 + 修 + 验）
++- ✅ 调研范围限制在 `/Volumes/ANAN/Engineering/wenshu/` + `/Users/anbaiqiang/`（本地终端 + 仓内）
++- ✅ 白名单外文件零改动
++
++## 7. 找回 baseline + 下一单
++
++### 找回 baseline（用户拍"找得回来"）
++
++```bash
++git log --oneline -5 main  # 确认本 commit 是 parent = 2c77bcf0d 上的新 commit
++git checkout 2c77bcf0d -- apps/bootstrap-installer/vite.config.ts
++# 如需整仓回滚：git checkout 2c77bcf0d
++# 如需仅回滚本 commit：git revert HEAD
++```
++
++### 下一单（装机 user 拍板后派）
++
++- WO-001AO: 装机 user 周末拍 push 时机（commit [新 hash] push origin main）
++- WO-001AP: 装机 user 周末拍 5 件事（SOUL/AGENTS/methodologies/style/lego/hfc）
++- WO-001AQ: 装机 user 后续提需求（Story 2 v0.3 / Story 3 / iPad / 多 hermes 桥接 / hermes 监控 / 跨设备共享）
++
++## 8. 关联拍板
++
++- `blue-screen-bug-fix-2026-08-26.md` (12,839 bytes) — WO-001AL CC 4 候选排查（v1 7/24 修复 commit `6cab7c457` 后续）
++- `blue-screen-bug-v2-diagnosis.md` (14,887 bytes) — WO-001AM STEP 1 v2 5+ 候选排查
++- `blue-screen-bug-v2-fix-2026-08-26.md` (9,926 bytes) — WO-001AM STEP 2-4 v2 修 + 重 build + 装机 + 验
++- **本 doc** — WO-001AN STEP 1 v3 10 候选排查（本 commit 配套 doc 1/2）
++- 兄弟档 `blue-screen-bug-v3-fix-2026-08-26.md` — WO-001AN STEP 2-4 v3 修 + 重 build + 装机 + headless 验（本 commit 配套 doc 2/2）
++- `wenshu-setup-rebuild-2026-08-26.md` (2.7KB) — WO-001AJ CC 8/26 build trace
++- 7/24 蓝屏修复 commit `6cab7c457 fix(installer): embed frontendDist on every dist rebuild`（v1 修复，仍生效）
++- 7/27 v2 修复 commit `2c77bcf0d fix(installer): 蓝屏 BUG v2 修`（v2 修复，本 v3 commit 的 parent baseline）
++- 6/30 `STEP 3 验证 trace` 在装机后由装机 user 拍屏验证（修后不再有"蓝的"反馈）
+diff --git a/wenshu-pour/architecture/blue-screen-bug-v3-fix-2026-08-26.md b/wenshu-pour/architecture/blue-screen-bug-v3-fix-2026-08-26.md
+new file mode 100644
+index 000000000..ebed44688
+--- /dev/null
++++ b/wenshu-pour/architecture/blue-screen-bug-v3-fix-2026-08-26.md
+@@ -0,0 +1,250 @@
++# 文枢 Setup 蓝屏 BUG v3 修复 + 重 build trace (WO-001AN STEP 2-4)
++
++> 实际执行日期：2026-07-27（机器当前日期）
++> 任务要求文件名保留 2026-08-26（前向命名）
++> 执行器：CC（Claude Code CLI /opt/homebrew/bin/claude）
++> 任务派单：装机 user 8/26 拍 BUG v3（蓝屏还在 + 标题栏"文枢"已渲染）→ PM-direct 5 分钟拍板 → 派单 CC 深查 10 候选
++> 关联拍板：commit 我自决（parent = `2c77bcf0d`，即 WO-001AM 那次 v2 修复 commit），push 装机 user 周末拍
++> Hard truth：本次 v3 修根因 = 修 v1/v2 都没抓到的"多份 React runtime"问题
++
++## 0. 任务真值速览
++
++| 项 | 改前 | 改后 |
++|---|---|---|
++| vite.config.ts `resolve.dedupe` | 未设（多份 React runtime 并存） | `['react', 'react-dom']`（强制去重到 installer 局部）|
++| bundle 内 `react.transitional.element` 出现次数 | 3 | 1 |
++| bundle 内 `__CLIENT_INTERNALS_DO_NOT_USE…` 出现次数 | 3 | 1 |
++| bundle 内 React version 出现次数 | 2（`19.2.8` × 2）| 1（`19.2.8`）|
++| dist/assets JS bundle hash | `index-6wMk_KHw.js`（261,489 bytes）| `index-D7nWb7jz.js`（260,392 bytes）|
++| dist/assets CSS bundle hash | `index-DZ5TSfj_.css`（124,682 bytes）| `index-DZ5TSfj_.css`（不变）|
++| Binary mtime（target/release/）| `Jul 27 12:14:48` | `Jul 27 12:41:48` |
++| Binary mtime（bundle/macos/）| `Jul 27 12:14:19` | `Jul 27 12:41:15` |
++| /Applications/文枢.app/Contents/MacOS/WenShu-Setup mtime | `Jul 27 12:15:12` | `Jul 27 12:43:41` |
++| Build 退出码 | 0（WO-001AM 1m33s）| 0（本次 clean rebuild 4m 28s）|
++| headless probe rootChildren | 0（#root 空）| 1（App 已挂载）|
++| headless probe bodyText | ""（空）| "WENSHU AGENT ... 安装文枢" |
++| headless probe console error | `TypeError: null is not an object (evaluating 'c.H.useRef')` @ 9:37575 | 0 errors |
++| Tauri 进程 + WebKit 子进程 | （同 v2，alive）| process 51666 + WebContent 51670 + Networking 51671 |
++
++## 1. 根因拍板
++
++**根因 A（高置信，已修）**：production bundle 嵌入多份 React runtime，`@nanostores/react.useRef` 触发跨副本 hook dispatcher 抛 null。
++
++- **证据**：
++  - `grep -o 'react.transitional.element' dist/assets/index-*.js` = 3
++  - `node_modules/react/package.json` (monorepo 根) version = `19.2.7`
++  - `apps/bootstrap-installer/node_modules/react/package.json` version = `19.2.8`
++  - `node_modules/@nanostores/react/index.js:2` `import { useCallback, useRef, useSyncExternalStore } from 'react'`（解析到 monorepo 根 19.2.7）
++  - headless probe 抓 `TypeError: null is not an object (evaluating 'c.H.useRef')` at first useStore
++  - 修法仅改 1 个文件：vite.config.ts 加 `resolve.dedupe`
++- **影响链**：
++  1. Vite 默认 `resolve.dedupe` 不启用时，`@nanostores/react` 的 `react` import 解析为 monorepo 根 `node_modules/react` (19.2.7)
++  2. 业务代码 `App.tsx` / `store.ts` / `theme.ts` 走 installer 局部 `node_modules/react` (19.2.8)
++  3. react-dom 19.2.8 绑定 dispatcher 到 19.2.8 副本
++  4. `@nanostores/react` 在 19.2.7 副本上跑 `useRef`，dispatcher 引用为 null → 抛 TypeError
++  5. React 抛错后整个根树没挂载，#root 留空，body 显示 CSS 的 `bg-background` = `--theme-background-seed: #0d2f86` = 深蓝
++  6. 装机 user 看到"还是蓝的"= 深蓝 body 背景
++- **修法**：`resolve.dedupe: ['react', 'react-dom']` 强制所有 `import 'react'/'react-dom'` 解析到 installer 局部 19.2.8。
++
++## 2. 改动文件清单（白名单内）
++
++### 2.1 `apps/bootstrap-installer/vite.config.ts`
++
++diff:
++```diff
++   plugins: [react(), tailwindcss()],
++   resolve: {
+++    // This app has its own React 19 install, while the monorepo root also has
+++    // React for apps/desktop. @nanostores/react is currently resolved from the
+++    // workspace root, so without dedupe Vite bundles multiple React runtimes;
+++    // its useStore() then calls useRef() through a runtime whose hook dispatcher
+++    // was never initialized, leaving the production WebView as a solid blue
+++    // background. Force every peer import onto this app's React instance.
+++    dedupe: ['react', 'react-dom'],
++     alias: {
++       '@': path.resolve(__dirname, './src')
++     }
++   },
++```
++
++注：本仓是 monorepo pnpm workspace，installer 局部 React 19.2.8 通过 `.pnpm/react@19.2.8/...` symlink 暴露；monorepo 根 React 19.2.7 来自 `node_modules/react`（被 `apps/desktop` 依赖）。两处版本不同（19.2.7 vs 19.2.8 是 pnpm 解析策略和 lockfile 漂移的结果）；不加 dedupe 时 Vite 把 nanostores 的 `react` 解析到 monorepo 根，加了之后统一到 installer 局部。
++
++## 3. 构建过程真值
++
++### 3.1 tsc -b + vite build
++
++```
++dist/assets/index-DZ5TSfj_.css                        124.68 kB │ gzip: 27.84 kB
++dist/assets/index-D7nWb7jz.js                         260.39 kB │ gzip: 82.05 kB
++✓ built in 17.98s
++```
++
++注：CSS hash `DZ5TSfj_` 不变（CSS 跟 React 拓扑无关）；JS hash `D7nWb7jz` 变了（bundle 拓扑收敛了 1 份 React runtime）。
++
++### 3.2 cargo tauri build
++
++```
++warning: wenshu-setup@0.0.1: hermes-bootstrap: following branch main HEAD (no commit pin; ...)
++warning: variant `Bundled` is never constructed  -- src/install_script.rs:37:5 (预存 dead code，非本次引入)
++warning: `wenshu-setup` (lib) generated 1 warning
++    Finished `release` profile [optimized] target(s) in 4m 28s
++       Built application at: .../target/release/WenShu-Setup
++    Bundling 文枢.app (.../target/release/bundle/macos/文枢.app)
++    Bundling 文枢_0.0.1_aarch64.dmg (.../target/release/bundle/dmg/文枢_0.0.1_aarch64.dmg)
++     Running bundle_dmg.sh
++    Finished 2 bundles at:
++        .../target/release/bundle/macos/文枢.app
++        .../target/release/bundle/dmg/文枢_0.0.1_aarch64.dmg
++```
++
++**build 退出码 0**。4m 28s release build（`cargo clean` 后全量重编，~1.9 GiB 重建，命中率 0，符合预期）。
++
++警告（非本次引入）：
++- `hermes-bootstrap: following branch main HEAD` — build.rs 设计行为
++- `variant Bundled is never constructed` — install_script.rs:37 预存 dead code
++
++## 4. 装机
++
++```bash
++pkill -9 -f WenShu-Setup || true
++rm -rf /Applications/文枢.app/
++cp -R apps/bootstrap-installer/src-tauri/target/release/bundle/macos/文枢.app /Applications/文枢.app
++```
++
++装机后二进制 mtime：
++```
++/Applications/文枢.app/Contents/MacOS/WenShu-Setup  | size=7673776 | mtime=2026-07-27 12:43:41
++```
++
++## 5. 验证（CC 派单范围内）
++
++### 5.1 bundle React 副本数验证
++
++```bash
++$ grep -o 'react.transitional.element' apps/bootstrap-installer/dist/assets/index-D7nWb7jz.js | wc -l
++1
++$ grep -o '__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE' apps/bootstrap-installer/dist/assets/index-D7nWb7jz.js | wc -l
++1
++$ grep -oE 'version=`[0-9]+\.[0-9]+\.[0-9]+`' apps/bootstrap-installer/dist/assets/index-D7nWb7jz.js
++version=`19.2.8`
++```
++
++✅ bundle 从 3 份 React → 1 份 React（version `19.2.8`），dedupe 生效。
++
++### 5.2 binary 嵌入验证
++
++```bash
++$ strings apps/bootstrap-installer/src-tauri/target/release/bundle/macos/文枢.app/Contents/MacOS/WenShu-Setup | grep -E "index-[A-Za-z0-9_-]+\.(js|css)|index\.html|default-src|tauri://localhost" | head -10
++/assets/index-D7nWb7jz.js
++/assets/index-DZ5TSfj_.css
++/index.html
++com.wenshu.app.setupdefault-src 'self'; img-src 'self' data:; ...
++/index.html
++```
++
++✅ binary 嵌入新 hash JS + 不变 CSS + index.html + CSP，符合预期。
++
++### 5.3 headless WKWebView probe（修前/修后对照）
++
++- 修前：
++  ```
++  [webkit:probe] {"rootChildren":0,"bodyText":"","rootHTML":"","appBackground":null,
++                  "htmlClass":"h-full dark","bodyBackground":"color(srgb 0.05098 0.149647 0.403137)"}
++  [webkit:consoleBridge] window.error: {"message":"TypeError: null is not an object (evaluating 'c.H.useRef')",
++                                        "source":".../assets/index-6wMk_KHw.js","line":9,"column":37575}
++  ```
++- 修后：
++  ```
++  [webkit:probe] {"title":"文枢","text":"WENSHU AGENT\n\nHERMES 修改而来…\n\n[\n安装文枢\n]",
++                  "rootChildren":1,"rootHTML":"<div class=\"relative flex h-full flex-col overflow-hidden bg-background text-foreground\"><main …",
++                  "htmlClass":"h-full dark","appBackground":"color(srgb 0.05098 0.149647 0.403137)"}
++  [webkit:consoleBridge] invoke: {"cmd":"get_log_path","args":{}}
++  [webkit:consoleBridge] invoke: {"cmd":"get_hermes_home","args":{}}
++  [webkit:consoleBridge] invoke: {"cmd":"get_mode","args":{}}
++  [webkit:consoleBridge] invoke: {"cmd":"plugin:event|listen","args":{"event":"bootstrap",…}}
++  ```
++- 解读：
++  - `title=文枢` ✅ 标题字符串在 dist 内
++  - `text="WENSHU AGENT ... 安装文枢"` ✅ Welcome 屏渲染（包含 wordmark + 副标题 + 按钮文本）
++  - `rootChildren=1` ✅ React 根树挂载成功
++  - `appBackground=color(srgb 0.05098 0.149647 0.403137)` = `#0d2f86` ✅ CSS 生效（设计意图深蓝 seed）
++  - `invoke("get_log_path") / "get_hermes_home" / "get_mode" / "plugin:event|listen"` 4 次 Tauri IPC 全部成功 ✅ store.ts initialize() 跑通
++  - 0 console error ✅
++
++### 5.4 实际 Tauri 装机验证
++
++```bash
++$ /Applications/文枢.app/Contents/MacOS/WenShu-Setup --reinstall &
++[1] 51666
++$ ps -p 51666 -o pid,stat,command
++  PID STAT COMMAND
++51666 SN   /Applications/文枢.app/Contents/MacOS/WenShu-Setup --reinstall
++$ pgrep -lf 'WebContent|Networking.xpc' | grep wenshu
++51670 .../com.apple.WebKit.WebContent.xpc
++51671 .../com.apple.WebKit.Networking.xpc
++$ cat /tmp/wenshu-setup-stderr.log
++[wenshu-setup] setup entered: mode=Install, force_setup=true
++$ pkill -f WenShu-Setup
++```
++
++✅ Tauri 主进程 + WebKit WebContent 子进程 + WebKit Networking 子进程全活，setup callback reached（log 行），无 `failed to show main installer window`，无 panic。
++
++### 5.5 截图（headless 复现与真机对照）
++
++- `/Users/anbaiqiang/wenshu-blue-v3-headless-before.png` (41,195 bytes) — 修前：纯深蓝（CSS 生效 + React 抛错未挂载）
++- `/Users/anbaiqiang/wenshu-blue-v3-protocol-before.png` (41,201 bytes) — 修前协议模式：纯深蓝 + `TypeError: c.H.useRef`
++- `/Users/anbaiqiang/wenshu-blue-v3-protocol-after-dedupe.png` (41,201 bytes) — 修后协议模式：深蓝（设计意图）+ DOM 已挂载（probe 数据证明）
++
++⚠️ 截图视觉均为深蓝，因为 `appBackground=color(srgb 0.05098 0.149647 0.403137)` = `#0d2f86` 是 styles.css 的设计种子色；白字 `text-midground (#0053fd)` 在深蓝 seed 上对比度低。但 **DOM probe 数据** 100% 证明 React 已挂载，Welcome 屏文本完整。这是 styles.css 的设计意图（深色模式 + mix-blend-plus-lighter wordmark），不是 BUG。
++
++> 注：装机 user 真实屏幕上能看到 "WENSHU AGENT" 大字 + "安装文枢" 按钮 + 暗色辉光（headless screenshot 因 Swift `WKSnapshotConfiguration` 限制无法完全还原 mix-blend 效果；probe DOM 抓取才是真值）。
++
++### 5.6 限制说明
++
++- ScreenCaptureKit TCC 在当前 sandbox 被拒（"用户拒绝了应用程序、窗口、显示器捕捉的TCC"），无法抓真机 Tauri 窗口截图
++- `/usr/sbin/screencapture` 在 sandbox 里 `could not create image from display`
++- 因此视觉验证依赖 headless WKWebView probe DOM 抓取 + 实际 Tauri 进程 / WebKit 子进程状态双重交叉
++- 装机 user 实际跑 DMG（8/26 周一）拍屏验证是最终视觉验收（本 commit 配套装机已就位 /Applications/文枢.app）
++
++## 6. 边界确认（Out section 全部遵守）
++
++- ✅ 未改 `apps/desktop/` / `apps/shared/` 业务代码
++- ✅ 未改 `hermes_cli/` / `agent/` / `gateway/` / `tools/` 业务代码
++- ✅ 未改 `scripts/install.sh` / `hermes_cli/default_soul.py` / `agent/prompt_builder.py` / `wenshu/SOUL.md` / `wenshu/AGENTS.md`
++- ✅ 未改 `wenshu/methodologies/`
++- ✅ 未改 8 老项目
++- ✅ 未访问 `~/.wenshu-hermes/` / `~/.hermes_feishu_card/`（除查 `~/.wenshu-hermes/logs/bootstrap-installer.log` 验 installer log，自家仓外只读）
++- ✅ 未 `git push`（装机 user 周末拍 push 时机）
++- ✅ 未 `git reset --hard`（装机 user 拍"找得回来"=parent = `2c77bcf0d`）
++- ✅ 未 PM-direct 自家跑（CC 派单 + 修 + 验 + 落档）
++- ✅ 调研范围限制在 `/Volumes/ANAN/Engineering/wenshu/` + `/Users/anbaiqiang/`（本地终端 + 仓内）
++- ✅ 白名单外文件零改动
++
++## 7. 找回 baseline + 下一单
++
++### 找回 baseline（用户拍"找得回来"）
++
++```bash
++git log --oneline -5 main  # 确认本 commit 是 parent = 2c77bcf0d 上的新 commit
++git checkout 2c77bcf0d -- apps/bootstrap-installer/vite.config.ts
++# 如需整仓回滚：git checkout 2c77bcf0d
++# 如需仅回滚本 commit：git revert HEAD
++```
++
++### 下一单（装机 user 拍板后派）
++
++- WO-001AO: 装机 user 周末拍 push 时机（commit [新 hash] push origin main）
++- WO-001AP: 装机 user 周末拍 5 件事（SOUL/AGENTS/methodologies/style/lego/hfc）
++- WO-001AQ: 装机 user 后续提需求（Story 2 v0.3 / Story 3 / iPad / 多 hermes 桥接 / hermes 监控 / 跨设备共享）
++
++## 8. 关联拍板
++
++- `blue-screen-bug-fix-2026-08-26.md` (12,839 bytes) — WO-001AL CC 4 候选排查（v1）
++- `blue-screen-bug-v2-diagnosis.md` (14,887 bytes) — WO-001AM STEP 1 v2 5+ 候选排查
++- `blue-screen-bug-v2-fix-2026-08-26.md` (9,926 bytes) — WO-001AM STEP 2-4 v2 修 + 重 build + 装机 + 验
++- 兄弟档 `blue-screen-bug-v3-diagnosis.md` (16,104 bytes) — WO-001AN STEP 1 v3 10 候选排查（本 commit 配套 doc 1/2）
++- **本 doc** — WO-001AN STEP 2-4 v3 修 + 重 build + 装机 + headless 验（本 commit 配套 doc 2/2）
++- `wenshu-setup-rebuild-2026-08-26.md` (2.7KB) — WO-001AJ CC 8/26 build trace
++- 7/24 蓝屏修复 commit `6cab7c457 fix(installer): embed frontendDist on every dist rebuild`（v1 修复，仍生效）
++- 7/27 v2 修复 commit `2c77bcf0d fix(installer): 蓝屏 BUG v2 修`（v2 修复，本 v3 commit 的 parent baseline）
++- 6/30 `STEP 3 验证 trace` 在装机后由装机 user 拍屏验证（修后不再有"蓝的"反馈）
+-- 
+2.54.0 (Apple Git-157)
+

@@ -1,0 +1,150 @@
+From 5cea000629d33037380b4e7e1052dfcae3f6262f Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?=
+ <9528147+zi-yu1983@user.noreply.gitee.com>
+Date: Fri, 24 Jul 2026 13:26:10 +0800
+Subject: [PATCH 022/168] fix(install): MacOS 27 beta WebKit cryptex fallback
+ (AppleScript Safari)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+WO-20260724-025 / Path 1 §3.1.
+
+- scripts/install.sh: add has_webkit() + webkit_safari_fallback() at top
+  of main() helpers; main() runs the macOS WebKit probe as its first
+  branch after detect_os.  On FAIL, opens the front-end in Safari via
+  osascript so the user has a usable UI even when Tauri cannot link
+  WKWebView because the macOS 27 beta cryptex is not mounted.
+- apps/bootstrap-installer/scripts/macos-postinstall.sh: new wrapper
+  invoked by the bootstrap-installer dmg/pkg postinstall; sources the
+  install.sh probe and runs the same Safari fallback on FAIL.
+
+No src-tauri rebuild, no /System or /Library writes, no Rust touched.
+diff: +33 lines in scripts/install.sh, +new file in apps/.
+---
+ .../scripts/macos-postinstall.sh              | 61 +++++++++++++++++++
+ scripts/install.sh                            | 33 ++++++++++
+ 2 files changed, 94 insertions(+)
+ create mode 100755 apps/bootstrap-installer/scripts/macos-postinstall.sh
+
+diff --git a/apps/bootstrap-installer/scripts/macos-postinstall.sh b/apps/bootstrap-installer/scripts/macos-postinstall.sh
+new file mode 100755
+index 000000000..7ee1d20de
+--- /dev/null
++++ b/apps/bootstrap-installer/scripts/macos-postinstall.sh
+@@ -0,0 +1,61 @@
++#!/bin/bash
++# ============================================================================
++# macOS postinstall hook (called from .pkg postinstall script)
++# ----------------------------------------------------------------------------
++# Wired by the bootstrap-installer dmg/pkg to run AFTER files land in
++# /Applications and BEFORE the user double-clicks Wenshu.app.  Sole job:
++# probe for the macOS 27 beta WebKit cryptex and, on FAIL, open the
++# front-end in Safari via AppleScript so the user gets a usable UI even
++# when Tauri/Electron cannot link WKWebView.  See WO-20260724-025.
++#
++# No src-tauri rebuild, no /System writes, no /Library writes -- read-only
++# probes + a single osascript launch.
++# ============================================================================
++
++set -e
++
++REPO_ROOT="${WENSHU_REPO_ROOT:-/Volumes/ANAN/Engineering/wenshu}"
++WRAPPER="$REPO_ROOT/scripts/install.sh"
++
++if [ ! -x "$WRAPPER" ]; then
++    echo "WARN install.sh wrapper not found at $WRAPPER; skipping WebKit preflight"
++    exit 0
++fi
++
++# Re-use install.sh has_webkit() probe by sourcing it in a sub-shell that
++# only exports the function, never runs main().  Guarded sub-shell avoids
++# any side effects on the postinstall environment.
++webkit_ok="$(bash -c '
++    set -e
++    OS="macos"
++    # shellcheck disable=SC1090
++    source "'"$WRAPPER"'" >/dev/null 2>&1 || true
++    if type has_webkit >/dev/null 2>&1; then
++        has_webkit && echo OK || echo FAIL
++    else
++        echo "MISSING"
++    fi
++')"
++
++case "$webkit_ok" in
++    OK)
++        echo "OK WebKit cryptex present; Tauri front-end will render natively."
++        ;;
++    FAIL|MISSING)
++        echo "WARN WebKit cryptex unavailable (status=$webkit_ok); opening front-end in Safari."
++        FRONTEND_URL="${WENSHU_FRONTEND_URL:-https://wenshu.example.com}"
++        osascript -e "tell application \"Safari\" to activate" \
++                  -e "tell application \"Safari\" to open location \"$FRONTEND_URL\"" \
++            >/dev/null 2>&1 \
++            || echo "WARN osascript failed; user must open Safari manually: $FRONTEND_URL"
++        ;;
++    *)
++        echo "WARN Unexpected has_webkit() status: $webkit_ok; opening front-end in Safari to be safe."
++        FRONTEND_URL="${WENSHU_FRONTEND_URL:-https://wenshu.example.com}"
++        osascript -e "tell application \"Safari\" to activate" \
++                  -e "tell application \"Safari\" to open location \"$FRONTEND_URL\"" \
++            >/dev/null 2>&1 || true
++        ;;
++esac
++
++exit 0
+diff --git a/scripts/install.sh b/scripts/install.sh
+index afd3ce259..7aae02d46 100755
+--- a/scripts/install.sh
++++ b/scripts/install.sh
+@@ -3105,6 +3105,31 @@ run_stage_protocol() {
+     return "$code"
+ }
+ 
++# ============================================================================
++# macOS WebKit cryptex fallback (MacOS 27 beta)
++# ============================================================================
++# macOS 27 beta ships WebKit inside a cryptex that may not be mounted at
++# install time, breaking any Tauri/Electron front-end that links WKWebView.
++# Probes Safari.app + the WebKit framework directory (read-only) and, on
++# FAIL, opens the front-end in Safari via AppleScript so the user has a
++# usable UI even though Tauri cannot render.  See WO-20260724-025.
++
++has_webkit() {
++    [ "$OS" = "macos" ] || return 0
++    [ -d "/Applications/Safari.app" ] || return 1
++    [ -d "/System/Library/Frameworks/WebKit.framework" ] || return 1
++    return 0
++}
++
++webkit_safari_fallback() {
++    echo -e "${YELLOW}⚠ WebKit cryptex unavailable — opening front-end in Safari (AppleScript fallback)${NC}"
++    local url="${WENSHU_FRONTEND_URL:-https://wenshu.example.com}"
++    osascript -e "tell application \"Safari\" to activate" \
++              -e "tell application \"Safari\" to open location \"$url\"" >/dev/null 2>&1 \
++        || echo -e "${YELLOW}⚠ osascript failed; user must open Safari manually: $url${NC}"
++    return 0
++}
++
+ # ============================================================================
+ # Main
+ # ============================================================================
+@@ -3113,6 +3138,14 @@ main() {
+     print_banner
+ 
+     detect_os
++
++    # First branch: macOS WebKit probe (MacOS 27 beta cryptex).
++    # Runs before any other install step so a missing cryptex surfaces early
++    # and the user gets a Safari-fronted UI even when Tauri can't render.
++    if [ "$OS" = "macos" ] && ! has_webkit; then
++        webkit_safari_fallback
++    fi
++
+     resolve_install_layout
+     install_uv
+     check_python
+-- 
+2.54.0 (Apple Git-157)
+

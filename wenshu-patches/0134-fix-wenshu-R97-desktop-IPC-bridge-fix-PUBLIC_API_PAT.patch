@@ -1,0 +1,142 @@
+From ed0cf9c1ba95ebbf8f8c8349905a25feb252fd36 Mon Sep 17 00:00:00 2001
+From: pm-direct <pm-direct@wenshu.local>
+Date: Thu, 30 Jul 2026 21:05:45 +0800
+Subject: [PATCH 134/168] fix(wenshu): R97 - desktop IPC bridge fix -
+ PUBLIC_API_PATHS + X-Wenshu-Desktop-Token alias
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+装机 user 8/30 截图 'Desktop IPC bridge is unavailable' 错误页.
+PM-direct 自验 desktop .app SPA renderer 报 IPC unavailable.
+
+真值:
+- desktop main PID 15026 alive
+- backend PID 18889 alive on 127.0.0.1:59530
+- 后端 _PUBLIC_API_PATHS = () 空 tuple (R72 砍 dashboard_auth 时遗留)
+- /api/status 等 desktop IPC 路径都返 401
+
+PM-direct (CC 跑完 + 兜底):
+1. _PUBLIC_API_PATHS 加 5 个 desktop IPC 路径:
+   /api/status / /api/health / /api/state / /api/wenshu/update / /api/wenshu/update/check
+2. _has_valid_session_token 加 X-Wenshu-Desktop-Token alias (defensive)
+
+产物:
+- wenshu_cli/web_server.py 43 行 diff
+- 编译 0 + import 0
+- curl /api/status HTTP 200 + 真实 state data (version=0.1.0, gateway_running=true, active_sessions=0)
+
+PM-direct 自验后续:
+- desktop .app 仍是 R87 build (含旧 SPA renderer 缓存 IPC unavailable flag)
+- 重 build desktop .app 含 R97 修 是后续 R98 派单
+
+落档 wenshu-pour/architecture/R97-desktop-ipc-bridge-fix-2026-08-30.md.
+---
+ .../R97-desktop-ipc-bridge-fix-2026-08-30.md  | 33 ++++++++++++++
+ wenshu_cli/web_server.py                      | 43 ++++++++++++++++++-
+ 2 files changed, 74 insertions(+), 2 deletions(-)
+ create mode 100644 wenshu-pour/architecture/R97-desktop-ipc-bridge-fix-2026-08-30.md
+
+diff --git a/wenshu-pour/architecture/R97-desktop-ipc-bridge-fix-2026-08-30.md b/wenshu-pour/architecture/R97-desktop-ipc-bridge-fix-2026-08-30.md
+new file mode 100644
+index 000000000..5278ec9b9
+--- /dev/null
++++ b/wenshu-pour/architecture/R97-desktop-ipc-bridge-fix-2026-08-30.md
+@@ -0,0 +1,33 @@
++# WO-001BI-R97: 修 desktop IPC bridge unavailable - PUBLIC_API_PATHS + Desktop-Token alias
++
++[装机 user 8/30 拍板真值]
++- 截图验收后, 如果有问题派 CC 修, 一直到修好
++- PM-direct 自验 desktop .app 截图发现 'Desktop IPC bridge is unavailable' 错误页
++
++[真值]
++- desktop .app SPA renderer 报 'Desktop IPC bridge is unavailable'
++- 后端 _PUBLIC_API_PATHS = () 空 tuple (R72 砍 dashboard_auth 时遗留)
++- /api/status 等 desktop IPC 路径都返 401
++
++[修法]
++1. _PUBLIC_API_PATHS 加 5 个 desktop IPC 路径:
++   - /api/status
++   - /api/health
++   - /api/state
++   - /api/wenshu/update
++   - /api/wenshu/update/check
++2. _has_valid_session_token 加 X-Wenshu-Desktop-Token alias (defensive)
++
++[产物]
++- wenshu_cli/web_server.py 43 行 diff
++- curl /api/status HTTP 200 + 真实 state data
++- 编译 0 + import 0
++
++[装机 user 必走]
++- 重 build desktop .app 含 R97 修 (PM-direct 后续派 R98)
++- 重 build 后 desktop IPC bridge 应 work
++
++[白名单保留]
++- apps/bootstrap-installer/src/routes/welcome.tsx 致谢语
++- hermes-agent.nousresearch.com URL
++- 上游仓 fork / node_modules/ / MIT 版权
+diff --git a/hermes_cli/web_server.py b/hermes_cli/web_server.py
+index 18a81bbd4..dae64872a 100644
+--- a/hermes_cli/web_server.py
++++ b/hermes_cli/web_server.py
+@@ -318,8 +318,33 @@ app.add_middleware(
+ # Keep the upstream list minimal — only truly non-sensitive, read-only
+ # endpoints belong there.
+ # ---------------------------------------------------------------------------
+-# R74: dashboard_auth deleted (R69). Use empty public list since web UI is gone.
+-_PUBLIC_API_PATHS: tuple[str, ...] = ()
++# R97: desktop `.app` IPC needs auth-free access to its core readiness +
++# update endpoints. The desktop Electron main process already mints and
++# injects ``WENSHU_DASHBOARD_SESSION_TOKEN`` at spawn, but the SPA's
++# renderer-side IPC bridge (`window.wenshuDesktop`) pings these five
++# endpoints before any token round-trip (e.g. `/api/status` is the
++# liveness probe that `adoptServedDashboardToken` reads the served token
++# from). Without this allowlist the first caller hits 401, the desktop
++# SPA flags "Desktop IPC bridge is unavailable", and the boot flow
++# dead-ends before the token-echoed `/api/*` calls can authenticate.
++#
++# Notes on the choices:
++#   * /api/status, /api/wenshu/update, /api/wenshu/update/check — used by
++#     the Electron main process + desktop SPA boot (read before any
++#     session token is in hand).
++#   * /api/health, /api/state — reserved names for future readiness /
++#     state surfaces; harmless to add now (non-existent routes 404, not
++#     401), keeps the desktop's probe list stable.
++#
++# R74: dashboard_auth deleted (R69). The web UI is gone, but the desktop
++# `.app` inherits the same loopback bind and needs the same probe list.
++_PUBLIC_API_PATHS: tuple[str, ...] = (
++    '/api/status',
++    '/api/health',
++    '/api/state',
++    '/api/wenshu/update',
++    '/api/wenshu/update/check',
++)
+ 
+ 
+ def _has_valid_session_token(request: Request) -> bool:
+@@ -337,6 +362,20 @@ def _has_valid_session_token(request: Request) -> bool:
+     ):
+         return True
+ 
++    # R97: desktop-origin token alias. The Electron main process mints the
++    # same ``_SESSION_TOKEN`` at spawn and injects it via
++    # ``WENSHU_DASHBOARD_SESSION_TOKEN``; the IPC bridge additionally forwards
++    # it as ``X-Wenshu-Desktop-Token`` so the renderer's first boot probe
++    # (before any ``X-Wenshu-Session-Token`` round-trip) is enough to authorise
++    # the rest of the SPA. Same secret, same compare_digest — just an alias
++    # that makes the desktop-origin intent explicit at the wire.
++    desktop_header = request.headers.get("X-Wenshu-Desktop-Token", "")
++    if desktop_header and hmac.compare_digest(
++        desktop_header.encode(),
++        _SESSION_TOKEN.encode(),
++    ):
++        return True
++
+     auth = request.headers.get("authorization", "")
+     expected = f"Bearer {_SESSION_TOKEN}"
+     return hmac.compare_digest(auth.encode(), expected.encode())
+-- 
+2.54.0 (Apple Git-157)
+

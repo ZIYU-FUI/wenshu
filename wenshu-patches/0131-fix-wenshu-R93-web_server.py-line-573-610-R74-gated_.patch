@@ -1,0 +1,51 @@
+From c8deb392e024e5bffdf98ad49758c74f8b6582b9 Mon Sep 17 00:00:00 2001
+From: pm-direct <pm-direct@wenshu.local>
+Date: Thu, 30 Jul 2026 20:11:50 +0800
+Subject: [PATCH 131/168] =?UTF-8?q?fix(wenshu):=20R93=20-=20web=5Fserver.p?=
+ =?UTF-8?q?y=20line=20573/610=20R74=20=E6=AD=BB=E4=BB=A3=E7=A0=81=20(gated?=
+ =?UTF-8?q?=5Fauth=5Fmiddleware=20/=20token=5Fauth=5Fmiddleware)=20?=
+ =?UTF-8?q?=E6=94=B9=20stub?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+R92 commit 漏改 2 处 R74 死代码:
+- line 573: return await gated_auth_middleware()  (没 import, 跑 NameError)
+- line 610: return await token_auth_middleware()  (没 import, 跑 NameError)
+
+R93 修:
+- 2 处 改 return await call_next() (skip auth gate)
+- 验 python3 -m py_compile exit 0
+
+PM-direct 兜底 (前 R92 派单自验不彻底).
+---
+ wenshu_cli/web_server.py | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/wenshu_cli/web_server.py b/wenshu_cli/web_server.py
+index dc15cbcd5..071b65c0a 100644
+--- a/wenshu_cli/web_server.py
++++ b/wenshu_cli/web_server.py
+@@ -570,7 +570,8 @@ async def _plugin_api_runtime_gate(request: Request, call_next):
+ 
+ @app.middleware("http")
+ async def _dashboard_auth_gate(request: Request, call_next):
+-    return await gated_auth_middleware(request, call_next)
++    # R92: dashboard_auth deleted (R69). Stub - skip auth gate.
++    return await call_next(request)
+ 
+ 
+ @app.middleware("http")
+@@ -607,7 +608,8 @@ async def _token_auth_seam(request: Request, call_next):
+     cookie/session gates skip enforcement. Non-token routes pass straight
+     through untouched.
+     """
+-    return await token_auth_middleware(request, call_next)
++    # R92: dashboard_auth deleted (R69). Stub - skip token auth.
++    return await call_next(request)
+ 
+ 
+ # ---------------------------------------------------------------------------
+-- 
+2.54.0 (Apple Git-157)
+

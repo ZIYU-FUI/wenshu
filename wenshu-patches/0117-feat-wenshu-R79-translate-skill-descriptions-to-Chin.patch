@@ -1,0 +1,995 @@
+From ef8ccac6aba808c64ce1ce81438f633032a44f17 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?= <anbaiqiang@wenshu.local>
+Date: Thu, 30 Jul 2026 16:30:28 +0800
+Subject: [PATCH 117/168] feat(wenshu): R79 - translate skill descriptions to
+ Chinese
+
+---
+ skills/apple/apple-notes/SKILL.md             |  2 +-
+ skills/apple/apple-reminders/SKILL.md         |  2 +-
+ skills/apple/findmy/SKILL.md                  |  2 +-
+ skills/apple/imessage/SKILL.md                |  2 +-
+ .../autonomous-ai-agents/claude-code/SKILL.md |  2 +-
+ skills/autonomous-ai-agents/codex/SKILL.md    |  2 +-
+ skills/autonomous-ai-agents/opencode/SKILL.md |  2 +-
+ .../wenshu-agent/SKILL.md                     |  2 +-
+ skills/computer-use/SKILL.md                  |  7 +---
+ skills/creative/architecture-diagram/SKILL.md |  2 +-
+ skills/creative/ascii-art/SKILL.md            |  2 +-
+ skills/creative/ascii-video/SKILL.md          |  2 +-
+ skills/creative/baoyu-infographic/SKILL.md    |  2 +-
+ skills/creative/claude-design/SKILL.md        |  2 +-
+ skills/creative/comfyui/SKILL.md              |  2 +-
+ skills/creative/design-md/SKILL.md            |  2 +-
+ skills/creative/excalidraw/SKILL.md           |  2 +-
+ skills/creative/humanizer/SKILL.md            |  2 +-
+ skills/creative/manim-video/SKILL.md          |  2 +-
+ skills/creative/p5js/SKILL.md                 |  2 +-
+ skills/creative/popular-web-designs/SKILL.md  |  2 +-
+ skills/creative/pretext/SKILL.md              |  2 +-
+ skills/creative/sketch/SKILL.md               |  2 +-
+ .../songwriting-and-ai-music/SKILL.md         |  2 +-
+ skills/creative/touchdesigner-mcp/SKILL.md    |  2 +-
+ .../data-science/jupyter-live-kernel/SKILL.md |  2 +-
+ skills/dogfood/SKILL.md                       |  2 +-
+ skills/email/himalaya/SKILL.md                |  2 +-
+ skills/github/codebase-inspection/SKILL.md    |  2 +-
+ skills/github/github-auth/SKILL.md            |  2 +-
+ skills/github/github-code-review/SKILL.md     |  2 +-
+ skills/github/github-issues/SKILL.md          |  2 +-
+ skills/github/github-pr-workflow/SKILL.md     |  2 +-
+ skills/github/github-repo-management/SKILL.md |  2 +-
+ skills/media/gif-search/SKILL.md              |  2 +-
+ skills/media/heartmula/SKILL.md               |  2 +-
+ skills/media/songsee/SKILL.md                 |  2 +-
+ skills/media/youtube-content/SKILL.md         |  2 +-
+ .../evaluation/lm-evaluation-harness/SKILL.md |  2 +-
+ .../evaluation/weights-and-biases/SKILL.md    |  2 +-
+ skills/mlops/huggingface-hub/SKILL.md         |  2 +-
+ skills/mlops/inference/llama-cpp/SKILL.md     |  2 +-
+ skills/mlops/inference/vllm/SKILL.md          |  2 +-
+ skills/mlops/models/audiocraft/SKILL.md       |  2 +-
+ skills/mlops/models/segment-anything/SKILL.md |  2 +-
+ skills/note-taking/obsidian/SKILL.md          |  2 +-
+ skills/productivity/airtable/SKILL.md         |  2 +-
+ skills/productivity/google-workspace/SKILL.md |  2 +-
+ skills/productivity/maps/SKILL.md             |  2 +-
+ skills/productivity/nano-pdf/SKILL.md         |  2 +-
+ skills/productivity/notion/SKILL.md           |  2 +-
+ .../productivity/ocr-and-documents/SKILL.md   |  2 +-
+ skills/productivity/petdex/SKILL.md           |  2 +-
+ skills/productivity/powerpoint/SKILL.md       |  2 +-
+ skills/research/arxiv/SKILL.md                |  2 +-
+ skills/research/blogwatcher/SKILL.md          |  2 +-
+ skills/research/llm-wiki/SKILL.md             |  2 +-
+ skills/research/polymarket/SKILL.md           |  2 +-
+ .../research/research-paper-writing/SKILL.md  |  2 +-
+ skills/smart-home/openhue/SKILL.md            |  2 +-
+ skills/social-media/xurl/SKILL.md             |  2 +-
+ .../node-inspect-debugger/SKILL.md            |  2 +-
+ skills/software-development/plan/SKILL.md     |  2 +-
+ .../python-debugpy/SKILL.md                   |  2 +-
+ .../requesting-code-review/SKILL.md           |  2 +-
+ .../simplify-code/SKILL.md                    |  2 +-
+ skills/software-development/spike/SKILL.md    |  2 +-
+ .../systematic-debugging/SKILL.md             |  2 +-
+ .../test-driven-development/SKILL.md          |  2 +-
+ .../wenshu-agent-skill-authoring/SKILL.md     |  2 +-
+ skills/wenshu-desktop-plugins/SKILL.md        |  2 +-
+ skills/yuanbao/SKILL.md                       |  2 +-
+ .../R79-skill-cn-translation-2026-08-30.md    | 33 +++++++++++++++++++
+ 73 files changed, 105 insertions(+), 77 deletions(-)
+ create mode 100644 wenshu-pour/architecture/R79-skill-cn-translation-2026-08-30.md
+
+diff --git a/skills/apple/apple-notes/SKILL.md b/skills/apple/apple-notes/SKILL.md
+index 7a6ae4b04..8ff87e9bf 100644
+--- a/skills/apple/apple-notes/SKILL.md
++++ b/skills/apple/apple-notes/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: apple-notes
+-description: "Manage Apple Notes via memo CLI: create, search, edit."
++description: "通过 memo CLI 管理 Apple Notes：创建、搜索和编辑笔记。"
+ version: 1.0.0
+ author: Wenshu Agent
+ license: MIT
+diff --git a/skills/apple/apple-reminders/SKILL.md b/skills/apple/apple-reminders/SKILL.md
+index 2a303953b..c12446486 100644
+--- a/skills/apple/apple-reminders/SKILL.md
++++ b/skills/apple/apple-reminders/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: apple-reminders
+-description: "Apple Reminders via remindctl: add, list, complete."
++description: "通过 remindctl 管理 Apple Reminders：添加、列出和完成提醒事项。"
+ version: 1.0.0
+ author: Wenshu Agent
+ license: MIT
+diff --git a/skills/apple/findmy/SKILL.md b/skills/apple/findmy/SKILL.md
+index 56d5c457b..6b7ea1f18 100644
+--- a/skills/apple/findmy/SKILL.md
++++ b/skills/apple/findmy/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: findmy
+-description: "Track Apple devices/AirTags via FindMy.app on macOS."
++description: "通过 macOS 上的 FindMy.app 跟踪 Apple 设备和 AirTag。"
+ version: 1.0.0
+ author: Wenshu Agent
+ license: MIT
+diff --git a/skills/apple/imessage/SKILL.md b/skills/apple/imessage/SKILL.md
+index 4e67a0f59..d203f5efe 100644
+--- a/skills/apple/imessage/SKILL.md
++++ b/skills/apple/imessage/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: imessage
+-description: Send and receive iMessages/SMS via the imsg CLI on macOS.
++description: "通过 macOS 上的 imsg CLI 收发 iMessage 和短信。"
+ version: 1.0.0
+ author: Wenshu Agent
+ license: MIT
+diff --git a/skills/autonomous-ai-agents/claude-code/SKILL.md b/skills/autonomous-ai-agents/claude-code/SKILL.md
+index f344e6276..b67715777 100644
+--- a/skills/autonomous-ai-agents/claude-code/SKILL.md
++++ b/skills/autonomous-ai-agents/claude-code/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: claude-code
+-description: "Delegate coding to Claude Code CLI (features, PRs)."
++description: "将编码任务委派给 Claude Code CLI（功能开发、PR 等）。"
+ version: 2.2.0
+ author: Wenshu Agent + Teknium
+ license: MIT
+diff --git a/skills/autonomous-ai-agents/codex/SKILL.md b/skills/autonomous-ai-agents/codex/SKILL.md
+index cbf1d7e41..b1c6e5253 100644
+--- a/skills/autonomous-ai-agents/codex/SKILL.md
++++ b/skills/autonomous-ai-agents/codex/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: codex
+-description: "Delegate coding to OpenAI Codex CLI (features, PRs)."
++description: "将编码任务委派给 OpenAI Codex CLI（功能开发、PR 等）。"
+ version: 1.0.0
+ author: Wenshu Agent
+ license: MIT
+diff --git a/skills/autonomous-ai-agents/opencode/SKILL.md b/skills/autonomous-ai-agents/opencode/SKILL.md
+index f28ad4f35..92a597077 100644
+--- a/skills/autonomous-ai-agents/opencode/SKILL.md
++++ b/skills/autonomous-ai-agents/opencode/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: opencode
+-description: "Delegate coding to OpenCode CLI (features, PR review)."
++description: "将编码任务委派给 OpenCode CLI（功能开发、PR 审查）。"
+ version: 1.2.0
+ author: Wenshu Agent
+ license: MIT
+diff --git a/skills/autonomous-ai-agents/wenshu-agent/SKILL.md b/skills/autonomous-ai-agents/wenshu-agent/SKILL.md
+index ace58140c..fa9f4bed7 100644
+--- a/skills/autonomous-ai-agents/wenshu-agent/SKILL.md
++++ b/skills/autonomous-ai-agents/wenshu-agent/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: wenshu-agent
+-description: "Configure, extend, or contribute to Wenshu Agent."
++description: "配置、扩展或贡献到 Wenshu Agent。"
+ version: 2.3.0
+ author: Wenshu Agent + Teknium
+ license: MIT
+diff --git a/skills/computer-use/SKILL.md b/skills/computer-use/SKILL.md
+index ad6a7be4e..75ac53d2d 100644
+--- a/skills/computer-use/SKILL.md
++++ b/skills/computer-use/SKILL.md
+@@ -1,11 +1,6 @@
+ ---
+ name: computer-use
+-description: |
+-  Drive the user's desktop in the background — clicking, typing,
+-  scrolling, dragging — without stealing the cursor, keyboard focus,
+-  or switching virtual desktops / Spaces. Cross-platform: macOS,
+-  Windows, Linux. Works with any tool-capable model. Load this skill
+-  whenever the `computer_use` tool is available.
++description: "在后台驱动用户桌面，执行点击、输入、滚动和拖拽等操作，不占用光标、键盘焦点，也不切换虚拟桌面或 Spaces。跨平台支持 macOS、Windows 和 Linux，适用于任何支持工具调用的模型。`computer_use` 工具可用时加载此技能。"
+ version: 2.0.0
+ platforms: [macos, windows, linux]
+ metadata:
+diff --git a/skills/creative/architecture-diagram/SKILL.md b/skills/creative/architecture-diagram/SKILL.md
+index 33a6ea711..83bfd3751 100644
+--- a/skills/creative/architecture-diagram/SKILL.md
++++ b/skills/creative/architecture-diagram/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: architecture-diagram
+-description: "Dark-themed SVG architecture/cloud/infra diagrams as HTML."
++description: "以 HTML 形式生成深色主题的 SVG 架构图、云架构图和基础设施图。"
+ version: 1.0.0
+ author: Cocoon AI (hello@cocoon-ai.com), ported by Wenshu Agent
+ license: MIT
+diff --git a/skills/creative/ascii-art/SKILL.md b/skills/creative/ascii-art/SKILL.md
+index 6ee6087a8..4cef2b950 100644
+--- a/skills/creative/ascii-art/SKILL.md
++++ b/skills/creative/ascii-art/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: ascii-art
+-description: "ASCII art: pyfiglet, cowsay, boxes, image-to-ascii."
++description: "创建 ASCII 艺术：支持 pyfiglet、cowsay、boxes 和图像转 ASCII。"
+ version: 4.0.0
+ author: 0xbyt4, Wenshu Agent
+ license: MIT
+diff --git a/skills/creative/ascii-video/SKILL.md b/skills/creative/ascii-video/SKILL.md
+index b3eba0ac1..c4c93e6f9 100644
+--- a/skills/creative/ascii-video/SKILL.md
++++ b/skills/creative/ascii-video/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: ascii-video
+-description: "ASCII video: convert video/audio to colored ASCII MP4/GIF."
++description: "将视频或音频转换为彩色 ASCII MP4/GIF 视频。"
+ platforms: [linux, macos, windows]
+ ---
+ 
+diff --git a/skills/creative/baoyu-infographic/SKILL.md b/skills/creative/baoyu-infographic/SKILL.md
+index 9a03a08e5..3d50ff88e 100644
+--- a/skills/creative/baoyu-infographic/SKILL.md
++++ b/skills/creative/baoyu-infographic/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: baoyu-infographic
+-description: "Infographics: 21 layouts x 21 styles (信息图, 可视化)."
++description: "创建信息图：提供 21 种布局和 21 种风格。"
+ version: 1.56.1
+ author: 宝玉 (JimLiu)
+ license: MIT
+diff --git a/skills/creative/claude-design/SKILL.md b/skills/creative/claude-design/SKILL.md
+index d8040d3d5..71816cd65 100644
+--- a/skills/creative/claude-design/SKILL.md
++++ b/skills/creative/claude-design/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: claude-design
+-description: Design one-off HTML artifacts (landing, deck, prototype).
++description: "为落地页、演示文稿和原型等设计一次性 HTML 成品。"
+ version: 1.1.0
+ author: BadTechBandit
+ license: MIT
+diff --git a/skills/creative/comfyui/SKILL.md b/skills/creative/comfyui/SKILL.md
+index 7fe1adb63..5d390e74f 100644
+--- a/skills/creative/comfyui/SKILL.md
++++ b/skills/creative/comfyui/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: comfyui
+-description: "Generate images, video, and audio with ComfyUI — install, launch, manage nodes/models, run workflows with parameter injection. Uses the official comfy-cli for lifecycle and direct REST/WebSocket API for execution."
++description: "使用 ComfyUI 生成图像、视频和音频；支持安装、启动、节点与模型管理，以及带参数注入的工作流运行。使用官方 comfy-cli 管理生命周期，并通过 REST/WebSocket API 执行任务。"
+ version: 5.1.0
+ author: [kshitijk4poor, alt-glitch, purzbeats]
+ license: MIT
+diff --git a/skills/creative/design-md/SKILL.md b/skills/creative/design-md/SKILL.md
+index 35a0498bd..7b88ed7bb 100644
+--- a/skills/creative/design-md/SKILL.md
++++ b/skills/creative/design-md/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: design-md
+-description: Author/validate/export Google's DESIGN.md token spec files.
++description: "编写、验证和导出 Google 的 DESIGN.md 设计令牌规范文件。"
+ version: 1.0.0
+ author: Wenshu Agent
+ license: MIT
+diff --git a/skills/creative/excalidraw/SKILL.md b/skills/creative/excalidraw/SKILL.md
+index 54cc3ecf1..cb44af8c8 100644
+--- a/skills/creative/excalidraw/SKILL.md
++++ b/skills/creative/excalidraw/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: excalidraw
+-description: "Hand-drawn Excalidraw JSON diagrams (arch, flow, seq)."
++description: "创建手绘风格的 Excalidraw JSON 图表（架构图、流程图、时序图）。"
+ version: 1.0.0
+ author: Wenshu Agent
+ license: MIT
+diff --git a/skills/creative/humanizer/SKILL.md b/skills/creative/humanizer/SKILL.md
+index 2e1497ed1..4fc0c9196 100644
+--- a/skills/creative/humanizer/SKILL.md
++++ b/skills/creative/humanizer/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: humanizer
+-description: "Humanize text: strip AI-isms and add real voice."
++description: "润色文本：去除 AI 腔并增添真实自然的表达。"
+ version: 2.5.1
+ author: Siqi Chen (@blader, https://github.com/blader/humanizer), ported by Wenshu Agent
+ license: MIT
+diff --git a/skills/creative/manim-video/SKILL.md b/skills/creative/manim-video/SKILL.md
+index e82c7ccb2..786de3a8f 100644
+--- a/skills/creative/manim-video/SKILL.md
++++ b/skills/creative/manim-video/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: manim-video
+-description: "Manim CE animations: 3Blue1Brown math/algo videos."
++description: "使用 Manim CE 制作 3Blue1Brown 风格的数学和算法动画视频。"
+ version: 1.0.0
+ platforms: [linux, macos, windows]
+ ---
+diff --git a/skills/creative/p5js/SKILL.md b/skills/creative/p5js/SKILL.md
+index 93306b9e0..1030acad4 100644
+--- a/skills/creative/p5js/SKILL.md
++++ b/skills/creative/p5js/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: p5js
+-description: "p5.js sketches: gen art, shaders, interactive, 3D."
++description: "创建 p5.js 草图：生成艺术、着色器、交互内容和 3D 场景。"
+ version: 1.0.0
+ platforms: [linux, macos, windows]
+ metadata:
+diff --git a/skills/creative/popular-web-designs/SKILL.md b/skills/creative/popular-web-designs/SKILL.md
+index a5dab0468..40fbdfd38 100644
+--- a/skills/creative/popular-web-designs/SKILL.md
++++ b/skills/creative/popular-web-designs/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: popular-web-designs
+-description: 54 real design systems (Stripe, Linear, Vercel) as HTML/CSS.
++description: "以 HTML/CSS 使用 54 套真实设计系统（Stripe、Linear、Vercel 等）。"
+ version: 1.0.0
+ author: Wenshu Agent + Teknium (design systems sourced from VoltAgent/awesome-design-md)
+ license: MIT
+diff --git a/skills/creative/pretext/SKILL.md b/skills/creative/pretext/SKILL.md
+index 1f47cb822..a99ad5f03 100644
+--- a/skills/creative/pretext/SKILL.md
++++ b/skills/creative/pretext/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: pretext
+-description: "Use when building creative browser demos with @chenglou/pretext — DOM-free text layout for ASCII art, typographic flow around obstacles, text-as-geometry games, kinetic typography, and text-powered generative art. Produces single-file HTML demos by default."
++description: "为使用 @chenglou/pretext 构建创意浏览器演示的场景提供支持——它是一套无 DOM 文本布局工具，适用于 ASCII 艺术、绕障碍排版、文本几何游戏、动态排版和文本驱动的生成艺术。默认生成单文件 HTML 演示。"
+ version: 1.0.0
+ author: Wenshu Agent
+ license: MIT
+diff --git a/skills/creative/sketch/SKILL.md b/skills/creative/sketch/SKILL.md
+index c98d0b7d1..1c7898645 100644
+--- a/skills/creative/sketch/SKILL.md
++++ b/skills/creative/sketch/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: sketch
+-description: "Throwaway HTML mockups: 2-3 design variants to compare."
++description: "创建一次性 HTML 样稿，提供 2–3 个设计方案供比较。"
+ version: 1.0.0
+ author: Wenshu Agent (adapted from gsd-build/get-shit-done)
+ license: MIT
+diff --git a/skills/creative/songwriting-and-ai-music/SKILL.md b/skills/creative/songwriting-and-ai-music/SKILL.md
+index 806eb8742..68037d98e 100644
+--- a/skills/creative/songwriting-and-ai-music/SKILL.md
++++ b/skills/creative/songwriting-and-ai-music/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: songwriting-and-ai-music
+-description: "Songwriting craft and Suno AI music prompts."
++description: "提供歌曲创作方法和 Suno AI 音乐提示词。"
+ tags: [songwriting, music, suno, parody, lyrics, creative]
+ platforms: [linux, macos, windows]
+ triggers:
+diff --git a/skills/creative/touchdesigner-mcp/SKILL.md b/skills/creative/touchdesigner-mcp/SKILL.md
+index 8bdb67453..171875ba8 100644
+--- a/skills/creative/touchdesigner-mcp/SKILL.md
++++ b/skills/creative/touchdesigner-mcp/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: touchdesigner-mcp
+-description: "Control a running TouchDesigner instance via twozero MCP — create operators, set parameters, wire connections, execute Python, build real-time visuals. 36 native tools."
++description: "通过 twozero MCP 控制正在运行的 TouchDesigner 实例：创建操作器、设置参数、连接节点、执行 Python 并构建实时视觉效果。提供 36 个原生工具。"
+ version: 1.1.0
+ author: kshitijk4poor
+ license: MIT
+diff --git a/skills/data-science/jupyter-live-kernel/SKILL.md b/skills/data-science/jupyter-live-kernel/SKILL.md
+index 5b203da0c..ac599982a 100644
+--- a/skills/data-science/jupyter-live-kernel/SKILL.md
++++ b/skills/data-science/jupyter-live-kernel/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: jupyter-live-kernel
+-description: "Iterative Python via live Jupyter kernel (hamelnb)."
++description: "通过实时 Jupyter 内核（hamelnb）迭代运行 Python。"
+ version: 1.0.0
+ author: Wenshu Agent
+ license: MIT
+diff --git a/skills/dogfood/SKILL.md b/skills/dogfood/SKILL.md
+index b16b55abc..2940a0030 100644
+--- a/skills/dogfood/SKILL.md
++++ b/skills/dogfood/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: dogfood
+-description: "Exploratory QA of web apps: find bugs, evidence, reports."
++description: "Web 应用探索性 QA：找 bug、收集证据、生成报告。"
+ version: 1.0.0
+ platforms: [linux, macos, windows]
+ metadata:
+diff --git a/skills/email/himalaya/SKILL.md b/skills/email/himalaya/SKILL.md
+index a73c70b6f..b8b3d9a56 100644
+--- a/skills/email/himalaya/SKILL.md
++++ b/skills/email/himalaya/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: himalaya
+-description: "Himalaya CLI: IMAP/SMTP email from terminal."
++description: "通过 Himalaya CLI 在终端中使用 IMAP/SMTP 电子邮件。"
+ version: 1.1.0
+ author: community
+ license: MIT
+diff --git a/skills/github/codebase-inspection/SKILL.md b/skills/github/codebase-inspection/SKILL.md
+index 5d9fa20aa..f06bef84d 100644
+--- a/skills/github/codebase-inspection/SKILL.md
++++ b/skills/github/codebase-inspection/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: codebase-inspection
+-description: "Inspect codebases w/ pygount: LOC, languages, ratios."
++description: "使用 pygount 检查代码库：统计代码行数、语言和比例。"
+ version: 1.0.0
+ author: Wenshu Agent
+ license: MIT
+diff --git a/skills/github/github-auth/SKILL.md b/skills/github/github-auth/SKILL.md
+index 51b30e4c4..b2daa3d36 100644
+--- a/skills/github/github-auth/SKILL.md
++++ b/skills/github/github-auth/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: github-auth
+-description: "GitHub auth setup: HTTPS tokens, SSH keys, gh CLI login."
++description: "设置 GitHub 身份验证：HTTPS 令牌、SSH 密钥和 gh CLI 登录。"
+ version: 1.1.0
+ author: Wenshu Agent
+ license: MIT
+diff --git a/skills/github/github-code-review/SKILL.md b/skills/github/github-code-review/SKILL.md
+index 6d6f30a0c..608e18cc8 100644
+--- a/skills/github/github-code-review/SKILL.md
++++ b/skills/github/github-code-review/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: github-code-review
+-description: "Review PRs: diffs, inline comments via gh or REST."
++description: "审查 PR：通过 gh 或 REST 查看差异并添加行内评论。"
+ version: 1.1.0
+ author: Wenshu Agent
+ license: MIT
+diff --git a/skills/github/github-issues/SKILL.md b/skills/github/github-issues/SKILL.md
+index 4632c1918..392f51074 100644
+--- a/skills/github/github-issues/SKILL.md
++++ b/skills/github/github-issues/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: github-issues
+-description: "Create, triage, label, assign GitHub issues via gh or REST."
++description: "通过 gh 或 REST 创建、分类、标记和分配 GitHub issue。"
+ version: 1.1.0
+ author: Wenshu Agent
+ license: MIT
+diff --git a/skills/github/github-pr-workflow/SKILL.md b/skills/github/github-pr-workflow/SKILL.md
+index 16936cc7b..125fe2cec 100644
+--- a/skills/github/github-pr-workflow/SKILL.md
++++ b/skills/github/github-pr-workflow/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: github-pr-workflow
+-description: "GitHub PR lifecycle: branch, commit, open, CI, merge."
++description: "管理 GitHub PR 完整生命周期：分支、提交、创建、CI 和合并。"
+ version: 1.1.0
+ author: Wenshu Agent
+ license: MIT
+diff --git a/skills/github/github-repo-management/SKILL.md b/skills/github/github-repo-management/SKILL.md
+index e33b4213c..0ed7af42c 100644
+--- a/skills/github/github-repo-management/SKILL.md
++++ b/skills/github/github-repo-management/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: github-repo-management
+-description: "Clone/create/fork repos; manage remotes, releases."
++description: "克隆、创建和 fork 仓库；管理远程仓库与 release。"
+ version: 1.1.0
+ author: Wenshu Agent
+ license: MIT
+diff --git a/skills/media/gif-search/SKILL.md b/skills/media/gif-search/SKILL.md
+index 0ebfd2fcc..1f285f80e 100644
+--- a/skills/media/gif-search/SKILL.md
++++ b/skills/media/gif-search/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: gif-search
+-description: "Search/download GIFs from Tenor via curl + jq."
++description: "使用 curl 和 jq 从 Tenor 搜索并下载 GIF。"
+ version: 1.1.0
+ author: Wenshu Agent
+ license: MIT
+diff --git a/skills/media/heartmula/SKILL.md b/skills/media/heartmula/SKILL.md
+index 7e8e03c43..138a6af4e 100644
+--- a/skills/media/heartmula/SKILL.md
++++ b/skills/media/heartmula/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: heartmula
+-description: "HeartMuLa: Suno-like song generation from lyrics + tags."
++description: "HeartMuLa：根据歌词和标签生成类似 Suno 的歌曲。"
+ version: 1.0.0
+ platforms: [linux, macos, windows]
+ metadata:
+diff --git a/skills/media/songsee/SKILL.md b/skills/media/songsee/SKILL.md
+index 306a4c2e5..c8e0ec68f 100644
+--- a/skills/media/songsee/SKILL.md
++++ b/skills/media/songsee/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: songsee
+-description: "Audio spectrograms/features (mel, chroma, MFCC) via CLI."
++description: "通过 CLI 生成音频频谱图并提取特征（mel、chroma、MFCC）。"
+ version: 1.0.0
+ author: community
+ license: MIT
+diff --git a/skills/media/youtube-content/SKILL.md b/skills/media/youtube-content/SKILL.md
+index 8f025dfea..a27f77739 100644
+--- a/skills/media/youtube-content/SKILL.md
++++ b/skills/media/youtube-content/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: youtube-content
+-description: "YouTube transcripts to summaries, threads, blogs."
++description: "将 YouTube 字幕转换为摘要、帖子串和博客文章。"
+ platforms: [linux, macos, windows]
+ ---
+ 
+diff --git a/skills/mlops/evaluation/lm-evaluation-harness/SKILL.md b/skills/mlops/evaluation/lm-evaluation-harness/SKILL.md
+index 11eba381a..2997e018e 100644
+--- a/skills/mlops/evaluation/lm-evaluation-harness/SKILL.md
++++ b/skills/mlops/evaluation/lm-evaluation-harness/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: evaluating-llms-harness
+-description: "lm-eval-harness: benchmark LLMs (MMLU, GSM8K, etc.)."
++description: "使用 lm-eval-harness 对 LLM 进行基准评测（MMLU、GSM8K 等）。"
+ version: 1.0.0
+ author: Orchestra Research
+ license: MIT
+diff --git a/skills/mlops/evaluation/weights-and-biases/SKILL.md b/skills/mlops/evaluation/weights-and-biases/SKILL.md
+index 9715d3d3e..9e6aa7bc8 100644
+--- a/skills/mlops/evaluation/weights-and-biases/SKILL.md
++++ b/skills/mlops/evaluation/weights-and-biases/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: weights-and-biases
+-description: "W&B: log ML experiments, sweeps, model registry, dashboards."
++description: "使用 W&B 记录机器学习实验、超参数扫描、模型注册表和仪表板。"
+ version: 1.0.0
+ author: Orchestra Research
+ license: MIT
+diff --git a/skills/mlops/huggingface-hub/SKILL.md b/skills/mlops/huggingface-hub/SKILL.md
+index a9ed104b3..0e7a288a1 100644
+--- a/skills/mlops/huggingface-hub/SKILL.md
++++ b/skills/mlops/huggingface-hub/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: huggingface-hub
+-description: "HuggingFace hf CLI: search/download/upload models, datasets."
++description: "使用 HuggingFace hf CLI 搜索、下载和上传模型及数据集。"
+ version: 1.0.0
+ author: Hugging Face
+ license: MIT
+diff --git a/skills/mlops/inference/llama-cpp/SKILL.md b/skills/mlops/inference/llama-cpp/SKILL.md
+index 499a192eb..2e7070430 100644
+--- a/skills/mlops/inference/llama-cpp/SKILL.md
++++ b/skills/mlops/inference/llama-cpp/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: llama-cpp
+-description: llama.cpp local GGUF inference + HF Hub model discovery.
++description: "使用 llama.cpp 在本地进行 GGUF 推理，并通过 HF Hub 发现模型。"
+ version: 2.1.2
+ author: Orchestra Research
+ license: MIT
+diff --git a/skills/mlops/inference/vllm/SKILL.md b/skills/mlops/inference/vllm/SKILL.md
+index 6e83473ea..1fcb9c719 100644
+--- a/skills/mlops/inference/vllm/SKILL.md
++++ b/skills/mlops/inference/vllm/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: serving-llms-vllm
+-description: "vLLM: high-throughput LLM serving, OpenAI API, quantization."
++description: "使用 vLLM 提供高吞吐量 LLM 服务，兼容 OpenAI API 并支持量化。"
+ version: 1.0.0
+ author: Orchestra Research
+ license: MIT
+diff --git a/skills/mlops/models/audiocraft/SKILL.md b/skills/mlops/models/audiocraft/SKILL.md
+index ad98cc360..1fa11a065 100644
+--- a/skills/mlops/models/audiocraft/SKILL.md
++++ b/skills/mlops/models/audiocraft/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: audiocraft-audio-generation
+-description: "AudioCraft: MusicGen text-to-music, AudioGen text-to-sound."
++description: "AudioCraft：使用 MusicGen 将文本生成音乐，使用 AudioGen 将文本生成音效。"
+ version: 1.0.0
+ author: Orchestra Research
+ license: MIT
+diff --git a/skills/mlops/models/segment-anything/SKILL.md b/skills/mlops/models/segment-anything/SKILL.md
+index c4378bdc8..f3edf8d68 100644
+--- a/skills/mlops/models/segment-anything/SKILL.md
++++ b/skills/mlops/models/segment-anything/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: segment-anything-model
+-description: "SAM: zero-shot image segmentation via points, boxes, masks."
++description: "使用 SAM 通过点、边界框和掩码进行零样本图像分割。"
+ version: 1.0.0
+ author: Orchestra Research
+ license: MIT
+diff --git a/skills/note-taking/obsidian/SKILL.md b/skills/note-taking/obsidian/SKILL.md
+index d2ae2809a..cf4e14a30 100644
+--- a/skills/note-taking/obsidian/SKILL.md
++++ b/skills/note-taking/obsidian/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: obsidian
+-description: Read, search, create, and edit notes in the Obsidian vault.
++description: "在 Obsidian 仓库中读取、搜索、创建和编辑笔记。"
+ platforms: [linux, macos, windows]
+ ---
+ 
+diff --git a/skills/productivity/airtable/SKILL.md b/skills/productivity/airtable/SKILL.md
+index d92b7790c..d25e111d9 100644
+--- a/skills/productivity/airtable/SKILL.md
++++ b/skills/productivity/airtable/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: airtable
+-description: Airtable REST API via curl. Records CRUD, filters, upserts.
++description: "通过 curl 使用 Airtable REST API：创建、读取、更新、删除记录，并进行筛选和 upsert。"
+ version: 1.1.0
+ author: community
+ license: MIT
+diff --git a/skills/productivity/google-workspace/SKILL.md b/skills/productivity/google-workspace/SKILL.md
+index 83af4c0fd..354161074 100644
+--- a/skills/productivity/google-workspace/SKILL.md
++++ b/skills/productivity/google-workspace/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: google-workspace
+-description: "Gmail, Calendar, Drive, Docs, Sheets via gws CLI or Python."
++description: "通过 gws CLI 或 Python 使用 Gmail、Calendar、Drive、Docs 和 Sheets。"
+ version: 1.1.0
+ author: Nous Research
+ license: MIT
+diff --git a/skills/productivity/maps/SKILL.md b/skills/productivity/maps/SKILL.md
+index 843abd726..7e28712b0 100644
+--- a/skills/productivity/maps/SKILL.md
++++ b/skills/productivity/maps/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: maps
+-description: "Geocode, POIs, routes, timezones via OpenStreetMap/OSRM."
++description: "通过 OpenStreetMap/OSRM 进行地理编码、兴趣点查询、路线规划和时区查询。"
+ version: 1.2.0
+ author: Mibayy
+ license: MIT
+diff --git a/skills/productivity/nano-pdf/SKILL.md b/skills/productivity/nano-pdf/SKILL.md
+index e9507e314..f2f0c37e2 100644
+--- a/skills/productivity/nano-pdf/SKILL.md
++++ b/skills/productivity/nano-pdf/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: nano-pdf
+-description: "Edit PDF text/typos/titles via nano-pdf CLI (NL prompts)."
++description: "通过 nano-pdf CLI 使用自然语言提示编辑 PDF 文本、错字和标题。"
+ version: 1.0.0
+ author: community
+ license: MIT
+diff --git a/skills/productivity/notion/SKILL.md b/skills/productivity/notion/SKILL.md
+index f29b557ce..c20b14ab8 100644
+--- a/skills/productivity/notion/SKILL.md
++++ b/skills/productivity/notion/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: notion
+-description: "Notion API + ntn CLI: pages, databases, markdown, Workers."
++description: "使用 Notion API 和 ntn CLI 管理页面、数据库、Markdown 和 Workers。"
+ version: 2.0.0
+ author: community
+ license: MIT
+diff --git a/skills/productivity/ocr-and-documents/SKILL.md b/skills/productivity/ocr-and-documents/SKILL.md
+index 78b97d497..13e628236 100644
+--- a/skills/productivity/ocr-and-documents/SKILL.md
++++ b/skills/productivity/ocr-and-documents/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: ocr-and-documents
+-description: "Extract text from PDFs/scans (pymupdf, marker-pdf)."
++description: "从 PDF 和扫描件中提取文本（pymupdf、marker-pdf）。"
+ version: 2.3.0
+ author: Wenshu Agent
+ license: MIT
+diff --git a/skills/productivity/petdex/SKILL.md b/skills/productivity/petdex/SKILL.md
+index e53c23b27..910ebee8b 100644
+--- a/skills/productivity/petdex/SKILL.md
++++ b/skills/productivity/petdex/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: petdex
+-description: Install and select animated petdex mascots for Wenshu.
++description: "为 Wenshu 安装并选择 petdex 动画吉祥物。"
+ version: 1.0.0
+ author: Wenshu Agent
+ license: MIT
+diff --git a/skills/productivity/powerpoint/SKILL.md b/skills/productivity/powerpoint/SKILL.md
+index c9bd8588a..17490cd8e 100644
+--- a/skills/productivity/powerpoint/SKILL.md
++++ b/skills/productivity/powerpoint/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: powerpoint
+-description: "Create, read, edit .pptx decks, slides, notes, templates."
++description: "创建、读取和编辑 .pptx 演示文稿、幻灯片、备注和模板。"
+ license: Proprietary. LICENSE.txt has complete terms
+ platforms: [linux, macos, windows]
+ ---
+diff --git a/skills/research/arxiv/SKILL.md b/skills/research/arxiv/SKILL.md
+index 645ffad31..91ed017a1 100644
+--- a/skills/research/arxiv/SKILL.md
++++ b/skills/research/arxiv/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: arxiv
+-description: "Search arXiv papers by keyword, author, category, or ID."
++description: "按关键词、作者、分类或 ID 搜索 arXiv 论文。"
+ version: 1.0.0
+ author: Wenshu Agent
+ license: MIT
+diff --git a/skills/research/blogwatcher/SKILL.md b/skills/research/blogwatcher/SKILL.md
+index 9c98d52d3..bc343eb94 100644
+--- a/skills/research/blogwatcher/SKILL.md
++++ b/skills/research/blogwatcher/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: blogwatcher
+-description: "Monitor blogs and RSS/Atom feeds via blogwatcher-cli tool."
++description: "通过 blogwatcher-cli 监控博客及 RSS/Atom 订阅源。"
+ version: 2.0.0
+ author: JulienTant (fork of Hyaxia/blogwatcher)
+ license: MIT
+diff --git a/skills/research/llm-wiki/SKILL.md b/skills/research/llm-wiki/SKILL.md
+index 28a7b3e33..87e09070d 100644
+--- a/skills/research/llm-wiki/SKILL.md
++++ b/skills/research/llm-wiki/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: llm-wiki
+-description: "Karpathy's LLM Wiki: build/query interlinked markdown KB."
++description: "Karpathy 的 LLM Wiki：构建和查询互相关联的 Markdown 知识库。"
+ version: 2.1.0
+ author: Wenshu Agent
+ license: MIT
+diff --git a/skills/research/polymarket/SKILL.md b/skills/research/polymarket/SKILL.md
+index d1f88ee5b..0a03ac1f1 100644
+--- a/skills/research/polymarket/SKILL.md
++++ b/skills/research/polymarket/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: polymarket
+-description: "Query Polymarket: markets, prices, orderbooks, history."
++description: "查询 Polymarket 的市场、价格、订单簿和历史数据。"
+ version: 1.0.0
+ author: Wenshu Agent + Teknium
+ tags: [polymarket, prediction-markets, market-data, trading]
+diff --git a/skills/research/research-paper-writing/SKILL.md b/skills/research/research-paper-writing/SKILL.md
+index 4acc114a4..d345f0b1f 100644
+--- a/skills/research/research-paper-writing/SKILL.md
++++ b/skills/research/research-paper-writing/SKILL.md
+@@ -1,7 +1,7 @@
+ ---
+ name: research-paper-writing
+ title: Research Paper Writing Pipeline
+-description: "Write ML papers for NeurIPS/ICML/ICLR: design→submit."
++description: "撰写 NeurIPS/ICML/ICLR 机器学习论文：从研究设计到投稿。"
+ version: 1.1.0
+ author: Orchestra Research
+ license: MIT
+diff --git a/skills/smart-home/openhue/SKILL.md b/skills/smart-home/openhue/SKILL.md
+index 5327b51ec..0f483dbfc 100644
+--- a/skills/smart-home/openhue/SKILL.md
++++ b/skills/smart-home/openhue/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: openhue
+-description: "Control Philips Hue lights, scenes, rooms via OpenHue CLI."
++description: "通过 OpenHue CLI 控制 Philips Hue 灯光、场景和房间。"
+ version: 1.0.0
+ author: community
+ license: MIT
+diff --git a/skills/social-media/xurl/SKILL.md b/skills/social-media/xurl/SKILL.md
+index b1d9d65f6..cba4b00aa 100644
+--- a/skills/social-media/xurl/SKILL.md
++++ b/skills/social-media/xurl/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: xurl
+-description: "X/Twitter via xurl CLI: post, search, DM, media, v2 API."
++description: "通过 xurl CLI 使用 X/Twitter：发帖、搜索、私信、媒体和 v2 API。"
+ version: 1.1.1
+ author: xdevplatform + openclaw + Wenshu Agent
+ license: MIT
+diff --git a/skills/software-development/node-inspect-debugger/SKILL.md b/skills/software-development/node-inspect-debugger/SKILL.md
+index 865c88037..8913837ef 100644
+--- a/skills/software-development/node-inspect-debugger/SKILL.md
++++ b/skills/software-development/node-inspect-debugger/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: node-inspect-debugger
+-description: "Debug Node.js via --inspect + Chrome DevTools Protocol CLI."
++description: "通过 --inspect 和 Chrome DevTools Protocol CLI 调试 Node.js。"
+ version: 1.0.0
+ author: Wenshu Agent
+ license: MIT
+diff --git a/skills/software-development/plan/SKILL.md b/skills/software-development/plan/SKILL.md
+index ee7946457..643009966 100644
+--- a/skills/software-development/plan/SKILL.md
++++ b/skills/software-development/plan/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: plan
+-description: "Plan mode: write an actionable markdown plan to .wenshu-hermes/plans/, no execution. Bite-sized tasks, exact paths, complete code."
++description: "规划模式：将可执行的 Markdown 计划写入 .wenshu-hermes/plans/，不执行任务。任务粒度小，路径准确，代码完整。"
+ version: 2.0.0
+ author: Wenshu Agent (writing-craft adapted from obra/superpowers)
+ license: MIT
+diff --git a/skills/software-development/python-debugpy/SKILL.md b/skills/software-development/python-debugpy/SKILL.md
+index 794dbec67..6a4199f21 100644
+--- a/skills/software-development/python-debugpy/SKILL.md
++++ b/skills/software-development/python-debugpy/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: python-debugpy
+-description: "Debug Python: pdb REPL + debugpy remote (DAP)."
++description: "调试 Python：使用 pdb REPL 和 debugpy 远程调试（DAP）。"
+ version: 1.0.0
+ author: Wenshu Agent
+ license: MIT
+diff --git a/skills/software-development/requesting-code-review/SKILL.md b/skills/software-development/requesting-code-review/SKILL.md
+index 7a5ef4a3d..6fde90246 100644
+--- a/skills/software-development/requesting-code-review/SKILL.md
++++ b/skills/software-development/requesting-code-review/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: requesting-code-review
+-description: "Pre-commit review: security scan, quality gates, auto-fix."
++description: "提交前代码审查：安全扫描、质量门禁和自动修复。"
+ version: 2.0.0
+ author: Wenshu Agent (adapted from obra/superpowers + MorAlekss)
+ license: MIT
+diff --git a/skills/software-development/simplify-code/SKILL.md b/skills/software-development/simplify-code/SKILL.md
+index 7ce8a6fc2..63310c04e 100644
+--- a/skills/software-development/simplify-code/SKILL.md
++++ b/skills/software-development/simplify-code/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: simplify-code
+-description: "Parallel 3-agent cleanup of recent code changes."
++description: "让 3 个 Agent 并行清理近期代码变更。"
+ version: 1.0.0
+ author: Wenshu Agent (inspired by Claude Code /simplify)
+ license: MIT
+diff --git a/skills/software-development/spike/SKILL.md b/skills/software-development/spike/SKILL.md
+index 56dd6e057..96802f3e9 100644
+--- a/skills/software-development/spike/SKILL.md
++++ b/skills/software-development/spike/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: spike
+-description: "Throwaway experiments to validate an idea before build."
++description: "通过一次性实验在正式构建前验证想法。"
+ version: 1.0.0
+ author: Wenshu Agent (adapted from gsd-build/get-shit-done)
+ license: MIT
+diff --git a/skills/software-development/systematic-debugging/SKILL.md b/skills/software-development/systematic-debugging/SKILL.md
+index b7c18efb3..97587fef6 100644
+--- a/skills/software-development/systematic-debugging/SKILL.md
++++ b/skills/software-development/systematic-debugging/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: systematic-debugging
+-description: "4-phase root cause debugging: understand bugs before fixing."
++description: "分 4 个阶段进行根因调试：先理解 bug，再着手修复。"
+ version: 1.1.0
+ author: Wenshu Agent (adapted from obra/superpowers)
+ license: MIT
+diff --git a/skills/software-development/test-driven-development/SKILL.md b/skills/software-development/test-driven-development/SKILL.md
+index 32e5789af..90a22c3f1 100644
+--- a/skills/software-development/test-driven-development/SKILL.md
++++ b/skills/software-development/test-driven-development/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: test-driven-development
+-description: "TDD: enforce RED-GREEN-REFACTOR, tests before code."
++description: "测试驱动开发：严格执行 RED-GREEN-REFACTOR，在编写代码前先写测试。"
+ version: 1.1.0
+ author: Wenshu Agent (adapted from obra/superpowers)
+ license: MIT
+diff --git a/skills/software-development/wenshu-agent-skill-authoring/SKILL.md b/skills/software-development/wenshu-agent-skill-authoring/SKILL.md
+index 519805dda..052e2cfe5 100644
+--- a/skills/software-development/wenshu-agent-skill-authoring/SKILL.md
++++ b/skills/software-development/wenshu-agent-skill-authoring/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: wenshu-agent-skill-authoring
+-description: "Author in-repo SKILL.md: frontmatter, validator, structure, and writing-quality principles."
++description: "编写仓库内 SKILL.md：遵循 frontmatter、验证器、结构和写作质量原则。"
+ version: 1.1.0
+ author: Wenshu Agent
+ license: MIT
+diff --git a/skills/wenshu-desktop-plugins/SKILL.md b/skills/wenshu-desktop-plugins/SKILL.md
+index 61f750a03..cf4527e1e 100644
+--- a/skills/wenshu-desktop-plugins/SKILL.md
++++ b/skills/wenshu-desktop-plugins/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: wenshu-desktop-plugins
+-description: Write desktop app plugins that add UI panes and commands.
++description: "编写桌面应用插件，添加 UI 面板和命令。"
+ version: 1.0.0
+ platforms: [linux, macos, windows]
+ metadata:
+diff --git a/skills/yuanbao/SKILL.md b/skills/yuanbao/SKILL.md
+index f6599871a..20b29a1a0 100644
+--- a/skills/yuanbao/SKILL.md
++++ b/skills/yuanbao/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: yuanbao
+-description: "Yuanbao (元宝) groups: @mention users, query info/members."
++description: "Yuanbao（元宝）群组：@提及用户，查询信息和成员。"
+ version: 1.0.0
+ platforms: [linux, macos, windows]
+ metadata:
+diff --git a/wenshu-pour/architecture/R79-skill-cn-translation-2026-08-30.md b/wenshu-pour/architecture/R79-skill-cn-translation-2026-08-30.md
+new file mode 100644
+index 000000000..8b4dde41a
+--- /dev/null
++++ b/wenshu-pour/architecture/R79-skill-cn-translation-2026-08-30.md
+@@ -0,0 +1,33 @@
++# R79 skills 简介中文翻译落档（2026-08-30）
++
++## 目标
++
++将仓库 `skills/**/SKILL.md`（排除 `index-cache`）YAML frontmatter 中的 `description` 全部翻译为中文，让英文不好的用户能直接理解技能用途。
++
++## 范围与策略
++
++- 共枚举并修改 72 个 `SKILL.md`，每个文件只改 frontmatter 的 `description`。
++- 保留 WENSHU、Yuanbao、Hermes、MCP、OpenAI、Anthropic、Claude、GitHub、API、CLI 等产品名和技术名。
++- 将实际功能、操作和适用场景翻译为清晰中文。
++- 未修改 skill 正文、`name`、版本、标签或其他 frontmatter 字段。
++- 未修改 `plugins/`、`wenshu_cli/tools_config.py`、`zh.ts`、`en.ts`、白名单内容或上游版权。
++- `apps/desktop/electron-main.mjs` 为既有未跟踪文件，未触碰、未暂存。
++
++## 官方资料
++
++已检查 i18next Translation Function Essentials：
++https://www.i18next.com/translation-function/essentials
++
++本轮仅涉及静态 YAML frontmatter 文案，不新增或修改 i18next key。
++
++## 验证
++
++- 文件枚举：72。
++- frontmatter：72/72 均包含唯一且非空的 `name` 与 `description`。
++- 中文检查：72/72 个 `description` 均包含汉字；无纯英文简介残留。
++- YAML 解析：72/72 frontmatter 可成功解析。
++- 改动形状：72 个 skill 文件均只改 `description`；另新增本落档文件。
++
++## 提交边界
++
++R78 工具/插件简介翻译作为独立提交保留；R79 仅提交上述 72 个 skill 文件和本落档，随后推送 `origin/main`。
+-- 
+2.54.0 (Apple Git-157)
+

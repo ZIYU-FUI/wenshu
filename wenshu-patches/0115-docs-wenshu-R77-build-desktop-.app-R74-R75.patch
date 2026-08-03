@@ -1,0 +1,62 @@
+From 02743f1dc04fa01205ae094c242197da08b04cea Mon Sep 17 00:00:00 2001
+From: pm-direct <pm-direct@wenshu.local>
+Date: Thu, 30 Jul 2026 16:06:59 +0800
+Subject: [PATCH 115/168] =?UTF-8?q?docs(wenshu):=20R77=20=E8=90=BD?=
+ =?UTF-8?q?=E6=A1=A3=20-=20=E9=87=8D=20build=20desktop=20.app=20(R74/R75?=
+ =?UTF-8?q?=20=E4=BF=AE=E7=83=A4=E8=BF=9B)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+装机 user 8/30 拍'我去验收安装, 是不是所有修改应用上去'.
+- pnpm build + pnpm dist:mac exit 0
+- app.asar MD5 277be39a4e9a4b61c76dbbef280902c1 (含 R74/R75 web_server.py 修)
+- DMG MD5 b368f6b35b3b864a45e0512e2324e62a (135MB)
+- /Applications/文枢.app 已 cp
+- /Users/anbaiqiang/Downloads/文枢-0.1.0-arm64.dmg 已 cp
+
+落档 wenshu-pour/architecture/R77-rebuild-desktop-app-r74-r75-2026-08-30.md.
+---
+ ...-rebuild-desktop-app-r74-r75-2026-08-30.md | 30 +++++++++++++++++++
+ 1 file changed, 30 insertions(+)
+ create mode 100644 wenshu-pour/architecture/R77-rebuild-desktop-app-r74-r75-2026-08-30.md
+
+diff --git a/wenshu-pour/architecture/R77-rebuild-desktop-app-r74-r75-2026-08-30.md b/wenshu-pour/architecture/R77-rebuild-desktop-app-r74-r75-2026-08-30.md
+new file mode 100644
+index 000000000..44f1d5710
+--- /dev/null
++++ b/wenshu-pour/architecture/R77-rebuild-desktop-app-r74-r75-2026-08-30.md
+@@ -0,0 +1,30 @@
++# WO-001BI-R77: 重 build desktop .app (R74/R75 修烤进)
++
++[装机 user 8/30 拍板真值]
++- '我去验收安装, 是不是所有修改应用上去'
++- '我装的时候就是我们刀过后的版本'
++
++[真值]
++22 commit 已 push origin/main (f03365b88 R75 最新). 仓根只 build 装包器 DMG (R76), 不 build desktop .app. 桌面 APP 启动 R74/R75 web_server.py 修需要新 .app binary.
++
++[PM-direct 8/30 兜底]
++1. cd apps/desktop + pnpm build (32ms) + pnpm dist:mac (DMG exit 0)
++2. cp /Applications/文枢.app + cp /Users/anbaiqiang/Downloads/文枢-0.1.0-arm64.dmg
++3. 验 app.asar 含 R74/R75 修 (web_server.py lazy import inline stub 化)
++
++[产物 MD5]
++- app.asar: 277be39a4e9a4b61c76dbbef280902c1 (8,494,523 bytes)
++- 文枢-0.1.0-arm64.dmg: b368f6b35b3b864a45e0512e2324e62a (135,633,935 bytes)
++- WenShu-Setup.dmg: c40b821f1a6ff3c39b104b6aab5e3089 (5,642,276 bytes, R76 build)
++
++[装机 user 必走]
++1. 关运行文枢
++2. /Applications/文枢.app 拖废纸篓 (已经是新 binary 了, 不需要重装)
++3. 双击 ~/Downloads/WenShu-Setup.dmg (R76 build, 含 R55/R57/R71 bundled) → 拖 文枢.app 到 /Applications/
++4. 双击启动 → bootstrap 走 bundled install.sh (R53/R55/R57 修)
++5. 验 5 件 + du -sh ~/.wenshu-hermes ≤ 1.5GB
++
++[白名单保留]
++- apps/bootstrap-installer/src/routes/welcome.tsx 致谢语
++- hermes-agent.nousresearch.com URL
++- 上游仓 fork / node_modules/ / MIT 版权
+-- 
+2.54.0 (Apple Git-157)
+

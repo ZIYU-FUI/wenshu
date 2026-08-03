@@ -1,0 +1,392 @@
+From 7f0f741a3165836e9703d2f03f2c1fba2753141a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?= <anbaiqiang@wenshu.local>
+Date: Fri, 31 Jul 2026 12:05:57 +0800
+Subject: [PATCH 144/168] =?UTF-8?q?fix(wenshu):=20R108=20-=20=E6=9B=B4?=
+ =?UTF-8?q?=E6=96=B0=E9=80=9A=E7=9F=A5=20changelog=20=E4=B8=AD=E6=96=87?=
+ =?UTF-8?q?=E5=8C=96=20+=20strip=20R=20=E7=BC=96=E5=8F=B7=20(=E8=A3=85?=
+ =?UTF-8?q?=E6=9C=BA=20user=20=E7=9C=8B=E4=B8=8D=E6=87=82=20jargon)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+装机 user 8/31 拍"这个 IFXED 的名字都很奇怪, 之后用户看到了都理解不了是干啥的. 这个名字你要用人话说需求是什么".
+
+修:
+- apps/desktop/src/lib/commit-changelog.ts: GROUP_META labels 改中文化 (新功能/已修复/更快速/已改进/其他改进/本次更新)
+- apps/desktop/src/lib/commit-changelog.ts: parseCommitHeader 加 R 编号 strip (R107- -> strip, 不影响 git log)
+- apps/desktop/src/i18n/types.ts + en.ts + zh.ts + ja.ts + zh-hant.ts: 加 updates.changelog.group.* 翻译块
+- apps/desktop/src/app/updates-overlay.tsx: pass i18n labels 到 buildCommitChangelog
+- apps/desktop/src/lib/commit-changelog.test.ts: 加 3 个测试 (R-prefix strip / localized labels / partial map fallback) 14/14 pass
+
+之前 R107 commit subject amend 改: "修正应用图标颜色 (深色背景配白字, 装机 user 截图确认)" (hash 7a2beda69)
+版本号 0.1.0 (装 user 拍 "基础版本, 不 bump")
+---
+ apps/desktop/src/app/updates-overlay.tsx      | 14 +++-
+ apps/desktop/src/i18n/en.ts                   | 10 +++
+ apps/desktop/src/i18n/ja.ts                   | 10 +++
+ apps/desktop/src/i18n/types.ts                | 14 ++++
+ apps/desktop/src/i18n/zh-hant.ts              |  9 +++
+ apps/desktop/src/i18n/zh.ts                   | 10 +++
+ apps/desktop/src/lib/commit-changelog.test.ts | 36 ++++++++++
+ apps/desktop/src/lib/commit-changelog.ts      | 72 ++++++++++++++-----
+ .../R108-changelog-i18n-2026-08-31.md         | 33 +++++++++
+ 9 files changed, 190 insertions(+), 18 deletions(-)
+ create mode 100644 wenshu-pour/architecture/R108-changelog-i18n-2026-08-31.md
+
+diff --git a/apps/desktop/src/app/updates-overlay.tsx b/apps/desktop/src/app/updates-overlay.tsx
+index 0ae671535..69d32e602 100644
+--- a/apps/desktop/src/app/updates-overlay.tsx
++++ b/apps/desktop/src/app/updates-overlay.tsx
+@@ -219,7 +219,19 @@ function IdleView({
+     )
+   }
+ 
+-  const groups = buildCommitChangelog(commits)
++  const groups = buildCommitChangelog(commits, {
++    // R108: bucket headings now come from the active locale so end users see
++    // ordinary product copy ("已修复" / "新功能" / "本次更新") instead of
++    // English jargon ("Fixed" / "What's new" / "In this update").
++    labels: {
++      fallback: u.changelog.groupFallback,
++      faster: u.changelog.groupFaster,
++      fixed: u.changelog.groupFixed,
++      improved: u.changelog.groupImproved,
++      new: u.changelog.groupNew,
++      other: u.changelog.groupOther
++    }
++  })
+   const shownItems = totalItems(groups)
+   const remaining = Math.max(0, behind - shownItems)
+ 
+diff --git a/apps/desktop/src/i18n/en.ts b/apps/desktop/src/i18n/en.ts
+index 33471ac36..fe4e861c6 100644
+--- a/apps/desktop/src/i18n/en.ts
++++ b/apps/desktop/src/i18n/en.ts
+@@ -1966,6 +1966,16 @@ export const en: Translations = {
+       notAvailable: 'Update not available for this backend.',
+       failed: 'Backend update failed.',
+       noReturn: 'Backend didn’t come back online. The update may not have completed — check the backend host.'
++    },
++    // R108: user-facing changelog bucket headings in the update overlay.
++    // Kept in English as the default; non-English locales override.
++    changelog: {
++      groupNew: "What's new",
++      groupFixed: 'Fixed',
++      groupFaster: 'Faster',
++      groupImproved: 'Improved',
++      groupOther: 'Other improvements',
++      groupFallback: 'In this update'
+     }
+   },
+ 
+diff --git a/apps/desktop/src/i18n/ja.ts b/apps/desktop/src/i18n/ja.ts
+index fa28a216c..797746cc0 100644
+--- a/apps/desktop/src/i18n/ja.ts
++++ b/apps/desktop/src/i18n/ja.ts
+@@ -1896,6 +1896,16 @@ export const ja = defineLocale({
+       failed: 'バックエンドの更新に失敗しました。',
+       noReturn:
+         'バックエンドがオンラインに戻りませんでした。更新が完了していない可能性があります。バックエンドホストを確認してください。'
++    },
++    // R108: アップデートオーバーレイの changelog バケット見出し。
++    // 英文 jargon ("Fixed" / "Other improvements") ではなく日本語の普通の製品コピーで表記。
++    changelog: {
++      groupNew: '新機能',
++      groupFixed: '修正済み',
++      groupFaster: 'より高速に',
++      groupImproved: '改善',
++      groupOther: 'その他の改善',
++      groupFallback: '今回のアップデート'
+     }
+   },
+ 
+diff --git a/apps/desktop/src/i18n/types.ts b/apps/desktop/src/i18n/types.ts
+index 6b5762e46..df6b3d054 100644
+--- a/apps/desktop/src/i18n/types.ts
++++ b/apps/desktop/src/i18n/types.ts
+@@ -1625,6 +1625,20 @@ export interface Translations {
+       failed: string
+       noReturn: string
+     }
++    /** R108: localized changelog bucket headings shown in the update overlay.
++     *  Bucket ids come from `@/lib/commit-changelog` CommitGroupId; `fallback`
++     *  is the heading shown when every commit was hidden (chore/ci/docs).
++     *  These are sourced from the PM-direct changelog copy (装机 user 8/31 拍:
++     *  "用中文 + 用人话" — labels must read as ordinary product copy, not
++     *  English jargon like "Fixed" / "Other improvements".) */
++    changelog: {
++      groupNew: string
++      groupFixed: string
++      groupFaster: string
++      groupImproved: string
++      groupOther: string
++      groupFallback: string
++    }
+   }
+ 
+   install: {
+diff --git a/apps/desktop/src/i18n/zh-hant.ts b/apps/desktop/src/i18n/zh-hant.ts
+index c1fa861c2..81d86e572 100644
+--- a/apps/desktop/src/i18n/zh-hant.ts
++++ b/apps/desktop/src/i18n/zh-hant.ts
+@@ -1839,6 +1839,15 @@ export const zhHant = defineLocale({
+       notAvailable: '此後端無法更新。',
+       failed: '後端更新失敗。',
+       noReturn: '後端未恢復連線。更新可能未完成——請檢查後端主機。'
++    },
++    // R108: 使用者面向 changelog 分類標題。改為繁體中文，不要再用英文 jargon。
++    changelog: {
++      groupNew: '新功能',
++      groupFixed: '已修復',
++      groupFaster: '更快速',
++      groupImproved: '已改進',
++      groupOther: '其他改進',
++      groupFallback: '本次更新'
+     }
+   },
+ 
+diff --git a/apps/desktop/src/i18n/zh.ts b/apps/desktop/src/i18n/zh.ts
+index 5ada30fae..35e567bd7 100644
+--- a/apps/desktop/src/i18n/zh.ts
++++ b/apps/desktop/src/i18n/zh.ts
+@@ -2127,6 +2127,16 @@ export const zh: Translations = {
+       notAvailable: '此后端无法更新。',
+       failed: '后端更新失败。',
+       noReturn: '后端未恢复在线。更新可能未完成——请检查后端主机。'
++    },
++    // R108: 用户面向 changelog 分类标签。装机 user 8/31 拍: 中文 + 用人话。
++    // 不要再用英文 "Fixed" / "Other improvements" 这种 jargon。
++    changelog: {
++      groupNew: '新功能',
++      groupFixed: '已修复',
++      groupFaster: '更快速',
++      groupImproved: '已改进',
++      groupOther: '其他改进',
++      groupFallback: '本次更新'
+     }
+   },
+ 
+diff --git a/apps/desktop/src/lib/commit-changelog.test.ts b/apps/desktop/src/lib/commit-changelog.test.ts
+index 22f3525c9..b137d6b63 100644
+--- a/apps/desktop/src/lib/commit-changelog.test.ts
++++ b/apps/desktop/src/lib/commit-changelog.test.ts
+@@ -80,6 +80,42 @@ describe('buildCommitChangelog', () => {
+     expect(groups).toEqual([{ id: 'other', items: ['Improvements and fixes'], label: 'In this update' }])
+   })
+ 
++  it('strips PM-direct R-number prefixes (e.g. R107 -) from subjects so end users never see them', () => {
++    const groups = buildCommitChangelog([
++      { summary: 'fix(wenshu): R107 - logo .icns 真值修 (仓根 desktop assets + Tauri icons 都换成白字, 装 user 截图确认)' },
++      { summary: 'fix(wenshu): R108 - 更新通知 changelog 中文化' }
++    ])
++
++    expect(groups[0].items).toEqual([
++      'Logo .icns 真值修 (仓根 desktop assets + Tauri icons 都换成白字, 装 user 截图确认)',
++      '更新通知 changelog 中文化'
++    ])
++  })
++
++  it('honors caller-provided localized labels for bucket headings', () => {
++    const groups = buildCommitChangelog(
++      [{ summary: 'fix(sidebar): jitter when dragging' }],
++      {
++        labels: {
++          fallback: '本次更新',
++          fixed: '已修复',
++          faster: '更快速',
++          improved: '已改进',
++          new: '新功能',
++          other: '其他改进'
++        }
++      }
++    )
++
++    expect(groups[0]).toMatchObject({ id: 'fixed', label: '已修复' })
++  })
++
++  it('falls back to English labels when caller only provides a partial labels map', () => {
++    const groups = buildCommitChangelog([{ summary: 'fix: jitter' }], { labels: { fixed: '已修复' } })
++
++    expect(groups[0]).toMatchObject({ id: 'fixed', label: '已修复' })
++  })
++
+   it('dedupes identical subjects and caps the items per group', () => {
+     const groups = buildCommitChangelog(
+       [
+diff --git a/apps/desktop/src/lib/commit-changelog.ts b/apps/desktop/src/lib/commit-changelog.ts
+index a6aa60bec..4f5cefadb 100644
+--- a/apps/desktop/src/lib/commit-changelog.ts
++++ b/apps/desktop/src/lib/commit-changelog.ts
+@@ -1,8 +1,10 @@
+ /**
+  * Tiny user-facing changelog builder. Takes a list of raw commit summaries,
+  * parses the Conventional Commits 1.0 header (`type(scope)!: subject`),
+- * filters internal noise (chore/ci/docs/...), and groups the rest into
+- * friendly buckets for end users (What's new, Fixed, Faster, Improved).
++ * filters internal noise (chore/ci/docs/...), strips PM-direct R-numbers
++ * (e.g. `R107 - `) from subjects so end users don't see internal ticket ids,
++ * and groups the rest into friendly buckets for the locale's translation
++ * keys (新功能 / 已修复 / 更快速 / 已改进 / 其他改进 / 本次更新).
+  *
+  * Inlined (rather than depending on `conventional-commits-parser`) because
+  * that package's index re-exports a Node `stream` helper which won't load
+@@ -31,18 +33,45 @@ export interface CommitChangelogInput {
+   summary?: string
+ }
+ 
+-interface BuildOptions {
++export interface BuildOptions {
+   maxGroups?: number
+   maxPerGroup?: number
+   maxTotal?: number
++  /** Localized bucket headings. Missing keys fall back to English. */
++  labels?: Partial<CommitChangelogLabels>
+ }
+ 
+-const GROUP_META: Record<CommitGroupId, { label: string; order: number }> = {
+-  new: { label: "What's new", order: 0 },
+-  fixed: { label: 'Fixed', order: 1 },
+-  faster: { label: 'Faster', order: 2 },
+-  improved: { label: 'Improved', order: 3 },
+-  other: { label: 'Other improvements', order: 4 }
++/**
++ * Bucket label set. Callers pass translated strings via the `labels` option
++ * on `buildCommitChangelog`; when omitted we fall back to English so the
++ * helper stays usable from unit tests and from contexts without an i18n
++ * provider. R108: localized labels are sourced from `i18n.{en,zh,ja,zh-hant}`
++ * `updates.changelog.group*` keys.
++ */
++export interface CommitChangelogLabels {
++  new: string
++  fixed: string
++  faster: string
++  improved: string
++  other: string
++  fallback: string
++}
++
++const DEFAULT_LABELS: CommitChangelogLabels = {
++  new: "What's new",
++  fixed: 'Fixed',
++  faster: 'Faster',
++  improved: 'Improved',
++  other: 'Other improvements',
++  fallback: 'In this update'
++}
++
++const GROUP_ORDER: Record<CommitGroupId, number> = {
++  new: 0,
++  fixed: 1,
++  faster: 2,
++  improved: 3,
++  other: 4
+ }
+ 
+ const TYPE_TO_GROUP: Record<string, CommitGroupId> = {
+@@ -76,10 +105,15 @@ const HIDDEN_TYPES = new Set([
+   'wip'
+ ])
+ 
+-const FALLBACK_GROUP: CommitGroup = { id: 'other', items: ['Improvements and fixes'], label: 'In this update' }
+-
+ const CONVENTIONAL_HEADER = /^(?<type>[a-zA-Z][a-zA-Z0-9_-]*)(?:\((?<scope>[^)]+)\))?(?<bang>!)?:\s+(?<subject>.+)$/
+ 
++/** PM-direct R-number prefix used in commit subjects (e.g. `R107 -`). Internal
++ *  ticket ids must not appear in the user-facing changelog; strip them here so
++ *  end users see plain-language notes. `git log` keeps the full subject. */
++const R_NUMBER_PREFIX = /^R\d+\s*[-–—:]\s*/
++
++const FALLBACK_ITEMS = ['Improvements and fixes']
++
+ /** Parse a single commit header line per Conventional Commits 1.0. */
+ export function parseCommitHeader(raw: string): ParsedCommit {
+   const header = (raw ?? '').split(/\r?\n/, 1)[0].trim()
+@@ -103,7 +137,8 @@ export function parseCommitHeader(raw: string): ParsedCommit {
+ }
+ 
+ function tidySubject(subject: string): string {
+-  const cleaned = subject
++  const stripped = subject.replace(R_NUMBER_PREFIX, '')
++  const cleaned = stripped
+     .replace(/\s+/g, ' ')
+     .replace(/[.;,\s]+$/, '')
+     .trim()
+@@ -119,12 +154,15 @@ function tidySubject(subject: string): string {
+  * Build a small grouped changelog from a list of raw commits.
+  * Always returns at least one group; falls back to a neutral placeholder
+  * when every commit was filtered or unparseable.
++ *
++ * Pass `labels` to localize the bucket headings for the active locale.
+  */
+ export function buildCommitChangelog(
+   commits: readonly CommitChangelogInput[] | undefined,
+   options: BuildOptions = {}
+ ): CommitGroup[] {
+-  const { maxGroups = 3, maxPerGroup = 4, maxTotal = 6 } = options
++  const { maxGroups = 3, maxPerGroup = 4, maxTotal = 6, labels } = options
++  const l: CommitChangelogLabels = { ...DEFAULT_LABELS, ...(labels ?? {}) }
+   const groups = new Map<CommitGroupId, string[]>()
+   const seen = new Set<string>()
+   let total = 0
+@@ -166,14 +204,14 @@ export function buildCommitChangelog(
+   }
+ 
+   const result = Array.from(groups.entries())
+-    .map(([id, items]) => ({ id, items, label: GROUP_META[id].label, order: GROUP_META[id].order }))
+-    .sort((a, b) => a.order - b.order)
++    .map(([id, items]) => ({ id, items, label: l[id] }))
++    .sort((a, b) => GROUP_ORDER[a.id] - GROUP_ORDER[b.id])
+     .slice(0, maxGroups)
+     .map(({ id, items, label }): CommitGroup => ({ id, items, label }))
+ 
+   if (result.length === 0) {
+-    return [FALLBACK_GROUP]
++    return [{ id: 'other', items: [...FALLBACK_ITEMS], label: l.fallback }]
+   }
+ 
+   return result
+-}
++}
+\ No newline at end of file
+diff --git a/wenshu-pour/architecture/R108-changelog-i18n-2026-08-31.md b/wenshu-pour/architecture/R108-changelog-i18n-2026-08-31.md
+new file mode 100644
+index 000000000..9021df283
+--- /dev/null
++++ b/wenshu-pour/architecture/R108-changelog-i18n-2026-08-31.md
+@@ -0,0 +1,33 @@
++# WO-001BI-R108: 文枢更新通知 changelog 中文化
++
++[装机 user 8/31 拍]
++- "这个 IFXED 的名字都很奇怪, 之后用户看到了都理解不了是干啥的. 这个名字你要用人话说需求是什么"
++- 截图证明: 文枢 update 通知弹窗:
++  - 标签 "FIXED" (英文, 装机 user 看不懂)
++  - 条目 "R107 - logo .icns 真值修 (仓根 desktop assets + Tauri icons 都换成白字, 装 user 截图确认" (R 编号 + 仓根 + Tauri jargon)
++
++[真值]
++- apps/desktop/src/lib/commit-changelog.ts GROUP_META labels 5 个 全英文
++- parseCommitHeader 用 Conventional Commits regex (type/scope/bang/subject)
++- commit subject 模板用 R 编号 (PM-direct 拍) + 程序员 jargon (仓根 / Tauri / 真值修)
++
++[修法]
++- GROUP_META labels 中文化: 新功能 / 已修复 / 更快速 / 已改进 / 其他改进 / 本次更新
++- parseCommitHeader 加 R 编号 strip (changelog display 不含 R 编号, git log 保留)
++- i18n zh.ts / ja.ts / zh-hant.ts 加 updates.changelog.group.* 翻译块
++- updates-overlay.tsx 用 useI18n 注入 labels
++- commit-changelog.test.ts 加 3 测试 (R-prefix strip / localized labels / partial map fallback) 14/14 pass
++
++[之前 R107 commit subject amend 改]
++- 原: "fix(wenshu): R107 - logo .icns 真值修 (仓根 desktop assets + Tauri icons 都换成白字, 装 user 截图确认"
++- 新: "fix(wenshu): 修正应用图标颜色 (深色背景配白字, 装机 user 截图确认)"
++- amend 改 R107 commit subject - 不新增 commit, 装 user 拍 online update 验
++- 新 hash: 7a2beda69 (旧 hash 8fcaa7fb8)
++
++[版本号]
++0.1.0 (装 user 拍 "基础版本, 不 bump")
++
++[装机 user 验证]
++- 跑 wenshu update --yes
++- 拉 7a2beda69 (amended R107) + 新 R108 commit
++- 装包器 4 步中文化 + 更新通知 changelog 标签 已修复 + 条目 修正应用图标颜色 (深色背景配白字, 装机 user 截图确认)
+-- 
+2.54.0 (Apple Git-157)
+

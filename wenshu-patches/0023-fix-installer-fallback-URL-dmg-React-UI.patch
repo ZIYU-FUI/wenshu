@@ -1,0 +1,73 @@
+From a89f3720d0ad9691c1d953d20613326aafedd6f8 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?=
+ <9528147+zi-yu1983@user.noreply.gitee.com>
+Date: Fri, 24 Jul 2026 13:33:36 +0800
+Subject: [PATCH 023/168] =?UTF-8?q?fix(installer):=20fallback=20URL=20?=
+ =?UTF-8?q?=E6=94=B9=E6=88=90=20dmg=20=E5=86=85=E9=83=A8=20React=20UI=20?=
+ =?UTF-8?q?=E8=B5=84=E6=BA=90?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+WebKit cryptex fallback 不再用假域名占位。从运行脚本路径 (realpath)
+反推 <installer>.app/Contents/Resources/dist/index.html，装机 user 在
+Safari 看 installer onboarding UI = 跟 Tauri 一致 UX。找不到则退占位 + WARN。
+WO-20260724-026。
+---
+ .../scripts/macos-postinstall.sh                |  9 ++++++++-
+ scripts/install.sh                              | 17 ++++++++++++++++-
+ 2 files changed, 24 insertions(+), 2 deletions(-)
+
+diff --git a/apps/bootstrap-installer/scripts/macos-postinstall.sh b/apps/bootstrap-installer/scripts/macos-postinstall.sh
+index 7ee1d20de..f347f658c 100755
+--- a/apps/bootstrap-installer/scripts/macos-postinstall.sh
++++ b/apps/bootstrap-installer/scripts/macos-postinstall.sh
+@@ -43,7 +43,14 @@ case "$webkit_ok" in
+         ;;
+     FAIL|MISSING)
+         echo "WARN WebKit cryptex unavailable (status=$webkit_ok); opening front-end in Safari."
+-        FRONTEND_URL="${WENSHU_FRONTEND_URL:-https://wenshu.example.com}"
++        # WO-026: reverse-derive dmg-internal React UI from the built Setup.app.
++        DIST="$REPO_ROOT/apps/bootstrap-installer/src-tauri/target/release/bundle/macos/文枢 Setup.app/Contents/Resources/dist/index.html"
++        if [ -f "$DIST" ]; then
++            FRONTEND_URL="file://$DIST"
++        else
++            echo "WARN dmg React UI not found at $DIST; falling back to placeholder URL for installing user"
++            FRONTEND_URL="${WENSHU_FRONTEND_URL:-https://wenshu.example.com}"
++        fi
+         osascript -e "tell application \"Safari\" to activate" \
+                   -e "tell application \"Safari\" to open location \"$FRONTEND_URL\"" \
+             >/dev/null 2>&1 \
+diff --git a/scripts/install.sh b/scripts/install.sh
+index 7aae02d46..fa56cfb9a 100755
+--- a/scripts/install.sh
++++ b/scripts/install.sh
+@@ -3121,9 +3121,24 @@ has_webkit() {
+     return 0
+ }
+ 
++# WO-026: reverse-derive dmg-internal React UI from the running script path
++# (<installer>.app/Contents/MacOS/<bin> -> Contents/Resources/dist/index.html).
++find_dmg_frontend_url() {
++    local self dist
++    self="$(realpath "$0" 2>/dev/null || echo "$0")"
++    dist="$(dirname "$(dirname "$self")")/Resources/dist/index.html"
++    if [ -f "$dist" ]; then
++        echo "file://$dist"
++    else
++        echo -e "${YELLOW}⚠ dmg React UI not found at $dist; using placeholder URL${NC}" >&2
++        echo "${WENSHU_FRONTEND_URL:-https://wenshu.example.com}"
++    fi
++}
++
+ webkit_safari_fallback() {
+     echo -e "${YELLOW}⚠ WebKit cryptex unavailable — opening front-end in Safari (AppleScript fallback)${NC}"
+-    local url="${WENSHU_FRONTEND_URL:-https://wenshu.example.com}"
++    local url
++    url="$(find_dmg_frontend_url)"
+     osascript -e "tell application \"Safari\" to activate" \
+               -e "tell application \"Safari\" to open location \"$url\"" >/dev/null 2>&1 \
+         || echo -e "${YELLOW}⚠ osascript failed; user must open Safari manually: $url${NC}"
+-- 
+2.54.0 (Apple Git-157)
+

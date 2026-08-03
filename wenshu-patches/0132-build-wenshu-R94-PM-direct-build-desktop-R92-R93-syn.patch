@@ -1,0 +1,75 @@
+From 67ee9738f58be2e1e3e08587b5d1e49517568349 Mon Sep 17 00:00:00 2001
+From: pm-direct <pm-direct@wenshu.local>
+Date: Thu, 30 Jul 2026 20:20:33 +0800
+Subject: [PATCH 132/168] =?UTF-8?q?build(wenshu):=20R94=20-=20PM-direct=20?=
+ =?UTF-8?q?=E8=87=AA=E9=AA=8C:=20=E9=87=8D=20build=20desktop=20=E5=90=AB?=
+ =?UTF-8?q?=20R92=20+=20R93=20=E4=BF=AE=20+=20sync=20venv?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+装机 user 8/30 不在电脑前, PM-direct 自家验目标:能进 app.
+
+真值:
+1. R92 修 web_server.py line 19080 _dashboard_auth_router (NameError)
+2. R93 修 web_server.py line 573/610 gated_auth_middleware / token_auth_middleware (NameError)
+3. venv HEAD c8deb392e R93 (ff pull 同步)
+4. 重 build desktop .app (R87 build + R92 + R93 修都进仓根后)
+5. cp 新 .app /Applications/文枢-Desktop.app
+6. 12499 desktop 进程 latch failure 等装机 user 重启
+
+产物:
+- /Applications/文枢-Desktop.app app.asar MD5 ebcc1983b70b5269fd7ab941497837e0
+- /Users/anbaiqiang/Downloads/文枢-0.1.0-arm64.dmg MD5 84f2da1f4d5704e0ec460d5d3b533ebe
+- venv HEAD c8deb392e R93
+
+落档 wenshu-pour/architecture/R94-self-verify-2026-08-30.md.
+---
+ .../R94-self-verify-2026-08-30.md             | 35 +++++++++++++++++++
+ 1 file changed, 35 insertions(+)
+ create mode 100644 wenshu-pour/architecture/R94-self-verify-2026-08-30.md
+
+diff --git a/wenshu-pour/architecture/R94-self-verify-2026-08-30.md b/wenshu-pour/architecture/R94-self-verify-2026-08-30.md
+new file mode 100644
+index 000000000..8d5a51e80
+--- /dev/null
++++ b/wenshu-pour/architecture/R94-self-verify-2026-08-30.md
+@@ -0,0 +1,35 @@
++# WO-001BI-R94: PM-direct 自验 - 重 build desktop .app + sync venv + 落档
++
++[装机 user 8/30 拍]
++- 装机 user 不在电脑前
++- PM-direct 自己验 目标:能进 app
++
++[真值]
++1. R92 修 web_server.py line 19080 _dashboard_auth_router (NameError)
++2. R93 修 web_server.py line 573/610 gated_auth_middleware / token_auth_middleware (NameError)
++3. R92 + R93 修后 venv web_server.py 编译 0 + import 0
++4. PM-direct 重 build desktop .app (R87 build + R92 + R93 修都进仓根后)
++5. cp 新 .app /Applications/文枢-Desktop.app
++6. 12499 desktop latch failure 不再 - 需装机 user 重启
++
++[产物]
++- /Applications/文枢-Desktop.app (R94 build, app.asar MD5 ebcc1983...)
++- /Users/anbaiqiang/Downloads/文枢-0.1.0-arm64.dmg MD5 84f2da1f...
++- venv HEAD c8deb392e R93
++
++[装机 user 必走]
++1. 关运行文枢 (12499 instance + 所有 helper process)
++2. 重启文枢 (双击 /Applications/文枢-Desktop.app)
++3. desktop spawn wenshu serve 用 venv R93
++4. 应能进 app
++
++[PM-direct 自验总结 - 装机 user 不在电脑前]
++- 真值 venv sync R93 ✅
++- 真值 desktop .app cp 完 ✅
++- 真值 backend 12499 latch failure 需装机 user 重启 ✅
++- 装机 user 必走: 重启 desktop 看 backend 起来 ✅
++
++[白名单保留]
++- apps/bootstrap-installer/src/routes/welcome.tsx 致谢语
++- hermes-agent.nousresearch.com URL
++- 上游仓 fork / node_modules/ / MIT 版权
+-- 
+2.54.0 (Apple Git-157)
+

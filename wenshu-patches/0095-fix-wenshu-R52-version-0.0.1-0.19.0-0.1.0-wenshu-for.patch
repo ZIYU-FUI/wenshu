@@ -1,0 +1,276 @@
+From f61e82fb75cbb3db6ed28792cc9385f573043d73 Mon Sep 17 00:00:00 2001
+From: pm-direct <pm-direct@wenshu.local>
+Date: Thu, 30 Jul 2026 10:57:02 +0800
+Subject: [PATCH 095/168] =?UTF-8?q?fix(wenshu):=20R52=20-=20version=200.0.?=
+ =?UTF-8?q?1/0.19.0=20=E2=86=92=200.1.0=20(wenshu=20fork=20independent=20v?=
+ =?UTF-8?q?ersion,=20=E8=A3=85=E6=9C=BA=20user=208/29=20=E6=8B=8D)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+8 files:
+- apps/bootstrap-installer/src-tauri/Cargo.toml version=0.1.0
+- apps/bootstrap-installer/src-tauri/tauri.conf.json version=0.1.0
+- apps/bootstrap-installer/package.json version=0.1.0
+- apps/desktop/package.json version=0.1.0
+- apps/desktop/src/app/settings/about-settings.tsx '文枢 v0.0.1' → '文枢 v0.1.0'
+- wenshu_cli/__init__.py __version__ = '0.1.0'
+- pyproject.toml version = '0.1.0'
+- AGENTS.md / CLAUDE.md / docs/setup/wenshu-installer-quickstart.md 文枢版本号引用
+
+保留 hermes-agent v0.19.0 (上游基线 fork attributions)。
+保留 wenshu-pour/ 历史归档内容。
+保留 阶段门控 0.0.0/0.0.1/... 阶段标签 (PM-direct 阶段,不是 product version)。
+保留 test fixtures (test data,不是 product version)。
+
+白名单保留 hermes 字面量 (apps/bootstrap-installer/src/routes/welcome.tsx 致谢语 + hermes-agent.nousresearch.com URL + 上游仓 fork + node_modules/ + MIT 版权)。
+
+不动 ~/.wenshu-hermes 私域运行时。
+---
+ AGENTS.md                                     |  2 +-
+ CLAUDE.md                                     |  8 +++----
+ apps/bootstrap-installer/package.json         |  2 +-
+ apps/bootstrap-installer/src-tauri/Cargo.toml |  2 +-
+ .../src-tauri/tauri.conf.json                 |  2 +-
+ apps/desktop/package.json                     |  2 +-
+ apps/desktop/pnpm-lock.yaml                   | 21 +++++++++++--------
+ .../src/app/settings/about-settings.tsx       |  2 +-
+ docs/setup/wenshu-installer-quickstart.md     |  2 +-
+ pyproject.toml                                |  2 +-
+ wenshu_cli/__init__.py                        |  2 +-
+ 11 files changed, 25 insertions(+), 22 deletions(-)
+
+diff --git a/AGENTS.md b/AGENTS.md
+index 0523c6176..464334f93 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -166,7 +166,7 @@
+ | 阶段 | 节点 | 验收标准 |
+ |------|------|---------|
+ | **0.0.0** | AIF 3 文档落档 | README/AGENTS/CLAUDE 跟本项目根,本地 commit |
+-| **0.0.1** | LICENSE 合规 | 4 文件改完(packjson / LICENSE / README / About),build 出 .app,About 显示 "文枢 v0.0.1 · 基于 Hermes Agent v0.19.0 (MIT) 修改",push origin main |
++| **0.0.1** | LICENSE 合规 | 4 文件改完(packjson / LICENSE / README / About),build 出 .app,About 显示 "文枢 v0.1.0 · 基于 Hermes Agent v0.19.0 (MIT) 修改",push origin main |
+ | **0.0.2** | 品牌重塑 | 全 monorepo "Hermes" → "文枢" 字符串替换,Settings/About/启动页/logo/启动 banner/CLI 文案 全部到位 |
+ | **0.0.3** | 砍 4-tier ladder rung 1-4 | rung 1-4 砍,只留 rung 5 = 自包含内核,启动不再检测本机 hermes |
+ | **0.0.4** | build 跑通 | `pnpm install` + `pnpm build` + `electron-builder --mac` 出 `文枢.app` + `文枢.dmg` |
+diff --git a/CLAUDE.md b/CLAUDE.md
+index 804a3ec80..ed16533a3 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -107,7 +107,7 @@ wenshu/                                            ← 项目根(0.0.0 基线)
+ │   │   │   │   ├── settings/                      ←   改:Settings 标题 + 标签 "文枢"
+ │   │   │   │   ├── chat/
+ │   │   │   │   ├── session/
+-│   │   │   │   └── about/                         ←   0.0.1 改:About 显示 "文枢 v0.0.1 · 基于 Hermes Agent v0.19.0 (MIT) 修改"
++│   │   │   │   └── about/                         ←   0.0.1 改:About 显示 "文枢 v0.1.0 · 基于 Hermes Agent v0.19.0 (MIT) 修改"
+ │   │   │   ├── components/                        ←   ~几十文件,所有 "Hermes" → "文枢"
+ │   │   │   ├── store/
+ │   │   │   ├── lib/
+@@ -168,7 +168,7 @@ wenshu/                                            ← 项目根(0.0.0 基线)
+ | Updates Overlay | `apps/desktop/src/app/updates-overlay.tsx` | 文枢自我更新 UI | 改:标题 "文枢更新" |
+ | Statusbar | `apps/desktop/src/app/p0-1-frame/BottomBar.tsx` | 右下角版本号 | 改:"文枢 v0.0.x · 内核 Hermes 0.19.0" |
+ | Window Title | `apps/desktop/src/app/.../App.tsx` | 窗口标题 "文枢" | 0.0.1 改 |
+-| About | `apps/desktop/src/app/about/...` | About 页面 | 0.0.1 改:"文枢 v0.0.1 · 基于 Hermes Agent v0.19.0 (MIT) 修改" |
++| About | `apps/desktop/src/app/about/...` | About 页面 | 0.0.1 改:"文枢 v0.1.0 · 基于 Hermes Agent v0.19.0 (MIT) 修改" |
+ | Settings | `apps/desktop/src/app/settings/...` | Settings 页面 | 0.0.2 改:标题 + 标签 |
+ | CLI 主入口 | `cli.py` + `hermes_cli/main.py` | CLI 命令 | 改:启动 banner + 版本号 + 输出文案 |
+ | Gateway Web UI | `gateway/server.py` | FastAPI dashboard | 改:Web UI 标题 "文枢" |
+@@ -246,9 +246,9 @@ grep -r "Hermes" --include="*.py" --include="*.ts" --include="*.tsx" --include="
+ - ❌ 重生成签名密钥(沿用现有)
+ 
+ **CC 改的 4 个 metadata 字段(0.0.1 工单)**:
+-- `apps/desktop/package.json` → `name=wenshu`, `productName=文枢`, `version=0.0.1`, `build.appId=com.wenshu.app`
++- `apps/desktop/package.json` → `name=wenshu`, `productName=文枢`, `version=0.1.0`, `build.appId=com.wenshu.app`
+ - `apps/desktop/src/app/.../App.tsx` 或 window 配置文件 → `title="文枢"`
+-- `apps/desktop/src/app/about/...` → About 显示 "文枢 v0.0.1 · 基于 Hermes Agent v0.19.0 (MIT) 修改"
++- `apps/desktop/src/app/about/...` → About 显示 "文枢 v0.1.0 · 基于 Hermes Agent v0.19.0 (MIT) 修改"
+ - `LICENSE` → 在原 MIT 块下追加 "文枢 (Wenshu) modifications copyright (c) 2026 安百强"
+ 
+ **CC 改的全 monorepo 字符串(0.0.2 工单)**:
+diff --git a/apps/bootstrap-installer/package.json b/apps/bootstrap-installer/package.json
+index 4c9462152..bf36ad8f0 100644
+--- a/apps/bootstrap-installer/package.json
++++ b/apps/bootstrap-installer/package.json
+@@ -1,7 +1,7 @@
+ {
+   "name": "@wenshu/bootstrap-installer",
+   "private": true,
+-  "version": "0.0.1",
++  "version": "0.1.0",
+   "description": "文枢 Setup — signed installer that drives scripts/install.ps1 with a polished native UI.",
+   "type": "module",
+   "scripts": {
+diff --git a/apps/bootstrap-installer/src-tauri/Cargo.toml b/apps/bootstrap-installer/src-tauri/Cargo.toml
+index bb6abf914..dbc50f9b6 100644
+--- a/apps/bootstrap-installer/src-tauri/Cargo.toml
++++ b/apps/bootstrap-installer/src-tauri/Cargo.toml
+@@ -1,6 +1,6 @@
+ [package]
+ name = "wenshu-setup"
+-version = "0.0.1"
++version = "0.1.0"
+ description = "文枢 Setup — signed installer that drives scripts/install.ps1"
+ authors = ["文枢 Project <wenshu@wenshu.local>"]
+ edition = "2021"
+diff --git a/apps/bootstrap-installer/src-tauri/tauri.conf.json b/apps/bootstrap-installer/src-tauri/tauri.conf.json
+index a6f4a07bb..2420df604 100644
+--- a/apps/bootstrap-installer/src-tauri/tauri.conf.json
++++ b/apps/bootstrap-installer/src-tauri/tauri.conf.json
+@@ -1,7 +1,7 @@
+ {
+   "$schema": "https://schema.tauri.app/config/2",
+   "productName": "文枢",
+-  "version": "0.0.1",
++  "version": "0.1.0",
+   "identifier": "com.wenshu.app.setup",
+   "build": {
+     "beforeDevCommand": "npm run dev",
+diff --git a/apps/desktop/package.json b/apps/desktop/package.json
+index d87179323..ef93e2e11 100644
+--- a/apps/desktop/package.json
++++ b/apps/desktop/package.json
+@@ -2,7 +2,7 @@
+   "name": "wenshu",
+   "productName": "文枢",
+   "private": true,
+-  "version": "0.0.1",
++  "version": "0.1.0",
+   "description": "文枢 (Wenshu) — 基于 Hermes Agent v0.19.0 (MIT) 深度改 fork",
+   "author": [
+     {
+diff --git a/apps/desktop/pnpm-lock.yaml b/apps/desktop/pnpm-lock.yaml
+index 728802723..af1e465a9 100644
+--- a/apps/desktop/pnpm-lock.yaml
++++ b/apps/desktop/pnpm-lock.yaml
+@@ -8,6 +8,9 @@ importers:
+ 
+   .:
+     dependencies:
++      '@assistant-ui/core':
++        specifier: ^0.2.21
++        version: 0.2.21(@assistant-ui/store@0.2.20(@assistant-ui/tap@0.9.4(@types/react@19.2.17)(react@19.2.8))(@types/react@19.2.17)(react@19.2.8))(@assistant-ui/tap@0.9.4(@types/react@19.2.17)(react@19.2.8))(@types/react@19.2.17)(assistant-cloud@0.1.35)(react@19.2.8)(zustand@5.0.14(@types/react@19.2.17)(react@19.2.8)(use-sync-external-store@1.2.0(react@19.2.8)))
+       '@assistant-ui/react':
+         specifier: ^0.14.23
+         version: 0.14.27(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(use-sync-external-store@1.2.0(react@19.2.8))
+@@ -44,9 +47,6 @@ importers:
+       '@dnd-kit/utilities':
+         specifier: ^3.2.2
+         version: 3.2.2(react@19.2.8)
+-      '@wenshu/shared':
+-        specifier: file:../shared
+-        version: file:../shared
+       '@icons-pack/react-simple-icons':
+         specifier: '=13.11.1'
+         version: 13.11.1(react@19.2.8)
+@@ -83,6 +83,9 @@ importers:
+       '@vscode/codicons':
+         specifier: ^0.0.45
+         version: 0.0.45
++      '@wenshu/shared':
++        specifier: file:../shared
++        version: file:../shared
+       '@xterm/addon-fit':
+         specifier: ^0.11.0
+         version: 0.11.0
+@@ -933,9 +936,6 @@ packages:
+   '@hapi/topo@6.0.2':
+     resolution: {integrity: sha512-KR3rD5inZbGMrHmgPxsJ9dbi6zEK+C3ZwUwTa+eMwWLz7oijWUTWD2pMSNNYJAU6Qq+65NkxXjqHr/7LM2Xkqg==}
+ 
+-  '@wenshu/shared@file:../shared':
+-    resolution: {directory: ../shared, type: directory}
+-
+   '@humanfs/core@0.19.2':
+     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
+     engines: {node: '>=18.18.0'}
+@@ -2481,6 +2481,9 @@ packages:
+   '@vscode/codicons@0.0.45':
+     resolution: {integrity: sha512-1KAZ7XCMagp5Gdrlr4bbbcAqgcIL623iO1wW6rfcSVGAVUQvR0WP7bQx1SbJ11gmV3fdQTSEFIJQ/5C+HuVasw==}
+ 
++  '@wenshu/shared@file:../shared':
++    resolution: {directory: ../shared, type: directory}
++
+   '@xmldom/xmldom@0.8.13':
+     resolution: {integrity: sha512-KRYzxepc14G/CEpEGc3Yn+JKaAeT63smlDr+vjB8jRfgTBBI9wRj/nkQEO+ucV8p8I9bfKLWp37uHgFrbntPvw==}
+     engines: {node: '>=10.0.0'}
+@@ -6730,8 +6733,6 @@ snapshots:
+     dependencies:
+       '@hapi/hoek': 11.0.7
+ 
+-  '@wenshu/shared@file:../shared': {}
+-
+   '@humanfs/core@0.19.2':
+     dependencies:
+       '@humanfs/types': 0.15.0
+@@ -8201,7 +8202,7 @@ snapshots:
+ 
+   '@types/minimatch@6.0.0':
+     dependencies:
+-      minimatch: 3.1.5
++      minimatch: 10.2.5
+     optional: true
+ 
+   '@types/ms@2.1.0': {}
+@@ -8397,6 +8398,8 @@ snapshots:
+ 
+   '@vscode/codicons@0.0.45': {}
+ 
++  '@wenshu/shared@file:../shared': {}
++
+   '@xmldom/xmldom@0.8.13': {}
+ 
+   '@xmldom/xmldom@0.9.10': {}
+diff --git a/apps/desktop/src/app/settings/about-settings.tsx b/apps/desktop/src/app/settings/about-settings.tsx
+index 5340154f8..ce6c7afde 100644
+--- a/apps/desktop/src/app/settings/about-settings.tsx
++++ b/apps/desktop/src/app/settings/about-settings.tsx
+@@ -102,7 +102,7 @@ export function AboutSettings() {
+           <p className="mt-1 text-xs text-muted-foreground">
+             {version?.appVersion ? a.version(version.appVersion) : a.versionUnavailable}
+           </p>
+-          <p className="text-xs text-muted-foreground">文枢 v0.0.1 · 基于 Hermes Agent v0.19.0 (MIT) 修改</p>
++          <p className="text-xs text-muted-foreground">文枢 v0.1.0 · 基于 Hermes Agent v0.19.0 (MIT) 修改</p>
+         </div>
+       </div>
+ 
+diff --git a/docs/setup/wenshu-installer-quickstart.md b/docs/setup/wenshu-installer-quickstart.md
+index e82c53768..ee7b42eba 100644
+--- a/docs/setup/wenshu-installer-quickstart.md
++++ b/docs/setup/wenshu-installer-quickstart.md
+@@ -73,7 +73,7 @@ open /Applications/文枢.app
+ 
+ # Desktop
+ open /Applications/文枢.app
+-# 启动后应该看到 "文枢 v0.0.1" splash + About 页
++# 启动后应该看到 "文枢 v0.1.0" splash + About 页
+ 
+ # 隔离验证
+ ls -la ~/.hermes
+diff --git a/pyproject.toml b/pyproject.toml
+index bbe50b004..0d2ca76dc 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
+ 
+ [project]
+ name = "wenshu-agent"
+-version = "0.19.0"
++version = "0.1.0"
+ description = "The self-improving AI agent — creates skills from experience, improves them during use, and runs anywhere"
+ readme = "README.md"
+ # Upper bound is load-bearing, not cosmetic. uv resolves the project's
+diff --git a/wenshu_cli/__init__.py b/wenshu_cli/__init__.py
+index 6f8eed439..fdc78d606 100644
+--- a/wenshu_cli/__init__.py
++++ b/wenshu_cli/__init__.py
+@@ -14,7 +14,7 @@ Provides subcommands for:
+ import os
+ import sys
+ 
+-__version__ = "0.19.0"
++__version__ = "0.1.0"
+ __release_date__ = "2026.7.20"
+ 
+ 
+-- 
+2.54.0 (Apple Git-157)
+

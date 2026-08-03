@@ -1,0 +1,287 @@
+From fb02b7d73d53470ff6fbd3fda89012a06658616a Mon Sep 17 00:00:00 2001
+From: PM-direct <wenshu-pm@local>
+Date: Mon, 3 Aug 2026 17:16:02 +0800
+Subject: [PATCH 168/168] =?UTF-8?q?docs(wenshu):=20R137+R138=20fork=20base?=
+ =?UTF-8?q?line=20+=20=E6=8B=86=20plugin=20=E8=B7=AF=E7=BA=BF=E5=9B=BE=20(?=
+ =?UTF-8?q?8/31=20=E8=A3=85=E6=9C=BA=20user=20=E6=8B=8D=E8=B7=AF=20B)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- 一次性三方 merge 撞墙实证:5189 文件级冲突 + 411 rename 冲突 + 2770 hunk 冲突,PM-direct 单线不可行
+- fork 真实改动清单(按行数排):15 个不可拆核心文件 + i18n + 应拆 plugin + 待验 electron
+- 派单序列:R139-R143 拆 plugin + 落 wenshu-patches + 重跑三方 merge
+- 装机 user 待拍板:§1.3 拆 plugin 范围 + §1.4 T3 逐个验 + plugin 仓地址
+---
+ .plans/wenshu-fork-rationalization.md | 117 +++++++++++++++++++++++
+ docs/fork-baseline.md                 | 132 ++++++++++++++++++++++++++
+ 2 files changed, 249 insertions(+)
+ create mode 100644 .plans/wenshu-fork-rationalization.md
+ create mode 100644 docs/fork-baseline.md
+
+diff --git a/.plans/wenshu-fork-rationalization.md b/.plans/wenshu-fork-rationalization.md
+new file mode 100644
+index 000000000..92616ced5
+--- /dev/null
++++ b/.plans/wenshu-fork-rationalization.md
+@@ -0,0 +1,117 @@
++# 文枢 fork 范围清理 + 上游 sync 路线图
++
++> 拍板日期: 2026-08-31
++> 拍板真值: 装机 user 拍 "走薄 fork + 重插件(路 B)"
++> 起草人: PM-direct
++> 状态: 立项,待装机 user 拍板具体动作
++
++---
++
++## 0. 背景
++
++### 0.1 上游漂移现状 (8/31 17:05 实测)
++
++- 文枢 fork HEAD = `c6aacf605` (R135), 基线 = `3ef6bbd20` (v2026.7.20 / hermes 0.19.0)
++- vs `upstream/main` = **领先 167 commit / 落后 3865 commit** (共 4032 差距)
++- 上游最新 tag = `v2026.7.30` (7/30 发布,文枢落后 10 天 / 1 个上游 release)
++- `wenshu-patches/` 目录 **不存在** (AGENTS.md §10 写的"关键设计决策"是纸面策略)
++- 装机 user 跑 `wenshu update` 走 `_sync_with_upstream_if_needed` (`wenshu_cli/main.py:7063`),检查 `origin_ahead > 0` 永远 SKIP → **永远拿不到上游**
++
++### 0.2 第一次三方 merge 撞墙 (实测)
++
++PM-direct 在 `wt/sync-v2026.7.30` worktree 跑 `git merge -X theirs upstream/main`:
++- **5189 个文件级冲突**
++- **411 个 rename 冲突** (上游新文件在 `hermes_cli/`,文枢 0.0.0 把父目录 rename `wenshu_cli/`)
++- 2770 个 hunk 级 content 冲突
++- **结论**: 3865 commit × 一次性三方 merge = PM-direct 单线 1-2 周死磕,且易错
++
++### 0.3 根因
++
++文枢 fork 在 core 层(全 monorepo 字符串 / 目录 rename / 砍 ladder rung 1-4)改得太重,跟 upstream 共享面只剩 ~10%,其余 90% 全是 fork 独有的 merge 负担。**不先做"fork 范围清理",sync 不可能跑通**。
++
++---
++
++## 1. 路 B 拍板真意 (装机 user 8/31)
++
++文枢 = **薄 fork + 重插件** 架构:
++- **fork 只留** 5 类不可拆的层 (品牌/appId/v 隔离/ladder 砍/build/update)
++- **新功能 / 重 UI 改造** → 走 plugin (`apps/desktop/src/plugins/<name>/plugin.tsx` bundled + `$WENSHU_HOME/desktop-plugins/<name>/plugin.js` runtime)
++- 跟上游漂移速度 = "fast-forward 上游 minor + 修 fork 那 5 个文件"
++
++---
++
++## 2. 拆 fork 范围清单 (PM-direct 自验,装机 user 拍板)
++
++**核心问题**: 当前 fork 在哪些文件动过? 哪些能扔回 plugin? 哪些必须留在 fork?
++
++### 2.1 必须留在 fork (装机 user 8/31 拍板"5 类不可拆")
++
++1. **品牌字符串 + appId + displayName** — 全 monorepo "Hermes" → "文枢" (零冲突但面积大)
++2. **venv 隔离** — `~/.wenshu-hermes/` 取代 `~/.hermes/` (R0/R5 era 改)
++3. **砍 ladder rung 1-4** — electron main.ts 改 startup detection (0.0.3 工单,装机 user 拍)
++4. **build / installer / update 链条** — bootstrap-installer / wenshu_cli/subcommands/update.py / scripts/install.{sh,ps1,cmd}
++5. **中文版/装机版 LOGO + icon + locale 资源** — 纯资源文件
++
++### 2.2 应该扔去 plugin (待装机 user 拍板)
++
++- **sidebar 内部改造** (R99/R124/R126/R135) — dock LOGO / SegmentedControl / skeleton / 空状态 → 全部走 plugin
++- **新建项目对话框 R135** — 走 plugin
++- **任何 chat composer 扩展 / 新页 / 重 UI 改造** — 走 plugin
++
++### 2.3 不动 (本来就该跟 upstream 一致)
++
++- 核心 session / chat / gateway / agent loop / MCP / skills
++- electron main 的 IPC / dialog / Menu / Tray (不动)
++- wenshu_cli 大部分 (除了 update / subcommands 中文化部分)
++
++---
++
++## 3. 行动序列 (PM-direct 派单, 拆 ≤ 3 并发)
++
++### 阶段 1: fork 范围自检 (本周)
++
++- **WO-R137** [PM-direct] 跑三方 merge 撞墙实证 → 写进本 plan (§ 0.2 已完成)
++- **WO-R138** [PM-direct] `git diff --stat 3ef6bbd20..HEAD` + `git diff --name-only --diff-filter=R 3ef6bbd20..HEAD` → 输出"文枢 fork 改了什么文件清单" (期望 ≤ 200 文件真正 fork-only,其余是 rename / 字符串替换)
++- **WO-R139** [PM-direct] 把 fork 改动按 §2.1 / §2.2 / §2.3 分类,产出 `docs/fork-baseline.md` (装机 user 拍板真值)
++- **WO-R140** [PM-direct] AGENTS.md / CLAUDE.md / README.md 三处 "wenshu-patches" 落档 (装机 user 拍"改不动 + 不动 + 不动")
++
++### 阶段 2: 把 §2.2 拆成 plugin (下周末)
++
++- **WO-R141** [CC 子会话, ≤ 3 并发] 建 `apps/desktop/src/plugins/wenshu-sidebar/` bundled plugin,搬 sidebar 改造 (R99/R124/R126/R135) 进 plugin,验证关掉 plugin 时 sidebar = 上游一致
++- **WO-R142** [CC 子会话] `apps/desktop/src/plugins/wenshu-projects/` bundled plugin,搬新建项目对话框 R135
++- **WO-R143** [PM-direct] 编译 + 装机 user 跑 `wenshu update` 验插件热加载
++
++### 阶段 3: 三方 merge 真正跑 (阶段 2 完成后)
++
++- **WO-R150** [PM-direct + CC 子会话] `git format-patch -o wenshu-patches/ <fork-base>..HEAD` 把当前 fork 改动存档
++- **WO-R151** [PM-direct] 在新 worktree `wt/sync-v2026.7.30-v2`,先 cherry-pick fork 自己的 167 commit 到 upstream HEAD,手解冲突 (期望冲突数 ≤ 50 因为插件已拆)
++- **WO-R152** [PM-direct] merge commit → origin main + gitcode mirror + 装机 user 跑 `wenshu update` 验
++
++### 阶段 4: 装机 user 试装 (阶段 3 完成后)
++
++- **WO-R160** [PM-direct] 出 `WenShu-Setup.dmg` 拷给装机 user
++- **WO-R161** [PM-direct + 装机 user] 装机 user 装机 + 跑 `wenshu update` → 验 0.19.1 (上游新功能) 真能用上
++
++---
++
++## 4. 风险
++
++| 风险 | 缓解 |
++|------|------|
++| 阶段 2 拆 plugin 时发现 sidebar 改造跟 core 强耦合 | 退回到 fork 改,接受"这个改动不漂移",PM-direct 在 docs/fork-baseline.md 标注 "must-fork" |
++| 三方 merge 冲突还是太多 (> 200 文件) | 走阶段 1.5: 上游先 cherry-pick 不冲突的 minor patch,跟 upstream 渐进合 |
++| 装机 user 拒绝把 sidebar 改造拆去 plugin (嫌麻烦) | 走原路 A: 死磕三方 merge,接受滞后 1-2 周节奏 |
++| wenshu-patches 落档后下一次 sync 仍然冲突多 | 用 `rerere` 缓存冲突解法 (`git config rerere.enabled true`) |
++
++---
++
++## 5. 装机 user 拍板项 (待回复)
++
++1. **§2.2 拆 plugin 范围** 拍板:R99/R124/R126/R135 sidebar 改造 → plugin? (yes/no)
++2. **§2.2 拆 plugin 范围** 拍板:R135 新建项目对话框 → plugin? (yes/no)
++3. **WO-R141 首批 plugin 仓地址** 拍板:`apps/desktop/src/plugins/wenshu-sidebar/` 还是独立 repo? (bundled / runtime / 双轨)
++4. **三方 merge 节奏** 拍板:阶段 3 一次冲到 v2026.7.30,还是分批 cherry-pick? (一次 / 分批)
++
++---
++
++*plan v0.1 · 2026-08-31 · PM-direct · 装机 user 待拍板*
+\ No newline at end of file
+diff --git a/docs/fork-baseline.md b/docs/fork-baseline.md
+new file mode 100644
+index 000000000..da541c201
+--- /dev/null
++++ b/docs/fork-baseline.md
+@@ -0,0 +1,132 @@
++# 文枢 fork 改动基线清单
++
++> 拍板日期: 2026-08-31
++> 拍板真值: 装机 user 拍 "走薄 fork + 重插件(路 B)"
++> 起草人: PM-direct
++> 状态: 装机 user 拍板真值 + 实测 fork 改动清单
++
++---
++
++## 0. 装机 user 拍板真值 (8/31)
++
++文枢 = **薄 fork + 重插件** 架构,5 类不可拆留在 fork,其余功能拆 plugin。
++
++### 5 类不可拆 (留在 fork)
++
++1. **品牌字符串 + appId + displayName** — 全 monorepo "Hermes" → "文枢"
++2. **venv 隔离** — `~/.wenshu-hermes/` 取代 `~/.hermes/`
++3. **砍 ladder rung 1-4** — electron main.ts 改 startup detection
++4. **build / installer / update 链条** — bootstrap-installer / wenshu_cli/subcommands/update.py / scripts/install.{sh,ps1,cmd}
++5. **中文版/装机版 LOGO + icon + locale 资源**
++
++---
++
++## 1. fork 真实改动清单 (8/31 17:05 实测)
++
++基线 = `3ef6bbd20` (v2026.7.20 / hermes 0.19.0) → HEAD = `c6aacf605` (R135)
++统计: 4665 文件差异 (3007M + 227A + 714D + 717R),其中绝大多数是 rename (`hermes_cli/` → `wenshu_cli/`)
++
++### 1.1 T0 · 不可拆 (核心 fork 文件,装机 user 拍板)
++
++| 文件 | 改动行数 | 类别 | 说明 |
++|------|---------|------|------|
++| `apps/desktop/electron/main.ts` | 914 | T0 | ladder 砍位 + venv 隔离 + 品牌 |
++| `scripts/install.sh` | 806 | T0 | 全平台 installer |
++| `scripts/install.ps1` | 330 | T0 | Windows installer |
++| `apps/bootstrap-installer/src-tauri/src/paths.rs` | 296 | T0 | Tauri 路径 + venv |
++| `apps/bootstrap-installer/src-tauri/src/update.rs` | 211 | T0 | update 流程 |
++| `apps/bootstrap-installer/src-tauri/src/install_script.rs` | 175 | T0 | install script 调用 |
++| `apps/desktop/electron/preload.ts` | 141 | T0 | preload bridge |
++| `apps/bootstrap-installer/src-tauri/src/lib.rs` | 127 | T0 | Tauri 入口 |
++| `apps/bootstrap-installer/src-tauri/src/bootstrap.rs` | 86 | T0 | bootstrap 流程 |
++| `apps/desktop/electron/bootstrap-runner.ts` | 115 | T0 | bootstrap runner |
++| `apps/bootstrap-installer/src-tauri/src/powershell.rs` | 108 | T0 | PowerShell 桥 |
++| `apps/bootstrap-installer/vite.config.ts` | 65 | T0 | installer build |
++| `apps/bootstrap-installer/src/main.tsx` | 41 | T0 | installer UI 入口 |
++| `scripts/lib/node-bootstrap.sh` | 59 | T0 | Node bootstrap |
++| `scripts/release.py` | 41 | T0 | release 脚本 |
++
++合计 ≈ **3500 行 fork-only 改动,15 个核心文件**。三方 merge 真正手解冲突的面积 = 这 15 个文件 + lockfile + rename-aware 文件树。
++
++### 1.2 T1 · i18n 翻译资源 (扔回 plugin 或接受 fork-only)
++
++| 文件 | 改动行数 |
++|------|---------|
++| `apps/desktop/src/i18n/en.ts` | 200 |
++| `apps/desktop/src/i18n/zh.ts` | 191 |
++| `apps/desktop/src/i18n/ja.ts` | 175 |
++| `apps/desktop/src/i18n/zh-hant.ts` | 173 |
++| `apps/desktop/src/i18n/types.ts` | 37 |
++| `apps/desktop/src/components/chat/intro-copy.jsonl` | 74 |
++
++策略: **保留在 fork**(文枢有自己的 i18n 流程,4 套语言是装机版必备),但用文枢 i18n 体系而非 hermes 体系,三方 merge 时 i18n 冲突基本只改中文部分。
++
++### 1.3 T2 · 应拆 plugin (待装机 user 拍板)
++
++| 文件 | 改动行数 | R 系列 | 建议动作 |
++|------|---------|--------|---------|
++| `apps/desktop/src/app/chat/sidebar/project-dialog.tsx` | 54 | R135 新建项目对话框 | **拆去 plugin** |
++| `apps/desktop/src/lib/commit-changelog.ts` | 55 | R108 changelog 中文化 | **拆去 plugin** |
++| `apps/desktop/src/components/desktop-install-overlay.tsx` | 63 | 装机引导 | **拆去 plugin** |
++
++(其他 R99/R124/R126/R135 sidebar 改造 = 18 文件 × 129 行,合计改动小,接受 fork-only 或拆 plugin 待装机 user 拍)
++
++### 1.4 T3 · electron 自身代码 (R 系列相关,逐个验)
++
++| 文件 | 改动行数 | 说明 |
++|------|---------|------|
++| `apps/desktop/electron/dashboard-token.ts` | 45 | dashboard token 校验 |
++| `apps/desktop/electron/backend-probes.ts` | 55 | 后端探测 |
++| `apps/desktop/electron/desktop-uninstall.test.ts` | 51 | 测试 |
++| `apps/desktop/electron/update-relaunch.test.ts` | 32 | 测试 |
++| `apps/desktop/electron/dashboard-token.test.ts` | 35 | 测试 |
++| `apps/desktop/electron/connection-config.test.ts` | 30 | 测试 |
++| `apps/desktop/package.json` | 41 | build metadata |
++
++策略: **逐文件验**,如果是 R 系列桥接(我们没改的),扔回 fork-only;如果是真改逻辑,拆去 plugin。
++
++---
++
++## 2. 三方 merge 真实成本预估 (PM-direct 自验)
++
++### 2.1 一次性三方 merge (撞墙实证)
++
++PM-direct 在 `wt/sync-v2026.7.30` worktree 跑 `git merge -X theirs upstream/main`:
++- **5189 文件级冲突**
++- **411 rename 冲突** (上游新文件 `hermes_cli/xxx`,文枢 rename 父目录 `wenshu_cli/`)
++- **2770 hunk 级 content 冲突**
++- **PM-direct 单线预估 1-2 周**,易错,不可接受
++
++### 2.2 拆 plugin 后三方 merge 成本预估
++
++如果 §1.3 + §1.4 真拆去 plugin,期望冲突面积:
++- T0 15 个核心文件 × 平均 100 行冲突 ≈ **1500 行手解**
++- T1 i18n 4 文件 × 平均 50 行冲突 ≈ **200 行手解**
++- rename-aware 文件树(文枢 `wenshu_cli/` vs upstream `hermes_cli/`) ≈ **rename 100 次,无内容冲突**
++- **PM-direct 总成本预估 2-3 天**,可接受
++
++---
++
++## 3. 派单序列
++
++- **WO-R137** [已完成] 三方 merge 撞墙实证 → 落档 .plans/wenshu-fork-rationalization.md
++- **WO-R138** [本工单] fork 真实改动清单 → 落档 docs/fork-baseline.md (本文件)
++- **WO-R139** [装机 user 拍板项] §1.3 + §1.4 拆 plugin 范围 (sidebar / commit-changelog / install-overlay / T3 electron 改造)
++- **WO-R140** [CC 子会话, ≤ 3 并发] 拆 plugin: `apps/desktop/src/plugins/wenshu-sidebar/` + `apps/desktop/src/plugins/wenshu-projects/` + `apps/desktop/src/plugins/wenshu-install-overlay/`
++- **WO-R141** [PM-direct] `git format-patch -o wenshu-patches/ <fork-base>..HEAD` 存档 fork 167 commit
++- **WO-R142** [PM-direct] 在新 worktree `wt/sync-v2026.7.30-v2`,先 cherry-pick 关键 fork commit 到 upstream HEAD,手解冲突
++- **WO-R143** [PM-direct] merge commit → origin main + gitcode mirror + 装机 user 跑 `wenshu update` 验
++
++---
++
++## 4. 装机 user 拍板项 (本工单内)
++
++1. §1.3 拆 plugin 范围拍板:R135 sidebar/project-dialog → plugin? (yes/no)
++2. §1.3 拆 plugin 范围拍板:R108 commit-changelog → plugin? (yes/no)
++3. §1.3 拆 plugin 范围拍板:R 装机引导 desktop-install-overlay → plugin? (yes/no)
++4. §1.4 T3 逐个验:由 PM-direct 自驱 / 装机 user 拍? (PM-direct / 装机 user)
++5. plugin 仓地址拍板:`apps/desktop/src/plugins/` bundled 还是独立 repo? (bundled / runtime / 双轨)
++
++---
++
++*docs/fork-baseline.md v0.1 · 2026-08-31 · PM-direct · 装机 user 待拍板*
+\ No newline at end of file
+-- 
+2.54.0 (Apple Git-157)
+

@@ -1,0 +1,52 @@
+From 95565f02b531bb66b64d4c6490972209d447dc3c Mon Sep 17 00:00:00 2001
+From: pm-direct <pm-direct@wenshu.local>
+Date: Thu, 30 Jul 2026 10:33:08 +0800
+Subject: [PATCH 092/168] =?UTF-8?q?docs(wenshu):=20R49=20=E8=90=BD?=
+ =?UTF-8?q?=E6=A1=A3=20-=20WenShu-Setup.dmg=20=E9=87=8D=20build=20?=
+ =?UTF-8?q?=E8=A3=85=E5=8C=85=E5=99=A8=20(8/29=20=E6=8B=8D)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ .../R49-wenshu-setup-dmg-2026-08-29.md        | 28 +++++++++++++++++++
+ 1 file changed, 28 insertions(+)
+ create mode 100644 wenshu-pour/architecture/R49-wenshu-setup-dmg-2026-08-29.md
+
+diff --git a/wenshu-pour/architecture/R49-wenshu-setup-dmg-2026-08-29.md b/wenshu-pour/architecture/R49-wenshu-setup-dmg-2026-08-29.md
+new file mode 100644
+index 000000000..1643d806c
+--- /dev/null
++++ b/wenshu-pour/architecture/R49-wenshu-setup-dmg-2026-08-29.md
+@@ -0,0 +1,28 @@
++# WO-001BI-R49: 重 build WenShu-Setup.dmg 装包器 (8/29)
++
++[装机 user 8/29 拍]
++"我希望从 wenshu-setup 安装测试"
++
++[R49 真值]
++- bootstrap-installer 装包器 重 build
++- 含 R30 install.sh (hermes-agent → wenshu-agent 改名)
++- 含 R35 pypi 清华源 + 阿里 fallback
++- 含 R25 welcome.tsx 中文致谢 ("基于 Hermes 修改而来")
++- 含 R23 LOGO 文枢毛笔字
++- 含 R14 装包阶段 10 步骤中文
++
++[build 状态]
++- pnpm tauri build exit 0 (1m 05s)
++- warning: dead code ScriptSource::Bundled (pre-existing, 无关)
++
++[产物]
++- src-tauri/target/release/bundle/macos/文枢.app
++- src-tauri/target/release/bundle/dmg/文枢_0.0.1_aarch64.dmg
++- /Users/anbaiqiang/Downloads/WenShu-Setup.dmg (已 cp)
++
++[装机 user 必走]
++1. 关运行文枢 + 拖 /Applications/文枢.app 废纸篓
++2. 双击 /Users/anbaiqiang/Downloads/WenShu-Setup.dmg
++3. 拖 文枢.app 到 /Applications/
++4. 双击 文枢.app 启动
++5. 验 4 件: Nous Portal 不见 + 9 条中文化 + KEY 装入不卡 + 在线更新 stall emit
+-- 
+2.54.0 (Apple Git-157)
+

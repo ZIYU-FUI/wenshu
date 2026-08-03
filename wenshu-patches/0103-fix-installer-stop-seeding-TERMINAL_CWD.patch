@@ -1,0 +1,132 @@
+From c26e971faba5a34ee532eb6ab699bbba66d0d590 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?= <anbaiqiang@wenshu.local>
+Date: Thu, 30 Jul 2026 12:22:14 +0800
+Subject: [PATCH 103/168] fix(installer): stop seeding TERMINAL_CWD
+
+---
+ scripts/install.ps1                           |  7 +++-
+ scripts/install.sh                            |  5 ++-
+ tests/test_install_no_terminal_cwd_env.py     | 38 +++++++++++++++++++
+ .../R60-no-terminal-cwd-env-2026-08-30.md     | 31 +++++++++++++++
+ 4 files changed, 79 insertions(+), 2 deletions(-)
+ create mode 100644 tests/test_install_no_terminal_cwd_env.py
+ create mode 100644 wenshu-pour/architecture/R60-no-terminal-cwd-env-2026-08-30.md
+
+diff --git a/scripts/install.ps1 b/scripts/install.ps1
+index c28d7c6d1..b581f296c 100644
+--- a/scripts/install.ps1
++++ b/scripts/install.ps1
+@@ -2384,7 +2384,12 @@ function Copy-ConfigTemplates {
+     if (-not (Test-Path $envPath)) {
+         $examplePath = "$InstallDir\.env.example"
+         if (Test-Path $examplePath) {
+-            Copy-Item $examplePath $envPath
++            # TERMINAL_CWD is deprecated in .env. Users should configure the
++            # working directory with terminal.cwd in config.yaml instead.
++            $utf8NoBom = New-Object System.Text.UTF8Encoding $false
++            $envLines = [System.IO.File]::ReadAllLines($examplePath) |
++                Where-Object { $_ -notmatch '^\s*#?\s*TERMINAL_CWD\s*=' }
++            [System.IO.File]::WriteAllLines($envPath, $envLines, $utf8NoBom)
+             Write-Success "Created $envPath from template"
+         } else {
+             New-Item -ItemType File -Force -Path $envPath | Out-Null
+diff --git a/scripts/install.sh b/scripts/install.sh
+index 7abd1a030..af6eb3777 100755
+--- a/scripts/install.sh
++++ b/scripts/install.sh
+@@ -2059,7 +2059,10 @@ copy_config_templates() {
+     # Create .env at ~/.wenshu-hermes/.env (top level, easy to find)
+     if [ ! -f "$WENSHU_HOME/.env" ]; then
+         if [ -f "$INSTALL_DIR/.env.example" ]; then
+-            cp "$INSTALL_DIR/.env.example" "$WENSHU_HOME/.env"
++            # TERMINAL_CWD is deprecated in .env. Users should configure the
++            # working directory with terminal.cwd in config.yaml instead.
++            awk '!/^[[:space:]#]*TERMINAL_CWD[[:space:]]*=/' \
++                "$INSTALL_DIR/.env.example" > "$WENSHU_HOME/.env"
+             log_success "Created ~/.wenshu-hermes/.env from template"
+         else
+             touch "$WENSHU_HOME/.env"
+diff --git a/tests/test_install_no_terminal_cwd_env.py b/tests/test_install_no_terminal_cwd_env.py
+new file mode 100644
+index 000000000..a3d680408
+--- /dev/null
++++ b/tests/test_install_no_terminal_cwd_env.py
+@@ -0,0 +1,38 @@
++"""Regression checks for R60 installer-generated .env files."""
++
++import re
++import subprocess
++from pathlib import Path
++
++
++ROOT = Path(__file__).resolve().parents[1]
++ENV_EXAMPLE = ROOT / ".env.example"
++
++
++def test_install_sh_filters_terminal_cwd_from_fresh_env(tmp_path: Path) -> None:
++    output = tmp_path / ".env"
++    subprocess.run(
++        [
++            "awk",
++            "!/^[[:space:]#]*TERMINAL_CWD[[:space:]]*=/",
++            str(ENV_EXAMPLE),
++        ],
++        check=True,
++        stdout=output.open("wb"),
++    )
++    assert "TERMINAL_CWD" not in output.read_text()
++
++    source = (ROOT / "scripts/install.sh").read_text()
++    assert "terminal.cwd in config.yaml" in source
++    assert "awk '!/^[[:space:]#]*TERMINAL_CWD" in source
++
++
++def test_install_ps1_filters_terminal_cwd_from_fresh_env() -> None:
++    lines = ENV_EXAMPLE.read_text().splitlines()
++    ps_filter = re.compile(r"^\s*#?\s*TERMINAL_CWD\s*=", re.IGNORECASE)
++    generated = "\n".join(line for line in lines if not ps_filter.search(line))
++    assert "TERMINAL_CWD" not in generated
++
++    source = (ROOT / "scripts/install.ps1").read_text()
++    assert "terminal.cwd in config.yaml" in source
++    assert "Where-Object { $_ -notmatch '^\\s*#?\\s*TERMINAL_CWD\\s*=' }" in source
+diff --git a/wenshu-pour/architecture/R60-no-terminal-cwd-env-2026-08-30.md b/wenshu-pour/architecture/R60-no-terminal-cwd-env-2026-08-30.md
+new file mode 100644
+index 000000000..64b1b68c1
+--- /dev/null
++++ b/wenshu-pour/architecture/R60-no-terminal-cwd-env-2026-08-30.md
+@@ -0,0 +1,31 @@
++# R60 — installer 不再生成 `TERMINAL_CWD` 环境项
++
++- 工单：WO-001BI-R60
++- 落档日期：2026-08-30
++- 修法：A
++
++## 背景与决策
++
++`.env` 中的 `TERMINAL_CWD` 已废弃；工作目录应由用户在 `config.yaml` 的 `terminal.cwd` 配置。仓根示例 `cli-config.yaml.example` 的 `terminal` 段已经给出 `cwd: "."`，并说明 gateway/messaging/cron 使用该配置、旧式 `.env` cwd 值已废弃。
++
++bootstrap-installer 不直接生成配置，而是解析并执行随包、开发仓或网络取得的 `scripts/install.sh` / `scripts/install.ps1`。因此在两套安装脚本创建新 `.env` 时统一过滤模板中的 `TERMINAL_CWD` 行，覆盖 GUI bootstrap-installer 与命令行安装入口；已有 `.env` 继续原样保留，不删除用户配置。
++
++## 修改
++
++- `scripts/install.sh`：从 `.env.example` 创建新 `.env` 时，用 `awk` 跳过注释或启用状态的 `TERMINAL_CWD=` 行；注释指向 `config.yaml` 的 `terminal.cwd`。
++- `scripts/install.ps1`：采用等价正则过滤后，以无 BOM UTF-8 写入新 `.env`；注释指向 `config.yaml` 的 `terminal.cwd`。
++- `tests/test_install_no_terminal_cwd_env.py`：验证两种过滤规则作用于真实 `.env.example` 后，生成内容均不含 `TERMINAL_CWD`，并锁定两套脚本的配置指引和过滤逻辑。
++
++## 官方资料核查
++
++工单指定的 `https://www.electron.build/configuration/configuration` 在核查时返回 HTTP 404；官方 sitemap 给出的当前配置文档地址是 `https://www.electron.build/docs/configuration`。该资料用于确认 electron-builder 的应用打包配置范围；本修复不新增或臆造 electron-builder 配置项，而是在 bootstrap-installer 实际调用的安装脚本中处理 `.env` 模板。
++
++## 验证计划与结果
++
++- `pytest -q tests/test_install_no_terminal_cwd_env.py`
++- `bash -n scripts/install.sh`
++- PowerShell parser syntax检查（环境存在 `pwsh` 时执行）。
++- 静态检查 bootstrap-installer 的脚本解析/执行链仍指向 `scripts/install.sh` / `scripts/install.ps1`。
++- 检查本次 diff 未包含既有的 `apps/desktop/package.json` 修改。
++
++新装生成的 `.env` 不含 `TERMINAL_CWD`，所以 desktop 不会再因安装器生成该 deprecated key 而记录对应 warning。已有用户 `.env` 不在本工单迁移范围内。
+-- 
+2.54.0 (Apple Git-157)
+

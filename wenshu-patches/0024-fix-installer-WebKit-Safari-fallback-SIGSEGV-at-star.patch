@@ -1,0 +1,60 @@
+From 7facb68546aceadebc9fce87fa93641012a6e140 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?=
+ <9528147+zi-yu1983@user.noreply.gitee.com>
+Date: Fri, 24 Jul 2026 14:05:53 +0800
+Subject: [PATCH 024/168] =?UTF-8?q?fix(installer):=20WebKit=20=E7=BC=BA?=
+ =?UTF-8?q?=E6=97=B6=E4=BC=98=E9=9B=85=E8=B5=B0=20Safari=20fallback=20(?=
+ =?UTF-8?q?=E9=81=BF=E5=85=8D=20SIGSEGV=20at=20startup)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ .../bootstrap-installer/src-tauri/src/main.rs | 31 +++++++++++++++++++
+ 1 file changed, 31 insertions(+)
+
+diff --git a/apps/bootstrap-installer/src-tauri/src/main.rs b/apps/bootstrap-installer/src-tauri/src/main.rs
+index f1f3e26b2..1cb9f3a93 100644
+--- a/apps/bootstrap-installer/src-tauri/src/main.rs
++++ b/apps/bootstrap-installer/src-tauri/src/main.rs
+@@ -14,6 +14,37 @@
+ 
+ #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+ 
++#[cfg(target_os = "macos")]
++use std::process::Command;
++
++#[cfg(target_os = "macos")]
++const WEBKIT_PATH: &str = "/System/Library/Frameworks/WebKit.framework/Versions/A/WebKit";
++
++#[cfg(target_os = "macos")]
++fn has_webkit() -> bool {
++    std::path::Path::new(WEBKIT_PATH).exists()
++}
++
++#[cfg(target_os = "macos")]
++fn open_safari_fallback() {
++    let _ = Command::new("osascript")
++        .args([
++            "-e",
++            "tell application \"Safari\" to open location \"file:///Applications/文枢.app/Contents/Resources/dist/index.html\"",
++        ])
++        .output();
++
++    let _ = Command::new("osascript")
++        .args(["-e", "display dialog \"WebKit 不在, 启动 Safari fallback\""])
++        .output();
++}
++
+ fn main() {
++    #[cfg(target_os = "macos")]
++    if !has_webkit() {
++        open_safari_fallback();
++        return;
++    }
++
+     hermes_bootstrap_lib::run()
+ }
+-- 
+2.54.0 (Apple Git-157)
+

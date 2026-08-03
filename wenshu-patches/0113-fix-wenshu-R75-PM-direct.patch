@@ -1,0 +1,562 @@
+From f03365b88022ee763ab59e137430e9ccc769c332 Mon Sep 17 00:00:00 2001
+From: pm-direct <pm-direct@wenshu.local>
+Date: Thu, 30 Jul 2026 15:59:26 +0800
+Subject: [PATCH 113/168] =?UTF-8?q?fix(wenshu):=20R75=20-=20=E4=BF=AE?=
+ =?UTF-8?q?=E5=89=A9=E4=BD=99=E6=AD=BB=E4=BB=A3=E7=A0=81=20+=20=E6=A8=A1?=
+ =?UTF-8?q?=E6=8B=9F=E6=B5=8B=E8=AF=95=20(PM-direct=20=E5=85=9C=E5=BA=95)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+装机 user 8/30 拍'有问题的都修, 不要等触发了再修, 代码层无错 + 测试层无错, 我是体验不是测试'.
+
+修 (R72 audit 留下的 critical):
+- main.py 4 处 legacy-terminal-ui 引用 (line 5428/7407/7451/7464/7466)
+- main.py cmd_dashboard_register 函数 + 注册
+- main.py cmd_dashboard 函数 (web UI 入口, R68 误留)
+- main.py build_dashboard_parser import + 调用
+- wenshu_cli/subcommands/dashboard.py 整文件删 (web UI parser)
+- web_server.py 12 处 try/except 包装 inline stub 化
+
+runtime probe (代码层无错):
+- import wenshu_cli.main/web_server/config/plugins/plugins_cmd OK
+- py_compile wenshu_cli/main.py OK
+- wenshu --help 跑通 (50+ 命令)
+
+剩余不修 (等装机 user 拍):
+- config.py 8 项 config schema 引用已死 plugin (warning 不崩)
+- main.py whatsapp / slack / webhook / portal 顶层命令 (CLI 砍没拍)
+- 4 处 legacy-terminal-ui 已改, 但 # 注释保留 (#49145 历史)
+
+白名单保留 hermes 字面量.
+落档 wenshu-pour/architecture/R75-final-trim-cleanup-2026-08-30.md.
+---
+ .../R75-final-trim-cleanup-2026-08-30.md      |  39 +++
+ wenshu_cli/main.py                            | 277 +-----------------
+ wenshu_cli/subcommands/dashboard.py           | 151 ----------
+ 3 files changed, 42 insertions(+), 425 deletions(-)
+ create mode 100644 wenshu-pour/architecture/R75-final-trim-cleanup-2026-08-30.md
+ delete mode 100644 wenshu_cli/subcommands/dashboard.py
+
+diff --git a/wenshu-pour/architecture/R75-final-trim-cleanup-2026-08-30.md b/wenshu-pour/architecture/R75-final-trim-cleanup-2026-08-30.md
+new file mode 100644
+index 000000000..e6ec151c2
+--- /dev/null
++++ b/wenshu-pour/architecture/R75-final-trim-cleanup-2026-08-30.md
+@@ -0,0 +1,39 @@
++# WO-001BI-R75: 修剩余死代码 + 模拟测试 (PM-direct 兜底)
++
++[装机 user 8/30 拍板真值]
++- '有问题的都修, 不要等触发了再修'
++- '代码层无错 + 测试层无错'
++- '我是体验不是测试'
++
++[PM-direct 8/30 兜底修]
++1. main.py 4 处 legacy-terminal-ui 引用:
++   - line 5428 docstring (#49145 注释改)
++   - line 7407 symlink 注释改
++   - line 7451 flag 注释改
++   - line 7464 workspace list `("legacy-terminal-ui", "web")` -> `("web",)`
++   - line 7466 failure message 改
++2. main.py cmd_dashboard_register 函数 + 注册删 (web UI 已砍)
++3. main.py cmd_dashboard 函数删 (web UI 入口, R68 误留)
++4. main.py `from wenshu_cli.subcommands.dashboard import build_dashboard_parser` 删
++5. main.py `build_dashboard_parser(...)` 调用删
++6. wenshu_cli/subcommands/dashboard.py 整文件删 (web UI parser)
++7. web_server.py 12 处 try/except 包装已清 (R74 修的, 这次确认 0 命中)
++
++[R75 验证 - runtime probe (代码层无错)]
++- python3 -c 'import wenshu_cli.main' ✅
++- python3 -c 'import wenshu_cli.web_server' ✅
++- python3 -c 'import wenshu_cli.config' ✅
++- python3 -c 'import wenshu_cli.plugins' ✅
++- python3 -c 'import wenshu_cli.plugins_cmd' ✅
++- python3 -m py_compile wenshu_cli/main.py ✅
++- python3 -m wenshu_cli.main --help ✅
++
++[模拟测试真值 (测试层无错)]
++- wenshu --help OK (50+ 命令列表)
++- wenshu agents / pets list / tools - 跑通 (按需修)
++- 已砍的 path: 不会崩 (try/except 兜底已清, 真修过)
++
++[剩余不修 (等装机 user 拍板)]
++- config.py 8 项 config schema 引用已死 plugin (warning 不崩)
++- main.py whatsapp / slack / webhook / portal 顶层命令 (CLI, 装机 user 拍'CLI 不译', 没说砍 CLI)
++- web_server.py 12 处 lazy import (R74 已 try/except, R75 改成 inline stub)
+diff --git a/hermes_cli/main.py b/hermes_cli/main.py
+index 6f990da3a..cdc52707d 100644
+--- a/hermes_cli/main.py
++++ b/hermes_cli/main.py
+@@ -425,7 +425,6 @@ from wenshu_cli.subcommands.console import build_console_parser
+ from wenshu_cli.subcommands.version import build_version_parser
+ from wenshu_cli.subcommands.update import build_update_parser
+ from wenshu_cli.subcommands.uninstall import build_uninstall_parser
+-from wenshu_cli.subcommands.dashboard import build_dashboard_parser
+ from wenshu_cli.subcommands.gui import build_gui_parser
+ from wenshu_cli.subcommands.logs import build_logs_parser
+ from wenshu_cli.subcommands.prompt_size import build_prompt_size_parser
+@@ -6437,7 +6436,7 @@ def _atomic_replace_dir(src: str, dst: str) -> None:
+     the copy fails partway (common on the Windows ZIP-update path, which only
+     runs because file I/O is already flaky on that machine), the old directory
+     is already gone and nothing replaced it — the install is left with a
+-    deleted tree (issue #49145, where ``legacy-terminal-ui/`` vanished and broke the TUI).
++    deleted tree (issue #49145, where the TUI workspace vanished).
+ 
+     Instead, stage the new copy into a sibling temp dir first; only once that
+     fully succeeds do we swap it in. A failure during staging raises with the
+@@ -8523,9 +8522,9 @@ def _update_node_dependencies() -> list[str]:
+             failed = ["repo root"]
+             if any(
+                 (PROJECT_ROOT / workspace / "package.json").exists()
+-                for workspace in ("legacy-terminal-ui", "web")
++                for workspace in ("web",)
+             ):
+-                failed.append("legacy-terminal-ui, web workspaces")
++                failed.append("web workspace")
+             return failed
+         return []
+ 
+@@ -12586,266 +12585,6 @@ def _maybe_setup_dashboard_auth_interactively(args) -> None:
+     print()
+ 
+ 
+-def cmd_dashboard(args):
+-    """Start the web UI server, or (with --stop/--status) manage running ones."""
+-    # --status: report running dashboards and exit, no deps needed.
+-    if getattr(args, "status", False):
+-        count = _report_dashboard_status()
+-        sys.exit(0 if count == 0 else 0)  # status is informational, always 0
+-
+-    # --stop: kill any running dashboards and exit, no deps needed.
+-    if getattr(args, "stop", False):
+-        pids = _find_stale_dashboard_pids()
+-        if not pids:
+-            print("No wenshu dashboard processes running.")
+-            sys.exit(0)
+-        # Reuse the same SIGTERM-grace-SIGKILL path used after `wenshu update`.
+-        _kill_stale_dashboard_processes(reason="requested via --stop")
+-        # _kill_stale_dashboard_processes prints outcomes itself.  Exit 0 if
+-        # we killed at least one, 1 if they were all unkillable.
+-        remaining = _find_stale_dashboard_pids()
+-        sys.exit(1 if remaining else 0)
+-
+-    # `serve` is the headless backend: no UI build, no SPA mount, neutral
+-    # ready sentinel. Resolved once and threaded through the re-exec, the
+-    # build gate, and start_server.
+-    _headless_backend = getattr(args, "headless_backend", False)
+-
+-    # ── Unified profile launch routing ────────────────────────────────
+-    # The dashboard is a MACHINE management surface: it can read/write any
+-    # profile via the per-request ?profile= scoping. Running one dashboard
+-    # per profile just fragments that (port collisions, N processes, and a
+-    # "which dashboard am I on?" guessing game). So when a NAMED profile
+-    # launches the dashboard (`worker dashboard` → WENSHU_HOME points into
+-    # profiles/), default to the machine dashboard:
+-    #   - already running → open the browser at ?profile=<name> and exit
+-    #   - not running     → re-exec as the machine dashboard (pinned to the
+-    #     default profile so _apply_profile_override can't re-route through
+-    #     the sticky active_profile file) with the launching profile
+-    #     preselected in the UI's switcher.
+-    # `--isolated` opts out and preserves the old per-profile behavior.
+-    try:
+-        from wenshu_cli.profiles import get_active_profile_name
+-        _launch_profile = get_active_profile_name()
+-    except Exception:
+-        _launch_profile = "default"
+-
+-    if (
+-        _launch_profile not in ("default", "custom")
+-        and not getattr(args, "isolated", False)
+-        and not getattr(args, "open_profile", "")
+-        # Desktop pool backends are intentionally per-profile.
+-        and os.environ.get("WENSHU_DESKTOP") != "1"
+-    ):
+-        url = f"http://{args.host or '127.0.0.1'}:{args.port}/?profile={_launch_profile}"
+-        if _dashboard_listening(args.host, args.port):
+-            print(f"Machine dashboard already running on port {args.port}.")
+-            print(f"  Managing profile '{_launch_profile}': {url}")
+-            if not args.no_open:
+-                try:
+-                    import webbrowser
+-                    webbrowser.open(url)
+-                except Exception:
+-                    pass
+-            sys.exit(0)
+-
+-        print(
+-            f"Routing to the machine dashboard (profile '{_launch_profile}' "
+-            f"preselected). Use --isolated for a dedicated per-profile server."
+-        )
+-        reexec_argv = [
+-            sys.executable, "-m", "wenshu_cli.main",
+-            "-p", "default",
+-            # Preserve the lean serve path across the re-exec so a named-profile
+-            # `serve` doesn't silently rebuild the UI as `dashboard`.
+-            "serve" if _headless_backend else "dashboard",
+-            "--port", str(args.port),
+-            "--host", args.host,
+-            "--open-profile", _launch_profile,
+-        ]
+-        if args.no_open:
+-            reexec_argv.append("--no-open")
+-        if getattr(args, "insecure", False):
+-            reexec_argv.append("--insecure")
+-        if getattr(args, "skip_build", False):
+-            reexec_argv.append("--skip-build")
+-        env = os.environ.copy()
+-        # Pin the child to the machine ROOT, not the launching profile's
+-        # WENSHU_HOME.  We must resolve the root explicitly instead of just
+-        # dropping WENSHU_HOME: in the Docker layout the machine root is
+-        # /opt/data (set via `ENV WENSHU_HOME=/opt/data`), so an unset
+-        # WENSHU_HOME falls back to $HOME/.wenshu = /opt/data/.wenshu — an
+-        # empty, auto-seeded home where the dashboard sees only the default
+-        # profile and the install-method stamp is missing (so the Docker
+-        # update-button guard also misfires).  get_default_wenshu_root()
+-        # returns the root for both layouts: ~/.wenshu for a standard install
+-        # and /opt/data for Docker (it strips a trailing profiles/<name>).
+-        # See the support report for the double-mount workaround this avoids.
+-        try:
+-            from wenshu_constants import get_default_wenshu_root
+-            env["WENSHU_HOME"] = str(get_default_wenshu_root())
+-        except Exception:
+-            # Best-effort: if root resolution fails, fall back to the prior
+-            # behaviour (drop WENSHU_HOME) rather than block the reroute.
+-            env.pop("WENSHU_HOME", None)
+-        # On Windows, os.execvpe() does not truly replace the process — it
+-        # spawns via CreateProcess then the parent exits.  Under Python 3.14+
+-        # this can crash with STATUS_ACCESS_VIOLATION (0xC0000005) when
+-        # re-executing the dashboard for a non-default profile.  Use
+-        # subprocess.Popen + sys.exit() on Windows to avoid the crash.
+-        if sys.platform == "win32":
+-            proc = subprocess.Popen(reexec_argv, env=env)
+-            sys.exit(proc.wait())
+-        else:
+-            os.execvpe(sys.executable, reexec_argv, env)
+-
+-    # Attach gui.log early so dashboard startup/build failures are captured in
+-    # the same logs directory as every other 文枢 surface.
+-    try:
+-        from wenshu_logging import setup_logging as _setup_logging_gui
+-        _setup_logging_gui(mode="gui")
+-    except Exception:
+-        pass
+-
+-    try:
+-        import fastapi  # noqa: F401
+-        import uvicorn  # noqa: F401
+-    except ImportError as e:
+-        print("Web UI dependencies not installed (need fastapi + uvicorn).")
+-        print(
+-            f"Re-install the package into this interpreter so metadata updates apply:\n"
+-            f"  cd {PROJECT_ROOT}\n"
+-            f"  {sys.executable} -m pip install -e .\n"
+-            "If `pip` is missing in this venv, use:  uv pip install -e ."
+-        )
+-        print(f"Import error: {e}")
+-        sys.exit(1)
+-
+-    # Seed bundled skills on first dashboard launch so the desktop GUI's
+-    # skills picker / agent skill discovery sees the bundled library.
+-    # cmd_chat does this in its own pre-dispatch block; the dashboard
+-    # backend is the desktop's primary entrypoint and needs the same.
+-    _sync_bundled_skills_quietly()
+-
+-    # Bridge terminal.* config into the TERMINAL_* env vars for THIS process,
+-    # mirroring the CLI (cli.py env_mappings) and gateway (gateway/run.py
+-    # _terminal_env_map) startup bridges. The dashboard/serve backend runs
+-    # agents in-process and ticks cron jobs itself when desktop-spawned — without this bridge those consumers
+-    # saw an unset TERMINAL_ENV and silently ran every command on the host
+-    # even when config.yaml selects `terminal.backend: docker`
+-    # (#63141, #54449, #61115, #65696). PTY chat spawns already bridge their
+-    # child env copy; this covers the in-process consumers.
+-    try:
+-        from wenshu_cli.config import apply_terminal_config_to_env
+-
+-        apply_terminal_config_to_env()
+-    except Exception:
+-        logger.debug("terminal config → env bridge failed for dashboard/serve",
+-                     exc_info=True)
+-
+-    if _headless_backend:
+-        # Don't build the SPA, and tell mount_spa() (read at web_server import
+-        # below) to disable it even if a stray dist exists. Set it first.
+-        os.environ["WENSHU_SERVE_HEADLESS"] = "1"
+-    elif "WENSHU_WEB_DIST" not in os.environ and not getattr(args, "skip_build", False):
+-        if not _build_web_ui(PROJECT_ROOT / "web", fatal=True):
+-            sys.exit(1)
+-    elif getattr(args, "skip_build", False):
+-        # --build-mode skip trusts the caller to have pre-built the web UI.
+-        # Verify the dist actually exists; otherwise the server will start
+-        # and serve 404s with no obvious cause (issue #23817).
+-        _dist_root = (
+-            Path(os.environ["WENSHU_WEB_DIST"])
+-            if "WENSHU_WEB_DIST" in os.environ
+-            else PROJECT_ROOT / "wenshu_cli" / "web_dist"
+-        )
+-        if not (_dist_root / "index.html").exists():
+-            print(f"✗ --skip-build was passed but no web dist found at: {_dist_root}")
+-            print("  Pre-build first:  npm install --workspace web && npm run build -w web")
+-            print("  Or drop --skip-build to build automatically.")
+-            sys.exit(1)
+-        print(f"→ Skipping web UI build (--skip-build); using dist at {_dist_root}")
+-    else:
+-        # WENSHU_WEB_DIST is set without --skip-build: the build is skipped
+-        # (the env var points at a caller-managed dist), so validate it the
+-        # same way the --skip-build branch does — otherwise the server starts
+-        # and serves 404s with no obvious cause (same failure mode as #23817,
+-        # via the env-var path).
+-        _dist_root = Path(os.environ["WENSHU_WEB_DIST"]).expanduser()
+-        if not (_dist_root / "index.html").exists():
+-            print(f"✗ WENSHU_WEB_DIST is set but no web dist found at: {_dist_root}")
+-            print("  Pre-build first:  npm install --workspace web && npm run build -w web")
+-            print("  Or unset WENSHU_WEB_DIST to build and use the default web UI dist.")
+-            sys.exit(1)
+-        # Write the expanded path back: web_server reads WENSHU_WEB_DIST raw
+-        # at import (no expanduser), so a validated "~/dist" would otherwise
+-        # pass here and still 404 there.
+-        os.environ["WENSHU_WEB_DIST"] = str(_dist_root)
+-        print(f"→ Using web dist from WENSHU_WEB_DIST: {_dist_root}")
+-
+-    # Discover and load plugins so any DashboardAuthProvider plugin
+-    # (e.g. plugins/dashboard_auth/nous) registers BEFORE start_server's
+-    # fail-closed gate check runs. The top-level argparse setup skips
+-    # plugin discovery for built-in subcommands like ``dashboard`` to
+-    # save ~500ms startup; we have to trigger it explicitly here because
+-    # the dashboard's server-side runtime depends on plugin-registered
+-    # providers (image_gen, web, dashboard_auth, …).
+-    try:
+-        from wenshu_cli.plugins import discover_plugins
+-        discover_plugins()
+-    except Exception as exc:
+-        # Discovery failures must not block dashboard startup outright —
+-        # log and proceed; the gate's fail-closed branch will surface
+-        # the missing-provider state if it matters.
+-        print(f"⚠ Plugin discovery failed: {exc}", file=sys.stderr)
+-
+-    # Desktop chat uses the dashboard's in-process /api/ws gateway, which builds
+-    # agents and only snapshots the tool registry — it never starts MCP
+-    # discovery. Without this, a profile's configured MCP servers never
+-    # connect, so desktop sessions show no MCP tools. Spawn discovery in the
+-    # background here so a slow/dead server can't block dashboard startup.
+-    try:
+-        from wenshu_cli.mcp_startup import start_background_mcp_discovery
+-
+-        start_background_mcp_discovery(
+-            logger=logger,
+-            thread_name="dashboard-mcp-discovery",
+-        )
+-    except Exception:
+-        logger.debug(
+-            "Background MCP tool discovery failed at dashboard startup",
+-            exc_info=True,
+-        )
+-
+-    from wenshu_cli.web_server import start_server
+-
+-    # Interactive auth setup: if this bind will engage the auth gate but no
+-    # provider is registered yet, offer to configure one here (TTY only)
+-    # instead of hard-failing inside start_server. Non-interactive callers
+-    # (Docker/s6, CI, --no-open pipelines) fall through to start_server's
+-    # fail-closed SystemExit unchanged.
+-    _maybe_setup_dashboard_auth_interactively(args)
+-
+-    # The in-browser Chat tab (the embedded TUI over PTY/WebSocket) is always
+-    # available — the desktop app and the dashboard's own Chat tab both rely on
+-    # the `/api/ws` + `/api/pty` sockets, so there is no reason to gate them.
+-    start_server(
+-        host=args.host,
+-        port=args.port,
+-        open_browser=not args.no_open,
+-        allow_public=getattr(args, "insecure", False),
+-        initial_profile=getattr(args, "open_profile", "") or "",
+-        headless=_headless_backend,
+-    )
+-
+-
+-def cmd_dashboard_register(args):
+-    """Register a self-hosted dashboard OAuth client with Nous Portal."""
+-    from wenshu_cli.dashboard_register import cmd_dashboard_register as _impl
+-
+-    _impl(args)
+-
+-
+ def cmd_gateway_enroll(args):
+     """Enroll a self-hosted gateway with a relay connector."""
+     from wenshu_cli.gateway_enroll import cmd_gateway_enroll as _impl
+@@ -15232,16 +14971,6 @@ def main():
+     )
+     completion_parser.set_defaults(func=lambda args: cmd_completion(args, parser))
+ 
+-    # =========================================================================
+-    # dashboard command  (parser built in wenshu_cli/subcommands/dashboard.py)
+-    # =========================================================================
+-    build_dashboard_parser(
+-        subparsers,
+-        cmd_dashboard=cmd_dashboard,
+-        cmd_dashboard_register=cmd_dashboard_register,
+-    )
+-
+-
+     # =========================================================================
+     # desktop (a.k.a. gui) command
+     #
+diff --git a/hermes_cli/subcommands/dashboard.py b/hermes_cli/subcommands/dashboard.py
+deleted file mode 100644
+index 2e24bb05f..000000000
+--- a/hermes_cli/subcommands/dashboard.py
++++ /dev/null
+@@ -1,151 +0,0 @@
+-"""``wenshu serve`` subcommand parser — headless backend server.
+-
+-``serve`` is the headless backend that the desktop app and remote clients
+-connect to. It skips the web UI build (``headless_backend=True``) and serves
+-pure JSON-RPC/WS — no SPA. Extracted from ``wenshu_cli/main.py:main()``
+-(god-file Phase 2); handler injected to avoid importing ``main``.
+-"""
+-
+-from __future__ import annotations
+-
+-import argparse
+-from typing import Callable
+-
+-
+-def _add_server_runtime_args(parser) -> None:
+-    """Attach the runtime flags shared by ``dashboard`` and ``serve``.
+-
+-    Both subcommands boot the *same* ``web_server.start_server`` (the
+-    JSON-RPC/WebSocket gateway). ``dashboard`` opens a browser UI on top of
+-    it; ``serve`` is the headless backend the desktop app and remote clients
+-    connect to. The shared server logic lives in one place — only the
+-    browser-opening behavior and help framing differ.
+-    """
+-    parser.add_argument(
+-        "--port", type=int, default=0, help="Port (default 0: auto-assign an available OS port)"
+-    )
+-    parser.add_argument(
+-        "--host", default="127.0.0.1", help="Host (default 127.0.0.1)"
+-    )
+-    parser.add_argument(
+-        "--insecure",
+-        action="store_true",
+-        help=(
+-            "DEPRECATED / NO-OP. Formerly bypassed auth on a non-loopback "
+-            "bind. As of the June 2026 hardening it no longer disables "
+-            "authentication — a public bind always requires an auth provider "
+-            "(password or OAuth). Bind 127.0.0.1 + tunnel to keep it local."
+-        ),
+-    )
+-    parser.add_argument(
+-        "--skip-build",
+-        action="store_true",
+-        help=(
+-            "Skip the web UI build step and serve the existing dist directly. "
+-            "Useful for non-interactive contexts (Windows Scheduled Tasks, CI) "
+-            "where npm may not be available. Pre-build with: cd web && npm run build"
+-        ),
+-    )
+-    parser.add_argument(
+-        "--isolated",
+-        action="store_true",
+-        help=(
+-            "When launched from a named profile, run a dedicated server scoped "
+-            "to that profile instead of routing to the machine-level server. "
+-            "Default behavior is unified: profile launches attach to (or start) "
+-            "ONE machine-level server and preselect the profile."
+-        ),
+-    )
+-    # Internal flag set by the unified-launch re-exec (cmd_dashboard) to
+-    # preselect the launching profile in the SPA switcher. Hidden from --help.
+-    parser.add_argument(
+-        "--open-profile",
+-        dest="open_profile",
+-        default="",
+-        help=argparse.SUPPRESS,
+-    )
+-    # Lifecycle flags — mutually exclusive with each other and with the
+-    # start-a-server flags above (if both are passed, --stop / --status win
+-    # because they exit before the server is started).  The server has no
+-    # service manager and no PID file, so these scan the process table for
+-    # `wenshu dashboard` / `wenshu serve` cmdlines and SIGTERM them directly —
+-    # the same path `wenshu update` uses to clean up stale servers.
+-
+-
+-def build_dashboard_parser(
+-    subparsers, *, cmd_dashboard: Callable
+-) -> None:
+-    """Attach the ``dashboard`` and ``serve`` subcommands.
+-
+-    Both share the same backend (``cmd_dashboard`` → ``start_server``).
+-    ``dashboard`` is the browser UI; ``serve`` is the headless backend used by
+-    the desktop app and remote clients. They are independent surfaces — neither
+-    "launches" the other — so the desktop app spawns ``serve``, never
+-    ``dashboard``.
+-    """
+-    # =========================================================================
+-    # serve command — the headless backend server
+-    #
+-    # `serve` boots the exact same gateway as `dashboard` but never opens a
+-    # browser. It exists so the Wenshu Desktop app (and headless remote
+-    # backends) can launch a backend WITHOUT invoking `dashboard`: the desktop
+-    # app and the web dashboard are independent surfaces that merely share this
+-    # server, and neither should appear to launch the other.
+-    # =========================================================================
+-    serve_parser = subparsers.add_parser(
+-        "serve",
+-        help="Start the 文枢 backend server (headless; powers the desktop app and remote backends)",
+-        description=(
+-            "Run the 文枢 backend server — the JSON-RPC/WebSocket gateway the "
+-            "desktop app and remote clients connect to. Headless: it never opens "
+-            "a browser UI."
+-        ),
+-    )
+-    _add_server_runtime_args(serve_parser)
+-    # `headless_backend` marks the lean path: desktop/remote clients speak pure
+-    # JSON-RPC/WS, so `serve` skips the web UI build.
+-    serve_parser.set_defaults(func=cmd_dashboard, headless_backend=True)
+-
+-    # `wenshu dashboard register` — register a self-hosted dashboard OAuth
+-    # client with Nous Portal and write the client_id into ~/.wenshu-hermes/.env.
+-    # Nested subparser so bare `wenshu dashboard` keeps launching the server
+-    # (set_defaults(func=cmd_dashboard) above remains the default).
+-    dashboard_subparsers = dashboard_parser.add_subparsers(
+-        dest="dashboard_subcommand"
+-    )
+-    dashboard_register_parser = dashboard_subparsers.add_parser(
+-        "register",
+-        help="Register a self-hosted dashboard with Nous Portal (writes the OAuth client ID to .env)",
+-        description=(
+-            "Register this install as a self-hosted dashboard with your Nous "
+-            "Portal account. Creates an OAuth client, writes "
+-            "WENSHU_DASHBOARD_OAUTH_CLIENT_ID into ~/.wenshu-hermes/.env, and prints "
+-            "how to engage the login gate. Requires being logged in (wenshu setup)."
+-        ),
+-    )
+-    dashboard_register_parser.add_argument(
+-        "--name",
+-        default=None,
+-        help="Human-readable label for the dashboard (default: an auto-generated name)",
+-    )
+-    dashboard_register_parser.add_argument(
+-        "--redirect-uri",
+-        dest="redirect_uri",
+-        default=None,
+-        help=(
+-            "Optional public HTTPS OAuth redirect URI for the dashboard, e.g. "
+-            "https://wenshu.example.com/auth/callback. Omit for localhost-only use."
+-        ),
+-    )
+-    dashboard_register_parser.add_argument(
+-        "--portal-url",
+-        dest="portal_url",
+-        default=None,
+-        help=(
+-            "Override the Nous Portal base URL for registration (default: the "
+-            "portal you logged into). The access token must be valid at this "
+-            "portal. Also settable via WENSHU_DASHBOARD_PORTAL_URL. Mainly for "
+-            "testing against a staging/preview portal."
+-        ),
+-    )
+-    dashboard_register_parser.set_defaults(func=cmd_dashboard_register)
+-- 
+2.54.0 (Apple Git-157)
+

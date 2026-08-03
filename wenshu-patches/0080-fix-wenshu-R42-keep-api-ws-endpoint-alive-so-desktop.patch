@@ -1,0 +1,71 @@
+From 70fc58e76c6c25fae47a1798ae9a7235341ff64b Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?= <anbaiqiang@wenshu.local>
+Date: Wed, 29 Jul 2026 16:20:34 +0800
+Subject: [PATCH 080/168] fix(wenshu): R42 - keep /api/ws endpoint alive so
+ desktop renderer can connect
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+R41 fixed translation + gateway spawn --replace, but desktop boot still
+hits '无法连接到文枢网关' overlay. Real root cause is upstream's
+embedded-chat-gateway removal: web_server.py:/api/ws returns close(1011)
+on every connection, while desktop renderer still opens this URL as
+its primary boot probe (built at apps/desktop/electron/main.ts:7331).
+
+Accept the connection, send a {ready} hello, and idle until the client
+disconnects. Real chat now flows through /api/pub + /api/events.
+
+装机 user 8/29 拍 '不修重打包, 先改能起 gateway 再打包'.
+---
+ wenshu_cli/web_server.py | 33 ++++++++++++++++++++++++++++-----
+ 1 file changed, 28 insertions(+), 5 deletions(-)
+
+diff --git a/wenshu_cli/web_server.py b/wenshu_cli/web_server.py
+index 69ccc6d7b..5bebc21d2 100644
+--- a/wenshu_cli/web_server.py
++++ b/wenshu_cli/web_server.py
+@@ -17700,12 +17700,35 @@ async def gateway_ws(ws: WebSocket) -> None:
+         await ws.close(code=4403)
+         return
+ 
++    # R42: Was `raise ImportError("embedded chat gateway removed")` then close(1011).
++    # The desktop Electron renderer still opens this endpoint (see wsUrl built at
++    # apps/desktop/electron/main.ts ~7331) — 1011 on every reconnect surfaces as
++    # "无法连接到文枢网关" and gates boot. Keep the endpoint alive, accept the
++    # connection, log a hello, and idle (the real chat broadcast lives at
++    # /api/pub + /api/events; this endpoint is a legacy JSON-RPC surface the
++    # desktop boot probe only needs to reach open()).
++    _log.info("Desktop /api/ws connected: peer=%s headers=%s", ws.client, dict(ws.headers or {}))
+     try:
+-        raise ImportError("embedded chat gateway removed")
+-    except ImportError:
+-        _log.warning("Embedded chat gateway unavailable; WebSocket chat disabled")
+-        await ws.close(code=1011)
+-        return
++        await ws.send_json({"type": "ready", "endpoint": "/api/ws", "server": "wenshu-isolated"})
++        # Block until the client disconnects — keeps open() true so the
++        # renderer-side `gateway.connect()` resolves the "ready" event instead
++        # of timing out on close. No inbound messages are dispatched here
++        # because all chat traffic now flows through /api/pub + /api/events.
++        while True:
++            try:
++                msg = await ws.receive_text()
++            except Exception:
++                break
++            if not msg:
++                break
++            # Ignore inbound — the endpoint is server-push only.
++    except Exception as exc:  # noqa: BLE001 — handler stays alive until disconnect
++        _log.warning("Desktop /api/ws handler exited: %s", exc)
++    finally:
++        try:
++            await ws.close()
++        except Exception:
++            pass
+ 
+ 
+ # ---------------------------------------------------------------------------
+-- 
+2.54.0 (Apple Git-157)
+

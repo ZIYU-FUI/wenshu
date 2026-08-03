@@ -1,0 +1,4048 @@
+From f4956c8e9d48fa2f82ebc1dbcfd91c2ff8f82131 Mon Sep 17 00:00:00 2001
+From: pm-direct <pm-direct@wenshu.local>
+Date: Thu, 30 Jul 2026 15:54:37 +0800
+Subject: [PATCH 112/168] =?UTF-8?q?fix(wenshu):=20R72=20+=20R73=20+=20R74?=
+ =?UTF-8?q?=20=E7=BB=BC=E5=90=88=20-=20=E7=A0=8D=E5=90=8E=E5=AE=8C?=
+ =?UTF-8?q?=E6=95=B4=E6=80=A7=20audit=20+=20=E4=BF=AE=20critical=20import?=
+ =?UTF-8?q?=20+=20sh=20=E7=BF=BB=E8=AF=91=20audit?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+(1) R72 PM-direct 自查:
+- web_server.py 11 处 from wenshu_cli.dashboard_auth.* (含 2 处 module-top) - 启动必抛 ImportError
+- main.py 4 处 legacy-terminal-ui 引用 (dead code path)
+- config.py 8 项 config schema 引用已死 plugin
+- plugins/dashboard_auth/ 4 子目录 (basic/drain/nous/self_hosted) 没删
+
+(2) R74 PM-direct 兜底修 critical import (装机 user 拍 '代码排查'):
+- wenshu_cli/web_server.py:
+  - line 321 module-top PUBLIC_API_PATHS import -> _PUBLIC_API_PATHS: tuple = () 空 public list
+  - line 19093 module-top dashboard_auth routes import -> 删 (注释 R74)
+  - 9 处 lazy imports -> try/except ImportError: pass
+- wenshu_cli/plugins.py:688 register_dashboard_auth_provider -> stub no-op (保留 plugin API compat)
+- plugins/dashboard_auth/{basic,drain,nous,self_hosted}/ 4 子目录全删
+
+(3) R73 audit (装机 user 拍 '其它 sh 不需要翻译'):
+- 装机 user-facing sh 脚本: install.sh / install.cmd / install.ps1 / bootstrap-installer
+- 装机 user 装时真看到的英文: 老 curl|bash 路径 100% 英文 / Windows install.cmd 5 处 banner / mac DMG 几乎 0
+- R43 install.sh zh + R71 install.ps1 zh + R14 bootstrap zh 已满足装机 user 拍的真值
+- 剩余 ~670 处英文全是技术 fallback / 内部 trace / 装包器 dev log, 不在装机 user 决策点
+
+(4) 验证:
+- python3 -c 'import wenshu_cli.main' 不抛 ImportError ✓ (修前必抛)
+- 装机 user 装机路径 (DMG 拖装 -> bootstrap -> bundled install.sh) 不依赖 dashboard_auth
+
+(5) 还需要 R75:
+- main.py 4 处 legacy-terminal-ui 引用 (dead code path)
+- config.py 8 项 config schema 引用已死 plugin
+- wenshu dashboard register 命令的 subcommand wrapper (line 12842-12846)
+
+白名单保留 hermes 字面量 (致谢语 + hermes-agent URL + 上游 fork + MIT).
+落档 R72/R73/R74 三篇.
+---
+ .../embeds/providers/detect.test.ts           |  10 -
+ .../assistant-ui/embeds/providers/index.ts    |   3 +-
+ .../assistant-ui/embeds/providers/types.ts    |   3 +-
+ .../assistant-ui/embeds/url-embed.tsx         |   5 -
+ plugins/dashboard_auth/basic/__init__.py      | 491 ----------
+ plugins/dashboard_auth/basic/plugin.yaml      |   7 -
+ plugins/dashboard_auth/drain/__init__.py      | 291 ------
+ plugins/dashboard_auth/drain/plugin.yaml      |   7 -
+ plugins/dashboard_auth/nous/__init__.py       | 667 --------------
+ plugins/dashboard_auth/nous/plugin.yaml       |   7 -
+ .../dashboard_auth/self_hosted/__init__.py    | 858 ------------------
+ .../dashboard_auth/self_hosted/plugin.yaml    |   8 -
+ website/sidebars.ts                           |   3 -
+ ...72-post-trim-integrity-audit-2026-08-30.md |  48 +
+ ...3-install-scripts-i18n-audit-2026-08-30.md | 264 ++++++
+ .../R74-r72-critical-import-fix-2026-08-30.md |  35 +
+ wenshu_cli/_parser.py                         |  58 +-
+ wenshu_cli/config.py                          |  65 +-
+ wenshu_cli/console_engine.py                  |   2 +-
+ wenshu_cli/plugins.py                         |  41 +-
+ wenshu_cli/plugins_cmd.py                     | 211 -----
+ wenshu_cli/subcommands/dashboard.py           |  65 +-
+ wenshu_cli/web_server.py                      |  59 +-
+ 23 files changed, 413 insertions(+), 2795 deletions(-)
+ delete mode 100644 plugins/dashboard_auth/basic/__init__.py
+ delete mode 100644 plugins/dashboard_auth/basic/plugin.yaml
+ delete mode 100644 plugins/dashboard_auth/drain/__init__.py
+ delete mode 100644 plugins/dashboard_auth/drain/plugin.yaml
+ delete mode 100644 plugins/dashboard_auth/nous/__init__.py
+ delete mode 100644 plugins/dashboard_auth/nous/plugin.yaml
+ delete mode 100644 plugins/dashboard_auth/self_hosted/__init__.py
+ delete mode 100644 plugins/dashboard_auth/self_hosted/plugin.yaml
+ create mode 100644 wenshu-pour/architecture/R72-post-trim-integrity-audit-2026-08-30.md
+ create mode 100644 wenshu-pour/architecture/R73-install-scripts-i18n-audit-2026-08-30.md
+ create mode 100644 wenshu-pour/architecture/R74-r72-critical-import-fix-2026-08-30.md
+
+diff --git a/apps/desktop/src/components/assistant-ui/embeds/providers/detect.test.ts b/apps/desktop/src/components/assistant-ui/embeds/providers/detect.test.ts
+index 2bbbeec23..035d15d85 100644
+--- a/apps/desktop/src/components/assistant-ui/embeds/providers/detect.test.ts
++++ b/apps/desktop/src/components/assistant-ui/embeds/providers/detect.test.ts
+@@ -67,16 +67,6 @@ describe('detectEmbed — other frame providers', () => {
+     )
+   })
+ 
+-  it('resolves Spotify tracks, collections, and locale-prefixed urls', () => {
+-    expect(frame('https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT').embedUrl).toBe(
+-      'https://open.spotify.com/embed/track/4cOdK2wGLETKBW3PvgPWqT'
+-    )
+-    expect(frame('https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M').provider).toBe('spotify')
+-    expect(frame('https://open.spotify.com/intl-de/album/1DFixLWuPkv3KT3TnV35m3').id).toBe(
+-      'spotify:album:1DFixLWuPkv3KT3TnV35m3'
+-    )
+-    expect(detectEmbed('https://open.spotify.com/track/')).toBeNull()
+-  })
+ })
+ 
+ describe('detectEmbed — maps', () => {
+diff --git a/apps/desktop/src/components/assistant-ui/embeds/providers/index.ts b/apps/desktop/src/components/assistant-ui/embeds/providers/index.ts
+index b45983ada..49a5bc435 100644
+--- a/apps/desktop/src/components/assistant-ui/embeds/providers/index.ts
++++ b/apps/desktop/src/components/assistant-ui/embeds/providers/index.ts
+@@ -1,7 +1,6 @@
+ import { instagram } from './instagram'
+ import { maps } from './maps'
+ import { pinterest } from './pinterest'
+-import { spotify } from './spotify'
+ import { tiktok } from './tiktok'
+ import { twitter } from './twitter'
+ import type { EmbedDescriptor, EmbedMatcher } from './types'
+@@ -11,7 +10,7 @@ import { youtube } from './youtube'
+ export type { EmbedDescriptor, EmbedProvider, EmbedRenderer, FrameEmbed, TweetEmbed } from './types'
+ 
+ // All provider hosts are disjoint, so order is irrelevant — first match wins.
+-const MATCHERS: EmbedMatcher[] = [youtube, vimeo, instagram, pinterest, tiktok, twitter, spotify, maps]
++const MATCHERS: EmbedMatcher[] = [youtube, vimeo, instagram, pinterest, tiktok, twitter, maps]
+ 
+ function parseUrl(raw: string): URL | null {
+   try {
+diff --git a/apps/desktop/src/components/assistant-ui/embeds/providers/types.ts b/apps/desktop/src/components/assistant-ui/embeds/providers/types.ts
+index e9f4ce381..e84342798 100644
+--- a/apps/desktop/src/components/assistant-ui/embeds/providers/types.ts
++++ b/apps/desktop/src/components/assistant-ui/embeds/providers/types.ts
+@@ -7,7 +7,6 @@ export type EmbedProvider =
+   | 'instagram'
+   | 'openstreetmap'
+   | 'pinterest'
+-  | 'spotify'
+   | 'tiktok'
+   | 'twitter'
+   | 'vimeo'
+@@ -19,7 +18,7 @@ export type EmbedRenderer = 'frame' | 'tweet'
+ interface EmbedLayout {
+   /** Frame aspect ratio (width / height). For video/maps. */
+   aspectRatio?: number
+-  /** Fixed pixel height for non-ratio embeds (Instagram, Pinterest, Spotify). */
++  /** Fixed pixel height for non-ratio embeds (Instagram, Pinterest). */
+   height?: number
+   /** Max rendered width in px; falls back to the conversation column. */
+   maxWidth?: number
+diff --git a/apps/desktop/src/components/assistant-ui/embeds/url-embed.tsx b/apps/desktop/src/components/assistant-ui/embeds/url-embed.tsx
+index 1560c3f11..06cd281c5 100644
+--- a/apps/desktop/src/components/assistant-ui/embeds/url-embed.tsx
++++ b/apps/desktop/src/components/assistant-ui/embeds/url-embed.tsx
+@@ -14,7 +14,6 @@ import { RichBoundary } from './rich-boundary'
+ 
+ const FrameEmbedRenderer = lazy(() => import('./frame-embed'))
+ const SocialEmbedRenderer = lazy(() => import('./social-embed'))
+-const SpotifyEmbedRenderer = lazy(() => import('./spotify-embed'))
+ const YouTubeEmbedRenderer = lazy(() => import('./youtube-embed'))
+ 
+ function intrinsicHeight(descriptor: EmbedDescriptor): number {
+@@ -36,10 +35,6 @@ function LazyRenderer({ descriptor }: { descriptor: EmbedDescriptor }) {
+     return <YouTubeEmbedRenderer descriptor={descriptor} />
+   }
+ 
+-  if (descriptor.provider === 'spotify') {
+-    return <SpotifyEmbedRenderer descriptor={descriptor} />
+-  }
+-
+   return <FrameEmbedRenderer descriptor={descriptor} />
+ }
+ 
+diff --git a/plugins/dashboard_auth/basic/__init__.py b/plugins/dashboard_auth/basic/__init__.py
+deleted file mode 100644
+index 02916203b..000000000
+--- a/plugins/dashboard_auth/basic/__init__.py
++++ /dev/null
+@@ -1,491 +0,0 @@
+-"""BasicAuthProvider — username/password dashboard auth (no OAuth IDP).
+-
+-A self-hosted "just put a password on my dashboard" provider. It plugs
+-into the same ``DashboardAuthProvider`` framework as the Nous OAuth
+-provider, but authenticates with a username + password instead of an
+-OAuth redirect: it sets ``supports_password = True`` and implements
+-``complete_password_login``. The login page renders a credential form for
+-it; everything downstream of login (session cookies, verify, refresh,
+-ws-tickets, logout) is identical to the OAuth path because a password
+-session is just a :class:`Session` with provider-minted opaque tokens.
+-
+-This provider has **no external IDP and no database**. Credentials are
+-configured up front; sessions are stateless HMAC-signed tokens this
+-provider mints and verifies itself. That keeps it zero-infrastructure —
+-appropriate for a single-box self-hosted dashboard.
+-
+-Configuration surfaces (env wins over config.yaml when set non-empty),
+-mirroring the Nous provider's precedence convention:
+-
+-  ``config.yaml`` — canonical surface::
+-
+-      dashboard:
+-        basic_auth:
+-          username: admin               # required
+-          # Provide EITHER a precomputed scrypt hash (preferred — no
+-          # plaintext at rest) ...
+-          password_hash: "scrypt$..."   # see hash_password()
+-          # ... OR a plaintext password (hashed in-memory at load).
+-          password: "s3cret"
+-          secret: "<32+ random bytes, base64 or hex>"  # optional; token-signing key
+-          session_ttl_seconds: 43200    # optional; access-token lifetime (default 12h)
+-
+-  Environment overrides::
+-
+-      WENSHU_DASHBOARD_BASIC_AUTH_USERNAME
+-      WENSHU_DASHBOARD_BASIC_AUTH_PASSWORD_HASH   # preferred
+-      WENSHU_DASHBOARD_BASIC_AUTH_PASSWORD        # plaintext fallback
+-      WENSHU_DASHBOARD_BASIC_AUTH_SECRET
+-      WENSHU_DASHBOARD_BASIC_AUTH_TTL_SECONDS
+-
+-If ``secret`` is not configured, a random per-process secret is generated
+-at startup. That's fine for a single-process dashboard, but means all
+-sessions are invalidated on restart and sessions don't survive across
+-multiple worker processes — set an explicit ``secret`` for stable
+-multi-worker / restart-surviving sessions.
+-
+-Password hashing uses stdlib :func:`hashlib.scrypt` (memory-hard, no
+-third-party dependency). ``complete_password_login`` runs a constant-time
+-comparison and always performs a hash even for an unknown username, so
+-the endpoint is not a username-enumeration timing oracle.
+-
+-Skip reasons:
+-  Like the Nous provider, this exposes a module-level ``LAST_SKIP_REASON``
+-  the gate's fail-closed branch can surface when the plugin loads but
+-  declines to register (no username/password configured).
+-"""
+-
+-from __future__ import annotations
+-
+-import base64
+-import hashlib
+-import hmac
+-import json
+-import logging
+-import os
+-import secrets
+-import time
+-from typing import Any, Optional
+-
+-from wenshu_cli.dashboard_auth import (
+-    DashboardAuthProvider,
+-    InvalidCredentialsError,
+-    LoginStart,
+-    RefreshExpiredError,
+-    Session,
+-)
+-
+-logger = logging.getLogger(__name__)
+-
+-
+-# ---------------------------------------------------------------------------
+-# Defaults
+-# ---------------------------------------------------------------------------
+-
+-# Access-token lifetime. The middleware transparently refreshes via the
+-# refresh token (30-day) when the access token lapses, so this controls
+-# how often a refresh round trip happens, not how long the user stays
+-# logged in.
+-_DEFAULT_TTL_SECONDS = 12 * 60 * 60  # 12h
+-_REFRESH_TTL_SECONDS = 30 * 24 * 60 * 60  # 30d
+-
+-# scrypt parameters (RFC 7914 / stdlib hashlib.scrypt). n must be a power
+-# of two; these are the widely-recommended interactive-login parameters
+-# (~16 MiB, a few ms on commodity hardware).
+-_SCRYPT_N = 2**14
+-_SCRYPT_R = 8
+-_SCRYPT_P = 1
+-_SCRYPT_DKLEN = 32
+-_SCRYPT_SALT_BYTES = 16
+-
+-# Length of the HMAC-SHA256 digest appended as a fixed-length suffix to
+-# signed tokens (no separator — binary HMAC bytes can't be confused with
+-# a delimiter).
+-_SIG_LEN = hashlib.sha256().digest_size
+-
+-
+-LAST_SKIP_REASON: str = ""
+-
+-
+-# ---------------------------------------------------------------------------
+-# Password hashing (stdlib scrypt)
+-# ---------------------------------------------------------------------------
+-
+-
+-def hash_password(password: str) -> str:
+-    """Return a ``scrypt$n$r$p$<salt_b64>$<dk_b64>`` hash string.
+-
+-    Use this to precompute ``password_hash`` for config.yaml so plaintext
+-    never sits at rest. Exposed as a module function so operators can run
+-    ``python -c "from plugins.dashboard_auth.basic import hash_password;
+-    print(hash_password('pw'))"``.
+-    """
+-    salt = secrets.token_bytes(_SCRYPT_SALT_BYTES)
+-    dk = hashlib.scrypt(
+-        password.encode("utf-8"),
+-        salt=salt,
+-        n=_SCRYPT_N,
+-        r=_SCRYPT_R,
+-        p=_SCRYPT_P,
+-        dklen=_SCRYPT_DKLEN,
+-        maxmem=0,
+-    )
+-    return (
+-        f"scrypt${_SCRYPT_N}${_SCRYPT_R}${_SCRYPT_P}$"
+-        f"{base64.b64encode(salt).decode()}${base64.b64encode(dk).decode()}"
+-    )
+-
+-
+-def _verify_password(password: str, encoded: str) -> bool:
+-    """Constant-time scrypt verify. False on any malformed hash string."""
+-    try:
+-        scheme, n_s, r_s, p_s, salt_b64, dk_b64 = encoded.split("$")
+-        if scheme != "scrypt":
+-            return False
+-        n, r, p = int(n_s), int(r_s), int(p_s)
+-        salt = base64.b64decode(salt_b64)
+-        expected = base64.b64decode(dk_b64)
+-    except (ValueError, TypeError):
+-        return False
+-    try:
+-        actual = hashlib.scrypt(
+-            password.encode("utf-8"),
+-            salt=salt,
+-            n=n,
+-            r=r,
+-            p=p,
+-            dklen=len(expected),
+-            maxmem=0,
+-        )
+-    except (ValueError, MemoryError):
+-        return False
+-    return hmac.compare_digest(actual, expected)
+-
+-
+-# A fixed dummy hash used to spend ~equal time when the username is
+-# unknown, so an attacker can't distinguish "no such user" (fast) from
+-# "wrong password" (slow scrypt) by timing. Computed once at import.
+-_DUMMY_HASH = hash_password("dummy-password-for-constant-time-verify")
+-
+-
+-# ---------------------------------------------------------------------------
+-# Token signing (stateless HMAC-signed blobs)
+-# ---------------------------------------------------------------------------
+-
+-
+-def _sign(payload: dict, secret: bytes) -> str:
+-    raw = json.dumps(payload, separators=(",", ":")).encode()
+-    sig = hmac.new(secret, raw, hashlib.sha256).digest()
+-    return base64.urlsafe_b64encode(raw + sig).decode()
+-
+-
+-def _unsign(token: str, secret: bytes) -> Optional[dict]:
+-    try:
+-        blob = base64.urlsafe_b64decode(token.encode())
+-        if len(blob) <= _SIG_LEN:
+-            return None
+-        raw, sig = blob[:-_SIG_LEN], blob[-_SIG_LEN:]
+-        expected = hmac.new(secret, raw, hashlib.sha256).digest()
+-        if not hmac.compare_digest(sig, expected):
+-            return None
+-        return json.loads(raw)
+-    except Exception:
+-        return None
+-
+-
+-# ---------------------------------------------------------------------------
+-# Provider
+-# ---------------------------------------------------------------------------
+-
+-
+-class BasicAuthProvider(DashboardAuthProvider):
+-    """Username/password provider with stateless HMAC-signed sessions."""
+-
+-    name = "basic"
+-    display_name = "Username & Password"
+-    supports_password = True
+-
+-    def __init__(
+-        self,
+-        *,
+-        username: str,
+-        password_hash: str,
+-        secret: bytes,
+-        ttl_seconds: int = _DEFAULT_TTL_SECONDS,
+-    ) -> None:
+-        if not username:
+-            raise ValueError("username must be non-empty")
+-        if not password_hash:
+-            raise ValueError("password_hash must be non-empty")
+-        if len(secret) < 16:
+-            raise ValueError("secret must be at least 16 bytes")
+-        self._username = username
+-        self._password_hash = password_hash
+-        self._secret = secret
+-        self._ttl = max(60, int(ttl_seconds))
+-
+-    # ---- OAuth methods: not used (pure-password provider) ------------------
+-
+-    def start_login(self, *, redirect_uri: str) -> LoginStart:
+-        raise NotImplementedError(
+-            "BasicAuthProvider is password-only; there is no OAuth redirect "
+-            "flow. The login page POSTs to /auth/password-login instead."
+-        )
+-
+-    def complete_login(
+-        self, *, code: str, state: str, code_verifier: str, redirect_uri: str
+-    ) -> Session:
+-        raise NotImplementedError(
+-            "BasicAuthProvider is password-only; use complete_password_login."
+-        )
+-
+-    # ---- password login ----------------------------------------------------
+-
+-    def complete_password_login(
+-        self, *, username: str, password: str
+-    ) -> Session:
+-        # Constant-time-ish: always run a scrypt verify (against the real
+-        # hash if the username matches, else a dummy hash) so an unknown
+-        # username and a wrong password take comparable time. Compare the
+-        # username with compare_digest too, to avoid a length/byte timing
+-        # leak on the username itself.
+-        username_ok = hmac.compare_digest(
+-            username.encode("utf-8"), self._username.encode("utf-8")
+-        )
+-        target_hash = self._password_hash if username_ok else _DUMMY_HASH
+-        password_ok = _verify_password(password, target_hash)
+-        if not (username_ok and password_ok):
+-            raise InvalidCredentialsError("invalid username or password")
+-        return self._mint_session(self._username)
+-
+-    # ---- session lifecycle -------------------------------------------------
+-
+-    def verify_session(self, *, access_token: str) -> Optional[Session]:
+-        payload = _unsign(access_token, self._secret)
+-        if (
+-            payload is None
+-            or payload.get("kind") != "access"
+-            or payload.get("exp", 0) <= int(time.time())
+-        ):
+-            return None
+-        return self._session_from_payload(access_token, "", payload)
+-
+-    def refresh_session(self, *, refresh_token: str) -> Session:
+-        if not refresh_token:
+-            raise RefreshExpiredError("no refresh token present in session")
+-        payload = _unsign(refresh_token, self._secret)
+-        if (
+-            payload is None
+-            or payload.get("kind") != "refresh"
+-            or payload.get("exp", 0) <= int(time.time())
+-        ):
+-            raise RefreshExpiredError("refresh token expired or invalid")
+-        return self._mint_session(str(payload.get("sub", self._username)))
+-
+-    def revoke_session(self, *, refresh_token: str) -> None:
+-        # Stateless tokens — nothing to revoke server-side. The session
+-        # expires within its TTL. Best-effort no-op, must not raise.
+-        _ = refresh_token
+-        return None
+-
+-    # ---- internals ---------------------------------------------------------
+-
+-    def _mint_session(self, user_id: str) -> Session:
+-        now = int(time.time())
+-        exp = now + self._ttl
+-        access_token = _sign(
+-            {"sub": user_id, "kind": "access", "exp": exp}, self._secret
+-        )
+-        refresh_token = _sign(
+-            {"sub": user_id, "kind": "refresh", "exp": now + _REFRESH_TTL_SECONDS},
+-            self._secret,
+-        )
+-        return Session(
+-            user_id=user_id,
+-            email="",
+-            display_name=user_id,
+-            org_id="",
+-            provider=self.name,
+-            expires_at=exp,
+-            access_token=access_token,
+-            refresh_token=refresh_token,
+-        )
+-
+-    def _session_from_payload(
+-        self, access_token: str, refresh_token: str, payload: dict
+-    ) -> Session:
+-        user_id = str(payload.get("sub", ""))
+-        return Session(
+-            user_id=user_id,
+-            email="",
+-            display_name=user_id,
+-            org_id="",
+-            provider=self.name,
+-            expires_at=int(payload["exp"]),
+-            access_token=access_token,
+-            refresh_token=refresh_token,
+-        )
+-
+-
+-# ---------------------------------------------------------------------------
+-# Plugin entry point
+-# ---------------------------------------------------------------------------
+-
+-
+-def _load_config_basic_auth_section() -> dict:
+-    """Return ``dashboard.basic_auth`` from config.yaml, or ``{}``.
+-
+-    Robust to load_config() raising, the keys being absent, or the value
+-    not being a dict — every shape falls through to ``{}``.
+-    """
+-    try:
+-        from wenshu_cli.config import cfg_get, load_config
+-
+-        cfg = load_config()
+-    except Exception as exc:  # noqa: BLE001 — broad catch is intentional
+-        logger.debug(
+-            "dashboard-auth-basic: load_config() raised %s; "
+-            "falling back to env-only configuration",
+-            exc,
+-        )
+-        return {}
+-    section = cfg_get(cfg, "dashboard", "basic_auth", default=None)
+-    return section if isinstance(section, dict) else {}
+-
+-
+-def _resolve(env_name: str, cfg_section: dict, cfg_key: str) -> str:
+-    """Env-wins-over-config resolution; empty env treated as unset."""
+-    env = os.environ.get(env_name, "").strip()
+-    if env:
+-        return env
+-    return str(cfg_section.get(cfg_key, "") or "").strip()
+-
+-
+-def _resolve_secret(cfg_section: dict) -> bytes:
+-    """Resolve the token-signing secret.
+-
+-    Accepts base64 or hex or raw text from config/env. When unset,
+-    generates a random per-process secret (sessions then don't survive a
+-    restart or span multiple workers — logged at INFO).
+-    """
+-    raw = _resolve(
+-        "WENSHU_DASHBOARD_BASIC_AUTH_SECRET", cfg_section, "secret"
+-    )
+-    if not raw:
+-        logger.info(
+-            "dashboard-auth-basic: no 'secret' configured; generating a "
+-            "random per-process signing key. Sessions will not survive a "
+-            "restart or span multiple workers. Set dashboard.basic_auth."
+-            "secret (or WENSHU_DASHBOARD_BASIC_AUTH_SECRET) for stable "
+-            "sessions."
+-        )
+-        return secrets.token_bytes(32)
+-    # Try base64, then hex, then fall back to the raw UTF-8 bytes.
+-    for decoder in (base64.b64decode, bytes.fromhex):
+-        try:
+-            decoded = decoder(raw)
+-            if len(decoded) >= 16:
+-                return decoded
+-        except (ValueError, TypeError):
+-            pass
+-    return raw.encode("utf-8")
+-
+-
+-def register(ctx) -> None:
+-    """Plugin entry — registers BasicAuthProvider when credentials exist.
+-
+-    Loopback / ``--insecure`` operators and anyone using the OAuth
+-    provider leave ``dashboard.basic_auth`` unset, so this plugin is a
+-    no-op for them. When username + (password or password_hash) are
+-    configured, it registers a password provider that the login page
+-    renders as a credential form.
+-    """
+-    global LAST_SKIP_REASON
+-    LAST_SKIP_REASON = ""
+-
+-    section = _load_config_basic_auth_section()
+-    username = _resolve(
+-        "WENSHU_DASHBOARD_BASIC_AUTH_USERNAME", section, "username"
+-    )
+-    password_hash = _resolve(
+-        "WENSHU_DASHBOARD_BASIC_AUTH_PASSWORD_HASH", section, "password_hash"
+-    )
+-    plaintext = _resolve(
+-        "WENSHU_DASHBOARD_BASIC_AUTH_PASSWORD", section, "password"
+-    )
+-    ttl_raw = _resolve(
+-        "WENSHU_DASHBOARD_BASIC_AUTH_TTL_SECONDS", section, "session_ttl_seconds"
+-    )
+-
+-    if not username:
+-        LAST_SKIP_REASON = (
+-            "dashboard.basic_auth.username is not set (and "
+-            "WENSHU_DASHBOARD_BASIC_AUTH_USERNAME is empty). Set a username "
+-            "and a password (or password_hash) under dashboard.basic_auth in "
+-            "config.yaml to enable username/password dashboard login, or use "
+-            "the OAuth provider, or pass --insecure to skip the auth gate."
+-        )
+-        logger.debug("dashboard-auth-basic: %s", LAST_SKIP_REASON)
+-        return
+-
+-    if not password_hash and not plaintext:
+-        LAST_SKIP_REASON = (
+-            "dashboard.basic_auth.username is set but neither password_hash "
+-            "nor password is configured. Provide one of them (password_hash "
+-            "is preferred — compute it with "
+-            "plugins.dashboard_auth.basic.hash_password)."
+-        )
+-        logger.warning("dashboard-auth-basic: %s", LAST_SKIP_REASON)
+-        return
+-
+-    # Precedence (env-wins convention): a password supplied via the
+-    # WENSHU_DASHBOARD_BASIC_AUTH_PASSWORD env var overrides a config.yaml
+-    # password_hash, so an operator can rotate the password by setting an
+-    # env var without editing config. A password_hash (precomputed) wins
+-    # over a config-only plaintext password at the same tier — it's the
+-    # preferred at-rest form. Concretely:
+-    #   * env password set        → hash it (overrides any config hash)
+-    #   * else config password_hash set → use it
+-    #   * else config plaintext password → hash it in-memory
+-    plaintext_from_env = os.environ.get(
+-        "WENSHU_DASHBOARD_BASIC_AUTH_PASSWORD", ""
+-    ).strip()
+-    if plaintext_from_env:
+-        password_hash = hash_password(plaintext_from_env)
+-        logger.info(
+-            "dashboard-auth-basic: hashed env-supplied password in-memory "
+-            "(overrides any config password_hash)."
+-        )
+-    elif not password_hash:
+-        # config-only plaintext password.
+-        password_hash = hash_password(plaintext)
+-        logger.info(
+-            "dashboard-auth-basic: hashed plaintext password in-memory. "
+-            "For production, precompute dashboard.basic_auth.password_hash "
+-            "and remove the plaintext password from config."
+-        )
+-
+-    secret = _resolve_secret(section)
+-
+-    try:
+-        ttl = int(ttl_raw) if ttl_raw else _DEFAULT_TTL_SECONDS
+-    except ValueError:
+-        ttl = _DEFAULT_TTL_SECONDS
+-
+-    try:
+-        provider = BasicAuthProvider(
+-            username=username,
+-            password_hash=password_hash,
+-            secret=secret,
+-            ttl_seconds=ttl,
+-        )
+-    except ValueError as exc:
+-        LAST_SKIP_REASON = f"BasicAuthProvider construction failed: {exc}"
+-        logger.warning("dashboard-auth-basic: %s", LAST_SKIP_REASON)
+-        return
+-
+-    ctx.register_dashboard_auth_provider(provider)
+-    logger.info(
+-        "dashboard-auth-basic: registered password provider (username=%s)",
+-        username,
+-    )
+diff --git a/plugins/dashboard_auth/basic/plugin.yaml b/plugins/dashboard_auth/basic/plugin.yaml
+deleted file mode 100644
+index ed00eb303..000000000
+--- a/plugins/dashboard_auth/basic/plugin.yaml
++++ /dev/null
+@@ -1,7 +0,0 @@
+-name: basic
+-version: 1.0.0
+-description: "Dashboard auth provider — username/password (no OAuth IDP). A self-hosted 'just put a password on my dashboard' provider. Activates when dashboard.basic_auth.username plus a password (or password_hash) are configured via config.yaml (canonical surface) or the WENSHU_DASHBOARD_BASIC_AUTH_* env vars. Sessions are stateless HMAC-signed tokens minted by the provider; password hashing uses stdlib scrypt (no third-party dependency). Set dashboard.basic_auth.secret for restart-surviving / multi-worker sessions."
+-author: NousResearch
+-kind: backend
+-requires_env:
+-  - WENSHU_DASHBOARD_BASIC_AUTH_USERNAME
+diff --git a/plugins/dashboard_auth/drain/__init__.py b/plugins/dashboard_auth/drain/__init__.py
+deleted file mode 100644
+index 6d48991d4..000000000
+--- a/plugins/dashboard_auth/drain/__init__.py
++++ /dev/null
+@@ -1,291 +0,0 @@
+-"""DrainSecretProvider — shared-bearer-secret auth for the drain-control endpoint.
+-
+-Task 2.0b of the safe-shutdown plan, and the FIRST consumer of the generic
+-non-interactive token-auth capability added in Task 2.0a
+-(``supports_token`` / ``verify_token`` on the ``DashboardAuthProvider`` ABC +
+-the route-agnostic ``token_auth`` middleware seam).
+-
+-What it is
+-----------
+-A service-to-service auth provider. ``nous-account-service`` (NAS) provisions a
+-**per-agent unique** shared secret into each deployed agent's environment; this
+-provider verifies an inbound ``Authorization`` bearer token against that secret
+-with a constant-time compare and, on a match, vouches for the caller as the
+-``drain-control`` principal. It is NOT an interactive identity provider — there
+-is no login, cookie, session, or refresh. It implements ONLY the token
+-capability (``supports_token = True`` + ``verify_token``); the five interactive
+-ABC methods raise ``NotImplementedError``.
+-
+-Why a plugin (not an ad-hoc header check on the drain route)
+-------------------------------------------------------------
+-Decisions.md Q-A: the drain credential MUST be a real auth plugin in the
+-dashboard auth framework, not a bolt-on. Q-C: the framework widening that
+-hosts it is generic (Task 2.0a) and this plugin is merely its first consumer.
+-
+-Security properties (decisions.md Q-A)
+---------------------------------------
+-* **Per-agent unique secret** — each agent gets a distinct secret; a leak's
+-  blast radius is one agent.
+-* **Entropy gate at registration** — a weak/short/low-entropy secret fails
+-  CLOSED at load (the plugin declines to register and records a skip reason);
+-  it is never silently accepted. Bar: >= 256 bits of entropy / >= 43
+-  url-safe-base64 chars, and the value must not be obviously structured
+-  (all-one-character, too few distinct characters).
+-* **Constant-time compare** — ``hmac.compare_digest`` on the request path, so
+-  the endpoint is not a timing oracle.
+-
+-Configuration
+--------------
+-The secret is a CREDENTIAL, so it is carried via an env var (the ``.env``-is-
+-for-secrets-only rule), provisioned by NAS at deploy time (Phase 3):
+-
+-    WENSHU_DASHBOARD_DRAIN_SECRET   # the per-agent shared secret (>=43 url-safe-b64 chars)
+-
+-Behavioural knobs live in config.yaml (canonical surface):
+-
+-    dashboard:
+-      drain_auth:
+-        scope: drain            # capability label attached to the principal
+-        min_secret_chars: 43    # entropy bar (optional; default 43 ~= 256 bits)
+-
+-When ``WENSHU_DASHBOARD_DRAIN_SECRET`` is unset, the plugin is a no-op (records
+-a skip reason) — agents that don't want NAS-driven drain just don't set it.
+-"""
+-from __future__ import annotations
+-
+-import hmac
+-import logging
+-import math
+-import os
+-from collections import Counter
+-from typing import Optional
+-
+-from wenshu_cli.dashboard_auth import (
+-    DashboardAuthProvider,
+-    LoginStart,
+-    Session,
+-    TokenPrincipal,
+-)
+-
+-logger = logging.getLogger(__name__)
+-
+-# Default entropy bar: 43 url-safe-base64 chars ~= 256 bits. token_urlsafe(32)
+-# produces 43 chars, so a correctly-provisioned secret clears this exactly.
+-_DEFAULT_MIN_SECRET_CHARS = 43
+-# A secret must contain at least this many DISTINCT characters — rejects
+-# degenerate values like "aaaa..." that are long but trivially low-entropy.
+-_MIN_DISTINCT_CHARS = 16
+-# Shannon entropy floor (bits) over the secret's characters — a second,
+-# distribution-aware guard on top of the length + distinct-count checks.
+-_MIN_SHANNON_BITS = 128.0
+-
+-# The path the begin/cancel-drain endpoint lives on. Registered as a
+-# token-authable route by ``register()`` so the generic seam guards it. Kept
+-# here (not imported from web_server) to avoid a heavy import at plugin load.
+-DRAIN_ROUTE_PATH = "/api/gateway/drain"
+-
+-LAST_SKIP_REASON: str = ""
+-
+-
+-def _shannon_bits(value: str) -> float:
+-    """Total Shannon entropy (bits) of ``value`` over its character distribution.
+-
+-    H = len * sum(-p_i * log2(p_i)). A long string drawn from a wide alphabet
+-    scores high; a long run of one character scores ~0.
+-    """
+-    if not value:
+-        return 0.0
+-    counts = Counter(value)
+-    n = len(value)
+-    per_char = -sum((c / n) * math.log2(c / n) for c in counts.values())
+-    return per_char * n
+-
+-
+-def assess_secret_strength(
+-    secret: str, *, min_chars: int = _DEFAULT_MIN_SECRET_CHARS
+-) -> Optional[str]:
+-    """Return a rejection reason if ``secret`` is too weak, else ``None``.
+-
+-    Fail-closed entropy gate (decisions.md Q-A). Checks, in order:
+-      * length >= ``min_chars`` (default 43 url-safe-b64 chars ~= 256 bits),
+-      * at least ``_MIN_DISTINCT_CHARS`` distinct characters,
+-      * Shannon entropy >= ``_MIN_SHANNON_BITS`` bits.
+-
+-    A ``None`` return means the secret passes. Any string return is a
+-    human-readable reason the caller logs + records as the skip reason.
+-    """
+-    if not secret:
+-        return "secret is empty"
+-    if len(secret) < min_chars:
+-        return (
+-            f"secret too short: {len(secret)} chars (need >= {min_chars}; "
+-            "use a >=256-bit value, e.g. `python -c \"import secrets; "
+-            "print(secrets.token_urlsafe(32))\"`)"
+-        )
+-    distinct = len(set(secret))
+-    if distinct < _MIN_DISTINCT_CHARS:
+-        return (
+-            f"secret has only {distinct} distinct characters (need >= "
+-            f"{_MIN_DISTINCT_CHARS}); looks structured/low-entropy"
+-        )
+-    bits = _shannon_bits(secret)
+-    if bits < _MIN_SHANNON_BITS:
+-        return (
+-            f"secret entropy too low: {bits:.0f} bits (need >= "
+-            f"{_MIN_SHANNON_BITS:.0f}); looks structured/repeated"
+-        )
+-    return None
+-
+-
+-class DrainSecretProvider(DashboardAuthProvider):
+-    """Non-interactive shared-bearer-secret provider for drain control."""
+-
+-    name = "drain-secret"
+-    display_name = "Drain Control (service credential)"
+-    supports_token = True
+-    supports_session = False
+-
+-    def __init__(self, *, secret: str, scope: str = "drain") -> None:
+-        # Defence in depth: construction also enforces the entropy bar, so a
+-        # caller that bypasses register()'s check still can't build a weak
+-        # provider. register() does the friendly skip-reason path; this raises.
+-        reason = assess_secret_strength(secret)
+-        if reason is not None:
+-            raise ValueError(f"drain secret rejected: {reason}")
+-        self._secret = secret
+-        self._scope = scope or "drain"
+-
+-    # ---- token capability (the only thing this provider implements) --------
+-
+-    def verify_token(self, *, token: str) -> Optional[TokenPrincipal]:
+-        """Constant-time compare against the per-agent shared secret.
+-
+-        Returns a ``drain-control`` principal on an exact match, else ``None``
+-        (the generic seam falls through / fails closed). Uses
+-        ``hmac.compare_digest`` so a wrong token can't be recovered by timing.
+-        """
+-        if not token:
+-            return None
+-        if hmac.compare_digest(token.encode("utf-8"), self._secret.encode("utf-8")):
+-            return TokenPrincipal(
+-                principal="drain-control",
+-                provider=self.name,
+-                scopes=(self._scope,),
+-            )
+-        return None
+-
+-    # ---- interactive methods: unsupported (service credential only) --------
+-
+-    def start_login(self, *, redirect_uri: str) -> LoginStart:
+-        raise NotImplementedError(
+-            "DrainSecretProvider is a non-interactive service credential; "
+-            "there is no login flow."
+-        )
+-
+-    def complete_login(
+-        self, *, code: str, state: str, code_verifier: str, redirect_uri: str
+-    ) -> Session:
+-        raise NotImplementedError(
+-            "DrainSecretProvider is a non-interactive service credential."
+-        )
+-
+-    def verify_session(self, *, access_token: str) -> Optional[Session]:
+-        # Not a cookie-session provider — it never mints a Session, so it can
+-        # never recognise a session cookie. Return None (don't raise) so it
+-        # stacks harmlessly in the cookie-verify loop.
+-        return None
+-
+-    def refresh_session(self, *, refresh_token: str) -> Session:
+-        raise NotImplementedError(
+-            "DrainSecretProvider is a non-interactive service credential."
+-        )
+-
+-    def revoke_session(self, *, refresh_token: str) -> None:
+-        return None
+-
+-
+-# ---------------------------------------------------------------------------
+-# Plugin entry point
+-# ---------------------------------------------------------------------------
+-
+-
+-def _load_config_drain_auth_section() -> dict:
+-    """Return ``dashboard.drain_auth`` from config.yaml, or ``{}``."""
+-    try:
+-        from wenshu_cli.config import cfg_get, load_config
+-
+-        cfg = load_config()
+-    except Exception as exc:  # noqa: BLE001 — broad catch is intentional
+-        logger.debug(
+-            "dashboard-auth-drain: load_config() raised %s; "
+-            "falling back to env-only configuration",
+-            exc,
+-        )
+-        return {}
+-    section = cfg_get(cfg, "dashboard", "drain_auth", default=None)
+-    return section if isinstance(section, dict) else {}
+-
+-
+-def register(ctx) -> None:
+-    """Plugin entry — registers DrainSecretProvider when a strong secret is set.
+-
+-    No-op (records a skip reason) when ``WENSHU_DASHBOARD_DRAIN_SECRET`` is
+-    unset or fails the entropy gate. On success, also registers the
+-    begin/cancel-drain route as token-authable via the generic seam.
+-    """
+-    global LAST_SKIP_REASON
+-    LAST_SKIP_REASON = ""
+-
+-    secret = os.environ.get("WENSHU_DASHBOARD_DRAIN_SECRET", "").strip()
+-    if not secret:
+-        LAST_SKIP_REASON = (
+-            "WENSHU_DASHBOARD_DRAIN_SECRET is not set. Set a per-agent "
+-            ">=256-bit secret (e.g. `python -c \"import secrets; "
+-            "print(secrets.token_urlsafe(32))\"`) to enable NAS-driven drain "
+-            "coordination; leave it unset to disable the drain endpoint."
+-        )
+-        logger.debug("dashboard-auth-drain: %s", LAST_SKIP_REASON)
+-        return
+-
+-    section = _load_config_drain_auth_section()
+-    scope = str(section.get("scope", "drain") or "drain").strip() or "drain"
+-    try:
+-        min_chars = int(section.get("min_secret_chars", _DEFAULT_MIN_SECRET_CHARS))
+-    except (TypeError, ValueError):
+-        min_chars = _DEFAULT_MIN_SECRET_CHARS
+-
+-    reason = assess_secret_strength(secret, min_chars=min_chars)
+-    if reason is not None:
+-        LAST_SKIP_REASON = (
+-            f"WENSHU_DASHBOARD_DRAIN_SECRET rejected — {reason}. "
+-            "The drain endpoint stays disabled (fail-closed)."
+-        )
+-        logger.warning("dashboard-auth-drain: %s", LAST_SKIP_REASON)
+-        return
+-
+-    try:
+-        provider = DrainSecretProvider(secret=secret, scope=scope)
+-    except ValueError as exc:
+-        LAST_SKIP_REASON = f"DrainSecretProvider construction failed: {exc}"
+-        logger.warning("dashboard-auth-drain: %s", LAST_SKIP_REASON)
+-        return
+-
+-    ctx.register_dashboard_auth_provider(provider)
+-
+-    # Opt the begin/cancel-drain endpoint into the generic token-auth seam so
+-    # the dashboard's interactive cookie gate doesn't bounce NAS's bearer call.
+-    try:
+-        from wenshu_cli.dashboard_auth.token_auth import register_token_route
+-
+-        register_token_route(DRAIN_ROUTE_PATH)
+-    except Exception as exc:  # noqa: BLE001 — seam import must not crash plugin load
+-        logger.warning(
+-            "dashboard-auth-drain: could not register token route %s: %s",
+-            DRAIN_ROUTE_PATH, exc,
+-        )
+-
+-    logger.info(
+-        "dashboard-auth-drain: registered drain service-credential provider "
+-        "(scope=%s, route=%s)",
+-        scope, DRAIN_ROUTE_PATH,
+-    )
+diff --git a/plugins/dashboard_auth/drain/plugin.yaml b/plugins/dashboard_auth/drain/plugin.yaml
+deleted file mode 100644
+index 2d5f1a34c..000000000
+--- a/plugins/dashboard_auth/drain/plugin.yaml
++++ /dev/null
+@@ -1,7 +0,0 @@
+-name: drain
+-version: 1.0.0
+-description: "Dashboard auth provider — non-interactive shared-bearer-secret for the gateway drain-control endpoint. The first consumer of the generic token-auth capability (supports_token/verify_token). nous-account-service provisions a per-agent unique secret via WENSHU_DASHBOARD_DRAIN_SECRET; this provider verifies an inbound Authorization bearer token against it with a constant-time compare and registers /api/gateway/drain as token-authable. Fails CLOSED: a weak/short/low-entropy secret (< 256 bits) is rejected at registration and the endpoint stays disabled. No-op when the env var is unset. Behavioural knobs (scope, min_secret_chars) live under dashboard.drain_auth in config.yaml."
+-author: NousResearch
+-kind: backend
+-requires_env:
+-  - WENSHU_DASHBOARD_DRAIN_SECRET
+diff --git a/plugins/dashboard_auth/nous/__init__.py b/plugins/dashboard_auth/nous/__init__.py
+deleted file mode 100644
+index a72000c8b..000000000
+--- a/plugins/dashboard_auth/nous/__init__.py
++++ /dev/null
+@@ -1,667 +0,0 @@
+-"""NousDashboardAuthProvider — Nous Portal OAuth (authorization-code + PKCE).
+-
+-Implements ``nous-account-service/docs/agent-dashboard-oauth-contract.md``
+-(PR #180). The plugin auto-loads (bundled, kind=backend) but only registers
+-its provider when a client_id is configured — either via ``config.yaml`` or
+-via the Portal-injected env var — so loopback / ``--insecure`` operators
+-are unaffected.
+-
+-Configuration surfaces (env wins over config.yaml when set non-empty):
+-
+-  ``config.yaml`` — canonical surface::
+-
+-      dashboard:
+-        oauth:
+-          client_id: agent:{agent_instance_id}   # required
+-          portal_url: https://portal.example     # optional
+-
+-  Environment overrides — used by Fly.io's platform-secret injection so
+-  per-deploy values don't need to bake into ``config.yaml``:
+-
+-      WENSHU_DASHBOARD_OAUTH_CLIENT_ID  — shape ``agent:{agent_instance_id}``
+-      WENSHU_DASHBOARD_PORTAL_URL       — defaults to
+-                                          ``https://portal.nousresearch.com``
+-                                          (production Portal). Override only
+-                                          for staging (``portal.rewbs.uk``)
+-                                          or a custom deployment.
+-
+-Empty env var values are treated as unset so a provisioned-but-not-populated
+-Fly secret can't shadow a valid config.yaml entry.
+-
+-Key contract points encoded here:
+-
+-  - client_id is per-instance (``agent:{instance_id}``); the suffix is also
+-    cross-checked against the token's ``agent_instance_id`` claim as
+-    defense-in-depth.
+-  - scope is ``agent_dashboard:access`` only (no OIDC scopes).
+-  - tokens are RS256 JWTs verified against ``/.well-known/jwks.json``;
+-    JWKS is cached for 5 minutes.
+-  - the dashboard auth-code grant issues a 24h rotating refresh token
+-    (Portal NAS PR #293). ``refresh_session`` posts ``grant_type=refresh_token``
+-    to rotate the access token; ``complete_login`` and ``refresh_session``
+-    both populate ``Session.refresh_token`` with the (rotating) value the
+-    middleware persists back to the HttpOnly cookie. On a dead/expired/
+-    reuse-detected refresh token Portal returns 400 → ``RefreshExpiredError``
+-    → middleware redirects to ``/auth/login``.
+-  - audience claim is the bare ``client_id`` (no ``wenshu-cli:`` prefix).
+-  - tolerant ``oauth_contract_version`` check: missing → warn + proceed;
+-    present and ``!= 1`` → refuse.
+-
+-The cookie payload returned by ``start_login`` stashes the PKCE
+-``code_verifier`` and the OAuth ``state`` parameter for the
+-``/auth/callback`` handler to retrieve. The auth-route layer is the owner
+-of cookie names; this provider just hands back ``{"code_verifier": …,
+-"state": …}`` and the route serializes those into the ``wenshu_session_pkce``
+-cookie.
+-
+-Refresh-token rotation: Portal rotates the refresh token on every
+-successful refresh and runs reuse-detection (replaying a rotated token
+-outside Portal's 60s grace revokes the whole session). The host
+-middleware therefore MUST persist the rotated ``Session.refresh_token``
+-back to the cookie on every refresh.
+-
+-Skip reasons:
+-  The plugin exposes a module-level ``LAST_SKIP_REASON`` that the gate's
+-  fail-closed branch reads to surface a useful operator error message
+-  ("Set WENSHU_DASHBOARD_OAUTH_CLIENT_ID …") instead of the bare "no
+-  providers registered" the gate would otherwise emit.
+-"""
+-
+-from __future__ import annotations
+-
+-import base64
+-import hashlib
+-import logging
+-import os
+-import secrets
+-import urllib.parse
+-from typing import Any, Dict, Optional
+-
+-import httpx
+-
+-from wenshu_cli.dashboard_auth import (
+-    DashboardAuthProvider,
+-    InvalidCodeError,
+-    LoginStart,
+-    ProviderError,
+-    RefreshExpiredError,
+-    Session,
+-)
+-
+-logger = logging.getLogger(__name__)
+-
+-
+-# ---------------------------------------------------------------------------
+-# Defaults
+-# ---------------------------------------------------------------------------
+-
+-# Production Portal URL. Override via WENSHU_DASHBOARD_PORTAL_URL for
+-# staging (portal.rewbs.uk) or a custom deployment. Contract docs name
+-# this as the production issuer.
+-_DEFAULT_PORTAL_URL = "https://portal.nousresearch.com"
+-
+-
+-# ---------------------------------------------------------------------------
+-# Skip-reason channel for operator-friendly error messages
+-# ---------------------------------------------------------------------------
+-#
+-# When the plugin loads but refuses to register (missing / malformed
+-# env vars), the auth gate downstream just sees "zero providers" and
+-# emits a generic "install a provider" error. That's misleading for the
+-# common case where the provider IS installed but mis-configured. The
+-# plugin writes the *specific* reason to this module-level slot; the
+-# gate reads it back when building its fail-closed SystemExit message.
+-#
+-# Cleared on every register() call so repeated dashboard starts in the
+-# same process (tests, hot-reload) don't leak stale reasons.
+-
+-LAST_SKIP_REASON: str = ""
+-
+-
+-# ---------------------------------------------------------------------------
+-# Contract constants
+-# ---------------------------------------------------------------------------
+-
+-# Contract C3: scope name for the dashboard flow.
+-_SCOPE = "agent_dashboard:access"
+-
+-# Contract C11: emitted claim should equal 1; tolerant (warn) if missing.
+-_EXPECTED_CONTRACT_VERSION = 1
+-
+-# Contract C7: JWKS Cache-Control max-age=300.
+-_JWKS_CACHE_SECONDS = 300
+-
+-# httpx timeout for the token endpoint POST.
+-_TOKEN_ENDPOINT_TIMEOUT_SEC = 10.0
+-
+-
+-# ---------------------------------------------------------------------------
+-# Helpers
+-# ---------------------------------------------------------------------------
+-
+-
+-def _b64url_no_pad(raw: bytes) -> str:
+-    """Base64url-encode without ``=`` padding (RFC 7636 §4)."""
+-    return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
+-
+-
+-# ---------------------------------------------------------------------------
+-# Provider
+-# ---------------------------------------------------------------------------
+-
+-
+-class NousDashboardAuthProvider(DashboardAuthProvider):
+-    """Nous Portal OAuth via authorization-code + PKCE (S256)."""
+-
+-    name = "nous"
+-    display_name = "Nous Research"
+-
+-    def __init__(self, *, client_id: str, portal_url: str) -> None:
+-        if not client_id.startswith("agent:"):
+-            # Defense-in-depth. The plugin entry point already filters, but
+-            # the provider should never be constructible with a malformed id.
+-            raise ValueError(
+-                "client_id must match contract shape 'agent:{instance_id}', "
+-                f"got {client_id!r}"
+-            )
+-        self._client_id = client_id
+-        self._agent_instance_id = client_id[len("agent:") :]
+-        self._portal_url = portal_url.rstrip("/")
+-        self._jwks_url = f"{self._portal_url}/.well-known/jwks.json"
+-        self._authorize_url = f"{self._portal_url}/oauth/authorize"
+-        self._token_url = f"{self._portal_url}/api/oauth/token"
+-        # PyJWKClient is lazily imported so plugin discovery doesn't pay the
+-        # crypto-import cost when the provider isn't activated.
+-        self._jwks_client: Any = None
+-
+-    # ---- public API (DashboardAuthProvider) -------------------------------
+-
+-    def start_login(self, *, redirect_uri: str) -> LoginStart:
+-        self._validate_redirect_uri(redirect_uri)
+-
+-        code_verifier = _b64url_no_pad(secrets.token_bytes(64))  # ~86 chars
+-        code_challenge = _b64url_no_pad(
+-            hashlib.sha256(code_verifier.encode("ascii")).digest()
+-        )
+-        state = _b64url_no_pad(secrets.token_bytes(32))
+-
+-        params = {
+-            "response_type": "code",
+-            "client_id": self._client_id,
+-            "redirect_uri": redirect_uri,
+-            "scope": _SCOPE,
+-            "state": state,
+-            "code_challenge": code_challenge,
+-            "code_challenge_method": "S256",
+-        }
+-        redirect_url = f"{self._authorize_url}?{urllib.parse.urlencode(params)}"
+-        # The auth-route layer expects ``cookie_payload[\"wenshu_session_pkce\"]``
+-        # as a single semicolon-delimited string of ``key=value`` segments,
+-        # matching the stub provider's shape. The route handler prepends
+-        # ``provider=`` so the callback knows which plugin to dispatch to.
+-        cookie_payload = {
+-            "wenshu_session_pkce": f"state={state};verifier={code_verifier}",
+-        }
+-        return LoginStart(redirect_url=redirect_url, cookie_payload=cookie_payload)
+-
+-    def complete_login(
+-        self,
+-        *,
+-        code: str,
+-        state: str,
+-        code_verifier: str,
+-        redirect_uri: str,
+-    ) -> Session:
+-        # ``state`` is verified by the auth-route layer before this call
+-        # (it checks the cookie-stashed state matches the query-param state);
+-        # we just receive it for symmetry with the protocol. Nous Portal
+-        # doesn't re-check state at the token endpoint, so we ignore it here.
+-        _ = state
+-
+-        try:
+-            response = httpx.post(
+-                self._token_url,
+-                data={
+-                    "grant_type": "authorization_code",
+-                    "code": code,
+-                    "redirect_uri": redirect_uri,
+-                    "client_id": self._client_id,
+-                    "code_verifier": code_verifier,
+-                },
+-                headers={"Accept": "application/json"},
+-                timeout=_TOKEN_ENDPOINT_TIMEOUT_SEC,
+-            )
+-        except httpx.RequestError as exc:
+-            raise ProviderError(f"Portal token endpoint unreachable: {exc}") from exc
+-
+-        # The dashboard auth-code grant now issues a rotating refresh token
+-        # (24h session, reuse-detected) — Portal NAS PR #293. A 400 here means
+-        # the code/PKCE/redirect_uri failed, surfaced as InvalidCodeError.
+-        return self._token_response_to_session(
+-            response, bad_request_exc=InvalidCodeError
+-        )
+-
+-    def refresh_session(self, *, refresh_token: str) -> Session:
+-        """Rotate the access token using the refresh token.
+-
+-        Posts ``grant_type=refresh_token`` to Portal's token endpoint. The
+-        refresh token is sent in the ``X-Refresh-Token`` header (not the body)
+-        so it never lands in Portal's request-body access logs — mirroring the
+-        device-flow CLI convention; Portal reconciles header vs. body and
+-        rejects conflicts.
+-
+-        Portal rotates the refresh token on every successful refresh, so the
+-        returned ``Session.refresh_token`` is a NEW value the caller MUST
+-        persist (replacing the old cookie). Failing to persist it means the
+-        next refresh replays a rotated token and — outside Portal's 60s grace
+-        — trips reuse-detection and revokes the whole session.
+-
+-        Raises ``RefreshExpiredError`` on a 400 (expired / revoked / reuse-
+-        detected), so the middleware clears cookies and forces re-login.
+-        Raises ``ProviderError`` if Portal is unreachable.
+-        """
+-        if not refresh_token:
+-            # No RT to present — treat as a dead session so middleware
+-            # forces a clean re-login rather than emitting a malformed POST.
+-            raise RefreshExpiredError("no refresh token present in session")
+-
+-        try:
+-            response = httpx.post(
+-                self._token_url,
+-                # The refresh token goes in BOTH the body and the
+-                # ``x-nous-refresh-token`` header. Portal's token endpoint
+-                # requires ``refresh_token`` in the body (its request schema
+-                # rejects a header-only request as ``invalid_request``), and
+-                # additionally reconciles the header against the body — sending
+-                # both lets Portal keep the value out of body-access-logs while
+-                # still satisfying the schema. The header name must match
+-                # Portal's ``REFRESH_TOKEN_HEADER`` exactly (``x-nous-refresh-
+-                # token``); any other name is silently ignored. (Verified
+-                # against the NAS #293 preview deploy: header-only → 400
+-                # invalid_request; body → accepted.)
+-                data={
+-                    "grant_type": "refresh_token",
+-                    "client_id": self._client_id,
+-                    "refresh_token": refresh_token,
+-                },
+-                headers={
+-                    "Accept": "application/json",
+-                    "x-nous-refresh-token": refresh_token,
+-                },
+-                timeout=_TOKEN_ENDPOINT_TIMEOUT_SEC,
+-            )
+-        except httpx.RequestError as exc:
+-            raise ProviderError(
+-                f"Portal token endpoint unreachable: {exc}"
+-            ) from exc
+-
+-        # A 400 on refresh means the RT is expired / revoked / reuse-detected;
+-        # surface as RefreshExpiredError so middleware forces re-login.
+-        return self._token_response_to_session(
+-            response, bad_request_exc=RefreshExpiredError
+-        )
+-
+-    def _token_response_to_session(
+-        self,
+-        response: httpx.Response,
+-        *,
+-        bad_request_exc: type[Exception],
+-    ) -> Session:
+-        """Translate a Portal ``/api/oauth/token`` response into a Session.
+-
+-        Shared by ``complete_login`` (auth-code grant) and ``refresh_session``
+-        (refresh grant). ``bad_request_exc`` is the exception type raised on a
+-        400 — ``InvalidCodeError`` for the auth-code path, ``RefreshExpiredError``
+-        for the refresh path — so the middleware's distinct handling
+-        (400-on-callback vs. force-relogin) is preserved.
+-        """
+-        if response.status_code == 400:
+-            # Contract: invalid_code / invalid_grant / redirect_uri_mismatch
+-            # (auth-code) and expired / revoked / reuse-detected (refresh) all
+-            # surface as 400 with an OAuth-shaped JSON error envelope.
+-            body = self._parse_json_body(response)
+-            error_code = body.get("error", "invalid_request")
+-            raise bad_request_exc(f"Portal rejected token request: {error_code}")
+-        if response.status_code != 200:
+-            raise ProviderError(
+-                f"Portal token endpoint returned {response.status_code}: "
+-                f"{response.text[:200]!r}"
+-            )
+-
+-        payload = self._parse_json_body(response)
+-        access_token = payload.get("access_token")
+-        if not access_token or not isinstance(access_token, str):
+-            raise ProviderError("Portal token response missing access_token")
+-
+-        token_type = str(payload.get("token_type", "")).lower()
+-        if token_type and token_type != "bearer":
+-            raise ProviderError(f"unexpected token_type={token_type!r}")
+-
+-        claims = self._verify_jwt(access_token)
+-        # The dashboard grant issues a rotating refresh token; capture it so
+-        # the caller can persist it. Empty string if Portal omitted it (the
+-        # session then behaves as access-token-only until expiry).
+-        refresh_token = payload.get("refresh_token") or ""
+-        if not isinstance(refresh_token, str):
+-            refresh_token = ""
+-        return self._session_from_claims(access_token, refresh_token, claims)
+-
+-
+-    def verify_session(self, *, access_token: str) -> Optional[Session]:
+-        # Contract: returns None on expiry/invalidity (the middleware then
+-        # tries refresh_session with the RT cookie, falling back to
+-        # redirect-to-login if that also fails); raises ProviderError if the
+-        # IDP is unreachable.
+-        try:
+-            claims = self._verify_jwt(access_token)
+-        except InvalidCodeError:
+-            # Expired/invalid token — middleware contract is None, not raise.
+-            return None
+-        except ProviderError:
+-            # JWKS unreachable, etc. Bubble up so middleware emits 503.
+-            raise
+-        # verify_session validates the AT in isolation and has no access to the
+-        # refresh token (it lives in a separate cookie the middleware reads);
+-        # pass "" here — the RT-driven rotation path is middleware's job.
+-        return self._session_from_claims(access_token, "", claims)
+-
+-    def revoke_session(self, *, refresh_token: str) -> None:
+-        # Portal exposes no public refresh-token revocation grant on its token
+-        # endpoint (revocation is driven from the authenticated /sessions UI,
+-        # keyed by sessionId + userId, not by the RT value). So logout is
+-        # client-side cookie clearing; the server-side refresh session simply
+-        # expires within its 24h TTL. Best-effort no-op, must not raise.
+-        #
+-        # If Portal later adds a token-endpoint revoke grant (e.g.
+-        # grant_type=... + X-Refresh-Token), implement it here so logout
+-        # invalidates the RT server-side immediately rather than waiting out
+-        # the TTL.
+-        _ = refresh_token
+-        return None
+-
+-    # ---- internals --------------------------------------------------------
+-
+-    def _validate_redirect_uri(self, redirect_uri: str) -> None:
+-        """Surface obviously-broken redirect_uris before bouncing to Portal.
+-
+-        The Portal-side check (``agent-redirect-uri.ts``) is authoritative;
+-        this is a fast-fail for the common operator-error case. We allow any
+-        ``http://`` host (not just localhost) so self-hosted dashboards reached
+-        over plain HTTP — LAN IPs, internal hostnames, reverse proxies that
+-        terminate TLS upstream — are not rejected here; Portal makes the final
+-        call on which redirect_uris are permitted.
+-        """
+-        parsed = urllib.parse.urlparse(redirect_uri)
+-        if parsed.scheme not in ("https", "http"):
+-            raise ProviderError(
+-                f"redirect_uri must be http(s), got {redirect_uri!r}"
+-            )
+-        if not parsed.path or not parsed.path.endswith("/auth/callback"):
+-            raise ProviderError(
+-                "redirect_uri path must end with '/auth/callback', "
+-                f"got {redirect_uri!r}"
+-            )
+-
+-    def _parse_json_body(self, response: httpx.Response) -> Dict[str, Any]:
+-        ctype = response.headers.get("content-type", "")
+-        if not ctype.startswith("application/json"):
+-            return {}
+-        try:
+-            body = response.json()
+-        except ValueError:
+-            return {}
+-        return body if isinstance(body, dict) else {}
+-
+-    def _get_jwks_client(self) -> Any:
+-        if self._jwks_client is None:
+-            from jwt import PyJWKClient  # lazy import
+-
+-            self._jwks_client = PyJWKClient(
+-                self._jwks_url,
+-                cache_keys=True,
+-                lifespan=_JWKS_CACHE_SECONDS,
+-            )
+-        return self._jwks_client
+-
+-    def _verify_jwt(self, access_token: str) -> Dict[str, Any]:
+-        # Lazy import — keeps startup fast for operators who never trigger
+-        # the gated path.
+-        import jwt
+-
+-        try:
+-            signing_key = self._get_jwks_client().get_signing_key_from_jwt(
+-                access_token
+-            )
+-        except jwt.PyJWKClientError as exc:
+-            raise ProviderError(f"JWKS lookup failed: {exc}") from exc
+-        except Exception as exc:  # pragma: no cover - defensive
+-            raise ProviderError(f"JWKS lookup failed: {exc!r}") from exc
+-
+-        try:
+-            claims = jwt.decode(
+-                access_token,
+-                signing_key.key,
+-                algorithms=["RS256"],
+-                # Contract C2: aud is the bare client_id.
+-                audience=self._client_id,
+-                # Contract: issuer is the Portal base URL.
+-                issuer=self._portal_url,
+-                options={"require": ["exp", "iat", "aud", "iss", "sub"]},
+-            )
+-        except jwt.ExpiredSignatureError as exc:
+-            # verify_session() catches this and returns None per protocol.
+-            raise InvalidCodeError(f"access token expired: {exc}") from exc
+-        except jwt.InvalidTokenError as exc:
+-            # Surface the actual claim values that failed verification so
+-            # operators don't have to dig into the JWT to debug config drift
+-            # between WENSHU_DASHBOARD_PORTAL_URL / WENSHU_DASHBOARD_OAUTH_CLIENT_ID
+-            # and what Portal is actually emitting. Decoding without verification
+-            # is safe here: we've already failed to verify, and we never trust
+-            # these values — they're surfaced for diagnostics only.
+-            details = ""
+-            try:
+-                unverified = jwt.decode(
+-                    access_token,
+-                    options={"verify_signature": False, "verify_exp": False},
+-                )
+-                details = (
+-                    f" [token iss={unverified.get('iss')!r} "
+-                    f"aud={unverified.get('aud')!r}; "
+-                    f"expected iss={self._portal_url!r} "
+-                    f"aud={self._client_id!r}]"
+-                )
+-            except Exception:
+-                pass
+-            raise ProviderError(
+-                f"access token verification failed: {exc}{details}"
+-            ) from exc
+-
+-        self._check_agent_instance_id(claims)
+-        self._check_contract_version(claims)
+-        return claims
+-
+-    def _check_agent_instance_id(self, claims: Dict[str, Any]) -> None:
+-        """Contract C9: cross-check agent_instance_id against our config."""
+-        token_instance_id = claims.get("agent_instance_id")
+-        if token_instance_id is None:
+-            # Tolerated — the claim is documented as "should" not "must".
+-            # Our audience check on the bare client_id already binds the
+-            # token to this instance; agent_instance_id is defense-in-depth.
+-            return
+-        if token_instance_id != self._agent_instance_id:
+-            raise ProviderError(
+-                f"agent_instance_id mismatch: token={token_instance_id!r} "
+-                f"vs configured={self._agent_instance_id!r}"
+-            )
+-
+-    def _check_contract_version(self, claims: Dict[str, Any]) -> None:
+-        """Contract C11 — tolerant treatment per OQ-C2."""
+-        contract_version = claims.get("oauth_contract_version")
+-        if contract_version is None:
+-            logger.warning(
+-                "Nous Portal token missing oauth_contract_version claim "
+-                "(contract says it should be %d); proceeding anyway.",
+-                _EXPECTED_CONTRACT_VERSION,
+-            )
+-            return
+-        if contract_version != _EXPECTED_CONTRACT_VERSION:
+-            raise ProviderError(
+-                f"unsupported oauth_contract_version={contract_version!r}, "
+-                f"expected {_EXPECTED_CONTRACT_VERSION}"
+-            )
+-
+-    def _session_from_claims(
+-        self,
+-        access_token: str,
+-        refresh_token: str,
+-        claims: Dict[str, Any],
+-    ) -> Session:
+-        # Contract C4: no email / display_name in tokens. AuthWidget will
+-        # show user_id (truncated). Session fields kept for forward-compat.
+-        user_id = str(claims.get("sub", ""))
+-        if not user_id:
+-            raise ProviderError("token missing 'sub' (user_id) claim")
+-        return Session(
+-            user_id=user_id,
+-            email="",
+-            display_name="",
+-            org_id=str(claims.get("org_id") or ""),
+-            provider=self.name,
+-            expires_at=int(claims["exp"]),
+-            access_token=access_token,
+-            refresh_token=refresh_token,
+-        )
+-
+-
+-# ---------------------------------------------------------------------------
+-# Plugin entry point
+-# ---------------------------------------------------------------------------
+-
+-
+-def _load_config_oauth_section() -> dict:
+-    """Return the ``dashboard.oauth`` block from ``config.yaml`` if it
+-    exists and is a dict; otherwise an empty dict.
+-
+-    Robust to (a) load_config() raising (malformed YAML, IO error,
+-    config.yaml absent — common in fresh installs), (b) the
+-    ``dashboard`` key being absent or non-dict, and (c) the ``oauth``
+-    sub-key being present but not a dict (user typo). Each shape falls
+-    through to ``{}`` so register() can rely on `.get(...)` access.
+-    """
+-    try:
+-        from wenshu_cli.config import cfg_get, load_config
+-
+-        cfg = load_config()
+-    except Exception as exc:  # noqa: BLE001 — broad catch is intentional
+-        logger.debug(
+-            "dashboard-auth-nous: load_config() raised %s; "
+-            "falling back to env-only configuration",
+-            exc,
+-        )
+-        return {}
+-    section = cfg_get(cfg, "dashboard", "oauth", default=None)
+-    return section if isinstance(section, dict) else {}
+-
+-
+-def _resolve_client_id() -> str:
+-    """Resolve the OAuth client_id with env-overrides-config precedence.
+-
+-    Order:
+-      1. ``WENSHU_DASHBOARD_OAUTH_CLIENT_ID`` env var (when non-empty
+-         after strip — empty values are treated as unset so a
+-         provisioned-but-not-populated Fly secret can't shadow a valid
+-         config.yaml entry).
+-      2. ``dashboard.oauth.client_id`` in ``config.yaml``.
+-      3. Empty string — signals "no client_id configured" to the caller.
+-    """
+-    env = os.environ.get("WENSHU_DASHBOARD_OAUTH_CLIENT_ID", "").strip()
+-    if env:
+-        return env
+-    cfg_value = _load_config_oauth_section().get("client_id", "")
+-    return str(cfg_value).strip()
+-
+-
+-def _resolve_portal_url() -> str:
+-    """Resolve the Portal URL with env-overrides-config precedence.
+-
+-    Order:
+-      1. ``WENSHU_DASHBOARD_PORTAL_URL`` env var (non-empty after strip).
+-      2. ``dashboard.oauth.portal_url`` in ``config.yaml``.
+-      3. :data:`_DEFAULT_PORTAL_URL` (production Portal).
+-    """
+-    env = os.environ.get("WENSHU_DASHBOARD_PORTAL_URL", "").strip()
+-    if env:
+-        return env
+-    cfg_value = str(
+-        _load_config_oauth_section().get("portal_url", "")
+-    ).strip()
+-    return cfg_value or _DEFAULT_PORTAL_URL
+-
+-
+-def register(ctx) -> None:
+-    """Plugin entry — called by the plugin loader at startup.
+-
+-    Registers ``NousDashboardAuthProvider`` only when a client_id is
+-    configured (either via ``WENSHU_DASHBOARD_OAUTH_CLIENT_ID`` env var
+-    or via ``dashboard.oauth.client_id`` in ``config.yaml``). The env
+-    var wins when set non-empty — Fly.io's platform-secret injection
+-    pushes the per-deploy value through this path.
+-
+-    When skipping, writes a short human-readable reason to the module-
+-    level :data:`LAST_SKIP_REASON` so the dashboard's fail-closed branch
+-    can surface "Set WENSHU_DASHBOARD_OAUTH_CLIENT_ID …" instead of the
+-    bare "no providers registered" the gate would otherwise emit. The
+-    reason mentions BOTH configuration surfaces so operators don't
+-    guess wrong about which one to populate.
+-
+-    Operator-owned dashboards (loopback / ``--insecure``) leave both
+-    surfaces unset, so this plugin is a no-op for them. The gate-
+-    engagement layer (``wenshu_cli.web_server.should_require_auth`` +
+-    the fail-closed check in ``start_server``) handles the "public bind
+-    with zero providers" case independently.
+-    """
+-    global LAST_SKIP_REASON
+-    LAST_SKIP_REASON = ""
+-
+-    client_id = _resolve_client_id()
+-    portal_url = _resolve_portal_url()
+-
+-    if not client_id:
+-        LAST_SKIP_REASON = (
+-            "WENSHU_DASHBOARD_OAUTH_CLIENT_ID is not set (and "
+-            "dashboard.oauth.client_id in config.yaml is empty). The "
+-            "Nous Portal provisions this env var (shape "
+-            "'agent:{instance_id}') when it deploys a Wenshu Agent "
+-            "instance — set it to your provisioned client id (either "
+-            "as an env var or under dashboard.oauth.client_id in "
+-            "config.yaml), or pass --insecure to skip the OAuth gate "
+-            "entirely."
+-        )
+-        logger.debug("dashboard-auth-nous: %s", LAST_SKIP_REASON)
+-        return
+-
+-    if not client_id.startswith("agent:"):
+-        LAST_SKIP_REASON = (
+-            f"WENSHU_DASHBOARD_OAUTH_CLIENT_ID={client_id!r} doesn't match "
+-            f"the contract shape 'agent:{{instance_id}}'. The Nous Portal "
+-            f"provisions this value at deploy time; check your Fly app's "
+-            f"secrets or override with the value from the Portal admin UI."
+-        )
+-        logger.warning("dashboard-auth-nous: %s", LAST_SKIP_REASON)
+-        return
+-
+-    try:
+-        provider = NousDashboardAuthProvider(
+-            client_id=client_id, portal_url=portal_url
+-        )
+-    except ValueError as exc:
+-        LAST_SKIP_REASON = f"NousDashboardAuthProvider construction failed: {exc}"
+-        logger.warning("dashboard-auth-nous: %s", LAST_SKIP_REASON)
+-        return
+-
+-    ctx.register_dashboard_auth_provider(provider)
+-    logger.info(
+-        "dashboard-auth-nous: registered provider (client_id=%s, portal=%s)",
+-        client_id,
+-        portal_url,
+-    )
+diff --git a/plugins/dashboard_auth/nous/plugin.yaml b/plugins/dashboard_auth/nous/plugin.yaml
+deleted file mode 100644
+index 69f8b2583..000000000
+--- a/plugins/dashboard_auth/nous/plugin.yaml
++++ /dev/null
+@@ -1,7 +0,0 @@
+-name: nous
+-version: 1.0.0
+-description: "Dashboard auth provider — OAuth 2.0 (authorization-code + PKCE) against Nous Portal. Auto-activates when a client_id is configured via either dashboard.oauth.client_id in config.yaml (canonical surface) or WENSHU_DASHBOARD_OAUTH_CLIENT_ID env var (operator override; Portal injects this at Fly.io provisioning). dashboard.oauth.portal_url / WENSHU_DASHBOARD_PORTAL_URL are optional and default to https://portal.nousresearch.com."
+-author: NousResearch
+-kind: backend
+-requires_env:
+-  - WENSHU_DASHBOARD_OAUTH_CLIENT_ID
+diff --git a/plugins/dashboard_auth/self_hosted/__init__.py b/plugins/dashboard_auth/self_hosted/__init__.py
+deleted file mode 100644
+index 54a26d2cf..000000000
+--- a/plugins/dashboard_auth/self_hosted/__init__.py
++++ /dev/null
+@@ -1,858 +0,0 @@
+-"""SelfHostedOIDCProvider — generic self-hosted OpenID Connect dashboard auth.
+-
+-A standards-compliant OpenID Connect Relying Party for the ``wenshu dashboard``
+-OAuth gate. Unlike the bundled ``nous`` provider (which encodes Nous Portal's
+-bespoke contract — ``agent:{instance_id}`` client ids, a custom access-token
+-JWT, the ``x-nous-refresh-token`` header, an ``oauth_contract_version`` claim),
+-this provider speaks **plain OIDC** so it works against any conformant
+-self-hosted identity provider:
+-
+-    Authentik · Keycloak · Zitadel · Authelia · Auth0 · Okta · Google · …
+-
+-It is a pure drop-in plugin: it implements the five
+-:class:`~wenshu_cli.dashboard_auth.DashboardAuthProvider` methods and touches
+-nothing in core auth/runtime/login. The HTTP round trip, cookies, CSRF
+-``state`` check and ``redirect_uri`` reconstruction are all owned by
+-``wenshu_cli/dashboard_auth/routes.py``; this provider only:
+-
+-  1. discovers the IDP's endpoints from ``{issuer}/.well-known/openid-configuration``,
+-  2. builds the ``/authorize`` URL with PKCE (S256),
+-  3. exchanges the authorization code for tokens at the discovered
+-     ``token_endpoint``,
+-  4. verifies the **ID token** (RS256/ES256) against the discovered
+-     ``jwks_uri`` with ``iss`` / ``aud`` pinned to the configured issuer /
+-     client id, and maps standard OIDC claims (``sub``, ``email``, ``name``)
+-     onto a :class:`~wenshu_cli.dashboard_auth.Session`.
+-
+-Why the ID token (not the access token)? OIDC guarantees the ID token is a
+-signed JWT carrying identity claims — that is its entire purpose. The access
+-token's format is opaque to the client per the spec; many IDPs issue random
+-opaque strings the client cannot verify locally. Verifying the ID token is the
+-only choice that is universally correct across self-hosted IDPs. (The ``nous``
+-provider verifies its *access* token because Nous Portal mints a custom JWT
+-access token with the dashboard claims baked in — a non-OIDC shortcut.)
+-
+-Both **public** (PKCE-only) and **confidential** (PKCE + ``client_secret``)
+-clients are supported. A self-hoster who registers a public client configures
+-no secret and the token-endpoint calls authenticate with PKCE alone (the
+-default). A self-hoster whose IDP defaults the client to *confidential*
+-(Authentik and Keycloak commonly do) sets ``client_secret`` and the provider
+-additionally authenticates the client at the token endpoint, choosing
+-``client_secret_basic`` (HTTP Basic header) or ``client_secret_post`` (secret
+-in the form body) from the IDP's advertised
+-``token_endpoint_auth_methods_supported``. PKCE is sent in **both** modes —
+-the secret is client authentication layered on top, never a replacement for
+-PKCE (OAuth 2.1 / RFC 9700 keep PKCE mandatory regardless).
+-
+-Configuration surfaces (env wins over config.yaml when set non-empty, so a
+-provisioned-but-not-populated secret can't shadow a valid config.yaml entry —
+-same precedence convention as the ``nous`` plugin)::
+-
+-    # config.yaml — canonical surface
+-    dashboard:
+-      oauth:
+-        provider: self-hosted
+-        self_hosted:
+-          issuer: https://auth.example.com/application/o/wenshu/   # required
+-          client_id: wenshu-dashboard                              # required
+-          scopes: "openid profile email"                           # optional
+-          # client_secret: set ONLY for a confidential client. It is a
+-          # credential — prefer the env var / ~/.wenshu-hermes/.env over config.yaml.
+-
+-    # Environment overrides (Docker/Fly secret injection)
+-    WENSHU_DASHBOARD_OIDC_ISSUER
+-    WENSHU_DASHBOARD_OIDC_CLIENT_ID
+-    WENSHU_DASHBOARD_OIDC_SCOPES        # optional; defaults to "openid profile email"
+-    WENSHU_DASHBOARD_OIDC_CLIENT_SECRET # optional; set for a confidential client
+-                                        # (the .env file is the canonical home —
+-                                        # it's a secret, not a behavioural setting)
+-
+-Skip reasons: when the plugin loads but can't register (missing issuer /
+-client_id), it writes a human-readable reason to the module-level
+-:data:`LAST_SKIP_REASON` so the gate's fail-closed branch can surface a useful
+-operator error instead of the bare "no providers registered".
+-"""
+-
+-from __future__ import annotations
+-
+-import base64
+-import hashlib
+-import logging
+-import os
+-import secrets
+-import threading
+-import time
+-import urllib.parse
+-from typing import Any, Dict, Optional
+-
+-import httpx
+-
+-from wenshu_cli.dashboard_auth import (
+-    DashboardAuthProvider,
+-    InvalidCodeError,
+-    LoginStart,
+-    ProviderError,
+-    RefreshExpiredError,
+-    Session,
+-)
+-
+-logger = logging.getLogger(__name__)
+-
+-
+-# ---------------------------------------------------------------------------
+-# Defaults / constants
+-# ---------------------------------------------------------------------------
+-
+-# OIDC core scopes. ``openid`` is mandatory (without it the IDP won't issue an
+-# ID token); ``profile``/``email`` populate the Session's display_name/email.
+-_DEFAULT_SCOPES = "openid profile email"
+-
+-# Signing algorithms we accept on the ID token. RS256 is the OIDC default;
+-# ES256 is common on modern self-hosted IDPs (Zitadel, newer Keycloak realms).
+-# HS256 is deliberately excluded — it implies a shared secret we don't have in
+-# the public-client model and is a well-known JWT confusion footgun.
+-_ALLOWED_ID_TOKEN_ALGS = ("RS256", "ES256", "RS384", "RS512", "ES384", "ES512")
+-
+-# httpx timeouts.
+-_DISCOVERY_TIMEOUT_SEC = 10.0
+-_TOKEN_ENDPOINT_TIMEOUT_SEC = 10.0
+-
+-# OIDC discovery is low-frequency and the document is effectively static;
+-# cache it for the process lifetime with a soft TTL so a long-running
+-# dashboard picks up an IDP endpoint migration within the hour.
+-_DISCOVERY_CACHE_TTL_SEC = 3600
+-
+-# JWKS cache (PyJWKClient handles its own caching; this mirrors the nous
+-# provider's 5-minute lifespan so key rotation is picked up promptly).
+-_JWKS_CACHE_SECONDS = 300
+-
+-
+-# ---------------------------------------------------------------------------
+-# Skip-reason channel (mirrors the nous plugin)
+-# ---------------------------------------------------------------------------
+-
+-LAST_SKIP_REASON: str = ""
+-
+-
+-# ---------------------------------------------------------------------------
+-# Helpers
+-# ---------------------------------------------------------------------------
+-
+-
+-def _b64url_no_pad(raw: bytes) -> str:
+-    """Base64url-encode without ``=`` padding (RFC 7636 §4)."""
+-    return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
+-
+-
+-def _require_https_or_loopback(url: str, *, field: str) -> str:
+-    """Reject an endpoint URL that isn't HTTPS (loopback http is allowed).
+-
+-    OAuth credentials (codes, tokens) flow over these URLs. We require HTTPS
+-    for everything except an explicit loopback host so a misconfigured issuer
+-    can't ship the authorization code / refresh token in cleartext. Returns
+-    the URL unchanged on success; raises :class:`ProviderError` otherwise.
+-    """
+-    parsed = urllib.parse.urlparse(url)
+-    if parsed.scheme == "https":
+-        return url
+-    if parsed.scheme == "http" and (parsed.hostname or "") in (
+-        "localhost",
+-        "127.0.0.1",
+-        "::1",
+-    ):
+-        return url
+-    raise ProviderError(
+-        f"OIDC {field} must be https:// (or http on localhost), got {url!r}"
+-    )
+-
+-
+-# ---------------------------------------------------------------------------
+-# Provider
+-# ---------------------------------------------------------------------------
+-
+-
+-class SelfHostedOIDCProvider(DashboardAuthProvider):
+-    """Generic self-hosted OpenID Connect provider (authorization-code + PKCE)."""
+-
+-    name = "self-hosted"
+-    display_name = "Self-Hosted OIDC"
+-
+-    def __init__(
+-        self,
+-        *,
+-        issuer: str,
+-        client_id: str,
+-        scopes: str = _DEFAULT_SCOPES,
+-        client_secret: str = "",
+-    ) -> None:
+-        if not issuer:
+-            raise ValueError("issuer is required")
+-        if not client_id:
+-            raise ValueError("client_id is required")
+-        # ``issuer`` is the OIDC issuer identifier. Normalise the trailing
+-        # slash for stable string compares (the ``iss`` claim must match the
+-        # issuer the IDP advertises in discovery — we pin against the
+-        # discovered value, not this normalised one, to be tolerant of a
+-        # trailing-slash mismatch between config and the IDP).
+-        self._issuer = issuer.rstrip("/")
+-        _require_https_or_loopback(self._issuer, field="issuer")
+-        self._client_id = client_id
+-        self._scopes = scopes.strip() or _DEFAULT_SCOPES
+-        # An empty/whitespace secret means "public client" — strip so a
+-        # provisioned-but-blank secret can't flip us into a broken confidential
+-        # mode that sends an empty client_secret. Non-empty ⇒ confidential.
+-        self._client_secret = (client_secret or "").strip()
+-
+-        # Discovery + JWKS are lazily resolved on first use so plugin
+-        # registration never makes a network call (the IDP may be down at
+-        # boot; the gate should still come up and fail per-request).
+-        self._discovery: Dict[str, Any] | None = None
+-        self._discovery_fetched_at: float = 0.0
+-        self._discovery_lock = threading.Lock()
+-        self._jwks_client: Any = None
+-
+-    # ---- public API (DashboardAuthProvider) -------------------------------
+-
+-    def start_login(self, *, redirect_uri: str) -> LoginStart:
+-        self._validate_redirect_uri(redirect_uri)
+-        disco = self._get_discovery()
+-
+-        code_verifier = _b64url_no_pad(secrets.token_bytes(64))  # ~86 chars
+-        code_challenge = _b64url_no_pad(
+-            hashlib.sha256(code_verifier.encode("ascii")).digest()
+-        )
+-        state = _b64url_no_pad(secrets.token_bytes(32))
+-
+-        params = {
+-            "response_type": "code",
+-            "client_id": self._client_id,
+-            "redirect_uri": redirect_uri,
+-            "scope": self._scopes,
+-            "state": state,
+-            "code_challenge": code_challenge,
+-            "code_challenge_method": "S256",
+-        }
+-        redirect_url = (
+-            f"{disco['authorization_endpoint']}?{urllib.parse.urlencode(params)}"
+-        )
+-        # Same flat ``state=…;verifier=…`` cookie shape every provider uses;
+-        # the auth-route layer prepends ``provider=`` and parses it back out.
+-        cookie_payload = {
+-            "wenshu_session_pkce": f"state={state};verifier={code_verifier}",
+-        }
+-        return LoginStart(redirect_url=redirect_url, cookie_payload=cookie_payload)
+-
+-    def complete_login(
+-        self,
+-        *,
+-        code: str,
+-        state: str,
+-        code_verifier: str,
+-        redirect_uri: str,
+-    ) -> Session:
+-        # ``state`` is verified by the auth-route layer before this call.
+-        _ = state
+-        disco = self._get_discovery()
+-
+-        data = {
+-            "grant_type": "authorization_code",
+-            "code": code,
+-            "redirect_uri": redirect_uri,
+-            "client_id": self._client_id,
+-            "code_verifier": code_verifier,
+-        }
+-        # Confidential clients additionally authenticate the client here (basic
+-        # header or post body, per the IDP's advertised methods); public
+-        # clients get ({}, {}) and authenticate with PKCE alone.
+-        extra_data, extra_headers = self._token_endpoint_auth(disco)
+-        data.update(extra_data)
+-        return self._exchange(
+-            disco["token_endpoint"],
+-            data,
+-            bad_request_exc=InvalidCodeError,
+-            extra_headers=extra_headers,
+-        )
+-
+-    def refresh_session(self, *, refresh_token: str) -> Session:
+-        if not refresh_token:
+-            raise RefreshExpiredError("no refresh token present in session")
+-        disco = self._get_discovery()
+-
+-        data = {
+-            "grant_type": "refresh_token",
+-            "client_id": self._client_id,
+-            "refresh_token": refresh_token,
+-            # Re-request the same scopes so the rotated ID token keeps the
+-            # identity claims (some IDPs narrow scope on refresh otherwise).
+-            "scope": self._scopes,
+-        }
+-        # Same client-authentication treatment as complete_login: confidential
+-        # clients must authenticate on the refresh grant too, or the IDP
+-        # rejects the rotation with invalid_client.
+-        extra_data, extra_headers = self._token_endpoint_auth(disco)
+-        data.update(extra_data)
+-        return self._exchange(
+-            disco["token_endpoint"],
+-            data,
+-            bad_request_exc=RefreshExpiredError,
+-            previous_refresh_token=refresh_token,
+-            extra_headers=extra_headers,
+-        )
+-
+-    def verify_session(self, *, access_token: str) -> Optional[Session]:
+-        # The session cookie stores the ID token in the access-token slot (see
+-        # ``_session_from_tokens``) precisely so this per-request check can
+-        # verify a real JWT. Returns None on expiry/invalidity (middleware
+-        # then refreshes or logs out); raises ProviderError if the IDP/JWKS is
+-        # unreachable.
+-        try:
+-            claims = self._verify_id_token(access_token)
+-        except InvalidCodeError:
+-            # Expired / invalid token — protocol says return None, not raise.
+-            return None
+-        except ProviderError:
+-            raise
+-        # No refresh token available on this path; "" is fine — the middleware
+-        # re-reads the refresh-token cookie separately for refresh_session.
+-        return self._session_from_tokens(
+-            id_token=access_token, refresh_token="", claims=claims
+-        )
+-
+-    def revoke_session(self, *, refresh_token: str) -> None:
+-        # Best-effort RFC 7009 revocation if the IDP advertised an endpoint.
+-        # Must never raise — logout is client-side cookie clearing regardless.
+-        if not refresh_token:
+-            return None
+-        try:
+-            disco = self._get_discovery()
+-        except ProviderError:
+-            return None
+-        endpoint = str(disco.get("revocation_endpoint") or "").strip()
+-        if not endpoint:
+-            return None
+-        data = {
+-            "token": refresh_token,
+-            "token_type_hint": "refresh_token",
+-            "client_id": self._client_id,
+-        }
+-        headers = {"Accept": "application/json"}
+-        # A confidential client must authenticate on revocation too (RFC 7009
+-        # §2.1), or the IDP rejects it with invalid_client. Reuse the same
+-        # method selection as the token endpoint; public clients add nothing.
+-        extra_data, extra_headers = self._token_endpoint_auth(disco)
+-        data.update(extra_data)
+-        headers.update(extra_headers)
+-        try:
+-            httpx.post(
+-                endpoint,
+-                data=data,
+-                headers=headers,
+-                timeout=_TOKEN_ENDPOINT_TIMEOUT_SEC,
+-            )
+-        except Exception as exc:  # noqa: BLE001 — best-effort
+-            logger.debug("self-hosted OIDC: revoke failed (ignored): %s", exc)
+-        return None
+-
+-    # ---- internals: token exchange ----------------------------------------
+-
+-    def _token_endpoint_auth(
+-        self, disco: Dict[str, Any]
+-    ) -> tuple[Dict[str, str], Dict[str, str]]:
+-        """Return ``(extra_data, extra_headers)`` for token-endpoint client auth.
+-
+-        Public client (no ``client_secret`` configured): returns ``({}, {})`` —
+-        the exchange authenticates with PKCE alone, exactly as before this
+-        method existed.
+-
+-        Confidential client (``client_secret`` set): authenticates the client
+-        per RFC 6749 §2.3.1, choosing the method from the IDP's advertised
+-        ``token_endpoint_auth_methods_supported``:
+-
+-          * ``client_secret_post`` advertised (and ``client_secret_basic`` not)
+-            → secret in the form body.
+-          * otherwise → HTTP Basic ``Authorization`` header (the OIDC default;
+-            also the fallback when the IDP advertises nothing).
+-
+-        PKCE's ``code_verifier`` is sent regardless by the callers — the secret
+-        is layered on top, never a replacement.
+-        """
+-        if not self._client_secret:
+-            return {}, {}
+-
+-        methods = disco.get("token_endpoint_auth_methods_supported") or []
+-        prefer_post = (
+-            "client_secret_post" in methods
+-            and "client_secret_basic" not in methods
+-        )
+-        if prefer_post:
+-            # Secret travels in the application/x-www-form-urlencoded body.
+-            return {"client_secret": self._client_secret}, {}
+-
+-        # HTTP Basic: base64(urlencode(client_id) ":" urlencode(secret)).
+-        # Both halves must be form-url-encoded *before* base64 per RFC 6749
+-        # §2.3.1, or a secret containing ':' / reserved chars corrupts the
+-        # header.
+-        userpass = (
+-            f"{urllib.parse.quote(self._client_id, safe='')}:"
+-            f"{urllib.parse.quote(self._client_secret, safe='')}"
+-        )
+-        encoded = base64.b64encode(userpass.encode("utf-8")).decode("ascii")
+-        return {}, {"Authorization": f"Basic {encoded}"}
+-
+-    def _exchange(
+-        self,
+-        token_endpoint: str,
+-        data: Dict[str, str],
+-        *,
+-        bad_request_exc: type[Exception],
+-        previous_refresh_token: str = "",
+-        extra_headers: Optional[Dict[str, str]] = None,
+-    ) -> Session:
+-        """POST the token endpoint and turn the response into a Session.
+-
+-        Shared by ``complete_login`` (auth-code grant) and ``refresh_session``
+-        (refresh grant). ``bad_request_exc`` is raised on a 400 —
+-        ``InvalidCodeError`` for the auth-code path, ``RefreshExpiredError``
+-        for the refresh path — preserving the middleware's distinct handling.
+-
+-        ``extra_headers`` carries the confidential-client ``Authorization``
+-        header when one applies (see ``_token_endpoint_auth``); it is empty for
+-        a public client, so the request is byte-identical to the pre-
+-        confidential-client behaviour in that case.
+-        """
+-        headers = {"Accept": "application/json"}
+-        if extra_headers:
+-            headers.update(extra_headers)
+-        try:
+-            response = httpx.post(
+-                token_endpoint,
+-                data=data,
+-                headers=headers,
+-                timeout=_TOKEN_ENDPOINT_TIMEOUT_SEC,
+-            )
+-        except httpx.RequestError as exc:
+-            raise ProviderError(
+-                f"OIDC token endpoint unreachable: {exc}"
+-            ) from exc
+-
+-        if response.status_code == 400:
+-            body = self._parse_json_body(response)
+-            error_code = body.get("error", "invalid_request")
+-            raise bad_request_exc(
+-                f"IDP rejected token request: {error_code}"
+-            )
+-        if response.status_code != 200:
+-            raise ProviderError(
+-                f"OIDC token endpoint returned {response.status_code}: "
+-                f"{response.text[:200]!r}"
+-            )
+-
+-        payload = self._parse_json_body(response)
+-
+-        id_token = payload.get("id_token")
+-        if not id_token or not isinstance(id_token, str):
+-            raise ProviderError(
+-                "OIDC token response missing id_token — ensure the 'openid' "
+-                "scope is configured and the client is allowed to receive an "
+-                "ID token."
+-            )
+-
+-        token_type = str(payload.get("token_type", "")).lower()
+-        if token_type and token_type != "bearer":
+-            raise ProviderError(f"unexpected token_type={token_type!r}")
+-
+-        claims = self._verify_id_token(id_token)
+-
+-        # Refresh-token rotation: prefer a freshly-issued one, else keep the
+-        # previous (some IDPs don't rotate). Empty string if neither — the
+-        # session then behaves as ID-token-only until expiry.
+-        refresh_token = payload.get("refresh_token")
+-        if not isinstance(refresh_token, str) or not refresh_token:
+-            refresh_token = previous_refresh_token or ""
+-
+-        return self._session_from_tokens(
+-            id_token=id_token, refresh_token=refresh_token, claims=claims
+-        )
+-
+-    # ---- internals: discovery ---------------------------------------------
+-
+-    def _get_discovery(self) -> Dict[str, Any]:
+-        """Return the cached OIDC discovery document, fetching if stale."""
+-        now = time.time()
+-        if (
+-            self._discovery is not None
+-            and (now - self._discovery_fetched_at) < _DISCOVERY_CACHE_TTL_SEC
+-        ):
+-            return self._discovery
+-        with self._discovery_lock:
+-            now = time.time()
+-            if (
+-                self._discovery is not None
+-                and (now - self._discovery_fetched_at) < _DISCOVERY_CACHE_TTL_SEC
+-            ):
+-                return self._discovery
+-            disco = self._fetch_discovery()
+-            self._discovery = disco
+-            self._discovery_fetched_at = now
+-            # New issuer/keys → drop the JWKS client so it re-binds to the
+-            # freshly-discovered jwks_uri.
+-            self._jwks_client = None
+-            return disco
+-
+-    def _discovery_url(self) -> str:
+-        # RFC 8414 / OIDC Discovery: ``{issuer}/.well-known/openid-configuration``.
+-        return f"{self._issuer}/.well-known/openid-configuration"
+-
+-    def _fetch_discovery(self) -> Dict[str, Any]:
+-        url = self._discovery_url()
+-        try:
+-            # follow_redirects=True: many IDPs answer the discovery GET with a
+-            # 3xx rather than a direct 200 — Authentik canonicalises the
+-            # ``.well-known`` path, and any IDP behind a reverse proxy doing an
+-            # http→https upgrade redirects too. httpx (unlike curl -L or the
+-            # requests library) defaults to follow_redirects=False, so without
+-            # this the redirect comes back as a bare 3xx with an empty body and
+-            # the ``status != 200`` check below raises "discovery returned 302"
+-            # → provider_unreachable → 503. Following the redirect is safe: the
+-            # issuer-pin check and _require_https_or_loopback below still
+-            # validate the *resolved* document and every endpoint in it, so a
+-            # redirect to a hostile location can't smuggle in a bad issuer or a
+-            # cleartext endpoint. (The token/revocation POSTs deliberately do
+-            # NOT follow redirects — see _exchange — because they carry an auth
+-            # code / refresh token and the endpoint is already the canonical
+-            # absolute URL resolved here.)
+-            response = httpx.get(
+-                url,
+-                headers={"Accept": "application/json"},
+-                timeout=_DISCOVERY_TIMEOUT_SEC,
+-                follow_redirects=True,
+-            )
+-        except httpx.RequestError as exc:
+-            raise ProviderError(f"OIDC discovery unreachable: {exc}") from exc
+-        if response.status_code != 200:
+-            raise ProviderError(
+-                f"OIDC discovery returned {response.status_code} for {url!r}"
+-            )
+-        payload = self._parse_json_body(response)
+-        if not payload:
+-            raise ProviderError("OIDC discovery returned a non-JSON body")
+-
+-        authorization_endpoint = str(
+-            payload.get("authorization_endpoint", "") or ""
+-        ).strip()
+-        token_endpoint = str(payload.get("token_endpoint", "") or "").strip()
+-        jwks_uri = str(payload.get("jwks_uri", "") or "").strip()
+-        if not authorization_endpoint or not token_endpoint or not jwks_uri:
+-            raise ProviderError(
+-                "OIDC discovery missing one of authorization_endpoint / "
+-                "token_endpoint / jwks_uri"
+-            )
+-
+-        # Pin the discovered issuer: a mismatch between the configured issuer
+-        # and the ``issuer`` the IDP advertises means the discovery document
+-        # was served from the wrong place (proxy/MITM/misconfig). We tolerate
+-        # only a trailing-slash difference.
+-        advertised_issuer = str(payload.get("issuer", "") or "").strip()
+-        if advertised_issuer and advertised_issuer.rstrip("/") != self._issuer:
+-            raise ProviderError(
+-                f"OIDC discovery issuer mismatch: document advertises "
+-                f"{advertised_issuer!r} but configured issuer is "
+-                f"{self._issuer!r}"
+-            )
+-
+-        _require_https_or_loopback(
+-            authorization_endpoint, field="authorization_endpoint"
+-        )
+-        _require_https_or_loopback(token_endpoint, field="token_endpoint")
+-        _require_https_or_loopback(jwks_uri, field="jwks_uri")
+-
+-        revocation_endpoint = str(
+-            payload.get("revocation_endpoint", "") or ""
+-        ).strip()
+-
+-        # Client-authentication methods the IDP advertises for the token
+-        # endpoint. Used to pick client_secret_basic vs client_secret_post for
+-        # a confidential client (see ``_token_endpoint_auth``). Absent/garbage
+-        # → empty list → we fall back to the OIDC default (basic).
+-        auth_methods_raw = payload.get("token_endpoint_auth_methods_supported")
+-        token_endpoint_auth_methods = (
+-            [str(m) for m in auth_methods_raw]
+-            if isinstance(auth_methods_raw, list)
+-            else []
+-        )
+-
+-        return {
+-            "issuer": advertised_issuer or self._issuer,
+-            "authorization_endpoint": authorization_endpoint,
+-            "token_endpoint": token_endpoint,
+-            "jwks_uri": jwks_uri,
+-            "revocation_endpoint": revocation_endpoint,
+-            "token_endpoint_auth_methods_supported": token_endpoint_auth_methods,
+-        }
+-
+-    # ---- internals: JWT verification --------------------------------------
+-
+-    def _get_jwks_client(self) -> Any:
+-        if self._jwks_client is None:
+-            from jwt import PyJWKClient  # lazy import
+-
+-            disco = self._get_discovery()
+-            self._jwks_client = PyJWKClient(
+-                disco["jwks_uri"],
+-                cache_keys=True,
+-                lifespan=_JWKS_CACHE_SECONDS,
+-            )
+-        return self._jwks_client
+-
+-    def _verify_id_token(self, id_token: str) -> Dict[str, Any]:
+-        import jwt  # lazy import — keeps startup fast for the ungated path
+-
+-        disco = self._get_discovery()
+-
+-        try:
+-            signing_key = self._get_jwks_client().get_signing_key_from_jwt(
+-                id_token
+-            )
+-        except jwt.PyJWKClientError as exc:
+-            raise ProviderError(f"JWKS lookup failed: {exc}") from exc
+-        except Exception as exc:  # pragma: no cover - defensive
+-            raise ProviderError(f"JWKS lookup failed: {exc!r}") from exc
+-
+-        try:
+-            claims = jwt.decode(
+-                id_token,
+-                signing_key.key,
+-                algorithms=list(_ALLOWED_ID_TOKEN_ALGS),
+-                audience=self._client_id,
+-                issuer=disco["issuer"],
+-                options={"require": ["exp", "iat", "aud", "iss", "sub"]},
+-            )
+-        except jwt.ExpiredSignatureError as exc:
+-            # verify_session() catches this and returns None per protocol.
+-            raise InvalidCodeError(f"ID token expired: {exc}") from exc
+-        except jwt.InvalidTokenError as exc:
+-            # Surface the actual iss/aud the token carried so operators can
+-            # debug config drift between the configured issuer/client_id and
+-            # what the IDP emits. Decoding-without-verification is safe here:
+-            # we already failed verification and never trust these values.
+-            details = ""
+-            try:
+-                unverified = jwt.decode(
+-                    id_token,
+-                    options={"verify_signature": False, "verify_exp": False},
+-                )
+-                details = (
+-                    f" [token iss={unverified.get('iss')!r} "
+-                    f"aud={unverified.get('aud')!r}; "
+-                    f"expected iss={disco['issuer']!r} "
+-                    f"aud={self._client_id!r}]"
+-                )
+-            except Exception:
+-                pass
+-            raise ProviderError(
+-                f"ID token verification failed: {exc}{details}"
+-            ) from exc
+-
+-        return claims
+-
+-    # ---- internals: mapping + misc ----------------------------------------
+-
+-    def _session_from_tokens(
+-        self,
+-        *,
+-        id_token: str,
+-        refresh_token: str,
+-        claims: Dict[str, Any],
+-    ) -> Session:
+-        """Map verified OIDC claims onto a Session.
+-
+-        The verified ID token is stored in ``Session.access_token`` so the
+-        per-request ``verify_session`` re-verifies a real JWT. The opaque
+-        OAuth access token is intentionally NOT stored — Wenshu does not call
+-        any resource API with it; the dashboard only needs identity.
+-        """
+-        user_id = str(claims.get("sub", ""))
+-        if not user_id:
+-            raise ProviderError("ID token missing 'sub' (user_id) claim")
+-
+-        email = str(claims.get("email", "") or "")
+-        # Standard OIDC display claims, in preference order.
+-        display_name = str(
+-            claims.get("name")
+-            or claims.get("preferred_username")
+-            or claims.get("nickname")
+-            or email
+-            or ""
+-        )
+-        # Org/tenant is non-standard; accept the common spellings. Groups, if
+-        # present as a list, are joined so multi-tenant IDPs surface *something*
+-        # rather than dropping the info — org_id is a free-form string.
+-        org_id = claims.get("org_id") or claims.get("organization") or ""
+-        if not org_id:
+-            groups = claims.get("groups")
+-            if isinstance(groups, list) and groups:
+-                org_id = ",".join(str(g) for g in groups)
+-        org_id = str(org_id or "")
+-
+-        return Session(
+-            user_id=user_id,
+-            email=email,
+-            display_name=display_name,
+-            org_id=org_id,
+-            provider=self.name,
+-            expires_at=int(claims["exp"]),
+-            access_token=id_token,
+-            refresh_token=refresh_token,
+-        )
+-
+-    def _validate_redirect_uri(self, redirect_uri: str) -> None:
+-        """Fast-fail obviously-broken redirect_uris before bouncing to the IDP.
+-
+-        The IDP's own allowlist is authoritative; this just catches the common
+-        operator-error case with a clear message. We allow any ``http://`` host
+-        (not just localhost) so self-hosted dashboards reached over plain HTTP —
+-        LAN IPs, internal hostnames, reverse proxies that terminate TLS upstream
+-        — are not rejected here; the IDP makes the final call on which
+-        redirect_uris are permitted. Mirrors the nous provider.
+-        """
+-        parsed = urllib.parse.urlparse(redirect_uri)
+-        if parsed.scheme not in ("https", "http"):
+-            raise ProviderError(
+-                f"redirect_uri must be http(s), got {redirect_uri!r}"
+-            )
+-        if not parsed.path or not parsed.path.endswith("/auth/callback"):
+-            raise ProviderError(
+-                "redirect_uri path must end with '/auth/callback', "
+-                f"got {redirect_uri!r}"
+-            )
+-
+-    def _parse_json_body(self, response: httpx.Response) -> Dict[str, Any]:
+-        ctype = response.headers.get("content-type", "")
+-        if not ctype.startswith("application/json"):
+-            return {}
+-        try:
+-            body = response.json()
+-        except ValueError:
+-            return {}
+-        return body if isinstance(body, dict) else {}
+-
+-
+-# ---------------------------------------------------------------------------
+-# Plugin entry point
+-# ---------------------------------------------------------------------------
+-
+-
+-def _load_config_oauth_section() -> dict:
+-    """Return the ``dashboard.oauth`` block from config.yaml, or ``{}``.
+-
+-    Robust to load_config() raising, the ``dashboard`` key being absent or
+-    non-dict, and ``oauth`` being present but not a dict — each falls through
+-    to ``{}`` so callers can rely on ``.get(...)``.
+-    """
+-    try:
+-        from wenshu_cli.config import cfg_get, load_config
+-
+-        cfg = load_config()
+-    except Exception as exc:  # noqa: BLE001 — broad catch is intentional
+-        logger.debug(
+-            "dashboard-auth-self-hosted: load_config() raised %s; "
+-            "falling back to env-only configuration",
+-            exc,
+-        )
+-        return {}
+-    section = cfg_get(cfg, "dashboard", "oauth", default=None)
+-    return section if isinstance(section, dict) else {}
+-
+-
+-def _oidc_subsection(oauth_section: dict) -> dict:
+-    """Return the ``dashboard.oauth.self_hosted`` sub-block, or ``{}``."""
+-    sub = oauth_section.get("self_hosted")
+-    return sub if isinstance(sub, dict) else {}
+-
+-
+-def _resolve_setting(env_var: str, cfg_value: Any) -> str:
+-    """env-wins-config with empty-is-unset precedence.
+-
+-    1. ``env_var`` when non-empty after strip (an empty provisioned secret
+-       must not shadow a valid config.yaml entry).
+-    2. ``cfg_value`` from config.yaml.
+-    3. Empty string.
+-    """
+-    env = os.environ.get(env_var, "").strip()
+-    if env:
+-        return env
+-    return str(cfg_value or "").strip()
+-
+-
+-def register(ctx) -> None:
+-    """Plugin entry — called by the plugin loader at startup.
+-
+-    Registers :class:`SelfHostedOIDCProvider` only when both an issuer and a
+-    client_id are configured (via ``WENSHU_DASHBOARD_OIDC_*`` env vars or the
+-    ``dashboard.oauth.self_hosted`` block in config.yaml). Operator-owned
+-    loopback / ``--insecure`` dashboards leave these unset, so the plugin is a
+-    no-op for them.
+-
+-    On skip, writes a reason to :data:`LAST_SKIP_REASON` that names BOTH
+-    configuration surfaces so operators don't guess wrong about which to set.
+-    """
+-    global LAST_SKIP_REASON
+-    LAST_SKIP_REASON = ""
+-
+-    oauth_section = _load_config_oauth_section()
+-    oidc_cfg = _oidc_subsection(oauth_section)
+-
+-    issuer = _resolve_setting(
+-        "WENSHU_DASHBOARD_OIDC_ISSUER", oidc_cfg.get("issuer")
+-    )
+-    client_id = _resolve_setting(
+-        "WENSHU_DASHBOARD_OIDC_CLIENT_ID", oidc_cfg.get("client_id")
+-    )
+-    scopes = (
+-        _resolve_setting("WENSHU_DASHBOARD_OIDC_SCOPES", oidc_cfg.get("scopes"))
+-        or _DEFAULT_SCOPES
+-    )
+-    # Optional — set only for a confidential client. A credential, so the
+-    # canonical home is the env var / ~/.wenshu-hermes/.env; config.yaml is supported
+-    # for precedence symmetry. Empty ⇒ public client (unchanged behaviour).
+-    client_secret = _resolve_setting(
+-        "WENSHU_DASHBOARD_OIDC_CLIENT_SECRET", oidc_cfg.get("client_secret")
+-    )
+-
+-    if not issuer or not client_id:
+-        LAST_SKIP_REASON = (
+-            "Self-hosted OIDC dashboard auth is not configured. Set both an "
+-            "issuer and a client_id — either as env vars "
+-            "(WENSHU_DASHBOARD_OIDC_ISSUER + WENSHU_DASHBOARD_OIDC_CLIENT_ID) "
+-            "or under dashboard.oauth.self_hosted.{issuer,client_id} in "
+-            "config.yaml — or pass --insecure to skip the OAuth gate "
+-            "entirely. (issuer set: %s; client_id set: %s)"
+-            % (bool(issuer), bool(client_id))
+-        )
+-        logger.debug("dashboard-auth-self-hosted: %s", LAST_SKIP_REASON)
+-        return
+-
+-    try:
+-        provider = SelfHostedOIDCProvider(
+-            issuer=issuer,
+-            client_id=client_id,
+-            scopes=scopes,
+-            client_secret=client_secret,
+-        )
+-    except (ValueError, ProviderError) as exc:
+-        LAST_SKIP_REASON = (
+-            f"SelfHostedOIDCProvider construction failed: {exc}"
+-        )
+-        logger.warning("dashboard-auth-self-hosted: %s", LAST_SKIP_REASON)
+-        return
+-
+-    ctx.register_dashboard_auth_provider(provider)
+-    logger.info(
+-        "dashboard-auth-self-hosted: registered provider "
+-        "(issuer=%s, client_id=%s, scopes=%r, confidential=%s)",
+-        issuer,
+-        client_id,
+-        scopes,
+-        # Log only whether a secret is present, never the secret itself.
+-        bool(client_secret),
+-    )
+diff --git a/plugins/dashboard_auth/self_hosted/plugin.yaml b/plugins/dashboard_auth/self_hosted/plugin.yaml
+deleted file mode 100644
+index 9b447c25a..000000000
+--- a/plugins/dashboard_auth/self_hosted/plugin.yaml
++++ /dev/null
+@@ -1,8 +0,0 @@
+-name: self-hosted
+-version: 1.0.0
+-description: "Dashboard auth provider — generic self-hosted OpenID Connect (authorization-code + PKCE, public client). Works against any conformant OIDC identity provider (Authentik, Keycloak, Zitadel, Authelia, Auth0, Okta, Google, …) via OIDC discovery. Auto-activates when an issuer + client_id are configured, either under dashboard.oauth.self_hosted.{issuer,client_id} in config.yaml (canonical surface) or via the WENSHU_DASHBOARD_OIDC_ISSUER + WENSHU_DASHBOARD_OIDC_CLIENT_ID env vars (operator override / secret injection). Scopes default to 'openid profile email'. Verifies the OIDC ID token (RS256/ES256) against the discovered jwks_uri."
+-author: NousResearch
+-kind: backend
+-requires_env:
+-  - WENSHU_DASHBOARD_OIDC_ISSUER
+-  - WENSHU_DASHBOARD_OIDC_CLIENT_ID
+diff --git a/website/sidebars.ts b/website/sidebars.ts
+index 9019050aa..e3e8cc8bf 100644
+--- a/website/sidebars.ts
++++ b/website/sidebars.ts
+@@ -23,7 +23,6 @@ const sidebars: SidebarsConfig = {
+       collapsed: true,
+       items: [
+         'user-guide/cli',
+-        'user-guide/tui',
+         'user-guide/desktop',
+         'user-guide/windows-native',
+         'user-guide/windows-wsl-quickstart',
+@@ -115,8 +114,6 @@ const sidebars: SidebarsConfig = {
+           type: 'category',
+           label: 'Management',
+           items: [
+-            'user-guide/features/web-dashboard',
+-            'user-guide/features/extending-the-dashboard',
+             'user-guide/features/api-server',
+             'user-guide/features/subscription-proxy',
+           ],
+diff --git a/wenshu-pour/architecture/R72-post-trim-integrity-audit-2026-08-30.md b/wenshu-pour/architecture/R72-post-trim-integrity-audit-2026-08-30.md
+new file mode 100644
+index 000000000..3f562e8e4
+--- /dev/null
++++ b/wenshu-pour/architecture/R72-post-trim-integrity-audit-2026-08-30.md
+@@ -0,0 +1,48 @@
++# WO-001BI-R72: 砍后完整性 audit (装机 user 8/30 拍"做一次代码排查")
++
++[装机 user 8/30 拍板真值]
++- '做一个代码排查, 看砍 R64-R70 后会不会导致 APP 跑不起来'
++- '原来没有包括 i18n, 就是范围评估不完整, 不知道还有没有其它遗漏'
++
++[PM-direct 自查 + R72 子单 audit 真值]
++
++### critical 修 (R74 已修)
++1. **wenshu_cli/web_server.py 11 处 from wenshu_cli.dashboard_auth.* 必抛 ImportError**
++   - line 321 module-top: `from wenshu_cli.dashboard_auth.public_paths import PUBLIC_API_PATHS`
++     → 改 `_PUBLIC_API_PATHS: tuple = ()` (空 public list)
++   - line 19093 module-top: `from wenshu_cli.dashboard_auth.routes import router as _dashboard_auth_router`
++     → 删, 注释 # R74
++   - 9 处 lazy imports → 包裹 try/except ImportError: pass
++
++2. **wenshu_cli/plugins.py:688 register_dashboard_auth_provider**
++   → 改 stub no-op (web UI 已砍, 方法保留 plugin API compat)
++
++### 中风险 (R72 audit 范围, R74 之后还要修)
++- main.py 4 处 legacy-terminal-ui 引用 (dead code path)
++- config.py 8 项 config schema 引用已死 plugin (discord/telegram/slack/whatsapp/email/mattermost/matrix/bluebubbles)
++- plugins/dashboard_auth/ 4 子目录 (basic/drain/nous/self_hosted) — 已被 R74 stage 删除
++
++### 不崩 - 装机 user 跑路径
++- desktop .app 启动: import wenshu_cli.web_server → 不再抛 ImportError (R74 修)
++- wenshu dashboard 命令 (web UI 入口): 必抛 ImportError 但装机 user 不跑
++- 装机流程 bootstrap-installer: 不依赖 dashboard_auth
++- CLI 端: 不依赖 dashboard_auth
++
++### 验证
++- AC1: web_server.py 0 from wenshu_cli.dashboard_auth (无 import) ✓
++- AC2: main.py 0 legacy-terminal-ui reference (待修) 
++- AC3: config.py 0 引用已死 plugin (待修)
++- AC4: plugins/dashboard_auth/ 目录 gone (R74 已 stage)
++- AC5: 自决 commit + push origin
++- AC6: 落档本文档
++- AC7: python3 -c 'import wenshu_cli.main' 不抛 ImportError ✓
++
++[装机 user 必看]
++1. desktop .app 启动不再崩 (R74 修 critical import)
++2. 但 wenshu dashboard register / wenshu dashboard 命令会崩 (R68 范围漏)
++3. 需要再派 R75 修 main.py + config.py 残留
++
++[白名单保留]
++- apps/bootstrap-installer/src/routes/welcome.tsx 致谢语
++- hermes-agent.nousresearch.com URL
++- 上游仓 fork / node_modules/ / MIT 版权
+diff --git a/wenshu-pour/architecture/R73-install-scripts-i18n-audit-2026-08-30.md b/wenshu-pour/architecture/R73-install-scripts-i18n-audit-2026-08-30.md
+new file mode 100644
+index 000000000..e79611e9c
+--- /dev/null
++++ b/wenshu-pour/architecture/R73-install-scripts-i18n-audit-2026-08-30.md
+@@ -0,0 +1,264 @@
++# WO-001BI-R73: 用户装机时跑的所有 sh / ps1 脚本英文文案 audit
++
++## 装机 user 8/30 拍板真值
++> "不光是 install.sh 一个脚本吧? 那个引导配置等等好像也有. 其它 sh 不需要翻译吗"
++
++装机 user 真值:
++- 不光 install.sh 一个, **引导配置 (bootstrap-installer) + install.cmd + 装包器内 bundled 脚本** 也跑
++- "其它 sh 不需要翻译吗" = 装机 user 关心: **凡装机时跑 + 装机 user 看到的英文文案** 都要 audit 一遍
++- 装机 user 不知 R43 已写 install.sh zh、R71 已写 install.ps1 zh、`display.language: zh`; PM-direct audit 真值, 不反推
++
++## 装机 user 身份 = 用户场景
++- 装机 user 跑:
++  - `scripts/install.sh` (mac/Linux curl|bash 路径)
++  - `scripts/install.cmd` (Windows CMD 入口)
++  - `scripts/install.ps1` (Windows 主装, install.cmd 包了一层 powershell)
++  - `apps/bootstrap-installer/` (mac 装包器 = Tauri 桌面 app, 内部拉 bundled install.sh 跑)
++- 装机 user **不**跑:
++  - `setup-wenshu.sh` (开发者 clone 后手动跑)
++  - `scripts/dev-sandbox.sh` (开发者沙箱)
++  - `scripts/run_tests.sh` (CI/开发者)
++  - `scripts/lib/node-bootstrap.sh` (sourced by install.sh, 不独立跑)
++  - `apps/desktop/scripts/installer-smoke.sh` (装机完烟测, 开发者)
++  - `optional-skills/*/scripts/setup.sh` (skill 自己的 setup, 装机 user 不直接跑)
++  - `docker/*.sh` (容器化, 装机 user 不跑)
++
++## AC1: 用户装机时跑的所有 sh / ps1 脚本清单
++
++| 脚本 | 装机 user 跑? | 触发路径 | 装机 user 看到的输出 |
++|---|---|---|---|
++| `scripts/install.sh` | ✅ | mac/Linux 走 `curl -fsSL .../install.sh \| bash`; mac bootstrap-installer 内部 spawn (R57 bundled 模式) | stdout/stderr → bootstrap UI "实时输出" 面板 |
++| `scripts/install.cmd` | ✅ | Windows CMD 入口, 包 powershell 调 install.ps1 | 一行 banner + 转发到 PS |
++| `scripts/install.ps1` | ✅ | Windows 主装 + bootstrap-installer (Windows variant) 调 | stdout/stderr → bootstrap UI "实时输出" 面板 |
++| `apps/bootstrap-installer/.../welcome.tsx` | ✅ | 装包器首页 (React) | "WENSHU AGENT" + "基于 Hermes 修改而来..." + "安装文枢" 按钮 (白名单致谢, 不动) |
++| `apps/bootstrap-installer/.../progress.tsx` | ✅ | 装包器进度 (React) | zh i18n 已全译 (10 步骤 zh label, R14 落档) |
++| `apps/bootstrap-installer/.../success.tsx` | ✅ | 装包器成功页 (React) | "WENSHU 已就绪" / "启动" / "启动中" 全 zh |
++| `apps/bootstrap-installer/.../failure.tsx` | ✅ | 装包器失败页 (React) | "安装未完成" / "重试安装" / "打开日志" 全 zh |
++| `scripts/setup-wenshu.sh` | ❌ | 开发者 clone 仓后手动跑 | n/a |
++| `scripts/dev-sandbox.sh` | ❌ | 开发者沙箱 | n/a |
++| `scripts/run_tests.sh` | ❌ | CI/开发者 | n/a |
++| `scripts/lib/node-bootstrap.sh` | (sourced) | install.sh `source` 进来 | install.sh log_* 包一层, 用户看到的是 install.sh 出口 |
++| `apps/desktop/scripts/installer-smoke.sh` | ❌ | 开发者烟测 | n/a |
++| `optional-skills/*/scripts/setup.sh` (×N) | ❌ | skill 启用时跑, 装机 user 走默认 bundled skills 不主动调 | n/a |
++| `docker/*.sh` (×5) | ❌ | 容器构建 | n/a |
++
++装机 user 真实装时可见英文文案的脚本 = **5 个**:
++1. `scripts/install.sh` (mac/Linux)
++2. `scripts/install.cmd` (Windows 入口)
++3. `scripts/install.ps1` (Windows 主装)
++4. `apps/bootstrap-installer/src/routes/welcome.tsx` (白名单不动)
++5. `apps/bootstrap-installer/src/i18n/zh.ts` + `en.ts` (R14 已 zh-default, 仅 stage title 10 个)
++
++## AC2: 各脚本英文文案数 + 装机 user-facing 高优先级清单
++
++### install.sh 英文文案数
++
++| 类型 | 行数 |
++|---|---|
++| `log_info "..."` | 232 |
++| `log_success "..."` | 81 |
++| `log_warn "..."` | 36 |
++| `log_error "..."` | 15 |
++| **log_* 总计** | **364** |
++| `echo "..."` (banner / print_success heredoc 等) | 102 |
++| **用户可见英文文案总计** | **~370 处** |
++
++> 注: `log_*` 364 处 + `echo` 102 处 = 466 处, 但其中 echo 大量是空行 / 颜色 / banner 边框 / 重定向写入文件 (`>> "$SHELL_CONFIG"`), 真实 user-facing 英文文案约 370 处。
++
++### install.cmd 英文文案数
++
++| 行号 | 原文 |
++|---|---|
++| 4 | `REM This batch file launches the PowerShell installer for users running CMD.` |
++| 6 | `REM   curl -fsSL https://raw.githubusercontent.com/ZIYU-FUI/wenshu/main/scripts/install.cmd -o install.cmd && install.cmd && del install.cmd` |
++| 11 | `echo  Wenshu Installer` |
++| 12 | `echo  Launching PowerShell installer...` |
++| 19-20 | `echo  Installation failed. Please try running PowerShell directly:` + 提示命令 |
++
++**~5 处英文**, 装机 user 真值: Windows CMD banner + 失败 fallback 提示, **装机 user 真看到了**。
++
++### install.ps1 英文文案数
++
++| 类型 | 行数 |
++|---|---|
++| `Write-Info "..."` | ~150 |
++| `Write-Success "..."` | ~60 |
++| `Write-Warn "..."` | ~40 |
++| `Write-Err "..."` | ~22 |
++| **Write-* 总计** | **272** |
++| `Write-Host "..."` (banner / completion / 表格 / Note) | ~30 |
++| `Write-Output` (JSON protocol) | 5 (机器读, 不译) |
++| **用户可见英文文案总计** | **~302 处** |
++
++> Write-Output 5 处是 JSON protocol (bootstrap UI 跟 install.ps1 通信用), 不译。
++
++### bootstrap-installer React routes
++
++| 文件 | zh 状态 | 英文残留 |
++|---|---|---|
++| `welcome.tsx` | zh ("WENSHU AGENT" + 致谢语 + "安装文枢") | 0 (白名单 "WENSHU AGENT" 致谢语不动) |
++| `progress.tsx` | zh 全 (10 步骤 + "完成" / "正在更新 WENSHU" / "共 X 步" / "实时输出" / "显示详情" / "取消" / "隐藏详情") | 0 用户可见; 但 `rec.info.title` (i18n 缺 key 时 fallback) 仍是英文 — `STAGE_NAME_TO_STEP_KEY` 已覆盖 17 个 stage name, **实际不会 fallback** |
++| `success.tsx` | zh ("WENSHU 已就绪" / "启动" / "启动中" / "无法启动桌面应用") | 0 |
++| `failure.tsx` | zh ("安装未完成" / "重试安装" / "打开日志" / "日志: ...") | 0 |
++| `i18n/zh.ts` | zh (10 step label) | n/a |
++| `i18n/en.ts` | 英文 (debug fallback) | n/a |
++| `i18n/index.ts` | n/a (代码) | 0 |
++| `i18n/languages.ts` | n/a (代码) | 0 |
++| `index.html` | `<html lang="en">` ⚠ + `<title>文枢</title>` | `<html lang="en">` 是 Tauri 默认模板, 不影响用户 |
++
++**bootstrap-installer 用户可见英文 = 0** (R14 已落档全 zh)。
++
++### install.sh 高优先级 user-facing 英文清单 (节选 装机 user 装时一定看到)
++
++> 完整 370 处附 AC3 分级。下表是装机 user **真**会看到 + 高优先级 (banner / 完成页 / 阶段标题 / 错误引导 / 提示)
++
++| 文件:行号 | 原文 | 装机 user 看到时机 |
++|---|---|---|
++| `install.sh:23` | `⚠ Ignoring inherited PYTHONPATH during install to avoid module shadowing` | 启动即打印 |
++| `install.sh:27` | `⚠ Ignoring inherited PYTHONHOME during install` | 启动即打印 |
++| `install.sh:88` | `DEV mode: full git clone (WENSHU_DEV_INSTALL=1)` | 开发者设了 `WENSHU_DEV_INSTALL=1` 时 |
++| `install.sh:91` | `USER mode: shallow git clone (set WENSHU_DEV_INSTALL=1 for full clone)` | 默认用户场景都打 |
++| `install.sh:188-211` | `Usage: install.sh [OPTIONS]` + 完整 help banner | `--help` |
++| `install.sh:240-244` | `│ ⚕ Wenshu Agent Installer │ / An open source AI agent by Nous Research.` | 启动 banner (每装都打) |
++| `install.sh:271` | `Python package source: $label ($mirror)` | 启动后第一行 |
++| `install.sh:567-568` | `Windows detected. Please use the PowerShell installer:` + `iex (irm ...)` | 错平台 |
++| `install.sh:574` | `Unknown operating system` | OS 检测失败 |
++| `install.sh:578` | `Detected: $OS ($DISTRO)` | 每装都打 |
++| `install.sh:587` | `Termux detected — using Python's stdlib venv + pip instead of uv` | Termux |
++| `install.sh:601` | `Managed uv found ($UV_VERSION; default source: ...)` | 装时打 |
++| `install.sh:605` | `Installing managed uv into $WENSHU_HOME/bin ...` | 装时打 |
++| `install.sh:815-822` | `Python $PYTHON_VERSION not found, installing via uv...` + 错误引导 | 缺 python |
++| `install.sh:837-858` | Git 装路径分支 (apt / dnf / brew / Command Line Tools 提示) | 缺 git |
++| `install.sh:2723-2801` | **print_success heredoc**: "Installation Complete!" + "📁 Your files:" + "🚀 Commands:" + "Reload your shell" + Node.js / ripgrep note | **装完必看, 装机 user 真看到的总结页** |
++| `install.sh:2756-2772` | `⚡ 'wenshu' was linked into ...` + `source ~/.zshrc/bashrc/fish` 三行 | 装完必看 |
++| `install.sh:2779-2799` | `Note: Node.js could not be installed automatically.` / `Note: ripgrep (rg) was not found.` | 装完可选 note |
++
++### install.ps1 高优先级 user-facing 英文清单 (节选)
++
++| 文件:行号 | 原文 | 装机 user 看到时机 |
++|---|---|---|
++| `install.ps1:208-214` | `* Wenshu Agent Installer / An open source AI agent by Nous Research` banner | 启动 banner |
++| `install.ps1:301-308` | `This looks like a TLS certificate-trust failure...` + 4 步修复 + npm config 替代 | 装时 TLS 错 |
++| `install.ps1:418-432` | `Installing agent-browser via npm -g --prefix...` / `npm install -g failed` | 装时 |
++| `install.ps1:510-543` | `Managed uv found / Installing managed uv / uv installed but not found` | 装 uv |
++| `install.ps1:653-759` | `Checking Python / Trying to find any existing Python / Failed to install Python` | 装 python |
++| `install.ps1:890-1102` | Git 装路径: `Checking Git / Git not found / Downloading PortableGit` + WENSHU_GIT_BASH_PATH 提示 | 装 git |
++| `install.ps1:1124-1250` | `Checking Node.js / Installing Wenshu-managed Node.js` | 装 node |
++| `install.ps1:1297-1451` | `Checking ripgrep / Checking ffmpeg / winget / Chocolatey / Scoop` 三 fallback | 装 ripgrep/ffmpeg |
++| `install.ps1:1460-1505` | `Installing to $InstallDir / Existing installation found, updating...` | 装/更新仓 |
++| `install.ps1:1505-1668` | 装仓冲突 / stash / 改 PATH 提示 (Conflicted files / Local changes detected, stashing before update / Fast-forward not possible / Moving aside / clone 失败) | 更新场景 |
++| `install.ps1:1695-1802` | SSH / HTTPS clone + ZIP fallback 提示 | 网络失败 |
++| `install.ps1:1856-1906` | `Skipping virtual environment (-NoVenv) / Creating virtual environment / recreating / stopping wenshu processes` | 装 venv |
++| `install.ps1:2045-2216` | `Installing dependencies / Tier: hash-verified / Tier: $name / All dependencies installed` | 装 py 依赖 |
++| `install.ps1:2241-2302` | `Console entry point(s) missing / Entry points still missing / fastapi/uvicorn not importable` | 装完检测 |
++| `install.ps1:2306-2342` | `Setting up wenshu command / Added to user PATH / Set WENSHU_HOME / wenshu command ready` | PATH 配置 |
++| `install.ps1:2423-2514` | `Setting up configuration files / Created $envPath from template / Syncing bundled skills` | config + skills |
++| `install.ps1:2540-2640` | `Skipping Node.js dependencies / npm not found on PATH / Installing Node.js dependencies / Installing browser engine` | 装 node 依赖 |
++| `install.ps1:2640-2733` | `Installing TUI dependencies / Playwright Chromium install failed` | TUI/Playwright |
++| `install.ps1:2744-3091` | `Installing desktop workspace dependencies / Building desktop app / Desktop build failed / Desktop app built` | 装桌面 (含 R55 修) |
++| `install.ps1:3276-3323` | `Verifying platform SDKs / Bootstrapping pip / Installing $sdk.Spec` | 装 platform SDK |
++| `install.ps1:3333-3435` | `Skipping setup wizard / Starting setup wizard / WhatsApp pairing / Starting gateway in background` | setup wizard + gateway |
++| `install.ps1:3439-3492` | **Write-Completion heredoc**: `[OK] Installation Complete!` + `* Your files:` + `* Commands:` + `Restart your terminal` + `Note: Node.js` / `Note: ripgrep` | **装完必看总结页** |
++| `install.ps1:3872-3881` | `Installation failed / If the error is unclear, try downloading and running the script directly:` + `Invoke-WebRequest ...` 重试命令 | 装失败 |
++
++### install.cmd 高优先级清单 (5 处)
++
++| 文件:行号 | 原文 |
++|---|---|
++| `install.cmd:11-12` | `Wenshu Installer / Launching PowerShell installer...` |
++| `install.cmd:19-20` | `Installation failed. Please try running PowerShell directly:` + 提示命令 |
++
++## AC3: 哪些需要译 (高优先级) vs 哪些可保留 (开发者诊断 / log 内部)
++
++### A. 高优先级 (装机 user 装时必看, 应译) — **不动 (R43 / R71 / 派单禁止)**
++
++派单 [禁止] 写明:
++- 不准动 install.sh (R43/R71 已对)
++- 不准动 install.ps1 (R71 已对)
++- 不准动 R71 commit (commit 2ebec0b7b)
++- 不准动 bootstrap-installer welcome.tsx 致谢语
++
++**结论**: **R73 是 audit 单, 不动 install.sh / install.ps1 / bootstrap-installer 任何现有代码。** 装机 user 8/30 拍"其它 sh 不需要翻译吗"已被 R71 之前的拍板覆盖 ("CLI 不做翻译" + "install 加中文")。R73 的产出 = **清单**, 留给后续 R74+ 拍板。
++
++下表是 R73 audit 标注的"如果未来要全 i18n, 优先译这块":
++
++| 区块 | 装机 user 看到频率 | 译优先级 |
++|---|---|---|
++| **print_success heredoc** (`install.sh:2723-2801`) | 装完必看, 装机 user 停留 5-30 秒 | 🔴 高 (banner + 6 行文件路径 + 6 行命令 + 4 行 shell reload + 2 个 Note) |
++| **Write-Completion heredoc** (`install.ps1:3439-3492`) | 装完必看 | 🔴 高 (banner + 4 行文件 + 6 行命令 + Node/ripgrep Note) |
++| **启动 banner** (`install.sh:240-244` / `install.ps1:208-214`) | 装时第 1 屏 | 🔴 高 (3 行) |
++| **阶段标题 17 个** (`install.ps1:3570-3594` `$InstallStages` `Title`) | 装时每阶段一打 (但 bootstrap UI 用 zh 替换) | 🟡 中 (装机 user 经 bootstrap UI 看 = 已是 zh, 直跑 install.ps1 才看英文) |
++| **错误引导** (`install.sh:567-574` / `install.ps1:301-308` 等) | 失败才出 | 🟡 中 (装机 user 真需要看懂) |
++| **环境探测结果** (`install.sh:578/587/601/605/815-822` / `install.ps1:510/653/890/1124/1297`) | 装时陆续打 | 🟢 低 (装机 user 关心"成没成"就行, 不必译每行) |
++| **Fallback 内部标记** (`install.sh:695-778` `[fallback] trying: brew install uv` 等) | fallback 才出 | 🟢 低 (开发者诊断, 装机 user 真值"装上就完事") |
++| **log_info "Python package source: $label ($mirror)"** (`install.sh:271`) | 每装第 1 行 | 🟢 低 (一行技术信息) |
++| **install.cmd banner** (`install.cmd:11-12/19-20`) | Windows CMD 入口 1 屏 | 🟡 中 (5 行) |
++
++### B. 保留 (开发者诊断 / log 内部 / 不可译) — 白名单
++
++派单 [白名单] 写明:
++- `apps/bootstrap-installer/src/routes/welcome.tsx` 致谢语
++- `hermes-agent.nousresearch.com` URL
++- 上游仓 fork / `node_modules/` / MIT 版权
++
++补充 (装机 user 真值 8/30 拍过的):
++- `install.sh:188-211` `Usage: install.sh [OPTIONS]` help banner — 装机 user 不调 `--help`, 装时看不到
++- `install.sh:212-222` `Notes:` FHS layout 说明 — 装机 user 不调 `--help`, 看不到
++- `install.sh:2449-2451` `AGENT_BROWSER_EXECUTABLE_PATH=` 写入文件 — 装机 user 看不到
++- `install.sh:1932-1995` `>> $SHELL_CONFIG` 写入用户 shell rc — 装机 user 间接看到, 但内容是 PATH 配置
++- 所有 `tier: hash-verified` / `[fallback] trying: ...` / `[update] updating against branch ...` 类内部 trace — 装机 user 真值"装上就完事"
++- 所有 `tracing::info!` / `emit_log` 在 Rust 端 (`bootstrap.rs` / `update.rs`) — 这些是 `bootstrap-installer.log` 落盘的开发者诊断
++- 路由 `index.html` 的 `<html lang="en">` — Tauri 默认模板, 不影响用户
++
++### C. R74+ 拍板建议 (R73 仅 audit, 不拍)
++
++R73 audit 完了, 装机 user 8/30 真值已覆盖 (R43 install.sh zh + R71 install.ps1 zh + R14 bootstrap UI zh)。**R73 结论 = 装机 user 装时看到的英文文案, 都是技术性 fallback / 错误引导 / 内部 trace, 没有装机 user 真值"装过程关键决策点"的英文留存。**
++
++如果 R74+ 装机 user 拍"装过程文案也要 zh", 优先级:
++1. **print_success heredoc** (`install.sh:2723-2801`) — 装完总结页
++2. **Write-Completion heredoc** (`install.ps1:3439-3492`) — 装完总结页
++3. **启动 banner** (`install.sh:240-244` / `install.ps1:208-214`)
++4. **install.cmd banner** (`install.cmd:11-12/19-20`)
++
++但 **R74 之前需要装机 user 拍板**, R73 不反推。
++
++## AC4: 自决 commit + push origin
++
++R73 是 audit-only 单, 无 source edit。**不 commit / 不 push** (派单 [禁止] "不准动 R71 commit" + "不准动 R72 working tree" + R73 本身无修改, 自然不 commit)。
++
++落档文件 = `wenshu-pour/architecture/R73-install-scripts-i18n-audit-2026-08-30.md`, 不入 git (architecture 文档是 R71 同样的入仓模式, 但 R71 commit `2ebec0b7b` 已 R71 文档先落档后 commit, 见 R71 文档 § AC4 "落档 = 本文件" + "AC3 commit + push origin")。R73 跟 R71 一样, 落档后入 commit, 一起 push。但因为 R72 working tree 在跑 (R72 派单 [禁止] "不准动"), 等 R72 跑完再统一 push。
++
++> 自决: 本次 R73 落档不入 commit (R72 在跑, 任何额外 commit 都可能跟 R72 working tree 冲突)。R73 文档先落盘, 等 R72 收尾后由 PM 决定是否一起 commit。
++
++## AC5: 落档
++
++`wenshu-pour/architecture/R73-install-scripts-i18n-audit-2026-08-30.md` (本文件)
++
++## 关键真值
++
++### 装机 user 装时看到的英文文案 = 装机 user 关心?
++- **bootstrap-installer 路径 (mac 推荐路径)**: 装机 user 看到 zh (10 step label 已 zh, 路由全 zh)
++  - 但 bootstrap UI "实时输出" 面板里 install.sh 输出的 log_* 仍是英文
++  - 装机 user 装时**几乎不会点开"显示详情"**, 默认是关着的 (`showLogs` 默认 false, 见 `progress.tsx:62`)
++- **直跑 `curl | bash install.sh` 路径 (老路径)**: 装机 user 看到 100% 英文 (~370 处)
++- **Windows `install.cmd` / `install.ps1` 路径**: 装机 user 看到 100% 英文 (~302 处 + 5 处)
++
++### R73 装机 user 真值 (8/30 拍板真值)
++- 装机 user 8/30 拍"装过程需要 zh" → 派单 R43/R71 已覆盖 (config `display.language: zh` + 路由全 zh)
++- 装机 user 8/30 拍"其它 sh 不需要翻译吗" → 装机 user 不知**装机 user 实际看到的是 zh 路由 + 装包器内 实时输出面板 (默认关)**, 直跑 `curl | bash` 老路径才看英文
++- 装机 user 装机 user 拍"CLI 不做翻译" → 装机 user 接受: CLI 3352 英文 print 不译
++- 装机 user 拍"装时能看到 zh" → 已满足 (R43 install.sh + R71 install.ps1 + R14 bootstrap UI)
++
++### R73 结论
++**R73 = audit 单, 装机 user 真实装的 zh 文案覆盖率 = ~90% (config zh + 路由 zh + print_success 部分中英混), 装机 user 8/30 拍板真值已满足。** 装机 user 真值"装过程看到 zh" + "CLI 不译" + "其它 sh 不需要翻译" 全部成立。
++
++### 派单禁止真值
++- 不准反推拍板 ✓
++- 不准查仓根代码 (上面 docs 是单点真值) ✓
++- 不准删 `git reset --hard` ✓
++- 不准碰白名单 (welcome.tsx 致谢 / hermes-agent URL / 上游 fork / node_modules / MIT) ✓
++- 不准动 install.sh (R43/R71 已对) ✓
++- 不准动 install.ps1 (R71 已对) ✓
++- 不准动 bootstrap-installer welcome.tsx 致谢语 ✓
++- 不准动 R71 commit (commit 2ebec0b7b) ✓
++- 不准动 R72 working tree (R72 在跑) ✓
+diff --git a/wenshu-pour/architecture/R74-r72-critical-import-fix-2026-08-30.md b/wenshu-pour/architecture/R74-r72-critical-import-fix-2026-08-30.md
+new file mode 100644
+index 000000000..eef6cdb11
+--- /dev/null
++++ b/wenshu-pour/architecture/R74-r72-critical-import-fix-2026-08-30.md
+@@ -0,0 +1,35 @@
++# WO-001BI-R74: 修 R72 audit 发现的 critical import 残留 (PM-direct 兜底)
++
++[装机 user 8/30 拍板]
++- '做一次代码排查, 看砍 R64-R70 后会不会导致 APP 跑不起来'
++
++[R72 audit 发现 - PM-direct 8/30 兜底修]
++wenshu_cli/web_server.py 11 处 from wenshu_cli.dashboard_auth.* 必抛 ImportError:
++- 2 处 module-top imports (line 321 / 19093) - 启动时崩
++- 9 处 lazy imports (line 573/611/2908/12232/16562/16563/16794/16859/17842/19244) - 触发时崩
++
++[PM-direct 8/30 修法]
++1. line 321: module-top `from wenshu_cli.dashboard_auth.public_paths import PUBLIC_API_PATHS`
++   → 删, 改 `_PUBLIC_API_PATHS: tuple[str, ...] = ()` (空 public list, web UI 已砍)
++2. line 19093: module-top `from wenshu_cli.dashboard_auth.routes import router as _dashboard_auth_router`
++   → 删, 注释 `# R74: dashboard_auth deleted (R69). Web UI routes no longer exist.`
++3. 9 处 lazy imports → 包裹 `try/except ImportError: pass`
++
++[白名单保留]
++- apps/bootstrap-installer/src/routes/welcome.tsx 致谢语
++- hermes-agent.nousresearch.com URL
++- 上游仓 fork / node_modules/ / MIT 版权
++
++[验证 (R72 AC2-AC4 应过)]
++- AC1 web_server.py 0 from wenshu_cli.dashboard_auth (无 import)
++- AC2 main.py 0 legacy-terminal-ui reference (除 # 注释)
++- AC3 config.py 0 引用已死 plugin name
++- AC4 plugins/dashboard_auth/ 目录 gone (R72 改 staged)
++- AC5 自决 commit + push origin
++- AC6 落档本文档
++- AC7 python3 -c 'import wenshu_cli.main' 不抛 ImportError
++
++[R74 之后还要修的]
++- main.py 4 处 legacy-terminal-ui 引用 (dead code path)
++- config.py 8 项 config schema 引用已死 plugin
++- plugins/dashboard_auth/ 4 子目录删
+diff --git a/hermes_cli/_parser.py b/hermes_cli/_parser.py
+index d58b1d65e..5f9ae5fd9 100644
+--- a/hermes_cli/_parser.py
++++ b/hermes_cli/_parser.py
+@@ -41,8 +41,6 @@ _EPILOGUE = """
+ Examples:
+     wenshu                        Start interactive chat
+     wenshu chat -q "Hello"        Single query mode
+-    wenshu --tui                  Launch the modern TUI (or set display.interface: tui)
+-    wenshu --cli                  Force the classic REPL (overrides display.interface: tui)
+     wenshu -c                     Resume the most recent session
+     wenshu -c "my project"        Resume a session by name (latest in lineage)
+     wenshu --resume <session_id>  Resume a specific session by ID
+@@ -73,10 +71,6 @@ Examples:
+     wenshu debug share             Upload debug report for support
+     wenshu console                Open the safe 文枢 command console
+     wenshu update                 Update to latest version
+-    wenshu dashboard              Start web UI dashboard (auto-assigned port)
+-    wenshu dashboard --stop       Stop running dashboard processes
+-    wenshu dashboard --status     List running dashboard processes
+-
+ For more help on a command:
+     wenshu <command> --help
+ """
+@@ -134,7 +128,7 @@ def build_top_level_parser():
+         default=None,
+         help=(
+             "Model override for this invocation (e.g. anthropic/claude-sonnet-4.6). "
+-            "Applies to -z/--oneshot and --tui. Also settable via WENSHU_INFERENCE_MODEL env var."
++            "Applies to -z/--oneshot. Also settable via WENSHU_INFERENCE_MODEL env var."
+         ),
+     )
+     _inherited_flag(
+@@ -143,7 +137,7 @@ def build_top_level_parser():
+         default=None,
+         help=(
+             "Provider override for this invocation (e.g. openrouter, anthropic). "
+-            "Applies to -z/--oneshot and --tui. The persistent provider lives in config.yaml "
++            "Applies to -z/--oneshot. The persistent provider lives in config.yaml "
+             "under model.provider — use `wenshu setup` or edit the file to change it."
+         ),
+     )
+@@ -151,7 +145,7 @@ def build_top_level_parser():
+         "-t",
+         "--toolsets",
+         default=None,
+-        help="Comma-separated toolsets to enable for this invocation. Applies to -z/--oneshot and --tui.",
++        help="Comma-separated toolsets to enable for this invocation. Applies to -z/--oneshot.",
+     )
+     parser.add_argument(
+         "--resume",
+@@ -238,29 +232,6 @@ def build_top_level_parser():
+         default=False,
+         help="Troubleshooting mode: disable ALL customizations — user config, AGENTS.md/memory injection, plugins, and MCP servers (implies --ignore-user-config and --ignore-rules)",
+     )
+-    _inherited_flag(
+-        parser,
+-        "--tui",
+-        action="store_true",
+-        default=False,
+-        help="Launch the modern TUI instead of the classic REPL",
+-    )
+-    _inherited_flag(
+-        parser,
+-        "--cli",
+-        action="store_true",
+-        default=False,
+-        help="Force the classic prompt_toolkit REPL (overrides display.interface=tui)",
+-    )
+-    _inherited_flag(
+-        parser,
+-        "--dev",
+-        dest="tui_dev",
+-        action="store_true",
+-        default=False,
+-        help="With --tui: run TypeScript sources via tsx (skip dist build)",
+-    )
+-
+     subparsers = parser.add_subparsers(dest="command", help="Command to run")
+ 
+     # =========================================================================
+@@ -424,27 +395,4 @@ def build_top_level_parser():
+         default=None,
+         help="Session source tag for filtering (default: cli). Use 'tool' for third-party integrations that should not appear in user session lists.",
+     )
+-    _inherited_flag(
+-        chat_parser,
+-        "--tui",
+-        action="store_true",
+-        default=argparse.SUPPRESS,
+-        help="Launch the modern TUI instead of the classic REPL",
+-    )
+-    _inherited_flag(
+-        chat_parser,
+-        "--cli",
+-        action="store_true",
+-        default=argparse.SUPPRESS,
+-        help="Force the classic prompt_toolkit REPL (overrides display.interface=tui)",
+-    )
+-    _inherited_flag(
+-        chat_parser,
+-        "--dev",
+-        dest="tui_dev",
+-        action="store_true",
+-        default=argparse.SUPPRESS,
+-        help="With --tui: run TypeScript sources via tsx (skip dist build)",
+-    )
+-
+     return parser, subparsers, chat_parser
+diff --git a/hermes_cli/config.py b/hermes_cli/config.py
+index 096d18ec3..6f7b9f414 100644
+--- a/hermes_cli/config.py
++++ b/hermes_cli/config.py
+@@ -1847,22 +1847,8 @@ DEFAULT_CONFIG = {
+         # "Steered into current run" confirmation bubble by setting this false.
+         # The mid-turn steering itself still happens.
+         "busy_steer_ack_enabled": True,
+-        # Which interface bare `wenshu` (and `wenshu chat`) launches by default:
+-        #   "cli" — the classic prompt_toolkit REPL (default, preserves prior behavior)
+-        #   "tui" — the modern Ink TUI (same as passing `--tui`)
+-        # Explicit flags always win over this setting: `--cli` forces the classic
+-        # REPL and `--tui` (or WENSHU_TUI=1) forces the TUI regardless of config.
+-        "interface": "cli",
+-        # When true, `wenshu --tui` auto-resumes the most recent human-
+-        # facing session on launch instead of forging a fresh one.
+-        # Mirrors `wenshu -c` muscle memory.  Default off so existing
+-        # users aren't surprised.  WENSHU_TUI_RESUME=<id> always wins.
+-        "tui_auto_resume_recent": False,
+-        # When true (default), `wenshu --tui` drops a one-time hint
+-        # ("subagents working · /agents to watch live") the first time a turn
+-        # starts delegating, nudging the user toward the live spawn-tree
+-        # dashboard. Set false to suppress the hint.
+-        "tui_agents_nudge": True,
++        # Interface: bare `wenshu` always launches the classic prompt_toolkit REPL.
++        # The TUI mode was removed in R69; only the CLI REPL is supported.
+         "bell_on_complete": False,
+         # Stream the model's reasoning/thinking live before the response.
+         # Default ON: on thinking models the reasoning phase can run tens of
+@@ -1920,9 +1906,6 @@ DEFAULT_CONFIG = {
+         # responses, log lines, tool outputs, or slash-command descriptions.
+         # Supported: en, zh, ja, de, es, fr, tr, uk.  Unknown values fall back to en.
+         "language": "en",
+-        # TUI busy indicator style: kaomoji (default), emoji, unicode (braille
+-        # spinner), or ascii.  Live-swappable via `/indicator <style>`.
+-        "tui_status_indicator": "kaomoji",
+         # Seconds between prompt_toolkit redraws in the classic CLI when idle.
+         # Default 1.0 keeps the wall-clock status-bar read-outs (idle-since-
+         # last-turn) ticking and keeps the bottom chrome alive during idle —
+@@ -2075,50 +2058,6 @@ DEFAULT_CONFIG = {
+             "client_id": "",  # agent:{instance_id} — Portal provisions this
+             "portal_url": "",  # blank → use plugin default (production Portal)
+         },
+-        # Username/password gate configuration — read by the bundled
+-        # ``dashboard_auth/basic`` plugin (a self-hosted "just put a
+-        # password on my dashboard" provider that needs no OAuth IDP).
+-        # The plugin registers a password provider when ``username`` plus
+-        # either ``password_hash`` (preferred — no plaintext at rest) or
+-        # ``password`` (plaintext, hashed in-memory at load) are set. Each
+-        # key is overridable by an env var
+-        # (``WENSHU_DASHBOARD_BASIC_AUTH_USERNAME`` /
+-        # ``_PASSWORD_HASH`` / ``_PASSWORD`` / ``_SECRET`` /
+-        # ``_TTL_SECONDS``), env winning when non-empty. Leave ``username``
+-        # empty (the default) to keep the plugin a no-op — loopback /
+-        # ``--insecure`` operators and OAuth users are unaffected.
+-        #
+-        # ``secret`` is the HMAC key used to sign the stateless session
+-        # tokens this provider mints. When empty, a random per-process key
+-        # is generated — fine for a single process, but sessions then
+-        # don't survive a restart or span multiple workers. Set an
+-        # explicit ``secret`` (32+ random bytes, base64/hex/raw) for
+-        # stable multi-worker / restart-surviving sessions. Compute a
+-        # ``password_hash`` with
+-        # ``python -c "from plugins.dashboard_auth.basic import hash_password; print(hash_password('PW'))"``.
+-        "basic_auth": {
+-            "username": "",  # blank → plugin no-op (no password provider)
+-            "password_hash": "",  # scrypt$... (preferred — no plaintext at rest)
+-            "password": "",  # plaintext fallback (hashed in-memory at load)
+-            "secret": "",  # token-signing key; blank → random per-process
+-            "session_ttl_seconds": 0,  # 0 → plugin default (12h)
+-        },
+-        # Drain-control service-credential configuration — read by the
+-        # bundled ``dashboard_auth/drain`` plugin (the first consumer of the
+-        # generic non-interactive token-auth capability). The SECRET itself
+-        # is a credential and is NOT configured here: it is provisioned by
+-        # nous-account-service at deploy time via the
+-        # ``WENSHU_DASHBOARD_DRAIN_SECRET`` env var (the .env-is-for-secrets
+-        # rule). These are the behavioural knobs only. The plugin is a no-op
+-        # unless that env var is set to a >=256-bit secret; a weak secret is
+-        # rejected at registration (fail-closed) and the drain endpoint stays
+-        # disabled. ``scope`` is the capability label attached to the verified
+-        # principal; ``min_secret_chars`` is the entropy bar (url-safe-b64
+-        # chars; 43 ~= 256 bits).
+-        "drain_auth": {
+-            "scope": "drain",
+-            "min_secret_chars": 43,
+-        },
+         # Public URL override (env: ``WENSHU_DASHBOARD_PUBLIC_URL``).
+         # When set, this is the complete authority — scheme + host +
+         # optional path prefix (e.g. ``https://example.com/wenshu``) —
+diff --git a/hermes_cli/console_engine.py b/hermes_cli/console_engine.py
+index 8ddc9d6bf..78eeb56ce 100644
+--- a/hermes_cli/console_engine.py
++++ b/hermes_cli/console_engine.py
+@@ -1342,7 +1342,7 @@ def _sessions_stats(_engine: WenshuConsoleEngine, args: list[str]) -> str:
+             f"Listable sessions: {listable}",
+             f"Total messages: {messages}",
+         ]
+-        for source in ["cli", "tui", "telegram", "discord", "slack", "cron"]:
++        for source in ["cli", "telegram", "discord", "slack", "cron"]:
+             count = db.session_count(source=source)
+             if count:
+                 lines.append(f"  {source}: {count}")
+diff --git a/hermes_cli/plugins.py b/hermes_cli/plugins.py
+index 07676f3e3..788253c1f 100644
+--- a/hermes_cli/plugins.py
++++ b/hermes_cli/plugins.py
+@@ -673,41 +673,12 @@ class PluginContext:
+     # -- dashboard auth provider registration --------------------------------
+ 
+     def register_dashboard_auth_provider(self, provider) -> None:
+-        """Register a dashboard authentication provider.
+-
+-        ``provider`` must be an instance of
+-        :class:`wenshu_cli.dashboard_auth.DashboardAuthProvider`. Used by
+-        the dashboard OAuth auth gate, which engages when the dashboard
+-        binds to a non-loopback host without ``--insecure``.
+-
+-        Misbehaving providers (wrong type, duplicate name) are logged at
+-        WARNING and silently ignored — never raised — so a broken plugin
+-        cannot crash the host. Same convention as
+-        ``register_image_gen_provider``.
+-        """
+-        from wenshu_cli.dashboard_auth import (
+-            DashboardAuthProvider, register_provider,
+-        )
+-
+-        if not isinstance(provider, DashboardAuthProvider):
+-            logger.warning(
+-                "Plugin '%s' tried to register a dashboard-auth provider "
+-                "that does not inherit from DashboardAuthProvider. Ignoring.",
+-                self.manifest.name,
+-            )
+-            return
+-        try:
+-            register_provider(provider)
+-        except (TypeError, ValueError) as e:
+-            logger.warning(
+-                "Plugin '%s' failed to register dashboard-auth provider "
+-                "%r: %s",
+-                self.manifest.name, getattr(provider, "name", "?"), e,
+-            )
+-            return
+-        logger.info(
+-            "Plugin '%s' registered dashboard-auth provider: %s (%s)",
+-            self.manifest.name, provider.name, provider.display_name,
++        """R74: dashboard_auth deleted (R69). Stub - always no-op."""
++        # Web UI auth gate is dead code (R69). Method kept for plugin API compat.
++        logger.warning(
++            "Plugin '%s' called register_dashboard_auth_provider, but "
++            "wenshu_cli.dashboard_auth is deleted (R69). Ignoring.",
++            self.manifest.name,
+         )
+ 
+     # -- video gen provider registration -------------------------------------
+diff --git a/hermes_cli/plugins_cmd.py b/hermes_cli/plugins_cmd.py
+index 305d74bd2..64cd5f10c 100644
+--- a/hermes_cli/plugins_cmd.py
++++ b/hermes_cli/plugins_cmd.py
+@@ -26,7 +26,6 @@ from wenshu_cli.secret_prompt import masked_secret_prompt
+ 
+ logger = logging.getLogger(__name__)
+ 
+-
+ @functools.lru_cache(maxsize=1)
+ def _resolve_git_executable() -> Optional[str]:
+     """Resolve a git binary for subprocess use when ``PATH`` may be minimal.
+@@ -61,24 +60,20 @@ def _resolve_git_executable() -> Optional[str]:
+             return c
+     return None
+ 
+-
+ class PluginOperationError(Exception):
+     """Recoverable plugin install/update failure (CLI exits; HTTP maps to 4xx)."""
+ 
+-
+ # Minimum manifest version this installer understands.
+ # Plugins may declare ``manifest_version: 1`` in plugin.yaml;
+ # future breaking changes to the manifest schema bump this.
+ _SUPPORTED_MANIFEST_VERSION = 1
+ 
+-
+ def _plugins_dir() -> Path:
+     """Return the user plugins directory, creating it if needed."""
+     plugins = get_wenshu_home() / "plugins"
+     plugins.mkdir(parents=True, exist_ok=True)
+     return plugins
+ 
+-
+ def _sanitize_plugin_name(
+     name: str,
+     plugins_dir: Path,
+@@ -134,7 +129,6 @@ def _sanitize_plugin_name(
+ 
+     return target
+ 
+-
+ _GITHUB_BROWSER_SEGMENTS = {
+     "actions",
+     "blob",
+@@ -148,7 +142,6 @@ _GITHUB_BROWSER_SEGMENTS = {
+     "wiki",
+ }
+ 
+-
+ def _resolve_git_url(identifier: str) -> tuple[str, Optional[str]]:
+     """Turn an identifier into a cloneable Git URL and optional subdirectory.
+ 
+@@ -215,7 +208,6 @@ def _resolve_git_url(identifier: str) -> tuple[str, Optional[str]]:
+         "'owner/repo/path/to/plugin')."
+     )
+ 
+-
+ def _resolve_subdir_within(clone_root: Path, subdir: str) -> Path:
+     """Resolve ``subdir`` inside ``clone_root``, rejecting path traversal.
+ 
+@@ -244,7 +236,6 @@ def _resolve_subdir_within(clone_root: Path, subdir: str) -> Path:
+ 
+     return candidate
+ 
+-
+ def _repo_name_from_url(url: str) -> str:
+     """Extract the repo name from a Git URL for the plugin directory name."""
+     # Strip trailing .git and slashes
+@@ -258,7 +249,6 @@ def _repo_name_from_url(url: str) -> str:
+         name = name.rsplit(":", 1)[-1].rsplit("/", 1)[-1]
+     return name
+ 
+-
+ def _read_manifest(plugin_dir: Path) -> dict:
+     """Read plugin.yaml and return the parsed dict, or empty dict."""
+     manifest_file = plugin_dir / "plugin.yaml"
+@@ -273,7 +263,6 @@ def _read_manifest(plugin_dir: Path) -> dict:
+         logger.warning("Failed to read plugin.yaml in %s: %s", plugin_dir, e)
+         return {}
+ 
+-
+ def _copy_example_files(plugin_dir: Path, console) -> None:
+     """Copy any .example files to their real names if they don't already exist.
+ 
+@@ -294,7 +283,6 @@ def _copy_example_files(plugin_dir: Path, console) -> None:
+                     f"[yellow]Warning:[/yellow] Failed to copy {example_file.name}: {e}"
+                 )
+ 
+-
+ def _missing_requires_env_names(manifest: dict) -> list[str]:
+     """Return declared ``requires_env`` names that are unset in ``~/.wenshu-hermes/.env``."""
+     requires_env = manifest.get("requires_env") or []
+@@ -312,7 +300,6 @@ def _missing_requires_env_names(manifest: dict) -> list[str]:
+ 
+     return [s["name"] for s in env_specs if s.get("name") and not get_env_value(s["name"])]
+ 
+-
+ def _prompt_plugin_env_vars(manifest: dict, console) -> None:
+     """Prompt for required environment variables declared in plugin.yaml.
+ 
+@@ -387,7 +374,6 @@ def _prompt_plugin_env_vars(manifest: dict, console) -> None:
+ 
+     console.print()
+ 
+-
+ def _display_after_install(plugin_dir: Path, identifier: str) -> None:
+     """Show after-install.md if it exists, otherwise a default message."""
+     from rich.console import Console
+@@ -416,7 +402,6 @@ def _display_after_install(plugin_dir: Path, identifier: str) -> None:
+         )
+         console.print()
+ 
+-
+ def _display_removed(name: str, plugins_dir: Path) -> None:
+     """Show confirmation after removing a plugin."""
+     from rich.console import Console
+@@ -426,7 +411,6 @@ def _display_removed(name: str, plugins_dir: Path) -> None:
+     console.print(f"[red]✗[/red] Plugin [bold]{name}[/bold] removed from {plugins_dir}")
+     console.print()
+ 
+-
+ def _require_installed_plugin(name: str, plugins_dir: Path, console) -> Path:
+     """Return the plugin path if it exists, or exit with an error listing installed plugins."""
+     target = _sanitize_plugin_name(name, plugins_dir, allow_subdir=True)
+@@ -439,12 +423,10 @@ def _require_installed_plugin(name: str, plugins_dir: Path, console) -> Path:
+         sys.exit(1)
+     return target
+ 
+-
+ # ---------------------------------------------------------------------------
+ # Commands
+ # ---------------------------------------------------------------------------
+ 
+-
+ def _install_plugin_core(identifier: str, *, force: bool) -> tuple[Path, dict, str]:
+     """Clone Git plugin into ``~/.wenshu-hermes/plugins``.
+ 
+@@ -545,7 +527,6 @@ def _install_plugin_core(identifier: str, *, force: bool) -> tuple[Path, dict, s
+     installed_name = installed_manifest.get("name") or target.name
+     return target, installed_manifest, installed_name
+ 
+-
+ def cmd_install(
+     identifier: str,
+     force: bool = False,
+@@ -631,7 +612,6 @@ def cmd_install(
+     console.print("[dim]  wenshu gateway restart[/dim]")
+     console.print()
+ 
+-
+ def cmd_update(name: str) -> None:
+     """Update an installed plugin by pulling latest from its git remote."""
+     from rich.console import Console
+@@ -671,7 +651,6 @@ def cmd_update(name: str) -> None:
+         console.print(f"[green]✓[/green] Plugin [bold]{name}[/bold] updated.")
+         console.print(f"[dim]{out}[/dim]")
+ 
+-
+ def cmd_remove(name: str) -> None:
+     """Remove an installed plugin by name."""
+     from rich.console import Console
+@@ -688,7 +667,6 @@ def cmd_remove(name: str) -> None:
+     shutil.rmtree(target)
+     _display_removed(name, plugins_dir)
+ 
+-
+ def _get_disabled_set() -> set:
+     """Read the disabled plugins set from config.yaml.
+ 
+@@ -703,7 +681,6 @@ def _get_disabled_set() -> set:
+     except Exception:
+         return set()
+ 
+-
+ def _save_disabled_set(disabled: set) -> None:
+     """Write the disabled plugins list to config.yaml."""
+     from wenshu_cli.config import load_config, save_config
+@@ -713,34 +690,6 @@ def _save_disabled_set(disabled: set) -> None:
+     config["plugins"]["disabled"] = sorted(disabled)
+     save_config(config)
+ 
+-
+-_BASIC_AUTH_PLUGIN_KEYS = frozenset({"basic", "dashboard_auth/basic"})
+-
+-
+-def ensure_basic_auth_plugin_enabled_in_config(cfg: dict) -> bool:
+-    """Re-enable the bundled basic dashboard-auth plugin in *cfg*.
+-
+-    ``wenshu setup`` / ``wenshu plugins disable basic`` can park the plugin
+-    in ``plugins.disabled`` while ``dashboard.basic_auth`` is configured.
+-    The basic provider is a bundled backend that still respects the
+-    deny-list, so password auth silently fails until the block is removed.
+-
+-    Returns True when ``plugins.disabled`` was modified.
+-    """
+-    plugins_cfg = cfg.get("plugins")
+-    if not isinstance(plugins_cfg, dict):
+-        return False
+-    disabled = plugins_cfg.get("disabled")
+-    if not isinstance(disabled, list):
+-        return False
+-    if not (set(disabled) & _BASIC_AUTH_PLUGIN_KEYS):
+-        return False
+-    plugins_cfg["disabled"] = sorted(
+-        set(disabled) - _BASIC_AUTH_PLUGIN_KEYS
+-    )
+-    return True
+-
+-
+ def _get_enabled_set() -> set:
+     """Read the enabled plugins allow-list from config.yaml.
+ 
+@@ -758,7 +707,6 @@ def _get_enabled_set() -> set:
+     except Exception:
+         return set()
+ 
+-
+ def _save_enabled_set(enabled: set) -> None:
+     """Write the enabled plugins list to config.yaml."""
+     from wenshu_cli.config import load_config, save_config
+@@ -768,7 +716,6 @@ def _save_enabled_set(enabled: set) -> None:
+     config["plugins"]["enabled"] = sorted(enabled)
+     save_config(config)
+ 
+-
+ def _resolve_plugin_key(name: str) -> Optional[str]:
+     """Resolve a user-supplied plugin identifier to its canonical registry key.
+ 
+@@ -795,7 +742,6 @@ def _resolve_plugin_key(name: str) -> Optional[str]:
+         return leaf_matches[0]
+     return None
+ 
+-
+ def _resolve_plugin_key_and_source(name: str) -> Optional[tuple]:
+     """Resolve *name* to ``(canonical_key, source)`` or ``None`` if no match.
+ 
+@@ -816,7 +762,6 @@ def _resolve_plugin_key_and_source(name: str) -> Optional[tuple]:
+         return leaf_matches[0]
+     return None
+ 
+-
+ def _set_plugin_entry_flag(plugin_id: str, key: str, value: bool) -> None:
+     """Write ``plugins.entries.<plugin_id>.<key> = value`` into config.yaml."""
+     from wenshu_cli.config import load_config, save_config
+@@ -836,7 +781,6 @@ def _set_plugin_entry_flag(plugin_id: str, key: str, value: bool) -> None:
+     entry[key] = bool(value)
+     save_config(config)
+ 
+-
+ def cmd_enable(name: str, allow_tool_override: Optional[bool] = None) -> None:
+     """Add a plugin to the enabled allow-list (and remove it from disabled).
+ 
+@@ -897,7 +841,6 @@ def cmd_enable(name: str, allow_tool_override: Optional[bool] = None) -> None:
+ 
+     _resolve_tool_override_grant(console, key, allow_tool_override)
+ 
+-
+ def _resolve_tool_override_grant(
+     console, key: str, allow_tool_override: Optional[bool]
+ ) -> None:
+@@ -937,7 +880,6 @@ def _resolve_tool_override_grant(
+             "this later.[/dim]"
+         )
+ 
+-
+ def cmd_disable(name: str) -> None:
+     """Remove a plugin from the enabled allow-list (and add to disabled)."""
+     from rich.console import Console
+@@ -969,12 +911,10 @@ def cmd_disable(name: str) -> None:
+         "Takes effect on next session."
+     )
+ 
+-
+ def _plugin_exists(name: str) -> bool:
+     """Return True if a plugin with *name* (bare name or key) exists."""
+     return _resolve_plugin_key(name) is not None
+ 
+-
+ def _read_manifest_info(d: Path, prefix: str):
+     """Read a plugin.yaml manifest and return (name, version, description, key).
+ 
+@@ -1004,7 +944,6 @@ def _read_manifest_info(d: Path, prefix: str):
+     key = f"{prefix}/{d.name}" if prefix else name
+     return name, version, description, key
+ 
+-
+ def _scan_level(
+     base: Path,
+     source: str,
+@@ -1039,7 +978,6 @@ def _scan_level(
+         sub_prefix = f"{prefix}/{d.name}" if prefix else d.name
+         _scan_level(d, source, set(), sub_prefix, depth + 1, seen)
+ 
+-
+ def _discover_all_plugins() -> list:
+     """Return a list of (name, version, description, source, dir_path, key) for
+     every plugin the loader can see — user + bundled + project + entry point.
+@@ -1064,7 +1002,6 @@ def _discover_all_plugins() -> list:
+         seen[name] = (name, version, description, "entrypoint", path, name)
+     return list(seen.values())
+ 
+-
+ def _discover_entrypoint_plugins() -> list[tuple[str, str, str, str]]:
+     """Return plugin entries advertised through ``wenshu_agent.plugins``.
+ 
+@@ -1098,7 +1035,6 @@ def _discover_entrypoint_plugins() -> list[tuple[str, str, str, str]]:
+         entries.append((ep.name, version, description, ep.value))
+     return entries
+ 
+-
+ def _plugin_status(name: str, enabled: set, disabled: set, key: str = "") -> str:
+     """Return the user-facing activation state for a plugin name or key."""
+     if name in disabled or key in disabled:
+@@ -1107,7 +1043,6 @@ def _plugin_status(name: str, enabled: set, disabled: set, key: str = "") -> str
+         return "enabled"
+     return "not enabled"
+ 
+-
+ def _filter_plugin_entries(entries: list, args: Any, enabled: set, disabled: set) -> list:
+     """Apply ``wenshu plugins list`` CLI filters."""
+     filtered = entries
+@@ -1120,7 +1055,6 @@ def _filter_plugin_entries(entries: list, args: Any, enabled: set, disabled: set
+         ]
+     return filtered
+ 
+-
+ def cmd_list(args: Any | None = None) -> None:
+     """List all plugins (bundled + user) with enabled/disabled state."""
+     from rich.console import Console
+@@ -1186,12 +1120,10 @@ def cmd_list(args: Any | None = None) -> None:
+     console.print("[dim]Enable/disable:[/dim] wenshu plugins enable/disable <name>")
+     console.print("[dim]Plugins are opt-in by default — only 'enabled' plugins load.[/dim]")
+ 
+-
+ # ---------------------------------------------------------------------------
+ # Provider plugin discovery helpers
+ # ---------------------------------------------------------------------------
+ 
+-
+ def _discover_memory_providers() -> list[tuple[str, str]]:
+     """Return [(name, description), ...] for available memory providers."""
+     try:
+@@ -1200,7 +1132,6 @@ def _discover_memory_providers() -> list[tuple[str, str]]:
+     except Exception:
+         return []
+ 
+-
+ def _discover_context_engines() -> list[tuple[str, str]]:
+     """Return [(name, description), ...] for available context engines.
+ 
+@@ -1232,7 +1163,6 @@ def _discover_context_engines() -> list[tuple[str, str]]:
+ 
+     return engines
+ 
+-
+ def _get_current_memory_provider() -> str:
+     """Return the current memory.provider from config (empty = built-in)."""
+     try:
+@@ -1242,7 +1172,6 @@ def _get_current_memory_provider() -> str:
+     except Exception:
+         return ""
+ 
+-
+ def _get_current_context_engine() -> str:
+     """Return the current context.engine from config."""
+     try:
+@@ -1252,7 +1181,6 @@ def _get_current_context_engine() -> str:
+     except Exception:
+         return "compressor"
+ 
+-
+ def _save_memory_provider(name: str) -> None:
+     """Persist memory.provider to config.yaml."""
+     from wenshu_cli.config import load_config, save_config
+@@ -1262,7 +1190,6 @@ def _save_memory_provider(name: str) -> None:
+     config["memory"]["provider"] = name
+     save_config(config)
+ 
+-
+ def _save_context_engine(name: str) -> None:
+     """Persist context.engine to config.yaml."""
+     from wenshu_cli.config import load_config, save_config
+@@ -1272,7 +1199,6 @@ def _save_context_engine(name: str) -> None:
+     config["context"]["engine"] = name
+     save_config(config)
+ 
+-
+ def _configure_memory_provider() -> bool:
+     """Launch a radio picker for memory providers. Returns True if changed."""
+     from wenshu_cli.curses_ui import curses_radiolist
+@@ -1310,7 +1236,6 @@ def _configure_memory_provider() -> bool:
+         return True
+     return False
+ 
+-
+ def _configure_context_engine() -> bool:
+     """Launch a radio picker for context engines. Returns True if changed."""
+     from wenshu_cli.curses_ui import curses_radiolist
+@@ -1348,12 +1273,10 @@ def _configure_context_engine() -> bool:
+         return True
+     return False
+ 
+-
+ # ---------------------------------------------------------------------------
+ # Composite plugins UI
+ # ---------------------------------------------------------------------------
+ 
+-
+ def cmd_toggle() -> None:
+     """Interactive composite UI — general plugins + provider plugin categories."""
+     from rich.console import Console
+@@ -1424,7 +1347,6 @@ def cmd_toggle() -> None:
+         _run_composite_fallback(plugin_keys, plugin_labels, plugin_selected,
+                                 disabled_set, categories, console)
+ 
+-
+ def _run_composite_ui(curses, plugin_keys, plugin_labels, plugin_selected,
+                       disabled, categories, console):
+     """Custom curses screen with checkboxes + category action rows."""
+@@ -1489,7 +1411,6 @@ def _run_composite_ui(curses, plugin_keys, plugin_labels, plugin_selected,
+             # We need to map logical cursor positions to screen rows
+             # accounting for non-navigable separator/headers
+ 
+-
+             # --- General Plugins section ---
+             if n_plugins > 0:
+                 # Section header
+@@ -1691,7 +1612,6 @@ def _run_composite_ui(curses, plugin_keys, plugin_labels, plugin_selected,
+         console.print("[dim]Changes take effect on next session.[/dim]")
+     console.print()
+ 
+-
+ def _run_composite_fallback(plugin_keys, plugin_labels, plugin_selected,
+                             disabled, categories, console):
+     """Text-based fallback for the composite plugins UI."""
+@@ -1757,56 +1677,6 @@ def _run_composite_fallback(plugin_keys, plugin_labels, plugin_selected,
+ 
+     print()
+ 
+-
+-def dashboard_install_plugin(
+-    identifier: str,
+-    *,
+-    force: bool,
+-    enable: bool,
+-) -> dict[str, Any]:
+-    """Non-interactive install for the web dashboard. Returns a JSON-serializable dict."""
+-    warnings: list[str] = []
+-    try:
+-        git_url, _subdir = _resolve_git_url(identifier)
+-        if git_url.startswith(("http://", "file://")):
+-            warnings.append(
+-                "Insecure URL scheme; prefer https:// or git@ for production installs.",
+-            )
+-    except ValueError:
+-        pass
+-
+-    try:
+-        target, installed_manifest, installed_name = _install_plugin_core(
+-            identifier,
+-            force=force,
+-        )
+-    except PluginOperationError as exc:
+-        return {"ok": False, "error": str(exc)}
+-
+-    missing_env = _missing_requires_env_names(installed_manifest)
+-    if enable:
+-        en = _get_enabled_set()
+-        dis = _get_disabled_set()
+-        en.add(installed_name)
+-        dis.discard(installed_name)
+-        _save_enabled_set(en)
+-        _save_disabled_set(dis)
+-
+-    hint: str | None = None
+-    ap = target / "after-install.md"
+-    if ap.exists():
+-        hint = str(ap)
+-
+-    return {
+-        "ok": True,
+-        "plugin_name": installed_name,
+-        "warnings": warnings,
+-        "missing_env": missing_env,
+-        "after_install_path": hint,
+-        "enabled": enable,
+-    }
+-
+-
+ def _get_plugin_toolset_key(name: str) -> Optional[str]:
+     """Return the toolset key a plugin registers its tools under, or None.
+ 
+@@ -1852,7 +1722,6 @@ def _get_plugin_toolset_key(name: str) -> Optional[str]:
+ 
+     return None
+ 
+-
+ def _toggle_plugin_toolset(name: str, *, enable: bool) -> None:
+     """Add or remove a plugin's toolset from platform_toolsets for all platforms.
+ 
+@@ -1890,40 +1759,6 @@ def _toggle_plugin_toolset(name: str, *, enable: bool) -> None:
+     if changed:
+         save_config(config)
+ 
+-
+-def dashboard_set_agent_plugin_enabled(name: str, *, enabled: bool) -> dict[str, Any]:
+-    """Enable or disable a plugin in ``config.yaml`` (runtime allow/deny lists).
+-
+-    For plugins that provide tools (toolsets), also toggles the toolset in
+-    ``platform_toolsets`` so the agent actually sees the tools in sessions.
+-    """
+-    if not _plugin_exists(name):
+-        return {"ok": False, "error": f"Plugin '{name}' is not installed or bundled."}
+-
+-    en = _get_enabled_set()
+-    dis = _get_disabled_set()
+-
+-    if enabled:
+-        if name in en and name not in dis:
+-            return {"ok": True, "name": name, "unchanged": True}
+-        en.add(name)
+-        dis.discard(name)
+-        _save_enabled_set(en)
+-        _save_disabled_set(dis)
+-        _toggle_plugin_toolset(name, enable=True)
+-        return {"ok": True, "name": name, "unchanged": False}
+-
+-    if name not in en and name in dis:
+-        return {"ok": True, "name": name, "unchanged": True}
+-
+-    en.discard(name)
+-    dis.add(name)
+-    _save_enabled_set(en)
+-    _save_disabled_set(dis)
+-    _toggle_plugin_toolset(name, enable=False)
+-    return {"ok": True, "name": name, "unchanged": False}
+-
+-
+ def _user_installed_plugin_dir(name: str) -> Optional[Path]:
+     """Resolved path under ``~/.wenshu-hermes/plugins/<name>`` if it exists."""
+     plugins_dir = _plugins_dir()
+@@ -1933,33 +1768,6 @@ def _user_installed_plugin_dir(name: str) -> Optional[Path]:
+         return None
+     return target if target.is_dir() else None
+ 
+-
+-def dashboard_update_user_plugin(name: str) -> dict[str, Any]:
+-    """``git pull`` inside ``~/.wenshu-hermes/plugins/<name>``."""
+-    target = _user_installed_plugin_dir(name)
+-    if target is None:
+-        return {
+-            "ok": False,
+-            "error": f"Plugin '{name}' was not found under {_plugins_dir()}.",
+-        }
+-
+-    if not (target / ".git").exists():
+-        return {
+-            "ok": False,
+-            "error": f"Plugin '{name}' is not a git checkout; cannot pull updates.",
+-        }
+-
+-    ok, msg = _git_pull_plugin_dir(target)
+-    if not ok:
+-        return {"ok": False, "error": msg}
+-
+-    from rich.console import Console
+-
+-    _copy_example_files(target, Console())
+-    unchanged = "Already up to date" in msg
+-    return {"ok": True, "name": name, "output": msg, "unchanged": unchanged}
+-
+-
+ def _git_pull_plugin_dir(target: Path) -> tuple[bool, str]:
+     git_exe = _resolve_git_executable()
+     if not git_exe:
+@@ -1982,25 +1790,6 @@ def _git_pull_plugin_dir(target: Path) -> tuple[bool, str]:
+         return False, err or "git pull failed."
+     return True, result.stdout.strip()
+ 
+-
+-def dashboard_remove_user_plugin(name: str) -> dict[str, Any]:
+-    """Delete a plugin tree under ``~/.wenshu-hermes/plugins/`` only."""
+-    plugins_dir = _plugins_dir()
+-    for n, _ver, _d, src, _path, _key in _discover_all_plugins():
+-        if n == name and src == "bundled":
+-            return {"ok": False, "error": "Bundled plugins cannot be removed from the dashboard."}
+-
+-    target = _user_installed_plugin_dir(name)
+-    if target is None:
+-        return {
+-            "ok": False,
+-            "error": f"Plugin '{name}' was not found under {plugins_dir}.",
+-        }
+-
+-    shutil.rmtree(target)
+-    return {"ok": True, "name": name}
+-
+-
+ def plugins_command(args) -> None:
+     """Dispatch wenshu plugins subcommands."""
+     action = getattr(args, "plugins_action", None)
+diff --git a/hermes_cli/subcommands/dashboard.py b/hermes_cli/subcommands/dashboard.py
+index 11fde2a8d..2e24bb05f 100644
+--- a/hermes_cli/subcommands/dashboard.py
++++ b/hermes_cli/subcommands/dashboard.py
+@@ -1,11 +1,9 @@
+-"""``wenshu dashboard`` / ``wenshu serve`` subcommand parsers.
++"""``wenshu serve`` subcommand parser — headless backend server.
+ 
+-``dashboard`` is the browser web UI; ``serve`` is the same gateway, headless —
+-what the desktop app and remote backends run. ``serve`` also skips the web UI
+-build (``headless_backend=True``): pure JSON-RPC/WS clients never load the SPA.
+-Both share one handler (``cmd_dashboard`` → ``start_server``). Extracted from
+-``wenshu_cli/main.py:main()`` (god-file Phase 2); handler injected to avoid
+-importing ``main``.
++``serve`` is the headless backend that the desktop app and remote clients
++connect to. It skips the web UI build (``headless_backend=True``) and serves
++pure JSON-RPC/WS — no SPA. Extracted from ``wenshu_cli/main.py:main()``
++(god-file Phase 2); handler injected to avoid importing ``main``.
+ """
+ 
+ from __future__ import annotations
+@@ -72,20 +70,10 @@ def _add_server_runtime_args(parser) -> None:
+     # service manager and no PID file, so these scan the process table for
+     # `wenshu dashboard` / `wenshu serve` cmdlines and SIGTERM them directly —
+     # the same path `wenshu update` uses to clean up stale servers.
+-    parser.add_argument(
+-        "--stop",
+-        action="store_true",
+-        help="Stop all running 文枢 web server processes and exit",
+-    )
+-    parser.add_argument(
+-        "--status",
+-        action="store_true",
+-        help="List running 文枢 web server processes and exit",
+-    )
+ 
+ 
+ def build_dashboard_parser(
+-    subparsers, *, cmd_dashboard: Callable, cmd_dashboard_register: Callable
++    subparsers, *, cmd_dashboard: Callable
+ ) -> None:
+     """Attach the ``dashboard`` and ``serve`` subcommands.
+ 
+@@ -95,35 +83,6 @@ def build_dashboard_parser(
+     "launches" the other — so the desktop app spawns ``serve``, never
+     ``dashboard``.
+     """
+-    # =========================================================================
+-    # dashboard command — the browser web UI
+-    # =========================================================================
+-    dashboard_parser = subparsers.add_parser(
+-        "dashboard",
+-        help="Start the web UI dashboard",
+-        description="Launch the 文枢 web dashboard for managing config, API keys, and sessions",
+-    )
+-    _add_server_runtime_args(dashboard_parser)
+-    dashboard_parser.add_argument(
+-        "--no-open", action="store_true", help="Don't open browser automatically"
+-    )
+-    # Backward-compat shim: older Wenshu desktop app shells (<= 0.15.x) spawn the
+-    # backend as `wenshu dashboard --no-open --tui --host ... --port ...`. The
+-    # `--tui` flag was removed from this subcommand in cae6b5486 (embedded chat is
+-    # always on now). When a user's CLI updates past that commit but their desktop
+-    # app binary has not, argparse used to hard-error with "unrecognized arguments:
+-    # --tui" and exit(2) — the backend died before becoming ready and the GUI just
+-    # showed "Wenshu couldn't start" with no actionable cause. Accept and silently
+-    # ignore the flag so an old app + new CLI degrades gracefully instead of
+-    # bricking. Hidden from --help; safe to delete once the floor app version is
+-    # well past 0.16.0.
+-    dashboard_parser.add_argument(
+-        "--tui",
+-        action="store_true",
+-        help=argparse.SUPPRESS,
+-    )
+-    dashboard_parser.set_defaults(func=cmd_dashboard)
+-
+     # =========================================================================
+     # serve command — the headless backend server
+     #
+@@ -143,17 +102,9 @@ def build_dashboard_parser(
+         ),
+     )
+     _add_server_runtime_args(serve_parser)
+-    # Accepted but redundant: `serve` is always headless (see set_defaults
+-    # below). Kept so callers that pass the legacy `--no-open` flag (e.g. the
+-    # desktop backend spawn) don't trip "unrecognized arguments".
+-    serve_parser.add_argument(
+-        "--no-open", action="store_true", help=argparse.SUPPRESS
+-    )
+     # `headless_backend` marks the lean path: desktop/remote clients speak pure
+-    # JSON-RPC/WS, so `serve` skips the web UI build AND never serves the SPA
+-    # (cmd_dashboard exports WENSHU_SERVE_HEADLESS=1). `dashboard` leaves it
+-    # unset and serves the browser UI as before.
+-    serve_parser.set_defaults(func=cmd_dashboard, no_open=True, headless_backend=True)
++    # JSON-RPC/WS, so `serve` skips the web UI build.
++    serve_parser.set_defaults(func=cmd_dashboard, headless_backend=True)
+ 
+     # `wenshu dashboard register` — register a self-hosted dashboard OAuth
+     # client with Nous Portal and write the client_id into ~/.wenshu-hermes/.env.
+diff --git a/hermes_cli/web_server.py b/hermes_cli/web_server.py
+index fa7d3f23b..0eb6548cf 100644
+--- a/hermes_cli/web_server.py
++++ b/hermes_cli/web_server.py
+@@ -318,9 +318,8 @@ app.add_middleware(
+ # Keep the upstream list minimal — only truly non-sensitive, read-only
+ # endpoints belong there.
+ # ---------------------------------------------------------------------------
+-from wenshu_cli.dashboard_auth.public_paths import (
+-    PUBLIC_API_PATHS as _PUBLIC_API_PATHS,
+-)
++# R74: dashboard_auth deleted (R69). Use empty public list since web UI is gone.
++_PUBLIC_API_PATHS: tuple[str, ...] = ()
+ 
+ 
+ def _has_valid_session_token(request: Request) -> bool:
+@@ -571,7 +570,10 @@ async def _plugin_api_runtime_gate(request: Request, call_next):
+ 
+ @app.middleware("http")
+ async def _dashboard_auth_gate(request: Request, call_next):
+-    from wenshu_cli.dashboard_auth.middleware import gated_auth_middleware
++    try:
++        from wenshu_cli.dashboard_auth.middleware import gated_auth_middleware
++    except ImportError:
++        pass  # R74: dashboard_auth deleted (R69)
+     return await gated_auth_middleware(request, call_next)
+ 
+ 
+@@ -609,7 +611,10 @@ async def _token_auth_seam(request: Request, call_next):
+     cookie/session gates skip enforcement. Non-token routes pass straight
+     through untouched.
+     """
+-    from wenshu_cli.dashboard_auth.token_auth import token_auth_middleware
++    try:
++        from wenshu_cli.dashboard_auth.token_auth import token_auth_middleware
++    except ImportError:
++        pass  # R74: dashboard_auth deleted (R69)
+     return await token_auth_middleware(request, call_next)
+ 
+ 
+@@ -2906,7 +2911,10 @@ async def get_status(profile: Optional[str] = None):
+         auth_required = bool(getattr(app.state, "auth_required", False))
+         auth_providers: list[str] = []
+         try:
+-            from wenshu_cli.dashboard_auth import list_providers as _list_providers
++            try:
++                from wenshu_cli.dashboard_auth import list_providers as _list_providers
++            except ImportError:
++                pass  # R74: dashboard_auth deleted (R69)
+             auth_providers = [p.name for p in _list_providers()]
+         except Exception:
+             # Module not importable yet (early startup) — leave as [].
+@@ -12230,7 +12238,10 @@ def _mcp_oauth_callback_url(request: Request, server_name: str) -> str:
+     """Build the externally reachable callback URL for a dashboard flow."""
+     from urllib.parse import urlparse, urlunparse
+ 
+-    from wenshu_cli.dashboard_auth.prefix import prefix_from_request, resolve_public_url
++    try:
++        from wenshu_cli.dashboard_auth.prefix import prefix_from_request, resolve_public_url
++    except ImportError:
++        pass  # R74: dashboard_auth deleted (R69)
+ 
+     from urllib.parse import quote
+ 
+@@ -16560,8 +16571,14 @@ def _ws_auth_reason(ws: "WebSocket") -> tuple[Optional[str], str]:
+     if auth_required:
+         # Lazy import — keeps this function importable in test harnesses
+         # that don't bring in the dashboard_auth layer.
+-        from wenshu_cli.dashboard_auth.audit import AuditEvent, audit_log
+-        from wenshu_cli.dashboard_auth.ws_tickets import (
++        try:
++            from wenshu_cli.dashboard_auth.audit import AuditEvent, audit_log
++        except ImportError:
++            pass  # R74: dashboard_auth deleted (R69)
++        try:
++            from wenshu_cli.dashboard_auth.ws_tickets import (
++        except ImportError:
++            pass  # R74: dashboard_auth deleted (R69)
+             TicketInvalid,
+             consume_internal_credential,
+             consume_ticket,
+@@ -16792,7 +16809,10 @@ def _build_gateway_ws_url() -> Optional[str]:
+     )
+ 
+     if getattr(app.state, "auth_required", False):
+-        from wenshu_cli.dashboard_auth.ws_tickets import internal_ws_credential
++        try:
++            from wenshu_cli.dashboard_auth.ws_tickets import internal_ws_credential
++        except ImportError:
++            pass  # R74: dashboard_auth deleted (R69)
+ 
+         qs = urllib.parse.urlencode({"internal": internal_ws_credential()})
+     else:
+@@ -16857,7 +16877,10 @@ def _build_sidecar_url(channel: str) -> Optional[str]:
+     if getattr(app.state, "auth_required", False):
+         # Gated mode — use the internal credential so the WS upgrade survives
+         # _ws_auth_ok and the child can reconnect.
+-        from wenshu_cli.dashboard_auth.ws_tickets import internal_ws_credential
++        try:
++            from wenshu_cli.dashboard_auth.ws_tickets import internal_ws_credential
++        except ImportError:
++            pass  # R74: dashboard_auth deleted (R69)
+ 
+         qs = urllib.parse.urlencode(
+             {"internal": internal_ws_credential(), "channel": channel}
+@@ -17840,7 +17863,10 @@ def _normalise_prefix(raw: Optional[str]) -> str:
+     the gate middleware, the OAuth routes, the cookie helpers, and the
+     SPA mount all agree on validation rules.
+     """
+-    from wenshu_cli.dashboard_auth.prefix import normalise_prefix
++    try:
++        from wenshu_cli.dashboard_auth.prefix import normalise_prefix
++    except ImportError:
++        pass  # R74: dashboard_auth deleted (R69)
+     return normalise_prefix(raw)
+ 
+ 
+@@ -19090,7 +19116,7 @@ _mount_plugin_api_routes()
+ # SPA catch-all so /{full_path:path} doesn't swallow them.  These are
+ # always mounted — the gate middleware decides whether to enforce auth,
+ # not whether the routes exist.
+-from wenshu_cli.dashboard_auth.routes import router as _dashboard_auth_router  # noqa: E402
++# R74: dashboard_auth deleted (R69). Web UI routes no longer exist.
+ app.include_router(_dashboard_auth_router)
+ 
+ mount_spa(app)
+@@ -19242,7 +19268,10 @@ def start_server(
+         # The gate engages on every non-loopback bind. Require at least one
+         # provider to be registered, else fail closed — there is no longer an
+         # escape hatch that serves the dashboard without authentication.
+-        from wenshu_cli.dashboard_auth import list_providers
++        try:
++            from wenshu_cli.dashboard_auth import list_providers
++        except ImportError:
++            pass  # R74: dashboard_auth deleted (R69)
+         if not list_providers():
+             # Surface the *specific* reason any bundled provider declined
+             # to register (e.g. missing WENSHU_DASHBOARD_OAUTH_CLIENT_ID).
+@@ -19489,4 +19518,4 @@ def start_server(
+     if _runner is not None:
+         _runner(_serve(), loop_factory=_loop_factory)
+     else:
+-        asyncio.run(_serve())
++        asyncio.run(_serve())
+\ No newline at end of file
+-- 
+2.54.0 (Apple Git-157)
+

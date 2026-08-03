@@ -1,0 +1,1366 @@
+From 665de64c27013fe9ba05d55d7da63b986fec5244 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?= <anbaiqiang@wenshu.local>
+Date: Thu, 30 Jul 2026 16:25:17 +0800
+Subject: [PATCH 116/168] feat(wenshu): R78 - translate tool and plugin
+ descriptions
+
+---
+ plugins/browser/browser_use/plugin.yaml       |  2 +-
+ plugins/browser/browserbase/plugin.yaml       |  2 +-
+ plugins/browser/firecrawl/plugin.yaml         |  2 +-
+ plugins/cron_providers/chronos/plugin.yaml    |  7 +-
+ plugins/disk-cleanup/plugin.yaml              |  2 +-
+ plugins/image_gen/deepinfra/plugin.yaml       |  2 +-
+ plugins/image_gen/fal/plugin.yaml             |  2 +-
+ plugins/image_gen/krea/plugin.yaml            |  2 +-
+ plugins/image_gen/openai-codex/plugin.yaml    |  2 +-
+ plugins/image_gen/openai/plugin.yaml          |  2 +-
+ plugins/image_gen/openrouter/plugin.yaml      |  2 +-
+ plugins/image_gen/xai/plugin.yaml             |  2 +-
+ plugins/memory/byterover/plugin.yaml          |  2 +-
+ plugins/memory/hindsight/plugin.yaml          |  2 +-
+ plugins/memory/holographic/plugin.yaml        |  2 +-
+ plugins/memory/honcho/plugin.yaml             |  2 +-
+ plugins/memory/mem0/plugin.yaml               |  2 +-
+ plugins/memory/openviking/plugin.yaml         |  2 +-
+ plugins/memory/retaindb/plugin.yaml           |  2 +-
+ plugins/memory/supermemory/plugin.yaml        |  2 +-
+ .../alibaba-coding-plan/plugin.yaml           |  2 +-
+ plugins/model-providers/alibaba/plugin.yaml   |  2 +-
+ plugins/model-providers/anthropic/plugin.yaml |  2 +-
+ plugins/model-providers/arcee/plugin.yaml     |  2 +-
+ .../model-providers/azure-foundry/plugin.yaml |  2 +-
+ plugins/model-providers/bedrock/plugin.yaml   |  2 +-
+ .../model-providers/copilot-acp/plugin.yaml   |  2 +-
+ plugins/model-providers/copilot/plugin.yaml   |  2 +-
+ plugins/model-providers/custom/plugin.yaml    |  2 +-
+ plugins/model-providers/deepinfra/plugin.yaml |  2 +-
+ plugins/model-providers/deepseek/plugin.yaml  |  2 +-
+ plugins/model-providers/fireworks/plugin.yaml |  2 +-
+ plugins/model-providers/gemini/plugin.yaml    |  2 +-
+ plugins/model-providers/gmi/plugin.yaml       |  2 +-
+ .../model-providers/huggingface/plugin.yaml   |  2 +-
+ plugins/model-providers/kilocode/plugin.yaml  |  2 +-
+ .../model-providers/kimi-coding/plugin.yaml   |  2 +-
+ plugins/model-providers/minimax/plugin.yaml   |  2 +-
+ plugins/model-providers/nous/plugin.yaml      |  2 +-
+ plugins/model-providers/novita/plugin.yaml    |  2 +-
+ plugins/model-providers/nvidia/plugin.yaml    |  2 +-
+ .../model-providers/ollama-cloud/plugin.yaml  |  2 +-
+ .../model-providers/openai-codex/plugin.yaml  |  2 +-
+ .../model-providers/opencode-zen/plugin.yaml  |  2 +-
+ .../model-providers/openrouter/plugin.yaml    |  2 +-
+ .../model-providers/qwen-oauth/plugin.yaml    |  2 +-
+ plugins/model-providers/stepfun/plugin.yaml   |  2 +-
+ plugins/model-providers/upstage/plugin.yaml   |  2 +-
+ plugins/model-providers/vertex/plugin.yaml    |  2 +-
+ plugins/model-providers/xai/plugin.yaml       |  2 +-
+ plugins/model-providers/xiaomi/plugin.yaml    |  2 +-
+ plugins/model-providers/zai/plugin.yaml       |  2 +-
+ plugins/platforms/dingtalk/plugin.yaml        |  7 +-
+ plugins/platforms/discord/plugin.yaml         |  7 +-
+ plugins/platforms/email/plugin.yaml           |  5 +-
+ plugins/platforms/feishu/plugin.yaml          |  8 +-
+ plugins/platforms/google_chat/plugin.yaml     |  7 +-
+ plugins/platforms/homeassistant/plugin.yaml   |  8 +-
+ plugins/platforms/irc/plugin.yaml             |  6 +-
+ plugins/platforms/line/plugin.yaml            | 10 +--
+ plugins/platforms/matrix/plugin.yaml          |  7 +-
+ plugins/platforms/mattermost/plugin.yaml      |  7 +-
+ plugins/platforms/ntfy/plugin.yaml            | 52 +-----------
+ plugins/platforms/photon/plugin.yaml          | 84 +------------------
+ plugins/platforms/raft/plugin.yaml            |  9 +-
+ plugins/platforms/simplex/plugin.yaml         |  8 +-
+ plugins/platforms/slack/plugin.yaml           |  7 +-
+ plugins/platforms/sms/plugin.yaml             |  5 +-
+ plugins/platforms/teams/plugin.yaml           |  6 +-
+ plugins/platforms/telegram/plugin.yaml        |  8 +-
+ plugins/platforms/wecom/plugin.yaml           |  6 +-
+ plugins/platforms/whatsapp/plugin.yaml        |  7 +-
+ plugins/security-guidance/plugin.yaml         |  2 +-
+ plugins/video_gen/deepinfra/plugin.yaml       |  2 +-
+ plugins/video_gen/fal/plugin.yaml             |  2 +-
+ plugins/video_gen/xai/plugin.yaml             |  2 +-
+ plugins/web/brave_free/plugin.yaml            |  2 +-
+ plugins/web/ddgs/plugin.yaml                  |  2 +-
+ plugins/web/exa/plugin.yaml                   |  2 +-
+ plugins/web/firecrawl/plugin.yaml             |  2 +-
+ plugins/web/parallel/plugin.yaml              |  2 +-
+ plugins/web/searxng/plugin.yaml               |  2 +-
+ plugins/web/tavily/plugin.yaml                |  2 +-
+ plugins/web/xai/plugin.yaml                   |  2 +-
+ wenshu_cli/tools_config.py                    | 42 +++++-----
+ 85 files changed, 106 insertions(+), 333 deletions(-)
+
+diff --git a/plugins/browser/browser_use/plugin.yaml b/plugins/browser/browser_use/plugin.yaml
+index ff926a50e..ce3a690f8 100644
+--- a/plugins/browser/browser_use/plugin.yaml
++++ b/plugins/browser/browser_use/plugin.yaml
+@@ -1,6 +1,6 @@
+ name: browser-browser-use
+ version: 1.0.0
+-description: "Browser Use (https://browser-use.com) cloud browser backend. Supports both direct BROWSER_USE_API_KEY and the managed Nous tool gateway. Also powers the 'Nous Subscription' UX flow that bills usage to a Nous subscription."
++description: "Browser Use (https://browser-use.com) 云浏览器后端. 支持直接 BROWSER_USE_API_KEY 和 Nous 托管工具网关两种方式. 也驱动把用量记在 Nous 订阅上的 'Nous Subscription' UX 流程."
+ author: NousResearch
+ kind: backend
+ provides_browser_providers:
+diff --git a/plugins/browser/browserbase/plugin.yaml b/plugins/browser/browserbase/plugin.yaml
+index 5d976328a..e824a2fbf 100644
+--- a/plugins/browser/browserbase/plugin.yaml
++++ b/plugins/browser/browserbase/plugin.yaml
+@@ -1,6 +1,6 @@
+ name: browser-browserbase
+ version: 1.0.0
+-description: "Browserbase (https://browserbase.com) cloud browser backend. Requires BROWSERBASE_API_KEY + BROWSERBASE_PROJECT_ID. Supports stealth, proxies, and keep-alive sessions; auto-falls-back when paid features are unavailable."
++description: "Browserbase (https://browserbase.com) 云浏览器后端. 需要 BROWSERBASE_API_KEY + BROWSERBASE_PROJECT_ID. 支持隐身, 代理, 长连接会话; 付费功能不可用时自动回退."
+ author: NousResearch
+ kind: backend
+ provides_browser_providers:
+diff --git a/plugins/browser/firecrawl/plugin.yaml b/plugins/browser/firecrawl/plugin.yaml
+index 22da6a7f4..dcb391c13 100644
+--- a/plugins/browser/firecrawl/plugin.yaml
++++ b/plugins/browser/firecrawl/plugin.yaml
+@@ -1,6 +1,6 @@
+ name: browser-firecrawl
+ version: 1.0.0
+-description: "Firecrawl (https://firecrawl.dev) cloud browser backend. Requires FIRECRAWL_API_KEY. Distinct from the firecrawl WEB search/extract plugin — the two share an API key but operate on different endpoints."
++description: "Firecrawl (https://firecrawl.dev) 云浏览器后端. 需要 FIRECRAWL_API_KEY. 与 firecrawl 的网页搜索/抓取插件不同 — 两者共用一个 API key 但走不同端点."
+ author: NousResearch
+ kind: backend
+ provides_browser_providers:
+diff --git a/plugins/cron_providers/chronos/plugin.yaml b/plugins/cron_providers/chronos/plugin.yaml
+index aad48b356..8788c2292 100644
+--- a/plugins/cron_providers/chronos/plugin.yaml
++++ b/plugins/cron_providers/chronos/plugin.yaml
+@@ -1,9 +1,4 @@
+ name: chronos
+-description: >-
+-  Chronos — NAS-mediated managed cron provider for scale-to-zero hosted agents.
+-  Delegates the "wake me at time T" trigger to Nous infrastructure so an idle
+-  gateway can scale to zero and still fire cron jobs. The agent computes each
+-  job's next-fire time and asks NAS to arm a one-shot; NAS calls the agent back
+-  at fire time over an authenticated webhook. Inert unless cron.provider=chronos.
++description: "Chronos — 通过 NAS 中介的托管 cron 提供方, 用于 scale-to-zero 宿主型 agent. 把'在时间 T 叫醒我'的触发器委托给 Nous 基础设施, 让闲置的 gateway 能 scale to zero 仍能触发 cron 任务. Agent 计算每个任务的下次触发时间, 让 NAS 武装一个一次性触发器; NAS 在触发时间通过认证 webhook 回调 agent. 只有 cron.provider=chronos 时才生效."
+ version: 1.0.0
+ author: Nous Research
+diff --git a/plugins/disk-cleanup/plugin.yaml b/plugins/disk-cleanup/plugin.yaml
+index 76970cd85..10ddfc166 100644
+--- a/plugins/disk-cleanup/plugin.yaml
++++ b/plugins/disk-cleanup/plugin.yaml
+@@ -1,6 +1,6 @@
+ name: disk-cleanup
+ version: 2.0.0
+-description: "Auto-track and clean up ephemeral files (test scripts, temp outputs, cron logs) created during Wenshu sessions. Runs via plugin hooks — no agent action required."
++description: "自动跟踪并清理 Wenshu 会话期间产生的临时文件 (测试脚本, 临时输出, cron 日志). 通过 plugin hook 自动运行 — agent 不需操作."
+ author: "@LVT382009 (original), NousResearch (plugin port)"
+ hooks:
+   - post_tool_call
+diff --git a/plugins/image_gen/deepinfra/plugin.yaml b/plugins/image_gen/deepinfra/plugin.yaml
+index abc5c9acc..10840b0ed 100644
+--- a/plugins/image_gen/deepinfra/plugin.yaml
++++ b/plugins/image_gen/deepinfra/plugin.yaml
+@@ -1,6 +1,6 @@
+ name: deepinfra
+ version: 1.0.0
+-description: "DeepInfra image generation backend (FLUX, Qwen-Image, …) via OpenAI-compatible /v1/images/generations. Catalog discovered live from api.deepinfra.com."
++description: "DeepInfra 图像生成后端 (FLUX, Qwen-Image, …) 通过 OpenAI 兼容的 /v1/images/generations 接口. 模型清单实时从 api.deepinfra.com 发现."
+ author: Georgi Atsev
+ kind: backend
+ requires_env:
+diff --git a/plugins/image_gen/fal/plugin.yaml b/plugins/image_gen/fal/plugin.yaml
+index 775b76c90..113b0e7cc 100644
+--- a/plugins/image_gen/fal/plugin.yaml
++++ b/plugins/image_gen/fal/plugin.yaml
+@@ -1,6 +1,6 @@
+ name: fal
+ version: 1.0.0
+-description: "FAL.ai image generation backend (flux-2-klein, flux-2-pro, nano-banana, gpt-image-1.5, recraft-v3, etc.)."
++description: "FAL.ai 图像生成后端 (flux-2-klein, flux-2-pro, nano-banana, gpt-image-1.5, recraft-v3 等)."
+ author: NousResearch
+ kind: backend
+ requires_env:
+diff --git a/plugins/image_gen/krea/plugin.yaml b/plugins/image_gen/krea/plugin.yaml
+index 9f42979ab..42b4ab157 100644
+--- a/plugins/image_gen/krea/plugin.yaml
++++ b/plugins/image_gen/krea/plugin.yaml
+@@ -1,6 +1,6 @@
+ name: krea
+ version: 1.1.0
+-description: "Krea image generation backend (Krea 2 Large + Medium + Medium Turbo foundation models). Direct KREA_API_KEY or managed Nous Subscription gateway."
++description: "Krea 图像生成后端 (Krea 2 Large / Medium / Medium Turbo 基础模型). 支持 KREA_API_KEY 直连或 Nous 托管订阅网关."
+ author: NousResearch
+ kind: backend
+ requires_env:
+diff --git a/plugins/image_gen/openai-codex/plugin.yaml b/plugins/image_gen/openai-codex/plugin.yaml
+index 6ad1507e0..646d3e0e2 100644
+--- a/plugins/image_gen/openai-codex/plugin.yaml
++++ b/plugins/image_gen/openai-codex/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: openai-codex
+ version: 1.0.0
+-description: "OpenAI image generation backed by ChatGPT/Codex OAuth (gpt-image-2 via the Responses image_generation tool). Saves generated images to $WENSHU_HOME/cache/images/."
++description: "OpenAI 图像生成, 由 ChatGPT/Codex OAuth 驱动 (通过 Responses image_generation 工具调用 gpt-image-2). 生成的图片保存到 $WENSHU_HOME/cache/images/."
+ author: NousResearch
+ kind: backend
+diff --git a/plugins/image_gen/openai/plugin.yaml b/plugins/image_gen/openai/plugin.yaml
+index a56061800..8e595fed0 100644
+--- a/plugins/image_gen/openai/plugin.yaml
++++ b/plugins/image_gen/openai/plugin.yaml
+@@ -1,6 +1,6 @@
+ name: openai
+ version: 1.0.0
+-description: "OpenAI image generation backend (gpt-image-2). Saves generated images to $WENSHU_HOME/cache/images/."
++description: "OpenAI 图像生成后端 (gpt-image-2). 生成的图片保存到 $WENSHU_HOME/cache/images/."
+ author: NousResearch
+ kind: backend
+ requires_env:
+diff --git a/plugins/image_gen/openrouter/plugin.yaml b/plugins/image_gen/openrouter/plugin.yaml
+index a6c1209e2..f2c9ea891 100644
+--- a/plugins/image_gen/openrouter/plugin.yaml
++++ b/plugins/image_gen/openrouter/plugin.yaml
+@@ -1,6 +1,6 @@
+ name: openrouter
+ version: 1.0.0
+-description: "OpenRouter + Nous Portal image generation (chat-completions image output; reference-grounded). Text-to-image and image-to-image."
++description: "OpenRouter + Nous Portal 图像生成 (chat-completions 图像输出, 支持参考图). 文生图 + 图生图."
+ author: Wenshu Agent
+ kind: backend
+ requires_env:
+diff --git a/plugins/image_gen/xai/plugin.yaml b/plugins/image_gen/xai/plugin.yaml
+index 1bebc7d72..8f7b1f006 100644
+--- a/plugins/image_gen/xai/plugin.yaml
++++ b/plugins/image_gen/xai/plugin.yaml
+@@ -1,6 +1,6 @@
+ name: xai
+ version: 1.0.0
+-description: "xAI image generation backend (grok-imagine-image). Text-to-image."
++description: "xAI 图像生成后端 (grok-imagine-image). 文生图."
+ author: Julien Talbot
+ kind: backend
+ requires_env:
+diff --git a/plugins/memory/byterover/plugin.yaml b/plugins/memory/byterover/plugin.yaml
+index a6645c3c5..16643a79e 100644
+--- a/plugins/memory/byterover/plugin.yaml
++++ b/plugins/memory/byterover/plugin.yaml
+@@ -1,6 +1,6 @@
+ name: byterover
+ version: 1.0.0
+-description: "ByteRover — persistent knowledge tree with tiered retrieval via the brv CLI."
++description: "ByteRover — 持久化知识树, 通过 brv CLI 进行分层检索."
+ external_dependencies:
+   - name: brv
+     install: "curl -fsSL https://byterover.dev/install.sh | sh"
+diff --git a/plugins/memory/hindsight/plugin.yaml b/plugins/memory/hindsight/plugin.yaml
+index 9dfa763af..e7212af7b 100644
+--- a/plugins/memory/hindsight/plugin.yaml
++++ b/plugins/memory/hindsight/plugin.yaml
+@@ -1,6 +1,6 @@
+ name: hindsight
+ version: 1.0.0
+-description: "Hindsight — long-term memory with knowledge graph, entity resolution, and multi-strategy retrieval."
++description: "Hindsight — 长期记忆, 含知识图谱, 实体解析, 多路召回."
+ pip_dependencies:
+   - "hindsight-client>=0.6.1"
+ requires_env: []
+diff --git a/plugins/memory/holographic/plugin.yaml b/plugins/memory/holographic/plugin.yaml
+index ae7d78f8d..a0ed10c69 100644
+--- a/plugins/memory/holographic/plugin.yaml
++++ b/plugins/memory/holographic/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: holographic
+ version: 0.1.0
+-description: "Holographic memory — local SQLite fact store with FTS5 search, trust scoring, and HRR-based compositional retrieval."
++description: "全息记忆 — 本地 SQLite 事实存储, 支持 FTS5 搜索, 信任度评分, 基于 HRR 的组合检索."
+ hooks:
+   - on_session_end
+diff --git a/plugins/memory/honcho/plugin.yaml b/plugins/memory/honcho/plugin.yaml
+index 38a0612c9..5b75763c2 100644
+--- a/plugins/memory/honcho/plugin.yaml
++++ b/plugins/memory/honcho/plugin.yaml
+@@ -1,6 +1,6 @@
+ name: honcho
+ version: 1.0.0
+-description: "Honcho AI-native memory — cross-session user modeling with dialectic Q&A, semantic search, and persistent conclusions."
++description: "Honcho AI-native 记忆 — 跨会话用户建模, 辩证式问答, 语义搜索, 持久化结论."
+ pip_dependencies:
+   - honcho-ai
+ hooks:
+diff --git a/plugins/memory/mem0/plugin.yaml b/plugins/memory/mem0/plugin.yaml
+index c6ae10acc..67bb0a267 100644
+--- a/plugins/memory/mem0/plugin.yaml
++++ b/plugins/memory/mem0/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: mem0
+ version: 1.3.0
+-description: "Mem0 — server-side LLM fact extraction with semantic search, automatic deduplication, and opt-in reranking (platform mode)."
++description: "Mem0 — 服务端 LLM 事实抽取, 含语义搜索, 自动去重, 可选重排序 (platform 模式)."
+ pip_dependencies:
+   - mem0ai>=2.0.10,<3
+diff --git a/plugins/memory/openviking/plugin.yaml b/plugins/memory/openviking/plugin.yaml
+index 18b8ea787..19835b5ab 100644
+--- a/plugins/memory/openviking/plugin.yaml
++++ b/plugins/memory/openviking/plugin.yaml
+@@ -1,6 +1,6 @@
+ name: openviking
+ version: 2.0.0
+-description: "OpenViking context database — session-managed memory with automatic extraction, tiered retrieval, and filesystem-style knowledge browsing."
++description: "OpenViking 上下文数据库 — 会话管理型记忆, 自动抽取, 分层检索, 文件系统式知识浏览."
+ pip_dependencies:
+   - httpx
+ requires_env: []
+diff --git a/plugins/memory/retaindb/plugin.yaml b/plugins/memory/retaindb/plugin.yaml
+index 5ef080651..581dd7ffa 100644
+--- a/plugins/memory/retaindb/plugin.yaml
++++ b/plugins/memory/retaindb/plugin.yaml
+@@ -1,6 +1,6 @@
+ name: retaindb
+ version: 1.0.0
+-description: "RetainDB — cloud memory API with hybrid search and 7 memory types."
++description: "RetainDB — 云端记忆 API, 含混合检索和 7 种记忆类型."
+ pip_dependencies:
+   - requests
+ requires_env:
+diff --git a/plugins/memory/supermemory/plugin.yaml b/plugins/memory/supermemory/plugin.yaml
+index 8100b3213..5bd54a153 100644
+--- a/plugins/memory/supermemory/plugin.yaml
++++ b/plugins/memory/supermemory/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: supermemory
+ version: 1.0.1
+-description: "Supermemory semantic long-term memory with profile recall, semantic search, explicit memory tools, and session ingest."
++description: "supermemory 语义长期记忆 — 含 profile 回溯, 语义搜索, 显式记忆工具, 会话摄入."
+ pip_dependencies:
+   - supermemory
+diff --git a/plugins/model-providers/alibaba-coding-plan/plugin.yaml b/plugins/model-providers/alibaba-coding-plan/plugin.yaml
+index a158f23d9..9ce9c4ee0 100644
+--- a/plugins/model-providers/alibaba-coding-plan/plugin.yaml
++++ b/plugins/model-providers/alibaba-coding-plan/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: alibaba-coding-plan-provider
+ kind: model-provider
+ version: 1.0.0
+-description: Alibaba Cloud Coding Plan
++description: "阿里云编程套餐 (Alibaba Cloud Coding Plan)"
+ author: Nous Research
+diff --git a/plugins/model-providers/alibaba/plugin.yaml b/plugins/model-providers/alibaba/plugin.yaml
+index 08fcf50bf..4e3de8cf7 100644
+--- a/plugins/model-providers/alibaba/plugin.yaml
++++ b/plugins/model-providers/alibaba/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: alibaba-provider
+ kind: model-provider
+ version: 1.0.0
+-description: Alibaba DashScope (international)
++description: "阿里云 DashScope (国际版)"
+ author: Nous Research
+diff --git a/plugins/model-providers/anthropic/plugin.yaml b/plugins/model-providers/anthropic/plugin.yaml
+index 7770a5ce8..8769a3864 100644
+--- a/plugins/model-providers/anthropic/plugin.yaml
++++ b/plugins/model-providers/anthropic/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: anthropic-provider
+ kind: model-provider
+ version: 1.0.0
+-description: Anthropic (Claude)
++description: "Anthropic (Claude)"
+ author: Nous Research
+diff --git a/plugins/model-providers/arcee/plugin.yaml b/plugins/model-providers/arcee/plugin.yaml
+index 8a12c5203..c82edfe7a 100644
+--- a/plugins/model-providers/arcee/plugin.yaml
++++ b/plugins/model-providers/arcee/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: arcee-provider
+ kind: model-provider
+ version: 1.0.0
+-description: Arcee AI
++description: "Arcee AI"
+ author: Nous Research
+diff --git a/plugins/model-providers/azure-foundry/plugin.yaml b/plugins/model-providers/azure-foundry/plugin.yaml
+index 806e44d0b..6064e01c6 100644
+--- a/plugins/model-providers/azure-foundry/plugin.yaml
++++ b/plugins/model-providers/azure-foundry/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: azure-foundry-provider
+ kind: model-provider
+ version: 1.0.0
+-description: Microsoft Foundry
++description: "Microsoft Foundry"
+ author: Nous Research
+diff --git a/plugins/model-providers/bedrock/plugin.yaml b/plugins/model-providers/bedrock/plugin.yaml
+index 8516f29e4..0e85c6967 100644
+--- a/plugins/model-providers/bedrock/plugin.yaml
++++ b/plugins/model-providers/bedrock/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: bedrock-provider
+ kind: model-provider
+ version: 1.0.0
+-description: AWS Bedrock
++description: "AWS Bedrock"
+ author: Nous Research
+diff --git a/plugins/model-providers/copilot-acp/plugin.yaml b/plugins/model-providers/copilot-acp/plugin.yaml
+index bb3d7ace5..d8141bed8 100644
+--- a/plugins/model-providers/copilot-acp/plugin.yaml
++++ b/plugins/model-providers/copilot-acp/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: copilot-acp-provider
+ kind: model-provider
+ version: 1.0.0
+-description: GitHub Copilot via ACP subprocess
++description: "通过 ACP 子进程的 GitHub Copilot"
+ author: Nous Research
+diff --git a/plugins/model-providers/copilot/plugin.yaml b/plugins/model-providers/copilot/plugin.yaml
+index cdaa8f549..3e240049f 100644
+--- a/plugins/model-providers/copilot/plugin.yaml
++++ b/plugins/model-providers/copilot/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: copilot-provider
+ kind: model-provider
+ version: 1.0.0
+-description: GitHub Copilot
++description: "GitHub Copilot"
+ author: Nous Research
+diff --git a/plugins/model-providers/custom/plugin.yaml b/plugins/model-providers/custom/plugin.yaml
+index 9784ee202..d7ec0b20e 100644
+--- a/plugins/model-providers/custom/plugin.yaml
++++ b/plugins/model-providers/custom/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: custom-provider
+ kind: model-provider
+ version: 1.0.0
+-description: Custom / Ollama / local OpenAI-compatible endpoint
++description: "自定义 / Ollama / 本地 OpenAI 兼容端点"
+ author: Nous Research
+diff --git a/plugins/model-providers/deepinfra/plugin.yaml b/plugins/model-providers/deepinfra/plugin.yaml
+index 595a6f8f8..061251d6d 100644
+--- a/plugins/model-providers/deepinfra/plugin.yaml
++++ b/plugins/model-providers/deepinfra/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: deepinfra-provider
+ kind: model-provider
+ version: 1.0.0
+-description: DeepInfra — 100+ open models, pay-per-use
++description: "DeepInfra — 100+ 开源模型, 按量付费"
+ author: Georgi Atsev
+diff --git a/plugins/model-providers/deepseek/plugin.yaml b/plugins/model-providers/deepseek/plugin.yaml
+index 0a33565f8..ed26e81b3 100644
+--- a/plugins/model-providers/deepseek/plugin.yaml
++++ b/plugins/model-providers/deepseek/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: deepseek-provider
+ kind: model-provider
+ version: 1.0.0
+-description: DeepSeek
++description: "DeepSeek"
+ author: Nous Research
+diff --git a/plugins/model-providers/fireworks/plugin.yaml b/plugins/model-providers/fireworks/plugin.yaml
+index 578b55463..3388d4fd9 100644
+--- a/plugins/model-providers/fireworks/plugin.yaml
++++ b/plugins/model-providers/fireworks/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: fireworks-provider
+ kind: model-provider
+ version: 1.0.0
+-description: Fireworks AI — fast inference for open and proprietary models
++description: "Fireworks AI — 开源和专有模型的快速推理"
+ author: Alex Jestin Taylor (@alex-fireworks) + Wenshu Agent
+diff --git a/plugins/model-providers/gemini/plugin.yaml b/plugins/model-providers/gemini/plugin.yaml
+index cd586b088..f67ae497a 100644
+--- a/plugins/model-providers/gemini/plugin.yaml
++++ b/plugins/model-providers/gemini/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: gemini-provider
+ kind: model-provider
+ version: 1.0.0
+-description: Google Gemini (API key + Cloud Code OAuth)
++description: "Google Gemini (API key + Cloud Code OAuth)"
+ author: Nous Research
+diff --git a/plugins/model-providers/gmi/plugin.yaml b/plugins/model-providers/gmi/plugin.yaml
+index 95f61a48a..69482fc6f 100644
+--- a/plugins/model-providers/gmi/plugin.yaml
++++ b/plugins/model-providers/gmi/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: gmi-provider
+ kind: model-provider
+ version: 1.0.0
+-description: GMI Cloud
++description: "GMI Cloud"
+ author: Nous Research
+diff --git a/plugins/model-providers/huggingface/plugin.yaml b/plugins/model-providers/huggingface/plugin.yaml
+index 006368718..ac641ea6e 100644
+--- a/plugins/model-providers/huggingface/plugin.yaml
++++ b/plugins/model-providers/huggingface/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: huggingface-provider
+ kind: model-provider
+ version: 1.0.0
+-description: HuggingFace Inference Providers
++description: "HuggingFace Inference Providers"
+ author: Nous Research
+diff --git a/plugins/model-providers/kilocode/plugin.yaml b/plugins/model-providers/kilocode/plugin.yaml
+index 96ea65440..fd07c235b 100644
+--- a/plugins/model-providers/kilocode/plugin.yaml
++++ b/plugins/model-providers/kilocode/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: kilocode-provider
+ kind: model-provider
+ version: 1.0.0
+-description: Kilo Code
++description: "Kilo Code"
+ author: Nous Research
+diff --git a/plugins/model-providers/kimi-coding/plugin.yaml b/plugins/model-providers/kimi-coding/plugin.yaml
+index c9f00d87b..2038ac5b9 100644
+--- a/plugins/model-providers/kimi-coding/plugin.yaml
++++ b/plugins/model-providers/kimi-coding/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: kimi-coding-provider
+ kind: model-provider
+ version: 1.0.0
+-description: Moonshot Kimi Coding (global + China)
++description: "月之暗面 Kimi 编程 (全球 + 中国)"
+ author: Nous Research
+diff --git a/plugins/model-providers/minimax/plugin.yaml b/plugins/model-providers/minimax/plugin.yaml
+index 131eb7de1..587c5dd73 100644
+--- a/plugins/model-providers/minimax/plugin.yaml
++++ b/plugins/model-providers/minimax/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: minimax-provider
+ kind: model-provider
+ version: 1.0.0
+-description: MiniMax M-series (global + China + OAuth)
++description: "MiniMax M 系列 (全球 + 中国 + OAuth)"
+ author: Nous Research
+diff --git a/plugins/model-providers/nous/plugin.yaml b/plugins/model-providers/nous/plugin.yaml
+index 6ec234b6e..734eef4c0 100644
+--- a/plugins/model-providers/nous/plugin.yaml
++++ b/plugins/model-providers/nous/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: nous-provider
+ kind: model-provider
+ version: 1.0.0
+-description: Nous Research Portal
++description: "Nous Research 门户"
+ author: Nous Research
+diff --git a/plugins/model-providers/novita/plugin.yaml b/plugins/model-providers/novita/plugin.yaml
+index d572ca616..569023a60 100644
+--- a/plugins/model-providers/novita/plugin.yaml
++++ b/plugins/model-providers/novita/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: novita-provider
+ kind: model-provider
+ version: 1.0.0
+-description: NovitaAI AI-native cloud for builders and agents
++description: "NovitaAI — 给开发者和 agent 用的 AI 原生云"
+ author: Nous Research
+diff --git a/plugins/model-providers/nvidia/plugin.yaml b/plugins/model-providers/nvidia/plugin.yaml
+index dd548034c..9e4abe799 100644
+--- a/plugins/model-providers/nvidia/plugin.yaml
++++ b/plugins/model-providers/nvidia/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: nvidia-provider
+ kind: model-provider
+ version: 1.0.0
+-description: NVIDIA NIM
++description: "NVIDIA NIM"
+ author: Nous Research
+diff --git a/plugins/model-providers/ollama-cloud/plugin.yaml b/plugins/model-providers/ollama-cloud/plugin.yaml
+index a0ebed67a..f923bc064 100644
+--- a/plugins/model-providers/ollama-cloud/plugin.yaml
++++ b/plugins/model-providers/ollama-cloud/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: ollama-cloud-provider
+ kind: model-provider
+ version: 1.0.0
+-description: Ollama Cloud
++description: "Ollama Cloud"
+ author: Nous Research
+diff --git a/plugins/model-providers/openai-codex/plugin.yaml b/plugins/model-providers/openai-codex/plugin.yaml
+index f397cd4f6..70b2a990a 100644
+--- a/plugins/model-providers/openai-codex/plugin.yaml
++++ b/plugins/model-providers/openai-codex/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: openai-codex-provider
+ kind: model-provider
+ version: 1.0.0
+-description: OpenAI Codex (Responses API)
++description: "OpenAI Codex (Responses API)"
+ author: Nous Research
+diff --git a/plugins/model-providers/opencode-zen/plugin.yaml b/plugins/model-providers/opencode-zen/plugin.yaml
+index 23a3c90da..151369e9c 100644
+--- a/plugins/model-providers/opencode-zen/plugin.yaml
++++ b/plugins/model-providers/opencode-zen/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: opencode-zen-provider
+ kind: model-provider
+ version: 1.0.0
+-description: OpenCode (Zen + Go)
++description: "OpenCode (Zen + Go)"
+ author: Nous Research
+diff --git a/plugins/model-providers/openrouter/plugin.yaml b/plugins/model-providers/openrouter/plugin.yaml
+index e278aadae..5045e6c84 100644
+--- a/plugins/model-providers/openrouter/plugin.yaml
++++ b/plugins/model-providers/openrouter/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: openrouter-provider
+ kind: model-provider
+ version: 1.0.0
+-description: OpenRouter aggregator
++description: "OpenRouter 聚合器"
+ author: Nous Research
+diff --git a/plugins/model-providers/qwen-oauth/plugin.yaml b/plugins/model-providers/qwen-oauth/plugin.yaml
+index 2cecc002f..2b2c6896e 100644
+--- a/plugins/model-providers/qwen-oauth/plugin.yaml
++++ b/plugins/model-providers/qwen-oauth/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: qwen-oauth-provider
+ kind: model-provider
+ version: 1.0.0
+-description: Qwen Portal (OAuth)
++description: "Qwen 门户 (OAuth)"
+ author: Nous Research
+diff --git a/plugins/model-providers/stepfun/plugin.yaml b/plugins/model-providers/stepfun/plugin.yaml
+index 36d3e36f0..ac152c9b0 100644
+--- a/plugins/model-providers/stepfun/plugin.yaml
++++ b/plugins/model-providers/stepfun/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: stepfun-provider
+ kind: model-provider
+ version: 1.0.0
+-description: StepFun Step Plan
++description: "StepFun 阶跃星辰套餐"
+ author: Nous Research
+diff --git a/plugins/model-providers/upstage/plugin.yaml b/plugins/model-providers/upstage/plugin.yaml
+index 4de2e3d4b..274e97c7a 100644
+--- a/plugins/model-providers/upstage/plugin.yaml
++++ b/plugins/model-providers/upstage/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: upstage-provider
+ kind: model-provider
+ version: 1.0.0
+-description: Upstage (Solar API)
++description: "Upstage (Solar API)"
+ author: Upstage AI
+diff --git a/plugins/model-providers/vertex/plugin.yaml b/plugins/model-providers/vertex/plugin.yaml
+index 9b5495ad1..8fff26a2f 100644
+--- a/plugins/model-providers/vertex/plugin.yaml
++++ b/plugins/model-providers/vertex/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: vertex-provider
+ kind: model-provider
+ version: 1.0.0
+-description: Google Vertex AI (Gemini via OpenAI-compatible endpoint, OAuth2)
++description: "Google Vertex AI (Gemini via OpenAI-compatible 端点, OAuth2)"
+ author: Steve Lawton (@slawt), Wenshu Agent
+diff --git a/plugins/model-providers/xai/plugin.yaml b/plugins/model-providers/xai/plugin.yaml
+index 10e884e8a..d8a1f3557 100644
+--- a/plugins/model-providers/xai/plugin.yaml
++++ b/plugins/model-providers/xai/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: xai-provider
+ kind: model-provider
+ version: 1.0.0
+-description: xAI Grok (Responses API)
++description: "xAI Grok (Responses API)"
+ author: Nous Research
+diff --git a/plugins/model-providers/xiaomi/plugin.yaml b/plugins/model-providers/xiaomi/plugin.yaml
+index e422fb701..c6d7a1659 100644
+--- a/plugins/model-providers/xiaomi/plugin.yaml
++++ b/plugins/model-providers/xiaomi/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: xiaomi-provider
+ kind: model-provider
+ version: 1.0.0
+-description: Xiaomi MiMo
++description: "小米 MiMo"
+ author: Nous Research
+diff --git a/plugins/model-providers/zai/plugin.yaml b/plugins/model-providers/zai/plugin.yaml
+index a7bf3736e..e7e049029 100644
+--- a/plugins/model-providers/zai/plugin.yaml
++++ b/plugins/model-providers/zai/plugin.yaml
+@@ -1,5 +1,5 @@
+ name: zai-provider
+ kind: model-provider
+ version: 1.0.0
+-description: Z.AI / GLM
++description: "Z.AI / GLM"
+ author: Nous Research
+diff --git a/plugins/platforms/dingtalk/plugin.yaml b/plugins/platforms/dingtalk/plugin.yaml
+index 1446c3c66..7bd1423d0 100644
+--- a/plugins/platforms/dingtalk/plugin.yaml
++++ b/plugins/platforms/dingtalk/plugin.yaml
+@@ -2,12 +2,7 @@ name: dingtalk-platform
+ label: DingTalk
+ kind: platform
+ version: 1.0.0
+-description: >
+-  DingTalk gateway adapter for Wenshu Agent.
+-  Connects to DingTalk via the dingtalk-stream SDK (Stream Mode) and relays
+-  messages between DingTalk chats and the Wenshu agent. Supports text, images,
+-  audio, video, rich text, files, group @mention gating, free-response chats,
+-  and per-user allowlists.
++description: "钉钉网关适配器 (Wenshu Agent). 通过 dingtalk-stream SDK (Stream 模式) 接入钉钉, 在钉钉聊天和 Wenshu agent 之间中继消息. 支持文本, 图片, 音频, 视频, 富文本, 文件, 群 @mention 门控, 自由回复会话, 每用户白名单."
+ author: NousResearch
+ requires_env:
+   - name: DINGTALK_CLIENT_ID
+diff --git a/plugins/platforms/discord/plugin.yaml b/plugins/platforms/discord/plugin.yaml
+index 0a5b24d92..8a65f78ff 100644
+--- a/plugins/platforms/discord/plugin.yaml
++++ b/plugins/platforms/discord/plugin.yaml
+@@ -2,12 +2,7 @@ name: discord-platform
+ label: Discord
+ kind: platform
+ version: 1.0.0
+-description: >
+-  Discord gateway adapter for Wenshu Agent.
+-  Connects to Discord via the discord.py library and relays messages
+-  between Discord guilds/DMs and the Wenshu agent. Supports voice mode,
+-  slash commands, free-response channels, role-based DM auth, threads,
+-  reactions, and channel skill bindings.
++description: "Discord 网关适配器 (Wenshu Agent). 通过 discord.py 库接入 Discord, 在 Discord 群组/私信和 Wenshu agent 之间中继消息. 支持语音模式, 斜杠命令, 自由回复频道, 基于角色的私信鉴权, 话题, 反应, 频道技能绑定."
+ author: NousResearch
+ requires_env:
+   - name: DISCORD_BOT_TOKEN
+diff --git a/plugins/platforms/email/plugin.yaml b/plugins/platforms/email/plugin.yaml
+index e713a5ab6..c7eb6f2f4 100644
+--- a/plugins/platforms/email/plugin.yaml
++++ b/plugins/platforms/email/plugin.yaml
+@@ -2,10 +2,7 @@ name: email-platform
+ label: Email
+ kind: platform
+ version: 1.0.0
+-description: >
+-  Email gateway adapter for Wenshu Agent. Polls an IMAP mailbox for inbound
+-  messages and replies over SMTP, relaying email threads to and from the
+-  Wenshu agent.
++description: "Email 网关适配器 (Wenshu Agent). 通过 IMAP 轮询收件箱拉入站消息, 通过 SMTP 发回复, 在邮件串和 Wenshu agent 之间中继消息."
+ author: NousResearch
+ requires_env:
+   - name: EMAIL_ADDRESS
+diff --git a/plugins/platforms/feishu/plugin.yaml b/plugins/platforms/feishu/plugin.yaml
+index 8a775d5f0..0e504c883 100644
+--- a/plugins/platforms/feishu/plugin.yaml
++++ b/plugins/platforms/feishu/plugin.yaml
+@@ -2,13 +2,7 @@ name: feishu-platform
+ label: Feishu / Lark
+ kind: platform
+ version: 1.0.0
+-description: >
+-  Feishu / Lark gateway adapter for Wenshu Agent.
+-  Connects to Feishu (China) or Lark (International) via the official
+-  lark-oapi SDK over WebSocket or webhook and relays messages between
+-  Feishu/Lark chats and the Wenshu agent. Supports text, images, video,
+-  voice, documents, threads, DM pairing, group @mention gating, drive
+-  comment events, and meeting invites.
++description: "飞书 / Lark 网关适配器 (Wenshu Agent). 通过官方 lark-oapi SDK 的 WebSocket 或 Webhook 接入飞书 (中国) 或 Lark (国际), 在飞书/Lark 聊天和 Wenshu agent 之间中继消息. 支持文本, 图片, 视频, 语音, 文档, 话题串, DM 配对, 群 @mention 门控, 云空间评论事件, 会议邀请."
+ author: NousResearch
+ requires_env:
+   - name: FEISHU_APP_ID
+diff --git a/plugins/platforms/google_chat/plugin.yaml b/plugins/platforms/google_chat/plugin.yaml
+index 468f23743..d17868f10 100644
+--- a/plugins/platforms/google_chat/plugin.yaml
++++ b/plugins/platforms/google_chat/plugin.yaml
+@@ -2,12 +2,7 @@ name: google_chat-platform
+ label: Google Chat
+ kind: platform
+ version: 1.0.0
+-description: >
+-  Google Chat gateway adapter for Wenshu Agent.
+-  Connects through authenticated HTTP callbacks or an optional Cloud Pub/Sub
+-  pull subscription for inbound events, and uses the Google Chat REST API for
+-  outbound messages. Native file attachments are delivered via per-user OAuth
+-  (each user runs /setup-files once in their own DM).
++description: "Google Chat 网关适配器 (Wenshu Agent). 入站事件走认证 HTTP 回调或可选的 Cloud Pub/Sub 拉订阅, 出站消息使用 Google Chat REST API. 原生文件附件通过每用户 OAuth 投递 (每位用户在自己的 DM 中运行一次 /setup-files)."
+ author: Ramón Fernández
+ # ``requires_env`` entries are surfaced in ``wenshu config`` UI via the
+ # platform-plugin env var injector in ``wenshu_cli/config.py``.  Using the
+diff --git a/plugins/platforms/homeassistant/plugin.yaml b/plugins/platforms/homeassistant/plugin.yaml
+index 00b2695b7..c6507e8ee 100644
+--- a/plugins/platforms/homeassistant/plugin.yaml
++++ b/plugins/platforms/homeassistant/plugin.yaml
+@@ -2,13 +2,7 @@ name: homeassistant-platform
+ label: Home Assistant
+ kind: platform
+ version: 1.0.0
+-description: >
+-  Home Assistant gateway adapter for Wenshu Agent.
+-  Subscribes to HA's WebSocket event bus and forwards state-change events
+-  (with per-entity cooldowns and domain/entity filtering) to the agent.
+-  Outbound messages are delivered as HA persistent notifications via the
+-  REST API. Out-of-process cron delivery via the ``notify.notify``
+-  service is also supported.
++description: "Home Assistant 网关适配器 (Wenshu Agent). 订阅 HA 的 WebSocket 事件总线, 把状态变更事件 (含每个实体的冷却时间和 domain/entity 过滤) 转发给 agent. 出站消息通过 REST API 以 HA 持久化通知发送. 也支持通过 ``notify.notify`` 服务进行进程外的定时任务投递."
+ author: NousResearch
+ requires_env:
+   - name: HASS_TOKEN
+diff --git a/plugins/platforms/irc/plugin.yaml b/plugins/platforms/irc/plugin.yaml
+index 5574e9c7b..3e7ced393 100644
+--- a/plugins/platforms/irc/plugin.yaml
++++ b/plugins/platforms/irc/plugin.yaml
+@@ -2,11 +2,7 @@ name: irc-platform
+ label: IRC
+ kind: platform
+ version: 1.0.0
+-description: >
+-  IRC gateway adapter for Wenshu Agent.
+-  Connects to an IRC server and relays messages between an IRC channel
+-  (or DMs) and the Wenshu agent.  No external dependencies — uses
+-  Python's stdlib asyncio for the IRC protocol.
++description: "IRC 网关适配器 (Wenshu Agent). 接入 IRC 服务器, 在 IRC 频道 (或私信) 和 Wenshu agent 之间中继消息. 不依赖任何外部库 — 用 Python 标准库 asyncio 实现 IRC 协议."
+ author: Nous Research
+ # ``requires_env`` entries are surfaced in ``wenshu config`` UI via the
+ # platform-plugin env var injector in ``wenshu_cli/config.py``.
+diff --git a/plugins/platforms/line/plugin.yaml b/plugins/platforms/line/plugin.yaml
+index de7d72c3c..98b415a7c 100644
+--- a/plugins/platforms/line/plugin.yaml
++++ b/plugins/platforms/line/plugin.yaml
+@@ -2,15 +2,7 @@ name: line-platform
+ label: LINE
+ kind: platform
+ version: 1.0.0
+-description: >
+-  LINE Messaging API gateway adapter for Wenshu Agent.
+-  Runs an aiohttp webhook server that receives LINE webhook events
+-  (with HMAC-SHA256 signature verification) and relays messages between
+-  LINE chats (1:1, groups, rooms) and the Wenshu agent. Outbound replies
+-  prefer the free reply token and fall back to the metered Push API
+-  when the token has expired or is absent. Slow LLM responses surface a
+-  Template Buttons postback bubble so the user can fetch the answer with
+-  a fresh reply token (free) once it's ready.
++description: "LINE Messaging API 网关适配器 (Wenshu Agent). 运行 aiohttp webhook 服务器接收 LINE webhook 事件 (含 HMAC-SHA256 签名校验), 在 LINE 聊天 (1:1, 群, 聊天室) 和 Wenshu agent 之间中继消息. 出站回复优先用 free reply token, token 过期或缺失时回退到按量计费的 Push API. 慢的 LLM 响应会先发一个 Template Buttons 气泡, 让用户在回复准备好后用新的 reply token (免费) 取回答案."
+ author: Wenshu Agent contributors
+ # ``requires_env`` and ``optional_env`` entries are surfaced in the
+ # ``wenshu config`` UI via the platform-plugin env var injector in
+diff --git a/plugins/platforms/matrix/plugin.yaml b/plugins/platforms/matrix/plugin.yaml
+index 184d1eac5..36244ec8c 100644
+--- a/plugins/platforms/matrix/plugin.yaml
++++ b/plugins/platforms/matrix/plugin.yaml
+@@ -2,12 +2,7 @@ name: matrix-platform
+ label: Matrix
+ kind: platform
+ version: 1.0.0
+-description: >
+-  Matrix gateway adapter for Wenshu Agent.
+-  Connects to a Matrix homeserver via mautrix (with optional E2EE) and relays
+-  messages between Matrix rooms/DMs and the Wenshu agent. Supports threads,
+-  HTML/markdown rendering, native media uploads, mention gating, free-response
+-  rooms, and per-room allowlists.
++description: "Matrix 网关适配器 (Wenshu Agent). 通过 mautrix (可选 E2EE) 接入 Matrix homeserver, 在 Matrix 房间/私信和 Wenshu agent 之间中继消息. 支持话题, HTML/Markdown 渲染, 原生媒体上传, mention 门控, 自由回复房间, 每房间白名单."
+ author: NousResearch
+ requires_env:
+   - name: MATRIX_HOMESERVER
+diff --git a/plugins/platforms/mattermost/plugin.yaml b/plugins/platforms/mattermost/plugin.yaml
+index d0a880398..163328d9d 100644
+--- a/plugins/platforms/mattermost/plugin.yaml
++++ b/plugins/platforms/mattermost/plugin.yaml
+@@ -2,12 +2,7 @@ name: mattermost-platform
+ label: Mattermost
+ kind: platform
+ version: 1.0.0
+-description: >
+-  Mattermost gateway adapter for Wenshu Agent.
+-  Connects to a self-hosted or cloud Mattermost instance via the v4 REST
+-  API + WebSocket event stream and relays messages between Mattermost
+-  channels/DMs and the Wenshu agent. Supports thread-mode replies, native
+-  file uploads, channel-scoped allowlists, and home-channel cron delivery.
++description: "Mattermost 网关适配器 (Wenshu Agent). 通过 v4 REST API + WebSocket 事件流接入自托管或云 Mattermost 实例, 在 Mattermost 频道/私信和 Wenshu agent 之间中继消息. 支持话题模式回复, 原生文件上传, 频道级白名单, 主频道 cron 投递."
+ author: NousResearch
+ requires_env:
+   - name: MATTERMOST_URL
+diff --git a/plugins/platforms/ntfy/plugin.yaml b/plugins/platforms/ntfy/plugin.yaml
+index e4f7ed932..bc6fab14f 100644
+--- a/plugins/platforms/ntfy/plugin.yaml
++++ b/plugins/platforms/ntfy/plugin.yaml
+@@ -2,55 +2,5 @@ name: ntfy-platform
+ label: ntfy
+ kind: platform
+ version: 1.0.0
+-description: >
+-  ntfy push-notification gateway adapter for Wenshu Agent.
+-  Subscribes to a topic on ntfy.sh or any self-hosted ntfy server via
+-  HTTP streaming, and publishes replies via HTTP POST. Lightweight —
+-  no external SDK, only httpx (already a Wenshu dependency).
+-
+-  ntfy has no native user-identity primitive; the adapter treats each
+-  topic as a single trusted channel and never derives user identity
+-  from publisher-controlled fields. Use a private topic + read token
+-  for any real trust boundary.
++description: "ntfy 推送通知网关适配器 (Wenshu Agent). 通过 HTTP streaming 订阅 ntfy.sh 或任何自托管 ntfy 服务器上的 topic, 通过 HTTP POST 发布回复. 轻量 - 不依赖外部 SDK, 只用 httpx (已经是 Wenshu 依赖). ntfy 没有原生用户身份原语, 适配器把每个 topic 当作一个受信任的单用户通道, 永不从发布方可控字段推导用户身份. 真实信任场景请用私有 topic + 读 token."
+ author: sprmn24
+-# ``requires_env`` and ``optional_env`` entries are surfaced in the
+-# ``wenshu config`` UI via the platform-plugin env var injector in
+-# ``wenshu_cli/config.py``.
+-requires_env:
+-  - name: NTFY_TOPIC
+-    description: "Topic name to subscribe to (e.g. wenshu-in)"
+-    prompt: "ntfy subscribe topic"
+-    password: false
+-optional_env:
+-  - name: NTFY_SERVER_URL
+-    description: "ntfy server URL (default: https://ntfy.sh)"
+-    prompt: "ntfy server URL"
+-    password: false
+-  - name: NTFY_TOKEN
+-    description: "Bearer token or 'user:pass' for Basic auth (optional)"
+-    prompt: "ntfy auth token (or empty)"
+-    password: true
+-  - name: NTFY_PUBLISH_TOPIC
+-    description: "Topic to publish replies to (defaults to NTFY_TOPIC)"
+-    prompt: "ntfy publish topic (or empty)"
+-    password: false
+-  - name: NTFY_MARKDOWN
+-    description: "Send replies with X-Markdown: true header (true/false, default: false)"
+-    prompt: "Enable markdown formatting? (true/false)"
+-    password: false
+-  - name: NTFY_ALLOWED_USERS
+-    description: "Comma-separated topic names allowed (allowlist)"
+-    prompt: "Allowed topic names (comma-separated)"
+-    password: false
+-  - name: NTFY_ALLOW_ALL_USERS
+-    description: "Allow any topic to talk to the bot (dev only — disables allowlist)"
+-    prompt: "Allow all topics? (true/false)"
+-    password: false
+-  - name: NTFY_HOME_CHANNEL
+-    description: "Default topic for cron / notification delivery"
+-    prompt: "Home channel topic (or empty)"
+-    password: false
+-  - name: NTFY_HOME_CHANNEL_NAME
+-    description: "Human label for the home channel (defaults to the topic name)"
+-    prompt: "Home channel display name (or empty)"
+-    password: false
+diff --git a/plugins/platforms/photon/plugin.yaml b/plugins/platforms/photon/plugin.yaml
+index 75523c560..3df1eba09 100644
+--- a/plugins/platforms/photon/plugin.yaml
++++ b/plugins/platforms/photon/plugin.yaml
+@@ -2,87 +2,5 @@ name: photon-platform
+ label: iMessage via Photon
+ kind: platform
+ version: 0.3.0
+-description: >
+-  Photon Spectrum gateway adapter for Wenshu Agent.
+-  Connects to iMessage (and other Spectrum interfaces) through Photon's
+-  managed Spectrum platform. Both directions run over the `spectrum-ts`
+-  SDK's long-lived gRPC stream via a small supervised Node sidecar —
+-  inbound messages arrive on the SDK's `app.messages` stream (no webhook,
+-  no public URL, no signing secret), and outbound messages are sent over
+-  the same sidecar.
+-
+-  The plugin ships with a `wenshu photon` CLI for the one-time device
+-  login + project + user setup. Runtime credentials are written to
+-  ``~/.wenshu-hermes/.env`` (``PHOTON_PROJECT_ID`` = the Spectrum project id,
+-  ``PHOTON_PROJECT_SECRET``) like every other channel, with management
+-  metadata (device token, dashboard project id) in ``~/.wenshu-hermes/auth.json``.
+-  Photon's free shared-line model lets users get started without a paid plan.
++description: "Photon Spectrum 网关适配器 (Wenshu Agent). 通过 Photon 托管的 Spectrum 平台接入 iMessage (以及其他 Spectrum 接口). 两个方向都通过 spectrum-ts SDK 的长寿 gRPC 流, 由一个小型受监督 Node sidecar 承载 - 入站消息落在 SDK 的 app.messages 流上 (无 webhook, 无公网 URL, 无签名密钥), 出站消息也走同一个 sidecar. 插件自带 wenshu photon CLI 用于一次性设备登录 + 项目 + 用户配置. 运行期凭据写到 ~/.wenshu-hermes/.env (PHOTON_PROJECT_ID = Spectrum 项目 id, PHOTON_PROJECT_SECRET), 管理元数据 (设备 token, dashboard 项目 id) 在 ~/.wenshu-hermes/auth.json. Photon 的免费共享线路模式让用户无需付费即可上手."
+ author: NousResearch
+-requires_env:
+-  - name: PHOTON_PROJECT_ID
+-    description: "Spectrum project id (the project's spectrumProjectId; set by `wenshu photon setup`)"
+-    prompt: "Photon Spectrum project id"
+-    url: "https://app.photon.codes/"
+-    password: false
+-  - name: PHOTON_PROJECT_SECRET
+-    description: "Project secret paired with the Spectrum project id (set by `wenshu photon setup`)"
+-    prompt: "Photon project secret"
+-    url: "https://app.photon.codes/"
+-    password: true
+-optional_env:
+-  - name: PHOTON_SIDECAR_PORT
+-    description: "Loopback port for the Node sidecar control + inbound channel (default 8789)"
+-    prompt: "Sidecar control port"
+-    password: false
+-  - name: PHOTON_SIDECAR_AUTOSTART
+-    description: "Spawn the Node sidecar on connect (true/false, default true)"
+-    prompt: "Auto-start the sidecar?"
+-    password: false
+-  - name: PHOTON_NODE_BIN
+-    description: "Path to the node binary (default: shutil.which('node'))"
+-    prompt: "Node executable path"
+-    password: false
+-  - name: PHOTON_DASHBOARD_HOST
+-    description: "Photon Dashboard API host (default https://app.photon.codes)"
+-    prompt: "Dashboard host"
+-    password: false
+-  - name: PHOTON_SPECTRUM_HOST
+-    description: "Photon Spectrum API host (default https://spectrum.photon.codes)"
+-    prompt: "Spectrum API host"
+-    password: false
+-  - name: PHOTON_ALLOWED_USERS
+-    description: "Comma-separated E.164 phone numbers allowed to talk to the bot"
+-    prompt: "Allowed users (comma-separated)"
+-    password: false
+-  - name: PHOTON_ALLOW_ALL_USERS
+-    description: "Allow any sender to trigger the bot (dev only — disables allowlist)"
+-    prompt: "Allow all users? (true/false)"
+-    password: false
+-  - name: PHOTON_REQUIRE_MENTION
+-    description: "Ignore group-chat messages unless they match a mention wake word (true/false, default false)"
+-    prompt: "Require a mention in group chats?"
+-    password: false
+-  - name: PHOTON_MENTION_PATTERNS
+-    description: "Mention wake-word regexes for group chats (JSON list or comma/newline-separated; defaults to Wenshu wake words)"
+-    prompt: "Group mention patterns"
+-    password: false
+-  - name: PHOTON_HOME_CHANNEL
+-    description: "Default Photon target for cron / notification delivery: Spectrum space id, DM GUID, or bare E.164 phone number"
+-    prompt: "Home Photon target"
+-    password: false
+-  - name: PHOTON_HOME_CHANNEL_NAME
+-    description: "Human label for the home channel"
+-    prompt: "Home channel display name"
+-    password: false
+-  - name: PHOTON_TELEMETRY
+-    description: "Enable Spectrum SDK telemetry in the sidecar (true/false, default false; toggle with `wenshu photon telemetry on|off`)"
+-    prompt: "Enable Spectrum telemetry? (true/false)"
+-    password: false
+-  - name: PHOTON_MARKDOWN
+-    description: "Send agent replies as markdown — iMessage renders it natively, other Spectrum platforms degrade to plain text (true/false, default true)"
+-    prompt: "Render replies as markdown? (true/false)"
+-    password: false
+-  - name: PHOTON_REACTIONS
+-    description: "Tapback 👀/👍/👎 on messages as processing status and route tapbacks on bot messages to the agent (true/false, default false)"
+-    prompt: "Enable reaction tapbacks? (true/false)"
+-    password: false
+diff --git a/plugins/platforms/raft/plugin.yaml b/plugins/platforms/raft/plugin.yaml
+index fa4ef2722..3a8fc8cb1 100644
+--- a/plugins/platforms/raft/plugin.yaml
++++ b/plugins/platforms/raft/plugin.yaml
+@@ -2,14 +2,7 @@ name: raft-platform
+ label: Raft
+ kind: platform
+ version: 1.0.0
+-description: >
+-  Raft gateway adapter for Wenshu Agent.
+-  Connects to a Raft workspace as an external agent via a local
+-  wake-channel bridge. The adapter starts a loopback HTTP endpoint
+-  that receives content-free wake hints from the bridge, then
+-  injects them into the Wenshu gateway session pipeline. The agent
+-  reads and sends messages through the Raft CLI — the adapter never
+-  touches message bodies or delivery cursors.
++description: "Raft 网关适配器 (Wenshu Agent). 通过本地 wake-channel bridge 把 Raft workspace 作为外部 agent 接入. 适配器启动一个 loopback HTTP 端点接收 bridge 发来的无内容唤醒提示, 然后把它注入 Wenshu gateway 会话流水线. Agent 通过 Raft CLI 收发消息 — 适配器从不接触消息体或投递游标."
+ author: botiverse
+ requires_env:
+   - name: RAFT_PROFILE
+diff --git a/plugins/platforms/simplex/plugin.yaml b/plugins/platforms/simplex/plugin.yaml
+index 5e46df5e6..38a9ef0ea 100644
+--- a/plugins/platforms/simplex/plugin.yaml
++++ b/plugins/platforms/simplex/plugin.yaml
+@@ -2,13 +2,7 @@ name: simplex-platform
+ label: SimpleX Chat
+ kind: platform
+ version: 1.1.0
+-description: >
+-  SimpleX Chat gateway adapter for Wenshu Agent.
+-  Connects to a local simplex-chat daemon via WebSocket and relays
+-  messages between SimpleX contacts/groups and the Wenshu agent.
+-  SimpleX is decentralised and assigns no persistent user IDs —
+-  every contact is an opaque internal ID generated at connection
+-  time, making it one of the most private messengers available.
++description: "SimpleX Chat 网关适配器 (Wenshu Agent). 通过 WebSocket 接入本地 simplex-chat 守护进程, 在 SimpleX 联系人/群组和 Wenshu agent 之间中继消息. SimpleX 去中心化且不分配持久用户 ID — 每个联系人都是一个连接时生成的不透明内部 ID, 是最私密的聊天工具之一."
+ author: Mibayy, jooray
+ # ``requires_env`` and ``optional_env`` entries are surfaced in the
+ # ``wenshu config`` UI via the platform-plugin env var injector in
+diff --git a/plugins/platforms/slack/plugin.yaml b/plugins/platforms/slack/plugin.yaml
+index 5055dbd9c..e4a56476b 100644
+--- a/plugins/platforms/slack/plugin.yaml
++++ b/plugins/platforms/slack/plugin.yaml
+@@ -2,12 +2,7 @@ name: slack-platform
+ label: Slack
+ kind: platform
+ version: 1.0.0
+-description: >
+-  Slack gateway adapter for Wenshu Agent.
+-  Connects to Slack via slack-bolt in Socket Mode and relays messages
+-  between Slack channels/DMs and the Wenshu agent. Supports slash
+-  commands, threads, mrkdwn rendering, approval blocks, free-response
+-  channels, mention gating, and channel skill bindings.
++description: "Slack 网关适配器 (Wenshu Agent). 通过 slack-bolt Socket Mode 接入 Slack, 在 Slack 频道/私信和 Wenshu agent 之间中继消息. 支持斜杠命令, 话题, mrkdwn 渲染, 审批块, 自由回复频道, mention 门控, 频道技能绑定."
+ author: NousResearch
+ requires_env:
+   - name: SLACK_BOT_TOKEN
+diff --git a/plugins/platforms/sms/plugin.yaml b/plugins/platforms/sms/plugin.yaml
+index 4ee6aaa07..4b0806361 100644
+--- a/plugins/platforms/sms/plugin.yaml
++++ b/plugins/platforms/sms/plugin.yaml
+@@ -2,10 +2,7 @@ name: sms-platform
+ label: SMS (Twilio)
+ kind: platform
+ version: 1.0.0
+-description: >
+-  SMS gateway adapter for Wenshu Agent via Twilio. Sends and receives SMS
+-  through the Twilio REST API + inbound webhook, relaying texts between phone
+-  numbers and the Wenshu agent. Markdown is stripped to plain text.
++description: "SMS 网关适配器 (Wenshu Agent, 通过 Twilio). 通过 Twilio REST API + 入站 webhook 收发 SMS, 在电话号码和 Wenshu agent 之间中继短信. Markdown 自动剥离为纯文本."
+ author: NousResearch
+ requires_env:
+   - name: TWILIO_ACCOUNT_SID
+diff --git a/plugins/platforms/teams/plugin.yaml b/plugins/platforms/teams/plugin.yaml
+index d9a3f9a2f..deea0d835 100644
+--- a/plugins/platforms/teams/plugin.yaml
++++ b/plugins/platforms/teams/plugin.yaml
+@@ -2,11 +2,7 @@ name: teams-platform
+ label: Microsoft Teams
+ kind: platform
+ version: 1.0.0
+-description: >
+-  Microsoft Teams gateway adapter for Wenshu Agent.
+-  Connects to Microsoft Teams via the Bot Framework and relays messages
+-  between Teams chats (personal DMs, group chats, channel posts) and
+-  the Wenshu agent. Supports Adaptive Card approval prompts.
++description: "Microsoft Teams 网关适配器 (Wenshu Agent). 通过 Bot Framework 接入 Microsoft Teams, 在 Teams 聊天 (个人 DM, 群聊, 频道帖) 和 Wenshu agent 之间中继消息. 支持 Adaptive Card 审批弹窗."
+ author: Aamir Jawaid
+ # ``requires_env`` entries are surfaced in ``wenshu config`` UI via the
+ # platform-plugin env var injector in ``wenshu_cli/config.py``.
+diff --git a/plugins/platforms/telegram/plugin.yaml b/plugins/platforms/telegram/plugin.yaml
+index a625d39f6..818f35887 100644
+--- a/plugins/platforms/telegram/plugin.yaml
++++ b/plugins/platforms/telegram/plugin.yaml
+@@ -2,13 +2,7 @@ name: telegram-platform
+ label: Telegram
+ kind: platform
+ version: 1.0.0
+-description: >
+-  Telegram gateway adapter for Wenshu Agent.
+-  Connects to Telegram via python-telegram-bot and relays messages between
+-  Telegram chats/groups/topics and the Wenshu agent. Supports threads/topics,
+-  streaming edits, native media, inline keyboards, slash commands, fallback
+-  network transport (direct-IP failover), notification modes, mention gating,
+-  and per-user/chat allowlists.
++description: "Telegram 网关适配器 (Wenshu Agent). 通过 python-telegram-bot 接入 Telegram, 在 Telegram 聊天/群组/话题和 Wenshu agent 之间中继消息. 支持话题/Topic, 流式编辑, 原生媒体, 内联键盘, 斜杠命令, 直连 IP 故障切换, 通知模式, mention 门控, 每用户/每聊天白名单."
+ author: NousResearch
+ requires_env:
+   - name: TELEGRAM_BOT_TOKEN
+diff --git a/plugins/platforms/wecom/plugin.yaml b/plugins/platforms/wecom/plugin.yaml
+index bc0c5cdde..9a91c2312 100644
+--- a/plugins/platforms/wecom/plugin.yaml
++++ b/plugins/platforms/wecom/plugin.yaml
+@@ -2,11 +2,7 @@ name: wecom-platform
+ label: WeCom (Enterprise WeChat)
+ kind: platform
+ version: 1.0.0
+-description: >
+-  WeCom / Enterprise WeChat gateway adapter for Wenshu Agent. Registers two
+-  platforms: ``wecom`` (Smart Robot over WebSocket) and ``wecom_callback``
+-  (self-built apps over an HTTP callback endpoint with AES message crypto).
+-  Relays messages between WeCom chats and the Wenshu agent.
++description: "企业微信 / WeCom 网关适配器 (Wenshu Agent). 注册两个平台: ``wecom`` (智能机器人, WebSocket 接入) 和 ``wecom_callback`` (自建应用, HTTP 回调端点 + AES 消息加密). 在企业微信聊天和 Wenshu agent 之间中继消息."
+ author: NousResearch
+ requires_env:
+   - name: WECOM_BOT_ID
+diff --git a/plugins/platforms/whatsapp/plugin.yaml b/plugins/platforms/whatsapp/plugin.yaml
+index c3e6f2b80..6842fd81e 100644
+--- a/plugins/platforms/whatsapp/plugin.yaml
++++ b/plugins/platforms/whatsapp/plugin.yaml
+@@ -2,12 +2,7 @@ name: whatsapp-platform
+ label: WhatsApp
+ kind: platform
+ version: 1.0.0
+-description: >
+-  WhatsApp gateway adapter for Wenshu Agent.
+-  Connects to WhatsApp via a local Node.js bridge (WhatsApp Web client) over
+-  an HTTP API and relays messages between WhatsApp chats and the Wenshu agent.
+-  Supports DM/group policies, mention gating, free-response chats, and
+-  per-user allowlists.
++description: "WhatsApp 网关适配器 (Wenshu Agent). 通过本地 Node.js bridge (WhatsApp Web 客户端) 走 HTTP API 接入 WhatsApp, 在 WhatsApp 聊天和 Wenshu agent 之间中继消息. 支持 DM/群策略, mention 门控, 自由回复聊天, 每用户白名单."
+ author: NousResearch
+ requires_env:
+   - name: WHATSAPP_ENABLED
+diff --git a/plugins/security-guidance/plugin.yaml b/plugins/security-guidance/plugin.yaml
+index 7bcce6338..92d68326e 100644
+--- a/plugins/security-guidance/plugin.yaml
++++ b/plugins/security-guidance/plugin.yaml
+@@ -1,6 +1,6 @@
+ name: security-guidance
+ version: "0.1.0"
+-description: "Append security warnings to file-write tool results when the new content contains known-dangerous patterns (pickle.load, yaml.load, eval(, os.system, dangerouslySetInnerHTML, verify=False, ECB, XXE, GitHub Actions injection, ...). 25 regex/substring rules forked from Anthropic's claude-plugins-official under Apache-2.0. Non-blocking — the file is written and the warning rides back to the model in the next turn so it can self-correct."
++description: "当文件写入工具的新内容包含已知危险模式 (pickle.load, yaml.load, eval(, os.system, dangerouslySetInnerHTML, verify=False, ECB, XXE, GitHub Actions 注入, …) 时给结果追加安全警告. 25 条 regex/子串规则, forked 自 Anthropic 的 claude-plugins-official under Apache-2.0. 非阻塞 — 文件正常写入, 警告随下一轮回话回送给模型让它自行修正."
+ author: "Anthropic (patterns, Apache-2.0) / NousResearch (Wenshu plugin port)"
+ hooks:
+   - transform_tool_result
+diff --git a/plugins/video_gen/deepinfra/plugin.yaml b/plugins/video_gen/deepinfra/plugin.yaml
+index cec28f428..577a08c5f 100644
+--- a/plugins/video_gen/deepinfra/plugin.yaml
++++ b/plugins/video_gen/deepinfra/plugin.yaml
+@@ -1,6 +1,6 @@
+ name: deepinfra
+ version: 1.0.0
+-description: "DeepInfra video generation (text-to-video & image-to-video) via the OpenAI-compatible /v1/openai/videos endpoint. Catalog discovered live from api.deepinfra.com."
++description: "DeepInfra 视频生成 (文生视频 + 图生视频) 通过 OpenAI 兼容的 /v1/openai/videos 端点. 模型清单实时从 api.deepinfra.com 发现."
+ author: Georgi Atsev
+ kind: backend
+ requires_env:
+diff --git a/plugins/video_gen/fal/plugin.yaml b/plugins/video_gen/fal/plugin.yaml
+index 2003a817e..fbb756262 100644
+--- a/plugins/video_gen/fal/plugin.yaml
++++ b/plugins/video_gen/fal/plugin.yaml
+@@ -1,6 +1,6 @@
+ name: fal
+ version: 1.0.0
+-description: "FAL.ai video generation backend. Multi-model — Veo 3.1, Kling, Pixverse — covering text-to-video and image-to-video via fal_client's queue API."
++description: "FAL.ai 视频生成后端. 多模型 — Veo 3.1, Kling, Pixverse — 覆盖文生视频和图生视频, 通过 fal_client 队列 API."
+ author: NousResearch
+ kind: backend
+ requires_env:
+diff --git a/plugins/video_gen/xai/plugin.yaml b/plugins/video_gen/xai/plugin.yaml
+index 3fec62e08..984c72b09 100644
+--- a/plugins/video_gen/xai/plugin.yaml
++++ b/plugins/video_gen/xai/plugin.yaml
+@@ -1,6 +1,6 @@
+ name: xai
+ version: 1.0.0
+-description: "xAI Grok Imagine video generation backend. Supports text-to-video, image-to-video, reference-to-video, video editing, video extension, and stored public URLs via the xAI async videos API."
++description: "xAI Grok Imagine 视频生成后端. 支持文生视频, 图生视频, 参考视频, 视频编辑, 视频扩展, 以及通过 xAI 异步 videos API 存储的公网 URL."
+ author: NousResearch
+ kind: backend
+ requires_env:
+diff --git a/plugins/web/brave_free/plugin.yaml b/plugins/web/brave_free/plugin.yaml
+index 3b39a34e1..57ce99cb9 100644
+--- a/plugins/web/brave_free/plugin.yaml
++++ b/plugins/web/brave_free/plugin.yaml
+@@ -1,6 +1,6 @@
+ name: web-brave-free
+ version: 1.0.0
+-description: "Brave Search (free tier) — web search via Brave's Data-for-Search API. Requires BRAVE_SEARCH_API_KEY (free signup at https://brave.com/search/api/, 2k queries/month)."
++description: "Brave Search (免费版) — 通过 Brave Data-for-Search API 搜网页. 需要 BRAVE_SEARCH_API_KEY (免费注册 https://brave.com/search/api/, 每月 2000 次)."
+ author: NousResearch
+ kind: backend
+ provides_web_providers:
+diff --git a/plugins/web/ddgs/plugin.yaml b/plugins/web/ddgs/plugin.yaml
+index e85236c14..4787a311a 100644
+--- a/plugins/web/ddgs/plugin.yaml
++++ b/plugins/web/ddgs/plugin.yaml
+@@ -1,6 +1,6 @@
+ name: web-ddgs
+ version: 1.0.0
+-description: "DuckDuckGo web search via the ddgs Python package — no API key required. Install with `pip install ddgs`."
++description: "DuckDuckGo 网页搜索 (通过 ddgs Python 包) — 无需 API key. 安装: `pip install ddgs`."
+ author: NousResearch
+ kind: backend
+ provides_web_providers:
+diff --git a/plugins/web/exa/plugin.yaml b/plugins/web/exa/plugin.yaml
+index 1eceefb6a..f952794d4 100644
+--- a/plugins/web/exa/plugin.yaml
++++ b/plugins/web/exa/plugin.yaml
+@@ -1,6 +1,6 @@
+ name: web-exa
+ version: 1.0.0
+-description: "Exa web search and content extraction. Requires EXA_API_KEY — sign up at https://exa.ai."
++description: "Exa 网页搜索 + 内容提取. 需要 EXA_API_KEY — 在 https://exa.ai 注册."
+ author: NousResearch
+ kind: backend
+ provides_web_providers:
+diff --git a/plugins/web/firecrawl/plugin.yaml b/plugins/web/firecrawl/plugin.yaml
+index 063af47d7..f3ca68d1d 100644
+--- a/plugins/web/firecrawl/plugin.yaml
++++ b/plugins/web/firecrawl/plugin.yaml
+@@ -1,6 +1,6 @@
+ name: web-firecrawl
+ version: 1.0.0
+-description: "Firecrawl web search + content extraction. Supports direct API and Nous-hosted tool-gateway routing for subscribers. Requires FIRECRAWL_API_KEY (or FIRECRAWL_API_URL for self-hosted), or an active Nous subscription with FIRECRAWL_GATEWAY_URL."
++description: "Firecrawl 网页搜索 + 内容提取. 支持直连 API 和 Nous 托管工具网关路由 (订阅用户). 需要 FIRECRAWL_API_KEY (或自托管 FIRECRAWL_API_URL), 或激活 Nous 订阅配 FIRECRAWL_GATEWAY_URL."
+ author: NousResearch
+ kind: backend
+ provides_web_providers:
+diff --git a/plugins/web/parallel/plugin.yaml b/plugins/web/parallel/plugin.yaml
+index 01bf0da58..51b2d41ca 100644
+--- a/plugins/web/parallel/plugin.yaml
++++ b/plugins/web/parallel/plugin.yaml
+@@ -1,6 +1,6 @@
+ name: web-parallel
+ version: 1.0.0
+-description: "Parallel.ai web search + content extraction. Search returns objective-tuned results; extract uses the async SDK for parallel page fetches. Requires PARALLEL_API_KEY — sign up at https://parallel.ai."
++description: "Parallel.ai 网页搜索 + 内容提取. 搜索返回客观调优结果; 提取用异步 SDK 并行抓取页面. 需要 PARALLEL_API_KEY — 在 https://parallel.ai 注册."
+ author: NousResearch
+ kind: backend
+ provides_web_providers:
+diff --git a/plugins/web/searxng/plugin.yaml b/plugins/web/searxng/plugin.yaml
+index 3d758bad5..6237b9bcf 100644
+--- a/plugins/web/searxng/plugin.yaml
++++ b/plugins/web/searxng/plugin.yaml
+@@ -1,6 +1,6 @@
+ name: web-searxng
+ version: 1.0.0
+-description: "SearXNG web search — free, self-hosted, privacy-respecting metasearch engine. Requires SEARXNG_URL pointing at your instance."
++description: "SearXNG 网页搜索 — 免费, 自托管, 隐私友好的元搜索引擎. 需要 SEARXNG_URL 指向你的实例."
+ author: NousResearch
+ kind: backend
+ provides_web_providers:
+diff --git a/plugins/web/tavily/plugin.yaml b/plugins/web/tavily/plugin.yaml
+index 7eb1e9fc4..5bf1b582f 100644
+--- a/plugins/web/tavily/plugin.yaml
++++ b/plugins/web/tavily/plugin.yaml
+@@ -1,6 +1,6 @@
+ name: web-tavily
+ version: 1.0.0
+-description: "Tavily web search + content extraction + crawl. Search + extract are mainstream; crawl is unique to Tavily among built-in providers. Requires TAVILY_API_KEY — sign up at https://app.tavily.com/home."
++description: "Tavily 网页搜索 + 内容提取 + 抓取. 搜索和提取是主流; 抓取是 Tavily 在内置提供方里独有的能力. 需要 TAVILY_API_KEY — 在 https://app.tavily.com/home 注册."
+ author: NousResearch
+ kind: backend
+ provides_web_providers:
+diff --git a/plugins/web/xai/plugin.yaml b/plugins/web/xai/plugin.yaml
+index 869662ab2..bd9925b5b 100644
+--- a/plugins/web/xai/plugin.yaml
++++ b/plugins/web/xai/plugin.yaml
+@@ -1,6 +1,6 @@
+ name: web-xai
+ version: 1.0.0
+-description: "xAI Web Search — search the web via Grok's agentic web_search tool (Responses API). Requires xAI Grok OAuth (via `wenshu auth`) or XAI_API_KEY (https://x.ai)."
++description: "xAI 网页搜索 — 通过 Grok 的 agentic web_search 工具 (Responses API) 搜网页. 需要 xAI Grok OAuth (走 `wenshu auth`) 或 XAI_API_KEY (https://x.ai)."
+ author: NousResearch
+ kind: backend
+ provides_web_providers:
+diff --git a/wenshu_cli/tools_config.py b/wenshu_cli/tools_config.py
+index a52834a1e..564c1647b 100644
+--- a/wenshu_cli/tools_config.py
++++ b/wenshu_cli/tools_config.py
+@@ -92,27 +92,29 @@ from wenshu_cli.cli_output import (  # noqa: E402 — late import block
+ # Toolsets shown in the configurator, grouped for display.
+ # Each entry: (toolset_name, label, description)
+ # These map to keys in toolsets.py TOOLSETS dict.
++# R78 (装机 user 8/30 拍): label + description 全译中文 (国内用户英文不好).
++# 20 行数组结构 / 顺序 / 数量保持 R65 验证 (web/browser/.../computer_use).
+ CONFIGURABLE_TOOLSETS = [
+-    ("web",             "🔍 Web Search & Scraping",    "web_search, web_extract"),
+-    ("browser",         "🌐 Browser Automation",       "navigate, click, type, scroll"),
+-    ("terminal",        "💻 Terminal & Processes",      "terminal, process"),
+-    ("file",            "📁 File Operations",           "read, write, patch, search"),
+-    ("code_execution",  "⚡ Code Execution",            "execute_code"),
+-    ("vision",          "👁️  Vision / Image Analysis",  "vision_analyze"),
+-    ("video",           "🎬 Video Analysis",            "video_analyze (requires video-capable model)"),
+-    ("image_gen",       "🎨 Image Generation",          "image_generate"),
+-    ("video_gen",       "🎬 Video Generation",          "video_generate (text/image/reference)"),
+-    ("tts",             "🔊 Text-to-Speech",            "text_to_speech"),
+-    ("skills",          "📚 Skills",                    "list, view, manage"),
+-    ("todo",            "📋 Task Planning",             "todo"),
+-    ("memory",          "💾 Memory",                    "persistent memory across sessions"),
+-    ("context_engine",  "🧩 Context Engine",            "runtime tools from the active context engine"),
+-    ("session_search",  "🔎 Session Search",            "search past conversations"),
+-    ("clarify",         "❓ Clarifying Questions",      "clarify"),
+-    ("delegation",      "👥 Task Delegation",           "delegate_task"),
+-    ("cronjob",         "⏰ Cron Jobs",                 "create/list/update/pause/resume/run, with optional attached skills"),
+-    ("yuanbao",          "🤖 Yuanbao",                  "group info, member queries, DM"),
+-    ("computer_use",     "🖱️  Computer Use (macOS/Windows/Linux)", "background desktop control via cua-driver"),
++    ("web",             "🔍 网页搜索与抓取",            "web_search, web_extract"),
++    ("browser",         "🌐 浏览器自动化",               "导航, 点击, 输入, 滚动"),
++    ("terminal",        "💻 终端与进程",                  "terminal, process"),
++    ("file",            "📁 文件操作",                   "读取, 写入, 修补, 搜索"),
++    ("code_execution",  "⚡ 代码执行",                    "execute_code"),
++    ("vision",          "👁️  视觉/图像分析",            "vision_analyze"),
++    ("video",           "🎬 视频分析",                    "video_analyze (需支持视频的模型)"),
++    ("image_gen",       "🎨 图像生成",                    "image_generate"),
++    ("video_gen",       "🎬 视频生成",                    "video_generate (文本/图像/参考)"),
++    ("tts",             "🔊 文字转语音",                  "text_to_speech"),
++    ("skills",          "📚 技能",                        "列表, 查看, 管理"),
++    ("todo",            "📋 任务规划",                    "todo"),
++    ("memory",          "💾 记忆",                        "跨会话持久化记忆"),
++    ("context_engine",  "🧩 上下文引擎",                  "来自当前上下文引擎的运行时工具"),
++    ("session_search",  "🔎 会话搜索",                    "搜索历史会话"),
++    ("clarify",         "❓ 澄清问题",                    "clarify"),
++    ("delegation",      "👥 任务委派",                    "delegate_task"),
++    ("cronjob",         "⏰ 定时任务",                    "创建/列表/更新/暂停/恢复/运行, 可绑定技能"),
++    ("yuanbao",          "🤖 元宝",                      "群信息, 成员查询, 私信"),
++    ("computer_use",     "🖱️  桌面控制 (macOS/Windows/Linux)", "通过 cua-driver 后台控制桌面"),
+ ]
+ 
+ 
+-- 
+2.54.0 (Apple Git-157)
+

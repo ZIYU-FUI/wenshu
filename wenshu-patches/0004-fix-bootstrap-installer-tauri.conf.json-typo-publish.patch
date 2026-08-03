@@ -1,0 +1,35 @@
+From 87507e0c647c1d1cc6fdd7657ce2d22df835ebc4 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?=
+ <9528147+zi-yu1983@user.noreply.gitee.com>
+Date: Fri, 24 Jul 2026 00:03:03 +0800
+Subject: [PATCH 004/168] =?UTF-8?q?fix(bootstrap-installer):=20tauri.conf.?=
+ =?UTF-8?q?json=20=E5=8F=8C=E9=80=97=E5=8F=B7=20typo=20+=20publisher/copyr?=
+ =?UTF-8?q?ight=20=E6=94=B9=E6=96=87=E6=9E=A2?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ apps/bootstrap-installer/src-tauri/tauri.conf.json | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/apps/bootstrap-installer/src-tauri/tauri.conf.json b/apps/bootstrap-installer/src-tauri/tauri.conf.json
+index 00a273e22..17bbd0a3b 100644
+--- a/apps/bootstrap-installer/src-tauri/tauri.conf.json
++++ b/apps/bootstrap-installer/src-tauri/tauri.conf.json
+@@ -35,9 +35,9 @@
+     "active": true,
+     "category": "DeveloperTool",
+     "shortDescription": "文枢",
+-    "longDescription": "Installs 文枢 on your machine. Drives scripts/install.ps1 (Windows) and scripts/install.sh (macOS/Linux).",,
+-    "publisher": "Nous Research",
+-    "copyright": "Copyright © 2026 Nous Research",
++    "longDescription": "Installs 文枢 on your machine. Drives scripts/install.ps1 (Windows) and scripts/install.sh (macOS/Linux).",
++    "publisher": "文枢 Project",
++    "copyright": "Copyright © 2026 文枢 Project",
+     "targets": [
+       "app",
+       "dmg",
+-- 
+2.54.0 (Apple Git-157)
+

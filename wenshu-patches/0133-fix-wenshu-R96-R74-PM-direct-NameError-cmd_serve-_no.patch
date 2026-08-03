@@ -1,0 +1,69 @@
+From c70b6e576c102ddb2c5be868b03c1fad91ccead8 Mon Sep 17 00:00:00 2001
+From: pm-direct <pm-direct@wenshu.local>
+Date: Thu, 30 Jul 2026 20:27:05 +0800
+Subject: [PATCH 133/168] =?UTF-8?q?fix(wenshu):=20R96=20-=20=E4=BF=AE=20R7?=
+ =?UTF-8?q?4=20PM-direct=20=E8=87=AA=E5=AE=B6=E7=95=99=E7=9A=84=E6=9B=B4?=
+ =?UTF-8?q?=E5=A4=9A=20NameError=20(cmd=5Fserve=20+=20=5Fnormalise=5Fprefi?=
+ =?UTF-8?q?x)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+R95 修完 desktop 仍启动失败 (我自己 spawn wenshu serve 验):
+1. main.py cmd_serve: 调 start_server(args) 但 args 是 argparse Namespace, 不是 dict
+   - 修: start_server(host=args.host, port=args.port, open_browser=False)
+
+2. web_server.py line 17806: _normalise_prefix 调 normalise_prefix() (R74 删 import)
+   - 修: stub 返回 raw
+
+PM-direct 自验:
+- wenshu_cli/web_server.py + main.py 编译 0
+- wenshu serve --host 127.0.0.1 --port 0 跑通
+- 启新 desktop .app, backend 'WENSHU_DASHBOARD_READY port=57535'
+- curl http://127.0.0.1:57535/ 返 HTTP 200 + '<title>文枢</title>'
+- desktop '文枢 desktop startup complete'
+
+PM-direct 自家验 目标:能进 app 已达成.
+---
+ wenshu_cli/main.py       | 9 +++++++--
+ wenshu_cli/web_server.py | 3 ++-
+ 2 files changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/hermes_cli/main.py b/hermes_cli/main.py
+index a8c915691..9bdfb2d22 100644
+--- a/hermes_cli/main.py
++++ b/hermes_cli/main.py
+@@ -2899,9 +2899,14 @@ def cmd_whatsapp_cloud(args):
+ 
+ def cmd_serve(args):
+     """Headless backend (formerly `wenshu dashboard --no-open`)."""
+-    # Reuse start_server with browser suppressed
++    # Reuse start_server with browser suppressed.
++    # R95: args is argparse.Namespace; convert to keyword args for start_server.
+     from wenshu_cli.web_server import start_server
+-    return start_server(args)
++    return start_server(
++        host=args.host,
++        port=args.port,
++        open_browser=False,  # --no-open default for headless
++    )
+ 
+ 
+ def cmd_setup(args):
+diff --git a/hermes_cli/web_server.py b/hermes_cli/web_server.py
+index 071b65c0a..18a81bbd4 100644
+--- a/hermes_cli/web_server.py
++++ b/hermes_cli/web_server.py
+@@ -17803,7 +17803,8 @@ def _normalise_prefix(raw: Optional[str]) -> str:
+     the gate middleware, the OAuth routes, the cookie helpers, and the
+     SPA mount all agree on validation rules.
+     """
+-    return normalise_prefix(raw)
++    # R96: dashboard_auth deleted (R69). Stub.
++    return raw
+ 
+ 
+ def _render_active_theme_bootstrap_css() -> str:
+-- 
+2.54.0 (Apple Git-157)
+

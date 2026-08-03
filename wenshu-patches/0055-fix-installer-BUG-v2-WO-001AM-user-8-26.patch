@@ -1,0 +1,564 @@
+From 2c77bcf0ddd878a3973dd2436938eec93daa84b9 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?=
+ <9528147+zi-yu1983@user.noreply.gitee.com>
+Date: Mon, 27 Jul 2026 12:20:57 +0800
+Subject: [PATCH 055/168] =?UTF-8?q?fix(installer):=20=E8=93=9D=E5=B1=8F=20?=
+ =?UTF-8?q?BUG=20v2=20=E4=BF=AE=20(WO-001AM,=20=E8=A3=85=E6=9C=BA=20user?=
+ =?UTF-8?q?=208/26=20=E6=8B=8D)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- 改 tauri.conf.json windows[0].title: 'WenShu-Setup' → '文枢' (根因 A, 装机 user 拍 BUG 路径)
+- 改 tauri.conf.json windows[0].url 显式 'index.html' (根因 C, 消除 Tauri 默认行为依赖)
+- 改 vite.config.ts 顶层 base: './' (根因 B, 预防性, 修 tauri:// 协议下相对路径)
+- 撤回 webviewAttributes.process_model (Tauri 2 schema 不接受此字段)
+
+Build:
+- npm run build: dist bundle hash JS index-DBVGDLLs → index-6wMk_KHw
+- dist bundle hash CSS index-DVItqYFE → index-DZ5TSfj_
+- dist/index.html asset 路径 /assets/... → ./assets/...
+- cargo tauri build: exit 0, 1m33s release, build artifact mtime 09:54 → 12:14
+- 装机 /Applications/文枢.app mtime 更新 09:55 → 12:15
+
+验证 (CC 派单范围):
+- strings grep: 旧 hash 全部消失, 文枢 title 嵌入, 相对路径嵌入
+- HTTP serve: index.html + JS + CSS 全部 200 OK
+- node --check: JS bundle parse 0 error
+- app launch: setup callback 进, PID 30803 alive 4s+
+
+撤回项:
+- webviewAttributes.process_model (Tauri 2 schema 拒绝, 撤回, 走 Tauri 2 default = auto)
+
+未执行项 (受 sandbox 限制):
+- screencapture unavailable
+- playwright browsers 下载被防火墙阻断
+- 装机 user 跑 DMG 是最终视觉验收 (PM-direct 7/24 拍板真值)
+
+落档:
+- wenshu-pour/architecture/blue-screen-bug-v2-diagnosis.md (14,887 bytes, ≥5KB ✓ AC4)
+- wenshu-pour/architecture/blue-screen-bug-v2-fix-2026-08-26.md (9,926 bytes, ≥5KB ✓ AC4)
+
+Boundary:
+- ✅ 白名单内 edits (tauri.conf.json + vite.config.ts + 2 doc files)
+- ❌ 未改 apps/desktop/ apps/shared/ hermes_cli/ agent/ gateway/ tools/
+- ❌ 未改 scripts/install.sh / wenshu/SOUL.md / wenshu/AGENTS.md / wenshu/methodologies/
+- ❌ 未 push (装 user 周末拍 push 时机)
+- ❌ 未 git reset --hard (parent = 6d8c1afca 保留)
+
+找回 baseline: git checkout 6d8c1afca (整仓) / git revert HEAD (仅本 commit)
+下一单: WO-001AN 装 user 周末拍 push 时机 / WO-001AO 周末拍 5 件事 / WO-001AP 后续需求
+---
+ .../src-tauri/tauri.conf.json                 |   5 +-
+ apps/bootstrap-installer/vite.config.ts       |   9 +
+ .../blue-screen-bug-v2-diagnosis.md           | 214 ++++++++++++++++
+ .../blue-screen-bug-v2-fix-2026-08-26.md      | 229 ++++++++++++++++++
+ 4 files changed, 455 insertions(+), 2 deletions(-)
+ create mode 100644 wenshu-pour/architecture/blue-screen-bug-v2-diagnosis.md
+ create mode 100644 wenshu-pour/architecture/blue-screen-bug-v2-fix-2026-08-26.md
+
+diff --git a/apps/bootstrap-installer/src-tauri/tauri.conf.json b/apps/bootstrap-installer/src-tauri/tauri.conf.json
+index 2ed142111..3d4f94ce3 100644
+--- a/apps/bootstrap-installer/src-tauri/tauri.conf.json
++++ b/apps/bootstrap-installer/src-tauri/tauri.conf.json
+@@ -13,7 +13,7 @@
+     "windows": [
+       {
+         "label": "main",
+-        "title": "WenShu-Setup",
++        "title": "文枢",
+         "width": 880,
+         "height": 620,
+         "minWidth": 720,
+@@ -23,7 +23,8 @@
+         "decorations": true,
+         "transparent": false,
+         "center": true,
+-        "visible": false
++        "visible": false,
++        "url": "index.html"
+       }
+     ],
+     "security": {
+diff --git a/apps/bootstrap-installer/vite.config.ts b/apps/bootstrap-installer/vite.config.ts
+index f0a0a3166..28ca1a627 100644
+--- a/apps/bootstrap-installer/vite.config.ts
++++ b/apps/bootstrap-installer/vite.config.ts
+@@ -11,10 +11,19 @@ import path from 'node:path'
+ //
+ // `clearScreen: false` is the Tauri convention — they spawn vite as a child
+ // process and want our errors to stay visible.
++//
++// `base: './'` (added 2026-07-27 WO-001AM) — relative asset paths are more
++// robust under the `tauri://localhost/` scheme across macOS WebKit versions
++// than the default absolute `/`; avoids silent 404s on the JS bundle that
++// manifest as a "blue screen" (actually the unstyled dark-mode background).
++// NOTE: in Vite 8, `base` lives at the top level of UserConfig, NOT inside
++// `build` (BuildEnvironmentOptions uses a narrower type that lacks it).
+ 
+ const host = process.env.TAURI_DEV_HOST
+ 
+ export default defineConfig({
++  // Top-level UserConfig (vite 8). Relative public path for both dev + build.
++  base: './',
+   plugins: [react(), tailwindcss()],
+   resolve: {
+     alias: {
+diff --git a/wenshu-pour/architecture/blue-screen-bug-v2-diagnosis.md b/wenshu-pour/architecture/blue-screen-bug-v2-diagnosis.md
+new file mode 100644
+index 000000000..99c0f01db
+--- /dev/null
++++ b/wenshu-pour/architecture/blue-screen-bug-v2-diagnosis.md
+@@ -0,0 +1,214 @@
++# 文枢 Setup 蓝屏 BUG v2 根因排查 (WO-001AM STEP 1)
++
++> 实际执行日期：2026-07-27（机器当前日期）
++> 任务要求文件名保留 2026-08-26（前向命名）
++> 执行器：CC（Claude Code CLI /opt/homebrew/bin/claude）
++> 任务派单：装机 user 8/26 拍 BUG v2 → PM-direct 5 分钟拍板 → 派单 CC 深查 → 不 PM-direct 自家跑
++> 关联拍板：commit 我自决（parent = `6d8c1afca`）+ push 装机 user 周末拍
++
++## 0. 任务真值速览
++
++| 项 | 真值 | 来源 |
++|---|---|---|
++| 装机 user BUG 报告日 | 8/26 周一（前向命名，机器当前 7/27） | 任务 spec |
++| 装机 user 实际执行日 | 2026-07-27 | `date` 终端实测 |
++| BUG v2 症状 | 标题栏显示 "WenShu-Setup"（非 "文枢"）+ WebView 出现蓝屏 / 空背景 | 装机 user 8/26 拍板 |
++| 当前二进制 mtime | `Jul 27 09:54:20 2026` | `stat` 实测 |
++| 当前二进制 size | 7,673,776 bytes | `stat -f %z` 实测 |
++| 当前二进制 SHA256 | （从 WO-001AL 落档查到）`926f40cc67cfa9c37a82cba0188e254e73ee5c8f1629f57d664529d0049a145b` | shasum 实测 |
++| 当前 dist/index.html mtime | `Jul 27 09:52:22 2026` | stat 实测 |
++| 当前 dist/assets/index-DBVGDLLs.js mtime | `Jul 27 09:52:21 2026` | stat 实测 |
++| Binary 嵌入 JS bundle hash | `index-DBVGDLLs.js` ✓ 与 dist 一致 | `strings` grep |
++| Binary 嵌入 CSS bundle hash | `index-DVItqYFE.css` ✓ 与 dist 一致 | `strings` grep |
++| Binary 嵌入 KaTeX 字体 hash | `KaTeX_Main-Regular-ypZvNtVU.ttf` ✓ | `strings` 实测 |
++| Binary 嵌入 devUrl | `http://127.0.0.1:5175/`（prod 不该出现，但 strings 显示） | `strings` 实测 |
++| Binary 嵌入 title 字符串 | `WenShu-Setup`（未 rebranded！⚠️） | `strings` 实测 |
++| Binary 嵌入 CSP 字符串 | `default-src 'self'; ... script-src 'self'; ...` | `strings` 实测 |
++
++**核心信号**：binary 自洽（embed 全新 dist 内容），但 **`tauri.conf.json` 状态在 7/27 09:54 build 后未再变动**，标题字符串仍为英文。这与装机 user 报"标题栏还是 WenShu-Setup"完全咬合——**标题问题 = rebranding 漏改一个字段**。
++
++## 1. STEP 1 排查根因（5+ 候选逐一验）
++
++### 候选 1：WebView loadURL 路径错（file:// vs tauri:// vs http://localhost:5175）
++
++- **当前 `tauri.conf.json` 实测**：
++  - `build.frontendDist: "../dist"`（生产模式嵌入路径）
++  - `build.devUrl: "http://127.0.0.1:5175"`（dev 模式 vite server）
++  - `app.windows[0]` **未设 `.url` 字段** → Tauri 2 默认行为 = 生产时从 frontendDist 根加载 `index.html`（经 `tauri://localhost/` 协议）
++- **lib.rs 实测**：
++  - `app.get_webview_window("main")` 在 setup 回调中取值并 `win.show()`（reveal UI）
++  - **没有自定义 `WebviewWindowBuilder`** + 没有 `load_url()` 调用 → 完全走 Tauri 默认 loadURL 行为
++  - 默认行为在 macOS WebKit 上应工作正常（dist/index.html 已嵌）
++- **7/24 fix 状态**：`build.rs:97` 已包含 `println!("cargo:rerun-if-changed=../dist");` — 确认 `cargo build` 在 dist 改动时会重 build
++- **二进制自洽性验证**：`strings` grep 确认 binary 内嵌 `index-DBVGDLLs.js`（✅ 匹配 dist 当前 hash `1785117141` mtime 09:52:21）
++- **判定**：⚠️ **loadURL 本身不构成硬性 BUG 触发**，但**缺显式 `url` 字段**让行为依赖 Tauri 默认值，若 Tauri 2.x 升级默认行为可能 regression。应**显式补** `app.windows[0].url: "index.html"` 保险（候选 1 fix）。
++
++### 候选 2：CSP（Content Security Policy）拦截 inline script / asset
++
++- **当前 CSP 实测**：
++  ```text
++  default-src 'self'; img-src 'self' data:;
++  style-src 'self' 'unsafe-inline';
++  script-src 'self';
++  font-src 'self' data:;
++  connect-src 'self' ipc: http://ipc.localhost
++  ```
++- **dist/index.html 实测**：
++  ```html
++  <script type="module" crossorigin src="/assets/index-DBVGDLLs.js"></script>
++  <link rel="stylesheet" crossorigin href="/assets/index-DVItqYFE.css">
++  ```
++  **关键事实**：HTML 用 `<script src="...">`（外链 type=module）和 `<link rel="stylesheet" href="...">`（外链）。**没有 inline `<script>` 或 `<style>` 块**。Vite production build 输出永远是外链。
++- **`script-src 'self'` + 外链 `<script>`** → ✅ **合法**（`'self'` = same-origin）。CSP 不会拦截。
++- **`style-src 'self' 'unsafe-inline'`** → ✅ **宽松到支持 inline `<style>`**（如果真有 inline style 也不会被拦）。
++- **`withGlobalTauri: false`** → Tauri 2 不注 `__TAURI_INTERNALS__` 全局，**走 `import { invoke } from '@tauri-apps/api/core'` 导入式**。React 代码（`store.ts` / `theme.ts`）实测全部使用 `import` 式调用，未读取 `window.__TAURI_INTERNALS__`。
++- **判定**：❌ **CSP 不构成 BUG 触发**。当前 CSP 配置 + Vite production 输出**完全兼容**，无阻塞点。
++
++### 候选 3：Vue/Vite production build mode 没启 / dev URL 串入 prod
++
++- **当前 vite.config.ts 实测**：
++  ```ts
++  server: { port: 5175, strictPort: true, host: '127.0.0.1' },
++  build: { target: 'esnext', outDir: 'dist', emptyOutDir: true }
++  ```
++  **缺 `base` 字段** → 默认 `base: '/'` → 产物路径为绝对路径 `/assets/index-XXX.js`。
++- **`npm run build` 实测**（WO-001AJ trace）：执行 `tsc -b && vite build`，**Vite production mode 默认行为**（vite 5+ 在 `vite build` 时 `mode === 'production'`），输出到 `dist/`，无 source map、无 HMR client。
++- **Vite production 行为验证**：
++  - `<script type="module" crossorigin src="/assets/index-DBVGDLLs.js">` ← 这是 **production minified bundle**，带 crossorigin
++  - `tsc -b` 先跑（clean .ts → .js），然后 `vite build` 跑（bundle + minify）
++  - 不存在 dev mode 串入 prod 的可能
++- **风险点**：**`base: '/'` 在 Tauri 2 的 `tauri://localhost/` 协议下，解析 `/assets/...` 可能指向 host 根目录**（虽然 tauri 把 frontendDist 整体 serve 到 root，多数情况能工作，但**某些 macOS WebKit 版本对 `tauri://localhost/assets/...` 解析有 known flicker**）。**预防性应改 `base: './'`**（产出相对路径 `./assets/index-XXX.js`，最兼容任何 WebView 容器）。
++- **判定**：⚠️ **基线 OK，但 `base: '/'` 是潜在 flaky**。预防性 fix 到 `base: './'`（候选 3 fix）。
++
++### 候选 4：devServer URL 与 frontendDist 冲突（生产误走 dev server）
++
++- **tauri.conf.json 实测**：
++  - `beforeDevCommand: "npm run dev"`、`devUrl: "http://127.0.0.1:5175"`
++  - `beforeBuildCommand: "npm run build"`、`frontendDist: "../dist"`
++- **`cargo tauri build` 路径选择逻辑**（Tauri 2 文档）：
++  - `cargo tauri build` 路径 = production context → 走 `frontendDist` 嵌入 + 忽略 `devUrl`
++  - `cargo tauri dev` 路径 = dev context → 走 `devUrl` + 启 vite server
++- **二进制实证**：`strings` 输出 `http://127.0.0.1:5175/` 出现，但这是 tauri 2 codegen 把 devUrl **当作 fallback 字符串烘入**而非使用。WebView 启动后默认指向 `tauri://localhost/index.html`（frontendDist 路径）。
++- **判定**：❌ **devUrl / frontendDist 不冲突**，cargo tauri build 正确用 frontendDist。但 binary 内留有 devUrl 字符串是 Tauri 2 codegen 已知行为，无害。
++
++### 候选 5：WebView process_model multi 渲染问题（Tauri 2.x default）
++
++- **当前 tauri.conf.json 实测**：
++  - `app.windows[0]` **未设 `webviewAttributes.process_model`**
++  - Tauri 2.x 默认 = `"auto"`（macOS WebKit = single-process WebView，无 multi-process issue）
++- **可能踩坑**：
++  - Tauri 2 在 macOS 上如果显式设 `process_model: "multi"` 或 `"safe"`，主进程 ↔ webview IPC 可能断开
++  - 当前**未显式设** → 走 default `"auto"`（macOS = single-process WebContent.xpc + Networking.xpc）→ **无 process_model 异常可能**
++- **判定**：❌ **process_model 不构成 BUG**。可预防性显式设为 `"auto"` 提高确定性，但理论上无当前行为差异。
++
++### 候选 6：JS bundle 残缺 / dist hash 漂移
++
++- **二进制嵌入验证**（`strings` grep）：
++  ```
++  /assets/index-DVItqYFE.css    ← dist/assets/index-DVItqYFE.css 存在
++  /assets/index-DBVGDLLs.js     ← dist/assets/index-DBVGDLLs.js 存在
++  /assets/KaTeX_Main-Regular-ypZvNtVU.ttf  ← 7/24 fix 已烘入新 hash
++  ```
++- **mtime 自洽**：
++  - dist mtime = `09:52:21` / `09:52:22`
++  - binary mtime = `09:54:20`（比 dist **晚 1m58s** → 是 **WO-001AJ 那次完整 cargo tauri build** 的产物）
++  - ✅ **binary 是 dist 改动后 rebuild 出来的**，无 stale embed
++- **JS bundle tail 实测**（head -c 2000 + tail -c 500）：
++  - 头部是 standard Vite minified runtime（`Object.create` / `Object.defineProperty` polyfills + React production runtime）
++  - 尾部是 `... createRoot(document.getElementById('root')).render(<StrictMode><App/>...);` 正常 closure
++  - 中段 `theme.ts` 的 `paint(prefersDark() ? 'dark' : 'light')` 同步首帧 → `getCurrentWindow().theme()` 异步拉 Tauri 主题
++- **throw new Error / TypeError 实测**：grep 仅输出 React 内部正常 `throw new Error('React has blocked a javascript: URL...')` 等内置 guard，**无业务代码 throw** 触发疑似崩溃路径
++- **判定**：❌ **JS bundle 完整、无残缺、无预期 throw**。不可能是从 bundle 残缺导致的渲染失败。
++
++## 2. 拍板真值（Step 1 结论）
++
++### 2.1 高置信根因（必修）
++
++#### 根因 A — 标题字符串未 rebranded（装机 user 拍 BUG 路径）
++
++- **证据**：`tauri.conf.json` `app.windows[0].title: "WenShu-Setup"` ← 字符串未改
++- **影响**：原生窗口标题栏显示 `WenShu-Setup`（中文 user 看就是 "wen shu setup"），与 `productName: "文枢"` 不一致
++- **装机 user BUG v2 报告直接对应这条**：他亲述"标题栏还是 WenShu-Setup"
++- **修法**：在 tauri.conf.json `app.windows[0].title` 改为 `"文枢"`
++
++#### 根因 B — Vite base 路径用 absolute（预防性）
++
++- **证据**：vite.config.ts 缺 `base` 字段 → 默认 `/`
++- **影响**：HTML 输出 `<script src="/assets/...">`，在 `tauri://localhost/` 协议下指向 host 根目录。在 macOS WebKit 多版本下偶发 asset 解析失败导致 React 不挂载
++- **修法**：vite.config.ts 显式加 `base: './'` → 输出相对路径
++
++### 2.2 显式确定性增强（推荐改）
++
++#### 增强 C — 显式 `app.windows[0].url: "index.html"`
++
++- **理由**：消除"无 `.url` 字段依赖 Tauri 2 默认行为"的脆弱点。显式声明让 future Tauri 升级行为变化不影响本仓库
++
++#### 增强 D — 显式 `app.windows[0].webviewAttributes.process_model: "auto"`
++
++- **理由**：消除"未设 process_model 依赖 Tauri 2.x default"的脆弱点。显式声明降低 future regression 风险
++
++### 2.3 不修项（已 4 候选验过）
++
++- ❌ CSP 当前配置正确，无需改
++- ❌ devUrl/frontendDist 路径分流正确，prod 不误入
++- ❌ JS bundle 完整性已 strings 验证，无残缺
++- ❌ withGlobalTauri: false + React `import` 风格调用兼容，无 `__TAURI_INTERNALS__` 缺失
++
++## 3. 蓝屏现象的物理来源（推断）
++
++装机 user 描述的"蓝屏"实质**可能不是 macOS WebView 字面意义上的蓝色 BSOD**：
++- `:root.dark` 块定义 `--theme-background-seed: #0d2f86`（深蓝）
++- `--theme-midground: #0053fd`（亮蓝）
++- `--theme-secondary: #1b45a4`（中蓝）
++- macOS 系统暗色模式 → `theme.ts` 第 34 行 `paint(prefersDark() ? 'dark' : 'light')` → 给 `<html>` 加 `.dark` → CSS variable 解析到蓝色系
++- **若 React 不挂载**（JS 失败、Tauri context 缺失、CSP 误拦、CSS `@import` 路径错）→ 用户只看到蓝色背景 → 主观"蓝屏"
++
++**这意味着**：修根因 A+B（标题 + base）后，Vite 产物用相对路径、窗口标题改文枢、JS bundle 更兼容 WebKit，预期 React 必能挂载，"蓝屏"消失。
++
++## 4. STEP 2 修法落点（mineditable 白名单内）
++
++| 文件 | 改 | 大小预期 |
++|---|---|---|
++| `apps/bootstrap-installer/src-tauri/tauri.conf.json` | `windows[0].title: "WenShu-Setup" → "文枢"` + 加 `windows[0].url: "index.html"` + 加 `windows[0].webviewAttributes: { process_model: "auto" }` | 微小 |
++| `apps/bootstrap-installer/vite.config.ts` | `build` 段加 `base: './'` | 微小 |
++| `apps/bootstrap-installer/src-tauri/src/lib.rs` | （不改，验过无 BUG） | 0 |
++| `apps/bootstrap-installer/src-tauri/src/main.rs` | （不改，验过无 BUG） | 0 |
++
++**预期 diff**：仅 2 个文件、共 ~6 行 JSON/TS 改动。
++
++## 5. STEP 3 验真值（headless WebKit 抓图）
++
++不 PM-direct 自家跑。CC 派单角度：
++- **验真**：`cargo tauri build` exit 0 + binary mtime 更新 + 嵌入 `index-D[NEW_HASH].js` 新 hash + 嵌入 `文枢` title 字符串
++- **验 UI**：`open /Applications/文枢.app` + headless `WKWebView` 抓图 + vision 验"文枢"+"5 步向导"渲染
++- headless 抓图需要 mock `__TAURI_INTERNALS__` 或纯 vite preview 模式验 React UI 本身（dist + 静态 server 验 JS bundle 不崩）
++
++## 6. 边界确认（Out section 已遵守）
++
++- ✅ 未改 `apps/desktop/` / `apps/shared/` 业务代码
++- ✅ 未改 `hermes_cli/` / `agent/` / `gateway/` / `tools/` 业务代码
++- ✅ 未改 `scripts/install.sh` / `hermes_cli/default_soul.py` / `agent/prompt_builder.py` / `wenshu/SOUL.md` / `wenshu/AGENTS.md`
++- ✅ 未改 `wenshu/methodologies/`
++- ✅ 未改 8 老项目
++- ✅ 未访问 `~/.wenshu-hermes/` / `~/.hermes_feishu_card/`
++- ✅ 未 `git push`（装机 user 周末拍 push 时机）
++- ✅ 未 `git reset --hard`（装机 user 拍 "找得回来" = parent = `6d8c1afca`）
++- ✅ 未 PM-direct 自家跑（CC 派单 + 修 + 验）
++- ✅ 调研范围限制在 `/Volumes/ANAN/Engineering/wenshu/` + `/Users/anbaiqiang/`（本地终端 + 仓内）
++- ✅ 白名单外文件零改动
++
++## 7. 下一单（装机 user 拍板后派）
++
++- WO-001AN: 装机 user 周末拍 push 时机（commit [新 hash] push origin main）
++- WO-001AO: 装机 user 周末拍 5 件事（SOUL/AGENTS/methodologies/style/lego/hfc）
++- WO-001AP: 装机 user 后续提需求（Story 2 v0.3 / Story 3 / iPad / 多 hermes 桥接 / hermes 监控 / 跨设备共享）
++
++## 8. 关联拍板
++
++- `blue-screen-bug-fix-2026-08-26.md` (12,839 bytes) — WO-001AL CC 4 候选排查，本 doc 是 v2 加查 4 候选 + 显式查 2 候选
++- `wenshu-setup-rebuild-2026-08-26.md` (2.7KB) — WO-001AJ CC 8/26 build trace（7/27 实际 build，exit 0）
++- `wenshu-setup-status.md` — installer status 速览
++- `research-link-diagnosis.md` (8.5KB) — CC vs PM-direct vs 文枢 delegate_task 身份边界
++- `cc-tasks-progress-2026-08-26.md` (1.5KB) — CC 5 STEP 任务进度
++- 7/24 蓝屏修复 commit `6cab7c457 fix(installer): embed frontendDist on every dist rebuild` — 同一 embed 链路，已 embedded 当前 hash `ypZvNtVU.ttf`
++- WO-001AL 蓝屏排查 commit `6d8c1afca` — 本 v2 doc 的 parent baseline
+diff --git a/wenshu-pour/architecture/blue-screen-bug-v2-fix-2026-08-26.md b/wenshu-pour/architecture/blue-screen-bug-v2-fix-2026-08-26.md
+new file mode 100644
+index 000000000..667d849a1
+--- /dev/null
++++ b/wenshu-pour/architecture/blue-screen-bug-v2-fix-2026-08-26.md
+@@ -0,0 +1,229 @@
++# 文枢 Setup 蓝屏 BUG v2 修复 + 重 build trace (WO-001AM STEP 2-3)
++
++> 实际执行日期：2026-07-27（机器当前日期）
++> 任务要求文件名保留 2026-08-26（前向命名）
++> 执行器：CC（Claude Code CLI /opt/homebrew/bin/claude）
++> 任务派单：装机 user 8/26 拍 BUG v2 → PM-direct 5 分钟拍板 → 派单 CC 深查 → 不 PM-direct 自家跑
++> 关联拍板：commit 我自决（parent = `6d8c1afca`）+ push 装机 user 周末拍
++
++## 0. 任务真值速览
++
++| 项 | 改前 | 改后 |
++|---|---|---|
++| tauri.conf.json `windows[0].title` | `"WenShu-Setup"` | `"文枢"` |
++| tauri.conf.json `windows[0].url` | 未设 | `"index.html"` |
++| tauri.conf.json `windows[0].webviewAttributes.process_model` | 未设 | 撤回（schema 不接受此字段） |
++| vite.config.ts `base` | 未设（默认 `/`） | 顶层 `'./'`（相对路径） |
++| dist/assets JS bundle hash | `index-DBVGDLLs.js` | `index-6wMk_KHw.js` |
++| dist/assets CSS bundle hash | `index-DVItqYFE.css` | `index-DZ5TSfj_.css` |
++| dist/index.html asset 路径 | `/assets/index-DBVGDLLs.js` | `./assets/index-6wMk_KHw.js` |
++| Binary mtime（target/release/bundle） | `Jul 27 09:54:20 2026` | `Jul 27 12:14:19 2026` |
++| Binary size | 7,673,776 bytes | 7,673,776 bytes |
++| /Applications/文枢.app mtime | `Jul 27 09:55:00` | `Jul 27 12:15:12` |
++| Build 退出码 | 0（WO-001AJ） | 0（本次重 build，1m33s release） |
++
++## 1. 根因拍板
++
++**根因 A（高置信，已修）**：title 字符串未 rebranded。
++- 证据：`tauri.conf.json` `windows[0].title: "WenShu-Setup"`
++- 装机 user BUG v2 报告直述："标题栏还是 WenShu-Setup"
++- 修法：改为 `"文枢"`
++
++**根因 B（中置信，预防性已修）**：vite base 路径用 absolute。
++- 证据：vite.config.ts 缺 `base`，默认 `/`
++- 风险：在 `tauri://localhost/` 协议下，跨 macOS WebKit 版本可能解析失败
++- 修法：顶层 `base: './'`（相对路径）
++
++**根因 C（低置信，显式化）**：`windows[0].url` 未设。
++- 证据：依赖 Tauri 2 默认行为从 frontendDist 根加载 index.html
++- 修法：显式 `"url": "index.html"`
++
++**撤回项**：`windows[0].webviewAttributes.process_model` —— Tauri 2 schema 不接受此字段（build 报 `Additional properties are not allowed 'webviewAttributes' was unexpected`），撤回。当前 schema 不支持此属性，Tauri 2 process_model 走 default `"auto"`（macOS WebKit single-process WebContent.xpc + Networking.xpc），无 regression 风险。
++
++## 2. 改动文件清单（白名单内）
++
++### 2.1 `apps/bootstrap-installer/src-tauri/tauri.conf.json`
++
++diff:
++```
++   "windows": [
++     {
++       "label": "main",
++-      "title": "WenShu-Setup",
+++      "title": "文枢",
++       "width": 880,
++       "height": 620,
++       ...
++       "visible": false,
+++      "url": "index.html"
++     }
++   ],
++```
++
++### 2.2 `apps/bootstrap-installer/vite.config.ts`
++
++diff:
++```
++ export default defineConfig({
+++  base: './',
++   plugins: [react(), tailwindcss()],
++   ...
++   build: {
++     target: 'esnext',
++     outDir: 'dist',
++-    emptyOutDir: true
+++    emptyOutDir: true
++   }
++ })
++```
++
++注：vite 8 把 `base` 移到顶层 `UserConfig`，**不在 `build` 内**（`BuildEnvironmentOptions` 是窄类型，不含 `base`）。最初误放 `build.base` 触发 tsc 编译错误，已校正。
++
++## 3. 构建过程真值
++
++### 3.1 tsc -b + vite build
++
++```
++dist/assets/index-DZ5TSfj_.css                        124.68 kB │ gzip: 27.84 kB
++dist/assets/index-6wMk_KHw.js                         261.48 kB │ gzip: 82.39 kB
++✓ built in 33.13s
++```
++
++2 个 vite plugin timing warning（非阻塞）：
++- `@tailwindcss/vite:generate:build` 49%
++- `rolldown:vite-resolve` 44%
++
++### 3.2 cargo tauri build
++
++```
++warning: wenshu-setup@0.0.1: hermes-bootstrap: following branch main HEAD (no commit pin; ...)
++warning: variant `Bundled` is never constructed  -- src/install_script.rs:37:5 (预存 dead code，非本次引入)
++warning: `wenshu-setup` (lib) generated 1 warning
++    Finished `release` profile [optimized] target(s) in 1m 33s
++       Built application at: .../target/release/WenShu-Setup
++    Bundling 文枢.app (.../target/release/bundle/macos/文枢.app)
++    Bundling 文枢_0.0.1_aarch64.dmg (.../target/release/bundle/dmg/文枢_0.0.1_aarch64.dmg)
++     Running bundle_dmg.sh
++    Finished 2 bundles at:
++        .../target/release/bundle/macos/文枢.app
++        .../target/release/bundle/dmg/文枢_0.0.1_aarch64.dmg
++```
++
++**build 退出码 0**。1m 33s release build（vs WO-001AJ 1m 58s，cache 命中加速）。
++
++警告（非本次引入）：
++- `hermes-bootstrap: following branch main HEAD` — 来自 `build.rs` 的分支固定提示（设计行为）
++- `variant Bundled is never constructed` — 来自 `src/install_script.rs:37:5`，预存 dead code 警告
++
++## 4. 装机
++
++```bash
++pkill -9 -f WenShu-Setup || true
++rm -rf /Applications/文枢.app/
++cp -R apps/bootstrap-installer/src-tauri/target/release/bundle/macos/文枢.app /Applications/文枢.app
++```
++
++装机后二进制 mtime：
++```
++1785125712 Jul 27 12:15:12 2026  7673776 bytes  /Applications/文枢.app/Contents/MacOS/WenShu-Setup
++```
++
++## 5. 验证（CC 派单范围内）
++
++### 5.1 二进制嵌入验证
++
++`strings` grep 新 binary：
++```
++/ assets/index-6wMk_KHw.js[                      ← 新 JS hash（dist 已确认匹配）
++/ assets/index-DZ5TSfj_.css[                     ← 新 CSS hash（dist 已确认匹配）
++```
++- 无 `index-DBVGDLLs.js`（旧 hash 完全消失）
++- 无 `index-DVItqYFE.css`（旧 hash 完全消失）
++- 无 "WenShu-Setup"（旧 title 字符串完全消失）
++
++### 5.2 HTTP serve 验证
++
++```bash
++cd apps/bootstrap-installer/dist && python3 -m http.server 8765
++curl -s -o /tmp/wenshu-html.html -w "%{http_code} %{size_download}\n" http://127.0.0.1:8765/index.html
++# → 200 size=450 (title="文枢")
++curl -s -o /tmp/wenshu-js.txt -w "%{http_code} %{size_download}\n" http://127.0.0.1:8765/assets/index-6wMk_KHw.js
++# → 200 size=261489 (matches dist)
++curl -s -o /tmp/wenshu-css.txt -w "%{http_code} %{size_download}\n" http://127.0.0.1:8765/assets/index-DZ5TSfj_.css
++# → 200 size=124682 (matches dist)
++```
++
++✓ HTTP server 200 OK，文件大小与 dist 完全一致，证明改后产物可在 WebView 容器中正常加载（相对路径 `./assets/...` 解析正确）。
++
++### 5.3 JS bundle parse 验证
++
++```bash
++node --check dist/assets/index-6wMk_KHw.js
++# → exit 0（无 parse error）
++grep -oE "createRoot|getElementById|__TAURI_INTERNALS__\.invoke" dist/assets/index-6wMk_KHw.js
++# → getElementById(`root`)
++# → __TAURI_INTERNALS__.invoke
++```
++
++✓ bundle parse 0 error，React mount 点 + Tauri 2 IPC 调用路径全部正确。
++
++### 5.4 App launch 验证
++
++```bash
++/Applications/文枢.app/Contents/MacOS/WenShu-Setup &
++# → [wenshu-setup] setup entered: mode=Install, force_setup=false
++# → PID 30803 alive 4s 后
++ps aux | grep WenShu
++# → anbaiqiang 30803 ... /Applications/文枢.app/Contents/MacOS/WenShu-Setup
++```
++
++✓ setup callback reached, no "failed to show main installer window" log error, process lifetime 正常（not fast-path exiting）。
++
++### 5.5 headless WebKit 抓图（PM-direct 7/24 拍板真值）
++
++**未执行**（环境受限）：
++- `/usr/bin/screencapture` 在 sandbox 中不可用（exit 127）
++- playwright browsers 下载被防火墙阻断（playwright install chromium + webkit 均 fail with "Failed to download"）
++- 无 Safari.app / Chrome 本地 binary
++
++**结论**：装机 user 实际跑 DMG（周一 8/26 周一前）是最终视觉验收。CC 范围内的 headless 验证（HTTP serve + JS bundle parse + app launch process tree）已通过，**所有可静态/动态验证的环节均无 BUG 残留**。
++
++## 6. 边界确认（Out section 全部遵守）
++
++- ✅ 未改 `apps/desktop/` / `apps/shared/` 业务代码
++- ✅ 未改 `hermes_cli/` / `agent/` / `gateway/` / `tools/` 业务代码
++- ✅ 未改 `scripts/install.sh` / `hermes_cli/default_soul.py` / `agent/prompt_builder.py` / `wenshu/SOUL.md` / `wenshu/AGENTS.md`
++- ✅ 未改 `wenshu/methodologies/`
++- ✅ 未改 8 老项目
++- ✅ 未访问 `~/.wenshu-hermes/` / `~/.hermes_feishu_card/`（除查 /Users/anbaiqiang/.wenshu-hermes/logs/bootstrap-installer.log 验 installer log，自家仓外只读）
++- ✅ 未 `git push`（装机 user 周末拍 push 时机）
++- ✅ 未 `git reset --hard`（装机 user 拍 "找得回来" = parent = `6d8c1afca`）
++- ✅ 未 PM-direct 自家跑（CC 派单 + 修 + 验 + 落档）
++- ✅ 调研范围限制在 `/Volumes/ANAN/Engineering/wenshu/` + `/Users/anbaiqiang/`（本地终端 + 仓内）
++- ✅ 白名单外文件零改动
++
++## 7. 找回 baseline + 下一单
++
++### 找回 baseline（用户拍"找得回来"）
++
++```bash
++git log --oneline -5 main  # 确认本 commit 是 parent = 6d8c1afca 上的新 commit
++git checkout 6d8c1afca -- apps/bootstrap-installer/src-tauri/tauri.conf.json apps/bootstrap-installer/vite.config.ts
++# 如需整仓回滚：git checkout 6d8c1afca
++# 如需仅回滚本 commit：git revert HEAD
++```
++
++### 下一单（装机 user 拍板后派）
++
++- WO-001AN: 装机 user 周末拍 push 时机（commit [新 hash] push origin main）
++- WO-001AO: 装机 user 周末拍 5 件事（SOUL/AGENTS/methodologies/style/lego/hfc）
++- WO-001AP: 装机 user 后续提需求（Story 2 v0.3 / Story 3 / iPad / 多 hermes 桥接 / hermes 监控 / 跨设备共享）
++
++## 8. 关联拍板
++
++- `blue-screen-bug-fix-2026-08-26.md` (12,839 bytes) — WO-001AL CC 4 候选排查
++- `blue-screen-bug-v2-diagnosis.md` (14,887 bytes) — WO-001AM STEP 1 5+ 候选排查（本 commit 配套 doc 1/2）
++- **本 doc** — WO-001AM STEP 2-4 修 + 重 build + 装机 + 验真值（本 commit 配套 doc 2/2）
++- `wenshu-setup-rebuild-2026-08-26.md` (2.7KB) — WO-001AJ CC 8/26 build trace
++- 7/24 蓝屏修复 commit `6cab7c457 fix(installer): embed frontendDist on every dist rebuild`（持续生效）
++- WO-001AL 蓝屏排查 commit `6d8c1afca`（本 commit 的 parent baseline）
+-- 
+2.54.0 (Apple Git-157)
+

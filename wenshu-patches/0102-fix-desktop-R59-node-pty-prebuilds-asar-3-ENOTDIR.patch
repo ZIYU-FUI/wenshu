@@ -1,0 +1,68 @@
+From 80f8efe268fac8bb832fead7c4556491b12137c5 Mon Sep 17 00:00:00 2001
+From: my-pm <wenshu@hermes-agent.local>
+Date: Thu, 30 Jul 2026 12:20:43 +0800
+Subject: [PATCH 102/168] =?UTF-8?q?fix(desktop):=20R59=20-=20=E6=8E=92?=
+ =?UTF-8?q?=E9=99=A4=20node-pty=20prebuilds=20=E6=8E=92=E9=99=A4=20asar=20?=
+ =?UTF-8?q?(=E4=BF=AE=20#3=20ENOTDIR=20=E9=94=99)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+WO-001BI-R59。node-pty 的 spawn-helper 之前在 app.asar 内, 运行时 chmod 撞 ENOTDIR。
+修法 A: build.asarUnpack 加 **/node_modules/node-pty/**, prebuilds 落到 app.asar.unpacked/ 保留实文件。
+
+验: pnpm build + pnpm dist:mac exit 0, release/mac-arm64/文枢.app/.../app.asar.unpacked/dist/node_modules/node-pty/prebuilds/darwin-arm64/spawn-helper = Mach-O 64-bit executable arm64。
+
+落档: wenshu-pour/architecture/R59-asar-unpack-node-pty-2026-08-30.md
+---
+ apps/desktop/package.json                     |  1 +
+ .../R59-asar-unpack-node-pty-2026-08-30.md    | 25 +++++++++++++++++++
+ 2 files changed, 26 insertions(+)
+ create mode 100644 wenshu-pour/architecture/R59-asar-unpack-node-pty-2026-08-30.md
+
+diff --git a/apps/desktop/package.json b/apps/desktop/package.json
+index ef93e2e11..449aa7ba0 100644
+--- a/apps/desktop/package.json
++++ b/apps/desktop/package.json
+@@ -204,6 +204,7 @@
+     "asarUnpack": [
+       "**/*.node",
+       "**/prebuilds/**",
++      "**/node_modules/node-pty/**",
+       "dist/**"
+     ],
+     "mac": {
+diff --git a/wenshu-pour/architecture/R59-asar-unpack-node-pty-2026-08-30.md b/wenshu-pour/architecture/R59-asar-unpack-node-pty-2026-08-30.md
+new file mode 100644
+index 000000000..a155c88f6
+--- /dev/null
++++ b/wenshu-pour/architecture/R59-asar-unpack-node-pty-2026-08-30.md
+@@ -0,0 +1,25 @@
++# R59: desktop node-pty prebuilds 排除 asar
++
++日期：2026-08-30  
++工单：WO-001BI-R59
++
++## 问题
++
++打包后的 Electron 应用尝试对 `app.asar/dist/node_modules/node-pty/prebuilds/darwin-arm64/spawn-helper` 执行 chmod，因 ASAR 路径不是普通目录而报 ENOTDIR。
++
++## 决策
++
++采用修法 A：在 Electron Builder 的 `build.asarUnpack` 数组中加入 `**/node_modules/node-pty/**`。该规则让 node-pty 的 prebuild 与 spawn-helper 保留为 app.asar.unpacked 下的实际文件，避免运行时把 ASAR 内路径当作可 chmod 的普通文件。现有 `**/prebuilds/**` 规则保留，并补充 node-pty 专用匹配。
++
++## 改动
++
++- `apps/desktop/package.json`：`build.asarUnpack` 新增 `**/node_modules/node-pty/**`。
++
++## 官方依据
++
++- Electron Builder configuration: https://www.electron.build/configuration/configuration#asarUnpack
++- Electron Builder ASAR archives: https://www.electron.build/asar-archives
++
++## 验证
++
++待执行：`pnpm build`、`pnpm dist:mac`。
+-- 
+2.54.0 (Apple Git-157)
+

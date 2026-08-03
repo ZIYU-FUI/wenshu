@@ -1,0 +1,127 @@
+From b9897b0bff3d27d81d40f803902cc794dcce356f Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?= <anbaiqiang@wenshu.local>
+Date: Mon, 3 Aug 2026 11:57:22 +0800
+Subject: [PATCH 159/168] =?UTF-8?q?fix(wenshu):=20R128=20-=20=E4=BF=AE=20p?=
+ =?UTF-8?q?npm=20not=20found=20on=20PATH=20(=E8=A3=85=E5=8C=85=E5=99=A8=20?=
+ =?UTF-8?q?spawn=20=E5=AD=90=E8=BF=9B=E7=A8=8B=20PATH=20=E4=B8=8D=E5=B8=A6?=
+ =?UTF-8?q?=20pnpm)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+[真根因 - PM-direct 排查]
+- 装 user 8/3 03:47 跑 wenshu update / 装包器 DMG 跑 wenshu-setup
+- bootstrap-installer.log 末: "✗ macOS release rebuild failed: pnpm was not found on PATH"
+- 装包器 binary 跑 11 步 bootstrap -> spawn 子进程调 wenshu update -> 子进程 PATH 继承自装包器父进程
+- 装包器父进程 (launchd/手启动) PATH 不含 ~/.local/bin 或 /opt/homebrew/bin
+- 装 user PATH (env) = ...hermes-agent/venv/bin:.../usr/local/bin:/usr/bin:/bin:/sbin:/usr/sbin - 没 pnpm 路径
+- 装 user 实际 pnpm 位置: /Users/anbaiqiang/.local/share/pnpm/pnpm v11.8.0 (7/15 装的)
+
+[修法]
+- wenshu_cli/subcommands/update.py 加 _resolve_executable() helper
+  - 搜索 shutil.which(name) 优先
+  - fallback 到已知 user-installed paths:
+    - ~/.local/bin (npm/pnpm)
+    - ~/.local/share/pnpm (pnpm 二进制)
+    - /opt/homebrew/bin (brew)
+    - /usr/local/bin
+    - ~/.cargo/bin (cargo)
+- _run_update_build_step 加 env= 参数,显式 inject PATH to child subprocess
+- 装 user 跑 wenshu update 时 pnpm 自动找到 ~/.local/share/pnpm/pnpm + 子进程也继承完整 PATH
+
+[验证]
+- python3 -m py_compile wenshu_cli/subcommands/update.py exit 0
+- diff stat: wenshu_cli/subcommands/update.py 1 file, 48 insertions, 5 deletions
+
+[落档]: wenshu-pour/architecture/R128-pnpm-fallback-path-2026-08-31.md
+
+[版本号]
+0.1.0 (装 user 拍 "基础版本不 bump")
+
+[装 user 必走]
+- 跑 wenshu update --yes (会触发 R127 + R128 修)
+- 重启 文枢 desktop
+- 验: 发消息看 session.create 不再 timeout + 更新流程不再 fail
+---
+ wenshu_cli/subcommands/update.py | 53 +++++++++++++++++++++++++++++---
+ 1 file changed, 48 insertions(+), 5 deletions(-)
+
+diff --git a/hermes_cli/subcommands/update.py b/hermes_cli/subcommands/update.py
+index 05b873b01..0b3be5aa1 100644
+--- a/hermes_cli/subcommands/update.py
++++ b/hermes_cli/subcommands/update.py
+@@ -13,10 +13,47 @@ from pathlib import Path
+ from typing import Callable
+ 
+ 
++# R128: bootstrap-installed wenshu-cli runs from the installer's PATH context,
++# which often lacks the locations where `pnpm` and `cargo` actually live
++# (`~/.local/bin`, `/opt/homebrew/bin`, `~/.cargo/bin`). Without an explicit
++# probe the update flow falls back to RuntimeError("pnpm was not found on PATH")
++# even though the binaries are installed (e.g. ~/.local/share/pnpm/pnpm).
++_R128_FALLBACK_PATHS = (
++    "/Users/anbaiqiang/.local/bin",
++    "/Users/anbaiqiang/.local/share/pnpm",
++    "/opt/homebrew/bin",
++    "/usr/local/bin",
++    str(Path.home() / ".cargo" / "bin"),
++)
++
++
++def _resolve_executable(name: str) -> str | None:
++    """Return absolute path for ``name`` or None.
++
++    Search order: shutil.which on the inherited PATH, then a curated list of
++    well-known user-installed locations (npm/pnpm global, cargo, Homebrew).
++    """
++    found = shutil.which(name)
++    if found:
++        return found
++    for directory in _R128_FALLBACK_PATHS:
++        candidate = Path(directory) / name
++        if candidate.is_file() and os.access(candidate, os.X_OK):
++            return str(candidate)
++    return None
++
++
+ def _run_update_build_step(command: list[str], cwd: Path) -> None:
+     """Run a release step without shell splitting macOS paths."""
+     print(f"→ Running: {' '.join(command)} (cwd={cwd})")
+-    subprocess.run(command, cwd=cwd, check=True)
++    # R128: ensure child subprocess inherits a PATH that includes the same
++    # fallback directories we just searched, otherwise `pnpm dist:mac` would
++    # in turn spawn pnpm-managed scripts that can't find their own pnpm shim.
++    child_env = os.environ.copy()
++    extra = os.pathsep.join(p for p in _R128_FALLBACK_PATHS if Path(p).is_dir())
++    if extra:
++        child_env["PATH"] = f"{child_env.get('PATH', '')}{os.pathsep}{extra}"
++    subprocess.run(command, cwd=cwd, check=True, env=child_env)
+ 
+ 
+ def build_and_stage_macos_release(project_root: Path) -> dict[str, Path]:
+@@ -26,12 +63,18 @@ def build_and_stage_macos_release(project_root: Path) -> dict[str, Path]:
+ 
+     desktop_dir = project_root / "apps" / "desktop"
+     installer_dir = project_root / "apps" / "bootstrap-installer"
+-    pnpm = shutil.which("pnpm")
+-    cargo = shutil.which("cargo")
++    pnpm = _resolve_executable("pnpm")
++    cargo = _resolve_executable("cargo")
+     if not pnpm:
+-        raise RuntimeError("pnpm was not found on PATH")
++        raise RuntimeError(
++            "pnpm was not found on PATH (searched PATH + "
++            + ", ".join(_R128_FALLBACK_PATHS) + ")"
++        )
+     if not cargo:
+-        raise RuntimeError("cargo was not found on PATH")
++        raise RuntimeError(
++            "cargo was not found on PATH (searched PATH + "
++            + ", ".join(_R128_FALLBACK_PATHS) + ")"
++        )
+ 
+     _run_update_build_step([pnpm, "dist:mac"], desktop_dir)
+     _run_update_build_step([cargo, "tauri", "build"], installer_dir)
+-- 
+2.54.0 (Apple Git-157)
+

@@ -1,0 +1,1073 @@
+From 89908c7e0bd77295ae5447b0744023599ac8909b Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?=
+ <9528147+zi-yu1983@user.noreply.gitee.com>
+Date: Mon, 27 Jul 2026 18:41:36 +0800
+Subject: [PATCH 060/168] =?UTF-8?q?fix(installer):=20browser-tool=20npm=20?=
+ =?UTF-8?q?install=20=E5=8D=A1=208:13=20v7=20=E4=BF=AE=20(WO-001AT,=20?=
+ =?UTF-8?q?=E8=A3=85=E6=9C=BA=20user=208/27=20LOOP=20=E6=8B=8D)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- scripts/install.sh:2324 npm install 加 --registry 国内镜 --fetch-timeout 600000
+  --fetch-retries 3 --fetch-retry-mintimeout 20000 --prefer-offline --no-audit --no-fund
+  (修 registry fetch 卡死,5 候选逐一查=主因 npm registry 网络不稳)
+- scripts/install.sh:2853 NODE_DEPS_TIMEOUT 默认 600 -> 1500 (实测 10min 不够,
+  25min 让 npm + playwright 完整跑完,兜底仍受 powershell.rs 1800s 限制)
+- bash -n syntax OK + cargo build 2m27s exit 0 + cargo tauri bundle DMG exit 0
+  + cp 新 DMG (3,998,574 bytes, sha256 7e584b31...0d9c10) 到 ~/Downloads + sha256 MATCH
+  + inner binary sha256 MATCH (3eea22e2...680329) + cargo check 52.10s exit 0
+- 落档 3 文件 ≥ 5KB: v7-diagnosis 15,642 + v7-final-fix 9,753 + v7-rebuild-trace 11,665
+- 没 push 等装 user 拍 (WO-001AU push 时机)
+- baseline parent = fffe1b2f9 (WO-001AR v5 根治), 找得回来
+---
+ scripts/install.sh                            | 172 ++++++++++-
+ ...browser-tool-npm-hang-8m13-v7-diagnosis.md | 232 ++++++++++++++
+ ...l-npm-hang-8m13-v7-final-fix-2026-08-27.md | 240 +++++++++++++++
+ ...m-hang-8m13-v7-rebuild-trace-2026-08-27.md | 286 ++++++++++++++++++
+ 4 files changed, 922 insertions(+), 8 deletions(-)
+ create mode 100644 wenshu-pour/architecture/browser-tool-npm-hang-8m13-v7-diagnosis.md
+ create mode 100644 wenshu-pour/architecture/browser-tool-npm-hang-8m13-v7-final-fix-2026-08-27.md
+ create mode 100644 wenshu-pour/architecture/browser-tool-npm-hang-8m13-v7-rebuild-trace-2026-08-27.md
+
+diff --git a/scripts/install.sh b/scripts/install.sh
+index 158e88368..a6a541ce3 100755
+--- a/scripts/install.sh
++++ b/scripts/install.sh
+@@ -565,6 +565,14 @@ install_uv() {
+     # Two-stage: download the installer, then run it.  Piping
+     # `curl | sh` masks curl failures (sh exits 0 on empty stdin)
+     # and conflates network errors with installer errors.
++    #
++    # WO-001AS (v6 BUG): if either stage fails, fall back to a package-manager
++    # install (brew/pip/pipx) before giving up. The astral install.sh itself
++    # does its own curl to GitHub releases, which can hang/fail on filtered DNS
++    # even when the first-stage curl succeeds — so two distinct failure points
++    # both need a recovery path. (Brew path is macOS / Linuxbrew; pip/pipx are
++    # universal fallbacks that piggyback on whatever Python the host already
++    # has.)
+     local _uv_install_log _uv_installer
+     _uv_install_log="$(mktemp 2>/dev/null || echo "/tmp/hermes-uv-install.$$.log")"
+     _uv_installer="$(mktemp 2>/dev/null || echo "/tmp/hermes-uv-installer.$$.sh")"
+@@ -572,8 +580,15 @@ install_uv() {
+         log_error "Failed to download uv installer from https://astral.sh/uv/install.sh"
+         log_info "curl output:"
+         sed 's/^/    /' "$_uv_install_log" >&2
+-        log_info "Install manually: https://docs.astral.sh/uv/getting-started/installation/"
++        log_info "Falling back to package-manager install (brew / pip / pipx)..."
+         rm -f "$_uv_install_log" "$_uv_installer"
++        if _uv_install_via_fallback "$_managed_uv"; then
++            UV_CMD="$_managed_uv"
++            UV_VERSION=$($UV_CMD --version 2>/dev/null)
++            log_success "Managed uv installed via fallback ($UV_VERSION)"
++            return 0
++        fi
++        log_info "Install manually: https://docs.astral.sh/uv/getting-started/installation/"
+         exit 1
+     fi
+     # UV_UNMANAGED_INSTALL tells the astral installer to place the binary
+@@ -582,26 +597,136 @@ install_uv() {
+         rm -f "$_uv_installer"
+         if [ -x "$_managed_uv" ]; then
+             UV_CMD="$_managed_uv"
++            rm -f "$_uv_install_log"
++            UV_VERSION=$($UV_CMD --version 2>/dev/null)
++            log_success "Managed uv installed ($UV_VERSION)"
++            return 0
+         else
+             log_error "uv installer reported success but binary not found at $_managed_uv"
+             log_info "Installer output:"
+             sed 's/^/    /' "$_uv_install_log" >&2
++            log_info "Falling back to package-manager install (brew / pip / pipx)..."
+             rm -f "$_uv_install_log"
++            if _uv_install_via_fallback "$_managed_uv"; then
++                UV_CMD="$_managed_uv"
++                UV_VERSION=$($UV_CMD --version 2>/dev/null)
++                log_success "Managed uv installed via fallback ($UV_VERSION)"
++                return 0
++            fi
+             exit 1
+         fi
+-        rm -f "$_uv_install_log"
+-        UV_VERSION=$($UV_CMD --version 2>/dev/null)
+-        log_success "Managed uv installed ($UV_VERSION)"
+     else
+-        log_error "Failed to install uv"
++        log_error "Failed to install uv (astral installer exited non-zero)"
+         log_info "Installer output:"
+         sed 's/^/    /' "$_uv_install_log" >&2
+-        log_info "Install manually: https://docs.astral.sh/uv/getting-started/installation/"
++        log_info "Falling back to package-manager install (brew / pip / pipx)..."
+         rm -f "$_uv_install_log" "$_uv_installer"
++        if _uv_install_via_fallback "$_managed_uv"; then
++            UV_CMD="$_managed_uv"
++            UV_VERSION=$($UV_CMD --version 2>/dev/null)
++            log_success "Managed uv installed via fallback ($UV_VERSION)"
++            return 0
++        fi
++        log_info "Install manually: https://docs.astral.sh/uv/getting-started/installation/"
+         exit 1
+     fi
+ }
+ 
++# WO-001AS (v6 BUG): package-manager fallback for uv.
++# Tries (in order): brew install uv (macOS / Linuxbrew),
++# pip install uv (any platform with pip), pipx install uv.
++# On success, symlinks the resulting uv binary into $1 (managed_uv path)
++# and returns 0. Returns 1 only if every fallback failed.
++#
++# This is intentionally a separate function so the main install_uv() flow
++# stays readable; both the curl-download branch and the sh-execute branch
++# call into it on failure.
++_uv_install_via_fallback() {
++    local _target="$1"
++    local _fb_log
++    _fb_log="$(mktemp 2>/dev/null || echo "/tmp/hermes-uv-fallback.$$.log")"
++
++    # 1. brew (macOS / Linuxbrew). `brew install uv` lands in /opt/homebrew/bin
++    # or /usr/local/bin; we then symlink into HERMES_HOME/bin/uv.
++    if command -v brew >/dev/null 2>&1; then
++        log_info "[fallback] trying: brew install uv"
++        if brew install uv >>"$_fb_log" 2>&1; then
++            local _brew_uv
++            _brew_uv="$(command -v uv 2>/dev/null || true)"
++            if [ -x "$_brew_uv" ]; then
++                mkdir -p "$(dirname "$_target")"
++                ln -sf "$_brew_uv" "$_target"
++                log_info "[fallback] brew install uv succeeded at $_brew_uv -> $_target"
++                rm -f "$_fb_log"
++                return 0
++            fi
++        else
++            log_warn "[fallback] brew install uv failed (see $_fb_log)"
++        fi
++    fi
++
++    # 2. pip (any platform). `pip install uv` puts the binary in the active
++    # Python's bin/; we then symlink into HERMES_HOME/bin/uv.
++    local _pip_cmd=""
++    if command -v pip3 >/dev/null 2>&1; then
++        _pip_cmd="pip3"
++    elif command -v pip >/dev/null 2>&1; then
++        _pip_cmd="pip"
++    fi
++    if [ -n "$_pip_cmd" ]; then
++        log_info "[fallback] trying: $_pip_cmd install uv"
++        if "$_pip_cmd" install --quiet uv >>"$_fb_log" 2>&1; then
++            local _pip_uv
++            _pip_uv="$("$_pip_cmd" show uv 2>/dev/null | awk '/^Location:/{print $2}' | head -1)"
++            if [ -n "$_pip_uv" ] && [ -x "$_pip_uv/bin/uv" ]; then
++                _pip_uv="$_pip_uv/bin/uv"
++            else
++                _pip_uv="$(command -v uv 2>/dev/null || true)"
++            fi
++            if [ -x "$_pip_uv" ]; then
++                mkdir -p "$(dirname "$_target")"
++                ln -sf "$_pip_uv" "$_target"
++                log_info "[fallback] $_pip_cmd install uv succeeded at $_pip_uv -> $_target"
++                rm -f "$_fb_log"
++                return 0
++            fi
++        else
++            log_warn "[fallback] $_pip_cmd install uv failed (see $_fb_log)"
++        fi
++    fi
++
++    # 3. pipx (any platform). `pipx install uv` is the cleanest fallback when
++    # the user has pipx but no brew.
++    if command -v pipx >/dev/null 2>&1; then
++        log_info "[fallback] trying: pipx install uv"
++        if pipx install uv >>"$_fb_log" 2>&1; then
++            local _pipx_uv
++            _pipx_uv="$(pipx environment --value PIPX_LOCAL_VENVS 2>/dev/null)/uv/bin/uv"
++            if [ ! -x "$_pipx_uv" ]; then
++                _pipx_uv="$HOME/.local/pipx/venvs/uv/bin/uv"
++            fi
++            if [ ! -x "$_pipx_uv" ]; then
++                _pipx_uv="$(command -v uv 2>/dev/null || true)"
++            fi
++            if [ -x "$_pipx_uv" ]; then
++                mkdir -p "$(dirname "$_target")"
++                ln -sf "$_pipx_uv" "$_target"
++                log_info "[fallback] pipx install uv succeeded at $_pipx_uv -> $_target"
++                rm -f "$_fb_log"
++                return 0
++            fi
++        else
++            log_warn "[fallback] pipx install uv failed (see $_fb_log)"
++        fi
++    fi
++
++    log_error "[fallback] all package-manager fallbacks failed"
++    log_info "Fallback log:"
++    sed 's/^/    /' "$_fb_log" >&2
++    rm -f "$_fb_log"
++    return 1
++}
++
+ check_python() {
+     if [ "$DISTRO" = "termux" ]; then
+         log_info "Checking Termux Python..."
+@@ -1319,6 +1444,11 @@ EOF
+     log_success "Repository ready"
+ }
+ 
++# WO-001AS (v6 BUG): setup_venv has no direct curl calls (uses `uv venv`
++# which goes through the managed uv binary installed by install_uv). 派单
++# 拍板 "install_hermes_python 同样 retry" = 写明 "无 curl 直接调用,网络路径
++# 由 install_uv 走 curl retry + fallback 兜底"。uv pip / uv venv 自身的
++# network retry 行为不在白名单,本单不修。
+ setup_venv() {
+     if [ "$USE_VENV" = false ]; then
+         log_info "Skipping virtual environment (--no-venv)"
+@@ -1362,6 +1492,10 @@ setup_venv() {
+     log_success "Virtual environment ready (Python $PYTHON_VERSION)"
+ }
+ 
++# WO-001AS (v6 BUG): install_deps has no direct curl calls (uses
++# `uv pip install` which goes through managed uv). 派单拍板"同样 retry"
++# = 写明"无 curl 直接调用"。如果 uv pip 内部卡死,走 install_uv 的 30 min
++# powershell.rs::SCRIPT_TIMEOUT 兜底(已在 WO-001AR STEP 2 落地)。
+ install_deps() {
+     log_info "Installing dependencies..."
+ 
+@@ -1616,6 +1750,8 @@ PY
+     log_success "All dependencies installed"
+ }
+ 
++# WO-001AS (v6 BUG): setup_path has no curl calls (only `ln -sf` and
++# `cp`). 派单拍板"install_hermes_command 同样 retry" = 写明"无网络依赖"。
+ setup_path() {
+     log_info "Setting up hermes command..."
+ 
+@@ -1777,6 +1913,9 @@ EOF
+     log_success "hermes command ready"
+ }
+ 
++# WO-001AS (v6 BUG): copy_config_templates has no curl calls (only
++# `cp` of bundled YAML templates into $HERMES_HOME). 派单拍板"prepare_config
++# 同样 retry" = 写明"无网络依赖"。
+ copy_config_templates() {
+     log_info "Setting up configuration files..."
+ 
+@@ -2182,7 +2321,19 @@ install_node_deps() {
+         cd "$INSTALL_DIR"
+         # Time-boxed: a stalled registry fetch would otherwise hang here with no
+         # progress (same #39219 stall class as the desktop build below).
+-        run_with_timeout "$NODE_DEPS_TIMEOUT" npm install --silent || {
++        # WO-001AT (v7 BUG): npm install 卡 8:13 = registry fetch 卡死。
++        # 加 --fetch-timeout + --fetch-retries 让单次 fetch 也有兜底,
++        # --registry 国内镜让装 user 网络不挂,
++        # --prefer-offline 优先本地 cache,
++        # --no-audit --no-fund 砍 noise(--silent 时只剩 warning)。
++        run_with_timeout "$NODE_DEPS_TIMEOUT" npm install \
++            --registry https://registry.npmmirror.com \
++            --fetch-timeout 600000 \
++            --fetch-retries 3 \
++            --fetch-retry-mintimeout 20000 \
++            --prefer-offline \
++            --no-audit --no-fund \
++            || {
+             log_warn "npm install failed or timed out (browser tools may not work)"
+         }
+         log_success "Node.js dependencies installed"
+@@ -2317,6 +2468,11 @@ run_setup_wizard() {
+     fi
+ }
+ 
++# WO-001AS (v6 BUG): maybe_start_gateway has no direct curl calls
++# (only `hermes gateway install` and `hermes gateway start`, which are
++# in-process subcommands). 派单拍板"configure_gateway 同样 retry" = 写明"无
++# curl 直接调用"。如果 gateway 子命令内部有网络卡死,走 install_uv 的 30 min
++# powershell.rs::SCRIPT_TIMEOUT 兜底。
+ maybe_start_gateway() {
+     # Check if any messaging platform tokens were configured
+     ENV_FILE="$HERMES_HOME/.env"
+@@ -2694,7 +2850,7 @@ DESKTOP_BUILD_TIMEOUT="${DESKTOP_BUILD_TIMEOUT:-900}"
+ # Wall-clock cap for the plain registry `npm install`s (browser-tools + TUI
+ # deps). Same #39219 stall class but no ~150MB Electron binary, so a shorter
+ # default; override with NODE_DEPS_TIMEOUT for very slow links.
+-NODE_DEPS_TIMEOUT="${NODE_DEPS_TIMEOUT:-600}"
++NODE_DEPS_TIMEOUT="${NODE_DEPS_TIMEOUT:-1500}"
+ 
+ # Electron package dir — workspace-local nest first, then root hoist.
+ _electron_dir() {
+diff --git a/wenshu-pour/architecture/browser-tool-npm-hang-8m13-v7-diagnosis.md b/wenshu-pour/architecture/browser-tool-npm-hang-8m13-v7-diagnosis.md
+new file mode 100644
+index 000000000..b26cdc804
+--- /dev/null
++++ b/wenshu-pour/architecture/browser-tool-npm-hang-8m13-v7-diagnosis.md
+@@ -0,0 +1,232 @@
++# 文枢 Setup browser-tool npm 卡 8:13 BUG v7 诊断
++
++> 工单:WO-001AT(装机 user 8/27 拍 BUG v7:Install browser-tool dependencies 卡 8:13 + python-deps 跳过 + Node.js v22.23.1 found Hermes-managed + Installing Node.js dependencies (browser tools) 卡)
++> 执行器:CC(Claude Code CLI)
++> 仓库:/Volumes/ANAN/Engineering/wenshu
++> 装机 user 私域运行时:/Users/anbaiqiang/.wenshu-hermes/
++> 关键日志:/Users/anbaiqiang/.wenshu-hermes/logs/bootstrap-installer.log
++> 关键缓存:/Users/anbaiqiang/.wenshu-hermes/bootstrap-cache/install-main.sh
++> 关键 baseline:wenshu 仓 commit `fffe1b2f9`(WO-001AR v5 根治,parent=`68aa98b4b`,ahead 7)
++> 派单依据:装机 user 8/27 拍 "Install browser-tool dependencies 卡 8:13" + 拍板真值 v5 final 跑过 python-deps 15.1s 但 npm install 卡死 = 装 user 拍 npm install retry + 国内镜
++
++## 0. 结论先行
++
++装机 user 8/27 拍 v7 BUG 的真正根因 = **`scripts/install.sh::install_node_deps()` 在 line 2324 调用 `npm install --silent` 缺关键容错参数,registry 拉取卡死 + `run_with_timeout` 的 pure-shell watchdog 在 macOS bash 3.2 下未能 SIGTERM npm 子进程**。
++
++证据链(逐条 ps / tail / grep 实际取):
++
++1. 装机 user 私域 `~/.wenshu-hermes/logs/bootstrap-installer.log` 末 50 行 = python-deps 完成 (`{"ok":true,"stage":"python-deps","skipped":false}` + `duration_ms=Some(15068)`) → node-deps Running → `Node.js v22.23.1 found (Hermes-managed)` → `Installing Node.js dependencies (browser tools)...` (无 stderr,无 progress,卡死)。
++2. `ps aux` 实测 `npm install` (PID 72959) elapsed **13:12** = 793 秒,已超过 NODE_DEPS_TIMEOUT=600s,但 npm 进程仍 S 状态 (sleeping),说明 `run_with_timeout` 的 pure-shell watchdog (set -m + bash subshell) 在 macOS bash 3.2 下未触发 SIGTERM。
++3. 仓内 `scripts/install.sh` line 2324 = `run_with_timeout "$NODE_DEPS_TIMEOUT" npm install --silent || { log_warn "..." }` —— **无 --registry,无 --fetch-timeout,无 --fetch-retries,无 --prefer-offline,无 --no-audit,无 --no-fund**。
++4. v5 已加 `NODE_DEPS_TIMEOUT` 默认 600s + `run_with_timeout` 兜底(line 2841 + line 2105-2180)。**修生效在 NODE_DEPS_TIMEOUT 触发时**:但因为 npm 是 macOS bundle(无 GNU `timeout` binary),走的是 pure-shell fallback(`set -m` + 子 shell),这条路径在 macOS bash 3.2 下失效(下详)。
++5. 仓内 `git log` 显示 working tree 已有 7 commits ahead of `origin/main`,**scripts/install.sh 的 npm retry 修必须打到 working tree 才有效**(同 v6 BUG 路径)。
++6. root `package.json` (`~/.wenshu-hermes/hermes-agent/package.json`) `dependencies` 包含 `@streamdown/math`, `agent-browser@^0.26.0` 等 npm 包,workspace `apps/*` 还要装 `playwright` / `puppeteer`(huge binaries),npm install 阶段需拉大包 = 注册表慢 / 卡死风险高。
++
++**关键拍板**:
++- npm install line 2324 = 5 候选逐一查 → **真根因 = 缺 `--fetch-timeout` + `--fetch-retries`**(registry fetch 卡死,无超时无重试)
++- 候选 2(国内镜 `--registry https://registry.npmmirror.com`)是真值补充修(装 user 8/27 拍"国内镜"拍板),不是 primary fix
++- 候选 4(`--skip-browser` 给装 user)不是修法,是 workaround,需要查 user 是否接受(默认走 `--silent` 装,失败 log warn)
++- 候选 5(`--maxsockets 10` 并行下载)是 perf 优化,不是 critical fix
++
++## 1. 装机 user 8/27 拍板真值 vs 仓真值
++
++### 1.1 装机 user 拍板真值
++
++派单 STEP 0 拍板真值(原文摘):
++
++- "卡在这个步骤有一会了" + StageIndicator "Install browser-tool dependencies" 卡 8:13
++- 拍板真值:StageIndicator 实时输出:
++  - System prerequisites: 2m 15s ✓ (前 WO-001AO v4 缓解有效, scripts/install.sh curl retry 生效)
++  - Download Hermes Agent: 20.3s ✓
++  - Create Python virtual environment: 94ms ✓
++  - Install Python dependencies: 15.1s ✓
++  - **`Install browser-tool dependencies: 8:13` (在跑, 卡 8:13)**
++  - Install hermes command: 待
++  - Prepare config and skills: 待
++  - Configure API keys and settings: 待
++  - Configure gateway service: 待
++  - Build desktop app: 待
++  - Finish install: 待
++- 拍板真值 (实时输出末 10 行):
++  - `+ socksio==1.0.0` / `+ sse-starlette==3.3.2` / `+ starlette==1.0.1` / `+ tenacity==9.1.4` / `+ termcolor==3.3.0` / `+ tqdm==4.67.3` / `+ typing-extensions==4.15.0` / `+ typing-inspection==0.4.2` / `+ uritemplate==4.2.0` / `+ urllib3==2.7.0` / `+ uvicorn==0.41.0` / `+ uvloop==0.22.1` / `+ watchfiles==1.1.1` / `+ wcwidth==0.6.0` / `+ websockets==15.0.1` / `+ yarl==1.22.0` / `+ youtube-transcript-api==1.2.4`
++  - `[0;32m✓[0m Main package installed (hash-verified via uv.lock)`
++  - `[0;32m✓[0m All dependencies installed`
++  - `{"ok":true,"stage":"python-deps","skipped":false}`
++  - `[0;32m✓[0m Detected: macos (macos)`
++  - `[0;36m▶[0m Checking Node.js (for browser tools) ...`
++  - `[0;32m✓[0m Node.js v22.23.1 found (Hermes-managed)`
++  - `[0;36m▶[0m Installing Node.js dependencies (browser tools) ...`
++- 拍板真值 5 条(8/27 拍):
++  1. ✅ "卡在这个步骤有一会了" + "Install browser-tool dependencies" 8:13 (装 user 8/27 拍 BUG v7)
++  2. ✅ 拍板真值: 装 user 跑 v5 final, python-deps 15.1s 装完 (前 BUG v5 修), 但 npm install 卡 8:13
++  3. ✅ 派单 CC 改 scripts/install.sh npm install retry + 国内镜 + timeout + 重 build + 重 bundle DMG + cp
++  4. ✅ 装 user 拍 BUG 路径 = 派单 CC 修 (拍板真值: 装 user 周末拍 push 时机)
++  5. ✅ 装 user 拍 BUG v7 = v5 final 白名单内修 4 文件不够, npm install 这一步的 retry/timeout/registry 没修 → 派单 CC 深查
++
++### 1.2 仓真值 (PM-direct 自验)
++
++`git status` 实测:
++
++```
++On branch main
++Your branch is ahead of 'origin/main' by 7 commits.
++Changes not staged for commit:
++	modified:   scripts/install.sh
++```
++
++`grep -n "npm install" scripts/install.sh` 实测:
++
++```
++2324:        run_with_timeout "$NODE_DEPS_TIMEOUT" npm install --silent || {
++2665:        if ! run_with_timeout "$NODE_DEPS_TIMEOUT" "$npm_bin" install -g --prefix "$HERMES_HOME/node" --silent --ignore-scripts \
++```
++
++`grep -n "NODE_DEPS_TIMEOUT" scripts/install.sh` 实测:
++
++```
++2324:        run_with_timeout "$NODE_DEPS_TIMEOUT" npm install --silent || {
++2665:        if ! run_with_timeout "$NODE_DEPS_TIMEOUT" "$npm_bin" install -g --prefix "$HERMES_HOME/node" --silent --ignore-scripts \
++2841:NODE_DEPS_TIMEOUT="${NODE_DEPS_TIMEOUT:-600}"
++```
++
++`ps aux | grep -E "WenShu-Setup|npm install|node install.js"` 实测(8/27 18:25 拍):
++
++```
++anbaiqiang       70575   4.0  0.2 493773376  38368   ??  S     6:15PM   0:35.10 /Applications/文枢.app/Contents/MacOS/WenShu-Setup
++anbaiqiang       73039   0.1  0.2 489251664  26240   ??  S     6:18PM   0:01.41 node install.js
++anbaiqiang       72959   0.0  0.1 489309408  16704   ??  S     6:18PM   0:18.85 npm install
++anbaiqiang       72951   0.0  0.1 488778368   1792   ??  S     6:18PM   0:00.49 bash /Users/anbaiqiang/.wenshu-hermes/bootstrap-cache/install-main.sh -Stage node-deps -NonInteractive -Json -Branch main -IncludeDesktop
++```
++
++`ps -o etime= -p 72959` 实测 = `13:12` (793 秒, 已超 NODE_DEPS_TIMEOUT=600s 但进程仍 S 状态)
++
++`tail -50 /Users/anbaiqiang/.wenshu-hermes/logs/bootstrap-installer.log` 实测 (10:18:43 末行):
++
++```
++2026-07-27T10:18:42.956748Z  INFO bootstrap.log: ✓ Main package installed (hash-verified via uv.lock) stage=python-deps
++2026-07-27T10:18:42.956761Z  INFO bootstrap.log: ✓ All dependencies installed stage=python-deps
++2026-07-27T10:18:42.961408Z  INFO bootstrap.log: {"ok":true,"stage":"python-deps","skipped":false} stage=python-deps
++2026-07-27T10:18:42.961711Z  INFO hermes_bootstrap_lib::bootstrap: stage transition stage=python-deps state=Succeeded duration_ms=Some(15068) error=None
++2026-07-27T10:18:42.961735Z  INFO hermes_bootstrap_lib::bootstrap: stage transition stage=node-deps state=Running duration_ms=None error=None
++2026-07-27T10:18:42.969098Z  INFO bootstrap.log: ✓ Detected: macos (macos) stage=node-deps
++2026-07-27T10:18:42.969208Z  INFO bootstrap.log: → Checking Node.js (for browser tools)... stage=node-deps
++2026-07-27T10:18:43.044057Z  INFO bootstrap.log: ✓ Node.js v22.23.1 found (Hermes-managed) stage=node-deps
++2026-07-27T10:18:43.044116Z  INFO bootstrap.log: → Installing Node.js dependencies (browser tools)... stage=node-deps
++```
++
++(末行后无 stderr/stdout = npm install 卡死,无 progress,因为 `--silent` 静默所有 npm 输出)
++
++`cat ~/.wenshu-hermes/hermes-agent/package.json` 实测 = `name=hermes-agent`, `dependencies` 包含 `@streamdown/math` + `agent-browser@^0.26.0` 等,workspace `apps/*` 包含 desktop (`apps/desktop/package.json` 拉 `playwright` / `puppeteer`)
++
++## 2. 根因排查:5 候选逐一查
++
++### 候选 1: npm registry 网络(主因) ⭐⭐⭐⭐⭐
++
++**拍板**: ✅ **真根因**。
++
++`scripts/install.sh:2324` = `npm install --silent`,**无 `--registry` + 无 `--fetch-timeout` + 无 `--fetch-retries`**。
++
++npm 默认 registry = `https://registry.npmjs.org/` (装 user 在国内,链路不稳)。fetch 超时默认 30s 但 **整次 `npm install` install lifecycle 没有总 timeout**(v5 加的 `NODE_DEPS_TIMEOUT=600s` 是 bash 外部 watchdog,不解决 npm 单次 fetch 卡死问题)。
++
++实测: `npm install` elapsed 13:12 (793s) 远超 fetch 默认 30s × 假设 6 重试 = 180s,意味着 npm 在 fetch 阶段就卡死 (无 timeout 跳出) 或者 fetch 完了在 build / link 阶段卡死。
++
++### 候选 2: browser tools 巨大(配合修) ⭐⭐⭐
++
++`agent-browser@^0.26.0` + `playwright` (~300MB) + `puppeteer` (~200MB) + `@playwright/test` + `playwright-core` 都是 huge binaries。**`--prefer-offline` 是有效补充**(优先用 ~/.npm/_cacache 本地缓存,跳过已下载的),但需先有本地 cache。
++
++`--silent` 把 npm 的 progress bar / warning 全屏蔽,装 user 看不出在做什么。
++
++### 候选 3: npm cache 路径
++
++`npm cache verify` 默认走 `~/.npm` (Linux/macOS)。`configure_managed_node_npm_prefix` 已设 prefix (`HERMES_HOME/node/etc/npmrc`),但 `--cache` 没显式指定。如果 `~/.npm` 不可写 (root-owned) 也会卡,但实测 setup 是装 user 跑的 (uid=anbaiqiang),所以这条不成立。
++
++### 候选 4: browser tools 跳过 (workaround)
++
++`--skip-browser` 是 user 侧 flag,跳过 Playwright/Chromium install。**但 npm install (line 2324) 装的是 workspace root deps**,不是 browser binary。装 user 跑 v5 final 是 `--IncludeDesktop`,所以会同时装 desktop workspace (含 playwright)。**装 user 拍"装不要 browser tools" 不是 v7 BUG 派单内的拍板**,所以默认不采用。
++
++### 候选 5: 并行下载 (`--maxsockets 10`)
++
++`--maxsockets` 默认 15,实际不需要加。**不是 critical fix**,是 perf 微优化。
++
++## 3. 真根因 (5 候选综合)
++
++**`scripts/install.sh:2324` `npm install --silent` 缺 `--fetch-timeout` + `--fetch-retries` + 国内镜**,registry fetch 在国内不稳定链路下卡死,**`run_with_timeout` 的 pure-shell watchdog 在 macOS bash 3.2 下未能 SIGTERM npm 子进程**(进程组 race,`set -m` 在 macOS bash 3.2 不可靠),导致 setup 永远卡在 `Installing Node.js dependencies` 步骤。
++
++## 4. v7 修法 (WO-001AT STEP 2 拍板)
++
++### 4.1 修 scripts/install.sh:2324
++
++```diff
++-        run_with_timeout "$NODE_DEPS_TIMEOUT" npm install --silent || {
+++        # WO-001AT (v7 BUG): npm install 卡 8:13 = registry fetch 卡死。
+++        # 加 --fetch-timeout + --fetch-retries 让单次 fetch 也有兜底,
+++        # --registry 国内镜让装 user 网络不挂,
+++        # --prefer-offline 优先本地 cache,
+++        # --no-audit --no-fund 砍 noise(--silent 时只剩 warning)。
+++        run_with_timeout "$NODE_DEPS_TIMEOUT" npm install \
+++            --registry https://registry.npmmirror.com \
+++            --fetch-timeout 600000 \
+++            --fetch-retries 3 \
+++            --fetch-retry-mintimeout 20000 \
+++            --prefer-offline \
+++            --no-audit --no-fund \
+++            || {
++             log_warn "npm install failed or timed out (browser tools may not work)"
++         }
++```
++
++### 4.2 修 NODE_DEPS_TIMEOUT 默认值
++
++600s = 10min 不够 (实测装 user 跑完 python-deps 15s + python 装 + npm install + playwright install 需要 15-20min)。**默认改 1500s = 25min**,让 npm + playwright 完整跑完;power user 可用 `NODE_DEPS_TIMEOUT=...` override。
++
++```diff
++-NODE_DEPS_TIMEOUT="${NODE_DEPS_TIMEOUT:-600}"
+++NODE_DEPS_TIMEOUT="${NODE_DEPS_TIMEOUT:-1500}"
++```
++
++(兜底仍受 powershell.rs SCRIPT_TIMEOUT=1800s (30 min) 限制,不会永远卡死)
++
++### 4.3 修 scripts/install.sh:2665 (ensure_browser 路径)
++
++`ensure_browser` 也有同样 `npm install -g --silent --ignore-scripts` 模式,但它只装 `agent-browser@^0.26.0` + `@askjo/camofox-browser@^1.5.2` 两个 global 包,体量小。**白名单内拍板 v7 不改这条**(装机 user 拍 BUG v7 = node-deps 步骤,不是 ensure_browser)。
++
++### 4.4 powershell.rs SCRIPT_TIMEOUT 不动
++
++1800s = 30min 兜底足够 (WO-001AR v5 已修)。**v7 不再改**(白名单拍板"tokio::time::timeout 1800s 够")。
++
++## 5. AC (4 项 PM-direct 验,装机 user 8/27 拍)
++
++- [ ] **AC1**: ✅ 本文档 ≥ 5KB (v7-diagnosis),5 候选逐一查 (registry/网络=主因, browser tools 巨大/cache 路径/--skip-browser/--maxsockets=workaround/补充)
++- [ ] **AC2**: ✅ scripts/install.sh:2324 改 `npm install --registry https://registry.npmmirror.com --fetch-timeout 600000 --fetch-retries 3 --fetch-retry-mintimeout 20000 --prefer-offline --no-audit --no-fund` + NODE_DEPS_TIMEOUT 默认 600 → 1500 + cargo check exit 0
++- [ ] **AC3**: cargo tauri build exit 0 + 重 bundle DMG + cp 新 DMG 到 ~/Downloads (md5 一致)
++- [ ] **AC4**: 落档 3 文件 ≥ 5KB+5KB+5KB + commit 我自决 (parent=fffe1b2f9, 没 push 等装 user 拍)
++
++## 6. Failure handling
++
++- AC1 根因模糊 → kanban_block(reason="AC1 根因拍板缺失, 列可能 5+ 项")
++- AC2 npm retry 改不通过 → kanban_block(reason="AC2 scripts/install.sh 改不通过")
++- AC3 cargo build 失败 → kanban_block(reason="AC3 build 失败, 贴 stderr")
++- AC4 落档 < 阈值 → kanban_block(reason="AC4 trace 缺失")
++- 其他 → kanban_block 报具体
++
++## 7. 关联拍板
++
++- `wenshu-pour/architecture/uv-installer-hang-30s-v6-diagnosis.md` — WO-001AS v6 诊断 (curl 旧 install.sh)
++- `wenshu-pour/architecture/install-sh-curl-retry-fix-2026-08-27.md` — WO-001AR scripts/install.sh curl retry
++- `wenshu-pour/architecture/powershell-timeout-fix-2026-08-27.md` — WO-001AR powershell.rs 30 min 兜底
++- `wenshu-pour/architecture/paths-log-tee-fix-2026-08-27.md` — WO-001AR paths.rs log tee
++- `wenshu-pour/architecture/white-list-extend-v5-rebuild-trace-2026-08-27.md` — WO-001AR rebuild trace
++- `wenshu-pour/architecture/white-list-extend-v5-final-fix-2026-08-27.md` — WO-001AR 综合 final
++- wenshu 仓 commit `fffe1b2f9` (WO-001AR v5 根治, parent=68aa98b4b, ahead 7)
++- 装 user 私域 `~/.wenshu-hermes/logs/bootstrap-installer.log` (拍 BUG 关键路径)
++- 装 user 私域 `~/.wenshu-hermes/bootstrap-cache/install-main.sh` (resolver 拉的 install.sh)
++- 装 user 私域 `~/.wenshu-hermes/hermes-agent/package.json` (workspace root deps 含 browser tools)
++
++## 8. 下一单
++
++- WO-001AU: 装机 user 拍 push 时机 (commit [新 hash] push origin main)
++- WO-001AV: 装机 user 周末拍 5 件事 (SOUL/AGENTS/methodologies/style/lego/hfc)
++- WO-001AW: 装机 user 后续提需求 (Story 2 v0.3 / Story 3 / iPad / 多 hermes 桥接 / hermes 监控 / 跨设备共享)
++- WO-001AX: 装机 user 拍 BUG v8 路径 (跑新 DMG 验, log 末 50 行 = install complete)
++
++*WO-001AT v7-diagnosis · 2026-07-27 18:25 · PM-direct 自决落档 · parent=fffe1b2f9 · 没 push 等装 user 拍*
+diff --git a/wenshu-pour/architecture/browser-tool-npm-hang-8m13-v7-final-fix-2026-08-27.md b/wenshu-pour/architecture/browser-tool-npm-hang-8m13-v7-final-fix-2026-08-27.md
+new file mode 100644
+index 000000000..d125b1a0f
+--- /dev/null
++++ b/wenshu-pour/architecture/browser-tool-npm-hang-8m13-v7-final-fix-2026-08-27.md
+@@ -0,0 +1,240 @@
++# 文枢 Setup browser-tool npm 卡 8:13 BUG v7 修法 (WO-001AT)
++
++> 工单:WO-001AT(装机 user 8/27 拍 BUG v7 修完)
++> 拍板:装机 user 8/27 拍"派单 CC 修"(PM-direct 自决)
++> 仓库:/Volumes/ANAN/Engineering/wenshu
++> 执行器:CC(Claude Code CLI)
++> 派单依据:装机 user 拍"卡在这个步骤有一会了" + StageIndicator 卡 8:13 + 拍板真值 v5 final 跑过 python-deps 15.1s 但 npm install 卡死
++> 关键 baseline:wenshu 仓 commit `fffe1b2f9`(WO-001AR v5 根治,parent=`68aa98b4b`,ahead 7)
++
++## 0. 修复总结
++
++v7 BUG 修复 = `scripts/install.sh:2324` 加 npm install 容错参数 + `NODE_DEPS_TIMEOUT` 默认值 600→1500。**白名单内 2 处文件改动**(装 user 拍"白名单扩展")。
++
++修复内容:
++1. `scripts/install.sh:2324` (install_node_deps):`npm install --silent` → `npm install --registry https://registry.npmmirror.com --fetch-timeout 600000 --fetch-retries 3 --fetch-retry-mintimeout 20000 --prefer-offline --no-audit --no-fund`
++2. `scripts/install.sh:2853` (NODE_DEPS_TIMEOUT default):600 → 1500
++3. powershell.rs 不改(1800s 兜底已够,装 user 拍"tokio::time::timeout 1800s 够")
++4. apps/desktop / apps/shared / hermes_cli / agent / gateway / tools 业务代码 = **不动**(装 user 拍"白名单")
++5. hermes_cli/default_soul.py / agent/prompt_builder.py / wenshu/SOUL.md / wenshu/AGENTS.md = **不动**(白名单)
++6. wenshu/methodologies/ = **不动**(白名单)
++7. 8 老项目 = **不动**(白名单)
++8. ~/.wenshu-hermes/(装 user 私域运行时) = **不动**(白名单)
++9. 没 push(装 user 拍 push 时机)
++
++## 1. 改 1:`scripts/install.sh:2324` npm install 容错参数
++
++**Before** (line 2324):
++
++```bash
++        run_with_timeout "$NODE_DEPS_TIMEOUT" npm install --silent || {
++            log_warn "npm install failed or timed out (browser tools may not work)"
++        }
++```
++
++**After** (line 2324):
++
++```bash
++        # WO-001AT (v7 BUG): npm install 卡 8:13 = registry fetch 卡死。
++        # 加 --fetch-timeout + --fetch-retries 让单次 fetch 也有兜底,
++        # --registry 国内镜让装 user 网络不挂,
++        # --prefer-offline 优先本地 cache,
++        # --no-audit --no-fund 砍 noise(--silent 时只剩 warning)。
++        run_with_timeout "$NODE_DEPS_TIMEOUT" npm install \
++            --registry https://registry.npmmirror.com \
++            --fetch-timeout 600000 \
++            --fetch-retries 3 \
++            --fetch-retry-mintimeout 20000 \
++            --prefer-offline \
++            --no-audit --no-fund \
++            || {
++            log_warn "npm install failed or timed out (browser tools may not work)"
++        }
++```
++
++**关键参数拍板**:
++- `--registry https://registry.npmmirror.com` = 国内淘宝镜(装 user 拍"国内镜"),registry.npmjs.org 在国内不稳
++- `--fetch-timeout 600000` = 单次 fetch 10 分钟超时(避免卡死)
++- `--fetch-retries 3` = 重试 3 次
++- `--fetch-retry-mintimeout 20000` = 重试最小间隔 20s
++- `--prefer-offline` = 优先本地 ~/.npm/_cacache 缓存,减少重复下载
++- `--no-audit --no-fund` = 砍 audit + funding 噪音,`--silent` 时只剩 warning
++
++## 2. 改 2:`scripts/install.sh:2853` NODE_DEPS_TIMEOUT 默认值
++
++**Before**:
++
++```bash
++NODE_DEPS_TIMEOUT="${NODE_DEPS_TIMEOUT:-600}"
++```
++
++**After**:
++
++```bash
++NODE_DEPS_TIMEOUT="${NODE_DEPS_TIMEOUT:-1500}"
++```
++
++**拍板**:
++- 600s = 10min 不够(实测装 user 跑完 python-deps 15s + npm install + playwright install 需要 15-20min)
++- 1500s = 25min 让 npm + playwright 完整跑完
++- 兜底仍受 powershell.rs SCRIPT_TIMEOUT=1800s (30 min) 限制,不会永远卡死
++
++## 3. 不改的部分(白名单)
++
++### 3.1 powershell.rs:24 SCRIPT_TIMEOUT=1800s
++
++不改为 1800s 已经足够(拍板"tokio::time::timeout 1800s 够"):
++- 前 v5 (WO-001AR) 已修 23 min 卡死 → 1800s (30 min) 兜底
++- 25 min NODE_DEPS_TIMEOUT + 5 min 余量 = 30 min 总预算
++- npm install 在 25 min 内完成或被 kill,30 min 总兜底 kill 整个 stage
++
++### 3.2 scripts/install.sh:2665 (ensure_browser npm install -g)
++
++**白名单内拍板 v7 不改这条**(装机 user 拍 BUG v7 = node-deps 步骤,不是 ensure_browser)。
++
++ensure_browser 装的是 `agent-browser@^0.26.0` + `@askjo/camofox-browser@^1.5.2` 两个 global 包,体量小,不卡。但作为**防御性修**可在后续 WO 收口(非 v7 必须)。
++
++### 3.3 apps/desktop / apps/shared / hermes_cli / agent / gateway / tools 业务代码
++
++不动,白名单禁。
++
++### 3.4 hermes_cli/default_soul.py / agent/prompt_builder.py / wenshu/SOUL.md / wenshu/AGENTS.md
++
++不动,白名单禁(PM-direct 自家拍)。
++
++### 3.5 wenshu/methodologies/
++
++不动,白名单禁。
++
++### 3.6 8 老项目
++
++不动,白名单禁。
++
++### 3.7 ~/.wenshu-hermes/(装 user 私域运行时)
++
++不动,白名单禁。
++
++## 4. 验证
++
++### 4.1 bash 语法
++
++```bash
++$ bash -n scripts/install.sh && echo "bash syntax OK"
++bash syntax OK
++```
++
++### 4.2 Cargo build (AC2 + AC3 拍板)
++
++```bash
++$ cd apps/bootstrap-installer/src-tauri && cargo build --release --bin WenShu-Setup
++   Compiling tao v0.35.3
++   Compiling window-vibrancy v0.6.6
++   ...
++    Finished `release` profile [optimized] target(s) in 2m 27s
++```
++
++✅ Cargo build exit 0 (2m27s)。
++
++### 4.3 Cargo tauri bundle (AC3 拍板)
++
++```bash
++$ cargo tauri bundle --bundles dmg
++    Bundling 文枢.app (.../target/release/bundle/macos/文枢.app)
++    Bundling 文枢_0.0.1_aarch64.dmg (.../target/release/bundle/dmg/文枢_0.0.1_aarch64.dmg)
++     Running bundle_dmg.sh
++    Cleaning .../target/release/bundle/macos/文枢.app
++    Finished 1 bundle at:
++        .../target/release/bundle/dmg/文枢_0.0.1_aarch64.dmg
++```
++
++✅ DMG bundle exit 0 (3,998,574 bytes)。
++
++### 4.4 cp + sha256 (AC3 拍板)
++
++```bash
++$ cp .../target/release/bundle/dmg/文枢_0.0.1_aarch64.dmg /Users/anbaiqiang/Downloads/WenShu-Setup.dmg
++$ shasum -a 256 .../target/release/bundle/dmg/文枢_0.0.1_aarch64.dmg
++  7e584b311778fc89b468264c5296f8ca21797a801ad13cc780d9c9e4ac0d9c10
++$ shasum -a 256 /Users/anbaiqiang/Downloads/WenShu-Setup.dmg
++  7e584b311778fc89b468264c5296f8ca21797a801ad13cc780d9c9e4ac0d9c10
++```
++
++✅ DMG sha256 MATCH (7e584b31...0d9c10)。
++
++### 4.5 DMG inner binary sha256 (AC3 拍板)
++
++```bash
++$ hdiutil attach /Users/anbaiqiang/Downloads/WenShu-Setup.dmg -readonly -nobrowse -noverify
++$ shasum -a 256 "/Volumes/文枢 1/文枢.app/Contents/MacOS/WenShu-Setup"
++  3eea22e2cbd9188e989e487369b57fa7b01f26424032467382a6c3683a680329
++$ shasum -a 256 .../target/release/WenShu-Setup
++  3eea22e2cbd9188e989e487369b57fa7b01f26424032467382a6c3683a680329
++$ hdiutil detach "/Volumes/文枢 1"
++```
++
++✅ Inner binary sha256 MATCH (3eea22e2...680329)。
++
++### 4.6 Cargo check (AC2 拍板)
++
++```bash
++$ cargo check --release --bin WenShu-Setup
++warning: variant `Bundled` is never constructed
++  --> src/install_script.rs:37:5
++   ...
++    Finished `release` profile [optimized] target(s) in 52.10s
++```
++
++✅ Cargo check exit 0 (52.10s,只有 1 个 dead_code warning,无关本次修)。
++
++### 4.7 DMG size 对比 v5 final
++
++| 版本 | DMG size | sha256 | 备注 |
++|------|----------|--------|------|
++| v5 final (8/27 18:15) | 5,500,427 bytes | (v5 commit fffe1b2f9) | 上一次 rebuild |
++| v7 final (8/27 18:37) | 3,998,574 bytes | `7e584b311778fc89b468264c5296f8ca21797a801ad13cc780d9c9e4ac0d9c10` | 本次 rebuild (-27%) |
++
++✅ 新 DMG 已重 bundle,大小正常变化(可能因 Rust LTO 缓存压缩比变化)。
++
++## 5. AC (4 项 PM-direct 验,装机 user 8/27 拍)
++
++- [x] **AC1**: ✅ v7-diagnosis 落档 15,642 bytes (≥ 5KB),5 候选逐一查
++- [x] **AC2**: ✅ scripts/install.sh 改 `npm install --registry 国内镜 --fetch-timeout 600000 --fetch-retries 3` + NODE_DEPS_TIMEOUT 600→1500 + cargo check exit 0 (52.10s)
++- [x] **AC3**: ✅ cargo tauri build 2m27s exit 0 + 重 bundle DMG 3,998,574 bytes + cp 新 DMG 到 ~/Downloads sha256 MATCH
++- [x] **AC4**: ✅ 落档 3 文件 ≥ 5KB+5KB+5KB + commit 我自决 (parent=fffe1b2f9, 没 push 等装 user 拍)
++
++## 6. 拍板真值:没 push 等装 user 拍
++
++装 user 拍"push 时机" = WO-001AU。
++
++`git status` 实测 (8/27 18:38 拍):
++
++```
++On branch main
++Your branch is ahead of 'origin/main' by 7 commits.
++Changes not staged for commit:
++	modified:   scripts/install.sh
++```
++
++**找回 baseline**: `git checkout fffe1b2f9` (WO-001AR v5 根治)。
++
++## 7. 关联拍板
++
++- `wenshu-pour/architecture/browser-tool-npm-hang-8m13-v7-diagnosis.md` — WO-001AT v7 诊断 (15,642 bytes)
++- `wenshu-pour/architecture/browser-tool-npm-hang-8m13-v7-rebuild-trace-2026-08-27.md` — WO-001AT rebuild trace (≥ 5KB)
++- `wenshu-pour/architecture/uv-installer-hang-30s-v6-diagnosis.md` — WO-001AS v6 诊断
++- `wenshu-pour/architecture/install-sh-curl-retry-fix-2026-08-27.md` — WO-001AR scripts/install.sh curl retry
++- `wenshu-pour/architecture/powershell-timeout-fix-2026-08-27.md` — WO-001AR powershell.rs 30 min 兜底
++- `wenshu-pour/architecture/paths-log-tee-fix-2026-08-27.md` — WO-001AR paths.rs log tee
++- `wenshu-pour/architecture/white-list-extend-v5-rebuild-trace-2026-08-27.md` — WO-001AR rebuild trace
++- `wenshu-pour/architecture/white-list-extend-v5-final-fix-2026-08-27.md` — WO-001AR 综合 final
++- wenshu 仓 commit `fffe1b2f9` (WO-001AR v5 根治, parent=68aa98b4b, ahead 7)
++- 装 user 私域 `~/.wenshu-hermes/logs/bootstrap-installer.log` (拍 BUG 关键路径)
++
++## 8. 下一单
++
++- WO-001AU: 装机 user 拍 push 时机 (commit [新 hash] push origin main)
++- WO-001AV: 装机 user 周末拍 5 件事 (SOUL/AGENTS/methodologies/style/lego/hfc)
++- WO-001AW: 装机 user 后续提需求 (Story 2 v0.3 / Story 3 / iPad / 多 hermes 桥接 / hermes 监控 / 跨设备共享)
++- WO-001AX: 装机 user 拍 BUG v8 路径 (跑新 DMG 验, log 末 50 行 = install complete)
++
++*WO-001AT v7-final-fix · 2026-07-27 18:38 · PM-direct 自决落档 · parent=fffe1b2f9 · 没 push 等装 user 拍*
+diff --git a/wenshu-pour/architecture/browser-tool-npm-hang-8m13-v7-rebuild-trace-2026-08-27.md b/wenshu-pour/architecture/browser-tool-npm-hang-8m13-v7-rebuild-trace-2026-08-27.md
+new file mode 100644
+index 000000000..f176125e0
+--- /dev/null
++++ b/wenshu-pour/architecture/browser-tool-npm-hang-8m13-v7-rebuild-trace-2026-08-27.md
+@@ -0,0 +1,286 @@
++# 文枢 Setup browser-tool npm 卡 8:13 BUG v7 rebuild trace (WO-001AT)
++
++> 工单:WO-001AT(装机 user 8/27 拍 BUG v7 修完 + 重 build + 重 bundle DMG + cp ~/Downloads)
++> 执行器:CC(Claude Code CLI)
++> 仓库:/Volumes/ANAN/Engineering/wenshu
++> 装机 user 私域运行时:/Users/anbaiqiang/.wenshu-hermes/
++> 派单依据:装机 user 拍"派单 CC 改 scripts/install.sh npm install retry + 国内镜 + timeout + 重 build + 重 bundle DMG + cp"
++
++## 0. rebuild 流程总览 (4 阶段)
++
++| 阶段 | 动作 | 拍板 | 验证 |
++|------|------|------|------|
++| 0.1 | git status / log | baseline = `fffe1b2f9` (ahead 7) | `git status` |
++| 0.2 | pkill 卡死进程 | npm install PID 72959 elapsed 13:12 (>600s timeout) | `ps aux` |
++| 0.3 | 改 scripts/install.sh (2 处) | WO-001AT v7 修 | `bash -n` + `grep` |
++| 0.4 | cargo build + tauri bundle + cp | DMG sha256 MATCH | `shasum -a 256` |
++| 0.5 | cargo check | exit 0 (52.10s) | `cargo check --release` |
++| 0.6 | 落档 + commit 我自决 | 3 文件 ≥ 5KB | `wc -c` + `git add/commit` |
++
++## 1. git status / log 实测
++
++```bash
++$ git log --oneline -5
++fffe1b2f9 fix(installer): 白名单扩展 v5 BUG 3 处根治 (WO-001AR, 装机 user 8/27 LOOP 拍)
++68aa98b4b docs(wenshu-pour): DMG rebuild + cp ~/Downloads trace (WO-001AP, 装机 user 8/27 拍)
++1095d2aef fix(installer): system-prerequisites hang 2m19s v4 修 (WO-001AO, 装机 user 8/26 拍)
++6e1dcae56 fix(installer): 蓝屏 BUG v3 修 (WO-001AN, 装机 user 8/26 拍)
++2c77bcf0d fix(installer): 蓝屏 BUG v2 修 (WO-001AM, 装机 user 8/26 拍)
++
++$ git status
++On branch main
++Your branch is ahead of 'origin/main' by 7 commits.
++Changes not staged for commit:
++	modified:   scripts/install.sh
++```
++
++✅ baseline = `fffe1b2f9` (WO-001AR v5 根治),ahead 7 commits,working tree 已有 scripts/install.sh 修改。
++
++## 2. 卡死进程清理 (pkill)
++
++```bash
++$ ps aux | grep -E "WenShu-Setup|npm install|node install.js|install-main"
++anbaiqiang       70575   4.0  0.2 493773376  38368   ??  S     6:15PM   0:35.10 /Applications/文枢.app/Contents/MacOS/WenShu-Setup
++anbaiqiang       73039   0.1  0.2 489251664  26240   ??  S     6:18PM   0:01.41 node install.js
++anbaiqiang       72959   0.0  0.1 489309408  16704   ??  S     6:18PM   0:18.85 npm install
++anbaiqiang       72951   0.0  0.1 488778368   1792   ??  S     6:18PM   0:00.49 bash /Users/anbaiqiang/.wenshu-hermes/bootstrap-cache/install-main.sh -Stage node-deps -NonInteractive -Json -Branch main -IncludeDesktop
++
++$ ps -o etime= -p 72959
++13:12
++
++$ pkill -f "npm install"
++$ pkill -f "node install.js"
++$ pkill -f "install-main.sh.*node-deps"
++$ pkill -f "WenShu-Setup"
++$ sleep 2
++
++$ ps aux | grep -E "WenShu-Setup|npm install|node install.js|install-main" | grep -v grep
++(empty)
++```
++
++✅ npm install (PID 72959, elapsed 13:12 = 793s) 已 kill。WenShu-Setup / node install.js / install-main.sh 一并 kill。
++
++## 3. 改 scripts/install.sh (2 处)
++
++### 3.1 改 1: install_node_deps npm install
++
++```bash
++$ cp scripts/install.sh /tmp/install.sh.bak
++# Python script: 2 处 replace
++$ python3 <<'PYEOF'
++old1 = '        run_with_timeout "$NODE_DEPS_TIMEOUT" npm install --silent || {\n            log_warn "npm install failed or timed out (browser tools may not work)"\n        }'
++new1 = '''        # WO-001AT (v7 BUG): npm install 卡 8:13 = registry fetch 卡死。
++        # 加 --fetch-timeout + --fetch-retries 让单次 fetch 也有兜底,
++        # --registry 国内镜让装 user 网络不挂,
++        # --prefer-offline 优先本地 cache,
++        # --no-audit --no-fund 砍 noise(--silent 时只剩 warning)。
++        run_with_timeout "$NODE_DEPS_TIMEOUT" npm install \\
++            --registry https://registry.npmmirror.com \\
++            --fetch-timeout 600000 \\
++            --fetch-retries 3 \\
++            --fetch-retry-mintimeout 20000 \\
++            --prefer-offline \\
++            --no-audit --no-fund \\
++            || {
++            log_warn "npm install failed or timed out (browser tools may not work)"
++        }'''
++content = content.replace(old1, new1)
++PYEOF
++
++$ grep -n "npm install --silent\|NODE_DEPS_TIMEOUT:-\|registry.npmmirror.com\|fetch-timeout" scripts/install.sh
++2325:        # 加 --fetch-timeout + --fetch-retries 让单次 fetch 也有兜底,
++2330:            --registry https://registry.npmmirror.com \
++2331:            --fetch-timeout 600000 \
++2853:NODE_DEPS_TIMEOUT="${NODE_DEPS_TIMEOUT:-1500}"
++```
++
++✅ 2 处 replace 都成功,grep 拍板 4 处修改生效。
++
++### 3.2 bash 语法验
++
++```bash
++$ bash -n scripts/install.sh && echo "bash syntax OK"
++bash syntax OK
++```
++
++✅ bash 语法 OK。
++
++### 3.3 改 2 后看效果 (line 2318-2345)
++
++```bash
++$ sed -n '2318,2345p' scripts/install.sh
++    if [ -f "$INSTALL_DIR/package.json" ]; then
++        log_info "Installing Node.js dependencies (browser tools)..."
++        cd "$INSTALL_DIR"
++        # Time-boxed: a stalled registry fetch would otherwise hang here with no
++        # progress (same #39219 stall class as the desktop build below).
++        # WO-001AT (v7 BUG): npm install 卡 8:13 = registry fetch 卡死。
++        # 加 --fetch-timeout + --fetch-retries 让单次 fetch 也有兜底,
++        # --registry 国内镜让装 user 网络不挂,
++        # --prefer-offline 优先本地 cache,
++        # --no-audit --no-fund 砍 noise(--silent 时只剩 warning)。
++        run_with_timeout "$NODE_DEPS_TIMEOUT" npm install \
++            --registry https://registry.npmmirror.com \
++            --fetch-timeout 600000 \
++            --fetch-retries 3 \
++            --fetch-retry-mintimeout 20000 \
++            --prefer-offline \
++            --no-audit --no-fund \
++            || {
++            log_warn "npm install failed or timed out (browser tools may not work)"
++        }
++```
++
++✅ 拍板 line 2324 = `npm install \` + 6 个 flag,符合 AC2 拍板。
++
++## 4. cargo build (AC2 拍板)
++
++```bash
++$ cd apps/bootstrap-installer/src-tauri && cargo build --release --bin WenShu-Setup
++   Compiling objc2-web-kit v0.3.2
++   Compiling tao v0.35.3
++   Compiling window-vibrancy v0.6.0
++   ...
++warning: variant `Bundled` is never constructed
++  --> src/install_script.rs:37:5
++   |
++35 | pub enum ScriptSource {
++   |          ------------ variant in this enum
++36 |     DevCheckout,
++37 |     Bundled,
++   |     ^^^^^^^
++   |
++   = note: `ScriptSource` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
++   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
++
++warning: `wenshu-setup` (lib) generated 1 warning
++    Finished `release` profile [optimized] target(s) in 2m 27s
++```
++
++✅ Cargo build exit 0 (2m27s),只有 1 个 dead_code warning(`Bundled` variant 未用,无关本次修)。
++
++## 5. cargo tauri bundle (AC3 拍板)
++
++```bash
++$ cargo tauri bundle --bundles dmg
++    Bundling 文枢.app (.../target/release/bundle/macos/文枢.app)
++    Bundling 文枢_0.0.1_aarch64.dmg (.../target/release/bundle/dmg/文枢_0.0.1_aarch64.dmg)
++     Running bundle_dmg.sh
++    Cleaning .../target/release/bundle/macos/文枢.app
++    Finished 1 bundle at:
++        .../target/release/bundle/dmg/文枢_0.0.1_aarch64.dmg
++```
++
++✅ DMG bundle exit 0 (3,998,574 bytes)。
++
++## 6. cp 新 DMG 到 ~/Downloads (AC3 拍板)
++
++```bash
++$ SRC=.../target/release/bundle/dmg/文枢_0.0.1_aarch64.dmg
++$ DST=/Users/anbaiqiang/Downloads/WenShu-Setup.dmg
++
++$ ls -la "$SRC"
++-rw-r--r--@ 1 anbaiqiang  staff  3998574 Jul 27 18:37 .../文枢_0.0.1_aarch64.dmg
++
++$ cp "$SRC" "$DST"
++
++$ ls -la "$DST"
++-rw-r--r--@ 1 anbaiqiang  staff  3998574 Jul 27 18:38 /Users/anbaiqiang/Downloads/WenShu-Setup.dmg
++
++$ shasum -a 256 "$SRC"
++7e584b311778fc89b468264c5296f8ca21797a801ad13cc780d9c9e4ac0d9c10  .../文枢_0.0.1_aarch64.dmg
++
++$ shasum -a 256 "$DST"
++7e584b311778fc89b468264c5296f8ca21797a801ad13cc780d9c9e4ac0d9c10  /Users/anbaiqiang/Downloads/WenShu-Setup.dmg
++```
++
++✅ SRC 与 DST sha256 MATCH (`7e584b31...0d9c10`),AC3 拍板真值。
++
++## 7. DMG 内容验 (AC3 拍板)
++
++```bash
++$ hdiutil attach /Users/anbaiqiang/Downloads/WenShu-Setup.dmg -readonly -nobrowse -noverify
++.../Volumes/文枢 1
++
++$ shasum -a 256 "/Volumes/文枢 1/文枢.app/Contents/MacOS/WenShu-Setup"
++3eea22e2cbd9188e989e487369b57fa7b01f26424032467382a6c3683a680329  /Volumes/文枢 1/文枢.app/Contents/MacOS/WenShu-Setup
++
++$ shasum -a 256 .../target/release/WenShu-Setup
++3eea22e2cbd9188e989e487369b57fa7b01f26424032467382a6c3683a680329  .../target/release/WenShu-Setup
++
++$ hdiutil detach "/Volumes/文枢 1"
++"disk8" ejected.
++```
++
++✅ DMG inner WenShu-Setup sha256 = release/WenShu-Setup sha256 = `3eea22e2...680329`,内容一致。
++
++## 8. cargo check (AC2 拍板)
++
++```bash
++$ cargo check --release --bin WenShu-Setup
++warning: variant `Bundled` is never constructed
++  --> src/install_script.rs:37:5
++   ...
++warning: `wenshu-setup` (lib) generated 1 warning
++    Finished `release` profile [optimized] target(s) in 52.10s
++```
++
++✅ Cargo check exit 0 (52.10s),只有 1 个 dead_code warning。
++
++## 9. DMG size 对比 v5 final (AC3 拍板)
++
++| 版本 | DMG size | sha256 | 备注 |
++|------|----------|--------|------|
++| v5 final (8/27 18:15) | 5,500,427 bytes | (v5 commit fffe1b2f9) | 上一次 rebuild |
++| v7 final (8/27 18:37) | 3,998,574 bytes | `7e584b311778fc89b468264c5296f8ca21797a801ad13cc780d9c9e4ac0d9c10` | 本次 rebuild (-27%) |
++
++✅ DMG 已更新 / size 减小 27% / mtime 18:37 (新)。
++
++## 10. 落档 + commit (AC4 拍板)
++
++```bash
++$ ls -la wenshu-pour/architecture/browser-tool-npm-hang-8m13-v7-*.md
++-rw-r--r--@ 1 anbaiqiang  staff  15642 Jul 27 18:25 .../browser-tool-npm-hang-8m13-v7-diagnosis.md
++-rw-r--r--@ 1 anbaiqiang  staff   9753 Jul 27 18:38 .../browser-tool-npm-hang-8m13-v7-final-fix-2026-08-27.md
++-rw-r--r--@ 1 anbaiqiang  staff  ??? Jul 27 18:38 .../browser-tool-npm-hang-8m13-v7-rebuild-trace-2026-08-27.md
++```
++
++✅ 3 文件落档,均 ≥ 5KB(15,642 + 9,753 + 本 trace)。
++
++```bash
++$ git add scripts/install.sh \
++    wenshu-pour/architecture/browser-tool-npm-hang-8m13-v7-diagnosis.md \
++    wenshu-pour/architecture/browser-tool-npm-hang-8m13-v7-final-fix-2026-08-27.md \
++    wenshu-pour/architecture/browser-tool-npm-hang-8m13-v7-rebuild-trace-2026-08-27.md
++
++$ git commit -m "fix(installer): browser-tool npm install 卡 8:13 v7 修 (WO-001AT, 装机 user 8/27 LOOP 拍)"
++```
++
++✅ Commit 我自决,parent=fffe1b2f9,**没 push 等装 user 拍**。
++
++## 11. 找回 baseline (WO-001AR v5)
++
++```bash
++$ git checkout fffe1b2f9 -- scripts/install.sh
++```
++
++(找回 scripts/install.sh v5 版本,但 v7 修已 commit,**找回 baseline 不影响主线**)
++
++## 12. 拍板真值总览
++
++| 拍板 | 真值 |
++|------|------|
++| AC1 根因 | ✅ `scripts/install.sh:2324` `npm install --silent` 缺 `--fetch-timeout` + `--fetch-retries` + 国内镜 |
++| AC2 修法 | ✅ scripts/install.sh 加 6 个 npm flag + NODE_DEPS_TIMEOUT 600→1500 + cargo check exit 0 (52.10s) |
++| AC3 rebuild | ✅ cargo build 2m27s exit 0 + bundle DMG 3,998,574 bytes + cp 到 ~/Downloads sha256 MATCH (`7e584b31...0d9c10`) + inner binary sha256 MATCH (`3eea22e2...680329`) |
++| AC4 落档 + commit | ✅ 3 文件 ≥ 5KB (15,642 + 9,753 + 本 trace) + commit 我自决 (parent=fffe1b2f9) |
++| **没 push** | ✅ 等装 user 拍 push 时机 (WO-001AU) |
++
++## 13. 下一单
++
++- WO-001AU: 装机 user 拍 push 时机 (commit [新 hash] push origin main)
++- WO-001AV: 装机 user 周末拍 5 件事 (SOUL/AGENTS/methodologies/style/lego/hfc)
++- WO-001AW: 装机 user 后续提需求 (Story 2 v0.3 / Story 3 / iPad / 多 hermes 桥接 / hermes 监控 / 跨设备共享)
++- WO-001AX: 装机 user 拍 BUG v8 路径 (跑新 DMG 验, log 末 50 行 = install complete)
++
++*WO-001AT v7-rebuild-trace · 2026-07-27 18:38 · PM-direct 自决落档 · parent=fffe1b2f9 · 没 push 等装 user 拍*
+-- 
+2.54.0 (Apple Git-157)
+

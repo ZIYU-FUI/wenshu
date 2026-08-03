@@ -1,0 +1,383 @@
+From de9e159e85447754571189d0b6b5f3eddf946e75 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?= <anbaiqiang@wenshu.local>
+Date: Wed, 29 Jul 2026 12:21:33 +0800
+Subject: [PATCH 076/168] fix(installer): route Python packages through
+ domestic mirrors
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Force uv and pip to Tsinghua TUNA with Aliyun retry, clear the uv torch backend override, and raise concurrent downloads to 100. Propagate the same environment from the GUI resolver so stale cached scripts also inherit the mirror policy. Rebuild and document the R35 installer artifacts.
+
+装机 user 8/29 拍板：先解决镜像问题，排除网络问题，再只看代码本身问题。
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+---
+ apps/bootstrap-installer/README.md            |  19 +++
+ .../src-tauri/src/install_script.rs           |  33 +++++
+ scripts/install.sh                            |  67 +++++++--
+ .../R35-pypi-mirror-2026-08-29.md             | 127 ++++++++++++++++++
+ 4 files changed, 236 insertions(+), 10 deletions(-)
+ create mode 100644 wenshu-pour/architecture/R35-pypi-mirror-2026-08-29.md
+
+diff --git a/apps/bootstrap-installer/README.md b/apps/bootstrap-installer/README.md
+index 02482dfa1..4f30f8e36 100644
+--- a/apps/bootstrap-installer/README.md
++++ b/apps/bootstrap-installer/README.md
+@@ -37,6 +37,25 @@ Tauri 端 `update.rs` 实现:
+ - 跑 `wenshu desktop --build-only` (rebuild 文枢 desktop, 不真装)
+ - 启动新文枢 desktop
+ 
++## Python 包国内镜像（默认）
++
++GUI 装包器和 `scripts/install.sh` 都会强制把 uv / pip 指向清华 TUNA，避免
++`pypi.org` 或 `download.pytorch.org` 在国内网络不稳定时掩盖代码问题：
++
++```text
++UV_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
++PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
++UV_CONCURRENT_DOWNLOADS=100
++✓ Managed uv found (uv 0.11.32 ...; default source: https://pypi.tuna.tsinghua.edu.cn/simple)
++```
++
++- 清华源安装失败后，Python 依赖会切到阿里云
++  `https://mirrors.aliyun.com/pypi/simple/` 重试。
++- 装包器会清除继承的 `UV_TORCH_BACKEND`，防止 torch 等包绕过镜像访问
++  `download.pytorch.org`。
++- 当前 `uv.lock` 记录的是官方站 artifact URL。强制镜像模式会跳过该 locked
++  下载路径，改用镜像重新解析，确保实际下载不回到官方站。
++
+ ## 开发者 (本机 build)
+ 
+ ```bash
+diff --git a/apps/bootstrap-installer/src-tauri/src/install_script.rs b/apps/bootstrap-installer/src-tauri/src/install_script.rs
+index 0bedd0891..3bf73b3dc 100644
+--- a/apps/bootstrap-installer/src-tauri/src/install_script.rs
++++ b/apps/bootstrap-installer/src-tauri/src/install_script.rs
+@@ -95,6 +95,37 @@ pub(crate) fn cache_plan(immutable: bool, cached_exists: bool) -> CachePlan {
+ 
+ const INSTALL_SCRIPT_REPOSITORY: &str = "ZIYU-FUI/wenshu";
+ 
++/// Domestic package-index policy for installer child processes.
++///
++/// `scripts/install.sh` exports the same values itself. Setting them here as
++/// well is intentional: the GUI resolver launches both install.sh and
++/// install.ps1, and every child must inherit the mirror even when a stale
++/// cached script predates the shell-side defaults.
++const PYPI_MIRROR_PRIMARY: &str = "https://pypi.tuna.tsinghua.edu.cn/simple";
++const PYPI_MAX_CONCURRENT_DOWNLOADS: &str = "100";
++
++fn configure_package_index_environment(emit_log: &impl Fn(&str)) {
++    for (key, value) in [
++        ("UV_INDEX_URL", PYPI_MIRROR_PRIMARY),
++        ("UV_DEFAULT_INDEX", PYPI_MIRROR_PRIMARY),
++        ("PIP_INDEX_URL", PYPI_MIRROR_PRIMARY),
++        ("UV_CONCURRENT_DOWNLOADS", PYPI_MAX_CONCURRENT_DOWNLOADS),
++    ] {
++        // The resolver runs before any install-script child is spawned, so the
++        // child inherits one consistent package-index environment.
++        std::env::set_var(key, value);
++    }
++
++    // uv's optional torch backend bypasses configured indexes and talks to
++    // download.pytorch.org. Remove an inherited override so torch and related
++    // packages resolve through the domestic PyPI mirror too.
++    std::env::remove_var("UV_TORCH_BACKEND");
++
++    emit_log(&format!(
++        "[bootstrap] Python package index: {PYPI_MIRROR_PRIMARY} (uv/pip; max {PYPI_MAX_CONCURRENT_DOWNLOADS} concurrent downloads)"
++    ));
++}
++
+ /// Resolves the install script to use for this run.
+ ///
+ /// `pin` is the commit-or-branch from either Wenshu-Setup's build-time
+@@ -104,6 +135,8 @@ pub async fn resolve(
+     pin: &Pin,
+     emit_log: &impl Fn(&str),
+ ) -> Result<ResolvedScript> {
++    configure_package_index_environment(emit_log);
++
+     // 1. Dev shortcut.
+     if let Ok(repo_root) = std::env::var("WENSHU_SETUP_DEV_REPO_ROOT") {
+         let candidate = PathBuf::from(repo_root).join("scripts").join(kind.filename());
+diff --git a/scripts/install.sh b/scripts/install.sh
+index 5b029ef46..c5cd0ee04 100755
+--- a/scripts/install.sh
++++ b/scripts/install.sh
+@@ -32,6 +32,22 @@ fi
+ # wrong user's home directory when running under sudo -u <user>.  See #21269.
+ export UV_NO_CONFIG=1
+ 
++# Force Python packages through domestic mirrors so installer failures are not
++# confused with pypi.org / download.pytorch.org connectivity problems. The
++# primary is Tsinghua TUNA; dependency-install retries switch to Aliyun.
++PYPI_MIRROR_PRIMARY="https://pypi.tuna.tsinghua.edu.cn/simple"
++PYPI_MIRROR_FALLBACK="https://mirrors.aliyun.com/pypi/simple/"
++export UV_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
++export UV_DEFAULT_INDEX=https://pypi.tuna.tsinghua.edu.cn/simple
++export PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
++# uv's real maximum-in-flight download setting (the requested
++# upload.max_pypi_connections equivalent). uv defaults lower; 100 keeps large
++# dependency sets moving on domestic mirrors.
++export UV_CONCURRENT_DOWNLOADS=100
++# An inherited torch backend makes uv bypass the configured index and contact
++# download.pytorch.org. Generic torch wheels must use the domestic mirror too.
++unset UV_TORCH_BACKEND
++
+ # Colors
+ RED='\033[0;31m'
+ GREEN='\033[0;32m'
+@@ -228,6 +244,16 @@ log_error() {
+     echo -e "${RED}✗${NC} $1"
+ }
+ 
++activate_python_package_mirror() {
++    local mirror="$1"
++    local label="$2"
++    export UV_INDEX_URL="$mirror"
++    export UV_DEFAULT_INDEX="$mirror"
++    export PIP_INDEX_URL="$mirror"
++    unset UV_TORCH_BACKEND
++    log_info "Python package source: $label ($mirror)"
++}
++
+ json_escape() {
+     # Enough for short installer status strings; avoids requiring jq during
+     # pre-install bootstrap.
+@@ -555,7 +581,7 @@ install_uv() {
+     if [ -x "$_managed_uv" ]; then
+         UV_CMD="$_managed_uv"
+         UV_VERSION=$($UV_CMD --version 2>/dev/null)
+-        log_success "Managed uv found ($UV_VERSION)"
++        log_success "Managed uv found ($UV_VERSION; default source: $UV_INDEX_URL)"
+         return 0
+     fi
+ 
+@@ -674,8 +700,19 @@ _uv_install_via_fallback() {
+         _pip_cmd="pip"
+     fi
+     if [ -n "$_pip_cmd" ]; then
++        local _pip_install_ok=false
++        activate_python_package_mirror "$PYPI_MIRROR_PRIMARY" "清华 TUNA"
+         log_info "[fallback] trying: $_pip_cmd install uv"
+         if "$_pip_cmd" install --quiet uv >>"$_fb_log" 2>&1; then
++            _pip_install_ok=true
++        else
++            log_warn "[fallback] 清华 TUNA failed; retrying uv from Aliyun"
++            activate_python_package_mirror "$PYPI_MIRROR_FALLBACK" "阿里云 fallback"
++            if "$_pip_cmd" install --quiet uv >>"$_fb_log" 2>&1; then
++                _pip_install_ok=true
++            fi
++        fi
++        if [ "$_pip_install_ok" = true ]; then
+             local _pip_uv
+             _pip_uv="$("$_pip_cmd" show uv 2>/dev/null | awk '/^Location:/{print $2}' | head -1)"
+             if [ -n "$_pip_uv" ] && [ -x "$_pip_uv/bin/uv" ]; then
+@@ -691,7 +728,7 @@ _uv_install_via_fallback() {
+                 return 0
+             fi
+         else
+-            log_warn "[fallback] $_pip_cmd install uv failed (see $_fb_log)"
++            log_warn "[fallback] $_pip_cmd install uv failed on both domestic mirrors (see $_fb_log)"
+         fi
+     fi
+ 
+@@ -1067,7 +1104,7 @@ check_network_prerequisites() {
+ 
+     local url
+     local failed=false
+-    local checks=("https://pypi.org/simple/" "https://duckduckgo.com/")
++    local checks=("$PYPI_MIRROR_PRIMARY/" "$PYPI_MIRROR_FALLBACK")
+ 
+     if ! command -v curl >/dev/null 2>&1; then
+         log_warn "curl not found; skipping connectivity probes"
+@@ -1090,7 +1127,7 @@ check_network_prerequisites() {
+         log_warn "Termux network prerequisites may be incomplete."
+         log_info "Try: pkg install -y ca-certificates curl && pkg update"
+         log_info "If mirrors are stale: termux-change-repo"
+-        log_info "Then test: curl -I https://pypi.org/simple/ && curl -I https://duckduckgo.com/"
++        log_info "Then test: curl -I $PYPI_MIRROR_PRIMARY/ && curl -I $PYPI_MIRROR_FALLBACK"
+     else
+         log_warn "Network checks failed. Wenshu install may complete, but web search and dependency downloads can fail."
+         log_info "Verify internet/DNS and retry if pip install fails."
+@@ -1609,7 +1646,7 @@ install_deps() {
+     # hash verification — they exist to keep installs working when the
+     # lockfile is stale, missing, or out-of-sync with the current
+     # extras spec, NOT because they're equivalent in posture.
+-    if [ -f "uv.lock" ]; then
++    if [ -f "uv.lock" ] && [ "$UV_INDEX_URL" = "https://pypi.org/simple" ]; then
+         log_info "Trying tier: hash-verified (uv.lock) ..."
+         log_info "(this resolves + downloads the curated [all] set — first run on a"
+         log_info " fresh venv can take 1-5 minutes; uv prints progress below)"
+@@ -1639,9 +1676,14 @@ install_deps() {
+             log_success "All dependencies installed"
+             return 0
+         fi
+-        log_warn "uv.lock sync failed (see uv output above), falling back to PyPI resolve..."
++        log_warn "uv.lock sync failed (see uv output above), falling back to mirror resolve..."
++    elif [ -f "uv.lock" ]; then
++        # uv.lock records pypi.org/files.pythonhosted.org artifact URLs. Running
++        # it with --locked would either reject the mirror override or download
++        # from the official hosts, defeating this ticket's network isolation.
++        log_info "Skipping uv.lock official-host artifacts; resolving from $UV_INDEX_URL"
+     else
+-        log_info "uv.lock not found — falling back to PyPI resolve (no hash verification)"
++        log_info "uv.lock not found — falling back to mirror resolve (no hash verification)"
+     fi
+ 
+     # Multi-tier fallback. The point of the tiers is that ONE compromised
+@@ -1726,9 +1768,14 @@ PY
+         return 1
+     }
+ 
+-    install_tier "all" ".[all]" \
+-        || install_tier "all minus known-broken (${_BROKEN_EXTRAS[*]:-none})" "$_SAFE_SPEC" \
+-        || install_tier "core only (no extras)" "."
++    activate_python_package_mirror "$PYPI_MIRROR_PRIMARY" "清华 TUNA"
++    if ! install_tier "all (清华 TUNA)" ".[all]"; then
++        log_warn "清华 TUNA 安装失败，切换阿里云镜像重试完整依赖集..."
++        activate_python_package_mirror "$PYPI_MIRROR_FALLBACK" "阿里云 fallback"
++        install_tier "all (阿里云 fallback)" ".[all]" \
++            || install_tier "all minus known-broken (${_BROKEN_EXTRAS[*]:-none})" "$_SAFE_SPEC" \
++            || install_tier "core only (no extras)" "."
++    fi
+ 
+     rm -f "$ALL_INSTALL_LOG"
+ 
+diff --git a/wenshu-pour/architecture/R35-pypi-mirror-2026-08-29.md b/wenshu-pour/architecture/R35-pypi-mirror-2026-08-29.md
+new file mode 100644
+index 000000000..e58975ef2
+--- /dev/null
++++ b/wenshu-pour/architecture/R35-pypi-mirror-2026-08-29.md
+@@ -0,0 +1,127 @@
++# R35 · Python 包国内镜像（2026-08-29 装机拍板）
++
++> 拍板锚点：先解决镜像问题，排除网络问题，再只看代码本身问题。
++
++## 1. 根因与范围
++
++装包器此前让 uv / pip 使用 `https://pypi.org/simple`；`uv.lock` 还记录了
++`files.pythonhosted.org` artifact URL。国内网络即使开代理也可能在这些官方站点
++超时，导致“网络失败”和“文枢代码失败”混在一起。
++
++仓内只有 `scripts/install.sh`，没有第二份根级 `install.sh`。GUI 装包器通过
++`apps/bootstrap-installer/src-tauri/src/install_script.rs` 下载/缓存该脚本并启动，
++因此 R35 同时改脚本默认环境和 Rust resolver 的子进程继承环境。
++
++## 2. 落地方案
++
++### 2.1 清华主源 + 阿里 fallback
++
++默认强制：
++
++```bash
++export UV_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
++export UV_DEFAULT_INDEX=https://pypi.tuna.tsinghua.edu.cn/simple
++export PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
++export UV_CONCURRENT_DOWNLOADS=100
++```
++
++- uv/pip 主源：清华 TUNA。
++- 清华安装完整依赖集失败：切到
++  `https://mirrors.aliyun.com/pypi/simple/`，重新安装完整依赖集，再沿用原有降级层。
++- `pip install uv` fallback 同样先清华、失败后阿里。
++- `UV_CONCURRENT_DOWNLOADS=100` 是 uv 实际支持的最大并发下载环境变量；仓内不存在
++  `upload.max_pypi_connections` 配置项，因此没有编造该键，而是使用 uv 官方变量实现
++  “加快装包”的拍板意图。
++
++### 2.2 PyTorch 等包不再绕回官方专用源
++
++uv 的 `UV_TORCH_BACKEND` 一旦从用户环境继承，会忽略普通 index 并访问
++`download.pytorch.org`。shell 和 Rust resolver 都清除该变量，让通用 torch wheel
++与其他 Python 包一起从国内 PyPI 镜像解析。
++
++### 2.3 GUI 环境透传
++
++`install_script.rs::resolve()` 在解析脚本前写入：
++
++- `UV_INDEX_URL`
++- `UV_DEFAULT_INDEX`
++- `PIP_INDEX_URL`
++- `UV_CONCURRENT_DOWNLOADS`
++
++并移除 `UV_TORCH_BACKEND`。这样即使用户机器命中 R35 之前缓存的 install.sh，
++GUI 启动的 bash/PowerShell 子进程仍继承国内镜像环境。
++
++### 2.4 uv.lock 官方 artifact 处理
++
++实测 `UV_INDEX_URL=清华 uv lock --check` 返回“lockfile needs to be updated”；现有
++`uv.lock` 的 source/artifact 又固定为 pypi.org/files.pythonhosted.org。R35 强制镜像模式
++因此跳过 `uv sync --locked`，改走 `uv pip install` 镜像解析，避免表面设置镜像、实际仍
++下载官方 artifact。代价是该路径不再使用 lockfile hash 校验；这是本次“先彻底排除官方
++网络”拍板的明确取舍，README 已同步说明。
++
++## 3. 实测验证
++
++### 3.1 静态与测试
++
++- `bash -n scripts/install.sh`：exit 0。
++- `bash scripts/install.sh --manifest`：JSON 可解析，protocol=1，10 stages。
++- `cargo test --manifest-path apps/bootstrap-installer/src-tauri/Cargo.toml`：
++  **41 passed, 0 failed**。
++- `pnpm run typecheck`：exit 0。
++- `pnpm run lint`：exit 0，保留 `progress.tsx` 2 条既有 warning，0 error。
++- `pnpm run build`：exit 0；Vite 1888 modules，保留既有 CSS/sourcemap warning。
++- `git diff --check`：exit 0。
++
++### 3.2 国内源真实下载
++
++使用临时 venv（跑完删除，不污染装机目录）：
++
++- 清华：uv 0.11.32 从
++  `https://pypi.tuna.tsinghua.edu.cn/simple/idna/` 解析并安装 `idna==3.11`，通过。
++- 阿里：`--no-cache` 从
++  `https://mirrors.aliyun.com/pypi/simple/idna/` 解析并安装 `idna==3.11`，通过。
++- 清华与阿里 `/simple/torch/` HTTP 探测均返回 200。
++- prerequisites 临时目录实跑 exit 0，日志显示：
++
++```text
++Managed uv found (uv 0.11.32 (...); default source: https://pypi.tuna.tsinghua.edu.cn/simple)
++{"ok":true,"stage":"prerequisites","skipped":false}
++```
++
++## 4. R35 build 与交付
++
++命令：
++
++```bash
++cd apps/bootstrap-installer
++pnpm exec tauri build
++```
++
++结果：exit 0，release 编译 50.99s，Tauri 输出 2 bundles：
++
++1. `apps/bootstrap-installer/src-tauri/target/release/bundle/macos/文枢.app`
++2. `apps/bootstrap-installer/src-tauri/target/release/bundle/dmg/文枢_0.0.1_aarch64.dmg`
++
++DMG 真值：
++
++- size：5,544,989 bytes
++- build mtime：2026-07-29 12:18:50 +0800（本机系统日期）
++- SHA-256：`8e3aafb49336724ae8b62e99d3cd8561c851aa3fc5babadb586d58b7fb59eb50`
++- MD5：`05f4b71287fdedfd6e96c33b8e37db42`
++- 已复制到：`~/Downloads/WenShu-Setup.dmg`
++- src/dst `cmp` = 0，SHA-256 完全一致。
++
++二进制 `strings` 实测命中清华 URL、`UV_INDEX_URL`、`PIP_INDEX_URL`、
++`UV_CONCURRENT_DOWNLOADS=100` 和 `UV_TORCH_BACKEND` 清理逻辑，证明 Rust 环境透传
++已烤进新 `.app`。
++
++## 5. 已知非 R35 阻断项
++
++`codesign --verify --deep --strict` 对本地 bundle 返回 exit 1：当前构建仅有 linker ad-hoc
++签名，未形成完整 sealed resources。R35 没有重生成签名密钥、没有改签名配置（项目红线），
++Tauri build 与 DMG 生成均成功；正式签名/公证仍沿用后续发布流程处理。
++
++## 6. 回滚
++
++提交后可用 `git revert <R35 commit>` 回滚源代码与本文；`~/Downloads/WenShu-Setup.dmg`
++是仓外交付物，回滚时需重新复制上一版 DMG。
+-- 
+2.54.0 (Apple Git-157)
+

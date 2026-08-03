@@ -1,0 +1,37 @@
+From 3ab58a14fe0cf60d8b216569714a420e18617859 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?=
+ <9528147+zi-yu1983@user.noreply.gitee.com>
+Date: Fri, 24 Jul 2026 09:10:22 +0800
+Subject: [PATCH 014/168] =?UTF-8?q?style(desktop):=20lint:fix=20=E5=8A=A0?=
+ =?UTF-8?q?=20main.ts:412=20if=20=E5=9D=97=20braces=20(eslit=20curly=20?=
+ =?UTF-8?q?=E8=A7=84=E5=88=99)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- 1 个 lint error → 0 error 9 warnings
+- 行为不变: process.env.HERMES_HOME still set when unset
+- main.ts 仍然有 'wenshu defaults HERMES_HOME to ~/.wenshu-hermes' 注释
+
+Co-authored-by: hermes-agent <noreply@NousResearch>
+---
+ apps/desktop/electron/main.ts | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/apps/desktop/electron/main.ts b/apps/desktop/electron/main.ts
+index 9452d1900..7feaf518c 100644
+--- a/apps/desktop/electron/main.ts
++++ b/apps/desktop/electron/main.ts
+@@ -407,7 +407,8 @@ if (INSTALL_STAMP) {
+     '[hermes] WARNING: no install-stamp.json found in packaged build. First-launch bootstrap will not have a pinned ref to install.'
+   )
+ }
+-if (!process.env.HERMES_HOME) process.env.HERMES_HOME = path.join(os.homedir(), '.wenshu-hermes')
++
++if (!process.env.HERMES_HOME) {process.env.HERMES_HOME = path.join(os.homedir(), '.wenshu-hermes')}
+ 
+ // HERMES_HOME — the user-facing root for everything 文枢-related. Mirrors
+ // scripts/install.ps1's $HermesHome and scripts/install.sh's $HERMES_HOME.
+-- 
+2.54.0 (Apple Git-157)
+

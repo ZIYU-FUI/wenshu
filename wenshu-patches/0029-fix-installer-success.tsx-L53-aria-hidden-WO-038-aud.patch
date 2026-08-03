@@ -1,0 +1,53 @@
+From 200c3faf1a6ee200fb19c6e2d777ddb98456c76b Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?=
+ <9528147+zi-yu1983@user.noreply.gitee.com>
+Date: Fri, 24 Jul 2026 15:11:47 +0800
+Subject: [PATCH 029/168] =?UTF-8?q?fix(installer):=20success.tsx=20L53=20a?=
+ =?UTF-8?q?ria-hidden=20=E6=96=87=E6=A1=88=E6=94=B9=E4=B8=AD=E6=96=87=20?=
+ =?UTF-8?q?=E6=96=87=E6=9E=A2=20(WO-038=20audit)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+WO-038 audit 找到 success.tsx L53 还有 aria-hidden 的 'Hermes is ready'
+作为可见装饰层, 跟 L51 visible '文枢 is ready' 不一致 — 装机 user 会
+同时看到中文 + 英文两遍。
+
+按装机 user 7/24 15:10 拍板 (UI 严格用 文枢, code ID 用 wenshu):
+- L53: <span aria-hidden="true">Hermes is ready</span>
+    → <span aria-hidden="true">文枢 is ready</span>
+
+不动:
+- success.tsx:6/16/28 launchHermesDesktop (function name, code ID)
+- styles.css L2/4/8 'Hermes Setup' (CSS developer comments, 非 user-visible)
+- welcome.tsx L15 -HermesHome (CLI flag, code ID)
+- store.ts L71/332 Hermes-Setup.exe (executable name, code ID)
+- store.ts L350 launchHermesDesktop (function name, code ID)
+- store.ts L267 'launch Hermes' (developer comment, 非 user-visible)
+
+AC 验证:
+- grep -n WERMES apps/bootstrap-installer/src → 0 hits
+- grep -n 'HERMES AGENT' apps/bootstrap-installer/src → 0 hits
+- grep -n 文枢 apps/bootstrap-installer/src → 14 hits (>=3)
+- grep -n 'com.wenshu' apps/bootstrap-installer/src-tauri/tauri.conf.json
+    → 1 hit (identifier com.wenshu.app.setup 保留)
+---
+ apps/bootstrap-installer/src/routes/success.tsx | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/apps/bootstrap-installer/src/routes/success.tsx b/apps/bootstrap-installer/src/routes/success.tsx
+index 02080471a..33b3a3ea7 100644
+--- a/apps/bootstrap-installer/src/routes/success.tsx
++++ b/apps/bootstrap-installer/src/routes/success.tsx
+@@ -50,7 +50,7 @@ export default function Success() {
+           <span>
+             <span>文枢 is ready</span>
+           </span>
+-          <span aria-hidden="true">Hermes is ready</span>
++          <span aria-hidden="true">文枢 is ready</span>
+         </p>
+ 
+         <p className="m-0 text-center text-base leading-normal tracking-tight text-muted-foreground">
+-- 
+2.54.0 (Apple Git-157)
+

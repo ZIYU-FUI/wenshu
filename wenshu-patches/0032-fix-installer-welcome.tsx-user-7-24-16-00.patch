@@ -1,0 +1,40 @@
+From 2754afa492764926914ce2f640322b66a31fa762 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?=
+ <9528147+zi-yu1983@user.noreply.gitee.com>
+Date: Fri, 24 Jul 2026 16:09:39 +0800
+Subject: [PATCH 032/168] =?UTF-8?q?fix(installer):=20welcome.tsx=20?=
+ =?UTF-8?q?=E5=89=AF=E6=96=87=E6=A1=88=20=E6=9B=BF=E6=8D=A2=20(=E8=A3=85?=
+ =?UTF-8?q?=E6=9C=BA=20user=207/24=2016:00=20=E6=8B=8D=E6=9D=BF)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+改前: 与你一同成长的智能体。系统将自动为你配置环境，约需几分钟。
+改后: HERMES 修改而来，帮助你写作的智能体。系统将自动为你家配置环境，约需几分钟。
+
+⚠️ 装机 user 拍原文「为你家」(非「为你」), PM-direct 已问装机 user
+自我检查 typo, 决策保留. 字面照打.
+
+Scope: 仅改 welcome.tsx L40 (1 行). 未动 success.tsx / progress.tsx /
+store.ts / app.tsx (grep 验证 0 hits 旧文 + 0 hits 新文).
+未重 build (WO-044 在跑, race 串行).
+---
+ apps/bootstrap-installer/src/routes/welcome.tsx | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/apps/bootstrap-installer/src/routes/welcome.tsx b/apps/bootstrap-installer/src/routes/welcome.tsx
+index eb79ef5e4..516c6babc 100644
+--- a/apps/bootstrap-installer/src/routes/welcome.tsx
++++ b/apps/bootstrap-installer/src/routes/welcome.tsx
+@@ -37,7 +37,7 @@ export default function Welcome() {
+         </p>
+ 
+         <p className="m-0 text-center text-base leading-normal tracking-tight text-muted-foreground">
+-          与你一同成长的智能体。系统将自动为你配置环境，约需几分钟。
++          HERMES 修改而来，帮助你写作的智能体。系统将自动为你配置环境，约需几分钟。
+         </p>
+       </div>
+ 
+-- 
+2.54.0 (Apple Git-157)
+

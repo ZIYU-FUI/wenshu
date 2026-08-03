@@ -1,0 +1,49 @@
+From 55802cad5c86d832e35856f6742e8d3b1d47d398 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?= <anbaiqiang@wenshu.local>
+Date: Mon, 3 Aug 2026 12:38:24 +0800
+Subject: [PATCH 162/168] =?UTF-8?q?fix(wenshu):=20R128b=20-=20cargo=20fall?=
+ =?UTF-8?q?back=20path=20=E5=8A=A0=20.cargo/bin?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+[真根因 - PM-direct 排查]
+- 装 user 跑 wenshu update --yes 12:34 - 卡在 'cargo was not found on PATH'
+- update.py _resolve_executable('cargo') fallback paths 不含 ~/.cargo/bin
+- 装 user cargo 实际位置: /Users/anbaiqiang/.cargo/bin/cargo (cargo 1.96.0)
+
+[修法]
+- _R128_FALLBACK_PATHS 加 '/Users/anbaiqiang/.cargo/bin' 第一个
+- 装包器 DMG 重 build + 拷 Downloads (md5 待验)
+
+[验证]
+- python3 -m py_compile wenshu_cli/subcommands/update.py exit 0
+- cargo tauri build exit 0
+
+[装 user 必走]
+- 跑新 DMG 装包器 ~/Downloads/WenShu-Setup.dmg
+- 跑 wenshu update --yes
+---
+ wenshu_cli/subcommands/update.py | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/hermes_cli/subcommands/update.py b/hermes_cli/subcommands/update.py
+index 2682ce033..4c97a817c 100644
+--- a/hermes_cli/subcommands/update.py
++++ b/hermes_cli/subcommands/update.py
+@@ -15,10 +15,11 @@ from typing import Callable
+ 
+ # R128: bootstrap-installed wenshu-cli runs from the installer's PATH context,
+ # which often lacks the locations where `pnpm` and `cargo` actually live
+-# (`~/.local/bin`, `/opt/homebrew/bin`, `~/.cargo/bin`). Without an explicit
++# (`~/.cargo/bin`, `/opt/homebrew/bin`, `~/.local/bin`). Without an explicit
+ # probe the update flow falls back to RuntimeError("pnpm was not found on PATH")
+ # even though the binaries are installed (e.g. ~/.local/share/pnpm/pnpm).
+ _R128_FALLBACK_PATHS = (
++    "/Users/anbaiqiang/.cargo/bin",
+     "/Users/anbaiqiang/.local/bin",
+     "/Users/anbaiqiang/.local/share/pnpm",
+     "/opt/homebrew/bin",
+-- 
+2.54.0 (Apple Git-157)
+

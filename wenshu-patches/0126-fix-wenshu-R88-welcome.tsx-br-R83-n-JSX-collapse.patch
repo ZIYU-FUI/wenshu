@@ -1,0 +1,79 @@
+From da83d03c95c51b1b04852bcf5d5b2c58c871795d Mon Sep 17 00:00:00 2001
+From: pm-direct <pm-direct@wenshu.local>
+Date: Thu, 30 Jul 2026 19:05:34 +0800
+Subject: [PATCH 126/168] =?UTF-8?q?fix(wenshu):=20R88=20-=20=E8=A3=85?=
+ =?UTF-8?q?=E5=8C=85=E5=99=A8=20welcome.tsx=20=E7=9C=9F=E6=8D=A2=E8=A1=8C?=
+ =?UTF-8?q?=20(=E7=94=A8=20<br=20/>,=20=E4=B9=8B=E5=89=8D=20R83=20\n=20JSX?=
+ =?UTF-8?q?=20=E6=96=87=E6=9C=AC=E8=8A=82=E7=82=B9=E8=A2=AB=20collapse)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+装机 user 8/30 拍'加换行的需求没加' (装包器副文案仍是单行).
+R83 commit 19cb7de7b 用 \n 在 JSX 文本节点, JSX 编译后 \n 被当 whitespace collapse, 装机 user 看不见.
+
+PM-direct 兜底:
+1. apps/bootstrap-installer/src/routes/welcome.tsx 副文案 \n -> <br /> 强制换行
+2. rm -rf dist node_modules/.vite (清 Vite cache)
+3. npm run build (新 chunk index-AITeA1Ar.js, 含 <br> 元素)
+4. pnpm tauri build (cargo + rust)
+5. cp /Users/anbaiqiang/Downloads/WenShu-Setup.dmg MD5 de6a54958be9e5d2dc1d4bbc17e0c9bf
+
+落档 wenshu-pour/architecture/R88-welcome-br-real-newline-2026-08-30.md.
+---
+ .../src/routes/welcome.tsx                    |  2 +-
+ .../R88-welcome-br-real-newline-2026-08-30.md | 29 +++++++++++++++++++
+ 2 files changed, 30 insertions(+), 1 deletion(-)
+ create mode 100644 wenshu-pour/architecture/R88-welcome-br-real-newline-2026-08-30.md
+
+diff --git a/apps/bootstrap-installer/src/routes/welcome.tsx b/apps/bootstrap-installer/src/routes/welcome.tsx
+index a91644e4c..bd1e222b3 100644
+--- a/apps/bootstrap-installer/src/routes/welcome.tsx
++++ b/apps/bootstrap-installer/src/routes/welcome.tsx
+@@ -37,7 +37,7 @@ export default function Welcome() {
+         </p>
+ 
+         <p className="m-0 text-center text-base leading-normal tracking-tight text-muted-foreground">
+-          基于 Hermes 修改而来，WENSHU 是一个帮助你写作的智能体。
++          基于 Hermes 修改而来，WENSHU 是一个帮助你写作的智能体。<br />
+           系统将自动为你配置环境，约需几分钟。
+         </p>
+       </div>
+diff --git a/wenshu-pour/architecture/R88-welcome-br-real-newline-2026-08-30.md b/wenshu-pour/architecture/R88-welcome-br-real-newline-2026-08-30.md
+new file mode 100644
+index 000000000..1da0a9fa9
+--- /dev/null
++++ b/wenshu-pour/architecture/R88-welcome-br-real-newline-2026-08-30.md
+@@ -0,0 +1,29 @@
++# WO-001BI-R88: welcome.tsx 智能体后真换行 (<br />, 之前 R83 \n JSX 文本节点不渲染)
++
++[装机 user 8/30 拍板真值]
++- 截图装包器 WenShu-Setup 副文案仍是单行, 装机 user 拍'加换行的需求没加'
++
++[R83 误判真值]
++- R83 commit 19cb7de7b 把 welcome.tsx 副文案改成两行 (用 \n 在 JSX 文本节点换行)
++- 但 JSX 文本节点 \n 被当 whitespace collapse, Vite 编译后渲染仍是单行
++- 装机 user 跑的是 R83 之前的 dist build, 没装新换行
++
++[R88 PM-direct 兜底真值]
++1. 改 apps/bootstrap-installer/src/routes/welcome.tsx 副文案用 <br /> 强制换行 (不是 \n)
++2. rm -rf dist node_modules/.vite (清 Vite cache)
++3. npm run build (Vite 重 build 出新 chunk index-AITeA1Ar.js)
++4. dist 编译产物含真换行 (基于 Hermes..., </br> <br>, 系统自动...)
++5. pnpm tauri build (cargo + rust 烤新 dist 进 bundled DMG)
++6. cp /Users/anbaiqiang/Downloads/WenShu-Setup.dmg
++
++[产物]
++- /Users/anbaiqiang/Downloads/WenShu-Setup.dmg MD5 de6a54958be9e5d2dc1d4bbc17e0c9bf
++
++[装机 user 必走]
++1. 跑 ~/Downloads/WenShu-Setup.dmg (新 MD5 de6a54958...)
++2. 双击启动 → 装包器 welcome 屏副文案应该两行
++
++[白名单保留]
++- apps/bootstrap-installer/src/routes/welcome.tsx 致谢语 '基于 Hermes 修改而来'
++- hermes-agent.nousresearch.com URL
++- 上游仓 fork / node_modules/ / MIT 版权
+-- 
+2.54.0 (Apple Git-157)
+

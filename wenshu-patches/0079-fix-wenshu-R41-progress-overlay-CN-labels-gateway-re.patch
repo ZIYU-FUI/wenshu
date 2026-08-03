@@ -1,0 +1,103 @@
+From bf14c201cb0565d7756e123ca84eecb4778bb679 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?= <anbaiqiang@wenshu.local>
+Date: Wed, 29 Jul 2026 16:04:48 +0800
+Subject: [PATCH 079/168] =?UTF-8?q?fix(wenshu):=20R41=20-=20progress=20ove?=
+ =?UTF-8?q?rlay=20CN=20labels=20+=20gateway=20--replace=20(WO-001BI-R41,?=
+ =?UTF-8?q?=20=E8=A3=85=E6=9C=BA=20user=208/29=20=E6=8B=8D=E6=9D=BF?=
+ =?UTF-8?q?=E7=9C=9F=E5=80=BC)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ apps/desktop/electron/backend-command.ts               |  4 +++-
+ .../desktop/src/components/desktop-install-overlay.tsx | 10 +++++++++-
+ apps/desktop/src/i18n/en.ts                            |  8 +++++++-
+ apps/desktop/src/i18n/zh.ts                            |  9 ++++++++-
+ 4 files changed, 27 insertions(+), 4 deletions(-)
+
+diff --git a/apps/desktop/electron/backend-command.ts b/apps/desktop/electron/backend-command.ts
+index fc5596714..69cc776e0 100644
+--- a/apps/desktop/electron/backend-command.ts
++++ b/apps/desktop/electron/backend-command.ts
+@@ -17,7 +17,9 @@
+ 
+ /** Build the isolated messaging gateway argv. */
+ export function gatewayBackendArgs() {
+-  return ['gateway', 'run']
++  // R41 (PM-direct 8/29 拍, R40 候选 A): --replace 顶旧 pidfile,
++  // 避免上一轮 desktop 关闭后残留 gateway 进程锁住新 spawn.
++  return ['gateway', 'run', '--replace']
+ }
+ 
+ /**
+diff --git a/apps/desktop/src/components/desktop-install-overlay.tsx b/apps/desktop/src/components/desktop-install-overlay.tsx
+index ad0bb2623..48c118c9f 100644
+--- a/apps/desktop/src/components/desktop-install-overlay.tsx
++++ b/apps/desktop/src/components/desktop-install-overlay.tsx
+@@ -94,7 +94,15 @@ const STAGE_NAME_TO_STEP_KEY: Record<string, string> = {
+   'platform-sdks': 'platform-sdks',
+   'bootstrap-marker': 'bootstrap-marker',
+   configure: 'configure',
+-  gateway: 'gateway'
++  gateway: 'gateway',
++  // R41 (PM-direct 8/29 拍板, 装机 user macOS 走 scripts/install.sh:344):
++  // macOS manifest 用 5 个 dict 没有的 kebab-case stage name — 必中 dict key.
++  // 不迫在加 'Prerequisites'/'Venv'/etc. capitalize+空格名 — 装机 user 实机不返.
++  prerequisites: 'prerequisites',
++  'python-deps': 'python-deps',
++  config: 'config',
++  setup: 'setup',
++  complete: 'complete'
+ }
+ 
+ function formatDuration(ms: number | null | undefined): string {
+diff --git a/apps/desktop/src/i18n/en.ts b/apps/desktop/src/i18n/en.ts
+index beb5a2655..426f9c2e9 100644
+--- a/apps/desktop/src/i18n/en.ts
++++ b/apps/desktop/src/i18n/en.ts
+@@ -1995,7 +1995,13 @@ export const en: Translations = {
+       'platform-sdks': '准备配置和技能',
+       'bootstrap-marker': '完成安装',
+       configure: '配置 API 密钥和设置',
+-      gateway: '配置网关服务'
++      gateway: '配置网关服务',
++      // R41 (PM-direct 8/29 拍, 装机 user locale=en 也看中文, 同步 zh 补 5 key)
++      prerequisites: '系统环境检查',
++      'python-deps': '安装 Python 依赖',
++      config: '准备配置和技能',
++      setup: '配置 API 密钥和设置',
++      complete: '完成安装'
+     },
+     oneTimeTitle: '文枢 needs a one-time install',
+     unsupportedDesc: platform =>
+diff --git a/apps/desktop/src/i18n/zh.ts b/apps/desktop/src/i18n/zh.ts
+index b92237a6c..8f0e8b6a2 100644
+--- a/apps/desktop/src/i18n/zh.ts
++++ b/apps/desktop/src/i18n/zh.ts
+@@ -2155,6 +2155,7 @@ export const zh: Translations = {
+       failed: '失败'
+     },
+     // R25: AC1 — 进度页 10 步骤名翻译为中文。
++    // R41 (PM-direct 8/29 拍板): 补 5 个 install.sh manifest 用 dict 没存的 key.
+     stageNames: {
+       uv: '系统环境检查',
+       python: '系统环境检查',
+@@ -2171,7 +2172,13 @@ export const zh: Translations = {
+       'platform-sdks': '准备配置和技能',
+       'bootstrap-marker': '完成安装',
+       configure: '配置 API 密钥和设置',
+-      gateway: '配置网关服务'
++      gateway: '配置网关服务',
++      // R41 (PM-direct 拍, scripts/install.sh:344 manifest 真实 stage name)
++      prerequisites: '系统环境检查',
++      'python-deps': '安装 Python 依赖',
++      config: '准备配置和技能',
++      setup: '配置 API 密钥和设置',
++      complete: '完成安装'
+     },
+     oneTimeTitle: '文枢 需要一次性安装',
+     unsupportedDesc: platform =>
+-- 
+2.54.0 (Apple Git-157)
+

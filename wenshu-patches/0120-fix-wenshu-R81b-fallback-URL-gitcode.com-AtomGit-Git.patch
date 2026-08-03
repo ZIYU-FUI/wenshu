@@ -1,0 +1,131 @@
+From 31e1eb19eb065571d132a3fae89276bdf52387dc Mon Sep 17 00:00:00 2001
+From: pm-direct <pm-direct@wenshu.local>
+Date: Thu, 30 Jul 2026 18:27:56 +0800
+Subject: [PATCH 120/168] =?UTF-8?q?fix(wenshu):=20R81b=20-=20=E9=95=9C?=
+ =?UTF-8?q?=E5=83=8F=20fallback=20URL=20=E6=94=B9=20=E2=86=92=20gitcode.co?=
+ =?UTF-8?q?m=20(AtomGit/GitCode=20=E5=90=8C=E5=AE=B6=E5=85=AC=E5=8F=B8)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+装机 user 8/30 把仓建在 gitcode.com (同 AtomGit 公司), URL 改:
+- scripts/install.sh: REPO_ATOM_RAW + Windows hint URL
+- scripts/install.ps1: $RepoAtomRaw + Windows hint URL
+- apps/bootstrap-installer/src-tauri/src/install_script.rs: ATOMGIT_REPOSITORY + ATOMGIT_RAW_BASE
+- 注释更新 (gitcode.com vs atomgit.com 同源说明)
+
+仓根仓: origin = git@gitcode.com:ZIYU1983/wenshu.git (推过 main + 6 tag).
+---
+ .../src-tauri/src/install_script.rs            |  5 +++--
+ scripts/install.ps1                            | 10 +++++-----
+ scripts/install.sh                             | 18 ++++++++++++++----
+ 3 files changed, 22 insertions(+), 11 deletions(-)
+
+diff --git a/apps/bootstrap-installer/src-tauri/src/install_script.rs b/apps/bootstrap-installer/src-tauri/src/install_script.rs
+index 06750ebb4..726ae3651 100644
+--- a/apps/bootstrap-installer/src-tauri/src/install_script.rs
++++ b/apps/bootstrap-installer/src-tauri/src/install_script.rs
+@@ -94,8 +94,9 @@ pub(crate) fn cache_plan(immutable: bool, cached_exists: bool) -> CachePlan {
+ }
+ 
+ const INSTALL_SCRIPT_REPOSITORY: &str = "ZIYU-FUI/wenshu";
+-const ATOMGIT_REPOSITORY: &str = "ziyu-fui/wenshu";
+-const ATOMGIT_RAW_BASE: &str = "https://atomgit.com";
++// R81b: AtomGit 镜像实际指向 gitcode.com (AtomGit/GitCode 同家公司)
++const ATOMGIT_REPOSITORY: &str = "ZIYU1983/wenshu";
++const ATOMGIT_RAW_BASE: &str = "https://gitcode.com";
+ 
+ /// Domestic package-index policy for installer child processes.
+ ///
+diff --git a/scripts/install.ps1 b/scripts/install.ps1
+index 3adce4055..be50902e9 100644
+--- a/scripts/install.ps1
++++ b/scripts/install.ps1
+@@ -143,9 +143,9 @@ foreach ($tmpVar in @('TEMP', 'TMP')) {
+ $RepoUrlSsh = "git@github.com:ZIYU-FUI/wenshu.git"
+ $RepoUrlHttps = "https://github.com/ZIYU-FUI/wenshu.git"
+ # WO-001BI R81 (装机 user 8/30 拍板): 国内镜像. raw.githubusercontent.com 拉取
+-# 可能 30s 超时, AtomGit (atomgit.com, GitLab CE 系) 国内 0.6s. Try GitHub first,
+-# fallback AtomGit. AtomGit 仓 = ziyu-fui/wenshu (lowercase org; 装机 user 自建).
+-$RepoAtomRaw = "https://atomgit.com/ziyu-fui/wenshu/raw/main"
++# 可能 30s 超时, AtomGit/GitCode (gitcode.com) 国内 0.6s. Try GitHub first,
++# fallback AtomGit mirror. AtomGit 仓 = ZIYU1983/wenshu (装机 user 实际仓).
++$RepoAtomRaw = "https://gitcode.com/ZIYU1983/wenshu/raw/main"  # AtomGit 域名镜像 (同家公司 gitcode.com)
+ $PythonVersion = "3.11"
+ # Minor versions the installer accepts when the requested $PythonVersion isn't
+ # available, in preference order.  uv discovers both uv-managed and system
+@@ -243,7 +243,7 @@ function Write-Err {
+ }
+ 
+ # WO-001BI R81 (装机 user 8/30 拍板): raw.githubusercontent.com 国内可能 30s
+-# 超时, AtomGit (atomgit.com) 国内 0.6s. Try GitHub first; if that fails
++# 超时, AtomGit/GitCode (gitcode.com) 国内 0.6s. Try GitHub first; if that fails
+ # (HTTP non-2xx, DNS, timeout, conn-reset), try AtomGit mirror as fallback.
+ #
+ # Args:
+@@ -3933,7 +3933,7 @@ try {
+     Write-Info "If the error is unclear, try downloading and running the script directly:"
+     Write-Host "  Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/ZIYU-FUI/wenshu/main/scripts/install.ps1' -OutFile install.ps1" -ForegroundColor Yellow
+     Write-Host "  # 如果 GitHub 拉不动, 换国内 AtomGit 镜像:" -ForegroundColor Yellow
+-    Write-Host "  Invoke-WebRequest -Uri 'https://atomgit.com/ziyu-fui/wenshu/raw/main/scripts/install.ps1' -OutFile install.ps1" -ForegroundColor Yellow
++    Write-Host "  Invoke-WebRequest -Uri 'https://gitcode.com/ZIYU1983/wenshu/raw/main/scripts/install.ps1' -OutFile install.ps1" -ForegroundColor Yellow
+     Write-Host "  .\install.ps1" -ForegroundColor Yellow
+     Write-Host ""
+ }
+diff --git a/scripts/install.sh b/scripts/install.sh
+index a20c63acf..6d2b862e1 100755
+--- a/scripts/install.sh
++++ b/scripts/install.sh
+@@ -68,7 +68,8 @@ REPO_URL_HTTPS="https://github.com/ZIYU-FUI/wenshu.git"
+ # WO-001BI R81 (装机 user 8/30 拍板): 国内镜像. raw.githubusercontent.com 拉取
+ # 可能 30s 超时, AtomGit (atomgit.com, GitLab CE 系) 国内 0.6s。Try GitHub first,
+ # fallback AtomGit。AtomGit 仓 = ziyu-fui/wenshu (lowercase org; 装机 user 自建)。
+-REPO_ATOM_RAW="https://atomgit.com/ziyu-fui/wenshu/raw/main"
++REPO_ATOM_RAW="https://gitcode.com/ZIYU1983/wenshu/raw/main"  # AtomGit 域名镜像 (同家公司 gitcode.com)
++REPO_GITCODE_RAW="https://gitcode.com/ZIYU1983/wenshu/raw/main"
+ WENSHU_HOME="${WENSHU_HOME:-$HOME/.wenshu-hermes}"
+ # WO-001BI R53: 共享 uv cache 跨 wenshu update 重装
+ UV_CACHE_DIR_DEFAULT="$WENSHU_HOME/cache/uv"
+@@ -305,8 +306,9 @@ download_with_atomgit_fallback() {
+     local ref="${3:-main}"
+     local gh_url="https://raw.githubusercontent.com/ZIYU-FUI/wenshu/${ref}/${rel_path}"
+     local atom_url="${REPO_ATOM_RAW}/${rel_path}"
++    local gitcode_url="${REPO_GITCODE_RAW}/${rel_path}"
+ 
+-    log_info "Fetching ${rel_path} (ref=${ref}) — try GitHub, fallback AtomGit"
++    log_info "Fetching ${rel_path} (ref=${ref}) — try GitHub, fallback AtomGit, fallback GitCode"
+ 
+     if curl -fsSL --max-time 30 --retry 1 --retry-all-errors \
+             "$gh_url" -o "$dest" 2>/dev/null; then
+@@ -320,10 +322,18 @@ download_with_atomgit_fallback() {
+         log_success "Downloaded from AtomGit mirror: $atom_url"
+         return 0
+     fi
++    log_warn "AtomGit mirror failed for $atom_url; falling back to GitCode mirror"
+ 
+-    log_error "Both GitHub and AtomGit mirror fetches failed for ${rel_path}"
++    if curl -fsSL --max-time 30 --retry 1 --retry-all-errors \
++            "$gitcode_url" -o "$dest" 2>/dev/null; then
++        log_success "Downloaded from GitCode mirror: $gitcode_url"
++        return 0
++    fi
++
++    log_error "All 3 mirrors failed for ${rel_path}"
+     log_error "  GitHub:   $gh_url"
+     log_error "  AtomGit:  $atom_url"
++    log_error "  GitCode:  $gitcode_url"
+     return 1
+ }
+ 
+@@ -623,7 +633,7 @@ detect_os() {
+             log_error "Windows detected. Please use the PowerShell installer:"
+             log_info "  iex (irm https://raw.githubusercontent.com/ZIYU-FUI/wenshu/main/scripts/install.ps1)"
+             log_info "  # 如果 GitHub 拉不动, 换国内 AtomGit 镜像:"
+-            log_info "  iex (irm https://atomgit.com/ziyu-fui/wenshu/raw/main/scripts/install.ps1)"
++            log_info "  iex (irm https://gitcode.com/ZIYU1983/wenshu/raw/main/scripts/install.ps1)"
+             exit 1
+             ;;
+         *)
+-- 
+2.54.0 (Apple Git-157)
+

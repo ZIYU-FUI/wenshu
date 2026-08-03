@@ -1,0 +1,81 @@
+From 60c805c556f49ec2657a1dc6e273bb481fd41f14 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?= <anbaiqiang@wenshu.local>
+Date: Fri, 31 Jul 2026 15:12:16 +0800
+Subject: [PATCH 151/168] =?UTF-8?q?fix(wenshu):=20=E4=BF=AE=20=E8=A3=85?=
+ =?UTF-8?q?=E5=8C=85=E5=99=A8=20=E9=94=99=E8=AF=AF=E6=8F=90=E7=A4=BA?=
+ =?UTF-8?q?=E4=B8=AD=E6=96=87=20(Rust=20=E7=AB=AF=E7=A1=AC=E7=BC=96?=
+ =?UTF-8?q?=E7=A0=81=E8=8B=B1=E6=96=87)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+装机 user 8/31 装包器更新失败截图证明副文案 "wenshu update failed" 英文.
+
+改 apps/bootstrap-installer/src-tauri/src/update.rs:316
+- "wenshu update failed (exit {:?}). See {} for details."
+  → "文枢 更新失败 (退出码 {:?})。详情请查看 {}。"
+
+落档: wenshu-pour/architecture/R116-error-msg-zh-2026-08-31.md
+版本号 0.1.0 (装 user 拍 "基础版本不 bump")
+---
+ .../src-tauri/src/update.rs                   |  2 +-
+ .../R116-error-msg-zh-2026-08-31.md           | 34 +++++++++++++++++++
+ 2 files changed, 35 insertions(+), 1 deletion(-)
+ create mode 100644 wenshu-pour/architecture/R116-error-msg-zh-2026-08-31.md
+
+diff --git a/apps/bootstrap-installer/src-tauri/src/update.rs b/apps/bootstrap-installer/src-tauri/src/update.rs
+index 019a4c5b3..431c5582d 100644
+--- a/apps/bootstrap-installer/src-tauri/src/update.rs
++++ b/apps/bootstrap-installer/src-tauri/src/update.rs
+@@ -314,7 +314,7 @@ async fn run_update(app: AppHandle) -> Result<()> {
+         }
+         other => {
+             let msg = format!(
+-                "wenshu update failed (exit {:?}). See {} for details.",
++                "文枢 更新失败 (退出码 {:?})。详情请查看 {}。",
+                 other,
+                 crate::paths::wenshu_home()
+                     .join("logs")
+diff --git a/wenshu-pour/architecture/R116-error-msg-zh-2026-08-31.md b/wenshu-pour/architecture/R116-error-msg-zh-2026-08-31.md
+new file mode 100644
+index 000000000..231f47341
+--- /dev/null
++++ b/wenshu-pour/architecture/R116-error-msg-zh-2026-08-31.md
+@@ -0,0 +1,34 @@
++# WO-001BI-R116: 修 装包器 错误提示 中文 (Rust 端硬编码英文)
++
++[装机 user 8/31 拍]
++- 装包器更新失败 UI 截图证明: 副文案 "wenshu update failed (exit Some(1))..." 英文
++
++[真值]
++- 装包器错误信息硬编码在 apps/bootstrap-installer/src-tauri/src/update.rs:316
++- "wenshu update failed (exit {:?}). See {} for details." - 英文
++- 装 user 截图大标题 + 按钮已中文化 (R112 修), 副文案漏
++
++[修法 (R116 PM-direct 自家改)]
++- 改 apps/bootstrap-installer/src-tauri/src/update.rs:316
++- "wenshu update failed (exit {:?}). See {} for details."
++  → "文枢 更新失败 (退出码 {:?})。详情请查看 {}。"
++
++[装机 user 必走 4 步]
++1. brew install pnpm (装 pnpm)
++2. which pnpm 验证 (PATH 应有 pnpm)
++3. 跑 wenshu setup --update --yes 重试
++4. 验 4 件 + 反馈
++- 错误提示会显 "文枢 更新失败 (退出码 1)。详情请查看 ..." 中文
++
++[架构真根因 - 装 user 8/31 反复反馈]
++- bootstrap-installer.log 末 5 行:
++  - ✗ macOS release rebuild failed: pnpm was not found on PATH
++  - npm error No workspaces found: --workspace=legacy-terminal-ui --workspace=web
++  - ⚠ Node.js dependency refresh did not complete cleanly; the installation may be in a mixed state
++- 装 user 装 venv 仓 (R53 install.sh 用的 uv) - 没 pnpm
++- wenshu setup --update 跑 cargo tauri build / pnpm dist:mac 失败 (pnpm 找不到)
++- 装 user 跑 update 流程 (不需 pnpm) - 跑不动 pnpm dist:mac 这一步
++- R113 commit 9c4445984 加 pnpm dist:mac + cargo tauri build 步骤 - 但装 user 没 pnpm
++
++[版本号]
++0.1.0 (装 user 拍 "基础版本不 bump")
+-- 
+2.54.0 (Apple Git-157)
+

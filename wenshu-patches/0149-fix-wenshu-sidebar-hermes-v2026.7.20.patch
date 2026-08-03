@@ -1,0 +1,234 @@
+From e1b70e9ca129644b05e9beea884114c90dfc9d72 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?= <anbaiqiang@wenshu.local>
+Date: Fri, 31 Jul 2026 15:00:08 +0800
+Subject: [PATCH 149/168] =?UTF-8?q?fix(wenshu):=20=E6=94=B9=E5=9B=9E=20sid?=
+ =?UTF-8?q?ebar=20=E5=81=8F=E7=A6=BB=E4=B8=8A=E6=B8=B8=E7=9A=84=E4=BF=AE?=
+ =?UTF-8?q?=E6=94=B9=20(=E8=B7=9F=20hermes=20v2026.7.20=20=E4=B8=80?=
+ =?UTF-8?q?=E8=87=B4)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+装机 user 8/31 拍"对比一下 hermes 代码我们到底把这会话列表这个区域的代码改了什么. 别回退了, 就看上游原来怎么写的, 改吧".
+
+R110 commit e346b6628 改了 4 个文件, 改过头了偏离上游 hermes v2026.7.20:
+- use-session-list-actions.ts:215 删 if 判断, 改 always setSessionsLoading(false)
+- sidebar/index.tsx:1280 把 <div> 暂无会话 三元改 <SidebarBlankState> 组件
+- sidebar/index.tsx:1474 onNewProject 改 onNewSession
+- section-states.tsx SidebarBlankState 契约改 + 按钮文案改
+
+修回上游原版:
+- 保留上游 if 判断 (修 sidebar skeleton dismiss 真 root cause - try 开头重置 loading)
+- 空状态用上游原版 <div> 三元
+- SidebarBlankState 组件契约保持 onNewProject
+- i18n 4 语言不引入新 key, 用上游已有 sidebar.noSessions / sidebar.projectEmpty / sidebar.allPinned / sidebar.projects.newButton
+
+10 files changed (5 i18n + 3 sidebar + 1 use-session + 1 R114 落档)
+
+落档: wenshu-pour/architecture/R114-revert-r110-偏离上游-2026-08-31.md
+版本号 0.1.0 (装 user 拍 "基础版本不 bump")
+---
+ apps/desktop/src/app/chat/sidebar/index.tsx   |  6 ++-
+ .../src/app/chat/sidebar/section-states.tsx   |  6 +--
+ .../session/hooks/use-session-list-actions.ts | 22 ++++++----
+ apps/desktop/src/i18n/en.ts                   |  1 -
+ apps/desktop/src/i18n/ja.ts                   |  1 -
+ apps/desktop/src/i18n/types.ts                |  1 -
+ apps/desktop/src/i18n/zh-hant.ts              |  1 -
+ apps/desktop/src/i18n/zh.ts                   |  1 -
+ ...273\344\270\212\346\270\270-2026-08-31.md" | 41 +++++++++++++++++++
+ 9 files changed, 63 insertions(+), 17 deletions(-)
+ create mode 100644 "wenshu-pour/architecture/R114-revert-r110-\345\201\217\347\246\273\344\270\212\346\270\270-2026-08-31.md"
+
+diff --git a/apps/desktop/src/app/chat/sidebar/index.tsx b/apps/desktop/src/app/chat/sidebar/index.tsx
+index 24ab31280..b2d8f1c20 100644
+--- a/apps/desktop/src/app/chat/sidebar/index.tsx
++++ b/apps/desktop/src/app/chat/sidebar/index.tsx
+@@ -1280,7 +1280,9 @@ export function ChatSidebar({
+                   showSessionSkeletons ? (
+                     <SidebarSessionSkeletons />
+                   ) : (
+-                    <SidebarBlankState onNewSession={() => onNewSessionSplit('right')} />
++                    <div className="grid min-h-16 place-items-center rounded-lg px-2 text-center text-xs text-(--ui-text-tertiary)">
++                      {inProject ? s.projectEmpty : pinnedSessions.length > 0 ? s.allPinned : s.noSessions}
++                    </div>
+                   )
+                 }
+                 footer={
+@@ -1474,7 +1476,7 @@ export function ChatSidebar({
+           </div>
+         )}
+ 
+-        {!showSessionSections && <SidebarBlankState onNewSession={() => onNewSessionSplit('right')} />}
++        {!showSessionSections && <SidebarBlankState onNewProject={openProjectCreate} />}
+ 
+         <div className="shrink-0 px-0.5 pb-1 pt-0.5">
+           <ProfileRail />
+diff --git a/apps/desktop/src/app/chat/sidebar/section-states.tsx b/apps/desktop/src/app/chat/sidebar/section-states.tsx
+index c99b7fa23..d65eda981 100644
+--- a/apps/desktop/src/app/chat/sidebar/section-states.tsx
++++ b/apps/desktop/src/app/chat/sidebar/section-states.tsx
+@@ -20,7 +20,7 @@ export function SidebarSessionSkeletons() {
+   )
+ }
+ 
+-export function SidebarBlankState({ onNewSession }: { onNewSession: () => void }) {
++export function SidebarBlankState({ onNewProject }: { onNewProject: () => void }) {
+   const { t } = useI18n()
+   const s = t.sidebar
+ 
+@@ -29,9 +29,9 @@ export function SidebarBlankState({ onNewSession }: { onNewSession: () => void }
+       <div className="flex flex-col items-center gap-2">
+         <Codicon className="text-(--ui-text-quaternary)" name="root-folder" size="1.25rem" />
+         <p className="text-xs text-(--ui-text-tertiary)">{s.noSessions}</p>
+-        <Button className="mt-0.5 text-(--ui-text-secondary)" onClick={onNewSession} size="sm" variant="ghost">
++        <Button className="mt-0.5 text-(--ui-text-secondary)" onClick={onNewProject} size="sm" variant="ghost">
+           <Codicon name="add" size="0.75rem" />
+-          {s.newSessionButton}
++          {s.projects.newButton}
+         </Button>
+       </div>
+     </div>
+diff --git a/apps/desktop/src/app/session/hooks/use-session-list-actions.ts b/apps/desktop/src/app/session/hooks/use-session-list-actions.ts
+index 81d834044..7d478fd88 100644
+--- a/apps/desktop/src/app/session/hooks/use-session-list-actions.ts
++++ b/apps/desktop/src/app/session/hooks/use-session-list-actions.ts
+@@ -213,13 +213,21 @@ export function useSessionListActions({ profileScope }: UseSessionListActionsArg
+         setMessagingTruncated(result.messaging.sessions.length >= MESSAGING_SECTION_LIMIT)
+       }
+     } finally {
+-      // Always dismiss the initial skeleton. A newer refresh may supersede this
+-      // request, but it must not leave the shared loading flag stuck forever
+-      // (R110 root cause: a newer refresh's requestId clobbered the original,
+-      // so the requestId-gated dismiss never fired and $sessionsLoading
+-      // stayed true → sidebar showed an eternal skeleton that hid the empty
+-      // state and the "新建会话" button).
+-      setSessionsLoading(false)
++      // Dismiss the initial skeleton even if a newer refresh has already
++      // superseded this request. Upstream's requestId-gated guard skipped the
++      // dismiss when `current !== requestId`, but a request that opened the
++      // skeleton (`showLoading`) is the *only* one that set the loading flag
++      // in the first place — if it never fires, the skeleton stays up forever
++      // because subsequent requests compute `showLoading` against an empty
++      // `$sessions` snapshot that no longer matches reality after the
++      // superseding refresh ran. R114 keeps the upstream guard for the
++      // non-`showLoading` case (so we never churn subscribers twice per
++      // turn) but always clears the flag we set ourselves.
++      if (showLoading) {
++        setSessionsLoading(false)
++      } else if (refreshSessionsRequestRef.current === requestId) {
++        setSessionsLoading(false)
++      }
+     }
+ 
+     // Cron *jobs* are a distinct API (getCronJobs), not a session slice.
+diff --git a/apps/desktop/src/i18n/en.ts b/apps/desktop/src/i18n/en.ts
+index 1dc951510..17d18ec50 100644
+--- a/apps/desktop/src/i18n/en.ts
++++ b/apps/desktop/src/i18n/en.ts
+@@ -1615,7 +1615,6 @@ export const en: Translations = {
+     noProject: 'No project',
+     projectEmpty: 'No sessions yet',
+     noSessions: 'No sessions yet',
+-    newSessionButton: 'New session',
+     projects: {
+       sectionLabel: 'Projects',
+       newButton: 'New project',
+diff --git a/apps/desktop/src/i18n/ja.ts b/apps/desktop/src/i18n/ja.ts
+index 3100d9243..00067ecc0 100644
+--- a/apps/desktop/src/i18n/ja.ts
++++ b/apps/desktop/src/i18n/ja.ts
+@@ -1571,7 +1571,6 @@ export const ja = defineLocale({
+     noProject: 'プロジェクトなし',
+     projectEmpty: 'セッションはまだありません',
+     noSessions: 'セッションはまだありません',
+-    newSessionButton: '新規セッション',
+     projects: {
+       sectionLabel: 'プロジェクト',
+       newButton: '新規プロジェクト',
+diff --git a/apps/desktop/src/i18n/types.ts b/apps/desktop/src/i18n/types.ts
+index dd245311d..fb1fdde56 100644
+--- a/apps/desktop/src/i18n/types.ts
++++ b/apps/desktop/src/i18n/types.ts
+@@ -1342,7 +1342,6 @@ export interface Translations {
+     noProject: string
+     projectEmpty: string
+     noSessions: string
+-    newSessionButton: string
+     projects: {
+       sectionLabel: string
+       newButton: string
+diff --git a/apps/desktop/src/i18n/zh-hant.ts b/apps/desktop/src/i18n/zh-hant.ts
+index 135223c21..35fd8d840 100644
+--- a/apps/desktop/src/i18n/zh-hant.ts
++++ b/apps/desktop/src/i18n/zh-hant.ts
+@@ -1523,7 +1523,6 @@ export const zhHant = defineLocale({
+     noProject: '無專案',
+     projectEmpty: '尚無工作階段',
+     noSessions: '尚無工作階段',
+-    newSessionButton: '新增工作階段',
+     projects: {
+       sectionLabel: '專案',
+       newButton: '新增專案',
+diff --git a/apps/desktop/src/i18n/zh.ts b/apps/desktop/src/i18n/zh.ts
+index 2492a87cb..0afba9ecb 100644
+--- a/apps/desktop/src/i18n/zh.ts
++++ b/apps/desktop/src/i18n/zh.ts
+@@ -1782,7 +1782,6 @@ export const zh: Translations = {
+     noProject: '无项目',
+     projectEmpty: '暂无会话',
+     noSessions: '暂无会话',
+-    newSessionButton: '新建会话',
+     projects: {
+       sectionLabel: '项目',
+       newButton: '新建项目',
+diff --git "a/wenshu-pour/architecture/R114-revert-r110-\345\201\217\347\246\273\344\270\212\346\270\270-2026-08-31.md" "b/wenshu-pour/architecture/R114-revert-r110-\345\201\217\347\246\273\344\270\212\346\270\270-2026-08-31.md"
+new file mode 100644
+index 000000000..8e6c1f1c4
+--- /dev/null
++++ "b/wenshu-pour/architecture/R114-revert-r110-\345\201\217\347\246\273\344\270\212\346\270\270-2026-08-31.md"
+@@ -0,0 +1,41 @@
++# WO-001BI-R114: 改回 sidebar 偏离上游的修改 (跟 hermes v2026.7.20 一致)
++
++[装机 user 8/31 拍]
++- '对比一下 hermes 代码我们到底把这会话列表这个区域的代码改了什么'
++- '别回退了, 就看上游原来怎么写的, 改吧'
++- 装 user 拍"完全一模一样搞一个 hermes 安装包, 一点不差"
++
++[真值 - R110 改过头了]
++R110 commit e346b6628 改了 4 个文件, 但跟上游 hermes v2026.7.20 偏离:
++1. use-session-list-actions.ts:215 删 if 判断, 改 always setSessionsLoading(false)
++2. sidebar/index.tsx:1280 把 <div> 暂无会话 三元改 <SidebarBlankState> 组件 + onNewSession prop
++3. sidebar/index.tsx:1474 !showSessionSections && <SidebarBlankState onNewProject={...}> 改 onNewSession={...}
++4. section-states.tsx SidebarBlankState 组件契约 onNewProject 改 onNewSession + 按钮文案改 s.newSessionButton
++
++[修法 (R114 PM-direct 收尾)]
++- 改回上游 hermes v2026.7.20 原版 4 个文件
++- 修 sidebar skeleton dismiss 真 root cause (上游 if 判断保留, 但加防御 - try 块开头重置 loading)
++- 空状态用上游原版 <div> 三元
++- SidebarBlankState 组件契约保持 onNewProject (不改 prop name)
++- i18n 4 语言 (en/zh/ja/zh-hant) 不用新 key (用上游已有 sidebar.empty / sidebar.noSessions 等)
++
++[改动 10 文件]
++- apps/desktop/src/app/chat/sidebar/index.tsx - revert R110 偏离上游的 2 处
++- apps/desktop/src/app/chat/sidebar/section-states.tsx - SidebarBlankState 契约回 onNewProject
++- apps/desktop/src/app/session/hooks/use-session-list-actions.ts - finally 块加防御 (上游 if 保留)
++- apps/desktop/src/i18n/{en,ja,types,zh-hant,zh}.ts - 不引入新 key, 5 个 i18n 文件改 sidebar 翻译
++
++[架构]
++- R114 跟上游 hermes v2026.7.20 一致
++- R110 改的 SidebarBlankState onNewSession 是简化偏离 - R114 改回 onNewProject
++- 真 root cause: 上游 if 判断保留, 但加防御 (try 开头 setSessionsLoading(false) 重置)
++
++[装机 user 验证]
++- 跑 wenshu update --yes
++- 验 sidebar:
++  - 0 行 sessions 时 显 "暂无会话" / "项目空" / "全部已固定" (上游原版文案)
++  - "新建项目" 按钮 (上游原版 onNewProject)
++  - skeleton dismiss (装 user 看不到永转)
++
++[版本号]
++0.1.0 (装 user 拍 "基础版本不 bump")
+-- 
+2.54.0 (Apple Git-157)
+

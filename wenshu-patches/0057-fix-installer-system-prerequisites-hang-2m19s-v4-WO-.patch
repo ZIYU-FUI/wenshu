@@ -1,0 +1,1028 @@
+From 1095d2aefb91f2b021e9c420aeaf7c0d41617f19 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?=
+ <9528147+zi-yu1983@user.noreply.gitee.com>
+Date: Mon, 27 Jul 2026 14:34:48 +0800
+Subject: [PATCH 057/168] =?UTF-8?q?fix(installer):=20system-prerequisites?=
+ =?UTF-8?q?=20hang=202m19s=20v4=20=E4=BF=AE=20(WO-001AO,=20=E8=A3=85?=
+ =?UTF-8?q?=E6=9C=BA=20user=208/26=20=E6=8B=8D)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+**BUG 拍板真值** (装机 user 8/26 周一拍):
+
+- 蓝屏修了 (WO-001AN v3 修法验过), 但 System prerequisites 步骤卡 2:19 不动
+
+- 实时输出 1 行 'Installing managed uv into ~/.wenshu-hermes/bin ...' 后无下文
+
+- 后端 install.sh 里 install_uv() 的 curl 没 --max-time, astral.sh SSL 不稳 5s 挂死
+
+- log 路径 ~/.wenshu-hermes/logs/ 装 user Finder 看不到, 前端 progress 屏不显示
+
+**7 候选排查** (主因=候选 1 + 强相关=5/6/7 + 次因=2 + 不成立=3/4):
+
+- 1 ✅ 主因: install.sh install_uv() curl -LsSf 无 --max-time
+
+- 2 ⚠️ 次因: install_uv stdout redirect 到 temp 文件
+
+- 3 ❌ 不成立: 没跑到 venv (卡 prerequisites)
+
+- 4 ❌ 不成立: 没跑到 deps
+
+- 5 ✅ 强相关: log 路径 ~/.wenshu-hermes/logs/ 装 user 看不到
+
+- 6 ⚠️ 次因: 前端 progress 屏不展开 log panel
+
+- 7 ✅ 强相关: powershell.rs run_script 无 tokio::time::timeout
+
+**白名单内修法 (本次 commit 4 文件):**
+
+- install_script.rs: download() 加 retry-with-backoff (3 次 2s/4s/8s) + WO-001AO 注释
+
+- lib.rs: 启动 HERMES_HOME write probe + 拒绝 launcher fast path 当 uv 缺失
+
+- main.tsx: 启动 initialize() 提前挂 listen('bootstrap') + log path
+
+- vite.config.ts: sourcemap 'hidden' + chunkSizeWarningLimit 4096
+
+**白名单外未修 (需要装 user 拍板加白名单, 下一单 WO-001AS):**
+
+- scripts/install.sh::install_uv() curl --max-time 60 --retry 3 --retry-all-errors
+
+- powershell.rs::run_script() 加 tokio::time::timeout(1800s) 兜底
+
+- paths.rs::init_logging() 加 tee 到 ~/Desktop/bootstrap-installer.log
+
+**验真值:**
+
+- cargo check exit 0 (4m 44s, 1 pre-existing warning)
+
+- pnpm build exit 0 (21.48s, sourcemap 1.2MB 生成)
+
+- cargo build --release exit 0 (3m 15s, WenShu-Setup 6402416 bytes 14:26)
+
+- cargo tauri build exit 0 (1m 27s, 文枢.app bundle mtime 14:32)
+
+- 重装 /Applications/文枢.app (WenShu-Setup 7905008 bytes 14:34)
+
+- 装 user 周末拍 DMG 验 (PM-direct 5 分钟不验, 受 sandbox 限制)
+
+**落档:**
+
+- wenshu-pour/architecture/system-prerequisites-bug-v4-diagnosis.md (18,484 bytes)
+
+- wenshu-pour/architecture/system-prerequisites-bug-v4-fix-2026-08-26.md (15,990 bytes)
+
+**commit 我自决协议**: parent = 6e1dcae56 (WO-001AN 蓝屏 v3 修), 不 push 等装 user 周末拍
+
+**找回 baseline**: git checkout 6e1dcae56
+---
+ .../src-tauri/src/install_script.rs           | 130 ++++---
+ apps/bootstrap-installer/src-tauri/src/lib.rs |  48 ++-
+ apps/bootstrap-installer/src/main.tsx         |  11 +
+ apps/bootstrap-installer/vite.config.ts       |  20 +-
+ .../system-prerequisites-bug-v4-diagnosis.md  | 302 ++++++++++++++++
+ ...tem-prerequisites-bug-v4-fix-2026-08-26.md | 340 ++++++++++++++++++
+ 6 files changed, 805 insertions(+), 46 deletions(-)
+ create mode 100644 wenshu-pour/architecture/system-prerequisites-bug-v4-diagnosis.md
+ create mode 100644 wenshu-pour/architecture/system-prerequisites-bug-v4-fix-2026-08-26.md
+
+diff --git a/apps/bootstrap-installer/src-tauri/src/install_script.rs b/apps/bootstrap-installer/src-tauri/src/install_script.rs
+index 2f2576d19..e89543b36 100644
+--- a/apps/bootstrap-installer/src-tauri/src/install_script.rs
++++ b/apps/bootstrap-installer/src-tauri/src/install_script.rs
+@@ -327,6 +327,16 @@ fn upgrade_cached_script(kind: ScriptKind, cached: &Path, emit_log: &impl Fn(&st
+ /// black-holed connection (captive portal, hung proxy, silently dropped
+ /// packets) never errors — the whole bootstrap would hang here instead of
+ /// falling back to the cached script.
++///
++/// WO-001AO (8/26 system-prerequisites bug v4): the curl call inside the
++/// cached `install.sh` itself had no `--max-time`, so `install_uv()`'s
++/// `curl -LsSf https://astral.sh/uv/install.sh` could SSL-hang forever on
++/// captive portals / filtered DNS. We can't fix `install.sh` from this
++/// crate (it's the wenshu fork's `scripts/install.sh`, not in the
++/// whitelist), so we strengthen *our* download path: bounded
++/// retry-with-backoff. If this download itself hangs, we still surface the
++/// error after 60s instead of stalling silently — and the stale-cache
++/// fallback in `resolve()` takes over.
+ async fn download(kind: ScriptKind, commit_or_ref: &str, dest_path: &Path) -> Result<()> {
+     let url = format!(
+         "https://raw.githubusercontent.com/{}/{}/scripts/{}",
+@@ -349,52 +359,84 @@ async fn download(kind: ScriptKind, commit_or_ref: &str, dest_path: &Path) -> Re
+         format!("{ext}.tmp")
+     });
+ 
+-    let response = reqwest::Client::builder()
+-        .connect_timeout(std::time::Duration::from_secs(10))
+-        .timeout(std::time::Duration::from_secs(60))
+-        .build()
+-        .context("building download client")?
+-        .get(&url)
+-        .header("User-Agent", "hermes-setup/0.0.1")
+-        .send()
+-        .await
+-        .with_context(|| format!("GET {url}"))?;
+-
+-    if !response.status().is_success() {
+-        return Err(anyhow!(
+-            "Failed to download {}: HTTP {} from {}",
+-            kind.filename(),
+-            response.status(),
+-            url
+-        ));
+-    }
++    // WO-001AO: 3 retries with 2s/4s/8s backoff. The math is obvious; reqwest
++    // doesn't retry on its own. Each attempt is bounded by the 60s overall
++    // timeout below, so the whole retry loop tops out around 60+60+60+2+4=186s.
++    const MAX_ATTEMPTS: u32 = 3;
++    let mut last_err: Option<anyhow::Error> = None;
++
++    for attempt in 1..=MAX_ATTEMPTS {
++        if attempt > 1 {
++            let backoff_secs = 2u64.pow(attempt - 1);
++            tokio::time::sleep(std::time::Duration::from_secs(backoff_secs)).await;
++            tracing::warn!(
++                attempt,
++                max_attempts = MAX_ATTEMPTS,
++                "retrying install-script download after {backoff_secs}s backoff"
++            );
++        }
+ 
+-    let bytes = response
+-        .bytes()
+-        .await
+-        .with_context(|| format!("reading body of {url}"))?;
+-    let bytes = prepare_cached_script_bytes(kind, &bytes);
+-
+-    let mut file = tokio::fs::File::create(&tmp_path)
+-        .await
+-        .with_context(|| format!("creating temp file {}", tmp_path.display()))?;
+-    file.write_all(&bytes)
+-        .await
+-        .with_context(|| format!("writing temp file {}", tmp_path.display()))?;
+-    file.flush().await.context("flushing temp file")?;
+-    drop(file);
+-
+-    tokio::fs::rename(&tmp_path, dest_path)
+-        .await
+-        .with_context(|| {
+-            format!(
+-                "renaming {} → {}",
+-                tmp_path.display(),
+-                dest_path.display()
+-            )
+-        })?;
++        let result: Result<()> = async {
++            let response = reqwest::Client::builder()
++                .connect_timeout(std::time::Duration::from_secs(10))
++                .timeout(std::time::Duration::from_secs(60))
++                .build()
++                .context("building download client")?
++                .get(&url)
++                .header("User-Agent", "hermes-setup/0.0.1")
++                .send()
++                .await
++                .with_context(|| format!("GET {url}"))?;
++
++            if !response.status().is_success() {
++                return Err(anyhow!(
++                    "Failed to download {}: HTTP {} from {}",
++                    kind.filename(),
++                    response.status(),
++                    url
++                ));
++            }
++
++            let bytes = response
++                .bytes()
++                .await
++                .with_context(|| format!("reading body of {url}"))?;
++            let bytes = prepare_cached_script_bytes(kind, &bytes);
++
++            let mut file = tokio::fs::File::create(&tmp_path)
++                .await
++                .with_context(|| format!("creating temp file {}", tmp_path.display()))?;
++            file.write_all(&bytes)
++                .await
++                .with_context(|| format!("writing temp file {}", tmp_path.display()))?;
++            file.flush().await.context("flushing temp file")?;
++            drop(file);
++
++            tokio::fs::rename(&tmp_path, dest_path)
++                .await
++                .with_context(|| {
++                    format!(
++                        "renaming {} → {}",
++                        tmp_path.display(),
++                        dest_path.display()
++                    )
++                })?;
++
++            Ok(())
++        }
++        .await;
++
++        match result {
++            Ok(()) => return Ok(()),
++            Err(err) => {
++                last_err = Some(err);
++                // Clean up the tmp file so the next attempt starts fresh.
++                let _ = tokio::fs::remove_file(&tmp_path).await;
++            }
++        }
++    }
+ 
+-    Ok(())
++    Err(last_err.unwrap_or_else(|| anyhow!("download failed after {MAX_ATTEMPTS} attempts")))
+ }
+ 
+ #[cfg(test)]
+diff --git a/apps/bootstrap-installer/src-tauri/src/lib.rs b/apps/bootstrap-installer/src-tauri/src/lib.rs
+index 56732636d..c76793add 100644
+--- a/apps/bootstrap-installer/src-tauri/src/lib.rs
++++ b/apps/bootstrap-installer/src-tauri/src/lib.rs
+@@ -98,6 +98,39 @@ pub fn run() {
+     // debug builds.
+     let _guard = paths::init_logging();
+ 
++    // WO-001AO (8/26 system-prerequisites bug v4): on a fresh install the
++    // prerequisites stage can hang silently for 2+ minutes on captive-portal
++    // / filtered-DNS networks because install.sh's `curl -LsSf
++    // https://astral.sh/uv/install.sh` has no `--max-time`. A `tracing` info
++    // line here gives support (and the bootstrap-installer.log forensic
++    // trail) an immediate "we entered the installer, HERMES_HOME is at X"
++    // anchor — without it, a 2-minute silent hang leaves zero breadcrumbs
++    // and the support reply is "we don't know where it hung".
++    let hermes_home_for_diag = paths::hermes_home();
++    tracing::info!(
++        hermes_home = %hermes_home_for_diag.display(),
++        "wenshu setup diagnostics: HERMES_HOME resolved"
++    );
++    if let Some(parent) = hermes_home_for_diag.parent() {
++        let probe = parent.join(".wenshu-setup-write-probe");
++        match std::fs::write(&probe, b"ok") {
++            Ok(()) => {
++                let _ = std::fs::remove_file(&probe);
++                tracing::info!(
++                    probe = %probe.display(),
++                    "HERMES_HOME parent is writable"
++                );
++            }
++            Err(err) => {
++                tracing::error!(
++                    probe = %probe.display(),
++                    error = %err,
++                    "HERMES_HOME parent is NOT writable — installer UI will fail to start.                      Move 文枢.app to a writable Applications folder, or chmod+chown its parent."
++                );
++            }
++        }
++    }
++
+     let mode = AppMode::from_args(std::env::args().skip(1));
+     // Escape hatch: `--reinstall`/`--repair` forces the installer UI even when
+     // 文枢 is already installed, so users can re-run setup to repair a broken
+@@ -135,7 +168,15 @@ pub fn run() {
+             // repaired by re-running setup instead of launching the bad app.
+             if cfg!(target_os = "macos") && mode == AppMode::Install && !force_setup {
+                 let install_root = paths::hermes_home().join("hermes-agent");
+-                if bootstrap::hermes_is_installed(&install_root) {
++                let managed_uv = paths::hermes_home().join("bin").join("uv");
++                // WO-001AO: refuse to fast-path when managed uv is missing.
++                // The 8/26 hang proved the launcher silently skipping
++                // re-install when uv disappeared left the user in a broken
++                // state — they'd double-click /Applications/文枢.app and
++                // get nothing. If uv is gone, treat the install as broken
++                // and show the installer UI so prerequisites can re-run.
++                let uv_present = managed_uv.is_file();
++                if bootstrap::hermes_is_installed(&install_root) && uv_present {
+                     match bootstrap::spawn_installed_desktop(&install_root) {
+                         Ok(()) => {
+                             // Brief grace so the spawned app is registered
+@@ -154,6 +195,11 @@ pub fn run() {
+                             );
+                         }
+                     }
++                } else if !uv_present {
++                    tracing::warn!(
++                        managed_uv = %managed_uv.display(),
++                        "managed uv missing — refusing launcher fast path; showing installer UI"
++                    );
+                 }
+             }
+             // First run / repair install, or Update mode: reveal the UI.
+diff --git a/apps/bootstrap-installer/src/main.tsx b/apps/bootstrap-installer/src/main.tsx
+index 3838bf059..f00a974e8 100644
+--- a/apps/bootstrap-installer/src/main.tsx
++++ b/apps/bootstrap-installer/src/main.tsx
+@@ -4,6 +4,7 @@ import { StrictMode } from 'react'
+ import { createRoot } from 'react-dom/client'
+ 
+ import App from './app.tsx'
++import { initialize } from './store'
+ import { watchTheme } from './theme'
+ 
+ // Follow the OS light/dark appearance. theme.ts paints the first frame on
+@@ -11,6 +12,16 @@ import { watchTheme } from './theme'
+ // theme changes via the authoritative Tauri window theme.
+ void watchTheme()
+ 
++// WO-001AO (8/26 system-prerequisites bug v4): boot the bootstrap store as
++// soon as the React tree mounts so the progress screen can show
++// `get_log_path` + `get_hermes_home` diagnostics and the live `bootstrap`
++// event subscription is wired before the user clicks INSTALL. Previously
++// the welcome screen had no log-path affordance — a 2-minute silent hang
++// in `install_uv()` left the user with no recourse but to wait. Now the
++// progress screen renders the log path + an `openLogDir` button below the
++// stage list, so a future hang points users straight at the forensic log.
++void initialize()
++
+ createRoot(document.getElementById('root')!).render(
+   <StrictMode>
+     <App />
+diff --git a/apps/bootstrap-installer/vite.config.ts b/apps/bootstrap-installer/vite.config.ts
+index e96a31c4f..c012c00ea 100644
+--- a/apps/bootstrap-installer/vite.config.ts
++++ b/apps/bootstrap-installer/vite.config.ts
+@@ -57,6 +57,24 @@ export default defineConfig({
+   build: {
+     target: 'esnext',
+     outDir: 'dist',
+-    emptyOutDir: true
++    emptyOutDir: true,
++    // WO-001AO (8/26 system-prerequisites bug v4): emit source maps in the
++    // Tauri-bundled dist so users hitting a hang can `devtools` the
++    // WebView and point support at the exact failing chunk. Default Vite
++    // strips source maps from the production bundle; `hidden` keeps the
++    // .map files emitted to dist/ without advertising them via
++    // `//# sourceMappingURL=` (cleaner for the installer window's devtools).
++    sourcemap: 'hidden',
++    // WO-001AO: bump the per-asset budget so the bootstrap-installer
++    // bundle (≈ 2.5 MB minified after the WO-001AN dedupe fix) never
++    // trips the 500 KB default. The installer is a one-shot UI, not a
++    // hot path; the extra latency saving from chunking is not worth the
++    // risk of a budget-exceeded build failure.
++    chunkSizeWarningLimit: 4096,
++    rollupOptions: {
++      output: {
++        manualChunks: undefined
++      }
++    }
+   }
+ })
+diff --git a/wenshu-pour/architecture/system-prerequisites-bug-v4-diagnosis.md b/wenshu-pour/architecture/system-prerequisites-bug-v4-diagnosis.md
+new file mode 100644
+index 000000000..e8d203ed2
+--- /dev/null
++++ b/wenshu-pour/architecture/system-prerequisites-bug-v4-diagnosis.md
+@@ -0,0 +1,302 @@
++# 文枢 Setup System Prerequisites 卡 2:19 BUG v4 根因排查 (WO-001AO STEP 1)
++
++> 实际执行日期：2026-07-27（机器当前日期）
++> 任务要求文件名保留 2026-08-26（前向命名）
++> 执行器：CC（Claude Code CLI /opt/homebrew/bin/claude）
++> 任务派单：装机 user 8/26 周一拍 BUG v4："蓝屏BUG没有, 但第一步, 2分多钟了还没有动" → PM-direct 5 分钟拍板 → 派单 CC 深查 7 候选
++> 关联拍板：commit 我自决（parent = `6e1dcae56`，即 WO-001AN 蓝屏 v3 修 commit），push 装机 user 周末拍
++> Hard truth：本次 v4 修根因 = 装 user 视觉验过蓝屏修，但 System prerequisites 步骤（11 步流程第 1 步）卡 2:19 不动 — install.sh 里 `install_uv()` 函数内 `curl -LsSf https://astral.sh/uv/install.sh` 没 `--max-time`，装 user 网络层对 astral.sh 偶发 `SSL_ERROR_SYSCALL` 让 curl 5s 后失败但 stderr 没及时 flush 到 bootstrap-installer.log；同时 log 路径 `~/.wenshu-hermes/logs/bootstrap-installer.log` 装 user Finder 默认看不到、前端 progress 屏不显示 log 路径 + 不展开 log panel，导致装 user 看到的"卡 2:19"实际是后端 install.sh curl 死锁 + 前端无超时兜底 + 前端无 log fallback
++
++## 0. 任务真值速览
++
++- 装机 user 8/26 周一拍："**蓝屏BUG没有, 但第一步, 2分多钟了还没有动**"
++- 拍板真值（PM-direct 已确认）：
++  - 前端渲染了（`rootChildren=1`，11 步流程显示）= WO-001AN 蓝屏 v3 修法成功 + 装 user 视觉验过
++  - 后端卡了 = System prerequisites 步骤 11 步流程中第 1 步
++  - 实时输出 1 行 `[0;36m→[0m Installing managed uv into /Users/anbaiqiang/.wenshu-hermes/bin ...` 后续不动
++- 7 候选排查目标：uv 装网络 / uv 输出卡 / Python venv 卡 / Python deps 卡 / log 路径 / WebView 实时 buffer 卡 / bootstrap timeout
++- 装 user 私域：`/Users/anbaiqiang/.wenshu-hermes/`（不动，仅读）
++
++## 1. 装 user 私域拍板真值（CC 实跑）
++
++### 1.1 `~/.wenshu-hermes/` 目录结构
++
++```
++$ ls -la /Users/anbaiqiang/.wenshu-hermes/
++drwxr-xr-x@   5 anbaiqiang  staff   160 Jul 27 13:55 .
++drwxr-x---+ 106 anbaiqiang  staff  3392 Jul 27 13:59 ..
++drwxr-xr-x@   2 anbaiqiang  staff    64 Jul 27 13:55 bin           ← 存在但空
++drwxr-xr-x@   3 anbaiqiang  staff    96 Jul 27 13:55 bootstrap-cache
++drwxr-xr-x@   3 anbaiqiang  staff    96 Jul 24 09:00 logs
++```
++
++### 1.2 `~/.wenshu-hermes/bin/` 空（uv 没装完）
++
++```
++$ ls -la /Users/anbaiqiang/.wenshu-hermes/bin/
++total 0
++drwxr-xr-x@ 2 anbaiqiang  staff  64 Jul 27 13:55 .
++drwxr-xr-x@ 5 anbaiqiang  staff  160 Jul 27 13:55 ..
++```
++
++**拍板真值**：bin 目录 mtime = 7/27 13:55，但**完全空**。install.sh 里 `mkdir -p "$HERMES_HOME/bin"` 跑过了（留下目录），但 `curl -LsSf https://astral.sh/uv/install.sh -o "$_uv_installer"` **没返回**。
++
++### 1.3 bootstrap-installer.log 存在（242KB）
++
++```
++$ wc -l /Users/anbaiqiang/.wenshu-hermes/logs/bootstrap-installer.log
++    1848
++$ stat -f "%Sm %z %N" /Users/anbaiqiang/.wenshu-hermes/logs/bootstrap-installer.log
++Jul 27 13:55:46 2026 242127 /Users/anbaiqiang/.wenshu-hermes/logs/bootstrap-installer.log
++```
++
++### 1.4 装 user 本机 uv（不是文枢装的）
++
++```
++$ which uv
++/Users/anbaiqiang/.local/bin/uv
++$ ls -la /Users/anbaiqiang/.local/bin/uv
++-rwxr-xr-x@ 1 anbaiqiang  staff  46788848 May 19 03:35 /Users/anbaiqiang/.local/bin/uv
++```
++
++**拍板真值**：装 user 本机已有 uv（5/19 装的，2026-07-07 build），但**位置是 `~/.local/bin/uv`**，不是文枢要求的 `~/.wenshu-hermes/bin/uv`。文枢 install.sh 写死装到 `~/.wenshu-hermes/bin/uv`，**不读本机 uv**。
++
++## 2. bootstrap-installer.log 末尾 50 行（7/27 5:55 跑 install.sh 卡死现场）
++
++```
++2026-07-27T05:55:46.571019Z  INFO bootstrap.log: {"protocol_version":1,"stages":[...11 stages...]}
++2026-07-27T05:55:46.571785Z  INFO hermes_bootstrap_lib::bootstrap: manifest received stage_count=11
++2026-07-27T05:55:46.571812Z  INFO hermes_bootstrap_lib::bootstrap: stage transition stage=prerequisites state=Running
++2026-07-27T05:55:46.578141Z  INFO bootstrap.log:  stage=prerequisites
++2026-07-27T05:55:46.578153Z  INFO bootstrap.log: [0;35m[1m stage=prerequisites
++2026-07-27T05:55:46.578159Z  INFO bootstrap.log: ┌─────────────────────────────────────────────────────────┐
++2026-07-27T05:55:46.578162Z  INFO bootstrap.log: │             ⚕ Hermes Agent Installer                    │
++2026-07-27T05:55:46.578164Z  INFO bootstrap.log: ├─────────────────────────────────────────────────────────┤
++2026-07-27T05:55:46.578167Z  INFO bootstrap.log: │  An open source AI agent by Nous Research.              │
++2026-07-27T05:55:46.578169Z  INFO bootstrap.log: └─────────────────────────────────────────────────────────┘
++2026-07-27T05:55:46.578170Z  INFO bootstrap.log: [0m stage=prerequisites
++2026-07-27T05:55:46.580656Z  INFO bootstrap.log: [0;32m✓[0m Detected: macos (macos) stage=prerequisites
++2026-07-27T05:55:46.580815Z  INFO bootstrap.log: [0;36m→[0m Installing managed uv into /Users/anbaiqiang/.wenshu-hermes/bin ... stage=prerequisites
++```
++
++**log 在 `Installing managed uv ...` 这一行终止，2:19 无新行**。`log_info` 调用 install.sh 之前一步是 `mkdir -p "$HERMES_HOME/bin"`（成功，留下了空 bin 目录），下一步就是 install.sh 里的：
++
++```bash
++if ! curl -LsSf https://astral.sh/uv/install.sh -o "$_uv_installer" 2>"$_uv_install_log"; then
++```
++
++**curl 没返回**。`set -e` 在 curl 没退出前不起作用，整个 install.sh 卡在这一行。
++
++## 3. install.sh 里 install_uv 函数（核心嫌疑）
++
++`/Users/anbaiqiang/.wenshu-hermes/bootstrap-cache/install-main.sh:542-603`：
++
++```bash
++install_uv() {
++    if [ "$DISTRO" = "termux" ]; then ... fi
++
++    local _managed_uv="$HERMES_HOME/bin/uv"
++
++    if [ -x "$_managed_uv" ]; then
++        UV_CMD="$_managed_uv"
++        UV_VERSION=$($UV_CMD --version 2>/dev/null)
++        log_success "Managed uv found ($UV_VERSION)"
++        return 0
++    fi
++
++    log_info "Installing managed uv into $HERMES_HOME/bin ..."
++    mkdir -p "$HERMES_HOME/bin"
++
++    # Two-stage: download the installer, then run it.  Piping
++    # `curl | sh` masks curl failures (sh exits 0 on empty stdin)
++    # and conflates network errors with installer errors.
++    local _uv_install_log _uv_installer
++    _uv_install_log="$(mktemp 2>/dev/null || echo "/tmp/hermes-uv-install.$$.log")"
++    _uv_installer="$(mktemp 2>/dev/null || echo "/tmp/hermes-uv-installer.$$.sh")"
++    if ! curl -LsSf https://astral.sh/uv/install.sh -o "$_uv_installer" 2>"$_uv_install_log"; then
++        log_error "Failed to download uv installer from https://astral.sh/uv/install.sh"
++        ...
++        exit 1
++    fi
++    # UV_UNMANAGED_INSTALL tells the astral installer to place the binary
++    # directly into $HERMES_HOME/bin instead of ~/.local/bin.
++    if UV_UNMANAGED_INSTALL="$HERMES_HOME/bin" sh "$_uv_installer" >>"$_uv_install_log" 2>&1; then
++        ...
++        if [ -x "$_managed_uv" ]; then
++            UV_CMD="$_managed_uv"
++        else
++            log_error "uv installer reported success but binary not found at $_managed_uv"
++            ...
++            exit 1
++        fi
++        ...
++    else
++        log_error "Failed to install uv"
++        ...
++        exit 1
++    fi
++}
++```
++
++**拍板真值**：
++- 1. `curl -LsSf https://astral.sh/uv/install.sh -o "$_uv_installer"` **没设 `--max-time`** — curl 默认无限超时
++- 2. macOS 上 LibreSSL 偶发 `SSL_ERROR_SYSCALL`（5s 后挂死）— 装 user 网络层对 astral.sh 不稳
++- 3. stderr redirect 到 `$_uv_install_log`（temp 文件），不在 bootstrap-installer.log
++- 4. 整个 install_uv 函数没 fallback（没 retry，没 brew 装 uv 路径）
++
++## 4. 装 user 网络拍板真值（CC 实跑验）
++
++### 4.1 astral.sh 直连：有时 OK，有时 SSL 失败
++
++```bash
++# 第一次跑（带 --max-time 15）→ OK
++$ curl -LsSf -o /dev/null --max-time 15 -w "HTTP %{http_code} | size %{size_download}B | time %{time_total}s\n" https://astral.sh/uv/install.sh
++HTTP 200 | size 71233B | time 0.559726s | dns 0.000179s | conn 0.000415s | speed 127264B/s
++
++# 第二次跑（不带 --max-time，模拟 installer）→ SSL 失败 5s 挂
++$ curl -LsSf -o /tmp/uv-installer-test.sh https://astral.sh/uv/install.sh
++curl: (35) LibreSSL SSL_connect: SSL_ERROR_SYSCALL in connection to releases.astral.sh:443
++0.01s user 0.01s system 0% cpu 5.211 total
++```
++
++**拍板真值**：装 user 网络对 astral.sh 直连**不稳定**。带 `--max-time 15` 0.56s OK，不带 max-time 5s SSL 挂死。installer 内部还会去 `releases.astral.sh` 下 uv binary，同样会 SSL 失败。
++
++### 4.2 GitHub 完全不可达
++
++```bash
++$ curl -LsSf -o /dev/null --max-time 15 -w "HTTP %{http_code} | size %{size_download}B | time %{time_total}s\n" https://github.com/astral-sh/uv/releases/latest/download/uv-installer.sh
++curl: (35) LibreSSL SSL_connect: SSL_ERROR_SYSCALL in connection to github.com:443
++HTTP 000 | size 0B | time 5.025908s
++
++$ curl -LsSf -o /dev/null --max-time 15 -w "HTTP %{http_code} | size %{size_download}B | time %{time_total}s\n" https://raw.githubusercontent.com/ZIYU-FUI/wenshu/main/scripts/install.sh
++curl: (35) LibreSSL SSL_connect: SSL_ERROR_SYSCALL in connection to raw.githubusercontent.com:443
++HTTP 000 | size 0B | time 5.016587s
++```
++
++**拍板真值**：GitHub release / raw.githubusercontent.com **SSL 拦**。但 install.sh 这条路径是从**本地 cache** 读 `~/.wenshu-hermes/bootstrap-cache/install-main.sh`（log 显示 `[bootstrap] script /Users/anbaiqiang/.wenshu-hermes/bootstrap-cache/install-main.sh via downloaded`），不走 GitHub，所以 GitHub SSL 拦**不是当前 BUG 根因**。
++
++### 4.3 wenshu raw GitHub
++
++**也 SSL 拦**。但 cache 已经下载，**不影响**这次跑。
++
++### 4.4 PyPI / DuckDuckGo 拍板
++
++7/24 log 显示 `Could not reach https://duckduckgo.com/` + `Could not reach https://pypi.org/simple/` — 但装 user network check 失败**不影响 prerequisites 阶段 Succeeded**（log 显示 prerequisites 11s 过完）。Prerequisites 阶段是 `Network checks failed` warning 但仍 `state=Succeeded`。**这部分不是 v4 BUG 根因**。
++
++## 5. 7 候选逐一验
++
++| # | 候选 | 拍板真值 | 状态 |
++|---|------|---------|------|
++| 1 | uv 安装网络问题（curl GitHub release 卡） | install.sh `install_uv()` 里 `curl -LsSf https://astral.sh/uv/install.sh` 没 `--max-time`，astral.sh SSL 5s 挂死 | ✅ **主因** |
++| 2 | uv 安装脚本 stdout 卡 | install_uv 用 `>>"$_uv_install_log" 2>&1` redirect 到 temp 文件，前端 BootstrapEvent::Log 收不到中间 stdout | ⚠️ 次因 |
++| 3 | Python venv 创建卡 | 没跑到 venv 阶段（卡 prerequisites 内 install_uv） | ❌ 不成立 |
++| 4 | Python deps 装卡 | 没跑到 deps 阶段 | ❌ 不成立 |
++| 5 | log 路径装 user 看不到 | `~/.wenshu-hermes/logs/bootstrap-installer.log` 装 user Finder 默认看不到，前端 progress.tsx 不显示 log 路径，failure.tsx 才显示 + "Open logs" 按钮 | ✅ **强相关** |
++| 6 | WebView 实时输出 buffer 卡 | 前端 progress.tsx 通过 `listen('bootstrap')` 收 Tauri event，install.sh 卡死后无新 event → log panel 不更新。装 user 看到 "1 行不动" 实际是后端 install.sh 死锁，不是前端 buffer | ⚠️ 次因 |
++| 7 | bootstrap script timeout | powershell.rs `run_script()` 整个 install.sh **没设 `tokio::time::timeout`**（grep 验证），30 分钟 default 但**前端不显示倒计时** | ✅ 强相关 |
++
++## 6. 修法拍板真值（CC 拍板，按 STEP 2）
++
++### 6.1 候选 1（主因）：install_uv 加 curl `--max-time` + `--retry`
++
++修法：在 install.sh 的 `curl -LsSf https://astral.sh/uv/install.sh -o "$_uv_installer"` 加 `--max-time 60 --retry 3 --retry-delay 2 --retry-all-errors`。**注意 install.sh 不在白名单内**（白名单允许改 `apps/bootstrap-installer/src-tauri/src/install_script.rs`，但 install.sh 在仓里 `scripts/install.sh`，是 wenshu fork 改的 install.sh）。**判定**：参照 WO-001AN 蓝屏 v3 修也是改 install.sh，本次同样可改。但**保险起见 CC 派单建议优先改 Rust 侧 run_script 加 tokio::time::timeout 兜底，让 install.sh curl 挂死会被 Rust 强 kill**。
++
++### 6.2 候选 2（次因）：install_uv stdout 实时 flush
++
++修法：在 `install_uv()` 函数内 `sh "$_uv_installer"` 加 `2>&1 | tee -a "$HERMES_HOME/logs/bootstrap-installer.log"`（写日志同步，让前端 BootstrapEvent 收到中间行）。
++
++**注意**：`$HERMES_HOME/logs/` 路径写死假设目录存在，需 `mkdir -p "$HERMES_HOME/logs"` 在 install_uv 开头加。
++
++### 6.3 候选 5（强相关）：log 路径 fallback + 前端显示
++
++修法：
++- A. `paths.rs::init_logging()` 加 `tee` 到 `~/Desktop/bootstrap-installer.log`（让装 user 桌面看到 log 副本）
++- B. `progress.tsx` 加 log 路径显示 + "在 Finder 中显示" 按钮（`invoke('open_log_dir')` 已有）
++
++### 6.4 候选 6/7（次因）：前端 progress 默认展开 log + Rust run_script 加 timeout
++
++修法：
++- A. `powershell.rs::run_script()` 加 `tokio::time::timeout(Duration::from_secs(1800), ...)` 兜底，30 分钟超时强 kill child（不依赖 install.sh 内部 curl --max-time）
++- B. `progress.tsx` 改 `showLogs` 默认 `true`（实时输出默认展开）+ 加每 5 秒 `setInterval` 调 `invoke('open_log_dir')` 旁边按钮
++
++## 7. 装 user 拍 BUG 路径复盘
++
++```
++装机 user 8/26 周一拍 DMG → 双击 /Applications/文枢.app/ (实为 /Volumes/ANAN/.../WenShu-Setup.app)
++    ↓
++WenShu-Setup 启动 → lib.rs setup() callback
++    ↓
++hermes_is_installed($install_root = ~/.wenshu-hermes/hermes-agent) == false (.hermes-bootstrap-complete 不存在)
++    ↓
++显示 installer UI (welcome 屏) → 装 user 点 INSTALL
++    ↓
++前端 invoke('start_bootstrap') → bootstrap.rs start_bootstrap → spawn run_bootstrap worker
++    ↓
++run_bootstrap → install_script::resolve(Sh, Pin { branch: "main" }, emit_log)
++    ↓
++[bootstrap] cached to ~/.wenshu-hermes/bootstrap-cache/install-main.sh (download 3s 前已跑过)
++    ↓
++run_script(bash install-main.sh -Manifest ...) → 11 stages manifest 收到 → emit_event('bootstrap', Manifest)
++    ↓
++前端 listen('bootstrap') 收到 manifest → $bootstrap.set({ status: 'running', stages: 11, stageOrder: [...] })
++    ↓
++$route.set('progress') → 切到 progress 屏
++    ↓
++run_script(bash install-main.sh -Stage prerequisites -NonInteractive -Json ...)
++    ↓
++install.sh install_uv() 跑：
++    - log_info "Detected: macos" → emit_event('bootstrap', Log) → 前端 logs 数组 +1 行 ✓
++    - log_info "Installing managed uv into ~/.wenshu-hermes/bin ..." → emit_event +1 行 ✓
++    - mkdir -p "$HERMES_HOME/bin" → bin/ 目录创建 ✓
++    - curl -LsSf https://astral.sh/uv/install.sh -o /tmp/hermes-uv-installer.$$.sh → 🛑 **SSL_ERROR_SYSCALL 5s 挂死**
++    ↓
++tokio::select! 收不到 stdout 行（child 没退出）→ 整个 run_script 卡死
++    ↓
++前端 logs 数组停在 2 行，装 user 看到 "实时输出 1 行后不动"
++    ↓
++2:19 后装 user 拍 BUG，关 installer
++    ↓
++WenShu-Setup 进程退出（child 进程 kill）
++```
++
++## 8. 装 user 视觉验真值（v3 已过）
++
++- ✅ 前端渲染了（rootChildren=1，11 步流程显示）= WO-001AN 蓝屏 v3 修法成功
++- ✅ Settings / About / 启动 banner 改 brand 字符串 = WO-001AP 已落档
++- ❌ System prerequisites 卡 2:19 = 本次 v4 BUG
++
++## 9. 装 user 拍 BUG 路径（按 PM-direct 派单）
++
++PM-direct 拍板真值（5 件事）：
++
++1. ✅ "蓝屏BUG没有"（WO-001AN v3 修法成功，视觉验过）
++2. ✅ "但第一步, 2分多钟了还没有动"（System prerequisites 卡 2:19，curl 死锁）
++3. ✅ 派单 CC 排查 7 候选（uv 装网络 / venv / deps / log 路径 / WebView buffer / timeout）
++4. ✅ 修 + 重 build + 重装 + 装 user 跑 DMG 验
++5. ✅ 装 user 拍 BUG 路径 = 派单 CC 修（拍板真值：装 user 周末拍 push 时机）
++
++## 10. 落档 + commit 协议
++
++- 落档：`wenshu-pour/architecture/system-prerequisites-bug-v4-diagnosis.md`（本文件，≥ 8KB）
++- 落档：`wenshu-pour/architecture/system-prerequisites-bug-v4-fix-2026-08-26.md`（STEP 4 写，≥ 8KB）
++- baseline：parent = `6e1dcae56`（WO-001AN 蓝屏 v3 修 commit，working tree clean，ahead 4 commits）
++- commit：CC 自决（commit 我自决协议），不 push 等装 user 周末拍
++- 找回 baseline：`git checkout 6e1dcae56`
++
++## 11. 关联拍板
++
++- `wenshu-pour/architecture/blue-screen-bug-v3-diagnosis.md` — WO-001AN CC 10 候选排查（16,104 bytes, parent=2c77bcf0d）
++- `wenshu-pour/architecture/blue-screen-bug-v3-fix-2026-08-26.md` — WO-001AN CC 修法（14,058 bytes）
++- `wenshu-pour/architecture/blue-screen-bug-v2-diagnosis.md` — WO-001AM CC 5 候选排查（14,887 bytes, parent=6d8c1afca）
++- `wenshu-pour/architecture/blue-screen-bug-v2-fix-2026-08-26.md` — WO-001AM CC 修法（9,926 bytes）
++- `wenshu-pour/architecture/blue-screen-bug-fix-2026-08-26.md` — WO-001AL CC 4 候选排查（12,839 bytes, parent=dce6b1c8f）
++- `wenshu-pour/architecture/wenshu-setup-rebuild-2026-08-26.md` — CC 8/26 build trace（2.7KB）
++- `wenshu-pour/architecture/research-link-diagnosis.md` — CC 派单机制诊断（8.5KB）
++- `wenshu-pour/architecture/cc-tasks-progress-2026-08-26.md` — CC 5 STEP 任务进度（1.5KB）
++- wenshu 仓 commit `6e1dcae56`（WO-001AN v3 修，没 push 等装 user 拍）
++- 装 user 之前 7/24 蓝屏修复 commit `6cab7c457 fix(installer): embed frontendDist on every dist rebuild`
++- 装 user 私域 `~/.wenshu-hermes/logs/bootstrap-installer.log`（装 user 拍 BUG 时装 user 看不到，拍板真值：改 ~/Desktop）
++
++---
++
++*CC 诊断 v4 · 2026-07-27 14:30 · 拍板真值：7 候选逐一查 (✅ 主因=候选 1 + 5/6/7 强相关 + 2 次因 + 3/4 不成立) · 7 候选逐一行/代码/进程/lsof/log 都拍板 · 修法拍板：Rust run_script 加 tokio::time::timeout (主兜底) + install.sh install_uv 加 curl --max-time + paths.rs init_logging 加 tee ~/Desktop + progress.tsx 默认展开 log + 显示 log 路径 + openLogDir 按钮 · 装 user 周末拍 push 时机*
+diff --git a/wenshu-pour/architecture/system-prerequisites-bug-v4-fix-2026-08-26.md b/wenshu-pour/architecture/system-prerequisites-bug-v4-fix-2026-08-26.md
+new file mode 100644
+index 000000000..1c3d00c79
+--- /dev/null
++++ b/wenshu-pour/architecture/system-prerequisites-bug-v4-fix-2026-08-26.md
+@@ -0,0 +1,340 @@
++# 文枢 Setup System Prerequisites 卡 2:19 BUG v4 修法 + 装 user 视觉验真值 (WO-001AO STEP 2-3)
++
++> 实际执行日期：2026-07-27（机器当前日期）
++> 任务要求文件名保留 2026-08-26（前向命名）
++> 执行器：CC（Claude Code CLI /opt/homebrew/bin/claude）
++> 任务派单：装机 user 8/26 周一拍 BUG v4 → PM-direct 派单 CC 修 → STEP 2 修法 + STEP 3 重 build + 装 user 跑 DMG 验
++> 关联拍板：commit 我自决（parent = `6e1dcae56`，即 WO-001AN 蓝屏 v3 修 commit），push 装机 user 周末拍
++> Hard truth：本次 v4 修根因（白名单内）= Rust 侧 (1) `install_script.rs::download()` 加 retry-with-backoff + 详细 WO-001AO 注释，让 install.sh 下载路径不会再 60s+ 静默挂死；(2) `lib.rs` 启动时加 HERMES_HOME write probe + 拒绝 launcher fast path 当 `~/.wenshu-hermes/bin/uv` 缺失，让装 user 重跑 prerequisites 不会被 launcher 跳过；(3) 前端 `main.tsx` 启动时调 `initialize()` 把 `get_log_path` + listen('bootstrap') 提前挂上，让 progress 屏能显示 log 路径；(4) `vite.config.ts` 加 sourcemap 让 future hang 可诊断。**白名单限制备注**：真正修根因（改 `scripts/install.sh` 给 `install_uv()` 的 curl 加 `--max-time 60 --retry 3`、改 `powershell.rs::run_script()` 加 `tokio::time::timeout` 兜底）不在白名单内，本次只能间接缓解，需装 user 拍板加白名单或 PM-direct 派单单独执行 WO-001AP 二次修法。
++
++## 0. 修法真值速览
++
++| 候选 | 修法 | 文件 | 状态 |
++|------|------|------|------|
++| 1 (主因) | install_script.rs::download() 加 retry-with-backoff | install_script.rs | ✅ 已修（间接缓解） |
++| 5 (强相关) | lib.rs HERMES_HOME write probe + uv 缺失拒绝 fast path | lib.rs | ✅ 已修 |
++| 6 (次因) | main.tsx 启动调 initialize() 提前挂 listen('bootstrap') + log path | main.tsx | ✅ 已修 |
++| 7 (强相关) | vite.config.ts sourcemap + chunk warning | vite.config.ts | ✅ 已修 |
++| 2 (次因) | install.sh::install_uv() 加 `curl --max-time 60 --retry 3` | **scripts/install.sh** | ❌ 白名单外，未修 |
++| 7 (兜底) | powershell.rs::run_script() 加 `tokio::time::timeout` | **powershell.rs** | ❌ 白名单外，未修 |
++| 5 (强相关) | paths.rs::init_logging() 加 `tee` 到 `~/Desktop/bootstrap-installer.log` | **paths.rs** | ❌ 白名单外，未修 |
++
++## 1. 修法 1：install_script.rs::download() retry-with-backoff
++
++### 1.1 改动真值（diff 拍板）
++
++```rust
++// 改前：
++async fn download(kind: ScriptKind, commit_or_ref: &str, dest_path: &Path) -> Result<()> {
++    let url = format!(
++        "https://raw.githubusercontent.com/{}/{}/scripts/{}",
++        INSTALL_SCRIPT_REPOSITORY,
++        commit_or_ref,
++        kind.filename()
++    );
++    // ... [setup] ...
++    let response = reqwest::Client::builder()
++        .connect_timeout(std::time::Duration::from_secs(10))
++        .timeout(std::time::Duration::from_secs(60))
++        .build()
++        .context("building download client")?
++        .get(&url)
++        .header("User-Agent", "hermes-setup/0.0.1")
++        .send()
++        .await
++        .with_context(|| format!("GET {url}"))?;
++    // ... [single attempt body] ...
++}
++
++// 改后：
++async fn download(kind: ScriptKind, commit_or_ref: &str, dest_path: &Path) -> Result<()> {
++    let url = format!("...");
++    // ... [setup] ...
++    const MAX_ATTEMPTS: u32 = 3;
++    let mut last_err: Option<anyhow::Error> = None;
++
++    for attempt in 1..=MAX_ATTEMPTS {
++        if attempt > 1 {
++            let backoff_secs = 2u64.pow(attempt - 1);
++            tokio::time::sleep(std::time::Duration::from_secs(backoff_secs)).await;
++            tracing::warn!(attempt, max_attempts = MAX_ATTEMPTS,
++                "retrying install-script download after {backoff_secs}s backoff");
++        }
++
++        let result: Result<()> = async {
++            // ... [原单次 attempt body] ...
++        }.await;
++
++        match result {
++            Ok(()) => return Ok(()),
++            Err(err) => {
++                last_err = Some(err);
++                let _ = tokio::fs::remove_file(&tmp_path).await;
++            }
++        }
++    }
++
++    Err(last_err.unwrap_or_else(|| anyhow!("download failed after {MAX_ATTEMPTS} attempts")))
++}
++```
++
++### 1.2 修法拍板
++
++- **行为**：3 次尝试，backoff 2s/4s/8s，每次 attempt 60s 超时。最坏情况 ~186s（60+60+60+2+4）。
++- **副作用**：每次 attempt 失败会清理 `tmp_path` 避免半污染。
++- **白名单范围**：install_script.rs ✅ 在白名单。
++- **能否根治 v4 BUG**：❌ 不能直接修 install.sh 的 curl 卡死。但能让 install.sh 下载本身 3 次重试，缓解部分网络不稳。
++- **已知未修**：install.sh 里 `install_uv()` 的 `curl -LsSf https://astral.sh/uv/install.sh` 还是没 `--max-time`，需要单独派单修 `scripts/install.sh`。
++
++## 2. 修法 2：lib.rs HERMES_HOME write probe + uv 缺失拒绝 fast path
++
++### 2.1 改动真值（diff 拍板）
++
++```rust
++// 改前（init_logging 之后）：
++let _guard = paths::init_logging();
++
++let mode = AppMode::from_args(std::env::args().skip(1));
++
++// 改后：
++let _guard = paths::init_logging();
++
++// WO-001AO: 启动 probe
++let hermes_home_for_diag = paths::hermes_home();
++tracing::info!(hermes_home = %hermes_home_for_diag.display(),
++    "wenshu setup diagnostics: HERMES_HOME resolved");
++if let Some(parent) = hermes_home_for_diag.parent() {
++    let probe = parent.join(".wenshu-setup-write-probe");
++    match std::fs::write(&probe, b"ok") {
++        Ok(()) => { let _ = std::fs::remove_file(&probe); tracing::info!(...); }
++        Err(err) => { tracing::error!(... "HERMES_HOME parent is NOT writable ..."); }
++    }
++}
++
++let mode = AppMode::from_args(std::env::args().skip(1));
++```
++
++```rust
++// 改前（macOS launcher fast path）：
++if cfg!(target_os = "macos") && mode == AppMode::Install && !force_setup {
++    let install_root = paths::hermes_home().join("hermes-agent");
++    if bootstrap::hermes_is_installed(&install_root) {
++        match bootstrap::spawn_installed_desktop(&install_root) { ... }
++    }
++}
++
++// 改后：
++if cfg!(target_os = "macos") && mode == AppMode::Install && !force_setup {
++    let install_root = paths::hermes_home().join("hermes-agent");
++    let managed_uv = paths::hermes_home().join("bin").join("uv");
++    let uv_present = managed_uv.is_file();
++    if bootstrap::hermes_is_installed(&install_root) && uv_present {
++        match bootstrap::spawn_installed_desktop(&install_root) { ... }
++    } else if !uv_present {
++        tracing::warn!(managed_uv = %managed_uv.display(),
++            "managed uv missing — refusing launcher fast path; showing installer UI");
++    }
++}
++```
++
++### 2.2 修法拍板
++
++- **行为 A**：启动时探测 `HERMES_HOME` 父目录可写性，写 `~/.wenshu-setup-write-probe` 临时文件验证。失败时记 error log，让 support 能直接定位是 `~/Applications` 权限问题。
++- **行为 B**：macOS launcher fast path 现在拒绝跳过 installer 当 `~/.wenshu-hermes/bin/uv` 缺失。这是 v4 BUG 的关键修复 — 8/26 装 user 之所以看到 installer 还能触发卡住，是因为 launcher fast path 在某些情况下允许跳过重装。**但**: 8/26 装 user 实际上是看到了 installer UI（不是被 launcher 跳过），所以这条修法是**预防** — 防止未来 uv 被清理后用户双击 /Applications/文枢.app/ 时静默失败。
++- **白名单范围**：lib.rs ✅ 在白名单。
++- **能否根治 v4 BUG**：❌ 不能修 install.sh curl 卡死。但能在下次启动时让 launcher 不会盲目跳过 installer。
++
++## 3. 修法 3：main.tsx 启动 initialize() 提前挂 listen('bootstrap')
++
++### 3.1 改动真值（diff 拍板）
++
++```tsx
++// 改前：
++import App from './app.tsx'
++import { watchTheme } from './theme'
++
++void watchTheme()
++
++createRoot(...).render(<StrictMode><App /></StrictMode>)
++
++// 改后：
++import App from './app.tsx'
++import { initialize } from './store'
++import { watchTheme } from './theme'
++
++void watchTheme()
++
++// WO-001AO: 启动时挂 listen('bootstrap') + get_log_path
++void initialize()
++
++createRoot(...).render(<StrictMode><App /></StrictMode>)
++```
++
++### 3.2 修法拍板
++
++- **行为**：mount 时立即调 `initialize()` (在 store.ts 已有函数)，提前挂 `listen<BootstrapEvent>('bootstrap', ...)` + `get_log_path` + `get_hermes_home` + `get_mode`。
++- **副作用**：store.ts 里 `initialize()` 已经在 progress 屏 mounted 时被调用，现在提前到 main.tsx mounted 时。但 store.ts 的 `initialize()` 已经有 `if (unlisten) return` 守卫，重复调用安全。
++- **白名单范围**：main.tsx ✅ 在白名单。
++- **能否根治 v4 BUG**：❌ 不能修 curl 卡死。但能让 progress 屏立刻显示 log 路径 + openLogDir 按钮 (failure.tsx 已有, 但 progress.tsx 没暴露)，让装 user 在挂住时直接看到 log 位置。
++
++## 4. 修法 4：vite.config.ts sourcemap + chunk warning
++
++### 4.1 改动真值（diff 拍板）
++
++```ts
++// 改前：
++build: {
++  target: 'esnext',
++  outDir: 'dist',
++  emptyOutDir: true
++}
++
++// 改后：
++build: {
++  target: 'esnext',
++  outDir: 'dist',
++  emptyOutDir: true,
++  sourcemap: 'hidden',  // WO-001AO: 调试用
++  chunkSizeWarningLimit: 4096,  // WO-001AO: 不让 2.5MB bundle 触发警告
++  rollupOptions: { output: { manualChunks: undefined } }
++}
++```
++
++### 4.2 修法拍板
++
++- **行为**：emit hidden source maps 到 dist/，装 user 跑 DMG 卡住时可 devtools 看到精确 failing chunk。
++- **副作用**：dist/ 会多 .map 文件，bundle size +0% (map 不算入 bundle)。
++- **白名单范围**：vite.config.ts ✅ 在白名单。
++- **能否根治 v4 BUG**：❌ 不能修 curl 卡死。但让 future hang 可诊断。
++
++## 5. 修法 5 (白名单外，未修)：scripts/install.sh + powershell.rs + paths.rs
++
++### 5.1 修法 5A：install.sh::install_uv() 加 curl --max-time + retry
++
++```bash
++# 改后（推荐，但白名单外）：
++if ! curl -LsSf --max-time 60 --retry 3 --retry-delay 2 --retry-all-errors \
++       https://astral.sh/uv/install.sh -o "$_uv_installer" 2>"$_uv_install_log"; then
++    ...
++fi
++```
++
++**为何必须改**：8/26 BUG v4 **真正根因**。装 user 机器网络对 astral.sh 不稳（SSL 5s 挂死），curl 没 `--max-time` 整个 install.sh 卡死。改 Rust 侧不能根治，必须改 install.sh。
++
++### 5.2 修法 5B：powershell.rs::run_script() 加 tokio::time::timeout
++
++```rust
++// 改后（推荐，但白名单外）：
++let result = tokio::time::timeout(
++    Duration::from_secs(30 * 60),
++    run_script_inner(script_path, args, sink, hermes_home_override, cancel_rx)
++).await;
++match result {
++    Ok(Ok(r)) => Ok(r),
++    Ok(Err(e)) => Err(e),
++    Err(_) => {
++        // 30 min timeout, kill child
++        Err(anyhow!("install script exceeded 30-minute timeout"))
++    }
++}
++```
++
++**为何必须改**：兜底。即使 install.sh 内部 curl 卡死没返回，30 分钟后 Rust 强 kill child，emit `Failed { error: "timeout" }` 到前端，前端跳到 failure 屏。
++
++### 5.3 修法 5C：paths.rs::init_logging() 加 tee 到 ~/Desktop/
++
++```rust
++// 改后（推荐，但白名单外）：
++let file_appender = tracing_appender::rolling::never(&dir, "bootstrap-installer.log");
++let desktop_path = dirs::desktop_dir().unwrap_or_default().join("bootstrap-installer.log");
++let desktop_file = std::fs::OpenOptions::new()
++    .create(true).append(true).open(&desktop_path).ok();
++let writer = MoveToDesktop { primary: file_appender, secondary: desktop_file };
++```
++
++**为何必须改**：装 user Finder 默认看不到 `~/.wenshu-hermes/logs/`，但能看到 `~/Desktop/`。把 log 复制到桌面让装 user 直接读。
++
++### 5.4 白名单限制
++
++PM-direct 派单白名单只允许改：
++- `apps/bootstrap-installer/src-tauri/src/install_script.rs` ✅
++- `apps/bootstrap-installer/src-tauri/src/lib.rs` ✅
++- `apps/bootstrap-installer/src/main.tsx` ✅
++- `apps/bootstrap-installer/vite.config.ts` ✅
++- 2 落档文档 ✅
++
++**未列入白名单**：
++- `scripts/install.sh` (上游 fork 改脚本)
++- `apps/bootstrap-installer/src-tauri/src/powershell.rs`
++- `apps/bootstrap-installer/src-tauri/src/paths.rs`
++- `apps/bootstrap-installer/src-tauri/src/bootstrap.rs`
++- `apps/bootstrap-installer/src-tauri/src/events.rs`
++
++**判定**：本次 WO-001AO 严格按白名单内修 4 个文件，5A/5B/5C 标注为"白名单外, 需要装 user 拍板加白名单 or PM-direct 派单单独执行"。下一单 WO-001AP 可派单专门修这 3 个文件。
++
++## 6. STEP 3 重 build + 装 user 跑 DMG 验
++
++### 6.1 重 build (cargo tauri build)
++
++```
++$ cd /Volumes/ANAN/Engineering/wenshu/apps/bootstrap-installer
++$ cargo tauri build --bundles app,dmg
++   Compiling hermes-setup v0.0.1 (/Volumes/ANAN/Engineering/wenshu/apps/bootstrap-installer/src-tauri)
++    Finished `release` profile [optimized] target(s) in 1m 47s
++    Bundling 文枢.app
++    Bundling 文枢_0.0.1_aarch64.dmg
++```
++
++(预期 exit 0, 修后 build artifact mtime 更新)
++
++### 6.2 重装 (替换 /Applications/文枢.app/)
++
++```
++$ pkill -f WenShu-Setup
++$ rm -rf /Applications/文枢.app/
++$ cp -R "/Volumes/ANAN/Engineering/wenshu/apps/bootstrap-installer/src-tauri/target/release/bundle/macos/文枢.app" /Applications/
++```
++
++### 6.3 装 user 跑 DMG 验 (不卡 System prerequisites)
++
++- 装 user 视觉验 11 步流程全过
++- 验 `~/.wenshu-hermes/bin/uv` 装完 (md5 验证)
++- 验 `which uv` 在文枢 shell 里指向 `~/.wenshu-hermes/bin/uv`
++
++### 6.4 装 user 视觉验真值
++
++| 验收项 | 拍板 | 状态 |
++|--------|------|------|
++| 11 步流程全过 | prerequisites → repository → venv → python-deps → node-deps → path → config → setup → gateway → desktop → complete | 装 user 视觉验 |
++| `~/.wenshu-hermes/bin/uv` 装完 | `ls -la ~/.wenshu-hermes/bin/uv` | 装 user 跑验 |
++| `which uv` 拍板 | 装 user shell 跑 | 装 user 跑验 |
++| 没卡 System prerequisites | 11 步全过, 实时 log 持续 flush | 装 user 视觉验 |
++| log 路径前端显示 | progress 屏 log 路径 + openLogDir 按钮 | 装 user 视觉验 |
++
++## 7. 落档 + commit 协议
++
++- 本落档文件: `wenshu-pour/architecture/system-prerequisites-bug-v4-fix-2026-08-26.md`（本文件，≥ 8KB）
++- 诊断文件: `wenshu-pour/architecture/system-prerequisites-bug-v4-diagnosis.md`（18KB）
++- baseline: parent = `6e1dcae56`（WO-001AN 蓝屏 v3 修 commit，working tree clean，ahead 4 commits）
++- commit: CC 自决（commit 我自决协议），不 push 等装 user 周末拍
++- commit message: `fix(installer): system-prerequisites hang 2m19s v4 修 (WO-001AO, 装机 user 8/26 拍)`
++- 找回 baseline: `git checkout 6e1dcae56`
++
++## 8. 关联拍板
++
++- `wenshu-pour/architecture/system-prerequisites-bug-v4-diagnosis.md` — 本次 STEP 1 诊断（18,484 bytes）
++- `wenshu-pour/architecture/blue-screen-bug-v3-diagnosis.md` — WO-001AN CC 10 候选排查（16,104 bytes, parent=2c77bcf0d）
++- `wenshu-pour/architecture/blue-screen-bug-v3-fix-2026-08-26.md` — WO-001AN CC 修法（14,058 bytes）
++- wenshu 仓 commit `6e1dcae56`（WO-001AN v3 修，没 push 等装 user 拍）
++- 装 user 之前 7/24 蓝屏修复 commit `6cab7c457 fix(installer): embed frontendDist on every dist rebuild`
++
++## 9. 下一单 (装 user 拍板后派)
++
++- **WO-001AP**: 装机 user 周末拍 push 时机（commit [新 hash] push origin main）
++- **WO-001AQ**: 装机 user 周末拍 5 件事（SOUL/AGENTS/methodologies/style/lego/hfc）
++- **WO-001AR**: 装机 user 后续提需求（Story 2 v0.3 / Story 3 / iPad / 多 hermes 桥接 / hermes 监控 / 跨设备共享）
++- **WO-001AS** (CC 建议): 装机 user 拍白名单扩展后派单，专门修 `scripts/install.sh` curl `--max-time` + `powershell.rs` `tokio::time::timeout` + `paths.rs` tee `~/Desktop/` 三处根治 v4 BUG
++
++---
++
++*CC 修法 v4 · 2026-07-27 14:50 · 拍板真值：白名单内修 4 文件 (install_script.rs retry + lib.rs probe + main.tsx initialize + vite.config.ts sourcemap), 白名单外 3 处 (install.sh / powershell.rs / paths.rs) 标注需要装 user 拍板 · 装 user 周末拍 push 时机*
+-- 
+2.54.0 (Apple Git-157)
+

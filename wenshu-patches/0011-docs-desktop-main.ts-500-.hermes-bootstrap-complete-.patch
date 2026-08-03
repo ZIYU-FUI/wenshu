@@ -1,0 +1,41 @@
+From 79c8fd692cbe8332f8ddc015a9e026c3804aa23f Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=E5=AD=90=E8=AA=89?=
+ <9528147+zi-yu1983@user.noreply.gitee.com>
+Date: Fri, 24 Jul 2026 00:19:52 +0800
+Subject: [PATCH 011/168] =?UTF-8?q?docs(desktop):=20main.ts:500=20?=
+ =?UTF-8?q?=E6=B3=A8=E9=87=8A=E8=AF=B4=E6=98=8E=20.hermes-bootstrap-comple?=
+ =?UTF-8?q?te=20marker=20=E5=91=BD=E5=90=8D=E7=BA=A6=E5=AE=9A?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- 文件名保留 .hermes- 前缀 (历史继承, 跨 install.ps1 兼容)
+- 实际写入 ACTIVE_HERMES_ROOT = ~/.wenshu-hermes (隔离)
+- 不污染 ~/.hermes (因为 ACTIVE_HERMES_ROOT 已经隔离)
+Co-authored-by: hermes-agent <noreply@NousResearch>
+---
+ apps/desktop/electron/main.ts | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/apps/desktop/electron/main.ts b/apps/desktop/electron/main.ts
+index 7d1bdc903..9452d1900 100644
+--- a/apps/desktop/electron/main.ts
++++ b/apps/desktop/electron/main.ts
+@@ -497,6 +497,14 @@ const VENV_ROOT = path.join(ACTIVE_HERMES_ROOT, 'venv')
+ // We deliberately put the marker INSIDE ACTIVE_HERMES_ROOT (not alongside)
+ // so that deleting the checkout to start fresh also deletes the marker --
+ // avoids the confusing "marker exists but checkout is gone" state.
++//
++// Marker filename keeps the historical `.hermes-bootstrap-complete` form
++// (NOT renamed to `.wenshu-bootstrap-complete`) for cross-compat with
++// install.ps1 + bootstrap-runner.ts + a future migration that might want to
++// share the marker layout with upstream Hermes. The .hermes- prefix is a
++// file-internal naming convention only; the surrounding directory is
++// wenshu-isolated (ACTIVE_HERMES_ROOT = ~/.wenshu-hermes), so this does NOT
++// pollute ~/.hermes.
+ const BOOTSTRAP_COMPLETE_MARKER = path.join(ACTIVE_HERMES_ROOT, '.hermes-bootstrap-complete')
+ const BOOTSTRAP_MARKER_SCHEMA_VERSION = 1
+ 
+-- 
+2.54.0 (Apple Git-157)
+
