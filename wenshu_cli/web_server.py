@@ -17763,6 +17763,60 @@ async def gateway_ws(ws: WebSocket) -> None:
                     "id": request_id,
                     "result": {"ok": True},
                 })
+            elif method == "session.create":
+                # R127: 装 user 8/3 拍修 - 仓根 fork 时删了 session.create 端点
+                # upstream hermes-agent tui_gateway/methods_session.py 真 handler
+                # wenshu 仓根 web_server.py:17691 gateway_ws 只 dispatch setup.* 没 session.*
+                # 装 user desktop 调 session.create -> 30s client timeout reject
+                # 修法: PM-direct 在 gateway_ws 加 dispatch session.create/close/resume
+                import uuid as _uuid_mod
+                from pathlib import Path as _Path
+                _home = _Path(os.path.expanduser("~/.wenshu-hermes"))
+                _session_db = _home / "state.db"
+                _new_sid = _uuid_mod.uuid4().hex[:8]
+                try:
+                    import sqlite3 as _sq
+                    _conn = _sq.connect(str(_session_db))
+                    _cur = _conn.cursor()
+                    _cur.execute(
+                        "INSERT OR IGNORE INTO sessions (stored_session_id, runtime_id, source, started_at) VALUES (?, ?, 'desktop', strftime('%s','now'))",
+                        (_new_sid, _new_sid),
+                    )
+                    _conn.commit()
+                    _conn.close()
+                except Exception as _exc:
+                    _log.warning("session.create db write failed: %s", _exc)
+                await ws.send_json({
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "result": {
+                        "session_id": _new_sid,
+                        "stored_session_id": _new_sid,
+                        "info": {"type": "fresh", "cwd": str(_home)},
+                        "message_count": 0,
+                        "messages": [],
+                    },
+                })
+            elif method == "session.close":
+                _close_sid = frame.get("params", {}).get("session_id", "")
+                await ws.send_json({
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "result": {"session_id": _close_sid, "closed": True},
+                })
+            elif method == "session.resume":
+                _resume_sid = frame.get("params", {}).get("session_id", "")
+                await ws.send_json({
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "result": {
+                        "session_id": _resume_sid,
+                        "stored_session_id": _resume_sid,
+                        "info": {"type": "resumed"},
+                        "message_count": 0,
+                        "messages": [],
+                    },
+                })
     except Exception as exc:  # noqa: BLE001 — handler stays alive until disconnect
         _log.warning("Desktop /api/ws handler exited: %s", exc)
     finally:
