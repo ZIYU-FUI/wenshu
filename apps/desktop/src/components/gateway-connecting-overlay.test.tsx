@@ -61,8 +61,8 @@ const isConnectingShown = () =>
 const isRecoveryShown = () =>
   Boolean(
     screen.queryByText(/use local gateway|使用本地网关/i) ||
-      screen.queryByText(/retry|重试/i) ||
-      screen.queryByText(/sign in|登录/i)
+    screen.queryByText(/retry|重试/i) ||
+    screen.queryByText(/sign in|登录/i)
   )
 
 describe('connecting overlay vs recovery surface', () => {

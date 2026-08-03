@@ -55,7 +55,7 @@ const IS_WINDOWS = process.platform === 'win32'
 function _resolveWenshuHomeSafe(wenshuHome: string | undefined | null): string {
   const raw = wenshuHome ?? process.env.WENSHU_HOME
 
-  if (!raw || (/\$\{?HOME\}?/.test(raw) || raw.trim().startsWith('~'))) {
+  if (!raw || /\$\{?HOME\}?/.test(raw) || raw.trim().startsWith('~')) {
     return path.join(os.homedir(), '.wenshu-hermes')
   }
 
@@ -631,7 +631,7 @@ function spawnBash(scriptPath, args, { emit, stageName, abortSignal, wenshuHome 
       stdio: ['ignore', 'pipe', 'pipe'],
       env: {
         ...process.env,
-          WENSHU_HOME: _resolveWenshuHomeSafe(wenshuHome)
+        WENSHU_HOME: _resolveWenshuHomeSafe(wenshuHome)
       }
     })
 

@@ -1,8 +1,8 @@
 import type { Dispatch, SetStateAction } from 'react'
 
-import type { WenshuGateway } from '@/wenshu'
 import type { IconComponent } from '@/lib/icons'
 import type { EnvVarInfo } from '@/types/wenshu'
+import type { WenshuGateway } from '@/wenshu'
 
 export type SettingsView =
   | 'about'

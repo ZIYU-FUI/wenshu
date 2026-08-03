@@ -4,10 +4,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
-import { getElevenLabsVoices, getWenshuConfigSchema, saveWenshuConfig } from '@/wenshu'
 import { useI18n } from '@/i18n'
 import { notify, notifyError } from '@/store/notifications'
 import type { ConfigFieldSchema, WenshuConfigRecord } from '@/types/wenshu'
+import { getElevenLabsVoices, getWenshuConfigSchema, saveWenshuConfig } from '@/wenshu'
 
 import { setWenshuConfigCache, useWenshuConfigRecord } from '../hooks/use-config-record'
 import { useOnProfileSwitch } from '../hooks/use-on-profile-switch'

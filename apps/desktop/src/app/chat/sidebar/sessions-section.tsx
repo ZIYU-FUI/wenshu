@@ -6,10 +6,10 @@ import { SidebarPanelLabel } from '@/app/shell/sidebar-label'
 import { DisclosureCaret } from '@/components/ui/disclosure-caret'
 import { SidebarGroup, SidebarGroupContent } from '@/components/ui/sidebar'
 import type { WenshuGitWorktree } from '@/global'
-import type { SessionInfo } from '@/wenshu'
 import { flattenSessionsWithBranches } from '@/lib/session-branch-tree'
 import { cn } from '@/lib/utils'
 import { sessionPinId } from '@/store/session'
+import type { SessionInfo } from '@/wenshu'
 
 import { SidebarCount } from './chrome'
 import {

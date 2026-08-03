@@ -16,16 +16,8 @@ export function BrandMark({ className, ...props }: React.ComponentProps<'span'>)
       )}
       {...props}
     >
-      <img
-        alt=""
-        className="size-full object-contain dark:hidden"
-        src={assetPath('wenshu-logo-256.png')}
-      />
-      <img
-        alt=""
-        className="hidden size-full object-contain dark:block"
-        src={assetPath('wenshu-logo-256-dark.png')}
-      />
+      <img alt="" className="size-full object-contain dark:hidden" src={assetPath('wenshu-logo-256.png')} />
+      <img alt="" className="hidden size-full object-contain dark:block" src={assetPath('wenshu-logo-256-dark.png')} />
     </span>
   )
 }

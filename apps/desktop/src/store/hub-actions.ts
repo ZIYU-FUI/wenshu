@@ -1,9 +1,9 @@
 import { atom, map } from 'nanostores'
 
-import { getActionStatus, installSkillFromHub, uninstallSkillFromHub, updateSkillsFromHub } from '@/wenshu'
 import { queryClient } from '@/lib/query-client'
 import { upsertDesktopActionTask } from '@/store/activity'
 import { $activeGatewayProfile, normalizeProfileKey } from '@/store/profile'
+import { getActionStatus, installSkillFromHub, uninstallSkillFromHub, updateSkillsFromHub } from '@/wenshu'
 
 const POLL_MS = 1200
 

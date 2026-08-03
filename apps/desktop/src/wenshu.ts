@@ -20,8 +20,6 @@ import type {
   DebugShareResponse,
   ElevenLabsVoicesResponse,
   EnvVarInfo,
-  WenshuConfig,
-  WenshuConfigRecord,
   LogsResponse,
   McpCatalogResponse,
   McpServerSummary,
@@ -58,7 +56,9 @@ import type {
   TerminalBackendsResponse,
   ToolsetConfig,
   ToolsetInfo,
-  ToolsetModelsResponse
+  ToolsetModelsResponse,
+  WenshuConfig,
+  WenshuConfigRecord
 } from '@/types/wenshu'
 
 // Desktop startup fires a burst of read-only data calls (config, profiles,
@@ -147,8 +147,6 @@ export type {
   ElevenLabsVoicesResponse,
   EnvVarInfo,
   GatewayReadyPayload,
-  WenshuConfig,
-  WenshuConfigRecord,
   LogsResponse,
   McpCatalogEntry,
   McpCatalogResponse,
@@ -202,7 +200,9 @@ export type {
   ToolsetConfig,
   ToolsetInfo,
   ToolsetModel,
-  ToolsetModelsResponse
+  ToolsetModelsResponse,
+  WenshuConfig,
+  WenshuConfigRecord
 } from '@/types/wenshu'
 
 export class WenshuGateway extends JsonRpcGatewayClient {

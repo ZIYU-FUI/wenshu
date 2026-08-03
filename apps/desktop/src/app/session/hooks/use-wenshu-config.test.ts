@@ -2,7 +2,6 @@
 import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getWenshuConfig } from '@/wenshu'
 import { persistString } from '@/lib/storage'
 import {
   $currentCwd,
@@ -14,6 +13,7 @@ import {
   setCurrentModelSource,
   setCurrentReasoningEffort
 } from '@/store/session'
+import { getWenshuConfig } from '@/wenshu'
 
 import { useWenshuConfig } from './use-wenshu-config'
 

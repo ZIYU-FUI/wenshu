@@ -89,10 +89,7 @@ function canImportWenshuCli(pythonPath: string, opts: { env?: Record<string, str
  * dispatch path. `--help` stops before the long-running gateway starts while
  * still validating `python -m wenshu_cli.main gateway run`.
  */
-function canLaunchWenshuGateway(
-  pythonPath: string,
-  opts: { cwd?: string; env?: Record<string, string> } = {}
-) {
+function canLaunchWenshuGateway(pythonPath: string, opts: { cwd?: string; env?: Record<string, string> } = {}) {
   if (!pythonPath) {
     return false
   }
@@ -151,4 +148,4 @@ function verifyWenshuCli(wenshuCommand: string, opts?: { shell?: boolean }) {
   }
 }
 
-export { canImportWenshuCli, canLaunchWenshuGateway, wenshuRuntimeImportProbe, PROBE_TIMEOUT_MS, verifyWenshuCli }
+export { canImportWenshuCli, canLaunchWenshuGateway, PROBE_TIMEOUT_MS, verifyWenshuCli, wenshuRuntimeImportProbe }

@@ -13,12 +13,12 @@ import type {
   DesktopUpdateStatus,
   DesktopVersionInfo
 } from '@/global'
-import { checkWenshuUpdate, getActionStatus, updateWenshu } from '@/wenshu'
 import { translateNow } from '@/i18n'
 import { persistString, storedString } from '@/lib/storage'
 import { dismissNotification, notify } from '@/store/notifications'
 import { $connection } from '@/store/session'
 import type { BackendUpdateCheckResponse } from '@/types/wenshu'
+import { checkWenshuUpdate, getActionStatus, updateWenshu } from '@/wenshu'
 
 export interface UpdateApplyState {
   applying: boolean

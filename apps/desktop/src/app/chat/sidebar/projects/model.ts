@@ -2,11 +2,11 @@ import { useStore } from '@nanostores/react'
 import { useEffect, useMemo, useState } from 'react'
 
 import type { WenshuGitWorktree } from '@/global'
-import type { SessionInfo } from '@/wenshu'
 import { desktopGit } from '@/lib/desktop-git'
 import { mapPool } from '@/lib/pool'
 import { $sidebarWorkspaceCollapsedIds, toggleWorkspaceNodeCollapsed } from '@/store/layout'
 import { $worktreeRefreshToken } from '@/store/projects'
+import type { SessionInfo } from '@/wenshu'
 
 import { sessionRecency, type SidebarProjectTree } from './workspace-groups'
 

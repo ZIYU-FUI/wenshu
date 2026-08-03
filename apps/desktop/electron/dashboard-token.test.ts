@@ -33,6 +33,7 @@ test('fetchPublicJson parses a JSON body', async () => {
   const body = await fetchPublicJson('http://127.0.0.1:9120/api/status', {
     fetchText: async () => JSON.stringify({ authToken: 'served-token', version: '0.0.1' })
   })
+
   assert.deepEqual(body, { authToken: 'served-token', version: '0.0.1' })
 })
 

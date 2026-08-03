@@ -40,9 +40,9 @@ import { detectTrigger, textBeforeCaret, type TriggerState } from '@/app/chat/co
 import { ComposerTriggerPopover } from '@/app/chat/composer/trigger-popover'
 import {
   extractDroppedFiles,
-  WENSHU_PATHS_MIME,
   isImagePath,
-  partitionDroppedFiles
+  partitionDroppedFiles,
+  WENSHU_PATHS_MIME
 } from '@/app/chat/hooks/use-composer-actions'
 import { uploadComposerAttachment } from '@/app/session/hooks/use-prompt-actions'
 import { wenshuDirectiveFormatter } from '@/components/assistant-ui/directive-text'
@@ -54,7 +54,6 @@ import {
   USER_BUBBLE_BASE_CLASS
 } from '@/components/assistant-ui/thread/user-message'
 import { Codicon } from '@/components/ui/codicon'
-import type { WenshuGateway } from '@/wenshu'
 import { useI18n } from '@/i18n'
 import { attachmentDisplayText, attachmentId, pathLabel } from '@/lib/chat-runtime'
 import { sanitizeComposerInput } from '@/lib/composer-input-sanitize'
@@ -66,6 +65,7 @@ import type { ComposerAttachment } from '@/store/composer'
 import { notifyError } from '@/store/notifications'
 import { $connection } from '@/store/session'
 import { notifyThreadEditClose } from '@/store/thread-scroll'
+import type { WenshuGateway } from '@/wenshu'
 
 interface UserEditComposerProps {
   cwd: string | null

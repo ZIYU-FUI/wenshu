@@ -1952,7 +1952,8 @@ export const en: Translations = {
         'Backend updated. The rebuilt app can’t relaunch automatically (sandbox helper needs root). Quit and reopen 文枢 to finish.',
       restartDone: 'Backend updated. Restart 文枢 to load the new version.',
       restartDoneGui: 'Backend + app updated. Restart 文枢 to load the new version.',
-      handoffWindow: 'Updating 文枢 — this window will close and the updater will open. Don’t reopen 文枢 yourself; it restarts automatically when the update finishes.',
+      handoffWindow:
+        'Updating 文枢 — this window will close and the updater will open. Don’t reopen 文枢 yourself; it restarts automatically when the update finishes.',
       backendWaiting: 'Waiting to start 文枢 backend',
       backendUpdating: 'Updating 文枢 (git + dependencies)…',
       waitingToStart: 'Waiting to start 文枢 backend'

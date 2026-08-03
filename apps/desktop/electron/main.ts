@@ -139,12 +139,6 @@ import {
 } from './window-state'
 import { hiddenWindowsChildOptions } from './windows-child-options'
 import {
-  buildPathExtCandidates,
-  chooseUpdaterArgs,
-  getVenvSitePackagesEntries,
-  resolveVenvWenshuCommand
-} from './windows-wenshu-path'
-import {
   alreadyHasNoSandbox,
   buildNoSandboxRelaunchArgs,
   decideWindowsSandboxLaunch,
@@ -160,6 +154,12 @@ import {
 } from './windows-sandbox-fallback'
 import { installWindowsSystemCaTrust } from './windows-system-ca'
 import { readWindowsUserEnvVar } from './windows-user-env'
+import {
+  buildPathExtCandidates,
+  chooseUpdaterArgs,
+  getVenvSitePackagesEntries,
+  resolveVenvWenshuCommand
+} from './windows-wenshu-path'
 import { isPackagedInstallPath as isPackagedInstallPathUnderRoots } from './workspace-cwd'
 import { readWslWindowsClipboardImage } from './wsl-clipboard-image'
 import { resolvePickerDefaultPath } from './wsl-path-bridge'
@@ -2202,8 +2202,10 @@ function emitUpdateProgress(payload) {
     manual: '从终端更新',
     error: '更新已暂停'
   }
+
   const stageLabel = String(merged.stage)
   const zh = zhMap[stageLabel]
+
   if (zh) {
     console.log(`[updates] zh-CN: ${zh}（en: ${merged.message || stageLabel}）`)
   }
@@ -2851,7 +2853,11 @@ function resolveWenshuCliBinary(updateRoot) {
 // whenever the child goes 60s without producing stdout/stderr, capped at
 // `toPercent`, so a silent compile still visibly advances the bar while the
 // wall clock moves (zhuang ji user 8/29 "ramp ka 25%" root cause).
-function runStreamedUpdate(command, args, { cwd, env, stage, fromPercent = null, toPercent = null, rampSeconds = 600 }: any = {}) {
+function runStreamedUpdate(
+  command,
+  args,
+  { cwd, env, stage, fromPercent = null, toPercent = null, rampSeconds = 600 }: any = {}
+) {
   return new Promise(resolve => {
     let child
 
@@ -2887,11 +2893,13 @@ function runStreamedUpdate(command, args, { cwd, env, stage, fromPercent = null,
         const elapsedSec = (Date.now() - startMs) / 1000
         const ratio = Math.max(0, Math.min(1, elapsedSec / rampSeconds))
         const nextPercent = Math.round(fromPercent + (toPercent - fromPercent) * ratio)
+
         if (nextPercent > (lastPercent ?? 0)) {
           lastPercent = nextPercent
           emitUpdateProgress({ stage, message: '', percent: nextPercent })
         }
       }
+
       tick()
       rampTimer = setInterval(tick, 15000)
 
@@ -2906,10 +2914,13 @@ function runStreamedUpdate(command, args, { cwd, env, stage, fromPercent = null,
       // `toPercent` keeps authority over the final value).
       const stallTick = () => {
         const sinceOutputMs = Date.now() - lastOutputMs
+
         if (sinceOutputMs < 60_000) {
           return
         }
+
         const next = Math.min(toPercent, (lastPercent ?? 0) + 1)
+
         if (next > (lastPercent ?? 0)) {
           lastPercent = next
           const seconds = Math.round(sinceOutputMs / 1000)
@@ -2917,6 +2928,7 @@ function runStreamedUpdate(command, args, { cwd, env, stage, fromPercent = null,
           emitUpdateProgress({ stage, message: '', percent: next })
         }
       }
+
       stallTimer = setInterval(stallTick, 60_000)
     }
 
@@ -2925,6 +2937,7 @@ function runStreamedUpdate(command, args, { cwd, env, stage, fromPercent = null,
       // the stall-fallback timer so a still-chatty stage never sees the +1
       // bump fire.
       lastOutputMs = Date.now()
+
       for (const line of chunk.toString().split('\n')) {
         const trimmed = line.trim()
 
@@ -2937,13 +2950,23 @@ function runStreamedUpdate(command, args, { cwd, env, stage, fromPercent = null,
     child.stdout.on('data', emitLines)
     child.stderr.on('data', emitLines)
     child.once('error', err => {
-      if (rampTimer) clearInterval(rampTimer)
-      if (stallTimer) clearInterval(stallTimer)
+      if (rampTimer) {
+        clearInterval(rampTimer)
+      }
+
+      if (stallTimer) {
+        clearInterval(stallTimer)
+      }
       resolve({ code: 1, error: err.message })
     })
     child.once('exit', code => {
-      if (rampTimer) clearInterval(rampTimer)
-      if (stallTimer) clearInterval(stallTimer)
+      if (rampTimer) {
+        clearInterval(rampTimer)
+      }
+
+      if (stallTimer) {
+        clearInterval(stallTimer)
+      }
       resolve({ code })
     })
   })
@@ -6966,8 +6989,7 @@ function startIsolatedGateway(backend, wenshuCwd) {
 
   if (!canLaunchWenshuGateway(isolatedPython, { cwd: ACTIVE_WENSHU_ROOT, env })) {
     throw new Error(
-      `文枢 gateway probe failed: ${isolatedPython} -m wenshu_cli.main gateway run ` +
-        `(WENSHU_HOME=${WENSHU_HOME})`
+      `文枢 gateway probe failed: ${isolatedPython} -m wenshu_cli.main gateway run ` + `(WENSHU_HOME=${WENSHU_HOME})`
     )
   }
 
@@ -7435,9 +7457,11 @@ async function startWenshu() {
     // (window.show / bootProgress dismiss) lives on the main side and was
     // previously a black box once we hit phase ``backend.ready``.
     rememberLog('[boot] finalize: stage=window.show pending')
+
     if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
       mainWindow.show()
     }
+
     rememberLog('[boot] finalize: stage=window.show done')
 
     rememberLog(`[boot] finalize: stage=wsUrl mount (token prefix=${authToken.slice(0, 6)}\xe2\x80\xa6)`)

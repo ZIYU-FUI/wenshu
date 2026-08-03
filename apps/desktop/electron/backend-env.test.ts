@@ -64,7 +64,9 @@ test('buildDesktopBackendEnv extends PYTHONPATH and backend PATH together', () =
   })
 
   assert.equal(env.PYTHONPATH, '/repo/wenshu-agent:/existing/pythonpath')
-  assert.ok(env.PATH.startsWith('/Users/test/.wenshu-hermes/node/bin:/Users/test/.wenshu-hermes/wenshu-agent/venv/bin:'))
+  assert.ok(
+    env.PATH.startsWith('/Users/test/.wenshu-hermes/node/bin:/Users/test/.wenshu-hermes/wenshu-agent/venv/bin:')
+  )
   assert.ok(env.PATH.includes('/opt/homebrew/bin'))
 })
 
@@ -77,7 +79,10 @@ test('normalizeWenshuHomeRoot maps profile homes back to the global 文枢 root'
     normalizeWenshuHomeRoot('C:\\Users\\test\\AppData\\Local\\wenshu\\profiles\\oracle', { pathModule: path.win32 }),
     'C:\\Users\\test\\AppData\\Local\\wenshu'
   )
-  assert.equal(normalizeWenshuHomeRoot('/Users/test/.wenshu-hermes', { pathModule: path.posix }), '/Users/test/.wenshu-hermes')
+  assert.equal(
+    normalizeWenshuHomeRoot('/Users/test/.wenshu-hermes', { pathModule: path.posix }),
+    '/Users/test/.wenshu-hermes'
+  )
 })
 
 test('Windows PATH casing and delimiter are preserved without POSIX sane entries', () => {

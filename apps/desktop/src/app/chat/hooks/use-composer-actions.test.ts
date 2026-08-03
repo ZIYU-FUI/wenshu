@@ -6,8 +6,8 @@ import {
   attachmentPreviewDataUrl,
   type DroppedFile,
   extractDroppedFiles,
-  WENSHU_PATHS_MIME,
-  partitionDroppedFiles
+  partitionDroppedFiles,
+  WENSHU_PATHS_MIME
 } from './use-composer-actions'
 
 // A Finder/Explorer drop carries a native File handle; an in-app drag (project

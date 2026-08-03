@@ -75,6 +75,7 @@ function dashboardIndexUrl(baseUrl) {
 // off /api/status also means a SPA-less build can never strand the desktop.
 async function resolveServedDashboardToken(baseUrl, fallbackToken, options: any = {}) {
   const fetcher = options.fetchJson || fetchPublicJson
+
   const status = await fetcher(dashboardStatusUrl(baseUrl), {
     timeoutMs: options.timeoutMs ?? DEFAULT_TOKEN_FETCH_TIMEOUT_MS
   })

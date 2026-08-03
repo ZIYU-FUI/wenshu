@@ -2,7 +2,6 @@ import { isGatewayReauthRequired, resolveGatewayWsUrl } from '@wenshu/shared'
 import { useEffect, useRef } from 'react'
 
 import type { WenshuConnection } from '@/global'
-import { WenshuGateway } from '@/wenshu'
 import { translateNow } from '@/i18n'
 import { desktopDefaultCwd } from '@/lib/desktop-fs'
 import {
@@ -39,6 +38,7 @@ import {
 } from '@/store/session'
 import { $attentionSessionIds, $workingSessionIds, resetTileRuntimeBindings } from '@/store/session-states'
 import type { RpcEvent } from '@/types/wenshu'
+import { WenshuGateway } from '@/wenshu'
 
 // After this many consecutive failed reconnects (≈45s with the 1→15s backoff)
 // raise a recoverable boot error. Otherwise a dropped remote gateway loops the

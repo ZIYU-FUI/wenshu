@@ -13,11 +13,11 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import type { WenshuGitWorktree } from '@/global'
-import type { SessionInfo } from '@/wenshu'
 import { useI18n } from '@/i18n'
 import { $dismissedWorktreeIds, dismissWorktree } from '@/store/layout'
 import { notifyError } from '@/store/notifications'
 import { removeWorktreePath } from '@/store/projects'
+import type { SessionInfo } from '@/wenshu'
 
 import { SidebarRowStack } from '../chrome'
 

@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
 import { Input } from '@/components/ui/input'
-import { getGlobalModelOptions } from '@/wenshu'
 import { useI18n } from '@/i18n'
 import { Check, ChevronDown, ChevronLeft, KeyRound, Loader2 } from '@/lib/icons'
 import { isProviderSetupErrorMessage } from '@/lib/provider-setup-errors'
@@ -26,6 +25,7 @@ import {
   startProviderOAuth
 } from '@/store/onboarding'
 import type { ModelOptionProvider, OAuthProvider } from '@/types/wenshu'
+import { getGlobalModelOptions } from '@/wenshu'
 
 import { DocsLink, FlowPanel, Status } from './flow'
 import {
@@ -436,10 +436,8 @@ export function Picker({ ctx }: { ctx: OnboardingContext }) {
   // return it (the OAuth flow path stays alive for users with an existing
   // subscription), so we filter it out at render time instead of touching
   // the provider catalog or the OAuth backend wiring.
-  const ordered = useMemo(
-    () => (providers ? sortProviders(providers).filter(p => p.id !== 'nous') : []),
-    [providers]
-  )
+  const ordered = useMemo(() => (providers ? sortProviders(providers).filter(p => p.id !== 'nous') : []), [providers])
+
   const hasOauth = ordered.length > 0
   const apiKeyOptions = useApiKeyCatalog()
 

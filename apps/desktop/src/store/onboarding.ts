@@ -1,5 +1,8 @@
 import { atom } from 'nanostores'
 
+import { evaluateRuntimeReadiness, type RuntimeReadinessResult } from '@/lib/runtime-readiness'
+import { notify, notifyError } from '@/store/notifications'
+import type { ModelOptionProvider, OAuthProvider, OAuthStartResponse } from '@/types/wenshu'
 import {
   cancelOAuthSession,
   getGlobalModelOptions,
@@ -12,9 +15,6 @@ import {
   submitOAuthCode,
   validateProviderCredential
 } from '@/wenshu'
-import { evaluateRuntimeReadiness, type RuntimeReadinessResult } from '@/lib/runtime-readiness'
-import { notify, notifyError } from '@/store/notifications'
-import type { ModelOptionProvider, OAuthProvider, OAuthStartResponse } from '@/types/wenshu'
 
 type PkceStart = Extract<OAuthStartResponse, { flow: 'pkce' }>
 type DeviceStart = Extract<OAuthStartResponse, { flow: 'device_code' }>
@@ -338,6 +338,7 @@ async function completeWithModelConfirm(
   // setup.runtime_check, freezing the onboarding overlay after the user
   // pastes a valid key (zhuang ji user 8/29 "pei zhi KEY hou ka zhu").
   let runtime: RuntimeReadinessResult | null = null
+
   if (!ignoreRuntimeGate) {
     runtime = await checkRuntime(ctx, preferredSlugs[0])
 

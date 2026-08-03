@@ -16,14 +16,6 @@ import {
 } from '@/components/ui/dialog'
 import { SanitizedInput } from '@/components/ui/sanitized-input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import {
-  createProfile,
-  deleteProfile,
-  getProfileSoul,
-  type ProfileInfo,
-  renameProfile,
-  updateProfileSoul
-} from '@/wenshu'
 import { useI18n } from '@/i18n'
 import { AlertTriangle, Save } from '@/lib/icons'
 import { profileColorSoft, resolveProfileColor } from '@/lib/profile-color'
@@ -32,6 +24,14 @@ import { normalize } from '@/lib/text'
 import { cn } from '@/lib/utils'
 import { notify, notifyError } from '@/store/notifications'
 import { $profileColors, refreshProfiles } from '@/store/profile'
+import {
+  createProfile,
+  deleteProfile,
+  getProfileSoul,
+  type ProfileInfo,
+  renameProfile,
+  updateProfileSoul
+} from '@/wenshu'
 
 import { useRefreshHotkey } from '../hooks/use-refresh-hotkey'
 import {

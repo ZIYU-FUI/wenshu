@@ -29,7 +29,6 @@ import { findGroupOfPane } from '@/components/pane-shell/tree/model'
 import { $layoutTree, moveTreePane, setTreeGroupHeaderHidden } from '@/components/pane-shell/tree/store'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { transcribeAudio } from '@/wenshu'
 import { useI18n } from '@/i18n'
 import type { ChatMessage } from '@/lib/chat-messages'
 import { sessionTitle } from '@/lib/chat-runtime'
@@ -53,6 +52,7 @@ import {
   type SessionTile,
   sessionTileDelegate
 } from '@/store/session-states'
+import { transcribeAudio } from '@/wenshu'
 
 import type { SessionDragPayload } from './composer/inline-refs'
 import { type ComposerScope, ComposerScopeProvider } from './composer/scope'

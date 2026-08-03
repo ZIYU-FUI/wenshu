@@ -138,6 +138,7 @@ export function parseCommitHeader(raw: string): ParsedCommit {
 
 function tidySubject(subject: string): string {
   const stripped = subject.replace(R_NUMBER_PREFIX, '')
+
   const cleaned = stripped
     .replace(/\s+/g, ' ')
     .replace(/[.;,\s]+$/, '')

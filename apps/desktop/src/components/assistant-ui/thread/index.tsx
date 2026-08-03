@@ -14,9 +14,9 @@ import { UserEditComposer } from '@/components/assistant-ui/thread/user-edit-com
 import { UserMessage } from '@/components/assistant-ui/thread/user-message'
 import { Intro, type IntroProps } from '@/components/chat/intro'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import type { WenshuGateway } from '@/wenshu'
 import { useI18n } from '@/i18n'
 import { notifyError } from '@/store/notifications'
+import type { WenshuGateway } from '@/wenshu'
 
 type ThreadLoadingState = 'response' | 'session'
 

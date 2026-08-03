@@ -7,7 +7,6 @@ import {
   DropdownMenuSub,
   DropdownMenuSubTrigger
 } from '@/components/ui/dropdown-menu'
-import type * as WenshuApi from '@/wenshu'
 import { $modelPresets, getModelPreset } from '@/store/model-presets'
 import {
   $activeSessionId,
@@ -18,6 +17,7 @@ import {
   setCurrentModelSource,
   setCurrentReasoningEffort
 } from '@/store/session'
+import type * as WenshuApi from '@/wenshu'
 
 import { type FastControl, ModelEditSubmenu } from './model-edit-submenu'
 

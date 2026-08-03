@@ -5,14 +5,19 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
+import { useI18n } from '@/i18n'
+import { AlertTriangle, Cpu, Loader2 } from '@/lib/icons'
+import { cn } from '@/lib/utils'
+import { notifyError } from '@/store/notifications'
+import { startManualLocalEndpoint, startManualOnboarding, startManualProviderOAuth } from '@/store/onboarding'
 import {
   getAuxiliaryModels,
   getGlobalModelInfo,
   getGlobalModelOptions,
   getMoaModels,
   getRecommendedDefaultModel,
-  saveWenshuConfig,
   saveMoaModels,
+  saveWenshuConfig,
   setEnvVar,
   setModelAssignment
 } from '@/wenshu'
@@ -23,11 +28,6 @@ import type {
   ModelOptionProvider,
   StaleAuxAssignment
 } from '@/wenshu'
-import { useI18n } from '@/i18n'
-import { AlertTriangle, Cpu, Loader2 } from '@/lib/icons'
-import { cn } from '@/lib/utils'
-import { notifyError } from '@/store/notifications'
-import { startManualLocalEndpoint, startManualOnboarding, startManualProviderOAuth } from '@/store/onboarding'
 
 import { invalidateWenshuConfig, setWenshuConfigCache, useWenshuConfigRecord } from '../hooks/use-config-record'
 import { useOnProfileSwitch } from '../hooks/use-on-profile-switch'

@@ -2,7 +2,6 @@ import { QueryClient } from '@tanstack/react-query'
 import { cleanup, render, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getGlobalModelInfo } from '@/wenshu'
 import {
   $activeSessionId,
   $currentModel,
@@ -13,6 +12,7 @@ import {
   setCurrentProvider
 } from '@/store/session'
 import type * as SessionStates from '@/store/session-states'
+import { getGlobalModelInfo } from '@/wenshu'
 
 import { useModelControls } from './use-model-controls'
 

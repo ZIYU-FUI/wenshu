@@ -1,11 +1,11 @@
-import { isGatewayReauthRequired, resolveGatewayWsUrl } from '@wenshu/shared'
 import { useStore } from '@nanostores/react'
+import { isGatewayReauthRequired, resolveGatewayWsUrl } from '@wenshu/shared'
 import { useCallback, useEffect, useRef } from 'react'
 
-import type { WenshuGateway } from '@/wenshu'
 import { $gateway, ensureActiveGatewayOpen, isActivePrimary } from '@/store/gateway'
 import { $activeGatewayProfile } from '@/store/profile'
 import { $gatewayState, setConnection } from '@/store/session'
+import type { WenshuGateway } from '@/wenshu'
 
 export function useGatewayRequest() {
   const gatewayState = useStore($gatewayState)

@@ -1,6 +1,5 @@
 import { useCallback, useRef } from 'react'
 
-import { getCronJobs, listAllProfileSessions, listSidebarSessions, type SessionInfo } from '@/wenshu'
 import { sameCronSignature } from '@/lib/session-signatures'
 import {
   isMessagingSource,
@@ -28,6 +27,7 @@ import {
   setSessionsTotal
 } from '@/store/session'
 import { $workingSessionIds, getRecentlySettledSessionIds } from '@/store/session-states'
+import { getCronJobs, listAllProfileSessions, listSidebarSessions, type SessionInfo } from '@/wenshu'
 
 // The recents list is local-only: cron rows have their own section, and each
 // messaging platform (telegram, discord, …) is fetched separately into its own

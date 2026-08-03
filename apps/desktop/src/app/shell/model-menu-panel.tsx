@@ -16,7 +16,6 @@ import {
   DropdownMenuSubTrigger
 } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { WenshuGateway } from '@/wenshu'
 import { useI18n } from '@/i18n'
 import { ChevronDown, ChevronRight } from '@/lib/icons'
 import { requestModelOptions } from '@/lib/model-options'
@@ -40,6 +39,7 @@ import {
 } from '@/store/model-visibility'
 import { $collapsedProviders, toggleCollapsedProvider } from '@/store/provider-collapse'
 import type { ModelOptionProvider, ModelOptionsResponse } from '@/types/wenshu'
+import type { WenshuGateway } from '@/wenshu'
 
 import { ModelEditSubmenu, resolveFastControl } from './model-edit-submenu'
 

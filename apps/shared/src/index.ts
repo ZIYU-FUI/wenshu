@@ -47,9 +47,9 @@ export {
   type GatewayAuthMode,
   GatewayReauthRequiredError,
   type GatewayWsConnection,
-  type WenshuWebSocketUrlOptions,
   isGatewayReauthRequired,
   resolveGatewayWsUrl,
   type ResolveGatewayWsUrlDeps,
-  type WebSocketAuthParam
+  type WebSocketAuthParam,
+  type WenshuWebSocketUrlOptions
 } from './websocket-url'

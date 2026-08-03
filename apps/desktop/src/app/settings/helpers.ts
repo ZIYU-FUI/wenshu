@@ -1,5 +1,5 @@
 import { asText, normalize } from '@/lib/text'
-import type { ConfigFieldSchema, WenshuConfigRecord, ToolsetInfo } from '@/types/wenshu'
+import type { ConfigFieldSchema, ToolsetInfo, WenshuConfigRecord } from '@/types/wenshu'
 
 import { BUILTIN_PERSONALITIES, ENUM_OPTIONS, PROVIDER_GROUPS, SECTIONS } from './constants'
 

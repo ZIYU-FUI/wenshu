@@ -2,11 +2,11 @@ import type * as React from 'react'
 import { useState } from 'react'
 
 import { Codicon } from '@/components/ui/codicon'
-import type { SessionInfo } from '@/wenshu'
 import { useI18n } from '@/i18n'
 import { notifyError } from '@/store/notifications'
 import { newSessionInProfile } from '@/store/profile'
 import { switchBranchInRepo } from '@/store/projects'
+import type { SessionInfo } from '@/wenshu'
 
 import { countLabel, SidebarRowStack } from '../chrome'
 import { SidebarLoadMoreRow } from '../load-more-row'

@@ -3,10 +3,10 @@ import { CSS } from '@dnd-kit/utilities'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { type FC, useCallback, useRef } from 'react'
 
-import type { SessionInfo } from '@/wenshu'
 import { type SidebarSessionEntry } from '@/lib/session-branch-tree'
 import { cn } from '@/lib/utils'
 import { sessionPinId } from '@/store/session'
+import type { SessionInfo } from '@/wenshu'
 
 import { SidebarSessionRow } from './session-row'
 

@@ -27,9 +27,9 @@
  * trust seam.
  */
 
-import { getStatus } from '@/wenshu'
 import { installPluginSdk, sdkImportMap } from '@/sdk/runtime'
 import { notifyError } from '@/store/notifications'
+import { getStatus } from '@/wenshu'
 
 import { createPluginContext, type WenshuPlugin } from './plugin'
 import { dropPlugin, pluginActive, type PluginKind, publishPlugin } from './plugins-store'

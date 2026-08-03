@@ -3,9 +3,9 @@ import { useRef } from 'react'
 
 import { Codicon } from '@/components/ui/codicon'
 import { DisclosureCaret } from '@/components/ui/disclosure-caret'
-import type { SessionInfo } from '@/wenshu'
 import { useI18n } from '@/i18n'
 import { cn } from '@/lib/utils'
+import type { SessionInfo } from '@/wenshu'
 
 import {
   SIDEBAR_LEAD_ICON_SIZE,

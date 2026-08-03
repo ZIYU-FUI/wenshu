@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import { getElevenLabsVoices, getWenshuConfigSchema, saveWenshuConfig } from '@/wenshu'
 import { useI18n } from '@/i18n'
 import { notifyError } from '@/store/notifications'
 import type { WenshuConfigRecord } from '@/types/wenshu'
+import { getElevenLabsVoices, getWenshuConfigSchema, saveWenshuConfig } from '@/wenshu'
 
 import { setWenshuConfigCache, useWenshuConfigRecord } from '../hooks/use-config-record'
 

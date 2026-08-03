@@ -1,8 +1,8 @@
 import { type ConnectionState, type GatewayEvent, resolveGatewayWsUrl } from '@wenshu/shared'
 import { atom } from 'nanostores'
 
-import { WenshuGateway } from '@/wenshu'
 import { setGatewayState } from '@/store/session'
+import { WenshuGateway } from '@/wenshu'
 
 // ── Multi-profile gateway routing ──────────────────────────────────────────
 // Concurrent sessions across profiles need concurrent sockets: the renderer's

@@ -8,7 +8,6 @@ import { HUD_HEADING, HUD_ITEM, HUD_POSITION, HUD_SURFACE, HUD_TEXT } from '@/ap
 import { setTerminalTakeover } from '@/app/right-sidebar/store'
 import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { KbdCombo } from '@/components/ui/kbd'
-import { getWenshuConfigRecord, listAllProfileSessions } from '@/wenshu'
 import { useI18n } from '@/i18n'
 import { sessionTitle } from '@/lib/chat-runtime'
 import {
@@ -62,6 +61,7 @@ import { applyBackendUpdate } from '@/store/updates'
 import { luminance } from '@/themes/color'
 import { type ThemeMode, useTheme } from '@/themes/context'
 import { isUserTheme, resolveTheme } from '@/themes/user-themes'
+import { getWenshuConfigRecord, listAllProfileSessions } from '@/wenshu'
 
 import {
   AGENTS_ROUTE,

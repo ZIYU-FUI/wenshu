@@ -1,10 +1,10 @@
-import { speakText } from '@/wenshu'
 import {
   $voicePlayback,
   setVoicePlaybackState,
   type VoicePlaybackSource,
   type VoicePlaybackState
 } from '@/store/voice-playback'
+import { speakText } from '@/wenshu'
 
 import { sanitizeTextForSpeech } from './speech-text'
 

@@ -484,7 +484,9 @@ export function DesktopInstallOverlay({ enabled = true }: DesktopInstallOverlayP
                 <span>
                   {copy.progress(completedCount, totalCount)}
                   {currentStage &&
-                    copy.currentStage(translateStageLabel(currentStage, copy.stageNames, formatStageName(currentStage)))}
+                    copy.currentStage(
+                      translateStageLabel(currentStage, copy.stageNames, formatStageName(currentStage))
+                    )}
                   {currentElapsed && ` (${currentElapsed})`}
                 </span>
                 <span className="tabular-nums">{progressPct}%</span>

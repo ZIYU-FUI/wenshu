@@ -1,5 +1,5 @@
-import { getGlobalModelOptions, type WenshuGateway, type ModelOptionsResponse } from '@/wenshu'
 import type { ModelOptionProvider } from '@/types/wenshu'
+import { getGlobalModelOptions, type ModelOptionsResponse, type WenshuGateway } from '@/wenshu'
 
 /**
  * True only when a persisted **manual** composer pick has been removed from the

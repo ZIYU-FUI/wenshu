@@ -65,14 +65,17 @@ async function requestWithFallback<T>(
 ): Promise<{ error: null | string; value: null | T }> {
   const ac = new AbortController()
   const timer = setTimeout(() => ac.abort(), timeoutMs)
+
   try {
     return { error: null, value: await requestGateway<T>(method, params, { signal: ac.signal }) }
   } catch (error) {
     const msg = toErrorMessage(error)
+
     // R47b: AbortError or 5xx timeout → friendly fallback (not "request timed out")
     if (msg && (msg.toLowerCase().includes('abort') || msg.toLowerCase().includes('timed out'))) {
       return { error: 'Connection check timed out. You can continue anyway.', value: null }
     }
+
     return { error: msg, value: null }
   } finally {
     clearTimeout(timer)

@@ -1,6 +1,5 @@
 import { atom } from 'nanostores'
 
-import { resetSidebarBatchCapability } from '@/wenshu'
 import { invalidateProfileScopedQueries } from '@/lib/query-client'
 import { resetSessionsLimit } from '@/store/layout'
 import {
@@ -19,6 +18,7 @@ import {
   setSessionsTotal
 } from '@/store/session'
 import { clearAllSessionStates } from '@/store/session-states'
+import { resetSidebarBatchCapability } from '@/wenshu'
 
 // True while a soft gateway-mode apply is mid-flight (wipe → re-dial). Lets the
 // boot hook suppress the backend-exit toast and keeps the cold-boot CONNECTING

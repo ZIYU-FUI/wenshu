@@ -22,12 +22,12 @@ import { atom, type ReadableAtom } from 'nanostores'
 
 import { $narrowViewport } from '@/components/pane-shell/tree/store'
 import { onGatewayEvent } from '@/contrib/events'
-import { getLogs, getStatus } from '@/wenshu'
 import { $gateway } from '@/store/gateway'
 import { notify, notifyError } from '@/store/notifications'
 import { $activeGatewayProfile } from '@/store/profile'
 import { $activeSessionId, $currentCwd, $currentModel, $gatewayState } from '@/store/session'
 import { runGatewayRestart } from '@/store/system-actions'
+import { getLogs, getStatus } from '@/wenshu'
 
 // -- state: readonly views over the app's live atoms -------------------------
 
@@ -178,11 +178,11 @@ export { Textarea } from '@/components/ui/textarea'
 export { Tip, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 export type { GatewayEventListener } from '@/contrib/events'
 export type {
-  WenshuPlugin,
   PluginContext,
   PluginContribution,
   PluginRestOptions,
-  PluginStorage
+  PluginStorage,
+  WenshuPlugin
 } from '@/contrib/plugin'
 
 // -- contracts ----------------------------------------------------------------

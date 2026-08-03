@@ -1,6 +1,6 @@
 import type { WenshuGitWorktree } from '@/global'
-import type { ProjectInfo, SessionInfo } from '@/wenshu'
 import { normalize } from '@/lib/text'
+import type { ProjectInfo, SessionInfo } from '@/wenshu'
 
 // Session grouping is now computed authoritatively on the backend
 // (the chat project-tree service, exposed via `projects.tree` /

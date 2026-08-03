@@ -11,11 +11,11 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
-import { saveMemoryProviderConfig } from '@/wenshu'
 import { ExternalLink, Loader2, Save, SlidersHorizontal } from '@/lib/icons'
 import { notify, notifyError } from '@/store/notifications'
 import { $activeGatewayProfile } from '@/store/profile'
 import type { MemoryProviderConfig, MemoryProviderField } from '@/types/wenshu'
+import { saveMemoryProviderConfig } from '@/wenshu'
 
 import { ListRow } from '../primitives'
 

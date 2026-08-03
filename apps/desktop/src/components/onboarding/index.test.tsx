@@ -82,10 +82,7 @@ describe('onboarding Picker', () => {
     // R46: Nous Portal removed; the remaining curated order is OpenAI Codex
     // -> MiniMax -> Qwen -> xAI -> Anthropic API -> Claude Code, with
     // Fireworks as the always-visible #1 quick-key slot.
-    setProviders([
-      provider('openai-codex', 'OpenAI Codex / ChatGPT'),
-      provider('minimax-oauth', 'MiniMax')
-    ])
+    setProviders([provider('openai-codex', 'OpenAI Codex / ChatGPT'), provider('minimax-oauth', 'MiniMax')])
     render(<Picker ctx={ctx} />)
 
     const labels = screen

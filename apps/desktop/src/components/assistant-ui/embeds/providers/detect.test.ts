@@ -66,7 +66,6 @@ describe('detectEmbed — other frame providers', () => {
       'https://www.tiktok.com/player/v1/7212345678901234567'
     )
   })
-
 })
 
 describe('detectEmbed — maps', () => {

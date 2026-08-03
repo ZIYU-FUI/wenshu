@@ -82,7 +82,10 @@ describe('buildCommitChangelog', () => {
 
   it('strips PM-direct R-number prefixes (e.g. R107 -) from subjects so end users never see them', () => {
     const groups = buildCommitChangelog([
-      { summary: 'fix(wenshu): R107 - logo .icns 真值修 (仓根 desktop assets + Tauri icons 都换成白字, 装 user 截图确认)' },
+      {
+        summary:
+          'fix(wenshu): R107 - logo .icns 真值修 (仓根 desktop assets + Tauri icons 都换成白字, 装 user 截图确认)'
+      },
       { summary: 'fix(wenshu): R108 - 更新通知 changelog 中文化' }
     ])
 
@@ -93,19 +96,16 @@ describe('buildCommitChangelog', () => {
   })
 
   it('honors caller-provided localized labels for bucket headings', () => {
-    const groups = buildCommitChangelog(
-      [{ summary: 'fix(sidebar): jitter when dragging' }],
-      {
-        labels: {
-          fallback: '本次更新',
-          fixed: '已修复',
-          faster: '更快速',
-          improved: '已改进',
-          new: '新功能',
-          other: '其他改进'
-        }
+    const groups = buildCommitChangelog([{ summary: 'fix(sidebar): jitter when dragging' }], {
+      labels: {
+        fallback: '本次更新',
+        fixed: '已修复',
+        faster: '更快速',
+        improved: '已改进',
+        new: '新功能',
+        other: '其他改进'
       }
-    )
+    })
 
     expect(groups[0]).toMatchObject({ id: 'fixed', label: '已修复' })
   })

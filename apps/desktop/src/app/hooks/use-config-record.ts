@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 
-import { getWenshuConfigRecord } from '@/wenshu'
 import { queryClient, writeCache } from '@/lib/query-client'
 import type { WenshuConfigRecord } from '@/types/wenshu'
+import { getWenshuConfigRecord } from '@/wenshu'
 
 // One shared cache for the whole profile config record (`GET /api/config`).
 // Every settings surface (MCP, model, config) reads and writes through this key

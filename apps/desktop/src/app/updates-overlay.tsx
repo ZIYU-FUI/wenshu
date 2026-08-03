@@ -232,6 +232,7 @@ function IdleView({
       other: u.changelog.groupOther
     }
   })
+
   const shownItems = totalItems(groups)
   const remaining = Math.max(0, behind - shownItems)
 

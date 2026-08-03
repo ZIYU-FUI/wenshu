@@ -3,7 +3,6 @@ import type { MutableRefObject } from 'react'
 import { useEffect } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { getSessionMessages, type SessionInfo } from '@/wenshu'
 import { createClientSessionState } from '@/lib/chat-runtime'
 import { $activeGatewayProfile, $newChatProfile, ensureGatewayProfile } from '@/store/profile'
 import { $projectScope, $projectTree, ALL_PROJECTS } from '@/store/projects'
@@ -32,6 +31,7 @@ import {
   setSelectedStoredSessionId,
   setSessions
 } from '@/store/session'
+import { getSessionMessages, type SessionInfo } from '@/wenshu'
 
 import { sessionRoute } from '../../routes'
 import type { ClientSessionState } from '../../types'

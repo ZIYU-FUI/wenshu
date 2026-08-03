@@ -7,9 +7,9 @@ import { currentPickerSelection } from '@/lib/model-status-label'
 import { normalize } from '@/lib/text'
 import type { ModelOptionProvider, ModelPricing } from '@/types/wenshu'
 
-import type { WenshuGateway } from '../wenshu'
 import { cn } from '../lib/utils'
 import { startManualOnboarding } from '../store/onboarding'
+import type { WenshuGateway } from '../wenshu'
 
 import { InlineNotice } from './notifications'
 import { Button } from './ui/button'

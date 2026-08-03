@@ -1,7 +1,6 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { SessionInfo, SidebarSessionsResponse } from '@/wenshu'
 import {
   $cronSessions,
   $messagingSessions,
@@ -12,6 +11,7 @@ import {
   setSessions,
   setSessionsLoading
 } from '@/store/session'
+import type { SessionInfo, SidebarSessionsResponse } from '@/wenshu'
 
 import { useSessionListActions } from './use-session-list-actions'
 

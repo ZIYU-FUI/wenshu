@@ -9,12 +9,6 @@ import { ErrorBanner } from '@/components/ui/error-state'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Tip } from '@/components/ui/tooltip'
-import {
-  getMessagingPlatforms,
-  type MessagingEnvVarInfo,
-  type MessagingPlatformInfo,
-  updateMessagingPlatform
-} from '@/wenshu'
 import { type Translations, useI18n } from '@/i18n'
 import { openExternalLink } from '@/lib/external-link'
 import { ExternalLink, Save, Trash2 } from '@/lib/icons'
@@ -22,6 +16,12 @@ import { normalize } from '@/lib/text'
 import { cn } from '@/lib/utils'
 import { notify, notifyError } from '@/store/notifications'
 import { runGatewayRestart } from '@/store/system-actions'
+import {
+  getMessagingPlatforms,
+  type MessagingEnvVarInfo,
+  type MessagingPlatformInfo,
+  updateMessagingPlatform
+} from '@/wenshu'
 
 import { useRefreshHotkey } from '../hooks/use-refresh-hotkey'
 import { useRouteEnumParam } from '../hooks/use-route-enum-param'
@@ -551,8 +551,7 @@ const PLATFORM_INTRO: Record<string, string> = {
   matrix: 'Sign in to your homeserver with the bot account, then copy the access token, user ID, and homeserver URL.',
   signal:
     'Run a signal-cli REST bridge somewhere reachable, then point 文枢 at the URL and the registered phone number.',
-  whatsapp:
-    'Start the WhatsApp bridge that ships with 文枢, scan the QR code on first run, then enable the platform.',
+  whatsapp: 'Start the WhatsApp bridge that ships with 文枢, scan the QR code on first run, then enable the platform.',
   bluebubbles:
     'Run BlueBubbles Server on a Mac with iMessage, expose its API, then point 文枢 at the URL with the server password.',
   homeassistant:
