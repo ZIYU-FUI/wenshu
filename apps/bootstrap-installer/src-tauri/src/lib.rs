@@ -1,4 +1,4 @@
-//! Hermes Setup — Tauri entrypoint.
+//! Wenshu Setup — Tauri entrypoint.
 //!
 //! Spawns a single window pointed at the React frontend (apps/bootstrap-installer/src/).
 //! All install-time work lives in `bootstrap.rs` and is invoked through the Tauri
@@ -11,8 +11,8 @@
 mod bootstrap;
 mod events;
 mod install_script;
-mod powershell;
 mod paths;
+mod powershell;
 mod update;
 
 use std::sync::Arc;
@@ -21,7 +21,7 @@ use tokio::sync::Mutex;
 /// How the installer was invoked. Resolved once from the process args in
 /// `run()` and exposed to the frontend via `get_mode` so it can route to the
 /// install flow (first-run onboarding) or the update flow (driven by the
-/// desktop app handing off via `Hermes-Setup.exe --update`).
+/// desktop app handing off via `Wenshu-Setup.exe --update`).
 ///
 /// Bare launch (double-click, first-run) => Install.
 /// `--update` (spawned by the desktop's "Update" button) => Update.
@@ -93,7 +93,7 @@ fn get_mode(state: tauri::State<'_, Arc<AppState>>) -> AppMode {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Tracing → bootstrap-installer.log under HERMES_HOME/logs/ so install
+    // Tracing → bootstrap-installer.log under WENSHU_HOME/logs/ so install
     // failures leave a trail for support. Console output also goes here in
     // debug builds.
     let _guard = paths::init_logging();
@@ -103,29 +103,29 @@ pub fn run() {
     // / filtered-DNS networks because install.sh's `curl -LsSf
     // https://astral.sh/uv/install.sh` has no `--max-time`. A `tracing` info
     // line here gives support (and the bootstrap-installer.log forensic
-    // trail) an immediate "we entered the installer, HERMES_HOME is at X"
+    // trail) an immediate "we entered the installer, WENSHU_HOME is at X"
     // anchor — without it, a 2-minute silent hang leaves zero breadcrumbs
     // and the support reply is "we don't know where it hung".
-    let hermes_home_for_diag = paths::hermes_home();
+    let wenshu_home_for_diag = paths::wenshu_home();
     tracing::info!(
-        hermes_home = %hermes_home_for_diag.display(),
-        "wenshu setup diagnostics: HERMES_HOME resolved"
+        wenshu_home = %wenshu_home_for_diag.display(),
+        "wenshu setup diagnostics: WENSHU_HOME resolved"
     );
-    if let Some(parent) = hermes_home_for_diag.parent() {
+    if let Some(parent) = wenshu_home_for_diag.parent() {
         let probe = parent.join(".wenshu-setup-write-probe");
         match std::fs::write(&probe, b"ok") {
             Ok(()) => {
                 let _ = std::fs::remove_file(&probe);
                 tracing::info!(
                     probe = %probe.display(),
-                    "HERMES_HOME parent is writable"
+                    "WENSHU_HOME parent is writable"
                 );
             }
             Err(err) => {
                 tracing::error!(
                     probe = %probe.display(),
                     error = %err,
-                    "HERMES_HOME parent is NOT writable — installer UI will fail to start.                      Move 文枢.app to a writable Applications folder, or chmod+chown its parent."
+                    "WENSHU_HOME parent is NOT writable — installer UI will fail to start.                      Move 文枢.app to a writable Applications folder, or chmod+chown its parent."
                 );
             }
         }
@@ -146,9 +146,7 @@ pub fn run() {
         .manage(Arc::new(AppState::new(mode)))
         .setup(move |app| {
             use tauri::Manager;
-            eprintln!(
-                "[wenshu-setup] setup entered: mode={mode:?}, force_setup={force_setup}"
-            );
+            eprintln!("[wenshu-setup] setup entered: mode={mode:?}, force_setup={force_setup}");
             tracing::info!(?mode, force_setup, "setup 回调已触发");
             // Launcher fast path (macOS only): a bare ("Install") launch when
             // 文枢 is already installed should NOT show the installer or
@@ -161,14 +159,14 @@ pub fn run() {
             // its existing behavior (Windows users relaunch via the Start
             // Menu/Desktop "文枢" shortcuts that install.ps1 creates, and a
             // reliable detached relaunch there needs the DETACHED_PROCESS +
-            // startup-grace handling used by launch_hermes_desktop — out of
+            // startup-grace handling used by launch_wenshu_desktop — out of
             // scope here). So this is a pure no-op on non-macOS.
             //
             // `--reinstall`/`--repair` opts out so a broken install can be
             // repaired by re-running setup instead of launching the bad app.
             if cfg!(target_os = "macos") && mode == AppMode::Install && !force_setup {
-                let install_root = paths::hermes_home().join("hermes-agent");
-                let managed_uv = paths::hermes_home().join("bin").join("uv");
+                let install_root = paths::wenshu_home().join("wenshu-agent");
+                let managed_uv = paths::wenshu_home().join("bin").join("uv");
                 // WO-001AO: refuse to fast-path when managed uv is missing.
                 // The 8/26 hang proved the launcher silently skipping
                 // re-install when uv disappeared left the user in a broken
@@ -176,23 +174,69 @@ pub fn run() {
                 // get nothing. If uv is gone, treat the install as broken
                 // and show the installer UI so prerequisites can re-run.
                 let uv_present = managed_uv.is_file();
-                if bootstrap::hermes_is_installed(&install_root) && uv_present {
-                    match bootstrap::spawn_installed_desktop(&install_root) {
-                        Ok(()) => {
-                            // Brief grace so the spawned app is registered
-                            // before we exit (mirrors launch_hermes_desktop).
-                            std::thread::sleep(std::time::Duration::from_millis(200));
-                            tracing::info!(
-                                "hermes 已安装 — 已重新启动桌面端,安装程序即将退出"
-                            );
-                            app.handle().exit(0);
-                            return Ok(());
-                        }
-                        Err(err) => {
-                            tracing::warn!(
-                                ?err,
-                                "重新启动桌面端失败,显示安装程序界面"
-                            );
+                if bootstrap::wenshu_is_installed(&install_root) && uv_present {
+                    // WO-001BI R120: stale-check before fast-path. The
+                    // installed .app was built from whatever commit was
+                    // HEAD when pnpm build last ran. If the user (or a
+                    // prior `wenshu update`) has since advanced the source
+                    // repo under `$WENSHU_HOME/wenshu-agent`, the .app on
+                    // disk is older than the source — fast-pathing into
+                    // it silently strands the user on the old self-update
+                    // code (R117 feedback, 8/31). Compare the bundled
+                    // install-stamp.json commit against the source repo's
+                    // current HEAD; if they differ, refuse the fast-path
+                    // and route through the R113 update flow (which
+                    // rebuilds the .app, copies it into place, then the
+                    // user's NEXT launch of /Applications/文枢.app picks
+                    // up the fresh build via this same fast-path). The
+                    // user's CURRENT launch gets the installer UI with
+                    // update stages, mirrors what `--update` mode already
+                    // does.
+                    let app_bundle = bootstrap::resolve_wenshu_desktop_app(&install_root);
+                    let install_stamp = app_bundle
+                        .as_ref()
+                        .and_then(|b| paths::load_install_stamp_from_bundle(b));
+                    let repo_head = paths::repo_head_commit(&install_root);
+                    let stale = paths::installed_commit_is_stale(
+                        install_stamp.as_ref(),
+                        repo_head.as_deref(),
+                    );
+                    if stale {
+                        let stamp_commit = install_stamp.as_ref().map(|s| s.commit.clone());
+                        tracing::warn!(
+                            app_bundle = ?app_bundle.as_ref().map(|p| p.display().to_string()),
+                            stamp_commit = ?stamp_commit,
+                            repo_head = ?repo_head,
+                            "R120: 已安装的 .app 落后于源码仓库 — 拒绝快速通道,改走更新流程"
+                        );
+                        // Fire the R113 update flow async; emitting the
+                        // `manifest` event from start_update flips the
+                        // frontend's `route` to 'progress' so the user
+                        // lands on the existing update UI (same UX as a
+                        // desktop-launched --update handoff).
+                        let app_for_update = app.handle().clone();
+                        tauri::async_runtime::spawn(async move {
+                            if let Err(err) = update::start_update(app_for_update).await {
+                                tracing::error!(?err, "R120 stale-path: start_update 失败");
+                            }
+                        });
+                        // Fall through to the UI-display block below —
+                        // do NOT exit, the user needs to see (and
+                        // survive) the update progress. exit(0) here
+                        // would race the spawned update task.
+                    } else {
+                        match bootstrap::spawn_installed_desktop(&install_root) {
+                            Ok(()) => {
+                                // Brief grace so the spawned app is registered
+                                // before we exit (mirrors launch_wenshu_desktop).
+                                std::thread::sleep(std::time::Duration::from_millis(200));
+                                tracing::info!("wenshu 已安装 — 已重新启动桌面端,安装程序即将退出");
+                                app.handle().exit(0);
+                                return Ok(());
+                            }
+                            Err(err) => {
+                                tracing::warn!(?err, "重新启动桌面端失败,显示安装程序界面");
+                            }
                         }
                     }
                 } else if !uv_present {
@@ -225,10 +269,10 @@ pub fn run() {
             // Update lifecycle
             update::start_update,
             // Hand-off
-            bootstrap::launch_hermes_desktop,
+            bootstrap::launch_wenshu_desktop,
             // Diagnostics
             paths::get_log_path,
-            paths::get_hermes_home,
+            paths::get_wenshu_home,
             paths::open_log_dir,
         ])
         .run(tauri::generate_context!())
