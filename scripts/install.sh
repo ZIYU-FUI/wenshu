@@ -47,14 +47,6 @@ export UV_CONCURRENT_DOWNLOADS=100
 # An inherited torch backend makes uv bypass the configured index and contact
 # download.pytorch.org. Generic torch wheels must use the domestic mirror too.
 unset UV_TORCH_BACKEND
-# WO-001BI R53: 共享 uv cache 跨 wenshu update 重装。
-# 默认 uv cache 在 ~/.cache/uv (按 OS 变化, root 重装会归零), 移到 $WENSHU_HOME/cache/uv:
-#   - user 模式: 多次 wenshu update 不重下 wheel (~1.5GB 反复装的省)
-#   - dev 模式: 同样共享 (开发期间多次重装也省)
-# $WENSHU_HOME 此时已定 (line 64), mkdir -p 推迟到 install_uv/setup_venv 实际使用时,
-# 避免无 PYTHON 阶段的 --ensure=... 路径误建空目录。
-UV_CACHE_DIR_DEFAULT="$WENSHU_HOME/cache/uv"
-export UV_CACHE_DIR="${UV_CACHE_DIR:-$UV_CACHE_DIR_DEFAULT}"
 
 # Colors
 RED='\033[0;31m'
@@ -70,6 +62,9 @@ BOLD='\033[1m'
 REPO_URL_SSH="git@github.com:ZIYU-FUI/wenshu.git"
 REPO_URL_HTTPS="https://github.com/ZIYU-FUI/wenshu.git"
 WENSHU_HOME="${WENSHU_HOME:-$HOME/.wenshu-hermes}"
+# WO-001BI R53: 共享 uv cache 跨 wenshu update 重装
+UV_CACHE_DIR_DEFAULT="$WENSHU_HOME/cache/uv"
+export UV_CACHE_DIR="${UV_CACHE_DIR:-$UV_CACHE_DIR_DEFAULT}"
 # INSTALL_DIR is resolved AFTER arg parsing and OS detection so we can pick an
 # FHS-style layout for root installs.  Track whether the user gave us an
 # explicit directory — if so we never override it.
