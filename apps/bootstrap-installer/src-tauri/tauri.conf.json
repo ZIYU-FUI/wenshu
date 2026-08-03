@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "文枢",
+  "productName": "WenShu-Setup",
   "version": "0.0.1",
   "identifier": "com.wenshu.app.setup",
   "build": {
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "文枢",
+        "title": "WenShu-Setup",
         "width": 880,
         "height": 620,
         "minWidth": 720,
@@ -34,7 +34,7 @@
   "bundle": {
     "active": true,
     "category": "DeveloperTool",
-    "shortDescription": "文枢",
+    "shortDescription": "WenShu-Setup",
     "longDescription": "Installs 文枢 on your machine. Drives scripts/install.ps1 (Windows) and scripts/install.sh (macOS/Linux).",
     "publisher": "文枢 Project",
     "copyright": "Copyright © 2026 文枢 Project",
@@ -57,7 +57,8 @@
     },
     "macOS": {
       "minimumSystemVersion": "11.0",
-      "hardenedRuntime": true
+      "hardenedRuntime": true,
+      "bundleName": "WenShu-Setup"
     }
   },
   "plugins": {

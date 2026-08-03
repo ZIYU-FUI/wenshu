@@ -7,7 +7,7 @@ import { startInstall } from '../store'
  * Welcome screen.
  *
  * Mirrors the desktop's chat intro (apps/desktop/src/components/chat/intro.tsx):
- *   - 文枢 wordmark rendered in Collapse Bold, uppercase, tracked
+ *   - WENSHU wordmark rendered in Collapse Bold, uppercase, tracked
  *   - mix-blend-plus-lighter so the type "glows" on the canvas
  *   - fit-text utility so the wordmark sizes itself to the column
  *
@@ -31,9 +31,9 @@ export default function Welcome() {
           }
         >
           <span>
-            <span>文枢 AGENT</span>
+            <span>WENSHU AGENT</span>
           </span>
-          <span aria-hidden="true">文枢 AGENT</span>
+          <span aria-hidden="true">WENSHU AGENT</span>
         </p>
 
         <p className="m-0 text-center text-base leading-normal tracking-tight text-muted-foreground">
