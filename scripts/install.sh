@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================================
-# Hermes Agent Installer
+# Wenshu Agent Installer
 # ============================================================================
 # Installation script for Linux, macOS, and Android/Termux.
 # Uses uv for desktop/server installs and Python's stdlib venv + pip on Termux.
@@ -16,7 +16,7 @@
 set -e
 
 # Guard against environment leakage when the installer is launched from another
-# Python-driven tool session (e.g. Hermes terminal tool). A pre-set PYTHONPATH
+# Python-driven tool session (e.g. Wenshu terminal tool). A pre-set PYTHONPATH
 # can force pip/entrypoints to import a different checkout than the one being
 # installed, which makes fresh installs appear broken or stale.
 if [ -n "${PYTHONPATH:-}" ]; then
@@ -47,6 +47,14 @@ export UV_CONCURRENT_DOWNLOADS=100
 # An inherited torch backend makes uv bypass the configured index and contact
 # download.pytorch.org. Generic torch wheels must use the domestic mirror too.
 unset UV_TORCH_BACKEND
+# WO-001BI R53: 共享 uv cache 跨 wenshu update 重装。
+# 默认 uv cache 在 ~/.cache/uv (按 OS 变化, root 重装会归零), 移到 $WENSHU_HOME/cache/uv:
+#   - user 模式: 多次 wenshu update 不重下 wheel (~1.5GB 反复装的省)
+#   - dev 模式: 同样共享 (开发期间多次重装也省)
+# $WENSHU_HOME 此时已定 (line 64), mkdir -p 推迟到 install_uv/setup_venv 实际使用时,
+# 避免无 PYTHON 阶段的 --ensure=... 路径误建空目录。
+UV_CACHE_DIR_DEFAULT="$WENSHU_HOME/cache/uv"
+export UV_CACHE_DIR="${UV_CACHE_DIR:-$UV_CACHE_DIR_DEFAULT}"
 
 # Colors
 RED='\033[0;31m'
@@ -61,12 +69,12 @@ BOLD='\033[1m'
 # Configuration
 REPO_URL_SSH="git@github.com:ZIYU-FUI/wenshu.git"
 REPO_URL_HTTPS="https://github.com/ZIYU-FUI/wenshu.git"
-HERMES_HOME="${HERMES_HOME:-$HOME/.wenshu-hermes}"
+WENSHU_HOME="${WENSHU_HOME:-$HOME/.wenshu-hermes}"
 # INSTALL_DIR is resolved AFTER arg parsing and OS detection so we can pick an
 # FHS-style layout for root installs.  Track whether the user gave us an
 # explicit directory — if so we never override it.
-if [ -n "${HERMES_INSTALL_DIR:-}" ]; then
-    INSTALL_DIR="$HERMES_INSTALL_DIR"
+if [ -n "${WENSHU_INSTALL_DIR:-}" ]; then
+    INSTALL_DIR="$WENSHU_INSTALL_DIR"
     INSTALL_DIR_EXPLICIT=true
 else
     INSTALL_DIR=""
@@ -75,9 +83,23 @@ fi
 PYTHON_VERSION="3.11"
 NODE_VERSION="22"
 
+# WO-001BI R53 (装机 user 8/30 拍板): 用户场景瘦身 4.5G → 800MB。
+# - 默认 (用户): 浅克隆 + filter=blob:none (.git/ 不带历史/不拉 blob)
+# - WENSHU_DEV_INSTALL=1 (开发者): 完整 git clone，可看历史/可 reset/diff
+#
+# 装机 user 真值: "我安装测试，别把我当开发者，我装的就是一个用户端"。
+# Default 选用户侧。开发者场景需显式 export WENSHU_DEV_INSTALL=1 后再跑。
+if [ "${WENSHU_DEV_INSTALL:-0}" = "1" ]; then
+    echo "DEV mode: full git clone (WENSHU_DEV_INSTALL=1)"
+    GIT_DEPTH=""
+else
+    echo "USER mode: shallow git clone (set WENSHU_DEV_INSTALL=1 for full clone)"
+    GIT_DEPTH="--depth=1 --filter=blob:none"
+fi
+
 # FHS-style root install layout (set by resolve_install_layout when applicable):
-#   code at /usr/local/lib/hermes-agent, command at /usr/local/bin/hermes,
-#   data still at /root/.wenshu-hermes (HERMES_HOME).  Matches Claude Code / Codex CLI
+#   code at /usr/local/lib/wenshu-agent, command at /usr/local/bin/wenshu,
+#   data still at /root/.wenshu (WENSHU_HOME).  Matches Claude Code / Codex CLI
 #   and keeps Docker bind-mounted /root/ volumes lean.
 ROOT_FHS_LAYOUT=false
 DETECTED_BROWSER_EXECUTABLE=""
@@ -89,7 +111,6 @@ SKIP_BROWSER=false
 NO_SKILLS=false
 BRANCH="main"
 INSTALL_COMMIT=""
-FORCE_COMMIT=false
 ENSURE_DEPS=""
 
 MANIFEST_MODE=false
@@ -134,10 +155,6 @@ while [[ $# -gt 0 ]]; do
             INSTALL_COMMIT="$2"
             shift 2
             ;;
-        --force-commit|-ForceCommit)
-            FORCE_COMMIT=true
-            shift
-            ;;
         --manifest|-Manifest)
             MANIFEST_MODE=true
             shift
@@ -163,8 +180,8 @@ while [[ $# -gt 0 ]]; do
             INSTALL_DIR_EXPLICIT=true
             shift 2
             ;;
-        --hermes-home)
-            HERMES_HOME="$2"
+        --wenshu-home)
+            WENSHU_HOME="$2"
             shift 2
             ;;
         --ensure)
@@ -173,7 +190,7 @@ while [[ $# -gt 0 ]]; do
             ;;
 
         -h|--help)
-            echo "Hermes Agent Installer"
+            echo "Wenshu Agent Installer"
             echo ""
             echo "Usage: install.sh [OPTIONS]"
             echo ""
@@ -182,31 +199,29 @@ while [[ $# -gt 0 ]]; do
             echo "  --skip-setup   Skip interactive setup wizard"
             echo "  --skip-browser Skip Playwright/Chromium install (browser tools won't work)"
             echo "  --no-skills    Start with a blank slate — seed no bundled skills, and"
-            echo "                   write \$HERMES_HOME/.no-bundled-skills so future"
-            echo "                   'hermes update' runs never inject bundled skills either"
+            echo "                   write \$WENSHU_HOME/.no-bundled-skills so future"
+            echo "                   'wenshu update' runs never inject bundled skills either"
             echo "  --branch NAME  Git branch to install (default: main)"
             echo "  --commit SHA   Pin checkout to a specific commit after clone/update"
-            echo "                   (ignored when it would roll an existing install back)"
-            echo "  --force-commit Apply --commit even if it rolls the install backwards"
             echo "  --manifest     Print desktop bootstrap stage manifest as JSON"
             echo "  --stage NAME   Run one desktop bootstrap stage"
             echo "  --json         Print a JSON result frame for --stage"
             echo "  --non-interactive  Skip stages that require user input"
             echo "  --include-desktop  同时构建桌面应用 (apps/desktop -> 文枢.app)"
             echo "  --dir PATH     Installation directory"
-            echo "                   default (non-root):  ~/.wenshu-hermes/hermes-agent"
-            echo "                   default (root, Linux): /usr/local/lib/hermes-agent"
-            echo "  --hermes-home PATH  Data directory (default: ~/.wenshu-hermes, or \$HERMES_HOME)"
+            echo "                   default (non-root):  ~/.wenshu-hermes/wenshu-agent"
+            echo "                   default (root, Linux): /usr/local/lib/wenshu-agent"
+            echo "  --wenshu-home PATH  Data directory (default: ~/.wenshu, or \$WENSHU_HOME)"
             echo "  -h, --help     Show this help"
             echo ""
             echo "Notes:"
-            echo "  When running as root on Linux, Hermes installs the code under"
-            echo "  /usr/local/lib/hermes-agent and links the command into"
-            echo "  /usr/local/bin/hermes (FHS layout — matches Claude Code / Codex CLI)."
-            echo "  Data, config, sessions, and logs still live in \$HERMES_HOME"
-            echo "  (default /root/.wenshu-hermes).  This keeps Docker bind-mounted volumes"
+            echo "  When running as root on Linux, Wenshu installs the code under"
+            echo "  /usr/local/lib/wenshu-agent and links the command into"
+            echo "  /usr/local/bin/wenshu (FHS layout — matches Claude Code / Codex CLI)."
+            echo "  Data, config, sessions, and logs still live in \$WENSHU_HOME"
+            echo "  (default /root/.wenshu).  This keeps Docker bind-mounted volumes"
             echo "  small and ensures the command is on PATH for all shells."
-            echo "  Existing installs at \$HERMES_HOME/hermes-agent are preserved in-place."
+            echo "  Existing installs at \$WENSHU_HOME/wenshu-agent are preserved in-place."
             echo "  --ensure DEPS  Install only specified deps (comma-separated)"
             echo "                   Supported: node, browser, ripgrep, ffmpeg"
             echo "                   Does NOT clone repo or create venv"
@@ -228,7 +243,7 @@ print_banner() {
     echo ""
     echo -e "${MAGENTA}${BOLD}"
     echo "┌─────────────────────────────────────────────────────────┐"
-    echo "│             ⚕ Hermes Agent Installer                    │"
+    echo "│             ⚕ Wenshu Agent Installer                    │"
     echo "├─────────────────────────────────────────────────────────┤"
     echo "│  An open source AI agent by Nous Research.              │"
     echo "└─────────────────────────────────────────────────────────┘"
@@ -271,7 +286,7 @@ json_escape() {
 
 # npm rewrites tracked package-lock.json files non-deterministically during
 # `npm install` / `npm run pack`. On a managed install those diffs are never
-# intentional, but they leave the checkout dirty — which forces `hermes update`
+# intentional, but they leave the checkout dirty — which forces `wenshu update`
 # to autostash on every run and makes branch switches fragile. Restore them so
 # a fresh install ends with a clean tree. Best-effort; only touches lockfiles.
 restore_dirty_lockfiles() {
@@ -340,7 +355,7 @@ EOF
 
 emit_manifest() {
     # Stage-Desktop is included only with --include-desktop, mirroring
-    # install.ps1: the signed bootstrap installer (Hermes-Setup) passes it so
+    # install.ps1: the signed bootstrap installer (Wenshu-Setup) passes it so
     # a GUI install ends up with a launchable app; the Electron app's own
     # first-launch bootstrap and the CLI one-liner omit it (building the
     # desktop from inside the already-running app would clobber it).
@@ -416,29 +431,29 @@ is_termux() {
     [ -n "${TERMUX_VERSION:-}" ] || [[ "${PREFIX:-}" == *"com.termux/files/usr"* ]]
 }
 
-# Decide where the repo checkout + venv live, and where the `hermes` command
+# Decide where the repo checkout + venv live, and where the `wenshu` command
 # symlink goes.  Called after detect_os so $OS/$DISTRO are known.
 #
 # Defaults:
-#   - Non-root, any OS:       INSTALL_DIR = $HERMES_HOME/hermes-agent
+#   - Non-root, any OS:       INSTALL_DIR = $WENSHU_HOME/wenshu-agent
 #                             command link in $HOME/.local/bin
-#   - Termux (any uid):       INSTALL_DIR = $HERMES_HOME/hermes-agent
+#   - Termux (any uid):       INSTALL_DIR = $WENSHU_HOME/wenshu-agent
 #                             command link in $PREFIX/bin (already on PATH)
-#   - Root on Linux (new):    INSTALL_DIR = /usr/local/lib/hermes-agent
+#   - Root on Linux (new):    INSTALL_DIR = /usr/local/lib/wenshu-agent
 #                             command link in /usr/local/bin
 #                             (unless a legacy install already exists at
-#                              $HERMES_HOME/hermes-agent — then preserve it)
+#                              $WENSHU_HOME/wenshu-agent — then preserve it)
 #
-# Always no-op when the user set --dir or $HERMES_INSTALL_DIR.
+# Always no-op when the user set --dir or $WENSHU_INSTALL_DIR.
 resolve_install_layout() {
     if [ "$INSTALL_DIR_EXPLICIT" = true ]; then
         log_info "Install directory: $INSTALL_DIR (explicit)"
         return 0
     fi
 
-    # Termux: package manager manages /data/data/..., keep code in HERMES_HOME.
+    # Termux: package manager manages /data/data/..., keep code in WENSHU_HOME.
     if is_termux; then
-        INSTALL_DIR="$HERMES_HOME/hermes-agent"
+        INSTALL_DIR="$WENSHU_HOME/wenshu-agent"
         return 0
     fi
 
@@ -446,31 +461,31 @@ resolve_install_layout() {
     # macOS root installs keep the legacy layout because /usr/local/ on macOS
     # is Homebrew territory and we don't want to fight that.
     if [ "$OS" = "linux" ] && [ "$(id -u)" -eq 0 ]; then
-        if [ -d "$HERMES_HOME/hermes-agent/.git" ]; then
-            INSTALL_DIR="$HERMES_HOME/hermes-agent"
+        if [ -d "$WENSHU_HOME/wenshu-agent/.git" ]; then
+            INSTALL_DIR="$WENSHU_HOME/wenshu-agent"
             log_info "Existing install detected at $INSTALL_DIR — keeping legacy layout"
-            log_info "  (new root installs use /usr/local/lib/hermes-agent)"
+            log_info "  (new root installs use /usr/local/lib/wenshu-agent)"
             return 0
         fi
-        INSTALL_DIR="/usr/local/lib/hermes-agent"
+        INSTALL_DIR="/usr/local/lib/wenshu-agent"
         ROOT_FHS_LAYOUT=true
         # Place uv-managed Python under /usr/local/share so the venv interpreter
         # is world-readable.  Default uv paths land in /root/.local/share/uv,
         # which non-root users can't traverse — leaving the shared
-        # /usr/local/bin/hermes wrapper unable to exec the bad-interpreter venv
+        # /usr/local/bin/wenshu wrapper unable to exec the bad-interpreter venv
         # python.  See #21457.
         export UV_PYTHON_INSTALL_DIR="${UV_PYTHON_INSTALL_DIR:-/usr/local/share/uv/python}"
         export UV_PYTHON_BIN_DIR="${UV_PYTHON_BIN_DIR:-/usr/local/share/uv/bin}"
         log_info "Root install on Linux — using FHS layout"
         log_info "  Code:    $INSTALL_DIR"
-        log_info "  Command: /usr/local/bin/hermes"
-        log_info "  Data:    $HERMES_HOME (unchanged)"
+        log_info "  Command: /usr/local/bin/wenshu"
+        log_info "  Data:    $WENSHU_HOME (unchanged)"
         log_info "  uv Python: $UV_PYTHON_INSTALL_DIR (world-readable)"
         return 0
     fi
 
     # Default: non-root, non-Termux → legacy user-scoped layout.
-    INSTALL_DIR="$HERMES_HOME/hermes-agent"
+    INSTALL_DIR="$WENSHU_HOME/wenshu-agent"
 }
 
 get_command_link_dir() {
@@ -493,32 +508,32 @@ get_command_link_display_dir() {
     fi
 }
 
-# Point a Hermes-managed Node's `npm install -g` at a directory that is on
+# Point a Wenshu-managed Node's `npm install -g` at a directory that is on
 # PATH. npm's default global prefix for a bundled Node is the Node dir itself,
-# so global package binaries land in $HERMES_HOME/node/bin — which is NOT on
+# so global package binaries land in $WENSHU_HOME/node/bin — which is NOT on
 # PATH (only the command link dir is) and is wiped on every Node upgrade.
 # Redirecting the prefix to the link dir's parent makes global bins resolve to
 # the command link dir (node/npm/npx live there too, already on PATH) and
 # survive upgrades. Scoped to the managed Node via its prefix-local global
 # npmrc, so the user's other Node installs and their ~/.npmrc are untouched.
-# Hermes's own global installs pass an explicit --prefix and are unaffected.
-# Idempotent and a no-op when there is no Hermes-managed npm, so calling it on
+# Wenshu's own global installs pass an explicit --prefix and are unaffected.
+# Idempotent and a no-op when there is no Wenshu-managed npm, so calling it on
 # every install run repairs pre-existing installs, not just fresh ones.
 configure_managed_node_npm_prefix() {
-    [ -x "$HERMES_HOME/node/bin/npm" ] || return 0
+    [ -x "$WENSHU_HOME/node/bin/npm" ] || return 0
     local link_dir
     link_dir="$(get_command_link_dir)"
-    mkdir -p "$HERMES_HOME/node/etc"
-    printf 'prefix=%s\n' "$(dirname "$link_dir")" > "$HERMES_HOME/node/etc/npmrc"
+    mkdir -p "$WENSHU_HOME/node/etc"
+    printf 'prefix=%s\n' "$(dirname "$link_dir")" > "$WENSHU_HOME/node/etc/npmrc"
 }
 
-get_hermes_command_path() {
+get_wenshu_command_path() {
     local link_dir
     link_dir="$(get_command_link_dir)"
-    if [ -x "$link_dir/hermes" ]; then
-        echo "$link_dir/hermes"
+    if [ -x "$link_dir/wenshu" ]; then
+        echo "$link_dir/wenshu"
     else
-        echo "hermes"
+        echo "wenshu"
     fi
 }
 
@@ -579,11 +594,11 @@ install_uv() {
         return 0
     fi
 
-    # Hermes owns its own uv at $HERMES_HOME/bin/uv.  Always install there —
+    # Wenshu owns its own uv at $WENSHU_HOME/bin/uv.  Always install there —
     # no PATH probing, no conda guards, no multi-location resolution chains.
-    # The runtime update path (hermes_cli/managed_uv.py) looks in the same
-    # place, so install.sh and `hermes update` stay in sync.
-    local _managed_uv="$HERMES_HOME/bin/uv"
+    # The runtime update path (wenshu_cli/managed_uv.py) looks in the same
+    # place, so install.sh and `wenshu update` stay in sync.
+    local _managed_uv="$WENSHU_HOME/bin/uv"
 
     if [ -x "$_managed_uv" ]; then
         UV_CMD="$_managed_uv"
@@ -592,8 +607,8 @@ install_uv() {
         return 0
     fi
 
-    log_info "Installing managed uv into $HERMES_HOME/bin ..."
-    mkdir -p "$HERMES_HOME/bin"
+    log_info "Installing managed uv into $WENSHU_HOME/bin ..."
+    mkdir -p "$WENSHU_HOME/bin"
 
     # Two-stage: download the installer, then run it.  Piping
     # `curl | sh` masks curl failures (sh exits 0 on empty stdin)
@@ -607,8 +622,8 @@ install_uv() {
     # universal fallbacks that piggyback on whatever Python the host already
     # has.)
     local _uv_install_log _uv_installer
-    _uv_install_log="$(mktemp 2>/dev/null || echo "/tmp/hermes-uv-install.$$.log")"
-    _uv_installer="$(mktemp 2>/dev/null || echo "/tmp/hermes-uv-installer.$$.sh")"
+    _uv_install_log="$(mktemp 2>/dev/null || echo "/tmp/wenshu-uv-install.$$.log")"
+    _uv_installer="$(mktemp 2>/dev/null || echo "/tmp/wenshu-uv-installer.$$.sh")"
     if ! curl -LsSf --max-time 60 --retry 3 --retry-all-errors https://astral.sh/uv/install.sh -o "$_uv_installer" 2>"$_uv_install_log"; then
         log_error "Failed to download uv installer from https://astral.sh/uv/install.sh"
         log_info "curl output:"
@@ -625,8 +640,8 @@ install_uv() {
         exit 1
     fi
     # UV_UNMANAGED_INSTALL tells the astral installer to place the binary
-    # directly into $HERMES_HOME/bin instead of ~/.local/bin.
-    if UV_UNMANAGED_INSTALL="$HERMES_HOME/bin" sh "$_uv_installer" >>"$_uv_install_log" 2>&1; then
+    # directly into $WENSHU_HOME/bin instead of ~/.local/bin.
+    if UV_UNMANAGED_INSTALL="$WENSHU_HOME/bin" sh "$_uv_installer" >>"$_uv_install_log" 2>&1; then
         rm -f "$_uv_installer"
         if [ -x "$_managed_uv" ]; then
             UV_CMD="$_managed_uv"
@@ -677,10 +692,10 @@ install_uv() {
 _uv_install_via_fallback() {
     local _target="$1"
     local _fb_log
-    _fb_log="$(mktemp 2>/dev/null || echo "/tmp/hermes-uv-fallback.$$.log")"
+    _fb_log="$(mktemp 2>/dev/null || echo "/tmp/wenshu-uv-fallback.$$.log")"
 
     # 1. brew (macOS / Linuxbrew). `brew install uv` lands in /opt/homebrew/bin
-    # or /usr/local/bin; we then symlink into HERMES_HOME/bin/uv.
+    # or /usr/local/bin; we then symlink into WENSHU_HOME/bin/uv.
     if command -v brew >/dev/null 2>&1; then
         log_info "[fallback] trying: brew install uv"
         if brew install uv >>"$_fb_log" 2>&1; then
@@ -699,7 +714,7 @@ _uv_install_via_fallback() {
     fi
 
     # 2. pip (any platform). `pip install uv` puts the binary in the active
-    # Python's bin/; we then symlink into HERMES_HOME/bin/uv.
+    # Python's bin/; we then symlink into WENSHU_HOME/bin/uv.
     local _pip_cmd=""
     if command -v pip3 >/dev/null 2>&1; then
         _pip_cmd="pip3"
@@ -942,77 +957,47 @@ check_git() {
     exit 1
 }
 
-# The dependency tree's real Node floor is >=22.22.0, set by react-router 8.3.0
-# (`engines.node`), with Vite ^8 next at `^20.19 || >=22.12`. Keep this in sync
-# with the root package.json — a gate looser than the manifest lets an install
-# proceed to a `npm ci` that then dies with EBADENGINE, and a gate stricter than
-# the manifest replaces a working user toolchain for nothing. Returns 0 when the
-# given `node --version` string clears the floor; anything below it is replaced
-# with the Hermes-managed Node $NODE_VERSION.
+# The desktop build runs Vite ^8, which refuses to start on Node outside
+# `^20.19 || >=22.12` — older Node lacks `node:util.styleText`, so `vite build`
+# crashes with a SyntaxError that surfaces only as the opaque "Build desktop
+# app … exit code 1" install failure. Returns 0 when the given `node --version`
+# string clears that floor; anything below it is replaced with the Wenshu-
+# managed Node $NODE_VERSION LTS.
 node_satisfies_build() {
     local ver="${1#v}"
     local major="${ver%%.*}"
     local minor="${ver#*.}"; minor="${minor%%.*}"
     case "$major" in ''|*[!0-9]*) return 1 ;; esac
     case "$minor" in ''|*[!0-9]*) minor=0 ;; esac
-    if [ "$major" -ge 22 ] && { [ "$major" -gt 22 ] || [ "$minor" -ge 22 ]; }; then return 0; fi
+    if [ "$major" -eq 20 ] && [ "$minor" -ge 19 ]; then return 0; fi
+    if [ "$major" -ge 22 ] && { [ "$major" -gt 22 ] || [ "$minor" -ge 12 ]; }; then return 0; fi
     return 1
-}
-
-# npm 11.10.0–11.16.x honor `min-release-age` but ignore
-# `min-release-age-exclude`, both of which `.npmrc` sets. That combination
-# applies the 14-day age gate to packages we deliberately exempted, so every
-# install fails ETARGET on a freshly published dependency. The root
-# package.json excludes that band via `engines.npm`, and `engine-strict=true`
-# makes it fatal — so a system npm in the band cannot install this repo, no
-# matter how new its Node is. Returns 0 when the npm is usable.
-npm_supports_npmrc() {
-    local ver="${1#v}"
-    local major="${ver%%.*}"
-    local minor="${ver#*.}"; minor="${minor%%.*}"
-    case "$major" in ''|*[!0-9]*) return 1 ;; esac
-    case "$minor" in ''|*[!0-9]*) minor=0 ;; esac
-    # The bad band is 11.10.0 through 11.16.x.
-    if [ "$major" -eq 11 ] && [ "$minor" -ge 10 ] && [ "$minor" -le 16 ]; then
-        return 1
-    fi
-    return 0
 }
 
 check_node() {
     log_info "Checking Node.js (for browser tools)..."
 
-    # Repair pre-existing Hermes-managed installs where `npm install -g` lands
+    # Repair pre-existing Wenshu-managed installs where `npm install -g` lands
     # off PATH. No-op when there's no managed Node, so this is safe to run on
     # every install — including re-runs that skip the Node (re)install below.
     configure_managed_node_npm_prefix
 
-    # The system toolchain is only usable when BOTH halves work: a Node new
-    # enough for the desktop build AND an npm that can read our .npmrc. A
-    # bad-band npm (see npm_supports_npmrc) fails `npm ci` outright, and the
-    # managed Node we install instead bundles one that works.
     if command -v node &> /dev/null && node_satisfies_build "$(node --version)"; then
-        if ! command -v npm &> /dev/null || npm_supports_npmrc "$(npm --version 2>/dev/null)"; then
-            log_success "Node.js $(node --version) found"
-            HAS_NODE=true
-            return 0
-        fi
-        log_warn "npm $(npm --version) cannot honor this repo's .npmrc (npm 11.10-11.16 ignore"
-        log_warn "min-release-age-exclude) — installing Hermes-managed Node $NODE_VERSION instead..."
-        install_node
-        return
+        log_success "Node.js $(node --version) found"
+        HAS_NODE=true
+        return 0
     fi
 
-    # Prefer a Hermes-managed Node from a previous run over a too-old system one.
-    if [ -x "$HERMES_HOME/node/bin/node" ] && node_satisfies_build "$("$HERMES_HOME/node/bin/node" --version)"; then
-        export PATH="$HERMES_HOME/node/bin:$PATH"
-        log_success "Node.js $("$HERMES_HOME/node/bin/node" --version) found (Hermes-managed)"
+    # Prefer a Wenshu-managed Node from a previous run over a too-old system one.
+    if [ -x "$WENSHU_HOME/node/bin/node" ] && node_satisfies_build "$("$WENSHU_HOME/node/bin/node" --version)"; then
+        export PATH="$WENSHU_HOME/node/bin:$PATH"
+        log_success "Node.js $("$WENSHU_HOME/node/bin/node" --version) found (Wenshu-managed)"
         HAS_NODE=true
         return 0
     fi
 
     if command -v node &> /dev/null; then
-        log_warn "Node.js $(node --version) is too old (Hermes requires Node >=26) — installing Hermes-managed Node $NODE_VERSION..."
+        log_warn "Node.js $(node --version) is too old for the desktop build (need ^20.19 or >=22.12) — installing Wenshu-managed Node $NODE_VERSION LTS..."
     elif [ "$DISTRO" = "termux" ]; then
         log_info "Node.js not found — installing Node.js via pkg..."
     else
@@ -1061,7 +1046,7 @@ install_node() {
             ;;
     esac
 
-    # Resolve the latest v${NODE_VERSION}.x.x tarball name from the index page
+    # Resolve the latest v22.x.x tarball name from the index page
     local index_url="https://nodejs.org/dist/latest-v${NODE_VERSION}.x/"
     local tarball_name
     tarball_name=$(curl -fsSL --max-time 30 --retry 2 "$index_url" \
@@ -1094,7 +1079,7 @@ install_node() {
         return 0
     fi
 
-    log_info "Extracting to ~/.hermes/node/..."
+    log_info "Extracting to ~/.wenshu-hermes/node/..."
     if [[ "$tarball_name" == *.tar.xz ]]; then
         tar xf "$tmp_dir/$tarball_name" -C "$tmp_dir"
     else
@@ -1111,28 +1096,28 @@ install_node() {
         return 0
     fi
 
-    # Place into ~/.hermes/node/ and symlink binaries into the same bin dir
-    # the hermes command uses (get_command_link_dir): /usr/local/bin for root
+    # Place into ~/.wenshu-hermes/node/ and symlink binaries into the same bin dir
+    # the wenshu command uses (get_command_link_dir): /usr/local/bin for root
     # FHS installs, $PREFIX/bin on Termux, ~/.local/bin otherwise.
-    rm -rf "$HERMES_HOME/node"
-    mkdir -p "$HERMES_HOME"
-    mv "$extracted_dir" "$HERMES_HOME/node"
+    rm -rf "$WENSHU_HOME/node"
+    mkdir -p "$WENSHU_HOME"
+    mv "$extracted_dir" "$WENSHU_HOME/node"
     rm -rf "$tmp_dir"
 
     local node_link_dir
     node_link_dir="$(get_command_link_dir)"
     mkdir -p "$node_link_dir"
-    ln -sf "$HERMES_HOME/node/bin/node" "$node_link_dir/node"
-    ln -sf "$HERMES_HOME/node/bin/npm"  "$node_link_dir/npm"
-    ln -sf "$HERMES_HOME/node/bin/npx"  "$node_link_dir/npx"
+    ln -sf "$WENSHU_HOME/node/bin/node" "$node_link_dir/node"
+    ln -sf "$WENSHU_HOME/node/bin/npm"  "$node_link_dir/npm"
+    ln -sf "$WENSHU_HOME/node/bin/npx"  "$node_link_dir/npx"
 
     configure_managed_node_npm_prefix
 
-    export PATH="$HERMES_HOME/node/bin:$PATH"
+    export PATH="$WENSHU_HOME/node/bin:$PATH"
 
     local installed_ver
-    installed_ver=$("$HERMES_HOME/node/bin/node" --version 2>/dev/null)
-    log_success "Node.js $installed_ver installed to ~/.hermes/node/"
+    installed_ver=$("$WENSHU_HOME/node/bin/node" --version 2>/dev/null)
+    log_success "Node.js $installed_ver installed to ~/.wenshu-hermes/node/"
     HAS_NODE=true
 }
 
@@ -1148,33 +1133,12 @@ check_network_prerequisites() {
         return 0
     fi
 
-    # Run the probes in parallel — serially, two blocked probes cost
-    # 2 × --max-time (16 s) before the user sees any useful error; in
-    # parallel the worst case is one --max-time (8 s).
-    local pids=()
-    local tmpdir
-    tmpdir=$(mktemp -d)
-    local i=0
     for url in "${checks[@]}"; do
-        (
-            if curl -fsSI --max-time 8 "$url" >/dev/null 2>&1; then
-                : > "$tmpdir/ok_$i"
-            fi
-        ) &
-        pids+=($!)
-        i=$((i + 1))
-    done
-    wait "${pids[@]}" 2>/dev/null
-
-    i=0
-    for url in "${checks[@]}"; do
-        if [ ! -e "$tmpdir/ok_$i" ]; then
+        if ! curl -fsSI --max-time 8 "$url" >/dev/null 2>&1; then
             failed=true
             log_warn "Could not reach $url"
         fi
-        i=$((i + 1))
     done
-    rm -rf "$tmpdir"
 
     if [ "$failed" = false ]; then
         log_success "Internet connectivity looks good"
@@ -1187,7 +1151,7 @@ check_network_prerequisites() {
         log_info "If mirrors are stale: termux-change-repo"
         log_info "Then test: curl -I $PYPI_MIRROR_PRIMARY/ && curl -I $PYPI_MIRROR_FALLBACK"
     else
-        log_warn "Network checks failed. Hermes install may complete, but web search and dependency downloads can fail."
+        log_warn "Network checks failed. Wenshu install may complete, but web search and dependency downloads can fail."
         log_info "Verify internet/DNS and retry if pip install fails."
     fi
 }
@@ -1311,7 +1275,7 @@ install_system_packages() {
             if [ "$IS_INTERACTIVE" = true ]; then
                 echo ""
                 log_info "sudo is needed ONLY to install optional system packages (${pkgs[*]}) via your package manager."
-                log_info "Hermes Agent itself does not require or retain root access."
+                log_info "Wenshu Agent itself does not require or retain root access."
                 if prompt_yes_no "Install ${description}? (requires sudo)" "no"; then
                     if sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a $install_cmd; then
                         [ "$need_ripgrep" = true ] && HAS_RIPGREP=true && log_success "ripgrep installed"
@@ -1327,7 +1291,7 @@ install_system_packages() {
                 # but opening fails with ENXIO. See #16746.
                 echo ""
                 log_info "sudo is needed ONLY to install optional system packages (${pkgs[*]}) via your package manager."
-                log_info "Hermes Agent itself does not require or retain root access."
+                log_info "Wenshu Agent itself does not require or retain root access."
                 if prompt_yes_no "Install ${description}?" "yes"; then
                     if sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a $install_cmd < /dev/tty; then
                         [ "$need_ripgrep" = true ] && HAS_RIPGREP=true && log_success "ripgrep installed"
@@ -1417,14 +1381,14 @@ clone_repo() {
                 # the whole install at the repository stage. Clear the conflict
                 # markers with `git reset` first -- this keeps working-tree
                 # changes (they're still stashed just below) and only drops the
-                # index-level conflict state. Mirrors the `hermes update` path
+                # index-level conflict state. Mirrors the `wenshu update` path
                 # (#4735).
                 if [ -n "$(git ls-files --unmerged)" ]; then
                     log_info "Clearing unmerged index entries from a previous conflict..."
                     git reset -q
                 fi
                 local stash_name
-                stash_name="hermes-install-autostash-$(date -u +%Y%m%d-%H%M%S)"
+                stash_name="wenshu-install-autostash-$(date -u +%Y%m%d-%H%M%S)"
                 log_info "Local changes detected, stashing before update..."
                 git stash push --include-untracked -m "$stash_name"
                 autostash_ref="stash@{0}"
@@ -1439,9 +1403,14 @@ clone_repo() {
             git checkout "$BRANCH"
             # Managed installs should follow origin/$BRANCH exactly. If the
             # checkout has diverged (or has local-only commits), ff-only pull
-            # cannot succeed — mirror ``hermes update`` and reset to the
+            # cannot succeed — mirror ``wenshu update`` and reset to the
             # fetched remote so bootstrap/install can recover.
-            if ! git pull --ff-only origin "$BRANCH"; then
+            #
+            # WO-001BI R53: --depth=1 keeps the .git/ directory bounded across
+            # repeated wenshu update runs (otherwise .git/ grows ~commit-size
+            # per fetch). --ff-only stays: divergence still falls back to
+            # reset --hard origin/$BRANCH below.
+            if ! git pull --ff-only --depth=1 origin "$BRANCH"; then
                 log_warn "Fast-forward not possible; resetting managed install to origin/$BRANCH..."
                 git reset --hard "origin/$BRANCH"
             fi
@@ -1474,7 +1443,7 @@ clone_repo() {
                     if [ "$restore_ok" = "yes" ] && [ -z "$conflicted_files" ]; then
                         git stash drop "$autostash_ref" >/dev/null
                         log_warn "Local changes were restored on top of the updated codebase."
-                        log_warn "Review git diff / git status if Hermes behaves unexpectedly."
+                        log_warn "Review git diff / git status if Wenshu behaves unexpectedly."
                     else
                         log_error "Update pulled new code, but restoring local changes hit conflicts."
                         if [ -n "$restore_output" ]; then
@@ -1511,13 +1480,16 @@ EOF
         # GIT_SSH_COMMAND disables interactive prompts and sets a short timeout
         # so SSH fails fast instead of hanging when no key is configured.
         log_info "Trying SSH clone..."
+        # WO-001BI R53: $GIT_DEPTH comes from WENSHU_DEV_INSTALL detection at script top:
+        #   - USER (default): --depth=1 --filter=blob:none (shallow + no blob fetch)
+        #   - DEV (WENSHU_DEV_INSTALL=1): "" (full clone, with history)
         if GIT_SSH_COMMAND="ssh -o BatchMode=yes -o ConnectTimeout=5" \
-           git clone --depth 1 --branch "$BRANCH" "$REPO_URL_SSH" "$INSTALL_DIR" 2>/dev/null; then
+           git clone $GIT_DEPTH --branch "$BRANCH" "$REPO_URL_SSH" "$INSTALL_DIR" 2>/dev/null; then
             log_success "Cloned via SSH"
         else
             rm -rf "$INSTALL_DIR" 2>/dev/null  # Clean up partial SSH clone
             log_info "SSH failed, trying HTTPS..."
-            if git clone --depth 1 --branch "$BRANCH" "$REPO_URL_HTTPS" "$INSTALL_DIR"; then
+            if git clone $GIT_DEPTH --branch "$BRANCH" "$REPO_URL_HTTPS" "$INSTALL_DIR"; then
                 log_success "Cloned via HTTPS"
             else
                 log_error "Failed to clone repository"
@@ -1529,31 +1501,11 @@ EOF
     cd "$INSTALL_DIR"
 
     if [ -n "$INSTALL_COMMIT" ]; then
-        # A commit pin must never move an existing install BACKWARDS. The
-        # bootstrap installer bakes its build-time commit into the binary
-        # (BUILD_PIN_COMMIT) and passes it as --commit on every install-mode
-        # run -- including the one the desktop's failure screen retries. An
-        # installer built months ago would otherwise rewind a current checkout
-        # to its build commit, stranding the user on ancient code with a
-        # current venv. Only pin when the target is not already an ancestor of
-        # HEAD; a fresh clone has no such ancestry and pins normally.
+        log_info "Pinning checkout to commit $INSTALL_COMMIT..."
         if ! git cat-file -e "$INSTALL_COMMIT^{commit}" 2>/dev/null; then
             git fetch origin "$INSTALL_COMMIT" || true
         fi
-        if git rev-parse --verify --quiet HEAD >/dev/null 2>&1 \
-           && git merge-base --is-ancestor "$INSTALL_COMMIT" HEAD 2>/dev/null \
-           && [ "$(git rev-parse "$INSTALL_COMMIT^{commit}" 2>/dev/null)" != "$(git rev-parse HEAD)" ]; then
-            if [ "$FORCE_COMMIT" = true ]; then
-                log_warn "--force-commit: rolling this install back to $INSTALL_COMMIT."
-                git checkout --detach "$INSTALL_COMMIT"
-            else
-                log_warn "Ignoring --commit $INSTALL_COMMIT: the checkout is already newer."
-                log_warn "Pinning to it would roll this install back. Pass --force-commit to override."
-            fi
-        else
-            log_info "Pinning checkout to commit $INSTALL_COMMIT..."
-            git checkout --detach "$INSTALL_COMMIT"
-        fi
+        git checkout --detach "$INSTALL_COMMIT"
     fi
 
     log_success "Repository ready"
@@ -1561,7 +1513,7 @@ EOF
 
 # WO-001AS (v6 BUG): setup_venv has no direct curl calls (uses `uv venv`
 # which goes through the managed uv binary installed by install_uv). 派单
-# 拍板 "install_hermes_python 同样 retry" = 写明 "无 curl 直接调用,网络路径
+# 拍板 "install_wenshu_python 同样 retry" = 写明 "无 curl 直接调用,网络路径
 # 由 install_uv 走 curl retry + fallback 兜底"。uv pip / uv venv 自身的
 # network retry 行为不在白名单,本单不修。
 setup_venv() {
@@ -1569,6 +1521,11 @@ setup_venv() {
         log_info "Skipping virtual environment (--no-venv)"
         return 0
     fi
+
+    # WO-001BI R53: ensure uv cache dir exists before the first uv invocation.
+    # Otherwise uv auto-creates it on first download inside ~/.cache/uv and
+    # silently bypasses our $UV_CACHE_DIR override.
+    mkdir -p "$UV_CACHE_DIR" 2>/dev/null || true
 
     if [ "$DISTRO" = "termux" ]; then
         log_info "Creating virtual environment with Termux Python..."
@@ -1613,6 +1570,12 @@ setup_venv() {
 # powershell.rs::SCRIPT_TIMEOUT 兜底(已在 WO-001AR STEP 2 落地)。
 install_deps() {
     log_info "Installing dependencies..."
+
+    # WO-001BI R53: re-ensure uv cache dir exists when running install_deps as a
+    # separate bootstrap stage (setup_venv's mkdir is in the parent's env, not
+    # the child's). The venv stage runs first and creates the cache, but if
+    # --stage python-deps is invoked directly, this is the first touch.
+    mkdir -p "$UV_CACHE_DIR" 2>/dev/null || true
 
     # Re-pin UV_PYTHON to the venv interpreter. setup_venv already does this,
     # but the bootstrap runs install stages (`venv`, `python-deps`) as separate
@@ -1702,7 +1665,7 @@ install_deps() {
                     log_success "Build tools installed"
                 else
                     log_info "sudo is needed ONLY to install build tools (build-essential, python3-dev, libffi-dev) via apt."
-                    log_info "Hermes Agent itself does not require or retain root access."
+                    log_info "Wenshu Agent itself does not require or retain root access."
                     if prompt_yes_no "Install build tools?" "yes"; then
                         sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt-get update -qq && sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt-get install -y -qq build-essential python3-dev libffi-dev >/dev/null 2>&1 || true
                         log_success "Build tools installed"
@@ -1798,7 +1761,7 @@ try:
     specs = data["project"]["optional-dependencies"]["all"]
     extras = []
     for s in specs:
-        m = re.search(r"hermes-agent\[([\w-]+)\]|\b([\w-]+)\b", s)
+        m = re.search(r"wenshu-agent\[([\w-]+)\]", s)
         if m:
             extras.append(m.group(1))
     print(",".join(extras))
@@ -1876,25 +1839,24 @@ PY
 }
 
 # WO-001AS (v6 BUG): setup_path has no curl calls (only `ln -sf` and
-# `cp`). 派单拍板"install_hermes_command 同样 retry" = 写明"无网络依赖"。
+# `cp`). 派单拍板"install_wenshu_command 同样 retry" = 写明"无网络依赖"。
 setup_path() {
-    log_info "Setting up hermes command..."
+    log_info "Setting up wenshu command..."
 
     if [ "$USE_VENV" = true ]; then
-        HERMES_BIN="$INSTALL_DIR/venv/bin/python"
-        HERMES_ENTRYPOINT="$INSTALL_DIR/hermes"
+        WENSHU_BIN="$INSTALL_DIR/venv/bin/wenshu"
     else
-        HERMES_BIN="$(which hermes 2>/dev/null || echo "")"
-        if [ -z "$HERMES_BIN" ]; then
-            log_warn "hermes not found on PATH after install"
+        WENSHU_BIN="$(which wenshu 2>/dev/null || echo "")"
+        if [ -z "$WENSHU_BIN" ]; then
+            log_warn "wenshu not found on PATH after install"
             return 0
         fi
     fi
 
-    # Verify the interpreter and the checked-in entrypoint needed by the launcher.
-    if [ ! -x "$HERMES_BIN" ] || { [ "$USE_VENV" = true ] && [ ! -f "$HERMES_ENTRYPOINT" ]; }; then
-        log_warn "Hermes launcher prerequisites not found"
-        log_info "This usually means the Python package install didn't complete successfully."
+    # Verify the entry point script was actually generated
+    if [ ! -x "$WENSHU_BIN" ]; then
+        log_warn "wenshu entry point not found at $WENSHU_BIN"
+        log_info "This usually means the pip install didn't complete successfully."
         if [ "$DISTRO" = "termux" ]; then
             log_info "Try: cd $INSTALL_DIR && python -m pip install -e '.[termux-all]' -c constraints-termux.txt"
         else
@@ -1908,92 +1870,31 @@ setup_path() {
     command_link_dir="$(get_command_link_dir)"
     command_link_display_dir="$(get_command_link_display_dir)"
 
-    # Create a user-facing shim for the hermes command.
+    # Create a user-facing shim for the wenshu command.
     # We intentionally clear PYTHONPATH/PYTHONHOME here so inherited env vars
     # can't make this launcher import modules from another checkout.
     mkdir -p "$command_link_dir"
-    # Older installs created this path as a symlink to $HERMES_BIN. Without
+    # Older installs created this path as a symlink to $WENSHU_BIN. Without
     # the rm, `cat >` follows the symlink and overwrites the venv pip entry
-    # point with this shim — making `exec "$HERMES_BIN"` self-recurse. (#21454)
-    rm -f "$command_link_dir/hermes"
-    if [ "$USE_VENV" = true ]; then
-        # uv-generated console scripts resolve themselves through `realpath`,
-        # which stock macOS does not provide. Run the checked-in entrypoint
-        # with the venv interpreter instead, so the public launcher remains
-        # independent of non-standard shell utilities.
-        cat > "$command_link_dir/hermes" <<EOF
+    # point with this shim — making `exec "$WENSHU_BIN"` self-recurse. (#21454)
+    rm -f "$command_link_dir/wenshu"
+    cat > "$command_link_dir/wenshu" <<EOF
 #!/usr/bin/env bash
-unset PYTHONPATH
-unset PYTHONHOME
-exec "$HERMES_BIN" "$HERMES_ENTRYPOINT" "\$@"
-EOF
-    else
-        cat > "$command_link_dir/hermes" <<EOF
-#!/usr/bin/env bash
-# WO-001BF (v16 修): 默认中文 UI — hermes CLI 文案 + 文枢 app 都默认 zh
-# (hermes-agent 自带中文 i18n, 装完默认切中文, 装机 user 8/28 拍)
+# WO-001BF (v16 修): 默认中文 UI — wenshu CLI 文案 + 文枢 app 都默认 zh
+# (wenshu-agent 自带中文 i18n, 装完默认切中文, 装机 user 8/28 拍)
 unset PYTHONPATH
 unset PYTHONHOME
 export LANG="zh_CN.UTF-8"
 export LC_ALL="zh_CN.UTF-8"
-exec "$HERMES_BIN" "\$@"
+exec "$WENSHU_BIN" "\$@"
 EOF
-    fi
-    chmod +x "$command_link_dir/hermes"
-    log_success "Installed hermes launcher → $command_link_display_dir/hermes"
-
-    # Also expose `hermes-agent`. The `hermes-agent` console script declared in
-    # pyproject.toml's [project.scripts] lives inside the venv, which is not on
-    # the login-shell PATH. Without this launcher users can't invoke the agent
-    # entrypoint directly from outside the venv. (#74819)
-    rm -f "$command_link_dir/hermes-agent"
-    if [ "$USE_VENV" = true ]; then
-        cat > "$command_link_dir/hermes-agent" <<EOF
-#!/usr/bin/env bash
-unset PYTHONPATH
-unset PYTHONHOME
-exec "$HERMES_BIN" "$INSTALL_DIR/run_agent.py" "\$@"
-EOF
-    else
-        cat > "$command_link_dir/hermes-agent" <<EOF
-#!/usr/bin/env bash
-unset PYTHONPATH
-unset PYTHONHOME
-exec "$HERMES_BIN" run_agent.py "\$@"
-EOF
-    fi
-    chmod +x "$command_link_dir/hermes-agent"
-    log_success "Installed hermes-agent launcher → $command_link_display_dir/hermes-agent"
-
-    # Also expose `hermes-acp`. ACP hosts (Zed, JetBrains, Buzz) resolve the
-    # agent by command name on the login-shell PATH, and the `hermes-acp`
-    # console script lives inside the venv, which is not on that PATH. Without
-    # this launcher those hosts report Hermes as not installed. (#21454 applies
-    # here too: clear the path first so `cat >` cannot follow an old symlink
-    # into the venv and overwrite the console script.)
-    rm -f "$command_link_dir/hermes-acp"
-    if [ "$USE_VENV" = true ]; then
-        cat > "$command_link_dir/hermes-acp" <<EOF
-#!/usr/bin/env bash
-unset PYTHONPATH
-unset PYTHONHOME
-exec "$HERMES_BIN" "$HERMES_ENTRYPOINT" acp "\$@"
-EOF
-    else
-        cat > "$command_link_dir/hermes-acp" <<EOF
-#!/usr/bin/env bash
-unset PYTHONPATH
-unset PYTHONHOME
-exec "$HERMES_BIN" acp "\$@"
-EOF
-    fi
-    chmod +x "$command_link_dir/hermes-acp"
-    log_success "Installed hermes-acp launcher → $command_link_display_dir/hermes-acp"
+    chmod +x "$command_link_dir/wenshu"
+    log_success "Installed wenshu launcher → $command_link_display_dir/wenshu"
 
     if [ "$DISTRO" = "termux" ]; then
         export PATH="$command_link_dir:$PATH"
         log_info "$command_link_display_dir is the native Termux command path"
-        log_success "hermes command ready"
+        log_success "wenshu command ready"
         return 0
     fi
 
@@ -2008,16 +1909,16 @@ EOF
         # Probe a fresh non-login interactive bash the way the user will use it.
         # `bash -i -c` sources ~/.bashrc but NOT ~/.bash_profile or /etc/profile,
         # which is the exact scenario where RHEL root loses /usr/local/bin.
-        if env -i HOME="$HOME" TERM="${TERM:-dumb}" bash -i -c 'command -v hermes' \
+        if env -i HOME="$HOME" TERM="${TERM:-dumb}" bash -i -c 'command -v wenshu' \
                 >/dev/null 2>&1; then
             log_info "/usr/local/bin is already on PATH for all shells"
-            log_success "hermes command ready"
+            log_success "wenshu command ready"
             return 0
         fi
 
-        log_info "hermes not on PATH in non-login shells (common on RHEL-family)"
+        log_info "wenshu not on PATH in non-login shells (common on RHEL-family)"
         PATH_LINE='export PATH="/usr/local/bin:$PATH"'
-        PATH_COMMENT='# Hermes Agent — ensure /usr/local/bin is on PATH (RHEL non-login shells)'
+        PATH_COMMENT='# Wenshu Agent — ensure /usr/local/bin is on PATH (RHEL non-login shells)'
         for SHELL_CONFIG in "$HOME/.bashrc" "$HOME/.bash_profile"; do
             [ -f "$SHELL_CONFIG" ] || continue
             if ! grep -v '^[[:space:]]*#' "$SHELL_CONFIG" 2>/dev/null \
@@ -2028,7 +1929,7 @@ EOF
                 log_success "Added /usr/local/bin to PATH in $SHELL_CONFIG"
             fi
         done
-        log_success "hermes command ready"
+        log_success "wenshu command ready"
         return 0
     fi
 
@@ -2074,7 +1975,7 @@ EOF
         for SHELL_CONFIG in "${SHELL_CONFIGS[@]}"; do
             if ! grep -v '^[[:space:]]*#' "$SHELL_CONFIG" 2>/dev/null | grep -qE 'PATH=.*\.local/bin'; then
                 echo "" >> "$SHELL_CONFIG"
-                echo "# Hermes Agent — ensure ~/.local/bin is on PATH" >> "$SHELL_CONFIG"
+                echo "# Wenshu Agent — ensure ~/.local/bin is on PATH" >> "$SHELL_CONFIG"
                 echo "$PATH_LINE" >> "$SHELL_CONFIG"
                 log_success "Added ~/.local/bin to PATH in $SHELL_CONFIG"
             fi
@@ -2084,7 +1985,7 @@ EOF
         if [ "$IS_FISH" = "true" ]; then
             if ! grep -q 'fish_add_path.*\.local/bin' "$FISH_CONFIG" 2>/dev/null; then
                 echo "" >> "$FISH_CONFIG"
-                echo "# Hermes Agent — ensure ~/.local/bin is on PATH" >> "$FISH_CONFIG"
+                echo "# Wenshu Agent — ensure ~/.local/bin is on PATH" >> "$FISH_CONFIG"
                 echo 'fish_add_path "$HOME/.local/bin"' >> "$FISH_CONFIG"
                 log_success "Added ~/.local/bin to PATH in $FISH_CONFIG"
             fi
@@ -2098,83 +1999,166 @@ EOF
         log_info "~/.local/bin already on PATH"
     fi
 
-    # Export for current session so hermes works immediately
+    # Export for current session so wenshu works immediately
     export PATH="$command_link_dir:$PATH"
 
-    log_success "hermes command ready"
+    log_success "wenshu command ready"
+}
+
+# Ensure a newly-created config explicitly records the desktop locale instead
+# of relying only on the renderer fallback. Existing configs are never passed
+# here, so a user's language choice remains untouched on update/reinstall.
+seed_fresh_install_language() {
+    local config_path="$1"
+
+    if [ ! -f "$config_path" ]; then
+        cat > "$config_path" <<'EOF'
+display:
+  language: zh
+EOF
+        return 0
+    fi
+
+    # The shipped template already contains this key. Keep this fallback for
+    # bootstrap/tarball layouts carrying an older template, while preserving
+    # the template's comments and all unrelated settings.
+    if awk '
+        /^[^[:space:]#][^:]*:/ { in_display = ($0 ~ /^display:[[:space:]]*(#.*)?$/) }
+        in_display && /^[[:space:]]+language:[[:space:]]*zh([[:space:]]*(#.*)?)?$/ { found = 1 }
+        END { exit(found ? 0 : 1) }
+    ' "$config_path"; then
+        return 0
+    fi
+
+    local config_tmp="${config_path}.language.$$"
+    awk '
+        BEGIN { inserted = 0 }
+        !inserted && /^display:[[:space:]]*(#.*)?$/ {
+            print
+            print "  language: zh"
+            inserted = 1
+            next
+        }
+        { print }
+        END {
+            if (!inserted) {
+                print ""
+                print "# Desktop UI language (fresh 文枢 installs default to Simplified Chinese)."
+                print "display:"
+                print "  language: zh"
+            }
+        }
+    ' "$config_path" > "$config_tmp"
+    mv "$config_tmp" "$config_path"
 }
 
 # WO-001AS (v6 BUG): copy_config_templates has no curl calls (only
-# `cp` of bundled YAML templates into $HERMES_HOME). 派单拍板"prepare_config
+# `cp` of bundled YAML templates into $WENSHU_HOME). 派单拍板"prepare_config
 # 同样 retry" = 写明"无网络依赖"。
 copy_config_templates() {
     log_info "Setting up configuration files..."
 
-    # Create ~/.hermes directory structure (config at top level, code in subdir)
-    mkdir -p "$HERMES_HOME"/{cron,sessions,logs,pairing,hooks,image_cache,audio_cache,memories,skills}
+    # Create ~/.wenshu directory structure (config at top level, code in subdir)
+    mkdir -p "$WENSHU_HOME"/{cron,sessions,logs,pairing,hooks,image_cache,audio_cache,memories,skills}
 
-    # Create .env at ~/.hermes/.env (top level, easy to find)
-    if [ ! -f "$HERMES_HOME/.env" ]; then
+    # Create .env at ~/.wenshu-hermes/.env (top level, easy to find)
+    if [ ! -f "$WENSHU_HOME/.env" ]; then
         if [ -f "$INSTALL_DIR/.env.example" ]; then
-            cp "$INSTALL_DIR/.env.example" "$HERMES_HOME/.env"
-            log_success "Created ~/.hermes/.env from template"
+            cp "$INSTALL_DIR/.env.example" "$WENSHU_HOME/.env"
+            log_success "Created ~/.wenshu-hermes/.env from template"
         else
-            touch "$HERMES_HOME/.env"
-            log_success "Created ~/.hermes/.env"
+            touch "$WENSHU_HOME/.env"
+            log_success "Created ~/.wenshu-hermes/.env"
         fi
     else
-        log_info "~/.hermes/.env already exists, keeping it"
+        log_info "~/.wenshu-hermes/.env already exists, keeping it"
     fi
     # Restrict .env permissions — this file holds API keys and tokens.
     # 0600 ensures only the file owner can read/write, matching standard
     # practice for credential files (.netrc, .aws/credentials, .ssh/config).
-    chmod 600 "$HERMES_HOME/.env"
+    chmod 600 "$WENSHU_HOME/.env"
     configure_browser_env_from_system_browser
 
-    # Create config.yaml at ~/.hermes/config.yaml (top level, easy to find)
-    if [ ! -f "$HERMES_HOME/config.yaml" ]; then
+    # Create config.yaml at ~/.wenshu-hermes/config.yaml (top level, easy to find)
+    if [ ! -f "$WENSHU_HOME/config.yaml" ]; then
         if [ -f "$INSTALL_DIR/cli-config.yaml.example" ]; then
-            cp "$INSTALL_DIR/cli-config.yaml.example" "$HERMES_HOME/config.yaml"
-            log_success "Created ~/.hermes/config.yaml from template"
+            cp "$INSTALL_DIR/cli-config.yaml.example" "$WENSHU_HOME/config.yaml"
+            log_success "Created ~/.wenshu-hermes/config.yaml from template"
         fi
+        seed_fresh_install_language "$WENSHU_HOME/config.yaml"
+        log_success "Defaulted desktop language to Simplified Chinese"
     else
-        log_info "~/.hermes/config.yaml already exists, keeping it"
+        log_info "~/.wenshu-hermes/config.yaml already exists, keeping it"
     fi
 
-    # Create SOUL.md if it doesn't exist (global persona file).
-    # This MUST match DEFAULT_SOUL_MD in hermes_cli/default_soul.py — the
-    # runtime (_ensure_default_soul_md) treats the old comment-only scaffold as
-    # "never customized" and upgrades it to this text on next run, so any drift
-    # here is self-healing, but keep them in sync to avoid a churn on first run.
-    if [ ! -f "$HERMES_HOME/SOUL.md" ]; then
-        cat > "$HERMES_HOME/SOUL.md" << 'SOUL_EOF'
-You are Hermes Agent, an intelligent AI assistant created by Nous Research. You are helpful, knowledgeable, and direct. You assist users with a wide range of tasks including answering questions, writing and editing code, analyzing information, creative work, and executing actions via your tools. You communicate clearly, admit uncertainty when appropriate, and prioritize being genuinely useful over being verbose unless otherwise directed below. Be targeted and efficient in your exploration and investigations.
+    # Create SOUL.md if it doesn't exist (global persona file — 文枢 / Wenshu).
+    # Source of truth on disk is $INSTALL_DIR/wenshu/SOUL.md (WO-001K); the
+    # heredoc below is the runtime fallback for tarball installs that don't
+    # ship the wenshu/ subdir. MUST match DEFAULT_SOUL_MD in
+    # wenshu_cli/default_soul.py — runtime (_ensure_default_soul_md) treats
+    # the old comment-only scaffold as "never customized" and upgrades it in
+    # place, so any drift is self-healing, but keep them in sync to avoid
+    # first-run churn.
+    if [ ! -f "$WENSHU_HOME/SOUL.md" ]; then
+        if [ -f "$INSTALL_DIR/wenshu/SOUL.md" ]; then
+            cp "$INSTALL_DIR/wenshu/SOUL.md" "$WENSHU_HOME/SOUL.md"
+            log_success "Copied SOUL.md from \$INSTALL_DIR/wenshu/SOUL.md to \$WENSHU_HOME/SOUL.md (edit to customize personality)"
+        else
+            # Fallback heredoc — ships even when wenshu/ subdir is missing.
+            cat > "$WENSHU_HOME/SOUL.md" << 'SOUL_EOF'
+You are 文枢 (Wenshu), a generic writing assistant forked from Wenshu Agent v0.19.0 (MIT). You are direct, useful, and grounded. Your philosophy is "法无定法,贵在得法": the 7-step node framework is fixed (read project → research → draft → revise → finalize → consistency check → reverse advice), but the methodology at each step is chosen by the user. Be targeted and efficient in your exploration and investigations.
 SOUL_EOF
-        log_success "Created ~/.hermes/SOUL.md (edit to customize personality)"
+            log_success "Created $WENSHU_HOME/SOUL.md from heredoc fallback (edit to customize personality)"
+        fi
     fi
 
-    log_success "Configuration directory ready: ~/.hermes/"
+    # Copy 文枢 (Wenshu) AGENTS.md — the writing-assistant working manual.
+    # Source of truth: $INSTALL_DIR/wenshu/AGENTS.md (WO-001K). Skipped
+    # silently if not shipped in this install (no fallback heredoc — the
+    # manual is large and not safe to inline).
+    if [ ! -f "$WENSHU_HOME/AGENTS.md" ] && [ -f "$INSTALL_DIR/wenshu/AGENTS.md" ]; then
+        cp "$INSTALL_DIR/wenshu/AGENTS.md" "$WENSHU_HOME/AGENTS.md"
+        log_success "Copied AGENTS.md from \$INSTALL_DIR/wenshu/AGENTS.md to \$WENSHU_HOME/AGENTS.md (wenshu writing-assistant working manual)"
+    fi
 
-    # Seed bundled skills into ~/.hermes/skills/ (manifest-based, one-time per skill)
+    # Copy 文枢 (Wenshu) methodologies/ library — 法无定法 / methodology library
+    # the agent scans at boot for user-selectable methods (SCQA, STAR, Hero's
+    # Journey, user-injected custom methods, ...). Recursive copy from
+    # $INSTALL_DIR/wenshu/methodologies/ → $WENSHU_HOME/methodologies/. If the
+    # user already has a methodologies/ directory with content, leave it
+    # alone (user-curated library, do not clobber).
+    if [ -d "$INSTALL_DIR/wenshu/methodologies" ]; then
+        if [ ! -d "$WENSHU_HOME/methodologies" ] || [ -z "$(ls -A "$WENSHU_HOME/methodologies/" 2>/dev/null)" ]; then
+            mkdir -p "$WENSHU_HOME/methodologies"
+            cp -r "$INSTALL_DIR/wenshu/methodologies/." "$WENSHU_HOME/methodologies/" 2>/dev/null || true
+            log_success "Copied methodologies/ library from \$INSTALL_DIR/wenshu/methodologies/ to \$WENSHU_HOME/methodologies/"
+        else
+            log_info "\$WENSHU_HOME/methodologies/ already has user content, keeping it"
+        fi
+    fi
+
+    log_success "Configuration directory ready: $WENSHU_HOME/"
+
+    # Seed bundled skills into ~/.wenshu-hermes/skills/ (manifest-based, one-time per skill)
     if [ "$NO_SKILLS" = true ]; then
         # Blank-slate install: write the opt-out marker and skip seeding.
-        # skills_sync.py and `hermes update` both honor this marker, so the
+        # skills_sync.py and `wenshu update` both honor this marker, so the
         # default profile stays empty across future updates too.
         printf '%s\n' \
             "This profile opted out of bundled-skill seeding (installed with --no-skills)." \
-            "Delete this file to re-enable sync on the next 'hermes update'." \
-            > "$HERMES_HOME/.no-bundled-skills" 2>/dev/null || true
-        log_info "Skipping bundled skills (--no-skills). Wrote $HERMES_HOME/.no-bundled-skills"
-        log_info "  Future 'hermes update' runs will not inject bundled skills. Delete the marker to opt back in."
+            "Delete this file to re-enable sync on the next 'wenshu update'." \
+            > "$WENSHU_HOME/.no-bundled-skills" 2>/dev/null || true
+        log_info "Skipping bundled skills (--no-skills). Wrote $WENSHU_HOME/.no-bundled-skills"
+        log_info "  Future 'wenshu update' runs will not inject bundled skills. Delete the marker to opt back in."
     else
-        log_info "Syncing bundled skills to ~/.hermes/skills/ ..."
+        log_info "Syncing bundled skills to ~/.wenshu-hermes/skills/ ..."
         if "$INSTALL_DIR/venv/bin/python" "$INSTALL_DIR/tools/skills_sync.py" 2>/dev/null; then
-            log_success "Skills synced to ~/.hermes/skills/"
+            log_success "Skills synced to ~/.wenshu-hermes/skills/"
         else
             # Fallback: simple directory copy if Python sync fails
-            if [ -d "$INSTALL_DIR/skills" ] && [ ! "$(ls -A "$HERMES_HOME/skills/" 2>/dev/null | grep -v '.bundled_manifest')" ]; then
-                cp -r "$INSTALL_DIR/skills/"* "$HERMES_HOME/skills/" 2>/dev/null || true
-                log_success "Skills copied to ~/.hermes/skills/"
+            if [ -d "$INSTALL_DIR/skills" ] && [ ! "$(ls -A "$WENSHU_HOME/skills/" 2>/dev/null | grep -v '.bundled_manifest')" ]; then
+                cp -r "$INSTALL_DIR/skills/"* "$WENSHU_HOME/skills/" 2>/dev/null || true
+                log_success "Skills copied to ~/.wenshu-hermes/skills/"
             fi
         fi
     fi
@@ -2223,17 +2207,17 @@ strip_snap_browser_override() {
     # snap-pointing override here (and its auto-written comment) so the bundled
     # Chromium download runs and the agent stops using the broken binary. A
     # deliberately-set non-snap override is left untouched.
-    local env_file="$HERMES_HOME/.env"
+    local env_file="$WENSHU_HOME/.env"
 
     [ -f "$env_file" ] || return 0
     grep -Eq '^AGENT_BROWSER_EXECUTABLE_PATH=/snap/' "$env_file" 2>/dev/null || return 0
 
     local tmp
     tmp="$(mktemp)" || return 0
-    if grep -Ev '^AGENT_BROWSER_EXECUTABLE_PATH=/snap/|^# Hermes Agent browser tools' "$env_file" > "$tmp"; then
+    if grep -Ev '^AGENT_BROWSER_EXECUTABLE_PATH=/snap/|^# Wenshu Agent browser tools' "$env_file" > "$tmp"; then
         mv "$tmp" "$env_file"
         log_warn "Removed stale Snap browser override (AGENT_BROWSER_EXECUTABLE_PATH=/snap/...) from $env_file"
-        log_info "Hermes will use the bundled Chromium instead."
+        log_info "Wenshu will use the bundled Chromium instead."
         # Drop it from this process too so the rest of the run doesn't re-detect it.
         unset AGENT_BROWSER_EXECUTABLE_PATH
     else
@@ -2431,7 +2415,7 @@ run_playwright_install() {
 }
 
 configure_browser_env_from_system_browser() {
-    local env_file="$HERMES_HOME/.env"
+    local env_file="$WENSHU_HOME/.env"
     local browser_path="${DETECTED_BROWSER_EXECUTABLE:-}"
 
     if [ -z "$browser_path" ]; then
@@ -2442,7 +2426,7 @@ configure_browser_env_from_system_browser() {
         return 0
     fi
 
-    mkdir -p "$HERMES_HOME"
+    mkdir -p "$WENSHU_HOME"
     if [ ! -f "$env_file" ]; then
         touch "$env_file"
     fi
@@ -2454,7 +2438,7 @@ configure_browser_env_from_system_browser() {
 
     {
         echo ""
-        echo "# Hermes Agent browser tools — explicit browser override."
+        echo "# Wenshu Agent browser tools — explicit browser override."
         echo "AGENT_BROWSER_EXECUTABLE_PATH=$browser_path"
     } >> "$env_file"
     log_success "Configured browser tools to use $browser_path"
@@ -2587,18 +2571,7 @@ install_node_deps() {
         log_success "Browser engine setup complete"
     fi
 
-    # Install TUI dependencies
-    if [ -f "$INSTALL_DIR/ui-tui/package.json" ]; then
-        log_info "Installing TUI dependencies..."
-        cd "$INSTALL_DIR/ui-tui"
-        # Time-boxed: a stalled registry fetch would otherwise hang here (#39219).
-        run_with_timeout "$NODE_DEPS_TIMEOUT" npm install --silent || {
-            log_warn "TUI npm install failed or timed out (hermes --tui may not work)"
-        }
-        log_success "TUI dependencies installed"
-    fi
-
-    # Keep the checkout clean so `hermes update` doesn't autostash every run.
+    # Keep the checkout clean so `wenshu update` doesn't autostash every run.
     restore_dirty_lockfiles "$INSTALL_DIR"
 }
 
@@ -2617,7 +2590,7 @@ run_setup_wizard() {
     # but opening fails with ENXIO, so the wizard would proceed and
     # then crash on `< /dev/tty` below.
     if ! (: </dev/tty) 2>/dev/null; then
-        log_info "Setup wizard skipped (no terminal available). Run 'hermes setup' after install."
+        log_info "Setup wizard skipped (no terminal available). Run 'wenshu setup' after install."
         return 0
     fi
 
@@ -2627,23 +2600,23 @@ run_setup_wizard() {
 
     cd "$INSTALL_DIR"
 
-    # Run hermes setup using the venv Python directly (no activation needed).
+    # Run wenshu setup using the venv Python directly (no activation needed).
     # Redirect stdin from /dev/tty so interactive prompts work when piped from curl.
     if [ "$USE_VENV" = true ]; then
-        "$INSTALL_DIR/venv/bin/python" -m hermes_cli.main setup < /dev/tty
+        "$INSTALL_DIR/venv/bin/python" -m wenshu_cli.main setup < /dev/tty
     else
-        python -m hermes_cli.main setup < /dev/tty
+        python -m wenshu_cli.main setup < /dev/tty
     fi
 }
 
 # WO-001AS (v6 BUG): maybe_start_gateway has no direct curl calls
-# (only `hermes gateway install` and `hermes gateway start`, which are
+# (only `wenshu gateway install` and `wenshu gateway start`, which are
 # in-process subcommands). 派单拍板"configure_gateway 同样 retry" = 写明"无
 # curl 直接调用"。如果 gateway 子命令内部有网络卡死,走 install_uv 的 30 min
 # powershell.rs::SCRIPT_TIMEOUT 兜底。
 maybe_start_gateway() {
     # Check if any messaging platform tokens were configured
-    ENV_FILE="$HERMES_HOME/.env"
+    ENV_FILE="$WENSHU_HOME/.env"
     if [ ! -f "$ENV_FILE" ]; then
         return 0
     fi
@@ -2663,23 +2636,23 @@ maybe_start_gateway() {
 
     echo ""
     log_info "Messaging platform token detected!"
-    log_info "The gateway needs to be running for Hermes to send/receive messages."
+    log_info "The gateway needs to be running for Wenshu to send/receive messages."
 
     # If WhatsApp is enabled and no session exists yet, run foreground first for QR scan
     WHATSAPP_VAL=$(grep "^WHATSAPP_ENABLED=" "$ENV_FILE" 2>/dev/null | cut -d'=' -f2-)
-    WHATSAPP_SESSION="$HERMES_HOME/whatsapp/session/creds.json"
+    WHATSAPP_SESSION="$WENSHU_HOME/whatsapp/session/creds.json"
     if [ "$WHATSAPP_VAL" = "true" ] && [ ! -f "$WHATSAPP_SESSION" ]; then
         if [ "$IS_INTERACTIVE" = true ]; then
             echo ""
             log_info "WhatsApp is enabled but not yet paired."
-            log_info "Running 'hermes whatsapp' to pair via QR code..."
+            log_info "Running 'wenshu whatsapp' to pair via QR code..."
             echo ""
             if prompt_yes_no "Pair WhatsApp now?" "yes"; then
-                HERMES_CMD="$(get_hermes_command_path)"
-                $HERMES_CMD whatsapp || true
+                WENSHU_CMD="$(get_wenshu_command_path)"
+                $WENSHU_CMD whatsapp || true
             fi
         else
-            log_info "WhatsApp pairing skipped (non-interactive). Run 'hermes whatsapp' to pair."
+            log_info "WhatsApp pairing skipped (non-interactive). Run 'wenshu whatsapp' to pair."
         fi
     fi
 
@@ -2687,7 +2660,7 @@ maybe_start_gateway() {
     # in Docker builds where the device node is in the mount namespace
     # but opening fails with ENXIO. See #16746.
     if ! (: </dev/tty) 2>/dev/null; then
-        log_info "Gateway setup skipped (no terminal available). Run 'hermes gateway install' later."
+        log_info "Gateway setup skipped (no terminal available). Run 'wenshu gateway install' later."
         return 0
     fi
 
@@ -2704,19 +2677,19 @@ maybe_start_gateway() {
     fi
 
     if [ "$should_install_gateway" = true ]; then
-        HERMES_CMD="$(get_hermes_command_path)"
+        WENSHU_CMD="$(get_wenshu_command_path)"
 
         if [ "$DISTRO" != "termux" ] && command -v systemctl &> /dev/null; then
             log_info "Installing systemd service..."
-            if $HERMES_CMD gateway install 2>/dev/null; then
+            if $WENSHU_CMD gateway install 2>/dev/null; then
                 log_success "Gateway service installed"
-                if $HERMES_CMD gateway start 2>/dev/null; then
+                if $WENSHU_CMD gateway start 2>/dev/null; then
                     log_success "Gateway started! Your bot is now online."
                 else
-                    log_warn "Service installed but failed to start. Try: hermes gateway start"
+                    log_warn "Service installed but failed to start. Try: wenshu gateway start"
                 fi
             else
-                log_warn "Systemd install failed. You can start manually: hermes gateway"
+                log_warn "Systemd install failed. You can start manually: wenshu gateway"
             fi
         else
             if [ "$DISTRO" = "termux" ]; then
@@ -2724,60 +2697,18 @@ maybe_start_gateway() {
             else
                 log_info "systemd not available — starting gateway in background..."
             fi
-            nohup $HERMES_CMD gateway > "$HERMES_HOME/logs/gateway.log" 2>&1 &
+            nohup $WENSHU_CMD gateway > "$WENSHU_HOME/logs/gateway.log" 2>&1 &
             GATEWAY_PID=$!
-            log_success "Gateway started (PID $GATEWAY_PID). Logs: ~/.hermes/logs/gateway.log"
+            log_success "Gateway started (PID $GATEWAY_PID). Logs: ~/.wenshu-hermes/logs/gateway.log"
             log_info "To stop: kill $GATEWAY_PID"
-            log_info "To restart later: hermes gateway"
+            log_info "To restart later: wenshu gateway"
             if [ "$DISTRO" = "termux" ]; then
                 log_warn "Android may stop background processes when Termux is suspended or the system reclaims resources."
             fi
         fi
     else
-        log_info "Skipped. Start the gateway later with: hermes gateway"
+        log_info "Skipped. Start the gateway later with: wenshu gateway"
     fi
-}
-
-write_bootstrap_marker() {
-    # Writes $INSTALL_DIR/.hermes-bootstrap-complete, which tells the Hermes
-    # desktop app (apps/desktop/electron/main.ts) and the macOS launcher fast
-    # path (apps/bootstrap-installer) "a real install finished here -- don't
-    # re-run first-run bootstrap."
-    #
-    # Schema mirrors install.ps1's Write-BootstrapMarker and main.ts's
-    # writeBootstrapMarker(). Keep the three in lockstep:
-    #   schemaVersion 1 + pinnedCommit (length >= 7) are what the desktop
-    #   validator requires; desktopVersion is omitted because only the desktop
-    #   app knows its own version.
-    if [ ! -d "$INSTALL_DIR" ]; then
-        log_warn "Skipping bootstrap marker: $INSTALL_DIR doesn't exist"
-        return 0
-    fi
-
-    # Explicit --commit wins; otherwise read HEAD from the checkout we just
-    # installed. If neither resolves, skip the marker entirely rather than
-    # write one the desktop will reject -- an absent marker is a clean
-    # "bootstrap needed", a malformed one is a confusing half-state.
-    local pinned_commit="$INSTALL_COMMIT"
-    if [ -z "$pinned_commit" ]; then
-        pinned_commit=$(git -C "$INSTALL_DIR" rev-parse HEAD 2>/dev/null) || pinned_commit=""
-    fi
-
-    if [ -z "$pinned_commit" ]; then
-        log_warn "Skipping bootstrap marker: could not resolve HEAD in $INSTALL_DIR"
-        return 0
-    fi
-
-    local marker_path="$INSTALL_DIR/.hermes-bootstrap-complete"
-    local tmp_path="$marker_path.tmp"
-
-    # Atomic publish: the macOS launcher predicate only checks existence, so a
-    # torn write would arm the fast path against a half-written marker.
-    printf '{\n  "schemaVersion": 1,\n  "pinnedCommit": "%s",\n  "pinnedBranch": "%s",\n  "completedAt": "%s"\n}\n' \
-        "$pinned_commit" \
-        "$BRANCH" \
-        "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" > "$tmp_path"
-    mv -f "$tmp_path" "$marker_path"
 }
 
 print_success() {
@@ -2792,9 +2723,9 @@ print_success() {
     # Show file locations
     echo -e "${CYAN}${BOLD}📁 Your files:${NC}"
     echo ""
-    echo -e "   ${YELLOW}Config:${NC}    $HERMES_HOME/config.yaml"
-    echo -e "   ${YELLOW}API Keys:${NC}  $HERMES_HOME/.env"
-    echo -e "   ${YELLOW}Data:${NC}      $HERMES_HOME/cron/, sessions/, logs/"
+    echo -e "   ${YELLOW}Config:${NC}    $WENSHU_HOME/config.yaml"
+    echo -e "   ${YELLOW}API Keys:${NC}  $WENSHU_HOME/.env"
+    echo -e "   ${YELLOW}Data:${NC}      $WENSHU_HOME/cron/, sessions/, logs/"
     echo -e "   ${YELLOW}Code:${NC}      $INSTALL_DIR"
     echo ""
 
@@ -2802,24 +2733,24 @@ print_success() {
     echo ""
     echo -e "${CYAN}${BOLD}🚀 Commands:${NC}"
     echo ""
-    echo -e "   ${GREEN}hermes${NC}              Start chatting"
-    echo -e "   ${GREEN}hermes setup${NC}        Configure API keys & settings"
-    echo -e "   ${GREEN}hermes config${NC}       View/edit configuration"
-    echo -e "   ${GREEN}hermes config edit${NC}  Open config in editor"
-    echo -e "   ${GREEN}hermes gateway install${NC} Install gateway service (messaging + cron)"
-    echo -e "   ${GREEN}hermes update${NC}       Update to latest version"
+    echo -e "   ${GREEN}wenshu${NC}              Start chatting"
+    echo -e "   ${GREEN}wenshu setup${NC}        Configure API keys & settings"
+    echo -e "   ${GREEN}wenshu config${NC}       View/edit configuration"
+    echo -e "   ${GREEN}wenshu config edit${NC}  Open config in editor"
+    echo -e "   ${GREEN}wenshu gateway install${NC} Install gateway service (messaging + cron)"
+    echo -e "   ${GREEN}wenshu update${NC}       Update to latest version"
     echo ""
 
     echo -e "${CYAN}─────────────────────────────────────────────────────────${NC}"
     echo ""
     if [ "$DISTRO" = "termux" ]; then
-        echo -e "${YELLOW}⚡ 'hermes' was linked into $(get_command_link_display_dir), which is already on PATH in Termux.${NC}"
+        echo -e "${YELLOW}⚡ 'wenshu' was linked into $(get_command_link_display_dir), which is already on PATH in Termux.${NC}"
         echo ""
     elif [ "$ROOT_FHS_LAYOUT" = true ]; then
-        echo -e "${YELLOW}⚡ 'hermes' was linked into /usr/local/bin and is ready to use — no shell reload needed.${NC}"
+        echo -e "${YELLOW}⚡ 'wenshu' was linked into /usr/local/bin and is ready to use — no shell reload needed.${NC}"
         echo ""
     else
-        echo -e "${YELLOW}⚡ Reload your shell to use 'hermes' command:${NC}"
+        echo -e "${YELLOW}⚡ Reload your shell to use 'wenshu' command:${NC}"
         echo ""
         LOGIN_SHELL="$(basename "${SHELL:-/bin/bash}")"
         if [ "$LOGIN_SHELL" = "zsh" ]; then
@@ -2863,9 +2794,9 @@ print_success() {
 
 ensure_browser() {
     if ! command -v node >/dev/null 2>&1; then
-        local node_bin="$HERMES_HOME/node/bin/node"
+        local node_bin="$WENSHU_HOME/node/bin/node"
         if [ -x "$node_bin" ]; then
-            export PATH="$HERMES_HOME/node/bin:$PATH"
+            export PATH="$WENSHU_HOME/node/bin:$PATH"
         else
             log_error "Node.js not found. Run with --ensure node first."
             return 1
@@ -2873,7 +2804,7 @@ ensure_browser() {
     fi
 
     local npm_bin
-    npm_bin="$(command -v npm 2>/dev/null || echo "$HERMES_HOME/node/bin/npm")"
+    npm_bin="$(command -v npm 2>/dev/null || echo "$WENSHU_HOME/node/bin/npm")"
     if [ ! -x "$npm_bin" ]; then
         log_error "npm not found"
         return 1
@@ -2884,7 +2815,7 @@ ensure_browser() {
     log_file="$(mktemp)"
     # Time-boxed (#39219): a stalled npm registry fetch here would otherwise
     # hang the installer with no progress, same class as the desktop build.
-    if ! run_with_timeout "$NODE_DEPS_TIMEOUT" "$npm_bin" install -g --prefix "$HERMES_HOME/node" --silent --ignore-scripts \
+    if ! run_with_timeout "$NODE_DEPS_TIMEOUT" "$npm_bin" install -g --prefix "$WENSHU_HOME/node" --silent --ignore-scripts \
         "agent-browser@^0.26.0" \
         "@askjo/camofox-browser@^1.5.2" \
         >"$log_file" 2>&1; then
@@ -2894,7 +2825,7 @@ ensure_browser() {
         return 1
     fi
     rm -f "$log_file"
-    export PATH="$HERMES_HOME/node/bin:$PATH"
+    export PATH="$WENSHU_HOME/node/bin:$PATH"
 
     strip_snap_browser_override
     local sys_browser
@@ -2906,7 +2837,7 @@ ensure_browser() {
     fi
 
     log_info "Installing Chromium via agent-browser install..."
-    local ab_bin="$HERMES_HOME/node/bin/agent-browser"
+    local ab_bin="$WENSHU_HOME/node/bin/agent-browser"
     if [ -x "$ab_bin" ]; then
         "$ab_bin" install 2>/dev/null || {
             log_warn "Chromium install failed. Browser tools may not work without a system browser."
@@ -2973,10 +2904,10 @@ ensure_mode() {
 # next `npm run pack` re-downloads and re-stages from scratch. A corrupt zip in
 # the per-user Electron download cache - most often a partial/resumed download
 # that leaves concatenated junk - makes electron-builder's `unpack-electron`
-# extract a tree MISSING the electron binary, so the `electron`->`Hermes` rename
+# extract a tree MISSING the electron binary, so the `electron`->`Wenshu` rename
 # dies with ENOENT and every re-run repeats the broken extraction forever. This
 # is the bash sibling of install.ps1's Clear-ElectronBuildCache and the Python
-# _purge_electron_build_cache() used by `hermes desktop`; install.sh was the only
+# _purge_electron_build_cache() used by `wenshu desktop`; install.sh was the only
 # build path lacking it. Echoes the removed paths (one per line); best-effort.
 clear_electron_build_cache() {
     local desktop_dir="$1"
@@ -3120,7 +3051,7 @@ _restore_electron_dist_with_fallback() {
 }
 
 # Resolve the native artifact produced by electron-builder. The desktop package
-# uses productName/executableName "文枢"; the old Hermes names remain in the
+# uses productName/executableName "文枢"; the old Wenshu names remain in the
 # candidate list so an already-cached legacy checkout can still be repaired.
 # Keep this lookup independent of the display brand: the build is successful
 # only when the artifact that the launcher can use is actually present.
@@ -3134,8 +3065,8 @@ _find_built_desktop() {
             "$release_dir/linux-unpacked/文枢" \
             "$release_dir/linux-unpacked/WenShu" \
             "$release_dir/linux-unpacked/wenshu" \
-            "$release_dir/linux-unpacked/Hermes" \
-            "$release_dir/linux-unpacked/hermes"; do
+            "$release_dir/linux-unpacked/Wenshu" \
+            "$release_dir/linux-unpacked/wenshu"; do
             if [ -x "$cand" ]; then
                 printf '%s\n' "$cand"
                 return 0
@@ -3149,8 +3080,8 @@ _find_built_desktop() {
             "$release_dir/mac-x64/文枢.app" \
             "$release_dir/mac-arm64/WenShu.app" \
             "$release_dir/mac/WenShu.app" \
-            "$release_dir/mac-arm64/Hermes.app" \
-            "$release_dir/mac/Hermes.app"; do
+            "$release_dir/mac-arm64/Wenshu.app" \
+            "$release_dir/mac/Wenshu.app"; do
             if [ -d "$cand" ]; then
                 printf '%s\n' "$cand"
                 return 0
@@ -3167,37 +3098,6 @@ _find_built_desktop() {
 # (electron-builder --dir) which emits an unpacked app for the current OS. Only invoked
 # via the 'desktop' stage / --include-desktop, which the Electron app's own
 # first-launch bootstrap never requests (it must not rebuild itself).
-install_desktop_voice_deps() {
-    # Desktop ships with working voice out of the box: eagerly install the
-    # wake-word + local-STT stacks ([wake] + [voice] extras) instead of
-    # leaving them to lazy first-use install. Policy change (Teknium, July
-    # 2026, #70509 testing): the first ear-click used to trigger a
-    # multi-minute onnxruntime pip install that froze the UI and blew RPC
-    # timeouts. Lazy install remains the fallback for CLI-only installs and
-    # for anything this best-effort step fails to fetch.
-    local _prev_venv="${VIRTUAL_ENV:-}"
-    if [ "$USE_VENV" = true ]; then
-        export VIRTUAL_ENV="$INSTALL_DIR/venv"
-    fi
-    if [ -z "${UV_CMD:-}" ]; then
-        install_uv || true
-    fi
-    if [ -z "${UV_CMD:-}" ]; then
-        log_warn "uv unavailable — voice/wake deps will lazy-install at first use instead"
-        return 0
-    fi
-    log_info "Installing voice + wake-word dependencies (onnxruntime, faster-whisper — 1-3min)..."
-    if (cd "$INSTALL_DIR" && $UV_CMD pip install -e ".[wake,voice]") ; then
-        log_success "Voice + wake-word dependencies installed"
-    else
-        log_warn "Voice/wake dependency install failed — they will lazy-install at first use"
-    fi
-    if [ "$USE_VENV" = true ] && [ -z "$_prev_venv" ]; then
-        unset VIRTUAL_ENV
-    fi
-    return 0
-}
-
 install_desktop() {
     local desktop_dir="$INSTALL_DIR/apps/desktop"
 
@@ -3207,7 +3107,7 @@ install_desktop() {
     # with no app and a confusing "couldn't find a built desktop" at launch.
     # Always re-resolve Node here. Stages run in separate processes, so we can't
     # trust an earlier check; more importantly check_node now enforces the build
-    # floor (Node >=26) and prepends the Hermes-managed Node to PATH, so
+    # floor (^20.19 || >=22.12) and prepends the Wenshu-managed Node to PATH, so
     # the build never runs on a too-old system Node — the cause of the opaque
     # "Build desktop app … exit code 1" failure (Vite crashes on old Node).
     check_node
@@ -3306,7 +3206,7 @@ install_desktop() {
     #    Electron download self-heals instead of failing the whole install:
     #      a) plain `npm run pack` (downloads Electron from GitHub),
     #      b) on failure, purge a corrupt cached zip + stale unpacked dir and
-    #         retry (matches install.ps1 / `hermes desktop`),
+    #         retry (matches install.ps1 / `wenshu desktop`),
     #      c) on still-failing, fall back to a public Electron mirror — this is
     #         the GitHub-blocked/throttled case (the repeating "retrying" log).
     log_info "正在构建桌面应用 (预计 1-3 分钟)..."
@@ -3384,45 +3284,20 @@ install_desktop() {
         fi
     fi
 
-    # macOS: route through the same config-aware signing fixup as
-    # `hermes desktop`, so install/repair and self-update agree about the app's
-    # identity. The fixup preserves the Electron entitlement plists and signs
-    # with a stable Designated Requirement (configured keychain identity, else
-    # identifier-pinned ad-hoc), so macOS TCC grants — Full Disk Access,
-    # Desktop/Downloads/Documents, Accessibility, microphone — survive the
-    # rebuild instead of resetting on every update. The shell's
-    # publisher-signing decision governed the build and is passed explicitly so
-    # importing Python cannot reverse it by loading HERMES_HOME/.env. If the
-    # helper is unavailable or fails, branch into the historical quarantine
-    # strip + deep ad-hoc repair so a broken venv never leaves the bundle
-    # unsigned/unlaunchable.
+    # macOS: make the locally-built (ad-hoc) app relaunchable after an in-place
+    # self-update. An ad-hoc bundle has no stable Designated Requirement, so a
+    # later in-place rebuild (new cdhash) plus the inherited quarantine flag
+    # trips Gatekeeper's tamper check ("Wenshu is damaged and can't be opened").
+    # Strip quarantine + re-apply a clean deep ad-hoc signature (no
+    # hardened-runtime flag, which an ad-hoc build can't satisfy). Skipped when a
+    # real signing identity is configured so a signed build isn't clobbered.
     if [ "$OS" = "macos" ] && [ -z "${CSC_LINK:-}" ] && [ -z "${APPLE_SIGNING_IDENTITY:-}" ] && command -v codesign >/dev/null 2>&1; then
-        local config_python="$INSTALL_DIR/venv/bin/python"
-        local fixup_ok=""
-        if [ -x "$config_python" ]; then
-            if HERMES_HOME="$HERMES_HOME" "$config_python" - "$desktop_dir" <<'PYEOF'
-import sys
-from pathlib import Path
-from hermes_cli.main import _desktop_macos_relaunchable_fixup
-ok = _desktop_macos_relaunchable_fixup(
-    Path(sys.argv[1]), publisher_signing_configured=False
-)
-sys.exit(0 if ok else 1)
-PYEOF
-            then
-                fixup_ok=1
-            else
-                log_warn "Config-aware macOS signing fixup failed; applying the historical ad-hoc fallback."
-            fi
-        fi
-        if [ -z "$fixup_ok" ]; then
-            xattr -cr "$app" 2>/dev/null || true
-            codesign --force --deep --sign - "$app" >/dev/null 2>&1 || true
-        fi
+        xattr -cr "$app" 2>/dev/null || true
+        codesign --force --deep --sign - "$app" >/dev/null 2>&1 || true
     fi
 
     # `npm install` + `npm run pack` rewrite lockfiles; restore them so the
-    # checkout stays clean for the next `hermes update`.
+    # checkout stays clean for the next `wenshu update`.
     restore_dirty_lockfiles "$INSTALL_DIR"
 }
 
@@ -3513,24 +3388,22 @@ run_stage_body() {
             detect_os
             resolve_install_layout
             require_install_dir
-            # Each stage runs in its own process, so the Hermes-managed Node
-            # provisioned during prerequisites/node-deps (at $HERMES_HOME/node/bin)
+            # Each stage runs in its own process, so the Wenshu-managed Node
+            # provisioned during prerequisites/node-deps (at $WENSHU_HOME/node/bin)
             # isn't on PATH here. check_node re-adds it (or installs if missing)
             # so install_desktop can find npm instead of silently skipping.
             check_node
-            install_desktop_voice_deps
             install_desktop
             ;;
         complete)
             detect_os
             resolve_install_layout
             print_success
-            write_bootstrap_marker
             # Code-scoped stamp: write next to the install tree, not into
-            # $HERMES_HOME. $HERMES_HOME is a shared data dir (it can be
+            # $WENSHU_HOME. $WENSHU_HOME is a shared data dir (it can be
             # bind-mounted into a Docker gateway too), so a stamp there gets
             # clobbered by the container's 'docker' stamp and wrongly blocks
-            # 'hermes update' on this host install. See detect_install_method().
+            # 'wenshu update' on this host install. See detect_install_method().
             echo "git" > "$INSTALL_DIR/.install_method"
             ;;
         *)
@@ -3605,18 +3478,57 @@ main() {
     maybe_start_gateway
 
     if [ "$INCLUDE_DESKTOP" = true ]; then
-        install_desktop_voice_deps
         install_desktop
     fi
 
     print_success
 
-    write_bootstrap_marker
+    # WO-001BI R53: 末尾清理 bootstrap-cache (装完不留 500MB)。
+    # bootstrap-cache/install-<sha>.sh 是 installer 启动时由 Electron 桌面 / Rust bootstrap
+    # 下载并缓存的 (apps/desktop/electron/bootstrap-runner.ts:292)。install.sh 跑完后这份
+    # 文件对当前会话已无用, 下次再装会重新下载 (~135KB, 几秒)。
+    #
+    # 关键: 若 install.sh 本身正被运行在 bootstrap-cache 下 (eg /home/foo/.wenshu-hermes/
+    # bootstrap-cache/install-main.sh), 不能 rm 自己所在的目录, 但可以安全删其他文件
+    # (electron 缓存的 wheel / archive / 临时产物)。
+    cleanup_bootstrap_cache() {
+        local cache_dir="$WENSHU_HOME/bootstrap-cache"
+        [ -d "$cache_dir" ] || return 0
 
-    # Code-scoped stamp: write next to the install tree, not into $HERMES_HOME.
-    # $HERMES_HOME is a shared data dir (it can be bind-mounted into a Docker
+        local self_path
+        # 解析 $0 的真实路径, 不依赖 GNU readlink -f (macOS /bin/readlink 不支持 -f)。
+        # fallback 链: readlink -f → python3 -c → echo $0 原值。
+        if command -v readlink >/dev/null 2>&1 && readlink -f "$0" >/dev/null 2>&1; then
+            self_path="$(readlink -f "$0" 2>/dev/null)"
+        elif command -v python3 >/dev/null 2>&1; then
+            self_path="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$0" 2>/dev/null)"
+        elif command -v python >/dev/null 2>&1; then
+            self_path="$(python -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$0" 2>/dev/null)"
+        else
+            self_path="$0"
+        fi
+
+        if [ -n "$self_path" ] && [ -f "$self_path" ] && [[ "$self_path" == "$cache_dir/"* ]]; then
+            log_info "Cleaning bootstrap-cache (preserving running script: $self_path)..."
+            find "$cache_dir" -mindepth 1 \
+                ! -path "$self_path" \
+                -exec rm -rf {} + 2>/dev/null || true
+        else
+            log_info "Cleaning bootstrap-cache..."
+            # 用 glob 清空文件, 不用 rm -rf "$cache_dir" (强删空目录 electron 自己后续启动会判 existing dir 决定复用/重下)
+            local _entry
+            for _entry in "$cache_dir"/* "$cache_dir"/.[!.]*; do
+                [ -e "$_entry" ] || continue
+                rm -rf "$_entry" 2>/dev/null || true
+            done
+        fi
+    }
+    cleanup_bootstrap_cache || true
+
+    # Code-scoped stamp: write next to the install tree, not into $WENSHU_HOME.
+    # $WENSHU_HOME is a shared data dir (it can be bind-mounted into a Docker
     # gateway too), so a stamp there gets clobbered by the container's 'docker'
-    # stamp and wrongly blocks 'hermes update' on this host install.
+    # stamp and wrongly blocks 'wenshu update' on this host install.
     # See detect_install_method().
     echo "git" > "$INSTALL_DIR/.install_method"
 }
