@@ -1792,8 +1792,12 @@ setup_path() {
     rm -f "$command_link_dir/hermes"
     cat > "$command_link_dir/hermes" <<EOF
 #!/usr/bin/env bash
+# WO-001BF (v16 修): 默认中文 UI — hermes CLI 文案 + 文枢 app 都默认 zh
+# (hermes-agent 自带中文 i18n, 装完默认切中文, 装机 user 8/28 拍)
 unset PYTHONPATH
 unset PYTHONHOME
+export LANG="zh_CN.UTF-8"
+export LC_ALL="zh_CN.UTF-8"
 exec "$HERMES_BIN" "\$@"
 EOF
     chmod +x "$command_link_dir/hermes"
