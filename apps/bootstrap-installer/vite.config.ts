@@ -55,9 +55,30 @@ export default defineConfig({
     }
   },
   build: {
-    target: 'esnext',
+    // WO-001AX (8/27 v10 white-screen BUG): 'esnext' was too aggressive for
+    // the macOS WebKit revision Tauri 2 ships (~ 17.x). The compiled bundle
+    // booted in the headless WKWebView probe (which loads index.html from
+    // disk, NOT tauri://localhost/), but on real .app launch the first
+    // module-load evaluation tripped a ReferenceError on a private
+    // brand-check that this build's WebKit doesn't enable. 'es2020' keeps
+    // optional chaining + nullish coalescing + dynamic import, which is
+    // everything the React 19 + nanostores stack actually needs, and
+    // matches the same target `apps/desktop` ships.
+    target: 'es2020',
     outDir: 'dist',
     emptyOutDir: true,
+    // WO-001AX: Vite 8 emits a `<link rel="modulepreload">` for every JS
+    // entry chunk by default. Tauri 2's strict `script-src 'self'` CSP
+    // (no 'unsafe-inline') blocks the inline preload polyfill Vite
+    // injects, leaving a fully-bootstrapped window with zero JS executed
+    // (== solid white screen because CSS is loaded but the React tree
+    // never mounts). `polyfill: true` keeps the polyfill shipped (Safari <
+    // 11.3 / older WebKit fallbacks) but skips the inline `<script>` that
+    // the CSP would otherwise reject.
+    modulePreload: {
+      polyfill: true,
+      resolveDependencies: undefined
+    },
     // WO-001AO (8/26 system-prerequisites bug v4): emit source maps in the
     // Tauri-bundled dist so users hitting a hang can `devtools` the
     // WebView and point support at the exact failing chunk. Default Vite
@@ -71,6 +92,13 @@ export default defineConfig({
     // hot path; the extra latency saving from chunking is not worth the
     // risk of a budget-exceeded build failure.
     chunkSizeWarningLimit: 4096,
+    // WO-001AX: explicitly disable CSS code-splitting. With one entry
+    // chunk and a single imported stylesheet chain, splitting can
+    // occasionally emit a separate `<link>` for the desktop-imported
+    // fonts half (.woff2 rules) before the main CSS file, which on
+    // tauri://localhost/ resolves to a slightly different relative base
+    // than the dev server used during the v3 headless probe.
+    cssCodeSplit: false,
     rollupOptions: {
       output: {
         manualChunks: undefined
