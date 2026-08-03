@@ -1,7 +1,7 @@
 //! Resolves and downloads `scripts/install.ps1` (and `install.sh`).
 //!
 //! Resolution order:
-//!   1. Dev shortcut: a sibling repo checkout via $HERMES_SETUP_DEV_REPO_ROOT
+//!   1. Dev shortcut: a sibling repo checkout via $WENSHU_SETUP_DEV_REPO_ROOT
 //!      env var. Lets devs iterate without re-publishing the script.
 //!   2. Bundled fallback: if the installer was bundled with a script (e.g.
 //!      tauri's `resource` mechanism), serve from there. Not used today.
@@ -10,7 +10,7 @@
 //!
 //! Mirrors `apps/desktop/electron/bootstrap-runner.ts`'s `resolveInstallScript`,
 //! but the dev-checkout resolution is driven by an env var rather than the
-//! Electron app's APP_ROOT/../.. trick, because Hermes-Setup.exe is meant
+//! Electron app's APP_ROOT/../.. trick, because Wenshu-Setup.exe is meant
 //! to live OUTSIDE any repo checkout.
 
 use anyhow::{anyhow, Context, Result};
@@ -93,17 +93,52 @@ pub(crate) fn cache_plan(immutable: bool, cached_exists: bool) -> CachePlan {
     }
 }
 
+const INSTALL_SCRIPT_REPOSITORY: &str = "ZIYU-FUI/wenshu";
+
+/// Domestic package-index policy for installer child processes.
+///
+/// `scripts/install.sh` exports the same values itself. Setting them here as
+/// well is intentional: the GUI resolver launches both install.sh and
+/// install.ps1, and every child must inherit the mirror even when a stale
+/// cached script predates the shell-side defaults.
+const PYPI_MIRROR_PRIMARY: &str = "https://pypi.tuna.tsinghua.edu.cn/simple";
+const PYPI_MAX_CONCURRENT_DOWNLOADS: &str = "100";
+
+fn configure_package_index_environment(emit_log: &impl Fn(&str)) {
+    for (key, value) in [
+        ("UV_INDEX_URL", PYPI_MIRROR_PRIMARY),
+        ("UV_DEFAULT_INDEX", PYPI_MIRROR_PRIMARY),
+        ("PIP_INDEX_URL", PYPI_MIRROR_PRIMARY),
+        ("UV_CONCURRENT_DOWNLOADS", PYPI_MAX_CONCURRENT_DOWNLOADS),
+    ] {
+        // The resolver runs before any install-script child is spawned, so the
+        // child inherits one consistent package-index environment.
+        std::env::set_var(key, value);
+    }
+
+    // uv's optional torch backend bypasses configured indexes and talks to
+    // download.pytorch.org. Remove an inherited override so torch and related
+    // packages resolve through the domestic PyPI mirror too.
+    std::env::remove_var("UV_TORCH_BACKEND");
+
+    emit_log(&format!(
+        "[bootstrap] Python package index: {PYPI_MIRROR_PRIMARY} (uv/pip; max {PYPI_MAX_CONCURRENT_DOWNLOADS} concurrent downloads)"
+    ));
+}
+
 /// Resolves the install script to use for this run.
 ///
-/// `pin` is the commit-or-branch from either Hermes-Setup's build-time
+/// `pin` is the commit-or-branch from either Wenshu-Setup's build-time
 /// constant (compiled into the installer) or a runtime override.
 pub async fn resolve(
     kind: ScriptKind,
     pin: &Pin,
     emit_log: &impl Fn(&str),
 ) -> Result<ResolvedScript> {
+    configure_package_index_environment(emit_log);
+
     // 1. Dev shortcut.
-    if let Ok(repo_root) = std::env::var("HERMES_SETUP_DEV_REPO_ROOT") {
+    if let Ok(repo_root) = std::env::var("WENSHU_SETUP_DEV_REPO_ROOT") {
         let candidate = PathBuf::from(repo_root).join("scripts").join(kind.filename());
         if candidate.exists() {
             emit_log(&format!(
@@ -163,14 +198,17 @@ pub async fn resolve(
         }
         CachePlan::Fetch { stale_ok } => {
             emit_log(&format!(
-                "[bootstrap] downloading {} for {} {} from GitHub",
+                "[bootstrap] downloading {} for {} {} from https://raw.githubusercontent.com/{}/{}/scripts/{}",
                 kind.filename(),
                 if immutable {
                     "commit"
                 } else {
                     "mutable ref"
                 },
-                truncate_ref(&commit_or_ref)
+                truncate_ref(&commit_or_ref),
+                INSTALL_SCRIPT_REPOSITORY,
+                commit_or_ref,
+                kind.filename()
             ));
 
             match download(kind, &commit_or_ref, &cached).await {
@@ -334,7 +372,8 @@ fn upgrade_cached_script(kind: ScriptKind, cached: &Path, emit_log: &impl Fn(&st
 /// fallback in `resolve()` takes over.
 async fn download(kind: ScriptKind, commit_or_ref: &str, dest_path: &Path) -> Result<()> {
     let url = format!(
-        "https://raw.githubusercontent.com/NousResearch/hermes-agent/{}/scripts/{}",
+        "https://raw.githubusercontent.com/{}/{}/scripts/{}",
+        INSTALL_SCRIPT_REPOSITORY,
         commit_or_ref,
         kind.filename()
     );
@@ -377,7 +416,7 @@ async fn download(kind: ScriptKind, commit_or_ref: &str, dest_path: &Path) -> Re
                 .build()
                 .context("building download client")?
                 .get(&url)
-                .header("User-Agent", "hermes-setup/0.0.1")
+                .header("User-Agent", "wenshu-setup/0.0.1")
                 .send()
                 .await
                 .with_context(|| format!("GET {url}"))?;
@@ -511,7 +550,7 @@ mod tests {
     fn upgrade_cached_script_adds_bom_to_legacy_ps1() {
         // A .ps1 cached by a pre-#67193 installer has no BOM; the Reuse path
         // must upgrade it in place instead of serving the broken bytes forever.
-        let dir = std::env::temp_dir().join(format!("hermes-bom-test-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("wenshu-bom-test-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let cached = dir.join("install-abc1234.ps1");
         std::fs::write(&cached, b"Write-Host legacy\n").unwrap();
@@ -531,7 +570,7 @@ mod tests {
 
     #[test]
     fn upgrade_cached_script_leaves_sh_untouched() {
-        let dir = std::env::temp_dir().join(format!("hermes-bom-sh-test-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("wenshu-bom-sh-test-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let cached = dir.join("install-main.sh");
         std::fs::write(&cached, b"#!/bin/bash\n").unwrap();
