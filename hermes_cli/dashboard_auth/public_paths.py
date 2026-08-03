@@ -31,6 +31,14 @@ the SPA should bootstrap it after login instead.
 from __future__ import annotations
 
 PUBLIC_API_PATHS: frozenset[str] = frozenset({
+    # R97 sync: desktop `.app` IPC needs auth-free access to its update
+    # endpoints. The desktop Electron main process probes these before any
+    # session token is in hand. /api/state is reserved for a future readiness
+    # surface (non-existent routes 404, not 401, so listing it here is
+    # harmless and keeps the desktop's probe list stable).
+    "/api/state",
+    "/api/wenshu/update",
+    "/api/wenshu/update/check",
     # Minimal process liveness probe for desktop/backend boot handshakes. It
     # intentionally avoids gateway config, platform discovery, MCP setup, and
     # host-local detail so readiness checks cannot spend their budget inside
