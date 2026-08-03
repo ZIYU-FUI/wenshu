@@ -1,7 +1,7 @@
 //! Filesystem paths + logging setup.
 //!
 //! Mirrors `hermes_constants.get_hermes_home()` from the Python CLI:
-//!   Windows: %LOCALAPPDATA%\wenshu-hermes
+//!   Windows: %LOCALAPPDATA%\hermes
 //!   macOS:   ~/.wenshu-hermes
 //!   Linux:   ~/.wenshu-hermes  (override via $HERMES_HOME)
 //!
@@ -110,7 +110,7 @@ pub fn copy_self_to_hermes_home() -> std::io::Result<()> {
         _ => src == dest,
     };
     if same {
-        tracing::info!(?dest, "安装程序已在目标位置,跳过自拷贝");
+        tracing::info!(?dest, "installer already at destination; skipping self-copy");
         return Ok(());
     }
 
@@ -119,7 +119,7 @@ pub fn copy_self_to_hermes_home() -> std::io::Result<()> {
     }
     std::fs::copy(&src, &dest)?;
     repair_macos_installer_helper(&dest);
-    tracing::info!(?src, ?dest, "已将安装程序复制到 HERMES_HOME");
+    tracing::info!(?src, ?dest, "copied installer to HERMES_HOME");
     Ok(())
 }
 
@@ -148,6 +148,15 @@ fn repair_macos_installer_helper(path: &Path) {
 
 #[cfg(not(target_os = "macos"))]
 fn repair_macos_installer_helper(_path: &Path) {}
+
+/// Where install.ps1 writes the bootstrap-complete marker (existence-only file
+/// the Electron app also checks). Per main.ts:
+///   const BOOTSTRAP_COMPLETE_MARKER = path.join(ACTIVE_HERMES_ROOT, '.hermes-bootstrap-complete')
+/// We don't always know ACTIVE_HERMES_ROOT until install.ps1 reports it, so
+/// this is a probe helper, not a definitive path.
+pub fn likely_bootstrap_marker(install_root: &Path) -> PathBuf {
+    install_root.join(".hermes-bootstrap-complete")
+}
 
 /// Initializes tracing to bootstrap-installer.log under HERMES_HOME/logs/.
 /// Returns a guard that flushes the appender on drop — keep it alive for
