@@ -94,6 +94,8 @@ pub(crate) fn cache_plan(immutable: bool, cached_exists: bool) -> CachePlan {
 }
 
 const INSTALL_SCRIPT_REPOSITORY: &str = "ZIYU-FUI/wenshu";
+const ATOMGIT_REPOSITORY: &str = "ziyu-fui/wenshu";
+const ATOMGIT_RAW_BASE: &str = "https://atomgit.com";
 
 /// Domestic package-index policy for installer child processes.
 ///
@@ -402,7 +404,12 @@ fn upgrade_cached_script(kind: ScriptKind, cached: &Path, emit_log: &impl Fn(&st
 async fn download(kind: ScriptKind, commit_or_ref: &str, dest_path: &Path) -> Result<()> {
     let url = format!(
         "https://raw.githubusercontent.com/{}/{}/scripts/{}",
+        // R81: AtomGit fallback for China users
+        "https://atomgit.com/{}/{}/raw/{}/scripts/{}",
         INSTALL_SCRIPT_REPOSITORY,
+        commit_or_ref,
+        kind.filename(),
+        ATOMGIT_REPOSITORY,
         commit_or_ref,
         kind.filename()
     );
