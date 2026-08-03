@@ -386,20 +386,20 @@ interface FakeStage {
 }
 
 const FAKE_INSTALL_STAGES: FakeStage[] = [
-  { name: 'system-packages', title: 'System packages' },
+  { name: 'system-packages', title: '系统依赖' },
   { name: 'uv', title: 'uv' },
-  { name: 'python', title: 'Python environment' },
-  { name: 'repo', title: 'WENSHU repository' },
-  { name: 'dependencies', title: 'Python dependencies' },
-  { name: 'node', title: 'Node runtime' },
-  { name: 'desktop', title: 'Desktop app' }
+  { name: 'python', title: 'Python 环境' },
+  { name: 'repo', title: 'WENSHU 源码仓库' },
+  { name: 'dependencies', title: 'Python 依赖' },
+  { name: 'node', title: 'Node 运行时' },
+  { name: 'desktop', title: '桌面应用' }
 ]
 
 const FAKE_UPDATE_STAGES: FakeStage[] = [
-  { name: 'handoff', title: 'Preparing to update' },
-  { name: 'update', title: 'Downloading the latest version' },
-  { name: 'rebuild', title: 'Rebuilding the desktop app' },
-  { name: 'install', title: 'Installing the update' }
+  { name: 'handoff', title: '准备更新' },
+  { name: 'update', title: '下载最新版本' },
+  { name: 'rebuild', title: '重建桌面应用' },
+  { name: 'install', title: '安装更新' }
 ]
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
@@ -426,7 +426,7 @@ async function runFakeBoot(kind: FakeMode): Promise<void> {
 
     const cancelled = () => {
       if (!fakeCancelled) {return false}
-      fakeFail(kind === 'update' ? 'Update cancelled.' : 'Install cancelled.')
+      fakeFail(kind === 'update' ? '更新已取消。' : '安装已取消。')
       $route.set('failure')
 
       return true
@@ -463,8 +463,8 @@ async function runFakeBoot(kind: FakeMode): Promise<void> {
       }
 
       if (s.name === failAt) {
-        fakeStage(s.name, 'failed', durationMs, 'Simulated failure for preview.')
-        fakeFail('Simulated failure for preview (fake boot).')
+        fakeStage(s.name, 'failed', durationMs, '模拟失败(用于预览)。')
+        fakeFail('模拟失败(用于预览,假启动)。')
         $route.set('failure')
 
         return

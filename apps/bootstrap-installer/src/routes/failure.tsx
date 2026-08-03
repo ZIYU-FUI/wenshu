@@ -42,33 +42,33 @@ export default function Failure({ bootstrap }: FailureProps) {
           }
         >
           <span>
-            <span>{isUpdate ? 'Update didn\u2019t finish' : 'Install didn\u2019t finish'}</span>
+            <span>{isUpdate ? '\u66f4\u65b0\u672a\u5b8c\u6210' : '\u5b89\u88c5\u672a\u5b8c\u6210'}</span>
           </span>
-          <span aria-hidden="true">{isUpdate ? 'Update didn\u2019t finish' : 'Install didn\u2019t finish'}</span>
+          <span aria-hidden="true">{isUpdate ? '\u66f4\u65b0\u672a\u5b8c\u6210' : '\u5b89\u88c5\u672a\u5b8c\u6210'}</span>
         </p>
 
         <p className="m-0 mx-auto max-w-xl text-center text-sm leading-normal tracking-tight text-muted-foreground">
           {bootstrap.error ??
             (isUpdate
-              ? 'Something went wrong during the update.'
-              : 'Something went wrong during installation.')}
+              ? '更新过程中出现错误。'
+              : '安装过程中出现错误。')}
         </p>
       </div>
 
       <div className="flex items-center gap-3">
         <Button className="gap-1.5" onClick={() => void (isUpdate ? startUpdate() : startInstall())}>
           <RefreshCw />
-          {isUpdate ? 'Retry update' : 'Retry install'}
+          {isUpdate ? '重试更新' : '重试安装'}
         </Button>
         <Button className="gap-1.5" onClick={() => void openLogDir()} variant="text">
           <FileText />
-          Open logs
+          打开日志
         </Button>
       </div>
 
       {logPath && (
         <p className="max-w-lg text-center text-xs text-muted-foreground/70">
-          Log: <code className="font-mono">{logPath}</code>
+          日志: <code className="font-mono">{logPath}</code>
         </p>
       )}
     </div>
