@@ -1,7 +1,7 @@
 //! Filesystem paths + logging setup.
 //!
 //! Mirrors `hermes_constants.get_hermes_home()` from the Python CLI:
-//!   Windows: %LOCALAPPDATA%\hermes
+//!   Windows: %LOCALAPPDATA%\wenshu-hermes
 //!   macOS:   ~/.wenshu-hermes
 //!   Linux:   ~/.wenshu-hermes  (override via $HERMES_HOME)
 //!
