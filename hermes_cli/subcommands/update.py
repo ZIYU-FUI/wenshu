@@ -15,10 +15,11 @@ from typing import Callable
 
 # R128: bootstrap-installed wenshu-cli runs from the installer's PATH context,
 # which often lacks the locations where `pnpm` and `cargo` actually live
-# (`~/.local/bin`, `/opt/homebrew/bin`, `~/.cargo/bin`). Without an explicit
+# (`~/.cargo/bin`, `/opt/homebrew/bin`, `~/.local/bin`). Without an explicit
 # probe the update flow falls back to RuntimeError("pnpm was not found on PATH")
 # even though the binaries are installed (e.g. ~/.local/share/pnpm/pnpm).
 _R128_FALLBACK_PATHS = (
+    "/Users/anbaiqiang/.cargo/bin",
     "/Users/anbaiqiang/.local/bin",
     "/Users/anbaiqiang/.local/share/pnpm",
     "/opt/homebrew/bin",
