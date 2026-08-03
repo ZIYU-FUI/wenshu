@@ -37,10 +37,27 @@ import fs from 'node:fs'
 import fsp from 'node:fs/promises'
 import https from 'node:https'
 import path from 'node:path'
+import os from 'node:os'
 
 import { hiddenWindowsChildOptions } from './windows-child-options'
 
 const IS_WINDOWS = process.platform === 'win32'
+
+// _resolveHermesHomeSafe — expand literal "$HOME/.wenshu-hermes" (or "~") placeholders
+// into a real absolute path. macOS LSEnvironment injects LSEnvironment vars as literal
+// strings (no shell expansion), so the desktop process can inherit HERMES_HOME="$HOME/..."
+// from apps/desktop/package.json mac.extendInfo.LSEnvironment. Passing that literal down
+// to install.ps1 / install.sh / Python hermes-cli causes ENOENT mkdir "$HOME/.wenshu-hermes/logs".
+// main.ts:411 already filters process.env.HERMES_HOME globally; this is defense in depth
+// for cases where bootstrap-runner.ts is called with an explicit hermesHome arg that
+// itself came from a similarly-polluted source (e.g. a stale shell init file).
+function _resolveHermesHomeSafe(hermesHome: string | undefined | null): string {
+  const raw = hermesHome ?? process.env.HERMES_HOME
+  if (!raw || (/\$\{?HOME\}?/.test(raw) || raw.trim().startsWith('~'))) {
+    return path.join(os.homedir(), '.wenshu-hermes')
+  }
+  return raw
+}
 
 const STAMP_COMMIT_RE = /^[0-9a-f]{7,40}$/i
 const FALLBACK_COMMIT_RE = /^0{7,40}$/
@@ -470,7 +487,7 @@ function spawnPowerShell(scriptPath, args, { emit, stageName, abortSignal, herme
           ...process.env,
           // Pass HERMES_HOME through so install.ps1 respects the caller's
           // choice rather than re-computing the default.
-          HERMES_HOME: hermesHome || process.env.HERMES_HOME || ''
+          HERMES_HOME: _resolveHermesHomeSafe(hermesHome)
         }
       })
     )
@@ -566,7 +583,7 @@ function spawnBash(scriptPath, args, { emit, stageName, abortSignal, hermesHome 
       stdio: ['ignore', 'pipe', 'pipe'],
       env: {
         ...process.env,
-        HERMES_HOME: hermesHome || process.env.HERMES_HOME || ''
+          HERMES_HOME: _resolveHermesHomeSafe(hermesHome)
       }
     })
 
