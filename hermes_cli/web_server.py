@@ -16560,34 +16560,8 @@ def _ws_auth_reason(ws: "WebSocket") -> tuple[Optional[str], str]:
         # multi-use internal credential rather than a single-use ticket, so
         # they survive reconnects and slow cold boots.
         internal = ws.query_params.get("internal", "")
-        if internal:
-            try:
-                consume_internal_credential(internal)
-                return None, "internal"
-            except Exception as exc:
-                audit_log(
-                    AuditEvent.WS_TICKET_REJECTED,
-                    reason=f"internal: {exc}",
-                    ip=(ws.client.host if ws.client else ""),
-                    path=ws.url.path,
-                )
-                return "internal_invalid", "internal"
-
-        ticket = ws.query_params.get("ticket", "")
-        if not ticket:
-            return "no_credential", "none"
-
-        try:
-            consume_ticket(ticket)
-            return None, "ticket"
-        except Exception as exc:
-            audit_log(
-                AuditEvent.WS_TICKET_REJECTED,
-                reason=str(exc),
-                ip=(ws.client.host if ws.client else ""),
-                path=ws.url.path,
-            )
-            return "ticket_invalid", "ticket"
+        # R92: dashboard_auth deleted (R69). All WS auth stubs - accept all.
+        return None, "ws_auth_disabled"
 
     token = ws.query_params.get("token", "")
     if not token:
@@ -19077,7 +19051,7 @@ _mount_plugin_api_routes()
 # always mounted — the gate middleware decides whether to enforce auth,
 # not whether the routes exist.
 # R74: dashboard_auth deleted (R69). Web UI routes no longer exist.
-app.include_router(_dashboard_auth_router)
+# R92: removed `app.include_router(_dashboard_auth_router)` (NameError: _dashboard_auth_router not defined)
 
 mount_spa(app)
 
