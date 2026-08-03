@@ -9999,6 +9999,23 @@ def _cmd_update_pip(args):
     print("✓ Update complete! Restart wenshu to use the new version.")
 
 
+def _try_add_mirror_remote(git_cmd: list[str], project_root: Path, name: str, url: str) -> bool:
+    """WO-20260901-002: 静默 add mirror remote — 失败 (通常 remote 已存在) 返回 False。
+
+    给 wenshu update 在国内网络拉不到 GitHub 时一个回退选项 (gitcode.com mirror,
+    URL = ``git@gitcode.com:ZIYU1983/wenshu.git``)。不抛异常, 不阻塞原 update flow —
+    RemoteAlreadyExists 等都静默吞掉。
+    """
+    add_result = subprocess.run(
+        git_cmd + ["remote", "add", name, url],
+        cwd=project_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return add_result.returncode == 0
+
+
 def _cmd_update_impl(args, gateway_mode: bool):
     """Body of ``cmd_update`` — kept separate so the wrapper can always
     restore stdio even on ``sys.exit``."""
@@ -10160,14 +10177,34 @@ def _cmd_update_impl(args, gateway_mode: bool):
         branch = _resolve_update_branch(args)
 
         print("→ Fetching updates...")
-        fetch_result = subprocess.run(
-            git_cmd + ["fetch", "origin", branch],
-            cwd=PROJECT_ROOT,
-            capture_output=True,
-            text=True,
-        )
-        if fetch_result.returncode != 0:
-            stderr = fetch_result.stderr.strip()
+        # WO-20260901-002: 多 mirror 拉取 — origin 失败时依次试 gitcode / old-origin,
+        # 任一成功即继续; 全失败走原 sys.exit(1) (fetch 阶段还没进 R58 fallback)。
+        # R58 fallback 段 (下段 pull 失败时触发) 保持原状 — pinned-commit 只走 origin。
+        _update_mirrors = [
+            # origin 先试 (装机 user 默认 remote); 失败 → 国内 gitcode.com mirror;
+            # 仍失败 → explicit old-origin (GitHub 新 owner URL)。
+            ("origin", None),
+            ("gitcode", "git@gitcode.com:ZIYU1983/wenshu.git"),
+            ("old-origin", "git@github.com:ZIYU-FUI/wenshu.git"),
+        ]
+        _fetched_remote = None
+        _last_fetch_err = ""
+        for _mname, _murl in _update_mirrors:
+            if _murl:
+                _try_add_mirror_remote(git_cmd, PROJECT_ROOT, _mname, _murl)
+            _mir_fetch = subprocess.run(
+                git_cmd + ["fetch", _mname, branch],
+                cwd=PROJECT_ROOT,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if _mir_fetch.returncode == 0:
+                _fetched_remote = _mname
+                break
+            _last_fetch_err = (_mir_fetch.stderr or "").strip()
+        if _fetched_remote is None:
+            stderr = _last_fetch_err
             if "Could not resolve host" in stderr or "unable to access" in stderr:
                 print("✗ Network error — cannot reach the remote repository.")
                 print(f"  {stderr.splitlines()[0]}" if stderr else "")
@@ -10178,7 +10215,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
                     "✗ Authentication failed — check your git credentials or SSH key."
                 )
             else:
-                print("✗ Failed to fetch updates from origin.")
+                print("✗ Failed to fetch updates from all mirrors (origin / gitcode / old-origin).")
                 if stderr:
                     print(f"  {stderr.splitlines()[0]}")
             sys.exit(1)
@@ -10250,7 +10287,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
 
         # Check if there are updates
         result = subprocess.run(
-            git_cmd + ["rev-list", f"HEAD..origin/{branch}", "--count"],
+            git_cmd + ["rev-list", f"HEAD..{_fetched_remote}/{branch}", "--count"],
             cwd=PROJECT_ROOT,
             capture_output=True,
             text=True,
@@ -10361,7 +10398,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
             pull_result = None
             for _r58_attempt in range(3):
                 pull_result = subprocess.run(
-                    git_cmd + ["pull", "--ff-only", "--depth", "1", "origin", branch],
+                    git_cmd + ["pull", "--ff-only", "--depth", "1", _fetched_remote, branch],
                     cwd=PROJECT_ROOT,
                     capture_output=True,
                     text=True,
