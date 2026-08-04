@@ -1,0 +1,19 @@
+id: wenshu
+name: WENSHU
+version: 0.1.0
+api: plugin_api.py
+description: >
+  WENSHU (文枢) — 一句话简介 → 8 编辑自动 spawn → 章节对话式扩写 →
+  校稿 → 出稿。Plugin 形态挂在 hermes-agent v0.20.0+ (tag v2026.8.3) 之上。
+runtime:
+  python_min: "3.11"
+  hermes_min: "0.20.0"
+editors:
+  - outline
+  - research
+  - style
+  - character
+  - plot
+  - dialogue
+  - proofread
+  - chief
