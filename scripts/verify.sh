@@ -13,6 +13,11 @@ SRC="${HOME}/wenshu-plugin"
 HERMES_HOME="${HOME}/.hermes"
 PROFILE_DIR="${HERMES_HOME}/profiles/wenshu"
 
+# Use the hermes venv Python via absolute path so we don't pick up a stale
+# system python (e.g. 3.9) on PATH. urllib3 there barfs on PEP 604 (X | Y).
+# Override at runtime with: PYTHON_BIN=/path/to/python bash verify.sh
+PYTHON_BIN="${PYTHON_BIN:-/Users/anbaiqiang/.hermes/hermes-agent/venv/bin/python}"
+
 ok=0
 fail=0
 pass() { printf '  ✅ %s\n' "$*"; ok=$((ok+1)); }
@@ -31,8 +36,8 @@ else
 fi
 
 hdr "2. plugin_api.py import"
-if command -v python3 >/dev/null 2>&1; then
-  if ( cd "$SRC/plugins/wenshu/dashboard" && python3 -c "
+if [ -x "$PYTHON_BIN" ]; then
+  if ( cd "$SRC/plugins/wenshu/dashboard" && "$PYTHON_BIN" -c "
 import plugin_api
 assert plugin_api.manifest['id'] == 'wenshu', plugin_api.manifest
 assert plugin_api.manifest['name'] == 'WENSHU', plugin_api.manifest
@@ -44,12 +49,12 @@ print('manifest:', plugin_api.manifest)
     miss "plugin_api.py import FAILED"
   fi
 else
-  miss "python3 not on PATH"
+  miss "PYTHON_BIN not executable: $PYTHON_BIN"
 fi
 
 hdr "3. 8 editor modules import + run() signature"
-if command -v python3 >/dev/null 2>&1; then
-  if ( cd "$SRC/plugins/wenshu/dashboard/editors" && python3 -c "
+if [ -x "$PYTHON_BIN" ]; then
+  if ( cd "$SRC/plugins/wenshu/dashboard/editors" && "$PYTHON_BIN" -c "
 import asyncio, importlib
 mods = ['outline','research','style','character','plot','dialogue','proofread','chief']
 for m in mods:
@@ -64,7 +69,7 @@ for m in mods:
     miss "editor import / run() FAILED"
   fi
 else
-  miss "python3 not on PATH"
+  miss "PYTHON_BIN not executable: $PYTHON_BIN"
 fi
 
 hdr "4. hermes profile 'wenshu' present"
