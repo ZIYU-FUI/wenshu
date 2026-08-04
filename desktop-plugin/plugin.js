@@ -19,8 +19,8 @@
 import {
   host,
   PALETTE_AREA,
-  SIDEBAR_NAV_AREA,
-  Tip
+  ROUTES_AREA,
+  SIDEBAR_NAV_AREA
 } from '@hermes/plugin-sdk'
 import { jsx, jsxs } from 'react/jsx-runtime'
 
@@ -138,22 +138,10 @@ function SelectPlaceholder({ label, options }) {
   })
 }
 
-// ---------- Sidebar nav chip ----------
-
-function SidebarChip() {
-  return jsx(Tip, {
-    label: '打开 WENSHU 启动页',
-    children: jsx('a', {
-      href: '#' + PATH,
-      className: 'w-full',
-      onClick: function (e) {
-        e.preventDefault()
-        host.navigate(PATH)
-      },
-      children: 'WENSHU'
-    })
-  })
-}
+// ---------- Sidebar nav row (auto-rendered by app from data.path) ----------
+//
+// nav.row form:只要给 data: { path, label, codicon },框架自动渲染 nav row,
+// 点击行为由 path 路由决定(SIDEBAR_NAV_AREA 自带导航,不用再写 onClick)。
 
 // ---------- Default export ----------
 
@@ -164,11 +152,20 @@ export default {
     // Plugin-scoped locale bundles.
     ctx.i18n.register(STRINGS)
 
-    // 1) 启动页 = 占主工作区。
-    //    placement: 'main' + dock: { pane: 'workspace', pos: 'center' } —
-    //    启动后 workspace 中央就是 WENSHU 启动页。
+    // 1) 全页启动页 — ROUTES_AREA + data.path="/wenshu"。
+    //    这是装机 user 拍板 (b) 的核心:启动页变成 full page(占主工作区
+    //    workspace pane),不是浮动 pane。同一份 Launch 组件,不重复写 UI。
     ctx.register({
       id: 'launch',
+      area: ROUTES_AREA,
+      data: { path: PATH },
+      render: function () { return jsx(Launch, {}) }
+    })
+
+    // 2) Panes area 也注册一份(走同样的 Launch 组件)— 让 panes 拖动 / 复用
+    //    时仍用同一份 UI,装机 user 可以把 WENSHU 当 pane 拖到任意位置。
+    ctx.register({
+      id: 'launch-pane',
       area: 'panes',
       title: 'WENSHU',
       data: {
@@ -178,15 +175,15 @@ export default {
       render: function () { return jsx(Launch, {}) }
     })
 
-    // 2) 侧栏入口(被动 — SIDEBAR_NAV_AREA codicon='book')。
+    // 3) 侧栏入口 — SIDEBAR_NAV_AREA nav.row(data.path 决定点亮 + 导航,
+    //    点击自动 host.navigate(PATH))。
     ctx.register({
       id: 'nav',
       area: SIDEBAR_NAV_AREA,
-      data: { path: PATH, label: 'WENSHU', codicon: 'book' },
-      render: function () { return jsx(SidebarChip, {}) }
+      data: { path: PATH, label: 'WENSHU', codicon: 'book' }
     })
 
-    // 3) ⌘K 调色板:"启动 WENSHU" → host.navigate('/wenshu')。
+    // 4) ⌘K 调色板:"启动 WENSHU" → host.navigate('/wenshu') 闭环。
     ctx.register({
       id: 'palette-launch',
       area: PALETTE_AREA,
