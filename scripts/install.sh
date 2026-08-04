@@ -19,11 +19,19 @@
 #   2) The desktop plugin is rsynced to the GLOBAL ~/.hermes/desktop-
 #      plugins/wenshu/ (per AGENTS.md §13 runtime layout). The profile-
 #      scoped variant is NOT used at v0.1.0.
+#   3) All hermes CLI invocations use the ABSOLUTE PATH
+#      ~/.hermes/hermes-agent/venv/bin/hermes — this host's $PATH has
+#      two wrappers (old ~/.local/bin/hermes with a PEP 604 bug, and
+#      the venv hermes v0.20.0) and CC previously ran into the stale
+#      one. Hard-coding the absolute path bypasses the lookup.
 
 set -euo pipefail
 
 SRC="${HOME}/wenshu-plugin"
 HERMES_HOME="${HOME}/.hermes"
+# Absolute path to the v0.20.0 venv hermes. Do NOT rely on $PATH; see
+# boundary decision #3 above.
+HERMES_BIN="${HERMES_HOME}/hermes-agent/venv/bin/hermes"
 DESKTOP_DST="${HERMES_HOME}/desktop-plugins/wenshu"
 PY_PLUGIN_DST="${HERMES_HOME}/plugins/wenshu"
 PROFILE_DIR="${HERMES_HOME}/profiles/wenshu"
@@ -49,25 +57,20 @@ rsync -a --delete "${SRC}/plugins/wenshu/dashboard/"        "${PY_PLUGIN_DST}/da
 log "ensure hermes profile 'wenshu' (no default inheritance)"
 mkdir -p "$PROFILE_DIR"
 
-# Try hermes native CLI first. If it errors out (e.g. this machine's
-# venv has a Python 3.11 str|None typing import bug), fall back to a
-# hand-written minimal config.yaml. Either way, we end up with a wenshu
+# Try the v0.20.0 venv hermes via ABSOLUTE PATH (bypasses $PATH, see
+# boundary decision #3). If it errors out (e.g. this machine's venv
+# has a Python 3.11 str|None typing import bug), fall back to a hand-
+# written minimal config.yaml. Either way, we end up with a wenshu
 # profile that does NOT inherit 'default'.
 created_via="fallback"
-if command -v hermes >/dev/null 2>&1; then
-  if hermes profile create wenshu --no-default >/dev/null 2>&1; then
+if [ -x "$HERMES_BIN" ]; then
+  if "$HERMES_BIN" profile create wenshu --no-default >/dev/null 2>&1; then
     created_via="hermes-cli"
   else
     log "hermes profile create failed (venv bug on this host) — using mkdir + minimal config.yaml fallback"
   fi
-elif [ -x "${HERMES_HOME}/hermes" ]; then
-  if "${HERMES_HOME}/hermes" profile create wenshu --no-default >/dev/null 2>&1; then
-    created_via="hermes-wrapper"
-  else
-    log "hermes wrapper CLI failed (venv bug on this host) — using mkdir + minimal config.yaml fallback"
-  fi
 else
-  log "hermes CLI not found — using mkdir + minimal config.yaml fallback"
+  log "hermes CLI not found at ${HERMES_BIN} — using mkdir + minimal config.yaml fallback"
 fi
 
 # Always (re-)stamp the plugin-enable line in the wenshu profile config,
@@ -106,4 +109,4 @@ else
 fi
 
 log "done. profile=${PROFILE_DIR} (created_via=${created_via})"
-log "next: hermes desktop → ⌘K → 'Reload desktop plugins' (or restart profile 'wenshu')"
+log "next: ${HERMES_BIN} desktop → ⌘K → 'Reload desktop plugins' (or restart profile 'wenshu')"
