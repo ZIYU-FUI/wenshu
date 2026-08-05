@@ -219,6 +219,36 @@ async def list_projects():
     return {"projects": projects}
 
 
+@router.get("/projects/{name}")
+async def get_project(name: str):
+    """读 registry 拿单个项目的真值 metadata + path。
+
+    8/5 工单:ProjectPage 改对话启动器需要 project_path 才能调
+    host.request('session.create', { cwd: projectDir, ... })。
+    list_projects() 只返 name/summary/created_at,不足以撑起"开新对话"
+    按钮。新增本条 endpoint,不动其它 endpoint。
+    """
+    for entry in _load_index():
+        if entry.get("name") == name:
+            project_dir = Path(entry["path"])
+            project_json = project_dir / ".wenshu" / "project.json"
+            if not project_json.is_file():
+                continue
+            try:
+                data = json.loads(project_json.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError, TypeError):
+                continue
+            return {
+                "name": data.get("name") or project_dir.name,
+                "summary": data.get("summary") or "",
+                "created_at": data.get("created_at") or entry.get("created_at") or "",
+                "project_path": str(project_dir),
+            }
+    # 找不到 → 返空字段(让 ProjectPage 显示空状态,不 404,因为
+    # hash 路由可能短暂指向还没建好的项目)
+    return {"name": name, "summary": "", "created_at": "", "project_path": ""}
+
+
 @router.post("/projects")
 async def create_project_route(body: dict, response: Response):
     result = _create_project(body)

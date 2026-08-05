@@ -160,14 +160,35 @@ function NewProjectDialog({ ctx, open, onOpenChange }) {
         })
       }
       onOpenChange(false)
-      host.navigate(
-        PROJECT_PATH + encodeURIComponent(cleanName) +
-        '?summary=' + encodeURIComponent(
-          result.status === 'exists'
-            ? String(result.existing_summary || '')
-            : summary.trim()
-        )
-      )
+      // 8/5 工单:跳 ProjectPage,ProjectPage 自动接管"对话启动器"。
+      // 先拿 project_path 让 "开新对话" 按钮可点击;
+      // 失败时 fallback 不带 path,ProjectPage 显示空状态。
+      ctx.rest('/projects/' + encodeURIComponent(cleanName), { method: 'GET' })
+        .then(function (data) {
+          const summaryParam = '?summary=' + encodeURIComponent(
+            (data && data.summary) ||
+            (result.status === 'exists'
+              ? String(result.existing_summary || '')
+              : summary.trim())
+          )
+          host.navigate(
+            PROJECT_PATH + encodeURIComponent(cleanName) + summaryParam
+          )
+        })
+        .catch(function () {
+          host.notify({
+            kind: 'error',
+            message: '读项目路径失败,ProjectPage 部分按钮可能不可用'
+          })
+          host.navigate(
+            PROJECT_PATH + encodeURIComponent(cleanName) +
+            '?summary=' + encodeURIComponent(
+              result.status === 'exists'
+                ? String(result.existing_summary || '')
+                : summary.trim()
+            )
+          )
+        })
     } catch (error) {
       host.notifyError(error, '创建项目失败')
     } finally {
@@ -569,30 +590,170 @@ function currentProjectName() {
   }
 }
 
-function ProjectPage() {
+// 8/5 工单:ProjectPage 改"对话启动器",首条发言模板由 buildPromptTemplate
+// 生成。summary 空 → 用"(暂无内容)"兜底(装机 user 拍)。
+function buildPromptTemplate(name, summary) {
+  const cleanSummary = (summary || '').trim()
+  return '我想写一本小说,名字叫《' + name + '》,暂时的一点想法是' +
+    (cleanSummary || '(暂无内容)') + '。'
+}
+
+// 8/5 工单:开新对话 = 调 hermes gateway session.create 拿 stored_session_id,
+// 然后 host.navigate('#/' + stored_session_id) 跳新 chat tab。hermes desktop
+// 自动 focus composer,用户自己按 ⌘↩ 提交首条消息(SDK 没暴露 prefilled /
+// auto-submit 姿势,模拟键盘事件 / patch composer state 都越界 AGENTS §12)。
+async function openChatSession(ctx, projectDir) {
+  try {
+    const created = await host.request('session.create', {
+      source: 'wenshu',
+      cwd: projectDir,
+      profile: 'wenshu'
+    })
+    const storedId = created && (created.stored_session_id || created.session_id)
+    if (!storedId) {
+      throw new Error('session.create 返回了缺失的 stored_session_id')
+    }
+    host.navigate('#/' + storedId)
+  } catch (error) {
+    host.notifyError(error, '开新对话失败,请重试')
+  }
+}
+
+function ProjectPage({ ctx }) {
   const name = currentProjectName()
-  let summary = ''
+  let summaryFromHash = ''
   try {
     const query = new URLSearchParams(window.location.hash.split('?')[1] || '')
-    summary = query.get('summary') || ''
+    summaryFromHash = query.get('summary') || ''
   } catch {
-    summary = ''
+    summaryFromHash = ''
   }
+
+  const _projectMeta = useState(null)
+  const projectMeta = _projectMeta[0]
+  const setProjectMeta = _projectMeta[1]
+  const _metaLoading = useState(true)
+  const metaLoading = _metaLoading[0]
+  const setMetaLoading = _metaLoading[1]
+  const _copyDone = useState(false)
+  const copyDone = _copyDone[0]
+  const setCopyDone = _copyDone[1]
+  const _opening = useState(false)
+  const opening = _opening[0]
+  const setOpening = _opening[1]
+
+  useEffect(function () {
+    if (!name) return
+    let cancelled = false
+    setMetaLoading(true)
+    ctx.rest('/projects/' + encodeURIComponent(name), { method: 'GET' })
+      .then(function (data) {
+        if (cancelled) return
+        setProjectMeta(data || null)
+      })
+      .catch(function () { if (!cancelled) setProjectMeta(null) })
+      .finally(function () { if (!cancelled) setMetaLoading(false) })
+    return function () { cancelled = true }
+  }, [name])
+
+  const summary = (projectMeta && projectMeta.summary) || summaryFromHash || ''
+  const createdAt = (projectMeta && projectMeta.created_at) || ''
+  const projectPath = projectMeta && projectMeta.project_path
+  const promptText = buildPromptTemplate(name, summary)
+
+  function handleCopy() {
+    const text = promptText
+    if (window.hermesDesktop && typeof window.hermesDesktop.writeClipboard === 'function') {
+      window.hermesDesktop.writeClipboard(text).then(function () {
+        setCopyDone(true)
+        setTimeout(function () { setCopyDone(false) }, 1500)
+      }).catch(function () {
+        host.notify({ kind: 'error', message: '复制失败,请手动选中复制' })
+      })
+    } else {
+      // 兜底:R192 调研 desktop bridge 是 ctx-dependent,不一定挂在
+      // window.hermesDesktop。把文本塞进 info toast 让用户手动复制。
+      host.notify({
+        kind: 'info',
+        message: '复制: ' + text
+      })
+    }
+  }
+
+  function handleOpenChat() {
+    if (opening) return
+    if (!projectPath) {
+      host.notify({ kind: 'error', message: '项目路径缺失,无法开新对话' })
+      return
+    }
+    setOpening(true)
+    void openChatSession(ctx, projectPath).finally(function () {
+      setOpening(false)
+    })
+  }
+
   return jsxs('div', {
-    className: 'flex h-full w-full flex-col items-center justify-center gap-5 px-8 py-10 text-(--ui-text-primary)',
+    className: 'flex h-full w-full flex-col items-center justify-center gap-6 px-8 py-10 text-(--ui-text-primary)',
     children: [
-      jsx('h1', {
-        className: 'text-3xl font-semibold tracking-wide text-(--ui-text-primary)',
-        children: name
+      jsxs('div', {
+        className: 'flex flex-col items-center gap-2 text-center',
+        children: [
+          jsx('h1', {
+            className: 'text-3xl font-semibold tracking-wide text-(--ui-text-primary)',
+            children: name
+          }),
+          summary
+            ? jsx('p', {
+                className: 'max-w-xl text-sm text-(--ui-text-secondary)',
+                children: summary
+              })
+            : null,
+          createdAt
+            ? jsx('span', {
+                className: 'text-[0.6875rem] text-(--ui-text-tertiary)',
+                children: '建于 ' + String(createdAt).substring(0, 10)
+              })
+            : null
+        ]
       }),
-      jsx('p', {
-        className: 'max-w-xl text-center text-sm text-(--ui-text-secondary)',
-        children: summary || '暂无故事简介'
+      jsxs('div', {
+        className: 'flex w-full max-w-xl flex-col gap-3 rounded-lg border border-(--ui-border) bg-(--ui-background) px-5 py-4',
+        children: [
+          jsx('span', {
+            className: 'text-[0.6875rem] font-medium tracking-wider text-(--ui-text-tertiary)',
+            children: '首条发言模板'
+          }),
+          jsx('p', {
+            className: 'text-sm leading-relaxed text-(--ui-text-primary)',
+            children: promptText
+          }),
+          jsxs('div', {
+            className: 'flex items-center gap-2',
+            children: [
+              jsx(Button, {
+                type: 'button',
+                variant: 'outline',
+                size: 'sm',
+                onClick: handleCopy,
+                children: copyDone ? '已复制' : '复制到剪贴板'
+              }),
+              jsx(Button, {
+                type: 'button',
+                variant: 'default',
+                size: 'sm',
+                disabled: opening,
+                onClick: handleOpenChat,
+                children: opening ? '正在开新对话…' : '开新对话'
+              })
+            ]
+          })
+        ]
       }),
       jsx(Button, {
         type: 'button',
-        variant: 'outline',
-        onClick: () => host.navigate(PATH),
+        variant: 'ghost',
+        size: 'sm',
+        onClick: function () { host.navigate(PATH) },
         children: '回到首页'
       })
     ]
@@ -618,7 +779,7 @@ export default {
       id: 'project',
       area: ROUTES_AREA,
       data: { path: PROJECT_PATH + ':name' },
-      render: function () { return jsx(ProjectPage, {}) }
+      render: function () { return jsx(ProjectPage, { ctx: ctx }) }
     })
 
     ctx.register({
