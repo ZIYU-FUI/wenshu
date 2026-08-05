@@ -1,12 +1,22 @@
 """WENSHU Python backend for project creation and editor stubs."""
 
-from datetime import datetime, timezone
+import sys
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, Response
 
-from editors import (  # noqa: F401 - imports are part of the smoke test
+# hermes 上游用 importlib.util.spec_from_file_location 把本文件当模块
+# load(spec._montas 模式),它**不**把 api_path.parent 加到 sys.path。
+# 本文件在 dashboard/ 子目录,editors/ 也在 dashboard/ 子目录,
+# `from editors import ...` 找不到。
+# 修法:启动时把 dashboard/ 父目录加 sys.path,editors/ 是它的子包
+# (有 __init__.py),Python import 系统会把 dashboard/ 当 namespace
+# package,editors 是 dashboard 下的 module。
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from editors import (  # noqa: E401 - imports are part of the smoke test
     outline,
     research,
     style,
