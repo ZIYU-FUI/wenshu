@@ -89,28 +89,18 @@ function selectedDirectory(result) {
 }
 
 async function pickDirectory() {
-  // The public desktop-plugin SDK currently exposes no native picker helper.
-  // Try the requested gateway RPC names; callers keep the editable Input as the
-  // documented fallback when the connected Hermes gateway does not expose one.
-  const attempts = [
-    ['desktop.dialog.openDirectory', { title: '指定项目位置' }],
-    ['desktop.dialog.selectPaths', {
-      title: '指定项目位置',
-      directories: true,
-      multiple: false
-    }]
-  ]
-  let lastError = null
-  for (const attempt of attempts) {
-    try {
-      const path = selectedDirectory(await host.request(attempt[0], attempt[1]))
-      if (path) return path
-      return ''
-    } catch (error) {
-      lastError = error
-    }
-  }
-  throw lastError || new Error('当前 Hermes 未暴露文件夹选择 API')
+  // SDK 真值(查 ~/.hermes/hermes-agent/apps/desktop/electron/main.ts:10472
+  // ipcMain.handle('hermes:selectPaths')):preload 暴露的唯一文件夹/文件选择
+  // API = `desktop.dialog.selectPaths`,options 字段 title / defaultPath /
+  // directories(true=openDirectory 单选) / multiple(true=push multiSelections
+  // 多选)/ filters(仅文件选择)。返回 Array<string>,空数组 = 用户取消。
+  // 我们要单选文件夹 → directories:true, multiple:false。
+  const result = await host.request('desktop.dialog.selectPaths', {
+    title: '指定项目位置',
+    directories: true,
+    multiple: false
+  })
+  return selectedDirectory(result)
 }
 
 function NewProjectDialog({ ctx, open, onOpenChange }) {
@@ -127,8 +117,8 @@ function NewProjectDialog({ ctx, open, onOpenChange }) {
       if (path) setTargetDir(path)
     } catch (error) {
       host.notify({
-        kind: 'info',
-        message: '原生文件夹选择不可用,请粘贴绝对路径。' + errorMessage(error)
+        kind: 'error',
+        message: '原生文件夹选择失败,请粘贴绝对路径。' + errorMessage(error)
       })
     }
   }
