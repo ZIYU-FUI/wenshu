@@ -1,0 +1,8 @@
+{
+  "name": "wenshu",
+  "label": "WENSHU",
+  "description": "一句话简介 → 8 编辑自动 spawn → 章节对话式扩写 → 校稿 → 出稿",
+  "icon": "Book",
+  "version": "0.1.0",
+  "api": "plugin_api.py"
+}
