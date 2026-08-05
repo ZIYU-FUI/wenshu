@@ -361,6 +361,108 @@ function RotatingSlogan() {
 //   (SDK 不暴露 Alert,Plugin 不能用 shadcn border-destructive/35 这类
 //   semantic token)。inline 写不抽 helper,装机 user 拍 8/5「小体量,能用
 //   SDK 的就复用」—— 自抽 ALERT_BASE_CLASSNAME / ALERT_TONES 反而多此一举。
+function ProjectList({ ctx, onSelect }) {
+  const _projects = useState([])
+  const projects = _projects[0]
+  const setProjects = _projects[1]
+  const _loading = useState(true)
+  const loading = _loading[0]
+  const setLoading = _loading[1]
+  const _error = useState(null)
+  const error = _error[0]
+  const setError = _error[1]
+
+  useEffect(function () {
+    var cancelled = false
+    setLoading(true)
+    ctx
+      .rest('/projects', { method: 'GET' })
+      .then(function (result) {
+        if (cancelled) return
+        setProjects((result && result.projects) || [])
+        setError(null)
+      })
+      .catch(function (e) {
+        if (cancelled) return
+        setError(e && e.message ? e.message : 'load failed')
+        setProjects([])
+      })
+      .finally(function () {
+        if (cancelled) return
+        setLoading(false)
+      })
+    return function () {
+      cancelled = true
+    }
+  }, [])
+
+  if (loading) {
+    return jsx('div', {
+      className: 'mt-6 w-full max-w-md text-xs text-(--ui-text-tertiary)',
+      children: '加载项目…'
+    })
+  }
+  if (error) {
+    return jsx('div', {
+      className:
+        'mt-6 w-full max-w-md text-xs text-(--ui-diff-remove-foreground)',
+      children: '加载项目失败: ' + error
+    })
+  }
+  if (projects.length === 0) {
+    return jsx('div', {
+      className: 'mt-6 w-full max-w-md text-xs text-(--ui-text-tertiary)',
+      children: '暂无项目'
+    })
+  }
+
+  return jsxs('ul', {
+    className: 'mt-6 flex w-full max-w-md flex-col gap-2',
+    children: projects.map(function (p) {
+      return jsx('li', {
+        className:
+          'flex flex-col gap-1 rounded-md border border-(--ui-border) ' +
+          'bg-(--ui-background) px-4 py-3 text-left transition-colors ' +
+          'hover:border-(--ui-primary) hover:bg-(--ui-control-hover-background)',
+        children: jsxs('button', {
+          type: 'button',
+          onClick: function () {
+            onSelect(p.name)
+          },
+          className: 'flex flex-col gap-1 text-left',
+          children: [
+            jsxs('div', {
+              className:
+                'flex items-baseline justify-between gap-2',
+              children: [
+                jsx('span', {
+                  className:
+                    'text-sm font-medium text-(--ui-text-primary)',
+                  children: p.name
+                }),
+                p.created_at
+                  ? jsx('span', {
+                      className:
+                        'text-[0.6875rem] text-(--ui-text-tertiary)',
+                      children: p.created_at.substring(0, 10)
+                    })
+                  : null
+              ]
+            }),
+            p.summary
+              ? jsx('span', {
+                  className:
+                    'line-clamp-2 text-xs text-(--ui-text-secondary)',
+                  children: p.summary
+                })
+              : null
+          ]
+        })
+      }, p.name)
+    })
+  })
+}
+
 function Launch({ ctx }) {
   const profile = useValue(host.state.profile)
   const blocked = profile !== 'wenshu'
@@ -436,6 +538,12 @@ function Launch({ ctx }) {
               'mt-6 text-(--ui-text-tertiary) hover:bg-(--ui-control-hover-background) ' +
               'hover:text-(--ui-text-primary)',
             children: jsx('span', { children: '[ 新建项目 ]' })
+          }),
+          jsx(ProjectList, {
+            ctx: ctx,
+            onSelect: function (name) {
+              host.navigate(PROJECT_PATH + encodeURIComponent(name))
+            }
           }),
           jsx(NewProjectDialog, {
             ctx,

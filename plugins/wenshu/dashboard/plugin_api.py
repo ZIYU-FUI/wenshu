@@ -35,6 +35,15 @@ manifest = {
 
 router = APIRouter()
 
+# wenshu 自管的项目注册表,记录所有 `_create_project` 创建过的项目。
+# _create_project 接受任意 target_dir(用户显式指定),所以不能 hardcode
+# 扫 PROJECTS_ROOT(装机 user 选 ~/Documents/ 时项目落到 ~/Documents/xxx/,
+# 不在 PROJECTS_ROOT 下,装机会看不到)。
+# registry 写到 wenshu profile 内部 ~/.hermes/profiles/wenshu/projects.json,
+# 跟 hermes 自带 projects.db 物理隔离,AGENTS §12 不越界(不动 hermes 端
+# 任何文件,只写 wenshu 自家 profile 内新文件)。
+_PROJECTS_INDEX = Path.home() / ".hermes" / "profiles" / "wenshu" / "projects.json"
+
 _HEALTH = {
     "status": "ok",
     "service": "wenshu",
@@ -81,12 +90,19 @@ def _read_existing_summary(project_dir):
 def _create_project(request):
     name, summary, target = _validated_project(request)
     project_dir = target / name
+    now_iso = datetime.now(timezone.utc).isoformat()
 
     if project_dir.exists():
+        existing_summary = _read_existing_summary(project_dir)
+        # 已存在 → 也注册到 registry(可能用户换了 target_dir 或新装 user)
+        _save_index(_record_project(
+            project_dir, name, existing_summary,
+            now_iso,
+        ))
         return {
             "status": "exists",
             "project_path": str(project_dir),
-            "existing_summary": _read_existing_summary(project_dir),
+            "existing_summary": existing_summary,
         }
 
     project_dir.mkdir(parents=True, exist_ok=False)
@@ -99,7 +115,7 @@ def _create_project(request):
     metadata = {
         "name": name,
         "summary": summary,
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": now_iso,
         "methodology": None,
         "style": None,
     }
@@ -115,7 +131,49 @@ def _create_project(request):
         "# 章节\n\nWENSHU 生成的章节将保存在此目录。\n",
         encoding="utf-8",
     )
+    _save_index(_record_project(project_dir, name, summary, now_iso))
     return {"status": "created", "project_path": str(project_dir)}
+
+
+def _load_index():
+    """读 wenshu 自管的项目注册表。文件不存在 / 损坏 → 返空 list。"""
+    if not _PROJECTS_INDEX.is_file():
+        return []
+    try:
+        data = json.loads(_PROJECTS_INDEX.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, TypeError):
+        return []
+    return data if isinstance(data, list) else []
+
+
+def _save_index(entries):
+    """原子写 wenshu 项目注册表。先写 .tmp 再 rename,避免半写状态。"""
+    _PROJECTS_INDEX.parent.mkdir(parents=True, exist_ok=True)
+    tmp = _PROJECTS_INDEX.with_suffix(".json.tmp")
+    tmp.write_text(
+        json.dumps(entries, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    tmp.replace(_PROJECTS_INDEX)
+
+
+def _record_project(project_dir, name, summary, created_at):
+    """append 一条到 registry。dedupe by absolute path,同名项目不重复。"""
+    entries = _load_index()
+    abs_path = str(project_dir.resolve())
+    for entry in entries:
+        if entry.get("path") == abs_path:
+            # 已存在 → 更新 summary / created_at 不变
+            entry["name"] = name
+            entry["summary"] = summary
+            return entries
+    entries.append({
+        "name": name,
+        "summary": summary,
+        "created_at": created_at,
+        "path": abs_path,
+    })
+    return entries
 
 
 @router.get("/health")
@@ -125,7 +183,40 @@ async def health():
 
 @router.get("/projects")
 async def list_projects():
-    return {"projects": []}
+    """列出所有 wenshu 已建项目。
+
+    路径来源 = ~/.hermes/profiles/wenshu/projects.json registry
+    (由 _create_project / _record_project 同步写)。
+    registry 损坏 / 缺失 → 返空。
+
+    跳过条件:registry 条目指向的目录不存在 / .wenshu/project.json 缺 / 损坏。
+    """
+    entries = _load_index()
+    projects = []
+    for entry in entries:
+        path = entry.get("path")
+        if not path:
+            continue
+        project_dir = Path(path)
+        project_json = project_dir / ".wenshu" / "project.json"
+        if not project_json.is_file():
+            continue
+        # 读磁盘上的真值 summary(registry 可能落后)
+        try:
+            data = json.loads(project_json.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError, TypeError):
+            continue
+        projects.append({
+            "name": data.get("name") or project_dir.name,
+            "summary": data.get("summary") or "",
+            "created_at": data.get("created_at") or entry.get("created_at") or "",
+        })
+
+    def _sort_key(p):
+        return p.get("created_at") or ""
+    projects.sort(key=_sort_key, reverse=True)
+
+    return {"projects": projects}
 
 
 @router.post("/projects")
