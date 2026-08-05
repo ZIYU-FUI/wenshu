@@ -24,6 +24,16 @@
 #      two wrappers (old ~/.local/bin/hermes with a PEP 604 bug, and
 #      the venv hermes v0.20.0) and CC previously ran into the stale
 #      one. Hard-coding the absolute path bypasses the lookup.
+#
+# 8/4 boundary decision (撤回 reel_text 1V1 复刻):
+#   4) 8/4 装机 user 第七轮拍:ReelText 1V1 复刻动画效果极差,撤掉整套
+#      reel_text 翻译,改回最简单打字机。**整套 4 文件架构撤回**:
+#      grapheme.js / measure.js / reel-text.js 全删,install.sh 不再做
+#      inline-concat,plugin.js 单文件直 rsync。
+#   5) plugin.js 顶层 React hook 只剩 useState / useEffect / useRef
+#      (打字机需要),import React, { useEffect, useRef, useState } from
+#      'react'。其他 hook (useLayoutEffect / useImperativeHandle /
+#      forwardRef / createElement) 撤掉。
 
 set -euo pipefail
 
@@ -45,14 +55,63 @@ fail() { printf '[install] FAIL: %s\n' "$*" >&2; exit 1; }
 [ -f "$SRC/plugins/wenshu/manifest.yaml" ] || fail "plugins/wenshu/manifest.yaml missing"
 [ -f "$SRC/plugins/wenshu/dashboard/plugin_api.py" ] || fail "plugin_api.py missing"
 
+# ============================================================
+# source plugin.js 语法检查 + 直接 cp 到 runtime
+# ============================================================
+#
+# 8/4 第七轮拍:撤回 4 文件架构,plugin.js 单文件直 rsync,SDK 拦截
+# 100% 合规(plugin.js 顶层 import 只用 @hermes/plugin-sdk /
+# react / react/jsx-runtime)。
+
+log "syntax check source plugin.js"
+if command -v node >/dev/null 2>&1; then
+  if ! node --check "$SRC/desktop-plugin/plugin.js" 2>/dev/null; then
+    fail "source plugin.js parse FAILED — fix before installing"
+  fi
+  log "  ✅ source plugin.js node --check ok"
+fi
+
+# ============================================================
+# rsync:desktop-plugin/plugin.js → ~/.hermes/desktop-plugins/wenshu/
+# ============================================================
+
 log "rsync desktop plugin → ${DESKTOP_DST}"
-mkdir -p "$DESKTOP_DST"
-rsync -a --delete "${SRC}/desktop-plugin/" "${DESKTOP_DST}/"
+mkdir -p "${DESKTOP_DST}"
+
+# 清掉旧的 4 文件架构残留(grapheme.js / measure.js / reel-text.js
+# —— 8/4 装机 user 第七轮拍撤 4 文件架构,运行时只保留 plugin.js)。
+rm -f "${DESKTOP_DST}/grapheme.js" "${DESKTOP_DST}/measure.js" "${DESKTOP_DST}/reel-text.js"
+
+cp "${SRC}/desktop-plugin/plugin.js" "${DESKTOP_DST}/plugin.js"
+log "  ✅ ${DESKTOP_DST}/plugin.js (single file, post-cleanup)"
+
+# 验:runtime plugin.js 字节数 ≤ 64KB(8/4 PM-direct 拍板硬约束。
+# plugin.js 单文件 ~25KB,留 buffer 到 64KB 充裕。)
+runtime_bytes=$(wc -c <"${DESKTOP_DST}/plugin.js" | tr -d ' ')
+[ "$runtime_bytes" -le 65536 ] || \
+  fail "runtime plugin.js = $runtime_bytes bytes (> 64KB limit)"
+log "  ✅ runtime plugin.js = $runtime_bytes bytes (≤ 64KB)"
+
+# 验:runtime plugin.js 语法
+if command -v node >/dev/null 2>&1; then
+  if ! node --check "${DESKTOP_DST}/plugin.js" 2>/dev/null; then
+    fail "runtime plugin.js parse FAILED — abort"
+  fi
+  log "  ✅ runtime plugin.js node --check ok"
+fi
+
+# ============================================================
+# rsync:python backend
+# ============================================================
 
 log "rsync python backend  → ${PY_PLUGIN_DST}"
 mkdir -p "${PY_PLUGIN_DST}/dashboard"
 rsync -a --delete "${SRC}/plugins/wenshu/manifest.yaml"     "${PY_PLUGIN_DST}/"
 rsync -a --delete "${SRC}/plugins/wenshu/dashboard/"        "${PY_PLUGIN_DST}/dashboard/"
+
+# ============================================================
+# Ensure hermes profile 'wenshu' (no default inheritance)
+# ============================================================
 
 log "ensure hermes profile 'wenshu' (no default inheritance)"
 mkdir -p "$PROFILE_DIR"
