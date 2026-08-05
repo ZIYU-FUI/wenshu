@@ -110,6 +110,28 @@ rsync -a --delete "${SRC}/plugins/wenshu/manifest.yaml"     "${PY_PLUGIN_DST}/"
 rsync -a --delete "${SRC}/plugins/wenshu/dashboard/"        "${PY_PLUGIN_DST}/dashboard/"
 
 # ============================================================
+# Symlink wenshu plugin into wenshu profile's plugin search path
+# ============================================================
+# 8/5 调研真根因:hermes wenshu profile serve 启动时 _apply_profile_override
+# 把 HERMES_HOME 改到 ~/.hermes/profiles/wenshu/,_discover_dashboard_plugins
+# 走 search_dirs[0] = (get_process_hermes_home() / "plugins", "user") =
+# ~/.hermes/profiles/wenshu/plugins/,这个目录**不存在**,wenshu plugin
+# 永远扫不到 → _mount_plugin_api_routes 跳过 wenshu → 405。
+# 修法(wenshu 仓内合规,不动 hermes-agent 仓):wenshu profile 启动时
+# symlink ~/.hermes/profiles/wenshu/plugins/wenshu/ → ~/.hermes/plugins/wenshu/,
+# 让 _discover_dashboard_plugins 在 wenshu profile 启动时能扫到 wenshu plugin。
+log "symlink wenshu plugin into wenshu profile's plugin search path"
+PROFILE_WENSHU_PLUGINS_DIR="${HOME}/.hermes/profiles/wenshu/plugins"
+mkdir -p "${PROFILE_WENSHU_PLUGINS_DIR}"
+# symlink 用绝对路径(指向用户 plugins/),不用相对路径 —— 因为
+# ~/.hermes 可能是 symlink(在 macOS / Linux 多 dev setup 常见),
+# 相对路径 `../../plugins/wenshu` 在 symlink 下解析错位(解析过 symlink
+# 后 .. 跨多级不对)。绝对路径直接走 stable absolute path
+WENSHU_PLUGIN_SRC="${HOME}/.hermes/plugins/wenshu"
+ln -sfn "${WENSHU_PLUGIN_SRC}" "${PROFILE_WENSHU_PLUGINS_DIR}/wenshu"
+log "  ✅ ${PROFILE_WENSHU_PLUGINS_DIR}/wenshu -> ${WENSHU_PLUGIN_SRC}"
+
+# ============================================================
 # Ensure hermes profile 'wenshu' (no default inheritance)
 # ============================================================
 
