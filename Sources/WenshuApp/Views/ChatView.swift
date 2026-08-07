@@ -28,6 +28,14 @@ struct ChatView: View {
         }
         .navigationTitle(project.name)
         .navigationSubtitle("Chat · 阶段：想法")
+        .onAppear {
+            // WO-005: stash the active project on the shared VM so that
+            // `vm.persist()` (called by CharacterWorldView before nav-pop)
+            // can tag the saved note with the project id. ChatViewModel is
+            // a process-wide @StateObject, so re-setting on every onAppear
+            // is intentional — switching projects must update it.
+            vm.currentProject = project
+        }
         .onChange(of: vm.pendingNavigation) { _, newValue in
             if let route = newValue {
                 navPath.append(route)

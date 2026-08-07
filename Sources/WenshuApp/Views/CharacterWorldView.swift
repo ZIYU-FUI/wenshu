@@ -27,8 +27,16 @@ struct CharacterWorldView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button("返回项目") {
-                    vm.reset()
-                    navPath.removeLast(navPath.count)
+                    // WO-005: persist BEFORE reset, otherwise `characters`
+                    // and `worldRules` are cleared and WenshuProjectStore
+                    // would have nothing to write. `Task` because both calls
+                    // are async; pop the nav stack after the Task kicks off
+                    // so the UI doesn't sit waiting on the CoreData hop.
+                    Task {
+                        await vm.persist()
+                        vm.reset()
+                        navPath.removeLast(navPath.count)
+                    }
                 }
             }
         }
