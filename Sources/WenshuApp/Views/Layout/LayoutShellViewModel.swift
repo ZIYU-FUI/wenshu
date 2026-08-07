@@ -110,6 +110,14 @@ final class LayoutShellViewModel: ObservableObject {
     }
 
     // MARK: - Splitter drag handlers
+    //
+    // LT-01-fix4: every drag handler MUST reassign `snapshot` (not just
+    // mutate `snapshot.ratios`) so `@Published` emits `objectWillChange`
+    // and SwiftUI re-evaluates the shell body. Nested mutations on a
+    // `@Published` value type silently no-op the UI — the drag still
+    // updates the persisted state via scheduleSave(), but the live
+    // window never repaints. 装机 user 8/7 实机验 hit this on the 下半屏
+    // splitter: dragging the bar felt like a no-op.
 
     /// Splitter at `upperSplitterIndex` (0 or 1) in the upper row was
     /// dragged by `delta` pixels (positive = pulled right). We update
@@ -126,14 +134,14 @@ final class LayoutShellViewModel: ObservableObject {
         let available = totalWidth - 2 * LayoutSnapshot.splitterPixels
         guard available > 0 else { return }
         let deltaRatio = Double(delta / available)
-        var ratios = snapshot.ratios
-        let sum = ratios[left] + ratios[right]
+        var snap = snapshot
+        let sum = snap.ratios[left] + snap.ratios[right]
         guard sum > 0 else { return }
-        let proposed = ratios[left] + deltaRatio
+        let proposed = snap.ratios[left] + deltaRatio
         let clamped = max(0.05, min(0.95, proposed))
-        ratios[left] = clamped
-        ratios[right] = max(0.05, sum - clamped)
-        snapshot.ratios = ratios
+        snap.ratios[left] = clamped
+        snap.ratios[right] = max(0.05, sum - clamped)
+        snapshot = snap
         scheduleSave()
     }
 
@@ -143,9 +151,9 @@ final class LayoutShellViewModel: ObservableObject {
     func adjustBottomHeight(delta: CGFloat, totalHeight: CGFloat) {
         guard totalHeight > 0 else { return }
         let deltaRatio = Double(delta / totalHeight)
-        var ratios = snapshot.ratios
-        ratios[3] = max(0.10, min(0.90, ratios[3] + deltaRatio))
-        snapshot.ratios = ratios
+        var snap = snapshot
+        snap.ratios[3] = max(0.10, min(0.90, snap.ratios[3] + deltaRatio))
+        snapshot = snap
         scheduleSave()
     }
 
@@ -156,11 +164,27 @@ final class LayoutShellViewModel: ObservableObject {
         let available = totalWidth - LayoutSnapshot.splitterPixels
         guard available > 0 else { return }
         let deltaRatio = Double(delta / available)
-        var ratios = snapshot.ratios
-        let proposed = ratios[4] + deltaRatio
-        ratios[4] = max(0.05, min(0.95, proposed))
-        snapshot.ratios = ratios
+        var snap = snapshot
+        let proposed = snap.ratios[4] + deltaRatio
+        snap.ratios[4] = max(0.05, min(0.95, proposed))
+        snapshot = snap
         scheduleSave()
+    }
+
+    // MARK: - Menu title (LT-01-fix4)
+    //
+    // FCP 范式: View-menu toggles show their *next action* in the label.
+    //   visible → "隐藏 X" (clicking will hide it)
+    //   hidden  → "显示 X" (clicking will show it)
+    // Centralised here so the menu View (which observes this VM) and any
+    // future toolbar button pull the same string.
+
+    /// Returns the dynamic menu-item title for a panel. Visible panels
+    /// advertise the "hide" verb (because clicking will hide them); hidden
+    /// panels advertise "show". Chinese copy per LT-01-fix4 拍板.
+    func menuTitle(for panel: PanelID) -> String {
+        let verb = isVisible(panel) ? "隐藏" : "显示"
+        return "\(verb) \(panel.title)"
     }
 
     // MARK: - Panel visibility (macOS "View" menu, LT-01-fix3)

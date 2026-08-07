@@ -121,43 +121,74 @@ struct WenshuAppCommands: Commands {
     }
 }
 
-// MARK: - 显示 / View menus (LT-01-fix3)
+// MARK: - 显示 menu (LT-01-fix4)
 //
-// 显示 → 重置布局      : back to AGENTS §8.1 defaults, written to .ws
-// View  → 5 panel toggles (Cmd+1…5) + 全显示 (Cmd+Shift+1), FCP 范式
+// Single "显示" menu (was: 显示 + View, two separate menus, prior to LT-01-fix4).
+// FCP 范式 + macOS HIG — Pages / Numbers / Xcode / Final Cut all collapse
+// show/hide chrome into one menu. The macOS App-menu naming convention
+// uses the localised term (Chinese-localised apps prefer "显示" over
+// "View" — confirmed by AGENTS §8.1's existing 拍板 "显示" name).
 //
-// Both drive `LayoutShellViewModel.shared` — the same instance the shell
+// 显示 → 重置布局         : back to AGENTS §8.1 defaults, written to .ws
+// 显示 → 5 panel toggles (Cmd+1…5) + 全显示 (Cmd+Shift+1), FCP 范式
+//
+// Drives `LayoutShellViewModel.shared` — the same instance the shell
 // View observes. Menu actions are plain closures (not MainActor-isolated),
 // so each hop goes through `Task { @MainActor in ... }`.
+//
+// LT-01-fix4 优化: each toggle's title reflects its NEXT action
+// ("隐藏 X" when X is visible, "显示 X" when hidden). Titles come from a
+// small View (`LayoutMenuContent`) that holds the `@ObservedObject`
+// reference — `Commands` structs don't accept `@ObservedObject` directly,
+// but a `@ViewBuilder content:` closure does, so the helper View
+// re-renders when the VM publishes.
 
 struct LayoutCommands: Commands {
     var body: some Commands {
         CommandMenu("显示") {
-            Button("重置布局") {
+            LayoutMenuContent()
+        }
+    }
+}
+
+/// Inner View for the "显示" menu. Lives as a separate type so it can
+/// carry an `@ObservedObject` (Commands structs cannot). The CommandMenu
+/// re-evaluates this body whenever the observed VM publishes, so the
+/// toggle item labels stay in sync with the panel visibility state.
+private struct LayoutMenuContent: View {
+    @ObservedObject var vm = LayoutShellViewModel.shared
+
+    var body: some View {
+        Button("重置布局") {
+            Task { @MainActor in
+                await vm.resetToDefaults()
+            }
+        }
+        // v0.04.0 扩展位: 时间线 / 关系图 / 大纲 视图切换
+
+        Divider()
+
+        // FCP 范式: each toggle's title reflects its NEXT action, so the
+        // user always sees whether a click will hide or show the panel.
+        // Title is computed off the observed VM, so SwiftUI re-renders
+        // the menu after every toggle.
+        ForEach(PanelID.allCases, id: \.self) { panel in
+            Button(vm.menuTitle(for: panel)) {
                 Task { @MainActor in
-                    await LayoutShellViewModel.shared.resetToDefaults()
+                    vm.togglePanelVisibility(panel)
                 }
             }
-            // v0.04.0 扩展位: 时间线 / 关系图 / 大纲 视图切换
+            .keyboardShortcut(panel.menuShortcut, modifiers: .command)
         }
 
-        CommandMenu("View") {
-            ForEach(PanelID.allCases, id: \.self) { panel in
-                Button(panel.title) {
-                    Task { @MainActor in
-                        LayoutShellViewModel.shared.togglePanelVisibility(panel)
-                    }
-                }
-                .keyboardShortcut(panel.menuShortcut, modifiers: .command)
+        Divider()
+
+        Button("全显示") {
+            Task { @MainActor in
+                vm.showAllPanels()
             }
-            Divider()
-            Button("全显示") {
-                Task { @MainActor in
-                    LayoutShellViewModel.shared.showAllPanels()
-                }
-            }
-            .keyboardShortcut("1", modifiers: [.command, .shift])
-            // v0.04.0 扩展位: 时间线 / 关系图 / 大纲 panel
         }
+        .keyboardShortcut("1", modifiers: [.command, .shift])
+        // v0.04.0 扩展位: 时间线 / 关系图 / 大纲 panel
     }
 }

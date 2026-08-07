@@ -1,4 +1,4 @@
-// PanelSplitter.swift · 文枢 (Wenshu) · v0.02.0 WO-LT-01
+// PanelSplitter.swift · 文枢 (Wenshu) · v0.02.0 WO-LT-01 → LT-01-fix4
 //
 // Draggable splitter bar between two panels. Used for all 4 drag handles
 // in the 5-zone shell:
@@ -10,14 +10,21 @@
 // See ACCEPTANCE log for the discrepancy note.)
 //
 // Behavior:
-// - `DragGesture(minimumDistance: 0)` so the drag starts on mouse-down
-//   without an extra 3-pixel "dead zone" (FCP-style).
+// - `DragGesture(minimumDistance: 1)` (LT-01-fix4). 1px is small enough
+//   that a real drag is recognised on the first pixel of motion, but big
+//   enough that a pure mouse-down (no movement) doesn't enter drag state.
+//   LT-01-fix3 used `minimumDistance: 0`; LT-01-fix4 装机 user 拍板
+//   1px — same UX, marginally safer against accidental cursor jitter.
 // - `.onChanged` fires for every micro-pixel of drag; we hand the
 //   translation delta to the View Model which keeps its own debounce
 //   for persistence (see LayoutShellViewModel.scheduleSave).
 // - The visual is a 6px-wide (or tall) rounded rect with a subtle hover
 //   state: clear → light gray, hover → mid gray. macOS HIG minimum hit
 //   target is 4px; we use 6px so a 1px-overshoot cursor still lands.
+//
+// LT-01-fix4 BUG1 联动: the live UI only repaints when the View Model
+// reassigns `snapshot` (not just mutates `snapshot.ratios`) — see
+// `LayoutShellViewModel.adjustBottomHeight` for the matching fix.
 //
 // Concurrency: the gesture's value.translation is `CGSize` and is captured
 // into `@State` from the main thread (gestures are MainActor by default).
@@ -60,7 +67,7 @@ struct PanelSplitter: View {
             isHovering = hovering
         }
         .gesture(
-            DragGesture(minimumDistance: 0)
+            DragGesture(minimumDistance: 1)
                 .onChanged { value in
                     // We need incremental delta, not absolute translation.
                     // First call: lastReportedDragValue == 0, so delta = absolute.
