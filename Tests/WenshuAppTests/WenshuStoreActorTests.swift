@@ -1,3 +1,9 @@
+// WenshuStoreActorTests.swift · 文枢 (Wenshu) · v0.02.0
+//
+// CoreData store-actor round-trip + concurrency tests. The
+// entity-level smoke tests live here; LT-01-fix5 specific panel /
+// splitter / menu behaviour lives in `LT01Fix5Tests.swift`.
+
 import XCTest
 @testable import WenshuApp
 import CoreData

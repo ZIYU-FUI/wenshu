@@ -85,13 +85,19 @@ final class MenuStateTests: XCTestCase {
         // 5. 全显示 (Cmd+Shift+1) brings it back too — even if it had been
         //    hidden via a separate path (panel was hidden mid-test, but
         //    showAllPanels resets to all-visible).
-        vm.togglePanelVisibility(.bottomLeft)
+        //
+        //    LT-01-fix5 优化1: bottomLeft (聊天) 不可隐藏. 把之前的
+        //    `vm.togglePanelVisibility(.bottomLeft)` 改成 toggle
+        //    .bottomRight (状态, 可隐藏), 保持全显示 + title flow
+        //    的覆盖.
+        vm.togglePanelVisibility(.bottomRight)
         vm.togglePanelVisibility(.topRight)
-        XCTAssertEqual(vm.menuTitle(for: .bottomLeft), "显示 聊天")
+        XCTAssertEqual(vm.menuTitle(for: .bottomRight), "显示 状态")
         XCTAssertEqual(vm.menuTitle(for: .topRight), "显示 检视")
 
         vm.showAllPanels()
         XCTAssertEqual(vm.menuTitle(for: .topLeft), "隐藏 项目管理")
+        // 聊天 永远是"隐藏 聊天" 因为它不可隐藏 (默认 visible).
         XCTAssertEqual(vm.menuTitle(for: .bottomLeft), "隐藏 聊天")
         XCTAssertEqual(vm.menuTitle(for: .topRight), "隐藏 检视")
     }

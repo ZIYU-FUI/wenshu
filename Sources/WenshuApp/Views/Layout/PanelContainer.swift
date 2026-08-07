@@ -1,23 +1,32 @@
-// PanelContainer.swift · 文枢 (Wenshu) · v0.02.0 WO-LT-01
+// PanelContainer.swift · 文枢 (Wenshu) · v0.02.0 WO-LT-01 → LT-01-fix5
 //
-// One of the 5 slots in the 5-zone shell. Renders:
-//   - a thin header bar with the panel title + a SF Symbol
-//   - the panel content (passed in as `@ViewBuilder content`)
+// One of the 5 slots in the 5-zone shell. Renders just the panel content
+// inside a thin background + border — **no header bar**. The panel
+// "自我识别" (H1 inside content) is delegated to each panel's own
+// placeholder / real content View, mirroring the FCP / Pages / Numbers
+// convention where the browser / timeline / inspector has no title chrome.
 //
-// LT-01-fix3: the header's chevron collapse button is GONE. Per macOS
-// HIG / Final Cut Pro, show-hide is a menu-bar command (View → Cmd+1…5),
-// not panel chrome. `CollapsedGutter` likewise lost its button and is now
-// a passive strip rendered from persisted collapse state.
+// LT-01-fix3: the header's chevron collapse button was GONE earlier. Per
+// macOS HIG / Final Cut Pro, show-hide is a menu-bar command (View →
+// Cmd+1…5), not panel chrome. `CollapsedGutter` likewise lost its
+// button and is now a passive strip rendered from persisted collapse
+// state.
+//
+// LT-01-fix5 优化3: 装机 user 8/7 拍板"标题栏全删, 用功能告诉用户".
+// 沿用 FCP 范式: 浏览器 / 时间线 / 检视器 都没标题栏, 只露功能. 每块
+// panel 自己的 content 最上方自带 H1 ("项目列表" / "文档" / "检视" /
+// "聊天" / "状态"), 让功能区自我标识.
 //
 // Collapsed width/height is supplied by the caller via `frame(width:)`
 // / `frame(height:)` modifiers — the container itself only renders the
 // inner chrome. This keeps the parent's GeometryReader-based layout
 // arithmetic in one place (LayoutShellView).
 //
-// Why header bar instead of plain expanded content?
-// - AGENTS §8.1: "上半折叠到 gutter (≈ 50px icon bar)" /
-//   "下半折叠到只剩标题栏 (≈ 30px)". The collapsed form IS the header bar;
-//   we don't render content in collapsed mode.
+// Why no header bar?
+// - FCP 范式 + 装机 user 实机拍板: 用功能告诉用户 "这是啥" (= content
+//   内的 H1 / placeholder), 不用 chrome title 告诉.
+// - 卸载冗余: 之前是 "headerBar (icon + name)" + "content (再显示一遍
+//   name)", 删 headerBar 后只剩一处 self-identity.
 
 import SwiftUI
 
@@ -26,37 +35,13 @@ struct PanelContainer<Content: View>: View {
     @ViewBuilder var content: () -> Content
 
     var body: some View {
-        VStack(spacing: 0) {
-            headerBar
-            Divider()
-            content()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-        .background(Color(NSColor.windowBackgroundColor).opacity(0.4))
-        .overlay(
-            Rectangle()
-                .strokeBorder(Color.secondary.opacity(0.18), lineWidth: 0.5)
-        )
-    }
-
-    private var headerBar: some View {
-        HStack(spacing: 6) {
-            Image(systemName: panelID.symbolName)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(.secondary)
-
-            Text(panelID.title)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(.primary)
-                .lineLimit(1)
-
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(NSColor.controlBackgroundColor).opacity(0.6))
-        .contentShape(Rectangle())
+        content()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(NSColor.windowBackgroundColor).opacity(0.4))
+            .overlay(
+                Rectangle()
+                    .strokeBorder(Color.secondary.opacity(0.18), lineWidth: 0.5)
+            )
     }
 }
 
@@ -64,10 +49,15 @@ struct PanelContainer<Content: View>: View {
 //
 // When the upper row's panel is collapsed, the panel itself is replaced
 // by a 50px-wide vertical icon strip. We render this as a vertical
-// variant of the header bar so the chrome matches.
+// variant of the collapsed chrome so the visual rhythm matches.
 //
 // LT-01-fix3: no button — the gutter is a passive indicator. Use
 // View → <panel name> in the menu bar to bring a panel back.
+//
+// LT-01-fix5 优化3: 跟 `PanelContainer` 的 headerBar 一起被删, 此
+// gutter 简化成纯 icon strip (无 text 标题, 因为 panel title 已无法
+// 隐藏状态去 title bar 上找). 用户在 collapsed gutter 上看到 SF Symbol
+// 就能知道是哪个 panel.
 
 struct CollapsedGutter: View {
     let panelID: PanelID
@@ -78,11 +68,6 @@ struct CollapsedGutter: View {
                 Image(systemName: panelID.symbolName)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(.secondary)
-                Text(panelID.title)
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .fixedSize()
             }
             .frame(width: 48)
             .padding(.vertical, 8)

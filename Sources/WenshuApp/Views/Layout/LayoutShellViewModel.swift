@@ -193,7 +193,17 @@ final class LayoutShellViewModel: ObservableObject {
     /// hidden panel's share is redistributed at render time by
     /// `LayoutMetrics`, so un-hiding restores the exact widths the user
     /// had dragged to. Persisted (debounced) to `.ws`.
+    ///
+    /// LT-01-fix5 优化1: 文档 / 聊天 是核心创作区 (装机 user 8/7 拍板),
+    /// 永远不可隐藏. toggling them via the macOS menu is a no-op and the
+    /// persisted state is left untouched.
     func togglePanelVisibility(_ panel: PanelID) {
+        guard panel.isDismissible else {
+            // 不可隐藏 panel (文档 / 聊天). "View → 显示/隐藏 文档/聊天"
+            // 菜单项变 disabled, 不调 handler. 此 guard 兜底 direct-call
+            // 路径 (未来的快捷键、测试、自动化脚本).
+            return
+        }
         var next = visibility
         switch panel {
         case .topLeft: next.topLeft.toggle()
@@ -297,6 +307,26 @@ enum PanelID: Hashable, CaseIterable {
         case .topRight: return "3"
         case .bottomLeft: return "4"
         case .bottomRight: return "5"
+        }
+    }
+
+    /// LT-01-fix5 优化1: 装机 user 8/7 拍板"文档 / 聊天 不可隐藏"
+    /// — 这两块是核心创作区, 必须常驻. 项目管理 / 检视 / 状态 是辅助
+    /// 区, 跟 FCP / Pages / Numbers 一样, 可在 macOS "显示" menu 里
+    /// hide 掉腾空间.
+    ///
+    /// Compile-time constant (extensions can't be Codable, so these
+    /// values don't enter the .ws JSON — they're invariant per panel
+    /// identity). When we eventually lift this to a schema-driven
+    /// config (e.g. user preferences in v0.09.x), the extension becomes
+    /// a stored field on a new `PanelPrefs` struct.
+    var isDismissible: Bool {
+        switch self {
+        case .topLeft: return true        // 项目管理 可隐藏
+        case .topCenter: return false     // 文档 不可隐藏
+        case .topRight: return true       // 检视 可隐藏
+        case .bottomLeft: return false    // 聊天 不可隐藏
+        case .bottomRight: return true    // 状态 可隐藏
         }
     }
 }
@@ -478,6 +508,15 @@ enum LayoutMetrics {
     /// Height of the lower band. If every lower panel is hidden the band
     /// collapses to 0 and the upper band takes the whole window (and
     /// vice-versa) — otherwise `ratios[3]` splits them.
+    ///
+    /// LT-01-fix5 优化1 fallback: 装机 user 8/7 拍板, 当所有可隐藏 panel
+    /// (项目管理 / 检视 / 状态) 都被隐藏后, 整个窗口只剩下 文档
+    /// (topCenter) + 聊天 (bottomLeft) 这两块核心创作区, 此时
+    /// 自动切到 "50:50" 模式 — upper band 占 50% 总高, lower band 占
+    /// 50% 总高. 这样用户在大屏前用 chat + doc 双窗口时不会因为之前
+    /// 拖到 30:70 而被迫拖回去. 持久化的 `ratios[3]` 在 fallback 期间
+    /// **不**被改写, 一旦用户手动 un-hide 一个 dismissible panel,
+    /// 下次 fallback 计算立刻退出, 还原 ratio-driven 行为.
     static func lowerBandHeight(
         totalHeight: CGFloat,
         ratios: [Double],
@@ -487,7 +526,29 @@ enum LayoutMetrics {
         let upperVisible = visibility.topLeft || visibility.topCenter || visibility.topRight
         if !lowerVisible { return 0 }
         if !upperVisible { return totalHeight }
+        if isFallbackLayout(visibility: visibility) {
+            // Force 50:50 split regardless of what `ratios[3]` says.
+            return totalHeight * 0.5
+        }
         let r = ratios.count == 5 ? ratios[3] : LayoutSnapshot.default.ratios[3]
         return totalHeight * CGFloat(r)
+    }
+
+    /// LT-01-fix5 优化1: 当所有 dismissible panel (项目管理 / 检视 /
+    /// 状态) 都被隐藏, 只剩 文档 + 聊天 这两块不可隐藏的核心区可见
+    /// 时, 返回 `true`. 这是 "文档:聊天 = 50:50 fallback layout" 的
+    /// 触发条件.
+    ///
+    /// 注意: 默认情况下 (所有 panel 都可见) 此函数返回 `false`.
+    /// `isDismissible` 由 `PanelID` extension 提供 — 是 compile-time
+    /// 常量 (见 `PanelID.swift`).
+    static func isFallbackLayout(visibility: PanelVisibilityState) -> Bool {
+        // Document + chat (topCenter + bottomLeft) are always visible
+        // because they're not dismissible. We just need to make sure no
+        // dismissible panel slipped into visible = true.
+        guard visibility.topCenter, visibility.bottomLeft else { return false }
+        return !visibility.topLeft
+            && !visibility.topRight
+            && !visibility.bottomRight
     }
 }

@@ -86,20 +86,64 @@ struct WenshuApp: App {
     }
 }
 
-// MARK: - 文枢 menu (LT-01-fix3)
+// MARK: - 文枢 menu (LT-01-fix5)
 //
-// macOS synthesises the leading app menu from `CFBundleDisplayName`
-// (= 文枢, see Resources/Info.plist) and already supplies 隐藏文枢 /
-// 隐藏其他 / 退出文枢 — re-declaring those would produce duplicates.
-// We only replace the system "About" item, so the entry reads
-// 文枢 → 关于文枢 and shows our version instead of AppKit's default panel.
+// 装机 user 8/7 实机验发现 macOS 菜单栏第一个 menu 显示 "wenshu"
+// (AppKit 从 `CFBundleName = "Wenshu"` 推出来的全小写形式) 而不是
+// 我们期望的 "文枢". 修法: 显式声明一个 `CommandMenu("文枢")` 把
+// 第一个 menu 的标题写死为中文, 同时把"关于文枢 / 隐藏文枢 / 退出文枢"
+// 这些 macOS 标准项都放进同一个 menu, 避免 AppKit 的自动合成跟我们的
+// 显式声明打架 (= 不会出现 "wenshu" + "文枢" 两个同名 menu).
+//
+// 兼容性: macOS auto-generated app menu 的名字仍然取自
+// `CFBundleName`, 但 `CommandMenu("文枢")` 把 SwiftUI 命令列表里
+// 的第一个 menu 钉死成 "文枢" — 在菜单栏最终渲染时, 我们这个
+// 显式 menu 顶替了 auto-generated 的位置.
+//
+// 兜底: `Bundle.main.infoDictionary["CFBundleDisplayName"] as? String
+// ?? "文枢"` 保证不论 Info.plist 是 "wenshu" 还是 "文枢", 文案
+// 都读到中文.
 
 struct WenshuAppCommands: Commands {
+    /// LT-01-fix5: 第一个 menu 名字 hardcode 为 "文枢" (中文), 而
+    /// 不是从 `CFBundleName = "Wenshu"` 推出的小写 "wenshu". 这是
+    /// 装机 user 8/7 实机验拍板.
+    static let menuTitle: String = {
+        let fromBundle = Bundle.main.infoDictionary?["CFBundleDisplayName"] as? String
+        return (fromBundle?.isEmpty == false ? fromBundle : nil) ?? "文枢"
+    }()
+
     var body: some Commands {
-        CommandGroup(replacing: .appInfo) {
+        // LT-01-fix5 替换原 `CommandGroup(replacing: .appInfo)`.
+        // 显式声明 `CommandMenu("文枢")`, 整个 app menu (关于 / 隐藏 /
+        // 退出 / Services) 都装在这个 menu 内, 替代 AppKit 的自动合成.
+        CommandMenu(Self.menuTitle) {
             Button("关于文枢") {
                 showAboutPanel()
             }
+
+            Divider()
+
+            Button("隐藏文枢") {
+                NSApp.hide(nil)
+            }
+            .keyboardShortcut("h", modifiers: .command)
+
+            Button("隐藏其他") {
+                NSApp.hideOtherApplications(nil)
+            }
+            .keyboardShortcut("h", modifiers: [.command, .option])
+
+            Button("全部显示") {
+                NSApp.unhideAllApplications(nil)
+            }
+
+            Divider()
+
+            Button("退出文枢") {
+                NSApp.terminate(nil)
+            }
+            .keyboardShortcut("q", modifiers: .command)
         }
     }
 
@@ -155,6 +199,10 @@ struct LayoutCommands: Commands {
 /// carry an `@ObservedObject` (Commands structs cannot). The CommandMenu
 /// re-evaluates this body whenever the observed VM publishes, so the
 /// toggle item labels stay in sync with the panel visibility state.
+///
+/// LT-01-fix5 优化1: 文档 / 聊天 这两块 (装机 user 8/7 拍板不可隐藏)
+/// 在菜单项里是 disabled (灰色), 让用户看到"这里不能 hide". 点击
+/// 也没动作 (VM 的 togglePanelVisibility 有同样的 guard).
 private struct LayoutMenuContent: View {
     @ObservedObject var vm = LayoutShellViewModel.shared
 
@@ -179,6 +227,10 @@ private struct LayoutMenuContent: View {
                 }
             }
             .keyboardShortcut(panel.menuShortcut, modifiers: .command)
+            // LT-01-fix5 优化1: 不可隐藏的 panel (文档 / 聊天) — 显示
+            // disabled, 点击也无效. 这是菜单里对"文档/聊天 永远在"
+            // 的视觉表达.
+            .disabled(!panel.isDismissible)
         }
 
         Divider()
