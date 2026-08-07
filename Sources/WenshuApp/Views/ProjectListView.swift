@@ -1,15 +1,19 @@
-// ProjectListView.swift · 文枢 (Wenshu) · v0.01.0 WO-004 → WO-008
+// ProjectListView.swift · 文枢 (Wenshu) · v0.01.0 WO-004 → WO-010
 //
 // Right-pane root: the project list. Tapping a row pushes `ChatView`.
-// Tapping the + button presents `ProjectCreateView` as an independent
-// NSWindow (NOT a SwiftUI `.sheet(isPresented:)` container).
+// Tapping the + button pushes `ProjectCreateView` via NavigationStack
+// (WO-010 — NOT a SwiftUI `.sheet(isPresented:)` container, NOT a
+// NSHostingController + 显式 NSWindow either).
 //
-// WO-008 change(per spec 方案 C):
-// SwiftUI macOS sheet 焦点路由 bug 在 WO-007 方案 A (`makeKey()` 强抢)
-// 装机 user 实机验失败。改走方案 C:用 `SheetWindow.present(...)` 包装
-// NSHostingController + 显式 NSWindow,完全脱离 SwiftUI sheet 容器,
-// 显式 makeKeyAndOrderFront + NSApp.activate,key window 状态由 AppKit
-// 独立管,不与 parentWindow.makeKey 竞争。
+// 拍板历史:
+// - WO-004:原本是 SwiftUI `.sheet(isPresented:)` 弹 ProjectCreateView。
+// - WO-006/007/008/009:四次修 sheet 焦点 bug 全失败(装机 user 实机验)。
+//   根因:SwiftPM-only `swift run` + macOS SwiftUI sheet + activation
+//   policy 综合问题。
+// - WO-010:回到 Apple HIG macOS 主路由范式——新建/打开 = 主路由 push
+//   (NavigationStack),设置/偏好才用 sheet。push 是 SwiftUI 标准路由,
+//   不需要任何 makeKey / activate hack,装机 user 实机验"键盘输入真进
+//   WenshuApp"自然成立。
 //
 // Per WO-004 spec: project data lives in `@State` in MainView (in-memory).
 // No `.ws` round-tripping yet — that's WO-005.
@@ -19,8 +23,6 @@ import SwiftUI
 struct ProjectListView: View {
     @Binding var projects: [ProjectSnapshot]
     @Binding var navPath: NavigationPath
-
-    @State private var showCreate: Bool = false
 
     var body: some View {
         Group {
@@ -34,31 +36,10 @@ struct ProjectListView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
-                    // WO-008 方案 C:不走 SwiftUI `.sheet(isPresented:)`
-                    // 容器,改用 SheetWindow.present 弹独立 NSWindow。
-                    // 见 Util/SheetWindow.swift 头部说明。
-                    showCreate = true
-                    SheetWindow.present(
-                        title: "新建项目",
-                        content: {
-                            ProjectCreateView(
-                                onCreate: { newProject in
-                                    projects.append(newProject)
-                                    // 关掉 sheet window(parent 是 ProjectListView,
-                                    // 当前 key window 就是 sheet 本身)。
-                                    NSApp.keyWindow?.close()
-                                },
-                                onCancel: {
-                                    // 关掉 sheet window。
-                                    NSApp.keyWindow?.close()
-                                }
-                            )
-                        },
-                        onDismiss: {
-                            // sheet 关闭后 reset state(防止 reopen 误判)。
-                            showCreate = false
-                        }
-                    )
+                    // WO-010:NavigationStack push 进 ProjectCreateView(单 NSWindow 内)。
+                    // 见 MainView.swift AppRoute.createProject navigationDestination。
+                    // 不需要任何 sheet / NSWindow / makeKey hack。
+                    navPath.append(AppRoute.createProject)
                 } label: {
                     Label("新建项目", systemImage: "plus")
                 }
