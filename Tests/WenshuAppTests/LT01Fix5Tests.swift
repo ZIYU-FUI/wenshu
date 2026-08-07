@@ -390,63 +390,55 @@ final class LT01Fix5Tests: XCTestCase {
         }
     }
 
-    /// 每块 panel 内容自带 H1 标识"我是哪块". `PlaceholderContent.h1Title`
-    /// 对应每个 `PanelID` 必须有一个非空字符串 (= 后续 LT-XX 的
-    /// 真实内容 View 也用同样模式).
-    func testPanelContentHasFunctionLabel() {
-        // Use a small per-panel mirror table to keep test in sync with
-        // PlaceholderContent.swift without importing the SwiftUI type.
-        let expectedH1: [PanelID: String] = [
-            .topLeft: "项目管理",
-            .topCenter: "文档",
-            .topRight: "检视",
-            .bottomLeft: "聊天",
-            .bottomRight: "状态"
-        ]
-        XCTAssertEqual(expectedH1.count, PanelID.allCases.count,
-                       "5 panel × 5 H1 必须齐全, 不能漏")
-
-        // 字符一致性 sanity: H1 title 里出现的中文字符不能跟 panel.title
-        // 漂移 (e.g. "项目管理" vs "项目管里").
-        XCTAssertEqual(expectedH1[.topLeft], PanelID.topLeft.title)
-        XCTAssertEqual(expectedH1[.topCenter], PanelID.topCenter.title)
-        XCTAssertEqual(expectedH1[.topRight], PanelID.topRight.title)
-        XCTAssertEqual(expectedH1[.bottomLeft], PanelID.bottomLeft.title)
-        XCTAssertEqual(expectedH1[.bottomRight], PanelID.bottomRight.title)
+    /// LT-01-fix6 反转 fix5 优化3: 装机 user 8/7 二次实机验拍板
+    /// "不要任何标题文字". fix5 删了 headerBar 却在 content 里补了
+    /// 一个 H1, 视觉上等同标题栏 = 没删干净. 这里保留 `PanelID.title`
+    /// 本身 (菜单栏 "隐藏 X" / AX label 仍然要用), 只断言它**不再**
+    /// 被 placeholder 渲染 — 渲染侧的断言见
+    /// `testPlaceholderContentNoH1`.
+    func testPanelIDTitlesStillExistForMenus() {
+        // Menu 层 (View 菜单的 "隐藏 X" / "显示 X") 仍然依赖这些字符串,
+        // 所以 PanelID.title 不能跟着 H1 一起删.
+        XCTAssertEqual(PanelID.topLeft.title, "项目管理")
+        XCTAssertEqual(PanelID.topCenter.title, "文档")
+        XCTAssertEqual(PanelID.topRight.title, "检视")
+        XCTAssertEqual(PanelID.bottomLeft.title, "聊天")
+        XCTAssertEqual(PanelID.bottomRight.title, "状态")
+        XCTAssertEqual(PanelID.allCases.count, 5)
     }
 
-    /// Source-level: `PlaceholderContent.swift` 必须包含 H1 title 的
-    /// 所有 5 个字符串字面量, 装载到 binary 后用户就能看到.
-    ///
-    /// 注意: H1 不一定要写成 `Text("项目管理")` 字面量 — 也可能走
-    /// `switch panel` 路由到 `Text(h1Title)`. 我们的实现选后者
-    /// (switch 路由避免 5 份重复). 这里测试只断言"5 个字符串都在
-    /// 源里出现", 不强求调用形态.
-    func testPanelContainer_noHeaderBarInBody() throws {
+    /// LT-01-fix6 问题1: `PlaceholderContent` 不能渲染任何 panel 名.
+    /// 源码级断言 — 5 个 panel 名字面量全部消失, `h1Title` 这个
+    /// computed property 也删干净 (不留死代码), 且不再有
+    /// `Text(panel.title)` 这个二次标题.
+    func testPlaceholderContentNoH1() throws {
         let source = try repoFile(
             "Sources/WenshuApp/Views/Layout/PlaceholderContent.swift"
         )
+        let code = stripSwiftComments(source)
 
-        // All 5 H1 strings must appear as String literals somewhere in
-        // the file (return values of `h1Title` switch cases).
         for h1 in ["项目管理", "文档", "检视", "聊天", "状态"] {
-            XCTAssertTrue(
-                source.contains("\"\(h1)\""),
-                "PlaceholderContent.swift 必须含 H1 字面量 \"\(h1)\""
+            XCTAssertFalse(
+                code.contains("\"\(h1)\""),
+                "PlaceholderContent 不能再含标题字面量 \"\(h1)\" (LT-01-fix6: 不要任何标题文字)"
             )
         }
-
-        // 该 file 必须显式 H1 通过 `.leading` 对齐 (左侧 = "我是哪块").
-        XCTAssertTrue(
-            source.contains(".leading"),
-            "PlaceholderContent H1 必须左对齐 (装机 user 实机拍: panel 自我识别在左上)"
+        XCTAssertFalse(
+            code.contains("h1Title"),
+            "h1Title 必须整个删掉, 不留死代码 (LT-01-fix6)"
         )
-
-        // 加分项: PlaceholderContent 必须含 h1Title 这个 computed property
-        // 的引用 (= 真的切换到 H1 渲染路径上), 而不是只声明不用.
+        XCTAssertFalse(
+            code.contains("Text(panel.title)"),
+            "PlaceholderContent 不能渲染 panel.title 作为标题 (LT-01-fix6)"
+        )
+        // 留下来的必须是: 图标 + placeholder 文案.
         XCTAssertTrue(
-            source.contains("Text(h1Title)"),
-            "PlaceholderContent.body 必须用 Text(h1Title) 渲染 H1"
+            code.contains("Image(systemName: panel.symbolName)"),
+            "panel 仍然要靠 SF Symbol 图标自我说明 (FCP 范式)"
+        )
+        XCTAssertTrue(
+            code.contains("Text(hint)"),
+            "panel 仍然要显示 'LT-XX 将在此填充…' 的 placeholder 文案"
         )
     }
 }
