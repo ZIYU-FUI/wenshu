@@ -1,7 +1,7 @@
-// NativeSplitter.swift · 文枢 (Wenshu) · v0.02.0 LT-01-fix14
+// NativeSplitter.swift · 文枢 (Wenshu) · v0.02.0 LT-01-fix15
 //
 // 装机 user 8/7 实机拍板"全部原生" (LT-01-fix9) + 增量 delta 算法真修
-// (LT-01-fix14):
+// (LT-01-fix14) + 松手残留高亮/cursor/inset 三合一清理 (LT-01-fix15):
 //
 //   - 分割线粗 (自写 SwiftUI 6px rect)        → NSSplitView `.thin` style 1pt
 //   - 拖动闪动 + 不顺滑                       → NSView NSEvent drag (AppKit 优化)
@@ -40,6 +40,22 @@
 //     当前 cursor 的全部增量发完了, 累积值精确 = cursor - dragStart
 //   - 反向修对 — `axisDelta` 沿用 fix11 (AppKit y 翻号), 只是改用
 //     `previous` 当 start, 符号依然 down/right 为正
+//
+// LT-01-fix15 (装机 user 8/7 实机拍 3 个二级问题):
+//   BUG1: 抓住拖拽 → 释放鼠标 → 分割线 hover 高亮残留 (应松手立即取消)
+//   BUG2: 抓住拖拽 → 释放鼠标 → cursor 残留 (.resizeLeftRight / .resizeUpDown
+//         仍是双箭头, 应恢复 .arrow)
+//   优化1: 分割线 1pt 细线在 8pt hit area 内居中, 细线"两边预留 3.5pt"
+//          看起来歪 (不贴 panel 边界) → lineRect 推到 hit area START 边
+//
+// fix15 修法 (鼠标仍在 hit area 内, mouseExited 不会 fire → 必须显式清):
+//   mouseUp:
+//     isDragging = false
+//     previousLocation = nil
+//     if isHovered { isHovered = false; needsDisplay = true }   // BUG1
+//     if cursorPushed { NSCursor.pop(); cursorPushed = false } // BUG2 pair
+//     NSCursor.arrow.set()                                       // BUG2 兜底
+//   draw: lineRect 从居中改为 hit area START edge (x=0 / y=0)   // 优化1
 //
 // 5px click threshold 保留 (装机 user 8/7 拍板, fix5 阈值): 任何
 // `|cumulative| < 5px` 的 mouseDragged 都视为 click, 不调 onDrag,
@@ -119,6 +135,18 @@ final class NativeSplitterView: NSView {
     /// 用于 hover 高亮, 并在 mouseExited 时清除残留视觉状态。
     private(set) var isHovered = false
 
+    /// LT-01-fix15 (BUG2 真根因追踪): 跟踪 mouseEntered push 的
+    /// resize cursor 是否仍在栈顶。 `private(set)` 让单测能直接验证
+    /// push/pop 配对 (= 测试不依赖 `NSCursor.current` 全局态, 稳定)。
+    ///
+    /// 历史 pop 行为 (`mouseExited` 无条件 `NSCursor.pop()`) 有 bug:
+    /// mouseEntered 没 fire 但 mouseExited 却 fire (罕见但可能, e.g.
+    /// tracking area 注册晚于第一次跨边界) → pop 错栈 → 系统 cursor
+    /// 乱。 fix15 改成 `cursorPushed == true` 才 pop, mouseUp 同样守
+    /// 这个 flag (鼠标在 hit area 内拖完松手, mouseExited 不 fire →
+    /// mouseUp 显式清)。
+    private(set) var cursorPushed: Bool = false
+
     /// Redraw request counter (用于测试验证 needsDisplay 被触发)。
     /// production code 设 `needsDisplay = true` 的同一处递增。
     /// 测试不能用 needsDisplay 直读 (= AppKit 在 runloop 中会重置,
@@ -142,6 +170,32 @@ final class NativeSplitterView: NSView {
     /// - testNativeSplitterView_verticalCursor_mapsToResizeUpDown
     static func cursorForOrientation(_ o: SplitterOrientation) -> NSCursor {
         return (o == .horizontal) ? .resizeLeftRight : .resizeUpDown
+    }
+
+    /// LT-01-fix15 (优化1) — 抽出 lineRect 计算成 pure helper, 让单测
+    /// 直接验证"分割线 edge-to-edge 贴 panel 边界, 无 inset/padding"。
+    ///
+    /// 修复前: lineRect 在 8pt hit area 内居中
+    /// (`x = (bounds.width - 1) / 2 = 3.5`), 视觉"两边预留 3.5pt",
+    /// 看起来歪 (line 在 gap 中浮着, 不贴 panel 边界)。
+    ///
+    /// 修复后: lineRect 直接放在 hit area 的 START 边缘
+    /// (= 左/上 panel 边界):
+    /// - .horizontal (vertical line) → `x = 0`, 贴左 panel 右边界
+    /// - .vertical (horizontal line) → `y = 0`, 贴上 panel 下边界
+    ///
+    /// Hit area 仍 = 8pt (鼠标好抓), visual line 贴 panel 边界, 不
+    /// 浮在中间。 整条线沿绘制方向 edge-to-edge (= `width = bounds.width`
+    /// 或 `height = bounds.height`), 垂直于绘制方向仍 = `visibleDividerThickness` (1pt)。
+    static func lineRect(in bounds: NSRect, orientation: SplitterOrientation) -> NSRect {
+        let thickness = visibleDividerThickness
+        if orientation == .horizontal {
+            // Vertical 1pt line at LEFT edge of hit area (= 右 panel 右边界).
+            return NSRect(x: 0, y: 0, width: thickness, height: bounds.height)
+        } else {
+            // Horizontal 1pt line at TOP edge of hit area (= 下 panel 边界).
+            return NSRect(x: 0, y: 0, width: bounds.width, height: thickness)
+        }
     }
 
     /// 轴向 delta 计算 (LT-01-fix14 保留 fix11 的符号契约, 改增量算法)。
@@ -203,17 +257,15 @@ final class NativeSplitterView: NSView {
         // 1pt 细线, 跟 NSSplitView `.thin` dividerStyle 视觉对齐。
         // 颜色取 NSColor.separatorColor (= macOS 标准分割线颜色,
         // Light/Dark mode 自动适配 — 不写死 Color.gray)。
-        let lineThickness = Self.visibleDividerThickness
-        let lineRect: NSRect
-        if orientation == .horizontal {
-            // 垂直分割线 (拖 left/right) → 竖直 1pt 线, 居中于 hit area。
-            let x = (bounds.width - lineThickness) / 2
-            lineRect = NSRect(x: x, y: 0, width: lineThickness, height: bounds.height)
-        } else {
-            // 水平分割线 (拖 up/down) → 水平 1pt 线, 居中于 hit area。
-            let y = (bounds.height - lineThickness) / 2
-            lineRect = NSRect(x: 0, y: y, width: bounds.width, height: lineThickness)
-        }
+        //
+        // LT-01-fix15 (优化1): lineRect 走 `Self.lineRect(in:orientation:)`
+        // 静态 helper (= 上面), 取代居中算法:
+        // - 修前: `x = (bounds.width - 1) / 2` → 1pt 线在 8pt hit area
+        //   中央, 视觉"两边预留 3.5pt", 线看起来歪 (浮在中间,
+        //   不贴 panel 边界)
+        // - 修后: `x = 0` (or `y = 0`) → 1pt 线贴 hit area START 边
+        //   (= 左/上 panel 边界), edge-to-edge 不再歪
+        let lineRect = Self.lineRect(in: bounds, orientation: orientation)
         let dividerColor = isHovered
             ? NSColor.controlAccentColor
             : NSColor.separatorColor
@@ -249,6 +301,11 @@ final class NativeSplitterView: NSView {
         super.mouseEntered(with: event)
         isHovered = true
         Self.cursorForOrientation(orientation).push()
+        // LT-01-fix15 (BUG2 修复 part 1): 标记栈顶 cursor 是我们 push
+        // 的 resize cursor。 配对 pop 必须在 mouseExited 或 mouseUp
+        // 看到 `cursorPushed == true` 才发生 (= 防 pop 错栈:
+        // mouseEntered 没 fire 但 mouseExited 却 fire 时不乱栈)。
+        cursorPushed = true
         redrawRequestCount += 1
         needsDisplay = true
     }
@@ -256,9 +313,14 @@ final class NativeSplitterView: NSView {
     override func mouseExited(with event: NSEvent) {
         super.mouseExited(with: event)
         isHovered = false
-        // Pair this with mouseEntered's push so the previous cursor is restored
-        // as soon as the pointer leaves the complete divider hit area.
-        NSCursor.pop()
+        // Pair this with mouseEntered's push so the previous cursor is
+        // restored as soon as the pointer leaves the complete divider hit
+        // area. LT-01-fix15 (BUG2 修复 part 1): 仅当 cursorPushed
+        // (= mouseEntered 真的 push 了我们自己的 cursor) 时才 pop。
+        if cursorPushed {
+            NSCursor.pop()
+            cursorPushed = false
+        }
         redrawRequestCount += 1
         needsDisplay = true
         // 鼠标拖到窗口外再回来, drag 状态不应残留 (= LT-01-fix7 路径 B
@@ -332,17 +394,47 @@ final class NativeSplitterView: NSView {
 
     override func mouseUp(with event: NSEvent) {
         super.mouseUp(with: event)
-        // Click 路径双保险 (LT-01-fix7 .onEnded 防御性兜底):
-        // 如果 mouseDragged 从没 fire (纯 click), 不回调任何 handler。
-        // LT-01-fix14: 同步清 `previousLocation` (= 替代 fix9 的
-        // `lastReported = 0`)。 isDragging = false 后, 下次 mouseDragged
-        // 仍会以 dragStart 当首帧 reference (= previousLocation nil 兜底)。
-        if !isDragging {
-            previousLocation = nil
-            return
-        }
+        // LT-01-fix14: 清 drag state (= isDragging = false + previousLocation
+        // = nil)。 之前 click 路径有"早返回"分支 (LT-01-fix7 .onEnded
+        // 防御性兜底), LT-01-fix15 移除 — 改无条件清 (= isDragging 已
+        // = false 时再设一次无副作用), 下方 BUG1/BUG2 修复照常执行。
         isDragging = false
         previousLocation = nil
+
+        // ===== LT-01-fix15 (BUG1 + BUG2 合一清理) =====
+        //
+        // 装机 user 8/7 实机拍板 (2 个二级残留问题):
+        //   BUG1: 抓住拖拽 → 释放鼠标 → 分割线 hover 高亮残留
+        //         (鼠标仍在 hit area 内 → mouseExited 不 fire)
+        //   BUG2: 抓住拖拽 → 释放鼠标 → cursor 残留 resize 双箭头
+        //         (同上理由, mouseExited 不 fire → push 还在栈顶)
+        //
+        // 为什么 mouseUp 必须显式清? mouseExited 只在鼠标"离开" hit area
+        // 时 fire。 拖拽场景: 用户在 hit area 内按下 → 在 hit area 内拖
+        // → 在 hit area 内松手 → mouseExited 从不 fire → isHovered /
+        // cursor 都残留 (= 装机 user 实机拍"分割线还是高亮" + "鼠标变形
+        // 没恢复")。
+        //
+        // 不管刚才是不是 drag 都清 (= 纯 click 也清, 因为 hover + cursor
+        // 都是 mouseEntered 时设的, 与 drag 无关)。
+
+        // BUG1: 显式清 hover 高亮 (= mouseExited 不 fire 的兜底)。
+        if isHovered {
+            isHovered = false
+            redrawRequestCount += 1
+            needsDisplay = true
+        }
+        // BUG2 part 1: 配对 pop。 仅在 cursorPushed 时才 pop, 防
+        // mouseEntered 没 fire 但 mouseExited 却 fire (= push 没发生
+        // 但 pop 已经发生) 时乱栈。
+        if cursorPushed {
+            NSCursor.pop()
+            cursorPushed = false
+        }
+        // BUG2 part 2 兜底: 强制设 NSCursor.arrow。 即便 push/pop
+        // 配对在某种边界条件下错乱, 也能保证 cursor 落回 .arrow (= 装
+        // 机 user 实机拍"鼠标变形没恢复"的最后防线)。
+        NSCursor.arrow.set()
     }
 
     /// 接受 first responder, 才能接 mouseDragged (默认 NSView 不收)。
