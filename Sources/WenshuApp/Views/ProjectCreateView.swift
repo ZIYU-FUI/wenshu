@@ -22,6 +22,11 @@ struct ProjectCreateView: View {
     @State private var verbosity: Double = 5
     @State private var tagsText: String = ""
 
+    // WO-006 fix: macOS Form sheet TextField 键盘路由断了 → 加 @FocusState +
+    // 自动 focus,延迟 0.3s 避开 sheet 动画焦点冲突。装机 user 8/7 反馈。
+    @FocusState private var nameFocused: Bool
+    @FocusState private var tagsFocused: Bool
+
     private let styles: [String] = ["严肃", "轻松", "诗意", "幽默", "口语"]
 
     var body: some View {
@@ -31,6 +36,13 @@ struct ProjectCreateView: View {
             actionBar
         }
         .frame(minWidth: 520, minHeight: 480)
+        .onAppear {
+            // 延迟 0.3s:Form sheet 弹出动画期间 SwiftUI 焦点路由会丢,
+            // 等动画完再抢焦点,输入路由才真通。
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                nameFocused = true
+            }
+        }
     }
 
     private var form: some View {
@@ -38,6 +50,7 @@ struct ProjectCreateView: View {
             Section("基本信息") {
                 TextField("项目名(必填)", text: $name)
                     .textFieldStyle(.roundedBorder)
+                    .focused($nameFocused)
             }
 
             Section("文笔风格") {
@@ -67,6 +80,7 @@ struct ProjectCreateView: View {
             Section("标签") {
                 TextField("用逗号分隔,如：玄幻, 少年, 复仇", text: $tagsText)
                     .textFieldStyle(.roundedBorder)
+                    .focused($tagsFocused)
                     .help("多个标签用逗号分隔")
             }
 
