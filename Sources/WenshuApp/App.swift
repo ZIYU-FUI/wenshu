@@ -73,9 +73,174 @@ struct WenshuApp: App {
                 // WO-004 adds the ChatViewModel. Both injected here.
                 .frame(minWidth: 900, minHeight: 600)
         }
-        // WO-001 leaves default window behaviour. macOS-only SwiftUI
-        // commands come later when we have something to act on.
+        // WO-001 leaves default window behaviour.
         .windowStyle(.titleBar)
         .windowResizability(.contentMinSize)
+        // LT-01-fix3: layout controls live in the macOS menu bar (HIG:
+        // the in-window toolbar carries actions, configuration/info goes
+        // to the menu bar). Pages / Numbers / Xcode / Final Cut all do this.
+        .commands {
+            WenshuAppCommands()
+            LayoutCommands()
+        }
+    }
+}
+
+// MARK: - 文枢 menu (LT-01-fix5)
+//
+// 装机 user 8/7 实机验发现 macOS 菜单栏第一个 menu 显示 "wenshu"
+// (AppKit 从 `CFBundleName = "Wenshu"` 推出来的全小写形式) 而不是
+// 我们期望的 "文枢". 修法: 显式声明一个 `CommandMenu("文枢")` 把
+// 第一个 menu 的标题写死为中文, 同时把"关于文枢 / 隐藏文枢 / 退出文枢"
+// 这些 macOS 标准项都放进同一个 menu, 避免 AppKit 的自动合成跟我们的
+// 显式声明打架 (= 不会出现 "wenshu" + "文枢" 两个同名 menu).
+//
+// 兼容性: macOS auto-generated app menu 的名字仍然取自
+// `CFBundleName`, 但 `CommandMenu("文枢")` 把 SwiftUI 命令列表里
+// 的第一个 menu 钉死成 "文枢" — 在菜单栏最终渲染时, 我们这个
+// 显式 menu 顶替了 auto-generated 的位置.
+//
+// 兜底: `Bundle.main.infoDictionary["CFBundleDisplayName"] as? String
+// ?? "文枢"` 保证不论 Info.plist 是 "wenshu" 还是 "文枢", 文案
+// 都读到中文.
+
+struct WenshuAppCommands: Commands {
+    /// LT-01-fix5: 第一个 menu 名字 hardcode 为 "文枢" (中文), 而
+    /// 不是从 `CFBundleName = "Wenshu"` 推出的小写 "wenshu". 这是
+    /// 装机 user 8/7 实机验拍板.
+    static let menuTitle: String = {
+        let fromBundle = Bundle.main.infoDictionary?["CFBundleDisplayName"] as? String
+        return (fromBundle?.isEmpty == false ? fromBundle : nil) ?? "文枢"
+    }()
+
+    var body: some Commands {
+        // LT-01-fix5 替换原 `CommandGroup(replacing: .appInfo)`.
+        // 显式声明 `CommandMenu("文枢")`, 整个 app menu (关于 / 隐藏 /
+        // 退出 / Services) 都装在这个 menu 内, 替代 AppKit 的自动合成.
+        CommandMenu(Self.menuTitle) {
+            Button("关于文枢") {
+                showAboutPanel()
+            }
+
+            Divider()
+
+            Button("隐藏文枢") {
+                NSApp.hide(nil)
+            }
+            .keyboardShortcut("h", modifiers: .command)
+
+            Button("隐藏其他") {
+                NSApp.hideOtherApplications(nil)
+            }
+            .keyboardShortcut("h", modifiers: [.command, .option])
+
+            Button("全部显示") {
+                NSApp.unhideAllApplications(nil)
+            }
+
+            Divider()
+
+            Button("退出文枢") {
+                NSApp.terminate(nil)
+            }
+            .keyboardShortcut("q", modifiers: .command)
+        }
+    }
+
+    /// AppKit's standard about panel, fed our own version string. Keeping
+    /// the native panel (rather than a SwiftUI sheet) means we inherit
+    /// HIG layout, the app icon, and localisation for free.
+    private func showAboutPanel() {
+        let info = Bundle.main.infoDictionary
+        let name = info?["CFBundleDisplayName"] as? String ?? "文枢"
+        let version = info?["CFBundleShortVersionString"] as? String ?? "0.02.0"
+        NSApp.activate(ignoringOtherApps: true)
+        NSApp.orderFrontStandardAboutPanel(options: [
+            .applicationName: name,
+            .applicationVersion: version,
+            .credits: NSAttributedString(
+                string: "Apple 全家桶专属长篇虚构小说 AI 创作平台\nMIT License"
+            )
+        ])
+    }
+}
+
+// MARK: - 显示 menu (LT-01-fix4)
+//
+// Single "显示" menu (was: 显示 + View, two separate menus, prior to LT-01-fix4).
+// FCP 范式 + macOS HIG — Pages / Numbers / Xcode / Final Cut all collapse
+// show/hide chrome into one menu. The macOS App-menu naming convention
+// uses the localised term (Chinese-localised apps prefer "显示" over
+// "View" — confirmed by AGENTS §8.1's existing 拍板 "显示" name).
+//
+// 显示 → 重置布局         : back to AGENTS §8.1 defaults, written to .ws
+// 显示 → 5 panel toggles (Cmd+1…5) + 全显示 (Cmd+Shift+1), FCP 范式
+//
+// Drives `LayoutShellViewModel.shared` — the same instance the shell
+// View observes. Menu actions are plain closures (not MainActor-isolated),
+// so each hop goes through `Task { @MainActor in ... }`.
+//
+// LT-01-fix4 优化: each toggle's title reflects its NEXT action
+// ("隐藏 X" when X is visible, "显示 X" when hidden). Titles come from a
+// small View (`LayoutMenuContent`) that holds the `@ObservedObject`
+// reference — `Commands` structs don't accept `@ObservedObject` directly,
+// but a `@ViewBuilder content:` closure does, so the helper View
+// re-renders when the VM publishes.
+
+struct LayoutCommands: Commands {
+    var body: some Commands {
+        CommandMenu("显示") {
+            LayoutMenuContent()
+        }
+    }
+}
+
+/// Inner View for the "显示" menu. Lives as a separate type so it can
+/// carry an `@ObservedObject` (Commands structs cannot). The CommandMenu
+/// re-evaluates this body whenever the observed VM publishes, so the
+/// toggle item labels stay in sync with the panel visibility state.
+///
+/// LT-01-fix5 优化1: 文档 / 聊天 这两块 (装机 user 8/7 拍板不可隐藏)
+/// 在菜单项里是 disabled (灰色), 让用户看到"这里不能 hide". 点击
+/// 也没动作 (VM 的 togglePanelVisibility 有同样的 guard).
+private struct LayoutMenuContent: View {
+    @ObservedObject var vm = LayoutShellViewModel.shared
+
+    var body: some View {
+        Button("重置布局") {
+            Task { @MainActor in
+                await vm.resetToDefaults()
+            }
+        }
+        // v0.04.0 扩展位: 时间线 / 关系图 / 大纲 视图切换
+
+        Divider()
+
+        // FCP 范式: each toggle's title reflects its NEXT action, so the
+        // user always sees whether a click will hide or show the panel.
+        // Title is computed off the observed VM, so SwiftUI re-renders
+        // the menu after every toggle.
+        ForEach(PanelID.allCases, id: \.self) { panel in
+            Button(vm.menuTitle(for: panel)) {
+                Task { @MainActor in
+                    vm.togglePanelVisibility(panel)
+                }
+            }
+            .keyboardShortcut(panel.menuShortcut, modifiers: .command)
+            // LT-01-fix5 优化1: 不可隐藏的 panel (文档 / 聊天) — 显示
+            // disabled, 点击也无效. 这是菜单里对"文档/聊天 永远在"
+            // 的视觉表达.
+            .disabled(!panel.isDismissible)
+        }
+
+        Divider()
+
+        Button("全显示") {
+            Task { @MainActor in
+                vm.showAllPanels()
+            }
+        }
+        .keyboardShortcut("1", modifiers: [.command, .shift])
+        // v0.04.0 扩展位: 时间线 / 关系图 / 大纲 panel
     }
 }
