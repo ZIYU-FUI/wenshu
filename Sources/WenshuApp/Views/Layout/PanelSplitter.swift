@@ -1,4 +1,4 @@
-// PanelSplitter.swift · 文枢 (Wenshu) · v0.02.0 WO-LT-01 → LT-01-fix5
+// PanelSplitter.swift · 文枢 (Wenshu) · v0.02.0 WO-LT-01 → LT-01-fix7
 //
 // Draggable splitter bar between two panels. Used for all 4 drag handles
 // in the 5-zone shell:
@@ -26,13 +26,24 @@
 // reassigns `snapshot` (not just mutates `snapshot.ratios`) — see
 // `LayoutShellViewModel.adjustBottomHeight` for the matching fix.
 //
-// LT-01-fix5 BUG1 fix: 装机 user 8/7 实机验发现 horizontal splitter
-// 点一下不拖 = 状态被推成 10% / 聊天 90%. 真根因: 在 .onEnded 闭包
-// 里不做 translation magnitude 检查, 任何鼠标动作 (含纯 click) 都会
-// 累计微小的 translation, 加上 onChanged 的增量 delta 把任意微小
-// 抖动当成 "用户想压扁状态栏" 处理. 修法: .onEnded 检查
+// LT-01-fix5 BUG1 fix (第一版, 不全): 装机 user 8/7 实机验发现 horizontal
+// splitter 点一下不拖 = 状态被推成 10% / 聊天 90%. 修法: .onEnded 检查
 // |translation| < 5px (装机 user 拍板阈值), 视为 click, 不回调任何
-// handler, 不调任何 VM 方法.
+// handler. 但 fix5 只在 .onEnded 堵, 没在 .onChanged 入口堵 — 装机 user
+// 实机验 fix5 后仍复现 90:10.
+//
+// LT-01-fix7 BUG1 真根因 fix: 派单 prompt 列的 4 个 hitTest / onTap /
+// fromSnapshot hypothesis 全部 grep verify = 0 命中 (不在那些路径上)。
+// 真根因 = `.onChanged` 在 click-equivalent gesture 上 fire `onDrag` 时,
+// 由于 `@State var lastReportedDragValue` 跨 gesture 泄漏 (路径 B: .onEnded
+// 不保证每次 fire — gesture 被取消 / View 重渲染 / focus 切换时 .onEnded
+// 可能不 fire), 算出 -240 量级的 spurious incremental, 触发
+// `adjustBottomHeight(-240)` → ratios[3] = 0.10 → 90:10. 还有路径 A:
+// trackpad / Magic Mouse 在单次 "click" 内 .onChanged 多次 fire, 累加
+// cumulative 到几十 ~ 上百 px。 修法: 在 .onChanged 入口判 |cumulative|
+// < thresholdPixels → return early, 不 fire onDrag, 且顺手重置
+// lastReportedDragValue = 0 (兜底路径 B 的状态泄漏)。 `.onEnded` 的 click
+// check 保留作双保险。
 //
 // Concurrency: the gesture's value.translation is `CGSize` and is captured
 // into `@State` from the main thread (gestures are MainActor by default).
@@ -72,6 +83,45 @@ enum SplitterClickDetector {
     }
 }
 
+/// LT-01-fix7: 把 `.onChanged` 的 click-vs-drag 决策抽成可测函数。
+///
+/// 单测直接调 `dragDelta(cumulative:lastReported:)`, 不用跑 SwiftUI
+/// gesture host. View 调用 `dragDelta` 决定本次 `.onChanged` 是否调
+/// `onDrag`. 抽出来也让 "5px click 阈值" 这条规则集中在一处, 跟
+/// `SplitterClickDetector.isClick(translation:)` 在不同位置服务不同
+/// 调用方 (一个在 .onChanged 入口判增量 delta, 一个在 .onEnded 判
+/// cumulative translation — 语义不同, 不能合并)。
+enum SplitterDragPolicy {
+    /// LT-01-fix7 真根因 verify 后抽出来的核心策略:
+    ///
+    /// - `cumulative` 是 `.onChanged` 报告的当前手势累计 translation
+    ///   (DragGesture 的 `value.translation` 在本 orientation 方向的轴)。
+    /// - `lastReported` 是上次 `.onChanged` 缓存的 `cumulative`, 用于算
+    ///   增量 delta。
+    ///
+    /// 返回:
+    /// - `nil` → 本次 `.onChanged` 不调 `onDrag` (视为 click)。
+    /// - `非 nil CGFloat` → 传给 `onDrag` 的增量 delta。
+    ///
+    /// 边界:
+    /// - `|cumulative| < threshold` → click, 不调 onDrag (这是装机 user
+    ///   8/7 拍板阈值 5px)。 同时按 LT-01-fix7 真根因路径 B, View 端
+    ///   必须把 `lastReportedDragValue` 重置 0, 否则下次 drag 会算出
+    ///   spurious 大 delta。
+    /// - `incremental == 0` → 同位置多次 fire (e.g. .onChanged 被 View
+    ///   重渲染触发但 translation 没变), 不调 onDrag。
+    /// - 其他 → 返回 incremental。
+    static func dragDelta(
+        cumulative: CGFloat,
+        lastReported: CGFloat,
+        threshold: CGFloat = SplitterClickDetector.thresholdPixels
+    ) -> CGFloat? {
+        if abs(cumulative) < threshold { return nil }
+        let incremental = cumulative - lastReported
+        return incremental == 0 ? nil : incremental
+    }
+}
+
 struct PanelSplitter: View {
     let orientation: SplitterOrientation
     /// Pixel delta since drag start (positive = drag direction).
@@ -105,28 +155,50 @@ struct PanelSplitter: View {
         .gesture(
             DragGesture(minimumDistance: 1)
                 .onChanged { value in
-                    // We need incremental delta, not absolute translation.
-                    // First call: lastReportedDragValue == 0, so delta = absolute.
-                    let absolute = orientation == .horizontal
+                    // LT-01-fix7 BUG1 真根因 fix:
+                    //
+                    // fix5 只在 .onEnded 堵 click 路径, 但 .onChanged 在
+                    // .onEnded 之前已经 fire 过 onDrag, 改不了。 装机 user
+                    // 8/7 实机验 fix5 后仍复现"点一下 90:10"。
+                    //
+                    // 真根因 = .onChanged 在 click-equivalent gesture 上
+                    // fire onDrag 时, 由于:
+                    //   路径 A: trackpad / Magic Mouse 单次 click 内 .onChanged
+                    //          多次 fire, cumulative 累加到几十 ~ 上百 px
+                    //   路径 B: .onEnded 不保证每次 fire (gesture 取消 /
+                    //          View 重渲染 / focus 切换), @State 跨 gesture
+                    //          泄漏, 下次 click 的 .onChanged 算出
+                    //          incremental = -240 (90:10 的必要 delta)
+                    // → onDrag 累计 -240 → adjustBottomHeight(-240) →
+                    //   ratios[3] = 0.10 → 上半 90% / 下半 10%。
+                    //
+                    // 修法: 入口判 |cumulative| < threshold → return early,
+                    // 不 fire onDrag, 且顺手重置 lastReportedDragValue = 0
+                    // (兜底路径 B 的状态泄漏)。
+                    let cumulative = orientation == .horizontal
                         ? value.translation.width
                         : value.translation.height
-                    let incremental = absolute - lastReportedDragValue
-                    lastReportedDragValue = absolute
-                    if incremental != 0 {
-                        onDrag(incremental)
+                    guard let incremental = SplitterDragPolicy.dragDelta(
+                        cumulative: cumulative,
+                        lastReported: lastReportedDragValue
+                    ) else {
+                        // Click-equivalent gesture (|cumulative| < 5px) OR
+                        // zero incremental (same position re-fire).
+                        // 不要 fire onDrag. 重置 lastReportedDragValue 以
+                        // 兜底真根因路径 B 的 @State 跨 gesture 泄漏。
+                        lastReportedDragValue = 0
+                        return
                     }
+                    lastReportedDragValue = cumulative
+                    onDrag(incremental)
                 }
                 .onEnded { value in
-                    // LT-01-fix5 BUG1 click 路径堵死: 如果累计 translation
-                    // 都没超过 5px (= 装机 user 拍板阈值), 视为纯 click,
-                    // 不回调任何 handler (不调 onDrag). 这把"点一下 splitter"
-                    // 跟"真拖拽 splitter" 区分开: 90:10 BUG 修复.
-                    //
-                    // 真拖拽场景: |translation.width| 或 |translation.height|
-                    // 任一方向 >= 5px → 当成有意识的拖动, 让 .onChanged 已
-                    // 累计的 handler 全部生效. 这里不做事 (drag 结束的
-                    // 状态由 .onChanged 的累积结果决定, VM 的 scheduleSave
-                    // 250ms 后自然落盘).
+                    // LT-01-fix5 BUG1 click 路径堵 (双保险, 跟 fix7 入口
+                    // check 配套): 如果累计 translation 都没超过 5px
+                    // (= 装机 user 拍板阈值), 视为纯 click, 不回调任何
+                    // handler。 fix7 已在 .onChanged 入口堵过一次, 这里
+                    // 主要是给静态分析 / 防御性兜底: 即便 .onChanged
+                    // 入口将来被改动, .onEnded 这道墙也能拦住 click。
                     let wasClick = SplitterClickDetector.isClick(translation: value.translation)
                     lastReportedDragValue = 0
                     if wasClick {
