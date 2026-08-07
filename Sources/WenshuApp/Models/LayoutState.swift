@@ -74,11 +74,17 @@ struct LayoutSnapshot: Codable, Sendable, Equatable {
     var collapsed: PanelCollapsedState
     var ratios: [Double]
 
-    /// AGENTS §8.1 defaults: 20 / 60 / 20 upper split, 50 / 50 lower split,
+    /// Defaults: 20 / 60 / 20 upper split, **70 / 30 lower split**,
     /// 50 / 50 upper-vs-lower split.
+    ///
+    /// The bottom-band 70:30 (聊天 70% / 状态 30%) is a 装机 user 8/7
+    /// 实机验 override of AGENTS §8.1's original 50:50 — 装机 user 拍板
+    /// "聊天占大面积, 别那么窄". Status panel stays visible (not collapsed)
+    /// at 30% which is enough for v0.03.0 阶段门 / v0.04.0 长篇工具 tags
+    /// + chevron + view-mode toggle.
     static let `default` = LayoutSnapshot(
         collapsed: PanelCollapsedState(),
-        ratios: [0.2, 0.6, 0.2, 0.5, 0.5]
+        ratios: [0.2, 0.6, 0.2, 0.5, 0.7]
     )
 
     /// FCP actual threshold from AGENTS §8.1: dragging a panel below 30px

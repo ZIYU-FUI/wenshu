@@ -12,19 +12,44 @@ final class LayoutStateModelTests: XCTestCase {
 
     // MARK: - Defaults
 
-    func testDefault_snapshot_matchesAGENTS_8_1() {
+    func testDefault_snapshot_matchesAGENTS_8_1_withLT01FixOverride() {
         let snap = LayoutSnapshot.default
         XCTAssertEqual(snap.ratios.count, 5)
         XCTAssertEqual(snap.ratios[0], 0.2, accuracy: 0.0001, "topLeft = 20% per AGENTS §8.1")
         XCTAssertEqual(snap.ratios[1], 0.6, accuracy: 0.0001, "topCenter = 60% per AGENTS §8.1")
         XCTAssertEqual(snap.ratios[2], 0.2, accuracy: 0.0001, "topRight = 20% per AGENTS §8.1")
         XCTAssertEqual(snap.ratios[3], 0.5, accuracy: 0.0001, "bottom height = 50% per AGENTS §8.1")
-        XCTAssertEqual(snap.ratios[4], 0.5, accuracy: 0.0001, "bottom-left split = 50% per AGENTS §8.1")
+        // LT-01-fix override (装机 user 8/7 拍板): bottom split = 70:30
+        // (聊天 70% / 状态 30%), not AGENTS §8.1's original 50:50.
+        XCTAssertEqual(snap.ratios[4], 0.7, accuracy: 0.0001, "bottom-left split = 70% per 装机 user 8/7 LT-01-fix")
         XCTAssertFalse(snap.collapsed.topLeft)
         XCTAssertFalse(snap.collapsed.topCenter)
         XCTAssertFalse(snap.collapsed.topRight)
         XCTAssertFalse(snap.collapsed.bottomLeft)
         XCTAssertFalse(snap.collapsed.bottomRight)
+    }
+
+    // MARK: - LT-01-fix: bottom split override
+
+    /// LT-01-fix 装机 user 8/7 拍板: 默认 bottom-left (聊天) = 70%,
+    /// bottom-right (状态) = 30% — 装机 user 实机验后说"聊天占大面积,
+    /// 别那么窄". This test pins the contract so a future refactor
+    /// can't silently revert to AGENTS §8.1's original 50:50.
+    func testDefaultBottomRatio_is70_30() {
+        let snap = LayoutSnapshot.default
+        XCTAssertEqual(
+            snap.ratios[4], 0.7, accuracy: 0.0001,
+            "聊天区默认占比必须 70%(LT-01-fix 装机 user 8/7 拍板)"
+        )
+        // 状态 panel 不折叠 (默认可见),且宽度 = 1.0 - 0.7 = 0.3.
+        XCTAssertEqual(
+            1.0 - snap.ratios[4], 0.3, accuracy: 0.0001,
+            "状态区默认占比必须 30%(LT-01-fix 装机 user 8/7 拍板,保持可见)"
+        )
+        XCTAssertFalse(
+            snap.collapsed.bottomRight,
+            "状态 panel 不折叠 — 30% 宽度足够展示 chevron + tag + 视图切换"
+        )
     }
 
     // MARK: - Codable / JSON round-trip
