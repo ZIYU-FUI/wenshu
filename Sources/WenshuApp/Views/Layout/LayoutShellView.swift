@@ -1,4 +1,4 @@
-// LayoutShellView.swift · 文枢 (Wenshu) · v0.02.0 WO-LT-01 → LT-01-fix3
+// LayoutShellView.swift · 文枢 (Wenshu) · v0.02.0 WO-LT-01 → LT-01-fix9
 //
 // 5-zone shell — the root of the macOS window in v0.02.0.
 //
@@ -18,6 +18,12 @@
 // moved to 显示 → 重置布局, and the 4 per-panel chevrons were replaced by
 // View → 项目管理/文档/检视/聊天/状态 (Cmd+1…5). Panel chrome now carries
 // no controls at all, matching Final Cut Pro / Pages / Numbers.
+//
+// LT-01-fix9 (装机 user 8/7 实机拍 "全部原生"): 4 个 `PanelSplitter` 替换为
+// `NativeSplitter` (= NSSplitView divider 风格 NSView, 1pt 细线 +
+// NSCursor 自动设 + NSEvent 原生 drag). Drop-in 替换, 调用接口一致
+// (`orientation` + `onDrag` closure), LayoutShellView 的 VStack/HStack
+// 结构不变。 见 docs/wenshu/LAYOUT-APPKIT-INVENTORY.md §1.1-1.2。
 //
 // Splitters (see LayoutShellViewModel for delta math):
 //   - 2 vertical in upper row (between topLeft↔topCenter, topCenter↔topRight)
@@ -65,7 +71,7 @@ struct LayoutShellView: View {
                         .frame(height: geo.size.height - lowerHeight)
                 }
                 if upperBandVisible && lowerBandVisible {
-                    PanelSplitter(orientation: .vertical) { delta in
+                    NativeSplitter(orientation: .vertical) { delta in
                         vm.adjustBottomHeight(delta: delta, totalHeight: geo.size.height)
                     }
                 }
@@ -97,13 +103,13 @@ struct LayoutShellView: View {
         return HStack(spacing: 0) {
             panel(.topLeft, width: split.0)
             if vm.isVisible(.topLeft) && vm.isVisible(.topCenter) {
-                PanelSplitter(orientation: .horizontal) { delta in
+                NativeSplitter(orientation: .horizontal) { delta in
                     vm.adjustUpperColumn(splitterIndex: 0, delta: delta, totalWidth: totalWidth)
                 }
             }
             panel(.topCenter, width: split.1)
             if vm.isVisible(.topCenter) && vm.isVisible(.topRight) {
-                PanelSplitter(orientation: .horizontal) { delta in
+                NativeSplitter(orientation: .horizontal) { delta in
                     vm.adjustUpperColumn(splitterIndex: 1, delta: delta, totalWidth: totalWidth)
                 }
             }
@@ -123,7 +129,7 @@ struct LayoutShellView: View {
         return HStack(spacing: 0) {
             panel(.bottomLeft, width: split.0)
             if vm.isVisible(.bottomLeft) && vm.isVisible(.bottomRight) {
-                PanelSplitter(orientation: .horizontal) { delta in
+                NativeSplitter(orientation: .horizontal) { delta in
                     vm.adjustLowerColumn(delta: delta, totalWidth: totalWidth)
                 }
             }
