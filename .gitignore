@@ -1,0 +1,43 @@
+# SwiftPM build output
+.build/
+
+# Xcode project artefacts (wenshu.xcodeproj will arrive in a later WO)
+*.xcodeproj/
+*.xcworkspace/
+
+# Xcode user data + DerivedData
+DerivedData/
+xcuserdata/
+*.xcuserstate
+*.xcuserdatad/
+*.moved-aside
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+
+# SwiftPM lock file — ignored on purpose. We re-resolve on each build.
+# (Per WO-001 spec; revisit if PM decides lockfile should be committed.)
+Package.resolved
+
+# macOS noise
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Swift package download cache (alternative layout)
+.swiftpm/
+
+# Test scratch
+*.xcresult/
