@@ -72,6 +72,11 @@ let package = Package(
                     "-Xlinker", "Sources/WenshuApp/Resources/Info.plist"
                 ])
             ]
+        ),
+        .testTarget(
+            name: "WenshuAppTests",
+            dependencies: ["WenshuApp"],
+            path: "Tests/WenshuAppTests"
         )
     ]
 )

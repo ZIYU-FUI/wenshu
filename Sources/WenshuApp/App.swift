@@ -13,6 +13,7 @@ import SwiftUI
 
 @main
 struct WenshuApp: App {
+    @StateObject var persistence = PersistenceController.shared
 
     // NOTE (WO-001): We do NOT customize NSApp.activationPolicy here.
     // The Info.plist's LSUIElement=false + NSPrincipalClass=NSApplication
