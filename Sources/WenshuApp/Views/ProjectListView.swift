@@ -1,7 +1,15 @@
-// ProjectListView.swift · 文枢 (Wenshu) · v0.01.0 WO-004
+// ProjectListView.swift · 文枢 (Wenshu) · v0.01.0 WO-004 → WO-008
 //
 // Right-pane root: the project list. Tapping a row pushes `ChatView`.
-// Tapping the + button presents `ProjectCreateView` as a sheet.
+// Tapping the + button presents `ProjectCreateView` as an independent
+// NSWindow (NOT a SwiftUI `.sheet(isPresented:)` container).
+//
+// WO-008 change(per spec 方案 C):
+// SwiftUI macOS sheet 焦点路由 bug 在 WO-007 方案 A (`makeKey()` 强抢)
+// 装机 user 实机验失败。改走方案 C:用 `SheetWindow.present(...)` 包装
+// NSHostingController + 显式 NSWindow,完全脱离 SwiftUI sheet 容器,
+// 显式 makeKeyAndOrderFront + NSApp.activate,key window 状态由 AppKit
+// 独立管,不与 parentWindow.makeKey 竞争。
 //
 // Per WO-004 spec: project data lives in `@State` in MainView (in-memory).
 // No `.ws` round-tripping yet — that's WO-005.
@@ -26,23 +34,36 @@ struct ProjectListView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
+                    // WO-008 方案 C:不走 SwiftUI `.sheet(isPresented:)`
+                    // 容器,改用 SheetWindow.present 弹独立 NSWindow。
+                    // 见 Util/SheetWindow.swift 头部说明。
                     showCreate = true
+                    SheetWindow.present(
+                        title: "新建项目",
+                        content: {
+                            ProjectCreateView(
+                                onCreate: { newProject in
+                                    projects.append(newProject)
+                                    // 关掉 sheet window(parent 是 ProjectListView,
+                                    // 当前 key window 就是 sheet 本身)。
+                                    NSApp.keyWindow?.close()
+                                },
+                                onCancel: {
+                                    // 关掉 sheet window。
+                                    NSApp.keyWindow?.close()
+                                }
+                            )
+                        },
+                        onDismiss: {
+                            // sheet 关闭后 reset state(防止 reopen 误判)。
+                            showCreate = false
+                        }
+                    )
                 } label: {
                     Label("新建项目", systemImage: "plus")
                 }
                 .help("新建项目")
             }
-        }
-        .sheet(isPresented: $showCreate) {
-            ProjectCreateView(
-                onCreate: { newProject in
-                    projects.append(newProject)
-                    showCreate = false
-                },
-                onCancel: {
-                    showCreate = false
-                }
-            )
         }
     }
 
