@@ -109,7 +109,12 @@ struct LayoutSnapshot: Codable, Sendable, Equatable {
     /// Sized for a 6px drag target on macOS (Apple HIG minimum is 4px,
     /// but 6px is more forgiving for the FCP-style double-click chevron
     /// gesture landing on a hit target that overlaps with the bar).
-    static let splitterPixels: Double = 6
+    /// Width reserved in layout math for a single draggable splitter.
+    /// LT-01-fix9: 与 `NativeSplitterView.hitAreaThickness` (= 8pt, NSSplitView
+    /// 默认 hit 区域) 同步 — 否则 `upperBand`/`lowerBand` 的 HStack layout
+    /// 会比 totalWidth 多溢出 2pt × splitter_count (= 4 个 splitter × 2pt
+    /// = 8pt 总量溢出)。 LT-01-fix7 之前是 6px (= 自写 rect 视觉宽)。
+    static let splitterPixels: Double = 8
 
     // MARK: - JSON helpers (the persistence contract)
 
