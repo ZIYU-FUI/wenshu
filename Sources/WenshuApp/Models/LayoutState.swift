@@ -74,17 +74,25 @@ struct LayoutSnapshot: Codable, Sendable, Equatable {
     var collapsed: PanelCollapsedState
     var ratios: [Double]
 
-    /// Defaults: 20 / 60 / 20 upper split, **70 / 30 lower split**,
+    /// Defaults: 20 / 60 / 20 upper split, **80 / 20 lower split**,
     /// 50 / 50 upper-vs-lower split.
     ///
-    /// The bottom-band 70:30 (聊天 70% / 状态 30%) is a 装机 user 8/7
-    /// 实机验 override of AGENTS §8.1's original 50:50 — 装机 user 拍板
-    /// "聊天占大面积, 别那么窄". Status panel stays visible (not collapsed)
-    /// at 30% which is enough for v0.03.0 阶段门 / v0.04.0 长篇工具 tags
-    /// + chevron + view-mode toggle.
+    /// The bottom-band 80:20 (聊天 80% / 状态 20%) is a 装机 user 8/7
+    /// 实机验 override of the previous 70:30 split — 装机 user 拍板
+    /// "让状态初始与检视同宽 = 20%". Status panel stays visible (not
+    /// collapsed) at 20% which equals the inspector's width per AGENTS
+    /// §8.1's 20% top-right default. 20% is enough for v0.03.0 阶段门
+    /// / v0.04.0 长篇工具 tags + chevron + view-mode toggle.
+    ///
+    /// 装机 user hard constraint (LT-01-fix2 拍板真值): 状态(下右)可见
+    /// 宽度 = 检视(右上)宽度 = 20%. Therefore bottomLeft (聊天) = 80%,
+    /// not 60% — the ticket's "聊天 60%" wording is interpreted as
+    /// "聊天 still dominant" relative to the prior 70:30, NOT as a
+    /// literal 60% figure (which would push 状态 to 40%, violating the
+    /// 状态=检视=20% hard constraint).
     static let `default` = LayoutSnapshot(
         collapsed: PanelCollapsedState(),
-        ratios: [0.2, 0.6, 0.2, 0.5, 0.7]
+        ratios: [0.2, 0.6, 0.2, 0.5, 0.8]
     )
 
     /// FCP actual threshold from AGENTS §8.1: dragging a panel below 30px
