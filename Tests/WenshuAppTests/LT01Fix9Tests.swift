@@ -144,7 +144,12 @@ final class LT01Fix9Tests: XCTestCase {
         view.orientation = .horizontal
 
         var dispatchedDeltas: [CGFloat] = []
-        view.onDrag = { dispatchedDeltas.append($0) }
+        // LT-01-fix13: onDrag closure 签名 → `((CGFloat) -> Bool)?`。 测试
+        // stub 必须返回 Bool (= "applied, 没被 clamp")。
+        view.onDrag = {
+            dispatchedDeltas.append($0)
+            return true
+        }
 
         // 直接调用 mouseDown / mouseUp, 不构造 NSEvent (绕过 init 复杂度)。
         // override 方法接受 event 参数, 这里传 nil — super.mouseDown 调
@@ -210,7 +215,11 @@ final class LT01Fix9Tests: XCTestCase {
         view.orientation = .horizontal
 
         var dispatched: [CGFloat] = []
-        view.onDrag = { dispatched.append($0) }
+        // LT-01-fix13: closure 必须返回 Bool (true = applied, 不 reset state)。
+        view.onDrag = {
+            dispatched.append($0)
+            return true
+        }
 
         // mouseDown 把 dragStart 设到 (0, 50) (= production 路径)。
         let downEvent = NSEvent.mouseEvent(

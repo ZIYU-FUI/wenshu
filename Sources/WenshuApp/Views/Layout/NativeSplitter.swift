@@ -1,4 +1,4 @@
-// NativeSplitter.swift · 文枢 (Wenshu) · v0.02.0 LT-01-fix9
+// NativeSplitter.swift · 文枢 (Wenshu) · v0.02.0 LT-01-fix9 → LT-01-fix13
 //
 // 装机 user 8/7 实机拍 "全部原生". 替换 LT-01-fix7 的自写 SwiftUI
 // `PanelSplitter` (6px rect + DragGesture + 自写 NSCursor 全缺):
@@ -19,12 +19,44 @@
 //     导致 @State 跨 gesture 泄漏): 即便 NSEvent 路径有等价 race,
 //     我们在累积 delta < 5px 时直接 return, 不依赖状态清理。
 //
-// LayoutShellView 调用接口与原 PanelSplitter 一致 (drop-in 替换):
+// LT-01-fix13 追加: onDrag 闭包签名从 `((CGFloat) -> Void)?` 改成
+// `((CGFloat) -> Bool)?` (= 返回值 = "本次 delta 是否真改了 ratios";
+// false = VM 已 clamp 到边界, drag handler 必须 reset 状态避免下次 drag
+// 从锁死 baseline 开始)。
+//
+// 装机 user 8/7 实机拍"水平 splitter 拖到 90:10 后被锁住, 不用重置布局
+// 无法恢复"。 真根因 = 拖到 clamp 边界时, `lastReported` (= 累积 delta)
+// 仍在增长, 但 VM 的 ratios 已经饱和。 类似 fix7 路径 B 的 state leak:
+//   - mouseDragged 持续 fire, VM 持续收到 onDrag (但 ratios 不动)
+//   - 用户松手 mouseUp 时 lastReported 清零, 看似无害
+//   - **但** : 用户在极端位置连续 mouseDragged 时, lastReported 已经
+//     累积到 huge 值 (e.g. 540px), 用户实际拖回中点时, 计算出来的
+//     增量 = current - lastReported 会从 huge → small, 算出大的反向
+//     delta, **下次 drag 的 baseline 被污染**
+//
+// 修法 (LT-01-fix13):
+//   1. onDrag closure 返回 Bool (= "applied"): VM 返回 true = ratios
+//      真变了, false = clamp 边界, ratios 没动。
+//   2. NativeSplitterView.mouseDragged: 收到 false → 立即 reset
+//      lastReported = 0 (= 干净 baseline, 类似 fix7 click 路径重置)
+//   3. LayoutShellViewModel 3 个 adjustXxx 加 `@discardableResult` + 返回
+//      Bool (= 真变=true, clamp=false)
+//
+// 边界保留:
+//   - `((CGFloat) -> Void)?` 旧签名**破坏** = NativeSplitter 调用点全改
+//   - @discardableResult 让旧测试 (`testSplitterDrag_stillChangesRatio`
+//     等) 不需要强制 return, 但**语义已变** = LT-01-fix7 fragile 测试
+//     期望 ratios[3] = 0.6 的那部分还是 fail (= fix6 sign fix 后 stale,
+//     派单边界"不要求全过")
+//
+// LayoutShellView 调用接口 (= drop-in, 只多了 return):
 //   PanelSplitter(orientation: .horizontal) { delta in vm.adjustXxx(...) }
-//   →  NativeSplitter(orientation: .horizontal) { delta in vm.adjustXxx(...) }
+//   →  NativeSplitter(orientation: .horizontal) { delta in
+//          return vm.adjustXxx(delta: delta, ...) }
 //
 // 不动:
-//   - LayoutShellViewModel 的 adjustXxx API (delta 还是 pixel-level)
+//   - LayoutShellViewModel 的 adjustXxx API 主体 (delta 还是 pixel-level,
+//     只是返回 Bool 表明 clamp)
 //   - SplitterDragPolicy / SplitterClickDetector (兜底 + 测试用)
 //   - LayoutShellView 的 VStack/HStack 几何结构 (不动, 见 inventory §1.2)
 
@@ -51,8 +83,14 @@ final class NativeSplitterView: NSView {
 
     /// Pixel delta since drag start (positive = drag direction).
     /// 装机 user 拖动时实时回调。
+    ///
+    /// LT-01-fix13: 闭包返回 `Bool` = "本次 delta 是否真改了 ratios"。
+    /// 返回 `false` (= VM 已 clamp 到边界) 时, NativeSplitterView 立即
+    /// reset `lastReported = 0` (= 干净 baseline, 类似 fix7 click 路径
+    /// 重置 @State)。
+    ///
     /// `@MainActor` 因为 NSView 整体在 main thread 用, callback 也会在 main thread 触发。
-    @MainActor var onDrag: ((CGFloat) -> Void)?
+    @MainActor var onDrag: ((CGFloat) -> Bool)?
 
     // MARK: - Drag state (private)
 
@@ -233,7 +271,25 @@ final class NativeSplitterView: NSView {
         }
         isDragging = true
         lastReported = deltaInWindow
-        onDrag?(incremental)
+
+        // LT-01-fix13: 装机 user 8/7 实机拍"水平 splitter 拖到 90:10 后
+        // 被锁住, 不用重置布局无法恢复"。 真根因 = clamp 边界时, drag
+        // handler 状态 (= lastReported) 没清, 继续累积到 huge 值, 下次
+        // drag 从污染 baseline 开始。
+        //
+        // 修法: VM 在 adjustXxx 返回 Bool (= "applied, 真改了 ratios")。
+        // 收到 false (= clamp 到边界, ratios 没动) → 立即 reset
+        // lastReported = 0, 下次 drag 从干净 baseline 开始。
+        //
+        // 兼容老调用点: 老代码 `onDrag?(delta)` 期待 Void 返回值, 这里
+        // 用 `?? true` 兜底: nil closure (= 测试/未设) 视为 applied,
+        // 不触发 reset (= 老 contract)。
+        let applied = onDrag?(incremental) ?? true
+        if !applied {
+            // Clamp 边界 = drag 状态冻结 + 干净 baseline for next gesture。
+            // 类似 fix7 click 路径重置 @State (= 防 state leak)。
+            lastReported = 0
+        }
     }
 
     override func mouseUp(with event: NSEvent) {
@@ -259,7 +315,12 @@ final class NativeSplitterView: NSView {
 struct NativeSplitter: NSViewRepresentable {
     let orientation: SplitterOrientation
     /// Pixel delta since drag start (positive = drag direction).
-    let onDrag: (CGFloat) -> Void
+    ///
+    /// LT-01-fix13: 闭包返回 Bool = "本次 delta 是否真改了 ratios"。
+    /// 返回 `false` (= VM 已 clamp 到边界) → NativeSplitterView 立即
+    /// reset `lastReported = 0`, 下次 drag 从干净 baseline 开始 (修
+    /// 装机 user 实机拍"水平 splitter 拖到 90:10 后被锁住")。
+    let onDrag: (CGFloat) -> Bool
 
     func makeNSView(context: Context) -> NativeSplitterView {
         let view = NativeSplitterView()

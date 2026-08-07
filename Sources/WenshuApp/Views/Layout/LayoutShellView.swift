@@ -71,8 +71,15 @@ struct LayoutShellView: View {
                         .frame(height: geo.size.height - lowerHeight)
                 }
                 if upperBandVisible && lowerBandVisible {
+                    // LT-01-fix13: closure 必须 return VM Bool (= applied)
+                    // 让 NativeSplitterView 知道 clamp 边界 → reset
+                    // lastReported, 修"水平 splitter 拖到 90:10 后被
+                    // 锁住"真根因 (state leak)。
                     NativeSplitter(orientation: .vertical) { delta in
-                        vm.adjustBottomHeight(delta: delta, totalHeight: geo.size.height)
+                        return vm.adjustBottomHeight(
+                            delta: delta,
+                            totalHeight: geo.size.height
+                        )
                     }
                 }
                 if lowerBandVisible {
@@ -103,14 +110,23 @@ struct LayoutShellView: View {
         return HStack(spacing: 0) {
             panel(.topLeft, width: split.0)
             if vm.isVisible(.topLeft) && vm.isVisible(.topCenter) {
+                // LT-01-fix13: closure return VM Bool (= applied), 见上注释。
                 NativeSplitter(orientation: .horizontal) { delta in
-                    vm.adjustUpperColumn(splitterIndex: 0, delta: delta, totalWidth: totalWidth)
+                    return vm.adjustUpperColumn(
+                        splitterIndex: 0,
+                        delta: delta,
+                        totalWidth: totalWidth
+                    )
                 }
             }
             panel(.topCenter, width: split.1)
             if vm.isVisible(.topCenter) && vm.isVisible(.topRight) {
                 NativeSplitter(orientation: .horizontal) { delta in
-                    vm.adjustUpperColumn(splitterIndex: 1, delta: delta, totalWidth: totalWidth)
+                    return vm.adjustUpperColumn(
+                        splitterIndex: 1,
+                        delta: delta,
+                        totalWidth: totalWidth
+                    )
                 }
             }
             panel(.topRight, width: split.2)
@@ -129,8 +145,12 @@ struct LayoutShellView: View {
         return HStack(spacing: 0) {
             panel(.bottomLeft, width: split.0)
             if vm.isVisible(.bottomLeft) && vm.isVisible(.bottomRight) {
+                // LT-01-fix13: closure return VM Bool (= applied), 见上注释。
                 NativeSplitter(orientation: .horizontal) { delta in
-                    vm.adjustLowerColumn(delta: delta, totalWidth: totalWidth)
+                    return vm.adjustLowerColumn(
+                        delta: delta,
+                        totalWidth: totalWidth
+                    )
                 }
             }
             panel(.bottomRight, width: split.1)

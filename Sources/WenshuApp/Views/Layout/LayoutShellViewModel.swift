@@ -127,22 +127,39 @@ final class LayoutShellViewModel: ObservableObject {
     ///
     /// `totalWidth` is the upper row's full width in points (post-toolbar).
     /// Available width excludes the 2 splitter bars themselves.
-    func adjustUpperColumn(splitterIndex: Int, delta: CGFloat, totalWidth: CGFloat) {
-        guard splitterIndex == 0 || splitterIndex == 1 else { return }
+    ///
+    /// LT-01-fix13: 返回 `Bool` = "本次 delta 是否真改了 ratios"。
+    /// 返回 `false` (= clamp 到边界) 时, NativeSplitterView 立即 reset
+    /// `lastReported = 0` (= 干净 baseline, 修装机 user 实机拍"水平 splitter
+    /// 拖到 90:10 后被锁住")。 `@discardableResult` 让旧调用点
+    /// (`adjustXxx(delta:, ...)` 不接返回值的写法) 继续编译, 但**语义**
+    /// 已变 — 闭包必须 `return vm.adjustXxx(...)` 把 Bool 传回
+    /// NativeSplitterView 才能触发 reset。
+    @discardableResult
+    func adjustUpperColumn(splitterIndex: Int, delta: CGFloat, totalWidth: CGFloat) -> Bool {
+        guard splitterIndex == 0 || splitterIndex == 1 else { return false }
         let left = splitterIndex
         let right = splitterIndex + 1
         let available = totalWidth - 2 * LayoutSnapshot.splitterPixels
-        guard available > 0 else { return }
+        guard available > 0 else { return false }
         let deltaRatio = Double(delta / available)
         var snap = snapshot
         let sum = snap.ratios[left] + snap.ratios[right]
-        guard sum > 0 else { return }
-        let proposed = snap.ratios[left] + deltaRatio
-        let clamped = max(0.05, min(0.95, proposed))
-        snap.ratios[left] = clamped
-        snap.ratios[right] = max(0.05, sum - clamped)
+        guard sum > 0 else { return false }
+        let proposedLeft = snap.ratios[left] + deltaRatio
+        let clampedLeft = max(0.05, min(0.95, proposedLeft))
+        let proposedRight = sum - clampedLeft
+        let clampedRight = max(0.05, min(0.95, proposedRight))
+        snap.ratios[left] = clampedLeft
+        snap.ratios[right] = clampedRight
+        // Applied = 两个 ratio 都等于 proposed (没被 clamp 截断)。
+        // 任一被截断 = clamp boundary → false (= reset state in
+        // NativeSplitterView)。
+        let applied = abs(proposedLeft - clampedLeft) < 0.0001
+            && abs(proposedRight - clampedRight) < 0.0001
         snapshot = snap
         scheduleSave()
+        return applied
     }
 
     /// The horizontal splitter between upper and lower bands was dragged
@@ -160,27 +177,44 @@ final class LayoutShellViewModel: ObservableObject {
     /// 默认 50:50 由 `LayoutSnapshot.default.ratios[3] == 0.5` 保证.
     /// 这里保持 ratio-driven (而不是硬编码 0.5), 否则拖拽在标准 5 区
     /// 模式下会变成无效操作 — 跟"拖动实时变"的验收项直接冲突.
-    func adjustBottomHeight(delta: CGFloat, totalHeight: CGFloat) {
-        guard totalHeight > 0 else { return }
+    ///
+    /// LT-01-fix13: 返回 `Bool` = "applied" (= ratios 真变)。 clamp 到
+    /// [0.10, 0.90] 边界时返回 `false` (= 装机 user 实机拍"水平 splitter
+    /// 拖到 90:10 后被锁住" 的真根因修法: NativeSplitterView 收到 false
+    /// reset lastReported = 0)。
+    @discardableResult
+    func adjustBottomHeight(delta: CGFloat, totalHeight: CGFloat) -> Bool {
+        guard totalHeight > 0 else { return false }
         let deltaRatio = Double(delta / totalHeight)
+        let proposed = snapshot.ratios[3] - deltaRatio
+        let clamped = max(0.10, min(0.90, proposed))
         var snap = snapshot
-        snap.ratios[3] = max(0.10, min(0.90, snap.ratios[3] - deltaRatio))
+        snap.ratios[3] = clamped
+        let applied = abs(proposed - clamped) < 0.0001
         snapshot = snap
         scheduleSave()
+        return applied
     }
 
     /// The single horizontal splitter in the lower band (between 下左 and
     /// 下右) was dragged by `delta` pixels (positive = pulled right).
     /// Updates ratios[4] (bottomLeft's fraction of lower-band width).
-    func adjustLowerColumn(delta: CGFloat, totalWidth: CGFloat) {
+    ///
+    /// LT-01-fix13: 返回 `Bool` (= applied)。 clamp 到 [0.05, 0.95]
+    /// 边界时返回 `false`, NativeSplitterView reset lastReported = 0。
+    @discardableResult
+    func adjustLowerColumn(delta: CGFloat, totalWidth: CGFloat) -> Bool {
         let available = totalWidth - LayoutSnapshot.splitterPixels
-        guard available > 0 else { return }
+        guard available > 0 else { return false }
         let deltaRatio = Double(delta / available)
+        let proposed = snapshot.ratios[4] + deltaRatio
+        let clamped = max(0.05, min(0.95, proposed))
         var snap = snapshot
-        let proposed = snap.ratios[4] + deltaRatio
-        snap.ratios[4] = max(0.05, min(0.95, proposed))
+        snap.ratios[4] = clamped
+        let applied = abs(proposed - clamped) < 0.0001
         snapshot = snap
         scheduleSave()
+        return applied
     }
 
     // MARK: - Menu title (LT-01-fix4)
