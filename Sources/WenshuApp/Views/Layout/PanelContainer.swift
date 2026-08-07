@@ -1,11 +1,13 @@
 // PanelContainer.swift · 文枢 (Wenshu) · v0.02.0 WO-LT-01
 //
 // One of the 5 slots in the 5-zone shell. Renders:
-//   - a thin header bar with a chevron toggle (FCP-style double-chevron),
-//     the panel title, and a SF Symbol
+//   - a thin header bar with the panel title + a SF Symbol
 //   - the panel content (passed in as `@ViewBuilder content`)
-//   - when `isCollapsed`, just the header bar (50px for upper row,
-//     30px for lower row)
+//
+// LT-01-fix3: the header's chevron collapse button is GONE. Per macOS
+// HIG / Final Cut Pro, show-hide is a menu-bar command (View → Cmd+1…5),
+// not panel chrome. `CollapsedGutter` likewise lost its button and is now
+// a passive strip rendered from persisted collapse state.
 //
 // Collapsed width/height is supplied by the caller via `frame(width:)`
 // / `frame(height:)` modifiers — the container itself only renders the
@@ -21,18 +23,14 @@ import SwiftUI
 
 struct PanelContainer<Content: View>: View {
     let panelID: PanelID
-    let isCollapsed: Bool
-    let onToggle: () -> Void
     @ViewBuilder var content: () -> Content
 
     var body: some View {
         VStack(spacing: 0) {
             headerBar
-            if !isCollapsed {
-                Divider()
-                content()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
+            Divider()
+            content()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .background(Color(NSColor.windowBackgroundColor).opacity(0.4))
         .overlay(
@@ -43,32 +41,19 @@ struct PanelContainer<Content: View>: View {
 
     private var headerBar: some View {
         HStack(spacing: 6) {
-            Button(action: onToggle) {
-                Image(systemName: isCollapsed ? "chevron.right" : "chevron.left")
-                    .font(.system(size: 11, weight: .semibold))
-                    .frame(width: 16, height: 16)
-                    .foregroundStyle(.secondary)
-            }
-            .buttonStyle(.plain)
-            .help(isCollapsed ? "展开 \(panelID.title)" : "折叠 \(panelID.title)")
-
             Image(systemName: panelID.symbolName)
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(.secondary)
 
-            // Hide title text when collapsed (gutter is narrow).
-            if !isCollapsed {
-                Text(panelID.title)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                Spacer(minLength: 0)
-            } else {
-                Spacer(minLength: 0)
-            }
+            Text(panelID.title)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+
+            Spacer(minLength: 0)
         }
         .padding(.horizontal, 8)
-        .padding(.vertical, isCollapsed ? 4 : 4)
+        .padding(.vertical, 4)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(NSColor.controlBackgroundColor).opacity(0.6))
         .contentShape(Rectangle())
@@ -81,35 +66,26 @@ struct PanelContainer<Content: View>: View {
 // by a 50px-wide vertical icon strip. We render this as a vertical
 // variant of the header bar so the chrome matches.
 //
-// Note: callers can use `PanelContainer`'s collapsed state directly with
-// a narrow `frame(width: 50)` — the header bar collapses gracefully. We
-// keep this struct for clarity / API stability for future LTs.
+// LT-01-fix3: no button — the gutter is a passive indicator. Use
+// View → <panel name> in the menu bar to bring a panel back.
 
 struct CollapsedGutter: View {
     let panelID: PanelID
-    let onToggle: () -> Void
 
     var body: some View {
         VStack(spacing: 6) {
-            Button(action: onToggle) {
-                VStack(spacing: 4) {
-                    Image(systemName: panelID.symbolName)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.secondary)
-                    Text(panelID.title)
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .fixedSize()
-                        // Vertical text via rotation — keep horizontal
-                        // text for readability (FCP actually uses
-                        // horizontal labels on 50px gutters).
-                }
-                .frame(width: 48)
-                .padding(.vertical, 8)
+            VStack(spacing: 4) {
+                Image(systemName: panelID.symbolName)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.secondary)
+                Text(panelID.title)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .fixedSize()
             }
-            .buttonStyle(.plain)
-            .help("展开 \(panelID.title)")
+            .frame(width: 48)
+            .padding(.vertical, 8)
 
             Spacer(minLength: 0)
         }

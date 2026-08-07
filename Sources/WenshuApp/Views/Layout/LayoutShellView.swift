@@ -1,11 +1,11 @@
-// LayoutShellView.swift · 文枢 (Wenshu) · v0.02.0 WO-LT-01
+// LayoutShellView.swift · 文枢 (Wenshu) · v0.02.0 WO-LT-01 → LT-01-fix3
 //
-// 5-zone shell — the new root of the macOS window in v0.02.0.
+// 5-zone shell — the root of the macOS window in v0.02.0.
 //
 // Geometry (AGENTS.md §8.1):
 //
 //   ┌────────────────────────────────────────────────────────────────┐
-//   │ toolbar  ("文枢 v0.02.0" + reset link)                          │
+//   │ (native macOS title bar — traffic lights only)                  │
 //   ├──────────┬───────────────────────────┬──────────────────────────┤
 //   │ 项目管理   │ 文档内容浏览器               │ inspector                 │
 //   │ topLeft  │ topCenter (editor area)   │ topRight                  │
@@ -13,17 +13,22 @@
 //   │ 聊天区 (bottomLeft)               │ 状态 (bottomRight)            │
 //   └────────────────────────────────────┴────────────────────────────┘
 //
+// LT-01-fix3 (装机 user 8/7 实机验 + macOS HIG): the in-window toolbar
+// row is GONE — the app version moved to 文枢 → 关于文枢, "重置布局"
+// moved to 显示 → 重置布局, and the 4 per-panel chevrons were replaced by
+// View → 项目管理/文档/检视/聊天/状态 (Cmd+1…5). Panel chrome now carries
+// no controls at all, matching Final Cut Pro / Pages / Numbers.
+//
 // Splitters (see LayoutShellViewModel for delta math):
 //   - 2 vertical in upper row (between topLeft↔topCenter, topCenter↔topRight)
 //   - 1 horizontal between upper and lower bands
 //   - 1 vertical in lower row (between bottomLeft↔bottomRight)
 //   → 4 functional splitters. AGENTS §8.1 says "共 5 个"; the geometry
 //     only fits 4. ACCEPTANCE-v0.02.0-LT-01.md documents the discrepancy.
+//   A splitter is only rendered when both of its neighbours are visible.
 //
-// Widths/heights are computed from `vm.snapshot.ratios` + per-panel
-// `collapsed` flag. When a panel is collapsed it takes its post-collapse
-// gutter size (50px upper / 30px lower) instead of its ratio-derived
-// size.
+// Widths/heights come from `LayoutMetrics` (pure, unit-tested) fed by
+// `vm.snapshot.ratios` + `vm.snapshot.collapsed` + `vm.visibility`.
 //
 // Persistence: the View Model handles .ws read/write via
 // `WenshuStoreActor` (see LayoutShellViewModel). The View only mutates
@@ -32,133 +37,115 @@
 import SwiftUI
 
 struct LayoutShellView: View {
-    @StateObject private var vm = LayoutShellViewModel()
+    // LT-01-fix3: shared instance so the macOS menu bar commands in
+    // App.swift drive the same state (a @StateObject here would be
+    // unreachable from a CommandMenu).
+    @ObservedObject private var vm = LayoutShellViewModel.shared
 
     var body: some View {
-        VStack(spacing: 0) {
-            toolbar
-            Divider()
-            geometryBody
-        }
-        .frame(minWidth: 900, minHeight: 600)
-        .task {
-            await vm.load()
-        }
-    }
-
-    // MARK: - Toolbar
-
-    private var toolbar: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "book.pages")
-                .foregroundStyle(.secondary)
-            Text("文枢 v0.02.0")
-                .font(.headline)
-            Spacer()
-            if vm.isLoaded {
-                Button {
-                    Task { await vm.resetToDefaults() }
-                } label: {
-                    Label("重置布局", systemImage: "arrow.counterclockwise")
-                        .labelStyle(.titleAndIcon)
-                }
-                .help("把所有分隔条比例和折叠状态重置成 AGENTS §8.1 默认值")
-                .buttonStyle(.borderless)
-                .foregroundStyle(.secondary)
+        geometryBody
+            .frame(minWidth: 900, minHeight: 600)
+            .task {
+                await vm.load()
             }
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(NSColor.windowBackgroundColor))
     }
 
     // MARK: - 5-zone body
 
     private var geometryBody: some View {
         GeometryReader { geo in
+            let lowerHeight = LayoutMetrics.lowerBandHeight(
+                totalHeight: geo.size.height,
+                ratios: vm.snapshot.ratios,
+                visibility: vm.visibility
+            )
             VStack(spacing: 0) {
-                upperBand(in: geo.size.width)
-                    .frame(height: upperBandHeight(totalHeight: geo.size.height))
-                PanelSplitter(orientation: .vertical) { delta in
-                    vm.adjustBottomHeight(delta: delta, totalHeight: geo.size.height)
+                if upperBandVisible {
+                    upperBand(in: geo.size.width)
+                        .frame(height: geo.size.height - lowerHeight)
                 }
-                lowerBand(in: geo.size.width)
-                    .frame(height: lowerBandHeight(totalHeight: geo.size.height))
+                if upperBandVisible && lowerBandVisible {
+                    PanelSplitter(orientation: .vertical) { delta in
+                        vm.adjustBottomHeight(delta: delta, totalHeight: geo.size.height)
+                    }
+                }
+                if lowerBandVisible {
+                    lowerBand(in: geo.size.width)
+                        .frame(height: lowerHeight)
+                }
             }
         }
     }
 
-    private func upperBandHeight(totalHeight: CGFloat) -> CGFloat {
-        let ratio = vm.snapshot.ratios[safe: 3] ?? 0.5
-        return totalHeight * (1.0 - ratio)
+    private var upperBandVisible: Bool {
+        vm.isVisible(.topLeft) || vm.isVisible(.topCenter) || vm.isVisible(.topRight)
     }
 
-    private func lowerBandHeight(totalHeight: CGFloat) -> CGFloat {
-        let ratio = vm.snapshot.ratios[safe: 3] ?? 0.5
-        return totalHeight * ratio
+    private var lowerBandVisible: Bool {
+        vm.isVisible(.bottomLeft) || vm.isVisible(.bottomRight)
     }
 
     // MARK: - Upper row: 3 columns
 
     private func upperBand(in totalWidth: CGFloat) -> some View {
-        let split = computeUpperSplit(totalWidth: totalWidth)
+        let split = LayoutMetrics.upperWidths(
+            totalWidth: totalWidth,
+            ratios: vm.snapshot.ratios,
+            collapsed: vm.snapshot.collapsed,
+            visibility: vm.visibility
+        )
         return HStack(spacing: 0) {
-            upperPanel(.topLeft, width: split.0)
-            PanelSplitter(orientation: .horizontal) { delta in
-                vm.adjustUpperColumn(splitterIndex: 0, delta: delta, totalWidth: totalWidth)
+            panel(.topLeft, width: split.0)
+            if vm.isVisible(.topLeft) && vm.isVisible(.topCenter) {
+                PanelSplitter(orientation: .horizontal) { delta in
+                    vm.adjustUpperColumn(splitterIndex: 0, delta: delta, totalWidth: totalWidth)
+                }
             }
-            upperPanel(.topCenter, width: split.1)
-            PanelSplitter(orientation: .horizontal) { delta in
-                vm.adjustUpperColumn(splitterIndex: 1, delta: delta, totalWidth: totalWidth)
+            panel(.topCenter, width: split.1)
+            if vm.isVisible(.topCenter) && vm.isVisible(.topRight) {
+                PanelSplitter(orientation: .horizontal) { delta in
+                    vm.adjustUpperColumn(splitterIndex: 1, delta: delta, totalWidth: totalWidth)
+                }
             }
-            upperPanel(.topRight, width: split.2)
+            panel(.topRight, width: split.2)
         }
     }
 
-    /// Compute (leftWidth, centerWidth, rightWidth) using the snapshot's
-    /// ratio[0/1/2]. If a panel is collapsed it takes the gutter width
-    /// (50px) and the freed space redistributes proportionally to the
-    /// remaining expanded panels in the upper row.
-    private func computeUpperSplit(totalWidth: CGFloat) -> (CGFloat, CGFloat, CGFloat) {
-        let totalSplitters = 2 * LayoutSnapshot.splitterPixels
-        let available = max(0, totalWidth - totalSplitters)
-        let collapsedGutter = LayoutSnapshot.topCollapsedPixels
-        let r = vm.snapshot.ratios
-        let leftCollapsed = vm.snapshot.collapsed.topLeft
-        let centerCollapsed = vm.snapshot.collapsed.topCenter
-        let rightCollapsed = vm.snapshot.collapsed.topRight
-        let collapsedCount = (leftCollapsed ? 1 : 0) + (centerCollapsed ? 1 : 0) + (rightCollapsed ? 1 : 0)
+    // MARK: - Lower row: 2 areas
 
-        if collapsedCount == 3 {
-            return (collapsedGutter, collapsedGutter, collapsedGutter)
+    private func lowerBand(in totalWidth: CGFloat) -> some View {
+        let split = LayoutMetrics.lowerWidths(
+            totalWidth: totalWidth,
+            ratios: vm.snapshot.ratios,
+            collapsed: vm.snapshot.collapsed,
+            visibility: vm.visibility
+        )
+        return HStack(spacing: 0) {
+            panel(.bottomLeft, width: split.0)
+            if vm.isVisible(.bottomLeft) && vm.isVisible(.bottomRight) {
+                PanelSplitter(orientation: .horizontal) { delta in
+                    vm.adjustLowerColumn(delta: delta, totalWidth: totalWidth)
+                }
+            }
+            panel(.bottomRight, width: split.1)
         }
-        let availableForExpanded = max(0, available - CGFloat(collapsedCount) * collapsedGutter)
-        var expandedSum: Double = 0
-        if !leftCollapsed { expandedSum += r[0] }
-        if !centerCollapsed { expandedSum += r[1] }
-        if !rightCollapsed { expandedSum += r[2] }
-        guard expandedSum > 0 else { return (available / 3, available / 3, available / 3) }
-
-        let left = leftCollapsed ? collapsedGutter
-                                  : CGFloat(availableForExpanded * (r[0] / expandedSum))
-        let center = centerCollapsed ? collapsedGutter
-                                      : CGFloat(availableForExpanded * (r[1] / expandedSum))
-        let right = rightCollapsed ? collapsedGutter
-                                    : CGFloat(availableForExpanded * (r[2] / expandedSum))
-        return (left, center, right)
     }
 
+    // MARK: - One panel slot
+
+    /// Hidden panels render nothing at all (no gutter, no header) — the
+    /// only way back is the View menu. Collapsed panels keep their
+    /// header/gutter chrome, which LT-01-fix3 leaves reachable only via
+    /// persisted state (no chevron).
     @ViewBuilder
-    private func upperPanel(_ id: PanelID, width: CGFloat) -> some View {
-        if isCollapsed(id) {
-            CollapsedGutter(panelID: id, onToggle: { vm.toggle(id) })
+    private func panel(_ id: PanelID, width: CGFloat) -> some View {
+        if !vm.isVisible(id) {
+            EmptyView()
+        } else if isCollapsed(id) {
+            CollapsedGutter(panelID: id)
+                .frame(width: width)
         } else {
-            PanelContainer(
-                panelID: id,
-                isCollapsed: false,
-                onToggle: { vm.toggle(id) }
-            ) {
+            PanelContainer(panelID: id) {
                 PlaceholderContent(panel: id)
             }
             .frame(width: width)
@@ -173,109 +160,5 @@ struct LayoutShellView: View {
         case .bottomLeft: return vm.snapshot.collapsed.bottomLeft
         case .bottomRight: return vm.snapshot.collapsed.bottomRight
         }
-    }
-
-    // MARK: - Lower row: 2 areas
-
-    private func lowerBand(in totalWidth: CGFloat) -> some View {
-        let split = computeLowerSplit(totalWidth: totalWidth)
-        return HStack(spacing: 0) {
-            lowerPanel(.bottomLeft, width: split.0)
-            PanelSplitter(orientation: .horizontal) { delta in
-                vm.adjustLowerColumn(delta: delta, totalWidth: totalWidth)
-            }
-            lowerPanel(.bottomRight, width: split.1)
-        }
-    }
-
-    /// Compute (leftWidth, rightWidth) for the lower band using ratios[4].
-    /// Collapsed bottom panels take the bottomCollapsedPixels (30px).
-    private func computeLowerSplit(totalWidth: CGFloat) -> (CGFloat, CGFloat) {
-        let available = max(0, totalWidth - LayoutSnapshot.splitterPixels)
-        let collapsedHeight = LayoutSnapshot.bottomCollapsedPixels
-        let r = vm.snapshot.ratios
-        let leftCollapsed = vm.snapshot.collapsed.bottomLeft
-        let rightCollapsed = vm.snapshot.collapsed.bottomRight
-
-        if leftCollapsed && rightCollapsed {
-            return (collapsedHeight, totalWidth - collapsedHeight - LayoutSnapshot.splitterPixels)
-        }
-        if leftCollapsed {
-            return (collapsedHeight, max(0, available - collapsedHeight))
-        }
-        if rightCollapsed {
-            return (max(0, available - collapsedHeight), collapsedHeight)
-        }
-        let left = CGFloat(available * r[4])
-        let right = CGFloat(available * (1.0 - r[4]))
-        return (left, right)
-    }
-
-    @ViewBuilder
-    private func lowerPanel(_ id: PanelID, width: CGFloat) -> some View {
-        if isCollapsed(id) {
-            CollapsedHeaderBar(
-                panelID: id,
-                onToggle: { vm.toggle(id) }
-            )
-            .frame(width: width)
-        } else {
-            PanelContainer(
-                panelID: id,
-                isCollapsed: false,
-                onToggle: { vm.toggle(id) }
-            ) {
-                PlaceholderContent(panel: id)
-            }
-            .frame(width: width)
-        }
-    }
-}
-
-// MARK: - Collapsed header bar for lower row
-//
-// AGENTS §8.1: 下半折叠到只剩标题栏 (≈ 30px). The PanelContainer header
-// is height-flexible so we just render it inside a 30px-tall frame for
-// collapsed lower panels.
-
-struct CollapsedHeaderBar: View {
-    let panelID: PanelID
-    let onToggle: () -> Void
-
-    var body: some View {
-        HStack(spacing: 6) {
-            Button(action: onToggle) {
-                Image(systemName: "chevron.up")
-                    .font(.system(size: 10, weight: .semibold))
-                    .frame(width: 16, height: 16)
-                    .foregroundStyle(.secondary)
-            }
-            .buttonStyle(.plain)
-            .help("展开 \(panelID.title)")
-
-            Image(systemName: panelID.symbolName)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.secondary)
-            Text(panelID.title)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.secondary)
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 8)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(height: LayoutSnapshot.bottomCollapsedPixels)
-        .background(Color(NSColor.controlBackgroundColor).opacity(0.6))
-        .overlay(
-            Rectangle()
-                .strokeBorder(Color.secondary.opacity(0.18), lineWidth: 0.5)
-        )
-    }
-}
-
-// MARK: - Safe array access
-
-private extension Array {
-    subscript(safe index: Int) -> Element? {
-        indices.contains(index) ? self[index] : nil
     }
 }
