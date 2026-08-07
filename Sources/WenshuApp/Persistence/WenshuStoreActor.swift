@@ -106,6 +106,61 @@ actor WenshuStoreActor {
         }
     }
 
+    // MARK: - Foreshadows (LT-02 inspector 伏笔 tab)
+    //
+    // LT-02 验收: 伏笔 tab 真接 CDForeshadow entity 从 .ws 读。
+    // 当前 CDForeshadow schema 没有 chapter 关联字段 (CC 不动 .ws schema,
+    // AGENTS §12 红线), 所以这里返回所有 CDForeshadow 行 — 装机 user
+    // 选中段落联动在 v0.05.0 标记系统阶段接。 排序按 plantedAt 升序
+    // (= 故事时间线), 让用户看到"先种后收"的自然顺序。
+    //
+    // 返回类型是 plain Sendable 值类型 — NSManagedObject 跨 actor 边界
+    // 不能 Sendable, 在 .perform {} 内同步取值后直接还 Sendable 值类型,
+    // caller (InspectorViewModel) 在 MainActor 上安全持有。
+
+    /// Insert one `CDForeshadow` row. 单测会塞 fixture, 留接口好复用。
+    func createForeshadow(_ values: [String: Any]) async throws {
+        let context = container.viewContext
+        try await context.perform {
+            let object = NSEntityDescription.insertNewObject(
+                forEntityName: "CDForeshadow", into: context
+            )
+            for (key, value) in values { object.setValue(value, forKey: key) }
+            if object.value(forKey: "plantedAt") == nil {
+                object.setValue(Date(), forKey: "plantedAt")
+            }
+        }
+    }
+
+    /// Read all `CDForeshadow` rows, sorted by `plantedAt` ascending.
+    /// Returns zero-value tuples on any decode failure (defensive — one
+    /// bad row should not break inspector rendering).
+    func listForeshadows() async throws -> [ForeshadowRow] {
+        let context = container.viewContext
+        return try await context.perform {
+            let request = NSFetchRequest<NSManagedObject>(entityName: "CDForeshadow")
+            request.sortDescriptors = [NSSortDescriptor(key: "plantedAt", ascending: true)]
+            let objects = try context.fetch(request)
+            return objects.map { object in
+                ForeshadowRow(
+                    hook: (object.value(forKey: "hook") as? String) ?? "",
+                    status: object.value(forKey: "status") as? String,
+                    plantedAt: (object.value(forKey: "plantedAt") as? Date) ?? Date(),
+                    resolvedAt: object.value(forKey: "resolvedAt") as? Date
+                )
+            }
+        }
+    }
+
+    /// Diagnostics / tests: how many `CDForeshadow` rows are persisted.
+    func countForeshadows() async throws -> Int {
+        let context = container.viewContext
+        return try await context.perform {
+            let request = NSFetchRequest<NSManagedObject>(entityName: "CDForeshadow")
+            return try context.count(for: request)
+        }
+    }
+
     // MARK: - Layout state (WO-LT-01)
     //
     // Per AGENTS.md §8.1 + LT-01 spec the entity carries exactly 2 string
@@ -162,4 +217,39 @@ actor WenshuStoreActor {
             return try context.count(for: request)
         }
     }
+}
+
+// MARK: - Foreshadow row (LT-02 inspector)
+
+/// Plain Sendable row read from `CDForeshadow`. Lives outside the actor
+/// because `NSManagedObject` is not Sendable — we extract its scalar
+/// fields inside `WenshuStoreActor.listForeshadows()` and hand back
+/// this value type. InspectorViewModel holds an array of these on the
+/// main actor without crossing actor boundaries with managed objects.
+///
+/// `status` is intentionally optional (the schema marks it optional); we
+/// expose `nil` so the UI can show "未分类" rather than guessing a default.
+struct ForeshadowRow: Identifiable, Sendable, Equatable {
+    let id: UUID
+    let hook: String
+    let status: String?
+    let plantedAt: Date
+    let resolvedAt: Date?
+
+    init(
+        id: UUID = UUID(),
+        hook: String,
+        status: String?,
+        plantedAt: Date,
+        resolvedAt: Date?
+    ) {
+        self.id = id
+        self.hook = hook
+        self.status = status
+        self.plantedAt = plantedAt
+        self.resolvedAt = resolvedAt
+    }
+
+    /// "已回收" = resolvedAt 非空。 文枢 v0.02.0 inspector 显示用。
+    var isResolved: Bool { resolvedAt != nil }
 }

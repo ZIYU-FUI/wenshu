@@ -71,12 +71,15 @@ struct LayoutShellView: View {
                         .frame(height: geo.size.height - lowerHeight)
                 }
                 if upperBandVisible && lowerBandVisible {
-                    // LT-01-fix13: closure 必须 return VM Bool (= applied)
-                    // 让 NativeSplitterView 知道 clamp 边界 → reset
-                    // lastReported, 修"水平 splitter 拖到 90:10 后被
-                    // 锁住"真根因 (state leak)。
+                    // LT-01-fix13: VM 的 `adjustXxx` 返回 Bool (= applied,
+                    // clamp 没截断), 但 NativeSplitter 的 `onDrag` 是
+                    // `(CGFloat) -> Void`, 把 Bool 透传给 caller 也无用
+                    // (NativeSplitterView 内部没用返回值 — fix14 后
+                    // `lastReported` 字段已删, 没东西可 reset)。 直接
+                    // discardableResult 调, 跟 NativeSplitter 接口契约
+                    // 对齐。
                     NativeSplitter(orientation: .vertical) { delta in
-                        return vm.adjustBottomHeight(
+                        vm.adjustBottomHeight(
                             delta: delta,
                             totalHeight: geo.size.height
                         )
@@ -110,9 +113,10 @@ struct LayoutShellView: View {
         return HStack(spacing: 0) {
             panel(.topLeft, width: split.0)
             if vm.isVisible(.topLeft) && vm.isVisible(.topCenter) {
-                // LT-01-fix13: closure return VM Bool (= applied), 见上注释。
+                // LT-01-fix13: 同上 — VM 返回 Bool 但 NativeSplitter
+                // `(CGFloat) -> Void` 不消费, discardableResult 调用。
                 NativeSplitter(orientation: .horizontal) { delta in
-                    return vm.adjustUpperColumn(
+                    vm.adjustUpperColumn(
                         splitterIndex: 0,
                         delta: delta,
                         totalWidth: totalWidth
@@ -122,7 +126,7 @@ struct LayoutShellView: View {
             panel(.topCenter, width: split.1)
             if vm.isVisible(.topCenter) && vm.isVisible(.topRight) {
                 NativeSplitter(orientation: .horizontal) { delta in
-                    return vm.adjustUpperColumn(
+                    vm.adjustUpperColumn(
                         splitterIndex: 1,
                         delta: delta,
                         totalWidth: totalWidth
@@ -145,9 +149,9 @@ struct LayoutShellView: View {
         return HStack(spacing: 0) {
             panel(.bottomLeft, width: split.0)
             if vm.isVisible(.bottomLeft) && vm.isVisible(.bottomRight) {
-                // LT-01-fix13: closure return VM Bool (= applied), 见上注释。
+                // LT-01-fix13: 同上 — discardableResult 调用。
                 NativeSplitter(orientation: .horizontal) { delta in
-                    return vm.adjustLowerColumn(
+                    vm.adjustLowerColumn(
                         delta: delta,
                         totalWidth: totalWidth
                     )
