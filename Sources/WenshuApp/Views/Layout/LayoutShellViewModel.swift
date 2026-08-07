@@ -148,11 +148,23 @@ final class LayoutShellViewModel: ObservableObject {
     /// The horizontal splitter between upper and lower bands was dragged
     /// by `delta` pixels (positive = pulled down). Updates ratios[3]
     /// (lower band's fraction of total height).
+    ///
+    /// LT-01-fix6 BUG2 fix: 装机 user 8/7 实机验"中间的上下分割线位置
+    /// 不对". 真根因 = **符号反了**. `ratios[3]` 是**下半**的高度占比,
+    /// 而向下拖 (delta > 0) 意味着上半变大 / 下半变小, 所以必须
+    /// **减去** deltaRatio. 之前写成 `+ deltaRatio`, 分割线朝着跟鼠标
+    /// 相反的方向跑, 越拖偏得越远; 偏掉的比例还被 scheduleSave 落盘
+    /// 到 .ws — 下次冷启动分割线就停在一个跟中点无关的位置
+    /// (装机 user 截图里的 y≈540).
+    ///
+    /// 默认 50:50 由 `LayoutSnapshot.default.ratios[3] == 0.5` 保证.
+    /// 这里保持 ratio-driven (而不是硬编码 0.5), 否则拖拽在标准 5 区
+    /// 模式下会变成无效操作 — 跟"拖动实时变"的验收项直接冲突.
     func adjustBottomHeight(delta: CGFloat, totalHeight: CGFloat) {
         guard totalHeight > 0 else { return }
         let deltaRatio = Double(delta / totalHeight)
         var snap = snapshot
-        snap.ratios[3] = max(0.10, min(0.90, snap.ratios[3] + deltaRatio))
+        snap.ratios[3] = max(0.10, min(0.90, snap.ratios[3] - deltaRatio))
         snapshot = snap
         scheduleSave()
     }
