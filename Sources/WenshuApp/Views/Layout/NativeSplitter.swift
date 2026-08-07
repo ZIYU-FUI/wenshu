@@ -74,6 +74,16 @@ final class NativeSplitterView: NSView {
     /// 是 NSSplitView 默认值。
     static let hitAreaThickness: CGFloat = 8
 
+    /// 当前鼠标是否位于整个 divider hit area 内。
+    /// 用于 hover 高亮, 并在 mouseExited 时清除残留视觉状态。
+    private(set) var isHovered = false
+
+    /// Redraw request counter (用于测试验证 needsDisplay 被触发)。
+    /// production code 设 `needsDisplay = true` 的同一处递增。
+    /// 测试不能用 needsDisplay 直读 (= AppKit 在 runloop 中会重置,
+    /// 没有 NSWindow 时无法稳定观察)。
+    private(set) var redrawRequestCount: Int = 0
+
     /// LT-01-fix7 兜底阈值: drag 累积 < 5px 视为 click, 不调 onDrag。
     /// 来自 `SplitterClickDetector.thresholdPixels` (= 装机 user 拍板)。
     private let clickThreshold: CGFloat = SplitterClickDetector.thresholdPixels
@@ -132,7 +142,10 @@ final class NativeSplitterView: NSView {
             let y = (bounds.height - lineThickness) / 2
             lineRect = NSRect(x: 0, y: y, width: bounds.width, height: lineThickness)
         }
-        NSColor.separatorColor.setFill()
+        let dividerColor = isHovered
+            ? NSColor.controlAccentColor
+            : NSColor.separatorColor
+        dividerColor.setFill()
         lineRect.fill()
     }
 
@@ -150,8 +163,7 @@ final class NativeSplitterView: NSView {
         }
         let options: NSTrackingArea.Options = [
             .mouseEnteredAndExited,
-            .activeInActiveApp,
-            .inVisibleRect
+            .activeInKeyWindow
         ]
         addTrackingArea(NSTrackingArea(
             rect: bounds,
@@ -163,19 +175,20 @@ final class NativeSplitterView: NSView {
 
     override func mouseEntered(with event: NSEvent) {
         super.mouseEntered(with: event)
-        // NSSplitView 内置 cursor: 水平拖 → resizeLeftRight,
-        // 垂直拖 → resizeUpDown。这是 NSWindow 默认 cursor 栈管理
-        // (= push/pop), AppKit 会自动恢复, 不需要 mouseExited 手动 reset。
-        let cursor: NSCursor = (orientation == .horizontal)
-            ? .resizeLeftRight
-            : .resizeUpDown
-        cursor.push()
+        isHovered = true
+        Self.cursorForOrientation(orientation).push()
+        redrawRequestCount += 1
+        needsDisplay = true
     }
 
     override func mouseExited(with event: NSEvent) {
         super.mouseExited(with: event)
-        // pop 之前 push 的 cursor (= NSSplitView 内部行为)。
+        isHovered = false
+        // Pair this with mouseEntered's push so the previous cursor is restored
+        // as soon as the pointer leaves the complete divider hit area.
         NSCursor.pop()
+        redrawRequestCount += 1
+        needsDisplay = true
         // 鼠标拖到窗口外再回来, drag 状态不应残留 (= fix7 路径 B 兜底)。
         if !isDragging {
             lastReported = 0
