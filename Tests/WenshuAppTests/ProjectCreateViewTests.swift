@@ -61,11 +61,13 @@ final class ProjectCreateViewTests: XCTestCase {
     /// / `.focused($tagsFocused)` modifier chains. If any of those stop
     /// compiling on this macOS SDK, this test fails to build and CC
     /// must escalate per the WO-006 upgrade path.
-    func testProjectCreateView_compilesWithFocusState() {
+    func testProjectCreateView_compilesWithFocusState() async {
         // We construct with no-op closures so the closures themselves
         // don't pull in unrelated dependencies. The assertion is purely
-        // "the type-checks".
-        let view = ProjectCreateView(
+        // "the type-checks". `async` so the @MainActor init call is
+        // legal under Swift 6 strict concurrency (WO-006 baseline was
+        // Swift 5; this method now needs the actor hop).
+        let view = await ProjectCreateView(
             onCreate: { _ in },
             onCancel: { }
         )

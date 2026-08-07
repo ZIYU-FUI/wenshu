@@ -194,6 +194,7 @@ final class LT01Fix16Tests: XCTestCase {
         view.onDrag = { delta in
             dragCount += 1
             lastDelta = delta
+            return true
         }
 
         // 1. mouseDown at center of 1pt hit area (x=0.5, y=50)。

@@ -70,7 +70,7 @@ final class LT01Fix14Tests: XCTestCase {
         view.orientation = .horizontal
 
         var dispatched: [CGFloat] = []
-        view.onDrag = { dispatched.append($0) }
+        view.onDrag = { delta in dispatched.append(delta); return true }
 
         // mouseDown at (0, 50) — dragStart = (0, 50); previousLocation = nil.
         view.mouseDown(with: Self.makeEvent(
@@ -119,7 +119,7 @@ final class LT01Fix14Tests: XCTestCase {
         view.orientation = .horizontal
 
         var finalPosition: CGFloat = 0
-        view.onDrag = { delta in finalPosition += delta }
+        view.onDrag = { delta in finalPosition += delta; return true }
 
         // mouseDown at (0, 50).
         view.mouseDown(with: Self.makeEvent(
@@ -165,7 +165,7 @@ final class LT01Fix14Tests: XCTestCase {
         view.orientation = .horizontal
 
         var dispatched: [CGFloat] = []
-        view.onDrag = { dispatched.append($0) }
+        view.onDrag = { delta in dispatched.append(delta); return true }
 
         // ----- 第一轮 drag 周期 -----
         // mouseDown at (0, 50) — dragStart = (0, 50); previousLocation = nil.

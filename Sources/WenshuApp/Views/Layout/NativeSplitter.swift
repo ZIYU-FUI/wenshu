@@ -120,7 +120,12 @@ final class NativeSplitterView: NSView {
     /// Pixel delta since drag start (positive = drag direction).
     /// 装机 user 拖动时实时回调。
     /// `@MainActor` 因为 NSView 整体在 main thread 用, callback 也会在 main thread 触发。
-    @MainActor var onDrag: ((CGFloat) -> Void)?
+    ///
+    /// 返回 Bool (= "applied" = ratios 真变). 返回 false 表示 VM 已
+    /// clamp 到边界, ratios 没动 — drag handler 必须 reset previousLocation
+    /// 避免 state leak (类似 LT-01-fix7 click 路径重置)。 LT-01-fix13
+    /// 拍板真值 = main 之前 merge 时丢了 fix13 签名, 修复回 (CGFloat) -> Bool。
+    @MainActor var onDrag: ((CGFloat) -> Bool)?
 
     // MARK: - Drag state (private)
 
@@ -435,7 +440,15 @@ final class NativeSplitterView: NSView {
         }
         isDragging = true
         previousLocation = current
-        onDrag?(incremental)
+        // LT-01-fix13: VM 返回 Bool = "applied". false = 已 clamp 到边界,
+        // ratios 没动 — drag handler 必须 reset previousLocation (= 干净
+        // baseline), 避免下次 mouseDragged 算出 spurious 大反向 delta,
+        // 等同 LT-01-fix7 click 路径重置。 main 之前 merge 时丢了 fix13
+        // 签名 + reset 逻辑, 本修复 restore 回 LT-01-fix13 拍板真值。
+        let applied = onDrag?(incremental) ?? true
+        if !applied {
+            previousLocation = nil
+        }
     }
 
     override func mouseUp(with event: NSEvent) {
@@ -494,7 +507,9 @@ final class NativeSplitterView: NSView {
 struct NativeSplitter: NSViewRepresentable {
     let orientation: SplitterOrientation
     /// Pixel delta since drag start (positive = drag direction).
-    let onDrag: (CGFloat) -> Void
+    /// 返回 Bool = "applied" (= ratios 真变). main 之前 merge 时丢了
+    /// LT-01-fix13 的 Bool 签名修复, 本修复 restore 回 `Bool`。
+    let onDrag: (CGFloat) -> Bool
 
     func makeNSView(context: Context) -> NativeSplitterView {
         let view = NativeSplitterView()
