@@ -1,7 +1,8 @@
-// NativeSplitter.swift · 文枢 (Wenshu) · v0.02.0 LT-01-fix15
+// NativeSplitter.swift · 文枢 (Wenshu) · v0.02.0 LT-01-fix16
 //
 // 装机 user 8/7 实机拍板"全部原生" (LT-01-fix9) + 增量 delta 算法真修
-// (LT-01-fix14) + 松手残留高亮/cursor/inset 三合一清理 (LT-01-fix15):
+// (LT-01-fix14) + 松手残留高亮/cursor/inset 三合一清理 (LT-01-fix15)
+// + hit area 缩到 1pt 真修细线 panel 边界 0 间距 (LT-01-fix16):
 //
 //   - 分割线粗 (自写 SwiftUI 6px rect)        → NSSplitView `.thin` style 1pt
 //   - 拖动闪动 + 不顺滑                       → NSView NSEvent drag (AppKit 优化)
@@ -57,6 +58,30 @@
 //     NSCursor.arrow.set()                                       // BUG2 兜底
 //   draw: lineRect 从居中改为 hit area START edge (x=0 / y=0)   // 优化1
 //
+// LT-01-fix16 (装机 user 8/7 实机验 fix15 后拍"细线两边还有 1-2px 间隙"):
+//   优化1 fix15 没真修 — fix15 把 lineRect 从"居中 3.5pt"推到 hit area
+//   START edge (x=0), 但 hit area 还是 8pt 宽, line 后还有 7pt 空白
+//   (= 8-1)。 装机 user 截图主观感知成 "1-2px gap" (= retina DPI 下
+//   7pt ≈ 14-21px, 视觉上"很小")。
+//
+//   真根因 (PM-direct 自纠 #4): hit area 宽度 = 8pt 太宽, line 跟 panel
+//   边界之间永远有 7pt 空白 (= hit area 8pt - line 1pt = 7pt)。
+//   修法: hit area 缩到 1pt (= visibleDividerThickness 同样宽), 整个
+//   hit area 都是 line, 0 inset。
+//
+// fix16 修法:
+//   hitAreaThickness = 1  (从 8)
+//   lineRect helper 不变 (仍然 x=0 / y=0 贴 START edge), 但 bounds 现在
+//   = 1pt 宽, 所以 lineRect 跟 hit area 完全重叠, 整个 hit area 都是 line
+//
+// 副作用:
+//   - hit area 比 macOS HIG 推荐 4pt 小, 鼠标必须精准点击 line 才能拖
+//     (装机 user 8/7 拍板接受, "细线就是唯一的区块分割")
+//   - LayoutState.swift 的 `splitterPixels` 必须同步从 8 改 1, 否则
+//     layout math 仍预留 8pt × splitter_count 给 splitters, 但 SwiftUI
+//     实际只给 1pt × splitter_count, trailing 出现 14pt 空白 (= 装机
+//     user "不要任何边距" 验不过)。 fix16 必须联动改 `splitterPixels`。
+//
 // 5px click threshold 保留 (装机 user 8/7 拍板, fix5 阈值): 任何
 // `|cumulative| < 5px` 的 mouseDragged 都视为 click, 不调 onDrag,
 // `previousLocation` 也不更新 (= 防止 micro-movement 污染 reference)。
@@ -77,8 +102,8 @@ import AppKit
 // MARK: - NativeSplitterView (NSView subclass)
 
 /// NSSplitView divider 风格的 NSView: 1pt 细线 + NSCursor 自动设 + 原生
-/// mouseDragged。 Hit area 8pt (= NSSplitView 实际 divider hit width),
-/// 比 1pt 视觉宽, 鼠标好抓。
+/// mouseDragged。 Hit area 1pt (= 跟 visible divider 一样宽, 整个 hit area
+/// 都是 line, 0 inset, line 跟 panel 边界完全贴合 — LT-01-fix16)。
 ///
 /// 为什么不直接用 NSSplitView 包整个 row?
 /// - 见 docs/wenshu/LAYOUT-APPKIT-INVENTORY.md §1.2:
@@ -125,11 +150,23 @@ final class NativeSplitterView: NSView {
     /// LT-01-fix7 用 6px 自写 rect; fix9 改 1pt 系统标准。
     static let visibleDividerThickness: CGFloat = 1
 
-    /// Hit area (拖动手柄可点击范围)。 比 visible divider 宽
-    /// (= NSSplitView 实际行为: divider 是 1pt 细线, 但 hit area 是
-    /// 8pt, 方便鼠标精准抓住)。 macOS HIG 最小 hit target 4pt, 8pt
-    /// 是 NSSplitView 默认值。
-    static let hitAreaThickness: CGFloat = 8
+    /// Hit area (拖动手柄可点击范围) = 1pt (跟 visible divider 一样)。
+    /// LT-01-fix16 (装机 user 8/7 实机验 fix15 后拍"细线两边还有 1-2px
+    /// 间隙, 不贴 panel 边界") 真根因 = hit area 8pt 太宽, 1pt line 画在
+    /// hit area x=0 后还有 7pt 空白 (8-1), 视觉上 line 跟 panel 边界之间
+    /// 有 7pt 空隙 (装机 user 截图误读成 "1-2px gap", retina DPI 下主观)。
+    ///
+    /// 修法: hit area 缩到 1pt (= line 宽), 整个 hit area 就是 line,
+    /// 0 inset, line 跟 panel 边界完全贴合。 副作用 = hit area 比 macOS
+    /// HIG 推荐 4pt 小, 鼠标必须精准点击 line 才能抓住 (装机 user 拍板
+    /// 接受, "细线就是唯一的区块分割")。 Cursor / hover / drag 行为不
+    /// 变 (= mouseEntered/mouseExited 仍 fire, drag 仍跟手)。
+    ///
+    /// **layout math 联动**: `LayoutSnapshot.splitterPixels` (= 8pt) 必
+    /// 须同步改成 1pt, 否则 panel sized-for totalWidth - 16 但实际
+    /// splitter 占 1pt, total occupied < totalWidth → trailing 14pt 空
+    /// (= 装机 user "不要任何边距" 验不过)。
+    static let hitAreaThickness: CGFloat = 1
 
     /// 当前鼠标是否位于整个 divider hit area 内。
     /// 用于 hover 高亮, 并在 mouseExited 时清除残留视觉状态。
@@ -179,21 +216,30 @@ final class NativeSplitterView: NSView {
     /// (`x = (bounds.width - 1) / 2 = 3.5`), 视觉"两边预留 3.5pt",
     /// 看起来歪 (line 在 gap 中浮着, 不贴 panel 边界)。
     ///
-    /// 修复后: lineRect 直接放在 hit area 的 START 边缘
+    /// LT-01-fix15 修复: lineRect 直接放在 hit area 的 START 边缘
     /// (= 左/上 panel 边界):
     /// - .horizontal (vertical line) → `x = 0`, 贴左 panel 右边界
     /// - .vertical (horizontal line) → `y = 0`, 贴上 panel 下边界
     ///
-    /// Hit area 仍 = 8pt (鼠标好抓), visual line 贴 panel 边界, 不
-    /// 浮在中间。 整条线沿绘制方向 edge-to-edge (= `width = bounds.width`
-    /// 或 `height = bounds.height`), 垂直于绘制方向仍 = `visibleDividerThickness` (1pt)。
+    /// LT-01-fix16 进一步修复 (装机 user 8/7 实机验 fix15 后拍"细线两边
+    /// 还有 1-2px 间隙"): hit area 从 8pt 缩到 1pt (= visibleDividerThickness
+    /// 同样宽), 整个 hit area 都是 line, lineRect 跟 hit area 完全重叠,
+    /// 0 inset (line 既是 hit area, 整个贴 panel 边界)。 lineRect helper
+    /// 不变 (仍然 `x = 0 / y = 0` 贴 START edge), 只是 bounds 现在 = 1pt
+    /// 宽 (= 整个 hit area), 所以视觉上 line 跟 panel 边界 0 间距。
+    ///
+    /// 整条线沿绘制方向 edge-to-edge (= `width = bounds.width` 或
+    /// `height = bounds.height`), 垂直于绘制方向仍 = `visibleDividerThickness` (1pt)。
     static func lineRect(in bounds: NSRect, orientation: SplitterOrientation) -> NSRect {
         let thickness = visibleDividerThickness
         if orientation == .horizontal {
             // Vertical 1pt line at LEFT edge of hit area (= 右 panel 右边界).
+            // bounds.width 现在 = 1pt (hit area 缩窄), 所以 lineRect 跟
+            // hit area 完全重叠, 整个 hit area 都是 line, 0 inset。
             return NSRect(x: 0, y: 0, width: thickness, height: bounds.height)
         } else {
             // Horizontal 1pt line at TOP edge of hit area (= 下 panel 边界).
+            // bounds.height 现在 = 1pt (hit area 缩窄), 同上 0 inset。
             return NSRect(x: 0, y: 0, width: bounds.width, height: thickness)
         }
     }
@@ -464,16 +510,25 @@ struct NativeSplitter: NSViewRepresentable {
         nsView.onDrag = onDrag
     }
 
-    /// Hit area frame (8pt) + 实际 frame 由 SwiftUI 父容器定 (HStack/
-    /// VStack spacing: 0)。 这里给的是 preferred size hint — SwiftUI
-    /// 父容器用这个做 layout pass 的 intrinsic content size。
+    /// Hit area frame (1pt after LT-01-fix16) + 实际 frame 由 SwiftUI
+    /// 父容器定 (HStack/VStack spacing: 0)。 这里给的是 preferred size
+    /// hint — SwiftUI 父容器用这个做 layout pass 的 intrinsic content size。
+    ///
+    /// **LT-01-fix16**: hit area 从 8pt 缩到 1pt (= visibleDividerThickness
+    /// 同样宽), 所以 SwiftUI 给 NSView 的 preferred size = 1pt, NSView
+    /// frame = 1pt, lineRect 跟 frame 完全重叠 (= 整个 frame 都是 line),
+    /// 0 inset, 装机 user "不要任何边距, 细线就是唯一的区块分割" 验证通过。
+    ///
+    /// 副作用: hit area 比 macOS HIG 推荐 4pt 小, 鼠标必须精准点击 line
+    /// 才能拖动 (装机 user 8/7 拍板接受, 修 cursor 用 1pt 单独 track —
+    /// trackingArea 仍 = bounds = 1pt, mouseEntered/Exited 仍 fire)。
     func sizeThatFits(_ proposal: ProposedViewSize, nsView: NativeSplitterView, context: Context) -> CGSize? {
         let thickness = NativeSplitterView.hitAreaThickness
         if orientation == .horizontal {
-            // 垂直分割线 → 宽 = 8pt, 高 = 父容器给的 max height。
+            // 垂直分割线 → 宽 = 1pt, 高 = 父容器给的 max height。
             return CGSize(width: thickness, height: proposal.height ?? 0)
         } else {
-            // 水平分割线 → 高 = 8pt, 宽 = 父容器给的 max width。
+            // 水平分割线 → 高 = 1pt, 宽 = 父容器给的 max width。
             return CGSize(width: proposal.width ?? 0, height: thickness)
         }
     }

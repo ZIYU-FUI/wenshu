@@ -38,7 +38,8 @@ final class LT01Fix9Tests: XCTestCase {
 
     /// NSSplitView `.thin` dividerStyle 是 1pt (= LT-01-fix7 自写 6px
     /// rect 的根治)。 NativeSplitterView 暴露 `visibleDividerThickness`
-    /// (= 1) + `hitAreaThickness` (= 8, NSSplitView 默认 hit 区域),
+    /// (= 1) + `hitAreaThickness` (= 1, LT-01-fix16 跟 visible 一样宽,
+    /// 整个 hit area 都是 line, 0 inset),
     /// 装机 user 实机验"分割线细细一条"的 source-level 保证。
     ///
     /// 不调 draw(): 没 NSWindow context 时 draw 会 trap (= 测试 runner
@@ -51,19 +52,21 @@ final class LT01Fix9Tests: XCTestCase {
             "visible divider 必须是 1pt (= NSSplitView .thin style, 不是 6px 自写)"
         )
 
-        // Hit area 比 visible 宽 — NSSplitView 实际行为 (1pt 线, 8pt hit)。
+        // LT-01-fix16: hit area 缩到 1pt 跟 visible 一样宽, 整个 hit area
+        // 都是 line, 0 inset, line 跟 panel 边界完全贴合。 不变量保持:
+        // hit area ≥ visible (= 等于)。
         XCTAssertGreaterThanOrEqual(
             NativeSplitterView.hitAreaThickness,
             NativeSplitterView.visibleDividerThickness,
-            "hit area 必须 ≥ visible divider (= 8pt NSSplitView 默认)"
+            "hit area 必须 ≥ visible divider (LT-01-fix16: hit area 跟 visible 一样宽 = 1pt)"
         )
         XCTAssertEqual(
-            NativeSplitterView.hitAreaThickness, 8,
-            "hit area = 8pt (NSSplitView 默认值, 装机 user 鼠标好抓)"
+            NativeSplitterView.hitAreaThickness, 1,
+            "hit area = 1pt (LT-01-fix16: hit area 跟 visible divider 同样宽, 整个 hit area 都是 line, 0 inset)"
         )
 
         // 实例化 + 验证 NSView 子类 init 路径不 crash + 关键 flag。
-        let frame = NSRect(x: 0, y: 0, width: 8, height: 200)
+        let frame = NSRect(x: 0, y: 0, width: 1, height: 200)
         let view = NativeSplitterView(frame: frame)
         view.orientation = .horizontal
         XCTAssertTrue(view.wantsLayer, "wantsLayer 必须 = true (1pt 细线走 CALayer)")

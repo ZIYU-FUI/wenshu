@@ -106,15 +106,21 @@ struct LayoutSnapshot: Codable, Sendable, Equatable {
     static let bottomCollapsedPixels: Double = 30
 
     /// Visual width / height of a single draggable splitter bar.
-    /// Sized for a 6px drag target on macOS (Apple HIG minimum is 4px,
-    /// but 6px is more forgiving for the FCP-style double-click chevron
-    /// gesture landing on a hit target that overlaps with the bar).
+    /// Sized for a 1pt drag target on macOS (= LT-01-fix16, hit area 跟
+    /// visible divider 一样宽, 整个 hit area 都是 line, 0 inset — 装机
+    /// user 8/7 实机拍板"细线就是唯一的区块分割, 不要任何边距")。
     /// Width reserved in layout math for a single draggable splitter.
-    /// LT-01-fix9: 与 `NativeSplitterView.hitAreaThickness` (= 8pt, NSSplitView
-    /// 默认 hit 区域) 同步 — 否则 `upperBand`/`lowerBand` 的 HStack layout
-    /// 会比 totalWidth 多溢出 2pt × splitter_count (= 4 个 splitter × 2pt
-    /// = 8pt 总量溢出)。 LT-01-fix7 之前是 6px (= 自写 rect 视觉宽)。
-    static let splitterPixels: Double = 8
+    ///
+    /// LT-01-fix16: 跟 `NativeSplitterView.hitAreaThickness` (= 1pt, 同步从
+    /// 8pt 缩窄) 严格同步 — 否则 `upperBand`/`lowerBand` 的 HStack layout
+    /// math 会预留 8pt × splitter_count 给 splitters, 但 SwiftUI 实际只给
+    /// 1pt × splitter_count (= NSView frame), totalWidth 末尾出现 trailing
+    /// 空白 (= 7pt × splitter_count = upper 14pt + lower 7pt = 总 21pt)。
+    /// 装机 user "0 间距 (上下左右都贴)" 验收就过不了。
+    ///
+    /// LT-01-fix9 时是 8pt (NSSplitView 默认 hit 区域), LT-01-fix7 之前是
+    /// 6px (= 自写 rect 视觉宽)。
+    static let splitterPixels: Double = 1
 
     // MARK: - JSON helpers (the persistence contract)
 
