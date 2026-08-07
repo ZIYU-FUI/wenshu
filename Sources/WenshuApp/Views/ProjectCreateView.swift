@@ -1,4 +1,4 @@
-// ProjectCreateView.swift · 文枢 (Wenshu) · v0.01.0 WO-004
+// ProjectCreateView.swift · 文枢 (Wenshu) · v0.01.0 WO-004 → WO-007
 //
 // Modal sheet for creating a new project. Captures:
 // - 项目名 (required)
@@ -8,6 +8,18 @@
 //
 // On "创建" it emits a `ProjectSnapshot` via the `onCreate` closure.
 // On "取消" it emits nothing and lets the parent dismiss the sheet.
+//
+// WO-006 fix (kept):@FocusState + 自动 focus,让 TextField 视觉激活同时
+// 真正拿到 first responder。
+//
+// WO-007 fix(Spec 方案 A):SwiftUI sheet on macOS 在 parent app
+// 不是 foreground 时偶尔抢不到 key window(装机 user 8/7 反馈:在
+// Hermes/飞书 focus 时点 +,sheet 视觉激活,键盘事件路由回原 key app)。
+// 根因:Sheet 的 NSWindow 在 parentWindow.makeKeyAndOrderFront 前没自己
+// makeKey,AppKit dispatch 走错。修法:sheet .onAppear 调
+// `WindowActivation.forceKeyToWenshuSheet()`,0.3s 后强制
+// `NSWindow.makeKey()`,再叠加 WO-006 的 @FocusState auto-focus。
+// 装机器 user 实机验过才算完。
 
 import SwiftUI
 
@@ -37,6 +49,13 @@ struct ProjectCreateView: View {
         }
         .frame(minWidth: 520, minHeight: 480)
         .onAppear {
+            // WO-007 fix(Solution A)— 强制 sheet NSWindow makeKey,
+            // 抢回 key window 状态,key event 才路由到 sheet 而非原 key app。
+            // 0.3s delay 错开 sheet 动画 + WO-006 focus 节奏。
+            WindowActivation.forceKeyToWenshuSheet()
+
+            // WO-006 fix:Form sheet TextField 视觉激活但键盘路由断
+            // → 加 @FocusState + 自动 focus。装机 user 8/7 反馈。
             // 延迟 0.3s:Form sheet 弹出动画期间 SwiftUI 焦点路由会丢,
             // 等动画完再抢焦点,输入路由才真通。
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {

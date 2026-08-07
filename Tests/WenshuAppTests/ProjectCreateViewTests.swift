@@ -1,6 +1,6 @@
-// ProjectCreateViewTests.swift · 文枢 (Wenshu) · v0.01.0 WO-006
+// ProjectCreateViewTests.swift · 文枢 (Wenshu) · v0.01.0 WO-006 → WO-007
 //
-// Compile-time + behavior smoke test for the WO-006 focus fix.
+// Compile-time + behavior smoke test for the WO-006/WO-007 focus fix.
 //
 // Why this test exists (per WO-006 spec):
 // 1. Confirms `@FocusState` + `.focused(_:)` compiles on macOS
@@ -11,12 +11,20 @@
 //    the field the 装机 user types into, so it must keep working after
 //    the focus refactor.
 //
+// WO-007 additions:
+// 3. Compile-time guard for `WindowActivation.forceKeyToWenshuSheet()`
+//    (regression guard: if a future refactor removes AppKit import or
+//    renames the method, this test fails to build and CC must escalate).
+//
 // What this test does NOT do:
 // - Drive the actual sheet (no XCUIApplication / cua-driver here; PM-direct
-//   verifies the runtime input route per the WO-006 spec).
+//   verifies the runtime input route per the WO-006/WO-007 spec).
 // - Touch FocusState at runtime (FocusState only resolves inside a real
 //   SwiftUI window; instantiating the view in a unit test without a host
 //   would crash). We only assert structural invariants.
+// - Invoke `forceKeyToWenshuSheet()` at runtime (it depends on NSApp which
+//   is only populated in a real Cocoa app; calling it in a XCTest context
+//   would hang on DispatchQueue.main.asyncAfter with no runloop).
 
 import XCTest
 @testable import WenshuApp
@@ -62,5 +70,25 @@ final class ProjectCreateViewTests: XCTestCase {
             onCancel: { }
         )
         XCTAssertNotNil(view, "ProjectCreateView must instantiate without crashing")
+    }
+
+    // MARK: - WO-007: WindowActivation compile-time guard
+
+    /// Compile-time regression guard: ensure `WindowActivation.forceKeyToWenshuSheet()`
+    /// is callable and the `enum WindowActivation { static func ... }` shape survives
+    /// a future refactor. We do NOT invoke it (it schedules a `DispatchQueue.main.asyncAfter`
+    /// which would never fire in a pure XCTest context without an `NSApplication` run loop
+    /// — calling it here would at best silently do nothing, at worst hang the test
+    /// runner). The assertion is purely "the symbol exists".
+    ///
+    /// Per WO-007 spec this is optional ("不强求"); included because it's cheap and
+    /// protects against future refactors accidentally dropping the AppKit import.
+    func testWindowActivation_compileTimeGuard() {
+        // Touch the symbol via a closure so the compiler emits a reference
+        // without invoking it at test-run time.
+        let callable: () -> Void = {
+            WindowActivation.forceKeyToWenshuSheet()
+        }
+        XCTAssertNotNil(callable, "WindowActivation.forceKeyToWenshuSheet must be a callable () -> Void symbol")
     }
 }
