@@ -62,6 +62,17 @@ func makeWenshuModel() -> NSManagedObjectModel {
             attribute("model", .stringAttributeType),
             attribute("createdAt", .dateAttributeType),
             attribute("finalizedChapterID", .UUIDAttributeType, optional: true)
+        ]),
+        // WO-LT-01: 5-zone layout state (AGENTS.md §8.1).
+        // Per LT-01 spec the entity carries exactly 2 string columns — JSON
+        // blobs — for the 5 panels' collapsed/expanded flags and the 5
+        // splitter ratios. See Sources/WenshuApp/Models/LayoutState.swift
+        // for the in-memory Codable representation.
+        //
+        // "不动 现有 7 个 entity" per LT-01 spec: only ADD this one.
+        entity("CDLayoutState", properties: [
+            attribute("panel_states", .stringAttributeType, optional: true, defaultValue: ""),
+            attribute("panel_ratios", .stringAttributeType, optional: true, defaultValue: "")
         ])
     ]
     return model
