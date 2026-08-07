@@ -176,7 +176,11 @@ struct LayoutShellView: View {
                 .frame(width: width)
         } else {
             PanelContainer(panelID: id) {
-                PlaceholderContent(panel: id)
+                if id == .bottomLeft {
+                    ChatPanelView()
+                } else {
+                    PlaceholderContent(panel: id)
+                }
             }
             .frame(width: width)
         }
