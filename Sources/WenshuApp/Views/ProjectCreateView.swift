@@ -1,4 +1,15 @@
-// ProjectCreateView.swift · 文枢 (Wenshu) · v0.01.0 WO-004 → WO-007
+// ProjectCreateView.swift · 文枢 (Wenshu) · v0.01.0 WO-004 → WO-007 → v0.03.0 V0-fix-1 (Fix D)
+//
+// V0-fix-1 Fix D (装机 user 8/10 拍板): modal 尺寸由
+// `.frame(minWidth: 520, minHeight: 480)` (软下限, 用户能拖大) 改成
+// `.frame(width: 540, height: 480)` (硬固定, 用户拖不动)。 装机 user
+// 实机反馈: 520×480 软下限在 split view 里用户拽边界, modal 跟着主
+// window 一起变形, 比例失调; 锁死 540×480 后视觉稳定, 跟 macOS HIG
+// 标准 modal 尺寸 (≈ Pages 新建文档 / Numbers 新建表格) 对齐。
+//
+// Sheet does NOT block main window — user 可透过 sheet 看到后面
+// LayoutShellView (FCP inspector sheet 风格), SwiftUI 默认 sheet 即此
+// 行为, 不需额外修饰符.
 //
 // Modal sheet for creating a new project. Captures:
 // - 项目名 (required)
@@ -47,7 +58,9 @@ struct ProjectCreateView: View {
             Divider()
             actionBar
         }
-        .frame(minWidth: 520, minHeight: 480)
+        // V0-fix-1 Fix D: 540x480 硬固定 (原 520x480 软下限被装机 user
+        // 拍板撤换 — 软下限在 split view 里视觉跟主窗口变形)。
+        .frame(width: 540, height: 480)
         .onAppear {
             // WO-007 fix(Solution A)— 强制 sheet NSWindow makeKey,
             // 抢回 key window 状态,key event 才路由到 sheet 而非原 key app。
