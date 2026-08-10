@@ -1,4 +1,4 @@
-// ProjectListView.swift · 文枢 (Wenshu) · v0.01.0 WO-004 → WO-010 → v0.03.0 V0-fix-4
+// ProjectListView.swift · 文枢 (Wenshu) · v0.01.0 WO-004 → WO-010 → v0.03.0 V0-fix-4 → V0-fix-5
 //
 // V0-fix-4 Fix 2: 5 tab 容器重写 (项目 / 章节 / 设定 / 资料 / 看板),
 // 沿 LT-03 v2 拍板 (5 tab 用文字标签, 走 .pickerStyle(.segmented),
@@ -7,6 +7,15 @@
 // 觉冗余 (FCP 范式 = 单 + 入口)。 + 按钮接 NavigationStack push 进
 // AppRoute.createProject (沿 v0.01.0 WO-010 拍板 — macOS HIG 主路由,
 // 不走 sheet)。
+//
+// V0-fix-5: 5 tab Picker 从 ProjectListView 内部搬到
+// LayoutShellView.topLeftHeaderBar 跨全宽 header bar 内, 与 + 按钮
+// 平级 (同 38pt 高, + 按钮在左, 5 tab 在右) — 拍板真值沿 V0-fix-4
+// designer (1a09cd550) §5 + AGENTS §8.1 + FCP toolbar 范式。 本视图
+// 改接 `@Binding activeTab` (共享 LayoutShellView 顶层 state), 内部
+// 不再有 Picker。 `ProjectManagementTab` enum + 5 SF Symbol 字面量
+// + 5 tab 文字字面量 全部保留 (供 LayoutShellView topLeftHeaderBar
+// 引用)。
 //
 // Tab 1 (项目): 沿 v0.01.0 projectList/emptyState/projectRow + 接
 //               NavigationStack 共享 navPath 跳 chat (下左 ChatPanelView)。
@@ -37,25 +46,18 @@ enum ProjectManagementTab: String, CaseIterable, Identifiable {
 struct ProjectListView: View {
     @Binding var projects: [ProjectSnapshot]
     @Binding var navPath: NavigationPath
-    @State private var activeTab: ProjectManagementTab = .projects
+    // V0-fix-5: activeTab 改为 @Binding, 由 LayoutShellView 顶层持有
+    // (@State activeTab), 共享同一 state — 5 tab Picker 在 LayoutShellView
+    // .topLeftHeaderBar 内, 内容区 (本视图) 接 binding 切 tabContent。
+    @Binding var activeTab: ProjectManagementTab
 
     var body: some View {
-        VStack(spacing: 0) {
-            Picker("", selection: $activeTab) {
-                ForEach(ProjectManagementTab.allCases) { tab in
-                    Text(tab.rawValue).tag(tab)
-                }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-
-            Divider()
-
-            tabContent
-                .frame(maxHeight: .infinity)
-        }
+        // V0-fix-5: 删 V0-fix-4 留下的 Picker.segmented 整段 (沿 V0-fix-4
+        // 拍板的"5 tab 与 + 按钮平级"应在 header bar 而非 panel 内) —
+        // 拍板真值: 5 tab Picker 在 LayoutShellView.topLeftHeaderBar, tab
+        // 内容在本视图 body 内。 本视图只渲染 tab 内容, 不再含 Picker。
+        tabContent
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     @ViewBuilder

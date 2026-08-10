@@ -1,4 +1,4 @@
-// LayoutShellView.swift · 文枢 (Wenshu) · v0.02.0 WO-LT-01 → LT-01-fix9
+// LayoutShellView.swift · 文枢 (Wenshu) · v0.02.0 WO-LT-01 → LT-01-fix9 → V0-fix-5
 //
 // 5-zone shell — the root of the macOS window in v0.02.0.
 //
@@ -24,6 +24,15 @@
 // NSCursor 自动设 + NSEvent 原生 drag). Drop-in 替换, 调用接口一致
 // (`orientation` + `onDrag` closure), LayoutShellView 的 VStack/HStack
 // 结构不变。 见 docs/wenshu/LAYOUT-APPKIT-INVENTORY.md §1.1-1.2。
+//
+// V0-fix-5 (8/10 17:35 CUA 自验拍 V0-fix-4 commit 41646b01 漏修): 5
+// tab Picker 从 ProjectListView 内部搬到 LayoutShellView.topLeftHeaderBar
+// 跨全宽 header bar 内, 与 + 按钮平级 (同 38pt 高, + 按钮在左, 5 tab
+// 在右) — 拍板真值沿用 V0-fix-4 designer (1a09cd550) §5 + AGENTS
+// §8.1 + FCP 范式 "5 tab 与 + 按钮平级"。 topLeftHeaderBar 改持
+// `@State activeTab: ProjectManagementTab` + Picker.segmented, 共享
+// binding 给 panel(.topLeft) 调的 ProjectListView — ProjectListView
+// 改 `@Binding activeTab`, 内部不再有 Picker。
 //
 // Splitters (see LayoutShellViewModel for delta math):
 //   - 2 vertical in upper row (between topLeft↔topCenter, topCenter↔topRight)
@@ -55,6 +64,11 @@ struct LayoutShellView: View {
     // V0-fix-4 Fix 2: topLeft 5 tab 容器 (ProjectListView) 需要的项目列表
     // — 后续 WenshuStoreActor 接 .ws 后,这里换成 vm 持有 + onChange 同步。
     @State private var projects: [ProjectSnapshot] = []
+
+    // V0-fix-5: 5 tab Picker state 升到 LayoutShellView 顶层, 由
+    // topLeftHeaderBar (跨全宽 38pt bar) 持 Picker.segmented, 与 + 按钮
+    // 平级。 ProjectListView 接 @Binding activeTab, 共享同一 state。
+    @State private var activeTab: ProjectManagementTab = .projects
 
     var body: some View {
         NavigationStack(path: $navPath) {
@@ -155,17 +169,24 @@ struct LayoutShellView: View {
         }
     }
 
-    // MARK: - Top header bar (V0-fix-4 Fix 1 + Fix 3)
+    // MARK: - Top header bar (V0-fix-4 Fix 1 + Fix 3 → V0-fix-5 5 tab Picker 升 header)
 
     /// 顶部跨全宽 38pt 标题栏 (AIF 16:40 拍板 — 替换 v0.02.0 顶部"文枢"标
-    /// 题文字,FCP toolbar 风格: 红黄绿 traffic lights 后接 + 按钮 + 5 tab 容
-    /// 器 + Spacer)。 + 按钮接 NavigationStack push → AppRoute.createProject
-    /// (V0-fix-4 Fix 3 — 沿 v0.01.0 WO-010 拍板主路由 push)。
+    /// 题文字,FCP toolbar 风格: 红黄绿 traffic lights 后接 + 按钮 + 5 tab
+    /// Picker + Spacer)。 + 按钮接 NavigationStack push → AppRoute.
+    /// createProject (V0-fix-4 Fix 3 — 沿 v0.01.0 WO-010 拍板主路由 push)。
+    ///
+    /// V0-fix-5 拍板: 5 tab Picker (项目 / 章节 / 设定 / 资料 / 看板) 从
+    /// ProjectListView 内部搬到这里 — 与 + 按钮平级 (同 38pt 高, + 按钮
+    /// 在左, 5 tab Picker 在右) — 视觉对齐 FCP toolbar 范式 + 拍板真值
+    /// (1a09cd550) §5。 ProjectListView 改接 `@Binding activeTab` 共享同一
+    /// state。 Picker 走 `.pickerStyle(.segmented)` 文字标签, 跟 chat /
+    /// inspector tab 风格刻意区分 (沿 V0-fix-3 Fix J 拍板)。
     private var topLeftHeaderBar: some View {
         HStack(spacing: 12) {
+            // V0-fix-4 Fix 3: + 按钮接 NavigationStack push 到
+            // AppRoute.createProject (沿 v0.01.0 WO-010 拍板)。
             Button {
-                // V0-fix-4 Fix 3: + 按钮接 NavigationStack push 到
-                // AppRoute.createProject (沿 v0.01.0 WO-010 拍板)。
                 navPath.append(AppRoute.createProject)
             } label: {
                 Image(systemName: "plus.circle.fill")
@@ -174,6 +195,19 @@ struct LayoutShellView: View {
             }
             .buttonStyle(.plain)
             .help("新建项目")
+
+            // V0-fix-5: 5 tab Picker (项目 / 章节 / 设定 / 资料 / 看板)
+            // 升到 header bar 内, 与 + 按钮平级 — 拍板真值见本函数 doc
+            // comment 头部。 文字标签 + Picker.segmented 跟 chat /
+            // inspector tab 风格刻意区分 (沿 V0-fix-3 Fix J 拍板)。
+            Picker("", selection: $activeTab) {
+                ForEach(ProjectManagementTab.allCases) { tab in
+                    Text(tab.rawValue).tag(tab)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .fixedSize()
 
             Spacer(minLength: 0)
         }
@@ -276,10 +310,17 @@ struct LayoutShellView: View {
                     // sheet / NavigationStack push — 见 AGENTS §6。
                     InspectorView()
                 } else if id == .topLeft {
-                    // V0-fix-4 Fix 2: topLeft panel 渲染 ProjectListView
-                    // 5 tab 容器 (项目 / 章节 / 设定 / 资料 / 看板),
-                    // 共享 LayoutShellView 顶层的 projects + navPath。
-                    ProjectListView(projects: $projects, navPath: $navPath)
+                    // V0-fix-5: ProjectListView 容器跨 header bar + panel(.topLeft)
+                    // 双区 — 5 tab Picker 在 header bar (topLeftHeaderBar),
+                    // tab 内容 (项目列表 / 章节树 / 设定 / 资料 / 看板) 在
+                    // panel 内, 共享 activeTab binding (顶层 LayoutShellView
+                    // @State, header bar 持有 Picker, panel 内 ProjectListView
+                    // 接 binding)。
+                    ProjectListView(
+                        projects: $projects,
+                        navPath: $navPath,
+                        activeTab: $activeTab
+                    )
                 } else {
                     PlaceholderContent(panel: id)
                 }
