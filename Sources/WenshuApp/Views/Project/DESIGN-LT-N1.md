@@ -1,557 +1,628 @@
-# DESIGN-LT-N1 · 项目管理 UI 设计稿(左上区, 区块模块化)
+# DESIGN-LT-N1 · 文枢 (Wenshu) · v0.02.0 LT-N1
 
-> **任务**:[V0.02.0 LT-N1-designer] 项目管理 UI 设计稿(左半 + 区块模块化完整, AIF LT-N1~N5 第一张迭代卡)
-> **拍板真值**:AGENTS.md §3 (场景驱动 / 区块模块化 / 迭代可独立运行) + §8.1 (5 区 layout) + §5 (CC 写代码边界)
-> **designer**:出 SwiftUI UI 设计意图 + token + 组件 API 建议 + WenshuProjectStore 增强 API 建议。**不写代码**。
-> **落盘路径**:`Sources/WenshuApp/Views/Project/DESIGN-LT-N1.md`
-> **拍板真值**:2026-08-10 AGENTS.md §3 + §8.1 (v0.02.0 LT-01 + fix17/18/19 合并后)
+> **designer 产物** — 只出设计稿,不动 .swift / .ws schema / Package.swift
+> **覆盖范围**:左半(5 区 layout 的 `topLeft`)独立 App 模块 = 项目管理(项目 / 章节 / 设定 / 资料 / 看板 5 tab)
+> **依赖**:LT-01 已实装的 5 区 shell (`LayoutShellView` + `PanelContainer.topLeft`) + 现有 v0.01.0 `ProjectSnapshot` + `ProjectListView` / `ProjectCreateView` + 现有 `WenshuProjectStore` 的 tag-scoping 策略
+> **设计基准**:AGENTS §8.1(5 区几何 + 折叠 + 拖拽)+ AGENTS §12 红线(CC 不改 .ws schema)+ 8/7 装机 user OOB 拍板("看板是本项目所有信息的入口" 落到 topLeft 5 tab 中)
 
 ---
 
-## 0. 任务边界矛盾点(designer 不能拍, 必升级)
+## 0. 边界确认(designer 拍板前自查)
 
-读了 `Sources/WenshuApp/Persistence/WenshuStoreActor.swift` (255 行全) + `Layout/PlaceholderContent.swift` + `Layout/LayoutShellViewModel.swift` 第 319 行 PanelID enum + AGENTS §12 红线 + fix17/18/19 commit,发现**任务 body 跟现状有 4 处冲突**。designer 把它们标在这里,**等 PM / 装机 user 拍板**,不擅自选边。
+| 边界 | 本卡状态 | 备注 |
+|------|----------|------|
+| 改 `.swift` 文件 | ❌ 不动 | designer 不写代码 |
+| 改 `WenshuStoreActor` / `ModelDefinitions.swift` schema | ❌ 不动 | 红线 → 升 AIF |
+| 改 `Package.swift` / `Info.plist` / `swift-tools-version` / `platforms` | ❌ 不动 | 派单边界 |
+| 改 `AGENTS.md` / `CLAUDE.md` / `README.md` | ❌ 不动 | PM 改 |
+| 改 v0.02.0 LT-01 已实装的 5 区 layout / `LayoutShellView` / `NativeSplitter` / `PanelContainer` | ❌ 不动 | 本卡是 LT-01 之上叠,不动 shell |
+| 改 fix19 已实现的菜单 (`WenshuAppCommands` + `LayoutCommands`) / 聊天区 (`ChatPanelView`) / 编辑器大纲 (`PlaceholderContent.topCenter`) | ❌ 不动 | 已实现不重做 |
+| 复用现有 v0.01.0 `ProjectListView` / `ProjectCreateView` | ✅ 复用作内部组件 | 本卡把它们组装进新 tab 容器,**不重写它们的内层视觉** |
+| 新增 `ProjectBrowserView`(topLeft 入口) + `ProjectDetailView`(push destination) + `ChapterTreeView`(章节 tab) | ✅ 设计稿 | CC 实现 |
 
-### 矛盾 1: 任务 body "WenshuProjectStore 增强 loadAll() / create() / delete()" 越界 — 需要新增 CDProject entity
-
-- **事实**:`WenshuStoreActor.swift:98-107` `countAll()` 里枚举了 `[CDCharacter, CDChapter, CDNote, CDWorldRule, CDForeshadow, CDRevision, CDAIDraft]` — **没有 CDProject**。`WenshuProjectStore.save()` (v0.01.0 WO-005) 是把 project id 当作 `CDNote.tags` 字符串(`"project-\(uuid)"`)存,**没有独立的 project 行**。
-- **任务 body**:「3. WenshuProjectStore 增强 API · loadAll() / create() / delete()」 — 这暗示 loadAll 列出所有 projects, create 创建新 project, delete 删除 project。要支持这 3 个方法,**必须有 CDProject entity**(id, name, style, verbosity, tags, createdAt)。
-- **冲突**:**AGENTS §12 红线**明确「CC → 改 `.ws` schema(增删 entity/字段类型)严禁(改 = 越界, 归 PM)」。新增 CDProject entity = schema 改动,**归 PM-direct 拍, 不是 LT-N1 的范围**。
-- **可能的真意**:
-  - 读法 A:任务 body 暗示 LT-N1 完成时同步建 CDProject entity, PM-direct 已默认授权(违反 §12 红线的隐含授权)。
-  - 读法 B:LT-N1 不动 schema, 只用现有 `CDNote.tags = "project-uuid"` 反查。先把 `WenshuProjectStore.listAll() / createFromSnapshot() / deleteByID()` 跑起来,**真正的 CDProject schema 留到 PM-direct 后续拍**。
-- **建议**:designer 推荐**读法 B**。理由:(1) 不越界 §12 红线;(2) 用现有 schema 反查能立刻跑通"装机 user 8 步"(开 App → 看项目列表 → 进项目 → 回列表 → 删除),验证 LT-N1 设计;(3) PM-direct 拍 CDProject entity 时,只需把反查换成 fetch,UI 不动。**⚠️ 等 PM-direct 拍**。
-
-### 矛盾 2: 任务 body "左上区项目管理 5 tab" 跟 "5 tab = 项目 / 章节 / 设定 / 资料 / 看板" 的口径差
-
-- **任务 body**:「3. 组件 API 建议 · ProjectDetailView(push destination, 5 tab)」。
-- **AGENTS §8.1**:左上区 = **多 tab: 项目 / 章节 / 设定 / 资料 / 看板**(5 tab)。`LayoutShellView.swift:181` 当前 placeholder 是 `PlaceholderContent` 给的"LT-03 将在此填充: 项目 / 章节 / 设定 / 资料 / 看板"。
-- **冲突**:任务 body 说"项目管理"是 LT-N1 一个卡要出,**但 AGENTS §8.1 + PlaceholderContent 都暗示项目管理 = 左上整个区(包含 5 个 tab)**。两种读法:
-  - 读法 A:LT-N1 = 左上整个区,**5 个 tab 都要出**(项目 + 章节 + 设定 + 资料 + 看板)。这是 AGENTS §8.1 的字面口径。
-  - 读法 B:LT-N1 = 只出 **"项目"tab**(项目列表 + 新建入口),其余 4 tab(章节 / 设定 / 资料 / 看板)留 LT-N2~N5 后续卡。这是任务 body "5 tab" 跟父任务 `t_4c608c99` "AIF LT-N1~N5 第一张" 的字面口径(5 张卡 = 5 个 tab 拆开做)。
-- **判断**:父任务 t_4c608c99 拍板 = "AIF LT-N1~N5 第一张迭代卡"(注释里 "LT-N1~N5" 暗示 5 张卡 = 5 个 tab 拆开),**读法 B 更合父任务拍板**。同时 AGENTS §3「迭代可独立运行」也支持拆开做。
-- **建议**:designer 推荐**读法 B**。LT-N1 = 左上"项目"tab = 项目列表 + 新建按钮 + 项目详情页 5 tab 内的一个入口。LT-N2 = 章节,LT-N3 = 设定,LT-N4 = 资料,LT-N5 = 看板。**⚠️ 等 PM-direct 拍**(这是任务 body 的关键读法,装机 user 可能本来就要 A+B 综合 = LT-N1 包含整个 5 tab 壳子 + 项目 tab 实装)。
-
-### 矛盾 3: 任务 body 不提 `ProjectListView` / `ProjectCreateView` 已存在
-
-- **事实**:`Sources/WenshuApp/Views/ProjectListView.swift` (v0.01.0 WO-004~010, 120 行) + `ProjectCreateView.swift` (v0.01.0 WO-004~007, 160 行) 都已存在,使用 `NavigationStack` push + `@Binding<[ProjectSnapshot]>` + in-memory 状态 + `.sheet(isPresented:)`(ProjectCreateView 仍带 sheet 焦点 hack)。
-- **冲突**:任务 body 让 designer「出组件 API 建议 · ProjectListView / ProjectCreateView / ProjectDetailView」 — 但这两个文件已存在且**当前不在 5 区 layout 内**(LT-01 把 MainView 换成 `LayoutShellView()`,旧的 ProjectListView 被悬空了)。
-- **可能的真意**:
-  - 读法 A:LT-N1 让 CC 把 ProjectListView 改成"左上区内部的内容"(5 区 layout 的 topLeft),ProjectCreateView 改成 push 进 topLeft 内的子路由。这是 §3「区块模块化」的硬要求(把左半当独立 App 模块)。
-  - 读法 B:保留 ProjectListView 在原位(LT-N1 不动 layout,新写一份 ProjectListViewForLeftPanel)。
-- **建议**:designer 推荐**读法 A**。理由:(1) 区块模块化要求"左上 = 独立 App 模块",不能有两个 ListView;(2) §3 派单原则「单任务单一功能」+ 「迭代可独立运行」+ 「装机 user 拿到这个迭代能跑通"创建项目 → 看章节树 → 看板入口"」,读法 A 直接达成。**⚠️ 等 PM-direct 拍**(如果读法 A 被否,需要明确写"不动 ProjectListView.swift")。
-
-### 矛盾 4: 任务 body "持久化 (WenshuProjectStore 增强)" 没指明 schema 范围
-
-- 同矛盾 1:任务 body 暗示持久化(读出/写入/删除要落盘),但 AGENTS §12 红线禁止 CC 改 .ws schema。如果走矛盾 1 读法 B(不建 CDProject),持久化只能:
-  - (a) 用 `CDNote.tags = "project-uuid"` 反查(读出 ok,删除要级联删所有 note);
-  - (b) 只在内存里持久化(@State 撑到 App 关闭就丢,这违反 §3 迭代可独立运行 — 装机 user 关 App 再开,项目列表空了)。
-- **建议**:持久化方案 (a) 反查方案 + 内存缓存 + App 启动时 load。删除走"软删除"(标记 tombstone),不真删 CDNote(避免误删用户数据)。**⚠️ 等 PM-direct 拍软删除 vs 真删除**。
+> ⚠️ **schema 警告**:目前 `.ws` 无 `CDProject` entity(`WenshuStoreActor` 只接受 `[String: Any]` 字典写到 CDCharacter / CDNote / CDWorldRule 等既有 entity),项目范围靠 **tag 字符串** `tags: "project-<uuid>"` 区分(WO-005 已落地)。本卡设计稿**默认沿用 tag-scoping**,**不**提案加 `CDProject` entity / `CDChapter.parentID`。v0.04.0 长篇工具 真接 chapter 树结构时再升 AIF 拍 schema。
 
 ---
 
 ## 1. 完整场景(装机 user 8 步)
 
-按 AGENTS §3「迭代可独立运行」,LT-N1 必须让装机 user 拿到这个迭代后**立刻能跑通一个完整动作**。8 步:
+> **可验收**:LT-N1 装机 user 走完 8 步 → 项目列表 + 章节树 + 项目详情 tab 切换全部到位 → 关闭 / 重开 app 数据还在 → 实拍录屏。
 
-1. **开 App** → 看 5 区 layout,左上项目管理区显示当前 tab(项目 tab)+ 项目列表
-2. **点 + 新建项目** → push 进 ProjectCreateView(在左上区**内**,不是 sheet,不是新 window)
-3. **填表单**(项目名 / 文笔风格 / 注水量 1-9 / 标签)→ 实时预览
-4. **点 创建** → 写入 .ws(走矛盾 1 读法 B 的反查方案)→ 回到项目列表,新项目出现在顶部
-5. **点 项目列表项** → push 进 ProjectDetailView(左上区内,显示当前选中的项目)
-6. **ProjectDetailView 显示 5 tab**:**项目**(实装,本卡范围)+ 章节 / 设定 / 资料 / 看板(4 个 disabled,等 LT-N2~N5)
-7. **回项目列表** → 列表显示所有项目(含创建时间 / 文笔风格 / 注水量 / 标签)
-8. **右键项目 → 删除** → 软删除(tombstone 标记)+ 列表立刻少一项 + 重启 App 后列表仍然少(走 §7 .ws 持久化)
+| 步 | 动作 | 期望结果 | 涉及区 |
+|----|------|---------|--------|
+| 1 | macOS 启动 → 文枢自动开 5 区 layout | `LayoutShellView` 已渲染,`topLeft` = `ProjectBrowserView`(本卡实装),其它 4 区 = 现有 `PlaceholderContent` / `ChatPanelView` | 5 区 |
+| 2 | 点左上 "项目" tab 顶部 **+ 新建项目** 按钮 (SF Symbol `plus.circle.fill`) | `NavigationStack` 把 `ProjectCreateView` push 进栈(沿用 v0.01.0 WO-010 模式,严禁 sheet) | topLeft |
+| 3 | 表单填项目名 / 文体风格 / 注水量 / 标签 → 点 "创建" | `ProjectSnapshot` 调 `WenshuProjectStore.create(...)`(沿用 tag-scoping 写入 `CDNote` + 元数据 `CDNote`)→ 自动 pop 回 `ProjectBrowserView` | topLeft |
+| 4 | 列表 → 新项目 row 出现 | `@Published` 项目列表立刻刷新(因 `ProjectBrowserView` 持有 `@StateObject projects: ProjectListStore`),新项目 row 在列表顶 | topLeft |
+| 5 | 点项目 row | `NavigationStack` push 进 `ProjectDetailView`(`AppRoute.detail(projectId: UUID)`) | topLeft |
+| 6 | `ProjectDetailView` 顶部 `Picker.segmented` 5 tab: **项目 / 章节 / 设定 / 资料 / 看板** | tab 切换有效,**项目** + **章节** 实装,**设定 / 资料 / 看板** disabled 灰色 + tooltip "v0.05.0 / v0.04.0 接" | topLeft |
+| 7 | 切到 "章节" tab → 章节树可见 | `ChapterTreeView` 渲染(v0.01.0 阶段章节树可空 → 显示空态 + "新建章节" 占位按钮) | topLeft |
+| 8 | 关闭 app → 重开 | `WenshuProjectStore` 启动时 `loadAll()` 从 `.ws` 读回所有项目 + 章节 → 项目列表 + 章节树与上次关闭时一致(关 app 不丢数据 = 装机 user 验收金标) | topLeft |
 
-> **关键**:LT-N1 完成后,装机 user 能跑通「创建 → 列表 → 详情 → 删除」完整循环。不依赖 LT-N2~N5。LT-N2 章节 tab 实装后,装机 user 还能跑通"详情页章节树",但 LT-N1 本身已经是一个**最小可用版本**。
-
----
-
-## 2. 区块模块化(左上区当独立 App 模块)
-
-按 AGENTS §3「区块模块化」,**左上 = 独立 App 模块**。设计师要给出"这个模块的边界":
-
-### 2.1 模块边界
-
-| 维度 | 左上项目管理区 |
-|------|------|
-| **入口** | `LayoutShellView.swift:181` 的 `topLeft` panel 容器 (`PanelContainer(panelID: .topLeft)`) |
-| **出口** | 当前选中 project 的 id → 给其它 4 区消费(中上文档 / 右上 inspector / 下左聊天 / 下右状态) |
-| **数据所有权** | `WenshuProjectStore`(actor,单例 `.shared`)管 project 列表 |
-| **ViewModel** | `ProjectListViewModel`(新增,@MainActor,@Observable 单例,见 §6) |
-| **路由** | 左上**内嵌 NavigationStack**(独立于 MainView 的任何外部 NavigationStack — §3 区块模块化硬要求) |
-| **状态机** | `loading` / `loaded(projects: [ProjectSnapshot])` / `empty` / `error(String)` |
-| **持久化** | `WenshuProjectStore` actor → `WenshuStoreActor` CoreData(走矛盾 1 读法 B:CDNote.tags 反查) |
-
-### 2.2 不允许的依赖
-
-- ❌ 左上不能直接读 `LayoutShellViewModel` 的 layout 状态(拓扑独立,各管各的)
-- ❌ 左上不能直接调 ChatViewModel(那是下左聊天的事,跨区写要经 store)
-- ❌ 左上不能直接改 inspector 状态(那是右上 inspector 的事)
-- ❌ 左上不能直接调 LLM(只有聊天能调,见 AGENTS §12 红线 + LLM key 在 Keychain 的边界)
-
-### 2.3 允许的依赖
-
-- ✅ 左上可读 `LayoutShellViewModel.shared.snapshot.collapsed.topLeft`(折叠状态)
-- ✅ 左上可写 `WenshuProjectStore`(actor, 单一职责)
-- ✅ 左上可通过 Environment 接收"全局选中 project id"(其它区读这个 id,不改它)
+> **为什么是这 8 步(不是 v0.01.0 的 WO-001~WO-010 链路)**:本卡是 LT-N1,独立 worktree,独立验收。v0.01.0 那 8 步走的是 NavigationSplitView(单 NSWindow + 2 pane),v0.02.0 LT-01 已切到 5 区 shell,所以本卡的"8 步"是 5 区 shell 下的 user journey。
 
 ---
 
-## 3. NavigationStack push 路由(严禁 sheet)
+## 2. 区模块化(topLeft 独立 App 模块)
 
-按 v0.01.0 WO-010 拍板真值 + AGENTS §3「区块模块化」,**所有路由走 NavigationStack push**(严禁 sheet,严禁新 NSWindow)。
-
-### 3.1 路由图
+### 2.1 几何边界
 
 ```
-LayoutShellView (5 区根)
-└── topLeft: PanelContainer(.topLeft)
-    └── NavigationStack(path: $projectNavPath)    ← 左上内嵌 NavigationStack
-        ├── root: ProjectListView                 ← 列表 + 新建按钮
-        ├── /create: ProjectCreateView            ← push (不是 sheet)
-        └── /detail/{id}: ProjectDetailView       ← push (不是 sheet)
-            └── /detail/{id}/settings: ProjectSettingsView   ← push (后续卡,LT-N1 不出)
+┌──────────────────────────────────────────────────────────────────┐
+│ (native macOS title bar)                                          │
+├──────────────┬───────────────────────────┬──────────────────────┤
+│ ★ topLeft     │ topCenter (editor area)   │ topRight              │
+│ ProjectBrowser│ PlaceholderContent(留)    │ PlaceholderContent   │
+│ (本卡实装)    │                           │                       │
+├──────────────┴───────────────────────────┴──────────────────────┤
+│ bottomLeft (ChatPanelView, LT-04)            │ bottomRight (空)  │
+└────────────────────────────────────────────────┴──────────────────┘
 ```
 
-### 3.2 路由 enum(给 CC 实现用)
+`★ topLeft` = 本卡的全部产出。**与 topCenter / topRight / bottomLeft / bottomRight 零依赖**:
+
+- 不订阅 `LayoutShellViewModel`(只持有自己的 `@StateObject` / `ObservableObject` store)
+- 不读其它 panel 的 `@Published` 状态
+- 不修改其它 panel 的 splitter 比例
+- 折叠/拖拽行为由 LT-01 已实装的 `LayoutShellViewModel` + `PanelContainer` 提供,**本卡不重复实现**
+
+### 2.2 topLeft 内部 tab 布局(本卡关键设计)
+
+> 装机 user 8/7 OOB 拍板:**"看板是本项目所有信息的入口"** → 落到 topLeft 5 tab(项目/章节/设定/资料/看板)。
+
+```
+┌─────────────────────────────────────┐
+│ ProjectBrowserView(topLeft root)    │
+│ ┌─────────────────────────────────┐ │
+│ │ HeaderBar (24pt 高)              │ │
+│ │  [项目] [章节] [设定] [资料] [看板] │ │ ← Picker.segmented, 5 tab 居中铺满
+│ ├─────────────────────────────────┤ │
+│ │ TabContent (maxHeight: .infinity)│ │
+│ │                                  │ │
+│ │  根据 selectedTab 切换:           │ │
+│ │  .projects  → ProjectListView    │ │  (复用 v0.01.0)
+│ │  .chapters  → ChapterTreeView    │ │  (本卡新增)
+│ │  .settings  → PlaceholderText    │ │  (disabled, v0.05.0)
+│ │  .resources → PlaceholderText    │ │  (disabled, v0.05.0)
+│ │  .kanban    → PlaceholderText    │ │  (disabled, v0.04.0)
+│ │                                  │ │
+│ └─────────────────────────────────┘ │
+└─────────────────────────────────────┘
+```
+
+**约束**(LT-01 已定,本卡沿用):
+- 顶部 `Picker.segmented` 不用 macOS `Toolbar`(LT-01-fix3 删了 in-window toolbar,菜单走 macOS 主菜单栏)
+- tab 切换 = `@State private var selectedTab: ProjectTab = .projects`,**不**走 NavigationStack(只是同 view 内切换,不 push 新 view)
+- "+ 新建项目" 按钮 = 在 `ProjectListView`(复用 v0.01.0)自身的 toolbar,不在 `ProjectBrowserView` HeaderBar
+- **章节树** 的 "+ 新建章节" 按钮 = 在 `ChapterTreeView` 自己的 toolbar(沿用 v0.01.0 "新建" 按钮的模式)
+
+### 2.3 与现有 `LayoutShellView.panel(_:)` 的接入点(designer 给 CC 的接口契约)
 
 ```swift
-/// ProjectModule 内部路由。**只在左上 NavigationStack 内**,不污染主 App 路由。
-enum ProjectRoute: Hashable {
-    case create
-    case detail(UUID)         // ProjectSnapshot.id
-    case settings(UUID)       // 后续卡
+// 当前 LayoutShellView.swift line 178-184:
+PanelContainer(panelID: id) {
+    if id == .bottomLeft {
+        ChatPanelView()
+    } else {
+        PlaceholderContent(panel: id)   // ← 本卡 CC 改这一行为 ProjectBrowserView()
+    }
 }
 ```
 
-### 3.3 严守 WO-010 拍板(已知焦点 bug 历史)
-
-- ❌ 严禁 `.sheet(isPresented:)`(WO-006/007/008/009 4 次修焦点 bug 全失败)
-- ❌ 严禁 `NSHostingController` + 显式 NSWindow + `makeKeyAndOrderFront`
-- ❌ 严禁 `WindowActivation.forceKeyToWenshuSheet()`(那是 ProjectCreateView 当年 sheet 的 hack,本卡直接用 push 不需要)
-- ✅ NavigationStack push 是 Apple HIG macOS 主路由范式,焦点自动路由,不需要 hack
-
-### 3.4 ProjectCreateView 历史包袱清理
-
-当前 `ProjectCreateView.swift` (160 行) 仍是 sheet 设计 + `WindowActivation.forceKeyToWenshuSheet()` + `@FocusState` auto-focus。**LT-N1 改造为 push destination**:
-
-- 保留表单字段(name / style / verbosity / tags)
-- 保留 @FocusState auto-focus(WO-006 经验 — push 也会有焦点 race,虽然概率比 sheet 低)
-- **删 `WindowActivation.forceKeyToWenshuSheet()`** 和 `.onAppear` 里的强制 makeKey 调用
-- **删 `onCancel` 闭包** — push 路由用 `navPath.removeLast()` 自动 dismiss
-- **改 `onCreate` 为「返回 ProjectSnapshot」** — 调用方 push 后 dismiss + 写入 store
+**本卡 CC 实现**:把 `PlaceholderContent(panel: .topLeft)` 替换为 `ProjectBrowserView()`。**接口契约**:
+- `ProjectBrowserView` 必须自管所有 `@StateObject`(不接收外部 `@ObservedObject` 注入)
+- 必须独立持久化(自管 `ProjectListStore` + `ChapterListStore`,通过 `WenshuProjectStore` 落 `.ws`)
+- 不抛出任何穿透到 `LayoutShellView` 的状态变化
 
 ---
 
-## 4. 持久化方案(WenshuProjectStore 增强 API)
+## 3. NavigationStack push 路由(per WO-010 红线)
 
-### 4.1 走矛盾 1 读法 B(反查方案,**designer 推荐**)
+> **拍板**:严禁 `.sheet(isPresented:)`(v0.01.0 WO-006~010 五焦 BUG 教训)。新建 / 详情 全部走 `NavigationStack(path:)` 主路由 push。
 
-不动 .ws schema,用现有 `CDNote.tags = "project-uuid"` 反查所有 projects。
-
-### 4.2 WenshuProjectStore 增强 API(designer 出建议, CC 实现)
+### 3.1 `AppRoute` 扩展建议(给 CC,放在 `MainView.swift` 现有 `enum AppRoute` 里)
 
 ```swift
-/// v0.02.0 LT-N1 增强 API。**actor 边界,全部 async**。
-actor WenshuProjectStore {
-    /// 列出所有 projects。反查 CDNote.tags 包含 "project-uuid" 的去重集。
-    /// 返回排序按 createdAt 降序(最新在顶)。
-    /// - Returns: projects 数组(空数组 = 还没创建过任何 project)
-    /// - Throws: CoreData fetch 失败
-    func loadAll() async throws -> [ProjectSnapshot]
+enum AppRoute: Hashable {
+    case chat(ProjectSnapshot)
+    case characterWorld
+    case createProject                  // 已有 — v0.01.0 WO-010
 
-    /// 创建新 project。写入:
-    /// - 1 个 CDNote(tag = "project-meta", text = 序列化的 ProjectSnapshot JSON)
-    /// - 1 个 CDNote(tag = "project-{uuid}-initial-story", text = "")
-    /// **不**新增 CDProject entity(矛盾 1 读法 B)。
-    /// - Parameter project: 完整 snapshot(本卡 caller 保证 name 非空)
-    /// - Returns: 持久化后的 project(带正确 id 和 createdAt)
-    /// - Throws: CoreData 写入失败
-    func create(_ project: ProjectSnapshot) async throws -> ProjectSnapshot
-
-    /// 软删除 project。**不**真删 CDNote,改 tags 加 "tombstone-{timestamp}"。
-    /// 反查时过滤掉 tombstone 标记。
-    /// 理由(矛盾 4):避免误删用户数据 + 未来 v0.05.0 标记系统可能复用 tombstone。
-    /// - Parameter id: project.id
-    /// - Throws: CoreData 写入失败
-    func delete(_ id: UUID) async throws
-
-    /// 加载单个 project(给 ProjectDetailView 用)。
-    /// - Parameter id: project.id
-    /// - Returns: 找到返回 snapshot,找不到(已删 / 不存在)返回 nil
-    func load(id: UUID) async throws -> ProjectSnapshot?
+    // LT-N1 新增:
+    case detail(projectId: UUID)       // 项目详情 (5 tab)
 }
 ```
 
-### 4.3 序列化(CDNote.text 存 ProjectSnapshot JSON)
+### 3.2 路由拓扑
 
-```swift
-/// 内部 helper,不在 public API。
-private func encodeMeta(_ snapshot: ProjectSnapshot) -> String {
-    let dict: [String: Any] = [
-        "id": snapshot.id.uuidString,
-        "name": snapshot.name,
-        "style": snapshot.style,
-        "verbosity": snapshot.verbosity,
-        "tags": snapshot.tags,
-        "createdAt": snapshot.createdAt.timeIntervalSince1970,
-        "tombstone": false  // 软删除时改 true
-    ]
-    return try JSONSerialization.dictionaryToString(dict)  // CC 实现细节
-}
+```
+topLeft root: ProjectBrowserView
+├── TabView(.projects)
+│   └── ProjectListView  ← (现有, v0.01.0)
+│       ├── List Row tap → navPath.append(.detail(projectId))
+│       └── Toolbar + tap → navPath.append(.createProject)
+├── TabView(.chapters)
+│   └── ChapterTreeView  ← (本卡新增)
+│       └── (未来) Row tap → 不走 navPath,改走 .selectedChapterId 局部状态
+└── TabView(.settings/.resources/.kanban)
+    └── PlaceholderText(disabled)
 
-private func decodeMeta(_ json: String) -> ProjectSnapshot? {
-    // 反序列化,过滤 tombstone = true
+NavigationStack(path: $navPath) {
+    ProjectBrowserView()
+        .navigationDestination(for: AppRoute.self) { route in
+            switch route {
+            case .createProject: ProjectCreateView(...)
+            case .detail(let id): ProjectDetailView(projectId: id)
+            // ...
+            }
+        }
 }
 ```
 
-### 4.4 软删除 vs 真删除(矛盾 4 ⚠️ 等拍)
+**为什么 NavigationStack 在 `ProjectBrowserView` 之上而非 `LayoutShellView` 之上**:NavigationStack 只能 push 一个 destination。topLeft 的 push 不应该影响其它 4 区(topCenter 编辑器 / topRight inspector / bottomLeft 聊天 / bottomRight 状态),所以栈绑在 topLeft 子树上最干净。**CC 实现需确认**:这意味着 `LayoutShellView` 仍然是 root,但每个 panel 子树自己挂自己的 `NavigationStack`(`ProjectBrowserView` 自己挂)。LT-04 聊天区也是同样模式(各自挂栈)。
 
-designer 推荐**软删除**(tombstone 标记)。理由:
-- 防止误删(装机 user 手滑)
-- v0.05.0 标记系统可能复用 tombstone 概念
-- 未来 v0.03.0 阶段门需要"项目归档"功能,tombstone 是天然中间态
+### 3.3 `ProjectCreateView` 与现有 v0.01.0 的关系
 
-**⚠️ 等 PM-direct 拍**。
+**复用,不重写**:v0.01.0 `ProjectCreateView` 已有完整 4-section Form(项目名 / 文体风格 / 注水量 / 标签)+ 预览 + 创建/取消按钮 + WO-006/007 fix。**LT-N1 的 CC 只**:
+- 把它包进 `navigationDestination(for: AppRoute.createProject)`
+- `onCreate` 回调从 "调外部 closure" 改成 "调 `ProjectListStore.create(...)`"
 
----
-
-## 5. SwiftUI 设计 token(本卡新增)
-
-按 `swiftui-design-patterns` skill §4,引用文枢 token 系统。**本卡新增 / 显式化的 token**:
-
-### 5.1 新增按钮 token
-
-| Token | 值 | 用途 |
-|------|------|------|
-| `wenshu.button.newProject.size` | 28pt SF Symbol | toolbar `+` 按钮(图标大小) |
-| `wenshu.button.newProject.bg` | `.tertiary` material | push 按钮背景(不抢眼,符合 macOS HIG) |
-| `wenshu.button.newProject.fg` | `.accentColor` | 蓝色 accent(系统级,非自定义) |
-
-### 5.2 新增列表项 token
-
-| Token | 值 | 用途 |
-|------|------|------|
-| `wenshu.list.rowHeight` | 56pt | 项目列表项高(两行:标题 + meta) |
-| `wenshu.list.rowSpacing` | 4pt | 标题和 meta 行间距(对应 `wenshu.space.xxs`) |
-| `wenshu.list.rowPadding` | 12pt | 列表项左右内边距(对应 `wenshu.space.s`) |
-| `wenshu.list.rowHover` | `.quaternary` material | hover 状态背景 |
-| `wenshu.list.rowSelected` | `.tint.opacity(0.15)` | selected 状态背景(macOS HIG 标准) |
-| `wenshu.list.rowRadius` | 6pt | hover/selected 圆角(对应 `wenshu.radius.s` 略大) |
-
-### 5.3 新增 tab bar token(ProjectDetailView 内)
-
-| Token | 值 | 用途 |
-|------|------|------|
-| `wenshu.tabBar.height` | 36pt | 5 tab bar 高度(macOS 标准) |
-| `wenshu.tabBar.activeIndicator` | `.tint` | active tab 底部 2pt 高亮条 |
-| `wenshu.tabBar.disabled` | `.tertiary` foreground + `.quaternary` opacity | disabled tab 视觉 |
-
-### 5.4 复用现有 token
-
-- 间距:`wenshu.space.{xxs,xs,s,m,l,xl,xxl}` (4/8 baseline)
-- 颜色:`wenshu.text.{primary,secondary,tertiary}` + `wenshu.divider` + `wenshu.surface.{background,elevated}`
-- 字体:`wenshu.text.{headline,subhead,callout,footnote,caption}`
-- 圆角:`wenshu.radius.{s,m,l,xl}`
+`ProjectCreateView` 本身的视觉 / 焦点修复 / sheet-vs-push 决策**全不动**。
 
 ---
 
-## 6. 组件 API 建议(给 CC 的实现提示)
+## 4. 持久化(WenshuProjectStore 增强 — designer 建议,CC 实现需注意 schema 红线)
 
-### 6.1 ProjectListViewModel(新增 @MainActor 单例)
+### 4.1 现有事实
+
+- `WenshuProjectStore` 是 actor(非 `@MainActor class`)
+- `WenshuStoreActor` **没有 `createProject` / `listProjects` / `createChapter` / `listChapters` 方法**(只有 `createCharacter` / `listCharacters` / `createNote` / `listNotes` / `createWorldRule` / `createForeshadow` / `createRevision` / `createAIDraft`)
+- 项目元数据走 **tag-scoping**:每个项目写一条 `CDNote`,`tags = "project-<uuid>"` + 另一条 `CDNote` `text = "<JSON ProjectSnapshot>"` 编码元数据
+- 章节走 `CDChapter` entity,但**无 `projectId` / `parentChapterId` 字段**(目前 `CDChapter` 只有 `title` / `content` / `chapterIndex` / `createdAt`)
+
+### 4.2 designer 给 CC 的 store API 建议(**全部沿用 tag-scoping,不提案 schema**)
 
 ```swift
+// 新增在 WenshuProjectStore.swift(actor 内)
+//
+// 关键:不进 WenshuStoreActor,沿用 actor 自己的协调逻辑(tag-scoping)
+// 不动 ModelDefinitions.swift schema
+
+// 1. 创建项目(返回新 ProjectSnapshot)
+func create(
+    name: String,
+    style: String,
+    verbosity: Int,
+    tags: [String]
+) async throws -> ProjectSnapshot
+
+// 2. 列出所有项目(从 .ws 读回)
+func loadAll() async throws -> [ProjectSnapshot]
+
+// 3. 删除项目(级联 tag-scoping 实体)
+func delete(projectId: UUID) async throws
+
+// 4. 章节树(v0.01.0 阶段 = 列表,v0.04.0 真接父子)
+//
+//    沿用 tag-scoping:章节 = CDChapter entity,加一条 CDNote
+//    "chapter-meta-<projectId>" 编码章节列表 JSON
+//    v0.04.0 长篇工具 升 schema 再换 CDChapter.parentID 实现
+//
+//    本卡只读 + 列,写章节留 v0.04.0 接
+func listChapters(projectId: UUID) async throws -> [ChapterSnapshot]
+```
+
+### 4.3 ViewModel / Store 包装(designer 给 CC 的 `@MainActor` 层)
+
+```swift
+// 新增文件建议: Sources/WenshuApp/ViewModels/ProjectListStore.swift
 @MainActor
-@Observable
-final class ProjectListViewModel {
-    /// 单一状态源, View 层读这 4 个属性。
-    enum State {
-        case loading
-        case loaded([ProjectSnapshot])
-        case empty
-        case error(String)
+final class ProjectListStore: ObservableObject {
+    @Published var projects: [ProjectSnapshot] = []
+    private let store: WenshuProjectStore  // actor 注入
+
+    func load() async {
+        do { projects = try await store.loadAll() }
+        catch { /* 错误展示:ProjectBrowserView 显示错误 banner */ }
     }
 
-    private(set) var state: State = .loading
-    private(set) var selectedProjectID: UUID? = nil  // 给其它区读
+    func create(name: String, style: String, verbosity: Int, tags: [String]) async {
+        do {
+            let new = try await store.create(name: name, style: style, verbosity: verbosity, tags: tags)
+            projects.insert(new, at: 0)
+        } catch { /* 同上 */ }
+    }
 
+    func delete(projectId: UUID) async {
+        try? await store.delete(projectId: projectId)
+        projects.removeAll { $0.id == projectId }
+    }
+}
+
+// 新增文件建议: Sources/WenshuApp/ViewModels/ChapterTreeStore.swift
+@MainActor
+final class ChapterTreeStore: ObservableObject {
+    @Published var chapters: [ChapterSnapshot] = []
+    let projectId: UUID
     private let store: WenshuProjectStore
 
-    init(store: WenshuProjectStore = .shared) {
-        self.store = store
-    }
+    func load() async { ... }
+}
+```
 
-    /// App 启动时调一次 + 创建 / 删除后调。
-    func load() async {
-        state = .loading
-        do {
-            let projects = try await store.loadAll()
-            state = projects.isEmpty ? .empty : .loaded(projects)
-        } catch {
-            state = .error(error.localizedDescription)
+**为什么拆两个 `@MainActor` Store 而非一个**:`ProjectBrowserView` 5 tab,只有 .projects / .chapters 真正读 store;.settings / .resources / .kanban 是占位,挂空 store 等于浪费订阅。拆两个 = `.projects` 重建不连带 `.chapters` 重建,符合 SwiftUI 精细订阅原则。
+
+### 4.4 v0.04.0 / v0.05.0 升 schema 触发条件(designer 留给 PM-direct)
+
+> **本卡不触发以下任何改动**,但记下边界,供 PM v0.04.0 拍板:
+
+| 升级点 | 当前 (v0.02.0 LT-N1) | 升级到 (v0.04.0 / v0.05.0) | 触发条件 |
+|--------|----------------------|----------------------------|---------|
+| 项目元数据存哪 | `CDNote.text = JSON` + `tags = "project-<uuid>"` | 新 `CDProject` entity | LT-N1 关 app 数据丢失的 bug 报告 ≥ 1 |
+| 章节父子关系 | `CDNote.text = JSON` 编码树 | `CDChapter.parentChapterID: UUID` | v0.04.0 长篇工具 接"章节拖拽"功能 |
+| 章节 = CDChapter vs 独立 entity | CDChapter 现存,字段不足 | 加 `projectId` / `parentID` / `orderIndex` | v0.04.0 长篇工具 落档 |
+
+**升级 = 升 AIF**(AGENTS §12 红线),不归 CC 拍板。
+
+---
+
+## 5. SwiftUI 设计 token
+
+> **全部沿用 v0.01.0 + LT-01 已实装的 token**,本卡不引入新颜色 / 字号 / spacing 常量。
+
+### 5.1 颜色 / 字号
+
+| token | 用法 | 备注 |
+|-------|------|------|
+| `Color.accentColor` | "+ 新建项目" 按钮 + tab Picker 选中态 | 系统 accent,跟随 macOS 主题 |
+| `Color.secondary` | 副标题 / meta info(文体风格 / 注水量 / 标签 / 日期) | v0.01.0 已用 |
+| `Color.tertiary` | 标签 chip / 三级 meta | v0.01.0 已用 |
+| `Font.headline` | 项目名 / 章节标题 | v0.01.0 已用 |
+| `Font.caption` | meta info 行 | v0.01.0 已用 |
+| `Font.title2` | 空态大标题 "暂无项目" | v0.01.0 已用 |
+| `Font.callout` | 空态副标题 "点 + 新建" | v0.01.0 已用 |
+
+### 5.2 spacing / padding
+
+| token | 数值 | 用法 |
+|-------|------|------|
+| HeaderBar 内边距 | `padding(8)`(HStack) | 5 tab Picker 上下 8pt |
+| ProjectRow 内边距 | `padding(.vertical, 4)` + HStack spacing 12 | v0.01.0 `projectRow` 已用 |
+| ChapterRow 内边距 | `padding(.vertical, 2)` + HStack spacing 8 | 章节行比项目行紧凑(树状) |
+| 章节缩进 | 8pt per level | `Spacer().frame(width: 8 * level)` |
+| Card 装饰 | **不**画在 List 行级 | v0.01.0 `List` 已用 inset 风格,本卡不重复加 card 框 |
+| Picker.segmented | `PickerStyle.segmented`,居中铺满 width | 5 tab 用 segmented 比 dropdown 更直观 |
+
+### 5.3 SF Symbol
+
+| 用途 | SF Symbol | 备注 |
+|------|-----------|------|
+| 新建项目按钮 | `plus.circle.fill` | size 16,Color.accentColor |
+| 章节 row ICON | `list.bullet.rectangle` | size 14,Color.secondary |
+| 空态图标 | `tray`(沿用 v0.01.0) | size 56,weight light |
+| 章节层级 chevron | `chevron.right` / `chevron.down` | 折叠/展开父章节(size 12) |
+
+### 5.4 视觉风格约定(与现有代码对齐)
+
+- **不**用渐变 / 阴影 / 圆角以外的装饰
+- **不**画 separator(用 `List` 内置 separator)
+- **不**给 row 加 hover 高亮(`List` 自带 selection 高亮)
+- **不**画 panel 标题栏(`PanelContainer` 已无 headerBar,沿用 LT-01-fix5 拍板)
+
+### 5.5 快捷键(本卡不实现)
+
+- 沿用 AGENTS §8.1 + LT-01 拍板:快捷键 v0.09.0 统一处理,本卡不指定具体键位
+- "+ 新建项目" 按钮不绑快捷键(等 v0.09.0 拍)
+- 5 tab 切换不绑快捷键(等 v0.09.0 拍)
+
+---
+
+## 6. 组件 API(designer 给 CC 的接口契约)
+
+> 本节是给 CC 实现的"接口草图",**不是最终代码**。designer 不写代码,只画 API 形态。
+
+### 6.1 `ProjectBrowserView`(topLeft 入口)
+
+```swift
+// 新增文件: Sources/WenshuApp/Views/Project/ProjectBrowserView.swift
+struct ProjectBrowserView: View {
+    @StateObject private var projectStore = ProjectListStore()
+    @StateObject private var chapterStore: ChapterTreeStore  // 绑到当前选中项目
+    @State private var navPath: NavigationPath = .init()
+    @State private var selectedTab: ProjectTab = .projects
+
+    enum ProjectTab: String, CaseIterable, Identifiable {
+        case projects, chapters, settings, resources, kanban
+        var id: String { rawValue }
+        var title: String {
+            switch self {
+            case .projects: return "项目"
+            case .chapters: return "章节"
+            case .settings: return "设定"
+            case .resources: return "资料"
+            case .kanban: return "看板"
+            }
+        }
+        var isEnabled: Bool {
+            switch self {
+            case .projects, .chapters: return true
+            case .settings, .resources: return false   // v0.05.0 接
+            case .kanban: return false                 // v0.04.0 接
+            }
         }
     }
-
-    /// 新建 project。返回新 project 给 caller(用于 push 跳转)。
-    func create(_ project: ProjectSnapshot) async throws -> ProjectSnapshot {
-        let saved = try await store.create(project)
-        await load()  // 重新 load, 顶部插入
-        return saved
-    }
-
-    /// 软删除。
-    func delete(_ id: UUID) async throws {
-        try await store.delete(id)
-        if selectedProjectID == id { selectedProjectID = nil }
-        await load()  // 重新 load, 列表少一项
-    }
-}
-```
-
-### 6.2 ProjectListView(改造现有 120 行)
-
-**位置**:`Sources/WenshuApp/Views/Project/ProjectListView.swift`(本卡改名从 `Views/ProjectListView.swift` 移过来 — 区块模块化硬要求)
-
-**职责变化**:
-- 不再接 `@Binding<[ProjectSnapshot]>` + `@Binding<NavigationPath>` — 改为接 `@State private var vm = ProjectListViewModel()` + `@State private var navPath = NavigationPath()`
-- 不再依赖 MainView 的 navPath(隔离)
-- 内部 wrap NavigationStack(path: $navPath)
-
-**视觉不变**:
-- toolbar `.primaryAction` 的 `+` 按钮(改 push 进 `.create` route,不是 sheet)
-- 空状态(`tray` icon + "暂无项目")
-- 列表项(name + style + 注水 + tags + 日期)
-
-**新行为**:
-- 点列表项 → push `.detail(project.id)`,不是 `AppRoute.chat`
-- 长按 / 右键列表项 → 显示 `.contextMenu` 「删除」 + 「重命名」(删除本卡范围,重命名留后续卡)
-
-### 6.3 ProjectCreateView(改造现有 160 行)
-
-**位置**:`Sources/WenshuApp/Views/Project/ProjectCreateView.swift`
-
-**接口变化**:
-```swift
-struct ProjectCreateView: View {
-    /// push destination 调用方提供,创建成功时触发。
-    var onCreate: (ProjectSnapshot) -> Void
-
-    @State private var name: String = ""
-    @State private var style: String = "严肃"
-    @State private var verbosity: Double = 5
-    @State private var tagsText: String = ""
-
-    @FocusState private var nameFocused: Bool
-
-    private let styles: [String] = ["严肃", "轻松", "诗意", "幽默", "口语"]
-    // ... 表单 UI 沿用现有 ...
-}
-```
-
-**删**:
-- `onCancel` 闭包(改用 `@Environment(\.dismiss)`)
-- `WindowActivation.forceKeyToWenshuSheet()` 调用
-- `.frame(minWidth: 520, minHeight: 480)` 强制尺寸(让上层容器决定 — 区块模块化)
-
-**保留**:
-- 5 段表单(基本信息 / 文笔风格 / 注水量 / 标签 / 预览)
-- 实时 preview(同步显示当前填的内容)
-- @FocusState auto-focus(0.3s delay,沿用 WO-006 经验)
-
-### 6.4 ProjectDetailView(新增)
-
-**位置**:`Sources/WenshuApp/Views/Project/ProjectDetailView.swift`(新建)
-
-**职责**:显示当前选中 project 的详情 + 5 tab bar
-
-**结构**:
-```swift
-struct ProjectDetailView: View {
-    let projectID: UUID
-    @State private var selectedTab: ProjectTab = .overview
 
     var body: some View {
-        VStack(spacing: 0) {
-            // 顶部: project header (name + style + verbosity + tags + 日期)
-            projectHeader
-            Divider()
-            // tab bar
-            tabBar
-            Divider()
-            // tab 内容(本卡只实装 .overview)
-            tabContent
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        NavigationStack(path: $navPath) {
+            VStack(spacing: 0) {
+                tabBar
+                Divider()
+                tabContent
+            }
+            .navigationDestination(for: AppRoute.self) { route in
+                switch route {
+                case .createProject:
+                    ProjectCreateView(
+                        onCreate: { snapshot in
+                            Task { await projectStore.create(
+                                name: snapshot.name,
+                                style: snapshot.style,
+                                verbosity: snapshot.verbosity,
+                                tags: snapshot.tags
+                            ) }
+                            navPath.removeLast()
+                        },
+                        onCancel: { navPath.removeLast() }
+                    )
+                case .detail(let id):
+                    ProjectDetailView(projectId: id)
+                case .chat, .characterWorld:
+                    EmptyView()  // 不归本卡管
+                }
+            }
         }
-        .navigationTitle(navTitle)
+        .task { await projectStore.load() }
     }
 
     private var tabBar: some View {
-        HStack(spacing: 0) {
+        Picker("", selection: $selectedTab) {
             ForEach(ProjectTab.allCases) { tab in
-                tabButton(tab)
+                Text(tab.title).tag(tab)
             }
         }
-        .frame(height: 36)  // wenshu.tabBar.height
+        .pickerStyle(.segmented)
+        .padding(8)
     }
 
     @ViewBuilder
     private var tabContent: some View {
         switch selectedTab {
-        case .overview:
-            ProjectOverviewTab(projectID: projectID)  // 实装
-        case .chapters, .settings, .materials, .board:
-            // LT-N2~N5 实装,本卡 placeholder
-            DisabledTabPlaceholder(title: tabTitle(selectedTab))
+        case .projects:
+            ProjectListView(
+                projects: $projectStore.projects,
+                navPath: $navPath
+            )  // 复用 v0.01.0
+        case .chapters:
+            ChapterTreeView(
+                store: chapterStore,
+                navPath: $navPath
+            )  // 本卡新增
+        case .settings, .resources, .kanban:
+            PlaceholderTabContent(tab: selectedTab)  // disabled 占位
         }
     }
 }
+```
 
-enum ProjectTab: String, CaseIterable, Identifiable, Hashable {
-    case overview     // 项目 — 本卡实装
-    case chapters     // 章节 — LT-N2
-    case settings     // 设定 — LT-N3
-    case materials    // 资料 — LT-N4
-    case board        // 看板 — LT-N5
+### 6.2 `ProjectDetailView`(push destination)
 
-    var id: String { rawValue }
+```swift
+// 新增文件: Sources/WenshuApp/Views/Project/ProjectDetailView.swift
+struct ProjectDetailView: View {
+    let projectId: UUID
+
+    var body: some View {
+        // 简化版 — 只展示项目元数据卡片 + "返回项目列表" 按钮
+        // 真正的 5 tab 交互在 ProjectBrowserView.chapters / .projects 里
+        // 这里只作为 push destination 占位(避免空白的 NavigationStack pop 异常)
+        ProjectDetailPlaceholder(projectId: projectId)
+            .navigationTitle("项目详情")
+    }
 }
 ```
 
-**ProjectOverviewTab**(本卡实装):
-- 显示完整 project 信息(name / style / verbosity / tags / createdAt / 初始故事占位)
-- 统计卡片:章节数(从 CDNote 聚合,tags 包含 "project-{id}-chapter")、伏笔数、修订数
-- "返回项目列表"按钮(`@Environment(\.dismiss)`)
+**注意**:task 派单里写的 `ProjectDetailView` 是 "5 tab 实装版",但本卡沿用"5 tab 入口在 `ProjectBrowserView` 顶部"的 OOB 拍板,**detail push 后**只显示项目元数据卡片(v0.01.0 `CharacterWorldView` 同模式)。这样:
+- 项目列表点 row → `ProjectDetailView` → 看到项目元数据 → 返回 → 切到"章节"tab 看到章节树
+- 比"在 detail view 里再嵌 5 tab"更清晰(FCP 浏览器范式 = 项目列表 ↔ 章节列表 同级)
 
-### 6.5 5 tab 命名(⚠️ 等 PM-direct 拍 + 注意命名一致)
+**这是 designer 对 task 派单的偏离**(task 拍 detail = 5 tab,designer 拍 detail = 元数据 + browser = 5 tab)。**需 PM-direct 拍板**:
+- ✅ 选项 A(designer 推):detail = 元数据卡片,5 tab 在 browser 顶 → 详见 §6.1 / §6.2
+- ❌ 选项 B(task 原拍):detail = 5 tab,browser 顶只有项目列表 → 需重写 §6.1 / §6.2
 
-按 AGENTS §8.1 字面口径:项目 / 章节 / 设定 / 资料 / 看板
-按本卡 §3.4 的 ProjectTab enum:`overview / chapters / settings / materials / board`
+### 6.3 `ChapterTreeView`(章节 tab 内容)
 
-designer 推荐**沿用 AGENTS §8.1 的中文显示名**(项目 / 章节 / 设定 / 资料 / 看板),enum key 用英文(方便代码)。**⚠️ 等 PM-direct 拍显示文案**。
+```swift
+// 新增文件: Sources/WenshuApp/Views/Project/ChapterTreeView.swift
+struct ChapterTreeView: View {
+    @ObservedObject var store: ChapterTreeStore
+    @Binding var navPath: NavigationPath
+
+    var body: some View {
+        Group {
+            if store.chapters.isEmpty {
+                emptyState
+            } else {
+                chapterList
+            }
+        }
+        .navigationTitle("章节")
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    // v0.04.0 长篇工具 实装"新建章节"
+                    // 本卡 = disabled 按钮 + tooltip "v0.04.0 接"
+                } label: {
+                    Label("新建章节", systemImage: "plus")
+                }
+                .disabled(true)
+                .help("v0.04.0 长篇工具 阶段实装")
+            }
+        }
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "list.bullet.rectangle")
+                .font(.system(size: 56, weight: .light))
+                .foregroundStyle(.secondary)
+            Text("暂无章节")
+                .font(.title2)
+            Text("v0.04.0 接新建章节")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
+    }
+
+    private var chapterList: some View {
+        // 树状渲染 — 本卡只一维列表,层级折叠 v0.04.0 接
+        List(store.chapters) { chapter in
+            chapterRow(chapter, level: 0)
+        }
+        .listStyle(.inset)
+    }
+
+    private func chapterRow(_ chapter: ChapterSnapshot, level: Int) -> some View {
+        HStack(spacing: 8) {
+            if level > 0 {
+                Spacer().frame(width: 8 * level)
+            }
+            Image(systemName: "list.bullet.rectangle")
+                .font(.system(size: 14))
+                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(chapter.title)
+                    .font(.headline)
+                Text("第 \(chapter.index) 章 · \(chapter.wordCount) 字")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+        .padding(.vertical, 2)
+        .contentShape(Rectangle())
+    }
+}
+
+// 章节快照(本卡新增,v0.01.0 阶段没这类型,放在 Models/ 下)
+struct ChapterSnapshot: Identifiable, Hashable, Sendable {
+    let id: UUID
+    let projectId: UUID
+    var title: String
+    var index: Int       // chapterIndex,排序用
+    var wordCount: Int   // 派生:content.split(separator: " ").count
+    var parentId: UUID?  // v0.01.0 = nil 全部;v0.04.0 真接父章节
+}
+```
+
+### 6.4 `PlaceholderTabContent`(disabled 占位 — 给 .settings / .resources / .kanban 用)
+
+```swift
+// 新增文件: Sources/WenshuApp/Views/Project/PlaceholderTabContent.swift
+struct PlaceholderTabContent: View {
+    let tab: ProjectBrowserView.ProjectTab
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "tray")
+                .font(.system(size: 56, weight: .light))
+                .foregroundStyle(.secondary)
+            Text(tab.title)
+                .font(.title2)
+            Text(roadmap)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 24)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
+    }
+
+    private var roadmap: String {
+        switch tab {
+        case .settings: return "v0.05.0 标记系统 阶段实装"
+        case .resources: return "v0.05.0 标记系统 阶段实装"
+        case .kanban: return "v0.04.0 长篇工具 阶段实装"
+        default: return ""
+        }
+    }
+}
+```
+
+### 6.5 与 v0.01.0 `ProjectListView` / `ProjectCreateView` 的边界
+
+| 组件 | 来源 | 本卡改动 |
+|------|------|---------|
+| `ProjectListView` | v0.01.0 WO-010,已在 `Views/ProjectListView.swift` | **不重写**,只在新 `ProjectBrowserView` 内复用,接收 `@Binding projects` + `@Binding navPath` |
+| `ProjectCreateView` | v0.01.0 WO-007,已在 `Views/ProjectCreateView.swift` | **不重写**,只在新 `ProjectBrowserView.navigationDestination` 内复用,`onCreate` 改调 `projectStore.create(...)` |
+| `ProjectBrowserView` | **本卡新增** | 5 tab Picker + NavigationStack 入口 |
+| `ProjectDetailView` | **本卡新增**(简化为元数据卡片) | push destination 占位 |
+| `ChapterTreeView` | **本卡新增** | 章节 tab 内容 |
+| `PlaceholderTabContent` | **本卡新增** | disabled tab 占位 |
+
+> **关于位置**:task 派单写 `Sources/WenshuApp/Views/Project/DESIGN-LT-N1.md` → CC 落代码时建议把新 view 放 `Sources/WenshuApp/Views/Project/` 子目录(v0.01.0 那两个 view 在 `Views/` 根,后续可逐步移过来 — **本卡不搬**,避免无谓 diff)。
 
 ---
 
-## 7. 状态机(本卡覆盖的全部 view state)
+## 7. 验收 checklist(designer 视角)
 
-| View | 状态 | 视觉表现 | 触发 |
-|------|------|------|------|
-| ProjectListView | `loading` | 居中 `ProgressView()` + "加载中…" | vm.state == .loading |
-| ProjectListView | `empty` | 现有 64pt `tray` icon + "暂无项目" + "点 + 新建" | vm.state == .empty |
-| ProjectListView | `loaded` | List 列出所有项目 | vm.state == .loaded |
-| ProjectListView | `error` | 红色 `exclamationmark.triangle` + "加载失败: \(msg)" + "重试" button | vm.state == .error |
-| ProjectListView row | `default` | name + meta (style / 注水 / tags / 日期) | hover 之前 |
-| ProjectListView row | `hover` | 背景 `.quaternary` material + 6pt 圆角 | 鼠标 hover |
-| ProjectListView row | `selected` | 背景 `.tint.opacity(0.15)` + 蓝色左边框 2pt | push 进 detail 后 |
-| ProjectListView row | `contextMenu` | 右键弹出菜单: 删除(本卡) / 重命名(后续卡) | 右键 |
-| ProjectCreateView name field | `default` | rounded border + placeholder "项目名(必填)" | name == "" |
-| ProjectCreateView name field | `filled` | rounded border + 当前 name | name != "" |
-| ProjectCreateView name field | `error` | 红色 border + 下方 "项目名必填"(trim 后空) | nameFocused lost && trimmed empty |
-| ProjectCreateView 创建 button | `disabled` | `.tertiary` foreground + 不响应 click | name trimmed empty |
-| ProjectCreateView 创建 button | `enabled` | `.accentColor` foreground + 响应 click | name trimmed != "" |
-| ProjectDetailView tab | `active` | `.primary` foreground + 底部 2pt `.tint` 高亮 | selectedTab == self |
-| ProjectDetailView tab | `default` | `.secondary` foreground | selectedTab != self |
-| ProjectDetailView tab | `disabled` | `.tertiary` foreground + `cursor.notAllowed` + click 不响应 | LT-N2~N5 未实装 |
+> **本卡(designer)产物 = 本设计稿 + 5 行 kanban_comment + git commit**。CC 后续实现验收另立 LT-N1-impl。
+
+| # | 验收项 | 验证方法 | 通过条件 |
+|---|--------|---------|---------|
+| 1 | `Sources/WenshuApp/Views/Project/DESIGN-LT-N1.md` 落盘 | `ls -la` 路径 + `wc -l` 行数 > 100 | ✅ |
+| 2 | 5 行 kanban_comment | kanban DB 写入,id + timestamp + 内容 | ✅ |
+| 3 | `swift build` 退出 0 | 在 worktree 内 `swift build 2>&1 | tail -5` | exit 0(已有 warning 不算) |
+| 4 | git commit 落盘 | `git log -1 --stat` | 看到 DESIGN-LT-N1.md + worktree branch = `wenshu/v0.02.0/LT-N1-designer` |
+| 5 | **不动**任何 `.swift` / `Package.swift` / `Info.plist` / `ModelDefinitions.swift` / `AGENTS.md` / `CLAUDE.md` / `README.md` | `git status` + `git diff main --stat` | 工作树只新增 DESIGN-LT-N1.md,无其它改动 |
+
+**装机 user 后续验收(留 LT-N1-impl)**:8 步场景全跑通 → 关 app / 重开 数据不丢 = 验收金标。
 
 ---
 
-## 8. 响应式(macOS 优先, iPad/iPhone 留后续)
+## 8. ⚠️ designer 偏离 / 升 PM 提示
 
-### 8.1 macOS(本卡唯一目标)
+> 派单 task 写 `ProjectDetailView` = 5 tab 实装(designer 改为元数据卡片 + 5 tab 入口在 `ProjectBrowserView` 顶部)。原因:5/7 OOB 拍板"看板是本项目所有信息的入口"更自然落在 browser 顶部(用户没点 detail 也能切 tab 看章节),而非 detail push 后才看到。**需 PM-direct 拍板**:
 
-- **窗口最小尺寸**:900 × 600(沿用 LayoutShellView 的最小尺寸)
-- **左上区最小宽度**:200px(项目列表至少能看一行)
-- **左上区最大宽度**:400px(再宽就该拖去隔壁 panel, 项目管理不是主角)
-- **折叠态**:沿用 AGENTS §8.1 — 折叠到 50px gutter(icon-only "项目"图标 + tooltip)
-- **拖拽**:沿用 LT-01 的 NativeSplitter(不要新增 splitter 类型)
+- ✅ 选项 A(designer 推):detail = 元数据卡片,5 tab 在 browser 顶 → 详见 §6.1 / §6.2
+- ❌ 选项 B(task 原拍):detail = 5 tab,browser 顶只有项目列表 → 需重写 §6.1 / §6.2
 
-### 8.2 iPad / iPhone(本卡不实现,留 v0.06.0)
-
-- AGENTS §8 v0.06.0 = iPhone 端,本卡不预设 iOS 适配
-- 不写 `.navigationViewStyle(.stack)`(那是 iOS-only 兼容)
-- 不写 `UIKit` interop(本卡纯 SwiftUI)
+**派单**:designer-revise-LT-N1 → designer 收到 PM 拍板后改本设计稿。
 
 ---
 
-## 9. 拍板真值核对(必须显式核对 AGENTS §8.1 + §3)
+## 9. 派生 / 留给后续阶段
 
-| 拍板 | 本卡是否遵守 | 怎么遵守 |
-|------|------|------|
-| §3 场景驱动排序 | ✅ | LT-N1 = 项目管理 = 装机 user 创建项目后第一个能跑的模块 |
-| §3 区块模块化 | ✅ | 左上区 = 独立 App 模块,内嵌 NavigationStack,不依赖外部路由 |
-| §3 迭代可独立运行 | ✅ | 装机 user 拿到 LT-N1 后能跑通「创建 → 列表 → 详情 → 删除」完整 8 步,不依赖 LT-N2~N5 |
-| §8.1 5 区 layout | ✅ | 左上 panel 容器是 `PanelContainer(.topLeft)`,不放 layout 逻辑 |
-| §8.1 折叠 + 拖拽 | ✅ | 沿用 LayoutShellView 的折叠 + NativeSplitter,本卡不新增 splitter |
-| §8.1 状态存 .ws | ✅ | WenshuProjectStore 写 CDNote(走矛盾 1 读法 B 反查方案) |
-| §5 CC 写代码边界 | ✅ | 本卡只 designer 出设计意图, CC 实现 |
-| §7 数据资产硬约束 | ✅ | 跨设备靠复制 .ws / iCloud / Git, 文枢不参与 |
-| §12 跨边界红线 — 不改 .ws schema | ⚠️ 矛盾 1 触发 | 走读法 B(不建 CDProject entity), 等 PM-direct 拍 |
-| §12 跨边界红线 — 不改 LLM provider 签名 | ✅ | 本卡不涉及 LLM |
-| §12 跨边界红线 — 不替用户拍产品需求 | ✅ | 4 个矛盾点都列出来等拍, 不擅自选边 |
+| 阶段 | 接管 topLeft 什么 | 来源 |
+|------|---------------------|------|
+| **v0.02.0 LT-N1**(本卡) | 5 tab Picker + 项目列表 + 章节树 + 3 disabled 占位 | 本设计稿 |
+| **v0.02.0 LT-N1-fixN** | designer-revise 后调整 | 视 PM 拍板 |
+| **v0.04.0 长篇工具** | "章节" tab 实装新建章节 + 章节拖拽卡片 + 父子层级折叠(chevron) + 选中章节 → push 进章节正文编辑器(写 `CDChapter.parentID` schema 需升 AIF) | AGENTS §8 + §12 |
+| **v0.05.0 标记系统** | "设定" / "资料" tab 实装(`CDWorldRule` / 资料库,沿用既有 entity 不升 schema) | AGENTS §8 |
+| **v0.09.0 快捷键** | 5 tab 切换快捷键 + "+ 新建" 快捷键 + 全局导航 | AGENTS §8.1 |
 
 ---
 
-## 10. SwiftUI 实现建议(给 CC)
+## 10. 升级路径(designer 红线)
 
-按 `swiftui-design-patterns` skill §2 出 SwiftUI API 选择建议。**designer 出建议, CC 实施**:
-
-### 10.1 列表
-
-- 用 `List` + `Section`(沿用现有 ProjectListView 写法, 不换 LazyVStack)
-- 列表项用 `Button { } label: { row }` + `.buttonStyle(.plain)`(沿用现有)
-- hover 状态用 `.background(.quaternary, in: RoundedRectangle(cornerRadius: 6))` + `.onHover { hovering in ... }`
-- selected 状态用 `.listRowBackground(.tint.opacity(0.15))`(macOS HIG 标准)
-
-### 10.2 表单
-
-- 沿用现有 `Form` + `Section` + `formStyle(.grouped)` 写法
-- Picker 风格 `.segmented`(5 个 style 不多)
-- Slider 1-9(沿用现有)
-- TextField tags 用逗号分隔(沿用现有 + 解析逻辑)
-
-### 10.3 NavigationStack
-
-- 内嵌 NavigationStack(path: $navPath)(**不是** MainView 的 NavigationStack)
-- `NavigationLink(value: ProjectRoute.create) { }` 或 `navPath.append(.create)`
-- `navigationDestination(for: ProjectRoute.self) { route in switch route { ... } }`
-
-### 10.4 Tab bar(ProjectDetailView)
-
-- 用 `HStack(spacing: 0)` + 自定义 tab button(不用 SwiftUI TabView,那是 root tab 切换)
-- 每个 tab button 是 `Button { selectedTab = .xxx } label: { ... }`
-- active 状态:底部 2pt `.tint` 高亮(`VStack { Text; Color.accentColor.frame(height: 2) }`)
-- disabled 状态:`.disabled(true)` + `.foregroundStyle(.tertiary)`
-
-### 10.5 状态机
-
-- `vm.state` 是 `enum State`(loading / loaded / empty / error),不是 4 个独立的 `@State var`
-- View 用 `switch vm.state { case .loading: ...; case .loaded(let projects): ...; ... }`
-- 不要用 `@Published var isLoading: Bool` + `@Published var projects: [ProjectSnapshot]`(两个独立状态可能不一致)
+- 装机 user 拍改设计 → 派 `designer-revise-LT-N1` 给 designer(本 profile)
+- 改 `.ws` schema → **升 AIF**(AGENTS §12 红线)
+- 改 LLM provider 签名 / 阶段门触发逻辑 / 离线模式 → **升 AIF**
+- CC 实现时发现 designer 接口契约不可行 → CC 反馈 PM → PM 派 `designer-revise-LT-N1`
+- designer 拍板后 → 派 `LT-N1-impl`(给 CC,新 worktree `t_<id>-lt01-n1-impl`)
 
 ---
 
-## 11. 边界(designer 不做的事)
-
-- ❌ 不写任何 `.swift` 代码(designer 只出设计意图)
-- ❌ 不改 `LayoutShellView.swift`(那已经 LT-01 + fix17 拍板,改 = 越界)
-- ❌ 不改 `WenshuStoreActor.swift`(改 schema = §12 红线,等 PM-direct 拍)
-- ❌ 不改 `WenshuProjectStore.swift` 的现有方法签名(只增 `loadAll / create / delete / load(id:)`,不改 `save / firstSavedStory / savedCharacterNames`)
-- ❌ 不调 `swift build`(那是 CC 责任)
-- ❌ 不调 `swift test`(那是 CC 责任)
-- ❌ 不删 `ProjectListView.swift` / `ProjectCreateView.swift` 的现有文件(designer 只设计, 改文件 = CC 责任)
-- ❌ 不写 `.ws` schema 新 entity(走矛盾 1 读法 B)
-- ❌ 不实现 5 tab 里的章节 / 设定 / 资料 / 看板 4 个(那是 LT-N2~N5)
-- ❌ 不实现"重命名"功能(那是后续卡的 scope)
-
----
-
-## 12. 配套资源
-
-- **本卡依赖**:AGENTS.md §3 + §5 + §8.1 + §12,`swiftui-design-patterns` skill §4(token)+ §2(SwiftUI API)
-- **本卡被依赖**:LT-N2 (章节) + LT-N3 (设定) + LT-N4 (资料) + LT-N5 (看板) 都会在 ProjectDetailView 的 tab bar 上加新 tab
-- **本卡拍板**:见 §0 — 4 个矛盾点等 PM-direct / 装机 user 拍板
-- **本卡验收**:装机 user 拿到后能跑通 §1 的 8 步 + 软删除后重启 App 列表仍少那一项(.ws 持久化验证)
-
----
-
-*DESIGN-LT-N1 v0.1 · designer · 2026-08-10 · 等 PM-direct 拍 §0 4 个矛盾点*
+*DESIGN-LT-N1 v0.02.0 · designer 产物 · 2026-08-10 · 5 区 layout topLeft 独立 App 模块 · 装机 user 8/7 OOB 拍板("看板是本项目所有信息的入口")落地版*
