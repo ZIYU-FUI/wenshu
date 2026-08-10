@@ -1,6 +1,12 @@
-// LayoutShellView.swift · 文枢 (Wenshu) · v0.02.0 WO-LT-01 → LT-01-fix9
+// LayoutShellView.swift · 文枢 (Wenshu) · v0.02.0 WO-LT-01 → LT-01-fix9 → v0.03.0 V0-fix-1 (Fix A)
 //
 // 5-zone shell — the root of the macOS window in v0.02.0.
+//
+// V0-fix-1 Fix A (装机 user 8/10 拍板): 左上 panel 内置 38pt 高度
+// "title-bar" — 0 文字 + 右对齐 `plus.circle.fill` 按钮 (FCP 风格
+// toolbar)。 不改 5-zone geometry, 不动 splitter, 不加新 panel。
+// 业务流 (新建项目实际 NavigationStack push) 留 LT-03 (左上项目管理
+// 5 tab) 上线时接 — 此处按钮仅占位, 视觉对齐装机 user 拍板.
 //
 // Geometry (AGENTS.md §8.1):
 //
@@ -187,11 +193,54 @@ struct LayoutShellView: View {
                     // topRight 改宽不影响其他 panel。 严禁在这里走
                     // sheet / NavigationStack push — 见 AGENTS §6。
                     InspectorView()
+                } else if id == .topLeft {
+                    // V0-fix-1 Fix A: 38pt title-bar (0 text +
+                    // plus.circle.fill) 在 PanelContainer 内部占顶部,
+                    // 占位 PlaceholderContent 在其下. 不影响 splitter /
+                    // 5-zone geometry, 不加新 panel.
+                    topLeftPanelWithTitleBar
                 } else {
                     PlaceholderContent(panel: id)
                 }
             }
             .frame(width: width)
+        }
+    }
+
+    // MARK: - V0-fix-1 Fix A: topLeft title-bar (FCP 风格, 0 text + "+" button)
+
+    /// 左上 panel 的 title-bar + 占位内容。 高度 38pt 固定, 内容只有
+    /// 一个右对齐的 `plus.circle.fill` SF Symbol 按钮, tooltip = "新建项目"。
+    /// 装机 user 8/10 拍板: "标题栏全删 (LT-01-fix5 优化3 沿用), 用功能
+    /// 告诉用户" — 此 bar 不显示 panel 名 ("项目管理"), 只显示 +, 让
+    /// 用户 hover 看到 tooltip 才知作用 (= FCP toolbar 行为)。
+    ///
+    /// 业务流 (NavigationStack push 进 ProjectCreateView) 留 LT-03
+    /// (左上项目管理 5 tab) 上线时接 — 当前 LayoutShellView 无
+    /// NavigationStack / sheet 容器, 加 flow 等于越界改 v0.02.0 业务
+    /// (= 违反 hard constraint)。 按钮 tap 留空, 实装由 LT-03 接管。
+    private var topLeftPanelWithTitleBar: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                Spacer(minLength: 0)
+                Button {
+                    // V0-fix-1 Fix A placeholder — no-op. LT-03 上线
+                    // 后此按钮接 `LayoutShellView` 顶层的 NavigationStack
+                    // push, 跳 ProjectCreateView (现 v0.01.0 路由)。
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("新建项目")
+            }
+            .frame(height: 38)
+            .padding(.horizontal, 12)
+
+            Divider()
+
+            PlaceholderContent(panel: .topLeft)
         }
     }
 
