@@ -1,60 +1,42 @@
-// InspectorView.swift · 文枢 (Wenshu) · v0.02.0 WO-LT-02-v2
+// InspectorView.swift · 文枢 (Wenshu) · v0.02.0 WO-LT-02-v2 → v0.03.0 V0-fix-4
 //
 // 右上 inspector 区 (AGENTS §8.1) 的 SwiftUI 视图。 跟 `ChatPanelView`
-// 同形态: 顶上一个 segmented Picker 切 2 tab (伏笔 / 修订), 下方
+// 同形态: 顶上一个 Picker 切 2 tab (伏笔 / 修订), 下方
 // `Group { switch ... }` 渲染对应面板内容。 跟 ChatPanelView 同样不
 // 写 `.sheet(isPresented:)` (AGENTS §6 + WO-006~010 5 个 sheet 焦点
 // bug 全废), 不写 `.onAppear` (统一 `.task` 拉数据)。
 //
-// 布局纪律 (LT-01-fix5 拍板"用功能告诉用户", PanelContainer 已删
-// headerBar): panel content 自己顶一个 H1 self-identity "检视"。
-// InspectorView 进 PanelContainer 后就是 chrome-free 状态 — 装机 user
-// 看一眼 "检视 / 伏笔 / hook 文案" 就知道在哪。 PlaceholderContent 在
-// PanelContainer 里已经被 InspectorView 替换 (见 LayoutShellView
-// .panel(_:) switch 的 .topRight 分支)。
-//
-// Picker / `selectedTab` 协议: Picker 直接绑 `vm.selectedTab` (类型
-// 是 `InspectorViewModel.Tab`), tag 走 `.tag(tab)` =
-// InspectorViewModel.Tab 这个枚举本身 (CaseIterable + Hashable +
-// Identifiable, VM 已经给到位)。 VM 已经在 init 里设默认
-// `selectedTab = .foreshadow` — 装机 user 第一次进 inspector 看到的
-// 就是伏笔 tab。
+// V0-fix-4 Fix 5: Picker `.segmented` 改 `.iconOnly` (走 PickerStyle+IconOnly
+// 别名, Image-only content); 删 selfHeader H1 "检视" 整段 (LT-01-fix5
+// 拍板"用功能告诉用户", header 删 — 跟 ChatPanelView 同步); Picker
+// a11y "检视" → ""; 增 inline `iconName(for:)` 静态映射 (伏笔 = eye /
+// 修订 = pencil.and.list.clipboard)。
 //
 // `.task` 触发: 视图出现时一次性 `await vm.loadForeshadows()`, 拉当前
-// currentChapterID / currentParagraphID 对应的 CDForeshadow 行 (= 历史
-// v0.01.0 旧伏笔如果 chapterID/paragraphID 都没值就查 paragraphID ==
-// nil 那批)。 当前 v0.02.0 文档内容浏览器还没实装 (v0.05.0 标记系
-// 统), `currentChapterID / currentParagraphID` 默认 nil → 走全局兜
-// 底 list, 显示全部旧伏笔 — 装机 user 上手 inspector 第一眼就看到
-// 已有些伏笔, 而不是空 panel。
-//
-// 严禁: `.sheet(isPresented:)` / `.onAppear` / `NavigationStack push`
-// 在 inspector 里走 detail (这里只有 tab 切换 + ForEach 静态渲染,
-// 不需要导航 — v0.05.0 段落选中也不走 push, 走 setSelection 设置
-// chapter/paragraph ID → 自动 reloadForgeshadows)。
+// currentChapterID / currentParagraphID 对应的 CDForeshadow 行。 当前
+// v0.02.0 文档内容浏览器还没实装 (v0.05.0 标记系统), 走全局兜底 list。
 
 import SwiftUI
 
 struct InspectorView: View {
 
-    /// 跟 `LayoutShellViewModel.shared` 同策略 — 文枢 inspector 是
-    /// 5 区中**唯一**的 inspector (右上), 同进程只需一个 instance,
-    /// 直接 `InspectorViewModel.shared` — 严防 inspector 多 instance
-    /// race (LT-01-fix3 已踩过, 抄同款拍板)。
     @ObservedObject private var vm = InspectorViewModel.shared
 
     var body: some View {
-        VStack(spacing: 0) {
-            selfHeader
-            Divider()
-            Picker("检视", selection: $vm.selectedTab) {
-                ForEach(InspectorViewModel.Tab.allCases) { tab in
-                    Text(tab.title).tag(tab)
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 0) {
+                Picker("", selection: $vm.selectedTab) {
+                    ForEach(InspectorViewModel.Tab.allCases) { tab in
+                        Image(systemName: iconName(for: tab))
+                            .tag(tab)
+                            .help(tab.title)
+                    }
                 }
+                .pickerStyle(.iconOnly)
+                .padding(.leading, 12)
+                .padding(.vertical, 8)
+                Spacer(minLength: 0)
             }
-            .pickerStyle(.segmented)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
             Divider()
             Group {
                 switch vm.selectedTab {
@@ -64,38 +46,20 @@ struct InspectorView: View {
                     revisionList
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .frame(maxHeight: .infinity)
         }
         .task {
-            // v0.02.0 inspector 第一次出现时拉一次 — 跟 LT-04 ChatPanelView
-            // 的 `.task` 同形态, 不用 `.onAppear` (后者在 SwiftUI 视图
-            // 复用 / 折叠展开切时会重触发, 跟本卡的"一次性拉历史伏笔"
-            // 语义不符)。 currentChapterID / currentParagraphID 默认
-            // nil → store 走 paragraphID == nil 兜底 → 显示全部
-            // v0.01.0 旧伏笔。
             await vm.loadForeshadows()
         }
     }
 
-    // MARK: - Top self-identity (FCP 范式 "用功能告诉用户")
+    // MARK: - Inline icon map (V0-fix-4 Fix 5)
 
-    /// Inspector content 自己的 H1 self-identity (LT-01-fix5 拍板:
-    /// PanelContainer 已删 headerBar, content 自带 H1)。 跟
-    /// PlaceholderContent 的 hint 文案不同 — inspector 不是空 panel,
-    /// 是真有功能的区, 必须显式告诉用户"这是检视", 不能闷头只显示
-    /// 一堆 hook 让装机 user 找不清在哪。
-    private var selfHeader: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "sidebar.right")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.secondary)
-            Text("检视")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(.primary)
-            Spacer()
+    private func iconName(for tab: InspectorViewModel.Tab) -> String {
+        switch tab {
+        case .foreshadow: return "eye"
+        case .revision: return "pencil.and.list.clipboard"
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
     }
 
     // MARK: - 伏笔 tab
@@ -117,12 +81,6 @@ struct InspectorView: View {
         }
     }
 
-    /// 兜底空态 — 当前 v0.02.0 装机 user 还没进段落选中的情况下走
-    /// 这里, 但只要 .ws 文件里有 v0.01.0 历史伏笔 (没 chapterID /
-    /// paragraphID 字段), store 会查出 paragraphID == nil 的所有行,
-    /// 装机 user 能立刻看到 — 不会真走到这条空态。 给一句兜底文案,
-    /// 不让 panel 完全空白 (没内容会让装机 user 误以为 inspector
-    /// 没工作)。
     private var emptyForeshadowState: some View {
         VStack(spacing: 10) {
             Image(systemName: "leaf")
@@ -159,8 +117,6 @@ struct InspectorView: View {
 
 // MARK: - Row views
 
-/// 单条伏笔行的渲染。 hook + status + 是否已回收。 v0.02.0 不点
-/// 击行为 (修订/编辑留 v0.05.0 段落选中联动)。
 private struct ForeshadowRowView: View {
     let row: ForeshadowRow
 
@@ -212,11 +168,9 @@ private struct ForeshadowRowView: View {
     }
 }
 
-/// 单条修订候选的渲染 — `InspectorViewModel.mockRevisionCandidates`
-/// (3 条 hardcoded) 在这里走静态渲染。 真接 LLM 留 v0.04.0 (per
-/// brief §2.2)。
 private struct RevisionRowView: View {
     let candidate: RevisionCandidate
+
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {

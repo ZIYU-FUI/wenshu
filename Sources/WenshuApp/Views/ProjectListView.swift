@@ -1,54 +1,81 @@
-// ProjectListView.swift · 文枢 (Wenshu) · v0.01.0 WO-004 → WO-010
+// ProjectListView.swift · 文枢 (Wenshu) · v0.01.0 WO-004 → WO-010 → v0.03.0 V0-fix-4
 //
-// Right-pane root: the project list. Tapping a row pushes `ChatView`.
-// Tapping the + button pushes `ProjectCreateView` via NavigationStack
-// (WO-010 — NOT a SwiftUI `.sheet(isPresented:)` container, NOT a
-// NSHostingController + 显式 NSWindow either).
+// V0-fix-4 Fix 2: 5 tab 容器重写 (项目 / 章节 / 设定 / 资料 / 看板),
+// 沿 LT-03 v2 拍板 (5 tab 用文字标签, 走 .pickerStyle(.segmented),
+// 跟 chat / inspector tab 风格刻意区分)。 原 .toolbar { Button("新
+// 建项目", ...) } 删除 — 跟 V0-fix-4 Fix 1 顶部 + 按钮合并, 避免视
+// 觉冗余 (FCP 范式 = 单 + 入口)。 + 按钮接 NavigationStack push 进
+// AppRoute.createProject (沿 v0.01.0 WO-010 拍板 — macOS HIG 主路由,
+// 不走 sheet)。
 //
-// 拍板历史:
-// - WO-004:原本是 SwiftUI `.sheet(isPresented:)` 弹 ProjectCreateView。
-// - WO-006/007/008/009:四次修 sheet 焦点 bug 全失败(装机 user 实机验)。
-//   根因:SwiftPM-only `swift run` + macOS SwiftUI sheet + activation
-//   policy 综合问题。
-// - WO-010:回到 Apple HIG macOS 主路由范式——新建/打开 = 主路由 push
-//   (NavigationStack),设置/偏好才用 sheet。push 是 SwiftUI 标准路由,
-//   不需要任何 makeKey / activate hack,装机 user 实机验"键盘输入真进
-//   WenshuApp"自然成立。
-//
-// Per WO-004 spec: project data lives in `@State` in MainView (in-memory).
-// No `.ws` round-tripping yet — that's WO-005.
+// Tab 1 (项目): 沿 v0.01.0 projectList/emptyState/projectRow + 接
+//               NavigationStack 共享 navPath 跳 chat (下左 ChatPanelView)。
+// Tab 2-5: 占位 "v0.04.0 实现" — v0.04.0 长篇工具工单实装真业务。
 
 import SwiftUI
+
+enum ProjectManagementTab: String, CaseIterable, Identifiable {
+    case projects = "项目"
+    case chapters = "章节"
+    case settings = "设定"
+    case resources = "资料"
+    case kanban = "看板"
+
+    var id: String { rawValue }
+
+    var symbolName: String {
+        switch self {
+        case .projects: return "folder"
+        case .chapters: return "list.bullet.rectangle"
+        case .settings: return "slider.horizontal.3"
+        case .resources: return "books.vertical"
+        case .kanban: return "rectangle.split.3x1"
+        }
+    }
+}
 
 struct ProjectListView: View {
     @Binding var projects: [ProjectSnapshot]
     @Binding var navPath: NavigationPath
+    @State private var activeTab: ProjectManagementTab = .projects
 
     var body: some View {
-        Group {
-            if projects.isEmpty {
-                emptyState
-            } else {
-                projectList
-            }
-        }
-        .navigationTitle("项目")
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    // WO-010:NavigationStack push 进 ProjectCreateView(单 NSWindow 内)。
-                    // 见 MainView.swift AppRoute.createProject navigationDestination。
-                    // 不需要任何 sheet / NSWindow / makeKey hack。
-                    navPath.append(AppRoute.createProject)
-                } label: {
-                    Label("新建项目", systemImage: "plus")
+        VStack(spacing: 0) {
+            Picker("", selection: $activeTab) {
+                ForEach(ProjectManagementTab.allCases) { tab in
+                    Text(tab.rawValue).tag(tab)
                 }
-                .help("新建项目")
             }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+
+            Divider()
+
+            tabContent
+                .frame(maxHeight: .infinity)
         }
     }
 
-    // MARK: - Subviews
+    @ViewBuilder
+    private var tabContent: some View {
+        switch activeTab {
+        case .projects:
+            projectTabContent
+        case .chapters, .settings, .resources, .kanban:
+            placeholder(for: activeTab)
+        }
+    }
+
+    @ViewBuilder
+    private var projectTabContent: some View {
+        if projects.isEmpty {
+            emptyState
+        } else {
+            projectList
+        }
+    }
 
     private var emptyState: some View {
         VStack(spacing: 12) {
@@ -116,5 +143,18 @@ struct ProjectListView: View {
         formatter.dateStyle = .short
         formatter.timeStyle = .short
         return formatter.string(from: date)
+    }
+
+    private func placeholder(for tab: ProjectManagementTab) -> some View {
+        VStack(spacing: 10) {
+            Image(systemName: tab.symbolName)
+                .font(.system(size: 30, weight: .light))
+                .foregroundStyle(.tertiary)
+            Text("v0.04.0 实现")
+                .font(.callout)
+                .foregroundStyle(.tertiary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .disabled(true)
     }
 }

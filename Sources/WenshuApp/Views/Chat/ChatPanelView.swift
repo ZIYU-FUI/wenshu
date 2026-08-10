@@ -1,5 +1,12 @@
-// ChatPanelView.swift · 文枢 · v0.02.0 WO-LT-04
+// ChatPanelView.swift · 文枢 · v0.02.0 WO-LT-04 → v0.03.0 V0-fix-4
 // 下左聊天区：聊天实装，时间线/关系图/大纲为 disabled 占位。
+//
+// V0-fix-4 Fix 4: Picker `.segmented` 改 `.iconOnly` (走 PickerStyle+IconOnly
+// 别名, macOS 14+ SegmentedPickerStyle 配合 Image-only content 自动隐藏文
+// 字标签)。 V0-fix-4 Fix 6: 4 tab 居左对齐 (FCP timeline 范式) — 改
+// .padding(.horizontal, 12) → .padding(.leading, 12) + 删 Picker 块
+// .frame(maxWidth: .infinity) 让 Picker 自适应宽度居左, 加 Spacer 把右
+// 边留白。 删 "聊天区视图" H1 残留 (Picker a11y 改 "")。
 
 import SwiftUI
 
@@ -36,29 +43,36 @@ struct ChatPanelView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Picker("聊天区视图", selection: $activeTab) {
-                ForEach(ChatPanelTab.allCases) { tab in
-                    Label(tab.rawValue, systemImage: tab.symbolName)
-                        .tag(tab)
-                        .disabled(tab.isDisabled)
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 0) {
+                Picker("", selection: $activeTab) {
+                    ForEach(ChatPanelTab.allCases) { tab in
+                        Image(systemName: tab.symbolName)
+                            .tag(tab)
+                            .help(tab.rawValue)
+                            .disabled(tab.isDisabled)
+                    }
                 }
+                .pickerStyle(.iconOnly)
+                .padding(.leading, 12)
+                .padding(.vertical, 8)
+                Spacer(minLength: 0)
             }
-            .pickerStyle(.segmented)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
 
             Divider()
 
-            Group {
-                switch activeTab {
-                case .chat:
-                    chatContent
-                case .timeline, .relationships, .outline:
-                    disabledContent(for: activeTab)
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            tabContent
+                .frame(maxHeight: .infinity)
+        }
+    }
+
+    @ViewBuilder
+    private var tabContent: some View {
+        switch activeTab {
+        case .chat:
+            chatContent
+        case .timeline, .relationships, .outline:
+            disabledContent(for: activeTab)
         }
     }
 
@@ -77,7 +91,7 @@ struct ChatPanelView: View {
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .frame(maxHeight: .infinity)
         }
     }
 
@@ -90,7 +104,7 @@ struct ChatPanelView: View {
                 .font(.callout)
                 .foregroundStyle(.tertiary)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxHeight: .infinity)
         .disabled(true)
     }
 }

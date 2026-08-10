@@ -48,12 +48,65 @@ struct LayoutShellView: View {
     // unreachable from a CommandMenu).
     @ObservedObject private var vm = LayoutShellViewModel.shared
 
+    // V0-fix-4 Fix 3: + 按钮 push AppRoute.createProject 用的 NavigationPath
+    // 顶层 state。 ProjectListView 共享同一 binding,避免双 navPath 不同步。
+    @State private var navPath = NavigationPath()
+
+    // V0-fix-4 Fix 2: topLeft 5 tab 容器 (ProjectListView) 需要的项目列表
+    // — 后续 WenshuStoreActor 接 .ws 后,这里换成 vm 持有 + onChange 同步。
+    @State private var projects: [ProjectSnapshot] = []
+
     var body: some View {
-        geometryBody
-            .frame(minWidth: 900, minHeight: 600)
-            .task {
-                await vm.load()
+        NavigationStack(path: $navPath) {
+            geometryBody
+                .frame(minWidth: 900, minHeight: 600)
+                .navigationDestination(for: AppRoute.self) { route in
+                    destinationView(for: route)
+                }
+                .task {
+                    await vm.load()
+                }
+        }
+    }
+
+    // MARK: - Navigation destinations
+
+    @ViewBuilder
+    private func destinationView(for route: AppRoute) -> some View {
+        switch route {
+        case .createProject:
+            ProjectCreateView(
+                onCreate: { newProject in
+                    projects.append(newProject)
+                    navPath.removeLast()
+                },
+                onCancel: {
+                    navPath.removeLast()
+                }
+            )
+        case .chat:
+            // V0-fix-4 范围不接 chat push — chat 实装在下半 ChatPanelView,
+            // 这里走 placeholder 避免 ChatViewModel.shared 不存在导致编译失败。
+            VStack(spacing: 10) {
+                Image(systemName: "bubble.left.and.bubble.right")
+                    .font(.system(size: 30, weight: .light))
+                    .foregroundStyle(.secondary)
+                Text("请在底部聊天区继续创作")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
             }
+        case .characterWorld:
+            // V0-fix-4 范围不接 characterWorld push — 留 v0.04.0 长篇工具
+            // 工单实装, 这里走 placeholder 兜底。
+            VStack(spacing: 10) {
+                Image(systemName: "person.2.crop.square.stack")
+                    .font(.system(size: 30, weight: .light))
+                    .foregroundStyle(.secondary)
+                Text("人物世界 — v0.04.0 实现")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+        }
     }
 
     // MARK: - 5-zone body
@@ -65,10 +118,19 @@ struct LayoutShellView: View {
                 ratios: vm.snapshot.ratios,
                 visibility: vm.visibility
             )
+            // V0-fix-4 Fix 1: 顶部跨全宽 38pt header bar (替换 v0.02.0 顶部
+            // "文枢" 标题文字 — 由 AIF 16:40 拍板升到 NativeSplitter 上方,
+            // 跟 macOS 原生 title bar 双层 FCP 风格)。 上半 upperBand 高度
+            // 同步减 38pt,保持 5-zone 比例不变。
+            let topHeaderHeight: CGFloat = 38
+            let upperHeight = max(0, geo.size.height - lowerHeight - topHeaderHeight)
             VStack(spacing: 0) {
+                if upperBandVisible || lowerBandVisible {
+                    topLeftHeaderBar
+                }
                 if upperBandVisible {
                     upperBand(in: geo.size.width)
-                        .frame(height: geo.size.height - lowerHeight)
+                        .frame(height: upperHeight)
                 }
                 if upperBandVisible && lowerBandVisible {
                     // LT-01-fix13: VM 的 `adjustXxx` 返回 Bool (= applied,
@@ -91,6 +153,32 @@ struct LayoutShellView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Top header bar (V0-fix-4 Fix 1 + Fix 3)
+
+    /// 顶部跨全宽 38pt 标题栏 (AIF 16:40 拍板 — 替换 v0.02.0 顶部"文枢"标
+    /// 题文字,FCP toolbar 风格: 红黄绿 traffic lights 后接 + 按钮 + 5 tab 容
+    /// 器 + Spacer)。 + 按钮接 NavigationStack push → AppRoute.createProject
+    /// (V0-fix-4 Fix 3 — 沿 v0.01.0 WO-010 拍板主路由 push)。
+    private var topLeftHeaderBar: some View {
+        HStack(spacing: 12) {
+            Button {
+                // V0-fix-4 Fix 3: + 按钮接 NavigationStack push 到
+                // AppRoute.createProject (沿 v0.01.0 WO-010 拍板)。
+                navPath.append(AppRoute.createProject)
+            } label: {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help("新建项目")
+
+            Spacer(minLength: 0)
+        }
+        .frame(height: 38)
+        .padding(.horizontal, 12)
     }
 
     private var upperBandVisible: Bool {
@@ -187,6 +275,11 @@ struct LayoutShellView: View {
                     // topRight 改宽不影响其他 panel。 严禁在这里走
                     // sheet / NavigationStack push — 见 AGENTS §6。
                     InspectorView()
+                } else if id == .topLeft {
+                    // V0-fix-4 Fix 2: topLeft panel 渲染 ProjectListView
+                    // 5 tab 容器 (项目 / 章节 / 设定 / 资料 / 看板),
+                    // 共享 LayoutShellView 顶层的 projects + navPath。
+                    ProjectListView(projects: $projects, navPath: $navPath)
                 } else {
                     PlaceholderContent(panel: id)
                 }
