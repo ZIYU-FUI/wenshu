@@ -1,5 +1,13 @@
-// ChatPanelView.swift · 文枢 · v0.02.0 WO-LT-04
+// ChatPanelView.swift · 文枢 · v0.02.0 WO-LT-04 → v0.03.0 V0-fix-1 (Fix B + Fix C)
 // 下左聊天区：聊天实装，时间线/关系图/大纲为 disabled 占位。
+//
+// V0-fix-1 Fix C: 4 个 chat tab 改成 ICON-only (FCP 风格)。 Text label
+// 从 Picker 里删了, 走 `.help(tab.rawValue)` tooltip 显示中文。 SF
+// Symbol 映射也按装机 user 8/10 拍板的 fix19 风格精简 (bubble.left /
+// clock / person.2 / list.bullet.rectangle)。
+//
+// V0-fix-1 Fix B: 删 Picker 字符串标签 "聊天区视图" (= 原 H1 残留),
+// 改空字符串 (a11y label 由 .help() 提供, 不再冗余)。
 
 import SwiftUI
 
@@ -13,10 +21,13 @@ enum ChatPanelTab: String, CaseIterable, Identifiable {
 
     var symbolName: String {
         switch self {
-        case .chat: return "bubble.left.and.bubble.right"
-        case .timeline: return "clock.arrow.circlepath"
+        // V0-fix-1 Fix C: SF Symbol 简化 — bubble.left (单边气泡, 不带
+        // 对话双方标识) / clock (无 arrow.circlepath 装饰) / person.2
+        // (不变) / list.bullet.rectangle (替代 indent, 大纲 视觉更明确)。
+        case .chat: return "bubble.left"
+        case .timeline: return "clock"
         case .relationships: return "person.2"
-        case .outline: return "list.bullet.indent"
+        case .outline: return "list.bullet.rectangle"
         }
     }
 
@@ -37,10 +48,15 @@ struct ChatPanelView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Picker("聊天区视图", selection: $activeTab) {
+            // V0-fix-1 Fix B + Fix C: Picker a11y 标签改 "" (H1 残留
+            // "聊天区视图" 已删), 4 个 tab 改 ICON-only + .help(tab.rawValue)
+            // tooltip 兜中文显示. activeTab 自带 segmented picker 默认
+            // accent background (≈ 6pt rounded), 视觉对齐 FCP 风格.
+            Picker("", selection: $activeTab) {
                 ForEach(ChatPanelTab.allCases) { tab in
-                    Label(tab.rawValue, systemImage: tab.symbolName)
+                    Image(systemName: tab.symbolName)
                         .tag(tab)
+                        .help(tab.rawValue)
                         .disabled(tab.isDisabled)
                 }
             }
