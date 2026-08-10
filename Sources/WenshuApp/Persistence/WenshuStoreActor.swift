@@ -108,11 +108,14 @@ actor WenshuStoreActor {
 
     // MARK: - Foreshadows (LT-02 inspector 伏笔 tab)
     //
-    // LT-02 验收: 伏笔 tab 真接 CDForeshadow entity 从 .ws 读。
-    // 当前 CDForeshadow schema 没有 chapter 关联字段 (CC 不动 .ws schema,
-    // AGENTS §12 红线), 所以这里返回所有 CDForeshadow 行 — 装机 user
-    // 选中段落联动在 v0.05.0 标记系统阶段接。 排序按 plantedAt 升序
-    // (= 故事时间线), 让用户看到"先种后收"的自然顺序。
+    // LT-02 v2 验收: 伏笔 tab 真接 CDForeshadow entity,按 chapter / paragraph
+    // ID 过滤 (用 8/10 新增的可空关联字段)。LT-02 v1 (d285d8132) 只暴露
+    // list-all 接口,LT-02 v2 拆 3 个签名给 InspectorViewModel 用:
+    //   - 全部: listForeshadows()                       (back-compat,保留旧调用)
+    //   - 按 chapter: listForeshadows(forChapter:)     (v0.02.0 LT-02 v2 新增)
+    //   - 按 paragraph: listForeshadows(forParagraph:) (优先级 > chapter,
+    //     paragraph ID 真接 v0.05.0 标记系统的段落范围,装机 user 在 inspector
+    //     选中段落联动就是 paragraph)
     //
     // 返回类型是 plain Sendable 值类型 — NSManagedObject 跨 actor 边界
     // 不能 Sendable, 在 .perform {} 内同步取值后直接还 Sendable 值类型,
@@ -135,21 +138,81 @@ actor WenshuStoreActor {
     /// Read all `CDForeshadow` rows, sorted by `plantedAt` ascending.
     /// Returns zero-value tuples on any decode failure (defensive — one
     /// bad row should not break inspector rendering).
+    ///
+    /// LT-02 v2: 这个 back-compat 签名保留 (LT-01 已落地的调用点不能破)。
+    /// 新代码 (InspectorViewModel) 优先用 paragraph/chapter 过滤版。
     func listForeshadows() async throws -> [ForeshadowRow] {
         let context = container.viewContext
         return try await context.perform {
             let request = NSFetchRequest<NSManagedObject>(entityName: "CDForeshadow")
             request.sortDescriptors = [NSSortDescriptor(key: "plantedAt", ascending: true)]
             let objects = try context.fetch(request)
-            return objects.map { object in
-                ForeshadowRow(
-                    hook: (object.value(forKey: "hook") as? String) ?? "",
-                    status: object.value(forKey: "status") as? String,
-                    plantedAt: (object.value(forKey: "plantedAt") as? Date) ?? Date(),
-                    resolvedAt: object.value(forKey: "resolvedAt") as? Date
-                )
-            }
+            return objects.map { Self.makeRow(from: $0) }
         }
+    }
+
+    /// Filter by `chapterID`. Rows with nil chapterID are excluded (we
+    /// cannot match "no chapter" against a concrete chapter). Sorted by
+    /// `plantedAt` ascending (= 故事时间线, "先种后收")。
+    /// Pass `nil` to deliberately get an empty list.
+    func listForeshadows(forChapter chapterID: UUID?) async throws -> [ForeshadowRow] {
+        let context = container.viewContext
+        return try await context.perform {
+            let request = NSFetchRequest<NSManagedObject>(entityName: "CDForeshadow")
+            if let chapterID {
+                request.predicate = NSPredicate(format: "chapterID == %@", chapterID as CVarArg)
+            } else {
+                // 显式 chapterID=nil = 过滤出"无 chapter 关联"行,
+                // 用 SELF allows nil 没法直接表达,改用 chapterID == nil。
+                request.predicate = NSPredicate(format: "chapterID == nil")
+            }
+            request.sortDescriptors = [NSSortDescriptor(key: "plantedAt", ascending: true)]
+            let objects = try context.fetch(request)
+            return objects.map { Self.makeRow(from: $0) }
+        }
+    }
+
+    /// Filter by `paragraphID`. **Priority over chapter** — inspector
+    /// v0.05.0 标记系统选中段落时直接走这个,不再二次过滤 chapter。
+    /// Rows with nil paragraphID are excluded by the predicate.
+    /// `nil` argument → empty list (意图明确:段落 ID 未填,不展示伏笔)。
+    func listForeshadows(forParagraph paragraphID: UUID?) async throws -> [ForeshadowRow] {
+        let context = container.viewContext
+        return try await context.perform {
+            let request = NSFetchRequest<NSManagedObject>(entityName: "CDForeshadow")
+            if let paragraphID {
+                request.predicate = NSPredicate(format: "paragraphID == %@", paragraphID as CVarArg)
+            } else {
+                // 显式 paragraphID=nil 传进来 = caller 想要"无 paragraph
+                // 关联" 的伏笔(=历史 v0.01.0 创建时没标 paragraph 的旧行)。
+                // 这条路径主要给 inspector 全局兜底视图 (= paragraph 还没
+                // 选中时显示全部 v0.01.0 旧伏笔) 用,新代码 (`currentParagraphID` 有值)
+                // 永远走 if 分支,不走这里。
+                request.predicate = NSPredicate(format: "paragraphID == nil")
+            }
+            request.sortDescriptors = [NSSortDescriptor(key: "plantedAt", ascending: true)]
+            let objects = try context.fetch(request)
+            return objects.map { Self.makeRow(from: $0) }
+        }
+    }
+
+    /// 三个 list 方法共享的行映射逻辑 — 抽出避免重复。 nil-tolerant:
+    /// 任何字段取值失败都给 default 值,不抛错 (一行坏数据不能炸 inspector)。
+    private static func makeRow(from object: NSManagedObject) -> ForeshadowRow {
+        // CDForeshadow schema 没定义 `id` 属性 (v0.01.0 是 4 字段 +
+        // LT-02 v2 加 chapterID/paragraphID, 都没 id)。 如果直接
+        // value(forKey: "id") 会抛 NSUnknownKeyException 触发进程
+        // crash, 而不是返回 nil。 row.id 仅供 SwiftUI Identifiable /
+        // ForEach 用, 不需要跟 NSManagedObjectID 挂钩 — 永远合成新 UUID。
+        ForeshadowRow(
+            id: UUID(),
+            hook: (object.value(forKey: "hook") as? String) ?? "",
+            status: object.value(forKey: "status") as? String,
+            plantedAt: (object.value(forKey: "plantedAt") as? Date) ?? Date(),
+            resolvedAt: object.value(forKey: "resolvedAt") as? Date,
+            chapterID: object.value(forKey: "chapterID") as? UUID,
+            paragraphID: object.value(forKey: "paragraphID") as? UUID
+        )
     }
 
     /// Diagnostics / tests: how many `CDForeshadow` rows are persisted.
@@ -223,31 +286,45 @@ actor WenshuStoreActor {
 
 /// Plain Sendable row read from `CDForeshadow`. Lives outside the actor
 /// because `NSManagedObject` is not Sendable — we extract its scalar
-/// fields inside `WenshuStoreActor.listForeshadows()` and hand back
+/// fields inside `WenshuStoreActor.listForeshadows(...)` and hand back
 /// this value type. InspectorViewModel holds an array of these on the
 /// main actor without crossing actor boundaries with managed objects.
 ///
 /// `status` is intentionally optional (the schema marks it optional); we
 /// expose `nil` so the UI can show "未分类" rather than guessing a default.
+///
+/// LT-02 v2: `chapterID` / `paragraphID` 是 v0.05.0 标记系统的关联字段,
+/// 当前 (v0.02.0 LT-02 v2) 都是可空。InspectorViewModel 用它们过滤 inspector
+/// 伏笔 tab 的可见集合。
 struct ForeshadowRow: Identifiable, Sendable, Equatable {
     let id: UUID
     let hook: String
     let status: String?
     let plantedAt: Date
     let resolvedAt: Date?
+    /// v0.02.0 LT-02 v2 新增 — CDForeshadow.chapterID 的镜像。
+    /// nil 表示这条伏笔还没绑定到任何章节 (v0.01.0 旧数据)。
+    let chapterID: UUID?
+    /// v0.02.0 LT-02 v2 新增 — CDForeshadow.paragraphID 的镜像。
+    /// nil 表示还没绑定到段落 (= v0.05.0 标记系统还没接过)。
+    let paragraphID: UUID?
 
     init(
         id: UUID = UUID(),
         hook: String,
         status: String?,
         plantedAt: Date,
-        resolvedAt: Date?
+        resolvedAt: Date?,
+        chapterID: UUID? = nil,
+        paragraphID: UUID? = nil
     ) {
         self.id = id
         self.hook = hook
         self.status = status
         self.plantedAt = plantedAt
         self.resolvedAt = resolvedAt
+        self.chapterID = chapterID
+        self.paragraphID = paragraphID
     }
 
     /// "已回收" = resolvedAt 非空。 文枢 v0.02.0 inspector 显示用。

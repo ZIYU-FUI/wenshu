@@ -47,7 +47,13 @@ func makeWenshuModel() -> NSManagedObjectModel {
             attribute("hook", .stringAttributeType),
             attribute("status", .stringAttributeType, optional: true),
             attribute("plantedAt", .dateAttributeType),
-            attribute("resolvedAt", .dateAttributeType, optional: true)
+            attribute("resolvedAt", .dateAttributeType, optional: true),
+            // LT-02 v2 新增 — AIF 8/10 拍板: 加可空关联字段,旧 .ws 自动迁移可读。
+            // 装机 user 选中段落联动 = inspector 伏笔 tab 真读 (按 chapter / paragraph ID 过滤)。
+            // 严禁删/改既有 4 字段 (AGENTS §12 红线 — schema 加可空字段 OK,
+            // 改字段类型 / 删字段要 PM 拍)。
+            attribute("chapterID", .UUIDAttributeType, optional: true),
+            attribute("paragraphID", .UUIDAttributeType, optional: true)
         ]),
         entity("CDRevision", properties: [
             attribute("originalChapterID", .UUIDAttributeType),
