@@ -1,4 +1,4 @@
-// ChatPanelView.swift · 文枢 · v0.02.0 WO-LT-04 → v0.03.0 V0-fix-1 (Fix B + Fix C)
+// ChatPanelView.swift · 文枢 · v0.02.0 WO-LT-04 → v0.03.0 V0-fix-1 (Fix B + Fix C) → v0.03.0 V0-fix-2 (Fix G)
 // 下左聊天区：聊天实装，时间线/关系图/大纲为 disabled 占位。
 //
 // V0-fix-1 Fix C: 4 个 chat tab 改成 ICON-only (FCP 风格)。 Text label
@@ -8,6 +8,11 @@
 //
 // V0-fix-1 Fix B: 删 Picker 字符串标签 "聊天区视图" (= 原 H1 残留),
 // 改空字符串 (a11y label 由 .help() 提供, 不再冗余)。
+//
+// V0-fix-2 Fix G: `.pickerStyle(.segmented)` 改 `.pickerStyle(.iconOnly)` —
+// macOS 13 上 segmented picker 即便只放 Image 也 fallback 显 SF Symbol 名字
+// ("bubble.left" / "clock" / "person.2" / "list.bullet.rectangle" 这 4 个字符
+// 串), 必须 iconOnly 才真 ICON-only.
 
 import SwiftUI
 
@@ -48,10 +53,13 @@ struct ChatPanelView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // V0-fix-1 Fix B + Fix C: Picker a11y 标签改 "" (H1 残留
-            // "聊天区视图" 已删), 4 个 tab 改 ICON-only + .help(tab.rawValue)
-            // tooltip 兜中文显示. activeTab 自带 segmented picker 默认
-            // accent background (≈ 6pt rounded), 视觉对齐 FCP 风格.
+            // V0-fix-1 Fix B + Fix C + V0-fix-2 Fix G: Picker a11y 标签
+            // 改 "" (H1 残留 "聊天区视图" 已删), 4 个 tab 改 ICON-only
+            // 走 Image(systemName:) + .help(tab.rawValue) tooltip 兜中文.
+            // Picker 风格走 .iconOnly (不是 .segmented) — macOS 13 上
+            // segmented picker 即便只放 Image 也 fallback 显 SF Symbol 名字
+            // ("bubble.left" / "clock" / "person.2" / "list.bullet.rectangle"
+            // 这 4 个字符串), 必须 iconOnly 才真 ICON-only.
             Picker("", selection: $activeTab) {
                 ForEach(ChatPanelTab.allCases) { tab in
                     Image(systemName: tab.symbolName)
@@ -60,7 +68,7 @@ struct ChatPanelView: View {
                         .disabled(tab.isDisabled)
                 }
             }
-            .pickerStyle(.segmented)
+            .pickerStyle(.iconOnly)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
 

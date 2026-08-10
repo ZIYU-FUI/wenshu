@@ -1,17 +1,27 @@
-// InspectorView.swift · 文枢 (Wenshu) · v0.02.0 WO-LT-02-v2
+// InspectorView.swift · 文枢 (Wenshu) · v0.02.0 WO-LT-02-v2 → v0.03.0 V0-fix-2 (Fix H)
 //
 // 右上 inspector 区 (AGENTS §8.1) 的 SwiftUI 视图。 跟 `ChatPanelView`
-// 同形态: 顶上一个 segmented Picker 切 2 tab (伏笔 / 修订), 下方
+// 同形态: 顶上一个 ICON-only Picker 切 2 tab (伏笔 / 修订), 下方
 // `Group { switch ... }` 渲染对应面板内容。 跟 ChatPanelView 同样不
 // 写 `.sheet(isPresented:)` (AGENTS §6 + WO-006~010 5 个 sheet 焦点
 // bug 全废), 不写 `.onAppear` (统一 `.task` 拉数据)。
 //
+// V0-fix-2 Fix H (装机 user 8/10 15:30 OOB 实机拍): Picker 改 ICON-only
+// — `.segmented` → `.iconOnly` (macOS 13 segmented fallback 显 SF Symbol
+// 名字, 必须 iconOnly 才真 ICON-only) + Picker a11y "检视" 改 "" (跟
+// V0-fix-1 Fix B 同形态) + Picker 块 `Text(tab.title)` 改 `Image(systemName:)
+// + .help(tab.title)` + 删 selfHeader H1 "检视" (整段 + body 调用,
+// 跟 V0-fix-1 ChatPanelView Fix B 同策略) + 加 `iconName(for:)` inline
+// 静态映射 (走 View 内, 不动 InspectorViewModel — 跟 V0-fix-1 不动
+// ChatPanelViewModel 同策略)。 伏笔 = eye, 修订 = pencil.and.list.clipboard,
+// 跟 V0-fix-1 Fix C 简化风格保持一致。
+//
 // 布局纪律 (LT-01-fix5 拍板"用功能告诉用户", PanelContainer 已删
-// headerBar): panel content 自己顶一个 H1 self-identity "检视"。
-// InspectorView 进 PanelContainer 后就是 chrome-free 状态 — 装机 user
-// 看一眼 "检视 / 伏笔 / hook 文案" 就知道在哪。 PlaceholderContent 在
-// PanelContainer 里已经被 InspectorView 替换 (见 LayoutShellView
-// .panel(_:) switch 的 .topRight 分支)。
+// headerBar): panel content 不再顶 H1 self-identity "检视" — 直接 Picker
+// chrome-free 进入 InspectorView (V0-fix-2 Fix H selfHeader 已删),
+// 装机 user 看 ICON (eye / pencil.and.list.clipboard) 就知道区功能。
+// PlaceholderContent 在 PanelContainer 里已经被 InspectorView 替换
+// (见 LayoutShellView .panel(_:) switch 的 .topRight 分支)。
 //
 // Picker / `selectedTab` 协议: Picker 直接绑 `vm.selectedTab` (类型
 // 是 `InspectorViewModel.Tab`), tag 走 `.tag(tab)` =
@@ -45,14 +55,21 @@ struct InspectorView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            selfHeader
             Divider()
-            Picker("检视", selection: $vm.selectedTab) {
+            // V0-fix-2 Fix H: Picker 改 ICON-only (.iconOnly + Image
+            // + .help() 兜中文) + Picker a11y 改 "" (跟 ChatPanelView
+            // Fix G §1.3 同形态). iconName(for:) 走 View 内 inline
+            // 静态映射, 不动 InspectorViewModel (跟 V0-fix-1 不动
+            // ChatPanelViewModel 同策略).
+            Picker("", selection: $vm.selectedTab) {
                 ForEach(InspectorViewModel.Tab.allCases) { tab in
-                    Text(tab.title).tag(tab)
+                    Image(systemName: iconName(for: tab))
+                        .tag(tab)
+                        .help(tab.title)
+                        .disabled(false)
                 }
             }
-            .pickerStyle(.segmented)
+            .pickerStyle(.iconOnly)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             Divider()
@@ -77,25 +94,17 @@ struct InspectorView: View {
         }
     }
 
-    // MARK: - Top self-identity (FCP 范式 "用功能告诉用户")
+    // MARK: - V0-fix-2 Fix H: iconName(for:) inline 静态映射
 
-    /// Inspector content 自己的 H1 self-identity (LT-01-fix5 拍板:
-    /// PanelContainer 已删 headerBar, content 自带 H1)。 跟
-    /// PlaceholderContent 的 hint 文案不同 — inspector 不是空 panel,
-    /// 是真有功能的区, 必须显式告诉用户"这是检视", 不能闷头只显示
-    /// 一堆 hook 让装机 user 找不清在哪。
-    private var selfHeader: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "sidebar.right")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.secondary)
-            Text("检视")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(.primary)
-            Spacer()
+    /// Inspector 2 tab 的 SF Symbol 映射 — 走 View 内 inline, 不动
+    /// InspectorViewModel (跟 V0-fix-1 不动 ChatPanelViewModel 同策略).
+    /// 伏笔 = eye (表"看穿 / 注视"), 修订 = pencil.and.list.clipboard
+    /// (表"用铅笔 + 列表改写"). 跟 V0-fix-1 Fix C 简化风格保持一致.
+    private func iconName(for tab: InspectorViewModel.Tab) -> String {
+        switch tab {
+        case .foreshadow: return "eye"
+        case .revision: return "pencil.and.list.clipboard"
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
     }
 
     // MARK: - 伏笔 tab
