@@ -253,3 +253,40 @@ struct ForeshadowRow: Identifiable, Sendable, Equatable {
     /// "已回收" = resolvedAt 非空。 文枢 v0.02.0 inspector 显示用。
     var isResolved: Bool { resolvedAt != nil }
 }
+
+struct TaggedNote: Sendable { let text: String; let tags: String; let createdAt: Date }
+struct ChapterRow: Sendable { let id: UUID; let title: String; let content: String; let index: Int }
+
+extension WenshuStoreActor {
+    func listTaggedNotes(prefix: String) async throws -> [TaggedNote] {
+        let context = container.viewContext
+        return try await context.perform {
+            let request = NSFetchRequest<NSManagedObject>(entityName: "CDNote")
+            return try context.fetch(request).compactMap { object in
+                guard let tags = object.value(forKey: "tags") as? String, tags.hasPrefix(prefix), let text = object.value(forKey: "text") as? String else { return nil }
+                return TaggedNote(text: text, tags: tags, createdAt: object.value(forKey: "createdAt") as? Date ?? Date())
+            }
+        }
+    }
+
+    func deleteNotes(tag: String) async throws {
+        let context = container.viewContext
+        try await context.perform {
+            let request = NSFetchRequest<NSManagedObject>(entityName: "CDNote")
+            let rows = try context.fetch(request).filter { ($0.value(forKey: "tags") as? String) == tag }
+            rows.forEach(context.delete)
+            if context.hasChanges { try context.save() }
+        }
+    }
+
+    func listChapters() async throws -> [ChapterRow] {
+        let context = container.viewContext
+        return try await context.perform {
+            let request = NSFetchRequest<NSManagedObject>(entityName: "CDChapter")
+            request.sortDescriptors = [NSSortDescriptor(key: "chapterIndex", ascending: true)]
+            return try context.fetch(request).map { object in
+                ChapterRow(id: UUID(), title: object.value(forKey: "title") as? String ?? "", content: object.value(forKey: "content") as? String ?? "", index: Int(object.value(forKey: "chapterIndex") as? Int32 ?? 0))
+            }
+        }
+    }
+}

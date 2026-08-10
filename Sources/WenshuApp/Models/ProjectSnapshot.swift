@@ -13,7 +13,7 @@
 import Foundation
 
 /// Lightweight project model used by the UI before `.ws` is wired.
-struct ProjectSnapshot: Identifiable, Hashable, Sendable {
+struct ProjectSnapshot: Identifiable, Hashable, Codable, Sendable {
     let id: UUID
     var name: String
     var style: String

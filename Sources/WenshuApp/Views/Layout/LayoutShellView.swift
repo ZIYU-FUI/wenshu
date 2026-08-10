@@ -178,6 +178,8 @@ struct LayoutShellView: View {
             PanelContainer(panelID: id) {
                 if id == .bottomLeft {
                     ChatPanelView()
+                } else if id == .topLeft {
+                    ProjectBrowserView()
                 } else {
                     PlaceholderContent(panel: id)
                 }
