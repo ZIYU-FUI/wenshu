@@ -176,7 +176,10 @@ struct LayoutShellView: View {
                 .frame(width: width)
         } else {
             PanelContainer(panelID: id) {
-                if id == .bottomLeft {
+                if id == .topLeft {
+                    // LT-03 v2: 5-tab 项目管理 (项目/章节/设定/资料/看板)
+                    ProjectManagementView()
+                } else if id == .bottomLeft {
                     ChatPanelView()
                 } else {
                     PlaceholderContent(panel: id)
