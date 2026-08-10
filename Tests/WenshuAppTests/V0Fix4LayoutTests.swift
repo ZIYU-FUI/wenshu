@@ -140,22 +140,33 @@ final class V0Fix4LayoutTests: XCTestCase {
             "LayoutShellView header bar 必须含 .help(新建项目) tooltip (V0-fix-4 Fix 1 — 兜中文)"
         )
 
-        // Fix 3: NavigationStack + AppRoute.push
+        // Fix 3 (V0-fix-4 → V0-fix-6 supersede): NavigationStack 仍需 (chat 路由),
+        // + 按钮已改 sheet 不 push. V0-fix-4 拍 push, V0-fix-6 (装机 user
+        // 8/10 17:35 OOB "走弹窗不 push") supersede — 原 `navPath.append(
+        // AppRoute.createProject)` 已删, 改 `showCreateProject = true`.
+        // navPath 仍为 chat 路由服务 (ProjectListView 内项目行点击 →
+        // navPath.append(AppRoute.chat)). NavigationStack + .navigation
+        // Destination 保留.
         XCTAssertTrue(
             code.contains("NavigationStack(path:"),
-            "LayoutShellView 必须含 NavigationStack(path:) (V0-fix-4 Fix 3 — 接 + 按钮 push 到 AppRoute.createProject)"
+            "LayoutShellView 必须含 NavigationStack(path:) (V0-fix-4 Fix 3 — 仍需, 路由 chat 用)"
         )
         XCTAssertTrue(
             code.contains(".navigationDestination(for: AppRoute.self)"),
-            "LayoutShellView 必须含 .navigationDestination(for: AppRoute.self) (V0-fix-4 Fix 3 — 接 AppRoute.createProject)"
+            "LayoutShellView 必须含 .navigationDestination(for: AppRoute.self) (V0-fix-4 Fix 3 — 仍需, 路由 chat 用)"
         )
+        // V0-fix-6 改: + 按钮走 modal sheet
         XCTAssertTrue(
+            code.contains("showCreateProject = true"),
+            "LayoutShellView + 按钮 action 必须调 showCreateProject = true (V0-fix-6 Fix 1 — 改 sheet 弹窗不 push, 装机 user 8/10 17:35 OOB 拍)"
+        )
+        XCTAssertFalse(
             code.contains("navPath.append(AppRoute.createProject)"),
-            "LayoutShellView + 按钮 action 必须调 navPath.append(AppRoute.createProject) (V0-fix-4 Fix 3 — 接 push)"
+            "LayoutShellView + 按钮 action 不应再调 navPath.append(AppRoute.createProject) (V0-fix-6 Fix 1 — 改 sheet 不 push)"
         )
         XCTAssertTrue(
             code.contains("@State") && code.contains("NavigationPath"),
-            "LayoutShellView 必须有 @State NavigationPath 字段 (V0-fix-4 Fix 3 — navPath state)"
+            "LayoutShellView 必须有 @State NavigationPath 字段 (V0-fix-4 Fix 3 — navPath 仍需, chat 路由用)"
         )
 
         // PlaceholderContent(panel: .topLeft) 必须从 panel(_:) switch 移除

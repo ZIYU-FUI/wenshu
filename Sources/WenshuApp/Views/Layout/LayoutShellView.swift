@@ -1,4 +1,4 @@
-// LayoutShellView.swift · 文枢 (Wenshu) · v0.02.0 WO-LT-01 → LT-01-fix9
+// LayoutShellView.swift · 文枢 (Wenshu) · v0.02.0 WO-LT-01 → LT-01-fix9 → v0.03.0 V0-fix-6
 //
 // 5-zone shell — the root of the macOS window in v0.02.0.
 //
@@ -12,6 +12,23 @@
 //   ├──────────┴───────────────────────────┴──────────────────────────┤
 //   │ 聊天区 (bottomLeft)               │ 状态 (bottomRight)            │
 //   └────────────────────────────────────┴────────────────────────────┘
+//
+// V0-fix-6 (AIF 17:35 + 装机 user 8/10 17:35+17:40 OOB 真机拍):
+//   Fix 1 (B5): + 按钮走 modal sheet (`.sheet(isPresented:)`), 不用
+//                NavigationStack push (改自 V0-fix-4 Fix 3 — 装机 user
+//                17:35 OOB 拍"走弹窗不 push")。 sheet 关闭后 onCreate/
+//                onCancel 回调走 LayoutShellView 顶层 projects +
+//                showCreateProject state。
+//   Fix 2 (B5): 5 tab 容器升到标题栏 (HStack 内 + 按钮右侧), iconOnly
+//                Picker — 沿用 ProjectManagementTab.symbolName 5 SF
+//                Symbol (folder / list.bullet.rectangle /
+//                slider.horizontal.3 / books.vertical /
+//                rectangle.split.3x1)。 ProjectListView 内的 5 tab
+//                仍保留, v0.04.0 才下沉 (本期不动 tab 容器归属)。
+//   Fix 5 (B5): 5 tab activeTab state 由 LayoutShellView 顶层持有
+//                (@State), @Binding 传 ProjectListView — 保证标题栏
+//                iconOnly Picker + ProjectListView segmented Picker
+//                共享同一 state (FCP toolbar 范式)。
 //
 // LT-01-fix3 (装机 user 8/7 实机验 + macOS HIG): the in-window toolbar
 // row is GONE — the app version moved to 文枢 → 关于文枢, "重置布局"
@@ -48,13 +65,22 @@ struct LayoutShellView: View {
     // unreachable from a CommandMenu).
     @ObservedObject private var vm = LayoutShellViewModel.shared
 
-    // V0-fix-4 Fix 3: + 按钮 push AppRoute.createProject 用的 NavigationPath
-    // 顶层 state。 ProjectListView 共享同一 binding,避免双 navPath 不同步。
+    // V0-fix-4 Fix 3 (V0-fix-6 保留): navPath 仍需为 chat 路由服务
+    // (ProjectListView 内项目行点击 → navPath.append(AppRoute.chat(...))。
+    // createProject push 已移除 — 改 sheet 走 showCreateProject state。
     @State private var navPath = NavigationPath()
 
     // V0-fix-4 Fix 2: topLeft 5 tab 容器 (ProjectListView) 需要的项目列表
     // — 后续 WenshuStoreActor 接 .ws 后,这里换成 vm 持有 + onChange 同步。
     @State private var projects: [ProjectSnapshot] = []
+
+    // V0-fix-6 Fix 1: + 按钮 sheet 显隐 state (替代 V0-fix-4 navPath push)。
+    @State private var showCreateProject: Bool = false
+
+    // V0-fix-6 Fix 5: 5 tab active state 顶层持有,@Binding 同步
+    // ProjectListView — 标题栏 iconOnly Picker + ProjectListView segmented
+    // Picker 共享同一 state (FCP toolbar 范式)。
+    @State private var projectListActiveTab: ProjectManagementTab = .projects
 
     var body: some View {
         NavigationStack(path: $navPath) {
@@ -66,6 +92,23 @@ struct LayoutShellView: View {
                 .task {
                     await vm.load()
                 }
+                // V0-fix-6 Fix 1: + 按钮接 modal sheet 弹窗
+                // (`.sheet(isPresented:)`), 替代 V0-fix-4 Fix 3 的
+                // NavigationStack push — 装机 user 8/10 17:35 OOB 拍
+                // "走弹窗不 push"。 sheet content 持有独立的本地 state,
+                // 关闭后 onCreate/onCancel 回调走 LayoutShellView 顶层
+                // 状态 (projects + showCreateProject)。
+                .sheet(isPresented: $showCreateProject) {
+                    ProjectCreateView(
+                        onCreate: { newProject in
+                            projects.append(newProject)
+                            showCreateProject = false
+                        },
+                        onCancel: {
+                            showCreateProject = false
+                        }
+                    )
+                }
         }
     }
 
@@ -75,15 +118,16 @@ struct LayoutShellView: View {
     private func destinationView(for route: AppRoute) -> some View {
         switch route {
         case .createProject:
-            ProjectCreateView(
-                onCreate: { newProject in
-                    projects.append(newProject)
-                    navPath.removeLast()
-                },
-                onCancel: {
-                    navPath.removeLast()
-                }
-            )
+            // V0-fix-6: + 按钮已改 sheet, 这里走 placeholder 兜底避免
+            // 编译期 enum 缺失报错。 实际不再 push createProject。
+            VStack(spacing: 10) {
+                Image(systemName: "doc.badge.plus")
+                    .font(.system(size: 30, weight: .light))
+                    .foregroundStyle(.secondary)
+                Text("请用顶部 + 按钮弹窗新建项目")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
         case .chat:
             // V0-fix-4 范围不接 chat push — chat 实装在下半 ChatPanelView,
             // 这里走 placeholder 避免 ChatViewModel.shared 不存在导致编译失败。
@@ -155,18 +199,24 @@ struct LayoutShellView: View {
         }
     }
 
-    // MARK: - Top header bar (V0-fix-4 Fix 1 + Fix 3)
+    // MARK: - Top header bar (V0-fix-4 Fix 1 + Fix 2 + V0-fix-6 Fix 1 + Fix 2 + Fix 5)
 
     /// 顶部跨全宽 38pt 标题栏 (AIF 16:40 拍板 — 替换 v0.02.0 顶部"文枢"标
-    /// 题文字,FCP toolbar 风格: 红黄绿 traffic lights 后接 + 按钮 + 5 tab 容
-    /// 器 + Spacer)。 + 按钮接 NavigationStack push → AppRoute.createProject
-    /// (V0-fix-4 Fix 3 — 沿 v0.01.0 WO-010 拍板主路由 push)。
+    /// 题文字, FCP toolbar 风格: 红黄绿 traffic lights 后接 + 按钮 + 5 tab
+    /// iconOnly Picker + Spacer)。 + 按钮接 modal sheet
+    /// (`.sheet(isPresented: $showCreateProject)`, 替代 V0-fix-4 的
+    /// NavigationStack push — 装机 user 8/10 17:35 OOB 拍"走弹窗不 push")。
+    /// 5 tab iconOnly Picker 复用 ProjectManagementTab.symbolName 5 SF
+    /// Symbol (folder / list.bullet.rectangle / slider.horizontal.3 /
+    /// books.vertical / rectangle.split.3x1), 跟 ProjectListView 内部
+    /// segmented Picker 共享同一 activeTab @Binding (FCP toolbar 范式)。
     private var topLeftHeaderBar: some View {
         HStack(spacing: 12) {
             Button {
-                // V0-fix-4 Fix 3: + 按钮接 NavigationStack push 到
-                // AppRoute.createProject (沿 v0.01.0 WO-010 拍板)。
-                navPath.append(AppRoute.createProject)
+                // V0-fix-6 Fix 1: + 按钮接 modal sheet 弹窗
+                // (`.sheet(isPresented: $showCreateProject)`), 替代
+                // V0-fix-4 Fix 3 的 `navPath.append(AppRoute.createProject)`。
+                showCreateProject = true
             } label: {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: 16, weight: .medium))
@@ -174,6 +224,24 @@ struct LayoutShellView: View {
             }
             .buttonStyle(.plain)
             .help("新建项目")
+
+            // V0-fix-6 Fix 2: 5 tab iconOnly Picker 升到标题栏
+            // (HStack 内 + 按钮右侧), .pickerStyle(.iconOnly) 走
+            // PickerStyle+IconOnly alias, 强制 Image-only 渲染 (macOS
+            // 13 fallback 不显 SF Symbol 名字)。 activeTab @Binding 同
+            // 步 ProjectListView 内部 segmented Picker (Fix 5 共享
+            // state)。 注: v0.04.0 才会把 5 tab 容器完全下沉到
+            // ProjectListView 内部 (摘除标题栏版), 本期保留双 picker
+            // (标题栏 iconOnly + ProjectListView segmented) 同步态。
+            Picker("", selection: $projectListActiveTab) {
+                ForEach(ProjectManagementTab.allCases) { tab in
+                    Image(systemName: tab.symbolName)
+                        .tag(tab)
+                        .help(tab.rawValue)
+                }
+            }
+            .pickerStyle(.iconOnly)
+            .help("项目管理标签")
 
             Spacer(minLength: 0)
         }
@@ -279,7 +347,14 @@ struct LayoutShellView: View {
                     // V0-fix-4 Fix 2: topLeft panel 渲染 ProjectListView
                     // 5 tab 容器 (项目 / 章节 / 设定 / 资料 / 看板),
                     // 共享 LayoutShellView 顶层的 projects + navPath。
-                    ProjectListView(projects: $projects, navPath: $navPath)
+                    // V0-fix-6 Fix 5: 增 activeTab @Binding — 标题栏
+                    // iconOnly Picker 跟 ProjectListView segmented
+                    // Picker 共享 activeTab state (FCP toolbar 范式)。
+                    ProjectListView(
+                        projects: $projects,
+                        navPath: $navPath,
+                        activeTab: $projectListActiveTab
+                    )
                 } else {
                     PlaceholderContent(panel: id)
                 }

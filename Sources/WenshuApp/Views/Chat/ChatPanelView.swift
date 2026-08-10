@@ -1,4 +1,4 @@
-// ChatPanelView.swift · 文枢 · v0.02.0 WO-LT-04 → v0.03.0 V0-fix-4
+// ChatPanelView.swift · 文枢 · v0.02.0 WO-LT-04 → v0.03.0 V0-fix-4 → V0-fix-6
 // 下左聊天区：聊天实装，时间线/关系图/大纲为 disabled 占位。
 //
 // V0-fix-4 Fix 4: Picker `.segmented` 改 `.iconOnly` (走 PickerStyle+IconOnly
@@ -7,6 +7,10 @@
 // .padding(.horizontal, 12) → .padding(.leading, 12) + 删 Picker 块
 // .frame(maxWidth: .infinity) 让 Picker 自适应宽度居左, 加 Spacer 把右
 // 边留白。 删 "聊天区视图" H1 残留 (Picker a11y 改 "")。
+//
+// V0-fix-6 (B5 装机 user 8/10 17:35 OOB): tabContent 加居中
+// (`.frame(maxWidth: .infinity, alignment: .center)`) — 4 tab 居左
+// OK (沿 V0-fix-4 Fix 6), 内容区居中 (本期新加)。
 
 import SwiftUI
 
@@ -61,8 +65,11 @@ struct ChatPanelView: View {
 
             Divider()
 
+            // V0-fix-6: 内容区居中 (B5 装机 user 8/10 17:35 OOB 实机拍
+            // "tab 居左 OK, 内容居中")。 加 .frame(maxWidth: .infinity,
+            // alignment: .center) 撑满 + 内容居中 (FCP timeline 范式)。
             tabContent
-                .frame(maxHeight: .infinity)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         }
     }
 
@@ -91,7 +98,6 @@ struct ChatPanelView: View {
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
-            .frame(maxHeight: .infinity)
         }
     }
 
@@ -104,7 +110,6 @@ struct ChatPanelView: View {
                 .font(.callout)
                 .foregroundStyle(.tertiary)
         }
-        .frame(maxHeight: .infinity)
         .disabled(true)
     }
 }

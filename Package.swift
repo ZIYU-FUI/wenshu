@@ -1,6 +1,6 @@
 // swift-tools-version: 6.4
 //
-// Package.swift · 文枢 (Wenshu) · v0.01.0 WO-001
+// Package.swift · 文枢 (Wenshu) · v0.01.0 WO-001 → v0.03.0 V0-fix-6
 // Project root: /Volumes/ANAN/Engineering/wenshu/
 //
 // Per AGENTS.md §13 baseline (2026-08-06 你拍板):
@@ -10,6 +10,13 @@
 //
 // WO-001 only wires the Swift toolchain + macOS empty-window startup.
 // No external dependencies. No CoreData. No LLM. No .ws files.
+//
+// V0-fix-6: 加 resources: [.copy("Assets.xcassets")] — 标准 .appiconset
+// 接入 (Apple HIG + Xcode 16 推荐姿势). SwiftPM .copy 不让 actool 跑,
+// 纯命令行 build 时 .appiconset 不会被编进 .car; 实际 LOGO 注入走
+// AppDelegate 的 applicationIconImage 兜底 (Sources/WenshuApp/Resources/
+// Brand/AppIcon.icns). 等 wenshu.xcodeproj (v0.01.x 起) 上线后, 标准
+// .appiconset 由 Xcode actool 编译接管, .copy 资源仍兼容.
 
 import PackageDescription
 
@@ -22,6 +29,8 @@ import PackageDescription
 // Key picks:
 // - LSUIElement=false          → app shows in Dock (not a background-only helper)
 // - CFBundleDisplayName=文枢   → user-facing app name (Chinese, as 拍板)
+// - CFBundleIconFile=AppIcon   → macOS legacy fallback (V0-fix-6, .icns 资源名)
+// - CFBundleIconName=AppIcon   → .appiconset 资源名 (V0-fix-6, actool 编 .car 用)
 // - LSMinimumSystemVersion=27.0 → matches `.macOS(.v27)` platform target
 // - NSPrincipalClass=NSApplication → required for Cocoa lifecycle in SwiftUI
 //
@@ -60,6 +69,20 @@ let package = Package(
                 // as a top-level resource). Keep the file on disk so the
                 // linker flag resolves, but tell SwiftPM to ignore it.
                 "Resources/Info.plist"
+            ],
+            // V0-fix-6: 标准 .appiconset 接入 — Assets.xcassets/ 整目录
+            // .copy 到 .build/.../WenshuApp_WenshuApp.bundle/, 保留
+            // .appiconset/Contents.json + 8 PNG 完整结构. SwiftPM 纯
+            // 命令行 build 不跑 actool, .appiconset 不会自动编 .car;
+            // 实际 LOGO 走 AppDelegate applicationIconImage 兜底.
+            // 等 wenshu.xcodeproj (v0.01.x) 上线, Xcode actool 接管.
+            resources: [
+                .copy("Assets.xcassets"),
+                // AppIcon.icns — AppDelegate applicationIconImage 兜底
+                // 资源. 标准 .appiconset 走 actool 编 .car, 纯 swift build
+                // 不跑 actool, 兜底必须. 等 wenshu.xcodeproj (v0.01.x) 上
+                // 线后, 这条 .copy 可摘除.
+                .copy("Resources/Brand/AppIcon.icns")
             ],
             linkerSettings: [
                 // Embed Info.plist into the executable's __TEXT,__info_plist
