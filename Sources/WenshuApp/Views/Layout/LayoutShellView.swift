@@ -178,6 +178,15 @@ struct LayoutShellView: View {
             PanelContainer(panelID: id) {
                 if id == .bottomLeft {
                     ChatPanelView()
+                } else if id == .topRight {
+                    // WO-LT-02-v2: inspector 2 tab 嵌入 (伏笔真读
+                    // CDForeshadow + 修订 mock 3 条)。 InspectorView
+                    // 是 InspectorViewModel.shared 的 @ObservedObject
+                    // consumer — inspector 状态 (折叠 / 选 tab /
+                    // 拉伏笔列表) 跟左 / 中半 layout 完全解耦, 拖
+                    // topRight 改宽不影响其他 panel。 严禁在这里走
+                    // sheet / NavigationStack push — 见 AGENTS §6。
+                    InspectorView()
                 } else {
                     PlaceholderContent(panel: id)
                 }
