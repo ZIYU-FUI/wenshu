@@ -32,7 +32,13 @@ actor WenshuProjectStore {
     /// Underlying CoreData serializer. Injected for tests; defaults to the
     /// shared store actor (which uses the on-disk SQLite URL but does NOT
     /// load the store this phase).
-    private let storeActor: WenshuStoreActor
+    ///
+    /// LT-N2 改 visibility: `private` → `internal` (默认), 让
+    /// `WenshuProjectStore+LTN2.swift` 扩展能调 `storeActor.listNotes*`
+    /// / `deleteNotes` / `countChatNotes`。 不影响运行时行为, 只影响
+    /// 模块内可见性。 现有调用方 (本文件内的 save / count / firstSavedStory /
+    /// savedCharacterNames) 全部仍是同一 module 内访问, 行为不变。
+    let storeActor: WenshuStoreActor
 
     /// Absolute URL of the projects directory. `nonisolated let` because
     /// `URL` is `Sendable` and we want callers (UI, diagnostics) to read it

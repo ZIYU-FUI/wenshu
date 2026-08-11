@@ -280,9 +280,78 @@ actor WenshuStoreActor {
             return try context.count(for: request)
         }
     }
+
+    // MARK: - Chat history (LT-N2)
+
+    /// LT-N2 新增: 拉 CDNote 元数据 (含 tags), 给 WenshuProjectStore.loadChatHistory 用。
+    ///
+    /// 为什么是新方法 (不动 `listNotes()` signature):
+    /// - LT-02 先例: 加了 `listForeshadows(forChapter:)` / `listForeshadows(forParagraph:)`
+    ///   不破 `listForeshadows()` back-compat。
+    /// - `listNotes()` 返回 `[String]` (仅 text) 不含 tags, 没法做 tag-scoping 过滤。
+    /// - 加新方法只扩 API 不破现有调用方。
+    ///
+    /// 可选 `tag` 参数走 NSPredicate CONTAINS 过滤 (= tag-scoping),
+    /// nil = 拉全部 CDNote。 返回的 `NoteRow.text` / `NoteRow.tags` /
+    /// `NoteRow.createdAt` 给 caller 做进一步业务过滤。
+    ///
+    /// v0.04.0 性能优化方向: 加 tag 索引 (predicate 直接走索引), 现在
+    /// 聊天消息数小 (< 100 条/项目), 全量拉 + 内存 filter 够用。
+    func listNotesWithMetadata(tag: String? = nil) async throws -> [NoteRow] {
+        let context = container.viewContext
+        return try await context.perform {
+            let request = NSFetchRequest<NSManagedObject>(entityName: "CDNote")
+            if let tag {
+                request.predicate = NSPredicate(format: "tags CONTAINS %@", tag)
+            }
+            let objects = try context.fetch(request)
+            return objects.map { Self.makeNoteRow(from: $0) }
+        }
+    }
+
+    /// Delete all `CDNote` rows whose `tags` contains the given tag string.
+    /// 给 WenshuProjectStore.clearChatHistory 用 (重置 / 测试)。
+    ///
+    /// 实现: fetch + delete + save (走标准 context.perform 闭包, 跟
+    /// 现有 create* 写法一致)。 数据量小 (单项目聊天 < 100 条), 性能
+    /// 不是瓶颈, 不上 .NSBatchDeleteRequest。
+    func deleteNotes(tag: String) async throws {
+        let context = container.viewContext
+        try await context.perform {
+            let request = NSFetchRequest<NSManagedObject>(entityName: "CDNote")
+            request.predicate = NSPredicate(format: "tags CONTAINS %@", tag)
+            let objects = try context.fetch(request)
+            for object in objects {
+                context.delete(object)
+            }
+            if context.hasChanges {
+                try context.save()
+            }
+        }
+    }
+
+    /// Diagnostics / tests: 数 `chat-<uuid>` tag 的 CDNote rows 数量。
+    func countChatNotes(tag: String) async throws -> Int {
+        let context = container.viewContext
+        return try await context.perform {
+            let request = NSFetchRequest<NSManagedObject>(entityName: "CDNote")
+            request.predicate = NSPredicate(format: "tags CONTAINS %@", tag)
+            return try context.count(for: request)
+        }
+    }
+
+    /// `listNotesWithMetadata` 共享的行映射逻辑。 nil-tolerant: 任何字
+    /// 段取值失败都给 default 值, 不抛错 (一行坏数据不能炸上层 chat 加载)。
+    private static func makeNoteRow(from object: NSManagedObject) -> NoteRow {
+        NoteRow(
+            text: (object.value(forKey: "text") as? String) ?? "",
+            tags: object.value(forKey: "tags") as? String,
+            createdAt: (object.value(forKey: "createdAt") as? Date) ?? Date()
+        )
+    }
 }
 
-// MARK: - Foreshadow row (LT-02 inspector)
+// MARK: - Note row (LT-N2 chat history)
 
 /// Plain Sendable row read from `CDForeshadow`. Lives outside the actor
 /// because `NSManagedObject` is not Sendable — we extract its scalar
@@ -329,4 +398,33 @@ struct ForeshadowRow: Identifiable, Sendable, Equatable {
 
     /// "已回收" = resolvedAt 非空。 文枢 v0.02.0 inspector 显示用。
     var isResolved: Bool { resolvedAt != nil }
+}
+
+// MARK: - Note row (LT-N2 chat history)
+
+/// Plain Sendable row read from `CDNote`。 跟 `ForeshadowRow` 同范式 —
+/// `NSManagedObject` 跨 actor 边界不能 Sendable, 在
+/// `WenshuStoreActor.listNotesWithMetadata(...)` 内同步取值后直接还
+/// Sendable 值类型, caller (`WenshuProjectStore`) 在 actor 外安全持有。
+///
+/// `tags` 是 optional 因为 CDNote schema 里 `tags` 字段 isOptional=true
+/// (v0.01.0 旧数据可能没 tag)。 caller 做 tag-scoping 过滤时 nil = 不匹
+/// 配任何 tag, 安全兜底。
+struct NoteRow: Identifiable, Sendable, Equatable {
+    let id: UUID
+    let text: String
+    let tags: String?
+    let createdAt: Date
+
+    init(
+        id: UUID = UUID(),
+        text: String,
+        tags: String?,
+        createdAt: Date
+    ) {
+        self.id = id
+        self.text = text
+        self.tags = tags
+        self.createdAt = createdAt
+    }
 }
