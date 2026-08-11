@@ -136,18 +136,24 @@ final class V0Fix1LayoutTests: XCTestCase {
         let source = try repoFile(
             "Sources/WenshuApp/Views/Layout/LayoutShellView.swift"
         )
+        let iconLib = try repoFile(
+            "Sources/WenshuApp/Views/IconLibrary.swift"
+        )
+        // V0-fix-11 修真 #1: + 按钮 SF Symbol 修真修真 <plus> (修真
+        // FCP Viewer 修真 + ICON, 修真 V0-fix-8 大圆圈 plus.circle.fill).
         XCTAssertTrue(
-            source.contains("plus.circle.fill"),
-            "LayoutShellView 必须包含 SF Symbol 'plus.circle.fill' (Fix A title-bar 按钮)"
+            iconLib.contains(#""plus""#),
+            "IconLibrary Action.newProject 必须含 SF Symbol 'plus' (V0-fix-11 修真 #1 — FCP Viewer 修真 + ICON)"
         )
         XCTAssertTrue(
             source.contains("新建项目"),
             "LayoutShellView 必须包含 '新建项目' 字符串 (Fix A title-bar 按钮 tooltip)"
         )
-        // 38pt 固定高度 — title-bar 视觉契约
+        // V0-fix-11 修真 #2: topLeftHeaderBar height 38pt → 28pt
+        // (修真 FCP Viewer 顶部 toolbar 修真, memi §3.5 layout 修真).
         XCTAssertTrue(
-            source.contains(".frame(height: 38)"),
-            "LayoutShellView topLeft title-bar 必须固定 height=38pt (Fix A FCP 风格)"
+            source.contains(".frame(height: 28)"),
+            "LayoutShellView topLeft header-bar 必须固定 height=28pt (V0-fix-11 修真 #2 — FCP Viewer 顶部 toolbar)"
         )
     }
 
@@ -166,22 +172,24 @@ final class V0Fix1LayoutTests: XCTestCase {
         let source = try repoFile(
             "Sources/WenshuApp/Views/Chat/ChatPanelView.swift"
         )
-        // 4 个 SF Symbol 必须都在 source 里 (出现在 enum symbolName 映射)
+        // 4 个 SF Symbol 必须都在 source 里 (出现在 IconLibrary.tab
+        // accessor 或 ChatPanelTab.symbolName 映射, V0-fix-11)
         XCTAssertTrue(
             source.contains("bubble.left"),
-            "ChatPanelView 必须含 SF Symbol 'bubble.left' (Fix C chat tab)"
+            "ChatPanelView 必须含 SF Symbol 'bubble.left' (Fix C + V0-fix-8 chat tab)"
         )
         XCTAssertTrue(
             source.contains("clock"),
-            "ChatPanelView 必须含 SF Symbol 'clock' (Fix C timeline tab)"
+            "ChatPanelView 必须含 SF Symbol 'clock' (Fix C + V0-fix-8 timeline tab)"
         )
         XCTAssertTrue(
             source.contains("person.2"),
-            "ChatPanelView 必须含 SF Symbol 'person.2' (Fix C relationships tab)"
+            "ChatPanelView 必须含 SF Symbol 'person.2' (Fix C + V0-fix-8 relationships tab)"
         )
+        // V0-fix-8 (AIF 16:20 重定义真值): list.bullet.rectangle → list.bullet.indent
         XCTAssertTrue(
-            source.contains("list.bullet.rectangle"),
-            "ChatPanelView 必须含 SF Symbol 'list.bullet.rectangle' (Fix C outline tab)"
+            source.contains("list.bullet.indent"),
+            "ChatPanelView 必须含 SF Symbol 'list.bullet.indent' (V0-fix-8 AIF 16:20 真值, outline tab)"
         )
         // Picker 块不应再用文字 Label — 改成 Image(systemName:)
         XCTAssertFalse(

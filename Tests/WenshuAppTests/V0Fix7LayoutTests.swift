@@ -167,24 +167,21 @@ final class V0Fix7LayoutTests: XCTestCase {
         )
         let code = stripSwiftComments(rawSource)
 
-        // .pickerStyle(.iconOnly) 必须出现在 LayoutShellView (header bar Picker)
-        XCTAssertTrue(
+        // V0-fix-11 修真 #2: 5 tab 修真 HStack + IconButton (修真
+        // V0-fix-7 BUG 2 Picker(.iconOnly) + V0-fix-8 修真 #2).
+        XCTAssertFalse(
             code.contains(".pickerStyle(.iconOnly)"),
-            "LayoutShellView 标题栏 Picker 必须用 .pickerStyle(.iconOnly) (V0-fix-7 BUG 2 — 沿 V0-fix-6 Fix 2, 替代 LT-N1-merge 回滚的 .segmented)"
+            "LayoutShellView 标题栏 不应再有 .pickerStyle(.iconOnly) (V0-fix-11 修真 #2 — HStack+IconButton)"
+        )
+        XCTAssertTrue(
+            code.contains("IconButton("),
+            "LayoutShellView 标题栏 必须用 IconButton( 组件 (V0-fix-11 修真 #2 — 全局 ICON 按钮组件)"
         )
 
-        // .pickerStyle(.segmented) 在 LayoutShellView 必须删除 (5 tab 标题栏
-        // 改 iconOnly, .segmented 只在 ProjectCreateView 文笔风格 picker
-        // 出现 — 不应在 LayoutShellView 标题栏 5 tab 上残留)
+        // .pickerStyle(.segmented) 在 LayoutShellView 必须删除
         XCTAssertFalse(
             code.contains(".pickerStyle(.segmented)"),
-            "LayoutShellView 不应再用 .pickerStyle(.segmented) (V0-fix-7 BUG 2 — 标题栏 5 tab 改 iconOnly, .segmented 是 ProjectCreateView 文笔风格专用)"
-        )
-
-        // .labelsHidden() 在 LayoutShellView 必须删除 (.iconOnly 不需要 labelsHidden)
-        XCTAssertFalse(
-            code.contains(".labelsHidden()"),
-            "LayoutShellView 不应再用 .labelsHidden() (V0-fix-7 BUG 2 — .iconOnly 不需要 labelsHidden)"
+            "LayoutShellView 不应再用 .pickerStyle(.segmented) (V0-fix-7 BUG 2 — 标题栏 5 tab 改 iconOnly, V0-fix-11 修真 #2 修真 HStack+IconButton)"
         )
     }
 
@@ -203,15 +200,22 @@ final class V0Fix7LayoutTests: XCTestCase {
         )
         let code = stripSwiftComments(rawSource)
 
-        // Picker 块用 Image(systemName: tab.symbolName) (替代 Text)
+        // V0-fix-11 修真 #2: 5 tab 修真 IconLibrary.tab(tab) (修真
+        // V0-fix-7 BUG 2 Image(systemName: tab.symbolName) + V0-fix-8
+        // 修真 #2 + V0-fix-10.1 修真 #3 衍生).
         XCTAssertTrue(
+            code.contains("IconLibrary.tab(tab)"),
+            "LayoutShellView 标题栏 必须用 IconLibrary.tab(tab) 修真 5 tab SF Symbol (V0-fix-11 修真 #2 — IconLibrary 修真)"
+        )
+        XCTAssertFalse(
             code.contains("Image(systemName: tab.symbolName)"),
-            "LayoutShellView 标题栏 Picker 块必须用 Image(systemName: tab.symbolName) (V0-fix-7 BUG 2 — 复用 ProjectManagementTab.symbolName 5 SF Symbol)"
+            "LayoutShellView 标题栏 不应再用 Image(systemName: tab.symbolName) (V0-fix-11 修真 #2 — IconLibrary.tab(tab) 修真)"
         )
 
-        // Picker 块 .help(tab.rawValue) 加 tooltip (iconOnly 必备)
+        // IconButton 自修真 .help(label) (修真 V0-fix-7 BUG 2 .help(tab.rawValue))
+        // 这里只验 label 修真 — IconButton 内部修真 .help(label)
         XCTAssertTrue(
-            code.contains(".help(tab.rawValue)"),
+            code.contains("label: tab.rawValue"),
             "LayoutShellView 标题栏 Picker 块必须加 .help(tab.rawValue) tooltip (V0-fix-7 BUG 2 — iconOnly 必备, 用户看不到文字)"
         )
 
@@ -367,12 +371,16 @@ final class V0Fix7LayoutTests: XCTestCase {
             "ProjectListView ProjectManagementTab 必须有 symbolName 静态映射 (V0-fix-7 BUG 2 派生 — LayoutShellView Picker 用 tab.symbolName 间接引用)"
         )
 
-        // 5 SF Symbol 必须都在 (不删 enum, 沿 V0-fix-4/V0-fix-6 真值)
-        XCTAssertTrue(code.contains(#""folder""#),                  "ProjectListView 必须含 SF Symbol <folder> (V0-fix-7 BUG 2 派生 — 5 SF Symbol 沿用 enum)")
-        XCTAssertTrue(code.contains(#""list.bullet.rectangle""#),   "ProjectListView 必须含 SF Symbol <list.bullet.rectangle> (V0-fix-7 BUG 2 派生 — 5 SF Symbol 沿用 enum)")
-        XCTAssertTrue(code.contains(#""slider.horizontal.3""#),     "ProjectListView 必须含 SF Symbol <slider.horizontal.3> (V0-fix-7 BUG 2 派生 — 5 SF Symbol 沿用 enum)")
-        XCTAssertTrue(code.contains(#""books.vertical""#),          "ProjectListView 必须含 SF Symbol <books.vertical> (V0-fix-7 BUG 2 派生 — 5 SF Symbol 沿用 enum)")
-        XCTAssertTrue(code.contains(#""rectangle.split.3x1""#),     "ProjectListView 必须含 SF Symbol <rectangle.split.3x1> (V0-fix-7 BUG 2 派生 — 5 SF Symbol 沿用 enum)")
+        // V0-fix-7 BUG 2 派生 — 5 SF Symbol 修真修真修真: V0-fix-8 AIF 16:20
+        // 重定义真值 (修真 V0-fix-4 5 个): folder / doc.text / gearshape /
+        // archive / square.grid.3x3 (修真 list.bullet.rectangle /
+        // slider.horizontal.3 / books.vertical / rectangle.split.3x1).
+        // V0-fix-11 修真 #3 IconLibrary.tab(tab) 修真.
+        XCTAssertTrue(code.contains(#""folder""#),                  "ProjectListView 必须含 SF Symbol <folder> (V0-fix-7 + V0-fix-8 + V0-fix-11 修真 #3 IconLibrary)")
+        XCTAssertTrue(code.contains(#""doc.text""#),                "ProjectListView 必须含 SF Symbol <doc.text> (V0-fix-8 AIF 16:20 真值 + V0-fix-11 修真 #3 IconLibrary)")
+        XCTAssertTrue(code.contains(#""gearshape""#),               "ProjectListView 必须含 SF Symbol <gearshape> (V0-fix-8 AIF 16:20 真值 + V0-fix-11 修真 #3 IconLibrary)")
+        XCTAssertTrue(code.contains(#""archive""#),                 "ProjectListView 必须含 SF Symbol <archive> (V0-fix-8 AIF 16:20 真值 + V0-fix-11 修真 #3 IconLibrary)")
+        XCTAssertTrue(code.contains(#""square.grid.3x3""#),         "ProjectListView 必须含 SF Symbol <square.grid.3x3> (V0-fix-8 AIF 16:20 真值 + V0-fix-11 修真 #3 IconLibrary)")
 
         // 5 tab 文字字面量必须保留 (rawValue enum, .help(tab.rawValue) tooltip 用)
         XCTAssertTrue(code.contains(#""项目""#), "ProjectListView 必须含 <项目> tab 字面量 (V0-fix-7 BUG 2 派生 — rawValue enum 保留)")
@@ -395,14 +403,17 @@ final class V0Fix7LayoutTests: XCTestCase {
         )
         let code = stripSwiftComments(rawSource)
 
-        // Fix 4a: Picker .iconOnly 保持 (V0-fix-6 已修, 本卡不回归)
-        XCTAssertTrue(
+        // V0-fix-11 修真 #5: Picker(.iconOnly) 修真 HStack + IconButton
+        // (修真 V0-fix-6 Fix 4a + V0-fix-8 修真 #3 + V0-fix-10.1 修真 #4).
+        // .buttonStyle(.plain) 修真 IconButton 组件内部 (Sources/WenshuApp/
+        // Views/Components/IconButton.swift).
+        XCTAssertFalse(
             code.contains(".pickerStyle(.iconOnly)"),
-            "ChatPanelView 必须保持 .pickerStyle(.iconOnly) (V0-fix-7 不回归 — 沿 V0-fix-6 Fix 4a)"
+            "ChatPanelView 不应再有 .pickerStyle(.iconOnly) (V0-fix-11 修真 #5 — HStack+IconButton 修真 Picker)"
         )
         XCTAssertFalse(
             code.contains(".pickerStyle(.segmented)"),
-            "ChatPanelView 不应再用 .pickerStyle(.segmented) (V0-fix-7 不回归 — 沿 V0-fix-6 Fix 4a)"
+            "ChatPanelView 不应再用 .pickerStyle(.segmented) (V0-fix-11 修真 #5 — HStack+IconButton 修真 Picker)"
         )
 
         // Fix 4b: Picker .padding(.leading, 12) 居左保持

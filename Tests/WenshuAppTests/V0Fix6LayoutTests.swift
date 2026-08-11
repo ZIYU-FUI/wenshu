@@ -95,19 +95,26 @@ final class V0Fix6LayoutTests: XCTestCase {
             "Sources/WenshuApp/Views/Layout/LayoutShellView.swift"
         )
         let code = stripSwiftComments(rawSource)
+        let iconLibCode = stripSwiftComments(try repoFile(
+            "Sources/WenshuApp/Views/Components/IconButton.swift"
+        ))
+        let iconLibSource = stripSwiftComments(try repoFile(
+            "Sources/WenshuApp/Views/IconLibrary.swift"
+        ))
 
-        // 38pt header bar 沿用 V0-fix-4 Fix 1
+        // V0-fix-11 修真 #2: topLeftHeaderBar 修真 38pt → 28pt (FCP Viewer 顶部 toolbar 修真)
         XCTAssertTrue(
-            code.contains(".frame(height: 38)"),
-            "LayoutShellView header bar 必须含 .frame(height: 38) (V0-fix-6 Fix 1 + Fix 3 — FCP 38pt title-bar 跨全宽)"
+            code.contains(".frame(height: 28)"),
+            "LayoutShellView topLeftHeaderBar 必须含 .frame(height: 28) (V0-fix-11 修真 #2 — FCP Viewer 顶部 toolbar 修真)"
+        )
+        // V0-fix-11 修真 #1: + 按钮 SF Symbol 修真修真 <plus> (修真 V0-fix-8 plus.circle.fill)
+        XCTAssertTrue(
+            iconLibSource.contains(#""plus""#),
+            "IconLibrary Action.newProject 必须含 SF Symbol 'plus' (V0-fix-11 修真 #1 — FCP Viewer 修真 + ICON)"
         )
         XCTAssertTrue(
-            code.contains("plus.circle.fill"),
-            "LayoutShellView header bar 必须含 SF Symbol <plus.circle.fill> (V0-fix-6 Fix 1 — + 按钮)"
-        )
-        XCTAssertTrue(
-            code.contains(#".help("新建项目")"#),
-            "LayoutShellView header bar 必须含 .help(新建项目) tooltip (V0-fix-6 Fix 1 — 兜中文)"
+            code.contains(#".help("新建项目"#),
+            "LayoutShellView + 按钮必须含 .help(新建项目...) tooltip (V0-fix-11 修真 #1 — 兜中文)"
         )
 
         // V0-fix-6 Fix 1 新契约: + 按钮走 sheet 不走 push
@@ -151,29 +158,30 @@ final class V0Fix6LayoutTests: XCTestCase {
         )
         let code = stripSwiftComments(rawSource)
 
-        // 5 tab iconOnly Picker 必须存在
-        XCTAssertTrue(
+        // V0-fix-11 修真 #2: 5 tab 修真 HStack + IconButton (修真
+        // V0-fix-6 Fix 2 Picker(.iconOnly) + V0-fix-8 修真 #2 +
+        // V0-fix-10.1 修真 #3 衍生). 不再含 Picker / .pickerStyle.
+        XCTAssertFalse(
             code.contains("Picker(\"\", selection: $projectListActiveTab)"),
-            "LayoutShellView 标题栏必须含 5 tab Picker (V0-fix-6 Fix 2 — 5 tab 容器升标题栏)"
+            "LayoutShellView 标题栏不应再有 Picker(\"\", selection: $projectListActiveTab) (V0-fix-11 修真 #2 — 改 HStack+IconButton)"
         )
-        XCTAssertTrue(
+        XCTAssertFalse(
             code.contains(".pickerStyle(.iconOnly)"),
-            "LayoutShellView 标题栏 Picker 必须用 .pickerStyle(.iconOnly) (V0-fix-6 Fix 2 — ICON-only, 走 PickerStyle+IconOnly alias)"
+            "LayoutShellView 标题栏不应再用 .pickerStyle(.iconOnly) (V0-fix-11 修真 #2 — HStack+IconButton)"
+        )
+        XCTAssertTrue(
+            code.contains("IconButton("),
+            "LayoutShellView 标题栏必须用 IconButton( 组件 (V0-fix-11 修真 #2 — 全局 ICON 按钮组件)"
+        )
+        XCTAssertTrue(
+            code.contains("IconLibrary.tab(tab)"),
+            "LayoutShellView 标题栏必须用 IconLibrary.tab(tab) 修真 5 tab SF Symbol (V0-fix-11 修真 #2 — IconLibrary 修真)"
         )
 
-        // 5 SF Symbol 引用 (复用 ProjectManagementTab.symbolName — 在 ProjectListView
-        // enum 定义, LayoutShellView 通过 `tab.symbolName` 间接引用). 此处只验
-        // Image(systemName: tab.symbolName) 调, 5 SF Symbol 字面量由
-        // testProjectListView_5tab_usesIcons 单独验.
+        // activeTab state 顶层持有 (V0-fix-6 Fix 5 → V0-fix-8 修真后沿用)
         XCTAssertTrue(
-            code.contains("Image(systemName: tab.symbolName)"),
-            "LayoutShellView 标题栏 Picker 块必须用 Image(systemName: tab.symbolName) (V0-fix-6 Fix 2 — 复用 ProjectManagementTab.symbolName)"
-        )
-
-        // activeTab state 顶层持有
-        XCTAssertTrue(
-            code.contains("@State private var projectListActiveTab: ProjectManagementTab"),
-            "LayoutShellView 必须有 @State projectListActiveTab (V0-fix-6 Fix 5 — 标题栏与 ProjectListView 共享 activeTab)"
+            code.contains("@State private var activeTab: ProjectManagementTab"),
+            "LayoutShellView 必须有 @State activeTab (V0-fix-6 Fix 5 — 标题栏与 ProjectListView 共享 activeTab)"
         )
     }
 
@@ -317,6 +325,9 @@ final class V0Fix6LayoutTests: XCTestCase {
             "Sources/WenshuApp/Views/Chat/ChatPanelView.swift"
         )
         let code = stripSwiftComments(rawSource)
+        let iconLibCode = stripSwiftComments(try repoFile(
+            "Sources/WenshuApp/Views/Components/IconButton.swift"
+        ))
 
         // V0-fix-8 修真 #3: 4 chat tab 修真后是 HStack + Button(Image)
         // + .buttonStyle(.plain) — 替代 Picker(.iconOnly), 修真矩形分段框
@@ -324,9 +335,12 @@ final class V0Fix6LayoutTests: XCTestCase {
             code.contains("activeTab = tab"),
             "ChatPanelView 必须有 Button { activeTab = tab } 修真 4 chat tab (V0-fix-8 修真 #3 — HStack+Button 替代 Picker)"
         )
+        // V0-fix-11 修真 #5 / #6: .buttonStyle(.plain) 修真 IconButton
+        // 组件 (Sources/WenshuApp/Views/Components/IconButton.swift) 内部,
+        // View 修真文件不直接含 .buttonStyle(.plain) 字面量.
         XCTAssertTrue(
-            code.contains(".buttonStyle(.plain)"),
-            "ChatPanelView 必须用 .buttonStyle(.plain) (V0-fix-8 修真 #3 — 红字不要矩形背景, 仿 FCP)"
+            iconLibCode.contains(".buttonStyle(.plain)"),
+            "ChatPanelView 必须用 .buttonStyle(.plain) (V0-fix-8 修真 #3 — 红字不要矩形背景, 仿 FCP) — IconButton 内部 (V0-fix-11 修真 #5/#6 全局 ICON 按钮组件)"
         )
 
         // V0-fix-8 修真 #3: 不应再有 Picker / .pickerStyle 字面量
@@ -531,20 +545,23 @@ final class V0Fix6LayoutTests: XCTestCase {
         let package = try stripSwiftComments(repoFile(
             "Package.swift"
         ))
+        let iconLib = try stripSwiftComments(repoFile(
+            "Sources/WenshuApp/Views/IconLibrary.swift"
+        ))
 
-        // Fix 1: + 按钮改 sheet
+        // Fix 1: + 按钮改 sheet (沿 V0-fix-6 真值, V0-fix-11 修真 #1 修真修真修真修真)
         XCTAssertTrue(layoutShell.contains(".sheet(isPresented: $showCreateProject)"),
                       "V0-fix-6 Fix 1 — + 按钮 sheet 弹窗 (装机 user 17:35 OOB)")
         XCTAssertFalse(layoutShell.contains("navPath.append(AppRoute.createProject)"),
                        "V0-fix-6 Fix 1 — navPath.append(createProject) 已删 (改 sheet)")
 
-        // Fix 2: 5 tab ICON-only (LayoutShellView 标题栏 + ProjectListView 内容)
-        XCTAssertTrue(layoutShell.contains("Picker(\"\", selection: $projectListActiveTab)"),
-                      "V0-fix-6 Fix 2 — 标题栏 5 tab Picker")
-        XCTAssertTrue(layoutShell.contains(".pickerStyle(.iconOnly)"),
-                      "V0-fix-6 Fix 2 — 标题栏 Picker .iconOnly")
-        XCTAssertTrue(projectList.contains("Image(systemName: tab.symbolName)"),
-                      "V0-fix-6 Fix 2 — ProjectListView Picker 改 Image(systemName:)")
+        // V0-fix-11 修真 #2: 5 tab 修真 HStack+IconButton (修真 V0-fix-6 Fix 2 Picker(.iconOnly))
+        XCTAssertTrue(layoutShell.contains("IconButton("),
+                      "V0-fix-11 修真 #2 — 标题栏 5 tab HStack+IconButton")
+        XCTAssertFalse(layoutShell.contains(".pickerStyle(.iconOnly)"),
+                      "V0-fix-11 修真 #2 — 标题栏 不应再有 Picker(.iconOnly)")
+        XCTAssertTrue(layoutShell.contains("IconLibrary.tab(tab)"),
+                      "V0-fix-11 修真 #2 — 标题栏 IconLibrary.tab(tab) 修真 5 tab SF Symbol")
 
         // Fix 4: chat 内容区居中
         XCTAssertTrue(chatPanel.contains("alignment: .center"),

@@ -317,3 +317,27 @@ private struct LayoutMenuContent: View {
         // v0.04.0 扩展位: 时间线 / 关系图 / 大纲 panel
     }
 }
+
+// MARK: - App-wide Notification.Name (V0-fix-10.1 → V0-fix-11)
+//
+// V0-fix-10.1 FileCommands.swift: FileCommands menu items (新建项目...
+// 打开项目... 导入...) post these notifications instead of imperatively
+// driving state. FileCommands observes them and routes to the right view
+// (modal sheet / NSOpenPanel / placeholder).
+//
+// V0-fix-11 修真 #1: macOS title bar 3 ICON 修真群 (新建 / 打开 / 导入)
+// posts these same notifications — keeps macOS title bar inline ICONs
+// and macOS menu bar text menu in lockstep (HIG: menu bar text + title
+// bar ICON both reach the same action).
+extension Notification.Name {
+    /// Posted when the user clicks "+" (新建项目) or selects
+    /// 文件 → 新建项目... (⌘N). 收件方 LayoutShellView 修真
+    /// `showCreateProject = true` 弹 ProjectCreateView modal sheet.
+    static let wenshuShowCreateProject = Notification.Name("wenshu.showCreateProject")
+
+    /// Posted when the user clicks 打开 ICON (title bar 3 ICON 修真群
+    /// 中间那个) or 文件 → 打开项目... (⌘O). 收件方 FileCommands /
+    /// ProjectListView 修真 NSOpenPanel + URL 修真真修真修真修真.
+    static let wenshuOpenProjectURL = Notification.Name("wenshu.openProjectURL")
+}
+

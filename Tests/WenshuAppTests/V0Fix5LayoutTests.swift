@@ -122,9 +122,15 @@ final class V0Fix5LayoutTests: XCTestCase {
             code.contains("ProjectManagementTab.allCases"),
             "LayoutShellView header bar 必须用 ProjectManagementTab.allCases 渲染 5 tab (V0-fix-5 Fix A — 5 tab 容器升 header bar, V0-fix-8 修真 #2 HStack+Button 形态)"
         )
+        // V0-fix-11 修真 #2: 5 tab 修真 IconButton 组件 (修真 V0-fix-8 修真 #2
+        // HStack+Button + V0-fix-10.1 修真 #3 修真 IconLibrary.tab(_:) 真修真).
         XCTAssertTrue(
-            code.contains("Image(systemName: tab.symbolName)"),
-            "LayoutShellView header bar 必须用 Image(systemName: tab.symbolName) 渲染 5 tab (V0-fix-8 修真 #2 — 改文字为 ICON)"
+            code.contains("IconButton("),
+            "LayoutShellView header bar 必须用 IconButton( 组件 (V0-fix-11 修真 #2 — 全局 ICON 按钮组件)"
+        )
+        XCTAssertTrue(
+            code.contains("IconLibrary.tab(tab)"),
+            "LayoutShellView header bar 必须用 IconLibrary.tab(tab) 修真 5 tab SF Symbol (V0-fix-11 修真 #2 + V0-fix-10.1 修真 #3 — IconLibrary 修真)"
         )
         XCTAssertTrue(
             code.contains(".buttonStyle(.plain)"),
@@ -156,24 +162,26 @@ final class V0Fix5LayoutTests: XCTestCase {
             "Sources/WenshuApp/Views/Layout/LayoutShellView.swift"
         )
         let code = stripSwiftComments(rawSource)
+        let iconLib = stripSwiftComments(try repoFile(
+            "Sources/WenshuApp/Views/IconLibrary.swift"
+        ))
 
-        // topLeftHeaderBar 必须含 38pt HStack (沿用 V0-fix-5 Fix B)
+        // V0-fix-11 修真 #2: topLeftHeaderBar 修真 38pt → 28pt (FCP Viewer 顶部 toolbar 修真)
         XCTAssertTrue(
-            code.contains(".frame(height: 38)"),
-            "LayoutShellView header bar 必须含 .frame(height: 38) (V0-fix-5 Fix B — 维持 V0-fix-4 Fix 1 38pt header bar)"
+            code.contains(".frame(height: 28)"),
+            "LayoutShellView topLeftHeaderBar 必须含 .frame(height: 28) (V0-fix-11 修真 #2 — FCP Viewer 顶部 toolbar 修真)"
         )
 
-        // V0-fix-8 修真 #1 + #4: + 按钮已移到 macOS title bar, 由
-        // ToolbarItem(placement: .principal) 接管。 topLeftHeaderBar
-        // 修真后不再含 plus.circle.fill Button (修真 #4 衍生 — FCP
-        // 单 + 入口)。
+        // V0-fix-11 修真 #1: + 按钮已修真 macOS title bar, 由
+        // ToolbarItemGroup(placement: .primaryAction) 接管 3 个 ICON
+        // 修真群 (新建 / 打开 / 导入占位).
         XCTAssertTrue(
-            code.contains("ToolbarItem(placement: .principal)"),
-            "LayoutShellView macOS title bar 必须由 ToolbarItem(placement: .principal) 接管 + 按钮 (V0-fix-8 修真 #1 — 红字新建按钮放这里替换文枢文字)"
+            code.contains("ToolbarItemGroup(placement: .primaryAction)"),
+            "LayoutShellView macOS title bar 必须由 ToolbarItemGroup(placement: .primaryAction) 接管 3 ICON 修真群 (V0-fix-11 修真 #1 — 修真 V0-fix-8 修真 #1 ToolbarItem(.principal))"
         )
         XCTAssertTrue(
-            code.contains("plus.circle.fill"),
-            "LayoutShellView macOS title bar 必须含 SF Symbol <plus.circle.fill> (V0-fix-8 修真 #1 — + 按钮 SF Symbol)"
+            iconLib.contains(#""plus""#),
+            "IconLibrary Action.newProject 必须含 SF Symbol 'plus' (V0-fix-11 修真 #1 — FCP Viewer 修真 + ICON, 修真 V0-fix-8 plus.circle.fill)"
         )
         XCTAssertTrue(
             code.contains("activeTab = tab"),
@@ -327,13 +335,13 @@ final class V0Fix5LayoutTests: XCTestCase {
         )
         let code = stripSwiftComments(rawSource)
 
-        // V0-fix-4 Fix 1: + 按钮
+        // V0-fix-11 修真 #1: + 按钮必须含 .help(新建项目 (⌘N)) tooltip (V0-fix-11 修真 #1)
         XCTAssertTrue(
-            code.contains(#".help("新建项目")"#),
-            "LayoutShellView header bar 必须含 .help(新建项目) tooltip (V0-fix-5 Fix H — V0-fix-4 Fix 1 不能回归)"
+            code.contains(#".help("新建项目"#),
+            "LayoutShellView + 按钮必须含 .help(新建项目...) tooltip (V0-fix-11 修真 #1 — 兜中文)"
         )
 
-        // V0-fix-4 Fix 3: NavigationStack push
+        // V0-fix-4 Fix 3: NavigationStack push — chat 路由仍需 (ProjectListView 项目行点击 → navPath.append(.detail))
         XCTAssertTrue(
             code.contains("NavigationStack(path:"),
             "LayoutShellView 必须含 NavigationStack(path:) (V0-fix-5 Fix H — V0-fix-4 Fix 3 不能回归)"
@@ -342,9 +350,10 @@ final class V0Fix5LayoutTests: XCTestCase {
             code.contains(".navigationDestination(for: AppRoute.self)"),
             "LayoutShellView 必须含 .navigationDestination(for: AppRoute.self) (V0-fix-5 Fix H — V0-fix-4 Fix 3 不能回归)"
         )
+        // V0-fix-6 Fix 1 (B5-装): + 按钮改 sheet 弹窗 (showCreateProject = true), 修真 navPath.append(AppRoute.createProject)
         XCTAssertTrue(
-            code.contains("navPath.append(AppRoute.createProject)"),
-            "LayoutShellView + 按钮 action 必须调 navPath.append(AppRoute.createProject) (V0-fix-5 Fix H — V0-fix-4 Fix 3 不能回归)"
+            code.contains("showCreateProject = true"),
+            "LayoutShellView + 按钮 action 必须调 showCreateProject = true (V0-fix-6 Fix 1 — 改 sheet 弹窗不 push)"
         )
     }
 }

@@ -112,28 +112,36 @@ final class V0Fix2LayoutTests: XCTestCase {
             "Sources/WenshuApp/Views/Chat/ChatPanelView.swift"
         )
         let code = stripSwiftComments(rawSource)
+        let iconLibCode = stripSwiftComments(try repoFile(
+            "Sources/WenshuApp/Views/Components/IconButton.swift"
+        ))
 
+        // V0-fix-11 修真 #5: Picker 修真 HStack + IconButton (修真
+        // V0-fix-2 Fix G Picker(.iconOnly) + V0-fix-8 修真 #3 +
+        // V0-fix-10.1 修真 #4 衍生). .buttonStyle(.plain) + frame 28×22
+        // + IconButton 修真 pickerStyle.
+        // V0-fix-11 修真 #5 / #6: .buttonStyle(.plain) 修真 IconButton
+        // 组件 (Sources/WenshuApp/Views/Components/IconButton.swift) 内部,
+        // View 修真文件不直接含 .buttonStyle(.plain) 字面量.
         XCTAssertTrue(
-            code.contains(".pickerStyle(.iconOnly)"),
-            "ChatPanelView 必须使用 .pickerStyle(.iconOnly) 强制 ICON-only (V0-fix-2 Fix G — macOS 13 segmented fallback 显文字)"
+            iconLibCode.contains(".buttonStyle(.plain)"),
+            "ChatPanelView 必须使用 .buttonStyle(.plain) (V0-fix-11 修真 #5 — IconButton 内部, FCP timeline 范式) — IconButton 内部 (V0-fix-11 修真 #5/#6 全局 ICON 按钮组件)"
         )
         XCTAssertFalse(
             code.contains(".pickerStyle(.segmented)"),
-            "ChatPanelView 不应再用 .pickerStyle(.segmented) (V0-fix-2 Fix G 替换, 避免回归 fallback 显 SF Symbol 文字)"
+            "ChatPanelView 不应再用 .pickerStyle(.segmented) (V0-fix-2 Fix G 替换, 避免回归)"
         )
 
-        // 真删 Picker a11y "聊天区视图" H1 残留 — worktree 不带 v-fix-1,
-        // 必须从 0 改. 改后 Picker 第一参数应为 "" (空串).
-        XCTAssertFalse(
-            code.contains("Picker(\"聊天区视图\""),
-            "ChatPanelView Picker a11y 不应再含 '聊天区视图' (V0-fix-2 Fix G — 真删 H1, 改 Picker(\"\"))"
-        )
-
-        // Picker 块用 Image(systemName:) 替代 Label(tab.rawValue, ...)
-        // — strip 注释后, Image(systemName:) 必须出现.
+        // V0-fix-11 修真 #5: padding(.vertical: 8 → 4) (修真 FCP timeline 修真)
         XCTAssertTrue(
-            code.contains("Image(systemName:"),
-            "ChatPanelView Picker 块必须用 Image(systemName:) 渲染 tab (V0-fix-2 Fix G — Label 改 Image)"
+            code.contains(".padding(.vertical, 4)"),
+            "ChatPanelView 修真 padding(.vertical, 4) (V0-fix-11 修真 #5 — FCP timeline 修真)"
+        )
+
+        // V0-fix-11 修真 #5: IconButton 组件 (Sources/WenshuApp/Views/Components/IconButton.swift)
+        XCTAssertTrue(
+            code.contains("IconButton("),
+            "ChatPanelView 必须用 IconButton( 组件 (V0-fix-11 修真 #5 — 全局 ICON 按钮组件)"
         )
     }
 
@@ -156,54 +164,46 @@ final class V0Fix2LayoutTests: XCTestCase {
             "Sources/WenshuApp/Views/Inspector/InspectorView.swift"
         )
         let code = stripSwiftComments(rawSource)
+        let iconLibCode = stripSwiftComments(try repoFile(
+            "Sources/WenshuApp/Views/Components/IconButton.swift"
+        ))
+        let iconLib = stripSwiftComments(try repoFile(
+            "Sources/WenshuApp/Views/IconLibrary.swift"
+        ))
 
-        // Picker style 强制 ICON-only
+        // V0-fix-11 修真 #4: Picker 修真 HStack + IconButton (修真
+        // V0-fix-2 Fix H + V0-fix-4 Fix 5 + V0-fix-10.1 修真 #5 衍生).
         XCTAssertTrue(
+            code.contains("IconButton("),
+            "InspectorView 必须用 IconButton( 组件 (V0-fix-11 修真 #4 — HStack + IconButton 修真 Picker)"
+        )
+        // V0-fix-11 修真 #5 / #6: .buttonStyle(.plain) 修真 IconButton
+        // 组件 (Sources/WenshuApp/Views/Components/IconButton.swift) 内部,
+        // View 修真文件不直接含 .buttonStyle(.plain) 字面量.
+        XCTAssertTrue(
+            iconLibCode.contains(".buttonStyle(.plain)"),
+            "InspectorView 必须含 .buttonStyle(.plain) (V0-fix-11 修真 #4 — IconButton 内部, FCP 范式) — IconButton 内部 (V0-fix-11 修真 #5/#6 全局 ICON 按钮组件)"
+        )
+        XCTAssertFalse(
             code.contains(".pickerStyle(.iconOnly)"),
-            "InspectorView 必须使用 .pickerStyle(.iconOnly) 强制 ICON-only (V0-fix-2 Fix H — macOS 13 segmented fallback 显文字)"
-        )
-        XCTAssertFalse(
-            code.contains(".pickerStyle(.segmented)"),
-            "InspectorView 不应再用 .pickerStyle(.segmented) (V0-fix-2 Fix H 替换, 避免回归)"
+            "InspectorView 不应再用 .pickerStyle(.iconOnly) (V0-fix-11 修真 #4 — HStack+IconButton 修真 Picker)"
         )
 
-        // Picker 块用 Image(systemName:) 替代 Text(tab.title)
-        // — "Text(tab.title)" 在 strip 注释后的代码里必须消失
-        XCTAssertFalse(
-            code.contains("Text(tab.title)"),
-            "InspectorView Picker 块不应再用 Text(tab.title) 文字渲染 (V0-fix-2 Fix H — 改 Image(systemName:))"
-        )
-
-        // 2 SF Symbol 必须都在 source 里 (iconName(for:) 映射)
+        // 2 SF Symbol 必须都在 source 里 (IconLibrary.Inspector 真值)
         XCTAssertTrue(
-            code.contains("\"eye\""),
-            "InspectorView 必须含 SF Symbol 'eye' (Fix H 伏笔 tab ICON)"
+            iconLib.contains("\"eye\""),
+            "IconLibrary 必须含 SF Symbol 'eye' (V0-fix-11 修真 — Inspector.Tab.Inspector.foreshadow)"
         )
         XCTAssertTrue(
-            code.contains("pencil.and.list.clipboard"),
-            "InspectorView 必须含 SF Symbol 'pencil.and.list.clipboard' (Fix H 修订 tab ICON)"
+            iconLib.contains("pencil.and.list.clipboard"),
+            "IconLibrary 必须含 SF Symbol 'pencil.and.list.clipboard' (V0-fix-11 修真 — Inspector.Tab.Inspector.revision)"
         )
 
-        // Picker 必须用 Image(systemName:) 渲染 tab
-        // — 在 strip 注释后, Picker 块里必有 Image(systemName: ...)
+        // V0-fix-11 修真 #4: IconLibrary.tab(_:) accessor (替代
+        // V0-fix-4 Fix 5 iconName(for:) inline 映射)
         XCTAssertTrue(
-            code.contains("Image(systemName:"),
-            "InspectorView Picker 块必须用 Image(systemName:) 渲染 tab (V0-fix-2 Fix H ICON-only 契约)"
-        )
-
-        // Picker a11y 字符串标签改 "" (跟 V0-fix-1 Fix B ChatPanelView
-        // "聊天区视图"→"" 同形态)
-        XCTAssertFalse(
-            code.contains("Picker(\"检视\""),
-            "InspectorView Picker a11y 字符串标签不应再含 '检视' (Fix H — 改 \"\" 跟 V0-fix-1 Fix B 同形态)"
-        )
-
-        // selfHeader H1 "检视" 真删 — strip 注释后, Text("检视") 在
-        // 活动代码里必须不存在 (= selfHeader 整段已删, 只剩注释里
-        // 可能提到的 "检视", strip 后消除).
-        XCTAssertFalse(
-            code.contains("Text(\"检视\")"),
-            "InspectorView 活动代码不能含 Text(\"检视\") (V0-fix-2 Fix H — selfHeader H1 残留真删)"
+            iconLib.contains("static func tab(_ kind: InspectorViewModel.Tab)"),
+            "IconLibrary 必须有 tab(InspectorViewModel.Tab) accessor (V0-fix-11 修真 #4 — 替代 iconName(for:) inline 映射)"
         )
     }
 
@@ -225,37 +225,36 @@ final class V0Fix2LayoutTests: XCTestCase {
             "Sources/WenshuApp/Views/Layout/LayoutShellView.swift"
         )
         let code = stripSwiftComments(rawSource)
+        let iconLib = stripSwiftComments(try repoFile(
+            "Sources/WenshuApp/Views/IconLibrary.swift"
+        ))
 
-        // topLeftPanelWithTitleBar private var 必须存在
+        // V0-fix-11 修真 #1: + 按钮由 macOS title bar .toolbar
+        // ToolbarItemGroup(.primaryAction) 接管 (修真 V0-fix-2 Fix I
+        // topLeftPanelWithTitleBar + V0-fix-8 修真 #1 ToolbarItem
+        // (.principal) — V0-fix-11 修真 #1 修真 3 个 ICON 修真群 + 修真
+        // .principal → .primaryAction placement).
         XCTAssertTrue(
-            code.contains("topLeftPanelWithTitleBar"),
-            "LayoutShellView 必须含 topLeftPanelWithTitleBar private var (V0-fix-2 Fix I — 38pt title-bar + '+' button)"
+            code.contains("ToolbarItemGroup(placement: .primaryAction)"),
+            "LayoutShellView 必须含 ToolbarItemGroup(placement: .primaryAction) (V0-fix-11 修真 #1 — macOS title bar 3 ICON 修真群, 红黄绿后紧跟)"
         )
 
-        // 38pt 高度 title-bar (V0-fix-1 Fix A 拍板沿用)
+        // V0-fix-11 修真 #2: topLeftHeaderBar 修真 38pt → 28pt (FCP Viewer 修真)
         XCTAssertTrue(
-            code.contains(".frame(height: 38)"),
-            "LayoutShellView topLeftPanelWithTitleBar 必须含 .frame(height: 38) (V0-fix-2 Fix I — FCP 38pt title-bar)"
+            code.contains(".frame(height: 28)"),
+            "LayoutShellView topLeftHeaderBar 必须含 .frame(height: 28) (V0-fix-11 修真 #2 — FCP Viewer 顶部 toolbar 修真)"
         )
 
-        // plus.circle.fill SF Symbol 按钮 (V0-fix-1 Fix A 拍板沿用)
+        // V0-fix-11 修真 #1: newProject SF Symbol 修真修真 <plus> (修真 V0-fix-8 plus.circle.fill)
         XCTAssertTrue(
-            code.contains("plus.circle.fill"),
-            "LayoutShellView topLeftPanelWithTitleBar 必须含 SF Symbol 'plus.circle.fill' (V0-fix-2 Fix I — '+' button)"
+            iconLib.contains(#""plus""#),
+            "IconLibrary Action.newProject 必须含 SF Symbol 'plus' (V0-fix-11 修真 #1 — FCP Viewer 修真 + ICON)"
         )
 
-        // .help("新建项目") tooltip 兜中文
+        // .help("新建项目 (⌘N)") tooltip 兜中文
         XCTAssertTrue(
-            code.contains(".help(\"新建项目\")"),
-            "LayoutShellView topLeftPanelWithTitleBar 必须含 .help(\"新建项目\") tooltip (V0-fix-2 Fix I — 兜中文)"
-        )
-
-        // .topLeft 分支必须调用 topLeftPanelWithTitleBar (取代原 PlaceholderContent)
-        // — strip 注释后, panel(_:) switch 里 .topLeft 分支应有
-        //   topLeftPanelWithTitleBar 引用
-        XCTAssertTrue(
-            code.contains("topLeftPanelWithTitleBar"),
-            "LayoutShellView .topLeft 分支必须改用 topLeftPanelWithTitleBar (V0-fix-2 Fix I — 取代 PlaceholderContent)"
+            code.contains(".help(\"新建项目"),
+            "LayoutShellView + 按钮必须含 .help(\"新建项目...\") tooltip (V0-fix-11 修真 #1 — 兜中文)"
         )
     }
 

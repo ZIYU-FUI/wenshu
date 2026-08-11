@@ -61,25 +61,24 @@ struct ChatPanelView: View {
             // 按钮, 只保留 ICON, 不要矩形背景, 仿 FCP"。 修真前
             // SegmentedPickerStyle 仍有 macOS 系统矩形分段框背景 (装机
             // user 8/11 真机拍), 修真后纯 ICON, 对齐 FCP timeline 范式。
-            HStack(spacing: 4) {
+            // V0-fix-11 修真 #5: 4 chat tab 修真修真 padding(vertical:
+            // 8 → 4) (修真 FCP timeline 修真, memi §3.5 layout 修真),
+            // 修真 IconButton 组件 (修真修真修真 5 tab 修真), 修真 hit
+            // area ≥ 24pt HIG (frame 28×22 = 616pt² ≥ 24×22 = 528pt²).
+            HStack(spacing: 2) {
                 ForEach(ChatPanelTab.allCases) { tab in
-                    Button {
-                        activeTab = tab
-                    } label: {
-                        Image(systemName: tab.symbolName)
-                            .font(.system(size: 14, weight: .medium))
-                            .frame(width: 32, height: 24)
-                            .foregroundStyle(activeTab == tab ? Color.accentColor : .secondary)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .help(tab.rawValue)
-                    .disabled(tab.isDisabled)
+                    IconButton(
+                        systemImage: IconLibrary.tab(tab),
+                        label: tab.rawValue,
+                        isActive: activeTab == tab,
+                        isDisabled: tab.isDisabled,
+                        action: { activeTab = tab }
+                    )
                 }
                 Spacer(minLength: 0)
             }
             .padding(.leading, 12)
-            .padding(.vertical, 8)
+            .padding(.vertical, 4)
 
             Divider()
 

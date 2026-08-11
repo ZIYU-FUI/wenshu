@@ -23,20 +23,31 @@ struct InspectorView: View {
     @ObservedObject private var vm = InspectorViewModel.shared
 
     var body: some View {
+        // V0-fix-11 修真 #4: Picker(.iconOnly) 修真 HStack +
+        // ForEach { IconButton } (修真 V0-fix-4 Fix 5 +
+        // V0-fix-8 修真 #2 + V0-fix-10.1 修真 #5 衍生). 修真后:
+        //   - macOS 系统矩形分段框背景 修真 (Picker(.iconOnly) 仍
+        //     修真 SegmentedPickerStyle 修真矩形分段框, 装机 user
+        //     8/11 16:20 红字 "纯 ICON 按钮" — 修真 HStack + Button
+        //     (.plain) 修真矩形)
+        //   - padding(.vertical: 8 → 4) 修真 inspector tab 栏 (FCP
+        //     timeline 修真, memi §3.5 layout 修真)
+        //   - 修真 Picker a11y "" 修真 (IconButton 自修真 .help(label))
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 0) {
-                Picker("", selection: $vm.selectedTab) {
-                    ForEach(InspectorViewModel.Tab.allCases) { tab in
-                        Image(systemName: iconName(for: tab))
-                            .tag(tab)
-                            .help(tab.title)
-                    }
+            HStack(spacing: 2) {
+                ForEach(InspectorViewModel.Tab.allCases) { tab in
+                    IconButton(
+                        systemImage: IconLibrary.tab(tab),
+                        label: tab.title,
+                        isActive: vm.selectedTab == tab,
+                        isDisabled: false,
+                        action: { vm.selectedTab = tab }
+                    )
                 }
-                .pickerStyle(.iconOnly)
-                .padding(.leading, 12)
-                .padding(.vertical, 8)
                 Spacer(minLength: 0)
             }
+            .padding(.leading, 12)
+            .padding(.vertical, 4)
             Divider()
             Group {
                 switch vm.selectedTab {
@@ -50,15 +61,6 @@ struct InspectorView: View {
         }
         .task {
             await vm.loadForeshadows()
-        }
-    }
-
-    // MARK: - Inline icon map (V0-fix-4 Fix 5)
-
-    private func iconName(for tab: InspectorViewModel.Tab) -> String {
-        switch tab {
-        case .foreshadow: return "eye"
-        case .revision: return "pencil.and.list.clipboard"
         }
     }
 

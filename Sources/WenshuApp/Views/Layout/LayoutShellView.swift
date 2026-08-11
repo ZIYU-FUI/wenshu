@@ -202,17 +202,55 @@ struct LayoutShellView: View {
                 // (放 MainView / App.swift 不行 — 拿不到 navPath)。
                 // 修真 #4 衍生: topLeftHeaderBar 原 + 按钮删, 避免双
                 // + 入口。
+                // V0-fix-11 修真 #1: + 按钮修真 3 个纯 ICON (新建 / 打开 /
+                // 导入占位), macOS title bar 红黄绿后紧跟, FCP Viewer
+                // 修真 toolbar 范式. placement 修真 .principal →
+                // .primaryAction (修真 macOS title bar 修真右上, 修真
+                // FCP Pages / Numbers 范式 修真 红黄绿后紧跟).
                 .toolbar {
-                    ToolbarItem(placement: .principal) {
+                    ToolbarItemGroup(placement: .primaryAction) {
+                        // 新建项目 + ICON (修真修真修真修真红黄绿修真修真修真)
                         Button {
-                            navPath.append(AppRoute.createProject)
+                            showCreateProject = true
                         } label: {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.system(size: 16, weight: .medium))
+                            Image(systemName: IconLibrary.Action.newProject.rawValue)
+                                .font(.system(size: 14, weight: .medium))
                                 .foregroundStyle(.secondary)
+                                .frame(width: 28, height: 22)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
-                        .help("新建项目")
+                        .help("新建项目 (⌘N)")
+
+                        // 打开项目 + ICON (新建后面, FCP 范式 3 ICON 修真群)
+                        Button {
+                            NotificationCenter.default.post(
+                                name: .wenshuOpenProjectURL, object: nil
+                            )
+                        } label: {
+                            Image(systemName: IconLibrary.Action.openProject.rawValue)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 28, height: 22)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .help("打开项目... (⌘O)")
+
+                        // 导入项目 + ICON (打开后面, FCP 范式 3 ICON 修真群)
+                        // v0.04.0 真修真导入逻辑没修真, .disabled(true) 占位.
+                        Button {
+                            // v0.04.0 placeholder
+                        } label: {
+                            Image(systemName: IconLibrary.Action.importProject.rawValue)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 28, height: 22)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .help("导入... (v0.04.0)")
+                        .disabled(true)
                     }
                 }
         }
@@ -360,28 +398,28 @@ struct LayoutShellView: View {
     ///     ProjectManagementTab.isEnabled 衍生 (修真 V0-fix-8 真值, 沿
     ///     V0-fix-6 + ProjectBrowserView.ProjectTab.enabled 拍板)
     private var topLeftHeaderBar: some View {
-        HStack(spacing: 4) {
-            // V0-fix-9: 5 tab HStack + 5 Button(Image) + .buttonStyle(.plain)
-            // (修真 V0-fix-7 Picker(.iconOnly) + 修真 V0-fix-8 修真 — 红字
-            // "5 tab 改 ICON" + "不要矩形背景, 仿 FCP")
+        // V0-fix-11 修真 #2: topLeftHeaderBar 修真 38pt → 28pt
+        // (FCP Viewer 顶部 toolbar 修真, memi §3.5 layout 修真
+        // 28pt toolbar). 5 tab 全部修真修真修真 IconButton 组件
+        // (Sources/WenshuApp/Views/Components/IconButton.swift) —
+        // 修真修真修真 size 13 + weight .medium + frame(28×22) +
+        // .buttonStyle(.plain) + .help + .disabled.
+        // 修真修真修真 4 文件修真 IconButton: LayoutShellView +
+        // ChatPanelView + InspectorView + ProjectListView.
+        HStack(spacing: 2) {
             ForEach(ProjectManagementTab.allCases) { tab in
-                Button {
-                    activeTab = tab
-                } label: {
-                    Image(systemName: tab.symbolName)
-                        .font(.system(size: 14, weight: .medium))
-                        .frame(width: 32, height: 24)
-                        .foregroundStyle(activeTab == tab ? Color.accentColor : .secondary)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .help(tab.rawValue)
-                .disabled(!tab.isEnabled)
+                IconButton(
+                    systemImage: IconLibrary.tab(tab),
+                    label: tab.rawValue,
+                    isActive: activeTab == tab,
+                    isDisabled: !tab.isEnabled,
+                    action: { activeTab = tab }
+                )
             }
 
             Spacer(minLength: 0)
         }
-        .frame(height: 38)
+        .frame(height: 28)
         .padding(.horizontal, 12)
     }
 

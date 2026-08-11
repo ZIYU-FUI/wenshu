@@ -98,6 +98,9 @@ final class V0Fix8LayoutTests: XCTestCase {
     func testApp_noWenshuInWindowGroup() throws {
         let rawSource = try repoFile("Sources/WenshuApp/App.swift")
         let code = stripSwiftComments(rawSource)
+        let iconLibCode = stripSwiftComments(try repoFile(
+            "Sources/WenshuApp/Views/Components/IconButton.swift"
+        ))
 
         XCTAssertFalse(
             code.contains(#"WindowGroup("文枢")"#),
@@ -124,26 +127,44 @@ final class V0Fix8LayoutTests: XCTestCase {
             "Sources/WenshuApp/Views/Layout/LayoutShellView.swift"
         )
         let code = stripSwiftComments(rawSource)
+        let iconLib = stripSwiftComments(try repoFile(
+            "Sources/WenshuApp/Views/IconLibrary.swift"
+        ))
 
         XCTAssertTrue(
             code.contains(".toolbar {"),
-            "LayoutShellView NavigationStack 顶层必须有 .toolbar (V0-fix-8 修真 #1 — + 按钮进 macOS title bar)"
+            "LayoutShellView NavigationStack 顶层必须有 .toolbar (V0-fix-8 修真 #1 + V0-fix-11 修真 #1 — + 按钮进 macOS title bar)"
         )
+        // V0-fix-11 修真 #1: ToolbarItem(placement: .principal) 修真 ToolbarItemGroup(placement: .primaryAction)
         XCTAssertTrue(
+            code.contains("ToolbarItemGroup(placement: .primaryAction)"),
+            "LayoutShellView 必须有 ToolbarItemGroup(placement: .primaryAction) (V0-fix-11 修真 #1 — 3 ICON 修真群, macOS title bar 红黄绿后)"
+        )
+        XCTAssertFalse(
             code.contains("ToolbarItem(placement: .principal)"),
-            "LayoutShellView 必须有 ToolbarItem(placement: .principal) (V0-fix-8 修真 #1 — macOS title bar 中央)"
+            "LayoutShellView 不应再有 ToolbarItem(placement: .principal) (V0-fix-11 修真 #1 — 修真 .primaryAction + ToolbarItemGroup)"
         )
+
+        // V0-fix-6 Fix 1 (B5-装): + 按钮改 sheet 弹窗 (showCreateProject = true),
+        // 修真 navPath.append(AppRoute.createProject)
         XCTAssertTrue(
+            code.contains("showCreateProject = true"),
+            "LayoutShellView + 按钮 action 必须调 showCreateProject = true (V0-fix-6 Fix 1 — 改 sheet 弹窗不 push, 装机 user 17:35 OOB)"
+        )
+        XCTAssertFalse(
             code.contains("navPath.append(AppRoute.createProject)"),
-            "LayoutShellView + 按钮 action 必须调 navPath.append(AppRoute.createProject) (V0-fix-8 修真 #1 — push 路由沿 LT-N1-merge 拍板)"
+            "LayoutShellView + 按钮 action 不应再调 navPath.append(AppRoute.createProject) (V0-fix-6 Fix 1 — 改 sheet 不 push)"
         )
+
+        // V0-fix-11 修真 #1: newProject SF Symbol 修真修真 <plus> (修真 V0-fix-8 plus.circle.fill)
         XCTAssertTrue(
-            code.contains("plus.circle.fill"),
-            "LayoutShellView + 按钮必须含 SF Symbol <plus.circle.fill> (V0-fix-8 修真 #1 — 沿 V0-fix-4 Fix 1 SF Symbol)"
+            iconLib.contains(#""plus""#),
+            "IconLibrary Action.newProject 必须含 SF Symbol 'plus' (V0-fix-11 修真 #1 — FCP Viewer 修真 + ICON)"
         )
+
         XCTAssertTrue(
-            code.contains(#".help("新建项目")"#),
-            "LayoutShellView + 按钮必须有 .help(\"新建项目\") tooltip (V0-fix-8 修真 #1 — 沿 V0-fix-4 Fix 1 中文兜底)"
+            code.contains(#".help("新建项目"#),
+            "LayoutShellView + 按钮必须有 .help(\"新建项目...\") tooltip (V0-fix-8 修真 #1 + V0-fix-11 修真 #1 — 沿 V0-fix-4 Fix 1 中文兜底)"
         )
     }
 
@@ -158,9 +179,20 @@ final class V0Fix8LayoutTests: XCTestCase {
         )
         let code = stripSwiftComments(rawSource)
 
+        // V0-fix-11 修真 #2: 5 tab 修真 IconButton + IconLibrary.tab(tab)
+        // (修真 V0-fix-8 修真 #2 Image(systemName: tab.symbolName) +
+        // V0-fix-10.1 修真 #3 衍生).
         XCTAssertTrue(
+            code.contains("IconButton("),
+            "LayoutShellView header bar 必须用 IconButton( 组件 (V0-fix-11 修真 #2 — 全局 ICON 按钮组件)"
+        )
+        XCTAssertTrue(
+            code.contains("IconLibrary.tab(tab)"),
+            "LayoutShellView header bar 必须用 IconLibrary.tab(tab) 修真 5 tab SF Symbol (V0-fix-11 修真 #2 + V0-fix-10.1 修真 #3 — IconLibrary 修真)"
+        )
+        XCTAssertFalse(
             code.contains("Image(systemName: tab.symbolName)"),
-            "LayoutShellView header bar 必须用 Image(systemName: tab.symbolName) 渲染 5 tab (V0-fix-8 修真 #2 — 改文字为 ICON)"
+            "LayoutShellView header bar 不应再用 Image(systemName: tab.symbolName) (V0-fix-11 修真 #2 — IconLibrary.tab(tab) 修真)"
         )
 
         // Picker.segmented 不应在 header bar (修真 #2 + 红字"不要矩形背景"
@@ -217,15 +249,23 @@ final class V0Fix8LayoutTests: XCTestCase {
         )
         let code = stripSwiftComments(rawSource)
 
-        // 修真 #4 衍生: + 按钮已移到 macOS title bar — ToolbarItem(.principal)
+        // V0-fix-11 修真 #1: + 按钮已修真 macOS title bar, 由
+        // ToolbarItemGroup(placement: .primaryAction) 接管 3 个 ICON
+        // 修真群. (修真 V0-fix-8 修真 #4 衍生 ToolbarItem(placement: .principal))
         XCTAssertTrue(
-            code.contains("ToolbarItem(placement: .principal)"),
-            "LayoutShellView macOS title bar 必须由 ToolbarItem(placement: .principal) 接管 + 按钮 (V0-fix-8 修真 #4 衍生 — 修真 #1 + #4 单 + 入口)"
+            code.contains("ToolbarItemGroup(placement: .primaryAction)"),
+            "LayoutShellView macOS title bar 必须由 ToolbarItemGroup(placement: .primaryAction) 接管 3 ICON 修真群 (V0-fix-11 修真 #1 — 修真 #4 衍生: FCP 单 + 入口 + 修真 .primaryAction)"
         )
-        // 修真 #2 真值: topLeftHeaderBar 修真后仅 5 tab ICON, 不含 plus
+        XCTAssertFalse(
+            code.contains("ToolbarItem(placement: .principal)"),
+            "LayoutShellView 不应再有 ToolbarItem(placement: .principal) (V0-fix-11 修真 #1 — 修真 .primaryAction)"
+        )
+
+        // V0-fix-11 修真 #2: topLeftHeaderBar 5 tab 用 IconButton 组件,
+        // .disabled(isDisabled) 走 IconButton 内部.
         XCTAssertTrue(
-            code.contains(".disabled(!tab.isEnabled)"),
-            "LayoutShellView topLeftHeaderBar 5 tab 必须用 .disabled(!tab.isEnabled) (V0-fix-8 修真 #2 — 修真 #4 衍生: 5 tab 修真后含 disabled 状态)"
+            code.contains("IconButton(") && code.contains("isDisabled: !tab.isEnabled"),
+            "LayoutShellView topLeftHeaderBar 5 tab 必须用 IconButton + isDisabled (V0-fix-11 修真 #2 — IconButton 修真 #4 衍生)"
         )
     }
 
@@ -241,15 +281,21 @@ final class V0Fix8LayoutTests: XCTestCase {
             "Sources/WenshuApp/Views/Chat/ChatPanelView.swift"
         )
         let code = stripSwiftComments(rawSource)
+        let iconLibCode = stripSwiftComments(try repoFile(
+            "Sources/WenshuApp/Views/Components/IconButton.swift"
+        ))
 
         // 修真后 4 chat tab 是 HStack + Button(Image)
         XCTAssertTrue(
             code.contains("activeTab = tab"),
             "ChatPanelView 必须有 Button { activeTab = tab } 修真 4 chat tab (V0-fix-8 修真 #3 — HStack+Button 替代 Picker)"
         )
+        // V0-fix-11 修真 #5 / #6: .buttonStyle(.plain) 修真 IconButton
+        // 组件 (Sources/WenshuApp/Views/Components/IconButton.swift) 内部,
+        // View 修真文件不直接含 .buttonStyle(.plain) 字面量.
         XCTAssertTrue(
-            code.contains(".buttonStyle(.plain)"),
-            "ChatPanelView 必须用 .buttonStyle(.plain) (V0-fix-8 修真 #3 — 红字不要矩形背景, 仿 FCP)"
+            iconLibCode.contains(".buttonStyle(.plain)"),
+            "ChatPanelView 必须用 .buttonStyle(.plain) (V0-fix-8 修真 #3 — 红字不要矩形背景, 仿 FCP) — IconButton 内部 (V0-fix-11 修真 #5/#6 全局 ICON 按钮组件)"
         )
 
         // 修真后 4 chat tab 不是 Picker — 修真 #3 替代
@@ -354,10 +400,11 @@ final class V0Fix8LayoutTests: XCTestCase {
             "ProjectListView ProjectManagementTab.isEnabled settings + resources + kanban 必须 = false (V0-fix-8 修真 #2 — v0.04.0 / v0.05.0 才实装)"
         )
 
-        // LayoutShellView.topLeftHeaderBar 修真后必须用 .disabled(!tab.isEnabled)
+        // V0-fix-11 修真 #2: LayoutShellView.topLeftHeaderBar 修真 IconButton
+        // 修真 + isDisabled: !tab.isEnabled 修真 IconButton 内部.
         XCTAssertTrue(
-            layoutShell.contains(".disabled(!tab.isEnabled)"),
-            "LayoutShellView topLeftHeaderBar 必须用 .disabled(!tab.isEnabled) (V0-fix-8 修真 #2 — 灰 .secondary, 不能点)"
+            layoutShell.contains("isDisabled: !tab.isEnabled"),
+            "LayoutShellView topLeftHeaderBar 必须用 IconButton + isDisabled: !tab.isEnabled (V0-fix-11 修真 #2 — IconButton 修真 .disabled)"
         )
     }
 }
