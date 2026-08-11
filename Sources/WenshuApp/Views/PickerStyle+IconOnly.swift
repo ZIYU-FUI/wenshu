@@ -1,4 +1,4 @@
-// PickerStyle+IconOnly.swift · 文枢 (Wenshu) · v0.03.0 V0-fix-3 (Fix G + Fix H) → V0-fix-4 (Fix 4 + Fix 5)
+// PickerStyle+IconOnly.swift · 文枢 (Wenshu) · v0.03.0 V0-fix-3 (Fix G + Fix H) → V0-fix-4 (Fix 4 + Fix 5) → V0-fix-8
 //
 // DESIGN-SYSTEM-INIT P5 + DESIGN-V0-fix-2 §1.3 + §2.3.2 + DESIGN-V0-fix-4 §5
 // 拍板 "多 tab Picker ICON-only" — 但 SwiftUI PickerStyle 不原生提供
@@ -19,6 +19,14 @@
 // - V0Fix3 / V0Fix4 拍板边界: P5 不强求手画自定义 segmented, 沿用
 //   SwiftUI 系统渲染
 // - 此 alias 是纯 SwiftUI protocol extension, 无运行时副作用
+//
+// V0-fix-8 (装机 user 8/11 真机拍 4 红字批注 #3): 5 tab + 4 chat tab
+// 已迁 HStack + Button(Image) + `.buttonStyle(.plain)` (修真 #2 +
+// #3 共同衍生 — 红字"所有 ICON 按钮, 只保留 ICON, 不要矩形背景, 仿
+// FCP")。 本 `.iconOnly` alias 保留 for 未来 Picker 复用 (例如
+// InspectorView 2 tab 仍走 SegmentedPickerStyle, v0.04.0+ 可能新增
+// Picker 也可复用)。 0 业务改动, 0 schema 影响, 仅 header doc 备注
+// + 加 V0-fix-8 拍板历史引用。
 
 import SwiftUI
 

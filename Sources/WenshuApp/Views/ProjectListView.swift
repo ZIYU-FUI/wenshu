@@ -1,4 +1,4 @@
-// ProjectListView.swift · 文枢 (Wenshu) · v0.01.0 WO-004 → WO-010 → v0.03.0 V0-fix-4 → V0-fix-5 → LT-N1-merge
+// ProjectListView.swift · 文枢 (Wenshu) · v0.01.0 WO-004 → WO-010 → v0.03.0 V0-fix-4 → V0-fix-5 → LT-N1-merge → V0-fix-8
 //
 // V0-fix-4 Fix 2: 5 tab 容器重写 (项目 / 章节 / 设定 / 资料 / 看板),
 // 沿 LT-03 v2 拍板 (5 tab 用文字标签, 走 .pickerStyle(.segmented),
@@ -45,7 +45,21 @@
 //               .navigationDestination 接 ProjectDetailView)。
 // Tab 2 (章节): LT-N1-merge 接 selectedProjectID → ChapterTreeView。
 // Tab 3-5 (设定/资料/看板): 占位 "v0.04.0 / v0.05.0 实现" — v0.04.0
-//               长篇工具 + v0.05.0 标记系统 工单实装真业务。
+//               长篇工具 + v0.05.0 标记系统 工单实装真业务.
+//
+// V0-fix-8 (装机 user 8/11 真机拍 4 红字批注 #2 + #3 共同衍生):
+//   1. 5 tab SF Symbol 沿 AIF 16:20 截图重定义真值: folder /
+//      doc.text / gearshape / archive / square.grid.3x3 (替换
+//      V0-fix-4 的 folder / list.bullet.rectangle /
+//      slider.horizontal.3 / books.vertical / rectangle.split.3x1)
+//   2. 新增 `isEnabled` 衍生: projects / chapters = true,
+//      settings / resources / kanban = false (沿 V0-fix-6 +
+//      ProjectBrowserView.ProjectTab.enabled 拍板, v0.04.0 / v0.05.0
+//      才实装)
+//   3. Picker 整段已迁 LayoutShellView.topLeftHeaderBar (沿 V0-fix-5),
+//      本视图只渲染 tab 内容 (沿 V0-fix-5 + LT-N1-merge 真值)
+//   4. ChatPanelView 4 chat tab 同样修真 (独立驱动, 详见
+//      ChatPanelView.swift + V0Fix8LayoutTests.swift)
 
 import SwiftUI
 
@@ -58,13 +72,30 @@ enum ProjectManagementTab: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    /// V0-fix-8 (装机 user 8/11 16:20 AIF 截图重定义真值): 5 tab
+    /// SF Symbol 沿 AIF 16:20 截图指定真值, 替换 V0-fix-4 的字面量。
+    /// folder (项目) / doc.text (章节) / gearshape (设定) /
+    /// archive (资料) / square.grid.3x3 (看板)。
     var symbolName: String {
         switch self {
-        case .projects: return "folder"
-        case .chapters: return "list.bullet.rectangle"
-        case .settings: return "slider.horizontal.3"
-        case .resources: return "books.vertical"
-        case .kanban: return "rectangle.split.3x1"
+        case .projects:  return "folder"
+        case .chapters:  return "doc.text"
+        case .settings:  return "gearshape"
+        case .resources: return "archive"
+        case .kanban:    return "square.grid.3x3"
+        }
+    }
+
+    /// V0-fix-8 派生: 5 tab isEnabled 衍生 (沿 V0-fix-6 +
+    /// ProjectBrowserView.ProjectTab.enabled 拍板)。 projects /
+    /// chapters = true (v0.02.0 已实装), settings / resources /
+    /// kanban = false (v0.04.0 长篇工具 + v0.05.0 标记系统 才实装)。
+    /// LayoutShellView.topLeftHeaderBar Button 走 `.disabled(!isEnabled)`
+    /// 灰 `.secondary`, 不能点。
+    var isEnabled: Bool {
+        switch self {
+        case .projects, .chapters: return true
+        case .settings, .resources, .kanban: return false
         }
     }
 }

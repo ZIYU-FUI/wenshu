@@ -1,4 +1,4 @@
-// ChatPanelView.swift · 文枢 · v0.02.0 WO-LT-04 → v0.03.0 V0-fix-4 → V0-fix-6
+// ChatPanelView.swift · 文枢 · v0.02.0 WO-LT-04 → v0.03.0 V0-fix-4 → V0-fix-6 → V0-fix-8
 // 下左聊天区：聊天实装，时间线/关系图/大纲为 disabled 占位。
 //
 // V0-fix-4 Fix 4: Picker `.segmented` 改 `.iconOnly` (走 PickerStyle+IconOnly
@@ -11,6 +11,14 @@
 // V0-fix-6 (B5 装机 user 8/10 17:35 OOB): tabContent 加居中
 // (`.frame(maxWidth: .infinity, alignment: .center)`) — 4 tab 居左
 // OK (沿 V0-fix-4 Fix 6), 内容区居中 (本期新加)。
+//
+// V0-fix-8 (装机 user 8/11 真机拍 4 红字批注 #3): Picker(.iconOnly)
+// 改 HStack + 4 Button(Image) + `.buttonStyle(.plain)` — 红字
+// "所有 ICON 按钮, 只保留 ICON, 不要矩形背景, 仿 FCP"。 修真前
+// Picker(.iconOnly) 走 SegmentedPickerStyle 仍有 macOS 系统矩形分段
+// 框背景, 修真后 HStack + Button(.plain) 纯 ICON, 无矩形背景, 对齐
+// FCP timeline 范式。 4 SF Symbol 沿 on-disk ChatPanelTab.symbolName
+// 真值 (AIF 未列新值, 不改)。
 
 import SwiftUI
 
@@ -48,26 +56,37 @@ struct ChatPanelView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 0) {
-                Picker("", selection: $activeTab) {
-                    ForEach(ChatPanelTab.allCases) { tab in
+            // V0-fix-8 (修真 #3): Picker(.iconOnly) 改 HStack + 4
+            // Button(Image) + `.buttonStyle(.plain)` — 红字"所有 ICON
+            // 按钮, 只保留 ICON, 不要矩形背景, 仿 FCP"。 修真前
+            // SegmentedPickerStyle 仍有 macOS 系统矩形分段框背景 (装机
+            // user 8/11 真机拍), 修真后纯 ICON, 对齐 FCP timeline 范式。
+            HStack(spacing: 4) {
+                ForEach(ChatPanelTab.allCases) { tab in
+                    Button {
+                        activeTab = tab
+                    } label: {
                         Image(systemName: tab.symbolName)
-                            .tag(tab)
-                            .help(tab.rawValue)
-                            .disabled(tab.isDisabled)
+                            .font(.system(size: 14, weight: .medium))
+                            .frame(width: 32, height: 24)
+                            .foregroundStyle(activeTab == tab ? Color.accentColor : .secondary)
+                            .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
+                    .help(tab.rawValue)
+                    .disabled(tab.isDisabled)
                 }
-                .pickerStyle(.iconOnly)
-                .padding(.leading, 12)
-                .padding(.vertical, 8)
                 Spacer(minLength: 0)
             }
+            .padding(.leading, 12)
+            .padding(.vertical, 8)
 
             Divider()
 
             // V0-fix-6: 内容区居中 (B5 装机 user 8/10 17:35 OOB 实机拍
             // "tab 居左 OK, 内容居中")。 加 .frame(maxWidth: .infinity,
             // alignment: .center) 撑满 + 内容居中 (FCP timeline 范式)。
+            // V0-fix-8: 修真 #3 不动内容区居中 (修真仅 tab 渲染方式)。
             tabContent
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         }

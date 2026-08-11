@@ -98,61 +98,92 @@ final class V0Fix5LayoutTests: XCTestCase {
         return result
     }
 
-    // MARK: - Fix A: 5 tab Picker 在 LayoutShellView header bar 内
+    // MARK: - Fix A: 5 tab ICON 在 LayoutShellView header bar 内
 
-    /// V0-fix-5 核心修复 (AIF 8/10 17:35 CUA 拍 V0-fix-4 漏修):
-    ///   - LayoutShellView.topLeftHeaderBar 必须含 Picker.segmented
-    ///   - ForEach ProjectManagementTab.allCases + Text(tab.rawValue).tag(tab)
-    ///   - 5 SF Symbol 必须都在 source 里 (来自 ProjectManagementTab.symbolName)
+    /// V0-fix-5 核心修复 (AIF 8/10 17:35 CUA 拍 V0-fix-4 漏修): 5 tab
+    /// Picker 从 ProjectListView 内部搬到 LayoutShellView.topLeftHeaderBar
+    /// 跨全宽 header bar 内, 与 + 按钮平级。
+    ///
+    /// V0-fix-8 (装机 user 8/11 16:20 真机拍红字 "5 tab 改文字按钮为
+    /// ICON" + "所有 ICON 按钮, 只保留 ICON, 不要矩形背景, 仿 FCP"):
+    /// 修真 #2 — 5 tab Picker.segmented 文字标签改 HStack + 5 Button(Image)
+    /// + `.buttonStyle(.plain)`, 纯 ICON 无矩形背景, 对齐 FCP toolbar 范式。
+    /// 本测试沿 V0-fix-8 修真更新断言 (Pick Picker → Button 形态), 历史
+    /// `Picker.segmented` 字面量不再出现。
     func testLayoutShellView_topHeaderBar_has5TabPickerInHeaderBar() throws {
         let rawSource = try repoFile(
             "Sources/WenshuApp/Views/Layout/LayoutShellView.swift"
         )
         let code = stripSwiftComments(rawSource)
 
-        // 5 tab 字面量 (走 ProjectManagementTab.allCases)
+        // V0-fix-8 修真 #2: 5 tab 修真后是 HStack + 5 Button(Image) +
+        // .buttonStyle(.plain) — 替代 Picker.segmented, 修真矩形分段框
         XCTAssertTrue(
             code.contains("ProjectManagementTab.allCases"),
-            "LayoutShellView header bar 必须用 ProjectManagementTab.allCases 渲染 5 tab (V0-fix-5 Fix A — Picker.segmented 升 header bar)"
+            "LayoutShellView header bar 必须用 ProjectManagementTab.allCases 渲染 5 tab (V0-fix-5 Fix A — 5 tab 容器升 header bar, V0-fix-8 修真 #2 HStack+Button 形态)"
         )
         XCTAssertTrue(
-            code.contains(".pickerStyle(.segmented)"),
-            "LayoutShellView header bar 必须含 .pickerStyle(.segmented) (V0-fix-5 Fix A — 跟 chat / inspector tab 风格刻意区分, 文字标签)"
+            code.contains("Image(systemName: tab.symbolName)"),
+            "LayoutShellView header bar 必须用 Image(systemName: tab.symbolName) 渲染 5 tab (V0-fix-8 修真 #2 — 改文字为 ICON)"
+        )
+        XCTAssertTrue(
+            code.contains(".buttonStyle(.plain)"),
+            "LayoutShellView header bar 必须用 .buttonStyle(.plain) (V0-fix-8 修真 #2 — 红字不要矩形背景, 仿 FCP)"
         )
 
-        // 5 SF Symbol 必须都在 source 里 (来自 ProjectManagementTab.symbolName, enum 在 ProjectListView 内,
-        // 但 LayoutShellView 引用 enum, 所以 symbolName 字面量本身在 ProjectListView 内
-        // — 这条不强求 LayoutShellView 含 5 SF Symbol, 让 Fix G 验证)
+        // V0-fix-8 修真 #2: 不应再有 Picker / .pickerStyle 字面量
+        XCTAssertFalse(
+            code.contains(".pickerStyle(.segmented)"),
+            "LayoutShellView header bar 不应再有 .pickerStyle(.segmented) (V0-fix-8 修真 #2 — 改 HStack+Button, 去矩形分段框)"
+        )
     }
 
-    // MARK: - Fix B: + 按钮和 5 tab Picker 在同一 HStack (平级)
+    // MARK: - Fix B: + 按钮 (macOS title bar 接管) 和 5 tab ICON 在 header bar
 
-    /// 拍板真值: 5 tab Picker 在 + 按钮右边, 同一 38pt HStack 内 (FCP toolbar 风格)
-    ///   - topLeftHeaderBar 必须是 HStack(spacing: 12)
-    ///   - HStack 内必须有 Button { ... } 含 plus.circle.fill (V0-fix-4 Fix 1)
-    ///   - 同一 HStack 内必须有 Picker (V0-fix-5)
-    ///   - .frame(height: 38) 维持跨全宽 38pt
+    /// V0-fix-5 拍板真值: 5 tab 在 + 按钮右边, 同一 38pt HStack 内 (FCP
+    /// toolbar 风格).
+    ///
+    /// V0-fix-8 (装机 user 8/11 16:20 真机拍红字 "新建按钮放在这里, 替换
+    /// 文枢文字" + "去掉引行的新建按钮"): 修真 #1 + #4 — + 按钮从
+    /// topLeftHeaderBar 移到 macOS title bar (LayoutShellView NavigationStack
+    /// 顶层 .toolbar ToolbarItem(.principal)), topLeftHeaderBar 仅持 5 tab
+    /// ICON (修真 #4 衍生 — 避免双 + 入口, FCP 单 + 范式)。 本测试沿
+    /// V0-fix-8 修真更新断言: 修真后 `Picker("", selection: $activeTab)`
+    /// 不再出现, 修真后 `ToolbarItem(placement: .principal)` + `activeTab =
+    /// tab` 必须出现 (macOS title bar 接管)。
     func testLayoutShellView_topHeaderBar_plusButtonAnd5TabCoexist() throws {
         let rawSource = try repoFile(
             "Sources/WenshuApp/Views/Layout/LayoutShellView.swift"
         )
         let code = stripSwiftComments(rawSource)
 
-        // topLeftHeaderBar 必须含 38pt HStack
+        // topLeftHeaderBar 必须含 38pt HStack (沿用 V0-fix-5 Fix B)
         XCTAssertTrue(
             code.contains(".frame(height: 38)"),
             "LayoutShellView header bar 必须含 .frame(height: 38) (V0-fix-5 Fix B — 维持 V0-fix-4 Fix 1 38pt header bar)"
         )
 
-        // + 按钮 + Picker 都在 header bar — 验证 plus.circle.fill + Picker 都出现
-        // (都在同一 HStack 内由 layout 保证 — SwiftUI HStack 顺序决定视觉)
+        // V0-fix-8 修真 #1 + #4: + 按钮已移到 macOS title bar, 由
+        // ToolbarItem(placement: .principal) 接管。 topLeftHeaderBar
+        // 修真后不再含 plus.circle.fill Button (修真 #4 衍生 — FCP
+        // 单 + 入口)。
         XCTAssertTrue(
-            code.contains("plus.circle.fill"),
-            "LayoutShellView header bar 必须含 SF Symbol <plus.circle.fill> (V0-fix-5 Fix B — V0-fix-4 Fix 1 + 按钮仍在)"
+            code.contains("ToolbarItem(placement: .principal)"),
+            "LayoutShellView macOS title bar 必须由 ToolbarItem(placement: .principal) 接管 + 按钮 (V0-fix-8 修真 #1 — 红字新建按钮放这里替换文枢文字)"
         )
         XCTAssertTrue(
+            code.contains("plus.circle.fill"),
+            "LayoutShellView macOS title bar 必须含 SF Symbol <plus.circle.fill> (V0-fix-8 修真 #1 — + 按钮 SF Symbol)"
+        )
+        XCTAssertTrue(
+            code.contains("activeTab = tab"),
+            "LayoutShellView header bar 必须有 Button { activeTab = tab } 修真 5 tab (V0-fix-8 修真 #2 — HStack+Button 替代 Picker, 修真 #4 衍生 topLeftHeaderBar 不再有 Picker)"
+        )
+
+        // V0-fix-8 修真 #2: 不应再有 Picker 字面量
+        XCTAssertFalse(
             code.contains("Picker(\"\", selection: $activeTab)"),
-            "LayoutShellView header bar 必须含 Picker(, selection: $activeTab) (V0-fix-5 Fix B — 5 tab Picker 在 + 按钮右边平级)"
+            "LayoutShellView header bar 不应再有 Picker(\"\", selection: $activeTab) (V0-fix-8 修真 #2 — 改 HStack+Button, 修真 #4 衍生 topLeftHeaderBar 不再有 Picker)"
         )
     }
 
@@ -228,33 +259,56 @@ final class V0Fix5LayoutTests: XCTestCase {
         )
     }
 
-    // MARK: - Fix G: 5 tab enum + 5 SF Symbol 字面量保留
+    // MARK: - Fix G: 5 tab enum + 5 SF Symbol 字面量保留 (V0-fix-8 修真 #2 沿 AIF 16:20)
 
     /// V0-fix-5 不重写 ProjectManagementTab enum, 只搬 Picker 位置:
     ///   - 5 tab 文字字面量 (项目 / 章节 / 设定 / 资料 / 看板)
     ///   - 5 SF Symbol (folder / list.bullet.rectangle / slider.horizontal.3 /
     ///                 books.vertical / rectangle.split.3x1)
+    ///
+    /// V0-fix-8 (装机 user 8/11 16:20 真机拍红字 "5 tab 改文字按钮为
+    /// ICON"): 修真 #2 — 5 SF Symbol 沿 AIF 16:20 截图重定义真值:
+    /// folder / doc.text / gearshape / archive / square.grid.3x3 (替换
+    /// V0-fix-5 字面量)。 本测试沿 V0-fix-8 修真更新 SF Symbol 断言。
     func testProjectListView_5tabEnumsAndSymbolsPreserved() throws {
         let rawSource = try repoFile(
             "Sources/WenshuApp/Views/ProjectListView.swift"
         )
         let code = stripSwiftComments(rawSource)
 
-        // 5 tab 字面量
+        // 5 tab 字面量 (沿用 V0-fix-5 Fix G)
         XCTAssertTrue(code.contains(#""项目""#), "ProjectListView 必须含 <项目> tab 字面量 (V0-fix-5 Fix G — enum 保留)")
         XCTAssertTrue(code.contains(#""章节""#), "ProjectListView 必须含 <章节> tab 字面量 (V0-fix-5 Fix G)")
         XCTAssertTrue(code.contains(#""设定""#), "ProjectListView 必须含 <设定> tab 字面量 (V0-fix-5 Fix G)")
         XCTAssertTrue(code.contains(#""资料""#), "ProjectListView 必须含 <资料> tab 字面量 (V0-fix-5 Fix G)")
         XCTAssertTrue(code.contains(#""看板""#), "ProjectListView 必须含 <看板> tab 字面量 (V0-fix-5 Fix G)")
 
-        // 5 SF Symbol
-        XCTAssertTrue(code.contains(#""folder""#),                "ProjectListView 必须含 SF Symbol <folder> (V0-fix-5 Fix G 项目 tab)")
-        XCTAssertTrue(code.contains(#""list.bullet.rectangle""#), "ProjectListView 必须含 SF Symbol <list.bullet.rectangle> (V0-fix-5 Fix G 章节 tab)")
-        XCTAssertTrue(code.contains(#""slider.horizontal.3""#),   "ProjectListView 必须含 SF Symbol <slider.horizontal.3> (V0-fix-5 Fix G 设定 tab)")
-        XCTAssertTrue(code.contains(#""books.vertical""#),        "ProjectListView 必须含 SF Symbol <books.vertical> (V0-fix-5 Fix G 资料 tab)")
-        XCTAssertTrue(code.contains(#""rectangle.split.3x1""#),   "ProjectListView 必须含 SF Symbol <rectangle.split.3x1> (V0-fix-5 Fix G 看板 tab)")
+        // 5 SF Symbol (V0-fix-8 修真 #2 沿 AIF 16:20 截图重定义真值)
+        XCTAssertTrue(code.contains(#""folder""#),              "ProjectListView 必须含 SF Symbol <folder> (V0-fix-8 修真 #2 — AIF 16:20 项目 tab)")
+        XCTAssertTrue(code.contains(#""doc.text""#),            "ProjectListView 必须含 SF Symbol <doc.text> (V0-fix-8 修真 #2 — AIF 16:20 章节 tab)")
+        XCTAssertTrue(code.contains(#""gearshape""#),           "ProjectListView 必须含 SF Symbol <gearshape> (V0-fix-8 修真 #2 — AIF 16:20 设定 tab)")
+        XCTAssertTrue(code.contains(#""archive""#),             "ProjectListView 必须含 SF Symbol <archive> (V0-fix-8 修真 #2 — AIF 16:20 资料 tab)")
+        XCTAssertTrue(code.contains(#""square.grid.3x3""#),     "ProjectListView 必须含 SF Symbol <square.grid.3x3> (V0-fix-8 修真 #2 — AIF 16:20 看板 tab)")
 
-        // enum 本身保留
+        // V0-fix-5 字面量修真后不应再出现 (AIF 16:20 替换)
+        XCTAssertFalse(
+            code.contains(#""list.bullet.rectangle""#),
+            "ProjectListView 不应再用 SF Symbol <list.bullet.rectangle> (V0-fix-8 修真 #2 — AIF 16:20 替换为 doc.text)"
+        )
+        XCTAssertFalse(
+            code.contains(#""slider.horizontal.3""#),
+            "ProjectListView 不应再用 SF Symbol <slider.horizontal.3> (V0-fix-8 修真 #2 — AIF 16:20 替换为 gearshape)"
+        )
+        XCTAssertFalse(
+            code.contains(#""books.vertical""#),
+            "ProjectListView 不应再用 SF Symbol <books.vertical> (V0-fix-8 修真 #2 — AIF 16:20 替换为 archive)"
+        )
+        XCTAssertFalse(
+            code.contains(#""rectangle.split.3x1""#),
+            "ProjectListView 不应再用 SF Symbol <rectangle.split.3x1> (V0-fix-8 修真 #2 — AIF 16:20 替换为 square.grid.3x3)"
+        )
+
+        // enum 本身保留 (沿 V0-fix-5 Fix G)
         XCTAssertTrue(
             code.contains("enum ProjectManagementTab"),
             "ProjectListView 必须保留 ProjectManagementTab enum (V0-fix-5 Fix G — LayoutShellView header bar 引用 allCases)"

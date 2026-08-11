@@ -1,4 +1,4 @@
-// App.swift · 文枢 (Wenshu) · v0.01.0 WO-001 → WO-009 → v0.03.0 V0-fix-6 → V0-fix-7
+// App.swift · 文枢 (Wenshu) · v0.01.0 WO-001 → WO-009 → v0.03.0 V0-fix-6 → V0-fix-7 → V0-fix-9
 //
 // SwiftUI App entry point.
 // - WO-001: bare WindowGroup + LSUIElement=false Info.plist
@@ -21,14 +21,27 @@
 // Sources/WenshuApp/Resources/Brand/AppIcon.icns. 等 wenshu.xcodeproj
 // (v0.01.x) 上线, Xcode actool 自动接管, 这段兜底代码失效无害.
 //
-// V0-fix-7 (2026-08-11): `WindowGroup("文枢")` → `WindowGroup("")` —
-// 去掉 traffic light 旁硬显示的"文枢"两字 (OOB 3 拍板, 装机 user 8/11
-// 18:05 CUA 自验实机拍)。 含义:
+// V0-fix-7 (2026-08-11 18:05 CUA 自验): `WindowGroup("文枢")` → `WindowGroup("")`
+// 去掉 traffic light 旁硬显示的"文枢"两字。 红字真意 = 修真, 不是共存,
+// 但 WindowGroup("") 修真半成品 — Info.plist CFBundleDisplayName fallback
+// 仍显"文枢"两字。
+//
+// V0-fix-8 (装机 user 8/11 16:20 真机拍 4 红字批注 #1): WindowGroup 修真
+// 完整 = `WindowGroup("")` → `WindowGroup { }` + LayoutShellView
+// NavigationStack 顶层 `.toolbar ToolbarItem(.principal)` 接 + 按钮 (FCP
+// 范式 单 + 入口 — 红字"新建按钮放在这里, 替换文枢文字")。 红字真意 = 修真,
+// 不是共存。
+//
+// V0-fix-9 (2026-08-11 装机 user 16:42 CUA 自验发现): 修真 #1 完整兜底 —
+// 加显式 `.navigationTitle("")` 覆盖 CFBundleDisplayName fallback, 让
+// macOS title bar 修真生效只显 + 按钮 (居中, ToolbarItem(.principal))。
+//
+// 含义 (V0-fix-7 → V0-fix-9 完整修真):
 //   - 主窗口 title bar 不再硬挂"文枢"标题 (sheet 标题会自带, 如 "新建
 //     项目" 是 ProjectCreateView 默认 sheet 标题)
-//   - macOS 默认行为: 空 title 让 traffic light 旁不显示任何文字, 跟
-//     Pages / Numbers / FCP 主窗口范式一致 (顶部 toolbar 不显示 app 名,
-//     只显 dock icon)
+//   - macOS 默认行为 + V0-fix-9 .navigationTitle("") 兜底: traffic light
+//     旁不显示任何文字, 跟 Pages / Numbers / FCP 主窗口范式一致 (顶部
+//     toolbar 只显 + 按钮)
 //   - app menu 第一项 (macOS 菜单栏) 仍叫 "文枢" (沿 WenshuAppCommands
 //     CommandMenu("文枢"), 这是菜单栏文案不是窗口标题, 不动)
 //   - 不动 WindowGroup 内部 MainView() + environmentObject + frame +
@@ -119,13 +132,13 @@ struct WenshuApp: App {
     }
 
     var body: some Scene {
-        // V0-fix-7 (OOB 3 拍板): WindowGroup 标题从 "文枢" 改成空字符串。
-        // 主窗口 traffic light 旁不再硬显示"文枢"两字, 跟 Pages /
-        // Numbers / FCP 主窗口范式一致 (顶部 toolbar 不显示 app 名, 只
-        // 显 dock icon)。 sheet 触发后 sheet 标题自带 (ProjectCreateView
-        // 弹 "新建项目")。 app menu 第一项仍叫 "文枢" (菜单栏文案不
-        // 是窗口标题, WenshuAppCommands CommandMenu("文枢") 不动)。
-        WindowGroup("") {
+// V0-fix-7 → V0-fix-9 修真 #1 完整:
+        //   - V0-fix-7: WindowGroup("文枢") → WindowGroup("")
+        //   - V0-fix-8: WindowGroup("") → WindowGroup { } (no title string)
+        //   - V0-fix-9: + .navigationTitle("") in LayoutShellView (兜底
+        //               覆盖 CFBundleDisplayName fallback)
+        // 红字真意 = "替换文枢文字", 不是共存 (装机 user 8/11 16:20 红字)。
+        WindowGroup {
             MainView()
                 .environmentObject(chatVM)
                 .environmentObject(persistence)

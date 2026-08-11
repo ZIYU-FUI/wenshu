@@ -307,33 +307,51 @@ final class V0Fix2LayoutTests: XCTestCase {
             "ProjectListView 必须含 ProjectManagementTab enum (V0-fix-2 Fix J — 沿用 LT-03 v2)"
         )
 
-        // 5 SF Symbol 必须都在 source 里 (symbolName 映射)
+        // 5 SF Symbol (V0-fix-8 修真 #2 沿 AIF 16:20 截图重定义真值)
         XCTAssertTrue(
             code.contains("\"folder\""),
-            "ProjectListView 必须含 SF Symbol 'folder' (V0-fix-2 Fix J — 项目 tab ICON)"
+            "ProjectListView 必须含 SF Symbol 'folder' (V0-fix-8 修真 #2 — AIF 16:20 项目 tab)"
         )
         XCTAssertTrue(
-            code.contains("\"list.bullet.rectangle\""),
-            "ProjectListView 必须含 SF Symbol 'list.bullet.rectangle' (V0-fix-2 Fix J — 章节 tab ICON)"
+            code.contains("\"doc.text\""),
+            "ProjectListView 必须含 SF Symbol 'doc.text' (V0-fix-8 修真 #2 — AIF 16:20 章节 tab)"
         )
         XCTAssertTrue(
-            code.contains("\"slider.horizontal.3\""),
-            "ProjectListView 必须含 SF Symbol 'slider.horizontal.3' (V0-fix-2 Fix J — 设定 tab ICON)"
+            code.contains("\"gearshape\""),
+            "ProjectListView 必须含 SF Symbol 'gearshape' (V0-fix-8 修真 #2 — AIF 16:20 设定 tab)"
         )
         XCTAssertTrue(
-            code.contains("\"books.vertical\""),
-            "ProjectListView 必须含 SF Symbol 'books.vertical' (V0-fix-2 Fix J — 资料 tab ICON)"
+            code.contains("\"archive\""),
+            "ProjectListView 必须含 SF Symbol 'archive' (V0-fix-8 修真 #2 — AIF 16:20 资料 tab)"
         )
         XCTAssertTrue(
-            code.contains("\"rectangle.split.3x1\""),
-            "ProjectListView 必须含 SF Symbol 'rectangle.split.3x1' (V0-fix-2 Fix J — 看板 tab ICON)"
+            code.contains("\"square.grid.3x3\""),
+            "ProjectListView 必须含 SF Symbol 'square.grid.3x3' (V0-fix-8 修真 #2 — AIF 16:20 看板 tab)"
         )
 
-        // 5 tab 用文字标签 — Picker.segmented (跟 4 chat tab + 2 inspector
-        // tab 风格刻意区分, 跟 LT-03 v2 拍板一致)
-        XCTAssertTrue(
+        // V0-fix-2 字面量修真后不应再出现 (AIF 16:20 替换)
+        XCTAssertFalse(
+            code.contains("\"list.bullet.rectangle\""),
+            "ProjectListView 不应再用 SF Symbol 'list.bullet.rectangle' (V0-fix-8 修真 #2 — AIF 16:20 替换为 doc.text)"
+        )
+        XCTAssertFalse(
+            code.contains("\"slider.horizontal.3\""),
+            "ProjectListView 不应再用 SF Symbol 'slider.horizontal.3' (V0-fix-8 修真 #2 — AIF 16:20 替换为 gearshape)"
+        )
+        XCTAssertFalse(
+            code.contains("\"books.vertical\""),
+            "ProjectListView 不应再用 SF Symbol 'books.vertical' (V0-fix-8 修真 #2 — AIF 16:20 替换为 archive)"
+        )
+        XCTAssertFalse(
+            code.contains("\"rectangle.split.3x1\""),
+            "ProjectListView 不应再用 SF Symbol 'rectangle.split.3x1' (V0-fix-8 修真 #2 — AIF 16:20 替换为 square.grid.3x3)"
+        )
+
+        // V0-fix-5 Fix E + V0-fix-8 修真 #2: Picker 修真后不在 ProjectListView
+        // (5 tab Picker 升 LayoutShellView.topLeftHeaderBar)
+        XCTAssertFalse(
             code.contains(".pickerStyle(.segmented)"),
-            "ProjectListView 5 tab 必须用 .pickerStyle(.segmented) 文字标签 (V0-fix-2 Fix J — 跟 LT-03 v2 拍板一致, 不走 .iconOnly)"
+            "ProjectListView 不应再有 .pickerStyle(.segmented) (V0-fix-5 Fix E — 整段 Picker 已搬到 LayoutShellView header bar)"
         )
     }
 }

@@ -104,16 +104,24 @@ final class V0Fix3LayoutTests: XCTestCase {
     ///     settings / resources / kanban)
     ///   - 5 SF Symbol: folder / list.bullet.rectangle /
     ///     slider.horizontal.3 / books.vertical / rectangle.split.3x1
+    ///     (V0-fix-4 + V0-fix-5 沿用)
     ///   - 5 个 tab 字面量 (项目 / 章节 / 设定 / 资料 / 看板)
     ///   - Picker.segmented (5 tab 用文字标签, 不走 .iconOnly — 跟 chat /
     ///     inspector tab 风格刻意区分)
+    ///
+    /// V0-fix-8 (装机 user 8/11 16:20 真机拍红字 "5 tab 改文字按钮为
+    /// ICON" + "所有 ICON 按钮, 只保留 ICON, 不要矩形背景, 仿 FCP"):
+    ///   - 5 SF Symbol 修真 AIF 16:20 截图重定义真值: folder / doc.text /
+    ///     gearshape / archive / square.grid.3x3 (替换 V0-fix-3 字面量)
+    ///   - Picker 整段已迁 LayoutShellView.topLeftHeaderBar (沿 V0-fix-5),
+    ///     ProjectListView 不再含 Picker (仅保留 enum + 5 SF Symbol 字面量)
     func testProjectListView_5tabList_present() throws {
         let rawSource = try repoFile(
             "Sources/WenshuApp/Views/ProjectListView.swift"
         )
         let code = stripSwiftComments(rawSource)
 
-        // 5 tab 字面量
+        // 5 tab 字面量 (沿用 V0-fix-3 Fix J)
         XCTAssertTrue(code.contains("\"项目\""),  "ProjectListView 必须含 '项目' tab 字面量 (V0-fix-3 Fix J)")
         XCTAssertTrue(code.contains("\"章节\""),  "ProjectListView 必须含 '章节' tab 字面量 (V0-fix-3 Fix J)")
         XCTAssertTrue(code.contains("\"设定\""),  "ProjectListView 必须含 '设定' tab 字面量 (V0-fix-3 Fix J)")
@@ -123,17 +131,37 @@ final class V0Fix3LayoutTests: XCTestCase {
         // ProjectManagementTab enum
         XCTAssertTrue(code.contains("ProjectManagementTab"), "ProjectListView 必须含 ProjectManagementTab enum (V0-fix-3 Fix J)")
 
-        // 5 SF Symbol
-        XCTAssertTrue(code.contains("\"folder\""),                   "ProjectListView 必须含 SF Symbol 'folder' (V0-fix-3 Fix J 项目 tab)")
-        XCTAssertTrue(code.contains("\"list.bullet.rectangle\""),    "ProjectListView 必须含 SF Symbol 'list.bullet.rectangle' (V0-fix-3 Fix J 章节 tab)")
-        XCTAssertTrue(code.contains("\"slider.horizontal.3\""),      "ProjectListView 必须含 SF Symbol 'slider.horizontal.3' (V0-fix-3 Fix J 设定 tab)")
-        XCTAssertTrue(code.contains("\"books.vertical\""),           "ProjectListView 必须含 SF Symbol 'books.vertical' (V0-fix-3 Fix J 资料 tab)")
-        XCTAssertTrue(code.contains("\"rectangle.split.3x1\""),      "ProjectListView 必须含 SF Symbol 'rectangle.split.3x1' (V0-fix-3 Fix J 看板 tab)")
+        // 5 SF Symbol (V0-fix-8 修真 #2 沿 AIF 16:20 截图重定义真值)
+        XCTAssertTrue(code.contains("\"folder\""),          "ProjectListView 必须含 SF Symbol 'folder' (V0-fix-8 修真 #2 — AIF 16:20 项目 tab)")
+        XCTAssertTrue(code.contains("\"doc.text\""),        "ProjectListView 必须含 SF Symbol 'doc.text' (V0-fix-8 修真 #2 — AIF 16:20 章节 tab)")
+        XCTAssertTrue(code.contains("\"gearshape\""),       "ProjectListView 必须含 SF Symbol 'gearshape' (V0-fix-8 修真 #2 — AIF 16:20 设定 tab)")
+        XCTAssertTrue(code.contains("\"archive\""),         "ProjectListView 必须含 SF Symbol 'archive' (V0-fix-8 修真 #2 — AIF 16:20 资料 tab)")
+        XCTAssertTrue(code.contains("\"square.grid.3x3\""),  "ProjectListView 必须含 SF Symbol 'square.grid.3x3' (V0-fix-8 修真 #2 — AIF 16:20 看板 tab)")
 
-        // Picker.segmented (5 tab 走文字标签, 不走 .iconOnly)
-        XCTAssertTrue(
+        // V0-fix-3 字面量修真后不应再出现 (AIF 16:20 替换)
+        XCTAssertFalse(
+            code.contains("\"list.bullet.rectangle\""),
+            "ProjectListView 不应再用 SF Symbol 'list.bullet.rectangle' (V0-fix-8 修真 #2 — AIF 16:20 替换为 doc.text)"
+        )
+        XCTAssertFalse(
+            code.contains("\"slider.horizontal.3\""),
+            "ProjectListView 不应再用 SF Symbol 'slider.horizontal.3' (V0-fix-8 修真 #2 — AIF 16:20 替换为 gearshape)"
+        )
+        XCTAssertFalse(
+            code.contains("\"books.vertical\""),
+            "ProjectListView 不应再用 SF Symbol 'books.vertical' (V0-fix-8 修真 #2 — AIF 16:20 替换为 archive)"
+        )
+        XCTAssertFalse(
+            code.contains("\"rectangle.split.3x1\""),
+            "ProjectListView 不应再用 SF Symbol 'rectangle.split.3x1' (V0-fix-8 修真 #2 — AIF 16:20 替换为 square.grid.3x3)"
+        )
+
+        // Picker 修真后不在 ProjectListView (沿 V0-fix-5 — 5 tab Picker
+        // 升 LayoutShellView.topLeftHeaderBar, ProjectListView 仅保留 enum
+        // + SF Symbol 字面量)
+        XCTAssertFalse(
             code.contains(".pickerStyle(.segmented)"),
-            "ProjectListView 5 tab Picker 必须用 .pickerStyle(.segmented) 文字标签 (V0-fix-3 Fix J, 跟 chat/inspector tab 风格刻意区分)"
+            "ProjectListView 不应再有 .pickerStyle(.segmented) (V0-fix-5 Fix E — 整段 Picker 已搬到 LayoutShellView header bar)"
         )
     }
 
@@ -158,35 +186,51 @@ final class V0Fix3LayoutTests: XCTestCase {
         )
     }
 
-    // MARK: - Fix G (BUG 4): ChatPanelView Picker 改 .iconOnly
+    // MARK: - Fix G (BUG 4): ChatPanelView 修真 #3 Picker → HStack+Button
 
-    /// 装机 user 8/10 15:30 OOB 真机拍 V0-fix-1 后仍不符 (chat 4 tab
-    /// 仍显文字). 真根因 = macOS 13 上 `.pickerStyle(.segmented)` 即便
-    /// 只放 Image 也会 fallback 显 SF Symbol 名字 ("bubble.left" / "clock" /
-    /// "person.2" / "list.bullet.rectangle"), 必须 `.pickerStyle(.iconOnly)`
-    /// (走扩展 SegmentedPickerStyle alias + Image-only content) 才真 ICON-only.
+    /// V0-fix-3 Fix G 历史: Picker `.segmented` → `.pickerStyle(.iconOnly)`
+    /// (走 PickerStyle+IconOnly alias, macOS 14+ SegmentedPickerStyle 配
+    /// 合 Image-only content 自动隐藏文字标签)。
     ///
-    /// Source 必须包含 `.pickerStyle(.iconOnly)`, strip 注释后不应再含
-    /// `.pickerStyle(.segmented)` (避免未来回归到 .segmented fallback).
+    /// V0-fix-8 (装机 user 8/11 16:20 真机拍红字 "所有 ICON 按钮, 只保留
+    /// ICON, 不要矩形背景, 仿 FCP"): 修真 #3 — `.pickerStyle(.iconOnly)`
+    /// (走 SegmentedPickerStyle) 仍有 macOS 系统矩形分段框背景, 不符
+    /// 红字"不要矩形背景"。 真修真: Picker 整段迁 HStack + 4 Button
+    /// (Image) + `.buttonStyle(.plain)`, 纯 ICON 无矩形背景, 对齐 FCP
+    /// timeline 范式。本测试沿 V0-fix-8 修真更新断言 (Pick Picker → Button
+    /// 形态), 历史 `.pickerStyle(.iconOnly)` 字面量不再出现。
     func testChatPanelView_chatPicker_iconOnly() throws {
         let rawSource = try repoFile(
             "Sources/WenshuApp/Views/Chat/ChatPanelView.swift"
         )
         let code = stripSwiftComments(rawSource)
 
+        // V0-fix-8 修真 #3: 4 chat tab 修真后是 HStack + Button(Image)
+        // + .buttonStyle(.plain) — 替代 Picker(.iconOnly), 修真矩形分段框
         XCTAssertTrue(
+            code.contains("activeTab = tab"),
+            "ChatPanelView 必须有 Button { activeTab = tab } 修真 4 chat tab (V0-fix-8 修真 #3 — HStack+Button 替代 Picker)"
+        )
+        XCTAssertTrue(
+            code.contains(".buttonStyle(.plain)"),
+            "ChatPanelView 必须用 .buttonStyle(.plain) (V0-fix-8 修真 #3 — 红字不要矩形背景, 仿 FCP)"
+        )
+
+        // V0-fix-8 修真 #3: 不应再有 Picker / .pickerStyle 字面量
+        XCTAssertFalse(
             code.contains(".pickerStyle(.iconOnly)"),
-            "ChatPanelView 必须使用 .pickerStyle(.iconOnly) 强制 ICON-only (V0-fix-3 Fix G — macOS 13 segmented fallback 显 SF Symbol 文字)"
+            "ChatPanelView 不应再有 .pickerStyle(.iconOnly) (V0-fix-8 修真 #3 — 改 HStack+Button 去矩形分段框)"
         )
         XCTAssertFalse(
             code.contains(".pickerStyle(.segmented)"),
-            "ChatPanelView 不应再用 .pickerStyle(.segmented) (V0-fix-3 Fix G 替换, 避免回归 fallback 显 SF Symbol 文字)"
+            "ChatPanelView 不应再用 .pickerStyle(.segmented) (V0-fix-8 修真 #3 — 改 HStack+Button)"
         )
 
-        // 兜底: Picker 块走 Image(systemName:) 渲染
+        // 兜底: Button 块走 Image(systemName:) 渲染 (沿 V0-fix-3 Fix G
+        // ICON-only 契约, 修真后形态仍保留)
         XCTAssertTrue(
             code.contains("Image(systemName:"),
-            "ChatPanelView Picker 块必须用 Image(systemName:) 渲染 tab (V0-fix-3 Fix G ICON-only 契约)"
+            "ChatPanelView Button 块必须用 Image(systemName:) 渲染 tab (V0-fix-3 Fix G + V0-fix-8 修真 #3 ICON-only 契约)"
         )
     }
 
