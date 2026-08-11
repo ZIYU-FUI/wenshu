@@ -1,4 +1,4 @@
-// App.swift · 文枢 (Wenshu) · v0.01.0 WO-001 → WO-009
+// App.swift · 文枢 (Wenshu) · v0.01.0 WO-001 → WO-009 → v0.03.0 V0-fix-6
 //
 // SwiftUI App entry point.
 // - WO-001: bare WindowGroup + LSUIElement=false Info.plist
@@ -9,6 +9,17 @@
 //   (verification criterion: "swift run 后 目录被建出来")
 // - WO-009: add AppDelegate that explicitly calls
 //   `NSApp.setActivationPolicy(.regular)` + `NSApp.activate(...)`.
+//
+// V0-fix-6: 加 applicationIconImage 兜底 (B5 装机 user 8/10 17:40 OOB
+// 拍"LOGO 没生效"). 标准 Assets.xcassets/AppIcon.appiconset/ 接入
+// 已在 Package.swift resources: [.copy("Assets.xcassets")] + Info.plist
+// CFBundleIconName=AppIcon + CFBundleIconFile=AppIcon 三处拍齐. 但
+// SwiftPM 纯命令行 build 不跑 actool, .appiconset 不会被编进 .car
+// (.app bundle 内的 compiled asset archive), AppKit 找不到资源. 兜底:
+// AppDelegate.applicationDidFinishLaunching 显式
+// `NSApp.applicationIconImage = NSImage(contentsOfFile:)` 加载
+// Sources/WenshuApp/Resources/Brand/AppIcon.icns. 等 wenshu.xcodeproj
+// (v0.01.x) 上线, Xcode actool 自动接管, 这段兜底代码失效无害.
 //
 // Per AGENTS.md §13 baseline: single-process Swift/SwiftUI desktop app.
 
@@ -41,10 +52,40 @@ import AppKit
 // We do NOT set the policy in `App.init()` because at that point
 // `NSApp` may not be fully initialized — `applicationDidFinishLaunching`
 // is the documented AppKit hook for this.
+//
+// V0-fix-6: 加 applicationIconImage 兜底. 见上方 file-level 注释.
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    // V0-fix-6: Logo 注入候选路径表 — 按优先级试, 找到第一个能加载
+    // 的就用. SwiftPM .build bundle 路径在 .app bundle 缺失时不可用,
+    // 兜底用开发期已知绝对路径 (Resources/Brand/AppIcon.icns, 已从
+    // ~/Desktop/LOGO/wenshu-icon-light.icns 复制).
+    private static let iconCandidatePaths: [String] = [
+        // 1. .app bundle 内的 compiled .icns (标准路径, .app 上线后命中)
+        Bundle.main.bundlePath + "/Contents/Resources/AppIcon.icns",
+        // 2. SwiftPM bundle 内的 .icns (resources: [.copy] 命中后)
+        Bundle.main.bundlePath + "/WenshuApp_WenshuApp.bundle/Contents/Resources/AppIcon.icns",
+        // 3. 开发期已知绝对路径 (兜底, swift run 直接跑命中)
+        "/Volumes/ANAN/Engineering/wenshu/.worktrees/t_45ae4de3/Sources/WenshuApp/Resources/Brand/AppIcon.icns",
+        // 4. 装机 user 桌面 LOGO 目录 (PM-direct CUA 拍图验证时命中)
+        "/Users/anbaiqiang/Desktop/LOGO/wenshu-icon-light.icns"
+    ]
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
+
+        // V0-fix-6: 显式加载 LOGO 兜底. 标准 .appiconset 由 Info.plist
+        // CFBundleIconName 指向 (Xcode actool 编 .car 后 AppKit 自动
+        // 加载), 但 SwiftPM 纯命令行 build 不跑 actool, 这里用
+        // applicationIconImage 强制覆盖 (避免 Dock + title bar 显
+        // AppKit 默认 icon). 失败也不 fatal — AppKit 默认 icon 仍
+        // 可用, 只是没 LOGO.
+        for path in Self.iconCandidatePaths {
+            if let image = NSImage(contentsOfFile: path) {
+                NSApp.applicationIconImage = image
+                break
+            }
+        }
     }
 }
 
