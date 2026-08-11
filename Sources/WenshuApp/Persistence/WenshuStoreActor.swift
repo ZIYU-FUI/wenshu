@@ -333,6 +333,17 @@ struct ForeshadowRow: Identifiable, Sendable, Equatable {
 
 struct TaggedNote: Sendable { let text: String; let tags: String; let createdAt: Date }
 
+/// LT-N2 新增 (修真 t_0c3beda1): Sendable wire format for one CDNote row.
+///
+/// 跟 `TaggedNote` 字段一致, 独立 struct 是为 LT-N2 chat history 单独走
+/// `==` tag-scoping 严格匹配 (跨项目隔离), 不复用 `listTaggedNotes(prefix:)`
+/// (后者 hasPrefix 会跨项目串)。
+struct NoteRow: Sendable {
+    let text: String
+    let tags: String
+    let createdAt: Date
+}
+
 /// Plain Sendable row read from `CDChapter`. Lives outside the actor because
 /// `NSManagedObject` is not Sendable — we extract its scalar fields inside
 /// `WenshuStoreActor.listChapters(...)` and hand back this value type.
@@ -369,6 +380,50 @@ extension WenshuStoreActor {
             rows.forEach(context.delete)
             if context.hasChanges { try context.save() }
         }
+    }
+
+    // MARK: - Chat history (LT-N2) — 修真 t_0c3beda1
+    //
+    // commit 153a46d99 (LT-N2-cc-v2) commit message 承诺加 listNotesWithMetadata /
+    // countChatNotes / NoteRow 3 个, 但 diff 只贴了 listNotesWithMetadata 的部分,
+    // 后 2 个 + struct 漏贴到仓库。 `b0c5eb6fa` LOOP merge fast-forward 没察觉,
+    // 修真到此补齐 — 不动 CDNote schema (AGENTS §12 红线), 只加 store actor API。
+
+    /// LT-N2 新增: 拉指定 tag (= `chat-<uuid>`) 的 CDNote 列表, 含 text + tags + createdAt。
+    ///
+    /// 为什么 predicate 用 "==` 不是 `CONTAINS`: `chat-<uuid-A>` 和 `chat-<uuid-B>`
+    /// 共享前缀 `chat-`, CONTAINS/hasPrefix 会让所有 chat 项目互相串,
+    /// 破坏跨项目隔离。 ==` 是严格的 tag-scoping。
+    func listNotesWithMetadata(tag: String? = nil) async throws -> [NoteRow] {
+        let context = container.viewContext
+        return try await context.perform {
+            let request = NSFetchRequest<NSManagedObject>(entityName: "CDNote")
+            if let tag {
+                request.predicate = NSPredicate(format: "tags == %@", tag)
+            }
+            let objects = try context.fetch(request)
+            return objects.map { Self.makeNoteRow(from: $0) }
+        }
+    }
+
+    /// LT-N2 新增: 数指定 tag 的 CDNote 数量 (= 某项目 chat history 条数)。
+    func countChatNotes(tag: String) async throws -> Int {
+        let context = container.viewContext
+        return try await context.perform {
+            let request = NSFetchRequest<NSManagedObject>(entityName: "CDNote")
+            request.predicate = NSPredicate(format: "tags == %@", tag)
+            return try context.count(for: request)
+        }
+    }
+
+    /// LT-N2 新增: nil-tolerant 行映射, 跟 `makeRow(from:)` (ForeshadowRow)
+    /// 同范式 — 一行坏数据不能炸 inspector / chat history 加载。
+    private static func makeNoteRow(from object: NSManagedObject) -> NoteRow {
+        NoteRow(
+            text: (object.value(forKey: "text") as? String) ?? "",
+            tags: (object.value(forKey: "tags") as? String) ?? "",
+            createdAt: (object.value(forKey: "createdAt") as? Date) ?? Date()
+        )
     }
 
     func listChapters() async throws -> [ChapterRow] {
