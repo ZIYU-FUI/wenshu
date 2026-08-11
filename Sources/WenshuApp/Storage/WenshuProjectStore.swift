@@ -2,7 +2,11 @@ import Foundation
 
 actor WenshuProjectStore {
     static let shared = WenshuProjectStore()
-    private let storeActor: WenshuStoreActor
+    /// `internal` (was `private`) — LT-N1-revise tests need to seed
+    /// `chapter-meta-<id>` CDNote rows + CDChapter fixtures to verify
+    /// P0-3 (project scoping) and P0-4 (stable IDs). Visibility change
+    /// does not affect any external caller.
+    let storeActor: WenshuStoreActor
     nonisolated let directoryURL: URL
 
     init(storeActor: WenshuStoreActor? = nil) {
@@ -34,7 +38,11 @@ actor WenshuProjectStore {
     func delete(id: UUID) async throws { try await storeActor.deleteNotes(tag: tag(id)) }
 
     func listChapters(projectId: UUID) async throws -> [ChapterSnapshot] {
-        try await storeActor.listChapters().map { row in
+        // P0-3 fix (LT-N1-revise): previously this called storeActor.listChapters()
+        // (no projectId) which leaked chapters from ALL projects. Now we route
+        // through the project-scoped storeActor.listChapters(projectId:) which
+        // filters by `chapter-meta-<projectId>` CDNote per DESIGN-LT-N1 §4.2.
+        try await storeActor.listChapters(projectId: projectId).map { row in
             ChapterSnapshot(id: row.id, projectId: projectId, title: row.title, index: row.index, wordCount: row.content.split { $0.isWhitespace }.count, parentId: nil)
         }
     }
@@ -53,8 +61,13 @@ actor WenshuProjectStore {
     nonisolated func directoryPath() -> String { directoryURL.path }
 }
 
+/// P0-4 fix (LT-N1-revise, 2026-08-11): `id` switched from `UUID` to
+/// `String` to match `ChapterRow.id` (which is now the stable
+/// `objectID.uriRepresentation()`). Was `UUID` previously because
+/// `ChapterRow` was generating a fresh `UUID()` per call — see reviewer
+/// §3.1.2 for the data-loss bug that caused.
 struct ChapterSnapshot: Identifiable, Hashable, Sendable {
-    let id: UUID
+    let id: String
     let projectId: UUID
     var title: String
     var index: Int

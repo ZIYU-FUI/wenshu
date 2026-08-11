@@ -1,19 +1,25 @@
 import SwiftUI
 
 struct ChapterTreeView: View {
-    let projectId: UUID?
+    /// **P0-2 fix (LT-N1-revise, 2026-08-11)**: `projectId` is now `UUID`
+    /// (was `UUID?`). Previously the optional default of `nil` + a
+    /// fabricated `UUID()` fallback made the chapters tab a dead path —
+    /// see reviewer §3.3.1. The owning view (`ProjectBrowserView`) is
+    /// responsible for providing a real projectId from the current
+    /// navigation route (or showing its own "no project selected" state).
+    let projectId: UUID
     let store: WenshuProjectStore
     @StateObject private var chapterStore: ChapterTreeStore
 
-    init(projectId: UUID?, store: WenshuProjectStore = .shared) {
+    init(projectId: UUID, store: WenshuProjectStore = .shared) {
         self.projectId = projectId
         self.store = store
-        _chapterStore = StateObject(wrappedValue: ChapterTreeStore(projectId: projectId ?? UUID(), store: store))
+        _chapterStore = StateObject(wrappedValue: ChapterTreeStore(projectId: projectId, store: store))
     }
 
     var body: some View {
         Group {
-            if projectId == nil || chapterStore.chapters.isEmpty { emptyState } else {
+            if chapterStore.chapters.isEmpty { emptyState } else {
                 List(chapterStore.chapters) { chapter in
                     HStack(spacing: 8) {
                         Image(systemName: "list.bullet.rectangle").font(.system(size: 14)).foregroundStyle(.secondary)
@@ -25,7 +31,7 @@ struct ChapterTreeView: View {
         }
         .navigationTitle("章节")
         .toolbar { ToolbarItem(placement: .primaryAction) { Button("新建章节", systemImage: "plus") { }.disabled(true).help("v0.04.0 长篇工具 阶段实装") } }
-        .task(id: projectId) { if projectId != nil { await chapterStore.load() } }
+        .task(id: projectId) { await chapterStore.load() }
     }
 
     private var emptyState: some View {

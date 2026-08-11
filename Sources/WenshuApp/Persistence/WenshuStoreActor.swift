@@ -255,7 +255,22 @@ struct ForeshadowRow: Identifiable, Sendable, Equatable {
 }
 
 struct TaggedNote: Sendable { let text: String; let tags: String; let createdAt: Date }
-struct ChapterRow: Sendable { let id: UUID; let title: String; let content: String; let index: Int }
+
+/// Plain Sendable row read from `CDChapter`. Lives outside the actor because
+/// `NSManagedObject` is not Sendable — we extract its scalar fields inside
+/// `WenshuStoreActor.listChapters(...)` and hand back this value type.
+///
+/// **P0-4 fix (LT-N1-revise, 2026-08-11)**: `id` used to be `UUID()`
+/// regenerated on every listChapters() call, which broke SwiftUI `List`
+/// row identity (rows flickered / lost scroll state). We now derive `id`
+/// from the CoreData `objectID.uriRepresentation()` which is stable for
+/// the lifetime of the row in the same store.
+struct ChapterRow: Sendable, Identifiable {
+    let id: String
+    let title: String
+    let content: String
+    let index: Int
+}
 
 extension WenshuStoreActor {
     func listTaggedNotes(prefix: String) async throws -> [TaggedNote] {
@@ -285,8 +300,64 @@ extension WenshuStoreActor {
             let request = NSFetchRequest<NSManagedObject>(entityName: "CDChapter")
             request.sortDescriptors = [NSSortDescriptor(key: "chapterIndex", ascending: true)]
             return try context.fetch(request).map { object in
-                ChapterRow(id: UUID(), title: object.value(forKey: "title") as? String ?? "", content: object.value(forKey: "content") as? String ?? "", index: Int(object.value(forKey: "chapterIndex") as? Int32 ?? 0))
+                ChapterRow(
+                    id: Self.stableChapterID(for: object),
+                    title: object.value(forKey: "title") as? String ?? "",
+                    content: object.value(forKey: "content") as? String ?? "",
+                    index: Int(object.value(forKey: "chapterIndex") as? Int32 ?? 0)
+                )
             }
         }
+    }
+
+    /// **P0-3 fix (LT-N1-revise, 2026-08-11)**: project-scoped chapter list.
+    ///
+    /// Per DESIGN-LT-N1.md §4.2 the chapter→project association lives in a
+    /// `chapter-meta-<projectId>` CDNote (JSON array of chapter titles).
+    /// When no such note exists for `projectId` we return an empty list
+    /// (clean cross-project isolation — never leak chapters from other
+    /// projects). We do NOT change CDChapter schema (AGENTS §12 红线).
+    ///
+    /// IDs are stable across calls (P0-4) — same CDChapter row → same id.
+    func listChapters(projectId: UUID) async throws -> [ChapterRow] {
+        let context = container.viewContext
+        return try await context.perform {
+            // Read the chapter-meta CDNote for this project
+            let metaRequest = NSFetchRequest<NSManagedObject>(entityName: "CDNote")
+            metaRequest.predicate = NSPredicate(format: "tags == %@", "chapter-meta-\(projectId.uuidString)")
+            let meta = try context.fetch(metaRequest).first
+
+            var allowedTitles: Set<String> = []
+            if let meta = meta,
+               let text = meta.value(forKey: "text") as? String,
+               let data = text.data(using: .utf8),
+               let parsed = try? JSONSerialization.jsonObject(with: data) as? [String] {
+                allowedTitles = Set(parsed)
+            }
+
+            // Fetch CDChapter rows, filter by allowed titles (no meta → empty)
+            let chapterRequest = NSFetchRequest<NSManagedObject>(entityName: "CDChapter")
+            chapterRequest.sortDescriptors = [NSSortDescriptor(key: "chapterIndex", ascending: true)]
+            let allChapters = try context.fetch(chapterRequest)
+
+            return allChapters.compactMap { object -> ChapterRow? in
+                let title = object.value(forKey: "title") as? String ?? ""
+                guard allowedTitles.contains(title) else { return nil }
+                return ChapterRow(
+                    id: Self.stableChapterID(for: object),
+                    title: title,
+                    content: object.value(forKey: "content") as? String ?? "",
+                    index: Int(object.value(forKey: "chapterIndex") as? Int32 ?? 0)
+                )
+            }
+        }
+    }
+
+    /// Stable chapter identifier derived from `NSManagedObjectID.uriRepresentation()`.
+    /// Same CDChapter row always produces the same id within the same
+    /// CoreData store. `nonisolated` because it's a pure function with no
+    /// actor state access.
+    nonisolated static func stableChapterID(for object: NSManagedObject) -> String {
+        object.objectID.uriRepresentation().absoluteString
     }
 }

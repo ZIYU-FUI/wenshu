@@ -4,12 +4,30 @@ struct ProjectBrowserView: View {
     enum ProjectTab: String, CaseIterable, Identifiable {
         case projects, chapters, settings, resources, kanban
         var id: String { rawValue }
-        var title: String { ["项目", "章节", "设定", "资料", "看板"][Self.allCases.firstIndex(of: self)!] }
+        // P2 fix (LT-N1-revise): switch 全枚举, 避免 [array][firstIndex]! 强解.
+        var title: String {
+            switch self {
+            case .projects: return "项目"
+            case .chapters: return "章节"
+            case .settings: return "设定"
+            case .resources: return "资料"
+            case .kanban: return "看板"
+            }
+        }
         var enabled: Bool { self == .projects || self == .chapters }
     }
     @StateObject private var projectStore = ProjectListStore()
-    @State private var navPath = NavigationPath()
+    // P0-2 fix (LT-N1-revise): use `[AppRoute]` instead of `NavigationPath`
+    // so we can iterate the path in `syncSelectedProjectID(from:)`.
+    // NavigationPath doesn't conform to Sequence publicly. AppRoute is
+    // already Hashable (per MainView.swift enum), so NavigationStack(path:)
+    // binding works the same.
+    @State private var navPath: [AppRoute] = []
     @State private var selectedTab: ProjectTab = .projects
+    /// **P0-2 fix (LT-N1-revise, 2026-08-11)**: selectedProjectID was always
+    /// `nil` because ProjectListView row-tap only pushes .detail and never
+    /// propagates the selection back. Now we observe navPath and extract
+    /// the latest `.detail(projectId:)` so the chapters tab has a real id.
     @State private var selectedProjectID: UUID?
 
     var body: some View {
@@ -33,12 +51,44 @@ struct ProjectBrowserView: View {
             }
         }
         .task { await projectStore.load() }
+        .onChange(of: navPath) { _, newPath in
+            syncSelectedProjectID(from: newPath)
+        }
+    }
+
+    /// Walk the current NavigationStack path and capture the most recent
+    /// `.detail(projectId:)` route into `selectedProjectID`. Called on
+    /// every navPath change so row-tap (which only appends to navPath)
+    /// implicitly selects the project for the chapters tab.
+    private func syncSelectedProjectID(from path: [AppRoute]) {
+        var lastDetail: UUID?
+        for route in path {
+            if case .detail(let id) = route {
+                lastDetail = id
+            }
+        }
+        if let id = lastDetail {
+            selectedProjectID = id
+        }
     }
 
     @ViewBuilder private var content: some View {
         switch selectedTab {
         case .projects: ProjectListView(projects: $projectStore.projects, navPath: $navPath)
-        case .chapters: ChapterTreeView(projectId: selectedProjectID, store: projectStore.store)
+        case .chapters:
+            // P0-2 fix: ChapterTreeView now requires non-optional projectId.
+            // When no project has been selected yet (user hasn't tapped a
+            // row in the projects tab), show a clear "please pick a project"
+            // prompt instead of fabricating a UUID or silently empty.
+            if let projectId = selectedProjectID {
+                ChapterTreeView(projectId: projectId, store: projectStore.store)
+            } else {
+                VStack(spacing: 12) {
+                    Image(systemName: "list.bullet.rectangle").font(.system(size: 56, weight: .light)).foregroundStyle(.secondary)
+                    Text("请先选择项目").font(.title2)
+                    Text("在「项目」tab 中点击一个项目后, 再切到「章节」tab 查看章节树").font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                }.frame(maxWidth: .infinity, maxHeight: .infinity).padding()
+            }
         case .settings, .resources, .kanban: PlaceholderTabContent(tab: selectedTab)
         }
     }

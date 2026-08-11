@@ -2,7 +2,12 @@ import SwiftUI
 
 struct ProjectListView: View {
     @Binding var projects: [ProjectSnapshot]
-    @Binding var navPath: NavigationPath
+    // P0-2 fix (LT-N1-revise): navPath binding switched from NavigationPath
+    // to [AppRoute] so ProjectBrowserView can iterate the path to sync
+    // selectedProjectID. NavigationPath doesn't expose Sequence publicly.
+    // Behavior is identical from this view's perspective — both append()
+    // and removeLast() work the same way.
+    @Binding var navPath: [AppRoute]
 
     var body: some View {
         Group {
