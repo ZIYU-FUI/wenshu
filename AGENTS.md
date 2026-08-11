@@ -39,6 +39,8 @@
   - L2 = 标准功能/交互修改/普通 BUG,跑 PM 验收 + 自动测试 + 回归
   - L3 = 核心用户旅程/架构/数据/安装升级,跑 PM 验收 + 自动测试 + 回归 + 独立审查
 - **模型名校验**(8/6 实测):minimax 错误模型名静默 fallback 到 `MiniMax-M3`,CC 写 provider 配置时必须用 minimax 官方列出的有效模型名
+- **P12 (AIF 拉起必拍 6 截图, §9.2)**: CC merge main 后 AIF 必 CUA 拍 6 张 (标题栏/左上 5 tab/中上/右上/底部 chat/底部时间线) + 与 v0-fix-N-1 对比, 任何功能消失 = 必回退, 长期原则
+- **P12.1 (reviewer 审查必附 CUA 6 截图对比, §10.3)**: reviewer 2 阶审查 = 必 CUA 拍 6 张 (before vs after) + 必列 before/after 12 元素清单, 不只看测试字符串, 沿 §10.3 reviewer 修法
 
 ## 4. PM ↔ CC 单 loop 流程(沿用 7/16 拍,本项目沿用)
 
