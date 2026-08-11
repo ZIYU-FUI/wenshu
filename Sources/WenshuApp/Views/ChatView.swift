@@ -35,6 +35,13 @@ struct ChatView: View {
             // a process-wide @StateObject, so re-setting on every onAppear
             // is intentional — switching projects must update it.
             vm.currentProject = project
+            // LT-N2: 切回已建项目时拉聊天历史 (上次 session 的 user + AI
+            // 消息) — 走 WenshuProjectStore.loadChatHistory, 真从 .ws
+            // 读, 不缓存假数据。 async / actor 不阻塞 UI (沿 v0.01.0
+            // 范式)。 失败 silent-fail (stderr log) — 跟 `persist()`
+            // 一致。
+            let projectId = project.id
+            Task { await vm.loadChatHistory(projectId: projectId) }
         }
         .onChange(of: vm.pendingNavigation) { _, newValue in
             if let route = newValue {
@@ -148,6 +155,8 @@ struct ChatView: View {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
         inputText = ""
-        await vm.sendInitialStory(text)
+        // LT-N2: 改用 `sendChatMessage` alias (内部仍 delegate 到
+        // `sendInitialStory`, 不破 v0.01.0 CharacterWorldView 路由 + 流式打字)。
+        await vm.sendChatMessage(text)
     }
 }
