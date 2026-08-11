@@ -1,141 +1,95 @@
-// WenshuProjectStore.swift · 文枢 (Wenshu) · v0.01.0 WO-005
-//
-// Thin wrapper over `WenshuStoreActor` for the v0.01.0 8-step user journey.
-// Persists the current ChatViewModel state (project + characters + world
-// rules + initial story) into the WenshuStoreActor.
-//
-// Per WO-005 spec:
-//   - Triggered when user clicks "返回项目" in CharacterWorldView
-//   - Storage path: `~/Documents/wenshu-projects/` (created on init)
-//   - AGENTS §7: storeURL is set on the container, but the container's
-//     persistent store is NOT loaded this phase (in-memory only).
-//     SQLite round-trip + cross-device copy lands in v0.02.0.
-//
-// Why a separate actor (not just inlined into ChatViewModel)?
-//   - Reusable from non-VM callers (e.g. project list reload after restart,
-//     scheduled exports, etc. — none exist yet, but the boundary is cheap)
-//   - Testable in isolation: tests inject a custom WenshuStoreActor with an
-//     in-memory persistent store, exactly like `WenshuStoreActorTests` does
-//
-// Threading: this is an `actor`, all writes serialize through it. The init
-// itself is fully synchronous (only touches `FileManager`); the persistence
-// methods are async because they delegate to `WenshuStoreActor`.
-
 import Foundation
 
 actor WenshuProjectStore {
-
-    /// Process-wide singleton. Lazy-initialized; first access triggers the
-    /// `~/Documents/wenshu-projects/` directory creation.
     static let shared = WenshuProjectStore()
-
-    /// Underlying CoreData serializer. Injected for tests; defaults to the
-    /// shared store actor (which uses the on-disk SQLite URL but does NOT
-    /// load the store this phase).
-    private let storeActor: WenshuStoreActor
-
-    /// Absolute URL of the projects directory. `nonisolated let` because
-    /// `URL` is `Sendable` and we want callers (UI, diagnostics) to read it
-    /// without `await`.
+    /// `internal` (was `private`) — LT-N1-revise tests need to seed
+    /// `chapter-meta-<id>` CDNote rows + CDChapter fixtures to verify
+    /// P0-3 (project scoping) and P0-4 (stable IDs). Visibility change
+    /// does not affect any external caller.
+    let storeActor: WenshuStoreActor
     nonisolated let directoryURL: URL
 
     init(storeActor: WenshuStoreActor? = nil) {
-        let directory = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Documents", isDirectory: true)
-            .appendingPathComponent("wenshu-projects", isDirectory: true)
-        self.directoryURL = directory
+        let directory = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Documents", isDirectory: true).appendingPathComponent("wenshu-projects", isDirectory: true)
+        directoryURL = directory
         self.storeActor = storeActor ?? .shared
         ensureDirectoryExists()
     }
 
-    /// Synchronously make sure the projects directory exists on disk. Called
-    /// from init so that `swift run` followed by any user interaction leaves
-    /// the directory behind (WO-005 verification criterion).
-    ///
-    /// Marked `nonisolated` because actor init is itself nonisolated and
-    /// Swift 6 won't let init call actor-isolated instance methods on self.
-    /// Safe to mark: only touches the `nonisolated let directoryURL` and
-    /// `FileManager`, no mutable actor state.
     private nonisolated func ensureDirectoryExists() {
-        do {
-            try FileManager.default.createDirectory(
-                at: directoryURL,
-                withIntermediateDirectories: true
-            )
-        } catch {
-            // Diagnostic only — if this fails (sandbox, permission, etc.),
-            // subsequent CoreData writes will surface their own error.
-            FileHandle.standardError.write(Data(
-                "WenshuProjectStore: failed to create \(directoryURL.path): \(error)\n".utf8
-            ))
+        do { try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true) }
+        catch { FileHandle.standardError.write(Data("WenshuProjectStore: failed to create \(directoryURL.path): \(error)\n".utf8)) }
+    }
+
+    func create(name: String, style: String, waterLevel: Int, tags: [String]) async throws -> ProjectSnapshot {
+        let snapshot = ProjectSnapshot(name: name, style: style, verbosity: min(max(waterLevel, 1), 9), tags: tags)
+        let data = try JSONEncoder().encode(snapshot)
+        try await storeActor.createNote(["text": String(decoding: data, as: UTF8.self), "tags": tag(snapshot.id), "createdAt": snapshot.createdAt])
+        return snapshot
+    }
+
+    func loadAll() async throws -> [ProjectSnapshot] {
+        try await storeActor.listTaggedNotes(prefix: "project-").compactMap { row in
+            guard let data = row.text.data(using: .utf8) else { return nil }
+            return try? JSONDecoder().decode(ProjectSnapshot.self, from: data)
+        }.sorted { $0.createdAt > $1.createdAt }
+    }
+
+    func delete(id: UUID) async throws { try await storeActor.deleteNotes(tag: tag(id)) }
+
+    func listChapters(projectId: UUID) async throws -> [ChapterSnapshot] {
+        // P0-3 fix (LT-N1-revise): previously this called storeActor.listChapters()
+        // (no projectId) which leaked chapters from ALL projects. Now we route
+        // through the project-scoped storeActor.listChapters(projectId:) which
+        // filters by `chapter-meta-<projectId>` CDNote per DESIGN-LT-N1 §4.2.
+        try await storeActor.listChapters(projectId: projectId).map { row in
+            ChapterSnapshot(id: row.id, projectId: projectId, title: row.title, index: row.index, wordCount: row.content.split { $0.isWhitespace }.count, parentId: nil)
         }
     }
 
-    // MARK: - Save
+    private func tag(_ id: UUID) -> String { "project-\(id.uuidString)" }
 
-    /// Persist a project's snapshot to the store. Writes:
-    ///   - 1 `CDNote`  (the user's one-sentence story)
-    ///   - N `CDCharacter` rows (1 主角 + 2 配角 per WO-004 mock)
-    ///   - N `CDWorldRule` rows (4 per WO-004 mock)
-    ///
-    /// No chapter rows this phase (正文 editor is post-v0.01.0).
-    func save(
-        project: ProjectSnapshot,
-        characters: [CharacterSnapshot],
-        worldRules: [WorldRuleSnapshot],
-        initialStory: String
-    ) async throws {
-        // 1. Initial story → CDNote. Tag with project id so future loaders
-        //    can scope queries per project (v0.02.0 work).
-        try await storeActor.createNote([
-            "text": initialStory,
-            "tags": "project-\(project.id.uuidString)",
-            "createdAt": Date()
-        ])
-        // 2. Characters → CDCharacter rows.
-        for character in characters {
-            try await storeActor.createCharacter([
-                "name": character.name,
-                "role": character.role,
-                "backstory": character.backstory,
-                "createdAt": Date()
-            ])
-        }
-        // 3. World rules → CDWorldRule rows.
-        for rule in worldRules {
-            try await storeActor.createWorldRule([
-                "rule": rule.rule,
-                "category": rule.category,
-                "createdAt": Date()
-            ])
-        }
+    func save(project: ProjectSnapshot, characters: [CharacterSnapshot], worldRules: [WorldRuleSnapshot], initialStory: String) async throws {
+        try await storeActor.createNote(["text": initialStory, "tags": tag(project.id), "createdAt": Date()])
+        for character in characters { try await storeActor.createCharacter(["name": character.name, "role": character.role, "backstory": character.backstory, "createdAt": Date()]) }
+        for rule in worldRules { try await storeActor.createWorldRule(["rule": rule.rule, "category": rule.category, "createdAt": Date()]) }
     }
 
-    // MARK: - Diagnostics
+    func savedEntityCount() async throws -> Int { try await storeActor.countAll() }
+    func firstSavedStory() async throws -> String? { try await storeActor.listNotes().first }
+    func savedCharacterNames() async throws -> [String] { try await storeActor.listCharacters() }
+    nonisolated func directoryPath() -> String { directoryURL.path }
+}
 
-    /// Total entities saved so far (across all entity types and all projects).
-    /// Used by tests + future `pm-doctor` style diagnostics.
-    func savedEntityCount() async throws -> Int {
-        try await storeActor.countAll()
-    }
+/// P0-4 fix (LT-N1-revise, 2026-08-11): `id` switched from `UUID` to
+/// `String` to match `ChapterRow.id` (which is now the stable
+/// `objectID.uriRepresentation()`). Was `UUID` previously because
+/// `ChapterRow` was generating a fresh `UUID()` per call — see reviewer
+/// §3.1.2 for the data-loss bug that caused.
+struct ChapterSnapshot: Identifiable, Hashable, Sendable {
+    let id: String
+    let projectId: UUID
+    var title: String
+    var index: Int
+    var wordCount: Int
+    var parentId: UUID?
+}
 
-    /// Read back the first saved story text (for tests + future "last project"
-    /// header). Returns nil if no notes exist.
-    func firstSavedStory() async throws -> String? {
-        let stories = try await storeActor.listNotes()
-        return stories.first
-    }
+@MainActor
+final class ProjectListStore: ObservableObject {
+    @Published var projects: [ProjectSnapshot] = []
+    let store: WenshuProjectStore
+    init(store: WenshuProjectStore = .shared) { self.store = store }
+    func load() async { projects = (try? await store.loadAll()) ?? [] }
+    func create(name: String, style: String, verbosity: Int, tags: [String]) async { if let project = try? await store.create(name: name, style: style, waterLevel: verbosity, tags: tags) { projects.insert(project, at: 0) } }
+    func delete(id: UUID) async { try? await store.delete(id: id); projects.removeAll { $0.id == id } }
+}
 
-    /// Read back all saved character names. Convenience for tests + future
-    /// "characters in current project" rendering. Thin pass-through to the
-    /// underlying store actor; kept here so callers don't need to know about
-    /// `WenshuStoreActor` (private to this module).
-    func savedCharacterNames() async throws -> [String] {
-        try await storeActor.listCharacters()
-    }
-
-    /// Directory path as a String. Convenience for logs / acceptance docs.
-    nonisolated func directoryPath() -> String {
-        directoryURL.path
-    }
+@MainActor
+final class ChapterTreeStore: ObservableObject {
+    @Published var chapters: [ChapterSnapshot] = []
+    let projectId: UUID
+    let store: WenshuProjectStore
+    init(projectId: UUID, store: WenshuProjectStore = .shared) { self.projectId = projectId; self.store = store }
+    func load() async { chapters = (try? await store.listChapters(projectId: projectId)) ?? [] }
 }

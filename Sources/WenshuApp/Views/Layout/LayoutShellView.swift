@@ -1,4 +1,4 @@
-// LayoutShellView.swift · 文枢 (Wenshu) · v0.02.0 WO-LT-01 → LT-01-fix9 → V0-fix-5
+// LayoutShellView.swift · 文枢 (Wenshu) · v0.02.0 WO-LT-01 → LT-01-fix9 → V0-fix-5 → LT-N1-merge
 //
 // 5-zone shell — the root of the macOS window in v0.02.0.
 //
@@ -34,6 +34,23 @@
 // binding 给 panel(.topLeft) 调的 ProjectListView — ProjectListView
 // 改 `@Binding activeTab`, 内部不再有 Picker。
 //
+// LT-N1-merge (2026-08-11): 合并 LT-N1-revise (4 P0 真修) 到 V0-fix-6 顶
+// 层, 解决冲突。 沿 V0-fix-6 5 区 layout 不动 (topLeftHeaderBar 跨全宽
+// header + 5 tab Picker + + 按钮 + panel(.topLeft) = ProjectListView),
+// 但把 LT-N1 的 push 路由 + selectedProjectID 接入:
+//   1. `navPath` 从 `NavigationPath` 改成 `[AppRoute]` (P0-2 fix:
+//      NavigationPath 不公开 Sequence 接口, 我们需要 iterate 找
+//      .detail(projectId:) 同步到 selectedProjectID)
+//   2. 加 `@State selectedProjectID: UUID?` + `.onChange(of: navPath)`
+//      同步: 从 path 中提取最后一个 `.detail(projectId:)` 写到
+//      selectedProjectID, 供 panel(.topLeft) 的 ProjectListView 章节
+//      tab 渲染 ChapterTreeView
+//   3. `destinationView(for:)` 加 `.detail(projectId:)` case →
+//      ProjectDetailView (LT-N1 P0-1 实装: Picker.segmented + 5 tab)
+//   4. `panel(.topLeft)` = ProjectListView (V0-fix-6 5 tab 容器) +
+//      selectedProjectID binding — 章节 tab 接 binding 渲染
+//      ChapterTreeView (LT-N1 P0-2 fix: projectId 必须非可选 UUID)
+//
 // Splitters (see LayoutShellViewModel for delta math):
 //   - 2 vertical in upper row (between topLeft↔topCenter, topCenter↔topRight)
 //   - 1 horizontal between upper and lower bands
@@ -57,9 +74,13 @@ struct LayoutShellView: View {
     // unreachable from a CommandMenu).
     @ObservedObject private var vm = LayoutShellViewModel.shared
 
-    // V0-fix-4 Fix 3: + 按钮 push AppRoute.createProject 用的 NavigationPath
-    // 顶层 state。 ProjectListView 共享同一 binding,避免双 navPath 不同步。
-    @State private var navPath = NavigationPath()
+    // LT-N1-merge: navPath 从 `NavigationPath` 改成 `[AppRoute]` (P0-2 fix:
+    // NavigationPath 不公开 Sequence 接口, 我们需要在 .onChange 里 iterate
+    // 找最近一个 `.detail(projectId:)` 同步到 selectedProjectID)。 AppRoute
+    // 已 Hashable (MainView.swift), NavigationStack(path:) binding 行为不变。
+    // 之前 V0-fix-4 拍 + 按钮 push AppRoute.createProject 用的也是顶层
+    // state, 这里继续沿用, 仅换底层类型。
+    @State private var navPath: [AppRoute] = []
 
     // V0-fix-4 Fix 2: topLeft 5 tab 容器 (ProjectListView) 需要的项目列表
     // — 后续 WenshuStoreActor 接 .ws 后,这里换成 vm 持有 + onChange 同步。
@@ -69,6 +90,13 @@ struct LayoutShellView: View {
     // topLeftHeaderBar (跨全宽 38pt bar) 持 Picker.segmented, 与 + 按钮
     // 平级。 ProjectListView 接 @Binding activeTab, 共享同一 state。
     @State private var activeTab: ProjectManagementTab = .projects
+
+    // LT-N1-merge: selectedProjectID 升到 LayoutShellView 顶层。 由
+    // .onChange(of: navPath) 从 path 中提取最近一个 `.detail(projectId:)`
+    // 写到 selectedProjectID, 供 ProjectListView 章节 tab 渲染
+    // ChapterTreeView (LT-N1 P0-2 fix: ChapterTreeView.init 必须接
+    // projectId: UUID 非可选)。 nil = 用户还没点项目 row。
+    @State private var selectedProjectID: UUID?
 
     var body: some View {
         NavigationStack(path: $navPath) {
@@ -80,6 +108,29 @@ struct LayoutShellView: View {
                 .task {
                     await vm.load()
                 }
+                // LT-N1-merge: navPath 变化时同步 selectedProjectID。
+                // 用户在 ProjectListView 的项目 tab 点 row →
+                // `navPath.append(.detail(projectId: id))` →
+                // 这里提取 id → selectedProjectID → ProjectListView
+                // 章节 tab 拿到 id 渲染 ChapterTreeView。
+                .onChange(of: navPath) { _, newPath in
+                    syncSelectedProjectID(from: newPath)
+                }
+        }
+    }
+
+    /// LT-N1-merge: 从 navPath 中提取最近一个 `.detail(projectId:)`
+    /// 同步到 selectedProjectID。 走 path 倒序遍历, 拿最后一个 detail
+    /// (栈顶最新的 detail)。
+    private func syncSelectedProjectID(from path: [AppRoute]) {
+        var lastDetail: UUID?
+        for route in path {
+            if case .detail(let id) = route {
+                lastDetail = id
+            }
+        }
+        if let id = lastDetail {
+            selectedProjectID = id
         }
     }
 
@@ -120,6 +171,15 @@ struct LayoutShellView: View {
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
+        // LT-N1-merge: 项目详情 destination (P0-1 fix: Picker.segmented
+        // + 5 tab 居中铺满, 见 ProjectDetailView.swift + DESIGN-LT-N1
+        // §5)。 用户在 ProjectListView 项目 tab 点 row →
+        // navPath.append(.detail(projectId: id)) → 这里渲染
+        // ProjectDetailView。 push 覆盖整 layout (V0-fix-6 design:
+        // NavigationStack 在 LayoutShellView 顶层), 跟 ProjectBrowserView
+        // 自挂 NavigationStack 的 LT-N1 原案不同 — 沿 V0-fix-6 拍板。
+        case .detail(let projectId):
+            ProjectDetailView(projectId: projectId)
         }
     }
 
@@ -310,16 +370,27 @@ struct LayoutShellView: View {
                     // sheet / NavigationStack push — 见 AGENTS §6。
                     InspectorView()
                 } else if id == .topLeft {
-                    // V0-fix-5: ProjectListView 容器跨 header bar + panel(.topLeft)
-                    // 双区 — 5 tab Picker 在 header bar (topLeftHeaderBar),
-                    // tab 内容 (项目列表 / 章节树 / 设定 / 资料 / 看板) 在
-                    // panel 内, 共享 activeTab binding (顶层 LayoutShellView
+                    // V0-fix-5 (沿用, LT-N1-merge 拍板保留): ProjectListView
+                    // 容器跨 header bar + panel(.topLeft) 双区 — 5 tab
+                    // Picker 在 header bar (topLeftHeaderBar), tab 内容
+                    // (项目列表 / 章节树 / 设定 / 资料 / 看板) 在 panel
+                    // 内, 共享 activeTab binding (顶层 LayoutShellView
                     // @State, header bar 持有 Picker, panel 内 ProjectListView
-                    // 接 binding)。
+                    // 接 binding)。 LT-N1-merge 在此接 selectedProjectID
+                    // binding, 让 ProjectListView 章节 tab 拿到 id 后
+                    // 渲染 ChapterTreeView (LT-N1 P0-2 fix 真值)。
+                    //
+                    // 派单 LT-N1-merge 拍板: topLeft = ProjectListView
+                    // (V0-fix-6 5 tab 容器), 不挂 ProjectBrowserView
+                    // (LT-N1 原案是 ProjectBrowserView 自挂 NavigationStack
+                    // 让 push 只影响 topLeft, 但 V0-fix-6 拍 NavigationStack
+                    // 在 LayoutShellView 顶层, push 覆盖整 layout —
+                    // 沿 V0-fix-6 真值)。
                     ProjectListView(
                         projects: $projects,
                         navPath: $navPath,
-                        activeTab: $activeTab
+                        activeTab: $activeTab,
+                        selectedProjectID: $selectedProjectID
                     )
                 } else {
                     PlaceholderContent(panel: id)
