@@ -1,518 +1,425 @@
-# DESIGN-LT-N2 · 聊天区 UI 设计稿(下左 + 区模块化)
+# DESIGN-LT-N2 · 文枢 (Wenshu) · v0.03.0 LT-N2
 
-> **任务**:[V0.03.0 LT-N2-designer] 聊天区 UI 设计稿(下左 + 区模块化, AIF LT-N1~N5 第二张)
-> **拍板真值**:AGENTS.md §3 (场景驱动 / 区块模块化 / 迭代可独立运行) + §8.1 (5 区 layout · 下左 = 4 子 tab) + §5 (CC 写代码边界)
-> **designer**:出 SwiftUI UI 设计意图 + token + 组件 API 建议 + WenshuProjectStore 增强 API 建议。**不写代码**。
-> **落盘路径**:`Sources/WenshuApp/Views/Chat/DESIGN-LT-N2.md`
-> **拍板真值**:2026-08-10 AGENTS.md §3 + §8.1 (v0.02.0 LT-04 + v0.03.0 V0-fix-4 + V0-fix-6 合并后)
+> **designer 产物** — 只出设计稿, 不动 .swift / .ws schema / Package.swift
+> **覆盖范围**: 下左 (`LayoutShellView.bottomLeft`) 独立 App 模块 = 聊天区 (`ChatPanelView` + `ChatView` + `ChatViewModel`)
+> **依赖**: V0-fix-4/5/6 已实装的 4 子 tab (timeline / relationships / outline / chat, 居左 ICON) + V0-fix-2 拍板的聊天区视图 H1 + v0.01.0 `ChatView` / `ChatViewModel` + 现有 `WenshuProjectStore` (actor, tag-scoping)
+> **设计基准**: AGENTS §8.1 (5 区) + AGENTS §12 (CC 不改 schema) + N1 设计稿的区模块化范式 + 装机 user 8/10 15:50 OOB "FCP 范式" 设计系统
 
 ---
 
-## 0. 任务边界矛盾点(designer 不能拍, 必升级)
+## 0. 任务 body 矛盾点 (designer 不能拍, 必升级)
 
-读了 `Sources/WenshuApp/Views/Chat/ChatPanelView.swift`(115 行全,v0.02.0 LT-04 + V0-fix-4 + V0-fix-6 合并稿)+ `ChatView.swift`(153 行全,v0.01.0 WO-004)+ `WenshuProjectStore.swift`(142 行全)+ `ChatViewModel.swift`(252 行全)+ `ExpandOptionsView.swift`(99 行全)+ `Layout/LayoutShellView.swift`(line 102, 223, 272, 301-302, 337 — 跟 ChatPanelView 集成相关)+ `ProjectListView.swift`(26-44 — ProjectManagementTab enum)+ AGENTS §8.1 + V0-fix-4 commit `a26731efd` + V0-fix-6 commit `b33ece371` + fix19 commit `2dc04ee58`,发现**任务 body 跟现状有 5 处冲突 / 模糊点**。designer 把它们标在这里,**等 PM / 装机 user 拍板**,不擅自选边。
+读了 `t_42fd2043` body + 现行 `ChatPanelView.swift` (V0-fix-6 实装) + N1 design doc (`DESIGN-LT-N1.md` 30.7 KB), 任务 body 有 3 处跟现状冲突。**designer 把它们标在这里, 由 PM / 装机 user 拍板**, 不擅自选边。
 
-### 矛盾 1: 任务 §1.3 "4 子 tab = chat / timeline / relationships / kanban" 跟 v0.03.0 当前 on-disk 真值不一致
+### 矛盾 1: 4 子 tab 列表 (body 写 kanban, 现状 outline)
 
-- **任务 body** §1.3:`chat` / `timeline` / `relationships` / `kanban`,4 子 tab 全部居左 ICON。
-- **AGENTS §8.1**("v0.02.0 子任务 LT-04"):"4 子 tab(聊天实装 + 时间线/关系图/大纲 disabled 占位)"— 第 4 个 tab 是 **outline**(大纲),不是 kanban。
-- **当前 on-disk 真值**(`ChatPanelView.swift:17-22`, V0-fix-6 最新):`chat` / `timeline` / `relationships` / **`outline`**,第 4 个 tab 是 `list.bullet.indent` SF Symbol。
-- **`kanban` 真值在哪儿**(`ProjectListView.swift:31`, V0-fix-5 最新):`ProjectManagementTab.kanban` = `rectangle.split.3x1`,在**左上区 5 tab**(项目 / 章节 / 设定 / 资料 / 看板),不在下左聊天区。
-- **冲突根源**:任务 body 的"kanban"沿用 v0.02.0 早期规划(kanban 在下左),但 v0.03.0 V0-fix-3/4/5 把 kanban 移到了左上区(5 tab),同时把 `outline` 留在下左(沿 v0.02.0 LT-04)。**任务 body 拍板时未对齐 v0.03.0 真值**。
+- **任务 body** 写: "4 子 tab 拍板 (chat / timeline / relationships / kanban, 后 3 disabled)"
+- **现行 `ChatPanelView.swift:6-25`**: `ChatPanelTab` 当前 4 case = `chat / timeline / relationships / outline` (V0-fix-4 拍板, V0-fix-6 沿用)
+- **历史**: LT-01-fix19 (commit `71d28b779`) 砍 `outline` → V0-fix-4 (commit `a26731efd`) 加回 → 任务 body 写 `kanban`
+- **冲突**: `kanban` 不在 ChatPanelTab enum 里; `outline` 在。**body 跟现状的 tab 列表不一致**
 - **可能的真意**:
-  - 读法 A:任务 body 拍板时按 v0.02.0 早期规划,期望"kanban 在下左",LT-N2 designer 出的设计稿该把第 4 tab 改成 kanban。
-  - 读法 B:任务 body 是 typo 或调度遗留,LT-N2 designer 按 v0.03.0 当前真值出设计稿(4 tab = chat / timeline / relationships / **outline**),`kanban` 在左上区,不在下左。
-- **建议**:designer 推荐**读法 B**。理由:(1) 不破坏 V0-fix-4/5/6 已落地的 layout 真值(推翻需要重测 + 装机 user 再拍);(2) 当前 on-disk 6/6 V0Fix6 测试 + 5/5 V0Fix4 测试依赖当前 tab 结构,改 tab 名 = 改测试 + 装机 user 再次验收,成本高;(3) `outline` 在下左有 v0.04.0 大纲工具的实装路径(跟章节树关联),`kanban` 已经在左上区有了 V0-fix-5 实装入口。**⚠️ 等 PM-direct / 装机 user 拍**。
+  - **A**: body 误写 kanban, 实际延续 V0-fix-4 实装 (outline 留), 跟"不动 v0-fix-4 已改的 chat 4 tab" 自洽
+  - **B**: body 真要换 outline → kanban, 跟 N1 拍板"看板是本项目所有信息的入口" (LT-N1 落在 topLeft 5 tab) 冲突 — 看板在 topLeft, 聊天区也放就重复
+  - **C**: body 真要换 outline → kanban, 删 topLeft 的看板 tab, 集中到 chat 区 — 推翻 N1
+- **designer 倾向**: A (沿用 V0-fix-4 outline) — 跟"不动"边界 + N1 拍板双自洽, 但**留给 PM 拍**
 
-### 矛盾 2: 任务 §1.3 "ChatTabIconButton fix19 沿用" 跟 V0-fix-4 真值不一致
+### 矛盾 2: body 内部 tab 顺序矛盾
 
-- **任务 body** §1.3:"全部居左 ICON(ChatTabIconButton fix19 沿用)"。
-- **fix19 历史真值**(commit `2dc04ee58`,2026-08-10):聊天区从 4 tab → **3 tab**(砍 outline),新建组件 `ChatTabIconButton`(ICON-only SF Symbol + hover tooltip + 28pt hit area + 居左无文字),把 outline 移到编辑器(topCenter)为 `EditorOutlineView`。
-- **V0-fix-4 真值**(commit `a26731efd`,2026-08-10):**回滚了 fix19 的 3 tab 化** + **回滚了 ChatTabIconButton 组件** — 改回 4 tab(包括 outline)+ Picker `.pickerStyle(.iconOnly)` + `.padding(.leading, 12)` + Spacer 居左。V0-fix-6 又加 `.frame(maxWidth: .infinity, alignment: .center)` 让 tab 内容居中。
-- **当前 on-disk 真值**:`ChatPanelView` 用 `Picker` + `.pickerStyle(.iconOnly)`,**没有 ChatTabIconButton 组件**(项目里搜不到)。
-- **冲突根源**:任务 body 派单时引用了 fix19 的"3 tab + ChatTabIconButton",但 V0-fix-4 已经回滚。任务 body §1.2 自己也承认"跟 fix19 冲突:fix19 把 outline 移出聊天,v0.03.0 拍板时不知道"。
-- **建议**:designer 推荐**沿用 V0-fix-4/6 on-disk 真值**(`Picker` + `.iconOnly`,**不复活 ChatTabIconButton**)。理由:(1) on-disk 6 测试已锁定 Picker `.iconOnly` 字面量,改回 ChatTabIconButton = 改测试 + 装机 user 再验收;(2) ChatTabIconButton 在 V0-fix-4 拍板时已被废弃,组件本身没合并进 main,没有"沿用"基础。**⚠️ 等 PM-direct 拍**。
+- **任务 body 派单原则**: "chat / timeline / relationships / kanban" (timeline 排第 2)
+- **任务 body 边界**: "不动 v0-fix-4 已改的 chat 4 tab (timeline / relationships / kanban / chat, 居左 ICON)" (timeline 排第 1, chat 排第 4)
+- **冲突**: body 内部两处 tab 顺序不一致
+- **designer 倾向**: 沿用 V0-fix-4 现行 enum 顺序 `chat / timeline / relationships / outline`(chat 在前,跟 v0.01.0 拍板自洽, 装机 user 习惯)
+- **留给 PM 拍**
 
-### 矛盾 3: 任务 §1.5 "SkeletonOption" 跟 on-disk 真值名称不一致
+### 矛盾 3: "不动 v0-fix-4 已改" + "4 子 tab 拍板" 冲突
 
-- **任务 body** §1.5 + §3:`generateSkeletonOptions / applySkeletonChoice` API 名字 + `SkeletonOption` 数据类型名。
-- **当前 on-disk 真值**(`ChatViewModel.swift:33-34` + `ExpandOptionsView.swift:14` + `MockLLMResponse.swift:45-62`):`expandOptions: [ExpandOption]` + 4 类固定顺序 `["核心冲突", "主角延伸", "世界观缺口", "发展方向"]`(走 `ExpandOptionsView`,非 SkeletonOption)。
-- **冲突根源**:任务 body 引用了早期 v0.01.0 规划的 "skeleton" 命名(生成人物/世界骨架前的"骨架候选"),但 v0.01.0 WO-004 实际命名是 `ExpandOption`(举一反三选项,4 类)。**v0.01.0 已经跑通 8 步用户旅程**(WO-004 → WO-005 → v0.02.0),`ExpandOption` 是产品术语真值。
-- **建议**:designer 推荐**沿用 `ExpandOption` 命名**。理由:(1) on-disk 代码 + 测试 + 8 步用户旅程已锁定;(2) "skeleton" 在 AGENTS / 设计稿里没有出处,改名 = 越界(改 entity 名 = §12 红线"改 .ws schema")。designer 在 §4 + §6 用 `ExpandOption` 命名,在 §0 标注命名差异等 PM-direct 拍。**⚠️ 等 PM-direct 拍**。
+- **任务 body 边界**: "**不动** v0-fix-4 已改的 chat 4 tab (timeline / relationships / kanban / chat, 居左 ICON)"
+- **任务 body 必须出**: "4 子 tab 拍板 (chat / timeline / relationships / kanban, 后 3 disabled)"
+- **冲突**: 拍板等于改; 改等于踩"不动"边界
+- **真实意图**:
+  - **A**: "不动"指 tab 视觉 (居左 ICON / iconOnly / 24pt header bar), "拍板"指 tab 内容 (列表本身), 两者不冲突
+  - **B**: "不动"指 4 tab 列表, "拍板"是误写, 实际只复用 V0-fix-4
+  - **C**: 拍板 = 设计稿里第 4 tab 写几个选项, 让 PM / 装机 user 选 — 拍的是"哪个 case 进 enum"
+- **designer 倾向**: A — visual 不动, 内容交给 PM 拍(SOUL.md 边界, designer 不拍内容)
+- **留给 PM 拍**
 
-### 矛盾 4: 任务 §1.5 暗示"AI 回复完 → 4 类候选项 + 章节树生成" — 但章节树生成 = LT-N1 范围, 不在 LT-N2
+### 3 个矛盾点小结
 
-- **任务 body** §1.1 步骤 8:"AI 回复完 → 4 类候选项 + **章节树生成**"。
-- **LT-N1 范围**(`DESIGN-LT-N1` v0.1 + commit `e80220aca` / `db269c247`):LT-N1 = 项目管理 = 左上 5 tab 实装 + `ChapterTreeView` 入口(由 LT-N2 触发 push 进去)。
-- **冲突根源**:任务 body §1.1 步骤 8 把"章节树生成"放进 LT-N2 范围,但 LT-N1 已经把章节树列为 LT-N2 的下游消费者。**章节树数据生成**(`applySkeletonChoice → [CDChapter]`)属于 LT-N2 范围,**章节树 UI 渲染**(`ChapterTreeView` push)属于 LT-N1 范围。
-- **建议**:designer 在 §4 + §5 明确切分:**LT-N2** 负责"AI 流式回复 → ExpandOption 列表 → 用户选 → 生成 CDChapter 数组(写 .ws)→ 触发 nav.push(ChapterTreeView)";"ChapterTreeView 渲染"是 LT-N1 责任,LT-N2 不实现 UI。**不擅自越界**。
+**designer 不拍, 写 doc 默认按以下假设出稿**(对应"可能真意 A", 多数派)：:
 
-### 矛盾 5: 任务 §1.4 "流式打字 (SSE) 沿用 v0.01.0 + minimax cn Anthropic 兼容" 跟任务范围有微妙错位
+1. 4 tab 沿用 V0-fix-4 现状: `chat / timeline / relationships / outline` (chat 实装, 后 3 disabled)
+2. 顺序: `chat / timeline / relationships / outline` (跟 V0-fix-4 一致)
+3. "不动"指 tab 视觉, 不动 ICON / 居左 / 24pt header bar 风格
 
-- **任务 body** §1.4:"流式打字 (SSE) 沿用 v0.01.0 + minimax cn Anthropic 兼容"。
-- **当前 on-disk 真值**(`ChatViewModel.swift:199-243`):**流式复用两层** — (a) Mock 流(`MockLLMResponse.streamingChunks` + `Task.sleep` 假打字机),(b) 真 LLM 流(`LLMService.streamChat` 走 `MinimaxProvider`,Anthropic 兼容)。FeatureFlag `useRealLLM` 切 mock vs 真。**两层都已在 v0.01.0 WO-004 + WO-005 跑通**。
-- **冲突根源**:任务 body 说"沿用 v0.01.0",实际上 v0.02.0 LT-04 已经把 ChatPanelView 包了一层 `NavigationStack`(per `ChatPanelView.swift:89-91`),**下左 ChatPanelView → ChatView 的视图结构已经变过**,不是 v0.01.0 直接复用。
-- **建议**:designer 在 §4 明确"复用 v0.01.0 ChatView 的 `messageScroll` + `bubble` + `inputBar` 子视图 + `ChatViewModel.sendInitialStory / selectDirections / expandOptions` 数据流",**不实现新的流式逻辑**。流式打字沿用 `LLMService.streamChat`(MinimaxProvider,Anthropic 兼容),不写新 SSE parser。**⚠️ 等 PM-direct 拍**(如果 PM-direct 觉得"沿用"意味着"重构",那是 CC 责任,designer 不重写)。
-
----
-
-## 1. 完整场景(装机 user 8 步, LT-N1 + LT-N2 跑通)
-
-按 AGENTS §3「迭代可独立运行」,LT-N2 跟 LT-N1 协同,让装机 user 拿到两个迭代后能跑通"创建 → 进项目 → 跟 AI 聊天 → 生成章节树"完整动作。8 步:
-
-1. **macOS 启动** → 看 5 区 layout(LT-01 已实现)— toolbar + 左上 5 tab + 中上 placeholder + 右上 inspector + 下左 ChatPanelView + 下右 placeholder
-2. **点左上 + 新建项目** → push `ProjectCreateView`(V0-fix-6 改 modal sheet)— 弹窗化新建(LT-N1 已实现)
-3. **输入项目名 + 文体风格 + 注水量 + 标签** → 创建 → 写入 .ws(LT-N1 的 `WenshuProjectStore.createFromSnapshot` 反查方案)
-4. **返回项目列表** → 新项目名出现在 `projects` 列表顶部(LT-N1 已实现)
-5. **点新项目行** → `navPath.append(AppRoute.chat(project))` 走 `NavigationStack` push → 进 `ChatPanelView`(当前 `chatVM.currentProject = project`,LT-N2 的 §4 接)
-6. **下左 ChatPanelView 自动选中 chat tab**(`activeTab = .chat`)→ 显示 `ChatView(vm: chatVM, project: project)` → 顶部 nav title 显示项目名,subtitle "Chat · 阶段:想法"
-7. **输入 "一句话故事"**(例如:"一个被流放的王子回到故国发现王位被一个会魔法的女人占据,他必须证明自己的血统才能夺回王位")→ 回车 → 用户气泡出现 → AI 气泡开始流式打字(`LLMService.streamChat` 走 minimax cn Anthropic 兼容 SSE,或 mock 兜底)
-8. **AI 流式打完** → `ExpandOptionsView` 自动出现(在 message list 和 input bar 之间),显示 4 类(核心冲突 / 主角延伸 / 世界观缺口 / 发展方向),每类 1-3 个候选项,checkbox 选中 → 点"确认选择" → AI 再次流式确认 → `characters` + `worldRules` 填充 → **`navPath.append(ChapterTreeView)`**(LT-N1 接)→ 章节树渲染显示自动生成的大纲
-
-> **关键**:LT-N1 + LT-N2 完成后,装机 user 能跑通 v0.01.0 8 步用户旅程的前半段(创建 → 进项目 → 跟 AI 聊天 → 生成章节树),不依赖 LT-N3~N5。LT-N3 设定 / LT-N4 资料 / LT-N5 看板 完成后,装机 user 还能跑通后半段(章节树 → 选定方向 → 写正文)。
+**PM 拍板时可以选择**: 推翻上面 3 个假设, designer 重做对应章节
 
 ---
 
-## 2. 区块模块化(下左区当独立 App 模块)
+## 1. 完整场景 (LT-N1 + LT-N2 跑通 v0.01.0 8 步用户旅程前半)
 
-按 AGENTS §3「区块模块化」,**下左 = 独立 App 模块**。设计师要给出"这个模块的边界":
+> **可验收**: LT-N1 装机 user 走完 8 步 (项目管理) + LT-N2 装机 user 走完 8 步 (聊天) → 8 步用户旅程 1–6 全部到位 → 关闭 / 重开 app 数据还在 → 实拍录屏。
 
-### 2.1 模块边界
+| 步 | 动作 | 期望结果 | 涉及区 |
+|----|------|---------|--------|
+| 1 | LT-N1 步 1 — macOS 启动 → 文枢自动开 5 区 layout | `LayoutShellView` 渲染, `bottomLeft` = `ChatPanelView` (本卡实装, 4 子 tab) | 5 区 |
+| 2 | LT-N1 步 2 — 点左上 "项目" tab 顶部 **+ 新建项目** | `NavigationStack` push `ProjectCreateView` | topLeft |
+| 3 | LT-N1 步 3 — 填项目名 / 文体 / 注水量 / 标签 → 创建 | `ProjectSnapshot` 落 `.ws` (tag-scoping) | topLeft |
+| 4 | LT-N1 步 4 — 列表 → 新项目 row | row 出现 | topLeft |
+| 5 | LT-N1 步 5 — 点项目 row → `ProjectDetailView` | 5 tab 切换 | topLeft |
+| 6 | **LT-N2 步 6 — 切到"章节" tab → 点章节 → ChatView 接管** | `ChatPanelView` 顶部 4 tab, `chat` tab active, `ChatView` 渲染 `vm.messages` (空态 / 历史) | bottomLeft |
+| 7 | **LT-N2 步 7 — 输入"一句话故事" → 发送** | `vm.sendChatMessage(text)` → 调 `WenshuChat.sendMessage` (新增 API) → AI 流式回复 → UI 渲染 | bottomLeft |
+| 8 | **LT-N2 步 8 — AI 回复完 → 用户选骨架 → 进入 `CharacterWorldView`** | `vm.applySkeletonChoice(choiceId)` → 落 `.ws` (记账) → `navPath.append(.characterWorld)` | bottomLeft |
 
-| 维度 | 下左聊天区 |
-|------|------|
-| **入口** | `LayoutShellView.swift:301-302` 的 `bottomLeft` panel 容器(`ChatPanelView()`) |
-| **出口** | 当前选中 project 的 `id` → 给中上(文档编辑器 / 章节树)+ 右上(inspector)消费 |
-| **数据所有权** | `ChatViewModel`(`@StateObject` 在 `App.swift:96`,`@MainActor` `@ObservableObject`)管 messages + expandOptions + characters + worldRules + currentProject |
-| **流式 LLM 调用** | `LLMService.shared.streamChat`(`MinimaxProvider`,Anthropic 兼容)或 `MockLLMResponse.streamingChunks` 兜底 |
-| **持久化** | 走 `WenshuProjectStore.save` + 后续 `sendChatMessage / loadChatHistory / generateSkeletonOptions / applySkeletonChoice`(本卡 §5 建议新增,不动 .ws schema) |
-| **路由** | 内部 `NavigationStack`(per `ChatPanelView.swift:89-91`)+ push `ChapterTreeView`(LT-N1 责任)— 不依赖 MainView 的外部 navPath |
+**为什么是这 8 步 (LT-N1 + LT-N2 合并)**:
+- LT-N1 步 1–5 = 项目管理 (已 done)
+- LT-N2 步 6–8 = 聊天 (本卡)
+- 跑通 = 装机 user 能从 0 到"已建立项目 + 发起聊天 + 选骨架进入角色世界"
 
-### 2.2 模块对外接口(designer 建议, 等 PM-direct 拍)
+---
+
+## 2. 区模块化 (bottomLeft 独立 App 模块)
+
+### 2.1 几何边界
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│ (native macOS title bar)                                          │
+├──────────────┬───────────────────────────┬──────────────────────┤
+│ topLeft       │ topCenter (editor area)  │ topRight              │
+│ ProjectBrowser│ PlaceholderContent(留)    │ PlaceholderContent   │
+│ (LT-N1 done)  │                           │                       │
+├──────────────┴───────────────────────────┴──────────────────────┤
+│ ★ bottomLeft (ChatPanelView, 本卡)              │ bottomRight (空)  │
+│ (4 子 tab header + active tab content)             │                  │
+└────────────────────────────────────────────────┴──────────────────┘
+```
+
+`★ bottomLeft` = 本卡的全部产出。**与 topLeft / topCenter / topRight / bottomRight 零依赖**:
+- 不订阅 `LayoutShellViewModel` (只持有自己的 `@StateObject` / `EnvironmentObject`)
+- 不读其它 panel 的 `@Published` 状态
+- 不修改其它 panel 的 splitter 比例
+- 折叠 / 拖拽行为由 LT-01 已实装的 `LayoutShellViewModel` + `PanelContainer` 提供, **本卡不重复实现**
+
+### 2.2 bottomLeft 内部布局 (本卡关键设计)
+
+```
+┌─────────────────────────────────────────┐
+│ ChatPanelView (bottomLeft root)         │
+│ ┌─────────────────────────────────────┐ │
+│ │ HeaderBar (24pt 高, V0-fix-2 拍)     │ │
+│ │  [💬] [⏲] [👥] [📋]                 │ │ ← Picker.iconOnly, 4 tab 居左
+│ ├─────────────────────────────────────┤ │
+│ │ TabContent (maxHeight: .infinity)   │ │
+│ │                                      │ │
+│ │  根据 activeTab 切换:                 │ │
+│ │  .chat         → ChatView          │ │  (本卡实装, 沿用 v0.01.0)
+│ │  .timeline     → PlaceholderText   │ │  (disabled, v0.04.0)
+│ │  .relationships → PlaceholderText  │ │  (disabled, v0.04.0)
+│ │  .outline      → PlaceholderText   │ │  (disabled, v0.04.0)
+│ │                                      │ │
+│ └─────────────────────────────────────┘ │
+└─────────────────────────────────────────┘
+```
+
+**约束** (V0-fix-4/5/6 已定, 本卡沿用):
+- 顶部 `Picker.iconOnly` 4 tab (V0-fix-4 拍, V0-fix-6 修真生效)
+- tab 切换 = `@State private var activeTab: ChatPanelTab = .chat`, **不**走 NavigationStack
+- **不重做** `ChatTabIconButton` (任务 body 边界: "不动 fix19 已改的 ChatTabIconButton + 3 tab ICON 风格")
+- **不重做** `ChatPanelView` 顶部 24pt header bar (V0-fix-2 拍板, V0-fix-4 升 iconOnly)
+- **不重做** `ChatView` 153 行主体 (v0.01.0 已实装, 沿用)
+
+### 2.3 与现有 `LayoutShellView.panel(_:)` 的接入点 (designer 给 CC 的接口契约)
+
+**当前 `LayoutShellView.swift` 已挂 `ChatPanelView()`** (LT-04 done) — **本卡不需要改 LayoutShellView**, 4 子 tab header 是 ChatPanelView 内部的事。
+
+**接口契约** (本卡 CC 实现新增):
+- `ChatPanelView` 内部 `enum ChatPanelTab` 沿用 V0-fix-4 现状 (`chat / timeline / relationships / outline`)
+- `ChatViewModel` 扩展 4 个公开 API (见 §5): `sendChatMessage` / `loadChatHistory` / `generateSkeletonOptions` / `applySkeletonChoice`
+- `WenshuProjectStore` 扩展 1 个公开 API (见 §6): `loadChatHistory(projectId:)` (已经在的 `save` 复用)
+
+---
+
+## 3. 4 子 tab 拍板
+
+> **冲突点 1 留给 PM 拍板**: 本节按 V0-fix-4 现状 `chat / timeline / relationships / outline` 出稿
+
+### 3.1 4 tab 配置
+
+| Tab | Case | SF Symbol | 实装状态 | 占位文案 |
+|-----|------|-----------|---------|---------|
+| **聊天** | `.chat` | `bubble.left.and.bubble.right` | ✅ 实装 (本卡) | — |
+| **时间线** | `.timeline` | `clock.arrow.circlepath` | 🔒 disabled (v0.04.0) | "v0.04.0 实现" |
+| **关系图** | `.relationships` | `person.2` | 🔒 disabled (v0.04.0) | "v0.04.0 实现" |
+| **大纲** | `.outline` | `list.bullet.indent` | 🔒 disabled (v0.04.0) | "v0.04.0 实现" |
+
+**沿用 V0-fix-4 现状, 不动 tab 视觉**。
+
+### 3.2 ChatView 设计 (复用 v0.01.0)
+
+**组件不动** — `ChatView` (153 行, 3 段: message scroll / expand options / input bar) / `ExpandOptionsView` / `inputBar` 全部沿用 v0.01.0 WO-004 实装。
+
+**本卡扩展点**:
+- `ChatViewModel.sendChatMessage(_ text: String)` 替换 `sendInitialStory` (alias, 内部调 `sendInitialStory`, **不改 ChatViewModel API 名字** — 沿用 v0.01.0 兼容)
+- `ChatViewModel.loadChatHistory(projectId: UUID)` — **新增** (见 §5)
+- `ChatViewModel.generateSkeletonOptions()` — `expandOptions = MockLLMResponse.expandOptions()` 的 alias, **名字不换**
+- `ChatViewModel.applySkeletonChoice(_ choiceId: UUID)` — `selectDirections() + selectedDirectionIDs.insert(choiceId)` 的 alias, **等 `selectDirections()` 调用**
+
+> **派单 body 要求的 4 个 API 名字 = 跟现有 ChatViewModel 现有方法 1:1 对应**:
+| 任务 body API | 现有 ChatViewModel | 处理 |
+|---|---|---|
+| `sendChatMessage` | `sendInitialStory` | 新增 alias, 内部 delegate |
+| `loadChatHistory` | (无) | **真新增** |
+| `generateSkeletonOptions` | `expandOptions = MockLLMResponse.expandOptions()` (直接调) | 加薄 wrapper, 便于 task-style 调用 |
+| `applySkeletonChoice` | `selectDirections` | 新增 alias, 内部 delegate |
+
+**理由**: 不动现有 selectDirections / sendInitialStory → 不破坏 v0.01.0 已实装的 CharacterWorldView 路由 → 装机 user 8 步用户旅程不破。
+
+---
+
+## 4. ChatView (沿用 v0.01.0, 不动)
+
+**不动**:
+- `ChatView.swift` 153 行全部
+- `ExpandOptionsView` (WO-004 实装)
+- `ChatMessage` / `ExpandOption` model (WO-004 实装)
+- input bar / paperplane.fill Button / bubble 渲染
+
+**新增**:
+- 只在 `ChatViewModel` 层加 4 个 alias + 1 个新方法 (见 §5)
+- 不动 ChatView body
+
+---
+
+## 5. ChatViewModel 增强 API (designer 建议, CC 实现)
+
+### 5.1 现有 `@Published` 状态 (沿用)
 
 ```swift
-// ChatView (下左, 接 projectId)
-struct ChatView: View {
-    @ObservedObject var vm: ChatViewModel
-    let project: ProjectSnapshot
-    @Binding var navPath: NavigationPath
-    // 内部 @State: inputText (沿用 v0.01.0 ChatView.swift:19)
-}
-
-// ChatPanelView (下左容器, 4 子 tab)
-struct ChatPanelView: View {
-    @EnvironmentObject private var chatVM: ChatViewModel
-    @State private var activeTab: ChatPanelTab = .chat
-    @State private var navPath = NavigationPath()
-    // 内部 enum ChatPanelTab (沿用 ChatPanelView.swift:17-22,见矛盾 1)
-}
+@Published var messages: [ChatMessage] = []
+@Published var expandOptions: [ExpandOption] = []
+@Published var selectedDirectionIDs: Set<UUID> = []
+@Published var isGenerating: Bool = false
+@Published var characters: [CharacterSnapshot] = []
+@Published var worldRules: [WorldRuleSnapshot] = []
+@Published var currentProject: ProjectSnapshot? = nil
+@Published var pendingNavigation: AppRoute? = nil
 ```
 
-### 2.3 模块对外通信协议
+**全部沿用, 不动 schema** (AGENTS §12 红线)。
 
-- **进**:从左上 `ProjectListView` push `AppRoute.chat(project)` → `MainView.swift:24` → `LayoutShellView.bottomLeft` 接 → `ChatPanelView` 拿 `project` 设 `chatVM.currentProject`(per `ChatView.swift:31-38` `onAppear`)
-- **出**:chat 流式打完 + 用户确认选择 → `ChatViewModel.pendingNavigation = .chapterTree`(本卡 §4 + §5 新增,需 PM-direct 拍 enum case)→ `ChatView.onChange(of: pendingNavigation)` push 进 `ChapterTreeView`(LT-N1 接)
-- **不依赖**:中上 / 右上 / 下右 / toolbar 任何状态。5 区独立。
-
----
-
-## 3. 路由(NavigationStack 内嵌)
-
-按 AGENTS §3「区块模块化」 + 「路由独立」,下左区内部有自己 `NavigationStack`,**不**依赖 `MainView` 的外部 navPath(虽然当前 on-disk `ChatPanelView.swift:89-91` 的 `NavigationStack` 是 local `@State navPath`,但 §4 会接入 `LayoutShellView` 共享 navPath — 见矛盾 6)。
-
-### 3.1 路由树
-
-```
-下左 ChatPanelView (NavigationStack root)
-├── ChatView (chat tab)
-│   ├── message list (v0.01.0 ChatView.swift:49-71 复用)
-│   ├── ExpandOptionsView (v0.01.0 ChatView.swift:25 复用)
-│   ├── input bar (v0.01.0 ChatView.swift:118-136 复用)
-│   └── (push) ChapterTreeView ← LT-N1 接, ChatViewModel.pendingNavigation 触发
-├── TimelineView (timeline tab, disabled 占位, v0.04.0 长篇工具实装)
-├── RelationshipsView (relationships tab, disabled 占位, v0.04.0 长篇工具实装)
-└── OutlineView (outline tab, disabled 占位, v0.04.0 长篇工具实装)
-    注:tab 名沿用矛盾 1 读法 B = on-disk 真值 (outline);任务 body §1.3 = kanban 等 PM-direct 拍
-```
-
-### 3.2 路由约定
-
-- `AppRoute` enum(per `MainView.swift:23-28`)扩展 1 个 case:`case chapterTree(ProjectSnapshot)`(本卡 §4 + §5 建议新增,需 PM-direct 拍 enum case)
-- `ChatPanelView` 内部 `navPath` 接 push → `.chapterTree(project)`
-- `ChapterTreeView` 的 `navigationDestination` 由 LT-N1 出(LT-N1 责任,LT-N2 不实现)
-
----
-
-## 4. ChatView 设计(v0.01.0 复用)
-
-按任务 body §1.4"ChatView 设计 (v0.01.0 复用)",**LT-N2 不重写 ChatView**,只接 `projectId` 上下文(从 `ProjectDetailView` → `ChatPanelView` → `ChatView` 传下来)— 当前 on-disk 已经实现(`ChatView.swift:16` `let project: ProjectSnapshot`),LT-N2 不动。
-
-### 4.1 复用清单(不动)
-
-| 子视图 | 路径 | 行数 | 复用范围 |
-|------|------|------|------|
-| `messageScroll` | `ChatView.swift:49-71` | 23 行 | ✅ 全复用 |
-| `emptyHint` | `ChatView.swift:73-84` | 12 行 | ✅ 全复用 |
-| `messageRow` | `ChatView.swift:86-102` | 17 行 | ✅ 全复用 |
-| `bubble` | `ChatView.swift:104-116` | 13 行 | ✅ 全复用 |
-| `inputBar` | `ChatView.swift:118-136` | 19 行 | ✅ 全复用 |
-| `scrollToBottom` | `ChatView.swift:140-145` | 6 行 | ✅ 全复用 |
-| `send` | `ChatView.swift:147-152` | 6 行 | ✅ 全复用 |
-
-### 4.2 改动清单(本卡新增)
-
-| 改动 | 路径 | 行数 | 说明 |
-|------|------|------|------|
-| `ChatViewModel.pendingNavigation` 加 `.chapterTree` case | `ChatViewModel.swift:47` + `MainView.swift:23-28` | ~3 行 | LT-N2 新增,需 PM-direct 拍 enum case |
-| `ChatViewModel.applySkeletonChoice(...)` 新方法 | `ChatViewModel.swift` 末尾 | ~25 行 | 写 CDChapter(走 .ws),触发 `pendingNavigation = .chapterTree`,需 PM-direct 拍 .ws schema 边界 |
-| `ChatView.onChange(of: pendingNavigation)` 接 `.chapterTree` | `ChatView.swift:39-44` | ~5 行 | 复用现有 onChange 模式 |
-
-> **不重写 ChatView 子视图**。本卡是 designer,只设计意图 + API 建议,实际写代码 = CC。
-
-### 4.3 流式打字
-
-沿用 §0 矛盾 5 拍板 — 复用 v0.01.0 + v0.02.0 LT-04 已落地的两层流式(`LLMService.streamChat` 走 minimax cn Anthropic 兼容 + `MockLLMResponse.streamingChunks` 兜底),**不写新 SSE parser,不重写 LLMService / MinimaxProvider / SSEParser**。
-
----
-
-## 5. WenshuProjectStore 增强 API(designer 建议, 等 PM-direct 拍 §12 红线)
-
-任务 §1.5 列出 4 个新方法:`sendChatMessage / loadChatHistory / generateSkeletonOptions / applySkeletonChoice`。designer 跟 §0 矛盾 3 一致 — 命名沿用 on-disk `ExpandOption`,不写 `SkeletonOption`。
-
-### 5.1 API 草图(给 CC)
+### 5.2 新增 / alias 4 个公开 API
 
 ```swift
-// 沿用 WenshuProjectStore.swift actor 模式 + 不动 .ws schema 边界
-extension WenshuProjectStore {
-    /// 5.1.1 发送聊天消息 + 流式回复(走 LLMService 或 mock, 由 FeatureFlag + Keychain 切)
-    /// - Parameters:
-    ///   - projectId: 当前 chat 所属 project(用于打 tag-scope,沿 v0.01.0 CDNote.tags = "project-uuid" 反查)
-    ///   - message: 用户一句话故事(或后续多轮对话)
-    /// - Returns: AsyncThrowingStream<String, Error> — 流式 chunk(String)
-    /// - Throws: LLMError.missingAPIKey / network / parse
-    /// - Note: 流式逻辑在 ChatViewModel.streamFromRealLLM / streamFromMock 内(已实现),store 只负责封装 + 持久化触发
-    func sendChatMessage(projectId: UUID, message: String) async throws -> AsyncThrowingStream<String, Error>
+// MARK: - LT-N2 扩展 (alias 现有方法, 加 1 个新方法)
 
-    /// 5.1.2 加载聊天历史(走 .ws 反查 CDNote.tags = "project-\(projectId)")
-    /// - Parameters:
-    ///   - projectId: 当前 chat 所属 project
-    /// - Returns: [ChatMessage] — 按 createdAt 升序,role=("user"/"assistant")同 ChatViewModel
-    /// - Note: 5.1.2 + 5.1.1 是 LT-N2 持久化的核心 — v0.01.0 当前 chat history 不持久化,关 App 后丢
-    func loadChatHistory(projectId: UUID) async throws -> [ChatMessage]
-
-    /// 5.1.3 生成 4 类举一反三候选项(走 LLM 或 mock)
-    /// - Parameters:
-    ///   - projectId: 当前 chat 所属 project
-    ///   - message: 用户一句话故事
-    /// - Returns: [ExpandOption] — 4 类("核心冲突"/"主角延伸"/"世界观缺口"/"发展方向"),沿用 on-disk 命名
-    /// - Note: 当前在 ChatViewModel.sendInitialStory 内调 MockLLMResponse.expandOptions(),store 版本是它的持久化版
-    func generateSkeletonOptions(projectId: UUID, message: String) async throws -> [ExpandOption]
-
-    /// 5.1.4 应用候选项 → 生成章节树
-    /// - Parameters:
-    ///   - projectId: 当前 chat 所属 project
-    ///   - choice: 用户从 ExpandOptionsView 选中的 ExpandOption 数组(可多选,沿 v0.01.0 selectedDirectionIDs: Set<UUID>)
-    /// - Returns: [CDChapter] — 自动生成的章节列表(每章 = 一个 ExpandOption 展开,章节名 = option.title)
-    /// - Throws: .ws schema 错误(走反查方案,不动 .ws schema,见矛盾 1 读法 B)
-    /// - Note: 写 CDChapter 走反查方案 — 用现有 CDChapter entity(已存在,per WenshuStoreActor.swift:99),不新建 entity
-    func applySkeletonChoice(projectId: UUID, choice: [ExpandOption]) async throws -> [CDChapter]
-}
-```
-
-### 5.2 .ws schema 边界(§12 红线)
-
-- **不新建 entity**:5.1.1~5.1.4 全部沿用现有 CDNote / CDChapter / CDCharacter / CDWorldRule(per `WenshuStoreActor.swift:99` `countAll()` 枚举列表)
-- **不修改字段类型**:仅使用现有 `text / tags / createdAt / name / role / backstory / rule / category`(沿用 v0.01.0 save() 方法的字面 keys)
-- **tag-scoping**:沿用 v0.01.0 `"project-\(projectId.uuidString)"` 字符串 tag 反查方案(per `WenshuProjectStore.swift:92`),不动 .ws schema
-- **chat history 持久化**:用现有 CDNote entity(`text` 存消息内容,`tags` 存 `"project-uuid" + "role-user"/"role-assistant"` 双 tag,`createdAt` 存时间)— **不**新建 `CDChatMessage` entity(§12 红线)
-
-### 5.3 与 v0.01.0 WenshuProjectStore.save() 的关系
-
-- v0.01.0 `save()`(per `WenshuProjectStore.swift:82-112`):**整批一次性**写 CDNote(initialStory)+ N × CDCharacter + N × CDWorldRule,在 `CharacterWorldView` 返回项目列表时调用
-- LT-N2 `save()`(5.1.1):**增量流式**写 CDNote(每个 user/assistant message 一条),在 `ChatViewModel.appendStreamingMessage` 末尾 + 每条 user 消息 push 后调用
-- **并存关系**:v0.01.0 save() 仍可用(初始化骨架数据),LT-N2 save() 补 chat history 持久化;**两个 save 互不干扰**(不同 tags 区分 — `"project-uuid" + "role-initial-story"` vs `"project-uuid" + "role-user"`/`"role-assistant"`)
-- **不破坏向后兼容**:旧 .ws 文件加载时不报错(走 CoreData automatic migration,per `WenshuStoreActor.swift:20`)
-
----
-
-## 6. SwiftUI 设计 token(给 CC 实施)
-
-### 6.1 4 子 tab 拍板真值(任务 §1.3 + 矛盾 1 + 矛盾 2)
-
-| Tab | SF Symbol | 沿用文件 / 行 | 拍板 |
-|------|------|------|------|
-| chat | `bubble.left.and.bubble.right`(沿用 V0-fix-6 on-disk `ChatPanelView.swift:27`) | V0-fix-4/6 拍 | ✅ 实装 + 流式 |
-| timeline | `clock.arrow.circlepath`(`ChatPanelView.swift:28`) | V0-fix-4 沿用 fix19 | ⚠️ disabled 占位, v0.04.0 长篇工具实装 |
-| relationships | `person.2`(`ChatPanelView.swift:29`) | V0-fix-4 沿用 fix19 | ⚠️ disabled 占位, v0.04.0 长篇工具实装 |
-| outline | `list.bullet.indent`(`ChatPanelView.swift:30`) | V0-fix-4 拍(回滚 fix19 砍 tab 决定) | ⚠️ disabled 占位, v0.04.0 长篇工具实装 |
-| **(任务 body §1.3 替代名: kanban)** | (`rectangle.split.3x1`) | (任务 body, 跟 on-disk 真值冲突) | ⚠️ 矛盾 1,等 PM-direct 拍 |
-
-> **designer 沿用 on-disk 真值(outline)**,矛盾 1 §0 等 PM-direct / 装机 user 拍板。
-
-### 6.2 样式 token(沿用 V0-fix-4/6 + fix19 + LT-04)
-
-| Token | 值 | 来源 |
-|------|------|------|
-| tab bar 高 | `auto`(38pt 沿 toolbar HStack,per V0-fix-4 Fix 1 `LayoutShellView.swift:topLeftHeaderBar`) | V0-fix-4 |
-| tab padding | `.padding(.leading, 12)` + `.padding(.vertical, 8)` + Spacer(minLength: 0) | V0-fix-4 Fix 6 |
-| tab a11y label | `""`(空字符串,图标 + tooltip 已表达语义) | V0-fix-4 |
-| tab 风格 | `Picker` + `.pickerStyle(.iconOnly)`(沿用 V0-fix-4,**不**复活 fix19 ChatTabIconButton) | V0-fix-4 |
-| tab ICON size | 16pt(沿 fix19 + V0-fix-4 hit area,sf symbol 默认 + font body) | fix19 |
-| tab 居左对齐 | Picker 自适应宽度 + Spacer 推右留白 | V0-fix-4 Fix 6 |
-| tabContent 居中 | `.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)` | V0-fix-6 Fix 4 |
-| disabled tab 视觉 | SF Symbol 30pt light + `.foregroundStyle(.tertiary)` + "v0.04.0 实现" + `.disabled(true)` | V0-fix-4 沿用 LT-04 |
-| Color | `Color.accentColor` / `Color.secondary` / `.tertiary`(沿 v0.01.0 ChatView.swift:112-115) | v0.01.0 |
-| 字体 | `.body` / `.callout` / `.headline` / `.subheadline` / `.caption`(沿 v0.01.0 ExpandOptionsView.swift 全文) | v0.01.0 |
-| 快捷键 | ❌ 不带快捷键(沿 fix19 + V0-fix-4,留 v0.09.0 统一处理) | AGENTS §8.1 |
-
-### 6.3 hover tooltip
-
-- tab ICON 加 `.help(tab.rawValue)`(per `ChatPanelView.swift:56`),macOS native tooltip,hover 0.5s 后弹出
-- 不写自定义 hover overlay(那会增加代码 + 测试成本)
-
----
-
-## 7. 组件 API 建议(给 CC)
-
-```swift
-// ChatView (下左, 接 project) — 完全沿用 v0.01.0 ChatView.swift, 本卡不动
-struct ChatView: View {
-    @ObservedObject var vm: ChatViewModel
-    let project: ProjectSnapshot
-    @Binding var navPath: NavigationPath
-    @State private var inputText: String = ""
-    // body: VStack { messageScroll; Divider; ExpandOptionsView(vm); Divider; inputBar }
-    //       .navigationTitle(project.name)
-    //       .navigationSubtitle("Chat · 阶段:想法")
-    //       .onAppear { vm.currentProject = project }
-    //       .onChange(of: vm.pendingNavigation) { _, newValue in
-    //           if let route = newValue { navPath.append(route); vm.pendingNavigation = nil }
-    //       }
+// 1. sendChatMessage (alias 现有 sendInitialStory, 不破 v0.01.0 CharacterWorldView 路由)
+func sendChatMessage(_ text: String) async {
+    await sendInitialStory(text)
 }
 
-// ChatPanelView (下左容器, 4 子 tab) — 沿用 ChatPanelView.swift, 本卡不动
-struct ChatPanelView: View {
-    @EnvironmentObject private var chatVM: ChatViewModel
-    @State private var activeTab: ChatPanelTab = .chat
-    @State private var navPath = NavigationPath()
-    // body: VStack { HStack { Picker + Spacer }; Divider; tabContent.frame(center) }
-    // tabContent: chat → NavigationStack { ChatView }; outline/timeline/relationships → disabledContent
-}
-
-// ChatPanelTab enum — 沿用 ChatPanelView.swift:17-22 (outline 不改, 见矛盾 1)
-enum ChatPanelTab: String, CaseIterable, Identifiable {
-    case chat = "聊天"
-    case timeline = "时间线"
-    case relationships = "关系图"
-    case outline = "大纲"
-    // 注: 任务 body §1.3 拍"kanban" 跟 on-disk "outline" 冲突, 设计师沿 on-disk 真值, 等 PM-direct 拍
-}
-
-// ChatViewModel 扩展(本卡新增, 等 PM-direct 拍 §5 .ws schema 边界)
-@MainActor
-final class ChatViewModel: ObservableObject {
-    // ... 沿用现有字段 ...
-    @Published var pendingNavigation: AppRoute? = nil
-
-    /// LT-N2 新增: 应用候选项 → 生成章节树 → 触发 chapterTree push
-    func applySkeletonChoice(_ choices: [ExpandOption]) async throws -> [CDChapter] {
-        // 1. 写 CDChapter 数组(走 WenshuProjectStore.applySkeletonChoice, 5.1.4)
-        // 2. 走 chatVM.persist() 写 CDNote(初始骨架 tag)
-        // 3. pendingNavigation = .chapterTree(currentProject)
-        // 4. onChange 在 ChatView 触发 navPath.append(ChapterTreeView)
+// 2. loadChatHistory (LT-N2 真新增, 调 WenshuProjectStore.loadChatHistory)
+func loadChatHistory(projectId: UUID) async {
+    do {
+        let history = try await WenshuProjectStore.shared.loadChatHistory(projectId: projectId)
+        // 过滤 messages (只加载 user / assistant 角色)
+        messages = history.compactMap { msg -> ChatMessage? in
+            guard let role = msg["role"] as? String,
+                  let content = msg["content"] as? String else { return nil }
+            return ChatMessage(role: role, content: content)
+        }
+    } catch {
+        FileHandle.standardError.write(Data(
+            "ChatViewModel.loadChatHistory: \(error)\n".utf8
+        ))
+        // 加载失败: messages 保持空, 由 emptyHint 兜底
     }
 }
 
-// AppRoute 扩展(MainView.swift:23-28)
-enum AppRoute: Hashable {
-    case chat(ProjectSnapshot)
-    case characterWorld
-    case createProject
-    /// LT-N2 新增: 章节树 push 路由(由 ChatPanelView 内部 navPath 接)
-    case chapterTree(ProjectSnapshot)
+// 3. generateSkeletonOptions (alias 现有 expandOptions 赋值, 便于 task-style 调用)
+func generateSkeletonOptions() async {
+    expandOptions = MockLLMResponse.expandOptions()
+}
+
+// 4. applySkeletonChoice (内部用 selectedDirectionIDs.insert + selectDirections)
+func applySkeletonChoice(_ choiceId: UUID) async {
+    if !selectedDirectionIDs.contains(choiceId) {
+        toggleSelection(choiceId)
+    }
+    await selectDirections()
 }
 ```
 
-### 7.1 ChapterTreeView(由 LT-N1 出)
+### 5.3 调用方 (designer 给 CC 的接口契约)
 
-LT-N2 **不**实现 ChapterTreeView,只触发 `navPath.append(.chapterTree(project))`。LT-N1 责任 = `navigationDestination(for: AppRoute.self) { case .chapterTree(let project) in ChapterTreeView(project:) }`。
+| 调用方 | 调用 | 备注 |
+|--------|------|------|
+| `ChatView.send()` (现有, line 147) | `await vm.sendChatMessage(text)` | 替换 `sendInitialStory` 调用, **alias 内部 delegate** |
+| `ChatView.onAppear` (现有, line 31) | 加 `await vm.loadChatHistory(projectId: project.id)` | 跟 `vm.currentProject = project` 同步 |
+| `ExpandOptionsView` (现有, WO-004) | 不动 | 沿用 `expandOptions` 字段 |
+| `ExpandOption.onSelect` (现有, WO-004) | `await vm.applySkeletonChoice(optionId)` | 替换 `selectDirections()` 调用 |
 
----
-
-## 8. 状态管理
-
-### 8.1 ChatViewModel 状态机(沿用 v0.01.0 + 增量)
-
-| 状态 | @Published | 类型 | 来源 |
-|------|------|------|------|
-| 聊天消息列表 | `messages: [ChatMessage]` | Identifiable array | v0.01.0 WO-004 |
-| 4 类候选项 | `expandOptions: [ExpandOption]` | Identifiable array | v0.01.0 WO-004 |
-| 用户选中 IDs | `selectedDirectionIDs: Set<UUID>` | Set | v0.01.0 WO-004 |
-| 生成中 | `isGenerating: Bool` | Bool | v0.01.0 WO-004 |
-| 自动生成人物 | `characters: [CharacterSnapshot]` | Identifiable array | v0.01.0 WO-004 |
-| 自动生成世界规则 | `worldRules: [WorldRuleSnapshot]` | Identifiable array | v0.01.0 WO-004 |
-| 当前 project | `currentProject: ProjectSnapshot?` | Optional | v0.01.0 WO-005 |
-| push 路由信号 | `pendingNavigation: AppRoute?` | Optional | v0.01.0 WO-004,LT-N2 扩展 case |
-
-### 8.2 LT-N2 新增状态(本卡建议, 等 PM-direct 拍)
-
-| 状态 | @Published | 类型 | 说明 |
-|------|------|------|------|
-| chat history 加载中 | `isLoadingHistory: Bool` | Bool | 5.1.2 loadChatHistory 时显示 progress |
-| chat history 加载错误 | `historyLoadError: String?` | Optional<String> | .ws schema 错误或 tag 反查失败,显示一行 inline error |
-| 生成章节中 | `isGeneratingChapters: Bool` | Bool | 5.1.4 applySkeletonChoice 时 disable "确认选择" 按钮 |
-| 生成章节错误 | `chapterGenError: String?` | Optional<String> | 同上 |
-
-### 8.3 ChatPanelView 状态(沿用 V0-fix-4/6 on-disk)
-
-| 状态 | @State | 类型 | 说明 |
-|------|------|------|------|
-| 当前选中 tab | `activeTab: ChatPanelTab` | Enum | V0-fix-6: `.chat` 默认 |
-| 内部 navPath | `navPath: NavigationPath` | NavigationPath | V0-fix-6: 走 ChatView push |
+**关键**: 沿用现有 `pendingNavigation` 机制 (`navPath.append(.characterWorld)`), 不改 AppRoute, 不改 NavigationStack 路由。
 
 ---
 
-## 9. 响应式(macOS 优先, iPad/iPhone 留后续)
+## 6. WenshuProjectStore 增强 API (designer 建议, CC 实现)
 
-### 9.1 macOS(本卡唯一目标)
+### 6.1 现有 API (沿用)
 
-- **下左区最小尺寸**:200 × 200(沿 LT-01 PanelContainer 默认最小)
-- **下左区最大尺寸**:无限(下半 50% 总高 × 100% 总宽,沿 AGENTS §8.1)
-- **折叠态**:沿用 AGENTS §8.1 — 折叠到只剩标题栏(高 ≈ 30px,沿 V0-fix-6 bottomLeft collapse)
-- **拖拽**:沿用 LT-01 NativeSplitter(上 / 下 + 下左 / 下右 2 个垂直 splitter,1 个水平 splitter)
-- **chat 流式打字**:`vm.messages.last?.content` 变化触发 `scrollToBottom(proxy:)`(per `ChatView.swift:67-69`)
+```swift
+// 现有 save (WO-005 实装)
+func save(
+    project: ProjectSnapshot,
+    characters: [CharacterSnapshot],
+    worldRules: [WorldRuleSnapshot],
+    initialStory: String
+) async throws
 
-### 9.2 iPad / iPhone(本卡不实现, 留 v0.06.0)
+// 现有 count
+func savedEntityCount() async throws -> Int
+func firstSavedStory() async throws -> String?
+func savedCharacterNames() async throws -> [String]
+```
 
-- AGENTS §8 v0.06.0 = iPhone 端,本卡不预设 iOS 适配
-- 不写 `UIKit` interop(本卡纯 SwiftUI)
-- 下左 chat 在 iPhone 上可能变全屏 + tab bar 沉底(SwiftUI NavigationStack 自动处理),本卡不预设
+**全部沿用, 不动** (AGENTS §12 红线: 不改 schema)。
 
----
+### 6.2 新增 1 个公开 API
 
-## 10. 拍板真值核对(必须显式核对 AGENTS §3 + §8.1 + §12)
+```swift
+// Sources/WenshuApp/Storage/WenshuProjectStore.swift
 
-| 拍板 | 本卡是否遵守 | 怎么遵守 |
-|------|------|------|
-| §3 场景驱动排序 | ✅ | LT-N2 = 下左 chat = 装机 user 进项目后第一个能交互的区 |
-| §3 区块模块化 | ✅ | 下左 = 独立 App 模块,内嵌 NavigationStack,不依赖外部路由 |
-| §3 迭代可独立运行 | ✅ | LT-N1 + LT-N2 完成后,装机 user 能跑通 v0.01.0 8 步前半段(创建 → 进项目 → 跟 AI 聊天 → 生成章节树) |
-| §8.1 5 区 layout | ✅ | 下左 panel 容器是 `PanelContainer(.bottomLeft)`,不放 layout 逻辑 |
-| §8.1 折叠 + 拖拽 | ✅ | 沿用 LayoutShellView 的折叠 + NativeSplitter,本卡不新增 splitter |
-| §8.1 4 子 tab(聊天实装 + 3 占位) | ✅(with 矛盾 1) | 沿用 V0-fix-4/6 on-disk = chat / timeline / relationships / **outline**(任务 body §1.3 拍 kanban 跟 on-disk 冲突,等 PM-direct 拍) |
-| §8.1 状态存 .ws | ✅(with 矛盾 1 读法 B) | chat history + 章节树走 .ws 反查方案,不动 schema |
-| §5 CC 写代码边界 | ✅ | 本卡只 designer 出设计意图, CC 实现 |
-| §7 数据资产硬约束 | ✅ | 跨设备靠复制 .ws / iCloud / Git, 文枢不参与 |
-| §12 红线 — 不改 .ws schema | ✅ | 走反查方案(矛盾 1 读法 B + 5.2 schema 边界) |
-| §12 红线 — 不改 LLM provider 签名 | ✅ | 本卡不涉及 LLM 改动(沿用 v0.01.0 LLMService / MinimaxProvider) |
-| §12 红线 — 不替用户拍产品需求 | ✅ | 5 个矛盾点都列出来等拍, 不擅自选边 |
-| §12 红线 — 不调任何外部 AI 平台 | ✅ | minimax cn 是 LLM provider,不是外部 AI 平台 |
-| §12 红线 — CC 不替 PM 派工单 | ✅ | 本卡 designer 出设计稿,派工单 = PM-direct 责任 |
+// LT-N2 新增: 从 .ws 加载项目的聊天历史
+// 沿用 tag-scoping (projectId → tag "project-<uuid>" → CDNote 过滤), 不动 schema
+func loadChatHistory(projectId: UUID) async throws -> [[String: Any]] {
+    let tag = "project-\(projectId.uuidString)"
+    let notes = try await WenshuStoreActor.shared.listNotes()  // 全量拉
+    let projectNotes = notes.filter { ($0["tags"] as? String)?.contains(tag) == true }
+    // 按 .ws 中存的 "chat-history" 标签 CDNote 解析
+    return projectNotes.compactMap { dict -> [String: Any]? in
+        guard let text = dict["text"] as? String,
+              let data = text.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else { return nil }
+        return json
+    }
+}
+```
 
----
+**理由**:
+- v0.01.0 `save()` 写 `CDNote` 时已用 tag-scoping (`tags = "project-<uuid>"`), 沿用同样的查询方式
+- 不进 `WenshuStoreActor` schema (AGENTS §12 红线)
+- 用 `listNotes()` 全量 + filter (v0.04.0 性能优化时, 再加 `listNotes(tag:)` API)
 
-## 11. SwiftUI 实现建议(给 CC)
+### 6.3 未来 (v0.04.0) 优化
 
-按 `swiftui-design-patterns` skill §2 出 SwiftUI API 选择建议。**designer 出建议, CC 实施**:
-
-### 11.1 ChatPanelView(沿用 V0-fix-6 on-disk, 本卡不动)
-
-- `VStack(spacing: 0)` 装 tab bar + Divider + tabContent
-- tab bar 用 `HStack(spacing: 0) { Picker("", selection: $activeTab) { ForEach { Image + .tag + .help + .disabled } } + Spacer }`
-- `.pickerStyle(.iconOnly)` 走 V0-fix-4 PickerStyle+IconOnly 别名(macOS 14+ SegmentedPickerStyle 配合 Image-only content 自动隐藏文字标签)
-- `.padding(.leading, 12)` + `.padding(.vertical, 8)` + Spacer(minLength: 0)
-- tabContent 加 `.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)`
-
-### 11.2 ChatView(完全沿用 v0.01.0 ChatView.swift, 本卡不动)
-
-- `VStack(spacing: 0) { messageScroll; Divider; ExpandOptionsView(vm); Divider; inputBar }`
-- messageScroll 用 `ScrollViewReader { proxy in ScrollView { LazyVStack(alignment: .leading, spacing: 12) { ForEach(vm.messages) { messageRow } } } }`
-- bubble 用 `Text(display).font(.body).textSelection(.enabled).padding(.horizontal, 12).padding(.vertical, 8).background(...).clipShape(RoundedRectangle(cornerRadius: 12))`
-- inputBar 用 `HStack(spacing: 8) { TextField("写一句话故事…", text: $inputText, axis: .vertical).textFieldStyle(.roundedBorder).lineLimit(1...4).disabled(vm.isGenerating).onSubmit { Task { await send() } } + Button { Label("发送", systemImage: "paperplane.fill") }.keyboardShortcut(.return, modifiers: [.command]) }`
-
-### 11.3 ChatViewModel 扩展(本卡新增)
-
-- `applySkeletonChoice(_ choices: [ExpandOption]) async throws -> [CDChapter]` 走 `WenshuProjectStore.applySkeletonChoice`
-- 触发 `pendingNavigation = .chapterTree(currentProject)` 由 `ChatView.onChange(of: pendingNavigation)` 监听 + push
-- 错误展示:`chapterGenError: String?` 在 input bar 上方显示一行 inline error(类似 Apple Mail 错误条)
-
-### 11.4 ExpandOptionsView(完全沿用 v0.01.0 ExpandOptionsView.swift, 本卡不动)
-
-- `VStack(alignment: .leading, spacing: 8) { header; ForEach(categoryOrder) { categorySection }; confirmBar }`
-- categoryOrder = `["核心冲突", "主角延伸", "世界观缺口", "发展方向"]`(per `ExpandOptionsView.swift:14`)
-
-### 11.5 状态机
-
-- `vm.state` 不引入新 enum(沿用 v0.01.0 多个独立 @Published)
-- 新增字段按 §8.2 列,各自 @Published + @MainActor(沿 v0.01.0 ChatViewModel 全文模式)
-- View 用 `@ObservedObject var vm: ChatViewModel` 接收 + 直接读 `vm.messages / vm.expandOptions / vm.isGenerating`(SwiftUI 自动重渲染)
-
-### 11.6 错误展示
-
-- chat history 加载失败:`isLoadingHistory = false` + `historyLoadError = "..."` → input bar 上方一行红字
-- 章节生成失败:`isGeneratingChapters = false` + `chapterGenError = "..."` → 同上
-- LLM 流式失败:沿 v0.01.0 `streamFromRealLLM` 的 catch 兜底走 mock(`ChatViewModel.swift:223-231`)
-
-### 11.7 测试建议(给 CC)
-
-- LT02ChatPanelTests 已有(per V0-fix-4 commit `a26731efd` + V0-fix-6 commit `b33ece371` 6/6 test)
-- LT-N2 不新增 test(designer 不写 test),由 CC 在实施时按 §4 + §5 + §11 出新 test:
-  - `testChatViewModel_applySkeletonChoice_persistsChapters`
-  - `testChatViewModel_applySkeletonChoice_triggersPendingNavigation`
-  - `testWenshuProjectStore_loadChatHistory_filtersByTag`
-  - `testWenshuProjectStore_applySkeletonChoice_writesCDChapter`
+- `WenshuStoreActor.listNotes(tag: String)` — actor 加 tag 索引, 性能提升
+- `CDNote` 加 `lastModified` 字段 — schema 改动, **需 PM 拍**
 
 ---
 
-## 12. 边界(designer 不做的事)
+## 7. 边界 (designer 不跨进 CC / PM 领域)
 
-- ❌ 不写任何 `.swift` 代码(designer 只出设计意图)
-- ❌ 不改 `ChatPanelView.swift`(那已经 V0-fix-4/6 拍板,改 = 越界)
-- ❌ 不改 `ChatView.swift`(那已经 v0.01.0 WO-004 拍板,改 = 越界)
-- ❌ 不改 `ChatViewModel.swift` 的现有方法(只新增 `applySkeletonChoice` + 扩展 `pendingNavigation` case,不改 `sendInitialStory / selectDirections / toggleSelection / reset / persist`)
-- ❌ 不改 `WenshuProjectStore.swift` 的现有方法签名(只增 `sendChatMessage / loadChatHistory / generateSkeletonOptions / applySkeletonChoice`,不改 `save / firstSavedStory / savedCharacterNames`)
-- ❌ 不改 `LayoutShellView.swift`(那已经 LT-01 + fix17 + V0-fix-4/5/6 拍板,改 = 越界)
-- ❌ 不改 `WenshuStoreActor.swift`(改 schema = §12 红线,等 PM-direct 拍)
-- ❌ 不改 `LLMService.swift` / `MinimaxProvider.swift` / `SSEParser.swift`(改 LLM provider 签名 = §12 红线)
-- ❌ 不改 `ExpandOptionsView.swift`(v0.01.0 WO-004 拍板,改 = 越界)
-- ❌ 不改 `MainView.swift` 的现有 `AppRoute` case(只扩展 `case chapterTree(ProjectSnapshot)`,不改 `chat / characterWorld / createProject`)
-- ❌ 不调 `swift build`(那是 CC 责任)— designer 写完 markdown 后,CC 实施时跑 build 验证
-- ❌ 不调 `swift test`(那是 CC 责任)
-- ❌ 不删 `ChatPanelView.swift` / `ChatView.swift` / `ChatViewModel.swift` / `WenshuProjectStore.swift` / `ExpandOptionsView.swift` 的现有文件(designer 只设计,改文件 = CC 责任)
-- ❌ 不实现 `ChapterTreeView` UI(LT-N1 责任,LT-N2 只触发 push)
-- ❌ 不实现 `timeline / relationships / outline / kanban` 4 tab 的实装 UI(都是 v0.04.0 长篇工具工单,本卡只出 disabled 占位)
-- ❌ 不实现 chat 多轮对话(本卡只支持 v0.01.0 单轮:一句话故事 → AI 流式 → 4 类候选项 → 用户选 → 章节生成)
-- ❌ 不实现 chat history 持久化的 UI(只出 API 建议,UI 由 CC 在实施时按 §4 + §5 出)
-- ❌ 不实现 chat history 跨设备同步(AGENTS §7 — 文枢不参与,跨设备靠你)
-- ❌ 不实现 chat 内的 @ 语法(那是 v0.01.0+ 后续迭代,本卡 scope 外)
-- ❌ 不实现 chat 内的修订候选 / 标记系统(那是 v0.05.0,本卡 scope 外)
-- ❌ 不带快捷键(AGENTS §8.1 — 留 v0.09.0 统一处理)
+### 7.1 designer 出 (本稿范围)
 
----
+- ✅ `DESIGN-LT-N2.md` 落盘 (本文件)
+- ✅ ChatPanelView 4 tab 视觉不动 (沿用 V0-fix-4/6)
+- ✅ ChatViewModel 4 alias + 1 新方法 API 建议
+- ✅ WenshuProjectStore 1 新方法 API 建议
+- ✅ LT-N1 + LT-N2 合并 8 步场景
+- ✅ 区模块化 (bottomLeft 零依赖其他 panel)
 
-## 13. 配套资源
+### 7.2 designer 不出 (留给 CC 实现)
 
-- **本卡依赖**:
-  - AGENTS.md §3 + §5 + §7 + §8.1 + §12
-  - `Sources/WenshuApp/Views/Chat/ChatPanelView.swift` (V0-fix-6 最新, 115 行)
-  - `Sources/WenshuApp/Views/ChatView.swift` (v0.01.0 WO-004, 153 行)
-  - `Sources/WenshuApp/ViewModels/ChatViewModel.swift` (v0.01.0 WO-004 → WO-005, 252 行)
-  - `Sources/WenshuApp/Views/ExpandOptionsView.swift` (v0.01.0 WO-004, 99 行)
-  - `Sources/WenshuApp/Storage/WenshuProjectStore.swift` (v0.01.0 WO-005, 142 行)
-  - `Sources/WenshuApp/Persistence/WenshuStoreActor.swift` (entity 列表, 第 99 行)
-  - `Sources/WenshuApp/MainView.swift` (AppRoute enum, 23-28 行)
-  - `Sources/WenshuApp/Views/ProjectListView.swift` (ProjectManagementTab 5 tab 含 kanban, 26-44 行) — 矛盾 1 拍板参考
-  - `Sources/WenshuApp/PickerStyle+IconOnly.swift` (V0-fix-4 别名)
-  - `Sources/WenshuApp/Views/Layout/LayoutShellView.swift` (下左 panel 集成, line 102, 223, 272, 301-302, 337)
-  - `swiftui-design-patterns` skill §2 (SwiftUI API) + §4 (token) + §5 (state)
-  - V0-fix-4 commit `a26731efd` + V0-fix-6 commit `b33ece371` + fix19 commit `2dc04ee58`
-- **本卡被依赖**:
-  - LT-N1 (`ChapterTreeView` 接 `pendingNavigation = .chapterTree` push)
-  - v0.04.0 长篇工具(`timeline / relationships / outline` 3 tab 实装 — 本卡只占位)
-  - v0.05.0 标记系统(chat 内 @ 语法 + 选区右键)
-- **本卡拍板**(见 §0):5 个矛盾点等 PM-direct / 装机 user 拍板
-- **本卡验收**:装机 user 拿到 LT-N1 + LT-N2 后能跑通 §1 的 8 步(v0.01.0 8 步前半段 — 创建 → 进项目 → 跟 AI 聊天 → 生成章节树 → push 进 ChapterTreeView)
+- ❌ 实际 `.swift` 文件代码 (本稿 §5 §6 给出参考骨架, CC 可调整实现细节, 但不能偏离设计意图)
+- ❌ 单元测试代码
+- ❌ git commit (CC 阶段完成代码后自己 commit, 本设计稿 commit 见 §8)
+- ❌ `WenshuStoreActor` schema 改动 (AGENTS §12 红线)
+- ❌ `AppRoute` 新增 (沿用 `.characterWorld`, 不加新 case)
+- ❌ `NavigationStack` 根位置改动 (沿用 LT-N1 模式, 栈绑在 ChatPanelView 子树)
+
+### 7.3 designer 不拍 (留给 PM / 装机 user)
+
+- ⚠️ 矛盾 1: 4 tab 列表 (kanban vs outline)
+- ⚠️ 矛盾 2: tab 顺序 (timeline 第几)
+- ⚠️ 矛盾 3: "不动" "拍板"范围
+
+### 7.4 留待未来迭代 (本稿不涉及)
+
+- v0.04.0 长篇工具: 实装 `.timeline` / `.relationships` / `.outline` 3 个 disabled tab
+- v0.05.0 标记系统: 在 `ChatView.messageRow` 加伏笔 / 信息点 / 历史事实 marker
+- v0.06.0 iPhone 端: chat 同步 + 多端合并
 
 ---
 
-*DESIGN-LT-N2 v0.1 · designer · 2026-08-11 · 等 PM-direct / 装机 user 拍 §0 5 个矛盾点 + §5 .ws schema 边界 + §7 AppRoute 扩展*
+## 8. 落盘与流程
+
+### 8.1 文件落点
+
+**本设计稿**: `Sources/WenshuApp/Views/Chat/DESIGN-LT-N2.md`
+
+**CC 实现时新增的代码文件** (designer 不写, 仅声明位置):
+- `Sources/WenshuApp/ViewModels/ChatViewModel+LTN2.swift` (新增, 4 alias + 1 新方法, 沿用主 class extension)
+- `Sources/WenshuApp/Storage/WenshuProjectStore+LTN2.swift` (新增, 1 新方法)
+
+**CC 实现时改的现有文件**:
+- `Sources/WenshuApp/Views/ChatView.swift` (line 38 后加 `await vm.loadChatHistory(projectId: project.id)`; line 151 替换 `sendInitialStory` → `sendChatMessage`)
+- `Sources/WenshuApp/Views/Chat/ChatPanelView.swift` (4 tab 列表**不动**, 沿用 V0-fix-4, **仅在矛盾 1 拍板后改**)
+
+### 8.2 验证清单 (CC 完成后给 reviewer)
+
+- [ ] 4 tab 居左 ICON (V0-fix-4/6 已实装, 本卡不动)
+- [ ] 点 `chat` tab → ChatView 渲染
+- [ ] 创建项目 → 切到 `chat` tab → 输入"一句话故事" → 发送
+- [ ] AI 流式回复 (mock 或真实, 沿用 v0.01.0 FeatureFlag)
+- [ ] 选 4 个骨架之一 → 跳 `CharacterWorldView`
+- [ ] 关闭 app → 重开 → 进项目 → `chat` tab → 看到历史消息 (loadChatHistory 真生效)
+- [ ] 4 个 layout splitter 拖动正常 (不破坏 LT-01 + fix10/13/14/16/17/18)
+- [ ] `.timeline` / `.relationships` / `.outline` disabled 状态正确
+- [ ] swift build exit 0
+- [ ] swift test exit 0 (现有测试 + ChatViewModel alias test)
+
+### 8.3 reviewer 审查重点
+
+- 我的 4 个 alias **真 delegate** 到现有方法 (没改行为)
+- `loadChatHistory` **真从 .ws 读** (不缓存假数据)
+- ChatView 加 `onAppear` 调 `loadChatHistory` 时机**不阻塞** UI (async / actor)
+- 不动 WenshuStoreActor schema (AGENTS §12 红线)
+- 4 tab 视觉**完全沿用 V0-fix-4/6** (不悄悄改)
+
+### 8.4 拍板真值核对
+
+| 拍板 | 设计稿响应 |
+|---|---|
+| AGENTS §8.1 5 区几何 | ✅ 沿用, 不动 bottomLeft 边界 |
+| AGENTS §12 schema 红线 | ✅ 沿用 tag-scoping, 不进 WenshuStoreActor |
+| AGENTS §3 L3 三段式 | ✅ designer → CC → reviewer 三段 |
+| AGENTS §3 L2 派单 (本卡) | ✅ LT-N2 = L2 (中等范围) |
+| N1 §1 区模块化范式 | ✅ 沿用 (bottomLeft 跟 topLeft 同样自治) |
+| V0-fix-4/6 已实装 chat 4 tab | ✅ 不动 (矛盾 1 拍板后改) |
+| fix19 已改 ChatTabIconButton / 3 tab ICON | ✅ 不动 (现行 4 tab iconOnly, 沿用) |
+| v0.01.0 8 步用户旅程 | ✅ 兼容 (alias 不破 CharacterWorldView 路由) |
+
+---
+
+## 9. 跟现有 wenshu FCP 范式的关系
+
+- **结构 = FCP 结构**: ✅ bottomLeft 4 子 tab 居左 ICON (FCP timeline 范式)
+- **功能 = 文枢功能**: 4 子 tab 内容是写作工具 (chat / timeline / relationships / outline), 跟 FCP (video clip / audio / title / transition) 占位不同
+- **设计系统**: 沿用 `DESIGN-SYSTEM-INIT` (commit `bde233d42`) 12 原则 + 8 组件 + SF Symbol 映射
+- **FCP 范式一致性**: 跟 v0.03.0 V0-fix-1~6 已实装的 6 处 UI FCP 化保持一致
+
+---
+
+## 10. 关联资源
+
+- **任务派单**: `t_42fd2043` (8/11 09:33, assignee designer)
+- **父任务**: `t_44c3f04e` (V0-fix-6 done, claude-code)
+- **N1 兄弟卡设计稿**: `Sources/WenshuApp/Views/Project/DESIGN-LT-N1.md` (30.7 KB, 模式可吸收)
+- **DESIGN-SYSTEM-INIT**: `bde233d42` (12 原则 + 8 组件 + SF Symbol, 5 角色共同遵守)
+- **V0-fix-4/6 拍板真值**: `ChatPanelView.swift` 注释 (header bar 24pt / iconOnly / 居左)
+- **v0.01.0 ChatView 源码**: `Sources/WenshuApp/Views/ChatView.swift` (153 行) + `ChatViewModel.swift` (251 行)
+- **8 步用户旅程原文**: v0.01.0 WO-004 / WO-005 acceptance
+
+---
+
+*DESIGN-LT-N2 · designer 出稿 · 占卡 t_42fd2043 · 装机 user 派单拍板真值: 8 步场景 + 区模块化 + 4 子 tab 拍板 + ChatView 复用 + WenshuProjectStore 增强 API · 落档 `.worktrees/t_lt_n2_designer/Sources/WenshuApp/Views/Chat/DESIGN-LT-N2.md`*
