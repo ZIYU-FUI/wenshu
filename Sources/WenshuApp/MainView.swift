@@ -25,6 +25,8 @@ enum AppRoute: Hashable {
     case characterWorld
     /// v0.01.0 WO-010: 新建项目走 NavigationStack push(Apple HIG macOS 主路由)
     case createProject
+    /// LT-N1: project metadata destination.
+    case detail(projectId: UUID)
 }
 
 struct MainView: View {

@@ -1,4 +1,4 @@
-// ProjectListView.swift · 文枢 (Wenshu) · v0.01.0 WO-004 → WO-010 → v0.03.0 V0-fix-4 → V0-fix-5
+// ProjectListView.swift · 文枢 (Wenshu) · v0.01.0 WO-004 → WO-010 → v0.03.0 V0-fix-4 → V0-fix-5 → LT-N1-merge
 //
 // V0-fix-4 Fix 2: 5 tab 容器重写 (项目 / 章节 / 设定 / 资料 / 看板),
 // 沿 LT-03 v2 拍板 (5 tab 用文字标签, 走 .pickerStyle(.segmented),
@@ -17,9 +17,35 @@
 // + 5 tab 文字字面量 全部保留 (供 LayoutShellView topLeftHeaderBar
 // 引用)。
 //
+// LT-N1-merge (2026-08-11): 合并 LT-N1-revise (4 P0 真修) 进 V0-fix-6
+// 5 tab 容器。 沿 V0-fix-6 真值不动 (5 tab Picker 在 LayoutShellView
+// header bar, 本视图只渲染 tabContent), 但接入 LT-N1 push 路由 +
+// selectedProjectID:
+//   1. `navPath` 类型从 `NavigationPath` 改成 `[AppRoute]` (P0-2 fix:
+//      NavigationPath 不公开 Sequence 接口, LayoutShellView 需要
+//      iterate path 同步 selectedProjectID)
+//   2. 加 `@Binding selectedProjectID: UUID?` — 章节 tab 接 binding,
+//      拿到 id 渲染 ChapterTreeView (LT-N1 P0-2 fix 真值:
+//      ChapterTreeView.init 必须接 projectId: UUID 非可选)
+//   3. **章节 tab 行为升级**: 有 selectedProjectID → ChapterTreeView
+//      (LT-N1 章节树真读), 没 selectedProjectID → 沿 V0-fix-6 placeholder
+//      ("v0.04.0 实现")。 其他 4 个 tab (项目 / 设定 / 资料 / 看板)
+//      沿 V0-fix-6 不动
+//   4. **删 LT-N1 加的 `.toolbar { Button { ... } }`** — LT-N1 原案
+//      是 + 按钮放 ProjectListView toolbar, 但 V0-fix-6 拍 + 按钮放
+//      LayoutShellView.topLeftHeaderBar (FCP toolbar 范式 + 单 + 入口),
+//      沿 V0-fix-6 真值
+//   5. **删 LT-N1 加的 `.navigationTitle("项目")`** — V0-fix-5 拍板
+//      topLeftHeaderBar 替代 in-window 标题文字, 不再加
+//      .navigationTitle (避免 header bar + 系统 title bar 双层标题)
+//
 // Tab 1 (项目): 沿 v0.01.0 projectList/emptyState/projectRow + 接
-//               NavigationStack 共享 navPath 跳 chat (下左 ChatPanelView)。
-// Tab 2-5: 占位 "v0.04.0 实现" — v0.04.0 长篇工具工单实装真业务。
+//               NavigationStack 共享 navPath 跳 .detail(projectId:)
+//               (LT-N1 加的 AppRoute.detail 路由, LayoutShellView 顶层
+//               .navigationDestination 接 ProjectDetailView)。
+// Tab 2 (章节): LT-N1-merge 接 selectedProjectID → ChapterTreeView。
+// Tab 3-5 (设定/资料/看板): 占位 "v0.04.0 / v0.05.0 实现" — v0.04.0
+//               长篇工具 + v0.05.0 标记系统 工单实装真业务。
 
 import SwiftUI
 
@@ -45,11 +71,22 @@ enum ProjectManagementTab: String, CaseIterable, Identifiable {
 
 struct ProjectListView: View {
     @Binding var projects: [ProjectSnapshot]
-    @Binding var navPath: NavigationPath
+    // LT-N1-merge: navPath 从 `NavigationPath` 改成 `[AppRoute]` (P0-2 fix:
+    // NavigationPath 不公开 Sequence 接口, LayoutShellView 需要 iterate
+    // path 同步 selectedProjectID)。 AppRoute 已 Hashable (MainView.swift),
+    // `navPath.append(...)` + `navPath.removeLast()` 行为不变。
+    @Binding var navPath: [AppRoute]
     // V0-fix-5: activeTab 改为 @Binding, 由 LayoutShellView 顶层持有
     // (@State activeTab), 共享同一 state — 5 tab Picker 在 LayoutShellView
     // .topLeftHeaderBar 内, 内容区 (本视图) 接 binding 切 tabContent。
     @Binding var activeTab: ProjectManagementTab
+    // LT-N1-merge: 加 selectedProjectID binding, 由 LayoutShellView 顶层
+    // 持有 (@State selectedProjectID), 从 navPath 中提取最后一个
+    // .detail(projectId:) 同步。 章节 tab 接 binding, 拿到 id 渲染
+    // ChapterTreeView (LT-N1 P0-2 fix 真值: ChapterTreeView.init 必须接
+    // projectId: UUID 非可选)。 nil = 用户还没点项目 row, 章节 tab
+    // 沿 V0-fix-6 placeholder。
+    @Binding var selectedProjectID: UUID?
 
     var body: some View {
         // V0-fix-5: 删 V0-fix-4 留下的 Picker.segmented 整段 (沿 V0-fix-4
@@ -65,7 +102,17 @@ struct ProjectListView: View {
         switch activeTab {
         case .projects:
             projectTabContent
-        case .chapters, .settings, .resources, .kanban:
+        case .chapters:
+            // LT-N1-merge: 章节 tab 接 selectedProjectID, 有 id →
+            // ChapterTreeView (LT-N1 章节树真读, 走 store.listChapters
+            // projectId 隔离, 见 WenshuProjectStore.swift + DESIGN-LT-N1
+            // §4.2), 没 id → V0-fix-6 placeholder (用户还没点项目 row)。
+            if let projectId = selectedProjectID {
+                ChapterTreeView(projectId: projectId)
+            } else {
+                placeholder(for: activeTab)
+            }
+        case .settings, .resources, .kanban:
             placeholder(for: activeTab)
         }
     }
@@ -81,14 +128,9 @@ struct ProjectListView: View {
 
     private var emptyState: some View {
         VStack(spacing: 12) {
-            Image(systemName: "tray")
-                .font(.system(size: 56, weight: .light))
-                .foregroundStyle(.secondary)
-            Text("暂无项目")
-                .font(.title2)
-            Text("点 + 新建")
-                .font(.callout)
-                .foregroundStyle(.secondary)
+            Image(systemName: "tray").font(.system(size: 56, weight: .light)).foregroundStyle(.secondary)
+            Text("暂无项目").font(.title2)
+            Text("点 + 新建").font(.callout).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
@@ -98,9 +140,7 @@ struct ProjectListView: View {
         List {
             Section("项目(\(projects.count))") {
                 ForEach(projects) { project in
-                    Button {
-                        navPath.append(AppRoute.chat(project))
-                    } label: {
+                    Button { navPath.append(AppRoute.detail(projectId: project.id)) } label: {
                         projectRow(project)
                     }
                     .buttonStyle(.plain)
@@ -113,37 +153,24 @@ struct ProjectListView: View {
     private func projectRow(_ project: ProjectSnapshot) -> some View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(project.name)
-                    .font(.headline)
-                    .foregroundStyle(.primary)
+                Text(project.name).font(.headline).foregroundStyle(.primary)
                 HStack(spacing: 8) {
-                    Text(project.style)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text("注水 \(project.verbosity)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    Text(project.style).font(.caption).foregroundStyle(.secondary)
+                    Text("注水 \(project.verbosity)").font(.caption).foregroundStyle(.secondary)
                     if !project.tags.isEmpty {
-                        Text(project.tags.joined(separator: " · "))
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                            .lineLimit(1)
+                        Text(project.tags.joined(separator: " · ")).font(.caption).foregroundStyle(.tertiary).lineLimit(1)
                     }
                 }
             }
             Spacer()
-            Text(formattedDate(project.createdAt))
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+            Text(formattedDate(project.createdAt)).font(.caption).foregroundStyle(.tertiary)
         }
         .padding(.vertical, 4)
         .contentShape(Rectangle())
     }
 
     private func formattedDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .short
-        formatter.timeStyle = .short
+        let formatter = DateFormatter(); formatter.dateStyle = .short; formatter.timeStyle = .short
         return formatter.string(from: date)
     }
 
@@ -152,7 +179,11 @@ struct ProjectListView: View {
             Image(systemName: tab.symbolName)
                 .font(.system(size: 30, weight: .light))
                 .foregroundStyle(.tertiary)
-            Text("v0.04.0 实现")
+            // LT-N1-merge: 章节 tab 已经有 selectedProjectID 时的真内容
+            // (ChapterTreeView), placeholder 仅在"还没选项目"时显示 —
+            // 这里文案稍微区分: 章节 tab 没 id 时说"请先选项目", 其他
+            // tab 还是"v0.04.0 实现"。
+            Text(tab == .chapters ? "请先选择项目" : "v0.04.0 实现")
                 .font(.callout)
                 .foregroundStyle(.tertiary)
         }
