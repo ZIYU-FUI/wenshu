@@ -41,6 +41,7 @@
 - **模型名校验**(8/6 实测):minimax 错误模型名静默 fallback 到 `MiniMax-M3`,CC 写 provider 配置时必须用 minimax 官方列出的有效模型名
 - **P12 (AIF 拉起必拍 6 截图, §9.2)**: CC merge main 后 AIF 必 CUA 拍 6 张 (标题栏/左上 5 tab/中上/右上/底部 chat/底部时间线) + 与 v0-fix-N-1 对比, 任何功能消失 = 必回退, 长期原则
 - **单条件退出门 (Ralph 三层 AND, §14.4 c)**: 完成指示器 AND CUA 6 截图(沿 P12) AND 无新红色批注, 任一不满足不进 done。reviewer 不再 2 阶审查 (砍 P12.1 §14.3 #1), reviewer 直接看 AIF 截图 + 列 before/after 12 元素
+- **派单卡 body 必含 §14.2 2 落点提示** (8/11 装机 user 21:15 拍加固): 派单卡 body 末尾必加 1 行 "本卡 done 前 4 角色按 assignee 必落 1 行 STATE.md (≤ 30 字, 3 选 1: 规则冲突 / 冗余 / 新规则需求 + 1 句理由, 沿 §14.2 2 硬约束)"; AIF dispatcher 派单 prompt 自动注入此提示 (本卡落档后)
 
 ## 4. PM ↔ CC 单 loop 流程(沿用 7/16 拍,本项目沿用)
 
