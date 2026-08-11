@@ -432,5 +432,21 @@
 5. **mem0 落档(沿 8/11 装机 user 拍"默认走 mem0")**: 装机 user 偏好 / 拍板 / 人物关系 / 跨 session 状态, 全部走 mem0_add / mem0_search, 不写本地 memory 文件
 6. **会话外派单历史**: 沿 session_search, 不写 STATE.md(STATE.md 只装当前项目级规则)
 
+### 14.7 designer + reviewer 加值环节(8/11 20:48 装机 user 拍"设计师和审查员在里面吗", 加固 §14.4 d/§14.6 现有段)
+
+§14.4 d 重借鉴时只提"spec 节点", §14.6 完整状态保证不展开 designer/reviewer 真实落位。本节加固让 designer / reviewer = 流程内 loop, 不是"上桌"。
+
+**designer 3 件加值**(沿 8/6 §5 派单边界 + 8/10 PM-direct 三段式):
+1. **派单前主信源**: 出设计稿 (`Sources/WenshuApp/Views/DESIGN-*.md`) 作为 PM-direct 派 CC 的输入, **主信源, 不是 reviewer** (派单卡 4 件套 "目标/范围/标准/边界" 引用设计稿路径 = 派单成立)
+2. **§14.2 落点**: 每张 designer 卡 done 前, 在 STATE.md 落 1 行 (≤ 30 字, 3 选 1: 规则冲突 / 冗余 / 新规则需求)
+3. **真机拍**: 装机 user 修真 5 红字批注 (8/11 14:35 V0-fix-11) = 5 红字转 5 修真 (沿 V0-fix-1/2/10/11 5 轮实证, designer 修真 5 红字比 reviewer 2 阶审查更有效)
+
+**reviewer 3 件加值**(沿 8/10 PM-direct 三段式 + 8/11 §14.3 砍 2 阶):
+1. **派单后独立审查**: 独立审查 (read-only, 不动源代码), 沿 §14.3 1 砍 P12.1 (reviewer 不再 CUA 2 阶拍, 直接看 AIF §14.6 1 已落 STATE.md 信源)
+2. **§14.2 落点**: 每张 reviewer 卡 done 前, 在 STATE.md 落 1 行 (≤ 30 字, 3 选 1 + 1 句理由)
+3. **真机拍**: reviewer PASS 之后, 装机 user 拉起 APP 验 (沿 §3 §4 流程图两端, GSD 5 步闭环)
+
+**装机 user 加值**(沿 §14.5 头尾规则): 永远在对话里和装机 user 拍板, 不派 fire-wrapper 卡; 装机 user 拍"v0.03.0 ready" = 流程完整闭环。
+
 **§14 自进化机制 = 方法论 v0.03.0 形态**。下次阶段门(v0.03.0 → v0.04.0)装机 user 拍时, AIF 自动按 §14.2 4 动作聚合 STATE.md → 改本节。
 *AGENTS.md v0.00.0 · 2026-08-06 你拍板"全新基线 · 自建 Swift/SwiftUI + CoreData + minimax cn LLM (Anthropic 兼容协议)" · 项目根 = `/Volumes/ANAN/Engineering/wenshu/`*
