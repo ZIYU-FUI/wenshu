@@ -29,6 +29,16 @@ Package.resolved
 .AppleDouble
 .LSOverride
 
+# Hermes state — STATE.md, agent run history, worktree coordination
+# 沿 AGENTS §14.2 自进化方法论 v0.03.0,不入 git
+.hermes/STATE.md
+.hermes/agents/
+.hermes/runs/
+
+# ADOPT runtime data — 项目运行时数据,沿 AGENTS §13 wenshu 项目基线
+# `.ws` 单文件 = 你的项目数据,本地自管
+.hilo/
+
 # IDE / editor
 .vscode/
 .idea/
