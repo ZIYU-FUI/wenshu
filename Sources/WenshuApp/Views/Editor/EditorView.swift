@@ -1,171 +1,114 @@
 // EditorView.swift · 文枢 (Wenshu) · v0.03.0 LT-N3-cc
 //
-// 中上 (topCenter) 编辑器视图 (DESIGN-LT-N3.md §5.1)。
-// 接管 LayoutShellView.topCenter, 渲染顶 toolbar + 章节 sidebar + TextEditor
-// + 底 toolbar, 沿 FCP viewer 范式 (28pt 顶 + 32pt 底 + 1pt splitter + 240pt
-// 章节 sidebar + 暗色 default)。
+// 编辑器主视图 (DESIGN-LT-N3.md §5.1 + §2.2):
 //
-// 接收:
-//   - selectedProjectID: 章节 sidebar 走 EditorOutlineStore.load() 拉项目下章节
-//   - selectedChapterID: 切章节时 flush 旧 + 加载新
+// 整体结构 (FCP viewer 范式, 3 层):
 //
-// 状态:
-//   - sidebarStore: 中上章节 sidebar (@StateObject, 跟顶 toolbar 共享章节名)
-//   - contentStore: 章节正文 store (selectedChapterID 变化时新建, 失焦 flush)
+//   ┌──────────────────────────────────────────────────┐
+//   │ EditorTopToolbar (28pt, 字数 + 章节名 + 空槽)      │
+//   ├──┬───────────────────────────────────────────┬──┤
+//   │  │ EditorOutlineView (240pt default sidebar)│  │
+//   │ES│              TextEditor (可编辑)         │  │
+//   │  │              (剩余空间, maxHeight ∞)    │  │
+//   ├──┴───────────────────────────────────────────┴──┤
+//   │ EditorBottomToolbar (32pt, 全屏 ⤢)               │
+//   └──────────────────────────────────────────────────┘
 //
-// 全屏 (⤢) toggle: 临时隐藏 4 个 panel, 仅本视野展示章节名 + sidebar + TextEditor。
-// 沿 FCP viewer 范式 (DESIGN-LT-N3.md §7.3), 通过 LayoutShellView 的 panel
-// visibility 切换 (走环境注入的 vm), 不在 EditorView 内自挂 NavigationStack。
+// EditorView 接 `projectId: UUID` + `chapterId: String` (沿派单 §Step 1
+// + ChapterSnapshot.id P0-4 真值, NSManagedObjectID URI 稳定 String)。
+// 中文项目用 NSManagedObjectID 而非 UUID 当 chapterId 跟 V0-fix-10 /
+// LT-N1 全栈对齐。
+//
+// 派单硬规则 (派单 §Step 1):
+//   ✅ 接 projectId: UUID + chapterId: String
+//   ✅ TextEditor (@ObservedObject contentStore.content)
+//   ✅ onAppear loadChapterContent (调 .load())
+//   ✅ onChange(of: content) debounce save (调 .updateContent())
+//   ✅ 不带快捷键 (留空, 等项目快完结统一)
+//   ✅ FCP 4 角 toolbar MVP (顶 + 底, 沿 designer 拍板)
 
 import SwiftUI
 
 struct EditorView: View {
-    @Binding var selectedProjectID: UUID?
-    @Binding var selectedChapterID: String?
+    let projectId: UUID
+    let chapterId: String
 
-    @StateObject private var sidebarStore: EditorOutlineStore
-    @State private var sidebarStoreProjectId: UUID?
-    @State private var contentStore: EditorContentStore?
-    @State private var content: String = ""
-    @State private var isFullScreen: Bool = false
+    @StateObject private var contentStore: EditorContentStore
+    @StateObject private var outlineStore: EditorOutlineStore
+    @StateObject private var viewModel: EditorViewModel
 
-    private let projectStore: WenshuProjectStore
-
-    init(
-        selectedProjectID: Binding<UUID?>,
-        selectedChapterID: Binding<String?>,
-        store: WenshuProjectStore = .shared
-    ) {
-        self._selectedProjectID = selectedProjectID
-        self._selectedChapterID = selectedChapterID
-        self.projectStore = store
-        // 初始 sidebarStore 用占位 projectId (nil), .onChange(of: selectedProjectID)
-        // 真正重建。 这样 first paint 不会 nil-crash。
-        _sidebarStore = StateObject(wrappedValue: EditorOutlineStore(
-            projectId: selectedProjectID.wrappedValue ?? UUID(),
-            store: store
+    init(projectId: UUID, chapterId: String) {
+        self.projectId = projectId
+        self.chapterId = chapterId
+        _contentStore = StateObject(wrappedValue: EditorContentStore(
+            projectId: projectId,
+            chapterId: chapterId
         ))
-        _sidebarStoreProjectId = State(initialValue: selectedProjectID.wrappedValue)
+        _outlineStore = StateObject(wrappedValue: EditorOutlineStore(
+            projectId: projectId
+        ))
+        _viewModel = StateObject(wrappedValue: EditorViewModel())
     }
 
     var body: some View {
         VStack(spacing: 0) {
             EditorTopToolbar(
-                chapterTitle: sidebarStore.chapter(withId: selectedChapterID)?.title ?? "未选章节",
-                wordCount: contentStore?.wordCount ?? 0
+                chapterTitle: activeChapterTitle,
+                wordCount: contentStore.wordCount,
+                isDirty: contentStore.isDirty
             )
-            editorBody
+            mainContent
             EditorBottomToolbar(
-                isFullScreen: isFullScreen,
-                onFullScreenToggle: toggleFullScreen
+                isFullScreen: viewModel.isFullScreen,
+                onToggleFullScreen: { viewModel.toggleFullScreen() }
             )
         }
         .background(Color(NSColor.textBackgroundColor))
-        .onChange(of: selectedProjectID) { _, newProjectId in
-            guard let projectId = newProjectId else { return }
-            // projectId 变化: 重建 sidebarStore (新项目下章节列表)
-            if sidebarStoreProjectId != projectId {
-                sidebarStoreProjectId = projectId
-                Task { await reloadSidebar(for: projectId) }
-            }
-        }
-        .onChange(of: selectedChapterID) { _, newChapterId in
-            // chapter 变化: flush 旧 store + 重建新 store
-            let oldStore = contentStore
-            Task {
-                await oldStore?.flush()
-                await switchContentStore(to: newChapterId)
-            }
-        }
         .task {
-            // 首次出现: 如果 selectedProjectID 已经选了, 加载 sidebar
-            if let projectId = selectedProjectID {
-                sidebarStoreProjectId = projectId
-                await sidebarStore.load()
-            }
-            // 首次出现: 如果 selectedChapterID 已经选了, 加载 content
-            if let chapterId = selectedChapterID {
-                await switchContentStore(to: chapterId)
-            }
+            await contentStore.load()
+            await outlineStore.load()
+        }
+        .onDisappear {
+            // 切走 / 关 app — 强制 flush pending debounced save
+            Task { await contentStore.flush() }
         }
     }
 
-    // MARK: - Body (sidebar + TextEditor, 全屏时只显示编辑器)
+    // MARK: - Subviews
 
+    /// 当前编辑章节标题 (来自 outlineStore 拉的真数据, 找不到 = "未选章节")。
+    private var activeChapterTitle: String {
+        outlineStore.chapters.first(where: { $0.id == chapterId })?.title ?? "未选章节"
+    }
+
+    /// 主内容区: 全屏模式 (专注模式) → 无 sidebar; 否则 → 左 sidebar + 右 TextEditor。
     @ViewBuilder
-    private var editorBody: some View {
-        if isFullScreen {
-            fullScreenBody
+    private var mainContent: some View {
+        if viewModel.isFullScreen {
+            textEditorView
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            splitBody
-        }
-    }
+            HSplitView {
+                EditorOutlineView(
+                    selectedChapterID: chapterId,
+                    store: outlineStore
+                )
+                .frame(minWidth: 150, idealWidth: 240, maxWidth: 400)
 
-    private var fullScreenBody: some View {
-        TextEditor(text: $content)
-            .font(.system(size: 17))
-            .padding(16)
-            .onChange(of: content) { _, new in contentStore?.updateContent(new) }
-    }
-
-    private var splitBody: some View {
-        HStack(spacing: 0) {
-            EditorOutlineView(
-                selectedChapterID: $selectedChapterID,
-                store: sidebarStore
-            )
-            Divider()
-            textEditorPane
-        }
-    }
-
-    @ViewBuilder
-    private var textEditorPane: some View {
-        if let contentStore {
-            TextEditor(text: $content)
-                .font(.system(size: 17))
-                .padding(16)
-                .onChange(of: content) { _, new in contentStore.updateContent(new) }
-        } else {
-            VStack(spacing: 10) {
-                Image(systemName: "doc.text")
-                    .font(.system(size: 40, weight: .light))
-                    .foregroundStyle(.secondary)
-                Text("请先选择章节")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                Text("在左侧章节列表中选择一个章节, 或在左上的「章节」tab 新建")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
+                textEditorView
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 
-    // MARK: - Actions
-
-    private func reloadSidebar(for projectId: UUID) async {
-        // 重建 sidebarStore 不可行 (StateObject 一次创建), 走 store.load() 复用
-        // 同一 store 实例。 EditorOutlineStore 的 chapters 字段会被 load() 覆盖。
-        _ = projectId  // 显式构造时已经 capture
-        await sidebarStore.load()
-    }
-
-    private func switchContentStore(to chapterId: String?) async {
-        guard let chapterId else {
-            contentStore = nil
-            content = ""
-            return
-        }
-        let newStore = EditorContentStore(chapterId: chapterId, store: projectStore)
-        contentStore = newStore
-        await newStore.load()
-        content = newStore.content
-    }
-
-    private func toggleFullScreen() {
-        isFullScreen.toggle()
+    /// TextEditor 视图 (含 debounced save binding)。
+    private var textEditorView: some View {
+        TextEditor(text: Binding(
+            get: { contentStore.content },
+            set: { contentStore.updateContent($0) }
+        ))
+        .font(.system(size: 17))
+        .scrollContentBackground(.hidden)
+        .padding(16)
     }
 }
