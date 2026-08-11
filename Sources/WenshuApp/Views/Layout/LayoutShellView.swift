@@ -1,4 +1,4 @@
-// LayoutShellView.swift · 文枢 (Wenshu) · v0.02.0 WO-LT-01 → LT-01-fix9 → V0-fix-5 → LT-N1-merge
+// LayoutShellView.swift · 文枢 (Wenshu) · v0.02.0 WO-LT-01 → LT-01-fix9 → V0-fix-5 → LT-N1-merge → V0-fix-7
 //
 // 5-zone shell — the root of the macOS window in v0.02.0.
 //
@@ -51,6 +51,29 @@
 //      selectedProjectID binding — 章节 tab 接 binding 渲染
 //      ChapterTreeView (LT-N1 P0-2 fix: projectId 必须非可选 UUID)
 //
+// V0-fix-7 (2026-08-11): 真修 V0-fix-6 被 LT-N1-merge 回滚的 2 处 UI BUG
+// (AIF 18:05 CUA 自验拍板):
+//   1. + 按钮改 modal sheet (替代 LT-N1-merge 回滚的 push)
+//      - 加 `@State showCreateProject: Bool = false`
+//      - + 按钮 action 改 `showCreateProject = true`
+//      - NavigationStack 内顶级加 `.sheet(isPresented: $showCreateProject)`
+//        弹 ProjectCreateView
+//      - 删 `navPath.append(AppRoute.createProject)` (改 sheet 不 push)
+//      - `destinationView(.createProject)` 改 placeholder 兜底
+//        (保留 enum 不破坏外部引用, 沿 V0-fix-6 真值)
+//      - `navPath` 仍服务 chat 路由 (ProjectListView 项目行点击走
+//        navPath.append(.detail(...)))
+//   2. 5 tab Picker 改 iconOnly + SF Symbol (替代 LT-N1-merge 回滚的
+//      segmented Text)
+//      - Picker 内容 `Text(tab.rawValue).tag(tab)` → `Image(systemName:
+//        tab.symbolName).tag(tab).help(tab.rawValue)`
+//      - `.pickerStyle(.segmented)` → `.pickerStyle(.iconOnly)`
+//      - `.labelsHidden()` 删除 (.iconOnly 不需要)
+//      - `.fixedSize()` 删除 (.iconOnly 自适应)
+//      - 沿用 ProjectManagementTab.symbolName 真值 (5 SF Symbol:
+//        folder / list.bullet.rectangle / slider.horizontal.3 /
+//        books.vertical / rectangle.split.3x1), 不改 enum
+//
 // Splitters (see LayoutShellViewModel for delta math):
 //   - 2 vertical in upper row (between topLeft↔topCenter, topCenter↔topRight)
 //   - 1 horizontal between upper and lower bands
@@ -98,12 +121,37 @@ struct LayoutShellView: View {
     // projectId: UUID 非可选)。 nil = 用户还没点项目 row。
     @State private var selectedProjectID: UUID?
 
+    // V0-fix-7 BUG 1: + 按钮 modal sheet 显隐 state (替代 LT-N1-merge
+    // 回滚的 `navPath.append(AppRoute.createProject)` push 路由)。 true
+    // = sheet 弹出 (用户点 + 按钮), false = sheet 关闭 (用户点 取消 /
+    // 创建 / X)。 sheet content = `ProjectCreateView`, 沿 V0-fix-6 Fix 1
+    // 真值 (540x480 modal, form/focus/WindowActivation 兜底不动)。
+    @State private var showCreateProject: Bool = false
+
     var body: some View {
         NavigationStack(path: $navPath) {
             geometryBody
                 .frame(minWidth: 900, minHeight: 600)
                 .navigationDestination(for: AppRoute.self) { route in
                     destinationView(for: route)
+                }
+                // V0-fix-7 BUG 1: + 按钮 modal sheet 包裹 NavigationStack
+                // 内顶级 (sheet 关联到主窗口 — FCP inspector sheet 风格,
+                // 不挡 LayoutShellView, 用户透过 sheet 能看到 5 区布局)。
+                // sheet content = ProjectCreateView (540x480 modal, 沿
+                // V0-fix-1 Fix D 硬固定真值)。 onCreate / onCancel 闭包
+                // 走 showCreateProject = false 关闭 sheet (替代 push 路由
+                // 的 navPath.removeLast())。
+                .sheet(isPresented: $showCreateProject) {
+                    ProjectCreateView(
+                        onCreate: { newProject in
+                            projects.append(newProject)
+                            showCreateProject = false
+                        },
+                        onCancel: {
+                            showCreateProject = false
+                        }
+                    )
                 }
                 .task {
                     await vm.load()
@@ -140,15 +188,19 @@ struct LayoutShellView: View {
     private func destinationView(for route: AppRoute) -> some View {
         switch route {
         case .createProject:
-            ProjectCreateView(
-                onCreate: { newProject in
-                    projects.append(newProject)
-                    navPath.removeLast()
-                },
-                onCancel: {
-                    navPath.removeLast()
-                }
-            )
+            // V0-fix-7 BUG 1: + 按钮改 modal sheet 后, .createProject
+            // 路由不再被 + 按钮消费 (sheet 是真路由)。 保留 enum case
+            // 不破坏外部引用 (LT-N1-merge 真值), 这里走 placeholder
+            // 兜底 — 万一外部代码还残留 push AppRoute.createProject 也
+            // 不会白屏。 沿 V0-fix-6 真值。
+            VStack(spacing: 10) {
+                Image(systemName: "doc.badge.plus")
+                    .font(.system(size: 30, weight: .light))
+                    .foregroundStyle(.secondary)
+                Text("请用顶部 + 按钮新建项目")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
         case .chat:
             // V0-fix-4 范围不接 chat push — chat 实装在下半 ChatPanelView,
             // 这里走 placeholder 避免 ChatViewModel.shared 不存在导致编译失败。
@@ -229,25 +281,38 @@ struct LayoutShellView: View {
         }
     }
 
-    // MARK: - Top header bar (V0-fix-4 Fix 1 + Fix 3 → V0-fix-5 5 tab Picker 升 header)
+    // MARK: - Top header bar (V0-fix-4 Fix 1 + Fix 3 → V0-fix-5 5 tab Picker 升 header → V0-fix-7 modal sheet + iconOnly ICON)
 
     /// 顶部跨全宽 38pt 标题栏 (AIF 16:40 拍板 — 替换 v0.02.0 顶部"文枢"标
     /// 题文字,FCP toolbar 风格: 红黄绿 traffic lights 后接 + 按钮 + 5 tab
-    /// Picker + Spacer)。 + 按钮接 NavigationStack push → AppRoute.
-    /// createProject (V0-fix-4 Fix 3 — 沿 v0.01.0 WO-010 拍板主路由 push)。
+    /// Picker + Spacer)。
+    ///
+    /// V0-fix-7 (AIF 18:05 CUA 自验拍板):
+    ///   - + 按钮改 modal sheet (替代 V0-fix-4 push): action 翻转
+    ///     `showCreateProject = true`, sheet 在 body 顶级挂
+    ///     `.sheet(isPresented: $showCreateProject)` 弹 ProjectCreateView。
+    ///     装机 user 8/10 17:35 OOB 真机拍 "走弹窗不 push"。
+    ///   - 5 tab Picker 改 iconOnly + SF Symbol (替代 LT-N1-merge
+    ///     回滚的 segmented Text): Picker 内容 Text → Image(systemName:),
+    ///     pickerStyle `.segmented` → `.iconOnly`。 沿用
+    ///     ProjectManagementTab.symbolName 真值 (5 SF Symbol), 不改 enum。
+    ///     装机 user 8/10 17:35 OOB 真机拍 "5 tab 文字改 ICON"。
     ///
     /// V0-fix-5 拍板: 5 tab Picker (项目 / 章节 / 设定 / 资料 / 看板) 从
     /// ProjectListView 内部搬到这里 — 与 + 按钮平级 (同 38pt 高, + 按钮
     /// 在左, 5 tab Picker 在右) — 视觉对齐 FCP toolbar 范式 + 拍板真值
     /// (1a09cd550) §5。 ProjectListView 改接 `@Binding activeTab` 共享同一
-    /// state。 Picker 走 `.pickerStyle(.segmented)` 文字标签, 跟 chat /
-    /// inspector tab 风格刻意区分 (沿 V0-fix-3 Fix J 拍板)。
+    /// state。
     private var topLeftHeaderBar: some View {
         HStack(spacing: 12) {
-            // V0-fix-4 Fix 3: + 按钮接 NavigationStack push 到
-            // AppRoute.createProject (沿 v0.01.0 WO-010 拍板)。
+            // V0-fix-7 BUG 1: + 按钮改 modal sheet (替代 LT-N1-merge
+            // 回滚的 navPath.append(AppRoute.createProject) push)。
+            // sheet 在 body 顶级 .sheet(isPresented: $showCreateProject)
+            // 包裹 (见上 body), 这里只触发 state 翻转, FCP toolbar
+            // 单 + 入口范式沿用。 装机 user 8/10 17:35 OOB 真机拍 "走弹
+            // 窗不 push"。
             Button {
-                navPath.append(AppRoute.createProject)
+                showCreateProject = true
             } label: {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: 16, weight: .medium))
@@ -256,18 +321,29 @@ struct LayoutShellView: View {
             .buttonStyle(.plain)
             .help("新建项目")
 
-            // V0-fix-5: 5 tab Picker (项目 / 章节 / 设定 / 资料 / 看板)
-            // 升到 header bar 内, 与 + 按钮平级 — 拍板真值见本函数 doc
-            // comment 头部。 文字标签 + Picker.segmented 跟 chat /
-            // inspector tab 风格刻意区分 (沿 V0-fix-3 Fix J 拍板)。
+            // V0-fix-7 BUG 2: 5 tab Picker (项目 / 章节 / 设定 / 资料 /
+            // 看板) 改 iconOnly + SF Symbol (替代 LT-N1-merge 回滚的
+            // segmented Text)。
+            //   - Picker 内容: `Text(tab.rawValue).tag(tab)` →
+            //     `Image(systemName: tab.symbolName).tag(tab).help(tab.rawValue)`
+            //   - pickerStyle: `.segmented` → `.iconOnly` (macOS 14+
+            //     SegmentedPickerStyle 别名, PickerStyle+IconOnly.swift
+            //     自定义文件 V0-fix-5 已删, 直接用 .iconOnly)
+            //   - 删 `.labelsHidden()` (`.iconOnly` 不需要)
+            //   - 删 `.fixedSize()` (`.iconOnly` 自适应)
+            //   - 沿用 ProjectManagementTab.symbolName 真值 (5 SF
+            //     Symbol: folder / list.bullet.rectangle /
+            //     slider.horizontal.3 / books.vertical /
+            //     rectangle.split.3x1), 不改 enum — 装机 user 8/10
+            //     17:35 OOB 真机拍 "5 tab 文字改 ICON"。
             Picker("", selection: $activeTab) {
                 ForEach(ProjectManagementTab.allCases) { tab in
-                    Text(tab.rawValue).tag(tab)
+                    Image(systemName: tab.symbolName)
+                        .tag(tab)
+                        .help(tab.rawValue)
                 }
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .fixedSize()
+            .pickerStyle(.iconOnly)
 
             Spacer(minLength: 0)
         }
