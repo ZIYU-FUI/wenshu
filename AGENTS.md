@@ -376,7 +376,12 @@
 ### 14.2 STATE.md 落点机制(8/11 19:55 你拍"自进化是核心抓手")
 
 1. **STATE.md 路径**: `/Volumes/ANAN/Engineering/wenshu/.hermes/STATE.md`(项目级, **不入 git**, kanban 自动 append)
-2. **落点触发**: 每张卡 done 前,**CC / designer / PM-direct / reviewer 4 角色任一**(8/11 装机 user 拍 AIF 主动加 reviewer 进落点) 在 kanban comment 落 1 行(≤ 30 字):本卡规则冲突 / 冗余 / 新规则需求(3 选 1 + 1 句理由)
+2. **落点触发** (硬约束, 8/11 装机 user 20:48 拍加固): 每张卡 done 前, **CC / designer / PM-direct / reviewer 4 角色按 assignee 必落 1 行 STATE.md** (≤ 30 字, 3 选 1: 规则冲突 / 冗余 / 新规则需求 + 1 句理由):
+   - **CC**: 改的代码是否触发新规则 (新增 API / 新增 entity)
+   - **designer**: 设计稿是否偏离 §8 layout grammar 或触发新规则
+   - **PM-direct**: 派单流程是否冗余 / 冲突
+   - **reviewer**: 审查 PASS/FAIL 是否暴露 §14 规则漏洞
+   - **漏落** = 下次阶段门聚合时 AIF 主动问"为什么没落", 不进 §14.2 4 砍
 3. **聚合周期**: 装机 user 在**阶段门控节点**(v0.00.0 → v0.01.0 → ...) 或**显式触发**时, AIF 读 STATE.md 聚合(一次性拉所有 comment 落点,按冲突/冗余/新规则分类)
 4. **改 AGENTS.md 4 动作**:
    - **加**: 新规则有 ≥ 2 个实例支持
