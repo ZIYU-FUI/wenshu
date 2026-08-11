@@ -358,4 +358,74 @@
 
 ---
 
+## 14. 自进化方法论 v0.03.0(2026-08-11 你拍,装机 user 8/11 19:55 + 20:10 + 20:35 三段拍板合成)
+
+**沿 ECC 7 步闭环末两步**(`remember → improve`, 借鉴自 affaan-m/ECC 239k★),GSD 5 步闭环上下文(借鉴自 open-gsd/gsd-core),Ralph 双条件退出门(借鉴自 frankbria/ralph-claude-code)。
+
+### 14.1 默认研发模式(8/11 20:35 你拍)
+
+- **5 角色都是研发组**: AIF / PM-direct / designer / CC / reviewer,**默认研发模式**,不再有"非研发"分支
+- **4 profile 自动加载研发基线技能** (8/11 20:35 你拍,对应技能 hermes 启动时按 profile 预装):
+  - aif: research + grounded-citations + last30days
+  - my-pm: sdlc-review + hermes-kanban-ops
+  - designer: swiftui-design-patterns(沿 8/6 装机 user 拍已有)+ hallmark + baoyu-infographic
+  - reviewer: requesting-code-review + sdlc-review
+  - 共用基线 (4 profile 都装): i-have-adhd + humanizer-zh
+- **目前只有 wenshu 1 个项目**(8/11 20:35 你拍),无多项目分支,新加项目才扩 profile
+
+### 14.2 STATE.md 落点机制(8/11 19:55 你拍"自进化是核心抓手")
+
+1. **STATE.md 路径**: `/Volumes/ANAN/Engineering/wenshu/.hermes/STATE.md`(项目级, **不入 git**, kanban 自动 append)
+2. **落点触发**: 每张卡 done 前,**CC / designer / PM-direct / reviewer 4 角色任一**(8/11 装机 user 拍 AIF 主动加 reviewer 进落点) 在 kanban comment 落 1 行(≤ 30 字):本卡规则冲突 / 冗余 / 新规则需求(3 选 1 + 1 句理由)
+3. **聚合周期**: 装机 user 在**阶段门控节点**(v0.00.0 → v0.01.0 → ...) 或**显式触发**时, AIF 读 STATE.md 聚合(一次性拉所有 comment 落点,按冲突/冗余/新规则分类)
+4. **改 AGENTS.md 4 动作**:
+   - **加**: 新规则有 ≥ 2 个实例支持
+   - **合**: 2 条规则重复
+   - **降**: L3 → L1(沿 §1 §3 L1/L2/L3 三级)
+   - **砍**: 规则 0 实例支持超过 1 个阶段门
+5. **AIF 改 AGENTS.md 走 8/11 装机 user 头尾规则**: AIF 在对话里直接改 + commit + push,**不派 fire-wrapper 卡**(沿本卡硬约束)
+6. **首期聚合**: 装机 user 拍本节生效后立即触发(因为本节本身已含 4 角色 Q1-Q4 + 自进化 4 件套 + 派单精简 7 条,STATE.md 满)
+7. **回流触发**: 装机 user 拍 AGENTS.md 改动后, AIF 落 comment 标记 "v0.X.Y 自进化生效" + 关闭本轮 STATE.md 段(下次聚合从空开始)
+
+### 14.3 派单精简 7 条(8/11 19:55 PM-direct 收口,装机 user 8/11 20:35 拍)
+
+| # | 动作 | 类型 | 理由 |
+|---|------|------|------|
+| 1 | **P12.1 reviewer 2 阶 CUA 双层 → 砍**, P12 AIF 拍 6 截图即唯一 CUA 信源, reviewer 直接看 AIF 截图 | 砍 | P12.1 与 P12 信源重复, V0-fix-3/4/10/11 4 轮 2 阶审查漏 BUG 实证根因(PM-direct Q5 5 轮修同 BUG) |
+| 2 | **P12 6 截图清单固定化** = 标题栏 / 左上 5 tab / 中上 / 右上 / 底部 chat / 底部时间线, 落 §9.2 不再每次派单重写 | 留(固定化) | P12 是真护栏, 问题在每次派单重写 → 砍成本 |
+| 3 | **§8.1 layout grammar 拍板历史段(4 行) → 砍**, 只留 ✅ 8/7 装机 user 拍板 | 砍 | 拍板历史本身就是规则反复推翻的物证(本卡 §1 现象), 留着反复刺激"再来一次" |
+| 4 | **派单卡"反三段式 / 反五段式 / 修真 N 处"仪式性措辞 → 砍**, 只留 4 件套(目标/范围/标准/边界) | 砍 | 真生效靠 designer 设计稿 + CC commit diff, 仪式性措辞对 5 角色没增量 |
+| 5 | **拉起 APP 4 件前置** (git pull / swift build / mtime < 60s / CUA 非 0x0) **→ 留, 合并 1 处** | 留(合并) | 4 件是真护栏(防回退 / 防装配错), 但分散在 P12 / §3 / 派单卡 = 重复, 合并 1 处写 §3 |
+| 6 | **AGENTS §10 风险与缓解(275-301 行) → 砍一半**, 只留:数据资产不丢 / 真机拍是底线 / CUA 是底线 3 条 | 砍 | §10 v0.00.0 重写过, 装了 P12 后变冗余, 留着 5 角色读不进 |
+| 7 | **新增 §14.X 派单成本上限**: 单卡 kanban_comment 总行数 ≤ 80 行(含 4 件套 + 设计稿引用), 超 80 = PM-direct 拒派 | 新增 | 本卡直接证据 — 派单 200+ 行 > 实现成本, 设硬上限 |
+
+**预期**: AGENTS.md 361 → ≈ 290 行(-20%), 派单卡 200+ → 80 行(-60%), reviewer 2 阶 → 1 阶。
+
+### 14.4 借鉴清单 5 条(8/11 20:10 你拍"AIF 必评可补可裁", 8/11 20:19 AIF 落档, 8/11 20:35 你拍采纳)
+
+- **a. GSD 5 步闭环** (Discuss/Plan/Execute/Verify/Ship, open-gsd/gsd-core): **强借鉴**。派单前 discuss(2-3 行 clarify, 补 I1-I6 缺位的"需求讨论"端) + 完成后 ship(PM-direct 主动 push, 补"PR 闭环"端, 不是 CC 推)。GSD 5 端 → wenshu I1-I6 内部循环 + 两端 discuss/ship 补齐成 5 步闭环。
+- **b. ECC remember → improve** (affaan-m/ECC 239k★): **强借鉴**。落 §14.2 自进化 4 件套(STATE.md / 落点 / 聚合 / 4 改动作)。本节核心抓手。
+- **c. Ralph 双条件退出** (frankbria/ralph-claude-code 9.6k★): **强借鉴**。单条件退出门 = 完成指示器 AND CUA 6 截图 AND 无新红色批注(三层 AND), 任一不满足不进 done。比 reviewer 2 阶审查更严但更省人工(2 阶→1 阶)。
+- **d. Pimzino 4 步 spec** (Pimzino/claude-code-spec-workflow 3.8k★): **轻借鉴**。§4 流程图加 4 个 spec 节点(Requirements/Design/Acceptance/Boundary), 派单卡 4 件套(目标/范围/标准/边界)作为节点输入, 不重写派单格式。
+- **e. AIOX first-value 10 分钟** (SynkraAI/aiox-core 3.1k★): **轻借鉴**。CC 跑通首个测试 OR designer 出第一稿作为 first-value, **30 分钟**内无回流到 PM-direct 调工单(10 分钟太紧, CC 长任务经常超 10 分钟, 30 分钟是合理阈值)。
+- **f. ECC 285 skills / 68 agents 知识分层** (affaan-m/ECC): **不借鉴**。wenshu 当前 §4 单 loop + §5 3 类项目文档骨架已经够用, 引入 285 skills 会破坏 AIF 大管家边界(8/11 装机 user 拍 "AIF 优先级 = 老板当前关注点, 不引入额外层级")。
+
+### 14.5 装机 user 头尾规则(8/11 装机 user 拍, 本节生效)
+
+- 永远在对话里和装机 user 拍板, 不派 fire-wrapper 卡
+- 不写 OOB 历史, 不重复 OOB 历史, 不写"等装机 user 验"阻塞字样
+- AGENTS.md 改 = AIF / ANAN 任一在对话里直接改 + commit + push, **不派卡**(沿 8/6 §1 AIF 边界)
+- 借鉴 = 落引用 + 落 1 行落地动作, 不照搬整个项目
+- 调研 ≠ 安装(沿 8/6 装机 user 拍)
+
+### 14.6 完整状态保证(8/11 20:35 你拍"目前只有 wenshu 1 个项目, 保证每次会话是完整状态")
+
+1. **STATE.md 持久化**: `/Volumes/ANAN/Engineering/wenshu/.hermes/STATE.md` 不入 git(§14.2 1), hermes 启动时按 profile 自动加载
+2. **4 profile 启动注入研发基线技能**: §14.1 列的 4 profile 技能, hermes 启动时按 profile 预装, 不自启 skill
+3. **AGENTS.md 全文装进 system prompt**: 每次 session 起始, ANAN 把本文件(§1-§14)全本注入 system prompt(已实现, 沿 8/6 装机 user 拍)
+4. **STATE.md 装进 system prompt**: 每次 session 起始, ANAN 读 STATE.md 装进 system prompt(本节新增, 跨 session 状态)
+5. **mem0 落档(沿 8/11 装机 user 拍"默认走 mem0")**: 装机 user 偏好 / 拍板 / 人物关系 / 跨 session 状态, 全部走 mem0_add / mem0_search, 不写本地 memory 文件
+6. **会话外派单历史**: 沿 session_search, 不写 STATE.md(STATE.md 只装当前项目级规则)
+
+**§14 自进化机制 = 方法论 v0.03.0 形态**。下次阶段门(v0.03.0 → v0.04.0)装机 user 拍时, AIF 自动按 §14.2 4 动作聚合 STATE.md → 改本节。
 *AGENTS.md v0.00.0 · 2026-08-06 你拍板"全新基线 · 自建 Swift/SwiftUI + CoreData + minimax cn LLM (Anthropic 兼容协议)" · 项目根 = `/Volumes/ANAN/Engineering/wenshu/`*
