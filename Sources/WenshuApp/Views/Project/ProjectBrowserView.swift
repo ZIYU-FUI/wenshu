@@ -57,7 +57,7 @@ struct ProjectBrowserView: View {
                         Task { await projectStore.create(name: snapshot.name, style: snapshot.style, verbosity: snapshot.verbosity, tags: snapshot.tags) }
                         navPath.removeLast()
                     }, onCancel: { navPath.removeLast() })
-                case .detail(let id): ProjectDetailView(projectId: id)
+                case .detail(let id): ProjectDetailView(projectId: id, selectedChapterID: .constant(nil))
                 case .chat, .characterWorld: EmptyView()
                 }
             }

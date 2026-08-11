@@ -136,6 +136,14 @@ struct LayoutShellView: View {
     // projectId: UUID 非可选)。 nil = 用户还没点项目 row。
     @State private var selectedProjectID: UUID?
 
+    // LT-N3: selectedChapterID 升到 LayoutShellView 顶层 (跟 selectedProjectID
+    // 平级, DESIGN-LT-N3.md §2.3 + §3.1 拍板)。
+    //   - 写: ProjectDetailView 章节 tab row click → 驱动 selectedChapterID
+    //     后 pop 回 topCenter → EditorView 加载章节
+    //   - 读: EditorView (topCenter) 通过 binding 渲染章节 sidebar + TextEditor
+    // nil = 用户还没选章节。
+    @State private var selectedChapterID: String?
+
     // V0-fix-7 BUG 1: + 按钮 modal sheet 显隐 state (替代 LT-N1-merge
     // 回滚的 `navPath.append(AppRoute.createProject)` push 路由)。 true
     // = sheet 弹出 (用户点 + 按钮), false = sheet 关闭 (用户点 取消 /
@@ -274,7 +282,13 @@ struct LayoutShellView: View {
         // NavigationStack 在 LayoutShellView 顶层), 跟 ProjectBrowserView
         // 自挂 NavigationStack 的 LT-N1 原案不同 — 沿 V0-fix-6 拍板。
         case .detail(let projectId):
-            ProjectDetailView(projectId: projectId)
+            // LT-N3: ProjectDetailView 接 selectedChapterID binding (DESIGN-LT-N3
+            // §1 步 4), 章节 tab row click 驱动 selectedChapterID + pop 回
+            // topCenter → EditorView 加载章节。
+            ProjectDetailView(
+                projectId: projectId,
+                selectedChapterID: $selectedChapterID
+            )
         }
     }
 
@@ -487,6 +501,17 @@ struct LayoutShellView: View {
                         navPath: $navPath,
                         activeTab: $activeTab,
                         selectedProjectID: $selectedProjectID
+                    )
+                } else if id == .topCenter {
+                    // LT-N3 (DESIGN-LT-N3.md §1 + §5.1): 接管 topCenter,
+                    // 渲染 EditorView (顶 toolbar + 章节 sidebar + TextEditor
+                    // + 底 toolbar)。 selectedChapterID 由顶层 @State 持有,
+                    // ProjectDetailView 章节 tab row click 驱动后这里
+                    // onChange 接 binding 加载章节。 selectedProjectID 同步
+                    // 章节 sidebar 拉项目下章节列表 (listChapters)。
+                    EditorView(
+                        selectedProjectID: $selectedProjectID,
+                        selectedChapterID: $selectedChapterID
                     )
                 } else {
                     PlaceholderContent(panel: id)
