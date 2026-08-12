@@ -69,6 +69,9 @@ let package = Package(
                 // as a top-level resource). Keep the file on disk so the
                 // linker flag resolves, but tell SwiftPM to ignore it.
                 "Resources/Info.plist",
+                // AIF 大管家 8/12 14:15 修正: 备 .icns 3 variant (light/mono) 给后续 dark 切换/调试用, SPM 见到会报 unhandled warning, exclude 掉
+                "Resources/Brand/light/AppIcon.icns",
+                "Resources/Brand/mono/AppIcon.icns",
                 // V0-fix-12: designer 落档的 9 份 DESIGN-*.md 与视图源码同目录
                 // (设计意图贴着实现放, 便于 CC 改视图时直接读). 它们是文档不是
                 // 运行时资源, SwiftPM 见到就报 "unhandled file" warning.

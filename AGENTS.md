@@ -215,4 +215,34 @@ AGENTS.md
 
 13.6 回流触发 = 老板 拍 AGENTS.md 改动后,AIF 落 comment 标记"v0.X.Y 自进化生效"+ 关闭本轮 STATE.md 段
 
+# 14 自纠承诺 (老板 8/12 拍: "下次派卡,不要再出现跑完了,但给我看的 APP 没更新的情况")
+
+14.1 派单派代码前 AIF 大管家必查 5 件现状 (≤ 2 分钟):
+  (a) `git log --oneline -10 <主分支>` 确认最新 commit message + 文件清单
+  (b) `git show <最新 commit> --name-only` 确认改动文件实际路径(不是 commit body 写的路径, 是 git 真值)
+  (c) 老板 看的 APP 实际加载哪个资源链 (e.g. swift build 复制源 = Resources/Brand/X.icns vs .appiconset 是否被 actool 编译)
+  (d) bundle/Contents/Resources/ 实际文件 mtime + MD5 对比
+  (e) 5 件现状写进派单卡 body (§3 派单规则 v4 沿用)
+
+14.2 派单卡 body 必含 5 件老板 验货段:
+  (a) `git log --oneline -5` 输出 (派单前一刻抓, 让 reviewer 看到主线)
+  (b) 改动的真值文件路径(不是 commit body 写的)
+  (c) bundle 实际加载链路 + mtime 验证
+  (d) 老板 验货命令 (e.g. `md5 .build/out/Products/Debug/*/Contents/Resources/AppIcon.icns`)
+  (e) FAIL 标准:老板 跑命令 MD5 与 commit 改的不一致 = 派单方主动重做(不阻塞老板)
+
+14.3 AIF 大管家自纠(8/12 14:15 拍):
+  - 根因 1: commit 2bdd0d8cf body 写"Assets.xcassets/AppIcon.appiconset/" 裸路径, git 真值带"Sources/WenshuApp/" 前缀, AIF 没核对 → 误导后续沟通
+  - 根因 2: AIF 大管家没查老板 实际看的 APP 资源链路(SPM .copy 源 = Brand/, .appiconset 不进 .car)→ 派单方改错位置
+  - 根因 3: AIF 大管家把 LOGO v2 全面应用当成"PNG/ICNS 复制完成", 没在 commit 末尾加一段"老板 验货: 跑 swift build 后看 bundle/Contents/Resources/AppIcon.icns MD5 = e7aa024d..."
+  - 自纠:AIF 大管家以后任何"改了资源/改了 UI/改了图标"的卡, commit message 末尾必加 1 行"老板 验货: <具体命令> 期望 = <MD5/size>"(沿 §14.2 (e))
+  - 自纠 2: AIF 大管家用词约束——禁止"修真"(修仙小说语义), 改用"修正"或"修改";禁止"装机 user", 改用"老板"(沿 AGENTS §12 + 老板 8/12 14:12 OOB 强调)
+
+14.4 §14.3 根因 1+2+3 已 8/12 14:15 AIF 大管家主动落地:
+  - cp LOGO-v2 dark AppIcon.icns → Sources/WenshuApp/Resources/Brand/AppIcon.icns (mtime 8/12 14:15, MD5 e7aa024d...)
+  - cp LOGO-v2 light + mono AppIcon.icns → Brand/light/ + Brand/mono/ (备 .icns 3 variant)
+  - Package.swift exclude Brand/{light,mono} (避免 SPM unhandled warning 复发)
+  - 待 swift build → bundle/Contents/Resources/AppIcon.icns MD5 应变 e7aa024d... (老板 验货段 §14.2 (d))
+  - 待 commit + push 双仓 (沿 8 段双向闭环)
+
 Wenshu AGENTS.md v0.04.0
