@@ -673,54 +673,30 @@ struct LayoutShellView: View {
             }
             .frame(width: width)
         } else {
+            // v0.05.0 Zone 协议 wrapper (t_8fc5c872): 5 if/else 分支
+            // 改 switch 5 case, ZoneContext 注入, 5 Zone 入口 View 走
+            // ZoneRenderer 协议 (DESIGN-Zone.md §5.1)。 折叠态保留
+            // (Q2 折叠态 t_c6f48f43 不动), 5 Zone 内容渲染走 Zone 协议。
+            let context = ZoneContext(
+                panelID: id,
+                selectedProjectID: $selectedProjectID,
+                selectedChapterID: $selectedChapterID,
+                navPath: $navPath,
+                projects: $projects,
+                activeTab: $activeTab
+            )
             PanelContainer(panelID: id) {
-                if id == .bottomLeft {
-                    ChatPanelView()
-                } else if id == .topRight {
-                    // WO-LT-02-v2: inspector 2 tab 嵌入 (伏笔真读
-                    // CDForeshadow + 修订 mock 3 条)。 InspectorView
-                    // 是 InspectorViewModel.shared 的 @ObservedObject
-                    // consumer — inspector 状态 (折叠 / 选 tab /
-                    // 拉伏笔列表) 跟左 / 中半 layout 完全解耦, 拖
-                    // topRight 改宽不影响其他 panel。 严禁在这里走
-                    // sheet / NavigationStack push — 见 AGENTS §6。
-                    InspectorView()
-                } else if id == .topLeft {
-                    // V0-fix-5 (沿用, LT-N1-merge 拍板保留): ProjectListView
-                    // 容器跨 header bar + panel(.topLeft) 双区 — 5 tab
-                    // Picker 在 header bar (topLeftHeaderBar), tab 内容
-                    // (项目列表 / 章节树 / 设定 / 资料 / 看板) 在 panel
-                    // 内, 共享 activeTab binding (顶层 LayoutShellView
-                    // @State, header bar 持有 Picker, panel 内 ProjectListView
-                    // 接 binding)。 LT-N1-merge 在此接 selectedProjectID
-                    // binding, 让 ProjectListView 章节 tab 拿到 id 后
-                    // 渲染 ChapterTreeView (LT-N1 P0-2 fix 真值)。
-                    //
-                    // 派单 LT-N1-merge 拍板: topLeft = ProjectListView
-                    // (V0-fix-6 5 tab 容器), 不挂 ProjectBrowserView
-                    // (LT-N1 原案是 ProjectBrowserView 自挂 NavigationStack
-                    // 让 push 只影响 topLeft, 但 V0-fix-6 拍 NavigationStack
-                    // 在 LayoutShellView 顶层, push 覆盖整 layout —
-                    // 沿 V0-fix-6 真值)。
-                    ProjectListView(
-                        projects: $projects,
-                        navPath: $navPath,
-                        activeTab: $activeTab,
-                        selectedProjectID: $selectedProjectID
-                    )
-                } else if id == .topCenter {
-                    // LT-N3 (DESIGN-LT-N3.md §1 + §5.1): 接管 topCenter,
-                    // 渲染 EditorView (顶 toolbar + 章节 sidebar + TextEditor
-                    // + 底 toolbar)。 selectedChapterID 由顶层 @State 持有,
-                    // ProjectDetailView 章节 tab row click 驱动后这里
-                    // onChange 接 binding 加载章节。 selectedProjectID 同步
-                    // 章节 sidebar 拉项目下章节列表 (listChapters)。
-                    EditorView(
-                        selectedProjectID: $selectedProjectID,
-                        selectedChapterID: $selectedChapterID
-                    )
-                } else {
-                    PlaceholderContent(panel: id)
+                switch id {
+                case .topLeft:
+                    TopLeftZone(context: context)
+                case .topCenter:
+                    TopCenterZone(context: context)
+                case .topRight:
+                    TopRightZone(context: context)
+                case .bottomLeft:
+                    BottomLeftZone(context: context)
+                case .bottomRight:
+                    BottomRightZone(context: context)
                 }
             }
             .frame(width: width)

@@ -30,7 +30,11 @@ final class EditorViewModel: ObservableObject {
     /// 本卡 MVP 留 state, 未来 v0.04.0 真接 panel 隐藏 (现在 layout shell
     /// 没动, toggle 只触发 viewModel 状态变化, EditorView 内部根据 isFullScreen
     /// 切换 outline 的显隐)。
-    @Published var isFullScreen: Bool = false
+    ///
+    /// v0.05.0 Zone 协议 (t_8fc5c872) ViewModel 收口 (沿 DECISION §4.2 #4 + DESIGN-Zone.md §7.3):
+    /// 改 `private(set)`, write access 收口到 VM 内部 method (toggleFullScreen())。
+    /// EditorView 接 @StateObject 调 vm.toggleFullScreen() 而非 isFullScreen.toggle()。
+    @Published private(set) var isFullScreen: Bool = false
 
     init() {}
 
