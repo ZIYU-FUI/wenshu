@@ -1,316 +1,207 @@
-# AGENTS.md · 文枢 (Wenshu)
+AGENTS.md
 
-> 项目基线 v0.00.0(2026-08-06 你拍板)
-> **本文件 = 协作规则真理源**
-> 任何"角色边界/派单/插件策略/评论 SLA/升级/数据资产/跨设备"全在本文件,其他文档只放指针
+本文件 = wenshu 项目协作规则真理源。任何对角色边界 / 派单 / 插件策略 / 数据资产 / 跨设备 / 阶段门 / 自进化机制的查询,只查本文件。迭代日志在 .hermes/AGENTS_LOG.md(本文件不写)。
 
----
-## 1. 角色边界 (2026-08-06 v0.00.0 拍) — 详见 §14.8 6 角色落位总图
+执行硬规:
+- 第一行是事实
+- 末行就是事实
+- 禁中性词:可/应当/或许/可能/应该/建议/考虑/试图/尽量/大概/也许/或/任意/大概率/通常/一般来说
+- 用确词:是/否/行/不行/可以/不可以/不变/变
+- 对老板 的唯一称谓 = 老板,不混用旧称谓
 
-## 3. 派单原则 (2026-08-06 拍) — 详见 §14.3 派单精简 7 条
+# 1 角色边界
 
-- **P12 6 截图固定化** (沿 §14.3 2) = AIF 拉起必拍 (标题栏 / 左上 5 tab / 中上 / 右上 / 底部 chat / 底部时间线)
-- **单条件退出门** (沿 §14.3 4) = 完成指示器 AND CUA 6 截图 AND 无新红色批注 (三层 AND)
-- **派单看板 = wenshu** (沿 8/11 22:10 装机 user OOB) = 派单前必跑 `hermes gateway status` + `hermes config check` + `hermes approvals suggest --days 7`
+- 研发流程 6 角色:PM-direct / designer / CC / cc-runner / reviewer / AIF
+- 老板 = 流程拍板权唯一权威
+- ANAN = hermes 管家,不在研发 6 角色
+- 老板召集团策群力会 = 主持,角色 reply
+- 多 agent 各司其职,不用 1 个 agent 通吃
 
-## 4. PM↔CC 单 loop 流程 — 新 6 角色流程见 §14.7.0 + §14.8 (砍 8/11 21:50 老版)
+# 2 派单
 
-## 5. 拍单边界 (2026-08-06 重写) — 跟 §12 红线合并见末尾 1 表
+- PM-direct 派单
+- 单卡 ≤ 80 行硬上限
+- 派单前必跑 hermes gateway status + hermes config check + hermes approvals suggest --days 7
+- 派单看板 = wenshu(不混 novel-platform / default / archive)
+- 派单卡 body 必含 §3.2 4 件套
+- CC 调用权永久 = cc-runner,5 profile 之间不存在派单中转
 
-## 6. 评论格式 (沿用 7/7 立 · 事事有反馈)
+# 3 派单原则
 
-**任何评论必带**: task_id (自动) + 时间戳 (自动) + 内容 < 5 行
+3.1 P12 6 截图固定化 = AIF 拉起必拍(标题栏 / 左上 5 tab / 中上 / 右上 / 底部 chat / 底部时间线),与 v0-fix-N-1 对比,功能消失 = 必回退
+3.2 派单卡 4 件套(沿 PM-direct 9 协议):
+  - 目标
+  - 范围
+  - 标准
+  - 边界
+3.3 单条件退出门(Ralph 三层 AND) = 完成指示器 AND CUA 6 截图 AND 无新红色批注,任一不满足 = 不进 done
+3.4 派单前 dispatcher 必跑的 3 件 = hermes gateway status + hermes config check + hermes approvals suggest --days 7
+3.5 派单卡 body 必含 §14.2 2 落点提示:本卡 done 前 4 角色按 assignee 必落 1 行 STATE.md(≤ 30 字, 3 选 1:规则冲突 / 冗余 / 新规则需求 + 1 句理由)
+3.6 派单卡 assignee 硬约束:沿 §14.2 2 落点
 
-**3 种规范答复**:
-- ✅ 采纳: 做了 + 何时生效
-- ❌ 拒绝: 理由 + 改做什么
-- ⏸ 延后: 原因 + 重新打开触发条件 + 跟踪 owner
+# 4 PM↔CC 单 loop
 
+- 正向 5 段(6 角色扩):AIF 沟通需求 → designer 设计稿 → PM 拆卡 ≤ 80 行 → cc-runner fire CLI → cloud code 写代码
+- 逆向 5 段关卡:reviewer 审 → cc-runner 关执行卡 → PM 关派单卡 → designer 验收 UI → AIF 关卡 → 老板 验
 
-## 7. 数据资产硬约束(2026-08-06 拍)
+# 5 拍单边界 + 跨边界红线
 
-> 真理源:本节。CLAUDE.md §Security 必须 @本节
+5.1 CC 写代码(wenshu/ 根下):
+  - SwiftUI 视图 + ViewModel
+  - CoreData model + actor store + 检索接口
+  - minimax cn LLM client(Anthropic 兼容协议)+ SSE parser
+  - 标记系统(※ 待定、伏笔/信息点/历史事实)
+  - 看板组件、修订候选展示
+  - 单元测试 + 用户旅程测试
+  - git commit(本任务权限下)
+  - Package.swift / .xcodeproj 依赖增删(版本号变更需 PM 拍)
 
-- **数据资产 = 你自管** — `.ws` 单文件 = 你的项目数据,文枢不依赖云端服务、不要求账号、不上传你的作品
-- **跨设备靠你** — 你通过复制 `.ws` 文件、iCloud、OneDrive、Git、U 盘等任何方式跨设备,文枢不参与
-- **多设备多入口经主控路由** — iPhone 记录的想法必须经主进程处理,不能直接修改主项目,避免多端并发覆盖
-- **冲突解决:版本号 + 你后置决定** — 文件级版本号,打开时校验,不一致时备份旧版 + 创建新副本
-- **卸载软件后数据仍可用** — 卸载文枢后 `.ws` 文件保留,数据不丢
-- **格式:CoreData store + 附件包 + 资源目录**
-- **LLM key 存 macOS Keychain** — 不在文件、log、commit message 中明文出现
-- **封存的旧 monorepo fork 不可读不可写** — `/Volumes/ANAN/Engineering/.archive/wenshu-monorepo-fork/v0.x-monorepo-fork-2026-08-06/` 是只读历史,CC/AIF 都不能改
+5.2 PM 改(CC 不动):
+  - README.md / AGENTS.md / CLAUDE.md / CHANGELOG.md
+  - Kanban 工单
+  - .ws 文件结构
+  - 跨设备同步策略
+  - 蒸馏风格入库策略
+  - 阶段门升级 + 阶段回流触发
+  - minimax 模型名清单(PM 拍)
 
+5.3 双向要问老板(CC 不自决):
+  - 跳质量门禁
+  - 改 LLM provider 适配层签名
+  - 改主进程 / actor / 阶段门触发逻辑
+  - 改 .ws schema
+  - 跨阶段(v0.00.x → v0.01.x)
+  - 改离线 / 在线状态切换
+  - 改多设备冲突解决
 
-## 8. 阶段门控(v0.00.x / v0.01.x / v0.02.x)
+5.4 红线(任何 → 改下列都越界):
+  - AIF → PM:替 PM 派工单 / 验收
+  - AIF → CC:直接调 CC(必须走 PM)
+  - PM → AIF:替 AIF 定方向 / 推动阶段门
+  - PM → CC:替 CC 执行
+  - 任何 → 同时多项目并行
+  - AIF / PM / CC → .archive/wenshu-monorepo-fork/(只读历史)
+  - CC → 改任何 AI 平台任何代码文件
+  - CC → 改 LLM provider 适配层签名
+  - CC → 改 .ws schema
+  - CC → 跳质量门禁
+  - PM → 改 wenshu/ 源码(改 = 替 CC 执行)
+  - 任何 → 替老板 拍产品需求
+  - 任何 → 替老板 做 LLM key 配置决策
+  - 任何 → 上传老板 .ws 到云端
+
+# 6 评论
+
+任何评论必带:task_id(自动)+ 时间戳(自动)+ 内容 < 5 行
+
+3 种规范答复:
+  - ✅ 采纳:做了 + 何时生效
+  - ❌ 拒绝:理由 + 改做什么
+  - ⏸ 延后:原因 + 重新打开触发条件 + 跟踪 owner
+
+# 7 数据资产
+
+- 数据资产 = 老板 自管
+- .ws 单文件 = 老板 的项目数据,文枢不依赖云端服务
+- 跨设备靠老板 自管(复制 .ws / iCloud / OneDrive / Git / U 盘)
+- 多设备多入口经主控路由,iPhone 记录想法经主进程处理
+- 冲突解决:版本号 + 老板 后置决定
+- 卸载软件后数据仍可用
+- 格式:CoreData store + 附件包 + 资源目录
+- LLM key 存 macOS Keychain,不入文件 / log / commit message
+- 封存的旧 monorepo fork 不可读不可写
+
+# 8 阶段门
 
 | 阶段 | 节点 | 验收标准 |
 |------|------|---------|
-| **v0.00.0** | 项目基线 | 3 文档定稿(README/AGENTS/CLAUDE) + Swift 包初始化 + CoreData 单文件验证 + minimax cn LLM 接入验证(Anthropic 兼容) |
-| **v0.01.0** | 极简闭环 | 创建项目 → 写一句话故事 → AI 举一反三 → 你选择 → 生成人物/世界骨架(只读展示) |
-| **v0.02.0** | 完整闭环 | 聊天驱动设定演化 + 资料库后台调研 + 看板实时反映 + 修订候选不覆盖 + **5 区 layout grammar + 折叠 + 拖拽(FCP 风格, layout 状态存 .ws 文件)**(详见 §8.1) |
-| **v0.03.0** | 阶段门 | 想法讨论 → 设定 → 大纲 → 正文,你控制节奏,AI 判断成熟度 |
-| **v0.04.0** | 长篇工具 | 章节拖拽卡片 + 情绪曲线 + 关系图 + 时间线 + 注水量 1-9 级 + 文笔风格 |
-| **v0.05.0** | 标记系统 | `※` 待定(快捷键+整章拦截) + 伏笔/信息点(选区右键) + 历史事实(AI 判断) |
-| **v0.06.0** | iPhone 端 | 想法记录 + 聊天创作 + 项目状态查看 + 标记系统完整 |
-| **v0.07.0** | 离线模式 | 本地写正文 + 看板 + 标记,LLM 联网,网络恢复增量合并 |
-| **v1.00.0** | 发布候选 | App Store 提交(此时才付 Apple Developer Program $99) |
+| v0.00.0 | 项目基线 | 3 文档定稿 + Swift 包初始化 + CoreData 单文件 + minimax cn LLM 接入 |
+| v0.01.0 | 极简闭环 | 创建项目 → 写一句话故事 → AI 举一反三 → 老板 选择 → 生成人物/世界骨架 |
+| v0.02.0 | 完整闭环 | 聊天驱动设定演化 + 资料库后台调研 + 看板实时反映 + 修订候选不覆盖 + 5 区 layout grammar + 折叠 + 拖拽(FCP 风格, layout 状态存 .ws) |
+| v0.03.0 | 阶段门 | 想法讨论 → 设定 → 大纲 → 正文,老板 控制节奏,AI 判断成熟度 |
+| v0.04.0 | 长篇工具 | 章节拖拽卡片 + 情绪曲线 + 关系图 + 时间线 + 注水量 1-9 级 + 文笔风格 |
+| v0.05.0 | 标记系统 | ※ 待定 + 伏笔/信息点 + 历史事实 |
+| v0.06.0 | iPhone 端 | 想法记录 + 聊天创作 + 项目状态查看 + 标记系统 |
+| v0.07.0 | 离线模式 | 本地写正文 + 看板 + 标记,LLM 联网,网络恢复增量合并 |
+| v1.00.0 | 发布候选 | App Store 提交 |
 
-**版本号格式**:三位(Hermes 风格),中间位 = 阶段号,第三位 = hotfix。
+8.1 Layout Grammar 5 区:详细见 Sources/WenshuApp/Views/DESIGN-V0-fix-*.md
 
-**反馈包** = 产品截图(文枢跑起来) + 一句话 + 下一步方向(禁止文档截图)
+# 9 活动区 vs 归档区
 
+规则:
+  - 改 active 的 wenshu/(Swift/SwiftUI/CoreData/3 文档)
+  - 改沙盒 ~/Engineering/llm-call-test/ + ~/Engineering/wenshu-arch-experiments/
+  - 不动 /Volumes/ANAN/Engineering/.archive/wenshu-monorepo-fork/(只读)
+  - 不动 /Volumes/ANAN/Engineering/novel-platform/(历史包袱)
+  - 不动 /Volumes/ANAN/Engineering/Hermes-Slate-Desk/(Tauri 时代留档)
+  - 不动 ~/.hermes/ 下 hermes 自带文件
+  - 不动 老板 自带的其他 hermes profile(~/.hermes/profiles/ 下非 wenshu)
 
-### §8.1 Layout Grammar v0.02.0 (5 区 + 折叠 + 拖拽, FCP 风格) — 详细见 `Sources/WenshuApp/Views/DESIGN-V0-fix-*.md`
+# 10 风险与缓解
 
-- ✅ 2026-08-07 老板 拍板: 5 区 (上 3 + 下 2, 聊天 + TODO 分下半) — 老板最终定
-- 实质内容 (5 区几何 + 折叠 + 拖拽 + 5 区内容映射 + 4 子任务 LT-01~04) 已迁到 Sources/WenshuApp/Views/DESIGN-V0-fix-*.md, AGENTS.md 不重复
+3 条底线:
+  - 数据资产不丢
+  - 真机拍是底线
+  - CUA 是底线
 
-## 9. Active vs Archive 区分(必读)
+# 11 项目基线
 
-```
-/Volumes/ANAN/Engineering/
-├── wenshu/                                       ← ACTIVE 工作区(v0.00.0 文枢项目根)
-├── .archive/
-│   ├── wenshu-monorepo-fork/
-│   │   └── v0.x-monorepo-fork-2026-08-06/        ← 旧 hermes monorepo fork 封存(只读)
-│   ├── novel-craft/                              ← 历史归档
-│   └── novel-platform/                           ← 历史归档
-└── (其他历史:loop-engineering / novel-canvas / novel-research / open-design)
----
-~/Engineering/                                   ← 沙盒(不进项目)
-├── llm-call-test/                                ← 实验 4:minimax cn LLM (Anthropic 兼容)
-├── wenshu-arch-experiments/
-│   ├── Exp5-CoreData/                            ← 实验 5:CoreData 单文件
-│   └── Exp6-Concurrency/                         ← 实验 6:Swift Concurrency + CoreData
-└── (其他调研)
-```
+- 架构:Swift/SwiftUI + CoreData + 单进程协程 + 自建轻量 AI 内核
+- 不调任何外部 AI 平台
+- 第一版 LLM provider 只支持 minimax cn(Anthropic 兼容协议)
+- .ws 单文件 = CoreData + 附件,本地自管
+- Apple 全家桶专属(macOS/iPad/iPhone)
+- 项目根 = /Volumes/ANAN/Engineering/wenshu/
+- Apple Developer Program 发布时再付(个人 $99/年)
+- 版本号:三位(Hermes 风格),中间位 = 阶段号,第三位 = hotfix
+- 3 文档 = 本文件 + README.md + CLAUDE.md
+- 不带 hermes monorepo 痕迹(不再 fork)
+- 不带 Tauri / Rust / SQLite / Vue 3 痕迹
+- 不带 sparse clone 假设
+- 不带 novel-platform / novel-craft / Hermes-Slate-Desk 旧 V0.5.x 协议
+- 不调任何外部 AI 平台任何代码文件
+- 不替老板 决定 LLM key 配置
+- 不在 ~/wenshu-plugin/ 之外建项目目录
+- 不写 ~/.wenshu/ 任何文件
+- 不自写 wenshu CLI(文枢 = Swift 桌面应用,不是 CLI)
+- 不动 ~/.hermes/ 下 hermes 自带文件
+- 不动 .archive/wenshu-monorepo-fork/ 任何文件
 
-**规则**(2026-08-06 重写):
-- ✅ 改 active 的 `wenshu/`(Swift/SwiftUI/CoreData/3 文档)
-- ✅ 改沙盒 `~/Engineering/llm-call-test/` + `~/Engineering/wenshu-arch-experiments/`
-- ❌ **绝对不动** `/Volumes/ANAN/Engineering/.archive/wenshu-monorepo-fork/`(只读)
-- ❌ **不动** `/Volumes/ANAN/Engineering/novel-platform/`(本机历史包袱)
-- ❌ **不动** `/Volumes/ANAN/Engineering/Hermes-Slate-Desk/`(Tauri 时代留档)
-- ❌ **不动** `~/.hermes/` 下任何 hermes 自带文件(你的边界外)
-- ❌ **不动** 你自带的其他 hermes profile(`~/.hermes/profiles/` 下非 wenshu)
+# 12 跨角色表达硬约束
 
+- 对老板 的唯一称谓 = 老板,任何对话 / 文档 / 卡 body / metadata / commit message / comment / prompt 一律用老板
+- 不出现任何指向该用户的旧称谓写法
+- 研发角色 = PM-direct / designer / CC / cc-runner / reviewer / AIF 共 6 个
+- ANAN = hermes 管家,不做流程活(见 §14 落位总图)
 
-## 10. 风险与缓解 (v0.00.0 砍一半, 沿 §14.3 6)
+# 13 自进化方法论
 
-- **数据资产不丢** (沿 §7)
-- **真机拍是底线** (沿 §14.7 designer 3 件加值 3)
-- **CUA 是底线** (沿 §14.5 / §3 派单原则)
+13.1 落点机制:
+- 路径 = /Volumes/ANAN/Engineering/wenshu/.hermes/STATE.md(项目级,不入 git,kanban 自动 append)
+- 触发 = 每张卡 done 前必落 1 行(≤ 30 字, 3 选 1:规则冲突 / 冗余 / 新规则需求 + 1 句理由)
+- 触发角色:
+  - CC / designer / PM-direct / reviewer 4 角色按 assignee 必落
+  - AIF 在以下情况必落或必写:
+    (a) 阶段门聚合按 §14.2 3 主动读写(回流触发)
+    (b) 老板 新拍规则进 §13 时,AIF 直接写
+    (c) AIF 被 assignee 的卡(流程切换自查型)= 豁免走 §14.2 7 阶段门聚合,自查本身充数
+- 漏落 = 下次阶段门聚合时 AIF 主动问"为什么没落",不进 §14.2 4 砍
 
-## 11. 升级路径 — 砍, 沿 §13 / §14.6 隐含
+13.2 聚合周期:
+- 阶段门控节点(v0.03.0 → v0.04.0 → ...)
+- 老板 显式触发"聚合"
 
-## 12. 跨边界红线 + 拍单边界 (合并, 2026-08-06 重写)
+13.3 改 AGENTS.md 4 动作:
+- 加 = 新规则有 ≥ 2 个实例支持
+- 合 = 2 条规则重复
+- 降 = L3 → L1(沿 §1 §3 L1/L2/L3 三级)
+- 砍 = 规则 0 实例支持超过 1 个阶段门
 
-**CC 写代码 (wenshu/ 根下)**:
-- SwiftUI 视图 + ViewModel / CoreData model + actor store + 检索接口 / minimax cn LLM client (Anthropic 兼容协议) + SSE parser / 标记系统 (`※` 待定、伏笔 / 信息点 / 历史事实) / 看板组件、修订候选展示 / 单元测试 + 用户旅程测试 / `git commit` (本任务权限下) / `Package.swift` / `.xcodeproj` 依赖增删 (版本号变更需 PM 拍)
+13.4 AIF 改 AGENTS.md 走 §13:不在对话里直接改 + commit + push = 不派 fire-wrapper 卡(沿 §1 老板 头尾规则)
 
-**PM 改 (CC 不动)**:
-- `README.md` / `AGENTS.md` / `CLAUDE.md` / `CHANGELOG.md` / Kanban 工单 (hermes kanban DB) / `.ws` 文件结构 / 跨设备同步策略 / 蒸馏风格入库策略 / 阶段门升级 + 阶段回流触发 / minimax 模型名清单 (PM 拍)
+13.5 首期聚合 = 老板 拍本节生效后立即触发
 
-**双向要问老板 (CC 不能自己拍)**:
-- 跳质量门禁 (test / lint / CI) / 改 LLM provider 适配层签名 / 改主进程 / actor / 阶段门触发逻辑 / 改 `.ws` 文件 schema / 跨阶段 (v0.00.x → v0.01.x 等) / 改离线 / 在线状态切换行为 / 改多设备冲突解决策略
+13.6 回流触发 = 老板 拍 AGENTS.md 改动后,AIF 落 comment 标记"v0.X.Y 自进化生效"+ 关闭本轮 STATE.md 段
 
-**红线 (任何 → 改下列)**:
-- AIF → PM 替 PM 派工单 / 验收
-- AIF → CC 直接调 CC (必须走 PM)
-- PM → AIF 替 AIF 定方向 / 推动阶段门
-- PM → CC 替 CC 执行
-- 任何 → 同时多项目并行
-- AIF / PM / CC → `.archive/wenshu-monorepo-fork/` (只读历史, 改 = 越界)
-- CC → 改任何 AI 平台任何代码文件 (沿用 8/4 老板 拍)
-- CC → 改 LLM provider 适配层签名 (改 = 越界, 归 PM)
-- CC → 改 `.ws` schema (改 = 越界, 归 PM)
-- CC → 跳质量门禁 (改了必须回归测试)
-- PM → 改 wenshu/ 源码 (改 = 替 CC 执行)
-- 任何 → 替老板 拍产品需求 (老板 拍)
-- 任何 → 替老板 做 LLM key 配置决策 (老板 自己配)
-- 任何 → 上传老板 `.ws` 到云端 (数据资产自管)
-
-## 13. 项目基线上下文(2026-08-06 你拍,整体转向)
-
-你拍项目基线 v0.00.0:
-- **架构**:Swift/SwiftUI + CoreData + 单进程协程 + 自建轻量 AI 内核
-- **不调任何外部 AI 平台,不假设你懂任何 AI 工具**
-- **第一版 LLM provider 只支持 minimax cn**(Anthropic 兼容协议,minimax 官方推荐)
-- **`.ws` 单文件** = CoreData + 附件,本地自管
-- **Apple 全家桶专属**(macOS/iPad/iPhone)
-- **项目根** = `/Volumes/ANAN/Engineering/wenshu/`
-- **支付 Apple Developer Program** 发布时再付(个人 $99/年)
-- **版本号格式**:三位(Hermes 风格),中间位 = 阶段号
-- **3 文档已落档** = 本文件(AGENTS.md v0.00.0)+ README.md v0.00.0 + CLAUDE.md v0.00.0
-- **下步** = 派 v0.01.0 极简闭环工单给 PM
-
-**历史拍板全废时间线**(2026-08-06 你拍):
-- ❌ 2026-07-23 — 项目基线 0.0.0(NousResearch/hermes-agent v0.19.0 fork,monorepo 改品牌)→ 作废
-- ❌ 2026-07-24 — wenshu 战略二次更正(1:1 复制 hermes 源码,仅 3 项改)→ 作废
-- ❌ 2026-08-04 — wenshu = hermes v0.20.0 插件(整体转向)→ 作废
-- ✅ 2026-08-06 — wenshu = Swift/SwiftUI 自建 + minimax cn LLM(Anthropic 兼容协议,官方推荐)→ **当前真值**
-
-**CC 接到任务必读本节**:
-- 不要带 hermes monorepo 痕迹(不再 fork)
-- 不要带 Tauri / Rust / SQLite / Vue 3 痕迹
-- 不要带 sparse clone 假设
-- 不要带 novel-platform / novel-craft / Hermes-Slate-Desk 旧 V0.5.x 协议
-- 不要调任何外部 AI 平台任何代码文件
-- 不要替你决定 LLM key 配置
-- 不要在 `~/wenshu-plugin/` 之外建项目目录(旧时代产物)
-- 不要写 `~/.wenshu/` 任何文件(目录已取消)
-- 不要自写 `wenshu` CLI(文枢 = Swift 桌面应用,不是 CLI)
-- 不动 `~/.hermes/` 下 hermes 自带任何文件
-- 不动 `.archive/wenshu-monorepo-fork/` 任何文件(只读历史)
-
-### 13.1 第 6 角色 CC (CLI runner, 8/11 21:35 老板 拍新增)
-
-- **CC 角色 = spawnable hermes profile** (cc-runner), 沿 §14.1 4 profile 自动加载基线技能 + cc-runner 专用技能
-- **CC 角色职责** (单件, 沿 老板 8/11 21:35 拍 "什么都不干"): 接 PM-direct 派单卡 + fire `claude -p "<4 件套 prompt>" --max-turns N` + 监控 exit code + git commit 落盘 (不 push) + 报告 PM-direct 完工 + commit hash + diff 摘要
-- **CC 角色 NOT 干的事**: 改设计稿 (designer 干) / 派单 (PM-direct 干) / 独立审查 (reviewer 干) / 改 AGENTS (AIF 干) / 落 STATE.md 落点 (老 CC 写代码干, 不是新 CC fire runner 干)
-- **CC 角色区分**: 老 CC = `claude -p` 跑的 Anthropic SDK agent, 新 CC = hermes profile 跑 `claude -p` fire CLI 的 runner
-
----
-
-
-## 14. 自进化方法论 v0.03.0(2026-08-11 你拍,老板 8/11 19:55 + 20:10 + 20:35 三段拍板合成)
-
-**沿 ECC 7 步闭环末两步**(`remember → improve`, 借鉴自 affaan-m/ECC 239k★),GSD 5 步闭环上下文(借鉴自 open-gsd/gsd-core),Ralph 双条件退出门(借鉴自 frankbria/ralph-claude-code)。
-
-### 14.1 默认研发模式(8/11 20:35 你拍)
-
-- **5 角色都是研发组**: AIF / PM-direct / designer / CC / reviewer,**默认研发模式**,不再有"非研发"分支
-- **4 profile 自动加载研发基线技能** (8/11 20:35 你拍,对应技能 hermes 启动时按 profile 预装):
-  - aif: research + grounded-citations + last30days
-  - my-pm: sdlc-review + hermes-kanban-ops
-  - designer: swiftui-design-patterns(沿 8/6 老板 拍已有)+ hallmark + baoyu-infographic
-  - reviewer: requesting-code-review + sdlc-review
-  - 共用基线 (4 profile 都装): i-have-adhd + humanizer-zh
-- **目前只有 wenshu 1 个项目**(8/11 20:35 你拍),无多项目分支,新加项目才扩 profile
-
-### 14.2 STATE.md 落点机制(8/11 19:55 你拍"自进化是核心抓手")
-
-1. **STATE.md 路径**: `/Volumes/ANAN/Engineering/wenshu/.hermes/STATE.md`(项目级, **不入 git**, kanban 自动 append)
-2. **落点触发** (硬约束, 8/11 老板 20:48 拍加固 + v0.04.0 老板 拍 8/12 补全 AIF 三种情况):
-   - **CC / designer / PM-direct / reviewer 4 角色按 assignee 必落 1 行 STATE.md** (≤ 30 字, 3 选 1: 规则冲突 / 冗余 / 新规则需求 + 1 句理由):
-   - **CC**: 改的代码是否触发新规则 (新增 API / 新增 entity)
-   - **designer**: 设计稿是否偏离 §8 layout grammar 或触发新规则
-   - **PM-direct**: 派单流程是否冗余 / 冲突
-   - **reviewer**: 审查 PASS/FAIL 是否暴露 §14 规则漏洞
-
-   - **AIF 漏记的三种情况 (v0.04.0 阶段门合, 8/12 装机 user 拍)**:
-     - (a) 阶段门聚合按 §14.2 3 主动读写 (§14.2 7 回流触发)
-     - (b) 老板新拍规则进 §14 时, AIF 直接写
-     - (c) AIF 被 assignee 的卡 (流程切换自查型) = 豁免走 §14.2 7 阶段门聚合, 自查本身充数
-   - **漏落** = 下次阶段门聚合时 AIF 主动问"为什么没落", 不进 §14.2 4 砍
-3. **聚合周期**: 老板 在**阶段门控节点**(v0.00.0 → v0.01.0 → ...) 或**显式触发**时, AIF 读 STATE.md 聚合(一次性拉所有 comment 落点,按冲突/冗余/新规则分类)
-4. **改 AGENTS.md 4 动作**:
-   - **加**: 新规则有 ≥ 2 个实例支持
-   - **合**: 2 条规则重复
-   - **降**: L3 → L1(沿 §1 §3 L1/L2/L3 三级)
-   - **砍**: 规则 0 实例支持超过 1 个阶段门
-5. **AIF 改 AGENTS.md 走 8/11 老板 头尾规则**: AIF 在对话里直接改 + commit + push,**不派 fire-wrapper 卡**(沿本卡硬约束)
-6. **首期聚合**: 老板 拍本节生效后立即触发(因为本节本身已含 4 角色 Q1-Q4 + 自进化 4 件套 + 派单精简 7 条,STATE.md 满)
-7. **回流触发**: 老板 拍 AGENTS.md 改动后, AIF 落 comment 标记 "v0.X.Y 自进化生效" + 关闭本轮 STATE.md 段(下次聚合从空开始)
-
-### 14.3 派单精简 7 条(8/11 19:55 PM-direct 收口,老板 8/11 20:35 拍)
-
-| # | 动作 | 类型 | 理由 |
-|---|------|------|------|
-| 1 | **P12.1 reviewer 2 阶 CUA 双层 → 砍**, P12 AIF 拍 6 截图即唯一 CUA 信源, reviewer 直接看 AIF 截图 | 砍 | P12.1 与 P12 信源重复, V0-fix-3/4/10/11 4 轮 2 阶审查漏 BUG 实证根因(PM-direct Q5 5 轮修同 BUG) |
-| 2 | **P12 6 截图清单固定化** = 标题栏 / 左上 5 tab / 中上 / 右上 / 底部 chat / 底部时间线, 落 §9.2 不再每次派单重写 | 留(固定化) | P12 是真护栏, 问题在每次派单重写 → 砍成本 |
-| 3 | **§8.1 layout grammar 拍板历史段(4 行) → 砍**, 只留 ✅ 8/7 老板 拍板 | 砍 | 拍板历史本身就是规则反复推翻的物证(本卡 §1 现象), 留着反复刺激"再来一次" |
-| 4 | **派单卡"反三段式 / 反五段式 / 修真 N 处"仪式性措辞 → 砍**, 只留 4 件套(目标/范围/标准/边界) | 砍 | 真生效靠 designer 设计稿 + CC commit diff, 仪式性措辞对 5 角色没增量 |
-| 5 | **拉起 APP 4 件前置** (git pull / swift build / mtime < 60s / CUA 非 0x0) **→ 留, 合并 1 处** | 留(合并) | 4 件是真护栏(防回退 / 防装配错), 但分散在 P12 / §3 / 派单卡 = 重复, 合并 1 处写 §3 |
-| 6 | **AGENTS §10 风险与缓解(275-301 行) → 砍一半**, 只留:数据资产不丢 / 真机拍是底线 / CUA 是底线 3 条 | 砍 | §10 v0.00.0 重写过, 装了 P12 后变冗余, 留着 5 角色读不进 |
-| 7 | **新增 §14.X 派单成本上限**: 单卡 kanban_comment 总行数 ≤ 80 行(含 4 件套 + 设计稿引用), 超 80 = PM-direct 拒派 | 新增 | 本卡直接证据 — 派单 200+ 行 > 实现成本, 设硬上限 |
-
-**预期**: AGENTS.md 361 → ≈ 290 行(-20%), 派单卡 200+ → 80 行(-60%), reviewer 2 阶 → 1 阶。
-
-### 14.4 借鉴清单 5 条(8/11 20:10 你拍"AIF 必评可补可裁", 8/11 20:19 AIF 落档, 8/11 20:35 你拍采纳)
-
-- **a. GSD 5 步闭环** (Discuss/Plan/Execute/Verify/Ship, open-gsd/gsd-core): **强借鉴**。派单前 discuss(2-3 行 clarify, 补 I1-I6 缺位的"需求讨论"端) + 完成后 ship(PM-direct 主动 push, 补"PR 闭环"端, 不是 CC 推)。GSD 5 端 → wenshu I1-I6 内部循环 + 两端 discuss/ship 补齐成 5 步闭环。
-- **b. ECC remember → improve** (affaan-m/ECC 239k★): **强借鉴**。落 §14.2 自进化 4 件套(STATE.md / 落点 / 聚合 / 4 改动作)。本节核心抓手。
-- **c. Ralph 双条件退出** (frankbria/ralph-claude-code 9.6k★): **强借鉴**。单条件退出门 = 完成指示器 AND CUA 6 截图 AND 无新红色批注(三层 AND), 任一不满足不进 done。比 reviewer 2 阶审查更严但更省人工(2 阶→1 阶)。
-- **d. Pimzino 4 步 spec** (Pimzino/claude-code-spec-workflow 3.8k★): **轻借鉴**。§4 流程图加 4 个 spec 节点(Requirements/Design/Acceptance/Boundary), 派单卡 4 件套(目标/范围/标准/边界)作为节点输入, 不重写派单格式。
-- **e. AIOX first-value 10 分钟** (SynkraAI/aiox-core 3.1k★): **轻借鉴**。CC 跑通首个测试 OR designer 出第一稿作为 first-value, **30 分钟**内无回流到 PM-direct 调工单(10 分钟太紧, CC 长任务经常超 10 分钟, 30 分钟是合理阈值)。
-- **f. ECC 285 skills / 68 agents 知识分层** (affaan-m/ECC): **不借鉴**。wenshu 当前 §4 单 loop + §5 3 类项目文档骨架已经够用, 引入 285 skills 会破坏 AIF 大管家边界(8/11 老板 拍 "AIF 优先级 = 老板当前关注点, 不引入额外层级")。
-
-### 14.5 老板 头尾规则(8/11 老板 拍, 本节生效)
-
-- 永远在对话里和老板 拍板, 不派 fire-wrapper 卡
-- 不写 OOB 历史, 不重复 OOB 历史, 不写"等老板 验"阻塞字样
-- AGENTS.md 改 = **AIF 在对话里直接改 + commit + push, 不派卡**(沿 8/6 §1 AIF 边界). ANAN 越界写入已收回 (8/11 20:35 §14.5 错授权 "ANAN 任一" 改回 "AIF 任一").
-- 借鉴 = 落引用 + 落 1 行落地动作, 不照搬整个项目
-- 调研 ≠ 安装(沿 8/6 老板 拍)
-
-### 14.6 完整状态保证(8/11 20:35 你拍"目前只有 wenshu 1 个项目, 保证每次会话是完整状态")
-
-1. **STATE.md 持久化**: `/Volumes/ANAN/Engineering/wenshu/.hermes/STATE.md` 不入 git(§14.2 1), hermes 启动时按 profile 自动加载
-2. **4 profile 启动注入研发基线技能**: §14.1 列的 4 profile 技能, hermes 启动时按 profile 预装, 不自启 skill
-3. **AGENTS.md 全文装进 system prompt**: 每次 session 起始, ANAN 把本文件(§1-§14)全本注入 system prompt(已实现, 沿 8/6 老板 拍)
-4. **STATE.md 装进 system prompt**: 每次 session 起始, ANAN 读 STATE.md 装进 system prompt(本节新增, 跨 session 状态)
-5. **mem0 落档(沿 8/11 老板 拍"默认走 mem0")**: 老板 偏好 / 拍板 / 人物关系 / 跨 session 状态, 全部走 mem0_add / mem0_search, 不写本地 memory 文件
-6. **会话外派单历史**: 沿 session_search, 不写 STATE.md(STATE.md 只装当前项目级规则)
-
-### 14.7 designer + reviewer 加值环节(8/11 20:48 老板 拍"设计师和审查员在里面吗", 加固 §14.4 d/§14.6 现有段)
-
-§14.4 d 重借鉴时只提"spec 节点", §14.6 完整状态保证不展开 designer/reviewer 真实落位。本节加固让 designer / reviewer = 流程内 loop, 不是"上桌"。
-
-**designer 3 件加值**(沿 8/6 §5 派单边界 + 8/10 PM-direct 三段式):
-1. **派单前主信源**: 出设计稿 (`Sources/WenshuApp/Views/DESIGN-*.md`) 作为 PM-direct 派 CC 的输入, **主信源, 不是 reviewer** (派单卡 4 件套 "目标/范围/标准/边界" 引用设计稿路径 = 派单成立)
-2. **§14.2 落点**: 每张 designer 卡 done 前, 在 STATE.md 落 1 行 (≤ 30 字, 3 选 1: 规则冲突 / 冗余 / 新规则需求)
-3. **真机拍**: 老板 修真 5 红字批注 (8/11 14:35 V0-fix-11) = 5 红字转 5 修真 (沿 V0-fix-1/2/10/11 5 轮实证, designer 修真 5 红字比 reviewer 2 阶审查更有效)
-
-**reviewer 3 件加值**(沿 8/10 PM-direct 三段式 + 8/11 §14.3 砍 2 阶):
-1. **派单后独立审查**: 独立审查 (read-only, 不动源代码), 沿 §14.3 1 砍 P12.1 (reviewer 不再 CUA 2 阶拍, 直接看 AIF §14.6 1 已落 STATE.md 信源)
-2. **§14.2 落点**: 每张 reviewer 卡 done 前, 在 STATE.md 落 1 行 (≤ 30 字, 3 选 1 + 1 句理由)
-3. **真机拍**: reviewer PASS 之后, 老板 拉起 APP 验 (沿 §3 §4 流程图两端, GSD 5 步闭环)
-
-**老板 加值**(沿 §14.5 头尾规则): 永远在对话里和老板 拍板, 不派 fire-wrapper 卡; 老板 拍"v0.03.0 ready" = 流程完整闭环。
-
-### 14.7.0 CC (CLI runner, 8/11 21:35 + 21:50 + 22:00 老板 三段拍)
-
-CC 角色 = hermes 独立 profile `cc-runner` (沿 hermes-agent skill profiles 部分, `hermes profile create cc-runner --clone --clone-from aif`)。CC 是独立身份, 不是 PM-direct 子能力。
-
-**CC 3 件加值**(沿 8/11 22:00 老板 拍"PM 不调 cloud code CLI, 交由 CC 调"):
-1. **派单后 fire CLI**: PM-direct 派单给 cc-runner, 派单卡 body 4 件套 = §3 派单原则原 4 件套, cc-runner fire `claude -p "<4 件套 prompt>" --max-turns <任务复杂度>` (沿 PM-direct 9 协议), 监控 exit code + fire log (`/tmp/cc-out/t_xxx-fire.log`)
-2. **派审 + 关执行卡**: cloud code 完成后, cc-runner 派审卡给 reviewer; reviewer PASS → **cc-runner 关执行卡** + 通知 PM-direct; reviewer FAIL → **cc-runner 派修复卡给 cloud code** (重新 fire CLI, 不是改 cc-runner 自身)
-3. **git commit 落盘不 push**: 沿 8/10 PM-direct 自纠硬约束 (CC 不 push, git commit 落盘不 push); 沿 8/10 不盲信 cloud code "完工"声明, 兜底手动 `kanban_complete` (沿 LT-N1-cc 撞 API 限制兜底先例)
-
-**CC NOT 干的事**(沿 8/11 21:35 老板 拍"什么都不什么干"):
-- NOT 改设计稿 (designer 干)
-- NOT 派单 (PM-direct 干)
-- NOT 独立审查 (reviewer 干)
-- NOT 改 AGENTS (AIF 干)
-- NOT 落 STATE.md 落点 (沿 §14.2 2 = 4 角色 CC/designer/PM-direct/reviewer = 老 CC 写代码干, 新 CC fire runner 不落)
-- NOT 直接跟老板 沟通 (沟通走 AIF/PM-direct)
-
-**reviewer 2 件加值改写**(沿 8/11 21:50 老板 重拍):
-1. **派单后独立审查**: 独立审查 (read-only, 不动源代码), 沿 §14.3 1 砍 P12.1 (reviewer 不再 CUA 2 阶拍, 直接看 AIF §14.6 1 已落 STATE.md 信源)
-2. **反馈给 CC, 不直接给 PM** (8/11 21:50 重拍): 审完 PASS/FAIL 都给 cc-runner (CC 是卡 owner), cc-runner 转发 PM-direct, reviewer 不直接关卡
-
-### 14.8 6 角色落位总图 (8/11 21:50 老板 重拍, 5 角色扩 6 角色)
-
-| 角色 | 落位 | §14 引用 | 加值 |
-|---|---|---|---|
-| AIF | 流程外 + 沟通需求 + 派单 + AGENTS 改 | §14.2 + §14.5 | 需求沟通方法论 + 阶段门聚合 + 拉起 APP 邀请老板 |
-| designer | AIF → PM 之间 | §14.7 + §14.2 | 设计稿主信源 + 修真老板 红字 + **代码级验收 UI** (8/11 21:50 重拍加) |
-| PM-direct (my-pm) | designer → cc-runner 之间 | §14.3 + §14.2 | 派单 + 拆卡(≤ 80 行单功能单卡) + 关派单卡 + 多小卡关关总卡 |
-| CC (cc-runner) | PM → cloud code 之间 (独立 hermes profile, 8/11 22:00 拍) | §14.7.0 + §14.2 | **fire CLI runner, 不写代码**, 监控进度, 派审, 关执行卡 |
-| cloud code (claude-code, non-spawnable terminal lane) | cc-runner fire CLI 触发 | §13.1 老 CC 真值 | 写代码 + git commit (不 push, 沿 8/10 PM-direct 自纠) |
-| reviewer | cc-runner 派审后 | §14.7 reviewer 改 + §14.2 | **反馈给 CC, 不直接给 PM** (8/11 21:50 重拍), PASS/FAIL 都给 cc-runner |
-
-**正向 5 段闭环**(沿 8/11 21:50 老板 重拍):
-```
-AIF(沟通需求 + 转卡片) → designer(保留原卡 + 设计稿) → PM(拆卡 ≤ 80 行) → cc-runner(fire CLI) → cloud code(写代码) → cc-runner(派审) → reviewer(审)
-```
-
-**逆向 5 段关卡流程图**(沿 8/11 21:50 老板 重拍):
-```
-reviewer 审完 → cc-runner 收到 PASS → cc-runner 关执行卡 + 通知 PM → PM 关派单卡 + 多小卡关 → PM 关总卡 + 通知 designer → designer 代码级验收 UI 通过 → designer 反馈 AIF → AIF 关 AIF 卡 + 拉起 APP + 邀请老板 → 老板 验 → 需求完成闭环
-```
-
-**§14 自进化机制 = 方法论 v0.03.0 形态**。下次阶段门(v0.03.0 → v0.04.0)老板 拍时, AIF 自动按 §14.2 4 动作聚合 STATE.md → 改本节。
-*AGENTS.md v0.00.0 · 2026-08-06 你拍板"全新基线 · 自建 Swift/SwiftUI + CoreData + minimax cn LLM (Anthropic 兼容协议)" · 项目根 = `/Volumes/ANAN/Engineering/wenshu/`*
-
+Wenshu AGENTS.md v0.04.0
