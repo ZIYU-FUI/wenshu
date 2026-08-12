@@ -42,27 +42,32 @@
 - **P12 (AIF 拉起必拍 6 截图, §9.2)**: CC merge main 后 AIF 必 CUA 拍 6 张 (标题栏/左上 5 tab/中上/右上/底部 chat/底部时间线) + 与 v0-fix-N-1 对比, 任何功能消失 = 必回退, 长期原则
 - **单条件退出门 (Ralph 三层 AND, §14.4 c)**: 完成指示器 AND CUA 6 截图(沿 P12) AND 无新红色批注, 任一不满足不进 done。reviewer 不再 2 阶审查 (砍 P12.1 §14.3 #1), reviewer 直接看 AIF 截图 + 列 before/after 12 元素
 - **派单卡 body 必含 §14.2 2 落点提示** (8/11 装机 user 21:15 拍加固): 派单卡 body 末尾必加 1 行 "本卡 done 前 4 角色按 assignee 必落 1 行 STATE.md (≤ 30 字, 3 选 1: 规则冲突 / 冗余 / 新规则需求 + 1 句理由, 沿 §14.2 2 硬约束)"; AIF dispatcher 派单 prompt 自动注入此提示 (本卡落档后)
+- **CC 派单边界** (8/11 21:50 装机 user 重拍 CC 角色 = fire CLI runner): PM 派单给 CC 时, 派单卡 body 4 件套 = §3 派单原则原 4 件套, CC 接卡后 fire `claude -p "<4 件套 prompt>" --max-turns <任务复杂度>` (沿 PM-direct 9 协议)。CC **不写代码**, 不改设计稿, 不派单, 不独立审查, 不改 AGENTS, 不落 STATE.md。
 
-## 4. PM ↔ CC 单 loop 流程(沿用 7/16 拍,本项目沿用)
+## 4. PM ↔ CC 单 loop 流程(沿用 7/16 拍, 8/11 21:50 装机 user 拍升级 6 角色 + 逆向 5 段关卡)
 
-> 你不在 loop 内,PM 自驱
+> 你不在 loop 内, PM 自驱
+> 8/11 21:50 重拍: 流程图不再是 §4 老 PM↔CC 单 loop, 是 6 角色闭环 (AIF + designer + PM-direct + cc-runner + cloud code + reviewer) + 逆向 5 段关卡。
+
+**正向 5 段流程图**(沿 8/11 21:50 装机 user 重拍):
 
 ```
-[I1] PM 优化工单提示词(历史反馈)
-[I2] PM 拆工单(一个工单 = 一个工程闭环)
-[I3] PM 派工单 → CC 执行(claude -p)
-   ├─ 正常 → [I4]
-   └─ CLI 失败(CC 挂)→ PM 自修 CC
-      ├─ 修好 → 重派
-      └─ 修不好 → 升级 AIF
-[I4] CC 完成 → 写 LOG + 建议
-[I5] PM 验收(30 秒 ✅/❌)
-   ├─ ❌ → 改 → [I1]
-   └─ ✅ → [I6]
-[I6] 任务完成 + 队列清零?
-   ├─ 否 → 拆新工单 → [I1]
-   └─ 是 → 退出单 loop
-→ 任务结果回流(你在 loop 外实际使用 + 验收)
+[I1] AIF 与装机 user 沟通需求 (沿 §14.8 AIF 沟通需求方法论 + 看截图), 把需求转换成卡片 (一个卡片一个功能闭环), 流转给 designer
+[I2] designer 接 AIF 卡片, 保留原卡内容, 同时加入自己输出的设计稿件 (DESIGN-*.md), 一并流转给 PM
+[I3] PM 接 designer 卡片, 结合设计输出的内容, 把已经设计过的需求拆成若干可被 cc-runner 执行的卡片 (≤ 80 行单功能单卡, 沿 §14.3 7 + PM-direct 9 协议), 推给 cc-runner
+[I4] cc-runner 接 PM 卡片, 不做任何事, 直接调用 cloud code 的 CLI: `claude -p "<4 件套>" --max-turns <任务复杂度>`, 用好 cloud code 的 CLI, 实时了解 cloud code 的进度, 待 cloud code 完成后, 派审核卡片给 reviewer
+[I5] reviewer 接 cc-runner 派审卡, 审核完成后, 是否通过都反馈给 cc-runner (沿 21:50 重拍: 反馈给 CC, 不直接给 PM); 通过 cc-runner 就关卡, 不通过就修复 (cc-runner 派修复卡给 cloud code)
+```
+
+**逆向 5 段关卡流程图**(沿 8/11 21:50 装机 user 重拍):
+
+```
+[I6] reviewer 完成任务关审卡后, 通知 cc-runner
+[I7] cc-runner 确认审核通过, 关执行卡, 通知 PM
+[I8] PM 接到通知后, 确认无误, 关派单卡, 同时判断多个小卡都关了, 关总卡, 通知 designer
+[I9] designer 代码级验收 UI (沿 21:50 重拍, 不是装机 user 真机拍), 通过后, 反馈给 AIF
+[I10] AIF 确认一个需求完成, 拉起 APP, 邀请装机 user 体验
+→ 装机 user 验收 → 一个需求完成闭环
 ```
 
 **单任务小循环**(v0.00.0 文枢特定):
@@ -456,15 +461,47 @@
 
 **装机 user 加值**(沿 §14.5 头尾规则): 永远在对话里和装机 user 拍板, 不派 fire-wrapper 卡; 装机 user 拍"v0.03.0 ready" = 流程完整闭环。
 
-### 14.8 5 角色落位总图(8/11 20:48 装机 user 拍, 落位透明)
+### 14.7.0 CC (CLI runner, 8/11 21:35 + 21:50 + 22:00 装机 user 三段拍)
+
+CC 角色 = hermes 独立 profile `cc-runner` (沿 hermes-agent skill profiles 部分, `hermes profile create cc-runner --clone --clone-from aif`)。CC 是独立身份, 不是 PM-direct 子能力。
+
+**CC 3 件加值**(沿 8/11 22:00 装机 user 拍"PM 不调 cloud code CLI, 交由 CC 调"):
+1. **派单后 fire CLI**: PM-direct 派单给 cc-runner, 派单卡 body 4 件套 = §3 派单原则原 4 件套, cc-runner fire `claude -p "<4 件套 prompt>" --max-turns <任务复杂度>` (沿 PM-direct 9 协议), 监控 exit code + fire log (`/tmp/cc-out/t_xxx-fire.log`)
+2. **派审 + 关执行卡**: cloud code 完成后, cc-runner 派审卡给 reviewer; reviewer PASS → **cc-runner 关执行卡** + 通知 PM-direct; reviewer FAIL → **cc-runner 派修复卡给 cloud code** (重新 fire CLI, 不是改 cc-runner 自身)
+3. **git commit 落盘不 push**: 沿 8/10 PM-direct 自纠硬约束 (CC 不 push, git commit 落盘不 push); 沿 8/10 不盲信 cloud code "完工"声明, 兜底手动 `kanban_complete` (沿 LT-N1-cc 撞 API 限制兜底先例)
+
+**CC NOT 干的事**(沿 8/11 21:35 装机 user 拍"什么都不什么干"):
+- NOT 改设计稿 (designer 干)
+- NOT 派单 (PM-direct 干)
+- NOT 独立审查 (reviewer 干)
+- NOT 改 AGENTS (AIF 干)
+- NOT 落 STATE.md 落点 (沿 §14.2 2 = 4 角色 CC/designer/PM-direct/reviewer = 老 CC 写代码干, 新 CC fire runner 不落)
+- NOT 直接跟装机 user 沟通 (沟通走 AIF/PM-direct)
+
+**reviewer 2 件加值改写**(沿 8/11 21:50 装机 user 重拍):
+1. **派单后独立审查**: 独立审查 (read-only, 不动源代码), 沿 §14.3 1 砍 P12.1 (reviewer 不再 CUA 2 阶拍, 直接看 AIF §14.6 1 已落 STATE.md 信源)
+2. **反馈给 CC, 不直接给 PM** (8/11 21:50 重拍): 审完 PASS/FAIL 都给 cc-runner (CC 是卡 owner), cc-runner 转发 PM-direct, reviewer 不直接关卡
+
+### 14.8 6 角色落位总图 (8/11 21:50 装机 user 重拍, 5 角色扩 6 角色)
 
 | 角色 | 落位 | §14 引用 | 加值 |
 |---|---|---|---|
-| AIF | 流程外 + 派单 + AGENTS 改 | §14.2 + §14.5 | 跨项目方法论治理 + 阶段门聚合 |
-| PM-direct | 流程内 (单 loop) | §14.3 + §14.2 | 派单 + 验收 + 落点 |
-| designer | 流程内 (派单前) | §14.7 + §14.2 | 设计稿主信源 + 修真装机 user 红字 |
-| CC | 流程内 (单 loop) | §14.3 + §14.2 | 写代码 + git commit (不 push) |
-| reviewer | 流程内 (派单后) | §14.7 + §14.2 | 独立审查 1 阶 + 落点 |
+| AIF | 流程外 + 沟通需求 + 派单 + AGENTS 改 | §14.2 + §14.5 | 需求沟通方法论 + 阶段门聚合 + 拉起 APP 邀请装机 user |
+| designer | AIF → PM 之间 | §14.7 + §14.2 | 设计稿主信源 + 修真装机 user 红字 + **代码级验收 UI** (8/11 21:50 重拍加) |
+| PM-direct (my-pm) | designer → cc-runner 之间 | §14.3 + §14.2 | 派单 + 拆卡(≤ 80 行单功能单卡) + 关派单卡 + 多小卡关关总卡 |
+| CC (cc-runner) | PM → cloud code 之间 (独立 hermes profile, 8/11 22:00 拍) | §14.7.0 + §14.2 | **fire CLI runner, 不写代码**, 监控进度, 派审, 关执行卡 |
+| cloud code (claude-code, non-spawnable terminal lane) | cc-runner fire CLI 触发 | §13.1 老 CC 真值 | 写代码 + git commit (不 push, 沿 8/10 PM-direct 自纠) |
+| reviewer | cc-runner 派审后 | §14.7 reviewer 改 + §14.2 | **反馈给 CC, 不直接给 PM** (8/11 21:50 重拍), PASS/FAIL 都给 cc-runner |
+
+**正向 5 段闭环**(沿 8/11 21:50 装机 user 重拍):
+```
+AIF(沟通需求 + 转卡片) → designer(保留原卡 + 设计稿) → PM(拆卡 ≤ 80 行) → cc-runner(fire CLI) → cloud code(写代码) → cc-runner(派审) → reviewer(审)
+```
+
+**逆向 5 段关卡流程图**(沿 8/11 21:50 装机 user 重拍):
+```
+reviewer 审完 → cc-runner 收到 PASS → cc-runner 关执行卡 + 通知 PM → PM 关派单卡 + 多小卡关 → PM 关总卡 + 通知 designer → designer 代码级验收 UI 通过 → designer 反馈 AIF → AIF 关 AIF 卡 + 拉起 APP + 邀请装机 user → 装机 user 验 → 需求完成闭环
+```
 
 **§14 自进化机制 = 方法论 v0.03.0 形态**。下次阶段门(v0.03.0 → v0.04.0)装机 user 拍时, AIF 自动按 §14.2 4 动作聚合 STATE.md → 改本节。
 *AGENTS.md v0.00.0 · 2026-08-06 你拍板"全新基线 · 自建 Swift/SwiftUI + CoreData + minimax cn LLM (Anthropic 兼容协议)" · 项目根 = `/Volumes/ANAN/Engineering/wenshu/`*
