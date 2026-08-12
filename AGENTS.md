@@ -38,6 +38,10 @@ AGENTS.md
 3.4 派单前 dispatcher 必跑的 3 件 = hermes gateway status + hermes config check + hermes approvals suggest --days 7
 3.5 派单卡 body 必含 §14.2 2 落点提示:本卡 done 前 4 角色按 assignee 必落 1 行 STATE.md(≤ 30 字, 3 选 1:规则冲突 / 冗余 / 新规则需求 + 1 句理由)
 3.6 派单卡 assignee 硬约束:沿 §14.2 2 落点
+3.7 designer 卡派发硬约束 (2026-08-12 老板 拍, 沿 t_ca73c613 跑 26.5 分钟案例):
+- workspace 必填 dir 模式 + workspace_path = /Volumes/ANAN/Engineering/wenshu, 不用 scratch (designer 必须能直接定位项目根, 不跑 find ~)
+- skills 字段必带 swiftui-design-patterns,wenshu-designer-onboarding (沿 t_1f92c929 修过的版本, 缺一 = PM-direct 重派)
+- body "边界"段必含 "不做 X / Y / Z" 清单 (列 3-5 条, 例: 不选 ICON 库 / 不测像素 / 不写 Python 脚本 / 不写代码 / 不提交), 缺 = PM-direct 重派
 
 # 4 11 段研发闭环
 
