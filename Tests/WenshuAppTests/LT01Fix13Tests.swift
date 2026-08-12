@@ -295,6 +295,11 @@ final class LT01Fix13Tests: XCTestCase {
     /// 真实操作, 并把 onDrag closure 接到真实 VM (= LayoutShellViewModel)
     /// 验证 end-to-end: 模拟"极端拖拽 → 松手 → 反向拖拽 → 回中点"完整
     /// 链路, 最终 ratios[3] 必须 = 0.5 (= 50:50)。
+    ///
+    /// LT-01-fix17 坐标 (cumulative 算法 + dragStart reset):
+    ///   axisDelta(.vertical, dragStart, current) = dragStart.y - current.y
+    ///   向下拖 (y 减小) → axisDelta 正 → ratios[3] 调小
+    ///   向上拖 (y 增大) → axisDelta 负 → ratios[3] 调大
     @MainActor
     func testNativeSplitterDrag_extremeRatio_doesNotLock() {
         let vm = LayoutShellViewModel()
@@ -308,41 +313,44 @@ final class LT01Fix13Tests: XCTestCase {
             return vm.adjustBottomHeight(delta: delta, totalHeight: self.kTotalHeight)
         }
 
-        // Gesture 1: 极端拖拽 (= 240px + 30px 多拖, 命中 0.10 边界)。
-        view.mouseDown(with: makeEvent(.leftMouseDown, x: 0, y: 300))
+        // Gesture 1: 极端拖拽 (= 向下 240px 到 0.10 边界 + 30px 多拖 clamp)。
+        // mouseDown(0, 1080) → dragStart = (0, 1080)。
+        view.mouseDown(with: makeEvent(.leftMouseDown, x: 0, y: 1080))
 
-        // 拖 240px (= cumulative = 240, ratios[3] = 0.5 - 0.4 = 0.10,
-        // 正好边界, applied = true)。
-        view.mouseDragged(with: makeEvent(.leftMouseDragged, x: 0, y: 540))
+        // 向下拖 240px (= cumulative = 1080 - 840 = +240, ratios[3] =
+        // 0.5 - 0.4 = 0.10, 正好边界, applied = true)。
+        view.mouseDragged(with: makeEvent(.leftMouseDragged, x: 0, y: 840))
         XCTAssertEqual(vm.snapshot.ratios[3], 0.10, accuracy: 0.0001,
                        "极端拖拽后 ratios[3] = 0.10 (= 90:10 上半/下半)")
 
-        // 多拖 30px (= cumulative = 270, ratios[3] 想跌到 0.05 但 clamp
-        // 到 0.10, applied = false → lastReported reset)。
-        view.mouseDragged(with: makeEvent(.leftMouseDragged, x: 0, y: 570))
+        // 多向下拖 30px (= cumulative = 1080 - 810 = +270, ratios[3]
+        // 想跌到 0.05 但 clamp 到 0.10, applied = false → dragStart
+        // reset 到 current = (0, 810))。
+        view.mouseDragged(with: makeEvent(.leftMouseDragged, x: 0, y: 810))
         XCTAssertEqual(vm.snapshot.ratios[3], 0.10, accuracy: 0.0001,
                        "clamp 后 ratios[3] 仍 = 0.10 (没被穿过去)")
 
-        view.mouseUp(with: makeEvent(.leftMouseUp, x: 0, y: 570))
+        view.mouseUp(with: makeEvent(.leftMouseUp, x: 0, y: 810))
 
-        // Gesture 2: 装机 user 想拖回 50:50 (= -240px)。
-        // 鼠标当前位置 = (0, 570), 新 dragStart = (0, 570)。
-        view.mouseDown(with: makeEvent(.leftMouseDown, x: 0, y: 570))
+        // Gesture 2: 装机 user 想拖回 50:50 (= 向上 240px)。
+        // 鼠标当前位置 = (0, 810), 新 dragStart = (0, 810)。
+        view.mouseDown(with: makeEvent(.leftMouseDown, x: 0, y: 810))
 
-        // 拖 -240px (= cumulative = -240, ratios[3] = 0.10 - (-0.4) = 0.50)。
-        view.mouseDragged(with: makeEvent(.leftMouseDragged, x: 0, y: 330))
+        // 向上拖 240px (= cumulative = 810 - 1050 = -240, ratios[3]
+        // = 0.10 - (-0.4) = 0.50)。
+        view.mouseDragged(with: makeEvent(.leftMouseDragged, x: 0, y: 1050))
         XCTAssertEqual(vm.snapshot.ratios[3], 0.50, accuracy: 0.0001,
                        "clamp 后反向拖回 ratios[3] = 0.50 (= 50:50 完美恢复, 装机 user 实机拍锁死 BUG 不复现)")
 
-        view.mouseUp(with: makeEvent(.leftMouseUp, x: 0, y: 330))
+        view.mouseUp(with: makeEvent(.leftMouseUp, x: 0, y: 1050))
 
-        // 最后再 Gesture 3: 验证状态完全干净 (lastReported = 0,
-        // isDragging = false), 拖动行为正常。
-        view.mouseDown(with: makeEvent(.leftMouseDown, x: 0, y: 330))
-        view.mouseDragged(with: makeEvent(.leftMouseDragged, x: 0, y: 450))
+        // 最后再 Gesture 3: 验证状态完全干净 (dragStart = mouseDown 处
+        // 重设, isDragging = false), 拖动行为正常。
+        view.mouseDown(with: makeEvent(.leftMouseDown, x: 0, y: 810))
+        view.mouseDragged(with: makeEvent(.leftMouseDragged, x: 0, y: 690))
         XCTAssertEqual(vm.snapshot.ratios[3], 0.30, accuracy: 0.0001,
                        "Gesture 3 拖动继续生效 (state 完全干净, 没泄漏)")
-        view.mouseUp(with: makeEvent(.leftMouseUp, x: 0, y: 450))
+        view.mouseUp(with: makeEvent(.leftMouseUp, x: 0, y: 690))
     }
 
     // MARK: - bonus: VM @discardableResult 兼容旧调用点
