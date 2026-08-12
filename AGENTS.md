@@ -39,10 +39,21 @@ AGENTS.md
 3.5 派单卡 body 必含 §14.2 2 落点提示:本卡 done 前 4 角色按 assignee 必落 1 行 STATE.md(≤ 30 字, 3 选 1:规则冲突 / 冗余 / 新规则需求 + 1 句理由)
 3.6 派单卡 assignee 硬约束:沿 §14.2 2 落点
 
-# 4 PM↔CC 单 loop
+# 4 11 段研发闭环
 
-- 正向 5 段(6 角色扩):AIF 沟通需求 → designer 设计稿 → PM 拆卡 ≤ 80 行 → cc-runner fire CLI → cloud code 写代码
-- 逆向 5 段关卡:reviewer 审 → cc-runner 关执行卡 → PM 关派单卡 → designer 验收 UI → AIF 关卡 → 老板 验
+本节把 PM↔CC 单 loop 展开为 11 段;§2 派单、§3 派单原则、§5 拍单边界与跨边界红线继续有效。
+
+- 1. 老板 提需求
+- 2. AIF 沟通需求 + 拍卡
+- 3. designer 出 DESIGN-*.md 主信源
+- 4. PM-direct 沿 §2 + §3 四件套拆卡,单卡 ≤ 80 行
+- 5. CC fire CLI = 唯一有权调用 cloud code(其他角色无调用权)
+- 6. reviewer 派单后独立 read-only 审查,沿 §3.3 Ralph 三层 AND 退出门
+- 7. CC 收 reviewer 的 PASS / FAIL 反馈,reviewer 不直接反馈 PM
+- 8. PM-direct 关执行卡 + 多子卡完成后关总派单卡
+- 9. designer 代码级验收 UI
+- 10. AIF 关卡 + 阶段门聚合,沿 §13.2
+- 11. 老板 验收,真机拍摄为证据
 
 # 5 拍单边界 + 跨边界红线
 
