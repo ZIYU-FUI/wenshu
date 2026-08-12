@@ -357,6 +357,13 @@
 - 不动 `~/.hermes/` 下 hermes 自带任何文件
 - 不动 `.archive/wenshu-monorepo-fork/` 任何文件(只读历史)
 
+### 13.1 第 6 角色 CC (CLI runner, 8/11 21:35 装机 user 拍新增)
+
+- **CC 角色 = spawnable hermes profile** (cc-runner), 沿 §14.1 4 profile 自动加载基线技能 + cc-runner 专用技能
+- **CC 角色职责** (单件, 沿 装机 user 8/11 21:35 拍 "什么都不干"): 接 PM-direct 派单卡 + fire `claude -p "<4 件套 prompt>" --max-turns N` + 监控 exit code + git commit 落盘 (不 push) + 报告 PM-direct 完工 + commit hash + diff 摘要
+- **CC 角色 NOT 干的事**: 改设计稿 (designer 干) / 派单 (PM-direct 干) / 独立审查 (reviewer 干) / 改 AGENTS (AIF 干) / 落 STATE.md 落点 (老 CC 写代码干, 不是新 CC fire runner 干)
+- **CC 角色区分**: 老 CC = `claude -p` 跑的 Anthropic SDK agent, 新 CC = hermes profile 跑 `claude -p` fire CLI 的 runner
+
 ---
 
 ## 14. 自进化方法论 v0.03.0(2026-08-11 你拍,装机 user 8/11 19:55 + 20:10 + 20:35 三段拍板合成)
