@@ -27,7 +27,11 @@ struct EditorView: View {
     @State private var sidebarStoreProjectId: UUID?
     @State private var contentStore: EditorContentStore?
     @State private var content: String = ""
-    @State private var isFullScreen: Bool = false
+
+    // v0.05.0 Zone 协议 (t_8fc5c872) ViewModel 收口 (沿 DECISION §4.2 #4 + DESIGN-Zone.md §7.3):
+    // isFullScreen 从 @State 升 @StateObject EditorViewModel, 走 vm.isFullScreen
+    // (private(set)) + vm.toggleFullScreen(), write access 收口到 VM 内部。
+    @StateObject private var viewModel = EditorViewModel()
 
     private let projectStore: WenshuProjectStore
 
@@ -56,8 +60,8 @@ struct EditorView: View {
             )
             editorBody
             EditorBottomToolbar(
-                isFullScreen: isFullScreen,
-                onFullScreenToggle: toggleFullScreen
+                isFullScreen: viewModel.isFullScreen,
+                onFullScreenToggle: viewModel.toggleFullScreen
             )
         }
         .background(Color(NSColor.textBackgroundColor))
@@ -94,7 +98,7 @@ struct EditorView: View {
 
     @ViewBuilder
     private var editorBody: some View {
-        if isFullScreen {
+        if viewModel.isFullScreen {
             fullScreenBody
         } else {
             splitBody
@@ -163,9 +167,5 @@ struct EditorView: View {
         contentStore = newStore
         await newStore.load()
         content = newStore.content
-    }
-
-    private func toggleFullScreen() {
-        isFullScreen.toggle()
     }
 }

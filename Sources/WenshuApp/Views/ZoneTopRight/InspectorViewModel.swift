@@ -69,7 +69,12 @@ final class InspectorViewModel: ObservableObject {
 
     /// 当前选中的 tab。 默认 = 伏笔,跟 AGENTS §8.1 inspector 拍板
     /// "默认显示 2 tab (伏笔 + 修订)" 一致 (两者都显示,初始焦点伏笔)。
-    @Published var selectedTab: Tab = .foreshadow
+    ///
+    /// v0.05.0 Zone 协议 (t_8fc5c872) ViewModel 收口 (沿 DECISION §4.2 #4 + DESIGN-Zone.md §7.3):
+    /// 加 `private(set)`, write access 收口到 VM 内部 method (selectTab(_ tab:))。
+    /// InspectorView 调 vm.selectTab(.revision) 而非 vm.selectedTab = .revision
+    /// (Picker 改 HStack + 4 Button onAction)。
+    @Published private(set) var selectedTab: Tab = .foreshadow
 
     /// 当前伏笔 tab 渲染的列表 — 跟 `loadForeshadows()` 写入。InspectorView
     /// ForEach 直接绑这个。
@@ -91,6 +96,16 @@ final class InspectorViewModel: ObservableObject {
         // 下方 extension 里 (= InspectorViewModel.mock3) — 不是在
         // RevisionCandidate 上,不要写 RevisionCandidate.mock3 (编译错)。
         self.revisionCandidates = revisionCandidates
+    }
+
+    // MARK: - Tab 切换 (v0.05.0 Zone 协议 收口, 沿 t_8fc5c872)
+
+    /// v0.05.0 Zone 协议 (t_8fc5c872) ViewModel 收口: write access 收口
+    /// 到 VM 内部 method, InspectorView 调 vm.selectTab(.revision) 而非
+    /// vm.selectedTab = .revision (Picker 改 HStack + 4 Button onAction)。
+    /// selectedTab 已 `private(set)`, 外部无法直接赋值。
+    func selectTab(_ tab: Tab) {
+        selectedTab = tab
     }
 
     // MARK: - 选中态协议

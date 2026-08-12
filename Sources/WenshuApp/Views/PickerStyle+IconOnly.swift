@@ -6,9 +6,13 @@
 // 等, 参见 /Sources/SwiftUI.framework PickerStyle 定义)。
 //
 // V0Fix2 tests + V0Fix3 tests + V0Fix4 tests 全部断言
-// `Sources/WenshuApp/Views/Chat/ChatPanelView.swift` 与
-// `Sources/WenshuApp/Views/Inspector/InspectorView.swift` 含
-// `.pickerStyle(.iconOnly)` 字面量。
+// `Sources/WenshuApp/Views/ZoneBottomLeft/ChatPanelView.swift` 与
+// `Sources/WenshuApp/Views/ZoneTopRight/InspectorView.swift` 含
+// `.pickerStyle(.iconOnly)` 字面量 (v0.05.0 Zone/ 物理目录重命名后路径)。
+//
+// 注: v0.05.0 后 InspectorView 不再用 Picker(selection:) — 改 HStack + Button
+// (沿 ChatPanelView V0-fix-11 范式, 沿 t_8fc5c872)。 PickerStyle+IconOnly 仍
+// 留 (沿 ChatPanelView 等其它用)。
 //
 // 本 extension 提供 `PickerStyle.iconOnly` (alias for
 // SegmentedPickerStyle, macOS 14+ 配合 Image-only content 即显

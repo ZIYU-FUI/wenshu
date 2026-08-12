@@ -12,6 +12,12 @@
 // a11y "检视" → ""; 增 inline `iconName(for:)` 静态映射 (伏笔 = eye /
 // 修订 = pencil.and.list.clipboard)。
 //
+// v0.05.0 Zone 协议 (t_8fc5c872): Picker(selection: $vm.selectedTab) 改
+// HStack + Button + Image + vm.selectTab() — 沿 ChatPanelView V0-fix-8
+// 范式 (FCP timeline 红字"所有 ICON 按钮, 只保留 ICON, 不要矩形背景, 仿 FCP")。
+// selectedTab 已 `private(set)`, 不能走 $vm.selectedTab Binding, 调
+// vm.selectTab(_ tab:) 替代。
+//
 // `.task` 触发: 视图出现时一次性 `await vm.loadForeshadows()`, 拉当前
 // currentChapterID / currentParagraphID 对应的 CDForeshadow 行。 当前
 // v0.02.0 文档内容浏览器还没实装 (v0.05.0 标记系统), 走全局兜底 list。
@@ -24,19 +30,29 @@ struct InspectorView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 0) {
-                Picker("", selection: $vm.selectedTab) {
-                    ForEach(InspectorViewModel.Tab.allCases) { tab in
+            // v0.05.0 Zone 协议 (t_8fc5c872) Picker 改 HStack + Button:
+            // 沿 ChatPanelView V0-fix-11 紧凑范式 (size 13 + 28×22 +
+            // spacing 2 + padding vertical 4), FCP timeline 红字"所有
+            // ICON 按钮, 只保留 ICON, 不要矩形背景, 仿 FCP"。
+            HStack(spacing: 2) {
+                ForEach(InspectorViewModel.Tab.allCases) { tab in
+                    Button {
+                        vm.selectTab(tab)
+                    } label: {
                         Image(systemName: iconName(for: tab))
-                            .tag(tab)
-                            .help(tab.title)
+                            .font(.system(size: 13, weight: .medium))
+                            .frame(width: 28, height: 22)
+                            .foregroundStyle(vm.selectedTab == tab ? Color.accentColor : .secondary)
+                            .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
+                    .help(tab.title)
                 }
-                .pickerStyle(.iconOnly)
-                .padding(.leading, 12)
-                .padding(.vertical, 8)
                 Spacer(minLength: 0)
             }
+            .padding(.leading, 12)
+            .padding(.vertical, 4)
+
             Divider()
             Group {
                 switch vm.selectedTab {
