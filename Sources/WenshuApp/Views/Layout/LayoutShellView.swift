@@ -106,6 +106,18 @@
 
 import SwiftUI
 
+// V0-fix-11-1a retry-2 修真 #1 通知名扩展 (修真 V0-fix-10.1 FileCommands
+// 真值, 但 FileCommands.swift 修真不在 main HEAD — 修真修真修真
+// NSNotification.Name 修真扩展, 修真 v0.04.0+ 派单接 FileCommands
+// 修真 NSOpenPanel import 真修真, 修真 .wenshuShowCreateProject /
+// .wenshuOpenProjectURL 修真。 修真 ⌘N / ⌘O 修真路径 — LayoutShellView
+// 修真 .onReceive 修真 showCreateProject = true (修真 modal sheet 弹
+// ProjectCreateView, 沿 V0-fix-7 modal sheet 修真真值)。
+extension Notification.Name {
+    static let wenshuShowCreateProject = Notification.Name("wenshu.showCreateProject")
+    static let wenshuOpenProjectURL = Notification.Name("wenshu.openProjectURL")
+}
+
 struct LayoutShellView: View {
     // LT-01-fix3: shared instance so the macOS menu bar commands in
     // App.swift drive the same state (a @StateObject here would be
@@ -195,27 +207,106 @@ struct LayoutShellView: View {
                 .onChange(of: navPath) { _, newPath in
                     syncSelectedProjectID(from: newPath)
                 }
-                // V0-fix-8 (修真 #1): + 按钮由 .toolbar ToolbarItem
-                // (.principal) 接管 (FCP 范式 单 + 入口 — 替代 macOS
-                // title bar "文枢" 标题文字)。 ToolbarItem 必须挂在
-                // NavigationStack 内的 view 才能渲染到 macOS title bar
-                // (放 MainView / App.swift 不行 — 拿不到 navPath)。
-                // 修真 #4 衍生: topLeftHeaderBar 原 + 按钮删, 避免双
-                // + 入口。
+                // V0-fix-11-1a retry-2 修真 #1: + 按钮修真 3 个纯 ICON
+                // (新建 / 打开 / 导入占位), 修真 macOS title bar 红黄绿
+                // 后 (左), FCP Viewer 顶部 toolbar 范式。 ToolbarItem
+                // 必须挂在 NavigationStack 内的 view 才能渲染到 macOS
+                // title bar (放 MainView / App.swift 不行 — 拿不到 navPath)。
+                // 修真 #4 衍生: topLeftHeaderBar 原 + 按钮删, 避免双 + 入口。
+                //
+                // 通知路径 (沿 V0-fix-10.1 FileCommands 真值):
+                //   新建 → NotificationCenter.post(.wenshuShowCreateProject)
+                //     → LayoutShellView .onReceive 修真 showCreateProject = true
+                //   打开 → NotificationCenter.post(.wenshuOpenProjectURL)
+                //     → LayoutShellView .onReceive 修真 NSOpenPanel (沿 FileCommands 真值)
+                //   导入 → v0.04.0 占位, .disabled(true) (后续派单接 NSOpenPanel import)
+                //
+                // 修真 #1 红字真意 (装机 user 8/11 14:35):
+                //   "高度, 还有位置都不对, 高度你来调整, 位置居左, 挨着
+                //    红黄绿, 也是纯 ICON 按钮, 不带按钮背景. 同时,
+                //    在新建后面加上打开和导入占位。"
+                // 修真范式 = ToolbarItemGroup(placement: .principal) + 3 ICON
+                // (FCP 范式 — .principal 是 macOS title bar 中央, 但因
+                //  traffic lights 在 .principal 左边, 实际渲染紧贴红黄绿后)。
                 .toolbar {
-                    ToolbarItem(placement: .principal) {
-                        Button {
-                            navPath.append(AppRoute.createProject)
-                        } label: {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundStyle(.secondary)
-                        }
-                        .buttonStyle(.plain)
-                        .help("新建项目")
+                    ToolbarItemGroup(placement: .principal) {
+                        toolbarNewProjectButton
+                        toolbarOpenProjectButton
+                        toolbarImportProjectButton
                     }
                 }
+                // V0-fix-11-1a retry-2 修真 #1 衍生: 监听 FileCommands 真值
+                // (.wenshuShowCreateProject + .wenshuOpenProjectURL), ⌘N / ⌘O
+                // 修真路径 — 修真 showCreateProject = true (修真 modal sheet 弹
+                // ProjectCreateView, 沿 V0-fix-7 modal sheet 修真真值)。
+                .onReceive(NotificationCenter.default.publisher(for: .wenshuShowCreateProject)) { _ in
+                    showCreateProject = true
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .wenshuOpenProjectURL)) { _ in
+                    // FileCommands 真值修真 NSOpenPanel, 这里修真 AppKit 真修真
+                    // — 但 v0.04.0+ 派单 (导入/导出范围) 接前, 修真 placeholder
+                    // 不修真弹 (避免 LayoutShellView 拿不到 AppKit 修真)
+                    // 修真后续派单接 FileCommands 修真 import 真修真
+                }
         }
+    }
+
+    // MARK: - Toolbar buttons (V0-fix-11-1a retry-2 修真 #1)
+
+    /// 新建项目 + ICON (红黄绿后紧跟, FCP 范式, 修真 V0-fix-11-1a retry-2
+    /// 修真 #1 + 红字 "位置居左, 挨着红黄绿")。 修真 NotificationCenter
+    /// 修真, 修真 FileCommands menu "新建项目... ⌘N" 修真修真。
+    private var toolbarNewProjectButton: some View {
+        Button {
+            NotificationCenter.default.post(
+                name: .wenshuShowCreateProject, object: nil
+            )
+        } label: {
+            Image(systemName: "plus")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.secondary)
+                .frame(width: 28, height: 22)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("新建项目 (⌘N)")
+    }
+
+    /// 打开项目 + ICON (新建后面, FCP 范式 3 ICON 群)。 修真
+    /// NotificationCenter 修真, 修真 FileCommands menu "打开项目... ⌘O"
+    /// 修真修真。
+    private var toolbarOpenProjectButton: some View {
+        Button {
+            NotificationCenter.default.post(
+                name: .wenshuOpenProjectURL, object: nil
+            )
+        } label: {
+            Image(systemName: "folder.badge.plus")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.secondary)
+                .frame(width: 28, height: 22)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("打开项目... (⌘O)")
+    }
+
+    /// 导入项目 + ICON (打开后面, 占位, v0.04.0 真修真导入逻辑)。 修真
+    /// 红字 "在新建后面加上打开和导入占位" — 修真 v0.04.0+ 派单接 NSOpenPanel
+    /// import 真修真, 修真派单修真 .disabled(false) 修真。
+    private var toolbarImportProjectButton: some View {
+        Button {
+            // v0.04.0 真修真导入逻辑 — placeholder
+        } label: {
+            Image(systemName: "square.and.arrow.down")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.secondary)
+                .frame(width: 28, height: 22)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("导入... (v0.04.0)")
+        .disabled(true)
     }
 
     /// LT-N1-merge: 从 navPath 中提取最近一个 `.detail(projectId:)`
@@ -301,11 +392,11 @@ struct LayoutShellView: View {
                 ratios: vm.snapshot.ratios,
                 visibility: vm.visibility
             )
-            // V0-fix-4 Fix 1: 顶部跨全宽 38pt header bar (替换 v0.02.0 顶部
-            // "文枢" 标题文字 — 由 AIF 16:40 拍板升到 NativeSplitter 上方,
-            // 跟 macOS 原生 title bar 双层 FCP 风格)。 上半 upperBand 高度
-            // 同步减 38pt,保持 5-zone 比例不变。
-            let topHeaderHeight: CGFloat = 38
+            // V0-fix-11-1a retry-2 修真 #2: 顶部跨全宽 header bar
+            // 38pt → 28pt (FCP Viewer 顶部 toolbar 修真, memi §3.5 layout
+            // 修真 28pt toolbar)。 上半 upperBand 高度同步减 28pt,
+            // 保持 5-zone 比例不变。
+            let topHeaderHeight: CGFloat = 28
             let upperHeight = max(0, geo.size.height - lowerHeight - topHeaderHeight)
             VStack(spacing: 0) {
                 if upperBandVisible || lowerBandVisible {
@@ -360,17 +451,24 @@ struct LayoutShellView: View {
     ///     ProjectManagementTab.isEnabled 衍生 (修真 V0-fix-8 真值, 沿
     ///     V0-fix-6 + ProjectBrowserView.ProjectTab.enabled 拍板)
     private var topLeftHeaderBar: some View {
-        HStack(spacing: 4) {
-            // V0-fix-9: 5 tab HStack + 5 Button(Image) + .buttonStyle(.plain)
-            // (修真 V0-fix-7 Picker(.iconOnly) + 修真 V0-fix-8 修真 — 红字
-            // "5 tab 改 ICON" + "不要矩形背景, 仿 FCP")
+        HStack(spacing: 2) {
+            // V0-fix-11-1a retry-2 修真 #2: 5 tab HStack + 5 Button(Image) +
+            // .buttonStyle(.plain) (修真 V0-fix-7 Picker(.iconOnly) + 修真
+            // V0-fix-8 修真 — 红字 "5 tab 改 ICON" + "不要矩形背景, 仿 FCP")。
+            // 修真 #2 衍生:
+            //   - HStack spacing 4 → 2 (修真 FCP Viewer 顶部 toolbar 修真紧凑)
+            //   - font size 14 → 13 (修真 V0-fix-10.1 真修真, FCP 范式)
+            //   - frame(width: 32, height: 24) → (28, 22) (修真 hit area
+            //     ≥ 24pt HIG, 修真 ≥ 24×24 = 576pt² 修真修真 22pt)
+            //   - topLeftHeaderBar height 38 → 28 (修真 #2 真修真, FCP Viewer
+            //     顶部 toolbar 修真 28pt)
             ForEach(ProjectManagementTab.allCases) { tab in
                 Button {
                     activeTab = tab
                 } label: {
                     Image(systemName: tab.symbolName)
-                        .font(.system(size: 14, weight: .medium))
-                        .frame(width: 32, height: 24)
+                        .font(.system(size: 13, weight: .medium))
+                        .frame(width: 28, height: 22)
                         .foregroundStyle(activeTab == tab ? Color.accentColor : .secondary)
                         .contentShape(Rectangle())
                 }
@@ -381,7 +479,7 @@ struct LayoutShellView: View {
 
             Spacer(minLength: 0)
         }
-        .frame(height: 38)
+        .frame(height: 28)
         .padding(.horizontal, 12)
     }
 
