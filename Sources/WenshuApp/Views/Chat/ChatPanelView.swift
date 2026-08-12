@@ -1,4 +1,4 @@
-// ChatPanelView.swift · 文枢 · v0.02.0 WO-LT-04 → v0.03.0 V0-fix-4 → V0-fix-6 → V0-fix-8
+// ChatPanelView.swift · 文枢 · v0.02.0 WO-LT-04 → v0.03.0 V0-fix-4 → V0-fix-6 → V0-fix-8 → V0-fix-11
 // 下左聊天区：聊天实装，时间线/关系图/大纲为 disabled 占位。
 //
 // V0-fix-4 Fix 4: Picker `.segmented` 改 `.iconOnly` (走 PickerStyle+IconOnly
@@ -19,6 +19,12 @@
 // 框背景, 修真后 HStack + Button(.plain) 纯 ICON, 无矩形背景, 对齐
 // FCP timeline 范式。 4 SF Symbol 沿 on-disk ChatPanelTab.symbolName
 // 真值 (AIF 未列新值, 不改)。
+//
+// V0-fix-11 修真 #5 (装机 user 8/11 14:35 5 红字批注): 4 chat tab
+// 修真 size 14→13 + frame 32×24→28×22 + HStack spacing 4→2 +
+// padding vertical 8→4 (FCP timeline 紧凑范式, memi §3.5 layout
+// 修真 28pt toolbar, hit area ≥ 24pt HIG 修真, 本卡直接修真数值
+// 不引入 IconButton 组件)。
 
 import SwiftUI
 
@@ -56,19 +62,23 @@ struct ChatPanelView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            // V0-fix-11 修真 #5: 4 chat tab 修真 size 14→13 + frame
+            // 32×24→28×22 + padding vertical 8→4 + spacing 4→2 (FCP
+            // timeline 紧凑范式, 修真装机 user 8/11 14:35 5 红字批注 #5).
+            //
             // V0-fix-8 (修真 #3): Picker(.iconOnly) 改 HStack + 4
             // Button(Image) + `.buttonStyle(.plain)` — 红字"所有 ICON
             // 按钮, 只保留 ICON, 不要矩形背景, 仿 FCP"。 修真前
             // SegmentedPickerStyle 仍有 macOS 系统矩形分段框背景 (装机
             // user 8/11 真机拍), 修真后纯 ICON, 对齐 FCP timeline 范式。
-            HStack(spacing: 4) {
+            HStack(spacing: 2) {
                 ForEach(ChatPanelTab.allCases) { tab in
                     Button {
                         activeTab = tab
                     } label: {
                         Image(systemName: tab.symbolName)
-                            .font(.system(size: 14, weight: .medium))
-                            .frame(width: 32, height: 24)
+                            .font(.system(size: 13, weight: .medium))
+                            .frame(width: 28, height: 22)
                             .foregroundStyle(activeTab == tab ? Color.accentColor : .secondary)
                             .contentShape(Rectangle())
                     }
@@ -79,7 +89,7 @@ struct ChatPanelView: View {
                 Spacer(minLength: 0)
             }
             .padding(.leading, 12)
-            .padding(.vertical, 8)
+            .padding(.vertical, 4)
 
             Divider()
 
