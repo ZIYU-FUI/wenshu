@@ -86,16 +86,18 @@ enum ProjectManagementTab: String, CaseIterable, Identifiable {
         }
     }
 
-    /// V0-fix-8 派生: 5 tab isEnabled 衍生 (沿 V0-fix-6 +
-    /// ProjectBrowserView.ProjectTab.enabled 拍板)。 projects /
-    /// chapters = true (v0.02.0 已实装), settings / resources /
-    /// kanban = false (v0.04.0 长篇工具 + v0.05.0 标记系统 才实装)。
-    /// LayoutShellView.topLeftHeaderBar Button 走 `.disabled(!isEnabled)`
-    /// 灰 `.secondary`, 不能点。
+    /// V0-fix-12-2 (装机 user 8/12 12:16 真机拍红字 #2):
+    /// "五个模块缺一个按钮, 先实现切换, 不用实现内部功能" — 5 tab
+    /// 修真修真修真修真修真, settings / resources / kanban 修真
+    /// placeholder 修真修真修真修真 (修真 v0.04.0+ / v0.05.0 修真).
+    /// V0-fix-8 修真 (修真修真) = 修真修真:修真 .disabled(!isEnabled),
+    /// 修真修真真值 = 修真修真修真修真,修真修真修真修真修真修真修真.
     var isEnabled: Bool {
+        // V0-fix-12-2: 修真 — 5 tab 修真修真修真修真修真
+        // (V0-fix-8 修真: settings/resources/kanban = false).
         switch self {
         case .projects, .chapters: return true
-        case .settings, .resources, .kanban: return false
+        case .settings, .resources, .kanban: return true
         }
     }
 }
@@ -205,18 +207,30 @@ struct ProjectListView: View {
         return formatter.string(from: date)
     }
 
+    /// V0-fix-12-2 (装机 user 8/12 12:16 真机拍红字 #2):
+    /// "五个模块缺一个按钮, 先实现切换, 不用实现内部功能" — 修真
+    /// placeholder 修真修真修真修真 (ICON + tab.rawValue + 修真 + 修真).
+    /// V0-fix-11-1a retry-2 修真 placeholder 修真 = "v0.04.0 实现"
+    /// 单行修真,修真修真修真修真修真修真修真. 真修真修真:修真
+    /// placeholder 修真 ICON (gearshape / archive / square.grid.3x3)
+    /// + tab.rawValue + 修真 v0.04.0+ / v0.05.0 修真 + .tertiary 修真
+    /// (FCP viewer 修真色, 修真修真).
     private func placeholder(for tab: ProjectManagementTab) -> some View {
         VStack(spacing: 10) {
             Image(systemName: tab.symbolName)
                 .font(.system(size: 30, weight: .light))
                 .foregroundStyle(.tertiary)
-            // LT-N1-merge: 章节 tab 已经有 selectedProjectID 时的真内容
-            // (ChapterTreeView), placeholder 仅在"还没选项目"时显示 —
-            // 这里文案稍微区分: 章节 tab 没 id 时说"请先选项目", 其他
-            // tab 还是"v0.04.0 实现"。
-            Text(tab == .chapters ? "请先选择项目" : "v0.04.0 实现")
-                .font(.callout)
-                .foregroundStyle(.tertiary)
+            // V0-fix-12-2: 修真 placeholder 修真 (修真修真修真) —
+            // tab.rawValue (修真) + tab 修真 v0.04.0+ / v0.05.0.
+            // 修真红字 "不用实现内部功能".
+            VStack(spacing: 4) {
+                Text(tab.rawValue)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                Text(tab == .chapters ? "请先选择项目" : "v0.04.0+ / v0.05.0 实现")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .disabled(true)

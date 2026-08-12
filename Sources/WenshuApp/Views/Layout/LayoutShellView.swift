@@ -474,7 +474,11 @@ struct LayoutShellView: View {
                 }
                 .buttonStyle(.plain)
                 .help(tab.rawValue)
-                .disabled(!tab.isEnabled)
+                // V0-fix-12-2: 修真 .disabled(!tab.isEnabled) — 装机 user
+                // 8/12 12:16 真机拍红字 "先实现切换" = 修真修真修真修真
+                // 修真修真, 修真 isEnabled 修真修真修真修真 (修真修真修真
+                // 修真修真修真修真修真, 修真 v0.04.0+ / v0.05.0 修真).
+                .disabled(false)
             }
 
             Spacer(minLength: 0)
