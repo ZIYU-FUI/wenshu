@@ -68,7 +68,20 @@ let package = Package(
                 // SwiftPM's resource bundling (which forbids "Info.plist"
                 // as a top-level resource). Keep the file on disk so the
                 // linker flag resolves, but tell SwiftPM to ignore it.
-                "Resources/Info.plist"
+                "Resources/Info.plist",
+                // V0-fix-12: designer 落档的 9 份 DESIGN-*.md 与视图源码同目录
+                // (设计意图贴着实现放, 便于 CC 改视图时直接读). 它们是文档不是
+                // 运行时资源, SwiftPM 见到就报 "unhandled file" warning.
+                // exclude 掉 = warning 归零且不进 bundle.
+                "Views/Chat/DESIGN-LT-N2.md",
+                "Views/DESIGN-SYSTEM-INIT.md",
+                "Views/DESIGN-V0-fix-1.md",
+                "Views/DESIGN-V0-fix-10.md",
+                "Views/DESIGN-V0-fix-11.md",
+                "Views/DESIGN-V0-fix-2.md",
+                "Views/DESIGN-V0-fix-4.md",
+                "Views/Editor/DESIGN-LT-N3.md",
+                "Views/Project/DESIGN-LT-N1.md"
             ],
             // V0-fix-6: 标准 .appiconset 接入 — Assets.xcassets/ 整目录
             // .copy 到 .build/.../WenshuApp_WenshuApp.bundle/, 保留
