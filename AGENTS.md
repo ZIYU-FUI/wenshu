@@ -46,6 +46,7 @@ AGENTS.md
 - 派单卡 body 必含 2 字段 (沿 §3.2 4 件套基础上 +2):
   - `完成后给谁: <role>` — 必填, 1 句, 沿 §4 11 段下一段角色
   - `期望完成: <文件路径 / 验收标准>` — 必填, 1 句, 1-2 行
+  - v0.04.0 起 CC-直通: CC 写完 → 老板 §14.2 验货 (无 cc-runner self-fire 中间审; reviewer 派生链保留)
   例 (aif 卡):
     ```
     完成后给谁: designer
@@ -251,6 +252,10 @@ AGENTS.md
 
 13.5 首期聚合 = 老板 拍本节生效后立即触发
 
+13.6.1 v0.04.0 起 "只取消 CC 自审" 生效段 (2026-08-12 老板 拍, 沿 OOB "只去 CC 自审, reviewer 不动"):
+- 触发时机: 派生卡片 body 必含 "v0.04.0 CC-直通" 标志 → AIF 不派生 cc-runner self-fire 卡
+- 边界: reviewer 派生链保留, 不动 reviewer 卡派发逻辑 (沿 §3.8 v0.04.0 起 CC-直通)
+- AIF 大管家必查: 派生时沿 §14.1 (a)-(b) 查 git 真值, 确认 CC 写完无 cc-runner self-fire 卡 (沿 §14.2.1)
 13.6 回流触发 = 老板 拍 AGENTS.md 改动后,AIF 落 comment 标记"v0.X.Y 自进化生效"+ 关闭本轮 STATE.md 段
 
 # 14 自纠承诺 (老板 8/12 拍: "下次派卡,不要再出现跑完了,但给我看的 APP 没更新的情况")
@@ -262,6 +267,11 @@ AGENTS.md
   (d) bundle/Contents/Resources/ 实际文件 mtime + MD5 对比
   (e) 5 件现状写进派单卡 body (§3 派单规则 v4 沿用)
 
+14.2.1 CC-直通 标志 (2026-08-12 老板 拍, 沿 OOB "取消 CC 自审, 只去 CC, reviewer 不动"):
+- CC 写完 → 不派生 cc-runner self-fire 卡 (沿 v0.04.0 §3.8)
+- reviewer 派生链保留 (沿 v0.04.0 §3.8, reviewer 与 CC 不同心智模型可互补)
+- 老板 §14.2 (d) 验货命令前, AIF 大管家先查 git 真值 (沿 §14.1 (a)-(b))
+- FAIL 标准沿 §14.2 (e): CC-直通段无 cc-runner self-fire 卡 = PASS; 有 cc-runner self-fire 卡 = 派修卡回收
 14.2 派单卡 body 必含 5 件老板 验货段:
   (a) `git log --oneline -5` 输出 (派单前一刻抓, 让 reviewer 看到主线)
   (b) 改动的真值文件路径(不是 commit body 写的)
