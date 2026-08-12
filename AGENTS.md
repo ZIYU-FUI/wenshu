@@ -236,7 +236,7 @@ AGENTS.md
   - 根因 2: AIF 大管家没查老板 实际看的 APP 资源链路(SPM .copy 源 = Brand/, .appiconset 不进 .car)→ 派单方改错位置
   - 根因 3: AIF 大管家把 LOGO v2 全面应用当成"PNG/ICNS 复制完成", 没在 commit 末尾加一段"老板 验货: 跑 swift build 后看 bundle/Contents/Resources/AppIcon.icns MD5 = e7aa024d..."
   - 自纠:AIF 大管家以后任何"改了资源/改了 UI/改了图标"的卡, commit message 末尾必加 1 行"老板 验货: <具体命令> 期望 = <MD5/size>"(沿 §14.2 (e))
-  - 自纠 2: AIF 大管家用词约束——禁止"修真"(修仙小说语义), 改用"修正"或"修改";禁止"装机 user", 改用"老板"(沿 AGENTS §12 + 老板 8/12 14:12 OOB 强调)
+  - 自纠 2: AIF 大管家用词约束——禁止 [禁词-修真] (修仙小说语义), 改用"修正"或"修改";禁止 [禁词-装机user] , 改用"老板"(沿 AGENTS §12 + 老板 8/12 14:12 OOB 强调)
 
 14.4 §14.3 根因 1+2+3 已 8/12 14:15 AIF 大管家主动落地:
   - cp LOGO-v2 dark AppIcon.icns → Sources/WenshuApp/Resources/Brand/AppIcon.icns (mtime 8/12 14:15, MD5 e7aa024d...)
