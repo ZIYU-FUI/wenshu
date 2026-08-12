@@ -308,6 +308,24 @@ private struct LayoutMenuContent: View {
 
         Divider()
 
+        // Q2 折叠态 (t_c6f48f43): 沿 isDismissible 范式, 只列可折叠的 3 panel
+        // (topLeft / topRight / bottomRight). 不可折叠的 2 panel (文档 / 聊天)
+        // 直接不出现 — 跟 isDismissible disabled 范式不同 (那里 disabled 让
+        // 用户看到"这里不能 hide", 这里干脆不该有这个动作). 标题反映下一
+        // 动作 (折叠 ↔ 展开). Hidden 的 panel 折叠项也 disabled (panel
+        // 不在 = 没 chrome 可折叠, 跟 DESIGN §1.3 一致).
+        ForEach(PanelID.allCases.filter { $0.isCollapsible }, id: \.self) { panel in
+            Button(vm.menuCollapseTitle(for: panel)) {
+                Task { @MainActor in
+                    vm.toggle(panel)
+                }
+            }
+            .keyboardShortcut(panel.menuShortcut, modifiers: [.command, .option])
+            .disabled(!vm.isVisible(panel))
+        }
+
+        Divider()
+
         Button("全显示") {
             Task { @MainActor in
                 vm.showAllPanels()
