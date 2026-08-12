@@ -199,6 +199,11 @@ struct LayoutShellView: View {
                 .task {
                     await vm.load()
                 }
+                // Q2 折叠态 (t_c6f48f43): 折叠/展开动画. 沿 V0-fix-8 拍板
+                // 0.2s ease-in-out (FCP 范式). 绑定到 vm.snapshot.collapsed
+                // —— 任一 panel 的 collapsed bool 变化时, SwiftUI 自动插值
+                // gutter/header 宽度 (DESIGN §1.4).
+                .animation(.easeInOut(duration: 0.2), value: vm.snapshot.collapsed)
                 // LT-N1-merge: navPath 变化时同步 selectedProjectID。
                 // 用户在 ProjectListView 的项目 tab 点 row →
                 // `navPath.append(.detail(projectId: id))` →
@@ -562,8 +567,19 @@ struct LayoutShellView: View {
         if !vm.isVisible(id) {
             EmptyView()
         } else if isCollapsed(id) {
-            CollapsedGutter(panelID: id)
-                .frame(width: width)
+            // Q2 折叠态 (t_c6f48f43): 上半 panel 折叠 = CollapsedGutter (50pt
+            // 垂直 gutter, 沿 LayoutSnapshot.topCollapsedPixels); 下半 panel
+            // 折叠 = CollapsedHeader (30pt 水平 header, 沿 LayoutSnapshot
+            // .bottomCollapsedPixels, DESIGN §1.5 下半范式). bottomLeft 不可
+            // 折叠 (DESIGN §1.2), 但走 CollapsedHeader 分支兜底.
+            Group {
+                if id == .bottomLeft || id == .bottomRight {
+                    CollapsedHeader(panelID: id)
+                } else {
+                    CollapsedGutter(panelID: id)
+                }
+            }
+            .frame(width: width)
         } else {
             PanelContainer(panelID: id) {
                 if id == .bottomLeft {
