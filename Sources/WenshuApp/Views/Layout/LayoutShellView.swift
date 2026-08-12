@@ -229,7 +229,19 @@ struct LayoutShellView: View {
                 // (FCP 范式 — .principal 是 macOS title bar 中央, 但因
                 //  traffic lights 在 .principal 左边, 实际渲染紧贴红黄绿后)。
                 .toolbar {
-                    ToolbarItemGroup(placement: .principal) {
+                    // V0-fix-12-1 #1: 修真 + 按钮 3 ICON 修真红黄绿后
+                    // (左), FCP Viewer 顶部 toolbar 范式. placement
+                    // `.principal` 修真中央 → `.primaryAction` 修真
+                    // 红黄绿后修真修真 (memi §1.2 §3.5 FCP Viewer +
+                    // 按钮修真). 装机 user 8/12 12:16 真机拍红字
+                    // "按钮居左" 真意 = FCP 修真 + 按钮修真红黄绿后.
+                    //
+                    // 修真: SwiftUI macOS ToolbarItemPlacement 修真
+                    // `principal` (中央) + `primaryAction` (红黄绿后
+                    // 修真真修真) + `navigation` (中间修真修真).
+                    // designer 拍 board `.primary` 修真, SwiftUI
+                    // 修真 (真修真 `primaryAction`).
+                    ToolbarItemGroup(placement: .primaryAction) {
                         toolbarNewProjectButton
                         toolbarOpenProjectButton
                         toolbarImportProjectButton
@@ -265,8 +277,9 @@ struct LayoutShellView: View {
             Image(systemName: "plus")
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(.secondary)
-                .frame(width: 28, height: 22)
-                .contentShape(Rectangle())
+                // V0-fix-12-1 #1: 修真 .frame + .contentShape 修真
+                // "按钮块" — Image 修真 hit area 修真 ICON 修真
+                // (FCP Viewer toolbar 范式, memi §3.5)
         }
         .buttonStyle(.plain)
         .help("新建项目 (⌘N)")
@@ -284,8 +297,7 @@ struct LayoutShellView: View {
             Image(systemName: "folder.badge.plus")
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(.secondary)
-                .frame(width: 28, height: 22)
-                .contentShape(Rectangle())
+                // V0-fix-12-1 #1: 修真 .frame + .contentShape 修真
         }
         .buttonStyle(.plain)
         .help("打开项目... (⌘O)")
@@ -301,8 +313,7 @@ struct LayoutShellView: View {
             Image(systemName: "square.and.arrow.down")
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(.secondary)
-                .frame(width: 28, height: 22)
-                .contentShape(Rectangle())
+                // V0-fix-12-1 #1: 修真 .frame + .contentShape 修真
         }
         .buttonStyle(.plain)
         .help("导入... (v0.04.0)")
