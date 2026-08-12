@@ -2,7 +2,7 @@
 
 **WO**: v0.02.0 · LT-01-fix5 · 4 件事一起做
 **Date**: 2026-08-07
-**Verifier**: my-pm (PM-direct dispatched claude --bare, 与装机 user 8/7 实机验配合)
+**Verifier**: my-pm (PM-direct dispatched claude --bare, 与老板 8/7 实机验配合)
 **Branch**: `wenshu/v0.02.0/LT-01-fix5`
 **CC final commit**: `60a5a77e0` · 8 files changed, 721 insertions(+), 75 deletions(-)
 
@@ -12,7 +12,7 @@
 
 | # | Acceptance criterion | Status | Evidence |
 |---|----------------------|--------|---------|
-| 1 | PanelSplitter click 路径堵 (BUG1 fix, 3 个 splitter 共用 5px 阈值) | OK | `SplitterClickDetector.isClick(translation:)` 在 `PanelSplitter.onEnded` 中调用, `thresholdPixels = 5` 装机 user 拍板 |
+| 1 | PanelSplitter click 路径堵 (BUG1 fix, 3 个 splitter 共用 5px 阈值) | OK | `SplitterClickDetector.isClick(translation:)` 在 `PanelSplitter.onEnded` 中调用, `thresholdPixels = 5` 老板 拍板 |
 | 2 | PanelID.isDismissible (文档 / 聊天 = false, 项目 / 检视 / 状态 = true) | OK | `PanelID` extension 在 `LayoutShellViewModel.swift:323-331` |
 | 3 | 全隐藏 fallback = 文档:聊天 50:50 | OK | `LayoutMetrics.isFallbackLayout` + `lowerBandHeight` 强制 `totalHeight * 0.5` (only topCenter + bottomLeft visible) |
 | 4 | App.swift 第一个 menu = "文枢" (不是 wenshu) | OK | 显式 `CommandMenu(Self.menuTitle)` 替换原 `CommandGroup(replacing: .appInfo)`, `menuTitle` 兜底硬编码 "文枢" |
@@ -22,7 +22,7 @@
 | 8 | 10 个新 unit test 全过 | OK | `LT01Fix5Tests.swift` (NEW): BUG1 2 + 优化1 3 + 优化2 1 + 优化3 4 = 10 cases |
 | 9 | swift build exit 0 | OK | `swift build` exit 0 (0.43s incremental, 13.18s clean) |
 | 10 | swift test 51/51 全过 | OK | 41 原 + 10 新 = 51/51 0 failures |
-| 11 | 装机 user 实机验视觉通过 | 待跑 PM-direct | 见下"视觉验证清单" |
+| 11 | 老板 实机验视觉通过 | 待跑 PM-direct | 见下"视觉验证清单" |
 | 12 | git commit 落盘 (不 push) | OK | commit `60a5a77e0` on branch `wenshu/v0.02.0/LT-01-fix5` |
 
 ## 质量门禁
@@ -61,7 +61,7 @@
 - 新: 51 tests, 12 suites (+1 suite `LT01Fix5Tests`)
 - +10 tests, +1 suite
 
-## 装机 user 视觉验证清单 (PM-direct 待跑 swift run)
+## 老板 视觉验证清单 (PM-direct 待跑 swift run)
 
 PC 必须实际启 `swift run` 在 `.worktrees/t_5063da4d-LT-01-fix5/`, 然后:
 
@@ -104,7 +104,7 @@ PC 必须实际启 `swift run` 在 `.worktrees/t_5063da4d-LT-01-fix5/`, 然后:
 要彻底解决"菜单栏 3 个 menu"问题, 需要改 `Resources/Info.plist` 的
 `CFBundleName = "文枢"` —— 这样 AppKit 的 auto-generated menu 名字跟
 我们一致, SwiftUI 会把它合并. 这一改 不在 LT-01-fix5 派单边界内 (派
-单只列了 4 个 src 文件), 留给 LT-01-fix6 (如果装机 user 验视觉时确认
+单只列了 4 个 src 文件), 留给 LT-01-fix6 (如果老板 验视觉时确认
 "3 个 menu" 是必须修的)。
 
 ### Compiled placeholder H1 vs LT-XX real content

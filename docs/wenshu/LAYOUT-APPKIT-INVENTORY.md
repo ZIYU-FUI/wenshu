@@ -1,6 +1,6 @@
 // LAYOUT-APPKIT-INVENTORY.md · 文枢 (Wenshu) · v0.02.0 LT-01-fix9
 //
-// 装机 user 8/7 实机拍 "全部原生, 能不自己写的都不自己写".
+// 老板 8/7 实机拍 "全部原生, 能不自己写的都不自己写".
 // CC 必跑 30 分钟 macOS AppKit 调研, 评估 15 个 layout 相关原生 API:
 //   - 适用 → 推荐替代哪个自写 SwiftUI view
 //   - 不适用 → 标 "沿用 SwiftUI"
@@ -17,7 +17,7 @@
 
 # LAYOUT-APPKIT-INVENTORY · 文枢 (Wenshu)
 
-> **v0.02.0 LT-01-fix9 · 装机 user 8/7 实机拍**:
+> **v0.02.0 LT-01-fix9 · 老板 8/7 实机拍**:
 > "全部原生, 能不自己写的都不自己写. 有人都做好了, 我们再费劲图啥"
 >
 > CC 必跑 30 分钟 macOS AppKit 调研, 列出 layout shell 相关所有原生 API,
@@ -59,11 +59,11 @@
 - `NSSplitView` 是 AppKit 的多 pane 容器, 内置分隔条 + 拖动 + 光标。
 - `dividerStyle` 枚举:
   - `.thin` — 1pt 细线 (我们目标)
-  - `.thick` — 默认 9pt 粗 rect (= 自写实现的现状, 装机 user 不满)
+  - `.thick` — 默认 9pt 粗 rect (= 自写实现的现状, 老板 不满)
   - `.paneSplitter` — FCP 风格 pane splitter
   - `.automatic` — 系统选
 - 内置 drag — AppKit 渲染管线优化, 拖动时不重 render sibling view,
-  不闪烁。 装机 user 实机验"拖动闪动 + 不顺滑"症状的根治。
+  不闪烁。 老板 实机验"拖动闪动 + 不顺滑"症状的根治。
 - 内置 cursor — `mouseEntered` 自动设 `NSCursor.resizeLeftRight` /
   `.resizeUpDown`, 不需自写 NSCursor 管理。
 - `NSSplitViewItem` — 每个 pane 包装成 `NSSplitViewItem`:
@@ -145,7 +145,7 @@
 
 **不采用原因**:
 
-- LT-01-fix3 已经把 in-window toolbar **删了** (装机 user 8/7 实机验
+- LT-01-fix3 已经把 in-window toolbar **删了** (老板 8/7 实机验
   + macOS HIG: toolbar 是窗口内动作栏, layout 控制走菜单栏 — 跟
   Pages / Numbers / Xcode / Final Cut 一致)。
 - 我们没有 "新建项目 / 保存 / 导出" 这类 in-window toolbar 按钮
@@ -305,7 +305,7 @@
 - 风险: 5 个 panel 全用 NSVisualEffectView, 视觉重量可能过重
   (FCP 风格: 仅 inspector 用 sidebar material, content 用纯背景)。
 - 评估认为此改造**收益不够覆盖风险**: 这是视觉打磨, 不解决
-  装机 user 报的 3 个症状 (分割线粗 / 拖动闪 / 光标不变)。
+  老板 报的 3 个症状 (分割线粗 / 拖动闪 / 光标不变)。
 
 **fix9 行动**: 不采用本卡。 留 LT-01-fix10+ 视觉打磨评估。
 

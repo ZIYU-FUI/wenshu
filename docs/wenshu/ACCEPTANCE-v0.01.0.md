@@ -1,12 +1,12 @@
-# ACCEPTANCE-v0.01.0 · 装机 user 验收
+# ACCEPTANCE-v0.01.0 · 老板 验收
 
 > WO-005 (v0.01.0 L2 子任务 5/5, 最后一卡) · 2026-08-07 PM-direct 起卡
-> 装机 user 跑完填此清单 → 每步勾选 + 一句话问题记录
-> 注: 本文件是 **装机 user 验收脚本**, 不是 PM-direct 验收。PM-direct 跑通步骤 1-7 mock 跑通部分见 `ACCEPTANCE-v0.01.0.md` (根目录那份是 WO-001 的 acceptance log)
+> 老板 跑完填此清单 → 每步勾选 + 一句话问题记录
+> 注: 本文件是 **老板 验收脚本**, 不是 PM-direct 验收。PM-direct 跑通步骤 1-7 mock 跑通部分见 `ACCEPTANCE-v0.01.0.md` (根目录那份是 WO-001 的 acceptance log)
 
 ---
 
-## 0. 装机 user 环境准备 (跑前必做)
+## 0. 老板 环境准备 (跑前必做)
 
 - [ ] macOS 27.0+ 装好 Xcode-beta (`xcrun --show-sdk-version` 返 27.0)
 - [ ] `git clone` 本仓库到 `~/Engineering/wenshu/` (或同等路径)
@@ -28,7 +28,7 @@
 - [ ] 左侧栏 heading 显示 "项目"
 - [ ] 右侧栏空状态显示 "暂无项目" + "+ 新建" 提示
 - **PM-direct 已验**: cua-driver AX tree 109+ elements (WO-001 acceptance log 记过 134 elements)
-- **装机 user 自验**: 截图存档 `/tmp/wenshu-acceptance/step-1-launch.png`
+- **老板 自验**: 截图存档 `/tmp/wenshu-acceptance/step-1-launch.png`
 
 ### 步骤 2 · 创建项目
 - [ ] 点击右上角 "+ 新建项目" 按钮
@@ -83,7 +83,7 @@
 
 ---
 
-## 2. 已知边界 (装机 user 不要撞)
+## 2. 已知边界 (老板 不要撞)
 
 | 边界 | 现象 | 原因 |
 |------|------|------|
@@ -91,11 +91,11 @@
 | Wenshu.sqlite 不存在 | `ls ~/Documents/wenshu-projects/` 只有空目录 | WO-005 故意不 loadPersistentStores |
 | 真 LLM 调用失败 | fallback 到 mock 流式 (用户看不出来, 但 stderr 有日志) | 网络/解析错误时主动 fallback, 避免 UI 卡死 |
 | Keychain 无 key + `useRealLLM=true` | 走 mock fallback | `shouldUseRealLLM()` 三层检查任一失败 → mock |
-| 跨设备复制 .ws 无效 | copy 到 iPad 打开数据不存在 | WO-005 不实现, AGENTS §7 留装机 user 手动管理 |
+| 跨设备复制 .ws 无效 | copy 到 iPad 打开数据不存在 | WO-005 不实现, AGENTS §7 留老板 手动管理 |
 
 ---
 
-## 3. 验收回执 (装机 user 填)
+## 3. 验收回执 (老板 填)
 
 ```
 跑完日期:    ________________
@@ -131,7 +131,7 @@
 
 ---
 
-## 4. CC 留的施工痕迹 (装机 user 不必读, PM-direct / 后续 worker 看)
+## 4. CC 留的施工痕迹 (老板 不必读, PM-direct / 后续 worker 看)
 
 ### 新增文件 (WO-005 本卡)
 - `Sources/WenshuApp/Config/FeatureFlag.swift` — `useRealLLM` 开关
@@ -149,7 +149,7 @@
 - `LLMService` / `LLMProvider` / `MinimaxProvider` / `SSEParser` / `KeychainHelper` 签名全部原样
 - `Package.swift` swift-tools-version / platforms 全部原样 (6.4 + .macOS(.v27))
 - `AGENTS.md` / `CLAUDE.md` / `README.md` 全部原样
-- 不替装机 user 配 LLM key, 不实跑 minimax 真请求
+- 不替老板 配 LLM key, 不实跑 minimax 真请求
 
 ### 已知未来工作 (WO-005 主动留尾)
 1. **v0.02.0**: 真 loadPersistentStores + `.ws` 单文件 export → 跨设备复制可用
@@ -160,7 +160,7 @@
 
 ---
 
-## 5. CC 验收 (装机 user 不必看, PM-direct 跑过的勾)
+## 5. CC 验收 (老板 不必看, PM-direct 跑过的勾)
 
 ```
 swift build:    exit 0  ✅ (0.36s warm)
@@ -170,5 +170,5 @@ swift run smoke: process alive 6s+  ✅, no errors in stderr
 ```
 
 CC 完成时间: 2026-08-07 (本卡).
-PM-direct 兜底: 已跑上面 3 项验收, 装机 user 收到此文档后照 §1 走 8 步.
+PM-direct 兜底: 已跑上面 3 项验收, 老板 收到此文档后照 §1 走 8 步.
 

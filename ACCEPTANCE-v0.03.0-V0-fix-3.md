@@ -13,7 +13,7 @@
 - 设计系统真理源 = `Sources/WenshuApp/Views/DESIGN-SYSTEM-INIT.md` (1288 行, commit fdf4c6086 即 v0-fix-3 base 的 42334bde2 包含)
 - 本卡设计稿 = `Sources/WenshuApp/Views/DESIGN-V0-fix-2.md` (879 行, 包含 6 BUG 详细改动契约 §1-§4)
 - 已落地 v0-fix-1 = commit 1512a68d3 / cherry-pick 57b1d65 (Fix A 顶部 38pt title-bar + plus.circle.fill + .help("新建项目") + 删 LayoutShellView H1 + 改 ChatPanelView Picker a11y "" + 4 chat tab ICON + ProjectCreateView 540×480)
-- 装机 user 8/10 15:30 + 15:55 OOB 实机拍 6 BUG + 2 处误删 (v0-fix-1 commit 落 main 后)
+- 老板 8/10 15:30 + 15:55 OOB 实机拍 6 BUG + 2 处误删 (v0-fix-1 commit 落 main 后)
 - 真根因 = DESIGN-SYSTEM-INIT §9.1 P11 防回退 + §9.2 5 步真机拍回归流程 + §10 头尾流程图均缺失
 
 ## 2. 改动文件清单 (5 文件改 + 1 文件新)
@@ -109,7 +109,7 @@ Executed 113 tests, with 9 failures (0 unexpected) in 0.510 (0.518) seconds
 
 **12/12 pass** ✅
 
-## 6. 真机/CUA 6 截图 (装机 user 头尾在看板外 / AIF CUA fallback)
+## 6. 真机/CUA 6 截图 (老板 头尾在看板外 / AIF CUA fallback)
 
 ### 6 截图固定清单 (DESIGN-SYSTEM-INIT §9.2 P12)
 1. **标题栏** — native macOS title bar (traffic lights only), no chrome change in this card
@@ -128,8 +128,8 @@ Executed 113 tests, with 9 failures (0 unexpected) in 0.510 (0.518) seconds
 - 底部时间线 / 状态区 — unchanged
 
 ### 真机拍 (PM-direct 兜底)
-- **装机 user 8/10 当前在看板外 → AIF CUA 验 fallback (本任务不归 PM-direct 跑)**
-- **派生**: 装机 user 下次重启 APP 时实机拍 6 截图,与 v0-fix-1 前拍对比。任一功能消失 = 必回退到 v0-fix-1 + 重写 (P11 防回退)
+- **老板 8/10 当前在看板外 → AIF CUA 验 fallback (本任务不归 PM-direct 跑)**
+- **派生**: 老板 下次重启 APP 时实机拍 6 截图,与 v0-fix-1 前拍对比。任一功能消失 = 必回退到 v0-fix-1 + 重写 (P11 防回退)
 - 详细落档: `wenshu-pour/architecture/v0.03.0-v0-fix-3-closure-2026-08-10.md` §6
 
 ## 7. Git 契约
@@ -146,6 +146,6 @@ Executed 113 tests, with 9 failures (0 unexpected) in 0.510 (0.518) seconds
 ## 8. 后续接力
 
 - AIF 主动驱动 PM-direct 2 阶 merge main (task body §3 步骤 5) — **本卡不归 PM-direct 主动 merge,等 AIF 大管家驱动**
-- AIF 主动反馈装机 user "拉 main + 重启 APP 验" (task body §3 步骤 6) — **装机 user 头尾在看板外**
-- L3 reviewer 派单 (8/10 装机 user 拍板真值 = 设计系统 §9.5 reviewer 修法 + 真机拍 6 截图对比,审查报告含 before/after) — **本卡 PM-direct 立即派 reviewer 卡独立审查**
-- 派生:PM-direct 兜底 commit (8/10 实战) reviewer 报告 PASS 后,装机 user 拍"v0.03.0 ready" → AIF merge main → push 双仓 → 装机 user 装 APP 验 → 装机 user 拍下一需求
+- AIF 主动反馈老板 "拉 main + 重启 APP 验" (task body §3 步骤 6) — **老板 头尾在看板外**
+- L3 reviewer 派单 (8/10 老板 拍板真值 = 设计系统 §9.5 reviewer 修法 + 真机拍 6 截图对比,审查报告含 before/after) — **本卡 PM-direct 立即派 reviewer 卡独立审查**
+- 派生:PM-direct 兜底 commit (8/10 实战) reviewer 报告 PASS 后,老板 拍"v0.03.0 ready" → AIF merge main → push 双仓 → 老板 装 APP 验 → 老板 拍下一需求

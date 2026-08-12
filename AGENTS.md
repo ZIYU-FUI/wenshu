@@ -41,35 +41,35 @@
 - **模型名校验**(8/6 实测):minimax 错误模型名静默 fallback 到 `MiniMax-M3`,CC 写 provider 配置时必须用 minimax 官方列出的有效模型名
 - **P12 (AIF 拉起必拍 6 截图, §9.2)**: CC merge main 后 AIF 必 CUA 拍 6 张 (标题栏/左上 5 tab/中上/右上/底部 chat/底部时间线) + 与 v0-fix-N-1 对比, 任何功能消失 = 必回退, 长期原则
 - **单条件退出门 (Ralph 三层 AND, §14.4 c)**: 完成指示器 AND CUA 6 截图(沿 P12) AND 无新红色批注, 任一不满足不进 done。reviewer 不再 2 阶审查 (砍 P12.1 §14.3 #1), reviewer 直接看 AIF 截图 + 列 before/after 12 元素
-- **派单卡 body 必含 §14.2 2 落点提示** (8/11 装机 user 21:15 拍加固): 派单卡 body 末尾必加 1 行 "本卡 done 前 4 角色按 assignee 必落 1 行 STATE.md (≤ 30 字, 3 选 1: 规则冲突 / 冗余 / 新规则需求 + 1 句理由, 沿 §14.2 2 硬约束)"; AIF dispatcher 派单 prompt 自动注入此提示 (本卡落档后)
-- **CC 派单边界** (8/11 21:50 装机 user 重拍 CC 角色 = fire CLI runner): PM 派单给 CC 时, 派单卡 body 4 件套 = §3 派单原则原 4 件套, CC 接卡后 fire `claude -p "<4 件套 prompt>" --max-turns <任务复杂度>` (沿 PM-direct 9 协议)。CC **不写代码**, 不改设计稿, 不派单, 不独立审查, 不改 AGENTS, 不落 STATE.md。
-- **派单看板 = wenshu 看板** (8/11 22:10 装机 user OOB): 所有派单 (CC/designer/PM-direct/reviewer/AIF) 默认用 wenshu 看板 (`hermes kanban boards switch wenshu` + assignee 选对应 profile)。**不用** novel-platform / default / archive 等其他板。派单卡 body 必含 `board: wenshu` 锚定。
-- **派卡前检查看板依赖服务** (8/11 22:10 装机 user OOB): ANAN + dispatcher 派卡前必跑 `hermes gateway status` + `hermes config check` + `hermes approvals suggest --days 7`, 确认 (1) gateway running, (2) dispatcher 配置合法, (3) 命令白名单同步, (4) 涉及 hermes 内部命令 (allowlist / approvals / config set) 在 allowlist 内。任何一项红 = 拒绝派卡 + 报装机 user。
+- **派单卡 body 必含 §14.2 2 落点提示** (8/11 老板 21:15 拍加固): 派单卡 body 末尾必加 1 行 "本卡 done 前 4 角色按 assignee 必落 1 行 STATE.md (≤ 30 字, 3 选 1: 规则冲突 / 冗余 / 新规则需求 + 1 句理由, 沿 §14.2 2 硬约束)"; AIF dispatcher 派单 prompt 自动注入此提示 (本卡落档后)
+- **CC 派单边界** (8/11 21:50 老板 重拍 CC 角色 = fire CLI runner): PM 派单给 CC 时, 派单卡 body 4 件套 = §3 派单原则原 4 件套, CC 接卡后 fire `claude -p "<4 件套 prompt>" --max-turns <任务复杂度>` (沿 PM-direct 9 协议)。CC **不写代码**, 不改设计稿, 不派单, 不独立审查, 不改 AGENTS, 不落 STATE.md。
+- **派单看板 = wenshu 看板** (8/11 22:10 老板 OOB): 所有派单 (CC/designer/PM-direct/reviewer/AIF) 默认用 wenshu 看板 (`hermes kanban boards switch wenshu` + assignee 选对应 profile)。**不用** novel-platform / default / archive 等其他板。派单卡 body 必含 `board: wenshu` 锚定。
+- **派卡前检查看板依赖服务** (8/11 22:10 老板 OOB): ANAN + dispatcher 派卡前必跑 `hermes gateway status` + `hermes config check` + `hermes approvals suggest --days 7`, 确认 (1) gateway running, (2) dispatcher 配置合法, (3) 命令白名单同步, (4) 涉及 hermes 内部命令 (allowlist / approvals / config set) 在 allowlist 内。任何一项红 = 拒绝派卡 + 报老板。
 
-## 4. PM ↔ CC 单 loop 流程(沿用 7/16 拍, 8/11 21:50 装机 user 拍升级 6 角色 + 逆向 5 段关卡)
+## 4. PM ↔ CC 单 loop 流程(沿用 7/16 拍, 8/11 21:50 老板 拍升级 6 角色 + 逆向 5 段关卡)
 
 > 你不在 loop 内, PM 自驱
 > 8/11 21:50 重拍: 流程图不再是 §4 老 PM↔CC 单 loop, 是 6 角色闭环 (AIF + designer + PM-direct + cc-runner + cloud code + reviewer) + 逆向 5 段关卡。
 
-**正向 5 段流程图**(沿 8/11 21:50 装机 user 重拍):
+**正向 5 段流程图**(沿 8/11 21:50 老板 重拍):
 
 ```
-[I1] AIF 与装机 user 沟通需求 (沿 §14.8 AIF 沟通需求方法论 + 看截图), 把需求转换成卡片 (一个卡片一个功能闭环), 流转给 designer
+[I1] AIF 与老板 沟通需求 (沿 §14.8 AIF 沟通需求方法论 + 看截图), 把需求转换成卡片 (一个卡片一个功能闭环), 流转给 designer
 [I2] designer 接 AIF 卡片, 保留原卡内容, 同时加入自己输出的设计稿件 (DESIGN-*.md), 一并流转给 PM
 [I3] PM 接 designer 卡片, 结合设计输出的内容, 把已经设计过的需求拆成若干可被 cc-runner 执行的卡片 (≤ 80 行单功能单卡, 沿 §14.3 7 + PM-direct 9 协议), 推给 cc-runner
 [I4] cc-runner 接 PM 卡片, 不做任何事, 直接调用 cloud code 的 CLI: `claude -p "<4 件套>" --max-turns <任务复杂度>`, 用好 cloud code 的 CLI, 实时了解 cloud code 的进度, 待 cloud code 完成后, 派审核卡片给 reviewer
 [I5] reviewer 接 cc-runner 派审卡, 审核完成后, 是否通过都反馈给 cc-runner (沿 21:50 重拍: 反馈给 CC, 不直接给 PM); 通过 cc-runner 就关卡, 不通过就修复 (cc-runner 派修复卡给 cloud code)
 ```
 
-**逆向 5 段关卡流程图**(沿 8/11 21:50 装机 user 重拍):
+**逆向 5 段关卡流程图**(沿 8/11 21:50 老板 重拍):
 
 ```
 [I6] reviewer 完成任务关审卡后, 通知 cc-runner
 [I7] cc-runner 确认审核通过, 关执行卡, 通知 PM
 [I8] PM 接到通知后, 确认无误, 关派单卡, 同时判断多个小卡都关了, 关总卡, 通知 designer
-[I9] designer 代码级验收 UI (沿 21:50 重拍, 不是装机 user 真机拍), 通过后, 反馈给 AIF
-[I10] AIF 确认一个需求完成, 拉起 APP, 邀请装机 user 体验
-→ 装机 user 验收 → 一个需求完成闭环
+[I9] designer 代码级验收 UI (沿 21:50 重拍, 不是老板 真机拍), 通过后, 反馈给 AIF
+[I10] AIF 确认一个需求完成, 拉起 APP, 邀请老板 体验
+→ 老板 验收 → 一个需求完成闭环
 ```
 
 **单任务小循环**(v0.00.0 文枢特定):
@@ -165,7 +165,7 @@
 - ❌ 2026-08-07 PM 拍板: 三栏 layout grammar(sidebar + content + inspector + toolbar + status bar, 抄 Apple Pages/Keynote/Numbers 布局语法)— PM 8/7 commit `ead2897`
 - ❌ 2026-08-07 AIF 推论: 5 区(2x2 矩阵 + 1 中下半)— AIF 把 FCP 2x2 强加上去
 - ❌ 2026-08-07 AIF 再推论: 4 区(上半 3 + 下 1)— AIF 自纠
-- ✅ 2026-08-07 装机 user 拍板: 5 区(上 3 + 下 2, 聊天+TODO 分下半)— 老板最终定
+- ✅ 2026-08-07 老板 拍板: 5 区(上 3 + 下 2, 聊天+TODO 分下半)— 老板最终定
 
 **5 区几何**(写代码必须严格按此画):
 
@@ -231,7 +231,7 @@
 
 **快捷键**(v0.02.0 不实现, 留 v0.09.0 统一处理):
 
-- 2026-08-07 装机 user 拍: 快捷键不在 v0.02.0 范围, 未来 v0.09.0 统一处理
+- 2026-08-07 老板 拍: 快捷键不在 v0.02.0 范围, 未来 v0.09.0 统一处理
 - 文枢保留快捷键配置能力(可配置), 但 v0.02.0 不指定具体键位
 - 建议派单时 CC 留出快捷键注册接口(为未来 v0.09.0 准备)
 
@@ -364,16 +364,16 @@
 - 不动 `~/.hermes/` 下 hermes 自带任何文件
 - 不动 `.archive/wenshu-monorepo-fork/` 任何文件(只读历史)
 
-### 13.1 第 6 角色 CC (CLI runner, 8/11 21:35 装机 user 拍新增)
+### 13.1 第 6 角色 CC (CLI runner, 8/11 21:35 老板 拍新增)
 
 - **CC 角色 = spawnable hermes profile** (cc-runner), 沿 §14.1 4 profile 自动加载基线技能 + cc-runner 专用技能
-- **CC 角色职责** (单件, 沿 装机 user 8/11 21:35 拍 "什么都不干"): 接 PM-direct 派单卡 + fire `claude -p "<4 件套 prompt>" --max-turns N` + 监控 exit code + git commit 落盘 (不 push) + 报告 PM-direct 完工 + commit hash + diff 摘要
+- **CC 角色职责** (单件, 沿 老板 8/11 21:35 拍 "什么都不干"): 接 PM-direct 派单卡 + fire `claude -p "<4 件套 prompt>" --max-turns N` + 监控 exit code + git commit 落盘 (不 push) + 报告 PM-direct 完工 + commit hash + diff 摘要
 - **CC 角色 NOT 干的事**: 改设计稿 (designer 干) / 派单 (PM-direct 干) / 独立审查 (reviewer 干) / 改 AGENTS (AIF 干) / 落 STATE.md 落点 (老 CC 写代码干, 不是新 CC fire runner 干)
 - **CC 角色区分**: 老 CC = `claude -p` 跑的 Anthropic SDK agent, 新 CC = hermes profile 跑 `claude -p` fire CLI 的 runner
 
 ---
 
-## 14. 自进化方法论 v0.03.0(2026-08-11 你拍,装机 user 8/11 19:55 + 20:10 + 20:35 三段拍板合成)
+## 14. 自进化方法论 v0.03.0(2026-08-11 你拍,老板 8/11 19:55 + 20:10 + 20:35 三段拍板合成)
 
 **沿 ECC 7 步闭环末两步**(`remember → improve`, 借鉴自 affaan-m/ECC 239k★),GSD 5 步闭环上下文(借鉴自 open-gsd/gsd-core),Ralph 双条件退出门(借鉴自 frankbria/ralph-claude-code)。
 
@@ -383,7 +383,7 @@
 - **4 profile 自动加载研发基线技能** (8/11 20:35 你拍,对应技能 hermes 启动时按 profile 预装):
   - aif: research + grounded-citations + last30days
   - my-pm: sdlc-review + hermes-kanban-ops
-  - designer: swiftui-design-patterns(沿 8/6 装机 user 拍已有)+ hallmark + baoyu-infographic
+  - designer: swiftui-design-patterns(沿 8/6 老板 拍已有)+ hallmark + baoyu-infographic
   - reviewer: requesting-code-review + sdlc-review
   - 共用基线 (4 profile 都装): i-have-adhd + humanizer-zh
 - **目前只有 wenshu 1 个项目**(8/11 20:35 你拍),无多项目分支,新加项目才扩 profile
@@ -391,29 +391,29 @@
 ### 14.2 STATE.md 落点机制(8/11 19:55 你拍"自进化是核心抓手")
 
 1. **STATE.md 路径**: `/Volumes/ANAN/Engineering/wenshu/.hermes/STATE.md`(项目级, **不入 git**, kanban 自动 append)
-2. **落点触发** (硬约束, 8/11 装机 user 20:48 拍加固): 每张卡 done 前, **CC / designer / PM-direct / reviewer 4 角色按 assignee 必落 1 行 STATE.md** (≤ 30 字, 3 选 1: 规则冲突 / 冗余 / 新规则需求 + 1 句理由):
+2. **落点触发** (硬约束, 8/11 老板 20:48 拍加固): 每张卡 done 前, **CC / designer / PM-direct / reviewer 4 角色按 assignee 必落 1 行 STATE.md** (≤ 30 字, 3 选 1: 规则冲突 / 冗余 / 新规则需求 + 1 句理由):
    - **CC**: 改的代码是否触发新规则 (新增 API / 新增 entity)
    - **designer**: 设计稿是否偏离 §8 layout grammar 或触发新规则
    - **PM-direct**: 派单流程是否冗余 / 冲突
    - **reviewer**: 审查 PASS/FAIL 是否暴露 §14 规则漏洞
    - **漏落** = 下次阶段门聚合时 AIF 主动问"为什么没落", 不进 §14.2 4 砍
-3. **聚合周期**: 装机 user 在**阶段门控节点**(v0.00.0 → v0.01.0 → ...) 或**显式触发**时, AIF 读 STATE.md 聚合(一次性拉所有 comment 落点,按冲突/冗余/新规则分类)
+3. **聚合周期**: 老板 在**阶段门控节点**(v0.00.0 → v0.01.0 → ...) 或**显式触发**时, AIF 读 STATE.md 聚合(一次性拉所有 comment 落点,按冲突/冗余/新规则分类)
 4. **改 AGENTS.md 4 动作**:
    - **加**: 新规则有 ≥ 2 个实例支持
    - **合**: 2 条规则重复
    - **降**: L3 → L1(沿 §1 §3 L1/L2/L3 三级)
    - **砍**: 规则 0 实例支持超过 1 个阶段门
-5. **AIF 改 AGENTS.md 走 8/11 装机 user 头尾规则**: AIF 在对话里直接改 + commit + push,**不派 fire-wrapper 卡**(沿本卡硬约束)
-6. **首期聚合**: 装机 user 拍本节生效后立即触发(因为本节本身已含 4 角色 Q1-Q4 + 自进化 4 件套 + 派单精简 7 条,STATE.md 满)
-7. **回流触发**: 装机 user 拍 AGENTS.md 改动后, AIF 落 comment 标记 "v0.X.Y 自进化生效" + 关闭本轮 STATE.md 段(下次聚合从空开始)
+5. **AIF 改 AGENTS.md 走 8/11 老板 头尾规则**: AIF 在对话里直接改 + commit + push,**不派 fire-wrapper 卡**(沿本卡硬约束)
+6. **首期聚合**: 老板 拍本节生效后立即触发(因为本节本身已含 4 角色 Q1-Q4 + 自进化 4 件套 + 派单精简 7 条,STATE.md 满)
+7. **回流触发**: 老板 拍 AGENTS.md 改动后, AIF 落 comment 标记 "v0.X.Y 自进化生效" + 关闭本轮 STATE.md 段(下次聚合从空开始)
 
-### 14.3 派单精简 7 条(8/11 19:55 PM-direct 收口,装机 user 8/11 20:35 拍)
+### 14.3 派单精简 7 条(8/11 19:55 PM-direct 收口,老板 8/11 20:35 拍)
 
 | # | 动作 | 类型 | 理由 |
 |---|------|------|------|
 | 1 | **P12.1 reviewer 2 阶 CUA 双层 → 砍**, P12 AIF 拍 6 截图即唯一 CUA 信源, reviewer 直接看 AIF 截图 | 砍 | P12.1 与 P12 信源重复, V0-fix-3/4/10/11 4 轮 2 阶审查漏 BUG 实证根因(PM-direct Q5 5 轮修同 BUG) |
 | 2 | **P12 6 截图清单固定化** = 标题栏 / 左上 5 tab / 中上 / 右上 / 底部 chat / 底部时间线, 落 §9.2 不再每次派单重写 | 留(固定化) | P12 是真护栏, 问题在每次派单重写 → 砍成本 |
-| 3 | **§8.1 layout grammar 拍板历史段(4 行) → 砍**, 只留 ✅ 8/7 装机 user 拍板 | 砍 | 拍板历史本身就是规则反复推翻的物证(本卡 §1 现象), 留着反复刺激"再来一次" |
+| 3 | **§8.1 layout grammar 拍板历史段(4 行) → 砍**, 只留 ✅ 8/7 老板 拍板 | 砍 | 拍板历史本身就是规则反复推翻的物证(本卡 §1 现象), 留着反复刺激"再来一次" |
 | 4 | **派单卡"反三段式 / 反五段式 / 修真 N 处"仪式性措辞 → 砍**, 只留 4 件套(目标/范围/标准/边界) | 砍 | 真生效靠 designer 设计稿 + CC commit diff, 仪式性措辞对 5 角色没增量 |
 | 5 | **拉起 APP 4 件前置** (git pull / swift build / mtime < 60s / CUA 非 0x0) **→ 留, 合并 1 处** | 留(合并) | 4 件是真护栏(防回退 / 防装配错), 但分散在 P12 / §3 / 派单卡 = 重复, 合并 1 处写 §3 |
 | 6 | **AGENTS §10 风险与缓解(275-301 行) → 砍一半**, 只留:数据资产不丢 / 真机拍是底线 / CUA 是底线 3 条 | 砍 | §10 v0.00.0 重写过, 装了 P12 后变冗余, 留着 5 角色读不进 |
@@ -428,82 +428,82 @@
 - **c. Ralph 双条件退出** (frankbria/ralph-claude-code 9.6k★): **强借鉴**。单条件退出门 = 完成指示器 AND CUA 6 截图 AND 无新红色批注(三层 AND), 任一不满足不进 done。比 reviewer 2 阶审查更严但更省人工(2 阶→1 阶)。
 - **d. Pimzino 4 步 spec** (Pimzino/claude-code-spec-workflow 3.8k★): **轻借鉴**。§4 流程图加 4 个 spec 节点(Requirements/Design/Acceptance/Boundary), 派单卡 4 件套(目标/范围/标准/边界)作为节点输入, 不重写派单格式。
 - **e. AIOX first-value 10 分钟** (SynkraAI/aiox-core 3.1k★): **轻借鉴**。CC 跑通首个测试 OR designer 出第一稿作为 first-value, **30 分钟**内无回流到 PM-direct 调工单(10 分钟太紧, CC 长任务经常超 10 分钟, 30 分钟是合理阈值)。
-- **f. ECC 285 skills / 68 agents 知识分层** (affaan-m/ECC): **不借鉴**。wenshu 当前 §4 单 loop + §5 3 类项目文档骨架已经够用, 引入 285 skills 会破坏 AIF 大管家边界(8/11 装机 user 拍 "AIF 优先级 = 老板当前关注点, 不引入额外层级")。
+- **f. ECC 285 skills / 68 agents 知识分层** (affaan-m/ECC): **不借鉴**。wenshu 当前 §4 单 loop + §5 3 类项目文档骨架已经够用, 引入 285 skills 会破坏 AIF 大管家边界(8/11 老板 拍 "AIF 优先级 = 老板当前关注点, 不引入额外层级")。
 
-### 14.5 装机 user 头尾规则(8/11 装机 user 拍, 本节生效)
+### 14.5 老板 头尾规则(8/11 老板 拍, 本节生效)
 
-- 永远在对话里和装机 user 拍板, 不派 fire-wrapper 卡
-- 不写 OOB 历史, 不重复 OOB 历史, 不写"等装机 user 验"阻塞字样
+- 永远在对话里和老板 拍板, 不派 fire-wrapper 卡
+- 不写 OOB 历史, 不重复 OOB 历史, 不写"等老板 验"阻塞字样
 - AGENTS.md 改 = **AIF 在对话里直接改 + commit + push, 不派卡**(沿 8/6 §1 AIF 边界). ANAN 越界写入已收回 (8/11 20:35 §14.5 错授权 "ANAN 任一" 改回 "AIF 任一").
 - 借鉴 = 落引用 + 落 1 行落地动作, 不照搬整个项目
-- 调研 ≠ 安装(沿 8/6 装机 user 拍)
+- 调研 ≠ 安装(沿 8/6 老板 拍)
 
 ### 14.6 完整状态保证(8/11 20:35 你拍"目前只有 wenshu 1 个项目, 保证每次会话是完整状态")
 
 1. **STATE.md 持久化**: `/Volumes/ANAN/Engineering/wenshu/.hermes/STATE.md` 不入 git(§14.2 1), hermes 启动时按 profile 自动加载
 2. **4 profile 启动注入研发基线技能**: §14.1 列的 4 profile 技能, hermes 启动时按 profile 预装, 不自启 skill
-3. **AGENTS.md 全文装进 system prompt**: 每次 session 起始, ANAN 把本文件(§1-§14)全本注入 system prompt(已实现, 沿 8/6 装机 user 拍)
+3. **AGENTS.md 全文装进 system prompt**: 每次 session 起始, ANAN 把本文件(§1-§14)全本注入 system prompt(已实现, 沿 8/6 老板 拍)
 4. **STATE.md 装进 system prompt**: 每次 session 起始, ANAN 读 STATE.md 装进 system prompt(本节新增, 跨 session 状态)
-5. **mem0 落档(沿 8/11 装机 user 拍"默认走 mem0")**: 装机 user 偏好 / 拍板 / 人物关系 / 跨 session 状态, 全部走 mem0_add / mem0_search, 不写本地 memory 文件
+5. **mem0 落档(沿 8/11 老板 拍"默认走 mem0")**: 老板 偏好 / 拍板 / 人物关系 / 跨 session 状态, 全部走 mem0_add / mem0_search, 不写本地 memory 文件
 6. **会话外派单历史**: 沿 session_search, 不写 STATE.md(STATE.md 只装当前项目级规则)
 
-### 14.7 designer + reviewer 加值环节(8/11 20:48 装机 user 拍"设计师和审查员在里面吗", 加固 §14.4 d/§14.6 现有段)
+### 14.7 designer + reviewer 加值环节(8/11 20:48 老板 拍"设计师和审查员在里面吗", 加固 §14.4 d/§14.6 现有段)
 
 §14.4 d 重借鉴时只提"spec 节点", §14.6 完整状态保证不展开 designer/reviewer 真实落位。本节加固让 designer / reviewer = 流程内 loop, 不是"上桌"。
 
 **designer 3 件加值**(沿 8/6 §5 派单边界 + 8/10 PM-direct 三段式):
 1. **派单前主信源**: 出设计稿 (`Sources/WenshuApp/Views/DESIGN-*.md`) 作为 PM-direct 派 CC 的输入, **主信源, 不是 reviewer** (派单卡 4 件套 "目标/范围/标准/边界" 引用设计稿路径 = 派单成立)
 2. **§14.2 落点**: 每张 designer 卡 done 前, 在 STATE.md 落 1 行 (≤ 30 字, 3 选 1: 规则冲突 / 冗余 / 新规则需求)
-3. **真机拍**: 装机 user 修真 5 红字批注 (8/11 14:35 V0-fix-11) = 5 红字转 5 修真 (沿 V0-fix-1/2/10/11 5 轮实证, designer 修真 5 红字比 reviewer 2 阶审查更有效)
+3. **真机拍**: 老板 修真 5 红字批注 (8/11 14:35 V0-fix-11) = 5 红字转 5 修真 (沿 V0-fix-1/2/10/11 5 轮实证, designer 修真 5 红字比 reviewer 2 阶审查更有效)
 
 **reviewer 3 件加值**(沿 8/10 PM-direct 三段式 + 8/11 §14.3 砍 2 阶):
 1. **派单后独立审查**: 独立审查 (read-only, 不动源代码), 沿 §14.3 1 砍 P12.1 (reviewer 不再 CUA 2 阶拍, 直接看 AIF §14.6 1 已落 STATE.md 信源)
 2. **§14.2 落点**: 每张 reviewer 卡 done 前, 在 STATE.md 落 1 行 (≤ 30 字, 3 选 1 + 1 句理由)
-3. **真机拍**: reviewer PASS 之后, 装机 user 拉起 APP 验 (沿 §3 §4 流程图两端, GSD 5 步闭环)
+3. **真机拍**: reviewer PASS 之后, 老板 拉起 APP 验 (沿 §3 §4 流程图两端, GSD 5 步闭环)
 
-**装机 user 加值**(沿 §14.5 头尾规则): 永远在对话里和装机 user 拍板, 不派 fire-wrapper 卡; 装机 user 拍"v0.03.0 ready" = 流程完整闭环。
+**老板 加值**(沿 §14.5 头尾规则): 永远在对话里和老板 拍板, 不派 fire-wrapper 卡; 老板 拍"v0.03.0 ready" = 流程完整闭环。
 
-### 14.7.0 CC (CLI runner, 8/11 21:35 + 21:50 + 22:00 装机 user 三段拍)
+### 14.7.0 CC (CLI runner, 8/11 21:35 + 21:50 + 22:00 老板 三段拍)
 
 CC 角色 = hermes 独立 profile `cc-runner` (沿 hermes-agent skill profiles 部分, `hermes profile create cc-runner --clone --clone-from aif`)。CC 是独立身份, 不是 PM-direct 子能力。
 
-**CC 3 件加值**(沿 8/11 22:00 装机 user 拍"PM 不调 cloud code CLI, 交由 CC 调"):
+**CC 3 件加值**(沿 8/11 22:00 老板 拍"PM 不调 cloud code CLI, 交由 CC 调"):
 1. **派单后 fire CLI**: PM-direct 派单给 cc-runner, 派单卡 body 4 件套 = §3 派单原则原 4 件套, cc-runner fire `claude -p "<4 件套 prompt>" --max-turns <任务复杂度>` (沿 PM-direct 9 协议), 监控 exit code + fire log (`/tmp/cc-out/t_xxx-fire.log`)
 2. **派审 + 关执行卡**: cloud code 完成后, cc-runner 派审卡给 reviewer; reviewer PASS → **cc-runner 关执行卡** + 通知 PM-direct; reviewer FAIL → **cc-runner 派修复卡给 cloud code** (重新 fire CLI, 不是改 cc-runner 自身)
 3. **git commit 落盘不 push**: 沿 8/10 PM-direct 自纠硬约束 (CC 不 push, git commit 落盘不 push); 沿 8/10 不盲信 cloud code "完工"声明, 兜底手动 `kanban_complete` (沿 LT-N1-cc 撞 API 限制兜底先例)
 
-**CC NOT 干的事**(沿 8/11 21:35 装机 user 拍"什么都不什么干"):
+**CC NOT 干的事**(沿 8/11 21:35 老板 拍"什么都不什么干"):
 - NOT 改设计稿 (designer 干)
 - NOT 派单 (PM-direct 干)
 - NOT 独立审查 (reviewer 干)
 - NOT 改 AGENTS (AIF 干)
 - NOT 落 STATE.md 落点 (沿 §14.2 2 = 4 角色 CC/designer/PM-direct/reviewer = 老 CC 写代码干, 新 CC fire runner 不落)
-- NOT 直接跟装机 user 沟通 (沟通走 AIF/PM-direct)
+- NOT 直接跟老板 沟通 (沟通走 AIF/PM-direct)
 
-**reviewer 2 件加值改写**(沿 8/11 21:50 装机 user 重拍):
+**reviewer 2 件加值改写**(沿 8/11 21:50 老板 重拍):
 1. **派单后独立审查**: 独立审查 (read-only, 不动源代码), 沿 §14.3 1 砍 P12.1 (reviewer 不再 CUA 2 阶拍, 直接看 AIF §14.6 1 已落 STATE.md 信源)
 2. **反馈给 CC, 不直接给 PM** (8/11 21:50 重拍): 审完 PASS/FAIL 都给 cc-runner (CC 是卡 owner), cc-runner 转发 PM-direct, reviewer 不直接关卡
 
-### 14.8 6 角色落位总图 (8/11 21:50 装机 user 重拍, 5 角色扩 6 角色)
+### 14.8 6 角色落位总图 (8/11 21:50 老板 重拍, 5 角色扩 6 角色)
 
 | 角色 | 落位 | §14 引用 | 加值 |
 |---|---|---|---|
-| AIF | 流程外 + 沟通需求 + 派单 + AGENTS 改 | §14.2 + §14.5 | 需求沟通方法论 + 阶段门聚合 + 拉起 APP 邀请装机 user |
-| designer | AIF → PM 之间 | §14.7 + §14.2 | 设计稿主信源 + 修真装机 user 红字 + **代码级验收 UI** (8/11 21:50 重拍加) |
+| AIF | 流程外 + 沟通需求 + 派单 + AGENTS 改 | §14.2 + §14.5 | 需求沟通方法论 + 阶段门聚合 + 拉起 APP 邀请老板 |
+| designer | AIF → PM 之间 | §14.7 + §14.2 | 设计稿主信源 + 修真老板 红字 + **代码级验收 UI** (8/11 21:50 重拍加) |
 | PM-direct (my-pm) | designer → cc-runner 之间 | §14.3 + §14.2 | 派单 + 拆卡(≤ 80 行单功能单卡) + 关派单卡 + 多小卡关关总卡 |
 | CC (cc-runner) | PM → cloud code 之间 (独立 hermes profile, 8/11 22:00 拍) | §14.7.0 + §14.2 | **fire CLI runner, 不写代码**, 监控进度, 派审, 关执行卡 |
 | cloud code (claude-code, non-spawnable terminal lane) | cc-runner fire CLI 触发 | §13.1 老 CC 真值 | 写代码 + git commit (不 push, 沿 8/10 PM-direct 自纠) |
 | reviewer | cc-runner 派审后 | §14.7 reviewer 改 + §14.2 | **反馈给 CC, 不直接给 PM** (8/11 21:50 重拍), PASS/FAIL 都给 cc-runner |
 
-**正向 5 段闭环**(沿 8/11 21:50 装机 user 重拍):
+**正向 5 段闭环**(沿 8/11 21:50 老板 重拍):
 ```
 AIF(沟通需求 + 转卡片) → designer(保留原卡 + 设计稿) → PM(拆卡 ≤ 80 行) → cc-runner(fire CLI) → cloud code(写代码) → cc-runner(派审) → reviewer(审)
 ```
 
-**逆向 5 段关卡流程图**(沿 8/11 21:50 装机 user 重拍):
+**逆向 5 段关卡流程图**(沿 8/11 21:50 老板 重拍):
 ```
-reviewer 审完 → cc-runner 收到 PASS → cc-runner 关执行卡 + 通知 PM → PM 关派单卡 + 多小卡关 → PM 关总卡 + 通知 designer → designer 代码级验收 UI 通过 → designer 反馈 AIF → AIF 关 AIF 卡 + 拉起 APP + 邀请装机 user → 装机 user 验 → 需求完成闭环
+reviewer 审完 → cc-runner 收到 PASS → cc-runner 关执行卡 + 通知 PM → PM 关派单卡 + 多小卡关 → PM 关总卡 + 通知 designer → designer 代码级验收 UI 通过 → designer 反馈 AIF → AIF 关 AIF 卡 + 拉起 APP + 邀请老板 → 老板 验 → 需求完成闭环
 ```
 
-**§14 自进化机制 = 方法论 v0.03.0 形态**。下次阶段门(v0.03.0 → v0.04.0)装机 user 拍时, AIF 自动按 §14.2 4 动作聚合 STATE.md → 改本节。
+**§14 自进化机制 = 方法论 v0.03.0 形态**。下次阶段门(v0.03.0 → v0.04.0)老板 拍时, AIF 自动按 §14.2 4 动作聚合 STATE.md → 改本节。
 *AGENTS.md v0.00.0 · 2026-08-06 你拍板"全新基线 · 自建 Swift/SwiftUI + CoreData + minimax cn LLM (Anthropic 兼容协议)" · 项目根 = `/Volumes/ANAN/Engineering/wenshu/`*

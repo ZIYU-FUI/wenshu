@@ -1,6 +1,6 @@
 # WO-LT-01-fix15: 修 3 个 NativeSplitter 拖拽后 BUG
 
-[装机 user 8/7 实机拍]
+[老板 8/7 实机拍]
 1. **BUG1**: 抓住拖拽后 释放鼠标 分割线还是高亮
 2. **BUG2**: 拖拽松开后 鼠标变形没恢复 (还是 resize 形式两向箭头)
 3. **优化1**: 细线两边预留的一点点区块间距不需要
@@ -48,5 +48,5 @@ v0.02.0 (8/6 拍板) — LT-01 fix 序列都完成
 [Stop 钩子验证]
 - Stop 钩子 = /Users/anbaiqiang/.claude/hooks/cc-stop-notify.sh (861 bytes)
 - settings.json 已配 Stop hook command
-- 装机 user 8/28 拍 "用 CC 通知机制, 不要 PM-direct 巡检"
+- 老板 8/28 拍 "用 CC 通知机制, 不要 PM-direct 巡检"
 - 验证: fix15 CC 跑完 fire.log CC_EXIT=0 立即有反馈 (无需 PM-direct 30s 等)

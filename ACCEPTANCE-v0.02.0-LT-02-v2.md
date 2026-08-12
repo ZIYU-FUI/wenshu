@@ -106,7 +106,7 @@ Test Suite 'All tests' failed at 2026-08-10 14:19:31.225.
   - 写 ACCEPTANCE log (本文件)
   - 调 kanban_complete 协议接口 (t_df82f794)
 
-## 8. 装机 user 验收 11 步 (PM-direct 30s ✅/❌)
+## 8. 老板 验收 11 步 (PM-direct 30s ✅/❌)
 
 1. [ ] 右上 inspector 可见,默认显示 2 tab (伏笔 + 修订) — CC 写 + 嵌入 OK
 2. [ ] inspector 顶部有 "检视" H1 — CC 写
@@ -114,13 +114,13 @@ Test Suite 'All tests' failed at 2026-08-10 14:19:31.225.
 4. [ ] 修订 tab 严格 3 条 mock (InspectorViewModel.mock3) — VM 已硬编码
 5. [ ] inspector 复用 PanelContainer 折叠 — PanelContainer 已在 LT-01 落地
 6. [ ] 拖 inspector 改宽不影响左半/中半 — 5 分隔条独立 (LT-01 NativeSplitter)
-7. [ ] macOS 启动看到 inspector 区, swift run PID alive — 待装机 user 跑 wenshu update --yes 验
+7. [ ] macOS 启动看到 inspector 区, swift run PID alive — 待老板 跑 wenshu update --yes 验
 8. [x] swift build exit 0 — 已验
 9. [x] swift test 全过 (基线 + 6 新增) — 已验
 10. [x] 旧 v0.01.0 .ws 文件打开 inspector 不崩 (testForeshadowBackwardCompatibilityMigration) — 已验
 11. [x] **git commit 写到 worktree 分支** — 3bb03c423 ✅
 
-**装机 user 下一步**: 跑 `wenshu update --yes` 在线拉新 commit,然后 macOS 跑通 11 步实机验,有任何 BUG 派 CC 修 (R200 protocol LOOP 修到底)。
+**老板 下一步**: 跑 `wenshu update --yes` 在线拉新 commit,然后 macOS 跑通 11 步实机验,有任何 BUG 派 CC 修 (R200 protocol LOOP 修到底)。
 
 ## 9. 拍板历史
 
@@ -129,4 +129,4 @@ Test Suite 'All tests' failed at 2026-08-10 14:19:31.225.
 - ✅ 2026-08-10 14:05: PM-direct fire t_df82f794 (fire wrapper 后被原作者 14:08 替换为走 t_acc5ef89-LT-02-v2 真 worktree 版)
 - ✅ 2026-08-10 14:12-14:16: CC 写 4 视图 + 2 测试, 然后被 SIGTERM 中断
 - ✅ 2026-08-10 14:18-14:20: PM-direct 兜底 commit 3bb03c423 + push 双仓 + 写 ACCEPTANCE
-- ⏳ 2026-08-10 装机 user 实机验 11 步 (待)
+- ⏳ 2026-08-10 老板 实机验 11 步 (待)

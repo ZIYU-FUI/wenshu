@@ -120,7 +120,7 @@ func adjustBottomHeight(delta: CGFloat, totalHeight: CGFloat) {
         : value.translation.height
     // LT-01-fix7 BUG1 真根因 fix: 在 .onChanged 入口判 click 阈值。
     // fix5 只在 .onEnded 堵, 但 .onChanged 已经在 .onEnded 之前 fire 过
-    // onDrag 了, 改不了。 装机 user 8/7 实机验 BUG: 点一下变 90:10.
+    // onDrag 了, 改不了。 老板 8/7 实机验 BUG: 点一下变 90:10.
     //
     // 两条真根因路径都被这个 check 堵死:
     //   路径 A: trackpad / 高精度鼠标 jitter, 单次 click 内多次
@@ -176,9 +176,9 @@ enum SplitterDragPolicy {
 
 ---
 
-## Step 3 · 装机 user 实机验 (PM-direct 不替, 装机 user 自己跑)
+## Step 3 · 老板 实机验 (PM-direct 不替, 老板 自己跑)
 
-装机 user 在 `.worktrees/t_5063da4d-LT-01-fix7/` 跑:
+老板 在 `.worktrees/t_5063da4d-LT-01-fix7/` 跑:
 
 1. 点水平 splitter 5 次 (鼠标按下 + 松开, 不动) → `ratios[3]` 都保持 0.5 (修前会变 0.1)
 2. 拖水平 splitter → `ratios[3]` 实时变 (drag 路径没废)
@@ -206,7 +206,7 @@ enum SplitterDragPolicy {
 - [x] 4 个新 unit test 全过
 - [x] swift build exit 0
 - [x] swift test 55/55 全过 (原 51 + 新 4)
-- [ ] 装机 user 实机验:点 splitter 5 次 ratios 不变 (待跑)
-- [ ] 装机 user 实机验:drag 仍工作 (待跑)
-- [ ] 装机 user 实机验:visibility 切换仍工作 (待跑)
+- [ ] 老板 实机验:点 splitter 5 次 ratios 不变 (待跑)
+- [ ] 老板 实机验:drag 仍工作 (待跑)
+- [ ] 老板 实机验:visibility 切换仍工作 (待跑)
 - [x] git commit 落盘 (不 push)
