@@ -240,14 +240,16 @@ final class LayoutShellViewModel: ObservableObject {
     /// `LayoutMetrics`, so un-hiding restores the exact widths the user
     /// had dragged to. Persisted (debounced) to `.ws`.
     ///
-    /// LT-01-fix5 优化1: 文档 / 聊天 是核心创作区 (装机 user 8/7 拍板),
-    /// 永远不可隐藏. toggling them via the macOS menu is a no-op and the
-    /// persisted state is left untouched.
+    /// v0.04.0 FCP 3 toggle (沿 designer wenshu-fcp-fold-3buttons-2026-08-12
+    /// 真值): isDismissible 全 true, `.topCenter` / `.bottomLeft` 也允许
+    /// hide — FCP 范式 = 全 toggle, 区别于 v0.02.0 LT-01-fix5 装机 user
+    /// 拍板的"核心创作区永驻"硬约束。
     func togglePanelVisibility(_ panel: PanelID) {
         guard panel.isDismissible else {
-            // 不可隐藏 panel (文档 / 聊天). "View → 显示/隐藏 文档/聊天"
-            // 菜单项变 disabled, 不调 handler. 此 guard 兜底 direct-call
-            // 路径 (未来的快捷键、测试、自动化脚本).
+            // 不可隐藏 panel (本卡沿 designer 真值改 isDismissible 后
+            // 已无 false case, 保留 guard 兜底未来 schema 调整)。
+            // "View → 显示/隐藏 X" 菜单项变 disabled, 不调 handler。
+            // 此 guard 兜底 direct-call 路径 (未来的快捷键、测试、自动化脚本)。
             return
         }
         var next = visibility
@@ -264,6 +266,22 @@ final class LayoutShellViewModel: ObservableObject {
 
     func isVisible(_ panel: PanelID) -> Bool {
         visibility.isVisible(panel)
+    }
+
+    /// FCP 按钮 2 范式: 整条下半栏 (聊天 + 状态) 一个 toggle 按钮,
+    /// 同时翻 .bottomLeft + .bottomRight. FCP 范式 vs macOS View menu
+    /// 的"分别 toggle 聊天/状态"是两套接口, 此方法提供给 toolbar 按钮
+    /// 专用, View menu 仍走 `togglePanelVisibility`。
+    func toggleBottomBand() {
+        // ponytail: 沿 togglePanelVisibility 同一入口 — guard 已覆盖
+        // isDismissible, .bottomLeft 改 true 后这里也自动 enable。
+        togglePanelVisibility(.bottomLeft)
+        togglePanelVisibility(.bottomRight)
+    }
+
+    /// 按钮 2 的视觉判断 + 测试断言共用. true = 下半栏两 panel 都可见。
+    func isBottomBandVisible() -> Bool {
+        visibility.bottomLeft && visibility.bottomRight
     }
 
     /// "全显示" (Cmd+Shift+1) — un-hides every panel without touching
@@ -356,10 +374,10 @@ enum PanelID: Hashable, CaseIterable {
         }
     }
 
-    /// LT-01-fix5 优化1: 装机 user 8/7 拍板"文档 / 聊天 不可隐藏"
-    /// — 这两块是核心创作区, 必须常驻. 项目管理 / 检视 / 状态 是辅助
-    /// 区, 跟 FCP / Pages / Numbers 一样, 可在 macOS "显示" menu 里
-    /// hide 掉腾空间.
+    /// v0.04.0 FCP 3 toggle (沿 designer wenshu-fcp-fold-3buttons-2026-08-12
+    /// 真值): 5 区全 dismissible, 区别于 v0.02.0 LT-01-fix5 装机 user 拍板的
+    /// "核心创作区 (文档/聊天) 永驻" 硬约束。 FCP / Pages / Numbers 范式 =
+    /// 全 toggle + 组合式 visibility, 不锁核心区。
     ///
     /// Compile-time constant (extensions can't be Codable, so these
     /// values don't enter the .ws JSON — they're invariant per panel
@@ -369,9 +387,9 @@ enum PanelID: Hashable, CaseIterable {
     var isDismissible: Bool {
         switch self {
         case .topLeft: return true        // 项目管理 可隐藏
-        case .topCenter: return false     // 文档 不可隐藏
+        case .topCenter: return true      // 文档 可隐藏 (v0.04.0 拍, 沿 FCP 范式)
         case .topRight: return true       // 检视 可隐藏
-        case .bottomLeft: return false    // 聊天 不可隐藏
+        case .bottomLeft: return true     // 聊天 可隐藏 (v0.04.0 拍, 沿 FCP 范式)
         case .bottomRight: return true    // 状态 可隐藏
         }
     }

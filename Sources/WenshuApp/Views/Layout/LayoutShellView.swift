@@ -1,4 +1,4 @@
-// LayoutShellView.swift · 文枢 (Wenshu) · v0.02.0 WO-LT-01 → LT-01-fix9 → V0-fix-5 → LT-N1-merge → V0-fix-7 → V0-fix-9
+// LayoutShellView.swift · 文枢 (Wenshu) · v0.02.0 WO-LT-01 → LT-01-fix9 → V0-fix-5 → LT-N1-merge → V0-fix-7 → V0-fix-9 → v0.04.0 t_bfa84198
 //
 // 5-zone shell — the root of the macOS window in v0.02.0.
 //
@@ -88,6 +88,25 @@
 //        CFBundleDisplayName = "文枢" 默认 fallback, 让 macOS title bar
 //        修真生效只显 + 按钮 (居中, ToolbarItem(.principal))。 红字真意
 //        = "替换文枢文字", 不是共存 (装机 user 8/11 16:20 红字)。
+//
+// v0.04.0 t_bfa84198 折叠按钮 (沿 designer wenshu-fcp-fold-3buttons-2026-08-12
+// 真值): FCP 范式 3 toggle 按钮 (viewer / 整条下半栏 / inspector) +
+// share 占位, 全部追加在 toolbarImportProjectButton 后面, 与现有
+// +/folder/sq.arrow.down 之间加 8pt Spacer 视觉分隔 (V0-fix-11 紧凑范式)。
+//
+// 拍板真值 (designer §3.1):
+//   - 按钮 1 ↔ `.topCenter` (中上 viewer), SF Symbol = rectangle.split.3x1
+//   - 按钮 2 ↔ `.bottomLeft` + `.bottomRight` (整条下半栏), 同 SF Symbol
+//     rectangle.split.3x1.fill (全程同 symbol, 靠 fill + accent blue 区分
+//     显隐)
+//   - 按钮 3 ↔ `.topRight` (检视), SF Symbol = checklist (全程同 symbol,
+//     靠 fill + accent blue 区分)
+//   - `.topLeft` 永远不折叠 (项目列表 常驻)
+//   - 组合式 visibility (3 toggle × 8 组合, OR 关系, 非 XOR)
+//   - 折叠动画 ≤ 200ms, 用 SwiftUI `.animation(.easeInOut(duration: 0.2),
+//     value:)` 不写自定义 easing
+//   - 视觉判断: default = stroke 描边 (区显) / active = fill + accent blue
+//     背景 (区隐) — 见 FoldToggleButton.swift
 //
 // Splitters (see LayoutShellViewModel for delta math):
 //   - 2 vertical in upper row (between topLeft↔topCenter, topCenter↔topRight)
@@ -228,11 +247,20 @@ struct LayoutShellView: View {
                 // 修真范式 = ToolbarItemGroup(placement: .principal) + 3 ICON
                 // (FCP 范式 — .principal 是 macOS title bar 中央, 但因
                 //  traffic lights 在 .principal 左边, 实际渲染紧贴红黄绿后)。
+                //
+                // v0.04.0 t_bfa84198 折叠按钮 (沿 designer 真值): 在 3
+                // import 按钮后追加 3 toggle (viewer / 整条下半栏 /
+                // inspector) + share 占位, 8pt Spacer 视觉分隔。
                 .toolbar {
                     ToolbarItemGroup(placement: .principal) {
                         toolbarNewProjectButton
                         toolbarOpenProjectButton
                         toolbarImportProjectButton
+                        Spacer().frame(width: 8)
+                        foldToggleViewerButton
+                        foldToggleBottomBandButton
+                        foldToggleInspectorButton
+                        toolbarSharePlaceholderButton
                     }
                 }
                 // V0-fix-11-1a retry-2 修真 #1 衍生: 监听 FileCommands 真值
@@ -306,6 +334,62 @@ struct LayoutShellView: View {
         }
         .buttonStyle(.plain)
         .help("导入... (v0.04.0)")
+        .disabled(true)
+    }
+
+    // MARK: - v0.04.0 t_bfa84198 FCP 折叠按钮 (designer wenshu-fcp-fold-3buttons-2026-08-12)
+
+    /// 按钮 1 ↔ `.topCenter` (中上 viewer 文档)。 SF Symbol =
+    /// rectangle.split.3x1 (区显) / rectangle.split.3x1.fill (区隐)。
+    private var foldToggleViewerButton: some View {
+        FoldToggleButton(
+            symbol: vm.isVisible(.topCenter)
+                ? "rectangle.split.3x1"
+                : "rectangle.split.3x1.fill",
+            isVisible: vm.isVisible(.topCenter),
+            action: { vm.togglePanelVisibility(.topCenter) },
+            help: "隐藏/显示 文档 (⌘2)"
+        )
+    }
+
+    /// 按钮 2 ↔ `.bottomLeft` + `.bottomRight` (整条下半栏)。 沿
+    /// designer §1.1 真值, 全程同 SF Symbol (rectangle.split.3x1.fill),
+    /// 靠 fill + accent blue 背景区分显隐 — 不切 symbol 名字。
+    private var foldToggleBottomBandButton: some View {
+        FoldToggleButton(
+            symbol: "rectangle.split.3x1.fill",
+            isVisible: vm.isBottomBandVisible(),
+            action: { vm.toggleBottomBand() },
+            help: "隐藏/显示 状态栏 (⌘4+⌘5)"
+        )
+    }
+
+    /// 按钮 3 ↔ `.topRight` (检视)。 SF Symbol = checklist, 全程同
+    /// symbol 名字, 靠 fill + accent blue 背景区分显隐。
+    private var foldToggleInspectorButton: some View {
+        FoldToggleButton(
+            symbol: "checklist",
+            isVisible: vm.isVisible(.topRight),
+            action: { vm.togglePanelVisibility(.topRight) },
+            help: "隐藏/显示 检视 (⌘3)"
+        )
+    }
+
+    /// Share 占位按钮 (v0.04.0+ 接 NSSharingServicePicker 派单时
+    /// 修真 .disabled(false))。 沿 designer 真值, 不走 FoldToggleButton
+    /// 组件 (没有显隐判断)。
+    private var toolbarSharePlaceholderButton: some View {
+        Button {
+            // v0.04.0+ 派单接 share 真修真 — placeholder
+        } label: {
+            Image(systemName: "square.and.arrow.up")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.secondary)
+                .frame(width: 28, height: 22)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("分享 (v0.04.0+)")
         .disabled(true)
     }
 
@@ -398,6 +482,10 @@ struct LayoutShellView: View {
             // 保持 5-zone 比例不变。
             let topHeaderHeight: CGFloat = 28
             let upperHeight = max(0, geo.size.height - lowerHeight - topHeaderHeight)
+            // v0.04.0 t_bfa84198 折叠动画: 整 layout 包一层
+            // `.animation(.easeInOut(duration: 0.2), value: vm.visibility)`,
+            // visibility 变化时整个 5 区平滑过渡 (≤ 200ms, 沿 designer
+            // §边界 — 不写自定义 easing curve)。
             VStack(spacing: 0) {
                 if upperBandVisible || lowerBandVisible {
                     topLeftHeaderBar
@@ -426,6 +514,10 @@ struct LayoutShellView: View {
                         .frame(height: lowerHeight)
                 }
             }
+            .animation(
+                .easeInOut(duration: 0.2),
+                value: vm.visibility
+            )
         }
     }
 

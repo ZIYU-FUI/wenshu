@@ -300,9 +300,11 @@ private struct LayoutMenuContent: View {
                 }
             }
             .keyboardShortcut(panel.menuShortcut, modifiers: .command)
-            // LT-01-fix5 优化1: 不可隐藏的 panel (文档 / 聊天) — 显示
-            // disabled, 点击也无效. 这是菜单里对"文档/聊天 永远在"
-            // 的视觉表达.
+            // v0.04.0 FCP 3 toggle (t_bfa84198): isDismissible 沿 designer
+            // 真值 — 5 区全 dismissible (FCP 范式 = 全 toggle, 区别于
+            // v0.02.0 LT-01-fix5 装机 user 拍板的"核心创作区永驻"硬约束),
+            // .topCenter / .bottomLeft 也允许 hide. CommandMenu 自动跟随
+            // isDismissible 重新 evaluate, 不需要额外逻辑.
             .disabled(!panel.isDismissible)
         }
 
