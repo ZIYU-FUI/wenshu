@@ -296,10 +296,10 @@ final class LT01Fix13Tests: XCTestCase {
     /// 验证 end-to-end: 模拟"极端拖拽 → 松手 → 反向拖拽 → 回中点"完整
     /// 链路, 最终 ratios[3] 必须 = 0.5 (= 50:50)。
     ///
-    /// LT-01-fix17 坐标 (cumulative 算法 + dragStart reset):
-    ///   axisDelta(.vertical, dragStart, current) = dragStart.y - current.y
-    ///   向下拖 (y 减小) → axisDelta 正 → ratios[3] 调小
-    ///   向上拖 (y 增大) → axisDelta 负 → ratios[3] 调大
+    /// LT-01-fix17 坐标 (cumulative 算法, axisDelta 向上为正):
+    ///   axisDelta(.vertical, dragStart, current) = current.y - start.y
+    ///   鼠标 y 增 (screen 向上) → axisDelta 正 → ratios[3] 调小 (下半变小)
+    ///   鼠标 y 减 (screen 向下) → axisDelta 负 → ratios[3] 调大 (下半变大)
     @MainActor
     func testNativeSplitterDrag_extremeRatio_doesNotLock() {
         let vm = LayoutShellViewModel()
@@ -313,44 +313,43 @@ final class LT01Fix13Tests: XCTestCase {
             return vm.adjustBottomHeight(delta: delta, totalHeight: self.kTotalHeight)
         }
 
-        // Gesture 1: 极端拖拽 (= 向下 240px 到 0.10 边界 + 30px 多拖 clamp)。
-        // mouseDown(0, 1080) → dragStart = (0, 1080)。
-        view.mouseDown(with: makeEvent(.leftMouseDown, x: 0, y: 1080))
+        // Gesture 1: 极端拖拽 (= 向上 240px 到 0.10 边界 + 30px 多拖 clamp)。
+        // mouseDown(0, 0) → dragStart = (0, 0)。
+        view.mouseDown(with: makeEvent(.leftMouseDown, x: 0, y: 0))
 
-        // 向下拖 240px (= cumulative = 1080 - 840 = +240, ratios[3] =
-        // 0.5 - 0.4 = 0.10, 正好边界, applied = true)。
-        view.mouseDragged(with: makeEvent(.leftMouseDragged, x: 0, y: 840))
+        // 向上拖 240px (= axisDelta = 240 - 0 = +240, ratios[3] = 0.5
+        // - 0.4 = 0.10, 正好边界, applied = true)。
+        view.mouseDragged(with: makeEvent(.leftMouseDragged, x: 0, y: 240))
         XCTAssertEqual(vm.snapshot.ratios[3], 0.10, accuracy: 0.0001,
                        "极端拖拽后 ratios[3] = 0.10 (= 90:10 上半/下半)")
 
-        // 多向下拖 30px (= cumulative = 1080 - 810 = +270, ratios[3]
-        // 想跌到 0.05 但 clamp 到 0.10, applied = false → dragStart
-        // reset 到 current = (0, 810))。
-        view.mouseDragged(with: makeEvent(.leftMouseDragged, x: 0, y: 810))
+        // 多向上拖 30px (= axisDelta = 270 - 0 = +270, ratios[3] 想
+        // 跌到 0.05 但 clamp 到 0.10, applied = false)。
+        view.mouseDragged(with: makeEvent(.leftMouseDragged, x: 0, y: 270))
         XCTAssertEqual(vm.snapshot.ratios[3], 0.10, accuracy: 0.0001,
                        "clamp 后 ratios[3] 仍 = 0.10 (没被穿过去)")
 
-        view.mouseUp(with: makeEvent(.leftMouseUp, x: 0, y: 810))
+        view.mouseUp(with: makeEvent(.leftMouseUp, x: 0, y: 270))
 
-        // Gesture 2: 装机 user 想拖回 50:50 (= 向上 240px)。
-        // 鼠标当前位置 = (0, 810), 新 dragStart = (0, 810)。
-        view.mouseDown(with: makeEvent(.leftMouseDown, x: 0, y: 810))
+        // Gesture 2: 装机 user 想拖回 50:50 (= 向下 240px)。
+        // 鼠标当前位置 = (0, 270), 新 dragStart = (0, 270)。
+        view.mouseDown(with: makeEvent(.leftMouseDown, x: 0, y: 270))
 
-        // 向上拖 240px (= cumulative = 810 - 1050 = -240, ratios[3]
-        // = 0.10 - (-0.4) = 0.50)。
-        view.mouseDragged(with: makeEvent(.leftMouseDragged, x: 0, y: 1050))
+        // 向下拖 240px (= axisDelta = 30 - 270 = -240, ratios[3] =
+        // 0.10 - (-0.4) = 0.50)。
+        view.mouseDragged(with: makeEvent(.leftMouseDragged, x: 0, y: 30))
         XCTAssertEqual(vm.snapshot.ratios[3], 0.50, accuracy: 0.0001,
                        "clamp 后反向拖回 ratios[3] = 0.50 (= 50:50 完美恢复, 装机 user 实机拍锁死 BUG 不复现)")
 
-        view.mouseUp(with: makeEvent(.leftMouseUp, x: 0, y: 1050))
+        view.mouseUp(with: makeEvent(.leftMouseUp, x: 0, y: 30))
 
-        // 最后再 Gesture 3: 验证状态完全干净 (dragStart = mouseDown 处
-        // 重设, isDragging = false), 拖动行为正常。
-        view.mouseDown(with: makeEvent(.leftMouseDown, x: 0, y: 810))
-        view.mouseDragged(with: makeEvent(.leftMouseDragged, x: 0, y: 690))
+        // 最后再 Gesture 3: 验证状态完全干净 (mouseDown 重设 dragStart,
+        // isDragging = false), 拖动行为正常。
+        view.mouseDown(with: makeEvent(.leftMouseDown, x: 0, y: 30))
+        view.mouseDragged(with: makeEvent(.leftMouseDragged, x: 0, y: 150))
         XCTAssertEqual(vm.snapshot.ratios[3], 0.30, accuracy: 0.0001,
                        "Gesture 3 拖动继续生效 (state 完全干净, 没泄漏)")
-        view.mouseUp(with: makeEvent(.leftMouseUp, x: 0, y: 690))
+        view.mouseUp(with: makeEvent(.leftMouseUp, x: 0, y: 150))
     }
 
     // MARK: - bonus: VM @discardableResult 兼容旧调用点

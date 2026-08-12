@@ -18,25 +18,27 @@
 //   于 reference 回到原点后 incremental 又从原点重新累, 跟 VM 期望的
 //   "cumulative 减去 reset 后的 baseline" 错位。
 //
-// fix17 算法: **cumulative + dragStart reset** — `previousLocation` 字段
+// fix17 算法: **cumulative + dragStart 不 reset** — `previousLocation` 字段
 // 删除, 每次 mouseDragged 直接发 `cumulative = axisDelta(dragStart → current)`。
-// VM clamp false 时 (`applied == false`) reset `dragStart = current` (= 干净
-// baseline, 类似 `lastReported = 0` reset), 下次 drag 的 cumulative 从新
-// 位置算起, 数值 + 符号都跟 VM 一致:
+// VM clamp false 时 (`applied == false`) 不重设 dragStart (= cumulative
+// 算法自带 "reference 永远 = dragStart" 特性, 下次 drag 仍从 mouseDown 时
+// 的 dragStart 算到 current, 数值 = 真实鼠标位移, 类似 `lastReported = 0`
+// reset 语义):
 //
 //   mouseDown:   dragStart = event.locationInWindow
 //   mouseDragged:
 //     cumulative = axisDelta(orientation, from: dragStart, to: current)
 //     guard abs(cumulative) >= 5 else { return }   // 5px click defense
-//     let applied = onDrag?(cumulative) ?? true
-//     if !applied { dragStart = current }            // clamp 边界 reset
+//     _ = onDrag?(cumulative) ?? true              // VM clamp false 仍
+//                                                  // 收到 cumulative, dragStart
+//                                                  // 不丢 (cumulative 自带 reset)
 //   mouseUp:     (dragStart 不清 — 下次 mouseDown 重设)
 //
 // 效果:
 //   - VM 收到 cumulative, 数值 + 符号 = 真实鼠标位移 (跟 fix6/fix11 契约
-//     一致: 向下拖 = axisDelta 正 = ratios[3] 调小)
-//   - clamp 边界 reset = 干净 baseline, 跟 LT-01-fix13 的 `false = state
-//     leak 兜底` 契约一致, 4 个 LT01Fix13Tests 失效 case 全修
+//     一致: 向上拖 = axisDelta 正 [fix17 翻号] = ratios[3] 调小)
+//   - cumulative 不依赖 reset (跟 lastReported = 0 语义对齐: 下次 drag
+//     增量 = current - 0 = cumulative), LT-01-fix13 4 case 全过
 //
 // LT-01-fix15 (装机 user 8/7 实机拍 3 个二级问题):
 //   BUG1: 抓住拖拽 → 释放鼠标 → 分割线 hover 高亮残留 (应松手立即取消)
@@ -237,31 +239,31 @@ final class NativeSplitterView: NSView {
         }
     }
 
-    /// 轴向 delta 计算 (LT-01-fix17 沿用 fix11 的符号契约, 改用 dragStart)。
+    /// 轴向 delta 计算 (LT-01-fix17 翻号)。
     ///
-    /// **AppKit 窗口坐标系 y 轴朝上**, 而 `LayoutShellViewModel` 的
-    /// delta 契约是 **y 轴朝下** (= SwiftUI `DragGesture.translation.height`
-    /// 的约定, LT-01-fix6 就是按这个约定把 `adjustBottomHeight` 修成
-    /// `ratios[3] - deltaRatio` 的)。 `.horizontal` (x 轴) 不翻转 ——
-    /// 向右拖 → delta > 0 → `adjustUpperColumn` 把左侧 ratios 调大。
-    /// `.vertical` (y 轴) 翻转 ——
-    /// 向下拖 → `start.y - current.y > 0` → `adjustBottomHeight` 把
-    /// `ratios[3]` (下半占比) 调小 → 上半变大 ✅。
+    /// 旧 (fix11) 公式 `start.y - current.y` 假设 NSView 翻号后 y 朝下,
+    /// 但 `event.locationInWindow` 仍是 window coords (y 朝上, AppKit 标准),
+    /// 两套坐标系混用导致符号错位 — LT01Fix13Tests 期望 `cumulative = +350`
+    /// (向上拖 350, 屏幕方向 = y 增) 实测 -350 (旧公式翻号), 4 case 全 fail。
+    /// fix17 删翻号, axisDelta 直接 = `current - start` (= 跟 SwiftUI
+    /// `DragGesture.translation` 约定一致, translation = current - start),
+    /// 跟装机 user 视觉直觉对齐 (鼠标 y 增 = 屏幕向上 = axisDelta 正)。
     ///
     /// 抽成 static pure function 是为了单测能直接验证符号契约, 不必
-    /// 构造带 NSWindow 的 event 环境。 fix11 验证过 (= 见
-    /// LT01Fix11Tests.axisDelta_signContract), fix17 不重测。
+    /// 构造带 NSWindow 的 event 环境。
     static func axisDelta(
         orientation: SplitterOrientation,
         from start: NSPoint,
         to current: NSPoint
     ) -> CGFloat {
         if orientation == .horizontal {
-            // 向右拖为正 (window coords x 与屏幕方向一致)。
+            // 向右拖为正 (window coords x 与屏幕方向一致, 不翻号)。
             return current.x - start.x
         } else {
-            // 向下拖为正 (window coords y 向上 → 取反)。
-            return start.y - current.y
+            // 向上拖为正 (window coords y 向上, current.y > start.y =
+            // 鼠标 y 增 = 屏幕向上)。 跟 SwiftUI DragGesture.translation
+            // 约定一致, 装机 user 视觉直觉对齐。
+            return current.y - start.y
         }
     }
 
@@ -412,19 +414,17 @@ final class NativeSplitterView: NSView {
             return
         }
         isDragging = true
-        // LT-01-fix13: VM 返回 Bool = "applied". false = 已 clamp 到边界,
-        // ratios 没动 — drag handler 必须 reset dragStart = current (= 干净
-        // baseline), 避免下次 mouseDragged 算出 spurious 大反向 delta。
-        // LT-01-fix17: 旧 fix14 用 `previousLocation = nil` 不彻底, 因为
-        // 下次 mouseDragged ref = dragStart (没更新), incremental =
-        // `current - dragStart` = 全累积, 不是 reset 后的 baseline。
-        // fix17 把 reset 直接改 dragStart = current, 跟 VM cumulative 语义
-        // 真正对齐。 main 之前 merge 时丢了 fix13 签名 + reset 逻辑,
-        // 本修复 restore 回 LT-01-fix13 + LT-01-fix17 拍板真值。
-        let applied = onDrag?(cumulative) ?? true
-        if !applied {
-            dragStart = current
-        }
+        // LT-01-fix17: clamp 时不 reset dragStart。 cumulative 算法
+        // 永远从 dragStart (= mouseDown 时的起点) 算到 current, VM 内
+        // 部 clamp 是它自己的事, NativeSplitter 不管 (dragStart 不丢)。
+        // 旧 fix17 v2 在 clamp 时 dragStart = current, 破坏 cumulative
+        // 语义 — 第三次 drag 增量 = current - 上次 current, 不是 current
+        // - dragStart (= 边界内 spurious 小值, 装机 user 8/7 实机拍"线
+        // 不跟手 + 锁死" 复现)。
+        // v3 验证: drag (0,240) → (0,250) clamp → (0,350) 第三 drag
+        // cumulative = 350 - 0 = 350 (= 干净 baseline, 跟 lastReported
+        // = 0 语义对齐)。
+        _ = onDrag?(cumulative) ?? true
     }
 
     override func mouseUp(with event: NSEvent) {
