@@ -295,7 +295,9 @@ struct LayoutShellView: View {
                 name: .wenshuShowCreateProject, object: nil
             )
         } label: {
-            Image(systemName: "plus")
+            // v0.05.0 t_d4e02b80 ICON v2: 抽 IconLibrary.Action.newProject
+            // (`plus`) — 单一真值源。
+            Image(systemName: IconLibrary.Action.newProject.symbolName)
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(.secondary)
                 .frame(width: 28, height: 22)
@@ -314,7 +316,9 @@ struct LayoutShellView: View {
                 name: .wenshuOpenProjectURL, object: nil
             )
         } label: {
-            Image(systemName: "folder.badge.plus")
+            // v0.05.0 t_d4e02b80 ICON v2: 抽 IconLibrary.Action.openProject
+            // (`folder.badge.plus`) — 单一真值源。
+            Image(systemName: IconLibrary.Action.openProject.symbolName)
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(.secondary)
                 .frame(width: 28, height: 22)
@@ -331,7 +335,9 @@ struct LayoutShellView: View {
         Button {
             // v0.04.0 真修真导入逻辑 — placeholder
         } label: {
-            Image(systemName: "square.and.arrow.down")
+            // v0.05.0 t_d4e02b80 ICON v2: 抽 IconLibrary.Action.importProject
+            // (`square.and.arrow.down`) — 单一真值源。
+            Image(systemName: IconLibrary.Action.importProject.symbolName)
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(.secondary)
                 .frame(width: 28, height: 22)
@@ -346,11 +352,14 @@ struct LayoutShellView: View {
 
     /// 按钮 1 ↔ `.topCenter` (中上 viewer 文档)。 SF Symbol =
     /// rectangle.split.3x1 (区显) / rectangle.split.3x1.fill (区隐)。
+    /// v0.05.0 t_d4e02b80 ICON v2: 抽 IconLibrary.Action.layoutSwitch
+    /// (`rectangle.split.3x1` 描边) + IconLibrary.Action.layoutSwitchFillSymbol()
+    /// (`rectangle.split.3x1.fill` fill 变体) — 单一真值源。
     private var foldToggleViewerButton: some View {
         FoldToggleButton(
             symbol: vm.isVisible(.topCenter)
-                ? "rectangle.split.3x1"
-                : "rectangle.split.3x1.fill",
+                ? IconLibrary.Action.layoutSwitch.symbolName
+                : IconLibrary.Action.layoutSwitchFillSymbol(),
             isVisible: vm.isVisible(.topCenter),
             action: { vm.togglePanelVisibility(.topCenter) },
             help: "隐藏/显示 文档 (⌘2)"
@@ -360,9 +369,11 @@ struct LayoutShellView: View {
     /// 按钮 2 ↔ `.bottomLeft` + `.bottomRight` (整条下半栏)。 沿
     /// designer §1.1 真值, 全程同 SF Symbol (rectangle.split.3x1.fill),
     /// 靠 fill + accent blue 背景区分显隐 — 不切 symbol 名字。
+    /// v0.05.0 t_d4e02b80 ICON v2: 抽 IconLibrary.Action.layoutSwitchFillSymbol()
+    /// (fill 变体) — 单一真值源。
     private var foldToggleBottomBandButton: some View {
         FoldToggleButton(
-            symbol: "rectangle.split.3x1.fill",
+            symbol: IconLibrary.Action.layoutSwitchFillSymbol(),
             isVisible: vm.isBottomBandVisible(),
             action: { vm.toggleBottomBand() },
             help: "隐藏/显示 状态栏 (⌘4+⌘5)"
@@ -371,9 +382,11 @@ struct LayoutShellView: View {
 
     /// 按钮 3 ↔ `.topRight` (检视)。 SF Symbol = checklist, 全程同
     /// symbol 名字, 靠 fill + accent blue 背景区分显隐。
+    /// v0.05.0 t_d4e02b80 ICON v2: 抽 IconLibrary.Action.inspectorFoldSymbol
+    /// 静态常量 — 单一真值源 (沿 v0.04.0 t_bfa84198 范式)。
     private var foldToggleInspectorButton: some View {
         FoldToggleButton(
-            symbol: "checklist",
+            symbol: IconLibrary.Action.inspectorFoldSymbol,
             isVisible: vm.isVisible(.topRight),
             action: { vm.togglePanelVisibility(.topRight) },
             help: "隐藏/显示 检视 (⌘3)"
@@ -387,7 +400,9 @@ struct LayoutShellView: View {
         Button {
             // v0.04.0+ 派单接 share 真修真 — placeholder
         } label: {
-            Image(systemName: "square.and.arrow.up")
+            // v0.05.0 t_d4e02b80 ICON v2: 抽 IconLibrary.Action.exportProject
+            // (`square.and.arrow.up`) — 单一真值源。
+            Image(systemName: IconLibrary.Action.exportProject.symbolName)
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(.secondary)
                 .frame(width: 28, height: 22)
@@ -425,7 +440,9 @@ struct LayoutShellView: View {
             // 兜底 — 万一外部代码还残留 push AppRoute.createProject 也
             // 不会白屏。 沿 V0-fix-6 真值。
             VStack(spacing: 10) {
-                Image(systemName: "doc.badge.plus")
+                // v0.05.0 t_d4e02b80 ICON v2: 抽 IconLibrary.Action.createDocument
+                // (`doc.badge.plus`) — 单一真值源。
+                Image(systemName: IconLibrary.Action.createDocument.symbolName)
                     .font(.system(size: 30, weight: .light))
                     .foregroundStyle(.secondary)
                 Text("请用顶部 + 按钮新建项目")
@@ -436,7 +453,9 @@ struct LayoutShellView: View {
             // V0-fix-4 范围不接 chat push — chat 实装在下半 ChatPanelView,
             // 这里走 placeholder 避免 ChatViewModel.shared 不存在导致编译失败。
             VStack(spacing: 10) {
-                Image(systemName: "bubble.left.and.bubble.right")
+                // v0.05.0 t_d4e02b80 ICON v2: 抽 IconLibrary.Action.chatPlaceholder
+                // (`bubble.left.and.bubble.right`) — 单一真值源。
+                Image(systemName: IconLibrary.Action.chatPlaceholder.symbolName)
                     .font(.system(size: 30, weight: .light))
                     .foregroundStyle(.secondary)
                 Text("请在底部聊天区继续创作")
@@ -447,7 +466,9 @@ struct LayoutShellView: View {
             // V0-fix-4 范围不接 characterWorld push — 留 v0.04.0 长篇工具
             // 工单实装, 这里走 placeholder 兜底。
             VStack(spacing: 10) {
-                Image(systemName: "person.2.crop.square.stack")
+                // v0.05.0 t_d4e02b80 ICON v2: 抽 IconLibrary.Action.characterWorldEntry
+                // (`person.2.crop.square.stack`) — 单一真值源。
+                Image(systemName: IconLibrary.Action.characterWorldEntry.symbolName)
                     .font(.system(size: 30, weight: .light))
                     .foregroundStyle(.secondary)
                 Text("人物世界 — v0.04.0 实现")

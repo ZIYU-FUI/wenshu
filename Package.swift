@@ -17,6 +17,19 @@
 // AppDelegate 的 applicationIconImage 兜底 (Sources/WenshuApp/Resources/
 // Brand/AppIcon.icns). 等 wenshu.xcodeproj (v0.01.x 起) 上线后, 标准
 // .appiconset 由 Xcode actool 编译接管, .copy 资源仍兼容.
+//
+// v0.05.0 t_d4e02b80 ICON v2: **lucide-swift SPM 延后** — 原计划加
+// ajaxjiang96/lucide-swift dep, 但实测上游 Package.swift 含 .package
+// (path: "PatchedDependencies/SVGPath") 本地子包依赖, SwiftPM 6.4 三种
+// requirement 类型 (.revision / .branch / .exact) 全部拒绝 ("required
+// using a revision-based requirement and it depends on local package
+// 'svgpath'" / "depends on an unstable-version package 'svgpath'")。
+// v0.05.0 视图层不消费 LucideSwift (Image(systemName:) 兜底), IconLibrary
+// .Action.lucideName 仅 metadata 字段 — **没有 runtime 依赖**, 故 SPM dep
+// 直接延后至 v0.05.x 真启用 Lucide 渲染时再接入 (届时走 vendored
+// SVGPath 本地包或 fork upstream)。 第 3 方 LICENSE 文件保留 (.copy 进
+// bundle), 仍满足分发前置 (App Store notarization / Redistributable
+// notice) — README.md 是源码仓库说明, 不进 bundle。
 
 import PackageDescription
 
@@ -57,12 +70,24 @@ let package = Package(
     products: [
         .executable(name: "WenshuApp", targets: ["WenshuApp"])
     ],
+    // v0.05.0 t_d4e02b80 ICON v2: lucide-swift SPM dep 延后 (见顶 comment
+    // § v0.05.0)。 v0.05.0 阶段无外部依赖 — IconLibrary.Action.lucideName
+    // 仅 metadata, 无 runtime 消费。
+    dependencies: [
+    ],
     targets: [
         .executableTarget(
             name: "WenshuApp",
-            path: "Sources/WenshuApp",
             // WO-001 has no external deps by design. CoreData, LLM, etc.
             // are added in later WOs. See CLAUDE.md §2 "不用" list.
+            //
+            // v0.05.0 t_d4e02b80: LucideSwift SPM dep 延后 (上游 Package.swift
+            // 本地子包约束), 视图层不消费 LucideSwift (systemImage: 兜底),
+            // 仅 metadata 字段 (IconLibrary.Action.lucideName) 预留 v0.05.x
+            // 切换路径。
+            dependencies: [
+            ],
+            path: "Sources/WenshuApp",
             exclude: [
                 // Info.plist is consumed by the linker flag below, not by
                 // SwiftPM's resource bundling (which forbids "Info.plist"
@@ -84,7 +109,11 @@ let package = Package(
                 "Views/DESIGN-V0-fix-2.md",
                 "Views/DESIGN-V0-fix-4.md",
                 "Views/Editor/DESIGN-LT-N3.md",
-                "Views/Project/DESIGN-LT-N1.md"
+                "Views/Project/DESIGN-LT-N1.md",
+                // v0.05.0 t_d4e02b80: 3rd-party LICENSE README 仅落档源码仓库
+                // 说明用, 不进 app bundle (LICENSE 纯文本进 bundle —
+                // 见 resources: [.copy("Resources/ThirdPartyLicenses/...")])
+                "Resources/ThirdPartyLicenses/README.md"
             ],
             // V0-fix-6: 标准 .appiconset 接入 — Assets.xcassets/ 整目录
             // .copy 到 .build/.../WenshuApp_WenshuApp.bundle/, 保留
@@ -92,13 +121,22 @@ let package = Package(
             // 命令行 build 不跑 actool, .appiconset 不会自动编 .car;
             // 实际 LOGO 走 AppDelegate applicationIconImage 兜底.
             // 等 wenshu.xcodeproj (v0.01.x) 上线, Xcode actool 接管.
+            //
+            // v0.05.0 t_d4e02b80: 3rd-party LICENSE 文本进 bundle 满足
+            // 分发前置 (App Store / DMG notarization)。 README.md
+            // exclude 掉 (不进 bundle, 仅源码仓库说明用)。
             resources: [
                 .copy("Assets.xcassets"),
                 // AppIcon.icns — AppDelegate applicationIconImage 兜底
                 // 资源. 标准 .appiconset 走 actool 编 .car, 纯 swift build
                 // 不跑 actool, 兜底必须. 等 wenshu.xcodeproj (v0.01.x) 上
                 // 线后, 这条 .copy 可摘除.
-                .copy("Resources/Brand/AppIcon.icns")
+                .copy("Resources/Brand/AppIcon.icns"),
+                // v0.05.0 t_d4e02b80: lucide-swift + lucide-icons ISC 文本
+                // 进 bundle 满足分发前置. 见 ThirdPartyLicenses/README.md §
+                // "Acknowledgements" 段。
+                .copy("Resources/ThirdPartyLicenses/lucide-swift-LICENSE"),
+                .copy("Resources/ThirdPartyLicenses/lucide-icons-LICENSE")
             ],
             linkerSettings: [
                 // Embed Info.plist into the executable's __TEXT,__info_plist

@@ -107,7 +107,9 @@ struct ProjectBrowserView: View {
                 ChapterTreeView(projectId: projectId, store: projectStore.store)
             } else {
                 VStack(spacing: 12) {
-                    Image(systemName: "list.bullet.rectangle").font(.system(size: 56, weight: .light)).foregroundStyle(.secondary)
+                    // v0.05.0 t_d4e02b80 ICON v2: 抽 IconLibrary.Action.fileList
+                    // (`list.bullet.rectangle`) — 单一真值源。
+                    Image(systemName: IconLibrary.Action.fileList.symbolName).font(.system(size: 56, weight: .light)).foregroundStyle(.secondary)
                     Text("请先选择项目").font(.title2)
                     Text("在「项目」tab 中点击一个项目后, 再切到「章节」tab 查看章节树").font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
                 }.frame(maxWidth: .infinity, maxHeight: .infinity).padding()
@@ -121,7 +123,9 @@ struct PlaceholderTabContent: View {
     let tab: ProjectBrowserView.ProjectTab
     var body: some View {
         VStack(spacing: 12) {
-            Image(systemName: "tray").font(.system(size: 56, weight: .light)).foregroundStyle(.secondary)
+            // v0.05.0 t_d4e02b80 ICON v2: 抽 IconLibrary.Action.emptyTray
+            // (`tray`) — 单一真值源。
+            Image(systemName: IconLibrary.Action.emptyTray.symbolName).font(.system(size: 56, weight: .light)).foregroundStyle(.secondary)
             Text(tab.title).font(.title2)
             Text(tab == .kanban ? "v0.04.0 长篇工具 阶段实装" : "v0.05.0 标记系统 阶段实装").font(.callout).foregroundStyle(.secondary)
         }.frame(maxWidth: .infinity, maxHeight: .infinity).padding()

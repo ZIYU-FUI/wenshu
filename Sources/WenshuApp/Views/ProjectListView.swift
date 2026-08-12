@@ -159,7 +159,9 @@ struct ProjectListView: View {
 
     private var emptyState: some View {
         VStack(spacing: 12) {
-            Image(systemName: "tray").font(.system(size: 56, weight: .light)).foregroundStyle(.secondary)
+            // v0.05.0 t_d4e02b80 ICON v2: 抽 IconLibrary.Action.emptyTray
+            // (`tray`) — 单一真值源。
+            Image(systemName: IconLibrary.Action.emptyTray.symbolName).font(.system(size: 56, weight: .light)).foregroundStyle(.secondary)
             Text("暂无项目").font(.title2)
             Text("点 + 新建").font(.callout).foregroundStyle(.secondary)
         }
