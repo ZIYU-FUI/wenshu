@@ -1,38 +1,22 @@
-// InspectorViewModel.swift · 文枢 (Wenshu) · v0.02.0 LT-02 v2
+// InspectorViewModel.swift · 文枢 (Wenshu) · v0.02.0 LT-02 v2 → v0.05.0 B+ 重 (t_0f6bd6f6)
+// Doc-Role: ViewModels/inspector
+// Responsibilities: 右上 inspector VM — 伏笔/修订 2 tab + 选中态协议 (setSelection)
+// Inputs: chapter/paragraph id、tab 枚举
+// Outputs: currentChapterID、currentParagraphID、selectedTab、foreshadows、revisionCandidates、isLoadingForeshadows
+// Dependencies: WenshuStoreActor (listForeshadows)
+// Threading: @MainActor
 //
-// 右侧 inspector (右上区, AGENTS §8.1) 的 view model。LT-02 v2 拍板
-// 真值 (PM-LT-02-v2-brief.md §1):
-//
-//   - 伏笔 tab 真读 CDForeshadow entity (按 chapter / paragraph ID 过滤,
-//     用 8/10 新增的可空关联字段)
-//   - 修订 tab 显示 3 条 hardcoded mock CDRevision,
-//     **真 LLM 生成留在 v0.04.0**
-//
-// 跟 `LayoutShellViewModel.shared` 同样的"共享 single instance"策略:
-// 文枢 inspector 是 5 区中**唯一**的 inspector (右上), 没有任何
-// 同 panel 多实例的需求 — 直接 `static let shared`,避免 macOS menu /
-// View 双场景引用不同 instance 的 race (LT-01-fix3 已踩过这个坑)。
-//
-// 选中态协议 (PM-direct §"currentChapterID 怎么从 ProjectListView 传"):
-// LT-02 v2 阶段, 文档内容浏览器还没实装 (v0.05.0 标记系统 + 段落选中),
-// `currentChapterID / currentParagraphID` 默认都是 nil — View 看到 nil
-// 就显示"还没选中段落"的兜底文案 (并且把 paragraphID=nil 的历史伏笔
-// 显示出来,保留 v0.01.0 数据可读)。v0.05.0 接段落选中时,DocumentView
-// 在 onChange 里调 `InspectorViewModel.shared.setSelection(...)`,
-// VM 自动 `loadForeshadows()`。这是 LT-02 v2 唯一对外接口协议。
-//
-// 修订 mock = 3 条 hardcoded struct,不接 store,不调 LLM。v0.04.0 真生成
-// 才会替换为 `CDRevision` 读 + LLM 改写流水线。
-//
-// Threading: @MainActor — InspectorView 把 `vm` 当 @ObservedObject,
-// store 跨 actor 走 `await store.xxx(...)`, 不会让 .ws 读阻塞 layout
-// paint。
+// B+ 重 6 维度 (t_0f6bd6f6): ObservableObject → @Observable。 6 个 @Published
+// 全部移除。 InspectorViewModelProtocol 已暴露同样 6 read-only + setSelection/
+// selectTab/loadForeshadows 三入口。 公共 API 保持完全不变 (沿 v0.02.0 + t_8fc5c872)。
 
 import Foundation
 import SwiftUI
+import Observation
 
 @MainActor
-final class InspectorViewModel: ObservableObject {
+@Observable
+final class InspectorViewModel {
 
     /// 共享 singleton — 跟 `LayoutShellViewModel.shared` 同样的拍板。 若有
     /// 业务场景需要在同一进程内多个 InspectorView (例如未来 inspector 模板
@@ -56,38 +40,36 @@ final class InspectorViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Published state
+    // MARK: - Tracked state (B+ 重: @Published → @Observable 自动追踪)
 
     /// 装机 user 当前选中的 chapter。 v0.05.0 接 DocumentView 段落选中
     /// 时会 setter 入,LayoutShellView/InspectorView 用 onChange 监听。
     /// nil = 没有选中 = 显示"全局兜底"伏笔列表(paragraphID=nil 旧数据)。
-    @Published private(set) var currentChapterID: UUID? = nil
+    private(set) var currentChapterID: UUID? = nil
 
     /// 装机 user 当前选中的 paragraph。 paragraph 优先级 > chapter
     /// (per PM-LT-02-v2-brief.md §2.3)。
-    @Published private(set) var currentParagraphID: UUID? = nil
+    private(set) var currentParagraphID: UUID? = nil
 
     /// 当前选中的 tab。 默认 = 伏笔,跟 AGENTS §8.1 inspector 拍板
     /// "默认显示 2 tab (伏笔 + 修订)" 一致 (两者都显示,初始焦点伏笔)。
     ///
-    /// v0.05.0 Zone 协议 (t_8fc5c872) ViewModel 收口 (沿 DECISION §4.2 #4 + DESIGN-Zone.md §7.3):
-    /// 加 `private(set)`, write access 收口到 VM 内部 method (selectTab(_ tab:))。
-    /// InspectorView 调 vm.selectTab(.revision) 而非 vm.selectedTab = .revision
-    /// (Picker 改 HStack + 4 Button onAction)。
-    @Published private(set) var selectedTab: Tab = .foreshadow
+    /// private(set) 收口 write access (沿 t_8fc5c872 §4.2 #4), selectTab(_:)
+    /// 是唯一写入入口。
+    private(set) var selectedTab: Tab = .foreshadow
 
     /// 当前伏笔 tab 渲染的列表 — 跟 `loadForeshadows()` 写入。InspectorView
     /// ForEach 直接绑这个。
-    @Published private(set) var foreshadows: [ForeshadowRow] = []
+    private(set) var foreshadows: [ForeshadowRow] = []
 
     /// 当前修订 tab 显示的 mock CDRevision。 3 条 hardcoded,不接 store,
     /// 不调 LLM。v0.04.0 真生成时改用 `CDRevision` 查 + LLM pipeline。
-    @Published private(set) var revisionCandidates: [RevisionCandidate] = []
+    private(set) var revisionCandidates: [RevisionCandidate] = []
 
     /// `loadForeshadows` 是否在飞。用来 inspector UI 上显示"加载中…",
     /// 但 v0.02.0 mock 阶段 in-memory store 一般 < 5ms,可以忽略。
     /// 留 `false` 默认值避免每次 View 出现 spinner 抖动。
-    @Published private(set) var isLoadingForeshadows: Bool = false
+    private(set) var isLoadingForeshadows: Bool = false
 
     // MARK: - Init
 
@@ -233,3 +215,6 @@ extension InspectorViewModel {
     /// 这里也走 mock (v0.04.0 真生成时改)。
     static let mock3: [RevisionCandidate] = mockRevisionCandidates
 }
+
+// MARK: - B+ 重 协议 extension (沿 DECISION §4.2 #2, t_0f6bd6f6)
+extension InspectorViewModel: InspectorViewModelProtocol {}

@@ -16,7 +16,8 @@ import SwiftUI
 
 struct EditorOutlineView: View {
     @Binding var selectedChapterID: String?
-    @ObservedObject var store: EditorOutlineStore
+    // B+ 重 (t_0f6bd6f6): @ObservedObject → @Bindable (EditorOutlineStore 已 @Observable).
+    @Bindable var store: EditorOutlineStore
 
     var body: some View {
         VStack(spacing: 0) {

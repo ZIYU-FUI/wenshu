@@ -1,478 +1,65 @@
-// LayoutShellView.swift · 文枢 (Wenshu) · v0.02.0 WO-LT-01 → LT-01-fix9 → V0-fix-5 → LT-N1-merge → V0-fix-7 → V0-fix-9 → v0.04.0 t_bfa84198
+// LayoutShellView.swift · 文枢 (Wenshu) · v0.02.0 WO-LT-01 → v0.05.0 B+ 拆主控 (t_1831ad61)
 //
-// 5-zone shell — the root of the macOS window in v0.02.0.
+// 5-zone shell — macOS window root. Geometry: AGENTS.md §8.1 (5 区)。
 //
-// Geometry (AGENTS.md §8.1):
-//
-//   ┌────────────────────────────────────────────────────────────────┐
-//   │ (native macOS title bar — traffic lights only)                  │
-//   ├──────────┬───────────────────────────┬──────────────────────────┤
-//   │ 项目管理   │ 文档内容浏览器               │ inspector                 │
-//   │ topLeft  │ topCenter (editor area)   │ topRight                  │
-//   ├──────────┴───────────────────────────┴──────────────────────────┤
-//   │ 聊天区 (bottomLeft)               │ 状态 (bottomRight)            │
-//   └────────────────────────────────────┴────────────────────────────┘
-//
-// LT-01-fix3 (装机 user 8/7 实机验 + macOS HIG): the in-window toolbar
-// row is GONE — the app version moved to 文枢 → 关于文枢, "重置布局"
-// moved to 显示 → 重置布局, and the 4 per-panel chevrons were replaced by
-// View → 项目管理/文档/检视/聊天/状态 (Cmd+1…5). Panel chrome now carries
-// no controls at all, matching Final Cut Pro / Pages / Numbers.
-//
-// LT-01-fix9 (装机 user 8/7 实机拍 "全部原生"): 4 个 `PanelSplitter` 替换为
-// `NativeSplitter` (= NSSplitView divider 风格 NSView, 1pt 细线 +
-// NSCursor 自动设 + NSEvent 原生 drag). Drop-in 替换, 调用接口一致
-// (`orientation` + `onDrag` closure), LayoutShellView 的 VStack/HStack
-// 结构不变。 见 docs/wenshu/LAYOUT-APPKIT-INVENTORY.md §1.1-1.2。
-//
-// V0-fix-5 (8/10 17:35 CUA 自验拍 V0-fix-4 commit 41646b01 漏修): 5
-// tab Picker 从 ProjectListView 内部搬到 LayoutShellView.topLeftHeaderBar
-// 跨全宽 header bar 内, 与 + 按钮平级 (同 38pt 高, + 按钮在左, 5 tab
-// 在右) — 拍板真值沿用 V0-fix-4 designer (1a09cd550) §5 + AGENTS
-// §8.1 + FCP 范式 "5 tab 与 + 按钮平级"。 topLeftHeaderBar 改持
-// `@State activeTab: ProjectManagementTab` + Picker.segmented, 共享
-// binding 给 panel(.topLeft) 调的 ProjectListView — ProjectListView
-// 改 `@Binding activeTab`, 内部不再有 Picker。
-//
-// LT-N1-merge (2026-08-11): 合并 LT-N1-revise (4 P0 真修) 到 V0-fix-6 顶
-// 层, 解决冲突。 沿 V0-fix-6 5 区 layout 不动 (topLeftHeaderBar 跨全宽
-// header + 5 tab Picker + + 按钮 + panel(.topLeft) = ProjectListView),
-// 但把 LT-N1 的 push 路由 + selectedProjectID 接入:
-//   1. `navPath` 从 `NavigationPath` 改成 `[AppRoute]` (P0-2 fix:
-//      NavigationPath 不公开 Sequence 接口, 我们需要 iterate 找
-//      .detail(projectId:) 同步到 selectedProjectID)
-//   2. 加 `@State selectedProjectID: UUID?` + `.onChange(of: navPath)`
-//      同步: 从 path 中提取最后一个 `.detail(projectId:)` 写到
-//      selectedProjectID, 供 panel(.topLeft) 的 ProjectListView 章节
-//      tab 渲染 ChapterTreeView
-//   3. `destinationView(for:)` 加 `.detail(projectId:)` case →
-//      ProjectDetailView (LT-N1 P0-1 实装: Picker.segmented + 5 tab)
-//   4. `panel(.topLeft)` = ProjectListView (V0-fix-6 5 tab 容器) +
-//      selectedProjectID binding — 章节 tab 接 binding 渲染
-//      ChapterTreeView (LT-N1 P0-2 fix: projectId 必须非可选 UUID)
-//
-// V0-fix-7 → V0-fix-9 修真完整历史:
-//   V0-fix-7 (2026-08-11 18:05 CUA 自验拍板): 真修 V0-fix-6 被 LT-N1-merge
-//     回滚的 2 处 UI BUG:
-//     1. + 按钮改 modal sheet (替代 LT-N1-merge 回滚的 push)
-//        - 加 `@State showCreateProject: Bool = false`
-//        - + 按钮 action 改 `showCreateProject = true`
-//        - NavigationStack 内顶级加 `.sheet(isPresented: $showCreateProject)`
-//          弹 ProjectCreateView
-//        - `navPath.append(AppRoute.createProject)` 删 (改 sheet 不 push)
-//        - `destinationView(.createProject)` 改 placeholder 兜底
-//        - `navPath` 仍服务 chat 路由 (项目行点击走 .detail(...))
-//     2. 5 tab Picker 改 iconOnly + SF Symbol (替代 segmented Text)
-//        - Picker 内容 `Text(tab.rawValue).tag(tab)` →
-//          `Image(systemName: tab.symbolName).tag(tab).help(tab.rawValue)`
-//        - `.pickerStyle(.segmented)` → `.pickerStyle(.iconOnly)`
-//        - `.labelsHidden()` + `.fixedSize()` 删除
-//        - 沿用 ProjectManagementTab.symbolName (V0-fix-4 5 SF Symbol)
-//   V0-fix-8 (装机 user 8/11 16:20 真机拍 4 红字批注):
-//     1. WindowGroup 删 "文枢" 字面量 (App.swift 修真), + 按钮移到 macOS
-//        title bar (.toolbar ToolbarItem(.principal)) — 红字"新建按钮放在
-//        这里, 替换文枢文字"
-//     2. 5 tab Picker.segmented 改 HStack + 5 Button(Image) + .buttonStyle
-//        (.plain) — 红字"项目、章节、设定、资料、看板改文字按钮为 ICON"
-//        + 红字"所有 ICON 按钮, 只保留 ICON, 不要矩形背景, 仿 FCP"
-//     3. topLeftHeaderBar 删原 + 按钮 (修真 #4 衍生 — 修真 #1 后避免
-//        双 + 入口, FCP 单 + 范式) — 修真 V0-fix-7 modal sheet + 按钮
-//     4. SF Symbol 沿 AIF 16:20 截图重定义: folder / doc.text /
-//        gearshape / archive / square.grid.3x3 (替换 V0-fix-4 5 个)
-//     5. ProjectManagementTab 新增 isEnabled 衍生 (3 disabled: settings /
-//        resources / kanban — 沿 V0-fix-6 + ProjectBrowserView.ProjectTab
-//        .enabled 拍板)
-//   V0-fix-9 (装机 user 8/11 16:42 CUA 自验发现):
-//     1. .navigationTitle("") 兜底修真 #1 完整 — WindowGroup { }
-//        (修真 V0-fix-8) + .navigationTitle("") 显式覆盖 Info.plist
-//        CFBundleDisplayName = "文枢" 默认 fallback, 让 macOS title bar
-//        修真生效只显 + 按钮 (居中, ToolbarItem(.principal))。 红字真意
-//        = "替换文枢文字", 不是共存 (装机 user 8/11 16:20 红字)。
-//
-// v0.04.0 t_bfa84198 折叠按钮 (沿 designer wenshu-fcp-fold-3buttons-2026-08-12
-// 真值): FCP 范式 3 toggle 按钮 (viewer / 整条下半栏 / inspector) +
-// share 占位, 全部追加在 toolbarImportProjectButton 后面, 与现有
-// +/folder/sq.arrow.down 之间加 8pt Spacer 视觉分隔 (V0-fix-11 紧凑范式)。
-//
-// 拍板真值 (designer §3.1):
-//   - 按钮 1 ↔ `.topCenter` (中上 viewer), SF Symbol = rectangle.split.3x1
-//   - 按钮 2 ↔ `.bottomLeft` + `.bottomRight` (整条下半栏), 同 SF Symbol
-//     rectangle.split.3x1.fill (全程同 symbol, 靠 fill + accent blue 区分
-//     显隐)
-//   - 按钮 3 ↔ `.topRight` (检视), SF Symbol = checklist (全程同 symbol,
-//     靠 fill + accent blue 区分)
-//   - `.topLeft` 永远不折叠 (项目列表 常驻)
-//   - 组合式 visibility (3 toggle × 8 组合, OR 关系, 非 XOR)
-//   - 折叠动画 ≤ 200ms, 用 SwiftUI `.animation(.easeInOut(duration: 0.2),
-//     value:)` 不写自定义 easing
-//   - 视觉判断: default = stroke 描边 (区显) / active = fill + accent blue
-//     背景 (区隐) — 见 FoldToggleButton.swift
-//
-// Splitters (see LayoutShellViewModel for delta math):
-//   - 2 vertical in upper row (between topLeft↔topCenter, topCenter↔topRight)
-//   - 1 horizontal between upper and lower bands
-//   - 1 vertical in lower row (between bottomLeft↔bottomRight)
-//   → 4 functional splitters. AGENTS §8.1 says "共 5 个"; the geometry
-//     only fits 4. ACCEPTANCE-v0.02.0-LT-01.md documents the discrepancy.
-//   A splitter is only rendered when both of its neighbours are visible.
-//
-// Widths/heights come from `LayoutMetrics` (pure, unit-tested) fed by
-// `vm.snapshot.ratios` + `vm.snapshot.collapsed` + `vm.visibility`.
-//
-// Persistence: the View Model handles .ws read/write via
-// `WenshuStoreActor` (see LayoutShellViewModel). The View only mutates
-// the model through View Model methods.
+// v0.05.0 B+ 拆主控 (DECISION-5ZONE-Bplus-Heavy §4.2 #4):
+//   - LayoutShellTypes.swift    — PanelID / PanelVisibilityState / PanelStatesEnvelope / LayoutMetrics / VM extension
+//   - LayoutShellToolbar.swift  — 7 toolbar 按钮 (FCP 范式)
+//   - TopLeftHeaderBar.swift    — 5 tab ICON 跨全宽 header
+//   - LayoutShellRoutes.swift   — AppRoute → destination View 映射
+//   - LayoutShellView.swift (本文件) — NavigationStack 顶层 wrapper + 5-zone
+//     geometry body (upperBand / lowerBand / panel slot) + 折叠态保留。
 
 import SwiftUI
 
-// V0-fix-11-1a retry-2 修真 #1 通知名扩展 (修真 V0-fix-10.1 FileCommands
-// 真值, 但 FileCommands.swift 修真不在 main HEAD — 修真修真修真
-// NSNotification.Name 修真扩展, 修真 v0.04.0+ 派单接 FileCommands
-// 修真 NSOpenPanel import 真修真, 修真 .wenshuShowCreateProject /
-// .wenshuOpenProjectURL 修真。 修真 ⌘N / ⌘O 修真路径 — LayoutShellView
-// 修真 .onReceive 修真 showCreateProject = true (修真 modal sheet 弹
-// ProjectCreateView, 沿 V0-fix-7 modal sheet 修真真值)。
+// V0-fix-11-1a retry-2: ⌘N / ⌘O 通知名扩展 (FileCommands menu 修真路径)。
 extension Notification.Name {
     static let wenshuShowCreateProject = Notification.Name("wenshu.showCreateProject")
     static let wenshuOpenProjectURL = Notification.Name("wenshu.openProjectURL")
 }
 
 struct LayoutShellView: View {
-    // LT-01-fix3: shared instance so the macOS menu bar commands in
-    // App.swift drive the same state (a @StateObject here would be
-    // unreachable from a CommandMenu).
-    @ObservedObject private var vm = LayoutShellViewModel.shared
-
-    // LT-N1-merge: navPath 从 `NavigationPath` 改成 `[AppRoute]` (P0-2 fix:
-    // NavigationPath 不公开 Sequence 接口, 我们需要在 .onChange 里 iterate
-    // 找最近一个 `.detail(projectId:)` 同步到 selectedProjectID)。 AppRoute
-    // 已 Hashable (MainView.swift), NavigationStack(path:) binding 行为不变。
-    // 之前 V0-fix-4 拍 + 按钮 push AppRoute.createProject 用的也是顶层
-    // state, 这里继续沿用, 仅换底层类型。
+    @State private var vm = LayoutShellViewModel.shared
     @State private var navPath: [AppRoute] = []
-
-    // V0-fix-4 Fix 2: topLeft 5 tab 容器 (ProjectListView) 需要的项目列表
-    // — 后续 WenshuStoreActor 接 .ws 后,这里换成 vm 持有 + onChange 同步。
     @State private var projects: [ProjectSnapshot] = []
-
-    // V0-fix-5: 5 tab Picker state 升到 LayoutShellView 顶层, 由
-    // topLeftHeaderBar (跨全宽 38pt bar) 持 Picker.segmented, 与 + 按钮
-    // 平级。 ProjectListView 接 @Binding activeTab, 共享同一 state。
     @State private var activeTab: ProjectManagementTab = .projects
-
-    // LT-N1-merge: selectedProjectID 升到 LayoutShellView 顶层。 由
-    // .onChange(of: navPath) 从 path 中提取最近一个 `.detail(projectId:)`
-    // 写到 selectedProjectID, 供 ProjectListView 章节 tab 渲染
-    // ChapterTreeView (LT-N1 P0-2 fix: ChapterTreeView.init 必须接
-    // projectId: UUID 非可选)。 nil = 用户还没点项目 row。
     @State private var selectedProjectID: UUID?
-
-    // LT-N3: selectedChapterID 升到 LayoutShellView 顶层 (跟 selectedProjectID
-    // 平级, DESIGN-LT-N3.md §2.3 + §3.1 拍板)。
-    //   - 写: ProjectDetailView 章节 tab row click → 驱动 selectedChapterID
-    //     后 pop 回 topCenter → EditorView 加载章节
-    //   - 读: EditorView (topCenter) 通过 binding 渲染章节 sidebar + TextEditor
-    // nil = 用户还没选章节。
     @State private var selectedChapterID: String?
-
-    // V0-fix-7 BUG 1: + 按钮 modal sheet 显隐 state (替代 LT-N1-merge
-    // 回滚的 `navPath.append(AppRoute.createProject)` push 路由)。 true
-    // = sheet 弹出 (用户点 + 按钮), false = sheet 关闭 (用户点 取消 /
-    // 创建 / X)。 sheet content = `ProjectCreateView`, 沿 V0-fix-6 Fix 1
-    // 真值 (540x480 modal, form/focus/WindowActivation 兜底不动)。
     @State private var showCreateProject: Bool = false
 
     var body: some View {
         NavigationStack(path: $navPath) {
             geometryBody
                 .frame(minWidth: 900, minHeight: 600)
-                // V0-fix-8 修真 #1 完整生效: 显式 `.navigationTitle("")`
-                // 覆盖 CFBundleDisplayName = "文枢" 默认 fallback, 让
-                // macOS title bar 不显"文枢"两字 — + 按钮由 .toolbar
-                // ToolbarItem(.principal) 接管 (FCP 单 + 入口范式)。
-                // 红字真意 "新建按钮放在这里, 替换文枢文字" = 替换,
-                // 不是共存。 沿 V0-fix-6 CFBundleName="Wenshu" 不动
-                // (避免 macOS 菜单 title 副作用)。
                 .navigationTitle("")
                 .navigationDestination(for: AppRoute.self) { route in
-                    destinationView(for: route)
+                    layoutShellDestination(for: route, selectedChapterID: $selectedChapterID)
                 }
-                // V0-fix-7 BUG 1: + 按钮 modal sheet 包裹 NavigationStack
-                // 内顶级 (sheet 关联到主窗口 — FCP inspector sheet 风格,
-                // 不挡 LayoutShellView, 用户透过 sheet 能看到 5 区布局)。
-                // sheet content = ProjectCreateView (540x480 modal, 沿
-                // V0-fix-1 Fix D 硬固定真值)。 onCreate / onCancel 闭包
-                // 走 showCreateProject = false 关闭 sheet (替代 push 路由
-                // 的 navPath.removeLast())。
                 .sheet(isPresented: $showCreateProject) {
                     ProjectCreateView(
                         onCreate: { newProject in
                             projects.append(newProject)
                             showCreateProject = false
                         },
-                        onCancel: {
-                            showCreateProject = false
-                        }
+                        onCancel: { showCreateProject = false }
                     )
                 }
-                .task {
-                    await vm.load()
-                }
-                // Q2 折叠态 (t_c6f48f43): 折叠/展开动画. 沿 V0-fix-8 拍板
-                // 0.2s ease-in-out (FCP 范式). 绑定到 vm.snapshot.collapsed
-                // —— 任一 panel 的 collapsed bool 变化时, SwiftUI 自动插值
-                // gutter/header 宽度 (DESIGN §1.4).
+                .task { await vm.load() }
                 .animation(.easeInOut(duration: 0.2), value: vm.snapshot.collapsed)
-                // LT-N1-merge: navPath 变化时同步 selectedProjectID。
-                // 用户在 ProjectListView 的项目 tab 点 row →
-                // `navPath.append(.detail(projectId: id))` →
-                // 这里提取 id → selectedProjectID → ProjectListView
-                // 章节 tab 拿到 id 渲染 ChapterTreeView。
                 .onChange(of: navPath) { _, newPath in
                     syncSelectedProjectID(from: newPath)
                 }
-                // V0-fix-11-1a retry-2 修真 #1: + 按钮修真 3 个纯 ICON
-                // (新建 / 打开 / 导入占位), 修真 macOS title bar 红黄绿
-                // 后 (左), FCP Viewer 顶部 toolbar 范式。 ToolbarItem
-                // 必须挂在 NavigationStack 内的 view 才能渲染到 macOS
-                // title bar (放 MainView / App.swift 不行 — 拿不到 navPath)。
-                // 修真 #4 衍生: topLeftHeaderBar 原 + 按钮删, 避免双 + 入口。
-                //
-                // 通知路径 (沿 V0-fix-10.1 FileCommands 真值):
-                //   新建 → NotificationCenter.post(.wenshuShowCreateProject)
-                //     → LayoutShellView .onReceive 修真 showCreateProject = true
-                //   打开 → NotificationCenter.post(.wenshuOpenProjectURL)
-                //     → LayoutShellView .onReceive 修真 NSOpenPanel (沿 FileCommands 真值)
-                //   导入 → v0.04.0 占位, .disabled(true) (后续派单接 NSOpenPanel import)
-                //
-                // 修真 #1 红字真意 (装机 user 8/11 14:35):
-                //   "高度, 还有位置都不对, 高度你来调整, 位置居左, 挨着
-                //    红黄绿, 也是纯 ICON 按钮, 不带按钮背景. 同时,
-                //    在新建后面加上打开和导入占位。"
-                // 修真范式 = ToolbarItemGroup(placement: .principal) + 3 ICON
-                // (FCP 范式 — .principal 是 macOS title bar 中央, 但因
-                //  traffic lights 在 .principal 左边, 实际渲染紧贴红黄绿后)。
-                //
-                // v0.04.0 t_bfa84198 折叠按钮 (沿 designer 真值): 在 3
-                // import 按钮后追加 3 toggle (viewer / 整条下半栏 /
-                // inspector) + share 占位, 8pt Spacer 视觉分隔。
-                .toolbar {
-                    ToolbarItemGroup(placement: .principal) {
-                        toolbarNewProjectButton
-                        toolbarOpenProjectButton
-                        toolbarImportProjectButton
-                        Spacer().frame(width: 8)
-                        foldToggleViewerButton
-                        foldToggleBottomBandButton
-                        foldToggleInspectorButton
-                        toolbarSharePlaceholderButton
-                    }
-                }
-                // V0-fix-11-1a retry-2 修真 #1 衍生: 监听 FileCommands 真值
-                // (.wenshuShowCreateProject + .wenshuOpenProjectURL), ⌘N / ⌘O
-                // 修真路径 — 修真 showCreateProject = true (修真 modal sheet 弹
-                // ProjectCreateView, 沿 V0-fix-7 modal sheet 修真真值)。
+                .toolbar { LayoutShellToolbar(vm: vm) }
                 .onReceive(NotificationCenter.default.publisher(for: .wenshuShowCreateProject)) { _ in
                     showCreateProject = true
                 }
                 .onReceive(NotificationCenter.default.publisher(for: .wenshuOpenProjectURL)) { _ in
-                    // FileCommands 真值修真 NSOpenPanel, 这里修真 AppKit 真修真
-                    // — 但 v0.04.0+ 派单 (导入/导出范围) 接前, 修真 placeholder
-                    // 不修真弹 (避免 LayoutShellView 拿不到 AppKit 修真)
-                    // 修真后续派单接 FileCommands 修真 import 真修真
+                    // FileCommands 修真 NSOpenPanel — placeholder
                 }
         }
     }
 
-    // MARK: - Toolbar buttons (V0-fix-11-1a retry-2 修真 #1)
-
-    /// 新建项目 + ICON (红黄绿后紧跟, FCP 范式, 修真 V0-fix-11-1a retry-2
-    /// 修真 #1 + 红字 "位置居左, 挨着红黄绿")。 修真 NotificationCenter
-    /// 修真, 修真 FileCommands menu "新建项目... ⌘N" 修真修真。
-    private var toolbarNewProjectButton: some View {
-        Button {
-            NotificationCenter.default.post(
-                name: .wenshuShowCreateProject, object: nil
-            )
-        } label: {
-            Image(systemName: "plus")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(.secondary)
-                .frame(width: 28, height: 22)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .help("新建项目 (⌘N)")
-    }
-
-    /// 打开项目 + ICON (新建后面, FCP 范式 3 ICON 群)。 修真
-    /// NotificationCenter 修真, 修真 FileCommands menu "打开项目... ⌘O"
-    /// 修真修真。
-    private var toolbarOpenProjectButton: some View {
-        Button {
-            NotificationCenter.default.post(
-                name: .wenshuOpenProjectURL, object: nil
-            )
-        } label: {
-            Image(systemName: "folder.badge.plus")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(.secondary)
-                .frame(width: 28, height: 22)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .help("打开项目... (⌘O)")
-    }
-
-    /// 导入项目 + ICON (打开后面, 占位, v0.04.0 真修真导入逻辑)。 修真
-    /// 红字 "在新建后面加上打开和导入占位" — 修真 v0.04.0+ 派单接 NSOpenPanel
-    /// import 真修真, 修真派单修真 .disabled(false) 修真。
-    private var toolbarImportProjectButton: some View {
-        Button {
-            // v0.04.0 真修真导入逻辑 — placeholder
-        } label: {
-            Image(systemName: "square.and.arrow.down")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(.secondary)
-                .frame(width: 28, height: 22)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .help("导入... (v0.04.0)")
-        .disabled(true)
-    }
-
-    // MARK: - v0.04.0 t_bfa84198 FCP 折叠按钮 (designer wenshu-fcp-fold-3buttons-2026-08-12)
-
-    /// 按钮 1 ↔ `.topCenter` (中上 viewer 文档)。 SF Symbol =
-    /// rectangle.split.3x1 (区显) / rectangle.split.3x1.fill (区隐)。
-    private var foldToggleViewerButton: some View {
-        FoldToggleButton(
-            symbol: vm.isVisible(.topCenter)
-                ? "rectangle.split.3x1"
-                : "rectangle.split.3x1.fill",
-            isVisible: vm.isVisible(.topCenter),
-            action: { vm.togglePanelVisibility(.topCenter) },
-            help: "隐藏/显示 文档 (⌘2)"
-        )
-    }
-
-    /// 按钮 2 ↔ `.bottomLeft` + `.bottomRight` (整条下半栏)。 沿
-    /// designer §1.1 真值, 全程同 SF Symbol (rectangle.split.3x1.fill),
-    /// 靠 fill + accent blue 背景区分显隐 — 不切 symbol 名字。
-    private var foldToggleBottomBandButton: some View {
-        FoldToggleButton(
-            symbol: "rectangle.split.3x1.fill",
-            isVisible: vm.isBottomBandVisible(),
-            action: { vm.toggleBottomBand() },
-            help: "隐藏/显示 状态栏 (⌘4+⌘5)"
-        )
-    }
-
-    /// 按钮 3 ↔ `.topRight` (检视)。 SF Symbol = checklist, 全程同
-    /// symbol 名字, 靠 fill + accent blue 背景区分显隐。
-    private var foldToggleInspectorButton: some View {
-        FoldToggleButton(
-            symbol: "checklist",
-            isVisible: vm.isVisible(.topRight),
-            action: { vm.togglePanelVisibility(.topRight) },
-            help: "隐藏/显示 检视 (⌘3)"
-        )
-    }
-
-    /// Share 占位按钮 (v0.04.0+ 接 NSSharingServicePicker 派单时
-    /// 修真 .disabled(false))。 沿 designer 真值, 不走 FoldToggleButton
-    /// 组件 (没有显隐判断)。
-    private var toolbarSharePlaceholderButton: some View {
-        Button {
-            // v0.04.0+ 派单接 share 真修真 — placeholder
-        } label: {
-            Image(systemName: "square.and.arrow.up")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(.secondary)
-                .frame(width: 28, height: 22)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .help("分享 (v0.04.0+)")
-        .disabled(true)
-    }
-
-    /// LT-N1-merge: 从 navPath 中提取最近一个 `.detail(projectId:)`
-    /// 同步到 selectedProjectID。 走 path 倒序遍历, 拿最后一个 detail
-    /// (栈顶最新的 detail)。
-    private func syncSelectedProjectID(from path: [AppRoute]) {
-        var lastDetail: UUID?
-        for route in path {
-            if case .detail(let id) = route {
-                lastDetail = id
-            }
-        }
-        if let id = lastDetail {
-            selectedProjectID = id
-        }
-    }
-
-    // MARK: - Navigation destinations
-
-    @ViewBuilder
-    private func destinationView(for route: AppRoute) -> some View {
-        switch route {
-        case .createProject:
-            // V0-fix-7 BUG 1: + 按钮改 modal sheet 后, .createProject
-            // 路由不再被 + 按钮消费 (sheet 是真路由)。 保留 enum case
-            // 不破坏外部引用 (LT-N1-merge 真值), 这里走 placeholder
-            // 兜底 — 万一外部代码还残留 push AppRoute.createProject 也
-            // 不会白屏。 沿 V0-fix-6 真值。
-            VStack(spacing: 10) {
-                Image(systemName: "doc.badge.plus")
-                    .font(.system(size: 30, weight: .light))
-                    .foregroundStyle(.secondary)
-                Text("请用顶部 + 按钮新建项目")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-        case .chat:
-            // V0-fix-4 范围不接 chat push — chat 实装在下半 ChatPanelView,
-            // 这里走 placeholder 避免 ChatViewModel.shared 不存在导致编译失败。
-            VStack(spacing: 10) {
-                Image(systemName: "bubble.left.and.bubble.right")
-                    .font(.system(size: 30, weight: .light))
-                    .foregroundStyle(.secondary)
-                Text("请在底部聊天区继续创作")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-        case .characterWorld:
-            // V0-fix-4 范围不接 characterWorld push — 留 v0.04.0 长篇工具
-            // 工单实装, 这里走 placeholder 兜底。
-            VStack(spacing: 10) {
-                Image(systemName: "person.2.crop.square.stack")
-                    .font(.system(size: 30, weight: .light))
-                    .foregroundStyle(.secondary)
-                Text("人物世界 — v0.04.0 实现")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-        // LT-N1-merge: 项目详情 destination (P0-1 fix: Picker.segmented
-        // + 5 tab 居中铺满, 见 ProjectDetailView.swift + DESIGN-LT-N1
-        // §5)。 用户在 ProjectListView 项目 tab 点 row →
-        // navPath.append(.detail(projectId: id)) → 这里渲染
-        // ProjectDetailView。 push 覆盖整 layout (V0-fix-6 design:
-        // NavigationStack 在 LayoutShellView 顶层), 跟 ProjectBrowserView
-        // 自挂 NavigationStack 的 LT-N1 原案不同 — 沿 V0-fix-6 拍板。
-        case .detail(let projectId):
-            // LT-N3: ProjectDetailView 接 selectedChapterID binding (DESIGN-LT-N3
-            // §1 步 4), 章节 tab row click 驱动 selectedChapterID + pop 回
-            // topCenter → EditorView 加载章节。
-            ProjectDetailView(
-                projectId: projectId,
-                selectedChapterID: $selectedChapterID
-            )
-        }
-    }
-
-    // MARK: - 5-zone body
+    // MARK: - 5-zone geometry body
 
     private var geometryBody: some View {
         GeometryReader { geo in
@@ -481,109 +68,31 @@ struct LayoutShellView: View {
                 ratios: vm.snapshot.ratios,
                 visibility: vm.visibility
             )
-            // V0-fix-11-1a retry-2 修真 #2: 顶部跨全宽 header bar
-            // 38pt → 28pt (FCP Viewer 顶部 toolbar 修真, memi §3.5 layout
-            // 修真 28pt toolbar)。 上半 upperBand 高度同步减 28pt,
-            // 保持 5-zone 比例不变。
             let topHeaderHeight: CGFloat = 28
             let upperHeight = max(0, geo.size.height - lowerHeight - topHeaderHeight)
-            // v0.04.0 t_bfa84198 折叠动画: 整 layout 包一层
-            // `.animation(.easeInOut(duration: 0.2), value: vm.visibility)`,
-            // visibility 变化时整个 5 区平滑过渡 (≤ 200ms, 沿 designer
-            // §边界 — 不写自定义 easing curve)。
             VStack(spacing: 0) {
                 if upperBandVisible || lowerBandVisible {
-                    topLeftHeaderBar
+                    TopLeftHeaderBar(activeTab: $activeTab)
                 }
                 if upperBandVisible {
-                    upperBand(in: geo.size.width)
-                        .frame(height: upperHeight)
+                    upperBand(in: geo.size.width).frame(height: upperHeight)
                 }
                 if upperBandVisible && lowerBandVisible {
-                    // LT-01-fix13: VM 的 `adjustXxx` 返回 Bool (= applied,
-                    // clamp 没截断), 但 NativeSplitter 的 `onDrag` 是
-                    // `(CGFloat) -> Void`, 把 Bool 透传给 caller 也无用
-                    // (NativeSplitterView 内部没用返回值 — fix14 后
-                    // `lastReported` 字段已删, 没东西可 reset)。 直接
-                    // discardableResult 调, 跟 NativeSplitter 接口契约
-                    // 对齐。
                     NativeSplitter(orientation: .vertical) { delta in
-                        vm.adjustBottomHeight(
-                            delta: delta,
-                            totalHeight: geo.size.height
-                        )
+                        vm.adjustBottomHeight(delta: delta, totalHeight: geo.size.height)
                     }
                 }
                 if lowerBandVisible {
-                    lowerBand(in: geo.size.width)
-                        .frame(height: lowerHeight)
+                    lowerBand(in: geo.size.width).frame(height: lowerHeight)
                 }
             }
-            .animation(
-                .easeInOut(duration: 0.2),
-                value: vm.visibility
-            )
+            .animation(.easeInOut(duration: 0.2), value: vm.visibility)
         }
-    }
-
-    // MARK: - Top header bar (V0-fix-4 Fix 1 + Fix 3 → V0-fix-5 5 tab Picker 升 header → V0-fix-7 modal sheet + iconOnly ICON)
-
-    /// 顶部跨全宽 38pt 标题栏 (AIF 16:40 拍板 — 替换 v0.02.0 顶部"文枢"标
-    /// 题文字, FCP toolbar 风格: 红黄绿 traffic lights 后接 5 tab ICON +
-    /// Spacer)。
-    ///
-    /// V0-fix-5 拍板: 5 tab Picker (项目 / 章节 / 设定 / 资料 / 看板) 从
-    /// ProjectListView 内部搬到这里 — 与原 + 按钮平级 (同 38pt 高)。
-    /// ProjectListView 改接 `@Binding activeTab` 共享同一 state。
-    ///
-    /// V0-fix-7 → V0-fix-9 修真完整:
-    ///   - V0-fix-7: + 按钮改 modal sheet + 5 tab Picker 改 iconOnly
-    ///   - V0-fix-8: 删 + 按钮 (修真 #4 衍生) + 5 tab Picker.segmented 文字
-    ///     标签改 HStack + 5 Button(Image) + `.buttonStyle(.plain)` —
-    ///     红字 "5 tab 改 ICON" + 红字 "所有 ICON 按钮, 只保留 ICON, 不
-    ///     要矩形背景, 仿 FCP"。 SF Symbol 沿 AIF 16:20 截图重定义真值:
-    ///     folder / doc.text / gearshape / archive / square.grid.3x3
-    ///     (替换 V0-fix-4 的 5 个)
-    ///   - V0-fix-9: disabled tab (设定 / 资料 / 看板) 走
-    ///     ProjectManagementTab.isEnabled 衍生 (修真 V0-fix-8 真值, 沿
-    ///     V0-fix-6 + ProjectBrowserView.ProjectTab.enabled 拍板)
-    private var topLeftHeaderBar: some View {
-        HStack(spacing: 2) {
-            // V0-fix-11-1a retry-2 修真 #2: 5 tab HStack + 5 Button(Image) +
-            // .buttonStyle(.plain) (修真 V0-fix-7 Picker(.iconOnly) + 修真
-            // V0-fix-8 修真 — 红字 "5 tab 改 ICON" + "不要矩形背景, 仿 FCP")。
-            // 修真 #2 衍生:
-            //   - HStack spacing 4 → 2 (修真 FCP Viewer 顶部 toolbar 修真紧凑)
-            //   - font size 14 → 13 (修真 V0-fix-10.1 真修真, FCP 范式)
-            //   - frame(width: 32, height: 24) → (28, 22) (修真 hit area
-            //     ≥ 24pt HIG, 修真 ≥ 24×24 = 576pt² 修真修真 22pt)
-            //   - topLeftHeaderBar height 38 → 28 (修真 #2 真修真, FCP Viewer
-            //     顶部 toolbar 修真 28pt)
-            ForEach(ProjectManagementTab.allCases) { tab in
-                Button {
-                    activeTab = tab
-                } label: {
-                    Image(systemName: tab.symbolName)
-                        .font(.system(size: 13, weight: .medium))
-                        .frame(width: 28, height: 22)
-                        .foregroundStyle(activeTab == tab ? Color.accentColor : .secondary)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .help(tab.rawValue)
-                .disabled(!tab.isEnabled)
-            }
-
-            Spacer(minLength: 0)
-        }
-        .frame(height: 28)
-        .padding(.horizontal, 12)
     }
 
     private var upperBandVisible: Bool {
         vm.isVisible(.topLeft) || vm.isVisible(.topCenter) || vm.isVisible(.topRight)
     }
-
     private var lowerBandVisible: Bool {
         vm.isVisible(.bottomLeft) || vm.isVisible(.bottomRight)
     }
@@ -600,24 +109,14 @@ struct LayoutShellView: View {
         return HStack(spacing: 0) {
             panel(.topLeft, width: split.0)
             if vm.isVisible(.topLeft) && vm.isVisible(.topCenter) {
-                // LT-01-fix13: 同上 — VM 返回 Bool 但 NativeSplitter
-                // `(CGFloat) -> Void` 不消费, discardableResult 调用。
                 NativeSplitter(orientation: .horizontal) { delta in
-                    vm.adjustUpperColumn(
-                        splitterIndex: 0,
-                        delta: delta,
-                        totalWidth: totalWidth
-                    )
+                    vm.adjustUpperColumn(splitterIndex: 0, delta: delta, totalWidth: totalWidth)
                 }
             }
             panel(.topCenter, width: split.1)
             if vm.isVisible(.topCenter) && vm.isVisible(.topRight) {
                 NativeSplitter(orientation: .horizontal) { delta in
-                    vm.adjustUpperColumn(
-                        splitterIndex: 1,
-                        delta: delta,
-                        totalWidth: totalWidth
-                    )
+                    vm.adjustUpperColumn(splitterIndex: 1, delta: delta, totalWidth: totalWidth)
                 }
             }
             panel(.topRight, width: split.2)
@@ -636,12 +135,8 @@ struct LayoutShellView: View {
         return HStack(spacing: 0) {
             panel(.bottomLeft, width: split.0)
             if vm.isVisible(.bottomLeft) && vm.isVisible(.bottomRight) {
-                // LT-01-fix13: 同上 — discardableResult 调用。
                 NativeSplitter(orientation: .horizontal) { delta in
-                    vm.adjustLowerColumn(
-                        delta: delta,
-                        totalWidth: totalWidth
-                    )
+                    vm.adjustLowerColumn(delta: delta, totalWidth: totalWidth)
                 }
             }
             panel(.bottomRight, width: split.1)
@@ -650,20 +145,11 @@ struct LayoutShellView: View {
 
     // MARK: - One panel slot
 
-    /// Hidden panels render nothing at all (no gutter, no header) — the
-    /// only way back is the View menu. Collapsed panels keep their
-    /// header/gutter chrome, which LT-01-fix3 leaves reachable only via
-    /// persisted state (no chevron).
     @ViewBuilder
     private func panel(_ id: PanelID, width: CGFloat) -> some View {
         if !vm.isVisible(id) {
             EmptyView()
         } else if isCollapsed(id) {
-            // Q2 折叠态 (t_c6f48f43): 上半 panel 折叠 = CollapsedGutter (50pt
-            // 垂直 gutter, 沿 LayoutSnapshot.topCollapsedPixels); 下半 panel
-            // 折叠 = CollapsedHeader (30pt 水平 header, 沿 LayoutSnapshot
-            // .bottomCollapsedPixels, DESIGN §1.5 下半范式). bottomLeft 不可
-            // 折叠 (DESIGN §1.2), 但走 CollapsedHeader 分支兜底.
             Group {
                 if id == .bottomLeft || id == .bottomRight {
                     CollapsedHeader(panelID: id)
@@ -673,10 +159,6 @@ struct LayoutShellView: View {
             }
             .frame(width: width)
         } else {
-            // v0.05.0 Zone 协议 wrapper (t_8fc5c872): 5 if/else 分支
-            // 改 switch 5 case, ZoneContext 注入, 5 Zone 入口 View 走
-            // ZoneRenderer 协议 (DESIGN-Zone.md §5.1)。 折叠态保留
-            // (Q2 折叠态 t_c6f48f43 不动), 5 Zone 内容渲染走 Zone 协议。
             let context = ZoneContext(
                 panelID: id,
                 selectedProjectID: $selectedProjectID,
@@ -685,21 +167,7 @@ struct LayoutShellView: View {
                 projects: $projects,
                 activeTab: $activeTab
             )
-            PanelContainer(panelID: id) {
-                switch id {
-                case .topLeft:
-                    TopLeftZone(context: context)
-                case .topCenter:
-                    TopCenterZone(context: context)
-                case .topRight:
-                    TopRightZone(context: context)
-                case .bottomLeft:
-                    BottomLeftZone(context: context)
-                case .bottomRight:
-                    BottomRightZone(context: context)
-                }
-            }
-            .frame(width: width)
+            ZoneContainer(panelID: id, context: context).frame(width: width)
         }
     }
 
@@ -711,5 +179,15 @@ struct LayoutShellView: View {
         case .bottomLeft: return vm.snapshot.collapsed.bottomLeft
         case .bottomRight: return vm.snapshot.collapsed.bottomRight
         }
+    }
+
+    // MARK: - navPath sync (LT-N1-merge: 提取最近 .detail 同步到 selectedProjectID)
+
+    private func syncSelectedProjectID(from path: [AppRoute]) {
+        var lastDetail: UUID?
+        for route in path {
+            if case .detail(let id) = route { lastDetail = id }
+        }
+        if let id = lastDetail { selectedProjectID = id }
     }
 }

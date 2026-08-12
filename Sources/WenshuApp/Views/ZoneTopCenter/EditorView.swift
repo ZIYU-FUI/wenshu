@@ -23,7 +23,8 @@ struct EditorView: View {
     @Binding var selectedProjectID: UUID?
     @Binding var selectedChapterID: String?
 
-    @StateObject private var sidebarStore: EditorOutlineStore
+    // B+ 重 (t_0f6bd6f6): @StateObject → @State (EditorOutlineStore 已 @Observable).
+    @State private var sidebarStore: EditorOutlineStore
     @State private var sidebarStoreProjectId: UUID?
     @State private var contentStore: EditorContentStore?
     @State private var content: String = ""
@@ -31,7 +32,8 @@ struct EditorView: View {
     // v0.05.0 Zone 协议 (t_8fc5c872) ViewModel 收口 (沿 DECISION §4.2 #4 + DESIGN-Zone.md §7.3):
     // isFullScreen 从 @State 升 @StateObject EditorViewModel, 走 vm.isFullScreen
     // (private(set)) + vm.toggleFullScreen(), write access 收口到 VM 内部。
-    @StateObject private var viewModel = EditorViewModel()
+    // B+ 重 (t_0f6bd6f6): @StateObject → @State (EditorViewModel 已 @Observable).
+    @State private var viewModel = EditorViewModel()
 
     private let projectStore: WenshuProjectStore
 
@@ -45,7 +47,7 @@ struct EditorView: View {
         self.projectStore = store
         // 初始 sidebarStore 用占位 projectId (nil), .onChange(of: selectedProjectID)
         // 真正重建。 这样 first paint 不会 nil-crash。
-        _sidebarStore = StateObject(wrappedValue: EditorOutlineStore(
+        _sidebarStore = State(wrappedValue: EditorOutlineStore(
             projectId: selectedProjectID.wrappedValue ?? UUID(),
             store: store
         ))

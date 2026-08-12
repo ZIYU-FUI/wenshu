@@ -118,8 +118,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 @main
 struct WenshuApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    // B+ 重 (t_0f6bd6f6): @StateObject → @State (PersistenceController 仍
+    // 是 ObservableObject, 不在本卡 6 VM 范围 — 保留 @StateObject)。
     @StateObject var persistence = PersistenceController.shared
-    @StateObject var chatVM = ChatViewModel()
+    // B+ 重 (t_0f6bd6f6): ChatViewModel 已 @Observable, 改 @State。
+    @State private var chatVM = ChatViewModel()
 
     init() {
         // WO-005: trigger WenshuProjectStore.shared so the projects
@@ -140,7 +143,11 @@ struct WenshuApp: App {
         // 红字真意 = "替换文枢文字", 不是共存 (装机 user 8/11 16:20 红字)。
         WindowGroup {
             MainView()
-                .environmentObject(chatVM)
+                // B+ 重 (t_0f6bd6f6): @EnvironmentObject → .environment(chatVM)
+                // (Observation framework 自动注册). persistence 仍走
+                // .environmentObject (PersistenceController 仍是 ObservableObject,
+                // 不在本卡 6 VM 范围).
+                .environment(chatVM)
                 .environmentObject(persistence)
                 // WO-002+ wires the WenshuStore actor via environmentObject;
                 // WO-004 adds the ChatViewModel. Both injected here.
@@ -269,15 +276,17 @@ struct LayoutCommands: Commands {
 }
 
 /// Inner View for the "显示" menu. Lives as a separate type so it can
-/// carry an `@ObservedObject` (Commands structs cannot). The CommandMenu
-/// re-evaluates this body whenever the observed VM publishes, so the
+/// carry an `@State` (Commands structs cannot). The CommandMenu
+/// re-evaluates this body whenever the @Observable VM publishes, so the
 /// toggle item labels stay in sync with the panel visibility state.
+///
+/// B+ 重 (t_0f6bd6f6): @ObservedObject → @State (LayoutShellViewModel 已 @Observable)。
 ///
 /// LT-01-fix5 优化1: 文档 / 聊天 这两块 (装机 user 8/7 拍板不可隐藏)
 /// 在菜单项里是 disabled (灰色), 让用户看到"这里不能 hide". 点击
 /// 也没动作 (VM 的 togglePanelVisibility 有同样的 guard).
 private struct LayoutMenuContent: View {
-    @ObservedObject var vm = LayoutShellViewModel.shared
+    @State private var vm = LayoutShellViewModel.shared
 
     var body: some View {
         Button("重置布局") {

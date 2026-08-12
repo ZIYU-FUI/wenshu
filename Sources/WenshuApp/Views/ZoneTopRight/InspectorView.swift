@@ -26,7 +26,8 @@ import SwiftUI
 
 struct InspectorView: View {
 
-    @ObservedObject private var vm = InspectorViewModel.shared
+    // B+ 重 (t_0f6bd6f6): @ObservedObject → @State (InspectorViewModel.shared 已 @Observable).
+    @State private var vm = InspectorViewModel.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {

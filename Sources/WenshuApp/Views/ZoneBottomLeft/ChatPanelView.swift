@@ -52,7 +52,10 @@ enum ChatPanelTab: String, CaseIterable, Identifiable {
 struct ChatPanelView: View {
     static let chatPlaceholder = "先在项目里开始一次创作"
 
-    @EnvironmentObject private var chatVM: ChatViewModel
+    // B+ 重 (t_0f6bd6f6): @EnvironmentObject → @Environment(ChatViewModel.self)
+    // — ChatViewModel 已 @Observable, .environment(chatVM) (App.swift) 自动
+    // 注册为 Observation framework 环境值, 这里用 typed environment 读取。
+    @Environment(ChatViewModel.self) private var chatVM
     @State private var activeTab: ChatPanelTab = .chat
     @State private var navPath = NavigationPath()
 
