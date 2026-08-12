@@ -233,6 +233,31 @@ final class LayoutShellViewModel: ObservableObject {
         return "\(verb) \(panel.title)"
     }
 
+    // MARK: - Menu title — collapse/expand (Q2 折叠态, t_c6f48f43)
+    //
+    // FCP 范式 (沿 menuTitle): 显示下一动作。 Visible + expanded → "折叠 X"
+    // (clicking will collapse); visible + collapsed → "展开 X" (clicking
+    // will expand). Hidden → disabled (panel 不在, 没 chrome 可折叠, 跟
+    // DESIGN §1.3 触发器 A 范式一致). Chinese copy 沿 LT-01-fix4 拍板.
+
+    /// Returns the dynamic menu-item title for a collapse/expand toggle.
+    func menuCollapseTitle(for panel: PanelID) -> String {
+        let verb = isCollapsed(panel) ? "展开" : "折叠"
+        return "\(verb) \(panel.title)"
+    }
+
+    /// Q2 折叠态用的读取入口。 跟 panel() 内部 isCollapsed switch 镜像,
+    /// 这里 public 给 App.swift menu (可见性 + 折叠态 都要在标题里反映).
+    func isCollapsed(_ panel: PanelID) -> Bool {
+        switch panel {
+        case .topLeft: return snapshot.collapsed.topLeft
+        case .topCenter: return snapshot.collapsed.topCenter
+        case .topRight: return snapshot.collapsed.topRight
+        case .bottomLeft: return snapshot.collapsed.bottomLeft
+        case .bottomRight: return snapshot.collapsed.bottomRight
+        }
+    }
+
     // MARK: - Panel visibility (macOS "View" menu, LT-01-fix3)
 
     /// Show/hide one panel. Ratios are deliberately left untouched: the
@@ -373,6 +398,21 @@ enum PanelID: Hashable, CaseIterable {
         case .topRight: return true       // 检视 可隐藏
         case .bottomLeft: return false    // 聊天 不可隐藏
         case .bottomRight: return true    // 状态 可隐藏
+        }
+    }
+
+    /// Q2 折叠态 (t_c6f48f43): 哪些 panel 可以折叠. 沿 isDismissible 同源
+    /// 拍板 (老板 8/7 "文档/聊天 是核心创作区, 必须常驻") — 不可折叠
+    /// panel (topCenter / bottomLeft) 在折叠菜单里直接不出现 (DESIGN
+    /// §1.3 触发器 A 范式), 跟 disabled 不同. 3 可折叠 (topLeft / topRight /
+    /// bottomRight) + 2 不可折叠 (topCenter / bottomLeft).
+    var isCollapsible: Bool {
+        switch self {
+        case .topLeft: return true        // 项目管理 可折叠
+        case .topCenter: return false     // 文档 不可折叠
+        case .topRight: return true       // 检视 可折叠
+        case .bottomLeft: return false    // 聊天 不可折叠
+        case .bottomRight: return true    // 状态 可折叠
         }
     }
 }
