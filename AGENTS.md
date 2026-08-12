@@ -58,6 +58,20 @@ AGENTS.md
   3. 派生失败重试 1 次, 还失败 → 写 STATE.md 1 行 "规则冲突: 派生 <给谁> 失败, 卡 id t_xxx"
 - 兜底: cron watchdog (60s 扫 task_events) 找 done 卡无对应 child → 沿 body 2 字段补派生 (沿 8/12 老板 拍 A+B 双管齐下)
 - 老板拍板: "每个卡能不能写清出点, 完成了给谁" = 流程能真的跑起来, 不靠 dispatcher 手动拉起
+3.9 PRE-merge worktree 硬约束 (2026-08-12 老板 OOB 真值, 沿 t_946f8dd1):
+- (a) 任何 CC / designer / reviewer 子会话 = 必跑 .worktrees/pre-merge/<task_id>/
+- (b) PM-direct 拆卡时, workspace_kind=worktree + workspace_path = /Volumes/ANAN/Engineering/wenshu/.worktrees/pre-merge/<task_id>
+- (c) worktree 分支名 = wt/pre-merge/<task_id>
+- (d) CC 卡 body 模板 4 件套基础上 +1 段 "pre-merge 路径段" 模板示例 (含 验货命令 + go/fix 拍板)
+  - 模板示例 (CC 卡 body 末尾, 沿 §3.2 4 件套后):
+    ```
+    # pre-merge 路径段
+    - worktree: /Volumes/ANAN/Engineering/wenshu/.worktrees/pre-merge/<task_id>/
+    - 分支: wt/pre-merge/<task_id>
+    - 验货命令: cd <worktree> && git diff main..HEAD --stat && swift build 2>&1 | tail -20
+    - 拍板: 老板 说 go = my-pm 合 main, 老板 说 fix = 派修复卡回 pre-merge
+    ```
+- (e) 例外: 历史 done 卡按原路径, 本卡起 = 新机制生效起点
 
 # 4 11 段研发闭环
 
@@ -74,6 +88,10 @@ AGENTS.md
 - 9. designer 代码级验收 UI
 - 10. AIF 关卡 + 阶段门聚合,沿 §13.2
 - 11. 老板 验收,真机拍摄为证据
+- 12. PRE-merge 隔离闭环 (2026-08-12 老板 OOB 真值, 沿 t_946f8dd1):
+  - (a) CC / designer / reviewer 完工 = 在 .worktrees/pre-merge/<task_id> 落 commit (分支 wt/pre-merge/<task_id>)
+  - (b) my-pm 验收 = 在 pre-merge 分支跑 swift build + 验货, 老板 拍 go = my-pm 合 main, 拍 fix = 派修复卡回 pre-merge
+  - (c) 例外: 历史 done 卡按原路径, 本卡起 = 新机制生效起点
 
 # 5 拍单边界 + 跨边界红线
 
