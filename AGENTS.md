@@ -43,6 +43,8 @@
 - **单条件退出门 (Ralph 三层 AND, §14.4 c)**: 完成指示器 AND CUA 6 截图(沿 P12) AND 无新红色批注, 任一不满足不进 done。reviewer 不再 2 阶审查 (砍 P12.1 §14.3 #1), reviewer 直接看 AIF 截图 + 列 before/after 12 元素
 - **派单卡 body 必含 §14.2 2 落点提示** (8/11 装机 user 21:15 拍加固): 派单卡 body 末尾必加 1 行 "本卡 done 前 4 角色按 assignee 必落 1 行 STATE.md (≤ 30 字, 3 选 1: 规则冲突 / 冗余 / 新规则需求 + 1 句理由, 沿 §14.2 2 硬约束)"; AIF dispatcher 派单 prompt 自动注入此提示 (本卡落档后)
 - **CC 派单边界** (8/11 21:50 装机 user 重拍 CC 角色 = fire CLI runner): PM 派单给 CC 时, 派单卡 body 4 件套 = §3 派单原则原 4 件套, CC 接卡后 fire `claude -p "<4 件套 prompt>" --max-turns <任务复杂度>` (沿 PM-direct 9 协议)。CC **不写代码**, 不改设计稿, 不派单, 不独立审查, 不改 AGENTS, 不落 STATE.md。
+- **派单看板 = wenshu 看板** (8/11 22:10 装机 user OOB): 所有派单 (CC/designer/PM-direct/reviewer/AIF) 默认用 wenshu 看板 (`hermes kanban boards switch wenshu` + assignee 选对应 profile)。**不用** novel-platform / default / archive 等其他板。派单卡 body 必含 `board: wenshu` 锚定。
+- **派卡前检查看板依赖服务** (8/11 22:10 装机 user OOB): ANAN + dispatcher 派卡前必跑 `hermes gateway status` + `hermes config check` + `hermes approvals suggest --days 7`, 确认 (1) gateway running, (2) dispatcher 配置合法, (3) 命令白名单同步, (4) 涉及 hermes 内部命令 (allowlist / approvals / config set) 在 allowlist 内。任何一项红 = 拒绝派卡 + 报装机 user。
 
 ## 4. PM ↔ CC 单 loop 流程(沿用 7/16 拍, 8/11 21:50 装机 user 拍升级 6 角色 + 逆向 5 段关卡)
 
