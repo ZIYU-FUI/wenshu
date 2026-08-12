@@ -42,6 +42,22 @@ AGENTS.md
 - workspace 必填 dir 模式 + workspace_path = /Volumes/ANAN/Engineering/wenshu, 不用 scratch (designer 必须能直接定位项目根, 不跑 find ~)
 - skills 字段必带 swiftui-design-patterns,wenshu-designer-onboarding (沿 t_1f92c929 修过的版本, 缺一 = PM-direct 重派)
 - body "边界"段必含 "不做 X / Y / Z" 清单 (列 3-5 条, 例: 不选 ICON 库 / 不测像素 / 不写 Python 脚本 / 不写代码 / 不提交), 缺 = PM-direct 重派
+3.8 卡 body 必含"完成后给谁 + 给什么" (2026-08-12 老板 拍, 沿 t_ca73c613 流程中断案例):
+- 派单卡 body 必含 2 字段 (沿 §3.2 4 件套基础上 +2):
+  - `完成后给谁: <role>` — 必填, 1 句, 沿 §4 11 段下一段角色
+  - `期望完成: <文件路径 / 验收标准>` — 必填, 1 句, 1-2 行
+  例 (aif 卡):
+    ```
+    完成后给谁: designer
+    期望完成: Sources/WenshuApp/Views/DESIGN-FRAMEWORK-*.md
+    ```
+- 缺任一字段 = PM-direct 重派 (PM-direct 不补, 派单方自觉)
+- worker 进程 done 前必须:
+  1. 读 body 这 2 字段
+  2. 调 `kanban_create(--parent <本卡 id> --assignee <给谁> --body <期望完成>)` 派生
+  3. 派生失败重试 1 次, 还失败 → 写 STATE.md 1 行 "规则冲突: 派生 <给谁> 失败, 卡 id t_xxx"
+- 兜底: cron watchdog (60s 扫 task_events) 找 done 卡无对应 child → 沿 body 2 字段补派生 (沿 8/12 老板 拍 A+B 双管齐下)
+- 老板拍板: "每个卡能不能写清出点, 完成了给谁" = 流程能真的跑起来, 不靠 dispatcher 手动拉起
 
 # 4 11 段研发闭环
 
