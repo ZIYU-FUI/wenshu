@@ -1,19 +1,23 @@
-// EditorOutlineStore.swift · 文枢 (Wenshu) · v0.03.0 LT-N3-cc
+// EditorOutlineStore.swift · 文枢 (Wenshu) · v0.03.0 LT-N3-cc → v0.05.0 B+ 重 (t_0f6bd6f6)
+// Doc-Role: ViewModels/editor
+// Responsibilities: 中上编辑器章节 sidebar store — 项目下章节列表 + 顶 toolbar 章节名查
+// Inputs: 项目 id
+// Outputs: chapters、[projectId]
+// Dependencies: WenshuProjectStore
+// Threading: @MainActor
 //
-// 中上编辑器内部的章节 sidebar store (DESIGN-LT-N3.md §5.4)。
-// 跟 topLeft ChapterTreeStore 平级 (都 listChapters), 但 consumer 不同:
-//   - ChapterTreeStore → topLeft "章节" tab (LT-N1 已实装, 不动)
-//   - EditorOutlineStore → topCenter EditorOutlineView (本卡新增)
-//
-// 沿 LT-N1 ChapterTreeStore 范式 (@MainActor class : ObservableObject),
-// 加 activeChapter 衍生 (顶 toolbar 中上章节名用, selectedChapterID 变化时取)。
+// B+ 重 6 维度 (t_0f6bd6f6): ObservableObject → @Observable。 @Published
+// chapters 移除。 EditorOutlineStoreProtocol 已暴露 chapters/projectId
+// read-only + load + chapter(withId:)。
 
 import Foundation
 import SwiftUI
+import Observation
 
 @MainActor
-final class EditorOutlineStore: ObservableObject {
-    @Published private(set) var chapters: [ChapterSnapshot] = []
+@Observable
+final class EditorOutlineStore {
+    private(set) var chapters: [ChapterSnapshot] = []
     let projectId: UUID
     private let store: WenshuProjectStore
 
@@ -34,3 +38,6 @@ final class EditorOutlineStore: ObservableObject {
         return chapters.first { $0.id == id }
     }
 }
+
+// MARK: - B+ 重 协议 extension (沿 DECISION §4.2 #2, t_0f6bd6f6)
+extension EditorOutlineStore: EditorOutlineStoreProtocol {}

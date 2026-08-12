@@ -10,7 +10,8 @@
 import SwiftUI
 
 struct CharacterWorldView: View {
-    @ObservedObject var vm: ChatViewModel
+    // B+ 重 (t_0f6bd6f6): @ObservedObject → @Bindable (ChatViewModel 已 @Observable).
+    @Bindable var vm: ChatViewModel
     @Binding var navPath: NavigationPath
 
     var body: some View {

@@ -1,25 +1,25 @@
-// EditorContentStore.swift · 文枢 (Wenshu) · v0.03.0 LT-N3-cc
+// EditorContentStore.swift · 文枢 (Wenshu) · v0.03.0 LT-N3-cc → v0.05.0 B+ 重 (t_0f6bd6f6)
+// Doc-Role: ViewModels/editor
+// Responsibilities: 章节正文 store — 加载 + debounced 1s 自动保存 + 失焦强制 flush
+// Inputs: 章节 id、新正文
+// Outputs: content、isLoading、isDirty、wordCount
+// Dependencies: WenshuProjectStore
+// Threading: @MainActor
 //
-// 中上编辑器内容 store (沿 LT-N1 ChapterTreeStore / LT-N2 ChatViewModel 范式)。
-// 负责指定 chapter 的 content 加载 + debounced 1s 自动保存 + 失焦强制 flush。
-//
-// 行为契约 (DESIGN-LT-N3.md §4.3 + §7.2):
-//   - @Published content / isLoading / isDirty
-//   - updateContent(): 取消上一次 save task, 启动 1s debounce, 到点 flush
-//   - flush(): 立即 save (切章节 / 关 app / .onDisappear 时调)
-//   - 失败: silent-fail 兜底 (沿 v0.01.0 `persist()` 范式)
-//
-// 跟 ChapterTreeStore 平级 (@MainActor class : ObservableObject),
-// 让 unit test 可以在 main actor 上构造 + 调 API。
+// B+ 重 6 维度 (t_0f6bd6f6): ObservableObject → @Observable。 3 个 @Published
+// 全部移除。 EditorContentStoreProtocol 已暴露 content/isLoading/isDirty/
+// wordCount read-only + load/updateContent/flush 三入口。
 
 import Foundation
 import SwiftUI
+import Observation
 
 @MainActor
-final class EditorContentStore: ObservableObject {
-    @Published private(set) var content: String = ""
-    @Published private(set) var isLoading: Bool = false
-    @Published private(set) var isDirty: Bool = false
+@Observable
+final class EditorContentStore {
+    private(set) var content: String = ""
+    private(set) var isLoading: Bool = false
+    private(set) var isDirty: Bool = false
 
     /// 当前活跃 chapter id (LT-01-fix19 stable id, String)。
     /// 切换 chapter 时, EditorView 负责 flush 旧 store + 创建新 store。
@@ -74,3 +74,6 @@ final class EditorContentStore: ObservableObject {
         }
     }
 }
+
+// MARK: - B+ 重 协议 extension (沿 DECISION §4.2 #2, t_0f6bd6f6)
+extension EditorContentStore: EditorContentStoreProtocol {}

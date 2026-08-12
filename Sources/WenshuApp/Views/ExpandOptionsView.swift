@@ -9,7 +9,8 @@
 import SwiftUI
 
 struct ExpandOptionsView: View {
-    @ObservedObject var vm: ChatViewModel
+    // B+ 重 (t_0f6bd6f6): @ObservedObject → @Bindable (ChatViewModel 已 @Observable).
+    @Bindable var vm: ChatViewModel
 
     private let categoryOrder: [String] = ["核心冲突", "主角延伸", "世界观缺口", "发展方向"]
 

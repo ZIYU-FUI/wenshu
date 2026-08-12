@@ -1,50 +1,44 @@
-// ChatViewModel.swift · 文枢 (Wenshu) · v0.01.0 WO-004 → WO-005
+// ChatViewModel.swift · 文枢 (Wenshu) · v0.01.0 WO-004 → WO-005 → v0.05.0 B+ 重 (t_0f6bd6f6)
+// Doc-Role: ViewModels/chat
+// Responsibilities: 项目创建流主 VM (消息流 + 举一反三 + 选中 + 人物/世界骨架 + 导航信号)
+// Inputs: 用户故事文本、方向 ID、ProjectSnapshot
+// Outputs: messages、expandOptions、selectedDirectionIDs、isGenerating、characters、worldRules、currentProject、pendingNavigation
+// Dependencies: MockLLMResponse、LLMService、FeatureFlag、KeychainHelper
+// Threading: @MainActor
 //
-// Main view model for the project-creation flow. Owns:
-// - chat messages (with streaming state)
-// - AI-suggested 举一反三 options
-// - user-selected direction IDs
-// - generated characters + world rules
-// - one-shot navigation signal back to the View layer
-// - (WO-005) reference to the active ProjectSnapshot for .ws persistence
-//
-// Per WO-004 spec: streams are mocked via `MockLLMResponse.streamingChunks`.
-// WO-005 swaps in `LLMService.streamChat(...)` when:
-//   - `FeatureFlag.useRealLLM == true`, AND
-//   - macOS Keychain has an entry for `com.wenshu.llm / minimax-api-key`
-// Otherwise (PM-direct / CI default) the mock fallback is used. The
-// existing public API (`sendInitialStory`, `selectDirections`,
-// `toggleSelection`, `reset`) is unchanged; WO-005 only ADDS new
-// methods (`persist`) and a new `@Published var` (`currentProject`).
-//
-// Threading: `@MainActor` so all `@Published` mutations originate on the
-// main thread. The `Task.sleep` inside the streaming loop is fine on
-// @MainActor — it just yields.
+// B+ 重 6 维度 (t_0f6bd6f6): ObservableObject → @Observable (Observation framework,
+// macOS 14+).  6 个 @Published 全部移除 — @Observable 自动追踪 stored properties。
+// 消费者 (App.swift / ChatView / ExpandOptionsView / CharacterWorldView) 同步改
+// @State 取代 @StateObject / @ObservedObject。 公共 API (sendInitialStory /
+// selectDirections / toggleSelection / reset / persist) 完全不动 — 沿 v0.01.0 +
+// LT-N2 alias。
 
 import Foundation
 import SwiftUI
+import Observation
 
 @MainActor
-final class ChatViewModel: ObservableObject {
+@Observable
+final class ChatViewModel {
 
-    // MARK: - Published state
+    // MARK: - Tracked state (B+ 重: @Published → @Observable 自动追踪)
 
-    @Published var messages: [ChatMessage] = []
-    @Published var expandOptions: [ExpandOption] = []
-    @Published var selectedDirectionIDs: Set<UUID> = []
-    @Published var isGenerating: Bool = false
-    @Published var characters: [CharacterSnapshot] = []
-    @Published var worldRules: [WorldRuleSnapshot] = []
+    var messages: [ChatMessage] = []
+    var expandOptions: [ExpandOption] = []
+    var selectedDirectionIDs: Set<UUID> = []
+    var isGenerating: Bool = false
+    var characters: [CharacterSnapshot] = []
+    var worldRules: [WorldRuleSnapshot] = []
 
     /// WO-005: the `ProjectSnapshot` for the chat that's currently open.
     /// Set by `ChatView.onAppear`; cleared by `reset()`. `persist()` uses
     /// it to tag the saved note + future loaders (v0.02.0) to scope queries.
-    @Published var currentProject: ProjectSnapshot? = nil
+    var currentProject: ProjectSnapshot? = nil
 
     /// One-shot navigation signal. The owning `ChatView` watches this via
     /// `onChange` and pushes the corresponding `AppRoute` onto its
     /// `NavigationStack`, then clears the signal. Cleared on `reset()` too.
-    @Published var pendingNavigation: AppRoute? = nil
+    var pendingNavigation: AppRoute? = nil
 
     // MARK: - Init
 
@@ -249,3 +243,6 @@ final class ChatViewModel: ObservableObject {
         }
     }
 }
+
+// MARK: - B+ 重 协议 extension (沿 DECISION §4.2 #2, t_0f6bd6f6)
+extension ChatViewModel: ChatViewModelProtocol {}

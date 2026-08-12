@@ -12,7 +12,9 @@
 import SwiftUI
 
 struct ChatView: View {
-    @ObservedObject var vm: ChatViewModel
+    // B+ 重 (t_0f6bd6f6): @ObservedObject → @Bindable (ChatViewModel 已 @Observable)。
+    // View 写 vm.currentProject / vm.pendingNavigation, @Bindable 提供双轨接口。
+    @Bindable var vm: ChatViewModel
     let project: ProjectSnapshot
     @Binding var navPath: NavigationPath
 

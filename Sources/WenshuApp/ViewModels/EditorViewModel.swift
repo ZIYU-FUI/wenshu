@@ -1,40 +1,32 @@
-// EditorViewModel.swift · 文枢 (Wenshu) · v0.03.0 LT-N3-cc
+// EditorViewModel.swift · 文枢 (Wenshu) · v0.03.0 LT-N3-cc → v0.05.0 B+ 重 (t_0f6bd6f6)
+// Doc-Role: ViewModels/editor
+// Responsibilities: 编辑器总控 VM — activeChapter + isFullScreen (FCP ⤢ 专注模式)
+// Inputs: (toggleFullScreen 入口)
+// Outputs: activeChapter、isFullScreen
+// Dependencies: EditorOutlineStore
+// Threading: @MainActor
 //
-// 编辑器总控 ViewModel (DESIGN-LT-N3.md §5.2):
-//
-// 拍板 MVP 范围 (DESIGN-LT-N3 §5.2 派生):
-//   ✅ activeChapter: 当前编辑章节快照 (从 outlineStore 同步, 留接口)
-//   ✅ isFullScreen: 专注模式 toggle (本卡实装, 底 toolbar ⤢ 按钮)
-//   ❌ isOutlineVisible: 显示大纲 true/false (留给 v0.04.0 子卡跟"显示菜单"一起做)
-//
-// 范式: 沿 LT-N1 ChapterTreeStore / LT-N2 ChatViewModel, 走
-// `@MainActor final class ObservableObject`。 EditorView 接
-// `@StateObject private var viewModel = EditorViewModel()`, 生命周期
-// 跟 EditorView 同步 (push 路由下每次新建 EditorView → 新 ViewModel 实例)。
-//
-// 不修真: 不动 ChatViewModel / LayoutShellView 等已重做 view (派单硬规则)。
+// B+ 重 6 维度 (t_0f6bd6f6): ObservableObject → @Observable。 2 个 @Published
+// 全部移除。 EditorViewModelProtocol 已暴露 activeChapter/isFullScreen read-only
+// + toggleFullScreen() 入口 (write 收口到 VM 内部, 沿 t_8fc5c872 §4.2 #4)。
 
 import Foundation
 import SwiftUI
+import Observation
 
 @MainActor
-final class EditorViewModel: ObservableObject {
+@Observable
+final class EditorViewModel {
 
     /// 当前编辑章节快照。 留接口是方便 v0.04.0 / v0.05.0 接入"段落切换"
     /// 等功能。 本卡 MVP 只用 outlineStore.chapters.first(where: {...}) 算
     /// chapterTitle, 不真接 publish (DESIGN-LT-N3 §5.2 派生)。
-    @Published var activeChapter: ChapterSnapshot?
+    var activeChapter: ChapterSnapshot?
 
     /// FCP viewer ⤢ 专注模式 toggle (DESIGN-LT-N3 §5.5.2 底 toolbar)。
     /// true = 隐藏 4 panel, 只显中上 editor; false = 正常 5 区 layout。
-    /// 本卡 MVP 留 state, 未来 v0.04.0 真接 panel 隐藏 (现在 layout shell
-    /// 没动, toggle 只触发 viewModel 状态变化, EditorView 内部根据 isFullScreen
-    /// 切换 outline 的显隐)。
-    ///
-    /// v0.05.0 Zone 协议 (t_8fc5c872) ViewModel 收口 (沿 DECISION §4.2 #4 + DESIGN-Zone.md §7.3):
-    /// 改 `private(set)`, write access 收口到 VM 内部 method (toggleFullScreen())。
-    /// EditorView 接 @StateObject 调 vm.toggleFullScreen() 而非 isFullScreen.toggle()。
-    @Published private(set) var isFullScreen: Bool = false
+    /// private(set) 收口 write access, toggle 通过 toggleFullScreen()。
+    private(set) var isFullScreen: Bool = false
 
     init() {}
 
@@ -43,3 +35,6 @@ final class EditorViewModel: ObservableObject {
         isFullScreen.toggle()
     }
 }
+
+// MARK: - B+ 重 协议 extension (沿 DECISION §4.2 #2, t_0f6bd6f6)
+extension EditorViewModel: EditorViewModelProtocol {}
