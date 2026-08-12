@@ -80,5 +80,49 @@ struct CollapsedGutter: View {
             Rectangle()
                 .strokeBorder(Color.secondary.opacity(0.18), lineWidth: 0.5)
         )
+        // Q2 折叠态 (t_c6f48f43): 双击展开 (DESIGN §1.3 触发器 B). 沿
+        // LT-01-fix3 拍板"折叠 chrome 上不画展开按钮", 用户直 chrome 双击
+        // 反向. 直接调 VM 的 toggle (line 94), 持久化沿 PanelStatesEnvelope
+        // 自动落盘.
+        .onTapGesture(count: 2) {
+            LayoutShellViewModel.shared.toggle(panelID)
+        }
+    }
+}
+
+// MARK: - Convenience: horizontal "collapsed" header for lower row panels
+//
+// Q2 折叠态 (t_c6f48f43): 下半 2 panel (bottomLeft / bottomRight) 折叠态
+// 视觉. 沿 CollapsedGutter 范式 (SF Symbol + title + 同 background /
+// border), 但形态 = 全宽 × 30pt 水平 header bar (DESIGN §1.5 下半范式).
+// bottomLeft 不可折叠 (DESIGN §1.2), 但代码防御性保留 — LayoutShellView
+// panel() 函数目前只对 3 可折叠 panel 走 CollapsedHeader / CollapsedGutter
+// 分支, bottomLeft 永远不会进来.
+//
+// 双击手势 (DESIGN §1.3 触发器 B) 同 CollapsedGutter, 展开 = vm.toggle.
+
+struct CollapsedHeader: View {
+    let panelID: PanelID
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: panelID.symbolName)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.secondary)
+            Text(panelID.title)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 0)
+        }
+        .frame(height: LayoutSnapshot.bottomCollapsedPixels)
+        .padding(.horizontal, 10)
+        .background(Color(NSColor.controlBackgroundColor).opacity(0.6))
+        .overlay(
+            Rectangle()
+                .strokeBorder(Color.secondary.opacity(0.18), lineWidth: 0.5)
+        )
+        .onTapGesture(count: 2) {
+            LayoutShellViewModel.shared.toggle(panelID)
+        }
     }
 }
