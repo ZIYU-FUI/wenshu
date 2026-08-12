@@ -420,7 +420,7 @@
 
 - 永远在对话里和装机 user 拍板, 不派 fire-wrapper 卡
 - 不写 OOB 历史, 不重复 OOB 历史, 不写"等装机 user 验"阻塞字样
-- AGENTS.md 改 = AIF / ANAN 任一在对话里直接改 + commit + push, **不派卡**(沿 8/6 §1 AIF 边界)
+- AGENTS.md 改 = **AIF 在对话里直接改 + commit + push, 不派卡**(沿 8/6 §1 AIF 边界). ANAN 越界写入已收回 (8/11 20:35 §14.5 错授权 "ANAN 任一" 改回 "AIF 任一").
 - 借鉴 = 落引用 + 落 1 行落地动作, 不照搬整个项目
 - 调研 ≠ 安装(沿 8/6 装机 user 拍)
 
