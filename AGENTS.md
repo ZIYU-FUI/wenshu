@@ -12,8 +12,8 @@ AGENTS.md
 # 1 角色边界
 
 - 研发流程 6 角色:PM-direct / designer / CC / cc-runner / reviewer / AIF
-- 老板 = 流程拍板权唯一权威
-- ANAN = hermes 管家,不在研发 6 角色
+- 老板 = 流程拍板权唯一权威,只在流程入口(§4 段 1 提需求)和 §13.2 显式触发聚合时出现,不在 §3-§4 中段执行流程
+- ANAN = hermes 管家,不在研发 6 角色,不做流程活(见 §14 落位总图),应急救火 = ANAN 越界沿 8/11 22:00 老板 拍"范畴" + 8/12 老板 拍"你全都配好就行不用问我" 授权(commit 不 push,沿 8/12 OOB"开发项目 push 不归 ANAN")
 - 老板召集团策群力会 = 主持,角色 reply
 - 多 agent 各司其职,不用 1 个 agent 通吃
 
@@ -46,7 +46,7 @@ AGENTS.md
 - 派单卡 body 必含 2 字段 (沿 §3.2 4 件套基础上 +2):
   - `完成后给谁: <role>` — 必填, 1 句, 沿 §4 11 段下一段角色
   - `期望完成: <文件路径 / 验收标准>` — 必填, 1 句, 1-2 行
-  - v0.04.0 起 CC-直通: CC 写完 → 老板 §14.2 验货 (无 cc-runner self-fire 中间审; reviewer 派生链保留)
+  - v0.04.0 起 CC-直通: CC 写完 → AIF 大管家预验 + 邀请老板预验 (沿 §14.9, 无 cc-runner self-fire 中间审; reviewer 派生链保留)
   例 (aif 卡):
     ```
     完成后给谁: designer
@@ -70,7 +70,7 @@ AGENTS.md
     - worktree: /Volumes/ANAN/Engineering/wenshu/.worktrees/pre-merge/<task_id>/
     - 分支: wt/pre-merge/<task_id>
     - 验货命令: cd <worktree> && git diff main..HEAD --stat && swift build 2>&1 | tail -20
-    - 拍板: 老板 说 go = my-pm 合 main, 老板 说 fix = 派修复卡回 pre-merge
+    - 拍板: AIF 大管家说 go = my-pm 合 main, AIF 大管家说 fix = 派修复卡回 pre-merge
     ```
 - (e) 例外: 历史 done 卡按原路径, 本卡起 = 新机制生效起点
 
@@ -88,10 +88,10 @@ AGENTS.md
 - 8. PM-direct 关执行卡 + 多子卡完成后关总派单卡
 - 9. designer 代码级验收 UI
 - 10. AIF 关卡 + 阶段门聚合,沿 §13.2
-- 11. 老板 验收,真机拍摄为证据
+- 11. AIF 拉起 pre-merge APP + 邀请老板预验 + 老板给字 (yes/no/fix) + AIF 闭环 (沿 §14.9)
 - 12. PRE-merge 隔离闭环 (2026-08-12 老板 OOB 真值, 沿 t_946f8dd1):
   - (a) CC / designer / reviewer 完工 = 在 .worktrees/pre-merge/<task_id> 落 commit (分支 wt/pre-merge/<task_id>)
-  - (b) my-pm 验收 = 在 pre-merge 分支跑 swift build + 验货, 老板 拍 go = my-pm 合 main, 拍 fix = 派修复卡回 pre-merge
+  - (b) AIF 大管家拉起 pre-merge APP 预验 + 邀请老板预验 + AIF 拍 go = my-pm 合 main, AIF 拍 fix = 派修复卡回 pre-merge
   - (c) 例外: 历史 done 卡按原路径, 本卡起 = 新机制生效起点
 
 # 5 拍单边界 + 跨边界红线
@@ -234,13 +234,13 @@ AGENTS.md
   - CC / designer / PM-direct / reviewer 4 角色按 assignee 必落
   - AIF 在以下情况必落或必写:
     (a) 阶段门聚合按 §14.2 3 主动读写(回流触发)
-    (b) 老板 新拍规则进 §13 时,AIF 直接写
+    (b) AIF 阶段门聚合时, AIF 直接写新规则进 §13 (沿 §14.9)
     (c) AIF 被 assignee 的卡(流程切换自查型)= 豁免走 §14.2 7 阶段门聚合,自查本身充数
 - 漏落 = 下次阶段门聚合时 AIF 主动问"为什么没落",不进 §14.2 4 砍
 
 13.2 聚合周期:
 - 阶段门控节点(v0.03.0 → v0.04.0 → ...)
-- 老板 显式触发"聚合"
+- AIF 大管家主动聚合 / 老板 显式触发"聚合" 任一触发即可
 
 13.3 改 AGENTS.md 4 动作:
 - 加 = 新规则有 ≥ 2 个实例支持
@@ -293,4 +293,20 @@ AGENTS.md
   - 待 swift build → bundle/Contents/Resources/AppIcon.icns MD5 应变 e7aa024d... (老板 验货段 §14.2 (d))
   - 待 commit + push 双仓 (沿 8 段双向闭环)
 
-Wenshu AGENTS.md v0.04.0
+14.9 AIF 闭环老板预验机制 (2026-08-12 老板 拍, 沿 v0.05 流程改造):
+- 触发: 每个需求 AIF 完成时 (AIF 被 assignee 卡 done, 或 AIF 沿 §4 段 10 阶段门聚合 done)
+- AIF 大管家动作:
+  1. 读看板状态 (kanban_db) + 沿 §3.5 STATE.md 已落 1 行
+  2. 拉起 pre-merge APP (沿 §3.9 PRE-merge worktree, 用 CUA 或 macOS open .app 命令, 走 §3.3 CUA 6 截图清单)
+  3. AIF 大管家自己预验 (沿 §14.1 五件现状查 + CUA 6 截图 + 真机拍)
+  4. 邀请老板预验 (老板在桌面看到 APP 即可, AIF 不发飞书 / 不用 IM / 不用盯卡通知)
+  5. 老板给字 (yes/no/fix):
+    - yes → AIF 派生合 main 卡 (§4 段 12 b) 给 my-pm 执行, 沿 §3.8 派单链闭环
+    - no → AIF 修真派回 cc-runner (沿 §4 段 12 b fix)
+    - fix → AIF 派生修复卡给原 owner (派单链 §3.8)
+- 边界:
+  - AIF 不发飞书 / 不发 IM / 不盯卡 / 不催老板 (老板 8/12 21:42 拍"没有飞书什么事")
+  - 老板 给字时机由老板 自定 (无 SLA, AIF 不超时催)
+  - 派单卡 body 不写 "等老板 / 等老板验收 / 等老板拍板" 字样 (沿 §3.2 4 件套严格禁, 违规 = PM-direct 重派)
+
+Wenshu AGENTS.md v0.05
