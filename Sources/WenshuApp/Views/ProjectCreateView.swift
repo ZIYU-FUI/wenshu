@@ -1,36 +1,28 @@
-// ProjectCreateView.swift · 文枢 (Wenshu) · v0.01.0 WO-004 → WO-007 → v0.03.0 V0-fix-1 (Fix D)
+// ProjectCreateView.swift · 文枢 (Wenshu) · v0.01.0 WO-004 → WO-007 →
+// v0.03.0 V0-fix-1 (Fix D) → v0.05.0 t_ce783c49 (FCP 弹窗规范迁移)
 //
-// V0-fix-1 Fix D (装机 user 8/10 拍板): modal 尺寸由
-// `.frame(minWidth: 520, minHeight: 480)` (软下限, 用户能拖大) 改成
-// `.frame(width: 540, height: 480)` (硬固定, 用户拖不动)。 装机 user
-// 实机反馈: 520×480 软下限在 split view 里用户拽边界, modal 跟着主
-// window 一起变形, 比例失调; 锁死 540×480 后视觉稳定, 跟 macOS HIG
-// 标准 modal 尺寸 (≈ Pages 新建文档 / Numbers 新建表格) 对齐。
+// v0.05.0 t_ce783c49 (老板 8/13 01:25 OOB 参考 FCP 项目标题弹窗规范):
+// Form + Section (iOS list 竖排观感) 整段迁 PopupFrame + PopupFormRow +
+// PopupChipGroup + PopupButtonBar 横向紧凑布局。 规范真值见
+// .hermes/kanban/reports/DESIGN-POPUP-FCP-2026-08-13.md。
+// 文笔风格由 `.pickerStyle(.segmented)` 改 5 chip 横排 (规范 §3)。
 //
-// Sheet does NOT block main window — user 可透过 sheet 看到后面
-// LayoutShellView (FCP inspector sheet 风格), SwiftUI 默认 sheet 即此
-// 行为, 不需额外修饰符.
+// V0-fix-1 Fix D (装机 user 8/10 拍板): modal 尺寸 540×480 硬固定
+// (用户拖不动)。 原 `.frame(minWidth: 520, minHeight: 480)` 软下限在
+// split view 里跟主 window 一起变形, 比例失调; 锁死后视觉稳定, 跟
+// macOS HIG 标准 modal (≈ Pages 新建文档) 对齐。 本文件自己挂
+// `.frame(width: 540, height: 480)`, 不交给 PopupFrame — 尺寸是本弹窗
+// 的拍板真值, 且 V0Fix1LayoutTests / V0Fix6LayoutTests 按源码字面量断言。
 //
-// Modal sheet for creating a new project. Captures:
-// - 项目名 (required)
-// - 文笔风格 (5-option segmented picker)
-// - 注水量 (1-9 slider)
-// - 标签 (comma-separated TextField)
+// Sheet 不挡主窗口 (FCP inspector sheet 风格) = SwiftUI 默认行为。
 //
-// On "创建" it emits a `ProjectSnapshot` via the `onCreate` closure.
-// On "取消" it emits nothing and lets the parent dismiss the sheet.
+// WO-006 fix (保留): @FocusState + 自动 focus, 让 TextField 视觉激活
+// 同时真正拿到 first responder。
 //
-// WO-006 fix (kept):@FocusState + 自动 focus,让 TextField 视觉激活同时
-// 真正拿到 first responder。
-//
-// WO-007 fix(Spec 方案 A):SwiftUI sheet on macOS 在 parent app
-// 不是 foreground 时偶尔抢不到 key window(装机 user 8/7 反馈:在
-// Hermes/飞书 focus 时点 +,sheet 视觉激活,键盘事件路由回原 key app)。
-// 根因:Sheet 的 NSWindow 在 parentWindow.makeKeyAndOrderFront 前没自己
-// makeKey,AppKit dispatch 走错。修法:sheet .onAppear 调
-// `WindowActivation.forceKeyToWenshuSheet()`,0.3s 后强制
-// `NSWindow.makeKey()`,再叠加 WO-006 的 @FocusState auto-focus。
-// 装机器 user 实机验过才算完。
+// WO-007 fix (Spec 方案 A, 保留): macOS sheet 在 parent app 不是
+// foreground 时抢不到 key window → .onAppear 调
+// `WindowActivation.forceKeyToWenshuSheet()`, 0.3s 后强制 makeKey,
+// 再叠加 WO-006 的 @FocusState auto-focus。
 
 import SwiftUI
 
@@ -45,89 +37,80 @@ struct ProjectCreateView: View {
     @State private var verbosity: Double = 5
     @State private var tagsText: String = ""
 
-    // WO-006 fix: macOS Form sheet TextField 键盘路由断了 → 加 @FocusState +
-    // 自动 focus,延迟 0.3s 避开 sheet 动画焦点冲突。装机 user 8/7 反馈。
+    // WO-006 fix: macOS sheet TextField 键盘路由断了 → 加 @FocusState +
+    // 自动 focus, 延迟 0.3s 避开 sheet 动画焦点冲突。装机 user 8/7 反馈。
     @FocusState private var nameFocused: Bool
     @FocusState private var tagsFocused: Bool
 
     private let styles: [String] = ["严肃", "轻松", "诗意", "幽默", "口语"]
 
     var body: some View {
-        VStack(spacing: 0) {
-            form
-            Divider()
-            actionBar
+        PopupFrame(title: "新建项目") {
+            rows
+        } footer: {
+            PopupButtonBar(
+                confirmTitle: "创建",
+                confirmDisabled: trimmedName.isEmpty,
+                onCancel: onCancel,
+                onConfirm: create
+            )
         }
         // V0-fix-1 Fix D: 540x480 硬固定 (原 520x480 软下限被装机 user
         // 拍板撤换 — 软下限在 split view 里视觉跟主窗口变形)。
         .frame(width: 540, height: 480)
         .onAppear {
-            // WO-007 fix(Solution A)— 强制 sheet NSWindow makeKey,
-            // 抢回 key window 状态,key event 才路由到 sheet 而非原 key app。
-            // 0.3s delay 错开 sheet 动画 + WO-006 focus 节奏。
+            // WO-007 fix (Solution A) — 强制 sheet NSWindow makeKey,
+            // 抢回 key window 状态, key event 才路由到 sheet 而非原 key app。
             WindowActivation.forceKeyToWenshuSheet()
 
-            // WO-006 fix:Form sheet TextField 视觉激活但键盘路由断
-            // → 加 @FocusState + 自动 focus。装机 user 8/7 反馈。
-            // 延迟 0.3s:Form sheet 弹出动画期间 SwiftUI 焦点路由会丢,
-            // 等动画完再抢焦点,输入路由才真通。
+            // WO-006 fix: 延迟 0.3s 等 sheet 弹出动画走完再抢焦点,
+            // 动画期间 SwiftUI 焦点路由会丢, 输入路由才真通。
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 nameFocused = true
             }
         }
     }
 
-    private var form: some View {
-        Form {
-            Section("基本信息") {
-                TextField("项目名(必填)", text: $name)
-                    .textFieldStyle(.roundedBorder)
-                    .focused($nameFocused)
-            }
+    // MARK: - 主操作区 (规范 §2 横向 grid)
 
-            Section("文笔风格") {
-                Picker("风格", selection: $style) {
-                    ForEach(styles, id: \.self) { s in
-                        Text(s).tag(s)
-                    }
-                }
-                .pickerStyle(.segmented)
-            }
+    @ViewBuilder
+    private var rows: some View {
+        PopupFormRow(label: "项目名") {
+            TextField("必填", text: $name)
+                .textFieldStyle(.roundedBorder)
+                .focused($nameFocused)
+        }
 
-            Section("注水量") {
-                HStack(spacing: 12) {
-                    Text("1")
-                        .foregroundStyle(.secondary)
-                        .font(.caption)
-                    Slider(value: $verbosity, in: 1...9, step: 1)
-                    Text("9")
-                        .foregroundStyle(.secondary)
-                        .font(.caption)
-                    Text("\(Int(verbosity))")
-                        .font(.headline)
-                        .frame(width: 24, alignment: .trailing)
-                }
-            }
+        PopupFormRow(label: "文笔风格") {
+            PopupChipGroup(options: styles, selection: $style)
+        }
 
-            Section("标签") {
-                TextField("用逗号分隔,如：玄幻, 少年, 复仇", text: $tagsText)
-                    .textFieldStyle(.roundedBorder)
-                    .focused($tagsFocused)
-                    .help("多个标签用逗号分隔")
-            }
-
-            Section("预览") {
-                previewRow
+        PopupFormRow(label: "注水量") {
+            HStack(spacing: PopupMetrics.inner) {
+                Text("1").font(.caption).foregroundStyle(.secondary)
+                Slider(value: $verbosity, in: 1...9, step: 1)
+                Text("9").font(.caption).foregroundStyle(.secondary)
+                Text("\(Int(verbosity))")
+                    .font(.headline)
+                    .frame(width: 24, alignment: .trailing)
             }
         }
-        .formStyle(.grouped)
-        .padding(.horizontal)
-        .padding(.top)
+
+        PopupFormRow(label: "标签") {
+            TextField("用逗号分隔,如：玄幻, 少年, 复仇", text: $tagsText)
+                .textFieldStyle(.roundedBorder)
+                .focused($tagsFocused)
+                .help("多个标签用逗号分隔")
+        }
+
+        PopupFormRow(label: "预览") {
+            previewRow
+        }
     }
 
     private var previewRow: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(name.isEmpty ? "(未命名)" : name)
+            Text(trimmedName.isEmpty ? "(未命名)" : trimmedName)
                 .font(.headline)
             HStack(spacing: 8) {
                 Text(style).font(.caption).foregroundStyle(.secondary)
@@ -141,27 +124,21 @@ struct ProjectCreateView: View {
         }
     }
 
-    private var actionBar: some View {
-        HStack {
-            Spacer()
-            Button("取消", role: .cancel) {
-                onCancel()
-            }
-            .keyboardShortcut(.cancelAction)
+    // MARK: - 数据
 
-            Button("创建") {
-                let project = ProjectSnapshot(
-                    name: name.trimmingCharacters(in: .whitespaces),
-                    style: style,
-                    verbosity: Int(verbosity),
-                    tags: parsedTags
-                )
-                onCreate(project)
-            }
-            .keyboardShortcut(.defaultAction)
-            .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
-        }
-        .padding()
+    private func create() {
+        onCreate(
+            ProjectSnapshot(
+                name: trimmedName,
+                style: style,
+                verbosity: Int(verbosity),
+                tags: parsedTags
+            )
+        )
+    }
+
+    private var trimmedName: String {
+        name.trimmingCharacters(in: .whitespaces)
     }
 
     private var parsedTags: [String] {
