@@ -46,7 +46,9 @@ struct EditorOutlineView: View {
 
     private var emptyState: some View {
         VStack(spacing: 10) {
-            Image(systemName: "list.bullet.rectangle")
+            // v0.05.0 t_d4e02b80 ICON v2: 抽 IconLibrary.Action.fileList
+            // (`list.bullet.rectangle`) — 单一真值源。
+            Image(systemName: IconLibrary.Action.fileList.symbolName)
                 .font(.system(size: 32, weight: .light))
                 .foregroundStyle(.secondary)
             Text("暂无章节")
@@ -81,7 +83,12 @@ private struct ChapterOutlineRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: isActive ? "doc.text.fill" : "doc.text")
+            // v0.05.0 t_d4e02b80 ICON v2: 抽 IconLibrary.Action.docItem
+            // (`doc.text` 描边) + IconLibrary.Action.docItemFillSymbol()
+            // (`doc.text.fill` 选中态) — 单一真值源。
+            Image(systemName: isActive
+                ? IconLibrary.Action.docItemFillSymbol()
+                : IconLibrary.Action.docItem.symbolName)
                 .font(.system(size: 14))
                 .foregroundStyle(isActive ? Color.accentColor : .secondary)
             VStack(alignment: .leading, spacing: 2) {

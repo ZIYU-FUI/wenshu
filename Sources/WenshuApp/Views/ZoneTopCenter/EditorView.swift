@@ -134,7 +134,9 @@ struct EditorView: View {
                 .onChange(of: content) { _, new in contentStore.updateContent(new) }
         } else {
             VStack(spacing: 10) {
-                Image(systemName: "doc.text")
+                // v0.05.0 t_d4e02b80 ICON v2: 抽 IconLibrary.Action.docItem
+                // (`doc.text`) — 单一真值源。
+                Image(systemName: IconLibrary.Action.docItem.symbolName)
                     .font(.system(size: 40, weight: .light))
                     .foregroundStyle(.secondary)
                 Text("请先选择章节")

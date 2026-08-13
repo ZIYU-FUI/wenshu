@@ -35,7 +35,9 @@ struct ExpandOptionsView: View {
 
     private var header: some View {
         HStack(spacing: 8) {
-            Image(systemName: "sparkles")
+            // v0.05.0 t_d4e02b80 ICON v2: 抽 IconLibrary.Action.expandOptions
+            // (`sparkles`) — 单一真值源。
+            Image(systemName: IconLibrary.Action.expandOptions.symbolName)
                 .foregroundStyle(.tint)
             Text("AI 举一反三 · 选 2-3 个方向")
                 .font(.headline)
@@ -62,7 +64,12 @@ struct ExpandOptionsView: View {
     private func optionRow(_ option: ExpandOption) -> some View {
         let isSelected = vm.selectedDirectionIDs.contains(option.id)
         return HStack(alignment: .top, spacing: 8) {
-            Image(systemName: isSelected ? "checkmark.square.fill" : "square")
+            // v0.05.0 t_d4e02b80 ICON v2: 抽 IconLibrary.Action.checkbox
+            // (`square` 描边) + IconLibrary.Action.checkboxFillSymbol()
+            // (`checkmark.square.fill` 选中态) — 单一真值源。
+            Image(systemName: isSelected
+                ? IconLibrary.Action.checkboxFillSymbol()
+                : IconLibrary.Action.checkbox.symbolName)
                 .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
                 .imageScale(.medium)
             VStack(alignment: .leading, spacing: 2) {

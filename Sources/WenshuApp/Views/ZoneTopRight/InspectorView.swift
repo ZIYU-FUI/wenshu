@@ -100,7 +100,9 @@ struct InspectorView: View {
 
     private var emptyForeshadowState: some View {
         VStack(spacing: 10) {
-            Image(systemName: "leaf")
+            // v0.05.0 t_d4e02b80 ICON v2: 抽 IconLibrary.Action.leaf
+            // (`leaf`) — 单一真值源。
+            Image(systemName: IconLibrary.Action.leaf.symbolName)
                 .font(.system(size: 28, weight: .light))
                 .foregroundStyle(.tertiary)
             Text("暂无伏笔")

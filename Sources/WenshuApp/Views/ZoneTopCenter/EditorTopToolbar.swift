@@ -20,7 +20,9 @@ struct EditorTopToolbar: View {
             Spacer()
             // 中上: 章节名
             HStack(spacing: 4) {
-                Image(systemName: "doc.text")
+                // v0.05.0 t_d4e02b80 ICON v2: 抽 IconLibrary.Action.docItem
+                // (`doc.text`) — 单一真值源。
+                Image(systemName: IconLibrary.Action.docItem.symbolName)
                     .font(.system(size: 14))
                     .foregroundStyle(.secondary)
                 Text(chapterTitle)

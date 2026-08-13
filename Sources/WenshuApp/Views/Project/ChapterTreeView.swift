@@ -61,7 +61,9 @@ struct ChapterTreeView: View {
 
     private func chapterRow(_ chapter: ChapterSnapshot) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: "list.bullet.rectangle").font(.system(size: 14)).foregroundStyle(.secondary)
+            // v0.05.0 t_d4e02b80 ICON v2: 抽 IconLibrary.Action.fileList
+            // (`list.bullet.rectangle`) — 单一真值源。
+            Image(systemName: IconLibrary.Action.fileList.symbolName).font(.system(size: 14)).foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 2) {
                 Text(chapter.title).font(.headline)
                 Text("第 \(chapter.index) 章 · \(chapter.wordCount) 字").font(.caption).foregroundStyle(.secondary)
@@ -72,7 +74,9 @@ struct ChapterTreeView: View {
 
     private var emptyState: some View {
         VStack(spacing: 12) {
-            Image(systemName: "list.bullet.rectangle").font(.system(size: 56, weight: .light)).foregroundStyle(.secondary)
+            // v0.05.0 t_d4e02b80 ICON v2: 抽 IconLibrary.Action.fileList
+            // (`list.bullet.rectangle`) — 单一真值源。
+            Image(systemName: IconLibrary.Action.fileList.symbolName).font(.system(size: 56, weight: .light)).foregroundStyle(.secondary)
             Text("暂无章节").font(.title2)
             Text("v0.04.0 接新建章节").font(.callout).foregroundStyle(.secondary)
         }.frame(maxWidth: .infinity, maxHeight: .infinity).padding()
