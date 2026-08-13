@@ -25,9 +25,16 @@ final class InspectorViewModel {
 
     // MARK: - Inspector tab 标识
 
+    /// v0.05.0 t_a315aa5b ICON UI 接 (AIF 大管家): 加 .placeholder case
+    /// 共 3 case (沿 OOB "右侧边栏 3 ICON" 真值 — 伏笔 / 修订 / 占位),
+    /// 不破现有 2 case (foreshadow / revision)。.placeholder 沿 IconLibrary.Action.leaf
+    /// ("leaf") 渲染, 渲染层走 InspectorView.iconName(for:) → IconLibrary
+    /// 真值查。 现有 2 case (foreshadow/revision) 协议完全不动, 沿红线
+    /// "不动 InspectorViewModel.Tab 现有 2 case"。
     enum Tab: String, CaseIterable, Hashable, Identifiable {
         case foreshadow    // 伏笔
         case revision      // 修订
+        case placeholder   // 占位 (v0.05.0 ICON UI 接 加, 沿 OOB "右侧边栏 3 ICON")
 
         var id: String { rawValue }
 
@@ -36,6 +43,7 @@ final class InspectorViewModel {
             switch self {
             case .foreshadow: return "伏笔"
             case .revision: return "修订"
+            case .placeholder: return "占位"
             }
         }
     }

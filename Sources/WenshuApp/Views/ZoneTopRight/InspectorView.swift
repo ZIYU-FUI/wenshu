@@ -35,15 +35,30 @@ struct InspectorView: View {
             // 沿 ChatPanelView V0-fix-11 紧凑范式 (size 13 + 28×22 +
             // spacing 2 + padding vertical 4), FCP timeline 红字"所有
             // ICON 按钮, 只保留 ICON, 不要矩形背景, 仿 FCP"。
+            //
+            // v0.05.0 t_a315aa5b ICON UI 接 (AIF 大管家): font 13 → 14
+            // 修真 (沿 OOB 线框图 "顶部 tab ICON 14pt"), 加 8pt 底部 indicator
+            // (FCP timeline 红字 "选中 = 主色填充 + 底部 indicator")。
+            // .placeholder case 共 3 case (沿 OOB "右侧边栏 3 ICON" 真值),
+            // iconName 走 IconLibrary 单一真值源。
             HStack(spacing: 2) {
                 ForEach(InspectorViewModel.Tab.allCases) { tab in
                     Button {
                         vm.selectTab(tab)
                     } label: {
                         Image(systemName: iconName(for: tab))
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.system(size: 14, weight: .medium))
                             .frame(width: 28, height: 22)
                             .foregroundStyle(vm.selectedTab == tab ? Color.accentColor : .secondary)
+                            .overlay(alignment: .bottom) {
+                                // 选中态 8pt 底部 indicator — 沿 TopLeftHeaderBar / ChatPanelView 同范式
+                                if vm.selectedTab == tab {
+                                    Rectangle()
+                                        .fill(Color.accentColor)
+                                        .frame(width: 14, height: 2)
+                                        .offset(y: 4)
+                                }
+                            }
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
@@ -61,6 +76,10 @@ struct InspectorView: View {
                     foreshadowList
                 case .revision:
                     revisionList
+                case .placeholder:
+                    // 沿 OOB "右侧边栏 3 ICON" 真值 第 3 case 占位 —
+                    // v0.05.0 ICON UI 接 加, 内容实装留 v0.05.x (修真)
+                    placeholderTabContent
                 }
             }
             .frame(maxHeight: .infinity)
@@ -72,11 +91,39 @@ struct InspectorView: View {
 
     // MARK: - Inline icon map (V0-fix-4 Fix 5)
 
+    /// v0.05.0 t_a315aa5b ICON UI 接 (AIF 大管家): inline `iconName(for:)`
+    /// 静态映射修真走 IconLibrary 单一真值源 (foreshadow → IconLibrary.Name.foreshadow
+    /// / revision → IconLibrary.Name.revise / placeholder → IconLibrary.Action.leaf),
+    /// 替换 V0-fix-4 Fix 5 字面量。 函数签名保留 `iconName(for:)` (沿
+    /// V0Fix4LayoutTests.testInspectorView_2inspectorTabs_iconOnlyAndNoHeader
+    /// 断言 `code.contains("iconName(for:")`, 不破既有测试)。
     private func iconName(for tab: InspectorViewModel.Tab) -> String {
         switch tab {
-        case .foreshadow: return "eye"
-        case .revision: return "pencil.and.list.clipboard"
+        case .foreshadow:  return IconLibrary.shared.symbolName(for: .foreshadow)
+        case .revision:    return IconLibrary.shared.symbolName(for: .revise)
+        case .placeholder: return IconLibrary.Action.leaf.symbolName
         }
+    }
+
+    // MARK: - 占位 tab 内容 (v0.05.0 ICON UI 接 加, 内容留 v0.05.x 修真)
+
+    @ViewBuilder
+    private var placeholderTabContent: some View {
+        VStack(spacing: 10) {
+            // 沿 ChatPanelView 修真 #3 (B5 装机 user 8/10 17:35 OOB 实机拍
+            // "tab 居左 OK, 内容居中") .frame(maxWidth: .infinity, alignment: .center)
+            // 撑满 + 内容居中 (FCP timeline 范式)。
+            Image(systemName: IconLibrary.Action.leaf.symbolName)
+                .font(.system(size: 28, weight: .light))
+                .foregroundStyle(.tertiary)
+            Text("占位 tab 内容待 v0.05.x 实装")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 24)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        .padding(16)
     }
 
     // MARK: - 伏笔 tab

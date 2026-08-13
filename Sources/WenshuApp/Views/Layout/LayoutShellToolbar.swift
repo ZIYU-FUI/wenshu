@@ -30,50 +30,70 @@ struct LayoutShellToolbar: ToolbarContent {
         }
     }
 
-    /// 新建项目 + ICON (红黄绿后紧跟, FCP 范式)。
+    /// 新建项目 + ICON (红黄绿后紧跟, FCP 范式 Image + Text 双标签)。
+    /// v0.05.0 t_a315aa5b ICON UI 接 (AIF 大管家): ICON 走 IconLibrary.Action.newProject
+    /// 单一真值源 (沿 OOB "layoutSwitch + ProjectCreateView 弹窗"真值),
+    /// 加 Text("新建") 双标签 (FCP 范式 Image + Text)。
     private var toolbarNewProjectButton: some View {
         Button {
             NotificationCenter.default.post(
                 name: .wenshuShowCreateProject, object: nil
             )
         } label: {
-            Image(systemName: "plus")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(.secondary)
-                .frame(width: 28, height: 22)
-                .contentShape(Rectangle())
+            HStack(spacing: 4) {
+                Image(systemName: IconLibrary.Action.newProject.symbolName)
+                    .font(.system(size: 14, weight: .medium))
+                Text("新建")
+                    .font(.system(size: 13))
+            }
+            .foregroundStyle(.secondary)
+            .frame(height: 22)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .help("新建项目 (⌘N)")
     }
 
-    /// 打开项目 + ICON (新建后面, FCP 范式 3 ICON 群)。
+    /// 打开项目 + ICON (新建后面, FCP 范式 Image + Text 双标签)。
+    /// v0.05.0 t_a315aa5b ICON UI 接 (AIF 大管家): ICON 走
+    /// IconLibrary.Action.openProject ("folder.badge.plus") 单一真值源。
     private var toolbarOpenProjectButton: some View {
         Button {
             NotificationCenter.default.post(
                 name: .wenshuOpenProjectURL, object: nil
             )
         } label: {
-            Image(systemName: "folder.badge.plus")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(.secondary)
-                .frame(width: 28, height: 22)
-                .contentShape(Rectangle())
+            HStack(spacing: 4) {
+                Image(systemName: IconLibrary.Action.openProject.symbolName)
+                    .font(.system(size: 14, weight: .medium))
+                Text("打开")
+                    .font(.system(size: 13))
+            }
+            .foregroundStyle(.secondary)
+            .frame(height: 22)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .help("打开项目... (⌘O)")
     }
 
     /// 导入项目 + ICON (打开后面, 占位, v0.04.0 真修真导入逻辑)。
+    /// v0.05.0 t_a315aa5b ICON UI 接 (AIF 大管家): ICON 走
+    /// IconLibrary.Action.importProject ("square.and.arrow.down") 单一真值源,
+    /// 加 Text("导入") 双标签。
     private var toolbarImportProjectButton: some View {
         Button {
             // placeholder — v0.04.0+ 接 NSOpenPanel import 真修真
         } label: {
-            Image(systemName: "square.and.arrow.down")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(.secondary)
-                .frame(width: 28, height: 22)
-                .contentShape(Rectangle())
+            HStack(spacing: 4) {
+                Image(systemName: IconLibrary.Action.importProject.symbolName)
+                    .font(.system(size: 14, weight: .medium))
+                Text("导入")
+                    .font(.system(size: 13))
+            }
+            .foregroundStyle(.secondary)
+            .frame(height: 22)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .help("导入... (v0.04.0)")

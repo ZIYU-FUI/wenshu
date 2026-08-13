@@ -72,17 +72,17 @@ enum ProjectManagementTab: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    /// V0-fix-8 (装机 user 8/11 16:20 AIF 截图重定义真值): 5 tab
-    /// SF Symbol 沿 AIF 16:20 截图指定真值, 替换 V0-fix-4 的字面量。
-    /// folder (项目) / doc.text (章节) / gearshape (设定) /
-    /// archive (资料) / square.grid.3x3 (看板)。
+    /// v0.05.0 t_a315aa5b ICON UI 接 (AIF 大管家): 5 tab SF Symbol
+    /// 走 IconLibrary.Name 单一真值源 (5 区顶部 tab ICON 全部接 IconLibrary),
+    /// 替换 V0-fix-8 的字面量。 .resources 沿 V0-fix-11-4 真值映射
+    /// → IconLibrary.shared.symbolName(for: .materials) ("archive")。
     var symbolName: String {
         switch self {
-        case .projects:  return "folder"
-        case .chapters:  return "doc.text"
-        case .settings:  return "gearshape"
-        case .resources: return "archive"
-        case .kanban:    return "square.grid.3x3"
+        case .projects:  return IconLibrary.shared.symbolName(for: .projects)
+        case .chapters:  return IconLibrary.shared.symbolName(for: .chapters)
+        case .settings:  return IconLibrary.shared.symbolName(for: .settings)
+        case .resources: return IconLibrary.shared.symbolName(for: .materials)
+        case .kanban:    return IconLibrary.shared.symbolName(for: .kanban)
         }
     }
 

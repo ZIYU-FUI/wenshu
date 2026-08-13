@@ -36,12 +36,19 @@ enum ChatPanelTab: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    /// v0.05.0 t_a315aa5b ICON UI 接 (AIF 大管家): 4 chat tab SF Symbol
+    /// 走 IconLibrary.Name 单一真值源 (下左 chat 区 tab ICON 全部接 IconLibrary),
+    /// 替换 V0-fix-8 字面量。 NOTE: 沿 OOB "修真为 6 case" 加 .memory/.log 2 case
+    /// 会破 `LTN2ChatTests.testChatPanelTab_outlineIsTheFourthTab` 断言
+    /// (`XCTAssertEqual(allCases.count, 4, "ChatPanelTab 应有 4 个 case")`),
+    /// 沿 §3.5 边界 "swift test 与 main HEAD baseline 0 unexpected" 沿未
+    /// 加 2 case。.memory/.log 留 v0.05.x 升 PM-direct 派单单独处理。
     var symbolName: String {
         switch self {
-        case .chat: return "bubble.left.and.bubble.right"
-        case .timeline: return "clock.arrow.circlepath"
-        case .relationships: return "person.2"
-        case .outline: return "list.bullet.indent"
+        case .chat: return IconLibrary.shared.symbolName(for: .chat)
+        case .timeline: return IconLibrary.shared.symbolName(for: .timeline)
+        case .relationships: return IconLibrary.shared.symbolName(for: .relationships)
+        case .outline: return IconLibrary.shared.symbolName(for: .outline)
         }
     }
 
@@ -80,9 +87,20 @@ struct ChatPanelView: View {
                         activeTab = tab
                     } label: {
                         Image(systemName: tab.symbolName)
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.system(size: 14, weight: .medium))
                             .frame(width: 28, height: 22)
                             .foregroundStyle(activeTab == tab ? Color.accentColor : .secondary)
+                            .overlay(alignment: .bottom) {
+                                // 选中态 8pt 底部 indicator — FCP timeline 红字
+                                // "选中 = 主色填充 + 底部 indicator" (沿 TopLeftHeaderBar
+                                // 修真: 14pt + 8pt indicator, V0-fix-11-1a retry-2 范式)。
+                                if activeTab == tab {
+                                    Rectangle()
+                                        .fill(Color.accentColor)
+                                        .frame(width: 14, height: 2)
+                                        .offset(y: 4)
+                                }
+                            }
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
