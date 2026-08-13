@@ -32,6 +32,8 @@ enum ChatPanelTab: String, CaseIterable, Identifiable {
     case chat = "聊天"
     case timeline = "时间线"
     case relationships = "关系图"
+    case memory = "记忆"
+    case log = "日志"
     case outline = "大纲"
 
     var id: String { rawValue }
@@ -48,6 +50,9 @@ enum ChatPanelTab: String, CaseIterable, Identifiable {
         case .chat: return IconLibrary.shared.symbolName(for: .chat)
         case .timeline: return IconLibrary.shared.symbolName(for: .timeline)
         case .relationships: return IconLibrary.shared.symbolName(for: .relationships)
+        // v0.05.x 待 IconLibrary.Name 加 .memory/.log (沿 t_a315aa5b 边界"不加 IconLibrary 新 case", 此处沿 SF Symbol 字面量兜底, 与 PlaceholderContent .branch/.clock 范式一致)
+        case .memory: return "tray.full"
+        case .log: return "list.bullet.rectangle.portrait"
         case .outline: return IconLibrary.shared.symbolName(for: .outline)
         }
     }
@@ -128,7 +133,7 @@ struct ChatPanelView: View {
         switch activeTab {
         case .chat:
             chatContent
-        case .timeline, .relationships, .outline:
+        case .timeline, .relationships, .memory, .log, .outline:
             disabledContent(for: activeTab)
         }
     }

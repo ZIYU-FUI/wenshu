@@ -34,17 +34,19 @@ final class LTN2ChatTests: XCTestCase {
         return WenshuProjectStore(storeActor: storeActor)
     }
 
-    // MARK: - 1. ChatPanelTab: outline 是第 4 tab (PM-direct 矛盾 1)
+    // MARK: - 1. ChatPanelTab: outline 是第 6 tab (PM-direct 矛盾 1)
 
-    func testChatPanelTab_outlineIsTheFourthTab() {
-        // 矛盾 1 拍板: 4 tab 顺序沿 V0-fix-4/6 = chat / timeline / relationships / outline
+    func testChatPanelTab_outlineIsTheSixthTab() {
+        // 矛盾 1 拍板: 6 tab 顺序 = chat / timeline / relationships / memory / log / outline
         // (不是 body 写的 kanban)。
         let allCases = ChatPanelTab.allCases
-        XCTAssertEqual(allCases.count, 4, "ChatPanelTab 应有 4 个 case")
+        XCTAssertEqual(allCases.count, 6, "ChatPanelTab 应有 6 个 case")
         XCTAssertEqual(allCases[0], .chat)
         XCTAssertEqual(allCases[1], .timeline)
         XCTAssertEqual(allCases[2], .relationships)
-        XCTAssertEqual(allCases[3], .outline, "PM-direct 矛盾 1 拍板: 第 4 tab = outline")
+        XCTAssertEqual(allCases[3], .memory)
+        XCTAssertEqual(allCases[4], .log)
+        XCTAssertEqual(allCases[5], .outline, "PM-direct 矛盾 1 拍板: 第 6 tab = outline")
     }
 
     // MARK: - 2. ChatPanelView: Picker .iconOnly (PM-direct 矛盾 2)
