@@ -84,34 +84,91 @@ struct LayoutShellToolbar: ToolbarContent {
 
     /// 按钮 1 ↔ `.topCenter` (中上 viewer 文档)。
     private var foldToggleViewerButton: some View {
-        FoldToggleButton(
-            symbol: vm.isVisible(.topCenter)
-                ? "rectangle.split.3x1"
-                : "rectangle.split.3x1.fill",
-            isVisible: vm.isVisible(.topCenter),
-            action: { vm.togglePanelVisibility(.topCenter) },
-            help: "隐藏/显示 文档 (⌘2)"
-        )
+        Button {
+            vm.togglePanelVisibility(.topCenter)
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: vm.isVisible(.topCenter)
+                    ? "rectangle.split.3x1"
+                    : "rectangle.split.3x1.fill")
+                    .font(.system(size: 14, weight: .medium))
+                Text("文档")
+                    .font(.system(size: 13))
+            }
+            .foregroundStyle(
+                vm.isVisible(.topCenter)
+                    ? AnyShapeStyle(.secondary)
+                    : AnyShapeStyle(Color.white)
+            )
+            .background(
+                vm.isVisible(.topCenter)
+                    ? Color.clear
+                    : Color.accentColor.opacity(0.85),
+                in: RoundedRectangle(cornerRadius: 6)
+            )
+            .frame(height: 22)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("隐藏/显示 文档 (⌘2)")
     }
 
     /// 按钮 2 ↔ `.bottomLeft` + `.bottomRight` (整条下半栏)。
     private var foldToggleBottomBandButton: some View {
-        FoldToggleButton(
-            symbol: "rectangle.split.3x1.fill",
-            isVisible: vm.isBottomBandVisible(),
-            action: { vm.toggleBottomBand() },
-            help: "隐藏/显示 状态栏 (⌘4+⌘5)"
-        )
+        Button {
+            vm.toggleBottomBand()
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "rectangle.split.3x1.fill")
+                    .font(.system(size: 14, weight: .medium))
+                Text("状态栏")
+                    .font(.system(size: 13))
+            }
+            .foregroundStyle(
+                vm.isBottomBandVisible()
+                    ? AnyShapeStyle(.secondary)
+                    : AnyShapeStyle(Color.white)
+            )
+            .background(
+                vm.isBottomBandVisible()
+                    ? Color.clear
+                    : Color.accentColor.opacity(0.85),
+                in: RoundedRectangle(cornerRadius: 6)
+            )
+            .frame(height: 22)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("隐藏/显示 状态栏 (⌘4+⌘5)")
     }
 
     /// 按钮 3 ↔ `.topRight` (检视)。
     private var foldToggleInspectorButton: some View {
-        FoldToggleButton(
-            symbol: "checklist",
-            isVisible: vm.isVisible(.topRight),
-            action: { vm.togglePanelVisibility(.topRight) },
-            help: "隐藏/显示 检视 (⌘3)"
-        )
+        Button {
+            vm.togglePanelVisibility(.topRight)
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "checklist")
+                    .font(.system(size: 14, weight: .medium))
+                Text("检视")
+                    .font(.system(size: 13))
+            }
+            .foregroundStyle(
+                vm.isVisible(.topRight)
+                    ? AnyShapeStyle(.secondary)
+                    : AnyShapeStyle(Color.white)
+            )
+            .background(
+                vm.isVisible(.topRight)
+                    ? Color.clear
+                    : Color.accentColor.opacity(0.85),
+                in: RoundedRectangle(cornerRadius: 6)
+            )
+            .frame(height: 22)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("隐藏/显示 检视 (⌘3)")
     }
 
     /// Share 占位按钮 (v0.04.0+ 接 NSSharingServicePicker 派单时改 .disabled(false))。
@@ -119,11 +176,15 @@ struct LayoutShellToolbar: ToolbarContent {
         Button {
             // placeholder — v0.04.0+ 接 share 真修真
         } label: {
-            Image(systemName: "square.and.arrow.up")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(.secondary)
-                .frame(width: 28, height: 22)
-                .contentShape(Rectangle())
+            HStack(spacing: 4) {
+                Image(systemName: "square.and.arrow.up")
+                    .font(.system(size: 14, weight: .medium))
+                Text("分享")
+                    .font(.system(size: 13))
+            }
+            .foregroundStyle(.secondary)
+            .frame(height: 22)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .help("分享 (v0.04.0+)")

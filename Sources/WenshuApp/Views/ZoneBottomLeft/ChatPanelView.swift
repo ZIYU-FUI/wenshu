@@ -32,6 +32,8 @@ enum ChatPanelTab: String, CaseIterable, Identifiable {
     case chat = "聊天"
     case timeline = "时间线"
     case relationships = "关系图"
+    case memory = "记忆"
+    case log = "日志"
     case outline = "大纲"
 
     var id: String { rawValue }
@@ -41,6 +43,8 @@ enum ChatPanelTab: String, CaseIterable, Identifiable {
         case .chat: return "bubble.left.and.bubble.right"
         case .timeline: return "clock.arrow.circlepath"
         case .relationships: return "person.2"
+        case .memory: return "tray.full"
+        case .log: return "list.bullet.rectangle.portrait"
         case .outline: return "list.bullet.indent"
         }
     }
@@ -110,7 +114,7 @@ struct ChatPanelView: View {
         switch activeTab {
         case .chat:
             chatContent
-        case .timeline, .relationships, .outline:
+        case .timeline, .relationships, .memory, .log, .outline:
             disabledContent(for: activeTab)
         }
     }
