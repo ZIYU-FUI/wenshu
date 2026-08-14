@@ -33,6 +33,90 @@
 import SwiftUI
 import AppKit
 
+// MARK: - Self screenshot
+//
+// Renders the live `keyWindow.contentView` (= SwiftUI hosting tree already
+// mounted in the window) to a PNG via `NSView.cacheDisplay(in:to:)`.
+//
+// Why this exists (= boss 8/14 12:38, "screenshot wenshu app + send to chat for
+// phone verification"): the agent runs in a Hermes Agent TUI session that
+// lives in a virtual desktop, so `screencapture` returns a 0×0 black image
+// for the wenshu window. System accessibility capture returns nothing
+// useful either. The only reliable path is to render inside the app itself,
+// using the same backing store that the user sees on screen.
+//
+// env knobs:
+//   WS_SCREENSHOT=1            Enable the channel (no-op if unset)
+//   WS_SCREENSHOT_PATH=<path>  Output PNG (default: /tmp/wenshu-selfshot.png)
+//   WS_SCREENSHOT_DELAY=<secs> First-capture delay (default: 2.0s)
+//   WS_SCREENSHOT_EXIT=1       Exit after first capture (one-shot mode, default)
+//   WS_SCREENSHOT_LOOP=<secs>  Re-capture every N seconds (live preview mode)
+enum SelfScreenshot {
+    @MainActor
+    static func run() {
+        let env = ProcessInfo.processInfo.environment
+        let path = env["WS_SCREENSHOT_PATH"] ?? "/tmp/wenshu-selfshot.png"
+        let delay = Double(env["WS_SCREENSHOT_DELAY"] ?? "2.0") ?? 2.0
+        let shouldExit = env["WS_SCREENSHOT_EXIT"] != "0"
+        let loopInterval = env["WS_SCREENSHOT_LOOP"].flatMap { Double($0) }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            captureOnce(path: path, exitAfter: shouldExit)
+        }
+        if let interval = loopInterval {
+            let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { _ in
+                Task { @MainActor in captureOnce(path: path, exitAfter: false) }
+            }
+            RunLoop.main.add(timer, forMode: .common)
+        }
+    }
+
+    @MainActor
+    private static func captureOnce(path: String, exitAfter: Bool) {
+        // Yield one runloop tick so SwiftUI has a chance to finish its first
+        // layout pass before we cache-display the contentView.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            guard
+                let window = NSApp.keyWindow
+                    ?? NSApp.windows.first(where: { $0.contentViewController != nil }),
+                let contentView = window.contentView
+            else {
+                print("WS_SCREENSHOT: no window/contentView")
+                if exitAfter { exit(2) }
+                return
+            }
+            window.layoutIfNeeded()
+            contentView.layoutSubtreeIfNeeded()
+            let bounds = contentView.bounds
+            guard bounds.width > 0 && bounds.height > 0 else {
+                print("WS_SCREENSHOT: bounds zero \(bounds)")
+                if exitAfter { exit(2) }
+                return
+            }
+            guard let bitmap = contentView.bitmapImageRepForCachingDisplay(in: bounds) else {
+                print("WS_SCREENSHOT: bitmap alloc failed")
+                if exitAfter { exit(2) }
+                return
+            }
+            bitmap.size = bounds.size
+            contentView.cacheDisplay(in: bounds, to: bitmap)
+            guard let png = bitmap.representation(using: .png, properties: [:]) else {
+                print("WS_SCREENSHOT: png encode failed")
+                if exitAfter { exit(3) }
+                return
+            }
+            do {
+                try png.write(to: URL(fileURLWithPath: path))
+                print("WS_SCREENSHOT: wrote \(png.count) bytes to \(path) (size=\(bounds.size))")
+                if exitAfter { exit(0) }
+            } catch {
+                print("WS_SCREENSHOT: write failed: \(error)")
+                if exitAfter { exit(4) }
+            }
+        }
+    }
+}
+
 @main
 struct WenshuApp: App {
     /// NSApplicationDelegateAdaptor wires NSApplication.run at app launch (= the
@@ -105,6 +189,11 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
                 y: screenFrame.midY - windowFrame.height / 2
             )
             window.setFrameOrigin(newOrigin)
+        }
+        // Boss 8/14 12:38 + 8/15 14:48: every code change must produce a screenshot
+        // for phone verification. env-gated so normal launches stay interactive.
+        if ProcessInfo.processInfo.environment["WS_SCREENSHOT"] == "1" {
+            SelfScreenshot.run()
         }
     }
 
