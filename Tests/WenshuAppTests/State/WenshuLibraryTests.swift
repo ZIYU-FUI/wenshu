@@ -127,4 +127,24 @@ struct WenshuLibraryTests {
         await lib.clearSelection()
         #expect(await lib.selectedShelfId == nil)
     }
+
+    @Test("init auto-selects the first (= most-recently-edited) shelf when there's an existing library")
+    func initAutoSelectsFirstShelf() async throws {
+        let store = InMemoryStore()
+        // Pre-populate with two shelves; the second-most-recent is added
+        // first so the auto-select lands on the actual most-recent.
+        try store.saveShelf(Bookshelf(id: UUID(), name: "Old", createdAt: Date(timeIntervalSince1970: 1000), updatedAt: Date(timeIntervalSince1970: 1000)))
+        try store.saveShelf(Bookshelf(id: UUID(), name: "Recent", createdAt: Date(timeIntervalSince1970: 2000), updatedAt: Date(timeIntervalSince1970: 2000)))
+        let lib = await WenshuLibrary(store: store)
+        let selected = await lib.selectedShelfId
+        let shelves = await lib.shelves
+        #expect(selected == shelves.first?.id)
+        #expect(selected != nil)
+    }
+
+    @Test("init leaves selection nil when the library is empty (= fresh install)")
+    func initNoAutoSelectOnEmpty() async throws {
+        let lib = await WenshuLibrary(store: InMemoryStore())
+        #expect(await lib.selectedShelfId == nil)
+    }
 }

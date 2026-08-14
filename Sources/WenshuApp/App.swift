@@ -403,7 +403,14 @@ struct LibraryScaffold: View {
                     splits.adjustShelfProject(delta: delta, totalWidth: totalW - hitW)
                 }
                 .frame(width: hitW, height: totalH)
-                ZoneScaffoldView(name: "PROJECT")
+                // v0.02.1: real book list (= Apple HIG sidebar list scoped
+                // to the currently-selected shelf). Replaces the v0.01.x
+                // 'PROJECT' watermark. Injected via @Environment so the
+                // same WenshuLibrary instance drives both Shelf and
+                // Project lists. The two zones share library.selectedShelfId
+                // (= clicking a shelf on the left refreshes the book list
+                // on the right).
+                BookListView(library: library)
                     .frame(width: projectW, height: totalH)
             }
             // PARENT LABEL overlay — sits on top of the HStack, anchored to the

@@ -54,6 +54,14 @@ final class WenshuLibrary {
         } catch {
             self.shelves = []
         }
+        // Apple HIG document-based app: on launch, if there's a
+        // library, auto-select the most-recently-edited shelf (= the
+        // same sort order the list shows). Avoids the empty-state in
+        // the right pane for the typical 'I have existing books I want
+        // to work on' launch.
+        if let first = shelves.first, selectedShelfId == nil {
+            selectedShelfId = first.id
+        }
     }
 
     /// URL to display in the UI (= 'Library at <rootURL>'). The view
