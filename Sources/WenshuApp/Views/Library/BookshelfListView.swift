@@ -122,8 +122,13 @@ struct BookshelfListView: View {
 
     private var emptyState: some View {
         VStack(spacing: 8) {
+            // Apple HIG empty-state icon: .font(.title) (= 22pt) +
+            // .imageScale(.large) (= SF Symbol emphasis; matches Mail /
+            // Notes / Reminders empty-state pattern). Dynamic Type-
+            // respecting (a system font-size bump scales the icon too).
             Image(systemName: "books.vertical")
-                .font(.system(size: 28))
+                .font(.title)
+                .imageScale(.large)
                 .foregroundStyle(.tertiary)
             Text("还没有书架")
                 .font(.callout)

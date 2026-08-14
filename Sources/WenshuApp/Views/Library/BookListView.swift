@@ -147,8 +147,13 @@ struct BookListView: View {
 
     private var emptyState: some View {
         VStack(spacing: 8) {
+            // Apple HIG empty-state icon: .font(.title) (= 22pt) +
+            // .imageScale(.large) (= SF Symbol emphasis; matches Mail /
+            // Notes / Reminders empty-state pattern). Dynamic Type-
+            // respecting.
             Image(systemName: "book")
-                .font(.system(size: 28))
+                .font(.title)
+                .imageScale(.large)
                 .foregroundStyle(.tertiary)
             Text("这个书架里还没有书")
                 .font(.callout)
@@ -167,8 +172,10 @@ struct BookListView: View {
 
     private var noShelfSelected: some View {
         VStack(spacing: 8) {
+            // Apple HIG empty-state icon (= sidebar with no selection).
             Image(systemName: "sidebar.left")
-                .font(.system(size: 28))
+                .font(.title)
+                .imageScale(.large)
                 .foregroundStyle(.tertiary)
             Text("先在左边选一个书架")
                 .font(.callout)
