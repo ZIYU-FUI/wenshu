@@ -72,23 +72,9 @@ if ! swift build 2>&1 | tail -5; then
     exit 1
 fi
 
-# Build the .app bundle (= AppKit needs the bundle wrapper for proper Dock
-# integration). build-app.sh already wires this up.
-echo "== build .app bundle =="
-APP_BUNDLE=".build/Wenshu.app"
-mkdir -p .build
-MACOS_DIR="${APP_BUNDLE}/Contents/MacOS"
-RESOURCES_DIR="${APP_BUNDLE}/Contents/Resources"
-rm -rf "$APP_BUNDLE"
-mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
-cp ".build/debug/WenshuApp" "$MACOS_DIR/Wenshu"
-chmod +x "$MACOS_DIR/Wenshu"
-plutil -replace "CFBundleExecutable" -string "Wenshu" \
-    "Sources/WenshuApp/Resources/Info.plist" -o "${APP_BUNDLE}/Contents/Info.plist"
-printf 'APPL????' > "${APP_BUNDLE}/Contents/PkgInfo"
-
 # Kill any prior wenshu process so the new binary actually launches.
 pkill -f "Wenshu.app/Contents/MacOS/Wenshu" 2>/dev/null || true
+pkill -f "swift run WenshuApp" 2>/dev/null || true
 sleep 0.3
 
 # Build env
@@ -101,10 +87,15 @@ else
     ENV_ARGS+=(WS_SCREENSHOT_EXIT=0)
 fi
 
-# Launch the .app via `open` so Launch Services registers it (= Dock icon,
-# Cmd+Tab, menu bar). Background process group, write pidfile for --kill.
-echo "== launch $APP_BUNDLE =="
-env "${ENV_ARGS[@]}" open -W "$APP_BUNDLE" > /tmp/wenshu-selfshot.log 2>&1 &
+# Launch via `swift run` (NOT open -W on the .app bundle).
+# Owner 8/15 16:18 discovered that `open -W` on the SwiftPM .app bundle
+# loses the WS_SCREENSHOT env vars somewhere between launchd and the
+# process (no log output even though applicationDidFinishLaunching
+# would have printed them). `swift run` keeps the env chain intact
+# and applicationDidFinishLaunching fires reliably. This is the
+# v0.02.0 path; v0.04.0+ (= signed .app bundle) should revisit.
+echo "== swift run WenshuApp =="
+env "${ENV_ARGS[@]}" swift run WenshuApp > /tmp/wenshu-selfshot.log 2>&1 &
 APP_PID=$!
 echo "$APP_PID" > "$PIDFILE"
 
