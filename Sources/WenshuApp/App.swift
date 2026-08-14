@@ -372,63 +372,29 @@ struct LayoutShellView: View {
     }
 }
 
-// MARK: - Library (Shelf + Project nested horizontal split, left/right)
-// Boss 19:10 "项目管理区的分隔有问题, 不是左右结构" → HStack (left=Shelf, right=Project).
-// Boss 19:30: FCP 的项目管理 = 两栏 (= 目录树 + 素材). Wenshu 落地 = Shelf (= 目录树/
-// 多小说) + Project (= 素材/项目文档). Boss 19:35 followup: Library 父区 + Shelf +
-// Project 之间都用 NativeSplitter (= 视觉拆开, 不是粘在一起).
-// Boss 19:45: Shelf|Project = 各 10% (= 1:1 internal split, libraryShelfFraction = 0.50).
+// MARK: - Library (= single outline: collapsible shelves with books)
+//
+// Boss 8/15 17:05: '结构不对, 参考 fcp. 书架是父级, 可以点击折叠展开'.
+// The old layout (HStack of BookshelfListView | splitter | BookListView)
+// was wrong because it forced a fixed two-pane split inside the library
+// zone. Apple HIG document-based apps (= Notes, Pages, Finder) use a
+// single outline list with DisclosureGroup (= click the header to
+// collapse/expand; click the row to select). Bookshelf stays the parent
+// type in storage; it just renders inline with books in the same list.
+//
+// v0.02.0 used a Shelf / Project internal NativeSplitter; v50 removes
+// the splitter entirely (= the visual internal split was a FCP-misread
+// of the Browser pane structure, where the splitter separates the
+// LIBRARY from the EDITOR, not anything inside LIBRARY).
 struct LibraryScaffold: View {
-    @Environment(LayoutShellViewModel.self) private var splits
-    /// v0.02.0: real Bookshelf list (= Apple HIG sidebar list with new /
-    /// rename / delete / show-in-finder). Replaces the v0.01.x 'SHELF'
-    /// watermark. Injected via @Environment so the same WenshuLibrary
-    /// instance drives both Shelf and Project lists (= v0.02.1).
     @Environment(WenshuLibrary.self) private var library
     var body: some View {
-        GeometryReader { geo in
-            // Compute explicit pixel widths from parent's actual size (= boss 19:55
-            // style: use real GeometryReader, not magic .infinity). This avoids the
-            // HStack + maxWidth:.infinity collision that visually crushed the splitter.
-            let totalW = geo.size.width
-            let totalH = geo.size.height
-            let hitW = CGFloat(NativeSplitterView.hitAreaThickness)
-            let shelfW = (totalW - hitW) * splits.libraryShelfFraction
-            let projectW = (totalW - hitW) * (1.0 - splits.libraryShelfFraction)
-
-            HStack(spacing: 0) {
-                BookshelfListView(library: library)
-                    .frame(width: shelfW, height: totalH)
-                NativeSplitter(orientation: .vertical) { delta in
-                    splits.adjustShelfProject(delta: delta, totalWidth: totalW - hitW)
-                }
-                .frame(width: hitW, height: totalH)
-                // v0.02.1: real book list (= Apple HIG sidebar list scoped
-                // to the currently-selected shelf). Replaces the v0.01.x
-                // 'PROJECT' watermark. Injected via @Environment so the
-                // same WenshuLibrary instance drives both Shelf and
-                // Project lists. The two zones share library.selectedShelfId
-                // (= clicking a shelf on the left refreshes the book list
-                // on the right).
-                BookListView(library: library)
-                    .frame(width: projectW, height: totalH)
-            }
-            // PARENT LABEL overlay — sits on top of the HStack, anchored to the
-            // top-leading corner of the GeometryReader (= = totalW × totalH). Use
-            // the GeometryReader's explicit size, NOT `.frame(maxWidth: .infinity,
-            // maxHeight: .infinity)`, which lets the label itself dictate the
-            // parent's intrinsic size and pulls the entire LibraryScaffold out to
-            // the window's full width (= v29 screenshot bug: SHELF/PROJECT
-            // watermarks rendered 1158px right of where they belong).
+        LibraryOutlineView(library: library)
+            // PARENT LABEL overlay — sits on top of the outline, anchored
+            // to the top-leading corner. Apple HIG Finder sidebar headers
+            // follow the same 'container · count' pattern.
             .overlay(alignment: .topLeading) {
-                // v0.02.0: keep LIBRARY parent label, but make it data-driven
-                // (= 'LIBRARY · 3 个书架') so the owner can read the library
-                // state at a glance from the screenshot. Apple HIG Finder
-                // sidebar headers follow the same 'container · count' pattern.
                 Text(libraryHeader)
-                    // Apple HIG: secondary annotation in zone headers =
-                    // .subheadline (= 11pt regular; Notes / Finder sidebar
-                    // header pattern). Dynamic Type-respecting.
                     .font(.subheadline)
                     .foregroundStyle(.tertiary)
                     .padding(.horizontal, 6)
@@ -436,7 +402,6 @@ struct LibraryScaffold: View {
                     .padding(8)
                     .allowsHitTesting(false)
             }
-        }
     }
 
     /// 'LIBRARY' or 'LIBRARY · 3 个书架' depending on count. Kept private

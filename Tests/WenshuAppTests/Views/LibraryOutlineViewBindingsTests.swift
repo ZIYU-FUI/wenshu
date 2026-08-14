@@ -1,4 +1,4 @@
-// BookshelfListViewTests.swift · Wenshu (Wenshu) · v0.02.0
+// LibraryOutlineViewTests.swift · Wenshu (Wenshu) · v0.02.x (outline view)
 //
 // Owner 8/15 15:55: '架构需要先定好, 不能没事加个东西, 然后重构一堆
 // 东西'. These tests describe the view's public behavior using SwiftUI's
@@ -12,8 +12,8 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("BookshelfListView bindings")
-struct BookshelfListViewBindingsTests {
+@Suite("LibraryOutlineView bindings")
+struct LibraryOutlineViewBindingsTests {
 
     /// The view's binding surface (= what BookshelfListView exposes to
     /// its parent). Verifies the bindings the view reads / writes go

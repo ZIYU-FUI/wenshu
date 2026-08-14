@@ -8,10 +8,14 @@
 //   upperRatios       [0.20, 0.50, 0.30]  Library | Editor | Inspector
 //   lowerRatios       [0.70, 0.30]        Chat    | Console+Status
 //   consoleStatusRatio 0.50                Console | Status  (internal 1:1)
-//   libraryShelfFraction 0.50              Shelf   | Project (internal 1:1)
 //
 // The 50/50 upper/lower band split is HARD-CODED (= boss 19:55 lock, no
 // resizable band split in v0.01.0); there is no `lowerBandRatio` state.
+//
+// v0.02.x had a `libraryShelfFraction` (= internal Shelf | Project split
+// inside the Library zone). v50 removes it: the structure was wrong
+// (= a fixed split inside a single outline list, instead of a single
+// list with DisclosureGroup-style collapse/expand).
 //
 // Boss 19:00 fix: replaces v10's SwiftUI .frame(width: fraction) which caused
 // "拖拽时区域闪烁" (= SwiftUI layout invalidates the whole tree on every drag tick).
@@ -25,8 +29,7 @@ import Observation
 final class LayoutShellViewModel {
     /// Upper-band horizontal split ratios (= boss 19:45 口头约束 v0.01.0):
     ///   Library 20% / Editor 50% / Inspector 30% (= 0.20/0.50/0.30 of upper-band usable width).
-    /// Library internal = Shelf 10 + Project 10 (= each 10% of total = 1:1 internal split).
-    /// Boss 19:45 "library 20, shelf project 各 10, editor 50, inspector 30".
+    /// Boss 19:45 "library 20, editor 50, inspector 30".
     var upperRatios: [Double] = [0.20, 0.50, 0.30]
     /// Lower-band horizontal split ratios (= boss 19:45 "chat 70").
     /// Chat 70% of lower-band usable width, right side 30% (= Console + Status together).
@@ -35,9 +38,6 @@ final class LayoutShellViewModel {
     /// Console|Status internal split (= boss 19:45 "console 15 status 15" =
     ///   each = 15% of total = 50% of right-side-30% = 0.50 internal).
     var consoleStatusRatio: Double = 0.50
-    /// Library's internal vertical split (= boss 19:45 "shelf project 各 10" =
-    ///   each = 10% of total = 50/50 internal).
-    var libraryShelfFraction: Double = 0.50
 
     /// Drag bounds for any ratio (= owner拍 "常识性功能", Apple HIG splitter limits).
     static let minRatio: Double = 0.08
@@ -65,15 +65,6 @@ final class LayoutShellViewModel {
             delta: delta,
             totalWidth: totalWidth
         )
-    }
-
-    /// Library internal Shelf | Project splitter.
-    func adjustShelfProject(delta: CGFloat, totalWidth: CGFloat) {
-        let clamped = min(
-            max(libraryShelfFraction + Double(delta / totalWidth), Self.minRatio),
-            Self.maxRatio
-        )
-        libraryShelfFraction = clamped
     }
 
     /// Lower-band Chat | Console+Status splitter.
