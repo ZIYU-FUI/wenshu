@@ -57,28 +57,35 @@ final class NativeSplitterView: NSView {
     private(set) var redrawRequestCount: Int = 0
 
     static let visibleDividerThickness: CGFloat = 1
-    /// LT-01-fix16 (boss 19:10 "分割线往右多一块间隔"): shrink to 1pt (= same as
-    /// visibleDividerThickness) so the divider sits exactly on the panel boundary with
-    /// no visual gap on either side. The earlier 8pt hit area was the Apple HIG standard
-    /// (= NSSplitView .thin dividerStyle) but that left a 7pt empty strip on the END side
-    /// (= boss实机拍 "右边多一块"); making hit area == line thickness fixes it.
-    static let hitAreaThickness: CGFloat = 1
-    static let clickThreshold: CGFloat = 5
+        /// LT-01-fix17 (boss 19:20 "分割线的触发区域太小, 改成 5, 视觉 1, 鼠标触发 5"):
+        /// hit area = 5pt (mouse interaction expanded beyond the 1pt visual line),
+        /// visibleDividerThickness stays 1pt (= line still edge-to-edge, no gap).
+        /// 5pt hit area = user can grab the splitter without pixel-perfect aim (= Apple
+        /// HIG splitter drag region).
+        static let hitAreaThickness: CGFloat = 5
+        static let clickThreshold: CGFloat = 5
 
     // MARK: - Cursor mapping (LT-01-fix9)
     static func cursorForOrientation(_ o: SplitterOrientation) -> NSCursor {
         return (o == .horizontal) ? .resizeLeftRight : .resizeUpDown
     }
 
-    // MARK: - lineRect helper (LT-01-fix15 优化1)
-    static func lineRect(in bounds: NSRect, orientation: SplitterOrientation) -> NSRect {
-        let thickness = visibleDividerThickness
-        if orientation == .horizontal {
-            return NSRect(x: 0, y: 0, width: thickness, height: bounds.height)
-        } else {
-            return NSRect(x: 0, y: 0, width: bounds.width, height: thickness)
-        }
+    // MARK: - lineRect helper (= boss 19:50 "线的边上有个间隔" + LT-01-fix17 5pt hit area)
+// Boss 19:50: "线的边上有个间隔" → previously lineRect at x=0 (= line贴左 panel边界,
+// 右4pt 空白看得见). Fix: place 1pt visual line at hit-area CENTER (= 两侧各 2pt 空白
+// 不可见因为 panel 自己的 background.fill 已经填了 = 视觉上线在 panel 中间, 0 间距).
+static func lineRect(in bounds: NSRect, orientation: SplitterOrientation) -> NSRect {
+    let thickness = visibleDividerThickness  // 1pt
+    let hitArea = hitAreaThickness            // 5pt
+    let centerOffset = (hitArea - thickness) / 2  // = (5-1)/2 = 2pt
+    if orientation == .horizontal {
+        // Vertical 1pt line at hit-area center (= 左 2pt, 线, 右 2pt).
+        return NSRect(x: centerOffset, y: 0, width: thickness, height: bounds.height)
+    } else {
+        // Horizontal 1pt line at hit-area center.
+        return NSRect(x: 0, y: centerOffset, width: bounds.width, height: thickness)
     }
+}
 
     // MARK: - Axis delta (LT-01-fix14 standard NSEvent delta algorithm)
     static func axisDelta(

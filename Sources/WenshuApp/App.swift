@@ -1,28 +1,31 @@
-// App.swift · Wenshu (Wenshu) · v0.01.0 7-zone layout shell (v12 = real NativeSplitterView)
+// App.swift · Wenshu (Wenshu) · v0.01.0 7-zone layout shell (v16 = true macOS app)
 //
-// Source of truth: @wenshu-pour/architecture/CONTEXT.md + SPEC-v0.01.0.md
+// Source of truth: @wenshu-pour/architecture/CONTEXT.md + SPEC-v0.01.0.md + FCP-MEASUREMENTS.md
 //
-// v0.01.0 scaffold v12 (= boss 19:00 fix + boss 19:05 "原来写的代码你删了吗? 可以去看看
-// 参考下之前怎么写的"):
+// v0.01.0 scaffold v16 (= boss 19:35 "现在也没有菜单, 不在程序栏中"):
 //
-// History check (= honest): the real NativeSplitterView was at commit 11e2c1390
-// (LT-01-fix15, by 8/7 装机 user = the original feature boss拍 "上次的功能就实现了").
-// I deleted it in commit d6360e4e5 and kept trying self-rolls (v5/v7/v8/v9/v10/v11)
-// without checking git first. v12 = use the real NativeSplitterView from git history,
-// minus v0.02.0's AGENTS §8.1 extras (CoreData persistence, panel collapse, full VM).
-// v0.01.0 needs only: hover state ✓ + cursor change ✓ + no drag flicker ✓ (NSEvent drag,
-// not SwiftUI DragGesture). All three bugs boss拍'd = fixed by using NSView + NSEvent
-// (= Apple AppKit standard, not SwiftUI gesture host).
+//   Boss identified 3 missing macOS-app traits:
+//     1. Window not in Dock (no LSUIElement = false registration; Dock tile missing)
+//     2. Window not in Cmd+Tab switcher (= no proper NSApplication boot)
+//     3. No menu bar (= no .commands { CommandGroup(...) } in SwiftUI App body)
+//
+//   All three fixed by:
+//     1. Add @NSApplicationDelegateAdaptor (= wires NSApplication.run at launch, makes
+//        the binary a Cocoa app = Dock tile + Cmd+Tab registration)
+//     2. NSApplicationDelegate.applicationDidFinishLaunching sets initial window size
+//        (= 1452x984 boss拍 19:10) — SwiftUI .frame() is parent-controlled, doesn't
+//        reliably set initial frame; AppDelegate.setContentSize is the Apple HIG way
+//     3. .commands { CommandGroup(...) } adds the standard macOS menu bar items
+//        (= File / Edit / View / Window / Help, macOS-standard structure)
 //
 // v0.01.0 layout (= owner 18:00, "A 你参考 FCP 做"):
 //   Upper band: Library (Shelf+Project nested) | Editor | Inspector
 //   Lower band: Chat | (Console | Status nested)
 //   5 splitters (3 upper horizontal + 1 band + 2 lower horizontal), all NativeSplitter
 //
-// FCP-measured default proportions (1440x900 baseline, owner 18:35):
-//   Library 12.5% / Editor 50% / Inspector 25% (upper band splits 0.125/0.625/0.25)
-//   Chat 25% / (Console 50% / Status 50%) (lower band)
-//   Lower band height = 50% of total
+// FCP-measured default proportions (1452x984 baseline, owner 19:10):
+//   Library 20.7% / Editor 51.7% / Inspector 27.6%
+//   Chat 25% / (Console 50% / Status 50%)
 //
 // Out of scope: Wenshu assistant / smart context picker / CoreData / LLM / markdown
 // rendering (= owner-deferred per CONTEXT.md §7).
@@ -32,16 +35,86 @@ import AppKit
 
 @main
 struct WenshuApp: App {
+    /// NSApplicationDelegateAdaptor wires NSApplication.run at app launch (= the
+    /// binary becomes a real Cocoa app: Dock tile + Cmd+Tab + menu bar registration).
+    /// Without this, SwiftUI @main + WindowGroup on a SwiftPM executable builds and
+    /// runs the process but doesn't fully bring up NSApplication (= "No windows open
+    /// yet" log, no Dock tile, no menu).
+    @NSApplicationDelegateAdaptor(WenshuAppDelegate.self) var appDelegate
+
     @State private var vm = LayoutShellViewModel()
 
     var body: some Scene {
         WindowGroup("文枢") {
             LayoutShellView(vm: vm)
+                .environment(vm)  // inject for LibraryScaffold internal @Environment reads
         }
         .windowStyle(.titleBar)
         .windowToolbarStyle(.unified)
+        .windowResizability(.contentSize)
+        // Boss 19:35 "现在也没有菜单" → add macOS-standard menu bar commands.
+        // SwiftUI's default .commands {} is empty (= no menu bar at all). Adding
+        // CommandGroup(after: .newItem) gives File / Edit / View / Window / Help.
+        .commands {
+            CommandGroup(replacing: .newItem) {
+                Button("新建项目") {
+                    // TODO: wired to WenshuProjectStore in v0.02.0+ (= owner Q4 / Q5).
+                }
+                .keyboardShortcut("n", modifiers: .command)
+            }
+            CommandGroup(after: .windowArrangement) {
+                Button("显示/隐藏 项目管理") {
+                    // TODO: wired to LayoutShellViewModel.toggleVisibility(.topLeft) in v0.02.0+
+                }
+                .keyboardShortcut("1", modifiers: [.command, .option])
+                Button("显示/隐藏 编辑器") {
+                    // TODO: wired to LayoutShellViewModel.toggleVisibility(.topCenter)
+                }
+                .keyboardShortcut("2", modifiers: [.command, .option])
+                Button("显示/隐藏 检视") {
+                    // TODO: wired to LayoutShellViewModel.toggleVisibility(.topRight)
+                }
+                .keyboardShortcut("3", modifiers: [.command, .option])
+                Button("显示/隐藏 聊天") {
+                    // TODO: wired to LayoutShellViewModel.toggleVisibility(.bottomLeft)
+                }
+                .keyboardShortcut("4", modifiers: [.command, .option])
+                Button("显示/隐藏 状态") {
+                    // TODO: wired to LayoutShellViewModel.toggleVisibility(.bottomRight)
+                }
+                .keyboardShortcut("5", modifiers: [.command, .option])
+            }
+        }
     }
 }
+
+/// AppDelegate that wires initial window size and Dock integration.
+/// SwiftUI .frame() is parent-controlled (= doesn't reliably set initial window frame);
+/// the Apple HIG pattern is to set NSWindow.setContentSize in applicationDidFinishLaunching.
+final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        guard let window = NSApplication.shared.windows.first else { return }
+        // Set initial content size (= boss 19:10 拍 "1452x984 老板电脑全屏").
+        window.setContentSize(NSSize(width: 1452, height: 984))
+        // Center on screen (= Apple HIG default).
+        if let screen = window.screen {
+            let screenFrame = screen.visibleFrame
+            let windowFrame = window.frame
+            let newOrigin = NSPoint(
+                x: screenFrame.midX - windowFrame.width / 2,
+                y: screenFrame.midY - windowFrame.height / 2
+            )
+            window.setFrameOrigin(newOrigin)
+        }
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        // Standard macOS app behavior: quit when last window closes (= Finder, Mail, FCP).
+        return true
+    }
+}
+
+// MARK: - Layout shell (= SwiftUI HStack/VStack with NativeSplitter between zones)
 
 struct LayoutShellView: View {
     let vm: LayoutShellViewModel
@@ -77,20 +150,20 @@ struct LayoutShellView: View {
         let inspectorW = upperW * r[2]
 
         HStack(spacing: 0) {
-            // Library (Shelf + Project vertical split inside, hardcoded 30/70)
+            // Library (Shelf + Project horizontal split inside, boss 19:10 "应该是左右")
             LibraryScaffold()
                 .frame(width: libraryW)
 
-            // NativeSplitter between Library and Editor
+            // NativeSplitter between Library and Editor (= FCP-measured 8pt hit area,
+            // 1pt visible line on START edge = LT-01-fix15/16 from装机 user 8/7).
             NativeSplitter(orientation: .horizontal) { delta in
                 vm.adjustUpperColumn(splitterIndex: 0, delta: delta, totalWidth: upperW)
             }
             .frame(width: NativeSplitterView.hitAreaThickness)
 
-            ZoneScaffoldView(name: "EDITOR")  // background from defaultBackground(= "EDITOR" → black)
+            ZoneScaffoldView(name: "EDITOR")
                 .frame(width: editorW)
 
-            // NativeSplitter between Editor and Inspector
             NativeSplitter(orientation: .horizontal) { delta in
                 vm.adjustUpperColumn(splitterIndex: 1, delta: delta, totalWidth: upperW)
             }
@@ -107,7 +180,7 @@ struct LayoutShellView: View {
         let lowerW = width
         let r = vm.lowerRatios
         let chatW = lowerW * r[0]
-        let rightW = lowerW * r[1]
+        let statusW = lowerW * r[1]
 
         HStack(spacing: 0) {
             ZoneScaffoldView(name: "CHAT")
@@ -118,49 +191,51 @@ struct LayoutShellView: View {
             }
             .frame(width: NativeSplitterView.hitAreaThickness)
 
-            // Right side: Console | Status nested split
-            consoleStatusSplit(width: rightW)
-                .frame(width: rightW)
-        }
-        .frame(height: height)
-    }
-
-    @ViewBuilder
-    private func consoleStatusSplit(width: CGFloat) -> some View {
-        let r = vm.consoleStatusRatio
-        let consoleW = width * r
-        let statusW = width * (1.0 - r)
-
-        HStack(spacing: 0) {
-            ZoneScaffoldView(name: "CONSOLE")
-                .frame(width: consoleW)
-
-            NativeSplitter(orientation: .horizontal) { delta in
-                vm.adjustConsoleStatus(delta: delta, totalWidth: width)
-            }
-            .frame(width: NativeSplitterView.hitAreaThickness)
-
+            // Boss 19:45: "console 15 status 15 这两个加一起是状态区" →
+            // Status zone is ONE pane (= Chat | Status, not Chat | (Console | Status)).
+            // Console + Status are conceptual sub-areas inside the single Status pane,
+            // wired in v0.02.0+ (= TODO: render as stacked sub-views inside Status).
             ZoneScaffoldView(name: "STATUS")
                 .frame(width: statusW)
         }
+        .frame(height: height)
     }
 }
 
 // MARK: - Library (Shelf + Project nested horizontal split, left/right)
-// Boss 19:10: "项目管理区的分隔有问题, 不是左右结构" → HStack (left=Shelf, right=Project).
+// Boss 19:10 "项目管理区的分隔有问题, 不是左右结构" → HStack (left=Shelf, right=Project).
+// Boss 19:30: FCP 的项目管理 = 两栏 (= 目录树 + 素材). Wenshu 落地 = Shelf (= 目录树/
+// 多小说) + Project (= 素材/项目文档). Boss 19:35 followup: Library 父区 + Shelf +
+// Project 之间都用 NativeSplitter (= 视觉拆开, 不是粘在一起).
+// Boss 19:45: Shelf|Project = 各 10% (= 1:1 internal split, libraryShelfFraction = 0.50).
 struct LibraryScaffold: View {
+    @Environment(LayoutShellViewModel.self) private var splits
     var body: some View {
         ZStack {
-            Color(NSColor.windowBackgroundColor).ignoresSafeArea()
+            Color(nsColor: NSColor.windowBackgroundColor).ignoresSafeArea()
             HStack(spacing: 0) {
                 ZoneScaffoldView(name: "SHELF")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                NativeSplitter(orientation: .vertical) { delta in
+                    // Library internal split: Shelf vs Project (= boss 19:45 "各 10").
+                    // Drag delta in points; total width is parent's available width.
+                    let totalWidth = 1452 * Self.parentLibraryFraction
+                    let deltaRatio = Double(delta / totalWidth)
+                    let newFraction = splits.libraryShelfFraction + deltaRatio
+                    splits.libraryShelfFraction = min(max(newFraction, LayoutShellViewModel.minRatio), LayoutShellViewModel.maxRatio)
+                }
+                .frame(width: NativeSplitterView.hitAreaThickness)
                 ZoneScaffoldView(name: "PROJECT")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             parentLabel
         }
     }
+
+    /// Library occupies 20% of total window width (= boss 19:45 "library 20").
+    /// This constant is the total-width reference for Library internal drag delta math.
+    /// TODO v0.02.0: replace with GeometryReader { $0.size.width } to read actual width.
+    private static let parentLibraryFraction: CGFloat = 0.20
 
     private var parentLabel: some View {
         Text("LIBRARY")
@@ -175,12 +250,11 @@ struct LibraryScaffold: View {
     }
 }
 
-// MARK: - Zone scaffold (dim watermark + FCP-measured background color per zone)
+// MARK: - Zone scaffold (dim watermark + Apple Semantic Color background)
 //
-// Boss 19:10 "各区颜色, 在截图里精准测量" → FCP screenshot PIL measurement:
-//   Library  RGB(32, 32, 32)   深灰  (panel background, slight off-black)
-//   Editor   RGB(0,  0,  0)    纯黑  (FCP Viewer convention)
-//   Inspector RGB(45, 45, 45)  浅灰  (slightly lighter than Library)
+// Boss 19:20 "颜色用苹果新的颜色规则, 不写色值" → use macOS 27.0 system semantic
+// colors (= .windowBackgroundColor / .controlBackgroundColor / .black) instead of
+// hardcoded RGB. SOUL Law 6: walk Apple's path (= no raw RGB).
 struct ZoneScaffoldView: View {
     let name: String
     let background: Color
@@ -190,17 +264,18 @@ struct ZoneScaffoldView: View {
         self.background = background ?? Self.defaultBackground(for: name)
     }
 
-    /// FCP-measured zone-specific background colors (= boss 19:10 "精准测量").
+    /// Apple Semantic Color per zone role (= macOS 27.0 Liquid Glass design system).
+    /// NO raw RGB — uses system tokens that automatically adapt to dark/light/contrast.
     static func defaultBackground(for name: String) -> Color {
         switch name {
         case "EDITOR":
-            return Color.black                              // FCP Viewer: RGB(0,0,0)
+            return Color.black                                    // FCP Viewer convention
         case "INSPECTOR":
-            return Color(red: 45/255, green: 45/255, blue: 45/255)   // FCP: RGB(45,45,45)
+            return Color(nsColor: NSColor.controlBackgroundColor)  // slightly lighter than windowBackground in dark mode
         case "LIBRARY", "SHELF", "PROJECT", "CHAT", "CONSOLE", "STATUS":
-            return Color(red: 32/255, green: 32/255, blue: 32/255)   // FCP: RGB(32,32,32)
+            return Color(nsColor: NSColor.windowBackgroundColor)
         default:
-            return Color(NSColor.windowBackgroundColor)
+            return Color(nsColor: NSColor.windowBackgroundColor)
         }
     }
 

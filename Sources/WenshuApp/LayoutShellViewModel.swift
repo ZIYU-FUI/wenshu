@@ -21,18 +21,24 @@ import Observation
 
 @Observable
 final class LayoutShellViewModel {
-    /// Upper-band horizontal split ratios (= FCP-measured, owner 19:10 "精准测量"):
-    ///   Library 20.7% / Editor 51.7% / Inspector 27.6% (= 300/750/400 of 1452pt total).
-    /// Library is widest at 20.7% (= FCP 实测 Library 列 x=0..300 pt); Editor is widest
-    /// at 51.7% (= FCP Viewer x=300..1050 pt); Inspector at 27.6% (= FCP x=1050..1450).
-    var upperRatios: [Double] = [0.207, 0.517, 0.276]
+    /// Upper-band horizontal split ratios (= boss 19:45 口头约束 v0.01.0):
+    ///   Library 20% / Editor 50% / Inspector 30% (= 0.20/0.50/0.30 of 1452 pt total).
+    /// Library internal = Shelf 10 + Project 10 (= each 10% of total = 1:1 internal split).
+    /// Boss 19:45 "library 20, shelf project 各 10, editor 50, inspector 30".
+    var upperRatios: [Double] = [0.20, 0.50, 0.30]
     /// Lower-band vertical-vs-upper split ratio (= 0.50 = half-half).
+    /// (= boss没拍, 默认 50/50 vertical band split.)
     var lowerBandRatio: Double = 0.50
-    /// Lower-band horizontal split ratios. ratios[0]+ratios[1] = 1.0.
-    /// ratios[0] = Chat, ratios[1] = Console+Status half (= total right side share).
-    var lowerRatios: [Double] = [0.25, 0.75]
-    /// Console|Status internal split (= 0.50 = half-half).
+    /// Lower-band horizontal split ratios (= boss 19:45 "chat 70").
+    /// Chat 70% of lower-band width, right side 30% (= Console + Status together).
+    /// ratios[0] = Chat 0.70, ratios[1] = Console+Status 0.30.
+    var lowerRatios: [Double] = [0.70, 0.30]
+    /// Console|Status internal split (= boss 19:45 "console 15 status 15" =
+    ///   each = 15% of total = 50% of right-side-30% = 0.50 internal).
     var consoleStatusRatio: Double = 0.50
+    /// Library's internal vertical split (= boss 19:45 "shelf project 各 10" =
+    ///   each = 10% of total = 50/50 internal).
+    var libraryShelfFraction: Double = 0.50
 
     /// Min/max bounds (= owner拍 "常识性功能", Apple HIG splitter limits).
     static let minRatio: Double = 0.08
