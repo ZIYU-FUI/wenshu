@@ -70,20 +70,21 @@ final class NativeSplitterView: NSView {
         return (o == .horizontal) ? .resizeLeftRight : .resizeUpDown
     }
 
-    // MARK: - lineRect helper (= boss 19:50 "线的边上有个间隔" + LT-01-fix17 5pt hit area)
-// Boss 19:50: "线的边上有个间隔" → previously lineRect at x=0 (= line贴左 panel边界,
-// 右4pt 空白看得见). Fix: place 1pt visual line at hit-area CENTER (= 两侧各 2pt 空白
-// 不可见因为 panel 自己的 background.fill 已经填了 = 视觉上线在 panel 中间, 0 间距).
+    // MARK: - lineRect helper (= boss 19:50 + 19:55 "线的边上有个间隔")
+// Boss 19:50 first attempt: lineRect at x=0 (= line贴左 panel边界, 右 4pt 空白看得见)
+// Boss 19:55 second attempt: lineRect centered (= 两侧各 2pt 空白, but boss拍 "间隔还在")
+// Boss 19:55 final insight: lineRect must FILL the full hit area (= 5pt wide line
+// visible across the entire hit area, no blank strips on either side). The 5pt
+// width means the "line" itself is 5pt thick (= visible to the eye), not 1pt hairline.
+// This is the Apple HIG NSSplitView .thin dividerStyle: the divider is a thin
+// GRADIENT or SOLID color block, not a hairline.
 static func lineRect(in bounds: NSRect, orientation: SplitterOrientation) -> NSRect {
-    let thickness = visibleDividerThickness  // 1pt
-    let hitArea = hitAreaThickness            // 5pt
-    let centerOffset = (hitArea - thickness) / 2  // = (5-1)/2 = 2pt
     if orientation == .horizontal {
-        // Vertical 1pt line at hit-area center (= 左 2pt, 线, 右 2pt).
-        return NSRect(x: centerOffset, y: 0, width: thickness, height: bounds.height)
+        // Full 5pt wide vertical line (fills the entire hit area width).
+        return NSRect(x: 0, y: 0, width: hitAreaThickness, height: bounds.height)
     } else {
-        // Horizontal 1pt line at hit-area center.
-        return NSRect(x: 0, y: centerOffset, width: bounds.width, height: thickness)
+        // Full 5pt tall horizontal line.
+        return NSRect(x: 0, y: 0, width: bounds.width, height: hitAreaThickness)
     }
 }
 
