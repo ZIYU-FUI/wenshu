@@ -150,10 +150,23 @@ struct WenshuApp: App {
 
     @State private var vm = LayoutShellViewModel()
 
+    /// v0.02.0 (bookshelf module): the real state layer. Owns the in-memory list
+    /// of Bookshelf + the user's selection; every mutation goes through this.
+    /// The store is the FileSystem implementation (= ~/Documents/wenshu/<id>/
+    /// per the Apple HIG document-based-app convention). Future swaps to
+    /// MetadataQuery / CoreData / CloudKit only need to change this one line.
+    ///
+    /// LibraryRoot.ensureDefault() creates ~/Documents/wenshu if it doesn't exist
+    /// (= first launch). Owner 8/15 15:55: '架构需要先定好, 不能没事加个东西'.
+    @State private var library = WenshuLibrary(
+        store: FileSystemLibraryStore(rootURL: LibraryRoot.ensureDefault())
+    )
+
     var body: some Scene {
         WindowGroup("文枢") {
-            LayoutShellView(vm: vm)
-                .environment(vm)  // inject for LibraryScaffold internal @Environment reads
+            LayoutShellView(vm: vm, library: library)
+                .environment(vm)        // splitter state
+                .environment(library)   // bookshelf state (= v0.02.0)
         }
         .windowStyle(.titleBar)
         .windowToolbarStyle(.unified)
@@ -229,6 +242,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
 
 struct LayoutShellView: View {
     let vm: LayoutShellViewModel
+    let library: WenshuLibrary
 
     var body: some View {
         GeometryReader { geo in
@@ -366,6 +380,11 @@ struct LayoutShellView: View {
 // Boss 19:45: Shelf|Project = 各 10% (= 1:1 internal split, libraryShelfFraction = 0.50).
 struct LibraryScaffold: View {
     @Environment(LayoutShellViewModel.self) private var splits
+    /// v0.02.0: real Bookshelf list (= Apple HIG sidebar list with new /
+    /// rename / delete / show-in-finder). Replaces the v0.01.x 'SHELF'
+    /// watermark. Injected via @Environment so the same WenshuLibrary
+    /// instance drives both Shelf and Project lists (= v0.02.1).
+    @Environment(WenshuLibrary.self) private var library
     var body: some View {
         GeometryReader { geo in
             // Compute explicit pixel widths from parent's actual size (= boss 19:55
@@ -378,7 +397,7 @@ struct LibraryScaffold: View {
             let projectW = (totalW - hitW) * (1.0 - splits.libraryShelfFraction)
 
             HStack(spacing: 0) {
-                ZoneScaffoldView(name: "SHELF")
+                BookshelfListView(library: library)
                     .frame(width: shelfW, height: totalH)
                 NativeSplitter(orientation: .vertical) { delta in
                     splits.adjustShelfProject(delta: delta, totalWidth: totalW - hitW)
@@ -395,14 +414,11 @@ struct LibraryScaffold: View {
             // the window's full width (= v29 screenshot bug: SHELF/PROJECT
             // watermarks rendered 1158px right of where they belong).
             .overlay(alignment: .topLeading) {
-                // Boss 8/15 15:48: '把各区域的备注文字的字号调小吧'. The
-                // LIBRARY label is the only parent-overlay label (= the only
-                // zone whose children have separate names); keep it readable
-                // for owner reference but drop the ultraThinMaterial capsule
-                // background so it doesn't compete with the watermark hierarchy.
-                // Apple HIG: secondary annotation in zone headers is .tertiary
-                // 11-12pt, no background pill (= Notes / Finder sidebar headers).
-                Text("LIBRARY")
+                // v0.02.0: keep LIBRARY parent label, but make it data-driven
+                // (= 'LIBRARY · 3 个书架') so the owner can read the library
+                // state at a glance from the screenshot. Apple HIG Finder
+                // sidebar headers follow the same 'container · count' pattern.
+                Text(libraryHeader)
                     .font(.system(size: 11, weight: .medium, design: .default))
                     .foregroundStyle(.tertiary)
                     .padding(.horizontal, 6)
@@ -411,6 +427,14 @@ struct LibraryScaffold: View {
                     .allowsHitTesting(false)
             }
         }
+    }
+
+    /// 'LIBRARY' or 'LIBRARY · 3 个书架' depending on count. Kept private
+    /// (= only the overlay reads it); the count comes from the @Observable
+    /// library so it redraws when a shelf is added or removed.
+    private var libraryHeader: String {
+        let count = library.shelves.count
+        return count == 0 ? "LIBRARY" : "LIBRARY · \(count) 个书架"
     }
 }
 
