@@ -133,9 +133,22 @@ final class NativeSplitterView: NSView {
         super.draw(dirtyRect)
 
         let lineRect = Self.lineRect(in: bounds, orientation: orientation)
+        // Boss 8/15 15:08: divider line is pure black (= NSColor.black, not
+        // separatorColor). Hover keeps Apple HIG controlAccentColor so the
+        // user sees the splitter activate when grabbing.
+        //
+        // Caveat (= owner拍了 pure black; trade-off is editor zone visibility):
+        // the EDITOR zone uses Color.black as its background (= FCP Viewer
+        // convention, set in ZoneScaffoldView.color(for:)). A 1pt black line
+        // on a black background is invisible. Owner 8/15 15:08 said '1pt 的
+        // 线是纯黑的' without naming the EDITOR collision; if the line being
+        // invisible in EDITOR is a problem, the fix is zone-aware colors
+        // (= white in EDITOR, black elsewhere). v32.1 ships pure black per
+        // the owner's explicit ask; the EDITOR collision is documented here
+        // for the next round of review.
         let dividerColor = isHovered
             ? NSColor.controlAccentColor
-            : NSColor.separatorColor
+            : NSColor.black
         dividerColor.setFill()
         lineRect.fill()
     }
