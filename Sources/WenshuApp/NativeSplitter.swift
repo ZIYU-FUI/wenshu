@@ -70,23 +70,30 @@ final class NativeSplitterView: NSView {
         return (o == .horizontal) ? .resizeLeftRight : .resizeUpDown
     }
 
-    // MARK: - lineRect helper (= boss 19:50 + 19:55 "线的边上有个间隔")
-// Boss 19:50 first attempt: lineRect at x=0 (= line贴左 panel边界, 右 4pt 空白看得见)
-// Boss 19:55 second attempt: lineRect centered (= 两侧各 2pt 空白, but boss拍 "间隔还在")
-// Boss 19:55 final insight: lineRect must FILL the full hit area (= 5pt wide line
-// visible across the entire hit area, no blank strips on either side). The 5pt
-// width means the "line" itself is 5pt thick (= visible to the eye), not 1pt hairline.
-// This is the Apple HIG NSSplitView .thin dividerStyle: the divider is a thin
-// GRADIENT or SOLID color block, not a hairline.
-static func lineRect(in bounds: NSRect, orientation: SplitterOrientation) -> NSRect {
-    if orientation == .horizontal {
-        // Full 5pt wide vertical line (fills the entire hit area width).
-        return NSRect(x: 0, y: 0, width: hitAreaThickness, height: bounds.height)
-    } else {
-        // Full 5pt tall horizontal line.
-        return NSRect(x: 0, y: 0, width: bounds.width, height: hitAreaThickness)
+    /// Drawn divider geometry (= Apple HIG NSSplitView `.thin` divider style):
+    /// 1pt hairline centered inside a 5pt hit area (2pt transparent padding
+    /// each side). The hit area is bigger than the line for ergonomic
+    /// grabbing — per Apple docs:
+    ///   "A split view with thin dividers proposes an effective frame
+    ///    that's a little larger than the drawn frame."
+    ///    — NSSplitView.h splitView:effectedRect:forDrawnRect:ofDividerAtIndex:
+    ///
+    /// v32 revision (= the v25 "fill the whole hit area" approach was
+    /// wrong: it turned the divider into a 5pt solid block, visually too
+    /// thick). Now the visual is a 1pt line with the hit area extending
+    /// 2pt on either side as transparent grab padding.
+    static func lineRect(in bounds: NSRect, orientation: SplitterOrientation) -> NSRect {
+        let line: CGFloat = 1                                 // hairline
+        let hit = hitAreaThickness                              // 5pt
+        let pad = (hit - line) / 2                              // = 2pt each side
+        if orientation == .horizontal {
+            // Vertical 1pt hairline at hit-area center (x = pad = 2).
+            return NSRect(x: pad, y: 0, width: line, height: bounds.height)
+        } else {
+            // Horizontal 1pt hairline at hit-area center (y = pad = 2).
+            return NSRect(x: 0, y: pad, width: bounds.width, height: line)
+        }
     }
-}
 
     // MARK: - Axis delta (LT-01-fix14 standard NSEvent delta algorithm)
     static func axisDelta(
