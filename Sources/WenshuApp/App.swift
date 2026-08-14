@@ -426,7 +426,10 @@ struct LibraryScaffold: View {
                 // state at a glance from the screenshot. Apple HIG Finder
                 // sidebar headers follow the same 'container · count' pattern.
                 Text(libraryHeader)
-                    .font(.system(size: 11, weight: .medium, design: .default))
+                    // Apple HIG: secondary annotation in zone headers =
+                    // .subheadline (= 11pt regular; Notes / Finder sidebar
+                    // header pattern). Dynamic Type-respecting.
+                    .font(.subheadline)
                     .foregroundStyle(.tertiary)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
@@ -484,14 +487,16 @@ struct ZoneScaffoldView: View {
         // 这样我可以指定区域告诉你要做什么'. The watermark stays — it's the
         // zone label the owner uses to refer to specific zones in chat
         // ("改 LIBRARY 的 xxx", "看看 EDITOR 那条线", etc.) — but it
-        // must NOT compete with actual content. v36: drop from 72pt bold
-        // to 20pt regular, lower the contrast from 0.18 to 0.10 (= reads
-        // as a dim placeholder hint, not a hero label). At 20pt regular,
-        // "SHELF" and "PROJECT" also fit cleanly inside their 141px-wide
-        // Library-internal splits (= the previous 72pt "SHELF-PROJE..."
-        // overlap-on-the-divider artifact is gone as a side effect).
+        // must NOT compete with actual content.
+        // Apple HIG: .title3 = 20pt regular (= macOS Title 3 = Notes /
+        // Reminders list section header). Dynamic Type-respecting.
+        // Lower contrast from 0.18 to 0.10 (= reads as a dim placeholder
+        // hint, not a hero label). At 20pt regular, "SHELF" and "PROJECT"
+        // also fit cleanly inside their 141px-wide Library-internal
+        // splits (= the previous 72pt "SHELF-PROJE..." overlap-on-the-
+        // divider artifact is gone as a side effect).
         Text(name)
-            .font(.system(size: 20, weight: .regular, design: .default))
+            .font(.title3)
             .foregroundStyle(.tertiary.opacity(0.10))
             .lineLimit(1)
             .minimumScaleFactor(0.5)
