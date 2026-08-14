@@ -1,9 +1,14 @@
-// Book.swift · Wenshu (Wenshu) · v0.02.1 (book module)
+// Book.swift · Wenshu (Wenshu) · v0.02.1 (book module) + v52 (new-book wizard)
 //
 // Domain model for a single book (= a novel the user is writing).
 // v0.02.1 ships just the book + its persistence; chapter content
 // (= .md files inside the book's directory) lands in v0.03.0 alongside
 // the EDITOR module.
+//
+// v52: adds `length` (BookLength enum) + `idea` (optional String) for
+// the New Book Creation Wizard (= boss 8/15 17:32 '书名, 篇幅选择, 创
+// 意点'). Both fields have defaults + Codable back-compat (= v0.02.x
+// book.json files without these keys still decode).
 //
 // Owner 8/15 15:55: '架构需要先定好, 不能没事加个东西, 然后重构一堆
 // 东西'. The shape of Book is locked by `Tests/WenshuAppTests/Domain/
@@ -15,13 +20,38 @@
 //   ~/Documents/wenshu/<shelf-id-uuid>/
 //     shelf.json
 //     books/<book-id-uuid>/
-// book.json             ← encoded Book (this file)
+// book.json             ← encoded Book (this file; includes length +
+//                       idea since v52)
 //       chapters/<chapter-id-uuid>.md  (v0.03.0)
 //
 // id == directory name (= UUID string) so renames don't break the
 // filesystem identity (= Apple HIG: URL = identity, name = label).
 
 import Foundation
+
+/// Book length = the scope the user commits to when creating a new
+/// book. v52 introduced this (= boss 8/15 17:32 '篇幅选择'). Drives
+/// later chapter management (= v0.03.0 chapter list reads the length
+/// to suggest word-count targets + chapter split heuristics). Three
+/// cases, allCases-ordered (= Picker in the wizard renders in this
+/// order: 短篇 / 中篇 / 长篇).
+enum BookLength: String, CaseIterable, Codable, Sendable {
+    case short
+    case medium
+    case long
+
+    /// Chinese display name for the wizard Picker. Apple HIG Picker
+    /// labels are short, single-line (= the system spec example uses
+    /// 'Short / Medium / Long' verbatim; we match the wenshu 中文
+    /// design vocabulary).
+    var displayName: String {
+        switch self {
+        case .short:  return "短篇"
+        case .medium: return "中篇"
+        case .long:   return "长篇"
+        }
+    }
+}
 
 struct Book: Identifiable, Hashable, Codable, Sendable {
     let id: UUID
@@ -33,6 +63,13 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
     /// must live under its parent shelf's `books/`). Required at init so
     /// no orphan books ever land on disk.
     let shelfId: UUID
+    /// v52: declared length at creation. Defaults to `.medium` (= the
+    /// most common case; the wizard always sets a value, but defaults
+    /// exist for Codable back-compat with v0.02.x book.json files).
+    var length: BookLength
+    /// v52: the user's one-line story idea. Optional (= the wizard
+    /// presents it as '可选' / optional). nil = not provided.
+    var idea: String?
     let createdAt: Date
     var updatedAt: Date
 
@@ -41,6 +78,8 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
         title: String,
         author: String = "",
         shelfId: UUID,
+        length: BookLength = .medium,
+        idea: String? = nil,
         createdAt: Date = .now,
         updatedAt: Date = .now
     ) {
@@ -48,6 +87,8 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
         self.title = title
         self.author = author
         self.shelfId = shelfId
+        self.length = length
+        self.idea = idea
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -70,5 +111,39 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
+    }
+
+    // MARK: - Codable back-compat (v52)
+    //
+    // v0.02.x book.json files don't have 'length' or 'idea' (= fields
+    // added in v52). Synthesized Codable would fail to decode them
+    // (= keysNotFound). Override init(from:) to provide defaults for
+    // missing keys. New fields added in v0.04+ (= synopsis, character
+    // list, etc.) should follow the same pattern.
+
+    private enum CodingKeys: String, CodingKey {
+        case id, title, author, shelfId, length, idea, createdAt, updatedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let id = try c.decode(UUID.self, forKey: .id)
+        let title = try c.decode(String.self, forKey: .title)
+        let author = try c.decode(String.self, forKey: .author)
+        let shelfId = try c.decode(UUID.self, forKey: .shelfId)
+        let length = try c.decodeIfPresent(BookLength.self, forKey: .length) ?? .medium
+        let idea = try c.decodeIfPresent(String.self, forKey: .idea)
+        let createdAt = try c.decode(Date.self, forKey: .createdAt)
+        let updatedAt = try c.decode(Date.self, forKey: .updatedAt)
+        self.init(
+            id: id,
+            title: title,
+            author: author,
+            shelfId: shelfId,
+            length: length,
+            idea: idea,
+            createdAt: createdAt,
+            updatedAt: updatedAt
+        )
     }
 }
