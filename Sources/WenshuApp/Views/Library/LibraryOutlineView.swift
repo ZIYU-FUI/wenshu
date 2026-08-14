@@ -50,12 +50,21 @@ struct LibraryOutlineView: View {
     @State private var pendingDeleteShelf: Bookshelf?
 
     enum SheetKind: Identifiable {
-        case new
-        case rename(Bookshelf)
+        case newShelf
+        case renameShelf(Bookshelf)
+        /// v52: New Book wizard (= boss 8/15 17:32 '书名, 篇幅选择, 创意点
+        /// 然后新建'). The parent shelf id is captured at sheet-show
+        /// time (= the user right-clicks on a shelf, the menu picks
+        /// '新建书', the sheet opens with the shelf bound). The wizard
+        /// collects title + author + length + idea and emits a new
+        /// Book via the onCommit callback (= the view is a thin shell
+        /// over WenshuLibrary.addBook).
+        case newBook(parentShelfId: UUID)
         var id: String {
             switch self {
-            case .new: return "new"
-            case .rename(let s): return "rename-\(s.id)"
+            case .newShelf: return "newShelf"
+            case .renameShelf(let s): return "renameShelf-\(s.id)"
+            case .newBook(let parent): return "newBook-\(parent)"
             }
         }
     }
@@ -78,7 +87,7 @@ struct LibraryOutlineView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
-                    sheet = .new
+                    sheet = .newShelf
                 } label: {
                     Label("新建书架", systemImage: "plus")
                 }
@@ -87,13 +96,29 @@ struct LibraryOutlineView: View {
         }
         .sheet(item: $sheet) { kind in
             switch kind {
-            case .new:
+            case .newShelf:
                 BookshelfEditorSheet(mode: .create) { name in
                     try library.addShelf(Bookshelf(name: name))
                 }
-            case .rename(let shelf):
+            case .renameShelf(let shelf):
                 BookshelfEditorSheet(mode: .rename(shelf.name)) { newName in
                     try library.renameShelf(id: shelf.id, to: newName)
+                }
+            case .newBook(let parentShelfId):
+                // v52: New Book wizard (= 3 fields: 书名 / 篇幅 / 创意点).
+                // The wizard emits (title, author, length, idea) and the
+                // Library wraps them into a new Book + persists +
+                // auto-selects (= Apple HIG Finder 'creating a file
+                // selects it').
+                BookEditorSheet(mode: .create) { title, author, length, idea in
+                    let book = Book(
+                        title: title,
+                        author: author,
+                        shelfId: parentShelfId,
+                        length: length,
+                        idea: idea
+                    )
+                    try library.addBook(book)
                 }
             }
         }
@@ -173,7 +198,7 @@ struct LibraryOutlineView: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
             Button("新建第一个书架") {
-                sheet = .new
+                sheet = .newShelf
             }
             .controlSize(.small)
         }
@@ -186,16 +211,20 @@ struct LibraryOutlineView: View {
 
     @ViewBuilder
     private func shelfContextMenu(shelf: Bookshelf) -> some View {
-        Button("重命名") { sheet = .rename(shelf) }
+        Button("重命名") { sheet = .renameShelf(shelf) }
         Button("在 Finder 中显示") {
             let shelfDir = library.libraryRootURL
                 .appendingPathComponent(shelf.directoryName)
             NSWorkspace.shared.activateFileViewerSelecting([shelfDir])
         }
         Divider()
+        // v52: '新建书' now opens the 3-field wizard (= 书名 / 篇幅 /
+        // 创意点) instead of inline-creating a '未命名草稿' book.
+        // The wizard modal collects the values; the Library persists
+        // the new Book + auto-selects it (= Apple HIG Finder 'creating
+        // a file selects it').
         Button("新建书") {
-            let book = Book(title: "未命名草稿", author: "", shelfId: shelf.id)
-            try? library.addBook(book)
+            sheet = .newBook(parentShelfId: shelf.id)
         }
         Divider()
         Button("删除", role: .destructive) { pendingDeleteShelf = shelf }
