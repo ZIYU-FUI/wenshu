@@ -29,7 +29,11 @@ struct LibraryStoringError: Error, Sendable {
         case rootDirectoryUnavailable(URL)
         case shelfAlreadyExists(UUID)
         case shelfNotFound(UUID)
+        case bookAlreadyExists(UUID)
+        case bookNotFound(UUID)
+        case parentShelfNotFound(UUID)
         case invalidShelfData(URL, underlying: String)
+        case invalidBookData(URL, underlying: String)
         case ioFailed(URL, underlying: String)
     }
     let kind: Kind
@@ -42,8 +46,16 @@ struct LibraryStoringError: Error, Sendable {
             return "a shelf with id \(id) already exists"
         case .shelfNotFound(let id):
             return "no shelf with id \(id)"
+        case .bookAlreadyExists(let id):
+            return "a book with id \(id) already exists"
+        case .bookNotFound(let id):
+            return "no book with id \(id)"
+        case .parentShelfNotFound(let id):
+            return "no parent shelf with id \(id) (= cannot save a book without its shelf)"
         case .invalidShelfData(let url, let err):
             return "shelf.json at \(url.path) is not valid: \(err)"
+        case .invalidBookData(let url, let err):
+            return "book.json at \(url.path) is not valid: \(err)"
         case .ioFailed(let url, let err):
             return "I/O failed at \(url.path): \(err)"
         }
@@ -97,4 +109,28 @@ protocol LibraryStoring: Sendable {
     /// can wire up its search bar without an API change later.
     /// Owner 8/15 15:55: lock the contract now, not when search ships.
     func search(query: String) throws -> [SearchHit]
+
+    // MARK: - Book operations (v0.02.1, = book module end-to-end)
+    //
+    // Added in v0.02.1, after the shelf module shipped (v0.02.0). The
+    // protocol extension is purely additive (= existing implementations
+    // must satisfy these too; the contract test suite is extended
+    // alongside).
+
+    /// Returns the books in a given shelf, sorted by updatedAt desc
+    /// (= same convention as loadShelves).
+    func loadBooks(shelfId: UUID) throws -> [Book]
+
+    /// Persists the book (= creates the book's directory under the
+    /// parent's books/ subdir + writes book.json). Atomic write.
+    /// Throws .bookAlreadyExists if a book with the same id is on disk.
+    /// Throws .parentShelfNotFound if the parent shelf isn't on disk
+    /// (= orphan-prevention: a book must have a parent shelf).
+    func saveBook(_ book: Book) throws
+
+    /// Removes the book's directory and contents. Idempotent (no-op
+    /// if the book is already gone). Search index consistency: callers
+    /// that wrap this with NSMetadataQuery (v0.03.0) get a removal
+    /// notification automatically (= Spotlight tracks the directory).
+    func deleteBook(id: UUID) throws
 }

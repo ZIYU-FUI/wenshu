@@ -141,4 +141,148 @@ struct LibraryStoringContractTests {
         defer { try? FileManager.default.removeItem(at: root) }
         #expect(store.rootURL.standardizedFileURL == root.standardizedFileURL)
     }
+
+    // MARK: - Book ops (v0.02.1)
+
+    @Test("empty shelf returns no books")
+    func emptyShelfHasNoBooks() throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let shelf = Bookshelf(id: UUID(), name: "Empty", createdAt: .now, updatedAt: .now)
+        try store.saveShelf(shelf)
+        #expect(try store.loadBooks(shelfId: shelf.id).isEmpty)
+    }
+
+    @Test("saveBook + loadBooks round-trips a book")
+    func saveBookRoundTrip() throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let shelf = Bookshelf(id: UUID(), name: "S", createdAt: .now, updatedAt: .now)
+        try store.saveShelf(shelf)
+        let book = Book(id: UUID(), title: "X", author: "", shelfId: shelf.id, createdAt: .now, updatedAt: .now)
+        try store.saveBook(book)
+        let loaded = try store.loadBooks(shelfId: shelf.id)
+        #expect(loaded == [book])
+    }
+
+    @Test("saveBook requires the parent shelf to exist (= .parentShelfNotFound)")
+    func saveBookWithoutParentThrows() throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let book = Book(id: UUID(), title: "Orphan", author: "", shelfId: UUID(), createdAt: .now, updatedAt: .now)
+        #expect(throws: LibraryStoringError.self) {
+            try store.saveBook(book)
+        }
+    }
+
+    @Test("saving a book twice with the same id throws .bookAlreadyExists")
+    func duplicateSaveBookThrows() throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let shelf = Bookshelf(id: UUID(), name: "S", createdAt: .now, updatedAt: .now)
+        try store.saveShelf(shelf)
+        let id = UUID()
+        try store.saveBook(Book(id: id, title: "A", author: "", shelfId: shelf.id, createdAt: .now, updatedAt: .now))
+        #expect(throws: LibraryStoringError.self) {
+            try store.saveBook(Book(id: id, title: "B", author: "", shelfId: shelf.id, createdAt: .now, updatedAt: .now))
+        }
+    }
+
+    @Test("saveBook creates directory at <root>/<shelf-id>/books/<book-id>/")
+    func bookDirectoryCreated() throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let shelf = Bookshelf(id: UUID(), name: "S", createdAt: .now, updatedAt: .now)
+        try store.saveShelf(shelf)
+        let book = Book(id: UUID(), title: "X", author: "", shelfId: shelf.id, createdAt: .now, updatedAt: .now)
+        try store.saveBook(book)
+        let expectedDir = root
+            .appendingPathComponent(shelf.directoryName)
+            .appendingPathComponent("books")
+            .appendingPathComponent(book.directoryName)
+        var isDir: ObjCBool = false
+        #expect(FileManager.default.fileExists(atPath: expectedDir.path, isDirectory: &isDir))
+        #expect(isDir.boolValue)
+    }
+
+    @Test("saveBook writes book.json inside the book directory")
+    func bookJsonWritten() throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let shelf = Bookshelf(id: UUID(), name: "S", createdAt: .now, updatedAt: .now)
+        try store.saveShelf(shelf)
+        let book = Book(id: UUID(), title: "X", author: "Author", shelfId: shelf.id, createdAt: .now, updatedAt: .now)
+        try store.saveBook(book)
+        let jsonURL = root
+            .appendingPathComponent(shelf.directoryName)
+            .appendingPathComponent("books")
+            .appendingPathComponent(book.directoryName)
+            .appendingPathComponent("book.json")
+        #expect(FileManager.default.fileExists(atPath: jsonURL.path))
+        let decoded = try JSONDecoder().decode(Book.self, from: Data(contentsOf: jsonURL))
+        #expect(decoded == book)
+    }
+
+    @Test("multiple books: saveBook three, loadBooks returns three sorted by updatedAt desc")
+    func multipleBooks() throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let shelf = Bookshelf(id: UUID(), name: "S", createdAt: .now, updatedAt: .now)
+        try store.saveShelf(shelf)
+        let now = Date.now
+        let a = Book(id: UUID(), title: "A", author: "", shelfId: shelf.id, createdAt: now, updatedAt: now)
+        let b = Book(id: UUID(), title: "B", author: "", shelfId: shelf.id, createdAt: now.addingTimeInterval(-100), updatedAt: now.addingTimeInterval(-100))
+        let c = Book(id: UUID(), title: "C", author: "", shelfId: shelf.id, createdAt: now.addingTimeInterval(-50), updatedAt: now.addingTimeInterval(-50))
+        try store.saveBook(a)
+        try store.saveBook(b)
+        try store.saveBook(c)
+        let loaded = try store.loadBooks(shelfId: shelf.id)
+        #expect(loaded.map(\.id) == [a.id, c.id, b.id])
+    }
+
+    @Test("loadBooks for a different shelf returns its own books (= no cross-leak)")
+    func loadBooksIsolatedByShelf() throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let s1 = Bookshelf(id: UUID(), name: "S1", createdAt: .now, updatedAt: .now)
+        let s2 = Bookshelf(id: UUID(), name: "S2", createdAt: .now, updatedAt: .now)
+        try store.saveShelf(s1)
+        try store.saveShelf(s2)
+        try store.saveBook(Book(id: UUID(), title: "OnlyInS1", author: "", shelfId: s1.id, createdAt: .now, updatedAt: .now))
+        #expect(try store.loadBooks(shelfId: s1.id).map(\.title) == ["OnlyInS1"])
+        #expect(try store.loadBooks(shelfId: s2.id).isEmpty)
+    }
+
+    @Test("saveBook + deleteBook round-trips: re-load is empty")
+    func deleteBookRoundTrip() throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let shelf = Bookshelf(id: UUID(), name: "S", createdAt: .now, updatedAt: .now)
+        try store.saveShelf(shelf)
+        let book = Book(id: UUID(), title: "X", author: "", shelfId: shelf.id, createdAt: .now, updatedAt: .now)
+        try store.saveBook(book)
+        try store.deleteBook(id: book.id)
+        #expect(try store.loadBooks(shelfId: shelf.id).isEmpty)
+    }
+
+    @Test("deleteBook on a missing id is a no-op (= idempotent)")
+    func deleteMissingBookIsNoop() throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        try store.deleteBook(id: UUID())
+    }
+
+    @Test("deleting a shelf also removes its books from disk (= cascade)")
+    func shelfDeleteCascadesToBooks() throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let shelf = Bookshelf(id: UUID(), name: "S", createdAt: .now, updatedAt: .now)
+        try store.saveShelf(shelf)
+        try store.saveBook(Book(id: UUID(), title: "X", author: "", shelfId: shelf.id, createdAt: .now, updatedAt: .now))
+        try store.deleteShelf(id: shelf.id)
+        // After the shelf is gone, loading books for that shelf should
+        // not crash and should return [] (the parent directory is gone).
+        let loaded = try store.loadBooks(shelfId: shelf.id)
+        #expect(loaded.isEmpty)
+    }
 }

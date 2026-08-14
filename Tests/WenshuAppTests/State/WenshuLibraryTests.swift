@@ -18,6 +18,7 @@ struct WenshuLibraryTests {
     private final class InMemoryStore: LibraryStoring, @unchecked Sendable {
         let rootURL: URL = URL(fileURLWithPath: "/tmp/inmemory", isDirectory: true)
         var shelves: [UUID: Bookshelf] = [:]
+        var books: [UUID: Book] = [:]  // v0.02.1
         func loadShelves() throws -> [Bookshelf] {
             Array(shelves.values).sorted { $0.updatedAt > $1.updatedAt }
         }
@@ -31,6 +32,20 @@ struct WenshuLibraryTests {
             shelves.removeValue(forKey: id)
         }
         func search(query: String) throws -> [SearchHit] { [] }
+        // v0.02.1 book ops
+        func loadBooks(shelfId: UUID) throws -> [Book] {
+            books.values.filter { $0.shelfId == shelfId }.sorted { $0.updatedAt > $1.updatedAt }
+        }
+        func saveBook(_ book: Book) throws {
+            if !shelves.keys.contains(book.shelfId) {
+                throw LibraryStoringError(kind: .parentShelfNotFound(book.shelfId))
+            }
+            if books[book.id] != nil {
+                throw LibraryStoringError(kind: .bookAlreadyExists(book.id))
+            }
+            books[book.id] = book
+        }
+        func deleteBook(id: UUID) throws { books.removeValue(forKey: id) }
     }
 
     @Test("init loads existing shelves from store")

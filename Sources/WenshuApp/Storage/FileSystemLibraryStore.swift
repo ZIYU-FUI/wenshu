@@ -170,4 +170,141 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
         // change later).
         return []
     }
+
+    // MARK: - Book ops (v0.02.1, = book module end-to-end)
+    //
+    // Mirrors the shelf ops above: loadBooks reads, saveBook writes
+    // atomically (= tmp + replaceItemAt), deleteBook is idempotent.
+    // The books/ subdir under each shelf was pre-created by saveShelf in
+    // v0.02.0 (= the v39 commit); this method just writes into it.
+
+    func loadBooks(shelfId: UUID) throws -> [Book] {
+        let fm = FileManager.default
+        let booksDir = rootURL
+            .appendingPathComponent(shelfId.uuidString)
+            .appendingPathComponent("books")
+        // Apple HIG: a missing directory means "no books" (= shelf
+        // exists but is empty), not "error". Same forgiving convention
+        // as loadShelves on a missing root.
+        guard fm.fileExists(atPath: booksDir.path) else { return [] }
+        guard let entries = try? fm.contentsOfDirectory(
+            at: booksDir,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return []
+        }
+
+        var books: [Book] = []
+        for entry in entries {
+            let isDir = (try? entry.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
+            guard isDir else { continue }
+            let jsonURL = entry.appendingPathComponent("book.json")
+            guard fm.fileExists(atPath: jsonURL.path) else { continue }
+            do {
+                let data = try Data(contentsOf: jsonURL)
+                let book = try JSONDecoder().decode(Book.self, from: data)
+                books.append(book)
+            } catch {
+                // Same forgiveness policy as loadShelves: skip corrupt
+                // book.json, continue loading the rest.
+                continue
+            }
+        }
+        return books.sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    func saveBook(_ book: Book) throws {
+        let fm = FileManager.default
+        let parentShelf = rootURL.appendingPathComponent(book.shelfId.uuidString)
+        let booksDir = parentShelf.appendingPathComponent("books")
+        let bookDir = booksDir.appendingPathComponent(book.directoryName)
+
+        // Orphan-prevention: the parent shelf has to be on disk before
+        // a book can be saved (= same constraint as the type system:
+        // Book.shelfId is required at init).
+        guard fm.fileExists(atPath: parentShelf.path) else {
+            throw LibraryStoringError(kind: .parentShelfNotFound(book.shelfId))
+        }
+
+        // First-save-wins: refuse to overwrite an existing book id.
+        if fm.fileExists(atPath: bookDir.path) {
+            throw LibraryStoringError(kind: .bookAlreadyExists(book.id))
+        }
+
+        do {
+            try fm.createDirectory(at: bookDir, withIntermediateDirectories: true)
+        } catch {
+            throw LibraryStoringError(
+                kind: .ioFailed(bookDir, underlying: "\(error)")
+            )
+        }
+
+        // Atomic write of book.json (= same pattern as saveShelf).
+        let jsonURL = bookDir.appendingPathComponent("book.json")
+        let tmpURL = bookDir.appendingPathComponent("book.json.tmp")
+
+        let data: Data
+        do {
+            data = try JSONEncoder().encode(book)
+        } catch {
+            throw LibraryStoringError(
+                kind: .ioFailed(jsonURL, underlying: "encode failed: \(error)")
+            )
+        }
+
+        do {
+            try data.write(to: tmpURL, options: [.atomic])
+        } catch {
+            throw LibraryStoringError(
+                kind: .ioFailed(tmpURL, underlying: "tmp write failed: \(error)")
+            )
+        }
+
+        do {
+            if fm.fileExists(atPath: jsonURL.path) {
+                _ = try fm.replaceItemAt(jsonURL, withItemAt: tmpURL)
+            } else {
+                try fm.moveItem(at: tmpURL, to: jsonURL)
+            }
+        } catch {
+            try? fm.removeItem(at: tmpURL)
+            throw LibraryStoringError(
+                kind: .ioFailed(jsonURL, underlying: "rename failed: \(error)")
+            )
+        }
+
+        // Pre-create chapters/ subdir so v0.03.0 (= chapter content)
+        // has a consistent bundle structure (= Apple HIG: set up the
+        // document's bundle once at creation, not lazily).
+        let chaptersDir = bookDir.appendingPathComponent("chapters")
+        try? fm.createDirectory(at: chaptersDir, withIntermediateDirectories: true)
+    }
+
+    func deleteBook(id: UUID) throws {
+        let fm = FileManager.default
+        // We don't know which shelf the book belongs to from the id alone.
+        // For idempotent delete, scan all shelves and remove matching
+        // <book-id> directories (= the contract is "idempotent no-op if
+        // missing", so a multi-match is acceptable as long as we don't
+        // crash and end up with no books remaining).
+        guard let shelfEntries = try? fm.contentsOfDirectory(
+            at: rootURL,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        ) else { return }
+        for shelfEntry in shelfEntries {
+            let booksDir = shelfEntry
+                .appendingPathComponent("books")
+                .appendingPathComponent(id.uuidString)
+            guard fm.fileExists(atPath: booksDir.path) else { continue }
+            do {
+                try fm.removeItem(at: booksDir)
+            } catch {
+                throw LibraryStoringError(
+                    kind: .ioFailed(booksDir, underlying: "remove failed: \(error)")
+                )
+            }
+        }
+    }
 }

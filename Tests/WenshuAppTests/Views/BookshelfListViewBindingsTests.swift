@@ -21,6 +21,7 @@ struct BookshelfListViewBindingsTests {
     private final class InMemoryStore: LibraryStoring, @unchecked Sendable {
         let rootURL = URL(fileURLWithPath: "/tmp/inmem", isDirectory: true)
         var shelves: [UUID: Bookshelf] = [:]
+        var books: [UUID: Book] = [:]  // v0.02.1
         func loadShelves() throws -> [Bookshelf] {
             Array(shelves.values).sorted { $0.updatedAt > $1.updatedAt }
         }
@@ -32,6 +33,20 @@ struct BookshelfListViewBindingsTests {
         }
         func deleteShelf(id: UUID) throws { shelves.removeValue(forKey: id) }
         func search(query: String) throws -> [SearchHit] { [] }
+        // v0.02.1 book ops
+        func loadBooks(shelfId: UUID) throws -> [Book] {
+            books.values.filter { $0.shelfId == shelfId }.sorted { $0.updatedAt > $1.updatedAt }
+        }
+        func saveBook(_ book: Book) throws {
+            if !shelves.keys.contains(book.shelfId) {
+                throw LibraryStoringError(kind: .parentShelfNotFound(book.shelfId))
+            }
+            if books[book.id] != nil {
+                throw LibraryStoringError(kind: .bookAlreadyExists(book.id))
+            }
+            books[book.id] = book
+        }
+        func deleteBook(id: UUID) throws { books.removeValue(forKey: id) }
     }
 
     @Test("addShelf via the view's binding model is persisted")
