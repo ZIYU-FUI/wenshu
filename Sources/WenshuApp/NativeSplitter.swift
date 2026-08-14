@@ -130,8 +130,16 @@ final class NativeSplitterView: NSView {
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        super.draw(dirtyRect)
-
+        // Per Apple docs on NSView.cacheDisplay(in:to:):
+        //   "The bitmap produced by this method is transparent (that is, has
+        //    an alpha value of 0) wherever the view and its descendants do
+        //    not draw any content."
+        // So draw() should ONLY paint the 1pt hairline; the rest of the 5pt
+        // hit area stays transparent (= panel background shows through,
+        // invisible). The SelfScreenshot script pre-fills the bitmap with
+        // windowBackgroundColor before calling cacheDisplay, so any
+        // alpha=0 pixels in the final PNG composite to panel-bg color
+        // (the 5pt hit area is invisible in the screenshot).
         let lineRect = Self.lineRect(in: bounds, orientation: orientation)
         // Boss 8/15 15:08: divider line is pure black (= NSColor.black, not
         // separatorColor). Hover keeps Apple HIG controlAccentColor so the

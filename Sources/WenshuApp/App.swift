@@ -99,6 +99,28 @@ enum SelfScreenshot {
                 return
             }
             bitmap.size = bounds.size
+            // Pre-fill the bitmap with the panel background so transparent
+            // areas (= the 5pt hit area around each splitter line, etc.) are
+            // baked into the PNG as opaque panel-bg pixels. Without this, the
+            // PNG output has alpha=0 outside the NSView tree's drawn regions;
+            // viewers that don't respect alpha (= Hermes chat viewer, certain
+            // Markdown renderers, ImageMagick defaults) render those pixels as
+            // black or white, making the 5pt hit area look visible (= a phantom
+            // 5pt-wide bar around every splitter).
+            //
+            // Per Apple docs (cacheDisplay Discussion):
+            //   "The bitmap produced by this method is transparent (that is,
+            //    has an alpha value of 0) wherever the view and its
+            //    descendants do not draw any content."
+            // So we own filling the transparent parts (= Apple explicit
+            // "You are responsible for initializing the bitmap to the desired
+            // configuration before calling this method").
+            NSGraphicsContext.saveGraphicsState()
+            NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
+            NSColor.windowBackgroundColor.setFill()
+            NSRect(origin: .zero, size: bounds.size).fill()
+            NSGraphicsContext.restoreGraphicsState()
+
             contentView.cacheDisplay(in: bounds, to: bitmap)
             guard let png = bitmap.representation(using: .png, properties: [:]) else {
                 print("WS_SCREENSHOT: png encode failed")
