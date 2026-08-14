@@ -149,17 +149,16 @@ struct LibraryOutlineView: View {
             // Shelf header. Tapping the label selects the shelf + opens
             // the disclosure (Apple HIG Finder: click a folder name to
             // select AND expand; the chevron is for collapse-only).
-            ShelfHeader(
-                shelf: shelf,
-                bookCount: books.count,
-                isSelected: library.selectedShelfId == shelf.id
-            )
-            .contentShape(Rectangle())
-            .onTapGesture {
-                library.setSelectedShelf(id: shelf.id)
-                expandedShelves[shelf.id] = true
-            }
-            .contextMenu { shelfContextMenu(shelf: shelf) }
+            // Owner 8/15 17:23: '参考 fcp 把 ui 调整一下' — FCP Browser
+            // doesn't show a count badge on the shelf header. Removed
+            // in v51; count is implicit via the visible children rows.
+            ShelfHeader(shelf: shelf)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    library.setSelectedShelf(id: shelf.id)
+                    expandedShelves[shelf.id] = true
+                }
+                .contextMenu { shelfContextMenu(shelf: shelf) }
         }
     }
 
@@ -230,22 +229,17 @@ struct LibraryOutlineView: View {
 
 // MARK: - Shelf header
 
-private struct ShelfHeader: View {
+/// Shelf header row. No count badge (= FCP Browser doesn't show one;
+    /// the count is implicit via the disclosure triangle + the visible
+    /// children). Apple's HIG document-based apps (= Notes, Pages)
+    /// also keep section headers minimal.
+    private struct ShelfHeader: View {
     let shelf: Bookshelf
-    let bookCount: Int
-    let isSelected: Bool
 
     var body: some View {
         Label {
-            HStack(spacing: 4) {
-                Text(shelf.name)
-                    .lineLimit(1)
-                if bookCount > 0 {
-                    Text("\(bookCount)")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-            }
+            Text(shelf.name)
+                .lineLimit(1)
         } icon: {
             Image(systemName: "books.vertical")
                 .foregroundStyle(.secondary)

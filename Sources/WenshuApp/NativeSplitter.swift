@@ -147,16 +147,16 @@ final class NativeSplitterView: NSView {
         //
         // Caveat (= owner拍了 pure black; trade-off is editor zone visibility):
         // the EDITOR zone uses Color.black as its background (= FCP Viewer
-        // convention, set in ZoneScaffoldView.color(for:)). A 1pt black line
-        // on a black background is invisible. Owner 8/15 15:08 said '1pt 的
-        // 线是纯黑的' without naming the EDITOR collision; if the line being
-        // invisible in EDITOR is a problem, the fix is zone-aware colors
-        // (= white in EDITOR, black elsewhere). v32.1 ships pure black per
-        // the owner's explicit ask; the EDITOR collision is documented here
-        // for the next round of review.
+        // v32.1: the EDITOR zone uses Color.black as its background (= FCP Viewer
+        // convention). A 1pt black line on black is invisible. v51
+        // (= boss 8/15 17:18 '项目管理区的两个区域分割线我在截图上又看不到
+        // 了') switches to NSColor.separatorColor (= Apple HIG macOS
+        // standard divider; light gray in dark mode, medium gray in light
+        // mode, slightly LIGHTER than the surrounding panels so it shows
+        // on any background — including against the black EDITOR).
         let dividerColor = isHovered
             ? NSColor.controlAccentColor
-            : NSColor.black
+            : NSColor.separatorColor
         dividerColor.setFill()
         lineRect.fill()
     }
