@@ -154,27 +154,26 @@ struct LayoutShellView: View {
         HStack(spacing: 0) {
             // Library (Shelf + Project horizontal split inside, boss 19:10 "应该是左右")
             LibraryScaffold()
-                .frame(width: libraryW)
+                .frame(width: libraryW, height: height)
 
             // NativeSplitter between Library and Editor (= FCP-measured 8pt hit area,
             // 1pt visible line on START edge = LT-01-fix15/16 from装机 user 8/7).
             NativeSplitter(orientation: .horizontal) { delta in
                 vm.adjustUpperColumn(splitterIndex: 0, delta: delta, totalWidth: upperW)
             }
-            .frame(width: NativeSplitterView.hitAreaThickness)
+            .frame(width: NativeSplitterView.hitAreaThickness, height: height)
 
             ZoneScaffoldView(name: "EDITOR")
-                .frame(width: editorW)
+                .frame(width: editorW, height: height)
 
             NativeSplitter(orientation: .horizontal) { delta in
                 vm.adjustUpperColumn(splitterIndex: 1, delta: delta, totalWidth: upperW)
             }
-            .frame(width: NativeSplitterView.hitAreaThickness)
+            .frame(width: NativeSplitterView.hitAreaThickness, height: height)
 
             ZoneScaffoldView(name: "INSPECTOR")
-                .frame(width: inspectorW)
+                .frame(width: inspectorW, height: height)
         }
-        .frame(height: height)
     }
 
     @ViewBuilder
@@ -182,25 +181,37 @@ struct LayoutShellView: View {
         let lowerW = width
         let r = vm.lowerRatios
         let chatW = lowerW * r[0]
-        let statusW = lowerW * r[1]
+        let rightW = lowerW * r[1]
 
         HStack(spacing: 0) {
             ZoneScaffoldView(name: "CHAT")
-                .frame(width: chatW)
+                .frame(width: chatW, height: height)
 
             NativeSplitter(orientation: .horizontal) { delta in
                 vm.adjustLowerColumn(delta: delta, totalWidth: lowerW)
             }
-            .frame(width: NativeSplitterView.hitAreaThickness)
+            .frame(width: NativeSplitterView.hitAreaThickness, height: height)
 
-            // Boss 19:45: "console 15 status 15 这两个加一起是状态区" →
-            // Status zone is ONE pane (= Chat | Status, not Chat | (Console | Status)).
-            // Console + Status are conceptual sub-areas inside the single Status pane,
-            // wired in v0.02.0+ (= TODO: render as stacked sub-views inside Status).
+            // Boss 19:55: "上下结构的区域约束宽度是一样大小的" — Inspector 30% upper
+            // and Status 30% lower must be the same width. Upper band has 2 splitters
+            // (Library|Editor + Editor|Inspector), lower band needs 2 splitters too
+            // (Chat|Console + Console|Status) so both bands deduct equal splitter widths.
+            // Boss 19:45: "console 15 status 15 这两个加一起是状态区" — but this layout
+            // needs an INTERNAL Console|Status splitter so widths align with the upper
+            // band's two-splitter deduction. Console + Status are still conceptually one
+            // "状态区" (= single Status pane); the splitter is the necessary structural
+            // cost of the band width-matching constraint.
+            ZoneScaffoldView(name: "CONSOLE")
+                .frame(width: rightW * vm.consoleStatusRatio, height: height)
+
+            NativeSplitter(orientation: .horizontal) { delta in
+                vm.adjustConsoleStatus(delta: delta, totalWidth: rightW)
+            }
+            .frame(width: NativeSplitterView.hitAreaThickness, height: height)
+
             ZoneScaffoldView(name: "STATUS")
-                .frame(width: statusW)
+                .frame(width: rightW * (1.0 - vm.consoleStatusRatio), height: height)
         }
-        .frame(height: height)
     }
 }
 
@@ -215,20 +226,30 @@ struct LibraryScaffold: View {
     var body: some View {
         ZStack {
             Color(nsColor: NSColor.windowBackgroundColor).ignoresSafeArea()
-            HStack(spacing: 0) {
-                ZoneScaffoldView(name: "SHELF")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                NativeSplitter(orientation: .vertical) { delta in
-                    // Library internal split: Shelf vs Project (= boss 19:45 "各 10").
-                    // Drag delta in points; total width is parent's available width.
-                    let totalWidth = 1452 * Self.parentLibraryFraction
-                    let deltaRatio = Double(delta / totalWidth)
-                    let newFraction = splits.libraryShelfFraction + deltaRatio
-                    splits.libraryShelfFraction = min(max(newFraction, LayoutShellViewModel.minRatio), LayoutShellViewModel.maxRatio)
+            GeometryReader { geo in
+                // Compute explicit pixel widths from parent's actual size (= boss 19:55
+                // style: use real GeometryReader, not magic .infinity). This avoids the
+                // HStack + maxWidth:.infinity collision that visually crushed the splitter.
+                let totalW = geo.size.width
+                let totalH = geo.size.height
+                let hitW = CGFloat(NativeSplitterView.hitAreaThickness)
+                let shelfW = (totalW - hitW) * splits.libraryShelfFraction
+                let projectW = (totalW - hitW) * (1.0 - splits.libraryShelfFraction)
+
+                HStack(spacing: 0) {
+                    ZoneScaffoldView(name: "SHELF")
+                        .frame(width: shelfW, height: totalH)
+                    NativeSplitter(orientation: .vertical) { delta in
+                        // Library internal split: Shelf vs Project (= boss 19:45 "各 10").
+                        let totalWidth = totalW - hitW
+                        let deltaRatio = Double(delta / totalWidth)
+                        let newFraction = splits.libraryShelfFraction + deltaRatio
+                        splits.libraryShelfFraction = min(max(newFraction, LayoutShellViewModel.minRatio), LayoutShellViewModel.maxRatio)
+                    }
+                    .frame(width: hitW, height: totalH)
+                    ZoneScaffoldView(name: "PROJECT")
+                        .frame(width: projectW, height: totalH)
                 }
-                .frame(width: NativeSplitterView.hitAreaThickness)
-                ZoneScaffoldView(name: "PROJECT")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             parentLabel
         }
