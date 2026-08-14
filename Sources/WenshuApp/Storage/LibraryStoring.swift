@@ -128,9 +128,16 @@ protocol LibraryStoring: Sendable {
     /// (= orphan-prevention: a book must have a parent shelf).
     func saveBook(_ book: Book) throws
 
-    /// Removes the book's directory and contents. Idempotent (no-op
+    /// Removes a book's directory and contents. Idempotent (no-op
     /// if the book is already gone). Search index consistency: callers
     /// that wrap this with NSMetadataQuery (v0.03.0) get a removal
     /// notification automatically (= Spotlight tracks the directory).
     func deleteBook(id: UUID) throws
+
+    /// v0.02.1 (book module): look up a single book by id across all
+    /// shelves. The book id alone doesn't carry its shelfId, so the
+    /// store must scan (= same forgiveness as loadBooks: missing
+    /// shelves / corrupt book.json are skipped, returns nil if no
+    /// match). Required by WenshuLibrary.renameBook.
+    func loadBook(id: UUID) throws -> Book?
 }

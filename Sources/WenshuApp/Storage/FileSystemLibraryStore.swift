@@ -307,4 +307,30 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
             }
         }
     }
+
+    func loadBook(id: UUID) throws -> Book? {
+        let fm = FileManager.default
+        // Same scan pattern as deleteBook (= book id alone doesn't know
+        // its shelf). Return the first match (= the contract says id is
+        // unique across the library; multi-match would be a bug upstream).
+        guard let shelfEntries = try? fm.contentsOfDirectory(
+            at: rootURL,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        ) else { return nil }
+        for shelfEntry in shelfEntries {
+            let jsonURL = shelfEntry
+                .appendingPathComponent("books")
+                .appendingPathComponent(id.uuidString)
+                .appendingPathComponent("book.json")
+            guard fm.fileExists(atPath: jsonURL.path) else { continue }
+            do {
+                let data = try Data(contentsOf: jsonURL)
+                return try JSONDecoder().decode(Book.self, from: data)
+            } catch {
+                continue
+            }
+        }
+        return nil
+    }
 }

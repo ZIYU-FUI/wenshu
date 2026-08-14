@@ -46,6 +46,7 @@ struct WenshuLibraryTests {
             books[book.id] = book
         }
         func deleteBook(id: UUID) throws { books.removeValue(forKey: id) }
+        func loadBook(id: UUID) throws -> Book? { books[id] }
     }
 
     @Test("init loads existing shelves from store")

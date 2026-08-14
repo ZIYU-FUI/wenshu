@@ -124,4 +124,57 @@ final class WenshuLibrary {
         guard let id = selectedShelfId else { return nil }
         return shelves.first(where: { $0.id == id })
     }
+
+    // MARK: - Book state (v0.02.1, = book module end-to-end)
+    //
+    // Additive only (= v0.02.0 callers and contracts untouched). The
+    // books for each shelf are lazily fetched from the store (= we don't
+    // hold a per-shelf dictionary in memory; loadBooks is the source of
+    // truth). Selected book id survives a shelf switch (= the user can
+    // switch shelves and come back; their selected book is still selected).
+
+    /// The user's currently-selected book (= single-select for v0.02.1).
+    private(set) var selectedBookId: UUID?
+
+    /// Returns the books in a given shelf, sorted by updatedAt desc
+    /// (= mirrors the storage layer's sort order). Lazy: every call hits
+    /// the store (= FileSystem / MetadataQuery / CoreData backend can
+    /// optimize however it wants; the view sees a stable list).
+    func books(in shelfId: UUID) throws -> [Book] {
+        try store.loadBooks(shelfId: shelfId)
+    }
+
+    /// Creates a new book under a shelf. Auto-selects it (= Apple HIG
+    /// Finder: creating a file also selects it).
+    func addBook(_ book: Book) throws {
+        try store.saveBook(book)
+        if selectedShelfId == book.shelfId {
+            selectedBookId = book.id
+        }
+    }
+
+    /// Renames a book. id stays the same (= Apple HIG document-based:
+    /// URL = identity, title = display label only).
+    func renameBook(id: UUID, to newTitle: String) throws {
+        guard let book = try store.loadBook(id: id) else {
+            throw LibraryStoringError(kind: .bookNotFound(id))
+        }
+        var updated = book
+        updated.title = newTitle
+        updated.updatedAt = .now
+        try store.deleteBook(id: id)
+        try store.saveBook(updated)
+    }
+
+    /// Removes a book. Idempotent (= deleting an unknown id is a no-op).
+    func deleteBook(id: UUID) throws {
+        try store.deleteBook(id: id)
+        if selectedBookId == id {
+            selectedBookId = nil
+        }
+    }
+
+    func setSelectedBook(id: UUID?) {
+        selectedBookId = id
+    }
 }

@@ -47,6 +47,7 @@ struct BookshelfListViewBindingsTests {
             books[book.id] = book
         }
         func deleteBook(id: UUID) throws { books.removeValue(forKey: id) }
+        func loadBook(id: UUID) throws -> Book? { books[id] }
     }
 
     @Test("addShelf via the view's binding model is persisted")
