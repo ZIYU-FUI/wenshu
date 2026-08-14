@@ -395,12 +395,18 @@ struct LibraryScaffold: View {
             // the window's full width (= v29 screenshot bug: SHELF/PROJECT
             // watermarks rendered 1158px right of where they belong).
             .overlay(alignment: .topLeading) {
+                // Boss 8/15 15:48: '把各区域的备注文字的字号调小吧'. The
+                // LIBRARY label is the only parent-overlay label (= the only
+                // zone whose children have separate names); keep it readable
+                // for owner reference but drop the ultraThinMaterial capsule
+                // background so it doesn't compete with the watermark hierarchy.
+                // Apple HIG: secondary annotation in zone headers is .tertiary
+                // 11-12pt, no background pill (= Notes / Finder sidebar headers).
                 Text("LIBRARY")
-                    .font(.system(size: 18, weight: .semibold, design: .default))
+                    .font(.system(size: 11, weight: .medium, design: .default))
                     .foregroundStyle(.tertiary)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 4))
                     .padding(8)
                     .allowsHitTesting(false)
             }
@@ -443,9 +449,19 @@ struct ZoneScaffoldView: View {
     }
 
     private var watermark: some View {
+        // Boss 8/15 15:48: '把各区域的备注文字的字号调小吧, 还留着,
+        // 这样我可以指定区域告诉你要做什么'. The watermark stays — it's the
+        // zone label the owner uses to refer to specific zones in chat
+        // ("改 LIBRARY 的 xxx", "看看 EDITOR 那条线", etc.) — but it
+        // must NOT compete with actual content. v36: drop from 72pt bold
+        // to 20pt regular, lower the contrast from 0.18 to 0.10 (= reads
+        // as a dim placeholder hint, not a hero label). At 20pt regular,
+        // "SHELF" and "PROJECT" also fit cleanly inside their 141px-wide
+        // Library-internal splits (= the previous 72pt "SHELF-PROJE..."
+        // overlap-on-the-divider artifact is gone as a side effect).
         Text(name)
-            .font(.system(size: 72, weight: .bold, design: .default))
-            .foregroundStyle(.secondary.opacity(0.18))
+            .font(.system(size: 20, weight: .regular, design: .default))
+            .foregroundStyle(.tertiary.opacity(0.10))
             .lineLimit(1)
             .minimumScaleFactor(0.5)
             .allowsHitTesting(false)
