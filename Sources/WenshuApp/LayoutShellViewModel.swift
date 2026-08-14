@@ -21,8 +21,11 @@ import Observation
 
 @Observable
 final class LayoutShellViewModel {
-    /// Upper-band horizontal split ratios. ratios[0]+ratios[1]+ratios[2] must = 1.0.
-    var upperRatios: [Double] = [0.125, 0.625, 0.250]
+    /// Upper-band horizontal split ratios (= FCP-measured, owner 19:10 "精准测量"):
+    ///   Library 20.7% / Editor 51.7% / Inspector 27.6% (= 300/750/400 of 1452pt total).
+    /// Library is widest at 20.7% (= FCP 实测 Library 列 x=0..300 pt); Editor is widest
+    /// at 51.7% (= FCP Viewer x=300..1050 pt); Inspector at 27.6% (= FCP x=1050..1450).
+    var upperRatios: [Double] = [0.207, 0.517, 0.276]
     /// Lower-band vertical-vs-upper split ratio (= 0.50 = half-half).
     var lowerBandRatio: Double = 0.50
     /// Lower-band horizontal split ratios. ratios[0]+ratios[1] = 1.0.

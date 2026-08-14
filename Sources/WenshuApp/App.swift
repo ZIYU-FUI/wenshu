@@ -53,22 +53,19 @@ struct LayoutShellView: View {
             let lowerH = totalH * vm.lowerBandRatio
 
             VStack(spacing: 0) {
-                // Upper band
                 upperBand(width: totalW, height: totalH - lowerH)
                     .frame(height: totalH - lowerH)
 
-                // Upper/Lower horizontal NativeSplitter
                 NativeSplitter(orientation: .vertical) { delta in
                     vm.adjustLowerBandHeight(delta: delta, totalHeight: totalH)
                 }
                 .frame(height: NativeSplitterView.hitAreaThickness)
 
-                // Lower band
                 lowerBand(width: totalW, height: lowerH)
                     .frame(height: lowerH)
             }
         }
-        .frame(minWidth: 1280, idealWidth: 1440, minHeight: 800, idealHeight: 900)
+        .frame(minWidth: 1280, idealWidth: 1452, minHeight: 800, idealHeight: 984)
     }
 
     @ViewBuilder
@@ -90,7 +87,7 @@ struct LayoutShellView: View {
             }
             .frame(width: NativeSplitterView.hitAreaThickness)
 
-            ZoneScaffoldView(name: "EDITOR", background: .black)
+            ZoneScaffoldView(name: "EDITOR")  // background from defaultBackground(= "EDITOR" → black)
                 .frame(width: editorW)
 
             // NativeSplitter between Editor and Inspector
@@ -149,12 +146,13 @@ struct LayoutShellView: View {
     }
 }
 
-// MARK: - Library (Shelf + Project nested vertical split)
+// MARK: - Library (Shelf + Project nested horizontal split, left/right)
+// Boss 19:10: "项目管理区的分隔有问题, 不是左右结构" → HStack (left=Shelf, right=Project).
 struct LibraryScaffold: View {
     var body: some View {
         ZStack {
             Color(NSColor.windowBackgroundColor).ignoresSafeArea()
-            VStack(spacing: 0) {
+            HStack(spacing: 0) {
                 ZoneScaffoldView(name: "SHELF")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 ZoneScaffoldView(name: "PROJECT")
@@ -177,14 +175,33 @@ struct LibraryScaffold: View {
     }
 }
 
-// MARK: - Zone scaffold (dim watermark + background)
+// MARK: - Zone scaffold (dim watermark + FCP-measured background color per zone)
+//
+// Boss 19:10 "各区颜色, 在截图里精准测量" → FCP screenshot PIL measurement:
+//   Library  RGB(32, 32, 32)   深灰  (panel background, slight off-black)
+//   Editor   RGB(0,  0,  0)    纯黑  (FCP Viewer convention)
+//   Inspector RGB(45, 45, 45)  浅灰  (slightly lighter than Library)
 struct ZoneScaffoldView: View {
     let name: String
     let background: Color
 
-    init(name: String, background: Color = Color(NSColor.windowBackgroundColor)) {
+    init(name: String, background: Color? = nil) {
         self.name = name
-        self.background = background
+        self.background = background ?? Self.defaultBackground(for: name)
+    }
+
+    /// FCP-measured zone-specific background colors (= boss 19:10 "精准测量").
+    static func defaultBackground(for name: String) -> Color {
+        switch name {
+        case "EDITOR":
+            return Color.black                              // FCP Viewer: RGB(0,0,0)
+        case "INSPECTOR":
+            return Color(red: 45/255, green: 45/255, blue: 45/255)   // FCP: RGB(45,45,45)
+        case "LIBRARY", "SHELF", "PROJECT", "CHAT", "CONSOLE", "STATUS":
+            return Color(red: 32/255, green: 32/255, blue: 32/255)   // FCP: RGB(32,32,32)
+        default:
+            return Color(NSColor.windowBackgroundColor)
+        }
     }
 
     var body: some View {

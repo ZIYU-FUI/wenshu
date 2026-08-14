@@ -57,7 +57,12 @@ final class NativeSplitterView: NSView {
     private(set) var redrawRequestCount: Int = 0
 
     static let visibleDividerThickness: CGFloat = 1
-    static let hitAreaThickness: CGFloat = 8
+    /// LT-01-fix16 (boss 19:10 "分割线往右多一块间隔"): shrink to 1pt (= same as
+    /// visibleDividerThickness) so the divider sits exactly on the panel boundary with
+    /// no visual gap on either side. The earlier 8pt hit area was the Apple HIG standard
+    /// (= NSSplitView .thin dividerStyle) but that left a 7pt empty strip on the END side
+    /// (= boss实机拍 "右边多一块"); making hit area == line thickness fixes it.
+    static let hitAreaThickness: CGFloat = 1
     static let clickThreshold: CGFloat = 5
 
     // MARK: - Cursor mapping (LT-01-fix9)
