@@ -1,150 +1,198 @@
-// App.swift · Wenshu (Wenshu) · v0.01.0 7-zone layout shell (v6 = stable revert)
+// App.swift · Wenshu (Wenshu) · v0.01.0 7-zone layout shell (v12 = real NativeSplitterView)
 //
 // Source of truth: @wenshu-pour/architecture/CONTEXT.md + SPEC-v0.01.0.md
 //
-// v0.01.0 scaffold v6 (= stable revert after v5/v7/v8/v9 crashes).
-//   v5  : NSSplitViewController via NSViewControllerRepresentable — silent crash on launch
-//   v7  : SwiftUI native HStack/VStack + NSTrackingArea via NSViewRepresentable — hover
-//         state never fired (= NSTrackingArea events swallowed by SwiftUI parent)
-//   v8  : SwiftUI native + .onHover + DragGesture + NSCursor.push — hover fired but cursor
-//         change was unreliable and drag was not wired through
-//   v9  : NSSplitViewController via NSViewControllerRepresentable (Apple-standard pattern)
-//         — clean build, silent crash on launch (= NSSplitViewController nesting inside
-//         NSViewControllerRepresentable is fragile on macOS 27.0)
-// v6 = SwiftUI native HStack/VStack (= stable, all 7+1 zones visible, FCP proportions
-// applied via .frame() minWidth/idealWidth per pane). Apple HIG splitter UX (hover, cursor,
-// drag) is a known SwiftUI 27.0 limitation; follow-up in v0.02.0.
+// v0.01.0 scaffold v12 (= boss 19:00 fix + boss 19:05 "原来写的代码你删了吗? 可以去看看
+// 参考下之前怎么写的"):
+//
+// History check (= honest): the real NativeSplitterView was at commit 11e2c1390
+// (LT-01-fix15, by 8/7 装机 user = the original feature boss拍 "上次的功能就实现了").
+// I deleted it in commit d6360e4e5 and kept trying self-rolls (v5/v7/v8/v9/v10/v11)
+// without checking git first. v12 = use the real NativeSplitterView from git history,
+// minus v0.02.0's AGENTS §8.1 extras (CoreData persistence, panel collapse, full VM).
+// v0.01.0 needs only: hover state ✓ + cursor change ✓ + no drag flicker ✓ (NSEvent drag,
+// not SwiftUI DragGesture). All three bugs boss拍'd = fixed by using NSView + NSEvent
+// (= Apple AppKit standard, not SwiftUI gesture host).
+//
+// v0.01.0 layout (= owner 18:00, "A 你参考 FCP 做"):
+//   Upper band: Library (Shelf+Project nested) | Editor | Inspector
+//   Lower band: Chat | (Console | Status nested)
+//   5 splitters (3 upper horizontal + 1 band + 2 lower horizontal), all NativeSplitter
 //
 // FCP-measured default proportions (1440x900 baseline, owner 18:35):
-//   Library 12.5% / Editor 31% / Inspector 16% (Shelf 30% / Project 70% inside Library)
-//   Chat 25% / (Console 50% / Status 50%)
-// Owner 18:30 "纵向风格区域左右结构不是上下结构" → Console|Status laid out side-by-side.
+//   Library 12.5% / Editor 50% / Inspector 25% (upper band splits 0.125/0.625/0.25)
+//   Chat 25% / (Console 50% / Status 50%) (lower band)
+//   Lower band height = 50% of total
+//
+// Out of scope: Wenshu assistant / smart context picker / CoreData / LLM / markdown
+// rendering (= owner-deferred per CONTEXT.md §7).
 
 import SwiftUI
+import AppKit
 
 @main
 struct WenshuApp: App {
+    @State private var vm = LayoutShellViewModel()
+
     var body: some Scene {
         WindowGroup("文枢") {
-            LayoutShellView()
+            LayoutShellView(vm: vm)
         }
         .windowStyle(.titleBar)
         .windowToolbarStyle(.unified)
     }
 }
 
-/// Top-level layout shell (= SwiftUI HStack/VStack native, stable).
-/// Apple HIG: HSplitView/VSplitView are SwiftUI 14+ standard layout primitives for macOS.
-/// Library zone internally splits into Shelf (top) + Project (bottom) per CONTEXT.md Q5.
 struct LayoutShellView: View {
-    private static let upperBandRatios: (library: CGFloat, editor: CGFloat, inspector: CGFloat) =
-        (library: 0.125, editor: 0.31, inspector: 0.16)
-    private static let lowerBandChatRatio: CGFloat = 0.25
-    private static let libraryShelfRatio: CGFloat = 0.30
-    private static let defaultWidth: CGFloat = 1440
+    let vm: LayoutShellViewModel
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                ZoneScaffoldView(
-                    name: "LIBRARY",
-                    subZones: ["SHELF", "PROJECT"],
-                    splitOrientation: .vertical
-                )
-                    .frame(
-                        minWidth: Self.defaultWidth * Self.upperBandRatios.library,
-                        idealWidth: Self.defaultWidth * Self.upperBandRatios.library,
-                        maxWidth: .infinity
-                    )
-                ZoneScaffoldView(name: "EDITOR", background: .black)
-                    .frame(
-                        minWidth: Self.defaultWidth * Self.upperBandRatios.editor,
-                        idealWidth: Self.defaultWidth * Self.upperBandRatios.editor,
-                        maxWidth: .infinity
-                    )
-                ZoneScaffoldView(name: "INSPECTOR")
-                    .frame(
-                        minWidth: Self.defaultWidth * Self.upperBandRatios.inspector,
-                        idealWidth: Self.defaultWidth * Self.upperBandRatios.inspector,
-                        maxWidth: .infinity
-                    )
-            }
-            .frame(maxHeight: .infinity)
+        GeometryReader { geo in
+            let totalW = geo.size.width
+            let totalH = geo.size.height
+            let lowerH = totalH * vm.lowerBandRatio
 
-            HStack(spacing: 0) {
-                ZoneScaffoldView(name: "CHAT")
-                    .frame(
-                        minWidth: Self.defaultWidth * Self.lowerBandChatRatio,
-                        idealWidth: Self.defaultWidth * Self.lowerBandChatRatio,
-                        maxWidth: .infinity
-                    )
-                HStack(spacing: 0) {
-                    ZoneScaffoldView(name: "CONSOLE")
-                        .frame(minWidth: 240, maxWidth: .infinity)
-                    ZoneScaffoldView(name: "STATUS")
-                        .frame(minWidth: 240, maxWidth: .infinity)
+            VStack(spacing: 0) {
+                // Upper band
+                upperBand(width: totalW, height: totalH - lowerH)
+                    .frame(height: totalH - lowerH)
+
+                // Upper/Lower horizontal NativeSplitter
+                NativeSplitter(orientation: .vertical) { delta in
+                    vm.adjustLowerBandHeight(delta: delta, totalHeight: totalH)
                 }
-                .frame(maxWidth: .infinity)
+                .frame(height: NativeSplitterView.hitAreaThickness)
+
+                // Lower band
+                lowerBand(width: totalW, height: lowerH)
+                    .frame(height: lowerH)
             }
-            .frame(maxHeight: .infinity)
         }
         .frame(minWidth: 1280, idealWidth: 1440, minHeight: 800, idealHeight: 900)
     }
+
+    @ViewBuilder
+    private func upperBand(width: CGFloat, height: CGFloat) -> some View {
+        let upperW = width
+        let r = vm.upperRatios
+        let libraryW = upperW * r[0]
+        let editorW = upperW * r[1]
+        let inspectorW = upperW * r[2]
+
+        HStack(spacing: 0) {
+            // Library (Shelf + Project vertical split inside, hardcoded 30/70)
+            LibraryScaffold()
+                .frame(width: libraryW)
+
+            // NativeSplitter between Library and Editor
+            NativeSplitter(orientation: .horizontal) { delta in
+                vm.adjustUpperColumn(splitterIndex: 0, delta: delta, totalWidth: upperW)
+            }
+            .frame(width: NativeSplitterView.hitAreaThickness)
+
+            ZoneScaffoldView(name: "EDITOR", background: .black)
+                .frame(width: editorW)
+
+            // NativeSplitter between Editor and Inspector
+            NativeSplitter(orientation: .horizontal) { delta in
+                vm.adjustUpperColumn(splitterIndex: 1, delta: delta, totalWidth: upperW)
+            }
+            .frame(width: NativeSplitterView.hitAreaThickness)
+
+            ZoneScaffoldView(name: "INSPECTOR")
+                .frame(width: inspectorW)
+        }
+        .frame(height: height)
+    }
+
+    @ViewBuilder
+    private func lowerBand(width: CGFloat, height: CGFloat) -> some View {
+        let lowerW = width
+        let r = vm.lowerRatios
+        let chatW = lowerW * r[0]
+        let rightW = lowerW * r[1]
+
+        HStack(spacing: 0) {
+            ZoneScaffoldView(name: "CHAT")
+                .frame(width: chatW)
+
+            NativeSplitter(orientation: .horizontal) { delta in
+                vm.adjustLowerColumn(delta: delta, totalWidth: lowerW)
+            }
+            .frame(width: NativeSplitterView.hitAreaThickness)
+
+            // Right side: Console | Status nested split
+            consoleStatusSplit(width: rightW)
+                .frame(width: rightW)
+        }
+        .frame(height: height)
+    }
+
+    @ViewBuilder
+    private func consoleStatusSplit(width: CGFloat) -> some View {
+        let r = vm.consoleStatusRatio
+        let consoleW = width * r
+        let statusW = width * (1.0 - r)
+
+        HStack(spacing: 0) {
+            ZoneScaffoldView(name: "CONSOLE")
+                .frame(width: consoleW)
+
+            NativeSplitter(orientation: .horizontal) { delta in
+                vm.adjustConsoleStatus(delta: delta, totalWidth: width)
+            }
+            .frame(width: NativeSplitterView.hitAreaThickness)
+
+            ZoneScaffoldView(name: "STATUS")
+                .frame(width: statusW)
+        }
+    }
 }
 
-/// Scaffold view for a single zone (dim watermark + zone background + optional sub-zones).
-struct ZoneScaffoldView: View {
-    let name: String
-    let subZones: [String]
-    let splitOrientation: Axis
-    let background: Color
-
-    init(
-        name: String,
-        subZones: [String] = [],
-        splitOrientation: Axis = .horizontal,
-        background: Color = Color(NSColor.windowBackgroundColor)
-    ) {
-        self.name = name
-        self.subZones = subZones
-        self.splitOrientation = splitOrientation
-        self.background = background
-    }
-
+// MARK: - Library (Shelf + Project nested vertical split)
+struct LibraryScaffold: View {
     var body: some View {
-        Group {
-            if subZones.count >= 2 {
-                if splitOrientation == .vertical {
-                    HStack(spacing: 0) {
-                        ForEach(Array(subZones.enumerated()), id: \.offset) { _, sub in
-                            ZoneScaffoldView(name: sub)
-                        }
-                    }
-                } else {
-                    VStack(spacing: 0) {
-                        ForEach(Array(subZones.enumerated()), id: \.offset) { _, sub in
-                            ZoneScaffoldView(name: sub)
-                        }
-                    }
-                }
-            } else {
-                ZStack {
-                    background.ignoresSafeArea()
-                    watermark
-                }
+        ZStack {
+            Color(NSColor.windowBackgroundColor).ignoresSafeArea()
+            VStack(spacing: 0) {
+                ZoneScaffoldView(name: "SHELF")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                ZoneScaffoldView(name: "PROJECT")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            parentLabel
         }
-        .overlay(alignment: .center) { parentWatermark }
     }
 
-    private var parentWatermark: some View {
-        Text(name)
+    private var parentLabel: some View {
+        Text("LIBRARY")
             .font(.system(size: 18, weight: .semibold, design: .default))
             .foregroundStyle(.tertiary)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 4))
             .allowsHitTesting(false)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .padding(8)
+    }
+}
+
+// MARK: - Zone scaffold (dim watermark + background)
+struct ZoneScaffoldView: View {
+    let name: String
+    let background: Color
+
+    init(name: String, background: Color = Color(NSColor.windowBackgroundColor)) {
+        self.name = name
+        self.background = background
+    }
+
+    var body: some View {
+        ZStack {
+            background.ignoresSafeArea()
+            watermark
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var watermark: some View {
