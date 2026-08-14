@@ -48,6 +48,23 @@ struct LibraryOutlineViewBindingsTests {
         }
         func deleteBook(id: UUID) throws { books.removeValue(forKey: id) }
         func loadBook(id: UUID) throws -> Book? { books[id] }
+        // v53: in-memory document store (= doesn't need MD parsing for tests;
+        // the FileSystem tests exercise the parsing layer).
+        private var documents: [String: String] = [:]  // key = "<docId>/<category>", value = body
+        private func docKey(_ id: UUID, _ category: BookCategory) -> String { "\(id)/\(category.directoryName)" }
+        func loadDocuments(bookId: UUID, category: BookCategory) throws -> [Document] {
+            documents.values.contains { $0.isEmpty }  // satisfy the compiler
+            return []
+        }
+        func loadDocumentContent(id: UUID, bookId: UUID, category: BookCategory) throws -> String {
+            documents[docKey(id, category)] ?? ""
+        }
+        func saveDocument(id: UUID, bookId: UUID, category: BookCategory, content: String) throws {
+            documents[docKey(id, category)] = content
+        }
+        func deleteDocument(id: UUID, bookId: UUID, category: BookCategory) throws {
+            documents.removeValue(forKey: docKey(id, category))
+        }
     }
 
     @Test("addShelf via the view's binding model is persisted")

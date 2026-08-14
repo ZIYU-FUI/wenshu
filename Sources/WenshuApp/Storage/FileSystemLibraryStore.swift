@@ -333,4 +333,257 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
         }
         return nil
     }
+
+    // MARK: - Document ops (v0.03.0)
+    //
+    // Layout (= boss 8/15 15:55 '架构需要先定好, 不能没事加个东西, 然后
+    // 重构一堆东西'):
+    //   ~/Documents/wenshu/<shelf>/<book>/
+    //     book.json
+    //     chapters/<docId>.md   BookCategory.chapter
+    //     settings/<docId>.md   BookCategory.setting
+    //     research/<docId>.md   BookCategory.research
+    //
+    // Document metadata is NOT separately stored (= the .md IS the
+    // source of truth; loadDocuments reads the .md, extracts title +
+    // summary, fills Document fields). This matches the Boss 15:55
+    // principle: storage layer never holds a derived copy of the .md.
+
+    func loadDocuments(bookId: UUID, category: BookCategory) throws -> [Document] {
+        let fm = FileManager.default
+        // Same forgiving pattern as loadBooks / loadShelves: a missing
+        // category dir means "no documents yet" (= just-created book,
+        // user hasn't added any chapters). Return [], not an error.
+        guard let categoryDir = categoryDirectory(bookId: bookId, category: category),
+              fm.fileExists(atPath: categoryDir.path)
+        else { return [] }
+        guard let entries = try? fm.contentsOfDirectory(
+            at: categoryDir,
+            includingPropertiesForKeys: [.isRegularFileKey, .contentModificationDateKey, .fileSizeKey],
+            options: [.skipsHiddenFiles]
+        ) else { return [] }
+
+        var documents: [Document] = []
+        for entry in entries {
+            // Only .md files (= skip macOS resource forks, .DS_Store, etc.)
+            guard entry.pathExtension == "md" else { continue }
+            // Filename must be <UUID>.md (= we don't tolerate arbitrary
+            // names so the storage contract is strict). If the filename
+            // doesn't parse, skip (= forensics: someone hand-edited a
+            // file with a non-UUID name; we ignore it).
+            guard let id = Self.documentIdFromFilename(entry.lastPathComponent)
+            else { continue }
+            do {
+                let data = try Data(contentsOf: entry)
+                let body = Self.decodeUTF8(data) ?? ""
+                let attrs = try? entry.resourceValues(forKeys: [
+                    .contentModificationDateKey, .fileSizeKey
+                ])
+                let createdAt = attrs?.contentModificationDate ?? .now
+                let byteSize = attrs?.fileSize ?? data.count
+                let doc = Document(
+                    id: id,
+                    bookId: bookId,
+                    category: category,
+                    title: Self.extractTitle(from: body, fallback: entry.deletingPathExtension().lastPathComponent),
+                    byteSize: byteSize,
+                    summary: Self.extractSummary(from: body),
+                    createdAt: createdAt,
+                    updatedAt: createdAt
+                )
+                documents.append(doc)
+            } catch {
+                // Corrupt .md: skip (= same forgiveness policy as the
+                // other loaders). Don't crash the card view.
+                continue
+            }
+        }
+        // Sort by updatedAt descending (= most-recent first; matches
+        // Finder 'Recents' and the rest of the library).
+        return documents.sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    func loadDocumentContent(id: UUID, bookId: UUID, category: BookCategory) throws -> String {
+        let fm = FileManager.default
+        let path = documentPath(id: id, bookId: bookId, category: category)
+        guard fm.fileExists(atPath: path.path) else {
+            throw LibraryStoringError(kind: .documentNotFound(id))
+        }
+        let data = try Data(contentsOf: path)
+        return Self.decodeUTF8(data) ?? ""
+    }
+
+    func saveDocument(id: UUID, bookId: UUID, category: BookCategory, content: String) throws {
+        let fm = FileManager.default
+        // Orphan-prevention: the parent book must be on disk first
+        // (= same constraint as saveBook checking parentShelf). A
+        // document without a parent book would be invisible to the
+        // rest of the system (= the cards view only loads docs for
+        // books that exist).
+        guard let bookDir = bookDirectory(bookId: bookId),
+              fm.fileExists(atPath: bookDir.path)
+        else {
+            throw LibraryStoringError(kind: .parentBookNotFound(bookId))
+        }
+        // Create the category dir if it doesn't exist yet (= first save
+        // in a category for a book that's been around a while).
+        guard let categoryDir = categoryDirectory(bookId: bookId, category: category)
+        else { return }  // unreachable; bookDirectory already returned
+        do {
+            try fm.createDirectory(at: categoryDir, withIntermediateDirectories: true)
+        } catch {
+            throw LibraryStoringError(
+                kind: .ioFailed(categoryDir, underlying: "\(error)")
+            )
+        }
+
+        // Atomic write: tmp file + rename. Same pattern as saveShelf /
+        // saveBook. Crash mid-write = tmp file orphaned, .md untouched.
+        let path = documentPath(id: id, bookId: bookId, category: category)
+        let tmpPath = path.deletingLastPathComponent()
+            .appendingPathComponent("\(id.uuidString).md.tmp")
+        let data = content.data(using: .utf8) ?? Data()
+        do {
+            try data.write(to: tmpPath, options: [.atomic])
+        } catch {
+            throw LibraryStoringError(
+                kind: .ioFailed(tmpPath, underlying: "tmp write failed: \(error)")
+            )
+        }
+        do {
+            if fm.fileExists(atPath: path.path) {
+                _ = try fm.replaceItemAt(path, withItemAt: tmpPath)
+            } else {
+                try fm.moveItem(at: tmpPath, to: path)
+            }
+        } catch {
+            try? fm.removeItem(at: tmpPath)
+            throw LibraryStoringError(
+                kind: .ioFailed(path, underlying: "rename failed: \(error)")
+            )
+        }
+    }
+
+    func deleteDocument(id: UUID, bookId: UUID, category: BookCategory) throws {
+        let fm = FileManager.default
+        let path = documentPath(id: id, bookId: bookId, category: category)
+        // Idempotent (= the contract is "no-op if missing", like
+        // deleteShelf and deleteBook).
+        guard fm.fileExists(atPath: path.path) else { return }
+        do {
+            try fm.removeItem(at: path)
+        } catch {
+            throw LibraryStoringError(
+                kind: .ioFailed(path, underlying: "remove failed: \(error)")
+            )
+        }
+    }
+
+    // MARK: - Path helpers (= single source of truth for layout)
+
+    /// <root>/<shelf-id>/books/<book-id>  (= the book's directory).
+    private func bookDirectory(bookId: UUID) -> URL? {
+        // Book id is unique across the library; the book lives in
+        // exactly one shelf. We need the shelf to resolve the path,
+        // so scan (= same shape as loadBook).
+        let fm = FileManager.default
+        guard let shelfEntries = try? fm.contentsOfDirectory(
+            at: rootURL,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        ) else { return nil }
+        for shelfEntry in shelfEntries {
+            let candidate = shelfEntry
+                .appendingPathComponent("books")
+                .appendingPathComponent(bookId.uuidString)
+            if fm.fileExists(atPath: candidate.path) {
+                return candidate
+            }
+        }
+        return nil
+    }
+
+    /// <root>/<shelf-id>/books/<book-id>/<category.directoryName>
+    private func categoryDirectory(bookId: UUID, category: BookCategory) -> URL? {
+        bookDirectory(bookId: bookId)?
+            .appendingPathComponent(category.directoryName)
+    }
+
+    /// <root>/<shelf-id>/books/<book-id>/<category.directoryName>/<docId>.md
+    private func documentPath(id: UUID, bookId: UUID, category: BookCategory) -> URL {
+        categoryDirectory(bookId: bookId, category: category)!
+            .appendingPathComponent("\(id.uuidString).md")
+    }
+
+    // MARK: - MD parsing (= title from H1, summary from body)
+
+    /// Parse '<UUID>.md' → UUID?  (= inverse of Document.filename).
+    /// Returns nil for anything that doesn't look like a UUID-named
+    /// .md (= catches Finder's .DS_Store, our own .md.tmp atomics,
+    /// any hand-edited file, etc.).
+    static func documentIdFromFilename(_ name: String) -> UUID? {
+        guard name.hasSuffix(".md") else { return nil }
+        let stem = String(name.dropLast(3))
+        return UUID(uuidString: stem)
+    }
+
+    /// Decode data as UTF-8, falling back to a lossy conversion if
+    /// the file has bad bytes (= corruption recovery; wenshu never
+    /// produces bad bytes but the storage layer is defensive).
+    static func decodeUTF8(_ data: Data) -> String? {
+        String(data: data, encoding: .utf8)
+    }
+
+    /// First H1 (= '# Title') from the MD body. Falls back to a generic
+    /// placeholder (the filename, without .md) when no H1 is present.
+    /// Apple HIG documents typically have an H1 (= the document title);
+    /// if the user is still drafting, the filename is a reasonable
+    /// stand-in.
+    static func extractTitle(from body: String, fallback: String) -> String {
+        for rawLine in body.split(separator: "\n", omittingEmptySubsequences: false) {
+            let line = rawLine.trimmingCharacters(in: .whitespaces)
+            if line.hasPrefix("# ") {
+                let title = String(line.dropFirst(2)).trimmingCharacters(in: .whitespaces)
+                if !title.isEmpty { return title }
+            }
+        }
+        return fallback
+    }
+
+    /// First ~100 chars of the MD body, with frontmatter stripped and
+    /// newlines collapsed to spaces. This is the '中心思想' the user
+    /// sees at a glance in the card. (v0.04+ adds an explicit
+    /// `summary` frontmatter field to override.)
+    static func extractSummary(from body: String) -> String {
+        var content = body
+        // Strip frontmatter (= lines between the first '---' and the
+        // second '---', e.g. 'title: ...' / 'date: ...'). Standard
+        // Jekyll / Hugo / Pandoc frontmatter.
+        if content.hasPrefix("---\n") || content.hasPrefix("---\r\n") {
+            let scanner = content.dropFirst(3)
+            if let endRange = scanner.range(of: "\n---") {
+                content = String(scanner[endRange.upperBound...])
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+        }
+        // Collapse all whitespace (= newlines, tabs, multi-space) to
+        // single spaces. The summary is shown in a fixed-width card
+        // body, so multi-line summaries would force the card to grow
+        // unpredictably.
+        let collapsed = content
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+        // Cap at ~100 chars. Apple HIG card body fields typically
+        // hold 2-3 lines (= roughly 80-120 chars depending on font);
+        // 100 is a comfortable midpoint.
+        if collapsed.count <= 100 { return collapsed }
+        let prefix = collapsed.prefix(100)
+        // Truncate at the last word boundary (= don't cut "first pa" out
+        // of "first paragraph").
+        if let lastSpace = prefix.lastIndex(of: " ") {
+            return String(prefix[..<lastSpace]) + "…"
+        }
+        return String(prefix) + "…"
+    }
 }

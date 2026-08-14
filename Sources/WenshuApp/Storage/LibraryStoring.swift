@@ -32,6 +32,8 @@ struct LibraryStoringError: Error, Sendable {
         case bookAlreadyExists(UUID)
         case bookNotFound(UUID)
         case parentShelfNotFound(UUID)
+        case documentNotFound(UUID)
+        case parentBookNotFound(UUID)
         case invalidShelfData(URL, underlying: String)
         case invalidBookData(URL, underlying: String)
         case ioFailed(URL, underlying: String)
@@ -52,6 +54,10 @@ struct LibraryStoringError: Error, Sendable {
             return "no book with id \(id)"
         case .parentShelfNotFound(let id):
             return "no parent shelf with id \(id) (= cannot save a book without its shelf)"
+        case .documentNotFound(let id):
+            return "no document with id \(id)"
+        case .parentBookNotFound(let id):
+            return "no parent book with id \(id) (= cannot save a document without its book)"
         case .invalidShelfData(let url, let err):
             return "shelf.json at \(url.path) is not valid: \(err)"
         case .invalidBookData(let url, let err):
@@ -140,4 +146,52 @@ protocol LibraryStoring: Sendable {
     /// shelves / corrupt book.json are skipped, returns nil if no
     /// match). Required by WenshuLibrary.renameBook.
     func loadBook(id: UUID) throws -> Book?
+
+    // MARK: - Document operations (v0.03.0, = document module end-to-end)
+    //
+    // v53 (= boss 8/15 17:48 '3 类, 卡片显示文档的中心思想'). The library
+    // grew document operations: each book has three categories of MD
+    // files (= chapters / settings / research). The storage layer reads
+    // the .md bytes, extracts the title (= first H1, falling back to a
+    // generic placeholder) and the summary (= first ~100 chars after
+    // stripping frontmatter / collapsing newlines), and exposes a
+    // Document metadata record for the view's card grid. The full body
+    // is available via loadDocumentContent (the EDITOR reads this).
+    //
+    // The 4-method split mirrors the Book API: a list call, a single-
+    // item load (= the content the EDITOR will edit), a save (= the
+    // EDITOR's 'Save' action), and a delete (= the context menu).
+    //
+    // saveDocument on an existing id REPLACES the file (overwrite).
+    // This is different from saveBook's first-save-wins policy: when
+    // the user clicks 'Save' in the editor, they explicitly want
+    // their in-memory edit to land on disk. The first-save-wins
+    // contract for Book exists because books have a richer identity
+    // (= shelfId, createdAt) that we want to preserve; documents
+    // are pure content (= just bytes), so overwriting is the
+    // expected behavior.
+
+    /// List all documents in a given category for a book (= one
+    /// category per call: chapters / settings / research). Empty
+    /// (= no .md files on disk) returns []. The list is sorted by
+    /// updatedAt descending (= most-recently-edited first; matches
+    /// Finder 'Recents').
+    func loadDocuments(bookId: UUID, category: BookCategory) throws -> [Document]
+
+    /// Read the full body of a .md file. Returns the raw string
+    /// (= what the EDITOR loads into its text view; also what
+    /// loadDocuments's auto-summary was extracted from).
+    /// Throws .documentNotFound if no .md exists at the expected path.
+    func loadDocumentContent(id: UUID, bookId: UUID, category: BookCategory) throws -> String
+
+    /// Persist a .md to disk (= atomic write: tmp + replaceItemAt).
+    /// Overwrites if a .md with the same id already exists.
+    /// Throws .parentBookNotFound if the parent book isn't on disk
+    /// (= orphan-prevention: a document must have a parent book).
+    func saveDocument(id: UUID, bookId: UUID, category: BookCategory, content: String) throws
+
+    /// Remove a .md from disk. Idempotent (= no-op if missing). The
+    /// Document metadata is not separately stored (= the .md IS the
+    /// source of truth; removing the file removes the document).
+    func deleteDocument(id: UUID, bookId: UUID, category: BookCategory) throws
 }

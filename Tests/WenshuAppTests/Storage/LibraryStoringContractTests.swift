@@ -285,4 +285,189 @@ struct LibraryStoringContractTests {
         let loaded = try store.loadBooks(shelfId: shelf.id)
         #expect(loaded.isEmpty)
     }
+
+    // MARK: - Document ops (v0.03.0, = document module end-to-end)
+    //
+    // v53 (= boss 8/15 17:48 '3 类, 卡片显示文档的中心思想'). The
+    // library has grown document operations: loadDocuments /
+    // loadDocumentContent / saveDocument / deleteDocument. These
+    // match the new BookCategory + Document domain types added in
+    // v53.1.
+
+    @Test("loadDocuments on an empty category returns []")
+    func loadDocumentsEmpty() throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let shelf = Bookshelf(id: UUID(), name: "S", createdAt: .now, updatedAt: .now)
+        try store.saveShelf(shelf)
+        let book = Book(id: UUID(), title: "X", author: "", shelfId: shelf.id, createdAt: .now, updatedAt: .now)
+        try store.saveBook(book)
+        // loadDocuments is called per category; for an empty category
+        // (= no .md files on disk), the store returns []. Not an error.
+        #expect(try store.loadDocuments(bookId: book.id, category: .chapter).isEmpty)
+    }
+
+    @Test("saveDocument + loadDocuments round-trip: a chapter .md with a '# Title' H1")
+    func saveAndLoadDocumentWithH1() throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let shelf = Bookshelf(id: UUID(), name: "S", createdAt: .now, updatedAt: .now)
+        try store.saveShelf(shelf)
+        let book = Book(id: UUID(), title: "B", author: "", shelfId: shelf.id, createdAt: .now, updatedAt: .now)
+        try store.saveBook(book)
+        let docId = UUID()
+        let body = """
+        # 第一章 雪山的狼
+
+        一个孤独的旅人踏上北方的雪路...
+        """
+        try store.saveDocument(
+            id: docId,
+            bookId: book.id,
+            category: .chapter,
+            content: body
+        )
+        let loaded = try store.loadDocuments(bookId: book.id, category: .chapter)
+        #expect(loaded.count == 1)
+        let doc = loaded[0]
+        #expect(doc.id == docId)
+        #expect(doc.title == "第一章 雪山的狼")  // H1 extracted
+        #expect(doc.summary.contains("孤独"))  // first ~100 chars
+        #expect(doc.byteSize > 0)
+    }
+
+    @Test("saveDocument writes <docId>.md to <book-dir>/<category.dir>/")
+    func saveDocumentFileLocation() throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let shelf = Bookshelf(id: UUID(), name: "S", createdAt: .now, updatedAt: .now)
+        try store.saveShelf(shelf)
+        let book = Book(id: UUID(), title: "B", author: "", shelfId: shelf.id, createdAt: .now, updatedAt: .now)
+        try store.saveBook(book)
+        let docId = UUID()
+        try store.saveDocument(id: docId, bookId: book.id, category: .setting, content: "# 角色表")
+        let expected = root
+            .appendingPathComponent(shelf.directoryName)
+            .appendingPathComponent("books")
+            .appendingPathComponent(book.directoryName)
+            .appendingPathComponent("settings")
+            .appendingPathComponent("\(docId.uuidString).md")
+        #expect(FileManager.default.fileExists(atPath: expected.path))
+    }
+
+    @Test("loadDocumentContent round-trips the full MD body (= not just title/summary)")
+    func loadDocumentContent() throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let shelf = Bookshelf(id: UUID(), name: "S", createdAt: .now, updatedAt: .now)
+        try store.saveShelf(shelf)
+        let book = Book(id: UUID(), title: "B", author: "", shelfId: shelf.id, createdAt: .now, updatedAt: .now)
+        try store.saveBook(book)
+        let body = "# 标题\n\n这是第一章的完整内容..."
+        try store.saveDocument(id: UUID(), bookId: book.id, category: .chapter, content: body)
+        let docs = try store.loadDocuments(bookId: book.id, category: .chapter)
+        #expect(docs.count == 1)
+        let content = try store.loadDocumentContent(id: docs[0].id, bookId: book.id, category: .chapter)
+        #expect(content == body)
+    }
+
+    @Test("saveDocument on existing id replaces (= first-save-wins... but content overwrite is the user's intent when they 'Save')")
+    func saveDocumentOverwrite() throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let shelf = Bookshelf(id: UUID(), name: "S", createdAt: .now, updatedAt: .now)
+        try store.saveShelf(shelf)
+        let book = Book(id: UUID(), title: "B", author: "", shelfId: shelf.id, createdAt: .now, updatedAt: .now)
+        try store.saveBook(book)
+        let id = UUID()
+        try store.saveDocument(id: id, bookId: book.id, category: .chapter, content: "v1")
+        try store.saveDocument(id: id, bookId: book.id, category: .chapter, content: "v2")
+        let docs = try store.loadDocuments(bookId: book.id, category: .chapter)
+        #expect(docs.count == 1)
+        let content = try store.loadDocumentContent(id: id, bookId: book.id, category: .chapter)
+        #expect(content == "v2")
+    }
+
+    @Test("loadDocuments is isolated by category (= chapters / settings / research are independent lists)")
+    func loadDocumentsIsolatedByCategory() throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let shelf = Bookshelf(id: UUID(), name: "S", createdAt: .now, updatedAt: .now)
+        try store.saveShelf(shelf)
+        let book = Book(id: UUID(), title: "B", author: "", shelfId: shelf.id, createdAt: .now, updatedAt: .now)
+        try store.saveBook(book)
+        try store.saveDocument(id: UUID(), bookId: book.id, category: .chapter, content: "# ch")
+        try store.saveDocument(id: UUID(), bookId: book.id, category: .setting, content: "# se")
+        try store.saveDocument(id: UUID(), bookId: book.id, category: .research, content: "# re")
+        #expect(try store.loadDocuments(bookId: book.id, category: .chapter).count == 1)
+        #expect(try store.loadDocuments(bookId: book.id, category: .setting).count == 1)
+        #expect(try store.loadDocuments(bookId: book.id, category: .research).count == 1)
+    }
+
+    @Test("deleteDocument is idempotent (= missing id is no-op)")
+    func deleteDocumentIdempotent() throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let shelf = Bookshelf(id: UUID(), name: "S", createdAt: .now, updatedAt: .now)
+        try store.saveShelf(shelf)
+        let book = Book(id: UUID(), title: "B", author: "", shelfId: shelf.id, createdAt: .now, updatedAt: .now)
+        try store.saveBook(book)
+        // Deleting a non-existent document is a no-op (= Apple HIG
+        // document-based apps: deleting a file that was already trashed
+        // outside the app is a no-op, not an error).
+        try store.deleteDocument(id: UUID(), bookId: book.id, category: .chapter)
+    }
+
+    @Test("summary: extract first ~100 chars from MD body, strip frontmatter, collapse newlines")
+    func loadDocumentSummary() throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let shelf = Bookshelf(id: UUID(), name: "S", createdAt: .now, updatedAt: .now)
+        try store.saveShelf(shelf)
+        let book = Book(id: UUID(), title: "B", author: "", shelfId: shelf.id, createdAt: .now, updatedAt: .now)
+        try store.saveBook(book)
+        let body = """
+        ---
+        title: hidden frontmatter
+        ---
+
+        # Visible Title
+
+        First paragraph of the body goes here, the storage layer should
+        extract a summary from this.
+        """
+        let docId = UUID()
+        try store.saveDocument(id: docId, bookId: book.id, category: .chapter, content: body)
+        let docs = try store.loadDocuments(bookId: book.id, category: .chapter)
+        let doc = docs.first(where: { $0.id == docId })!
+        // Summary must NOT include the frontmatter (= 'hidden frontmatter' is stripped)
+        #expect(!doc.summary.contains("hidden frontmatter"))
+        // Summary must include the first body sentence (= 'First paragraph')
+        #expect(doc.summary.contains("First paragraph"))
+        // Summary must be a single line (= newlines collapsed)
+        #expect(!doc.summary.contains("\n"))
+    }
+
+    @Test("title: extract first H1 from MD body, fallback to filename")
+    func loadDocumentTitleFallback() throws {
+        let (store, root) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let shelf = Bookshelf(id: UUID(), name: "S", createdAt: .now, updatedAt: .now)
+        try store.saveShelf(shelf)
+        let book = Book(id: UUID(), title: "B", author: "", shelfId: shelf.id, createdAt: .now, updatedAt: .now)
+        try store.saveBook(book)
+        // MD without H1
+        let docId1 = UUID()
+        try store.saveDocument(id: docId1, bookId: book.id, category: .chapter, content: "No H1, just body.")
+        // MD with H1
+        let docId2 = UUID()
+        try store.saveDocument(id: docId2, bookId: book.id, category: .chapter, content: "# Real Title\n\nBody.")
+        let docs = try store.loadDocuments(bookId: book.id, category: .chapter)
+        let d1 = docs.first(where: { $0.id == docId1 })!
+        let d2 = docs.first(where: { $0.id == docId2 })!
+        // No H1 → falls back to a default title
+        #expect(!d1.title.isEmpty)
+        // H1 → uses the H1
+        #expect(d2.title == "Real Title")
+    }
 }
