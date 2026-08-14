@@ -62,6 +62,20 @@ final class WenshuLibrary {
         if let first = shelves.first, selectedShelfId == nil {
             selectedShelfId = first.id
         }
+        // v53: also auto-select the first book in that shelf (= makes
+        // the cards grid visible on first launch with existing data,
+        // instead of the '先在左边选一本书' empty state).
+        if selectedBookId == nil, let shelfId = selectedShelfId {
+            do {
+                let books = try store.loadBooks(shelfId: shelfId)
+                if let firstBook = books.first {
+                    selectedBookId = firstBook.id
+                }
+            } catch {
+                // Books fail to load → leave selectedBookId nil; the
+                // empty state will render and the user can pick one.
+            }
+        }
     }
 
     /// URL to display in the UI (= 'Library at <rootURL>'). The view
@@ -184,5 +198,83 @@ final class WenshuLibrary {
 
     func setSelectedBook(id: UUID?) {
         selectedBookId = id
+    }
+
+    // MARK: - Document state (v0.03.0, = document module end-to-end)
+    //
+    // Lazy reads (= the storage layer decides how to optimize; current
+    // FileSystemLibraryStore re-reads the .md each call). The view layer
+    // (v53.3 BookOutlineView) calls these on each render — for v0.03.0
+    // the per-card read is fine; v0.04+ can add an in-memory cache.
+
+    /// Lists the documents in a given category for the currently-
+    /// selected book. Empty (= no book selected, or the book has no
+    /// documents in this category yet).
+    func documents(in bookId: UUID, category: BookCategory) throws -> [Document] {
+        try store.loadDocuments(bookId: bookId, category: category)
+    }
+
+    /// Reads the full MD body of a document (= what the EDITOR will
+    /// load into its text view). Throws .documentNotFound if the .md
+    /// isn't on disk.
+    func documentContent(id: UUID, bookId: UUID, category: BookCategory) throws -> String {
+        try store.loadDocumentContent(id: id, bookId: bookId, category: category)
+    }
+
+    /// Creates a new document. The document id is generated here
+    /// (= callers don't pass an id; the Library owns the id space).
+    /// The category directory is created on demand by the storage
+    /// layer. Auto-selects the new document.
+    @discardableResult
+    func addDocument(in bookId: UUID, category: BookCategory, title: String, content: String) throws -> Document {
+        let id = UUID()
+        try store.saveDocument(
+            id: id,
+            bookId: bookId,
+            category: category,
+            content: content
+        )
+        // Compute the metadata in-memory (= the storage layer reads
+        // it back from disk, but for immediate UI feedback after the
+        // save we already know title + byteSize).
+        let doc = Document(
+            id: id,
+            bookId: bookId,
+            category: category,
+            title: title,
+            byteSize: content.utf8.count,
+            summary: FileSystemLibraryStore.extractSummary(from: content),
+            createdAt: .now,
+            updatedAt: .now
+        )
+        selectedDocumentId = id
+        return doc
+    }
+
+    /// Persists the body of a document. Overwrites (= the EDITOR's
+    /// 'Save' action).
+    func updateDocumentContent(id: UUID, bookId: UUID, category: BookCategory, content: String) throws {
+        try store.saveDocument(
+            id: id,
+            bookId: bookId,
+            category: category,
+            content: content
+        )
+    }
+
+    /// Removes a document. Idempotent.
+    func deleteDocument(id: UUID, bookId: UUID, category: BookCategory) throws {
+        try store.deleteDocument(id: id, bookId: bookId, category: category)
+        if selectedDocumentId == id {
+            selectedDocumentId = nil
+        }
+    }
+
+    /// Currently-selected document (= the EDITOR binds to this when
+    /// the user clicks a card). nil = no selection.
+    private(set) var selectedDocumentId: UUID?
+
+    func setSelectedDocument(id: UUID?) {
+        selectedDocumentId = id
     }
 }

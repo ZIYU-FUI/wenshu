@@ -309,7 +309,11 @@ struct LayoutShellView: View {
             }
             .frame(width: hit, height: height)
 
-            ZoneScaffoldView(name: "EDITOR")
+            // v53: EDITOR zone is now the document cards grid (= FCP
+            // Browser filmstrip pattern). Replaces the v0.01.x "EDITOR"
+            // watermark placeholder. Shows 3 category sections
+            // (章节 / 设定 / 资料库) of cards for the selected book.
+            BookOutlineView(library: library)
                 .frame(width: editorW, height: height)
 
             NativeSplitter(orientation: .horizontal) { delta in
