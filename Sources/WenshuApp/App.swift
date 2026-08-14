@@ -212,15 +212,28 @@ struct LayoutShellView: View {
         GeometryReader { geo in
             let totalW = geo.size.width
             let totalH = geo.size.height
-            // Boss 19:55 "上下分区, 约束到 50/50" → upper/lower band split is fixed at 50/50
-            // (= no NativeSplitter between bands; this is a hard constraint, not user-resizable).
-            // TODO v0.02.0: revisit if boss拍 to make band split resizable.
+            // Boss 19:55 + 8/15 15:14: upper/lower band split is fixed at 50/50
+            // AND the divider line must be visible (= the v31 refactor had
+            // accidentally dropped the band splitter while cleaning dead state).
+            // The fix is a real NativeSplitter whose drag callback clamps to
+            // 0.50 (= the user CAN grab and try to drag, but the split stays
+            // locked; this gives the divider visible line + cursor feedback
+            // + 5pt hit area, all the standard splitter affordances, without
+            // ever letting the bands actually resize).
             let lowerH = totalH * Self.bandRatio
             let upperH = totalH * (1.0 - Self.bandRatio)
+            let hit = CGFloat(NativeSplitterView.hitAreaThickness)
 
             VStack(spacing: 0) {
                 upperBand(width: totalW, height: upperH)
                     .frame(height: upperH)
+
+                // Band splitter (= 1pt hairline centered in 5pt hit area,
+                // drag-locked to 50/50). See vm.adjustBandSplit for the clamp.
+                NativeSplitter(orientation: .vertical) { _ in
+                    vm.adjustBandSplit()
+                }
+                .frame(width: totalW, height: hit)
 
                 lowerBand(width: totalW, height: lowerH)
                     .frame(height: lowerH)
@@ -229,7 +242,9 @@ struct LayoutShellView: View {
         .frame(minWidth: 1280, idealWidth: 1452, minHeight: 800, idealHeight: 984)
     }
 
-    /// Boss 19:55: upper/lower band fixed at 50/50 (NOT user-resizable).
+    /// Boss 19:55: upper/lower band fixed at 50/50 (locked, NOT user-resizable).
+    /// The band splitter exists (= gives the divider line + hit area + cursor
+    /// affordance) but dragging has no effect on the split ratio.
     private static let bandRatio: CGFloat = 0.50
 
     @ViewBuilder

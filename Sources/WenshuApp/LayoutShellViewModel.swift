@@ -96,6 +96,13 @@ final class LayoutShellViewModel {
         consoleStatusRatio = clamped
     }
 
+    /// Upper / lower band splitter — present in the view tree (= gives the user
+    /// a visible divider + grab cursor on the band seam) but inert: the split is
+    /// locked at 50/50 per owner 19:55. Drag does nothing.
+    func adjustBandSplit() {
+        // intentional no-op; band ratio is hard-coded in LayoutShellView.bandRatio
+    }
+
     // MARK: - Internal
 
     /// Shared drag math: shift `leftIndex` by `delta/totalWidth`, debited from
