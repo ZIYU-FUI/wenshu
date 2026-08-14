@@ -42,8 +42,21 @@ let package = Package(
                     "-Xlinker", "Sources/WenshuApp/Resources/Info.plist"
                 ])
             ]
+        ),
+        // v0.02.0: Swift Testing test target. v0.01.0 landed 7-zone scaffold;
+        // v0.02.0 lands the bookshelf module (= storage protocol + FileSystem
+        // implementation + view) and needs Swift Testing to enforce the storage
+        // contract (= any future MetadataQuery / CoreData / CloudKit
+        // implementation must pass the same contract tests).
+        //
+        // Owner 8/15 15:55: '架构需要先定好, 不能没事加个东西, 然后重构一堆
+        // 东西'. The contract tests are the architectural enforcement: they
+        // describe the public behavior of LibraryStoring so the protocol
+        // surface is locked before any UI code touches it.
+        .testTarget(
+            name: "WenshuAppTests",
+            dependencies: ["WenshuApp"],
+            path: "Tests/WenshuAppTests"
         )
-        // v0.00.0 bootstrap: no testTarget (= /tdd added once 5-zone layout lands).
-        // Owner 17:30: "minimal code". Tests added via /to-tickets + /tdd.
     ]
 )
