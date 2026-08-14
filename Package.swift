@@ -6,6 +6,9 @@
 //
 // Architecture: Swift/SwiftUI single-process macOS desktop app (= Apple ecosystem exclusive, v1 only macOS).
 // v0.00.0 bootstrap = app entry point that opens a window; features follow via /to-tickets.
+//
+// Info.plist embedded via __TEXT,__info_plist linker section so AppKit recognizes the bare
+// SwiftPM binary as a Cocoa application bundle (= Dock icon + Force Quit registration).
 
 import PackageDescription
 
@@ -23,7 +26,22 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "WenshuApp",
-            path: "Sources/WenshuApp"
+            path: "Sources/WenshuApp",
+            exclude: [
+                // Info.plist is consumed by the linker flag below, not by
+                // SwiftPM's resource bundling. Keep on disk so linker resolves.
+                "Resources/Info.plist"
+            ],
+            linkerSettings: [
+                // Embed Info.plist into __TEXT,__info_plist so AppKit recognizes the
+                // SwiftPM binary as a Cocoa app (= Dock icon + Force Quit registration).
+                .unsafeFlags([
+                    "-Xlinker", "-sectcreate",
+                    "-Xlinker", "__TEXT",
+                    "-Xlinker", "__info_plist",
+                    "-Xlinker", "Sources/WenshuApp/Resources/Info.plist"
+                ])
+            ]
         )
         // v0.00.0 bootstrap: no testTarget (= /tdd added once 5-zone layout lands).
         // Owner 17:30: "minimal code". Tests added via /to-tickets + /tdd.
