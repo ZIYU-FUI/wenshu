@@ -235,10 +235,16 @@ struct LayoutShellView: View {
     @ViewBuilder
     private func upperBand(width: CGFloat, height: CGFloat) -> some View {
         let upperW = width
+        // Subtract splitter widths BEFORE applying ratios so children sum to upperW.
+        // (= v29 fix: [0.2, 0.5, 0.3] on full width gave 290+5+726+5+436 = 1462 > 1452,
+        // so HStack overflowed: Inspector was crushed to 277px, Editor inflated to 870px.)
+        let splitterCount: CGFloat = 2
+        let hit = CGFloat(NativeSplitterView.hitAreaThickness)
+        let usable = upperW - splitterCount * hit
         let r = vm.upperRatios
-        let libraryW = upperW * r[0]
-        let editorW = upperW * r[1]
-        let inspectorW = upperW * r[2]
+        let libraryW = usable * r[0]
+        let editorW = usable * r[1]
+        let inspectorW = usable * r[2]
 
         HStack(spacing: 0) {
             // Library (Shelf + Project horizontal split inside, boss 19:10 "应该是左右")
@@ -250,7 +256,7 @@ struct LayoutShellView: View {
             NativeSplitter(orientation: .horizontal) { delta in
                 vm.adjustUpperColumn(splitterIndex: 0, delta: delta, totalWidth: upperW)
             }
-            .frame(width: NativeSplitterView.hitAreaThickness, height: height)
+            .frame(width: hit, height: height)
 
             ZoneScaffoldView(name: "EDITOR")
                 .frame(width: editorW, height: height)
@@ -258,7 +264,7 @@ struct LayoutShellView: View {
             NativeSplitter(orientation: .horizontal) { delta in
                 vm.adjustUpperColumn(splitterIndex: 1, delta: delta, totalWidth: upperW)
             }
-            .frame(width: NativeSplitterView.hitAreaThickness, height: height)
+            .frame(width: hit, height: height)
 
             ZoneScaffoldView(name: "INSPECTOR")
                 .frame(width: inspectorW, height: height)
@@ -268,9 +274,14 @@ struct LayoutShellView: View {
     @ViewBuilder
     private func lowerBand(width: CGFloat, height: CGFloat) -> some View {
         let lowerW = width
+        // Same v29 fix: subtract splitter widths from the band before applying ratios.
+        // Lower band has 2 splitters (= Chat|Console + Console|Status) so the right side
+        // can have an internal split (needed so Status 30% width-matches Inspector 30%).
+        let hit = CGFloat(NativeSplitterView.hitAreaThickness)
+        let usable = lowerW - 2 * hit
         let r = vm.lowerRatios
-        let chatW = lowerW * r[0]
-        let rightW = lowerW * r[1]
+        let chatW = usable * r[0]
+        let rightW = usable * r[1]
 
         HStack(spacing: 0) {
             ZoneScaffoldView(name: "CHAT")
@@ -290,16 +301,22 @@ struct LayoutShellView: View {
             // band's two-splitter deduction. Console + Status are still conceptually one
             // "状态区" (= single Status pane); the splitter is the necessary structural
             // cost of the band width-matching constraint.
+            // Right side: Console | Status nested split (= v29 fix: split off a splitter
+            // from rightW BEFORE applying the internal ratio, same as the outer
+            // band). Without this the inner HStack overflows by 5pt (= Status
+            // gets squeezed, just like Inspector did in the upper band).
+            let innerHit = CGFloat(NativeSplitterView.hitAreaThickness)
+            let innerUsable = rightW - innerHit
             ZoneScaffoldView(name: "CONSOLE")
-                .frame(width: rightW * vm.consoleStatusRatio, height: height)
+                .frame(width: innerUsable * vm.consoleStatusRatio, height: height)
 
             NativeSplitter(orientation: .horizontal) { delta in
                 vm.adjustConsoleStatus(delta: delta, totalWidth: rightW)
             }
-            .frame(width: NativeSplitterView.hitAreaThickness, height: height)
+            .frame(width: innerHit, height: height)
 
             ZoneScaffoldView(name: "STATUS")
-                .frame(width: rightW * (1.0 - vm.consoleStatusRatio), height: height)
+                .frame(width: innerUsable * (1.0 - vm.consoleStatusRatio), height: height)
         }
     }
 }
@@ -313,52 +330,48 @@ struct LayoutShellView: View {
 struct LibraryScaffold: View {
     @Environment(LayoutShellViewModel.self) private var splits
     var body: some View {
-        ZStack {
-            Color(nsColor: NSColor.windowBackgroundColor).ignoresSafeArea()
-            GeometryReader { geo in
-                // Compute explicit pixel widths from parent's actual size (= boss 19:55
-                // style: use real GeometryReader, not magic .infinity). This avoids the
-                // HStack + maxWidth:.infinity collision that visually crushed the splitter.
-                let totalW = geo.size.width
-                let totalH = geo.size.height
-                let hitW = CGFloat(NativeSplitterView.hitAreaThickness)
-                let shelfW = (totalW - hitW) * splits.libraryShelfFraction
-                let projectW = (totalW - hitW) * (1.0 - splits.libraryShelfFraction)
+        GeometryReader { geo in
+            // Compute explicit pixel widths from parent's actual size (= boss 19:55
+            // style: use real GeometryReader, not magic .infinity). This avoids the
+            // HStack + maxWidth:.infinity collision that visually crushed the splitter.
+            let totalW = geo.size.width
+            let totalH = geo.size.height
+            let hitW = CGFloat(NativeSplitterView.hitAreaThickness)
+            let shelfW = (totalW - hitW) * splits.libraryShelfFraction
+            let projectW = (totalW - hitW) * (1.0 - splits.libraryShelfFraction)
 
-                HStack(spacing: 0) {
-                    ZoneScaffoldView(name: "SHELF")
-                        .frame(width: shelfW, height: totalH)
-                    NativeSplitter(orientation: .vertical) { delta in
-                        // Library internal split: Shelf vs Project (= boss 19:45 "各 10").
-                        let totalWidth = totalW - hitW
-                        let deltaRatio = Double(delta / totalWidth)
-                        let newFraction = splits.libraryShelfFraction + deltaRatio
-                        splits.libraryShelfFraction = min(max(newFraction, LayoutShellViewModel.minRatio), LayoutShellViewModel.maxRatio)
-                    }
-                    .frame(width: hitW, height: totalH)
-                    ZoneScaffoldView(name: "PROJECT")
-                        .frame(width: projectW, height: totalH)
+            HStack(spacing: 0) {
+                ZoneScaffoldView(name: "SHELF")
+                    .frame(width: shelfW, height: totalH)
+                NativeSplitter(orientation: .vertical) { delta in
+                    // Library internal split: Shelf vs Project (= boss 19:45 "各 10").
+                    let totalWidth = totalW - hitW
+                    let deltaRatio = Double(delta / totalWidth)
+                    let newFraction = splits.libraryShelfFraction + deltaRatio
+                    splits.libraryShelfFraction = min(max(newFraction, LayoutShellViewModel.minRatio), LayoutShellViewModel.maxRatio)
                 }
+                .frame(width: hitW, height: totalH)
+                ZoneScaffoldView(name: "PROJECT")
+                    .frame(width: projectW, height: totalH)
             }
-            parentLabel
+            // PARENT LABEL overlay — sits on top of the HStack, anchored to the
+            // top-leading corner of the GeometryReader (= = totalW × totalH). Use
+            // the GeometryReader's explicit size, NOT `.frame(maxWidth: .infinity,
+            // maxHeight: .infinity)`, which lets the label itself dictate the
+            // parent's intrinsic size and pulls the entire LibraryScaffold out to
+            // the window's full width (= v29 screenshot bug: SHELF/PROJECT
+            // watermarks rendered 1158px right of where they belong).
+            .overlay(alignment: .topLeading) {
+                Text("LIBRARY")
+                    .font(.system(size: 18, weight: .semibold, design: .default))
+                    .foregroundStyle(.tertiary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 4))
+                    .padding(8)
+                    .allowsHitTesting(false)
+            }
         }
-    }
-
-    /// Library occupies 20% of total window width (= boss 19:45 "library 20").
-    /// This constant is the total-width reference for Library internal drag delta math.
-    /// TODO v0.02.0: replace with GeometryReader { $0.size.width } to read actual width.
-    private static let parentLibraryFraction: CGFloat = 0.20
-
-    private var parentLabel: some View {
-        Text("LIBRARY")
-            .font(.system(size: 18, weight: .semibold, design: .default))
-            .foregroundStyle(.tertiary)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 4))
-            .allowsHitTesting(false)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .padding(8)
     }
 }
 
