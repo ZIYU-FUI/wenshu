@@ -123,16 +123,15 @@ struct LayoutShellView: View {
         GeometryReader { geo in
             let totalW = geo.size.width
             let totalH = geo.size.height
-            let lowerH = totalH * vm.lowerBandRatio
+            // Boss 19:55 "上下分区, 约束到 50/50" → upper/lower band split is fixed at 50/50
+            // (= no NativeSplitter between bands; this is a hard constraint, not user-resizable).
+            // TODO v0.02.0: revisit if boss拍 to make band split resizable.
+            let lowerH = totalH * Self.bandRatio
+            let upperH = totalH * (1.0 - Self.bandRatio)
 
             VStack(spacing: 0) {
-                upperBand(width: totalW, height: totalH - lowerH)
-                    .frame(height: totalH - lowerH)
-
-                NativeSplitter(orientation: .vertical) { delta in
-                    vm.adjustLowerBandHeight(delta: delta, totalHeight: totalH)
-                }
-                .frame(height: NativeSplitterView.hitAreaThickness)
+                upperBand(width: totalW, height: upperH)
+                    .frame(height: upperH)
 
                 lowerBand(width: totalW, height: lowerH)
                     .frame(height: lowerH)
@@ -140,6 +139,9 @@ struct LayoutShellView: View {
         }
         .frame(minWidth: 1280, idealWidth: 1452, minHeight: 800, idealHeight: 984)
     }
+
+    /// Boss 19:55: upper/lower band fixed at 50/50 (NOT user-resizable).
+    private static let bandRatio: CGFloat = 0.50
 
     @ViewBuilder
     private func upperBand(width: CGFloat, height: CGFloat) -> some View {
