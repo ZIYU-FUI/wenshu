@@ -254,7 +254,7 @@ struct LayoutShellView: View {
             // NativeSplitter between Library and Editor (= FCP-measured 8pt hit area,
             // 1pt visible line on START edge = LT-01-fix15/16 from装机 user 8/7).
             NativeSplitter(orientation: .horizontal) { delta in
-                vm.adjustUpperColumn(splitterIndex: 0, delta: delta, totalWidth: upperW)
+                vm.adjustLibraryEditor(delta: delta, totalWidth: upperW)
             }
             .frame(width: hit, height: height)
 
@@ -262,7 +262,7 @@ struct LayoutShellView: View {
                 .frame(width: editorW, height: height)
 
             NativeSplitter(orientation: .horizontal) { delta in
-                vm.adjustUpperColumn(splitterIndex: 1, delta: delta, totalWidth: upperW)
+                vm.adjustEditorInspector(delta: delta, totalWidth: upperW)
             }
             .frame(width: hit, height: height)
 
@@ -288,7 +288,7 @@ struct LayoutShellView: View {
                 .frame(width: chatW, height: height)
 
             NativeSplitter(orientation: .horizontal) { delta in
-                vm.adjustLowerColumn(delta: delta, totalWidth: lowerW)
+                vm.adjustChatConsole(delta: delta, totalWidth: lowerW)
             }
             .frame(width: NativeSplitterView.hitAreaThickness, height: height)
 
@@ -344,11 +344,7 @@ struct LibraryScaffold: View {
                 ZoneScaffoldView(name: "SHELF")
                     .frame(width: shelfW, height: totalH)
                 NativeSplitter(orientation: .vertical) { delta in
-                    // Library internal split: Shelf vs Project (= boss 19:45 "各 10").
-                    let totalWidth = totalW - hitW
-                    let deltaRatio = Double(delta / totalWidth)
-                    let newFraction = splits.libraryShelfFraction + deltaRatio
-                    splits.libraryShelfFraction = min(max(newFraction, LayoutShellViewModel.minRatio), LayoutShellViewModel.maxRatio)
+                    splits.adjustShelfProject(delta: delta, totalWidth: totalW - hitW)
                 }
                 .frame(width: hitW, height: totalH)
                 ZoneScaffoldView(name: "PROJECT")
@@ -376,27 +372,24 @@ struct LibraryScaffold: View {
 }
 
 // MARK: - Zone scaffold (dim watermark + Apple Semantic Color background)
-//
-// Boss 19:20 "颜色用苹果新的颜色规则, 不写色值" → use macOS 27.0 system semantic
-// colors (= .windowBackgroundColor / .controlBackgroundColor / .black) instead of
-// hardcoded RGB. SOUL Law 6: walk Apple's path (= no raw RGB).
+// macOS-only (= Package.swift .macOS(.v27)): direct semantic color tokens, no fallback needed.
 struct ZoneScaffoldView: View {
     let name: String
-    let background: Color
+    private let background: Color
 
-    init(name: String, background: Color? = nil) {
+    init(name: String) {
         self.name = name
-        self.background = background ?? Self.defaultBackground(for: name)
+        self.background = Self.color(for: name)
     }
 
     /// Apple Semantic Color per zone role (= macOS 27.0 Liquid Glass design system).
-    /// NO raw RGB — uses system tokens that automatically adapt to dark/light/contrast.
-    static func defaultBackground(for name: String) -> Color {
+    /// No raw RGB — system tokens auto-adapt to dark/light/contrast.
+    private static func color(for name: String) -> Color {
         switch name {
         case "EDITOR":
             return Color.black                                    // FCP Viewer convention
         case "INSPECTOR":
-            return Color(nsColor: NSColor.controlBackgroundColor)  // slightly lighter than windowBackground in dark mode
+            return Color(nsColor: NSColor.controlBackgroundColor)  // one tier lighter than window bg
         case "LIBRARY", "SHELF", "PROJECT", "CHAT", "CONSOLE", "STATUS":
             return Color(nsColor: NSColor.windowBackgroundColor)
         default:

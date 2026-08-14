@@ -56,13 +56,13 @@ final class NativeSplitterView: NSView {
     /// For test introspection (= LT-01-fix15).
     private(set) var redrawRequestCount: Int = 0
 
-    static let visibleDividerThickness: CGFloat = 1
+    static let hitAreaThickness: CGFloat = 5
         /// LT-01-fix17 (boss 19:20 "分割线的触发区域太小, 改成 5, 视觉 1, 鼠标触发 5"):
         /// hit area = 5pt (mouse interaction expanded beyond the 1pt visual line),
-        /// visibleDividerThickness stays 1pt (= line still edge-to-edge, no gap).
+        /// the visible line itself is `hitAreaThickness` wide (= 5pt solid block, no
+        /// blank strips on either side; the v25 fix to boss拍 "间隔还在").
         /// 5pt hit area = user can grab the splitter without pixel-perfect aim (= Apple
         /// HIG splitter drag region).
-        static let hitAreaThickness: CGFloat = 5
         static let clickThreshold: CGFloat = 5
 
     // MARK: - Cursor mapping (LT-01-fix9)
