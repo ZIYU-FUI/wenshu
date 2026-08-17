@@ -1,13 +1,23 @@
 // LayoutShellViewModel.swift · Wenshu (Wenshu) · v0.01.0 (= minimal splitter state)
 //
 // macOS-only state (= Package.swift .macOS(.v27)). Single source of truth for
-// splitter drag ratios. v0.01.0 fixed ratios (= no live band split, no runtime
-// hide/show), so the VM is intentionally minimal.
+// splitter drag positions. v0.01.0 fixed positions (= no live band split, no
+// runtime hide/show), so the VM is intentionally minimal.
 //
-// FCP-measured default proportions (1452x984 baseline, owner 19:10 / 19:45):
-//   upperRatios       [0.20, 0.50, 0.30]  Library | Editor | Inspector
-//   lowerRatios       [0.70, 0.30]        Chat    | Console+Status
-//   consoleStatusRatio 0.50                Console | Status  (internal 1:1)
+// Boss-measured default column-splitter x positions (Sketch page 2 baseline
+// 3840x1968 pt @ -1441,-587, 2026-08-17 Sketch page 2 "Home" frame, 6 groups +
+// 4 vertical drag lines + 1 horizontal drag line):
+//   upperRatios          [0.1042, 0.3948, 0.7896]  project-mgmt A | project-mgmt B | editor | tools
+//   lowerRatios          [0.1042, 0.7896]          chat A | chat B | dynamic
+// (= Boss 8/17 "按 PT 设置的大小, 是否需要转成比例"; 1:1 pt reproduction of
+//  boss's drag-line x positions: v1=400, v2=1516, v3=3032.)
+//
+// Note: v0.01.0 had a single [library, editor, inspector] width-fraction array
+// (= wenshu 7-zone layout shell per SPEC-v0.01.0.md). 2026-08-17 boss Sketch
+// page 2 redesigns as 4-column upper + 3-column lower (= 6 zones, 5 vertical
+// splitters + 1 horizontal). Replaced per wenshu-pocock-style macOS-only
+// cleanup pattern: drop Optional fallback / dead state / dead funcs (= boss
+// 8/15 14:55 "把通用逻辑代码替换 macOS 唯一", 8/15 15:14 inline v31 commit).
 //
 // The 50/50 upper/lower band split is HARD-CODED (= boss 19:55 lock, no
 // resizable band split in v0.01.0); there is no `lowerBandRatio` state.
@@ -18,7 +28,7 @@
 // list with DisclosureGroup-style collapse/expand).
 //
 // Boss 19:00 fix: replaces v10's SwiftUI .frame(width: fraction) which caused
-// "拖拽时区域闪烁" (= SwiftUI layout invalidates the whole tree on every drag tick).
+// "drag flicker area area" (= SwiftUI layout invalidates the whole tree on every drag tick).
 // NativeSplitter (NSView + NSViewRepresentable) does the drag inside AppKit's NSEvent
 // pipeline, not SwiftUI's render pipeline → no flicker.
 
@@ -27,17 +37,19 @@ import Observation
 
 @Observable
 final class LayoutShellViewModel {
-    /// Upper-band horizontal split ratios (= boss 19:45 口头约束 v0.01.0):
-    ///   Library 20% / Editor 50% / Inspector 30% (= 0.20/0.50/0.30 of upper-band usable width).
-    /// Boss 19:45 "library 20, editor 50, inspector 30".
-    var upperRatios: [Double] = [0.20, 0.50, 0.30]
-    /// Lower-band horizontal split ratios (= boss 19:45 "chat 70").
-    /// Chat 70% of lower-band usable width, right side 30% (= Console + Status together).
-    /// ratios[0] = Chat 0.70, ratios[1] = Console+Status 0.30.
-    var lowerRatios: [Double] = [0.70, 0.30]
-    /// Console|Status internal split (= boss 19:45 "console 15 status 15" =
-    ///   each = 15% of total = 50% of right-side-30% = 0.50 internal).
-    var consoleStatusRatio: Double = 0.50
+    /// Upper-band column-splitter x positions (= Boss 2026-08-17 Sketch page 2
+    /// "Home" baseline 3840 pt, 1:1 pt reproduction):
+    ///   upperRatios[0] = 0.1042  (v1 = 400 pt, project-mgmt sub-A | sub-B)
+    ///   upperRatios[1] = 0.3948  (v2 = 1516 pt, project-mgmt | editor)
+    ///   upperRatios[2] = 0.7896  (v3 = 3032 pt, editor | tools)
+    /// Each value is the splitter's x / totalWidth (NOT a column-width fraction).
+    /// Step 1 1:1 pt (= 3840 baseline); step 3 will keep the same conceptual
+    /// mapping once the boss signs off.
+    var upperRatios: [Double] = [0.1042, 0.3948, 0.7896]
+    /// Lower-band column-splitter x positions:
+    ///   lowerRatios[0] = 0.1042  (v1 = 400 pt, chat sub-A | sub-B)
+    ///   lowerRatios[1] = 0.7896  (v3 = 3032 pt, chat sub-B | Dynamic)
+    var lowerRatios: [Double] = [0.1042, 0.7896]
 
     /// Drag bounds for any ratio (= owner拍 "常识性功能", Apple HIG splitter limits).
     static let minRatio: Double = 0.08
@@ -67,8 +79,8 @@ final class LayoutShellViewModel {
         )
     }
 
-    /// Lower-band Chat | Console+Status splitter.
-    func adjustChatConsole(delta: CGFloat, totalWidth: CGFloat) {
+    /// Lower-band Chat | Dynamic splitter.
+    func adjustChatDynamic(delta: CGFloat, totalWidth: CGFloat) {
         adjustPair(
             in: &lowerRatios,
             leftIndex: 0,
@@ -78,13 +90,34 @@ final class LayoutShellViewModel {
         )
     }
 
-    /// Console | Status internal splitter.
-    func adjustConsoleStatus(delta: CGFloat, totalWidth: CGFloat) {
-        let clamped = min(
-            max(consoleStatusRatio + Double(delta / totalWidth), Self.minRatio),
-            Self.maxRatio
-        )
-        consoleStatusRatio = clamped
+    /// Upper-band column splitter at the given column-pair index (0=v1, 1=v2, 2=v3).
+    /// The corresponding upperRatios[i] is the x-position of column splitter i
+    /// (NOT a width fraction — boss Sketch v1=400, v2=1516, v3=3032 are absolute
+    /// PT positions scaled by the 3840 baseline). Drag shifts splitter i by `delta`
+    /// pt; adjacent columns adjust width automatically.
+    func adjustColumnUpper(idx: Int, delta: CGFloat, totalWidth: CGFloat) {
+        guard totalWidth > 0, idx >= 0, idx < upperRatios.count else { return }
+        let step = Double(delta / totalWidth)
+        let newPos = upperRatios[idx] + step
+        guard newPos >= Self.minRatio, newPos <= Self.maxRatio else { return }
+        // Adjacent splitter positions: cannot cross.
+        let minGap: Double = 0.02  // 2% of total width = ~77pt at 3840 baseline
+        if idx > 0, newPos <= upperRatios[idx - 1] + minGap { return }
+        if idx < upperRatios.count - 1, newPos >= upperRatios[idx + 1] - minGap { return }
+        upperRatios[idx] = newPos
+    }
+
+    /// Lower-band column splitter at the given column-pair index (0=v1, 1=v3).
+    /// Same shape as adjustColumnUpper.
+    func adjustColumnLower(idx: Int, delta: CGFloat, totalWidth: CGFloat) {
+        guard totalWidth > 0, idx >= 0, idx < lowerRatios.count else { return }
+        let step = Double(delta / totalWidth)
+        let newPos = lowerRatios[idx] + step
+        guard newPos >= Self.minRatio, newPos <= Self.maxRatio else { return }
+        let minGap: Double = 0.02
+        if idx > 0, newPos <= lowerRatios[idx - 1] + minGap { return }
+        if idx < lowerRatios.count - 1, newPos >= lowerRatios[idx + 1] - minGap { return }
+        lowerRatios[idx] = newPos
     }
 
     /// Upper / lower band splitter — present in the view tree (= gives the user
