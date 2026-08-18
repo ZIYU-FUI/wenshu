@@ -32,10 +32,12 @@ struct LayoutShellViewModelTests {
         let previewW = totalW * CGFloat(vm.projectPreviewRatio)
         let editorW  = totalW * CGFloat(vm.editorWRatio)
         let toolsW   = totalW * CGFloat(vm.toolsWRatio)
-        #expect(abs(sidebarW - 200.5) < 0.5, "sidebar 200.5 PT (含 D_v1 左半)")
-        #expect(abs(previewW - 558) < 0.5, "preview 558 PT (含 D_v1 右 + D_v2 左)")
-        #expect(abs(editorW - 758) < 0.5, "editor 758 PT (含 D_v2 右 + D_v3 左)")
-        #expect(abs(toolsW - 403.5) < 0.5, "tools 403.5 PT (含 D_v3 右)")
+        #expect(abs(sidebarW - 200) < 0.5, "sidebar 200 PT")
+        #expect(abs(previewW - 558) < 0.5, "preview 558 PT (中间 1)")
+        #expect(abs(editorW - 759) < 0.5, "editor 759 PT (中间 2)")
+        #expect(abs(toolsW - 400) < 0.5, "tools 400 PT")
+        let sum = sidebarW + previewW + editorW + toolsW
+        #expect(abs(sum - 1917) < 1, "上 band zone 总 1917 + 3 拖拽线 = 1920")
     }
 
     @Test("拖 D_v1 (项目侧栏/项目预览) → sidebar 增 preview 减, 0 和")
@@ -139,19 +141,21 @@ struct LayoutShellViewModelTests {
         #expect(beforeBottom == afterBottom, "下 band 总 ratio 不变")
     }
 
-    @Test("上 band 4 列 ratio 累加 = 1.0 (零和, 总宽守恒)")
+    @Test("上 band 4 列 ratio 累加 (zone 总 1917 + 3 拖拽线 = 1920)")
     func upperBandSum() {
         let vm = LayoutShellViewModel()
         let sum = vm.projectSidebarRatio + vm.projectPreviewRatio
             + vm.editorWRatio + vm.toolsWRatio
-        #expect(abs(sum - 1.0) < 0.0001, "上 band 4 列 + 3 PT 视觉线 = 1.0")
+        // 200 + 558 + 759 + 400 = 1917, 拖拽线 3 PT 不算 ratio
+        #expect(abs(sum - 1917.0/1920.0) < 0.0001, "zone 总 1917/1920")
     }
 
     @Test("下 band 3 列 ratio 累加 = 1.0 (零和, 总宽守恒) [v0.10.3 加 D_v4 内嵌]")
     func lowerBandSum() {
         let vm = LayoutShellViewModel()
         let sum = vm.chatSidebarRatio + vm.chatDialogueRatio + vm.dynamicWRatio
-        #expect(abs(sum - 1.0) < 0.0001, "下 band 3 列 + 2 PT 视觉线 = 1.0 [v0.10.3]")
+        // 200 + 1318 + 400 = 1918, 拖拽线 2 PT 不算 ratio
+        #expect(abs(sum - 1918.0/1920.0) < 0.0001, "zone 总 1918/1920")
     }
 }
 

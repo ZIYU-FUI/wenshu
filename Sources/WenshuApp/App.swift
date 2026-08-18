@@ -39,18 +39,18 @@ enum LayoutTokens {
     static let toolbarRatio: CGFloat = 30.0 / 472.0      // = 0.0636 (zone 顶/底 30)
     static let splitterHitRatio: CGFloat = 6.0 / 1920.0  // = 0.0031 (6 PT hit area 居中 1 PT 视觉线)
 
-    // 上 band zone 列宽比例 (基准 1920)
-    static let projectSidebarRatio: CGFloat = 200.5 / 1920.0  // 200 + 0.5 (D_v1 左半边 1PT 视觉线)
-    static let projectPreviewRatio: CGFloat = 558.0 / 1920.0  // 557 + 0.5 (D_v1 右) + 0.5 (D_v2 左)
-    static let editorWRatio: CGFloat = 758.0 / 1920.0         // 757 + 0.5 (D_v2 右) + 0.5 (D_v3 左)
-    static let toolsWRatio: CGFloat = 403.5 / 1920.0         // 403 + 0.5 (D_v3 右)
+    // 上 band zone 列宽 (老板 8/18 拍 200/中间/中间/400 + 3 拖拽线 1 PT 视觉线 = 1920)
+    // 中间 1 + 中间 2 = 1920 - 200 - 400 - 3 = 1317
+    static let projectSidebarRatio: CGFloat = 200.0 / 1920.0
+    static let projectPreviewRatio: CGFloat = 558.0 / 1920.0  // 中间 1, 含 D_v1 右 + D_v2 左 (1 PT 视觉线)
+    static let editorWRatio: CGFloat = 759.0 / 1920.0         // 中间 2, 含 D_v2 右 + D_v3 左 (1 PT 视觉线)
+    static let toolsWRatio: CGFloat = 400.0 / 1920.0
 
-    // 下 band zone 列宽比例 (基准 1920) — 老板 8/18 拍下 band 3 区
-    // = 聊天侧栏 200 + D_v4 6 PT + 聊天对话 1310 + D_v5 1 PT + 动态区 403 = 1920
-    // (D_v4 hit area 6 PT 老板设计真值, 我 ratio 算时摊给侧栏/对话各 3 PT = 203 + 1313)
-    static let chatSidebarRatio: CGFloat = 203.0 / 1920.0     // 200 + 3 (D_v4 hit area 左半)
-    static let chatDialogueRatio: CGFloat = 1313.0 / 1920.0  // 1310 + 3 (D_v4 hit area 右半) + 0.5 (D_v5 左)
-    static let dynamicWRatio: CGFloat = 404.0 / 1920.0        // 403 + 0.5 (D_v5 左) + 0.5 (D_v5 右) = 1 PT 视觉线 摊给左右, 实际右侧 0.5 PT
+    // 下 band zone 列宽 (老板 8/18 拍 200/中间/400 + 2 拖拽线 1 PT 视觉线 = 1920)
+    // 中间 = 1920 - 200 - 400 - 2 = 1318
+    static let chatSidebarRatio: CGFloat = 200.0 / 1920.0
+    static let chatDialogueRatio: CGFloat = 1318.0 / 1920.0  // 中间, 含 D_v4 右 + D_v5 左 (1 PT 视觉线)
+    static let dynamicWRatio: CGFloat = 400.0 / 1920.0
 
     // 编辑器两层设计 (老板 8/18 Q2 答: 有意两层, 不要删)
     static let editorInsetRatio: CGFloat = 4.0 / 984.0  // = 0.0041
