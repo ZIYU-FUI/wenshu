@@ -179,22 +179,22 @@ struct NativeSplitter: NSViewRepresentable {
 }
 
 /// 6 拖拽线真值 wrapper (boss 8/18 拍 1 PT 粗, 6 PT hit area, 居中画 1 PT 黑线)
-/// v0.08.0 老板改 1:1 PT 落, 不缩放, hit area 跟视觉线比 = 6 PT (按 Apple HIG 拖拽 affordance)
+/// v0.10.1: 接 onDrag callback (vertical=deltaX, horizontal=deltaY 增量, 走 AppKit NSEvent.pipeline)
 struct VerticalDragSplitter: View {
     let height: CGFloat
+    let onDrag: (CGFloat) -> Void
     var body: some View {
-        NativeSplitter(orientation: .vertical) { _ in
-            // v0.08 placeholder: VM 拖拽状态不算, hit area + cursor + 视觉线已落地
-        }
-        .frame(width: 6, height: height)  // 6 PT hit area 居中 1 PT 视觉线
+        NativeSplitter(orientation: .vertical, onDrag: onDrag)
+            .frame(width: 6, height: height)
     }
 }
 
 struct HorizontalDragSplitter: View {
     let width: CGFloat
+    let onDrag: (CGFloat) -> Void
     var body: some View {
-        NativeSplitter(orientation: .horizontal) { _ in }
-            .frame(width: width, height: 6)  // 6 PT hit area 居中 1 PT 视觉线
+        NativeSplitter(orientation: .horizontal, onDrag: onDrag)
+            .frame(width: width, height: 6)
     }
 }
 

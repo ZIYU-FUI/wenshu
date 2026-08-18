@@ -1,118 +1,122 @@
-// LayoutShellViewModel.swift · Wenshu (Wenshu) · v0.01.0 (= minimal splitter state)
+// LayoutShellViewModel.swift · Wenshu · v0.10.1 6 zone splitter drag state
 //
 // macOS-only state (= Package.swift .macOS(.v27)). Single source of truth for
-// splitter drag ratios. v0.01.0 fixed ratios (= no live band split, no runtime
-// hide/show), so the VM is intentionally minimal.
+// splitter drag offsets. 老板 8/18 拍 6 区 + 6 master 组件化, 5 个 ratio offset
+// 累加 (5 竖拖拽线 + 1 横拖拽线, 横拖拽线 v0.10.1 锁 0.4797 上下 band 50/50 不动).
 //
-// FCP-measured default proportions (1452x984 baseline, owner 19:10 / 19:45):
-//   upperRatios       [0.20, 0.50, 0.30]  Library | Editor | Inspector
-//   lowerRatios       [0.70, 0.30]        Chat    | Console+Status
-//   consoleStatusRatio 0.50                Console | Status  (internal 1:1)
+// 6 zone 真值 (v0.10.0 比例换算后):
+//   LayoutTokens.projectSidebarRatio   (0.1042, 项目侧栏 / 项目预览 之间 D_v1)
+//   LayoutTokens.projectPreviewRatio   (0.2901, 项目预览 / 编辑器之间 D_v2)
+//   LayoutTokens.editorWRatio          (0.3943, 编辑器 / 工具之间 D_v3)
+//   LayoutTokens.chatSidebarRatio      (0.1042, 聊天侧栏 / 聊天对话之间 D_v4)
+//   LayoutTokens.chatDialogueRatio     (0.6823, 聊天对话 / 动态区之间 D_v5)
+//   横拖拽线 D_h 锁定 bandRatio=0.4797 (老板 8/18 拍 50/50)
 //
-// The 50/50 upper/lower band split is HARD-CODED (= boss 19:55 lock, no
-// resizable band split in v0.01.0); there is no `lowerBandRatio` state.
+// VM 只存 5 个竖拖拽线 ratio offset (累加在 default ratio 上). 横拖拽线 inert.
 //
-// v0.02.x had a `libraryShelfFraction` (= internal Shelf | Project split
-// inside the Library zone). v50 removes it: the structure was wrong
-// (= a fixed split inside a single outline list, instead of a single
-// list with DisclosureGroup-style collapse/expand).
-//
-// Boss 19:00 fix: replaces v10's SwiftUI .frame(width: fraction) which caused
-// "拖拽时区域闪烁" (= SwiftUI layout invalidates the whole tree on every drag tick).
-// NativeSplitter (NSView + NSViewRepresentable) does the drag inside AppKit's NSEvent
-// pipeline, not SwiftUI's render pipeline → no flicker.
+// Boss 19:00 fix: 拖拽走 AppKit NSEvent pipeline (NativeSplitterView), 不走
+// SwiftUI render pipeline, 无闪烁. dragStep 在 NSView 内部算 (deltaX/totalW),
+// VM 接收 ratio step 累加, view 重新读 vm.ratios 算 zone 宽度.
 
 import SwiftUI
 import Observation
 
 @Observable
 final class LayoutShellViewModel {
-    /// Upper-band horizontal split ratios (= boss 19:45 口头约束 v0.01.0):
-    ///   Library 20% / Editor 50% / Inspector 30% (= 0.20/0.50/0.30 of upper-band usable width).
-    /// Boss 19:45 "library 20, editor 50, inspector 30".
-    var upperRatios: [Double] = [0.20, 0.50, 0.30]
-    /// Lower-band horizontal split ratios (= boss 19:45 "chat 70").
-    /// Chat 70% of lower-band usable width, right side 30% (= Console + Status together).
-    /// ratios[0] = Chat 0.70, ratios[1] = Console+Status 0.30.
-    var lowerRatios: [Double] = [0.70, 0.30]
-    /// Console|Status internal split (= boss 19:45 "console 15 status 15" =
-    ///   each = 15% of total = 50% of right-side-30% = 0.50 internal).
-    var consoleStatusRatio: Double = 0.50
+    /// 5 个竖拖拽线 ratio 累加 (基于 LayoutTokens 默认 ratio). 0 = 还原默认.
+    /// offsets[0] = D_v1 项目侧栏 / 项目预览 (调整 projectSidebarRatio)
+    /// offsets[1] = D_v2 项目预览 / 编辑器   (调整 projectPreviewRatio)
+    /// offsets[2] = D_v3 编辑器 / 工具       (调整 editorWRatio)
+    /// offsets[3] = D_v4 聊天侧栏 / 聊天对话 (调整 chatSidebarRatio)
+    /// offsets[4] = D_v5 聊天对话 / 动态区   (调整 chatDialogueRatio)
+    /// 4 个竖拖拽线 ratio 累加 (D_v4 内嵌 v0.10.1 移除, 5 改 4)
+    /// offsets[0] = D_v1 项目侧栏 / 项目预览
+    /// offsets[1] = D_v2 项目预览 / 编辑器
+    /// offsets[2] = D_v3 编辑器 / 工具
+    /// offsets[3] = D_v5 聊天对话 / 动态区
+    var offsets: [Double] = [0, 0, 0, 0]
 
-    /// Drag bounds for any ratio (= owner拍 "常识性功能", Apple HIG splitter limits).
-    static let minRatio: Double = 0.08
-    static let maxRatio: Double = 0.92
+    /// 拖拽边界
+    static let minOffset: Double = -0.10
+    static let maxOffset: Double = +0.10
+    static let minZoneRatio: Double = 0.04
+    /// 上 band 4 zone max 60% (任一 zone 不超 60%)
+    static let maxZoneRatioUpper: Double = 0.60
+    /// 下 band 2 zone max 95% (chat 79% 默认, 允许推到 95%)
+    static let maxZoneRatioLower: Double = 0.95
 
-    // MARK: - Splitter drag callbacks
+    // MARK: - 计算属性 (默认 ratio + offset)
 
-    /// Library | Editor column splitter.
-    func adjustLibraryEditor(delta: CGFloat, totalWidth: CGFloat) {
-        adjustPair(
-            in: &upperRatios,
-            leftIndex: 0,
-            rightIndex: 1,
-            delta: delta,
-            totalWidth: totalWidth
-        )
+    var projectSidebarRatio: Double {
+        Double(LayoutTokens.projectSidebarRatio) + offsets[0]
+    }
+    var projectPreviewRatio: Double {
+        Double(LayoutTokens.projectPreviewRatio) - offsets[0] + offsets[1]
+    }
+    var editorWRatio: Double {
+        Double(LayoutTokens.editorWRatio) - offsets[1] + offsets[2]
+    }
+    var toolsWRatio: Double {
+        Double(LayoutTokens.toolsWRatio) - offsets[2]
+    }
+    /// chatDialogueRatio 内嵌 chatSidebar (v0.10.1 移除 D_v4)
+    var chatDialogueRatio: Double {
+        Double(LayoutTokens.chatDialogueRatio) + offsets[3]
+    }
+    var dynamicWRatio: Double {
+        Double(LayoutTokens.dynamicWRatio) - offsets[3]
     }
 
-    /// Editor | Inspector column splitter.
-    func adjustEditorInspector(delta: CGFloat, totalWidth: CGFloat) {
-        adjustPair(
-            in: &upperRatios,
-            leftIndex: 1,
-            rightIndex: 2,
-            delta: delta,
-            totalWidth: totalWidth
-        )
+    // MARK: - 拖拽回调 (老板 8/18 拍 D_v1~D_v5 1 PT 黑线, 6 PT hit area, 增量拖拽)
+
+    /// D_v1: 项目侧栏 / 项目预览 (vertical, deltaX 增量)
+    func adjustSidebarPreview(delta: CGFloat, totalWidth: CGFloat) {
+        adjust(0, delta: delta, totalWidth: totalWidth)
     }
 
-    /// Lower-band Chat | Console+Status splitter.
-    func adjustChatConsole(delta: CGFloat, totalWidth: CGFloat) {
-        adjustPair(
-            in: &lowerRatios,
-            leftIndex: 0,
-            rightIndex: 1,
-            delta: delta,
-            totalWidth: totalWidth
-        )
+    /// D_v2: 项目预览 / 编辑器
+    func adjustPreviewEditor(delta: CGFloat, totalWidth: CGFloat) {
+        adjust(1, delta: delta, totalWidth: totalWidth)
     }
 
-    /// Console | Status internal splitter.
-    func adjustConsoleStatus(delta: CGFloat, totalWidth: CGFloat) {
-        let clamped = min(
-            max(consoleStatusRatio + Double(delta / totalWidth), Self.minRatio),
-            Self.maxRatio
-        )
-        consoleStatusRatio = clamped
+    /// D_v3: 编辑器 / 专用工具
+    func adjustEditorTools(delta: CGFloat, totalWidth: CGFloat) {
+        adjust(2, delta: delta, totalWidth: totalWidth)
     }
 
-    /// Upper / lower band splitter — present in the view tree (= gives the user
-    /// a visible divider + grab cursor on the band seam) but inert: the split is
-    /// locked at 50/50 per owner 19:55. Drag does nothing.
+    /// D_v5: 聊天对话 / 动态区 (内嵌 D_v4 移除, 索引 3)
+    func adjustChatDynamic(delta: CGFloat, totalWidth: CGFloat) {
+        adjust(3, delta: delta, totalWidth: totalWidth)
+    }
+
+    /// 横拖拽线 D_h: 老板 8/18 拍 50/50 锁定, v0.10.1 不实现拖拽 (intentional no-op)
     func adjustBandSplit() {
-        // intentional no-op; band ratio is hard-coded in LayoutShellView.bandRatio
+        // inert per ADR-0001
+    }
+
+    /// 重置 (开发用, 还原默认 ratio)
+    func reset() {
+        offsets = [0, 0, 0, 0, 0]
     }
 
     // MARK: - Internal
 
-    /// Shared drag math: shift `leftIndex` by `delta/totalWidth`, debited from
-    /// `rightIndex`. Both neighbors stay within `minRatio`..`maxRatio` or the
-    /// drag is rejected (= the splitter snaps, no over-shrink).
-    private func adjustPair(
-        in ratios: inout [Double],
-        leftIndex: Int,
-        rightIndex: Int,
-        delta: CGFloat,
-        totalWidth: CGFloat
-    ) {
+    /// 共享拖拽数学: offset[index] 累加 delta/totalWidth, 校验所有 zone ratio
+    /// 仍在 [minZoneRatio, maxZoneRatio] 范围内, 否则拒绝 (splitter 不会越界).
+    private func adjust(_ index: Int, delta: CGFloat, totalWidth: CGFloat) {
         guard totalWidth > 0 else { return }
         let step = Double(delta / totalWidth)
-        let newLeft = ratios[leftIndex] + step
-        let newRight = ratios[rightIndex] - step
-        guard newLeft >= Self.minRatio, newLeft <= Self.maxRatio,
-              newRight >= Self.minRatio, newRight <= Self.maxRatio else { return }
-        ratios[leftIndex] = newLeft
-        ratios[rightIndex] = newRight
+        let newOffset = offsets[index] + step
+        guard newOffset >= Self.minOffset, newOffset <= Self.maxOffset else { return }
+
+        offsets[index] = newOffset
+        // 上 band zone 用 maxZoneRatioUpper, 下 band zone 用 maxZoneRatioLower
+        let upperRatios = [projectSidebarRatio, projectPreviewRatio, editorWRatio, toolsWRatio]
+        let lowerRatios = [chatDialogueRatio, dynamicWRatio]
+        let upperOK = upperRatios.allSatisfy { $0 >= Self.minZoneRatio && $0 <= Self.maxZoneRatioUpper }
+        let lowerOK = lowerRatios.allSatisfy { $0 >= Self.minZoneRatio && $0 <= Self.maxZoneRatioLower }
+        if !upperOK || !lowerOK {
+            offsets[index] -= step
+        }
     }
 }
