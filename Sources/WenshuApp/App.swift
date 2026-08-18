@@ -57,9 +57,8 @@ enum LayoutTokens {
 
     // 编辑器两层设计 (老板 8/18 Q2 答: 有意两层, 不要删)
     static let editorInsetRatio: CGFloat = 4.0 / 984.0  // = 0.0041
-    // 聊天输入框 (boss Sketch #4a60b2 蓝, 2590×94)
-    static let chatInputWRatio: CGFloat = 1296.0 / 1920.0  // = 0.6750
-    static let chatInputHRatio: CGFloat = 94.0 / 984.0     // = 0.0955
+    // 聊天输入框: 老板 8/18 拍 "新图好像没有画这个聊天框" = 撤掉
+    // (保留 LayoutTokens token 占位, 未来老板加新图时再启)
 
     // 顶栏色块比例 (老板 8/18 Q3 答: 22/82/142 起点 + 38 PT 宽 + 60 PT 等距)
     static let iconLeadingRatio: CGFloat = 22.0 / 1920.0  // 起点 22 PT
@@ -328,8 +327,7 @@ struct ZoneModule: View {
     private var editorInset: CGFloat { totalW * LayoutTokens.editorInsetRatio + bandH * LayoutTokens.editorInsetRatio }  // 4 PT 算水平+垂直近似
     // v0.10.3: chatSidebar / chatDialogue 走 vm ratio
     private var chatSidebar: CGFloat { totalW * CGFloat(vm.chatSidebarRatio) }
-    private var chatInputW: CGFloat { totalW * LayoutTokens.chatInputWRatio }
-    private var chatInputH: CGFloat { bandH * LayoutTokens.chatInputHRatio }
+    // v0.10.8: 撤掉 chatInputW/H 私有属性, 老板 8/18 拍 "新图没画聊天输入框"
     private var innerBandH: CGFloat { bandH - 2 * toolbarH }  // 顶栏底栏间内容区
 
     var body: some View {
@@ -371,16 +369,10 @@ struct ZoneModule: View {
             DesignColor.zoneSurface
                 .overlay(alignment: .topLeading) { zoneLabel("聊天侧栏") }
         case .chatDialogue:
-            // 下 band 聊天对话 (1316 PT), 老板 8/18 拍 "输入框不是蓝色, 描边圆角矩形, 没颜色填充"
-            // = Color.clear.fill + .overlay(RoundedRectangle.strokeBorder accentBlue 2 PT 8 PT cornerRadius)
+            // 老板 8/18 拍 "新图好像没有画这个聊天框" = 老板新 Sketch 真值没画聊天输入框
+            // v0.10.7 加的 RoundedRectangle 描边圆角矩形 = 老板原图没画, 撤掉
+            // zone 净底 (DesignColor.zoneSurface) 即可
             DesignColor.zoneSurface
-                .overlay(alignment: .bottom) {
-                    // 描边圆角矩形输入框: 无填充, 2 PT accentBlue 描边, 8 PT 圆角
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(DesignColor.accentBlue, lineWidth: 2)
-                        .frame(width: chatInputW, height: chatInputH)
-                        .padding(.bottom, bandH * 0.016)
-                }
         case .dynamicZone:
             Color.clear.overlay(alignment: .topLeading) {
                 zoneLabel("动态区")
