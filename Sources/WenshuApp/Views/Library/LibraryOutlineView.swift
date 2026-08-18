@@ -82,7 +82,8 @@ struct LibraryOutlineView: View {
                 }
             }
         }
-        .listStyle(.sidebar)
+        .listStyle(.plain)  // boss 8/18: unifica zone background
+        .scrollContentBackground(.hidden)  // List 透明底色, 用 ZoneModule DesignColor.zoneSurface
         .frame(minWidth: 200, idealWidth: 260)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {

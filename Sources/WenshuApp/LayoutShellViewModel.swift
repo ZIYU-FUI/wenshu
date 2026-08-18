@@ -61,11 +61,11 @@ final class LayoutShellViewModel {
     /// 老板 8/18 拍 "上四下两" = 下 band 1 区 (AI 聊天) + 1 区 (AI 动态), 1 拖拽线 D_v5
     /// 整宽 AI 聊天 = base 1519 - D_v5 offset
     var aiChatRatio: Double {
-        Double(LayoutTokens.aiChatRatio) - offsets[4]
+        Double(LayoutTokens.aiChatRatio) + offsets[4]
     }
     /// AI 动态 = base 400 + D_v5 offset
     var dynamicWRatio: Double {
-        Double(LayoutTokens.dynamicWRatio) + offsets[4]
+        Double(LayoutTokens.dynamicWRatio) - offsets[4]
     }
 
     // MARK: - 拖拽回调 (老板 8/18 拍 D_v1~D_v5 1 PT 黑线, 6 PT hit area, 增量拖拽)

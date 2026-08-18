@@ -35,15 +35,39 @@ struct NativeSplitter: View {
     /// 拖拽回调: vertical = deltaX (from SwiftUI translation.width), horizontal = deltaY (from translation.height)
     let onDrag: @MainActor (CGFloat) -> Void
 
-    private static let lineThickness: CGFloat = 2  // 老板 8/18 拍 2 PT 粗
+    private static let lineThickness: CGFloat = 2  // 老板 8/18 拍 2 PT (跟分割线一样粗, 竖/横都 2)
+    // 老板 8/18 拍 hover 变粗: 静态 2 PT → hover 4 PT (2 倍动效, 竖/横一致)
+    private static let hoveredThickness: CGFloat = 4
+    private static let hoveredThicknessHorizontal: CGFloat = 4
     private static let hitAreaThickness: CGFloat = 6  // 老板 8/18 拍 6 PT hit area
 
-    /// 拖拽手势 (Apple 官方, 用 translation 增量, 不漂移)
+    /// hover 状态 (1 组件 1 @State, 改 1 处全改)
+    @State private var isHovered: Bool = false
+    /// 拖拽中 (drag 时 = true, 期间 zone 宽度不动画 = 跟手不抖动)
+    @State private var isDragging: Bool = false
+    /// 上次 translation 值, 用于算 onChanged 之间的增量 (防止拉飞)
+    @State private var lastTranslation: CGFloat = 0
+
+    /// 拖拽手势 (Apple 官方, 用 translation 增量, 不漂移, 不拉飞, 拖拽时禁用动画 = 不抖动)
+    /// 关键: withTransaction(disablesAnimations: true) 包 onDrag → SwiftUI zone width 重算不动画
+    /// gesture 挂外层 ZStack (实测 macOS 27 SwiftUI 4 inner Rectangle gesture 拖拽线不响应)
     private var dragGesture: some Gesture {
         DragGesture(minimumDistance: 0)
             .onChanged { value in
-                let delta: CGFloat = (orientation == .vertical) ? value.translation.width : value.translation.height
-                onDrag(delta)
+                if !isDragging { isDragging = true }
+                let current: CGFloat = (orientation == .vertical) ? value.translation.width : value.translation.height
+                let delta = current - lastTranslation
+                lastTranslation = current
+                if delta != 0 {
+                    // Apple 官方修法: 拖拽过程禁用 zone width 动画 → 60 fps 跟手不抖动
+                    var tx = Transaction()
+                    tx.disablesAnimations = true
+                    withTransaction(tx) { onDrag(delta) }
+                }
+            }
+            .onEnded { _ in
+                isDragging = false
+                lastTranslation = 0
             }
     }
 
@@ -52,48 +76,74 @@ struct NativeSplitter: View {
         (orientation == .vertical) ? .columnResize : .rowResize
     }
 
-    var body: some View {
-        ZStack {
-            // 透明 hit area (Color.clear 填充命中)
-            Color.clear
-                .contentShape(.rect)
-            // 2 PT 黑色线居中 (master 真值 0,n,1,2 PT)
-            Rectangle()
-                .fill(Color.black)
-                .frame(
-                    width: orientation == .vertical ? Self.lineThickness : length,
-                    height: orientation == .vertical ? length : Self.lineThickness
-                )
+    /// 老板 8/18 拍 hover 变粗 (原本 1 PT, 竖 3 倍 / 横 6 倍), 居中
+    private var lineFrame: (width: CGFloat, height: CGFloat) {
+        let thickness: CGFloat
+        if orientation == .vertical {
+            thickness = isHovered ? Self.hoveredThickness : Self.lineThickness
+        } else {
+            thickness = isHovered ? Self.hoveredThicknessHorizontal : Self.lineThickness
         }
-        .frame(
-            width: orientation == .vertical ? Self.hitAreaThickness : length,
-            height: orientation == .vertical ? length : Self.hitAreaThickness
-        )
-        .pointerStyle(pointerStyle)
-        .gesture(dragGesture)
+        if orientation == .vertical {
+            return (width: thickness, height: length)
+        } else {
+            return (width: length, height: thickness)
+        }
+    }
+
+    var body: some View {
+        // 真实 rect frame (线性 PT bounds)
+        let outerWidth: CGFloat = orientation == .vertical ? Self.hitAreaThickness : length
+        let outerHeight: CGFloat = orientation == .vertical ? length : Self.hitAreaThickness
+
+        ZStack {
+            // 老板 8/18 拍 "圆头线" = 用 .clipShape(.capsule) 最大圆角 (Apple 官方 SwiftUI capsule shape)
+            // vertical = 矩形 2 PT 宽 → 胶囊端圆; horizontal = 矩形 2 PT 高 → 胶囊端圆
+            Rectangle()
+                .fill(isHovered ? Color.accentColor.opacity(0.6) : Color.black)
+                .frame(width: lineFrame.width, height: lineFrame.height)
+                .clipShape(.capsule)  // 圆角最大 = 视觉圆头
+                .shadow(
+                    color: isHovered ? Color.accentColor.opacity(0.4) : .clear,
+                    radius: isHovered ? 8 : 0,
+                    x: 0, y: 0
+                )
+                .animation(.easeInOut(duration: 0.2), value: isHovered)
+        }
+        .frame(width: outerWidth, height: outerHeight)
+        .contentShape(.rect)
+        .onHover { hovering in
+            isHovered = hovering
+        }
+        .pointerStyle(pointerStyle)  // Apple 官方 cursor 切换
+        .gesture(dragGesture)  // gesture 挂 ZStack (外层) + withTransaction(disablesAnimations: true) in onChanged → 跟手不抖动
     }
 }
 
 // MARK: - 不可拖拽分割线 (SwiftUI Divider, Apple Public)
 
-/// 不可拖拽的 1 PT 横向分割线 (Apple HIG standard)
+/// 不可拖拽的 2 PT 横向分割线 (圆角最大 = 视觉圆头, 老板 8/18 拍)
 struct StaticDividerHorizontal: View {
     var width: CGFloat? = nil
     var body: some View {
         if let w = width {
-            Color.black
-                .frame(width: w, height: 1)
+            Rectangle()
+                .fill(Color.black)
+                .frame(width: w, height: 2)
+                .clipShape(.capsule)  // Apple 官方 SwiftUI capsule = 最大圆角 (圆头线)
         } else {
             Divider()
         }
     }
 }
 
-/// 不可拖拽的 1 PT 竖向分割线 (手画 Color.frame, 纯黑色)
+/// 不可拖拽的 2 PT 竖向分割线 (圆角最大 = 视觉圆头)
 struct StaticDividerVertical: View {
     let height: CGFloat
     var body: some View {
-        Color.black
-            .frame(width: 1, height: height)
+        Rectangle()
+            .fill(Color.black)
+            .frame(width: 2, height: height)
+            .clipShape(.capsule)  // Apple 官方 SwiftUI capsule = 最大圆角 (圆头线)
     }
 }

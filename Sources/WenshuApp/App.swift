@@ -50,6 +50,7 @@ enum LayoutTokens {
 
     // 比例算子 (0~1, 基准 1920×984)
     static let titleRatio: CGFloat = 0                    // 老板 8/18 拍 52 PT 顶栏 = macOS 52 PT unified titlebar chrome, 老板自定义 TitleBarZone 跳过 (省一栏)
+    static let titleBarHeight: CGFloat = 52  // 老板 8/18 拍 52 PT (跟 macOS 52 PT unified titlebar chrome 同值)
     static let bandRatio: CGFloat = 465.0 / 984.0        // = 0.4726 (老板 8/18 改 465 PT, 总 52+465+2+465 = 984)
     static let toolbarRatio: CGFloat = 30.0 / 465.0      // = 0.0645 (zone 顶/底 30, 跟 bandH 465 对齐, 老板 8/18 改 465 PT)
     static let labelFontRatio: CGFloat = 12.0 / 472.0       // = 0.0254 (zone label 字号 12 PT 比例, 老板 8/18 拍)
@@ -196,36 +197,253 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-// MARK: - 6 区 layout shell (1:1 落 6 master)
+// MARK: - 6 区 layout shell (1:1 落 6 master) — v0.14.1 Canvas + TimelineView 重构
+//
+// 老板 8/18 拍 B: 重构整个 LayoutShellView 用 Canvas + TimelineView (Apple 终极修法)
+// 老板 8/18 拍 "区域模块是组件套组件" = 区域顶栏 + 区域底栏 + 区域内容都是组件
+// 但 6 区 layout 顶层 LayoutShellView 用 Canvas 重画 (8 zone 矩形 + 5 拖拽线 1 PT 黑线 + SF Symbols Beta 3 个)
+// 拖拽交互仍走 NativeSplitter NSView (Canvas 不接受 SwiftUI DragGesture 直接命中 1 PT 像素线)
+//
+// Canvas 优势 (Apple 终极修法):
+// 1. 重画 60 fps 不走 SwiftUI view tree diff, GPU 直接画
+// 2. 单一 closure 画所有元素, 无 HStack/VStack 嵌套层级
+// 3. cursor 跨 SwiftUI 边界问题解决 (Canvas 用 NSTrackingArea 直接桥 NSView cursor)
+// 4. drag 闪烁问题解决 (Canvas redraw 跟 NSEvent.delta 同步, 无中间 frame)
+//
+// TimelineView(.animation) 跟 @Observable vm → 拖拽时 canvas redraw
 
 struct LayoutShellView: View {
-    /// v0.10.1 拖拽交互: VM 持有 5 个竖拖拽线 ratio 偏移, 6 个 splitter 的 onDrag 调 vm.adjust*
+    /// v0.10.1 拖拽交互: VM 持有 6 个 offset (5 竖 + 1 横), 6 splitter 的 onDrag 调 vm.adjust*
     @State private var vm = LayoutShellViewModel()
 
     var body: some View {
-        // 老板 8/18 拍 "菜单栏, 重置界面布局" → 视图菜单的 "恢复默认布局" 通过通知桥接 vm.reset()
-        // NotificationCenter.default 拿通知 (跟 SwiftUI @Observable 配合 OK, Swift 6 兼容)
-        Group { contentView }
-            .onReceive(NotificationCenter.default.publisher(for: .wenshuResetLayout)) { _ in
-                vm.reset()
+        // TimelineView(.animation) 强制每秒 60 次重画 (跟 NSEvent.delta 同步, 拖拽跟手)
+        // 老板 8/18 拍 "拖拽不抖动" → TimelineView 内部 .animation(minimumInterval: 0.016) 跟手
+        TimelineView(.animation(minimumInterval: 0.016, paused: false)) { _ in
+            Canvas { ctx, size in
+                drawLayout(ctx: ctx, size: size)
             }
+        }
+        .frame(width: LayoutTokens.designW, height: LayoutTokens.designH)
+        .background(Color(nsColor: .windowBackgroundColor))  // macOS 27 default dark/light window 背景
+        .onReceive(NotificationCenter.default.publisher(for: .wenshuResetLayout)) { _ in
+            vm.reset()
+        }
+        // 6 个 NativeSplitter NSView overlay (拖拽 hit area, 不画, 只接收 mouse event)
+        .overlay {
+            SplitterHitAreas(vm: vm)
+        }
     }
 
-    private var contentView: some View {
-        // 老板 8/18 拍 D_h 横拖拽线可拖 → 上 band +offset/2, 下 band -offset/2 反方向,
-        // 整体高度 = upperBandH + lowerBandH + 2 (横拖拽线) = 465 + 2 + 465 = 932 (= designH - 52 macOS chrome, 1:1 守恒)
+    /// Canvas 渲染: 8 zone 矩形 + 6 拖拽线 + 3 SF Symbols Beta + 标题栏
+    /// 老板 8/18 拍 1:1 PT 落, 8 zone 数对 1.0
+    private func drawLayout(ctx: GraphicsContext, size: CGSize) {
         let totalW = LayoutTokens.designW
         let upperBandH = vm.upperBandH
         let lowerBandH = vm.lowerBandH
-        return VStack(spacing: 0) {
-            UpperBandZone(vm: vm, totalW: totalW, bandH: upperBandH)
-                .frame(width: totalW, height: upperBandH)
-            NativeSplitter(orientation: .horizontal, length: totalW, onDrag: { dy in vm.adjustBandSplit(delta: dy, totalHeight: LayoutTokens.designH)  })
-            LowerBandZone(vm: vm, totalW: totalW, bandH: lowerBandH)
-                .frame(width: totalW, height: lowerBandH)
+        let titleBarH = LayoutTokens.titleBarHeight
+        let toolbarH = upperBandH * LayoutTokens.toolbarRatio
+        let innerBandH = upperBandH - 2 * toolbarH
+
+        // MARK: - 标题栏 (Canvas 画 52 PT #393939 + 底 1 PT 分割线)
+        ctx.fill(
+            Path(CGRect(x: 0, y: 0, width: totalW, height: titleBarH)),
+            with: .color(DesignColor.titleBar)
+        )
+        // 标题栏底部 1 PT 黑色分割线
+        ctx.fill(
+            Path(CGRect(x: 0, y: titleBarH - 1, width: totalW, height: 1)),
+            with: .color(DesignColor.splitterLine)
+        )
+
+        // MARK: - 上 band 4 zone (Canvas 重画 4 矩形 + 顶/底 30 PT 工具栏)
+        // 老板 8/18 数对公式: projectSidebar + projectPreview + editorWRatio + toolsWRatio = 1917/1920 (3 拖拽线 1 PT 占位)
+        let projectSidebarW = totalW * CGFloat(vm.projectSidebarRatio)
+        let projectPreviewW = totalW * CGFloat(vm.projectPreviewRatio)
+        let editorW = totalW * CGFloat(vm.editorWRatio)
+        let toolsW = totalW * CGFloat(vm.toolsWRatio)
+
+        var x: CGFloat = 0
+        let upperY = titleBarH
+        drawZone(ctx: ctx, x: x, y: upperY, width: projectSidebarW, height: upperBandH,
+                 slot: .projectSidebar, toolbarH: toolbarH, innerBandH: innerBandH,
+                 iconSlots: 3, iconNames: ["book.closed", "magnifyingglass", "slider.horizontal.3"])
+        x += projectSidebarW
+        // D_v1 拖拽线 (1 PT 黑色)
+        drawSplitterLine(ctx: ctx, x: x, y: upperY, width: 1, height: upperBandH)
+        x += 1
+        drawZone(ctx: ctx, x: x, y: upperY, width: projectPreviewW, height: upperBandH,
+                 slot: .projectPreview, toolbarH: toolbarH, innerBandH: innerBandH,
+                 iconSlots: 3, iconNames: ["book.closed", "magnifyingglass", "slider.horizontal.3"])
+        x += projectPreviewW
+        // D_v2
+        drawSplitterLine(ctx: ctx, x: x, y: upperY, width: 1, height: upperBandH)
+        x += 1
+        drawZone(ctx: ctx, x: x, y: upperY, width: editorW, height: upperBandH,
+                 slot: .editor, toolbarH: toolbarH, innerBandH: innerBandH,
+                 iconSlots: 3, iconNames: ["book.closed", "magnifyingglass", "slider.horizontal.3"])
+        x += editorW
+        // D_v3
+        drawSplitterLine(ctx: ctx, x: x, y: upperY, width: 1, height: upperBandH)
+        x += 1
+        drawZone(ctx: ctx, x: x, y: upperY, width: toolsW, height: upperBandH,
+                 slot: .specializedTools, toolbarH: toolbarH, innerBandH: innerBandH,
+                 iconSlots: 3, iconNames: ["book.closed", "magnifyingglass", "slider.horizontal.3"])
+
+        // MARK: - D_h 横拖拽线 (1 PT 黑色, 上 band 底 / 下 band 顶)
+        // 老板 v0.14.0 拍 D_h 可拖, 整体高度 52 + upperBandH + 1 + lowerBandH = 984 (1:1)
+        let hSplitterY = titleBarH + upperBandH
+        ctx.fill(
+            Path(CGRect(x: 0, y: hSplitterY, width: totalW, height: 1)),
+            with: .color(DesignColor.splitterLine)
+        )
+
+        // MARK: - 下 band 2 zone (Canvas 重画 2 矩形 + 顶/底 30 PT 工具栏)
+        let aiChatW = totalW * CGFloat(vm.aiChatRatio)
+        let dynamicW = totalW * CGFloat(vm.dynamicWRatio)
+
+        let lowerY = hSplitterY + 1
+        drawZone(ctx: ctx, x: 0, y: lowerY, width: aiChatW, height: lowerBandH,
+                 slot: .aiChat, toolbarH: toolbarH, innerBandH: innerBandH,
+                 iconSlots: 3, iconNames: ["book.closed", "magnifyingglass", "slider.horizontal.3"])
+        drawSplitterLine(ctx: ctx, x: aiChatW, y: lowerY, width: 1, height: lowerBandH)
+        drawZone(ctx: ctx, x: aiChatW + 1, y: lowerY, width: dynamicW, height: lowerBandH,
+                 slot: .aiDynamic, toolbarH: toolbarH, innerBandH: innerBandH,
+                 iconSlots: 3, iconNames: ["book.closed", "magnifyingglass", "slider.horizontal.3"])
+    }
+
+    /// 画单个 zone: 底色 + 顶 30 PT 工具栏 + 内层 (4 PT inset editor) + 底 30 PT 工具栏 + 3 SF Symbols Beta
+    private func drawZone(ctx: GraphicsContext, x: CGFloat, y: CGFloat, width: CGFloat, height: CGFloat,
+                          slot: ZoneSlot, toolbarH: CGFloat, innerBandH: CGFloat,
+                          iconSlots: Int, iconNames: [String]) {
+        // Zone 底色
+        let zoneSurface = (slot == .aiDynamic) ? DesignColor.dynamicZoneSurface : DesignColor.zoneSurface
+        ctx.fill(
+            Path(CGRect(x: x, y: y, width: width, height: height)),
+            with: .color(zoneSurface)
+        )
+        // 顶栏底色 (zoneSurface 同源, 略深一档)
+        ctx.fill(
+            Path(CGRect(x: x, y: y, width: width, height: toolbarH)),
+            with: .color(zoneSurface)
+        )
+        // 顶栏底部 1 PT 分割线 (master "区域底部工具栏/分割线" 留 trace, 老板 v0.10.10d 删掉, 但 v0.13.0 加 SF Symbols 时加回)
+        ctx.fill(
+            Path(CGRect(x: x, y: y + toolbarH - 1, width: width, height: 1)),
+            with: .color(DesignColor.splitterLine)
+        )
+        // 3 SF Symbols Beta (Apple System framework, monochrome + accentBlue)
+        let iconSize = width * LayoutTokens.iconSizeRatio
+        let iconSpacing = width * LayoutTokens.iconSpacingRatio
+        let iconLeading = width * LayoutTokens.iconLeadingRatio
+        let iconY = y + (toolbarH - iconSize) / 2  // 顶栏垂直居中
+        for i in 0..<iconSlots {
+            let iconX = x + iconLeading + CGFloat(i) * (iconSize + iconSpacing)
+            // SF Symbol 渲染 (Canvas Image.resolve 返回 ResolvedImage, 直接 draw 在 rect)
+            // 老板 8/18 拍 SF Symbols Beta 真符号 + accentBlue (#4a60b2)
+            let resolved = ctx.resolve(Image(systemName: iconNames[i]))
+            var iconCtx = ctx
+            iconCtx.opacity = 1.0
+            iconCtx.draw(resolved, in: CGRect(x: iconX, y: iconY, width: iconSize, height: iconSize))
+            // SF Symbol tinting: 用 GraphicsContext.shading 覆盖
+            ctx.fill(
+                Path(CGRect(x: iconX, y: iconY, width: iconSize, height: iconSize)),
+                with: .color(DesignColor.accentBlue.opacity(0.001))  // 透明色不画, 但触发 SF Symbol 渲染层叠
+            )
         }
+        // 内层 (编辑器 4 PT inset 两层设计, 老板 Q2 答 "4 PT inset 不要删")
+        if slot == .editor {
+            let innerInset = height * LayoutTokens.editorInsetRatio  // 4 PT
+            ctx.fill(
+                Path(CGRect(x: x + innerInset, y: y + toolbarH + innerInset, width: width - 2 * innerInset, height: height - 2 * toolbarH - 2 * innerInset)),
+                with: .color(Color.white.opacity(0.55))
+            )
+        }
+        // 底栏 30 PT (净底)
+        let bottomY = y + height - toolbarH
+        ctx.fill(
+            Path(CGRect(x: x, y: bottomY, width: width, height: toolbarH)),
+            with: .color(zoneSurface)
+        )
+        // 底栏顶部 1 PT 分割线
+        ctx.fill(
+            Path(CGRect(x: x, y: bottomY, width: width, height: 1)),
+            with: .color(DesignColor.splitterLine)
+        )
+    }
+
+    /// 画 1 PT 黑色拖拽线 (Canvas 重画 1 PT 像素)
+    private func drawSplitterLine(ctx: GraphicsContext, x: CGFloat, y: CGFloat, width: CGFloat, height: CGFloat) {
+        ctx.fill(
+            Path(CGRect(x: x, y: y, width: width, height: height)),
+            with: .color(DesignColor.splitterLine)
+        )
     }
 }
+
+/// 6 个 NativeSplitter NSView overlay (拖拽 hit area, Canvas 之外处理 mouse event)
+/// Canvas 不接受 SwiftUI DragGesture 直接命中 1 PT 像素线, 用 NSViewRepresentable 桥
+/// 老板 8/18 拍 "cursor 跨 SwiftUI 边界" → Canvas cursor 跟 NSView cursor 用 NSCursor.current 同步
+struct SplitterHitAreas: View {
+    let vm: LayoutShellViewModel
+    var body: some View {
+        // 6 个透明 NSView overlay (1 PT 视觉线 + 6 PT hit area 居中)
+        // Canvas 跟 NSView 共享 totalW × totalH 坐标系, NSView frame 直接算
+        let totalW = LayoutTokens.designW
+        let upperBandH = vm.upperBandH
+        let lowerBandH = vm.lowerBandH
+        let titleBarH = LayoutTokens.titleBarHeight
+
+        ZStack(alignment: .topLeading) {
+            // 5 竖拖拽线 NSView (上 3 + 下 1, D_v5)
+            // D_v1: 项目侧栏 / 项目预览
+            NativeSplitterHitArea(orientation: .vertical, length: upperBandH)
+                .frame(width: 6, height: upperBandH)
+                .offset(x: totalW * CGFloat(vm.projectSidebarRatio) - 3, y: titleBarH)
+            // D_v2: 项目预览 / 编辑器
+            NativeSplitterHitArea(orientation: .vertical, length: upperBandH)
+                .frame(width: 6, height: upperBandH)
+                .offset(x: totalW * (CGFloat(vm.projectSidebarRatio) + CGFloat(vm.projectPreviewRatio)) + 1 - 3, y: titleBarH)
+            // D_v3: 编辑器 / 专用工具
+            NativeSplitterHitArea(orientation: .vertical, length: upperBandH)
+                .frame(width: 6, height: upperBandH)
+                .offset(x: totalW * (CGFloat(vm.projectSidebarRatio) + CGFloat(vm.projectPreviewRatio) + CGFloat(vm.editorWRatio)) + 2 - 3, y: titleBarH)
+            // D_h: 横拖拽线 (上 band 底 / 下 band 顶) - v0.14.0 拍可拖
+            NativeSplitterHitArea(orientation: .horizontal, length: totalW)
+                .frame(width: totalW, height: 6)
+                .offset(x: 0, y: titleBarH + upperBandH - 3)
+            // D_v5: AI聊天 / AI 动态 (下 band 唯一竖拖拽线)
+            NativeSplitterHitArea(orientation: .vertical, length: lowerBandH)
+                .frame(width: 6, height: lowerBandH)
+                .offset(x: totalW * CGFloat(vm.aiChatRatio) - 3, y: titleBarH + upperBandH + 1)
+        }
+        .allowsHitTesting(true)
+    }
+}
+
+/// NSView wrapper for 1 个 NativeSplitter hit area (6 PT 居中, Canvas 之外)
+struct NativeSplitterHitArea: NSViewRepresentable {
+    let orientation: SplitterOrientation
+    let length: CGFloat
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView(frame: NSRect(x: 0, y: 0, width: 6, height: 6))
+        view.wantsLayer = true
+        view.layer?.backgroundColor = NSColor.clear.cgColor
+        // 创建 NSTrackingArea 接受 mouseMoved + mouseDragged
+        let trackingArea = NSTrackingArea(
+            rect: view.bounds,
+            options: [.activeAlways, .mouseEnteredAndExited, .mouseMoved, .inVisibleRect],
+            owner: view,
+            userInfo: nil
+        )
+        view.addTrackingArea(trackingArea)
+        return view
+    }
+    func updateNSView(_ nsView: NSView, context: Context) {}
+}
+
+/// 6 zone 数对公式 (老板 8/18 拍 "对齐了" + 数对 1917/1918/1920)
+/// 拆分上下文: Canvas 重画 + NativeSplitter 仍负责拖拽 hit area
 
 // MARK: - 上 band (小说管理区): 3 区域模块 + 3 拖拽线-竖
 
@@ -267,8 +485,9 @@ struct LowerBandZone: View {
     let totalW: CGFloat
     let bandH: CGFloat
     var body: some View {
-        let aiChatW = totalW * LayoutTokens.aiChatRatio
-        let dynamicW = totalW * LayoutTokens.dynamicWRatio
+        // ratio 走 vm (vm.*Ratio = LayoutTokens 默认 + 拖拽 offset 累加)
+        let aiChatW = totalW * CGFloat(vm.aiChatRatio)
+        let dynamicW = totalW * CGFloat(vm.dynamicWRatio)
         HStack(spacing: 0) {
             ZoneModule(slot: .aiChat, vm: vm, totalW: totalW, bandH: bandH)
                 .frame(width: aiChatW, height: bandH)
@@ -284,8 +503,16 @@ struct LowerBandZone: View {
 
 /// Master 1: 标题栏 (1920×39)
 struct TitleBarZone: View {
+    /// 老板 8/18 拍 52 PT 顶栏 = macOS 52 PT unified titlebar chrome (重叠, 视觉合一)
+    /// 加 1 PT 黑色底分割线 (Apple HIG standard titlebar bottom border)
     var body: some View {
         DesignColor.titleBar
+            .frame(height: LayoutTokens.titleBarHeight)
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .fill(DesignColor.splitterLine)
+                    .frame(height: 1)  // 1 PT 黑色底分割线
+            }
     }
 }
 

@@ -4,7 +4,7 @@
 // 1. 默认 ratio 跟 LayoutTokens 一致
 // 2. 拖拽 D_v1 (项目侧栏) → projectSidebarRatio 增, projectPreviewRatio 减
 // 3. 拖拽 D_v3 (编辑器) → editorWRatio 减, toolsWRatio 增
-// 4. 拖拽 D_v5 (聊天对话/动态区) → chatDialogueRatio 增, dynamicWRatio 减
+// 4. 拖拽 D_v5 (AI聊天/AI 动态) → aiChatRatio 增, dynamicWRatio 减 (老板 8/18 拍 "上四下两" v0.10.10d)
 // 5. 越界拒绝 (offset 累加超 [minOffset, maxOffset])
 // 6. 越界拒绝 (zone ratio 累加超 [minZoneRatio, maxZoneRatio])
 // 7. reset() 还原默认
@@ -24,8 +24,7 @@ struct LayoutShellViewModelTests {
         #expect(abs(vm.projectPreviewRatio - Double(LayoutTokens.projectPreviewRatio)) < 0.0001)
         #expect(abs(vm.editorWRatio - Double(LayoutTokens.editorWRatio)) < 0.0001)
         #expect(abs(vm.toolsWRatio - Double(LayoutTokens.toolsWRatio)) < 0.0001)
-        #expect(abs(vm.chatSidebarRatio - Double(LayoutTokens.chatSidebarRatio)) < 0.0001)
-        #expect(abs(vm.chatDialogueRatio - Double(LayoutTokens.chatDialogueRatio)) < 0.0001)
+        #expect(abs(vm.aiChatRatio - Double(LayoutTokens.aiChatRatio)) < 0.0001)
         #expect(abs(vm.dynamicWRatio - Double(LayoutTokens.dynamicWRatio)) < 0.0001)
 
         let sidebarW = totalW * CGFloat(vm.projectSidebarRatio)
@@ -74,12 +73,12 @@ struct LayoutShellViewModelTests {
     func dragD_v5() {
         let vm = LayoutShellViewModel()
         let totalW: CGFloat = 1920
-        let beforeChat = vm.chatDialogueRatio
+        let beforeChat = vm.aiChatRatio
         let beforeDyn = vm.dynamicWRatio
 
         vm.adjustChatDynamic(delta: 30, totalWidth: totalW)
 
-        #expect(vm.chatDialogueRatio > beforeChat, "chat 增")
+        #expect(vm.aiChatRatio > beforeChat, "chat 增")
         #expect(vm.dynamicWRatio < beforeDyn, "dynamic 减")
     }
 
@@ -88,7 +87,7 @@ struct LayoutShellViewModelTests {
         let vm = LayoutShellViewModel()
         let totalW: CGFloat = 1920
 
-        vm.adjustSidebarPreview(delta: 200, totalWidth: totalW)
+        vm.adjustSidebarPreview(delta: 300, totalWidth: totalW)  // 老板 8/18 v0.14.0 改 maxOffset=±0.15, delta 300/1920=0.156 > 0.15 越界
 
         #expect(vm.projectSidebarRatio == Double(LayoutTokens.projectSidebarRatio), "未变")
     }
@@ -121,8 +120,7 @@ struct LayoutShellViewModelTests {
         #expect(vm.projectPreviewRatio == Double(LayoutTokens.projectPreviewRatio))
         #expect(vm.editorWRatio == Double(LayoutTokens.editorWRatio))
         #expect(vm.toolsWRatio == Double(LayoutTokens.toolsWRatio))
-        #expect(vm.chatSidebarRatio == Double(LayoutTokens.chatSidebarRatio))
-        #expect(vm.chatDialogueRatio == Double(LayoutTokens.chatDialogueRatio))
+        #expect(vm.aiChatRatio == Double(LayoutTokens.aiChatRatio))
         #expect(vm.dynamicWRatio == Double(LayoutTokens.dynamicWRatio))
     }
 
@@ -130,14 +128,14 @@ struct LayoutShellViewModelTests {
     func bandSplitInert() {
         let vm = LayoutShellViewModel()
         let beforeTop = vm.projectSidebarRatio + vm.projectPreviewRatio + vm.editorWRatio + vm.toolsWRatio
-        let beforeBottom = vm.chatSidebarRatio + vm.chatDialogueRatio + vm.dynamicWRatio
+        let beforeBottom = vm.aiChatRatio + vm.dynamicWRatio
 
-        vm.adjustBandSplit()
-        vm.adjustBandSplit()
-        vm.adjustBandSplit()
+        vm.adjustBandSplit(delta: 50, totalHeight: 984)
+        vm.adjustBandSplit(delta: 50, totalHeight: 984)
+        vm.adjustBandSplit(delta: 50, totalHeight: 984)
 
         let afterTop = vm.projectSidebarRatio + vm.projectPreviewRatio + vm.editorWRatio + vm.toolsWRatio
-        let afterBottom = vm.chatSidebarRatio + vm.chatDialogueRatio + vm.dynamicWRatio
+        let afterBottom = vm.aiChatRatio + vm.dynamicWRatio
         #expect(beforeTop == afterTop, "上 band 总 ratio 不变")
         #expect(beforeBottom == afterBottom, "下 band 总 ratio 不变")
     }
@@ -151,12 +149,12 @@ struct LayoutShellViewModelTests {
         #expect(abs(sum - 1917.0 / 1920.0) < 0.0001, "4 zone 数对 = 1917/1920 (老板 8/18 改)")
     }
 
-    @Test("下 band 3 列 ratio 累加 = 1.0 (零和, 总宽守恒) [v0.10.3 加 D_v4 内嵌]")
+    @Test("下 band 2 列 ratio 累加 = 1919/1920 (零和, 总宽守恒) [v0.10.10d 老板拍上四下两]")
     func lowerBandSum() {
         let vm = LayoutShellViewModel()
-        let sum = vm.chatSidebarRatio + vm.chatDialogueRatio + vm.dynamicWRatio
-        // 老板 8/18 改 "数对": 200 + 1318 + 400 = 1918, 拖拽线 1 PT 占位 (下 band 3 zone 净宽 ≠ 1920)
-        #expect(abs(sum - 1918.0 / 1920.0) < 0.0001, "3 zone 数对 = 1918/1920 (老板 8/18 改 1318)")
+        let sum = vm.aiChatRatio + vm.dynamicWRatio
+        // 老板 8/18 改 "上四下两": aiChat(1519) + dynamic(400) = 1919 (1 PT 拖拽线占位)
+        #expect(abs(sum - 1919.0 / 1920.0) < 0.0001, "2 zone 数对 = 1919/1920")
     }
 }
 
