@@ -37,7 +37,8 @@ enum LayoutTokens {
     static let titleRatio: CGFloat = 39.0 / 984.0         // = 0.0396
     static let bandRatio: CGFloat = 472.0 / 984.0        // = 0.4797 (上下 band 各半)
     static let toolbarRatio: CGFloat = 30.0 / 472.0      // = 0.0636 (zone 顶/底 30)
-    static let splitterHitRatio: CGFloat = 6.0 / 1920.0  // = 0.0031 (6 PT hit area 居中 1 PT 视觉线)
+    static let splitterHitRatio: CGFloat = 6.0 / 1920.0  // = 0.0031 (6 PT hit area 居中 1 PT 视觉线, 竖拖拽线 W 比率)
+    static let horizontalSplitterRatio: CGFloat = 1.0 / 984.0  // = 0.0010 (1 PT 横拖拽线 H 比率, 老板 8/18 拍 数对 39+472+472+1 = 984)
 
     // 上 band 4 zone 数对公式: (200, 中间 1, 中间 2, 400) = 1920
     // 老板 8/18 拍 "数对" = 拖拽线 1 PT 视觉线摊给左右 zone (各 0.5 PT)
@@ -203,6 +204,8 @@ struct LayoutShellView: View {
             let totalH = geo.size.height
             let titleH = totalH * LayoutTokens.titleRatio
             let bandH = totalH * LayoutTokens.bandRatio
+            // 老板 8/18 数对公式: 39 + 472 + 472 + 1 (横拖拽线) = 984
+            // ratio 守恒: titleRatio + bandRatio*2 + horizontalSplitterRatio = 1.0
             VStack(spacing: 0) {
                 TitleBarZone()
                     .frame(width: totalW, height: titleH)

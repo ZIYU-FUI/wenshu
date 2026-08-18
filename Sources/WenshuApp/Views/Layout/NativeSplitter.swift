@@ -72,10 +72,11 @@ final class NativeSplitterView: NSView {
 
     required init?(coder: NSCoder) { fatalError("not used") }
 
-    // MARK: - Layout (SwiftUI 拿 1PT, hit area 走 .frame() 扩张)
+    // MARK: - Layout (v0.10.6: intrinsicContentSize = 1 PT 视觉线, hit area 透明 padding 在 NSView 内 5 PT 不占 SwiftUI layout 空间)
+    // 数对公式: 39+472+472+1 = 984 (H) / 200+558+762+400 = 1920 (W) 守恒
 
     override var intrinsicContentSize: NSSize {
-        Self.size(for: orientation)
+        NSSize(width: 1, height: 1)  // 1 PT 视觉线 (hit area 6 PT 透明 padding 在 NSView 内部, NSView 自身仍 6 PT 宽支持拖拽 affordance)
     }
 
     private static func size(for orientation: Orientation) -> NSSize {
@@ -179,13 +180,14 @@ struct NativeSplitter: NSViewRepresentable {
 }
 
 /// 6 拖拽线真值 wrapper (boss 8/18 拍 1 PT 粗, 6 PT hit area, 居中画 1 PT 黑线)
-/// v0.10.1: 接 onDrag callback (vertical=deltaX, horizontal=deltaY 增量, 走 AppKit NSEvent.pipeline)
+/// v0.10.6: wrapper frame = 1 PT 视觉线宽度 (外 5 PT hit area 透明 padding 在 NSView 内, 不影响 SwiftUI layout)
+/// 数对公式 39+472+472+1 = 984 (H) / 200+558+762+400 = 1920 (W) 守恒
 struct VerticalDragSplitter: View {
     let height: CGFloat
     let onDrag: (CGFloat) -> Void
     var body: some View {
         NativeSplitter(orientation: .vertical, onDrag: onDrag)
-            .frame(width: 6, height: height)
+            .frame(width: 1, height: height)  // 1 PT 视觉线 (NSView hit area 6 PT 内透明 padding)
     }
 }
 
@@ -194,7 +196,7 @@ struct HorizontalDragSplitter: View {
     let onDrag: (CGFloat) -> Void
     var body: some View {
         NativeSplitter(orientation: .horizontal, onDrag: onDrag)
-            .frame(width: width, height: 6)
+            .frame(width: width, height: 1)  // 1 PT 视觉线
     }
 }
 

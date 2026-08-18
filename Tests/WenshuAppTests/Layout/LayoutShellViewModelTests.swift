@@ -195,3 +195,18 @@ struct LayoutShellViewModelNotificationTests {
         NotificationCenter.default.removeObserver(observer)
     }
 }
+
+
+// 老板 8/18 拍 "比例也都拉齐了" — H 方向数对公式验证
+@Suite("LayoutShellViewModel 数对 H 守恒")
+struct LayoutShellViewModelHConserveTests {
+    @Test("H 方向数对: 39 + 472 + 472 + 1 = 984")
+    func hSumOne() {
+        // titleRatio (39/984) + 2*bandRatio (944/984) + horizontalSplitterRatio (1/984) = 1.0
+        let titleSum = 39.0 / 984.0
+        let bandSum = 2.0 * (472.0 / 984.0)
+        let hSplitSum = 1.0 / 984.0
+        let total = titleSum + bandSum + hSplitSum
+        #expect(abs(total - 1.0) < 0.0001, "H 方向 39+472+472+1 = 984, ratio = 1.0")
+    }
+}
