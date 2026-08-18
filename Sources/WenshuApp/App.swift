@@ -74,7 +74,7 @@ enum SelfScreenshot {
     static func run() {
         let env = ProcessInfo.processInfo.environment
         let path = env["WS_SCREENSHOT_PATH"] ?? "/tmp/wenshu-selfshot.png"
-        let delay = Double(env["WS_SCREENSHOT_DELAY"] ?? "2.0") ?? 2.0
+        let delay = Double(env["WS_SCREENSHOT_DELAY"] ?? "5.0") ?? 5.0  // v0.10.7: 5s 避免 layout race condition
         let shouldExit = env["WS_SCREENSHOT_EXIT"] != "0"
 
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
@@ -371,10 +371,13 @@ struct ZoneModule: View {
             DesignColor.zoneSurface
                 .overlay(alignment: .topLeading) { zoneLabel("聊天侧栏") }
         case .chatDialogue:
-            // 下 band 聊天对话 (1316 PT), 蓝输入框底
+            // 下 band 聊天对话 (1316 PT), 老板 8/18 拍 "输入框不是蓝色, 描边圆角矩形, 没颜色填充"
+            // = Color.clear.fill + .overlay(RoundedRectangle.strokeBorder accentBlue 2 PT 8 PT cornerRadius)
             DesignColor.zoneSurface
                 .overlay(alignment: .bottom) {
-                    DesignColor.accentBlue
+                    // 描边圆角矩形输入框: 无填充, 2 PT accentBlue 描边, 8 PT 圆角
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(DesignColor.accentBlue, lineWidth: 2)
                         .frame(width: chatInputW, height: chatInputH)
                         .padding(.bottom, bandH * 0.016)
                 }
