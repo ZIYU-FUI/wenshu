@@ -153,3 +153,38 @@ struct LayoutShellViewModelTests {
     }
 }
 
+
+
+// 老板 8/18 拍 "菜单栏, 重置界面布局" 通知桥测试
+@Suite("LayoutShellViewModel reset via Notification")
+struct LayoutShellViewModelNotificationTests {
+    @Test("通知 .wenshuResetLayout 触发后, 拖拽过的 offsets 还原默认")
+    func resetViaNotification() {
+        let vm = LayoutShellViewModel()
+        let totalW: CGFloat = 1920
+        vm.adjustSidebarPreview(delta: 50, totalWidth: totalW)
+        vm.adjustEditorTools(delta: -30, totalWidth: totalW)
+        vm.adjustChatDynamic(delta: 100, totalWidth: totalW)
+        #expect(vm.projectSidebarRatio != Double(LayoutTokens.projectSidebarRatio), "已变")
+
+        // 模拟菜单触发: 通知桥 + vm.reset() (主队列同步)
+        var resetCalled = false
+        let observer = NotificationCenter.default.addObserver(
+            forName: .wenshuResetLayout,
+            object: nil,
+            queue: .main
+        ) { _ in
+            vm.reset()
+            resetCalled = true
+        }
+        NotificationCenter.default.post(name: .wenshuResetLayout, object: nil)
+        // drain main queue (synchronous)
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05))
+
+        #expect(resetCalled, "observer 触发")
+        #expect(vm.projectSidebarRatio == Double(LayoutTokens.projectSidebarRatio), "还原默认")
+        #expect(vm.editorWRatio == Double(LayoutTokens.editorWRatio), "还原默认")
+        #expect(vm.dynamicWRatio == Double(LayoutTokens.dynamicWRatio), "还原默认")
+        NotificationCenter.default.removeObserver(observer)
+    }
+}

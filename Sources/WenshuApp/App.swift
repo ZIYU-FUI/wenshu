@@ -16,6 +16,12 @@
 import SwiftUI
 import AppKit
 
+// 老板 8/18 拍 "重置界面布局" 通知桥 (LayoutShellView 用 @State 私有 vm,
+// 顶层 .commands 拿不到 vm 实例, 走 NotificationCenter 转发)
+extension Notification.Name {
+    static let wenshuResetLayout = Notification.Name("com.wenshu.resetLayout")
+}
+
 // MARK: - Layout tokens (比例算子 0~1, 老板 8/18 答 "1:1 PT 真值" + 8/18 再拍 "换算成比例")
 //
 // 数据源: Sketch AF7B1C87 / Artboard 首页 1920×984 PT 1:1 落
@@ -128,11 +134,25 @@ struct WenshuApp: App {
         .windowStyle(.hiddenTitleBar)  // 老板 8/18 拍 1:1 PT 落, 不要 macOS 系统 title bar chrome 跟 39 PT TitleBarZone 撞色
         .windowResizability(.contentSize)
         .commands {
+            // File 菜单: 新建项目 (cmd+n)
             CommandGroup(replacing: .newItem) {
                 Button("新建项目") {
                     // TODO: v0.10+ 接 WenshuLibrary.addShelf
                 }
                 .keyboardShortcut("n", modifiers: .command)
+            }
+            // 视图菜单: 老板 8/18 拍 "菜单栏, 显示菜单实现, 重置界面布局功能, 用于一键恢复布局到默认"
+            // Apple HIG: CommandMenu 加 top-level 菜单, 在 Window 菜单左侧
+            CommandMenu("视图") {
+                Button("恢复默认布局") {
+                    // 调用 LayoutShellViewModel.reset() 把 4 个 offset 还原 0
+                    // 当前 LayoutShellView 用 @State 私有 vm, 暂时通过通知桥接
+                    NotificationCenter.default.post(
+                        name: .wenshuResetLayout,
+                        object: nil
+                    )
+                }
+                .keyboardShortcut("r", modifiers: [.command, .shift])  // cmd+shift+r 跟 Xcode 一致
             }
         }
     }
@@ -166,6 +186,15 @@ struct LayoutShellView: View {
     @State private var vm = LayoutShellViewModel()
 
     var body: some View {
+        // 老板 8/18 拍 "菜单栏, 重置界面布局" → 视图菜单的 "恢复默认布局" 通过通知桥接 vm.reset()
+        // NotificationCenter.default 拿通知 (跟 SwiftUI @Observable 配合 OK, Swift 6 兼容)
+        Group { contentView }
+            .onReceive(NotificationCenter.default.publisher(for: .wenshuResetLayout)) { _ in
+                vm.reset()
+            }
+    }
+
+    private var contentView: some View {
         GeometryReader { geo in
             let totalW = geo.size.width
             let totalH = geo.size.height
