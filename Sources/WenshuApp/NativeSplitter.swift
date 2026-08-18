@@ -41,11 +41,6 @@ final class NativeSplitterView: NSView {
     /// `.vertical`   = drag up/down (resizes bands)
     var orientation: SplitterOrientation = .horizontal
 
-    /// Apple HIG default divider is 1pt visually. 装机 user 8/7 hit on 5pt hit-area
-    /// + 1pt visible line. Boss 2026-08-17 Sketch drag lines are 2pt wide. Override
-    /// per call site; default keeps装机 user 8/7's contract intact.
-    var visibleLineWidth: CGFloat = 1
-
     /// Pixel delta since drag start (positive = drag direction).
     @MainActor var onDrag: ((CGFloat) -> Void)?
 
@@ -87,18 +82,15 @@ final class NativeSplitterView: NSView {
     /// wrong: it turned the divider into a 5pt solid block, visually too
     /// thick). Now the visual is a 1pt line with the hit area extending
     /// 2pt on either side as transparent grab padding.
-    /// Computes the visible divider rectangle inside the hit area.
-    /// `line` (= `visibleLineWidth`, default 1pt) is the actual visible hairline;
-    /// `hit` (= `hitAreaThickness`, 5pt) is the hit-area extent; `pad` is the
-    /// transparent padding on each side (= (5 - line) / 2 = 2pt for 1pt line,
-    /// = 1.5pt for 2pt line).
-    func lineRect(in bounds: NSRect, orientation: SplitterOrientation) -> NSRect {
-        let line = visibleLineWidth
-        let hit = Self.hitAreaThickness
-        let pad = max(0, (hit - line) / 2)
+    static func lineRect(in bounds: NSRect, orientation: SplitterOrientation) -> NSRect {
+        let line: CGFloat = 1                                 // hairline
+        let hit = hitAreaThickness                              // 5pt
+        let pad = (hit - line) / 2                              // = 2pt each side
         if orientation == .horizontal {
+            // Vertical 1pt hairline at hit-area center (x = pad = 2).
             return NSRect(x: pad, y: 0, width: line, height: bounds.height)
         } else {
+            // Horizontal 1pt hairline at hit-area center (y = pad = 2).
             return NSRect(x: 0, y: pad, width: bounds.width, height: line)
         }
     }
@@ -138,18 +130,33 @@ final class NativeSplitterView: NSView {
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        // Boss 8/17 "按我的图改位置大小" drag lines are 2pt SOLID BLACK
-        // (= Sketch fill #000000). The earlier separator-band treatment (1pt
-        // alpha-blended gray + 1pt hairline) was a previous owner's fix for
-        // the band-splitter visibility problem; it now reads as a 5pt glow,
-        // not the 2pt black hairline boss drew.  Switch to a flat black fill
-        // across the full hit area (= hit-area stays 5pt for装机 user 8/7's
-        // grab affordance; visible line is 2pt centred in it). Hover still
-        // tints to accent so the splitter lights up on grab.
-        let lineRect = lineRect(in: bounds, orientation: orientation)
+        // Per Apple docs on NSView.cacheDisplay(in:to:):
+        //   "The bitmap produced by this method is transparent (that is, has
+        //    an alpha value of 0) wherever the view and its descendants do
+        //    not draw any content."
+        // So draw() should ONLY paint the 1pt hairline; the rest of the 5pt
+        // hit area stays transparent (= panel background shows through,
+        // invisible). The SelfScreenshot script pre-fills the bitmap with
+        // windowBackgroundColor before calling cacheDisplay, so any
+        // alpha=0 pixels in the final PNG composite to panel-bg color
+        // (the 5pt hit area is invisible in the screenshot).
+        let lineRect = Self.lineRect(in: bounds, orientation: orientation)
+        // Boss 8/15 15:08: divider line is pure black (= NSColor.black, not
+        // separatorColor). Hover keeps Apple HIG controlAccentColor so the
+        // user sees the splitter activate when grabbing.
+        //
+        // Caveat (= owner拍了 pure black; trade-off is editor zone visibility):
+        // the EDITOR zone uses Color.black as its background (= FCP Viewer
+        // v32.1: the EDITOR zone uses Color.black as its background (= FCP Viewer
+        // convention). A 1pt black line on black is invisible. v51
+        // (= boss 8/15 17:18 '项目管理区的两个区域分割线我在截图上又看不到
+        // 了') switches to NSColor.separatorColor (= Apple HIG macOS
+        // standard divider; light gray in dark mode, medium gray in light
+        // mode, slightly LIGHTER than the surrounding panels so it shows
+        // on any background — including against the black EDITOR).
         let dividerColor = isHovered
             ? NSColor.controlAccentColor
-            : NSColor.black
+            : NSColor.separatorColor
         dividerColor.setFill()
         lineRect.fill()
     }
@@ -257,27 +264,17 @@ final class NativeSplitterView: NSView {
 struct NativeSplitter: NSViewRepresentable {
     let orientation: SplitterOrientation
     let onDrag: (CGFloat) -> Void
-    /// Boss 2026-08-17 drag lines are 2pt wide; default 1pt keeps装机 user 8/7.
-    var visibleLineWidth: CGFloat = 1
-
-    init(orientation: SplitterOrientation, visibleLineWidth: CGFloat = 1, onDrag: @escaping (CGFloat) -> Void) {
-        self.orientation = orientation
-        self.onDrag = onDrag
-        self.visibleLineWidth = visibleLineWidth
-    }
 
     func makeNSView(context: Context) -> NativeSplitterView {
         let view = NativeSplitterView()
         view.orientation = orientation
         view.onDrag = onDrag
-        view.visibleLineWidth = visibleLineWidth
         return view
     }
 
     func updateNSView(_ nsView: NativeSplitterView, context: Context) {
         nsView.orientation = orientation
         nsView.onDrag = onDrag
-        nsView.visibleLineWidth = visibleLineWidth
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, nsView: NativeSplitterView, context: Context) -> CGSize? {
