@@ -370,6 +370,46 @@ struct LayoutShellView: View {
             Path(CGRect(x: x, y: bottomY, width: width, height: 1)),
             with: .color(DesignColor.splitterLine)
         )
+        // 底栏左占位文字 (Apple HIG .caption 12 PT 字符样式, 老板 8/18 拍 "占位文字用苹果字符样式")
+        // Sketch 真值: 占位文本 x=18, y=8, w=52, h=16 (在 200×30 底栏里)
+        // 200 PT 真值用比例换算到任意 zone 宽
+        let bottomLeadingRatio: CGFloat = 18.0 / 200.0  // 起点比例 18/200
+        let bottomIconSizeRatio: CGFloat = 18.0 / 200.0  // 18 PT 占位 icon 边长比例
+        let bottomIconTrailingRatio: CGFloat = 18.0 / 200.0  // 右侧距边 18 PT
+        let bottomTextWidthRatio: CGFloat = 52.0 / 200.0  // 占位文字宽 52 PT 比例
+        let bottomTextHeightRatio: CGFloat = 16.0 / 200.0  // 占位文字高 16 PT 比例 (实际 caption 字号 = 12 PT)
+
+        let bottomLeading = width * bottomLeadingRatio
+        let bottomTextWidth = width * bottomTextWidthRatio
+        let bottomTextHeight = width * bottomTextHeightRatio
+        let bottomIconSize = width * bottomIconSizeRatio
+        let bottomIconTrailing = width * bottomIconTrailingRatio
+
+        // 左占位文字 (Apple HIG .caption 12 PT 字符样式, 老板 8/18 拍 "占位文字用苹果字符样式")
+        // Canvas ctx.draw(text: Text, in: CGRect) — Apple SwiftUI GraphicsContext API
+        // .caption 是 Apple HIG 12 PT secondary style (Apple Standard Text Styles)
+        ctx.draw(
+            Text("占位文字")
+                .font(.caption)
+                .foregroundStyle(.tertiary),
+            in: CGRect(
+                x: x + bottomLeading,
+                y: bottomY + (toolbarH - bottomTextHeight) / 2,
+                width: bottomTextWidth,
+                height: bottomTextHeight
+            )
+        )
+        // 右占位 icon (accentBlue 18×18 矩形, Apple SF Symbol placeholder)
+        let placeholderIcon = ctx.resolve(Image(systemName: "questionmark.square.dashed"))
+        ctx.draw(
+            placeholderIcon,
+            in: CGRect(
+                x: x + width - bottomIconTrailing - bottomIconSize,
+                y: bottomY + (toolbarH - bottomIconSize) / 2,
+                width: bottomIconSize,
+                height: bottomIconSize
+            )
+        )
     }
 
     /// 画 1 PT 黑色拖拽线 (Canvas 重画 1 PT 像素)
