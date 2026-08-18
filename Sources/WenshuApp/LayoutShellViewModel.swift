@@ -29,12 +29,13 @@ final class LayoutShellViewModel {
     /// offsets[2] = D_v3 编辑器 / 工具       (调整 editorWRatio)
     /// offsets[3] = D_v4 聊天侧栏 / 聊天对话 (调整 chatSidebarRatio)
     /// offsets[4] = D_v5 聊天对话 / 动态区   (调整 chatDialogueRatio)
-    /// 4 个竖拖拽线 ratio 累加 (D_v4 内嵌 v0.10.1 移除, 5 改 4)
-    /// offsets[0] = D_v1 项目侧栏 / 项目预览
-    /// offsets[1] = D_v2 项目预览 / 编辑器
-    /// offsets[2] = D_v3 编辑器 / 工具
-    /// offsets[3] = D_v5 聊天对话 / 动态区
-    var offsets: [Double] = [0, 0, 0, 0]
+    /// 5 个竖拖拽线 ratio 累加 (v0.10.3 老板 8/18 拍下 band 3 区, D_v4 内嵌重接)
+    /// offsets[0] = D_v1 项目侧栏 / 项目预览 (调整 projectSidebarRatio)
+    /// offsets[1] = D_v2 项目预览 / 编辑器   (调整 projectPreviewRatio)
+    /// offsets[2] = D_v3 编辑器 / 工具       (调整 editorWRatio)
+    /// offsets[3] = D_v4 聊天侧栏 / 聊天对话 (调整 chatSidebarRatio) [v0.10.3 新接]
+    /// offsets[4] = D_v5 聊天对话 / 动态区   (调整 chatDialogueRatio)
+    var offsets: [Double] = [0, 0, 0, 0, 0]
 
     /// 拖拽边界
     static let minOffset: Double = -0.10
@@ -59,12 +60,14 @@ final class LayoutShellViewModel {
     var toolsWRatio: Double {
         Double(LayoutTokens.toolsWRatio) - offsets[2]
     }
-    /// chatDialogueRatio 内嵌 chatSidebar (v0.10.1 移除 D_v4)
+    var chatSidebarRatio: Double {
+        Double(LayoutTokens.chatSidebarRatio) + offsets[3]
+    }
     var chatDialogueRatio: Double {
-        Double(LayoutTokens.chatDialogueRatio) + offsets[3]
+        Double(LayoutTokens.chatDialogueRatio) - offsets[3] + offsets[4]
     }
     var dynamicWRatio: Double {
-        Double(LayoutTokens.dynamicWRatio) - offsets[3]
+        Double(LayoutTokens.dynamicWRatio) - offsets[4]
     }
 
     // MARK: - 拖拽回调 (老板 8/18 拍 D_v1~D_v5 1 PT 黑线, 6 PT hit area, 增量拖拽)
@@ -84,9 +87,14 @@ final class LayoutShellViewModel {
         adjust(2, delta: delta, totalWidth: totalWidth)
     }
 
-    /// D_v5: 聊天对话 / 动态区 (内嵌 D_v4 移除, 索引 3)
-    func adjustChatDynamic(delta: CGFloat, totalWidth: CGFloat) {
+    /// D_v4: 聊天侧栏 / 聊天对话 (v0.10.3 重接)
+    func adjustChatSidebar(delta: CGFloat, totalWidth: CGFloat) {
         adjust(3, delta: delta, totalWidth: totalWidth)
+    }
+
+    /// D_v5: 聊天对话 / 动态区 (索引 4)
+    func adjustChatDynamic(delta: CGFloat, totalWidth: CGFloat) {
+        adjust(4, delta: delta, totalWidth: totalWidth)
     }
 
     /// 横拖拽线 D_h: 老板 8/18 拍 50/50 锁定, v0.10.1 不实现拖拽 (intentional no-op)
@@ -112,7 +120,7 @@ final class LayoutShellViewModel {
         offsets[index] = newOffset
         // 上 band zone 用 maxZoneRatioUpper, 下 band zone 用 maxZoneRatioLower
         let upperRatios = [projectSidebarRatio, projectPreviewRatio, editorWRatio, toolsWRatio]
-        let lowerRatios = [chatDialogueRatio, dynamicWRatio]
+        let lowerRatios = [chatSidebarRatio, chatDialogueRatio, dynamicWRatio]
         let upperOK = upperRatios.allSatisfy { $0 >= Self.minZoneRatio && $0 <= Self.maxZoneRatioUpper }
         let lowerOK = lowerRatios.allSatisfy { $0 >= Self.minZoneRatio && $0 <= Self.maxZoneRatioLower }
         if !upperOK || !lowerOK {

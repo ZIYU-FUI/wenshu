@@ -45,11 +45,12 @@ enum LayoutTokens {
     static let editorWRatio: CGFloat = 758.0 / 1920.0         // 757 + 0.5 (D_v2 右) + 0.5 (D_v3 左)
     static let toolsWRatio: CGFloat = 403.5 / 1920.0         // 403 + 0.5 (D_v3 右)
 
-    // 下 band zone 列宽比例 (基准 1920)
-    static let chatManagementRatio: CGFloat = 1516.5 / 1920.0  // 1516 + 0.5 (D_v5 左), 内部 D_v4 在 chatManagement 内, 不算下 band 总宽
-    static let chatSidebarRatio: CGFloat = 200.5 / 1920.0     // 200 + 0.5 (D_v4 左)
-    static let chatDialogueRatio: CGFloat = 1516.5 / 1920.0  // 1516 (含 D_v4 6PT) + 0.5 (D_v5 左)  [v0.10.1 D_v4 内嵌 = chatManagement 不再分侧栏/对话]
-    static let dynamicWRatio: CGFloat = 403.5 / 1920.0        // 403 + 0.5 (D_v5 右)
+    // 下 band zone 列宽比例 (基准 1920) — 老板 8/18 拍下 band 3 区
+    // = 聊天侧栏 200 + D_v4 6 PT + 聊天对话 1310 + D_v5 1 PT + 动态区 403 = 1920
+    // (D_v4 hit area 6 PT 老板设计真值, 我 ratio 算时摊给侧栏/对话各 3 PT = 203 + 1313)
+    static let chatSidebarRatio: CGFloat = 203.0 / 1920.0     // 200 + 3 (D_v4 hit area 左半)
+    static let chatDialogueRatio: CGFloat = 1313.0 / 1920.0  // 1310 + 3 (D_v4 hit area 右半) + 0.5 (D_v5 左)
+    static let dynamicWRatio: CGFloat = 404.0 / 1920.0        // 403 + 0.5 (D_v5 左) + 0.5 (D_v5 右) = 1 PT 视觉线 摊给左右, 实际右侧 0.5 PT
 
     // 编辑器两层设计 (老板 8/18 Q2 答: 有意两层, 不要删)
     static let editorInsetRatio: CGFloat = 4.0 / 984.0  // = 0.0041
@@ -247,17 +248,23 @@ struct UpperBandZone: View {
 // MARK: - 下 band (聊天管理区): 2 区域模块 + 2 拖拽线-竖
 
 struct LowerBandZone: View {
+    /// v0.10.3 老板 8/18 拍下 band 3 区 = 聊天侧栏 200 + 聊天对话 1316 + 动态区 403
+    /// 2 拖拽线 D_v4 (x=200 侧栏/对话) + D_v5 (x=1516 对话/动态区)
     let vm: LayoutShellViewModel
     let totalW: CGFloat
     let bandH: CGFloat
     var body: some View {
-        // v0.10.1: chatManagement 不再嵌套 D_v4, chatDialogueRatio = 完整 chatManagement zone ratio
-        let chatMgmt = totalW * CGFloat(vm.chatDialogueRatio)
+        let sidebarW = totalW * CGFloat(vm.chatSidebarRatio)
+        let dialogueW = totalW * CGFloat(vm.chatDialogueRatio)
         let dynamicW = totalW * CGFloat(vm.dynamicWRatio)
         HStack(spacing: 0) {
-            ZoneModule(slot: .chatManagement, vm: vm, totalW: totalW, bandH: bandH)
-                .frame(width: chatMgmt, height: bandH)
-            // D_v5: 聊天对话 / 动态区 (注: D_v4 在 chatManagement 内部)
+            ZoneModule(slot: .chatSidebar, vm: vm, totalW: totalW, bandH: bandH)
+                .frame(width: sidebarW, height: bandH)
+            // D_v4: 聊天侧栏 / 聊天对话
+            VerticalDragSplitter(height: bandH, onDrag: { dx in vm.adjustChatSidebar(delta: dx, totalWidth: totalW) })
+            ZoneModule(slot: .chatDialogue, vm: vm, totalW: totalW, bandH: bandH)
+                .frame(width: dialogueW, height: bandH)
+            // D_v5: 聊天对话 / 动态区
             VerticalDragSplitter(height: bandH, onDrag: { dx in vm.adjustChatDynamic(delta: dx, totalWidth: totalW) })
             ZoneModule(slot: .dynamicZone, vm: vm, totalW: totalW, bandH: bandH)
                 .frame(width: dynamicW, height: bandH)
@@ -314,8 +321,8 @@ struct ZoneModule: View {
 
     private var toolbarH: CGFloat { bandH * LayoutTokens.toolbarRatio }
     private var editorInset: CGFloat { totalW * LayoutTokens.editorInsetRatio + bandH * LayoutTokens.editorInsetRatio }  // 4 PT 算水平+垂直近似
-    // v0.10.1: chatManagement 不再嵌套 D_v4, 不需要 chatSidebar 单独 ratio
-    private var chatSidebar: CGFloat { 0 }
+    // v0.10.3: chatSidebar / chatDialogue 走 vm ratio
+    private var chatSidebar: CGFloat { totalW * CGFloat(vm.chatSidebarRatio) }
     private var chatInputW: CGFloat { totalW * LayoutTokens.chatInputWRatio }
     private var chatInputH: CGFloat { bandH * LayoutTokens.chatInputHRatio }
     private var innerBandH: CGFloat { bandH - 2 * toolbarH }  // 顶栏底栏间内容区
@@ -354,12 +361,13 @@ struct ZoneModule: View {
             DesignColor.zoneSurface.overlay(alignment: .topLeading) {
                 zoneLabel("专用工具")
             }
-        case .chatManagement:
-            // v0.10.1: 内嵌 D_v4 几何脱钩 5 PT (老板 Sketch 200+6+1310=1516 含 hit area, 我 ratio 算不出 5 PT hit), 暂移除内嵌 D_v4
-            // v0.10.2 补: 内 D_v4 hit area 6 PT 拆 chatSidebar/chatDialogue 比例
-            // 当前 chatManagement 整 zone (1 个大区, 不分侧栏/对话)
+        case .chatSidebar:
+            // 下 band 聊天侧栏 (200 PT)
             DesignColor.zoneSurface
-                .overlay(alignment: .topLeading) { zoneLabel("聊天管理") }
+                .overlay(alignment: .topLeading) { zoneLabel("聊天侧栏") }
+        case .chatDialogue:
+            // 下 band 聊天对话 (1316 PT), 蓝输入框底
+            DesignColor.zoneSurface
                 .overlay(alignment: .bottom) {
                     DesignColor.accentBlue
                         .frame(width: chatInputW, height: chatInputH)
@@ -382,12 +390,14 @@ struct ZoneModule: View {
 }
 
 /// 6 instance 槽位 (boss Sketch 组件化 6 master 派生)
+/// 6 个 instance 槽位 (老板 8/18 组件化 6 master 派生; v0.10.3 下 band 拆 chatSidebar + chatDialogue 2 子区)
 enum ZoneSlot {
     case projectSidebar
     case projectPreview
     case editor
     case specializedTools
-    case chatManagement
+    case chatSidebar    // v0.10.3 新增: 下 band 聊天侧栏 (200 PT)
+    case chatDialogue   // v0.10.3 新增: 下 band 聊天对话 (1316 PT 含 D_v4 hit area)
     case dynamicZone
 }
 

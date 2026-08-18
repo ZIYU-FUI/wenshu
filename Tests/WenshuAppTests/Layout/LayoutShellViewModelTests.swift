@@ -24,6 +24,7 @@ struct LayoutShellViewModelTests {
         #expect(abs(vm.projectPreviewRatio - Double(LayoutTokens.projectPreviewRatio)) < 0.0001)
         #expect(abs(vm.editorWRatio - Double(LayoutTokens.editorWRatio)) < 0.0001)
         #expect(abs(vm.toolsWRatio - Double(LayoutTokens.toolsWRatio)) < 0.0001)
+        #expect(abs(vm.chatSidebarRatio - Double(LayoutTokens.chatSidebarRatio)) < 0.0001)
         #expect(abs(vm.chatDialogueRatio - Double(LayoutTokens.chatDialogueRatio)) < 0.0001)
         #expect(abs(vm.dynamicWRatio - Double(LayoutTokens.dynamicWRatio)) < 0.0001)
 
@@ -117,6 +118,7 @@ struct LayoutShellViewModelTests {
         #expect(vm.projectPreviewRatio == Double(LayoutTokens.projectPreviewRatio))
         #expect(vm.editorWRatio == Double(LayoutTokens.editorWRatio))
         #expect(vm.toolsWRatio == Double(LayoutTokens.toolsWRatio))
+        #expect(vm.chatSidebarRatio == Double(LayoutTokens.chatSidebarRatio))
         #expect(vm.chatDialogueRatio == Double(LayoutTokens.chatDialogueRatio))
         #expect(vm.dynamicWRatio == Double(LayoutTokens.dynamicWRatio))
     }
@@ -125,14 +127,14 @@ struct LayoutShellViewModelTests {
     func bandSplitInert() {
         let vm = LayoutShellViewModel()
         let beforeTop = vm.projectSidebarRatio + vm.projectPreviewRatio + vm.editorWRatio + vm.toolsWRatio
-        let beforeBottom = vm.chatDialogueRatio + vm.dynamicWRatio
+        let beforeBottom = vm.chatSidebarRatio + vm.chatDialogueRatio + vm.dynamicWRatio
 
         vm.adjustBandSplit()
         vm.adjustBandSplit()
         vm.adjustBandSplit()
 
         let afterTop = vm.projectSidebarRatio + vm.projectPreviewRatio + vm.editorWRatio + vm.toolsWRatio
-        let afterBottom = vm.chatDialogueRatio + vm.dynamicWRatio
+        let afterBottom = vm.chatSidebarRatio + vm.chatDialogueRatio + vm.dynamicWRatio
         #expect(beforeTop == afterTop, "上 band 总 ratio 不变")
         #expect(beforeBottom == afterBottom, "下 band 总 ratio 不变")
     }
@@ -145,11 +147,11 @@ struct LayoutShellViewModelTests {
         #expect(abs(sum - 1.0) < 0.0001, "上 band 4 列 + 3 PT 视觉线 = 1.0")
     }
 
-    @Test("下 band 2 列 ratio 累加 = 1.0 (零和, 总宽守恒)")
+    @Test("下 band 3 列 ratio 累加 = 1.0 (零和, 总宽守恒) [v0.10.3 加 D_v4 内嵌]")
     func lowerBandSum() {
         let vm = LayoutShellViewModel()
-        let sum = vm.chatDialogueRatio + vm.dynamicWRatio
-        #expect(abs(sum - 1.0) < 0.0001, "下 band 2 列 + 1 PT 视觉线 = 1.0")
+        let sum = vm.chatSidebarRatio + vm.chatDialogueRatio + vm.dynamicWRatio
+        #expect(abs(sum - 1.0) < 0.0001, "下 band 3 列 + 2 PT 视觉线 = 1.0 [v0.10.3]")
     }
 }
 
