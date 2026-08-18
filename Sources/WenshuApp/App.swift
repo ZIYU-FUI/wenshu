@@ -39,17 +39,19 @@ enum LayoutTokens {
     static let toolbarRatio: CGFloat = 30.0 / 472.0      // = 0.0636 (zone 顶/底 30)
     static let splitterHitRatio: CGFloat = 6.0 / 1920.0  // = 0.0031 (6 PT hit area 居中 1 PT 视觉线)
 
-    // 上 band zone 列宽 (老板 8/18 拍 200/中间/中间/400 + 3 拖拽线 1 PT 视觉线 = 1920)
-    // 中间 1 + 中间 2 = 1920 - 200 - 400 - 3 = 1317
+    // 上 band 4 zone 数对公式: (200, 中间 1, 中间 2, 400) = 1920
+    // 老板 8/18 拍 "数对" = 拖拽线 1 PT 视觉线摊给左右 zone (各 0.5 PT)
+    // 中间 1 + 中间 2 = 1920 - 200 - 400 = 1320
+    // 维持原值 558 + 762 (中间 1 + 中间 2 = 1320) = 上 band 4 zone 1920 ✓
     static let projectSidebarRatio: CGFloat = 200.0 / 1920.0
-    static let projectPreviewRatio: CGFloat = 558.0 / 1920.0  // 中间 1, 含 D_v1 右 + D_v2 左 (1 PT 视觉线)
-    static let editorWRatio: CGFloat = 759.0 / 1920.0         // 中间 2, 含 D_v2 右 + D_v3 左 (1 PT 视觉线)
+    static let projectPreviewRatio: CGFloat = 558.0 / 1920.0
+    static let editorWRatio: CGFloat = 762.0 / 1920.0         // 1320 - 558 = 762
     static let toolsWRatio: CGFloat = 400.0 / 1920.0
 
-    // 下 band zone 列宽 (老板 8/18 拍 200/中间/400 + 2 拖拽线 1 PT 视觉线 = 1920)
-    // 中间 = 1920 - 200 - 400 - 2 = 1318
+    // 下 band 3 zone 数对公式: (200, 聊天对话吸剩余, 400) = 1920
+    // 老板 8/18 拍 "多出来的都可以放在聊天区中" = 聊天对话 = 1920 - 200 - 400 = 1320
     static let chatSidebarRatio: CGFloat = 200.0 / 1920.0
-    static let chatDialogueRatio: CGFloat = 1318.0 / 1920.0  // 中间, 含 D_v4 右 + D_v5 左 (1 PT 视觉线)
+    static let chatDialogueRatio: CGFloat = 1320.0 / 1920.0  // 聊天对话吸剩余 1320 PT
     static let dynamicWRatio: CGFloat = 400.0 / 1920.0
 
     // 编辑器两层设计 (老板 8/18 Q2 答: 有意两层, 不要删)
