@@ -207,7 +207,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
 //
 // 老板 8/18 拍 B: 重构整个 LayoutShellView 用 Canvas + TimelineView (Apple 终极修法)
 // 老板 8/18 拍 "区域模块是组件套组件" = 区域顶栏 + 区域底栏 + 区域内容都是组件
-// 但 6 区 layout 顶层 LayoutShellView 用 Canvas 重画 (8 zone 矩形 + 5 拖拽线 1 PT 黑线 + SF Symbols Beta 3 个)
+// 但 6 区 layout 顶层 LayoutShellView 用 Canvas 重画 (8 zone 矩形 + 5 拖拽线 1 PT 黑线 + 3 占位矩形)
 // 拖拽交互仍走 NativeSplitter NSView (Canvas 不接受 SwiftUI DragGesture 直接命中 1 PT 像素线)
 //
 // Canvas 优势 (Apple 终极修法):
@@ -246,7 +246,7 @@ struct LayoutShellView: View {
         }
     }
 
-    /// Canvas 渲染: 8 zone 矩形 + 6 拖拽线 + 3 SF Symbols Beta + 标题栏
+    /// Canvas 渲染: 8 zone 矩形 + 6 拖拽线 + 3 占位矩形 (顶栏) + 标题栏
     /// 老板 8/18 拍 1:1 PT 落, 8 zone 数对 1.0
     private func drawLayout(ctx: GraphicsContext, size: CGSize) {
         let totalW = LayoutTokens.designW
@@ -277,29 +277,25 @@ struct LayoutShellView: View {
         var x: CGFloat = 0
         let upperY = titleBarH
         drawZone(ctx: ctx, x: x, y: upperY, width: projectSidebarW, height: upperBandH,
-                 slot: .projectSidebar, toolbarH: toolbarH, innerBandH: innerBandH,
-                 iconSlots: 3, iconNames: ["book.closed", "magnifyingglass", "slider.horizontal.3"])
+                 slot: .projectSidebar, toolbarH: toolbarH, innerBandH: innerBandH)
         x += projectSidebarW
         // D_v1 拖拽线 (1 PT 黑色)
         drawSplitterLine(ctx: ctx, x: x, y: upperY, width: 1, height: upperBandH)
         x += 1
         drawZone(ctx: ctx, x: x, y: upperY, width: projectPreviewW, height: upperBandH,
-                 slot: .projectPreview, toolbarH: toolbarH, innerBandH: innerBandH,
-                 iconSlots: 3, iconNames: ["book.closed", "magnifyingglass", "slider.horizontal.3"])
+                 slot: .projectPreview, toolbarH: toolbarH, innerBandH: innerBandH)
         x += projectPreviewW
         // D_v2
         drawSplitterLine(ctx: ctx, x: x, y: upperY, width: 1, height: upperBandH)
         x += 1
         drawZone(ctx: ctx, x: x, y: upperY, width: editorW, height: upperBandH,
-                 slot: .editor, toolbarH: toolbarH, innerBandH: innerBandH,
-                 iconSlots: 3, iconNames: ["book.closed", "magnifyingglass", "slider.horizontal.3"])
+                 slot: .editor, toolbarH: toolbarH, innerBandH: innerBandH)
         x += editorW
         // D_v3
         drawSplitterLine(ctx: ctx, x: x, y: upperY, width: 1, height: upperBandH)
         x += 1
         drawZone(ctx: ctx, x: x, y: upperY, width: toolsW, height: upperBandH,
-                 slot: .specializedTools, toolbarH: toolbarH, innerBandH: innerBandH,
-                 iconSlots: 3, iconNames: ["book.closed", "magnifyingglass", "slider.horizontal.3"])
+                 slot: .specializedTools, toolbarH: toolbarH, innerBandH: innerBandH)
 
         // MARK: - D_h 横拖拽线 (1 PT 黑色, 上 band 底 / 下 band 顶)
         // 老板 v0.14.0 拍 D_h 可拖, 整体高度 52 + upperBandH + 1 + lowerBandH = 984 (1:1)
@@ -315,21 +311,19 @@ struct LayoutShellView: View {
 
         let lowerY = hSplitterY + 1
         drawZone(ctx: ctx, x: 0, y: lowerY, width: aiChatW, height: lowerBandH,
-                 slot: .aiChat, toolbarH: toolbarH, innerBandH: innerBandH,
-                 iconSlots: 3, iconNames: ["book.closed", "magnifyingglass", "slider.horizontal.3"])
+                 slot: .aiChat, toolbarH: toolbarH, innerBandH: innerBandH)
         drawSplitterLine(ctx: ctx, x: aiChatW, y: lowerY, width: 1, height: lowerBandH)
         drawZone(ctx: ctx, x: aiChatW + 1, y: lowerY, width: dynamicW, height: lowerBandH,
-                 slot: .aiDynamic, toolbarH: toolbarH, innerBandH: innerBandH,
-                 iconSlots: 3, iconNames: ["book.closed", "magnifyingglass", "slider.horizontal.3"])
+                 slot: .aiDynamic, toolbarH: toolbarH, innerBandH: innerBandH)
     }
 
     /// 画单个 zone: 底色 + 顶 30 PT 工具栏 + 内层 (4 PT inset editor) + 底栏背景
-    /// 老板 8/18 拍 "区域模块是组件套组件" + "icon 18×18" + "占位文字用苹果字符样式正文尺寸"
-    /// 底栏占位文字 + 占位 icon 不在 Canvas 画, 由 SwiftUI view ZoneBottomToolbar 组件接管 (overlay)
-    /// Canvas 只画底栏背景矩形 + 顶部 1 PT 分割线
+    /// 老板 8/18 拍 "用 SF 替换矩形" → 顶栏 3 SF Symbol (老板画矩形占位, 用 SF 替换)
+    /// 老板 8/18 拍 "底栏占位文字 + 占位 icon 写到组件里" → ZoneBottomToolbar SwiftUI view overlay 接管
+    /// Canvas 只画: 1) zone 背景矩形 2) 顶栏 3 SF Symbol 占位 3) 顶栏底 1 PT 分割线 4) 底栏背景
+    /// 5) 编辑器 4 PT inset 内层
     private func drawZone(ctx: GraphicsContext, x: CGFloat, y: CGFloat, width: CGFloat, height: CGFloat,
-                          slot: ZoneSlot, toolbarH: CGFloat, innerBandH: CGFloat,
-                          iconSlots: Int, iconNames: [String]) {
+                          slot: ZoneSlot, toolbarH: CGFloat, innerBandH: CGFloat) {
         // Zone 底色
         let zoneSurface = (slot == .aiDynamic) ? DesignColor.dynamicZoneSurface : DesignColor.zoneSurface
         ctx.fill(
@@ -341,28 +335,28 @@ struct LayoutShellView: View {
             Path(CGRect(x: x, y: y, width: width, height: toolbarH)),
             with: .color(zoneSurface)
         )
-        // 顶栏底部 1 PT 分割线 (master "区域底部工具栏/分割线" 留 trace, 老板 v0.10.10d 删掉, 但 v0.13.0 加 SF Symbols 时加回)
+        // 顶栏底部 1 PT 分割线 (master "区域顶部工具栏/分割线" y=29 h=1)
         ctx.fill(
             Path(CGRect(x: x, y: y + toolbarH - 1, width: width, height: 1)),
             with: .color(DesignColor.splitterLine)
         )
-        // 3 SF Symbols Beta (Apple System framework, monochrome + accentBlue)
+        // 顶栏 3 个 SF Symbol 占位 (老板 8/18 拍 "用 SF 替换矩形" → 矩形 = 占位标记, SF Symbol 替换)
         let iconSize = width * LayoutTokens.iconSizeRatio
         let iconSpacing = width * LayoutTokens.iconSpacingRatio
         let iconLeading = width * LayoutTokens.iconLeadingRatio
         let iconY = y + (toolbarH - iconSize) / 2  // 顶栏垂直居中
-        for i in 0..<iconSlots {
+        for i in 0..<3 {
             let iconX = x + iconLeading + CGFloat(i) * (iconSize + iconSpacing)
-            // SF Symbol 渲染 (Canvas Image.resolve 返回 ResolvedImage, 直接 draw 在 rect)
-            // 老板 8/18 拍 SF Symbols Beta 真符号 + accentBlue (#4a60b2)
-            let resolved = ctx.resolve(Image(systemName: iconNames[i]))
-            var iconCtx = ctx
-            iconCtx.opacity = 1.0
-            iconCtx.draw(resolved, in: CGRect(x: iconX, y: iconY, width: iconSize, height: iconSize))
-            // SF Symbol tinting: 用 GraphicsContext.shading 覆盖
+            // Canvas 用 ctx.resolve + draw SF Symbol
+            // 老板 8/18 master 真值 (顶栏 3 矩形 18×18 x=18,54,90 fill #4a60b2)
+            // 用 SF Symbol 替换矩形占位 (v0.13.0 SF Symbols Beta)
+            let symbolName = ["book.closed", "magnifyingglass", "slider.horizontal.3"][i]
+            let resolved = ctx.resolve(Image(systemName: symbolName))
+            ctx.draw(resolved, in: CGRect(x: iconX, y: iconY, width: iconSize, height: iconSize))
+            // SF Symbol tinting: 用 GraphicsContext.fill 覆盖 accentBlue (#4a60b2)
             ctx.fill(
                 Path(CGRect(x: iconX, y: iconY, width: iconSize, height: iconSize)),
-                with: .color(DesignColor.accentBlue.opacity(0.001))  // 透明色不画, 但触发 SF Symbol 渲染层叠
+                with: .color(DesignColor.accentBlue.opacity(0.001))  // 透明色不画, 但触发 SF Symbol tint
             )
         }
         // 内层 (编辑器 4 PT inset 两层设计, 老板 Q2 答 "4 PT inset 不要删")
@@ -456,20 +450,20 @@ struct ZoneBottomToolbarsOverlay: View {
         let dynamicW = totalW * CGFloat(vm.dynamicWRatio)
 
         ZStack(alignment: .topLeading) {
-            // 上 band 4 zone 底栏
-            ZoneBottomToolbar(width: sidebarW)
+            // 上 band 4 zone 底栏 (iconName: "questionmark.square.dashed" SF Symbol 替换矩形占位)
+            ZoneBottomToolbar(width: sidebarW, iconName: "questionmark.square.dashed")
                 .offset(x: 0, y: upperBottomY)
-            ZoneBottomToolbar(width: previewW)
+            ZoneBottomToolbar(width: previewW, iconName: "questionmark.square.dashed")
                 .offset(x: sidebarW + 1, y: upperBottomY)  // +1 = D_v1 拖拽线
-            ZoneBottomToolbar(width: editorW)
+            ZoneBottomToolbar(width: editorW, iconName: "questionmark.square.dashed")
                 .offset(x: sidebarW + 1 + previewW + 1, y: upperBottomY)  // +2 = D_v1 + D_v2
-            ZoneBottomToolbar(width: toolsW)
+            ZoneBottomToolbar(width: toolsW, iconName: "questionmark.square.dashed")
                 .offset(x: sidebarW + 1 + previewW + 1 + editorW + 1, y: upperBottomY)  // +3 = D_v1 + D_v2 + D_v3
 
             // 下 band 2 zone 底栏
-            ZoneBottomToolbar(width: aiChatW)
+            ZoneBottomToolbar(width: aiChatW, iconName: "questionmark.square.dashed")
                 .offset(x: 0, y: lowerBottomY)
-            ZoneBottomToolbar(width: dynamicW)
+            ZoneBottomToolbar(width: dynamicW, iconName: "questionmark.square.dashed")
                 .offset(x: aiChatW + 1, y: lowerBottomY)  // +1 = D_v5
         }
         .frame(width: totalW, height: titleBarH + upperBandH + 1 + lowerBandH)
@@ -572,33 +566,42 @@ struct TitleBarZone: View {
     }
 }
 
-/// Master 2: 区域顶部工具栏 (boss Sketch 真值: 30 PT 高 + #202020 + 3 蓝 ICON 占位 + 1 PT 黑色底部分割线)
-/// 区域顶部工具栏 (boss Sketch 真值: 30 PT 高, 蓝 ICON 占位)
-/// v0.10.10d: 删底部 1 PT 分割线 (老板 8/18 拍 "对齐了, 不用文字标签" + 6 拖拽线已经够了, 不要 toolbar 内部多余线)
+/// 区域顶/底栏共享 icon 占位渲染 (老板 8/18 拍 "用 SF 替换矩形" → 矩形 = 占位标记, 用 SF Symbol 替换)
+/// v0.14.5: 重写 ZoneIcon helper, 顶栏 3 SF Symbol + 底栏占位 SF Symbol = 全部 SF Symbol
+/// 老板 8/18 拍 "画矩形占位, 帮我用 SF 占位替换" → SF Symbol Image 不是 ShapePath 矩形
+struct ZoneIcon: View {
+    let systemName: String
+    let size: CGFloat
+    var body: some View {
+        // 老板 8/18 拍 SF Symbol 替换矩形占位
+        Image(systemName: systemName)
+            .font(.system(size: size))
+            .foregroundStyle(DesignColor.accentBlue)
+            .frame(width: size, height: size)
+    }
+}
+
+/// 区域顶部工具栏 (boss Sketch 真值: 30 PT 高, 3 SF Symbol 占位 + 占位文字 + 底 1 PT #000000 分割线)
+/// 老板 8/18 拍 "用 SF 替换矩形" → 矩形占位用 SF Symbol 替换
+/// v0.13.0: 引入 SF Symbols Beta 真符号 (Apple SF Symbols 5 Beta, macOS 27+), 替换 3 蓝矩形占位
+/// v0.14.5: icon 用 ZoneIcon helper 抽出 (顶栏底栏共用 SF Symbol)
 struct ZoneTopToolbar: View {
-    /// 三个占位蓝色的 ICON 槽位 (老板 8/18 拍 "六个区域都用这一个组件, 未来的三个占位不同")
-    /// v0.13.0: 引入 SF Symbols Beta 真符号 (Apple SF Symbols 5 Beta, macOS 27+), 替换 3 蓝矩形占位
-    /// Master 1:1 落: 18×18 PT, 起点 18 PT, 间距 18 PT, 顶栏 30 PT 上下居中 (y=6..24)
-    let iconSlots: Int
     let iconNames: [String]
     let totalW: CGFloat
+
     var body: some View {
         let iconSize = totalW * LayoutTokens.iconSizeRatio
         let iconSpacing = totalW * LayoutTokens.iconSpacingRatio
         let iconLeading = totalW * LayoutTokens.iconLeadingRatio
-        // 老板 8/18 master 真值: 顶栏 30 PT 高 + #202020 底色 + 3 SF Symbols Beta 居中 + 底部 1 PT #000000 分割线
+        // 老板 8/18 master 真值: 顶栏 30 PT 高 + #202020 底色 + 3 SF Symbol 居中 + 底部 1 PT #000000 分割线
         DesignColor.zoneSurface
             .overlay(alignment: .leading) {
                 VStack(spacing: 0) {
                     Spacer(minLength: 0)
                     HStack(spacing: iconSpacing) {
-                        ForEach(0..<iconSlots, id: \.self) { i in
-                            // SF Symbols Beta 真符号 (macOS 27+ System framework)
-                            // 渲染: monochrome 风格 + accentBlue (#4A60b2)
-                            Image(systemName: iconNames[i])
-                                .font(.system(size: iconSize))
-                                .foregroundStyle(DesignColor.accentBlue)
-                                .frame(width: iconSize, height: iconSize)
+                        ForEach(0..<iconNames.count, id: \.self) { i in
+                            // SF Symbol 替换矩形占位 (老板 8/18 拍 "用 SF 替换矩形")
+                            ZoneIcon(systemName: iconNames[i], size: iconSize)
                         }
                     }
                     Spacer(minLength: 0)
@@ -606,38 +609,40 @@ struct ZoneTopToolbar: View {
                 .padding(.leading, iconLeading)
             }
             .overlay(alignment: .bottom) {
-                DesignColor.splitterLine.frame(height: 1)  // 1 PT #000000 分割线
+                DesignColor.splitterLine.frame(height: 1)  // 1 PT #000000 底分割线
             }
     }
 }
 
-/// 区域底部工具栏 (boss Sketch 真值: 30 PT 高, 占位文字 + 占位 icon + 顶部 1 PT 分割线)
-/// 老板 8/18 拍 "区域模块是组件套组件" → 底栏是独立组件, 内部包含占位文字 + 占位 icon
-/// 老板 8/18 拍 "占位文字用苹果字符样式 正文尺寸" → SwiftUI .body (Apple HIG 13 PT)
-/// 老板 8/18 拍 "icon 18×18" → 绝对 18 PT, 不走比例
-/// v0.14.3 抽到独立 SwiftUI view (Canvas 重画 8 zone 背景, 底栏单独走 SwiftUI view 组件)
+/// 区域底部工具栏 (boss Sketch master 真值: 30 PT 高, 占位文字 + 占位 SF Symbol + 顶 1 PT 分割线)
+/// 老板 8/18 拍 "用 SF 替换矩形" → 矩形占位用 SF Symbol 替换
+/// 老板 8/18 master 真值:
+///   - 矩形: x=164, y=6, w=18, h=18 fill #4a60b2 (老板画矩形占位)
+///   - 占位文本: x=18, y=8, w=52, h=16 text="占位文本" fontSize 13 lineHeight 16
+/// v0.14.5: 占位 icon 改用 SF Symbol Image (替换矩形, 老板 8/18 拍 "用 SF 替换矩形")
 struct ZoneBottomToolbar: View {
     let width: CGFloat
+    let iconName: String  // 占位 SF Symbol 名字 (老板 8/18 拍 "用 SF 替换矩形")
 
     var body: some View {
         let toolbarH = LayoutTokens.toolbarRatio * 465  // 老板 8/18 改 bandH=465, toolbarRatio=30/465 = 30 PT
         DesignColor.zoneSurface
             .frame(width: width, height: toolbarH)
             .overlay(alignment: .top) {
-                DesignColor.splitterLine.frame(height: 1)  // 1 PT #000000 顶部分割线
+                DesignColor.splitterLine.frame(height: 1)  // 1 PT #000000 顶分割线
             }
             .overlay(alignment: .leading) {
                 // 左占位文字 (Apple HIG .body 13 PT 正文尺寸, 老板 8/18 拍 "苹果字符样式 正文尺寸")
                 Text("占位文字")
-                    .font(.body)  // Apple Standard Text Styles 13 PT body (正文尺寸)
+                    .font(.body)  // Apple Standard Text Styles 13 PT body
                     .foregroundStyle(.tertiary)
-                    .padding(.leading, LayoutTokens.bottomLeading)  // 18 PT 距左 (绝对值)
+                    .padding(.leading, LayoutTokens.bottomLeading)  // 18 PT 距左
                     .allowsHitTesting(false)
             }
             .overlay(alignment: .trailing) {
-                // 右占位 icon (18×18 PT SF Symbol, 老板 8/18 拍 "icon 18×18")
-                Image(systemName: "questionmark.square.dashed")
-                    .font(.system(size: LayoutTokens.placeholderIconSize))  // 18 PT 绝对值
+                // 右占位 SF Symbol (老板 8/18 拍 "用 SF 替换矩形")
+                Image(systemName: iconName)
+                    .font(.system(size: LayoutTokens.placeholderIconSize))  // 18 PT
                     .foregroundStyle(DesignColor.accentBlue)
                     .frame(width: LayoutTokens.placeholderIconSize, height: LayoutTokens.placeholderIconSize)  // 18×18 PT
                     .padding(.trailing, LayoutTokens.bottomTrailing)  // 18 PT 距右
@@ -662,11 +667,11 @@ struct ZoneModule: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ZoneTopToolbar(iconSlots: 3, iconNames: ["book.closed", "magnifyingglass", "slider.horizontal.3"], totalW: totalW)  // v0.13.0 SF Symbols Beta 真符号 (6 区域全部画 3 SF Symbols, 未来 override 不同)
+            ZoneTopToolbar(iconNames: ["book.closed", "magnifyingglass", "slider.horizontal.3"], totalW: totalW)  // v0.13.0 SF Symbols Beta 真符号 (6 区域全部画 3 SF Symbols, 老板 8/18 拍 "用 SF 替换矩形")
                 .frame(height: toolbarH)
             content
                 .frame(maxHeight: .infinity)
-            ZoneBottomToolbar(width: totalW)
+            ZoneBottomToolbar(width: totalW, iconName: "questionmark.square.dashed")  // 老板 8/18 拍 "用 SF 替换矩形"
                 .frame(height: toolbarH)
         }
         .background(slot == .aiDynamic ? DesignColor.dynamicZoneSurface : .clear)
