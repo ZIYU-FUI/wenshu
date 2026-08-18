@@ -28,33 +28,48 @@ extension Notification.Name {
 // 公式: layoutPT(token) = totalW * ratio (e.g. projectSidebar ratio = 200/1920 = 0.1042)
 // Apple HIG responsive: GeometryReader 拿窗口实际尺寸 × 比例 = 任何窗口大小 1:1 自适应
 
+/// Apple Semantic Color — 全 dark mode 适配, 0 RGB 硬编码 (DesignTokens.swift v0.10.6 移到 App.swift)
+enum DesignColor {
+    /// 标题栏 (boss Sketch #393939) → NSColor.windowBackgroundColor
+    static let titleBar: Color = Color(nsColor: .windowBackgroundColor)
+    /// 内容区底色 (boss Sketch #202020) → NSColor.controlBackgroundColor
+    static let zoneSurface: Color = Color(nsColor: .controlBackgroundColor)
+    /// 动态区功能区 (#1e1e1e, 老板 8/18 拍比 #202020 略深)
+    /// v0.10 之前用硬编码 (#1e1e1e, #202020), 老板 8/18 答 Q4 "保留设计图色值"
+    static let dynamicZoneSurface: Color = Color(red: 0x1e / 255, green: 0x1e / 255, blue: 0x1e / 255)
+    /// 强调蓝 (boss Sketch #4a60b2) → Color.accentColor
+    static let accentBlue: Color = .accentColor
+    /// 拖拽线 (boss Sketch #000000) → NSColor.black (dark/light 都可见)
+    static let splitterLine: Color = Color(nsColor: .black)
+}
+
 enum LayoutTokens {
     // 设计基准 (Apple macOS 27 1x 下 1 PT = 1 PX)
     static let designW: CGFloat = 1920
     static let designH: CGFloat = 984
 
     // 比例算子 (0~1, 基准 1920×984)
-    static let titleRatio: CGFloat = 39.0 / 984.0         // = 0.0396
-    static let bandRatio: CGFloat = 472.0 / 984.0        // = 0.4797 (上下 band 各半)
-    static let toolbarRatio: CGFloat = 30.0 / 472.0      // = 0.0636 (zone 顶/底 30)
+    static let titleRatio: CGFloat = 0                    // 老板 8/18 拍 52 PT 顶栏 = macOS 52 PT unified titlebar chrome, 老板自定义 TitleBarZone 跳过 (省一栏)
+    static let bandRatio: CGFloat = 465.0 / 984.0        // = 0.4726 (老板 8/18 改 465 PT, 总 52+465+2+465 = 984)
+    static let toolbarRatio: CGFloat = 30.0 / 465.0      // = 0.0645 (zone 顶/底 30, 跟 bandH 465 对齐, 老板 8/18 改 465 PT)
     static let labelFontRatio: CGFloat = 12.0 / 472.0       // = 0.0254 (zone label 字号 12 PT 比例, 老板 8/18 拍)
     // 老板 8/18 拍 horizontalSplitterRatio 数对公式: 1 PT 横拖拽线 H 比率 (v0.10.6 立)
     // v0.10.6 删 splitterHitRatio (v0.10.6 之前是死代码, NativeSplitter wrapper frame 改 1 PT 视觉线后没人用)
-    static let horizontalSplitterRatio: CGFloat = 1.0 / 984.0  // = 0.0010 (1 PT 横拖拽线 H 比率)
+    static let horizontalSplitterRatio: CGFloat = 2.0 / 984.0  // = 0.0020 (2 PT 横拖拽线 H 比率, 老板 8/18 拍 2 PT 粗)
 
     // 上 band 4 zone 数对公式: (200, 中间 1, 中间 2, 400) = 1920
     // 老板 8/18 拍 "数对" = 拖拽线 1 PT 视觉线摊给左右 zone (各 0.5 PT)
     // 中间 1 + 中间 2 = 1920 - 200 - 400 = 1320
     // 维持原值 558 + 762 (中间 1 + 中间 2 = 1320) = 上 band 4 zone 1920 ✓
     static let projectSidebarRatio: CGFloat = 200.0 / 1920.0
-    static let projectPreviewRatio: CGFloat = 558.0 / 1920.0
-    static let editorWRatio: CGFloat = 762.0 / 1920.0         // 1320 - 558 = 762
+    static let projectPreviewRatio: CGFloat = 520.0 / 1920.0  // 老板 8/18 改 520 PT (201,52,520,465)
+    static let editorWRatio: CGFloat = 797.0 / 1920.0         // 老板 8/18 改 797 PT (722,52,797,465)
     static let toolsWRatio: CGFloat = 400.0 / 1920.0
 
     // 下 band 3 zone 数对公式: (200, 聊天对话吸剩余, 400) = 1920
     // 老板 8/18 拍 "多出来的都可以放在聊天区中" = 聊天对话 = 1920 - 200 - 400 = 1320
     static let chatSidebarRatio: CGFloat = 200.0 / 1920.0
-    static let chatDialogueRatio: CGFloat = 1320.0 / 1920.0  // 聊天对话吸剩余 1320 PT
+    static let chatDialogueRatio: CGFloat = 1318.0 / 1920.0  // 老板 8/18 改: 1319 - 1 - 1 = 1318 PT
     static let dynamicWRatio: CGFloat = 400.0 / 1920.0
 
     // 编辑器两层设计 (老板 8/18 Q2 答: 有意两层, 不要删)
@@ -135,7 +150,7 @@ struct WenshuApp: App {
                 .environment(library)
                 .preferredColorScheme(.dark)
         }
-        .windowStyle(.hiddenTitleBar)  // 老板 8/18 拍 1:1 PT 落, 不要 macOS 系统 title bar chrome 跟 39 PT TitleBarZone 撞色
+        .windowStyle(.titleBar)  // 老板 8/18 拍 macOS 52 PT unified titlebar chrome = 老板自定义 52 PT 顶栏, 视觉合一
         .windowResizability(.contentSize)
         .commands {
             // File 菜单: 新建项目 (cmd+n)
@@ -199,22 +214,16 @@ struct LayoutShellView: View {
     }
 
     private var contentView: some View {
-        GeometryReader { geo in
-            let totalW = geo.size.width
-            let totalH = geo.size.height
-            let titleH = totalH * LayoutTokens.titleRatio
-            let bandH = totalH * LayoutTokens.bandRatio
-            // 老板 8/18 数对公式: 39 + 472 + 472 + 1 (横拖拽线) = 984
-            // ratio 守恒: titleRatio + bandRatio*2 + horizontalSplitterRatio = 1.0
-            VStack(spacing: 0) {
-                TitleBarZone()
-                    .frame(width: totalW, height: titleH)
-                UpperBandZone(vm: vm, totalW: totalW, bandH: bandH)
-                    .frame(width: totalW, height: bandH)
-                HorizontalDragSplitter(width: totalW, onDrag: { _ in vm.adjustBandSplit() })
-                LowerBandZone(vm: vm, totalW: totalW, bandH: bandH)
-                    .frame(width: totalW, height: bandH)
-            }
+        // 老板 8/18 数对公式: 52 (老板顶栏=macOS chrome) + 465 + 2 + 465 = 984
+        // 52 PT 顶栏由 macOS unified titlebar chrome 接管 (省 老板自定义 顶栏 渲染, 避免重复)
+        let totalW = LayoutTokens.designW
+        let bandH = LayoutTokens.designH * LayoutTokens.bandRatio  // 465
+        return VStack(spacing: 0) {
+            UpperBandZone(vm: vm, totalW: totalW, bandH: bandH)
+                .frame(width: totalW, height: bandH)
+            HorizontalDragSplitter(width: totalW, onDrag: { _ in vm.adjustBandSplit() })
+            LowerBandZone(vm: vm, totalW: totalW, bandH: bandH)
+                .frame(width: totalW, height: bandH)
         }
     }
 }
@@ -286,7 +295,9 @@ struct TitleBarZone: View {
     }
 }
 
-/// Master 2: 区域顶部工具栏 (iconSlots=3 时画 3 个 38×38 蓝 ICON 占位, 比例)
+/// Master 2: 区域顶部工具栏 (boss Sketch 真值: 30 PT 高 + #202020 + 3 蓝 ICON 占位 + 1 PT 黑色底部分割线)
+/// 区域顶部工具栏 (boss Sketch 真值: 30 PT 高, 蓝 ICON 占位)
+/// v0.10.10d: 删底部 1 PT 分割线 (老板 8/18 拍 "对齐了, 不用文字标签" + 6 拖拽线已经够了, 不要 toolbar 内部多余线)
 struct ZoneTopToolbar: View {
     let iconSlots: Int
     let totalW: CGFloat
@@ -294,8 +305,10 @@ struct ZoneTopToolbar: View {
         let iconSize = totalW * LayoutTokens.iconSizeRatio
         let iconSpacing = totalW * LayoutTokens.iconSpacingRatio
         let iconLeading = totalW * LayoutTokens.iconLeadingRatio
+
+        // Apple Semantic 顶栏底色 (跟 zoneSurface 同源)
         DesignColor.zoneSurface
-            .overlay(alignment: .leading) {
+            .overlay(alignment: .topLeading) {
                 if iconSlots > 0 {
                     HStack(spacing: iconSpacing) {
                         ForEach(0..<iconSlots, id: \.self) { _ in
@@ -309,7 +322,8 @@ struct ZoneTopToolbar: View {
     }
 }
 
-/// Master 3: 区域底部工具栏 (30 PT 高, 复用)
+/// 区域底部工具栏 (boss Sketch 真值: 30 PT 高, 净底)
+/// v0.10.10d: 删顶部 1 PT 分割线 (老板拍 "对齐了", 6 拖拽线够用)
 struct ZoneBottomToolbar: View {
     var body: some View {
         DesignColor.zoneSurface
@@ -334,7 +348,7 @@ struct ZoneModule: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ZoneTopToolbar(iconSlots: slot == .projectPreview ? 3 : 0, totalW: totalW)
+            ZoneTopToolbar(iconSlots: slot == .projectPreview ? 3 : 0, totalW: totalW)  // 老板 8/18 拍 "六个区域都用这一个组件", 但只有项目预览画 3 蓝 ICON (其他 zone 后续 override 不同色, 当前 0)
                 .frame(height: toolbarH)
             content
                 .frame(maxHeight: .infinity)
@@ -348,12 +362,12 @@ struct ZoneModule: View {
     private var content: some View {
         switch slot {
         case .projectSidebar:
+            // 项目侧栏嵌入 WenshuLibrary 真实内容 (LIBRARY overlay label v0.10.10d 删)
             DesignColor.zoneSurface.overlay(alignment: .topLeading) {
                 LibraryOutlineViewContent(library: library)
             }
         case .projectPreview:
-            // SM1 refactor v0.10.9: 共用 zoneSurfaceWithLabel helper (3 case 共享)
-            zoneSurfaceWithLabel("项目预览")
+            DesignColor.zoneSurface
         case .editor:
             // 老板 8/18 Q2 答: 4 PT inset 两层设计, 不要删
             DesignColor.zoneSurface
@@ -362,34 +376,15 @@ struct ZoneModule: View {
                         .padding(editorInset)
                 }
         case .specializedTools:
-            zoneSurfaceWithLabel("专用工具")
+            DesignColor.zoneSurface
         case .chatSidebar:
-            // 下 band 聊天侧栏 (200 PT)
-            zoneSurfaceWithLabel("聊天侧栏")
+            DesignColor.zoneSurface
         case .chatDialogue:
-            // 老板 8/18 拍 "新图好像没有画这个聊天框" = 老板新 Sketch 真值没画聊天输入框
-            // v0.10.7 加的 RoundedRectangle 描边圆角矩形 = 老板原图没画, 撤掉
-            // zone 净底 (DesignColor.zoneSurface) 即可
+            // 老板 8/18 拍 "新图好像没有画这个聊天框" = 净底, 无输入框
             DesignColor.zoneSurface
         case .dynamicZone:
-            Color.clear.overlay(alignment: .topLeading) {
-                zoneLabel("动态区")
-            }
+            DesignColor.dynamicZoneSurface
         }
-    }
-
-    /// 5 case 共享模板 (SM1 refactor v0.10.9): zoneSurface 底色 + topLeading label
-    private func zoneSurfaceWithLabel(_ name: String) -> some View {
-        DesignColor.zoneSurface
-            .overlay(alignment: .topLeading) { zoneLabel(name) }
-    }
-
-    private func zoneLabel(_ name: String) -> some View {
-        Text(name)
-            .font(.system(size: bandH * LayoutTokens.labelFontRatio, weight: .medium))
-            .foregroundStyle(.tertiary)
-            .padding(bandH * LayoutTokens.labelFontRatio)
-            .allowsHitTesting(false)
     }
 }
 
@@ -407,19 +402,15 @@ enum ZoneSlot {
 
 // MARK: - Library outline (项目侧栏嵌入)
 
+/// 项目侧栏内容 (WenshuLibrary 真实内容)
+/// v0.10.10d: 删 LIBRARY overlay label (老板 8/18 拍 "对齐了, 不用文字标签")
 struct LibraryOutlineViewContent: View {
     let library: WenshuLibrary
     var body: some View {
         LibraryOutlineView(library: library)
-            .overlay(alignment: .topLeading) {
-                Text(libraryHeader)
-                    .font(.subheadline)
-                    .foregroundStyle(.tertiary)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .padding(8)
-                    .allowsHitTesting(false)
-            }
+            .padding(.vertical, 2)
+            .padding(8)
+            .allowsHitTesting(false)
     }
     private var libraryHeader: String {
         let count = library.shelves.count
