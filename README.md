@@ -120,7 +120,6 @@
 | **架构栈:Swift/SwiftUI + CoreData + 单进程协程** | 你 | 2026-08-06 | Actor 串行化 CoreData 写入,Task 异步长任务 |
 | **数据资产 = 你自管,文枢不依赖云** | 你 | 2026-08-06 | 卸载软件后 `.ws` 仍可用,跨设备迁移靠复制 |
 | **支付 Apple Developer Program:发布时再付** | 你 | 2026-08-06 | 个人 $99/年,组织 $299/年,TestFlight 外部测试前不需 |
-| **PM↔CC 单 loop**(AIF 派单后退场) | 沿用 7/16 | 2026-08-06 | AIF 工作终点 = 出 3 文档 + 派 PM,详见 AGENTS.md §4 |
 | **阶段门:你控制节奏,AI 判断成熟度** | 你 | 2026-08-06 | 正式跨阶段由你确认,阶段可回流 |
 | **修订候选不覆盖原稿,后置确认** | 你 | 2026-08-06 | 探索阶段自动应用,正式正文生成候选,飘红 + 边栏 |
 | **标记系统:`※` 待定 + 伏笔/信息点/历史事实** | 你 | 2026-08-06 | 快捷键 + 选区右键 + AI 自动判断 |
@@ -176,12 +175,12 @@
   - 分发:App Store 发布(发布前付 Apple Developer Program 个人 $99)
   - 项目数据:.ws 文件(你自管,跨设备复制)
 
-## 9. 协作规则(2026-08-06 v0.6 沿用)
+## 9. 协作规则(2026-08-18 v0.07 pocock single agent 净化)
 
-- **PM ↔ CC**:单 loop 跑实现(≤ 4 在跑卡)。你不在 loop 内,PM 自驱。详见 `AGENTS.md §4`
-- **AIF**:出 3 类项目文档 + 落档 + 派 PM → 退场。**AIF 派完不进 PM↔CC loop**
-- **你**:在阶段门控节点(v0.00.0 / v0.01.0 / v0.02.0 / ...)出现,看产品反馈,飞书会纠偏(均 loop 外)
-- 派单原则 / 拍单边界 / 评论 SLA / 升级路径 = 真理源 `AGENTS.md`
+- 单 agent (pocock profile,Matt Pocock 35 skill 驱动)直接对话,不走派单 / 不走看板 / 不走 6 角色流程
+- 老板 提需求 → pocock 写代码 → 老板 看效果,沿 Matt Pocock main flow (grill-with-docs → to-spec → to-tickets → implement → code-review)
+- 老板 在阶段门控节点(v0.00.0 / v0.01.0 / v0.02.0 / ...)出现,看产品反馈
+- 项目基线 / 数据资产 / 跨角色称谓硬约束 = 真理源 `AGENTS.md`
 
 ## 10. 风险与缓解
 
@@ -195,7 +194,7 @@
 | 蒸馏风格无版权风险 | 仅蒸馏你上传样本,仅本机存储,不跨用户共享 |
 | `.ws` 文件跨设备复制被云同步破坏 | 关闭时强制 store coordinator sync,shm/wal 文件先合并 |
 | CoreData 跨设备版本不一致 | 文件级版本号,打开时校验,不一致时备份旧版 + 创建新副本 |
-| **minimax 模型名错误静默 fallback**(实测 8/6) | 派单必须明确写模型名,CC 写入 provider 配置时校验 minimax 官方模型列表 |
+| **minimax 模型名错误静默 fallback**(实测 8/6) | 任务必须明确写模型名,CC 写入 provider 配置时校验 minimax 官方模型列表 |
 | **X-Api-Key header 缺失或不正确** | 用 minimax 官方推荐 header,错误信息明确提示 |
 
 ## 11. 关键路径速查
@@ -203,9 +202,9 @@
 ```
 /Volumes/ANAN/Engineering/wenshu/                  ← ACTIVE(文枢项目根,v0.00.0 项目基线)
 ├── README.md                                      ← 本文件(项目门面)
-├── AGENTS.md                                      ← 协作规则真理源
+├── AGENTS.md                                      ← 协作规则真理源(2026-08-18 净化到 §11 §12)
 ├── CLAUDE.md                                      ← CC(未来的 Claude Code)项目记忆
-├── .hermes/                                       ← AIF 跨项目工作区(后续派 PM 后写)
+├── .hermes/                                       ← 设计稿 (v0.07 sketch 真值等)
 └── (空 — 待 v0.01.0 起开始写 Swift 包)
 ---
 /Volumes/ANAN/Engineering/.archive/
@@ -241,4 +240,4 @@
 
 ---
 
-*文枢 v0.00.0 · 2026-08-06 你拍板"全新基线 · 自建 Swift/SwiftUI + CoreData + minimax cn LLM(Anthropic 兼容协议),你配 key 即用" · 项目根 = `/Volumes/ANAN/Engineering/wenshu/`*
+*文枢 v0.07 pocock single agent 净化版 · 2026-08-18 拍板 · 项目根 = `/Volumes/ANAN/Engineering/wenshu/`*

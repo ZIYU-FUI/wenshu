@@ -1,9 +1,9 @@
 # CLAUDE.md · 文枢 (Wenshu)
 
 > CC(未来的 Claude Code CLI)启动时自动读取的项目上下文
-> 真理源指针:@AGENTS.md(角色边界/派单/数据资产/评论 SLA/升级)
+> 真理源指针:@AGENTS.md(项目基线 §11 + 跨角色称谓硬约束 §12)
 > v0.02.0 layout grammar(5 区 + 折叠 + 拖拽)详见 @AGENTS.md §8.1
-> 项目基线 v0.00.0(2026-08-06 你拍板)
+> 项目基线 v0.07(2026-08-18 pocock single agent 净化版拍)
 
 ---
 
@@ -63,10 +63,10 @@
 
 ```
 wenshu/                                                ← 项目根(v0.00.0)
-├── README.md                                          ← 项目门面(已落档 v0.00.0)
-├── AGENTS.md                                          ← 协作规则真理源(已落档 v0.00.0)
-├── CLAUDE.md                                          ← 本文件(已落档 v0.00.0)
-├── .hermes/                                           ← AIF 跨项目工作区
+├── README.md                                          ← 项目门面(已落档 v0.07)
+├── AGENTS.md                                          ← 协作规则真理源(2026-08-18 净化到 §11 §12)
+├── CLAUDE.md                                          ← 本文件(已落档 v0.07)
+├── .hermes/                                           ← 设计稿 (v0.07 sketch 真值等)
 │
 ├── (空 — 待 v0.01.0 起开始写 Swift Package)
 │
@@ -195,7 +195,7 @@ wenshu/                                                ← 项目根(v0.00.0)
 - **冲突解决:版本号 + 你后置决定** — 文件级版本号,打开时校验,不一致时备份旧版 + 创建新副本
 - **卸载软件后数据仍可用** — 卸载文枢后 `.ws` 文件保留,数据不丢
 - **LLM key 存 macOS Keychain** — 不在文件、log、commit message 中明文出现
-- **封存的旧 monorepo fork 不可读不可写** — `/Volumes/ANAN/Engineering/.archive/wenshu-monorepo-fork/v0.x-monorepo-fork-2026-08-06/` 是只读历史,CC/AIF 都不能改
+- **封存的旧 monorepo fork 不可读不可写** — `/Volumes/ANAN/Engineering/.archive/wenshu-monorepo-fork/v0.x-monorepo-fork-2026-08-06/` 是只读历史,CC 不能改
 
 ## 8. Verification(CC 写完代码必跑)
 
@@ -251,9 +251,9 @@ swift run swiftlint
 - ❌ 动 `~/wenshu-plugin/`(旧 plugin 时代产物,已废)
 - ❌ 写 `~/.wenshu/` 任何文件(目录已取消)
 - ❌ 自写 `wenshu` CLI(文枢 = Swift 桌面应用,不是 CLI)
-- ❌ 写错误模型名(8/6 实测:minimax 静默 fallback 到 `MiniMax-M3`,PM 派单必须写明 minimax 官方模型名)
+- ❌ 写错误模型名(8/6 实测:minimax 静默 fallback 到 `MiniMax-M3`,任务必须写明 minimax 官方模型名)
 
-**minimax cn 模型白名单**(8/6 PM 拍,从 minimax 官方文档拉):
+**minimax cn 模型白名单**(2026-08-06 从 minimax 官方文档拉):
 - `MiniMax-M3` (推荐,1M 上下文,Coding/Agentic SOTA)
 - `MiniMax-M2.7` / `MiniMax-M2.7-highspeed` (60 TPS / 100 TPS)
 - `MiniMax-M2.5` / `MiniMax-M2.5-highspeed`
@@ -268,7 +268,7 @@ swift run swiftlint
 - Content block 类型: `text` / `thinking` / `tool_use` / `image`
 - 工具调用: `tools: [{name, description, input_schema}]` + `tool_choice: {type: auto}`
 
-**CC 改的关键文件清单**(v0.00.0 阶段):
+**CC 改的关键文件清单**(v0.07 阶段):
 
 - `Sources/WenshuApp/App.swift` — SwiftUI App 入口
 - `Sources/WenshuApp/MainView.swift` — 主视图
@@ -282,7 +282,7 @@ swift run swiftlint
 
 ## 10. References
 
-- 真理源:`AGENTS.md`(角色边界/派单/数据资产/评论 SLA/升级)
+- 真理源:`AGENTS.md`(项目基线 §11 + 跨角色称谓硬约束 §12)
 - 项目门面:`README.md`
 - 沙盒实验:
   - `~/Engineering/llm-call-test/` — 实验 4:minimax cn LLM 调用(Anthropic 兼容)
@@ -297,4 +297,4 @@ swift run swiftlint
 
 ---
 
-*CLAUDE.md v0.00.0 · 2026-08-06 项目基线 v0.00.0 · 自建 Swift/SwiftUI + CoreData + minimax cn LLM (Anthropic 兼容协议) · 项目根 = `/Volumes/ANAN/Engineering/wenshu/`*
+*CLAUDE.md v0.07 · 2026-08-18 pocock single agent 净化版 · 自建 Swift/SwiftUI + CoreData + minimax cn LLM (Anthropic 兼容协议) · 项目根 = `/Volumes/ANAN/Engineering/wenshu/`*
