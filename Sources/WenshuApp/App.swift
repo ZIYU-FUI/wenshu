@@ -78,7 +78,7 @@ enum LayoutTokens {
 
     // 顶栏色块比例 (老板 8/18 Q3 答: 22/82/142 起点 + 38 PT 宽 + 60 PT 等距)
     static let iconLeadingRatio: CGFloat = 22.0 / 1920.0  // 起点 22 PT
-    static let iconSizeRatio: CGFloat = 38.0 / 1920.0     // 38 PT 边长
+    static let iconSizeRatio: CGFloat = 18.0 / 1920.0     // 18 PT 边长 (老板 8/18 改 18x18, 旧 38x38)
     static let iconSpacingRatio: CGFloat = 60.0 / 1920.0  // 60 PT 等距
 }
 

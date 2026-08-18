@@ -33,12 +33,12 @@ struct LayoutShellViewModelTests {
         let editorW  = totalW * CGFloat(vm.editorWRatio)
         let toolsW   = totalW * CGFloat(vm.toolsWRatio)
         #expect(abs(sidebarW - 200) < 0.5, "sidebar 200 PT")
-        #expect(abs(previewW - 558) < 0.5, "preview 558 PT (中间 1)")
-        #expect(abs(editorW - 762) < 0.5, "editor 762 PT (中间 2, 数对 1320 - 558)")
+        #expect(abs(previewW - 520) < 0.5, "preview 520 PT (老板 8/18 改)")
+        #expect(abs(editorW - 797) < 0.5, "editor 797 PT (老板 8/18 改)")
         #expect(abs(toolsW - 400) < 0.5, "tools 400 PT")
         let sum = sidebarW + previewW + editorW + toolsW
-        // 老板 8/18 拍 "数对": 200 + 558 + 762 + 400 = 1920 (4 zone 净宽 = 总宽, 拖拽线 1 PT 摊给左右)
-        #expect(abs(sum - 1920) < 1, "上 band 4 zone 数对 = 1920")
+        // 老板 8/18 拍 "数对": 200 + 520 + 797 + 400 = 1917 (4 zone 净宽, 3 拖拽线 1 PT 占位)
+        #expect(abs(sum - 1917) < 1, "上 band 4 zone 数对 = 1917/1920")
     }
 
     @Test("拖 D_v1 (项目侧栏/项目预览) → sidebar 增 preview 减, 0 和")
@@ -147,16 +147,16 @@ struct LayoutShellViewModelTests {
         let vm = LayoutShellViewModel()
         let sum = vm.projectSidebarRatio + vm.projectPreviewRatio
             + vm.editorWRatio + vm.toolsWRatio
-        // 老板 8/18 拍 "数对": 200 + 558 + 762 + 400 = 1920, 拖拽线 1 PT 摊给左右
-        #expect(abs(sum - 1.0) < 0.0001, "4 zone 数对 = 1.0")
+        // 老板 8/18 拍 "数对": 200 + 520 + 797 + 400 = 1917, 拖拽线 1 PT 占位 (上 band 4 zone 净宽 ≠ 1920)
+        #expect(abs(sum - 1917.0 / 1920.0) < 0.0001, "4 zone 数对 = 1917/1920 (老板 8/18 改)")
     }
 
     @Test("下 band 3 列 ratio 累加 = 1.0 (零和, 总宽守恒) [v0.10.3 加 D_v4 内嵌]")
     func lowerBandSum() {
         let vm = LayoutShellViewModel()
         let sum = vm.chatSidebarRatio + vm.chatDialogueRatio + vm.dynamicWRatio
-        // 老板 8/18 拍 "多出来的都进聊天区": 200 + 1320 + 400 = 1920
-        #expect(abs(sum - 1.0) < 0.0001, "3 zone 数对 = 1.0 (聊天区吸剩余 1320)")
+        // 老板 8/18 改 "数对": 200 + 1318 + 400 = 1918, 拖拽线 1 PT 占位 (下 band 3 zone 净宽 ≠ 1920)
+        #expect(abs(sum - 1918.0 / 1920.0) < 0.0001, "3 zone 数对 = 1918/1920 (老板 8/18 改 1318)")
     }
 }
 
