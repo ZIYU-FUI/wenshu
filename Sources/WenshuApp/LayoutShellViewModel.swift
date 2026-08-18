@@ -14,7 +14,7 @@
 //
 // VM 只存 5 个竖拖拽线 ratio offset (累加在 default ratio 上). 横拖拽线 inert.
 //
-// Boss 19:00 fix: 拖拽走 AppKit NSEvent pipeline (NativeSplitterView), 不走
+// 老板 19:00 fix: 拖拽走 AppKit NSEvent pipeline (NativeSplitterView), 不走
 // SwiftUI render pipeline, 无闪烁. dragStep 在 NSView 内部算 (deltaX/totalW),
 // VM 接收 ratio step 累加, view 重新读 vm.ratios 算 zone 宽度.
 
@@ -41,10 +41,8 @@ final class LayoutShellViewModel {
     static let minOffset: Double = -0.10
     static let maxOffset: Double = +0.10
     static let minZoneRatio: Double = 0.04
-    /// 上 band 4 zone max 60% (任一 zone 不超 60%)
-    static let maxZoneRatioUpper: Double = 0.60
-    /// 下 band 2 zone max 95% (chat 79% 默认, 允许推到 95%)
-    static let maxZoneRatioLower: Double = 0.95
+    static let maxZoneRatioUpper: Double = 0.60  // 上 band 4 zone max 60%
+    static let maxZoneRatioLower: Double = 0.95  // 下 band 2 zone max 95% (chat 79% 默认)
 
     // MARK: - 计算属性 (默认 ratio + offset)
 

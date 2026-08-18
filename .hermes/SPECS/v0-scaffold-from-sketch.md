@@ -16,9 +16,9 @@
 
 | Zone ID | 名称 | Frame (PX) | 颜色 |
 |---------|------|------------|------|
-| Z-TITLE | 标题栏 | 0,0,3840,76 | #393939 实心 |
-| Z-NOVEL | 小说管理区 | 0,78,3840,944 | 透明 (子节点各自填充) |
-| Z-CHAT  | 聊天管理区 | 0,1024,3840,944 | 透明 (子节点各自填充) |
+| Z-TITLE | 标题栏 | 0,0,1920,38 | #393939 实心 |
+| Z-NOVEL | 小说管理区 | 0,39,1920,472 | 透明 (子节点各自填充) |
+| Z-CHAT  | 聊天管理区 | 0,512,1920,472 | 透明 (子节点各自填充) |
 
 ## 2. 标题栏 (Z-TITLE)
 
@@ -103,7 +103,7 @@
 
 老板 8/18 拍 "拖拽线少两根没有落地, 分割线不可拖拽的, 全缺". 全部落地.
 
-### 5.1 6 拖拽线 (boss 8/18 拍 2 PX 粗 ≡ 1 PT, 6 PT hit area, 1 PT 黑线视觉)
+### 5.1 6 拖拽线 (老板 8/18 拍 2 PX 粗 ≡ 1 PT, 6 PT hit area, 1 PT 黑线视觉)
 
 | ID | id (Sketch) | x | y | w | h | 功能 |
 |----|-------------|---|---|---|---|------|
@@ -167,8 +167,9 @@
 
 - 真值数据源: `mcp__sketch__run_code` 递归 dump 47 layer frame
 - 文件:
-  - `Sources/WenshuApp/App.swift` — 6 区 layout shell (boss Sketch 真值)
-  - `Sources/WenshuApp/DesignTokens.swift` — Apple Semantic Color + LayoutRatio 比例
-  - `Sources/WenshuApp/Views/Layout/NativeSplitter.swift` — 6 拖拽线 (NativeSplitterView 真值) + 7 不可拖拽分割线 (StaticDividerHorizontal)
+  - `Sources/WenshuApp/App.swift` — 6 区 layout shell (老板 Sketch 真值) + LayoutTokens 18 ratio 算子
+  - `Sources/WenshuApp/DesignTokens.swift` — Apple Semantic Color 5 token (titleBar/zoneSurface/dynamicZoneSurface/accentBlue/splitterLine)
+  - `Sources/WenshuApp/LayoutShellViewModel.swift` — 5 offset 拖拽状态 + 6 zone ratio 计算 (v0.10.1 + v0.10.3 加)
+  - `Sources/WenshuApp/Views/Layout/NativeSplitter.swift` — 6 拖拽线 (NativeSplitterView NSView, 1 PT intrinsicContentSize)
 - 自检: WS_SCREENSHOT=1 swift run WenshuApp → /tmp/wenshu-selfshot.png, 6 区 + 13 线齐
 - 屏缩放: AppDelegate 把 3840×1968 按 2K 屏可见区等比缩放, 内部按比例算子自适应

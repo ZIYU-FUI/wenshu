@@ -37,8 +37,10 @@ enum LayoutTokens {
     static let titleRatio: CGFloat = 39.0 / 984.0         // = 0.0396
     static let bandRatio: CGFloat = 472.0 / 984.0        // = 0.4797 (上下 band 各半)
     static let toolbarRatio: CGFloat = 30.0 / 472.0      // = 0.0636 (zone 顶/底 30)
-    static let splitterHitRatio: CGFloat = 6.0 / 1920.0  // = 0.0031 (6 PT hit area 居中 1 PT 视觉线, 竖拖拽线 W 比率)
-    static let horizontalSplitterRatio: CGFloat = 1.0 / 984.0  // = 0.0010 (1 PT 横拖拽线 H 比率, 老板 8/18 拍 数对 39+472+472+1 = 984)
+    static let labelFontRatio: CGFloat = 12.0 / 472.0       // = 0.0254 (zone label 字号 12 PT 比例, 老板 8/18 拍)
+    // 老板 8/18 拍 horizontalSplitterRatio 数对公式: 1 PT 横拖拽线 H 比率 (v0.10.6 立)
+    // v0.10.6 删 splitterHitRatio (v0.10.6 之前是死代码, NativeSplitter wrapper frame 改 1 PT 视觉线后没人用)
+    static let horizontalSplitterRatio: CGFloat = 1.0 / 984.0  // = 0.0010 (1 PT 横拖拽线 H 比率)
 
     // 上 band 4 zone 数对公式: (200, 中间 1, 中间 2, 400) = 1920
     // 老板 8/18 拍 "数对" = 拖拽线 1 PT 视觉线摊给左右 zone (各 0.5 PT)
@@ -57,8 +59,7 @@ enum LayoutTokens {
 
     // 编辑器两层设计 (老板 8/18 Q2 答: 有意两层, 不要删)
     static let editorInsetRatio: CGFloat = 4.0 / 984.0  // = 0.0041
-    // 聊天输入框: 老板 8/18 拍 "新图好像没有画这个聊天框" = 撤掉
-    // (保留 LayoutTokens token 占位, 未来老板加新图时再启)
+
 
     // 顶栏色块比例 (老板 8/18 Q3 答: 22/82/142 起点 + 38 PT 宽 + 60 PT 等距)
     static let iconLeadingRatio: CGFloat = 22.0 / 1920.0  // 起点 22 PT
@@ -324,7 +325,8 @@ struct ZoneModule: View {
     @Environment(WenshuLibrary.self) private var library
 
     private var toolbarH: CGFloat { bandH * LayoutTokens.toolbarRatio }
-    private var editorInset: CGFloat { totalW * LayoutTokens.editorInsetRatio + bandH * LayoutTokens.editorInsetRatio }  // 4 PT 算水平+垂直近似
+    /// 老板 8/18 Q2 答: 4 PT inset = 单一垂直方向 (spec §3.2 "背景 y=60~884, 正文 y=64~882", 上下 4 PT 视觉下沉)
+    private var editorInset: CGFloat { bandH * LayoutTokens.editorInsetRatio }  // 4 PT 单一垂直
     // v0.10.3: chatSidebar / chatDialogue 走 vm ratio
     private var chatSidebar: CGFloat { totalW * CGFloat(vm.chatSidebarRatio) }
     // v0.10.8: 撤掉 chatInputW/H 私有属性, 老板 8/18 拍 "新图没画聊天输入框"
@@ -350,9 +352,8 @@ struct ZoneModule: View {
                 LibraryOutlineViewContent(library: library)
             }
         case .projectPreview:
-            DesignColor.zoneSurface.overlay(alignment: .topLeading) {
-                zoneLabel("项目预览")
-            }
+            // SM1 refactor v0.10.9: 共用 zoneSurfaceWithLabel helper (3 case 共享)
+            zoneSurfaceWithLabel("项目预览")
         case .editor:
             // 老板 8/18 Q2 答: 4 PT inset 两层设计, 不要删
             DesignColor.zoneSurface
@@ -361,13 +362,10 @@ struct ZoneModule: View {
                         .padding(editorInset)
                 }
         case .specializedTools:
-            DesignColor.zoneSurface.overlay(alignment: .topLeading) {
-                zoneLabel("专用工具")
-            }
+            zoneSurfaceWithLabel("专用工具")
         case .chatSidebar:
             // 下 band 聊天侧栏 (200 PT)
-            DesignColor.zoneSurface
-                .overlay(alignment: .topLeading) { zoneLabel("聊天侧栏") }
+            zoneSurfaceWithLabel("聊天侧栏")
         case .chatDialogue:
             // 老板 8/18 拍 "新图好像没有画这个聊天框" = 老板新 Sketch 真值没画聊天输入框
             // v0.10.7 加的 RoundedRectangle 描边圆角矩形 = 老板原图没画, 撤掉
@@ -380,11 +378,17 @@ struct ZoneModule: View {
         }
     }
 
+    /// 5 case 共享模板 (SM1 refactor v0.10.9): zoneSurface 底色 + topLeading label
+    private func zoneSurfaceWithLabel(_ name: String) -> some View {
+        DesignColor.zoneSurface
+            .overlay(alignment: .topLeading) { zoneLabel(name) }
+    }
+
     private func zoneLabel(_ name: String) -> some View {
         Text(name)
-            .font(.system(size: bandH * 0.0255, weight: .medium))  // 12/472 比例
+            .font(.system(size: bandH * LayoutTokens.labelFontRatio, weight: .medium))
             .foregroundStyle(.tertiary)
-            .padding(bandH * 0.0255)
+            .padding(bandH * LayoutTokens.labelFontRatio)
             .allowsHitTesting(false)
     }
 }
