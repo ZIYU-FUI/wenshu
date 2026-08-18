@@ -298,3 +298,59 @@ swift run swiftlint
 ---
 
 *CLAUDE.md v0.07 · 2026-08-18 pocock single agent 净化版 · 自建 Swift/SwiftUI + CoreData + minimax cn LLM (Anthropic 兼容协议) · 项目根 = `/Volumes/ANAN/Engineering/wenshu/`*
+
+---
+
+## Agent skills
+
+### Issue tracker
+
+Local markdown: `.scratch/<feature>/issues/<NNN>-<slug>.md`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default 5 roles: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. Stored as `state:` field at the top of each issue file. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` (root) + `docs/adr/NNNN-<slug>.md`. Update `CONTEXT.md` when a new domain word enters the codebase. Write an ADR for every hard-to-reverse decision. See `docs/agents/domain.md`.
+
+### Full workflow
+
+35 po skills active on this repo. Mandatory flow when taking on new work:
+
+1. **`/ask-matt`** — pick the right flow (router, every task starts here).
+2. **`/grill-with-docs`** — sharpen the idea by interview, leave a paper trail in `CONTEXT.md` and ADRs.
+3. **`/wayfinder`** — only when the fog is too thick to hold in one session; chart a map of decision tickets.
+4. **`/to-spec`** — collapse the conversation into a buildable spec.
+5. **`/to-tickets`** — split the spec into one issue per file under `.scratch/<feature>/issues/`.
+6. **`/triage`** — only for incoming issues not created by `to-tickets`.
+7. **`/implement`** per ticket — drives `/tdd` internally, then `/code-review` (two axes, Standards + Spec) before commit.
+8. **`/code-review`** — review the diff between a fixed point and HEAD on both axes. Run on every change before committing.
+9. **`/domain-modeling`** — keep `CONTEXT.md` glossary clean.
+10. **`/improve-codebase-architecture`** — periodic deepening opportunities scan.
+
+Vocabulary underneath (auto-loaded via `CONTEXT.md` + ADR reads):
+
+- **`/codebase-design`** — deep-module vocabulary for module shape design.
+- **`/diagnosing-bugs`** — 4-phase root cause debugging; refuses to theorise without a tight feedback loop.
+- **`/resolving-merge-conflicts`** — work a conflict by intent, never by line-picking.
+
+Standalone (off the main flow):
+
+- **`/grill-me`** / **`/grilling`** — interview primitive, no repo state.
+- **`/prototype`** — throwaway code to answer a design question, kept as a primary source.
+- **`/research`** — delegated background reading; primary sources only.
+- **`/wizard`** — human-only steps (provisioning, credentials, migrations).
+- **`/wait-what`** — corrective for a message that didn't land.
+- **`/teach`** — multi-session learning workspace.
+- **`/writing-for-agents`** — skill / AGENTS.md / spec writing.
+- **`/to-questionnaire`** — when a decision needs someone else's input.
+- **`/handoff`** — compact a conversation for another agent.
+
+Boundary tools (when crossing phases):
+
+- **`/clear`** — empty the window at a phase boundary.
+- **`/compact`** — compress + seed a fresh session.
+- **`/subagent`** — short reasoning subtask, returns a report.
+

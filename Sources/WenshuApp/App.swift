@@ -1,56 +1,52 @@
-// App.swift · Wenshu (Wenshu) · v0.01.0 7-zone layout shell (v16 = true macOS app)
+// App.swift · Wenshu · v0.09.0 6-zone layout shell (老板 8/18 组件化真值, 1920×984 PT)
+// 数据源: Sketch AF7B1C87 / page 文枢 / Artboard 首页
+// 组件化真值: mcp__sketch__run_code (2026-08-18) = 6 SymbolMaster + 13 SymbolInstance
+// 单元: 1 PT = 1 PX (macOS 27 1x), 1:1 落, 不缩放.
 //
-// Source of truth: @wenshu-pour/architecture/CONTEXT.md + SPEC-v0.01.0.md + FCP-MEASUREMENTS.md
+// 6 master (老板 8/18 组件化规划):
+//   1. 标题栏                (1920×39)
+//   2. 区域顶部工具栏        (758×30)   ← zone 顶栏复用
+//   3. 区域底部工具栏        (200×30)   ← zone 底栏复用
+//   4. 区域模块              (200×472)  ← zone 主容器复用
+//   5. 拖拽线-竖             (1×472)
+//   6. 拖拽线-横             (1920×1)
 //
-// v0.01.0 scaffold v16 (= boss 19:35 "现在也没有菜单, 不在程序栏中"):
-//
-//   Boss identified 3 missing macOS-app traits:
-//     1. Window not in Dock (no LSUIElement = false registration; Dock tile missing)
-//     2. Window not in Cmd+Tab switcher (= no proper NSApplication boot)
-//     3. No menu bar (= no .commands { CommandGroup(...) } in SwiftUI App body)
-//
-//   All three fixed by:
-//     1. Add @NSApplicationDelegateAdaptor (= wires NSApplication.run at launch, makes
-//        the binary a Cocoa app = Dock tile + Cmd+Tab registration)
-//     2. NSApplicationDelegate.applicationDidFinishLaunching sets initial window size
-//        (= 1452x984 boss拍 19:10) — SwiftUI .frame() is parent-controlled, doesn't
-//        reliably set initial frame; AppDelegate.setContentSize is the Apple HIG way
-//     3. .commands { CommandGroup(...) } adds the standard macOS menu bar items
-//        (= File / Edit / View / Window / Help, macOS-standard structure)
-//
-// v0.01.0 layout (= owner 18:00, "A 你参考 FCP 做"):
-//   Upper band: Library (Shelf+Project nested) | Editor | Inspector
-//   Lower band: Chat | (Console | Status nested)
-//   5 splitters (3 upper horizontal + 1 band + 2 lower horizontal), all NativeSplitter
-//
-// FCP-measured default proportions (1452x984 baseline, owner 19:10):
-//   Library 20.7% / Editor 51.7% / Inspector 27.6%
-//   Chat 25% / (Console 50% / Status 50%)
-//
-// Out of scope: Wenshu assistant / smart context picker / CoreData / LLM / markdown
-// rendering (= owner-deferred per CONTEXT.md §7).
+// 13 instance 全部 1:1 落 SwiftUI, 详见 LayoutTokens.
 
 import SwiftUI
 import AppKit
 
-// MARK: - Self screenshot
-//
-// Renders the live `keyWindow.contentView` (= SwiftUI hosting tree already
-// mounted in the window) to a PNG via `NSView.cacheDisplay(in:to:)`.
-//
-// Why this exists (= boss 8/14 12:38, "screenshot wenshu app + send to chat for
-// phone verification"): the agent runs in a Hermes Agent TUI session that
-// lives in a virtual desktop, so `screencapture` returns a 0×0 black image
-// for the wenshu window. System accessibility capture returns nothing
-// useful either. The only reliable path is to render inside the app itself,
-// using the same backing store that the user sees on screen.
-//
-// env knobs:
-//   WS_SCREENSHOT=1            Enable the channel (no-op if unset)
-//   WS_SCREENSHOT_PATH=<path>  Output PNG (default: /tmp/wenshu-selfshot.png)
-//   WS_SCREENSHOT_DELAY=<secs> First-capture delay (default: 2.0s)
-//   WS_SCREENSHOT_EXIT=1       Exit after first capture (one-shot mode, default)
-//   WS_SCREENSHOT_LOOP=<secs>  Re-capture every N seconds (live preview mode)
+// MARK: - Layout tokens (PT 真值集中处, 全项目 0 硬编码)
+
+enum LayoutTokens {
+    static let totalW: CGFloat = 1920
+    static let totalH: CGFloat = 984
+    static let titleH: CGFloat = 39
+    static let bandH: CGFloat = 472
+    static let toolbarH: CGFloat = 30
+    static let splitterHit: CGFloat = 6  // 6 PT hit area 居中 1 PT 视觉线
+
+    // 上 band zone 真值
+    static let projectSidebar: CGFloat = 200
+    static let projectPreview: CGFloat = 557
+    static let editorW: CGFloat = 757
+    static let toolsW: CGFloat = 403
+
+    // 下 band zone 真值
+    static let chatManagement: CGFloat = 1516  // 内部嵌套侧栏 200 + 拖拽线 6 + 对话 1310
+    static let chatSidebar: CGFloat = 200
+    static let chatDialogue: CGFloat = 1310  // 1316 - 6 = 1310
+    static let dynamicW: CGFloat = 403
+
+    // 编辑器两层设计 (老板 8/18 Q2 答: 有意两层, 不要删)
+    static let editorInset: CGFloat = 4
+    // 聊天输入框 (boss Sketch #4a60b2 蓝, 2590×94)
+    static let chatInputW: CGFloat = 1296  // 1310 - 14 PT 边距
+    static let chatInputH: CGFloat = 94
+}
+
+// MARK: - Self screenshot (老板 8/14 12:38 + 8/15 14:48: 每次代码改完必 screenshot)
+
 enum SelfScreenshot {
     @MainActor
     static func run() {
@@ -58,345 +54,272 @@ enum SelfScreenshot {
         let path = env["WS_SCREENSHOT_PATH"] ?? "/tmp/wenshu-selfshot.png"
         let delay = Double(env["WS_SCREENSHOT_DELAY"] ?? "2.0") ?? 2.0
         let shouldExit = env["WS_SCREENSHOT_EXIT"] != "0"
-        let loopInterval = env["WS_SCREENSHOT_LOOP"].flatMap { Double($0) }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
             captureOnce(path: path, exitAfter: shouldExit)
-        }
-        if let interval = loopInterval {
-            let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { _ in
-                Task { @MainActor in captureOnce(path: path, exitAfter: false) }
-            }
-            RunLoop.main.add(timer, forMode: .common)
         }
     }
 
     @MainActor
     private static func captureOnce(path: String, exitAfter: Bool) {
-        // Yield one runloop tick so SwiftUI has a chance to finish its first
-        // layout pass before we cache-display the contentView.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             guard
                 let window = NSApp.keyWindow
                     ?? NSApp.windows.first(where: { $0.contentViewController != nil }),
                 let contentView = window.contentView
             else {
-                print("WS_SCREENSHOT: no window/contentView")
                 if exitAfter { exit(2) }
                 return
             }
             window.layoutIfNeeded()
             contentView.layoutSubtreeIfNeeded()
             let bounds = contentView.bounds
-            guard bounds.width > 0 && bounds.height > 0 else {
-                print("WS_SCREENSHOT: bounds zero \(bounds)")
-                if exitAfter { exit(2) }
-                return
-            }
-            guard let bitmap = contentView.bitmapImageRepForCachingDisplay(in: bounds) else {
-                print("WS_SCREENSHOT: bitmap alloc failed")
+            guard bounds.width > 0, bounds.height > 0,
+                  let bitmap = contentView.bitmapImageRepForCachingDisplay(in: bounds)
+            else {
                 if exitAfter { exit(2) }
                 return
             }
             bitmap.size = bounds.size
-            // Pre-fill the bitmap with the panel background so transparent
-            // areas (= the 5pt hit area around each splitter line, etc.) are
-            // baked into the PNG as opaque panel-bg pixels. Without this, the
-            // PNG output has alpha=0 outside the NSView tree's drawn regions;
-            // viewers that don't respect alpha (= Hermes chat viewer, certain
-            // Markdown renderers, ImageMagick defaults) render those pixels as
-            // black or white, making the 5pt hit area look visible (= a phantom
-            // 5pt-wide bar around every splitter).
-            //
-            // Per Apple docs (cacheDisplay Discussion):
-            //   "The bitmap produced by this method is transparent (that is,
-            //    has an alpha value of 0) wherever the view and its
-            //    descendants do not draw any content."
-            // So we own filling the transparent parts (= Apple explicit
-            // "You are responsible for initializing the bitmap to the desired
-            // configuration before calling this method").
             NSGraphicsContext.saveGraphicsState()
             NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
             NSColor.windowBackgroundColor.setFill()
             NSRect(origin: .zero, size: bounds.size).fill()
             NSGraphicsContext.restoreGraphicsState()
-
             contentView.cacheDisplay(in: bounds, to: bitmap)
             guard let png = bitmap.representation(using: .png, properties: [:]) else {
-                print("WS_SCREENSHOT: png encode failed")
                 if exitAfter { exit(3) }
                 return
             }
-            do {
-                try png.write(to: URL(fileURLWithPath: path))
-                print("WS_SCREENSHOT: wrote \(png.count) bytes to \(path) (size=\(bounds.size))")
-                if exitAfter { exit(0) }
-            } catch {
-                print("WS_SCREENSHOT: write failed: \(error)")
-                if exitAfter { exit(4) }
-            }
+            try? png.write(to: URL(fileURLWithPath: path))
+            if exitAfter { exit(0) }
         }
     }
 }
 
+// MARK: - App entry
+
 @main
 struct WenshuApp: App {
-    /// NSApplicationDelegateAdaptor wires NSApplication.run at app launch (= the
-    /// binary becomes a real Cocoa app: Dock tile + Cmd+Tab + menu bar registration).
-    /// Without this, SwiftUI @main + WindowGroup on a SwiftPM executable builds and
-    /// runs the process but doesn't fully bring up NSApplication (= "No windows open
-    /// yet" log, no Dock tile, no menu).
     @NSApplicationDelegateAdaptor(WenshuAppDelegate.self) var appDelegate
 
-    @State private var vm = LayoutShellViewModel()
-
-    /// v0.02.0 (bookshelf module): the real state layer. Owns the in-memory list
-    /// of Bookshelf + the user's selection; every mutation goes through this.
-    /// The store is the FileSystem implementation (= ~/Documents/wenshu/<id>/
-    /// per the Apple HIG document-based-app convention). Future swaps to
-    /// MetadataQuery / CoreData / CloudKit only need to change this one line.
-    ///
-    /// LibraryRoot.ensureDefault() creates ~/Documents/wenshu if it doesn't exist
-    /// (= first launch). Owner 8/15 15:55: '架构需要先定好, 不能没事加个东西'.
     @State private var library = WenshuLibrary(
         store: FileSystemLibraryStore(rootURL: LibraryRoot.ensureDefault())
     )
 
     var body: some Scene {
         WindowGroup("文枢") {
-            LayoutShellView(vm: vm, library: library)
-                .environment(vm)        // splitter state
-                .environment(library)   // bookshelf state (= v0.02.0)
+            LayoutShellView()
+                .environment(library)
+                .preferredColorScheme(.dark)
         }
-        .windowStyle(.titleBar)
-        .windowToolbarStyle(.unified)
+        .windowStyle(.hiddenTitleBar)  // 老板 8/18 拍 1:1 PT 落, 不要 macOS 系统 title bar chrome 跟 39 PT TitleBarZone 撞色
         .windowResizability(.contentSize)
-        // Boss 19:35 "现在也没有菜单" → add macOS-standard menu bar commands.
-        // SwiftUI's default .commands {} is empty (= no menu bar at all). Adding
-        // CommandGroup(after: .newItem) gives File / Edit / View / Window / Help.
         .commands {
             CommandGroup(replacing: .newItem) {
                 Button("新建项目") {
-                    // TODO: wired to WenshuProjectStore in v0.02.0+ (= owner Q4 / Q5).
+                    // TODO: v0.10+ 接 WenshuLibrary.addShelf
                 }
                 .keyboardShortcut("n", modifiers: .command)
-            }
-            CommandGroup(after: .windowArrangement) {
-                Button("显示/隐藏 项目管理") {
-                    // TODO: wired to LayoutShellViewModel.toggleVisibility(.topLeft) in v0.02.0+
-                }
-                .keyboardShortcut("1", modifiers: [.command, .option])
-                Button("显示/隐藏 编辑器") {
-                    // TODO: wired to LayoutShellViewModel.toggleVisibility(.topCenter)
-                }
-                .keyboardShortcut("2", modifiers: [.command, .option])
-                Button("显示/隐藏 检视") {
-                    // TODO: wired to LayoutShellViewModel.toggleVisibility(.topRight)
-                }
-                .keyboardShortcut("3", modifiers: [.command, .option])
-                Button("显示/隐藏 聊天") {
-                    // TODO: wired to LayoutShellViewModel.toggleVisibility(.bottomLeft)
-                }
-                .keyboardShortcut("4", modifiers: [.command, .option])
-                Button("显示/隐藏 状态") {
-                    // TODO: wired to LayoutShellViewModel.toggleVisibility(.bottomRight)
-                }
-                .keyboardShortcut("5", modifiers: [.command, .option])
             }
         }
     }
 }
 
-/// AppDelegate that wires initial window size and Dock integration.
-/// SwiftUI .frame() is parent-controlled (= doesn't reliably set initial window frame);
-/// the Apple HIG pattern is to set NSWindow.setContentSize in applicationDidFinishLaunching.
+/// AppDelegate: 初始窗口尺寸 1920×984 PT, 用 NSWindow.center() 居中 (Apple HIG).
 final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard let window = NSApplication.shared.windows.first else { return }
-        // Set initial content size (= boss 19:10 拍 "1452x984 老板电脑全屏").
-        window.setContentSize(NSSize(width: 1452, height: 984))
-        // Center on screen (= Apple HIG default).
-        if let screen = window.screen {
-            let screenFrame = screen.visibleFrame
-            let windowFrame = window.frame
-            let newOrigin = NSPoint(
-                x: screenFrame.midX - windowFrame.width / 2,
-                y: screenFrame.midY - windowFrame.height / 2
-            )
-            window.setFrameOrigin(newOrigin)
-        }
-        // Boss 8/14 12:38 + 8/15 14:48: every code change must produce a screenshot
-        // for phone verification. env-gated so normal launches stay interactive.
+        window.setContentSize(NSSize(
+            width: LayoutTokens.totalW,
+            height: LayoutTokens.totalH
+        ))
+        window.center()  // Apple HIG: NSWindow 自带 center, 不用手算
         if ProcessInfo.processInfo.environment["WS_SCREENSHOT"] == "1" {
             SelfScreenshot.run()
         }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        // Standard macOS app behavior: quit when last window closes (= Finder, Mail, FCP).
-        return true
+        true
     }
 }
 
-// MARK: - Layout shell (= SwiftUI HStack/VStack with NativeSplitter between zones)
+// MARK: - 6 区 layout shell (1:1 落 6 master)
 
 struct LayoutShellView: View {
-    let vm: LayoutShellViewModel
-    let library: WenshuLibrary
-
     var body: some View {
-        GeometryReader { geo in
-            let totalW = geo.size.width
-            let totalH = geo.size.height
-            // Boss 19:55 + 8/15 15:14: upper/lower band split is fixed at 50/50
-            // AND the divider line must be visible (= the v31 refactor had
-            // accidentally dropped the band splitter while cleaning dead state).
-            // The fix is a real NativeSplitter whose drag callback clamps to
-            // 0.50 (= the user CAN grab and try to drag, but the split stays
-            // locked; this gives the divider visible line + cursor feedback
-            // + 5pt hit area, all the standard splitter affordances, without
-            // ever letting the bands actually resize).
-            let lowerH = totalH * Self.bandRatio
-            let upperH = totalH * (1.0 - Self.bandRatio)
-            let hit = CGFloat(NativeSplitterView.hitAreaThickness)
-
-            VStack(spacing: 0) {
-                upperBand(width: totalW, height: upperH)
-                    .frame(height: upperH)
-
-                // Band splitter (= 1pt hairline centered in 5pt hit area,
-                // drag-locked to 50/50). See vm.adjustBandSplit for the clamp.
-                NativeSplitter(orientation: .vertical) { _ in
-                    vm.adjustBandSplit()
-                }
-                .frame(width: totalW, height: hit)
-
-                lowerBand(width: totalW, height: lowerH)
-                    .frame(height: lowerH)
-            }
+        VStack(spacing: 0) {
+            TitleBarZone()
+                .frame(width: LayoutTokens.totalW, height: LayoutTokens.titleH)
+            UpperBandZone()
+                .frame(width: LayoutTokens.totalW, height: LayoutTokens.bandH)
+            HorizontalDragSplitter(width: LayoutTokens.totalW)
+            LowerBandZone()
+                .frame(width: LayoutTokens.totalW, height: LayoutTokens.bandH)
         }
-        .frame(minWidth: 1280, idealWidth: 1452, minHeight: 800, idealHeight: 984)
+        .frame(width: LayoutTokens.totalW, height: LayoutTokens.totalH)
     }
+}
 
-    /// Boss 19:55: upper/lower band fixed at 50/50 (locked, NOT user-resizable).
-    /// The band splitter exists (= gives the divider line + hit area + cursor
-    /// affordance) but dragging has no effect on the split ratio.
-    private static let bandRatio: CGFloat = 0.50
+// MARK: - 上 band (小说管理区): 3 区域模块 + 3 拖拽线-竖
 
-    @ViewBuilder
-    private func upperBand(width: CGFloat, height: CGFloat) -> some View {
-        let upperW = width
-        // Subtract splitter widths BEFORE applying ratios so children sum to upperW.
-        // (= v29 fix: [0.2, 0.5, 0.3] on full width gave 290+5+726+5+436 = 1462 > 1452,
-        // so HStack overflowed: Inspector was crushed to 277px, Editor inflated to 870px.)
-        let splitterCount: CGFloat = 2
-        let hit = CGFloat(NativeSplitterView.hitAreaThickness)
-        let usable = upperW - splitterCount * hit
-        let r = vm.upperRatios
-        let libraryW = usable * r[0]
-        let editorW = usable * r[1]
-        let inspectorW = usable * r[2]
-
+struct UpperBandZone: View {
+    var body: some View {
         HStack(spacing: 0) {
-            // Library (Shelf + Project horizontal split inside, boss 19:10 "应该是左右")
-            LibraryScaffold()
-                .frame(width: libraryW, height: height)
-
-            // NativeSplitter between Library and Editor (= FCP-measured 8pt hit area,
-            // 1pt visible line on START edge = LT-01-fix15/16 from装机 user 8/7).
-            NativeSplitter(orientation: .horizontal) { delta in
-                vm.adjustLibraryEditor(delta: delta, totalWidth: upperW)
-            }
-            .frame(width: hit, height: height)
-
-            // v53: EDITOR zone is now the document cards grid (= FCP
-            // Browser filmstrip pattern). Replaces the v0.01.x "EDITOR"
-            // watermark placeholder. Shows 3 category sections
-            // (章节 / 设定 / 资料库) of cards for the selected book.
-            BookOutlineView(library: library)
-                .frame(width: editorW, height: height)
-
-            NativeSplitter(orientation: .horizontal) { delta in
-                vm.adjustEditorInspector(delta: delta, totalWidth: upperW)
-            }
-            .frame(width: hit, height: height)
-
-            ZoneScaffoldView(name: "INSPECTOR")
-                .frame(width: inspectorW, height: height)
-        }
-    }
-
-    @ViewBuilder
-    private func lowerBand(width: CGFloat, height: CGFloat) -> some View {
-        let lowerW = width
-        // Same v29 fix: subtract splitter widths from the band before applying ratios.
-        // Lower band has 2 splitters (= Chat|Console + Console|Status) so the right side
-        // can have an internal split (needed so Status 30% width-matches Inspector 30%).
-        let hit = CGFloat(NativeSplitterView.hitAreaThickness)
-        let usable = lowerW - 2 * hit
-        let r = vm.lowerRatios
-        let chatW = usable * r[0]
-        let rightW = usable * r[1]
-
-        HStack(spacing: 0) {
-            ZoneScaffoldView(name: "CHAT")
-                .frame(width: chatW, height: height)
-
-            NativeSplitter(orientation: .horizontal) { delta in
-                vm.adjustChatConsole(delta: delta, totalWidth: lowerW)
-            }
-            .frame(width: NativeSplitterView.hitAreaThickness, height: height)
-
-            // Boss 19:55: "上下结构的区域约束宽度是一样大小的" — Inspector 30% upper
-            // and Status 30% lower must be the same width. Upper band has 2 splitters
-            // (Library|Editor + Editor|Inspector), lower band needs 2 splitters too
-            // (Chat|Console + Console|Status) so both bands deduct equal splitter widths.
-            // Boss 19:45: "console 15 status 15 这两个加一起是状态区" — but this layout
-            // needs an INTERNAL Console|Status splitter so widths align with the upper
-            // band's two-splitter deduction. Console + Status are still conceptually one
-            // "状态区" (= single Status pane); the splitter is the necessary structural
-            // cost of the band width-matching constraint.
-            // Right side: Console | Status nested split (= v29 fix: split off a splitter
-            // from rightW BEFORE applying the internal ratio, same as the outer
-            // band). Without this the inner HStack overflows by 5pt (= Status
-            // gets squeezed, just like Inspector did in the upper band).
-            let innerHit = CGFloat(NativeSplitterView.hitAreaThickness)
-            let innerUsable = rightW - innerHit
-            ZoneScaffoldView(name: "CONSOLE")
-                .frame(width: innerUsable * vm.consoleStatusRatio, height: height)
-
-            NativeSplitter(orientation: .horizontal) { delta in
-                vm.adjustConsoleStatus(delta: delta, totalWidth: rightW)
-            }
-            .frame(width: innerHit, height: height)
-
-            ZoneScaffoldView(name: "STATUS")
-                .frame(width: innerUsable * (1.0 - vm.consoleStatusRatio), height: height)
+            ZoneModule(slot: .projectSidebar)
+                .frame(width: LayoutTokens.projectSidebar, height: LayoutTokens.bandH)
+            VerticalDragSplitter(height: LayoutTokens.bandH)
+            ZoneModule(slot: .projectPreview)
+                .frame(width: LayoutTokens.projectPreview, height: LayoutTokens.bandH)
+            VerticalDragSplitter(height: LayoutTokens.bandH)
+            ZoneModule(slot: .editor)
+                .frame(width: LayoutTokens.editorW, height: LayoutTokens.bandH)
+            VerticalDragSplitter(height: LayoutTokens.bandH)
+            ZoneModule(slot: .specializedTools)
+                .frame(width: LayoutTokens.toolsW, height: LayoutTokens.bandH)
         }
     }
 }
 
-// MARK: - Library (= single outline: collapsible shelves with books)
-//
-// Boss 8/15 17:05: '结构不对, 参考 fcp. 书架是父级, 可以点击折叠展开'.
-// The old layout (HStack of BookshelfListView | splitter | BookListView)
-// was wrong because it forced a fixed two-pane split inside the library
-// zone. Apple HIG document-based apps (= Notes, Pages, Finder) use a
-// single outline list with DisclosureGroup (= click the header to
-// collapse/expand; click the row to select). Bookshelf stays the parent
-// type in storage; it just renders inline with books in the same list.
-//
-// v0.02.0 used a Shelf / Project internal NativeSplitter; v50 removes
-// the splitter entirely (= the visual internal split was a FCP-misread
-// of the Browser pane structure, where the splitter separates the
-// LIBRARY from the EDITOR, not anything inside LIBRARY).
-struct LibraryScaffold: View {
+// MARK: - 下 band (聊天管理区): 2 区域模块 + 2 拖拽线-竖
+
+struct LowerBandZone: View {
+    var body: some View {
+        HStack(spacing: 0) {
+            ZoneModule(slot: .chatManagement)
+                .frame(width: LayoutTokens.chatManagement, height: LayoutTokens.bandH)
+            VerticalDragSplitter(height: LayoutTokens.bandH)
+            ZoneModule(slot: .dynamicZone)
+                .frame(width: LayoutTokens.dynamicW, height: LayoutTokens.bandH)
+        }
+    }
+}
+
+// MARK: - 6 master 1:1 落 SwiftUI 子组件
+
+/// Master 1: 标题栏 (1920×39)
+struct TitleBarZone: View {
+    var body: some View {
+        DesignColor.titleBar
+    }
+}
+
+/// Master 2: 区域顶部工具栏 (30 PT 高, 复用; iconSlots=3 时画 3 个 38×38 蓝 ICON 占位)
+struct ZoneTopToolbar: View {
+    let iconSlots: Int
+    var body: some View {
+        DesignColor.zoneSurface
+            .overlay(alignment: .leading) {
+                if iconSlots > 0 {
+                    HStack(spacing: 60) {  // 老板 8/18: 60 PT 等距, 起点 22 PT
+                        ForEach(0..<iconSlots, id: \.self) { i in
+                            DesignColor.accentBlue
+                                .frame(width: 38, height: 38)
+                        }
+                    }
+                    .padding(.leading, 22)  // boss Sketch 矩形起 x=22
+                }
+            }
+    }
+}
+
+/// Master 3: 区域底部工具栏 (30 PT 高, 复用)
+struct ZoneBottomToolbar: View {
+    var body: some View {
+        DesignColor.zoneSurface
+    }
+}
+
+/// Master 4: 区域模块 (顶 30 + 内容 + 底 30 = 472 PT, 接受 6 slot)
+struct ZoneModule: View {
+    let slot: ZoneSlot
     @Environment(WenshuLibrary.self) private var library
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ZoneTopToolbar(iconSlots: slot == .projectPreview ? 3 : 0)
+                .frame(height: LayoutTokens.toolbarH)
+            content
+                .frame(maxHeight: .infinity)
+            ZoneBottomToolbar()
+                .frame(height: LayoutTokens.toolbarH)
+        }
+        .background(slot == .dynamicZone ? DesignColor.dynamicZoneSurface : .clear)
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch slot {
+        case .projectSidebar:
+            DesignColor.zoneSurface.overlay(alignment: .topLeading) {
+                LibraryOutlineViewContent(library: library)
+            }
+        case .projectPreview:
+            DesignColor.zoneSurface.overlay(alignment: .topLeading) {
+                zoneLabel("项目预览")
+            }
+        case .editor:
+            // 老板 8/18 Q2 答: 4 PT inset 两层设计, 不要删
+            // 外层 #202020 + 内层 #ffffff 55% alpha 4 PT inset
+            DesignColor.zoneSurface
+                .overlay {
+                    Color.white.opacity(0.55)
+                        .padding(LayoutTokens.editorInset)
+                }
+        case .specializedTools:
+            DesignColor.zoneSurface.overlay(alignment: .topLeading) {
+                zoneLabel("专用工具")
+            }
+        case .chatManagement:
+            // 内部嵌套: 侧栏 200 + 拖拽线 6 + 对话 1310 (= 1516)
+            HStack(spacing: 0) {
+                DesignColor.zoneSurface
+                    .frame(width: LayoutTokens.chatSidebar)
+                    .overlay(alignment: .topLeading) { zoneLabel("聊天侧栏") }
+                VerticalDragSplitter(height: LayoutTokens.bandH - 2 * LayoutTokens.toolbarH)
+                DesignColor.zoneSurface
+                    .frame(maxWidth: .infinity)
+                    .overlay(alignment: .bottom) {
+                        // 聊天输入框 #4a60b2 蓝
+                        DesignColor.accentBlue
+                            .frame(width: LayoutTokens.chatInputW, height: LayoutTokens.chatInputH)
+                            .padding(.bottom, 16)
+                    }
+            }
+        case .dynamicZone:
+            // 动态区底色已在 .background 处
+            Color.clear.overlay(alignment: .topLeading) {
+                zoneLabel("动态区")
+            }
+        }
+    }
+
+    private func zoneLabel(_ name: String) -> some View {
+        Text(name)
+            .font(.system(size: 12, weight: .medium))
+            .foregroundStyle(.tertiary)
+            .padding(12)
+            .allowsHitTesting(false)
+    }
+}
+
+/// 6 instance 槽位 (boss Sketch 组件化 6 master 派生)
+enum ZoneSlot {
+    case projectSidebar
+    case projectPreview
+    case editor
+    case specializedTools
+    case chatManagement
+    case dynamicZone
+}
+
+// MARK: - Library outline (项目侧栏嵌入)
+
+struct LibraryOutlineViewContent: View {
+    let library: WenshuLibrary
     var body: some View {
         LibraryOutlineView(library: library)
-            // PARENT LABEL overlay — sits on top of the outline, anchored
-            // to the top-leading corner. Apple HIG Finder sidebar headers
-            // follow the same 'container · count' pattern.
             .overlay(alignment: .topLeading) {
                 Text(libraryHeader)
                     .font(.subheadline)
@@ -407,68 +330,8 @@ struct LibraryScaffold: View {
                     .allowsHitTesting(false)
             }
     }
-
-    /// 'LIBRARY' or 'LIBRARY · 3 个书架' depending on count. Kept private
-    /// (= only the overlay reads it); the count comes from the @Observable
-    /// library so it redraws when a shelf is added or removed.
     private var libraryHeader: String {
         let count = library.shelves.count
         return count == 0 ? "LIBRARY" : "LIBRARY · \(count) 个书架"
-    }
-}
-
-// MARK: - Zone scaffold (dim watermark + Apple Semantic Color background)
-// macOS-only (= Package.swift .macOS(.v27)): direct semantic color tokens, no fallback needed.
-struct ZoneScaffoldView: View {
-    let name: String
-    private let background: Color
-
-    init(name: String) {
-        self.name = name
-        self.background = Self.color(for: name)
-    }
-
-    /// Apple Semantic Color per zone role (= macOS 27.0 Liquid Glass design system).
-    /// No raw RGB — system tokens auto-adapt to dark/light/contrast.
-    private static func color(for name: String) -> Color {
-        switch name {
-        case "EDITOR":
-            return Color.black                                    // FCP Viewer convention
-        case "INSPECTOR":
-            return Color(nsColor: NSColor.controlBackgroundColor)  // one tier lighter than window bg
-        case "LIBRARY", "SHELF", "PROJECT", "CHAT", "CONSOLE", "STATUS":
-            return Color(nsColor: NSColor.windowBackgroundColor)
-        default:
-            return Color(nsColor: NSColor.windowBackgroundColor)
-        }
-    }
-
-    var body: some View {
-        ZStack {
-            background.ignoresSafeArea()
-            watermark
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private var watermark: some View {
-        // Boss 8/15 15:48: '把各区域的备注文字的字号调小吧, 还留着,
-        // 这样我可以指定区域告诉你要做什么'. The watermark stays — it's the
-        // zone label the owner uses to refer to specific zones in chat
-        // ("改 LIBRARY 的 xxx", "看看 EDITOR 那条线", etc.) — but it
-        // must NOT compete with actual content.
-        // Apple HIG: .title3 = 20pt regular (= macOS Title 3 = Notes /
-        // Reminders list section header). Dynamic Type-respecting.
-        // Lower contrast from 0.18 to 0.10 (= reads as a dim placeholder
-        // hint, not a hero label). At 20pt regular, "SHELF" and "PROJECT"
-        // also fit cleanly inside their 141px-wide Library-internal
-        // splits (= the previous 72pt "SHELF-PROJE..." overlap-on-the-
-        // divider artifact is gone as a side effect).
-        Text(name)
-            .font(.title3)
-            .foregroundStyle(.tertiary.opacity(0.10))
-            .lineLimit(1)
-            .minimumScaleFactor(0.5)
-            .allowsHitTesting(false)
     }
 }
