@@ -1,162 +1,76 @@
 //
-//  NativeSplitter.swift · Wenshu
+//  NativeSplitter.swift · Wenshu · v0.14.0
 //
-//  Boss 8/18 拍 2 PT 粗拖拽线 (Sketch "拖拽线" master 真值), 6 PT hit area, 居中画 1 PT 黑线
+//  老板 8/18 拍 Apple 官方 API: 拖拽线 = DragGesture + .pointerStyle
+//  (替代手写 NSView, NSCursor 在 SwiftUI 顶层 window 不生效)
+//
+//  6 PT hit area + 2 PT 视觉线 + 纯黑色 + 1 PT 视觉线居中
 //  数对公式: 52 + 465 + 2 + 465 = 984 (设计总高 1:1 PT 落)
+//
+//  调研: mcp__sketch__run_code 没用对应 SwiftUI 拖拽线组件 (HSplitView / VSplitView 都不可定制 divider 颜色, divider 颜色改不了; NSView 自写 NSCursor 在 SwiftUI 顶层 window 不生效).
+//  Apple 官方指引: 用 DragGesture (translation 增量) + .pointerStyle(.columnResize / .rowResize) 替代自写 NSView.
+//  链接:
+//    - https://developer.apple.com/documentation/swiftui/pointerstyle
+//    - https://developer.apple.com/documentation/swiftui/pointerstyle/columnresize
+//    - https://developer.apple.com/documentation/swiftui/pointerstyle/rowresize
+//    - https://developer.apple.com/documentation/swiftui/draggesture
+//
+//  老板 8/18 拍 "拖拽线是 1 组件 = 改 1 处全改" → 1 NativeSplitter 组件 + orientation 参数, 替代之前的 wrapper 2 个.
 
 import SwiftUI
-import AppKit
 
-/// 可拖拽的 2 PT 竖线 / 横线 (Apple AppKit NSView 真值实现)
-@MainActor
-final class NativeSplitterView: NSView {
-    enum Orientation { case vertical, horizontal }
-
-    let orientation: Orientation
-    /// 回调: vertical = deltaX, horizontal = deltaY
-    var onDrag: ((CGFloat) -> Void)?
-
-    private static let lineThickness: CGFloat = 2  // 老板 8/18 拍 2 PT 粗 (Sketch 拖拽线-横 frame h=2)
-    private static let hitAreaThickness: CGFloat = 6
-
-    private var isDragging = false
-    private var dragStart: NSPoint?
-    private var lastReported: CGFloat = 0
-
-    init(orientation: Orientation) {
-        self.orientation = orientation
-        super.init(frame: .zero)
-        wantsLayer = true
-        let options: NSTrackingArea.Options = [
-            .mouseEnteredAndExited, .activeInKeyWindow, .enabledDuringMouseDrag
-        ]
-        addTrackingArea(NSTrackingArea(rect: bounds, options: options, owner: self, userInfo: nil))
-    }
-
-    required init?(coder: NSCoder) { fatalError("not used") }
-
-    // MARK: - Layout (SwiftUI 拿 1PT, hit area 走 .frame() 扩张)
-
-    override var intrinsicContentSize: NSSize {
-        Self.size(for: orientation)
-    }
-
-    private static func size(for orientation: Orientation) -> NSSize {
-        switch orientation {
-        case .vertical:   return NSSize(width: hitAreaThickness, height: lineThickness)
-        case .horizontal: return NSSize(width: lineThickness, height: hitAreaThickness)
-        }
-    }
-
-    override func updateTrackingAreas() {
-        super.updateTrackingAreas()
-        for area in trackingAreas { removeTrackingArea(area) }
-        addTrackingArea(NSTrackingArea(
-            rect: bounds, options: [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect],
-            owner: self, userInfo: nil
-        ))
-    }
-
-    // MARK: - Drawing (2 PT 黑色线, 居中于 hit area)
-
-    override func draw(_ dirtyRect: NSRect) {
-        super.draw(dirtyRect)
-        let lineColor = NSColor.black  // 老板 8/18 拍 "纯黑色", dark mode 仍可见
-        lineColor.set()
-        switch orientation {
-        case .vertical:
-            let lineRect = NSRect(
-                x: (bounds.width - Self.lineThickness) / 2,
-                y: 0,
-                width: Self.lineThickness,
-                height: bounds.height
-            )
-            lineRect.fill()
-        case .horizontal:
-            let lineRect = NSRect(
-                x: 0,
-                y: (bounds.height - Self.lineThickness) / 2,
-                width: bounds.width,
-                height: Self.lineThickness
-            )
-            lineRect.fill()
-        }
-    }
-
-    // MARK: - Cursor (drag affordance, Apple HIG)
-
-    override func mouseEntered(with event: NSEvent) {
-        super.mouseEntered(with: event)
-        switch orientation {
-        case .vertical:   NSCursor.resizeLeftRight.set()
-        case .horizontal: NSCursor.resizeUpDown.set()
-        }
-    }
-
-    override func mouseExited(with event: NSEvent) {
-        super.mouseExited(with: event)
-        if !isDragging { NSCursor.arrow.set() }
-    }
-
-    // MARK: - Drag (NSEvent.deltaY/deltaX 增量)
-
-    override func mouseDown(with event: NSEvent) {
-        super.mouseDown(with: event)
-        isDragging = true
-        dragStart = event.locationInWindow
-        lastReported = 0
-        window?.makeFirstResponder(self)
-    }
-
-    override func mouseDragged(with event: NSEvent) {
-        super.mouseDragged(with: event)
-        guard isDragging else { return }
-        let delta: CGFloat = (orientation == .vertical) ? event.deltaX : event.deltaY
-        onDrag?(delta)
-    }
-
-    override func mouseUp(with event: NSEvent) {
-        super.mouseUp(with: event)
-        isDragging = false
-        dragStart = nil
-        lastReported = 0
-        NSCursor.arrow.set()
-    }
+/// 拖拽线方向 (vertical 拖水平 resizeLeftRight, horizontal 拖垂直 resizeUpDown)
+enum SplitterOrientation {
+    case vertical    // 控制左右 zone 宽度 → translation.width
+    case horizontal  // 控制上下 zone 高度 → translation.height
 }
 
-// MARK: - SwiftUI 桥接
+/// 6 拖拽线 1 组件 (老板 8/18 拍 "拖拽线是 1 组件")
+/// 改 1 处 = 5 拖拽线 (D_v1/D_v2/D_v3/D_v5 + D_h) 全 1:1 落
+struct NativeSplitter: View {
+    /// 拖拽线方向
+    let orientation: SplitterOrientation
+    /// 拖拽线长度 (vertical = 高度, horizontal = 宽度)
+    let length: CGFloat
+    /// 拖拽回调: vertical = deltaX (from SwiftUI translation.width), horizontal = deltaY (from translation.height)
+    let onDrag: @MainActor (CGFloat) -> Void
 
-struct NativeSplitter: NSViewRepresentable {
-    let orientation: NativeSplitterView.Orientation
-    let onDrag: (CGFloat) -> Void
+    private static let lineThickness: CGFloat = 2  // 老板 8/18 拍 2 PT 粗
+    private static let hitAreaThickness: CGFloat = 6  // 老板 8/18 拍 6 PT hit area
 
-    func makeNSView(context: Context) -> NativeSplitterView {
-        let v = NativeSplitterView(orientation: orientation)
-        v.onDrag = onDrag
-        return v
+    /// 拖拽手势 (Apple 官方, 用 translation 增量, 不漂移)
+    private var dragGesture: some Gesture {
+        DragGesture(minimumDistance: 0)
+            .onChanged { value in
+                let delta: CGFloat = (orientation == .vertical) ? value.translation.width : value.translation.height
+                onDrag(delta)
+            }
     }
 
-    func updateNSView(_ nsView: NativeSplitterView, context: Context) {
-        nsView.onDrag = onDrag
+    /// Apple 官方 cursor 切换 (columnResize / rowResize, macOS 15+)
+    private var pointerStyle: PointerStyle {
+        (orientation == .vertical) ? .columnResize : .rowResize
     }
-}
 
-/// 6 拖拽线真值 wrapper (boss 8/18 拍 2 PT 粗, 6 PT hit area, 居中画 1 PT 黑线)
-struct VerticalDragSplitter: View {
-    let height: CGFloat
-    let onDrag: (CGFloat) -> Void
     var body: some View {
-        NativeSplitter(orientation: .vertical, onDrag: onDrag)
-            .frame(width: 1, height: height)  // 1 PT 视觉线 (NSView hit area 6 PT 内透明 padding)
-    }
-}
-
-struct HorizontalDragSplitter: View {
-    let width: CGFloat
-    let onDrag: (CGFloat) -> Void
-    var body: some View {
-        NativeSplitter(orientation: .horizontal, onDrag: onDrag)
-            .frame(width: width, height: 1)  // 1 PT 视觉线
+        ZStack {
+            // 透明 hit area (Color.clear 填充命中)
+            Color.clear
+                .contentShape(.rect)
+            // 2 PT 黑色线居中 (master 真值 0,n,1,2 PT)
+            Rectangle()
+                .fill(Color.black)
+                .frame(
+                    width: orientation == .vertical ? Self.lineThickness : length,
+                    height: orientation == .vertical ? length : Self.lineThickness
+                )
+        }
+        .frame(
+            width: orientation == .vertical ? Self.hitAreaThickness : length,
+            height: orientation == .vertical ? length : Self.hitAreaThickness
+        )
+        .pointerStyle(pointerStyle)
+        .gesture(dragGesture)
     }
 }
 
@@ -167,7 +81,7 @@ struct StaticDividerHorizontal: View {
     var width: CGFloat? = nil
     var body: some View {
         if let w = width {
-            Color(nsColor: NSColor.separatorColor)
+            Color.black
                 .frame(width: w, height: 1)
         } else {
             Divider()
@@ -175,11 +89,11 @@ struct StaticDividerHorizontal: View {
     }
 }
 
-/// 不可拖拽的 1 PT 竖向分割线 (手画 Color.frame, NSColor.separatorColor 走系统色)
+/// 不可拖拽的 1 PT 竖向分割线 (手画 Color.frame, 纯黑色)
 struct StaticDividerVertical: View {
     let height: CGFloat
     var body: some View {
-        Color(nsColor: NSColor.separatorColor)
+        Color.black
             .frame(width: 1, height: height)
     }
 }

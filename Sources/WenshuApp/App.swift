@@ -66,10 +66,8 @@ enum LayoutTokens {
     static let editorWRatio: CGFloat = 797.0 / 1920.0         // 老板 8/18 改 797 PT (722,52,797,465)
     static let toolsWRatio: CGFloat = 400.0 / 1920.0
 
-    // 下 band 3 zone 数对公式: (200, 聊天对话吸剩余, 400) = 1920
-    // 老板 8/18 拍 "多出来的都可以放在聊天区中" = 聊天对话 = 1920 - 200 - 400 = 1320
-    static let chatSidebarRatio: CGFloat = 200.0 / 1920.0
-    static let chatDialogueRatio: CGFloat = 1318.0 / 1920.0  // 老板 8/18 改: 1319 - 1 - 1 = 1318 PT
+    // 下 band 2 区 (老板 8/18 拍 "上四下两"): AI聊天 1519 + AI 动态 400 = 1919 (+ 1 PT 拖拽线)
+    static let aiChatRatio: CGFloat = 1519.0 / 1920.0      // AI聊天整宽 (替代 v0.10.3 拆的 chatSidebar + chatDialogue)
     static let dynamicWRatio: CGFloat = 400.0 / 1920.0
 
     // 编辑器两层设计 (老板 8/18 Q2 答: 有意两层, 不要删)
@@ -77,9 +75,9 @@ enum LayoutTokens {
 
 
     // 顶栏色块比例 (老板 8/18 Q3 答: 22/82/142 起点 + 38 PT 宽 + 60 PT 等距)
-    static let iconLeadingRatio: CGFloat = 22.0 / 1920.0  // 起点 22 PT
+    static let iconLeadingRatio: CGFloat = 18.0 / 1920.0  // 起点 18 PT (老板 8/18 改 18 PT, 旧 22 PT)
     static let iconSizeRatio: CGFloat = 18.0 / 1920.0     // 18 PT 边长 (老板 8/18 改 18x18, 旧 38x38)
-    static let iconSpacingRatio: CGFloat = 60.0 / 1920.0  // 60 PT 等距
+    static let iconSpacingRatio: CGFloat = 18.0 / 1920.0  // 18 PT 等距 (老板 8/18 改 18 PT = icon 间距, 起点 18/54/90 相邻 36 - 18 = 18)
 }
 
 // MARK: - Self screenshot (老板 8/14 12:38 + 8/15 14:48: 每次代码改完必 screenshot)
@@ -214,16 +212,17 @@ struct LayoutShellView: View {
     }
 
     private var contentView: some View {
-        // 老板 8/18 数对公式: 52 (老板顶栏=macOS chrome) + 465 + 2 + 465 = 984
-        // 52 PT 顶栏由 macOS unified titlebar chrome 接管 (省 老板自定义 顶栏 渲染, 避免重复)
+        // 老板 8/18 拍 D_h 横拖拽线可拖 → 上 band +offset/2, 下 band -offset/2 反方向,
+        // 整体高度 = upperBandH + lowerBandH + 2 (横拖拽线) = 465 + 2 + 465 = 932 (= designH - 52 macOS chrome, 1:1 守恒)
         let totalW = LayoutTokens.designW
-        let bandH = LayoutTokens.designH * LayoutTokens.bandRatio  // 465
+        let upperBandH = vm.upperBandH
+        let lowerBandH = vm.lowerBandH
         return VStack(spacing: 0) {
-            UpperBandZone(vm: vm, totalW: totalW, bandH: bandH)
-                .frame(width: totalW, height: bandH)
-            HorizontalDragSplitter(width: totalW, onDrag: { _ in vm.adjustBandSplit() })
-            LowerBandZone(vm: vm, totalW: totalW, bandH: bandH)
-                .frame(width: totalW, height: bandH)
+            UpperBandZone(vm: vm, totalW: totalW, bandH: upperBandH)
+                .frame(width: totalW, height: upperBandH)
+            NativeSplitter(orientation: .horizontal, length: totalW, onDrag: { dy in vm.adjustBandSplit(delta: dy, totalHeight: LayoutTokens.designH)  })
+            LowerBandZone(vm: vm, totalW: totalW, bandH: lowerBandH)
+                .frame(width: totalW, height: lowerBandH)
         }
     }
 }
@@ -244,15 +243,15 @@ struct UpperBandZone: View {
             ZoneModule(slot: .projectSidebar, vm: vm, totalW: totalW, bandH: bandH)
                 .frame(width: sidebar, height: bandH)
             // D_v1: 项目侧栏 / 项目预览
-            VerticalDragSplitter(height: bandH, onDrag: { dx in vm.adjustSidebarPreview(delta: dx, totalWidth: totalW) })
+            NativeSplitter(orientation: .vertical, length: bandH, onDrag: { dx in vm.adjustSidebarPreview(delta: dx, totalWidth: totalW)  })
             ZoneModule(slot: .projectPreview, vm: vm, totalW: totalW, bandH: bandH)
                 .frame(width: preview, height: bandH)
             // D_v2: 项目预览 / 编辑器
-            VerticalDragSplitter(height: bandH, onDrag: { dx in vm.adjustPreviewEditor(delta: dx, totalWidth: totalW) })
+            NativeSplitter(orientation: .vertical, length: bandH, onDrag: { dx in vm.adjustPreviewEditor(delta: dx, totalWidth: totalW)  })
             ZoneModule(slot: .editor, vm: vm, totalW: totalW, bandH: bandH)
                 .frame(width: editor, height: bandH)
             // D_v3: 编辑器 / 专用工具
-            VerticalDragSplitter(height: bandH, onDrag: { dx in vm.adjustEditorTools(delta: dx, totalWidth: totalW) })
+            NativeSplitter(orientation: .vertical, length: bandH, onDrag: { dx in vm.adjustEditorTools(delta: dx, totalWidth: totalW)  })
             ZoneModule(slot: .specializedTools, vm: vm, totalW: totalW, bandH: bandH)
                 .frame(width: tools, height: bandH)
         }
@@ -262,25 +261,20 @@ struct UpperBandZone: View {
 // MARK: - 下 band (聊天管理区): 2 区域模块 + 2 拖拽线-竖
 
 struct LowerBandZone: View {
-    /// v0.10.3 老板 8/18 拍下 band 3 区 = 聊天侧栏 200 + 聊天对话 1316 + 动态区 403
-    /// 2 拖拽线 D_v4 (x=200 侧栏/对话) + D_v5 (x=1516 对话/动态区)
+    /// 老板 8/18 拍 "上四下两" = 下 band 2 区: AI聊天 (整宽 1519 PT) + AI 动态 (400 PT)
+    /// 1 拖拽线 D_v5 (x=1519, AI聊天 / AI 动态)
     let vm: LayoutShellViewModel
     let totalW: CGFloat
     let bandH: CGFloat
     var body: some View {
-        let sidebarW = totalW * CGFloat(vm.chatSidebarRatio)
-        let dialogueW = totalW * CGFloat(vm.chatDialogueRatio)
-        let dynamicW = totalW * CGFloat(vm.dynamicWRatio)
+        let aiChatW = totalW * LayoutTokens.aiChatRatio
+        let dynamicW = totalW * LayoutTokens.dynamicWRatio
         HStack(spacing: 0) {
-            ZoneModule(slot: .chatSidebar, vm: vm, totalW: totalW, bandH: bandH)
-                .frame(width: sidebarW, height: bandH)
-            // D_v4: 聊天侧栏 / 聊天对话
-            VerticalDragSplitter(height: bandH, onDrag: { dx in vm.adjustChatSidebar(delta: dx, totalWidth: totalW) })
-            ZoneModule(slot: .chatDialogue, vm: vm, totalW: totalW, bandH: bandH)
-                .frame(width: dialogueW, height: bandH)
-            // D_v5: 聊天对话 / 动态区
-            VerticalDragSplitter(height: bandH, onDrag: { dx in vm.adjustChatDynamic(delta: dx, totalWidth: totalW) })
-            ZoneModule(slot: .dynamicZone, vm: vm, totalW: totalW, bandH: bandH)
+            ZoneModule(slot: .aiChat, vm: vm, totalW: totalW, bandH: bandH)
+                .frame(width: aiChatW, height: bandH)
+            // D_v5: AI聊天 / AI 动态
+            NativeSplitter(orientation: .vertical, length: bandH, onDrag: { dx in vm.adjustChatDynamic(delta: dx, totalWidth: totalW)  })
+            ZoneModule(slot: .aiDynamic, vm: vm, totalW: totalW, bandH: bandH)
                 .frame(width: dynamicW, height: bandH)
         }
     }
@@ -299,25 +293,37 @@ struct TitleBarZone: View {
 /// 区域顶部工具栏 (boss Sketch 真值: 30 PT 高, 蓝 ICON 占位)
 /// v0.10.10d: 删底部 1 PT 分割线 (老板 8/18 拍 "对齐了, 不用文字标签" + 6 拖拽线已经够了, 不要 toolbar 内部多余线)
 struct ZoneTopToolbar: View {
+    /// 三个占位蓝色的 ICON 槽位 (老板 8/18 拍 "六个区域都用这一个组件, 未来的三个占位不同")
+    /// v0.13.0: 引入 SF Symbols Beta 真符号 (Apple SF Symbols 5 Beta, macOS 27+), 替换 3 蓝矩形占位
+    /// Master 1:1 落: 18×18 PT, 起点 18 PT, 间距 18 PT, 顶栏 30 PT 上下居中 (y=6..24)
     let iconSlots: Int
+    let iconNames: [String]
     let totalW: CGFloat
     var body: some View {
         let iconSize = totalW * LayoutTokens.iconSizeRatio
         let iconSpacing = totalW * LayoutTokens.iconSpacingRatio
         let iconLeading = totalW * LayoutTokens.iconLeadingRatio
-
-        // Apple Semantic 顶栏底色 (跟 zoneSurface 同源)
+        // 老板 8/18 master 真值: 顶栏 30 PT 高 + #202020 底色 + 3 SF Symbols Beta 居中 + 底部 1 PT #000000 分割线
         DesignColor.zoneSurface
-            .overlay(alignment: .topLeading) {
-                if iconSlots > 0 {
+            .overlay(alignment: .leading) {
+                VStack(spacing: 0) {
+                    Spacer(minLength: 0)
                     HStack(spacing: iconSpacing) {
-                        ForEach(0..<iconSlots, id: \.self) { _ in
-                            DesignColor.accentBlue
+                        ForEach(0..<iconSlots, id: \.self) { i in
+                            // SF Symbols Beta 真符号 (macOS 27+ System framework)
+                            // 渲染: monochrome 风格 + accentBlue (#4A60b2)
+                            Image(systemName: iconNames[i])
+                                .font(.system(size: iconSize))
+                                .foregroundStyle(DesignColor.accentBlue)
                                 .frame(width: iconSize, height: iconSize)
                         }
                     }
-                    .padding(.leading, iconLeading)
+                    Spacer(minLength: 0)
                 }
+                .padding(.leading, iconLeading)
+            }
+            .overlay(alignment: .bottom) {
+                DesignColor.splitterLine.frame(height: 1)  // 1 PT #000000 分割线
             }
     }
 }
@@ -325,8 +331,12 @@ struct ZoneTopToolbar: View {
 /// 区域底部工具栏 (boss Sketch 真值: 30 PT 高, 净底)
 /// v0.10.10d: 删顶部 1 PT 分割线 (老板拍 "对齐了", 6 拖拽线够用)
 struct ZoneBottomToolbar: View {
+    /// 老板 8/18 master 真值: 30 PT 高 + #202020 底色 + 顶部 1 PT #000000 分割线
     var body: some View {
         DesignColor.zoneSurface
+            .overlay(alignment: .top) {
+                DesignColor.splitterLine.frame(height: 1)  // 1 PT #000000 分割线 (master "区域底部工具栏/分割线")
+            }
     }
 }
 
@@ -341,21 +351,19 @@ struct ZoneModule: View {
     private var toolbarH: CGFloat { bandH * LayoutTokens.toolbarRatio }
     /// 老板 8/18 Q2 答: 4 PT inset = 单一垂直方向 (spec §3.2 "背景 y=60~884, 正文 y=64~882", 上下 4 PT 视觉下沉)
     private var editorInset: CGFloat { bandH * LayoutTokens.editorInsetRatio }  // 4 PT 单一垂直
-    // v0.10.3: chatSidebar / chatDialogue 走 vm ratio
-    private var chatSidebar: CGFloat { totalW * CGFloat(vm.chatSidebarRatio) }
     // v0.10.8: 撤掉 chatInputW/H 私有属性, 老板 8/18 拍 "新图没画聊天输入框"
     private var innerBandH: CGFloat { bandH - 2 * toolbarH }  // 顶栏底栏间内容区
 
     var body: some View {
         VStack(spacing: 0) {
-            ZoneTopToolbar(iconSlots: slot == .projectPreview ? 3 : 0, totalW: totalW)  // 老板 8/18 拍 "六个区域都用这一个组件", 但只有项目预览画 3 蓝 ICON (其他 zone 后续 override 不同色, 当前 0)
+            ZoneTopToolbar(iconSlots: 3, iconNames: ["book.closed", "magnifyingglass", "slider.horizontal.3"], totalW: totalW)  // v0.13.0 SF Symbols Beta 真符号 (6 区域全部画 3 SF Symbols, 未来 override 不同)
                 .frame(height: toolbarH)
             content
                 .frame(maxHeight: .infinity)
             ZoneBottomToolbar()
                 .frame(height: toolbarH)
         }
-        .background(slot == .dynamicZone ? DesignColor.dynamicZoneSurface : .clear)
+        .background(slot == .aiDynamic ? DesignColor.dynamicZoneSurface : .clear)
     }
 
     @ViewBuilder
@@ -377,13 +385,10 @@ struct ZoneModule: View {
                 }
         case .specializedTools:
             DesignColor.zoneSurface
-        case .chatSidebar:
+        case .aiChat:
             DesignColor.zoneSurface
-        case .chatDialogue:
-            // 老板 8/18 拍 "新图好像没有画这个聊天框" = 净底, 无输入框
+        case .aiDynamic:
             DesignColor.zoneSurface
-        case .dynamicZone:
-            DesignColor.dynamicZoneSurface
         }
     }
 }
@@ -395,9 +400,8 @@ enum ZoneSlot {
     case projectPreview
     case editor
     case specializedTools
-    case chatSidebar    // v0.10.3 新增: 下 band 聊天侧栏 (200 PT)
-    case chatDialogue   // v0.10.3 新增: 下 band 聊天对话 (1316 PT 含 D_v4 hit area)
-    case dynamicZone
+    case aiChat        // 老板 8/18 拍 "上四下两", 下 band 整宽 AI聊天 (含原 v0.10.3 拆的 chatSidebar + chatDialogue)
+    case aiDynamic
 }
 
 // MARK: - Library outline (项目侧栏嵌入)
