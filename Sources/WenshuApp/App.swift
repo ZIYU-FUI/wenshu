@@ -79,6 +79,12 @@ enum LayoutTokens {
     static let iconLeadingRatio: CGFloat = 18.0 / 1920.0  // 起点 18 PT (老板 8/18 改 18 PT, 旧 22 PT)
     static let iconSizeRatio: CGFloat = 18.0 / 1920.0     // 18 PT 边长 (老板 8/18 改 18x18, 旧 38x38)
     static let iconSpacingRatio: CGFloat = 18.0 / 1920.0  // 18 PT 等距 (老板 8/18 改 18 PT = icon 间距, 起点 18/54/90 相邻 36 - 18 = 18)
+
+    // 底栏占位元素 (老板 8/18 拍 "icon 18×18, 占位文字苹果字符样式正文尺寸") — 绝对 PT 不走比例
+    static let bottomLeading: CGFloat = 18                 // 18 PT 距左 (左占位文字)
+    static let bottomTrailing: CGFloat = 18                // 18 PT 距右 (右占位 icon)
+    static let placeholderIconSize: CGFloat = 18          // 18 PT 占位 icon 边长 (绝对值)
+    static let placeholderTextLeadingRatio: CGFloat = 0.09  // 占位文字起点 18/200 = 9%
 }
 
 // MARK: - Self screenshot (老板 8/14 12:38 + 8/15 14:48: 每次代码改完必 screenshot)
@@ -233,6 +239,11 @@ struct LayoutShellView: View {
         .overlay {
             SplitterHitAreas(vm: vm)
         }
+        // 8 个 ZoneBottomToolbar SwiftUI view overlay (占位文字 + 占位 icon, 老板 8/18 拍 "组件套组件")
+        // 老板 8/18 拍 "icon 18×18" + "占位文字用苹果字符样式 正文尺寸" (.body)
+        .overlay(alignment: .topLeading) {
+            ZoneBottomToolbarsOverlay(vm: vm)
+        }
     }
 
     /// Canvas 渲染: 8 zone 矩形 + 6 拖拽线 + 3 SF Symbols Beta + 标题栏
@@ -312,7 +323,10 @@ struct LayoutShellView: View {
                  iconSlots: 3, iconNames: ["book.closed", "magnifyingglass", "slider.horizontal.3"])
     }
 
-    /// 画单个 zone: 底色 + 顶 30 PT 工具栏 + 内层 (4 PT inset editor) + 底 30 PT 工具栏 + 3 SF Symbols Beta
+    /// 画单个 zone: 底色 + 顶 30 PT 工具栏 + 内层 (4 PT inset editor) + 底栏背景
+    /// 老板 8/18 拍 "区域模块是组件套组件" + "icon 18×18" + "占位文字用苹果字符样式正文尺寸"
+    /// 底栏占位文字 + 占位 icon 不在 Canvas 画, 由 SwiftUI view ZoneBottomToolbar 组件接管 (overlay)
+    /// Canvas 只画底栏背景矩形 + 顶部 1 PT 分割线
     private func drawZone(ctx: GraphicsContext, x: CGFloat, y: CGFloat, width: CGFloat, height: CGFloat,
                           slot: ZoneSlot, toolbarH: CGFloat, innerBandH: CGFloat,
                           iconSlots: Int, iconNames: [String]) {
@@ -359,56 +373,11 @@ struct LayoutShellView: View {
                 with: .color(Color.white.opacity(0.55))
             )
         }
-        // 底栏 30 PT (净底)
+        // 底栏背景 (净底, 让 ZoneBottomToolbar SwiftUI view overlay 在上面渲染占位文字 + icon)
         let bottomY = y + height - toolbarH
         ctx.fill(
             Path(CGRect(x: x, y: bottomY, width: width, height: toolbarH)),
             with: .color(zoneSurface)
-        )
-        // 底栏顶部 1 PT 分割线
-        ctx.fill(
-            Path(CGRect(x: x, y: bottomY, width: width, height: 1)),
-            with: .color(DesignColor.splitterLine)
-        )
-        // 底栏左占位文字 (Apple HIG .caption 12 PT 字符样式, 老板 8/18 拍 "占位文字用苹果字符样式")
-        // Sketch 真值: 占位文本 x=18, y=8, w=52, h=16 (在 200×30 底栏里)
-        // 200 PT 真值用比例换算到任意 zone 宽
-        let bottomLeadingRatio: CGFloat = 18.0 / 200.0  // 起点比例 18/200
-        let bottomIconSizeRatio: CGFloat = 18.0 / 200.0  // 18 PT 占位 icon 边长比例
-        let bottomIconTrailingRatio: CGFloat = 18.0 / 200.0  // 右侧距边 18 PT
-        let bottomTextWidthRatio: CGFloat = 52.0 / 200.0  // 占位文字宽 52 PT 比例
-        let bottomTextHeightRatio: CGFloat = 16.0 / 200.0  // 占位文字高 16 PT 比例 (实际 caption 字号 = 12 PT)
-
-        let bottomLeading = width * bottomLeadingRatio
-        let bottomTextWidth = width * bottomTextWidthRatio
-        let bottomTextHeight = width * bottomTextHeightRatio
-        let bottomIconSize = width * bottomIconSizeRatio
-        let bottomIconTrailing = width * bottomIconTrailingRatio
-
-        // 左占位文字 (Apple HIG .caption 12 PT 字符样式, 老板 8/18 拍 "占位文字用苹果字符样式")
-        // Canvas ctx.draw(text: Text, in: CGRect) — Apple SwiftUI GraphicsContext API
-        // .caption 是 Apple HIG 12 PT secondary style (Apple Standard Text Styles)
-        ctx.draw(
-            Text("占位文字")
-                .font(.caption)
-                .foregroundStyle(.tertiary),
-            in: CGRect(
-                x: x + bottomLeading,
-                y: bottomY + (toolbarH - bottomTextHeight) / 2,
-                width: bottomTextWidth,
-                height: bottomTextHeight
-            )
-        )
-        // 右占位 icon (accentBlue 18×18 矩形, Apple SF Symbol placeholder)
-        let placeholderIcon = ctx.resolve(Image(systemName: "questionmark.square.dashed"))
-        ctx.draw(
-            placeholderIcon,
-            in: CGRect(
-                x: x + width - bottomIconTrailing - bottomIconSize,
-                y: bottomY + (toolbarH - bottomIconSize) / 2,
-                width: bottomIconSize,
-                height: bottomIconSize
-            )
         )
     }
 
@@ -458,6 +427,53 @@ struct SplitterHitAreas: View {
                 .offset(x: totalW * CGFloat(vm.aiChatRatio) - 3, y: titleBarH + upperBandH + 1)
         }
         .allowsHitTesting(true)
+    }
+}
+
+/// 8 个 ZoneBottomToolbar SwiftUI view overlay (占位文字 + 占位 icon)
+/// 老板 8/18 拍 "区域模块是组件套组件" + "icon 18×18" + "占位文字苹果字符样式正文尺寸 (.body)"
+/// 算 8 zone 底栏 frame + 渲染 ZoneBottomToolbar(width:) SwiftUI view
+struct ZoneBottomToolbarsOverlay: View {
+    let vm: LayoutShellViewModel
+
+    var body: some View {
+        let totalW = LayoutTokens.designW
+        let upperBandH = vm.upperBandH
+        let lowerBandH = vm.lowerBandH
+        let titleBarH = LayoutTokens.titleBarHeight
+        let toolbarH = LayoutTokens.toolbarRatio * 465  // 30 PT
+
+        // 上 band 4 zone 底栏 frame (bottom = titleBarH + upperBandH - toolbarH)
+        let upperBottomY = titleBarH + upperBandH - toolbarH
+        let sidebarW = totalW * CGFloat(vm.projectSidebarRatio)
+        let previewW = totalW * CGFloat(vm.projectPreviewRatio)
+        let editorW = totalW * CGFloat(vm.editorWRatio)
+        let toolsW = totalW * CGFloat(vm.toolsWRatio)
+
+        // 下 band 2 zone 底栏 frame (bottom = titleBarH + upperBandH + 1 + lowerBandH - toolbarH)
+        let lowerBottomY = titleBarH + upperBandH + 1 + lowerBandH - toolbarH
+        let aiChatW = totalW * CGFloat(vm.aiChatRatio)
+        let dynamicW = totalW * CGFloat(vm.dynamicWRatio)
+
+        ZStack(alignment: .topLeading) {
+            // 上 band 4 zone 底栏
+            ZoneBottomToolbar(width: sidebarW)
+                .offset(x: 0, y: upperBottomY)
+            ZoneBottomToolbar(width: previewW)
+                .offset(x: sidebarW + 1, y: upperBottomY)  // +1 = D_v1 拖拽线
+            ZoneBottomToolbar(width: editorW)
+                .offset(x: sidebarW + 1 + previewW + 1, y: upperBottomY)  // +2 = D_v1 + D_v2
+            ZoneBottomToolbar(width: toolsW)
+                .offset(x: sidebarW + 1 + previewW + 1 + editorW + 1, y: upperBottomY)  // +3 = D_v1 + D_v2 + D_v3
+
+            // 下 band 2 zone 底栏
+            ZoneBottomToolbar(width: aiChatW)
+                .offset(x: 0, y: lowerBottomY)
+            ZoneBottomToolbar(width: dynamicW)
+                .offset(x: aiChatW + 1, y: lowerBottomY)  // +1 = D_v5
+        }
+        .frame(width: totalW, height: titleBarH + upperBandH + 1 + lowerBandH)
+        .allowsHitTesting(false)  // 占位文字/icon 不抢点击事件 (让拖拽线 NSView 接管)
     }
 }
 
@@ -595,14 +611,37 @@ struct ZoneTopToolbar: View {
     }
 }
 
-/// 区域底部工具栏 (boss Sketch 真值: 30 PT 高, 净底)
-/// v0.10.10d: 删顶部 1 PT 分割线 (老板拍 "对齐了", 6 拖拽线够用)
+/// 区域底部工具栏 (boss Sketch 真值: 30 PT 高, 占位文字 + 占位 icon + 顶部 1 PT 分割线)
+/// 老板 8/18 拍 "区域模块是组件套组件" → 底栏是独立组件, 内部包含占位文字 + 占位 icon
+/// 老板 8/18 拍 "占位文字用苹果字符样式 正文尺寸" → SwiftUI .body (Apple HIG 13 PT)
+/// 老板 8/18 拍 "icon 18×18" → 绝对 18 PT, 不走比例
+/// v0.14.3 抽到独立 SwiftUI view (Canvas 重画 8 zone 背景, 底栏单独走 SwiftUI view 组件)
 struct ZoneBottomToolbar: View {
-    /// 老板 8/18 master 真值: 30 PT 高 + #202020 底色 + 顶部 1 PT #000000 分割线
+    let width: CGFloat
+
     var body: some View {
+        let toolbarH = LayoutTokens.toolbarRatio * 465  // 老板 8/18 改 bandH=465, toolbarRatio=30/465 = 30 PT
         DesignColor.zoneSurface
+            .frame(width: width, height: toolbarH)
             .overlay(alignment: .top) {
-                DesignColor.splitterLine.frame(height: 1)  // 1 PT #000000 分割线 (master "区域底部工具栏/分割线")
+                DesignColor.splitterLine.frame(height: 1)  // 1 PT #000000 顶部分割线
+            }
+            .overlay(alignment: .leading) {
+                // 左占位文字 (Apple HIG .body 13 PT 正文尺寸, 老板 8/18 拍 "苹果字符样式 正文尺寸")
+                Text("占位文字")
+                    .font(.body)  // Apple Standard Text Styles 13 PT body (正文尺寸)
+                    .foregroundStyle(.tertiary)
+                    .padding(.leading, LayoutTokens.bottomLeading)  // 18 PT 距左 (绝对值)
+                    .allowsHitTesting(false)
+            }
+            .overlay(alignment: .trailing) {
+                // 右占位 icon (18×18 PT SF Symbol, 老板 8/18 拍 "icon 18×18")
+                Image(systemName: "questionmark.square.dashed")
+                    .font(.system(size: LayoutTokens.placeholderIconSize))  // 18 PT 绝对值
+                    .foregroundStyle(DesignColor.accentBlue)
+                    .frame(width: LayoutTokens.placeholderIconSize, height: LayoutTokens.placeholderIconSize)  // 18×18 PT
+                    .padding(.trailing, LayoutTokens.bottomTrailing)  // 18 PT 距右
+                    .allowsHitTesting(false)
             }
     }
 }
@@ -627,7 +666,7 @@ struct ZoneModule: View {
                 .frame(height: toolbarH)
             content
                 .frame(maxHeight: .infinity)
-            ZoneBottomToolbar()
+            ZoneBottomToolbar(width: totalW)
                 .frame(height: toolbarH)
         }
         .background(slot == .aiDynamic ? DesignColor.dynamicZoneSurface : .clear)
