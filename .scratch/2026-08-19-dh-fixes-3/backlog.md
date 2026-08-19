@@ -8,7 +8,12 @@
 
 ## Backlog 02 — cursor 不变
 
-**Status**: ⚠️ 查文档中 (deleg_a9c4fde9 / deleg_cabed6c4 跑 Apple docs 真值, 待结果)
+**Status**: ✅ 真因查完 + 推荐方案 — commit 54b0484b
+- 真因报告: cursor-investigation-report-v2.md (552 行, 39 KB)
+- 真因: NSHostingView 不 override resetCursorRects + override hitTest, 屏蔽 AppKit cursor rects 范式
+- 推荐: 🥇 A — 退回 SwiftUI .pointerStyle 不走 NSViewRepresentable
+- 验证 probe: .scratch/2026-08-19-cursor-probe/CursorProbe.swift (老板在 Xcode / SwiftUI Playground 跑)
+- 待: 老板拍 A / D / E + 验证 probe 结果
 
 ## Backlog 03 — 拖拽线静态色 Color.black → Color(nsColor: .separatorColor)
 
@@ -19,6 +24,19 @@
 **Status**: ✅ done — commit c047afc9 (v0.17 ticket 08, DesignColor.accentBlue / splitterLine 已改)
 
 ## Backlog 05 — 拖拽线没顶到头 (差 1 像素)
+
+**Status**: ✅ done — commit e359e27 (v0.17 ticket 02 顶到头)
+- NativeSplitter lineThickness 2 → 1
+- NativeSplitter hoveredThickness 4 → 3
+- NativeSplitter hitAreaThickness 6 → 1
+
+## Backlog 06 — 分割线没顶到头 (差 1 像素)
+
+**Status**: ✅ done — commit e359e27
+- StaticDividerHorizontal Rectangle frame(height: 2) → frame(height: 1)
+- StaticDividerVertical Rectangle frame(width: 2) → frame(width: 1)
+
+## Backlog 05 (旧) — 拖拽线没顶到头 (差 1 像素)
 
 **来源**: 老板 2026-08-19 19:00 拍
 
