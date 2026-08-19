@@ -304,6 +304,7 @@ struct UpperBandZone: View {
             ZoneModule(slot: .specializedTools, vm: vm, totalW: totalW, bandH: bandH)
                 .frame(width: tools)
         }
+        .frame(height: bandH)  // 显式告诉 SwiftUI VStack layout 上 band 高度, 响应 vm.bandOffset mutate
     }
 }
 
@@ -327,6 +328,7 @@ struct LowerBandZone: View {
             ZoneModule(slot: .aiDynamic, vm: vm, totalW: totalW, bandH: bandH)
                 .frame(width: dynamicW)
         }
+        .frame(height: bandH)  // 显式告诉 SwiftUI VStack layout 下 band 高度, 响应 vm.bandOffset mutate, 反方向守恒
     }
 }
 

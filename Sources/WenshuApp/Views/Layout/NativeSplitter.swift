@@ -59,16 +59,13 @@ final class SplitterHitArea: NSView {
     /// 鼠标释放 (Apple HIG: 拖拽结束, 不需清状态, mouseDragged event.deltaX/Y 自带累积)
     override func mouseUp(with event: NSEvent) {}
 
-    /// mouseEntered / mouseExited: NSTrackingArea 自动调
+    /// mouseEntered: 通知 SwiftUI isHovered (拖拽期间 mouseExited 被 mouse capture 跳过, mouseDragged 时也保持 hover)
     override func mouseEntered(with event: NSEvent) {
-        // 切 cursor (跟 Pages / Numbers 一致, 鼠标进 NSView 立刻切)
-        let cursor: NSCursor = (orientation == .vertical) ? .resizeLeftRight : .resizeUpDown
-        cursor.push()
         onHoverChange?(true)
     }
 
+    /// mouseExited: 拖拽完松开鼠标 cursor 离开 NSView 自动调, 清 isHovered
     override func mouseExited(with event: NSEvent) {
-        NSCursor.pop()
         onHoverChange?(false)
     }
 
@@ -83,8 +80,14 @@ final class SplitterHitArea: NSView {
         addTrackingArea(area)
     }
 
+    /// cursor 切换 (Apple HIG 真值: NSView 自己声明 cursor 区域, macOS 系统自动切, 不依赖 NSCursor.push)
+    override func resetCursorRects() {
+        let cursor: NSCursor = (orientation == .vertical) ? .resizeLeftRight : .resizeUpDown
+        addCursorRect(bounds, cursor: cursor)
+    }
+
     deinit {
-        NSCursor.pop()  // safety net: 如果 cursor 没 pop 就 deinit, 强制 pop
+        NSCursor.pop()  // safety net: 如果之前 NSCursor.push 没平衡 (历史遗留), 强制 pop
     }
 }
 
@@ -100,23 +103,16 @@ struct SplitterHitAreaRepresentable: NSViewRepresentable {
     func makeNSView(context: Context) -> SplitterHitArea {
         let view = SplitterHitArea()
         view.orientation = orientation
-        view.onDrag = { delta in
-            Task { @MainActor in onDrag(delta) }
-        }
-        view.onHoverChange = { hovered in
-            Task { @MainActor in onHoverChange(hovered) }
-        }
+        // NSView 事件本身就在 main thread (Apple AppKit 真值), 直接同步调 SwiftUI closure, 不需要 Task 包
+        view.onDrag = { delta in onDrag(delta) }
+        view.onHoverChange = { hovered in onHoverChange(hovered) }
         return view
     }
 
     func updateNSView(_ nsView: SplitterHitArea, context: Context) {
         nsView.orientation = orientation
-        nsView.onDrag = { delta in
-            Task { @MainActor in onDrag(delta) }
-        }
-        nsView.onHoverChange = { hovered in
-            Task { @MainActor in onHoverChange(hovered) }
-        }
+        nsView.onDrag = { delta in onDrag(delta) }
+        nsView.onHoverChange = { hovered in onHoverChange(hovered) }
     }
 }
 
