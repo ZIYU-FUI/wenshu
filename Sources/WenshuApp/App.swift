@@ -281,26 +281,26 @@ struct UpperBandZone: View {
     let totalW: CGFloat
     let bandH: CGFloat
     var body: some View {
-        // ratio 走 vm (vm.*Ratio = LayoutTokens 默认 + 拖拽 offset 累加)
-        let sidebar = totalW * CGFloat(vm.projectSidebarRatio)
-        let preview = totalW * CGFloat(vm.projectPreviewRatio)
-        let editor  = totalW * CGFloat(vm.editorWRatio)
-        let tools   = totalW * CGFloat(vm.toolsWRatio)
+        // v0.15 ticket 022: 老板 2026-08-19 拍 "上半区的四个区域模块组件, 用宽度用比例来写"
+        //   不用 LayoutTokens ratio 写死, 用 Apple SwiftUI 27+ .containerRelativeFrame
+        //   count: 1920, span: 200/520/794/400 (整数化 × 1000 = 1:1 PT 跟 Sketch 真值)
+        //   Apple API: public func containerRelativeFrame(_ axes: Axis.Set, count: Int, span: Int = 1, spacing: CGFloat, alignment: Alignment = .center)
+        //   公式: columnWidth = (containerWidth - spacing*(count-1)) / count; itemWidth = columnWidth * span + (span-1) * spacing
         HStack(spacing: 0) {
             ZoneModule(slot: .projectSidebar, vm: vm, totalW: totalW, bandH: bandH)
-                .frame(width: sidebar)  // v0.15 ticket 018: 不硬编码 height, ZoneModule 自适应 (顶栏 30 + 内容撑满 + 底栏 30)
+                .containerRelativeFrame(.horizontal, count: 1920, span: 200, spacing: 0)
             // D_v1: 项目侧栏 / 项目预览 (splitterIndex 0)
             VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 0, vm: vm)
             ZoneModule(slot: .projectPreview, vm: vm, totalW: totalW, bandH: bandH)
-                .frame(width: preview)  // v0.15 ticket 018: 不硬编码 height
+                .containerRelativeFrame(.horizontal, count: 1920, span: 520, spacing: 0)
             // D_v2: 项目预览 / 编辑器 (splitterIndex 1)
             VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 1, vm: vm)
             ZoneModule(slot: .editor, vm: vm, totalW: totalW, bandH: bandH)
-                .frame(width: editor)  // v0.15 ticket 018: 不硬编码 height
+                .containerRelativeFrame(.horizontal, count: 1920, span: 794, spacing: 0)
             // D_v3: 编辑器 / 专用工具 (splitterIndex 2)
             VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 2, vm: vm)
             ZoneModule(slot: .specializedTools, vm: vm, totalW: totalW, bandH: bandH)
-                .frame(width: tools)  // v0.15 ticket 018: 不硬编码 height
+                .containerRelativeFrame(.horizontal, count: 1920, span: 400, spacing: 0)
         }
     }
 }
@@ -308,22 +308,22 @@ struct UpperBandZone: View {
 // MARK: - 下 band (聊天管理区): 2 区域模块 + 1 拖拽线-竖 (Apple HIG HStack 范式)
 
 struct LowerBandZone: View {
-    /// 老板 8/18 拍 "上四下两" = 下 band 2 区: AI聊天 (整宽 1519 PT) + AI 动态 (400 PT)
-    /// 1 拖拽线 D_v5 (x=1519, AI聊天 / AI 动态)
+    /// 老板 8/18 拍 "上四下两" = 下 band 2 区: AI聊天 (整宽 1518 PT) + AI 动态 (400 PT)
+    /// 1 拖拽线 D_v5 (x=1518, AI聊天 / AI 动态)
     let vm: LayoutShellViewModel
     let totalW: CGFloat
     let bandH: CGFloat
     var body: some View {
-        // ratio 走 vm (vm.*Ratio = LayoutTokens 默认 + 拖拽 offset 累加)
-        let aiChatW = totalW * CGFloat(vm.aiChatRatio)
-        let dynamicW = totalW * CGFloat(vm.dynamicWRatio)
+        // v0.15 ticket 022: 老板 2026-08-19 拍 "用宽度用比例来写"
+        //   下半区 2 列数对: 1518/400 = 总 1918 (差 2 PT 是 D_v5 视觉线 2 PT)
+        //   count: 1920, span: 1518/400 (整数化 × 1000 = 1:1 PT 跟 Sketch 真值)
         HStack(spacing: 0) {
             ZoneModule(slot: .aiChat, vm: vm, totalW: totalW, bandH: bandH)
-                .frame(width: aiChatW)  // v0.15 ticket 018: 不硬编码 height
+                .containerRelativeFrame(.horizontal, count: 1920, span: 1518, spacing: 0)
             // D_v5: AI 聊天 / AI 动态 (splitterIndex 4)
             VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 4, vm: vm)
             ZoneModule(slot: .aiDynamic, vm: vm, totalW: totalW, bandH: bandH)
-                .frame(width: dynamicW)  // v0.15 ticket 018: 不硬编码 height
+                .containerRelativeFrame(.horizontal, count: 1920, span: 400, spacing: 0)
         }
     }
 }
