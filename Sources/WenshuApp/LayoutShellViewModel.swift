@@ -104,13 +104,13 @@ final class LayoutShellViewModel {
         bandOffset = newOffset
     }
 
-    /// 运行时 bandH (受 D_h 横拖拽线影响, 上/下 band 反方向守恒 = totalHeight/2 + bandOffset × totalHeight × 0.05)
-    /// v0.15 ticket 014: 用 totalHeight 响应 resize, bandOffset ±5% drag 范围
+    /// 运行时 bandH (受 D_h 横拖拽线影响, 上/下 band 反方向守恒 = totalHeight × (0.5 + bandOffset × 0.5))
+    /// bandOffset 范围 ±1.0 对应 ±50% totalH (上 band 可从 0% 拖到 100%)
     func upperBandH(totalHeight: CGFloat) -> CGFloat {
-        totalHeight * 0.5 + CGFloat(bandOffset) * totalHeight * 0.05
+        totalHeight * (0.5 + CGFloat(bandOffset) * 0.5)
     }
     func lowerBandH(totalHeight: CGFloat) -> CGFloat {
-        totalHeight * 0.5 - CGFloat(bandOffset) * totalHeight * 0.05
+        totalHeight * (0.5 - CGFloat(bandOffset) * 0.5)
     }
 
     /// D_h 横拖拽线 (老板 8/18 拍 "初始 50:50, 但要能拖动")

@@ -38,42 +38,26 @@ final class SplitterHitArea: NSView {
     var onDrag: ((CGFloat) -> Void)?
     /// hover 状态变化回调 (mouseEntered / mouseExited / mouseMoved 进入 NSView bounds)
     var onHoverChange: ((Bool) -> Void)?
-    /// 上次 mouse location (用于算 mouseDragged delta)
-    private var lastLocation: NSPoint?
 
     override var acceptsFirstResponder: Bool { true }
     /// 接收 first mouse event (即使 window 不在 first responder 状态, 鼠标点击 NSView 也能触发 mouseDown)
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
-    /// 鼠标按下开始拖拽
+    /// 鼠标按下开始拖拽 (Apple HIG: 接收 first mouse event 后, 标 window first responder 准备后续 mouseDragged)
     override func mouseDown(with event: NSEvent) {
-        lastLocation = event.locationInWindow
         window?.makeFirstResponder(self)
     }
 
-    /// 拖拽过程: 算 delta → 调 onDrag callback
+    /// 拖拽过程: 用 event.deltaX/deltaY (Apple HIG 标准方向, 鼠标向右 = 正, 鼠标向下 = 正) → 调 onDrag callback
     override func mouseDragged(with event: NSEvent) {
-        guard let last = lastLocation else {
-            lastLocation = event.locationInWindow
-            return
-        }
-        let current = event.locationInWindow
-        let delta: CGFloat
-        if orientation == .vertical {
-            delta = current.x - last.x
-        } else {
-            delta = current.y - last.y
-        }
-        lastLocation = current
+        let delta: CGFloat = (orientation == .vertical) ? event.deltaX : event.deltaY
         if delta != 0 {
             onDrag?(delta)
         }
     }
 
-    /// 鼠标释放
-    override func mouseUp(with event: NSEvent) {
-        lastLocation = nil
-    }
+    /// 鼠标释放 (Apple HIG: 拖拽结束, 不需清状态, mouseDragged event.deltaX/Y 自带累积)
+    override func mouseUp(with event: NSEvent) {}
 
     /// mouseEntered / mouseExited: NSTrackingArea 自动调
     override func mouseEntered(with event: NSEvent) {
