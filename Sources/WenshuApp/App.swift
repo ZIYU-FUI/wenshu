@@ -142,6 +142,29 @@ enum SelfScreenshot {
 
 // MARK: - App entry
 
+// wenshu 外观三态 (system / dark / light), 用于 Settings 弹窗 + 持久化 @AppStorage
+enum AppearanceMode: String, CaseIterable, Identifiable {
+    case system
+    case dark
+    case light
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .system: return "跟随系统"
+        case .dark:   return "深色"
+        case .light:  return "浅色"
+        }
+    }
+    /// 映射到 SwiftUI ColorScheme (system 传 nil 让 SwiftUI 跟系统)
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: return nil
+        case .dark:   return .dark
+        case .light:  return .light
+        }
+    }
+}
+
 @main
 struct WenshuApp: App {
     @NSApplicationDelegateAdaptor(WenshuAppDelegate.self) var appDelegate
@@ -149,12 +172,13 @@ struct WenshuApp: App {
     @State private var library = WenshuLibrary(
         store: FileSystemLibraryStore(rootURL: LibraryRoot.ensureDefault())
     )
+    @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
 
     var body: some Scene {
         WindowGroup("文枢") {
             LayoutShellView()
                 .environment(library)
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(appearanceMode.colorScheme)
         }
         .windowStyle(.titleBar)  // 老板 8/18 拍 macOS 52 PT unified titlebar chrome = 老板自定义 52 PT 顶栏, 视觉合一
         .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // 老板 Sketch 设计基准 1920×984 PT (v0.15 ticket 005 响应式: LayoutShellView 删 fixed frame, window 用 defaultSize 给 SwiftUI 初始 size hint)
@@ -180,6 +204,18 @@ struct WenshuApp: App {
                 }
                 .keyboardShortcut("r", modifiers: [.command, .shift])  // cmd+shift+r 跟 Xcode 一致
             }
+        }
+        Settings {
+            Form {
+                Picker("外观", selection: $appearanceMode) {
+                    ForEach(AppearanceMode.allCases) { mode in
+                        Text(mode.label).tag(mode)
+                    }
+                }
+                .pickerStyle(.radioGroup)
+            }
+            .formStyle(.grouped)
+            .frame(width: 360, height: 120)
         }
     }
 }
