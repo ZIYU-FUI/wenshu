@@ -231,8 +231,10 @@ struct LayoutShellView: View {
         GeometryReader { proxy in
             let totalW = proxy.size.width
             let contentH = proxy.size.height
-            // bandH 走 LayoutTokens.bandRatio × contentH (resize 时按比例算子响应, 不锁死 designH)
-            let bandH = contentH * LayoutTokens.bandRatio
+            // v0.15 ticket 014: 老板 2026-08-19 拍: 区域组件不硬编码高度, 受 D_h 横拖拽线影响 (可以拖拽)
+            // bandH 从 vm.upperBandH(totalHeight:) / vm.lowerBandH(totalHeight:) 读, 响应 resize
+            // ZoneModule 内部上/底栏硬编码 30 PT (ticket 008), 内容区自适应 (maxHeight: .infinity)
+            let bandH = vm.upperBandH(totalHeight: contentH)
             VStack(spacing: 0) {
                 // 上 band: 4 区 + 3 拖拽线 (Apple HIG HStack 范式)
                 UpperBandZone(vm: vm, totalW: totalW, bandH: bandH)
@@ -241,7 +243,7 @@ struct LayoutShellView: View {
                     vm.adjustBandSplit(delta: dy, totalHeight: contentH)
                 })
                 // 下 band: 2 区 + 1 拖拽线 (老板 8/18 拍 "上四下两")
-                LowerBandZone(vm: vm, totalW: totalW, bandH: contentH - bandH)
+                LowerBandZone(vm: vm, totalW: totalW, bandH: vm.lowerBandH(totalHeight: contentH))
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .wenshuResetLayout)) { _ in
