@@ -350,74 +350,59 @@ struct ZoneIcon: View {
     }
 }
 
-/// 区域顶部工具栏 (boss Sketch 真值: 30 PT 高, 3 SF Symbol 占位 + 占位文字 + 底 2 PT #000000 分割线)
-/// v0.15 ticket 013 修: 老板 2026-08-19 Sketch master "区域顶部工具栏" 真值 (mcp__sketch__run_code):
-///   - 顶栏背景 (0, 0, w, 30)
-///   - 矩形 18×18 at (18, 6) — 起点 x=18 y=6 (顶对齐)
-///   - 矩形 18×18 at (45, 6) — 间距 27 PT (45 - 18 = 27)
-///   - 矩形 18×18 at (72, 6) — 等距 27 PT
-///   - 占位文本 (x_right_align, 8, 52, 16) — 右对齐, 顶 8
-///   - 分割线 (0, 28, w, 2) — 底部 2 PT (v0.15 ticket 020 老板 2026-08-19 用 mcp__sketch__run_code 读图确认 2 PT)
-/// v0.16 ticket 01 修: 老板 2026-08-19 拍 toolbar 宽度跟 zone 实际宽度走 (不画穿 splitter). 删参数 totalW, 宽度由父 ZoneModule .frame(maxWidth: .infinity) 撑.
+/// 区域顶部工具栏: 30 PT 高, 3 SF Symbol 占位 + 占位文字 + 底 2 PT 分割线.
+/// 宽度由父组件约束自动撑到区域模块宽度 (不画穿 splitter).
 struct ZoneTopToolbar: View {
     let iconNames: [String]
 
     var body: some View {
-        let toolbarH = LayoutTokens.toolbarHeight  // 30 PT 硬编码 (v0.15 ticket 008)
-        // 老板 2026-08-19 Sketch master "区域顶部工具栏" = 290 PT 宽 (master default, SymbolInstance .resizeToFitContents 撑)
-        // 顶栏图标起点 y=6 (顶对齐), 间距 9 PT (v0.15 ticket 015 修: 老板 2026-08-19 拍 "调整成 9", 撤回 ticket 013 改的 27)
+        let toolbarH = LayoutTokens.toolbarHeight  // 30 PT
+        // 顶栏背景: 撑满父级宽度 (区域模块宽), 高度 30 PT
         DesignColor.zoneSurface
             .frame(height: toolbarH)
             .overlay(alignment: .topLeading) {
-                // 3 SF Symbol icon 起点 y=6 (顶对齐), 间距 9 PT (Sketch 真值)
+                // 3 SF Symbol icon: 起点 y=6, 间距 9 PT
                 HStack(spacing: 9) {
                     ForEach(0..<iconNames.count, id: \.self) { i in
                         ZoneIcon(systemName: iconNames[i], size: 18)
                     }
                 }
-                .padding(.leading, 18)  // 起点 x=18 (master 真值)
-                .padding(.top, 6)       // 起点 y=6 (master 真值)
+                .padding(.leading, 18)
+                .padding(.top, 6)
             }
             .overlay(alignment: .topTrailing) {
-                // 占位文本 (Sketch master: x=220, y=8, w=52, h=16, fontSize 13)
+                // 占位文本: 右上角, 字号 13, 顶 8 PT, 右 padding 18 PT
                 Text("占位文字")
-                    .font(.system(size: 13))  // Apple HIG 13 PT body
+                    .font(.system(size: 13))
                     .foregroundStyle(.tertiary)
-                    .padding(.trailing, 18)  // 右 padding 18 PT (master: 占位文本右边距 toolbar 右 18)
-                    .padding(.top, 8)       // 顶 8 PT (master 真值)
+                    .padding(.trailing, 18)
+                    .padding(.top, 8)
                     .frame(height: toolbarH, alignment: .topTrailing)
                     .allowsHitTesting(false)
             }
             .overlay(alignment: .bottom) {
-                DesignColor.splitterLine.frame(height: 2)  // 2 PT #000000 底分割线 (v0.15 ticket 020 老板 2026-08-19 用 mcp__sketch__run_code 读图确认 2 PT)
+                // 底分割线 2 PT
+                DesignColor.splitterLine.frame(height: 2)
             }
     }
 }
 
-/// 区域底部工具栏 (boss Sketch master 真值: 30 PT 高, 2 占位文字 + 顶 2 PT 分割线)
-/// v0.15 ticket 013 修: 老板 2026-08-19 Sketch master "区域底部工具栏" 真值 (mcp__sketch__run_code):
-///   - 背景 (0, 0, w, 30)
-///   - 分割线 (0, 0, w, 2) — 顶 2 PT (v0.15 ticket 020 老板 2026-08-19 用 mcp__sketch__run_code 读图确认 2 PT)
-///   - 占位文本 (18, 8, 52, 16) — 左 padding 18, 顶 8
-///   - 占位文本备份 (130, 8, 52, 16) — 右 padding 18 (= w - 130 - 52 = 18), 顶 8
-///   (撤回 v0.10.6 右 SF Symbol icon, 改 2 占位文本)
-/// v0.15 ticket 016 撤回 ticket 013 占位文字位置改动: 老板 2026-08-19 ticket 011 拍板 "左顶边 18, 右顶边 18, 距底边 6"
-///   (ticket 013 重写时自作主张改 .topLeading + 距顶 8 违反 Q20 hard rule "已实现不要直接动")
-///   撤回: .topLeading → .bottomLeading + 距底 6 PT (跟 ticket 011 一致)
-/// v0.16 ticket 01 修: 老板 2026-08-19 拍 toolbar 宽度跟 zone 实际宽度走 (不画穿 splitter). 删参数 width, 宽度由父 ZoneModule .frame(maxWidth: .infinity) 撑.
+/// 区域底部工具栏: 30 PT 高, 左/右各占位文字 + 顶 2 PT 分割线.
+/// 宽度由父组件约束自动撑到区域模块宽度 (不画穿 splitter).
 struct ZoneBottomToolbar: View {
     var body: some View {
-        let toolbarH = LayoutTokens.toolbarHeight  // 30 PT 硬编码 (v0.15 ticket 008)
+        let toolbarH = LayoutTokens.toolbarHeight  // 30 PT
+        // 底栏背景: 撑满父级宽度 (区域模块宽), 高度 30 PT
         DesignColor.zoneSurface
-            .frame(height: toolbarH)  // 宽度由父 ZoneModule .frame(maxWidth: .infinity) 撑 (Apple HIG)
+            .frame(height: toolbarH)
             .overlay(alignment: .top) {
-                DesignColor.splitterLine.frame(height: 2)  // 2 PT #000000 顶分割线 (v0.15 ticket 020 老板 2026-08-19 用 mcp__sketch__run_code 读图确认 2 PT)
+                // 顶分割线 2 PT
+                DesignColor.splitterLine.frame(height: 2)
             }
             .overlay(alignment: .bottomLeading) {
-                // 左占位文字 (Sketch master: x=18, y=8, w=52, h=16, fontSize 13)
-                // v0.15 ticket 016: 距底边 6 PT (ticket 011 拍板, 撤回 ticket 013 改的距顶 8)
+                // 左占位文字: 字号 13, 左 padding 18, 距底 6 PT
                 Text("占位文字")
-                    .font(.system(size: 13))  // Apple HIG 13 PT body
+                    .font(.system(size: 13))
                     .foregroundStyle(.tertiary)
                     .padding(.leading, 18)
                     .padding(.bottom, 6)
@@ -425,8 +410,7 @@ struct ZoneBottomToolbar: View {
                     .allowsHitTesting(false)
             }
             .overlay(alignment: .bottomTrailing) {
-                // 右占位文本 (Sketch master "占位文本备份": x=130, y=8, w=52, h=16)
-                // v0.15 ticket 016: 距底边 6 PT
+                // 右占位文字: 字号 13, 右 padding 18, 距底 6 PT
                 Text("占位文字")
                     .font(.system(size: 13))
                     .foregroundStyle(.tertiary)
@@ -454,27 +438,18 @@ struct ZoneModule: View {
     private var innerBandH: CGFloat { bandH - 2 * toolbarH }  // 顶栏底栏间内容区
 
     var body: some View {
-        // v0.15 ticket 018 重写 ZoneModule.body 约束:
-        //   老板 2026-08-19 拍: 区域组件不写死高度, 内容自适应
-        //   顶栏: 向上约束 (居顶) + 宽度自适应 (maxWidth: .infinity)
-        //   底栏: 向下约束 (居底) + 宽度自适应 (maxWidth: .infinity)
-        //   内容区: 四方约束填充 (maxWidth: .infinity + maxHeight: .infinity)
-        // 老板 2026-08-19 拍: 顶栏/底栏硬编码 30 PT (ticket 008), ICON 18×18 (ticket 013), 间距 9 (ticket 015), 占位文字左/右 18 (ticket 013), 距底 6 (ticket 011)
-        // v0.16 ticket 01 修: 老板 2026-08-19 拍 toolbar 宽度跟 zone 实际宽度走 (不画穿 splitter).
-        //   改 .frame(width: totalW) → .frame(maxWidth: .infinity), toolbar 内部 width 参数全删, 由 SwiftUI layout 系统撑 zone 实际宽度 (Apple HIG 范式).
+        // 区域模块 = 顶栏 (上) + 内容区 (中) + 底栏 (下).
+        // 顶/底栏宽度不写死, 由 VStack 子 view 默认 stretch 撑到区域模块宽度 (不画穿 splitter).
+        // 内容区撑满剩余空间.
         VStack(spacing: 0) {
-            // 顶栏: 居顶, 宽度由 VStack stretch (Apple HIG HStack/VStack 子 view 默认 stretch 全宽)
             ZoneTopToolbar(iconNames: ["book.closed", "magnifyingglass", "slider.horizontal.3"])
-                .frame(height: toolbarH, alignment: .top)  // 顶栏 30 PT 硬编码, 居顶
-            // 内容区: 四方约束填充, 撑满剩余空间
+                .frame(height: toolbarH, alignment: .top)  // 顶栏高度 30 PT
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            // 底栏: 居底, 宽度由 VStack stretch (Apple HIG HStack/VStack 子 view 默认 stretch 全宽)
             ZoneBottomToolbar()
-                .frame(height: toolbarH, alignment: .bottom)  // 底栏 30 PT 硬编码, 居底
+                .frame(height: toolbarH, alignment: .bottom)  // 底栏高度 30 PT
         }
-        // v0.15 ticket 006 P3-4 撤回: surfaceColor background 跟 .editor overlay 套娃导致两道双层 bug
-        // 回退到 v0.15 ticket 005 范式: 每个 case 自己画 Color + overlay
+        // 内容区背景色: 动态区用更深的底色
         .background(slot == .aiDynamic ? DesignColor.dynamicZoneSurface : .clear)
     }
 
