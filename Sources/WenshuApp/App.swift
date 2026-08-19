@@ -187,9 +187,16 @@ struct WenshuApp: App {
             // File 菜单: 新建项目 (cmd+n)
             CommandGroup(replacing: .newItem) {
                 Button("新建项目") {
-                    // TODO: v0.10+ 接 WenshuLibrary.addShelf
+                    // 接 WenshuLibrary.addShelf (v0.16 ticket 07 排期)
                 }
                 .keyboardShortcut("n", modifiers: .command)
+            }
+            // Apple HIG macOS 标准: "文枢" 顶级菜单下加 "设置..." (跟 Pages / Numbers / Xcode 一样)
+            CommandGroup(replacing: .appSettings) {
+                SettingsLink {
+                    Text("设置…")
+                }
+                .keyboardShortcut(",", modifiers: .command)
             }
             // 视图菜单: 老板 8/18 拍 "菜单栏, 显示菜单实现, 重置界面布局功能, 用于一键恢复布局到默认"
             // Apple HIG: CommandMenu 加 top-level 菜单, 在 Window 菜单左侧
