@@ -40,6 +40,7 @@
 | **数对公式** | 老板 8/18 拍 "多出来的都进聊天区, 用数对" = 拖拽线 1 PT 视觉线摊给左右 zone, 上 band 4 zone 数对 (200, 558, 762, 400) = 1920 + 下 band 3 zone 数对 (200, 1320, 400) = 1920 + H 数对 (39, 472, 472, 1) = 984 | ADR-0006 |
 | **Drag Splitter** | 5 竖拖拽线 (D_v1/D_v2/D_v3/D_v4/D_v5, 1 PT 视觉线, intrinsicContentSize 1 PT) + 1 横拖拽线 (D_h inert, 老板 8/18 拍 50/50 锁定) | ADR-0003 + ADR-0006 |
 | **视图菜单** | CommandMenu("视图") 顶级菜单 + "恢复默认布局" ⌘⇧R + NotificationCenter.default 桥接 vm.reset() (Apple HIG 范式) | ADR-0006 |
+| **Appearance Mode** | wenshu 外观三态 (system / dark / light) — 跟 macOS 系统设置默认, 老板可在 Settings 弹窗 (cmd+,) 内 Picker 覆盖, @AppStorage 持久化到 UserDefaults | v0.17 |
 
 ## Project conventions (硬约束)
 
