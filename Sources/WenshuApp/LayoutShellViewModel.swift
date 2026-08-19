@@ -93,7 +93,7 @@ final class LayoutShellViewModel {
 
     /// D_h 横拖拽线可拖 (老板 8/18 拍 "初始 50:50, 但要能拖动")
     /// bandOffset 累加 [minOffset, maxOffset] = [-0.10, +0.10]
-    /// bandH = LayoutTokens.designH * (LayoutTokens.bandRatio + bandOffset)
+    /// v0.15 ticket 010 修: bandH 硬编码 465, upperBandH / lowerBandH 改用 bandHeight
     func adjustBandSplit(delta: CGFloat, totalHeight: CGFloat) {
         guard totalHeight > 0 else { return }
         let step = Double(delta / totalHeight)
@@ -102,13 +102,13 @@ final class LayoutShellViewModel {
         bandOffset = newOffset
     }
 
-    /// 运行时 bandH (受 D_h 横拖拽线影响, 整体高度不变 = 2 * bandRatio * designH)
-    /// 拖动 D_v5 让上 band +offset/2, 下 band -offset/2 (反方向, 整体守恒)
+    /// 运行时 bandH (受 D_h 横拖拽线影响, 上/下 band 反方向守恒 = bandHeight + bandOffset / 2 * designH)
+    /// v0.15 ticket 010: bandHeight 硬编码 465, drag 时 ±0.05 范围
     var upperBandH: CGFloat {
-        LayoutTokens.designH * CGFloat(LayoutTokens.bandRatio + bandOffset / 2)
+        LayoutTokens.bandHeight + CGFloat(bandOffset / 2) * LayoutTokens.designH * 0.05  // 5% 拖动范围
     }
     var lowerBandH: CGFloat {
-        LayoutTokens.designH * CGFloat(LayoutTokens.bandRatio - bandOffset / 2)
+        LayoutTokens.bandHeight - CGFloat(bandOffset / 2) * LayoutTokens.designH * 0.05
     }
 
     /// D_h 横拖拽线 (老板 8/18 拍 "初始 50:50, 但要能拖动")

@@ -51,7 +51,9 @@ enum LayoutTokens {
     // 比例算子 (0~1, 基准 1920×984)
     // 老板 2026-08-19 拍: 标题栏走 macOS .windowStyle(.titleBar) 52 PT unified chrome, 不再自写
     // v0.15 ticket 001: 删 LayoutTokens.titleBarHeight / titleRatio 死代码 (Apple window chrome 自带)
-    static let bandRatio: CGFloat = 465.0 / 984.0        // = 0.4726 (老板 8/18 改 465 PT, 总 52+465+2+465 = 984)
+    static let bandHeight: CGFloat = 465  // 老板 Sketch master 真值: 上/下 band 各 465 PT (1:1 实现, 不参与自动缩放) (死原则 52 + 465 + D_h + 465 = 984)
+    // 死原则: 52 (macOS chrome) + 上半 + 拖拽线 + 下半 = 984 PT, 不动
+    // 老板 2026-08-19 拍: 顶栏/底栏/拖拽线/分割线 1:1 硬 PT, 不参与自动缩放 (跟区域宽度/band 高度 区分)
     // v0.15 ticket 008 修: toolbar 高度 = 老板 Sketch 真值 30 PT 硬编码, 1:1 实现不做 PT→PX 换算 (老板 2026-08-19 拍)
     // 之前 toolbarRatio = 30/465 = 0.0645 算法 base = 465 写死, 但实际 bandH 由 932 算出来 → toolbarH = 932*0.4726*0.0645 ≈ 28 PT (跟老板 30 PT 不符, 视觉上不够)
     static let toolbarHeight: CGFloat = 30  // 老板 Sketch master 真值: 顶/底栏 30 PT (1:1 实现)
@@ -230,18 +232,18 @@ struct LayoutShellView: View {
         // 不加 fixed frame + 不加 max(...) floor (v0.15 ticket 005 修响应式 bug)
         GeometryReader { proxy in
             let totalW = proxy.size.width
-            let contentH = proxy.size.height
-            // bandH 走 LayoutTokens.bandRatio × contentH (resize 时按比例算子响应, 不锁死 designH)
-            let bandH = contentH * LayoutTokens.bandRatio
+            // v0.15 ticket 010 修: bandH 硬编码 = 老板 Sketch 真值 465 PT (1:1 实现, 不参与自动缩放)
+            // (之前 bandRatio = 465/984 = 0.4726 算法算出 bandH = 440 PT, content = 380 PT, 跟老板 412 PT 不符)
+            let bandH = LayoutTokens.bandHeight
             VStack(spacing: 0) {
                 // 上 band: 4 区 + 3 拖拽线 (Apple HIG HStack 范式)
                 UpperBandZone(vm: vm, totalW: totalW, bandH: bandH)
                 // D_h 横拖拽线 (上/下 band 之间, v0.14.0 撤销 inert, 拍可拖)
                 NativeSplitter(orientation: .horizontal, length: totalW, onDrag: { dy in
-                    vm.adjustBandSplit(delta: dy, totalHeight: contentH)
+                    vm.adjustBandSplit(delta: dy, totalHeight: bandH * 2)
                 })
                 // 下 band: 2 区 + 1 拖拽线 (老板 8/18 拍 "上四下两")
-                LowerBandZone(vm: vm, totalW: totalW, bandH: contentH - bandH)
+                LowerBandZone(vm: vm, totalW: totalW, bandH: bandH)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .wenshuResetLayout)) { _ in
