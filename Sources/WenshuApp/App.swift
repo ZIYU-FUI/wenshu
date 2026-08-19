@@ -344,78 +344,86 @@ struct ZoneIcon: View {
     }
 }
 
-/// 区域顶部工具栏 (boss Sketch 真值: 30 PT 高, 3 SF Symbol 占位 + 占位文字 + 底 1 PT #000000 分割线)
-/// 老板 8/18 拍 "用 SF 替换矩形" → 矩形占位用 SF Symbol 替换
-/// v0.13.0: 引入 SF Symbols Beta 真符号 (Apple SF Symbols 5 Beta, macOS 27+), 替换 3 蓝矩形占位
-/// v0.14.5: icon 用 ZoneIcon helper 抽出 (顶栏底栏共用 SF Symbol)
+/// 区域顶部工具栏 (boss Sketch 真值: 30 PT 高, 3 SF Symbol 占位 + 占位文字 + 底 2 PT #000000 分割线)
+/// v0.15 ticket 013 修: 老板 2026-08-19 Sketch master "区域顶部工具栏" 真值 (mcp__sketch__run_code):
+///   - 顶栏背景 (0, 0, w, 30)
+///   - 矩形 18×18 at (18, 6) — 起点 x=18 y=6 (顶对齐)
+///   - 矩形 18×18 at (45, 6) — 间距 27 PT (45 - 18 = 27)
+///   - 矩形 18×18 at (72, 6) — 等距 27 PT
+///   - 占位文本 (x_right_align, 8, 52, 16) — 右对齐, 顶 8
+///   - 分割线 (0, 28, w, 2) — 底部 2 PT (Sketch master 真值, 撤回 v0.10.6 1 PT 拍板)
 struct ZoneTopToolbar: View {
     let iconNames: [String]
     let totalW: CGFloat
 
     var body: some View {
-        let iconSize = totalW * LayoutTokens.iconSizeRatio
-        let iconSpacing = totalW * LayoutTokens.iconSpacingRatio
-        let iconLeading = totalW * LayoutTokens.iconLeadingRatio
-        // 老板 8/18 master 真值: 顶栏 30 PT 高 + #202020 底色 + 3 SF Symbol 居中 + 底部 1 PT #000000 分割线
+        let toolbarH = LayoutTokens.toolbarHeight  // 30 PT 硬编码 (v0.15 ticket 008)
+        // 老板 2026-08-19 Sketch master "区域顶部工具栏" = 290 PT 宽 (master default, SymbolInstance .resizeToFitContents 撑)
+        // 顶栏图标起点 y=6 (顶对齐), 间距 27 PT (1:1 PT, 不走比例算子)
         DesignColor.zoneSurface
-            .overlay(alignment: .leading) {
-                VStack(spacing: 0) {
-                    Spacer(minLength: 0)
-                    HStack(spacing: iconSpacing) {
-                        ForEach(0..<iconNames.count, id: \.self) { i in
-                            // SF Symbol 替换矩形占位 (老板 8/18 拍 "用 SF 替换矩形")
-                            ZoneIcon(systemName: iconNames[i], size: iconSize)
-                        }
+            .frame(height: toolbarH)
+            .overlay(alignment: .topLeading) {
+                // 3 SF Symbol icon 起点 y=6 (顶对齐), 间距 27 PT (Sketch 真值)
+                HStack(spacing: 27) {
+                    ForEach(0..<iconNames.count, id: \.self) { i in
+                        ZoneIcon(systemName: iconNames[i], size: 18)
                     }
-                    Spacer(minLength: 0)
                 }
-                .padding(.leading, iconLeading)
+                .padding(.leading, 18)  // 起点 x=18 (master 真值)
+                .padding(.top, 6)       // 起点 y=6 (master 真值)
+            }
+            .overlay(alignment: .topTrailing) {
+                // 占位文本 (Sketch master: x=220, y=8, w=52, h=16, fontSize 13)
+                Text("占位文字")
+                    .font(.system(size: 13))  // Apple HIG 13 PT body
+                    .foregroundStyle(.tertiary)
+                    .padding(.trailing, 18)  // 右 padding 18 PT (master: 占位文本右边距 toolbar 右 18)
+                    .padding(.top, 8)       // 顶 8 PT (master 真值)
+                    .frame(height: toolbarH, alignment: .topTrailing)
+                    .allowsHitTesting(false)
             }
             .overlay(alignment: .bottom) {
-                DesignColor.splitterLine.frame(height: 1)  // 1 PT #000000 底分割线
+                DesignColor.splitterLine.frame(height: 2)  // 2 PT #000000 底分割线 (master 真值)
             }
     }
 }
 
-/// 区域底部工具栏 (boss Sketch master 真值: 30 PT 高, 占位文字 + 占位 SF Symbol + 顶 1 PT 分割线)
-/// 老板 8/18 拍 "用 SF 替换矩形" → 矩形占位用 SF Symbol 替换
-/// 老板 8/18 master 真值:
-///   - 矩形: x=164, y=6, w=18, h=18 fill #4a60b2 (老板画矩形占位)
-///   - 占位文本: x=18, y=8, w=52, h=16 text="占位文本" fontSize 13 lineHeight 16
-/// v0.14.5: 占位 icon 改用 SF Symbol Image (替换矩形, 老板 8/18 拍 "用 SF 替换矩形")
-/// v0.15 ticket 011: 老板 2026-08-19 拍 占位文字位置 左顶边 18, 右顶边 18, 距底边 6
+/// 区域底部工具栏 (boss Sketch master 真值: 30 PT 高, 2 占位文字 + 顶 2 PT 分割线)
+/// v0.15 ticket 013 修: 老板 2026-08-19 Sketch master "区域底部工具栏" 真值 (mcp__sketch__run_code):
+///   - 背景 (0, 0, w, 30)
+///   - 分割线 (0, 0, w, 2) — 顶 2 PT (master 真值, 撤回 v0.10.6 1 PT 拍板)
+///   - 占位文本 (18, 8, 52, 16) — 左 padding 18, 顶 8
+///   - 占位文本备份 (130, 8, 52, 16) — 右 padding 18 (= w - 130 - 52 = 18), 顶 8
+///   (撤回 v0.10.6 右 SF Symbol icon, 改 2 占位文本)
 struct ZoneBottomToolbar: View {
     let width: CGFloat
-    let iconName: String  // 占位 SF Symbol 名字 (老板 8/18 拍 "用 SF 替换矩形")
 
     var body: some View {
-        let toolbarH = LayoutTokens.toolbarHeight  // v0.15 ticket 008: 老板 Sketch 真值 30 PT 1:1 硬编码
+        let toolbarH = LayoutTokens.toolbarHeight  // 30 PT 硬编码 (v0.15 ticket 008)
         DesignColor.zoneSurface
             .frame(width: width, height: toolbarH)
             .overlay(alignment: .top) {
-                DesignColor.splitterLine.frame(height: 1)  // 1 PT #000000 顶分割线
+                DesignColor.splitterLine.frame(height: 2)  // 2 PT #000000 顶分割线 (master 真值)
             }
-            .overlay(alignment: .bottomLeading) {
-                // 左占位文字 (Apple HIG .body 13 PT 正文尺寸, 老板 8/18 拍 "苹果字符样式 正文尺寸")
-                // v0.15 ticket 011: 老板 2026-08-19 拍 底栏占位文字位置 左顶边 18, 右顶边 18, 距底边 6
+            .overlay(alignment: .topLeading) {
+                // 左占位文本 (Sketch master: x=18, y=8, w=52, h=16, fontSize 13)
                 Text("占位文字")
-                    .font(.body)  // Apple Standard Text Styles 13 PT body
+                    .font(.system(size: 13))  // Apple HIG 13 PT body
                     .foregroundStyle(.tertiary)
-                    .padding(.leading, LayoutTokens.bottomLeading)  // 18 PT 距左
-                    .padding(.bottom, 6)  // 距底边 6 PT
-                    .frame(height: toolbarH, alignment: .bottomLeading)  // toolbar 内部左下对齐
+                    .padding(.leading, 18)
+                    .padding(.top, 8)
+                    .frame(height: toolbarH, alignment: .topLeading)
                     .allowsHitTesting(false)
             }
-            .overlay(alignment: .bottomTrailing) {
-                // 右占位 SF Symbol (老板 8/18 拍 "用 SF 替换矩形")
-                // v0.15 ticket 011: 底栏占位 icon 跟文字同 baseline, 距底边 6
-                Image(systemName: iconName)
-                    .font(.system(size: LayoutTokens.placeholderIconSize))  // 18 PT
-                    .foregroundStyle(DesignColor.accentBlue)
-                    .frame(width: LayoutTokens.placeholderIconSize, height: LayoutTokens.placeholderIconSize)  // 18×18 PT
-                    .padding(.trailing, LayoutTokens.bottomTrailing)  // 18 PT 距右
-                    .padding(.bottom, 6)  // 距底边 6 PT (跟文字同 baseline)
-                    .frame(height: toolbarH, alignment: .bottomTrailing)  // toolbar 内部右下对齐
+            .overlay(alignment: .topTrailing) {
+                // 右占位文本 (Sketch master "占位文本备份": x=130, y=8, w=52, h=16)
+                // 右 padding = w - 130 - 52 = 18 (跟 master 一致)
+                Text("占位文字")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.tertiary)
+                    .padding(.trailing, 18)
+                    .padding(.top, 8)
+                    .frame(height: toolbarH, alignment: .topTrailing)
                     .allowsHitTesting(false)
             }
     }
@@ -442,7 +450,7 @@ struct ZoneModule: View {
                 .frame(height: toolbarH)
             content
                 .frame(maxHeight: .infinity)
-            ZoneBottomToolbar(width: totalW, iconName: "questionmark.square.dashed")  // 老板 8/18 拍 "用 SF 替换矩形"
+            ZoneBottomToolbar(width: totalW)  // v0.15 ticket 013: 老板 2026-08-19 Sketch master "区域底部工具栏" = 2 占位文本 (左 + 右), 删 iconName 参数
                 .frame(height: toolbarH)
         }
         // ticket 006 P3-4 撤回: surfaceColor background 跟 .editor overlay 套娃导致两道双层 bug
