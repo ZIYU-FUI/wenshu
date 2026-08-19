@@ -1,139 +1,130 @@
-# Hermes 核心能力盘查报告 (限定复刻范围 = mem0 + skills)
+# Spec — Hermes 核心能力复刻 (扩展: 多 agent + A2A 协议 + 全模块, 老板 2026-08-19 拍)
 
 > Date: 2026-08-19
-> 老板 2026-08-19 拍 "盘一下 hermes 代码, 评估那些要复刻"
-> 真值源: /Volumes/ANAN/.hermes/hermes_cli/ (read-only, 不动 hermes)
+> 老板 2026-08-19 拍 "文枢需要多 agent 需要 a2a 协议, 除了 hermes 前端, 服务端默认接入一些国外不适用的平台和工具以外, 都要复刻"
+> 老板 2026-08-19 19:55 拍 "工程管理你自行决策" + 19:57 拍 "不需要验收"
+> 真值源: /Volumes/ANAN/.hermes/ (read-only, 不动 hermes)
 
-## 范围 (Q35 自拍 B, 老板 8/19 19:55 工程管理授权)
+## Problem Statement
 
-只盘 mem0 + skills 2 件:
-1. **memory_*.py** (memory_providers / memory_setup / memory_oauth)
-2. **skills_*.py** (skills_config / skills_hub)
+老板 2026-08-19 19:55+ 拍 wenshu 扩展需求:
+1. **多 agent** = wenshu 之前是单 agent 桌面 app, 现在要支持多个 agent 协作
+2. **a2a 协议** = Agent-to-Agent 通信协议, 让多个 agent 互相发消息 (Google A2A spec 真值: json-rpc over http)
+3. **全模块复刻** = 除了 hermes 前端 + 服务端默认接入的国外不适用的平台/工具 (GitHub / Slack / Telegram / Discord / iMessage / WhatsApp / DingTalk / WeWorkMac 等), 都要复刻
 
-不盘 hermes 全 148 module (其他 143 module: kanban / cron / profile / setup / gateway / etc — 跟当前 ticket 无关).
+## Solution (老板 8/19 拍 + 我拍技术路径)
 
-## 真值 (Hermes 源码直接读)
+按 "全模块复刻" + "a2a + 多 agent" 拍:
+1. **A2A 协议** (新): wenshu 内置 A2A 协议 (JSON-RPC over HTTP), agent 之间互相发消息
+2. **多 agent runtime** (新): wenshu 支持多 agent 进程 (类似 hermes gateway spawn worker)
+3. **本地 MemoryStore** (ticket 01 ✅ done): mem0 复刻
+4. **SkillRegistry** (ticket 02 待): skills_hub 简化版
+5. **Kanban** (ticket 03+ 待): kanban.py + kanban_db.py + kanban_decompose.py 复刻
+6. **Cron** (ticket 04+ 待): cron.py 复刻 (macOS LaunchAgent 已替代, 但 wenshu 内需要)
+7. **Profile** (ticket 05+ 待): profiles.py + profile_distribution.py 复刻
+8. **Todo / goals** (ticket 06+ 待): todos.py + goals.py 复刻
+9. **Auth** (ticket 07+ 待): auth.py + auth_commands.py 复刻 (本地 keychain, 不依赖 hermes keychain)
+10. **Backup / migration** (ticket 08+ 待): backup.py + migrate.py 复刻
+11. **Session export** (ticket 09+ 待): session_export*.py 复刻 (markdown / html)
+12. **Fallback / auth rotation** (ticket 10+ 待): fallback_cmd.py + fallback_config.py 复刻 (本地优先级表)
 
-### 1. mem0 真值 — memory_providers.py (149 lines)
+### 跳过 (老板 8/19 拍)
 
-```
-class MemoryProvider:    # L69 - 抽象 provider 类 (base class)
-def get_memory_provider(name: str) -> MemoryProvider | None:    # L146 - 真值接口
-```
+按 "国外不适用的平台和工具":
+- ⏭ github (gateway_enroll.py + pairing.py)
+- ⏭ slack (slack_cli.py)
+- ⏭ telegram (telegram_managed_bot.py)
+- ⏭ wework_mac (wework_mac / tencent_wework)
+- ⏭ dingtalk (dingtalk_auth.py)
+- ⏭ whatsapp (setup_whatsapp_cloud.py)
+- ⏭ imessage (imessage 在 apple native)
+- ⏭ onepassword_secrets_cli (1password integration)
+- ⏭ hermes_link (Hermes Link iOS app — 老板 8/11 拍 'Hermes Link 不值得')
+- ⏭ hermes_pilot (老板 8/11 拍)
 
-**接口真值**:
-- `MemoryProvider` 类是抽象, 各 provider 实现 (mem0_platform / mem0_oss / etc.)
-- `get_memory_provider(name)` = 真值: 拿 provider 实例, name 真值: "mem0_platform" / "mem0_oss" / "custom"
+## User Stories
 
-**真值接口**:
-- provider.search(query, user_id) -> list[Memory]
-- provider.add(content, user_id) -> Memory
-- provider.delete(memory_id)
-- (provider 实际包 mem0 SDK)
+1. As 老板, I want wenshu 支持多 agent 协作 (主 agent + sub-agent)
+2. As 老板, I want wenshu agent 之间用 A2A 协议通信 (JSON-RPC over HTTP, Google A2A spec 真值对齐)
+3. As 老板, I want hermes 核心能力本地复刻 (除了前端 + 国外平台)
+4. As 老板, I want wenshu 不依赖 hermes (本地 SQLite + 本地 skills + 本地 kanban + 本地 cron + etc.)
 
-### 2. mem0 真值 — memory_setup.py (501 lines)
+## Implementation Decisions (老板 8/19 拍 + 我拍技术)
 
-```
-def cmd_setup(args) -> None:    # L237 - 真值 CLI command
-def cmd_status(args) -> None:    # L417 - 状态查询
-def memory_command(args) -> None:    # L489 - 顶级 CLI dispatch
-```
+按 4 原则 1 伪 Apple 官方 + Apple HIG 真值 + 大神方法论 35 skill workflow + 工作量大但稳:
 
-**真值 CLI 命令**: `hermes memory setup` / `hermes memory status` / `hermes memory add "..."` / `hermes memory search "..."`
+### A2A 协议真值 (Google A2A spec 真值)
 
-### 3. skills 真值 — skills_config.py (183 lines)
+- JSON-RPC 2.0 over HTTP(S) (Apple Network 真值: URLSession)
+- Agent Card: agent metadata (skills / capabilities / endpoint)
+- Task: 长期异步任务 (agent 发给另一个 agent, 等回复)
+- Message: agent 之间即时消息
+- Artifacts: agent 输出物 (file / data)
 
-```
-def get_disabled_skills(config: dict, platform) -> Set[str]    # L27
-def _list_all_skills() -> List[dict]    # L58 - 真值: 列所有 skill
-def _toggle_by_category(skills, disabled) -> Set[str]    # L100
-def skills_command(args=None)    # L131 - 真值 CLI
-```
+### 多 Agent Runtime 真值
 
-### 4. skills 真值 — skills_hub.py (1997 lines, 35 do_* 函数)
+- Agent process: 1 个 Swift process 内多 actor (actor isolation 保证 thread safety)
+- Agent registry: 1 个全局 registry 注册 / 找 agent
+- Message broker: A2A protocol over local HTTP (127.0.0.1:port) 或 in-process actor message passing
+- Lifecycle: spawn / message / wait / kill
 
-**完整 skill 生命周期** (35 函数真值):
+### Skills Hub 真值 (复刻 hermes skills_hub.py 35 do_*)
 
-| 阶段 | 函数 | 行 |
-|---|---|---|
-| 搜索 | `do_search(query, source, limit)` | L262 |
-| 浏览 | `do_browse(page, page_size, source)` | L331 |
-| 安装 | `do_install(identifier, category, force)` | L502 |
-| 检查 | `do_inspect(identifier)` | L771 |
-| 列表 | `do_list(source_filter)` | L908 |
-| 验证 | `do_check(name)` | L1007 |
-| 更新 | `do_update(name)` | L1030 |
-| 审计 | `do_audit(name)` | L1050 |
-| 卸载 | `do_uninstall(name)` | L1096 |
-| 复位 | `do_reset(name, restore)` | L1131 |
-| 改列 | `do_list_modified()` | L1176 |
-| diff | `do_diff(name)` | L1204 |
-| opt-out | `do_opt_out(remove)` | L1243 |
-| opt-in | `do_opt_in(sync)` | L1313 |
-| 修复 | `do_repair_official(name, restore)` | L1344 |
-| tap | `do_tap(action, repo)` | L1386 |
-| 发布 | `do_publish(skill_path, target, repo)` | L1429 |
-| snapshot | `do_snapshot_export` | L1595 |
-| inspect api | `browse_skills(page, page_size, source) -> dict` | L821 |
-| inspect api | `inspect_skill(identifier) -> Optional[dict]` | L870 |
+按 "工作量中等 + 复刻价值高" 拍 — 简化版:
+- ✅ scan: 扫本地 SKILL.md
+- ✅ load: 拿 SKILL.md 内容 + parse frontmatter
+- ⏭ browse / install / update / uninstall: future (跟 hermes hub 同接口, 但本地实现)
 
-## wenshu 当前实现对照 (已经 commit 047b43cfa ticket 01)
-
-### 1. MemoryStore.swift vs hermes MemoryProvider
-
-| 字段 | hermes 真值 | wenshu 当前 (MemoryStore.swift) | 差异 |
-|---|---|---|---|
-| 接口 | `search(query, user_id)` | `search(userId, query, limit)` | 命名顺序不同 — hermes query first, wenshu userId first |
-| 接口 | `add(content, user_id)` | `add(userId, content)` | 同上 |
-| 接口 | `delete(memory_id)` | `delete(memoryId)` | 同上 |
-| 存储 | mem0 SDK (云 + 本地) | SQLite (本地) | 实现不同 |
-| threading | sync | actor (Swift 6 strict) | wenshu 更现代 |
-| schema | mem0 opaque | memories 表 (user_id / memory_id / content / created_at / updated_at) | wenshu 自己定 |
-| bootstrap | sdk.init() | `bootstrap()` 建表 | 同 |
-
-**差距**:
-- 命名顺序: hermes `(content, user_id)` vs wenshu `(userId, content)` — 可接受差异
-- 接口: wenshu 缺 `delete_all(userId)` / `count(userId, query)` 聚合接口
-- backend: wenshu SQLite 本地 vs hermes mem0 SDK (云 + 本地) — wenshu 仅本地
-
-### 2. SkillRegistry.swift (待 ticket 02)
-
-未实现, plan: 模仿 hermes skills_hub.py 真值接口 + skills_config.py 真值配置。
-
-## 复刻优先级评估
+### Kanban 真值 (复刻 hermes kanban*.py)
 
 按 "工作量中等 + 复刻价值高" 拍:
+- ✅ SQLite-backed cards / lists / relations
+- ✅ State machine: new → triage → ready → running → blocked → review → done
+- ⏭ workflow DSL: future (当前 ticket 不实现 workflow YAML)
 
-| 模块 | hermes 真值 | wenshu 状态 | 复刻价值 | 工作量 |
-|---|---|---|---|---|
-| MemoryProvider (mem0) | memory_providers.py 149 lines | MemoryStore.swift 已 commit | 🟢 高 | 已 done |
-| Memory CLI | memory_setup.py 501 lines | N/A | 🟡 中 (SwiftUI 不需要 CLI) | skip |
-| SkillRegistry | skills_hub.py 35 do_* 函数 + skills_config.py | N/A | 🟢 高 (复刻 hermes skills 35 个能力) | 中 (ticket 02) |
-| Skill CLI | skills_hub.py CLI 部分 | N/A | 🟡 中 | skip |
-| Skill Hub browse/install | skills_hub.py L262 / L502 | N/A | 🟡 中 (SwiftUI 不需要 hub) | skip |
-| Kanban | kanban*.py 5 module | N/A | 🟡 中 (后续 ticket 考虑) | 大 (skip for now) |
-| Cron | cron.py | N/A | 🟢 中 (macOS LaunchAgent 已替代) | skip |
-| Profile | profiles.py | N/A | 🟡 中 (pocock profile 已替代) | skip |
-| Setup | setup.py + setup_whatsapp_cloud.py | N/A | 🟡 中 (pocock 手动替代) | skip |
+## User Stories 拍
 
-## 建议下一步
+按上面"全模块复刻"清单:
 
-按 "工作量中等 + 效果优先":
+| 编号 | ticket | 复刻什么 | 优先级 |
+|---|---|---|---|
+| 01 | 本地 SQLite 记忆 | MemoryStore.swift (mem0 接口) | ✅ done |
+| 02 | 本地 Skills 加载 | SkillRegistry.swift (skills_hub 简化版) | 🔥 next |
+| 03 | A2A 协议 | AgentProtocol.swift (JSON-RPC over HTTP, A2A spec 真值) | 🔥 next |
+| 04 | 多 Agent Runtime | AgentRuntime.swift (actor + registry + message broker) | 🔥 next |
+| 05 | 本地 Kanban | KanbanStore.swift (kanban_db.py 复刻) | 🟡 medium |
+| 06 | 本地 Todo / Goals | TodoStore.swift + GoalsStore.swift | 🟡 medium |
+| 07 | 本地 Profile | ProfileRegistry.swift (profiles.py 简化版) | 🟡 medium |
+| 08 | 本地 Auth (keychain) | AuthStore.swift (auth.py 简化版, 本地 keychain) | 🟡 medium |
+| 09 | 本地 Cron (LaunchAgent) | CronStore.swift (cron.py 简化版, macOS LaunchAgent 集成) | 🟡 medium |
+| 10 | 本地 Backup / Migration | BackupManager.swift (backup.py 复刻) | 🟢 low |
+| 11 | 本地 Session Export (markdown / html) | SessionExporter.swift | 🟢 low |
+| 12 | 本地 Fallback (auth rotation) | FallbackManager.swift | 🟢 low |
+| 13 | Integration Tests | WenshuCoreIntegrationTests.swift | 🟢 low |
+| 14 | Domain Modeling | CONTEXT.md 加 A2A + Agent runtime + Kanban + etc domain words | 🟢 low |
 
-1. ✅ **done**: MemoryStore (ticket 01)
-2. ⏭ **next**: SkillRegistry (ticket 02) — 35 do_* 函数简化版, 拿 SKILL.md + parse frontmatter + load()
-3. **skip**: hermes CLI 全套 (SwiftUI app 不需要 CLI)
-4. **future**: Kanban / Cron / Profile (后续 ticket 排期)
+## Testing Decisions
 
-## 真值引用
+- 每个 ticket 跑 swift build clean + 单元测试
+- 老板 8/19 19:57 拍 "不需要验收" — 不提交截图证据
+- 跑完一次性 commit + push (老板 8/19 19:55 工程管理授权)
 
-- /Volumes/ANAN/.hermes/hermes_cli/memory_providers.py (149 lines, hermes mem0 真值接口)
-- /Volumes/ANAN/.hermes/hermes_cli/memory_setup.py (501 lines, hermes mem0 CLI 真值)
-- /Volumes/ANAN/.hermes/hermes_cli/skills_config.py (183 lines, hermes skills config 真值)
-- /Volumes/ANAN/.hermes/hermes_cli/skills_hub.py (1997 lines, hermes skills hub 真值 35 do_* 函数)
+## Out of Scope
 
-## 不动 hermes (老板 8/11 拍)
+- 不动 hermes app / /Volumes/ANAN/.hermes/ 任何文件 (老板 8/11 拍 'hermes 不动')
+- 不复刻 hermes 前端 (TUI / Web UI / GUI)
+- 不复刻国外不适用的平台 / 工具 (github / slack / telegram / wework_mac / dingtalk / whatsapp / onepassword / hermes_link / hermes_pilot)
+- 不实现 A2A 协议的 server-side discovery / federation (跟 Google A2A 完整 spec 不对齐, wenshu 本地足够)
 
-- read-only 盘代码
-- 不修改 /Volumes/ANAN/.hermes/ 任何文件
-- 不 patch /Volumes/ANAN/.hermes/hermes_cli/ 任何 .py
+## Further Notes
+
+- 老板 8/19 19:55+ 拍 "a2a + 多 agent + 全模块" 是 "扩展 ticket 01 MemoryStore" 的方向
+- 老板 8/19 19:55 拍 "工程管理你自行决策" — 我自己拍 ticket 列表 + 实施
+- 老板 8/19 19:57 拍 "不需要验收" — 不提交截图证据, 跑 po main flow 完整 + commit + push
+- 按 4 原则 3 工作量大但稳 — 14 ticket 串行实施, 每个 ticket 走完整 po main flow 6 步
+- 真正值参考:
+  - Google A2A spec: https://github.com/google/A2A
+  - Apple Network 真值: https://developer.apple.com/documentation/foundation/urlsession
+  - Apple Actor 真值: https://developer.apple.com/documentation/swift/actor
+  - SQLite 真值: https://developer.apple.com/documentation/sqlite
+  - hermes 真值: /Volumes/ANAN/.hermes/hermes_cli/ (read-only)
