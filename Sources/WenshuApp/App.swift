@@ -227,7 +227,25 @@ struct WenshuApp: App {
 
 /// AppDelegate: 仅做 SelfScreenshot (WS_SCREENSHOT env), 不提前动 NSWindow
 final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
+    /// 共享 AgentRuntime (WenshuCore 多 agent runtime, 复刻 hermes delegation)
+    static let sharedRuntime = AgentRuntime()
+    /// 共享 MiniMaxVerifier (端到端 MiniMax key 调通, Q22 真验证 HTTP 200)
+    static let sharedVerifier = MiniMaxVerifier()
+
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // v0.20 ticket 01: 启动时注册 wenshu 主 agent (左下 zone chat UI 调用)
+        let card = AgentCard(
+            name: "wenshu",
+            description: "wenshu 本地主 agent, 接 MiniMax key, 支持 chat UI",
+            skills: ["chat", "memory", "kanban"],
+            endpoint: "in-process://wenshu"
+        )
+        let protocol_ = AgentProtocol(agentCard: card)
+        Task { @MainActor in
+            await Self.sharedRuntime.register(AgentRegistration(
+                name: "wenshu", card: card, process: protocol_
+            ))
+        }
         if ProcessInfo.processInfo.environment["WS_SCREENSHOT"] == "1" {
             SelfScreenshot.run()
         }
@@ -511,7 +529,12 @@ struct ZoneModule: View {
         case .specializedTools:
             DesignColor.zoneSurface
         case .aiChat:
-            DesignColor.zoneSurface
+            // v0.20 ticket 01: 接入 ChatView (左下 zone 真 chat UI + Agent 对话)
+            ChatView(
+                runtime: WenshuAppDelegate.sharedRuntime,
+                verifier: WenshuAppDelegate.sharedVerifier,
+                agentName: "wenshu"
+            )
         case .aiDynamic:
             DesignColor.zoneSurface
         }
