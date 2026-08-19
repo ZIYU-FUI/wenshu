@@ -38,8 +38,10 @@ final class LayoutShellViewModel {
     var offsets: [Double] = [0, 0, 0, 0, 0]
 
     /// 拖拽边界
-    static let minOffset: Double = -0.15  // 老板 8/18 拍 "范围小, 加一些" (D_v5 可拖范围, D_h 同时用 -0.15)
+    static let minOffset: Double = -0.15
     static let maxOffset: Double = +0.15
+    static let minBandOffset: Double = -1.0
+    static let maxBandOffset: Double = +1.0
     static let minZoneRatio: Double = 0.04
     static let maxZoneRatioUpper: Double = 0.60  // 上 band 4 zone max 60%
     static let maxZoneRatioLower: Double = 0.95  // 下 band 2 zone max 95% (chat 79% 默认)
@@ -98,7 +100,7 @@ final class LayoutShellViewModel {
         guard totalHeight > 0 else { return }
         let step = Double(delta / totalHeight)
         let newOffset = bandOffset + step
-        guard newOffset >= Self.minOffset, newOffset <= Self.maxOffset else { return }
+        guard newOffset >= Self.minBandOffset, newOffset <= Self.maxBandOffset else { return }
         bandOffset = newOffset
     }
 

@@ -112,29 +112,19 @@ struct NativeSplitter: View {
         }
         .frame(width: outerWidth, height: outerHeight)
         .contentShape(.rect)
-        // v0.15 ticket 023: 老板 2026-08-19 拍 "鼠标指针没有变化, 基本常识的交互, 要实现"
-        //   Apple 官方 PointerStyle macOS 15+ + NSCursor.push/pop 经典 API + window.disableCursorRects (StackOverflow 高赞答案)
-        //   必须先 disableCursorRects 才能让 NSCursor.push 接管 (SwiftUI 默认 cursor rects 会拦截)
-        //   .onContinuousHover (macOS 13+) 比 .onHover 更可靠, 防止重复 push
+        // cursor 用 Apple HIG SwiftUI .pointerStyle (macOS 15+ 官方 cursor 入口).
+        // hover 视觉 (Rectangle 变 accent + shadow) 由 isHovered state 驱动, isHovered 由 .onContinuousHover set.
+        // 删 v0.15 ticket 023 的 NSCursor.push/pop + NSApp.windows.disableCursorRects (跟 .pointerStyle 互打架).
+        // https://developer.apple.com/documentation/swiftui/view/pointerstyle(_:)
+        .pointerStyle(pointerStyle)
         .onContinuousHover { phase in
+            // 仅更新 isHovered state 驱动 hover 视觉, 不调 NSCursor (避免跟 .pointerStyle race condition)
             switch phase {
-            case .active:
-                isHovered = true
-                let cursor = orientation == .vertical ? NSCursor.resizeLeftRight : NSCursor.resizeUpDown
-                // 必须先 disable cursor rects, SwiftUI 默认 cursor rects 拦截 NSCursor.push
-                NSApp.windows.forEach { $0.disableCursorRects() }
-                // 防止重复 push
-                if NSCursor.current != cursor {
-                    cursor.push()
-                }
-            case .ended:
-                isHovered = false
-                NSCursor.pop()
-                NSApp.windows.forEach { $0.enableCursorRects() }
+            case .active: isHovered = true
+            case .ended: isHovered = false
             }
         }
-        .pointerStyle(pointerStyle)  // Apple HIG 范式 (macOS 15+, 双保险)
-        .gesture(dragGesture)  // gesture 挂 ZStack (外层) + withTransaction(disablesAnimations: true) in onChanged → 跟手不抖动
+        .gesture(dragGesture)
     }
 }
 
