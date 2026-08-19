@@ -337,13 +337,12 @@ struct ZoneIcon: View {
     let size: CGFloat
     var body: some View {
         // 老板 8/18 拍 SF Symbol 替换矩形占位
-        // v0.15 ticket 017 修: .resizable().frame(width:size, height:size) 让 SF Symbol 真正撑满 18 PT
-        // (之前 .font(.system(size:size)) SF Symbol 字体默认有 padding, 实际 icon 视觉 < 18 PT)
+        // SF Symbol 字体默认有 padding (Apple HIG), 实际 icon 视觉 < frame 尺寸
+        // 跟老板 Sketch master 18×18 矩形占位一致 (矩形框内 SF Symbol 居中带 padding)
         Image(systemName: systemName)
-            .resizable()
-            .aspectRatio(contentMode: .fit)
-            .frame(width: size, height: size)
+            .font(.system(size: size))
             .foregroundStyle(DesignColor.accentBlue)
+            .frame(width: size, height: size)
     }
 }
 
