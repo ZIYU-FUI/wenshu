@@ -37,10 +37,10 @@ enum DesignColor {
     /// 动态区功能区 (#1e1e1e, 老板 8/18 拍比 #202020 略深)
     /// v0.10 之前用硬编码 (#1e1e1e, #202020), 老板 8/18 答 Q4 "保留设计图色值"
     static let dynamicZoneSurface: Color = Color(red: 0x1e / 255, green: 0x1e / 255, blue: 0x1e / 255)
-    /// 强调蓝 (boss Sketch #4a60b2) → Color.accentColor
-    static let accentBlue: Color = .accentColor
-    /// 拖拽线 (boss Sketch #000000) → NSColor.black (dark/light 都可见)
-    static let splitterLine: Color = Color(nsColor: .black)
+    /// 强调蓝 (Apple 系统亮色)
+    static let accentBlue: Color = Color(nsColor: .controlAccentColor)  // Apple 系统亮色 (dark/light 自适应)
+    /// 拖拽线 / 分割线 (Apple 系统 divider 色, dark/light 自适应)
+    static let splitterLine: Color = Color(nsColor: .separatorColor)
 }
 
 enum LayoutTokens {
@@ -142,6 +142,29 @@ enum SelfScreenshot {
 
 // MARK: - App entry
 
+// wenshu 外观三态 (system / dark / light), 用于 Settings 弹窗 + 持久化 @AppStorage
+enum AppearanceMode: String, CaseIterable, Identifiable {
+    case system
+    case dark
+    case light
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .system: return "跟随系统"
+        case .dark:   return "深色"
+        case .light:  return "浅色"
+        }
+    }
+    /// 映射到 SwiftUI ColorScheme (system 传 nil 让 SwiftUI 跟系统)
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: return nil
+        case .dark:   return .dark
+        case .light:  return .light
+        }
+    }
+}
+
 @main
 struct WenshuApp: App {
     @NSApplicationDelegateAdaptor(WenshuAppDelegate.self) var appDelegate
@@ -149,12 +172,13 @@ struct WenshuApp: App {
     @State private var library = WenshuLibrary(
         store: FileSystemLibraryStore(rootURL: LibraryRoot.ensureDefault())
     )
+    @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
 
     var body: some Scene {
         WindowGroup("文枢") {
             LayoutShellView()
                 .environment(library)
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(appearanceMode.colorScheme)
         }
         .windowStyle(.titleBar)  // 老板 8/18 拍 macOS 52 PT unified titlebar chrome = 老板自定义 52 PT 顶栏, 视觉合一
         .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // 老板 Sketch 设计基准 1920×984 PT (v0.15 ticket 005 响应式: LayoutShellView 删 fixed frame, window 用 defaultSize 给 SwiftUI 初始 size hint)
@@ -163,9 +187,16 @@ struct WenshuApp: App {
             // File 菜单: 新建项目 (cmd+n)
             CommandGroup(replacing: .newItem) {
                 Button("新建项目") {
-                    // TODO: v0.10+ 接 WenshuLibrary.addShelf
+                    // 接 WenshuLibrary.addShelf (v0.16 ticket 07 排期)
                 }
                 .keyboardShortcut("n", modifiers: .command)
+            }
+            // Apple HIG macOS 标准: "文枢" 顶级菜单下加 "设置..." (跟 Pages / Numbers / Xcode 一样)
+            CommandGroup(replacing: .appSettings) {
+                SettingsLink {
+                    Text("设置…")
+                }
+                .keyboardShortcut(",", modifiers: .command)
             }
             // 视图菜单: 老板 8/18 拍 "菜单栏, 显示菜单实现, 重置界面布局功能, 用于一键恢复布局到默认"
             // Apple HIG: CommandMenu 加 top-level 菜单, 在 Window 菜单左侧
@@ -181,24 +212,24 @@ struct WenshuApp: App {
                 .keyboardShortcut("r", modifiers: [.command, .shift])  // cmd+shift+r 跟 Xcode 一致
             }
         }
+        Settings {
+            Form {
+                Picker("外观", selection: $appearanceMode) {
+                    ForEach(AppearanceMode.allCases) { mode in
+                        Text(mode.label).tag(mode)
+                    }
+                }
+                .pickerStyle(.radioGroup)
+            }
+            .formStyle(.grouped)
+            .frame(width: 360, height: 120)
+        }
     }
 }
 
-/// AppDelegate: 初始窗口尺寸 1920×984 PT, 用 NSWindow.center() 居中 (Apple HIG).
+/// AppDelegate: 仅做 SelfScreenshot (WS_SCREENSHOT env), 不提前动 NSWindow
 final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
-    private var cursorController: WenshuCursorController?
-
     func applicationDidFinishLaunching(_ notification: Notification) {
-        guard let window = NSApplication.shared.windows.first else { return }
-        // 初始窗口尺寸 = 老板 Sketch 设计基准 1920×984 PT (1:1 PX, macOS 27 1x)
-        // 之后窗口 resize 会通过 GeometryReader × 比例算子自适应任意尺寸
-        window.setContentSize(NSSize(
-            width: LayoutTokens.designW,
-            height: LayoutTokens.designH
-        ))
-        window.center()  // Apple HIG: NSWindow 自带 center, 不用手算
-        // 给 window 加 NSTrackingArea 监听 mouseMoved + hit test 切 cursor (NSViewRepresentable 桥接失灵时 NSWindow 接管)
-        cursorController = WenshuCursorController(window: window)
         if ProcessInfo.processInfo.environment["WS_SCREENSHOT"] == "1" {
             SelfScreenshot.run()
         }
@@ -209,80 +240,6 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-/// WenshuCursorController: NSResponder + NSTrackingArea 监听 window.mouseMoved + hit test contentView 切 cursor.
-final class WenshuCursorController: NSResponder {
-    private weak var window: NSWindow?
-    private var trackingArea: NSTrackingArea?
-    private var currentCursor: NSCursor?
-
-    init(window: NSWindow) {
-        self.window = window
-        super.init()
-        installTrackingArea()
-    }
-
-    required init?(coder: NSCoder) {
-        super.init(coder: coder)
-    }
-
-    /// 安装 NSTrackingArea 到 window.contentView (整 bounds + .activeInKeyWindow + .mouseMoved + .assumeInside)
-    private func installTrackingArea() {
-        guard let window = window, let contentView = window.contentView else { return }
-        if let area = trackingArea {
-            contentView.removeTrackingArea(area)
-            trackingArea = nil
-        }
-        let options: NSTrackingArea.Options = [.mouseMoved, .mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect, .assumeInside]
-        let area = NSTrackingArea(rect: contentView.bounds, options: options, owner: self, userInfo: nil)
-        contentView.addTrackingArea(area)
-        trackingArea = area
-        window.acceptsMouseMovedEvents = true
-        // initial mouseMoved 触发一次 (确保窗口刚打开时 cursor 立即正确)
-        mouseMoved(with: NSEvent.mouseEvent(with: .mouseMoved,
-                                            location: window.mouseLocationOutsideOfEventStream,
-                                            modifierFlags: [],
-                                            timestamp: 0,
-                                            windowNumber: window.windowNumber,
-                                            context: nil,
-                                            eventNumber: 0,
-                                            clickCount: 0,
-                                            pressure: 0)!)
-    }
-
-    /// mouseMoved: 算 hit test contentView 找命中的 view
-    override func mouseMoved(with event: NSEvent) {
-        guard let window = window, let contentView = window.contentView else { return }
-        let locationInContent = contentView.convert(event.locationInWindow, from: nil)
-        let hitView = contentView.hitTest(locationInContent)
-        let splitter = findSplitter(in: hitView)
-        let newCursor: NSCursor
-        if let splitter = splitter {
-            newCursor = (splitter.orientation == .vertical) ? .resizeLeftRight : .resizeUpDown
-        } else {
-            newCursor = .arrow
-        }
-        if currentCursor !== newCursor {
-            newCursor.set()
-            currentCursor = newCursor
-        }
-    }
-
-    /// 鼠标离开 window 时还原 cursor
-    override func mouseExited(with event: NSEvent) {
-        currentCursor = nil
-        NSCursor.arrow.set()
-    }
-
-    /// 递归找 SplitterHitArea
-    private func findSplitter(in view: NSView?) -> SplitterHitArea? {
-        guard let view = view else { return nil }
-        if let splitter = view as? SplitterHitArea { return splitter }
-        for subview in view.subviews {
-            if let found = findSplitter(in: subview) { return found }
-        }
-        return nil
-    }
-}
 
 // MARK: - 6 区 layout shell (1:1 落 6 master) — v0.15 Apple HIG 重写
 //
@@ -462,8 +419,8 @@ struct ZoneTopToolbar: View {
                     .allowsHitTesting(false)
             }
             .overlay(alignment: .bottom) {
-                // 底分割线 2 PT
-                DesignColor.splitterLine.frame(height: 2)
+                // 底分割线 1 PT (跟拖拽线 / StaticDivider 一致)
+                DesignColor.splitterLine.frame(height: 1)
             }
     }
 }
@@ -477,8 +434,8 @@ struct ZoneBottomToolbar: View {
         DesignColor.zoneSurface
             .frame(height: toolbarH)
             .overlay(alignment: .top) {
-                // 顶分割线 2 PT
-                DesignColor.splitterLine.frame(height: 2)
+                // 顶分割线 1 PT (跟拖拽线 / StaticDivider 一致)
+                DesignColor.splitterLine.frame(height: 1)
             }
             .overlay(alignment: .bottomLeading) {
                 // 左占位文字: 字号 13, 左 padding 18, 距底 6 PT

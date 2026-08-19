@@ -83,15 +83,7 @@ final class SplitterHitArea: NSView {
         addTrackingArea(area)
     }
 
-    /// cursor 切换 (Apple HIG 真值: NSView 自己声明 cursor 区域, macOS 系统自动切, 不依赖 NSCursor.push)
-    override func resetCursorRects() {
-        let cursor: NSCursor = (orientation == .vertical) ? .resizeLeftRight : .resizeUpDown
-        addCursorRect(bounds, cursor: cursor)
-    }
-
-    deinit {
-        NSCursor.pop()  // safety net: 如果之前 NSCursor.push 没平衡 (历史遗留), 强制 pop
-    }
+    /// cursor 切换走 SwiftUI 外层 .pointerStyle (Apple HIG macOS 15+ 标准)
 }
 
 // MARK: - NSViewRepresentable 桥接 (SwiftUI 调用 NSView)
@@ -131,9 +123,9 @@ struct NativeSplitter: View {
     /// 拖拽回调: orientation == .vertical 时 delta 是 X 增量, 否则 Y 增量 (from NSView mouseDragged)
     let onDrag: @MainActor (CGFloat) -> Void
 
-    private static let lineThickness: CGFloat = 2  // 静态线 2 PT (Sketch master 真值, 老板 8/18 拍)
-    private static let hoveredThickness: CGFloat = 4  // hover 变粗 2 倍 (老板 8/18 拍)
-    private static let hitAreaThickness: CGFloat = 6  // 6 PT hit area (老板 8/18 拍)
+    private static let lineThickness: CGFloat = 1  // 静态线 1 PT (跟 hit area 同宽, 顶到头)
+    private static let hoveredThickness: CGFloat = 3  // hover 3 PT
+    private static let hitAreaThickness: CGFloat = 1  // 1 PT hit area (跟 fill 同宽, 顶到头)
 
     @State private var isHovered: Bool = false
 
@@ -151,56 +143,54 @@ struct NativeSplitter: View {
         let outerHeight: CGFloat = orientation == .vertical ? length : Self.hitAreaThickness
 
         ZStack {
-            // SwiftUI Rectangle 视觉 (2 PT 黑 / hover 4 PT accent 0.25 + 阴影 0.15)
+            // SwiftUI Rectangle 视觉 (静态 1 PT Apple 系统 divider 色 / hover 3 PT Apple 系统亮色 0.25 + 阴影 0.15)
             Rectangle()
-                .fill(isHovered ? Color.accentColor.opacity(0.25) : Color.black)
+                .fill(isHovered ? Color(nsColor: .controlAccentColor).opacity(0.25) : Color(nsColor: .separatorColor))
                 .frame(width: lineFrame.width, height: lineFrame.height)
-                .clipShape(.capsule)  // 圆角最大 = 视觉圆头
                 .shadow(
-                    color: isHovered ? Color.accentColor.opacity(0.15) : .clear,
+                    color: isHovered ? Color(nsColor: .controlAccentColor).opacity(0.15) : .clear,
                     radius: isHovered ? 8 : 0,
                     x: 0, y: 0
                 )
                 .animation(.easeInOut(duration: 0.2), value: isHovered)
 
-            // 透明 NSView overlay: 接管 mouseDown / mouseDragged / mouseUp + NSTrackingArea hover + NSCursor.push
+            // 透明 NSView overlay: 接管 mouseDown / mouseDragged / mouseUp + NSTrackingArea hover (cursor 切靠外层 .pointerStyle)
             SplitterHitAreaRepresentable(
                 orientation: orientation,
                 onDrag: onDrag,
                 onHoverChange: { hovered in
-                    isHovered = hovered  // 驱动 Rectangle 视觉 (变粗 + 蓝 + shadow)
+                    isHovered = hovered
                 }
             )
             .frame(width: outerWidth, height: outerHeight)
         }
         .frame(width: outerWidth, height: outerHeight)
+        .pointerStyle(orientation == .vertical ? .columnResize : .rowResize)  // SwiftUI 官方 cursor 切换 (Apple HIG macOS 15+ 标准)
     }
 }
 
 // MARK: - 不可拖拽分割线 (SwiftUI Divider, Apple Public)
 
-/// 不可拖拽的 2 PT 横向分割线 (圆角最大 = 视觉圆头)
+/// 不可拖拽的 1 PT 横向分割线 (Apple 系统 divider 色, dark/light 自适应)
 struct StaticDividerHorizontal: View {
     var width: CGFloat? = nil
     var body: some View {
         if let w = width {
             Rectangle()
-                .fill(Color.black)
-                .frame(width: w, height: 2)
-                .clipShape(.capsule)
+                .fill(Color(nsColor: .separatorColor))
+                .frame(width: w, height: 1)
         } else {
             Divider()
         }
     }
 }
 
-/// 不可拖拽的 2 PT 竖向分割线 (圆角最大 = 视觉圆头)
+/// 不可拖拽的 1 PT 竖向分割线 (Apple 系统 divider 色, dark/light 自适应)
 struct StaticDividerVertical: View {
     let height: CGFloat
     var body: some View {
         Rectangle()
-            .fill(Color.black)
-            .frame(width: 2, height: height)
-            .clipShape(.capsule)
+            .fill(Color(nsColor: .separatorColor))
+            .frame(width: 1, height: height)
     }
 }
