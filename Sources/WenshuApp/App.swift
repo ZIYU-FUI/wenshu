@@ -45,7 +45,7 @@ enum DesignColor {
 
 enum LayoutTokens {
     // 设计基准 (Apple macOS 27 1x 下 1 PT = 1 PX)
-    static let designW: CGFloat = 1200  // v0.15 ticket 024 修: 老板 2026-08-19 拍默认启动大小 1200×980 PT (老板实测真机桌面 大小)
+    static let designW: CGFloat = 1600  // v0.15 ticket 024 修: 老板 2026-08-19 拍默认启动大小 1600×980 PT (老板实测真机桌面 大小)
     static let designH: CGFloat = 980
 
     // 比例算子 (0~1, 基准 1920×984)
