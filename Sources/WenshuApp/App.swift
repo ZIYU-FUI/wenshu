@@ -353,7 +353,7 @@ struct ZoneIcon: View {
 ///   - 矩形 18×18 at (45, 6) — 间距 27 PT (45 - 18 = 27)
 ///   - 矩形 18×18 at (72, 6) — 等距 27 PT
 ///   - 占位文本 (x_right_align, 8, 52, 16) — 右对齐, 顶 8
-///   - 分割线 (0, 28, w, 2) — 底部 2 PT (Sketch master 真值, 撤回 v0.10.6 1 PT 拍板)
+///   - 分割线 (0, 28, w, 2) — 底部 2 PT (v0.15 ticket 020 老板 2026-08-19 用 mcp__sketch__run_code 读图确认 2 PT)
 struct ZoneTopToolbar: View {
     let iconNames: [String]
     let totalW: CGFloat
@@ -385,7 +385,7 @@ struct ZoneTopToolbar: View {
                     .allowsHitTesting(false)
             }
             .overlay(alignment: .bottom) {
-                DesignColor.splitterLine.frame(height: 2)  // 2 PT #000000 底分割线 (master 真值)
+                DesignColor.splitterLine.frame(height: 2)  // 2 PT #000000 底分割线 (v0.15 ticket 020 老板 2026-08-19 用 mcp__sketch__run_code 读图确认 2 PT)
             }
     }
 }
@@ -393,7 +393,7 @@ struct ZoneTopToolbar: View {
 /// 区域底部工具栏 (boss Sketch master 真值: 30 PT 高, 2 占位文字 + 顶 2 PT 分割线)
 /// v0.15 ticket 013 修: 老板 2026-08-19 Sketch master "区域底部工具栏" 真值 (mcp__sketch__run_code):
 ///   - 背景 (0, 0, w, 30)
-///   - 分割线 (0, 0, w, 2) — 顶 2 PT (master 真值, 撤回 v0.10.6 1 PT 拍板)
+///   - 分割线 (0, 0, w, 2) — 顶 2 PT (v0.15 ticket 020 老板 2026-08-19 用 mcp__sketch__run_code 读图确认 2 PT)
 ///   - 占位文本 (18, 8, 52, 16) — 左 padding 18, 顶 8
 ///   - 占位文本备份 (130, 8, 52, 16) — 右 padding 18 (= w - 130 - 52 = 18), 顶 8
 ///   (撤回 v0.10.6 右 SF Symbol icon, 改 2 占位文本)
@@ -408,7 +408,7 @@ struct ZoneBottomToolbar: View {
         DesignColor.zoneSurface
             .frame(width: width, height: toolbarH)
             .overlay(alignment: .top) {
-                DesignColor.splitterLine.frame(height: 2)  // 2 PT #000000 顶分割线 (master 真值)
+                DesignColor.splitterLine.frame(height: 2)  // 2 PT #000000 顶分割线 (v0.15 ticket 020 老板 2026-08-19 用 mcp__sketch__run_code 读图确认 2 PT)
             }
             .overlay(alignment: .bottomLeading) {
                 // 左占位文字 (Sketch master: x=18, y=8, w=52, h=16, fontSize 13)
