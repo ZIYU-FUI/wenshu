@@ -395,6 +395,9 @@ struct ZoneTopToolbar: View {
 ///   - 占位文本 (18, 8, 52, 16) — 左 padding 18, 顶 8
 ///   - 占位文本备份 (130, 8, 52, 16) — 右 padding 18 (= w - 130 - 52 = 18), 顶 8
 ///   (撤回 v0.10.6 右 SF Symbol icon, 改 2 占位文本)
+/// v0.15 ticket 016 撤回 ticket 013 占位文字位置改动: 老板 2026-08-19 ticket 011 拍板 "左顶边 18, 右顶边 18, 距底边 6"
+///   (ticket 013 重写时自作主张改 .topLeading + 距顶 8 违反 Q20 hard rule "已实现不要直接动")
+///   撤回: .topLeading → .bottomLeading + 距底 6 PT (跟 ticket 011 一致)
 struct ZoneBottomToolbar: View {
     let width: CGFloat
 
@@ -405,25 +408,26 @@ struct ZoneBottomToolbar: View {
             .overlay(alignment: .top) {
                 DesignColor.splitterLine.frame(height: 2)  // 2 PT #000000 顶分割线 (master 真值)
             }
-            .overlay(alignment: .topLeading) {
-                // 左占位文本 (Sketch master: x=18, y=8, w=52, h=16, fontSize 13)
+            .overlay(alignment: .bottomLeading) {
+                // 左占位文字 (Sketch master: x=18, y=8, w=52, h=16, fontSize 13)
+                // v0.15 ticket 016: 距底边 6 PT (ticket 011 拍板, 撤回 ticket 013 改的距顶 8)
                 Text("占位文字")
                     .font(.system(size: 13))  // Apple HIG 13 PT body
                     .foregroundStyle(.tertiary)
                     .padding(.leading, 18)
-                    .padding(.top, 8)
-                    .frame(height: toolbarH, alignment: .topLeading)
+                    .padding(.bottom, 6)
+                    .frame(height: toolbarH, alignment: .bottomLeading)
                     .allowsHitTesting(false)
             }
-            .overlay(alignment: .topTrailing) {
+            .overlay(alignment: .bottomTrailing) {
                 // 右占位文本 (Sketch master "占位文本备份": x=130, y=8, w=52, h=16)
-                // 右 padding = w - 130 - 52 = 18 (跟 master 一致)
+                // v0.15 ticket 016: 距底边 6 PT
                 Text("占位文字")
                     .font(.system(size: 13))
                     .foregroundStyle(.tertiary)
                     .padding(.trailing, 18)
-                    .padding(.top, 8)
-                    .frame(height: toolbarH, alignment: .topTrailing)
+                    .padding(.bottom, 6)
+                    .frame(height: toolbarH, alignment: .bottomTrailing)
                     .allowsHitTesting(false)
             }
     }
