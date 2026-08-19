@@ -359,12 +359,12 @@ struct ZoneTopToolbar: View {
     var body: some View {
         let toolbarH = LayoutTokens.toolbarHeight  // 30 PT 硬编码 (v0.15 ticket 008)
         // 老板 2026-08-19 Sketch master "区域顶部工具栏" = 290 PT 宽 (master default, SymbolInstance .resizeToFitContents 撑)
-        // 顶栏图标起点 y=6 (顶对齐), 间距 27 PT (1:1 PT, 不走比例算子)
+        // 顶栏图标起点 y=6 (顶对齐), 间距 9 PT (v0.15 ticket 015 修: 老板 2026-08-19 拍 "调整成 9", 撤回 ticket 013 改的 27)
         DesignColor.zoneSurface
             .frame(height: toolbarH)
             .overlay(alignment: .topLeading) {
-                // 3 SF Symbol icon 起点 y=6 (顶对齐), 间距 27 PT (Sketch 真值)
-                HStack(spacing: 27) {
+                // 3 SF Symbol icon 起点 y=6 (顶对齐), 间距 9 PT (Sketch 真值)
+                HStack(spacing: 9) {
                     ForEach(0..<iconNames.count, id: \.self) { i in
                         ZoneIcon(systemName: iconNames[i], size: 18)
                     }
