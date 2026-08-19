@@ -34,9 +34,7 @@ enum DesignColor {
     static let titleBar: Color = Color(nsColor: .windowBackgroundColor)
     /// 内容区底色 (boss Sketch #202020) → NSColor.controlBackgroundColor
     static let zoneSurface: Color = Color(nsColor: .controlBackgroundColor)
-    /// 动态区功能区 (#1e1e1e, 老板 8/18 拍比 #202020 略深)
-    /// v0.10 之前用硬编码 (#1e1e1e, #202020), 老板 8/18 答 Q4 "保留设计图色值"
-    static let dynamicZoneSurface: Color = Color(red: 0x1e / 255, green: 0x1e / 255, blue: 0x1e / 255)
+    static let dynamicZoneSurface: Color = Color(nsColor: .underPageBackgroundColor)
     /// 强调蓝 (Apple 系统亮色)
     static let accentBlue: Color = Color(nsColor: .controlAccentColor)  // Apple 系统亮色 (dark/light 自适应)
     /// 拖拽线 / 分割线 (Apple 系统 divider 色, dark/light 自适应)
