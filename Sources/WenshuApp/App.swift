@@ -186,6 +186,8 @@ struct WenshuApp: App {
 
 /// AppDelegate: 初始窗口尺寸 1920×984 PT, 用 NSWindow.center() 居中 (Apple HIG).
 final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
+    private var cursorController: WenshuCursorController?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard let window = NSApplication.shared.windows.first else { return }
         // 初始窗口尺寸 = 老板 Sketch 设计基准 1920×984 PT (1:1 PX, macOS 27 1x)
@@ -195,6 +197,8 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             height: LayoutTokens.designH
         ))
         window.center()  // Apple HIG: NSWindow 自带 center, 不用手算
+        // 给 window 加 NSTrackingArea 监听 mouseMoved + hit test 切 cursor (NSViewRepresentable 桥接失灵时 NSWindow 接管)
+        cursorController = WenshuCursorController(window: window)
         if ProcessInfo.processInfo.environment["WS_SCREENSHOT"] == "1" {
             SelfScreenshot.run()
         }
@@ -202,6 +206,81 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         true
+    }
+}
+
+/// WenshuCursorController: NSResponder + NSTrackingArea 监听 window.mouseMoved + hit test contentView 切 cursor.
+final class WenshuCursorController: NSResponder {
+    private weak var window: NSWindow?
+    private var trackingArea: NSTrackingArea?
+    private var currentCursor: NSCursor?
+
+    init(window: NSWindow) {
+        self.window = window
+        super.init()
+        installTrackingArea()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+    }
+
+    /// 安装 NSTrackingArea 到 window.contentView (整 bounds + .activeInKeyWindow + .mouseMoved + .assumeInside)
+    private func installTrackingArea() {
+        guard let window = window, let contentView = window.contentView else { return }
+        if let area = trackingArea {
+            contentView.removeTrackingArea(area)
+            trackingArea = nil
+        }
+        let options: NSTrackingArea.Options = [.mouseMoved, .mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect, .assumeInside]
+        let area = NSTrackingArea(rect: contentView.bounds, options: options, owner: self, userInfo: nil)
+        contentView.addTrackingArea(area)
+        trackingArea = area
+        window.acceptsMouseMovedEvents = true
+        // initial mouseMoved 触发一次 (确保窗口刚打开时 cursor 立即正确)
+        mouseMoved(with: NSEvent.mouseEvent(with: .mouseMoved,
+                                            location: window.mouseLocationOutsideOfEventStream,
+                                            modifierFlags: [],
+                                            timestamp: 0,
+                                            windowNumber: window.windowNumber,
+                                            context: nil,
+                                            eventNumber: 0,
+                                            clickCount: 0,
+                                            pressure: 0)!)
+    }
+
+    /// mouseMoved: 算 hit test contentView 找命中的 view
+    override func mouseMoved(with event: NSEvent) {
+        guard let window = window, let contentView = window.contentView else { return }
+        let locationInContent = contentView.convert(event.locationInWindow, from: nil)
+        let hitView = contentView.hitTest(locationInContent)
+        let splitter = findSplitter(in: hitView)
+        let newCursor: NSCursor
+        if let splitter = splitter {
+            newCursor = (splitter.orientation == .vertical) ? .resizeLeftRight : .resizeUpDown
+        } else {
+            newCursor = .arrow
+        }
+        if currentCursor !== newCursor {
+            newCursor.set()
+            currentCursor = newCursor
+        }
+    }
+
+    /// 鼠标离开 window 时还原 cursor
+    override func mouseExited(with event: NSEvent) {
+        currentCursor = nil
+        NSCursor.arrow.set()
+    }
+
+    /// 递归找 SplitterHitArea
+    private func findSplitter(in view: NSView?) -> SplitterHitArea? {
+        guard let view = view else { return nil }
+        if let splitter = view as? SplitterHitArea { return splitter }
+        for subview in view.subviews {
+            if let found = findSplitter(in: subview) { return found }
+        }
+        return nil
     }
 }
 
