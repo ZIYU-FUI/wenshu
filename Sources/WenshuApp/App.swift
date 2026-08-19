@@ -358,9 +358,9 @@ struct ZoneIcon: View {
 ///   - 矩形 18×18 at (72, 6) — 等距 27 PT
 ///   - 占位文本 (x_right_align, 8, 52, 16) — 右对齐, 顶 8
 ///   - 分割线 (0, 28, w, 2) — 底部 2 PT (v0.15 ticket 020 老板 2026-08-19 用 mcp__sketch__run_code 读图确认 2 PT)
+/// v0.16 ticket 01 修: 老板 2026-08-19 拍 toolbar 宽度跟 zone 实际宽度走 (不画穿 splitter). 删参数 totalW, 宽度由父 ZoneModule .frame(maxWidth: .infinity) 撑.
 struct ZoneTopToolbar: View {
     let iconNames: [String]
-    let totalW: CGFloat
 
     var body: some View {
         let toolbarH = LayoutTokens.toolbarHeight  // 30 PT 硬编码 (v0.15 ticket 008)
@@ -404,13 +404,12 @@ struct ZoneTopToolbar: View {
 /// v0.15 ticket 016 撤回 ticket 013 占位文字位置改动: 老板 2026-08-19 ticket 011 拍板 "左顶边 18, 右顶边 18, 距底边 6"
 ///   (ticket 013 重写时自作主张改 .topLeading + 距顶 8 违反 Q20 hard rule "已实现不要直接动")
 ///   撤回: .topLeading → .bottomLeading + 距底 6 PT (跟 ticket 011 一致)
+/// v0.16 ticket 01 修: 老板 2026-08-19 拍 toolbar 宽度跟 zone 实际宽度走 (不画穿 splitter). 删参数 width, 宽度由父 ZoneModule .frame(maxWidth: .infinity) 撑.
 struct ZoneBottomToolbar: View {
-    let width: CGFloat
-
     var body: some View {
         let toolbarH = LayoutTokens.toolbarHeight  // 30 PT 硬编码 (v0.15 ticket 008)
         DesignColor.zoneSurface
-            .frame(width: width, height: toolbarH)
+            .frame(height: toolbarH)  // 宽度由父 ZoneModule .frame(maxWidth: .infinity) 撑 (Apple HIG)
             .overlay(alignment: .top) {
                 DesignColor.splitterLine.frame(height: 2)  // 2 PT #000000 顶分割线 (v0.15 ticket 020 老板 2026-08-19 用 mcp__sketch__run_code 读图确认 2 PT)
             }
@@ -461,16 +460,18 @@ struct ZoneModule: View {
         //   底栏: 向下约束 (居底) + 宽度自适应 (maxWidth: .infinity)
         //   内容区: 四方约束填充 (maxWidth: .infinity + maxHeight: .infinity)
         // 老板 2026-08-19 拍: 顶栏/底栏硬编码 30 PT (ticket 008), ICON 18×18 (ticket 013), 间距 9 (ticket 015), 占位文字左/右 18 (ticket 013), 距底 6 (ticket 011)
+        // v0.16 ticket 01 修: 老板 2026-08-19 拍 toolbar 宽度跟 zone 实际宽度走 (不画穿 splitter).
+        //   改 .frame(width: totalW) → .frame(maxWidth: .infinity), toolbar 内部 width 参数全删, 由 SwiftUI layout 系统撑 zone 实际宽度 (Apple HIG 范式).
         VStack(spacing: 0) {
-            // 顶栏: 居顶, 宽度自适应
-            ZoneTopToolbar(iconNames: ["book.closed", "magnifyingglass", "slider.horizontal.3"], totalW: totalW)
-                .frame(width: totalW, height: toolbarH, alignment: .top)  // 顶栏 30 PT 硬编码, 居顶
+            // 顶栏: 居顶, 宽度由 VStack stretch (Apple HIG HStack/VStack 子 view 默认 stretch 全宽)
+            ZoneTopToolbar(iconNames: ["book.closed", "magnifyingglass", "slider.horizontal.3"])
+                .frame(height: toolbarH, alignment: .top)  // 顶栏 30 PT 硬编码, 居顶
             // 内容区: 四方约束填充, 撑满剩余空间
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            // 底栏: 居底, 宽度自适应
-            ZoneBottomToolbar(width: totalW)
-                .frame(width: totalW, height: toolbarH, alignment: .bottom)  // 底栏 30 PT 硬编码, 居底
+            // 底栏: 居底, 宽度由 VStack stretch (Apple HIG HStack/VStack 子 view 默认 stretch 全宽)
+            ZoneBottomToolbar()
+                .frame(height: toolbarH, alignment: .bottom)  // 底栏 30 PT 硬编码, 居底
         }
         // v0.15 ticket 006 P3-4 撤回: surfaceColor background 跟 .editor overlay 套娃导致两道双层 bug
         // 回退到 v0.15 ticket 005 范式: 每个 case 自己画 Color + overlay
