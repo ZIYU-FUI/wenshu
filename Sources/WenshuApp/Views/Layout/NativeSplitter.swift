@@ -1,89 +1,161 @@
 //
-//  NativeSplitter.swift · Wenshu · v0.14.0
+//  NativeSplitter.swift · Wenshu · v0.16 ticket 03
 //
-//  老板 8/18 拍 Apple 官方 API: 拖拽线 = DragGesture + .pointerStyle
-//  (替代手写 NSView, NSCursor 在 SwiftUI 顶层 window 不生效)
+//  Apple AppKit 真值范式: 拖拽线 = NSView + NSEvent + NSTrackingArea + NSCursor.
+//  跟 Xcode / Pages / Numbers / Sketch 一样的标准 AppKit 做法.
 //
-//  6 PT hit area + 2 PT 视觉线 + 纯黑色 + 1 PT 视觉线居中
-//  数对公式: 52 + 465 + 2 + 465 = 984 (设计总高 1:1 PT 落)
+//  6 PT hit area 透明 NSView + 2 PT 黑色 Rectangle 视觉 + hover 4 PT accent.
+//  数对公式: 52 (macOS chrome) + 465 (上 band) + 2 (D_h) + 465 (下 band) = 984.
 //
-//  调研: mcp__sketch__run_code 没用对应 SwiftUI 拖拽线组件 (HSplitView / VSplitView 都不可定制 divider 颜色, divider 颜色改不了; NSView 自写 NSCursor 在 SwiftUI 顶层 window 不生效).
-//  Apple 官方指引: 用 DragGesture (translation 增量) + .pointerStyle(.columnResize / .rowResize) 替代自写 NSView.
+//  v0.16 ticket 03: 重写 NativeSplitter 用 NSView + NSEvent (替代 SwiftUI DragGesture).
+//  历史 v0.14.0 commit `dacbc9fee` 自承已知 3 件 bug: D_h 不能拖 / D_v5 不能拖 / cursor 不变形 — 这次重写一并修.
+//  v0.15 ticket 006 + ticket 023 SwiftUI DragGesture + .pointerStyle 实测在 macOS 27 + VStack parent gesture 系统下失灵.
+//  AppKit NSView + NSEvent 直接走 macOS 事件流, 绕过 SwiftUI gesture 系统, 稳定.
+//
 //  链接:
-//    - https://developer.apple.com/documentation/swiftui/pointerstyle
-//    - https://developer.apple.com/documentation/swiftui/pointerstyle/columnresize
-//    - https://developer.apple.com/documentation/swiftui/pointerstyle/rowresize
-//    - https://developer.apple.com/documentation/swiftui/draggesture
-//
-//  老板 8/18 拍 "拖拽线是 1 组件 = 改 1 处全改" → 1 NativeSplitter 组件 + orientation 参数, 替代之前的 wrapper 2 个.
+//    - https://developer.apple.com/documentation/appkit/nsview
+//    - https://developer.apple.com/documentation/appkit/nsevent
+//    - https://developer.apple.com/documentation/appkit/nstrackingarea
+//    - https://developer.apple.com/documentation/appkit/nscursor
+//    - https://developer.apple.com/documentation/swiftui/nsviewrepresentable
 
 import SwiftUI
+import AppKit
 
 /// 拖拽线方向 (vertical 拖水平 resizeLeftRight, horizontal 拖垂直 resizeUpDown)
 enum SplitterOrientation {
-    case vertical    // 控制左右 zone 宽度 → translation.width
-    case horizontal  // 控制上下 zone 高度 → translation.height
+    case vertical    // 鼠标 X 方向移动 → onDrag(deltaX)
+    case horizontal  // 鼠标 Y 方向移动 → onDrag(deltaY)
 }
 
-/// 6 拖拽线 1 组件 (老板 8/18 拍 "拖拽线是 1 组件")
-/// 改 1 处 = 5 拖拽线 (D_v1/D_v2/D_v3/D_v5 + D_h) 全 1:1 落
+// MARK: - NSView 拖拽 + cursor (Apple AppKit 真值)
+
+/// 透明 hit area NSView 子类: 接管 mouseDown / mouseDragged / mouseUp + NSTrackingArea hover + NSCursor.push
+/// 绕过 SwiftUI gesture 系统, 走 AppKit 事件流 (跟 Xcode / Pages / Numbers 一样)
+final class SplitterHitArea: NSView {
+    var orientation: SplitterOrientation = .vertical
+    /// 拖拽回调: orientation == .vertical 时 delta 是 X 增量, 否则 Y 增量
+    var onDrag: ((CGFloat) -> Void)?
+    /// hover 状态变化回调 (mouseEntered / mouseExited / mouseMoved 进入 NSView bounds)
+    var onHoverChange: ((Bool) -> Void)?
+    /// 上次 mouse location (用于算 mouseDragged delta)
+    private var lastLocation: NSPoint?
+
+    override var acceptsFirstResponder: Bool { true }
+    /// 接收 first mouse event (即使 window 不在 first responder 状态, 鼠标点击 NSView 也能触发 mouseDown)
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    /// 鼠标按下开始拖拽
+    override func mouseDown(with event: NSEvent) {
+        lastLocation = event.locationInWindow
+        window?.makeFirstResponder(self)
+    }
+
+    /// 拖拽过程: 算 delta → 调 onDrag callback
+    override func mouseDragged(with event: NSEvent) {
+        guard let last = lastLocation else {
+            lastLocation = event.locationInWindow
+            return
+        }
+        let current = event.locationInWindow
+        let delta: CGFloat
+        if orientation == .vertical {
+            delta = current.x - last.x
+        } else {
+            delta = current.y - last.y
+        }
+        lastLocation = current
+        if delta != 0 {
+            onDrag?(delta)
+        }
+    }
+
+    /// 鼠标释放
+    override func mouseUp(with event: NSEvent) {
+        lastLocation = nil
+    }
+
+    /// mouseEntered / mouseExited: NSTrackingArea 自动调
+    override func mouseEntered(with event: NSEvent) {
+        // 切 cursor (跟 Pages / Numbers 一致, 鼠标进 NSView 立刻切)
+        let cursor: NSCursor = (orientation == .vertical) ? .resizeLeftRight : .resizeUpDown
+        cursor.push()
+        onHoverChange?(true)
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        NSCursor.pop()
+        onHoverChange?(false)
+    }
+
+    /// NSTrackingArea: 全 bounds hover 检测
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        for area in trackingAreas {
+            removeTrackingArea(area)
+        }
+        let options: NSTrackingArea.Options = [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect]
+        let area = NSTrackingArea(rect: bounds, options: options, owner: self, userInfo: nil)
+        addTrackingArea(area)
+    }
+
+    deinit {
+        NSCursor.pop()  // safety net: 如果 cursor 没 pop 就 deinit, 强制 pop
+    }
+}
+
+// MARK: - NSViewRepresentable 桥接 (SwiftUI 调用 NSView)
+
+/// NSViewRepresentable: SwiftUI 调用 SplitterHitArea 的桥梁
+/// SwiftUI body 用 .frame() + .background(.clear) 决定 NSView frame, updateNSView 同步 orientation / closure
+struct SplitterHitAreaRepresentable: NSViewRepresentable {
+    let orientation: SplitterOrientation
+    let onDrag: @MainActor (CGFloat) -> Void
+    let onHoverChange: @MainActor (Bool) -> Void
+
+    func makeNSView(context: Context) -> SplitterHitArea {
+        let view = SplitterHitArea()
+        view.orientation = orientation
+        view.onDrag = { delta in
+            Task { @MainActor in onDrag(delta) }
+        }
+        view.onHoverChange = { hovered in
+            Task { @MainActor in onHoverChange(hovered) }
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: SplitterHitArea, context: Context) {
+        nsView.orientation = orientation
+        nsView.onDrag = { delta in
+            Task { @MainActor in onDrag(delta) }
+        }
+        nsView.onHoverChange = { hovered in
+            Task { @MainActor in onHoverChange(hovered) }
+        }
+    }
+}
+
+// MARK: - NativeSplitter (SwiftUI 主组件)
+
+/// 6 拖拽线 1 组件 (老板 8/18 拍 "拖拽线是 1 组件"): NativeSplitter + orientation 参数
+/// v0.16 ticket 03 重写: SwiftUI Rectangle 视觉 (静态 2 PT 黑 / hover 4 PT accent) + 透明 NSView overlay 接 mouse / cursor
+/// 改 1 处 = 6 拖拽线 (D_v1/D_v2/D_v3/D_v5 + D_h) 全 1:1 落
 struct NativeSplitter: View {
-    /// 拖拽线方向
     let orientation: SplitterOrientation
     /// 拖拽线长度 (vertical = 高度, horizontal = 宽度)
     let length: CGFloat
-    /// 拖拽回调: vertical = deltaX (from SwiftUI translation.width), horizontal = deltaY (from translation.height)
+    /// 拖拽回调: orientation == .vertical 时 delta 是 X 增量, 否则 Y 增量 (from NSView mouseDragged)
     let onDrag: @MainActor (CGFloat) -> Void
 
-    private static let lineThickness: CGFloat = 2  // 老板 8/18 拍 2 PT (跟分割线一样粗, 竖/横都 2)
-    // 老板 8/18 拍 hover 变粗: 静态 2 PT → hover 4 PT (2 倍动效, 竖/横一致)
-    private static let hoveredThickness: CGFloat = 4
-    private static let hoveredThicknessHorizontal: CGFloat = 4
-    private static let hitAreaThickness: CGFloat = 6  // 老板 8/18 拍 6 PT hit area
+    private static let lineThickness: CGFloat = 2  // 静态线 2 PT (Sketch master 真值, 老板 8/18 拍)
+    private static let hoveredThickness: CGFloat = 4  // hover 变粗 2 倍 (老板 8/18 拍)
+    private static let hitAreaThickness: CGFloat = 6  // 6 PT hit area (老板 8/18 拍)
 
-    /// hover 状态 (1 组件 1 @State, 改 1 处全改)
     @State private var isHovered: Bool = false
-    /// 拖拽中 (drag 时 = true, 期间 zone 宽度不动画 = 跟手不抖动)
-    @State private var isDragging: Bool = false
-    /// 上次 translation 值, 用于算 onChanged 之间的增量 (防止拉飞)
-    @State private var lastTranslation: CGFloat = 0
 
-    /// 拖拽手势 (Apple 官方, 用 translation 增量, 不漂移, 不拉飞, 拖拽时禁用动画 = 不抖动)
-    /// 关键: withTransaction(disablesAnimations: true) 包 onDrag → SwiftUI zone width 重算不动画
-    /// gesture 挂外层 ZStack (实测 macOS 27 SwiftUI 4 inner Rectangle gesture 拖拽线不响应)
-    private var dragGesture: some Gesture {
-        DragGesture(minimumDistance: 0)
-            .onChanged { value in
-                if !isDragging { isDragging = true }
-                let current: CGFloat = (orientation == .vertical) ? value.translation.width : value.translation.height
-                let delta = current - lastTranslation
-                lastTranslation = current
-                if delta != 0 {
-                    // Apple 官方修法: 拖拽过程禁用 zone width 动画 → 60 fps 跟手不抖动
-                    var tx = Transaction()
-                    tx.disablesAnimations = true
-                    withTransaction(tx) { onDrag(delta) }
-                }
-            }
-            .onEnded { _ in
-                isDragging = false
-                lastTranslation = 0
-            }
-    }
-
-    /// Apple 官方 cursor 切换 (columnResize / rowResize, macOS 15+)
-    private var pointerStyle: PointerStyle {
-        (orientation == .vertical) ? .columnResize : .rowResize
-    }
-
-    /// 老板 8/18 拍 hover 变粗 (原本 1 PT, 竖 3 倍 / 横 6 倍), 居中
     private var lineFrame: (width: CGFloat, height: CGFloat) {
-        let thickness: CGFloat
-        if orientation == .vertical {
-            thickness = isHovered ? Self.hoveredThickness : Self.lineThickness
-        } else {
-            thickness = isHovered ? Self.hoveredThicknessHorizontal : Self.lineThickness
-        }
+        let thickness = isHovered ? Self.hoveredThickness : Self.lineThickness
         if orientation == .vertical {
             return (width: thickness, height: length)
         } else {
@@ -92,13 +164,11 @@ struct NativeSplitter: View {
     }
 
     var body: some View {
-        // 真实 rect frame (线性 PT bounds)
         let outerWidth: CGFloat = orientation == .vertical ? Self.hitAreaThickness : length
         let outerHeight: CGFloat = orientation == .vertical ? length : Self.hitAreaThickness
 
         ZStack {
-            // 老板 8/18 拍 "圆头线" = 用 .clipShape(.capsule) 最大圆角 (Apple 官方 SwiftUI capsule shape)
-            // vertical = 矩形 2 PT 宽 → 胶囊端圆; horizontal = 矩形 2 PT 高 → 胶囊端圆
+            // SwiftUI Rectangle 视觉 (2 PT 黑 / hover 4 PT accent + shadow)
             Rectangle()
                 .fill(isHovered ? Color.accentColor.opacity(0.6) : Color.black)
                 .frame(width: lineFrame.width, height: lineFrame.height)
@@ -109,28 +179,24 @@ struct NativeSplitter: View {
                     x: 0, y: 0
                 )
                 .animation(.easeInOut(duration: 0.2), value: isHovered)
+
+            // 透明 NSView overlay: 接管 mouseDown / mouseDragged / mouseUp + NSTrackingArea hover + NSCursor.push
+            SplitterHitAreaRepresentable(
+                orientation: orientation,
+                onDrag: onDrag,
+                onHoverChange: { hovered in
+                    isHovered = hovered  // 驱动 Rectangle 视觉 (变粗 + 蓝 + shadow)
+                }
+            )
+            .frame(width: outerWidth, height: outerHeight)
         }
         .frame(width: outerWidth, height: outerHeight)
-        .contentShape(.rect)
-        // cursor 用 Apple HIG SwiftUI .pointerStyle (macOS 15+ 官方 cursor 入口).
-        // hover 视觉 (Rectangle 变 accent + shadow) 由 isHovered state 驱动, isHovered 由 .onContinuousHover set.
-        // 删 v0.15 ticket 023 的 NSCursor.push/pop + NSApp.windows.disableCursorRects (跟 .pointerStyle 互打架).
-        // https://developer.apple.com/documentation/swiftui/view/pointerstyle(_:)
-        .pointerStyle(pointerStyle)
-        .onContinuousHover { phase in
-            // 仅更新 isHovered state 驱动 hover 视觉, 不调 NSCursor (避免跟 .pointerStyle race condition)
-            switch phase {
-            case .active: isHovered = true
-            case .ended: isHovered = false
-            }
-        }
-        .gesture(dragGesture)
     }
 }
 
 // MARK: - 不可拖拽分割线 (SwiftUI Divider, Apple Public)
 
-/// 不可拖拽的 2 PT 横向分割线 (圆角最大 = 视觉圆头, 老板 8/18 拍)
+/// 不可拖拽的 2 PT 横向分割线 (圆角最大 = 视觉圆头)
 struct StaticDividerHorizontal: View {
     var width: CGFloat? = nil
     var body: some View {
@@ -138,7 +204,7 @@ struct StaticDividerHorizontal: View {
             Rectangle()
                 .fill(Color.black)
                 .frame(width: w, height: 2)
-                .clipShape(.capsule)  // Apple 官方 SwiftUI capsule = 最大圆角 (圆头线)
+                .clipShape(.capsule)
         } else {
             Divider()
         }
@@ -152,6 +218,6 @@ struct StaticDividerVertical: View {
         Rectangle()
             .fill(Color.black)
             .frame(width: 2, height: height)
-            .clipShape(.capsule)  // Apple 官方 SwiftUI capsule = 最大圆角 (圆头线)
+            .clipShape(.capsule)
     }
 }

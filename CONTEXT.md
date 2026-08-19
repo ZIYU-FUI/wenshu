@@ -36,6 +36,7 @@
 | **PT** | Apple 排版单位, macOS 27 1x 下 1 PT = 1 PX (老板 8/18 拍 1:1 落) | — |
 | **LayoutTokens** | 18 个 ratio (0~1) 算子 + designW=1920 + designH=984 基准, GeometryReader × 比例 = 任何窗口大小 1:1 自适应 | ADR-0006 |
 | **Toolbar 高度写死 + VStack stretch** | 顶/底栏 30 PT 硬编码 (LayoutTokens.toolbarHeight, v0.15 ticket 008), 宽度不显式传, 由 SwiftUI VStack 子 view 默认 stretch 全宽自动撑 zone 实际宽度 (Apple HIG layout 默认行为, v0.16 ticket 01). 不画穿 splitter. | — |
+| **拖拽线 NSView + NSEvent 范式** | 6 根拖拽线 (D_v1/D_v2/D_v3/D_v5/D_h) 用同一 NativeSplitter 1 组件 (老板 8/18 拍 "拖拽线是 1 组件"), 内部 SplitterHitArea: NSView 子类接管 mouseDown / mouseDragged / mouseUp + NSTrackingArea hover + NSCursor.push/pop, SplitterHitAreaRepresentable: NSViewRepresentable 桥接 (Apple AppKit 真值, 跟 Xcode / Pages / Numbers 一样, v0.16 ticket 03). SwiftUI DragGesture + .pointerStyle 在 macOS 27 VStack parent gesture 系统下失灵. | ADR-0003 |
 | **数对公式** | 老板 8/18 拍 "多出来的都进聊天区, 用数对" = 拖拽线 1 PT 视觉线摊给左右 zone, 上 band 4 zone 数对 (200, 558, 762, 400) = 1920 + 下 band 3 zone 数对 (200, 1320, 400) = 1920 + H 数对 (39, 472, 472, 1) = 984 | ADR-0006 |
 | **Drag Splitter** | 5 竖拖拽线 (D_v1/D_v2/D_v3/D_v4/D_v5, 1 PT 视觉线, intrinsicContentSize 1 PT) + 1 横拖拽线 (D_h inert, 老板 8/18 拍 50/50 锁定) | ADR-0003 + ADR-0006 |
 | **视图菜单** | CommandMenu("视图") 顶级菜单 + "恢复默认布局" ⌘⇧R + NotificationCenter.default 桥接 vm.reset() (Apple HIG 范式) | ADR-0006 |
