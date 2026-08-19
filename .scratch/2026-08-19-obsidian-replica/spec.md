@@ -222,6 +222,79 @@
   - SwiftUI Canvas 60 fps TimelineView
   - Spotlight 范式 (⌘O quick switcher)
 
+## MIT 对照参考: SilverBullet (老板 2026-08-19 evening 拍 '我们是复刻, 不是复制代码, 看代码是为了更好的复刻')
+
+老板拍: "复刻不是复制代码, 看代码是为了更好的复刻". SilverBullet (MIT 纯协议) 是跟 Obsidian 同类但纯开源的真值参考, **不取代 Obsidian, 是补充对照** — 帮我们看清"双链 / 反向链接 / outliner / 扩展机制"在 MIT 协议下怎么实现的.
+
+### SilverBullet 真值 (按 LWN 2025-07-31 评测 + GitHub README)
+
+- **License**: ✅ MIT 纯协议 (LWN 2025-07-31 明确 "MIT-licensed note-taking application")
+- **GitHub**: https://github.com/silverbulletmd/silverbullet
+- **Stack**: Deno server + TypeScript 前端 + Space Lua 扩展
+- **存储**: markdown files (.md), 跟 Obsidian 一样本地文件夹 = "Space"
+- **核心能力**:
+  - Page 集合 (= Obsidian Vault / wenshu Library)
+  - Outliner 工具 (= Obsidian outliner plugin / 跟 wenshu Book outline 同维度)
+  - Tasks (= Obsidian Tasks plugin / wenshu 写作大纲)
+  - Query tables / tags / pages (= Obsidian Bases / wenshu Bases 复刻)
+  - Templates
+  - Block-based 编辑
+  - Space Lua 扩展 (= Obsidian plugin API / wenshu 不需要, 单 app 编译一体)
+
+### 为什么 SilverBullet 是好对照
+
+1. **真 MIT** — 不是 MIT + EE 双协议 (AFFiNE), 不是 AGPL 传染 (AppFlowy 依赖). 真开源协议下能看清完整实现
+2. **markdown files** — 跟 Obsidian 一样本地 .md 文件, 跟 wenshu Document 真值一致
+3. **Deno + TypeScript** — 不是 Electron 闭源 (Obsidian), 可以看完整 server 端代码 (index / sync / 全文搜索实现)
+4. **Space Lua 扩展** — 类似 Obsidian plugin API 但更轻量, 看清"扩展机制"在 MIT 协议下怎么设计
+5. **PWA + macOS wrapper** — 社区有 MacOS app wrapper (community.silverbullet.md/t/macos-app-really/750), 但不是 SwiftUI native. **wenshu 用 Swift/SwiftUI native, 不抄 wrapper**
+
+### 复刻对照矩阵 (Obsidian vs SilverBullet vs wenshu 复刻)
+
+| 能力 | Obsidian | SilverBullet | wenshu 复刻 ticket |
+|---|---|---|---|
+| 本地 markdown files | ✅ | ✅ | 已实现 `Document` |
+| 双向链接 `[[name]]` | ✅ | ✅ (page ref) | ticket 12 |
+| Backlinks 反向链接 | ✅ | ✅ (page backlinks) | ticket 12 |
+| Outliner | ✅ (Outline plugin) | ✅ (Outlining tools) | ticket 21 |
+| Templates | ✅ | ✅ (templating plug) | ticket 15 |
+| Search 全文 | ✅ | ✅ (server 端 index) | ticket 17 |
+| 数据库视图 (Bases) | ✅ (.base YAML) | ✅ (Query tables) | ticket 18 |
+| Canvas 画布 | ✅ (JSON Canvas 1.0) | ❌ | ticket 13 |
+| Graph view | ✅ | ❌ | ticket 14 |
+| Note Composer | ✅ | ✅ (rename / merge) | ticket 16 |
+| Quick Switcher �O | ✅ | ✅ (page picker) | ticket 19 |
+| Word count | ✅ | ✅ (status bar) | ticket 20 |
+| Bookmarks | ✅ | ❌ | ticket 22 |
+| 扩展机制 | ✅ (Plugin API, 公开) | ✅ (Space Lua) | ❌ (wenshu 单 app, 不需要) |
+| Plugin store / 社区 | ✅ (大生态) | ❌ (小众) | ❌ |
+| macOS native | ✅ (Electron) | ❌ (PWA + 社区 wrapper) | ✅ (SwiftUI, wenshu 真值) |
+| **License** | **闭源 (Electron 闭源)** | **MIT 纯协议** | MIT (wenshu 自有) |
+
+### 关键观察 (SilverBullet 给 wenshu 的启示)
+
+1. **markdown index** — SilverBullet server 端用 SQLite 索引所有 .md 文件的 page / heading / block ref. **wenshu 复刻 ticket 17 (Full Text Search) 可以参考 SilverBullet 的 SQLite FTS5 索引结构**, 但不抄代码
+2. **page ref 双链** — SilverBullet 用 `[[page name]]` 跟 Obsidian 完全一样, wenshu 直接用同语法 (跟 Obsidian / SilverBullet 双向兼容)
+3. **Space Lua 扩展** — SilverBullet 把扩展逻辑下沉到 Lua sandbox, 不是 TS 代码. **wenshu 不需要扩展机制** (单 app 编译一体), 但**模板 (ticket 15) 可以借鉴 Space Lua 的 "变量 + 模板" 设计思路**
+4. **PWA 离线优先** — SilverBullet PWA 第一次 load 后完全离线. **wenshu 桌面 app 本来就离线, 不需要 PWA 模式**, 但 "本地自管" 原则一致
+5. **社区 macOS wrapper** — SilverBullet 社区用 WebView 包了 .app, 但体验跟 SwiftUI native 差很多. **wenshu 用 SwiftUI native 是真值优势**, 不是 wrapper
+
+### 真值源
+
+- SilverBullet GitHub: https://github.com/silverbulletmd/silverbullet (MIT)
+- SilverBullet 官网: https://silverbullet.md/
+- LWN 评测 2025-07-31: https://lwn.net/Articles/1030941/ (MIT 真值)
+- Apple HIG 真值引用 (跟 Obsidian 段同):
+  - SQLite FTS5 builtin
+  - SwiftUI Canvas 60 fps TimelineView
+  - Spotlight 范式 (⌘O quick switcher)
+
+### 不动 SilverBullet 代码
+
+- 老板拍 "我们是复刻, 不是复制代码" = 看 SilverBullet 思路, 用 Swift/SwiftUI 自己实现, 不抄 TS / Deno / Lua
+- 不 fork SilverBullet, 不 pull request, 不用 Space Lua
+- SilverBullet 只是 "MIT 协议下同类项目" 的对照参考, 跟 Obsidian 互补
+
 ## 后续 ticket (按优先级)
 
 详见 `.scratch/2026-08-19-obsidian-replica/issues/` (后续 ticket 12-23 共 12 ticket)
