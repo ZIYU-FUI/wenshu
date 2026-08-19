@@ -151,13 +151,12 @@ struct NativeSplitter: View {
         let outerHeight: CGFloat = orientation == .vertical ? length : Self.hitAreaThickness
 
         ZStack {
-            // SwiftUI Rectangle 视觉 (2 PT 黑 / hover 4 PT accent 0.25 + 阴影 0.15)
+            // SwiftUI Rectangle 视觉 (静态 2 PT Apple 系统 divider 色 / hover 4 PT Apple 系统亮色 0.25 + 阴影 0.15)
             Rectangle()
-                .fill(isHovered ? Color.accentColor.opacity(0.25) : Color.black)
+                .fill(isHovered ? Color(nsColor: .controlAccentColor).opacity(0.25) : Color(nsColor: .separatorColor))
                 .frame(width: lineFrame.width, height: lineFrame.height)
-                .clipShape(.capsule)  // 圆角最大 = 视觉圆头
                 .shadow(
-                    color: isHovered ? Color.accentColor.opacity(0.15) : .clear,
+                    color: isHovered ? Color(nsColor: .controlAccentColor).opacity(0.15) : .clear,
                     radius: isHovered ? 8 : 0,
                     x: 0, y: 0
                 )
@@ -179,28 +178,26 @@ struct NativeSplitter: View {
 
 // MARK: - 不可拖拽分割线 (SwiftUI Divider, Apple Public)
 
-/// 不可拖拽的 2 PT 横向分割线 (圆角最大 = 视觉圆头)
+/// 不可拖拽的 2 PT 横向分割线 (Apple 系统 divider 色, dark/light 自适应)
 struct StaticDividerHorizontal: View {
     var width: CGFloat? = nil
     var body: some View {
         if let w = width {
             Rectangle()
-                .fill(Color.black)
+                .fill(Color(nsColor: .separatorColor))
                 .frame(width: w, height: 2)
-                .clipShape(.capsule)
         } else {
             Divider()
         }
     }
 }
 
-/// 不可拖拽的 2 PT 竖向分割线 (圆角最大 = 视觉圆头)
+/// 不可拖拽的 2 PT 竖向分割线 (Apple 系统 divider 色, dark/light 自适应)
 struct StaticDividerVertical: View {
     let height: CGFloat
     var body: some View {
         Rectangle()
-            .fill(Color.black)
+            .fill(Color(nsColor: .separatorColor))
             .frame(width: 2, height: height)
-            .clipShape(.capsule)
     }
 }
