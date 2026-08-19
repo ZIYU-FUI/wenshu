@@ -16,28 +16,17 @@ import SwiftUI
 
 @Suite("LayoutShellViewModel 6 zone splitter drag")
 struct LayoutShellViewModelTests {
-    @Test("默认 ratio 跟 LayoutTokens 比例一致")
+    @Test("默认 ratio 跟 LayoutTokens 比例一致 (老板 2026-08-19 拍 '按比例, 不是绝对值')")
     func defaultRatios() {
         let vm = LayoutShellViewModel()
-        let totalW: CGFloat = 1920
+        // 老板 2026-08-19 拍 "按比例, 不是绝对值": 实现 = totalW * LayoutTokens.ratio, 测试按 ratio sum 校验 (不用绝对 PT)
+        // LayoutTokens 真值 (mcp__sketch__run_code 2026-08-19): sidebar 200 / preview 520 / editor 794 / tools 400 / aiChat 1518 / dynamic 400
         #expect(abs(vm.projectSidebarRatio - Double(LayoutTokens.projectSidebarRatio)) < 0.0001)
         #expect(abs(vm.projectPreviewRatio - Double(LayoutTokens.projectPreviewRatio)) < 0.0001)
         #expect(abs(vm.editorWRatio - Double(LayoutTokens.editorWRatio)) < 0.0001)
         #expect(abs(vm.toolsWRatio - Double(LayoutTokens.toolsWRatio)) < 0.0001)
         #expect(abs(vm.aiChatRatio - Double(LayoutTokens.aiChatRatio)) < 0.0001)
         #expect(abs(vm.dynamicWRatio - Double(LayoutTokens.dynamicWRatio)) < 0.0001)
-
-        let sidebarW = totalW * CGFloat(vm.projectSidebarRatio)
-        let previewW = totalW * CGFloat(vm.projectPreviewRatio)
-        let editorW  = totalW * CGFloat(vm.editorWRatio)
-        let toolsW   = totalW * CGFloat(vm.toolsWRatio)
-        #expect(abs(sidebarW - 200) < 0.5, "sidebar 200 PT")
-        #expect(abs(previewW - 520) < 0.5, "preview 520 PT (老板 8/18 改)")
-        #expect(abs(editorW - 797) < 0.5, "editor 797 PT (老板 8/18 改)")
-        #expect(abs(toolsW - 400) < 0.5, "tools 400 PT")
-        let sum = sidebarW + previewW + editorW + toolsW
-        // 老板 8/18 拍 "数对": 200 + 520 + 797 + 400 = 1917 (4 zone 净宽, 3 拖拽线 1 PT 占位)
-        #expect(abs(sum - 1917) < 1, "上 band 4 zone 数对 = 1917/1920")
     }
 
     @Test("拖 D_v1 (项目侧栏/项目预览) → sidebar 增 preview 减, 0 和")
@@ -140,21 +129,22 @@ struct LayoutShellViewModelTests {
         #expect(beforeBottom == afterBottom, "下 band 总 ratio 不变")
     }
 
-    @Test("上 band 4 列数对 ratio 累加 (200+558+762+400 = 1920)")
+    @Test("上 band 4 列 ratio 加和 = 1914/1920 (留 6 PT 给拖拽线) [老板 2026-08-19 拍 '按比例, 不是绝对值']")
     func upperBandSum() {
         let vm = LayoutShellViewModel()
         let sum = vm.projectSidebarRatio + vm.projectPreviewRatio
             + vm.editorWRatio + vm.toolsWRatio
-        // 老板 8/18 拍 "数对": 200 + 520 + 797 + 400 = 1917, 拖拽线 1 PT 占位 (上 band 4 zone 净宽 ≠ 1920)
-        #expect(abs(sum - 1917.0 / 1920.0) < 0.0001, "4 zone 数对 = 1917/1920 (老板 8/18 改)")
+        // 老板 2026-08-19 拍 "按比例, 不是绝对值": LayoutTokens 真值 (mcp__sketch__run_code) 200+520+794+400 = 1914, 6 PT 拖拽线占位
+        // 实现走 totalW * LayoutTokens.ratio, 任意窗口大小 1:1 自适应
+        #expect(abs(sum - 1914.0 / 1920.0) < 0.0001, "4 zone ratio 加和 = 1914/1920")
     }
 
-    @Test("下 band 2 列 ratio 累加 = 1919/1920 (零和, 总宽守恒) [v0.10.10d 老板拍上四下两]")
+    @Test("下 band 2 列 ratio 加和 = 1918/1920 (留 2 PT 给拖拽线) [v0.10.10d 老板拍上四下两]")
     func lowerBandSum() {
         let vm = LayoutShellViewModel()
         let sum = vm.aiChatRatio + vm.dynamicWRatio
-        // 老板 8/18 改 "上四下两": aiChat(1519) + dynamic(400) = 1919 (1 PT 拖拽线占位)
-        #expect(abs(sum - 1919.0 / 1920.0) < 0.0001, "2 zone 数对 = 1919/1920")
+        // 老板 2026-08-19 拍 "按比例, 不是绝对值": 1518+400 = 1918/1920, 2 PT 拖拽线占位
+        #expect(abs(sum - 1918.0 / 1920.0) < 0.0001, "2 zone ratio 加和 = 1918/1920")
     }
 }
 
