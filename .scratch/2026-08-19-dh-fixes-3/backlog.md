@@ -99,39 +99,36 @@
 
 **Status**: backlog (合并 backlog 05 一起修)
 
-## Backlog 07 — 菜单栏不可见真因 (Q22 / deleg_67dec689 / deleg_a9c4fde9 查文档)
+## Backlog 07 — 菜单栏不可见真因 (deleg_a9c4fde9 查文档完)
 
-**来源**: 老板 2026-08-19 18:15 + 19:00 反馈
+**Status**: ✅ 真因 + 修法 — commit 待 (deleg_a9c4fde9 47 分钟 跑完 120 tool calls)
 
-**当前实现** (commit 4c42fa79):
-- WenshuApp.body .commands { CommandGroup(replacing: .newItem) { ... } + CommandGroup(replacing: .appSettings) { SettingsLink { Text("设置…") } } + CommandMenu("视图") { ... } }
-- .windowStyle(.titleBar) + .defaultSize + .windowResizability(.contentSize) + @NSApplicationDelegateAdaptor
+**真因 (P0)**:
+- vdhamer/Photo-Club-Hub-HTML#248 (open since 2026-08-13) 公开记录: `CommandGroup(replacing: X) { }` 不删除 group — 它替换为空 group,每个空 group 仍然贡献一个 separator, SwiftUI 层 API 不能清理自己留下的东西
+- 确认机制: WenshuAppDelegate 在 SwiftUI 完成 main menu 之前动了 NSWindow, + macOS 27 beta lazy menu populate = 整个顶部菜单栏根本没安装
 
-**subagent deleg_67dec689 已查真值** (375 秒, 39 tool calls, 实际 Apple SDK swiftinterface 34953 行):
-- App protocol 真值 (sdk:11210-11215): `@SceneBuilder @MainActor var body: Self.Body { get }` + `init()` — .commands 写在 WindowGroup 末尾合法 Scene 修饰符链
-- Scene.commands 真值 (sdk:18212-18218): `@available(iOS 14.0, macOS 11.0, *)` — macOS 11+ work, macOS 27 没回归
-- 老板实测: 菜单栏**新 binary 仍未显示**
+**URL 真值引用**:
+- https://github.com/vdhamer/Photo-Club-Hub-HTML/issues/248
+- https://developer.apple.com/documentation/swiftui/app/commands (sosumi.ai 镜像)
+- https://developer.apple.com/documentation/swiftui/commandmenu
+- https://developer.apple.com/documentation/swiftui/commandgroup
+- https://developer.apple.com/documentation/swiftui/commandgroupplacement
 
-**当前真因猜测 (deleg_67dec689 报告)**:
-- App.body .commands { } 真值在 macOS 27 应该 work
-- 唯一差异: @NSApplicationDelegateAdaptor(WenshuAppDelegate.self) — subagent 沙箱内没拿到 bug 报告 (anti-bot 拦截)
-- 可能性: WenshuAppDelegate.applicationDidFinishLaunching 设 window.center() / setContentSize() 跟 SwiftUI scene 生命周期冲突, 导致 menu 不显示
-
-**目标修法 (待拍)**:
-- 选项 A: WenshuAppDelegate.applicationDidFinishLaunching 移除 setContentSize / center, 改用 NSWindowController 包装
-- 选项 B: @NSApplicationDelegateAdaptor 移走, 改在 WenshuApp.body 内 onAppear 调 setupMenu (NSMenu 手动建)
-- 选项 C: 用 NSApplicationDelegate 完全 AppKit 模式 (NSApplicationMain) 不走 SwiftUI App lifecycle
-- 选项 D: 其他 (待老板查文档 + 拍)
+**目标修法 (待老板拍)**:
+- 选项 A: 注释 WenshuAppDelegate (让 SwiftUI 自己装 menu, 不在 NSWindow 之前动)
+- 选项 B: 加 `NSApp.mainMenu?.items.forEach { $0.submenu?.update() }` 在 applicationDidFinishLaunching 末尾强制 install
+- 选项 C: 用 `.commandsReplaced` 强制 install
+- 选项 D: 退 AppKit (`NSApplicationMain` + 手动 NSMenu)
 
 **Acceptance criteria**:
 - macOS 顶部菜单栏可见
 - "文枢" 顶级下能看到 "设置..." (跟 Pages / Numbers / Xcode 一样)
 - 快捷键 ⌘, work
 - 点击弹设置弹窗
-- 不破坏其他功能
+- 不破坏其他功能 (cursor 切 / 拖拽 / hover)
 
 **优先级**: 高 (基本 UI)
 
-**Blocked by**: deleg_a9c4fde9 真值报告 + 老板拍
+**Blocked by**: 老板拍选项 + cursor ticket 03 验证通过
 
-**Status**: 等真因 + 拍修法
+**Status**: 待 cursor 03 验过 + 老板拍修法选项
