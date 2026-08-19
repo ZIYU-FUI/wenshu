@@ -67,11 +67,11 @@ enum LayoutTokens {
     // 维持原值 558 + 762 (中间 1 + 中间 2 = 1320) = 上 band 4 zone 1920 ✓
     static let projectSidebarRatio: CGFloat = 200.0 / 1920.0
     static let projectPreviewRatio: CGFloat = 520.0 / 1920.0  // 老板 8/18 改 520 PT (201,52,520,465)
-    static let editorWRatio: CGFloat = 797.0 / 1920.0         // 老板 8/18 改 797 PT (722,52,797,465)
+    static let editorWRatio: CGFloat = 794.0 / 1920.0         // v0.15 ticket 012 修: 老板 2026-08-19 改 794 PT (724,52,794,465) (mcp__sketch__run_code 真值)
     static let toolsWRatio: CGFloat = 400.0 / 1920.0
 
-    // 下 band 2 区 (老板 8/18 拍 "上四下两"): AI聊天 1519 + AI 动态 400 = 1919 (+ 1 PT 拖拽线)
-    static let aiChatRatio: CGFloat = 1519.0 / 1920.0      // AI聊天整宽 (替代 v0.10.3 拆的 chatSidebar + chatDialogue)
+    // 下 band 2 区 (老板 8/18 拍 "上四下两"): AI聊天 1518 + AI 动态 400 = 1918 (+ 2 PT 拖拽线)
+    static let aiChatRatio: CGFloat = 1518.0 / 1920.0      // v0.15 ticket 012 修: 老板 2026-08-19 改 1518 PT (0,519,1518,465) (mcp__sketch__run_code 真值)
     static let dynamicWRatio: CGFloat = 400.0 / 1920.0
 
     // 编辑器两层设计 (老板 8/18 Q2 答: 有意两层, 不要删)
