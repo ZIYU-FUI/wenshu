@@ -51,3 +51,7 @@ Package.resolved
 
 # Test scratch
 *.xcresult/
+
+# swift test 临时 sandbox 文件 (v0.18 ticket 02/05/06 subagent 跑 swift test 时用 cwd + UUID 临时目录, 留项目根)
+# 跟 .scratch/<feature>/ 调研目录区分: .test-* 是 sandbox 自动生成, .scratch/ 是 po main flow 调研 trace
+.test-*
