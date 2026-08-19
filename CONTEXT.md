@@ -41,6 +41,20 @@
 | **Drag Splitter** | 5 竖拖拽线 (D_v1/D_v2/D_v3/D_v4/D_v5, 1 PT 视觉线, intrinsicContentSize 1 PT) + 1 横拖拽线 (D_h inert, 老板 8/18 拍 50/50 锁定) | ADR-0003 + ADR-0006 |
 | **视图菜单** | CommandMenu("视图") 顶级菜单 + "恢复默认布局" ⌘⇧R + NotificationCenter.default 桥接 vm.reset() (Apple HIG 范式) | ADR-0006 |
 | **Appearance Mode** | wenshu 外观三态 (system / dark / light) — 跟 macOS 系统设置默认, 老板可在 Settings 弹窗 (cmd+,) 内 Picker 覆盖, @AppStorage 持久化到 UserDefaults | v0.17 |
+| **WenshuCore** | wenshu 自己的本地核心库 (Sources/WenshuApp/Core/) — 替代 hermes 全能力, 用 Apple 体系实现. 9 真值模块: Memory / Skill / Agent / Kanban / Todo / Tools (File / Web / Process / Vision / AV) / Cron / Backup | v0.18 |
+| **MemoryStore** | wenshu 本地 SQLite 长期记忆 (复刻 hermes mem0 platform 模式). actor 线程安全, schema: user_id / memory_id / content / created_at / updated_at. 接口 add / search / get / update / delete / count | v0.18 ticket 01 |
+| **SkillRegistry** | wenshu 本地 Skills 加载 (复刻 hermes skills_hub 简化版). actor 线程安全, 扫 SKILL.md 解析 frontmatter + body. 接口 list / load / invoke | v0.18 ticket 02 |
+| **A2A Protocol (AgentProtocol)** | wenshu agent 之间通信协议 (Google A2A spec 真值). JSON-RPC 2.0 style: message/send / task/get / task/list. actor in-process 简化版 | v0.18 ticket 03 |
+| **AgentRuntime** | wenshu 多 agent registry + delegateTask + broadcast (复刻 hermes delegation 简化版). main agent 默认指向第一个注册的 agent | v0.18 ticket 04 |
+| **KanbanStore** | wenshu 本地 Kanban (复刻 hermes kanban_db 简化版, 单表 + 7 状态). state machine: new → triage → ready → running → blocked → review → done (+ failed) | v0.18 ticket 05 |
+| **TodoStore** | wenshu 本地 Todo (复刻 hermes todo 简化版). 4 状态 (pending / inProgress / completed / cancelled) + 4 优先级 (low / medium / high / urgent) + dueDate | v0.18 ticket 06 |
+| **FileTools** | wenshu 本地 file 工具 (read / write atomic / patch 1 处 / search 递归 / list). Apple FileManager + URL 真值 | v0.18 ticket 07 |
+| **ProcessTools** | wenshu 本地 process 工具 (run / runShell / isRunning). Apple Foundation Process 真值 | v0.18 ticket 08 |
+| **WebTools** | wenshu 本地 web 工具 (URLSession fetch + HTML → markdown 转换). Apple URLSession 真值 | v0.18 ticket 09 |
+| **VisionTools** | wenshu 本地 vision 工具 (文字识别 + 图像分类). Apple Vision framework 真值 (VNRecognizeTextRequest / VNClassifyImageRequest) | v0.18 ticket 10 |
+| **AVMediaTools** | wenshu 本地 AV media 工具 (AVSpeechSynthesizer 朗读 + duration 估算). Apple AVFoundation 真值 | v0.18 ticket 11 |
+| **Cronjob** | wenshu 本地 cron 任务管理 (5 字段 cron expression + 简单 nextRun 估算). Apple LaunchAgent 路径真值 (后续可生成 plist) | v0.18 ticket 21 |
+| **Backup** | wenshu 本地项目备份 (复制源目录 + ISO 8601 时间戳命名 + 恢复 + 删). Apple FileManager 真值 | v0.18 ticket 26 |
 
 ## Project conventions (硬约束)
 
