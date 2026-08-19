@@ -131,4 +131,9 @@
 
 **Blocked by**: 老板拍选项 + cursor ticket 03 验证通过
 
-**Status**: 待 cursor 03 验过 + 老板拍修法选项
+**Status**: ⚠️ 修法 A 实施 (commit 464d4f34), 待老板验截图
+- commit 464d4f34 删 WenshuAppDelegate.applicationDidFinishLaunching setContentSize/center/guards 提前动 NSWindow 代码
+- 留 SelfScreenshot 调用
+- SwiftUI WindowGroup + .defaultSize + .windowStyle(.titleBar) 自己管 size + chrome
+- ⚠️ 没加 .commandsReplaced (Apple 真值 API 调用方法不确定, 8/15 bug debugging rule 不猜)
+- 待: 老板启 app 截图验菜单栏是否可见 + 拍下一步 (如菜单栏仍不可见, 走选项 B/C/D)
