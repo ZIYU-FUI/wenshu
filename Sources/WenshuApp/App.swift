@@ -49,14 +49,13 @@ enum LayoutTokens {
     static let designH: CGFloat = 984
 
     // 比例算子 (0~1, 基准 1920×984)
-    static let titleRatio: CGFloat = 0                    // 老板 8/18 拍 52 PT 顶栏 = macOS 52 PT unified titlebar chrome, 老板自定义 TitleBarZone 跳过 (省一栏)
-    static let titleBarHeight: CGFloat = 52  // 老板 8/18 拍 52 PT (跟 macOS 52 PT unified titlebar chrome 同值)
+    // 老板 2026-08-19 拍: 标题栏走 macOS .windowStyle(.titleBar) 52 PT unified chrome, 不再自写
+    // v0.15 ticket 001: 删 LayoutTokens.titleBarHeight / titleRatio 死代码 (Apple window chrome 自带)
     static let bandRatio: CGFloat = 465.0 / 984.0        // = 0.4726 (老板 8/18 改 465 PT, 总 52+465+2+465 = 984)
     static let toolbarRatio: CGFloat = 30.0 / 465.0      // = 0.0645 (zone 顶/底 30, 跟 bandH 465 对齐, 老板 8/18 改 465 PT)
-    static let labelFontRatio: CGFloat = 12.0 / 472.0       // = 0.0254 (zone label 字号 12 PT 比例, 老板 8/18 拍)
-    // 老板 8/18 拍 horizontalSplitterRatio 数对公式: 1 PT 横拖拽线 H 比率 (v0.10.6 立)
-    // v0.10.6 删 splitterHitRatio (v0.10.6 之前是死代码, NativeSplitter wrapper frame 改 1 PT 视觉线后没人用)
-    static let horizontalSplitterRatio: CGFloat = 2.0 / 984.0  // = 0.0020 (2 PT 横拖拽线 H 比率, 老板 8/18 拍 2 PT 粗)
+    // v0.15 重写后改名: editorInset 是单一垂直方向 (左右 flush, spec §3.2 故意两层设计)
+    static let editorVerticalInsetRatio: CGFloat = 4.0 / 984.0  // = 0.0041 (编辑器 4 PT 上下 inset)
+    // v0.15 ticket 005: 删 LayoutTokens.horizontalSplitterRatio 死代码 (NativeSplitter 自己管 thickness)
 
     // 上 band 4 zone 数对公式: (200, 中间 1, 中间 2, 400) = 1920
     // 老板 8/18 拍 "数对" = 拖拽线 1 PT 视觉线摊给左右 zone (各 0.5 PT)
@@ -156,7 +155,8 @@ struct WenshuApp: App {
                 .preferredColorScheme(.dark)
         }
         .windowStyle(.titleBar)  // 老板 8/18 拍 macOS 52 PT unified titlebar chrome = 老板自定义 52 PT 顶栏, 视觉合一
-        .windowResizability(.contentSize)
+        .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // 老板 Sketch 设计基准 1920×984 PT (v0.15 ticket 005 响应式: LayoutShellView 删 fixed frame, window 用 defaultSize 给 SwiftUI 初始 size hint)
+        .windowResizability(.contentSize)  // 内容驱动窗口大小 (GeometryReader × 比例算子自适应 resize)
         .commands {
             // File 菜单: 新建项目 (cmd+n)
             CommandGroup(replacing: .newItem) {
@@ -209,19 +209,28 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
 // 标题栏: 删自写 TitleBarZone (Canvas 重画 + macOS .titleBar chrome 双层), 走 macOS 52 PT unified chrome
 // 区域组件: 全用 ZoneModule (顶栏 ZoneTopToolbar + 内容 + 底栏 ZoneBottomToolbar), 不再 Canvas + SwiftUI overlay 混搭
 // 拖拽线: 全用 NativeSplitter(view) (DragGesture + .pointerStyle + hover 4 PT accent capsule), 不再 NSView hit area
-// Apple HIG 参考: developer.apple.com/design/human-interface-guidelines/split-views
+//
+// 真值选择 (老板 2026-08-19 ticket 005 改 comment):
+// - 不用 Apple HSplitView / VSplitView (官方 macOS 10.15+ Split Views), 公开已知限制 = divider 颜色改不了
+//   参考: developer.apple.com/design/human-interface-guidelines/split-views (NSSplitView 不是 SwiftUI Split Views 真值)
+// - 不用 NavigationSplitView (3 列导航范式, 跟 Sketch 6 区布局不对应)
+// - 用 HStack + 自写 NativeSplitter(view): DragGesture + .pointerStyle(.columnResize / .rowResize) + hover 4 PT accent capsule
+//   Apple HIG 官方 API: developer.apple.com/documentation/swiftui/pointerstyle
+// - 标题栏走 macOS .windowStyle(.titleBar) 52 PT unified chrome (Apple HIG standard titlebar)
 
 struct LayoutShellView: View {
     /// v0.10.1 拖拽交互: VM 持有 6 个 offset (5 竖 + 1 横), 6 splitter 的 onDrag 调 vm.adjust*
     @State private var vm = LayoutShellViewModel()
 
     var body: some View {
-        // GeometryReader 拿窗口实际尺寸, 比例算子 × 实 PT = 任何窗口大小 1:1 自适应
+        // GeometryReader 拿窗口实际尺寸, 比例算子 × 实 PT = 任何窗口大小 1:1 自适应 (Apple HIG responsive)
         // macOS .titleBar 52 PT chrome 由 WindowGroup windowStyle 提供 (老板 2026-08-19 拍不写自定标题栏)
+        // 不加 fixed frame + 不加 max(...) floor (v0.15 ticket 005 修响应式 bug)
         GeometryReader { proxy in
             let totalW = proxy.size.width
-            let contentH = max(proxy.size.height, LayoutTokens.designH)
-            let bandH = vm.upperBandH  // 上 band 高度 (D_h 可拖, 上/下反方向守恒)
+            let contentH = proxy.size.height
+            // bandH 走 LayoutTokens.bandRatio × contentH (resize 时按比例算子响应, 不锁死 designH)
+            let bandH = contentH * LayoutTokens.bandRatio
             VStack(spacing: 0) {
                 // 上 band: 4 区 + 3 拖拽线 (Apple HIG HStack 范式)
                 UpperBandZone(vm: vm, totalW: totalW, bandH: bandH)
@@ -230,11 +239,9 @@ struct LayoutShellView: View {
                     vm.adjustBandSplit(delta: dy, totalHeight: contentH)
                 })
                 // 下 band: 2 区 + 1 拖拽线 (老板 8/18 拍 "上四下两")
-                LowerBandZone(vm: vm, totalW: totalW, bandH: vm.lowerBandH)
+                LowerBandZone(vm: vm, totalW: totalW, bandH: contentH - bandH)
             }
         }
-        .frame(width: LayoutTokens.designW, height: LayoutTokens.designH)
-        .background(Color(nsColor: .windowBackgroundColor))  // macOS 27 default dark/light window 背景
         .onReceive(NotificationCenter.default.publisher(for: .wenshuResetLayout)) { _ in
             vm.reset()
         }
@@ -273,7 +280,7 @@ struct UpperBandZone: View {
     }
 }
 
-// MARK: - 下 band (聊天管理区): 2 区域模块 + 2 拖拽线-竖
+// MARK: - 下 band (聊天管理区): 2 区域模块 + 1 拖拽线-竖 (Apple HIG HStack 范式)
 
 struct LowerBandZone: View {
     /// 老板 8/18 拍 "上四下两" = 下 band 2 区: AI聊天 (整宽 1519 PT) + AI 动态 (400 PT)
@@ -393,8 +400,9 @@ struct ZoneModule: View {
     @Environment(WenshuLibrary.self) private var library
 
     private var toolbarH: CGFloat { bandH * LayoutTokens.toolbarRatio }
-    /// 老板 8/18 Q2 答: 4 PT inset = 单一垂直方向 (spec §3.2 "背景 y=60~884, 正文 y=64~882", 上下 4 PT 视觉下沉)
-    private var editorInset: CGFloat { bandH * LayoutTokens.editorInsetRatio }  // 4 PT 单一垂直
+    /// 老板 8/18 Q2 答: 4 PT inset = 单一垂直方向 (spec §3.2 "背景 y=60~884, 正文 y=64~882", 上下 4 PT 视觉下沉, 左右 flush)
+    /// v0.15 ticket 005 改名: editorInsetRatio → editorVerticalInsetRatio (明确垂直方向)
+    private var editorInset: CGFloat { bandH * LayoutTokens.editorVerticalInsetRatio }  // 4 PT 单一垂直
     // v0.10.8: 撤掉 chatInputW/H 私有属性, 老板 8/18 拍 "新图没画聊天输入框"
     private var innerBandH: CGFloat { bandH - 2 * toolbarH }  // 顶栏底栏间内容区
 
@@ -421,11 +429,12 @@ struct ZoneModule: View {
         case .projectPreview:
             DesignColor.zoneSurface
         case .editor:
-            // 老板 8/18 Q2 答: 4 PT inset 两层设计, 不要删
+            // 老板 8/18 Q2 答: 4 PT inset 两层设计, 单一垂直方向 (spec §3.2 背景 y=60~884, 正文 y=64~882, 上下 4 PT 视觉下沉, 左右 flush)
+            // v0.15 重写前 bug: .padding(editorInset) 是全 4 方向 inset, 破左右 flush 设计意图 → 改 [.top, .bottom] 单垂直
             DesignColor.zoneSurface
                 .overlay {
                     Color.white.opacity(0.55)
-                        .padding(editorInset)
+                        .padding([.top, .bottom], editorInset)
                 }
         case .specializedTools:
             DesignColor.zoneSurface
@@ -451,7 +460,8 @@ enum ZoneSlot {
 // MARK: - Library outline (项目侧栏嵌入)
 
 /// 项目侧栏内容 (WenshuLibrary 真实内容)
-/// v0.10.10d: 删 LIBRARY overlay label (老板 8/18 拍 "对齐了, 不用文字标签")
+/// v0.10.10d 删 LIBRARY overlay label (老板 8/18 拍 "对齐了, 不用文字标签")
+/// v0.15 ticket 005: 删 LibraryOutlineViewContent.libraryHeader 死代码 + 改 comment
 struct LibraryOutlineViewContent: View {
     let library: WenshuLibrary
     var body: some View {
@@ -459,9 +469,5 @@ struct LibraryOutlineViewContent: View {
             .padding(.vertical, 2)
             .padding(8)
             .allowsHitTesting(false)
-    }
-    private var libraryHeader: String {
-        let count = library.shelves.count
-        return count == 0 ? "LIBRARY" : "LIBRARY · \(count) 个书架"
     }
 }
