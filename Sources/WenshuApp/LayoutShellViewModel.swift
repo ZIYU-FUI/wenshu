@@ -125,7 +125,8 @@ final class LayoutShellViewModel {
 
     /// 共享拖拽数学: offset[index] 累加 delta/totalWidth, 校验所有 zone ratio
     /// 仍在 [minZoneRatio, maxZoneRatio] 范围内, 否则拒绝 (splitter 不会越界).
-    private func adjust(_ index: Int, delta: CGFloat, totalWidth: CGFloat) {
+    /// v0.15 ticket 006: private → internal 让 VSplitter 表驱动调用 (P3-3 Shotgun Surgery 修法)
+    func adjust(_ index: Int, delta: CGFloat, totalWidth: CGFloat) {
         guard totalWidth > 0 else { return }
         let step = Double(delta / totalWidth)
         let newOffset = offsets[index] + step

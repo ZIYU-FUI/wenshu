@@ -249,6 +249,25 @@ struct LayoutShellView: View {
 }
 
 /// 6 个 NativeSplitter NSView overlay (拖拽 hit area, Canvas 之外处理 mouse event)
+/// v0.15 ticket 006 删 (老板 2026-08-19 改 Canvas 重画 → 删死代码 MARK 残留)
+
+// MARK: - Splitter helper (ticket 006 P3-3 表驱动 adjust, 抽 1 组件避免 Shotgun Surgery)
+// 5 个竖拖拽线 (D_v1/D_v2/D_v3/D_v5) 共享同一签名 (orientation, length, splitterIndex),
+// 内部调 vm.adjust(_:delta:totalWidth:) 表驱动, 改 1 处 = 5 竖拖拽线全响应.
+// D_h 横拖拽线在 LayoutShellView 直接用 NativeSplitter(.horizontal, ...) 调 vm.adjustBandSplit.
+
+struct VSplitter: View {
+    let length: CGFloat
+    let totalWidth: CGFloat
+    let splitterIndex: Int  // 0=D_v1 项目侧栏/预览, 1=D_v2 预览/编辑器, 2=D_v3 编辑器/工具, 4=D_v5 聊天/动态
+    let vm: LayoutShellViewModel
+    var body: some View {
+        NativeSplitter(orientation: .vertical, length: length) { dx in
+            vm.adjust(splitterIndex, delta: dx, totalWidth: totalWidth)
+        }
+    }
+}
+
 // MARK: - 上 band (小说管理区): 4 区域模块 + 3 拖拽线-竖 (Apple HIG HStack 范式)
 
 struct UpperBandZone: View {
@@ -264,16 +283,16 @@ struct UpperBandZone: View {
         HStack(spacing: 0) {
             ZoneModule(slot: .projectSidebar, vm: vm, totalW: totalW, bandH: bandH)
                 .frame(width: sidebar, height: bandH)
-            // D_v1: 项目侧栏 / 项目预览
-            NativeSplitter(orientation: .vertical, length: bandH, onDrag: { dx in vm.adjustSidebarPreview(delta: dx, totalWidth: totalW)  })
+            // D_v1: 项目侧栏 / 项目预览 (splitterIndex 0)
+            VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 0, vm: vm)
             ZoneModule(slot: .projectPreview, vm: vm, totalW: totalW, bandH: bandH)
                 .frame(width: preview, height: bandH)
-            // D_v2: 项目预览 / 编辑器
-            NativeSplitter(orientation: .vertical, length: bandH, onDrag: { dx in vm.adjustPreviewEditor(delta: dx, totalWidth: totalW)  })
+            // D_v2: 项目预览 / 编辑器 (splitterIndex 1)
+            VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 1, vm: vm)
             ZoneModule(slot: .editor, vm: vm, totalW: totalW, bandH: bandH)
                 .frame(width: editor, height: bandH)
-            // D_v3: 编辑器 / 专用工具
-            NativeSplitter(orientation: .vertical, length: bandH, onDrag: { dx in vm.adjustEditorTools(delta: dx, totalWidth: totalW)  })
+            // D_v3: 编辑器 / 专用工具 (splitterIndex 2)
+            VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 2, vm: vm)
             ZoneModule(slot: .specializedTools, vm: vm, totalW: totalW, bandH: bandH)
                 .frame(width: tools, height: bandH)
         }
@@ -295,8 +314,8 @@ struct LowerBandZone: View {
         HStack(spacing: 0) {
             ZoneModule(slot: .aiChat, vm: vm, totalW: totalW, bandH: bandH)
                 .frame(width: aiChatW, height: bandH)
-            // D_v5: AI聊天 / AI 动态
-            NativeSplitter(orientation: .vertical, length: bandH, onDrag: { dx in vm.adjustChatDynamic(delta: dx, totalWidth: totalW)  })
+            // D_v5: AI 聊天 / AI 动态 (splitterIndex 4)
+            VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 4, vm: vm)
             ZoneModule(slot: .aiDynamic, vm: vm, totalW: totalW, bandH: bandH)
                 .frame(width: dynamicW, height: bandH)
         }
@@ -415,11 +434,14 @@ struct ZoneModule: View {
             ZoneBottomToolbar(width: totalW, iconName: "questionmark.square.dashed")  // 老板 8/18 拍 "用 SF 替换矩形"
                 .frame(height: toolbarH)
         }
+        // ticket 006 P3-4 撤回: surfaceColor background 跟 .editor overlay 套娃导致两道双层 bug
+        // 回退到 v0.15 ticket 005 范式: 每个 case 自己画 Color + overlay
         .background(slot == .aiDynamic ? DesignColor.dynamicZoneSurface : .clear)
     }
 
     @ViewBuilder
     private var content: some View {
+        // v0.15 ticket 005 范式: 每个 case 自己 Color + overlay (跟 ticket 005 一样, ticket 006 撤回 P3-4)
         switch slot {
         case .projectSidebar:
             // 项目侧栏嵌入 WenshuLibrary 真实内容 (LIBRARY overlay label v0.10.10d 删)
