@@ -383,6 +383,7 @@ struct ZoneTopToolbar: View {
 ///   - 矩形: x=164, y=6, w=18, h=18 fill #4a60b2 (老板画矩形占位)
 ///   - 占位文本: x=18, y=8, w=52, h=16 text="占位文本" fontSize 13 lineHeight 16
 /// v0.14.5: 占位 icon 改用 SF Symbol Image (替换矩形, 老板 8/18 拍 "用 SF 替换矩形")
+/// v0.15 ticket 011: 老板 2026-08-19 拍 占位文字位置 左顶边 18, 右顶边 18, 距底边 6
 struct ZoneBottomToolbar: View {
     let width: CGFloat
     let iconName: String  // 占位 SF Symbol 名字 (老板 8/18 拍 "用 SF 替换矩形")
@@ -394,21 +395,27 @@ struct ZoneBottomToolbar: View {
             .overlay(alignment: .top) {
                 DesignColor.splitterLine.frame(height: 1)  // 1 PT #000000 顶分割线
             }
-            .overlay(alignment: .leading) {
+            .overlay(alignment: .bottomLeading) {
                 // 左占位文字 (Apple HIG .body 13 PT 正文尺寸, 老板 8/18 拍 "苹果字符样式 正文尺寸")
+                // v0.15 ticket 011: 老板 2026-08-19 拍 底栏占位文字位置 左顶边 18, 右顶边 18, 距底边 6
                 Text("占位文字")
                     .font(.body)  // Apple Standard Text Styles 13 PT body
                     .foregroundStyle(.tertiary)
                     .padding(.leading, LayoutTokens.bottomLeading)  // 18 PT 距左
+                    .padding(.bottom, 6)  // 距底边 6 PT
+                    .frame(height: toolbarH, alignment: .bottomLeading)  // toolbar 内部左下对齐
                     .allowsHitTesting(false)
             }
-            .overlay(alignment: .trailing) {
+            .overlay(alignment: .bottomTrailing) {
                 // 右占位 SF Symbol (老板 8/18 拍 "用 SF 替换矩形")
+                // v0.15 ticket 011: 底栏占位 icon 跟文字同 baseline, 距底边 6
                 Image(systemName: iconName)
                     .font(.system(size: LayoutTokens.placeholderIconSize))  // 18 PT
                     .foregroundStyle(DesignColor.accentBlue)
                     .frame(width: LayoutTokens.placeholderIconSize, height: LayoutTokens.placeholderIconSize)  // 18×18 PT
                     .padding(.trailing, LayoutTokens.bottomTrailing)  // 18 PT 距右
+                    .padding(.bottom, 6)  // 距底边 6 PT (跟文字同 baseline)
+                    .frame(height: toolbarH, alignment: .bottomTrailing)  // toolbar 内部右下对齐
                     .allowsHitTesting(false)
             }
     }
