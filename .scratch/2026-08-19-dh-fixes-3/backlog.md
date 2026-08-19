@@ -8,12 +8,13 @@
 
 ## Backlog 02 — cursor 不变
 
-**Status**: ✅ 真因查完 + 推荐方案 — commit 54b0484b
+**Status**: ✅ done — commit f65bb329 (v0.17 ticket 03 cursor 退回 .pointerStyle)
 - 真因报告: cursor-investigation-report-v2.md (552 行, 39 KB)
 - 真因: NSHostingView 不 override resetCursorRects + override hitTest, 屏蔽 AppKit cursor rects 范式
-- 推荐: 🥇 A — 退回 SwiftUI .pointerStyle 不走 NSViewRepresentable
-- 验证 probe: .scratch/2026-08-19-cursor-probe/CursorProbe.swift (老板在 Xcode / SwiftUI Playground 跑)
-- 待: 老板拍 A / D / E + 验证 probe 结果
+- 修法: 退回 SwiftUI .pointerStyle(.columnResize / .rowResize) 挂到 ZStack 最外层 (Apple HIG macOS 15+ 标准)
+- 删 WenshuCursorController NSResponder + WenshuAppDelegate.cursorController + SplitterHitArea.resetCursorRects (之前错误范式)
+- 拖拽线视觉 / hover 蓝光 / 拖动响应 / hit area / 1 PT fill 全保持
+- 待老板验 cursor 切 ↕ / ↔
 
 ## Backlog 03 — 拖拽线静态色 Color.black → Color(nsColor: .separatorColor)
 
