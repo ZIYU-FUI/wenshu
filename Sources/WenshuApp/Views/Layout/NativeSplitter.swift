@@ -83,15 +83,7 @@ final class SplitterHitArea: NSView {
         addTrackingArea(area)
     }
 
-    /// cursor 切换 (Apple HIG 真值: NSView 自己声明 cursor 区域, macOS 系统自动切, 不依赖 NSCursor.push)
-    override func resetCursorRects() {
-        let cursor: NSCursor = (orientation == .vertical) ? .resizeLeftRight : .resizeUpDown
-        addCursorRect(bounds, cursor: cursor)
-    }
-
-    deinit {
-        NSCursor.pop()  // safety net: 如果之前 NSCursor.push 没平衡 (历史遗留), 强制 pop
-    }
+    /// cursor 切换走 SwiftUI 外层 .pointerStyle (Apple HIG macOS 15+ 标准)
 }
 
 // MARK: - NSViewRepresentable 桥接 (SwiftUI 调用 NSView)
@@ -151,7 +143,7 @@ struct NativeSplitter: View {
         let outerHeight: CGFloat = orientation == .vertical ? length : Self.hitAreaThickness
 
         ZStack {
-            // SwiftUI Rectangle 视觉 (静态 2 PT Apple 系统 divider 色 / hover 4 PT Apple 系统亮色 0.25 + 阴影 0.15)
+            // SwiftUI Rectangle 视觉 (静态 1 PT Apple 系统 divider 色 / hover 3 PT Apple 系统亮色 0.25 + 阴影 0.15)
             Rectangle()
                 .fill(isHovered ? Color(nsColor: .controlAccentColor).opacity(0.25) : Color(nsColor: .separatorColor))
                 .frame(width: lineFrame.width, height: lineFrame.height)
@@ -162,17 +154,18 @@ struct NativeSplitter: View {
                 )
                 .animation(.easeInOut(duration: 0.2), value: isHovered)
 
-            // 透明 NSView overlay: 接管 mouseDown / mouseDragged / mouseUp + NSTrackingArea hover + NSCursor.push
+            // 透明 NSView overlay: 接管 mouseDown / mouseDragged / mouseUp + NSTrackingArea hover (cursor 切靠外层 .pointerStyle)
             SplitterHitAreaRepresentable(
                 orientation: orientation,
                 onDrag: onDrag,
                 onHoverChange: { hovered in
-                    isHovered = hovered  // 驱动 Rectangle 视觉 (变粗 + 蓝 + shadow)
+                    isHovered = hovered
                 }
             )
             .frame(width: outerWidth, height: outerHeight)
         }
         .frame(width: outerWidth, height: outerHeight)
+        .pointerStyle(orientation == .vertical ? .columnResize : .rowResize)  // SwiftUI 官方 cursor 切换 (Apple HIG macOS 15+ 标准)
     }
 }
 
