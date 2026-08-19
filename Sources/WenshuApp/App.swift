@@ -230,22 +230,22 @@ struct LayoutShellView: View {
         // 不加 fixed frame + 不加 max(...) floor (v0.15 ticket 005 修响应式 bug)
         GeometryReader { proxy in
             let totalW = proxy.size.width
-            let contentH = proxy.size.height  // NSWindow.contentRect = 984 (实测, 不含 macOS chrome)
+            let contentH = proxy.size.height  // NSWindow.contentRect (已扣 macOS chrome 52 PT, 由 .windowStyle(.titleBar) 提供)
             // v0.15 ticket 021 修: 老板 2026-08-19 拍 "除非要求硬编码的地方, 不要用 PT 写界面框架, 用比例写"
-            //   死原则: 52 (macOS chrome 不动) + 932 (contentH - 52) = 984
+            //   死原则: 52 (macOS chrome 由 .windowStyle(.titleBar) 提供) + 932 (contentH) = 984
             //   932 = 上半 + 拖拽线 + 下半, 上半 = 下半 = (932 - 2) / 2 = 465 PT
             //   D_h 拖拽线 = 2 PT (Sketch master 真值, 老板 2026-08-19 用 mcp__sketch__run_code 读图确认)
-            //   bandH 用比例算子 vm.upperBandH(totalHeight: contentH - 52) (ticket 014 D_h 响应 + 比例算子)
-            let bandH = vm.upperBandH(totalHeight: contentH - 52)
+            //   bandH 用比例算子 vm.upperBandH(totalHeight: contentH - 2) (ticket 014 D_h 响应 + 比例算子, -2 留给 D_h 拖拽线)
+            let bandH = vm.upperBandH(totalHeight: contentH - 2)
             VStack(spacing: 0) {
                 // 上 band: 4 区 + 3 拖拽线 (Apple HIG HStack 范式)
                 UpperBandZone(vm: vm, totalW: totalW, bandH: bandH)
                 // D_h 横拖拽线 (上/下 band 之间, v0.14.0 撤销 inert, 拍可拖)
                 NativeSplitter(orientation: .horizontal, length: totalW, onDrag: { dy in
-                    vm.adjustBandSplit(delta: dy, totalHeight: contentH - 52)
+                    vm.adjustBandSplit(delta: dy, totalHeight: contentH - 2)
                 })
                 // 下 band: 2 区 + 1 拖拽线 (老板 8/18 拍 "上四下两")
-                LowerBandZone(vm: vm, totalW: totalW, bandH: vm.lowerBandH(totalHeight: contentH - 52))
+                LowerBandZone(vm: vm, totalW: totalW, bandH: vm.lowerBandH(totalHeight: contentH - 2))
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .wenshuResetLayout)) { _ in
