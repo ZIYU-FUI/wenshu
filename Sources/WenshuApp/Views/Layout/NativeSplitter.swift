@@ -131,9 +131,9 @@ struct NativeSplitter: View {
     /// 拖拽回调: orientation == .vertical 时 delta 是 X 增量, 否则 Y 增量 (from NSView mouseDragged)
     let onDrag: @MainActor (CGFloat) -> Void
 
-    private static let lineThickness: CGFloat = 2  // 静态线 2 PT (Sketch master 真值, 老板 8/18 拍)
-    private static let hoveredThickness: CGFloat = 4  // hover 变粗 2 倍 (老板 8/18 拍)
-    private static let hitAreaThickness: CGFloat = 6  // 6 PT hit area (老板 8/18 拍)
+    private static let lineThickness: CGFloat = 1  // 静态线 1 PT (跟 hit area 同宽, 顶到头)
+    private static let hoveredThickness: CGFloat = 3  // hover 3 PT
+    private static let hitAreaThickness: CGFloat = 1  // 1 PT hit area (跟 fill 同宽, 顶到头)
 
     @State private var isHovered: Bool = false
 
@@ -178,26 +178,26 @@ struct NativeSplitter: View {
 
 // MARK: - 不可拖拽分割线 (SwiftUI Divider, Apple Public)
 
-/// 不可拖拽的 2 PT 横向分割线 (Apple 系统 divider 色, dark/light 自适应)
+/// 不可拖拽的 1 PT 横向分割线 (Apple 系统 divider 色, dark/light 自适应)
 struct StaticDividerHorizontal: View {
     var width: CGFloat? = nil
     var body: some View {
         if let w = width {
             Rectangle()
                 .fill(Color(nsColor: .separatorColor))
-                .frame(width: w, height: 2)
+                .frame(width: w, height: 1)
         } else {
             Divider()
         }
     }
 }
 
-/// 不可拖拽的 2 PT 竖向分割线 (Apple 系统 divider 色, dark/light 自适应)
+/// 不可拖拽的 1 PT 竖向分割线 (Apple 系统 divider 色, dark/light 自适应)
 struct StaticDividerVertical: View {
     let height: CGFloat
     var body: some View {
         Rectangle()
             .fill(Color(nsColor: .separatorColor))
-            .frame(width: 2, height: height)
+            .frame(width: 1, height: height)
     }
 }
