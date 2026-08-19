@@ -227,19 +227,9 @@ struct WenshuApp: App {
     }
 }
 
-/// AppDelegate: 初始窗口尺寸 1920×984 PT, 用 NSWindow.center() 居中 (Apple HIG).
+/// AppDelegate: 仅做 SelfScreenshot (WS_SCREENSHOT env), 不提前动 NSWindow
 final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
-
     func applicationDidFinishLaunching(_ notification: Notification) {
-        guard let window = NSApplication.shared.windows.first else { return }
-        // 初始窗口尺寸 = 老板 Sketch 设计基准 1920×984 PT (1:1 PX, macOS 27 1x)
-        // 之后窗口 resize 会通过 GeometryReader × 比例算子自适应任意尺寸
-        window.setContentSize(NSSize(
-            width: LayoutTokens.designW,
-            height: LayoutTokens.designH
-        ))
-        window.center()  // Apple HIG: NSWindow 自带 center, 不用手算
-        // 给 window 加 NSTrackingArea 监听 mouseMoved + hit test 切 cursor (NSViewRepresentable 桥接失灵时 NSWindow 接管)
         if ProcessInfo.processInfo.environment["WS_SCREENSHOT"] == "1" {
             SelfScreenshot.run()
         }
