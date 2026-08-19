@@ -286,19 +286,19 @@ struct UpperBandZone: View {
         let tools   = totalW * CGFloat(vm.toolsWRatio)
         HStack(spacing: 0) {
             ZoneModule(slot: .projectSidebar, vm: vm, totalW: totalW, bandH: bandH)
-                .frame(width: sidebar, height: bandH)
+                .frame(width: sidebar)  // v0.15 ticket 018: 不硬编码 height, ZoneModule 自适应 (顶栏 30 + 内容撑满 + 底栏 30)
             // D_v1: 项目侧栏 / 项目预览 (splitterIndex 0)
             VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 0, vm: vm)
             ZoneModule(slot: .projectPreview, vm: vm, totalW: totalW, bandH: bandH)
-                .frame(width: preview, height: bandH)
+                .frame(width: preview)  // v0.15 ticket 018: 不硬编码 height
             // D_v2: 项目预览 / 编辑器 (splitterIndex 1)
             VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 1, vm: vm)
             ZoneModule(slot: .editor, vm: vm, totalW: totalW, bandH: bandH)
-                .frame(width: editor, height: bandH)
+                .frame(width: editor)  // v0.15 ticket 018: 不硬编码 height
             // D_v3: 编辑器 / 专用工具 (splitterIndex 2)
             VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 2, vm: vm)
             ZoneModule(slot: .specializedTools, vm: vm, totalW: totalW, bandH: bandH)
-                .frame(width: tools, height: bandH)
+                .frame(width: tools)  // v0.15 ticket 018: 不硬编码 height
         }
     }
 }
@@ -317,11 +317,11 @@ struct LowerBandZone: View {
         let dynamicW = totalW * CGFloat(vm.dynamicWRatio)
         HStack(spacing: 0) {
             ZoneModule(slot: .aiChat, vm: vm, totalW: totalW, bandH: bandH)
-                .frame(width: aiChatW, height: bandH)
+                .frame(width: aiChatW)  // v0.15 ticket 018: 不硬编码 height
             // D_v5: AI 聊天 / AI 动态 (splitterIndex 4)
             VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 4, vm: vm)
             ZoneModule(slot: .aiDynamic, vm: vm, totalW: totalW, bandH: bandH)
-                .frame(width: dynamicW, height: bandH)
+                .frame(width: dynamicW)  // v0.15 ticket 018: 不硬编码 height
         }
     }
 }
@@ -451,15 +451,24 @@ struct ZoneModule: View {
     private var innerBandH: CGFloat { bandH - 2 * toolbarH }  // 顶栏底栏间内容区
 
     var body: some View {
+        // v0.15 ticket 018 重写 ZoneModule.body 约束:
+        //   老板 2026-08-19 拍: 区域组件不写死高度, 内容自适应
+        //   顶栏: 向上约束 (居顶) + 宽度自适应 (maxWidth: .infinity)
+        //   底栏: 向下约束 (居底) + 宽度自适应 (maxWidth: .infinity)
+        //   内容区: 四方约束填充 (maxWidth: .infinity + maxHeight: .infinity)
+        // 老板 2026-08-19 拍: 顶栏/底栏硬编码 30 PT (ticket 008), ICON 18×18 (ticket 013), 间距 9 (ticket 015), 占位文字左/右 18 (ticket 013), 距底 6 (ticket 011)
         VStack(spacing: 0) {
-            ZoneTopToolbar(iconNames: ["book.closed", "magnifyingglass", "slider.horizontal.3"], totalW: totalW)  // v0.13.0 SF Symbols Beta 真符号 (6 区域全部画 3 SF Symbols, 老板 8/18 拍 "用 SF 替换矩形")
-                .frame(height: toolbarH)
+            // 顶栏: 居顶, 宽度自适应
+            ZoneTopToolbar(iconNames: ["book.closed", "magnifyingglass", "slider.horizontal.3"], totalW: totalW)
+                .frame(width: totalW, height: toolbarH, alignment: .top)  // 顶栏 30 PT 硬编码, 居顶
+            // 内容区: 四方约束填充, 撑满剩余空间
             content
-                .frame(maxHeight: .infinity)
-            ZoneBottomToolbar(width: totalW)  // v0.15 ticket 013: 老板 2026-08-19 Sketch master "区域底部工具栏" = 2 占位文本 (左 + 右), 删 iconName 参数
-                .frame(height: toolbarH)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // 底栏: 居底, 宽度自适应
+            ZoneBottomToolbar(width: totalW)
+                .frame(width: totalW, height: toolbarH, alignment: .bottom)  // 底栏 30 PT 硬编码, 居底
         }
-        // ticket 006 P3-4 撤回: surfaceColor background 跟 .editor overlay 套娃导致两道双层 bug
+        // v0.15 ticket 006 P3-4 撤回: surfaceColor background 跟 .editor overlay 套娃导致两道双层 bug
         // 回退到 v0.15 ticket 005 范式: 每个 case 自己画 Color + overlay
         .background(slot == .aiDynamic ? DesignColor.dynamicZoneSurface : .clear)
     }
