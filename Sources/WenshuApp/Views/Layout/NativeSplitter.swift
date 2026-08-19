@@ -48,21 +48,18 @@ final class SplitterHitArea: NSView {
         window?.makeFirstResponder(self)
     }
 
-    /// 拖拽过程: 用 event.deltaX/deltaY (Apple HIG 标准方向, 鼠标向右 = 正, 鼠标向下 = 正) → 调 onDrag callback
+    /// 拖拽过程: 用 event.deltaX/deltaY (Apple HIG 标准方向, 鼠标向右 = 正, 鼠标向下 = 正) → 调 onDrag callback + 强制设 isHovered = true (拖拽期间保持蓝光, 不依赖 mouseMoved)
     override func mouseDragged(with event: NSEvent) {
         let delta: CGFloat = (orientation == .vertical) ? event.deltaX : event.deltaY
         if delta != 0 {
+            onHoverChange?(true)  // 强制保持 hover 状态 (拖拽期间 mouseExited 不触发)
             onDrag?(delta)
         }
     }
 
-    /// 鼠标释放 (Apple HIG: 拖拽结束, 不需清状态, mouseDragged event.deltaX/Y 自带累积)
-    override func mouseUp(with event: NSEvent) {}
-
-    /// mouseMoved 实时算 hover (mouseEntered/Exited 不可靠, 老板 8/19 实测拖拽线蓝光持续亮不消失)
-    override func mouseMoved(with event: NSEvent) {
-        let inBounds = bounds.contains(convert(event.locationInWindow, from: nil))
-        onHoverChange?(inBounds)
+    /// 鼠标释放: 设 isHovered = false (fallback, 不依赖 mouseExited)
+    override func mouseUp(with event: NSEvent) {
+        onHoverChange?(false)
     }
 
     /// mouseEntered: 通知 SwiftUI isHovered (拖拽期间 mouseExited 被 mouse capture 跳过, mouseDragged 时也保持 hover)
@@ -75,13 +72,13 @@ final class SplitterHitArea: NSView {
         onHoverChange?(false)
     }
 
-    /// NSTrackingArea: 全 bounds hover 检测 (加 .mouseMoved 实时算 inBounds, macOS 27 .mouseEnteredAndExited 不稳定)
+    /// NSTrackingArea: 全 bounds hover 检测 (Apple AppKit 真值: mouseEnteredAndExited 才是标准, 不需要 mouseMoved)
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         for area in trackingAreas {
             removeTrackingArea(area)
         }
-        let options: NSTrackingArea.Options = [.mouseEnteredAndExited, .mouseMoved, .activeInKeyWindow, .inVisibleRect]
+        let options: NSTrackingArea.Options = [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect]
         let area = NSTrackingArea(rect: bounds, options: options, owner: self, userInfo: nil)
         addTrackingArea(area)
     }
@@ -154,13 +151,13 @@ struct NativeSplitter: View {
         let outerHeight: CGFloat = orientation == .vertical ? length : Self.hitAreaThickness
 
         ZStack {
-            // SwiftUI Rectangle 视觉 (2 PT 黑 / hover 4 PT accent 0.5 + 阴影 0.3)
+            // SwiftUI Rectangle 视觉 (2 PT 黑 / hover 4 PT accent 0.25 + 阴影 0.15)
             Rectangle()
-                .fill(isHovered ? Color.accentColor.opacity(0.5) : Color.black)
+                .fill(isHovered ? Color.accentColor.opacity(0.25) : Color.black)
                 .frame(width: lineFrame.width, height: lineFrame.height)
                 .clipShape(.capsule)  // 圆角最大 = 视觉圆头
                 .shadow(
-                    color: isHovered ? Color.accentColor.opacity(0.3) : .clear,
+                    color: isHovered ? Color.accentColor.opacity(0.15) : .clear,
                     radius: isHovered ? 8 : 0,
                     x: 0, y: 0
                 )
