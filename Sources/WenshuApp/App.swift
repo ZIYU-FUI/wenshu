@@ -505,8 +505,8 @@ struct ZoneTopToolbar: View {
                     .allowsHitTesting(false)
             }
             .overlay(alignment: .bottom) {
-                // 底分割线 2 PT
-                DesignColor.splitterLine.frame(height: 2)
+                // 底分割线 1 PT (跟拖拽线 / StaticDivider 一致)
+                DesignColor.splitterLine.frame(height: 1)
             }
     }
 }
@@ -520,8 +520,8 @@ struct ZoneBottomToolbar: View {
         DesignColor.zoneSurface
             .frame(height: toolbarH)
             .overlay(alignment: .top) {
-                // 顶分割线 2 PT
-                DesignColor.splitterLine.frame(height: 2)
+                // 顶分割线 1 PT (跟拖拽线 / StaticDivider 一致)
+                DesignColor.splitterLine.frame(height: 1)
             }
             .overlay(alignment: .bottomLeading) {
                 // 左占位文字: 字号 13, 左 padding 18, 距底 6 PT
