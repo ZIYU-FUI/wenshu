@@ -52,7 +52,9 @@ enum LayoutTokens {
     // 老板 2026-08-19 拍: 标题栏走 macOS .windowStyle(.titleBar) 52 PT unified chrome, 不再自写
     // v0.15 ticket 001: 删 LayoutTokens.titleBarHeight / titleRatio 死代码 (Apple window chrome 自带)
     static let bandRatio: CGFloat = 465.0 / 984.0        // = 0.4726 (老板 8/18 改 465 PT, 总 52+465+2+465 = 984)
-    static let toolbarRatio: CGFloat = 30.0 / 465.0      // = 0.0645 (zone 顶/底 30, 跟 bandH 465 对齐, 老板 8/18 改 465 PT)
+    // v0.15 ticket 008 修: toolbar 高度 = 老板 Sketch 真值 30 PT 硬编码, 1:1 实现不做 PT→PX 换算 (老板 2026-08-19 拍)
+    // 之前 toolbarRatio = 30/465 = 0.0645 算法 base = 465 写死, 但实际 bandH 由 932 算出来 → toolbarH = 932*0.4726*0.0645 ≈ 28 PT (跟老板 30 PT 不符, 视觉上不够)
+    static let toolbarHeight: CGFloat = 30  // 老板 Sketch master 真值: 顶/底栏 30 PT (1:1 实现)
     // v0.15 重写后改名: editorInset 是单一垂直方向 (左右 flush, spec §3.2 故意两层设计)
     static let editorVerticalInsetRatio: CGFloat = 4.0 / 984.0  // = 0.0041 (编辑器 4 PT 上下 inset)
     // v0.15 ticket 005: 删 LayoutTokens.horizontalSplitterRatio 死代码 (NativeSplitter 自己管 thickness)
@@ -384,7 +386,7 @@ struct ZoneBottomToolbar: View {
     let iconName: String  // 占位 SF Symbol 名字 (老板 8/18 拍 "用 SF 替换矩形")
 
     var body: some View {
-        let toolbarH = LayoutTokens.toolbarRatio * 465  // 老板 8/18 改 bandH=465, toolbarRatio=30/465 = 30 PT
+        let toolbarH = LayoutTokens.toolbarHeight  // v0.15 ticket 008: 老板 Sketch 真值 30 PT 1:1 硬编码
         DesignColor.zoneSurface
             .frame(width: width, height: toolbarH)
             .overlay(alignment: .top) {
@@ -418,7 +420,7 @@ struct ZoneModule: View {
     let bandH: CGFloat
     @Environment(WenshuLibrary.self) private var library
 
-    private var toolbarH: CGFloat { bandH * LayoutTokens.toolbarRatio }
+    private var toolbarH: CGFloat { LayoutTokens.toolbarHeight }  // v0.15 ticket 008: 老板 Sketch 真值 30 PT 1:1 硬编码
     /// 老板 8/18 Q2 答: 4 PT inset = 单一垂直方向 (spec §3.2 "背景 y=60~884, 正文 y=64~882", 上下 4 PT 视觉下沉, 左右 flush)
     /// v0.15 ticket 005 改名: editorInsetRatio → editorVerticalInsetRatio (明确垂直方向)
     private var editorInset: CGFloat { bandH * LayoutTokens.editorVerticalInsetRatio }  // 4 PT 单一垂直
