@@ -231,6 +231,79 @@ private struct SettingsEnvironmentCapturer: View {
     }
 }
 
+// v0.21 ticket 01 (重做 #8): NSApplication extension — 走 SwiftUI 内部 NSMenuItem.platformItemAction 真值
+// 真因 (Q28 VibeMeter/NSApplication+openSettings.swift + Stack Overflow 65355696 真值):
+// SwiftUI macOS 14+ Settings { } Scene 自动装 "Settings…" NSMenuItem, 用 private platformItemAction closure (不是 selector)
+// 必须用 Mirror reflection 拿 platformItemAction closure 直接调, 才能跨 AppKit NSMenuItem → SwiftUI Settings 真值弹窗
+// (替代方案: orchetect/SettingsAccess OpenSettingsAction capture, Q15 翻车链 #11 总结: 在 view tree 内 capture 但 layout 还没 mount, openSettings?() → nil)
+extension NSApplication {
+    @MainActor
+    func openSettings() {
+        NSApp.activate(ignoringOtherApps: true)
+        // VibeMeter 真值: 找 SwiftUI 装的 Settings… NSMenuItem via internalIdentifier, 调 platformItemAction closure
+        let kAppMenuInternalIdentifier = "appMenu"  // SwiftUI App menu 内部 identifier (VibeMeter)
+        let kSettingsLocalizedStringKey = "Settings…"  // Apple MenuCommands.strings 标准 key (VibeMeter)
+        if let internalItemAction = NSApp.mainMenu?.item(withInternalIdentifier: kAppMenuInternalIdentifier)?
+            .submenu?.item(withLocalizedTitle: kSettingsLocalizedStringKey)?.internalItemAction {
+            internalItemAction()
+            // VibeMeter 真值: 异步 bring settings window to front
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(100))
+                for window in NSApp.windows where window.title.contains("Settings") || window.title.contains("Preferences") || window.title.contains("设置") {
+                    window.makeKeyAndOrderFront(nil)
+                    window.orderFrontRegardless()
+                    break
+                }
+                NSApp.activate(ignoringOtherApps: true)
+            }
+        }
+    }
+}
+
+// MARK: - NSMenuItem (VibeMeter private reflection)
+private extension NSMenuItem {
+    /// SwiftUI macOS 14+ Settings { } Scene 内部 identifier
+    var internalIdentifier: String? {
+        guard let id = Mirror.firstChild(withLabel: "id", in: self)?.value else { return nil }
+        return "\(id)"
+    }
+    /// SwiftUI macOS 14+ NSMenuItem 内部 platformItemAction closure (Apple private)
+    var internalItemAction: (() -> Void)? {
+        guard let platformItemAction = Mirror.firstChild(withLabel: "platformItemAction", in: self)?.value else { return nil }
+        guard let typeErasedCallback = Mirror.firstChild(in: platformItemAction)?.value else { return nil }
+        return Mirror.firstChild(in: typeErasedCallback)?.value as? () -> Void
+    }
+}
+
+private extension NSMenu {
+    /// VibeMeter 真值: 用 SwiftUI 内部 identifier 找 NSMenuItem
+    func item(withInternalIdentifier identifier: String) -> NSMenuItem? {
+        items.first(where: { $0.internalIdentifier?.elementsEqual(identifier) ?? false })
+    }
+    /// VibeMeter 真值: 用 Apple MenuCommands.strings localization key 找 NSMenuItem (跨系统语言, e.g. 英文 "Settings…" / 中文 "设置…")
+    func item(withLocalizedTitle localizedTitleKey: String, inTable tableName: String = "MenuCommands", fromBundle bundlePath: String = "/System/Library/Frameworks/AppKit.framework") -> NSMenuItem? {
+        guard let localizationResource = Bundle(path: bundlePath) else { return nil }
+        return item(withTitle: NSLocalizedString(localizedTitleKey, tableName: tableName, bundle: localizationResource, comment: ""))
+    }
+}
+
+private extension Mirror {
+    static func firstChild(withLabel label: String, in subject: Any) -> Mirror.Child? {
+        let mirror = Mirror(reflecting: subject)
+        for child in mirror.children where child.label == label {
+            return child
+        }
+        return nil
+    }
+    static func firstChild(in subject: Any) -> Mirror.Child? {
+        let mirror = Mirror(reflecting: subject)
+        for child in mirror.children {
+            return child
+        }
+        return nil
+    }
+}
+
 /// AppDelegate: WenshuCore runtime + macOS app init
 final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     // v0.21 ticket 01 (重做 #7): 持 SwiftUI 14+ OpenSettingsAction (LayoutShellView .onAppear 注入, OpenSettingsAction.callAsFunction() 触发)
@@ -254,12 +327,13 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         NotificationCenter.default.post(name: .wenshuResetLayout, object: nil)
     }
 
-    // v0.21 ticket 01 (重做 #7): "设置…" NSMenu action — 走 SwiftUI 14+ OpenSettingsAction 真值 (Stack Overflow 65355696 真值)
-    // 真因 (Q28 Stack Overflow 76359975 + orchetect/SettingsAccess 真值): Apple macOS 14+ 不暴露 showSettingsWindow: API
-    // SwiftUI 14+ 唯一 path = @Environment(\.openSettings) OpenSettingsAction. 用 AppDelegate.openSettings 持有 closure,
-    // WenshuApp body LayoutShellView .onAppear 注入 closure (LayoutShellView 是 SwiftUI view tree 内), NSMenuItem action 调 closure
+    // v0.21 ticket 01 (重做 #8): "设置…" NSMenu action — 走 SwiftUI 内部 NSMenuItem.platformItemAction 真值
+    // 真因 (Q28 VibeMeter/NSApplication+openSettings.swift + orchetect/SettingsAccess 真值): SwiftUI macOS 14+ Settings { } Scene 装的 "Settings…" NSMenuItem 不走 selector,
+    // 而是 SwiftUI 把 type-erased closure 存到 NSMenuItem.private platformItemAction field. 必须用 reflection (Mirror) 拿到 closure 直接调.
+    // (Q15 翻车链 #11 总结: commit a78d758bc OpenSettingsAction closure capture 没 work, 因为 SettingsEnvironmentCapturer 在 view tree 内但 layout 还没 mount,
+    //   WenshuAppDelegate.openSettings 还是 nil, NSMenu "设置…" 点击 → nil → 不响应)
     @MainActor @objc func showSettingsWindow(_ sender: Any?) {
-        WenshuAppDelegate.openSettings?()
+        NSApp.openSettings()
     }
 
     /// v0.21 ticket 01 (重做): installMainMenu 装 6 项中文 (v0.02.0 spec 老板 8/10 01:43 拍: 文枢/文件/编辑/显示/窗口/帮助)
