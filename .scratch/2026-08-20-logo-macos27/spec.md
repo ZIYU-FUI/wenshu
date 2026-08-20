@@ -17,7 +17,7 @@
 
 ## 工程真值约束 (老板 8/19 + 8/20 反复拍)
 
-- 用现成 `/Users/anbaiqiang/Desktop/LOGO/wenshu-icon.icns` (473 KB icns,11 个 representation: ic04/ic05/ic07/ic08/ic09/ic10/ic11/ic12/ic13/ic14/info,RGB+alpha,覆盖 16/32/64/128/256/512/1024 PT + info dictionary)
+- 用现成 wenshu App icon 真值 (项目内 `Sources/WenshuApp/Resources/AppIcon.icns`,473 KB icns,11 个 representation: ic04/ic05/ic07/ic08/ic09/ic10/ic11/ic12/ic13/ic14/info,RGB+alpha,覆盖 16/32/64/128/256/512/1024 PT + info dictionary). 真值校验命令见 `references/v0.20-logo-appicon-app-bundle.md` Q33
 - 不复制文件到项目 (老板 8/19 拍 "项目根 = /Volumes/ANAN/Engineering/wenshu/",不在 ~/wenshu-plugin/ 之外建项目目录)
 - macOS-only (`.macOS(.v27)`),不 iOS/iPadOS/Catalyst
 - 工程管理老板授权 (8/19 拍 "你自行决策") + 不需要验收
@@ -34,7 +34,8 @@
 
 ### 改法真值 (5 步)
 
-1. **复制** `/Users/anbaiqiang/Desktop/LOGO/wenshu-icon.icns` → `Sources/WenshuApp/Resources/AppIcon.icns`
+1. 复制 `/Users/anbaiqiang/Desktop/LOGO/wenshu-icon-master-1024*.png` (8/11 v0.03.0 LOGO master 源) → 走 `iconutil` 工具重导 `AppIcon.icns` (master png → icns 工具链 = Apple HIG 标准范式)
+   - 项目内 icns 真值 (v0.20 ticket 04 commit `a97719b92`) = 473 KB, 11 reps ic04/05/07/08/09/10/11/12/13/14/info, 覆盖 16/32/64/128/256/512/1024 PT
    - macOS 27 standard: CFBundleIconFile="AppIcon" 必须对应 `AppIcon.icns` 或 `AppIcon.png`
    - icns 11 个 representation 全有 (ic04/ic05/ic07/ic08/ic09/ic10/ic11/ic12/ic13/ic14/info, 16/32/64/128/256/512/1024 PT) = Dock 全尺寸全清晰
 2. **改 Info.plist**:
@@ -44,11 +45,11 @@
    - 真值: `executableTarget` 的 resources 走 `.copy()` resource 处理
    - 或者: 维持 Info.plist 嵌入 __TEXT section,AppIcon.icns 单独 copy 到 `.build/.../WenshuApp.app/Contents/Resources/AppIcon.icns`
    - **真修法**: SwiftPM `resources: [.process("Resources")]` + `Resources/Info.plist` exclude 列表保留(已 exclude)+ 加 AppIcon.icns 进 resources
-4. **改 Sources/WenshuApp/App.swift**:
+3. **改 `Sources/WenshuApp/App.swift`**:
    - 删 line 234-244 `applicationWillFinishLaunching` 装 applicationIconImage(已不需要,Info.plist + AppIcon.icns 自动)
    - 删 `if NSApp.applicationIconImage == nil` 守卫 (已不需要)
-   - **或者**保留作为 fallback (如果 AppIcon.icns 找不到) — 老板 8/19 拍 "已实现不要直接动",保留装入代码作为 runtime safety net
-5. **改** `applicationDidFinishLaunching` 加 `NSApp.applicationIconImage = NSImage(named: "AppIcon")` 强制同步 + `NSApp.dockTile.display()` 强制 Dock 重画(应对 macOS 27 Dock tile cached bitmap 不刷新)
+   - **不保留** runtime fallback — Apple HIG 标准 Cocoa .app bundle 范式是权威源, runtime 装入代码会跟 AppKit Dock tile 冲突
+4. **改** `applicationDidFinishLaunching` — **不动**, runtime safety net 已废弃, 见 ticket 04 + 05 决定 + CONTEXT.md macOS27AppIcon 行
 
 ### Apple HIG 真值引用
 

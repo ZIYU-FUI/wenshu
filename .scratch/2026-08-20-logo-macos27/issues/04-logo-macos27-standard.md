@@ -6,8 +6,7 @@
 
 **修法真值:**
 
-1. 复制 `/Users/anbaiqiang/Desktop/LOGO/wenshu-icon.icns` → `Sources/WenshuApp/Resources/AppIcon.icns`
-   - 473 KB icns, 11 个 representation (ic04/ic05/ic07/ic08/ic09/ic10/ic11/ic12/ic13/ic14/info, 16/32/64/128/256/512/1024 PT)
+1. 项目内 `Sources/WenshuApp/Resources/AppIcon.icns` 真值 = 473 KB, 11 reps (ic04/ic05/ic07/ic08/ic09/ic10/ic11/ic12/ic13/ic14/info, 16/32/64/128/256/512/1024 PT). 走 Apple HIG 标准 Cocoa .app bundle 范式, AppKit 读 `Contents/Resources/AppIcon.icns` 自动渲染 Dock + Launchpad + cmd+tab
 2. 改 `Package.swift`: `Resources/Info.plist` exclude 保留 + 加 `Resources/AppIcon.icns` 进 resources 处理
    - SwiftPM `.executableTarget` 加 `resources: [.process("Resources")]` 或 `.copy([.init(stringLiteral: "AppIcon.icns")])`
 3. 改 `Sources/WenshuApp/App.swift`:
