@@ -170,14 +170,13 @@ struct WenshuApp: App {
     @State private var library = WenshuLibrary(
         store: FileSystemLibraryStore(rootURL: LibraryRoot.ensureDefault())
     )
-    @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
-    @AppStorage("wenshu.llm.model") private var llmModel: String = MiniMaxModel.m3.rawValue  // v0.21 ticket 04: Settings 模型配置 (老板原话 "配完省略显示", 不写当前值 label)
+    // v0.21 ticket 01 (重做 #5): @AppStorage 提到 SettingView 共享, WenshuApp body 不再直接用 $appearanceMode / $llmModel
 
     var body: some Scene {
         WindowGroup("文枢") {
             LayoutShellView()
                 .environment(library)
-                .preferredColorScheme(appearanceMode.colorScheme)
+                .preferredColorScheme(UserDefaults.standard.string(forKey: "appearanceMode").flatMap(AppearanceMode.init(rawValue:))?.colorScheme)
         }
         .windowStyle(.titleBar)  // 老板 8/18 拍 macOS 52 PT unified titlebar chrome = 老板自定义 52 PT 顶栏, 视觉合一
         .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // 老板 Sketch 设计基准 1920×984 PT (v0.15 ticket 005 响应式: LayoutShellView 删 fixed frame, window 用 defaultSize 给 SwiftUI 初始 size hint)
@@ -188,24 +187,34 @@ struct WenshuApp: App {
         // v0.20 ticket 08 老真值保留: NSMenu 已装 6 项中文 (文枢/文件/编辑/显示/窗口/帮助, 见 WenshuAppDelegate.installMainMenu)
         // SettingsView 真值保留在 Settings { ... } Scene, NSMenu "设置…" action 接 WenshuAppDelegate.openSettingsWindow 自定义 @objc (自己创建 NSWindow 弹设置)
         Settings {
-            Form {
-                Picker("外观", selection: $appearanceMode) {
-                    ForEach(AppearanceMode.allCases) { mode in
-                        Text(mode.label).tag(mode)
-                    }
-                }
-                .pickerStyle(.radioGroup)
-                // v0.21 ticket 04: Settings 模型配置 (老板原话 "配完省略显示", 不写当前值 label)
-                Picker("模型", selection: $llmModel) {
-                    ForEach(MiniMaxModel.allCases, id: \.self) { model in
-                        Text(model.label).tag(model.rawValue)
-                    }
-                }
-                .pickerStyle(.menu)
-            }
-            .formStyle(.grouped)
-            .frame(width: 360, height: 180)
+            SettingView()
         }
+    }
+}
+
+/// v0.21 ticket 01 (重做 #5): SettingView 复用 (Settings { } Scene + NSHostingView 装 NSWindow 设置弹窗 共享同一 view)
+struct SettingView: View {
+    @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
+    @AppStorage("wenshu.llm.model") private var llmModel: String = MiniMaxModel.m3.rawValue  // v0.21 ticket 04: 配完省略显示
+
+    var body: some View {
+        Form {
+            Picker("外观", selection: $appearanceMode) {
+                ForEach(AppearanceMode.allCases) { mode in
+                    Text(mode.label).tag(mode)
+                }
+            }
+            .pickerStyle(.radioGroup)
+            // v0.21 ticket 04: Settings 模型配置 (老板原话 "配完省略显示", 不写当前值 label)
+            Picker("模型", selection: $llmModel) {
+                ForEach(MiniMaxModel.allCases, id: \.self) { model in
+                    Text(model.label).tag(model.rawValue)
+                }
+            }
+            .pickerStyle(.menu)
+        }
+        .formStyle(.grouped)
+        .frame(width: 360, height: 180)
     }
 }
 
@@ -251,20 +260,8 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         settingsWindow.identifier = NSUserInterfaceItemIdentifier("wenshu.settings")
         settingsWindow.isReleasedWhenClosed = false
         settingsWindow.center()
-        // v0.21 ticket 04: NSHostingController 装 Settings { } Scene view (含外观 Picker + 模型 Picker)
-        settingsWindow.contentView = NSHostingView(rootView:
-            VStack {
-                Form {
-                    // 复用 Settings { } Scene 的 Picker 内容 — Apple 真值: Settings { } Scene 在 Application Settings 范畴 (macOS 14+ standard commands)
-                    // 真修法: 用 @AppStorage 同步共享同一 key
-                    EmptyView()
-                }
-                .formStyle(.grouped)
-            }
-        )
-        // 注: NSHostingController 不能直接装 Settings { } Scene, 但可以装 SettingView
-        // 真值: 设置弹窗内容复用 Settings { } Scene 的 Picker, 走 @AppStorage 共享
-        // v0.21 ticket 01 (重做 #4) 简化为直接装 SettingView, 等老板反馈再决定
+        // v0.21 ticket 01 (重做 #5): NSHostingView 装 SettingView (含外观 Picker + 模型 Picker, 老板 8/21 拍 '配完省略显示')
+        settingsWindow.contentView = NSHostingView(rootView: SettingView())
         settingsWindow.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
