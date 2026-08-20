@@ -29,6 +29,11 @@ cp "Sources/WenshuApp/Resources/Info.plist" "$APP_DIR/Contents/Info.plist"
 # AppIcon.icns → Contents/Resources/AppIcon.icns (CFBundleIconFile="AppIcon" 解析路径)
 cp "Sources/WenshuApp/Resources/AppIcon.icns" "$RES_DIR/AppIcon.icns"
 
+# macOS 27 dark/light 自动跟随系统主题: AppKit 按 effectiveAppearance 选 AppIcon.dark.icns / AppIcon.light.icns
+# Apple HIG 范式: https://developer.apple.com/design/human-interface-guidelines/app-icons
+cp "Sources/WenshuApp/Resources/AppIcon.dark.icns" "$RES_DIR/AppIcon.dark.icns"
+cp "Sources/WenshuApp/Resources/AppIcon.light.icns" "$RES_DIR/AppIcon.light.icns"
+
 echo ">>> ad-hoc codesign"
 codesign --force --deep --sign - "$APP_DIR"
 
