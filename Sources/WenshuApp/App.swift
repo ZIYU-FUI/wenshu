@@ -170,15 +170,18 @@ struct WenshuApp: App {
     @State private var library = WenshuLibrary(
         store: FileSystemLibraryStore(rootURL: LibraryRoot.ensureDefault())
     )
-    // v0.21 ticket 01 (重做 #5): @AppStorage 提到 SettingView 共享, WenshuApp body 不再直接用 $appearanceMode / $llmModel
+    // v0.21 ticket 01 (重做 #11): 加回 @AppStorage("appearanceMode") (撤回 commit 4ef3e2e77 硬解字符串, 改回 @AppStorage 真值响应式)
+    // 真因 (Standards sub-agent report H3 真硬违反): preferredColorScheme 之前用 UserDefaults.standard.string 硬解, 跟 SettingView 的 $appearanceMode 不是同一个 binding source-of-truth
+    // 撤回 commit 4ef3e2e77 的 UserDefaults.standard.string 硬解, 改用 @AppStorage 真值响应式 (跟 SettingView 共享同一 key)
+    @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
 
     var body: some Scene {
         WindowGroup("文枢") {
-            // v0.21 ticket 01 (重做 #7): 用 .onAppear 注入 @Environment(\.openSettings) OpenSettingsAction 到 AppDelegate 静态字段
-            // 真因 (Q28 Stack Overflow 65355696 + orchetect/SettingsAccess 真值): SwiftUI 14+ OpenSettingsAction 唯一 path = view tree 内 @Environment
-            SettingsEnvironmentCapturer()
+            // v0.21 ticket 01 (重做 #10): 撤回 SettingsEnvironmentCapturer wrapper (commit a78d758bc Q15 翻车 #11 dead code)
+            // SettingsEnvironmentCapturer 之前包 LayoutShellView 注入 OpenSettingsAction, 但 openSettings?() → nil (Q15 翻车 #11), 现在 NSMenu 自己装 + 自创建 NSWindow 装 SettingView 不需要 capture
+            LayoutShellView()
                 .environment(library)
-                .preferredColorScheme(UserDefaults.standard.string(forKey: "appearanceMode").flatMap(AppearanceMode.init(rawValue:))?.colorScheme)
+                .preferredColorScheme(appearanceMode.colorScheme)
         }
         .windowStyle(.titleBar)  // 老板 8/18 拍 macOS 52 PT unified titlebar chrome = 老板自定义 52 PT 顶栏, 视觉合一
         .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // 老板 Sketch 设计基准 1920×984 PT (v0.15 ticket 005 响应式: LayoutShellView 删 fixed frame, window 用 defaultSize 给 SwiftUI 初始 size hint)
