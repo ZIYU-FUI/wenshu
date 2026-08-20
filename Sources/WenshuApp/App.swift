@@ -197,16 +197,23 @@ struct WenshuApp: App {
     }
 }
 
-/// 设置页: TabView + 3 个分组 (通用 / 模型 / 快捷键), macOS 27 标准组件
+/// 设置页: 4 tab (通用 / 提供方 / 模型 / 快捷键), macOS 27 标准组件
 struct SettingView: View {
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
+    @AppStorage("wenshu.llm.provider") private var providerSlug: String = Provider.minimaxCn.slug
     @AppStorage("wenshu.llm.model") private var llmModel: String = MiniMaxModel.m3.rawValue
     @State private var selectedTab: SettingsTab = .general
     @State private var liveModelIds: [String] = []
     @State private var isLoadingModels = false
+    @State private var providersWithKeys: Set<String> = []
+
+    var currentProvider: Provider {
+        Provider.by(slug: providerSlug) ?? .minimaxCn
+    }
 
     enum SettingsTab: String, CaseIterable, Identifiable {
         case general = "通用"
+        case provider = "提供方"
         case model = "模型"
         case shortcuts = "快捷键"
         var id: String { rawValue }
@@ -214,35 +221,41 @@ struct SettingView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            Tab(SettingsTab.general.rawValue, systemImage: "gear", value: SettingsTab.general) {
-                generalTab
-            }
-            Tab(SettingsTab.model.rawValue, systemImage: "cpu", value: SettingsTab.model) {
-                modelTab
-            }
-            Tab(SettingsTab.shortcuts.rawValue, systemImage: "command", value: SettingsTab.shortcuts) {
-                shortcutsTab
-            }
+            Tab(SettingsTab.general.rawValue, systemImage: "gear", value: SettingsTab.general) { generalTab }
+            Tab(SettingsTab.provider.rawValue, systemImage: "network", value: SettingsTab.provider) { providerTab }
+            Tab(SettingsTab.model.rawValue, systemImage: "cpu", value: SettingsTab.model) { modelTab }
+            Tab(SettingsTab.shortcuts.rawValue, systemImage: "command", value: SettingsTab.shortcuts) { shortcutsTab }
         }
-        .frame(width: 520, height: 420)
+        .frame(width: 520, height: 480)
         .onChange(of: selectedTab) { _, new in
+            if new == .provider { refreshProviderStatus() }
             if new == .model { Task { await reloadModels() } }
         }
+        .task { refreshProviderStatus() }
+    }
+
+    private func refreshProviderStatus() {
+        providersWithKeys = Set(ProviderKeychain.listProvidersWithKeys())
+    }
+
+    private func selectProvider(_ p: Provider) {
+        providerSlug = p.slug
+        llmModel = p.defaultModels.first ?? MiniMaxModel.m3.rawValue
+        liveModelIds = []
+        refreshProviderStatus()
     }
 
     private var modelIdList: [String] {
-        liveModelIds.isEmpty ? MiniMaxModel.allCases.map { $0.rawValue } : liveModelIds
+        liveModelIds.isEmpty ? currentProvider.defaultModels : liveModelIds
     }
 
     private func reloadModels() async {
         guard !isLoadingModels else { return }
         isLoadingModels = true
         defer { isLoadingModels = false }
-        if let key = LLMKeychain.loadKeySync(), !key.isEmpty {
-            let base = ProcessInfo.processInfo.environment["MINIMAX_CN_BASE_URL"] ?? "https://api.minimaxi.com/anthropic"
-            let ids = await MiniMaxModelFetcher.loadModelIds(apiKey: key, baseUrl: base)
-            await MainActor.run { self.liveModelIds = ids }
-        }
+        let key = ProviderKeychain.loadKeySync(for: currentProvider) ?? ""
+        let ids = await ProviderFetcher.loadModelIds(provider: currentProvider, apiKey: key)
+        await MainActor.run { self.liveModelIds = ids }
     }
 
     private var generalTab: some View {
@@ -257,14 +270,59 @@ struct SettingView: View {
         .formStyle(.grouped)
     }
 
+    private var providerTab: some View {
+        Form {
+            Section("提供方") {
+                ForEach(Provider.all) { p in
+                    HStack {
+                        Image(systemName: providersWithKeys.contains(p.slug) ? "key.fill" : "key")
+                            .foregroundStyle(providersWithKeys.contains(p.slug) ? .green : .secondary)
+                            .frame(width: 16)
+                        VStack(alignment: .leading) {
+                            Text(p.name).font(.body)
+                            Text(p.slug).font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        if p.slug == providerSlug {
+                            Image(systemName: "checkmark.circle.fill").foregroundStyle(.blue)
+                        } else if !p.requiresOAuth && p.slug != "custom" {
+                            Button("填 key") {
+                                ProviderKeyPrompt.prompt(for: p)
+                                refreshProviderStatus()
+                            }
+                            .buttonStyle(.borderless)
+                            .controlSize(.small)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture { selectProvider(p) }
+                }
+            }
+        }
+        .formStyle(.grouped)
+    }
+
     private var modelTab: some View {
         Form {
+            Picker("提供方", selection: $providerSlug) {
+                ForEach(Provider.all) { p in
+                    Text(p.name).tag(p.slug)
+                }
+            }
+            .pickerStyle(.menu)
+            .onChange(of: providerSlug) { _, _ in
+                liveModelIds = []
+                Task { await reloadModels() }
+            }
             Picker("模型", selection: $llmModel) {
                 ForEach(modelIdList, id: \.self) { id in
                     Text(id).tag(id)
                 }
             }
             .pickerStyle(.menu)
+            if isLoadingModels {
+                ProgressView().controlSize(.small)
+            }
         }
         .formStyle(.grouped)
         .onAppear { Task { await reloadModels() } }
@@ -272,10 +330,78 @@ struct SettingView: View {
 
     private var shortcutsTab: some View {
         Form {
-            Text("快捷键配置 (待补)")
-                .foregroundStyle(.secondary)
+            Text("快捷键配置 (待补)").foregroundStyle(.secondary)
         }
         .formStyle(.grouped)
+    }
+}
+
+/// 提供方 key 输入提示 (走 NSWindow standalone sheet 范式, 跟 commit e45fac768 promptForLLMKeyIfNeeded 一致)
+enum ProviderKeyPrompt {
+    @MainActor
+    static func prompt(for provider: Provider) {
+        var enteredKey = ""
+        let keyWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 520, height: 220),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        keyWindow.title = "填 \(provider.name) Key"
+        keyWindow.identifier = NSUserInterfaceItemIdentifier("wenshu.providerkey.\(provider.slug)")
+        keyWindow.isReleasedWhenClosed = false
+        keyWindow.center()
+
+        let binding = Binding<String>(
+            get: { enteredKey },
+            set: { enteredKey = $0 }
+        )
+        let rootView = ProviderKeyInputSheet(
+            providerName: provider.name,
+            key: binding,
+            onSave: {
+                let key = enteredKey.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !key.isEmpty else { return }
+                do {
+                    try ProviderKeychain.saveKeySync(key, for: provider)
+                    keyWindow.close()
+                } catch {
+                    NSLog("[wenshu.provider] save failed: \(error)")
+                }
+            },
+            onLater: { keyWindow.close() }
+        )
+        keyWindow.contentView = NSHostingView(rootView: rootView)
+        keyWindow.makeKeyAndOrderFront(nil)
+    }
+}
+
+private struct ProviderKeyInputSheet: View {
+    let providerName: String
+    @Binding var key: String
+    let onSave: () -> Void
+    let onLater: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("填 \(providerName) API Key")
+                .font(.headline)
+            Text("存 macOS Keychain (不入文件 / log / commit)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            SecureField("sk-...", text: $key)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 420)
+            HStack {
+                Spacer()
+                Button("稍后", action: onLater).keyboardShortcut(.cancelAction)
+                Button("保存", action: onSave)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+        }
+        .padding(20)
+        .frame(width: 520, height: 220)
     }
 }
 
