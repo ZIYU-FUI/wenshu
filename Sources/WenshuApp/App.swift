@@ -171,6 +171,7 @@ struct WenshuApp: App {
         store: FileSystemLibraryStore(rootURL: LibraryRoot.ensureDefault())
     )
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
+    @AppStorage("wenshu.llm.model") private var llmModel: String = MiniMaxModel.m3.rawValue  // v0.21 ticket 04: Settings 模型配置 (老板原话 "配完省略显示", 不写当前值 label)
 
     var body: some Scene {
         WindowGroup("文枢") {
@@ -185,6 +186,8 @@ struct WenshuApp: App {
         // 真因: SwiftUI .commands 在 macOS 27 lazy populate 注入英文 wenshu 第一菜单 (8/19 ticket 01 翻车链)
         // NSMenu 已装真值菜单 (Apple 文枢 文件 编辑 显示 窗口 帮助, 见 WenshuAppDelegate.applicationWillFinishLaunching)
         // SettingsView 真值保留在 Settings { ... } Scene, NSMenu "设置…" action trigger SwiftUI Settings 真值
+        // 真值: SwiftUI Settings 范式 = SettingsLink 自动装. NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil)
+        // 走 objc runtime 找 SwiftUI 装的 Settings window handler (SwiftUI 内部注册, 不导出 API)
         Settings {
             Form {
                 Picker("外观", selection: $appearanceMode) {
@@ -193,9 +196,16 @@ struct WenshuApp: App {
                     }
                 }
                 .pickerStyle(.radioGroup)
+                // v0.21 ticket 04: Settings 模型配置 (老板原话 "配完省略显示", 不写当前值 label)
+                Picker("模型", selection: $llmModel) {
+                    ForEach(MiniMaxModel.allCases, id: \.self) { model in
+                        Text(model.label).tag(model.rawValue)
+                    }
+                }
+                .pickerStyle(.menu)
             }
             .formStyle(.grouped)
-            .frame(width: 360, height: 120)
+            .frame(width: 360, height: 180)
         }
     }
 }
@@ -625,3 +635,4 @@ struct LibraryOutlineViewContent: View {
             .allowsHitTesting(false)
     }
 }
+

@@ -64,7 +64,7 @@ public actor MiniMaxVerifier {
     private let apiKey: String
     private let model: String
 
-    public init(baseURL: String? = nil, apiKey: String? = nil, model: String = "MiniMax-M3") {
+    public init(baseURL: String? = nil, apiKey: String? = nil, model: MiniMaxModel = .m3) {
         // 真值: 从 env 读 (hermes .env 路径), 测试可 override
         if let baseURL = baseURL, let apiKey = apiKey {
             self.baseURL = baseURL
@@ -76,7 +76,7 @@ public actor MiniMaxVerifier {
             self.baseURL = envBaseURL
             self.apiKey = envKey
         }
-        self.model = model
+        self.model = model.rawValue
     }
 
     /// ping: 简单 1 消息真值
