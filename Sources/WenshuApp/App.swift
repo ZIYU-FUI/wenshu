@@ -182,12 +182,17 @@ struct WenshuApp: App {
         .windowStyle(.titleBar)  // 老板 8/18 拍 macOS 52 PT unified titlebar chrome = 老板自定义 52 PT 顶栏, 视觉合一
         .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // 老板 Sketch 设计基准 1920×984 PT (v0.15 ticket 005 响应式: LayoutShellView 删 fixed frame, window 用 defaultSize 给 SwiftUI 初始 size hint)
         .windowResizability(.contentSize)  // 内容驱动窗口大小 (GeometryReader × 比例算子自适应 resize)
-        // v0.20 ticket 08: 删 .commands 段 (新建项目 + CommandGroup(.appSettings) SettingsLink + 视图 CommandMenu)
-        // 真因: SwiftUI .commands 在 macOS 27 lazy populate 注入英文 wenshu 第一菜单 (8/19 ticket 01 翻车链)
-        // NSMenu 已装真值菜单 (Apple 文枢 文件 编辑 显示 窗口 帮助, 见 WenshuAppDelegate.applicationWillFinishLaunching)
-        // SettingsView 真值保留在 Settings { ... } Scene, NSMenu "设置…" action trigger SwiftUI Settings 真值
-        // 真值: SwiftUI Settings 范式 = SettingsLink 自动装. NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil)
-        // 走 objc runtime 找 SwiftUI 装的 Settings window handler (SwiftUI 内部注册, 不导出 API)
+        // v0.21 ticket 01 (重做 #3): 加 .commands { CommandGroup(.appSettings) { SettingsLink() } } 让 SwiftUI 自动接管 cmd+,
+        // + 自动装 'Settings…' NSMenuItem (SwiftUI macOS 14+ 真值, swiftinterface grep SettingsLink 命中)
+        .commands {
+            CommandGroup(replacing: .appSettings) {
+                SettingsLink()
+            }
+        }
+        // 真因 (Q15 翻车链 #7 总结): SwiftUI .commands 在 macOS 27 不会被 lazy populate 覆盖
+        // (之前 8/19 ticket 01 翻车链假设错误, 现在 SwiftUI 接管 cmd+, 完全 work)
+        // v0.20 ticket 08 老真值保留: NSMenu 已装 5 项中文 (文件 编辑 显示 窗口 帮助, 见 WenshuAppDelegate.installMainMenu)
+        // SettingsView 真值保留在 Settings { ... } Scene, SwiftUI 自动接管 cmd+,
         Settings {
             Form {
                 Picker("外观", selection: $appearanceMode) {
@@ -230,13 +235,9 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         NotificationCenter.default.post(name: .wenshuResetLayout, object: nil)
     }
 
-    // v0.21 ticket 01 (重做 #2): "设置…" NSMenu action
-    // 真因 (Q28 swiftinterface 真值): SwiftUI macOS 14+ SettingsLink / Settings { } Scene 自动注册 `showSettingsWindow:` selector
-    // 在 applicationDidFinishLaunching 时已激活 (SwiftUI lifecycle 跑完), 我们 NSMenu action = #selector(showSettingsWindow(_:)) 走
-    // NSApp.sendAction(Selector("showSettingsWindow:"), to: nil, from: sender) 触发 SwiftUI Settings 真值弹窗
-    @MainActor @objc func showSettingsWindow(_ sender: Any?) {
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: sender)
-    }
+    // v0.21 ticket 01 (重做 #3): 删 showSettingsWindow @objc handler, Q15 翻车链 #7
+    // 真因 (Q28 swiftinterface): SwiftUI macOS 14+ 不暴露 showSettingsWindow: API, swiftinterface grep 0 hits
+    // 真修法 (5 原则1 真值): 删 NSMenu 装的 '设置…' item (避免 double item) + SwiftUI App body .commands { CommandGroup(replacing: .appSettings) { SettingsLink() } } 让 SwiftUI 自动接管 cmd,+ 装 'Settings…' NSMenuItem
 
     /// v0.21 ticket 01 (重做): installMainMenu 装 6 项中文 (v0.02.0 spec 老板 8/10 01:43 拍: 文枢/文件/编辑/显示/窗口/帮助)
     /// Apple 官方范式: SwiftUI 不自动装 File/Edit/View/Window/Help 系统级菜单, 老板 macOS 27 系统语言中文 → NSMenu title 中文
@@ -245,12 +246,10 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     @MainActor private func installMainMenu() -> NSMenu {
         let mainMenu = NSMenu()
 
-        // 文枢 (App menu)
+        // 文枢 (App menu) — v0.21 ticket 01 (重做 #3): 删 '设置…' item, SwiftUI App body .commands { CommandGroup(.appSettings) { SettingsLink() } } 自动接管
         let appMenuItem = NSMenuItem()
         let appMenu = NSMenu(title: "文枢")
         appMenu.addItem(NSMenuItem(title: "关于文枢", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: ""))
-        appMenu.addItem(NSMenuItem.separator())
-        appMenu.addItem(NSMenuItem(title: "设置…", action: #selector(showSettingsWindow(_:)), keyEquivalent: ","))
         appMenu.addItem(NSMenuItem.separator())
         appMenu.addItem(NSMenuItem(title: "退出文枢", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         appMenuItem.submenu = appMenu
