@@ -232,6 +232,73 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     /// 共享 MiniMaxVerifier (端到端 MiniMax key 调通, Q22 真验证 HTTP 200)
     static let sharedVerifier = MiniMaxVerifier()
 
+    /// 菜单栏 (NSMenu 真值) 手动 install — 老板 8/19 真值报告: .commands 在 macOS 27 lazy menu populate
+    /// 修法: applicationWillFinishLaunching 装 NSMenu, SwiftUI .commands 接管 content
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        // v0.20 ticket 01: 强制 activation policy = .regular (macOS 标准 app, Dock 出现 + 菜单栏)
+        NSApp.setActivationPolicy(.regular)
+        // v0.20 ticket 01: Dock logo (NSImage 真值, Apple HIG NSApplication.applicationIconImage)
+        // 老板 8/20 拍 "全套 LOGO 存在 /Users/anbaiqiang/Desktop/LOGO" — 用 wenshu-icon.icns
+        if NSApp.applicationIconImage == nil {
+            let iconPath = "/Users/anbaiqiang/Desktop/LOGO/wenshu-icon.icns"
+            if let icon = NSImage(contentsOfFile: iconPath) {
+                icon.size = NSSize(width: 128, height: 128)
+                NSApp.applicationIconImage = icon
+            } else {
+                // fallback: SF Symbol book.closed
+                let fallback = NSImage(systemSymbolName: "book.closed", accessibilityDescription: "wenshu") ?? NSImage()
+                fallback.size = NSSize(width: 128, height: 128)
+                NSApp.applicationIconImage = fallback
+            }
+        }
+        // v0.20 ticket 01: 手动 install NSMenu (避免 macOS 27 lazy menu populate bug)
+        let mainMenu = NSMenu()
+        // 文枢 (App 菜单)
+        let appMenuItem = NSMenuItem()
+        let appMenu = NSMenu(title: "文枢")
+        appMenu.addItem(NSMenuItem(title: "关于文枢", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: ""))
+        appMenu.addItem(NSMenuItem.separator())
+        appMenu.addItem(NSMenuItem(title: "设置…", action: nil, keyEquivalent: ","))
+        appMenu.addItem(NSMenuItem.separator())
+        appMenu.addItem(NSMenuItem(title: "退出文枢", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        appMenuItem.submenu = appMenu
+        mainMenu.addItem(appMenuItem)
+        // 文件
+        let fileMenuItem = NSMenuItem()
+        let fileMenu = NSMenu(title: "文件")
+        fileMenu.addItem(NSMenuItem(title: "新建项目", action: nil, keyEquivalent: "n"))
+        fileMenuItem.submenu = fileMenu
+        mainMenu.addItem(fileMenuItem)
+        // 编辑
+        let editMenuItem = NSMenuItem()
+        let editMenu = NSMenu(title: "编辑")
+        editMenu.addItem(NSMenuItem(title: "撤销", action: Selector(("undo:")), keyEquivalent: "z"))
+        editMenu.addItem(NSMenuItem(title: "重做", action: Selector(("redo:")), keyEquivalent: "Z"))
+        editMenuItem.submenu = editMenu
+        mainMenu.addItem(editMenuItem)
+        // 显示
+        let viewMenuItem = NSMenuItem()
+        let viewMenu = NSMenu(title: "显示")
+        viewMenu.addItem(NSMenuItem(title: "恢复默认布局", action: nil, keyEquivalent: "R"))
+        viewMenuItem.submenu = viewMenu
+        mainMenu.addItem(viewMenuItem)
+        // 窗口
+        let windowMenuItem = NSMenuItem()
+        let windowMenu = NSMenu(title: "窗口")
+        windowMenuItem.submenu = windowMenu
+        mainMenu.addItem(windowMenuItem)
+        // 帮助
+        let helpMenuItem = NSMenuItem()
+        let helpMenu = NSMenu(title: "帮助")
+        helpMenu.addItem(NSMenuItem(title: "文枢帮助", action: nil, keyEquivalent: ""))
+        helpMenuItem.submenu = helpMenu
+        mainMenu.addItem(helpMenuItem)
+        // 关键: 菜单栏设为默认菜单 (Apple HIG 真值)
+        NSApp.mainMenu = mainMenu
+        NSApp.windowsMenu = windowMenu
+        NSApp.helpMenu = helpMenu
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         // v0.20 ticket 01: 启动时注册 wenshu 主 agent (左下 zone chat UI 调用)
         let card = AgentCard(
@@ -246,6 +313,8 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
                 name: "wenshu", card: card, process: protocol_
             ))
         }
+        // 强制激活 app (菜单栏可见, Apple HIG 真值)
+        NSApp.activate(ignoringOtherApps: true)
         if ProcessInfo.processInfo.environment["WS_SCREENSHOT"] == "1" {
             SelfScreenshot.run()
         }
