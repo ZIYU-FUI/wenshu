@@ -52,7 +52,7 @@ Package.resolved
 # Swift package download cache (alternative layout)
 .swiftpm/
 
-# boss 临时贴图 (e.g. pasted-1787188375157.png)
+# 老板 临时贴图 (e.g. pasted-1787188375157.png)
 pasted-*.png
 
 # Test scratch
