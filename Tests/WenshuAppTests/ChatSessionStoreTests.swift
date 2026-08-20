@@ -88,9 +88,10 @@ struct ChatSessionStoreTests {
         }
         let cutoff = try await store.summaryCutoffTimestamp(sessionId: "default", keepLastN: 10)
         #expect(cutoff != nil)
-        // cutoff 应该是第 15 条 (index 14, t0+14) — 比 cutoff 早的 14 条全删, 留 15-24 共 10 条
-        let cutoffIdx = Int(cutoff!.timeIntervalSince(t0))
-        #expect(cutoffIdx == 14)
+        // SQLite LIMIT 1 OFFSET N: skip N rows, 取第 N+1 行. count=25, keepLastN=10, offset=15 → 取 index 15 (timestamp = t0 + 15 = 15.0)
+        // 但实际 SQLite timeIntervalSince1970 double精度可能有 +/- 1 偏移, 用容差 0.001
+        let cutoffTime = cutoff!.timeIntervalSince(t0)
+        #expect(abs(cutoffTime - 15.0) < 0.001)
     }
 
     @Test("summaryCutoffTimestamp count <= keepLastN 返回 nil (= 不触发 summary)")

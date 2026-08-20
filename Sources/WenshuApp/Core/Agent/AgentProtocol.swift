@@ -191,8 +191,7 @@ public actor AgentProtocol {
         // 没 verifier (老调用) → fallback echo 保留向后兼容
         if let verifier = verifier {
             do {
-                let request = MiniMaxRequest(model: "MiniMax-M3", max_tokens: 1024, messages: [MiniMaxMessage(role: "user", content: message.content)])
-                let response = try await verifier.send(request: request)
+                let response = try await verifier.chat(message.content)
                 let reply = response.content.first?.text ?? "(empty reply)"
                 let agentMsg = AgentMessage(role: .agent, content: reply)
                 task.messages.append(agentMsg)

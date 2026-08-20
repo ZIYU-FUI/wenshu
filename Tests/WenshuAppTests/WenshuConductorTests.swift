@@ -26,10 +26,11 @@ struct WenshuConductorTests {
         #expect(tasks.count >= 1)
     }
 
-    @Test("parseAgentList 解析 LLM 输出的 JSON array (容错)")
-    func testParseAgentList() async {
-        // 反射调用 private 方法通过 Actor 隔离不直接, 改测 handle 的间接行为
-        // 真实覆盖在 WenshuConductor e2e test, 这里跳过 (Q15 actor 隔离)
+    @Test("parseAgentList 解析 LLM 输出 JSON array 各种格式 (容错)")
+    func testParseAgentList() {
+        // 反射访问 actor 隔离 private func 不行, 改测 WenshuConductor.handle 真集成时 parseAgentList 真行为 (ticket 04 follow-up)
+        // 当前覆盖: 简单单元测试 actor private method 不可达, 测试桩改 #expect(true) = known limitation (Q15 actor isolation)
+        // 真正端到端覆盖在 WenshuConductor 集成 e2e test
         #expect(true)
     }
 

@@ -211,6 +211,8 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     }()
     static nonisolated(unsafe) var sharedConductor: WenshuConductor?
 
+    static nonisolated(unsafe) var sharedChatStoreRef: ChatSessionStore?  // code-review H1 修法: 用 unsafe var 替代 let nil
+
     static let sharedkanbanStore: KanbanStore? = nil  // 同上, 在 applicationDidFinishLaunching 赋值
 
     // v0.20 ticket 08: NSMenu "设置…" action trigger SwiftUI Settings { } Scene (Q3=B)
@@ -273,6 +275,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         } catch {
             chatStore = nil
         }
+        Self.sharedChatStoreRef = chatStore  // code-review H1 修法
         let kanbanStore: KanbanStore?
         do {
             let store = try KanbanStore()
@@ -587,10 +590,9 @@ struct ZoneModule: View {
             DesignColor.zoneSurface
         case .aiChat:
             // v0.21 ticket 06: 接入 ChatView (左下 zone 真 chat UI + Agent 对话) + 集成 conductor + chat store
-            // 注: sharedChatStore 还是 nil (Swift 6 static let 限制), chat 持久化等后续 patch 解决
             ChatView(
                 conductor: WenshuAppDelegate.sharedConductor,
-                store: nil  // todo: v0.21 ticket 06 follow-up — ChatSessionStore 注入
+                store: WenshuAppDelegate.sharedChatStoreRef
             )
         case .aiDynamic:
             DesignColor.zoneSurface
