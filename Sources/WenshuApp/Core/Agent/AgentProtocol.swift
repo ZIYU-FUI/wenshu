@@ -156,9 +156,11 @@ public actor AgentProtocol {
     private var tasks: [UUID: AgentTask] = [:]
     private var tasksByAgent: [String: [UUID]] = [:]
     private let agentCard: AgentCard
+    private let verifier: MiniMaxVerifier?
 
-    public init(agentCard: AgentCard) {
+    public init(agentCard: AgentCard, verifier: MiniMaxVerifier? = nil) {
         self.agentCard = agentCard
+        self.verifier = verifier
     }
 
     public func getAgentCard() -> AgentCard {
@@ -185,10 +187,29 @@ public actor AgentProtocol {
         task.status = .running
         task.messages.append(message)
         task.updatedAt = Date()
-        // echo back as agent message (真值: agent acknowledge user message)
-        let ack = AgentMessage(role: .agent, content: "received from \(fromAgent): \(message.content.prefix(50))")
-        task.messages.append(ack)
-        task.status = .completed
+        // 真值: 调 MiniMaxVerifier.send 真合成 agent 回复 (不再是 echo 占位)
+        // 没 verifier (老调用) → fallback echo 保留向后兼容
+        if let verifier = verifier {
+            do {
+                let request = MiniMaxRequest(model: "MiniMax-M3", max_tokens: 1024, messages: [MiniMaxMessage(role: "user", content: message.content)])
+                let response = try await verifier.send(request: request)
+                let reply = response.content.first?.text ?? "(empty reply)"
+                let agentMsg = AgentMessage(role: .agent, content: reply)
+                task.messages.append(agentMsg)
+                task.status = .completed
+            } catch {
+                task.status = .failed
+                task.updatedAt = Date()
+                tasks[taskId] = task
+                let err = A2AError(code: -32603, message: "LLM failed: \(error.localizedDescription)")
+                return A2AResponse(id: request.id, error: err)
+            }
+        } else {
+            // 没 verifier (向后兼容) → echo 占位
+            let ack = AgentMessage(role: .agent, content: "received from \(fromAgent): \(message.content.prefix(50))")
+            task.messages.append(ack)
+            task.status = .completed
+        }
         task.updatedAt = Date()
         tasks[taskId] = task
         tasksByAgent[agentCard.name, default: []].append(taskId)

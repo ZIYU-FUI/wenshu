@@ -89,6 +89,16 @@ public actor MiniMaxVerifier {
         return try await send(request: request)
     }
 
+    /// chat: 1 消息 user content 真值 (v0.21 ticket 03 fallback 用, AgentProtocol LLM 失败后 ChatViewModel 走这条)
+    public func chat(_ text: String) async throws -> MiniMaxResponse {
+        let request = MiniMaxRequest(
+            model: model,
+            max_tokens: 1024,
+            messages: [MiniMaxMessage(role: "user", content: text)]
+        )
+        return try await send(request: request)
+    }
+
     /// send: 实际调 MiniMax API (Apple URLSession 真值)
     public func send(request: MiniMaxRequest) async throws -> MiniMaxResponse {
         guard !apiKey.isEmpty else {

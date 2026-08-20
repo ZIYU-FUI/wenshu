@@ -262,7 +262,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             skills: ["chat", "memory", "kanban"],
             endpoint: "in-process://wenshu"
         )
-        let protocol_ = AgentProtocol(agentCard: card)
+        let protocol_ = AgentProtocol(agentCard: card, verifier: Self.sharedVerifier)
         Task { @MainActor in
             await Self.sharedRuntime.register(AgentRegistration(
                 name: "wenshu", card: card, process: protocol_

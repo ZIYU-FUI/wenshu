@@ -87,9 +87,9 @@ public final class ChatViewModel {
             let agentMsg = ChatMessage(role: .agent, source: .wenshu, content: replyContent)
             messages.append(agentMsg)
         } catch {
-            // fallback: 直接调 MiniMax (Q22 真验证 ticket 31 端到端 work)
+            // fallback: 直接调 MiniMax (Q22 真验证 ticket 31 端到端 work), v0.21 ticket 03 改 chat(text) 真发 user 内容 (不再 ping 占位)
             do {
-                let response = try await verifier.ping()
+                let response = try await verifier.chat(text)
                 let replyContent = response.content.first?.text ?? "(no reply)"
                 let agentMsg = ChatMessage(role: .agent, source: .wenshu, content: replyContent)
                 messages.append(agentMsg)
