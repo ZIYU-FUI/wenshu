@@ -200,8 +200,10 @@ struct WenshuApp: App {
 /// 设置页: TabView + 3 个分组 (通用 / 模型 / 快捷键), macOS 27 标准组件
 struct SettingView: View {
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
-    @AppStorage("wenshu.llm.model") private var llmModel: String = MiniMaxModel.m3.rawValue  // v0.21 ticket 04
+    @AppStorage("wenshu.llm.model") private var llmModel: String = MiniMaxModel.m3.rawValue
     @State private var selectedTab: SettingsTab = .general
+    @State private var liveModelIds: [String] = []
+    @State private var isLoadingModels = false
 
     enum SettingsTab: String, CaseIterable, Identifiable {
         case general = "通用"
@@ -223,6 +225,24 @@ struct SettingView: View {
             }
         }
         .frame(width: 520, height: 420)
+        .onChange(of: selectedTab) { _, new in
+            if new == .model { Task { await reloadModels() } }
+        }
+    }
+
+    private var modelIdList: [String] {
+        liveModelIds.isEmpty ? MiniMaxModel.allCases.map { $0.rawValue } : liveModelIds
+    }
+
+    private func reloadModels() async {
+        guard !isLoadingModels else { return }
+        isLoadingModels = true
+        defer { isLoadingModels = false }
+        if let key = LLMKeychain.loadKeySync(), !key.isEmpty {
+            let base = ProcessInfo.processInfo.environment["MINIMAX_CN_BASE_URL"] ?? "https://api.minimaxi.com/anthropic"
+            let ids = await MiniMaxModelFetcher.loadModelIds(apiKey: key, baseUrl: base)
+            await MainActor.run { self.liveModelIds = ids }
+        }
     }
 
     private var generalTab: some View {
@@ -240,8 +260,8 @@ struct SettingView: View {
     private var modelTab: some View {
         Form {
             Picker("模型", selection: $llmModel) {
-                ForEach(MiniMaxModel.allCases, id: \.self) { model in
-                    Text(model.label).tag(model.rawValue)
+                ForEach(modelIdList, id: \.self) { id in
+                    Text(id).tag(id)
                 }
             }
             .pickerStyle(.menu)
@@ -760,13 +780,8 @@ struct LibraryOutlineViewContent: View {
     }
 }
 
-// NSWindow modal sheet 提示设 LLM key (Keychain + env 都没 key 才弹)
-// v0.21 ticket 03 fix #3 (老板 8/21 22:25 反馈 cmd+V 不响应, 老板参考 Pages 真值真值):
-// Apple 真值范式: NSWindow.beginSheet(_:completionHandler:) 是真值 modal sheet (= Pages 设置窗模式)
-// - 浮在 main window 上 (boss 说'浮在原 windows')
-// - 不阻塞 main window (boss 说'不会把 pages 窗口挤走')
-// - first responder chain 正确 (boss cmd+V work)
-// 修法: 撤回 sheetWindow.makeKeyAndOrderFront(nil) standalone window, 改用 parentWindow.beginSheet 真值 modal sheet
+// v0.21 ticket 03: 弹 LLM key 输入窗 (Keychain + env 都没 key 才弹)
+// 视觉跟 Settings window 一致 (NSWindow.makeKeyAndOrderFront standalone, 浮在原 windows 上)
 @MainActor
 private func promptForLLMKeyIfNeeded() {
     if LLMKeychain.loadKeySync() != nil { return }
@@ -774,9 +789,8 @@ private func promptForLLMKeyIfNeeded() {
 
     var enteredKey: String = ""
 
-    // 真值 modal sheet (Pages 设置窗模式): 浮在 main window 上, 不阻塞 main window
     let sheetWindow = NSWindow(
-        contentRect: NSRect(x: 0, y: 0, width: 480, height: 240),
+        contentRect: NSRect(x: 0, y: 0, width: 520, height: 240),
         styleMask: [.titled, .closable],
         backing: .buffered,
         defer: false
@@ -784,8 +798,8 @@ private func promptForLLMKeyIfNeeded() {
     sheetWindow.title = "文枢 设置"
     sheetWindow.identifier = NSUserInterfaceItemIdentifier("wenshu.llmkey.sheet")
     sheetWindow.isReleasedWhenClosed = false
+    sheetWindow.center()
 
-    // SwiftUI view 装 sheet content (Apple 真值)
     let keyBinding = Binding<String>(
         get: { enteredKey },
         set: { enteredKey = $0 }
@@ -798,29 +812,18 @@ private func promptForLLMKeyIfNeeded() {
             Task { @MainActor in
                 do {
                     try await LLMKeychain.shared.saveKey(key)
-                    sheetWindow.endSheet(sheetWindow)  // 真值 modal sheet 关闭 API
+                    sheetWindow.close()
                 } catch {
                     NSLog("[wenshu.keychain] save failed: \(error)")
                 }
             }
         },
         onLater: {
-            sheetWindow.endSheet(sheetWindow)
+            sheetWindow.close()
         }
     )
     sheetWindow.contentView = NSHostingView(rootView: rootView)
-
-    // 找 parent window (LayoutShellView 的 NSWindow), 真值 beginSheet modal
-    guard let parentWindow = NSApp.windows.first(where: { $0.contentViewController != nil || $0.contentView != nil }) else {
-        // 没找到 parent window, fallback standalone (保底)
-        sheetWindow.center()
-        sheetWindow.makeKeyAndOrderFront(nil)
-        return
-    }
-    parentWindow.beginSheet(sheetWindow) { _ in
-        // modal sheet 关闭后 cleanup
-        sheetWindow.contentView = nil
-    }
+    sheetWindow.makeKeyAndOrderFront(nil)
 }
 
 /// Key 输入 sheet: SwiftUI SecureField (Apple macOS 14+ 真值, cmd+V work)
