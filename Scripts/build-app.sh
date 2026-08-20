@@ -26,13 +26,12 @@ cp ".build/release/$BIN_NAME" "$MACOS_DIR/$BIN_NAME"
 # (SwiftPM `-sectcreate __TEXT __info_plist` 是裸 run 用的, .app bundle 不需要)
 cp "Sources/WenshuApp/Resources/Info.plist" "$APP_DIR/Contents/Info.plist"
 
-# AppIcon.icns → Contents/Resources/AppIcon.icns (CFBundleIconFile="AppIcon" 解析路径)
-cp "Sources/WenshuApp/Resources/AppIcon.icns" "$RES_DIR/AppIcon.icns"
+# AppIcon (.icon Icon Composer 格式) → Contents/Resources/AppIcon.icon (CFBundleIconFile="AppIcon" 解析路径)
+cp -R "Sources/WenshuApp/Resources/AppIcon.icon" "$RES_DIR/AppIcon.icon"
 
-# macOS 27 dark/light 自动跟随系统主题: AppKit 按 effectiveAppearance 选 AppIcon.dark.icns / AppIcon.light.icns
+# macOS 27 dark/light/tinted 自动跟随系统主题: AppKit 按 effectiveAppearance 从 AppIcon.icon 派生.
+# Apple Icon Composer 范式: 1 份 LOGO.icon + icon.json + Assets/ 主图 PNG, macOS 27 自动派生 dark/light/tinted + platform mask (squares shared / circles watchOS).
 # Apple HIG 范式: https://developer.apple.com/design/human-interface-guidelines/app-icons
-cp "Sources/WenshuApp/Resources/AppIcon.dark.icns" "$RES_DIR/AppIcon.dark.icns"
-cp "Sources/WenshuApp/Resources/AppIcon.light.icns" "$RES_DIR/AppIcon.light.icns"
 
 echo ">>> ad-hoc codesign"
 codesign --force --deep --sign - "$APP_DIR"

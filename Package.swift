@@ -25,15 +25,13 @@ let package = Package(
             name: "WenshuApp",
             path: "Sources/WenshuApp",
             exclude: [
-                // Info.plist + AppIcon.icns are bundled by Scripts/build-app.sh into
-                // Wenshu.app/Contents/Info.plist + Contents/Resources/AppIcon*.icns
+                // Info.plist + AppIcon are bundled by Scripts/build-app.sh into
+                // Wenshu.app/Contents/Info.plist + Contents/Resources/AppIcon*
                 // (= standard Cocoa .app bundle, AppKit reads CFBundleIconFile from there).
                 // Bare `swift run` still works for dev: AppKit falls back to its
                 // process-tile placeholder when no .app bundle exists.
                 "Resources/Info.plist",
-                "Resources/AppIcon.icns",
-                "Resources/AppIcon.dark.icns",
-                "Resources/AppIcon.light.icns"
+                "Resources/AppIcon.icon"
             ]
         ),
         // v0.02.0: Swift Testing test target. v0.01.0 landed 7-zone scaffold;
