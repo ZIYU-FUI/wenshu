@@ -55,6 +55,9 @@
 | **AVMediaTools** | wenshu 本地 AV media 工具 (AVSpeechSynthesizer 朗读 + duration 估算). Apple AVFoundation 真值 | v0.18 ticket 11 |
 | **Cronjob** | wenshu 本地 cron 任务管理 (5 字段 cron expression + 简单 nextRun 估算). Apple LaunchAgent 路径真值 (后续可生成 plist) | v0.18 ticket 21 |
 | **Backup** | wenshu 本地项目备份 (复制源目录 + ISO 8601 时间戳命名 + 恢复 + 删). Apple FileManager 真值 | v0.18 ticket 26 |
+| **MenuBar (NSMenu install)** | wenshu macOS 顶部菜单栏手动 install (NSMenu 真值) — 6 项: 文枢 / 文件 / 编辑 / 显示 / 窗口 / 帮助. 老板 8/19 真值报告: .commands 在 macOS 27 lazy menu populate (macOS 27 beta bug, 真因 vdhamer/Photo-Club-Hub-HTML#248). 修法: WenshuAppDelegate.applicationWillFinishLaunching 装 NSMenu, SwiftUI .commands 接管 content | v0.20 ticket 01 |
+| **Dock Logo (applicationIconImage)** | wenshu Dock logo NSImage 真值 (Apple HIG NSApplication.applicationIconImage). 老板 8/20 拍 LOGO 路径 /Users/anbaiqiang/Desktop/LOGO/wenshu-icon.icns (12K-369K 字节 真值文件). 修法: WenshuAppDelegate.applicationWillFinishLaunching 设 NSApp.applicationIconImage + activationPolicy = .regular. fallback SF Symbol book.closed | v0.20 ticket 01 |
+| **NativeSplitter SwiftUI 真值** | wenshu 拖拽线 SwiftUI 范式 (替代 v0.16/v0.17 NSView 范式). SwiftUI Color.clear + .contentShape + .onContinuousHover + .pointerStyle + DragGesture 全在 SwiftUI view tree. 视觉 1 PT Apple 系统 separator 色 / hover 3 PT Apple 系统 controlAccentColor.opacity(0.25) + shadow / hit area 6 PT | v0.20 ticket 02 |
 
 ## Project conventions (硬约束)
 
