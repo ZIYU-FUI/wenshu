@@ -267,6 +267,7 @@ struct SettingView: View {
             .pickerStyle(.menu)
         }
         .formStyle(.grouped)
+        .onAppear { Task { await reloadModels() } }
     }
 
     private var shortcutsTab: some View {
