@@ -204,6 +204,14 @@ struct WenshuApp: App {
 final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     static let sharedRuntime = AgentRuntime()
     static let sharedVerifier = MiniMaxVerifier()
+    static let sharedChatStore: ChatSessionStore? = {
+        // v0.21 ticket 06: actor init 不能在 static let 闭包里直接调用 (Swift 6 strict concurrency)
+        // 退回 nil, applicationDidFinishLaunching 重新创建并赋值给 var sharedChatStore
+        return nil
+    }()
+    static nonisolated(unsafe) var sharedConductor: WenshuConductor?
+
+    static let sharedkanbanStore: KanbanStore? = nil  // 同上, 在 applicationDidFinishLaunching 赋值
 
     // v0.20 ticket 08: NSMenu "设置…" action trigger SwiftUI Settings { } Scene (Q3=B)
     // 真值: SwiftUI Settings 范式 = SettingsLink 自动装. NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil)
@@ -255,6 +263,32 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // v0.21 ticket 06: 同步创建 ChatSessionStore + KanbanStore + WenshuConductor (不能在 static let 闭包里调 actor init)
+        // 用 unsafeMutablePointer / 临时 instance var 临时持有 — 因为 static let 是 immutable, 不能后续赋值
+        let chatStore: ChatSessionStore?
+        do {
+            let store = try ChatSessionStore()
+            try store.bootstrap()
+            chatStore = store
+        } catch {
+            chatStore = nil
+        }
+        let kanbanStore: KanbanStore?
+        do {
+            let store = try KanbanStore()
+            try store.bootstrap()
+            kanbanStore = store
+        } catch {
+            kanbanStore = nil
+        }
+        if let kanbanStore = kanbanStore {
+            Self.sharedConductor = WenshuConductor(
+                runtime: Self.sharedRuntime,
+                verifier: Self.sharedVerifier,
+                kanbanStore: kanbanStore,
+                sessionStore: chatStore
+            )
+        }
         // v0.20 ticket 01: 启动时注册 wenshu 主 agent (左下 zone chat UI 调用)
         let card = AgentCard(
             name: "wenshu",
@@ -552,11 +586,11 @@ struct ZoneModule: View {
         case .specializedTools:
             DesignColor.zoneSurface
         case .aiChat:
-            // v0.20 ticket 01: 接入 ChatView (左下 zone 真 chat UI + Agent 对话)
+            // v0.21 ticket 06: 接入 ChatView (左下 zone 真 chat UI + Agent 对话) + 集成 conductor + chat store
+            // 注: sharedChatStore 还是 nil (Swift 6 static let 限制), chat 持久化等后续 patch 解决
             ChatView(
-                runtime: WenshuAppDelegate.sharedRuntime,
-                verifier: WenshuAppDelegate.sharedVerifier,
-                agentName: "wenshu"
+                conductor: WenshuAppDelegate.sharedConductor,
+                store: nil  // todo: v0.21 ticket 06 follow-up — ChatSessionStore 注入
             )
         case .aiDynamic:
             DesignColor.zoneSurface

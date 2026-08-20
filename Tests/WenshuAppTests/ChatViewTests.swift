@@ -26,7 +26,7 @@ struct ChatViewTests {
     func testInitialState() {
         let runtime = AgentRuntime()
         let verifier = MiniMaxVerifier()
-        let vm = ChatViewModel(runtime: runtime, verifier: verifier)
+        let vm = ChatViewModel()
         #expect(vm.messages.isEmpty)
         #expect(vm.inputText.isEmpty)
         #expect(vm.isSending == false)
@@ -38,7 +38,7 @@ struct ChatViewTests {
     func testClear() {
         let runtime = AgentRuntime()
         let verifier = MiniMaxVerifier()
-        let vm = ChatViewModel(runtime: runtime, verifier: verifier)
+        let vm = ChatViewModel()
         // 直接 push (绕过 send 异步)
         vm.messages.append(ChatMessage(role: .user, content: "test"))
         vm.lastError = "some error"
@@ -52,7 +52,7 @@ struct ChatViewTests {
     func testSendEmpty() async {
         let runtime = AgentRuntime()
         let verifier = MiniMaxVerifier()
-        let vm = ChatViewModel(runtime: runtime, verifier: verifier)
+        let vm = ChatViewModel()
         vm.inputText = "   "
         await vm.send()
         #expect(vm.messages.isEmpty)

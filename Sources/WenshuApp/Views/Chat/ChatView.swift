@@ -52,7 +52,7 @@ public enum ChatSource: String, Equatable, Sendable, Codable {
     case system
 }
 
-/// ChatViewModel: 状态管理 (Apple Observable 真值)
+/// ChatViewModel: 状态管理 (Apple Observable 真值, v0.21 ticket 06 集成 ChatSessionStore + WenshuConductor)
 @MainActor
 @Observable
 public final class ChatViewModel {
@@ -61,17 +61,27 @@ public final class ChatViewModel {
     public var isSending: Bool = false
     public var lastError: String?
 
-    private let runtime: AgentRuntime
-    private let verifier: MiniMaxVerifier
-    private let agentName: String
+    private let conductor: WenshuConductor?
+    private let store: ChatSessionStore?
+    private let sessionId: String
 
-    public init(runtime: AgentRuntime, verifier: MiniMaxVerifier, agentName: String = "wenshu") {
-        self.runtime = runtime
-        self.verifier = verifier
-        self.agentName = agentName
+    public init(conductor: WenshuConductor? = nil, store: ChatSessionStore? = nil, sessionId: String = "default") {
+        self.conductor = conductor
+        self.store = store
+        self.sessionId = sessionId
+        // v0.21 ticket 06: 启动时异步加载历史
+        if let store = store {
+            Task { @MainActor in
+                if let loaded = try? await store.loadMessages(sessionId: sessionId) {
+                    self.messages = loaded.map { stored in
+                        ChatMessage(id: UUID(uuidString: stored.id) ?? UUID(), role: .agent, source: ChatSource(rawValue: stored.source) ?? .wenshu, content: stored.content, timestamp: stored.timestamp)
+                    }
+                }
+            }
+        }
     }
 
-    /// send: 发消息 → Agent 真值
+    /// send: 发消息 → 文枢主 agent 真合成 (v0.21 ticket 06 走 WenshuConductor.handle, 调 MiniMaxVerifier 真 LLM)
     public func send() async {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !isSending else { return }
@@ -80,24 +90,37 @@ public final class ChatViewModel {
         inputText = ""
         isSending = true
         defer { isSending = false }
+
+        let userMsgStored = StoredChatMessage(id: userMsg.id.uuidString, source: "user", content: text, timestamp: Date())
+        try? await store?.append(userMsgStored, sessionId: sessionId)
+
         do {
-            // 优先: AgentRuntime delegateTask (A2A 协议)
-            let task = try await runtime.delegateTask(to: agentName, content: text, fromAgent: "user")
-            let replyContent = task.messages.last(where: { $0.role == .agent })?.content ?? "(no reply)"
-            let agentMsg = ChatMessage(role: .agent, source: .wenshu, content: replyContent)
-            messages.append(agentMsg)
-        } catch {
-            // fallback: 直接调 MiniMax (Q22 真验证 ticket 31 端到端 work), v0.21 ticket 03 改 chat(text) 真发 user 内容 (不再 ping 占位)
-            do {
-                let response = try await verifier.chat(text)
-                let replyContent = response.content.first?.text ?? "(no reply)"
-                let agentMsg = ChatMessage(role: .agent, source: .wenshu, content: replyContent)
-                messages.append(agentMsg)
-            } catch {
-                let errMsg = ChatMessage(role: .system, source: .system, content: "Error: \(error.localizedDescription)")
-                messages.append(errMsg)
-                lastError = error.localizedDescription
+            // v0.21 ticket 06: 走 WenshuConductor.handle (intent classify → 派子 agent → LLM synthesis)
+            let reply: String
+            if let conductor = conductor {
+                reply = try await conductor.handle(userMessage: text, sessionId: sessionId)
+            } else {
+                // 没 conductor (向后兼容) → fallback 调 verifier.chat
+                let response = try await MiniMaxVerifier().chat(text)
+                reply = response.content.first?.text ?? "(no reply)"
             }
+            let agentMsg = ChatMessage(role: .agent, source: .wenshu, content: reply)
+            messages.append(agentMsg)
+            let agentMsgStored = StoredChatMessage(id: agentMsg.id.uuidString, source: "wenshu", content: reply, timestamp: Date())
+            try? await store?.append(agentMsgStored, sessionId: sessionId)
+
+            // v0.21 ticket 06: 异步触发 sliding window summary (不阻塞 UI)
+            if let store = store {
+                Task { @MainActor in
+                    if let cutoff = try? await store.summaryCutoffTimestamp(sessionId: sessionId, keepLastN: 20) {
+                        try? await store.deleteOldMessages(sessionId: sessionId, beforeTimestamp: cutoff)
+                    }
+                }
+            }
+        } catch {
+            let errMsg = ChatMessage(role: .system, source: .system, content: "Error: \(error.localizedDescription)")
+            messages.append(errMsg)
+            lastError = error.localizedDescription
         }
     }
 
@@ -108,12 +131,12 @@ public final class ChatViewModel {
     }
 }
 
-/// ChatView: 左下 zone UI (Apple HIG SwiftUI 真值)
+/// ChatView: 左下 zone UI (Apple HIG SwiftUI 真值, v0.21 ticket 06 传 conductor + store 集成)
 public struct ChatView: View {
     @State private var vm: ChatViewModel
 
-    public init(runtime: AgentRuntime, verifier: MiniMaxVerifier, agentName: String = "wenshu") {
-        _vm = State(initialValue: ChatViewModel(runtime: runtime, verifier: verifier, agentName: agentName))
+    public init(conductor: WenshuConductor? = nil, store: ChatSessionStore? = nil, sessionId: String = "default") {
+        _vm = State(initialValue: ChatViewModel(conductor: conductor, store: store, sessionId: sessionId))
     }
 
     public var body: some View {
