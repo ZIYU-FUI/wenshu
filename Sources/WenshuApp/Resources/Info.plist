@@ -9,15 +9,15 @@
     <key>CFBundleExecutable</key>
     <string>WenshuApp</string>
     <key>CFBundleIconFile</key>
-    <string>AppIcon</string>
+    <string>AppIcon.icon</string>
     <key>CFBundleIconName</key>
-    <string>AppIcon</string>
+    <string>AppIcon.icon</string>
     <key>CFBundleIdentifier</key>
     <string>com.wenshu.app</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>Wenshu</string>
+    <string>文枢</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
