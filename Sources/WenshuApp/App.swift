@@ -232,9 +232,17 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: sender)
     }
 
-    func applicationWillFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(.regular)
+    // v0.21 ticket 01 (重做): "显示" → "恢复默认布局" NSMenu action (Q28 真值: 走 NSMenu 自己装中文 6 项, 不靠 SwiftUI commands 范式)
+    @MainActor @objc func resetLayout(_ sender: Any?) {
+        NotificationCenter.default.post(name: .wenshuResetLayout, object: nil)
+    }
+
+    /// v0.21 ticket 01 (重做): installMainMenu 装 6 项中文 (v0.02.0 spec 老板 8/10 01:43 拍: 文枢/文件/编辑/显示/窗口/帮助)
+    /// Apple 官方范式: SwiftUI 不自动装 File/Edit/View/Window/Help 系统级菜单, 老板 macOS 27 系统语言中文 → NSMenu title 中文
+    @MainActor private func installMainMenu() -> NSMenu {
         let mainMenu = NSMenu()
+
+        // 文枢 (App menu)
         let appMenuItem = NSMenuItem()
         let appMenu = NSMenu(title: "文枢")
         appMenu.addItem(NSMenuItem(title: "关于文枢", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: ""))
@@ -244,34 +252,52 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         appMenu.addItem(NSMenuItem(title: "退出文枢", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         appMenuItem.submenu = appMenu
         mainMenu.addItem(appMenuItem)
+
+        // 文件 (cmd+N 新建项目)
         let fileMenuItem = NSMenuItem()
         let fileMenu = NSMenu(title: "文件")
         fileMenu.addItem(NSMenuItem(title: "新建项目", action: nil, keyEquivalent: "n"))
         fileMenuItem.submenu = fileMenu
         mainMenu.addItem(fileMenuItem)
+
+        // 编辑 (cmd+Z 撤销 / cmd+shift+Z 重做, 走 first responder 自动 enable/disable)
         let editMenuItem = NSMenuItem()
         let editMenu = NSMenu(title: "编辑")
         editMenu.addItem(NSMenuItem(title: "撤销", action: Selector(("undo:")), keyEquivalent: "z"))
         editMenu.addItem(NSMenuItem(title: "重做", action: Selector(("redo:")), keyEquivalent: "Z"))
         editMenuItem.submenu = editMenu
         mainMenu.addItem(editMenuItem)
+
+        // 显示 (含 "恢复默认布局" 接 resetLayout NotificationCenter)
         let viewMenuItem = NSMenuItem()
         let viewMenu = NSMenu(title: "显示")
-        viewMenu.addItem(NSMenuItem(title: "恢复默认布局", action: nil, keyEquivalent: "R"))
+        viewMenu.addItem(NSMenuItem(title: "恢复默认布局", action: #selector(resetLayout(_:)), keyEquivalent: "R"))
         viewMenuItem.submenu = viewMenu
         mainMenu.addItem(viewMenuItem)
+
+        // 窗口
         let windowMenuItem = NSMenuItem()
         let windowMenu = NSMenu(title: "窗口")
         windowMenuItem.submenu = windowMenu
         mainMenu.addItem(windowMenuItem)
+
+        // 帮助
         let helpMenuItem = NSMenuItem()
         let helpMenu = NSMenu(title: "帮助")
         helpMenu.addItem(NSMenuItem(title: "文枢帮助", action: nil, keyEquivalent: ""))
         helpMenuItem.submenu = helpMenu
         mainMenu.addItem(helpMenuItem)
-        NSApp.mainMenu = mainMenu
+
+        // NSApplication 用来定位 Window / Help 菜单 (v0.20 ticket 08 老真值, 保留)
         NSApp.windowsMenu = windowMenu
         NSApp.helpMenu = helpMenu
+
+        return mainMenu
+    }
+
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        NSApp.setActivationPolicy(.regular)
+        // v0.21 ticket 01 (重做): 不在这里装 NSMenu — 改在 applicationDidFinishLaunching 末尾装 (覆盖 SwiftUI lazy populate)
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -302,6 +328,9 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
                 sessionStore: chatStore
             )
         }
+        // v0.21 ticket 01 (重做): applicationDidFinishLaunching 末尾强制装中文 6 项 NSMenu (Q28 Apple 官方范式: SwiftUI 不自动装系统级菜单)
+        // 真因: SwiftUI 框架在 didFinishLaunching 后 lazy populate, 如果不在末尾覆盖, 装的中文菜单会被追加在系统默认英文菜单后面
+        NSApp.mainMenu = installMainMenu()
         // v0.20 ticket 01: 启动时注册 wenshu 主 agent (左下 zone chat UI 调用)
         let card = AgentCard(
             name: "wenshu",
