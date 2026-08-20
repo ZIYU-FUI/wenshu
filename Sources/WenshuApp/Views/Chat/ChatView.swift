@@ -65,23 +65,16 @@ public final class ChatViewModel {
     private let store: ChatSessionStore?
     private let sessionId: String
 
-    public init(conductor: WenshuConductor? = nil, store: ChatSessionStore? = nil, sessionId: String = "default") {
+    /// init: 接受预先 load 的 messages (避免在 init 里调 actor method 的 race condition)
+    /// 真值: load 流程放外面 (ChatView .task modifier), ChatViewModel 不做 async work
+    public init(conductor: WenshuConductor? = nil, store: ChatSessionStore? = nil, sessionId: String = "default", initialMessages: [ChatMessage] = []) {
         self.conductor = conductor
         self.store = store
         self.sessionId = sessionId
-        // v0.21 ticket 06: 启动时异步加载历史
-        if let store = store {
-            Task { @MainActor in
-                if let loaded = try? await store.loadMessages(sessionId: sessionId) {
-                    self.messages = loaded.map { stored in
-                        ChatMessage(id: UUID(uuidString: stored.id) ?? UUID(), role: .agent, source: ChatSource(rawValue: stored.source) ?? .wenshu, content: stored.content, timestamp: stored.timestamp)
-                    }
-                }
-            }
-        }
+        self.messages = initialMessages
     }
 
-    /// send: 发消息 → 文枢主 agent 真合成 (v0.21 ticket 06 走 WenshuConductor.handle, 调 MiniMaxVerifier 真 LLM)
+    /// send: 发消息 → 文枢主 agent 真合成 (v0.21 ticket 06 + code-review S1+S2 真持久化)
     public func send() async {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !isSending else { return }
@@ -100,8 +93,9 @@ public final class ChatViewModel {
             if let conductor = conductor {
                 reply = try await conductor.handle(userMessage: text, sessionId: sessionId)
             } else {
-                // 没 conductor (向后兼容) → fallback 调 verifier.chat
-                let response = try await MiniMaxVerifier().chat(text)
+                // 没 conductor (向后兼容) → fallback 调 shared verifier
+                let verifier = MiniMaxVerifier()
+                let response = try await verifier.chat(text)
                 reply = response.content.first?.text ?? "(no reply)"
             }
             let agentMsg = ChatMessage(role: .agent, source: .wenshu, content: reply)
@@ -109,12 +103,11 @@ public final class ChatViewModel {
             let agentMsgStored = StoredChatMessage(id: agentMsg.id.uuidString, source: "wenshu", content: reply, timestamp: Date())
             try? await store?.append(agentMsgStored, sessionId: sessionId)
 
-            // v0.21 ticket 06: 异步触发 sliding window summary (不阻塞 UI)
+            // v0.21 ticket 06 code-review S1: 真触发 summary 生成 (LLM call + saveSummary + deleteOldMessages 顺序, 不直接 delete)
             if let store = store {
+                let verifier = MiniMaxVerifier()
                 Task { @MainActor in
-                    if let cutoff = try? await store.summaryCutoffTimestamp(sessionId: sessionId, keepLastN: 20) {
-                        try? await store.deleteOldMessages(sessionId: sessionId, beforeTimestamp: cutoff)
-                    }
+                    _ = try? await store.summarizeIfNeeded(sessionId: sessionId, lastN: 10, threshold: 20, verifier: verifier)
                 }
             }
         } catch {
@@ -129,6 +122,15 @@ public final class ChatViewModel {
         messages.removeAll()
         lastError = nil
     }
+
+    /// valueForStore: 暴露 store 给 ChatView .task modifier (避免 init race condition)
+    public nonisolated func valueForStore() -> ChatSessionStore? { store }
+    public nonisolated func valueForSessionId() -> String { sessionId }
+
+    /// replaceMessages: ChatView .task 加载完成后整体替换 (避免增量 append 重复)
+    public func replaceMessages(_ newMessages: [ChatMessage]) {
+        self.messages = newMessages
+    }
 }
 
 /// ChatView: 左下 zone UI (Apple HIG SwiftUI 真值, v0.21 ticket 06 传 conductor + store 集成)
@@ -136,7 +138,8 @@ public struct ChatView: View {
     @State private var vm: ChatViewModel
 
     public init(conductor: WenshuConductor? = nil, store: ChatSessionStore? = nil, sessionId: String = "default") {
-        _vm = State(initialValue: ChatViewModel(conductor: conductor, store: store, sessionId: sessionId))
+        // v0.21 ticket 06 code-review S2: initialMessages 用 .task 异步 load, 避免 init race condition
+        _vm = State(initialValue: ChatViewModel(conductor: conductor, store: store, sessionId: sessionId, initialMessages: []))
     }
 
     public var body: some View {
@@ -157,6 +160,23 @@ public struct ChatView: View {
                         withAnimation {
                             proxy.scrollTo(last.id, anchor: .bottom)
                         }
+                    }
+                }
+            }
+            // v0.21 ticket 06 code-review S2: 异步 load 历史 (在 .task modifier 不阻塞首渲染)
+            .task {
+                if let store = vm.valueForStore() {
+                    if let loaded = try? await store.loadMessages(sessionId: vm.valueForSessionId()) {
+                        let mapped = loaded.map { stored in
+                            ChatMessage(
+                                id: UUID(uuidString: stored.id) ?? UUID(),
+                                role: .agent,
+                                source: ChatSource(rawValue: stored.source) ?? .wenshu,
+                                content: stored.content,
+                                timestamp: stored.timestamp
+                            )
+                        }
+                        vm.replaceMessages(mapped)
                     }
                 }
             }

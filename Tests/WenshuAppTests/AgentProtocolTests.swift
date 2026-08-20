@@ -11,12 +11,14 @@ import Foundation
 @Suite("AgentProtocol (A2A 协议)")
 struct AgentProtocolTests {
     private static func makeProtocol() -> AgentProtocol {
+        // v0.21 ticket 03 + code-review S3: handle 无 verifier 时 throw (echo 已删), 测试期望走 fallback error 路径
+        // 测试 agent 真值用 MiniMaxVerifier (没 key → ping fail → error 路径, 但不是 echo)
         AgentProtocol(agentCard: AgentCard(
             name: "test-agent",
             description: "测试 agent",
             skills: ["search", "memory"],
             endpoint: "in-process://test-agent"
-        ))
+        ), verifier: MiniMaxVerifier())
     }
 
     @Test("message/send 创建 task 并返回 status")
@@ -29,13 +31,12 @@ struct AgentProtocolTests {
             fromAgent: "user"
         ))
         let response = await protocol_.handle(request)
-        #expect(response.error == nil)
-        guard case .messageReceived(let responseTaskId, let status) = response.result else {
-            Issue.record("expected messageReceived")
-            return
+        // v0.21 ticket 03 + code-review S3: handle 无 echo fallback, 没 LLM 成功 → error != nil
+        // 测试 agent MiniMaxVerifier 没 key → LLM fail → error 是 LLM failed
+        #expect(response.error != nil)
+        if response.error == nil {
+            Issue.record("expected LLM failure (no API key), got success")
         }
-        #expect(responseTaskId == taskId)
-        #expect(status == .completed)
     }
 
     @Test("task/get 拿 task 详情")
@@ -56,7 +57,9 @@ struct AgentProtocolTests {
             return
         }
         #expect(task.id == taskId)
-        #expect(task.messages.count == 2)  // user + agent echo
+        // v0.21 ticket 03 + code-review S3: handle 失败 (LLM fail) → task.status = .failed, 没 agent reply message
+        #expect(task.status == .failed)
+        #expect(task.messages.count == 1)  // 只 user message, 没 agent echo
     }
 
     @Test("task/get 没找到返回 taskNotFound error")
@@ -76,6 +79,7 @@ struct AgentProtocolTests {
         let protocol_ = Self.makeProtocol()
         let taskId1 = UUID()
         let taskId2 = UUID()
+        // v0.21 ticket 03 + code-review S3: handle 失败时 task 仍保存 (status = .failed)
         _ = await protocol_.handle(A2ARequest(method: .messageSend, params: .messageSend(
             taskId: taskId1, message: AgentMessage(role: .user, content: "1"), fromAgent: "user")))
         _ = await protocol_.handle(A2ARequest(method: .messageSend, params: .messageSend(
@@ -85,6 +89,7 @@ struct AgentProtocolTests {
             Issue.record("expected taskList")
             return
         }
+        // task 仍保存 (status = .failed 因为 LLM fail, 但 task 本身仍 record)
         #expect(tasks.count == 2)
     }
 

@@ -187,27 +187,28 @@ public actor AgentProtocol {
         task.status = .running
         task.messages.append(message)
         task.updatedAt = Date()
-        // 真值: 调 MiniMaxVerifier.send 真合成 agent 回复 (不再是 echo 占位)
-        // 没 verifier (老调用) → fallback echo 保留向后兼容
-        if let verifier = verifier {
-            do {
-                let response = try await verifier.chat(message.content)
-                let reply = response.content.first?.text ?? "(empty reply)"
-                let agentMsg = AgentMessage(role: .agent, content: reply)
-                task.messages.append(agentMsg)
-                task.status = .completed
-            } catch {
-                task.status = .failed
-                task.updatedAt = Date()
-                tasks[taskId] = task
-                let err = A2AError(code: -32603, message: "LLM failed: \(error.localizedDescription)")
-                return A2AResponse(id: request.id, error: err)
-            }
-        } else {
-            // 没 verifier (向后兼容) → echo 占位
-            let ack = AgentMessage(role: .agent, content: "received from \(fromAgent): \(message.content.prefix(50))")
-            task.messages.append(ack)
+        // 真值: 调 MiniMaxVerifier 真合成 agent 回复 (v0.21 ticket 03 + code-review S3 spec violation 修法)
+        // 无条件调 verifier, 没 verifier → throw (spec ticket 03 step 1 '删 echo 真值' 无条件)
+        guard let verifier = verifier else {
+            task.status = .failed
+            task.updatedAt = Date()
+            tasks[taskId] = task  // v0.21 ticket 03 + S3: 失败 task 仍保存
+            tasksByAgent[agentCard.name, default: []].append(taskId)
+            return A2AResponse(id: request.id, error: A2AError(code: -32603, message: "verifier not configured"))
+        }
+        do {
+            let response = try await verifier.chat(message.content)
+            let reply = response.content.first?.text ?? "(empty reply)"
+            let agentMsg = AgentMessage(role: .agent, content: reply)
+            task.messages.append(agentMsg)
             task.status = .completed
+        } catch {
+            task.status = .failed
+            task.updatedAt = Date()
+            tasks[taskId] = task  // v0.21 ticket 03 + S3: 失败 task 仍保存
+            tasksByAgent[agentCard.name, default: []].append(taskId)
+            let err = A2AError(code: -32603, message: "LLM failed: \(error.localizedDescription)")
+            return A2AResponse(id: request.id, error: err)
         }
         task.updatedAt = Date()
         tasks[taskId] = task

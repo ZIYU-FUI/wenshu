@@ -9,19 +9,17 @@ import Foundation
 @Suite("WenshuConductor (文枢调度器)")
 struct WenshuConductorTests {
 
-    @Test("handle 派子 agent 到 KanbanStore + 合成回复")
+    @Test("handle 派子 agent 到 KanbanStore + 合成回复 (S4 graceful degradation 不抛)")
     func testHandle() async throws {
         let kanban = try KanbanStore(path: tmpPath("conductor"))
         try await kanban.bootstrap()
         let runtime = AgentRuntime()
-        let verifier = MiniMaxVerifier()  // 没 key, LLM 失败, 验证 fallback
+        let verifier = MiniMaxVerifier()  // 没 key, LLM 失败, 验证 graceful degradation (S4 不抛)
         let conductor = WenshuConductor(runtime: runtime, verifier: verifier, kanbanStore: kanban)
 
-        // handle 应当: 写 conductor 父 task, 调 LLM intent classify (失败 → 0 子 agent), 调 LLM synthesis (失败 → 抛)
-        // 验收 KanbanStore 至少 1 个 task (conductor 父)
-        await #expect(throws: (any Error).self) {
-            _ = try await conductor.handle(userMessage: "test query", sessionId: "default")
-        }
+        // S4 graceful degradation: handle 不抛 (即使 LLM fail), 返 fallback reply (不是 throw)
+        let reply = await conductor.handle(userMessage: "test query", sessionId: "default")
+        #expect(!reply.isEmpty, "handle should always return non-empty reply (S4 graceful degradation)")
         let tasks = try await kanban.list()
         #expect(tasks.count >= 1)
     }

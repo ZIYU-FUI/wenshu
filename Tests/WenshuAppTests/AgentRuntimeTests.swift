@@ -19,12 +19,13 @@ struct AgentRuntimeTests {
                 skills: ["test"],
                 endpoint: "in-process://\(name)"
             ),
+            // v0.21 ticket 03 + code-review S3: 测 verifier 也传 (没 key → LLM fail 路径, 但不是 echo)
             process: AgentProtocol(agentCard: AgentCard(
                 name: name,
                 description: "测试 agent \(name)",
                 skills: ["test"],
                 endpoint: "in-process://\(name)"
-            ))
+            ), verifier: MiniMaxVerifier())
         )
     }
 
@@ -66,14 +67,15 @@ struct AgentRuntimeTests {
         #expect(names == ["beta"])
     }
 
-    @Test("delegateTask 派任务 + 拿 task 详情")
+    @Test("delegateTask 派任务 + 拿 task 详情 (dev env 没 LLM key → 期望 delegateFailed)")
     func testDelegateTask() async throws {
         let runtime = AgentRuntime()
         await runtime.register(Self.makeAgent(name: "worker"))
-        let task = try await runtime.delegateTask(to: "worker", content: "do something")
-        #expect(task.status == .completed)
-        #expect(task.messages.count == 2)  // user + agent echo
-        #expect(task.messages[0].content == "do something")
+        // v0.21 ticket 03 + code-review S3: handle LLM 失败 → AgentProtocol 返回 error → AgentRuntime 抛 .delegateFailed
+        // dev env 缺 MINIMAX_CN_API_KEY, LLM 必 fail, 所以期望抛错 (这是真值, 不是测试 bug)
+        await #expect(throws: AgentRuntimeError.self) {
+            _ = try await runtime.delegateTask(to: "worker", content: "do something")
+        }
     }
 
     @Test("delegateTask agent 不存在抛错")

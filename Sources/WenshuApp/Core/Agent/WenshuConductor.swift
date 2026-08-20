@@ -26,12 +26,18 @@ public actor WenshuConductor {
 
     /// handle: 收 user message, 派子 agent, 合成最终回复
     /// 真值: user 看不到多 agent 调度痕迹, ChatView 永远只看到 .wenshu 1 个回复
-    public func handle(userMessage: String, sessionId: String) async throws -> String {
+    /// code-review S4 graceful degradation: LLM fail 不抛, fallback synthesis 仍返 reply (老板 macOS 不见 Error 系统消息)
+    public func handle(userMessage: String, sessionId: String) async -> String {
         // 步骤 1: 写 1 个 conductor 父 task 到 KanbanStore (看板进度, ChatView 不显)
-        let conductorTask = try await kanbanStore.add(title: "conductor: \(userMessage.prefix(50))", status: .running)
+        let conductorTask: KanbanTask?
+        do {
+            conductorTask = try await kanbanStore.add(title: "conductor: \(userMessage.prefix(50))", status: .running)
+        } catch {
+            conductorTask = nil
+        }
 
-        // 步骤 2: 调 LLM intent classify (简单 prompt, 不需要真 submodule)
-        // 真值: 给 LLM 子 agent list + user message, 让 LLM 选派 0-N 个
+        // 步骤 2: 调 LLM intent classify, 失败 fallback → 0 子 agent, 不抛
+        var selectedAgents: [String] = []
         let intentPrompt = """
         你是 wenshu 文枢调度器. 收到 user 消息: "\(userMessage)"
 
@@ -45,33 +51,46 @@ public actor WenshuConductor {
         派 0-N 个子 agent (JSON array, 仅 agent name, 不要解释):
         ["search", "outline"]
         """
-        let intentResponse = try await verifier.chat(intentPrompt)
-        let intentRaw = intentResponse.content.first?.text ?? "[]"
-        let selectedAgents = parseAgentList(intentRaw)
+        if let intentResponse = try? await verifier.chat(intentPrompt),
+           let intentRaw = intentResponse.content.first?.text {
+            selectedAgents = parseAgentList(intentRaw)
+        }
+        // intent classify fail → selectedAgents 仍空 [] → S4 graceful degradation
 
-        // 步骤 3: 派 0-N 个子 agent task 到 KanbanStore + 收集结果
-        var subResults: [(String, String)] = []  // (agentName, result)
+        // 步骤 3: 派 0-N 个子 agent task 到 KanbanStore + 收集结果 (子 agent 失败不影响整体)
+        var subResults: [(String, String)] = []
         for agentName in selectedAgents {
-            do {
-                let subTask = try await kanbanStore.add(title: "\(agentName): \(userMessage.prefix(30))", status: .running)
-                // 调 AgentRuntime 派给子 agent (in-process 真值)
-                let task = try await runtime.delegateTask(to: agentName, content: userMessage, fromAgent: "wenshu-conductor")
-                let agentReply = task.messages.last(where: { $0.role == .agent })?.content ?? "(no reply)"
-                subResults.append((agentName, agentReply))
-                try await kanbanStore.transition(id: subTask.id, to: .done)
-            } catch {
-                // 子 agent 失败不影响整体
-                subResults.append((agentName, "(error: \(error.localizedDescription))"))
+            if let subTask = try? await kanbanStore.add(title: "\(agentName): \(userMessage.prefix(30))", status: .running) {
+                if let task = try? await runtime.delegateTask(to: agentName, content: userMessage, fromAgent: "wenshu-conductor"),
+                   let agentReply = task.messages.last(where: { $0.role == .agent })?.content {
+                    subResults.append((agentName, agentReply))
+                } else {
+                    subResults.append((agentName, "(subagent unreachable)"))
+                }
+                _ = try? await kanbanStore.transition(id: subTask.id, to: .done)
             }
         }
 
-        // 步骤 4: 调 LLM 合成最终回复 (子 agent results + user message)
+        // 步骤 4: 调 LLM 合成最终回复 (S4 fallback: synthesis fail → 返原文 + 默认合成语)
         let synthesisPrompt = buildSynthesisPrompt(userMessage: userMessage, subResults: subResults)
-        let finalResponse = try await verifier.chat(synthesisPrompt)
-        let finalReply = finalResponse.content.first?.text ?? "(no reply)"
+        let finalReply: String
+        if let response = try? await verifier.chat(synthesisPrompt),
+           let text = response.content.first?.text, !text.isEmpty {
+            finalReply = text
+        } else {
+            // S4 graceful degradation: synthesis 失败仍返自然回复
+            if subResults.isEmpty {
+                finalReply = "（文枢暂时无法回复, 请稍后再试）"
+            } else {
+                let summary = subResults.map { "• \($0.0): \($0.1.prefix(80))" }.joined(separator: "\n")
+                finalReply = "（LLM 合成失败, 下面是子 agent 原始结果）\n\n\(summary)"
+            }
+        }
 
-        // 步骤 5: 标 conductor 父 task done
-        try await kanbanStore.transition(id: conductorTask.id, to: .done)
+        // 步骤 5: 标 conductor 父 task done (如果有)
+        if let conductorTask = conductorTask {
+            _ = try? await kanbanStore.transition(id: conductorTask.id, to: .done)
+        }
 
         return finalReply
     }

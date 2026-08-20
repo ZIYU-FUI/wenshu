@@ -162,7 +162,7 @@ public actor ChatSessionStore {
         }
     }
 
-    /// oldestKeepTimestamp: 留最新 lastN 条 messages, 返回 cutoff timestamp (比 cutoff 早的全删). 返回 nil 表示不需要触发 summary.
+    /// summaryCutoffTimestamp: 留最新 lastN 条 messages, 返回 cutoff timestamp (比 cutoff 早的全删). 返回 nil 表示不需要触发 summary.
     public func summaryCutoffTimestamp(sessionId: String, keepLastN: Int) throws -> Date? {
         let count = try count(sessionId: sessionId)
         guard count > keepLastN else { return nil }
@@ -180,10 +180,70 @@ public actor ChatSessionStore {
         return Date(timeIntervalSince1970: sqlite3_column_double(stmt, 0))
     }
 
+    /// messagesBeforeCutoff: 返回 cutoff 之前的 messages (供 LLM summary 生成用)
+    public func messagesBeforeCutoff(sessionId: String, cutoff: Date) throws -> [StoredChatMessage] {
+        let sql = "SELECT id, source, content, timestamp FROM chat_messages WHERE session_id = ? AND timestamp < ? ORDER BY timestamp ASC;"
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(dbPtr.db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            throw ChatSessionStoreError.prepareFailed(message: ChatSessionStore.sqliteErmsg(dbPtr.db))
+        }
+        defer { sqlite3_finalize(stmt) }
+        sqlite3_bind_text(stmt, 1, sessionId, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_double(stmt, 2, cutoff.timeIntervalSince1970)
+        var results: [StoredChatMessage] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            let id = ChatSessionStore.textColumn(stmt, 0) ?? ""
+            let source = ChatSessionStore.textColumn(stmt, 1) ?? "system"
+            let content = ChatSessionStore.textColumn(stmt, 2) ?? ""
+            let timestamp = Date(timeIntervalSince1970: sqlite3_column_double(stmt, 3))
+            results.append(StoredChatMessage(id: id, source: source, content: content, timestamp: timestamp))
+        }
+        return results
+    }
+
     private func exec(_ sql: String) throws {
         if sqlite3_exec(dbPtr.db, sql, nil, nil, nil) != SQLITE_OK {
             throw ChatSessionStoreError.execFailed(message: ChatSessionStore.sqliteErmsg(dbPtr.db))
         }
+    }
+
+    /// summarizeIfNeeded: 当 count > threshold 时, 拿前 (count - lastN) 条 messages → 调 LLM 生成 summary → saveSummary → deleteOldMessages.
+    /// 老板 2026-08-21 拍 '看似唯一会话能延续继续聊, 上下文不能爆'. spec ticket 05 真值.
+    public func summarizeIfNeeded(
+        sessionId: String,
+        lastN: Int = 10,
+        threshold: Int = 20,
+        verifier: MiniMaxVerifier
+    ) async throws -> Bool {
+        guard let cutoff = try summaryCutoffTimestamp(sessionId: sessionId, keepLastN: lastN) else {
+            return false  // 不需要 trigger summary
+        }
+        guard cutoff != Date(timeIntervalSince1970: 0) else {
+            // cutoff 早于 epoch → count > threshold 但 timestamp 异常
+            return false
+        }
+        let oldMessages = try messagesBeforeCutoff(sessionId: sessionId, cutoff: cutoff)
+        guard !oldMessages.isEmpty else { return false }
+
+        // 拼装 summary prompt
+        let transcript = oldMessages.prefix(20).map { msg -> String in
+            "[\(msg.source)] \(msg.content.prefix(100))"
+        }.joined(separator: "\n")
+        let summaryPrompt = """
+        请用 200 字内总结以下聊天记录的关键信息 (人名 / 偏好 / 上下文 / 决定), 用中文:
+
+        \(transcript)
+        """
+        // 调 LLM 生成 summary (spec ticket 05 step 1 真值)
+        let response = try await verifier.chat(summaryPrompt)
+        let summary = response.content.first?.text ?? ""
+
+        // 写 summary + 删老原文 (顺序不能反, 否则上下文丢失)
+        if let firstOldId = oldMessages.first?.id {
+            try saveSummary(summary, sessionId: sessionId, lastMessageId: firstOldId)
+        }
+        try deleteOldMessages(sessionId: sessionId, beforeTimestamp: cutoff)
+        return true
     }
 
     private static func textColumn(_ stmt: OpaquePointer?, _ idx: Int32) -> String? {
