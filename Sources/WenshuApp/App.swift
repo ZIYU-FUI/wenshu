@@ -422,8 +422,10 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // 同时删 SettingsEnvironmentCapturer (Q15 翻车 #11 dead code) + VibeMeter Mirror reflection NSApp.openSettings extension (Q15 翻车 #12 dead code)
         // Settings { } Scene 留着 (ticket 04 commit 984ea556b 已装 模型 Picker, 老板 8/21 拍 "配完省略显示")
         NSApp.mainMenu = installMainMenu()
-        // v0.21 ticket 03: NSAlert 提示设 LLM key (Keychain 没 key + env 没 key 才弹)
-        promptForLLMKeyIfNeeded()
+        // v0.21 ticket 03: 延迟 0.5s 弹 LLM key sheet (SwiftUI WindowGroup 创建 main NSWindow 在 applicationDidFinishLaunching 之后)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            promptForLLMKeyIfNeeded()
+        }
         // v0.20 ticket 01: 启动时注册 wenshu 主 agent (左下 zone chat UI 调用)
         let card = AgentCard(
             name: "wenshu",
