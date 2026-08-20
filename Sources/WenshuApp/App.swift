@@ -758,11 +758,13 @@ struct LibraryOutlineViewContent: View {
     }
 }
 
-// NSWindow sheet 提示设 LLM key (Keychain + env 都没 key 才弹)
-// v0.21 ticket 03 fix #2 (老板 8/21 22:15 反馈 cmd+V 不响应, Stack Overflow 74831978 真值真值):
-// NSAlert accessoryView 内的 TextField 不能接收 first responder (= NSAlert 系统 first responder chain 不传, cmd+V 被吞, 仅右键菜单 work)
-// 修法: 自创建 NSWindow sheet (跟 commit 3f4faf68f 设置页 sheet 范式一致) + NSHostingController 装 SwiftUI KeyInputSheet
-// SwiftUI SecureField 在 NSWindow sheet 内 first responder chain 正常 work, cmd+V 一定 work (Apple SwiftUI 真值)
+// NSWindow modal sheet 提示设 LLM key (Keychain + env 都没 key 才弹)
+// v0.21 ticket 03 fix #3 (老板 8/21 22:25 反馈 cmd+V 不响应, 老板参考 Pages 真值真值):
+// Apple 真值范式: NSWindow.beginSheet(_:completionHandler:) 是真值 modal sheet (= Pages 设置窗模式)
+// - 浮在 main window 上 (boss 说'浮在原 windows')
+// - 不阻塞 main window (boss 说'不会把 pages 窗口挤走')
+// - first responder chain 正确 (boss cmd+V work)
+// 修法: 撤回 sheetWindow.makeKeyAndOrderFront(nil) standalone window, 改用 parentWindow.beginSheet 真值 modal sheet
 @MainActor
 private func promptForLLMKeyIfNeeded() {
     if LLMKeychain.loadKeySync() != nil { return }
@@ -770,7 +772,7 @@ private func promptForLLMKeyIfNeeded() {
 
     var enteredKey: String = ""
 
-    // NSWindow sheet (Apple 标准 modal sheet 范式, 浮在原 windows)
+    // 真值 modal sheet (Pages 设置窗模式): 浮在 main window 上, 不阻塞 main window
     let sheetWindow = NSWindow(
         contentRect: NSRect(x: 0, y: 0, width: 480, height: 240),
         styleMask: [.titled, .closable],
@@ -780,7 +782,6 @@ private func promptForLLMKeyIfNeeded() {
     sheetWindow.title = "文枢 设置"
     sheetWindow.identifier = NSUserInterfaceItemIdentifier("wenshu.llmkey.sheet")
     sheetWindow.isReleasedWhenClosed = false
-    sheetWindow.center()
 
     // SwiftUI view 装 sheet content (Apple 真值)
     let keyBinding = Binding<String>(
@@ -795,23 +796,32 @@ private func promptForLLMKeyIfNeeded() {
             Task { @MainActor in
                 do {
                     try await LLMKeychain.shared.saveKey(key)
-                    sheetWindow.close()
+                    sheetWindow.endSheet(sheetWindow)  // 真值 modal sheet 关闭 API
                 } catch {
                     NSLog("[wenshu.keychain] save failed: \(error)")
                 }
             }
         },
         onLater: {
-            sheetWindow.close()
+            sheetWindow.endSheet(sheetWindow)
         }
     )
     sheetWindow.contentView = NSHostingView(rootView: rootView)
 
-    // 关键: makeKeyAndOrderFront 让 sheet first responder 正常 (= SwiftUI SecureField cmd+V 响应)
-    sheetWindow.makeKeyAndOrderFront(nil)
+    // 找 parent window (LayoutShellView 的 NSWindow), 真值 beginSheet modal
+    guard let parentWindow = NSApp.windows.first(where: { $0.contentViewController != nil || $0.contentView != nil }) else {
+        // 没找到 parent window, fallback standalone (保底)
+        sheetWindow.center()
+        sheetWindow.makeKeyAndOrderFront(nil)
+        return
+    }
+    parentWindow.beginSheet(sheetWindow) { _ in
+        // modal sheet 关闭后 cleanup
+        sheetWindow.contentView = nil
+    }
 }
 
-/// Key 输入 sheet: SwiftUI SecureField (Apple macOS 14+ 真值, cmd+V 一定 work)
+/// Key 输入 sheet: SwiftUI SecureField (Apple macOS 14+ 真值, cmd+V work)
 private struct KeyInputSheet: View {
     @Binding var key: String
     let onSave: () -> Void
