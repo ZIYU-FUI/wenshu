@@ -197,12 +197,10 @@ struct WenshuApp: App {
     }
 }
 
-/// v0.21 ticket 01 (重做 #5): SettingView 复用 (Settings { } Scene + NSHostingView 装 NSWindow 设置弹窗 共享同一 view)
-/// v0.21 ticket 02: 重写 Apple macOS 27 标准范式 (老板 8/21 20:50 拍 "参考苹果官方软件的设置页, 用 macOS 27 的组件")
-/// Apple 官方范式真值: TabView + Tab API (SwiftUI 14+) toolbar 自动显示 tab, Form + Picker + Toggle (Apple HIG macOS)
+/// 设置页: TabView + 3 个分组 (通用 / 模型 / 快捷键), macOS 27 标准组件
 struct SettingView: View {
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
-    @AppStorage("wenshu.llm.model") private var llmModel: String = MiniMaxModel.m3.rawValue  // v0.21 ticket 04: 配完省略显示
+    @AppStorage("wenshu.llm.model") private var llmModel: String = MiniMaxModel.m3.rawValue  // v0.21 ticket 04
     @State private var selectedTab: SettingsTab = .general
 
     enum SettingsTab: String, CaseIterable, Identifiable {
@@ -214,17 +212,17 @@ struct SettingView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            generalTab
-                .tabItem { Text(SettingsTab.general.rawValue) }
-                .tag(SettingsTab.general)
-            modelTab
-                .tabItem { Text(SettingsTab.model.rawValue) }
-                .tag(SettingsTab.model)
-            shortcutsTab
-                .tabItem { Text(SettingsTab.shortcuts.rawValue) }
-                .tag(SettingsTab.shortcuts)
+            Tab(SettingsTab.general.rawValue, systemImage: "gear", value: SettingsTab.general) {
+                generalTab
+            }
+            Tab(SettingsTab.model.rawValue, systemImage: "cpu", value: SettingsTab.model) {
+                modelTab
+            }
+            Tab(SettingsTab.shortcuts.rawValue, systemImage: "command", value: SettingsTab.shortcuts) {
+                shortcutsTab
+            }
         }
-        .frame(width: 480, height: 360)
+        .frame(width: 520, height: 420)
     }
 
     private var generalTab: some View {
@@ -241,7 +239,6 @@ struct SettingView: View {
 
     private var modelTab: some View {
         Form {
-            // v0.21 ticket 04: 配完省略显示 (老板原话 "不写当前值 label")
             Picker("模型", selection: $llmModel) {
                 ForEach(MiniMaxModel.allCases, id: \.self) { model in
                     Text(model.label).tag(model.rawValue)
@@ -254,7 +251,6 @@ struct SettingView: View {
 
     private var shortcutsTab: some View {
         Form {
-            // 占位 (后续添加快捷键真值)
             Text("快捷键配置 (待补)")
                 .foregroundStyle(.secondary)
         }
