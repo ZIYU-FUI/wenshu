@@ -174,7 +174,9 @@ struct WenshuApp: App {
 
     var body: some Scene {
         WindowGroup("文枢") {
-            LayoutShellView()
+            // v0.21 ticket 01 (重做 #7): 用 .onAppear 注入 @Environment(\.openSettings) OpenSettingsAction 到 AppDelegate 静态字段
+            // 真因 (Q28 Stack Overflow 65355696 + orchetect/SettingsAccess 真值): SwiftUI 14+ OpenSettingsAction 唯一 path = view tree 内 @Environment
+            SettingsEnvironmentCapturer()
                 .environment(library)
                 .preferredColorScheme(UserDefaults.standard.string(forKey: "appearanceMode").flatMap(AppearanceMode.init(rawValue:))?.colorScheme)
         }
@@ -218,8 +220,22 @@ struct SettingView: View {
     }
 }
 
+/// v0.21 ticket 01 (重做 #7): 透明 helper view — 在 view tree 内捕获 @Environment(\.openSettings) OpenSettingsAction,
+/// 注入到 WenshuAppDelegate.openSettings 静态字段, NSMenu "设置…" action 调 closure 弹 SwiftUI Settings { { } Scene
+/// (Stack Overflow 65355696 + orchetect/SettingsAccess 真值)
+private struct SettingsEnvironmentCapturer: View {
+    @Environment(\.openSettings) private var openSettings
+    var body: some View {
+        LayoutShellView()
+            .onAppear { WenshuAppDelegate.openSettings = openSettings }
+    }
+}
+
 /// AppDelegate: WenshuCore runtime + macOS app init
 final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
+    // v0.21 ticket 01 (重做 #7): 持 SwiftUI 14+ OpenSettingsAction (LayoutShellView .onAppear 注入, OpenSettingsAction.callAsFunction() 触发)
+    nonisolated(unsafe) static var openSettings: OpenSettingsAction?
+
     static let sharedRuntime = AgentRuntime()
     static let sharedVerifier = MiniMaxVerifier()
     static let sharedChatStore: ChatSessionStore? = {
@@ -238,12 +254,12 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         NotificationCenter.default.post(name: .wenshuResetLayout, object: nil)
     }
 
-    // v0.21 ticket 01 (重做 #5): "设置…" NSMenu action — 走 NSApp.sendAction dispatch 'showSettingsWindow:' selector
-    // 真因 (Q28 Stack Overflow 76359975 真值): Apple macOS 14+ SwiftUI Settings { } Scene 注册 first responder chain 接 'showSettingsWindow:' selector
-    // NSApp.sendAction dispatch first responder chain → SwiftUI Settings 真值弹窗 (sheet 模式, 不抢焦点, 不像独立应用)
-    // (老板 8/21 19:50 反馈: NSWindow 自创建 '抢焦点, 像一个应用', 改回 NSApp.sendAction 走 SwiftUI 真值)
+    // v0.21 ticket 01 (重做 #7): "设置…" NSMenu action — 走 SwiftUI 14+ OpenSettingsAction 真值 (Stack Overflow 65355696 真值)
+    // 真因 (Q28 Stack Overflow 76359975 + orchetect/SettingsAccess 真值): Apple macOS 14+ 不暴露 showSettingsWindow: API
+    // SwiftUI 14+ 唯一 path = @Environment(\.openSettings) OpenSettingsAction. 用 AppDelegate.openSettings 持有 closure,
+    // WenshuApp body LayoutShellView .onAppear 注入 closure (LayoutShellView 是 SwiftUI view tree 内), NSMenuItem action 调 closure
     @MainActor @objc func showSettingsWindow(_ sender: Any?) {
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: sender)
+        WenshuAppDelegate.openSettings?()
     }
 
     /// v0.21 ticket 01 (重做): installMainMenu 装 6 项中文 (v0.02.0 spec 老板 8/10 01:43 拍: 文枢/文件/编辑/显示/窗口/帮助)
