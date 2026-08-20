@@ -149,10 +149,11 @@
   - 透明模式 LOGO transparent 渲染
   - 色调模式 LOGO accent color 真值
 
-## 状态 (8/21 16:30)
+## 状态 (8/21 16:35)
 
 - ✅ ticket 04 done (commit 0aabd989e): Logo Composer 替换 icns 3 份, ticket 01 + 02 合并过
-- ⏳ ticket 03 待 grill 第 4 轮真因 (Q15 SettingsScene 不存在 翻车链已发现, 不能猜 API)
+- ✅ ticket 05 done (commit e474965): Info.plist 改中文 + Icon Composer 路径, 让 LOGO 真值显示 + 菜单栏自动跟 APP 名
+- ⏳ ticket 03 (菜单栏 "wenshu" 改 "文枢") 待 grill 第 4 轮真因 (Q15 SettingsScene 不存在 翻车链已发现, 不能猜 API). ticket 05 改 CFBundleDisplayName="文枢" 可能让菜单栏自动跟, 老板 macOS 真验决定 ticket 03 要不要跑.
 
 ## 不动 (Q20 硬约束)
 
