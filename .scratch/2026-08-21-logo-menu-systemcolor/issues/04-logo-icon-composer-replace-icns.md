@@ -15,7 +15,7 @@ macOS 27 标准范式: App Icon 用 `.icon` 文件 (= Icon Composer) 1 份真值
 
 **Blocked by:** 老板改完 `/Users/anbaiqiang/Desktop/LOGO.icon/` (进行中).
 
-**Status:** draft (等老板改完)
+**Status:** ✅ done — commit 0aabd989e. 老板 LOGO.icon 用 macOS 27 Icon Composer 1 份真值源, AppKit 自动派生 dark/light/tinted + platform mask (squares shared / circles watchOS), ticket 01 + 02 一起过.
 
 ## 修法真值 (4 步)
 

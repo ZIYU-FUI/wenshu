@@ -140,12 +140,19 @@
 
 ## 验收标准 (老板 8/19 evening 拍 streak 模式)
 
-- 每个 ticket: `swift build` exit 0 + `swift test` exit 0 + iconutil 真验证 + Apple HIG 标准
-- 3 ticket 全 commit 后: 双轴 code-review 跑
+- 每个 ticket: `swift build` exit 0 + `swift test` exit 0 + iconutil/Icon Composer 真验证 + Apple HIG 标准
+- ticket 全 commit 后: 双轴 code-review 跑
 - 老板 macOS 真验:
-  - Dock LOGO 圆角 (不论 dark/light)
-  - 系统切外观, Dock LOGO 自动跟
-  - 菜单栏全中文 (无英文 File / Edit / View / Window / Help)
+  - Dock LOGO 圆角 Apple HIG 标准 (不论 dark/light/tinted/transparent, ticket 04 Icon Composer 自动派生)
+  - 系统切外观, Dock LOGO 自动跟 (dark variant 浅字 fanbai 修了看不见问题)
+  - 菜单栏全中文 (无英文 File / Edit / View / Window / Help) — **ticket 03 待 grill 第 4 轮真因**
+  - 透明模式 LOGO transparent 渲染
+  - 色调模式 LOGO accent color 真值
+
+## 状态 (8/21 16:30)
+
+- ✅ ticket 04 done (commit 0aabd989e): Logo Composer 替换 icns 3 份, ticket 01 + 02 合并过
+- ⏳ ticket 03 待 grill 第 4 轮真因 (Q15 SettingsScene 不存在 翻车链已发现, 不能猜 API)
 
 ## 不动 (Q20 硬约束)
 

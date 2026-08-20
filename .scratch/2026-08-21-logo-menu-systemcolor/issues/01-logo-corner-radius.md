@@ -7,7 +7,7 @@
 
 **Blocked by:** 老板改 Sketch master (进行中).
 
-**Status:** draft (等老板改完)
+**Status:** ✅ done — 合并到 ticket 04 (commit 0aabd989e). 老板 LOGO.icon 用 macOS 27 Icon Composer 范式, 1 份真值自动派生圆角 + dark/light/tinted, ticket 01 不需要单独跑.
 
 ## 修法真值 (4 步)
 

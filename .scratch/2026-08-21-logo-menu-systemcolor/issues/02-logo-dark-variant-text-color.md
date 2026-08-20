@@ -5,7 +5,7 @@
 
 **Blocked by:** 老板改 Sketch master (进行中).
 
-**Status:** draft (跟 ticket 01 合并到 ticket 04)
+**Status:** ✅ done — 合并到 ticket 04 (commit 0aabd989e). 老板 LOGO.icon Assets/wenshu-original-fanbai.png = dark variant 浅字 (修了 deep 字看不见), ticket 02 不需要单独跑.
 
 ## 修法真值 (2 步)
 
