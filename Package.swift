@@ -6,9 +6,6 @@
 //
 // Architecture: Swift/SwiftUI single-process macOS desktop app (= Apple ecosystem exclusive, v1 only macOS).
 // v0.00.0 bootstrap = app entry point that opens a window; features follow via /to-tickets.
-//
-// Info.plist embedded via __TEXT,__info_plist linker section so AppKit recognizes the bare
-// SwiftPM binary as a Cocoa application bundle (= Dock icon + Force Quit registration).
 
 import PackageDescription
 
@@ -28,19 +25,13 @@ let package = Package(
             name: "WenshuApp",
             path: "Sources/WenshuApp",
             exclude: [
-                // Info.plist is consumed by the linker flag below, not by
-                // SwiftPM's resource bundling. Keep on disk so linker resolves.
-                "Resources/Info.plist"
-            ],
-            linkerSettings: [
-                // Embed Info.plist into __TEXT,__info_plist so AppKit recognizes the
-                // SwiftPM binary as a Cocoa app (= Dock icon + Force Quit registration).
-                .unsafeFlags([
-                    "-Xlinker", "-sectcreate",
-                    "-Xlinker", "__TEXT",
-                    "-Xlinker", "__info_plist",
-                    "-Xlinker", "Sources/WenshuApp/Resources/Info.plist"
-                ])
+                // Info.plist + AppIcon.icns are bundled by Scripts/build-app.sh into
+                // Wenshu.app/Contents/Info.plist + Contents/Resources/AppIcon.icns
+                // (= standard Cocoa .app bundle, AppKit reads CFBundleIconFile from there).
+                // Bare `swift run` still works for dev: AppKit falls back to its
+                // process-tile placeholder when no .app bundle exists.
+                "Resources/Info.plist",
+                "Resources/AppIcon.icns"
             ]
         ),
         // v0.02.0: Swift Testing test target. v0.01.0 landed 7-zone scaffold;

@@ -1,6 +1,9 @@
 # SwiftPM build output
 .build/
 
+# build-app.sh generated .app bundle (regenerate via ./Scripts/build-app.sh)
+build/
+
 # Xcode project artefacts (wenshu.xcodeproj will arrive in a later WO)
 *.xcodeproj/
 *.xcworkspace/
@@ -48,6 +51,9 @@ Package.resolved
 
 # Swift package download cache (alternative layout)
 .swiftpm/
+
+# boss 临时贴图 (e.g. pasted-1787188375157.png)
+pasted-*.png
 
 # Test scratch
 *.xcresult/

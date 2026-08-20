@@ -231,17 +231,6 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     static let sharedVerifier = MiniMaxVerifier()
     func applicationWillFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
-        if NSApp.applicationIconImage == nil {
-            let iconPath = "/Users/anbaiqiang/Desktop/LOGO/wenshu-icon.icns"
-            if let icon = NSImage(contentsOfFile: iconPath) {
-                icon.size = NSSize(width: 128, height: 128)
-                NSApp.applicationIconImage = icon
-            } else {
-                let fallback = NSImage(systemSymbolName: "book.closed", accessibilityDescription: "wenshu") ?? NSImage()
-                fallback.size = NSSize(width: 128, height: 128)
-                NSApp.applicationIconImage = fallback
-            }
-        }
         let mainMenu = NSMenu()
         let appMenuItem = NSMenuItem()
         let appMenu = NSMenu(title: "文枢")
