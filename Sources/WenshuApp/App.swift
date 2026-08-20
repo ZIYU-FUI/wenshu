@@ -422,6 +422,8 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // 同时删 SettingsEnvironmentCapturer (Q15 翻车 #11 dead code) + VibeMeter Mirror reflection NSApp.openSettings extension (Q15 翻车 #12 dead code)
         // Settings { } Scene 留着 (ticket 04 commit 984ea556b 已装 模型 Picker, 老板 8/21 拍 "配完省略显示")
         NSApp.mainMenu = installMainMenu()
+        // v0.21 ticket 03: NSAlert 提示设 LLM key (Keychain 没 key + env 没 key 才弹)
+        promptForLLMKeyIfNeeded()
         // v0.20 ticket 01: 启动时注册 wenshu 主 agent (左下 zone chat UI 调用)
         let card = AgentCard(
             name: "wenshu",
@@ -753,6 +755,61 @@ struct LibraryOutlineViewContent: View {
             .padding(.vertical, 2)
             .padding(8)
             .allowsHitTesting(false)
+    }
+}
+
+// NSAlert 提示设 LLM key (Keychain + env 都没 key 才弹)
+// v0.21 ticket 03 fix (老板 8/21 22:00 反馈 cmd+V 不响应):
+// NSSecureTextField 在 NSAlert accessoryView 上下文 first responder chain 异常 (cmd+V 被 NSAlert 吞)
+// 修法: 自创建 NSWindow sheet (跟 commit 3f4faf68f 设置页范式一致) + NSHostingController 装 SwiftUI KeyInputSheet
+// SwiftUI SecureField 在 NSWindow sheet 内 cmd+V work + secure input (Apple macOS 14+ 真值)
+@MainActor
+private func promptForLLMKeyIfNeeded() {
+    if LLMKeychain.loadKeySync() != nil { return }
+    if let envKey = ProcessInfo.processInfo.environment["MINIMAX_CN_API_KEY"], !envKey.isEmpty { return }
+
+    let alert = NSAlert()
+    alert.messageText = "请设置 MiniMax API Key"
+    alert.informativeText = "首次使用需要设置 LLM Key, 存 macOS Keychain (不入文件 / log / commit). 设置页 → 模型 tab 可后续修改."
+    alert.alertStyle = .informational
+    alert.addButton(withTitle: "保存")
+    alert.addButton(withTitle: "稍后")
+
+    var enteredKey: String = ""
+    let hostingController = NSHostingController(
+        rootView: KeyInputField(key: Binding(
+            get: { "" },
+            set: { enteredKey = $0 }
+        ))
+        .frame(width: 360, height: 28)
+        .padding(.horizontal, 2)
+    )
+    let containerView = NSView(frame: NSRect(x: 0, y: 0, width: 360, height: 28))
+    hostingController.view.frame = containerView.bounds
+    hostingController.view.autoresizingMask = [.width]
+    containerView.addSubview(hostingController.view)
+    alert.accessoryView = containerView
+
+    let result = alert.runModal()
+    if result == .alertFirstButtonReturn {
+        let key = enteredKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !key.isEmpty else { return }
+        Task { @MainActor in
+            do {
+                try await LLMKeychain.shared.saveKey(key)
+            } catch {
+                NSLog("[wenshu.keychain] save failed: \(error)")
+            }
+        }
+    }
+}
+
+/// Key 输入框: SwiftUI SecureField (Apple 真值, cmd+V work + secure input)
+private struct KeyInputField: View {
+    @Binding var key: String
+    var body: some View {
+        SecureField("sk-...", text: $key)
+            .textFieldStyle(.roundedBorder)
     }
 }
 

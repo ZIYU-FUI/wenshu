@@ -65,16 +65,21 @@ public actor MiniMaxVerifier {
     private let model: String
 
     public init(baseURL: String? = nil, apiKey: String? = nil, model: MiniMaxModel = .m3) {
-        // 真值: 从 env 读 (hermes .env 路径), 测试可 override
+        // 优先 Keychain (CLAUDE.md L42 真值范式), fallback env (向后兼容, dev env 仍 work)
         if let baseURL = baseURL, let apiKey = apiKey {
             self.baseURL = baseURL
             self.apiKey = apiKey
         } else {
-            // 尝试读 env (hermes .env 路径, .zshrc 等)
             let envBaseURL = ProcessInfo.processInfo.environment["MINIMAX_CN_BASE_URL"] ?? "https://api.minimaxi.com/anthropic"
-            let envKey = ProcessInfo.processInfo.environment["MINIMAX_CN_API_KEY"] ?? ""
+            var resolvedKey = ProcessInfo.processInfo.environment["MINIMAX_CN_API_KEY"] ?? ""
+            if resolvedKey.isEmpty {
+                // v0.21 ticket 03: Keychain 读真值
+                if let stored = LLMKeychain.loadKeySync(), !stored.isEmpty {
+                    resolvedKey = stored
+                }
+            }
             self.baseURL = envBaseURL
-            self.apiKey = envKey
+            self.apiKey = resolvedKey
         }
         self.model = model.rawValue
     }
