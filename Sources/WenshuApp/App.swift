@@ -238,32 +238,12 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         NotificationCenter.default.post(name: .wenshuResetLayout, object: nil)
     }
 
-    // v0.21 ticket 01 (重做 #4): "设置…" NSMenu action — 自己创建 NSWindow + NSHostingController 装 SwiftUI Settings { } Scene view
-    // 真因 (Q28 Stack Overflow 76359975 + orchetect/SettingsAccess 真值): Apple macOS 13+ 完全 removed NSApp.sendAction("showSettingsWindow:") 真值
-    // SwiftUI 14+ 唯一 path = SettingsLink view + @Environment(\.openSettings) action. 但 @Environment 只能在 SwiftUI view tree 内访问.
-    // 折中真修法: 自己创建 NSWindow 装 SwiftUI Settings Scene view (NSHostingController), Settings { } Scene view 已在 App body 定义
-    // 真值 (Q28 Apple 真值): cmd+, 由 SwiftUI 自动响应 (Settings { } Scene 自动注册 first responder chain), NSMenu "设置…" 走我们自己的 handler
-    @MainActor @objc func openSettingsWindow(_ sender: Any?) {
-        // 找已存在的 Settings window, 否则创建
-        if let existing = NSApp.windows.first(where: { $0.identifier?.rawValue == "wenshu.settings" }) {
-            existing.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-            return
-        }
-        let settingsWindow = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 420, height: 220),
-            styleMask: [.titled, .closable, .miniaturizable],
-            backing: .buffered,
-            defer: false
-        )
-        settingsWindow.title = "文枢 设置"
-        settingsWindow.identifier = NSUserInterfaceItemIdentifier("wenshu.settings")
-        settingsWindow.isReleasedWhenClosed = false
-        settingsWindow.center()
-        // v0.21 ticket 01 (重做 #5): NSHostingView 装 SettingView (含外观 Picker + 模型 Picker, 老板 8/21 拍 '配完省略显示')
-        settingsWindow.contentView = NSHostingView(rootView: SettingView())
-        settingsWindow.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+    // v0.21 ticket 01 (重做 #5): "设置…" NSMenu action — 走 NSApp.sendAction dispatch 'showSettingsWindow:' selector
+    // 真因 (Q28 Stack Overflow 76359975 真值): Apple macOS 14+ SwiftUI Settings { } Scene 注册 first responder chain 接 'showSettingsWindow:' selector
+    // NSApp.sendAction dispatch first responder chain → SwiftUI Settings 真值弹窗 (sheet 模式, 不抢焦点, 不像独立应用)
+    // (老板 8/21 19:50 反馈: NSWindow 自创建 '抢焦点, 像一个应用', 改回 NSApp.sendAction 走 SwiftUI 真值)
+    @MainActor @objc func showSettingsWindow(_ sender: Any?) {
+        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: sender)
     }
 
     /// v0.21 ticket 01 (重做): installMainMenu 装 6 项中文 (v0.02.0 spec 老板 8/10 01:43 拍: 文枢/文件/编辑/显示/窗口/帮助)
@@ -273,14 +253,14 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     @MainActor private func installMainMenu() -> NSMenu {
         let mainMenu = NSMenu()
 
-        // 文枢 (App menu) — v0.21 ticket 01 (重做 #4): 加 '设置…' item, action 接 openSettingsWindow 自定义 @objc handler
-        // (Q15 翻车链 #7-#8 总结: SwiftUI .commands { CommandGroup(.appSettings) { SettingsLink() } } 在 macOS 27 不接管我们的 NSMenu)
-        // (Q28 Stack Overflow 76359975 真值: macOS 13+ 完全 removed NSApp.sendAction('showSettingsWindow:'), SwiftUI 唯一 path = SettingsLink view + 自己 NSWindow 装)
+        // 文枢 (App menu) — v0.21 ticket 01 (重做 #5): '设置…' action 接 showSettingsWindow NSApp.sendAction dispatch
+        // (Q15 翻车链 #7-#10 总结: macOS 27 SwiftUI Settings { } Scene first responder chain 接收 'showSettingsWindow:' selector)
+        // (老板 8/21 19:50 反馈: NSWindow 自创建 '抢焦点, 像一个应用', 改回 NSApp.sendAction dispatch SwiftUI Settings 真值 sheet 模式)
         let appMenuItem = NSMenuItem()
         let appMenu = NSMenu(title: "文枢")
         appMenu.addItem(NSMenuItem(title: "关于文枢", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: ""))
         appMenu.addItem(NSMenuItem.separator())
-        appMenu.addItem(NSMenuItem(title: "设置…", action: #selector(openSettingsWindow(_:)), keyEquivalent: ","))
+        appMenu.addItem(NSMenuItem(title: "设置…", action: #selector(showSettingsWindow(_:)), keyEquivalent: ","))
         appMenu.addItem(NSMenuItem.separator())
         appMenu.addItem(NSMenuItem(title: "退出文枢", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         appMenuItem.submenu = appMenu
