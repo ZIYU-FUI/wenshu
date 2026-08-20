@@ -49,17 +49,6 @@ enum MiniMaxModelFetcher {
     }
 
     static func loadModelIds(apiKey: String, baseUrl: String) async -> [String] {
-        let cacheKey = "\(baseUrl)|\(apiKey.prefix(8))"
-        if let cached = await ModelCache.shared.get(cacheKey) {
-            NSLog("[wenshu.models] cache hit: \(cached.count) models")
-            return cached
-        }
-        if let live = await fetchLiveModelIds(apiKey: apiKey, baseUrl: baseUrl) {
-            NSLog("[wenshu.models] live fetch: \(live.count) models")
-            await ModelCache.shared.set(live, for: cacheKey)
-            return live
-        }
-        NSLog("[wenshu.models] fallback to curated")
-        return MiniMaxModel.allCases.map { $0.rawValue }
+        await ProviderFetcher.loadModelIds(provider: .minimaxCn, apiKey: apiKey)
     }
 }
