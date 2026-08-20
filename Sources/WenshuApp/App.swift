@@ -198,11 +198,36 @@ struct WenshuApp: App {
 }
 
 /// v0.21 ticket 01 (重做 #5): SettingView 复用 (Settings { } Scene + NSHostingView 装 NSWindow 设置弹窗 共享同一 view)
+/// v0.21 ticket 02: 重写 Apple macOS 27 标准范式 (老板 8/21 20:50 拍 "参考苹果官方软件的设置页, 用 macOS 27 的组件")
+/// Apple 官方范式真值: TabView + Tab API (SwiftUI 14+) toolbar 自动显示 tab, Form + Picker + Toggle (Apple HIG macOS)
 struct SettingView: View {
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
     @AppStorage("wenshu.llm.model") private var llmModel: String = MiniMaxModel.m3.rawValue  // v0.21 ticket 04: 配完省略显示
+    @State private var selectedTab: SettingsTab = .general
+
+    enum SettingsTab: String, CaseIterable, Identifiable {
+        case general = "通用"
+        case model = "模型"
+        case shortcuts = "快捷键"
+        var id: String { rawValue }
+    }
 
     var body: some View {
+        TabView(selection: $selectedTab) {
+            generalTab
+                .tabItem { Text(SettingsTab.general.rawValue) }
+                .tag(SettingsTab.general)
+            modelTab
+                .tabItem { Text(SettingsTab.model.rawValue) }
+                .tag(SettingsTab.model)
+            shortcutsTab
+                .tabItem { Text(SettingsTab.shortcuts.rawValue) }
+                .tag(SettingsTab.shortcuts)
+        }
+        .frame(width: 480, height: 360)
+    }
+
+    private var generalTab: some View {
         Form {
             Picker("外观", selection: $appearanceMode) {
                 ForEach(AppearanceMode.allCases) { mode in
@@ -210,7 +235,13 @@ struct SettingView: View {
                 }
             }
             .pickerStyle(.radioGroup)
-            // v0.21 ticket 04: Settings 模型配置 (老板原话 "配完省略显示", 不写当前值 label)
+        }
+        .formStyle(.grouped)
+    }
+
+    private var modelTab: some View {
+        Form {
+            // v0.21 ticket 04: 配完省略显示 (老板原话 "不写当前值 label")
             Picker("模型", selection: $llmModel) {
                 ForEach(MiniMaxModel.allCases, id: \.self) { model in
                     Text(model.label).tag(model.rawValue)
@@ -219,7 +250,15 @@ struct SettingView: View {
             .pickerStyle(.menu)
         }
         .formStyle(.grouped)
-        .frame(width: 360, height: 180)
+    }
+
+    private var shortcutsTab: some View {
+        Form {
+            // 占位 (后续添加快捷键真值)
+            Text("快捷键配置 (待补)")
+                .foregroundStyle(.secondary)
+        }
+        .formStyle(.grouped)
     }
 }
 
@@ -270,7 +309,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         let settingsWindow = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 420, height: 220),
+            contentRect: NSRect(x: 0, y: 0, width: 520, height: 420),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
