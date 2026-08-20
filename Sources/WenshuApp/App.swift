@@ -225,15 +225,23 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
 
     static let sharedkanbanStore: KanbanStore? = nil  // 同上, 在 applicationDidFinishLaunching 赋值
 
-    // v0.21 ticket 01 (重做): "显示" → "恢复默认布局" NSMenu action (Q28 真值: 走 NSMenu 自己装中文 6 项, 不靠 SwiftUI commands 范式)
+    // v0.21 ticket 01 (重做 #2): "显示" → "恢复默认布局" NSMenu action
     @MainActor @objc func resetLayout(_ sender: Any?) {
         NotificationCenter.default.post(name: .wenshuResetLayout, object: nil)
+    }
+
+    // v0.21 ticket 01 (重做 #2): "设置…" NSMenu action
+    // 真因 (Q28 swiftinterface 真值): SwiftUI macOS 14+ SettingsLink / Settings { } Scene 自动注册 `showSettingsWindow:` selector
+    // 在 applicationDidFinishLaunching 时已激活 (SwiftUI lifecycle 跑完), 我们 NSMenu action = #selector(showSettingsWindow(_:)) 走
+    // NSApp.sendAction(Selector("showSettingsWindow:"), to: nil, from: sender) 触发 SwiftUI Settings 真值弹窗
+    @MainActor @objc func showSettingsWindow(_ sender: Any?) {
+        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: sender)
     }
 
     /// v0.21 ticket 01 (重做): installMainMenu 装 6 项中文 (v0.02.0 spec 老板 8/10 01:43 拍: 文枢/文件/编辑/显示/窗口/帮助)
     /// Apple 官方范式: SwiftUI 不自动装 File/Edit/View/Window/Help 系统级菜单, 老板 macOS 27 系统语言中文 → NSMenu title 中文
     /// 真因 (Q28 查 SwiftUI 真值 + Apple Forum 695325): Settings { } Scene 自动注册 cmd+, Settings NSMenuItem 在 macOS 27 由 SwiftUI 接管,
-    /// 我们装 '设置…' action 改 nil 让 SwiftUI 接管 (避免双重 handler)
+    /// 我们装 '设置…' action 走 showSettingsWindow @objc (NSApp.sendAction dispatch 'showSettingsWindow:' selector, SwiftUI 已注册 target)
     @MainActor private func installMainMenu() -> NSMenu {
         let mainMenu = NSMenu()
 
@@ -242,8 +250,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         let appMenu = NSMenu(title: "文枢")
         appMenu.addItem(NSMenuItem(title: "关于文枢", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: ""))
         appMenu.addItem(NSMenuItem.separator())
-        // v0.21 ticket 01 (重做): '设置…' action 改 nil (SwiftUI Settings Scene 自动接管 cmd+, 不需要自己 @objc handler)
-        appMenu.addItem(NSMenuItem(title: "设置…", action: nil, keyEquivalent: ","))
+        appMenu.addItem(NSMenuItem(title: "设置…", action: #selector(showSettingsWindow(_:)), keyEquivalent: ","))
         appMenu.addItem(NSMenuItem.separator())
         appMenu.addItem(NSMenuItem(title: "退出文枢", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         appMenuItem.submenu = appMenu
