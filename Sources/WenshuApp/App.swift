@@ -181,35 +181,10 @@ struct WenshuApp: App {
         .windowStyle(.titleBar)  // 老板 8/18 拍 macOS 52 PT unified titlebar chrome = 老板自定义 52 PT 顶栏, 视觉合一
         .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // 老板 Sketch 设计基准 1920×984 PT (v0.15 ticket 005 响应式: LayoutShellView 删 fixed frame, window 用 defaultSize 给 SwiftUI 初始 size hint)
         .windowResizability(.contentSize)  // 内容驱动窗口大小 (GeometryReader × 比例算子自适应 resize)
-        .commands {
-            // File 菜单: 新建项目 (cmd+n)
-            CommandGroup(replacing: .newItem) {
-                Button("新建项目") {
-                    // 接 WenshuLibrary.addShelf (v0.16 ticket 07 排期)
-                }
-                .keyboardShortcut("n", modifiers: .command)
-            }
-            // Apple HIG macOS 标准: "文枢" 顶级菜单下加 "设置..." (跟 Pages / Numbers / Xcode 一样)
-            CommandGroup(replacing: .appSettings) {
-                SettingsLink {
-                    Text("设置…")
-                }
-                .keyboardShortcut(",", modifiers: .command)
-            }
-            // 视图菜单: 老板 8/18 拍 "菜单栏, 显示菜单实现, 重置界面布局功能, 用于一键恢复布局到默认"
-            // Apple HIG: CommandMenu 加 top-level 菜单, 在 Window 菜单左侧
-            CommandMenu("视图") {
-                Button("恢复默认布局") {
-                    // 调用 LayoutShellViewModel.reset() 把 4 个 offset 还原 0
-                    // 当前 LayoutShellView 用 @State 私有 vm, 暂时通过通知桥接
-                    NotificationCenter.default.post(
-                        name: .wenshuResetLayout,
-                        object: nil
-                    )
-                }
-                .keyboardShortcut("r", modifiers: [.command, .shift])  // cmd+shift+r 跟 Xcode 一致
-            }
-        }
+        // v0.20 ticket 08: 删 .commands 段 (新建项目 + CommandGroup(.appSettings) SettingsLink + 视图 CommandMenu)
+        // 真因: SwiftUI .commands 在 macOS 27 lazy populate 注入英文 wenshu 第一菜单 (8/19 ticket 01 翻车链)
+        // NSMenu 已装真值菜单 (Apple 文枢 文件 编辑 显示 窗口 帮助, 见 WenshuAppDelegate.applicationWillFinishLaunching)
+        // SettingsView 真值保留在 Settings { ... } Scene, NSMenu "设置…" action trigger SwiftUI Settings 真值
         Settings {
             Form {
                 Picker("外观", selection: $appearanceMode) {
@@ -229,6 +204,14 @@ struct WenshuApp: App {
 final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     static let sharedRuntime = AgentRuntime()
     static let sharedVerifier = MiniMaxVerifier()
+
+    // v0.20 ticket 08: NSMenu "设置…" action trigger SwiftUI Settings { } Scene (Q3=B)
+    // 真值: SwiftUI Settings 范式 = SettingsLink 自动装. NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil)
+    // 走 objc runtime 找 SwiftUI 装的 Settings window handler (SwiftUI 内部注册, 不导出 API)
+    @MainActor @objc func showSettingsWindow(_ sender: Any?) {
+        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: sender)
+    }
+
     func applicationWillFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
         let mainMenu = NSMenu()
@@ -236,7 +219,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         let appMenu = NSMenu(title: "文枢")
         appMenu.addItem(NSMenuItem(title: "关于文枢", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: ""))
         appMenu.addItem(NSMenuItem.separator())
-        appMenu.addItem(NSMenuItem(title: "设置…", action: nil, keyEquivalent: ","))
+        appMenu.addItem(NSMenuItem(title: "设置…", action: #selector(showSettingsWindow(_:)), keyEquivalent: ","))
         appMenu.addItem(NSMenuItem.separator())
         appMenu.addItem(NSMenuItem(title: "退出文枢", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         appMenuItem.submenu = appMenu
