@@ -57,4 +57,19 @@ struct ChatViewTests {
         await vm.send()
         #expect(vm.messages.isEmpty)
     }
+
+    @Test("ChatMessage source 真值 (user / wenshu / system)")
+    func testChatMessageSource() {
+        let userMsg = ChatMessage(role: .user, source: .user, content: "hi")
+        let wenshuMsg = ChatMessage(role: .agent, source: .wenshu, content: "hello back")
+        let sysMsg = ChatMessage(role: .system, source: .system, content: "err")
+        #expect(userMsg.source == .user)
+        #expect(wenshuMsg.source == .wenshu)
+        #expect(sysMsg.source == .system)
+        // 不同 source 不等
+        #expect(userMsg != wenshuMsg)
+        // 同 source 不同 content 不等
+        let wenshuMsg2 = ChatMessage(role: .agent, source: .wenshu, content: "different")
+        #expect(wenshuMsg != wenshuMsg2)
+    }
 }

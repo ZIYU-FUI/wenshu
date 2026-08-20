@@ -15,25 +15,40 @@
 
 import SwiftUI
 
-/// 1 条消息真值 (hermes chat 真值简化版)
+/// 1 条消息真值 (user / 文枢 / 系统 三方, 文枢背后多 agent 调度不进 ChatMessage 流)
 public struct ChatMessage: Equatable, Identifiable, Sendable {
     public let id: UUID
     public let role: ChatRole
+    public let source: ChatSource
     public let content: String
     public let timestamp: Date
 
-    public init(id: UUID = UUID(), role: ChatRole, content: String, timestamp: Date = Date()) {
+    public init(
+        id: UUID = UUID(),
+        role: ChatRole,
+        source: ChatSource = .wenshu,
+        content: String,
+        timestamp: Date = Date()
+    ) {
         self.id = id
         self.role = role
+        self.source = source
         self.content = content
         self.timestamp = timestamp
     }
 }
 
-/// 消息角色真值
+/// 消息角色真值 (兼容 v0.20 ticket 01, 实际显示走 source)
 public enum ChatRole: String, Equatable, Sendable {
     case user
     case agent
+    case system
+}
+
+/// 消息来源真值 (user = 用户发的 / wenshu = 文枢回的 / system = 系统报错). 文枢背后多 agent 调度结果不显 ChatMessage, 走 KanbanStore 看板.
+public enum ChatSource: String, Equatable, Sendable, Codable {
+    case user
+    case wenshu
     case system
 }
 
@@ -60,7 +75,7 @@ public final class ChatViewModel {
     public func send() async {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !isSending else { return }
-        let userMsg = ChatMessage(role: .user, content: text)
+        let userMsg = ChatMessage(role: .user, source: .user, content: text)
         messages.append(userMsg)
         inputText = ""
         isSending = true
@@ -69,17 +84,17 @@ public final class ChatViewModel {
             // 优先: AgentRuntime delegateTask (A2A 协议)
             let task = try await runtime.delegateTask(to: agentName, content: text, fromAgent: "user")
             let replyContent = task.messages.last(where: { $0.role == .agent })?.content ?? "(no reply)"
-            let agentMsg = ChatMessage(role: .agent, content: replyContent)
+            let agentMsg = ChatMessage(role: .agent, source: .wenshu, content: replyContent)
             messages.append(agentMsg)
         } catch {
             // fallback: 直接调 MiniMax (Q22 真验证 ticket 31 端到端 work)
             do {
                 let response = try await verifier.ping()
                 let replyContent = response.content.first?.text ?? "(no reply)"
-                let agentMsg = ChatMessage(role: .agent, content: replyContent)
+                let agentMsg = ChatMessage(role: .agent, source: .wenshu, content: replyContent)
                 messages.append(agentMsg)
             } catch {
-                let errMsg = ChatMessage(role: .system, content: "Error: \(error.localizedDescription)")
+                let errMsg = ChatMessage(role: .system, source: .system, content: "Error: \(error.localizedDescription)")
                 messages.append(errMsg)
                 lastError = error.localizedDescription
             }
@@ -155,43 +170,43 @@ struct ChatMessageView: View {
 
     var body: some View {
         HStack(alignment: .top) {
-            // 角色 icon (SF Symbol Apple HIG 真值)
-            Image(systemName: roleIcon)
-                .foregroundStyle(roleColor)
+            // 消息来源 icon (SF Symbol Apple HIG 真值, 按 source 显示 user / 文枢 / 系统)
+            Image(systemName: sourceIcon)
+                .foregroundStyle(sourceColor)
                 .frame(width: 24, height: 24)
             VStack(alignment: .leading, spacing: 4) {
-                Text(roleLabel)
+                Text(sourceLabel)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Text(message.content)
                     .textSelection(.enabled)
                     .padding(8)
-                    .background(roleColor.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+                    .background(sourceColor.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
             }
             Spacer()
         }
     }
 
-    private var roleIcon: String {
-        switch message.role {
+    private var sourceIcon: String {
+        switch message.source {
         case .user: return "person.fill"
-        case .agent: return "cpu"
+        case .wenshu: return "text.book.closed.fill"
         case .system: return "exclamationmark.triangle"
         }
     }
 
-    private var roleLabel: String {
-        switch message.role {
+    private var sourceLabel: String {
+        switch message.source {
         case .user: return "你"
-        case .agent: return "Agent"
+        case .wenshu: return "文枢"
         case .system: return "系统"
         }
     }
 
-    private var roleColor: Color {
-        switch message.role {
+    private var sourceColor: Color {
+        switch message.source {
         case .user: return .blue
-        case .agent: return .accentColor
+        case .wenshu: return .accentColor
         case .system: return .red
         }
     }
