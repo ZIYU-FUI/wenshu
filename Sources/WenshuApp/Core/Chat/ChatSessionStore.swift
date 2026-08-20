@@ -162,6 +162,24 @@ public actor ChatSessionStore {
         }
     }
 
+    /// oldestKeepTimestamp: 留最新 lastN 条 messages, 返回 cutoff timestamp (比 cutoff 早的全删). 返回 nil 表示不需要触发 summary.
+    public func summaryCutoffTimestamp(sessionId: String, keepLastN: Int) throws -> Date? {
+        let count = try count(sessionId: sessionId)
+        guard count > keepLastN else { return nil }
+        // 找第 (count - keepLastN) 条消息的 timestamp (= cutoff)
+        let offset = count - keepLastN
+        let sql = "SELECT timestamp FROM chat_messages WHERE session_id = ? ORDER BY timestamp ASC LIMIT 1 OFFSET ?;"
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(dbPtr.db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            throw ChatSessionStoreError.prepareFailed(message: ChatSessionStore.sqliteErmsg(dbPtr.db))
+        }
+        defer { sqlite3_finalize(stmt) }
+        sqlite3_bind_text(stmt, 1, sessionId, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_int(stmt, 2, Int32(offset))
+        guard sqlite3_step(stmt) == SQLITE_ROW else { return nil }
+        return Date(timeIntervalSince1970: sqlite3_column_double(stmt, 0))
+    }
+
     private func exec(_ sql: String) throws {
         if sqlite3_exec(dbPtr.db, sql, nil, nil, nil) != SQLITE_OK {
             throw ChatSessionStoreError.execFailed(message: ChatSessionStore.sqliteErmsg(dbPtr.db))

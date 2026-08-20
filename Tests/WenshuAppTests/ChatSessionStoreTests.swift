@@ -78,6 +78,32 @@ struct ChatSessionStoreTests {
         #expect(loaded[0].id == "m2")
     }
 
+    @Test("summaryCutoffTimestamp 返回第 (count-keepLastN) 条消息 timestamp")
+    func testSummaryCutoff() async throws {
+        let store = try ChatSessionStore(path: tmpPath("cutoff"))
+        try await store.bootstrap()
+        let t0 = Date()
+        for i in 0..<25 {
+            try await store.append(StoredChatMessage(id: "m\(i)", source: "user", content: "msg \(i)", timestamp: t0.addingTimeInterval(TimeInterval(i))), sessionId: "default")
+        }
+        let cutoff = try await store.summaryCutoffTimestamp(sessionId: "default", keepLastN: 10)
+        #expect(cutoff != nil)
+        // cutoff 应该是第 15 条 (index 14, t0+14) — 比 cutoff 早的 14 条全删, 留 15-24 共 10 条
+        let cutoffIdx = Int(cutoff!.timeIntervalSince(t0))
+        #expect(cutoffIdx == 14)
+    }
+
+    @Test("summaryCutoffTimestamp count <= keepLastN 返回 nil (= 不触发 summary)")
+    func testSummaryCutoffNoTrigger() async throws {
+        let store = try ChatSessionStore(path: tmpPath("cutoff-no"))
+        try await store.bootstrap()
+        for i in 0..<5 {
+            try await store.append(StoredChatMessage(id: "m\(i)", source: "user", content: "msg", timestamp: Date()), sessionId: "default")
+        }
+        let cutoff = try await store.summaryCutoffTimestamp(sessionId: "default", keepLastN: 10)
+        #expect(cutoff == nil)
+    }
+
     private func tmpPath(_ tag: String) -> String {
         NSTemporaryDirectory() + "wenshu-chat-\(tag)-\(UUID().uuidString).sqlite"
     }
