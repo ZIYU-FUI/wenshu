@@ -400,7 +400,10 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
-        // v0.21 ticket 01 (重做): 不在这里装 NSMenu — 改在 applicationDidFinishLaunching 末尾装 (覆盖 SwiftUI lazy populate)
+        // v0.21 ticket 01 (重做 #9): 不装 NSMenu — 让 macOS 27 SwiftUI 默认装 (老板 8/21 17:50 拍"原厂所有都亮出来, 系统自动本地化")
+        // Q15 翻车链 #12 总结: 我们 NSMenu 自己装 6 项中文 + VibeMeter Mirror reflection + OpenSettingsAction capture 全失败.
+        // 撤回整个 NSMenu 装路径, 让 SwiftUI App body 默认 Settings { } Scene + WindowGroup + 标准 commands 自动接管 NSMenu.
+        // Settings { } Scene 自动装 'Settings…' NSMenuItem (macOS 14+ 真值, VibeMeter 真值)
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -431,9 +434,10 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
                 sessionStore: chatStore
             )
         }
-        // v0.21 ticket 01 (重做): applicationDidFinishLaunching 末尾强制装中文 6 项 NSMenu (Q28 Apple 官方范式: SwiftUI 不自动装系统级菜单)
-        // 真因: SwiftUI 框架在 didFinishLaunching 后 lazy populate, 如果不在末尾覆盖, 装的中文菜单会被追加在系统默认英文菜单后面
-        NSApp.mainMenu = installMainMenu()
+        // v0.21 ticket 01 (重做 #9): applicationDidFinishLaunching 末尾不强制装 NSMenu — 让 SwiftUI 默认
+        // 真因 (Q32 audit 5 原则1 真硬违反修复): 我们手动 NSMenu 装 + VibeMeter Mirror reflection 全失败 12 次翻车
+        // 撤回整个 NSMenu 装路径, 让 macOS 27 SwiftUI 默认装 (老板 8/21 17:50 拍)
+        // Settings { } Scene 自动装 'Settings…' NSMenuItem (Apple 真值)
         // v0.20 ticket 01: 启动时注册 wenshu 主 agent (左下 zone chat UI 调用)
         let card = AgentCard(
             name: "wenshu",
