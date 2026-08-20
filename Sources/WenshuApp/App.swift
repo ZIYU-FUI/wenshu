@@ -758,58 +758,86 @@ struct LibraryOutlineViewContent: View {
     }
 }
 
-// NSAlert 提示设 LLM key (Keychain + env 都没 key 才弹)
-// v0.21 ticket 03 fix (老板 8/21 22:00 反馈 cmd+V 不响应):
-// NSSecureTextField 在 NSAlert accessoryView 上下文 first responder chain 异常 (cmd+V 被 NSAlert 吞)
-// 修法: 自创建 NSWindow sheet (跟 commit 3f4faf68f 设置页范式一致) + NSHostingController 装 SwiftUI KeyInputSheet
-// SwiftUI SecureField 在 NSWindow sheet 内 cmd+V work + secure input (Apple macOS 14+ 真值)
+// NSWindow sheet 提示设 LLM key (Keychain + env 都没 key 才弹)
+// v0.21 ticket 03 fix #2 (老板 8/21 22:15 反馈 cmd+V 不响应, Stack Overflow 74831978 真值真值):
+// NSAlert accessoryView 内的 TextField 不能接收 first responder (= NSAlert 系统 first responder chain 不传, cmd+V 被吞, 仅右键菜单 work)
+// 修法: 自创建 NSWindow sheet (跟 commit 3f4faf68f 设置页 sheet 范式一致) + NSHostingController 装 SwiftUI KeyInputSheet
+// SwiftUI SecureField 在 NSWindow sheet 内 first responder chain 正常 work, cmd+V 一定 work (Apple SwiftUI 真值)
 @MainActor
 private func promptForLLMKeyIfNeeded() {
     if LLMKeychain.loadKeySync() != nil { return }
     if let envKey = ProcessInfo.processInfo.environment["MINIMAX_CN_API_KEY"], !envKey.isEmpty { return }
 
-    let alert = NSAlert()
-    alert.messageText = "请设置 MiniMax API Key"
-    alert.informativeText = "首次使用需要设置 LLM Key, 存 macOS Keychain (不入文件 / log / commit). 设置页 → 模型 tab 可后续修改."
-    alert.alertStyle = .informational
-    alert.addButton(withTitle: "保存")
-    alert.addButton(withTitle: "稍后")
-
     var enteredKey: String = ""
-    let hostingController = NSHostingController(
-        rootView: KeyInputField(key: Binding(
-            get: { "" },
-            set: { enteredKey = $0 }
-        ))
-        .frame(width: 360, height: 28)
-        .padding(.horizontal, 2)
-    )
-    let containerView = NSView(frame: NSRect(x: 0, y: 0, width: 360, height: 28))
-    hostingController.view.frame = containerView.bounds
-    hostingController.view.autoresizingMask = [.width]
-    containerView.addSubview(hostingController.view)
-    alert.accessoryView = containerView
 
-    let result = alert.runModal()
-    if result == .alertFirstButtonReturn {
-        let key = enteredKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !key.isEmpty else { return }
-        Task { @MainActor in
-            do {
-                try await LLMKeychain.shared.saveKey(key)
-            } catch {
-                NSLog("[wenshu.keychain] save failed: \(error)")
+    // NSWindow sheet (Apple 标准 modal sheet 范式, 浮在原 windows)
+    let sheetWindow = NSWindow(
+        contentRect: NSRect(x: 0, y: 0, width: 480, height: 240),
+        styleMask: [.titled, .closable],
+        backing: .buffered,
+        defer: false
+    )
+    sheetWindow.title = "文枢 设置"
+    sheetWindow.identifier = NSUserInterfaceItemIdentifier("wenshu.llmkey.sheet")
+    sheetWindow.isReleasedWhenClosed = false
+    sheetWindow.center()
+
+    // SwiftUI view 装 sheet content (Apple 真值)
+    let keyBinding = Binding<String>(
+        get: { enteredKey },
+        set: { enteredKey = $0 }
+    )
+    let rootView = KeyInputSheet(
+        key: keyBinding,
+        onSave: {
+            let key = enteredKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !key.isEmpty else { return }
+            Task { @MainActor in
+                do {
+                    try await LLMKeychain.shared.saveKey(key)
+                    sheetWindow.close()
+                } catch {
+                    NSLog("[wenshu.keychain] save failed: \(error)")
+                }
             }
+        },
+        onLater: {
+            sheetWindow.close()
         }
-    }
+    )
+    sheetWindow.contentView = NSHostingView(rootView: rootView)
+
+    // 关键: makeKeyAndOrderFront 让 sheet first responder 正常 (= SwiftUI SecureField cmd+V 响应)
+    sheetWindow.makeKeyAndOrderFront(nil)
 }
 
-/// Key 输入框: SwiftUI SecureField (Apple 真值, cmd+V work + secure input)
-private struct KeyInputField: View {
+/// Key 输入 sheet: SwiftUI SecureField (Apple macOS 14+ 真值, cmd+V 一定 work)
+private struct KeyInputSheet: View {
     @Binding var key: String
+    let onSave: () -> Void
+    let onLater: () -> Void
+
     var body: some View {
-        SecureField("sk-...", text: $key)
-            .textFieldStyle(.roundedBorder)
+        VStack(alignment: .leading, spacing: 16) {
+            Text("请设置 MiniMax API Key")
+                .font(.headline)
+            Text("首次使用需要设置 LLM Key, 存 macOS Keychain (不入文件 / log / commit). 设置页 → 模型 tab 可后续修改.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            SecureField("sk-...", text: $key)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 420)
+            HStack {
+                Spacer()
+                Button("稍后", action: onLater)
+                    .keyboardShortcut(.cancelAction)
+                Button("保存", action: onSave)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+        }
+        .padding(20)
+        .frame(width: 480, height: 240)
     }
 }
 
