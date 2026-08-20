@@ -60,18 +60,37 @@ public final class ChatViewModel {
     public var inputText: String = ""
     public var isSending: Bool = false
     public var lastError: String?
+    public var currentModel: String = UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? MiniMaxModel.m3.rawValue
+    public var availableModels: [String] = []
+    public var contextUsed: Int { messages.count * 500 }
+    public let contextMax: Int = 20
 
     private let conductor: WenshuConductor?
     private let store: ChatSessionStore?
     private let sessionId: String
 
-    /// init: 接受预先 load 的 messages (避免在 init 里调 actor method 的 race condition)
-    /// 真值: load 流程放外面 (ChatView .task modifier), ChatViewModel 不做 async work
     public init(conductor: WenshuConductor? = nil, store: ChatSessionStore? = nil, sessionId: String = "default", initialMessages: [ChatMessage] = []) {
         self.conductor = conductor
         self.store = store
         self.sessionId = sessionId
         self.messages = initialMessages
+    }
+
+    public func switchModel(_ id: String) {
+        currentModel = id
+        UserDefaults.standard.set(id, forKey: "wenshu.llm.model")
+    }
+
+    public func loadAvailableModels() async {
+        let base = ProcessInfo.processInfo.environment["MINIMAX_CN_BASE_URL"] ?? "https://api.minimaxi.com/anthropic"
+        if let key = LLMKeychain.loadKeySync(), !key.isEmpty {
+            availableModels = await MiniMaxModelFetcher.loadModelIds(apiKey: key, baseUrl: base)
+        } else {
+            availableModels = MiniMaxModel.allCases.map { $0.rawValue }
+        }
+        if !availableModels.contains(currentModel) {
+            availableModels = [currentModel] + availableModels
+        }
     }
 
     /// send: 发消息 → 文枢主 agent 真合成 (v0.21 ticket 06 + code-review S1+S2 真持久化)
@@ -165,6 +184,7 @@ public struct ChatView: View {
             }
             // v0.21 ticket 06 code-review S2: 异步 load 历史 (在 .task modifier 不阻塞首渲染)
             .task {
+                await vm.loadAvailableModels()
                 if let store = vm.valueForStore() {
                     if let loaded = try? await store.loadMessages(sessionId: vm.valueForSessionId()) {
                         let mapped = loaded.map { stored in
@@ -202,7 +222,43 @@ public struct ChatView: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(vm.inputText.isEmpty || vm.isSending)
             }
-            .padding(8)
+            .padding(.horizontal, 8)
+            .padding(.bottom, 4)
+
+            // 底栏 (Hermes appChrome 范式): 左 model + 右 context 用量
+            HStack(spacing: 8) {
+                Menu {
+                    ForEach(vm.availableModels, id: \.self) { id in
+                        Button(id) { vm.switchModel(id) }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "cpu")
+                        Text(vm.currentModel)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .imageScale(.small)
+                            .foregroundStyle(.secondary)
+                    }
+                    .font(.caption)
+                }
+                .menuStyle(.borderlessButton)
+                .frame(maxWidth: 220, alignment: .leading)
+                .help("点击切换模型")
+
+                Spacer()
+
+                Text("\(vm.contextUsed) / \(vm.contextMax)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                ProgressView(value: Double(min(vm.contextUsed, vm.contextMax)), total: Double(vm.contextMax))
+                    .progressViewStyle(.linear)
+                    .frame(width: 80)
+                    .tint(vm.contextUsed >= vm.contextMax ? .red : (vm.contextUsed > vm.contextMax * 3 / 4 ? .orange : .green))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 4)
+            .background(Color(nsColor: .controlBackgroundColor))
         }
     }
 }
