@@ -35,17 +35,7 @@ public actor LLMKeychain {
 
     /// sync wrapper: 在 init 等 sync context 读 Keychain
     public static func loadKeySync() -> String? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-        guard status == errSecSuccess, let data = item as? Data else { return nil }
-        return String(data: data, encoding: .utf8)
+        ProviderKeychain.loadKeySync(for: .minimaxCn)
     }
 
     /// 保存 LLM key 到 macOS Keychain (替换已存在)
