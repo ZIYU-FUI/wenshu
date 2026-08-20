@@ -1,13 +1,11 @@
 //
-//  NativeSplitter.swift · Wenshu · v0.20 ticket 02 (cursor 切 ↕/↔ 退回 SwiftUI)
+//  NativeSplitter.swift · Wenshu
 //
-//  拖拽线 v0.20 ticket 02 — cursor 切 ↕/↔ 退回 SwiftUI .pointerStyle (Apple HIG macOS 15+).
-//  老板 2026-08-20 拍 "鼠标还是没有变形" (v0.17 ticket 03 commit f65bb3292 挂 ZStack 父级, 实测失灵).
-//  真因 (cursor investigation report v2 实证): NSViewRepresentable 桥接 SplitterHitAreaRepresentable 屏蔽 SwiftUI .pointerStyle 穿透.
-//  修法: 退 v0.14 SwiftUI DragGesture 范式 (v0.14 失灵真因 = gesture 挂错层, 这次挂对).
-//
-//  不动: 拖拽线视觉 (1 PT fill / 3 PT hover / 1 PT hit area / Apple 系统色 / 不圆头) — v0.17 ticket 02/08 拍死原则.
-//  动: 拖拽响应 (SwiftUI DragGesture 替代 NSView + NSEvent) + hover 切 (SwiftUI .onContinuousHover) + cursor 切 (SwiftUI .pointerStyle).
+//  Drag splitter view with SwiftUI hover + cursor + drag gestures.
+//  Visual: 1 PT Apple system separator color, 3 PT on hover.
+//  Hit area: 6 PT, transparent overlay (Color.clear + .contentShape).
+//  Cursor: SwiftUI .pointerStyle (.columnResize / .rowResize), macOS 15+.
+//  Drag: SwiftUI DragGesture(.local, minimumDistance: 0).
 //
 
 import SwiftUI
