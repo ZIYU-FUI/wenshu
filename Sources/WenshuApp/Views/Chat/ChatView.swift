@@ -232,8 +232,6 @@ public struct ChatView: View {
             }
             .padding(.horizontal, 8)
             .padding(.bottom, 4)
-            // v0.21 ticket 09: ChatView 内加 ChatBottomToolbar (父组件 ZoneModule 不动, 子组件 ChatView 改)
-            ChatBottomToolbar()
         }
     }
 }
@@ -292,69 +290,4 @@ private func compactNumber(_ n: Int) -> String {
     if d >= 1_000_000 { return String(format: "%.1fM", d / 1_000_000).replacingOccurrences(of: ".0M", with: "M") }
     if d >= 1_000 { return String(format: "%.1fk", d / 1_000).replacingOccurrences(of: ".0k", with: "k") }
     return "\(n)"
-}
-
-// v0.21 ticket 09: ChatBottomToolbar 移到 ChatView.swift (= 父组件 ZoneModule 不动, 子组件 ChatView 改)
-// 替换 ChatView 内"输入消息..." 文本框下方占位 (= 老板 8/21 23:30 拍)
-struct ChatBottomToolbar: View {
-    @State private var availableModels: [String] = MiniMaxModel.allCases.map { $0.rawValue }
-    @State private var currentModel: String = UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? MiniMaxModel.m3.rawValue
-    @State private var contextUsed: Int = 0
-    private let contextMax: Int = 131072
-
-    var body: some View {
-        let toolbarH = LayoutTokens.toolbarHeight
-        DesignColor.zoneSurface
-            .frame(height: toolbarH)
-            .overlay(alignment: .top) {
-                DesignColor.splitterLine.frame(height: 1)
-            }
-            .overlay(alignment: .bottomLeading) {
-                Menu {
-                    ForEach(availableModels, id: \.self) { id in
-                        Button(id) {
-                            currentModel = id
-                            UserDefaults.standard.set(id, forKey: "wenshu.llm.model")
-                        }
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "cpu")
-                        Text(currentModel)
-                            .font(.system(size: 13))
-                        Image(systemName: "chevron.up.chevron.down")
-                            .font(.system(size: 11))
-                    }
-                    .foregroundStyle(.secondary)
-                    .padding(.leading, 18)
-                    .padding(.bottom, 6)
-                    .frame(height: toolbarH, alignment: .bottomLeading)
-                }
-                .menuStyle(.borderlessButton)
-                .task {
-                    let base = ProcessInfo.processInfo.environment["MINIMAX_CN_BASE_URL"] ?? "https://api.minimaxi.com/anthropic"
-                    if let key = LLMKeychain.loadKeySync(), !key.isEmpty {
-                        availableModels = await MiniMaxModelFetcher.loadModelIds(apiKey: key, baseUrl: base)
-                    }
-                    if !availableModels.contains(currentModel) {
-                        availableModels = [currentModel] + availableModels
-                    }
-                }
-            }
-            .overlay(alignment: .bottomTrailing) {
-                HStack(spacing: 6) {
-                    Text("\(compactNumber(contextUsed)) / \(compactNumber(contextMax))")
-                        .font(.system(size: 13))
-                        .foregroundStyle(.tertiary)
-                    ProgressView(value: Double(min(contextUsed, contextMax)), total: Double(max(1, contextMax)))
-                        .progressViewStyle(.linear)
-                        .frame(width: 80)
-                        .tint(contextUsed >= contextMax ? .red : (contextUsed > contextMax * 3 / 4 ? .orange : .green))
-                }
-                .padding(.trailing, 18)
-                .padding(.bottom, 6)
-                .frame(height: toolbarH, alignment: .bottomTrailing)
-                .allowsHitTesting(false)
-            }
-    }
 }

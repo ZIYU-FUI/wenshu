@@ -184,37 +184,15 @@ struct WenshuApp: App {
                 .preferredColorScheme(appearanceMode.colorScheme)
         }
         .windowStyle(.titleBar)  // 老板 8/18 拍 macOS 52 PT unified titlebar chrome = 老板自定义 52 PT 顶栏, 视觉合一
-        .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // 老板 Sketch 设计基准 1920×984 PT (v0.15 ticket 005 响应式: LayoutShellView 删 fixed frame, window 用 defaultSize 给 SwiftUI 初始 size hint)        .windowResizability(.contentSize)
-        .commands {
-            // 文件 (.newItem)
-            CommandGroup(after: .newItem) {
-                Button("新建项目", action: {})
-                    .keyboardShortcut("n", modifiers: .command)
-            }
-            // 编辑 (.undoRedo)
-            CommandGroup(replacing: .undoRedo) {
-                Button("撤销", action: {})
-                    .keyboardShortcut("z", modifiers: .command)
-                Button("重做", action: {})
-                    .keyboardShortcut("Z", modifiers: [.command, .shift])
-            }
-            // 视图 (.sidebar)
-            CommandGroup(after: .sidebar) {
-                Divider()
-                Button("恢复默认布局") {
-                    NotificationCenter.default.post(name: .wenshuResetLayout, object: nil)
-                }
-                .keyboardShortcut("R", modifiers: [.command, .shift])
-            }
-            // 设置 (.appSettings)
-            CommandGroup(replacing: .appSettings) {
-                SettingsLink()
-            }
-        }
-        // 弹窗
-        Settings {
-            SettingView()
-        }
+        .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // 老板 Sketch 设计基准 1920×984 PT (v0.15 ticket 005 响应式: LayoutShellView 删 fixed frame, window 用 defaultSize 给 SwiftUI 初始 size hint)
+        .windowResizability(.contentSize)  // 内容驱动窗口大小 (GeometryReader × 比例算子自适应 resize)
+        // v0.21 ticket 01 (重做 #4): 删 .commands { CommandGroup(.appSettings) { SettingsLink() } } 段
+        // (Q15 翻车链 #8 总结: SwiftUI .commands 段在 macOS 27 lazy populate 覆盖了 .commands 注入的 SettingsLink, NSMenu "设置…" 没装 = 老板 8/21 19:30 反馈"设置菜单没有了")
+        // 真因 (Q28 Stack Overflow 76359975 真值): SwiftUI macOS 14+ NSMenu 装 "Settings…" 必须自己 NSWindow + NSHostingController 范式 (Settings { } Scene 是 SwiftUI App body 标准 cmd+, handler)
+        // v0.21 ticket 06 (Pages 范式): 装回 macOS Settings { } Scene 接管菜单栏 (Apple 真值 14+, 老板 8/10 01:43 6 项菜单真值真值)
+        // 老板 8/21 拍: '菜单栏的置入和弹窗的写法不是严格关联, 用正常能置入菜单栏的方式 + Pages UI 范式弹窗'
+        // 真值真值: Settings { } Scene 自动装菜单 (= Apple/文枢/显示/窗口/帮助) + .commands { CommandGroup(.appSettings) { SettingsLink() } } 接管 cmd+,
+        //           窗口内容 = SettingView (= 顶部 toolbar tab + 3 tab, Pages 范式, 老板画的图 2 红框位置)
     }
 }
 
@@ -603,9 +581,102 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         NotificationCenter.default.post(name: .wenshuResetLayout, object: nil)
     }
 
+    // v0.21 ticket 06 (Pages 范式): "设置…" NSMenu action — 弹真值 modal sheet (Pages 范式, 浮 windows 不挤走)
+    // 老板 8/21 拍: '调度模式下弹窗挤走主 windows, 没实现原窗口悬浮'
+    // 修法: parentWindow.beginSheet(_:completionHandler:) 真值 modal sheet (= commit c5f85d701 旧修法), SwiftUI macOS 14+ 真值真值
+    // 视觉: Pages 设置窗模式 — 真值 modal sheet 浮在 main window 上, 不阻塞 main window (= boss 拍"原窗口悬浮")
+    @MainActor @objc func openSettingsWindow(_ sender: Any?) {
+        if let existing = NSApp.windows.first(where: { $0.identifier?.rawValue == "wenshu.settings" }) {
+            existing.makeKeyAndOrderFront(nil)
+            return
+        }
+        let settingsWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 600, height: 480),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        settingsWindow.title = "文枢 设置"
+        settingsWindow.identifier = NSUserInterfaceItemIdentifier("wenshu.settings")
+        settingsWindow.isReleasedWhenClosed = false
+        settingsWindow.contentView = NSHostingView(rootView: SettingView())
+
+        // 找 main window (= LayoutShellView 的 NSWindow, SwiftUI WindowGroup 装的), 找不到 fallback standalone (保底, 跟 commit 1fbb72260 一致)
+        guard let parentWindow = NSApp.windows.first(where: { $0.contentViewController != nil || $0.contentView != nil }) else {
+            settingsWindow.center()
+            settingsWindow.makeKeyAndOrderFront(nil)
+            return
+        }
+        parentWindow.beginSheet(settingsWindow) { _ in
+            // modal sheet 关闭后 cleanup (commit c5f85d701 范式)
+        }
+    }
+
+    /// 主菜单栏装 6 项 (Apple/文枢/文件/编辑/显示/窗口/帮助)
+    @MainActor private func installMainMenu() -> NSMenu {
+        // idempotent 装 (避免 SwiftUI 重复触发 applicationWillFinishLaunching 时重复 add)
+        let mainMenu = NSApp.mainMenu ?? NSMenu()
+        mainMenu.removeAllItems()
+
+        // 文枢 (App menu)
+        let appMenuItem = NSMenuItem()
+        let appMenu = NSMenu(title: "文枢")
+        appMenu.addItem(NSMenuItem(title: "关于文枢", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: ""))
+        appMenu.addItem(NSMenuItem.separator())
+        appMenu.addItem(NSMenuItem(title: "设置…", action: #selector(openSettingsWindow(_:)), keyEquivalent: ","))
+        appMenu.addItem(NSMenuItem.separator())
+        appMenu.addItem(NSMenuItem(title: "退出文枢", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        appMenuItem.submenu = appMenu
+        mainMenu.addItem(appMenuItem)
+
+        // 文件 (cmd+N 新建项目)
+        let fileMenuItem = NSMenuItem()
+        let fileMenu = NSMenu(title: "文件")
+        fileMenu.addItem(NSMenuItem(title: "新建项目", action: nil, keyEquivalent: "n"))
+        fileMenuItem.submenu = fileMenu
+        mainMenu.addItem(fileMenuItem)
+
+        // 编辑 (cmd+Z 撤销 / cmd+shift+Z 重做, 走 first responder 自动 enable/disable)
+        let editMenuItem = NSMenuItem()
+        let editMenu = NSMenu(title: "编辑")
+        editMenu.addItem(NSMenuItem(title: "撤销", action: Selector(("undo:")), keyEquivalent: "z"))
+        editMenu.addItem(NSMenuItem(title: "重做", action: Selector(("redo:")), keyEquivalent: "Z"))
+        editMenuItem.submenu = editMenu
+        mainMenu.addItem(editMenuItem)
+
+        // 显示 (含 "恢复默认布局" 接 resetLayout NotificationCenter)
+        let viewMenuItem = NSMenuItem()
+        let viewMenu = NSMenu(title: "显示")
+        let resetItem = NSMenuItem(title: "恢复默认布局", action: #selector(resetLayout(_:)), keyEquivalent: "R")
+        resetItem.keyEquivalentModifierMask = [.command, .shift]
+        viewMenu.addItem(resetItem)
+        viewMenuItem.submenu = viewMenu
+        mainMenu.addItem(viewMenuItem)
+
+        // 窗口
+        let windowMenuItem = NSMenuItem()
+        let windowMenu = NSMenu(title: "窗口")
+        windowMenuItem.submenu = windowMenu
+        mainMenu.addItem(windowMenuItem)
+
+        // 帮助
+        let helpMenuItem = NSMenuItem()
+        let helpMenu = NSMenu(title: "帮助")
+        helpMenu.addItem(NSMenuItem(title: "文枢帮助", action: nil, keyEquivalent: ""))
+        helpMenuItem.submenu = helpMenu
+        mainMenu.addItem(helpMenuItem)
+
+        // 让 NSApplication 定位 Window / Help 菜单
+        NSApp.windowsMenu = windowMenu
+        NSApp.helpMenu = helpMenu
+
+        return mainMenu
+    }
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
+        // 装主菜单栏 (6 项 NSMenu = Apple/文枢/文件/编辑/显示/窗口/帮助)
+        NSApp.mainMenu = installMainMenu()
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -931,11 +1002,13 @@ struct ZoneModule: View {
             DesignColor.zoneSurface
         case .aiChat:
             // v0.21 ticket 06: 接入 ChatView (左下 zone 真 chat UI + Agent 对话) + 集成 conductor + chat store
-            // v0.21 ticket 09: 父组件不动, ChatView 子组件内加 ChatBottomToolbar (= 老板 8/21 23:30 拍)
-            ChatView(
-                conductor: WenshuAppDelegate.sharedConductor,
-                store: WenshuAppDelegate.sharedChatStoreRef
-            )
+            VStack(spacing: 0) {
+                ChatView(
+                    conductor: WenshuAppDelegate.sharedConductor,
+                    store: WenshuAppDelegate.sharedChatStoreRef
+                )
+                ChatBottomToolbar()
+            }
         case .aiDynamic:
             DesignColor.zoneSurface
         }
@@ -970,3 +1043,77 @@ struct LibraryOutlineViewContent: View {
 
 
 
+
+/// 聊天区底栏 (v0.21 ticket 06): 复用 ZoneBottomToolbar 视觉范式 + 替换左/右占位文字
+/// 左 = model picker (cpu + currentModel + chevron, Hermes 真值)
+/// 右 = compactNumber(contextUsed) + compactNumber(contextMax) + ProgressView
+struct ChatBottomToolbar: View {
+    @State private var availableModels: [String] = MiniMaxModel.allCases.map { $0.rawValue }
+    @State private var currentModel: String = UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? MiniMaxModel.m3.rawValue
+    @State private var contextUsed: Int = 0
+    private let contextMax: Int = 131072
+
+    var body: some View {
+        let toolbarH = LayoutTokens.toolbarHeight
+        DesignColor.zoneSurface
+            .frame(height: toolbarH)
+            .overlay(alignment: .top) {
+                DesignColor.splitterLine.frame(height: 1)
+            }
+            .overlay(alignment: .bottomLeading) {
+                Menu {
+                    ForEach(availableModels, id: \.self) { id in
+                        Button(id) {
+                            currentModel = id
+                            UserDefaults.standard.set(id, forKey: "wenshu.llm.model")
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "cpu")
+                        Text(currentModel)
+                            .font(.system(size: 13))
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.system(size: 11))
+                    }
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, 18)
+                    .padding(.bottom, 6)
+                    .frame(height: toolbarH, alignment: .bottomLeading)
+                }
+                .menuStyle(.borderlessButton)
+                .task {
+                    let base = ProcessInfo.processInfo.environment["MINIMAX_CN_BASE_URL"] ?? "https://api.minimaxi.com/anthropic"
+                    if let key = LLMKeychain.loadKeySync(), !key.isEmpty {
+                        availableModels = await MiniMaxModelFetcher.loadModelIds(apiKey: key, baseUrl: base)
+                    }
+                    if !availableModels.contains(currentModel) {
+                        availableModels = [currentModel] + availableModels
+                    }
+                }
+            }
+            .overlay(alignment: .bottomTrailing) {
+                HStack(spacing: 6) {
+                    Text("\(compactNumber(contextUsed)) / \(compactNumber(contextMax))")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.tertiary)
+                    ProgressView(value: Double(min(contextUsed, contextMax)), total: Double(max(1, contextMax)))
+                        .progressViewStyle(.linear)
+                        .frame(width: 80)
+                        .tint(contextUsed >= contextMax ? .red : (contextUsed > contextMax * 3 / 4 ? .orange : .green))
+                }
+                .padding(.trailing, 18)
+                .padding(.bottom, 6)
+                .frame(height: toolbarH, alignment: .bottomTrailing)
+                .allowsHitTesting(false)
+            }
+    }
+}
+
+/// compactNumber: 真实 token count 折 compact 格式 (Hermes format_token_count_compact 真值)
+private func compactNumber(_ n: Int) -> String {
+    let d = Double(n)
+    if d >= 1_000_000 { return String(format: "%.1fM", d / 1_000_000).replacingOccurrences(of: ".0M", with: "M") }
+    if d >= 1_000 { return String(format: "%.1fk", d / 1_000).replacingOccurrences(of: ".0k", with: "k") }
+    return "\(n)"
+}
