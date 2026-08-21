@@ -29,7 +29,8 @@ public actor WenshuConductor {
     /// code-review S4 graceful degradation: LLM fail 不抛, fallback synthesis 仍返 reply (老板 macOS 不见 Error 系统消息)
     /// v0.21 ticket 34: 返回 (reply, totalTokens) — totalTokens = intent + sub-agent + synthesis 真实 LLM API usage 累加
     /// v0.21 ticket 38: handle 增加 model 参数 (boss 反馈 "切换了 AI 没有真的换" = 原 handle 用 verifier.init 的 hardcoded model)
-    public func handle(userMessage: String, sessionId: String, model: String) async -> (reply: String, totalTokens: Int) {
+    /// v0.21 ticket 39: 加 thinking 字段 (MiniMaxBlock.thinking footnote UI, Apple HIG footnote 范式)
+    public func handle(userMessage: String, sessionId: String, model: String) async -> (reply: String, totalTokens: Int, thinking: String?) {
         // 步骤 1: 写 1 个 conductor 父 task 到 KanbanStore (看板进度, ChatView 不显)
         let conductorTask: KanbanTask?
         do {
@@ -56,9 +57,12 @@ public actor WenshuConductor {
         派 0-N 个子 agent (JSON array, 仅 agent name, 不要解释):
         ["search", "outline"]
         """
-        if let intentResponse = try? await verifier.chat(intentPrompt, model: model),
-           let intentRaw = intentResponse.content.first?.text {
-            selectedAgents = parseAgentList(intentRaw)
+        if let intentResponse = try? await verifier.chat(intentPrompt, model: model) {
+            // v0.21 ticket 39: union decode MiniMaxBlock (text / thinking / tool_use)
+            let intentRaw = intentResponse.content.map(\.displayText).joined()
+            if !intentRaw.isEmpty {
+                selectedAgents = parseAgentList(intentRaw)
+            }
             // v0.21 ticket 34: 累加 intent classify real token usage
             totalTokens += intentResponse.usage?.total_tokens ?? 0
         }
@@ -80,10 +84,20 @@ public actor WenshuConductor {
 
         // 步骤 4: 调 LLM 合成最终回复 (S4 fallback: synthesis fail → 返原文 + 默认合成语)
         let synthesisPrompt = buildSynthesisPrompt(userMessage: userMessage, subResults: subResults)
+        var finalThinking: String?    // v0.21 ticket 39: MiniMaxBlock.thinking
         let finalReply: String
-        if let response = try? await verifier.chat(synthesisPrompt, model: model),
-           let text = response.content.first?.text, !text.isEmpty {
-            finalReply = text
+        if let response = try? await verifier.chat(synthesisPrompt, model: model) {
+            // v0.21 ticket 39: union decode concat all text blocks (M2.7 有 thinking block 前置)
+            let text = response.content.map(\.displayText).joined()
+            if !text.isEmpty {
+                finalReply = text
+                finalThinking = response.content.compactMap(\.thinkingText).first
+            } else if subResults.isEmpty {
+                finalReply = "（文枢暂时无法回复, 请稍后再试）"
+            } else {
+                let summary = subResults.map { "• \($0.0): \($0.1.prefix(80))" }.joined(separator: "\n")
+                finalReply = "（LLM 合成失败, 下面是子 agent 原始结果）\n\n\(summary)"
+            }
             // v0.21 ticket 34: 累加 synthesis real token usage
             totalTokens += response.usage?.total_tokens ?? 0
         } else {
@@ -101,7 +115,7 @@ public actor WenshuConductor {
             _ = try? await kanbanStore.transition(id: conductorTask.id, to: .done)
         }
 
-        return (finalReply, totalTokens)
+        return (finalReply, totalTokens, finalThinking)
     }
 
     /// parseAgentList: 解析 LLM 输出的 JSON array (容错: 真值会有返 ["search"] 或 [search, outline] 或 ['search'])

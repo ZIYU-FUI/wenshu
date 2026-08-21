@@ -33,25 +33,99 @@ public struct MiniMaxRequest: Codable, Sendable {
     }
 }
 
-public struct MiniMaxContent: Codable, Sendable {
-    public let text: String
-    public let type: String
-    public init(text: String, type: String = "text") {
-        self.text = text
-        self.type = type
+// v0.21 ticket 39: union content block (Apple Codable enum 真值)
+// Anthropic-compatible content blocks include text / thinking (CoT) / tool_use variants
+// MiniMax M2.7 returns thinking blocks before text (chain-of-thought 范式)
+// M3 returns plain text blocks. JSONDecoder keyed container 之前 hardcoded require "text" key
+// 在 content[0] → M2.7 thinking block 抛 DecodingError.keyNotFound.
+public enum MiniMaxBlock: Codable, Sendable, Equatable {
+    case text(String)
+    case thinking(text: String, signature: String?)
+    case toolUse(id: String, name: String, input: String)
+    case unknown(type: String, raw: String)
+
+    private enum CodingKeys: String, CodingKey {
+        case type, text, thinking, signature, id, name, input
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let type = (try? c.decode(String.self, forKey: .type)) ?? "unknown"
+        switch type {
+        case "text":
+            let text = try c.decode(String.self, forKey: .text)
+            self = .text(text)
+        case "thinking":
+            let thinking = try c.decode(String.self, forKey: .thinking)
+            let signature = try? c.decode(String.self, forKey: .signature)
+            self = .thinking(text: thinking, signature: signature)
+        case "tool_use":
+            let id = try c.decode(String.self, forKey: .id)
+            let name = try c.decode(String.self, forKey: .name)
+            let input = try c.decode(String.self, forKey: .input)
+            self = .toolUse(id: id, name: name, input: input)
+        default:
+            // unknown type: 容错 (Q26 原则 1 优雅降级). raw 只存 type 名, 调试时 NSLog 已印 allKeys
+            self = .unknown(type: type, raw: type)
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .text(let s):
+            try c.encode("text", forKey: .type)
+            try c.encode(s, forKey: .text)
+        case .thinking(let s, let sig):
+            try c.encode("thinking", forKey: .type)
+            try c.encode(s, forKey: .thinking)
+            try c.encodeIfPresent(sig, forKey: .signature)
+        case .toolUse(let id, let name, let input):
+            try c.encode("tool_use", forKey: .type)
+            try c.encode(id, forKey: .id)
+            try c.encode(name, forKey: .name)
+            try c.encode(input, forKey: .input)
+        case .unknown(let type, _):
+            try c.encode(type, forKey: .type)
+        }
+    }
+
+    /// 提取用户可见文本 (text blocks concat). Thinking blocks 不在此暴露, 走 ChatMessage.thinking 字段
+    public var displayText: String {
+        switch self {
+        case .text(let s): return s
+        case .thinking: return ""
+        case .toolUse: return ""
+        case .unknown: return ""
+        }
+    }
+
+    /// 提取 thinking 内容 (CoT 范式, Apple HIG footnote)
+    public var thinkingText: String? {
+        if case .thinking(let s, _) = self { return s }
+        return nil
     }
 }
 
 // v0.21 ticket 34: real LLM API usage (Apple Anthropic protocol)
-// { "usage": { "input_tokens": N, "output_tokens": N } } — total_tokens derived
+// { "usage": { "input_tokens": N, "output_tokens": N, "cache_creation_input_tokens": N, "cache_read_input_tokens": N } }
 public struct MiniMaxUsage: Codable, Sendable, Equatable {
     public let input_tokens: Int
     public let output_tokens: Int
+    public let cache_creation_input_tokens: Int?
+    public let cache_read_input_tokens: Int?
     public var total_tokens: Int { input_tokens + output_tokens }
 
-    public init(input_tokens: Int, output_tokens: Int) {
+    public init(
+        input_tokens: Int,
+        output_tokens: Int,
+        cache_creation_input_tokens: Int? = nil,
+        cache_read_input_tokens: Int? = nil
+    ) {
         self.input_tokens = input_tokens
         self.output_tokens = output_tokens
+        self.cache_creation_input_tokens = cache_creation_input_tokens
+        self.cache_read_input_tokens = cache_read_input_tokens
     }
 }
 
@@ -59,11 +133,11 @@ public struct MiniMaxResponse: Codable, Sendable {
     public let id: String
     public let model: String
     public let role: String
-    public let content: [MiniMaxContent]
+    public let content: [MiniMaxBlock]   // v0.21 ticket 39: union decode (text / thinking / tool_use)
     public let stop_reason: String?
-    public let usage: MiniMaxUsage?    // v0.21 ticket 34: real token count from LLM API
+    public let usage: MiniMaxUsage?
 
-    public init(id: String, model: String, role: String, content: [MiniMaxContent], stop_reason: String? = nil, usage: MiniMaxUsage? = nil) {
+    public init(id: String, model: String, role: String, content: [MiniMaxBlock], stop_reason: String? = nil, usage: MiniMaxUsage? = nil) {
         self.id = id
         self.model = model
         self.role = role

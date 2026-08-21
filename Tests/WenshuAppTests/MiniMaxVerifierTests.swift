@@ -28,7 +28,9 @@ struct MiniMaxVerifierTests {
         #expect(response.model == "MiniMax-M3")
         #expect(response.role == "assistant")
         #expect(!response.content.isEmpty)
-        #expect(response.content[0].text.count > 0)
+        // v0.21 ticket 39: union decode (text / thinking / tool_use)
+        let displayText = response.content.map(\.displayText).joined()
+        #expect(displayText.count > 0)
     }
 
     @Test("MiniMax key 缺失抛错")

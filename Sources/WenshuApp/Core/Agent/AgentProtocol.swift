@@ -198,7 +198,9 @@ public actor AgentProtocol {
         }
         do {
             let response = try await verifier.chat(message.content)
-            let reply = response.content.first?.text ?? "(empty reply)"
+            // v0.21 ticket 39: union decode (text / thinking / tool_use) — concat all text blocks
+            let reply = response.content.map(\.displayText).joined()
+            if reply.isEmpty { "(empty reply)" } else { reply }
             let agentMsg = AgentMessage(role: .agent, content: reply)
             task.messages.append(agentMsg)
             task.status = .completed

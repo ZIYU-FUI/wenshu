@@ -24,6 +24,7 @@ public struct ChatMessage: Equatable, Identifiable, Sendable {
     public let timestamp: Date
     public var isPlaceholder: Bool
     public var tokens: Int?    // v0.21 ticket 34: real LLM API usage.total_tokens (nil if user message or unavailable)
+    public var thinking: String?    // v0.21 ticket 39: CoT thinking content from MiniMaxBlock.thinking (folded footnote UI)
 
     public init(
         id: UUID = UUID(),
@@ -32,7 +33,8 @@ public struct ChatMessage: Equatable, Identifiable, Sendable {
         content: String,
         timestamp: Date = Date(),
         isPlaceholder: Bool = false,
-        tokens: Int? = nil
+        tokens: Int? = nil,
+        thinking: String? = nil
     ) {
         self.id = id
         self.role = role
@@ -41,6 +43,7 @@ public struct ChatMessage: Equatable, Identifiable, Sendable {
         self.timestamp = timestamp
         self.isPlaceholder = isPlaceholder
         self.tokens = tokens
+        self.thinking = thinking
     }
 }
 
@@ -130,21 +133,29 @@ public final class ChatViewModel {
             // We need to pass model to the LLM call so the AI actually uses boss's selected model
             let currentModel: String = UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? "MiniMax-M3"
             var reply: String
+            var replyThinking: String?    // v0.21 ticket 39: MiniMaxBlock.thinking footnote UI
             var replyTokens: Int?
             if let conductor = conductor {
                 let result = try await conductor.handle(userMessage: text, sessionId: sessionId, model: currentModel)
                 reply = result.reply
+                replyThinking = result.thinking
                 replyTokens = result.totalTokens
             } else {
                 // fallback 调 shared verifier — real usage from response.usage
                 let verifier = MiniMaxVerifier()
                 let response = try await verifier.chat(text, model: currentModel)
-                reply = response.content.first?.text ?? "(no reply)"
+                // v0.21 ticket 39: union decode MiniMaxBlock (text / thinking / tool_use) — concat all text blocks for reply,
+                // pick first thinking block for ChatMessage.thinking footnote UI (Apple HIG footnote 范式)
+                reply = response.content.map(\.displayText).joined()
+                if reply.isEmpty {
+                    reply = "(no reply)"
+                }
+                replyThinking = response.content.compactMap(\.thinkingText).first
                 replyTokens = response.usage?.total_tokens
             }
-            // v0.21 ticket 30: 替换 placeholder 为真实回复 (with real tokens)
+            // v0.21 ticket 30: 替换 placeholder 为真实回复 (with real tokens + thinking footnote)
             if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
-                messages[idx] = ChatMessage(id: placeholderId, role: .agent, source: .wenshu, content: reply, tokens: replyTokens)
+                messages[idx] = ChatMessage(id: placeholderId, role: .agent, source: .wenshu, content: reply, tokens: replyTokens, thinking: replyThinking)
             }
             let agentMsgStored = StoredChatMessage(id: placeholderId.uuidString, source: "wenshu", content: reply, timestamp: Date(), tokens: replyTokens)
             try? await store?.append(agentMsgStored, sessionId: sessionId)
@@ -159,8 +170,15 @@ public final class ChatViewModel {
             }
         } catch {
             // v0.21 ticket 30: 失败也替换 placeholder 为错误消息
+            // v0.21 ticket 39 Q36 .error source: 中文明确错误信息, 不直接暴露 Swift Foundation "数据丢失" 翻译
+            let errMsg: String
+            if let decodingErr = error as? DecodingError {
+                errMsg = "模型 \(currentModel) 返回数据格式不支持 (DecodingError). 真因查 stderr [wenshu.chat] decoder error 行."
+            } else {
+                errMsg = "Error: \(error.localizedDescription)"
+            }
             if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
-                messages[idx] = ChatMessage(id: placeholderId, role: .system, source: .system, content: "Error: \(error.localizedDescription)")
+                messages[idx] = ChatMessage(id: placeholderId, role: .system, source: .system, content: errMsg)
             }
             lastError = error.localizedDescription
         }
@@ -264,6 +282,7 @@ public struct ChatView: View {
 /// 1 条消息视图 (Apple HIG 真值)
 struct ChatMessageView: View {
     let message: ChatMessage
+    @State private var thinkingExpanded: Bool = false
 
     var body: some View {
         HStack(alignment: .top) {
@@ -293,6 +312,27 @@ struct ChatMessageView: View {
                     .padding(8)
                     .background(sourceColor.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
                 } else {
+                    // v0.21 ticket 39: CoT thinking block 折叠显示 (Apple HIG footnote 范式)
+                    // DisclosureGroup + 圆角 + Apple 默认动画 (.animation(.default, value:) per Q58.4)
+                    if let thinking = message.thinking, !thinking.isEmpty, message.source == .wenshu {
+                        DisclosureGroup(isExpanded: $thinkingExpanded) {
+                            Text(thinking)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                                .padding(.top, 4)
+                                .transition(.opacity)
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "brain")
+                                    .font(.caption)
+                                Text("AI 思考过程")
+                                    .font(.caption)
+                            }
+                            .foregroundStyle(.tertiary)
+                        }
+                        .animation(.default, value: thinkingExpanded)
+                    }
                     Text(message.content)
                         .textSelection(.enabled)
                         .padding(8)

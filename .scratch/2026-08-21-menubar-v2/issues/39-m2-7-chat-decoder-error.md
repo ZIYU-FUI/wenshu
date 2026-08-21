@@ -5,15 +5,15 @@
 
 **Spec 真值 (Q63 verify-before-claim, 必须先做):**
 
-Step 1 — NSLog trace 真值 (commit 1, trace line 不动业务):
-- `Sources/WenshuApp/Core/Agent/MiniMaxVerifier.swift` send() 加 3 行 NSLog:
-  - `[wenshu.chat] request: model=<m> max_tokens=<n> messages=<count>`  发出前
-  - `[wenshu.chat] response status: <code> body: <truncated utf8 500 char>`  收到后
-  - `[wenshu.chat] decoder error: <error>` 在 try decoder.decode 抛错时 catch 打印
-- 跑真 .app, 切到 MiniMax M2.7, 发问 "你在用的什么模型", 抓 stderr 真值
-- trace line Q49 audit gate pass (英文 + 唯一称谓 = 老板)
+Step 1 — NSLog trace 真值 (commit `098a5cebe fix(wenshu): v0.21 ticket 39 step 1 NSLog trace 真值`, Q63 verify-before-claim):
+- MiniMaxVerifier.send() 加 3 行 NSLog (request / response body 500 char / decoder error)
+- 跑真 .app 切到 MiniMax M2.7 发问 "你在用的什么模型", 抓 stderr 真值
+- 真因锁死 (trace line):
+  - M3 response: `content: [{"text":"我是 MiniMax-M3,由 MiniMax 开发。","type":"text"}]` → decode OK
+  - M2.7 response: `content: [{"thinking":"用户问我现在使用的是哪个模型...","signature":"ebb72a2c...","type":"thinking"}, {"text":"\n我现在使用的是 **MiniMax-M2.7** 模型...","type":"te..."]` → `DecodingError.keyNotFound: Key 'text' not found in keyed decoding container. Path: content[0]`
+- 真因 = M2.7 协议返 chain-of-thought thinking block 在 content[0] (MiniMax thinking 范式), 当前 MiniMaxContent.text 是 required → JSONDecoder throw
 
-Step 2 — 修复 (commit 2, Q57 ticket chain):
+Step 2 — 修复 (Q57 ticket chain, 单 commit):
 - 根据 NSLog 真值决定修法方向 (Q34 第 2 轮 grill 拍板):
   - 候选 A: MiniMaxResponse 加可空字段 + 多 content block 支持 (content: [MiniMaxBlock] union text/thinking/tool_use) — 最稳
   - 候选 B: decoder 改 permissive (JSONSerialization 手动 parse, 容错所有未知字段) — 中稳

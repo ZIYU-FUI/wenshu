@@ -246,7 +246,8 @@ public actor ChatSessionStore {
         """
         // 调 LLM 生成 summary (spec ticket 05 step 1 真值)
         let response = try await verifier.chat(summaryPrompt)
-        let summary = response.content.first?.text ?? ""
+        // v0.21 ticket 39: union decode (text / thinking / tool_use) — concat all text blocks for summary
+        let summary = response.content.map(\.displayText).joined()
 
         // 写 summary + 删老原文 (顺序不能反, 否则上下文丢失)
         if let firstOldId = oldMessages.first?.id {
