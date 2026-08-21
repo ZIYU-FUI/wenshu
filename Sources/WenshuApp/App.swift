@@ -569,10 +569,6 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // 同时删 SettingsEnvironmentCapturer (Q15 翻车 #11 dead code) + VibeMeter Mirror reflection NSApp.openSettings extension (Q15 翻车 #12 dead code)
         // Settings { } Scene 留着 (ticket 04 commit 984ea556b 已装 模型 Picker, 老板 8/21 拍 "配完省略显示")
         NSApp.mainMenu = installMainMenu()
-        // v0.21 ticket 03: 延迟 0.5s 弹 LLM key sheet (SwiftUI WindowGroup 创建 main NSWindow 在 applicationDidFinishLaunching 之后)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            promptForLLMKeyIfNeeded()
-        }
         // v0.20 ticket 01: 启动时注册 wenshu 主 agent (左下 zone chat UI 调用)
         let card = AgentCard(
             name: "wenshu",
@@ -907,79 +903,4 @@ struct LibraryOutlineViewContent: View {
     }
 }
 
-// v0.21 ticket 03: 弹 LLM key 输入窗 (Keychain + env 都没 key 才弹)
-// 视觉跟 Settings window 一致 (NSWindow.makeKeyAndOrderFront standalone, 浮在原 windows 上)
-@MainActor
-private func promptForLLMKeyIfNeeded() {
-    if LLMKeychain.loadKeySync() != nil { return }
-    if let envKey = ProcessInfo.processInfo.environment["MINIMAX_CN_API_KEY"], !envKey.isEmpty { return }
-
-    var enteredKey: String = ""
-
-    let sheetWindow = NSWindow(
-        contentRect: NSRect(x: 0, y: 0, width: 520, height: 240),
-        styleMask: [.titled, .closable],
-        backing: .buffered,
-        defer: false
-    )
-    sheetWindow.title = "文枢 设置"
-    sheetWindow.identifier = NSUserInterfaceItemIdentifier("wenshu.llmkey.sheet")
-    sheetWindow.isReleasedWhenClosed = false
-    sheetWindow.center()
-
-    let keyBinding = Binding<String>(
-        get: { enteredKey },
-        set: { enteredKey = $0 }
-    )
-    let rootView = KeyInputSheet(
-        key: keyBinding,
-        onSave: {
-            let key = enteredKey.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !key.isEmpty else { return }
-            Task { @MainActor in
-                do {
-                    try await LLMKeychain.shared.saveKey(key)
-                    sheetWindow.close()
-                } catch {
-                    NSLog("[wenshu.keychain] save failed: \(error)")
-                }
-            }
-        },
-        onLater: {
-            sheetWindow.close()
-        }
-    )
-    sheetWindow.contentView = NSHostingView(rootView: rootView)
-    sheetWindow.makeKeyAndOrderFront(nil)
-}
-
-/// Key 输入 sheet: SwiftUI SecureField (Apple macOS 14+ 真值, cmd+V work)
-private struct KeyInputSheet: View {
-    @Binding var key: String
-    let onSave: () -> Void
-    let onLater: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("请设置 MiniMax API Key")
-                .font(.headline)
-            Text("首次使用需要设置 LLM Key, 存 macOS Keychain (不入文件 / log / commit). 设置页 → 模型 tab 可后续修改.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            SecureField("sk-...", text: $key)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 420)
-            HStack {
-                Spacer()
-                Button("稍后", action: onLater)
-                    .keyboardShortcut(.cancelAction)
-                Button("保存", action: onSave)
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            }
-        }
-        .padding(20)
-        .frame(width: 480, height: 240)
-    }
-}
 
