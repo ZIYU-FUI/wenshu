@@ -133,7 +133,9 @@ public final class ChatViewModel {
             // v0.21 ticket 38: read current model from UserDefaults (boss 反馈 "切换了 AI 没有真的换"
             // = 原 send() 不传 model → conductor/verifier 用 hardcoded .m3)
             // We need to pass model to the LLM call so the AI actually uses boss's selected model
+            // v0.21 ticket 43 step 1 NSLog trace: 锁 effective model (Q63 verify-before-claim, 当前每次 send 重读 UserDefaults 是 ticket 38 修复落地路径)
             let currentModel: String = UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? "MiniMax-M3"
+            NSLog("[wenshu.model] effective model: %@ (UserDefaults source)", currentModel)
             var reply: String
             var replyThinking: String?    // v0.21 ticket 39: MiniMaxBlock.thinking footnote UI
             var replyTokens: Int?

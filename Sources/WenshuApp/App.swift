@@ -1111,7 +1111,23 @@ private func compactNumber(_ n: Int) -> String {
 struct ChatZoneView: View {
     let conductor: WenshuConductor?
     let store: ChatSessionStore?
+    // v0.21 ticket 43: chat zone 顶栏 3 个 tab 真切换 (老板 2026-08-22 06:22 拍 backlog 20)
+    enum ChatZoneTab: String, CaseIterable, Identifiable {
+        case chat = "对话"
+        case search = "搜索"
+        case settings = "设置"
+        var id: String { rawValue }
+        var icon: String {
+            switch self {
+            case .chat: return "person.crop.circle.badge.questionmark"  // 老板拍 "用机器人" = ticket 30+33 robot face
+            case .search: return "magnifyingglass"  // 老板拍 "保留现在的这个"
+            case .settings: return "slider.horizontal.3"  // 老板拍 "保留现在的这个"
+            }
+        }
+    }
     @State private var availableModels: [String] = MiniMaxModel.allCases.map { $0.rawValue }
+    // v0.21 ticket 43 step 1 NSLog trace: 锁 selectedTab / currentModel 当前真值 (Q63 verify-before-claim)
+    @State private var selectedTab: ChatZoneTab = .chat
     @State private var currentModel: String = UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? MiniMaxModel.m3.rawValue
     // v0.21 ticket 40: 持有 ChatViewModel 实例 + 共享给 ChatView, 让 bottom toolbar 读 vm.contextUsed 自动 propagate
     @State private var vm: ChatViewModel
@@ -1121,6 +1137,8 @@ struct ChatZoneView: View {
         self.conductor = conductor
         self.store = store
         _vm = State(initialValue: ChatViewModel(conductor: conductor, store: store))
+        // v0.21 ticket 43 step 1 NSLog trace
+        NSLog("[wenshu.tab] onAppear: selectedTab=%@ currentModel=%@", ChatZoneTab.chat.rawValue, currentModel)
     }
 
     var body: some View {
