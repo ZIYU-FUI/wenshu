@@ -23,7 +23,7 @@
 
 - 症状: wenshu ChatView 在 `ChatViewModel.send()` 异步调 LLM (verifier.chat) 时, 用户**看不到任何状态指示**
 - 风险: 用户怀疑 AI 没响应 → 体验差
-- 真值 (本轮 backlog 不修真因):
+- 真值 (本轮 backlog 不修复):
   - 在 ChatView (或 ChatZoneView 子组件) 加 AI 状态行
   - 仿 hermes 3 段布局 (左侧指示器 + 中部 status + 右侧计时)
   - 跟当前 ChatViewModel.isSending 状态联动
@@ -37,7 +37,7 @@
 - Q20 不动:
   - ChatZoneView VStack 顺序 (老板 ticket 13 拍 "就现在的位置, 不改")
   - ChatView 输入框布局
-  - ChatBottomBar 18 PT inset (ticket 13 + 14 已修真因)
+  - ChatBottomBar 18 PT inset (ticket 13 + 14 已修复)
   - Context usage 不动
   - ChatViewModel.send / clear / switchModel / loadAvailableModels API
   - WenshuConductor.handle 真值 (intent classify → 派子 agent → LLM synthesis)
@@ -51,8 +51,8 @@
   - 左: `::: ` 字符 (动态闪烁用 SwiftUI .opacity 动画 或 SwiftUI TimelineView)
   - 中: 当前 status text ("正在调 LLM" / "正在分类意图" / "正在派子 agent" 等)
   - 右: 倒计时 / 已用时间 (Text(timerInterval:))
-- ChatViewModel 修真因: 加 `@Published var currentStatus: String = ""` + `@Published var startedAt: Date?` + status callback 在 WenshuConductor.handle 各个阶段触发
-- WenshuConductor 修真因: handle 函数 status callback (intent classify / dispatch / LLM synthesis 各阶段回调)
+- ChatViewModel 修复: 加 `@Published var currentStatus: String = ""` + `@Published var startedAt: Date?` + status callback 在 WenshuConductor.handle 各个阶段触发
+- WenshuConductor 修复: handle 函数 status callback (intent classify / dispatch / LLM synthesis 各阶段回调)
 - Q20 不动 ChatZoneView VStack 顺序 (Q47 锁定 + Q51 父组件不动)
 
 **候选 C: 简单版 (老板不想太复杂时)**
@@ -62,15 +62,22 @@
 
 ### 关联
 
-- 历史: ticket 13 + 14 chat zone 底栏 18 PT inset 已修真因 (Q47 锁定实现方式不变)
-- 历史: ticket 15 + 16 + 17 提供方 API 配置已修真因
-- 历史: 之前 v0.20 ticket 04 + 05 LOGO .app bundle 范式已修真因
+- 历史: ticket 13 + 14 chat zone 底栏 18 PT inset 已修复 (Q47 锁定实现方式不变)
+- 历史: ticket 15 + 16 + 17 提供方 API 配置已修复
+- 历史: 之前 v0.20 ticket 04 + 05 LOGO .app bundle 范式已修复
 - 分支: feature/chat-bottom-toolbar-in-child (Q53 ticket 10 起, 续)
 
-### Q34 拍板
+## Q34 拍板
 
-**本轮不修真因 (老板原话 "先记一下需求，等会排期做")**. 老板下轮排期时再起新 ticket 18 (候选 A) 或 18 + 19 (候选 C 简化版).
+本轮不修复 (老板原话 "先记一下需求，等会排期做"). 老板下轮排期时再起新 ticket 18 (候选 A) 或 18 + 19 (候选 C 简化版).
 
-### Status
+## Status
 
-backlog / 等老板排期
+✅ done (老板 2026-08-22 14:30 拍 "backlog 18 已经做完了")
+
+- ticket 18 spec commit: `42dc1290b docs(wenshu): v0.21 ticket 18 AI 回复状态动态显示 spec + issue (老板 2026-08-22 06:18 拍 backlog, 14:00 拍 hermes 标准)`
+- ticket 18 impl commit: `00a22aede feat(wenshu): v0.21 ticket 18 AI 回复状态指示器 (老板 2026-08-22 06:18 拍, 推进 A = Apple ProgressView + SF Symbol pulse 联合)`
+- 实现范式: Apple ProgressView + SF Symbol `brain` + `.symbolEffect(.pulse, options: .repeating)` + Text "AI 思考中…", 仅 `isResponding == true` 时显示
+- 关联 domain commit: `9f8b87974 docs(wenshu): v0.21 ticket 16 CONTEXT.md ProviderApiTab 加 DisclosureGroup inline 展开真值` (Q57 ticket chain 范式保留)
+
+Q62 audit 留痕 (此 commit 落 `.scratch/<feature>/` 状态, 不动 Sources/WenshuApp/)

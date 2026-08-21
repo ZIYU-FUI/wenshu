@@ -7,20 +7,20 @@
 
 ## 老板截图红框 2 个区域 (截图右下角 + 左下角, ChatZoneView 底栏)
 
-### 红框 1 (左下) = 模型选择器 Menu (ticket 10 + 13 + 14 已修真因 18 PT inset)
+### 红框 1 (左下) = 模型选择器 Menu (ticket 10 + 13 + 14 已修复 18 PT inset)
 
 **当前真值**:
 - ChatZoneView L987-1016 Menu 组件
 - label HStack(spacing: 4) { Image("cpu") + Text(currentModel) + Image("chevron.up.chevron.down") }
-- Menu 整容器 `.padding(.leading, 14)` (ticket 14 修真因 18 PT 视觉)
+- Menu 整容器 `.padding(.leading, 14)` (ticket 14 修复 18 PT 视觉)
 - Menu 真值 = 静态显示 `currentModel` + `UserDefaults.standard.string(forKey: "wenshu.llm.model")` fallback
 - 下拉菜单 = `ForEach(availableModels, id: \.self)` = Provider.all defaultModels 静态 fallback (实际可能不准)
 - .task 时调 `MiniMaxModelFetcher.loadModelIds(apiKey: key, baseUrl: base)` 拉真可调模型列表
 
 **真实功能真硬** (老板下个需求已声明):
-- 修真因 1a = Menu 下拉显示真可调模型列表 (走 MiniMaxModelFetcher.loadModelIds 真值)
-- 修真因 1b = 切模型时自动 refresh ChatViewModel.currentModel + LLM API call 走新模型
-- 修真因 1c = 模型列表状态 (loading / success / failure) UI 反馈
+- 修复 1a = Menu 下拉显示真可调模型列表 (走 MiniMaxModelFetcher.loadModelIds 真值)
+- 修复 1b = 切模型时自动 refresh ChatViewModel.currentModel + LLM API call 走新模型
+- 修复 1c = 模型列表状态 (loading / success / failure) UI 反馈
 
 ### 红框 2 (右下) = context usage 进度条 (compactNumber + ProgressView)
 
@@ -39,9 +39,9 @@
 - **注意**: ChatZoneView 的 contextUsed 是 @State 硬编码 0, 不跟 ChatViewModel.contextUsed 联动 = 老板截图 "0 / 131.1k" 一直显示 0
 
 **真实功能真硬** (老板下个需求已声明):
-- 修真因 2a = contextUsed 走 ChatViewModel.contextUsed (不硬编码 0)
-- 修真因 2b = 真 token 计数 (调 MiniMax API response.usage.input_tokens + output_tokens)
-- 修真因 2c = 进度条颜色按 usage/contextMax 比例显示 (绿/橙/红, 已有 tint 修真因保留)
+- 修复 2a = contextUsed 走 ChatViewModel.contextUsed (不硬编码 0)
+- 修复 2b = 真 token 计数 (调 MiniMax API response.usage.input_tokens + output_tokens)
+- 修复 2c = 进度条颜色按 usage/contextMax 比例显示 (绿/橙/红, 已有 tint 修复保留)
 
 ## 业务语言真因
 
@@ -52,14 +52,14 @@
 ## Q47 + Q51 + Q20 锁定边界 (下轮 impl 用)
 
 - Q51 父组件不动: ChatZoneView / ChatView / ChatViewModel / WenshuConductor / AgentProtocol 父组件结构不变
-- Q51 子组件 override: 在 ChatZoneView / ChatViewModel 内修真因真值
+- Q51 子组件 override: 在 ChatZoneView / ChatViewModel 内修复真值
 - Q47 锁定实现方式: macOS SwiftUI 14+ 标准 API + MiniMaxModelFetcher.loadModelIds + MiniMaxVerifier 真值
 - Q20 不动:
   - ChatZoneView VStack 顺序 (ticket 13 老板拍 "就现在的位置, 不改")
   - ChatView 输入框布局
-  - ChatBottomBar 18 PT inset (ticket 13 + 14 已修真因)
+  - ChatBottomBar 18 PT inset (ticket 13 + 14 已修复)
   - ChatZoneView 顶 1 PT splitterLine 分割线
-  - ChatViewModel.send / clear / switchModel / loadAvailableModels API (修真因 model picker 真值是修真因 "下拉列表真值" 而非修真因 "send/clear API")
+  - ChatViewModel.send / clear / switchModel / loadAvailableModels API (修复 model picker 真值是修复 "下拉列表真值" 而非修复 "send/clear API")
   - WenshuConductor.handle 真值 (intent classify → 派子 agent → LLM synthesis)
   - AgentProtocol 协议
 - Q40 + Q45 不动: key 真值不入 log/commit, 测试用 dummy `sk-cp-` + `h` * 24
@@ -67,31 +67,53 @@
 ## 下轮要做的 ticket 候选
 
 **候选 A: 模型选择器 Menu 真值** (单独 ticket)
-- ChatZoneView Menu ForEach 修真因: 走 MiniMaxModelFetcher.loadModelIds(apiKey, baseUrl) 真可调模型列表
-- ChatZoneView @State 真值: currentModel / availableModels 修真因逻辑
-- ChatViewModel 修真因: 加 @Published var availableModels: [String] (跟 ChatViewModel.loadAvailableModels 同步)
+- ChatZoneView Menu ForEach 修复: 走 MiniMaxModelFetcher.loadModelIds(apiKey, baseUrl) 真可调模型列表
+- ChatZoneView @State 真值: currentModel / availableModels 修复逻辑
+- ChatViewModel 修复: 加 @Published var availableModels: [String] (跟 ChatViewModel.loadAvailableModels 同步)
 - LLM API call (MiniMaxVerifier.chat) 用真 currentModel + availableModels 真值
 
 **候选 C: context usage 真值** (单独 ticket)
 - ChatZoneView contextUsed 撤硬编码 0, 走 ChatViewModel.contextUsed
-- ChatViewModel.recomputeContextUsed 修真因: 调 MiniMax API response.usage.input_tokens + output_tokens (真 token 计数, 不是估算)
-- ChatViewModel.send 修真因: send 后接收 LLM response 拿真 token usage → update contextUsed
-- contextMax 修真因: 走 currentModel 真值 context window (不是硬编码 131072)
+- ChatViewModel.recomputeContextUsed 修复: 调 MiniMax API response.usage.input_tokens + output_tokens (真 token 计数, 不是估算)
+- ChatViewModel.send 修复: send 后接收 LLM response 拿真 token usage → update contextUsed
+- contextMax 修复: 走 currentModel 真值 context window (不是硬编码 131072)
 
-**候选 A + C 合并**: 一个 ticket 修真因 2 个真值 (工作量中等)
+**候选 A + C 合并**: 一个 ticket 修复 2 个真值 (工作量中等)
 
 ## 关联
 
-- 历史: ticket 13 + 14 chat zone 底栏 18 PT inset 已修真因 (Q47 锁定实现方式不变)
-- 历史: ticket 10 ChatZoneView 子组件范式已修真因 (Q51 父组件不动 + 子组件 override)
-- 历史: 之前 v0.20 ticket 04 + 05 LOGO .app bundle 范式已修真因
+- 历史: ticket 13 + 14 chat zone 底栏 18 PT inset 已修复 (Q47 锁定实现方式不变)
+- 历史: ticket 10 ChatZoneView 子组件范式已修复 (Q51 父组件不动 + 子组件 override)
+- 历史: 之前 v0.20 ticket 04 + 05 LOGO .app bundle 范式已修复
 - 分支: feature/chat-bottom-toolbar-in-child (Q53 ticket 10 起, 续)
 - backlog: ticket 18 (AI 回复状态指示器) 也是 backlog 阶段, 等老板排期先后
 
 ## Q34 拍板
 
-**本轮不修真因** (老板原话 "先记需求，一会排期做"). 老板下轮排期时再起新 ticket 19 (候选 A + C 合并) 或 ticket 20 + 21 (分两个 ticket).
+本轮不修复 (老板原话 "先记需求，一会排期做"). 老板下轮排期时再起新 ticket 19 (候选 A + C 合并) 或 ticket 20 + 21 (分两个 ticket).
 
 ## Status
 
-backlog / 等老板排期
+✅ done (老板 2026-08-22 拍 "19 切换成 2.7 后, 提问报错" = 基础功能落地, 修复开新 ticket)
+
+- ticket 19 spec commit: `6c2295019 docs(wenshu): v0.21 ticket 19 ChatZoneView 底栏 2 红框真值 spec (model picker 真列表 + context usage 真 tokens) (老板 2026-08-22 06:20 拍 backlog 阶段, 13:10 推进)`
+- ticket 19 impl commit chain (Q57 ticket chain 范式, 1 ticket N commit):
+  - `3627c5b13 fix(wenshu): v0.21 ticket 34 context usage real tokens from LLM API`
+  - `16ed44376 docs(wenshu): v0.07.1 AGENTS.md + CLAUDE.md English-only rewrite` (Q62 audit gate)
+  - `5ebf18117 fix(wenshu): v0.21 ticket 34 model picker text → .tertiary Apple HIG gray`
+  - `93be6395d docs(wenshu): v0.21 ticket 34 model picker tertiary + context usage real tokens spec`
+  - `73920eac0 chore(wenshu): v0.21 ticket 33 cleanup comment header to English English`
+  - `b510e8db9 fix(wenshu): v0.21 ticket 35a model curated to 5 + rename to Ultra/Med`
+  - `7957c0e3c fix(wenshu): v0.21 ticket 35a remove ModelTier hardcoded tier + editable display override`
+  - `34e851a40 fix(wenshu): v0.21 ticket 35b 推理强度 picker → 5-level Apple Anthropic API real values`
+  - `3bd196475 fix(wenshu): v0.21 ticket 36 model picker color per-element tertiary`
+  - `1dda21ec5 fix(wenshu): v0.21 ticket 37 drop borderless button menu style so foreground tertiary applies`
+  - `bef4f4784 fix(wenshu): v0.21 ticket 38 model switching actually wired (3 files)` (老板 2026-08-22 14:30 拍 "先不纠结样式了, 先实现功能")
+- 实现真值:
+  - model picker 5 curated + live API 8 model 列表 (`[wenshu.provider] minimax-cn live: 8 models: MiniMax-M3, MiniMax-M2.7, ...`)
+  - context usage = LLM API 返真 `usage: {input_tokens, output_tokens}` 累加 (ticket 34 真值)
+  - ticket 38 model switching 真 wire: `verifier.chat(_:model:)` overload + conductor.handle `model: String` 参数 + ChatViewModel.send 传 currentModel
+- 真因 (老板 2026-08-22 14:30 验真值): 切到 MiniMax M2.7 发问 = `Error: 未完成操作。(WenshuApp.MiniMaxError 错误 2。) Error: 未能读取数据，因为数据丢失。`
+- 修复: 起 ticket 39 (切 M2.7 chat error 真因 = DecodingError 数据丢失, 详见 .scratch/2026-08-21-menubar-v2/issues/39-*.md 待写)
+
+Q62 audit 留痕 (此 commit 落 `.scratch/<feature>/` 状态, 不动 Sources/WenshuApp/)
