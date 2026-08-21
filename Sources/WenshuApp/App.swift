@@ -781,6 +781,134 @@ struct ZoneTopToolbar: View {
 /// 区域底部工具栏: 30 PT 高, 左/右各占位文字 + 顶 2 PT 分割线.
 /// 宽度由父组件约束自动撑到区域模块宽度 (不画穿 splitter).
 struct ZoneBottomToolbar: View {
+    var body: some View {
+        let toolbarH = LayoutTokens.toolbarHeight
+        DesignColor.zoneSurface
+            .frame(height: toolbarH)
+            .overlay(alignment: .top) {
+                DesignColor.splitterLine.frame(height: 1)
+            }
+            .overlay(alignment: .bottomLeading) {
+                Text("占位文字")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.tertiary)
+                    .padding(.leading, 18)
+                    .padding(.bottom, 6)
+                    .frame(height: toolbarH, alignment: .bottomLeading)
+                    .allowsHitTesting(false)
+            }
+            .overlay(alignment: .bottomTrailing) {
+                Text("占位文字")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.tertiary)
+                    .padding(.trailing, 18)
+                    .padding(.bottom, 6)
+                    .frame(height: toolbarH, alignment: .bottomTrailing)
+                    .allowsHitTesting(false)
+            }
+    }
+}
+
+/// Master 4: 区域模块 (顶 30 + 内容 + 底 30 = 472 PT, 接受 6 slot)
+struct ZoneModule: View {
+    let slot: ZoneSlot
+    let vm: LayoutShellViewModel
+    let totalW: CGFloat  // 父 band 宽, 算比例
+    let bandH: CGFloat
+    @Environment(WenshuLibrary.self) private var library
+
+    private var toolbarH: CGFloat { LayoutTokens.toolbarHeight }  // v0.15 ticket 008: 老板 Sketch 真值 30 PT 1:1 硬编码
+    /// 老板 8/18 Q2 答: 4 PT inset = 单一垂直方向 (spec §3.2 "背景 y=60~884, 正文 y=64~882", 上下 4 PT 视觉下沉, 左右 flush)
+    /// v0.15 ticket 005 改名: editorInsetRatio → editorVerticalInsetRatio (明确垂直方向)
+    private var editorInset: CGFloat { bandH * LayoutTokens.editorVerticalInsetRatio }  // 4 PT 单一垂直
+    // v0.10.8: 撤掉 chatInputW/H 私有属性, 老板 8/18 拍 "新图没画聊天输入框"
+    private var innerBandH: CGFloat { bandH - 2 * toolbarH }  // 顶栏底栏间内容区
+
+    var body: some View {
+        // 区域模块 = 顶栏 (上) + 内容区 (中) + 底栏 (下).
+        // 顶/底栏宽度不写死, 由 VStack 子 view 默认 stretch 撑到区域模块宽度 (不画穿 splitter).
+        // 内容区撑满剩余空间.
+        VStack(spacing: 0) {
+            ZoneTopToolbar(iconNames: ["book.closed", "magnifyingglass", "slider.horizontal.3"])
+                .frame(height: toolbarH, alignment: .top)  // 顶栏高度 30 PT
+            content
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            ZoneBottomToolbar()
+                .frame(height: toolbarH, alignment: .bottom)  // 底栏高度 30 PT
+        }
+        // 内容区背景色: 动态区用更深的底色
+        .background(slot == .aiDynamic ? DesignColor.dynamicZoneSurface : .clear)
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        // v0.15 ticket 005 范式: 每个 case 自己 Color + overlay (跟 ticket 005 一样, ticket 006 撤回 P3-4)
+        switch slot {
+        case .projectSidebar:
+            // 项目侧栏嵌入 WenshuLibrary 真实内容 (LIBRARY overlay label v0.10.10d 删)
+            DesignColor.zoneSurface.overlay(alignment: .topLeading) {
+                LibraryOutlineViewContent(library: library)
+            }
+        case .projectPreview:
+            DesignColor.zoneSurface
+        case .editor:
+            // 老板 8/18 Q2 答: 4 PT inset 两层设计, 单一垂直方向 (spec §3.2 背景 y=60~884, 正文 y=64~882, 上下 4 PT 视觉下沉, 左右 flush)
+            // v0.15 重写前 bug: .padding(editorInset) 是全 4 方向 inset, 破左右 flush 设计意图 → 改 [.top, .bottom] 单垂直
+            DesignColor.zoneSurface
+                .overlay {
+                    Color.white.opacity(0.55)
+                        .padding([.top, .bottom], editorInset)
+                }
+        case .specializedTools:
+            DesignColor.zoneSurface
+        case .aiChat:
+            // v0.21 ticket 06: 接入 ChatView (左下 zone 真 chat UI + Agent 对话) + 集成 conductor + chat store
+            VStack(spacing: 0) {
+                ChatView(
+                    conductor: WenshuAppDelegate.sharedConductor,
+                    store: WenshuAppDelegate.sharedChatStoreRef
+                )
+                ChatBottomToolbar()
+            }
+        case .aiDynamic:
+            DesignColor.zoneSurface
+        }
+    }
+}
+
+/// 6 instance 槽位 (boss Sketch 组件化 6 master 派生)
+/// 6 个 instance 槽位 (老板 8/18 组件化 6 master 派生; v0.10.3 下 band 拆 chatSidebar + chatDialogue 2 子区)
+enum ZoneSlot {
+    case projectSidebar
+    case projectPreview
+    case editor
+    case specializedTools
+    case aiChat        // 老板 8/18 拍 "上四下两", 下 band 整宽 AI聊天 (含原 v0.10.3 拆的 chatSidebar + chatDialogue)
+    case aiDynamic
+}
+
+// MARK: - Library outline (项目侧栏嵌入)
+
+/// 项目侧栏内容 (WenshuLibrary 真实内容)
+/// v0.10.10d 删 LIBRARY overlay label (老板 8/18 拍 "对齐了, 不用文字标签")
+/// v0.15 ticket 005: 删 LibraryOutlineViewContent.libraryHeader 死代码 + 改 comment
+struct LibraryOutlineViewContent: View {
+    let library: WenshuLibrary
+    var body: some View {
+        LibraryOutlineView(library: library)
+            .padding(.vertical, 2)
+            .padding(8)
+            .allowsHitTesting(false)
+    }
+}
+
+
+
+
+/// 聊天区底栏 (v0.21 ticket 06): 复用 ZoneBottomToolbar 视觉范式 + 替换左/右占位文字
+/// 左 = model picker (cpu + currentModel + chevron, Hermes 真值)
+/// 右 = compactNumber(contextUsed) + compactNumber(contextMax) + ProgressView
+struct ChatBottomToolbar: View {
     @State private var availableModels: [String] = MiniMaxModel.allCases.map { $0.rawValue }
     @State private var currentModel: String = UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? MiniMaxModel.m3.rawValue
     @State private var contextUsed: Int = 0
@@ -842,99 +970,6 @@ struct ZoneBottomToolbar: View {
             }
     }
 }
-
-/// Master 4: 区域模块 (顶 30 + 内容 + 底 30 = 472 PT, 接受 6 slot)
-struct ZoneModule: View {
-    let slot: ZoneSlot
-    let vm: LayoutShellViewModel
-    let totalW: CGFloat  // 父 band 宽, 算比例
-    let bandH: CGFloat
-    @Environment(WenshuLibrary.self) private var library
-
-    private var toolbarH: CGFloat { LayoutTokens.toolbarHeight }  // v0.15 ticket 008: 老板 Sketch 真值 30 PT 1:1 硬编码
-    /// 老板 8/18 Q2 答: 4 PT inset = 单一垂直方向 (spec §3.2 "背景 y=60~884, 正文 y=64~882", 上下 4 PT 视觉下沉, 左右 flush)
-    /// v0.15 ticket 005 改名: editorInsetRatio → editorVerticalInsetRatio (明确垂直方向)
-    private var editorInset: CGFloat { bandH * LayoutTokens.editorVerticalInsetRatio }  // 4 PT 单一垂直
-    // v0.10.8: 撤掉 chatInputW/H 私有属性, 老板 8/18 拍 "新图没画聊天输入框"
-    private var innerBandH: CGFloat { bandH - 2 * toolbarH }  // 顶栏底栏间内容区
-
-    var body: some View {
-        // 区域模块 = 顶栏 (上) + 内容区 (中) + 底栏 (下).
-        // 顶/底栏宽度不写死, 由 VStack 子 view 默认 stretch 撑到区域模块宽度 (不画穿 splitter).
-        // 内容区撑满剩余空间.
-        VStack(spacing: 0) {
-            ZoneTopToolbar(iconNames: ["book.closed", "magnifyingglass", "slider.horizontal.3"])
-                .frame(height: toolbarH, alignment: .top)  // 顶栏高度 30 PT
-            content
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            ZoneBottomToolbar()
-                .frame(height: toolbarH, alignment: .bottom)  // 底栏高度 30 PT
-        }
-        // 内容区背景色: 动态区用更深的底色
-        .background(slot == .aiDynamic ? DesignColor.dynamicZoneSurface : .clear)
-    }
-
-    @ViewBuilder
-    private var content: some View {
-        // v0.15 ticket 005 范式: 每个 case 自己 Color + overlay (跟 ticket 005 一样, ticket 006 撤回 P3-4)
-        switch slot {
-        case .projectSidebar:
-            // 项目侧栏嵌入 WenshuLibrary 真实内容 (LIBRARY overlay label v0.10.10d 删)
-            DesignColor.zoneSurface.overlay(alignment: .topLeading) {
-                LibraryOutlineViewContent(library: library)
-            }
-        case .projectPreview:
-            DesignColor.zoneSurface
-        case .editor:
-            // 老板 8/18 Q2 答: 4 PT inset 两层设计, 单一垂直方向 (spec §3.2 背景 y=60~884, 正文 y=64~882, 上下 4 PT 视觉下沉, 左右 flush)
-            // v0.15 重写前 bug: .padding(editorInset) 是全 4 方向 inset, 破左右 flush 设计意图 → 改 [.top, .bottom] 单垂直
-            DesignColor.zoneSurface
-                .overlay {
-                    Color.white.opacity(0.55)
-                        .padding([.top, .bottom], editorInset)
-                }
-        case .specializedTools:
-            DesignColor.zoneSurface
-        case .aiChat:
-            // v0.21 ticket 06: 接入 ChatView (左下 zone 真 chat UI + Agent 对话) + 集成 conductor + chat store
-            ChatView(
-                conductor: WenshuAppDelegate.sharedConductor,
-                store: WenshuAppDelegate.sharedChatStoreRef
-            )
-        case .aiDynamic:
-            DesignColor.zoneSurface
-        }
-    }
-}
-
-/// 6 instance 槽位 (boss Sketch 组件化 6 master 派生)
-/// 6 个 instance 槽位 (老板 8/18 组件化 6 master 派生; v0.10.3 下 band 拆 chatSidebar + chatDialogue 2 子区)
-enum ZoneSlot {
-    case projectSidebar
-    case projectPreview
-    case editor
-    case specializedTools
-    case aiChat        // 老板 8/18 拍 "上四下两", 下 band 整宽 AI聊天 (含原 v0.10.3 拆的 chatSidebar + chatDialogue)
-    case aiDynamic
-}
-
-// MARK: - Library outline (项目侧栏嵌入)
-
-/// 项目侧栏内容 (WenshuLibrary 真实内容)
-/// v0.10.10d 删 LIBRARY overlay label (老板 8/18 拍 "对齐了, 不用文字标签")
-/// v0.15 ticket 005: 删 LibraryOutlineViewContent.libraryHeader 死代码 + 改 comment
-struct LibraryOutlineViewContent: View {
-    let library: WenshuLibrary
-    var body: some View {
-        LibraryOutlineView(library: library)
-            .padding(.vertical, 2)
-            .padding(8)
-            .allowsHitTesting(false)
-    }
-}
-
-
-
 
 /// compactNumber: 真实 token count 折 compact 格式 (Hermes format_token_count_compact 真值)
 private func compactNumber(_ n: Int) -> String {
