@@ -1,0 +1,89 @@
+# backlog — ticket 20 聊天区顶栏 tab 真正切换功能 (老板 2026-08-22 06:22 拍 backlog 阶段)
+
+## 老板拍的真值 (verbatim)
+
+- "实现真正的 teb 切换功能" (老板拼了 tab = = "teb")
+- "聊天区，顶栏的 ICON"
+- "第一个用机器人"
+- "第二个第三个，可以保留现在的这个，先放着，后面实现对应的两个视图的功能"
+- "**先记需求，一会排期实现**"
+
+## 老板截图红框真值
+
+截图红框圈的是聊天区顶栏 = **3 个 tab icon**:
+- 第 1 个 = 文档 icon (老板拍 "用机器人" = 改成机器人 icon = 真修真因)
+- 第 2 个 = 搜索 icon (老板拍 "保留现在的这个, 先放着, 后面实现")
+- 第 3 个 = 滑块 icon (老板拍 "保留现在的这个, 先放着, 后面实现")
+
+视觉上 = 当前可能没装真正的 tab 切换 (老板拍 "实现真正的 tab 切换功能" = 当前没有真 tab 切换, 只是 icon 占位)
+
+## 业务语言真因
+
+- 症状: 聊天区顶栏 3 个 icon (文档 / 搜索 / 滑块), 老板点 icon 不能切到对应视图
+- 风险: 老板看不出点 icon 后会显示什么 (没有 tab 切换反馈)
+- 老板要的:
+  1. **第 1 个 tab** = 改成机器人 icon (SF Symbol "cpu" / "person.crop.circle.badge.questionmark" 等 Apple HIG 真值)
+     + **实现真正 tab 切换功能** = 点了显示对应视图 (= 当前 chat zone 那个 chat UI, 没新逻辑)
+  2. **第 2 + 第 3 个 tab** = 保留当前 icon, **先放着, 后面实现对应视图** = 暂不修真因 (下轮 backlog ticket 21 + 22)
+
+## Q47 + Q51 + Q20 锁定边界 (下轮 impl 用)
+
+- Q51 父组件不动: ChatZoneView / ChatView / LayoutShellView / ZoneModule 父组件结构不变
+- Q51 子组件 override: 在 ChatZoneView 内加 tab bar (新 SwiftUI 子组件) + 修真因 ChatZoneView body 加 @State 选中的 tab + 3 个 tab 视图
+- Q47 锁定实现方式: macOS SwiftUI 14+ 标准 TabView API (Apple HIG 真值 = TabView) 或自定义 HStack + Button(.plain) 整条热区
+- Q20 不动:
+  - ChatZoneView 底栏 (ChatBottomBar 18 PT inset, ticket 13 + 14 已修真因)
+  - ChatZoneView 顶 1 PT splitterLine 分割线
+  - ChatView 输入框 + 消息列表 + ChatMessageView
+  - ChatViewModel.send / clear / switchModel / loadAvailableModels API
+  - LayoutShellView / ZoneModule 父组件
+  - WenshuConductor / AgentProtocol 协议
+  - App.swift .commands { SettingsLink } + Settings Scene
+
+## 下轮要做的 ticket 候选
+
+**候选 A: tab bar 第 1 个 = ChatView (仿 hermes chat 范式, 当前实现保留)**
+- ChatZoneView 顶栏 tab bar 加新 SwiftUI 子组件
+- 顶栏 tab bar 真值 = HStack(spacing: 0) { 3 个 Button(.plain) + Spacer + 已设 key / 已设模型 status }
+- 第 1 个 tab Button 真值:
+  - icon = "cpu" (Apple SF Symbol 机器人, 替代当前 "text.book.closed.fill")
+  - 点击 → 切到 ChatView (当前实现, 没新逻辑)
+- 第 2 + 第 3 个 tab Button 真值:
+  - icon 保留当前 (搜索 / 滑块)
+  - 点击 → 暂不切视图 (下轮 ticket 21 + 22 修真因)
+- ChatZoneView body 加 @State private var selectedChatTab: ChatTab = .chat
+- ChatTab enum = .chat / .search / .settings (3 cases, 后 2 个 view 留 placeholder)
+- ChatZoneView body 改:
+  ```
+  VStack {
+      ChatTabBar(selectedTab: $selectedChatTab)  // 新子组件
+      Divider
+      switch selectedChatTab {
+      case .chat: ChatView  // 当前实现
+      case .search: Text("搜索 (待实现)")  // placeholder
+      case .settings: Text("设置 (待实现)")  // placeholder
+      }
+      Divider
+      ChatBottomBar  // ticket 13 + 14 修真因真值
+  }
+  ```
+- Q51 父组件 (LayoutShellView / ZoneModule / ChatZoneView body VStack 顺序) 不动
+- Q47 锁定实现方式不变
+
+**候选 A + B 合并**: 第 1 个 tab 真修真因 (老板本次需求), 第 2 + 第 3 个 tab 留 placeholder (下轮 ticket 21 + 22 修真因)
+
+## 关联
+
+- 历史: ticket 09 + 10 ChatZoneView 子组件范式已修真因 (Q51 父组件不动 + 子组件 override)
+- 历史: ticket 13 + 14 ChatBottomBar 18 PT inset 已修真因
+- 历史: ticket 15 + 16 + 17 提供方 API 配置已修真因
+- backlog: ticket 18 (AI 回复状态指示器) + ticket 19 (模型 + context 真实功能) 等老板排期
+- 分支: feature/chat-bottom-toolbar-in-child (Q53 ticket 10 起, 续)
+
+## Q34 拍板
+
+**本轮不修真因** (老板原话 "先记需求，一会排期实现"). 老板下轮排期时再起新 ticket 20.
+
+## Status
+
+backlog / 等老板排期
