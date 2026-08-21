@@ -1,39 +1,43 @@
 AGENTS.md
 
-本文件 = wenshu 项目基线 + 跨角色称谓硬约束。单 agent (pocock profile) 直接对话,不走派单 / 不走看板 / 不走 6 角色流程。版本号 8/18 拍 v0.07(pocock single agent 净化版)。
+# Hard rule (project-wide, non-negotiable)
 
-执行硬规:
-- 第一行是事实
-- 末行就是事实
-- 禁中性词:可/应当/或许/可能/应该/建议/考虑/试图/尽量/大概/也许/或/任意/大概率/通常/一般来说
-- 用确词:是/否/行/不行/可以/不可以/不变/变
-- 修真词禁用 (修真/渡劫/筑基/返虚/结丹/金丹/元婴/飞升/天劫/雷劫/心魔/魔障):修真 = 之前 agent 把修正误写成修真,沿 8/18 排查真值。commit body / 注释 / 文档 / prompt / 卡 body 一律改用 修 / 改 / fix / 替换 / 调整
-- 对老板 的唯一称谓 = 老板,不混用旧称谓
+- This file is **English only**. No Chinese, no CJK punctuation, no mixed CJK + Latin characters.
+- All commit messages, comments, prompts, .scratch/ spec.md, .scratch/ issues/, .scratch/ backlog files, CONTEXT.md, README.md, CLAUDE.md, and any docs in this repo follow the same English-only rule.
+- Sole address for the user = "老板" (the literal characters). All earlier honorifics are banned.
+- Forbidden neutral words (replaced with certain words): 可 / 应当 / 或许 / 可能 / 应该 / 建议 / 考虑 / 试图 / 尽量 / 大概 / 也许 / 或 / 任意 / 大概率 / 通常 / 一般来说 → use 是 / 否 / 行 / 不行 / 可以 / 不可以 / 不变 / 变.
+- Forbidden Chinese vocabulary (replaced with / fix / 替换 / 调整 / 改): 修真 / 渡劫 / 筑基 / 返虚 / 结丹 / 金丹 / 元婴 / 飞升 / 天劫 / 雷劫 / 心魔 / 魔障. Historical note: 修真 = an earlier agent's typo for 修正. Use 修 / 改 / fix / 替换 / 调整 in commit body / comment / doc / prompt / card body.
+- First line of every doc = fact. Last line of every doc = fact.
 
-# 11 项目基线
+This file = wenshu project baseline + cross-role address hard constraint. Single agent (pocock profile) direct dialog, no dispatch / no board / no 6-role flow. Version 8/18拍 v0.07 (pocock single agent purified version).
 
-- 架构:Swift/SwiftUI + CoreData + 单进程协程 + 自建轻量 AI 内核
-- 不调任何外部 AI 平台
-- 第一版 LLM provider 只支持 minimax cn(Anthropic 兼容协议)
-- .ws 单文件 = CoreData + 附件,本地自管
-- Apple 全家桶专属(macOS/iPad/iPhone)
-- 项目根 = /Volumes/ANAN/Engineering/wenshu/
-- Apple Developer Program 发布时再付(个人 $99/年)
-- 版本号:三位(Hermes 风格),中间位 = 阶段号,第三位 = hotfix
-- 3 文档 = 本文件 + README.md + CLAUDE.md
-- 不带 hermes monorepo 痕迹(不再 fork)
-- 不带 Tauri / Rust / SQLite / Vue 3 痕迹
-- 不带 sparse clone 假设
-- 不带 novel-platform / novel-craft / Hermes-Slate-Desk 旧 V0.5.x 协议
-- 不调任何外部 AI 平台任何代码文件
-- 不替老板 决定 LLM key 配置
-- 不在 ~/wenshu-plugin/ 之外建项目目录
-- 不写 ~/.wenshu/ 任何文件
-- 不自写 wenshu CLI(文枢 = Swift 桌面应用,不是 CLI)
-- 不动 ~/.hermes/ 下 hermes 自带文件
-- 不动 .archive/wenshu-monorepo-fork/ 任何文件
+# §11 Project baseline
 
-# 12 跨角色表达硬约束
+- Stack = Swift / SwiftUI + CoreData + single-process coroutine + self built lightweight AI kernel
+- No external AI platform calls (any code file)
+- v1 LLM provider only supports minimax cn (Anthropic compatible protocol)
+- .ws single file = CoreData + attachments, locally self managed
+- Apple stack exclusive (macOS / iPad / iPhone)
+- Project root = /Volumes/ANAN/Engineering/wenshu/
+- Apple Developer Program paid on release (individual $99 / year)
+- Version format = three digits (Hermes style), middle digit = phase, third digit = hotfix
+- 3 docs = this file + README.md + CLAUDE.md
+- No hermes monorepo trace (no longer fork)
+- No Tauri / Rust / SQLite / Vue 3 trace
+- No sparse clone assumption
+- No novel-platform / novel-craft / Hermes-Slate-Desk legacy V0.5.x protocol
+- Do not decide LLM key config for 老板
+- Do not create project dir outside ~/wenshu-plugin/
+- Do not write any file to ~/.wenshu/
+- Do not self write wenshu CLI (文枢 = Swift desktop app, not CLI)
+- Do not touch any hermes self owned file under ~/.hermes/
+- Do not touch any file under .archive/wenshu-monorepo-fork/
 
-- 对老板 的唯一称谓 = 老板,任何对话 / 文档 / commit message / comment / prompt 一律用老板
-- 不出现任何指向该用户的旧称谓写法
+# §12 Cross-role expression hard constraint
+
+- Sole address for 老板 = 老板. Every dialog / doc / commit message / comment / prompt uses 老板.
+- No earlier honorific forms allowed.
+
+---
+
+*AGENTS.md v0.07.1 · 2026-08-22 pocock single agent · English-only cleanup · project root = /Volumes/ANAN/Engineering/wenshu/*
