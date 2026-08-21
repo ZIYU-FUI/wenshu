@@ -1,0 +1,69 @@
+# backlog — ticket 27 设置弹窗 tab 切换大小自适应内容 (老板 2026-08-22 拍 backlog 阶段)
+
+## 老板拍的真值 (verbatim)
+
+老板 2026-08-22 拍:
+- "**然后 pages 的设置 teb 切换，不是根据内容自动适配弹窗大小吗？这个你也没实现**"
+- "**这个记个需求吧，后面实现**"
+
+## 老板截图真值
+
+老板原话 "pages 的设置" = Apple **Pages** app (苹果办公软件) 的设置弹窗 = 弹窗大小根据当前 tab 内容自动适配。老板期望 wenshu 设置弹窗 = 切 tab 时弹窗大小自动调整。
+
+## 业务语言真因
+
+- 症状: wenshu 设置弹窗 = 固定大小 .frame(width: 600, height: 480) (L280 ticket 21 落地). 切 tab 时弹窗大小不变.
+- 风险: 切到内容多的 tab (比如 "提供方 API" 11 个 providers) = 内容被截断或留空白
+- 老板要的: 切 tab 时弹窗大小自动调整 = 适配当前 tab 内容 (= Pages.app 范式)
+
+## 当前真值 (Q32 audit)
+
+- App.swift SettingView L280 `.frame(width: 600, height: 480)` = 固定大小
+- 弹窗 NSWindow 大小 = 启动时设固定 + 不响应内容变化
+- Apple 真值 = macOS SwiftUI Settings { } Scene 默认行为 = 弹窗大小固定 (不自动适配)
+- Pages.app 用 NSWindow 自实现 + 自动 resize (Apple 真值 = NSSizeContentView + window setContentSize)
+
+## Q47 + Q51 + Q20 锁定边界 (下轮 impl 用)
+
+- Q51 父组件不动: SettingView 父组件结构保留
+- Q51 子组件 override: 在 SettingView body 修真因 @State 跟踪当前 tab + compute tab 实际高度
+- Q47 锁定实现方式: macOS SwiftUI 14+ 标准 API (macOS 14+ SwiftUI Settings Scene 仍可能不支持 size auto-fit, 可能需要切 NSWindow 自实现)
+- Q20 不动:
+  - 现有 SettingView 3 tab (.general / .providerApi / .model) 结构保留
+  - providerTab 函数保留 + ProviderKeychain 后端保留
+  - providerApiTab / providerApiRow / providerApiEditor 保留
+  - LLMKeychain / AppDelegate / NSApp.mainMenu / .commands
+  - LayoutShellView / ZoneModule / ChatZoneView / ChatView
+  - ticket 26 修真因 (Apple DisclosureGroup) 保留
+  - WenshuInteractionAnimationPrinciple + WenshuCommonSenseInteractionPrinciple (CONTEXT.md domain words 保留)
+  - Info.plist CFBundle 真值 (ticket 25 修真因真值保留)
+
+## 下轮要做的 ticket 候选
+
+**候选 A: 修真因 Settings { } Scene → 自实现 NSWindow + Settings 内容 view + 监听 tab 变化 + resize window** (Apple Pages 范式, 修真因 Q47 锁定)
+- 修真因真值: Apple 真值 macOS 14+ SwiftUI Settings Scene API 不支持 size auto-fit
+- 修真因法: 撤 `Settings { SettingView() }` Scene → 自实现 NSWindow + SettingView + window.setContentSize(contentHeight)
+- 修真因: 监听 selectedTab 变化 → compute 当前 tab content height → resize window
+- WenshuCommonSenseInteractionPrinciple 老板原话 "使用苹果的 API 实现像苹果官方一样的优雅的交互动画" = 仿 Apple Pages.app 范式
+
+**候选 B: 修真因 .frame(width: 600, height: 480) 为 .frame(minWidth: 480, idealWidth: 600, maxWidth: 800, minHeight: 400, idealHeight: 480, maxHeight: 600) + 撤 height 固定** (简化版本, 弹窗 initial size = 600x480, 切 tab 时 size 不变 = 不真 adapter)
+- 修真因不彻底 (仍固定 ideal) = 候选 A 优
+
+**候选 C: 修真因 SettingView 用 `ViewThatFits` + `GeometryReader` 测 content height → 修真因 within view** (Apple SwiftUI 14+ GeometryReader 真值)
+- 修真因: GeometryReader 在 SwiftUI Settings { } Scene 内 = NSWindow 不会响应 = 老板可能看不到
+
+**最优修真因真硬真值** = 候选 A (Apple Pages 范式 + 自实现 NSWindow + 修真因 selectTab 变化 → resize window 高度)。
+
+## 关联
+
+- 历史: ticket 13 + 14 + 15 + 16 + 17 + 21 (Pages toolbar 范式) + 22 + 23 + 25 + 26 修真因链
+- backlog: ticket 18 (AI 回复状态指示器) + ticket 19 (模型 + context 真实功能) + ticket 20 (聊天区顶栏 tab 切换) + ticket 27 (本轮) 等老板排期
+- 分支: feature/chat-bottom-toolbar-in-child (Q53 ticket 10 起, 续)
+
+## Q34 拍板
+
+**本轮不修真因** (老板原话 "这个记个需求吧，后面实现"). 老板下轮排期时再起新 ticket 27.
+
+## Status
+
+backlog / 等老板排期
