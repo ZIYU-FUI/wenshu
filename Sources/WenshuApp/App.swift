@@ -1126,9 +1126,12 @@ struct ChatZoneView: View {
         }
     }
     @State private var availableModels: [String] = MiniMaxModel.allCases.map { $0.rawValue }
-    // v0.21 ticket 43 step 1 NSLog trace: 锁 selectedTab / currentModel 当前真值 (Q63 verify-before-claim)
+    // v0.21 ticket 43 step 3: picker ↔ UserDefaults 同步修复 = @AppStorage (Apple SwiftUI 真值, 源单一 UserDefaults, 双向自动同步)
+    // 修复前 ChatZoneView.currentModel 是 @State 不绑 UserDefaults, ChatViewModel.currentModel 是 init default 读 UserDefaults 一次 = 切 picker 后两条状态链断开
+    // @AppStorage 是 Apple HIG 真值, 源单一 UserDefaults, 自动响应变化, 修复 picker 跟 ChatViewModel 同步
+    @AppStorage("wenshu.llm.model") private var currentModel: String = MiniMaxModel.m3.rawValue
+    // v0.21 ticket 43 step 1 NSLog trace: 锁 selectedTab 当前真值 (Q63 verify-before-claim)
     @State private var selectedTab: ChatZoneTab = .chat
-    @State private var currentModel: String = UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? MiniMaxModel.m3.rawValue
     // v0.21 ticket 40: 持有 ChatViewModel 实例 + 共享给 ChatView, 让 bottom toolbar 读 vm.contextUsed 自动 propagate
     @State private var vm: ChatViewModel
     private let contextMax: Int = 131072
@@ -1142,14 +1145,29 @@ struct ChatZoneView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            ChatView(conductor: conductor, store: store, vm: vm)
-            HStack(spacing: 0) {
+            VStack(spacing: 0) {
+                // v0.21 ticket 43 step 2: 聊天区顶栏 3 个 tab 真切换 (老板拍 backlog 20, 修复 step 1 NSLog 锁 picker sync)
+                // Apple HIG 真值: Button(.plain) + contentShape(Rectangle()) 整条热区响应 (ticket 17 + 21 已修复范式)
+                // + .foregroundStyle(.accentColor) 选中态高亮
+                // + Apple 默认动画 .animation(.default, value: selectedTab) (Q58.4)
+                ChatZoneTabBar(selectedTab: $selectedTab)
+                Group {
+                    switch selectedTab {
+                    case .chat:
+                        ChatView(conductor: conductor, store: store, vm: vm)
+                    case .search:
+                        ChatZoneStubView(title: "搜索", icon: "magnifyingglass")
+                    case .settings:
+                        ChatZoneStubView(title: "设置", icon: "slider.horizontal.3")
+                    }
+                }
+                .animation(.default, value: selectedTab)
+                HStack(spacing: 0) {
                 Menu {
                     ForEach(ModelDisplay.curated(availableModels), id: \.self) { entry in
                         Button(entry.display) {
+                            // v0.21 ticket 43 step 3: @AppStorage 自动写 UserDefaults (Apple HIG 真值, 不手动 set)
                             currentModel = entry.id
-                            UserDefaults.standard.set(entry.id, forKey: "wenshu.llm.model")
                         }
                     }
                 } label: {
@@ -1202,5 +1220,57 @@ struct ChatZoneView: View {
             }
             .background(DesignColor.zoneSurface)
         }
+    }
+}
+
+/// v0.21 ticket 43: ChatZoneTabBar = 聊天区顶栏 3 个 tab 真切换 (老板拍 backlog 20)
+/// Apple HIG 真值: Button(.plain) + contentShape(Rectangle()) 整条热区响应 (ticket 17 + 21 已修复范式)
+/// + .foregroundStyle(.accentColor) 选中态高亮 + Apple 默认动画
+struct ChatZoneTabBar: View {
+    @Binding var selectedTab: ChatZoneView.ChatZoneTab
+
+    var body: some View {
+        HStack(spacing: 9) {
+            ForEach(ChatZoneView.ChatZoneTab.allCases) { tab in
+                Button {
+                    selectedTab = tab
+                } label: {
+                    Image(systemName: tab.icon)
+                        .font(.system(size: 18))
+                        .foregroundStyle(tab == selectedTab ? Color.accentColor : DesignColor.accentBlue)
+                }
+                .buttonStyle(.plain)
+                .contentShape(Rectangle())
+            }
+        }
+        .padding(.leading, 18)
+        .padding(.top, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(height: LayoutTokens.toolbarHeight)  // 30 PT (跟其它 5 区 ZoneTopToolbar 一致)
+        .background(DesignColor.zoneSurface)
+        .overlay(alignment: .bottom) {
+            DesignColor.splitterLine.frame(height: 1)
+        }
+        .animation(.default, value: selectedTab)
+    }
+}
+
+/// v0.21 ticket 43: ChatZoneStubView = 第 2/3 个 tab 占位视图 (老板拍 '先放着, 后面实现')
+/// Apple HIG 真值: VStack 居中 + 大 icon + '开发中' placeholder 文字 + 灰色调
+struct ChatZoneStubView: View {
+    let title: String
+    let icon: String
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 48))
+                .foregroundStyle(.tertiary)
+            Text("\(title) (开发中)")
+                .font(.system(size: 15))
+                .foregroundStyle(.tertiary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(DesignColor.zoneSurface)
     }
 }
