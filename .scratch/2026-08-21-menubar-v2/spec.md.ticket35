@@ -1,6 +1,6 @@
-# ticket 35 — Hermes parity: thinking + reasoning strength + curated 5-model list (老板 2026-08-22)
+# ticket 35 — Hermes parity (full hermes settings UI parity, split into 3 sub-tickets per boss authorize) (老板 2026-08-22)
 
-**Status:** ready-for-agent
+**Status:** ready-for-agent, split into 3 sub-tickets per boss拍 B 拍
 
 ## Boss requirements (verbatim, 4 items from hermes screenshot)
 
@@ -8,6 +8,50 @@
 2. "**只有5个模型可选**" (= curate from 8 raw API models down to 5)
 3. "**你看一下 hermes 的，还有思考力度**" (= copy hermes 思考 toggle + 推理强度 slider)
 4. "**如果修好了，拉起来 APP 我看**" (= verify in running app)
+
+## Sub-ticket breakdown (per boss authorize B)
+
+### ticket 35a — Model curated to 5 + rename + tier field
+
+Scope:
+1. `Sources/WenshuApp/Core/Provider/Provider.swift` — add `tier: ModelTier?` field on `Provider` struct
+   - New enum `ModelTier: String, Codable { case ultra, med }`
+2. `Sources/WenshuApp/Core/Agent/MiniMaxModel.swift` — curate `defaultModels` to 5 (drop -highspeed variants)
+3. `Sources/WenshuApp/Core/Provider/ProviderCatalog.swift` — rename model display names:
+   - `MiniMax-M3` → `MiniMax M3 Ultra`
+   - `MiniMax-M2.7` → `MiniMax M2.7 Med`
+   - `MiniMax-M2.5` → `MiniMax M2.5 Med`
+   - `MiniMax-M2.1` → `MiniMax M2.1 Med`
+   - `MiniMax-M2` → `MiniMax M2 Med`
+4. `Sources/WenshuApp/App.swift` ChatZoneView model picker Menu label = `"{name} · {tier}"` format
+5. Curate logic: dropdown shows `live API models filtered by !contains "-highspeed"` (=5 from8) PLUS tier display name
+6. Refresh model button (manual API call, bypass 1h cache)
+
+Why first: smallest scope (1 commit), biggest visual impact (boss sees 5-model curated dropdown immediately)
+
+### ticket 35b — ChatSettings store + 思考 toggle + 推理强度 picker
+
+Scope:
+1. `Sources/WenshuApp/State/ChatSettings.swift` (NEW FILE) — `@MainActor` ObservableObject with:
+   - `@Published var thinkingEnabled: Bool` (default false)
+   - `@Published var reasoningEffort: ReasoningEffort` (default .ultra)
+   - `enum ReasoningEffort: String, Codable, CaseIterable { case minimal, low, medium, high, veryHigh, max, ultra }`
+   - Display labels: minimal="最小", low="低", medium="中", high="高", veryHigh="极高", max="最高", ultra="超高"
+   - Persisted via `@AppStorage`
+2. Settings UI panel in `Sources/WenshuApp/Views/Settings/SettingsView.swift`:
+   - 思考 Toggle (.toggle(...))
+   - 推理强度 Picker (7 levels)
+3. Edit model... button → sheet with custom JSON model list
+
+### ticket 35c — MiniMaxRequest thinking + reasoning_effort API field
+
+Scope:
+1. `Sources/WenshuApp/Core/Agent/MiniMaxVerifier.swift`:
+   - New `ThinkingConfig` struct (Codable, Sendable)
+   - `MiniMaxRequest` add `thinking: ThinkingConfig?` + `reasoning_effort: String?`
+2. `Sources/WenshuApp/Views/Chat/ChatView.swift` + `Sources/WenshuApp/Core/Agent/WenshuConductor.swift`:
+   - Wire ChatSettings into all MiniMaxRequest constructions
+   - Map `ReasoningEffort` enum → `reasoning_effort` API string ("low" / "medium" / "high")
 
 ## Hermes reference (boss screenshot)
 
@@ -24,59 +68,16 @@
   - Buttons: 刷新模型 / 编辑模型...
 - Bottom = current model display `MiniMax M3 · Ultra` (model · tier format)
 
-## Q32 root cause audit
+## Q32 root cause audit (verified live API data)
 
-**Fix scope = 6 file changes + 1 spec + 1 backlog**:
+`MiniMaxModelFetcher.fetchLiveModelIds` returns8 model IDs (verified via NSLog capture):
+```
+MiniMax-M3, MiniMax-M2.7, MiniMax-M2.7-highspeed, MiniMax-M2.5, MiniMax-M2.5-highspeed, MiniMax-M2.1, MiniMax-M2.1-highspeed, MiniMax-M2
+```
 
-1. **`Sources/WenshuApp/Core/Agent/MiniMaxModel.swift`** — add `tier` field to `Provider` struct
-   - New enum `ModelTier: String, Codable { case ultra, med }`
-   - `Provider` struct: add `var tier: ModelTier?` (optional = legacy models without tier)
-   - Curate `defaultModels` to 5 = `[m3ultra, m27med, m2_5med, m2_1med, m2med]`
-   - Or keep 8 default + curate via `curatedModels` computed property
+Hermes drops the3 `-highspeed` variants → curated5. Display name transform `MiniMax-M3` → `MiniMax M3 Ultra` (remove dash + add tier suffix).
 
-2. **`Sources/WenshuApp/Core/Provider/ProviderCatalog.swift`** — update model names
-   - Rename: `MiniMax-M3` → `MiniMax M3 Ultra`
-   - Rename: `MiniMax-M2.7` → `MiniMax M2.7 Med`
-   - Rename: `MiniMax-M2.5` → `MiniMax M2.5 Med`
-   - Rename: `MiniMax-M2.1` → `MiniMax M2.1 Med`
-   - Rename: `MiniMax-M2` → `MiniMax M2 Med`
-   - Delete: M2.7-highspeed, M2.5-highspeed, M2.1-highspeed, M2-her (5 → 4 dropped, -highspeed variants not in hermes 5)
-
-3. **`Sources/WenshuApp/State/ChatSettings.swift`** (NEW FILE) — chat settings store
-   - `@MainActor` `class ChatSettings: ObservableObject`
-   - `@Published var thinkingEnabled: Bool` (default false, persisted via `@AppStorage("wenshu.thinking")`)
-   - `@Published var reasoningEffort: ReasoningEffort` (default `.ultra`, persisted)
-   - `enum ReasoningEffort: String, Codable, CaseIterable { case minimal, low, medium, high, veryHigh, max, ultra }`
-   - Display label: minimal="最小", low="低", medium="中", high="高", veryHigh="极高", max="最高", ultra="超高"
-
-4. **`Sources/WenshuApp/Core/Agent/MiniMaxVerifier.swift`** — add `thinking` + `reasoning_effort` to `MiniMaxRequest`
-   ```swift
-   public struct ThinkingConfig: Codable, Sendable {
-       public let type: String  // "enabled"
-       public let budget_tokens: Int?
-   }
-   public struct MiniMaxRequest: Codable, Sendable {
-       public let model: String
-       public let max_tokens: Int
-       public let messages: [MiniMaxMessage]
-       public let thinking: ThinkingConfig?
-       public let reasoning_effort: String?  // "low" / "medium" / "high"
-   }
-   ```
-   - Update init + encoder
-
-5. **`Sources/WenshuApp/Views/Chat/ChatView.swift`** + **`Sources/WenshuApp/Views/Settings/SettingsView.swift`** — settings UI panel
-   - Settings tab "模型" or new ChatSettings tab:
-     - 思考 Toggle (`.toggle(...)`)
-     - 推理强度 `Picker(selection, label: Text("推理强度")) { ForEach(ReasoningEffort.allCases, id: ...) { ... } }`
-     - Selected model display = `"{name} · {tier}"` (e.g. `MiniMax M3 · Ultra`)
-   - Refresh model button = `Button("刷新模型") { Task { await refreshModels() } }`
-   - Edit model... button = sheet with `@AppStorage("wenshu.customModels")` JSON array
-
-6. **`Sources/WenshuApp/App.swift`** ChatZoneView — wire ChatSettings into MiniMaxVerifier calls
-   - When constructing `MiniMaxRequest`, set `thinking` + `reasoning_effort` from `ChatSettings`
-
-## Q20 immovable (hard constraint)
+## Q20 immovable (hard constraint, applies to all 3 sub-tickets)
 
 - ChatZoneView / ChatView / ChatViewModel / WenshuConductor / AgentProtocol parent structures preserved
 - ChatBottomBar 18 PT inset (ticket 13 + 14) preserved
@@ -91,29 +92,29 @@
 - .formStyle(.grouped) preserved
 - .transition / .animation preserved
 
-## Q51 parent immovable + child override
+## Q51 parent immovable + child override (all 3 sub-tickets)
 
-- SettingsView parent: small change (add 思考 + 推理强度 section)
-- ChatZoneView parent: small change (model picker display format)
-- New ChatSettings child: new file, no parent impact
-- MiniMaxRequest child: add 2 fields, no parent impact
-- MiniMaxModel child: add tier field, no parent impact
+- SettingsView parent: small changes per sub-ticket
+- ChatZoneView parent: small changes per sub-ticket
+- New ChatSettings child (35b): new file, no parent impact
+- MiniMaxRequest child (35c): add 2 fields, no parent impact
+- MiniMaxModel + Provider child (35a): add tier field + curated list, no parent impact
 
-## Q47 locked implementation
+## Q47 locked implementation (all 3 sub-tickets)
 
-- macOS SwiftUI 14+ standard API (Toggle, Picker segmented/slider, AppStorage)
-- Apple Anthropic protocol `thinking` + `reasoning_effort` fields
+- macOS SwiftUI 14+ standard API (Toggle, Picker segmented, AppStorage)
+- Apple Anthropic protocol `thinking` + `reasoning_effort` fields (Apple official spec)
 - No custom animation (WenshuInteractionAnimationPrinciple hard)
 - No UIKit (CLAUDE.md L42)
 - No scope expansion (WenshuCommonSenseInteractionPrinciple hard)
 
-## 5 principles (Q26)
+## 5 principles (Q26, all 3 sub-tickets)
 
 1. Apple official paradigm: Toggle + Picker + AppStorage + Apple Anthropic thinking/reasoning_effort fields
 2. Pseudo-Apple official style: SF Symbol icons + semantic colors
-3. Effect priority: 6 files, moderate work
+3. Effect priority: split into 3 smaller commits (boss authorized B)
 4. Business language: "思考 + 推理强度 + 5 model curated", boss understands
-5. PO main flow: 1 ticket 1 commit, spec + impl same commit (Q29), boss authorized "全修" = skip dual-axis review
+5. PO main flow: 1 sub-ticket 1 commit, spec + impl same commit (Q29), boss authorized "全修" + B = skip dual-axis review
 
 ## Q40 + Q43 + Q45 hard constraints
 
@@ -122,24 +123,38 @@
 - Tests use dummy `sk-cp-` + `h` * 24
 - No boss real key in any .scratch/ spec.md / issue / commit message (Q45)
 
-## Acceptance
+## Acceptance (per sub-ticket)
 
-- [1] `ModelTier` enum + `tier` field on Provider struct
-- [2] Curated 5-model dropdown (Ultra/Med naming format) replaces 8-model list
-- [3] Current model display format = `"{name} · {tier}"`
-- [4] `ChatSettings` ObservableObject with thinkingEnabled + reasoningEffort
-- [5] Settings UI panel with 思考 Toggle + 推理强度 Picker (7 levels)
-- [6] `MiniMaxRequest` Codable add `thinking: ThinkingConfig?` + `reasoning_effort: String?`
-- [7] Wire ChatSettings into all MiniMaxRequest constructions (ChatZoneView + WenshuConductor)
-- [8] Refresh model button (manual API refresh, bypass 1h cache)
-- [9] Edit model... sheet (custom JSON model list)
-- [10] Boss macOS verify: 思考 toggle works, 推理强度 picker works, dropdown shows 5 models with `M3 Ultra` style names, current model shows `M3 · Ultra` format
-- [11] swift build exit 0
-- [12] swift test exit 0 (ProviderKeychain 5/5 pass, no regression)
+### ticket 35a acceptance
+- [1] `ModelTier` enum (ultra / med)
+- [2] `Provider` struct add `tier: ModelTier?` field
+- [3] `MiniMaxModel` defaultModels curated to 5
+- [4] `ProviderCatalog` model display names renamed (Ultra/Med format)
+- [5] ChatZoneView model picker = 5 models filtered from API (drop -highspeed)
+- [6] Current model display = `"{name} · {tier}"` format
+- [7] Refresh model button works (manual API refresh)
+- [8] Boss macOS verify: dropdown shows 5 models with new naming
+- [10] swift build exit 0, swift test exit 0
+
+### ticket 35b acceptance
+- [1] `ChatSettings` ObservableObject + `@AppStorage` persistence
+- [2] `ReasoningEffort` enum (7 levels)
+- [3] Settings UI panel: 思考 toggle + 推理强度 picker
+- [4] Edit model... sheet
+- [5] Boss macOS verify: 思考 toggle + 推理强度 picker both work
+- [6] swift build exit 0
+
+### ticket 35c acceptance
+- [1] `ThinkingConfig` struct (Codable, Sendable)
+- [2] `MiniMaxRequest` add `thinking: ThinkingConfig?` + `reasoning_effort: String?`
+- [3] Wire ChatSettings into MiniMaxRequest constructions
+- [4] ReasoningEffort enum → API string mapping
+- [5] Boss macOS verify: real LLM call uses thinking + reasoning_effort fields
+- [6] swift build exit 0, swift test exit 0
 
 ## Related
 
-- Deps: ticket 13 + 14 (model picker 18 PT inset) + ticket 34 (model picker tertiary + real tokens)
-- History: ticket 13 + 14 + 15 + 16 + 17 + 21 + 22 + 23 + 25 + 28 + 29 + 30 + 31 + 32 + 33 + 34 + 35
+- Deps: ticket 13 + 14 (model picker 18 PT inset) + ticket 34 (model picker tertiary + real tokens) + ticket 35 NSLog (commit b50303935, debug verification)
+- History: ticket 13 + 14 + 15 + 16 + 17 + 21 + 22 + 23 + 25 + 28 + 29 + 30 + 31 + 32 + 33 + 34 + 35a + 35b + 35c
 - Backlog: ticket 20 + 27 waiting on boss
 - Branch: feature/agentan-bottom-toolbar-in-child
