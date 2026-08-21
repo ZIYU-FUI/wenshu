@@ -197,6 +197,29 @@ struct WenshuApp: App {
             SettingView()
         }
         .commands {
+            // 老板 8/10 01:43 真值 6 项菜单 (文枢/文件/编辑/显示/窗口/帮助) — macOS SwiftUI 14+ CommandGroup 范式
+            // 文枢 (.appInfo / .appTermination) — Settings 已接管, 退出用 .appTermination
+            // 文件 (.newItem) — cmd+N 新建项目
+            CommandGroup(after: .newItem) {
+                Button("新建项目", action: {})
+                    .keyboardShortcut("n", modifiers: .command)
+            }
+            // 编辑 (.undoRedo) — 撤销/重做 (走 SwiftUI first responder, 文本框自动 enable/disable)
+            CommandGroup(replacing: .undoRedo) {
+                Button("撤销", action: {})
+                    .keyboardShortcut("z", modifiers: .command)
+                Button("重做", action: {})
+                    .keyboardShortcut("Z", modifiers: [.command, .shift])
+            }
+            // 显示 (无 CommandGroup, 用 .windowArrangement?) — 显示菜单 + 恢复默认布局
+            CommandMenu("显示") {
+                Button("恢复默认布局") {
+                    NotificationCenter.default.post(name: .wenshuResetLayout, object: nil)
+                }
+                .keyboardShortcut("R", modifiers: [.command, .shift])
+            }
+            // 窗口 (.windowList) — macOS 自动接管, 不需要装
+            // 帮助 (.help) — macOS 自动接管
             CommandGroup(replacing: .appSettings) {
                 SettingsLink()
             }
