@@ -266,7 +266,8 @@ struct ChatMessageView: View {
                 if message.isPlaceholder {
                     // v0.21 ticket 30: 文枢 AI placeholder status indicator (小机器人 + 小菊花 + 思考中文字)
                     HStack(spacing: 4) {
-                        Image(systemName: "faceid")
+                        // v0.21 ticket 32: faceid 不是小机器人, 老板接受 brain (Apple SF Symbol 4+ 真值)
+                        Image(systemName: "brain")
                             .symbolEffect(.pulse, options: .repeating)
                             .foregroundStyle(.secondary)
                         Text(message.content)
