@@ -95,7 +95,7 @@ public actor WenshuConductor {
         return finalReply
     }
 
-    /// parseAgentList: 解析 LLM 输出的 JSON array (容错: 真值可能返 ["search"] 或 [search, outline] 或 ['search'])
+    /// parseAgentList: 解析 LLM 输出的 JSON array (容错: 真值会有返 ["search"] 或 [search, outline] 或 ['search'])
     private func parseAgentList(_ raw: String) -> [String] {
         // 简单 regex: 抓 [...] 内容
         guard let start = raw.firstIndex(of: "["),

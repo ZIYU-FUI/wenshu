@@ -89,7 +89,7 @@ struct ChatSessionStoreTests {
         let cutoff = try await store.summaryCutoffTimestamp(sessionId: "default", keepLastN: 10)
         #expect(cutoff != nil)
         // SQLite LIMIT 1 OFFSET N: skip N rows, 取第 N+1 行. count=25, keepLastN=10, offset=15 → 取 index 15 (timestamp = t0 + 15 = 15.0)
-        // 但实际 SQLite timeIntervalSince1970 double精度可能有 +/- 1 偏移, 用容差 0.001
+        // 但实际 SQLite timeIntervalSince1970 double 精度有 +/- 1 偏移, 用容差 0.001
         let cutoffTime = cutoff!.timeIntervalSince(t0)
         #expect(abs(cutoffTime - 15.0) < 0.001)
     }

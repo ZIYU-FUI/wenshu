@@ -30,9 +30,9 @@ extension Notification.Name {
 
 /// Apple Semantic Color — 全 dark mode 适配, 0 RGB 硬编码 (DesignTokens.swift v0.10.6 移到 App.swift)
 enum DesignColor {
-    /// 标题栏 (boss Sketch #393939) → NSColor.windowBackgroundColor
+    /// 标题栏 (老板 Sketch #393939) → NSColor.windowBackgroundColor
     static let titleBar: Color = Color(nsColor: .windowBackgroundColor)
-    /// 内容区底色 (boss Sketch #202020) → NSColor.controlBackgroundColor
+    /// 内容区底色 (老板 Sketch #202020) → NSColor.controlBackgroundColor
     static let zoneSurface: Color = Color(nsColor: .controlBackgroundColor)
     static let dynamicZoneSurface: Color = Color(nsColor: .underPageBackgroundColor)
     /// 强调蓝 (Apple 系统亮色)
@@ -213,9 +213,9 @@ struct WenshuApp: App {
 
 /// 设置页: Pages 范式真值 (v0.21 ticket 06)
 /// 老板 8/21 拍 'Pages 范式实现设置面板的 UI, 用 macOS 27 的组件'
-/// = 顶部 toolbar (3 个 segmented tab, Pages 真值真值, 老板画的图 2 红框位置)
+/// = 顶部 toolbar (3 个 segmented tab, Pages 真值, 老板画的图 2 红框位置)
 /// 不是 macOS Settings { } Scene 自动装标题栏 segmented tab 按钮 (commit 0082bd1fe + 030a58355 真硬违反)
-/// Pages 真值真值 (红框位置) = 窗口内容顶部 toolbar 切换, 不是窗口标题栏按钮
+/// Pages 真值 (红框位置) = 窗口内容顶部 toolbar 切换, 不是窗口标题栏按钮
 struct SettingView: View {
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
     @AppStorage("wenshu.llm.provider") private var providerSlug: String = Provider.minimaxCn.slug
@@ -793,7 +793,7 @@ struct ZoneIcon: View {
     let size: CGFloat
     var body: some View {
         // 老板 8/18 拍 SF Symbol 替换矩形占位
-        // v0.15 ticket 017.5 修: 老板 2026-08-19 拍 "SF Symbol 应该是字号, 不是尺寸"
+        // v0.15 ticket 017.5 修: 老板 2026-08-19 拍 "SF Symbol 是是字号, 不是尺寸"
         // 只用 .font(.system(size:)) 给字号, 不用 .frame 约束尺寸
         // SF Symbol 字号 18 PT 视觉占 SF Symbol 默认 padding (~16 PT 视觉), 不撑 18×18 框
         Image(systemName: systemName)
@@ -887,7 +887,7 @@ struct ZoneModule: View {
 
     var body: some View {
         // 区域模块 = 顶栏 (上) + 内容区 (中) + 底栏 (下). 
-        // .aiChat 跳过底栏: ChatZoneView 自带底栏 (= v0.21 ticket 10 修真因 替换 chat zone 底栏 '占位文字' 位置)
+        // .aiChat 跳过底栏: ChatZoneView 自带底栏 (= v0.21 ticket 10 修因因 替换 chat zone 底栏 '占位文字' 位置)
         VStack(spacing: 0) {
             ZoneTopToolbar(iconNames: ["book.closed", "magnifyingglass", "slider.horizontal.3"])
                 .frame(height: toolbarH, alignment: .top)
@@ -933,7 +933,7 @@ struct ZoneModule: View {
     }
 }
 
-/// 6 instance 槽位 (boss Sketch 组件化 6 master 派生)
+/// 6 instance 槽位 (老板 Sketch 组件化 6 master 派生)
 /// 6 个 instance 槽位 (老板 8/18 组件化 6 master 派生; v0.10.3 下 band 拆 chatSidebar + chatDialogue 2 子区)
 enum ZoneSlot {
     case projectSidebar

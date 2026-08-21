@@ -288,7 +288,7 @@ struct LibraryStoringContractTests {
 
     // MARK: - Document ops (v0.03.0, = document module end-to-end)
     //
-    // v53 (= boss 8/15 17:48 '3 类, 卡片显示文档的中心思想'). The
+    // v53 (= 老板 8/15 17:48 '3 类, 卡片显示文档的中心思想'). The
     // library has grown document operations: loadDocuments /
     // loadDocumentContent / saveDocument / deleteDocument. These
     // match the new BookCategory + Document domain types added in

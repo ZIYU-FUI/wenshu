@@ -2,7 +2,7 @@
 //
 // The 'New Book' / 'Rename Book' modal.
 //
-// v52 (= boss 8/15 17:32 '书名, 篇幅选择, 创意点, 然后新建') adds the
+// v52 (= 老板 8/15 17:32 '书名, 篇幅选择, 创意点, 然后新建') adds the
 // New Book Creation Wizard. Three fields:
 //   - 书名 (title)            required, TextField, autofocus
 //   - 篇幅 (length)           Picker (.segmented), default .medium

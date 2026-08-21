@@ -2,7 +2,7 @@
 
 > 老板 8/11 17:00 OOB: "先从 GIT 借鉴我 anget 研发团队的现有模式,代入到我们的五个角色(CC 包含,但不是角色),如果更好的组织,更好的实现我的需求,不要一个需求推动一整天,修改多次。先讨论如果在大流程层面,能让大家都能发挥自己的 100% 能力,能守住质量关"
 >
-> 老板 8/11 19:35 OOB: "这种卡写权限的事,别再出现,我一直都是和你在对话的,这种时候就应该是你来写,然后和我要权限,你在卡片里,我都无法授权"
+> 老板 8/11 19:35 OOB: "这种卡写权限的事,别再出现,我一直都是和你在对话的,这种时候就是是你来写,然后和我要权限,你在卡片里,我都无法授权"
 >
 > 老板 8/11 19:45 OOB: "你继续推进吧"
 
@@ -23,9 +23,9 @@
 
 ## 4 角色意见汇总 (AIF 大管家 19:45 落档)
 
-### 1. designer 6 改建议 (comment 296 + 305)
+### 1. designer 6 改 (comment 296 + 305)
 
-designer 派单流程 6 改建议:
+designer 派单流程 6 改:
 
 - (1) **§10 流程图加 "AIF 主动 CUA 拍 6 截图" 1 行** (AIF 19:35 已落 wenshu/AGENTS.md §10.3 P12.1 ✅)
 - (2) **截图真值路径统一到 `wenshu-pour/architecture/screenshots/`** (避免散落, AIF 已存 13 张 ✅)
@@ -52,7 +52,7 @@ PM-direct 自纠: "不要让老板 在 hermes 看板里拍 ABC" = AIF 19:35 直�
 
 reviewer 自承错:
 
-- (1) **V0Fix3 PASS-WITH-NOTES 自报漏洞 1 但没推动修真** (V0-fix-1 commit 1512a68d3 老板 重启发现 2 处消失, reviewer 没推动修真 = **reviewer 环节漏**)
+- (1) **V0Fix3 PASS-WITH-NOTES 自报漏洞 1 但没推动修因** (V0-fix-1 commit 1512a68d3 老板 重启发现 2 处消失, reviewer 没推动修因 = **reviewer 环节漏**)
 - (2) **t_6fcac2c3 spawn 死没主动 claim** (designer 5 次 worker crashed 同模式, reviewer 没主动 claim = **reviewer 主动出击不够**)
 - (3) **reviewer 后续审查必跑 CUA 6 截图对比** (落 AGENTS.md §10.3 P12.1, AIF 19:35 commit 269a0f774 ✅)
 
@@ -61,7 +61,7 @@ reviewer 自承错:
 ### 4. CC (claude-code) 答问题
 
 - CC 卡 `t_5e70071b` 已 archive (合并冗余, AIF 大管家同步代完成 B1+B2 路径)
-- **CC 真跑**: `t_df09dd09` LT-N3-cc (commit `90680db55`) 修真中上 EditorView + 4 view + 2 store + WenshuProjectStore+LTN3 + 5 unit test
+- **CC 真跑**: `t_df09dd09` LT-N3-cc (commit `90680db55`) 修因 EditorView + 4 view + 2 store + WenshuProjectStore+LTN3 + 5 unit test
 
 ## 5 流程改进 (AIF 大管家 19:45 总结)
 
@@ -93,7 +93,7 @@ reviewer 自承错:
 
 - 老板 8/11 16:30 拍: "1 张卡 4 角色都能接,然后大家在卡里评论,像开会一样"
 - 派 4 张问题收集卡 (designer / PM-direct / reviewer / CC) + 1 张群策群力开会卡 (合并)
-- 4 角色 comment 汇总 (designer 6 改建议 + PM-direct 5 派单协议 + reviewer 3 自承错 + CC 真跑 LT-N3)
+- 4 角色 comment 汇总 (designer 6 改 + PM-direct 5 派单协议 + reviewer 3 自承错 + CC 真跑 LT-N3)
 - AIF 大管家沉淀本报告 (`4-role-collab-2026-08-11.md`), 反馈老板
 
 ## 老板 头尾规则 (AIF 大管家承诺)
@@ -112,12 +112,12 @@ reviewer 自承错:
 3. `/Users/anbaiqiang/.hermes/profiles/reviewer/skills/wenshu-reviewer-methodology/SKILL.md` §P9a.2 (reviewer 4 列必显式 + 真值反模式 + 全量对账)
 4. `/Volumes/ANAN/Engineering/wenshu/wenshu-pour/architecture/4-role-collab-2026-08-11.md` (**本报告**, AIF 大管家 19:45 落)
 5. commit `269a0f774` (wenshu/AGENTS.md §3 + P12 + P12.1, AIF 19:35 commit, push 双仓)
-6. commit `90680db55` (LT-N3-cc 修真中上 EditorView + 4 view + 2 store + 5 test, t_df09dd09 CC commit)
+6. commit `90680db55` (LT-N3-cc 修因 EditorView + 4 view + 2 store + 5 test, t_df09dd09 CC commit)
 
 ## AIF 大管家继续推进 (5 件事, 老板 8/11 19:45 拍 "你继续推进吧")
 
 1. ✅ 写 4 角色群策群力总结报告 (本文件)
-2. ⏳ 回应 designer 6 改建议 (AIF 大管家在对话里直接答, 不派卡)
+2. ⏳ 回应 designer 6 改 (AIF 大管家在对话里直接答, 不派卡)
 3. ⏳ 回应 reviewer 拒绝 CUA 替代 (reviewer 保持独立性, AIF 答 CUA 仅作 §9.2 视觉验证)
 4. ⏳ 持续监控 LT-N3-cc (`t_df09dd09` 已 done, AIF 主动调 kanban_complete + commit follow-up)
 5. ⏳ AIF 大管家下次 4 角色开会 = V0-fix-11 跑完后 (5 角色 LOOP 流程改进 v2)

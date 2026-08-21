@@ -39,7 +39,7 @@ struct AVMediaToolsTests {
     func testAvailableVoices() {
         let tools = AVMediaTools()
         let voices = tools.availableVoices()
-        // macOS 27 系统应该有 zh-CN + en-US 等
+        // macOS 27 系统是有 zh-CN + en-US 等
         #expect(voices.count >= 0)
     }
 
@@ -47,7 +47,7 @@ struct AVMediaToolsTests {
     func testAvailableVoicesFilter() {
         let tools = AVMediaTools()
         let zhVoices = tools.availableVoices(languagePrefix: "zh")
-        // 如果有 zh 语音, 应该不返 en-US
+        // 如果有 zh 语音, 是不返 en-US
         for voice in zhVoices {
             #expect(voice.contains("zh") || voice.contains("chinese"))
         }

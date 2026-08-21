@@ -16,7 +16,7 @@ import SQLite3
 /// 1 条链接 = 1 row, schema = source_doc_id / target_ref / target_doc_id / line / offset / created_at
 /// - source_doc_id: 当前文档 ID (= WenshuLibrary Book.id)
 /// - target_ref: `[[name]]` 里的目标引用字符串 (未解析, 保留原样)
-/// - target_doc_id: 解析后的目标文档 ID (可空, 因为 `[[new name]]` 可能对应未存在的文档)
+/// - target_doc_id: 解析后的目标文档 ID (可空, 因为 `[[new name]]` 会有对应未存在的文档)
 /// - line / offset: 链接在 source 文档里的位置
 public struct Link: Equatable, Sendable {
     public let sourceDocId: String

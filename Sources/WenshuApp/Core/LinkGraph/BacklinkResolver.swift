@@ -16,7 +16,7 @@ import Foundation
 /// DocumentIndex: 把 doc 名 (filename / 显示名) 映射到 doc_id (UUID)
 /// BacklinkResolver 用它解析 `[[name]]` → target_doc_id
 public protocol DocumentIndexing: Sendable {
-    /// 给 doc 显示名 (例如 "林黛玉"), 拿 doc_id (可空, 因为 [[new name]] 可能没对应文档)
+    /// 给 doc 显示名 (例如 "林黛玉"), 拿 doc_id (可空, 因为 [[new name]] 暂未对应到已有文档)
     func docId(forName name: String) async -> String?
     /// 给 doc_id, 拿显示名 (反向, 给面板渲染用)
     func name(forDocId docId: String) async -> String?

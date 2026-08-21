@@ -120,8 +120,8 @@
   → 需要把 ratio 算成 NSSplitViewItem 宽度 → setPosition,
   而 NSSplitView 拖动又会改 setPosition → delegate 回调又改 ratios。
   这种**双向绑定容易出循环依赖** (= fix7 类 BUG 重现风险)。
-- 派单 prompt 列的 fix9 边界"可能改 LayoutShellView.swift"已经
-  标"可能", 不是必改。 主 layout 走 NSSplitViewController
+- 派单 prompt 列的 fix9 边界"会有改 LayoutShellView.swift"已经
+  标"会有", 不是必改。 主 layout 走 NSSplitViewController
   是**LT-01-fix10+ 的大重构**, 不是 fix9 这一卡的范围。
 - fix9 的真值是"用 NSSplitView 解决 3 个症状", 不是"重写 layout
   shell 架构"。
@@ -302,7 +302,7 @@
   系统 sidebar 比起来不够"macOS 标准"。
 - 换 NSVisualEffectView 收益: 真 macOS sidebar 毛玻璃
   (= Finder sidebar / System Settings sidebar / Pages inspector)。
-- 风险: 5 个 panel 全用 NSVisualEffectView, 视觉重量可能过重
+- 风险: 5 个 panel 全用 NSVisualEffectView, 视觉重量会有过重
   (FCP 风格: 仅 inspector 用 sidebar material, content 用纯背景)。
 - 评估认为此改造**收益不够覆盖风险**: 这是视觉打磨, 不解决
   老板 报的 3 个症状 (分割线粗 / 拖动闪 / 光标不变)。
@@ -341,7 +341,7 @@
 **为什么不直接 NSSplitViewController 全重写**:
 
 - ViewModel 双向同步风险高 (= fix7 类 BUG 重现风险)
-- 派单边界"可能改 LayoutShellView.swift"已标"可能", 不是必改
+- 派单边界"会有改 LayoutShellView.swift"已标"会有", 不是必改
 - 主 layout 走 NSSplitViewController 是 **LT-01-fix10+ 大重构**,
   不是 fix9 这一卡的范围
 - fix9 真值是"解决 3 个症状", 不是"重写 layout 架构"

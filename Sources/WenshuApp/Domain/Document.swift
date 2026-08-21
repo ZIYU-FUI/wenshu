@@ -1,6 +1,6 @@
 // Document.swift · Wenshu (Wenshu) · v0.03.0 (document module)
 //
-// v53 (= boss 8/15 17:48 '在第二栏里, 显示书的所有章节, 设定, 资料库, 这
+// v53 (= 老板 8/15 17:48 '在第二栏里, 显示书的所有章节, 设定, 资料库, 这
 // 里的文档需要分类'): the second column of the layout shows a card
 // grid (= FCP Browser filmstrip pattern) of MD documents grouped by
 // category.
@@ -30,7 +30,7 @@
 import Foundation
 
 /// Document category (= what kind of MD file this is in the book).
-/// v53 (= boss 8/15 17:48 '3 个分类') — three cases: 章节 / 设定 / 资料
+/// v53 (= 老板 8/15 17:48 '3 个分类') — three cases: 章节 / 设定 / 资料
 /// 库 (= chapters / settings / research). Three cases is the v0.03.0
 /// minimum; v0.04+ can add more (= outline / foreshadowing / notes /
 /// drafts) without breaking the contract (= Codable default value

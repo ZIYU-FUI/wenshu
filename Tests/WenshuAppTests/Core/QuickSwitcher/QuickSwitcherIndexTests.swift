@@ -58,7 +58,7 @@ struct QuickSwitcherIndexTests {
             SwitcherItem(id: "3", title: "三国演义"),
         ]
         let results = QuickSwitcherIndex.search(query: "林黛", in: items)
-        #expect(results.first?.id == "2", "林黛玉进贾府 应该排第一 (前缀匹配)")
+        #expect(results.first?.id == "2", "林黛玉进贾府 是排第一 (前缀匹配)")
     }
 
     @Test("search limit")

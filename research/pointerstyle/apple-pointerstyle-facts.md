@@ -64,7 +64,7 @@
 - **https://developer.apple.com/documentation/swiftui/view/hovereffect(_:)** — DocC 原文 `platforms: [iOS 13.4, iPadOS 13.4, Mac Catalyst 13.4, tvOS 16.0, visionOS 1.0]` —— **没有 macOS**。
 - 也就是说 macOS 上自定义光标的唯一 SwiftUI 原生入口就是 `.pointerStyle(_:)`；想要 `.hoverEffect`-style 自动效果就只能靠 `.onHover { hovering in ... }` + `.pointerStyle(...)` 手动配合。
 
-## 7. 老板 NativeSplitter 1 不生效的最可能根因（基于官方文档推导）
+## 7. 老板 NativeSplitter 1 不生效的根本原因（基于官方文档推导）
 
 1. `.pointerStyle` 仅 macOS 15+。如果 app deployment target ≤ 14，编译期就会被 `#available` 屏蔽，根本没编译进去；如果只是运行在 15+，看下一条。
 2. modifier 必须挂在**真实接收 hit-test 的 view** 上。`Color.clear` / 透明 Spacer / 0-height 分隔条都不参与 hit-test，所以光标变化不可见。Apple 文档示例里 `ImageCanvasView()` 是个有内容的 view。

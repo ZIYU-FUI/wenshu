@@ -1,6 +1,6 @@
 // DocumentTests.swift · Wenshu (Wenshu) · v0.03.0 (document module)
 //
-// v53 (= boss 8/15 17:48 '在第二栏里, 显示书的所有章节, 设定, 资料库, 这
+// v53 (= 老板 8/15 17:48 '在第二栏里, 显示书的所有章节, 设定, 资料库, 这
 // 里的文档需要分类'): the second column of the layout becomes a card
 // grid (= FCP Browser filmstrip pattern) of MD documents grouped by
 // category. Each card displays the document's title + an auto-

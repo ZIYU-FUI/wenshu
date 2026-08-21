@@ -1,6 +1,6 @@
 // BookOutlineView.swift · Wenshu (Wenshu) · v0.03.0 (document module)
 //
-// v53 (= boss 8/15 17:48 + 17:53 '在第二栏里, 显示书的所有章节, 设定,
+// v53 (= 老板 8/15 17:48 + 17:53 '在第二栏里, 显示书的所有章节, 设定,
 // 资料库, 这里的文档需要分类, 我想要卡片, 卡片显示文档的中心思想'):
 // the second column of the layout (= the EDITOR zone today) becomes
 // a card grid of MD documents grouped by category (= FCP Browser

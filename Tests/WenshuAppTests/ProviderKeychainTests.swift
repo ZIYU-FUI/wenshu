@@ -12,7 +12,7 @@ struct ProviderKeychainTests {
     @Test("saveKey 后 loadKey 返一致")
     func testSaveAndLoad() throws {
         let key = "sk-cp-test-\(UUID().uuidString.prefix(8))"
-        // 重试 saveKey (Keychain SecItemDelete 异步完成, 直接 SecItemAdd 可能 errSecDuplicateItem)
+        // 重试 saveKey (Keychain SecItemDelete 异步完成, 直接 SecItemAdd 会报 errSecDuplicateItem)
         for attempt in 0..<3 {
             do {
                 try ProviderKeychain.saveKeySync(key, for: .openrouter)

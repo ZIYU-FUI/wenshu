@@ -6,7 +6,7 @@
 // the EDITOR module.
 //
 // v52: adds `length` (BookLength enum) + `idea` (optional String) for
-// the New Book Creation Wizard (= boss 8/15 17:32 '书名, 篇幅选择, 创
+// the New Book Creation Wizard (= 老板 8/15 17:32 '书名, 篇幅选择, 创
 // 意点'). Both fields have defaults + Codable back-compat (= v0.02.x
 // book.json files without these keys still decode).
 //
@@ -30,7 +30,7 @@
 import Foundation
 
 /// Book length = the scope the user commits to when creating a new
-/// book. v52 introduced this (= boss 8/15 17:32 '篇幅选择'). Drives
+/// book. v52 introduced this (= 老板 8/15 17:32 '篇幅选择'). Drives
 /// later chapter management (= v0.03.0 chapter list reads the length
 /// to suggest word-count targets + chapter split heuristics). Three
 /// cases, allCases-ordered (= Picker in the wizard renders in this

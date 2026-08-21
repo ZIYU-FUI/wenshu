@@ -149,7 +149,7 @@ protocol LibraryStoring: Sendable {
 
     // MARK: - Document operations (v0.03.0, = document module end-to-end)
     //
-    // v53 (= boss 8/15 17:48 '3 类, 卡片显示文档的中心思想'). The library
+    // v53 (= 老板 8/15 17:48 '3 类, 卡片显示文档的中心思想'). The library
     // grew document operations: each book has three categories of MD
     // files (= chapters / settings / research). The storage layer reads
     // the .md bytes, extracts the title (= first H1, falling back to a

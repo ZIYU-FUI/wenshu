@@ -28,7 +28,7 @@ struct VisionToolsTests {
 
     @Test("recognizeText 文本文件不抛 throw 而是 imageLoadFailed")
     func testRecognizeTextTextFile() async {
-        // 文本文件不是图片 → 应该 imageLoadFailed
+        // 文本文件不是图片 → 是 imageLoadFailed
         let tools = VisionTools()
         let textPath = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
             .appendingPathComponent(".test-vision-\(UUID().uuidString.prefix(8)).txt").path

@@ -336,7 +336,7 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
 
     // MARK: - Document ops (v0.03.0)
     //
-    // Layout (= boss 8/15 15:55 '架构需要先定好, 不能没事加个东西, 然后
+    // Layout (= 老板 8/15 15:55 '架构需要先定好, 不能没事加个东西, 然后
     // 重构一堆东西'):
     //   ~/Documents/wenshu/<shelf>/<book>/
     //     book.json

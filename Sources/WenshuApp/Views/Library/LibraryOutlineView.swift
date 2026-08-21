@@ -52,7 +52,7 @@ struct LibraryOutlineView: View {
     enum SheetKind: Identifiable {
         case newShelf
         case renameShelf(Bookshelf)
-        /// v52: New Book wizard (= boss 8/15 17:32 '书名, 篇幅选择, 创意点
+        /// v52: New Book wizard (= 老板 8/15 17:32 '书名, 篇幅选择, 创意点
         /// 然后新建'). The parent shelf id is captured at sheet-show
         /// time (= the user right-clicks on a shelf, the menu picks
         /// '新建书', the sheet opens with the shelf bound). The wizard
@@ -82,7 +82,7 @@ struct LibraryOutlineView: View {
                 }
             }
         }
-        .listStyle(.plain)  // boss 8/18: unifica zone background
+        .listStyle(.plain)  // 老板 8/18: unifica zone background
         .scrollContentBackground(.hidden)  // List 透明底色, 用 ZoneModule DesignColor.zoneSurface
         .frame(minWidth: 200, idealWidth: 260)
         .toolbar {

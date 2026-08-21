@@ -110,7 +110,7 @@
 
 | 决策 | 跳过的代价 | 老板拍板 |
 |---|---|---|
-| 跳过 `ask-matt` | 直接进某个 skill, 可能错 | 老板随时可拍 |
+| 跳过 `ask-matt` | 直接进某个 skill, 会有错 | 老板随时可拍 |
 | 跳过 `grill-with-docs` | 没 CONTEXT.md 增量, 未来 onboarding 难 | 一次性小改可跳 |
 | 跳过 `to-spec` | 想法不清, ticket 拆错 | 中大改不能跳 |
 | 跳过 `to-tickets` | 没法并行, 没法 blame | 1 ticket 1 commit 可跳 |
