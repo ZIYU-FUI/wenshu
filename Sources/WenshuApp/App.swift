@@ -225,7 +225,7 @@ struct SettingView: View {
     @State private var liveModelIds: [String] = []
     @State private var isLoadingModels = false
     @State private var providersWithKeys: Set<String> = []
-    @State private var apiEditingProvider: Provider?
+    @State private var apiExpandedProviders: Set<String> = []
     @State private var apiDraftKey: String = ""
     @State private var apiError: String?
 
@@ -368,7 +368,7 @@ struct SettingView: View {
                         selectProvider(p)
                         if !providersWithKeys.contains(p.slug) && !p.requiresOAuth && p.slug != "custom" {
                             selectedTab = .providerApi
-                            apiEditingProvider = p
+                            apiExpandedProviders.insert(p.slug)
                             apiDraftKey = ""
                             apiError = nil
                         }
@@ -388,7 +388,11 @@ struct SettingView: View {
         Form {
             Section {
                 ForEach(Provider.all) { p in
-                    providerApiRow(p)
+                    DisclosureGroup(isExpanded: bindingForExpanded(p)) {
+                        providerApiEditor(for: p)
+                    } label: {
+                        providerApiRow(p)
+                    }
                 }
             } header: {
                 Text("提供方")
@@ -398,38 +402,42 @@ struct SettingView: View {
                 Text("已设 key \(set) / \(total)")
                     .font(.caption)
             }
-            if let editing = apiEditingProvider {
-                Section {
-                    SecureField("sk-...", text: $apiDraftKey)
-                        .textFieldStyle(.roundedBorder)
-                    if let apiError {
-                        Text(apiError)
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                    }
-                    HStack {
-                        Spacer()
-                        Button("取消") {
-                            apiEditingProvider = nil
-                            apiDraftKey = ""
-                            apiError = nil
-                        }
-                        Button("保存") {
-                            saveApiKey(for: editing)
-                        }
-                        .keyboardShortcut(.defaultAction)
-                        .disabled(apiDraftKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    }
-                } header: {
-                    Text("填 \(editing.name) API Key")
-                } footer: {
-                    Text("存 macOS Keychain (不入文件 / log / commit)")
-                        .font(.caption)
-                }
-            }
         }
         .formStyle(.grouped)
         .onAppear { refreshProviderStatus() }
+    }
+
+    private func bindingForExpanded(_ p: Provider) -> Binding<Bool> {
+        Binding(
+            get: { apiExpandedProviders.contains(p.slug) },
+            set: { newValue in
+                if newValue {
+                    apiExpandedProviders.insert(p.slug)
+                    apiDraftKey = ""
+                    apiError = nil
+                } else {
+                    apiExpandedProviders.remove(p.slug)
+                }
+            }
+        )
+    }
+
+    @ViewBuilder
+    private func providerApiEditor(for p: Provider) -> some View {
+        SecureField("sk-...", text: $apiDraftKey)
+            .textFieldStyle(.roundedBorder)
+        if let apiError {
+            Text(apiError)
+                .font(.caption)
+                .foregroundStyle(.red)
+        }
+        HStack {
+            Button("保存") {
+                saveApiKey(for: p)
+            }
+            .keyboardShortcut(.defaultAction)
+            .disabled(apiDraftKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
     }
 
     private func providerApiRow(_ p: Provider) -> some View {
@@ -447,22 +455,12 @@ struct SettingView: View {
             }
             Spacer()
             if hasKey {
-                Button("编辑") {
-                    apiEditingProvider = p
-                    apiDraftKey = ""
-                    apiError = nil
-                }
-                .buttonStyle(.borderless)
-                .controlSize(.small)
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
             } else {
-                Button("添加") {
-                    apiEditingProvider = p
-                    apiDraftKey = ""
-                    apiError = nil
-                }
-                .buttonStyle(.borderless)
-                .controlSize(.small)
-                .disabled(p.requiresOAuth || p.slug == "custom")
+                Text(p.requiresOAuth || p.slug == "custom" ? "OAuth" : "未设")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
             }
         }
         .contentShape(Rectangle())
@@ -473,9 +471,9 @@ struct SettingView: View {
         guard !trimmed.isEmpty else { return }
         do {
             try ProviderKeychain.saveKeySync(trimmed, for: provider)
-            apiEditingProvider = nil
             apiDraftKey = ""
             apiError = nil
+            apiExpandedProviders.remove(provider.slug)
             refreshProviderStatus()
         } catch {
             apiError = "保存失败: \(error.localizedDescription)"
