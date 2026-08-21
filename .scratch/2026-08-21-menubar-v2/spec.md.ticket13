@@ -1,0 +1,73 @@
+# ticket 13 — chat zone 底栏 18PT 横 inset 修真因 (老板 2026-08-22 04:29 拍)
+
+**Status:** ready-for-agent
+
+## 老板真值 (verbatim)
+
+老板 2026-08-22 04:29 拍新真值 (Q37 业务语言):
+
+1. "你的模型选择器有一个 ICON，18PT，应该从 ICON 就开始算"
+2. "上下文用量如果是对的"
+3. "那就是输入发送不对，发送按钮距离右边不足 18PT"
+
+截图: 红框 1 = 模型选择器 Menu (左下 18PT 红框), 红框 2 = context usage 进度条 (右下 18PT 红框)
+
+## 真因 (Q32 audit 真硬违反)
+
+`f1fe8e64c` 修法:
+- ChatZoneView L1003 Menu label 内 `.padding(.leading, 18)` — Menu 自带 inset 吃 label padding, 视觉 18PT 不是从 ICON 起算
+- ChatView L233 `.padding(.horizontal, 8)` — 输入框 HStack 横 inset 只 8 PT, 发送按钮右边距 < 18 PT
+
+## 修真因 (Q47 锁定实现方式 + Q28 查文档真值)
+
+1. **App.swift L994-1006 ChatZoneView 模型选择器 Menu**:
+   - 撤 `.padding(.leading, 18)` 从 label 内 (L1003) 改到 Menu **整容器** (L1007 之后)
+   - 即 Menu 整容器 `.padding(.leading, 18)`, label 内不另 padding
+   - 老板原话真值: "应该从 ICON 就开始算"
+   - 修真因后: cpu ICON 左边 = 18 PT 视觉
+2. **ChatView.swift L215-234 输入框 HStack**:
+   - `.padding(.horizontal, 8)` → `.padding(.horizontal, 18)`
+   - 老板原话真值: "发送按钮距离右边不足 18PT"
+   - 修真因后: 发送按钮 paperplane 右边 = 18 PT 视觉
+3. **context usage 不动** (Q47 老板拍 "如果是对的" = `.padding(.trailing, 18)` L1029 已对, 不动)
+4. **底部距 6 PT 不动** (Q25 占位文字距底 6 PT 真值参考, 保持 L1004 + L1030)
+5. **其它 5 区底栏不动** (Q20 已实现不动, "占位文字" 保持原真值)
+
+## 不动 (Q20 硬约束)
+
+- ZoneBottomToolbar 父组件 (其他 5 区 .projectSidebar / .projectPreview / .editor / .specializedTools / .aiDynamic case 保持原 "占位文字")
+- ChatView 输入框布局结构 (只改 .padding 横 inset)
+- context usage 整段 (老板拍 "如果是对的" = 不动)
+- ChatZoneView VStack 顺序 (老板拍 "就现在的位置, 不改")
+- LayoutTokens.toolbarHeight = 30 PT
+- DesignColor.zoneSurface / splitterLine
+
+## 5 原则满足 (Q26)
+
+1. **Apple 官方范式**: Menu 整容器 padding + ChatView HStack padding = Apple SwiftUI 标准修法
+2. **伪 Apple 官方样式**: SF Symbol `cpu` + semantic color `.secondary` + `.roundedBorder` TextField
+3. **效果优先**: 2 个 .padding 数字改, 工作量小, 效果真 (老板截图红框 = 18 PT 视觉)
+4. **业务语言**: "模型选择器左边 18 PT + 发送按钮右边 18 PT", 老板懂
+5. **po main flow**: 1 ticket 1 commit, spec + impl 同 commit (Q29), 双轴 code-review 跑 (Q37)
+
+## 双轴 code-review (Q37 老板 2026-08-21 拍 '按 PO 全链路执行')
+
+- Standards 轴: 修真因是否 Apple 范式 (Menu borderlessButton 自带 inset 真值查 swiftinterface)
+- Spec 轴: 老板拍 3 条是否全修真因 (Menu ICON 起 18 + 输入框右 18 + context usage 不动)
+
+## Acceptance
+
+- [ ] ChatZoneView 模型选择器 Menu 整容器 `.padding(.leading, 18)`, label 内不另 padding
+- [ ] ChatView 输入框 HStack `.padding(.horizontal, 18)`
+- [ ] context usage `.padding(.trailing, 18)` 不动
+- [ ] 老板 macOS 真验: cpu ICON 左边 = 18 PT + paperplane 右边 = 18 PT
+- [ ] swift build exit 0
+- [ ] swift test exit 0
+- [ ] 双轴 code-review 报告 verbatim 进 commit body
+
+## 关联
+
+- 依赖: 无
+- 被依赖: 无
+- 历史: ticket 10 commit `f1fe8e64c` (ChatZoneView 子组件范式, 修真因 + 不切)
+- 分支: feature/chat-bottom-toolbar-in-child (Q53 ticket 10 起, 修真因续)
