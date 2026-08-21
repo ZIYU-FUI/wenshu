@@ -230,7 +230,7 @@ public struct ChatView: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(vm.inputText.isEmpty || vm.isSending)
             }
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 18)
             .padding(.bottom, 4)
         }
     }
