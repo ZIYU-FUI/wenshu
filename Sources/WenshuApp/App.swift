@@ -1129,7 +1129,8 @@ struct ChatZoneView: View {
                     }
                 } label: {
                     // v0.21 ticket 36: explicit .foregroundStyle(.tertiary) per element
-                    // BorderlessButtonMenuStyle overrides outer color, need child-level
+                    // v0.21 ticket 37: drop .menuStyle(.borderlessButton) — that wrapper overrides
+                    //   foregroundStyle. Default Menu style lets our per-element .tertiary apply.
                     HStack(spacing: 4) {
                         Image(systemName: "cpu")
                             .foregroundStyle(.tertiary)
@@ -1143,7 +1144,6 @@ struct ChatZoneView: View {
                     .padding(.bottom, 6)
                     .frame(height: LayoutTokens.toolbarHeight, alignment: .bottomLeading)
                 }
-                .menuStyle(.borderlessButton)
                 .padding(.leading, 14)
                 .task {
                     let base = ProcessInfo.processInfo.environment["MINIMAX_CN_BASE_URL"] ?? "https://api.minimaxi.com/anthropic"
