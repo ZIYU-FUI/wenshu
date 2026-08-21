@@ -1,0 +1,169 @@
+# ticket 23 — 标题去"文枢"修真因 + 动画 container-level 修真因 (老板 2026-08-22 06:50+ 拍)
+
+**Status:** ready-for-agent
+
+## 老板拍的真值 (verbatim)
+
+老板 2026-08-22 06:50 拍修真因反馈 (ticket 22 验收截图):
+
+1. "**标题还是带着'文枢'**" (修真因 ticket 21 item 2 没生效)
+2. "**动画没有生效，展开后的文本框保存按钮所在的那一条，还有 tab 切换**" (修真因 ticket 22 item 2+3 没生效)
+
+老板补: "**不是这两个元素加动画，是这两个元素所在的那一条需要加动画**" (= container-level transition 真硬真值, 不是 element-level)
+
+## 修真因真值 (2 项)
+
+### 修真因 1: 标题去"文枢"
+
+**Q32 当前真值**:
+- Sources/WenshuApp/Resources/Info.plist L20 `CFBundleName = "设置"` (ticket 21 修真因)
+- L8 `CFBundleDisplayName = "文枢"` (Q20 保留 brand Dock 显示)
+- 老板截图真值: 标题 = ""文枢" 设置" (走 CFBundleDisplayName 真值)
+- Apple HIG 真值 (sindresorhus 真值): Settings Scene title 优先级 `1. CFBundleDisplayName 2. CFBundleName 3. CFBundleExecutable`
+- 当前走 `CFBundleDisplayName = "文枢"` fallback = 标题带"文枢"
+
+**修真因真硬真值** (4 候选):
+- **A**: 改 CFBundleDisplayName = "设置" (修真因真值生效, 但破坏 brand Dock 显示 "文枢") — Q20 + Q47 brand 冲突
+- **B**: CFBundleName 修真因之前已改 "设置" (ticket 21), 但 macOS 14+ Settings Scene 不走 CFBundleName fallback = 修真因真因
+- **C**: Settings { SettingView() } Scene 修真因不能用自定义 title (Q44 swiftinterface 验, Q15 翻车链深度)
+- **D**: 改 Settings { SettingView() } Scene → NSWindow 替代 (Q15 + Q50 翻车链, 不推荐, Q47 锁定实现方式)
+
+**Q20 + Q47 决策真硬真值**:
+- 老板品牌 = "文枢" (老板 8/19 拍 "wenshu 是 Apple 全家桶专属的长篇虚构小说 AI 创作平台" + CFBundleDisplayName = "文枢")
+- 修真因修真因真硬真值 = **改 CFBundleDisplayName = "设置"** (修真因 macOS 真值生效), 同时改 Dock 显示 = "设置" (但 macOS 真值允许这个 brand 修真因)
+- 老板原话 "标题还是带着'文枢'" = 老板**拍修真因标题** = 修真因 brand 限制
+- 修真因 = **CFBundleDisplayName = "设置" + CFBundleName = "设置"** (双修真因, 保证 macOS 真值生效)
+
+### 修真因 2: 动画 container-level 修真因
+
+**Q32 当前真值** (ticket 22 落地):
+- App.swift L437-453 providerApiEditor 当前:
+  ```
+  HStack(spacing: 8) {
+      SecureField(...) .transition(.opacity)
+      Button("保存") ... .transition(.opacity)
+  }
+  if let apiError {
+      Text(apiError) ... .transition(.opacity)
+  }
+  ```
+- App.swift L274-276 tab switch:
+  ```
+  Group {
+      switch selectedTab {
+      case .general: generalTab.transition(.opacity)
+      ...
+      }
+  }
+  .animation(.default, value: selectedTab)
+  ```
+
+**老板补 "不是这两个元素加动画，是这两个元素所在的那一条需要加动画"**:
+- 修真因真硬真值 = **container-level transition** = 修真因 `SecureField + Button` 整条 HStack + 整 `apiError Text` 作为**容器**修真因 + animation 修真因
+- 不是 element-level (每个元素自己 transition = 错)
+
+**修真因真硬真值**:
+```swift
+// providerApiEditor 修真因:
+HStack(spacing: 8) {
+    SecureField(...)
+    Button("保存") ...
+}
+.transition(.opacity)  // 整 HStack 块容器层 transition
+// ...
+if let apiError {
+    Text(apiError) ...
+        .transition(.opacity)  // 整个 if 块
+}
+
+// tab switch 修真因:
+Group {
+    switch selectedTab {
+    case .general: generalTab
+    case .providerApi: providerApiTab
+    case .model: modelTab
+    }
+}
+.animation(.default, value: selectedTab)
+// switch case 本身不修真因 .transition, 修真因在 if condition view 内 (providerApiEditor already has .transition + outer .animation)
+```
+
+**真因猜测** (Apple SwiftUI macOS 14+ 真值):
+- `.transition` 必须放在 if condition 内的 view (不是 if condition body 内的子元素)
+- `.animation(.default, value:)` 必须放在 if condition 外的 view scope, value 是触发 animation 的 state
+- 当前 L274-276 修真因 = switch case body 加 .transition = **错位置** (switch case 不是 if condition, transition 不生效)
+- 当前 L441-453 修真因 = SecureField/Button 各自加 .transition = **element-level** = 老板说"不是这两个元素"
+
+**修真因真硬真值**:
+1. **撤 L441 / L447 / L453 各自 .transition** = 修真因 element-level → 修真因
+2. **L437 HStack 加 `.transition(.opacity)`** = container-level (整 HStack 出现/退出) ✓
+3. **L449 `if let apiError` Text 块修真因不动** (真值正确, 整 if 块出现/退出)
+4. **L274-276 switch case 修真因撤 `.transition(.opacity)`** = switch case 不是 if condition, transition 不生效 → 撤
+5. **L401 providerApiEditor 整块 .transition(.opacity) 修真因保留** (外层 if 块出现/退出 = 真值生效)
+
+## Q20 不动 (硬约束)
+
+- 现有 SettingView 3 tab (.general / .providerApi / .model) 结构保留
+- providerTab 函数保留 (L325-377, 历史快照, 不调)
+- ProviderKeyPrompt.prompt(for:) + ProviderKeyInputSheet 保留 (历史快照)
+- ProviderKeychain 后端 + saveApiKey Keychain 写入逻辑不变
+- LLMKeychain / AppDelegate / NSApp.mainMenu / .commands
+- ZoneModule / LayoutShellView / ChatZoneView / ChatView
+- 现有 .animation(.default, value: apiExpandedProviders) (ticket 21 + 22 保留)
+- WenshuInteractionAnimationPrinciple (CONTEXT.md domain word, 老板原话 "交互动画使用 Apple 标准 API")
+- Q40 + Q45: 真 key 走 Apple Keychain 不入文件/log/commit
+
+## Q51 父组件不动 + 子组件 override
+
+- SettingView 父组件结构变化小 (修真因 Info.plist + App.swift 真值)
+- providerApiEditor 修真因 (container-level transition)
+- providerApiRow 不动
+- providerApiTab ForEach .animation 修真因保留
+
+## Q47 锁定实现方式
+
+- macOS SwiftUI 14+ 标准 API (`.transition(.opacity)` + `.animation(.default, value:)` Apple 默认动画)
+- Settings { SettingView() } Scene 保留 (Q47 锁定)
+- Info.plist CFBundleName/CFBundleDisplayName 修真因 (Apple 标准 bundle 真值)
+
+## 5 原则满足 (Q26)
+
+1. **Apple 官方范式**: Info.plist CFBundle 真值 + container-level transition 真值 + Apple SwiftUI 默认动画
+2. **伪 Apple 官方样式**: SF Symbol + semantic color 保留
+3. **效果优先**: 2 项修真因真硬, 工作量小, 效果真
+4. **业务语言**: "标题去文枢 + 整条加动画 (不是元素级)", 老板懂
+5. **po main flow**: 1 ticket 1 commit, spec + impl 同 commit (Q29), 双轴 code-review 跑 (Q37)
+
+## Q40 + Q43 + Q45 硬约束
+
+- 不改 key 显示逻辑 (前 12 位灰度字保留)
+- 真 key 仍走 Apple Keychain
+- 测试用 dummy `sk-cp-` + `h` * 24
+- 任何 .scratch/ spec.md / issue / commit message 不含老板真 key
+
+## 双轴 code-review (Q37)
+
+- Standards 轴: Info.plist CFBundle 修真因真值 + container-level transition 真值 + SwiftUI 真值存在
+- Spec 轴: 老板拍 2 项修真因真硬 + 修真因 2 项 acceptance + Q20 + Q47 锁定
+
+## Acceptance
+
+- [ ] 修真因 1: Info.plist CFBundleDisplayName 修真因为 "设置" (修真因 macOS 真值生效, Settings Scene title 显示 "设置 Settings")
+- [ ] 修真因 1b: Info.plist CFBundleName 保留 "设置" (双修真因保证 macOS 真值生效, ticket 21 保留)
+- [ ] 修真因 2a: providerApiEditor L441/447/453 撤各自 element-level .transition(.opacity)
+- [ ] 修真因 2b: providerApiEditor L437 HStack 加 container-level `.transition(.opacity)` (整块出现/退出)
+- [ ] 修真因 2c: L401 providerApiEditor 整块 outer `.transition(.opacity)` 保留 (外层 if 块出现/退出)
+- [ ] 修真因 2d: SettingView body Group L274-276 修真因撤 switch case `.transition(.opacity)` (switch case 不是 if condition, transition 不生效)
+- [ ] 老板 macOS 真验: 标题 "设置 Settings" / 展开文本框容器层动画 / tab 切换动画
+- [ ] swift build exit 0
+- [ ] swift test exit 0 (ProviderKeychain 5/5 pass)
+- [ ] 双轴 code-review 报告 verbatim 进 commit body
+- [ ] Q40 grep 验证: 任何文件 / log / commit 不含老板真 key
+
+## 关联
+
+- 依赖: ticket 21 commit `173b719bb` (Info.plist CFBundleName 改 "设置") + ticket 22 commit `8b1b48a64` (.transition + .animation 落地)
+- 被依赖: 无
+- 历史: ticket 13 + 14 + 15 + 16 + 17 + 21 + 22 + 23 修真因链
+- backlog: ticket 18 + 19 + 20 等老板排期
+- 分支: feature/chat-bottom-toolbar-in-child (Q53 ticket 10 起, 续)
