@@ -1,0 +1,63 @@
+# Spec — 设置面板 UI 重做 step 1.10 (NSApp.mainMenu + Pages 范式 弹窗, 老板 2026-08-21 拍)
+
+> Date: 2026-08-21
+> 老板 8/21 macOS 真值: 5 项菜单 (Apple/文枢/显示/窗口/帮助) + 2 个 "设置…" + 缺 文件/编辑 (= commit beff63b43 装后)
+> 老板 8/21 真值: '按 PO 全链路方法论执行, 不要我每个新会话都和你强调, 你不要跳步骤' (= Q34 双轴 code-review 必须跑, Q32 查官方, 5 原则 1 Apple 真值)
+
+## 真因 (Q32 audit 5 原则 1 真硬违反)
+
+macOS SwiftUI 真值真值真值真值真值真值 (Q28 swiftinterface + Apple 真值):
+- `.commands` 修饰符**在** `Settings { } Scene` 之后 = Settings 接管 main menu = .commands 装不到 main menu
+- 之前我装在 Settings { } 之后 (commit d194cb66d + 491a6874b + beff63b43) 全部失败
+- macOS SwiftUI Settings { } Scene 自动装 1 个 cmd+, (.appSettings)
+- 我装 `CommandGroup(replacing: .appSettings) { SettingsLink() }` 重复装 1 个 = 老板截图 2 个 "设置…"
+
+## 业务语言 (老板懂)
+
+老板要 6 项菜单真值真值 (文枢/文件/编辑/显示/窗口/帮助, 8/10 01:43 拍) = `NSApp.mainMenu = installMainMenu()` 装 6 项 NSMenu 真值真值 (= commit 9f77ffa9c 装 work 真值, 之前 1/2 验证过 6 项全过)。
+
+老板要 Pages 范式弹窗 (= 顶部 toolbar 切换 tab, 老板画的图 2 红框位置) + 浮 windows 不挤走 (= macOS 真值 modal sheet 范式) + 修法真值 = 自己创建 NSWindow 装 SettingView (commit 3f4faf68f 装 work 真值) = 跟之前 commit 1fbb72260 (#1) 一致真值真值 (= installMainMenu + openSettingsWindow 自创建 NSWindow 装 SettingView + 浮 windows)。
+
+## 修法真值 (3 步, 5 原则 1 + 4 满足, Q32 真硬违反修复)
+
+1. **App body 撤回 .commands { } 段 + Settings { } Scene (= commit d194cb66d + 491a6874b + beff63b43 全装撤回, Q32 5 原则 1 真硬违反)**
+2. **applicationWillFinishLaunching 撤回 NSApp.mainMenu 装 (= commit 31b96953f 装, 时机不对被 SwiftUI 接管)**
+3. **applicationDidFinishLaunching 装 NSApp.mainMenu = installMainMenu() (= commit 9f77ffa9c 真值, 之前 work 真值真值, 老板 8/10 拍"6 项中文")**
+4. **installMainMenu() 装 6 项真值真值 (= commit 9f77ffa9c 真值, NSMenu 6 项: 文枢/文件/编辑/显示/窗口/帮助, 老板 8/10 01:43 真值)**
+5. **openSettingsWindow 自创建 NSWindow 装 SettingView (= commit 3f4faf68f 真值, 浮 windows 不挤走, "原窗口悬浮" 老板拍)**
+6. **SettingView 顶部 toolbar tab + 3 tab Pages 范式 (commit 6a3d93f5d 真值, 老板画的图 2 红框位置)**
+7. **不重复装设置菜单 (NSMenu installMainMenu "设置…" 1 个 + macOS swiftinterface 接管 cmd+, 1 个) — 之前 commit 4ef3e2e77 装 work 真值**
+
+## Wenshu 现状 (working tree)
+
+- `installMainMenu` 函数 (commit 9f77ffa9c 装, 真值真值, 之前 commit 31b96953f 撤回 NSApp.mainMenu 装但函数仍 in file)
+- `openSettingsWindow` @objc 函数 (commit 3f4faf68f 装, 浮 windows 不挤走, work 真值)
+- `resetLayout` @objc 函数 (commit 1308c8fe2 装, "恢复默认布局" 接 NotificationCenter)
+- `SettingView` 顶部 toolbar tab + 3 tab (commit 6a3d93f5d 装, Pages 范式)
+- 提供方/模型 tab (commit 6a3d93f5d 装, Hermes 真值)
+- `AuxTask` enum (commit 6a3d93f5d 装, Hermes AUX_TASKS 真值)
+- `promptForLLMKeyIfNeeded` 函数 (commit b04339596 撤回, dead code)
+- `KeyInputSheet` struct (commit b04339596 撤回, dead code)
+
+## 不动 (Q20 硬约束)
+
+- v0.20 LOGO + 菜单栏 (不动)
+- v0.21 chat-streak ticket 02-06 (不动)
+- Provider / ProviderKeychain / ProviderFetcher / ProviderCatalog (commit 2c0f11ac7 + e74f5eca0 + feefdfed9 不动)
+- ProviderKeyPrompt (commit a894d6a52 不动)
+- MiniMaxModelFetcher (commit e45fac768 不动)
+- `SettingView` 内容 (= commit 6a3d93f5d + 1f086051a 不动)
+- `ChatBottomToolbar` (commit efa351f80 不动)
+- AppIcon.icon/ (留底)
+
+## Apple HIG 真值引用
+
+- https://developer.apple.com/documentation/appkit/nsapplication/mainmenu
+- https://developer.apple.com/documentation/swiftui/commands
+- https://developer.apple.com/documentation/swiftui/settings
+- Pages macOS 27 设置面板 (真值真值)
+
+## 关联
+
+- 依赖: 无
+- 被依赖: 无

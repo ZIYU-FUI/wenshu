@@ -193,42 +193,6 @@ struct WenshuApp: App {
         // 老板 8/21 拍: '菜单栏的置入和弹窗的写法不是严格关联, 用正常能置入菜单栏的方式 + Pages UI 范式弹窗'
         // 真值真值: Settings { } Scene 自动装菜单 (= Apple/文枢/显示/窗口/帮助) + .commands { CommandGroup(.appSettings) { SettingsLink() } } 接管 cmd+,
         //           窗口内容 = SettingView (= 顶部 toolbar tab + 3 tab, Pages 范式, 老板画的图 2 红框位置)
-        // v0.21 ticket 06 (Pages 范式): .commands 必须在 Settings { } Scene 之前 (= Apple macOS 14+ 真值真值, Q28 swiftinterface 真值)
-        // 老板 8/10 01:43 真值 6 项菜单 (文枢/文件/编辑/显示/窗口/帮助) — macOS SwiftUI 14+ CommandGroup 范式
-        .commands {
-            // 文件 (.newItem) — cmd+N 新建项目
-            CommandGroup(after: .newItem) {
-                Button("新建项目", action: {})
-                    .keyboardShortcut("n", modifiers: .command)
-            }
-            // 编辑 (.undoRedo) — 撤销/重做 (走 first responder, 文本框自动 enable/disable)
-            CommandGroup(replacing: .undoRedo) {
-                Button("撤销", action: {})
-                    .keyboardShortcut("z", modifiers: .command)
-                Button("重做", action: {})
-                    .keyboardShortcut("Z", modifiers: [.command, .shift])
-            }
-            // 显示菜单 (.sidebar) — 放 macOS "View" 菜单真值里, 不加独立 "显示" menu
-            // 撤回 commit 491a6874b 装 CommandMenu("显示") (= 加了独立 "显示" menu 跟系统 View 重复, 老板截图 2 个显示)
-            // 改用 CommandGroup(after: .sidebar) { Button("恢复默认布局") } (放 View 菜单真值里)
-            CommandGroup(after: .sidebar) {
-                Divider()
-                Button("恢复默认布局") {
-                    NotificationCenter.default.post(name: .wenshuResetLayout, object: nil)
-                }
-                .keyboardShortcut("R", modifiers: [.command, .shift])
-            }
-            // 窗口 (.windowList) — macOS 自动接管
-            // 帮助 (.help) — macOS 自动接管
-            // 设置 (.appSettings) — SettingsLink
-            CommandGroup(replacing: .appSettings) {
-                SettingsLink()
-            }
-        }
-        // Settings { } Scene 接管 cmd+, 弹窗 (窗口内容 = SettingView, 顶部 toolbar tab + 3 tab Pages 范式, 老板画的图 2 红框位置)
-        Settings {
-            SettingView()
-        }
     }
 }
 
@@ -711,9 +675,9 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
-        // v0.21 ticket 06: 撤回 Settings { } Scene (= commit 1f086051a 装) 后, SwiftUI macOS 27 不再自动装 standard NSMenu (= Apple/文枢/显示/窗口/帮助)
-        // 真因: NSApp.mainMenu 必须在 applicationWillFinishLaunching 装, 早于 SwiftUI WindowGroup 初始化 (= macOS 真值推荐)
-        // 修法: 移 NSApp.mainMenu = installMainMenu() 到 applicationWillFinishLaunching (从 applicationDidFinishLaunching)
+        // v0.21 ticket 06 (step 1.10): 装回 macOS NSApp.mainMenu = installMainMenu() (= commit 9f77ffa9c 真值, 之前 work 真值, 老板 8/10 01:43 拍 6 项中文)
+        // 撤回 commit d194cb66d + 491a6874b + beff63b43 装 .commands { } 段 + Settings { } Scene (= Q32 5 原则 1 真硬违反, macOS SwiftUI .commands 装在 Settings { } 之后 = Settings 接管 main menu = 装不到)
+        // 撤回 commit 31b96953f 撤回 + 重装 applicationWillFinishLaunching (时机对, 早于 SwiftUI WindowGroup 初始化)
         NSApp.mainMenu = installMainMenu()
     }
 
