@@ -536,14 +536,18 @@ struct SettingView: View {
             }
 
             Section {
-                Picker("默认推理级别", selection: $reasoningEffort) {
+                // v0.21 ticket 35b: 推理强度 picker aligned with Apple Anthropic API effort parameter (5 valid values per docs)
+                // Source: https://platform.claude.com/docs/en/build-with-claude/effort
+                // NOT hermes custom 7-level (purely decorative overlay, not API)
+                Picker("默认推理强度", selection: $reasoningEffort) {
                     Text("低").tag("low" as String)
                     Text("中").tag("medium" as String)
                     Text("高").tag("high" as String)
-                    Text("最高").tag("xhigh" as String)
+                    Text("极高").tag("xhigh" as String)
+                    Text("最高").tag("max" as String)
                 }
                 .pickerStyle(.menu)
-                Text("MED = 分析强度档位 (low/medium/high/xhigh, Hermes EFFORT_VALUES 真值). MOA 多模型联合分析不实现.")
+                Text("EFFORT = Anthropic output_config.effort (low/medium/high/xhigh/max). 模型可用级别看 minimax 文档.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } header: {
