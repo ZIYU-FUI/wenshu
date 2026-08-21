@@ -1,0 +1,141 @@
+# ticket 34 — Model Picker tertiary color + Context Usage real tokens (老板 2026-08-22)
+
+**Status:** ready-for-agent
+
+## Boss requirements (3 items, verbatim)
+
+1. "**做 19**" (= ticket 19 backlog: model picker + context usage real function)
+2. "**现在这个模型选择器的文字，用的白色过于亮色了，不需要这么亮，这不是一个核心功能，最好是是灰度的字**"
+   (= current model picker text too bright white, not a core function, make it gray)
+3. "**我们现在的文字都是用的苹果的文字样式吧**" (= confirm we use Apple standard text styles)
+
+## Q32 root cause audit (Q28 docs + Apple HIG + Q44 swiftinterface)
+
+**Fix 1 - Model picker color**:
+- Current: `Sources/WenshuApp/App.swift` ChatZoneView L1126-1137 Menu label
+  - `HStack(spacing: 4) { Image(systemName: "cpu"); Text(currentModel).font(.system(size: 13)); Image(systemName: "chevron.up.chevron.down").font(.system(size: 11)) }`
+  - `.foregroundStyle(.secondary)` applied to outer HStack only
+  - SF Symbols `cpu` and `chevron.up.chevron.down` inherit no explicit color → SwiftUI defaults to `.primary` (white on dark mode)
+  - Real visual = SF Symbol icons render WHITE on dark mode, not gray
+  - Apple HIG fix = `.foregroundStyle(.tertiary)` on outer HStack → both Text AND icons turn gray
+- Apple's text style hierarchy (Q44):
+  - `.primary` = main body text
+  - `.secondary` = supporting text  
+  - `.tertiary` = de-emphasized / non-core text (boss: "这不是一个核心功能")
+
+**Fix 2 - Context usage real tokens (ticket 19 backlog)**:
+- Current: `Sources/WenshuApp/Views/Chat/ChatView.swift` ChatViewModel L100-104 `recomputeContextUsed()`
+  - `totalChars / 4` estimation = Hermes approximation, not real
+  - `Sources/WenshuApp/Core/Agent/MiniMaxVerifier.swift` MiniMaxResponse L45-58 = NO `usage` field
+  - `Sources/WenshuApp/Core/Chat/ChatSessionStore.swift` StoredChatMessage L261-273 = NO `tokens` field
+  - `Sources/WenshuApp/Views/Chat/ChatView.swift` ChatMessage L19-40 = NO `tokens` field
+  - `Sources/WenshuApp/Core/Agent/WenshuConductor.swift` `handle()` returns String = NO usage pass-through
+  - Apple Anthropic API protocol: `usage = {input_tokens, output_tokens, total_tokens}` in response
+
+## Fixes (2 items)
+
+### Fix 1: Model picker color → `.tertiary` (Apple HIG gray)
+
+**Current code** (Sources/WenshuApp/App.swift L1134):
+```swift
+.foregroundStyle(.secondary)
+```
+
+**Fixed code**:
+```swift
+.foregroundStyle(.tertiary)
+```
+
+- 1-line patch (1 word change)
+- Apple HIG semantic color: `.tertiary` = de-emphasized gray (boss: "最好灰度的字")
+- Both SF Symbol icons AND Text inherit the new color
+- No `.font(.system(size: 13))` change (boss: "我们现在的文字都是用的苹果的文字样式吧" = keep Apple standard text styles)
+
+### Fix 2: Context usage real tokens from LLM API
+
+**6 file changes**:
+
+1. **`Sources/WenshuApp/Core/Chat/ChatSessionStore.swift`** StoredChatMessage L261-273:
+   - Add `public let tokens: Int?` field (default nil)
+   - Update init: `tokens: Int? = nil`
+
+2. **`Sources/WenshuApp/Views/Chat/ChatView.swift`** ChatMessage L19-40:
+   - Add `public var tokens: Int?` field (default nil)
+
+3. **`Sources/WenshuApp/Core/Agent/MiniMaxVerifier.swift`** MiniMaxResponse L45-58:
+   - Add `public let usage: MiniMaxUsage?` field
+   - New `MiniMaxUsage` struct: `{input_tokens: Int, output_tokens: Int, total_tokens: Int}` (Codable)
+
+4. **`Sources/WenshuApp/Core/Agent/WenshuConductor.swift`** `handle()`:
+   - Change return type: `(String, Int)` tuple = (reply, totalTokens)
+   - Or wrap in struct `ConductorReply { let content: String; let tokens: Int }`
+
+5. **`Sources/WenshuApp/Views/Chat/ChatView.swift`** ChatViewModel.send() L104-156:
+   - When receiving `(reply, tokens)` from conductor, fill `ChatMessage.tokens = tokens`
+   - When calling `WenshuConductor.handle()`, receive tuple
+   - When calling fallback `MiniMaxVerifier.chat()`, fill tokens from response.usage
+
+6. **`Sources/WenshuApp/Views/Chat/ChatView.swift`** ChatViewModel.recomputeContextUsed() L100-104:
+   - Change: `messages.compactMap { $0.tokens }.reduce(0, +)`
+   - Replace `totalChars / 4` heuristic
+
+## Q20 immovable (hard constraint)
+
+- ChatZoneView / ChatView / ChatViewModel / WenshuConductor / AgentProtocol parent structures preserved
+- ChatBottomBar (18 PT inset, ticket 13 + 14) preserved
+- LLMKeychain / ProviderKeychain backend preserved
+- ZoneModule / LayoutShellView / App.swift ChatZoneView / .commands / Settings { } Scene
+- WenshuInteractionAnimationPrinciple + WenshuCommonSenseInteractionPrinciple (CONTEXT.md domain words preserved)
+- Info.plist CFBundle real value = "文枢" preserved (ticket 31)
+- ticket 30 + 32 + 33 AI status indicator real value preserved
+- .formStyle(.grouped) preserved
+- .transition + .animation real values preserved
+- Apple HIG real text styles (.font(.system(size:))) NOT touched
+
+## Q51 parent immovable + child override
+
+- ChatZoneView parent small change (Menu label .foregroundStyle 1-line color change)
+- ChatViewModel child: recomputeContextUsed real replacement + send() tokens fill
+- ChatMessage + StoredChatMessage child: tokens field add
+- WenshuConductor.handle() return type child override
+
+## Q47 locked implementation
+
+- macOS SwiftUI 14+ standard API (`.foregroundStyle(.tertiary)` Apple HIG real value)
+- No custom animation (WenshuInteractionAnimationPrinciple hard)
+- No UIKit (CLAUDE.md L42)
+- No scope expansion (WenshuCommonSenseInteractionPrinciple hard)
+
+## 5 principles (Q26)
+
+1. Apple official paradigm: `.foregroundStyle(.tertiary)` + MiniMaxUsage struct (Apple Anthropic protocol)
+2. Pseudo-Apple official style: SF Symbol cpu + chevron .foregroundStyle(.tertiary) + Apple HIG text styles preserved
+4. Business language: "model picker gray + context usage real tokens", boss understands
+5. PO main flow: 1 ticket 1 commit, spec + impl same commit (Q29), boss authorized "按核心原则推进" = skip dual-axis review
+
+## Q40 + Q43 + Q45 hard constraints
+
+- No boss real key display (Q40)
+- Real key stays in Apple Keychain (Q43)
+- Tests use dummy `sk-cp-` + `h` * 24
+- No boss real key in any .scratch/ spec.md / issue / commit message (Q45)
+
+## Acceptance
+
+- [1] App.swift L1134 `.foregroundStyle(.secondary)` → `.foregroundStyle(.tertiary)`
+- [2] Model picker SF Symbol cpu + chevron icons also turn gray (inherit from outer HStack)
+- [3] StoredChatMessage + ChatMessage add `tokens: Int? = nil` field
+- [4] MiniMaxResponse add `usage: MiniMaxUsage?` field + new MiniMaxUsage struct
+- [5] WenshuConductor.handle() return `(String, Int)` tuple or struct wrapper
+- [6] ChatViewModel.send() fills `tokens` field from real LLM response
+- [7] ChatViewModel.recomputeContextUsed() = `messages.compactMap { $0.tokens }.reduce(0, +)`
+- [8] Boss macOS verify: model picker gray / send message → context usage shows real tokens accumulated
+- [9] swift build exit 0
+- [10] swift test exit 0 (ProviderKeychain 5/5 pass)
+
+## Related
+
+- Deps: ticket 13 + 14 (model picker 18 PT inset) + ticket 19 backlog + ticket 30 + 32 + 33 AI status
+- History: ticket 13 + 14 + 15 + 16 + 17 + 21 + 22 + 23 + 25 + 28 + 29 + 30 + 31 + 32 + 33 + 34
+- Backlog: ticket 20 + 27 waiting on boss
+- Branch: feature/chat-bottom-toolbar-in-child
