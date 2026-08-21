@@ -119,6 +119,18 @@ public actor MiniMaxVerifier {
         return try await send(request: request)
     }
 
+    /// v0.21 ticket 38: chat overload that takes model at call time
+    /// (boss 2026-08-22 反馈 "切换了 AI 没有真的换" = original chat() uses self.model from init = hardcoded)
+    /// This overload lets ChatViewModel pass current model from UserDefaults at call time
+    public func chat(_ text: String, model overrideModel: String) async throws -> MiniMaxResponse {
+        let request = MiniMaxRequest(
+            model: overrideModel,
+            max_tokens: 1024,
+            messages: [MiniMaxMessage(role: "user", content: text)]
+        )
+        return try await send(request: request)
+    }
+
     /// send: 实际调 MiniMax API (Apple URLSession 真值)
     public func send(request: MiniMaxRequest) async throws -> MiniMaxResponse {
         guard !apiKey.isEmpty else {

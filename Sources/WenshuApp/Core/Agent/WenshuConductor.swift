@@ -28,7 +28,8 @@ public actor WenshuConductor {
     /// 真值: user 看不到多 agent 调度痕迹, ChatView 永远只看到 .wenshu 1 个回复
     /// code-review S4 graceful degradation: LLM fail 不抛, fallback synthesis 仍返 reply (老板 macOS 不见 Error 系统消息)
     /// v0.21 ticket 34: 返回 (reply, totalTokens) — totalTokens = intent + sub-agent + synthesis 真实 LLM API usage 累加
-    public func handle(userMessage: String, sessionId: String) async -> (reply: String, totalTokens: Int) {
+    /// v0.21 ticket 38: handle 增加 model 参数 (boss 反馈 "切换了 AI 没有真的换" = 原 handle 用 verifier.init 的 hardcoded model)
+    public func handle(userMessage: String, sessionId: String, model: String) async -> (reply: String, totalTokens: Int) {
         // 步骤 1: 写 1 个 conductor 父 task 到 KanbanStore (看板进度, ChatView 不显)
         let conductorTask: KanbanTask?
         do {
@@ -55,7 +56,7 @@ public actor WenshuConductor {
         派 0-N 个子 agent (JSON array, 仅 agent name, 不要解释):
         ["search", "outline"]
         """
-        if let intentResponse = try? await verifier.chat(intentPrompt),
+        if let intentResponse = try? await verifier.chat(intentPrompt, model: model),
            let intentRaw = intentResponse.content.first?.text {
             selectedAgents = parseAgentList(intentRaw)
             // v0.21 ticket 34: 累加 intent classify real token usage
@@ -80,7 +81,7 @@ public actor WenshuConductor {
         // 步骤 4: 调 LLM 合成最终回复 (S4 fallback: synthesis fail → 返原文 + 默认合成语)
         let synthesisPrompt = buildSynthesisPrompt(userMessage: userMessage, subResults: subResults)
         let finalReply: String
-        if let response = try? await verifier.chat(synthesisPrompt),
+        if let response = try? await verifier.chat(synthesisPrompt, model: model),
            let text = response.content.first?.text, !text.isEmpty {
             finalReply = text
             // v0.21 ticket 34: 累加 synthesis real token usage

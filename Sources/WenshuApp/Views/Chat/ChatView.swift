@@ -125,16 +125,20 @@ public final class ChatViewModel {
         do {
             // v0.21 ticket 06: 走 WenshuConductor.handle (intent classify → 派子 agent → LLM synthesis)
             // v0.21 ticket 34: receive real token count from LLM API (conductor + fallback verifier)
+            // v0.21 ticket 38: read current model from UserDefaults (boss 反馈 "切换了 AI 没有真的换"
+            // = 原 send() 不传 model → conductor/verifier 用 hardcoded .m3)
+            // We need to pass model to the LLM call so the AI actually uses boss's selected model
+            let currentModel: String = UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? "MiniMax-M3"
             var reply: String
             var replyTokens: Int?
             if let conductor = conductor {
-                let result = try await conductor.handle(userMessage: text, sessionId: sessionId)
+                let result = try await conductor.handle(userMessage: text, sessionId: sessionId, model: currentModel)
                 reply = result.reply
                 replyTokens = result.totalTokens
             } else {
                 // fallback 调 shared verifier — real usage from response.usage
                 let verifier = MiniMaxVerifier()
-                let response = try await verifier.chat(text)
+                let response = try await verifier.chat(text, model: currentModel)
                 reply = response.content.first?.text ?? "(no reply)"
                 replyTokens = response.usage?.total_tokens
             }
