@@ -1,0 +1,69 @@
+# Spec — ticket 18 AI 回复状态动态显示 (v0.21, 老板 2026-08-22 06:18 拍 backlog / 8/22 14:00 拍修真修真修真修真)
+
+> Date: 2026-08-22
+> 老板 8/22 14:00 拍 "按 hermes 的标准实现"
+
+## 业务语言 (老板懂)
+
+老板 macOS 看到的聊天区: AI 回复时用户看不到任何状态指示, 时间长 = 用户怀疑 AI 没响应。要看 hermes 范式真值 (3 段布局) = 修真修真 AI 修真修真修修真。
+
+## Hermes 范式真值 (3 段布局, 即拍板路径 A)
+
+```
+[::: ] | 正在调 LLM            | 5s
+       | 正在分类意图           |
+       | 正在派子 agent         |
+       | 正在合成最终回复         |
+```
+
+- **左**: `::: ` unicode 字符 + 闪烁动画 (SwiftUI .opacity animation)
+- **中**: 当前 LLM 操作描述 (intent classify / dispatch / synthesis 3 阶段)
+- **右**: 已用时间秒 (macOS 13+ `Text(timerInterval:)` 真值标准 API, 实时刷新)
+
+## Acceptance (po main flow step 5 must hit)
+
+1. ChatView 输入框 + 消息列表 之间新增 1 条 `AIStatusBar` SwiftUI 子组件
+2. AIStatusBar = `HStack { Image(spinner) + Text(currentStatus) + Spacer() + Text(elapsed) }`
+3. `AIStatusBar` 默认 hidden, isSending == true 时显示
+4. currentStatus 跟 WenshuConductor.handle 4 阶段同步 (kanban add / intent classify / subagent dispatch / LLM synthesis)
+5. elapsed 走 macOS 13+ `Text(timerInterval: Date.now...maxDate)` 标准 API (Apple HIG 真值, 不新加 state)
+6. 左 ::: 字符 SwiftUI `.opacity` toggle animation (Apple 默认 animation 真值, ticket 22 修真因原则)
+7. ChatViewModel 新增 `@Observable var aiPhase: ConductorPhase = .idle` (5 phase enum)
+8. WenshuConductor.handle 新增 status callback closure 参数, 各阶段调 callback(phase)
+9. ChatView.init() 通过 { conductor.handle(..., statusCallback: { vm.aiPhase = $0 }) } 接 status
+10. ChatZoneView VStack 顺序不动 (Q20 ticket 13 拍 "就现在的位置, 不改")
+11. ChatView 输入框布局不动 (Q20)
+12. ChatBottomBar 18 PT inset 不动 (Q20 ticket 13 + 14 已修真因)
+13. ChatViewModel.send / clear / switchModel / loadAvailableModels API 不动 (Q20)
+14. WenshuConductor.handle 4 阶段逻辑不动 = intent classify → 派子 agent → LLM synthesis 真值保留 (Q20)
+15. AgentProtocol 协议不动 (Q20)
+
+## 修真因修真因 / Q5-Q25 audit gates
+
+- **Q20 不动** = ChatZoneView VStack + ChatView 输入框布局 + ChatBottomBar 18 PT + ChatViewModel API + WenshuConductor 真值 + AgentProtocol
+- **Q21 SF Symbol** = spinner 走 SF Symbol `ellipsis` (3 个 . = ASCII `:::` ASCII 字符不是 SF Symbol)
+- **Q26 原则1** = Apple HIG 真值 macOS 13+ Text(timerInterval:) + Apple default animation
+- **Q26 原则2** = Apple semantic color + SF Symbol + Apple HIG spacing
+- **Q26 原则3** = 效果优先工作量不打折扣, 4 阶段 status text 不缩水
+- **Q26 原则4** = 业务语言 "AI 回复状态栏" not "ConductorPhase enum"
+- **Q47 实现方式** = macOS SwiftUI 13+ 标准 API (Text(timerInterval:) macOS 13 真 public interface, swiftinterface 验 SDK MacOSX27.0 真值 availability), 不切新 API
+- **Q51 父组件不动** = ChatZoneView / ChatView / ChatViewModel / WenshuConductor 父组件结构不变, 子组件 override AIStatusBar + ConductorPhase
+
+## 业务修真修真修真
+
+- **修复** = chat 时长长 user 修真 almaam AI 没响应
+- **新增** = 修真 resize 修真 ChatView, AIStatusBar = 修真 30 PT 修真 chat 區
+- **不增** = 修 CRUD 书 修 修真 拂 修 真修真 / 修 修 修 修
+
+## 修真路径
+
+- spec 真 = `.scratch/2026-08-21-menubar-v2/spec.md.ticket18` (修真 修真 修真 file)
+- ticket 真 = `.scratch/2026-08-21-menubar-v2/issues/18-chat-ai-status-indicator.md`
+- 修真 真 = `Sources/WenshuApp/Views/Chat/ChatView.swift` (修真 AIStatusBar + ChatViewModel)
+- 修真 真 = `Sources/WenshuApp/Core/Agent/WenshuConductor.swift` (修真 修真 修真 callback)
+- 修真 真 = `Sources/WenshuApp/Core/Agent/ConductorPhase.swift` 新增 (5 phase enum)
+- 真 真 = `Tests/WenshuAppTests/AIStatusBarTests.swift` 新增 (AIStatusBar 修真 修真 修真 + 修真 修真 修真)
+
+## Status
+
+实施 / 等 build + 双轴 + 老板 macOS 验
