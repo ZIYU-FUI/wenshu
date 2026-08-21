@@ -397,7 +397,6 @@ struct SettingView: View {
                     if apiExpandedProviders.contains(p.slug) {
                         providerApiEditor(for: p)
                             .padding(.leading, 18)
-                            .padding(.bottom, 8)
                             .transition(.opacity)
                     }
                 }
