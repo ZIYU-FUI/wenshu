@@ -225,6 +225,9 @@ struct SettingView: View {
     @State private var liveModelIds: [String] = []
     @State private var isLoadingModels = false
     @State private var providersWithKeys: Set<String> = []
+    @State private var apiEditingProvider: Provider?
+    @State private var apiDraftKey: String = ""
+    @State private var apiError: String?
 
     var currentProvider: Provider {
         Provider.by(slug: providerSlug) ?? .minimaxCn
@@ -233,12 +236,14 @@ struct SettingView: View {
     enum SettingsTab: String, CaseIterable, Identifiable {
         case general = "通用"
         case provider = "提供方"
+        case providerApi = "提供方 API"
         case model = "模型"
         var id: String { rawValue }
         var icon: String {
             switch self {
             case .general: return "gearshape"
             case .provider: return "network"
+            case .providerApi: return "key.horizontal"
             case .model: return "cpu"
             }
         }
@@ -269,6 +274,7 @@ struct SettingView: View {
                 switch selectedTab {
                 case .general: generalTab
                 case .provider: providerTab
+                case .providerApi: providerApiTab
                 case .model: modelTab
                 }
             }
@@ -361,8 +367,10 @@ struct SettingView: View {
                     .onTapGesture {
                         selectProvider(p)
                         if !providersWithKeys.contains(p.slug) && !p.requiresOAuth && p.slug != "custom" {
-                            ProviderKeyPrompt.prompt(for: p)
-                            refreshProviderStatus()
+                            selectedTab = .providerApi
+                            apiEditingProvider = p
+                            apiDraftKey = ""
+                            apiError = nil
                         }
                     }
                 }
@@ -374,6 +382,104 @@ struct SettingView: View {
             }
         }
         .formStyle(.grouped)
+    }
+
+    private var providerApiTab: some View {
+        Form {
+            Section {
+                ForEach(Provider.all) { p in
+                    providerApiRow(p)
+                }
+            } header: {
+                Text("提供方")
+            } footer: {
+                let total = Provider.all.count
+                let set = providersWithKeys.count
+                Text("已设 key \(set) / \(total)")
+                    .font(.caption)
+            }
+            if let editing = apiEditingProvider {
+                Section {
+                    SecureField("sk-...", text: $apiDraftKey)
+                        .textFieldStyle(.roundedBorder)
+                    if let apiError {
+                        Text(apiError)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                    HStack {
+                        Spacer()
+                        Button("取消") {
+                            apiEditingProvider = nil
+                            apiDraftKey = ""
+                            apiError = nil
+                        }
+                        Button("保存") {
+                            saveApiKey(for: editing)
+                        }
+                        .keyboardShortcut(.defaultAction)
+                        .disabled(apiDraftKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+                } header: {
+                    Text("填 \(editing.name) API Key")
+                } footer: {
+                    Text("存 macOS Keychain (不入文件 / log / commit)")
+                        .font(.caption)
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .onAppear { refreshProviderStatus() }
+    }
+
+    private func providerApiRow(_ p: Provider) -> some View {
+        let hasKey = providersWithKeys.contains(p.slug)
+        return HStack(spacing: 12) {
+            Image(systemName: hasKey ? "key.fill" : "key")
+                .foregroundStyle(hasKey ? Color.green : Color.secondary)
+                .frame(width: 18)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(p.name)
+                    .font(.body)
+                Text(hasKey ? "已设 key" : "未设 key")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+            Spacer()
+            if hasKey {
+                Button("编辑") {
+                    apiEditingProvider = p
+                    apiDraftKey = ""
+                    apiError = nil
+                }
+                .buttonStyle(.borderless)
+                .controlSize(.small)
+            } else {
+                Button("添加") {
+                    apiEditingProvider = p
+                    apiDraftKey = ""
+                    apiError = nil
+                }
+                .buttonStyle(.borderless)
+                .controlSize(.small)
+                .disabled(p.requiresOAuth || p.slug == "custom")
+            }
+        }
+        .contentShape(Rectangle())
+    }
+
+    private func saveApiKey(for provider: Provider) {
+        let trimmed = apiDraftKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        do {
+            try ProviderKeychain.saveKeySync(trimmed, for: provider)
+            apiEditingProvider = nil
+            apiDraftKey = ""
+            apiError = nil
+            refreshProviderStatus()
+        } catch {
+            apiError = "保存失败: \(error.localizedDescription)"
+        }
     }
 
     private var modelTab: some View {
