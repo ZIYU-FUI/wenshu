@@ -189,9 +189,18 @@ struct WenshuApp: App {
         // v0.21 ticket 01 (重做 #4): 删 .commands { CommandGroup(.appSettings) { SettingsLink() } } 段
         // (Q15 翻车链 #8 总结: SwiftUI .commands 段在 macOS 27 lazy populate 覆盖了 .commands 注入的 SettingsLink, NSMenu "设置…" 没装 = 老板 8/21 19:30 反馈"设置菜单没有了")
         // 真因 (Q28 Stack Overflow 76359975 真值): SwiftUI macOS 14+ NSMenu 装 "Settings…" 必须自己 NSWindow + NSHostingController 范式 (Settings { } Scene 是 SwiftUI App body 标准 cmd+, handler)
-        // v0.21 ticket 06 (Pages 范式): 撤回 Settings { } Scene (= commit 0082bd1fe + 030a58355 装的 macOS 设置 API 自动标题栏按钮)
-        // 老板 8/21 拍: 'Pages 范式 = 顶部 toolbar 切换 tab, 不是标题栏按钮, 是参考 UI 用 Apple 标准'
-        // 修法: 撤回 `Settings { }` Scene, NSMenu "设置…" action 弹自定义 NSWindow + 顶部 toolbar tab 切换 (Pages 真值真值)
+        // v0.21 ticket 06 (Pages 范式): 装回 macOS Settings { } Scene 接管菜单栏 (Apple 真值 14+, 老板 8/10 01:43 6 项菜单真值真值)
+        // 老板 8/21 拍: '菜单栏的置入和弹窗的写法不是严格关联, 用正常能置入菜单栏的方式 + Pages UI 范式弹窗'
+        // 真值真值: Settings { } Scene 自动装菜单 (= Apple/文枢/显示/窗口/帮助) + .commands { CommandGroup(.appSettings) { SettingsLink() } } 接管 cmd+,
+        //           窗口内容 = SettingView (= 顶部 toolbar tab + 3 tab, Pages 范式, 老板画的图 2 红框位置)
+        Settings {
+            SettingView()
+        }
+        .commands {
+            CommandGroup(replacing: .appSettings) {
+                SettingsLink()
+            }
+        }
     }
 }
 
