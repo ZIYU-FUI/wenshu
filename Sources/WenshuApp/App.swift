@@ -387,21 +387,14 @@ struct SettingView: View {
         Form {
             Section {
                 ForEach(Provider.all) { p in
-                    Button {
-                        toggleExpand(p: p)
-                    } label: {
-                        providerApiRow(p)
-                    }
-                    .buttonStyle(.plain)
-                    .contentShape(Rectangle())
-                    if apiExpandedProviders.contains(p.slug) {
+                    DisclosureGroup(isExpanded: bindingForExpanded(p)) {
                         providerApiEditor(for: p)
                             .padding(.leading, 18)
                             .padding(.bottom, 8)
-                            .transition(.opacity)
+                    } label: {
+                        providerApiRow(p)
                     }
                 }
-                .animation(.default, value: apiExpandedProviders)
             } header: {
                 Text("提供方")
             } footer: {
@@ -423,6 +416,21 @@ struct SettingView: View {
             apiDraftKey = currentDraftPreview(for: p)
             apiError = nil
         }
+    }
+
+    private func bindingForExpanded(_ p: Provider) -> Binding<Bool> {
+        Binding(
+            get: { apiExpandedProviders.contains(p.slug) },
+            set: { newValue in
+                if newValue {
+                    apiExpandedProviders.insert(p.slug)
+                    apiDraftKey = currentDraftPreview(for: p)
+                    apiError = nil
+                } else {
+                    apiExpandedProviders.remove(p.slug)
+                }
+            }
+        )
     }
 
     private func currentDraftPreview(for provider: Provider) -> String {
