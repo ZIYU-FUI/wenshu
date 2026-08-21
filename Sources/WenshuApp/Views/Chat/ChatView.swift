@@ -106,6 +106,8 @@ public final class ChatViewModel {
     /// recomputeContextUsed: sum of all agent message tokens (v0.21 ticket 34 real LLM API usage, replaces chars/4 heuristic)
     public func recomputeContextUsed() {
         contextUsed = messages.compactMap { $0.tokens }.reduce(0, +)
+        // v0.21 ticket 40 step 1 NSLog trace: 证 ChatViewModel.contextUsed 真累加 (Q63 verify-before-claim)
+        NSLog("[wenshu.context] sum tokens after recompute: %d (messages=%d)", contextUsed, messages.count)
     }
 
     /// send: 发消息 → 文枢主 agent 真合成 (v0.21 ticket 06 + code-review S1+S2 真持久化)
