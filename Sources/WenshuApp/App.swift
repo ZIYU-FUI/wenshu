@@ -1126,7 +1126,7 @@ struct ChatZoneView: View {
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "cpu")
-                        Text(ModelDisplay.lookup(currentModel)?.display ?? currentModel)
+                        Text(ModelDisplay.lookup(currentModel).display)
                             .font(.system(size: 13))
                         Image(systemName: "chevron.up.chevron.down")
                             .font(.system(size: 11))
