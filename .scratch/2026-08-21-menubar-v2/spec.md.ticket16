@@ -1,0 +1,96 @@
+# ticket 16 — 提供方 API 编辑面板 inline 展开 (老板 2026-08-22 06:00 拍)
+
+**Status:** ready-for-agent
+
+## 老板真值 (verbatim)
+
+老板 2026-08-22 06:00 拍修真因:
+
+"出现的位置不对，应该在 minimax cn 的那一条处展开"
+
+= 修真因 ticket 15 修真因真因: 编辑面板在 Form 底部独立 Section 渲染, 老板要 inline 展开在对应 provider 行下方.
+
+## Q26 5 原则判定 (老板拍 "工程你来决定我们的原则 123 你判断一下")
+
+| 原则 | 候选 A DisclosureGroup | 候选 B NavigationStack | 候选 C row 内嵌套 |
+|---|---|---|---|
+| 1. Apple 官方范式 | ✅ SwiftUI 11+ 标准 API | ❌ 破坏 Q20 Pages 范式 | ❌ 非 Apple 推荐范式 |
+| 2. 伪 Apple 官方样式 | ✅ SF Symbol chevron + formStyle(.grouped) | ✅ NavigationLink chevron | ⚠️ 视觉割裂 |
+| 3. 效果优先 | ✅ 老板要的"展开"语义 100% | ❌ push detail = 不是"展开" | ✅ 但视觉割裂 |
+| 4. 业务语言 | ✅ "点行展开 inline 编辑" | ⚠️ "推到设置详情页" 不直观 | ⚠️ 视觉割裂 |
+| 5. po main flow | ✅ 1 ticket 1 commit | ❌ 改结构大, 风险高 | ✅ |
+
+**A DisclosureGroup 5 原则全通过** = 唯一修真因.
+
+## 修真因 (Q47 锁定实现方式 + Q20 不动 + Q51 父组件不动)
+
+**Q20 不动**:
+- 现有 SettingView 4 tab + Pages 范式 toolbar (L248-263)
+- ProviderKeychain 后端 (Apple Keychain 真值)
+- providerApiRow + saveApiKey private 组件结构 (L435-489)
+- ProviderKeyPrompt.prompt 撤触发逻辑 (L367-374)
+
+**Q51 父组件不动 + 子组件 override**:
+- SettingView 父组件结构不变
+- providerApiTab 子组件修真因 (替换 Section 范式为 DisclosureGroup 范式)
+
+**修法真值 (1 ticket 1 commit, 5 原则 1+2 满足)**:
+
+1. **App.swift providerApiTab L387-433 重写**:
+   - 撤: 独立 `if let editing = apiEditingProvider { Section("填 X API Key") { ... } }` 块 (L401-429)
+   - 加: ForEach 里每个 provider 渲染 = `DisclosureGroup(isExpanded: ...) { SecureField + 按钮 } label: { providerApiRow(p) }`
+   - DisclosureGroup 真值 = Apple SwiftUI 11+ 标准 API, 可折叠内容组, 真值视觉 = 整行展开
+   - Q47 锁定实现方式 = 在 providerApiTab 子组件内修真因, 不切实现方式
+
+2. **App.swift providerApiRow 修真因 (L435-460)**:
+   - 当前是 HStack (key icon + name + status + 添加/编辑 button)
+   - 修真因: DisclosureGroup label 用 providerApiRow, 内容是 SecureField + 按钮 + 状态
+
+3. **App.swift saveApiKey (L473-489) 不动** (Q20 + 双轴 PASS ticket 15):
+   - Keychain 写入逻辑 + 错误处理 + refresh status 全保留
+
+4. **DisclosureGroup 真值状态管理**:
+   - 每个 provider 的 DisclosureGroup `isExpanded` 由 state 控制
+   - 当前 @State 改造: `@State private var expandedProviders: Set<String> = []` (slug 集合)
+   - @State private var apiEditingProvider / apiDraftKey / apiError 保留 (Q20 + ticket 15 修真因真因)
+
+## 不动 (Q20 硬约束)
+
+- 现有 SettingView 4 tab + Pages toolbar
+- ProviderKeychain 后端
+- providerApiRow HStack 视觉 (key icon + name + status) (仅改它作为 DisclosureGroup label)
+- saveApiKey 写入逻辑
+- ProviderKeyPrompt.prompt(for:) 历史快照
+- providerTab (L325-377) 现有
+- LLMKeychain / AppDelegate / NSApp.mainMenu / .commands
+- ZoneModule / LayoutShellView / ChatZoneView / ChatView
+
+## 5 原则满足 (Q26)
+
+1. **Apple 官方范式**: DisclosureGroup (Apple SwiftUI macOS 11+ / iOS 14+ 标准 API, Apple HIG "可折叠内容组" 真值, 常用于 Settings 详情面板)
+2. **伪 Apple 官方样式**: SF Symbol `chevron.down`/`chevron.up` (DisclosureGroup 自带, Apple HIG 标准) + semantic color + .formStyle(.grouped) 兼容
+3. **效果优先**: 老板要的"在 minimax cn 那一条处展开" 100% 真值, 修真因真因
+4. **业务语言**: "点 provider 行 → 整行展开 inline 编辑面板", 老板懂
+5. **po main flow**: 1 ticket 1 commit, spec + impl 同 commit (Q29), 双轴 code-review 跑 (Q37)
+
+## 双轴 code-review (Q37)
+
+- Standards 轴: DisclosureGroup swiftinterface 验证 (Apple SwiftUI 11+ public API) + .formStyle(.grouped) 兼容性 + isExpanded Binding 真值
+- Spec 轴: 老板拍 "应该在 minimax cn 那一条处展开" 真硬约束 + 5 原则 A 唯一通过判定
+
+## Acceptance
+
+- [ ] providerApiTab 撤独立 Section (L401-429)
+- [ ] ForEach 内 provider 渲染 = DisclosureGroup (label = providerApiRow, content = SecureField + 按钮)
+- [ ] DisclosureGroup isExpanded 状态管理 (@State expandedProviders: Set<String>)
+- [ ] 老板 macOS 真验: 提供方 API tab → 点 MiniMax (China) 行 → 整行展开 inline 编辑面板 (SecureField + 保存) → 输入 key → 保存 → 状态变 "已设 key" → DisclosureGroup 自动折叠 (或保持展开)
+- [ ] swift build exit 0
+- [ ] swift test exit 0 (ProviderKeychain 5/5 pass 不回归)
+- [ ] 双轴 code-review 报告 verbatim 进 commit body
+
+## 关联
+
+- 依赖: ticket 15 commit `f0b71d098` (providerApiTab + providerApiRow + saveApiKey 已装)
+- 被依赖: 仿 hermes auth remove / reset 后续 ticket
+- 历史: ticket 15 commit body 老板拍 "不要再弹窗" 已修真因, ticket 16 修真因 "展开位置"
+- 分支: feature/chat-bottom-toolbar-in-child (Q53 ticket 10 起, 续)
