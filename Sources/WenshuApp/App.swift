@@ -1117,16 +1117,16 @@ struct ChatZoneView: View {
             ChatView(conductor: conductor, store: store)
             HStack(spacing: 0) {
                 Menu {
-                    ForEach(availableModels, id: \.self) { id in
-                        Button(id) {
-                            currentModel = id
-                            UserDefaults.standard.set(id, forKey: "wenshu.llm.model")
+                    ForEach(ModelDisplay.curated(availableModels), id: \.self) { entry in
+                        Button(entry.display) {
+                            currentModel = entry.id
+                            UserDefaults.standard.set(entry.id, forKey: "wenshu.llm.model")
                         }
                     }
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "cpu")
-                        Text(currentModel)
+                        Text(ModelDisplay.lookup(currentModel)?.display ?? currentModel)
                             .font(.system(size: 13))
                         Image(systemName: "chevron.up.chevron.down")
                             .font(.system(size: 11))
