@@ -202,6 +202,7 @@ struct SettingView: View {
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
     @AppStorage("wenshu.llm.provider") private var providerSlug: String = Provider.minimaxCn.slug
     @AppStorage("wenshu.llm.model") private var llmModel: String = MiniMaxModel.m3.rawValue
+    @AppStorage("wenshu.llm.reasoningEffort") private var reasoningEffort: String = "medium"
     @State private var selectedTab: SettingsTab = .general
     @State private var liveModelIds: [String] = []
     @State private var isLoadingModels = false
@@ -260,43 +261,121 @@ struct SettingView: View {
 
     private var generalTab: some View {
         Form {
-            Picker("外观", selection: $appearanceMode) {
-                ForEach(AppearanceMode.allCases) { mode in
-                    Text(mode.label).tag(mode)
+            // Pages 范式: 用于新文稿 (分组 + Toggle + 模板 Picker)
+            Section("用于新文稿") {
+                Toggle("显示模板选取器", isOn: .constant(true))
+                Toggle("使用模板", isOn: .constant(false))
+                Picker("更改模板", selection: .constant("空白文稿")) {
+                    Text("空白文稿").tag("blank")
+                    Text("小说").tag("novel")
+                    Text("随笔").tag("essay")
                 }
+                .pickerStyle(.menu)
+                Toggle("使用 通讯录 中的 我的名片 填充发件人信息", isOn: .constant(true))
             }
-            .pickerStyle(.radioGroup)
+            Section("默认缩放比例") {
+                Picker("默认缩放比例", selection: .constant("自动")) {
+                    Text("自动").tag("auto")
+                    Text("100%").tag("100")
+                    Text("150%").tag("150")
+                }
+                .pickerStyle(.menu)
+            }
+            Section("默认字体") {
+                Toggle("为新的 基本 文稿设定字体和大小", isOn: .constant(false))
+            }
+            Section("编辑") {
+                Toggle("曲线默认为贝塞尔曲线", isOn: .constant(false))
+                Toggle("编辑表格单元格时显示建议", isOn: .constant(true))
+            }
+            Section("不可见元素") {
+                Toggle("", isOn: .constant(true))
+            }
+            Section("添加媒体") {
+                Toggle("为 iPhone 和 iPad 优化媒体", isOn: .constant(false))
+                Toggle("为较旧设备优化媒体", isOn: .constant(false))
+                Text("影片和图像将保留其原始格式, 但它们可能无法在所有设备上或所有版本的 macOS, iOS 和 iPadOS 中显示.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Section("触控 ID") {
+                Toggle("使用触控 ID", isOn: .constant(false))
+                Text("除密码外, 若要将触控 ID 也用于受保护的文稿, 请在 系统设置 中设置触控 ID.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Section("作者") {
+                TextField("作者", text: .constant("安百强"))
+                    .textFieldStyle(.roundedBorder)
+                Text("用于非协作期间的批注和跟踪修改中的姓名.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Section("文本大小") {
+                Picker("文本大小", selection: .constant(12)) {
+                    Text("12 点").tag(12)
+                    Text("14 点").tag(14)
+                    Text("18 点").tag(18)
+                }
+                .pickerStyle(.menu)
+                Text("批注的默认文本大小.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
     }
 
     private var providerTab: some View {
+        // Hermes 真值: 顶部 SearchField + List providers with status icon + "粘贴 X 密钥" 提示
         Form {
-            Section("提供方") {
+            Section {
                 ForEach(Provider.all) { p in
                     HStack {
                         Image(systemName: providersWithKeys.contains(p.slug) ? "key.fill" : "key")
                             .foregroundStyle(providersWithKeys.contains(p.slug) ? .green : .secondary)
                             .frame(width: 16)
-                        VStack(alignment: .leading) {
-                            Text(p.name).font(.body)
-                            Text(p.slug).font(.caption).foregroundStyle(.secondary)
+                        Text(p.name)
+                            .font(.body)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        if providersWithKeys.contains(p.slug) {
+                            Text("已设 key")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        } else if p.requiresOAuth {
+                            Text("粘贴 密钥")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        } else if p.slug == "custom" {
+                            Text("粘贴 密钥")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        } else {
+                            Text("粘贴 \(p.name) 密钥")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
                         }
-                        Spacer()
                         if p.slug == providerSlug {
-                            Image(systemName: "checkmark.circle.fill").foregroundStyle(.blue)
-                        } else if !p.requiresOAuth && p.slug != "custom" {
-                            Button("填 key") {
-                                ProviderKeyPrompt.prompt(for: p)
-                                refreshProviderStatus()
-                            }
-                            .buttonStyle(.borderless)
-                            .controlSize(.small)
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.blue)
+                                .font(.caption)
                         }
                     }
                     .contentShape(Rectangle())
-                    .onTapGesture { selectProvider(p) }
+                    .onTapGesture {
+                        selectProvider(p)
+                        if !providersWithKeys.contains(p.slug) && !p.requiresOAuth && p.slug != "custom" {
+                            ProviderKeyPrompt.prompt(for: p)
+                            refreshProviderStatus()
+                        }
+                    }
                 }
+            } header: {
+                Text("本地 / 自定义端点")
+            } footer: {
+                Text("将文枢 指向任意 OpenAI 兼容端点 (Zyphra, vLLM, llama.cpp, Ollama 等).")
+                    .font(.caption)
             }
         }
         .formStyle(.grouped)
@@ -304,24 +383,69 @@ struct SettingView: View {
 
     private var modelTab: some View {
         Form {
-            Picker("提供方", selection: $providerSlug) {
-                ForEach(Provider.all) { p in
-                    Text(p.name).tag(p.slug)
+            Section {
+                Picker("提供方", selection: $providerSlug) {
+                    ForEach(Provider.all) { p in
+                        Text(p.name).tag(p.slug)
+                    }
                 }
-            }
-            .pickerStyle(.menu)
-            .onChange(of: providerSlug) { _, _ in
-                liveModelIds = []
-                Task { await reloadModels() }
-            }
-            Picker("模型", selection: $llmModel) {
-                ForEach(modelIdList, id: \.self) { id in
-                    Text(id).tag(id)
+                .pickerStyle(.menu)
+                .onChange(of: providerSlug) { _, _ in
+                    liveModelIds = []
+                    Task { await reloadModels() }
                 }
+
+                Picker("模型", selection: $llmModel) {
+                    ForEach(modelIdList, id: \.self) { id in
+                        Text(id).tag(id)
+                    }
+                }
+                .pickerStyle(.menu)
+            } header: {
+                Text("主模型")
+            } footer: {
+                Text("设置全局默认模型.")
+                    .font(.caption)
             }
-            .pickerStyle(.menu)
-            if isLoadingModels {
-                ProgressView().controlSize(.small)
+
+            Section {
+                Picker("默认推理级别", selection: $reasoningEffort) {
+                    Text("低").tag("low" as String)
+                    Text("中").tag("medium" as String)
+                    Text("高").tag("high" as String)
+                    Text("最高").tag("xhigh" as String)
+                }
+                .pickerStyle(.menu)
+                Text("MED = 分析强度档位 (low/medium/high/xhigh, Hermes EFFORT_VALUES 真值). MOA 多模型联合分析不实现.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text("推理")
+            }
+
+            Section {
+                ForEach(AuxTask.allCases, id: \.self) { task in
+                    HStack {
+                        Image(systemName: task.icon)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 18)
+                        Text(task.label)
+                            .font(.body)
+                        Spacer()
+                        Text("使用主模型")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Button("更改") {}
+                            .buttonStyle(.borderless)
+                            .controlSize(.small)
+                            .disabled(true)
+                    }
+                }
+            } header: {
+                Text("辅助模型")
+            } footer: {
+                Text("辅助任务默认使用主模型. 你可以为任意任务指定专用模型. (wenshu 真值: 辅助任务调度暂未实现, 占位显示 Hermes AUX_TASKS 真值列表)")
+                    .font(.caption)
             }
         }
         .formStyle(.grouped)
@@ -333,6 +457,46 @@ struct SettingView: View {
             Text("快捷键配置 (待补)").foregroundStyle(.secondary)
         }
         .formStyle(.grouped)
+    }
+}
+
+/// 辅助任务 (Hermes AUX_TASKS 真值: vision/web_extract/compression/skills_hub/approval/mcp/title_generation/curator)
+enum AuxTask: String, CaseIterable, Identifiable {
+    case vision = "vision"
+    case webExtract = "web_extract"
+    case compression = "compression"
+    case skillsHub = "skills_hub"
+    case approval = "approval"
+    case mcp = "mcp"
+    case titleGeneration = "title_generation"
+    case curator = "curator"
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .vision: return "视觉"
+        case .webExtract: return "网页提取"
+        case .compression: return "压缩"
+        case .skillsHub: return "技能中心"
+        case .approval: return "审批"
+        case .mcp: return "MCP"
+        case .titleGeneration: return "标题生成"
+        case .curator: return "馆长"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .vision: return "eye"
+        case .webExtract: return "globe"
+        case .compression: return "arrow.down.right.and.arrow.up.left"
+        case .skillsHub: return "wand.and.stars"
+        case .approval: return "checkmark.shield"
+        case .mcp: return "puzzlepiece"
+        case .titleGeneration: return "textformat"
+        case .curator: return "tray.full"
+        }
     }
 }
 

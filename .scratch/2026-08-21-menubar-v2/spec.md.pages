@@ -1,0 +1,120 @@
+# Spec — 设置面板 UI 重做 (Pages 范式 + Hermes 提供方/模型 真值真值, 老板 2026-08-21 拍)
+
+> Date: 2026-08-21
+> 老板 8/21 macOS 真值:
+> 1. **Pages 范式设置面板 UI** (= Pages 顶部 toolbar tab 范式, 内容分组, Toggle + Picker + 分割线)
+> 2. **提供方配置按 hermes 设置-提供方-API 配置的功能和交互原样复刻** (= sidebar 主区, status icon + "粘贴 X 密钥" 提示)
+> 3. **模型设置按 hermes 设置-模型 配置的功能和交互原样复刻** (= 提供方 dropdown + 模型 dropdown + 推理级别 dropdown + 辅助模型列表)
+> 4. **低栏占位文字替换 = 只聊天区的, 其它区的不替换, 不要直接在父组件上直接替换** (= 撤回 ZoneBottomToolbar 全 6 区替换, 只在 ChatView zone 装)
+
+## 业务语言 (老板懂)
+
+设置面板 = Pages 范式顶部 tab 范式 (Pages 真值) + 3 tab:
+- 通用 (Pages 范式): 用于新文稿 (Toggle group) + 默认缩放比例 (Picker) + 默认字体 (Toggle) + 编辑 (Toggle group) + 不可见元素 (Toggle) + 添加媒体 (Toggle group) + 触控 ID (Toggle) + 作者 (TextField) + 文本大小 (Picker)
+- 提供方 (Hermes 真值): List Provider.all 11 provider + status icon (key.fill 绿/key 灰) + "粘贴 X 密钥" / 现有 key 预览, 搜 provider, OAuth/api_key 分组
+- 模型 (Hermes 真值): 提供方 dropdown + 模型 dropdown + "应用" 按钮 + 推理级别 dropdown (low/medium/high, MED 真值真值) + 辅助模型列表 (视觉/网页提取/压缩/技能中心/审批/MCP/标题生成 - boss 拍 MOA 不做, 这块只显示 sub-task 真值辅助)
+
+## Hermes 源码真值 (apps/desktop/src/)
+
+### providers-settings.tsx (已读过)
+- Sidebar subnav: 提供方 (账号/API 密钥/自定义端点/网关/键盘快捷键/工具与密钥/插件/已归档对话/关于)
+- 主区: List provider rows + status icon + "粘贴 X 密钥" 提示 (key_env 是 env var name)
+- `isProviderReady(p) = authenticated !== false || models.length > 0`
+- OAuth vs api_key 分支 (api_key → 弹 key input; OAuth → 跳 onboarding)
+
+### model-settings.tsx (真值)
+- 提供方 dropdown (Select) + 模型 dropdown (Select) + "应用" 按钮 + 推理级别 dropdown (none/minimal/low/medium/high/xhigh)
+- 辅助模型列表 (AUX_TASKS): vision / web_extract / compression / skills_hub / approval / mcp / title_generation / curator - 每条可"设为主模型/更改"
+- MoA presets 不显示 (boss 拍 MOA 不做)
+- Stale aux warning (有 stale auxiliary tasks 时显示) - wenshu 不实现 (没 aux 任务调度)
+
+## Wenshu 现状 (working tree)
+
+- `SettingView` (commit `030a58355` + `0082bd1fe`) 当前 3 tab: 通用 / 模型 / 快捷键. 视觉 = Tab API + systemImage 真值, 但内容简陋.
+- `Provider`, `ProviderKeychain`, `ProviderFetcher`, `ProviderCatalog` (commit `2c0f11ac7` + `e74f5eca0` + `feefdfed9`) 已装.
+- `ProviderKeyPrompt` NSWindow sheet (commit `a894d6a52`) 已装.
+- `MiniMaxModelFetcher` (commit `e45fac768`) 已装, 1h TTL 缓存.
+
+## 修法真值 (3 步, 5 原则1 + 4 满足)
+
+### Step 1: 重写 `SettingView` 用 Pages 范式顶部 tab + Tab API
+- 顶部 toolbar 3 tab: 通用 / 提供方 / 模型 (Tab API macOS 15+ 真值 + systemImage 真值)
+- 通用 tab 内容 (Pages 范式):
+  - "用于新文稿" 分组: Toggle "显示模板选取器" + Toggle "使用模板" + (模板 Picker) + Toggle "通讯录填充发件人"
+  - "默认缩放比例": Picker "自动"
+  - "默认字体": Toggle "为新文稿设定字体"
+  - 分割线
+  - "编辑" 分组: Toggle "贝塞尔曲线" + Toggle "编辑表格时显示建议"
+  - "不可见元素": Toggle
+  - 分割线
+  - "添加媒体" 分组: Toggle "iPhone/iPad 优化" + Toggle "较旧设备优化"
+  - "触控 ID": Toggle "使用触控 ID"
+  - 分割线
+  - "作者": TextField (老板填 "安百强")
+  - "文本大小": Picker "12 点"
+- 提供方 tab (Hermes 真值真值):
+  - SearchField 搜 provider
+  - List Provider.all (按 priority + name 排序, Hermes 真值)
+  - 每行: status icon (key.fill 绿 / key 灰) + provider.name + "粘贴 X 密钥" 或 "sk-c...J2g0" (现有 key 预览)
+  - 点行 → ProviderKeyPrompt 弹 NSWindow sheet 填 key (= commit `a894d6a52` 已装真值)
+- 模型 tab (Hermes 真值真值):
+  - 提供方 Picker (Select style)
+  - 模型 Picker (Select style, 选中 provider 的 availableModels = `ProviderFetcher.loadModelIds`)
+  - "应用" 按钮 → 写 `wenshu.llm.model` + `wenshu.llm.provider` UserDefaults
+  - 分割线
+  - 推理级别 (Reasoning Effort): Picker low/medium/high/xhigh (boss 8/21 evening 拍 MED = 分析强度真值, MOA 不做) - Hermes `EFFORT_VALUES = ['none', 'minimal', 'low', 'medium', 'high', 'xhigh']` 范式
+  - 分割线
+  - 辅助模型 (Auxiliary Models): List `AUX_TASKS = [vision, web_extract, compression, skills_hub, approval, mcp, title_generation, curator]` (Hermes 真值), 每行 task label + 当前 "使用主模型" 文字 (wenshu 默认) + "更改" 按钮 (未来真值真值)
+  - 不做 MoA presets (boss 拍 MOA 不做)
+  - 不做 Stale aux warning (wenshu 没 aux 任务调度)
+
+### Step 2: ChatView zone 底栏只替换 chat zone, 其它区不动
+- 撤回 commit `55d3844d1` 把 ZoneBottomToolbar 整个替换 (= 全 6 区都改了, boss 拍 "其它区不替换")
+- 改 ZoneBottomToolbar 加 `if/else` 分支, 当 slot == .aiChat 才装 model picker + context usage, 其它 slot 仍显 "占位文字"
+- 真正写法: 改 ZoneModule 的 slot-specific 子组件, chat zone (.aiChat) 单独用 ChatBottomToolbar (model picker + context usage); 其它 zone 用 ZoneBottomToolbar 原版 (占位文字)
+
+### Step 3: Domain-modeling
+- 加 `CONTEXT.md`:
+  - `SettingView` Pages 范式 (新 domain word)
+  - `ProviderAuthStatus` enum (Hermes 真值真值)
+  - `ReasoningEffort` enum (low/medium/high/xhigh, Hermes EFFORT_VALUES 真值)
+  - `AuxTask` enum (vision/web_extract/compression/skills_hub/approval/mcp/title_generation/curator, Hermes AUX_TASKS 真值)
+
+## Acceptance
+
+- [ ] SettingView 3 tab (通用/提供方/模型) Pages 范式 (顶部 toolbar tab + Toggle + Picker + 分割线)
+- [ ] 通用 tab 内容跟 Pages 范式 (Toggle group + Picker + TextField)
+- [ ] 提供方 tab: List 11 provider + status icon + key 提示 (Hermes providers-settings.tsx 真值)
+- [ ] 模型 tab: 提供方 dropdown + 模型 dropdown + 应用按钮 + 推理级别 dropdown (Hermes model-settings.tsx 真值)
+- [ ] 辅助模型列表 (Hermes AUX_TASKS 8 个, 显示 "使用主模型" + "更改" 按钮)
+- [ ] 不做 MoA (boss 拍 MOA 不做)
+- [ ] ZoneBottomToolbar 撤回全 6 区替换, 只 chat zone (.aiChat) 装真值
+- [ ] swift build exit 0
+- [ ] swift test exit 0
+- [ ] 老板 macOS 真验: 设置面板跟 Pages + Hermes 真值真值
+
+## 不动 (Q20 硬约束)
+
+- v0.20 LOGO + 菜单栏 (不动)
+- v0.21 chat-streak ticket 02-06 (不动)
+- Provider / ProviderKeychain / ProviderFetcher / ProviderCatalog (commit 2c0f11ac7 / e74f5eca0 / feefdfed9 不动)
+- ProviderKeyPrompt (commit a894d6a52 不动)
+- MiniMaxModelFetcher (commit e45fac768 不动)
+- AppIcon.icon/ (留底)
+
+## Apple HIG 真值引用
+
+- https://developer.apple.com/documentation/swiftui/settings
+- https://developer.apple.com/documentation/swiftui/tabview
+- https://developer.apple.com/documentation/swiftui/form
+- https://developer.apple.com/documentation/swiftui/toggle
+- https://developer.apple.com/documentation/swiftui/picker
+- hermes apps/desktop/src/app/settings/providers-settings.tsx
+- hermes apps/desktop/src/app/settings/model-settings.tsx
+- hermes apps/desktop/src/components/onboarding
+- Pages 设置面板 macOS 27 (真值真值)
+
+## 关联
+
+- 依赖: 无
+- 被依赖: 无
