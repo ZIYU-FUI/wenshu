@@ -1128,14 +1128,18 @@ struct ChatZoneView: View {
                         }
                     }
                 } label: {
+                    // v0.21 ticket 36: explicit .foregroundStyle(.tertiary) per element
+                    // BorderlessButtonMenuStyle overrides outer color, need child-level
                     HStack(spacing: 4) {
                         Image(systemName: "cpu")
+                            .foregroundStyle(.tertiary)
                         Text(ModelDisplay.lookup(currentModel).display)
                             .font(.system(size: 13))
+                            .foregroundStyle(.tertiary)
                         Image(systemName: "chevron.up.chevron.down")
                             .font(.system(size: 11))
+                            .foregroundStyle(.tertiary)
                     }
-                    .foregroundStyle(.tertiary)
                     .padding(.bottom, 6)
                     .frame(height: LayoutTokens.toolbarHeight, alignment: .bottomLeading)
                 }
