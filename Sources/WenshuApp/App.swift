@@ -271,9 +271,9 @@ struct SettingView: View {
             // tab 内容 (Pages 范式, .formStyle(.grouped) 真值 Apple)
             Group {
                 switch selectedTab {
-                case .general: generalTab.transition(.opacity)
-                case .providerApi: providerApiTab.transition(.opacity)
-                case .model: modelTab.transition(.opacity)
+                case .general: generalTab
+                case .providerApi: providerApiTab
+                case .model: modelTab
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -438,14 +438,13 @@ struct SettingView: View {
         HStack(spacing: 8) {
             SecureField("sk-...", text: $apiDraftKey)
                 .textFieldStyle(.roundedBorder)
-                .transition(.opacity)
             Button("保存") {
                 saveApiKey(for: p)
             }
             .keyboardShortcut(.defaultAction)
             .disabled(apiDraftKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            .transition(.opacity)
         }
+        .transition(.opacity)
         if let apiError {
             Text(apiError)
                 .font(.caption)
