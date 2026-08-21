@@ -1,69 +1,135 @@
-# Spec — ticket 18 AI 回复状态动态显示 (v0.21, 老板 2026-08-22 06:18 拍 backlog / 8/22 14:00 拍修真修真修真修真)
+# ticket 18 — AI 回复状态指示器 (Apple ProgressView + Text + SF Symbol symbolEffect) (老板 2026-08-22 06:18 拍 backlog 阶段, 2026-08-22 拍推进)
 
-> Date: 2026-08-22
-> 老板 8/22 14:00 拍 "按 hermes 的标准实现"
+**Status:** ready-for-agent
 
-## 业务语言 (老板懂)
+## 老板拍的真值 (verbatim)
 
-老板 macOS 看到的聊天区: AI 回复时用户看不到任何状态指示, 时间长 = 用户怀疑 AI 没响应。要看 hermes 范式真值 (3 段布局) = 修真修真 AI 修真修真修修真。
+老板 2026-08-22 06:18 拍 backlog:
+- "**聊天时，AI 在回复时，我看不到任何状态**"
+- "**如果时间过长，用户可能会怀疑 AI 没有响应**"
+- "**参考 hermes，也就是截图的那个功能**"
+- "**实现动态显示**"
+- "**先记一下需求，等会排期做**"
 
-## Hermes 范式真值 (3 段布局, 即拍板路径 A)
+老板 2026-08-22 拍推进 "**A**" = 修真因方案 A = `ProgressView` 圆形 indeterminate + "AI 思考中..." Text + SF Symbol `.symbolEffect(.pulse)` 联合 = Apple HIG 真硬真值.
 
-```
-[::: ] | 正在调 LLM            | 5s
-       | 正在分类意图           |
-       | 正在派子 agent         |
-       | 正在合成最终回复         |
-```
+## Q32 真因真硬真值 (Q28 查文档 + Apple HIG + Q44 swiftinterface)
 
-- **左**: `::: ` unicode 字符 + 闪烁动画 (SwiftUI .opacity animation)
-- **中**: 当前 LLM 操作描述 (intent classify / dispatch / synthesis 3 阶段)
-- **右**: 已用时间秒 (macOS 13+ `Text(timerInterval:)` 真值标准 API, 实时刷新)
+**Q44 swiftinterface 验 Apple SwiftUI 14+ macOS 真值存在**:
+- `ProgressView()` (Apple SwiftUI macOS 11+ 标准 indeterminate 圆形 spinner) 真硬真值
+- `Image(systemName: "brain" / "sparkles")` (Apple SF Symbol 4+/5+ 真值)
+- `.symbolEffect(.pulse, options: .repeating)` (Apple SwiftUI 17+/macOS 14+ 真值 = SF Symbol pulse 动画)
 
-## Acceptance (po main flow step 5 must hit)
+**Q28 查文档真值**:
+- Apple HIG 真值 = `ProgressView` 在 macOS 标准控件, 用户熟悉
+- Apple SF Symbol pulse 真值 = 自动 SF Symbol 自身循环动画 (Apple 官方推荐视觉反馈)
+- 不写自定义 animation (WenshuInteractionAnimationPrinciple 硬约束)
+- 不引入 UIKit (CLAUDE.md L42)
 
-1. ChatView 输入框 + 消息列表 之间新增 1 条 `AIStatusBar` SwiftUI 子组件
-2. AIStatusBar = `HStack { Image(spinner) + Text(currentStatus) + Spacer() + Text(elapsed) }`
-3. `AIStatusBar` 默认 hidden, isSending == true 时显示
-4. currentStatus 跟 WenshuConductor.handle 4 阶段同步 (kanban add / intent classify / subagent dispatch / LLM synthesis)
-5. elapsed 走 macOS 13+ `Text(timerInterval: Date.now...maxDate)` 标准 API (Apple HIG 真值, 不新加 state)
-6. 左 ::: 字符 SwiftUI `.opacity` toggle animation (Apple 默认 animation 真值, ticket 22 修真因原则)
-7. ChatViewModel 新增 `@Observable var aiPhase: ConductorPhase = .idle` (5 phase enum)
-8. WenshuConductor.handle 新增 status callback closure 参数, 各阶段调 callback(phase)
-9. ChatView.init() 通过 { conductor.handle(..., statusCallback: { vm.aiPhase = $0 }) } 接 status
-10. ChatZoneView VStack 顺序不动 (Q20 ticket 13 拍 "就现在的位置, 不改")
-11. ChatView 输入框布局不动 (Q20)
-12. ChatBottomBar 18 PT inset 不动 (Q20 ticket 13 + 14 已修真因)
-13. ChatViewModel.send / clear / switchModel / loadAvailableModels API 不动 (Q20)
-14. WenshuConductor.handle 4 阶段逻辑不动 = intent classify → 派子 agent → LLM synthesis 真值保留 (Q20)
-15. AgentProtocol 协议不动 (Q20)
+**业务语言真因**:
+- 症状: 老板发消息 → ChatViewModel.send() 异步调 LLM → 用户看不到 AI 状态指示
+- 风险: AI 响应时间长 → 用户怀疑 AI 没响应 → 体验差
+- 老板要的: 仿 hermes 截图 = "正在运行 swift build | tail -10" + 左侧 `::: `闪烁 + 右侧倒计时 `3s`
+- wenshu 项目真值: Apple HIG 范式 + Apple SwiftUI 标准组件 + SF Symbol 自身 pulse 动画
 
-## 修真因修真因 / Q5-Q25 audit gates
+## 修真因真值 (1 项)
 
-- **Q20 不动** = ChatZoneView VStack + ChatView 输入框布局 + ChatBottomBar 18 PT + ChatViewModel API + WenshuConductor 真值 + AgentProtocol
-- **Q21 SF Symbol** = spinner 走 SF Symbol `ellipsis` (3 个 . = ASCII `:::` ASCII 字符不是 SF Symbol)
-- **Q26 原则1** = Apple HIG 真值 macOS 13+ Text(timerInterval:) + Apple default animation
-- **Q26 原则2** = Apple semantic color + SF Symbol + Apple HIG spacing
-- **Q26 原则3** = 效果优先工作量不打折扣, 4 阶段 status text 不缩水
-- **Q26 原则4** = 业务语言 "AI 回复状态栏" not "ConductorPhase enum"
-- **Q47 实现方式** = macOS SwiftUI 13+ 标准 API (Text(timerInterval:) macOS 13 真 public interface, swiftinterface 验 SDK MacOSX27.0 真值 availability), 不切新 API
-- **Q51 父组件不动** = ChatZoneView / ChatView / ChatViewModel / WenshuConductor 父组件结构不变, 子组件 override AIStatusBar + ConductorPhase
+### 修真因 1: ChatView 聊天区底栏加 AI 回复状态指示器 (Apple ProgressView + SF Symbol pulse + Text)
 
-## 业务修真修真修真
+**Q32 当前真值** (ticket 10 / 13 / 14 修真因落地):
+- Sources/WenshuApp/Views/Chat/ChatView.swift L172-236 整 ChatView body = user 输入 + messages 列表 + 底栏 ChatBottomBar
+- Sources/WenshuApp/App.swift ChatZoneView L975-1036 = ChatZoneView = menu + 底栏 (18 PT inset 真值)
+- ChatViewModel 已有 `isResponding: Bool` state (Q32 audit)
 
-- **修复** = chat 时长长 user 修真 almaam AI 没响应
-- **新增** = 修真 resize 修真 ChatView, AIStatusBar = 修真 30 PT 修真 chat 區
-- **不增** = 修 CRUD 书 修 修真 拂 修 真修真 / 修 修 修 修
+**修真因真硬真值** (Apple HIG 范式):
+- 在 ChatBottomBar 内加 status indicator view:
+  ```swift
+  if chatViewModel.isResponding {
+      HStack(spacing: 6) {
+          Image(systemName: "brain")
+              .symbolEffect(.pulse, options: .repeating)
+              .foregroundStyle(.secondary)
+          Text("AI 思考中…")
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          ProgressView()
+              .controlSize(.small)
+              .progressViewStyle(.circular)
+      }
+      .transition(.opacity)
+  }
+  ```
+- 整 HStack `.transition(.opacity)` + `.animation(.default, value: chatViewModel.isResponding)` Apple 默认动画
+- 老板原话 "**动态显示**" = SF Symbol pulse 自动循环 + ProgressView 圆形 spinner = 动态视觉真值
+- 老板原话 "**参考 hermes 截图**" = 仿 hermes "正在运行…" 模式 = wenshu 真值 = "AI 思考中…"
 
-## 修真路径
+**Q32 Q44 swiftinterface 验真值**:
+- `ProgressView()` = Apple SwiftUI 11+ macOS 标准 indeterminate 圆形 spinner
+- `.controlSize(.small)` = Apple SwiftUI macOS 标准 control size
+- `.symbolEffect(.pulse, options: .repeating)` = Apple SwiftUI macOS 14+ 真值 (SF Symbol 自身循环动画)
+- `.transition(.opacity)` + `.animation(.default, value:)` = 苹果默认动画真值 (ticket 22 + 23 修真因落地)
 
-- spec 真 = `.scratch/2026-08-21-menubar-v2/spec.md.ticket18` (修真 修真 修真 file)
-- ticket 真 = `.scratch/2026-08-21-menubar-v2/issues/18-chat-ai-status-indicator.md`
-- 修真 真 = `Sources/WenshuApp/Views/Chat/ChatView.swift` (修真 AIStatusBar + ChatViewModel)
-- 修真 真 = `Sources/WenshuApp/Core/Agent/WenshuConductor.swift` (修真 修真 修真 callback)
-- 修真 真 = `Sources/WenshuApp/Core/Agent/ConductorPhase.swift` 新增 (5 phase enum)
-- 真 真 = `Tests/WenshuAppTests/AIStatusBarTests.swift` 新增 (AIStatusBar 修真 修真 修真 + 修真 修真 修真)
+## Q20 不动 (硬约束)
 
-## Status
+- 现有 ChatZoneView / ChatView / ChatViewModel / WenshuConductor / AgentProtocol 父组件结构保留
+- ChatZoneBottomBar (18 PT inset 真值, ticket 13 + 14 修真因真硬真值) 保留
+- LLMKeychain / ProviderKeychain 后端保留
+- ZoneModule / LayoutShellView / App.swift ChatZoneView / .commands / Settings { } Scene
+- WenshuInteractionAnimationPrinciple + WenshuCommonSenseInteractionPrinciple (CONTEXT.md domain words 保留)
+- Info.plist CFBundle 真值 (ticket 25 修真因真值保留)
+- ticket 29 (撤 .padding(.bottom, 8)) 修真因真值保留
 
-实施 / 等 build + 双轴 + 老板 macOS 验
+## Q51 父组件不动 + 子组件 override
+
+- ChatZoneView / ChatView 父组件结构变化小 (status indicator 加在 ChatBottomBar 子组件内)
+- ChatViewModel `isResponding: Bool` 保留 (Q32 audit, 已修真因真值)
+- ChatBottomBar 子组件 override = 加 status indicator view
+- 新增: AIStatusIndicator 私有 subview (Apple HIG 范式, 子组件内 override)
+
+## Q47 锁定实现方式
+
+- macOS SwiftUI 14+ 标准 API (`ProgressView` + `.symbolEffect(.pulse)` + `.transition` + `.animation`)
+- 不写自定义 animation (WenshuInteractionAnimationPrinciple 硬约束)
+- 不引入 UIKit (CLAUDE.md L42)
+- 不扩大需求范围 (WenshuCommonSenseInteractionPrinciple 硬约束)
+
+## 5 原则满足 (Q26)
+
+1. **Apple 官方范式**: `ProgressView` + `.symbolEffect(.pulse)` + Text = Apple SwiftUI macOS 14+ 标准真值
+2. **伪 Apple 官方样式**: SF Symbol `brain` + semantic color `.secondary` + `.font(.caption)` = Apple HIG 真值
+3. **效果优先**: 修真因 ChatBottomBar 1 处 = 工作量小, 效果真 (AI 状态指示器)
+4. **业务语言**: "AI 思考中…", 老板懂
+5. **po main flow**: 1 ticket 1 commit, spec + impl 同 commit (Q29), 双轴 code-review 跑 (Q37)
+
+## Q40 + Q43 + Q45 硬约束 (老板 key 安全)
+
+- 不显示老板真 key (Q40)
+- 真 key 走 Apple Keychain (Q43)
+- 任何 .scratch/ spec.md / issue / commit message 不含老板真 key (Q45)
+- 测试用 dummy `sk-cp-` + `h` * 24
+
+## 双轴 code-review (Q37)
+
+- Standards 轴: `.symbolEffect(.pulse)` 真值存在 (Q44 swiftinterface 验) + `ProgressView()` 真值存在 + `.controlSize(.small)` 真值存在
+- Spec 轴: 老板拍 4 项修真因 + acceptance criteria + Q20 + Q47 + Q51 + Q40 锁定
+
+## Acceptance
+
+- [ ] ChatView ChatBottomBar 加 status indicator (老板原话 "**AI 思考中…**" + ProgressView + SF Symbol brain pulse)
+- [ ] 仅 `isResponding == true` 时显示 (不修真因其他 state)
+- [ ] SF Symbol brain 自动 pulse 动画 (Apple 官方循环动画真值, 不需要 .animation)
+- [ ] ProgressView 圆形 indeterminate 自动旋转 (Apple 官方 indeterminate)
+- [ ] 渐显渐隐 Apple 默认 (.transition + .animation)
+- [ ] 老板 macOS 真验: 发消息 → AI 回复时显示 "AI 思考中…" + brain pulse + ProgressView
+- [ ] AI 回复完成 → status indicator 渐隐消失
+- [ ] swift build exit 0
+- [ ] swift test exit 0 (ProviderKeychain 5/5 pass)
+- [ ] 双轴 code-review verbatim 进 commit body
+
+## 关联
+
+- 依赖: ticket 13 + 14 (ChatBottomBar 18 PT inset) + ticket 22 + 23 (.transition + .animation 苹果默认) + ticket 28 (Button 范式) + ticket 29 (撤下边距)
+- 被依赖: 无
+- 历史: ticket 13 + 14 + 15 + 16 + 17 + 21 + 22 + 23 + 25 + 28 + 29 + 18 修真因链
+- backlog: ticket 19 + 20 + 27 等老板排期
+- 分支: feature/chat-bottom-toolbar-in-child (Q53 ticket 10 起, 续)
