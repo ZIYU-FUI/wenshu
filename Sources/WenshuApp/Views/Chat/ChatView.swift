@@ -211,6 +211,25 @@ public struct ChatView: View {
 
             Divider()
 
+            // v0.21 ticket 18 AI 回复状态指示器 (Apple ProgressView + SF Symbol pulse + Text 联合)
+            if vm.isSending {
+                HStack(spacing: 6) {
+                    Image(systemName: "brain")
+                        .symbolEffect(.pulse, options: .repeating)
+                        .foregroundStyle(.secondary)
+                    Text("AI 思考中…")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    ProgressView()
+                        .controlSize(.small)
+                        .progressViewStyle(.circular)
+                    Spacer()
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .transition(.opacity)
+            }
+
             // 输入框 + 发送按钮 (Apple HIG SwiftUI 真值)
             HStack(spacing: 8) {
                 TextField("输入消息...", text: $vm.inputText, axis: .vertical)
@@ -233,6 +252,7 @@ public struct ChatView: View {
             .padding(.horizontal, 18)
             .padding(.bottom, 4)
         }
+        .animation(.default, value: vm.isSending)
     }
 }
 

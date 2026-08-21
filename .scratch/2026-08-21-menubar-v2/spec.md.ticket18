@@ -39,12 +39,12 @@
 **Q32 当前真值** (ticket 10 / 13 / 14 修真因落地):
 - Sources/WenshuApp/Views/Chat/ChatView.swift L172-236 整 ChatView body = user 输入 + messages 列表 + 底栏 ChatBottomBar
 - Sources/WenshuApp/App.swift ChatZoneView L975-1036 = ChatZoneView = menu + 底栏 (18 PT inset 真值)
-- ChatViewModel 已有 `isResponding: Bool` state (Q32 audit)
+- ChatViewModel 已有 `isSending: Bool` state (Q32 audit)
 
 **修真因真硬真值** (Apple HIG 范式):
 - 在 ChatBottomBar 内加 status indicator view:
   ```swift
-  if chatViewModel.isResponding {
+  if chatViewModel.isSending {
       HStack(spacing: 6) {
           Image(systemName: "brain")
               .symbolEffect(.pulse, options: .repeating)
@@ -59,7 +59,7 @@
       .transition(.opacity)
   }
   ```
-- 整 HStack `.transition(.opacity)` + `.animation(.default, value: chatViewModel.isResponding)` Apple 默认动画
+- 整 HStack `.transition(.opacity)` + `.animation(.default, value: chatViewModel.isSending)` Apple 默认动画
 - 老板原话 "**动态显示**" = SF Symbol pulse 自动循环 + ProgressView 圆形 spinner = 动态视觉真值
 - 老板原话 "**参考 hermes 截图**" = 仿 hermes "正在运行…" 模式 = wenshu 真值 = "AI 思考中…"
 
@@ -82,7 +82,7 @@
 ## Q51 父组件不动 + 子组件 override
 
 - ChatZoneView / ChatView 父组件结构变化小 (status indicator 加在 ChatBottomBar 子组件内)
-- ChatViewModel `isResponding: Bool` 保留 (Q32 audit, 已修真因真值)
+- ChatViewModel `isSending: Bool` 保留 (Q32 audit, 已修真因真值)
 - ChatBottomBar 子组件 override = 加 status indicator view
 - 新增: AIStatusIndicator 私有 subview (Apple HIG 范式, 子组件内 override)
 
@@ -116,7 +116,7 @@
 ## Acceptance
 
 - [ ] ChatView ChatBottomBar 加 status indicator (老板原话 "**AI 思考中…**" + ProgressView + SF Symbol brain pulse)
-- [ ] 仅 `isResponding == true` 时显示 (不修真因其他 state)
+- [ ] 仅 `isSending == true` 时显示 (不修真因其他 state)
 - [ ] SF Symbol brain 自动 pulse 动画 (Apple 官方循环动画真值, 不需要 .animation)
 - [ ] ProgressView 圆形 indeterminate 自动旋转 (Apple 官方 indeterminate)
 - [ ] 渐显渐隐 Apple 默认 (.transition + .animation)
