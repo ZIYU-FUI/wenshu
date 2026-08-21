@@ -1,0 +1,76 @@
+# backlog — v0.21 老板拍下轮需求 (老板 2026-08-22 06:18 拍 backlog 阶段)
+
+## 1. AI 回复状态动态显示 (老板 2026-08-22 06:18 拍, backlog 阶段)
+
+### 老板拍的真值 (verbatim)
+
+- "聊天时，AI 在回复时，我看不到任何状态"
+- "如果时间过长，用户可能会怀疑 AI 没有响应"
+- "参考 hermes，也就是截图的那个功能"
+- "实现动态显示"
+- "**先记一下需求，等会排期做**"
+
+### 截图真值 (老板拍给的 hermes 截图)
+
+截图显示 hermes 范式 = AI 状态栏渲染:
+- **左侧**：`::: ` unicode 字符 (动态闪烁指示)
+- **中部**：当前 LLM 操作描述 ("正在运行 swift build | tail -10")
+- **右侧**：倒计时 / 已用时间 ("3s")
+
+视觉上 = hermes 自定义 status line, 3 段布局 (left indicator + middle status + right counter)
+
+### 业务语言真因
+
+- 症状: wenshu ChatView 在 `ChatViewModel.send()` 异步调 LLM (verifier.chat) 时, 用户**看不到任何状态指示**
+- 风险: 用户怀疑 AI 没响应 → 体验差
+- 真值 (本轮 backlog 不修真因):
+  - 在 ChatView (或 ChatZoneView 子组件) 加 AI 状态行
+  - 仿 hermes 3 段布局 (左侧指示器 + 中部 status + 右侧计时)
+  - 跟当前 ChatViewModel.isSending 状态联动
+  - WenshuConductor.handle  路径透明化 (intent classify / 派子 agent / LLM synthesis)
+
+### Q47 + Q51 + Q20 锁定边界 (下轮 impl 用)
+
+- Q51 父组件不动: ChatZoneView / ChatView / ChatViewModel / WenshuConductor / AgentProtocol 父组件结构不变
+- Q51 子组件 override: 在 ChatView (或 ChatZoneView) 内加 status 行 子组件
+- Q47 锁定实现方式: macOS SwiftUI 14+ 标准 API + Apple HIG 范式 (不切新 API, 不用 SwiftUI 新技术)
+- Q20 不动:
+  - ChatZoneView VStack 顺序 (老板 ticket 13 拍 "就现在的位置, 不改")
+  - ChatView 输入框布局
+  - ChatBottomBar 18 PT inset (ticket 13 + 14 已修真因)
+  - Context usage 不动
+  - ChatViewModel.send / clear / switchModel / loadAvailableModels API
+  - WenshuConductor.handle 真值 (intent classify → 派子 agent → LLM synthesis)
+  - AgentProtocol 协议
+
+### 下轮要做的 ticket 候选
+
+**候选 A: ChatView 状态行 子组件 (仿 hermes 范式)**
+- ChatView 子组件 = VStack { 消息列表; 状态行 (new); Divider; 输入框 }
+- 状态行 = HStack(3 段):
+  - 左: `::: ` 字符 (动态闪烁用 SwiftUI .opacity 动画 或 SwiftUI TimelineView)
+  - 中: 当前 status text ("正在调 LLM" / "正在分类意图" / "正在派子 agent" 等)
+  - 右: 倒计时 / 已用时间 (Text(timerInterval:))
+- ChatViewModel 修真因: 加 `@Published var currentStatus: String = ""` + `@Published var startedAt: Date?` + status callback 在 WenshuConductor.handle 各个阶段触发
+- WenshuConductor 修真因: handle 函数 status callback (intent classify / dispatch / LLM synthesis 各阶段回调)
+- Q20 不动 ChatZoneView VStack 顺序 (Q47 锁定 + Q51 父组件不动)
+
+**候选 C: 简单版 (老板不想太复杂时)**
+- 仅显示 "AI 正在回复..." + ProgressView 旋转
+- 不显倒计时 + 不显状态字符
+- ChatViewModel 现有 `isSending: Bool` 直接驱动
+
+### 关联
+
+- 历史: ticket 13 + 14 chat zone 底栏 18 PT inset 已修真因 (Q47 锁定实现方式不变)
+- 历史: ticket 15 + 16 + 17 提供方 API 配置已修真因
+- 历史: 之前 v0.20 ticket 04 + 05 LOGO .app bundle 范式已修真因
+- 分支: feature/chat-bottom-toolbar-in-child (Q53 ticket 10 起, 续)
+
+### Q34 拍板
+
+**本轮不修真因 (老板原话 "先记一下需求，等会排期做")**. 老板下轮排期时再起新 ticket 18 (候选 A) 或 18 + 19 (候选 C 简化版).
+
+### Status
+
+backlog / 等老板排期
