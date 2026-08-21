@@ -271,12 +271,13 @@ struct SettingView: View {
             // tab 内容 (Pages 范式, .formStyle(.grouped) 真值 Apple)
             Group {
                 switch selectedTab {
-                case .general: generalTab
-                case .providerApi: providerApiTab
-                case .model: modelTab
+                case .general: generalTab.transition(.opacity)
+                case .providerApi: providerApiTab.transition(.opacity)
+                case .model: modelTab.transition(.opacity)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .animation(.default, value: selectedTab)
         }
         .frame(width: 600, height: 480)
         .task { refreshProviderStatus() }
@@ -437,16 +438,19 @@ struct SettingView: View {
         HStack(spacing: 8) {
             SecureField("sk-...", text: $apiDraftKey)
                 .textFieldStyle(.roundedBorder)
+                .transition(.opacity)
             Button("保存") {
                 saveApiKey(for: p)
             }
             .keyboardShortcut(.defaultAction)
             .disabled(apiDraftKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .transition(.opacity)
         }
         if let apiError {
             Text(apiError)
                 .font(.caption)
                 .foregroundStyle(.red)
+                .transition(.opacity)
         }
     }
 
@@ -465,7 +469,7 @@ struct SettingView: View {
             }
             Spacer()
             if hasKey {
-                Text(keyPrefix8(for: p))
+                Text(keyPrefix12(for: p))
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(.tertiary)
             } else {
@@ -477,9 +481,9 @@ struct SettingView: View {
         .contentShape(Rectangle())
     }
 
-    private func keyPrefix8(for provider: Provider) -> String {
+    private func keyPrefix12(for provider: Provider) -> String {
         guard let key = ProviderKeychain.loadKeySync(for: provider), !key.isEmpty else { return "" }
-        return String(key.prefix(8))
+        return String(key.prefix(12))
     }
 
     private func saveApiKey(for provider: Provider) {
