@@ -411,8 +411,6 @@ struct SettingView: View {
                     .font(.caption)
             }
         }
-        .formStyle(.grouped)
-        .onAppear { refreshProviderStatus() }
     }
 
     private func toggleExpand(p: Provider) {
