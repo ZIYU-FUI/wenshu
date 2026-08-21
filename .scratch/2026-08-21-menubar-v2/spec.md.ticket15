@@ -1,0 +1,132 @@
+# ticket 15 — 提供方 API 配置页面模仿 hermes auth 交互 (老板 2026-08-22 04:50 拍)
+
+**Status:** ready-for-agent
+
+## 老板真值 (verbatim)
+
+老板 2026-08-22 04:50 拍新真值 (Q37 业务语言):
+
+1. "完全模仿 hermes 的提供方 api 配置的页面功能和交互"
+2. "修改我们的设置页面，不要再弹出一个输入 key 的弹窗来粘贴 key，你参考 hermes 页面的交互"
+
+老板 4 项决策 ("A 全推荐" = 全部按推荐真值拍板):
+1. **页面归属** = 在现有 3 tab 内加第 4 个 tab 「提供方 API 配置」 (Q20 不动现有 tab 布局)
+2. **仿 hermes auth 子交互** = list + add 2 个基础 (老板拍 "先放着不轻易改" + Q38 streak 范式 = 一拍试一个, 不一次 6 子命令全装)
+3. **填 key 方式** = 页面内直接 inline 安全文本框 + 保存按钮 (Keychain 写入 inline, 仿 hermes `auth add --api-key` 内联参数范式, **不弹 NSAlert/NSWindow 弹窗**)
+4. **支持 provider** = 全 ProviderCatalog (wenshu 当前 ProviderCatalog 含 minimax-cn + anthropic-fallback 等所有 provider)
+
+## hermes auth 真值 (mem0 context + Q28 查官方真值)
+
+`hermes auth` CLI 子命令 (Hermes v2026.8.3 真值):
+- `hermes auth add <provider> --api-key <KEY>` - 添加 manual API key (本次仿)
+- `hermes auth add <provider>` - OAuth flow (nous / openai-codex / qwen-oauth / minimax-oauth)
+- `hermes auth list` - 列出 stored credentials (本次仿)
+- `hermes auth status` - 查看 active provider health (本次不仿, 下轮)
+- `hermes auth reset <provider>` - 清 429/503 exhaustion (本次不仿, 下轮)
+- `hermes auth remove <provider> <index>` - 删除 credentials (本次不仿, 下轮)
+- `hermes auth logout <provider>` - 登出 (本次不仿, 下轮)
+
+`~/.hermes/auth.json` credential pool 真值:
+- 多 key per provider + priority-based selection (priority 0 最高)
+- auto-rotation on 429/503 failures
+- fallback chain (`hermes fallback add`)
+- per-key status tracking (last_status=ok / 429 / 503 等)
+
+wenshu 当前真值 (Q20 不动):
+- ProviderKeychain (Apple Security framework, 真验 `saveKey 后 loadKey 返一致` pass + `重复 saveKey 替换旧 key` pass)
+- Provider / ProviderKeychain / ProviderFetcher / ProviderCatalog / MiniMaxModelFetcher (后端核心)
+- wenshu 不学 hermes `~/.hermes/auth.json` 文件方案 (Q40 撤回操作链教训 + CLAUDE.md L42)
+
+## 修真因 (Q47 锁定实现方式 + Q51 父组件不动 + Q20 不动)
+
+**Q20 不动**:
+- 现有 SettingView 3 tab (通用 / 提供方 / 模型) + Pages 范式 toolbar
+- ProviderKeychain 后端 (Apple Keychain 真值)
+- 现有 providerTab (L325-377) — 保留作为 v0.21 ticket 06 step 1.5 已修法的真值快照
+- ProviderKeyPrompt.prompt(for:) + ProviderKeyInputSheet (NSWindow standalone sheet 弹窗)
+  (退到 "未用" 区段 — 不删, 不调用, 留 commit chain 历史快照)
+
+**Q51 父组件不动 + 子组件 override**:
+- SettingView 父组件 (L219-450) 不动
+- 加 SettingsTab 第 4 case .providerApi
+- 加 providerApiTab 子组件 (新 view) = 模仿 hermes auth list + add 交互
+- SettingsTab 枚举 + icon + Picker ForEach + Switch case 都加新分支 (父组件结构不变 = Q51 真硬约束)
+
+**修法真值 (5 原则 1 + 2 + 4, 1 ticket 1 commit)**:
+
+1. **App.swift SettingsTab 枚举 L233-245 加 .providerApi case**:
+   - case providerApi = "提供方 API"
+   - icon = "key.horizontal" (Apple SF Symbol 真值)
+   - picker 真值 = Label(tab.rawValue, systemImage: tab.icon).tag(tab) 自动显
+
+2. **App.swift body switch L269-273 加 .providerApi case → providerApiTab**:
+   - providerApiTab = 新 view (子组件)
+
+3. **providerApiTab 新 view** (模仿 hermes auth list + add 交互):
+   - 顶部 = "提供方 API 配置" 标题 + "已设 key 数 / 总数" 状态 (仿 hermes auth list)
+   - List 列出 Provider.all providers:
+     - 每行 HStack = key icon (key.fill / key) + provider name + "已设 key" / "未设" status badge
+     - 点击 provider 行 → 展开 inline 编辑面板 (不弹窗, Q51 子组件 override):
+       - SecureField "sk-..." 文本框 (Keychain inline 写入, 仿 hermes auth add --api-key)
+       - "保存" 按钮 → ProviderKeychain.saveKeySync(key, for: provider) + refresh status
+       - "删除" 按钮 (仅在 provider 已设 key 时显, 仿 hermes auth remove, 留 v0.21 ticket 16 实现, 本次灰显 + .disabled)
+   - 空状态 = "暂无提供方配置" (Apple HIG List empty state)
+
+4. **pageenter / pageexit 时 refreshProviderStatus** = 跟现有 providerTab 一致 (`.onChange(of: selectedTab)` + `.task`)
+
+5. **ProviderKeyPrompt.prompt(for:) 调用 L364 撤** (修真因: 不弹窗 → 改 inline 编辑面板)
+   - Q47 锁定实现方式: providerTab 保留但**点击没 key 的 provider 不再调 ProviderKeyPrompt.prompt**, 改调 selectedProvider = state 走 inline 编辑
+   - 但 providerTab 的 "粘贴 X 密钥" 提示文字保留 (providerTab 跟 providerApiTab 并存, 不同 tab 走不同交互, Q51 真值)
+
+## 不动 (Q20 硬约束)
+
+- 现有 SettingView 3 tab + Pages toolbar + ProviderKeychain 后端
+- App.swift .commands { SettingsLink() } 自动接管 cmd+,
+- ProviderKeyPrompt.prompt(for:) + ProviderKeyInputSheet (留作历史快照, 不调)
+- providerTab (现有) 保留 — providerApiTab 是新 tab, 不替换 providerTab
+- LLMKeychain (MiniMax key 走 Apple Keychain, CLAUDE.md L42 + Q43 真值)
+- AppDelegate / NSApp.mainMenu / .commands
+- ZoneModule / LayoutShellView / ChatZoneView / ChatView
+
+## 5 原则满足 (Q26)
+
+1. **Apple 官方范式**: macOS SwiftUI 14+ Form + List + SecureField 真值, 仿 hermes auth list/add UI 范式
+2. **伪 Apple 官方样式**: SF Symbol `key.fill` / `key` / `key.horizontal` + semantic color `.green` (已设) / `.secondary` (未设) + `.roundedBorder` text field + `.borderedProminent` save button
+3. **效果优先**: 1 file 改 + 1 新 view (providerApiTab 子组件), 工作量小, 效果真 (老板 macOS 验 inline 编辑面板可用)
+4. **业务语言**: "提供方 API 配置页面 = hermes auth list + add, 不弹窗, inline 编辑"
+5. **po main flow**: 1 ticket 1 commit, spec + impl 同 commit (Q29), 双轴 code-review 跑 (Q37)
+
+## Q40 + Q43 硬约束 (老板 key 真值不写文件/log/commit)
+
+- 写 spec / issue / commit message 不写老板真 key, 用 `sk-cp-...` 占位
+- SecureField 输入的 key = 走 ProviderKeychain.saveKeySync (Apple Keychain 真值, 不入文件 / log / commit)
+- 测试用 dummy key `sk-cp-` + `h` * 24
+
+## 双轴 code-review (Q37)
+
+- Standards 轴: SettingsTab enum 加 .providerApi case + providerApiTab 子组件 SwiftUI 范式真值 (Form / List / SecureField Apple 14+ API), 撤 providerTab L364 ProviderKeyPrompt.prompt 调用范围真值 (Q20 不动 providerTab, 只撤触发逻辑)
+- Spec 轴: 老板拍 4 项决策 + "不再弹窗"真硬约束, 4 项全修真因, inline 编辑面板实现真值, 不动 ProviderKeychain 后端
+
+## Acceptance
+
+- [ ] SettingsTab 枚举加 .providerApi case "提供方 API" + icon "key.horizontal"
+- [ ] body switch L269-273 加 .providerApi case 路由到 providerApiTab
+- [ ] providerApiTab 新 view 模仿 hermes auth list + add:
+  - List 列出 Provider.all providers + key status icon + status text
+  - 点击 provider 行 → 展开 inline 编辑面板 (SecureField + 保存按钮)
+  - 保存 → ProviderKeychain.saveKeySync + refresh status (key 入 Keychain, 不入文件/log/commit)
+  - 删除按钮 (本次灰显, ticket 16 实现)
+- [ ] providerTab L364 ProviderKeyPrompt.prompt 触发撤 (修真因: 不弹窗)
+- [ ] providerTab 保留 + 现有 UI 不动 (Q20 不动 + 现有真值快照)
+- [ ] 老板 macOS 真验: 提供方 API tab 可点 → 行点击展开 inline 编辑 → SecureField 输入 key → 保存 → 状态变 "已设 key"
+- [ ] swift build exit 0
+- [ ] swift test exit 0
+- [ ] 双轴 code-review 报告 verbatim 进 commit body
+- [ ] Q40 验证: 任何文件 / log / commit 不含老板真 key
+
+## 关联
+
+- 依赖: 无 (ProviderKeychain + ProviderCatalog 后端已存在, ticket 12 已验)
+- 被依赖: ticket 16 (删除 key 仿 hermes auth remove)
+- 历史: v0.21 ticket 06 step 1.5 (commit `1f086051a` Pages 范式 + 3 tab) + ticket 04 (commit `984ea556b` 模型 Picker)
+- 分支: feature/chat-bottom-toolbar-in-child (Q53 ticket 10 起, 修真因续)
