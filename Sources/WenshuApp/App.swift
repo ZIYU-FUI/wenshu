@@ -612,18 +612,13 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// v0.21 ticket 01 (重做): installMainMenu 装 6 项中文 (v0.02.0 spec 老板 8/10 01:43 拍: 文枢/文件/编辑/显示/窗口/帮助)
-    /// Apple 官方范式: SwiftUI 不自动装 File/Edit/View/Window/Help 系统级菜单, 老板 macOS 27 系统语言中文 → NSMenu title 中文
-    /// 真因 (Q28 查 SwiftUI 真值 + Apple Forum 695325): Settings { } Scene 自动注册 cmd+, Settings NSMenuItem 在 macOS 27 由 SwiftUI 接管,
-    /// 我们装 '设置…' action 走 showSettingsWindow @objc (NSApp.sendAction dispatch 'showSettingsWindow:' selector, SwiftUI 已注册 target)
+    /// 主菜单栏装 6 项 (Apple/文枢/文件/编辑/显示/窗口/帮助)
     @MainActor private func installMainMenu() -> NSMenu {
-        // 真值真值: idempotent 装 (= Spec sub-agent report c, NSMenu additions leak 风险)
-        // 撤回 mainMenu 全 item 再 add (= 真值真值 idempotent)
+        // idempotent 装 (避免 SwiftUI 重复触发 applicationWillFinishLaunching 时重复 add)
         let mainMenu = NSApp.mainMenu ?? NSMenu()
         mainMenu.removeAllItems()
 
-        // 文枢 (App menu) — v0.21 ticket 01 (重做 #10): '设置…' action 接 openSettingsWindow 自定义 @objc
-        // (Q32 audit Spec sub-agent 真因: SwiftUI 默认接管 Settings { } Scene 弹空白 sheet, installMainMenu 必须装 + 自创建 NSWindow 装 SettingView 真值)
+        // 文枢 (App menu)
         let appMenuItem = NSMenuItem()
         let appMenu = NSMenu(title: "文枢")
         appMenu.addItem(NSMenuItem(title: "关于文枢", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: ""))
@@ -671,7 +666,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         helpMenuItem.submenu = helpMenu
         mainMenu.addItem(helpMenuItem)
 
-        // NSApplication 用来定位 Window / Help 菜单 (v0.20 ticket 08 老真值, 保留)
+        // 让 NSApplication 定位 Window / Help 菜单
         NSApp.windowsMenu = windowMenu
         NSApp.helpMenu = helpMenu
 
@@ -680,9 +675,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
-        // v0.21 ticket 06 (step 1.10): 装回 macOS NSApp.mainMenu = installMainMenu() (= commit 9f77ffa9c 真值, 之前 work 真值, 老板 8/10 01:43 拍 6 项中文)
-        // 撤回 commit d194cb66d + 491a6874b + beff63b43 装 .commands { } 段 + Settings { } Scene (= Q32 5 原则 1 真硬违反, macOS SwiftUI .commands 装在 Settings { } 之后 = Settings 接管 main menu = 装不到)
-        // 撤回 commit 31b96953f 撤回 + 重装 applicationWillFinishLaunching (时机对, 早于 SwiftUI WindowGroup 初始化)
+        // 装主菜单栏 (6 项 NSMenu = Apple/文枢/文件/编辑/显示/窗口/帮助)
         NSApp.mainMenu = installMainMenu()
     }
 
