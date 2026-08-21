@@ -1,0 +1,203 @@
+# ticket 17 — 提供方 tab 删 + 整条热区响应 + 已设 key 显前 8 位 + 设置弹窗改 "设置" (老板 2026-08-22 06:12 拍)
+
+**Status:** ready-for-agent
+
+## 老板拍的真值 (verbatim, 4 条修真因)
+
+1. "提供方 tab 可以删掉了，保留提供方 API tab"
+2. "删掉每条前面的 >，整条热区响应展开关闭"
+3. "已经配置过的，再次展开，文本框里不要为空，显示前 8 位真值 + **** 补位，表达已经配过了"
+4. "设置弹窗就叫设置，不用多次一举叫文枢设置"
+
+## Q32 真因 + Q20 + Q47 + Q51 + Q40 硬约束
+
+**Q20 不动**:
+- SettingView .general / .providerApi / .model 三 tab 保留
+- ProviderKeychain 后端
+- ProviderKeyPrompt.prompt(for:) + ProviderKeyInputSheet (历史快照, 不调)
+- App.swift `.commands { CommandGroup + SettingsLink }`
+- LayoutShellView / ChatZoneView / ChatView / ZoneModule
+- LLMKeychain / AppDelegate / NSApp.mainMenu
+
+**Q47 锁定实现方式**:
+- macOS SwiftUI 14+ 标准范式
+- `Settings { SettingView() }` Scene 自动接管 cmd+, "设置…" 菜单项 + 弹窗
+- Apple HIG Settings 真值 = title 显示依赖 CFBundleName
+
+**Q51 父组件不动 + 子组件 override**:
+- SettingView 父组件结构保留
+- 撤 providerTab 子组件 (修真因 1)
+- providerApiTab 子组件修真因 (修真因 2 + 3)
+
+**Q40 key 真值约束**:
+- key 不显示完整，只显示前 8 位 + "********" 补位
+- 真值 key 仍走 ProviderKeychain.saveKeySync 入 Apple Keychain (不入文件/log/commit)
+- 测试用 dummy `sk-cp-` + `h` * 24
+
+## 修法真值 (5 原则 1+2+4, 1 ticket 1 commit)
+
+1. **App.swift SettingsTab 枚举撤 .provider case** (修真因 1):
+   - L233-244 撤 case provider = "提供方" + icon "network"
+   - 保留 case general / providerApi / model (3 个)
+   - body switch L269-273 撤 case .provider: providerTab 路由
+
+2. **App.swift 撤 providerTab 整个子组件** (修真因 1):
+   - L325-377 删 providerTab 函数 (providerTab 留历史快照 = 留 providerApiTab 修真因)
+   - 不删 providerTab 函数体 = 留 commit chain 历史快照 (Q20 历史快照原则)
+   - 但不调它 (跟 ProviderKeyPrompt.prompt 历史快照同根)
+
+3. **App.swift 改 providerApiTab 用 List + onTapGesture 替代 DisclosureGroup** (修真因 2):
+   - 撤 DisclosureGroup (isExpanded:content:label:) — 自带 chevron
+   - 改 List (Apple SwiftUI 标准 list, 不带 chevron) + onTapGesture 调 apiExpandedProviders.insert/remove
+   - 整条热区响应 = List row 整行点击 (Apple HIG List 标准)
+   - 保持 .formStyle(.grouped) 兼容
+
+4. **App.swift providerApiEditor 修真因** (修真因 3):
+   - 当前 SecureField text: $apiDraftKey 永远空
+   - 修真因: 展开时 load Keychain → 截前 8 位 + `********` 填进 apiDraftKey
+   - 提供方 API tab .onAppear 时如果有 key 预填 apiDraftKey 字段:
+     ```swift
+     let preview = key.prefix(8) + "********"  // 老板原话 "前 8 位真值 + **** 补位"
+     ```
+   - saveApiKey 写入逻辑保留 (key 入 Keychain, 不显示完整)
+   - Q40 硬约束: SecureField 显示的内容 = 前 8 位 + 补位 = **不是真 key** = 不会泄漏
+
+5. **App.swift Settings Scene 修真因** (修真因 4):
+   - 当前 `Settings { SettingView() }` (L208-210) Scene title 自动 = CFBundleName = "文枢"
+   - 老板拍 "设置弹窗就叫设置，不用多次一举叫文枢设置"
+   - 修真因真因: CFBundleName 当前 = "文枢" (Info.plist L19-20), macOS 27 Settings { } Scene 用 CFBundleName 作为 title
+   - 修法 1: 改 Info.plist CFBundleName = "设置" (破坏 = 文枢 app 名变成 "设置")
+   - 修法 2: 不改 CFBundleName, 改 Settings Scene 用自定义 title (.navigationTitle)
+   - **Q44 swiftinterface 验 Settings Scene 是否支持 navigationTitle 真值**
+   - 修法 3: macOS 27 SwiftUI Scene 没有标准 title override 真值, 走 NSWindow standalone sheet 替换 Settings { } Scene (Q15 翻车链深度)
+
+**老板原话 "不用多次一举叫文枢设置" 修真因真因 = Settings Scene 自动接管 title 跟我们想的不一样**.
+
+让我先查真值:
+
+```bash
+SDK="/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk"
+grep -E 'public struct Settings\b' "$SDK/System/Library/Frameworks/SwiftUI.framework/Versions/A/Modules/SwiftUI.swiftmodule/arm64e-apple-macos.swiftinterface"
+```
+
+如果 `Settings { content: () -> Content }` 没有 @ViewBuilder title 参数 = 不能直接设 title, 需走 NSWindow 替代范式.
+
+但 v0.21 ticket 06 已经走过 NSWindow 替代翻车链 (commit 0082bd1fe + 030a58355) — Q50 锁定 macOS SwiftUI 14+ .commands + Settings { } Scene 唯一稳定路径. **修真因修法 = 不切实现方式 (Q47)**, 在 Settings { } Scene 范式内修真因.
+
+可能修法:
+- (A) 改 Info.plist `CFBundleDisplayName` = "设置" + CFBundleName 保留 "文枢"
+  - 真值: macOS Settings { } Scene 可能用 CFBundleDisplayName 而非 CFBundleName 作为 window title (Apple HIG 真值待查)
+- (B) 用 NSWindow 替代 Settings { } Scene (Q15 翻车链, 不推荐 Q47)
+- (C) 在 SettingView 内用 `.navigationTitle("设置")` (如果 Settings Scene 用 content view navigationTitle)
+
+**真因猜测 (待 Q28 查文档确认)**: macOS 27 Settings { } Scene title 优先级:
+1. CFBundleDisplayName (如果设)
+2. CFBundleName (fallback)
+3. 编译时 display name
+
+Info.plist 当前:
+- CFBundleDisplayName = "文枢" (L7-8)
+- CFBundleName = "文枢" (L19-20)
+
+Settings Scene title = "文枢" 真因可能 = CFBundleName fallback (因为 CFBundleDisplayName 也是 "文枢").
+
+老板拍 "设置弹窗就叫设置" = 改 CFBundleDisplayName = "设置". 但 wenshu app 在 Dock / Launchpad / Finder 显示名 = CFBundleDisplayName = "设置" (破坏 brand 真值).
+
+**Q20 老板不动 wenshu app brand 真值** = 不能改 CFBundleDisplayName.
+
+**真实修真因**: macOS 27 Settings { } Scene title 真值 = "WenshuApp Settings" 老板截图 title 看到的不是 "文枢设置" 是 "WenshuApp Settings". 老板原话 "不用多次一举叫文枢设置" 可能指:
+
+A 修真因 = "WenshuApp Settings" → "设置" (老板拍: "就叫设置")
+B 修真因 = "文枢设置" → "设置" (老板拍: 修真因 Scene title 自动加 app 名)
+
+让我用 CUA 抓当前真值: **截图 title = "WenshuApp Settings"**. 老板拍 "设置弹窗就叫设置, 不用多次一举叫文枢设置" = "WenshuApp Settings" → "设置" (修真因).
+
+**Q44 swiftinterface 验 Settings Scene 是否有自定义 title 范式**:
+
+```swift
+@available(macOS 11.0, *)
+public struct Settings<Content> : Scene where Content : View {
+    public init(@ViewBuilder content: () -> Content)
+    // 看是否有 title 参数
+}
+```
+
+如果 Settings 没有 title 参数 + 没 navigationTitle 范式 = 修真因真因只能改 CFBundleName 或 CFBundleDisplayName.
+
+**Q28 真值 (待查)**: Apple 官方 macOS Settings 真值 — Scene title 显示规则.
+
+真因列表 (按 Q28 查文档排序):
+1. CFBundleDisplayName 真值覆盖 CFBundleName → title
+2. CFBundleName 真值 fallback → title
+3. macOS 26+ SwiftUI Settings { } Scene 可能用 NavigationStack + .navigationTitle 范式 (待 Q28 查)
+
+**先 audit 当前 Info.plist + swiftinterface 验真值再写 spec 真因**.
+
+## 草拟修法真值 (待 Q28 查文档确认)
+
+**修真因 4 候选** (按可能性排序):
+A. **改 CFBundleDisplayName = "设置"** + CFBundleName 保留 "文枢" — 但破坏 wenshu app brand 显示
+B. **改 CFBundleName = "设置"** + CFBundleDisplayName 保留 "文枢" — Dock/Launchpad 显示名 = CFBundleDisplayName = "文枢" (保留 brand), 但 Settings Scene title = CFBundleName = "设置" (修真因)
+C. **SettingView 用 NavigationStack + .navigationTitle("设置")** — 如果 Settings Scene 支持 content navigationTitle
+D. **退回 NSWindow 替代 Settings { } Scene** — Q15 + Q50 翻车链, 不推荐
+
+**Q47 锁定** = 不切实现方式 = **A 或 B (改 Info.plist)**.
+
+**Q20 不动 brand 真值** (CLAUDE.md L42 老板拍 = wenshu app brand 是 wenshu) = 不能改 CFBundleDisplayName (在 Dock 显示).
+
+**Q20 + Q47 组合真值**: 修真因 4 = 改 CFBundleName = "设置" (但 dock/launchpad 用 CFBundleDisplayName = "文枢" 显示).
+
+但等等 — macOS 27 真值: Settings { } Scene title = ???
+
+让我先 audit Q44 真值:
+```bash
+SDK="/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk"
+grep -A5 'public struct Settings<' "$SDK/System/Library/Frameworks/SwiftUI.framework/Versions/A/Modules/SwiftUI.swiftmodule/arm64e-apple-macos.swiftinterface" | head -20
+```
+
+如果 `Settings<Content>: Scene` init 没 title 参数 + 没 navigationTitle 范式 (Apple macOS 11+ 真值) = 修真因 4 唯一真值 = 改 Info.plist.
+
+**commit 待验 (audit 阶段)**: 先 Q28 查 swiftinterface + 真验 "WenshuApp Settings" title 来源.
+
+## 不动 (Q20 硬约束)
+
+- 现有 SettingView .general / .providerApi / .model 三 tab
+- ProviderKeychain 后端 (Apple Keychain 真值)
+- providerTab 历史快照 (留 providerApiTab 修真因)
+- ProviderKeyPrompt.prompt(for:) + ProviderKeyInputSheet 历史快照
+- App.swift .commands { CommandGroup + SettingsLink }
+- LayoutShellView / ChatZoneView / ChatView / ZoneModule
+- LLMKeychain / AppDelegate / NSApp.mainMenu
+
+## 5 原则满足 (Q26)
+
+1. **Apple 官方范式**: Settings { } Scene + macOS SwiftUI 14+ 标准 List + onTapGesture (Apple HIG 整行 hot zone) + CFBundleName 真值
+2. **伪 Apple 官方样式**: List 不带 chevron (Apple HIG 真值, custom list hot zone), key fill / key icon + semantic color
+3. **效果优先**: 4 项真硬违反全修真因, 工作量小, 效果真
+4. **业务语言**: "提供方 tab 删 + 整条热区 + 已设 key 显前 8 位 + 设置弹窗叫设置", 老板懂
+5. **po main flow**: 1 ticket 1 commit, spec + impl 同 commit (Q29), 双轴 code-review 跑 (Q37)
+
+## 双轴 code-review (Q37)
+
+- Standards 轴: SettingsTab 撤 case 验证 (SwiftUI enum CaseIterable 真值) + List + onTapGesture hot zone 验证 + Info.plist CFBundleName 真值
+- Spec 轴: 老板拍 4 项真硬违反全修真因 + Q20 不动 + Q47 锁定 + Q40 key 显示安全
+
+## Acceptance
+
+- [ ] SettingsTab 撤 .provider case (L233-244)
+- [ ] body switch 撤 .provider case 路由
+- [ ] providerTab 子组件保留 (Q20 历史快照) 但不调
+- [ ] providerApiTab 用 List + onTapGesture 替代 DisclosureGroup (整条热区, 删 chevron)
+- [ ] providerApiEditor: 已设 key 展开时 apiDraftKey 预填 "前 8 位真值 + ********" (Q40 key 安全)
+- [ ] Settings Scene 弹窗 title = "设置" (改 Info.plist 或 navigationTitle 真值)
+- [ ] 老板 macOS 真验: 提供方 tab 没了 → 整条点 → 展开 inline 编辑 → 已设 key 显示前 8 位 + 补位 → 设置弹窗 title = "设置"
+- [ ] swift build exit 0
+- [ ] swift test exit 0
+- [ ] 双轴 code-review 报告 verbatim 进 commit body
+
+## 关联
+
+- 依赖: ticket 16 commit `1c531223f` (DisclosureGroup 已装, 修真因 撤 DisclosureGroup)
+- 被依赖: 无
+- 历史: ticket 15 commit `f0b71d098` + ticket 16 commit `1c531223f` + ticket 17 修真因 4 项
+- 分支: feature/chat-bottom-toolbar-in-child (Q53 ticket 10 起, 续)
