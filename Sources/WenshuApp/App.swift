@@ -617,7 +617,10 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     /// 真因 (Q28 查 SwiftUI 真值 + Apple Forum 695325): Settings { } Scene 自动注册 cmd+, Settings NSMenuItem 在 macOS 27 由 SwiftUI 接管,
     /// 我们装 '设置…' action 走 showSettingsWindow @objc (NSApp.sendAction dispatch 'showSettingsWindow:' selector, SwiftUI 已注册 target)
     @MainActor private func installMainMenu() -> NSMenu {
-        let mainMenu = NSMenu()
+        // 真值真值: idempotent 装 (= Spec sub-agent report c, NSMenu additions leak 风险)
+        // 撤回 mainMenu 全 item 再 add (= 真值真值 idempotent)
+        let mainMenu = NSApp.mainMenu ?? NSMenu()
+        mainMenu.removeAllItems()
 
         // 文枢 (App menu) — v0.21 ticket 01 (重做 #10): '设置…' action 接 openSettingsWindow 自定义 @objc
         // (Q32 audit Spec sub-agent 真因: SwiftUI 默认接管 Settings { } Scene 弹空白 sheet, installMainMenu 必须装 + 自创建 NSWindow 装 SettingView 真值)
@@ -649,7 +652,9 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // 显示 (含 "恢复默认布局" 接 resetLayout NotificationCenter)
         let viewMenuItem = NSMenuItem()
         let viewMenu = NSMenu(title: "显示")
-        viewMenu.addItem(NSMenuItem(title: "恢复默认布局", action: #selector(resetLayout(_:)), keyEquivalent: "R"))
+        let resetItem = NSMenuItem(title: "恢复默认布局", action: #selector(resetLayout(_:)), keyEquivalent: "R")
+        resetItem.keyEquivalentModifierMask = [.command, .shift]
+        viewMenu.addItem(resetItem)
         viewMenuItem.submenu = viewMenu
         mainMenu.addItem(viewMenuItem)
 
