@@ -235,14 +235,12 @@ struct SettingView: View {
 
     enum SettingsTab: String, CaseIterable, Identifiable {
         case general = "通用"
-        case provider = "提供方"
         case providerApi = "提供方 API"
         case model = "模型"
         var id: String { rawValue }
         var icon: String {
             switch self {
             case .general: return "gearshape"
-            case .provider: return "network"
             case .providerApi: return "key.horizontal"
             case .model: return "cpu"
             }
@@ -263,8 +261,10 @@ struct SettingView: View {
             .padding(.top, 16)
             .padding(.bottom, 8)
             .onChange(of: selectedTab) { _, new in
-                if new == .provider { refreshProviderStatus() }
-                if new == .model { Task { await reloadModels() } }
+                if new == .providerApi { refreshProviderStatus() }
+                if new == .model {
+                    Task { await reloadModels() }
+                }
             }
 
             Divider()
@@ -273,7 +273,6 @@ struct SettingView: View {
             Group {
                 switch selectedTab {
                 case .general: generalTab
-                case .provider: providerTab
                 case .providerApi: providerApiTab
                 case .model: modelTab
                 }
@@ -388,10 +387,17 @@ struct SettingView: View {
         Form {
             Section {
                 ForEach(Provider.all) { p in
-                    DisclosureGroup(isExpanded: bindingForExpanded(p)) {
-                        providerApiEditor(for: p)
+                    Button {
+                        toggleExpand(p: p)
                     } label: {
                         providerApiRow(p)
+                    }
+                    .buttonStyle(.plain)
+                    .contentShape(Rectangle())
+                    if apiExpandedProviders.contains(p.slug) {
+                        providerApiEditor(for: p)
+                            .padding(.leading, 18)
+                            .padding(.bottom, 8)
                     }
                 }
             } header: {
@@ -407,19 +413,22 @@ struct SettingView: View {
         .onAppear { refreshProviderStatus() }
     }
 
-    private func bindingForExpanded(_ p: Provider) -> Binding<Bool> {
-        Binding(
-            get: { apiExpandedProviders.contains(p.slug) },
-            set: { newValue in
-                if newValue {
-                    apiExpandedProviders.insert(p.slug)
-                    apiDraftKey = ""
-                    apiError = nil
-                } else {
-                    apiExpandedProviders.remove(p.slug)
-                }
-            }
-        )
+    private func toggleExpand(p: Provider) {
+        if apiExpandedProviders.contains(p.slug) {
+            apiExpandedProviders.remove(p.slug)
+        } else {
+            apiExpandedProviders.insert(p.slug)
+            apiDraftKey = currentDraftPreview(for: p)
+            apiError = nil
+        }
+    }
+
+    private func currentDraftPreview(for provider: Provider) -> String {
+        let hasKey = providersWithKeys.contains(provider.slug)
+        guard hasKey else { return "" }
+        guard let key = ProviderKeychain.loadKeySync(for: provider), !key.isEmpty else { return "" }
+        let prefix = String(key.prefix(8))
+        return prefix + "********"
     }
 
     @ViewBuilder
@@ -432,6 +441,7 @@ struct SettingView: View {
                 .foregroundStyle(.red)
         }
         HStack {
+            Spacer()
             Button("保存") {
                 saveApiKey(for: p)
             }
