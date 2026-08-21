@@ -387,14 +387,21 @@ struct SettingView: View {
         Form {
             Section {
                 ForEach(Provider.all) { p in
-                    DisclosureGroup(isExpanded: bindingForExpanded(p)) {
-                        providerApiEditor(for: p)
-                            .padding(.leading, 18)
-                            .padding(.bottom, 8)
+                    Button {
+                        toggleExpand(p: p)
                     } label: {
                         providerApiRow(p)
                     }
+                    .buttonStyle(.plain)
+                    .contentShape(Rectangle())
+                    if apiExpandedProviders.contains(p.slug) {
+                        providerApiEditor(for: p)
+                            .padding(.leading, 18)
+                            .padding(.bottom, 8)
+                            .transition(.opacity)
+                    }
                 }
+                .animation(.default, value: apiExpandedProviders)
             } header: {
                 Text("提供方")
             } footer: {
@@ -467,13 +474,8 @@ struct SettingView: View {
             Image(systemName: hasKey ? "key.fill" : "key")
                 .foregroundStyle(hasKey ? Color.green : Color.secondary)
                 .frame(width: 18)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(p.name)
-                    .font(.body)
-                Text(hasKey ? "已设 key" : "待配置")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            }
+            Text(p.name)
+                .font(.body)
             Spacer()
             if hasKey {
                 Text(keyPrefix12(for: p))
