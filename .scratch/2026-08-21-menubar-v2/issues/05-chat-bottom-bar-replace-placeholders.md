@@ -1,54 +1,23 @@
-# Spec — 聊天底栏 2 个占位文字替换 (Hermes 源码参考, 老板 2026-08-21 拍)
+# 05 — 聊天底栏两个占位文字替换 (Hermes 源码参考, 老板 2026-08-21 拍)
 
-> Date: 2026-08-21
-> 老板 8/21 macOS 截屏: 聊天底栏有 2 个占位文字:
-> 1. 红框 1: "MiniMax-M3" (= 静态 Picker, 占位) → 替换为 Hermes 真值 model picker
-> 2. 红框 2: "0/20 ●○○○" (= token 进度条占位, 但老板真值拍是"上下文用量"非 token billing) → 替换为 Hermes 真值 context usage bar
-> 老板 8/21 拍:
-> - "模型选择参考 hermes 源码, 关联提供方, 配了多个 key 自动获 key 可以用的模型. MED 不实现 (med = 分析强度 reasoning effort), MOA 多模型联合分析暂时用不到"
-> - "上下文用量 = 查源码, 看 hermes 怎么实现的"
-> - "MED 也是查源码, 看 hermes 怎么取到的"
+**What to build:**
+老板 8/21 macOS 截屏: 聊天底栏有 2 个占位文字:
+1. 红框 1: "MiniMax-M3" → 替换为 Hermes 真值 model picker (MiniMax M3 · Med dropdown)
+2. 红框 2: "0/20 ●○○○" → 替换为 Hermes 真值 context usage bar (441.6k / 1M 44%)
 
-## 业务语言 (老板懂)
+老板 8/21 拍:
+- "模型选择 = 关联提供方, 配了多个 key 自动获 key 可以用的模型, MED 不实现 (med = 分析强度), MOA 多模型联合分析暂时用不到"
+- "上下文用量 + MED 查源码"
 
-老板 macOS 看到的聊天底栏 2 个占位文字, 改为模仿 Hermes 桌面端的真值:
-- 左侧 = multimodal provider/model picker (= Hermes 真值: dropdown + provider group + reasoning effort meta)
-- 右侧 = context usage bar (= Hermes 真值: used/max/percent + category breakdown segments)
+**Hermes 源码真值 (apps/desktop/src/):**
+- `context-usage-panel.tsx` — `UsageStats { context_max, context_used, context_percent }` + `ContextBreakdown { categories: [{id, label, color, tokens}] }`, 显示 `compactNumber(used) / compactNumber(max) percent%`
+- `model-menu-panel.tsx` — `ModelOptionsResponse { providers: [{slug, name, models: [id], capabilities: {id: {fast, reasoning}}}] }`, 显示当前 model + reasoning effort meta
+- `helpers.ts` — `providerGroup(envVarName)` 返回 display name
+- `models.py:3513` — `probe_api_models(api_key, base_url, timeout, api_mode)` — hermes_provider_catalog 真值
 
-## Hermes 源码真值 (apps/desktop/src/)
+**Blocked by:** None.
 
-### Context Usage Panel (apps/desktop/src/app/shell/context-usage-panel.tsx)
-- 类型: `UsageStats { context_max, context_used, context_percent }` + `ContextBreakdown { categories: [{id, label, color, tokens}] }`
-- 数据源: `SessionRuntimeInfo.usage` (实时) + `session.context_breakdown` RPC (按 category breakdown, 每个 category 一个 color)
-- 显示: `compactNumber(used) / compactNumber(max) percent%` (e.g. "441.6k / 1M 44%")
-- 进度条: `ContextUsageBar` 渲染 segments, width = `category.tokens / segmentTotal * 100%`
-
-### Model Menu Panel (apps/desktop/src/app/shell/model-menu-panel.tsx)
-- 类型: `ModelOptionsResponse { providers: [{slug, name, models: [id], capabilities: {id: {fast, reasoning}}, is_current, warning}] }`
-- 数据源: `model.options` RPC `requestModelOptions({gateway, sessionId, refresh, explicitOnly})`
-- 渲染: provider group 按 provider name 字母排序, default top-N per provider, current model 永远显, search spans all
-- Reasoning effort: meta 字段 "Med" / "Low" / "High" (e.g. "MiniMax M3 · Med")
-- MoA: 不实现 (老板拍 MOA 不用)
-
-### Provider Env Var 真值 (apps/desktop/src/app/settings/helpers.ts)
-- 多个 env var 关联 1 个 provider (e.g. `MINIMAX_CN_API_KEY` → "MiniMax (China)", `MINIMAX_API_KEY` → "MiniMax")
-- `providerGroup(envVarName)` 返回 display name
-- `isKeyVar(envVarName, info)` 判断是不是 key field
-
-### probe_api_models (hermes_cli/models.py:3513)
-- `anthropic_messages` mode: 用 `x-api-key` + `anthropic-version: 2023-06-01` headers
-- 候选 URL: `{base_url}` + `{base_url}/v1` (heuristic)
-- 5s timeout
-- 解析 `data[].id` → `[String]`
-- 缓存: `provider_models_cache.json` 1h TTL
-- 失败 fallback: curated list
-
-## Wenshu 现状 (working tree)
-
-- `LLMKeychain` actor (commit 143ff4845) — `loadKey()`/`saveKey()`/`deleteKey()` + `loadKeySync()` (init 同步读)
-- `MiniMaxModelFetcher` (commit e45fac768) — `fetchLiveModelIds(apiKey:baseUrl:)` + `loadModelIds()` + `ModelCache` actor 1h TTL
-- `ChatView` ChatViewModel — 当前 msg/user 显示 + "输入消息..." TextField
-- 当前 ChatView 底栏: 占位 "MiniMax-M3" + "0/20 ●○○○" 进度条 (= 老 LayoutShellView 6 区 layout 占位文字)
+**Status:** ready-for-agent
 
 ## 修法真值 (3 步, 5 原则 1 + 4 满足)
 

@@ -62,8 +62,8 @@ public final class ChatViewModel {
     public var lastError: String?
     public var currentModel: String = UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? MiniMaxModel.m3.rawValue
     public var availableModels: [String] = []
-    public var contextUsed: Int { messages.count * 500 }
-    public let contextMax: Int = 20
+    public var contextUsed: Int = 0
+    public var contextMax: Int = 131072  // MiniMax-M3 真值 context window = 128k = 131072 tokens (Hermes ModelInfoResponse.context_length 范式)
 
     private let conductor: WenshuConductor?
     private let store: ChatSessionStore?
@@ -91,6 +91,13 @@ public final class ChatViewModel {
         if !availableModels.contains(currentModel) {
             availableModels = [currentModel] + availableModels
         }
+        recomputeContextUsed()
+    }
+
+    /// 用 messages 真值估 contextUsed (4 chars/token 真值估算, Hermes真值近似)
+    public func recomputeContextUsed() {
+        let totalChars = messages.reduce(0) { $0 + $1.content.count }
+        contextUsed = max(0, totalChars / 4)
     }
 
     /// send: 发消息 → 文枢主 agent 真合成 (v0.21 ticket 06 + code-review S1+S2 真持久化)
@@ -121,6 +128,7 @@ public final class ChatViewModel {
             messages.append(agentMsg)
             let agentMsgStored = StoredChatMessage(id: agentMsg.id.uuidString, source: "wenshu", content: reply, timestamp: Date())
             try? await store?.append(agentMsgStored, sessionId: sessionId)
+            recomputeContextUsed()
 
             // v0.21 ticket 06 code-review S1: 真触发 summary 生成 (LLM call + saveSummary + deleteOldMessages 顺序, 不直接 delete)
             if let store = store {
@@ -247,11 +255,11 @@ public struct ChatView: View {
 
                 Spacer()
 
-                Text("\(vm.contextUsed) / \(vm.contextMax)")
+                Text("\(compactNumber(vm.contextUsed)) / \(compactNumber(vm.contextMax))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                ProgressView(value: Double(min(vm.contextUsed, vm.contextMax)), total: Double(vm.contextMax))
+                ProgressView(value: Double(min(vm.contextUsed, vm.contextMax)), total: Double(max(1, vm.contextMax)))
                     .progressViewStyle(.linear)
                     .frame(width: 80)
                     .tint(vm.contextUsed >= vm.contextMax ? .red : (vm.contextUsed > vm.contextMax * 3 / 4 ? .orange : .green))
@@ -309,4 +317,12 @@ struct ChatMessageView: View {
         case .system: return .red
         }
     }
+}
+/// compactNumber: 真实 token count 折 compact 格式 (Hermes format_token_count_compact 真值)
+/// 1k → "1.0k", 1.5M → "1.5M", 200 → "200"
+private func compactNumber(_ n: Int) -> String {
+    let d = Double(n)
+    if d >= 1_000_000 { return String(format: "%.1fM", d / 1_000_000).replacingOccurrences(of: ".0M", with: "M") }
+    if d >= 1_000 { return String(format: "%.1fk", d / 1_000).replacingOccurrences(of: ".0k", with: "k") }
+    return "\(n)"
 }
