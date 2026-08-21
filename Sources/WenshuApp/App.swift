@@ -256,7 +256,6 @@ struct SettingView: View {
                 }
             }
             .pickerStyle(.segmented)
-            .labelsHidden()
             .padding(.horizontal, 24)
             .padding(.top, 16)
             .padding(.bottom, 8)
@@ -398,8 +397,10 @@ struct SettingView: View {
                         providerApiEditor(for: p)
                             .padding(.leading, 18)
                             .padding(.bottom, 8)
+                            .transition(.opacity)
                     }
                 }
+                .animation(.default, value: apiExpandedProviders)
             } header: {
                 Text("提供方")
             } footer: {
@@ -433,20 +434,19 @@ struct SettingView: View {
 
     @ViewBuilder
     private func providerApiEditor(for p: Provider) -> some View {
-        SecureField("sk-...", text: $apiDraftKey)
-            .textFieldStyle(.roundedBorder)
-        if let apiError {
-            Text(apiError)
-                .font(.caption)
-                .foregroundStyle(.red)
-        }
-        HStack {
-            Spacer()
+        HStack(spacing: 8) {
+            SecureField("sk-...", text: $apiDraftKey)
+                .textFieldStyle(.roundedBorder)
             Button("保存") {
                 saveApiKey(for: p)
             }
             .keyboardShortcut(.defaultAction)
             .disabled(apiDraftKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
+        if let apiError {
+            Text(apiError)
+                .font(.caption)
+                .foregroundStyle(.red)
         }
     }
 
@@ -459,21 +459,27 @@ struct SettingView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(p.name)
                     .font(.body)
-                Text(hasKey ? "已设 key" : "未设 key")
+                Text(hasKey ? "已设 key" : "待配置")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
             Spacer()
             if hasKey {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
+                Text(keyPrefix8(for: p))
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(.tertiary)
             } else {
-                Text(p.requiresOAuth || p.slug == "custom" ? "OAuth" : "未设")
+                Text("待配置")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
         }
         .contentShape(Rectangle())
+    }
+
+    private func keyPrefix8(for provider: Provider) -> String {
+        guard let key = ProviderKeychain.loadKeySync(for: provider), !key.isEmpty else { return "" }
+        return String(key.prefix(8))
     }
 
     private func saveApiKey(for provider: Provider) {
