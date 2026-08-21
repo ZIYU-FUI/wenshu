@@ -1131,7 +1131,7 @@ struct ChatZoneView: View {
                         Image(systemName: "chevron.up.chevron.down")
                             .font(.system(size: 11))
                     }
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.tertiary)
                     .padding(.bottom, 6)
                     .frame(height: LayoutTokens.toolbarHeight, alignment: .bottomLeading)
                 }
