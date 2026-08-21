@@ -184,7 +184,8 @@ struct WenshuApp: App {
                 .preferredColorScheme(appearanceMode.colorScheme)
         }
         .windowStyle(.titleBar)  // 老板 8/18 拍 macOS 52 PT unified titlebar chrome = 老板自定义 52 PT 顶栏, 视觉合一
-        .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // 老板 Sketch 设计基准 1920×984 PT (v0.15 ticket 005 响应式: LayoutShellView 删 fixed frame, window 用 defaultSize 给 SwiftUI 初始 size hint)        .windowResizability(.contentSize)
+        .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // 老板 Sketch 设计基准 1920×984 PT (v0.15 ticket 005 响应式: LayoutShellView 删 fixed frame, window 用 defaultSize 给 SwiftUI 初始 size hint)
+        .windowResizability(.contentSize)
         .commands {
             CommandGroup(after: .newItem) {
                 Button("新建项目", action: {})
