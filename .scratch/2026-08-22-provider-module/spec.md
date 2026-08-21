@@ -67,7 +67,7 @@
    - 测试多个 provider (minimax / openrouter / nous) 都 work
 
 **Step 2 — 后续 (本 ticket 不做):**
-- provider 切换后 `sharedVerifier` 重建 (修真硬违反)
+- provider 切换后 `sharedVerifier` 重建 (真硬违反)
 - 用户自加 custom provider UI
 - OAuth 流程 (nous / copilot / openai-codex / xai-oauth)
 - 自定义 base_url 持久化
@@ -103,4 +103,4 @@
 ## 关联
 
 - 依赖: ticket 03 (Keychain) + ticket 04 (Model fetcher) — 都已 commit, 重构不重写
-- 被依赖: ticket 06 (mini LLM Keychain actor unsafe 修真), ticket 07 (provider 切换后 sharedVerifier 重建)
+- 被依赖: ticket 06 (mini LLM Keychain actor unsafe 修), ticket 07 (provider 切换后 sharedVerifier 重建)
