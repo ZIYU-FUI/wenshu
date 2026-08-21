@@ -979,18 +979,18 @@ struct ZoneModule: View {
     private var innerBandH: CGFloat { bandH - 2 * toolbarH }  // 顶栏底栏间内容区
 
     var body: some View {
-        // 区域模块 = 顶栏 (上) + 内容区 (中) + 底栏 (下).
-        // 顶/底栏宽度不写死, 由 VStack 子 view 默认 stretch 撑到区域模块宽度 (不画穿 splitter).
-        // 内容区撑满剩余空间.
+        // 区域模块 = 顶栏 (上) + 内容区 (中) + 底栏 (下). 
+        // .aiChat 跳过底栏: ChatZoneView 自带底栏 (= v0.21 ticket 10 修真因 替换 chat zone 底栏 '占位文字' 位置)
         VStack(spacing: 0) {
             ZoneTopToolbar(iconNames: ["book.closed", "magnifyingglass", "slider.horizontal.3"])
-                .frame(height: toolbarH, alignment: .top)  // 顶栏高度 30 PT
+                .frame(height: toolbarH, alignment: .top)
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            ZoneBottomToolbar()
-                .frame(height: toolbarH, alignment: .bottom)  // 底栏高度 30 PT
+            if slot != .aiChat {
+                ZoneBottomToolbar()
+                    .frame(height: toolbarH, alignment: .bottom)
+            }
         }
-        // 内容区背景色: 动态区用更深的底色
         .background(slot == .aiDynamic ? DesignColor.dynamicZoneSurface : .clear)
     }
 
