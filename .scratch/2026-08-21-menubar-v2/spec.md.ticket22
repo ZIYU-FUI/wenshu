@@ -1,0 +1,171 @@
+# ticket 22 — 优化: key 12 位 + 文本框动画 + tab 切换动画 + Apple 默认动画原则 (老板 2026-08-22 06:46 拍)
+
+**Status:** ready-for-agent
+
+## 老板拍的真值 (5 项, verbatim)
+
+老板 2026-08-22 06:46 拍修真因 + 优化 + 新原则 (5 项):
+
+1. "**回显的 key8 位，有点不够 用。改成 12 位。多显示几位数方便用户判断是哪一个 key**" (修真因 key 12 位)
+2. "**展开动画很好，但展开后的文本框出现和退出没有加动画，导致动画违和**" (修真因 SecureField + Button 出现/退出动画)
+3. "**还有 tab 页切换也没有加载动画**" (修真因 tab 切换动画)
+4. "**建议你加一条原则，交互动画使用 apple 标准 API，持续优雅**" (新增 wenshu 项目硬原则)
+5. "**补，能加动画的，都 要加**" (扩展原则 = 凡 Apple SwiftUI 标准 API 支持动画的组件, 全加 Apple 默认动画)
+
+## 修真因真值 (5 项)
+
+### 修真因 1: key 12 位回显 (老板拍 "改成 12 位")
+
+**Q32 当前真值**:
+- `keyPrefix8(for:)` 函数 (App.swift L482-485) 返回 `String(key.prefix(8))` (前 8 位真值)
+- providerApiRow L467-470 显示 = `Text(keyPrefix8(for: p)).font(.system(size: 11, design: .monospaced)).foregroundStyle(.tertiary)`
+- 老板截图真值: 已设 key 的 MiniMax (China) 显示 "sk-cp-5A" (前 8 位 = "sk-cp-5A2" 8 字符, 截图显示 "sk-cp-5A")
+
+**修真因真硬真值**:
+- keyPrefix8(for:) → **keyPrefix12(for:)** 函数修真因:
+  ```swift
+  private func keyPrefix12(for provider: Provider) -> String {
+      guard let key = ProviderKeychain.loadKeySync(for: provider), !key.isEmpty else { return "" }
+      return String(key.prefix(12))
+  }
+  ```
+- providerApiRow 修真因:
+  ```swift
+  Text(keyPrefix12(for: p)).font(.system(size: 11, design: .monospaced)).foregroundStyle(.tertiary)
+  ```
+- Q40 + Q45 硬约束保留: 真 key 走 Apple Keychain, UI 显示仅前 12 位 (老板自己看自己 key 前 12 位辨识, 防泄漏)
+
+### 修真因 2: SecureField + Button 出现/退出动画
+
+**Q32 当前真值**:
+- providerApiEditor 当前 = `HStack(spacing: 8) { SecureField; Button("保存") }` 然后 `if let apiError { Text(apiError) }`
+- 整 providerApiEditor 块有 `.transition(.opacity)` + ForEach 加 `.animation(.default, value: apiExpandedProviders)`
+- 但 SecureField + Button 自身**没有**独立 animation (出现是瞬时, 退出是瞬时)
+
+**修真因真硬真值**:
+- SecureField + Button 加 `.transition(.opacity)` (Apple SwiftUI 默认 transition 真值)
+- 同时整 ForEach 加 `.animation(.default, value: apiExpandedProviders)` (现状保留) = SecureField 出现/退出触发 Apple 默认动画
+- 老板拍 "文本框出现和退出没有加动画" 修真因真硬真值 = 整块 editor 内容 (SecureField + Button + apiError Text) 加 transition 真值
+- 修真因后: 整块渐变出现/退出, 老板拍"动画很优雅"真值
+
+### 修真因 3: tab 切换加载动画
+
+**Q32 当前真值**:
+- SettingView body = `VStack(spacing: 0) { Picker(...) + Divider + Group { switch selectedTab { case .general: generalTab ... } } }`
+- 切换 selectedTab 没有任何动画
+
+**修真因真硬真值**:
+- Group 修真因 (Apple SwiftUI 默认 transition 范式):
+  ```swift
+  Group {
+      switch selectedTab {
+      case .general: generalTab.transition(.opacity)
+      case .providerApi: providerApiTab.transition(.opacity)
+      case .model: modelTab.transition(.opacity)
+      }
+  }
+  .frame(maxWidth: .infinity, maxHeight: .infinity)
+  .animation(.default, value: selectedTab)  // 切到时触发 Apple 默认动画
+  ```
+- 老板拍 "tab 页切换也没有加载动画" 修真因真硬真值 = 加 `.animation(.default, value: selectedTab)` + 每个 tab 内容加 `.transition(.opacity)`
+- 老板原话 "能加动画的, 都要加" = 全 tab 都要有动画
+
+### 修真因 4: 新增 wenshu 项目硬原则 "交互动画使用 Apple 标准 API"
+
+**Q32 当前真值**:
+- AGENTS.md / CLAUDE.md / CONTEXT.md 已有 5 原则段 (Q26 老板原话) 但没明确"交互动画"硬原则
+
+**修真因真硬真值**:
+- CONTEXT.md (或 AGENTS.md / CLAUDE.md) 加新 domain word **"WenshuInteractionAnimationPrinciple"** = 老板 2026-08-22 06:46 拍的原则:
+  - 凡 Apple SwiftUI 标准 API (Apple HIG 真值) 支持动画的组件, 全加 Apple 默认动画 (`.animation(.default, value:)` + `.transition(.opacity)`)
+  - 不写自定义 animation (`.spring()` / `.easeInOut()` 等 Apple 未定义动画) 除非老板拍
+  - 不写 `.animation(nil)` 关闭动画
+  - 修真因 Apple SwiftUI 默认 = 持续优雅 (老板原话 "持续优雅")
+
+### 修真因 5: 扩展原则 = 能加动画的, 都要加
+
+**Q32 当前真值**:
+- 当前 App.swift 内 `.animation(.default, value: apiExpandedProviders)` 仅在 providerApiTab ForEach
+- 其它地方 (selectedTab 切换 / SecureField 出现退出 / ChatBottomBar 交互 / ZoneModule 切换) 都没动画
+
+**修真因真硬真值**:
+- 修真因范围 = 整个 App.swift 凡是 Apple SwiftUI 标准 API 支持动画的 state 变化:
+  1. selectedTab 切换 (item 3 ✓)
+  2. apiExpandedProviders Set<String> 变化 (providerApiTab 已有 ✓)
+  3. SecureField + Button HStack 在 if condition 内 (item 2 ✓)
+  4. chat zone contextMax 滑动 / 菜单 hover / 等等
+- 修真因 audit: 列出所有 @State 变量 + 对应 UI 切换, 修真因需要动画的 state 加 `.animation(.default, value:)`
+
+## Q20 不动 (硬约束)
+
+- 现有 SettingView 3 tab (.general / .providerApi / .model) 结构保留
+- providerTab 函数保留 (L325-377, 历史快照, 不调)
+- ProviderKeyPrompt.prompt(for:) + ProviderKeyInputSheet 保留 (历史快照)
+- ProviderKeychain 后端 (saveKeySync / loadKeySync / deleteKeySync / listProvidersWithKeys) 真硬不变
+- saveApiKey Keychain 写入逻辑不变
+- LLMKeychain / AppDelegate / NSApp.mainMenu / .commands
+- LayoutShellView / ZoneModule / ChatZoneView / ChatView
+- 现有 .animation(.default, value: apiExpandedProviders) (ticket 21 修真因保留)
+- AGENTS.md / CLAUDE.md 项目原则段
+- existing domain words in CONTEXT.md
+
+## Q51 父组件不动 + 子组件 override
+
+- SettingView 父组件结构变化小 (Group 加 .animation + 各 tab 加 .transition)
+- providerApiTab / providerApiEditor / providerApiRow 子组件修真因
+- keyPrefix8 → keyPrefix12 函数修真因
+- 新增 WenshuInteractionAnimationPrinciple domain word
+
+## Q47 锁定实现方式
+
+- macOS SwiftUI 14+ 标准 API (Apple 默认动画 = `.animation(.default, value:)` + `.transition(.opacity)`)
+- 不切实现方式 (不引第三方动画库, 不写自定义 animation)
+- 不写 `.spring()` / `.easeInOut()` 等 Apple 未定义 animation 除非老板拍
+
+## 5 原则满足 (Q26)
+
+1. **Apple 官方范式**: `.animation(.default, value:)` + `.transition(.opacity)` = Apple SwiftUI macOS 11+ 标准 API (Apple 默认动画真值)
+2. **伪 Apple 官方样式**: 不写自定义 animation = Apple 默认 (`.default` = 系统 duration)
+3. **效果优先**: 5 项修真因 + 1 新 domain word, 工作量小, 效果真 (老板 macOS 验持续优雅)
+4. **业务语言**: "key 12 位 + 文本框出现退出动画 + tab 切换动画 + Apple 默认动画原则", 老板懂
+5. **po main flow**: 1 ticket 1 commit, spec + impl 同 commit (Q29), 双轴 code-review 跑 (Q37)
+
+## Q40 + Q43 + Q45 硬约束 (老板 key 安全)
+
+- 修真因 1: keyPrefix12 = ProviderKeychain.loadKeySync 真值, 仅显示前 12 位 (老板辨识用), 不写完整 key
+- 真 key 仍走 Apple Keychain (ProviderKeychain.saveKeySync) 不入文件/log/commit
+- 测试用 dummy `sk-cp-` + `h` * 24
+- 任何 .scratch/ spec.md / issue / commit message 不含老板真 key
+
+## 新 domain word (WenshuInteractionAnimationPrinciple)
+
+CONTEXT.md 加新 domain word:
+```
+| **WenshuInteractionAnimationPrinciple** | wenshu 项目硬原则 (老板 2026-08-22 06:46 拍): 凡 Apple SwiftUI 标准 API (Apple HIG 真值) 支持动画的组件, 全加 Apple 默认动画 (`.animation(.default, value:)` + `.transition(.opacity)`). 不写自定义 animation 除非老板拍. 不写 `.animation(nil)` 关闭动画. 修真因 Apple SwiftUI 默认 = 持续优雅 | v0.21 ticket 22 |
+```
+
+## 双轴 code-review (Q37)
+
+- Standards 轴: `.transition(.opacity)` + `.animation(.default, value:)` 标准 SwiftUI 真值 + keyPrefix12 标准 Swift String 真值 + Info.plist CFBundleName 不动 (Q20 修真因保留)
+- Spec 轴: 老板拍 5 项修真因 + 修真因 5 项 acceptance criteria + Q20 + Q47 + Q40 硬约束
+
+## Acceptance
+
+- [ ] 修真因 1: keyPrefix12(for:) 函数 + providerApiRow 修真因 (12 位回显)
+- [ ] 修真因 2: SecureField + Button HStack + apiError Text 加 `.transition(.opacity)` (整块 editor 内容出现/退出动画)
+- [ ] 修真因 3: SettingView body Group 修真因 (3 个 tab 内容加 `.transition(.opacity)`) + `.animation(.default, value: selectedTab)`
+- [ ] 修真因 4: CONTEXT.md 加新 domain word **WenshuInteractionAnimationPrinciple** (老板原话 "交互动画使用 Apple 标准 API")
+- [ ] 修真因 5: 扩展审计 = 修真因范围列出所有 @State 变量 + 修真因需要动画的 state 加 `.animation(.default, value:)` (凡 Apple SwiftUI 标准 API 支持动画的组件)
+- [ ] 老板 macOS 真验: 提供方 API tab = 已设 key 显 12 位灰度字 / 整条点 → 文本框出现/退出 Apple 默认动画 / 切 tab 时 Apple 默认动画 / 持续优雅
+- [ ] swift build exit 0
+- [ ] swift test exit 0 (ProviderKeychain 5/5 pass 不回归)
+- [ ] 双轴 code-review 报告 verbatim 进 commit body
+- [ ] Q40 grep 验证: 任何文件 / log / commit 不含老板真 key
+
+## 关联
+
+- 依赖: ticket 21 commit `173b719bb` (5 项修真因真硬已装)
+- 被依赖: 无
+- 历史: ticket 13 + 14 + 15 + 16 + 17 + 21 + 22 修真因链
+- backlog: ticket 18 + 19 + 20 等老板排期
+- 分支: feature/chat-bottom-toolbar-in-child (Q53 ticket 10 起, 续)
