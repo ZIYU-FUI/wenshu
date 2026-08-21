@@ -1138,6 +1138,7 @@ struct ChatZoneView: View {
                     // v0.21 ticket 36: explicit .foregroundStyle(.tertiary) per element
                     // v0.21 ticket 37: drop .menuStyle(.borderlessButton) — that wrapper overrides
                     //   foregroundStyle. Default Menu style lets our per-element .tertiary apply.
+                    // v0.21 ticket 42 老板 17:35: .menuStyle(.button) + .buttonStyle(.plain) (Apple deprecated .borderedButton 提示真值组合)
                     HStack(spacing: 4) {
                         Image(systemName: "cpu")
                             .foregroundStyle(.tertiary)
@@ -1151,6 +1152,9 @@ struct ChatZoneView: View {
                     .padding(.bottom, 6)
                     .frame(height: LayoutTokens.toolbarHeight, alignment: .bottomLeading)
                 }
+                // v0.21 ticket 42: Apple 真值组合 .menuStyle(.button) + .buttonStyle(.plain) = 去外壳 (Apple SwiftUI 14+ deprecated .borderedButton 提示路径)
+                .menuStyle(.button)
+                .buttonStyle(.plain)
                 .padding(.leading, 14)
                 .task {
                     let base = ProcessInfo.processInfo.environment["MINIMAX_CN_BASE_URL"] ?? "https://api.minimaxi.com/anthropic"
