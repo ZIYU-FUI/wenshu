@@ -61,7 +61,7 @@ enum ProviderFetcher {
             return cached
         }
         if let live = await fetchLiveModelIds(provider: provider, apiKey: apiKey) {
-            NSLog("[wenshu.provider] \(provider.slug) live: \(live.count) models")
+            NSLog("[wenshu.provider] \(provider.slug) live: \(live.count) models: \(live.joined(separator: ", "))")
             await ProviderModelCache.shared.set(live, for: cacheKey)
             return live
         }
