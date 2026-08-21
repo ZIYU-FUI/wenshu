@@ -1113,12 +1113,19 @@ struct ChatZoneView: View {
     let store: ChatSessionStore?
     @State private var availableModels: [String] = MiniMaxModel.allCases.map { $0.rawValue }
     @State private var currentModel: String = UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? MiniMaxModel.m3.rawValue
-    @State private var contextUsed: Int = 0
+    // v0.21 ticket 40: 持有 ChatViewModel 实例 + 共享给 ChatView, 让 bottom toolbar 读 vm.contextUsed 自动 propagate
+    @State private var vm: ChatViewModel
     private let contextMax: Int = 131072
+
+    init(conductor: WenshuConductor?, store: ChatSessionStore?) {
+        self.conductor = conductor
+        self.store = store
+        _vm = State(initialValue: ChatViewModel(conductor: conductor, store: store))
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            ChatView(conductor: conductor, store: store)
+            ChatView(conductor: conductor, store: store, vm: vm)
             HStack(spacing: 0) {
                 Menu {
                     ForEach(ModelDisplay.curated(availableModels), id: \.self) { entry in
@@ -1158,13 +1165,14 @@ struct ChatZoneView: View {
                 Spacer()
 
                 HStack(spacing: 6) {
-                    Text("\(compactNumber(contextUsed)) / \(compactNumber(contextMax))")
+                    // v0.21 ticket 40: 读 vm.contextUsed (Apple @Observable 自动 propagate, 不再写死 @State contextUsed = 0)
+                    Text("\(compactNumber(vm.contextUsed)) / \(compactNumber(vm.contextMax))")
                         .font(.system(size: 13))
                         .foregroundStyle(.tertiary)
-                    ProgressView(value: Double(min(contextUsed, contextMax)), total: Double(max(1, contextMax)))
+                    ProgressView(value: Double(min(vm.contextUsed, vm.contextMax)), total: Double(max(1, vm.contextMax)))
                         .progressViewStyle(.linear)
                         .frame(width: 80)
-                        .tint(contextUsed >= contextMax ? .red : (contextUsed > contextMax * 3 / 4 ? .orange : .green))
+                        .tint(vm.contextUsed >= vm.contextMax ? .red : (vm.contextUsed > vm.contextMax * 3 / 4 ? .orange : .green))
                 }
                 .padding(.trailing, 18)
                 .padding(.bottom, 6)

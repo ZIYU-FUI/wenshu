@@ -207,9 +207,15 @@ public final class ChatViewModel {
 public struct ChatView: View {
     @State private var vm: ChatViewModel
 
-    public init(conductor: WenshuConductor? = nil, store: ChatSessionStore? = nil, sessionId: String = "default") {
-        // v0.21 ticket 06 code-review S2: initialMessages 用 .task 异步 load, 避免 init race condition
-        _vm = State(initialValue: ChatViewModel(conductor: conductor, store: store, sessionId: sessionId, initialMessages: []))
+    public init(conductor: WenshuConductor? = nil, store: ChatSessionStore? = nil, sessionId: String = "default", vm: ChatViewModel? = nil) {
+        // v0.21 ticket 40: optional ChatViewModel injection (ChatZoneView 共享 vm 实例, 让 ChatZoneView bottom toolbar
+        // 读 vm.contextUsed 自动 propagate. Q51 子组件 override 父组件部分, 不动 ChatViewModel.send() body, 不动 ChatView body)
+        if let vm = vm {
+            _vm = State(initialValue: vm)
+        } else {
+            // v0.21 ticket 06 code-review S2: initialMessages 用 .task 异步 load, 避免 init race condition
+            _vm = State(initialValue: ChatViewModel(conductor: conductor, store: store, sessionId: sessionId, initialMessages: []))
+        }
     }
 
     public var body: some View {
