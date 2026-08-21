@@ -1,0 +1,59 @@
+# ticket 14 — chat zone 模型选择器 Menu ICON 左边 14 PT (老板 2026-08-22 04:34 拍)
+
+**Status:** ready-for-agent
+
+## 老板真值 (verbatim)
+
+老板 2026-08-22 04:34 拍新真值 (Q37 业务语言):
+
+1. "不要内置 inset ≈ 4 PT"
+2. "如果内置的 4PT 不能取消，那就把左边距改成 14"
+
+老板明确拍 A 路径: ICON 距离左边 14 PT + 保留 Menu borderlessButton 内置 4 PT inset = 18 PT 视觉.
+
+## 真因 (Q32 audit + Q28 查文档真值)
+
+ticket 13 commit `75a9a882a` 修真因后, ChatZoneView L1007 Menu 整容器 `.padding(.leading, 18)` + `.menuStyle(.borderlessButton)` 内置 4 PT inset = 视觉 22 PT.
+
+老板拍视觉 = 18 PT (= 老板原话 "应该从 ICON 就开始算" 的 18 PT 真值).
+
+`.menuStyle(.borderlessButton)` 内置 inset 是 Apple SwiftUI macOS 真值 (Stack Overflow 74778306 真值确认), **不可取消**. 老板已明确选 A 路径 = 改 padding 数字到 14, 不动 .menuStyle.
+
+## 修真因 (Q47 锁定实现方式 + Q20 不动已实现)
+
+1. **App.swift L1007 ChatZoneView Menu 整容器**: `.padding(.leading, 18)` → `.padding(.leading, 14)`.
+   - 视觉: 14 PT Menu 整容器 padding + 4 PT borderlessButton 内置 inset = **18 PT** (cpu ICON 左边距)
+   - Q20 不动: `.menuStyle(.borderlessButton)`, `Label`, `HStack(spacing: 4)` 内部 cpu + Text + chevron, `.padding(.bottom, 6)`, `.frame(height:barHeight, alignment:)`, `.task`
+2. **ChatView 输入框 HStack `.padding(.horizontal, 18)` 不动** (ticket 13 老板拍 "发送按钮右边 18 PT" 视觉已对, ticket 14 不重测)
+3. **context usage HStack `.padding(.trailing, 18)` 不动** (老板 ticket 13 拍 "如果是对的", ticket 14 不重测)
+4. **其它 5 区底栏不动** (Q20)
+
+## 5 原则满足 (Q26)
+
+1. **Apple 官方范式**: `.padding(.leading, 14)` + `.menuStyle(.borderlessButton)` 内置 inset = Apple SwiftUI 真值
+2. **伪 Apple 官方样式**: SF Symbol `cpu` + semantic color `.secondary` 不动
+3. **效果优先**: 1 个数字改 18 → 14, 工作量小, 效果真 (老板 macOS 验 18 PT 视觉)
+4. **业务语言**: "模型选择器 ICON 左边视觉 18 PT", 老板懂
+5. **po main flow**: 1 ticket 1 commit, spec + impl 同 commit (Q29), 双轴 code-review 跑 (Q37)
+
+## 双轴 code-review (Q37)
+
+- Standards 轴: `.padding(.leading, 14)` SwiftUI modifier 真值 + 不破坏 .menuStyle / .padding(.bottom, 6) / .frame 真值
+- Spec 轴: 老板拍 2 条 (不要内置 4 PT / 改成 14) 全修真因, 视觉结果 18 PT
+
+## Acceptance
+
+- [ ] ChatZoneView 模型选择器 Menu 整容器 `.padding(.leading, 14)`
+- [ ] cpu ICON 左边视觉 18 PT (= 14 PT + borderlessButton 内置 4 PT inset)
+- [ ] ChatView 输入框 HStack `.padding(.horizontal, 18)` 不动
+- [ ] context usage HStack `.padding(.trailing, 18)` 不动
+- [ ] 老板 macOS 真验: cpu ICON 左边视觉 = 18 PT
+- [ ] swift build exit 0
+- [ ] swift test exit 0
+- [ ] 双轴 code-review 报告 verbatim 进 commit body
+
+## 关联
+
+- 依赖: ticket 13 commit `75a9a882a` (ChatZoneView Menu 整容器范式 + .padding(.leading, 18) 已修真因)
+- 被依赖: 无
+- 分支: feature/chat-bottom-toolbar-in-child (Q53 ticket 10 起, 修真因续)
