@@ -781,34 +781,64 @@ struct ZoneTopToolbar: View {
 /// 区域底部工具栏: 30 PT 高, 左/右各占位文字 + 顶 2 PT 分割线.
 /// 宽度由父组件约束自动撑到区域模块宽度 (不画穿 splitter).
 struct ZoneBottomToolbar: View {
+    @State private var availableModels: [String] = MiniMaxModel.allCases.map { $0.rawValue }
+    @State private var currentModel: String = UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? MiniMaxModel.m3.rawValue
+    @State private var contextUsed: Int = 0
+    private let contextMax: Int = 131072
+
     var body: some View {
-        let toolbarH = LayoutTokens.toolbarHeight  // 30 PT
-        // 底栏背景: 撑满父级宽度 (区域模块宽), 高度 30 PT
+        let toolbarH = LayoutTokens.toolbarHeight
         DesignColor.zoneSurface
             .frame(height: toolbarH)
             .overlay(alignment: .top) {
-                // 顶分割线 1 PT (跟拖拽线 / StaticDivider 一致)
                 DesignColor.splitterLine.frame(height: 1)
             }
             .overlay(alignment: .bottomLeading) {
-                // 左占位文字: 字号 13, 左 padding 18, 距底 6 PT
-                Text("占位文字")
-                    .font(.system(size: 13))
-                    .foregroundStyle(.tertiary)
+                Menu {
+                    ForEach(availableModels, id: \.self) { id in
+                        Button(id) {
+                            currentModel = id
+                            UserDefaults.standard.set(id, forKey: "wenshu.llm.model")
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "cpu")
+                        Text(currentModel)
+                            .font(.system(size: 13))
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.system(size: 11))
+                    }
+                    .foregroundStyle(.secondary)
                     .padding(.leading, 18)
                     .padding(.bottom, 6)
                     .frame(height: toolbarH, alignment: .bottomLeading)
-                    .allowsHitTesting(false)
+                }
+                .menuStyle(.borderlessButton)
+                .task {
+                    let base = ProcessInfo.processInfo.environment["MINIMAX_CN_BASE_URL"] ?? "https://api.minimaxi.com/anthropic"
+                    if let key = LLMKeychain.loadKeySync(), !key.isEmpty {
+                        availableModels = await MiniMaxModelFetcher.loadModelIds(apiKey: key, baseUrl: base)
+                    }
+                    if !availableModels.contains(currentModel) {
+                        availableModels = [currentModel] + availableModels
+                    }
+                }
             }
             .overlay(alignment: .bottomTrailing) {
-                // 右占位文字: 字号 13, 右 padding 18, 距底 6 PT
-                Text("占位文字")
-                    .font(.system(size: 13))
-                    .foregroundStyle(.tertiary)
-                    .padding(.trailing, 18)
-                    .padding(.bottom, 6)
-                    .frame(height: toolbarH, alignment: .bottomTrailing)
-                    .allowsHitTesting(false)
+                HStack(spacing: 6) {
+                    Text("\(compactNumber(contextUsed)) / \(compactNumber(contextMax))")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.tertiary)
+                    ProgressView(value: Double(min(contextUsed, contextMax)), total: Double(max(1, contextMax)))
+                        .progressViewStyle(.linear)
+                        .frame(width: 80)
+                        .tint(contextUsed >= contextMax ? .red : (contextUsed > contextMax * 3 / 4 ? .orange : .green))
+                }
+                .padding(.trailing, 18)
+                .padding(.bottom, 6)
+                .frame(height: toolbarH, alignment: .bottomTrailing)
+                .allowsHitTesting(false)
             }
     }
 }
@@ -904,3 +934,12 @@ struct LibraryOutlineViewContent: View {
 }
 
 
+
+
+/// compactNumber: 真实 token count 折 compact 格式 (Hermes format_token_count_compact 真值)
+private func compactNumber(_ n: Int) -> String {
+    let d = Double(n)
+    if d >= 1_000_000 { return String(format: "%.1fM", d / 1_000_000).replacingOccurrences(of: ".0M", with: "M") }
+    if d >= 1_000 { return String(format: "%.1fk", d / 1_000).replacingOccurrences(of: ".0k", with: "k") }
+    return "\(n)"
+}

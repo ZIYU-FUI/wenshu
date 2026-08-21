@@ -232,41 +232,6 @@ public struct ChatView: View {
             }
             .padding(.horizontal, 8)
             .padding(.bottom, 4)
-
-            // 底栏 (Hermes appChrome 范式): 左 model + 右 context 用量
-            HStack(spacing: 8) {
-                Menu {
-                    ForEach(vm.availableModels, id: \.self) { id in
-                        Button(id) { vm.switchModel(id) }
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "cpu")
-                        Text(vm.currentModel)
-                        Image(systemName: "chevron.up.chevron.down")
-                            .imageScale(.small)
-                            .foregroundStyle(.secondary)
-                    }
-                    .font(.caption)
-                }
-                .menuStyle(.borderlessButton)
-                .frame(maxWidth: 220, alignment: .leading)
-                .help("点击切换模型")
-
-                Spacer()
-
-                Text("\(compactNumber(vm.contextUsed)) / \(compactNumber(vm.contextMax))")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                ProgressView(value: Double(min(vm.contextUsed, vm.contextMax)), total: Double(max(1, vm.contextMax)))
-                    .progressViewStyle(.linear)
-                    .frame(width: 80)
-                    .tint(vm.contextUsed >= vm.contextMax ? .red : (vm.contextUsed > vm.contextMax * 3 / 4 ? .orange : .green))
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 4)
-            .background(Color(nsColor: .controlBackgroundColor))
         }
     }
 }
