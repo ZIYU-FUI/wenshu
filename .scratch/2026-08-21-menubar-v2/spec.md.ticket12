@@ -5,21 +5,21 @@
 
 ## 业务语言 (老板懂)
 
-当前菜单栏 (= commit a69a42401 修真因后) = 4 项 menu (Apple/文枢/显示/窗口/帮助) + cmd+, "设置…" 1 个. 修真因缺 文件 (.newItem) + 编辑 (.undoRedo) = macOS SwiftUI CommandGroup 12 placement 范式中 2 个 placement (= 修真因修真因).
+当前菜单栏 (= commit a69a42401 修因后) = 4 项 menu (Apple/文枢/显示/窗口/帮助) + cmd+, "设置…" 1 个. 修因缺 文件 (.newItem) + 编辑 (.undoRedo) = macOS SwiftUI CommandGroup 12 placement 范式中 2 个 placement (= 修因修因).
 
-老板拍"锁定一种实现方式, 往下延续" = 当前实现方式 = macOS SwiftUI 14+ `Settings { } Scene + .commands { CommandGroup }` 12 placement 范式 (commit a69a42401 修真因 = 真值). 不反复横跳 = 不改回 NSApp.mainMenu 装路径 (那真修真因 = Q15 翻车链 9 次) + 不写自创建 NSWindow 弹窗 (那真修真因 = Q32 真硬违反 = 跟 macOS Settings { } Scene 冲突).
+老板拍"锁定一种实现方式, 往下延续" = 当前实现方式 = macOS SwiftUI 14+ `Settings { } Scene + .commands { CommandGroup }` 12 placement 范式 (commit a69a42401 修因 = 真值). 不反复横跳 = 不改回 NSApp.mainMenu 装路径 (那真修因 = Q15 翻车链 9 次) + 不写自创建 NSWindow 弹窗 (那真修因 = Q32 真硬违反 = 跟 macOS Settings { } Scene 冲突).
 
-## 老板拍"不修真因动菜单栏代码" + "在现有实现逻辑基础上" + "加文件和编辑菜单" = 修真因
+## 老板拍"不修因动菜单栏代码" + "在现有实现逻辑基础上" + "加文件和编辑菜单" = 修因
 
-修法真值 (5 原则 1 + 4 满足, 不修真因动 .commands 段 + Settings Scene):
+修法真值 (5 原则 1 + 4 满足, 不修因动 .commands 段 + Settings Scene):
 
-1. **App.swift .commands 段装回 4 个 CommandGroup** (修真因我修真因 commit a69a42401 修真因了文件 + 编辑 + 视图 CommandGroup 修真因, 修真因修真因要修真因 = 修真因 只修真因 `CommandGroup(replacing: .appSettings) { SettingsLink() }` = 1 行):
+1. **App.swift .commands 段装回 4 个 CommandGroup** (修因我修因 commit a69a42401 修因了文件 + 编辑 + 视图 CommandGroup 修因, 修因修因要修因 = 修因 只修因 `CommandGroup(replacing: .appSettings) { SettingsLink() }` = 1 行):
    - `CommandGroup(after: .newItem) { Button("新建项目", action: {}) }` = 文件
    - `CommandGroup(replacing: .undoRedo) { Button("撤销") + Button("重做") }` = 编辑
-   - `CommandGroup(after: .sidebar) { Divider(); Button("恢复默认布局") }` = 视图 (老板 8/21 23:50 拍"不修真因动 = 保留这个")
-   - `CommandGroup(replacing: .appSettings) { SettingsLink() }` = 设置 (修真因 = 修真因 1 个 cmd+, "设置…")
-2. **Settings { SettingView() } Scene 保留** (= macOS 自动装 cmd+, "设置…" 1 个真修真因 = commit a69a42401 修真因后真修真因)
-3. **commit a69a42401 修真因 (visual bug 修真因换行)** 修真因保留 (= 修真因修真因 = `.windowResizability(.contentSize)` 修真因修真因新行)
+   - `CommandGroup(after: .sidebar) { Divider(); Button("恢复默认布局") }` = 视图 (老板 8/21 23:50 拍"不修因动 = 保留这个")
+   - `CommandGroup(replacing: .appSettings) { SettingsLink() }` = 设置 (修因 = 修因 1 个 cmd+, "设置…")
+2. **Settings { SettingView() } Scene 保留** (= macOS 自动装 cmd+, "设置…" 1 个真修因 = commit a69a42401 修因后真修因)
+3. **commit a69a42401 修因 (visual bug 修因换行)** 修因保留 (= 修因修因 = `.windowResizability(.contentSize)` 修因修因新行)
 
 ## 不动 (Q20 硬约束)
 
@@ -29,9 +29,9 @@
 - ProviderKeyPrompt
 - MiniMaxModelFetcher
 - `SettingView` (commit 6a3d93f5d + 1f086051a 保留, Pages 范式)
-- `ZoneModule` 父组件 (commit d0c642273 修真因后, 其它 5 区 case 不动)
-- `ZoneBottomToolbar` 父组件 (5 区底栏保持"占位文字", 修真因修真因 chat zone 跳过)
-- `ChatZoneView` (commit f1fe8e64c + d0c642273 修真因后, 修真因)
+- `ZoneModule` 父组件 (commit d0c642273 修因后, 其它 5 区 case 不动)
+- `ZoneBottomToolbar` 父组件 (5 区底栏保持"占位文字", 修因修因 chat zone 跳过)
+- `ChatZoneView` (commit f1fe8e64c + d0c642273 修因后, 修因)
 - AppIcon.icon/
 
 ## Apple HIG 真值引用
