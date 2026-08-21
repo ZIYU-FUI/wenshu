@@ -184,15 +184,29 @@ struct WenshuApp: App {
                 .preferredColorScheme(appearanceMode.colorScheme)
         }
         .windowStyle(.titleBar)  // 老板 8/18 拍 macOS 52 PT unified titlebar chrome = 老板自定义 52 PT 顶栏, 视觉合一
-        .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // 老板 Sketch 设计基准 1920×984 PT (v0.15 ticket 005 响应式: LayoutShellView 删 fixed frame, window 用 defaultSize 给 SwiftUI 初始 size hint)
-        .windowResizability(.contentSize)  // 内容驱动窗口大小 (GeometryReader × 比例算子自适应 resize)
-        // v0.21 ticket 01 (重做 #4): 删 .commands { CommandGroup(.appSettings) { SettingsLink() } } 段
-        // (Q15 翻车链 #8 总结: SwiftUI .commands 段在 macOS 27 lazy populate 覆盖了 .commands 注入的 SettingsLink, NSMenu "设置…" 没装 = 老板 8/21 19:30 反馈"设置菜单没有了")
-        // 真因 (Q28 Stack Overflow 76359975 真值): SwiftUI macOS 14+ NSMenu 装 "Settings…" 必须自己 NSWindow + NSHostingController 范式 (Settings { } Scene 是 SwiftUI App body 标准 cmd+, handler)
-        // v0.21 ticket 06 (Pages 范式): 装回 macOS Settings { } Scene 接管菜单栏 (Apple 真值 14+, 老板 8/10 01:43 6 项菜单真值真值)
-        // 老板 8/21 拍: '菜单栏的置入和弹窗的写法不是严格关联, 用正常能置入菜单栏的方式 + Pages UI 范式弹窗'
-        // 真值真值: Settings { } Scene 自动装菜单 (= Apple/文枢/显示/窗口/帮助) + .commands { CommandGroup(.appSettings) { SettingsLink() } } 接管 cmd+,
-        //           窗口内容 = SettingView (= 顶部 toolbar tab + 3 tab, Pages 范式, 老板画的图 2 红框位置)
+        .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // 老板 Sketch 设计基准 1920×984 PT (v0.15 ticket 005 响应式: LayoutShellView 删 fixed frame, window 用 defaultSize 给 SwiftUI 初始 size hint)        .windowResizability(.contentSize)
+        .commands {
+            CommandGroup(after: .newItem) {
+                Button("新建项目", action: {})
+                    .keyboardShortcut("n", modifiers: .command)
+            }
+            CommandGroup(replacing: .undoRedo) {
+                Button("撤销", action: {})
+                    .keyboardShortcut("z", modifiers: .command)
+                Button("重做", action: {})
+                    .keyboardShortcut("Z", modifiers: [.command, .shift])
+            }
+            CommandGroup(after: .sidebar) {
+                Divider()
+                Button("恢复默认布局") {
+                    NotificationCenter.default.post(name: .wenshuResetLayout, object: nil)
+                }
+                .keyboardShortcut("R", modifiers: [.command, .shift])
+            }
+        }
+        Settings {
+            SettingView()
+        }
     }
 }
 
