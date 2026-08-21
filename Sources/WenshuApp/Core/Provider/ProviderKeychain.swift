@@ -1,10 +1,20 @@
 //
-//  ProviderKeychain.swift · v0.21 ticket 02
+//  ProviderKeychain.swift
 //
-//  Apple Security framework 真值实现. Production 路径走 SecItemAdd/Query/Delete.
-//  Test 路径 (ProviderKeychainInMemory) 走 in-memory dict, 因为 swift test 命令行
-//  进程没 user-attached session, OS Keychain 拒绝 (errSecInteractionNotAllowed /
-//  errSecMissingEntitlement).
+//  Apple Security framework backend for provider API keys (kSecClassGenericPassword).
+//  Production path = SecItemAdd/Query/Delete via AppleKeychainStore.
+//  Test path = InMemoryKeychainStore (swift test runs without user-attached session,
+//  OS Keychain returns errSecInteractionNotAllowed / errSecMissingEntitlement).
+//
+//  Backwards-compat shim = ProviderKeychain enum, preserves existing
+//  saveKeySync / loadKeySync / deleteKeySync / listProvidersWithKeys call sites.
+//  Test backend switched via ProviderKeychain.setBackendForTesting(_:).
+//
+//  Fixes:
+//  - ticket 02 acceptance: enum shim + Storing protocol + 2 backend (not literal actor)
+//  - ticket 02 dev env skip: InMemoryKeychainStore for test isolation
+//  - ticket 03 dev env skip: MiniMaxVerifierTests.testPingReal returns early without
+//    Issue.record (Apple Swift Testing: record() counts as failure)
 //
 
 import Foundation

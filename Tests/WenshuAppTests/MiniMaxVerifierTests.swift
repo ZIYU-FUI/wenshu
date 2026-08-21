@@ -17,10 +17,10 @@ struct MiniMaxVerifierTests {
         return !key.isEmpty
     }
 
-    @Test("ping 真值 200")
+    @Test("ping real value 200")
     func testPingReal() async throws {
         guard Self.hasAPIKey else {
-            // dev env 无真 key, 跳过 (不算 fail, 跟 Q35 + Q44 真值 = Apple 协议端到端验真留待 CI 配置真 key 后跑)
+            // dev env has no real key, skip (Apple Swift Testing: not a failure)
             return
         }
         let verifier = MiniMaxVerifier()

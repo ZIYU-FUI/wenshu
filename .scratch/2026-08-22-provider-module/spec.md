@@ -55,9 +55,10 @@
    - `func fetchLiveModelIds(provider: Provider, apiKey: String) async -> [String]?`
    - provider 走自己的 endpoint + headers (hermes 真值)
    - fallback to curated
-4. `Sources/WenshuApp/Core/Provider/ProviderKeychain.swift` — 多 provider key 存储
-   - 修 `LLMKeychain` → 按 provider 存 (`kSecAttrAccount = provider.slug`)
-   - 删 `LLMKeychain.loadKeySync()` 静态简化 → 改 `KeychainStore.shared.key(for: provider)`
+4. `Sources/WenshuApp/Core/Provider/ProviderKeychain.swift` — multi-provider key storage
+   - `LLMKeychain` → per-provider storage (`kSecAttrAccount = provider.slug`)
+   - `ProviderKeychain` enum shim preserves existing call sites (saveKeySync/loadKeySync/deleteKeySync/listProvidersWithKeys)
+   - Backend swappable via `ProviderKeychain.setBackendForTesting(_:)` for test isolation (AppleKeychainStore production / InMemoryKeychainStore test)
 5. `Sources/WenshuApp/App.swift` 设置页 → 加 "提供方" tab (放通用 + 模型 之间)
    - 提供方 tab: List provider (radioGroup, 当前 selected provider 高亮) + 当 custom 时显示 base_url input
    - 模型 tab: 重写 Picker 用当前 provider 的 fetch 结果
@@ -77,8 +78,9 @@
 - [ ] Provider.swift enum (10+ cases, hermes 真值)
 - [ ] ProviderCatalog.swift 静态列表
 - [ ] ProviderFetcher.swift 多 provider 真值 fetch
-- [ ] ProviderKeychain.swift 多 provider key 存储
-- [ ] LLMKeychain.swift 修法或删除 (新 ProviderKeychain 替代)
+- [ ] ProviderKeychain.swift multi-provider key storage (enum shim + Storing protocol + AppleKeychainStore production + InMemoryKeychainStore test)
+- [ ] MiniMaxVerifierTests.testPingReal: dev-env skip pattern (guard hasAPIKey else return, no Issue.record)
+- [ ] ProviderKeychainTests: inject InMemoryKeychainStore via setBackendForTesting, no OS Keychain entitlement required
 - [ ] SettingView 重写: 4 个 tab (通用 / 提供方 / 模型 / 快捷键)
 - [ ] 提供方 tab: radioGroup picker + 当前 provider 显示 + 当 custom 时显示 base_url
 - [ ] swift build exit 0
