@@ -233,15 +233,15 @@ public struct ChatView: View {
                     }
                     .padding(8)
                 }
-                .onChange(of: vm.messages.count) { _, _ in
-                    // v0.21 ticket 41 step 1 NSLog trace: 锁 onChange 触发次数 + lastId (Q63 verify-before-claim)
-                    let lastId = vm.messages.last?.id.uuidString ?? "nil"
-                    let lastContentLen = vm.messages.last?.content.count ?? 0
-                    NSLog("[wenshu.scroll] onChange trigger: count=%d lastId=%@ lastContentLen=%d", vm.messages.count, lastId, lastContentLen)
+                // v0.21 ticket 41 step 2 fix 1: Apple SwiftUI 14+ .defaultScrollAnchor(.bottom) (候选 D)
+                // Apple 真值 = ScrollView 内容变化时自动贴底, 兜底 placeholder -> reply 替换时 scrollTo 不触发
+                .defaultScrollAnchor(.bottom)
+                // v0.21 ticket 41 step 2 fix 2: onChange 监听 lastContent 而不仅是 count (候选 A)
+                // placeholder 创建时 content="AI 思考中…" (15 chars), reply 替换后 content=长 reply (~hundreds chars)
+                // content 变化触发 onChange, scrollTo 新 last.id
+                .onChange(of: vm.messages.last?.content ?? "") { _, _ in
                     if let last = vm.messages.last {
-                        withAnimation {
-                            proxy.scrollTo(last.id, anchor: .bottom)
-                        }
+                        proxy.scrollTo(last.id, anchor: .bottom)
                     }
                 }
             }
