@@ -1,0 +1,101 @@
+# ticket 25 — 设置菜单 title 恢复 "文枢" + 渐显渐隐动画保持 (老板 2026-08-22 07:22 拍)
+
+**Status:** ready-for-agent
+
+## 老板拍的真值 (verbatim)
+
+老板 2026-08-22 07:22 拍:
+1. "**你让红框里三个元素渐显渐隐就行了**" (= 截图红框内 = 输入框 + 12 位灰度字 + 保存按钮 = 3 个元素 = 渐显渐隐 Apple 默认动画 = 保留)
+2. "**设置菜单的那个，改回去，现在是'设置'设置。如果不能实现，只有设置。恢复成'文枢'设置**" (= 改回 brand "文枢" = 修真因标题回 "文枢 设置" = 接受 brand "文枢" + "设置" 重复 = 老板原话 "如果不能实现，只有设置" = 接受 title = "文枢 Settings" 或 "文枢 设置" 重复)
+
+## 修真因真值 (2 项)
+
+### 修真因 1: 渐显渐隐动画保留
+
+**Q32 当前真值** (ticket 22 + 23 落地):
+- App.swift providerApiEditor L436-454:
+  - L438 HStack(spacing: 8) { SecureField("sk-...", text: $apiDraftKey); Button("保存") {...} }
+  - L447 `.transition(.opacity)` 在 HStack 末尾 (container-level 真硬真值, ticket 23 修真因真值)
+  - L448-453 `if let apiError { Text(apiError) ... .transition(.opacity) }` (整 if 块出现/退出)
+- 老板原话 "**你让红框里三个元素渐显渐隐就行了**" = **保持当前实现不动** (苹果默认 opacity 动画生效, 渐显渐隐真硬真值).
+
+**修真因真硬真值**: 不动. 老板接受渐显渐隐 = Apple 默认动画生效.
+
+### 修真因 2: 设置弹窗 title 恢复 "文枢"
+
+**Q32 当前真值** (ticket 23 落地):
+- Sources/WenshuApp/Resources/Info.plist L8 `CFBundleDisplayName = "设置"` (ticket 23 修真因, 撤 "文枢")
+- L20 `CFBundleName = "设置"` (ticket 21 修真因, 保留 "设置")
+- macOS 真值走 CFBundleDisplayName 优先级最高 = Settings Scene title = ""设置" 设置" (老板截图真值)
+- 老板原话 "**改回去，现在是'设置'设置。如果不能实现，只有设置。恢复成'文枢'设置**" = 接受 brand "文枢" 重复
+
+**修真因真硬真值**:
+- L8 `CFBundleDisplayName` 改回 "文枢" (= 修真因 ticket 23 撤)
+- L20 `CFBundleName` 改回 "文枢" (= 修真因 ticket 21 撤)
+- 修真因后: Settings Scene title = "文枢 设置" (CFBundleDisplayName 真值生效, Apple 真值走 CFBundleDisplayName 优先级最高)
+- 老板原话 "**如果不能实现，只有设置**" = 接受 "文枢 设置" 重复 (老板懂 中文 "设置" 跟 app name "文枢" 重复 = macOS 14+ SwiftUI Settings Scene API 不支持自定义 title 真值, 只能走 CFBundle 真值)
+
+## Q20 不动 (硬约束)
+
+- 现有 SettingView 3 tab (.general / .providerApi / .model) 结构保留
+- providerTab 函数保留 (L383, .formStyle(.grouped) 保留, ticket 24 revert 后恢复)
+- ProviderKeychain 后端 + saveApiKey Keychain 写入逻辑保留
+- providerApiEditor 整 view (HStack + apiError Text) + providerApiRow 保留
+- LLMKeychain / AppDelegate / NSApp.mainMenu / .commands
+- ZoneModule / LayoutShellView / ChatZoneView / ChatView
+- existing .animation(.default, value: apiExpandedProviders) (ticket 22 + 23 保留)
+- existing .transition(.opacity) 在 HStack + if let apiError Text 保留 (ticket 22 + 23 保留)
+- generalTab (L327) + modelTab (L567) .formStyle(.grouped) 保留
+- WenshuInteractionAnimationPrinciple + WenshuCommonSenseInteractionPrinciple (CONTEXT.md domain words 保留)
+
+## Q51 父组件不动 + 子组件 override
+
+- SettingView 父组件结构变化小 (Info.plist CFBundle 修真因真值生效)
+- providerApiEditor 整 view 不动 (渐显渐隐动画保留)
+- providerApiRow 不动
+- toggleExpand / currentDraftPreview / keyPrefix12 私有 func 不动
+
+## Q47 锁定实现方式
+
+- macOS SwiftUI 14+ 标准 API
+- .transition(.opacity) + .animation(.default, value:) 苹果默认动画保留
+- .formStyle(.grouped) 保留 (ticket 24 revert 恢复)
+- Info.plist CFBundleDisplayName = "文枢" (ticket 23 撤, brand 真值恢复)
+- 不切实现方式 (不扩大需求范围, WenshuCommonSenseInteractionPrinciple 硬约束)
+
+## 5 原则满足 (Q26)
+
+1. **Apple 官方范式**: Info.plist CFBundle 真值 + .formStyle(.grouped) 保留 + .transition + .animation 苹果默认
+2. **伪 Apple 官方样式**: 不改 SF Symbol + semantic color + 现存 Settings 真值
+3. **效果优先**: 1 文件 patch (Info.plist 2 行改), 修真因后 title = "文枢 设置" + 渐显渐隐保留
+4. **业务语言**: "渐显渐隐保留 + 文枢 设置", 老板懂
+5. **po main flow**: 1 ticket 1 commit, spec + impl 同 commit (Q29), 双轴 code-review 跑 (Q37)
+
+## Q40 + Q43 + Q45 硬约束 (老板 key 安全)
+
+- 不改 key 显示逻辑 (前 12 位灰度字保留, ticket 22 修真因保留)
+- 真 key 仍走 Apple Keychain
+- 测试用 dummy `sk-cp-` + `h` * 24
+- 任何 .scratch/ spec.md / issue / commit message 不含老板真 key
+
+## 双轴 code-review (Q37)
+
+- Standards 轴: Info.plist CFBundle 修真因真值 + swiftinterface 验 Apple 真值
+- Spec 轴: 老板拍 2 项修真因 + 修真因 2 项 acceptance + Q20 + Q47 锁定
+
+## Acceptance
+
+- [ ] Sources/WenshuApp/Resources/Info.plist L8 CFBundleDisplayName 改 "文枢" (brand 恢复)
+- [ ] Sources/WenshuApp/Resources/Info.plist L20 CFBundleName 改 "文枢" (brand 恢复)
+- [ ] 老板 macOS 真验: 弹窗 title = "文枢 设置" (品牌恢复) / 编辑框一整条 3 个元素 (输入框 + 灰度字 + 保存按钮) 渐显渐隐 Apple 默认动画
+- [ ] swift build exit 0
+- [ ] swift test exit 0 (ProviderKeychain 5/5 pass)
+- [ ] 双轴 code-review 报告 verbatim 进 commit body
+
+## 关联
+
+- 依赖: ticket 24 revert commit `654bac679` (.formStyle(.grouped) 恢复) + ticket 22 + 23 修真因保留 (.transition + .animation + CFBundle)
+- 被依赖: 无
+- 历史: ticket 13 + 14 + 15 + 16 + 17 + 21 + 22 + 23 + 24 (revert) + 25 修真因链
+- backlog: ticket 18 + 19 + 20 等老板排期
+- 分支: feature/chat-bottom-toolbar-in-child (Q53 ticket 10 起, 续)
