@@ -146,14 +146,21 @@ public actor MiniMaxVerifier {
         urlRequest.setValue("application/json", forHTTPHeaderField: "content-type")
         let encoder = JSONEncoder()
         urlRequest.httpBody = try encoder.encode(request)
+        NSLog("[wenshu.chat] request: model=%@ max_tokens=%d messages=%d", request.model, request.max_tokens, request.messages.count)
         let (data, response) = try await URLSession.shared.data(for: urlRequest)
+        let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
+        let bodyPreview = String(data: data.prefix(500), encoding: .utf8) ?? "<non-utf8 body>"
+        NSLog("[wenshu.chat] response status=%d body=%@", statusCode, bodyPreview)
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-            let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
-            let body = String(data: data, encoding: .utf8) ?? "<no body>"
-            throw MiniMaxError.httpError(statusCode: statusCode, body: body)
+            throw MiniMaxError.httpError(statusCode: statusCode, body: bodyPreview)
         }
         let decoder = JSONDecoder()
-        return try decoder.decode(MiniMaxResponse.self, from: data)
+        do {
+            return try decoder.decode(MiniMaxResponse.self, from: data)
+        } catch {
+            NSLog("[wenshu.chat] decoder error: %@", String(describing: error))
+            throw error
+        }
     }
 }
 
