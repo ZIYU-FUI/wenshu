@@ -1,0 +1,145 @@
+# ticket 21 — 设置弹窗 5 项修真因真硬 (老板 2026-08-22 06:29 拍)
+
+**Status:** ready-for-agent
+
+## 老板拍的真值 (5 项修真因真硬, verbatim)
+
+老板 2026-08-22 06:29 拍修真因反馈 (ticket 17 验收截图):
+
+1. "**1、2、3 没有问题**" — 老板确认修真因 1+2+3 全修真因
+2. "**4，我来定吧，未设置状态的全都改成，待配置。已配置用真实的 key 的前 8 位灰度字回显，代替现在的对号 ICON**" —修真因 4 = "未设" → "待配置" 中文统一 + 已配置显前 8 位灰度字 (替代 checkmark ICON)
+3. "**你来少了一条展开动画，用 Apple 的默认动画**" — 新增修真因 5 = Apple 默认动画 (SwiftUI .animation 真值)
+
+## 修真因真硬真值 (5 项)
+
+### 修真因 1: SecureField + 保存按钮同行 (item 1)
+
+**Q32 当前真值**:
+- `providerApiEditor(for:)` 函数当前 HStack(spacing: 0) { SecureField ... if apiError { Text(apiError) ... } HStack { Spacer() Button("保存") { ... } } }
+- 2 个 HStack 嵌套 = SecureField 在第 1 行, 保存按钮在第 2 行 (Spacer 推开)
+
+**修真因真硬真值**:
+- 改成 1 个 HStack = SecureField + 保存按钮同行 (Apple HIG form-style 真值)
+- 修真因后: TextField 占满剩余空间, Button 在右边
+
+### 修真因 2: Settings Scene title 去 "文枢" (item 2)
+
+**Q32 当前真值**:
+- Sources/WenshuApp/Resources/Info.plist `CFBundleDisplayName = 文枢` + `CFBundleName = 文枢`
+- 老板截图真值: Settings 弹窗 title = ""文枢" 设置" (Apple 真值走 CFBundleDisplayName fallback + "Settings" 本地化中文)
+- 老板拍: "标题的'文枢'设置没有改，去掉'文枢'"
+
+**修真因真硬真值**:
+- 改 Info.plist `CFBundleName = "设置"` (保留 CFBundleDisplayName = "文枢" 保留 brand Dock 显示)
+- Apple 真值: macOS 14+ Settings Scene title 走 CFBundleName fallback (因为 CFBundleDisplayName = 文枢 不是 设置)
+- 修真因后: Settings Scene title = "设置 Settings" (中文 Settings 自动本地化)
+- **Q20 + Q47 边界**: 保留 brand "文枢" 在 Dock / Launchpad / Finder 显示 (CFBundleDisplayName = 文枢, Dock 走 CFBundleDisplayName)
+- 不切实现方式 (Q47 锁定 macOS SwiftUI 14+ .commands + Settings { } Scene 唯一稳定路径)
+
+### 修真因 3: tab 仿 Pages + ICON (item 3)
+
+**Q32 当前真值**:
+- App.swift L250-256 `Picker("", selection: $selectedTab) { ForEach(SettingsTab.allCases) { tab in Label(tab.rawValue, systemImage: tab.icon).tag(tab) } }.pickerStyle(.segmented).labelsHidden()`
+- **看起来已经修真因** = Label + pickerStyle(.segmented) ✓
+- **但老板拍"没有模仿 pages 没有 ICON"** = 修真因真硬没生效? 待 audit (Q32 真因猜测: segmented picker 在 macOS 27 渲染问题, 不显示 ICON 只显示 Text)
+
+**修真因真硬真值** (3 候选):
+- **A**: 保持 Label + pickerStyle(.segmented), 加 .pickerStyle(.segmented) 真值验证 (当前已修真因)
+- **B**: 改 .pickerStyle(.segmented) → 不指定 (Apple 默认) = 真值 .pickerStyle(.automatic) + Label
+- **C**: 改 macOS 14+ SwiftUI 真值 TabView 用 .tabViewStyle(.page) 仿 Pages segmented 真值
+- **Q47 + Q28 决策**: Q28 swiftinterface 验 pickerStyle 真值 + Label 真值 + Q47 锁定实现方式不变 =修真因真硬真值 = **修真因 pickerStyle 显示 ICON** (audit 当前 Patch看真值是否生效)
+
+### 修真因 4: provider 状态统一中文 + 已配置灰度字回显
+
+**Q32 当前真值**:
+- `providerApiRow` 函数显示状态真值:
+  - hasKey = true → `Image(system: "checkmark.circle.fill").foregroundStyle(.green)` (绿勾 ICON)
+  - hasKey = false → Text(p.requiresOAuth || p.slug == "custom" ? "OAuth" : "未设") (英文 OAuth / 中文未设 混用)
+
+**修真因真硬真值**:
+- 未设状态 = "**待配置**" (中文统一, 真硬真值)
+- 需 OAuth / custom 状态 = "**需 OAuth**" 或 "**待配置**" (待定, 老板拍 "待配置" 全统一最简单)
+- 已配置 = 撤 checkmark ICON, 改 **"前 8 位真值"** 灰度字 (`.foregroundStyle(.tertiary)`) 替代
+  - 数据源: `ProviderKeychain.loadKeySync(for: p)` 拿真 key → `String(key.prefix(8))` 截前 8 位
+  - 视觉: 小 `.font(.system(size: 11, weight: .regular))` + 灰度
+- 老板拍 "已配置用真实的 key 的前 8 位灰度字回显" = 真值显示真 key 前 8 位 (老板自己看自己 key 前 8 位辨识)
+- **Q40 + Q45 边界**: 真 key 仍走 Apple Keychain 不入文件/log/commit, 仅 UI 显示前 8 位
+
+### 修真因 5: 展开动画 Apple 默认 (新增)
+
+**Q32 当前真值**:
+- 当前 DisclosureGroup / Button(.plain) + 条件渲染 if expanded 都**没有动画** = 直接显示/隐藏
+
+**修真因真硬真值**:
+- SwiftUI `.animation(.default, value: someState)` 范式 (Apple 默认 = `.default` = 系统默认 duration + animation)
+- 具体真值:
+  - 在 DisclosureGroup / 条件渲染外层加 `.animation(.default, value: apiExpandedProviders)`
+  - Apple 默认动画真值 = `withAnimation { ... }` 或 `.animation(.default, value:)` (Apple HIG SwiftUI 11+ 标准范式)
+- 老板拍 "Apple 的默认动画" = 不写自定义 animation = 用 SwiftUI 默认
+
+## Q20 不动 (硬约束)
+
+- 现有 SettingView 3 tab (.general / .providerApi / .model) 结构保留
+- providerTab 函数保留 (历史快照, 不调)
+- ProviderKeyPrompt.prompt(for:) + ProviderKeyInputSheet 保留
+- ProviderKeychain 后端 (saveKeySync / loadKeySync / deleteKeySync / listProvidersWithKeys) 真硬不变
+- saveApiKey Keychain 写入逻辑不变
+- LLMKeychain / AppDelegate / NSApp.mainMenu / .commands
+- ZoneModule / LayoutShellView / ChatZoneView / ChatView
+- App.swift .commands { SettingsLink } 自动接管 cmd+,
+
+## Q51 父组件不动 + 子组件 override
+
+- SettingView 父组件结构变化小 (修真因 1 + 3 + 4 + 5 全在子组件内)
+- 新增 providerApiRowStatus 真值 (修真因 4)
+- 新增 animation modifier (修真因 5)
+- providerApiEditor 修真因 (修真因 1)
+
+## Q47 锁定实现方式 (不变)
+
+- macOS SwiftUI 14+ 标准 API + .formStyle(.grouped)
+- Settings { SettingView() } Scene 保留
+- .commands { SettingsLink } 保留
+- 不切实现方式 (不引入新 macOS 27 SwiftUI API)
+
+## 5 原则满足 (Q26)
+
+1. **Apple 官方范式**: SecureField + Button HStack 一行 (Apple SwiftUI 14 真值) + .pickerStyle(.segmented) (Pages 范式) + .animation(.default, value:) (SwiftUI 11+ 标准 API)
+2. **伪 Apple 官方样式**: SF Symbol (保留现有) + semantic color .tertiary (灰度字) + 仿 Pages segmented 真值
+3. **效果优先**: 5 项修真因真硬, 工作量中等, 效果真 (老板 macOS 验视觉 OK)
+4. **业务语言**: "保存按钮同行 + 标题去文枢 + 仿 Pages + 待配置 + 灰度前 8 位 + Apple 默认动画"
+5. **po main flow**: 1 ticket 1 commit, spec + impl 同 commit (Q29), 双轴 code-review 跑 (Q37)
+
+## Q40 + Q43 + Q45 硬约束 (老板 key 安全)
+
+- 已配置 provider 灰度字回显 = SecureField 显示 "前 8 位真值 + ********" (修真因 ticket 17 item 3) + providerApiRow 右侧显示 "前 8 位真值" (修真因 ticket 21 item 4)
+- 修真因 4 灰度字内容 = ProviderKeychain.loadKeySync 真值 (Apple Keychain 读, 真 key 不入文件/log/commit)
+- 测试用 dummy `sk-cp-` + `h` * 24
+- 任何 .scratch/ spec.md / issue / commit message 不含老板真 key
+
+## 双轴 code-review (Q37)
+
+- Standards 轴: SecureField + Button HStack 真值 + .pickerStyle(.segmented) 渲染 ICON 真值 + Info.plist CFBundleName 真值 + .animation(.default, value:) 真值 + 灰度字 .foregroundStyle(.tertiary) 真值
+- Spec 轴: 老板拍 5 项修真因 + 修真因 5 项 acceptance criteria 全部修真因 + Q20 不动 + Q47 锁定
+
+## Acceptance
+
+- [ ] 修真因 1: SecureField + 保存按钮 同行 (去掉 Spacer / 修真因 HStack 布局)
+- [ ] 修真因 2: Info.plist CFBundleName 改 "设置" (保留 CFBundleDisplayName = "文枢" 保留 brand)
+- [ ] 修真因 3: tab segmented picker 仿 Pages 修真因 + ICON 显示真值生效
+- [ ] 修真因 4: providerApiRow 显示状态真修真因:
+  - 未设状态 = "待配置" (中文统一)
+  - 已配置 = 撤 checkmark.circle.fill ICON, 改 ProviderKeychain.loadKeySync 真 key 前 8 位灰度字 (`.foregroundStyle(.tertiary)`)
+- [ ] 修真因 5: 展开动画 Apple 默认 (.animation(.default, value: apiExpandedProviders))
+- [ ] 老板 macOS 真验: 设置弹窗 = 标题 "设置 Settings" / 提供方 API tab 仿 Pages + ICON / 整条点 → 展开动画 / SecureField + 保存按钮同行 / 未设显示 "待配置" / 已配置显示前 8 位灰度字
+- [ ] swift build exit 0
+- [ ] swift test exit 0 (ProviderKeychain 5/5 pass 不回归)
+- [ ] 双轴 code-review 报告 verbatim 进 commit body
+
+## 关联
+
+- 依赖: ticket 17 commit `227859117` (4 项修真因 部分修真因真硬) + ticket 17 CONTEXT.md `9b0f0250b`
+- 被依赖: 无
+- 历史: ticket 13 + 14 chat zone 底栏 18 PT inset + ticket 15 + 16 + 17 提供方 API 配置 + ticket 21 修真因
+- backlog: ticket 18 (AI 回复状态指示器) + ticket 19 (模型 + context 真实功能) + ticket 20 (聊天区顶栏 tab 切换) 等老板排期
+- 分支: feature/chat-bottom-toolbar-in-child (Q53 ticket 10 起, 续)
