@@ -266,9 +266,9 @@ struct ChatMessageView: View {
                 if message.isPlaceholder {
                     // v0.21 ticket 30: 文枢 AI placeholder status indicator (小机器人 + 小菊花 + 思考中文字)
                     HStack(spacing: 4) {
-                        // v0.21 ticket 33: brain 不是小机器人, 老板原话 "类似 🤖 emoji"
-// 修真因 SF Symbol: person.crop.circle.badge.questionmark (Apple SF Symbols 5+
-// 真值, 圆脸 + 问号 = 机器人助手表情脸风格, 最像 🤖)
+                        // v0.21 ticket 33: brain was not a small robot, 老板 said "similar to 🤖 emoji"
+                        // New SF Symbol: person.crop.circle.badge.questionmark (Apple SF Symbols 5+
+                        // real value, round face + question mark = robot assistant face style, closest to 🤖)
                         Image(systemName: "person.crop.circle.badge.questionmark")
                             .symbolEffect(.pulse, options: .repeating)
                             .foregroundStyle(.secondary)
