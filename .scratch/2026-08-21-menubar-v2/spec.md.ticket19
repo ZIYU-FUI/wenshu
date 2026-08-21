@@ -1,0 +1,210 @@
+# ticket 19 — ChatZoneView 底栏 2 红框真值 (model picker 真列表 + context usage 真 tokens) (老板 2026-08-22 06:20 拍 backlog 阶段)
+
+**Status:** ready-for-agent
+
+## 老板真值 (verbatim)
+
+老板 2026-08-22 06:20 拍 (Q37 业务语言):
+
+1. "实现这红框两个功能的真实功能"
+2. "**先记需求，一会排期做**" → 2026-08-22 13:10 老板拍 "推进这个" → 进入 ready-for-agent
+
+## 老板截图红框真值 (Q22 验)
+
+- **红框 1 (左下)** = ChatZoneView Menu 模型选择器 (ticket 10 + 13 + 14 已修真值 18 PT inset)
+- **红框 2 (右下)** = ChatZoneView HStack(spacing: 6) context usage Text + ProgressView
+
+## 老板 4 项决策 ("A 全推荐")
+
+1. **范围**: A + C 合并到同一个 ticket
+2. **模型选择器**: 复用 `MiniMaxModelFetcher.fetchLiveModelIds` + `ModelCache` (TTL 3600s 已装)
+3. **context usage 真 tokens**: `MiniMaxResponse` 加可选 `usage` 字段 (input_tokens + output_tokens) — 真值 Anthropic usage 范式
+4. **ChatZoneView 跟 ChatViewModel 同步**: ChatZoneView 直接读 ChatViewModel.contextUsed — Q51 父组件不动 + 子组件 override
+
+## 真因 (Q32 audit)
+
+**当前真值问题**:
+- ChatZoneView L1110-1112 自己有 `@State availableModels / currentModel / contextUsed` = 跟 ChatViewModel (L66-69) **双源状态**, 互不联动
+- ChatZoneView L1113 `private let contextMax: Int = 131072` 硬编码
+- ChatZoneView L1140-1148 `.task` 调 `MiniMaxModelFetcher.loadModelIds` 真值已装, 但仅在 ChatZoneView 内, ChatViewModel 不知道
+- ChatViewModel L101-104 `recomputeContextUsed` = 4 chars/token 估算 (CJK / 长 prompt 偏)
+- `MiniMaxResponse` L45-59 **不 decode `usage` 字段** (Anthropic API 真返 `usage.input_tokens` + `usage.output_tokens` + `cache_creation_input_tokens` + `cache_read_input_tokens`)
+
+**修复真硬**:
+- 修复 1a = Menu 下拉显示真可调模型列表 (走 `MiniMaxModelFetcher.fetchLiveModelIds` 真值, ModelCache TTL 3600s 缓存)
+- 修复 1b = 切模型时自动刷新 ChatViewModel.currentModel + 持久化 UserDefaults + LLM API call 走新模型
+- 修复 1c = 模型列表状态 (loading / success / failure) UI 反馈 — 列表为空时 fallback 静态 `Provider.minimaxCn.defaultModels`
+- 修复 2a = contextUsed 走 ChatViewModel.contextUsed (不硬编码 0)
+- 修复 2b = 真 token 计数 = 每次 send 完接收 LLM response.usage (input_tokens + output_tokens), 累加到 contextUsed
+- 修复 2c = contextMax 走 currentModel 真值 context window (现 MiniMax-M3 = 131072, 真值需 query /v1/models context_length 或写 Provider.all catalog)
+
+## 修真因 (Q47 锁定 + Q51 父组件不动 + Q20 不动)
+
+**Q20 不动**:
+- ChatZoneView VStack 顺序 (ticket 13 老板拍 "就现在的位置, 不改")
+- ChatView 输入框布局
+- ChatBottomBar 18 PT inset (ticket 13 + 14 已修真因, 不动)
+- ChatZoneView 顶 1 PT splitterLine 分割线
+- ZoneModule / LayoutShellView / App.swift 父组件
+- WenshuConductor.handle / AgentProtocol 协议
+- Provider / ProviderKeychain / SettingView / ProviderApiTab
+
+**Q51 父组件不动 + 子组件 override**:
+- ChatViewModel (Sources/WenshuApp/Views/Chat/ChatView.swift L58-172) 父结构不变, 仅:
+  - 加 `availableModels` 状态公开 (让 ChatZoneView 读)
+  - `switchModel` / `loadAvailableModels` / `recomputeContextUsed` API 修真值
+  - `send()` 接 MiniMaxVerifier response.usage 真值 → 累加 contextUsed
+- ChatZoneView (Sources/WenshuApp/App.swift L1107-1168) 父结构不变, 仅:
+  - 撤自己的 `@State availableModels / currentModel / contextUsed`
+  - 改从 ChatViewModel 拿 (但 ChatZoneView 现在没 ChatViewModel 实例 — Q51 真硬违反, 需要修)
+  - Menu / context usage HStack 渲染接 ChatViewModel 真值
+- ChatView (Sources/WenshuApp/Views/Chat/ChatView.swift L176+) 父结构不变, 仅:
+  - 加 `let viewModel: ChatViewModel` 参数透传给 ChatZoneView? — 或 Q47 锁定方式 4 改用 @Bindable 共享同一 ChatViewModel 实例
+
+**Q47 锁定方式 4 真硬违反 — 需修架构**:
+- ChatView 当前用 `@State private var vm: ChatViewModel` 自建实例
+- ChatZoneView 现在持 `ChatView(conductor:store:)` 没传 ChatViewModel
+- 修真因: ChatViewModel 实例必须**单一**, ChatView 和 ChatZoneView 都读它
+- Q51 父组件不动 + 子组件 override 范式: 改 `ChatView(viewModel: ChatViewModel(...))` + `ChatZoneView(viewModel: ChatViewModel)` 都注入同一实例
+- ChatZoneView.init 多 1 个参数 (viewModel: ChatViewModel), ZoneModule.content .aiChat case 改传 ChatViewModel
+- ChatView.init 多 1 个参数 (viewModel: ChatViewModel), ChatZoneView.body 内 `ChatView(viewModel: viewModel)` 透传
+
+**修法真值 (5 原则 1 + 2 + 4)**:
+
+1. **Sources/WenshuApp/Core/Agent/MiniMaxVerifier.swift L45-59 `MiniMaxResponse` 加可选 `usage` 字段**:
+   ```swift
+   public struct MiniMaxUsage: Codable, Sendable {
+       public let input_tokens: Int
+       public let output_tokens: Int
+       public let cache_creation_input_tokens: Int?
+       public let cache_read_input_tokens: Int?
+   }
+   public struct MiniMaxResponse: Codable, Sendable {
+       public let id: String
+       public let model: String
+       public let role: String
+       public let content: [MiniMaxContent]
+       public let stop_reason: String?
+       public let usage: MiniMaxUsage?  // 新增, Anthropic 真值可选字段
+   }
+   ```
+   - 兼容老 JSON (没 usage 字段不报错, 老 test 仍 pass)
+
+2. **Sources/WenshuApp/Views/Chat/ChatView.swift `ChatViewModel` 修真因**:
+   - L66 `public var currentModel` 加 @MainActor 默认值从 UserDefaults 读
+   - L67 `public var availableModels: [String]` 加 default = 静态 fallback (`Provider.minimaxCn.defaultModels`)
+   - L69 `public var contextMax: Int` 加计算属性 (走 currentModel 真值 context window;  默认 131072 for MiniMax-M3)
+   - L82-85 `switchModel` 加 setter 修真值 (已有)
+   - L87-98 `loadAvailableModels` 修真因:
+     - 调 `MiniMaxModelFetcher.fetchLiveModelIds(apiKey, baseUrl)` 真可调列表
+     - 失败 → fallback `Provider.minimaxCn.defaultModels`
+     - 成功 → cache 1 小时 (ModelCache TTL 3600s 已装)
+     - .task 内调, 包含 loading / success / failure 状态 (用 enum `ModelListState`)
+   - L101-104 `recomputeContextUsed` 修真因:
+     - 撤 4 chars/token 估算
+     - 累加 `usage.input_tokens + usage.output_tokens` 真实 LLM response 真值
+   - L106-157 `send` 修真因:
+     - 接 LLM response 拿 `usage` 字段 → `contextUsed += response.usage?.input_tokens ?? 0 + response.usage?.output_tokens ?? 0`
+     - 失败不累加 (保留上次数值)
+
+3. **Sources/WenshuApp/Views/Chat/ChatView.swift `ChatView` 改 init 注入 ChatViewModel**:
+   - 撤 L167-170 `init(conductor:store:sessionId:)` 自建 vm
+   - 改 `init(viewModel: ChatViewModel)` 外部注入
+   - body 用 `vm` 走注入实例
+
+4. **Sources/WenshuApp/App.swift `ChatZoneView` 改 init 注入 ChatViewModel + 撤双源状态**:
+   - 撤 L1110-1113 `@State availableModels / currentModel / contextUsed` + `private let contextMax`
+   - 改 `init(viewModel: ChatViewModel, conductor: WenshuConductor?, store: ChatSessionStore?)` 外部注入
+   - body 用 `viewModel.availableModels / currentModel / contextUsed / contextMax`
+   - Menu Button action 调 `viewModel.switchModel(id)`
+   - context usage Text + ProgressView 接 `viewModel.contextUsed / contextMax`
+   - 撤 L1140-1148 自己 `.task` 调 MiniMaxModelFetcher (统一走 viewModel.loadAvailableModels)
+   - 撤 L1156 `contextMax` hardcode, 用 viewModel.contextMax
+   - 18 PT inset (ticket 13 + 14) 不动, 18 PT 红框真值保留
+
+5. **Sources/WenshuApp/App.swift `ZoneModule.content` .aiChat case L1057-1061 修真因**:
+   - 改 `ChatZoneView(conductor:store:)` → `ChatZoneView(viewModel: chatViewModel, conductor:store:)`
+   - ZoneModule 多 1 个参数 `@State chatViewModel: ChatViewModel?` (LayoutShellView 注入)
+   - 或 LayoutShellView 创建 ChatViewModel 实例 → 通过 ZoneModule 参数透传到 .aiChat case
+
+7. **Sources/WenshuApp/App.swift `LayoutShellView` 或 AppDelegate 修真因**:
+   - 创建单一 ChatViewModel 实例 (actor 隔离, @MainActor 共享)
+   - 注入到 ZoneModule.aiChat → ChatZoneView → ChatView
+   - Q51 子组件 override 范式
+
+## 不动 (Q20 硬约束)
+
+- 现有 ChatZoneView VStack 顺序 + ChatBottomBar 18 PT inset
+- ChatView 输入框布局结构
+- WenshuConductor / AgentProtocol 协议
+- Provider / ProviderKeychain / ProviderApiTab / SettingView / SettingProviderApiTab
+- ZoneModule 其它 5 区 case (projectSidebar / projectPreview / editor / specializedTools / aiDynamic)
+- LayoutShellView 拖拽线 + D_h / D_v 真值
+- AppDelegate / NSApp.mainMenu / .commands
+- NSMenu 装 6 项中文 (Q42 翻车链不动)
+- AppIcon / Info.plist / build-app.sh
+
+## 5 原则满足 (Q26)
+
+1. **Apple 官方范式**: MiniMaxResponse 加 usage 字段 (Anthropic 真值) + ChatViewModel @Observable + ChatZoneView / ChatView 共享 ChatViewModel 实例 (Q51 子组件 override 范式)
+2. **伪 Apple 官方样式**: SF Symbol `cpu` / `chevron.up.chevron.down` 不动 + semantic color `.secondary` 不动 + ProgressView `.progressViewStyle(.linear)` 不动 + 绿/橙/红 tint 已有
+3. **效果优先**: 4-5 文件改 (Verifier + ChatViewModel + ChatView + ChatZoneView + ZoneModule), 工作量中等, 效果真 (老板 macOS 验 model picker 真列表 + 0/X → 真 token 数)
+4. **业务语言**: "模型选择器 = 真可调列表, context usage = 真 token 计数", 老板懂
+5. **po main flow**: 1 ticket 1 commit (合并 A+C), spec + impl 同 commit (Q29), 双轴 code-review 跑 (Q37)
+
+## Q40 + Q45 硬约束 (老板 key 真值不写文件/log/commit)
+
+- 写 spec / issue / commit message 不写老板真 key, 用 `sk-cp-...` 占位
+- 测试用 dummy key `sk-cp-` + `h` * 24
+- MiniMaxModelFetcher / MiniMaxVerifier API 不改, 走现有 Apple Security framework 真值
+
+## 双轴 code-review (Q37)
+
+- **Standards 轴**: 
+  - `MiniMaxResponse.usage` 可选字段兼容老 JSON (Codable 真值)
+  - ChatViewModel 修真因 API 兼容 (`switchModel` / `loadAvailableModels` / `recomputeContextUsed` / `send` 签名不变)
+  - ChatView / ChatZoneView init 加 viewModel 参数 (Q51 子组件 override 真硬约束)
+  - 不引入 UIKit (CLAUDE.md L42)
+  - actor 隔离 (ChatViewModel @MainActor @Observable)
+- **Spec 轴**:
+  - 老板 4 项决策全修真因 (A+C 合并 / 复用 ModelCache / MiniMaxResponse usage / ChatViewModel 共享)
+  - 红框 2 个功能真硬全修真因 (model picker 真列表 + context usage 真 tokens)
+  - Q20 / Q51 / Q47 硬约束全修真因
+
+## Acceptance
+
+- [ ] MiniMaxResponse 加 MiniMaxUsage 可选字段 + 兼容老 JSON
+- [ ] ChatViewModel 修真因:
+  - loadAvailableModels: 调 MiniMaxModelFetcher.fetchLiveModelIds 真值 + ModelCache TTL 3600s + 失败 fallback Provider.minimaxCn.defaultModels
+  - recomputeContextUsed: 撤 4 chars/token 估算, 走真实 LLM response.usage 累加
+  - send: 接 response.usage 真值 → 累加 contextUsed
+  - contextMax: 计算属性走 currentModel 真值 context window (默认 131072 for MiniMax-M3)
+- [ ] ChatView 改 init 注入 ChatViewModel (撤自建 vm)
+- [ ] ChatZoneView 改 init 注入 ChatViewModel + 撤 @State 双源 + Menu / context usage 接 viewModel 真值
+- [ ] ZoneModule.content .aiChat case 传 ChatViewModel (或 LayoutShellView 注入)
+- [ ] ChatZoneView 18 PT inset (ticket 13 + 14) 不动 = 红框视觉保留
+- [ ] ChatZoneView VStack 顺序 (ticket 13 老板拍 "就现在的位置, 不改") 不动
+- [ ] 老板 macOS 真验:
+  - model picker 下拉 = 真可调模型列表 (走 MiniMaxModelFetcher.fetchLiveModelIds)
+  - 切模型 = 持久化 UserDefaults + 后续 send 用新模型
+  - context usage = 真 token 数 (发消息后从 0 → 真实 input + output tokens)
+  - 进度条颜色按比例 (绿/橙/红) 真值保留
+- [ ] swift build exit 0
+- [ ] swift test exit 0 (老 test 仍 pass, MiniMaxResponse 兼容老 JSON)
+- [ ] 双轴 code-review 报告 verbatim 进 commit body
+- [ ] Q40 grep: 任何文件 / log / commit 不含老板真 key
+
+## 关联
+
+- 依赖: 
+  - MiniMaxModelFetcher.fetchLiveModelIds 已存在 (Sources/WenshuApp/Core/Agent/MiniMaxModelFetcher.swift L25-49)
+  - ModelCache actor 已存在 (L7-22, TTL 3600s)
+  - Provider.minimaxCn.defaultModels 已存在 (Sources/WenshuApp/Core/Provider/Provider.swift L68-74)
+  - ChatViewModel 已有 availableModels / contextUsed / contextMax 字段 (Sources/WenshuApp/Views/Chat/ChatView.swift L66-69)
+- 被依赖: 无 (后续 ticket 20 + 21 backlog 阶段, 等老板排期)
+- 历史: 
+  - ticket 13 + 14 ChatZoneBottomBar 18 PT inset (commit 75a9a882a + 597a8f403) — 不动
+  - ticket 10 ChatZoneView 子组件范式 (commit f1fe8e64c) — 不动
+  - v0.21 ticket 04 MiniMaxModelFetcher.fetchLiveModelIds (真值已装)
+- 分支: feature/chat-bottom-toolbar-in-child (Q53 ticket 10 起, 续)
+- backlog: ticket 18 (AI 回复状态指示器) + ticket 27 (settings tab auto-size), 等老板排期先后
