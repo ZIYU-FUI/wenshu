@@ -1004,7 +1004,7 @@ struct ChatZoneView: View {
                     .frame(height: LayoutTokens.toolbarHeight, alignment: .bottomLeading)
                 }
                 .menuStyle(.borderlessButton)
-                .padding(.leading, 18)
+                .padding(.leading, 14)
                 .task {
                     let base = ProcessInfo.processInfo.environment["MINIMAX_CN_BASE_URL"] ?? "https://api.minimaxi.com/anthropic"
                     if let key = LLMKeychain.loadKeySync(), !key.isEmpty {
