@@ -1001,14 +1001,10 @@ struct ZoneModule: View {
         case .specializedTools:
             DesignColor.zoneSurface
         case .aiChat:
-            // v0.21 ticket 06: 接入 ChatView (左下 zone 真 chat UI + Agent 对话) + 集成 conductor + chat store
-            VStack(spacing: 0) {
-                ChatView(
-                    conductor: WenshuAppDelegate.sharedConductor,
-                    store: WenshuAppDelegate.sharedChatStoreRef
-                )
-                ChatBottomToolbar()
-            }
+            ChatZoneView(
+                conductor: WenshuAppDelegate.sharedConductor,
+                store: WenshuAppDelegate.sharedChatStoreRef
+            )
         case .aiDynamic:
             DesignColor.zoneSurface
         }
@@ -1116,4 +1112,68 @@ private func compactNumber(_ n: Int) -> String {
     if d >= 1_000_000 { return String(format: "%.1fM", d / 1_000_000).replacingOccurrences(of: ".0M", with: "M") }
     if d >= 1_000 { return String(format: "%.1fk", d / 1_000).replacingOccurrences(of: ".0k", with: "k") }
     return "\(n)"
+}
+
+
+struct ChatZoneView: View {
+    let conductor: WenshuConductor?
+    let store: ChatSessionStore?
+    @State private var availableModels: [String] = MiniMaxModel.allCases.map { $0.rawValue }
+    @State private var currentModel: String = UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? MiniMaxModel.m3.rawValue
+    @State private var contextUsed: Int = 0
+    private let contextMax: Int = 131072
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ChatView(conductor: conductor, store: store)
+            HStack(spacing: 0) {
+                Menu {
+                    ForEach(availableModels, id: \.self) { id in
+                        Button(id) {
+                            currentModel = id
+                            UserDefaults.standard.set(id, forKey: "wenshu.llm.model")
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "cpu")
+                        Text(currentModel)
+                            .font(.system(size: 13))
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.system(size: 11))
+                    }
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, 18)
+                    .padding(.bottom, 6)
+                    .frame(height: LayoutTokens.toolbarHeight, alignment: .bottomLeading)
+                }
+                .menuStyle(.borderlessButton)
+                .task {
+                    let base = ProcessInfo.processInfo.environment["MINIMAX_CN_BASE_URL"] ?? "https://api.minimaxi.com/anthropic"
+                    if let key = LLMKeychain.loadKeySync(), !key.isEmpty {
+                        availableModels = await MiniMaxModelFetcher.loadModelIds(apiKey: key, baseUrl: base)
+                    }
+                    if !availableModels.contains(currentModel) {
+                        availableModels = [currentModel] + availableModels
+                    }
+                }
+
+                Spacer()
+
+                HStack(spacing: 6) {
+                    Text("\(compactNumber(contextUsed)) / \(compactNumber(contextMax))")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.tertiary)
+                    ProgressView(value: Double(min(contextUsed, contextMax)), total: Double(max(1, contextMax)))
+                        .progressViewStyle(.linear)
+                        .frame(width: 80)
+                        .tint(contextUsed >= contextMax ? .red : (contextUsed > contextMax * 3 / 4 ? .orange : .green))
+                }
+                .padding(.trailing, 18)
+                .padding(.bottom, 6)
+                .frame(height: LayoutTokens.toolbarHeight, alignment: .bottomTrailing)
+            }
+            .background(DesignColor.zoneSurface)
+        }
+    }
 }
