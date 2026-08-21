@@ -674,10 +674,10 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
-        // v0.21 ticket 01 (重做 #9): 不装 NSMenu — 让 macOS 27 SwiftUI 默认装 (老板 8/21 17:50 拍"原厂所有都亮出来, 系统自动本地化")
-        // Q15 翻车链 #12 总结: 我们 NSMenu 自己装 6 项中文 + VibeMeter Mirror reflection + OpenSettingsAction capture 全失败.
-        // 撤回整个 NSMenu 装路径, 让 SwiftUI App body 默认 Settings { } Scene + WindowGroup + 标准 commands 自动接管 NSMenu.
-        // Settings { } Scene 自动装 'Settings…' NSMenuItem (macOS 14+ 真值, VibeMeter 真值)
+        // v0.21 ticket 06: 撤回 Settings { } Scene (= commit 1f086051a 装) 后, SwiftUI macOS 27 不再自动装 standard NSMenu (= Apple/文枢/显示/窗口/帮助)
+        // 真因: NSApp.mainMenu 必须在 applicationWillFinishLaunching 装, 早于 SwiftUI WindowGroup 初始化 (= macOS 真值推荐)
+        // 修法: 移 NSApp.mainMenu = installMainMenu() 到 applicationWillFinishLaunching (从 applicationDidFinishLaunching)
+        NSApp.mainMenu = installMainMenu()
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -708,13 +708,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
                 sessionStore: chatStore
             )
         }
-        // v0.21 ticket 01 (重做 #10): applicationDidFinishLaunching 末尾强制装中文 6 项 NSMenu (commit 9f77ffa9c 真值)
-        // Q32 audit 真因 (Spec sub-agent report): 撤回 commit 9cb2ad0f0 "撤回 NSMenu 装" 路径反而破坏菜单栏 (老板 17:00 反馈 "缺编辑项 + 显示缺恢复布局" still reproduces today)
-        // 真值真值: installMainMenu() 函数本身已经定义正确 6 项 (commit 9f77ffa9c L343-399), 但 commit 9cb2ad0f0 撤回调用 → dead code
-        // 修法: 撤回 commit 9cb2ad0f0, 重新装 applicationDidFinishLaunching 末尾 NSApp.mainMenu = installMainMenu()
-        // 同时删 SettingsEnvironmentCapturer (Q15 翻车 #11 dead code) + VibeMeter Mirror reflection NSApp.openSettings extension (Q15 翻车 #12 dead code)
-        // Settings { } Scene 留着 (ticket 04 commit 984ea556b 已装 模型 Picker, 老板 8/21 拍 "配完省略显示")
-        NSApp.mainMenu = installMainMenu()
+        // v0.21 ticket 06: NSApp.mainMenu 移 applicationWillFinishLaunching (= 上一段, 早于 SwiftUI 初始化)
         // v0.20 ticket 01: 启动时注册 wenshu 主 agent (左下 zone chat UI 调用)
         let card = AgentCard(
             name: "wenshu",
