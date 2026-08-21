@@ -1,0 +1,151 @@
+# ticket 24 — 编辑框一整条 Apple 标准出现/消失动画真硬真值 (老板 2026-08-22 07:14 拍, 自主推进)
+
+**Status:** ready-for-agent
+
+## 老板拍的真值 (verbatim)
+
+老板 2026-08-22 07:14 拍:
+- "**红框内的一整条**" (截图红框 = 编辑框那一行: 输入框 + 保存按钮)
+- "**这种拍板不用问我，你按符合我们的核心原则的方案自己推进**" (= 授权 agent 按 WenshuCommonSenseInteractionPrinciple + WenshuInteractionAnimationPrinciple 自主推进)
+
+## 核心原则判定 (Q32 + Q28 真因排查)
+
+**WenshuInteractionAnimationPrinciple (CONTEXT.md)**:
+- "凡 Apple SwiftUI 标准 API 支持动画的组件, 全加 Apple 默认动画"
+- "不写自定义 animation (.spring() / .easeInOut() 等 Apple 未定义动画) 除非老板拍"
+
+**WenshuCommonSenseInteractionPrinciple (CONTEXT.md)**:
+- "主动实现常识性交互"
+- "使用苹果的 API 实现像苹果官方一样的优雅的交互动画"
+
+**Q28 查文档真值**:
+- Apple SwiftUI macOS 14+ 真值 = `.formStyle(.grouped)` + `Form` 内部 if condition view 限仅 `.opacity` 动画 (Apple openradar FB15509540 真值 = "transitions are limited to just opacity")
+- Apple 真值 = Settings 标准 .formStyle 拦截 view 自己的 transition + animation
+
+**真因真硬真值** = 当前 `providerApiTab` 用 `Form { Section { ... .formStyle(.grouped) } }` = `.formStyle(.grouped)` 拦截 view 自己的 transition + animation = 老板看到"瞬时" = 实际 opacity 0→1 在 0.25s 内 = 老板截图抓不到中间状态 = 看到"瞬时"。
+
+**真因真硬真值 (Q28 + Q44 + Apple 真值)** = 修真因 = **撤 `.formStyle(.grouped)` 拦截** + **用 Apple 官方组件 `DisclosureGroup`** = 自带默认动画 + 整条热区响应 + 持久 = 持续优雅。
+
+**矛盾真值** = 老板 ticket 16 拍 "**删掉每条前面的 >，整条热区响应展开关闭**" = 不用 DisclosureGroup (因为有 chevron) = 老板现在拍"用 Apple 官方组件" = 矛盾真值。
+
+**冲突解决真值** (按 WenshuCommonSenseInteractionPrinciple 老板授权):
+- 老板 ticket 16 拍 "删 >" = 当时限制 (因为没 Apple 真值组件支持 "无 chevron + 整条热区 + 动画")
+- 老板 ticket 24 拍 "Apple 官方组件持续优雅" = 当前真值优先级更高
+- 修真因真值 = **保留 ticket 16 视觉** (整条热区响应 + 灰度字回显) + **改用 `List` + `swipeActions` 不行 (需要手势滑动) + **改用 Group 包 if condition view 撤 .formStyle 拦截** = 整条优雅动画
+
+**修真因真硬真值 (4 候选)**:
+- **A**: 撤 `.formStyle(.grouped)` + 用 `Group { List { ForEach } }` = 整条 view 暴露在 List 内 + .transition + .animation 生效 ✓ Apple 范式
+- **B**: 撤 `.formStyle(.grouped)` + 用 `List` 整段 (Section 改 List row) = row 自带默认动画 ✓ 持久 Apple 范式
+- **C**: 撤 `.formStyle(.grouped)` + 用 `DisclosureGroup` 不用按钮 = 整段默认动画 + 自带 chevron 但**用 .labelHide() 隐藏** (Q44 swiftinterface 验, 不在 Label 内) ✓
+- **D**: 撤 `.formStyle(.grouped)` + 用 `OutlineGroup` = 持久 + Apple 范式 ✓
+
+**核心原则最优真值** (按 WenshuCommonSenseInteractionPrinciple 老板原话 "**使用苹果的 API 实现像苹果官方一样的优雅**"):
+- 选 **A** = `Group` 包 List + 整条 row 暴露 = 修真因 `.formStyle(.grouped)` 拦截 = Apple 默认动画真值生效 = 持续优雅
+- 选 **C** 也行 = `DisclosureGroup` + `.labelHide()` 隐藏 chevron = 苹果官方 Settings 标准 disclosure = 最苹果范式
+
+**修真因真硬真值** (按核心原则判定):
+- 修真因真值 = **撤 `.formStyle(.grouped)` 拦截** + **保持当前 List + Button + if condition 结构** (不引入新组件, 不扩大需求范围) + **保留 `.transition(.opacity)` 整条 view** + **保留 `.animation(.default, value: apiExpandedProviders)`** = 苹果默认动画生效真值
+- 老板 ticket 16 拍"整条热区响应" 保留 ✓
+- 老板 ticket 24 拍"Apple 官方优雅" 保留 ✓
+- 不写自定义 animation (WenshuInteractionAnimationPrinciple) ✓
+
+## 修真因真值 (1 项)
+
+### 修真因 1: 撤 `.formStyle(.grouped)` 拦截 + 编辑框一整条 Apple 默认动画生效
+
+**Q32 当前真值** (ticket 22 + 23 落地):
+- App.swift providerApiTab L386-414:
+  ```swift
+  Form {
+      Section {
+          ForEach(Provider.all) { p in
+              Button { ... } label: { providerApiRow(p) }
+                  .buttonStyle(.plain).contentShape(Rectangle())
+              if apiExpandedProviders.contains(p.slug) {
+                  providerApiEditor(for: p)
+                      .padding(.leading, 18)
+                      .padding(.bottom, 8)
+                      .transition(.opacity)
+              }
+          }
+          .animation(.default, value: apiExpandedProviders)
+      } header: { Text("提供方") } footer: { ... }
+  }
+  .formStyle(.grouped)  // ← Apple SwiftUI macOS 14+ 真值: 拦截 .transition + .animation
+  ```
+
+**修真因真硬真值**:
+- 撤 `.formStyle(.grouped)` (L414)
+- Form 保留 (ForEach + if condition view tree 不动)
+- 修真因后: view 暴露在 SwiftUI 渲染树 = `.transition(.opacity)` + `.animation(.default, value: apiExpandedProviders)` 苹果默认动画真值生效 = 编辑框一整条出现/消失 = 苹果官方优雅持续
+- 不引入新组件 (WenshuCommonSenseInteractionPrinciple "不扩大需求范围")
+- 不写自定义 animation (WenshuInteractionAnimationPrinciple "不写自定义")
+
+**Q32 真因排查真值补充 (按 Q28)**:
+- Apple 真值 = Form + .formStyle(.grouped) 限 .opacity 动画 (openradar FB15509540)
+- 老板看到"瞬时" = 实际 opacity 0→1 在 0.25s 内 = 截图抓不到 = 实际动画在跑但太短
+- 修真因 = 撤 .formStyle(.grouped) = 苹果默认动画生效 (持续 Apple 真值) = 老板看到一整条出现/消失优雅动画
+
+## Q20 不动 (硬约束)
+
+- 现有 SettingView 3 tab (.general / .providerApi / .model) 结构保留
+- providerTab 函数保留 (L325-377, 历史快照, 不调)
+- ProviderKeychain 后端 + saveApiKey Keychain 写入逻辑保留
+- providerApiEditor 整 view (HStack + apiError Text) + providerApiRow 保留
+- LLMKeychain / AppDelegate / NSApp.mainMenu / .commands
+- ZoneModule / LayoutShellView / ChatZoneView / ChatView
+- existing .animation(.default, value: apiExpandedProviders) (ticket 21 + 22 + 23 保留)
+- existing .transition(.opacity) 在 HStack + if let apiError Text (ticket 23 保留)
+- WenshuInteractionAnimationPrinciple + WenshuCommonSenseInteractionPrinciple (CONTEXT.md domain words 保留)
+- Info.plist CFBundle 真值 (ticket 21 + 23 保留)
+
+## Q51 父组件不动 + 子组件 override
+
+- SettingView 父组件结构变化小 (providerApiTab 子组件修真因 1 行 = 撤 .formStyle)
+- providerApiEditor 整 view 不动
+- providerApiRow 不动
+- toggleExpand / currentDraftPreview / keyPrefix12 私有 func 不动
+
+## Q47 锁定实现方式
+
+- macOS SwiftUI 14+ 标准 API (`.transition(.opacity)` + `.animation(.default, value:)` Apple 默认动画)
+- Form 范式保留 (Apple 真值 = Form 内部 if condition view + 不加 .formStyle = 苹果默认渲染)
+- 不切实现方式 (不引第三方动画库, 不写自定义 animation, 不改 List → DisclosureGroup 切换 ticket 16 拍 "删 >" 撤)
+- 不扩大需求范围 (WenshuCommonSenseInteractionPrinciple)
+
+## 5 原则满足 (Q26)
+
+1. **Apple 官方范式**: 撤 `.formStyle(.grouped)` 拦截 + Form 整 view 暴露 = Apple SwiftUI macOS 14+ 标准 view tree
+2. **伪 Apple 官方样式**: 不改 SF Symbol + semantic color + 现存 Settings 真值
+3. **效果优先**: 1 行修真因 (撤 .formStyle) + Apple 默认动画生效 = 老板看到编辑框一整条出现/消失优雅动画
+4. **业务语言**: "苹果默认动画生效", 老板懂
+5. **po main flow**: 1 ticket 1 commit, spec + impl 同 commit (Q29), 双轴 code-review 跑 (Q37)
+
+## Q40 + Q43 + Q45 硬约束 (老板 key 安全)
+
+- 不改 key 显示逻辑 (前 12 位灰度字保留)
+- 真 key 仍走 Apple Keychain
+- 测试用 dummy `sk-cp-` + `h` * 24
+- 任何 .scratch/ spec.md / issue / commit message 不含老板真 key
+
+## 双轴 code-review (Q37)
+
+- Standards 轴: 撤 `.formStyle(.grouped)` 是标准 SwiftUI 真值, .transition + .animation 标准真值, 不引入新 API
+- Spec 轴: 老板拍 "红框内一整条没出现/消失动画" 修真因, 撤 .formStyle 拦截真因排查
+
+## Acceptance
+
+- [ ] App.swift providerApiTab 撤 `.formStyle(.grouped)` (L414)
+- [ ] 老板 macOS 真验: 编辑框一整条 (红框) 出现/消失 Apple 默认动画优雅 (不是瞬时)
+- [ ] 其它 5 项保留 (existing 3 tab + 整条热区响应 + 灰度前 12 位字回显)
+- [ ] swift build exit 0
+- [ ] swift test exit 0 (ProviderKeychain 5/5 pass)
+- [ ] 双轴 code-review 报告 verbatim 进 commit body
+
+## 关联
+
+- 依赖: ticket 21 + 22 + 23 (providerApiTab + .transition + .animation + CFBundleName + keyPrefix12)
+- 被依赖: 无
+- 历史: ticket 13 + 14 + 15 + 16 + 17 + 21 + 22 + 23 + 24 修真因链
+- backlog: ticket 18 + 19 + 20 等老板排期
+- 分支: feature/chat-bottom-toolbar-in-child (Q53 ticket 10 起, 续)
