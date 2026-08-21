@@ -20,21 +20,24 @@ public struct ChatMessage: Equatable, Identifiable, Sendable {
     public let id: UUID
     public let role: ChatRole
     public let source: ChatSource
-    public let content: String
+    public var content: String
     public let timestamp: Date
+    public var isPlaceholder: Bool
 
     public init(
         id: UUID = UUID(),
         role: ChatRole,
         source: ChatSource = .wenshu,
         content: String,
-        timestamp: Date = Date()
+        timestamp: Date = Date(),
+        isPlaceholder: Bool = false
     ) {
         self.id = id
         self.role = role
         self.source = source
         self.content = content
         self.timestamp = timestamp
+        self.isPlaceholder = isPlaceholder
     }
 }
 
@@ -108,7 +111,11 @@ public final class ChatViewModel {
         messages.append(userMsg)
         inputText = ""
         isSending = true
-        defer { isSending = false }
+
+        // v0.21 ticket 30: append AI placeholder message so 文枢 名字 + 头像 + "AI 思考中…" 占位立刻出现在消息列表
+        let placeholderId = UUID()
+        let placeholder = ChatMessage(id: placeholderId, role: .agent, source: .wenshu, content: "AI 思考中…", isPlaceholder: true)
+        messages.append(placeholder)
 
         let userMsgStored = StoredChatMessage(id: userMsg.id.uuidString, source: "user", content: text, timestamp: Date())
         try? await store?.append(userMsgStored, sessionId: sessionId)
@@ -124,9 +131,11 @@ public final class ChatViewModel {
                 let response = try await verifier.chat(text)
                 reply = response.content.first?.text ?? "(no reply)"
             }
-            let agentMsg = ChatMessage(role: .agent, source: .wenshu, content: reply)
-            messages.append(agentMsg)
-            let agentMsgStored = StoredChatMessage(id: agentMsg.id.uuidString, source: "wenshu", content: reply, timestamp: Date())
+            // v0.21 ticket 30: 替换 placeholder 为真实回复
+            if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
+                messages[idx] = ChatMessage(id: placeholderId, role: .agent, source: .wenshu, content: reply)
+            }
+            let agentMsgStored = StoredChatMessage(id: placeholderId.uuidString, source: "wenshu", content: reply, timestamp: Date())
             try? await store?.append(agentMsgStored, sessionId: sessionId)
             recomputeContextUsed()
 
@@ -138,10 +147,13 @@ public final class ChatViewModel {
                 }
             }
         } catch {
-            let errMsg = ChatMessage(role: .system, source: .system, content: "Error: \(error.localizedDescription)")
-            messages.append(errMsg)
+            // v0.21 ticket 30: 失败也替换 placeholder 为错误消息
+            if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
+                messages[idx] = ChatMessage(id: placeholderId, role: .system, source: .system, content: "Error: \(error.localizedDescription)")
+            }
             lastError = error.localizedDescription
         }
+        isSending = false
     }
 
     /// clear: 清空消息
@@ -211,25 +223,6 @@ public struct ChatView: View {
 
             Divider()
 
-            // v0.21 ticket 18 AI 回复状态指示器 (Apple ProgressView + SF Symbol pulse + Text 联合)
-            if vm.isSending {
-                HStack(spacing: 6) {
-                    Image(systemName: "brain")
-                        .symbolEffect(.pulse, options: .repeating)
-                        .foregroundStyle(.secondary)
-                    Text("AI 思考中…")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    ProgressView()
-                        .controlSize(.small)
-                        .progressViewStyle(.circular)
-                    Spacer()
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .transition(.opacity)
-            }
-
             // 输入框 + 发送按钮 (Apple HIG SwiftUI 真值)
             HStack(spacing: 8) {
                 TextField("输入消息...", text: $vm.inputText, axis: .vertical)
@@ -270,10 +263,26 @@ struct ChatMessageView: View {
                 Text(sourceLabel)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Text(message.content)
-                    .textSelection(.enabled)
+                if message.isPlaceholder {
+                    // v0.21 ticket 30: 文枢 AI placeholder status indicator (小机器人 + 小菊花 + 思考中文字)
+                    HStack(spacing: 4) {
+                        Image(systemName: "faceid")
+                            .symbolEffect(.pulse, options: .repeating)
+                            .foregroundStyle(.secondary)
+                        Text(message.content)
+                            .foregroundStyle(.secondary)
+                        ProgressView()
+                            .controlSize(.mini)
+                            .progressViewStyle(.circular)
+                    }
                     .padding(8)
                     .background(sourceColor.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+                } else {
+                    Text(message.content)
+                        .textSelection(.enabled)
+                        .padding(8)
+                        .background(sourceColor.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+                }
             }
             Spacer()
         }
