@@ -27,7 +27,8 @@ public actor WenshuConductor {
     /// handle: 收 user message, 派子 agent, 合成最终回复
     /// 真值: user 看不到多 agent 调度痕迹, ChatView 永远只看到 .wenshu 1 个回复
     /// code-review S4 graceful degradation: LLM fail 不抛, fallback synthesis 仍返 reply (老板 macOS 不见 Error 系统消息)
-    public func handle(userMessage: String, sessionId: String) async -> String {
+    /// v0.21 ticket 34: 返回 (reply, totalTokens) — totalTokens = intent + sub-agent + synthesis 真实 LLM API usage 累加
+    public func handle(userMessage: String, sessionId: String) async -> (reply: String, totalTokens: Int) {
         // 步骤 1: 写 1 个 conductor 父 task 到 KanbanStore (看板进度, ChatView 不显)
         let conductorTask: KanbanTask?
         do {
@@ -35,6 +36,9 @@ public actor WenshuConductor {
         } catch {
             conductorTask = nil
         }
+
+        // v0.21 ticket 34: 累加全部 LLM API real usage (intent classify + sub-agent LLM calls + synthesis)
+        var totalTokens = 0
 
         // 步骤 2: 调 LLM intent classify, 失败 fallback → 0 子 agent, 不抛
         var selectedAgents: [String] = []
@@ -54,6 +58,8 @@ public actor WenshuConductor {
         if let intentResponse = try? await verifier.chat(intentPrompt),
            let intentRaw = intentResponse.content.first?.text {
             selectedAgents = parseAgentList(intentRaw)
+            // v0.21 ticket 34: 累加 intent classify real token usage
+            totalTokens += intentResponse.usage?.total_tokens ?? 0
         }
         // intent classify fail → selectedAgents 仍空 [] → S4 graceful degradation
 
@@ -77,6 +83,8 @@ public actor WenshuConductor {
         if let response = try? await verifier.chat(synthesisPrompt),
            let text = response.content.first?.text, !text.isEmpty {
             finalReply = text
+            // v0.21 ticket 34: 累加 synthesis real token usage
+            totalTokens += response.usage?.total_tokens ?? 0
         } else {
             // S4 graceful degradation: synthesis 失败仍返自然回复
             if subResults.isEmpty {
@@ -92,7 +100,7 @@ public actor WenshuConductor {
             _ = try? await kanbanStore.transition(id: conductorTask.id, to: .done)
         }
 
-        return finalReply
+        return (finalReply, totalTokens)
     }
 
     /// parseAgentList: 解析 LLM 输出的 JSON array (容错: 真值会有返 ["search"] 或 [search, outline] 或 ['search'])

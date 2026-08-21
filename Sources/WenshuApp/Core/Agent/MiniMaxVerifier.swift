@@ -42,19 +42,34 @@ public struct MiniMaxContent: Codable, Sendable {
     }
 }
 
+// v0.21 ticket 34: real LLM API usage (Apple Anthropic protocol)
+// { "usage": { "input_tokens": N, "output_tokens": N } } — total_tokens derived
+public struct MiniMaxUsage: Codable, Sendable, Equatable {
+    public let input_tokens: Int
+    public let output_tokens: Int
+    public var total_tokens: Int { input_tokens + output_tokens }
+
+    public init(input_tokens: Int, output_tokens: Int) {
+        self.input_tokens = input_tokens
+        self.output_tokens = output_tokens
+    }
+}
+
 public struct MiniMaxResponse: Codable, Sendable {
     public let id: String
     public let model: String
     public let role: String
     public let content: [MiniMaxContent]
     public let stop_reason: String?
+    public let usage: MiniMaxUsage?    // v0.21 ticket 34: real token count from LLM API
 
-    public init(id: String, model: String, role: String, content: [MiniMaxContent], stop_reason: String? = nil) {
+    public init(id: String, model: String, role: String, content: [MiniMaxContent], stop_reason: String? = nil, usage: MiniMaxUsage? = nil) {
         self.id = id
         self.model = model
         self.role = role
         self.content = content
         self.stop_reason = stop_reason
+        self.usage = usage
     }
 }
 

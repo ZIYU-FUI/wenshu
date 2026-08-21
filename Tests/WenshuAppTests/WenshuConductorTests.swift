@@ -18,8 +18,10 @@ struct WenshuConductorTests {
         let conductor = WenshuConductor(runtime: runtime, verifier: verifier, kanbanStore: kanban)
 
         // S4 graceful degradation: handle 不抛 (即使 LLM fail), 返 fallback reply (不是 throw)
-        let reply = await conductor.handle(userMessage: "test query", sessionId: "default")
-        #expect(!reply.isEmpty, "handle should always return non-empty reply (S4 graceful degradation)")
+        // v0.21 ticket 34: handle 现在返 (reply, totalTokens) tuple
+        let result = await conductor.handle(userMessage: "test query", sessionId: "default")
+        #expect(!result.reply.isEmpty, "handle should always return non-empty reply (S4 graceful degradation)")
+        // totalTokens 可为 0 (LLM fail 时) 或正整数 (LLM success 时) — 不强约束
         let tasks = try await kanban.list()
         #expect(tasks.count >= 1)
     }

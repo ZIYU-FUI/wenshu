@@ -23,6 +23,7 @@ public struct ChatMessage: Equatable, Identifiable, Sendable {
     public var content: String
     public let timestamp: Date
     public var isPlaceholder: Bool
+    public var tokens: Int?    // v0.21 ticket 34: real LLM API usage.total_tokens (nil if user message or unavailable)
 
     public init(
         id: UUID = UUID(),
@@ -30,7 +31,8 @@ public struct ChatMessage: Equatable, Identifiable, Sendable {
         source: ChatSource = .wenshu,
         content: String,
         timestamp: Date = Date(),
-        isPlaceholder: Bool = false
+        isPlaceholder: Bool = false,
+        tokens: Int? = nil
     ) {
         self.id = id
         self.role = role
@@ -38,6 +40,7 @@ public struct ChatMessage: Equatable, Identifiable, Sendable {
         self.content = content
         self.timestamp = timestamp
         self.isPlaceholder = isPlaceholder
+        self.tokens = tokens
     }
 }
 
@@ -97,10 +100,9 @@ public final class ChatViewModel {
         recomputeContextUsed()
     }
 
-    /// 用 messages 真值估 contextUsed (4 chars/token 真值估算, Hermes真值近似)
+    /// recomputeContextUsed: sum of all agent message tokens (v0.21 ticket 34 real LLM API usage, replaces chars/4 heuristic)
     public func recomputeContextUsed() {
-        let totalChars = messages.reduce(0) { $0 + $1.content.count }
-        contextUsed = max(0, totalChars / 4)
+        contextUsed = messages.compactMap { $0.tokens }.reduce(0, +)
     }
 
     /// send: 发消息 → 文枢主 agent 真合成 (v0.21 ticket 06 + code-review S1+S2 真持久化)
@@ -122,20 +124,25 @@ public final class ChatViewModel {
 
         do {
             // v0.21 ticket 06: 走 WenshuConductor.handle (intent classify → 派子 agent → LLM synthesis)
-            let reply: String
+            // v0.21 ticket 34: receive real token count from LLM API (conductor + fallback verifier)
+            var reply: String
+            var replyTokens: Int?
             if let conductor = conductor {
-                reply = try await conductor.handle(userMessage: text, sessionId: sessionId)
+                let result = try await conductor.handle(userMessage: text, sessionId: sessionId)
+                reply = result.reply
+                replyTokens = result.totalTokens
             } else {
-                // 没 conductor (向后兼容) → fallback 调 shared verifier
+                // fallback 调 shared verifier — real usage from response.usage
                 let verifier = MiniMaxVerifier()
                 let response = try await verifier.chat(text)
                 reply = response.content.first?.text ?? "(no reply)"
+                replyTokens = response.usage?.total_tokens
             }
-            // v0.21 ticket 30: 替换 placeholder 为真实回复
+            // v0.21 ticket 30: 替换 placeholder 为真实回复 (with real tokens)
             if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
-                messages[idx] = ChatMessage(id: placeholderId, role: .agent, source: .wenshu, content: reply)
+                messages[idx] = ChatMessage(id: placeholderId, role: .agent, source: .wenshu, content: reply, tokens: replyTokens)
             }
-            let agentMsgStored = StoredChatMessage(id: placeholderId.uuidString, source: "wenshu", content: reply, timestamp: Date())
+            let agentMsgStored = StoredChatMessage(id: placeholderId.uuidString, source: "wenshu", content: reply, timestamp: Date(), tokens: replyTokens)
             try? await store?.append(agentMsgStored, sessionId: sessionId)
             recomputeContextUsed()
 
@@ -213,7 +220,8 @@ public struct ChatView: View {
                                 role: .agent,
                                 source: ChatSource(rawValue: stored.source) ?? .wenshu,
                                 content: stored.content,
-                                timestamp: stored.timestamp
+                                timestamp: stored.timestamp,
+                                tokens: stored.tokens
                             )
                         }
                         vm.replaceMessages(mapped)

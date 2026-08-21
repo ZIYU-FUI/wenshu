@@ -35,7 +35,8 @@ public actor ChatSessionStore {
             session_id TEXT NOT NULL DEFAULT 'default',
             source TEXT NOT NULL,
             content TEXT NOT NULL,
-            timestamp REAL NOT NULL
+            timestamp REAL NOT NULL,
+            tokens INTEGER  -- v0.21 ticket 34: real LLM API usage.total_tokens (NULL = not available)
         );
         CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id, timestamp);
         """
@@ -54,7 +55,7 @@ public actor ChatSessionStore {
 
     /// loadMessages: 按 timestamp ASC 加载 1 session 的全部消息 (跟 ChatView UI 渲染顺序一致)
     public func loadMessages(sessionId: String) throws -> [StoredChatMessage] {
-        let sql = "SELECT id, source, content, timestamp FROM chat_messages WHERE session_id = ? ORDER BY timestamp ASC;"
+        let sql = "SELECT id, source, content, timestamp, tokens FROM chat_messages WHERE session_id = ? ORDER BY timestamp ASC;"
         var stmt: OpaquePointer?
         guard sqlite3_prepare_v2(dbPtr.db, sql, -1, &stmt, nil) == SQLITE_OK else {
             throw ChatSessionStoreError.prepareFailed(message: ChatSessionStore.sqliteErmsg(dbPtr.db))
@@ -67,14 +68,16 @@ public actor ChatSessionStore {
             let source = ChatSessionStore.textColumn(stmt, 1) ?? "system"
             let content = ChatSessionStore.textColumn(stmt, 2) ?? ""
             let timestamp = Date(timeIntervalSince1970: sqlite3_column_double(stmt, 3))
-            results.append(StoredChatMessage(id: id, source: source, content: content, timestamp: timestamp))
+            // v0.21 ticket 34: tokens column (INTEGER, nullable)
+            let tokens: Int? = sqlite3_column_type(stmt, 4) == SQLITE_NULL ? nil : Int(sqlite3_column_int64(stmt, 4))
+            results.append(StoredChatMessage(id: id, source: source, content: content, timestamp: timestamp, tokens: tokens))
         }
         return results
     }
 
     /// append: 写 1 条消息到指定 session
     public func append(_ message: StoredChatMessage, sessionId: String) throws {
-        let sql = "INSERT OR REPLACE INTO chat_messages (id, session_id, source, content, timestamp) VALUES (?, ?, ?, ?, ?);"
+        let sql = "INSERT OR REPLACE INTO chat_messages (id, session_id, source, content, timestamp, tokens) VALUES (?, ?, ?, ?, ?, ?);"
         var stmt: OpaquePointer?
         guard sqlite3_prepare_v2(dbPtr.db, sql, -1, &stmt, nil) == SQLITE_OK else {
             throw ChatSessionStoreError.prepareFailed(message: ChatSessionStore.sqliteErmsg(dbPtr.db))
@@ -85,6 +88,11 @@ public actor ChatSessionStore {
         sqlite3_bind_text(stmt, 3, message.source, -1, SQLITE_TRANSIENT)
         sqlite3_bind_text(stmt, 4, message.content, -1, SQLITE_TRANSIENT)
         sqlite3_bind_double(stmt, 5, message.timestamp.timeIntervalSince1970)
+        if let t = message.tokens {
+            sqlite3_bind_int64(stmt, 6, Int64(t))
+        } else {
+            sqlite3_bind_null(stmt, 6)
+        }
         guard sqlite3_step(stmt) == SQLITE_DONE else {
             throw ChatSessionStoreError.stepFailed(message: ChatSessionStore.sqliteErmsg(dbPtr.db))
         }
@@ -182,7 +190,7 @@ public actor ChatSessionStore {
 
     /// messagesBeforeCutoff: 返回 cutoff 之前的 messages (供 LLM summary 生成用)
     public func messagesBeforeCutoff(sessionId: String, cutoff: Date) throws -> [StoredChatMessage] {
-        let sql = "SELECT id, source, content, timestamp FROM chat_messages WHERE session_id = ? AND timestamp < ? ORDER BY timestamp ASC;"
+        let sql = "SELECT id, source, content, timestamp, tokens FROM chat_messages WHERE session_id = ? AND timestamp < ? ORDER BY timestamp ASC;"
         var stmt: OpaquePointer?
         guard sqlite3_prepare_v2(dbPtr.db, sql, -1, &stmt, nil) == SQLITE_OK else {
             throw ChatSessionStoreError.prepareFailed(message: ChatSessionStore.sqliteErmsg(dbPtr.db))
@@ -196,7 +204,9 @@ public actor ChatSessionStore {
             let source = ChatSessionStore.textColumn(stmt, 1) ?? "system"
             let content = ChatSessionStore.textColumn(stmt, 2) ?? ""
             let timestamp = Date(timeIntervalSince1970: sqlite3_column_double(stmt, 3))
-            results.append(StoredChatMessage(id: id, source: source, content: content, timestamp: timestamp))
+            // v0.21 ticket 34: tokens column (INTEGER, nullable)
+            let tokens: Int? = sqlite3_column_type(stmt, 4) == SQLITE_NULL ? nil : Int(sqlite3_column_int64(stmt, 4))
+            results.append(StoredChatMessage(id: id, source: source, content: content, timestamp: timestamp, tokens: tokens))
         }
         return results
     }
@@ -263,12 +273,14 @@ public struct StoredChatMessage: Equatable, Sendable {
     public let source: String  // user / wenshu / system
     public let content: String
     public let timestamp: Date
+    public let tokens: Int?    // v0.21 ticket 34: real LLM API usage.total_tokens (nil if not available)
 
-    public init(id: String, source: String, content: String, timestamp: Date) {
+    public init(id: String, source: String, content: String, timestamp: Date, tokens: Int? = nil) {
         self.id = id
         self.source = source
         self.content = content
         self.timestamp = timestamp
+        self.tokens = tokens
     }
 }
 
