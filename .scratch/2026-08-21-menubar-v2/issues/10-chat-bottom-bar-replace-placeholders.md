@@ -23,7 +23,7 @@
 3. **界面不显开发说明** (= 老板 8/21 23:35 拍"界面是给用户的, 不是用来做功能管理的")
    - ChatZoneView 撤所有开发说明注释
    - ChatBottomToolbar 撤所有 "(= 老板 8/21 拍)" 类历史注释 (= Q8 硬约束)
-   - commit body / spec / issue 不写"修真因"等开发管理说明 (= 修真因 = 改用"修因"/"实现"/"装入")
+   - commit body / spec / issue 不写"修因"等开发管理说明 (= 修因 = 改用"修因"/"实现"/"装入")
 
 ## 双轴 code-review (Q34 老板纠错"按 PO 全链路执行" 这次必须跑)
 
@@ -35,7 +35,7 @@
 - [ ] 其它 5 区 case 不动 (= ZoneBottomToolbar 父组件保留 "占位文字")
 - [ ] 界面不显开发说明 (= 老板 8/21 23:35 拍"界面是给用户的, 不是用来做功能管理的")
 - [ ] 注释不写 "(= 老板 8/21 拍)" 类历史 (= Q8 硬约束)
-- [ ] commit body 不写 "修真因" 等开发管理说明
+- [ ] commit body 不写 "修因" 等开发管理说明
 - [ ] swift build exit 0
 - [ ] swift test exit 0
 - [ ] 老板 macOS 真验: chat zone 底栏 = model picker + context usage (替换"占位文字"), 其它 5 区底栏 = "占位文字", 界面干净无开发说明
