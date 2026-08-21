@@ -157,6 +157,8 @@ public final class ChatViewModel {
             }
             // v0.21 ticket 30: 替换 placeholder 为真实回复 (with real tokens + thinking footnote)
             if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
+                // v0.21 ticket 41 step 1 NSLog trace: 锁 placeholder 替换时 count 是否变化 (Q63 verify-before-claim)
+                NSLog("[wenshu.scroll] placeholder replace: id=%@ beforeCount=%d afterCount=%d", placeholderId.uuidString, messages.count, messages.count)
                 messages[idx] = ChatMessage(id: placeholderId, role: .agent, source: .wenshu, content: reply, tokens: replyTokens, thinking: replyThinking)
             }
             let agentMsgStored = StoredChatMessage(id: placeholderId.uuidString, source: "wenshu", content: reply, timestamp: Date(), tokens: replyTokens)
@@ -232,6 +234,10 @@ public struct ChatView: View {
                     .padding(8)
                 }
                 .onChange(of: vm.messages.count) { _, _ in
+                    // v0.21 ticket 41 step 1 NSLog trace: 锁 onChange 触发次数 + lastId (Q63 verify-before-claim)
+                    let lastId = vm.messages.last?.id.uuidString ?? "nil"
+                    let lastContentLen = vm.messages.last?.content.count ?? 0
+                    NSLog("[wenshu.scroll] onChange trigger: count=%d lastId=%@ lastContentLen=%d", vm.messages.count, lastId, lastContentLen)
                     if let last = vm.messages.last {
                         withAnimation {
                             proxy.scrollTo(last.id, anchor: .bottom)
