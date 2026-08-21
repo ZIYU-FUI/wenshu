@@ -189,15 +189,17 @@ struct WenshuApp: App {
         // v0.21 ticket 01 (重做 #4): 删 .commands { CommandGroup(.appSettings) { SettingsLink() } } 段
         // (Q15 翻车链 #8 总结: SwiftUI .commands 段在 macOS 27 lazy populate 覆盖了 .commands 注入的 SettingsLink, NSMenu "设置…" 没装 = 老板 8/21 19:30 反馈"设置菜单没有了")
         // 真因 (Q28 Stack Overflow 76359975 真值): SwiftUI macOS 14+ NSMenu 装 "Settings…" 必须自己 NSWindow + NSHostingController 范式 (Settings { } Scene 是 SwiftUI App body 标准 cmd+, handler)
-        // v0.20 ticket 08 老真值保留: NSMenu 已装 6 项中文 (文枢/文件/编辑/显示/窗口/帮助, 见 WenshuAppDelegate.installMainMenu)
-        // SettingsView 真值保留在 Settings { ... } Scene, NSMenu "设置…" action 接 WenshuAppDelegate.openSettingsWindow 自定义 @objc (自己创建 NSWindow 弹设置)
-        Settings {
-            SettingView()
-        }
+        // v0.21 ticket 06 (Pages 范式): 撤回 Settings { } Scene (= commit 0082bd1fe + 030a58355 装的 macOS 设置 API 自动标题栏按钮)
+        // 老板 8/21 拍: 'Pages 范式 = 顶部 toolbar 切换 tab, 不是标题栏按钮, 是参考 UI 用 Apple 标准'
+        // 修法: 撤回 `Settings { }` Scene, NSMenu "设置…" action 弹自定义 NSWindow + 顶部 toolbar tab 切换 (Pages 真值真值)
     }
 }
 
-/// 设置页: 4 tab (通用 / 提供方 / 模型 / 快捷键), macOS 27 标准组件
+/// 设置页: Pages 范式真值 (v0.21 ticket 06)
+/// 老板 8/21 拍 'Pages 范式实现设置面板的 UI, 用 macOS 27 的组件'
+/// = 顶部 toolbar (3 个 segmented tab, Pages 真值真值, 老板画的图 2 红框位置)
+/// 不是 macOS Settings { } Scene 自动装标题栏 segmented tab 按钮 (commit 0082bd1fe + 030a58355 真硬违反)
+/// Pages 真值真值 (红框位置) = 窗口内容顶部 toolbar 切换, 不是窗口标题栏按钮
 struct SettingView: View {
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
     @AppStorage("wenshu.llm.provider") private var providerSlug: String = Provider.minimaxCn.slug
@@ -216,22 +218,47 @@ struct SettingView: View {
         case general = "通用"
         case provider = "提供方"
         case model = "模型"
-        case shortcuts = "快捷键"
         var id: String { rawValue }
+        var icon: String {
+            switch self {
+            case .general: return "gearshape"
+            case .provider: return "network"
+            case .model: return "cpu"
+            }
+        }
     }
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            Tab(SettingsTab.general.rawValue, systemImage: "gear", value: SettingsTab.general) { generalTab }
-            Tab(SettingsTab.provider.rawValue, systemImage: "network", value: SettingsTab.provider) { providerTab }
-            Tab(SettingsTab.model.rawValue, systemImage: "cpu", value: SettingsTab.model) { modelTab }
-            Tab(SettingsTab.shortcuts.rawValue, systemImage: "command", value: SettingsTab.shortcuts) { shortcutsTab }
+        VStack(spacing: 0) {
+            // 顶部 toolbar (Pages 范式, 老板画的图 2 红框位置): 3 个 segmented tab
+            Picker("", selection: $selectedTab) {
+                ForEach(SettingsTab.allCases) { tab in
+                    Label(tab.rawValue, systemImage: tab.icon).tag(tab)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .padding(.horizontal, 24)
+            .padding(.top, 16)
+            .padding(.bottom, 8)
+            .onChange(of: selectedTab) { _, new in
+                if new == .provider { refreshProviderStatus() }
+                if new == .model { Task { await reloadModels() } }
+            }
+
+            Divider()
+
+            // tab 内容 (Pages 范式, .formStyle(.grouped) 真值 Apple)
+            Group {
+                switch selectedTab {
+                case .general: generalTab
+                case .provider: providerTab
+                case .model: modelTab
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(width: 520, height: 480)
-        .onChange(of: selectedTab) { _, new in
-            if new == .provider { refreshProviderStatus() }
-            if new == .model { Task { await reloadModels() } }
-        }
+        .frame(width: 600, height: 480)
         .task { refreshProviderStatus() }
     }
 
@@ -260,71 +287,23 @@ struct SettingView: View {
     }
 
     private var generalTab: some View {
+        // Pages 范式参考 UI, 不用管功能 (老板 8/21 拍 "参考 UI 用 Apple 标准, 不是让你做一个一样的通用设置")
         Form {
-            // Pages 范式: 用于新文稿 (分组 + Toggle + 模板 Picker)
-            Section("用于新文稿") {
-                Toggle("显示模板选取器", isOn: .constant(true))
-                Toggle("使用模板", isOn: .constant(false))
-                Picker("更改模板", selection: .constant("空白文稿")) {
-                    Text("空白文稿").tag("blank")
-                    Text("小说").tag("novel")
-                    Text("随笔").tag("essay")
+            Section("外观") {
+                Picker("外观", selection: $appearanceMode) {
+                    ForEach(AppearanceMode.allCases) { mode in
+                        Text(mode.label).tag(mode)
+                    }
                 }
-                .pickerStyle(.menu)
-                Toggle("使用 通讯录 中的 我的名片 填充发件人信息", isOn: .constant(true))
+                .pickerStyle(.radioGroup)
             }
-            Section("默认缩放比例") {
-                Picker("默认缩放比例", selection: .constant("自动")) {
-                    Text("自动").tag("auto")
-                    Text("100%").tag("100")
-                    Text("150%").tag("150")
-                }
-                .pickerStyle(.menu)
-            }
-            Section("默认字体") {
-                Toggle("为新的 基本 文稿设定字体和大小", isOn: .constant(false))
-            }
-            Section("编辑") {
-                Toggle("曲线默认为贝塞尔曲线", isOn: .constant(false))
-                Toggle("编辑表格单元格时显示建议", isOn: .constant(true))
-            }
-            Section("不可见元素") {
-                Toggle("", isOn: .constant(true))
-            }
-            Section("添加媒体") {
-                Toggle("为 iPhone 和 iPad 优化媒体", isOn: .constant(false))
-                Toggle("为较旧设备优化媒体", isOn: .constant(false))
-                Text("影片和图像将保留其原始格式, 但它们可能无法在所有设备上或所有版本的 macOS, iOS 和 iPadOS 中显示.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Section("触控 ID") {
-                Toggle("使用触控 ID", isOn: .constant(false))
-                Text("除密码外, 若要将触控 ID 也用于受保护的文稿, 请在 系统设置 中设置触控 ID.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Section("作者") {
-                TextField("作者", text: .constant("安百强"))
-                    .textFieldStyle(.roundedBorder)
-                Text("用于非协作期间的批注和跟踪修改中的姓名.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Section("文本大小") {
-                Picker("文本大小", selection: .constant(12)) {
-                    Text("12 点").tag(12)
-                    Text("14 点").tag(14)
-                    Text("18 点").tag(18)
-                }
-                .pickerStyle(.menu)
-                Text("批注的默认文本大小.")
+            Section("通用设置") {
+                Text("Pages 范式, 不用管功能")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
-        .scrollContentBackground(.hidden)
     }
 
     private var providerTab: some View {
@@ -452,13 +431,7 @@ struct SettingView: View {
         .onAppear { Task { await reloadModels() } }
     }
 
-    private var shortcutsTab: some View {
-        Form {
-            Text("快捷键配置 (待补)").foregroundStyle(.secondary)
-        }
-        .formStyle(.grouped)
-    }
-}
+} 
 
 /// 辅助任务 (Hermes AUX_TASKS 真值: vision/web_extract/compression/skills_hub/approval/mcp/title_generation/curator)
 enum AuxTask: String, CaseIterable, Identifiable {
@@ -607,16 +580,17 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         NotificationCenter.default.post(name: .wenshuResetLayout, object: nil)
     }
 
-    // v0.21 ticket 01 (重做 #10): "设置…" NSMenu action — 自己创建 NSWindow + NSHostingController 装 SettingView (commit e0c204fea 真值, 加 SettingView 内容修法)
-    // Q32 audit 真因 (Spec sub-agent report 候选 b 修正): commit 9cb2ad0f0 "撤回 NSMenu 装" 让 SwiftUI 默认接管 cmd+, 但 SwiftUI 默认 Settings Scene 弹空白 sheet (SettingView 没装进 SwiftUI 自动接管的 sheet).
-    // 真修法: installMainMenu 装 "设置…" item + 自创建 NSWindow 装 SettingView (NSHostingView), sheet 浮在原 windows (Apple 真值 modal悬浮 sheet 行为).
+    // v0.21 ticket 06 (Pages 范式): "设置…" NSMenu action — 弹真值 modal sheet (Pages 范式, 浮 windows 不挤走)
+    // 老板 8/21 拍: '调度模式下弹窗挤走主 windows, 没实现原窗口悬浮'
+    // 修法: parentWindow.beginSheet(_:completionHandler:) 真值 modal sheet (= commit c5f85d701 旧修法), SwiftUI macOS 14+ 真值真值
+    // 视觉: Pages 设置窗模式 — 真值 modal sheet 浮在 main window 上, 不阻塞 main window (= boss 拍"原窗口悬浮")
     @MainActor @objc func openSettingsWindow(_ sender: Any?) {
         if let existing = NSApp.windows.first(where: { $0.identifier?.rawValue == "wenshu.settings" }) {
             existing.makeKeyAndOrderFront(nil)
             return
         }
         let settingsWindow = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 520, height: 420),
+            contentRect: NSRect(x: 0, y: 0, width: 600, height: 480),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -624,9 +598,17 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         settingsWindow.title = "文枢 设置"
         settingsWindow.identifier = NSUserInterfaceItemIdentifier("wenshu.settings")
         settingsWindow.isReleasedWhenClosed = false
-        settingsWindow.center()
         settingsWindow.contentView = NSHostingView(rootView: SettingView())
-        settingsWindow.makeKeyAndOrderFront(nil)
+
+        // 找 main window (= LayoutShellView 的 NSWindow, SwiftUI WindowGroup 装的), 找不到 fallback standalone (保底, 跟 commit 1fbb72260 一致)
+        guard let parentWindow = NSApp.windows.first(where: { $0.contentViewController != nil || $0.contentView != nil }) else {
+            settingsWindow.center()
+            settingsWindow.makeKeyAndOrderFront(nil)
+            return
+        }
+        parentWindow.beginSheet(settingsWindow) { _ in
+            // modal sheet 关闭后 cleanup (commit c5f85d701 范式)
+        }
     }
 
     /// v0.21 ticket 01 (重做): installMainMenu 装 6 项中文 (v0.02.0 spec 老板 8/10 01:43 拍: 文枢/文件/编辑/显示/窗口/帮助)
