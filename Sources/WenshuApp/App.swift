@@ -1001,7 +1001,10 @@ struct ZoneToolbarAction {
 
 /// 区域底部工具栏: 30 PT 高, 左/右各占位文字 + 顶 2 PT 分割线.
 /// 宽度由父组件约束自动撑到区域模块宽度 (不画穿 splitter).
+/// v0.22 ticket o09: 右侧占位文字替换为 WordCountInlineLabel (default 0 字).
 struct ZoneBottomToolbar: View {
+    @State private var wordCountViewModel: WordCountViewModel = WordCountViewModel()
+
     var body: some View {
         let toolbarH = LayoutTokens.toolbarHeight
         DesignColor.zoneSurface
@@ -1019,9 +1022,9 @@ struct ZoneBottomToolbar: View {
                     .allowsHitTesting(false)
             }
             .overlay(alignment: .bottomTrailing) {
-                Text("占位文字")
-                    .font(.system(size: 13))
-                    .foregroundStyle(.tertiary)
+                // o09: right placeholder text replaced by WordCountInlineLabel.
+                // Currently shows '0 字' (no document selected yet — wiring follows in a follow-up commit).
+                WordCountInlineLabel(viewModel: wordCountViewModel)
                     .padding(.trailing, 18)
                     .padding(.bottom, 6)
                     .frame(height: toolbarH, alignment: .bottomTrailing)
