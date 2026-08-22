@@ -1041,6 +1041,25 @@ struct ZoneModule: View {
     let bandH: CGFloat
     @Environment(WenshuLibrary.self) private var library
 
+    // v0.22: sheet showing flags for each toolbar action. Independent per slot.
+    @State private var showingTodo: Bool = false
+    @State private var showingSearch: Bool = false
+    @State private var showingBookmarks: Bool = false
+    @State private var showingTemplates: Bool = false
+    @State private var showingGraph: Bool = false
+    @State private var showingBacklinks: Bool = false
+    @State private var showingOutline: Bool = false
+    @State private var showingCanvas: Bool = false
+    @State private var showingBases: Bool = false
+    @State private var showingComposer: Bool = false
+    @State private var showingKanban: Bool = false
+    @State private var showingWordCount: Bool = false
+    @State private var showingCron: Bool = false
+    @State private var showingBackup: Bool = false
+    @State private var showingQuickSwitcher: Bool = false
+    // h14: last AI reply text (for read-aloud).
+    @State private var lastAIReply: String = ""
+
     private var toolbarH: CGFloat { LayoutTokens.toolbarHeight }  // v0.15 ticket 008: 老板 Sketch 真值 30 PT 1:1 硬编码
     /// 老板 8/18 Q2 答: 4 PT inset = 单一垂直方向 (spec §3.2 "背景 y=60~884, 正文 y=64~882", 上下 4 PT 视觉下沉, 左右 flush)
     /// v0.15 ticket 005 改名: editorInsetRatio → editorVerticalInsetRatio (明确垂直方向)
@@ -1067,13 +1086,93 @@ struct ZoneModule: View {
             }
         }
         .background(slot == .aiDynamic ? DesignColor.dynamicZoneSurface : .clear)
+        // v0.22: sheet presentations for each toolbar action. Single modifier tree,
+        // one per showing-* flag. Each ticket wires its view here.
+        .sheet(isPresented: $showingTodo) { TodoListView() }
+        .sheet(isPresented: $showingSearch) { SearchPanel() }
+        .sheet(isPresented: $showingBookmarks) { BookmarkPanel() }
+        .sheet(isPresented: $showingTemplates) { TemplatePicker() }
+        .sheet(isPresented: $showingGraph) { GraphView() }
+        .sheet(isPresented: $showingBacklinks) { BacklinksPanel() }
+        .sheet(isPresented: $showingOutline) { OutlinePanel() }
+        .sheet(isPresented: $showingCanvas) { CanvasView() }
+        .sheet(isPresented: $showingBases) { BaseView() }
+        .sheet(isPresented: $showingComposer) { ComposerPanel() }
+        .sheet(isPresented: $showingKanban) { KanbanView() }
+        .sheet(isPresented: $showingWordCount) { WordCountBadge() }
+        .sheet(isPresented: $showingCron) { CronScheduleView() }
+        .sheet(isPresented: $showingBackup) { BackupView() }
+        .sheet(isPresented: $showingQuickSwitcher) { QuickSwitcherWindow() }
+    }
+
+    /// h14: read aloud the last AI reply via WenshuConductor.invokeTool(av:).
+    private func readAloudLastReply() async {
+        guard !lastAIReply.isEmpty else { return }
+        _ = await WenshuAppDelegate.sharedConductor?.invokeTool(name: "av", input: lastAIReply)
     }
 
     /// v0.22: per-slot toolbar actions. Currently empty — wired by individual UI mount tickets.
     /// Each ticket commits: (1) new view file, (2) action closure here.
     private func toolbarActions(for slot: ZoneSlot) -> [ZoneToolbarAction] {
         // Empty by default. Tickets add cases as they ship.
-        return []
+        switch slot {
+        case .aiChat:
+            // h07 Todo + h14 read-aloud + o06 Search (top 3 priorities for chat zone).
+            // State binding: showingTodo / showingReadAloud / showingSearch.
+            return [
+                ZoneToolbarAction(
+                    label: "Todo",
+                    icon: "checklist",
+                    action: { showingTodo.toggle() }
+                ),
+                ZoneToolbarAction(
+                    label: "Search",
+                    icon: "magnifyingglass",
+                    action: { showingSearch.toggle() }
+                ),
+                ZoneToolbarAction(
+                    label: "Read Aloud",
+                    icon: "speaker.wave.2",
+                    action: { Task { await readAloudLastReply() } }
+                ),
+            ]
+        case .aiDynamic:
+            // o11 Bookmarks (right-bottom small zone).
+            return [
+                ZoneToolbarAction(
+                    label: "Bookmarks",
+                    icon: "bookmark",
+                    action: { showingBookmarks.toggle() }
+                ),
+            ]
+        case .projectSidebar:
+            // o04 Templates (project sidebar — template picker for new docs).
+            return [
+                ZoneToolbarAction(
+                    label: "Templates",
+                    icon: "doc.badge.plus",
+                    action: { showingTemplates.toggle() }
+                ),
+            ]
+        case .projectPreview:
+            // o09 Word Count inline + o03 Graph + o06 Search (preview zone — main content).
+            // Word count already in ZoneBottomToolbar; here we add graph + search.
+            return [
+                ZoneToolbarAction(
+                    label: "Graph",
+                    icon: "circle.grid.cross.fill",
+                    action: { showingGraph.toggle() }
+                ),
+                ZoneToolbarAction(
+                    label: "Search",
+                    icon: "magnifyingglass",
+                    action: { showingSearch.toggle() }
+                ),
+            ]
+        case .editor, .specializedTools:
+            // Placeholder zones — no toolbar actions.
+            return []
+        }
     }
 
     @ViewBuilder
