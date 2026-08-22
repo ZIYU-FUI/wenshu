@@ -1,69 +1,69 @@
-# Spec — D_h 横拖拽线 cursor 反馈 + 拖动响应 + 范围不限
+# Spec — D_h horizontal splitter cursor feedback + drag response + unlimited range
 
 > Date: 2026-08-19
-> 真值源: Sketch `AF7B1C87-ADDD-41ED-8208-7CA5549070E2` (page 文枢-组件化, Artboard 首页) + Apple HIG SwiftUI 4 (macOS 27)
-> Spec 走 po `to-spec` skill 7 段模板
+> Truth source: Sketch `AF7B1C87-ADDD-41ED-8208-7CA5549070E2` (page 文枢-组件化, Artboard 首页) + Apple HIG SwiftUI 4 (macOS 27)
+> Spec uses po `to-spec` skill 7-section template
 
 ## Problem Statement
 
-老板 2026-08-19 反馈: D_h 横拖拽线(上下区域中间那条 2 PT 黑色胶囊端线)能看到,鼠标移上去**不切 cursor**(不变上下箭头),拖了**没反应**(上下区域占比不变)。
+老板 2026-08-19 reported: D_h horizontal splitter (the 2 PT black capsule cap line in the middle of the upper/lower zones) is visible, but mouse hover does **not switch cursor** (no up-down arrows), and drag **does not respond** (upper/lower zone ratio unchanged).
 
-从老板视角,横拖拽线手感上"不可拖"——视觉在但交互反馈缺失。当前实现 (v0.15 ticket 014 拖动逻辑 + v0.15 ticket 023 cursor 反馈) 都已 commit,但实测有 2 个 bug 同时存在。
+From 老板's perspective, the horizontal splitter feels "un-draggable" — visual is there but interaction feedback is missing. The current implementation (v0.15 ticket 014 drag logic + v0.15 ticket 023 cursor feedback) has both been committed, but actual testing shows 2 bugs existing simultaneously.
 
 ## Solution
 
-修 2 个独立 bug:
-1. **cursor 反馈**: 推翻 v0.15 ticket 023 的 `.onContinuousHover` + `NSCursor.push` 实现, 用别的 Apple HIG SwiftUI 4 (macOS 27) API 让 cursor 真正切到 `.rowResize`(上下箭头)。
-2. **拖动响应**: 排查 v0.15 ticket 014 的 `adjustBandSplit` + `NativeSplitter(.horizontal)` 手势链为什么没生效。修复后上/下 band 比例跟手 resize。
+Fix 2 independent bugs:
+1. **Cursor feedback**: overturn v0.15 ticket 023's `.onContinuousHover` + `NSCursor.push` implementation. Use another Apple HIG SwiftUI 4 (macOS 27) API to make cursor actually switch to `.rowResize` (up-down arrows).
+2. **Drag response**: investigate why v0.15 ticket 014's `adjustBandSplit` + `NativeSplitter(.horizontal)` gesture chain does not work. After fix, upper/lower zone ratio resizes with hand.
 
-同时为下个需求 "区域隐藏" 准备: **D_h 拖动范围不限**(`bandOffset` 范围 [-1.0, +1.0]), 上下区域可以从 0% 拖到 100%,不再限制 ±7 PT。
+Also prepare for the next requirement "zone hide": **D_h drag range unlimited** (`bandOffset` range [-1.0, +1.0]), upper/lower zones can drag from 0% to 100%, no longer limited to ±7 PT.
 
 ## User Stories
 
-1. As 老板, I want 鼠标移到 D_h 横拖拽线上 cursor 切到上下箭头, so that 手感上知道是可拖的东西
-2. As 老板, I want 按下 D_h 拖动线能改变上下区域占比, so that 我可以灵活调整上/下区域大小
-3. As 老板, I want 拖动时上/下区域比例变化跟手不抖动 (60 fps), so that 拖动体验流畅
-4. As 老板, I want D_h 拖动范围不限 (可从 0% 拖到 100%), so that 为后续 "区域隐藏" 需求铺路
-5. As 老板, I want D_h hover 时变粗 + 蓝色发光 (跟 D_v 一致), so that 横竖拖拽线视觉反馈统一
-6. As 老板, I want D_v (5 根竖拖拽线) 行为不变, so that 已实现的宽度拖拽不破
-7. As 老板, I want `swift build` exit 0, so that 我可以自己启 app 验
+1. As 老板, I want mouse over D_h horizontal splitter to switch cursor to up-down arrows, so that feel-wise I know it's draggable
+2. As 老板, I want pressing D_h splitter to change the upper/lower zone ratio, so that I can flexibly adjust upper/lower zone size
+3. As 老板, I want drag-time upper/lower zone ratio change to follow hand without jitter (60 fps), so that drag experience is smooth
+4. As 老板, I want D_h drag range unlimited (can drag from 0% to 100%), so that it paves the way for the next "zone hide" requirement
+5. As 老板, I want D_h hover to thicken + blue glow (consistent with D_v), so that horizontal/vertical splitter visual feedback is unified
+6. As 老板, I want D_v (5 vertical splitters) behavior unchanged, so that the already-implemented width dragging is not broken
+7. As 老板, I want `swift build` exit 0, so that I can self-launch app to verify
 
 ## Implementation Decisions
 
-- **cursor 修法方向**: 推翻 v0.15 ticket 023 实现, 用别的 Apple HIG API。具体 API 待 implement 阶段决定 (e.g. `NSWindow` 子类化 + `resetCursorRects` / `cursorUpdate` / 其他 macOS 27 推荐方案)。to-spec 不定实现细节。
-- **拖动响应修复**: 排查 `NativeSplitter(.horizontal)` 手势挂载位置 / `withTransaction(disablesAnimations: true)` 影响 / `vm.bandOffset` mutate 是否触发 view 重渲染。具体修法待 implement。
-- **拖动范围**: `bandOffset` 累加范围从 [-0.15, +0.15] 扩大到 [-1.0, +1.0] (`LayoutShellViewModel.minOffset / maxOffset`)。
-- **不动 D_v 5 根竖拖拽线**: 它们的 `offsets[0..4]` 累加范围保持 [-0.15, +0.15] 不变。
-- **保留视觉**: D_h 静态 2 PT 黑色 / hover 4 PT `Color.accentColor.opacity(0.6)` + shadow, 跟 D_v 一致。
-- **保留 hit area**: 6 PT 透明 hit area 不变。
-- **不引入新组件**: 复用 NativeSplitter + LayoutShellViewModel。
+- **Cursor fix direction**: overturn v0.15 ticket 023 implementation, use another Apple HIG API. Specific API decided at implement phase (e.g. `NSWindow` subclassing + `resetCursorRects` / `cursorUpdate` / other macOS 27 recommended solution). to-spec does not nail down implementation details.
+- **Drag response fix**: investigate `NativeSplitter(.horizontal)` gesture attachment location / `withTransaction(disablesAnimations: true)` influence / whether `vm.bandOffset` mutation triggers view re-render. Specific fix deferred to implement.
+- **Drag range**: `bandOffset` accumulation range expands from [-0.15, +0.15] to [-1.0, +1.0] (`LayoutShellViewModel.minOffset / maxOffset`).
+- **Do not touch D_v 5 vertical splitters**: their `offsets[0..4]` accumulation range stays at [-0.15, +0.15] unchanged.
+- **Preserve visuals**: D_h static 2 PT black / hover 4 PT `Color.accentColor.opacity(0.6)` + shadow, consistent with D_v.
+- **Preserve hit area**: 6 PT transparent hit area unchanged.
+- **No new components**: reuse NativeSplitter + LayoutShellViewModel.
 
 ## Testing Decisions
 
-- **测试范围**: 仅 `swift build clean` (exit 0), 不跑 unit test (本会话无 unit test 覆盖 D_h)。
-- **真值验证**: 老板自己启 `swift run WenshuApp` + 实测 cursor 切 + 拖动上下区域占比变化。Agent 不跑 Q22 screencapture -l (当前 Hermes TUI shell session 没有 Screen Recording TCC 授权, 已知 fail)。
-- **Acceptance 标准**:
+- **Test scope**: Only `swift build clean` (exit 0). No unit tests (this session has no unit test coverage on D_h).
+- **Truth verification**: 老板 self-launches `swift run WenshuApp` + actual test cursor switch + drag upper/lower zone ratio change. Agent does not run Q22 screencapture -l (current Hermes TUI shell session lacks Screen Recording TCC authorization, known fail).
+- **Acceptance criteria**:
   - `swift build` exit 0
-  - D_v 5 根竖拖拽线行为不变 (老板 v0.15 已验过)
-  - 改动 commit 1 ticket 1 commit
-  - CONTEXT.md 域词汇更新
+  - D_v 5 vertical splitters behavior unchanged (老板 v0.15 verified)
+  - One ticket = one commit
+  - CONTEXT.md domain vocabulary updated
 
 ## Out of Scope
 
-- **不**实现 "区域隐藏" 需求 (老板拍 "下个需求先不做") — 只为它准备拖动范围
-- **不**改 D_v 5 根竖拖拽线 (保持 v0.15 实现不变, Q20 已实现不要直接动)
-- **不**改 NativeSplitter vertical 分支
-- **不**改 `vm.upperBandH` / `vm.lowerBandH` 公式 (只动 `minOffset` / `maxOffset`)
-- **不**改 macOS chrome / LayoutTokens / bandH 比例算子
-- **不**改 v0.15 ticket 014 commit `6188d16d9` 的拖动逻辑基础, 只排查为什么实测没反应
-- **不**改 v0.16 ticket 01 已修的 toolbar 宽度算法
-- **不**跑 Q22 audit gate (Screen Recording TCC 未授权)
-- **不**写新 ADR (cursor 修法具体 API 不定, 留 implement 阶段决定)
+- **Do not** implement "zone hide" requirement (老板 拍 "skip for now") — only prepare drag range for it
+- **Do not** change D_v 5 vertical splitters (keep v0.15 implementation unchanged, Q20 already implemented, do not directly touch)
+- **Do not** change NativeSplitter vertical branch
+- **Do not** change `vm.upperBandH` / `vm.lowerBandH` formula (only touch `minOffset` / `maxOffset`)
+- **Do not** change macOS chrome / LayoutTokens / bandH ratio operators
+- **Do not** change v0.15 ticket 014 commit `6188d16d9` drag logic foundation; only investigate why actual test no response
+- **Do not** change v0.16 ticket 01 already-fixed toolbar width algorithm
+- **Do not** run Q22 audit gate (Screen Recording TCC unauthorized)
+- **Do not** write new ADR (cursor fix specific API not pinned, deferred to implement phase)
 
 ## Further Notes
 
-- 这是 v0.16 ticket 02, 紧接 ticket 01 (toolbar 宽度由 VStack stretch 撑 zone 实际宽度)。
-- D_h 修法是 cursor + 拖动响应两个独立 bug 一起修, 不拆分 ticket (vertical slice 同一组件)。
-- v0.15 ticket 023 (cursor) + v0.15 ticket 014 (拖动) 两个 commit 都在, 但实测都不工作 — 修复需要排查真因, 不能仅"重写同样 API"。
-- 老板 Q5 答 "只跑 build + 老板自己验", 所以 agent 不跑 Q22, 只跑 build clean + code-review 两轴。
-- 老板 Q1-Q6 全部答完, frontier 已空, 可直接走 to-tickets → implement。
+- This is v0.16 ticket 02, right after ticket 01 (toolbar width stretched by VStack stretch to fill zone actual width).
+- D_h fix is cursor + drag response two independent bugs fixed together, not split into tickets (vertical slice on the same component).
+- v0.15 ticket 023 (cursor) + v0.15 ticket 014 (drag) both committed, but actual test neither works — fix requires root-cause investigation, not just "rewrite same API".
+- 老板 Q5 answered "only run build + 老板 self-verify", so agent does not run Q22, only run build clean + code-review two axes.
+- 老板 Q1-Q6 all answered, frontier empty, can go directly to-tickets → implement.

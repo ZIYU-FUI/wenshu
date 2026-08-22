@@ -1,36 +1,36 @@
-# 05 — Provider 模块整克隆 (Hermes 范式)
+# 05 — Full Provider module clone (Hermes pattern)
 
 > Date: 2026-08-22
-> 老板 2026-08-21 拍: "整个复刻过来, 我们未来也要用户自己配他自己 key 不可能所有人有是 minimax, 整个提供方模块复刻, 除了 hermes 自己的商业订阅, 还有三方平台托管, 就是所有的模型提供方都罗列出来, 用户自选配置"
+> 老板 2026-08-21 拍: "Replicate the whole thing — in the future users will configure their own keys too, not everyone has minimax. Clone the whole provider module: besides hermes' own commercial subscription, there are third-party hosted platforms, i.e. enumerate every model provider, users pick and configure themselves."
 
-## 业务语言 (老板懂)
+## Business language (老板-facing)
 
-设置 → 提供方 tab:
-- **罗列所有 provider** (= hermes 范式, openrouter / nous / minimax / minimax-cn + 用户自加)
-- 用户自选 1 个 provider
-- 用户自填 API key (= 已有 Keychain 集成, 加 provider 字段)
-- 设置页 → 模型 tab 拉当前 provider 的 `/v1/models` 真值列表
-- "配完省略显示" 老板原话保留
+Settings → Providers tab:
+- **List all providers** (= hermes pattern, openrouter / nous / minimax / minimax-cn + user-added)
+- User picks 1 provider
+- User fills in API key (= existing Keychain integration, add provider field)
+- Settings page → Models tab fetches the current provider's `/v1/models` truth list
+- "Configure then hide display" — 老板's original words preserved
 
-## Hermes 真值链 (待复刻范围)
+## Hermes truth chain (scope to be replicated)
 
 **`hermes_cli/model_switch.py` (2452 lines):**
-- `parse_model_flags` / `resolve_persist_behavior` / `switch_model` — 切模型 state machine
-- `list_authenticated_providers` (1450) — 罗列有 key 的 providers + curated models
-- `list_picker_providers` — picker UI 数据 (provider → model list)
-- `prewarm_picker_cache_async` — 后台预热 cache
-- `_load_direct_aliases` / `_ensure_direct_aliases` — alias 真值
+- `parse_model_flags` / `resolve_persist_behavior` / `switch_model` — model-switch state machine
+- `list_authenticated_providers` (1450) — list providers that have keys + curated models
+- `list_picker_providers` — picker UI data (provider → model list)
+- `prewarm_picker_cache_async` — background cache prewarming
+- `_load_direct_aliases` / `_ensure_direct_aliases` — alias truth
 
 **`hermes_cli/models.py` (4294 lines):**
 - `_PROVIDER_MODELS` dict (provider → curated model list)
-- `provider_model_ids(provider)` — provider 模型目录 (curated + live)
-- `fetch_api_models` / `probe_api_models` — `/v1/models` 真值 fetch (5s timeout)
-- `_fetch_anthropic_models` / `_fetch_github_models` / `fetch_nous_models` / `get_codex_model_ids` — 各 provider 特定 endpoint
-- `ModelCache` (1h TTL) — 磁盘缓存
-- `_PROVIDER_ALIASES` — provider slug 别名
+- `provider_model_ids(provider)` — provider model catalog (curated + live)
+- `fetch_api_models` / `probe_api_models` — `/v1/models` truth fetch (5s timeout)
+- `_fetch_anthropic_models` / `_fetch_github_models` / `fetch_nous_models` / `get_codex_model_ids` — per-provider endpoints
+- `ModelCache` (1h TTL) — disk cache
+- `_PROVIDER_ALIASES` — provider slug aliases
 
-**Hermes 支持的 providers (从 config.yaml / models.py 反推):**
-- `openrouter` (OPENROUTER_API_KEY) — 三方平台, 路由任意模型
+**Hermes-supported providers (reverse-engineered from config.yaml / models.py):**
+- `openrouter` (OPENROUTER_API_KEY) — third-party platform, routes any model
 - `nous` (OAuth, hermes auth) — Nous Portal
 - `minimax` (MINIMAX_API_KEY) — MiniMax
 - `minimax-cn` (MINIMAX_CN_API_KEY) — MiniMax (China)
@@ -39,70 +39,70 @@
 - `xai-oauth` (OAuth)
 - `stepfun` (API key)
 - `anthropic` (API key, native Anthropic protocol)
-- 自定义 endpoints (用户填 base_url + key)
+- custom endpoints (user fills base_url + key)
 
-## 修法范围 (老板拍"用户自选配置" = 多 provider + 自填 key)
+## Fix scope (老板拍 "user self-configures" = multi-provider + self-filled key)
 
-**Step 1 — provider 模块整克隆 (本 ticket 范围):**
+**Step 1 — Full provider module clone (this ticket's scope):**
 
-1. `Sources/WenshuApp/Core/Provider/Provider.swift` — `enum Provider` 真值
+1. `Sources/WenshuApp/Core/Provider/Provider.swift` — `enum Provider` truth
    - `openrouter`, `nous`, `minimax`, `minimax-cn`, `openai-codex`, `copilot`, `xai-oauth`, `stepfun`, `anthropic`, `custom`
-   - 每个 case: `name`, `slug`, `baseURL`, `apiMode` ("anthropic_messages" / "openai_chat"), `authHeader` ("x-api-key" / "Authorization"), `defaultModels: [String]`
-2. `Sources/WenshuApp/Core/Provider/ProviderCatalog.swift` — 真值
-   - `static let providers: [Provider]` = hermes 范式列表
+   - Each case: `name`, `slug`, `baseURL`, `apiMode` ("anthropic_messages" / "openai_chat"), `authHeader` ("x-api-key" / "Authorization"), `defaultModels: [String]`
+2. `Sources/WenshuApp/Core/Provider/ProviderCatalog.swift` — truth
+   - `static let providers: [Provider]` = hermes-pattern list
    - `static func defaultModels(for: Provider) -> [String]` — curated fallback
-3. `Sources/WenshuApp/Core/Provider/ProviderFetcher.swift` — 重构 MiniMaxModelFetcher → 多 provider
-   - `func fetchLiveModelIds(provider: Provider, apiKey: String) async -> [String]?`
-   - provider 走自己的 endpoint + headers (hermes 真值)
+3. `Sources/WenshuApp/Core/Provider/ProviderFetcher.swift` — refactor MiniMaxModelFetcher → multi-provider
+   - `func fetchLiveModelIds(provider: Provider, apiKey: *** async -> [String]?`
+   - Provider uses its own endpoint + headers (hermes truth)
    - fallback to curated
 4. `Sources/WenshuApp/Core/Provider/ProviderKeychain.swift` — multi-provider key storage
    - `LLMKeychain` → per-provider storage (`kSecAttrAccount = provider.slug`)
    - `ProviderKeychain` enum shim preserves existing call sites (saveKeySync/loadKeySync/deleteKeySync/listProvidersWithKeys)
    - Backend swappable via `ProviderKeychain.setBackendForTesting(_:)` for test isolation (AppleKeychainStore production / InMemoryKeychainStore test)
-5. `Sources/WenshuApp/App.swift` 设置页 → 加 "提供方" tab (放通用 + 模型 之间)
-   - 提供方 tab: List provider (radioGroup, 当前 selected provider 高亮) + 当 custom 时显示 base_url input
-   - 模型 tab: 重写 Picker 用当前 provider 的 fetch 结果
-6. 老板 macOS 真验:
-   - 设置 → 提供方 → 选 openrouter → 提示输 OPENROUTER_API_KEY → Keychain 存
-   - 设置 → 模型 → Picker 显示 openrouter 真值模型列表
-   - 测试多个 provider (minimax / openrouter / nous) 都 work
+5. `Sources/WenshuApp/App.swift` Settings page → add "Providers" tab (placed between General + Models)
+   - Providers tab: List providers (radioGroup, currently selected provider highlighted) + when custom, show base_url input
+   - Models tab: rewrite Picker to use the current provider's fetch result
+6. 老板 macOS real verification:
+   - Settings → Providers → select openrouter → prompt for OPENROUTER_API_KEY → Keychain stored
+   - Settings → Models → Picker shows openrouter truth model list
+   - Test multiple providers (minimax / openrouter / nous) all work
 
-**Step 2 — 后续 (本 ticket 不做):**
-- provider 切换后 `sharedVerifier` 重建 (真硬违反)
-- 用户自加 custom provider UI
-- OAuth 流程 (nous / copilot / openai-codex / xai-oauth)
-- 自定义 base_url 持久化
+**Step 2 — Later (not in this ticket):**
+- After provider switch, `sharedVerifier` rebuild (real hard violation)
+- User-added custom provider UI
+- OAuth flow (nous / copilot / openai-codex / xai-oauth)
+- Custom base_url persistence
 
-## 验收标准
+## Acceptance
 
-- [ ] Provider.swift enum (10+ cases, hermes 真值)
-- [ ] ProviderCatalog.swift 静态列表
-- [ ] ProviderFetcher.swift 多 provider 真值 fetch
+- [ ] Provider.swift enum (10+ cases, hermes truth)
+- [ ] ProviderCatalog.swift static list
+- [ ] ProviderFetcher.swift multi-provider truth fetch
 - [ ] ProviderKeychain.swift multi-provider key storage (enum shim + Storing protocol + AppleKeychainStore production + InMemoryKeychainStore test)
 - [ ] MiniMaxVerifierTests.testPingReal: dev-env skip pattern (guard hasAPIKey else return, no Issue.record)
 - [ ] ProviderKeychainTests: inject InMemoryKeychainStore via setBackendForTesting, no OS Keychain entitlement required
-- [ ] SettingView 重写: 4 个 tab (通用 / 提供方 / 模型 / 快捷键)
-- [ ] 提供方 tab: radioGroup picker + 当前 provider 显示 + 当 custom 时显示 base_url
+- [ ] SettingView rewrite: 4 tabs (General / Providers / Models / Shortcuts)
+- [ ] Providers tab: radioGroup picker + current provider display + when custom show base_url
 - [ ] swift build exit 0
 - [ ] swift test exit 0
-- [ ] 新增测试: testProviderFetchOpenRouter + testProviderFetchFallback
-- [ ] 老板 macOS 真验: 选 openrouter → Keychain 存 key → 模型 tab 显 openrouter 真值列表
+- [ ] New tests: testProviderFetchOpenRouter + testProviderFetchFallback
+- [ ] 老板 macOS real verification: select openrouter → Keychain stores key → Models tab shows openrouter truth list
 
-## 不动 (Q20 硬约束)
+## Do not touch (Q20 hard constraint)
 
-- v0.21 chat streak ticket 02-06 (不动)
-- v0.21 ticket 04 MiniMaxModelFetcher (重构进 ProviderFetcher, 不重写)
-- v0.21 ticket 03 LLMKeychain (重构进 ProviderKeychain, 不重写)
-- AppIcon.icon/ (老板拍先放着)
+- v0.21 chat streak tickets 02-06 (do not touch)
+- v0.21 ticket 04 MiniMaxModelFetcher (refactor into ProviderFetcher, do not rewrite)
+- v0.21 ticket 03 LLMKeychain (refactor into ProviderKeychain, do not rewrite)
+- AppIcon.icon/ (老板拍 leave for now)
 
-## Apple HIG 真值引用
+## Apple HIG ground truth references
 
-- https://developer.apple.com/documentation/swiftui/picker (radioGroup 真值)
+- https://developer.apple.com/documentation/swiftui/picker (radioGroup truth)
 - https://developer.apple.com/documentation/security/keychain_services
-- hermes_cli/models.py probe_api_models (Hermes 真值)
-- hermes_cli/model_switch.py list_authenticated_providers (Hermes 真值)
+- hermes_cli/models.py probe_api_models (Hermes truth)
+- hermes_cli/model_switch.py list_authenticated_providers (Hermes truth)
 
-## 关联
+## Related
 
-- 依赖: ticket 03 (Keychain) + ticket 04 (Model fetcher) — 都已 commit, 重构不重写
-- 被依赖: ticket 06 (mini LLM Keychain actor unsafe 修), ticket 07 (provider 切换后 sharedVerifier 重建)
+- Depends on: ticket 03 (Keychain) + ticket 04 (Model fetcher) — both committed, refactor not rewrite
+- Depended on by: ticket 06 (fix mini LLM Keychain actor unsafe), ticket 07 (rebuild sharedVerifier after provider switch)

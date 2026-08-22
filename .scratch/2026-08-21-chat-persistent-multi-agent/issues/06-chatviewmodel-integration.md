@@ -1,53 +1,53 @@
-# 06 — ChatViewModel 集成 + chat session 单例
+# 06 — ChatViewModel integration + chat session singleton
 
 **What to build:**
-老板 2026-08-21 拍 "用户永远看到的只有一个会话". ChatViewModel 集成 ChatSessionStore + WenshuConductor, 单 session_id = "default" 永远延续. App.swift 装入 sharedChatStore + sharedConductor singleton, ChatView init 传进去.
+老板 2026-08-21 ruled: "users only ever see a single chat session." `ChatViewModel` integrates `ChatSessionStore` + `WenshuConductor`; the single `session_id = "default"` continues forever. `App.swift` instantiates the `sharedChatStore` + `sharedConductor` singletons and passes them into `ChatView.init`.
 
 **Blocked by:** ticket 01 + 02 + 03 + 04 + 05.
 
 **Status:** ready-for-agent
 
-## 修法真值
+## Fix specification
 
-1. `Sources/WenshuApp/App.swift` WenshuAppDelegate 加:
+1. In `Sources/WenshuApp/App.swift`, add to `WenshuAppDelegate`:
    ```swift
    static let sharedChatStore = ChatSessionStore()
    static let sharedConductor: WenshuConductor
    ```
-   `applicationDidFinishLaunching` 初始化 sharedConductor (传 sharedRuntime + sharedVerifier + sharedChatStore + kanbanStore).
-2. `ChatViewModel.init` 加参数 `store: ChatSessionStore`, `conductor: WenshuConductor`, `sessionId: String = "default"`.
-3. `ChatViewModel.init` 调 `Task { await store.loadMessages(sessionId) }` → fill `messages` 数组.
-4. `ChatViewModel.send()` 改:
-   - 调 conductor.handle(userMessage, sessionId) (不直接 delegateTask)
-   - 拿 final reply → append ChatMessage(source: .wenshu, ...)
-   - 持久化: `store.append(userMsg)` + `store.append(agentMsg)` 异步写
-   - 调 `store.summarizeIfNeeded(sessionId)` 异步触发
-5. App.swift L554-561 ChatView init 传 store + conductor:
+   Initialize `sharedConductor` in `applicationDidFinishLaunching` (pass `sharedRuntime` + `sharedVerifier` + `sharedChatStore` + `kanbanStore`).
+2. Add parameters to `ChatViewModel.init`: `store: ChatSessionStore`, `conductor: WenshuConductor`, `sessionId: String = "default"`.
+3. In `ChatViewModel.init`, dispatch `Task { await store.loadMessages(sessionId) }` → fill the `messages` array.
+4. Update `ChatViewModel.send()`:
+   - Call `conductor.handle(userMessage, sessionId)` (no direct `delegateTask`).
+   - Take the final reply → append `ChatMessage(source: .wenshu, ...)`.
+   - Persist: `store.append(userMsg)` + `store.append(agentMsg)` asynchronously.
+   - Call `store.summarizeIfNeeded(sessionId)` asynchronously.
+5. Update `App.swift` L554-561 to pass `store` + `conductor` to `ChatView.init`:
    ```swift
    ChatView(
      store: WenshuAppDelegate.sharedChatStore,
      conductor: WenshuAppDelegate.sharedConductor
    )
    ```
-6. 删 ChatViewModel 旧字段 `runtime` / `verifier` / `agentName` (conductor 包装).
+6. Remove `ChatViewModel`'s old fields: `runtime` / `verifier` / `agentName` (the conductor wraps them).
 
 ## Acceptance
 
-- [ ] WenshuAppDelegate.sharedChatStore + sharedConductor 落地
-- [ ] ChatViewModel 集成 store + conductor
-- [ ] ChatViewModel.init 异步 load 历史
-- [ ] ChatViewModel.send 走 conductor + 异步持久化
-- [ ] App.swift ChatView init 传 store + conductor
-- [ ] swift build exit 0
-- [ ] swift test exit 0
-- [ ] 老板 macOS 真验: 重启 app 接续 chat + 文枢真回复 + 长聊不爆 token + 多 agent 隐身
+- [ ] `WenshuAppDelegate.sharedChatStore` + `sharedConductor` landed
+- [ ] `ChatViewModel` integrates `store` + `conductor`
+- [ ] `ChatViewModel.init` loads history asynchronously
+- [ ] `ChatViewModel.send` routes through the conductor + persists asynchronously
+- [ ] `App.swift` `ChatView.init` passes `store` + `conductor`
+- [ ] `swift build` exit 0
+- [ ] `swift test` exit 0
+- [ ] 老板 macOS verification: restart the app and pick up the chat + 文枢 replies for real + long chats don't blow up tokens + multi-agent stays hidden
 
-## 不动
+## Out of scope
 
-- ChatView UI (cf121f77a 已 commit, 只改 init 签名)
-- v0.18 + v0.19 + v0.20 已 commit 模块
+- `ChatView` UI (committed as `cf121f77a`; only changes the init signature)
+- v0.18 + v0.19 + v0.20 already-committed modules
 
-## 关联
+## References
 
-- 依赖: ticket 01 + 02 + 03 + 04 + 05
-- 被依赖: 无 (收尾 ticket)
+- Depends on: ticket 01 + 02 + 03 + 04 + 05
+- Required by: none (closing ticket)

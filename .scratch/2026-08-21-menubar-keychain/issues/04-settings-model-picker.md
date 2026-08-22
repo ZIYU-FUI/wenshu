@@ -1,52 +1,52 @@
-# 04 — Settings 加模型配置 Picker (配完省略显示)
+# 04 — Settings: add a model-configuration Picker (hide the configured value)
 
 **What to build:**
-老板 2026-08-21 macOS 真验反馈: "在设置里加一个 模型配置的功能。配完省略显示". 当前 App.swift `Settings { ... }` Scene 只有"外观" Picker, 没模型配置. 当前 `MiniMaxVerifier` model hardcoded `"MiniMax-M3"`, 老板验完改不动.
+老板 2026-08-21 macOS verification feedback: "add a model-configuration feature inside Settings. After configuring it, hide the display." The current `App.swift` `Settings { ... }` Scene only has an "Appearance" Picker; no model configuration. The current `MiniMaxVerifier` model is hardcoded to `"MiniMax-M3"`; once 老板 verifies, it can't be changed.
 
-修法: Settings Scene 加 `Picker("模型", selection: $model)` 列出 3 个 default MiniMax model (`MiniMax-M3` / `MiniMax-M2` / `MiniMax-Reasoning`), 选完存 `@AppStorage("wenshu.llm.model")`, **不显示当前 model 名字** (老板原话 "配完省略显示"). MiniMaxVerifier.init 读 `@AppStorage` 优先 env.
+Fix: add `Picker("Model", selection: $model)` to the Settings Scene, listing the 3 default MiniMax models (`MiniMax-M3` / `MiniMax-M2` / `MiniMax-Reasoning`); persist the choice with `@AppStorage("wenshu.llm.model")`. **Do not display the current model name** (老板 verbatim: "after configuring, hide the display"). `MiniMaxVerifier.init` reads `@AppStorage`, with env var taking priority.
 
 **Blocked by:** None.
 
 **Status:** ready-for-agent
 
-## 修法真值 (4 步)
+## Fix specification (4 steps)
 
-1. App.swift `Settings { ... }` Scene 加:
+1. In `App.swift`'s `Settings { ... }` Scene, add:
    - `@AppStorage("wenshu.llm.model") private var llmModel: String = "MiniMax-M3"`
-   - `Picker("模型", selection: $llmModel) { ForEach(MiniMaxModel.allCases) { Text($0.label).tag($0.rawValue) } }` (不显当前值 label)
-2. 新增 `Sources/WenshuApp/Core/Agent/MiniMaxModel.swift` (enum 真值):
+   - `Picker("Model", selection: $llmModel) { ForEach(MiniMaxModel.allCases) { Text($0.label).tag($0.rawValue) } }` (don't display the current-value label)
+2. Add `Sources/WenshuApp/Core/Agent/MiniMaxModel.swift` (the source-of-truth enum):
    - `case m3 = "MiniMax-M3"`
    - `case m2 = "MiniMax-M2"`
    - `case reasoning = "MiniMax-Reasoning"`
    - `var label: String { switch self { case .m3: "MiniMax-M3" ... } }`
-3. `MiniMaxVerifier.init` 加 `model` 参数 (默认 `MiniMax-M3`), `applicationDidFinishLaunching` 注入 `@AppStorage("wenshu.llm.model")` 读
-4. 老板 macOS 真验: 打开 cmd+, → 看到"模型" Picker → 选一个 → 关 → 重开 Settings → 不再显示当前 model (省略)
+3. Add a `model` parameter to `MiniMaxVerifier.init` (default `MiniMax-M3`); `applicationDidFinishLaunching` reads `@AppStorage("wenshu.llm.model")` and injects it.
+4. 老板 macOS verification: open ⌘, → see the "Model" Picker → pick one → close → reopen Settings → the current model is no longer displayed (hidden).
 
 ## Acceptance
 
-- [ ] MiniMaxModel enum 3 case
-- [ ] App.swift Settings Scene 加 Picker (无当前值 label)
-- [ ] @AppStorage("wenshu.llm.model") 持久化
-- [ ] MiniMaxVerifier.init 接受 model 参数 (默认 MiniMax-M3)
-- [ ] swift build exit 0
-- [ ] swift test exit 0
-- [ ] 老板 macOS 真验: 配完不显示 model 名字 (省略)
+- [ ] `MiniMaxModel` enum with 3 cases
+- [ ] `App.swift` Settings Scene has the new Picker (no current-value label)
+- [ ] `@AppStorage("wenshu.llm.model")` persists
+- [ ] `MiniMaxVerifier.init` accepts a `model` parameter (default `MiniMax-M3`)
+- [ ] `swift build` exit 0
+- [ ] `swift test` exit 0
+- [ ] 老板 macOS verification: after configuring, the model name is not displayed (hidden)
 
-## 不动 (Q20 硬约束)
+## Out of scope (Q20 hard constraint)
 
-- v0.20 ticket 04 + 05 (LOGO 不动)
-- v0.21 chat streak ticket 02-06 (已 commit, 不动)
-- App.swift L188 Settings Scene 已有的"外观" Picker (保留)
-- AppIcon.icon/ (老板拍先放着)
+- v0.20 tickets 04 + 05 (LOGO untouched)
+- v0.21 chat streak tickets 02-06 (already committed; untouched)
+- The existing "Appearance" Picker inside `App.swift` L188 Settings Scene (kept)
+- `AppIcon.icon/` (老板 ruled: leave it for now)
 
-## Apple HIG 真值引用
+## Apple HIG references
 
 - https://developer.apple.com/documentation/swiftui/picker
-- https://developer.apple.com/documentation/swiftui/settings (Settings Scene 真值)
+- https://developer.apple.com/documentation/swiftui/settings (Settings Scene truth)
 - https://developer.apple.com/documentation/swiftui/appstorage
-- CLAUDE.md L42 "LLM key 存 macOS Keychain, 不入文件、不入 log、不入 commit"
+- CLAUDE.md L42 "LLM key stored in macOS Keychain — not in files, not in logs, not in commits"
 
-## 关联
+## References
 
-- 依赖: 无
-- 被依赖: ticket 02 (LLM Keychain) — MiniMaxVerifier 改 model 字段配套 ticket 02 Keychain 集成
+- Depends on: none
+- Required by: ticket 02 (LLM Keychain) — `MiniMaxVerifier`'s `model` field pairs with ticket 02's Keychain integration

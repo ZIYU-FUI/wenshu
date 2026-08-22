@@ -1,12 +1,12 @@
-# 41 — Chat zone 自动滚动 (AI reply 后滚到底部)
+# 41 — Chat zone auto-scroll (after AI reply, scroll to bottom)
 
 **What to build:**
-修复 AI reply 后聊天窗口不自动滚动问题. 用户发问 + AI reply 两条消息后, 老板需手动滚动才能看到 AI reply 内容.
+Fix the bug where the chat window doesn't auto-scroll after AI replies. After the user sends a question + the AI reply (2 messages), 老板 has to scroll manually to see the AI reply content.
 
 **Boss feedback verbatim (2026-08-22 17:00):**
-- "AI 回复后，聊天窗口没有自动滚动，导致最新的消息需要手动滑到底才能看到"
+- "After AI replies, the chat window doesn't auto-scroll, so the latest message needs to be manually scrolled to the bottom to see"
 
-**当前代码真值 (Q63 verify-before-claim, Sources/WenshuApp/Views/Chat/ChatView.swift L223-241):**
+**Current code truth (Q63 verify-before-claim, `Sources/WenshuApp/Views/Chat/ChatView.swift` L223-241):**
 ```swift
 ScrollViewReader { proxy in
     ScrollView {
@@ -28,99 +28,99 @@ ScrollViewReader { proxy in
 }
 ```
 
-**Q63 真因推测 (代码层面 + Q44 swiftinterface 验, 需 NSLog 锁):**
+**Q63 root-cause hypothesis (code-level + Q44 swiftinterface verified, needs NSLog lock):**
 
-根因 chain (4 个候选真因, 优先级排序):
+Root cause chain (4 candidate root causes, priority order):
 
-1. **count-based onChange 监听不到 placeholder → reply 替换** (最可能)
-   - ChatViewModel.send() L120 创建 placeholderId, L159 placeholder 替换为真 reply 时**复用同一 placeholderId UUID**
-   - `vm.messages.count` 没变 (placeholder 被替换, 不是 append 新消息)
-   - onChange 不触发 → scrollTo 不跑
-   - 老板看到 reply 出现在原 placeholder 位置但**滚动条停留** = 手动滑才能看到完整 reply
+1. **count-based `onChange` doesn't notice placeholder → reply replacement** (most likely)
+   - `ChatViewModel.send()` L120 creates `placeholderId`; L159 placeholder is replaced with the real reply, **reusing the same `placeholderId` UUID**
+   - `vm.messages.count` doesn't change (placeholder is replaced, not a new message appended)
+   - `onChange` doesn't trigger → `scrollTo` doesn't run
+   - 老板 sees the reply appear at the placeholder position but **the scrollbar stays put** = manual scroll required to see the full reply
 
-2. **withAnimation 包裹 scrollTo 在某些 SwiftUI macOS 27 场景不响应**
-   - SwiftUI ScrollViewReader.scrollTo 在 animation context 内有 timing race condition
-   - 修复时新消息刚出现, animation 还没结束 scrollTo 被 ignore
+2. **`withAnimation` wrapping `scrollTo` doesn't respond in some SwiftUI macOS 27 scenarios**
+   - SwiftUI `ScrollViewReader.scrollTo` inside an `animation` context has timing race conditions
+   - When the new message first appears, the animation hasn't finished and `scrollTo` gets ignored
 
-3. **anchor: .bottom 在 LazyVStack + 长 reply 内容下不精确滚到底**
-   - 老板 AI reply 经常含 thinking DisclosureGroup 展开后高度变化
-   - anchor: .bottom 滚到原 placeholder 底部 (短文本), 不是新 reply 底部
+3. **`anchor: .bottom` doesn't precisely scroll to bottom under `LazyVStack` + long-reply content**
+   - 老板's AI replies often contain thinking `DisclosureGroup` that expands and changes height
+   - `anchor: .bottom` scrolls to the placeholder's bottom (short text), not the new reply's bottom
 
-4. **Apple SwiftUI ScrollView 默认行为 = 滚到顶, 不是自动跟踪内容底部**
-   - ScrollView 没有 defaultScrollAnchor 时, 内容追加时不会自动贴底
+4. **Apple SwiftUI `ScrollView` default behavior = scroll to top, doesn't auto-track content bottom**
+   - `ScrollView` without `defaultScrollAnchor` doesn't auto-stick to the bottom when content is appended
 
-**Q44 swiftinterface 真验 (本会话已跑, 真值):**
-- `ScrollView.defaultScrollAnchor(_ anchor: UnitPoint?)` 真存在 ✅ (Apple SwiftUI macOS 14+)
-- `ScrollView.defaultScrollAnchor(_ anchor: UnitPoint?, for role: ScrollAnchorRole)` overload 真存在 ✅
-- 不猜 API (Q38 + Q44 硬约束)
+**Q44 swiftinterface truth check (run in this session, truth):**
+- `ScrollView.defaultScrollAnchor(_ anchor: UnitPoint?)` exists ✅ (Apple SwiftUI macOS 14+)
+- `ScrollView.defaultScrollAnchor(_ anchor: UnitPoint?, for role: ScrollAnchorRole)` overload exists ✅
+- Don't guess the API (Q38 + Q44 hard constraint)
 
-**Spec 真值 (Q34 第 2 轮 grill 拍板, 候选 D + A 双保险):**
+**Spec truth (Q34 round-2 grill ruling, Option D + A double-guard):**
 
-Fix 1 — `.defaultScrollAnchor(.bottom)` (候选 D, Apple SwiftUI 14+ 标准真值):
-- `ScrollView` 加 `.defaultScrollAnchor(.bottom)` modifier
-- Apple 真值 = ScrollView 内容变化时自动贴底, 不依赖 scrollTo
-- 解决真因 4 (默认滚到顶问题) + 兜底真因 1 (count 不变时)
+**Fix 1 — `.defaultScrollAnchor(.bottom)`** (Option D, Apple SwiftUI 14+ standard truth):
+- Add `.defaultScrollAnchor(.bottom)` modifier to `ScrollView`
+- Apple truth = `ScrollView` content change auto-sticks to bottom, doesn't depend on `scrollTo`
+- Fixes root cause 4 (default scroll-to-top) + backstops root cause 1 (count unchanged)
 
-Fix 2 — `onChange` 监听 `messages.last?.id` 而不仅是 count (候选 A):
-- 替换 `onChange(of: vm.messages.count)` → `onChange(of: vm.messages.last?.id)`
-- placeholder → reply 替换时 placeholderId 复用 → onChange 不触发
-- 修复: 替换 placeholder 时用新 UUID (让 count 增加) OR 监听 last content变化
-- 选监听 last?.id 因为跟当前 scrollTo 用 last.id 一致
+**Fix 2 — `onChange` listens to `messages.last?.id` not just count** (Option A):
+- Replace `onChange(of: vm.messages.count)` → `onChange(of: vm.messages.last?.id)`
+- On placeholder → reply replacement the `placeholderId` is reused → `onChange` doesn't trigger
+- Fix: when replacing the placeholder, use a new UUID (so count grows) OR listen for `last?.content` changes
+- Choosing `last?.id` because it matches the current `scrollTo(last.id)` use
 
-Fix 3 — 修复 trace line (Q63 verify-before-claim, commit 1):
-- ChatViewModel.send() L120 placeholder 替换时 NSLog:
+**Fix 3 — Fix trace lines** (Q63 verify-before-claim, commit 1):
+- `ChatViewModel.send()` L120 placeholder replacement NSLog:
   - `[wenshu.scroll] placeholder replace: id=<id> beforeCount=N afterCount=N`
-- ChatView onChange 触发时 NSLog:
+- `ChatView` `onChange` trigger NSLog:
   - `[wenshu.scroll] onChange trigger: lastId=<id> lastContentLen=N`
 
-**Step 1 — NSLog trace 真值 (commit 1, Q63 verify-before-claim):**
-- 加 trace line 不动业务
-- 跑真 .app, 发问, 抓 stderr 真值:
-  - onChange 触发次数 (= 老板发问 + AI reply 总次数)
-  - placeholder 替换前后 count 是否变化
-  - lastId 在 placeholder → reply 时是否变化
-- 验证真因 1 (count 不变) 真假
+**Step 1 — NSLog trace truth** (commit 1, Q63 verify-before-claim):
+- Add trace lines without touching business code
+- Run the real `.app`, send a question, capture stderr truth:
+  - `onChange` trigger count (= 老板 sends + AI replies)
+  - Whether `count` changes before/after placeholder replacement
+  - Whether `lastId` changes on placeholder → reply
+- Verify root cause 1 (count unchanged) true or false
 
-**Step 2 — 修复 (commit 2):**
-- ChatView ScrollView 加 `.defaultScrollAnchor(.bottom)` modifier (Fix 1)
-- ChatView onChange 改 `onChange(of: vm.messages.last?.id)` (Fix 2)
-- 移除 `withAnimation { proxy.scrollTo(...) }` 包裹 (Apple SwiftUI 14+ defaultScrollAnchor 自动处理 animation, 不需要手动)
-- Q47 锁定: Apple SwiftUI 标准 modifier, 不切 framework
-- Q51 父组件不动: ChatViewModel.send() body / placeholder 替换逻辑不动
-- Q20 不动: ticket 38 wire / ticket 39 union decode / ticket 40 binding 不动
+**Step 2 — Fix** (commit 2):
+- `ChatView` `ScrollView` adds `.defaultScrollAnchor(.bottom)` modifier (Fix 1)
+- `ChatView` `onChange` changes to `onChange(of: vm.messages.last?.id)` (Fix 2)
+- Remove `withAnimation { proxy.scrollTo(...) }` wrapper (Apple SwiftUI 14+ `defaultScrollAnchor` handles animation automatically)
+- Q47 lock: Apple SwiftUI standard modifier, don't switch framework
+- Q51 parents untouched: `ChatViewModel.send()` body / placeholder replacement logic untouched
+- Q20 untouched: ticket 38 wire / ticket 39 union decode / ticket 40 binding untouched
 
-**Step 3 — domain-modeling (commit 3, Q57):**
-- CONTEXT.md 加 ChatZoneAutoScroll domain word
-- 真因 chain + fix 范式 + Apple SwiftUI defaultScrollAnchor 真值
-- 未来 SwiftUI 滚动问题的标准修法 (新 SwiftUI 14+ 项目 defaultScrollAnchor 必备)
+**Step 3 — domain-modeling** (commit 3, Q57):
+- Add `ChatZoneAutoScroll` domain word to `CONTEXT.md`
+- Root-cause chain + fix paradigm + Apple SwiftUI `defaultScrollAnchor` truth
+- Future standard fix for SwiftUI scroll issues (new SwiftUI 14+ projects should default to `defaultScrollAnchor`)
 
-**不动 (Q20):**
-- Sources/WenshuApp/Views/Chat/ChatView.swift ChatViewModel 任何字段
-- Sources/WenshuApp/Views/Chat/ChatView.swift send() body (placeholder 替换逻辑)
-- Sources/WenshuApp/Views/Chat/ChatView.swift ChatMessageView (Q47 锁定子组件)
+**Out of scope (Q20):**
+- `Sources/WenshuApp/Views/Chat/ChatView.swift` `ChatViewModel` any field
+- `Sources/WenshuApp/Views/Chat/ChatView.swift` `send()` body (placeholder replacement logic)
+- `Sources/WenshuApp/Views/Chat/ChatView.swift` `ChatMessageView` (Q47 locked sub-component)
 - ticket 38 wire + ticket 39 union decode + ticket 40 binding
-- Sources/WenshuApp/App.swift ChatZoneView (Q51 父组件不动)
+- `Sources/WenshuApp/App.swift` `ChatZoneView` (Q51 parents untouched)
 
-**依赖:**
-- ticket 40 (context usage UI binding) — 已 commit, ChatZoneView 持有 vm 实例共享
-- ticket 30 (AI 状态指示器 placeholder) — 已 commit, placeholder 复用 placeholderId UUID
-- ticket 39 (union decode + thinking footnote) — 已 commit, reply 内容可能含 thinking DisclosureGroup
+**Dependencies:**
+- ticket 40 (context usage UI binding) — committed; `ChatZoneView` holds shared `vm` instance
+- ticket 30 (AI status indicator placeholder) — committed; placeholder reuses `placeholderId` UUID
+- ticket 39 (union decode + thinking footnote) — committed; reply content may contain thinking `DisclosureGroup`
 
-**Q47 + Q51 + Q20 + Q44 + Q63 + Q37 锁定:**
-- Q47 锁定实现方式 = Apple SwiftUI ScrollView.defaultScrollAnchor + onChange modifier, 不切 framework
-- Q51 父组件不动 = ChatView body 结构 VStack 不动, 只动 ScrollView modifier
-- Q20 不动 = ChatViewModel / ChatMessageView / ChatZoneView 不动
-- Q44 swiftinterface 真验已跑 = defaultScrollAnchor API 真存在
-- Q63 verify-before-claim = impl 前必须 NSLog 真验 4 真因, 不靠推测修复
-- Q37 双轴 review = impl commit 后跑 2 sub-agent (Standards + Spec) 并行 review, hard violation 修法 verbatim 引用进 fix commit
+**Q47 + Q51 + Q20 + Q44 + Q63 + Q37 locks:**
+- Q47 lock implementation method = Apple SwiftUI `ScrollView.defaultScrollAnchor` + `onChange` modifier, don't switch framework
+- Q51 parents untouched = `ChatView` body `VStack` structure untouched, only `ScrollView` modifiers change
+- Q20 untouched = `ChatViewModel` / `ChatMessageView` / `ChatZoneView` untouched
+- Q44 swiftinterface truth check run = `defaultScrollAnchor` API exists
+- Q63 verify-before-claim = NSLog must verify 4 root causes before impl, no guess-based fix
+- Q37 dual-axis review = after impl commit, run 2 sub-agents (Standards + Spec) in parallel; hard-violation fix verbatim into fix commit
 
-**Apple HIG 真值引用:**
+**Apple HIG references:**
 - https://developer.apple.com/documentation/swiftui/scrollview/defaultscrollanchor(_:)
 - https://developer.apple.com/documentation/swiftui/scrollanchorrole
 - https://developer.apple.com/documentation/swiftui/scrollviewreader
 
-**关联:**
-- history: ticket 40 fix(wenshu): v0.21 ticket 40 step 2 ChatZoneView 读 vm.contextUsed
-- history: ticket 39 fix(wenshu): v0.21 ticket 39 step 2 MiniMaxBlock union decode + thinking footnote
-- history: ticket 30 fix(wenshu): v0.21 ticket 30 AI 状态指示器修复到消息列表 (placeholder 复用 UUID)
-- branch: feature/agentan-bottom-toolbar-in-child (Q53 ticket 10 起, 续)
+**References:**
+- history: ticket 40 `fix(wenshu): v0.21 ticket 40 step 2 ChatZoneView reads vm.contextUsed`
+- history: ticket 39 `fix(wenshu): v0.21 ticket 39 step 2 MiniMaxBlock union decode + thinking footnote`
+- history: ticket 30 `fix(wenshu): v0.21 ticket 30 AI status indicator fix into message list (placeholder reuses UUID)`
+- branch: `feature/agentan-bottom-toolbar-in-child` (Q53 ticket 10 onward, continued)

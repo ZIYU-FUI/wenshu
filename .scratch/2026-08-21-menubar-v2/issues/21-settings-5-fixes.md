@@ -1,21 +1,21 @@
-# 21 — 设置弹窗 5 项修真因真硬 (item 1+2+3 修真因 + item 4 状态统一 + item 5 展开动画)
+# 21 — Settings popup: fix 5 hard-violation items (items 1+2+3 fix + item 4 status unification + item 5 expand animation)
 
-依赖: ticket 17 commit `227859117` + CONTEXT.md `9b0f0250b`
+Depends on: ticket 17 commit `227859117` + `CONTEXT.md` `9b0f0250b`
 
 **What to build:**
-5 项修真因真硬 (老板 2026-08-22 06:29 拍):
-1. SecureField + 保存按钮同行 (修真因 1)
-2. Info.plist CFBundleName 改 "设置" (修真因 2)
-3. tab segmented picker 仿 Pages + ICON (修真因 3, 已修真因部分真硬, 修真因真硬生效)
-4. providerApiRow 状态统一中文 ("待配置" / 灰度前 8 位 已配置) (修真因 4)
-5. 展开动画 Apple 默认 (.animation(.default, value:)) (修真因 5, 新增)
+5 fix items (老板 2026-08-22 06:29 ruled):
+1. `SecureField` + Save button on the same row (fix 1)
+2. `Info.plist` `CFBundleName` change to "Settings" (fix 2)
+3. Tab segmented picker imitating Pages + ICON (fix 3, partially fixed already; full fix takes effect)
+4. `providerApiRow` status unified to English ("Awaiting config" / grayed first-8-chars "Configured") (fix 4)
+5. Expand animation uses Apple default (`.animation(.default, value:)`) (fix 5, new)
 
 **Why:**
-ticket 17 commit `227859117` 老板 macOS 验发现 5 项修真因真硬真值. Q32 真因链 = 修真因 5 项修真因 + 1 项新增.
+After ticket 17 commit `227859117`, 老板's macOS verification found 5 hard-violation items. Q32 root-cause chain = 5 fix items + 1 new item.
 
 **Acceptance:**
-- 老板 macOS 真验: 设置弹窗标题 "设置 Settings" / 提供方 API tab 仿 Pages + ICON / 整条点 → 展开动画 / SecureField + 保存按钮同行 / 未设 "待配置" / 已配置 灰度前 8 位
-- swift build exit 0
-- swift test exit 0 (ProviderKeychain 5/5 pass 不回归)
-- 双轴 code-review 报告 verbatim 进 commit body
-- Q40 + Q45: 真 key 走 Apple Keychain 不入文件/log/commit, 灰度字仅 UI 显示前 8 位
+- 老板 macOS verification: settings popup title "Settings Settings" / Provider API tab imitates Pages + ICON / tap a whole row → expand animation / `SecureField` + Save button on the same row / un-set shows "Awaiting config" / set shows grayed first-8-chars
+- `swift build` exit 0
+- `swift test` exit 0 (`ProviderKeychain` 5/5 pass; no regressions)
+- Dual-axis code-review report verbatim into commit body
+- Q40 + Q45: real key goes through Apple Keychain, not into files / log / commit; grayed text only shows the first 8 chars in UI

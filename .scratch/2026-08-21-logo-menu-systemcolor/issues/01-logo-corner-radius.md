@@ -1,40 +1,40 @@
-# 01 — LOGO 圆角加大 (重导 master + iconutil 重生 icns)
+# 01 — LOGO corner radius (re-export master + iconutil regenerate icns)
 
 **What to build:**
-老板 2026-08-21 验 LOGO 后反馈 "LOGO 没有圆角". 当前 LOGO 主图是老板 8/11 Sketch master 设计的, 带圆角但半径 < Apple HIG 标准 22% (= 1024×1024 下 ≈ 225 半径). macOS Dock 显的是 LOGO master 圆角, 不是 Apple 标准圆角.
+老板 2026-08-21 reviewed the LOGO and reported: "the LOGO has no rounded corners." The current LOGO master image was designed by 老板 in Sketch on 8/11; it has rounded corners, but the radius is below the Apple HIG 22% standard (= ≈225 px on a 1024×1024 canvas). macOS Dock displays the LOGO master's corners, not Apple's standard corners.
 
-修法 = 老板去 Sketch master 把圆角矩形路径加大到 22%, 重导主图 PNG, 我跑 iconutil 重生 icns.
+Fix: 老板 edits the Sketch master to enlarge the rounded-rect path to 22%, re-exports the master PNG, and I run iconutil to regenerate the icns.
 
-**Blocked by:** 老板改 Sketch master (进行中).
+**Blocked by:** 老板 editing the Sketch master (in progress).
 
-**Status:** ✅ done — 合并到 ticket 04 (commit 0aabd989e). 老板 LOGO.icon 用 macOS 27 Icon Composer 范式, 1 份真值自动派生圆角 + dark/light/tinted, ticket 01 不需要单独跑.
+**Status:** ✅ done — merged into ticket 04 (commit `0aabd989e`). 老板's LOGO.icon uses the macOS 27 Icon Composer format, so a single source-of-truth asset auto-derives the corner radius + dark/light/tinted variants. Ticket 01 does not need to run on its own.
 
-## 修法真值 (4 步)
+## Fix specification (4 steps)
 
-1. 老板去 Sketch master 改主图圆角矩形路径, 1024×1024 下半径加大到 22% (≈ 225 半径)
-2. 老板重导 3 个主图 PNG:
+1. 老板 edits the Sketch master to enlarge the rounded-rect path: 22% of the 1024×1024 canvas (= ≈225 px radius).
+2. 老板 re-exports 3 master PNGs:
    - `/Users/anbaiqiang/Desktop/LOGO/wenshu-icon-master-1024-dark.png`
    - `/Users/anbaiqiang/Desktop/LOGO/wenshu-icon-master-1024-light.png`
    - `/Users/anbaiqiang/Desktop/LOGO/wenshu-icon-master-1024-mono.png`
-3. 我用 iconutil 重生 3 份 icns:
-   - 建 `wenshu-icon.iconset/` 目录, 跑 `sips -z <size> <png>` 生 11 个 retina 标准 reps (16/32/64/128/256/512/1024 + @2x), 重命名成 iconutil 标准 (`icon_16x16.png` + `icon_16x16@2x.png` 等)
-   - 跑 `iconutil -c icns wenshu-icon.iconset/ -o AppIcon.dark.icns` (3 份各跑一次)
-4. cp 3 份进 `Sources/WenshuApp/Resources/`, 改 `Scripts/build-app.sh` 加 cp mono. icns
-5. 1 ticket 1 commit + Q33 icns 真值校验脚本 + 老板 macOS Dock 验圆角
+3. I use `iconutil` to regenerate the 3 icns files:
+   - Build a `wenshu-icon.iconset/` directory; run `sips -z <size> <png>` to produce the 11 retina-standard reps (16/32/64/128/256/512/1024 + @2x); rename them to iconutil's standard layout (`icon_16x16.png` + `icon_16x16@2x.png` etc.).
+   - Run `iconutil -c icns wenshu-icon.iconset/ -o AppIcon.dark.icns` (once per file, 3 times total).
+4. `cp` the 3 files into `Sources/WenshuApp/Resources/`; update `Scripts/build-app.sh` to also `cp` the mono icns.
+5. 1 ticket 1 commit + Q33 icns verification script + 老板 macOS Dock corner-radius check.
 
-## 不动
+## Out of scope
 
-- AppIcon.icns (fallback 通用版保留)
-- App.swift / Package.swift / Info.plist
-- v0.21 chat ticket 01 (无关)
+- `AppIcon.icns` (fallback universal version retained)
+- `App.swift` / `Package.swift` / `Info.plist`
+- v0.21 chat ticket 01 (unrelated)
 
-## 关联
+## References
 
-- 依赖: 老板改 Sketch master
-- **被合并**: ticket 04 (Logo Composer 替换 icns) — 老板用 LOGO.icon 后 ticket 01 自动过, 不需要跑
+- Depends on: 老板 editing the Sketch master
+- **Merged into**: ticket 04 (Icon Composer replacing the icns files) — once 老板 uses LOGO.icon, ticket 01 passes automatically and does not need to run
 
-## 老板新决策 (8/21 16:00)
+## 老板's new decision (8/21 16:00)
 
-老板提供 `/Users/anbaiqiang/Desktop/LOGO.icon/` (= Apple Icon Composer 格式, 1 份真值源). macOS 27 自动派生 dark/light/tinted + platform mask, 不需要 icns 11 reps. ticket 01 + 02 + 04 合并成新 ticket 04 "用 Logo Composer 替换 icns 3 份".
+老板 delivered `/Users/anbaiqiang/Desktop/LOGO.icon/` (= Apple Icon Composer format, single source of truth). macOS 27 auto-derives dark / light / tinted + the platform mask; the 11 icns reps are no longer needed. Tickets 01 + 02 + 04 collapse into a new ticket 04 "use Icon Composer to replace the 3 icns files".
 
-ticket 01 当前状态 = **draft, 老板改 LOGO.icon 完成后跑 ticket 04, ticket 01 跳过**.
+Ticket 01 current status = **draft — once 老板 finishes editing LOGO.icon, run ticket 04 instead and skip ticket 01**.

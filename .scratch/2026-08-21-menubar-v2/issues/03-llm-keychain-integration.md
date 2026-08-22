@@ -1,57 +1,57 @@
-# 03 — LLM Keychain 集成 (老板 2026-08-21 拍)
+# 03 — LLM Keychain integration (老板 2026-08-21 ruled)
 
 **What to build:**
-老板 8/21 macOS 真验 ChatView: echo → Error: 未完成操作 (MiniMax key 缺失, dev env). 老板 8/21 给 LLM key 真值 (老板现场 macOS NSAlert 提示框输入, 不入文件 / log / commit).
+老板 8/21 macOS-verified ChatView: echo → Error: Operation could not be completed (MiniMax key missing, dev env). 老板 8/21 provided the LLM key on the spot (老板 entered it directly in a macOS NSAlert prompt on the spot — not stored in files / log / commit).
 
-CLAUDE.md L42 项目基线真值: "LLM key 存 macOS Keychain, 不入文件、不入 log、不入 commit".
+CLAUDE.md L42 project baseline truth: "LLM key stored in macOS Keychain, not in files, not in logs, not in commits".
 
-修法真值 (4 步, Apple 官方范式):
-1. 新建 `Sources/WenshuApp/Core/Agent/LLMKeychain.swift` (actor 真值, Keychain 读 / 写 / 删)
-   - `func saveKey(_ key: String) throws` → `kSecClassGenericPassword` + `kSecAttrService="com.wenshu.app.minimax"`, kSecValueData
-   - `func loadKey() throws -> String?` → SecItemCopyMatching
-   - `func deleteKey() throws` → SecItemDelete
-2. `MiniMaxVerifier.init` 改: 优先 Keychain.loadKey(), fallback env `MINIMAX_CN_API_KEY` (向后兼容, dev env 仍 work)
-4. App.swift `applicationDidFinishLaunching` 末尾: 如果 Keychain 没 key + env 没 key, 弹 NSAlert "请设置 MiniMax API Key" (输入框 + Save 按钮 → Keychain.saveKey)
-5. 1 ticket 1 commit + 真 verify pkill + build + open + 老板 macOS 验
+Fix specification (4 steps, Apple official paradigm):
+1. Create `Sources/WenshuApp/Core/Agent/LLMKeychain.swift` (actor truth, Keychain read / write / delete)
+   - `func saveKey(_ key: String) throws` → `kSecClassGenericPassword` + `kSecAttrService="com.wenshu.app.minimax"`, `kSecValueData`
+   - `func loadKey() throws -> String?` → `SecItemCopyMatching`
+   - `func deleteKey() throws` → `SecItemDelete`
+2. `MiniMaxVerifier.init` change: prefer `Keychain.loadKey()`, fallback to env `MINIMAX_CN_API_KEY` (backward-compatible; dev env still works)
+3. End of `App.swift` `applicationDidFinishLaunching`: if Keychain has no key + env has no key, show NSAlert "Please set MiniMax API Key" (input field + Save button → `Keychain.saveKey`)
+4. 1 ticket 1 commit + real verify (`pkill` + build + open + 老板 macOS verification)
 
-**Blocked by:** None.**
+**Blocked by:** None.
 
 **Status:** ready-for-agent
 
-## 修法真值 (4 步)
+## Fix specification (4 steps)
 
-1. 新建 `Sources/WenshuApp/Core/Agent/LLMKeychain.swift` (actor 真值, Keychain 读 / 写 / 删)
-   - `func saveKey(_ key: String) throws` → `kSecClassGenericPassword` + `kSecAttrService="com.wenshu.app.minimax"`, kSecValueData
-   - `func loadKey() throws -> String?` → SecItemCopyMatching
-   - `func deleteKey() throws` → SecItemDelete
-2. `MiniMaxVerifier.init` 改: 优先 Keychain.loadKey(), fallback env `MINIMAX_CN_API_KEY` (向后兼容, dev env 仍 work)
-3. App.swift `applicationDidFinishLaunching` 末尾: 如果 Keychain 没 key + env 没 key, 弹 NSAlert "请设置 MiniMax API Key" (输入框 + Save 按钮 → Keychain.saveKey)
-4. 1 ticket 1 commit + 真 verify pkill + build + open + 老板 macOS 验
+1. Create `Sources/WenshuApp/Core/Agent/LLMKeychain.swift` (actor truth, Keychain read / write / delete)
+   - `func saveKey(_ key: String) throws` → `kSecClassGenericPassword` + `kSecAttrService="com.wenshu.app.minimax"`, `kSecValueData`
+   - `func loadKey() throws -> String?` → `SecItemCopyMatching`
+   - `func deleteKey() throws` → `SecItemDelete`
+2. `MiniMaxVerifier.init` change: prefer `Keychain.loadKey()`, fallback to env `MINIMAX_CN_API_KEY` (backward-compatible; dev env still works)
+3. End of `App.swift` `applicationDidFinishLaunching`: if Keychain has no key + env has no key, show NSAlert "Please set MiniMax API Key" (input field + Save button → `Keychain.saveKey`)
+4. 1 ticket 1 commit + real verify (`pkill` + build + open + 老板 macOS verification)
 
 ## Acceptance
 
-- [ ] LLMKeychain actor + saveKey / loadKey / deleteKey 真值 (Apple Security framework)
-- [ ] MiniMaxVerifier.init 优先 Keychain 读
-- [ ] App 启动如 Keychain 没 key 弹 NSAlert 提示
-- [ ] swift build exit 0
-- [ ] swift test exit 0
-- [ ] 新增测试: testLLMKeychainSaveLoad (save → load 返一致) + testLLMKeychainLoadEmpty (没 key 返 nil)
-- [ ] 老板 macOS 真验: ChatView 发消息拿真值 LLM 中文回复 (非 Error)
+- [ ] `LLMKeychain` actor + `saveKey` / `loadKey` / `deleteKey` truth (Apple Security framework)
+- [ ] `MiniMaxVerifier.init` prefers Keychain read
+- [ ] App startup shows NSAlert if Keychain has no key
+- [ ] `swift build` exit 0
+- [ ] `swift test` exit 0
+- [ ] New tests: `testLLMKeychainSaveLoad` (save → load returns consistent) + `testLLMKeychainLoadEmpty` (no key returns `nil`)
+- [ ] 老板 macOS verification: ChatView sends a message and gets a real LLM Chinese reply (not Error)
 
-## 不动 (Q20 硬约束)
+## Out of scope (Q20 hard constraint)
 
-- MiniMaxVerifier.chat / send / ping 接口 (不变)
-- WenshuConductor / AgentProtocol (不重写)
-- AppIcon.icon/ (v0.21 ticket 04 落地, 老板拍先放着)
-- 设置页 UI (commit 0082bd1fe 通过)
+- `MiniMaxVerifier.chat / send / ping` interfaces (unchanged)
+- `WenshuConductor` / `AgentProtocol` (not rewritten)
+- `AppIcon.icon/` (v0.21 ticket 04 landed; 老板 ruled: leave it for now)
+- Settings page UI (commit `0082bd1fe` passed)
 
-## Apple HIG 真值引用
+## Apple HIG references
 
 - https://developer.apple.com/documentation/security/keychain_services
 - https://developer.apple.com/documentation/security/sharing-access-to-keychain-items-among-a-collection-of-apps
-- CLAUDE.md L42 "LLM key 存 macOS Keychain, 不入文件 / log / commit"
+- CLAUDE.md L42 "LLM key stored in macOS Keychain — not in files / log / commit"
 
-## 关联
+## References
 
-- 依赖: 无
-- 被依赖: ticket 04 (真 verify) — 不依赖, 可并行
+- Depends on: none
+- Required by: ticket 04 (real verify) — not a dependency, can run in parallel

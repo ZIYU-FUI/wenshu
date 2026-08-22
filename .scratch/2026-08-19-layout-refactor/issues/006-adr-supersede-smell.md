@@ -1,41 +1,41 @@
 # 006 ADR-0007 supersede ADR-0003 + table-driven adjust
 
-> 依赖: v0.15 ticket 005 commit 4ba2e37
-> 来源: code-review 两轴 P3 项 (S3 / S4 + S6 / S7 smell)
-> 老板 2026-08-19 拍板: 全修
+> Dependency: v0.15 ticket 005 commit `4ba2e37`
+> Source: code-review two-axis P3 items (S3 / S4 + S6 / S7 smell)
+> 老板 2026-08-19 拍板: fix all
 
-## 范围
+## Scope
 
-### 6.1 写 ADR-0007 supersede ADR-0003
+### 6.1 Write ADR-0007 supersede ADR-0003
 
-ADR-0003 mandate "NSView + NSEvent.delta pipeline", v0.14 NativeSplitter(view) + v0.15 LayoutShellView HStack 范式 替代。
+ADR-0003 mandates "NSView + NSEvent.delta pipeline", replaced by v0.14 NativeSplitter(view) + v0.15 LayoutShellView HStack paradigm.
 
-新 ADR-0007 内容:
-- Title: "Layout shell 范式: HStack + 自写 NativeSplitter(view)"
+New ADR-0007 content:
+- Title: "Layout shell paradigm: HStack + self-written NativeSplitter(view)"
 - Status: accepted
 - Supersedes: ADR-0003 (drag-splitter-nsview)
-- Decision: 6 区 layout 用 Apple HIG HStack 范式, 拖拽线 = 自写 NativeSplitter(view) (DragGesture + .pointerStyle + hover 4 PT accent capsule)
-- Context: HSplitView / VSplitView divider 颜色改不了 (公开已知限制), NavigationSplitView 跟 Sketch 6 区不对应, NSView + NSEvent 在 SwiftUI 顶层 window 有 cursor 跨边界 + drag 闪烁问题
+- Decision: 6-zone layout uses Apple HIG HStack paradigm, splitter = self-written NativeSplitter(view) (DragGesture + .pointerStyle + hover 4 PT accent capsule)
+- Context: HSplitView / VSplitView divider color unchangeable (publicly known limitation), NavigationSplitView doesn't match Sketch 6 zones, NSView + NSEvent in SwiftUI top-level window has cursor cross-boundary + drag flicker issues
 - Decision-maker: 老板 2026-08-19 拍板 (ticket 005)
-- Consequences: 改 1 处 = 6 拖拽线全改 (NativeSplitter 1 组件 + SplitterOrientation enum)
+- Consequences: change 1 place = 6 splitters all changed (NativeSplitter 1 component + SplitterOrientation enum)
 
-### 6.2 改 spec §5.2 S1 标题栏底 1 PT 分割线
+### 6.2 Fix spec §5.2 S1 title bar bottom 1 PT divider
 
-老板 2026-08-19 拍: 标题栏走 macOS .windowStyle(.titleBar) 52 PT unified chrome, 不自写。macOS chrome 自带底部分隔(灰色背景跟深色 zone 交界),spec §5.2 S1 改为"标题栏底分隔 = macOS chrome 自带 (老板 2026-08-19 ticket 005)"。
+老板 2026-08-19 拍: title bar uses macOS `.windowStyle(.titleBar)` 52 PT unified chrome, no self-write. macOS chrome comes with its own bottom separator (gray background borders dark zone), spec §5.2 S1 change to "title bar bottom separator = macOS chrome built-in (老板 2026-08-19 ticket 005)".
 
-### 6.3 S6 Shotgun Surgery: 表驱动 adjust
+### 6.3 S6 Shotgun Surgery: table-driven adjust
 
-VM 已有 `adjust(_ index: Int, delta: CGFloat, totalWidth: CGFloat)`, LayoutShellView / UpperBandZone / LowerBandZone 改成表驱动:
+VM already has `adjust(_ index: Int, delta: CGFloat, totalWidth: CGFloat)`, LayoutShellView / UpperBandZone / LowerBandZone change to table-driven:
 
 ```swift
 private let splitterCallbacks: [(CGFloat, CGFloat) -> Void] = []  // populated per zone
 ```
 
-或更简洁: 写一个 splitter helper view, 接受 `orientation + length + splitterIndex`, 内部调 `vm.adjust(splitterIndex, delta:length:)`.
+Or more concise: write a splitter helper view, accept `orientation + length + splitterIndex`, internally call `vm.adjust(splitterIndex, delta:length:)`.
 
 ### 6.4 S7 Repeated Switches: ZoneModule.content slot-keyed theming
 
-抽 slot-keyed theme:
+Extract slot-keyed theme:
 ```swift
 struct ZoneTheme {
     let background: Color
@@ -43,30 +43,30 @@ struct ZoneTheme {
 }
 static let themes: [ZoneSlot: ZoneTheme] = [
     .projectSidebar: .init(background: .zoneSurface, content: { _, _, lib in AnyView(LibraryOutlineViewContent(library: lib)) }),
-    .editor: .init(background: .zoneSurface, content: { w, h, _ in AnyView(/* editor inset 双层 */) }),
+    .editor: .init(background: .zoneSurface, content: { w, h, _ in AnyView(/* editor inset double layer */) }),
     ...
 ]
 ```
 
-## 不动
+## Untouched
 
-- P0 / P1 / P2 已修 (commit 4ba2e37)
-- NativeSplitter / ZoneTopToolbar / ZoneBottomToolbar 组件
+- P0 / P1 / P2 already fixed (commit `4ba2e37`)
+- NativeSplitter / ZoneTopToolbar / ZoneBottomToolbar components
 
-## 验收
+## Acceptance
 
-- swift build clean
-- swift run + screencapture -l 真截图 (视觉回归)
-- ADR-0007 + spec §5.2 S1 改完, 跟代码一致
+- `swift build` clean
+- `swift run` + screencapture -l true screenshot (visual regression)
+- ADR-0007 + spec §5.2 S1 changed, consistent with code
 
-## 风险
+## Risk
 
-- 表驱动 adjust 重构签名变, 调用方要跟
-- ZoneModule.content slot-keyed theming 抽 helper 是 judgement call, 老板拍
+- Table-driven adjust refactor signature changes, callers must follow
+- ZoneModule.content slot-keyed theming extracting helper is judgement call, 老板 拍
 
-## 老板拍板点
+## 老板 拍板 points
 
-- ADR-0007 写不写? 写 (P3-1)
-- spec §5.2 S1 改不改? 改 (P3-2)
-- S6 表驱动改不改? 改 (P3-3)
-- S7 slot-keyed theming 抽不抽? 抽 (P3-4, 但用静态 dict, 不引入新类型)
+- ADR-0007 write or not? Write (P3-1)
+- spec §5.2 S1 fix or not? Fix (P3-2)
+- S6 table-driven change or not? Change (P3-3)
+- S7 slot-keyed theming extract or not? Extract (P3-4, but use static dict, no new type introduced)

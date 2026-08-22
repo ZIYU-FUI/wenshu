@@ -1,70 +1,69 @@
-# 03 — cursor 切上下 / 左右箭头 (SwiftUI .pointerStyle 退回, 老板 2026-08-19 拍)
+# 03 — cursor switches up/down / left/right arrows (SwiftUI .pointerStyle fallback, 老板 2026-08-19 拍)
 
 **What to build:**
-老板 2026-08-19 反馈 "鼠标没变" 反复. 真因报告 v2 实证: NSHostingView 不 override resetCursorRects, ticket 03 + ticket 06 范式错 (AppKit cursor rects 范式不该 work 在 SwiftUI WindowGroup 上下文).
-老板 2026-08-19 19:30 Q28 拍 "cursor 必须切 + 业务语言描述, 不动底层框架代码".
+老板 2026-08-19 repeatedly reported "mouse doesn't change". Root-cause report v2 confirms: NSHostingView does not override resetCursorRects, ticket 03 + ticket 06 paradigm is wrong (AppKit cursor rects paradigm should not work in SwiftUI WindowGroup context).
+老板 2026-08-19 19:30 Q28 拍 "cursor must switch + describe in business language, do not touch low-level framework code".
 
-业务语言描述 (老板懂):
-- 之前为了 cursor 加的 "NSResponder + NSTrackingArea + hit test" 底层补丁 (WenshuCursorController 整个类 + contentView.hitTest 等) 都是底层框架代码, 这些是错误的尝试
-- 改用 SwiftUI 官方 cursor 切换 API: `.pointerStyle(.columnResize() / .rowResize())` 挂到拖拽线最外层 (老板 v0.14 失灵真因是挂错位置, 不是 API bug)
-- Pages / Numbers / Xcode 用的就是这套 (Apple HIG macOS 15+ 标准)
-- 拖拽线代码 100% 不动 (visual + hover + drag + hit area 全保持)
-- 只加 1 行 SwiftUI cursor 修饰 + 删底层补丁代码 (WenshuCursorController + findSplitter)
+Business-language description (老板 understands):
+- All the low-level patches added earlier for cursor (NSResponder + NSTrackingArea + hit test — the entire `WenshuCursorController` class + `contentView.hitTest` etc.) are low-level framework code; these were wrong attempts
+- Switch to SwiftUI's official cursor API: `.pointerStyle(.columnResize() / .rowResize())` attached to the outermost layer of the splitter (the v0.14 root cause was wrong attachment location, not an API bug)
+- Pages / Numbers / Xcode use this exact set (Apple HIG macOS 15+ standard)
+- Splitter code 100% unchanged (visual + hover + drag + hit area all preserved)
+- Only add 1 line of SwiftUI cursor modifier + delete low-level patch code (`WenshuCursorController` + `findSplitter`)
 
 **Blocked by:** None
-
-**Status:** ready-for-agent → impl done → 等老板验
+**Status:** ready-for-agent → impl done → waiting for 老板 verify
 
 ## Acceptance criteria
 
-- [ ] NativeSplitter body ZStack 加 `.pointerStyle(orientation == .vertical ? .columnResize() : .rowResize())` 挂到最外层 (Rectangle + SplitterHitAreaRepresentable 的 ZStack 父级)
-- [ ] 鼠标移上 D_h 拖拽线 → cursor 变 ↕ 上下箭头 (NSCursor.rowResize / SwiftUI .rowResize 真值)
-- [ ] 鼠标移上 D_v 5 竖拖拽线 → cursor 变 ↔ 左右箭头 (NSCursor.columnResize / SwiftUI .columnResize 真值)
-- [ ] 鼠标离开拖拽线 → cursor 还原
-- [ ] 拖拽线拖动 / hover 蓝光 / hit area / 1 PT fill 视觉 全保持
-- [ ] 删除 WenshuCursorController NSResponder 整个类 (App.swift L249-321 整块)
-- [ ] 删除 WenshuAppDelegate.cursorController 属性 + applicationDidFinishLaunching 里 cursorController = WenshuCursorController(window: window) (App.swift L224-237 整块)
-- [ ] 删除 NativeSplitter.resetCursorRects (NSView 屏蔽 cursor rects, 真因报告 v2 实证)
-- [ ] 删 cursorController + WenshuCursorController 后 swift build exit 0
-- [ ] 不动 macOS chrome 52 PT / LayoutTokens / bandH / toolbar 宽度
-- [ ] 不动菜单栏 (backlog 07 待拍)
+- [ ] NativeSplitter body ZStack add `.pointerStyle(orientation == .vertical ? .columnResize() : .rowResize())` attached to the outermost layer (parent of ZStack containing Rectangle + SplitterHitAreaRepresentable)
+- [ ] Mouse over D_h splitter → cursor changes to ↕ up-down arrows (NSCursor.rowResize / SwiftUI .rowResize truth value)
+- [ ] Mouse over D_v 5 vertical splitters → cursor changes to ↔ left-right arrows (NSCursor.columnResize / SwiftUI .columnResize truth value)
+- [ ] Mouse leaves splitter → cursor restored
+- [ ] Splitter drag / hover blue glow / hit area / 1 PT fill visuals all preserved
+- [ ] Delete entire `WenshuCursorController` NSResponder class (App.swift L249-321 whole block)
+- [ ] Delete `WenshuAppDelegate.cursorController` property + `cursorController = WenshuCursorController(window: window)` inside `applicationDidFinishLaunching` (App.swift L224-237 whole block)
+- [ ] Delete `NativeSplitter.resetCursorRects` (NSView shields cursor rects, confirmed by root-cause report v2)
+- [ ] After deleting `cursorController` + `WenshuCursorController`, `swift build` exit 0
+- [ ] Do not touch macOS chrome 52 PT / LayoutTokens / bandH / toolbar width
+- [ ] Do not touch menu bar (backlog 07 pending)
 
-## 真因 (cursor-investigation-report-v2.md)
+## Root cause (cursor-investigation-report-v2.md)
 
-- NSHostingView (macOS 27 SDK swiftinterface 实证) 不 override `resetCursorRects()`, 同时 override `hitTest` / `mouseMoved` / `cursorUpdate`
-- 这屏蔽 AppKit cursor rects 范式在 SwiftUI 子树内的工作 (ticket 03 + ticket 06 范式错, 不是代码 bug)
-- 推荐: 退回 SwiftUI `.pointerStyle` 不走 NSViewRepresentable (Apple HIG macOS 15+ 标准)
+- NSHostingView (macOS 27 SDK swiftinterface confirmed) does not override `resetCursorRects()`, but does override `hitTest` / `mouseMoved` / `cursorUpdate`
+- This blocks the AppKit cursor rects paradigm from working inside SwiftUI subtrees (ticket 03 + ticket 06 paradigm wrong, not a code bug)
+- Recommended: fall back to SwiftUI `.pointerStyle`, skip NSViewRepresentable (Apple HIG macOS 15+ standard)
 
-## 业务语言描述修法 (老板懂)
+## Business-language fix description (老板 understands)
 
-- 拖拽线加 1 行 SwiftUI 官方 cursor 切换 (跟 Pages / Numbers 一样)
-- 删之前为了 cursor 加的底层补丁代码 (WenshuCursorController 等)
-- 拖拽线视觉 / hover 蓝光 / 拖动响应 / hit area 100% 不动
+- Add 1 line of SwiftUI official cursor switch to the splitter (same as Pages / Numbers)
+- Delete the low-level patch code added earlier for cursor (`WenshuCursorController` etc.)
+- Splitter visuals / hover blue glow / drag response / hit area 100% unchanged
 
 ## Implementation Decisions
 
-- NativeSplitter body L153 `.frame(width: outerWidth, height: outerHeight)` 链最后加 `.pointerStyle(...)`
-- orientation == .vertical → `.columnResize()`, 否则 → `.rowResize()`
-- macOS 15+ API (PointerStyle.columnResize(directions:) / .rowResize(directions:))
-- WenshuApp.swift 删 WenshuCursorController 类 + WenshuAppDelegate.cursorController 相关 5 行
-- NativeSplitter.swift 删 SplitterHitArea.resetCursorRects 整块 (L86-90)
-- 保留 SplitterHitArea mouseDown/mouseDragged/mouseUp/mouseEntered/mouseExited (拖拽 + hover 蓝光用)
+- NativeSplitter body L153 `.frame(width: outerWidth, height: outerHeight)` chain finally add `.pointerStyle(...)`
+- `orientation == .vertical` → `.columnResize()`, otherwise → `.rowResize()`
+- macOS 15+ API (`PointerStyle.columnResize(directions:)` / `.rowResize(directions:)`)
+- WenshuApp.swift delete `WenshuCursorController` class + 5 lines related to `WenshuAppDelegate.cursorController`
+- NativeSplitter.swift delete `SplitterHitArea.resetCursorRects` whole block (L86-90)
+- Keep `SplitterHitArea` mouseDown/mouseDragged/mouseUp/mouseEntered/mouseExited (used by drag + hover blue glow)
 
 ## Testing Decisions
 
-- 仅 `swift build clean` (exit 0), 老板自己启 app 验
-- 验证: 鼠标移上 D_h 切 ↕, 移上 D_v 切 ↔
+- Only `swift build clean` (exit 0), 老板 self-launches app to verify
+- Verify: mouse over D_h switches ↕, mouse over D_v switches ↔
 
 ## Out of Scope
 
-- 不重写拖拽线视觉 (Rectangle + 1 PT fill + Apple 系统色保留)
-- 不动 macOS chrome / LayoutTokens / bandH / toolbar 宽度
-- 不动菜单栏 (backlog 07 待查文档)
-- 不重写 SplitterHitArea NSView (拖拽 + hover 蓝光保留)
+- Do not rewrite splitter visuals (Rectangle + 1 PT fill + Apple system color preserved)
+- Do not touch macOS chrome / LayoutTokens / bandH / toolbar width
+- Do not touch menu bar (backlog 07 pending doc check)
+- Do not rewrite `SplitterHitArea` NSView (drag + hover blue glow preserved)
 
 ## Further Notes
 
-- 老板 v0.14 失灵真因是挂错位置 (gesture chain), 这次挂到 ZStack 最外层 (Rectangle + NSViewRepresentable 父级)
-- cursor-investigation-report-v2.md 推荐方案 A
-- 跟 ticket 06 (commit 096b9cb) 撤回大部分 (WenshuCursorController 整个删)
-- 跟 ticket 03 (commit de0f6ec) 撤回 resetCursorRects 整块
+- 老板 v0.14 root cause was wrong attachment location (gesture chain); this time attach to outermost ZStack (parent of Rectangle + NSViewRepresentable)
+- `cursor-investigation-report-v2.md` recommended Plan A
+- Reverts most of ticket 06 (commit `096b9cb`) (entire `WenshuCursorController` deleted)
+- Reverts entire `resetCursorRects` block from ticket 03 (commit `de0f6ec`)

@@ -1,175 +1,175 @@
-# SPEC v0-scaffold-from-sketch (Wenshu 首页 6 区 layout)
+# SPEC v0-scaffold-from-sketch (Wenshu homepage 6-zone layout)
 
-> 数据源: Sketch `AF7B1C87-ADDD-41ED-8208-7CA5549070E2` · page `文枢` · Artboard `首页`
-> 单位: PX (老板 8/18 修正, macOS 27 1x 下 1 PT = 1 PX, 无 retina 缩放)
-> 真值 read: `mcp__sketch__run_code` 递归 dump 47 layer frame (2026-08-18)
-> Artboard 整体尺寸: 3840 × 1968 PX
+> Data source: Sketch `AF7B1C87-ADDD-41ED-8208-7CA5549070E2` · page `文枢` · Artboard `首页`
+> Unit: PX (老板 8/18 corrected, on macOS 27 1x 1 PT = 1 PX, no retina scaling)
+> Truth read: `mcp__sketch__run_code` recursive dump of 47 layer frames (2026-08-18)
+> Artboard overall dimensions: 3840 × 1968 PX
 
-## 0. 单位声明 (老板 8/18)
+## 0. Unit declaration (老板 8/18)
 
-- 设计图所有数值 = **PX** (像素)
-- Apple macOS 27 1x 设备下 1 PT = 1 PX (无 retina 缩放系数介入)
-- 实现按 1:1 PX 落, 不换算 PT
-- 拖拽线 = 2 PX 粗 (= 1 PT, 老板 8/18 拍 "换算完, 应该都 1PT 的粗细")
+- All design values = **PX** (pixels)
+- On Apple macOS 27 1x devices, 1 PT = 1 PX (no retina scaling factor involved)
+- Implementation lands 1:1 in PX, no PT conversion
+- Drag splitter = 2 PX thick (= 1 PT, 老板 8/18 拍 "after conversion, they should all be 1 PT thick")
 
-## 1. 顶层结构 (Artboard = 首页)
+## 1. Top-level structure (Artboard = `首页`)
 
-| Zone ID | 名称 | Frame (PX) | 颜色 |
+| Zone ID | Name | Frame (PX) | Color |
 |---------|------|------------|------|
-| Z-TITLE | 标题栏 | 0,0,1920,38 | #393939 实心 |
-| Z-NOVEL | 小说管理区 | 0,39,1920,472 | 透明 (子节点各自填充) |
-| Z-CHAT  | 聊天管理区 | 0,512,1920,472 | 透明 (子节点各自填充) |
+| Z-TITLE | Title bar | 0,0,1920,38 | #393939 solid |
+| Z-NOVEL | Novel management area | 0,39,1920,472 | Transparent (children fill individually) |
+| Z-CHAT  | Chat management area | 0,512,1920,472 | Transparent (children fill individually) |
 
-## 2. 标题栏 (Z-TITLE)
+## 2. Title bar (Z-TITLE)
 
-- ShapePath, 3840×76 PX, #393939 实心
-- 无 traffic lights (Sketch 设计图纯色块, 非系统窗口 chrome)
+- ShapePath, 3840×76 PX, #393939 solid
+- No traffic lights (Sketch design is a pure color block, not system window chrome)
 
-## 3. 小说管理区 (Z-NOVEL · 0,78,3840,944) — 3 列
+## 3. Novel management area (Z-NOVEL · 0,78,3840,944) — 3 columns
 
-| Zone ID | 名称 | Frame (PX) | 内容 |
+| Zone ID | Name | Frame (PX) | Content |
 |---------|------|------------|------|
-| Z-N-PROJ | 项目管理 | 0,0,1516,944 | 顶栏 + 侧栏 + 预览区 + 3 蓝矩形 |
-| Z-N-EDIT | 编辑器   | 1518,0,1514,944 | 顶栏 + 背景 + 正文区 + 底栏 |
-| Z-N-TOOL | 专用工具 | 3034,0,806,944 | 顶栏 + 功能区 + 底栏 |
+| Z-N-PROJ | Project management | 0,0,1516,944 | Top bar + sidebar + preview area + 3 blue rectangles |
+| Z-N-EDIT | Editor   | 1518,0,1514,944 | Top bar + background + body area + bottom bar |
+| Z-N-TOOL | Dedicated tools | 3034,0,806,944 | Top bar + function area + bottom bar |
 
-### 3.1 项目管理 (Z-N-PROJ · 0,0,1516,944)
+### 3.1 Project management (Z-N-PROJ · 0,0,1516,944)
 
-| 子 Zone | 名称 | Frame (相对) | 颜色 |
+| Sub-zone | Name | Frame (relative) | Color |
 |---------|------|-------------|------|
-| | 项目管理顶栏 | 0,0,1516,58 | #202020 |
-| | 项目管理侧栏 | 0,60,400,884 | #202020 |
-| | 项目管理预览区 | 402,60,1114,824 | 透明容器 |
-| └ | 预览区顶栏 | 0,0,1114,58 | #202020 |
-| └ | 功能区 | 0,60,1114,764 | #202020 |
-| └ | 预览区底栏 | 0,826,1114,58 | #202020 |
-| | 矩形 (#4a60b2) | 22,10,38,38 | #4a60b2 |
-| | 矩形 2 | 82,10,38,38 | #4a60b2 |
-| | 矩形 3 | 142,10,38,38 | #4a60b2 |
+|  | Project management top bar | 0,0,1516,58 | #202020 |
+|  | Project management sidebar | 0,60,400,884 | #202020 |
+|  | Project management preview area | 402,60,1114,824 | Transparent container |
+| └ | Preview area top bar | 0,0,1114,58 | #202020 |
+| └ | Function area | 0,60,1114,764 | #202020 |
+| └ | Preview area bottom bar | 0,826,1114,58 | #202020 |
+|  | Rectangle (#4a60b2) | 22,10,38,38 | #4a60b2 |
+|  | Rectangle 2 | 82,10,38,38 | #4a60b2 |
+|  | Rectangle 3 | 142,10,38,38 | #4a60b2 |
 
-**3 个蓝色矩形 = 未来 ICON 按钮占位** (老板 8/18 答 Q3):
-- 等距 60 PX 间距 (22/82/142), 38×38 PX, #4a60b2
-- 实现时不渲染 3 个矩形本身, 仅保留 142+38=180 PX 宽的占位空间
-- 顶栏内容布局按"前 180 PX 是 ICON 区"留白, 后续画 ICON 时直接插入
+**3 blue rectangles = future ICON button placeholders** (老板 8/18 answered Q3):
+- 60 PX equal spacing (22/82/142), 38×38 PX, #4a60b2
+- At implementation do not render the 3 rectangles themselves; only reserve 142+38=180 PX wide placeholder space
+- Top bar content layout reserves "front 180 PX as ICON area"; drop the actual ICON design in directly when finished
 
-### 3.2 编辑器 (Z-N-EDIT · 1518,0,1514,944)
+### 3.2 Editor (Z-N-EDIT · 1518,0,1514,944)
 
-| 子 Zone | 名称 | Frame (相对) | 颜色 |
+| Sub-zone | Name | Frame (relative) | Color |
 |---------|------|-------------|------|
-| | 编辑器顶栏 | 0,0,1514,58 | #202020 |
-| | 编辑器背景 | 0,60,1514,824 | #202020 |
-| | 编辑器正文区 | 20,64,1474,818 | #ffffff 透明度 55% (alpha 0x8c) |
-| | 编辑器底栏 | 0,886,1514,58 | #202020 |
+|  | Editor top bar | 0,0,1514,58 | #202020 |
+|  | Editor background | 0,60,1514,824 | #202020 |
+|  | Editor body area | 20,64,1474,818 | #ffffff 55% opacity (alpha 0x8c) |
+|  | Editor bottom bar | 0,886,1514,58 | #202020 |
 
-**两层设计** (老板 8/18 答 Q2): 外层 #202020 编辑器背景 + 内层 #ffffff 55% 正文区. 4 PX inset (背景 y=60~884, 正文 y=64~882) 是有意视觉下沉, 让阅读区比整个编辑区小一圈, 建立层级. 不要删.
+**Two-layer design** (老板 8/18 answered Q2): outer #202020 editor background + inner #ffffff 55% body area. The 4 PX inset (background y=60~884, body y=64~882) is an intentional visual inset to make the reading area smaller than the entire editor area by one ring, establishing hierarchy. Do not remove.
 
-### 3.3 专用工具 (Z-N-TOOL · 3034,0,806,944)
+### 3.3 Dedicated tools (Z-N-TOOL · 3034,0,806,944)
 
-| 子 Zone | 名称 | Frame (相对) | 颜色 |
+| Sub-zone | Name | Frame (relative) | Color |
 |---------|------|-------------|------|
-| | 专用工具顶栏 | 0,0,806,58 | #202020 |
-| | 专用工具功能区 | 0,60,806,824 | #202020 |
-| | 专用工具底栏 | 0,886,806,58 | #202020 |
+|  | Dedicated tools top bar | 0,0,806,58 | #202020 |
+|  | Dedicated tools function area | 0,60,806,824 | #202020 |
+|  | Dedicated tools bottom bar | 0,886,806,58 | #202020 |
 
-## 4. 聊天管理区 (Z-CHAT · 0,1024,3840,944) — 1 顶栏 + 2 列
+## 4. Chat management area (Z-CHAT · 0,1024,3840,944) — 1 top bar + 2 columns
 
-| Zone ID | 名称 | Frame (PX) | 颜色 |
+| Zone ID | Name | Frame (PX) | Color |
 |---------|------|------------|------|
-| Z-C-TOP | 聊天管理区顶栏 | 0,0,3840,60 | #333333 |
-| Z-C-CHAT | 聊天区 | 0,62,3032,882 | 透明 |
-| Z-C-DYN | 动态区 | 3034,62,806,882 | 透明 |
+| Z-C-TOP | Chat management area top bar | 0,0,3840,60 | #333333 |
+| Z-C-CHAT | Chat area | 0,62,3032,882 | Transparent |
+| Z-C-DYN | Dynamic area | 3034,62,806,882 | Transparent |
 
-### 4.1 聊天区 (Z-C-CHAT · 0,62,3032,882)
+### 4.1 Chat area (Z-C-CHAT · 0,62,3032,882)
 
-| 子 Zone | 名称 | Frame (相对) | 颜色 |
+| Sub-zone | Name | Frame (relative) | Color |
 |---------|------|-------------|------|
-| | 聊天区侧边栏 | 0,0,400,818 | #202020 |
-| | 聊天区侧边栏底栏 | 0,820,400,62 | #202020 |
-| | 聊天区对话区 | 402,0,2630,882 | #202020 |
-| | 聊天区输入框 | 422,724,2590,94 | #4a60b2 |
+|  | Chat area sidebar | 0,0,400,818 | #202020 |
+|  | Chat area sidebar bottom bar | 0,820,400,62 | #202020 |
+|  | Chat area conversation area | 402,0,2630,882 | #202020 |
+|  | Chat area input box | 422,724,2590,94 | #4a60b2 |
 
-输入框 = #4a60b2 蓝 (与项目管理顶栏的蓝色矩形同色).
+Input box = #4a60b2 blue (same color as the blue rectangles in project management top bar).
 
-### 4.2 动态区 (Z-C-DYN · 3034,62,806,882)
+### 4.2 Dynamic area (Z-C-DYN · 3034,62,806,882)
 
-| 子 Zone | 名称 | Frame (相对) | 颜色 |
+| Sub-zone | Name | Frame (relative) | Color |
 |---------|------|-------------|------|
-| | 动态区功能区 | 0,0,806,818 | #1e1e1e |
-| | 动态区底栏 | 0,820,806,62 | #202020 |
+|  | Dynamic area function area | 0,0,806,818 | #1e1e1e |
+|  | Dynamic area bottom bar | 0,820,806,62 | #202020 |
 
-注意功能区 #1e1e1e 比其他区的 #202020 略深.
+Note: the function area #1e1e1e is slightly darker than the other areas' #202020.
 
-## 5. 13 分割线真值 (Artboard 全局 PX, 老板 8/18 拍板全部到位)
+## 5. 13 splitter truth source (Artboard global PX, 老板 8/18 拍板 all in place)
 
-老板 8/18 拍 "拖拽线少两根没有落地, 分割线不可拖拽的, 全缺". 全部落地.
+老板 8/18 拍 "two drag splitters are missing from the landing, non-draggable splitters are all missing". All landed.
 
-### 5.1 6 拖拽线 (老板 8/18 拍 2 PX 粗 ≡ 1 PT, 6 PT hit area, 1 PT 黑线视觉)
+### 5.1 6 drag splitters (老板 8/18 拍 2 PX thick ≡ 1 PT, 6 PT hit area, 1 PT black line visual)
 
-| ID | id (Sketch) | x | y | w | h | 功能 |
+| ID | id (Sketch) | x | y | w | h | Function |
 |----|-------------|---|---|---|---|------|
-| D1 | 143A756D | 400 | 138 | 2 | 884 | 项目管理侧栏 / 预览 |
-| D2 | 6134E008 | 1516 | 78 | 2 | 944 | 项目管理 / 编辑器 |
-| D3 | 91DAAC15 | 3032 | 78 | 2 | 944 | 编辑器 / 专用工具 |
-| D4 | DC78C7F3 | 400 | 1086 | 2 | 882 | 聊天侧栏 / 聊天对话 |
-| D5 | 869171D1 | 3032 | 1086 | 2 | 882 | 聊天对话 / 动态区 |
-| D6 | 1363CC24 | 0 | 1022 | 3840 | 2 | 横向 小说管理 / 聊天管理 |
+| D1 | 143A756D | 400 | 138 | 2 | 884 | Project management sidebar / preview |
+| D2 | 6134E008 | 1516 | 78 | 2 | 944 | Project management / editor |
+| D3 | 91DAAC15 | 3032 | 78 | 2 | 944 | Editor / dedicated tools |
+| D4 | DC78C7F3 | 400 | 1086 | 2 | 882 | Chat sidebar / chat conversation |
+| D5 | 869171D1 | 3032 | 1086 | 2 | 882 | Chat conversation / dynamic area |
+| D6 | 1363CC24 | 0 | 1022 | 3840 | 2 | Horizontal novel management / chat management |
 
-**D4 / D5 偏差** (老板 8/18 修正, 图真值修到设计意图):
-- Sketch 图真值子组 frame=(x:400 y:1008) + 父 ChatManagementZone y=1024 + 子 ChatRegion y=62 = **真实 2094** (超出 Artboard 1968 by 126 PX)
-- 设计落点 y=1086 (顶紧贴 D6 横向拖拽线之下, 装进 882 屏内)
-- 老板 8/18 拍 "拖拽线少两根没有落地" → 按设计意图落 1086
+**D4 / D5 deviation** (老板 8/18 corrected, image truth source fixed to design intent):
+- Sketch image truth source sub-group frame=(x:400 y:1008) + parent ChatManagementZone y=1024 + child ChatRegion y=62 = **actual 2094** (exceeds Artboard 1968 by 126 PX)
+- Design landing point y=1086 (hugs just below D6 horizontal drag splitter, fits inside the 882 screen)
+- 老板 8/18 拍 "two drag splitters are missing from the landing" → land at 1086 per design intent
 
-### 5.2 7 不可拖拽分割线 (NSColor.separatorColor 1 PX, SwiftUI Divider / Color.frame)
+### 5.2 7 non-draggable splitters (NSColor.separatorColor 1 PX, SwiftUI Divider / Color.frame)
 
-| ID | id (Sketch) | x | y | w | h | 功能 |
+| ID | id (Sketch) | x | y | w | h | Function |
 |----|-------------|---|---|---|---|------|
-| S1 | 3BD407CA | 0 | 76 | 3840 | 2 | 标题栏底 → 老板 2026-08-19 ticket 005 改: 标题栏走 macOS .windowStyle(.titleBar) 52 PT unified chrome, macOS chrome 自带分隔 (灰色背景跟深色 zone 交界), 不再自写分割线 (Canvas 重画删除后无替代实现) |
-| S2 | CFDCDAEC | 0 | 136 | 3840 | 2 | 小说管理区顶栏底 (跨整 band) |
-| S3 | FA73EB21 | 402 | 334 | 1114 | 2 | 预览区顶栏底 |
-| S4 | 685B018D | 402 | 1906 | 3032 | 2 | 聊天侧边栏底栏底 (跨过 D5 拖拽线视觉) |
-| S5 | 3AD21B74 | 0 | 1084 | 3840 | 2 | 聊天管理区顶栏底 |
-| S6 | 18620717 | 0 | 1904 | 400 | 2 | 项目管理底栏底 |
-| S7 | 1FC20946 | 3034 | 1904 | 806 | 2 | 专用工具底栏底 |
+| S1 | 3BD407CA | 0 | 76 | 3840 | 2 | Title bar bottom → 老板 2026-08-19 ticket 005 change: title bar uses macOS .windowStyle(.titleBar) 52 PT unified chrome, macOS chrome auto-includes separator (gray background meets dark zone), no longer hand-written splitter (no replacement implementation after Canvas redraw was deleted) |
+| S2 | CFDCDAEC | 0 | 136 | 3840 | 2 | Novel management area top bar bottom (across full band) |
+| S3 | FA73EB21 | 402 | 334 | 1114 | 2 | Preview area top bar bottom |
+| S4 | 685B018D | 402 | 1906 | 3032 | 2 | Chat sidebar bottom bar bottom (crosses D5 drag splitter visual) |
+| S5 | 3AD21B74 | 0 | 1084 | 3840 | 2 | Chat management area top bar bottom |
+| S6 | 18620717 | 0 | 1904 | 400 | 2 | Project management bottom bar bottom |
+| S7 | 1FC20946 | 3034 | 1904 | 806 | 2 | Dedicated tools bottom bar bottom |
 
-**S4 偏差** (老板 8/18 修正, 图真值修到设计意图):
-- Sketch 图真值子组 frame=(x:402 y=962) + 父 1024 + 子 62 = **真实 2048** (超出 Artboard 1968 by 80 PX)
-- 设计落点 y=1906 (项目底栏底位置 1904 + 2 PX 顶 = 跨聊天区侧栏底栏 + 动态区底栏视觉线)
+**S4 deviation** (老板 8/18 corrected, image truth source fixed to design intent):
+- Sketch image truth source sub-group frame=(x:402 y=962) + parent 1024 + child 62 = **actual 2048** (exceeds Artboard 1968 by 80 PX)
+- Design landing point y=1906 (project bottom bar bottom position 1904 + 2 PX top = across chat area sidebar bottom bar + dynamic area bottom bar visual line)
 
-## 6. 颜色色板 (设计图真值)
+## 6. Color palette (design truth source)
 
-| 角色 | 色值 | 出现位置 |
+| Role | Color value | Where it appears |
 |------|------|---------|
-| 主标题栏灰 | #393939 | 标题栏 |
-| 聊天顶栏灰 | #333333 | 聊天管理区顶栏 |
-| 内容区底色 | #202020 | 所有顶栏/底栏/功能区/侧栏/编辑器背景/对话区 |
-| 动态区底色 | #1e1e1e | 动态区功能区 |
-| 编辑器正文区 | #ffffff 55% alpha | 编辑器正文区 |
-| 强调蓝 | #4a60b2 | 输入框, 项目管理顶栏 3 矩形 |
-| 拖拽线 | #000000 2PX | 6 条分割线 |
+| Main title bar gray | #393939 | Title bar |
+| Chat top bar gray | #333333 | Chat management area top bar |
+| Content area base | #202020 | All top bars / bottom bars / function areas / sidebars / editor background / conversation area |
+| Dynamic area base | #1e1e1e | Dynamic area function area |
+| Editor body area | #ffffff 55% alpha | Editor body area |
+| Accent blue | #4a60b2 | Input box, project management top bar 3 rectangles |
+| Drag splitter | #000000 2PX | 6 splitters |
 
-## 7. 老板拍板 (8/18 全部答完)
+## 7. 老板 拍板 (8/18 all answered)
 
-- 标题栏 #393939 跟聊天顶栏 #333333 色差 = 有意层级区分 (Q4 拍 yes)
-- 拖拽线 2 PX 粗细 = 设计原值, 先按 2 PX 还原, 实际效果看线粗不粗再调 (Q5 拍 yes + 老板 8/18: "3840,1890 是我的实际截图, 我应该是个 2K 的屏幕. 先按我的图还原, 最后看线是不是够用")
-- 编辑器正文 4 PX inset = 有意两层设计 (Q2 拍 yes)
-- 3 个蓝色矩形 = 未来 ICON 占位, 实现不渲染仅留空间 (Q3 拍 yes)
-- 拖拽线 D4/D5 + 分割线 S4 = Sketch 图子 layer 笔误出 Artboard 边界, 按设计意图落 (Q1 我自己推导 + 老板 8/18 修正)
+- Title bar #393939 vs. chat top bar #333333 color difference = intentional hierarchy distinction (Q4 拍 yes)
+- Drag splitter 2 PX thickness = original design value; first restore at 2 PX, adjust later if the line looks too thick (Q5 拍 yes + 老板 8/18: "3840,1890 is my actual screenshot, I should have a 2K screen. First restore per my image, then check whether the line is thick enough")
+- Editor body 4 PX inset = intentional two-layer design (Q2 拍 yes)
+- 3 blue rectangles = future ICON placeholder, implementation does not render them, only reserves space (Q3 拍 yes)
+- Drag splitter D4/D5 + splitter S4 = Sketch image sub-layer typo out of Artboard bounds, land per design intent (Q1 my own derivation + 老板 8/18 correction)
 
-## 8. 实现约束 (老板 8/18)
+## 8. Implementation constraints (老板 8/18)
 
-- **macOS-only** (`.macOS(.v27)` 单 target)
-- 不写硬编码 RGB/size/corner/opacity → 用 Apple Semantic (`Color(.controlBackgroundColor)` / `Material` / `.background(.ultraThinMaterial)` 等) 但保留设计图色值作为 fallback (因为设计图有具体色值要求)
-- 单位 1 PX = 1 PT (macOS 27 1x), 不缩放
-- 任何"通用预留点" / iOS / iPadOS / Catalyst 适配 = 死代码 = 删
-- 屏分辨率小于 3840×1968 时按比例缩放 (AppDelegate 等比缩放到 maxW/maxH, 不扭曲)
+- **macOS-only** (`.macOS(.v27)` single target)
+- No hardcoded RGB/size/corner/opacity → use Apple Semantic (`Color(.controlBackgroundColor)` / `Material` / `.background(.ultraThinMaterial)` etc.) but retain design color values as fallback (because the design has specific color value requirements)
+- Unit 1 PX = 1 PT (macOS 27 1x), no scaling
+- Any "universal reserved point" / iOS / iPadOS / Catalyst adaptation = dead code = delete
+- When screen resolution is less than 3840×1968, scale proportionally (AppDelegate scales proportionally to maxW/maxH, no distortion)
 
-## 9. 实现路径 (v0.07.0 落地状态)
+## 9. Implementation path (v0.07.0 landing state)
 
-- 真值数据源: `mcp__sketch__run_code` 递归 dump 47 layer frame
-- 文件:
-  - `Sources/WenshuApp/App.swift` — 6 区 layout shell (老板 Sketch 真值) + LayoutTokens 18 ratio 算子
-  - `Sources/WenshuApp/DesignTokens.swift` — Apple Semantic Color 5 token (titleBar/zoneSurface/dynamicZoneSurface/accentBlue/splitterLine)
-  - `Sources/WenshuApp/LayoutShellViewModel.swift` — 5 offset 拖拽状态 + 6 zone ratio 计算 (v0.10.1 + v0.10.3 加)
-  - `Sources/WenshuApp/Views/Layout/NativeSplitter.swift` — 6 拖拽线 (NativeSplitterView NSView, 1 PT intrinsicContentSize)
-- 自检: WS_SCREENSHOT=1 swift run WenshuApp → /tmp/wenshu-selfshot.png, 6 区 + 13 线齐
-- 屏缩放: AppDelegate 把 3840×1968 按 2K 屏可见区等比缩放, 内部按比例算子自适应
+- Truth data source: `mcp__sketch__run_code` recursive dump of 47 layer frames
+- Files:
+  - `Sources/WenshuApp/App.swift` — 6-zone layout shell (老板 Sketch truth source) + LayoutTokens 18 ratio operators
+  - `Sources/WenshuApp/DesignTokens.swift` — Apple Semantic Color 5 tokens (titleBar/zoneSurface/dynamicZoneSurface/accentBlue/splitterLine)
+  - `Sources/WenshuApp/LayoutShellViewModel.swift` — 5-offset drag state + 6 zone ratio computation (added in v0.10.1 + v0.10.3)
+  - `Sources/WenshuApp/Views/Layout/NativeSplitter.swift` — 6 drag splitters (NativeSplitterView NSView, 1 PT intrinsicContentSize)
+- Self-check: WS_SCREENSHOT=1 swift run WenshuApp → /tmp/wenshu-selfshot.png, 6 zones + 13 splitters in place
+- Screen scaling: AppDelegate scales 3840×1968 proportionally to 2K screen visible area; internally scales per ratio operator

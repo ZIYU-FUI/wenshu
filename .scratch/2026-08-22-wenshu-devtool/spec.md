@@ -1,43 +1,43 @@
-# Spec — Tools/wenshu-devtool (Hermes tui_gateway 范式 remote dev tool)
+# Spec — Tools/wenshu-devtool (Hermes tui_gateway pattern remote dev tool)
 
 > Date: 2026-08-22
-> 老板 2026-08-22 拍: "你能在文枢应用内部内嵌一个工具不, 能获取到界面状态的, 发布的时候我们再去掉, 就单独起一个远程开发工具的东西, 真正发布我们去掉"
+> 老板 2026-08-22 拍: "Can you embed a tool inside the 文枢 app that can grab UI state — at release time we remove it; spin up a separate remote dev tool thing. At actual release we remove it."
 
-## 业务语言 (老板懂)
+## Business language (老板-facing)
 
-老板的需求: 在 wenshu app runtime 能拿到界面状态 (screenshot + UI 状态 + window list), 用来远程调 试 (= hermes 这边看 macOS 上 wenshu 长 啥 样, 不 用 每 次都让老 板 截 图 发 过 来)。
+老板's requirement: at wenshu app runtime, be able to retrieve UI state (screenshot + UI state + window list) for remote debugging (= hermes side can see what wenshu looks like on macOS, no need to ask 老板 to screenshot and send each time).
 
-老板的 原 话 也 是 "就单独起一个远程开发工具的东西" = **单独 进 程 dev tool, 不 内 嵌 wenshu**。 老板自己 也 知道 "真正发布我们去掉" = 这个 tool 不 上 wenshu 包, 只是 dev 时 用。
+老板's original words: "just spin up a separate remote dev tool thing" = **separate-process dev tool, not embedded in wenshu**. 老板 himself knows "at actual release we remove it" = this tool does not ship in the wenshu bundle, only used during dev.
 
-## 修法 (5 原则 1 + 3 + 4 满 足, Hermes tui_gateway 范式)
+## Fix approach (5 principles 1 + 3 + 4 satisfaction, Hermes tui_gateway pattern)
 
-`Tools/wenshu-devtool/` (wenshu 仓 库 内, wenshu release bundle **不 包 含** (= Package.swift 不 import `Tools/`, build-app.sh 不 cp `Tools/`)):
+`Tools/wenshu-devtool/` (inside wenshu repo, wenshu release bundle **does not contain** (= Package.swift does not import `Tools/`, build-app.sh does not cp `Tools/`)):
 
-1. `Tools/wenshu-devtool/wenshu_devtool.py` (Python 3.9+ 标 准库, 零 依 赖):
-   - `cmd_list_windows`: 用 `osascript -e 'tell application "System Events" to tell process "WenshuApp" to get ...'` 列 出 NSWindow 真 值 (title / frame / visible / id)
-   - `cmd_screenshot <window_id>`: `screencapture -l <window_id> <output_path>` (老板 8/19 真 值 = macOS `screencapture -l` window 真值)
-   - `cmd_ui_dump`: 用 `osascript` + System Events dump 当 前 frontmost window 的 UI 元 素 (button / text / menu item 真 值)
-   - `cmd_menu_dump`: dump 当 前 NSMenu 树 (Apple / 文枢 / 文件 / 编辑 / 显 示 / 窗 口 / 帮 助 真 值)
-   - `cmd_settings_dump`: 读 UserDefaults 显 wenshu.llm.* 真 值 (= provider / model / base_url 真 值)
-   - `cmd_keychain_list`: 列 出 ProviderKeychain 已存 的 providers
-   - `cmd_keychain_get <provider_slug>`: 返 provider 的 key (最 后 8 字 显 示, 不 入 log)
-   - 主 入 口: `python3 wenshu_devtool.py <subcommand> [args...]`
-2. `Tools/wenshu-devtool/README.md` (用法 + 警 告 + 老板 8/19 真 值 = "不 内 嵌 wenshu core")
-3. `Tools/wenshu-devtool/.gitignore` (key cache 不入 git, 如 果有 临 时 文 件)
+1. `Tools/wenshu-devtool/wenshu_devtool.py` (Python 3.9+ stdlib, zero dependencies):
+   - `cmd_list_windows`: use `osascript -e 'tell application "System Events" to tell process "WenshuApp" to get ...'` to list NSWindow truth (title / frame / visible / id)
+   - `cmd_screenshot <window_id>`: `screencapture -l <window_id> <output_path>` (老板 8/19 truth = macOS `screencapture -l` window truth)
+   - `cmd_ui_dump`: use `osascript` + System Events to dump the current frontmost window's UI elements (button / text / menu item truth)
+   - `cmd_menu_dump`: dump the current NSMenu tree (Apple / 文枢 / File / Edit / View / Window / Help truth)
+   - `cmd_settings_dump`: read UserDefaults to show wenshu.llm.* truth (= provider / model / base_url truth)
+   - `cmd_keychain_list`: list providers already stored in ProviderKeychain
+   - `cmd_keychain_get <provider_slug>`: return provider's key (last 8 chars shown, not logged)
+   - Main entry: `python3 wenshu_devtool.py <subcommand> [args...]`
+2. `Tools/wenshu-devtool/README.md` (usage + warning + 老板 8/19 truth = "not embedded in wenshu core")
+3. `Tools/wenshu-devtool/.gitignore` (key cache not in git, if any temporary files)
 
-**Package.swift 不 改**: `Tools/` 不 在 Swift package sources 里 (= 不 编 译 进 wenshu binary)。
-**Scripts/build-app.sh 不 改**: 不 cp `Tools/` 进 `build/Wenshu.app/Contents/Resources/` (= 不 进 release bundle)。
+**Package.swift not changed**: `Tools/` is not in Swift package sources (= not compiled into wenshu binary).
+**Scripts/build-app.sh not changed**: does not cp `Tools/` into `build/Wenshu.app/Contents/Resources/` (= not in release bundle).
 
-## 真值 (老 板 8/19 真 值 基 线 不 被 违 反)
+## Truth (老板 8/19 truth baseline not violated)
 
-- ✅ **wenshu core 代 码 不 改** (Package.swift / Sources/WenshuApp/ / Sources/ 不 改)
-- ✅ **wenshu build script 不 改** (Scripts/build-app.sh 不 改)
-- ✅ **wenshu release bundle 不 含 devtool** (build/Wenshu.app/ 不 加 devtool 文 件)
-- ✅ **devtool 是 独立 Python 进 程**, 跑 在 Hermes 这 边, 不 进 wenshu 进 程 (= 不 改 wenshu UI / state 真 值)
-- ✅ devtool 用 Apple 标 准 API (`osascript` + `screencapture` + `NSUserDefaults` 读), 不 inject 不 hook 不 patch wenshu
-- ✅ 老 板 自己 拍 "真正发布我们去掉" = TODO 加 README, 发 布 时 删 `Tools/` 目录 即 可 (= 不 需 要 修 wenshu core)
+- ✅ **wenshu core code not changed** (Package.swift / Sources/WenshuApp/ / Sources/ not changed)
+- ✅ **wenshu build script not changed** (Scripts/build-app.sh not changed)
+- ✅ **wenshu release bundle does not contain devtool** (build/Wenshu.app/ does not add devtool files)
+- ✅ **devtool is an independent Python process**, runs on the Hermes side, not inside the wenshu process (= does not change wenshu UI / state truth)
+- ✅ devtool uses Apple standard APIs (`osascript` + `screencapture` + `NSUserDefaults` reads), no inject no hook no patch wenshu
+- ✅ 老板 himself 拍 "at actual release we remove it" = add TODO in README, at release time delete the `Tools/` directory (= no need to fix wenshu core)
 
-## 接 口 真 值 (7 个 subcommand)
+## Interface truth (7 subcommands)
 
 ```
 python3 Tools/wenshu-devtool/wenshu_devtool.py list_windows
@@ -49,31 +49,31 @@ python3 Tools/wenshu-devtool/wenshu_devtool.py keychain_list
 python3 Tools/wenshu-devtool/wenshu_devtool.py keychain_get <provider_slug>
 ```
 
-## 验 收 标 准
+## Acceptance
 
-- [ ] `Tools/wenshu-devtool/wenshu_devtool.py` 创建 (7 个 subcommand)
-- [ ] `Tools/wenshu-devtool/README.md` (用法 + 警 告)
-- [ ] Package.swift 不 改 (= Swift sources 不 include `Tools/`)
-- [ ] build/Wenshu.app/Contents/Resources/ 不 含 devtool
-- [ ] swift build exit 0 (Package.swift 仍 compile 干净)
+- [ ] `Tools/wenshu-devtool/wenshu_devtool.py` created (7 subcommands)
+- [ ] `Tools/wenshu-devtool/README.md` (usage + warning)
+- [ ] Package.swift not changed (= Swift sources do not include `Tools/`)
+- [ ] build/Wenshu.app/Contents/Resources/ does not contain devtool
+- [ ] swift build exit 0 (Package.swift still compiles cleanly)
 - [ ] swift test exit 0
-- [ ] 老 板 macOS 真 验: 跑 `list_windows` 返 wenshu NSWindow 真值
+- [ ] 老板 macOS real verification: run `list_windows` returns wenshu NSWindow truth
 
-## 不 动 (Q20 硬 约 束)
+## Do not touch (Q20 hard constraint)
 
-- Package.swift (不动)
-- Sources/WenshuApp/ (不动)
-- Scripts/build-app.sh (不动)
-- AppIcon.icon/ (不动)
+- Package.swift (do not touch)
+- Sources/WenshuApp/ (do not touch)
+- Scripts/build-app.sh (do not touch)
+- AppIcon.icon/ (do not touch)
 
-## Apple 真 值 引用
+## Apple truth references
 
-- https://developer.apple.com/library/archive/qa/qa1519/_index.html (AppleScript System Events GUI 真值)
-- https://developer.apple.com/documentation/security/keychain_services (security 命 令 行真 值)
-- https://ss64.com/mac/screencapture.html (`screencapture -l` 真值)
-- Hermes tui_gateway/server.py (Hermes 真 值 范 式 = 独立 dev tool 进 程)
+- https://developer.apple.com/library/archive/qa/qa1519/_index.html (AppleScript System Events GUI truth)
+- https://developer.apple.com/documentation/security/keychain_services (security command-line truth)
+- https://ss64.com/mac/screencapture.html (`screencapture -l` truth)
+- Hermes tui_gateway/server.py (Hermes truth pattern = independent dev tool process)
 
-## 关联
+## Related
 
-- 依赖: 无
-- 被依赖: 无 (独立 dev tool, 不 影 响 wenshu 真 值)
+- Depends on: none
+- Depended on by: none (independent dev tool, does not affect wenshu truth)

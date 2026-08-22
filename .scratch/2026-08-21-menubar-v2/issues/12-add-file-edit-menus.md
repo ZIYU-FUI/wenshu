@@ -1,64 +1,64 @@
-# 12 — 加文件 + 编辑菜单 (老板 2026-08-21 23:50 拍)
+# 12 — Add File + Edit menus (老板 2026-08-21 23:50 ruled)
 
 **What to build:**
-老板 8/21 23:50 拍真值:
-- '菜单项功能没有问题了, 弹窗也没有问题了, 不要动菜单栏的代码了'
-- '没有文件和编辑菜单'
-- '去找, 在现有实现逻辑基础上, 如何加文件和编辑菜单'
-- '不要再反复横跳了. 锁定一种实现方式, 往下延续'
+老板 8/21 23:50 ruled:
+- 'The menu items work and the popup also works; stop touching the menubar code.'
+- 'There are no File or Edit menus.'
+- 'Look into how, on top of the current implementation, to add the File and Edit menus.'
+- 'Stop flip-flopping. Lock onto one implementation method and continue from there.'
 
-= 修因: 当前实现方式 = macOS SwiftUI 14+ `Settings { } Scene + .commands { CommandGroup }` 12 placement 范式 (commit a69a42401 修因 = 真值). 不反复横跳 = 不改回 NSApp.mainMenu 装路径 + 不写自创建 NSWindow 弹窗.
-= 修因: 缺 文件 (.newItem) + 编辑 (.undoRedo) = CommandGroup 12 placement 中 2 个. 修因 .commands 段加 2 个 CommandGroup.
+= Lock onto current implementation = macOS SwiftUI 14+ `Settings { } Scene + .commands { CommandGroup }` 12-placement paradigm (commit `a69a42401` is the truth). No flip-flopping = don't revert to `NSApp.mainMenu` install path + don't write self-created `NSWindow` popup.
+= Missing File (`.newItem`) + Edit (`.undoRedo`) = 2 of the 12 `CommandGroup` placements. Fix: add 2 `CommandGroup`s to the `.commands` block.
 
 **Blocked by:** None.
 
 **Status:** ready-for-agent
 
-## 修法真值 (5 原则 1 + 4 满足, 1 ticket 1 commit, 不反复横跳)
+## Fix specification (principles 1 + 4 satisfied; 1 ticket 1 commit; no flip-flopping)
 
-1. **App.swift .commands 段加 2 个 CommandGroup** (= 修因我修因 commit a69a42401 修因了 4 个 CommandGroup, 修因修因只修因 1 个 `CommandGroup(replacing: .appSettings) { SettingsLink() }` = 修因修因要修因 修因修因):
-   - `CommandGroup(after: .newItem) { Button("新建项目", action: {}) }` = 文件
-   - `CommandGroup(replacing: .undoRedo) { Button("撤销") + Button("重做") }` = 编辑
-2. **保留 `CommandGroup(after: .sidebar) { Divider(); Button("恢复默认布局") }`** (= 视图, 老板 8/21 23:50 拍"不修因动" = 保留)
-3. **保留 `CommandGroup(replacing: .appSettings) { SettingsLink() }`** (= 设置, commit a69a42401 修因修因 = 1 个 cmd+, "设置…")
-4. **保留 Settings { SettingView() } Scene** (= macOS 自动装 cmd+, "设置…", commit a69a42401 修因真修因)
+1. **`App.swift` `.commands` block adds 2 `CommandGroup`s**:
+   - `CommandGroup(after: .newItem) { Button("New Project", action: {}) }` = File
+   - `CommandGroup(replacing: .undoRedo) { Button("Undo") + Button("Redo") }` = Edit
+2. **Keep `CommandGroup(after: .sidebar) { Divider(); Button("Restore Default Layout") }`** (= View; 老板 8/21 23:50 ruled "don't touch" = keep)
+3. **Keep `CommandGroup(replacing: .appSettings) { SettingsLink() }`** (= Settings; commit `a69a42401` truth = 1 ⌘, "Settings…")
+4. **Keep `Settings { SettingView() } Scene`** (= macOS automatically installs ⌘, "Settings…", commit `a69a42401` truth)
 
-## 双轴 code-review (Q34 老板纠错"按 PO 全链路执行" 这次必须跑)
+## Dual-axis code-review (Q34: 老板 corrected "execute the PO full chain"; this round must run)
 
 ## Acceptance
 
-- [ ] App.swift .commands 段加 `CommandGroup(after: .newItem) { Button("新建项目") }` (= 文件)
-- [ ] App.swift .commands 段加 `CommandGroup(replacing: .undoRedo) { Button("撤销") + Button("重做") }` (= 编辑)
-- [ ] 保留 `CommandGroup(after: .sidebar)` (= 视图, 老板拍"不修因动")
-- [ ] 保留 `CommandGroup(replacing: .appSettings)` (= 设置, 修因修因 1 个 cmd+, "设置…")
-- [ ] 保留 Settings { SettingView() } Scene (= macOS 自动装)
-- [ ] 6 项菜单 (Apple/文枢/文件/编辑/显示/窗口/帮助) (修因后 = 老板 8/21 23:50 拍"修因")
-- [ ] swift build exit 0
-- [ ] swift test exit 0
-- [ ] 老板 macOS 真验: 6 项菜单 + 文件/编辑项可点
-- [ ] **双轴 code-review 报告** (Standards + Spec 并行, 老板 8/21 拍"按 PO 全链路执行")
+- [ ] `App.swift` `.commands` block adds `CommandGroup(after: .newItem) { Button("New Project") }` (= File)
+- [ ] `App.swift` `.commands` block adds `CommandGroup(replacing: .undoRedo) { Button("Undo") + Button("Redo") }` (= Edit)
+- [ ] Keep `CommandGroup(after: .sidebar)` (= View; 老板 ruled "don't touch")
+- [ ] Keep `CommandGroup(replacing: .appSettings)` (= Settings; 1 ⌘, "Settings…")
+- [ ] Keep `Settings { SettingView() } Scene` (= macOS auto-install)
+- [ ] 6 menu items (`Apple` / 文枢 / File / Edit / View / Window / Help) (post-fix = 老板 8/21 23:50 ruled)
+- [ ] `swift build` exit 0
+- [ ] `swift test` exit 0
+- [ ] 老板 macOS verification: 6 menu items + File / Edit entries are clickable
+- [ ] **Dual-axis code-review report** (Standards + Spec in parallel; 老板 8/21 ruled "execute the PO full chain")
 
-## 不动 (Q20 硬约束)
+## Out of scope (Q20 hard constraint)
 
-- v0.20 LOGO + 菜单栏
-- v0.21 chat-streak ticket 02-06
-- Provider / ProviderKeychain / ProviderFetcher / ProviderCatalog
-- ProviderKeyPrompt
-- MiniMaxModelFetcher
-- `SettingView` (commit 6a3d93f5d + 1f086051a 保留, Pages 范式)
-- `ZoneModule` 父组件 (commit d0c642273 修因后, 其它 5 区 case 不动)
-- `ZoneBottomToolbar` 父组件 (5 区底栏保持"占位文字")
-- `ChatZoneView` (commit f1fe8e64c + d0c642273 修因后)
-- AppIcon.icon/
+- v0.20 LOGO + menubar
+- v0.21 chat-streak tickets 02-06
+- `Provider` / `ProviderKeychain` / `ProviderFetcher` / `ProviderCatalog`
+- `ProviderKeyPrompt`
+- `MiniMaxModelFetcher`
+- `SettingView` (commits `6a3d93f5d` + `1f086051a` kept; Pages paradigm)
+- `ZoneModule` parent component (post-commit `d0c642273`; other 5 zone cases untouched)
+- `ZoneBottomToolbar` parent component (5 zones' bottom bars keep "placeholder strings")
+- `ChatZoneView` (post-commits `f1fe8e64c` + `d0c642273`)
+- `AppIcon.icon/`
 
-## Apple HIG 真值引用
+## Apple HIG references
 
 - https://developer.apple.com/documentation/swiftui/commandgroup
 - https://developer.apple.com/documentation/swiftui/commandgroupplacement
 - https://developer.apple.com/documentation/swiftui/commandgroupplacement/newitem
 - https://developer.apple.com/documentation/swiftui/commandgroupplacement/undoredo
 
-## 关联
+## References
 
-- 依赖: 无
-- 被依赖: 无
+- Depends on: none
+- Required by: none

@@ -1,15 +1,15 @@
-# 24 — 编辑框一整条 Apple 标准出现/消失动画真硬真值
+# 24 — Edit-box whole-row Apple-standard appear/exit animation — hard truth
 
-依赖: ticket 21 + 22 + 23 commit
+Depends on: ticket 21 + 22 + 23 commits
 
 **What to build:**
-撤 .formStyle(.grouped) 拦截 (1 行 patch) = 编辑框一整条出现/消失 Apple 默认动画生效
+Remove `.formStyle(.grouped)` interception (1-line patch) = the edit-box whole row's Apple default appear/exit animation takes effect.
 
 **Why:**
-老板 2026-08-22 07:14 拍 "红框内一整条没出现/消失动画" + 授权 agent 按核心原则自主推进. Q28 查文档真值: Apple SwiftUI .formStyle(.grouped) 拦截 .transition + .animation = 老板看到"瞬时".
+老板 2026-08-22 07:14 ruled "the whole row in the red box doesn't have appear/exit animation" + authorized the agent to advance per the core principles. Q28 docs lookup: Apple SwiftUI `.formStyle(.grouped)` intercepts `.transition` + `.animation` = 老板 saw "instant".
 
 **Acceptance:**
-- 老板 macOS 真验: 编辑框一整条 (红框) 出现/消失 Apple 默认动画优雅
-- swift build exit 0
-- swift test exit 0 (ProviderKeychain 5/5 pass)
-- 双轴 code-review verbatim 进 commit body
+- 老板 macOS verification: edit-box whole row (red box) Apple default appear/exit animation, elegant
+- `swift build` exit 0
+- `swift test` exit 0 (`ProviderKeychain` 5/5 pass)
+- Dual-axis code-review verbatim into commit body

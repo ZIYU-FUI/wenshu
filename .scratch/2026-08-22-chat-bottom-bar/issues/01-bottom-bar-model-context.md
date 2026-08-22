@@ -1,26 +1,26 @@
-# 01 — 聊天底栏 model + context (Hermes appChrome 范式)
+# 01 — Chat bottom-bar model + context (Hermes appChrome pattern)
 
-**Blocked by:** None (复用 ticket 04 MiniMaxModelFetcher).
+**Blocked by:** None (reuses ticket 04 MiniMaxModelFetcher).
 
 **Status:** ready-for-agent
 
-## 修法真值 (3 步)
+## Fix approach (3 steps)
 
-1. ChatViewModel 加 `currentModel: String` (= `@AppStorage("wenshu.llm.model")`), `contextUsed: Int` (`messages.count * 500`), `contextMax: Int = 20`
-2. ChatView 输入框下方加 HStack: 左 Button Menu (切 model), 右 progress + Text("\(X) / 20")
-3. compact mode (width < 600): 只显 token count 不显 progress bar
+1. ChatViewModel add `currentModel: String` (= `@AppStorage("wenshu.llm.model")`), `contextUsed: Int` (`messages.count * 500`), `contextMax: Int = 20`
+2. ChatView add HStack below the input box: left Button Menu (switch model), right progress + Text("\(X) / 20")
+3. compact mode (width < 600): show only token count, no progress bar
 
 ## Acceptance
 
-- [ ] ChatViewModel currentModel/context 字段
-- [ ] ChatView 底栏 HStack
-- [ ] 左 model Menu 切 model (复用 ticket 04 fetch)
-- [ ] 右 context "X / 20" + progress bar
+- [ ] ChatViewModel currentModel/context fields
+- [ ] ChatView bottom-bar HStack
+- [ ] Left model Menu switches model (reuses ticket 04 fetch)
+- [ ] Right context "X / 20" + progress bar
 - [ ] compact mode (width < 600)
 - [ ] swift build / test exit 0
-- [ ] 老板 macOS 真验
+- [ ] 老板 macOS real verification
 
-## 不动 (Q20)
+## Do not touch (Q20)
 
-- v0.21 ticket 04 (复用)
-- Settings (不动)
+- v0.21 ticket 04 (reuse)
+- Settings (do not touch)

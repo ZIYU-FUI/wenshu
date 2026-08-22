@@ -1,4 +1,4 @@
-# ADR-0001: 6 区 layout (Z-TITLE / Z-NOVEL / Z-CHAT)
+# ADR-0001: 6-zone layout (Z-TITLE / Z-NOVEL / Z-CHAT)
 
 > Status: accepted
 > Date: 2026-08-18
@@ -6,25 +6,25 @@
 
 ## Context
 
-老板 8/18 拍板 wenshu 首页 layout = 6 区真值, 数据源 Sketch `AF7B1C87-ADDD-41ED-8208-7CA5549070E2` Artboard `首页` (1920×984 PT, 1 PT = 1 PX macOS 27 1x). 不再走 v0.07 之前的 5 区 (Library/Editor/Inspector/Chat/Console/Status) 临时 layout.
+老板 8/18 拍板 the wenshu homepage layout = 6 zones as truth source, data source Sketch `AF7B1C87-ADDD-41ED-8208-7CA5549070E2` Artboard `首页` (1920×984 PT, 1 PT = 1 PX macOS 27 1x). No longer the v0.07-era 5-zone (Library/Editor/Inspector/Chat/Console/Status) scratch layout.
 
 ## Decision
 
-首页 = 标题栏 (1 zone) + 小说管理区 + 聊天管理区 = 6 个子 zone:
+Homepage = title bar (1 zone) + novel management area + chat management area = 6 sub-zones:
 - Z-TITLE (1920×39)
-- Z-NOVEL: 项目管理 / 编辑器 / 专用工具
-- Z-CHAT: 聊天管理 / 动态区
+- Z-NOVEL: project management / editor / dedicated tools
+- Z-CHAT: chat management / dynamic area
 
-每个 band 内 3 列布局, 5 竖向拖拽线 + 1 横向拖拽线 = 6 splitter. Zone 内容走 SwiftUI 子组件 1:1 落 Sketch SymbolInstance.
+Each band has a 3-column layout, 5 vertical drag splitters + 1 horizontal drag splitter = 6 splitters. Zone content is rendered via SwiftUI subcomponents 1:1 matching Sketch SymbolInstance.
 
 ## Consequences
 
-- 5 区 layout v0.07 之前的版本作为历史保留, 不再 active
-- LayoutShellView / UpperBandZone / LowerBandZone / ZoneModule 等是 6 区落地的固定命名
-- 任何 "5 区" / "7 区" 提案需新 ADR 重新拍板
+- The 5-zone pre-v0.07 layout is retained as history, no longer active
+- LayoutShellView / UpperBandZone / LowerBandZone / ZoneModule etc. are the fixed names for the 6-zone implementation
+- Any "5-zone" / "7-zone" proposal needs a new ADR for a fresh 拍板
 
 ## Alternatives considered
 
-- v0.07 5 区 (Library/Editor/Inspector/Chat/Console/Status) — 拒绝, FCP-measured 不真
-- 9 区 / 7 区 — 拒绝, 老板拍 6 区
-- 旧 v0.05.x 7-zone (FCP-inspired) — 拒绝, 不是 Apple HIG 标准
+- v0.07 5-zone (Library/Editor/Inspector/Chat/Console/Status) — rejected, FCP-measured is not true
+- 9-zone / 7-zone — rejected, 老板 拍 6-zone
+- Old v0.05.x 7-zone (FCP-inspired) — rejected, not Apple HIG standard

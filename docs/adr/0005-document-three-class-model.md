@@ -1,4 +1,4 @@
-# ADR-0005: Document = 3-class MD 模型 (章节 / 设定 / 资料库)
+# ADR-0005: Document = 3-class MD model (chapter / setting / reference)
 
 > Status: accepted
 > Date: 2026-08-18
@@ -6,19 +6,19 @@
 
 ## Context
 
-老板 8/18 拍 Editor zone 内容 = 3-class 文档网格 (章节 / 设定 / 资料库), 不是单 markdown 文档流. v0.07 之前 `BookOutlineView` 走 .environment(library) 但分类维度是 Book, 不是 Document. 老板 8/18 答 Q3: 3 蓝矩形 = 未来 ICON 占位, 实现不渲染仅留空间 (180 PX 宽, 60 PX 等距).
+老板 8/18 拍 Editor zone content = 3-class document grid (chapter / setting / reference), not a single markdown document stream. Pre-v0.07, `BookOutlineView` used .environment(library) but the categorization dimension was Book, not Document. 老板 8/18 answered Q3: 3 blue rectangles = future ICON placeholder, implementation does not render them but reserves space (180 PX wide, 60 PX equal spacing).
 
 ## Decision
 
-`Document` 数据类 3 个 category: chapter / setting / reference. `BookOutlineView` 按 Book.id 拉 Documents, 3 个 section 渲染. 每个 zone 内容 = DocumentCard (后续 v0.09+ 实现).
+`Document` data class has 3 categories: chapter / setting / reference. `BookOutlineView` fetches Documents by Book.id and renders 3 sections. Each zone content = DocumentCard (implemented in v0.09+).
 
 ## Consequences
 
-- Book 不直接含 markdown, 而是含 Documents 列表
-- 3 蓝矩形 ICON 占位预留 180 PX 宽, 未来 ICON 设计完直接插
+- Book does not directly contain markdown; instead it contains a list of Documents
+- 3 blue rectangle ICON placeholders reserve 180 PX width; drop the actual ICON design in directly when finished
 
 ## Alternatives considered
 
-- 单 markdown 字符串 — 拒绝, 老板 3-class 拍
-- NSDocument (Apple NSDocumentController) — 推迟, 当前 scope 不需
-- Apple Notes 同款链接数据库 — 推迟, v0.10+ 再说
+- Single markdown string — rejected, 老板 拍 3-class
+- NSDocument (Apple NSDocumentController) — deferred, not in current scope
+- Apple Notes-style link database — deferred until v0.10+

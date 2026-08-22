@@ -1,75 +1,75 @@
-# Spec — 3 个 D_h 拖拽线细节修法 (老板 2026-08-19 实测)
+# Spec — 3 D_h splitter detail fixes (老板 2026-08-19 actual test)
 
 > Date: 2026-08-19
-> Spec 走 po `to-spec` skill 7 段模板
+> Spec uses po `to-spec` skill 7-section template
 
 ## Problem Statement
 
-老板 2026-08-19 实测 D_h 拖拽线 (commit de0f6ec 后) 发现 3 个细节问题:
+老板 2026-08-19 actual test D_h splitter (after commit `de0f6ec`) found 3 detail problems:
 
-1. **windows 底部多一块空白** (~50 PT) — 上半区 + D_h + 下半区 总高 882,留 50 PT 空白在底
-2. **hover 蓝光持续亮不消失** — 鼠标移开拖拽线后蓝光不消失 (mouseExited 没触发)
-3. **鼠标 cursor 没变两个箭头** — `resetCursorRects` 实现没真生效
-4. **蓝光太实** — 透明度太高 (0.6),老板建议轻微透明 (0.5) 看见背后
+1. **Blank space at window bottom** (~50 PT) — upper + D_h + lower total height 882, leaves 50 PT blank at bottom
+2. **Hover blue glow stays on, does not disappear** — blue glow does not fade after mouse leaves splitter (mouseExited not triggered)
+3. **Mouse cursor does not change to two arrows** — `resetCursorRects` implementation does not actually take effect
+4. **Blue glow too solid** — opacity too high (0.6); 老板 suggests slightly transparent (0.5) so the background is visible
 
-老板拍 "效果优先, 不因工作量打折, 一切以伪 Apple 官方 APP 为原则", 修法按工作量从小到大:
-1. 下半区空白 (1 行改)
-2. 蓝光透明度 + 持续亮 (中等改)
-3. cursor 不变 (大改, NSWindow 子类化)
+老板 拍 "effect first, do not compromise for workload, follow the pseudo-Apple-official-App principle". Fix order by workload small to large:
+1. Lower-zone blank (1-line change)
+2. Blue glow opacity + sticky-on (medium change)
+3. Cursor not changing (large change, NSWindow subclassing)
 
-## Solution (3 个独立 ticket)
+## Solution (3 independent tickets)
 
-### Ticket 04: LayoutShellView contentH 重复扣 chrome (已 commit b4f2021)
+### Ticket 04: LayoutShellView contentH double-deducts chrome (committed `b4f2021`)
 
-- **症状**: windows 底部多一块空白 (~50 PT)
-- **真因**: `proxy.size.height` = 932 (NSWindow.contentRect, 已扣 macOS chrome 52 PT), 但 LayoutShellView 用 `contentH - 52` 重复扣
-- **修法**: `contentH - 52` → `contentH - 2` (contentH 已扣 chrome, -2 留给 D_h 拖拽线)
-- **数据**: 932 - 2 = 930, bandH = 465 × 2 + D_h 2 = 932 ✓
-- **结果**: 上半:下半 = 1:1, 无空白
+- **Symptom**: Blank space at window bottom (~50 PT)
+- **Root cause**: `proxy.size.height` = 932 (NSWindow.contentRect, already deducts macOS chrome 52 PT), but LayoutShellView uses `contentH - 52` and double-deducts
+- **Fix**: `contentH - 52` → `contentH - 2` (contentH already deducts chrome, -2 reserved for D_h splitter)
+- **Data**: 932 - 2 = 930, bandH = 465 × 2 + D_h 2 = 932 ✓
+- **Result**: upper:lower = 1:1, no blank
 
-### Ticket 05: hover 蓝光松开消失 + 透明度 0.5 (本次 commit)
+### Ticket 05: hover blue glow fades on release + opacity 0.5 (this commit)
 
-- **症状 2a**: 蓝光松开不消失 (mouseExited 没触发)
-- **真因**: macOS 27 NSTrackingArea `.mouseEnteredAndExited` 不稳定, NSViewRepresentable 桥接时尤其
-- **修法**: 加 `.mouseMoved` option + override `mouseMoved` 实时算 `bounds.contains(convert(event.locationInWindow, from: nil))`,自己设 isHovered (不走 mouseEntered/Exited)
-- **症状 2b**: 蓝光太实
-- **修法**: hover 时 accent opacity 0.6 → 0.5, shadow opacity 0.4 → 0.3 (老板拍 A)
+- **Symptom 2a**: Blue glow sticky on, not fading (mouseExited not triggered)
+- **Root cause**: macOS 27 NSTrackingArea `.mouseEnteredAndExited` unstable, especially when NSViewRepresentable bridges
+- **Fix**: Add `.mouseMoved` option + override `mouseMoved` to compute `bounds.contains(convert(event.locationInWindow, from: nil))` in real time, set isHovered ourselves (do not go through mouseEntered/Exited)
+- **Symptom 2b**: Blue glow too solid
+- **Fix**: hover-time accent opacity 0.6 → 0.5, shadow opacity 0.4 → 0.3 (老板 拍 A)
 
-### Ticket 06: cursor 切上下箭头 (待拍)
+### Ticket 06: cursor switch to up-down arrows (pending)
 
-- **症状**: 鼠标移上拖拽线不变 cursor
-- **真因猜测**: `resetCursorRects` 在 NSViewRepresentable 桥接时不被 macOS cursor 系统识别 (NSView 在 SwiftUI view tree 中是 CALayer 包装,macOS 27 cursor rects 不识别)
-- **可能修法**: NSWindow 子类化 + `cursorUpdate(with:)` (Apple HIG macOS 真值, 跟 Pages / Numbers 一样)
-- **工作量**: 大 (待 grill 拍板)
+- **Symptom**: mouse over splitter does not change cursor
+- **Root-cause guess**: `resetCursorRects` not recognized by macOS cursor system when NSViewRepresentable bridges (NSView inside SwiftUI view tree is CALayer-wrapped, macOS 27 cursor rects does not recognize)
+- **Possible fix**: NSWindow subclassing + `cursorUpdate(with:)` (Apple HIG macOS truth value, same as Pages / Numbers)
+- **Workload**: large (pending grill 拍板)
 
 ## User Stories
 
-1. As 老板, I want windows 底部无空白, 上半:下半 = 50:50, so that 6 区 layout 跟 Sketch AF7B1C87 1:1
-2. As 老板, I want hover 蓝光鼠标移开后立刻消失, so that 拖拽线视觉反馈干净
-3. As 老板, I want hover 蓝光透明度 0.5, so that 轻微看见背后 (Apple HIG 视觉风格)
-4. As 老板, I want cursor 切到上下箭头 (D_h) / 左右箭头 (D_v), so that 跟 Xcode / Pages 一样手感
+1. As 老板, I want no blank at window bottom, upper:lower = 50:50, so that 6-zone layout matches Sketch `AF7B1C87` 1:1
+2. As 老板, I want hover blue glow to disappear immediately when mouse leaves, so that splitter visual feedback is clean
+3. As 老板, I want hover blue glow opacity 0.5, so that the background is slightly visible (Apple HIG visual style)
+4. As 老板, I want cursor to switch to up-down arrows (D_h) / left-right arrows (D_v), so that feel matches Xcode / Pages
 
 ## Implementation Decisions
 
-- **ticket 04**: LayoutShellView VStack `contentH - 52` → `contentH - 2`. 已 commit b4f2021.
-- **ticket 05**: NSTrackingArea 加 `.mouseMoved` + `mouseMoved` override + `bounds.contains` 实时算. accent 0.6 → 0.5 + shadow 0.4 → 0.3.
-- **ticket 06**: NSWindow 子类化 + `cursorUpdate(with:)` (待 grill 拍).
+- **ticket 04**: LayoutShellView VStack `contentH - 52` → `contentH - 2`. Already committed `b4f2021`.
+- **ticket 05**: NSTrackingArea add `.mouseMoved` + `mouseMoved` override + `bounds.contains` real-time compute. accent 0.6 → 0.5 + shadow 0.4 → 0.3.
+- **ticket 06**: NSWindow subclassing + `cursorUpdate(with:)` (pending grill 拍).
 
 ## Testing Decisions
 
-- 仅 `swift build clean` (exit 0), 老板自己启 app 验.
-- 不跑 Q22 (Screen Recording TCC 未授权).
+- Only `swift build clean` (exit 0), 老板 self-launches app to verify.
+- Do not run Q22 (Screen Recording TCC unauthorized).
 
 ## Out of Scope
 
-- macOS chrome 52 PT 不动 (.windowStyle(.titleBar))
-- D_h 视觉 2 PT 静态 + 4 PT hover 不动
-- 6 PT hit area 不动
-- 范围 / 公式 / LayoutTokens 不动
-- D_v 5 竖拖拽线行为不变
+- macOS chrome 52 PT unchanged (`.windowStyle(.titleBar)`)
+- D_h visuals 2 PT static + 4 PT hover unchanged
+- 6 PT hit area unchanged
+- Range / formula / LayoutTokens unchanged
+- D_v 5 vertical splitters behavior unchanged
 
 ## Further Notes
 
-- 老板拍 "效果优先, 不因工作量打折, 一切以伪 Apple 官方 APP 为原则" — 后续修法按这个原则
-- ticket 06 (cursor) 工作量大, 待 grill 拍修法方向
-- 3 个 ticket 串行, 按工作量从小到大, 每 ticket build clean + 老板验 pass 才下一个
+- 老板 拍 "effect first, do not compromise for workload, follow pseudo-Apple-official-App principle" — subsequent fixes follow this principle
+- ticket 06 (cursor) large workload, pending grill 拍 fix direction
+- 3 tickets serial, ordered by workload small to large, each ticket build clean + 老板 verify pass before next

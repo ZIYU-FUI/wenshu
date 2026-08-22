@@ -1,9 +1,9 @@
-# 002 LayoutShellView 重写为 Apple HIG HStack + ZoneModule + NativeSplitter
+# 002 LayoutShellView rewrite to Apple HIG HStack + ZoneModule + NativeSplitter
 
-> 老板 2026-08-19 拍板: 走 Apple HIG 真值范式
-> 依赖: 001
+> 老板 2026-08-19 拍板: use Apple HIG truth paradigm
+> Dependency: 001
 
-## 重写 LayoutShellView.body
+## Rewrite LayoutShellView.body
 
 ```swift
 struct LayoutShellView: View {
@@ -11,7 +11,7 @@ struct LayoutShellView: View {
     var body: some View {
         GeometryReader { proxy in
             let totalW = proxy.size.width
-            let totalH = proxy.size.height - LayoutTokens.titleBarHeight  // 减 macOS titleBar chrome
+            let totalH = proxy.size.height - LayoutTokens.titleBarHeight  // subtract macOS titleBar chrome
             VStack(spacing: 0) {
                 UpperBandZone(vm: vm, totalW: totalW, bandH: totalH * LayoutTokens.bandRatio)
                 NativeSplitter(orientation: .horizontal, length: totalW, onDrag: { dy in vm.adjustBandSplit(delta: dy, totalHeight: totalH) })
@@ -26,17 +26,17 @@ struct LayoutShellView: View {
 }
 ```
 
-## 调 NativeSplitter(view) 不调 NSView wrapper
+## Call NativeSplitter(view) not NSView wrapper
 
-- UpperBandZone 已存在(L500-527),直接调 NativeSplitter(view)
-- LowerBandZone 已存在(L531-550),直接调 NativeSplitter(view)
+- UpperBandZone already exists (L500-527), directly call NativeSplitter(view)
+- LowerBandZone already exists (L531-550), directly call NativeSplitter(view)
 
-## 加 LayoutShellViewModel.adjustBandSplit
+## Add LayoutShellViewModel.adjustBandSplit
 
-(VM 已存在,验有没有此方法;v0.14.0 D_h 可拖时已加)
+(VM already exists, verify whether this method exists; v0.14.0 D_h draggable already added)
 
-## 验收
+## Acceptance
 
-- swift build clean
-- swift run + screencapture -l 真截图
-- 拖拽 5 竖 1 横 = 6 拖拽线 hover/drag 全恢复
+- `swift build` clean
+- `swift run` + screencapture -l true screenshot
+- Drag 5 vertical 1 horizontal = 6 splitters hover/drag all restored

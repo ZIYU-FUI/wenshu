@@ -1,21 +1,21 @@
-# 003 验 LayoutShellViewModel.adjustBandSplit + LayoutTokens 一致
+# 003 Verify LayoutShellViewModel.adjustBandSplit + LayoutTokens consistency
 
-> 老板 2026-08-19 拍板: D_h 横拖拽线可拖 (撤销之前 50/50 锁定)
-> 依赖: 002
+> 老板 2026-08-19 拍板: D_h horizontal splitter draggable (revert previous 50/50 lock)
+> Dependency: 002
 
-## 范围
+## Scope
 
 `Sources/WenshuApp/LayoutShellViewModel.swift`:
-- 验 `adjustBandSplit(delta:totalHeight:)` 方法存在
-- 验 5 竖 `adjustSidebarPreview / adjustPreviewEditor / adjustEditorTools / adjustChatDynamic` 全存在
-- 验 D_h = bandOffset 累加 + upperBandH / lowerBandH 反方向守恒
+- Verify `adjustBandSplit(delta:totalHeight:)` method exists
+- Verify 5 vertical `adjustSidebarPreview / adjustPreviewEditor / adjustEditorTools / adjustChatDynamic` all exist
+- Verify D_h = bandOffset accumulation + upperBandH / lowerBandH opposite direction conservation
 
 `Sources/WenshuApp/App.swift LayoutTokens`:
-- titleBarHeight = 0 或删(老板新令不写自定义标题栏)
-- bandRatio / toolbarRatio / editorInsetRatio 保留(算比例算子)
-- iconLeadingRatio / iconSizeRatio / iconSpacingRatio 保留(Sketch 真值)
+- titleBarHeight = 0 or delete (老板 new order don't write custom title bar)
+- bandRatio / toolbarRatio / editorInsetRatio preserve (ratio operator)
+- iconLeadingRatio / iconSizeRatio / iconSpacingRatio preserve (Sketch truth)
 
-## 验收
+## Acceptance
 
-- swift build clean
-- 拖 D_h 真动 (vs 之前 inert 锁死)
+- `swift build` clean
+- Drag D_h truly moves (vs previously inert lock)

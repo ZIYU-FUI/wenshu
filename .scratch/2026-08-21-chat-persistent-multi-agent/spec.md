@@ -1,168 +1,168 @@
-# Spec — 文枢 ChatView 单显多 agent 隐身 + 会话持久化 + 上下文不爆 (老板 2026-08-21 拍)
+# Spec — 文枢 ChatView single-display + multi-agent hidden + session persistence + bounded context (老板 2026-08-21 ruled)
 
 > Date: 2026-08-21
-> 老板 2026-08-21 拍 "用户永远看到的只有一个会话, 看似唯一会话能延续继续聊, 多 agent 协作只显示文枢单一 agent, 其他由文枢调度, 通过看板给任务, 其他 agent 永远隐身".
-> grill 第 1 轮 3 项决策: 1A 多 agent 复用 v0.19 12 模块 / 2A 看板复用 v0.18 KanbanStore / 3A 上下文 = 滑动窗口 + 持久化摘要.
+> 老板 2026-08-21 ruled: "users only ever see a single chat session; what looks like a single session has to keep going; multi-agent collaboration shows only 文枢 as the single agent — the others are dispatched by 文枢 via the kanban board and stay hidden forever."
+> Grill round 1 — three decisions: 1A reuse v0.19's 12 modules for multi-agent; 2A reuse v0.18's KanbanStore for the board; 3A context = sliding window + persistent summary.
 
-## 业务语言 (老板懂)
+## Business language (老板-facing)
 
-- 用户打开 wenshu, 左下 zone 显示 ChatView
-- 用户发消息 → 文枢 1 个 agent 回复 (UI 永远只看到文枢)
-- 文枢背后可能调度 5-12 个 agent (v0.19 模块), 但 UI 不露 (隐身)
-- 调度进度走看板 (KanbanStore, 不进 chat 流)
-- 长聊累积不会让 LLM token 爆 (sliding window + summary)
-- 关闭 app 再开, 上次聊的接续 (持久化)
+- User opens wenshu, the bottom-left zone shows the ChatView.
+- User sends a message → 文枢 (a single agent) replies (UI always sees 文枢 only).
+- 文枢 may dispatch 5–12 agents behind the scenes (v0.19 modules), but the UI never shows them (hidden).
+- Dispatch progress flows through the kanban board (`KanbanStore`); it does not enter the chat stream.
+- Long chats do not blow up LLM tokens (sliding window + summary).
+- Close the app and reopen — the previous chat continues (persistence).
 
-## 真因链
+## Root-cause chain
 
-### 1. 文枢回复不是真 LLM (当前 bug)
+### 1. 文枢 replies are not real LLM output (current bug)
 
-- `Sources/WenshuApp/Core/Agent/AgentProtocol.swift` L188-190 echo user message 前 50 字符当 agent 回复
-- `Sources/WenshuApp/Views/Chat/ChatView.swift` L70 `runtime.delegateTask` 调 AgentProtocol.handle, 永远成功 (不抛), 永远拿到 echo, fallback `verifier.ping` 永不触发
-- 老板看到的"回复" = echo 字符串, 不是 LLM 真回复
+- `Sources/WenshuApp/Core/Agent/AgentProtocol.swift` L188-190 echoes the first 50 characters of the user message as the "agent reply".
+- `Sources/WenshuApp/Views/Chat/ChatView.swift` L70 `runtime.delegateTask` calls `AgentProtocol.handle`; it always succeeds (never throws), always returns the echo, so the `verifier.ping` fallback never triggers.
+- What 老板 sees as a "reply" is the echo string — not a real LLM response.
 
-### 2. 会话不持久化 (当前 bug)
+### 2. Session does not persist (current bug)
 
-- `ChatViewModel.messages: [ChatMessage] = []` (L44) = 内存数组, 不写磁盘
-- `init()` 不 load 历史
-- 重启 app → `messages = []` → 空
+- `ChatViewModel.messages: [ChatMessage] = []` (L44) = in-memory array, not persisted to disk.
+- `init()` does not load history.
+- After app restart → `messages = []` → empty chat.
 
-### 3. 上下文无限累积 (潜在 bug)
+### 3. Context grows unbounded (latent bug)
 
-- 没 sliding window
-- 没 summary
-- 长聊后喂 LLM 全部历史 → token 爆
+- No sliding window.
+- No summary.
+- Long chats feed the entire history to the LLM → token blow-up.
 
-### 4. 多 agent 隐身 UI (新需求)
+### 4. Multi-agent hidden UI (new requirement)
 
-- 当前 ChatMessage 只有 `.user / .agent / .system` 3 role, 没标 source
-- 即使文枢调了 5 个 agent, UI 也只看到 1 条 `.agent` 回复, 但用户看不到这是哪个 agent 的合成
-- 加 `source: .user / .wenshu / .system`, 文枢背后多 agent 协同结果不显 ChatMessage (走 KanbanStore 看板)
+- Current `ChatMessage` only has `.user` / `.agent` / `.system` 3 roles — no source tag.
+- Even if 文枢 dispatches 5 agents, the UI only sees 1 `.agent` reply, with no indication of which agent produced it.
+- Add `source: .user / .wenshu / .system`; multi-agent synthesis results from 文枢 do not render as `ChatMessage` (they go through `KanbanStore`).
 
-## 修法 (6 ticket, 1 ticket 1 commit)
+## Fix plan (6 tickets, 1 ticket 1 commit)
 
-### Ticket 01 — ChatMessage 加 source 字段 + ChatView 文枢单显
+### Ticket 01 — ChatMessage gains a `source` field + ChatView renders 文枢 alone
 
-#### 业务语言
-- 消息列表每条消息能区分是用户发的 / 文枢回的 / 系统报错
-- 用户看不到多 agent 调度痕迹 (走 KanbanStore, 不进 chat 流)
+#### Business language
+- Every message in the list is distinguishable as user-sent / 文枢-replied / system error.
+- Users see no trace of multi-agent dispatch (it flows through `KanbanStore`, never into the chat stream).
 
-#### 修法真值 (3 步)
-1. `ChatMessage` 加 `source: ChatSource` 字段 (.user / .wenshu / .system), `Equatable` 同步加 source 比较
-2. `ChatView` 渲染时按 source 标 ICON + 配色 (Apple HIG 标准, 用户能区分)
-3. AgentProtocol.handle 调度结果不入 ChatMessage 流, 只入 KanbanStore
+#### Fix specification (3 steps)
+1. Add `source: ChatSource` (`.user` / `.wenshu` / `.system`) to `ChatMessage`; update `Equatable` to include `source`.
+2. `ChatView` renders different ICON + color per `source` (Apple HIG standard — the user can tell them apart).
+3. `AgentProtocol.handle` dispatch results do not enter the `ChatMessage` stream; they only enter `KanbanStore`.
 
-#### 不动
-- ChatViewModel.send 主流程
-- runtime.delegateTask 调通路径
+#### Out of scope
+- `ChatViewModel.send` main flow
+- `runtime.delegateTask` happy path
 
-### Ticket 02 — ChatSessionStore SQLite 持久化
+### Ticket 02 — ChatSessionStore SQLite persistence
 
-#### 业务语言
-- 关闭 app 再开, 上次聊的接续显示
-- 上下文不丢
+#### Business language
+- After closing and reopening the app, the previous chat continues to display.
+- Context is not lost.
 
-#### 修法真值 (4 步)
-1. 新建 `Sources/WenshuApp/Core/Chat/ChatSessionStore.swift` (actor + SQLite, 跟 TodoStore / MemoryStore 范式一致)
+#### Fix specification (4 steps)
+1. Create `Sources/WenshuApp/Core/Chat/ChatSessionStore.swift` (actor + SQLite, mirroring `TodoStore` / `MemoryStore`).
 2. SQLite schema:
    - `chat_messages(id TEXT PRIMARY KEY, session_id TEXT, source TEXT, content TEXT, timestamp REAL)`
    - `chat_summaries(session_id TEXT PRIMARY KEY, summary TEXT, updated_at REAL, last_message_id TEXT)`
-3. `ChatViewModel.init()` 调 `store.loadMessages(session_id)` → fill messages
-4. `ChatViewModel.send()` 后调 `store.append(message)` 异步写 SQLite
+3. `ChatViewModel.init()` calls `store.loadMessages(session_id)` → fills `messages`.
+4. After `ChatViewModel.send()`, call `store.append(message)` to write to SQLite asynchronously.
 
-#### 不动
-- ChatView UI
-- runtime.delegateTask / AgentProtocol
+#### Out of scope
+- `ChatView` UI
+- `runtime.delegateTask` / `AgentProtocol`
 
-### Ticket 03 — AgentProtocol.handle 改真合成 (删 echo)
+### Ticket 03 — AgentProtocol.handle: real synthesis (drop the echo)
 
-#### 业务语言
-- 文枢回复是真 LLM 答的 (不是 echo 占位)
-- LLM 失败显 Error, 不显假回复
+#### Business language
+- 文枢's reply is generated by a real LLM (not an echo placeholder).
+- On LLM failure, show Error — not a fake reply.
 
-#### 修法真值 (3 步)
-1. `AgentProtocol.handleMessageSend` 删 L188-190 echo 真值
-2. 改成调 MiniMaxVerifier.send (真发 user message 给 MiniMax-M3, 拿 content 回写 AgentMessage.role=.agent)
-3. LLM 失败 throw AgentRuntimeError.llmFailed, ChatViewModel 走到 fallback `verifier.ping` (已有路径)
+#### Fix specification (3 steps)
+1. Delete the L188-190 echo in `AgentProtocol.handleMessageSend`.
+2. Replace with `MiniMaxVerifier.send` (actually send the user message to `MiniMax-M3` and write `content` back as `AgentMessage.role = .agent`).
+3. On LLM failure throw `AgentRuntimeError.llmFailed`; `ChatViewModel` falls back to `verifier.ping` (path already exists).
 
-#### 不动
-- A2A protocol message/send / task/get / task/list 接口
-- AgentRuntime.delegateTask 调用链
+#### Out of scope
+- A2A protocol `message/send` / `task/get` / `task/list` interfaces
+- `AgentRuntime.delegateTask` call chain
 
-### Ticket 04 — 文枢主 agent 多模块调度 (KanbanStore 写任务)
+### Ticket 04 — 文枢 main agent multi-module dispatch (KanbanStore writes tasks)
 
-#### 业务语言
-- 文枢收到用户消息, 分析后可能派任务给 5-12 个 v0.19 模块 agent (LinkGraph / Search / Composer / Templates 等)
-- 任务进度走看板 (KanbanStore), 用户能查
-- 文枢等结果, 真合成最终回复
+#### Business language
+- 文枢 receives the user message, analyzes it, and may dispatch tasks to 5–12 v0.19 module agents (`LinkGraph` / `Search` / `Composer` / `Templates` …).
+- Task progress flows through the kanban board (`KanbanStore`), where the user can inspect it.
+- 文枢 waits for results, then really synthesizes the final reply.
 
-#### 修法真值 (4 步)
-1. `Sources/WenshuApp/Core/Agent/WenshuConductor.swift` 新建 (actor + AgentProcess 范式), 文枢主 agent 调度器
-2. `WenshuConductor.handle(userMessage)` 分析意图 → 派 0-N 个 KanbanTask 给子 agent → 等结果 → 调 MiniMaxVerifier.send 拼装最终回复
-3. KanbanStore schema 加 `assignee TEXT` (子 agent name) + `conductor_task_id TEXT` (回写关联)
-4. 调度进度在 ChatView 不显 (隐身), 用户可查 KanbanStore.list() (未来 UI)
+#### Fix specification (4 steps)
+1. Create `Sources/WenshuApp/Core/Agent/WenshuConductor.swift` (actor + `AgentProcess` pattern); 文枢 main-agent dispatcher.
+2. `WenshuConductor.handle(userMessage)` analyzes intent → dispatches 0–N `KanbanTask` items to sub-agents → waits for results → calls `MiniMaxVerifier.send` to assemble the final reply.
+3. `KanbanStore` schema gains `assignee TEXT` (sub-agent name) + `conductor_task_id TEXT` (parent task back-reference).
+4. Dispatch progress is hidden in `ChatView`; the user can query `KanbanStore.list()` (future UI).
 
-#### 不动
-- v0.19 各模块 agent 实现 (LinkGraph / Search / ...)
+#### Out of scope
+- v0.19 module agent implementations (`LinkGraph` / `Search` / …) — don't reuse-don't-rewrite; 文枢 just dispatches + writes to the board
 - A2A protocol
 
-### Ticket 05 — Sliding window + 持久化摘要 (上下文不爆)
+### Ticket 05 — Sliding window + persistent summary (context never blows up)
 
-#### 业务语言
-- 长聊后 LLM 不会 token 爆
-- 老的历史仍能被 LLM 引用 (通过 summary)
+#### Business language
+- Long chats don't blow up LLM tokens.
+- Older history is still referenceable by the LLM (through the summary).
 
-#### 修法真值 (4 步)
-1. `ChatSessionStore` 加 `summarizeIfNeeded(sessionId, lastN: 10, threshold: 20)` (actor method)
-2. 当 messages.count > 20 → 调 MiniMaxVerifier.send 拿前 20 条生成 summary → 写 chat_summaries 表 → 删老的原文
-3. `ChatViewModel.buildContextForLLM()` 拼装: `summary + last 10 原文`
-4. 喂 LLM 时走 `buildContextForLLM()` 而不是 `messages`, token 控制
+#### Fix specification (4 steps)
+1. Add `summarizeIfNeeded(sessionId, lastN: 10, threshold: 20)` (actor method) to `ChatSessionStore`.
+2. When `messages.count > 20` → call `MiniMaxVerifier.send` to summarize the first 20 messages → write to `chat_summaries` → delete the original rows.
+3. `ChatViewModel.buildContextForLLM()` assembles: `summary + last 10 originals`.
+4. Feed the LLM via `buildContextForLLM()` instead of `messages` — token usage stays bounded.
 
-#### 不动
-- ChatView UI 渲染 (UI 仍看全部 messages)
-- KanbanStore
+#### Out of scope
+- `ChatView` UI rendering (UI still sees every `message`)
+- `KanbanStore`
 
-### Ticket 06 — ChatViewModel 集成 + chat session 单例
+### Ticket 06 — ChatViewModel integration + chat session singleton
 
-#### 业务语言
-- 用户体验 = 1 个永远延续的会话
-- 跨 session 状态保持
+#### Business language
+- User experience = one chat session that continues forever.
+- State persists across sessions.
 
-#### 修法真值 (3 步)
-1. `ChatViewModel` 加 `private let store: ChatSessionStore` + `private let sessionId: String = "default"` (单例)
-2. `WenshuAppDelegate.sharedChatStore = ChatSessionStore()` (跟 sharedRuntime / sharedVerifier 同范式)
-3. App.swift L554-561 ChatView init 传 store 进去
+#### Fix specification (3 steps)
+1. Add `private let store: ChatSessionStore` + `private let sessionId: String = "default"` (singleton) to `ChatViewModel`.
+2. `WenshuAppDelegate.sharedChatStore = ChatSessionStore()` (same pattern as `sharedRuntime` / `sharedVerifier`).
+3. Pass `store` into `ChatView` at `App.swift` L554-561.
 
-#### 不动
+#### Out of scope
 - v0.20 ticket 01 ChatView UI
 
-## po main flow 6 步
+## po main flow — 6 steps
 
-1. ✅ grill-with-docs (3 项决策已拍: 1A + 2A + 3A)
-2. ✅ to-spec (本文件)
+1. ✅ grill-with-docs (3 decisions ruled: 1A + 2A + 3A)
+2. ✅ to-spec (this file)
 3. → to-tickets (`.scratch/2026-08-21-chat-persistent-multi-agent/issues/01-06-*.md`)
-4. → implement (1 ticket 1 commit, 老板拍streak模式)
-5. → code-review (双轴 Standards + Spec, 全部 6 ticket commit 后跑一次)
-6. → domain-modeling (CONTEXT.md 加 ChatSession / WenshuConductor / ChatSource / ConversationSummary 4 domain word)
+4. → implement (1 ticket 1 commit, 老板-approved streak mode)
+5. → code-review (dual-axis Standards + Spec, after all 6 ticket commits)
+6. → domain-modeling (add `ChatSession` / `WenshuConductor` / `ChatSource` / `ConversationSummary` to CONTEXT.md)
 
-## 验收标准 (老板 8/19 evening 拍 "工程管理你自行决策" + "不需要验收", streak 模式)
+## Acceptance criteria (老板 ruled 8/19 evening: "engineering management — you decide" + "no separate acceptance step", streak mode)
 
-- 每个 ticket: `swift build` exit 0 + `swift test` exit 0
-- 6 ticket 全 commit 后: 双轴 code-review 跑 (Standards + Spec sub-agent 并行)
-- hard violation 修法聚合 commit
-- 老板 macOS 真验: 重启 app 接续 chat + 文枢真回复 (不是 echo) + 长聊不爆 token
+- Each ticket: `swift build` exit 0 + `swift test` exit 0.
+- After all 6 ticket commits: run dual-axis code-review (Standards + Spec sub-agents in parallel).
+- Aggregate hard-violation fixes into a single commit.
+- 老板 macOS verification: restart the app and resume chat + 文枢 replies for real (not echo) + long chats don't blow up tokens.
 
-## 不动 (Q20 硬约束)
+## Out of scope (Q20 hard constraint)
 
-- v0.20 logo + 菜单栏 ticket (已 commit, 不动)
-- v0.19 12 模块 agent 实现 (不复用不重写, 文枢调度 + 看板派任务即可)
-- v0.18 hermes-replica 9 模块 (KanbanStore / MemoryStore / TodoStore 等已沉淀, 复用)
-- AGENTS.md / CLAUDE.md (基线不动)
-- macOS-only (不上 iOS / iPadOS / Catalyst)
+- v0.20 logo + menubar tickets (already committed; untouched)
+- v0.19's 12 module agent implementations (don't reuse-don't-rewrite; just dispatch from 文枢 into the board)
+- v0.18 hermes-replica's 9 modules (`KanbanStore` / `MemoryStore` / `TodoStore` etc. are already in place; reuse)
+- AGENTS.md / CLAUDE.md (baselines untouched)
+- macOS-only (no iOS / iPadOS / Catalyst)
 
-## 关联 commit
+## Related commits
 
-- v0.20 ticket 01 (`cf121f77a`) — ChatView + Agent 对话左下 zone 接入 (基础, 不动)
-- v0.20 ticket 04 (`a97719b92`) + 05 (`3c712b987`) — LOGO + .app bundle (无关, 不动)
-- v0.19 ticket 12-23 — LinkGraph / Canvas / Graph / Templates / Composer / Search / Bases / QuickSwitcher / WordCount / Outline / Bookmarks / Verifier (被文枢调度, 不动)
-- v0.18 ticket 01-09 — hermes-replica 9 模块 (复用, 不动)
+- v0.20 ticket 01 (`cf121f77a`) — ChatView + Agent dialog into the bottom-left zone (foundation; untouched)
+- v0.20 ticket 04 (`a97719b92`) + 05 (`3c712b987`) — LOGO + .app bundle (unrelated; untouched)
+- v0.19 tickets 12-23 — `LinkGraph` / `Canvas` / `Graph` / `Templates` / `Composer` / `Search` / `Bases` / `QuickSwitcher` / `WordCount` / `Outline` / `Bookmarks` / `Verifier` (dispatched by 文枢; untouched)
+- v0.18 tickets 01-09 — hermes-replica's 9 modules (reused; untouched)

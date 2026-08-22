@@ -1,123 +1,123 @@
-# Spec — WenshuCore 复刻模块接入前端需求清单 (老板 2026-08-19 evening 拍)
+# Spec — WenshuCore replica modules front-end integration requirements list (老板 2026-08-19 evening 拍)
 
 > Date: 2026-08-19
-> 老板 2026-08-19 evening 拍 "这些模块前端怎么调用, 我们现在还没有接入到前端, 你是不是梳理一个需求清单, 把这些复刻需要接入到前端的功能, 罗列个需求清单"
-> 真值源: wenshu repo Sources/WenshuApp/Core/ (14 真值模块, 老板 8/19 + cc-runner 22:27+ 跑完) + Sources/WenshuApp/Views/ (Layout + Library 已有)
+> 老板 2026-08-19 evening 拍 "these modules need front-end calls, we haven't integrated them into the front end yet, can you organize a requirements list, listing the replica-required functions to integrate into the front end"
+> Truth source: wenshu repo Sources/WenshuApp/Core/ (14 truth modules, 老板 8/19 + cc-runner 22:27+ ran) + Sources/WenshuApp/Views/ (Layout + Library already exist)
 
 ## Problem Statement
 
-老板 2026-08-19 evening 拍: wenshu 后端 (Sources/WenshuApp/Core/) 有 14 真值模块 (Memory / Skill / Agent / Kanban / Todo / Tools / Cron / Backup / MiniMax 验证 + cc-runner 加 Canvas/LinkGraph/Outline/Search/Templates/WordCount) 但**前端没接入**。要梳理需求清单。
+老板 2026-08-19 evening 拍: wenshu backend (Sources/WenshuApp/Core/) has 14 truth modules (Memory / Skill / Agent / Kanban / Todo / Tools / Cron / Backup / MiniMax verification + cc-runner added Canvas/LinkGraph/Outline/Search/Templates/WordCount) but **the front end hasn't integrated them**. Need to organize a requirements list.
 
-业务语言描述 (老板懂):
-- 后端跑完, 前端没接
-- 老板需要 1 张需求清单 = 哪些模块接前端 + 怎么接 + 工作量
-- wenshu 定位 = SwiftUI 桌面写作 app (跟 Pages / Scrivener 一样)
-- 接前端按 Apple HIG 真值 (Apple native UI, SwiftUI)
+Business-language description (老板 understands):
+- Backend done, front end not connected
+- 老板 needs 1 requirements list = which modules connect front end + how to connect + workload
+- wenshu positioning = SwiftUI desktop writing app (same as Pages / Scrivener)
+- Front-end integration per Apple HIG truth (Apple native UI, SwiftUI)
 
-## 现状 (Q22 真验证)
+## Current state (Q22 truth-verified)
 
-后端真值模块 (Sources/WenshuApp/Core/, 14 真值):
-- Memory (MemoryStore.swift) — 本地 SQLite 长期记忆
-- Skill (SkillRegistry.swift) — 本地 SKILL.md 加载
-- Agent (AgentProtocol.swift + AgentRuntime.swift + MiniMaxVerifier.swift) — A2A 协议 + 多 agent + MiniMax 验证
-- Kanban (KanbanStore.swift) — 本地 Kanban + 7 状态
-- Todo (TodoStore.swift) — 本地 Todo + 4 状态 + 4 优先级
-- Tools (FileTools / ProcessTools / WebTools / VisionTools / AVMediaTools) — 5 工具
-- Cron (Cronjob.swift) — 本地 cron 任务
-- Backup (Backup.swift) — 本地项目备份
-- cc-runner 22:27+ 加后端: Canvas / LinkGraph / Outline / Search / Templates / WordCount
+Backend truth modules (Sources/WenshuApp/Core/, 14 truth):
+- Memory (MemoryStore.swift) — local SQLite long-term memory
+- Skill (SkillRegistry.swift) — local SKILL.md loading
+- Agent (AgentProtocol.swift + AgentRuntime.swift + MiniMaxVerifier.swift) — A2A protocol + multi-agent + MiniMax verification
+- Kanban (KanbanStore.swift) — local Kanban + 7 statuses
+- Todo (TodoStore.swift) — local Todo + 4 statuses + 4 priorities
+- Tools (FileTools / ProcessTools / WebTools / VisionTools / AVMediaTools) — 5 tools
+- Cron (Cronjob.swift) — local cron tasks
+- Backup (Backup.swift) — local project backup
+- cc-runner 22:27+ added backend: Canvas / LinkGraph / Outline / Search / Templates / WordCount
 
-前端现状 (Sources/WenshuApp/Views/):
-- Layout/ — LayoutShellView (6 区 layout)
-- Library/ — LibraryOutlineView (项目侧栏真实内容)
+Front-end current state (Sources/WenshuApp/Views/):
+- Layout/ — LayoutShellView (6-zone layout)
+- Library/ — LibraryOutlineView (project sidebar real content)
 
-未接入前端的模块 = **全部 14 真值模块** (除 Layout / Library 已有)
+Unintegrated front-end modules = **all 14 truth modules** (excluding Layout / Library already there)
 
-## 需求清单 (按 wenshu 定位 + 工作量 + 优先级)
+## Requirements list (by wenshu positioning + workload + priority)
 
-| # | 需求 | 模块 | 接入方式 (Apple HIG) | 工作量 | 优先级 | 验收 |
+| # | Requirement | Module | Integration approach (Apple HIG) | Workload | Priority | Verification |
 |---|---|---|---|---|---|---|
-| 01 | **Memory UI** | MemoryStore | SwiftUI .onAppear 注入, Toolbar "记忆" 按钮 + Popover 显示 add / search 列表 | 中 | 🔥 高 | 老板可查"wenshu 写过什么" |
-| 02 | **Skill UI** | SkillRegistry | 设置菜单 (cmd+,) 加 "Skills" 列表, 显示已加载 skill + invoke input | 中 | 🔥 高 | 老板可手动 invoke skill |
-| 03 | **MiniMax Agent UI** | AgentProtocol + MiniMaxVerifier | 工具栏加 "Agent" 按钮, 弹 chat sheet (用户发消息 → agent 回复) | 大 | 🔥 高 | 老板能直接跟 MiniMax 聊天 |
-| 04 | **Kanban UI** | KanbanStore | 侧栏加 "项目" 标签, 显示 wenshu 项目 kanban (backlog / in-progress / done) | 中 | 🟡 中 | 老板看 wenshu 自己的项目进度 |
-| 05 | **Todo UI** | TodoStore | 侧栏加 "今日" 标签, 显示 due / priority todo, 简版 GTD | 中 | 🟡 中 | 老板有 wenshu 内部 todo |
-| 06 | **File Tools UI** | FileTools | 编辑器右键菜单 + Toolbar "打开/保存" 按钮 (Apple NSOpenPanel + NSSavePanel) | 小 | 🟡 中 | 老板在 wenshu 内 import/export 文本 |
-| 07 | **Process UI** | ProcessTools | 工具栏加 "运行" 按钮, 弹 NSTextField 输入 shell command, 输出在 sheet | 中 | 🟢 低 | 老板在 wenshu 内跑脚本 |
-| 08 | **Web Fetch UI** | WebTools | 编辑器右键 "Insert URL" → fetch + extract + insert markdown | 中 | 🟡 中 | 老板抓网页内容到 wenshu |
-| 09 | **Vision UI** | VisionTools | 编辑器右键 "OCR 图片" → recognizeText → insert text | 中 | 🟡 中 | 老板 OCR 截图插文字 |
-| 10 | **TTS UI** | AVMediaTools | 工具栏加 "朗读" 按钮 → speak 选中文本 (AVSpeechSynthesizer) | 小 | 🟢 低 | 老板能听 wenshu 朗读 |
-| 11 | **Cron UI** | Cronjob | 设置菜单加 "定时任务" 列表, 显示 cron 任务 + 启停 | 中 | 🟢 低 | 老板能设定时任务 |
-| 12 | **Backup UI** | Backup | 工具栏加 "备份" 按钮 → 弹 sheet 显示 backup 列表 + restore | 中 | 🟢 低 | 老板能备份 wenshu 项目 |
-| 13 | **Multi-Agent UI** | AgentRuntime | Settings "代理" 标签, 显示已注册 agent + delegate 按钮 | 大 | 🟡 中 | 老板能手动派任务给 agent |
-| 14 | **Canvas UI** | Canvas 后端 | 工具栏加 "Canvas" 按钮 → 弹 JSON Canvas 视图 (跟 Obsidian 兼容) | 大 | 🟡 中 | 老板能画思维导图 |
-| 15 | **LinkGraph UI** | LinkGraph 后端 | 编辑器 [[wikilink]] 自动补全 + Backlinks 面板 | 中 | 🟡 中 | 老板 wiki-link 互联 |
-| 16 | **Outline UI** | Outline 后端 | 侧栏加 "大纲" 标签, 显示文档 heading 树 (点击跳转) | 小 | 🟡 中 | 老板看章节结构 |
-| 17 | **Search UI** | Search 后端 | Toolbar "搜索" 按钮 (cmd+shift+f) → 弹 full-text search sheet | 中 | 🟡 中 | 老板全文搜 |
-| 18 | **Templates UI** | Templates 后端 | "新建" 按钮 → 模板选择 sheet (空白 / 章节 / 短篇 / 笔记) | 中 | 🟢 低 | 老板用模板开新项目 |
-| 19 | **Word Count UI** | WordCount 后端 | 状态栏加字数 / 段落数 (选中区域) | 小 | 🔥 高 | 老板看实时字数 |
+| 01 | **Memory UI** | MemoryStore | SwiftUI `.onAppear` inject, Toolbar "Memory" button + Popover shows add / search list | Medium | 🔥 High | 老板 can query "what has wenshu written" |
+| 02 | **Skill UI** | SkillRegistry | Settings menu (cmd+,) add "Skills" list, show loaded skills + invoke input | Medium | 🔥 High | 老板 can manually invoke skill |
+| 03 | **MiniMax Agent UI** | AgentProtocol + MiniMaxVerifier | Toolbar add "Agent" button, pop chat sheet (user sends message → agent replies) | Large | 🔥 High | 老板 can chat directly with MiniMax |
+| 04 | **Kanban UI** | KanbanStore | Sidebar add "Projects" tab, show wenshu project kanban (backlog / in-progress / done) | Medium | 🟡 Medium | 老板 sees wenshu's own project progress |
+| 05 | **Todo UI** | TodoStore | Sidebar add "Today" tab, show due / priority todos, simple GTD | Medium | 🟡 Medium | 老板 has wenshu internal todos |
+| 06 | **File Tools UI** | FileTools | Editor right-click menu + Toolbar "Open/Save" buttons (Apple NSOpenPanel + NSSavePanel) | Small | 🟡 Medium | 老板 imports/exports text within wenshu |
+| 07 | **Process UI** | ProcessTools | Toolbar add "Run" button, pop NSTextField input shell command, output in sheet | Medium | 🟢 Low | 老板 runs scripts within wenshu |
+| 08 | **Web Fetch UI** | WebTools | Editor right-click "Insert URL" → fetch + extract + insert markdown | Medium | 🟡 Medium | 老板 grabs web content into wenshu |
+| 09 | **Vision UI** | VisionTools | Editor right-click "OCR image" → recognizeText → insert text | Medium | 🟡 Medium | 老板 OCRs screenshot insert text |
+| 10 | **TTS UI** | AVMediaTools | Toolbar add "Read" button → speak selected text (AVSpeechSynthesizer) | Small | 🟢 Low | 老板 can listen to wenshu reading aloud |
+| 11 | **Cron UI** | Cronjob | Settings menu add "Scheduled tasks" list, show cron tasks + start/stop | Medium | 🟢 Low | 老板 can set scheduled tasks |
+| 12 | **Backup UI** | Backup | Toolbar add "Backup" button → pop sheet show backup list + restore | Medium | 🟢 Low | 老板 can back up wenshu projects |
+| 13 | **Multi-Agent UI** | AgentRuntime | Settings "Agents" tab, show registered agents + delegate button | Large | 🟡 Medium | 老板 can manually dispatch tasks to agents |
+| 14 | **Canvas UI** | Canvas backend | Toolbar add "Canvas" button → pop JSON Canvas view (Obsidian-compatible) | Large | 🟡 Medium | 老板 can draw mind maps |
+| 15 | **LinkGraph UI** | LinkGraph backend | Editor `[[wikilink]]` auto-complete + Backlinks panel | Medium | 🟡 Medium | 老板 wiki-link interconnect |
+| 16 | **Outline UI** | Outline backend | Sidebar add "Outline" tab, show document heading tree (click to jump) | Small | 🟡 Medium | 老板 sees chapter structure |
+| 17 | **Search UI** | Search backend | Toolbar "Search" button (cmd+shift+f) → pop full-text search sheet | Medium | 🟡 Medium | 老板 full-text search |
+| 18 | **Templates UI** | Templates backend | "New" button → template selection sheet (blank / chapter / short story / note) | Medium | 🟢 Low | 老板 uses templates to open new projects |
+| 19 | **Word Count UI** | WordCount backend | Status bar add word count / paragraph count (selection region) | Small | 🔥 High | 老板 sees real-time word count |
 
-## 优先级拍
+## Priority decisions
 
-按"wenshu 写作 app 核心需求" + 老板 8/19 evening 真验过 MiniMax:
-- 🔥 **高 (3)**: Memory + Skill + MiniMax Agent + Word Count
-- 🟡 **中 (8)**: Kanban + Todo + File Tools + Web Fetch + Vision + Multi-Agent + Canvas + LinkGraph + Outline + Search
-- 🟢 **低 (5)**: Process + TTS + Cron + Backup + Templates
+By "wenshu writing app core requirements" + 老板 8/19 evening truth-verified MiniMax:
+- 🔥 **High (3)**: Memory + Skill + MiniMax Agent + Word Count
+- 🟡 **Medium (8)**: Kanban + Todo + File Tools + Web Fetch + Vision + Multi-Agent + Canvas + LinkGraph + Outline + Search
+- 🟢 **Low (5)**: Process + TTS + Cron + Backup + Templates
 
-## 接入方式真值 (Apple HIG)
+## Integration approach truth (Apple HIG)
 
-按 4 原则 1 伪 Apple 官方:
-- 工具栏: SwiftUI `.toolbar { Button { } }` (Apple HIG 真值)
-- 弹窗: SwiftUI `.sheet { }` (Apple HIG 真值)
-- 设置: SwiftUI `Settings { }` (Apple 官方真值, 已用 in commit 4c42fa79)
-- 侧栏: SwiftUI `NavigationSplitView` 或 `HSplitView` (Apple HIG 真值)
-- 状态栏: SwiftUI `.safeAreaInset(edge: .bottom)` (Apple 真值)
-- 文件选择: NSOpenPanel / NSSavePanel (AppKit 真值)
-- 快捷键: `.keyboardShortcut("k", modifiers: .command)` (Apple HIG 真值)
+By 4 principles + 1 pseudo-Apple-official:
+- Toolbar: SwiftUI `.toolbar { Button { } }` (Apple HIG truth)
+- Sheet: SwiftUI `.sheet { }` (Apple HIG truth)
+- Settings: SwiftUI `Settings { }` (Apple official truth, already used in commit `4c42fa79`)
+- Sidebar: SwiftUI `NavigationSplitView` or `HSplitView` (Apple HIG truth)
+- Status bar: SwiftUI `.safeAreaInset(edge: .bottom)` (Apple truth)
+- File selection: `NSOpenPanel` / `NSSavePanel` (AppKit truth)
+- Shortcuts: `.keyboardShortcut("k", modifiers: .command)` (Apple HIG truth)
 
-## 业务语言描述 (老板懂)
+## Business-language description (老板 understands)
 
-- 14 模块前端接入 = 19 个 UI 需求 (含 cc-runner 加的 6 个后端)
-- 按"wenshu 写作 app 核心"拍优先级 (3 高 / 8 中 / 5 低)
-- 用 Apple HIG 真值 (SwiftUI + AppKit, 不引第三方 SDK)
-- 工程管理老板授权 (老板 8/19 拍 "你自行决策") + 不需要验收
+- 14 modules front-end integration = 19 UI requirements (including 6 backend added by cc-runner)
+- Prioritize by "wenshu writing app core" (3 high / 8 medium / 5 low)
+- Use Apple HIG truth (SwiftUI + AppKit, no third-party SDK)
+- Engineering management authorized by 老板 (老板 8/19 拍 "you decide yourself") + no verification needed
 
 ## Implementation Decisions
 
-按 po main flow 拍 19 ticket 串行:
-- 每个 ticket 1 commit + push (老板 8/19 工程管理授权)
-- 每个 ticket 跑完整 po main flow 6 步 (grill + spec + ticket + impl + code-review + domain-modeling)
-- 高优先级 3 ticket 优先 (Memory + Skill + MiniMax Agent + Word Count)
-- 跳过不属于 wenshu 写作 app 的需求 (e.g. 智能家居, 通讯, 浏览器自动化)
-- 不动 hermes (read-only)
-- 不破坏 macOS chrome 52 PT / LayoutTokens / bandH / 拖拽线 (cursor / hover / drag / 1 PT / 颜色 / 圆头)
+Per po main flow, 19 tickets serial:
+- Each ticket 1 commit + push (老板 8/19 engineering management authorization)
+- Each ticket runs the full po main flow 6 steps (grill + spec + ticket + impl + code-review + domain-modeling)
+- High-priority 3 tickets first (Memory + Skill + MiniMax Agent + Word Count)
+- Skip requirements not belonging to wenshu writing app (e.g. smart home, messaging, browser automation)
+- Do not touch hermes (read-only)
+- Do not break macOS chrome 52 PT / LayoutTokens / bandH / splitters (cursor / hover / drag / 1 PT / color / rounded caps)
 
-## 业务语言描述 (老板懂)
+## Business-language description (老板 understands)
 
-- wenshu 14 模块前端接入 = 19 UI 需求 (3 高 / 8 中 / 5 低)
-- 按"wenshu 写作 app 核心"拍
-- Apple HIG 真值 (SwiftUI + AppKit, 不引第三方 SDK)
-- 工程管理老板授权 (8/19 evening 拍 "你自行决策") + 不需要验收
+- wenshu 14 modules front-end integration = 19 UI requirements (3 high / 8 medium / 5 low)
+- Prioritize by "wenshu writing app core"
+- Apple HIG truth (SwiftUI + AppKit, no third-party SDK)
+- Engineering management authorized by 老板 (8/19 evening 拍 "you decide yourself") + no verification needed
 
 ## Out of Scope
 
-- 不动 hermes
-- 不实现 AppleHome / AppleMessages / Mail / Contacts / Calendar / Reminders / Notes / Photos (wenshu 写作 app 不集成)
-- 不复刻 hermes 全能力 (前面已拍跳过 9 个)
-- 不重写 WenshuApp SwiftUI UI 整体架构 (增量加 toolbar / sheet / settings)
-- 不实现 35 个 po 大神 skill 的前端 UI (复刻核心就够)
+- Do not touch hermes
+- Do not implement AppleHome / AppleMessages / Mail / Contacts / Calendar / Reminders / Notes / Photos (wenshu writing app does not integrate)
+- Do not replicate all hermes capabilities (previously decided to skip 9)
+- Do not rewrite WenshuApp SwiftUI UI overall architecture (incrementally add toolbar / sheet / settings)
+- Do not implement front-end UI for 35 po god skills (replica core is enough)
 
-## 进一步信息
+## Further Information
 
-- 现有前端: Sources/WenshuApp/Views/Layout/ (LayoutShellView) + Library/ (LibraryOutlineView)
-- 现有设置: Settings scene (commit 4c42fa79) — 扩展加 Memory / Skill / Agent / Cron / Backup / Kanban 等标签
-- 现有 Toolbar: 顶/底 30 PT (LayoutTokens.toolbarHeight) — 增量加按钮
-- 现有 Notifications: NotificationCenter.default (命令菜单 "恢复默认布局" 用) — 扩展加 cross-module 通知
+- Existing front end: Sources/WenshuApp/Views/Layout/ (LayoutShellView) + Library/ (LibraryOutlineView)
+- Existing settings: Settings scene (commit `4c42fa79`) — extend add Memory / Skill / Agent / Cron / Backup / Kanban tabs
+- Existing Toolbar: top/bottom 30 PT (LayoutTokens.toolbarHeight) — incrementally add buttons
+- Existing Notifications: NotificationCenter.default (command menu "Restore default layout" uses) — extend add cross-module notifications
 
-## 真值引用 (Apple HIG)
+## Truth references (Apple HIG)
 
-- 工具栏: https://developer.apple.com/documentation/swiftui/view/toolbar
-- 弹窗: https://developer.apple.com/documentation/swiftui/view/sheet
+- Toolbar: https://developer.apple.com/documentation/swiftui/view/toolbar
+- Sheet: https://developer.apple.com/documentation/swiftui/view/sheet
 - Settings scene: https://developer.apple.com/documentation/swiftui/scene/settings
 - NavigationSplitView: https://developer.apple.com/documentation/swiftui/navigationsplitview
 - safeAreaInset: https://developer.apple.com/documentation/swiftui/view/safeareainset(edge:alignment:spacing:content:)
@@ -126,44 +126,44 @@
 - NSSavePanel: https://developer.apple.com/documentation/appkit/nssavepanel
 - AVSpeechSynthesizer: https://developer.apple.com/documentation/avfaudio/avspeechsynthesizer
 
-## 老板拍的下一步
+## Next step 老板 拍
 
-按 po main flow 串行 19 ticket, 每个 ticket 1 commit + push:
-1. 19 ticket 全跑 (5+ 周工作量, 分批)
-2. 按"wenshu 写作 app 核心"优先级 (3 高先)
-3. 老板随时可打断拍新方向
+Per po main flow serial 19 tickets, each ticket 1 commit + push:
+1. Run all 19 tickets (5+ weeks workload, batched)
+2. By "wenshu writing app core" priority (3 high first)
+3. 老板 can interrupt at any time to 拍 new direction
 
-## 任务清单简表 (1 张给老板看)
+## Task list summary (1 table for 老板 to view)
 
 ```
-🔥 高 (3):
-  01 Memory UI     — 老板可查"wenshu 写过什么"
-  02 Skill UI      — 老板可手动 invoke skill
-  03 MiniMax Agent UI — 老板能直接跟 MiniMax 聊天
-  19 Word Count UI — 老板看实时字数
+🔥 High (3):
+  01 Memory UI     — 老板 can query "what has wenshu written"
+  02 Skill UI      — 老板 can manually invoke skill
+  03 MiniMax Agent UI — 老板 can chat directly with MiniMax
+  19 Word Count UI — 老板 sees real-time word count
 
-🟡 中 (8):
-  04 Kanban UI     — 老板看 wenshu 自己的项目进度
-  05 Todo UI       — 老板有 wenshu 内部 todo
-  06 File Tools UI — 老板 import/export 文本
-  08 Web Fetch UI  — 老板抓网页内容到 wenshu
-  09 Vision UI     — 老板 OCR 截图插文字
-  13 Multi-Agent UI — 老板手动派任务
-  14 Canvas UI     — 老板画思维导图
+🟡 Medium (8):
+  04 Kanban UI     — 老板 sees wenshu's own project progress
+  05 Todo UI       — 老板 has wenshu internal todos
+  06 File Tools UI — 老板 imports/exports text
+  08 Web Fetch UI  — 老板 grabs web content into wenshu
+  09 Vision UI     — 老板 OCRs screenshot insert text
+  13 Multi-Agent UI — 老板 manually dispatches tasks
+  14 Canvas UI     — 老板 draws mind maps
   15 LinkGraph UI  — 老板 wiki-link
-  16 Outline UI    — 老板看章节结构
-  17 Search UI     — 老板全文搜
+  16 Outline UI    — 老板 sees chapter structure
+  17 Search UI     — 老板 full-text search
 
-🟢 低 (5):
-  07 Process UI    — 老板跑脚本
-  10 TTS UI        — 老板听 wenshu 朗读
-  11 Cron UI       — 老板设定时任务
-  12 Backup UI     — 老板备份 wenshu 项目
-  18 Templates UI  — 老板用模板开新项目
+🟢 Low (5):
+  07 Process UI    — 老板 runs scripts
+  10 TTS UI        — 老板 listens to wenshu reading aloud
+  11 Cron UI       — 老板 sets scheduled tasks
+  12 Backup UI     — 老板 backs up wenshu projects
+  18 Templates UI  — 老板 uses templates to open new projects
 ```
 
-## 不动 hermes (老板 8/11 拍)
+## Do not touch hermes (老板 8/11 拍)
 
-- read-only 盘代码
-- 不修改 /Volumes/ANAN/.hermes/ 任何文件
-- 不 patch /Volumes/ANAN/.hermes/hermes_cli/ 任何 .py
+- read-only explore code
+- do not modify any file under `/Volumes/ANAN/.hermes/`
+- do not patch any `.py` under `/Volumes/ANAN/.hermes/hermes_cli/`

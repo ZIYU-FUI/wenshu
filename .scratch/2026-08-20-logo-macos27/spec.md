@@ -1,103 +1,103 @@
-# Spec — 项目 LOGO dark/light + 菜单栏 + 设置菜单清理 (老板 2026-08-20 拍)
+# Spec — Project LOGO dark/light + Menu bar + Settings menu cleanup (老板 2026-08-20 拍)
 
 > Date: 2026-08-20 10:35
-> 老板 2026-08-20 10:35 拍 "LOGO 有了, 但没有跟随系统主题. APP 名 = 中文文枢. 菜单栏第一个菜单从 wenshu 改成文枢, 文枢下设置菜单有两个, 保留官方自带的"
-> 老板 拍板 Q1=A (dark+light 都塞进项目 + 保留原 AppIcon.icns) / Q2=A (删 .commands 段, NSMenu 独家) / Q3=B (保留 设置…, 但要 trigger SettingsView)
+> 老板 2026-08-20 10:35 拍 "LOGO is in, but does not follow the system theme. APP name = 文枢 in Chinese. The first menu bar item should change from wenshu to 文枢, and the 文枢 menu has two Settings items — keep the official one only"
+> 老板 拍板 Q1=A (pack dark+light into project + keep the existing AppIcon.icns) / Q2=A (remove the .commands block, NSMenu only) / Q3=B (keep 设置…, but it must trigger SettingsView)
 
-## 真因链
+## Root cause chain
 
-### 1. LOGO 不跟随主题真因
+### 1. LOGO does not follow the theme — root cause
 
-- macOS 27 AppKit 范式 = Resources 目录同时塞 `AppIcon.icns` (fallback) + `AppIcon.dark.icns` + `AppIcon.light.icns`
-- AppKit 按 `effectiveAppearance` (dark/light) 自动选 icns, **不需 App.swift runtime 装**
-- 当前项目内只有 `AppIcon.icns` (473 KB / 11 reps, 8/20 9:26 落地, 通用版), 没有 dark/light 分版
-- 桌面 `wenshu-icon-dark.icns` (367481 bytes) + `wenshu-icon-light.icns` (369946 bytes) = 8/11 v0.03.0 LOGO master 工具链重导的真值
-- 真因 = 桌面 dark/light 文件没复制进项目
+- macOS 27 AppKit paradigm = the Resources directory simultaneously contains `AppIcon.icns` (fallback) + `AppIcon.dark.icns` + `AppIcon.light.icns`
+- AppKit picks the icns automatically based on `effectiveAppearance` (dark/light), **no App.swift runtime install needed**
+- The project currently only has `AppIcon.icns` (473 KB / 11 reps, landed 8/20 9:26, universal version), no dark/light variants
+- Desktop `wenshu-icon-dark.icns` (367481 bytes) + `wenshu-icon-light.icns` (369946 bytes) = the 8/11 v0.03.0 LOGO master tool-chain re-export ground truth
+- Root cause = the desktop dark/light files have not been copied into the project
 
-### 2. 菜单栏 wenshu 第一菜单真因
+### 2. Menu bar `wenshu` first menu — root cause
 
-- NSMenu L236 `NSMenu(title: "文枢")` 已是中文 ✅
-- 但 SwiftUI `.commands` 段 L175-209 + `CommandGroup(replacing: .appSettings) { SettingsLink }` 装 SettingsLink → macOS 27 lazy populate (Q15/Q16 翻车链, 8/19 ticket 01 真值报告) → SwiftUI 注入英文 "wenshu" 第一菜单 + 重复设置项
-- 老板看到的 "菜单栏第一个菜单从 wenshu 改成文枢" = SwiftUI 注入的英文 wenshu, 不是 NSMenu 装的中文文枢
-- 真因 = NSMenu + SwiftUI .commands 重复装菜单 (两个装菜路径) → SwiftUI .commands 在 macOS 27 占上风
+- NSMenu L236 `NSMenu(title: "文枢")` is already in Chinese ✅
+- But the SwiftUI `.commands` block L175-209 + `CommandGroup(replacing: .appSettings) { SettingsLink }` installs SettingsLink → macOS 27 lazy populate (Q15/Q16 crash chain, 8/19 ticket 01 ground-truth report) → SwiftUI injects English "wenshu" as the first menu + a duplicate Settings item
+- What 老板 sees as "the first menu bar item should change from wenshu to 文枢" = the English wenshu injected by SwiftUI, not the 文枢 installed by NSMenu
+- Root cause = NSMenu + SwiftUI .commands install the menu twice (two install paths) → SwiftUI .commands wins on macOS 27
 
-### 3. 设置菜单真因
+### 3. Settings menu — root cause
 
-- 当前 L237-241 = 3 项: `关于文枢` + `设置…` + `退出文枢`
-- `关于文枢` + `退出文枢` = NSApplication 标准 2 项 (orderFrontStandardAboutPanel + terminate)
-- `设置…` = NSMenu 自己加的 + SwiftUI SettingsLink 也装 = 重复
-- 老板拍 Q3=B = "保留 设置…, 但要 trigger SettingsView" → `设置…` 保留, 必须 trigger 真 SettingsView (不能 action=nil)
+- Current L237-241 = 3 items: `关于文枢` + `设置…` + `退出文枢`
+- `关于文枢` + `退出文枢` = NSApplication's two standard items (orderFrontStandardAboutPanel + terminate)
+- `设置…` = NSMenu's own addition + SwiftUI's SettingsLink also installs it = duplicate
+- 老板 拍 Q3=B = "keep 设置…, but it must trigger SettingsView" → `设置…` is kept, must trigger the real SettingsView (cannot use action=nil)
 
-## 修法 (1 ticket 1 commit 硬约束)
+## Fix (1 ticket 1 commit hard rule)
 
-### Ticket 07 — LOGO dark/light 自动跟随系统主题
+### Ticket 07 — LOGO dark/light automatically follows the system theme
 
-#### 业务语言
+#### Business language
 
-- macOS 系统 = Dark Mode, Dock + Launchpad + cmd+tab 显示 LOGO 深色版
-- macOS 系统 = Light Mode, Dock + Launchpad + cmd+tab 显示 LOGO 浅色版
-- 用户切换系统外观, LOGO 自动跟随
+- macOS system = Dark Mode, Dock + Launchpad + cmd+tab shows the dark LOGO
+- macOS system = Light Mode, Dock + Launchpad + cmd+tab shows the light LOGO
+- When the user switches system appearance, LOGO follows automatically
 
-#### 改法真值 (3 步)
+#### Fix ground truth (3 steps)
 
-1. 复制 `wenshu-icon-dark.icns` (367481, 8 reps ic04/07/10/11/12/13/14/info) → `Sources/WenshuApp/Resources/AppIcon.dark.icns`
-2. 复制 `wenshu-icon-light.icns` (369946, 8 reps) → `Sources/WenshuApp/Resources/AppIcon.light.icns`
-3. 改 `Scripts/build-app.sh` 同步 cp 两份到 `build/Wenshu.app/Contents/Resources/AppIcon.dark.icns` + `AppIcon.light.icns`
+1. Copy `wenshu-icon-dark.icns` (367481, 8 reps ic04/07/10/11/12/13/14/info) → `Sources/WenshuApp/Resources/AppIcon.dark.icns`
+2. Copy `wenshu-icon-light.icns` (369946, 8 reps) → `Sources/WenshuApp/Resources/AppIcon.light.icns`
+3. Modify `Scripts/build-app.sh` to also `cp` both into `build/Wenshu.app/Contents/Resources/AppIcon.dark.icns` + `AppIcon.light.icns`
 
-#### Apple HIG 真值引用
+#### Apple HIG ground-truth references
 
 - App icon dark/light: https://developer.apple.com/design/human-interface-guidelines/app-icons
 - Asset catalog dark/light variant: https://developer.apple.com/documentation/xcode/supporting-multiple-appearances-in-your-app-s-icons
-- macOS 27 Resources 范式: `AppIcon.dark.icns` / `AppIcon.light.icns` 后缀, AppKit 按 effectiveAppearance 自动选
+- macOS 27 Resources paradigm: `AppIcon.dark.icns` / `AppIcon.light.icns` suffix, AppKit picks automatically based on effectiveAppearance
 
-#### 不动
+#### Do not touch
 
-- `AppIcon.icns` (fallback 通用版, 保留)
-- App.swift / Package.swift / Info.plist / 菜单栏 (跟本 ticket 无关)
+- `AppIcon.icns` (fallback universal version, keep)
+- App.swift / Package.swift / Info.plist / menu bar (unrelated to this ticket)
 
-### Ticket 08 — 菜单栏去重 + 设置菜单 trigger SettingsView
+### Ticket 08 — Menu bar deduplicate + Settings menu triggers SettingsView
 
-#### 业务语言
+#### Business language
 
-- 菜单栏第 1 菜单 = "文枢" (中文, 不再是英文 wenshu)
-- "文枢" 下设置菜单保留 2 个官方自带 = `关于文枢` + `退出文枢` + 1 个真 `设置…` (点开触发 SettingsView)
-- macOS 27 不会同时看到 SwiftUI 注入的英文菜单
+- Menu bar first menu = "文枢" (Chinese, no longer English wenshu)
+- Under "文枢" the Settings menu keeps the 2 official built-in items = `关于文枢` + `退出文枢` + 1 real `设置…` (clicking it triggers SettingsView)
+- macOS 27 will not simultaneously show the English menu injected by SwiftUI
 
-#### 改法真值 (3 步)
+#### Fix ground truth (3 steps)
 
-1. 删 App.swift L183-209 SwiftUI `.commands` 段 (`CommandMenu("视图")` + `CommandGroup(replacing: .appSettings) { SettingsLink }`)
-   - 视图菜单走 `恢复默认布局` 是 NSMenu 真值, SwiftUI .commands 删, NSMenu 装
-2. App.swift L239 `设置…` 改 action 不为 nil, 接真 trigger SettingsView
-   - 加 `SettingsView` 真值 (`App.swift` 同文件 struct, 默认空 content placeholder 即可)
-   - action 用 `Selector(("showSettingsWindow:"))` 或 `@objc func showSettingsWindow(_ sender: Any)`
-3. 修 menu structure 跟 8/10 真值一致: `Apple, 文枢, 文件, 编辑, 显示, 窗口, 帮助`
+1. Delete App.swift L183-209 SwiftUI `.commands` block (`CommandMenu("视图")` + `CommandGroup(replacing: .appSettings) { SettingsLink }`)
+   - The View menu's `恢复默认布局` is the NSMenu ground truth — delete SwiftUI .commands, install via NSMenu
+2. In App.swift L239, change `设置…` action so it is not nil, hooked up to a real trigger for SettingsView
+   - Add `SettingsView` ground truth (struct in `App.swift` same file, empty content placeholder is enough)
+   - Use `Selector(("showSettingsWindow:"))` or `@objc func showSettingsWindow(_ sender: Any)` for the action
+3. Fix menu structure to match 8/10 ground truth: `Apple, 文枢, 文件, 编辑, 显示, 窗口, 帮助`
 
-#### Apple HIG 真值引用
+#### Apple HIG ground-truth references
 
-- Settings window macOS 范式: https://developer.apple.com/design/human-interface-guidelines/settings
-- NSMenu Apple menu 自动加: macOS LaunchServices 自动加 Apple menu 在第一, 我们装 6 项 + Apple 自动 = 7 项
-- 删 SwiftUI .commands: 真因 8/19 ticket 01 report (vdhamer/Photo-Club-Hub-HTML#248 macOS 27 beta lazy populate bug)
+- Settings window macOS paradigm: https://developer.apple.com/design/human-interface-guidelines/settings
+- NSMenu Apple menu auto-add: macOS LaunchServices auto-adds the Apple menu as the first item, we install 6 items + Apple auto = 7 items
+- Delete SwiftUI .commands: root cause 8/19 ticket 01 report (vdhamer/Photo-Club-Hub-HTML#248 macOS 27 beta lazy populate bug)
 
-#### 不动
+#### Do not touch
 
-- AppIcon 真值 (跟本 ticket 无关)
-- LayoutShellView / ZoneModule / 拖拽线 (跟本 ticket 无关)
-- ChatView / AgentRuntime (跟本 ticket 无关)
+- AppIcon ground truth (unrelated to this ticket)
+- LayoutShellView / ZoneModule / drag line (unrelated to this ticket)
+- ChatView / AgentRuntime (unrelated to this ticket)
 
-## po main flow 6 步
+## po main flow 6 steps
 
-1. ✅ grill-with-docs (Q1=Q2=Q3 选项已拍)
-2. ✅ to-spec (本文件)
+1. ✅ grill-with-docs (Q1=Q2=Q3 options decided)
+2. ✅ to-spec (this file)
 3. → to-tickets (`.scratch/2026-08-20-logo-macos27/issues/07-08-*.md`)
-4. → implement (1 ticket 1 commit 拆 07 + 08)
-5. → code-review (双轴 Standards + Spec)
-6. → domain-modeling (CONTEXT.md 加 macOS27AppearanceIcon domain word)
+4. → implement (split 1 ticket 1 commit into 07 + 08)
+5. → code-review (dual axis Standards + Spec)
+6. → domain-modeling (add macOS27AppearanceIcon domain word to CONTEXT.md)
 
-## Q22 真验证 (commit 后必跑)
+## Q22 real verification (must run after commit)
 
 1. `./Scripts/build-app.sh` exit 0
 2. `codesign --verify --verbose=2 build/Wenshu.app` exit 0
-3. `ls -la build/Wenshu.app/Contents/Resources/AppIcon*.icns` 确认 3 份都到位
-4. `open build/Wenshu.app` 启新 binary, 系统外观切 dark/light → 老板 macOS 验 Dock LOGO 自动跟随
-5. macOS 系统外观切 dark/light + cmd+shift+3 截图 (老板真验)
-6. 菜单栏真验: 切到 SettingsView 看 SettingsView 渲染 (不需要功能, 占位即可)
+3. `ls -la build/Wenshu.app/Contents/Resources/AppIcon*.icns` confirm all 3 in place
+4. `open build/Wenshu.app` launch new binary, toggle system appearance dark/light → 老板 macOS verifies Dock LOGO follows automatically
+5. Toggle macOS system appearance dark/light + cmd+shift+3 screenshot (老板 real verification)
+6. Menu bar real verification: switch to SettingsView to see SettingsView render (no functionality needed, placeholder is enough)

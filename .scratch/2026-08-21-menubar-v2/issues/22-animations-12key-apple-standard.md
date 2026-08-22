@@ -1,21 +1,21 @@
-# 22 — 优化: key 12 位 + 文本框动画 + tab 切换动画 + Apple 默认动画原则
+# 22 — Polish: key 12 chars + text-field animation + tab-switch animation + Apple default animation principle
 
-依赖: ticket 21 commit `173b719bb`
+Depends on: ticket 21 commit `173b719bb`
 
 **What to build:**
-5 项修真因 + 1 新 domain word (老板 2026-08-22 06:46 拍):
-1. keyPrefix8 → keyPrefix12 函数修真因 (12 位回显)
-2. SecureField + Button + apiError Text 加 .transition(.opacity) (出现/退出 Apple 默认动画)
-3. SettingView body Group 修真因: 3 个 tab 加 .transition(.opacity) + .animation(.default, value: selectedTab)
-4. CONTEXT.md 新 domain word **WenshuInteractionAnimationPrinciple** (老板原话 "交互动画使用 Apple 标准 API, 持续优雅")
-5. 扩展审计: 凡 Apple SwiftUI 标准 API 支持动画的组件, 全加 Apple 默认动画
+5 fixes + 1 new domain word (老板 2026-08-22 06:46 ruled):
+1. `keyPrefix8` → `keyPrefix12` function (12-char display)
+2. `SecureField` + `Button` + `apiError` `Text` get `.transition(.opacity)` (Apple default appear/exit animation)
+3. `SettingView` body `Group` updated: 3 tabs get `.transition(.opacity)` + `.animation(.default, value: selectedTab)`
+4. `CONTEXT.md` new domain word **WenshuInteractionAnimationPrinciple** (boss verbatim "interaction animations use Apple standard APIs, persistently elegant")
+5. Extended audit: any component Apple SwiftUI standard API supports animation on — add Apple default animation
 
 **Why:**
-ticket 21 commit `173b719bb` 老板 macOS 验视觉 OK, 但修真因 5 项优化项. 老板拍原话 "能加动画的, 都要加" = 全修真因 Apple 默认动画.
+After ticket 21 commit `173b719bb`, 老板's macOS verification was visually OK but had 5 polish items. 老板's verbatim: "anything that can have an animation, add it" = add Apple default animation throughout.
 
 **Acceptance:**
-- 老板 macOS 真验: 已设 key 显 12 位灰度字 / 整条点 → 文本框出现退出 Apple 默认动画 / 切 tab Apple 默认动画 / 持续优雅
-- swift build exit 0
-- swift test exit 0 (ProviderKeychain 5/5 pass)
-- 双轴 code-review verbatim 进 commit body
-- Q40 + Q45: 真 key 走 Apple Keychain 不入文件/log/commit, 灰度字仅 UI 显示前 12 位
+- 老板 macOS verification: already-set key shows 12 grayed chars / tap whole row → text-field Apple default appear/exit animation / tab-switch Apple default animation / persistently elegant
+- `swift build` exit 0
+- `swift test` exit 0 (`ProviderKeychain` 5/5 pass)
+- Dual-axis code-review verbatim into commit body
+- Q40 + Q45: real key goes through Apple Keychain, not into files / log / commit; grayed text only shows the first 12 chars in UI

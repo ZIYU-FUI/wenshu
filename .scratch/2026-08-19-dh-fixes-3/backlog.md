@@ -1,139 +1,133 @@
-# Backlog — 拖拽线/分割线/菜单栏 (老板 2026-08-19 拍)
+# Backlog — Splitters / dividers / menu bar (老板 2026-08-19 拍)
 
-> 此文件记录老板拍过但当前 ticket 不动 / 等排期的需求.
+> This file records requirements that 老板 拍-ed but the current ticket does not touch / awaiting scheduling.
 
-## Backlog 01 — 取消"圆头"设计 (Rectangle .clipShape(.capsule))
+## Backlog 01 — Remove "rounded cap" design (Rectangle .clipShape(.capsule))
 
-**Status**: ✅ done — commit c047afc9 (v0.17 ticket 08)
+**Status**: ✅ done — commit `c047afc9` (v0.17 ticket 08)
 
-## Backlog 02 — cursor 不变
+## Backlog 02 — Cursor not changing
 
-**Status**: ✅ done — commit f65bb329 (v0.17 ticket 03 cursor 退回 .pointerStyle)
-- 真因报告: cursor-investigation-report-v2.md (552 行, 39 KB)
-- 真因: NSHostingView 不 override resetCursorRects + override hitTest, 屏蔽 AppKit cursor rects 范式
-- 修法: 退回 SwiftUI .pointerStyle(.columnResize / .rowResize) 挂到 ZStack 最外层 (Apple HIG macOS 15+ 标准)
-- 删 WenshuCursorController NSResponder + WenshuAppDelegate.cursorController + SplitterHitArea.resetCursorRects (之前错误范式)
-- 拖拽线视觉 / hover 蓝光 / 拖动响应 / hit area / 1 PT fill 全保持
-- 待老板验 cursor 切 ↕ / ↔
+**Status**: ✅ done — commit `f65bb329` (v0.17 ticket 03 cursor fallback to .pointerStyle)
+- Root-cause report: `cursor-investigation-report-v2.md` (552 lines, 39 KB)
+- Root cause: NSHostingView does not override resetCursorRects but overrides hitTest, blocking AppKit cursor rects paradigm
+- Fix: fallback to SwiftUI `.pointerStyle(.columnResize / .rowResize)` attached to outermost ZStack (Apple HIG macOS 15+ standard)
+- Delete `WenshuCursorController` NSResponder + `WenshuAppDelegate.cursorController` + `SplitterHitArea.resetCursorRects` (previously wrong paradigm)
+- Splitter visuals / hover blue glow / drag response / hit area / 1 PT fill all preserved
+- Awaiting 老板 verify cursor switch ↕ / ↔
 
-## Backlog 03 — 拖拽线静态色 Color.black → Color(nsColor: .separatorColor)
+## Backlog 03 — Splitter static color `Color.black` → `Color(nsColor: .separatorColor)`
 
-**Status**: ✅ done — commit c047afc9 (v0.17 ticket 08)
+**Status**: ✅ done — commit `c047afc9` (v0.17 ticket 08)
 
-## Backlog 04 — 其他 wenshu 静态 Color 走 NSColor semantic 审计
+## Backlog 04 — Other wenshu static Color → NSColor semantic audit
 
-**Status**: ✅ done — commit c047afc9 (v0.17 ticket 08, DesignColor.accentBlue / splitterLine 已改)
+**Status**: ✅ done — commit `c047afc9` (v0.17 ticket 08, DesignColor.accentBlue / splitterLine changed)
 
-## Backlog 05 — 拖拽线没顶到头 (差 1 像素)
+## Backlog 05 — Splitter not reaching edge (off by 1 pixel)
 
-**Status**: ✅ done — commit e359e27 (v0.17 ticket 02 顶到头)
+**Status**: ✅ done — commit `e359e27` (v0.17 ticket 02 reach edge)
 - NativeSplitter lineThickness 2 → 1
 - NativeSplitter hoveredThickness 4 → 3
 - NativeSplitter hitAreaThickness 6 → 1
 
-## Backlog 06 — 分割线没顶到头 (差 1 像素)
+## Backlog 06 — Divider not reaching edge (off by 1 pixel)
 
-**Status**: ✅ done — commit e359e27
-- StaticDividerHorizontal Rectangle frame(height: 2) → frame(height: 1)
-- StaticDividerVertical Rectangle frame(width: 2) → frame(width: 1)
+**Status**: ✅ done — commit `e359e27`
+- StaticDividerHorizontal Rectangle `frame(height: 2)` → `frame(height: 1)`
+- StaticDividerVertical Rectangle `frame(width: 2)` → `frame(width: 1)`
 
-## Backlog 05 (旧) — 拖拽线没顶到头 (差 1 像素)
+## Backlog 05 (old) — Splitter not reaching edge (off by 1 pixel)
 
-**来源**: 老板 2026-08-19 19:00 拍
+**Source**: 老板 2026-08-19 19:00 拍
 
-**当前实现**:
+**Current implementation**:
 - NativeSplitter body Rectangle L155 `.fill(...) .frame(width: lineFrame.width, height: lineFrame.height)`
-- outerWidth = hitAreaThickness (6 PT) for vertical, length for horizontal
+- `outerWidth` = `hitAreaThickness` (6 PT) for vertical, length for horizontal
 - Rectangle frame = 2 PT (static) / 4 PT (hover)
-- 视觉: 拖拽线 2 PT 居中, 两边各 (6 - 2) / 2 = 2 PT 空白
+- Visual: splitter 2 PT centered, 2 PT blank each side ((6 - 2) / 2)
 
-**真因猜测**:
-- Rectangle frame 是 lineFrame.width (2 PT 居中), hit area 是 6 PT
-- hit area 是透明 NSView overlay, 视觉 Rectangle 在 hit area 内部居中
-- 老板看 "差 1 像素" = 视觉 Rectangle 没有 100% 占 hit area 宽度, 上下/左右各有 1-2 PT 留白
-- 可能: Rectangle frame 应该是 hitAreaThickness (6 PT) 视觉占满 hit area, 上下留白给 hit area 透明区域
+**Root-cause guess**:
+- Rectangle frame is `lineFrame.width` (2 PT centered), hit area is 6 PT
+- Hit area is transparent NSView overlay; visual Rectangle is centered inside hit area
+- 老板 sees "off by 1 pixel" = visual Rectangle does not 100% occupy hit area width, with 1-2 PT blank top/bottom or left/right
+- Possible: Rectangle frame should be `hitAreaThickness` (6 PT) visually filling hit area, leaving top/bottom blank to transparent hit-area region
 
-**真值源 (Sketch AF7B1C87)**:
-- D_h 真值: x:0, y:517, w:1920, h:2 (横跨整 window 宽, 1920 PT 1:1)
-- D_v 真值: x:200 / 720 / 1244, y:52, w:2, h:465 (整 band 高, 2 PT 宽, 占满 hit area)
+**Truth source (Sketch AF7B1C87)**:
+- D_h truth: x:0, y:517, w:1920, h:2 (spans full window width, 1920 PT 1:1)
+- D_v truth: x:200 / 720 / 1244, y:52, w:2, h:465 (full band height, 2 PT wide, fills hit area)
 
-**目标修法 (待拍)**:
-- 选项 A: Rectangle frame 改成 hitAreaThickness (6 PT) 视觉占满 hit area, 让 Rectangle "看起来" 顶到头
-- 选项 B: Rectangle frame 保持 2 PT 但 NSTrackingArea bounds 精确等于 Rectangle 视觉区域
-- 选项 C: 1 PT 调整 (e.g. Rectangle frame +1 PT = 3 PT 视觉) 解决差 1 像素
+**Target fix (pending)**:
+- Option A: Rectangle frame change to `hitAreaThickness` (6 PT) visually filling hit area, making Rectangle "appear to" reach the edge
+- Option B: Rectangle frame keep 2 PT but NSTrackingArea bounds exactly equal Rectangle visual area
+- Option C: 1 PT tweak (e.g. Rectangle frame +1 PT = 3 PT visual) to resolve off-by-1-pixel
 
 **Acceptance criteria**:
-- 拖拽线视觉顶到头 (差 0 像素)
-- D_h 横跨整 window 宽
-- D_v 占满 zone 高度
-- 不破已实现的拖拽交互 + hover 蓝光
-- 1:1 落 Sketch AF7B1C87
-- swift build exit 0
+- Splitter visual reaches edge (off by 0 pixel)
+- D_h spans full window width
+- D_v fills zone height
+- Does not break implemented drag interaction + hover blue glow
+- 1:1 match Sketch AF7B1C87
+- `swift build` exit 0
 
-**优先级**: 中 (视觉细节, 已 commit 验证, 但差 1 像素影响 1:1 Sketch 真值)
-
-**Blocked by**: 老板拍选项
-
+**Priority**: medium (visual detail, already commit-verified, but off-by-1-pixel affects 1:1 Sketch truth)
+**Blocked by**: 老板 拍 option
 **Status**: backlog
 
-## Backlog 06 — 分割线没顶到头 (差 1 像素)
+## Backlog 06 — Divider not reaching edge (off by 1 pixel)
 
-**来源**: 老板 2026-08-19 19:00 拍 ("分割线也是一样, 一并处理")
+**Source**: 老板 2026-08-19 19:00 拍 ("divider is the same, handle together")
 
-**当前实现**:
-- StaticDividerHorizontal: Rectangle frame(width: w, height: 2)
-- StaticDividerVertical: Rectangle frame(width: 2, height: height)
-- 跟 D_h / D_v 同问题 (Rectangle frame 居中, hit area 不居中)
+**Current implementation**:
+- StaticDividerHorizontal: Rectangle `frame(width: w, height: 2)`
+- StaticDividerVertical: Rectangle `frame(width: 2, height: height)`
+- Same problem as D_h / D_v (Rectangle frame centered, hit area not centered)
 
-**目标修法**:
-- 跟 backlog 05 一起修, Rectangle frame 占满整个 split region
+**Target fix**:
+- Fix together with backlog 05, Rectangle frame fills entire split region
 
 **Acceptance criteria**:
-- 分割线视觉顶到头 (差 0 像素)
-- 不破已实现的视觉
-- swift build exit 0
+- Divider visual reaches edge (off by 0 pixel)
+- Does not break implemented visuals
+- `swift build` exit 0
+**Priority**: medium (scheduled with backlog 05)
+**Blocked by**: backlog 05 option 拍
+**Status**: backlog (merged with backlog 05)
 
-**优先级**: 中 (跟 backlog 05 一起排)
+## Backlog 07 — Menu bar invisible root cause (deleg_a9c4fde9 doc-check done)
 
-**Blocked by**: backlog 05 选项拍
+**Status**: ✅ root cause + fix — commit pending (deleg_a9c4fde9 47 min, 120 tool calls)
 
-**Status**: backlog (合并 backlog 05 一起修)
+**Root cause (P0)**:
+- vdhamer/Photo-Club-Hub-HTML#248 (open since 2026-08-13) public record: `CommandGroup(replacing: X) { }` does not delete group — it replaces with empty group, each empty group still contributes a separator, SwiftUI-layer API cannot clean up what it itself left behind
+- Confirmed mechanism: WenshuAppDelegate touched NSWindow before SwiftUI finished main menu, + macOS 27 beta lazy menu populate = the entire top menu bar never installed
 
-## Backlog 07 — 菜单栏不可见真因 (deleg_a9c4fde9 查文档完)
-
-**Status**: ✅ 真因 + 修法 — commit 待 (deleg_a9c4fde9 47 分钟 跑完 120 tool calls)
-
-**真因 (P0)**:
-- vdhamer/Photo-Club-Hub-HTML#248 (open since 2026-08-13) 公开记录: `CommandGroup(replacing: X) { }` 不删除 group — 它替换为空 group,每个空 group 仍然贡献一个 separator, SwiftUI 层 API 不能清理自己留下的东西
-- 确认机制: WenshuAppDelegate 在 SwiftUI 完成 main menu 之前动了 NSWindow, + macOS 27 beta lazy menu populate = 整个顶部菜单栏根本没安装
-
-**URL 真值引用**:
+**URL truth references**:
 - https://github.com/vdhamer/Photo-Club-Hub-HTML/issues/248
-- https://developer.apple.com/documentation/swiftui/app/commands (sosumi.ai 镜像)
+- https://developer.apple.com/documentation/swiftui/app/commands (sosumi.ai mirror)
 - https://developer.apple.com/documentation/swiftui/commandmenu
 - https://developer.apple.com/documentation/swiftui/commandgroup
 - https://developer.apple.com/documentation/swiftui/commandgroupplacement
 
-**目标修法 (待老板拍)**:
-- 选项 A: 注释 WenshuAppDelegate (让 SwiftUI 自己装 menu, 不在 NSWindow 之前动)
-- 选项 B: 加 `NSApp.mainMenu?.items.forEach { $0.submenu?.update() }` 在 applicationDidFinishLaunching 末尾强制 install
-- 选项 C: 用 `.commandsReplaced` 强制 install
-- 选项 D: 退 AppKit (`NSApplicationMain` + 手动 NSMenu)
+**Target fix (pending 老板 拍)**:
+- Option A: comment out WenshuAppDelegate (let SwiftUI install menu itself, do not touch before NSWindow)
+- Option B: add `NSApp.mainMenu?.items.forEach { $0.submenu?.update() }` at end of applicationDidFinishLaunching to force install
+- Option C: use `.commandsReplaced` to force install
+- Option D: fallback to AppKit (`NSApplicationMain` + manual NSMenu)
 
 **Acceptance criteria**:
-- macOS 顶部菜单栏可见
-- "文枢" 顶级下能看到 "设置..." (跟 Pages / Numbers / Xcode 一样)
-- 快捷键 ⌘, work
-- 点击弹设置弹窗
-- 不破坏其他功能 (cursor 切 / 拖拽 / hover)
+- macOS top menu bar visible
+- Under top-level "文枢" you can see "Settings..." (same as Pages / Numbers / Xcode)
+- Shortcut ⌘, works
+- Click opens settings dialog
+- Does not break other functions (cursor switch / drag / hover)
 
-**优先级**: 高 (基本 UI)
+**Priority**: high (basic UI)
+**Blocked by**: 老板 拍 option + cursor ticket 03 verification passed
 
-**Blocked by**: 老板拍选项 + cursor ticket 03 验证通过
-
-**Status**: ⚠️ 修法 A 实施 (commit 464d4f34), 待老板验截图
-- commit 464d4f34 删 WenshuAppDelegate.applicationDidFinishLaunching setContentSize/center/guards 提前动 NSWindow 代码
-- 留 SelfScreenshot 调用
-- SwiftUI WindowGroup + .defaultSize + .windowStyle(.titleBar) 自己管 size + chrome
-- ⚠️ 没加 .commandsReplaced (Apple 真值 API 调用方法不确定, 8/15 bug debugging rule 不猜)
-- 待: 老板启 app 截图验菜单栏是否可见 + 拍下一步 (如菜单栏仍不可见, 走选项 B/C/D)
+**Status**: ⚠️ fix A implemented (commit `464d4f34`), awaiting 老板 verify screenshot
+- commit `464d4f34` deletes `WenshuAppDelegate.applicationDidFinishLaunching` `setContentSize`/`center`/`guards` code that touched NSWindow early
+- Keep SelfScreenshot call
+- SwiftUI WindowGroup + `.defaultSize` + `.windowStyle(.titleBar)` manage size + chrome itself
+- ⚠️ did not add `.commandsReplaced` (Apple truth API call method uncertain, 8/15 bug debugging rule do not guess)
+- Pending: 老板 launches app + screenshots to verify whether menu bar is visible + 拍 next step (if menu bar still invisible, go option B/C/D)

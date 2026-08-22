@@ -1,16 +1,16 @@
-# 25 — 设置菜单 title 恢复 "文枢" + 渐显渐隐动画保持
+# 25 — Settings menu title restored to "文枢" + keep the fade-in/fade-out animation
 
-依赖: ticket 24 revert commit `654bac679`
+Depends on: ticket 24 revert commit `654bac679`
 
 **What to build:**
-- 渐显渐隐动画保持 (providerApiEditor L436-454 已修真因, ticket 22 + 23 落地不动)
-- Info.plist CFBundleDisplayName + CFBundleName 改回 "文枢" (撤 ticket 21 + 23 真值, brand 恢复)
+- Keep the fade-in/fade-out animation (`providerApiEditor` L436-454 already updated; ticket 22 + 23 landed untouched)
+- `Info.plist` `CFBundleDisplayName` + `CFBundleName` revert to "文枢" (revert ticket 21 + 23 truth; brand restored)
 
 **Why:**
-老板 2026-08-22 07:22 拍 "恢复成'文枢'设置" + 接受渐显渐隐动画. 修真因 brand "文枢" + 修真因 macOS 14+ SwiftUI Settings Scene API 不支持自定义 title 真值 (Q44 swiftinterface 验).
+老板 2026-08-22 07:22 ruled "restore to '文枢' Settings" + accept the fade-in/fade-out animation. Brand "文枢" restored + macOS 14+ SwiftUI `Settings` Scene API doesn't support custom title (Q44 swiftinterface verified).
 
 **Acceptance:**
-- 老板 macOS 真验: 弹窗 title = "文枢 设置" (品牌恢复) / 编辑框 3 元素渐显渐隐 Apple 默认动画
-- swift build exit 0
-- swift test exit 0 (ProviderKeychain 5/5 pass)
-- 双轴 code-review verbatim 进 commit body
+- 老板 macOS verification: popup title = "文枢 Settings" (brand restored) / edit-box 3 elements Apple default fade-in/fade-out animation
+- `swift build` exit 0
+- `swift test` exit 0 (`ProviderKeychain` 5/5 pass)
+- Dual-axis code-review verbatim into commit body

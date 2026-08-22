@@ -1,36 +1,36 @@
-# ADR-0003: 拖拽线走 NSView + NSEvent.delta 增量
+# ADR-0003: Drag splitters via NSView + NSEvent.delta incremental
 
-> Status: **superseded by ADR-0007** (老板 2026-08-19 ticket 005 拍板: 改 NSView → SwiftUI NativeSplitter(view))
+> Status: **superseded by ADR-0007** (老板 2026-08-19 ticket 005 拍板: change NSView → SwiftUI NativeSplitter(view))
 > Date: 2026-08-18
 > Decision-maker(s): 老板 (8/18)
 
-## Context (历史)
+## Context (historical)
 
-老板 8/18 拍 "拖拽线少两根没有落地". v0.07 之前 5 拖拽线 (Library/Editor/Inspector/Chat/Console/Status) 用 SwiftUI NSSplitView, 但 Apple 不暴露 divider 颜色 / hit area 厚度 / cursor hook, 跟老板设计稿 1 PT 细线不符.
+老板 8/18 拍 "two drag splitters are missing from the landing". Pre-v0.07, the 5 drag splitters (Library/Editor/Inspector/Chat/Console/Status) used SwiftUI NSSplitView, but Apple does not expose divider color / hit-area thickness / cursor hooks, which does not match the 老板 design's 1 PT thin line.
 
-## Decision (历史)
+## Decision (historical)
 
-6 拖拽线 (5 竖 + 1 横) 全部手画 NSView, 桥接 SwiftUI:
-- `NativeSplitterView: NSView` (Public AppKit, macOS 27.0 验证) — 完整 mouseDown / mouseDragged / mouseUp + NSCursor.resize* + draw 1 PT 黑线
-- `NativeSplitter: NSViewRepresentable` — SwiftUI 桥
-- `VerticalDragSplitter` / `HorizontalDragSplitter` — 用例 wrapper, 接受 height / width 走 .frame 落 PT 真值
+All 6 drag splitters (5 vertical + 1 horizontal) are hand-drawn NSView, bridged to SwiftUI:
+- `NativeSplitterView: NSView` (Public AppKit, macOS 27.0 verified) — full mouseDown / mouseDragged / mouseUp + NSCursor.resize* + draw 1 PT black line
+- `NativeSplitter: NSViewRepresentable` — SwiftUI bridge
+- `VerticalDragSplitter` / `HorizontalDragSplitter` — use-case wrappers, accept height / width via .frame to land PT truth
 
-拖拽回调走 `NSEvent.deltaX` / `NSEvent.deltaY` 增量, 不累积 (= 不会漂移). v0.08 阶段 onDrag 空 closure (VM 拖拽状态未持久化), 等 v0.09 接 VM 时再补.
+Drag callbacks use `NSEvent.deltaX` / `NSEvent.deltaY` incremental, not cumulative (no drift). v0.08 stage onDrag is an empty closure (VM drag state not yet persisted); VM integration added in v0.09.
 
 ## Supersede (2026-08-19)
 
-见 ADR-0007 (Layout shell 范式 — HStack + 自写 NativeSplitter(view)). 拖拽线从 NSView + NSEvent.delta pipeline 改为 SwiftUI View + DragGesture + .pointerStyle (Apple HIG 官方 API, macOS 15+).
+See ADR-0007 (Layout shell pattern — HStack + hand-written NativeSplitter(view)). Drag splitters changed from the NSView + NSEvent.delta pipeline to SwiftUI View + DragGesture + .pointerStyle (Apple HIG official API, macOS 15+).
 
-老板 2026-08-19 反馈 v0.14.1 翻车: Canvas 重画 + NSView overlay 透明 hit area 把 hover/drag 视觉全丢了 (Canvas 不响应 hover, NSView cursor 不透到 SwiftUI 顶层 window). 回归 Apple HIG SwiftUI 范式.
+老板 2026-08-19 feedback on v0.14.1 regression: Canvas redraw + NSView overlay transparent hit area dropped all hover/drag visuals (Canvas does not respond to hover, NSView cursor does not propagate to the SwiftUI top-level window). Reverted to Apple HIG SwiftUI pattern.
 
-## Consequences (历史, 部分被 ADR-0007 覆盖)
+## Consequences (historical, partially overridden by ADR-0007)
 
-- 6 拖拽线 1:1 落, hit area 6 PT, 视觉线 1 PT, 老板可拖 — **被 ADR-0007 继承, 改为 2 PT 静态 / 4 PT hover accent capsule**
-- VM 拖拽状态 v0.09 之前不持久化, 拖动视觉会回弹 — **v0.10.1 接 VM, 已修**
-- 不可拖拽分割线 (StaticDivider) 走 SwiftUI Divider / Color.frame, 不与拖拽线耦合 — **被 ADR-0007 继承**
+- 6 drag splitters landed 1:1, hit area 6 PT, visual line 1 PT, 老板 can drag — **inherited by ADR-0007, changed to 2 PT static / 4 PT hover accent capsule**
+- VM drag state not persisted before v0.09, drag visual would snap back — **wired to VM in v0.10.1, fixed**
+- Non-draggable dividers (StaticDivider) use SwiftUI Divider / Color.frame, not coupled to drag splitters — **inherited by ADR-0007**
 
-## Alternatives considered (历史, 部分被 ADR-0007 更新)
+## Alternatives considered (historical, partially updated by ADR-0007)
 
-- HSplitView / VSplitView (SwiftUI) — 拒绝, 不暴露 hook — **被 ADR-0007 继承**
-- NSSplitView (AppKit) — 拒绝, hit area / divider 颜色不能改 — **被 ADR-0007 继承**
-- SwiftUI DragGesture — 拒绝, 跨 SwiftUI render 拖拽会闪烁 — **2026-08-19 拒绝理由撤回: v0.14.1 实测 SwiftUI 顶层 window DragGesture 不闪烁, Apple HIG 官方范式**
+- HSplitView / VSplitView (SwiftUI) — rejected, no hook exposed — **inherited by ADR-0007**
+- NSSplitView (AppKit) — rejected, hit area / divider color cannot be changed — **inherited by ADR-0007**
+- SwiftUI DragGesture — rejected, drag across SwiftUI renders flickers — **2026-08-19 rejection reason withdrawn: v0.14.1 verified that SwiftUI top-level window DragGesture does not flicker, Apple HIG official pattern**

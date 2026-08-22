@@ -1,19 +1,19 @@
-# 23 — 标题去"文枢"修真因 + 动画 container-level 修真因
+# 23 — Remove "文枢" from the title + apply container-level animations
 
-依赖: ticket 21 commit `173b719bb` + ticket 22 commit `8b1b48a64`
+Depends on: ticket 21 commit `173b719bb` + ticket 22 commit `8b1b48a64`
 
 **What to build:**
-2 项修真因真硬真值 (老板 2026-08-22 06:50 拍):
-1. Info.plist CFBundleDisplayName 修真因为 "设置" (修真因 ticket 21 item 2 没生效, 因为 CFBundleDisplayName 走 fallback 优先级最高)
-2. App.swift providerApiEditor 修真因: 撤 element-level .transition (L441/447/453 各自) → HStack 整块 container-level .transition (老板原话 "不是这两个元素加动画, 是这两个元素所在的那一条需要加动画")
-3. App.swift SettingView body Group 修真因: 撤 switch case .transition (L274-276, switch case 不是 if condition, transition 不生效)
+2 hard-truth fixes (老板 2026-08-22 06:50 ruled):
+1. `Info.plist` `CFBundleDisplayName` fixed to "Settings" (ticket 21 item 2 didn't take effect because `CFBundleDisplayName` follows the fallback-priority order)
+2. `App.swift` `providerApiEditor` updated: remove element-level `.transition` (L441 / L447 / L453 each) → `HStack` whole container-level `.transition` (boss verbatim "it's not the two elements that need animation; it's the row that those elements live on that needs animation")
+3. `App.swift` `SettingView` body `Group` updated: remove `switch` case `.transition` (L274-276; `switch` case isn't an `if` condition, so `.transition` doesn't take effect)
 
 **Why:**
-ticket 21 + 22 修真因落地后老板 macOS 验发现 2 项修真因真硬违反. 老板补 "container-level transition" = Apple SwiftUI 真值真硬修正.
+After tickets 21 + 22 took effect, 老板's macOS verification found 2 hard-truth violations. 老板's addendum "container-level transition" = Apple SwiftUI authoritative hard correction.
 
 **Acceptance:**
-- 老板 macOS 真验: 标题 "设置 Settings" (去"文枢") / 展开文本框容器层 Apple 默认动画 / tab 切换 Apple 默认动画
-- swift build exit 0
-- swift test exit 0 (ProviderKeychain 5/5 pass)
-- 双轴 code-review verbatim 进 commit body
-- Q40 + Q45: 真 key 走 Apple Keychain, UI 显示仅前 12 位, 不入文件/log/commit
+- 老板 macOS verification: title "Settings Settings" (no "文枢") / expanding text-field container-level Apple default animation / tab-switch Apple default animation
+- `swift build` exit 0
+- `swift test` exit 0 (`ProviderKeychain` 5/5 pass)
+- Dual-axis code-review verbatim into commit body
+- Q40 + Q45: real key goes through Apple Keychain; UI display is first 12 chars only, not in files / log / commit

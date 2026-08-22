@@ -2,24 +2,24 @@
 
 > Date: 2026-08-22
 > Status: SPEC phase (impl pending backlog)
-> Boss said: "实现真正的 tab 切换功能", "先记需求，一会排期实现"
+> Boss said: "actually implement real tab switching", "first record the requirement, schedule the impl later"
 
 ## Boss verbal spec (verbatim)
 
-- "实现真正的 tab 切换功能"
-- "聊天区，顶栏的 ICON"
-- "第一个用机器人"
-- "第二个第三个，可以保留现在的这个，先放着，后面实现对应的两个视图的功能"
-- "先记需求，一会排期实现"
+- "actually implement real tab switching"
+- "chat zone, the ICON row in the top bar"
+- "the first one uses a robot"
+- "the second and third can keep what they are now, leave them for now, implement the corresponding views later"
+- "first record the requirement, schedule the impl later"
 
 ## Business language spec (what boss understands)
 
-Chat zone top bar has 3 tab icons. Currently clicking them does nothing (no real switching).
+The chat zone top bar has 3 tab icons. Currently clicking them does nothing (no real switching).
 
 **What boss wants this round:**
-1. Tab 1 icon = robot icon (SF Symbol "cpu" or "person.crop.circle.badge.questionmark") — replace current doc icon
-2. Tab 1 click = truly switch to chat view (current implementation, no new logic needed)
-3. Tab 2 + Tab 3 = keep current icons (search / slider), no switching yet — handled by future tickets 21 + 22
+1. Tab 1 icon = robot icon (SF Symbol "cpu" or "person.crop.circle.badge.questionmark") — replace the current doc icon
+2. Tab 1 click = actually switch to the chat view (current implementation, no new logic needed)
+3. Tab 2 + Tab 3 = keep the current icons (search / slider), no switching yet — handled by future tickets 21 + 22
 
 ## Implementation spec (5 principles + Apple HIG)
 
@@ -84,32 +84,32 @@ struct ChatTabBar: View {
 
 ### Acceptance criteria
 
-- [ ] ChatTab enum = .chat / .search / .settings
-- [ ] ChatZoneView body uses VStack { ChatTabBar, Divider, switch selectedTab, Divider, ChatBottomBar }
+- [ ] `ChatTab` enum = `.chat` / `.search` / `.settings`
+- [ ] `ChatZoneView` body uses `VStack { ChatTabBar, Divider, switch selectedTab, Divider, ChatBottomBar }`
 - [ ] Tab 1 icon = "cpu" (Apple SF Symbol robot)
-- [ ] Tab 1 click = switch to ChatView (current implementation)
-- [ ] Tab 2 + 3 = keep current icons, no switching this round (placeholder Text views)
-- [ ] ChatTabBar hot area = full button (buttonStyle(.plain)), 18 PT leading inset
+- [ ] Tab 1 click = switch to `ChatView` (current implementation)
+- [ ] Tab 2 + 3 = keep current icons, no switching this round (placeholder `Text` views)
+- [ ] `ChatTabBar` hot area = full button (`buttonStyle(.plain)`), 18 PT leading inset
 - [ ] 1 PT splitter lines (top and bottom of content area) — existing, not touched
-- [ ] swift build exit 0
-- [ ] swift test exit 0
+- [ ] `swift build` exit 0
+- [ ] `swift test` exit 0
 - [ ] Boss CUA verification: click tab 1 icon → chat view shown, tab 1 icon = robot
 
 ### Do not touch (Q20 / Q51)
 
-- ChatBottomBar (ticket 13 + 14 fixed value)
+- `ChatBottomBar` (ticket 13 + 14 fixed value)
 - 1 PT splitter line above content
-- ChatView input box + message list + ChatMessageView
-- ChatViewModel.send / clear / switchModel / loadAvailableModels API
-- LayoutShellView / ZoneModule parent components
-- WenshuConductor / AgentProtocol
-- App.swift .commands { SettingsLink } + Settings Scene
-- ProviderKeychain / Storing protocol / MiniMaxModelFetcher
-- Any existing .frame / .padding values outside this ticket
+- `ChatView` input box + message list + `ChatMessageView`
+- `ChatViewModel.send / clear / switchModel / loadAvailableModels` API
+- `LayoutShellView` / `ZoneModule` parent components
+- `WenshuConductor` / `AgentProtocol`
+- `App.swift` `.commands { SettingsLink }` + Settings Scene
+- `ProviderKeychain` / `Storing` protocol / `MiniMaxModelFetcher`
+- Any existing `.frame` / `.padding` values outside this ticket
 
 ### Q47 lock: implementation method
 
-macOS SwiftUI 14+ standard TabView API — OR custom HStack + Button(.plain) with full hot area. TabView is the Apple HIG canonical choice; custom HStack is acceptable if TabView style does not match the 3-icon layout.
+macOS SwiftUI 14+ standard `TabView` API — OR custom `HStack` + `Button(.plain)` with full hot area. `TabView` is the Apple HIG canonical choice; custom `HStack` is acceptable if `TabView` style does not match the 3-icon layout.
 
 ### Apple HIG references
 
@@ -119,7 +119,7 @@ macOS SwiftUI 14+ standard TabView API — OR custom HStack + Button(.plain) wit
 
 ### History
 
-- ticket 09 + 10: ChatZoneView child component pattern fixed (Q51 parent unchanged)
-- ticket 13 + 14: ChatBottomBar 18 PT inset fixed
+- ticket 09 + 10: `ChatZoneView` child component pattern fixed (Q51 parent unchanged)
+- ticket 13 + 14: `ChatBottomBar` 18 PT inset fixed
 - ticket 15 + 16 + 17: Provider API config fixed
 - Future: ticket 21 (search tab real view), ticket 22 (settings tab real view)

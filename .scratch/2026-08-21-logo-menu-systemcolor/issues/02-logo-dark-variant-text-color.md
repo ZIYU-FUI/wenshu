@@ -1,24 +1,24 @@
-# 02 — LOGO dark variant 字色改浅 (跟系统色真值)
+# 02 — LOGO dark variant text color: lighten to match the system color
 
 **What to build:**
-老板 2026-08-21 验 LOGO 4 模式截图: Light OK, Dark 看不见 (深底 + 深字), Tinted OK. AppKit 自动选 dark/light icns, 但 dark variant 字色没改 (跟 light 一样深字), 跟系统色不完整.
+老板 2026-08-21 reviewed the LOGO 4-mode screenshots: Light OK; Dark invisible (dark background + dark text); Tinted OK. AppKit automatically picks the dark/light icns, but the dark variant's text color was never changed (still dark text, same as light), so the system-color follow-through is incomplete.
 
-**Blocked by:** 老板改 Sketch master (进行中).
+**Blocked by:** 老板 editing the Sketch master (in progress).
 
-**Status:** ✅ done — 合并到 ticket 04 (commit 0aabd989e). 老板 LOGO.icon Assets/wenshu-original-fanbai.png = dark variant 浅字 (修了 deep 字看不见), ticket 02 不需要单独跑.
+**Status:** ✅ done — merged into ticket 04 (commit `0aabd989e`). 老板's LOGO.icon `Assets/wenshu-original-fanbai.png` is the dark variant with light text (fixing the dark-text invisibility), so ticket 02 does not need to run on its own.
 
-## 修法真值 (2 步)
+## Fix specification (2 steps)
 
-1. 老板去 Sketch master 把 dark variant 主图的 "文枢" 字色改浅 (= 跟深底对比, 类似 #F5F5F5 或 Apple system label color light)
-2. 重导 `wenshu-icon-master-1024-dark.png`, 我跑 ticket 01 流程重导 icns
-3. 1 ticket 1 commit + 老板 macOS Dock 切 Dark Mode 验
+1. 老板 edits the Sketch master to lighten the "文枢" text color on the dark variant master (= contrasting against the dark background, similar to `#F5F5F5` or the Apple system label color light).
+2. Re-export `wenshu-icon-master-1024-dark.png`; I run the ticket 01 icns regeneration pipeline.
+3. 1 ticket 1 commit + 老板 macOS Dock verification in Dark Mode.
 
-## 不动
+## Out of scope
 
-- light / mono variant (当前 OK)
-- App.swift / Package.swift / Info.plist
+- light / mono variants (current state OK)
+- `App.swift` / `Package.swift` / `Info.plist`
 
-## 关联
+## References
 
-- 依赖: 老板改 Sketch master
-- **被合并**: ticket 04 (Logo Composer 替换 icns) — 老板 LOGO.icon 提供 1 份 PNG + icon.json, 改1 处全局生效, ticket 02 自动过
+- Depends on: 老板 editing the Sketch master
+- **Merged into**: ticket 04 (Icon Composer replacing the icns files) — 老板's LOGO.icon provides a single PNG + icon.json; editing one place takes effect globally, so ticket 02 passes automatically.

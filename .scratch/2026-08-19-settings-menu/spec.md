@@ -1,63 +1,63 @@
-# Spec — 文枢菜单下加 "设置..." 菜单项 (Apple HIG macOS 真值)
+# Spec — 文枢 menu add "Settings..." menu item (Apple HIG macOS truth)
 
 > Date: 2026-08-19
-> Spec 走 po `to-spec` skill 7 段模板
+> Spec uses po `to-spec` skill 7-section template
 
 ## Problem Statement
 
-老板 2026-08-19 反馈: wenshu 启 app 后菜单栏**没有"设置"菜单**,但代码已经写了 `Settings` scene(L208-219) — 老板找不到入口。
+老板 2026-08-19 reported: after launching wenshu app menu bar **doesn't have "Settings" menu**, but code already wrote `Settings` scene (L208-219) — 老板 can't find entry.
 
-从老板视角,macOS app 标准做法 = "文枢" 顶级菜单下挂 "设置..." 项(Apple HIG,跟 Pages / Numbers / Xcode 一致),快捷键 `⌘,`。
+From 老板's perspective, macOS app standard practice = "文枢" top-level menu hangs "Settings..." item (Apple HIG, same as Pages / Numbers / Xcode), shortcut `⌘,`.
 
 ## Solution
 
-在 `.commands` 里加 `CommandGroup(replacing: .appSettings)` 把 "设置..." 菜单项手动注入 "文枢" 顶级下。SwiftUI `Settings` scene 保留(用户通过菜单点击或 `⌘,` 打开)。
+In `.commands` add `CommandGroup(replacing: .appSettings)` to manually inject "Settings..." menu item under "文枢" top-level. SwiftUI `Settings` scene kept (user opens through menu click or `⌘,`).
 
-### 业务语言描述 (老板懂)
+### Business-language description (老板 understands)
 
-- 菜单栏 "文枢" 顶级下加 "设置..." 项(跟 Pages / Numbers / Xcode 一样)
-- 快捷键 `⌘,` (Apple 标准)
-- 点击 → 弹现有设置弹窗(外观 dark / light / 跟随系统)
+- Menu bar "文枢" top-level add "Settings..." item (same as Pages / Numbers / Xcode)
+- Shortcut `⌘,` (Apple standard)
+- Click → popup existing settings dialog (appearance dark / light / follow system)
 
 ## User Stories
 
-1. As 老板, I want 菜单栏 "文枢" 顶级下能看到 "设置..." 菜单项, so that 能开设置弹窗
-2. As 老板, I want "设置..." 快捷键 `⌘,`, so that 跟 Pages / Numbers / Xcode 一样
-3. As 老板, I want 点击 "设置..." 弹出现有设置弹窗 (外观 dark / light / 跟随系统)
-4. As 老板, I want 设置保持菜单栏其他项不变 (文枢 / 文件 / 编辑 / 显示 / 视图 / 窗口 / 帮助)
+1. As 老板, I want menu bar "文枢" top-level to see "Settings..." menu item, so that can open settings dialog
+2. As 老板, I want "Settings..." shortcut `⌘,`, so that same as Pages / Numbers / Xcode
+3. As 老板, I want click "Settings..." to popup existing settings dialog (appearance dark / light / follow system)
+4. As 老板, I want settings keep menu bar other items unchanged (文枢 / File / Edit / Show / View / Window / Help)
 5. As 老板, I want `swift build` exit 0
 
 ## Implementation Decisions
 
-- **在 WenshuApp.body .commands {} 加 `CommandGroup(replacing: .appSettings)`**:
+- **In WenshuApp.body `.commands {}` add `CommandGroup(replacing: .appSettings)`**:
   ```swift
   CommandGroup(replacing: .appSettings) {
       SettingsLink {
-          Text("设置…")
+          Text("Settings…")
       }
       .keyboardShortcut(",", modifiers: .command)
   }
   ```
-- **`SettingsLink` 是 SwiftUI 4+ (macOS 14+) API**, 跟 Settings scene 配合自动打开
-- 现有 `Settings { Form { Picker("外观") } }` scene 保留,作 macOS HIG standard
-- 不动现有菜单 (文件 / 视图 / 恢复默认布局)
+- **`SettingsLink` is SwiftUI 4+ (macOS 14+) API**, pairs with Settings scene to auto-open
+- Existing `Settings { Form { Picker("Appearance") } }` scene kept, as macOS HIG standard
+- Don't touch existing menu (File / View / Restore Default Layout)
 
 ## Testing Decisions
 
-- 仅 `swift build clean` (exit 0), 老板自己启 app 验
-- 验证: 菜单栏 "文枢" 顶级下能看到 "设置..." 项, 快捷键 `⌘,` work, 点击弹设置弹窗
+- Only `swift build clean` (exit 0), 老板 self-launches app to verify
+- Verify: menu bar "文枢" top-level can see "Settings..." item, shortcut `⌘,` works, click opens settings dialog
 
 ## Out of Scope
 
-- 不动 macOS chrome 52 PT
-- 不动 LayoutTokens / bandH / toolbar 宽度
-- 不动 D_h / D_v 5 竖拖拽线
-- 不动 cursor (backlog 02 待办)
-- 不实现 设置持久化 (已有 @AppStorage("appearanceMode") 持久化)
-- 不加其他设置项 (外观已实现, 等 backlog 排期再加)
+- Do not touch macOS chrome 52 PT
+- Do not touch LayoutTokens / bandH / toolbar width
+- Do not touch D_h / D_v 5 vertical splitters
+- Do not touch cursor (backlog 02 todo)
+- Do not implement settings persistence (already has `@AppStorage("appearanceMode")` persistence)
+- Do not add other settings items (appearance already implemented, wait for backlog scheduling to add)
 
 ## Further Notes
 
-- 这是菜单栏视觉细节修法, 跟之前 v0.16 ticket 01-06 独立
-- Apple HIG 真值: macOS app 在 "文枢" 顶级菜单下必有 "设置..." (跟 Pages / Numbers / Xcode 一样)
-- SettingsLink SwiftUI 4+ API 真值: https://developer.apple.com/documentation/swiftui/settingslink
+- This is menu bar visual detail fix, independent from previous v0.16 ticket 01-06
+- Apple HIG truth: macOS app under "文枢" top-level menu must have "Settings..." (same as Pages / Numbers / Xcode)
+- SettingsLink SwiftUI 4+ API truth: https://developer.apple.com/documentation/swiftui/settingslink

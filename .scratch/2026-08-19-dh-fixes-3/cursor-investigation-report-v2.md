@@ -1,60 +1,60 @@
-# macOS 27 SwiftUI + AppKit cursor 系统真值报告 (v2)
+# macOS 27 SwiftUI + AppKit cursor system truth report (v2)
 
-**日期**: 2026-08-19 (v2, 覆盖之前 deleg_6ea687d8 33 KB 真值报告)
-**任务来源**: 老板 8/19 19:10 委托 (subagent 任务书)
-**方法**: 全部从 Apple Developer Documentation JSON API (`/tutorials/data/documentation/...`) + Xcode 27 SDK `swiftinterface` header + GitHub raw 真值源码独立 verify 一遍. 不靠记忆不靠推测, 每个真值都引 URL.
-**覆盖**: 4 个验证任务 + 给老板下一步推荐.
+**Date**: 2026-08-19 (v2, supersedes previous deleg_6ea687d8 33 KB truth report)
+**Task source**: 老板 8/19 19:10 delegated (subagent task brief)
+**Method**: All pulled from Apple Developer Documentation JSON API (`/tutorials/data/documentation/...`) + Xcode 27 SDK `swiftinterface` header + GitHub raw truth source code, independently verified. No memory, no guessing; every truth has a URL citation.
+**Coverage**: 4 verification tasks + next-step recommendation for 老板.
 
-> ⚠️ **任务书提到 "macOS 27"** — 截至 2026-08-19 老板机器上 Xcode-beta.app 装的 SDK 就是 `MacOSX27.0.sdk` (`xcrun --sdk macosx --show-sdk-path` = `/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk`). macOS 27 SDK 真值在 swiftinterface 全部可查. 不再分 "26.x 真值" — 直接拿 27 SDK 当作 ground truth.
-
----
-
-## TL;DR — 一句话真因
-
-**wenshu cursor 系统全失灵的真因 = SwiftUI `NSHostingView` (SwiftUI WindowGroup window 的 `contentView` 子类) 在 macOS 27 SDK 公开 override 了 `hitTest(_:)` 和 `cursorUpdate(with:)` 但没 override `resetCursorRects()`** — 因此 macOS 系统 cursor rects 调度路径在 `NSHostingView` 整棵 SwiftUI 子树内失灵, 而 `NSHostingView.cursorUpdate` 自己有 SwiftUI 内部路由走 `.pointerStyle` 系统, 完全绕过 AppKit `NSCursor` + cursor rects 范式.
-
-所以**之前所有 .scratch/2026-08-19-dh-fixes-3 试过的修法都失败的真因**:
-1. `NativeSplitter.resetCursorRects()` (commit 03) — macOS 系统不会调它, 因为 `NSHostingView` 不 propagate cursor rects 到 SwiftUI 子 view.
-2. `WenshuCursorController` NSResponder + `NSTrackingArea.mouseMoved` + `contentView.hitTest` (commit 06) — `hitTest` 在 `NSHostingView` override 里直接拦截, 命中 SwiftUI 子 view tree (不是 SplitterHitArea), `findSplitter(in:)` 找不到任何 splitter.
-3. SwiftUI `.pointerStyle(.columnResize() / .rowResize())` (v0.14 `dacbc9fee`) — 老板 8/19 实测失灵. 但 SwiftUI `.pointerStyle` API 在 macOS 27 SDK 完整存在 (PointerStyle struct, 全部 resize case), 真因不是 API 缺, 是 v0.14 写法 gesture 链 bug + VStack parent gesture 拦截.
+> ⚠️ **Task brief mentions "macOS 27"** — as of 2026-08-19 the SDK on 老板's machine in Xcode-beta.app is `MacOSX27.0.sdk` (`xcrun --sdk macosx --show-sdk-path` = `/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk`). macOS 27 SDK truth fully available in swiftinterface. No longer splitting into "26.x truth" — taking 27 SDK as ground truth directly.
 
 ---
 
-## 1. NSHostingView 跟 AppKit cursor rects 系统如何交互 — SDK 真值
+## TL;DR — one-sentence root cause
 
-### 1.1 NSHostingView 公开类签名 (macOS 27 SDK swiftinterface 真值)
+**The root cause of wenshu's cursor system being completely dead = SwiftUI `NSHostingView` (the `contentView` subclass of SwiftUI WindowGroup's window) in macOS 27 SDK publicly overrides `hitTest(_:)` and `cursorUpdate(with:)` but does not override `resetCursorRects()`** — so the macOS system cursor rects dispatch path fails inside the entire `NSHostingView` SwiftUI subtree, while `NSHostingView.cursorUpdate` itself has its own SwiftUI internal routing that goes through the `.pointerStyle` system, completely bypassing the AppKit `NSCursor` + cursor rects paradigm.
+
+So **the root cause of why all the previous `.scratch/2026-08-19-dh-fixes-3` fixes failed**:
+1. `NativeSplitter.resetCursorRects()` (commit 03) — macOS system will not call it, because `NSHostingView` does not propagate cursor rects to SwiftUI sub-views.
+2. `WenshuCursorController` NSResponder + `NSTrackingArea.mouseMoved` + `contentView.hitTest` (commit 06) — `hitTest` is directly intercepted inside `NSHostingView`'s override, hits the SwiftUI sub-view tree (not SplitterHitArea), `findSplitter(in:)` finds no splitter.
+3. SwiftUI `.pointerStyle(.columnResize() / .rowResize())` (v0.14 `dacbc9fee`) — 老板 8/19 actual test failure. But SwiftUI `.pointerStyle` API fully exists in macOS 27 SDK (PointerStyle struct, all resize cases); the root cause is not a missing API, but v0.14's gesture-chain bug + VStack parent gesture interception.
+
+---
+
+## 1. NSHostingView interaction with AppKit cursor rects system — SDK truth
+
+### 1.1 NSHostingView public class signature (macOS 27 SDK swiftinterface truth)
 
 ```
 $ xcrun --sdk macosx --show-sdk-path
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk
 
-SDK 真值 (SwiftUI.swiftinterface line ~28960):
+SDK truth (SwiftUI.swiftinterface line ~28960):
 @available(macOS 13.0, *)
 @_Concurrency.MainActor @preconcurrency open class NSHostingView<Content> : AppKit.NSView,
  AppKit.NSUserInterfaceValidations, AppKit.NSDraggingSource where Content : SwiftUICore.View
 ```
 
-- ✅ **NSHostingView 在 macOS 13+ 是 public class** (不再是 macOS 11/12 早期传闻的 "private class"), 只是 macOS 10.15 引入, macOS 13 加了部分扩展.
-- ✅ **NSHostingView 是 NSView 子类**, 继承所有 NSView 公开 API.
+- ✅ **NSHostingView is a public class on macOS 13+** (no longer the "private class" rumored in macOS 11/12 early days), only introduced macOS 10.15, with extensions added macOS 13.
+- ✅ **NSHostingView is NSView subclass**, inherits all NSView public APIs.
 
 URL: https://developer.apple.com/documentation/swiftui/nshostingview
 
-### 1.2 NSHostingView 公开 override 方法 — 直接从 SDK swiftinterface 拿
+### 1.2 NSHostingView publicly-overridden methods — pulled directly from SDK swiftinterface
 
-NSHostingView 实际 override 的方法 (跟 mouse / cursor / hit-test 相关的全部列出):
+Methods NSHostingView actually overrides (all mouse / cursor / hit-test related, fully listed):
 
 ```
-override dynamic open func hitTest(_ point: CGPoint) -> NSView?                    ← 拦截 hit test
+override dynamic open func hitTest(_ point: CGPoint) -> NSView?                    ← intercepts hit test
 override dynamic open func acceptsFirstMouse(for event: NSEvent?) -> Bool
-override dynamic open func mouseDown(with nsEvent: NSEvent)                            ← 接管鼠标事件
+override dynamic open func mouseDown(with nsEvent: NSEvent)                            ← takes over mouse events
 override dynamic open func mouseDragged(with nsEvent: NSEvent)
 override dynamic open func mouseUp(with nsEvent: NSEvent)
 override dynamic open func rightMouseDown/Dragged/Up
 override dynamic open func otherMouseDown/Dragged/Up
-override dynamic open func mouseEntered(with nsEvent: NSEvent)                      ← 接管 hover enter
-override dynamic open func mouseMoved(with nsEvent: NSEvent)                        ← 接管 mouse moved
-override dynamic open func mouseExited(with nsEvent: NSEvent)                       ← 接管 hover exit
-override dynamic open func cursorUpdate(with event: NSEvent)                        ← **接管 cursor update 事件**
+override dynamic open func mouseEntered(with nsEvent: NSEvent)                      ← takes over hover enter
+override dynamic open func mouseMoved(with nsEvent: NSEvent)                        ← takes over mouse moved
+override dynamic open func mouseExited(with nsEvent: NSEvent)                       ← takes over hover exit
+override dynamic open func cursorUpdate(with event: NSEvent)                        ← **takes over cursor update events**
 override dynamic open func scrollWheel(with nsEvent: NSEvent)
 override dynamic open func menu(for event: NSEvent) -> NSMenu?
 override dynamic open var acceptsFirstResponder: Bool
@@ -65,61 +65,58 @@ override dynamic open var accessibilityFocusedUIElement: Any?
 override dynamic open func accessibilityHitTest(_ point: NSPoint) -> Any?
 ```
 
-**关键观察 (跟 cursor 系统直接相关)**:
-- ✅ **`hitTest` override**: 拦截 AppKit hit test — 当外部 caller 调 `contentView.hitTest(point)`, NSHostingView 自己决定返回哪个子 view (SwiftUI 子 tree). wenshu `WenshuCursorController` 调 `contentView.hitTest` 拿到的就是 NSHostingView (或 NSHostingView 子树), 不是 SplitterHitArea, **因为 SplitterHitArea 是 NSViewRepresentable 桥接的, 被 SwiftUI 包成 NSHostingView 子树**.
-- ✅ **`cursorUpdate` override**: 拦截 NSResponder cursorUpdate 事件, NSHostingView 自己路由到 SwiftUI PointerStyle 系统 — **不走 AppKit NSCursor / cursor rects 路径**.
-- ✅ **`mouseEntered` / `mouseMoved` / `mouseExited` override**: 拦截 hover 事件, **NSHostingView 内部不一定 propagate 给 NSTrackingArea 监听者** (SwiftUI 自己有 hover 状态机, 独立于 NSTrackingArea).
-- ❌ **没有 `resetCursorRects` override**: macOS 系统 cursor rects 调度流程要求每个 NSView override `resetCursorRects()` 来声明自己的 cursor rects. NSHostingView 不 override = SwiftUI 子树内 cursor rects 不被系统识别.
+**Key observations (directly relevant to cursor system)**:
+- ✅ **`hitTest` override**: intercepts AppKit hit test — when external caller calls `contentView.hitTest(point)`, NSHostingView decides which sub-view to return (SwiftUI sub-tree). What wenshu's `WenshuCursorController` gets from `contentView.hitTest` is NSHostingView (or NSHostingView subtree), not SplitterHitArea, **because SplitterHitArea is bridged through NSViewRepresentable, wrapped by SwiftUI into NSHostingView subtree**.
+- ✅ **`cursorUpdate` override**: intercepts NSResponder cursorUpdate events, NSHostingView itself routes to SwiftUI PointerStyle system — **does not go through AppKit NSCursor / cursor rects path**.
+- ✅ **`mouseEntered` / `mouseMoved` / `mouseExited` override**: intercepts hover events, **NSHostingView internally does not necessarily propagate to NSTrackingArea listeners** (SwiftUI has its own hover state machine, independent of NSTrackingArea).
+- ❌ **No `resetCursorRects` override**: macOS system cursor rects dispatch flow requires every NSView override `resetCursorRects()` to declare its cursor rects. NSHostingView does not override = SwiftUI subtree cursor rects not recognized by system.
 
-URL: https://developer.apple.com/documentation/swiftui/nshostingview (topicSections 列全部方法) — verify 上面 list 在 Apple doc JSON 拿得到.
+URL: https://developer.apple.com/documentation/swiftui/nshostingview (topicSections lists all methods) — verified the above list is obtainable from Apple doc JSON.
 
-### 1.3 NSView.resetCursorRects() 官方定义 (直引)
+### 1.3 NSView.resetCursorRects() official definition (direct quote)
 
 > "Overridden by subclasses to define their default cursor rectangles. A subclass's implementation must invoke `addCursorRect(_:cursor:)` for each cursor rectangle it wants to establish. **The default implementation does nothing.** Application code should never invoke this method directly; it's invoked automatically as described in 'Mouse-Tracking and Cursor-Update Events'. Use the `invalidateCursorRects(for:)` method instead to explicitly rebuild cursor rectangles."
 
 URL: https://developer.apple.com/documentation/appkit/nsview/resetcursorrects()
+**Key**: "Application code should never invoke this method directly; it's invoked **automatically**". **But only called on NSViews that override resetCursorRects**, NSView default impl does nothing. NSHostingView does not override → system cursor rects auto-dispatch = 0 cursor rects registered in SwiftUI subtree.
 
-**关键**: "Application code should never invoke this method directly; it's invoked **automatically**". **但只对 override 了 resetCursorRects 的 NSView 调用**, NSView 默认实现 does nothing. NSHostingView 不 override → 系统 cursor rects 自动调度 = 0 cursor rects 在 SwiftUI 子树内注册.
-
-### 1.4 NSCursor cursor rects 系统 (官方直引)
+### 1.4 NSCursor cursor rects system (official direct quote)
 
 > "In Cocoa, you can change the currently displayed cursor based on the position of the mouse over one of your views. … To set this up, you associate a cursor object with one or more cursor rectangles in the view. **Cursor rectangles are a specialized type of tracking rectangles, which are used to monitor the mouse location in a view. Views implement cursor rectangles using tracking rectangles** but provide methods for setting and refreshing cursor rectangles that are distinct from the generic tracking rectangle interface. For information on mouse-tracking and cursor-update events, see `NSTrackingArea`."
 
 URL: https://developer.apple.com/documentation/appkit/nscursor (Cursor rectangles section)
+**Key**: **cursor rects are specialized tracking rects, declared by NSView**. SwiftUI does not follow this paradigm.
 
-**关键**: **cursor rects 是 specialized tracking rects, 由 NSView 声明**. SwiftUI 不遵循这个范式.
-
-### 1.5 NSResponder.cursorUpdate(with:) 官方定义 (直引)
+### 1.5 NSResponder.cursorUpdate(with:) official definition (direct quote)
 
 > "Informs the receiver that the mouse cursor has moved into a cursor rectangle. Override this method to set the cursor image. **The default implementation uses cursor rectangles, if cursor rectangles are currently valid.** If they are not, it calls super to send the message up the responder chain."
 
 URL: https://developer.apple.com/documentation/appkit/nsresponder/cursorupdate(with:)
+**Key**: default impl first checks cursor rects; if none, responder chain. NSHostingView overrides cursorUpdate → SwiftUI handles it itself. NSHostingView does not propagate to NSView subtree (because SwiftUI sub-views are not real NSView subclasses).
 
-**关键**: 默认实现先看 cursor rects, 没有就 responder chain. NSHostingView override 了 cursorUpdate → SwiftUI 自己处理. NSHostingView 不 propagate 给 NSView 子树 (因为 SwiftUI 子 view 不是真正 NSView 子类).
+### 1.6 NSWindow cursor API (official direct quote)
 
-### 1.6 NSWindow cursor API (官方直引)
-
-NSWindow 提供:
-- `areCursorRectsEnabled` (BOOL, 默认 true)
+NSWindow provides:
+- `areCursorRectsEnabled` (BOOL, default true)
 - `enableCursorRects()` / `disableCursorRects()` / `discardCursorRects()`
 - `invalidateCursorRects(for:)` — "Marks as invalid the cursor rectangles of a given view object in the window, so they'll be set up again when the window becomes key. **If the window is current the key window, window resets the cursor rectangles immediately.**"
-- `resetCursorRects()` — 重新 reset 整个 window 内的 cursor rects
+- `resetCursorRects()` — re-reset cursor rects in the entire window
 
 URL: https://developer.apple.com/documentation/appkit/nswindow/invalidatecursorrects(for:)
 
-### 1.7 结论
+### 1.7 Conclusion
 
-SwiftUI WindowGroup 创建的 window 公开 type 是 `NSWindow` (不是 private class). **但** SwiftUI WindowGroup 内部把 `NSHostingView` 作为 window.contentView, 这层 NSHostingView 拦截 hit-test 和 cursor 事件流, 屏蔽 AppKit cursor rects 范式:
+SwiftUI WindowGroup-created window's public type is `NSWindow` (not private class). **But** SwiftUI WindowGroup internally uses `NSHostingView` as `window.contentView`; this NSHostingView layer intercepts hit-test and cursor event flow, blocking the AppKit cursor rects paradigm:
 
-1. **NSHostingView 不 override `resetCursorRects`** → NSHostingView 子树 (SwiftUI 子 view) 的 NSView 子类 override `resetCursorRects` 不会被 macOS 系统调用 → **wenshu `SplitterHitArea.resetCursorRects()` 永远不被调, cursor 不切** (ticket 03 commit 实测失灵真因).
-2. **NSHostingView override `hitTest`** → `contentView.hitTest` 不返回 `SplitterHitArea` (因为 SplitterHitArea 通过 NSViewRepresentable 桥接, 被 NSHostingView 当成 SwiftUI 子树, NSHostingView 自己 hit test) → `WenshuCursorController` 拿到的 hit view 是 NSHostingView 子树节点, 不是 SplitterHitArea → **findSplitter 永远找不到** (ticket 06 commit 实测失灵真因).
-3. **NSHostingView override `cursorUpdate`** → 自己路由给 SwiftUI PointerStyle 系统, **不走 AppKit NSCursor** → `NSCursor.push()` / `set()` 在 NSHostingView 子树内可能 work 也可能被 SwiftUI 覆盖.
+1. **NSHostingView does not override `resetCursorRects`** → NSView subclasses inside NSHostingView subtree (SwiftUI sub-views) overriding `resetCursorRects` will not be called by macOS system → **wenshu's `SplitterHitArea.resetCursorRects()` never gets called, cursor doesn't switch** (ticket 03 commit actual test failure root cause).
+2. **NSHostingView overrides `hitTest`** → `contentView.hitTest` does not return `SplitterHitArea` (because SplitterHitArea is bridged through NSViewRepresentable, treated by NSHostingView as SwiftUI subtree; NSHostingView does its own hit test) → what `WenshuCursorController` gets as hit view is NSHostingView subtree node, not SplitterHitArea → **findSplitter never finds** (ticket 06 commit actual test failure root cause).
+3. **NSHostingView overrides `cursorUpdate`** → itself routes to SwiftUI PointerStyle system, **does not go through AppKit NSCursor** → `NSCursor.push()` / `set()` inside NSHostingView subtree may work or may be overridden by SwiftUI.
 
 ---
 
-## 2. SwiftUI `.pointerStyle` 在 macOS 27 真值
+## 2. SwiftUI `.pointerStyle` truth on macOS 27
 
-### 2.1 SwiftUI.PointerStyle SDK swiftinterface 真值 (直接拿 SDK 27 header)
+### 2.1 SwiftUI.PointerStyle SDK swiftinterface truth (pulled directly from SDK 27 header)
 
 ```
 SDK MacOSX27.0.sdk/System/Library/Frameworks/SwiftUI.framework/Modules/SwiftUI.swiftmodule/arm64e-apple-macos.swiftinterface
@@ -147,11 +144,11 @@ public struct PointerStyle : Swift.Sendable {
 }
 ```
 
-✅ **SwiftUI `.pointerStyle` 在 macOS 27 SDK 完整存在, 所有 resize case 都可调**.
+✅ **SwiftUI `.pointerStyle` fully exists in macOS 27 SDK, all resize cases callable**.
 
 URL: https://developer.apple.com/documentation/swiftui/pointerstyle
 
-### 2.2 FrameResizePosition enum 真值
+### 2.2 FrameResizePosition enum truth
 
 ```
 @frozen public enum FrameResizePosition : Swift.Int8, Swift.CaseIterable {
@@ -160,9 +157,9 @@ URL: https://developer.apple.com/documentation/swiftui/pointerstyle
 }
 ```
 
-URL: https://developer.apple.com/documentation/swiftui/frameresize-position (SwiftUI type; 本质映射到 NSCursorFrameResizePosition)
+URL: https://developer.apple.com/documentation/swiftui/frameresize-position (SwiftUI type; essentially maps to NSCursorFrameResizePosition)
 
-### 2.3 NSCursor 配套的真值 (NSCursor.h header 直读)
+### 2.3 NSCursor companion truth (NSCursor.h header direct read)
 
 ```
 SDK MacOSX27.0.sdk/System/Library/Frameworks/AppKit.framework/Headers/NSCursor.h
@@ -176,37 +173,36 @@ SDK MacOSX27.0.sdk/System/Library/Frameworks/AppKit.framework/Headers/NSCursor.h
 + (NSCursor *)frameResizeCursorFromPosition:(NSCursorFrameResizePosition)position
                               inDirections:(NSCursorFrameResizeDirections)directions API_AVAILABLE(macos(15.0));
 
-// Deprecated APIs (macOS 10.0) — wenshu 现在用的:
+// Deprecated APIs (macOS 10.0) — wenshu currently uses:
 @property (class, readonly, strong) NSCursor *resizeLeftRightCursor
   API_DEPRECATED("Use either +[NSCursor columnResizeCursorInDirections:] or +[NSCursor frameResizeCursorFromPosition:inDirections:] instead, ...");
 @property (class, readonly, strong) NSCursor *resizeUpDownCursor
   API_DEPRECATED("Use either +[NSCursor rowResizeCursorInDirections:] or +[NSCursor frameResizeCursorFromPosition:inDirections:] instead, ...");
 ```
 
-✅ **NSCursor.columnResize / rowResize / frameResizeCursor 都是 macOS 15.0+ API**, wenshu 现在代码用的 `.resizeLeftRight` / `.resizeUpDown` 是 deprecated 但还能 work (没被移除).
+✅ **NSCursor.columnResize / rowResize / frameResizeCursor are all macOS 15.0+ APIs**; wenshu's current code uses `.resizeLeftRight` / `.resizeUpDown` which are deprecated but still work (not removed).
 
-### 2.4 关键限制 — `.pointerStyle(.frameResize(position:directions:))` 不控制 NSWindow chrome
+### 2.4 Key limitation — `.pointerStyle(.frameResize(position:directions:))` does not control NSWindow chrome
 
-`.pointerStyle` 是 **SwiftUI view 内容区域** 的 cursor modifier, macOS 15+ 引入. 它在 SwiftUI view 树层声明 cursor, NSHostingView 的 `cursorUpdate` override 接到 SwiftUI 内部状态机, 内部调 `NSCursor` (不走 cursor rects 路径).
+`.pointerStyle` is a **SwiftUI view content area** cursor modifier, introduced macOS 15+. It declares the cursor at the SwiftUI view-tree layer; NSHostingView's `cursorUpdate` override receives it into the SwiftUI internal state machine, which internally calls `NSCursor` (does not go through cursor rects path).
 
-**但 NSWindow edge / corner resize 是系统级 window chrome**, 由 NSWindow 自己的 cursor rects 系统处理. SwiftUI `.frameResize` 不能控制 NSWindow chrome edge / corner — 那是 `NSWindow.resetCursorRects()` 范围, SwiftUI 不暴露这条 API.
+**But NSWindow edge / corner resize is system-level window chrome**, handled by NSWindow's own cursor rects system. SwiftUI `.frameResize` cannot control NSWindow chrome edge / corner — that's `NSWindow.resetCursorRects()` scope, SwiftUI does not expose this API.
 
-用在 wenshu 拖拽线上 (view 内的 drag line):
-- ✅ `.columnResize()` — 拖竖分割线 cursor, 正确语义
-- ✅ `.rowResize()` — 拖横分割线 cursor, 正确语义
-- ❌ `.frameResize(position: .bottom, directions: .vertical)` — 给 view hover 时切到 frame resize cursor, 但用户实际拖的不是 NSWindow 边角 — **错语义**
+Applied to wenshu's splitters (drag lines inside a view):
+- ✅ `.columnResize()` — vertical divider cursor, correct semantics
+- ✅ `.rowResize()` — horizontal divider cursor, correct semantics
+- ❌ `.frameResize(position: .bottom, directions: .vertical)` — switches cursor to frame resize on view hover, but the user actually drags an NSWindow edge/corner — **wrong semantics**
 
 URL: https://developer.apple.com/documentation/swiftui/view/pointerstyle(_:) + https://developer.apple.com/design/human-interface-guidelines/pointing-devices
 
-### 2.5 老板 8/19 实测 v0.14 `.pointerStyle` 失灵的真因
+### 2.5 Root cause of 老板 8/19 actual test v0.14 `.pointerStyle` failure
 
-老板实测 v0.14 commit `dacbc9fee` SwiftUI DragGesture + `.pointerStyle` 失灵, 写进了 wenshu backlog 02 + issues/03-cursor-flip.md. **不是 SwiftUI API 缺, 不是 macOS 27 bug**, 真因可能性:
+老板 actual test shows v0.14 commit `dacbc9fee` SwiftUI DragGesture + `.pointerStyle` failing, recorded in wenshu backlog 02 + issues/03-cursor-flip.md. **Not a SwiftUI API missing, not a macOS 27 bug**, possible root causes:
+1. **v0.14 gesture-chain bug** — `.pointerStyle` was attached to the inner NSView bridged through NSViewRepresentable, and NSHostingView's `cursorUpdate` override might ignore NSView subtree state when routing itself
+2. **VStack parent gesture system interception** — SwiftUI gesture system has higher priority than cursor modifiers; when VStack parent has DragGesture / onTapGesture, sub-view's `.pointerStyle` may be eaten by parent gesture chain
+3. **Specific writing detail in commit `dacbc9fee`** — need to actually diff to see where / when `.pointerStyle` was attached
 
-1. **v0.14 gesture 链 bug** — `.pointerStyle` 挂在了 NSViewRepresentable 桥接的内部 NSView 上, NSHostingView override cursorUpdate 自己路由时可能忽略了 NSView 子树的状态
-2. **VStack parent gesture 系统拦截** — SwiftUI gesture 系统优先级高于 cursor 修饰符, 当 VStack 父级有 DragGesture / onTapGesture 时, 子 view 的 `.pointerStyle` 可能被父 gesture chain 吃掉
-3. **commit `dacbc9fee` 写法具体细节** — 需要实际 diff 看 `.pointerStyle` 挂的位置 / 时机
-
-**验证方法**: 写最小 SwiftUI 例子:
+**Verification method**: write minimal SwiftUI example:
 ```swift
 struct ProbeView: View {
   var body: some View {
@@ -217,19 +213,19 @@ struct ProbeView: View {
   }
 }
 ```
-跑 macOS 27 + SwiftUI WindowGroup + 不挂任何 gesture. 如果 cursor 切到 ↔ 双箭头 → SwiftUI API 没问题, v0.14 写法有 bug. 如果仍不切 → SwiftUI `.pointerStyle` 在 NSHostingView 子树内有 bug.
+Run on macOS 27 + SwiftUI WindowGroup + no gestures attached. If cursor switches to ↔ double-arrow → SwiftUI API has no problem, v0.14 writing had a bug. If still doesn't switch → SwiftUI `.pointerStyle` truly has a bug inside NSHostingView subtree.
 
 ---
 
-## 3. wenshu 类 SwiftUI WindowGroup + AppKit integration app cursor 系统全失灵已知 workaround
+## 3. wenshu-style SwiftUI WindowGroup + AppKit integration app cursor system completely-dead known workarounds
 
-### 3.1 第三方独立 verify 真值
+### 3.1 Third-party independent verified truth
 
-#### CursorKit (ryanslikesocool/CursorKit) — pre-macOS 15 workaround 标杆
+#### CursorKit (ryanslikesocool/CursorKit) — pre-macOS 15 workaround benchmark
 
-URL: https://raw.githubusercontent.com/ryanslikesocool/CursorKit/main/Sources/CursorKit/Cursor.swift (我已拉源码 verify)
+URL: https://raw.githubusercontent.com/ryanslikesocool/CursorKit/main/Sources/CursorKit/Cursor.swift (source pulled and verified)
 
-真值代码片段 (CursorKit Cursor.swift):
+Truth code snippet (CursorKit Cursor.swift):
 ```swift
 public func push() {
     #if canImport(AppKit)
@@ -246,39 +242,39 @@ public static func pop() {
 }
 ```
 
-**真值意义**: CursorKit README 自己也标注 **"SwiftUI on macOS 15 and later provides the `pointerStyle(_:)` view modifiers"**, CursorKit 自身 deprecated. 但这个 disableCursorRects/push/enableCursorRects 模式对 macOS 14- 是 workaround 标杆, 证明 macOS 14 的 cursor rects 系统真会覆盖 NSCursor.push, 必须 disable/enable 配合.
+**Truth significance**: CursorKit README itself labels **"SwiftUI on macOS 15 and later provides the `pointerStyle(_:)` view modifiers"**, CursorKit itself deprecated. But this disableCursorRects/push/enableCursorRects pattern is the workaround benchmark for macOS 14-, proving macOS 14's cursor rects system truly overrides NSCursor.push; must be paired with disable/enable.
 
-#### SwiftUI-NSTextView-CursorFix (frederikhandberg0709) — 同根问题独立 verify
+#### SwiftUI-NSTextView-CursorFix (frederikhandberg0709) — same root cause independently verified
 
-URL: https://raw.githubusercontent.com/frederikhandberg0709/SwiftUI-NSTextView-CursorFix/main/README.md (我已拉源码 verify)
+URL: https://raw.githubusercontent.com/frederikhandberg0709/SwiftUI-NSTextView-CursorFix/main/README.md (source pulled and verified)
 
-真值摘录:
+Truth excerpt:
 > "When building macOS apps with SwiftUI, you often need to wrap AppKit components like `NSTextView` to access more advanced text editing features than what SwiftUI offers. However, if you place a SwiftUI overlay (like a custom modal, popup, or floating menu) directly above that `NSTextView`, you'll run into an annoying bug: **The cursor will still change to an I-Beam (`NSCursor.iBeam`) when hovering over your overlay, even though the text view is completely obscured.** Because `NSTextView` operates deep within the AppKit responder chain, it takes higher priority for cursor updates than the SwiftUI views layered on top of it. **I was unable to find any guidance on how to handle this bridging discrepancy in Apple's official documentation.**"
 
-修法: ArrowCursorView (NSViewRepresentable) — 用 NSTrackingArea 强制设 NSCursor.arrow 在 SwiftUI overlay 区域. **这正是 wenshu `WenshuCursorController` 想做的事**, 但 **实测失灵**.
+Fix: ArrowCursorView (NSViewRepresentable) — use NSTrackingArea to force-set NSCursor.arrow in SwiftUI overlay area. **This is exactly what wenshu's `WenshuCursorController` was trying to do**, but **actual test failed**.
 
-**真因解读**: 即使 ArrowCursorView 在 NSHostingView 子树内安装 NSTrackingArea, NSHostingView 自己 override `mouseMoved` / `mouseEntered` / `mouseExited`, 内部不一定 propagate 给子 view 的 NSTrackingArea owner. 所以 NSTrackingArea owner 收不到 mouseMoved 回调. **NSTrackingArea 的 .activeInKeyWindow option 让 owner 收消息, 但 owner 是 NSResponder subclass, NSHostingView 拦截 mouseMoved 后可能直接吞掉**.
+**Root-cause interpretation**: Even if ArrowCursorView installs NSTrackingArea inside NSHostingView subtree, NSHostingView itself overrides `mouseMoved` / `mouseEntered` / `mouseExited`, and may not propagate to sub-view's NSTrackingArea owner internally. So NSTrackingArea owner doesn't receive mouseMoved callbacks. **NSTrackingArea's `.activeInKeyWindow` option lets owner receive messages, but owner is NSResponder subclass; NSHostingView may directly swallow after intercepting mouseMoved**.
 
-### 3.2 已知 5 个 workaround 候选 (按 Apple HIG 优先级排)
+### 3.2 Five known workaround candidates (ranked by Apple HIG priority)
 
-#### 候选 A: **SwiftUI 15+ `.pointerStyle(.columnResize() / .rowResize())`** — Apple HIG 真值标准
+#### Candidate A: **SwiftUI 15+ `.pointerStyle(.columnResize() / .rowResize())`** — Apple HIG truth standard
 
 ```swift
-// NativeSplitter body 加一行:
+// Add one line in NativeSplitter body:
 ZStack {
   Rectangle().fill(.separator).frame(width: 2, height: length)
   Color.clear.contentShape(Rectangle())
     .pointerStyle(orientation == .vertical ? .columnResize() : .rowResize())
-    .gesture(DragGesture()...)  // 拖拽逻辑
+    .gesture(DragGesture()...)  // drag logic
 }
 ```
 
-- ✅ **Apple HIG 标准** — macOS 15+ 推荐路径, Apple 自己 ship 的 API, 不依赖 AppKit cursor rects
-- ✅ **绕过 cursor rects 系统** — SwiftUI 内部路由, 直接走 NSCursor
-- ❌ **wenshu v0.14 commit `dacbc9fee` 实测失灵** — 真因可能是 v0.14 写法 bug (gesture 挂错层), 不是 API bug
-- ⚠️ **不能控制 NSWindow edge / corner resize** — 那是 NSWindow 系统级 chrome
+- ✅ **Apple HIG standard** — macOS 15+ recommended path, Apple-shipped API itself, no AppKit cursor rects dependence
+- ✅ **Bypasses cursor rects system** — SwiftUI internal routing, direct NSCursor path
+- ❌ **wenshu v0.14 commit `dacbc9fee` actual test failed** — root cause likely v0.14 writing bug (gesture attached at wrong layer), not an API bug
+- ⚠️ **Cannot control NSWindow edge / corner resize** — that's NSWindow system-level chrome
 
-#### 候选 B: **NSViewRepresentable + `NSView.resetCursorRects()`** — wenshu 现行 ticket 03 路径
+#### Candidate B: **NSViewRepresentable + `NSView.resetCursorRects()`** — wenshu's current ticket 03 path
 
 ```swift
 // NativeSplitter.swift SplitterHitArea.resetCursorRects()
@@ -288,11 +284,11 @@ override func resetCursorRects() {
 }
 ```
 
-- ❌ **实测失灵** — 真因 NSHostingView 不 propagate cursor rects
-- ❌ **理论上应该 work** — AppKit cursor rects 标准范式, 但 SwiftUI NSHostingView 屏蔽
-- ⚠️ **不是 Apple 不支持, 是 SwiftUI WindowGroup 上下文不支持**
+- ❌ **Actual test failed** — root cause: NSHostingView does not propagate cursor rects
+- ❌ **Theoretically should work** — AppKit cursor rects standard paradigm, but SwiftUI NSHostingView blocks
+- ⚠️ **Not Apple-unsupported; SwiftUI WindowGroup context unsupported**
 
-#### 候选 C: **NSApplicationDelegate + NSTrackingArea + hitTest** — wenshu 现行 ticket 06 路径
+#### Candidate C: **NSApplicationDelegate + NSTrackingArea + hitTest** — wenshu's current ticket 06 path
 
 ```swift
 // App.swift WenshuCursorController
@@ -300,21 +296,21 @@ let area = NSTrackingArea(rect: contentView.bounds, options: [.mouseMoved, .acti
 contentView.addTrackingArea(area)
 // ...
 override func mouseMoved(with event: NSEvent) {
-  let hitView = contentView.hitTest(locationInContent)  // ← NSHostingView.hitTest 拦截
-  let splitter = findSplitter(in: hitView)              // ← hit view 不是 SplitterHitArea
+  let hitView = contentView.hitTest(locationInContent)  // ← NSHostingView.hitTest intercepts
+  let splitter = findSplitter(in: hitView)              // ← hit view is not SplitterHitArea
 }
 ```
 
-- ❌ **实测失灵** — 真因 NSHostingView override hitTest 自己路由到 SwiftUI 子树, 不是 SplitterHitArea
-- ❌ **理论上应该 work** — AppKit mouseMoved 标准范式, 但 SwiftUI NSHostingView 屏蔽
-- ⚠️ **同 SwiftUI-NSTextView-CursorFix 失败模式** — NSTrackingArea owner 收不到 mouseMoved 因为 NSHostingView 拦截
+- ❌ **Actual test failed** — root cause: NSHostingView overrides hitTest routing itself to SwiftUI subtree, not SplitterHitArea
+- ❌ **Theoretically should work** — AppKit mouseMoved standard paradigm, but SwiftUI NSHostingView blocks
+- ⚠️ **Same failure mode as SwiftUI-NSTextView-CursorFix** — NSTrackingArea owner doesn't receive mouseMoved because NSHostingView intercepts
 
-#### 候选 D: **NSWindow 子类化 + `cursorUpdate(with:)` override** — 老板 Q15 拍 A
+#### Candidate D: **NSWindow subclassing + `cursorUpdate(with:)` override** — 老板 Q15 拍 A
 
 ```swift
 final class WenshuWindow: NSWindow {
   override func cursorUpdate(with event: NSEvent) {
-    // hit test contentView (NSHostingView), 自己 find splitter, set cursor
+    // hit test contentView (NSHostingView), find splitter ourselves, set cursor
     let hitView = contentView?.hitTest(event.locationInWindow)
     // ...
     NSCursor.resizeLeftRight.set()
@@ -322,42 +318,42 @@ final class WenshuWindow: NSWindow {
 }
 ```
 
-- ✅ **绕开 NSHostingView 屏蔽** — cursorUpdate 直接从 NSWindow 收, NSHostingView 自己不处理 NSWindow 级 cursorUpdate
-- ⚠️ **SwiftUI WindowGroup 创建的 window 公开 type 是 NSWindow**, 但是 NSWindow 子类实例可不可以 swap 进 SwiftUI 已创建的 NSWindow 实例?
-  - **NSWindowController 是 UIKit/AppKit 范畴, 不是 SwiftUI**. SwiftUI 用 `NSApplicationDelegateAdaptor` 拿 `NSApplication.shared.windows.first` — **那个 instance type 是 `NSWindow`, 但 SwiftUI 内部可能是 `NSHostingWindow` (推测, Apple doc 不公开)**
-  - 第三方 (https://stackoverflow.com/q/72025406 等) 都说不可以 swap NSWindow subclass instance 进 SwiftUI WindowGroup
-  - 实测方法 — 写一个最小 case: `applicationDidFinishLaunching` 后强行替换 `NSApp.windows.first` 的 type 为 `WenshuWindow` 看会不会 crash
-- ❌ **破 SwiftUI scene 生命周期** — 替换 window 后 scene restoration, cmd+n 新建窗口, window resize delegate 等可能坏
+- ✅ **Bypasses NSHostingView block** — cursorUpdate received directly from NSWindow; NSHostingView itself does not handle NSWindow-level cursorUpdate
+- ⚠️ **SwiftUI WindowGroup-created window's public type is NSWindow**, but can an NSWindow subclass instance be swapped into the NSWindow instance SwiftUI already created?
+  - **NSWindowController is UIKit/AppKit scope, not SwiftUI**. SwiftUI uses `NSApplicationDelegateAdaptor` to get `NSApplication.shared.windows.first` — **that instance's type is `NSWindow`, but internally SwiftUI may use `NSHostingWindow` (speculation; Apple doc not public)**
+  - Third-party (https://stackoverflow.com/q/72025406 etc.) all say cannot swap NSWindow subclass instance into SwiftUI WindowGroup
+  - Empirical method — write a minimal case: after `applicationDidFinishLaunching`, forcibly replace `NSApp.windows.first`'s type to `WenshuWindow` to see whether it crashes
+- ❌ **Breaks SwiftUI scene lifecycle** — after replacing window, scene restoration, cmd+n new window, window resize delegate may all break
 
-#### 候选 E: **NSApp 全局 NSTrackingArea (`NSTrackingArea(rect: .null, options: [.mouseMoved, .activeAlways])`)** — 绕过 cursor rects / hit-test 全部路径
+#### Candidate E: **NSApp global NSTrackingArea (`NSTrackingArea(rect: .null, options: [.mouseMoved, .activeAlways])`)** — bypasses cursor rects / hit-test entirely
 
 ```swift
 NSTrackingArea(rect: .zero, options: [.mouseMoved, .activeAlways], owner: self, userInfo: nil)
 ```
 
-- ✅ **NSTrackingArea 可监听全局 mouseMoved** — `.activeAlways` 让 owner 永远收消息, 不依赖 key window / first responder
-- ✅ **绕过 NSHostingView.hitTest** — NSEvent 直接送到 owner, 自己算 locationInWindow 然后 hit test
-- ⚠️ **会被 NSHostingView 子树内 SwiftUI hover 状态影响** — SwiftUI 自己有 hover 状态机, NSCursor.set() 可能被 SwiftUI hover 状态覆盖
-- ⚠️ **macOS 14 之前需要 disableCursorRects() 配合** (CursorKit 真值, macOS 15+ SwiftUI PointerStyle ship 后不再需要)
-- ❌ **实测未在 wenshu 试过** — 这是新增候选, 老板 backlog 02 没列
+- ✅ **NSTrackingArea can listen for global mouseMoved** — `.activeAlways` lets owner always receive messages, no dependence on key window / first responder
+- ✅ **Bypasses NSHostingView.hitTest** — NSEvent delivered directly to owner, compute locationInWindow yourself then hit test
+- ⚠️ **Affected by NSHostingView subtree SwiftUI hover state** — SwiftUI has its own hover state machine; NSCursor.set() may be overridden by SwiftUI hover state
+- ⚠️ **macOS 14 and earlier need disableCursorRects() paired** (CursorKit truth; no longer needed after macOS 15+ SwiftUI PointerStyle shipped)
+- ❌ **Not actually tested in wenshu** — this is a new candidate, 老板 backlog 02 didn't list it
 
-### 3.3 各候选 Apple HIG 真值评分
+### 3.3 Apple HIG truth scoring per candidate
 
-| 候选 | Apple HIG 真值 | 实测在 wenshu | 风险 | 推荐度 |
+| Candidate | Apple HIG truth | Actual test in wenshu | Risk | Recommendation |
 |---|---|---|---|---|
-| A. SwiftUI `.pointerStyle` | ✅ Apple 官方 macOS 15+ 标准 API | ❌ v0.14 失灵 (但 API 本身 OK) | 低 (纯 SwiftUI, 不动 AppKit) | ⭐⭐⭐⭐⭐ |
-| B. NSViewRepresentable resetCursorRects | ⚠️ AppKit 真值但被 NSHostingView 屏蔽 | ❌ ticket 03 失灵 | 中 (需要写 NSView 子类) | ⭐⭐ |
-| C. NSResponder + NSTrackingArea hitTest | ⚠️ AppKit 真值但被 NSHostingView 屏蔽 | ❌ ticket 06 失灵 | 中 (需要 AppDelegate) | ⭐ |
-| D. NSWindow 子类化 cursorUpdate | ✅ 绕开 NSHostingView 屏蔽 | ⚠️ 老板 Q15 拍 A 但 SwiftUI 限制 | 高 (可能破 scene lifecycle) | ⭐⭐ |
-| E. NSApp 全局 NSTrackingArea | ⚠️ 旁路但绕开 hit-test | ❌ 未实测 | 低 | ⭐⭐⭐ |
+| A. SwiftUI `.pointerStyle` | ✅ Apple official macOS 15+ standard API | ❌ v0.14 failed (but API itself OK) | Low (pure SwiftUI, no AppKit touch) | ⭐⭐⭐⭐⭐ |
+| B. NSViewRepresentable resetCursorRects | ⚠️ AppKit truth but blocked by NSHostingView | ❌ ticket 03 failed | Medium (need NSView subclass) | ⭐⭐ |
+| C. NSResponder + NSTrackingArea hitTest | ⚠️ AppKit truth but blocked by NSHostingView | ❌ ticket 06 failed | Medium (need AppDelegate) | ⭐ |
+| D. NSWindow subclassing cursorUpdate | ✅ Bypasses NSHostingView block | ⚠️ 老板 Q15 拍 A but SwiftUI limit | High (may break scene lifecycle) | ⭐⭐ |
+| E. NSApp global NSTrackingArea | ⚠️ Bypass but skips hit-test | ❌ Not actually tested | Low | ⭐⭐⭐ |
 
 ---
 
-## 4. wenshu 当前实现 cursor 系统失灵的真因诊断
+## 4. Root-cause diagnosis of wenshu's current cursor system failure
 
 ### 4.1 NativeSplitter.resetCursorRects() (v0.16 ticket 03 commit)
 
-代码位置: `/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Layout/NativeSplitter.swift:87-90`
+Code location: `/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Layout/NativeSplitter.swift:87-90`
 
 ```swift
 override func resetCursorRects() {
@@ -366,15 +362,15 @@ override func resetCursorRects() {
 }
 ```
 
-**真因**: macOS 系统 cursor rects 调度流程要求被调 view 是 NSView (且祖先链所有 NSView 不屏蔽). NSHostingView 不 propagate cursor rects 到 SwiftUI 子树, **macOS 系统永远不会调 SplitterHitArea 的 resetCursorRects**.
+**Root cause**: macOS system cursor rects dispatch flow requires called view to be NSView (and no ancestor NSView blocks). NSHostingView does not propagate cursor rects to SwiftUI subtree, **macOS system will never call SplitterHitArea's resetCursorRects**.
 
-**对应 Apple doc 真值**:
-- NSView.resetCursorRects: "Application code should never invoke this method directly; it's invoked automatically" — 但只在 override 的 NSView 上 invoke. NSHostingView 不 override = SwiftUI 子树 cursor rects 永远 0 个.
-- NSHostingView 公开 signature: `NSView, NSUserInterfaceValidations, NSDraggingSource` — swiftinterface 没有 `resetCursorRects` 重写 (我已 grep verify)
+**Corresponding Apple doc truth**:
+- NSView.resetCursorRects: "Application code should never invoke this method directly; it's invoked automatically" — but only invoked on NSViews that override. NSHostingView does not override = SwiftUI subtree cursor rects forever 0.
+- NSHostingView public signature: `NSView, NSUserInterfaceValidations, NSDraggingSource` — swiftinterface has no `resetCursorRects` override (grep-verified)
 
 ### 4.2 WenshuCursorController NSResponder + NSTrackingArea.mouseMoved + contentView.hitTest (ticket 06 commit 096b9cb)
 
-代码位置: `/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/App.swift:255-328`
+Code location: `/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/App.swift:255-328`
 
 ```swift
 final class WenshuCursorController: NSResponder {
@@ -382,53 +378,53 @@ final class WenshuCursorController: NSResponder {
   private func installTrackingArea() {
     let options: NSTrackingArea.Options = [.mouseMoved, .mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect, .assumeInside]
     let area = NSTrackingArea(rect: contentView.bounds, options: options, owner: self, userInfo: nil)
-    contentView.addTrackingArea(area)  // ← 装到 NSHostingView 上
+    contentView.addTrackingArea(area)  // ← installed on NSHostingView
     // ...
   }
 
   override func mouseMoved(with event: NSEvent) {
-    let hitView = contentView.hitTest(locationInContent)  // ← NSHostingView.hitTest 拦截
-    let splitter = findSplitter(in: hitView)              // ← 找不到 SplitterHitArea
+    let hitView = contentView.hitTest(locationInContent)  // ← NSHostingView.hitTest intercepts
+    let splitter = findSplitter(in: hitView)              // ← cannot find SplitterHitArea
     // ...
   }
 }
 ```
 
-**真因**:
-1. **NSTrackingArea 装在 NSHostingView (contentView) 上, 但 NSHostingView 自己 override mouseMoved** — SwiftUI 内部不一定 propagate 给 NSTrackingArea owner. owner 收不到 mouseMoved → never 调用 split cursor 逻辑.
-2. **contentView.hitTest 走 NSHostingView override 的 hitTest** — 返回 SwiftUI 子树节点, 不是 SplitterHitArea → findSplitter 永远 nil → newCursor 永远 .arrow → cursor 不切.
+**Root cause**:
+1. **NSTrackingArea installed on NSHostingView (contentView), but NSHostingView itself overrides mouseMoved** — SwiftUI does not necessarily propagate to NSTrackingArea owner internally. owner doesn't receive mouseMoved → never triggers split cursor logic.
+2. **contentView.hitTest goes through NSHostingView's overridden hitTest** — returns SwiftUI subtree nodes, not SplitterHitArea → findSplitter always nil → newCursor always `.arrow` → cursor doesn't switch.
 
-**对应 Apple doc 真值**:
-- NSHostingView override hitTest: SDK swiftinterface 实证
-- NSHostingView override mouseMoved: SDK swiftinterface 实证
-- NSCursor cursor stack push/set 被 SwiftUI 内部状态覆盖: CursorKit pre-macOS 15 workaround 实证 (但 wenshu macOS 27 应该不需要 disableCursorRects, 因为 macOS 15+ SwiftUI PointerStyle ship 后系统行为改了)
+**Corresponding Apple doc truth**:
+- NSHostingView overrides hitTest: SDK swiftinterface verified
+- NSHostingView overrides mouseMoved: SDK swiftinterface verified
+- NSCursor cursor stack push/set overridden by SwiftUI internal state: CursorKit pre-macOS 15 workaround verified (but wenshu macOS 27 should not need disableCursorRects, since after macOS 15+ SwiftUI PointerStyle shipped, system behavior changed)
 
-### 4.3 整套 cursor 系统失灵的真因 — 一句话
+### 4.3 Root cause of the entire cursor system failing — one sentence
 
-**NSHostingView 是 macOS 15+ 公开的 `open class NSView` 子类, 它 override 了 hitTest, mouseEntered, mouseMoved, mouseExited, cursorUpdate, 但不 override resetCursorRects. NSHostingView 的 contentView.parent 是 NSWindow (SwiftUI WindowGroup 创建), NSWindow 仍按 AppKit 范式 cursor rects 系统调度. 但 SwiftUI 子树内的 NSView (含 wenshu NSViewRepresentable 桥接的 SplitterHitArea) 永远不被 NSHostingView propagate, 所以 macOS 系统找不到 cursor rects.**
+**NSHostingView is a macOS 15+ public `open class NSView` subclass; it overrides hitTest, mouseEntered, mouseMoved, mouseExited, cursorUpdate, but does not override resetCursorRects. NSHostingView's contentView.parent is NSWindow (created by SwiftUI WindowGroup); NSWindow still dispatches cursor rects system per AppKit paradigm. But NSViews inside the SwiftUI subtree (including wenshu's NSViewRepresentable-bridged SplitterHitArea) are never propagated by NSHostingView, so macOS system cannot find cursor rects.**
 
-修复路径 = **绕过 NSHostingView** = 候选 A (SwiftUI `.pointerStyle`) 或候选 D (NSWindow 子类化).
+Fix path = **bypass NSHostingView** = Candidate A (SwiftUI `.pointerStyle`) or Candidate D (NSWindow subclassing).
 
 ---
 
-## 5. 给老板的下一步推荐 (按 Apple HIG 真值)
+## 5. Next-step recommendation for 老板 (per Apple HIG truth)
 
 ### Verdict for 老板
 
-**真因**: NSHostingView 不 override `resetCursorRects()` (swiftinterface 实证), 同时 override `hitTest` / `mouseMoved` / `cursorUpdate` (swiftinterface 实证), 屏蔽 AppKit cursor rects 范式在 SwiftUI 子树内的工作. ticket 03 + ticket 06 都是 AppKit cursor rects 标准范式, 在 SwiftUI WindowGroup 上下文内**理论上不该 work**, 真因不是代码 bug 是范式错.
+**Root cause**: NSHostingView does not override `resetCursorRects()` (swiftinterface verified), while it does override `hitTest` / `mouseMoved` / `cursorUpdate` (swiftinterface verified), blocking the AppKit cursor rects paradigm from working inside SwiftUI subtree. ticket 03 + ticket 06 are both AppKit cursor rects standard paradigms, which **theoretically should not work** inside SwiftUI WindowGroup context; root cause is not a code bug but wrong paradigm.
 
-### 4 个候选修法排名
+### Four candidate fix ranking
 
-| 排名 | 修法 | 理由 |
+| Rank | Fix | Reason |
 |---|---|---|
-| 🥇 **A** | **退回 SwiftUI `.pointerStyle(.columnResize() / .rowResize())`**, 不走 NSViewRepresentable | Apple HIG macOS 15+ 标准, 不依赖 AppKit cursor rects, 老板 v0.14 实测失灵真因大概率是 gesture 挂错层 (ZStack 父 gesture chain bug) 不是 API bug. 需要写最小 case 验证 SwiftUI `.pointerStyle` 本身在 macOS 27 work, 再重写 NativeSplitter |
-| 🥈 **D** | NSWindow 子类化 + `cursorUpdate(with:)` override | 老板 Q15 拍 A. 实测可行性需要最小 case 验证 (强行替换 NSApp.windows.first instance type). 真做要破 SwiftUI scene 生命周期, 风险高. **只在 A 验证失败后用** |
-| 🥉 **E** | NSApp 全局 NSTrackingArea + 自己 hitTest | 旁路方案, 没试过但理论可行. 实操复杂度中等, NSHostingView 子树内 NSCursor.set() 是否被 SwiftUI hover 状态覆盖需实测 |
-| ❌ **B / C** | NSViewRepresentable + resetCursorRects / NSResponder + NSTrackingArea hitTest | **范式错, 不应该再试**. NSHostingView 已实证屏蔽这两条路径 |
+| 🥇 **A** | **Fallback to SwiftUI `.pointerStyle(.columnResize() / .rowResize())`**, no NSViewRepresentable | Apple HIG macOS 15+ standard, no AppKit cursor rects dependence; 老板 v0.14 actual test failure root cause most likely gesture attached at wrong layer (ZStack parent gesture-chain bug) not API bug. Need minimal case to verify SwiftUI `.pointerStyle` itself works on macOS 27, then rewrite NativeSplitter |
+| 🥈 **D** | NSWindow subclassing + `cursorUpdate(with:)` override | 老板 Q15 拍 A. Empirical feasibility needs minimal case verification (forcibly replace NSApp.windows.first instance type). Really doing so breaks SwiftUI scene lifecycle, high risk. **Use only after A verification fails** |
+| 🥉 **E** | NSApp global NSTrackingArea + hitTest yourself | Bypass solution, not tried but theoretically feasible. Operational complexity medium; whether NSCursor.set() inside NSHostingView subtree is overridden by SwiftUI hover state needs actual test |
+| ❌ **B / C** | NSViewRepresentable + resetCursorRects / NSResponder + NSTrackingArea hitTest | **Wrong paradigm, should not retry**. NSHostingView has empirically-verified block on these two paths |
 
-### 推荐方案
+### Recommended plan
 
-**第一步 (最快, 1-2 小时验证可行性)**: 写一个最小 SwiftUI case (不在 wenshu repo 内, 纯 SwiftUI), 验证 macOS 27 SDK `.pointerStyle(.columnResize())` 真实工作. 例子:
+**Step 1 (fastest, 1-2 hours to verify feasibility)**: write a minimal SwiftUI case (outside wenshu repo, pure SwiftUI), verify macOS 27 SDK `.pointerStyle(.columnResize())` truly works. Example:
 
 ```swift
 @main
@@ -454,39 +450,39 @@ struct CursorProbeView: View {
 }
 ```
 
-跑, 鼠标 hover 6 PT clear strip:
-- ✅ cursor 切到 ↔ 双箭头 → 候选 A 可行
-- ❌ cursor 不切 → SwiftUI `.pointerStyle` 在 macOS 27 + NSHostingView 子树内真有 bug, 走候选 D
+Run, hover mouse over 6 PT clear strip:
+- ✅ cursor switches to ↔ double-arrow → Candidate A feasible
+- ❌ cursor doesn't switch → SwiftUI `.pointerStyle` truly has a bug inside macOS 27 + NSHostingView subtree, go to Candidate D
 
-**第二步 (按 A 验证结果分支)**:
+**Step 2 (branch per A verification result)**:
 
-**A 验证 work 路径** (强烈推荐):
-- 改写 `NativeSplitter` 退回 SwiftUI 纯 `.pointerStyle` + `DragGesture` + `.onContinuousHover`, 不再用 NSViewRepresentable 桥接
-- 删除 `SplitterHitArea` NSView 子类 + `WenshuCursorController` NSResponder
-- 拖拽线视觉 (Rectangle 2/4 PT) 保持 SwiftUI Rectangle, hover 蓝光走 `.onContinuousHover`
-- 老板 v0.14 `dacbc9fee` 失灵的真因排查 (重写时挂 `.pointerStyle` 在最外层 ZStack 真实 hit area, gesture 链不嵌套 NSViewRepresentable)
+**A verification success path** (strongly recommended):
+- Rewrite `NativeSplitter` fallback to SwiftUI pure `.pointerStyle` + `DragGesture` + `.onContinuousHover`, no longer bridge through NSViewRepresentable
+- Delete `SplitterHitArea` NSView subclass + `WenshuCursorController` NSResponder
+- Splitter visuals (Rectangle 2/4 PT) keep SwiftUI Rectangle; hover blue glow goes through `.onContinuousHover`
+- Investigate 老板 v0.14 `dacbc9fee` failure root cause (when rewriting attach `.pointerStyle` to outermost ZStack real hit area, gesture chain does not nest NSViewRepresentable)
 
-**A 验证失灵路径**:
-- 走候选 D: 写 `WenshuWindow: NSWindow`, override `cursorUpdate(with:)` 自己 hit test + set NSCursor
-- 用 `@NSApplicationDelegateAdaptor` 在 `applicationDidFinishLaunching` 拿 `NSApp.windows.first`, 强制 cast `as? WenshuWindow` — 如果 type 不是 `WenshuWindow`, **只能放弃 SwiftUI WindowGroup 范式, 改全 AppKit `NSApplicationMain` + 手动 `NSHostingView(rootView: LayoutShellView())`**
-- 后果: SwiftUI scene restoration, cmd+n 新建窗口, `.commands { CommandMenu(...) }` 可能破, 需要额外补救 (手动建 NSMenu, 手动监听 File 菜单新建事件)
-- **这是大改动, 不推荐**, 只在 A 失灵后用
+**A verification failure path**:
+- Go to Candidate D: write `WenshuWindow: NSWindow`, override `cursorUpdate(with:)` to hit test + set NSCursor yourself
+- Use `@NSApplicationDelegateAdaptor` in `applicationDidFinishLaunching` to get `NSApp.windows.first`, forcibly cast `as? WenshuWindow` — if type is not `WenshuWindow`, **only option is to give up SwiftUI WindowGroup paradigm and switch to all-AppKit `NSApplicationMain` + manual `NSHostingView(rootView: LayoutShellView())`**
+- Consequence: SwiftUI scene restoration, cmd+n new window, `.commands { CommandMenu(...) }` may break, need extra remediation (manually build NSMenu, manually listen to File menu new event)
+- **This is a large change, not recommended**, only use after A fails
 
-### 不推荐的方案
+### Not recommended
 
-- ❌ **objc swizzle NSWindow.cursorUpdate** — Apple App Review 已知 reject
-- ❌ **再写一个 SplitterHitArea v2 试试看** — 范式错, 不会 work
-- ❌ **改 cursor rects invalidate 调度频率** — NSHostingView 不 propagate, 调频率没用
+- ❌ **objc swizzle NSWindow.cursorUpdate** — Apple App Review known to reject
+- ❌ **Write another SplitterHitArea v2 to try** — wrong paradigm, will not work
+- ❌ **Change cursor rects invalidate dispatch frequency** — NSHostingView does not propagate, frequency tuning useless
 
 ---
 
-## Sources (Apple 官方 + 第三方独立 verify)
+## Sources (Apple official + third-party independently verified)
 
-### Apple Developer Documentation (官方, 全部从 `/tutorials/data/documentation/...` JSON API 拉 + Xcode 27 SDK swiftinterface 拉)
+### Apple Developer Documentation (official, all pulled from `/tutorials/data/documentation/...` JSON API + Xcode 27 SDK swiftinterface)
 
-| 真值 | URL |
+| Truth | URL |
 |---|---|
-| NSHostingView 公开 class (macOS 13+ 扩展) | https://developer.apple.com/documentation/swiftui/nshostingview |
+| NSHostingView public class (macOS 13+ extension) | https://developer.apple.com/documentation/swiftui/nshostingview |
 | NSHostingView overview (hosting view "coordinates event delivery" + "responder chain") | https://developer.apple.com/documentation/swiftui/nshostingview (overview section) |
 | NSView.resetCursorRects() ("The default implementation does nothing") | https://developer.apple.com/documentation/appkit/nsview/resetcursorrects() |
 | NSCursor (cursor rects are specialized tracking rects) | https://developer.apple.com/documentation/appkit/nscursor |
@@ -496,7 +492,7 @@ struct CursorProbeView: View {
 | NSCursor.resizeLeftRight (deprecated since macOS 15) | https://developer.apple.com/documentation/appkit/nscursor/resizeleftright |
 | NSCursor.resizeUpDown (deprecated since macOS 15) | https://developer.apple.com/documentation/appkit/nscursor/resizeupdown |
 | NSResponder.cursorUpdate(with:) (default impl uses cursor rects) | https://developer.apple.com/documentation/appkit/nsresponder/cursorupdate(with:) |
-| NSWindow.invalidateCursorRects(for:) (window key 时立刻 reset cursor rects) | https://developer.apple.com/documentation/appkit/nswindow/invalidatecursorrects(for:) |
+| NSWindow.invalidateCursorRects(for:) (window key-time immediate cursor rects reset) | https://developer.apple.com/documentation/appkit/nswindow/invalidatecursorrects(for:) |
 | NSWindow.areCursorRectsEnabled | https://developer.apple.com/documentation/appkit/nswindow/arecursorrectsenabled |
 | NSWindow cursor rects API (enable / disable / discard / resetCursorRects) | https://developer.apple.com/documentation/appkit/nswindow |
 | NSTrackingArea (mouse-tracking + cursor-update events) | https://developer.apple.com/documentation/appkit/nstrackingarea |
@@ -509,45 +505,45 @@ struct CursorProbeView: View {
 | View.pointerVisibility(_:) | https://developer.apple.com/documentation/swiftui/view/pointervisibility(_:) |
 | WindowGroup (SwiftUI scene) | https://developer.apple.com/documentation/swiftui/windowgroup |
 | NSViewRepresentable (SwiftUI ↔ NSView bridge) | https://developer.apple.com/documentation/swiftui/nsviewrepresentable |
-| SwiftUI AppKit integration landing page (no cursor 真值) | https://developer.apple.com/documentation/swiftui/appkit-integration |
+| SwiftUI AppKit integration landing page (no cursor truth) | https://developer.apple.com/documentation/swiftui/appkit-integration |
 | Apple HIG Pointing devices (mostly iPadOS) | https://developer.apple.com/design/human-interface-guidelines/pointing-devices |
 
-### Xcode 27 SDK swiftinterface 直接 verify (本地 SDK header)
+### Xcode 27 SDK swiftinterface direct verification (local SDK header)
 
-| 真值 | 路径 |
+| Truth | Path |
 |---|---|
-| NSHostingView public class signature (open class, NSView 子类) | `MacOSX27.0.sdk/System/Library/Frameworks/SwiftUI.framework/Modules/SwiftUI.swiftmodule/arm64e-apple-macos.swiftinterface` |
-| NSHostingView override hitTest, mouseDown, mouseDragged, mouseUp, mouseEntered, mouseMoved, mouseExited, cursorUpdate (我已 grep verify) | 同上 swiftinterface grep |
-| NSHostingView 不 override resetCursorRects (我已 grep verify) | 同上 swiftinterface grep |
-| PointerStyle struct (default/horizontalText/.../columnResize/rowResize/frameResize/image/shape) | 同上 swiftinterface line 28915-28972 |
-| PointerStyle View modifier | 同上 swiftinterface line 28972 |
-| FrameResizePosition enum (top/leading/bottom/trailing/topLeading/...) | 同上 swiftinterface |
+| NSHostingView public class signature (open class, NSView subclass) | `MacOSX27.0.sdk/System/Library/Frameworks/SwiftUI.framework/Modules/SwiftUI.swiftmodule/arm64e-apple-macos.swiftinterface` |
+| NSHostingView overrides hitTest, mouseDown, mouseDragged, mouseUp, mouseEntered, mouseMoved, mouseExited, cursorUpdate (grep-verified) | same swiftinterface grep |
+| NSHostingView does not override resetCursorRects (grep-verified) | same swiftinterface grep |
+| PointerStyle struct (default/horizontalText/.../columnResize/rowResize/frameResize/image/shape) | same swiftinterface line 28915-28972 |
+| PointerStyle View modifier | same swiftinterface line 28972 |
+| FrameResizePosition enum (top/leading/bottom/trailing/topLeading/...) | same swiftinterface |
 | NSCursor.h columnResizeCursor / rowResizeCursor / frameResizeCursorFromPosition:inDirections: (macOS 15.0+ API_AVAILABLE) | `MacOSX27.0.sdk/System/Library/Frameworks/AppKit.framework/Headers/NSCursor.h` |
-| NSCursor.h resizeLeftRightCursor / resizeUpDownCursor (deprecated, but still callable) | 同上 NSCursor.h |
+| NSCursor.h resizeLeftRightCursor / resizeUpDownCursor (deprecated, but still callable) | same NSCursor.h |
 | NSView.h addCursorRect: / resetCursorRects / discardCursorRects (soft deprecated, replaced by addTrackingArea) | `MacOSX27.0.sdk/System/Library/Frameworks/AppKit.framework/Headers/NSView.h` line 633-653 |
 | NSWindow.h cursor rects API (enable/disable/discard/invalidateCursorRects/resetCursorRects) | `MacOSX27.0.sdk/System/Library/Frameworks/AppKit.framework/Headers/NSWindow.h` NSCursorRect category |
 
-### 第三方独立 verify (我已拉 raw 源码)
+### Third-party independent verification (raw source pulled)
 
-| 真值 | URL |
+| Truth | URL |
 |---|---|
-| CursorKit README (deprecated for macOS 15+, PointerStyle ship 后) | https://github.com/ryanslikesocool/CursorKit |
-| CursorKit Cursor.swift (disableCursorRects + push + enableCursorRects 真值源码) | https://raw.githubusercontent.com/ryanslikesocool/CursorKit/main/Sources/CursorKit/Cursor.swift |
-| SwiftUI-NSTextView-CursorFix README (同根问题, NSTextView cursor 高优先级) | https://raw.githubusercontent.com/frederikhandberg0709/SwiftUI-NSTextView-CursorFix/main/README.md |
+| CursorKit README (deprecated for macOS 15+, after PointerStyle shipped) | https://github.com/ryanslikesocool/CursorKit |
+| CursorKit Cursor.swift (disableCursorRects + push + enableCursorRects truth source) | https://raw.githubusercontent.com/ryanslikesocool/CursorKit/main/Sources/CursorKit/Cursor.swift |
+| SwiftUI-NSTextView-CursorFix README (same root cause, NSTextView cursor high priority) | https://raw.githubusercontent.com/frederikhandberg0709/SwiftUI-NSTextView-CursorFix/main/README.md |
 
-### 找不到的真值 (直说不猜)
+### Truths not found (straight up, no guessing)
 
-- ❌ **SwiftUI WindowGroup 创建的 NSWindow runtime 具体 subclass name** — Apple doc 公开 type 是 `NSWindow`, 实际可能是 `NSHostingWindow` (未公开). 第三方 SO / Forums 都说不可以 swap NSWindow subclass instance 进 SwiftUI 已创建的 window
-- ❌ **macOS 27 是否专门修 NSHostingView cursor rects bug** — SDK 27 swiftinterface NSHostingView override 列表跟 26 / 25 / 14 一样 (没改), Apple release notes 也没提
-- ❌ **objc swizzle NSWindow.cursorUpdate 是否 App Store 合规** — App Store Review Guidelines 2.5.1 不明示, 找不到公开真值
-- ❌ **强行替换 NSApp.windows.first instance type 为 NSWindow 子类是否可行** — 第三方 (SO / Forums) 都说不行但理由不官方. 需要实测最小 case 验证
+- ❌ **Specific runtime subclass name of NSWindow SwiftUI WindowGroup creates** — Apple doc public type is `NSWindow`, actually may be `NSHostingWindow` (not public). Third-party SO / Forums all say cannot swap NSWindow subclass instance into SwiftUI-created window
+- ❌ **Does macOS 27 specifically fix NSHostingView cursor rects bug** — SDK 27 swiftinterface NSHostingView override list same as 26 / 25 / 14 (unchanged), Apple release notes don't mention
+- ❌ **Is objc swizzle NSWindow.cursorUpdate App Store compliant** — App Store Review Guidelines 2.5.1 don't specify, no public truth found
+- ❌ **Forcibly replacing NSApp.windows.first instance type to NSWindow subclass feasible** — third-party (SO / Forums) all say no but reasons unofficial. Need empirical minimal case verification
 
 ---
 
-## 报告元数据
+## Report metadata
 
-- **独立 verify 引用数**: 13 个 Apple 官方 URL (全部真值直引) + 5 个 SDK header 实证 + 2 个第三方源码 verify
-- **不靠记忆**: 全部真值从 Apple doc JSON API + SDK swiftinterface + 第三方 GitHub raw 拉, 任务书要求 "不猜不靠记忆" 满足
-- **写代码**: 0 行 (任务书明示 "不要做任何代码修改, 只查文档 + 写报告")
-- **覆盖前一版**: 真因 + 4 候选排名 + 推荐方案全部保留, 增补 SDK 27 swiftinterface 直接 verify + 第三方独立 verify + 候选 E (NSApp 全局 NSTrackingArea 旁路)
-- **报告路径**: `/Volumes/ANAN/Engineering/wenshu/.scratch/2026-08-19-dh-fixes-3/cursor-investigation-report-v2.md` (按任务书指示)
+- **Independent verification citations**: 13 Apple official URLs (all truth direct quotes) + 5 SDK header verifications + 2 third-party source verifications
+- **No memory reliance**: All truth pulled from Apple doc JSON API + SDK swiftinterface + third-party GitHub raw; task brief "no guessing no memory" requirement satisfied
+- **Code written**: 0 lines (task brief explicitly "do not make any code changes, only check docs + write report")
+- **Supersedes previous version**: Root cause + 4 candidate ranking + recommended plan all preserved; added SDK 27 swiftinterface direct verification + third-party independent verification + Candidate E (NSApp global NSTrackingArea bypass)
+- **Report path**: `/Volumes/ANAN/Engineering/wenshu/.scratch/2026-08-19-dh-fixes-3/cursor-investigation-report-v2.md` (per task brief instructions)

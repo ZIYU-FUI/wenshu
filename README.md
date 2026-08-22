@@ -1,243 +1,237 @@
 # 文枢 (Wenshu)
 
-> **Apple 全家桶专属的长篇虚构小说 AI 创作平台** · Swift + SwiftUI + CoreData + 自建轻量 AI 内核
-> 你(出资方) · 状态:**v0.00.0 项目基线(2026-08-06 你拍板)** · 策略:**对话驱动 + Scrivener 级项目管理 + AI 兜底,你配 LLM key 即用**
+> **Apple-stack-exclusive long-form fictional-novel AI authoring platform** · Swift + SwiftUI + CoreData + self-built lightweight AI kernel
+> 老板 (investor) · Status: **v0.00.0 project baseline (2026-08-06 老板 拍板)** · Strategy: **conversation-driven + Scrivener-class project management + AI fallback. 老板 configures LLM key and uses.**
 
 ---
 
-## 1. 是什么
+## 1. What it is
 
-**文枢 = 给"有长篇小说想法、但不会写"的人用的 AI 创作平台**。在 macOS、iPad、iPhone 上提供完整的长篇创作工作流,从一句模糊想法到一本完整小说,你只用自然对话、选择和判断,所有繁琐工作(调研、扩写、修订、伏笔管理、状态同步)由 AI 兜底。
+**文枢 = AI authoring platform for people who have a long-form novel idea but cannot write**. On macOS, iPad, iPhone, wenshu delivers the full long-form authoring workflow — from one vague idea to a complete novel. 老板 only talks naturally, chooses, and decides. All tedious work (research, extrapolation, revision, foreshadow management, state sync) is handled by AI fallback.
 
-**核心承诺**(2026-08-06 你拍板):
-- **开箱即用** — 你在文枢里配一次 LLM key(第一版只支持 minimax cn)就能用,**不需要懂任何 AI 工具**
-- **不依赖外部 AI 运行时** — 文枢 = Swift/SwiftUI 原生桌面应用 + 自建轻量 AI 内核,不调用任何外部 AI Agent 进程、不读任何 AI 平台配置
-- **想法立即变现** — 你说一句想法,AI 立即举一反三,项目结构同步生长,旧项目"沉淀到外部文档后无法回流"的失败模式不重演
-- **你可以善变,AI 兜底** — 主角从捕快改成仵作,朝代从明朝改成架空,任何重大修改 AI 自动重构关联设定,生成修订候选不覆盖原文
-- **个人资产自管** — 项目数据 = `.ws` 单文件(CoreData + 附件),本地存储,可拷贝、可备份、跨设备复制,文枢不依赖云端服务、不要求账号
+**Core promises** (2026-08-06 老板 拍板):
 
-## 2. 不是什么
+- **Out-of-the-box** — 老板 configures LLM key once in 文枢 (v1 supports minimax cn only) and uses it. **No AI tool expertise required**.
+- **No external AI runtime** — 文枢 = Swift / SwiftUI native desktop app + self-built lightweight AI kernel. No external AI agent processes called, no AI platform configs read.
+- **Idea → value instantly** — 老板 says one idea; AI extrapolates immediately; project structure grows in sync. The old "deposit to external doc, no flow back" failure mode does NOT repeat.
+- **Boss is volatile; AI fallback covers** — protagonist from constable to coroner, dynasty from Ming to fictional — any major change AI auto-refactors related settings, generates revision candidates without overwriting original text.
+- **Personal asset self-managed** — project data = `.ws` single file (CoreData + attachments). Local storage. Copyable, backup-able, cross-device copy. 文枢 depends on no cloud service, requires no account.
 
-- ❌ **不是任何 AI 平台的插件** — 文枢不复用任何外部 AI 进程、不调任何 AI 平台 CLI、不假设你装过任何 AI 工具
-- ❌ **不是任何 AI 平台 fork** — 文枢不基于任何 AI 平台改源码、不继承任何 monorepo 的 Electron + Python 栈
-- ❌ **不是通用 AI 写作工具** — 文枢只服务长篇虚构小说,不写短篇、剧本、非虚构、网文爽文片段
-- ❌ **不是纯写作软件** — 文枢不只做编辑器,它要 AI 主动介入、对项目状态有结构化理解、跨进程/跨设备一致
-- ❌ **不是云端 SaaS** — 文枢不依赖任何云服务、不要求账号、不上传你的作品
-- ❌ **不是跨平台** — 第一版只支持 macOS / iPad / iPhone。Windows / Android / Apple Watch / Vision Pro 不做。鸿蒙待定(若支持则原生重写,不复用本仓库代码)
-- ❌ **不是 12Immortals 重演** — 12Immortals 的失败模式(聊天是工具、笔记是工具、两者无连接、AI 输出沉淀后无法回流)不重演。文枢的聊天、项目结构、设定、正文共享同一份内部状态
+## 2. What it is NOT
 
-## 3. 架构
+- **NOT any AI platform plugin** — 文枢 reuses no external AI process, calls no AI platform CLI, assumes 老板 installed no AI tool.
+- **NOT any AI platform fork** — 文枢 is not built on any AI platform modified source, inherits no monorepo Electron + Python stack.
+- **NOT generic AI writing tool** — 文枢 serves long-form fictional novel only. No short story, screenplay, non-fiction, web-novel sugar-hit snippets.
+- **NOT pure writing software** — 文枢 is not just an editor. AI actively intervenes, has structured understanding of project state, is consistent across processes / devices.
+- **NOT cloud SaaS** — 文枢 depends on no cloud service, requires no account, does not upload 老板's works.
+- **NOT cross-platform** — v1 supports macOS / iPad / iPhone only. Windows / Android / Apple Watch / Vision Pro = no. HarmonyOS = TBD (if supported, native rewrite — do NOT reuse this repo).
+- **NOT 12Immortals replay** — 12Immortals failure mode (chat is a tool, notes are a tool, no connection between them, AI output deposits with no flow back) does NOT repeat. 文枢's chat, project structure, settings, body share one common internal state.
+
+## 3. Architecture
 
 ```
-文枢 (单进程 Swift/SwiftUI 应用)
-├── 主进程 (MainActor)
-│   ├── 用户对话层 (永远响应,不阻塞)
-│   ├── 阶段门逻辑 (想法讨论 / 设定 / 大纲 / 正文)
-│   ├── @ 语法解析 (引用项目元素)
-│   ├── 看板 (主阶段智能筛选 + 详情页完整展开)
-│   └── 修订候选展示 (后置确认,飘红 + 边栏历史)
+文枢 (single-process Swift / SwiftUI app)
+├── Main process (MainActor)
+│   ├── User chat layer (always responsive, never blocks)
+│   ├── Stage gate logic (idea discussion / settings / outline / body)
+│   ├── @ syntax parse (reference project elements)
+│   ├── Board (main stage smart filter + detail page full expand)
+│   └── Revision candidate display (post-confirm, redline + sidebar history)
 │
-├── 后台 task (Swift Concurrency)
-│   ├── LLM 调用 (minimax cn, Anthropic 兼容协议)
-│   ├── 流式 SSE 解析 (按字节累积,event 序列: message_start → content_block_start → content_block_delta → content_block_stop → message_delta → message_stop,无 [DONE])
-│   ├── 章节摘要生成
-│   ├── 资料调研
-│   ├── 修订候选生成
-│   ├── 风格蒸馏
-│   └── 伏笔/事实核查
+├── Background task (Swift Concurrency)
+│   ├── LLM call (minimax cn, Anthropic-compatible protocol)
+│   ├── Streaming SSE parse (byte-level accumulation, event sequence: message_start → content_block_start → content_block_delta → content_block_stop → message_delta → message_stop, no [DONE])
+│   ├── Chapter summary generation
+│   ├── Resource research
+│   ├── Revision candidate generation
+│   ├── Style distill
+│   └── Foreshadow / fact-check
 │
-├── Store actor (CoreData 写串行化)
-│   ├── CDCharacter (人物)
-│   ├── CDChapter (章节)
-│   ├── CDNote (待定/伏笔/信息点/历史事实)
-│   ├── CDWorldRule (世界规则)
-│   ├── CDForeshadow (伏笔清单,带状态机)
-│   ├── CDRevision (修订候选,带原稿关联)
-│   └── CDAIDraft (AI 推演,带置信度)
+├── Store actor (CoreData write serialization)
+│   ├── CDCharacter (character)
+│   ├── CDChapter (chapter)
+│   ├── CDNote (todo / foreshadow / info-point / historical fact)
+│   ├── CDWorldRule (world rule)
+│   ├── CDForeshadow (foreshadow list, with state machine)
+│   ├── CDRevision (revision candidate, with original-text link)
+│   └── CDAIDraft (AI inference, with confidence)
 │
-└── .ws 单文件 (本地存储,跨设备复制)
-    ├── CoreData store (人物/章节/设定/伏笔/修订)
-    ├── 附件包 (你上传的样本、蒸馏模型缓存)
-    └── 资源目录 (封面、作品)
+└── .ws single file (local storage, cross-device copy)
+    ├── CoreData store (character / chapter / setting / foreshadow / revision)
+    ├── Attachment bundle (uploaded samples, distill model cache)
+    └── Resource dir (cover, artwork)
 ```
 
-**关键架构原则**:
-- **长期记忆 ≠ LLM 上下文** — LLM 不直接读整个项目状态,通过检索接口拿当前任务所需最小信息集(章节摘要 + 相关人物 + 相关伏笔 + 选区上下文)
-- **主进程永远响应** — 后台 task 用 Swift actor 串行化 CoreData 写入,主进程不阻塞
-- **跨设备走文件** — `.ws` 文件 = CoreData store;跨设备靠你复制或自带云(iCloud / OneDrive / Git / U 盘),文枢不感知
-- **多设备多入口经主控路由** — iPhone 记录的想法必须经主进程处理,不能直接修改主项目,避免多端并发覆盖
+**Key architectural principles**:
 
-## 4. 阶段目标
+- **Long-term memory ≠ LLM context** — LLM does NOT read the entire project state directly. Through search interface it gets the minimum info set for the current task (chapter summary + related characters + related foreshadow + selection context).
+- **Main process always responsive** — background task uses Swift actor to serialize CoreData writes; main process never blocks.
+- **Cross-device via file** — `.ws` file = CoreData store. Cross-device relies on 老板's copy or self cloud (iCloud / OneDrive / Git / USB). 文枢 is unaware.
+- **Multi-device multi-entry via master router** — iPhone-recorded ideas MUST go through master process. No direct modification of main project. Avoids multi-end concurrent overwrite.
 
-| 阶段 | 目标 | 状态 |
-|------|------|------|
-| **v0.00.0** | 项目基线 = 3 文档定稿(README/AGENTS/CLAUDE 落档) + Swift 包初始化 + CoreData 单文件 + minimax cn LLM 接入(Anthropic 兼容) | 🔄 当前 |
-| **v0.01.0** | 极简闭环:创建项目 → 写一句话故事 → AI 举一反三 → 你选择 → 生成人物/世界骨架(只读展示) | ⏸ |
-| **v0.02.0** | 完整闭环:聊天驱动设定演化 + 资料库后台调研 + 看板实时反映 + 修订候选不覆盖 + **5 区 layout grammar + 折叠 + 拖拽(FCP 风格, layout 状态存 .ws)**(详见 AGENTS.md §8.1) | ⏸ |
-| **v0.03.0** | 阶段门:想法讨论 → 设定 → 大纲 → 正文,你控制节奏,AI 判断成熟度 | ⏸ |
-| **v0.04.0** | 长篇工具:章节拖拽卡片 + 情绪曲线 + 关系图 + 时间线 + 注水量 1-9 级 + 文笔风格 | ⏸ |
-| **v0.05.0** | 标记系统:※待定(快捷键+整章拦截) + 伏笔/信息点(选区右键) + 历史事实(AI 判断) | ⏸ |
-| **v0.06.0** | iPhone 端:想法记录 + 聊天创作 + 项目状态查看 + 标记系统完整 | ⏸ |
-| **v0.07.0** | 离线模式:本地写正文 + 看板 + 标记,LLM 联网,网络恢复增量合并 | ⏸ |
-| **v1.00.0** | 第一版发布候选 + App Store 提交(此时才付 Apple Developer Program $99) | ⏸ |
+## 4. Stage goals
 
-**版本号格式**:三位(Hermes 风格),中间位 = 阶段号,第三位 = hotfix。例如 `0.00.1` 是 v0.00.0 阶段的第一个补丁。
+| Stage | Goal | Status |
+|-------|------|--------|
+| **v0.00.0** | Project baseline = 3 docs finalized (README / AGENTS / CLAUDE archived) + Swift package init + CoreData single file + minimax cn LLM access (Anthropic-compatible) | **current** |
+| **v0.01.0** | Minimal closed loop: create project → write one-sentence story → AI extrapolate → 老板 choose → generate character / world skeleton (read-only display) | pending |
+| **v0.02.0** | Full closed loop: chat-driven setting evolution + resource library background research + board real-time reflect + revision candidate no-overwrite + **5-zone layout grammar + collapse + drag (FCP-style, layout state stored in .ws)** (see AGENTS.md §8.1) | pending |
+| **v0.03.0** | Stage gate: idea discussion → setting → outline → body. 老板 controls rhythm, AI judges maturity | pending |
+| **v0.04.0** | Long-form tools: chapter drag cards + emotion curve + relationship graph + timeline + filler-level 1-9 + writing style | pending |
+| **v0.05.0** | Marker system: `※` todo (shortcut + whole-chapter intercept) + foreshadow / info-point (selection right-click) + historical fact (AI judges) | pending |
+| **v0.06.0** | iPhone end: idea record + chat authoring + project state view + marker system complete | pending |
 
-## 5. 范围
+## 5. Phase baseline rules
 
-**包含**:
-- ✅ macOS / iPad / iPhone 三端(同一 Swift/SwiftUI 代码,交互适配)
-- ✅ 长篇虚构小说(中文优先,英文亦支持)
-- ✅ `.ws` 单文件项目数据,本地存储,跨设备复制
-- ✅ minimax cn LLM provider(Anthropic 兼容协议,minimax 官方推荐路径)
-- ✅ 对话驱动项目状态演化,后台异步调研
-- ✅ 修订候选不覆盖原稿,后置确认
-- ✅ 看板、阶段门、@ 语法、待定/伏笔/信息点/历史事实
-- ✅ 注水量 1-9 级,文笔风格三层(内置 + 用户反推 + 上传作品蒸馏,仅本机)
-- ✅ 标签库(一级类型必填,其余可选)
-- ✅ 离线写正文 + 看板 + 标记,在线 LLM 调用
+(Phase baseline rules = `AGENTS.md` §11 + §12. README does not duplicate. See `AGENTS.md` for the canonical list.)
 
-**不包含**(避免范围漂移):
-- ❌ Windows / Android / Apple Watch / Vision Pro
-- ❌ 短篇故事 / 剧本 / 非虚构 / 商业文案
-- ❌ 云端账号体系 / 云同步服务
-- ❌ 团队协作 / 多用户同项目编辑
-- ❌ 出版 / 发行 / 营销工具
-- ❌ 自动引擎式生成(无你参与的全自动写作)
-- ❌ 引用他人作品作为内置风格(只蒸馏你上传的样本,个人本机存储)
+## 6. Development workflow
 
-## 6. 关键决策(已拍)
+```
+老板 requirement (business language)
+        ↓
+pocock: grill-with-docs (clarify the requirement, leave paper trail)
+        ↓
+pocock: to-spec (collapse conversation into buildable spec, write to .scratch/<feature>/spec.md)
+        ↓
+pocock: to-tickets (split spec into one issue per file, .scratch/<feature>/issues/NN-*.md)
+        ↓
+pocock: implement per ticket (drive tdd internally)
+        ↓
+pocock: code-review (two axes — Standards + Spec — verify before commit)
+        ↓
+git commit (1 ticket 1 commit, spec + ticket follow code in same commit)
+        ↓
+老板 watches in Xcode
+```
 
-| 决策点 | 拍板 | 时间 | 备注 |
-|--------|------|------|------|
-| **产品方向:Hermes 对话 + Scrivener 项目管理 + AI 兜底** | 你 | 2026-08-06 | 不是纯写作软件,不是纯 AI 工具,不是纯项目管理 |
-| **开箱即用前提 = 你配 LLM key,不依赖任何 AI 平台** | 你 | 2026-08-06 | 否则"用我们的前提就变成懂 AI 平台又想写小说,几乎没有用户" |
-| **不调任何外部 AI 平台,自建轻量 AI 内核** | 你 | 2026-08-06 | 假设你没装任何 AI 工具,假设你不懂任何 AI 平台 |
-| **第一版 LLM provider 只支持 minimax cn** | 你 | 2026-08-06 | Anthropic 兼容协议,minimax 官方推荐,流式 SSE |
-| **Apple 全家桶专属(macOS / iPad / iPhone)** | 你 | 2026-08-06 | Windows / Android / Watch / Vision Pro 不做,鸿蒙待定 |
-| **iPhone 不阉割功能,只调交互** | 你 | 2026-08-06 | 同一份数据,同一套后端,仅交互不同 |
-| **`.ws` 单文件 = CoreData + 附件** | 你 | 2026-08-06 | 本地存储,跨设备靠复制或自带云,文枢不依赖云 |
-| **架构栈:Swift/SwiftUI + CoreData + 单进程协程** | 你 | 2026-08-06 | Actor 串行化 CoreData 写入,Task 异步长任务 |
-| **数据资产 = 你自管,文枢不依赖云** | 你 | 2026-08-06 | 卸载软件后 `.ws` 仍可用,跨设备迁移靠复制 |
-| **支付 Apple Developer Program:发布时再付** | 你 | 2026-08-06 | 个人 $99/年,组织 $299/年,TestFlight 外部测试前不需 |
-| **阶段门:你控制节奏,AI 判断成熟度** | 你 | 2026-08-06 | 正式跨阶段由你确认,阶段可回流 |
-| **修订候选不覆盖原稿,后置确认** | 你 | 2026-08-06 | 探索阶段自动应用,正式正文生成候选,飘红 + 边栏 |
-| **标记系统:`※` 待定 + 伏笔/信息点/历史事实** | 你 | 2026-08-06 | 快捷键 + 选区右键 + AI 自动判断 |
-| **版本号格式:三位(Hermes 风格)** | 你 | 2026-08-06 | 中间位 = 阶段号,第三位 = hotfix |
+Per 老板 2026-08-21 拍 hard constraint: **dual-axis code-review is mandatory. Skipping it = fail. The failure chain v0.20 ticket 04 + 05 commit `0aabd989e` + `e474965` did NOT run dual-axis. 老板 verified and 拍 "go check official docs" redo.**
 
-## 7. 系统总览
+## 7. Data architecture diagram
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│  文枢 (Swift/SwiftUI 单进程应用)                                │
-│  ┌──────────────────────┬───────────────────────────────┐   │
-│  │  MainActor            │  Background Tasks (Async)      │   │
-│  │  - 用户对话层         │  - LLM 调用 (minimax cn)       │   │
-│  │  - 阶段门判断         │  - 流式 SSE 解析              │   │
-│  │  - @ 语法解析         │  - 章节摘要生成               │   │
-│  │  - 看板渲染           │  - 资料调研                   │   │
-│  │  - 修订候选展示       │  - 修订候选生成               │   │
-│  │  - 标记系统           │  - 风格蒸馏                   │   │
-│  └──────────┬────────────┴────────────┬──────────────────┘   │
-│             │                         │                      │
-│  ┌──────────▼─────────────────────────▼──────────────────┐   │
-│  │  Store actor (CoreData 写串行化)                       │   │
-│  │  - 人物/章节/设定/伏笔/修订/AI 推演                    │   │
-│  │  - 通过检索接口为 LLM 拼装最小上下文                   │   │
-│  └──────────────────────────────────────────────────────┘   │
+│  老板 (long-form novel idea, no writing experience)          │
+│  ↓ macOS / iPad / iPhone SwiftUI natural chat               │
+│  ↓ @ syntax references project elements                     │
+│  ↓ Picker / Button selection                                │
 └─────────────────────────┬────────────────────────────────────┘
-                          │ 主进程 = .ws 单文件读写
+                          │
                           ▼
 ┌──────────────────────────────────────────────────────────────┐
-│  .ws (本地 CoreData store + 附件 + 资源)                      │
-│  - 跨设备靠你复制或自带云(iCloud/OneDrive/Git/U 盘)         │
-│  - 文枢不依赖云,不感知你用什么云同步                        │
-│  - 多设备多入口经主控路由,不产生并发覆盖                    │
-└──────────────────────────────────────────────────────────────┘
-                          ↓
+│  Main process (MainActor)                                    │
+│  - User chat layer (always responsive)                      │
+│  - Stage gate / board render / revision candidate display   │
+└─────────────────────────┬────────────────────────────────────┘
+                          │
+                          ▼
 ┌──────────────────────────────────────────────────────────────┐
-│  minimax cn LLM (Anthropic 兼容协议,官方推荐)                │
-│  - URL: https://api.minimaxi.com/anthropic/v1/messages      │
-│  - Auth: X-Api-Key: <key>  (官方错误信息推荐,Bearer 也可)  │
-│  - Model: MiniMax-M3 (1M 上下文)/ M2.7 / M2.5 / M2         │
-│  - 流式 SSE,按字节累积,event 序列见 §3                       │
-│  - 无 [DONE] 终止符,以 message_stop 事件结束                 │
-│  - key 存本地 0o600 (正式版转 macOS Keychain)               │
+│  Background task (Swift Concurrency)                         │
+│  - LLM call / streaming SSE parse                            │
+│  - Chapter summary / research / revision candidate / style   │
+└─────────────────────────┬────────────────────────────────────┘
+                          │
+                          ▼
+┌──────────────────────────────────────────────────────────────┐
+│  Store actor (CoreData write serialization)                  │
+│  - character / chapter / setting / foreshadow / revision / AI draft │
+│  - Assemble minimum context for LLM via search interface     │
+└─────────────────────────┬────────────────────────────────────┘
+                          │
+                          ▼ Main process = .ws single-file read/write
+┌──────────────────────────────────────────────────────────────┐
+│  .ws (local CoreData store + attachments + resources)        │
+│  - Cross-device via 老板's copy or self cloud (iCloud / OneDrive / Git / USB) │
+│  - 文枢 depends on no cloud, unaware of which cloud 老板 uses │
+│  - Multi-device multi-entry via master router, no concurrent overwrite │
+└─────────────────────────┬────────────────────────────────────┘
+                          │
+                          ▼
+┌──────────────────────────────────────────────────────────────┐
+│  minimax cn LLM (Anthropic-compatible protocol, official recommended) │
+│  - URL = https://api.minimaxi.com/anthropic/v1/messages      │
+│  - Auth = X-Api-Key: *** (official error recommends; Bearer also OK) │
+│  - Model = MiniMax-M3 (1M context) / M2.7 / M2.5 / M2        │
+│  - Streaming SSE, byte-level accumulation, event sequence see §3 │
+│  - No [DONE] terminator; ends at message_stop event           │
+│  - key stored locally 0o600 (release version → macOS Keychain) │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-## 8. 部署架构
+## 8. Deployment architecture
 
-- **开发环境**:macOS 27.0 + Xcode 27 + Swift 6.4 + CoreData
-- **测试环境**:macOS 端跑通后,iPad/iPhone 真机测试(iOS 27 simulator 待 Apple 公开)
-- **生产环境**:
-  - 桌面:文枢.app 装到 /Applications/文枢.app
-  - 分发:App Store 发布(发布前付 Apple Developer Program 个人 $99)
-  - 项目数据:.ws 文件(你自管,跨设备复制)
+- **Dev environment** = macOS 27.0 + Xcode 27 + Swift 6.4 + CoreData.
+- **Test environment** = after macOS end passes, iPad / iPhone real-machine test (iOS 27 simulator pending Apple public release).
+- **Production environment**:
+  - Desktop = 文枢.app installed to `/Applications/文枢.app`.
+  - Distribution = App Store release (before release pay Apple Developer Program individual $99).
+  - Project data = `.ws` file (老板 self-managed, cross-device copy).
 
-## 9. 协作规则(2026-08-18 v0.07 pocock single agent 净化)
+## 9. Collaboration rules (2026-08-18 v0.07 pocock single-agent purified)
 
-- 单 agent (pocock profile,Matt Pocock 35 skill 驱动)直接对话,不走派单 / 不走看板 / 不走 6 角色流程
-- 老板 提需求 → pocock 写代码 → 老板 看效果,沿 Matt Pocock main flow (grill-with-docs → to-spec → to-tickets → implement → code-review)
-- 老板 在阶段门控节点(v0.00.0 / v0.01.0 / v0.02.0 / ...)出现,看产品反馈
-- 项目基线 / 数据资产 / 跨角色称谓硬约束 = 真理源 `AGENTS.md`
+- Single agent (pocock profile) direct dialog. No dispatch, no board, no 6-role flow.
+- 老板 raises requirement → pocock writes code → 老板 watches effect. Along Matt Pocock main flow (grill-with-docs → to-spec → to-tickets → implement → code-review).
+- 老板 appears at stage gate checkpoints (v0.00.0 / v0.01.0 / v0.02.0 / ...) to review product feedback.
+- Project baseline / data asset / cross-role address hard constraints = truth-source `AGENTS.md`.
 
-## 10. 风险与缓解
+## 10. Risks and mitigations
 
-| 风险 | 缓解 |
-|------|------|
-| iOS 27 simulator 拉不到,影响 iPad/iPhone 开发 | 沙盒里写 macOS-only 验证代码,等 Apple 公开 iOS 27 sim 再补 |
-| minimax cn 服务中断 | 重试 + 错误展示 + 离线本地操作 + 任务排队 |
-| 你在 iPhone 上改设定,Mac 端覆盖 | 多设备多入口经主控路由,版本号对比,冲突时你后置决定 |
-| 修订候选累积过多 | 草稿和正式版本分别管理,定期清理,你主动触发修订 |
-| LLM 生成内容偏离你的意图 | 每次生成后显示影响摘要,你后置确认,不直接覆盖 |
-| 蒸馏风格无版权风险 | 仅蒸馏你上传样本,仅本机存储,不跨用户共享 |
-| `.ws` 文件跨设备复制被云同步破坏 | 关闭时强制 store coordinator sync,shm/wal 文件先合并 |
-| CoreData 跨设备版本不一致 | 文件级版本号,打开时校验,不一致时备份旧版 + 创建新副本 |
-| **minimax 模型名错误静默 fallback**(实测 8/6) | 任务必须明确写模型名,CC 写入 provider 配置时校验 minimax 官方模型列表 |
-| **X-Api-Key header 缺失或不正确** | 用 minimax 官方推荐 header,错误信息明确提示 |
+| Risk | Mitigation |
+|------|------------|
+| iOS 27 simulator unavailable, blocks iPad / iPhone dev | Sandbox writes macOS-only verification code. Wait for Apple public iOS 27 sim before backfilling. |
+| minimax cn service outage | Retry + error display + offline local operation + task queue. |
+| 老板 edits setting on iPhone, Mac end overwrites | Multi-device multi-entry via master router. Version-number compare. On conflict 老板 post-decides. |
+| Revision candidates accumulate too many | Draft and official version managed separately. Periodic cleanup. 老板 triggers revision actively. |
+| LLM-generated content drifts from 老板 intent | After each generation show impact summary. 老板 post-confirms. Never auto-overwrite. |
+| Style distill has copyright risk | Distill only 老板-uploaded samples. Local-only storage. No cross-user sharing. |
+| `.ws` file cross-device copy corrupted by cloud sync | Force store coordinator sync on close. Merge shm / wal files first. |
+| CoreData cross-device version inconsistent | File-level version. Validate on open. On mismatch backup old + create new copy. |
+| **minimax model name wrong silently fallback** (verified 8/6) | Task must explicitly write model name. CC validates against minimax official model list when writing provider config. |
+| **X-Api-Key header missing or wrong** | Use minimax official recommended header. Error message clearly indicates. |
 
-## 11. 关键路径速查
+## 11. Key path quick reference
 
 ```
-/Volumes/ANAN/Engineering/wenshu/                  ← ACTIVE(文枢项目根,v0.00.0 项目基线)
-├── README.md                                      ← 本文件(项目门面)
-├── AGENTS.md                                      ← 协作规则真理源(2026-08-18 净化到 §11 §12)
-├── CLAUDE.md                                      ← CC(未来的 Claude Code)项目记忆
-├── .hermes/                                       ← 设计稿 (v0.07 sketch 真值等)
-└── (空 — 待 v0.01.0 起开始写 Swift 包)
+/Volumes/ANAN/Engineering/wenshu/                  ← ACTIVE (文枢 project root, v0.00.0 project baseline)
+├── README.md                                      ← this file (project face)
+├── AGENTS.md                                      ← collaboration rules truth-source (2026-08-18 purified to §11 §12)
+├── CLAUDE.md                                      ← CC (future Claude Code) project memory
+├── CONTEXT.md                                     ← domain glossary (see docs/agents/domain.md)
+├── .hermes/                                       ← design drafts (v0.07 sketch truth-source etc.)
+└── (empty — Swift package starts from v0.01.0)
 ---
 /Volumes/ANAN/Engineering/.archive/
 ├── wenshu-monorepo-fork/
-│   └── v0.x-monorepo-fork-2026-08-06/             ← 旧 hermes monorepo fork 封存(9.7G,只读)
-├── novel-craft/                                   ← 历史归档
-└── novel-platform/                                ← 历史归档
+│   └── v0.x-monorepo-fork-2026-08-06/             ← old hermes monorepo fork archived (9.7 GB, read-only)
+├── novel-craft/                                   ← historical archive
+└── novel-platform/                                ← historical archive
 ---
-~/Engineering/                                    ← 沙盒(不进项目目录)
-├── llm-call-test/                                 ← 实验 4:minimax cn LLM 调用验证(Anthropic 兼容)
+~/Engineering/                                    ← sandbox (NOT in project dir)
+├── llm-call-test/                                 ← experiment 4: minimax cn LLM call verification (Anthropic-compatible)
 ├── wenshu-arch-experiments/
-│   ├── Exp5-CoreData/                             ← 实验 5:CoreData 单文件持久化
-│   └── Exp6-Concurrency/                          ← 实验 6:Swift Concurrency + CoreData 串行化
-└── (其他调研:writing-style-skill / book-writer / superpowers / 等)
+│   ├── Exp5-CoreData/                             ← experiment 5: CoreData single-file persistence
+│   └── Exp6-Concurrency/                          ← experiment 6: Swift Concurrency + CoreData serialization
+└── (other research: writing-style-skill / book-writer / superpowers / etc.)
 ```
 
-## 12. 12Immortals 失败原因(避免重演)
+## 12. 12Immortals failure cause (avoid replay)
 
-12Immortals 是同一小说在两套系统上的沉淀(`/Volumes/ANAN/Data/12Immortals` + OB `十二地仙`),失败模式:
+12Immortals = same novel deposited on two systems (`/Volumes/ANAN/Data/12Immortals` + OB vault `12-地仙`). Failure mode:
 
-- 聊天是工具(对话),OB 是工具(笔记),两者无连接
-- AI 输出沉淀到 OB 后,无法反向进入对话
-- 设定变成只读笔记,无法被 AI 后续生成引用
-- 资料库与创作流程脱节
-- 你在两个工具之间手动搬运内容
+- Chat is a tool (dialog), OB is a tool (notes). No connection between them.
+- AI output deposits to OB, no reverse flow into dialog.
+- Settings become read-only notes. Cannot be referenced by later AI generation.
+- Resource library detached from authoring flow.
+- 老板 manually moves content between two tools.
 
-文枢的解决方案:
-- 聊天、项目结构、设定、正文共享同一份内部状态
-- 你表达新信息时 AI 立即在项目结构中形成对应产物
-- 后续对话可以引用之前已经形成的设定
-- AI 在生成新内容前自动读取已有项目状态
-- 设定不是静态文件,是被持续引用的活信息
+文枢's solution:
+
+- Chat, project structure, settings, body share one common internal state.
+- When 老板 expresses new info, AI immediately forms corresponding artifact in project structure.
+- Later dialog can reference previously formed settings.
+- AI auto-reads existing project state before generating new content.
+- Settings are NOT static files. Settings are continuously-referenced live information.
 
 ---
 
-*文枢 v0.07 pocock single agent 净化版 · 2026-08-18 拍板 · 项目根 = `/Volumes/ANAN/Engineering/wenshu/`*
+*文枢 v0.07.2 pocock single-agent purified · 2026-08-22 拍板 · project root = `/Volumes/ANAN/Engineering/wenshu/`*

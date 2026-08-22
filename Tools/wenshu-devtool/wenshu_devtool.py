@@ -2,11 +2,11 @@
 """
 wenshu-devtool — remote dev tool for wenshu macOS app.
 
-Hermes tui_gateway 范式: 独立进程, 用 Apple 标准 API (osascript / screencapture / NSUserDefaults / security) 读 wenshu NSWindow + UI 状态.
+Hermes tui_gateway pattern: standalone process that uses Apple standard APIs (osascript / screencapture / NSUserDefaults / security) to read wenshu NSWindow + UI state.
 
-不内嵌 wenshu core (老板 8/19 真值), 不修改 Package.swift / Sources/, 不进 wenshu release bundle.
+Does not embed wenshu core (老板 8/19 truth source), does not modify Package.swift / Sources/, does not enter the wenshu release bundle.
 
-发布时直接删 Tools/wenshu-devtool/ 即可 (= 不需要改 wenshu core).
+At release, simply delete Tools/wenshu-devtool/ (= no need to change wenshu core).
 """
 
 import argparse
@@ -41,8 +41,8 @@ def _run_cmd(cmd: list, timeout: int = 30) -> tuple:
 
 
 def cmd_list_windows(_args) -> dict:
-    """列出 wenshu 的所有 NSWindow (title, frame, visible, id)."""
-    # AppleScript: 用多个 -e 参数 + delimiter (避免单行长字符串 bug)
+    """List all wenshu NSWindows (title, frame, visible, id)."""
+    # AppleScript: use multiple -e args + delimiter (avoid single-line long-string bug)
     script_lines = [
         f'tell application "System Events"',
         f'  tell process "{WENSHU_PROCESS}"',
@@ -84,7 +84,7 @@ def cmd_list_windows(_args) -> dict:
 
 
 def cmd_screenshot(args) -> dict:
-    """截 wenshu 某个 NSWindow 的图 (screencapture -l window_id)."""
+    """Screenshot a specific wenshu NSWindow (screencapture -l window_id)."""
     if not args.window_id or not args.output:
         raise ValueError("usage: screenshot <window_id> <output_path>")
     window_id = int(args.window_id)
@@ -101,7 +101,7 @@ def cmd_screenshot(args) -> dict:
 
 
 def _dump_tree(obj_script_prefix: str, depth: int = 6) -> list:
-    """Walk UI 树 (System Events UI elements) 返 [{role, name, value, position}]. 用递归 osascript."""
+    """Walk the UI tree (System Events UI elements), returns [{role, name, value, position}]. Uses recursive osascript."""
     script = (
         f'tell application "System Events" to tell process "{WENSHU_PROCESS}"\n'
         f'  set output to ""\n'
@@ -137,13 +137,13 @@ def _dump_tree(obj_script_prefix: str, depth: int = 6) -> list:
 
 
 def cmd_ui_dump(_args) -> dict:
-    """dump 前台 window UI 树."""
+    """Dump the frontmost window UI tree."""
     items = _dump_tree("", depth=5)
     return {"window": "frontmost", "element_count": len(items), "elements": items}
 
 
 def cmd_menu_dump(_args) -> dict:
-    """dump 菜单栏 (Apple / 文枢 / 文件 / 编辑 / 显示 / 窗口 / 帮助)."""
+    """Dump the menu bar (Apple / 文枢 / File / Edit / View / Window / Help)."""
     script_lines = [
         f'tell application "System Events"',
         f'  tell process "{WENSHU_PROCESS}"',
@@ -193,7 +193,7 @@ def _defaults_read(key: str) -> str:
 
 
 def cmd_settings_dump(_args) -> dict:
-    """dump wenshu UserDefaults 真值 (provider / model / appearance)."""
+    """Dump wenshu UserDefaults truth source (provider / model / appearance)."""
     keys = [
         "wenshu.llm.provider",
         "wenshu.llm.model",
@@ -204,7 +204,7 @@ def cmd_settings_dump(_args) -> dict:
 
 
 def cmd_keychain_list(_args) -> dict:
-    """列 ProviderKeychain 已存 providers."""
+    """List ProviderKeychain's stored providers."""
     stdout, stderr, rc = _run_cmd(["security", "dump-keychain", "login.keychain-db"], timeout=15)
     if rc != 0:
         raise RuntimeError(f"security dump-keychain failed (rc={rc}): {stderr.strip()}")
@@ -230,7 +230,7 @@ def cmd_keychain_list(_args) -> dict:
 
 
 def cmd_keychain_get(args) -> dict:
-    """返 provider 的 key (只显最 后 8 字, 不 入 log)."""
+    """Return the provider key (only show last 8 chars, not logged)."""
     if not args.provider_slug:
         raise ValueError("usage: keychain_get <provider_slug>")
     slug = args.provider_slug
@@ -250,25 +250,25 @@ def cmd_keychain_get(args) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser(
         prog="wenshu_devtool",
-        description="Remote dev tool for wenshu macOS app (Hermes tui_gateway 范式). 不内嵌 wenshu core, 不修改 Package.swift / Sources/, 不进 release bundle.",
+        description="Remote dev tool for wenshu macOS app (Hermes tui_gateway pattern). Does not embed wenshu core, does not modify Package.swift / Sources/, does not enter release bundle.",
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
-    sub.add_parser("list_windows", help="列出 wenshu NSWindow 真值")
+    sub.add_parser("list_windows", help="List wenshu NSWindow truth source")
 
-    p_screenshot = sub.add_parser("screenshot", help="截 wenshu 某个 NSWindow 的图")
-    p_screenshot.add_argument("window_id", help="NSWindow id (从 list_windows 取)")
-    p_screenshot.add_argument("output", help="输出 PNG 路径")
+    p_screenshot = sub.add_parser("screenshot", help="Screenshot a specific wenshu NSWindow")
+    p_screenshot.add_argument("window_id", help="NSWindow id (fetch from list_windows)")
+    p_screenshot.add_argument("output", help="Output PNG path")
 
-    sub.add_parser("ui_dump", help="dump 前台 window UI 树")
+    sub.add_parser("ui_dump", help="Dump the frontmost window UI tree")
 
-    sub.add_parser("menu_dump", help="dump 菜单栏")
+    sub.add_parser("menu_dump", help="Dump the menu bar")
 
-    sub.add_parser("settings_dump", help="dump UserDefaults")
+    sub.add_parser("settings_dump", help="Dump UserDefaults")
 
-    sub.add_parser("keychain_list", help="列 ProviderKeychain 已存 providers")
+    sub.add_parser("keychain_list", help="List ProviderKeychain's stored providers")
 
-    p_keyget = sub.add_parser("keychain_get", help="返 provider key (masked)")
+    p_keyget = sub.add_parser("keychain_get", help="Return provider key (masked)")
     p_keyget.add_argument("provider_slug")
 
     args = parser.parse_args()

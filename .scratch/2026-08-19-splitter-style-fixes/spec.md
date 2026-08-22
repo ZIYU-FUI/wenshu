@@ -1,78 +1,76 @@
-# Spec — 拖拽线取消圆头 + 改用 Apple 系统色 (老板 2026-08-19 拍)
+# Spec — Splitter remove rounded caps + use Apple system color (老板 2026-08-19 拍)
 
 > Date: 2026-08-19
-> Spec 走 po `to-spec` skill 7 段模板
+> Spec uses po `to-spec` skill 7-section template
 
 ## Problem Statement
 
-老板 2026-08-19 拍 2 个修法:
+老板 2026-08-19 拍 2 fixes:
+1. **16:50 拍**: "remove earlier-implemented splitter, divider first rounded caps requirement" — Rectangle `.clipShape(.capsule)` removed
+2. **18:15 拍**: "color use system color" — `Color.black` change to Apple system semantic color
 
-1. **16:50 拍**: "取消早期实的拖拽线, 分割先圆头的要求" — Rectangle `.clipShape(.capsule)` 去掉
-2. **18:15 拍**: "颜色用系统色" — `Color.black` 改用 Apple 系统 semantic color
+老板 8/19 18:48 feedback: ".scratch/2026-08-19-toolbar-resize-fix/issues/02-splitter-no-capsule-system-color.md written but not run, you forgot 拍, now patch"
 
-老板 8/19 18:48 反馈: ".scratch/2026-08-19-toolbar-resize-fix/issues/02-splitter-no-capsule-system-color.md 写好了但没跑, 你忘拍了, 现在补跑"
-
-从老板视角, 拖拽线应该是:
-- 矩形不圆角 (Apple HIG 标准 divider 风格)
-- 静态色 = 系统 divider 色 (dark/light 自动适配)
-- hover 色 = 系统亮色 (跟 macOS 强调色一致)
+From 老板's perspective,  splitter should be:
+- Rectangle not rounded (Apple HIG standard divider style)
+- Static color = system divider color (dark/light auto-adapt)
+- Hover color = system bright color (consistent with macOS accent color)
 
 ## Solution
 
-修 `NativeSplitter` (Sources/WenshuApp/Views/Layout/NativeSplitter.swift):
+Fix `NativeSplitter` (Sources/WenshuApp/Views/Layout/NativeSplitter.swift):
+1. **Remove rounded caps** — Rectangle after `.clipShape(.capsule)` removed
+2. **Static color change to system color** — `Color.black` → `Color(nsColor: .separatorColor)` (Apple HIG divider color, dark/light auto-adapt)
+3. **Hover change to system bright color** — `Color.accentColor.opacity(0.25)` → `Color(nsColor: .controlAccentColor).opacity(0.25)` (Apple HIG system bright color, dark/light auto-adapt)
+4. **Shadow change** — `Color.accentColor.opacity(0.15)` → `Color(nsColor: .controlAccentColor).opacity(0.15)` (same)
 
-1. **删圆头** — Rectangle 后 `.clipShape(.capsule)` 去掉
-2. **静态色改系统色** — `Color.black` → `Color(nsColor: .separatorColor)` (Apple HIG divider 色, dark/light 自适应)
-3. **hover 改系统亮色** — `Color.accentColor.opacity(0.25)` → `Color(nsColor: .controlAccentColor).opacity(0.25)` (Apple HIG 系统亮色, dark/light 自适应)
-4. **shadow 改** — `Color.accentColor.opacity(0.15)` → `Color(nsColor: .controlAccentColor).opacity(0.15)` (同上)
+### Business-language description (老板 understands)
 
-### 业务语言描述 (老板懂)
-
-- 拖拽线不画圆角 = 矩形 (跟 macOS 系统 divider 一样)
-- 静态 2 PT 颜色 = Apple 系统色 (dark/light 自动适配, 不写死)
-- hover 4 PT 颜色 = Apple 系统亮色 (跟 macOS 强调色一致, dark/light 自动适配)
+- Splitter not draw rounded corners = rectangle (same as macOS system divider)
+- Static 2 PT color = Apple system color (dark/light auto-adapt, no hard-code)
+- Hover 4 PT color = Apple system bright color (consistent with macOS accent color, dark/light auto-adapt)
 
 ## User Stories
 
-1. As 老板, I want 拖拽线不画圆头 (矩形), so that 跟 macOS 系统 divider 风格一致 (Apple HIG 真值)
-2. As 老板, I want 拖拽线静态色用 Apple 系统 divider 色, so that dark/light mode 自动适配
-3. As 老板, I want 拖拽线 hover 色用 Apple 系统亮色, so that 跟 macOS 强调色一致
-4. As 老板, I want D_h / D_v 5 竖拖拽线都生效 (1 组件 NativeSplitter 改 1 处 = 6 根全改)
+1. As 老板, I want splitter not draw rounded caps (rectangle), so that consistent with macOS system divider style (Apple HIG truth)
+2. As 老板, I want splitter static color use Apple system divider color, so that dark/light mode auto-adapt
+3. As 老板, I want splitter hover color use Apple system bright color, so that consistent with macOS accent color
+4. As 老板, I want D_h / D_v 5 vertical splitters all effective (1 component NativeSplitter change 1 place = 6 all change)
 5. As 老板, I want `swift build` exit 0
-6. As 老板, I want 拖拽线视觉 (4 PT hover 变粗 / 圆头矩形 / shadow) 全保持
+6. As 老板, I want splitter visual (4 PT hover thicker / rounded rectangle / shadow) all preserved
 
 ## Implementation Decisions
 
-- **NativeSplitter body Rectangle 链**:
-  - 删 `.clipShape(.capsule)`
+- **NativeSplitter body Rectangle chain**:
+  - Remove `.clipShape(.capsule)`
   - `.fill(isHovered ? Color(nsColor: .controlAccentColor).opacity(0.25) : Color(nsColor: .separatorColor))`
   - `.shadow(color: isHovered ? Color(nsColor: .controlAccentColor).opacity(0.15) : .clear, ...)`
-- **DesignColor 改**:
-  - L43 `DesignColor.splitterLine: Color = Color(nsColor: .black)` → 改 `Color(nsColor: .separatorColor)` (跟 NativeSplitter 静态一致)
-  - L42 `DesignColor.accentBlue: Color = .accentColor` → 改 `Color(nsColor: .controlAccentColor)` (跟 NativeSplitter hover 一致)
-- **StaticDividerHorizontal / StaticDividerVertical** (Sources/WenshuApp/Views/Layout/NativeSplitter.swift) — 同样改静态色 `Color.black` → `Color(nsColor: .separatorColor)`
-- **不动**: toolbar 30 PT / 6 PT hit area / drag 逻辑 / D_h / D_v 5 范围 / cursor (backlog 02 待办)
-- **不退化**: hover 4 PT 变粗 / shadow / 透明度 0.25 / 0.15
+- **DesignColor change**:
+  - L43 `DesignColor.splitterLine: Color = Color(nsColor: .black)` → change to `Color(nsColor: .separatorColor)` (consistent with NativeSplitter static)
+  - L42 `DesignColor.accentBlue: Color = .accentColor` → change to `Color(nsColor: .controlAccentColor)` (consistent with NativeSplitter hover)
+- **StaticDividerHorizontal / StaticDividerVertical** (Sources/WenshuApp/Views/Layout/NativeSplitter.swift) — same change static color `Color.black` → `Color(nsColor: .separatorColor)`
+- **Untouched**: toolbar 30 PT / 6 PT hit area / drag logic / D_h / D_v 5 range / cursor (backlog 02 todo)
+- **Don't regress**: hover 4 PT thicker / shadow / opacity 0.25 / 0.15
 
 ## Testing Decisions
 
-- 仅 `swift build clean` (exit 0), 老板自己启 app 验
-- 验证: 拖拽线不圆头 + 静态系统色 + hover 系统亮色
+- Only `swift build clean` (exit 0), 老板 self-launches app to verify
+- Verify: splitter not rounded caps + static system color + hover system bright color
 
 ## Out of Scope
 
-- 不动 macOS chrome 52 PT
-- 不动 LayoutTokens / bandH / toolbar 宽度
-- 不动 D_h / D_v 5 竖拖拽线拖动逻辑
-- 不动 cursor (backlog 02 待办)
-- 不重写 SplitterHitArea NSView
-- 不动 macOS chrome / 系统设置 (颜色由 macOS 控制)
+- Do not touch macOS chrome 52 PT
+- Do not touch LayoutTokens / bandH / toolbar width
+- Do not touch D_h / D_v 5 vertical splitter drag logic
+- Do not touch cursor (backlog 02 todo)
+- Do not rewrite SplitterHitArea NSView
+- Do not touch macOS chrome / system settings (color controlled by macOS)
 
 ## Further Notes
 
-- 老板 8/19 16:50 拍 "取消圆头" + 8/19 18:15 拍 "颜色用系统色" — 这两个修法一起跑 (一 commit)
-- 老板 8/19 18:48 反馈 "你忘拍了" — 之前 .scratch/2026-08-19-toolbar-resize-fix/issues/02-splitter-no-capsule-system-color.md 写好了但没 commit, 老板看不到
-- 跟 v0.16 ticket 06 cursor (backlog 02) / v0.16 ticket 07 设置菜单 是独立的 ticket
-- 跟 backlog 03 / 04 (.scratch/2026-08-19-dh-fixes-3/backlog.md) 重复 — 这次直接实现, backlog 03 / 04 删除
-- Apple HIG 真值 URL: https://developer.apple.com/documentation/appkit/nscolor/separatorcolor
-- Apple HIG 真值 URL: https://developer.apple.com/documentation/appkit/nscolor/controlaccentcolor
+- 老板 8/19 16:50 拍 "remove rounded caps" + 8/19 18:15 拍 "color use system color" — these two fixes run together (one commit)
+- 老板 8/19 18:48 feedback "you forgot 拍" — previously .scratch/2026-08-19-toolbar-resize-fix/issues/02-splitter-no-capsule-system-color.md written but not committed, 老板 can't see
+- Independent from v0.16 ticket 06 cursor (backlog 02) / v0.16 ticket 07 settings menu
+- Duplicate with backlog 03 / 04 (.scratch/2026-08-19-dh-fixes-3/backlog.md) — this time directly implement, backlog 03 / 04 delete
+- Apple HIG truth URL: https://developer.apple.com/documentation/appkit/nscolor/separatorcolor
+- Apple HIG truth URL: https://developer.apple.com/documentation/appkit/nscolor/controlaccentcolor

@@ -1,35 +1,35 @@
-# 02 — 本地 Skills 加载 (SkillRegistry.swift, 复刻 hermes skills)
+# 02 — Local Skills loading (SkillRegistry.swift, replica hermes skills)
 
 **What to build:**
-老板 2026-08-19 19:57 拍 "底层依赖复刻" — 复刻 hermes skills 加载机制到 wenshu 本地 markdown files.
+老板 2026-08-19 19:57 拍 "bottom-layer dependency replica" — replica hermes skills loading mechanism to wenshu local markdown files.
 
-改完:
-- 新建 Sources/WenshuCore/Skills/SkillRegistry.swift (扫 markdown files)
-- 新建 Sources/WenshuCore/Skills/SkillLoader.swift (load(name) 拿 SKILL.md)
-- swift build exit 0
-- 加单元测试 (SkillRegistry.scan / load)
+After change:
+- Create `Sources/WenshuCore/Skills/SkillRegistry.swift` (scan markdown files)
+- Create `Sources/WenshuCore/Skills/SkillLoader.swift` (`load(name)` get SKILL.md)
+- `swift build` exit 0
+- Add unit tests (`SkillRegistry.scan` / `load`)
 
 **Blocked by:** ticket 01 (MemoryStore)
 
-**Status:** ready-for-agent → impl done → commit + push (老板 8/19 自行决策授权 + 不需要验收)
+**Status:** ready-for-agent → impl done → commit + push (老板 8/19 self-decision authorization + no verification needed)
 
 ## Acceptance criteria
 
-- [ ] Sources/WenshuCore/Skills/SkillRegistry.swift 扫 Sources/WenshuCore/Skills/<name>/SKILL.md
+- [ ] `Sources/WenshuCore/Skills/SkillRegistry.swift` scan `Sources/WenshuCore/Skills/<name>/SKILL.md`
 - [ ] parse frontmatter (YAML) + body (markdown)
-- [ ] Sources/WenshuCore/Skills/SkillLoader.swift load(name) 拿 SKILL.md 内容 + linked_files
-- [ ] swift build exit 0
-- [ ] 单元测试: SkillRegistryTests scan / load
-- [ ] 不动 hermes app / ~/.hermes/profiles/pocock/
-- [ ] 不动 wenshu 当前 SwiftUI UI / 业务逻辑
+- [ ] `Sources/WenshuCore/Skills/SkillLoader.swift` `load(name)` get SKILL.md content + linked_files
+- [ ] `swift build` exit 0
+- [ ] Unit tests: SkillRegistryTests scan / load
+- [ ] Do not touch hermes app / `~/.hermes/profiles/pocock/`
+- [ ] Do not touch wenshu current SwiftUI UI / business logic
 
-## 业务语言描述 (老板懂)
+## Business-language description (老板 understands)
 
-- wenshu 自己的 skill registry (本地 markdown files), 跟 hermes 一样能 load SKILL.md + parse frontmatter, 不靠 hermes skills 加载
-- 工程管理老板授权, 不需要验收
+- wenshu own skill registry (local markdown files), like hermes can load SKILL.md + parse frontmatter, no hermes skills loading dependence
+- Engineering management authorized by 老板, no verification needed
 
-## 真值引用
+## Truth references
 
-- hermes SKILL.md 真值: ~/.hermes/profiles/pocock/skills/<name>/SKILL.md (35 个)
-- frontmatter 真值: name / description + body markdown
-- linked_files 真值: references/ templates/ scripts/
+- hermes SKILL.md truth: `~/.hermes/profiles/pocock/skills/<name>/SKILL.md` (35 files)
+- frontmatter truth: name / description + body markdown
+- linked_files truth: references/ templates/ scripts/

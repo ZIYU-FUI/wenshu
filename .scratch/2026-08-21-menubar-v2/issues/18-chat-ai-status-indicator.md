@@ -1,13 +1,13 @@
-# Issue 18 — Chat AI 回复状态动态显示 (v0.21 ticket 18)
+# Issue 18 — Chat AI reply status dynamic display (v0.21 ticket 18)
 
 > Slug: chat-ai-status-indicator
-> Scope: Sources/WenshuApp/Views/Chat/ChatView.swift + Sources/WenshuApp/Core/Agent/WenshuConductor.swift + Sources/WenshuApp/Core/Agent/ConductorPhase.swift (new) + Tests/WenshuAppTests/AIStatusBarTests.swift (new)
-> Spec: ../spec.md.ticket18
-> 老板: 2026-08-22 06:18 backlog, 2026-08-22 14:00 拍 "按 hermes 的标准实现" (= 候选 A 完整版, 修真不修真简单版)
+> Scope: `Sources/WenshuApp/Views/Chat/ChatView.swift` + `Sources/WenshuApp/Core/Agent/WenshuConductor.swift` + `Sources/WenshuApp/Core/Agent/ConductorPhase.swift` (new) + `Tests/WenshuAppTests/AIStatusBarTests.swift` (new)
+> Spec: `../spec.md.ticket18`
+> 老板: 2026-08-22 06:18 backlog, 2026-08-22 14:00 ruled "implement to hermes standard" (= Option A full version, not the simple version)
 
-## 修真修真 (this commit, 1 ticket 1 commit)
+## Implementation (this commit, 1 ticket 1 commit)
 
-### Step 1: 新增 `ConductorPhase.swift` enum (5 phase 真值)
+### Step 1: Add `ConductorPhase.swift` enum (5-phase truth)
 
 `Sources/WenshuApp/Core/Agent/ConductorPhase.swift` (new, ~30 lines):
 
@@ -22,33 +22,33 @@ public enum ConductorPhase: Equatable, Sendable {
 }
 ```
 
-真值修真修真修真 (Apple HIG 真值 Sendable enum):
-- `idle` = 默认, AIStatusBar hidden
-- `writing` = ChatViewModel.send 启动, 没 con 修真
-- `classifyingIntent` = handle step 2 LLM intent classify
-- `dispatchingAgents` = handle step 3 0-N 个 subagent delegateTask
-- `synthesizing` = handle step 4 LLM synthesis
-- `complete` = handle 修真, AIStatusBar hide
+Truth: Apple HIG-truth `Sendable` enum.
+- `idle` = default; `AIStatusBar` hidden
+- `writing` = `ChatViewModel.send` started, no conductor yet
+- `classifyingIntent` = `handle` step 2 LLM intent classify
+- `dispatchingAgents` = `handle` step 3 — 0 to N sub-agents `delegateTask`
+- `synthesizing` = `handle` step 4 LLM synthesis
+- `complete` = `handle` finished; `AIStatusBar` hides
 
-### Step 2: 修真 ChatViewModel 修真 `aiPhase: ConductorPhase` 修真
+### Step 2: Update `ChatViewModel` — add `aiPhase: ConductorPhase`
 
 `Sources/WenshuApp/Views/Chat/ChatView.swift` (modify):
 
-修真 ChatViewModel:
-- 加 `@Observable public var aiPhase: ConductorPhase = .idle` (Apple Observable 真值, thread-safe @MainActor)
-- 加 `var startedAt: Date? = nil` private (elapsed 计算修真)
+Modify `ChatViewModel`:
+- Add `@Observable public var aiPhase: ConductorPhase = .idle` (Apple Observable truth, thread-safe `@MainActor`)
+- Add `private var startedAt: Date? = nil` (for elapsed-time calculation)
 
-修真 `send()`:
-- isSending = true 真设 `aiPhase = .writing` 修真
-- defer { isSending = false } 修真 修真 修真修真 `aiPhase = .complete` 修真 (animation 真值)
-- `conductor.handle(..., statusCallback: { phase in self.aiPhase = phase })` 修真 阶段
-- 修真: AIStatusBar 修真 (complete 修真 修真修真 真修真)
+Modify `send()`:
+- `isSending = true` — also set `aiPhase = .writing`
+- `defer { isSending = false }` — also set `aiPhase = .complete` (animation truth)
+- `conductor.handle(..., statusCallback: { phase in self.aiPhase = phase })` — relay each phase
+- Update: `AIStatusBar` modified accordingly (`complete` triggers the hide)
 
-### Step 3: 修真 WenshuConductor.handle status callback 修真
+### Step 3: Update `WenshuConductor.handle` — status callback
 
 `Sources/WenshuApp/Core/Agent/WenshuConductor.swift` (modify):
 
-修真 handle 函数 signature:
+Update `handle` function signature:
 ```swift
 public func handle(
     userMessage: String,
@@ -57,39 +57,39 @@ public func handle(
 ) async -> String
 ```
 
-修真各阶段调 callback:
-- step 1 kanban add 真: statusCallback(.dispatchingAgents) (kanban add 修真 修真 dispatching 真 修真修真修真)
-- step 2 intent classify 真修真: statusCallback(.classifyingIntent)
-- step 3 delegate 真修真 真: statusCallback(.dispatchingAgents)
-- step 4 synthesis 真修真: statusCallback(.synthesizing)
-- 修真 修真: statusCallback(.complete) (成功) or .complete (S4 fallback)
+Each phase calls the callback:
+- Step 1 kanban add — `statusCallback(.dispatchingAgents)` (kanban add triggers the dispatching truth)
+- Step 2 intent classify — `statusCallback(.classifyingIntent)`
+- Step 3 delegate — `statusCallback(.dispatchingAgents)`
+- Step 4 synthesis — `statusCallback(.synthesizing)`
+- Final: `statusCallback(.complete)` (success) or `.complete` (S4 fallback)
 
-修真修真真:
-- (StatusUpdate: Q47 macOS SwiftUI 13+ 真值 + main actor 真值 (callback should bridge MainActor for @Observable 修真))
-- 修真 `Task { @MainActor in statusCallback(phase) }` 修真 bridge
+Truth:
+- (StatusUpdate: Q47 macOS SwiftUI 13+ truth + main-actor truth (the callback should bridge MainActor for `@Observable` updates))
+- Update wraps the call with `Task { @MainActor in statusCallback(phase) }` for bridging
 
-### Step 4: 修真 ChatView AIStatusBar 子组件
+### Step 4: Add `ChatView` `AIStatusBar` sub-component
 
 `Sources/WenshuApp/Views/Chat/ChatView.swift` (modify):
 
-修真 ChatView body VStack:
+Modify `ChatView` body `VStack`:
 ```
 VStack(spacing: 0) {
-    ScrollViewReader { ... }  // 消息列表 (unmodified)
-    AIStatusBar(phase: vm.aiPhase, startedAt: ...)  // 新增 (hidden when .idle)
+    ScrollViewReader { ... }  // message list (unmodified)
+    AIStatusBar(phase: vm.aiPhase, startedAt: ...)  // new (hidden when .idle)
     Divider()
-    HStack { ... }  // 输入框 (unmodified, Q20)
+    HStack { ... }  // input field (unmodified, Q20)
     .padding(.horizontal, 18)
     .padding(.bottom, 4)
 }
 ```
 
-修真真 `AIStatusBar` struct 修真 ChatView 上方:
+Add the `AIStatusBar` struct above `ChatView`:
 ```swift
 struct AIStatusBar: View {
     let phase: ConductorPhase
     let startedAt: Date?
-    
+
     var body: some View {
         if phase != .idle, let startedAt {
             HStack(spacing: 8) {
@@ -117,52 +117,46 @@ extension ConductorPhase {
     var statusText: String {
         switch self {
         case .idle: return ""
-        case .writing: return "正在发送"
-        case .classifyingIntent: return "正在分类意图"
-        case .dispatchingAgents: return "正在派子 agent"
-        case .synthesizing: return "正在合成回复"
+        case .writing: return "Sending…"
+        case .classifyingIntent: return "Classifying intent…"
+        case .dispatchingAgents: return "Dispatching sub-agents…"
+        case .synthesizing: return "Synthesizing reply…"
         case .complete: return ""
         }
     }
 }
 ```
 
-真修真修真 (Q34 修真 Q21 SF Symbol + Q22 真修真 + Q26 4 原则):
-- `Image(systemName: "ellipsis")` + `.symbolEffect(.variableColor.iterative)` = Apple SF Symbol 修真标准 SF Symbols 真值 (`:iOS 17/macOS 14+`)
-- 真 `.ultraThinMaterial` 修真 修真 (Apple semantic 真修真)
-- 真 `.transition` + AIStatusBar 修真 修真 修真 animation (ticket 22 修真因原则默认 animation)
-- 真 `Text(_:style:)` 真 DateStyle.timer (macOS 11+ 真值, 真 真 value 真 live update, 修真修真.... `Text(timerInterval:)` macOS 13+ 标准 API 真真真)
+Truth (Q34 principles Q21 SF Symbol + Q22 truth + Q26 4 principles):
+- `Image(systemName: "ellipsis")` + `.symbolEffect(.variableColor.iterative)` = Apple SF Symbol standard SF Symbols truth (`:iOS 17 / macOS 14+`)
+- Use `.ultraThinMaterial` (Apple semantic truth)
+- Use `.transition` + `AIStatusBar` animated transitions (ticket 22's default animation principle)
+- Use `Text(_:style:)` with `DateStyle.timer` (macOS 11+ truth, live-updating value, or `Text(timerInterval:)` macOS 13+ standard API)
 
-### Step 5: 修真 Q20 修真修真
+### Step 5: Lock Q20 hard constraints
 
-修真修真修真: ChatZoneView VStack 顺序 + ChatView 输入框布局 + ChatBottomBar 18 PT inset + ChatViewModel.send/clear/switchModel/loadAvailableModels API + WenshuConductor.handle 修真修真 4 阶段逻辑 + AgentProtocol 协议 — 都修真修真, 修真修真修真真.
+Untouched: `ChatZoneView` `VStack` ordering + `ChatView` input-field layout + `ChatBottomBar` 18 PT inset + `ChatViewModel.send / clear / switchModel / loadAvailableModels` API + `WenshuConductor.handle` 4-phase logic + `AgentProtocol` protocol — all locked.
 
-## Q34 双轴 code-review 修真
+## Q34 dual-axis code-review
 
-修真 commit message 修镶双轴 sub-agent 修真 + Findings 修真修真 ← 修真 commit CC 修真修真修真修真:
+The commit message aggregates fixes from dual-axis sub-agent review + Findings verbatim → commit CC:
 
 ```
-feat(wenshu): v0.21 ticket 18 AI 回复状态动态显示 (老板 8/22 14:00 拍 hermes 标准)
+feat(wenshu): v0.21 ticket 18 AI reply status dynamic display (老板 8/22 14:00 ruled hermes standard)
 
-老板拍 "AI 在回复时, 我看不到任何状态" 修真 "按 hermes 的标准实现".
+老板 ruled "while AI is replying, I can't see any status" + "implement to hermes standard".
 
-Hermes 真值 3 段 = 左 ellipsis 闪烁 + 中 status text + 右 elapsed timer.
-Q47 + Q51 + Q20 修真: ChatZoneView / ChatView / WenshuConductor 父组件不动 + 修真 AIStatusBar subview.
-5 原则: Apple HIG 真值 + SF Symbol semantic color + 效果优先 + 业务语言 + po main flow 双轴.
-3 阶段 status: 分类意图 / 派子 agent / 合成回复 (修真 真真 zz 的 WenshuConductor.handle 修真).
-
-双轴 code-review 修真 (Q34 修真):
-- Standards sub-agent (deleg_xxx): 修真 修真
-- Spec sub-agent (deleg_yyy): 修真 修真
-
-双轴 Findings H 修真 + S 修真 commit 修真 修真.
+Hermes truth: 3 sections = left ellipsis pulse + middle status text + right elapsed timer.
+Q47 + Q51 + Q20 locked: ChatZoneView / ChatView / WenshuConductor parents untouched + new AIStatusBar subview.
+5 principles: Apple HIG truth + SF Symbol semantic color + effect-first + business language + po main flow dual-axis.
+3 status phases: classifying intent / dispatching sub-agents / synthesizing reply (WenshuConductor.handle).
 ```
 
 ## Acceptance
 
-- [ ] swift build exit 0
-- [ ] swift test exit 0 + 测试 0 fail
-- [ ] Q22 CUA 真验 ChatZoneView open + AIStatusBar 修真
-- [ ] 老板 macOS 修真验 修真 发消息 → AIStatusBar 修真 → 修真理 时间 修真 修真修真
-- [ ] Q34 双轴 修真 Standard + Spec 修真 修真真
-- [ ] 修真修真修真修真 CONTEXT.md: `AIStatusBar` + `ConductorPhase` domain word
+- [ ] `swift build` exit 0
+- [ ] `swift test` exit 0 + 0 test failures
+- [ ] Q22 CUA verification: open `ChatZoneView` + `AIStatusBar` appears
+- [ ] 老板 macOS verification: send a message → `AIStatusBar` shows → on completion hides with elapsed time
+- [ ] Q34 dual-axis Standards + Spec review
+- [ ] Add to `CONTEXT.md`: `AIStatusBar` + `ConductorPhase` domain words

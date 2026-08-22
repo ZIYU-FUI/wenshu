@@ -1,65 +1,69 @@
-# SPEC v0.15: LayoutShellView 重写 (Apple HIG 真值范式)
+# SPEC v0.15: LayoutShellView rewrite (Apple HIG truth paradigm)
 
-> 数据源: Sketch `AF7B1C87-ADDD-41ED-8208-7CA5549070E2` page 文枢 Artboard 首页 (47 layer frame)
+> Data source: Sketch `AF7B1C87-ADDD-41ED-8208-7CA5549070E2` page 文枢 Artboard home (47 layer frames)
 > Apple HIG: Split Views (developer.apple.com/design/human-interface-guidelines/split-views)
-> Apple 真值: HSplitView / VSplitView divider 颜色改不了 → 用 HStack + 自写 NativeSplitter
-> 老板 2026-08-19 拍板: 改 Canvas 重写回 SwiftUI view tree 范式
+> Apple truth: HSplitView / VSplitView divider color unchangeable → use HStack + self-written NativeSplitter
+> 老板 2026-08-19 拍板: change Canvas rewrite back to SwiftUI view tree paradigm
 
-## 0. 当前病灶 (老板 2026-08-19 反馈)
+## 0. Current pathology (老板 2026-08-19 feedback)
 
-1. **标题栏双层**: LayoutShellView Canvas 自己画 52 PT #393939 + .windowStyle(.titleBar) 又有 macOS 52 PT chrome + 死代码 TitleBarZone
-2. **区域组件混乱**: LayoutShellView Canvas 画 zone + SwiftUI overlay 画 ZoneBottomToolbarsOverlay,ZoneModule 组件死代码
-3. **拖拽线 hover/drag 全丢**: Canvas 不响应 hover; NativeSplitterHitArea 透明 NSView 只接事件不画 hover/drag 视觉; NativeSplitter(view) 完整版(2 PT 黑/hover 4 PT accent capsule/DragGesture/.pointerStyle)被废
+1. **Title bar double-layer**: LayoutShellView Canvas self-draws 52 PT #393939 + `.windowStyle(.titleBar)` also has macOS 52 PT chrome + dead-code TitleBarZone
+2. **Zone components chaos**: LayoutShellView Canvas draws zone + SwiftUI overlay draws ZoneBottomToolbarsOverlay, ZoneModule component dead code
+3. **Splitter hover/drag all lost**: Canvas does not respond to hover; NativeSplitterHitArea transparent NSView only receives events, doesn't draw hover/drag visuals; NativeSplitter(view) complete version (2 PT black/hover 4 PT accent capsule/DragGesture/.pointerStyle) was deprecated
 
-## 1. 重写范式 (Apple HIG + 老板真值)
+## 1. Rewrite paradigm (Apple HIG + 老板 truth)
 
-### 1.1 标题栏
-- **不写 TitleBarZone 自定义顶栏**
-- 走 `WindowGroup + .windowStyle(.titleBar)` macOS 52 PT unified titlebar chrome (Apple HIG)
-- 删 LayoutTokens.titleBarHeight / Canvas 标题栏矩形 / TitleBarZone struct
+### 1.1 Title bar
 
-### 1.2 6 区 layout (Apple HIG: HStack + 自写 splitter)
-- 上 band (4 区): `HStack(spacing: 0) { sidebar; NativeSplitter; preview; NativeSplitter; editor; NativeSplitter; tools }`
-- 下 band (2 区): `HStack(spacing: 0) { aiChat; NativeSplitter; aiDynamic }`
-- 上/下 band 垂直堆叠: `VStack(spacing: 0) { UpperBandZone; NativeSplitter(horizontal); LowerBandZone }`
-- 删 Canvas drawLayout / drawZone / drawSplitterLine / SplitterHitAreas NSView overlay / ZoneBottomToolbarsOverlay
-- LayoutShellView = GeometryReader × 比例算子 × HStack/VStack + ZoneModule + NativeSplitter(view)
+- **Do not write TitleBarZone custom top bar**
+- Use `WindowGroup + .windowStyle(.titleBar)` macOS 52 PT unified titlebar chrome (Apple HIG)
+- Delete `LayoutTokens.titleBarHeight` / Canvas title-bar rectangle / TitleBarZone struct
 
-### 1.3 区域组件 (Sketch 6 master 1:1 落)
-- **ZoneModule** 已存在,直接复用:
-  - `VStack(spacing: 0) { ZoneTopToolbar (30 PT, 3 SF Symbol); content (412 PT); ZoneBottomToolbar (30 PT, 占位文字+icon) }`
+### 1.2 6-zone layout (Apple HIG: HStack + self-written splitter)
+
+- Upper band (4 zones): `HStack(spacing: 0) { sidebar; NativeSplitter; preview; NativeSplitter; editor; NativeSplitter; tools }`
+- Lower band (2 zones): `HStack(spacing: 0) { aiChat; NativeSplitter; aiDynamic }`
+- Upper/lower band vertical stack: `VStack(spacing: 0) { UpperBandZone; NativeSplitter(horizontal); LowerBandZone }`
+- Delete Canvas drawLayout / drawZone / drawSplitterLine / SplitterHitAreas NSView overlay / ZoneBottomToolbarsOverlay
+- LayoutShellView = GeometryReader × ratio operator × HStack/VStack + ZoneModule + NativeSplitter(view)
+
+### 1.3 Zone components (Sketch 6 master 1:1 layout)
+
+- **ZoneModule** already exists, reuse directly:
+  - `VStack(spacing: 0) { ZoneTopToolbar (30 PT, 3 SF Symbol); content (412 PT); ZoneBottomToolbar (30 PT, placeholder text+icon) }`
   - `.background(slot == .aiDynamic ? DesignColor.dynamicZoneSurface : DesignColor.zoneSurface)`
-- **ZoneTopToolbar** 已存在: 3 SF Symbol (book.closed / magnifyingglass / slider.horizontal.3) + 底 1 PT 黑线
-- **ZoneBottomToolbar** 已存在: 占位文字 (`.body`) + 占位 SF Symbol (questionmark.square.dashed) + 顶 1 PT 黑线
-- 编辑器 4 PT inset: 已在 ZoneModule.content .editor case (`Color.white.opacity(0.55).padding(editorInset)`) 保留
-- **蓝矩形 = SF Symbol 替代** (老板 2026-08-19 拍): 不画 Rectangle,用 `Image(systemName:)`,颜色 `Color.accentColor`,已实现
+- **ZoneTopToolbar** already exists: 3 SF Symbol (`book.closed` / `magnifyingglass` / `slider.horizontal.3`) + bottom 1 PT black line
+- **ZoneBottomToolbar** already exists: placeholder text (`.body`) + placeholder SF Symbol (`questionmark.square.dashed`) + top 1 PT black line
+- Editor 4 PT inset: already in `ZoneModule.content .editor` case (`Color.white.opacity(0.55).padding(editorInset)`) preserved
+- **Blue rectangle = SF Symbol replacement** (老板 2026-08-19 拍): don't draw Rectangle, use `Image(systemName:)`, color `Color.accentColor`, already implemented
 
-### 1.4 拖拽线 (Apple HIG: DragGesture + .pointerStyle)
-- NativeSplitter v0.14 已完整,直接接 HStack 之间:
-  - 静态 2 PT 黑色 capsule
-  - hover: 4 PT `Color.accentColor.opacity(0.6)` + `.shadow(opacity: 0.4, radius: 8)`
-  - drag: DragGesture(minimumDistance: 0) + withTransaction(disablesAnimations: true) 跟手
-  - cursor: `.pointerStyle(.columnResize / .rowResize)`
-- 删 SplitterHitAreas / NativeSplitterHitArea NSView wrapper
+### 1.4 Splitter (Apple HIG: DragGesture + .pointerStyle)
 
-## 2. 数对公式守恒 (老板 8/18 真值)
+- NativeSplitter v0.14 already complete, directly interface between HStack:
+  - Static 2 PT black capsule
+  - Hover: 4 PT `Color.accentColor.opacity(0.6)` + `.shadow(opacity: 0.4, radius: 8)`
+  - Drag: `DragGesture(minimumDistance: 0)` + `withTransaction(disablesAnimations: true)` follow-hand
+  - Cursor: `.pointerStyle(.columnResize / .rowResize)`
+- Delete SplitterHitAreas / NativeSplitterHitArea NSView wrapper
+
+## 2. Number-pair formula conservation (老板 8/18 truth)
 
 ```
-上 band 数对: 200 + 558 + 762 + 400 = 1920 + 3 × 1 PT splitter = 1923
-下 band 数对: 1519 + 400 = 1919 + 1 PT splitter = 1920
-H 数对: 52 (titleBar chrome) + 465 (upper) + 1 (D_h) + 465 (lower) = 983 ≈ 984 (AppDelegate setContentSize 微调)
+Upper band number-pair: 200 + 558 + 762 + 400 = 1920 + 3 × 1 PT splitter = 1923
+Lower band number-pair: 1519 + 400 = 1919 + 1 PT splitter = 1920
+H number-pair: 52 (titleBar chrome) + 465 (upper) + 1 (D_h) + 465 (lower) = 983 ≈ 984 (AppDelegate setContentSize minor adjust)
 ```
 
-## 3. 验收 (老板 8/18 + Q22 audit gate)
+## 3. Acceptance (老板 8/18 + Q22 audit gate)
 
 1. `swift build` clean
-2. `swift run WenshuApp` 后台跑,Quartz windowID screencapture -l 真截图
-3. vision_analyze 看到: macOS titleBar 单层 + 上 band 4 区 + 下 band 2 区 + 6 拖拽线 + 顶栏 3 SF Symbol + 底栏占位文字 + 编辑器 4 PT inset
-4. 拖拽测试: hover 拖拽线 → 4 PT accent 蓝光晕 + cursor 切换; drag → zone 宽度跟手不抖动
-5. /code-review 两轴 (Standards + Spec): 不写硬编码 RGB, 不写 iOS import, 不用 UIKit, 0 死代码 (TitleBarZone / Canvas draw* / NSView hit area / ZoneBottomToolbarsOverlay 全删)
+2. `swift run WenshuApp` run in background, Quartz windowID screencapture -l true screenshot
+3. vision_analyze sees: macOS titleBar single layer + upper band 4 zones + lower band 2 zones + 6 splitters + top bar 3 SF Symbol + bottom bar placeholder text + editor 4 PT inset
+4. Drag test: hover splitter → 4 PT accent blue glow + cursor switch; drag → zone width follows hand without jitter
+5. /code-review two axes (Standards + Spec): don't hard-code RGB, don't write iOS import, don't use UIKit, 0 dead code (TitleBarZone / Canvas draw* / NSView hit area / ZoneBottomToolbarsOverlay all deleted)
 
-## 4. 风险
+## 4. Risk
 
-- 老板拍"标题栏双层" → 我之前 v0.14.1 加 Canvas 标题栏 + .titleBar chrome 共存就是问题. 重写 = 彻底回归 HStack/VStack 范式
-- Apple HIG 推荐 HSplitView (官方 macOS 10.15+),但 divider 颜色改不了 (StackOverflow 公开已知). 跟老板 Sketch 6 区 + 自定义黑粗 hover 蓝 capsule divider 不对应 → 必须自写 NativeSplitter
-- NativeSplitter v0.14 已有完整 hover/drag 代码,不需要重写,只改调用方
+- 老板 拍 "title bar double-layer" → my previous v0.14.1 added Canvas title bar + .titleBar chrome coexistence is the problem. Rewrite = complete regression to HStack/VStack paradigm
+- Apple HIG recommends HSplitView (official macOS 10.15+), but divider color cannot be changed (StackOverflow publicly known). Doesn't match 老板 Sketch 6 zones + custom black thick hover blue capsule divider → must self-write NativeSplitter
+- NativeSplitter v0.14 already has complete hover/drag code, doesn't need rewrite, only change caller

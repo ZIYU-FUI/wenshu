@@ -1,61 +1,61 @@
-# 01 — 菜单栏 + 设置弹窗工作 (老板 2026-08-21 拍 "按大神全链路严格执行")
+# 01 — Menubar + Settings popup working (老板 2026-08-21 ruled "execute the full master chain strictly")
 
 **What to build:**
-老板 8/21 20:30 macOS 真验: 菜单弹窗有了 (浮在原 windows), 但弹窗里面功能失效, 没有切系统外观 (= SettingView 没装进 SwiftUI 默认接管的标准 settings window).
+老板 8/21 20:30 macOS verification: the settings popup exists (floating over the original windows), but the popup's contents are non-functional — there's no system-appearance switching (= `SettingView` was not installed into the SwiftUI-default-managed standard settings window).
 
 **Blocked by:** None.
 
 **Status:** ready-for-agent
 
-## 修法真值 (3 步, 5 原则1 + 3 + 4 + 5 满足)
+## Fix specification (3 steps, satisfying principles 1 + 3 + 4 + 5)
 
-按 po main flow 6 步严格执行 (老板 8/19 evening 拍 streak + 8/21 拍 "昨天走大神全链路效率很高"):
+Execute the po main flow's 6 steps strictly (老板 8/19 evening ruled streak + 8/21 ruled "yesterday's master full-chain execution was very efficient"):
 
-1. **grill**: 老板 macOS 8/21 20:30 反馈真值 = 设置 sheet 空白 (SettingView 渲染失败)
-2. **to-spec**: `.scratch/2026-08-21-menubar-v2/spec.md` 落地
-3. **to-tickets**: 本文件
-4. **implement (1 ticket 1 commit)**: 修真因
-   - 跑 build 真值 SettingView 装进 Settings { } Scene 验证
-   - 老板 macOS 真验 SettingView 渲染 (外观 + 模型 Picker 显示)
-5. **code-review (双轴)**: 派 Standards + Spec sub-agent 并行 (老板 8/21 纠错 Q34 我没走双轴)
-6. **domain-modeling**: 加 CONTEXT.md SettingsView / NSMenuInstallationPattern / SettingsScene domain words
+1. **grill**: 老板's macOS 8/21 20:30 feedback = settings sheet is blank (`SettingView` fails to render)
+2. **to-spec**: `.scratch/2026-08-21-menubar-v2/spec.md` landed
+3. **to-tickets**: this file
+4. **implement (1 ticket 1 commit)**: fix the root cause
+   - Run build to verify `SettingView` installed into `Settings { }` Scene
+   - 老板 macOS verification of `SettingView` rendering (Appearance + Model Picker display)
+5. **code-review (dual-axis)**: dispatch Standards + Spec sub-agents in parallel (老板 8/21 corrected Q34, I hadn't run dual-axis)
+6. **domain-modeling**: add `SettingView` / `NSMenuInstallationPattern` / `SettingsScene` to `CONTEXT.md`
 
-## implement 修法真值 (按 commit 9cb2ad0f0 撤回 NSMenu 装后真因重判)
+## implement fix specification (per revert of commit `9cb2ad0f0` after NSMenu install, root-cause re-judgment)
 
-- 当前 working tree: commit 9cb2ad0f0 (撤回 NSMenu 装) + commit 4ef3e2e77 (抽 SettingView 共享) + commit 984ea556b (Settings 模型 Picker ticket 04)
-- WenshuApp body `Settings { SettingView() }` Scene 仍在 App body
-- 老板截图: 设置 sheet 浮在原 windows 但 SettingView 内容空白
-- **真因诊断 (3 候选,需要老板验证才能定)**:
-   - (a) SettingView @AppStorage 读 UserDefaults 时, 在 SwiftUI 默认 settings sheet 内**不响应** (UserDefaults scope 问题)
-   - (b) `Settings { SettingView() }` Scene 跟 SwiftUI 默认 settings sheet 冲突, SwiftUI 用自己的 settings 不装我们 SettingView
-   - (c) SettingView 引用 MiniMaxModel / AppearanceMode enum 在 SwiftUI 默认 settings scope 找不到 (linker issue)
+- Current working tree: commit `9cb2ad0f0` (revert NSMenu install) + commit `4ef3e2e77` (extract shared `SettingView`) + commit `984ea556b` (Settings Model Picker ticket 04)
+- `WenshuApp` body `Settings { SettingView() }` Scene still in App body
+- 老板's screenshot: settings sheet floats over the original windows but the `SettingView` content is blank
+- **Root-cause diagnosis (3 candidates — needs 老板 verification to lock)**:
+  - (a) `SettingView` `@AppStorage` reads `UserDefaults` but does not respond inside the SwiftUI-default settings sheet (UserDefaults scope issue)
+  - (b) `Settings { SettingView() }` Scene conflicts with the SwiftUI-default settings sheet; SwiftUI uses its own settings and does not install our `SettingView`
+  - (c) `SettingView` references `MiniMaxModel` / `AppearanceMode` enums that can't be resolved in the SwiftUI-default settings scope (linker issue)
 
 ## Acceptance
 
-- [ ] swift build exit 0
-- [ ] swift test exit 0
-- [ ] 老板 macOS 真验:
-  - 菜单栏 7 项 (Apple / 文枢 / 文件 / 编辑 / 显示 / 窗口 / 帮助)
-  - 点 "文枢" → "设置…" 弹 settings sheet 浮在原 windows
-  - 设置 sheet 里有外观 Picker (3 个: 系统/亮/暗), 选了立刻切
-  - 设置 sheet 里有模型 Picker (3 个: MiniMax-M3/M2/Reasoning), 选了存
-  - 不显示当前选了哪个
+- [ ] `swift build` exit 0
+- [ ] `swift test` exit 0
+- [ ] 老板 macOS verification:
+  - Menubar 7 items (`Apple / 文枢` + the 5 localized Chinese menu items)
+  - Click "文枢" → "Settings…" opens a settings sheet floating over the original windows
+  - Settings sheet contains the Appearance Picker (3: System / Light / Dark), switching takes effect immediately
+  - Settings sheet contains the Model Picker (3: `MiniMax-M3` / `MiniMax-M2` / `MiniMax-Reasoning`), selection is persisted
+  - Does not display which one is currently selected
 
-## 不动 (Q20 硬约束)
+## Out of scope (Q20 hard constraint)
 
-- v0.20 ticket 04 + 05 (LOGO + 菜单栏"文枢" 老板拍先放着)
-- v0.21 chat streak ticket 02-06 (5 ticket 已 commit + 双轴 code-review 修法聚合, 不动)
-- App.swift `Settings { }` Scene 已有的 Form + Picker (commit 4ef3e2e77 SettingView)
-- AppIcon.icon/ (老板拍先放着)
+- v0.20 tickets 04 + 05 (LOGO + menubar "文枢" — 老板 ruled: leave it for now)
+- v0.21 chat streak tickets 02-06 (5 tickets committed + dual-axis code-review fixes aggregated; untouched)
+- `App.swift` `Settings { }` Scene existing Form + Picker (commit `4ef3e2e77` SettingView)
+- `AppIcon.icon/` (老板 ruled: leave it for now)
 
-## Apple HIG 真值引用
+## Apple HIG references
 
 - https://developer.apple.com/documentation/swiftui/settings
 - https://developer.apple.com/documentation/swiftui/settingslink
 - https://developer.apple.com/documentation/foundation/adding-a-settings-interface-to-your-app
-- VibeMeter/NSApplication+openSettings.swift (open-source 真值)
+- VibeMeter/NSApplication+openSettings.swift (open-source reference)
 
-## 关联
+## References
 
-- 依赖: 无
-- 被依赖: ticket 02 (LLM Keychain 集成) + ticket 03 (真 verify) — 不依赖, 可并行
+- Depends on: none
+- Required by: ticket 02 (LLM Keychain integration) + ticket 03 (real verify) — not dependencies, can run in parallel

@@ -1,352 +1,349 @@
 // LAYOUT-APPKIT-INVENTORY.md · 文枢 (Wenshu) · v0.02.0 LT-01-fix9
 //
-// 老板 8/7 实机拍 "全部原生, 能不自己写的都不自己写".
-// CC 必跑 30 分钟 macOS AppKit 调研, 评估 15 个 layout 相关原生 API:
-//   - 适用 → 推荐替代哪个自写 SwiftUI view
-//   - 不适用 → 标 "沿用 SwiftUI"
+// 老板 8/7 on-machine 拍 "all native, don't hand-write what we don't have to".
+// CC must run a 30-minute macOS AppKit investigation, evaluating 15 layout-related native APIs:
+//   - applicable → recommend which hand-written SwiftUI view to replace
+//   - not applicable → mark "stick with SwiftUI"
 //
-// 调研范围: 文枢 v0.02.0 layout shell = 1 个主窗口 + 5 区(左上/中上/右上/
-// 下左/下右) + 4 条可拖动分隔条 + 折叠态 + macOS 菜单栏 + 标题栏。
+// Investigation scope: 文枢 v0.02.0 layout shell = 1 main window + 5 zones (top-left / top-middle / top-right /
+// bottom-left / bottom-right) + 4 draggable splitters + collapsed state + macOS menu bar + title bar.
 //
-// 每个 API 评估的依据: 是否能解决 8/7 实机验发现的 3 个症状?
-//   (1) 分割线粗 (自写 SwiftUI 6px rect)
-//   (2) 拖动闪动 + 不顺滑 (自写 DragGesture 每次 fire 重 render)
-//   (3) 光标不变 (自写 PanelSplitter 没设 NSCursor)
+// Evaluation criteria for each API: does it solve the 3 symptoms 老板 found during 8/7 on-machine verification?
+//   (1) thick splitter line (hand-written SwiftUI 6px rect)
+//   (2) drag flicker + un-smooth (hand-written DragGesture re-renders on every fire)
+//   (3) cursor doesn't change (hand-written PanelSplitter didn't set NSCursor)
 // +
-//   (4) macOS 全原生需求 (FCP / Pages / Numbers 风格)
+//   (4) macOS fully native requirement (FCP / Pages / Numbers style)
 
 # LAYOUT-APPKIT-INVENTORY · 文枢 (Wenshu)
 
-> **v0.02.0 LT-01-fix9 · 老板 8/7 实机拍**:
-> "全部原生, 能不自己写的都不自己写. 有人都做好了, 我们再费劲图啥"
+> **v0.02.0 LT-01-fix9 · 老板 8/7 on-machine 拍**:
+> "All native, don't hand-write what we don't have to. Someone already did it, why bother redoing it"
 >
-> CC 必跑 30 分钟 macOS AppKit 调研, 列出 layout shell 相关所有原生 API,
-> 每个评估"适用 → 推荐替代 / 不适用 → 沿用 SwiftUI"。
+> CC must run a 30-minute macOS AppKit investigation, list all native APIs related to layout shell,
+> each evaluated as "applicable → recommended replacement / not applicable → stick with SwiftUI".
 
 ---
 
-## 评估结果速览
+## Evaluation summary
 
-| # | API | 适用度 | 替代目标 | fix9 动作 |
+| # | API | Applicability | Replacement target | fix9 action |
 |---|-----|--------|---------|----------|
-| 1 | NSSplitView | ✅ 高 | PanelSplitter + 上/下半 HStack/VStack | **采用** |
-| 2 | NSSplitViewController | ⚠️ 中 | LayoutShellView 主 layout | **不采用** (ViewModel 重写风险) |
-| 3 | NSToolbar | ❌ 低 | (无 — LT-01-fix3 已删 in-window toolbar) | **不采用** |
-| 4 | NSWindow / NSWindowController / NSTitlebarAccessoryViewController | ⚠️ 中 | SwiftUI WindowGroup (已原生) | **沿用 SwiftUI** |
-| 5 | NSTabView / NSTabViewController | ❌ 低 | (panel 内容 tab 留 LT-02/03/04) | **不采用** (本卡范围外) |
-| 6 | NSCollectionView | ❌ 低 | (无 list 需求) | **不采用** |
-| 7 | NSOutlineView | ❌ 低 | (章节树 v0.04.x 才来) | **不采用** |
-| 8 | NSSearchToolbarItem / NSSearchField | ❌ 低 | (无搜索框需求) | **不采用** |
-| 9 | NSPopUpButton / NSMenu | ❌ 低 | (无下拉) | **不采用** |
-| 10 | NSScrollView / NSScroller | ⚠️ 中 | SwiftUI ScrollView (已原生) | **沿用 SwiftUI** |
-| 11 | NSDocument / NSDocumentController | ❌ 低 | (.ws 是单文件, 不是 NSDocument 架构) | **不采用** |
-| 12 | NSToolbarItem | ❌ 低 | (同 NSToolbar) | **不采用** |
-| 13 | NSTouchBar | ❌ 低 | (macOS 27 Touch Bar 移除) | **不采用** |
-| 14 | NSSegmentedControl | ❌ 低 | (无分段控件需求) | **不采用** |
-| 15 | NSVisualEffectView | ⚠️ 中 | PanelContainer 自写 chrome | **不采用本卡** (风险收益不匹配) |
-| 16 | NSAlert | ⚠️ 中 | (About panel 已用 `NSApp.orderFrontStandardAboutPanel`) | **沿用** |
+| 1 | NSSplitView | ✅ High | PanelSplitter + top/bottom HStack/VStack | **Adopted** |
+| 2 | NSSplitViewController | ⚠️ Medium | LayoutShellView main layout | **Not adopted** (ViewModel rewrite risk) |
+| 3 | NSToolbar | ❌ Low | (none — LT-01-fix3 already removed in-window toolbar) | **Not adopted** |
+| 4 | NSWindow / NSWindowController / NSTitlebarAccessoryViewController | ⚠️ Medium | SwiftUI WindowGroup (already native) | **Stick with SwiftUI** |
+| 5 | NSTabView / NSTabViewController | ❌ Low | (panel content tabs deferred to LT-02/03/04) | **Not adopted** (out of this card's scope) |
+| 6 | NSCollectionView | ❌ Low | (no list requirement) | **Not adopted** |
+| 7 | NSOutlineView | ❌ Low | (chapter tree comes in v0.04.x) | **Not adopted** |
+| 8 | NSSearchToolbarItem / NSSearchField | ❌ Low | (no search field requirement) | **Not adopted** |
+| 9 | NSPopUpButton / NSMenu | ❌ Low | (no dropdowns) | **Not adopted** |
+| 10 | NSScrollView / NSScroller | ⚠️ Medium | SwiftUI ScrollView (already native) | **Stick with SwiftUI** |
+| 11 | NSDocument / NSDocumentController | ❌ Low | (.ws is single file, not NSDocument architecture) | **Not adopted** |
+| 12 | NSToolbarItem | ❌ Low | (same as NSToolbar) | **Not adopted** |
+| 13 | NSTouchBar | ❌ Low | (macOS 27 Touch Bar removed) | **Not adopted** |
+| 14 | NSSegmentedControl | ❌ Low | (no segmented control requirement) | **Not adopted** |
+| 15 | NSVisualEffectView | ⚠️ Medium | PanelContainer hand-written chrome | **Not adopted this card** (risk-reward mismatch) |
+| 16 | NSAlert | ⚠️ Medium | (About panel already uses `NSApp.orderFrontStandardAboutPanel`) | **Stick with native** |
 
-**结论**: fix9 真正采用的就是 **#1 NSSplitView**。其余 14 个评估后**沿用 SwiftUI / 不采用 / 范围外**。
+**Conclusion**: the only one truly adopted in fix9 is **#1 NSSplitView**. The other 14 evaluated outcomes are **stick with SwiftUI / not adopted / out of scope**.
 
 ---
 
-## 1. NSSplitView / NSSplitViewController — 重点评估
+## 1. NSSplitView / NSSplitViewController — focused evaluation
 
-### 1.1 NSSplitView(✅ 采用)
+### 1.1 NSSplitView (✅ adopted)
 
-**API 概览** (`developer.apple.com/documentation/appkit/nssplitview`):
+**API overview** (`developer.apple.com/documentation/appkit/nssplitview`):
 
-- `NSSplitView` 是 AppKit 的多 pane 容器, 内置分隔条 + 拖动 + 光标。
-- `dividerStyle` 枚举:
-  - `.thin` — 1pt 细线 (我们目标)
-  - `.thick` — 默认 9pt 粗 rect (= 自写实现的现状, 老板 不满)
-  - `.paneSplitter` — FCP 风格 pane splitter
-  - `.automatic` — 系统选
-- 内置 drag — AppKit 渲染管线优化, 拖动时不重 render sibling view,
-  不闪烁。 老板 实机验"拖动闪动 + 不顺滑"症状的根治。
-- 内置 cursor — `mouseEntered` 自动设 `NSCursor.resizeLeftRight` /
-  `.resizeUpDown`, 不需自写 NSCursor 管理。
-- `NSSplitViewItem` — 每个 pane 包装成 `NSSplitViewItem`:
-  - `isCollapsed` — 折叠态 (= 我们 LayoutShellView 的 collapsed state)
-  - `canCollapse` — 是否可折叠
-  - `minimumThickness` / `maximumThickness` — 最小/最大尺寸
-  - `holdingPriority` — 拖动时谁先让步 (= FCP 的 spring system)
+- `NSSplitView` is AppKit's multi-pane container, with built-in splitter + drag + cursor.
+- `dividerStyle` enum:
+  - `.thin` — 1pt thin line (our target)
+  - `.thick` — default 9pt thick rect (= current hand-written implementation, 老板 unsatisfied)
+  - `.paneSplitter` — FCP-style pane splitter
+  - `.automatic` — system choice
+- Built-in drag — AppKit rendering pipeline optimized, doesn't re-render sibling views during drag,
+  no flicker. Cure for 老板's on-machine-verified "drag flicker + un-smooth" symptom.
+- Built-in cursor — `mouseEntered` automatically sets `NSCursor.resizeLeftRight` /
+  `.resizeUpDown`, no manual NSCursor management needed.
+- `NSSplitViewItem` — wraps each pane as a `NSSplitViewItem`:
+  - `isCollapsed` — collapsed state (= our LayoutShellView's collapsed state)
+  - `canCollapse` — whether it can collapse
+  - `minimumThickness` / `maximumThickness` — min/max size
+  - `holdingPriority` — who yields first during drag (= FCP's spring system)
 
-**适用 vs 不适用**:
+**Applicable vs not applicable**:
 
-- ✅ 适用 — 分割条 + 拖动 + cursor: 完全替代 `PanelSplitter`
-  (3 个症状一次性根治)
-- ✅ 适用 — 折叠态: `NSSplitViewItem.isCollapsed` 等价于我们
-  `PanelCollapsedState` 的 bool
-- ⚠️ 部分 — layout 状态持久化: NSSplitView 有 `autosaveName`
-  (默认走 UserDefaults), 但我们**要走 .ws 文件**, 不能用 autosaveName。
-  修法: `NSSplitViewDelegate.splitViewDidResizeSubviews(_:)` 回调里
-  读 NSSplitView 的 frame → 转成 ratios → 调 ViewModel
-  `adjustXxx(...)` → ViewModel 写 .ws (debounced 250ms)。
-- ⚠️ 部分 — 拖动 threshold: NSSplitView 的内置 drag **没有**
-  `minimumDistance` 概念 (= 我们 `DragGesture(minimumDistance: 1)`
-  + 5px click threshold 的根因 fix7 复杂度)。 但 NSSplitView 的内置
-  drag 是"鼠标按住 + 拖"才动, 单击不会动 — 90:10 BUG 在
-  NSSplitView 上不复现。**这个对比说明 fix7 那套 5px threshold
-  全是绕路: 直接用 NSSplitView 就没这问题**。
+- ✅ Applicable — splitter + drag + cursor: fully replaces `PanelSplitter`
+  (all 3 symptoms cured at once)
+- ✅ Applicable — collapsed state: `NSSplitViewItem.isCollapsed` is equivalent to our
+  `PanelCollapsedState` bool
+- ⚠️ Partial — layout state persistence: NSSplitView has `autosaveName`
+  (defaults to UserDefaults), but we **need to go to .ws files**, can't use autosaveName.
+  Fix: in `NSSplitViewDelegate.splitViewDidResizeSubviews(_:)` callback read
+  NSSplitView's frame → convert to ratios → call ViewModel
+  `adjustXxx(...)` → ViewModel writes .ws (debounced 250ms).
+- ⚠️ Partial — drag threshold: NSSplitView's built-in drag **does not** have
+  `minimumDistance` concept (= the root cause of fix7 complexity with our
+  `DragGesture(minimumDistance: 1)` + 5px click threshold). But NSSplitView's built-in
+  drag is "mouse hold + drag" only, single click does nothing — 90:10 BUG does not
+  reproduce on NSSplitView. **This comparison shows that fix7's 5px threshold was
+  all detours: using NSSplitView directly avoids the issue**.
 
-**fix9 行动**:
+**fix9 actions**:
 
-- 用 `NSSplitView` 包装成 `NSViewRepresentable` (`NativeSplitter`)
-- 替代 `PanelSplitter` 的拖动回调接口 (= `onDrag: (CGFloat) -> Void`)
-- dividerStyle = `.thin` (1pt, 不是 6px)
-- 不动 LayoutShellViewModel 的 `adjustXxx` API (drag delta 还是
-  pixel-level, ViewModel 负责转 ratio + clamp + persist)
+- Wrap `NSSplitView` as `NSViewRepresentable` (`NativeSplitter`)
+- Replace `PanelSplitter`'s drag callback interface (= `onDrag: (CGFloat) -> Void`)
+- dividerStyle = `.thin` (1pt, not 6px)
+- Don't change LayoutShellViewModel's `adjustXxx` API (drag delta still at
+  pixel-level, ViewModel handles ratio conversion + clamp + persist)
 - `SplitterDragPolicy` / `SplitterClickDetector` 5px threshold —
-  **保留作防御性兜底**: 即便 NSSplitView 不该有这问题, View 层
-  在 delta < 5px 时仍不调 `onDrag` (= fix9 留 safety net,
-  不破坏 fix7 测试 contract)
+  **kept as defensive fallback**: even though NSSplitView shouldn't have this issue,
+  the View layer still doesn't call `onDrag` when delta < 5px (= fix9 keeps the safety net,
+  doesn't break fix7 test contract)
 
-### 1.2 NSSplitViewController(⚠️ 不采用本卡)
+### 1.2 NSSplitViewController (⚠️ not adopted this card)
 
-**API 概览** (`developer.apple.com/documentation/appkit/nssplitviewcontroller`):
+**API overview** (`developer.apple.com/documentation/appkit/nssplitviewcontroller`):
 
-- `NSSplitViewController` 是 `NSSplitView` + 自动管理的 viewController
-  子类。 每个 pane 是个独立 `NSViewController`, 自动 life cycle。
-- macOS 14+ 新增 `toggleSidebar(_:)` 等方法 (跟 SwiftUI
-  `.commands` 集成)。
+- `NSSplitViewController` is `NSSplitView` + automatically-managed viewController
+  subclasses. Each pane is an independent `NSViewController` with automatic life cycle.
+- macOS 14+ adds methods like `toggleSidebar(_:)` (integrates with SwiftUI `.commands`).
 
-**不采用原因**:
+**Reasons for not adopting**:
 
-- 完全重写 LayoutShellView → NSSplitViewController → 5 个 NSViewController
-  (每个 pane) → 每个 pane 里再嵌 NSHostingController 包 SwiftUI。
-  这是 v0.02.0 LT-01 整个 layout shell 的**架构重写**。
-- ViewModel 与 NSSplitView 双向同步更复杂: ViewModel 改 ratios
-  → 需要把 ratio 算成 NSSplitViewItem 宽度 → setPosition,
-  而 NSSplitView 拖动又会改 setPosition → delegate 回调又改 ratios。
-  这种**双向绑定容易出循环依赖** (= fix7 类 BUG 重现风险)。
-- 派单 prompt 列的 fix9 边界"会有改 LayoutShellView.swift"已经
-  标"会有", 不是必改。 主 layout 走 NSSplitViewController
-  是**LT-01-fix10+ 的大重构**, 不是 fix9 这一卡的范围。
-- fix9 的真值是"用 NSSplitView 解决 3 个症状", 不是"重写 layout
-  shell 架构"。
+- Full rewrite of LayoutShellView → NSSplitViewController → 5 NSViewControllers
+  (one per pane) → each pane embeds NSHostingController wrapping SwiftUI.
+  This is an **architectural rewrite** of the entire v0.02.0 LT-01 layout shell.
+- ViewModel ↔ NSSplitView bidirectional sync is more complex: ViewModel changes ratios
+  → need to convert ratio to NSSplitViewItem width → setPosition,
+  and NSSplitView drag also changes setPosition → delegate callback also changes ratios.
+  This kind of **bidirectional binding is prone to circular dependencies** (= fix7-class BUG reproduction risk).
+- The ticket prompt's fix9 boundary "may touch LayoutShellView.swift" is already
+  marked "may", not mandatory. Moving the main layout to NSSplitViewController
+  is a **LT-01-fix10+ large refactor**, not fix9's scope.
+- fix9's truth is "use NSSplitView to solve the 3 symptoms", not "rewrite the layout
+  shell architecture".
 
-**fix9 行动**:
+**fix9 actions**:
 
-- LayoutShellView 的 VStack/HStack 结构**保留**(几何算法在
-  LayoutMetrics 已写好, 不动)
-- 只替换 4 个 `PanelSplitter(...)` → `NativeSplitter(...)`
-  (drop-in 替换, onDrag 回调接口一致)
-- 装机器 user 实机验看到的效果: 分割线细细一条 / 拖动丝滑 /
-  光标变 resize。 跟 NSSplitViewController 重写**视觉效果一样**,
-  但代码改动量小一个数量级。
+- LayoutShellView's VStack/HStack structure **kept** (geometry math already written in
+  LayoutMetrics, don't touch)
+- Only replace the 4 `PanelSplitter(...)` → `NativeSplitter(...)`
+  (drop-in replacement, onDrag callback interface stays the same)
+- On-machine user verification result: splitter is a thin line / drag is silky /
+  cursor changes to resize. Visually identical to the NSSplitViewController rewrite,
+  but the code change is an order of magnitude smaller.
 
 ---
 
-## 2. NSToolbar — 不采用
+## 2. NSToolbar — not adopted
 
-**API 概览**: macOS 原生顶部 toolbar 容器, 自动集成 window chrome,
-支持 `NSToolbarItem` + 系统图标 + 自动本地化。
+**API overview**: macOS native top toolbar container, auto-integrates with window chrome,
+supports `NSToolbarItem` + system icons + auto-localization.
 
-**不采用原因**:
+**Reasons for not adopting**:
 
-- LT-01-fix3 已经把 in-window toolbar **删了** (老板 8/7 实机验
-  + macOS HIG: toolbar 是窗口内动作栏, layout 控制走菜单栏 — 跟
-  Pages / Numbers / Xcode / Final Cut 一致)。
-- 我们没有 "新建项目 / 保存 / 导出" 这类 in-window toolbar 按钮
-  (都在菜单栏 — File 菜单)。 NSToolbar 现在没东西可放。
-- 如果未来加 action (e.g. "新建项目" 按钮), 走 NSToolbar 是对的
-  (那时再评估, 不在本卡)。
+- LT-01-fix3 already removed the in-window toolbar (老板 8/7 on-machine verification
+  + macOS HIG: toolbar is the in-window action bar, layout control goes through the menu bar — consistent
+  with Pages / Numbers / Xcode / Final Cut).
+- We don't have in-window toolbar buttons like "new project / save / export"
+  (those are in the menu bar — File menu). NSToolbar has nothing to put right now.
+- If we add actions in the future (e.g. "new project" button), NSToolbar is the right call
+  (re-evaluate at that time, not in this card).
 
-**fix9 行动**: 无。 验证 `App.swift` 不含 `NSToolbar` 引用
-(本来就是 0 引用, LT-01-fix3 已删)。
+**fix9 actions**: none. Verify `App.swift` contains no `NSToolbar` reference
+(already 0 references, deleted in LT-01-fix3).
 
 ---
 
 ## 3. NSWindow / NSWindowController / NSTitlebarAccessoryViewController
 
-**API 概览**: 原生窗口类, 标题栏 / traffic light / 标题栏附件区。
+**API overview**: native window class, title bar / traffic lights / title bar accessory area.
 
-**评估**:
+**Evaluation**:
 
-- SwiftUI `WindowGroup` + `.windowStyle(.titleBar)` 已经把
-  traffic light + 标题栏全部交回 AppKit — 我们**已经是**原生
-  标题栏, 不用再换。
-- `NSTitlebarAccessoryViewController` 可以让 toolbar 嵌进标题栏
-  (Pages / Numbers 的右上 toolbar 在标题栏), 但我们 toolbar
-  已删, 没用。
+- SwiftUI `WindowGroup` + `.windowStyle(.titleBar)` already hands traffic light + title bar
+  back to AppKit — we **already have** a native title bar, no need to swap.
+- `NSTitlebarAccessoryViewController` can embed toolbar in the title bar
+  (Pages / Numbers' top-right toolbar in the title bar), but our toolbar
+  is already deleted, so no use.
 
-**fix9 行动**: 沿用 SwiftUI `WindowGroup` + `.windowStyle(.titleBar)`。
+**fix9 actions**: stick with SwiftUI `WindowGroup` + `.windowStyle(.titleBar)`.
 
 ---
 
 ## 4. NSTabView / NSTabViewController
 
-**API 概览**: 原生 tab view, 每个 pane 一个 tab。
+**API overview**: native tab view, one tab per pane.
 
-**评估**:
+**Evaluation**:
 
-- 5 个 panel 内部各有自己的 tab (LT-02 inspector 2 tab / LT-03
-  项目管理 5 tab / LT-04 聊天区 4 子 tab), 由后续子卡实装。
-- LT-01 这一卡的范围只是 layout shell chrome, 不进 panel 内部。
-- SwiftUI `TabView` 写起来短, 真要换 NSTabView 得每个 panel
-  嵌 NSViewController, 工作量比 SwiftUI TabView 大几倍。
-- v0.02.0 阶段 SwiftUI TabView 是合适的 (= LT-02/03/04 沿用
-  SwiftUI 是派单边界)。
+- Each of the 5 panels has its own internal tabs (LT-02 inspector 2 tabs / LT-03
+  project management 5 tabs / LT-04 chat area 4 sub-tabs), implemented by subsequent sub-cards.
+- LT-01's scope is only the layout shell chrome, not panel internals.
+- SwiftUI `TabView` is short to write; switching to NSTabView would require embedding NSViewController
+  per panel, several times more work than SwiftUI TabView.
+- At v0.02.0 stage SwiftUI TabView is appropriate (= LT-02/03/04 stick with
+  SwiftUI is the ticket boundary).
 
-**fix9 行动**: 不采用本卡。 留 LT-02/03/04 评估。
+**fix9 actions**: not adopted this card. Defer to LT-02/03/04 evaluation.
 
 ---
 
 ## 5. NSCollectionView / NSOutlineView
 
-**API 概览**: 原生列表 / 树形视图, 数据驱动 + 复用 cell。
+**API overview**: native list / tree view, data-driven + cell reuse.
 
-**评估**:
+**Evaluation**:
 
-- 文枢 v0.02.0 没有 list / 树形内容 (项目列表留 v0.01.0 re-import
-  或 LT-03 实装)。
-- v0.04.x 长篇工具才有关系图 / 时间线 = NSCollectionView /
-  NSOutlineView 候选。
+- 文枢 v0.02.0 has no list / tree content (project list deferred to v0.01.0 re-import
+  or LT-03 implementation).
+- v0.04.x long-form tools are where the relation graph / timeline = NSCollectionView /
+  NSOutlineView candidate appears.
 
-**fix9 行动**: 不采用。
+**fix9 actions**: not adopted.
 
 ---
 
 ## 6. NSSearchToolbarItem / NSSearchField
 
-**API 概览**: 原生搜索框。
+**API overview**: native search field.
 
-**评估**: 无搜索框需求。
+**Evaluation**: no search field requirement.
 
-**fix9 行动**: 不采用。
+**fix9 actions**: not adopted.
 
 ---
 
 ## 7. NSPopUpButton / NSMenu
 
-**API 概览**: 原生下拉 / 菜单。
+**API overview**: native dropdown / menu.
 
-**评估**: 我们菜单走 SwiftUI `CommandMenu` (`App.swift` `WenshuAppCommands` /
-`LayoutCommands`), 已经是 macOS 原生菜单栏 (= `NSMenu` 等价)。
-无下拉需求。
+**Evaluation**: our menus use SwiftUI `CommandMenu` (`App.swift` `WenshuAppCommands` /
+`LayoutCommands`), already macOS native menu bar (= `NSMenu` equivalent).
+No dropdown requirement.
 
-**fix9 行动**: 不采用。
+**fix9 actions**: not adopted.
 
 ---
 
 ## 8. NSScrollView / NSScroller
 
-**API 概览**: 原生滚动视图。
+**API overview**: native scroll view.
 
-**评估**: SwiftUI `ScrollView` 在 macOS 上就是包装 `NSScrollView`,
-**已经是原生**。 无需替换。
+**Evaluation**: SwiftUI `ScrollView` on macOS wraps `NSScrollView`,
+**already native**. No replacement needed.
 
-**fix9 行动**: 沿用 SwiftUI ScrollView (已经原生)。
+**fix9 actions**: stick with SwiftUI ScrollView (already native).
 
 ---
 
 ## 9. NSDocument / NSDocumentController
 
-**API 概览**: macOS 文档模型, 多窗口 + 自动 dirty / save / 版本。
+**API overview**: macOS document model, multi-window + auto dirty / save / versions.
 
-**评估**:
+**Evaluation**:
 
-- 文枢 = `.ws` 单文件 + 你自管跨设备 (AGENTS §7 数据资产硬约束)。
-- NSDocument 架构会引入"自动保存 + 版本分支 + iCloud 集成", 这些
-  **违反** AGENTS §7 的"文枢不依赖云端服务 / 不上传你的作品"。
-- NSDocumentController 多窗口也不需要 — 文枢 v0.02.0 单窗口
-  (主进程 + iPad/iPhone 端独立进程, 不在 v0.02.0 范围)。
+- 文枢 = `.ws` single file + self-managed cross-device (AGENTS §7 data-asset hard constraint).
+- NSDocument architecture would introduce "auto-save + version branches + iCloud integration", which
+  **violates** AGENTS §7's "文枢 does not depend on cloud services / does not upload your work".
+- NSDocumentController multi-window is also not needed — 文枢 v0.02.0 is single-window
+  (main process + iPad/iPhone separate processes, not in v0.02.0 scope).
 
-**fix9 行动**: 不采用。 沿用 `WenshuStoreActor` 自己管理 .ws
-(已经写好)。
+**fix9 actions**: not adopted. Stick with `WenshuStoreActor` self-managing .ws
+(already written).
 
 ---
 
 ## 10. NSToolbarItem
 
-**API 概览**: toolbar 单项。
+**API overview**: single toolbar item.
 
-**评估**: 同 NSToolbar (无 toolbar 需求)。
+**Evaluation**: same as NSToolbar (no toolbar requirement).
 
-**fix9 行动**: 不采用。
+**fix9 actions**: not adopted.
 
 ---
 
 ## 11. NSTouchBar
 
-**API 概览**: MacBook Pro Touch Bar (2016-2024 时代, macOS 27
-已移除支持)。
+**API overview**: MacBook Pro Touch Bar (2016-2024 era, support removed in macOS 27).
 
-**评估**: macOS 27 不再支持 Touch Bar, 此 API 等于历史。
+**Evaluation**: macOS 27 no longer supports Touch Bar, this API is effectively historical.
 
-**fix9 行动**: 不采用。
+**fix9 actions**: not adopted.
 
 ---
 
 ## 12. NSSegmentedControl
 
-**API 概览**: 分段按钮组。
+**API overview**: segmented button group.
 
-**评估**: v0.02.0 无分段控件需求 (5 个 panel 的"显示 / 隐藏"
-走 CommandMenu, 不是分段按钮)。
+**Evaluation**: v0.02.0 has no segmented control requirement (the 5 panels' "show / hide"
+uses CommandMenu, not segmented buttons).
 
-**fix9 行动**: 不采用。
+**fix9 actions**: not adopted.
 
 ---
 
 ## 13. NSVisualEffectView
 
-**API 概览**: macOS 原生毛玻璃材质 (`NSVisualEffectMaterial.sidebar`
-/ `.headerView` / `.contentBackground` 等)。
+**API overview**: macOS native frosted glass material (`NSVisualEffectMaterial.sidebar`
+/ `.headerView` / `.contentBackground` etc.).
 
-**评估**:
+**Evaluation**:
 
-- PanelContainer 的 chrome 是 `Color(NSColor.windowBackgroundColor)
-  .opacity(0.4)` + 0.5pt border — 自写半透明 + border, 跟
-  系统 sidebar 比起来不够"macOS 标准"。
-- 换 NSVisualEffectView 收益: 真 macOS sidebar 毛玻璃
-  (= Finder sidebar / System Settings sidebar / Pages inspector)。
-- 风险: 5 个 panel 全用 NSVisualEffectView, 视觉重量会有过重
-  (FCP 风格: 仅 inspector 用 sidebar material, content 用纯背景)。
-- 评估认为此改造**收益不够覆盖风险**: 这是视觉打磨, 不解决
-  老板 报的 3 个症状 (分割线粗 / 拖动闪 / 光标不变)。
+- PanelContainer's chrome is `Color(NSColor.windowBackgroundColor)
+  .opacity(0.4)` + 0.5pt border — hand-written semi-transparent + border, which compared to
+  the system sidebar is not "macOS standard" enough.
+- Switching to NSVisualEffectView benefit: real macOS sidebar frosted glass
+  (= Finder sidebar / System Settings sidebar / Pages inspector).
+- Risk: all 5 panels using NSVisualEffectView would be visually heavy
+  (FCP style: only inspector uses sidebar material, content uses plain background).
+- The evaluation judges this change **benefit doesn't cover the risk**: this is visual polish,
+  doesn't solve the 3 symptoms 老板 reported (thick splitter / drag flicker / cursor doesn't change).
 
-**fix9 行动**: 不采用本卡。 留 LT-01-fix10+ 视觉打磨评估。
+**fix9 actions**: not adopted this card. Defer to LT-01-fix10+ visual polish evaluation.
 
 ---
 
 ## 14. NSAlert
 
-**API 概览**: 原生对话框。
+**API overview**: native dialog.
 
-**评估**:
+**Evaluation**:
 
-- `App.swift` `WenshuAppCommands.showAboutPanel()` 已经用
-  `NSApp.orderFrontStandardAboutPanel(options:)` — 系统原生
-  about panel, 不需要 `NSAlert`。
-- v0.02.0 没有需要 NSAlert 的"确定 / 取消"场景。
+- `App.swift` `WenshuAppCommands.showAboutPanel()` already uses
+  `NSApp.orderFrontStandardAboutPanel(options:)` — system native
+  about panel, no need for `NSAlert`.
+- v0.02.0 has no "OK / Cancel" scenario requiring NSAlert.
 
-**fix9 行动**: 沿用 (已经原生)。
+**fix9 actions**: stick with native (already native).
 
 ---
 
-## 决策总结
+## Decision summary
 
-**fix9 真正改的就是 #1 NSSplitView** — 通过 `NativeSplitter`
-(NSViewRepresentable 包装) 替代自写 `PanelSplitter`:
+**What fix9 actually changes is #1 NSSplitView** — through `NativeSplitter`
+(NSViewRepresentable wrapper) replacing the hand-written `PanelSplitter`:
 
-1. **分割线细细一条** — `dividerStyle = .thin` (1pt, 不再 6px)
-2. **拖动丝滑无闪动** — NSSplitView 内置 AppKit 渲染管线
-3. **光标自动变** — NSSplitView mouseEntered 自动设
+1. **Splitter is a thin line** — `dividerStyle = .thin` (1pt, no longer 6px)
+2. **Drag is silky with no flicker** — NSSplitView's built-in AppKit rendering pipeline
+3. **Cursor auto-changes** — NSSplitView mouseEntered automatically sets
    `NSCursor.resizeLeftRight` / `.resizeUpDown`
 
-其余 14 个评估结论 = **沿用 SwiftUI / 不采用 / 范围外**, 不动。
+The other 14 evaluation conclusions = **stick with SwiftUI / not adopted / out of scope**, no changes.
 
-**为什么不直接 NSSplitViewController 全重写**:
+**Why not directly rewrite with NSSplitViewController**:
 
-- ViewModel 双向同步风险高 (= fix7 类 BUG 重现风险)
-- 派单边界"会有改 LayoutShellView.swift"已标"会有", 不是必改
-- 主 layout 走 NSSplitViewController 是 **LT-01-fix10+ 大重构**,
-  不是 fix9 这一卡的范围
-- fix9 真值是"解决 3 个症状", 不是"重写 layout 架构"
-- 视觉效果一样, 代码改动量小一个数量级
+- ViewModel bidirectional sync risk is high (= fix7-class BUG reproduction risk)
+- The ticket boundary "may touch LayoutShellView.swift" is already marked "may", not mandatory
+- Main layout moving to NSSplitViewController is a **LT-01-fix10+ large refactor**,
+  not fix9's scope
+- fix9's truth is "solve the 3 symptoms", not "rewrite the layout architecture"
+- Visually identical, code change is an order of magnitude smaller
 
 ---
 
-*LAYOUT-APPKIT-INVENTORY v0.02.0 · 2026-08-07 LT-01-fix9 CC AppKit 调研*
+*LAYOUT-APPKIT-INVENTORY v0.02.0 · 2026-08-07 LT-01-fix9 CC AppKit investigation*

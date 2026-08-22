@@ -1,20 +1,20 @@
-# 13 — chat zone 底栏 18PT 横 inset 修真因
+# 13 — Chat zone bottom bar 18PT horizontal inset fix
 
-依赖: 无
+Depends on: none
 
 **What to build:**
-chat zone 底栏 18PT 横 inset 修真因 (老板 2026-08-22 04:29 拍):
-1. ChatZoneView 模型选择器 Menu 整容器 `.padding(.leading, 18)`, label 内不另 padding (= cpu ICON 起算 18 PT)
-2. ChatView 输入框 HStack `.padding(.horizontal, 18)` (= 发送按钮右边 18 PT)
-3. context usage `.padding(.trailing, 18)` 不动 (老板拍 "如果是对的")
+Fix the chat zone bottom bar 18PT horizontal inset (老板 2026-08-22 04:29 ruled):
+1. `ChatZoneView` model-picker `Menu` whole container `.padding(.leading, 18)`; no extra padding inside the label (= 18 PT from the cpu ICON)
+2. `ChatView` input-field `HStack` `.padding(.horizontal, 18)` (= 18 PT to the right of the send button)
+3. Context usage `.padding(.trailing, 18)` untouched (老板 ruled "if it's right")
 
 **Why:**
-commit `f1fe8e64c` (ticket 10) 修真因时写错 inset 位置:
-- Menu label 内 `.padding(.leading, 18)` 被 Menu 自带 inset 吃, 视觉 ≠ 18 PT
-- ChatView 输入框 `.padding(.horizontal, 8)` 太小, 发送按钮右边 < 18 PT
+commit `f1fe8e64c` (ticket 10) was written with the wrong inset placement:
+- `Menu` label's internal `.padding(.leading, 18)` was eaten by `Menu`'s built-in inset; visually ≠ 18 PT
+- `ChatView` input field `.padding(.horizontal, 8)` was too small; the right side of the send button < 18 PT
 
 **Acceptance:**
-- 老板 macOS 真验: cpu ICON 左边 = 18 PT + paperplane 右边 = 18 PT
-- swift build exit 0
-- swift test exit 0
-- 双轴 code-review 报告 verbatim 进 commit body
+- 老板 macOS verification: cpu ICON left = 18 PT + paperplane right = 18 PT
+- `swift build` exit 0
+- `swift test` exit 0
+- Dual-axis code-review report verbatim into commit body

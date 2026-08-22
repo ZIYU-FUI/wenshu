@@ -1,81 +1,81 @@
-# 04 — 用 Logo Composer (LOGO.icon) 替换 icns 3 份 (老板 8/21 新决策)
+# 04 — Use Icon Composer (LOGO.icon) to replace the 3 icns files (老板 8/21 new decision)
 
 **What to build:**
-老板 2026-08-21 16:00 提供 `/Users/anbaiqiang/Desktop/LOGO.icon/` (= Apple Icon Composer 格式). 真值 = `Assets/wenshu-original-touming.png` (1280×1920 RGBA 透明背景) + `icon.json` (automatic-gradient + layers + shadow + translucency + supported-platforms).
+老板 2026-08-21 16:00 delivered `/Users/anbaiqiang/Desktop/LOGO.icon/` (= Apple Icon Composer format). The single source of truth is `Assets/wenshu-original-touming.png` (1280×1920 RGBA, transparent background) + `icon.json` (`automatic-gradient` + `layers` + `shadow` + `translucency` + `supported-platforms`).
 
-macOS 27 标准范式: App Icon 用 `.icon` 文件 (= Icon Composer) 1 份真值源, 系统自动派生:
-- dark variant (深色背景) + light variant (浅色背景) + tinted variant (accent color)
-- platform mask: macOS / iPadOS squares shared + watchOS circles
+macOS 27 standard pattern: the App Icon uses a single `.icon` file (= Icon Composer) as the source of truth; the system auto-derives:
+- dark variant (dark background) + light variant (light background) + tinted variant (accent color)
+- platform mask: macOS / iPadOS share squares; watchOS uses circles
 
-优势:
-- 1 份真值源, 老板改1 张 PNG / 1 个 icon.json 全局生效
-- 不需要 icns 11 reps
-- 不需要 icns mask chunk (platform mask 自动)
-- 不需要手重导 dark/light PNG
+Advantages:
+- Single source of truth — 老板 edits 1 PNG / 1 icon.json, and changes apply globally.
+- No need for 11 icns reps.
+- No icns mask chunk needed (the platform mask is automatic).
+- No need to manually re-export dark/light PNGs.
 
-**Blocked by:** 老板改完 `/Users/anbaiqiang/Desktop/LOGO.icon/` (进行中).
+**Blocked by:** 老板 finishing edits to `/Users/anbaiqiang/Desktop/LOGO.icon/` (in progress).
 
-**Status:** ✅ done — commit 0aabd989e. 老板 LOGO.icon 用 macOS 27 Icon Composer 1 份真值源, AppKit 自动派生 dark/light/tinted + platform mask (squares shared / circles watchOS), ticket 01 + 02 一起过.
+**Status:** ✅ done — commit `0aabd989e`. 老板's LOGO.icon uses the macOS 27 Icon Composer single-source-of-truth format, and AppKit auto-derives dark/light/tinted + platform mask (squares shared / circles for watchOS). Tickets 01 + 02 are also covered.
 
-## 修法真值 (4 步)
+## Fix specification (4 steps)
 
-1. 老板改 `/Users/anbaiqiang/Desktop/LOGO.icon/icon.json` + `Assets/wenshu-original-touming.png`:
-   - 主图圆角矩形路径加大到 22% (Apple HIG 标准, 1024×1024 下 ≈ 225 半径) — 修 ticket 01 圆角问题
-   - dark variant "文枢" 字色改浅 (跟深底对比, 跟系统色真值) — 修 ticket 02 跟系统色问题
-   - icon.json `automatic-gradient` 改 Apple HIG recommended 蓝绿渐变 (`extended-srgb:0.00000,0.53333,1.00000,1.00000` 当前值 OK)
-2. cp `LOGO.icon/` 整目录进 `Sources/WenshuApp/Resources/AppIcon.icon/`:
+1. 老板 edits `/Users/anbaiqiang/Desktop/LOGO.icon/icon.json` + `Assets/wenshu-original-touming.png`:
+   - Enlarge the rounded-rect path on the master to 22% (Apple HIG standard, ≈225 px radius on a 1024×1024 canvas) — fixes ticket 01's corner-radius issue.
+   - Lighten the "文枢" text color on the dark variant (contrast against the dark background, matching the system-color truth) — fixes ticket 02's follow-system-color issue.
+   - Update `icon.json` `automatic-gradient` to the Apple HIG-recommended blue-green gradient (current `extended-srgb:0.00000,0.53333,1.00000,1.00000` is OK).
+2. Copy the entire `LOGO.icon/` directory into `Sources/WenshuApp/Resources/AppIcon.icon/`:
    ```bash
    cp -R /Users/anbaiqiang/Desktop/LOGO.icon Sources/WenshuApp/Resources/AppIcon.icon
    ```
-3. 删 `AppIcon.icns` / `AppIcon.dark.icns` / `AppIcon.light.icns` (3 份老 icns 移除)
-4. 改 `Sources/WenshuApp/Resources/Info.plist`:
-   - `CFBundleIconFile = AppIcon` (保留, 不变)
-   - 加 `CFBundleIconName = AppIcon` (保留)
-5. 改 `Package.swift`:
-   - exclude 删 3 个 icns (已删)
-   - 加 `exclude: ["Resources/AppIcon.icon"]` (SwiftPM 不应处理 .icon 目录)
-6. 改 `Scripts/build-app.sh`:
-   - 删 3 个 icns cp 行
-   - 加 `cp -R Sources/WenshuApp/Resources/AppIcon.icon build/Wenshu.app/Contents/Resources/`
-7. 1 ticket 1 commit + Q33 真值校验 (AppIcon.icon/icon  解析 + Assets/ PNG 字节比对) + 老板 macOS Dock 验 4 模式 (默认/深色/透明/色调)
+3. Delete `AppIcon.icns` / `AppIcon.dark.icns` / `AppIcon.light.icns` (3 legacy icns files removed).
+4. Update `Sources/WenshuApp/Resources/Info.plist`:
+   - `CFBundleIconFile = AppIcon` (keep, unchanged)
+   - Add `CFBundleIconName = AppIcon` (keep)
+5. Update `Package.swift`:
+   - Remove the 3 icns files from `exclude` (already deleted).
+   - Add `exclude: ["Resources/AppIcon.icon"]` (SwiftPM should not process the `.icon` directory).
+6. Update `Scripts/build-app.sh`:
+   - Remove the 3 icns `cp` lines.
+   - Add `cp -R Sources/WenshuApp/Resources/AppIcon.icon build/Wenshu.app/Contents/Resources/`.
+7. 1 ticket 1 commit + Q33 verification (parse `AppIcon.icon/icon` + byte-compare the `Assets/` PNG) + 老板 macOS Dock verification of 4 modes (default / dark / transparent / tinted).
 
 ## Acceptance
 
-- [ ] AppIcon.icon/ 整目录进项目 (icon.json + Assets/)
-- [ ] 老 3 份 icns 移除
-- [ ] Info.plist 不变 (CFBundleIconFile = AppIcon)
-- [ ] Package.swift exclude AppIcon.icon
-- [ ] build-app.sh cp AppIcon.icon/ 到 bundle
-- [ ] codesign --verify exit 0
-- [ ] ./Scripts/build-app.sh exit 0
-- [ ] swift build exit 0
-- [ ] swift test exit 0
-- [ ] 老板 macOS Dock 验:
-  - [ ] 默认模式 LOGO 圆角 Apple HIG 标准
-  - [ ] 深色模式 LOGO 深底 + 浅字 (ticket 02 字色真值)
-  - [ ] 透明模式 LOGO transparent 渲染
-  - [ ] 色调模式 LOGO accent color 真值
+- [ ] Entire `AppIcon.icon/` directory in the project (`icon.json` + `Assets/`)
+- [ ] The 3 legacy icns files removed
+- [ ] `Info.plist` unchanged (`CFBundleIconFile = AppIcon`)
+- [ ] `Package.swift` excludes `AppIcon.icon`
+- [ ] `build-app.sh` copies `AppIcon.icon/` into the bundle
+- [ ] `codesign --verify` exit 0
+- [ ] `./Scripts/build-app.sh` exit 0
+- [ ] `swift build` exit 0
+- [ ] `swift test` exit 0
+- [ ] 老板 macOS Dock verification:
+  - [ ] Default mode: LOGO corner radius matches Apple HIG
+  - [ ] Dark mode: LOGO dark background + light text (ticket 02 text-color truth)
+  - [ ] Transparent mode: LOGO renders transparently
+  - [ ] Tinted mode: LOGO shows the accent color truth
 
-## 不动 (Q20 硬约束)
+## Out of scope (Q20 hard constraint)
 
-- App.swift / LayoutShellView / ChatView (跟本 ticket 无关)
-- 3 份 icns master PNG (8/11 老板 Sketch 重导, 仍保留桌面作历史 snapshot, 不进项目)
-- v0.21 chat ticket 01 (无关)
+- `App.swift` / `LayoutShellView` / `ChatView` (unrelated to this ticket)
+- The 3 icns master PNGs (8/11 老板 Sketch re-exports, kept on the Desktop as historical snapshots, not in the project)
+- v0.21 chat ticket 01 (unrelated)
 
-## Apple HIG 真值引用
+## Apple HIG references
 
 - https://developer.apple.com/design/human-interface-guidelines/app-icons
 - https://developer.apple.com/documentation/xcode/icon_composer (Icon Composer)
-- https://developer.apple.com/documentation/xcode/writing-an-app-icon (macOS 27 .icon 范式)
+- https://developer.apple.com/documentation/xcode/writing-an-app-icon (macOS 27 `.icon` pattern)
 
-## 关联
+## References
 
-- **合并**: ticket 01 (LOGO 圆角) + ticket 02 (LOGO dark variant 字色) — 用 LOGO.icon 后这 2 个 ticket 自动过, 不需要单独跑
-- 依赖: 老板改完 `/Users/anbaiqiang/Desktop/LOGO.icon/`
-- 被依赖: 无
+- **Merges**: ticket 01 (LOGO corner radius) + ticket 02 (LOGO dark variant text color) — after LOGO.icon adoption these two tickets pass automatically and do not need to run separately
+- Depends on: 老板 finishing edits to `/Users/anbaiqiang/Desktop/LOGO.icon/`
+- Required by: none
 
-## 老板决策真值 (8/21 16:00)
+## 老板's decision record (8/21 16:00)
 
-- 老板提供 LOGO.icon, 1 份真值源
-- macOS 27 标准范式优先于 icns backward-compatible
-- ticket 04 跑 = ticket 01 + 02 + 老 icns 3 份 全部替代, 整体收口
+- 老板 delivers `LOGO.icon`, a single source of truth.
+- The macOS 27 standard pattern takes priority over backward-compatible icns.
+- Running ticket 04 = tickets 01 + 02 + the 3 legacy icns files are all replaced — full closure.

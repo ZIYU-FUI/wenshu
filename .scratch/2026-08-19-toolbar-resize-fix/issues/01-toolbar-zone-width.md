@@ -1,20 +1,19 @@
-# 01 — Toolbar 宽度由 VStack stretch 撑 zone 实际宽度 (v0.16 ticket 01)
+# 01 — Toolbar width stretched by VStack stretch to fill zone actual width (v0.16 ticket 01)
 
 **What to build:**
-老板 2026-08-19 拍 "区域模块组件实现的有问题, 顶栏/底栏放在区域模块内, 随区域模块尺寸变化"
+老板 2026-08-19 拍 "zone module components have implementation issues, top bar / bottom bar placed inside zone module, varies with zone module size"
 
-改完: 顶栏 / 底栏不传 totalW 宽度, VStack 子 view 默认 stretch 全宽, 自动撑 zone 实际宽度
+After change: top bar / bottom bar no pass totalW width, VStack sub-view default stretch full width, auto stretch zone actual width
 
 **Blocked by:** None
-
-**Status:** done — commit ae5bbf82e (老板 8/19 验过 pass)
+**Status:** done — commit `ae5bbf82e` (老板 8/19 verified pass)
 
 ## Acceptance criteria
 
-- [x] ZoneTopToolbar 删 totalW 参数
-- [x] ZoneBottomToolbar 删 totalW 参数
-- [x] 内部不 .frame(width:)
-- [x] 高度 30 PT / ICON 18 PT / 占位文字 13 PT / 分割线 2 PT 全保持
-- [x] 6 个 zone 都生效 (sidebar / preview / editor / tools / chat / dynamic)
-- [x] swift build exit 0
-- [x] 老板 8/19 实测验过 pass
+- [x] ZoneTopToolbar delete totalW parameter
+- [x] ZoneBottomToolbar delete totalW parameter
+- [x] Internal no `.frame(width:)`
+- [x] Height 30 PT / ICON 18 PT / placeholder text 13 PT / divider 2 PT all preserved
+- [x] 6 zones all effective (sidebar / preview / editor / tools / chat / dynamic)
+- [x] `swift build` exit 0
+- [x] 老板 8/19 actual test verified pass

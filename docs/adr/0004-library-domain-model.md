@@ -1,28 +1,28 @@
-# ADR-0004: 书架 = WenshuLibrary / Bookshelf / Book 三层
+# ADR-0004: Bookshelf = WenshuLibrary / Bookshelf / Book three layers
 
 > Status: accepted
 > Date: 2026-08-15
-> Decision-maker(s): 老板 (8/15 17:05, 8/18 答 Q2)
+> Decision-maker(s): 老板 (8/15 17:05, 8/18 answered Q2)
 
 ## Context
 
-老板 8/15 17:05 拍 "结构不对, 参考 fcp. 书架是父级, 可以点击折叠展开". v0.07 之前 LibraryScaffold 用 HStack of BookshelfListView | splitter | BookListView = 固定两栏, 错. Apple HIG document-based app (Notes / Pages / Finder) 用单一 outline + DisclosureGroup (点击 header 折叠 / 展开, 点击 row 选中).
+老板 8/15 17:05 拍 "structure is wrong, reference fcp. The bookshelf is the parent, it can be clicked to collapse and expand". Pre-v0.07, LibraryScaffold used HStack of BookshelfListView | splitter | BookListView = fixed two-column, wrong. Apple HIG document-based apps (Notes / Pages / Finder) use a single outline + DisclosureGroup (click header to collapse / expand, click row to select).
 
 ## Decision
 
-Domain model = `WenshuLibrary: Observable` + `Bookshelf: Identifiable` + `Book: Identifiable` 三层. Bookshelf 是父级, Book 挂在 Bookshelf 下. LibraryScaffold 走 `LibraryOutlineView` (单一 outline + DisclosureGroup) 不再 split.
+Domain model = `WenshuLibrary: Observable` + `Bookshelf: Identifiable` + `Book: Identifiable` three layers. Bookshelf is the parent; Book hangs under Bookshelf. LibraryScaffold uses `LibraryOutlineView` (single outline + DisclosureGroup), no longer split.
 
-`Book.length` + `Book.idea` 字段 (8/18 答 Q2) = New Book Creation Wizard 3 fields (name + length + idea).
+`Book.length` + `Book.idea` fields (8/18 Q2 answer) = New Book Creation Wizard 3 fields (name + length + idea).
 
-存储走 `LibraryStoring` 协议 + `FileSystemLibraryStore` 真值 (Apple HIG document-based-app convention = `~/Documents/wenshu/<id>/`). 未来换 CoreData / CloudKit 只换 store 实现, WenshuLibrary 不动.
+Storage uses `LibraryStoring` protocol + `FileSystemLibraryStore` truth source (Apple HIG document-based-app convention = `~/Documents/wenshu/<id>/`). Swapping to CoreData / CloudKit in the future only replaces the store implementation; WenshuLibrary does not change.
 
 ## Consequences
 
-- 任何 "BookshelfListView | splitter | BookListView" 写法 = 反模式 = 改回 outline
-- 存储选型可换, 协议契约不变
+- Any "BookshelfListView | splitter | BookListView" pattern = anti-pattern = change back to outline
+- Storage choice is swappable, protocol contract stays constant
 
 ## Alternatives considered
 
-- 旧 HStack 两栏 (BookshelfListView + BookListView) — 拒绝, 不符合 Apple HIG
-- CoreData 直接绑 UI — 拒绝, 老板 8/15 15:55 "架构需要先定好, 不能没事加个东西"
-- iCloud / CloudKit — 推迟, 等 v0.10+ 再说
+- Old HStack two-column (BookshelfListView + BookListView) — rejected, not Apple HIG
+- CoreData bound directly to UI — rejected, 老板 8/15 15:55 "architecture must be locked in first, can't keep adding things"
+- iCloud / CloudKit — deferred until v0.10+

@@ -1,34 +1,36 @@
-# 13 — Canvas 无限画布 + JSON Canvas 文件格式 (1:1 兼容 Obsidian, 老板 2026-08-19 evening 拍)
+# 13 — Canvas infinite canvas + JSON Canvas file format (1:1 compatible with Obsidian, 老板 2026-08-19 evening 拍)
 
 **What to build:**
-Obsidian 复刻范围 A 第 2 件: Canvas 无限画布 + JSON Canvas 文件格式 1:1 实现 (open MIT spec)。
+Obsidian replica scope A item 2: Canvas infinite canvas + JSON Canvas file format 1:1 implementation (open MIT spec).
 
-**改完:**
-- `Sources/WenshuApp/Core/Canvas/JSONCanvasCodec.swift` (Codable 解析 .canvas 文件 nodes[] + edges[])
-- `Sources/WenshuApp/Core/Canvas/CanvasView.swift` (SwiftUI Canvas 画节点 + 边, TimelineView 60 fps, 跟 LayoutShellView 同范式)
-- `Sources/WenshuApp/Core/Canvas/CanvasEditor.swift` (节点拖拽 / 编辑 / 连接)
-- 单元测试: JSONCanvasCodecTests round-trip (Obsidian .canvas → wenshu → Obsidian .canvas 1:1 兼容)
-- 跨工具兼容性测试
+**After change:**
+- `Sources/WenshuApp/Core/Canvas/JSONCanvasCodec.swift` (Codable parse .canvas file nodes[] + edges[])
+- `Sources/WenshuApp/Core/Canvas/CanvasView.swift` (SwiftUI Canvas draw nodes + edges, TimelineView 60 fps, same paradigm as LayoutShellView)
+- `Sources/WenshuApp/Core/Canvas/CanvasEditor.swift` (node drag / edit / connect)
+- Unit tests: JSONCanvasCodecTests round-trip (Obsidian .canvas → wenshu → Obsidian .canvas 1:1 compatible)
+- Cross-tool compatibility test
 
 **Blocked by:** None
-
 **Status:** ready-for-agent → impl done → commit + push
 
 ## Acceptance criteria
-- [ ] Sources/WenshuApp/Core/Canvas/JSONCanvasCodec.swift 1:1 兼容 JSON Canvas 1.0 spec
-- [ ] Sources/WenshuApp/Core/Canvas/CanvasView.swift SwiftUI Canvas + TimelineView 60 fps
-- [ ] Sources/WenshuApp/Core/Canvas/CanvasEditor.swift 节点拖拽 / 编辑 / 连接
-- [ ] JSON Canvas round-trip 测试: Obsidian .canvas 解析 + 编码 1:1
-- [ ] swift build exit 0
-- [ ] swift test exit 0 (新测试 + 老 137)
-- [ ] 不动 hermes app
-- [ ] 不动 LayoutTokens / LayoutShellView / NativeSplitter
 
-## 业务语言描述 (老板懂)
-- 写作 app 强需求: 白板大纲 / 人物关系图
-- JSON Canvas 跨工具兼容: wenshu 写 .canvas → Obsidian 能读, Obsidian 写 → wenshu 能读
+- [ ] `Sources/WenshuApp/Core/Canvas/JSONCanvasCodec.swift` 1:1 compatible with JSON Canvas 1.0 spec
+- [ ] `Sources/WenshuApp/Core/Canvas/CanvasView.swift` SwiftUI Canvas + TimelineView 60 fps
+- [ ] `Sources/WenshuApp/Core/Canvas/CanvasEditor.swift` node drag / edit / connect
+- [ ] JSON Canvas round-trip test: Obsidian .canvas parse + encode 1:1
+- [ ] `swift build` exit 0
+- [ ] `swift test` exit 0 (new tests + old 137)
+- [ ] Do not touch hermes app
+- [ ] Do not touch LayoutTokens / LayoutShellView / NativeSplitter
 
-## 真值引用
+## Business-language description (老板 understands)
+
+- Writing app strong requirement: whiteboard outline / character relationship graph
+- JSON Canvas cross-tool compatibility: wenshu writes .canvas → Obsidian can read, Obsidian writes → wenshu can read
+
+## Truth references
+
 - JSON Canvas 1.0 spec: https://jsoncanvas.org/spec/1.0 (open MIT)
 - JSON Canvas GitHub: https://github.com/obsidianmd/jsoncanvas
 - Obsidian Canvas: https://obsidian.md/canvas

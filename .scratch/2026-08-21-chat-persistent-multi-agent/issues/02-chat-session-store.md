@@ -1,15 +1,15 @@
-# 02 — ChatSessionStore SQLite 持久化
+# 02 — ChatSessionStore SQLite persistence
 
 **What to build:**
-老板 2026-08-21 拍 "关闭 app 再开, 上次聊的接续显示". ChatSessionStore = actor + SQLite, 跟 TodoStore / MemoryStore / KanbanStore 范式一致. ChatViewModel.init() load 历史, send() 后 append 写 SQLite. schema 2 表: chat_messages + chat_summaries.
+老板 2026-08-21 ruled: "after closing and reopening the app, the previous chat continues." `ChatSessionStore` = actor + SQLite, mirroring the `TodoStore` / `MemoryStore` / `KanbanStore` pattern. `ChatViewModel.init()` loads history; `send()` appends to SQLite. Two-table schema: `chat_messages` + `chat_summaries`.
 
-**Blocked by:** ticket 01 (ChatMessage 有 source 字段才存).
+**Blocked by:** ticket 01 (the `source` field must exist on `ChatMessage` before storing).
 
 **Status:** ready-for-agent
 
-## 修法真值
+## Fix specification
 
-1. 新建 `Sources/WenshuApp/Core/Chat/ChatSessionStore.swift` (actor + SQLite, 范式跟 `Sources/WenshuApp/Core/Todo/TodoStore.swift` 一致).
+1. Create `Sources/WenshuApp/Core/Chat/ChatSessionStore.swift` (actor + SQLite, same pattern as `Sources/WenshuApp/Core/Todo/TodoStore.swift`).
 2. SQLite schema:
    ```sql
    CREATE TABLE IF NOT EXISTS chat_messages (
@@ -28,34 +28,34 @@
      last_message_id TEXT
    );
    ```
-3. 路径: `~/Library/Application Support/com.wenshu.app/chat.sqlite` (跟 Wenshu 项目基线一致).
+3. Path: `~/Library/Application Support/com.wenshu.app/chat.sqlite` (matches the wenshu project baseline).
 4. API (actor methods):
    - `loadMessages(sessionId: String) async throws -> [ChatMessage]`
    - `append(_ message: ChatMessage, sessionId: String) async throws`
    - `clear(sessionId: String) async throws`
    - `loadSummary(sessionId: String) async throws -> String?`
    - `saveSummary(_ summary: String, sessionId: String, lastMessageId: UUID) async throws`
-5. ChatMessage 加 `Codable` (id / source / content / timestamp, sessionId 存 DB 层不存 struct 里).
-6. 跟 ChatMessage.swift (在 ChatView.swift 同文件) 加 `Codable` + `ChatSource: Codable` conformance.
+5. Add `Codable` conformance to `ChatMessage` (id / source / content / timestamp; `sessionId` lives at the DB layer, not the struct).
+6. In `ChatMessage.swift` (sibling to `ChatView.swift`) add `Codable` + `ChatSource: Codable` conformance.
 
 ## Acceptance
 
-- [ ] ChatSessionStore actor + SQLite 文件落地
-- [ ] 2 表 schema 正确 (chat_messages + chat_summaries)
-- [ ] loadMessages 按 timestamp 排序返回
-- [ ] append 异步写 SQLite 不阻塞 ChatView UI
-- [ ] clear 清空 messages 但保留 summary
-- [ ] swift build exit 0
-- [ ] swift test exit 0
-- [ ] 新增测试: testChatSessionStoreAppendLoad / testClear / testSessionIsolation (多 session_id 不混)
+- [ ] `ChatSessionStore` actor + SQLite file landed
+- [ ] Two-table schema correct (`chat_messages` + `chat_summaries`)
+- [ ] `loadMessages` returns rows sorted by `timestamp`
+- [ ] `append` writes to SQLite asynchronously without blocking the `ChatView` UI
+- [ ] `clear` empties messages but preserves summary
+- [ ] `swift build` exit 0
+- [ ] `swift test` exit 0
+- [ ] New tests: `testChatSessionStoreAppendLoad` / `testClear` / `testSessionIsolation` (multiple `session_id` values do not collide)
 
-## 不动
+## Out of scope
 
-- ChatView UI
-- ChatViewModel 主流程 (本 ticket 只写 store, 不改 viewmodel 调用)
-- ChatSession summary 生成逻辑 (ticket 05)
+- `ChatView` UI
+- `ChatViewModel` main flow (this ticket only writes the store, not the view-model calls)
+- Chat session summary generation logic (ticket 05)
 
-## 关联
+## References
 
-- 依赖: ticket 01
-- 被依赖: ticket 05 (summary 用 chat_summaries 表) / ticket 06 (ChatViewModel 集成 store)
+- Depends on: ticket 01
+- Required by: ticket 05 (summary uses the `chat_summaries` table) / ticket 06 (`ChatViewModel` integration)

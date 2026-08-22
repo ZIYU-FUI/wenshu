@@ -1,129 +1,129 @@
-# v0.19 Obsidian 复刻模块 → 前端接入需求清单
+# v0.19 Obsidian replica modules → front-end integration requirements list
 
-> 老板 2026-08-19 evening 拍: '梳理现在实现的模块, 整理出一个需求清单, 计划用在前端哪里'
+> 老板 2026-08-19 evening 拍: 'organize currently-implemented modules, organize a requirements list, plan where to use on the front end'
 > Date: 2026-08-19 evening
-> 真值源: v0.19 ticket 12-23 后端模块 + standalone SwiftUI View 实现
+> Truth source: v0.19 ticket 12-23 backend modules + standalone SwiftUI View implementations
 
-## 总览 (12 模块 + 19 UI 接入需求)
+## Overview (12 modules + 19 UI integration requirements)
 
-| # | 模块 | ticket | 后端真值 | Standalone View 已实现 | 待接入前端位置 |
+| # | Module | ticket | Backend truth | Standalone View already implemented | Pending front-end integration location |
 |---|---|---|---|---|---|
-| 1 | Internal Link + Backlinks | 12 | LinkIndex (SQLite) + InternalLinkParser + BacklinkResolver | BacklinksPanel | 上 band 编辑器右栏 (跟随当前 doc) |
-| 2 | Canvas + JSON Canvas | 13 | JSONCanvasCodec (Codable 1:1) | CanvasView | 上 band 新独立区域 (白板大纲 / 人物关系图) |
-| 3 | Graph view | 14 | GraphBuilder (build + layout + local) | GraphView | 新独立 tab 或独立窗口 (全 vault 关系图) |
-| 4 | Templates | 15 | TemplateEngine (date/time/title/author/custom tokens) | TemplatePicker | 文件菜单 → 新建 note (选模板) |
-| 5 | Note Composer | 16 | NoteComposer (rename/merge/split) | ComposerPanel | 文件菜单 → 合并 / 拆分 / 重命名 note |
-| 6 | Full Text Search | 17 | FullTextSearch (SQLite FTS5 trigram) | SearchPanel | 编辑器右上 �F (搜索框 + 高亮) |
-| 7 | Bases 数据库视图 | 18 | BaseParser (.base YAML) | BaseView | 上 band 新独立区域 (人物表 / 章节进度表) |
-| 8 | Quick Switcher | 19 | QuickSwitcherIndex (fuzzy match) | QuickSwitcherWindow | ⌘O 弹出窗口 (跨书架快速跳转) |
-| 9 | Word count | 20 | WordCounter (中英混合) | WordCountBadge | 顶栏右侧 (跟 macOS 标准字数统计一致) |
-| 10 | Outline | 21 | OutlineExtractor (H1-H6 + tree) | OutlinePanel | 编辑器右栏 (跟随当前 note H1-H6 跳转) |
-| 11 | Bookmarks | 22 | BookmarkStore (actor SQLite) | BookmarkPanel | 上 band 编辑器右栏 + ⌘⇧B 弹窗 |
-| 12 | 集成 + 跨工具兼容 | 23 | ObsidianFixturesTests (round-trip) | — | (无前端, 集成测试) |
+| 1 | Internal Link + Backlinks | 12 | LinkIndex (SQLite) + InternalLinkParser + BacklinkResolver | BacklinksPanel | Upper band editor right pane (follows current doc) |
+| 2 | Canvas + JSON Canvas | 13 | JSONCanvasCodec (Codable 1:1) | CanvasView | Upper band new independent zone (whiteboard outline / character relationship graph) |
+| 3 | Graph view | 14 | GraphBuilder (build + layout + local) | GraphView | New independent tab or independent window (full vault relationship graph) |
+| 4 | Templates | 15 | TemplateEngine (date/time/title/author/custom tokens) | TemplatePicker | File menu → New note (select template) |
+| 5 | Note Composer | 16 | NoteComposer (rename/merge/split) | ComposerPanel | File menu → Merge / Split / Rename note |
+| 6 | Full Text Search | 17 | FullTextSearch (SQLite FTS5 trigram) | SearchPanel | Editor top-right ⌘F (search box + highlight) |
+| 7 | Bases database view | 18 | BaseParser (.base YAML) | BaseView | Upper band new independent zone (character table / chapter progress table) |
+| 8 | Quick Switcher | 19 | QuickSwitcherIndex (fuzzy match) | QuickSwitcherWindow | ⌘O popup window (cross-bookshelf quick jump) |
+| 9 | Word count | 20 | WordCounter (Chinese-English mixed) | WordCountBadge | Top bar right (consistent with macOS standard word count) |
+| 10 | Outline | 21 | OutlineExtractor (H1-H6 + tree) | OutlinePanel | Editor right pane (follows current note H1-H6 jump) |
+| 11 | Bookmarks | 22 | BookmarkStore (actor SQLite) | BookmarkPanel | Upper band editor right pane + ⌘⇧B popup |
+| 12 | Integration + cross-tool compatibility | 23 | ObsidianFixturesTests (round-trip) | — | (no front end, integration test) |
 
-## 详细接入需求 (按 wenshu 6 区 layout 分布)
+## Detailed integration requirements (by wenshu 6-zone layout distribution)
 
-### 顶栏 (titleBar) — 1 需求
+### Top bar (titleBar) — 1 requirement
 
-| # | 需求 | 来源 | 接入位置 | 老板 8/18 拍板 |
+| # | Requirement | Source | Integration location | 老板 8/18 拍板 |
 |---|---|---|---|---|
-| 1 | 顶栏右显示当前 note 字数 + 章节切换下拉 | ticket 20 Word count + ticket 8 Outline | 顶栏右 (跟 macOS Pages / Numbers 一致) | "整体黑夜白昼色实现" 已有顶栏布局, 加字数 + 章节切换 |
+| 1 | Top bar right show current note word count + chapter switch dropdown | ticket 20 Word count + ticket 8 Outline | Top bar right (consistent with macOS Pages / Numbers) | "Overall dark/light mode implementation" already has top bar layout, add word count + chapter switch |
 
-### 上 band (4 区域, 200/520/794/400 PT) — 6 需求
+### Upper band (4 zones, 200/520/794/400 PT) — 6 requirements
 
-| # | 需求 | 来源 | 接入位置 | 备注 |
+| # | Requirement | Source | Integration location | Note |
 |---|---|---|---|---|
-| 2 | 编辑器右栏: Outline (H1-H6 跳转) | ticket 21 Outline | 上 band 第 3 列 (794 PT 编辑器) 右侧新增右栏 (400 PT 减少) | 跟前 3 个 Backlinks / Canvas / Bases / Search 共享右栏逻辑 |
-| 3 | 编辑器右栏: Backlinks panel (反向链接) | ticket 12 Internal Link | 上 band 编辑器右栏 (跟 Outline tab 切换) | 写当前章节时显示所有引用它的设定 / 章节 |
-| 4 | 编辑器右栏: Quick Switcher 触发按钮 (或 ⌘O 全局) | ticket 19 Quick Switcher | 顶栏右图标 + ⌘O 全局快捷键 | Apple Spotlight 同范式 |
-| 5 | 编辑器右上: Search 触发图标 (或 ⌘F) | ticket 17 Full Text Search | 编辑器右栏顶部 + ⌘F 全局快捷键 | 跨书架搜章节内容 |
-| 6 | Canvas / 白板大纲独立区 (新 1 区) | ticket 13 Canvas + JSON Canvas | 上 band 新增第 5 区 (独立 Canvas tab) | wenshu 6 区 layout 调整: 上 4 + 下 2 → 上 5 + 下 2 (新增 Canvas 区) |
-| 7 | Bases 数据库视图独立区 (新 1 区) | ticket 18 Bases | 上 band 新增第 6 区 (独立 Bases tab) | wenshu 6 区 layout 调整: 上 5 + 下 2 → 上 6 + 下 2 (新增 Bases 区) |
+| 2 | Editor right pane: Outline (H1-H6 jump) | ticket 21 Outline | Upper band column 3 (794 PT editor) right side new right pane (400 PT reduction) | Share right pane logic with first 3 Backlinks / Canvas / Bases / Search |
+| 3 | Editor right pane: Backlinks panel (reverse links) | ticket 12 Internal Link | Upper band editor right pane (switch with Outline tab) | When writing current chapter show all settings / chapters referencing it |
+| 4 | Editor right: Quick Switcher trigger button (or ⌘O global) | ticket 19 Quick Switcher | Top bar right icon + ⌘O global shortcut | Apple Spotlight same pattern |
+| 5 | Editor top-right: Search trigger icon (or ⌘F) | ticket 17 Full Text Search | Editor right pane top + ⌘F global shortcut | Cross-bookshelf search chapter content |
+| 6 | Canvas / whiteboard outline independent zone (new 1 zone) | ticket 13 Canvas + JSON Canvas | Upper band new column 5 (independent Canvas tab) | wenshu 6-zone layout adjustment: upper 4 + lower 2 → upper 5 + lower 2 (new Canvas zone) |
+| 7 | Bases database view independent zone (new 1 zone) | ticket 18 Bases | Upper band new column 6 (independent Bases tab) | wenshu 6-zone layout adjustment: upper 5 + lower 2 → upper 6 + lower 2 (new Bases zone) |
 
-### 下 band (2 区域, AI聊天 1518 / AI 动态 400 PT) — 0 需求
+### Lower band (2 zones, AI chat 1518 / AI dynamic 400 PT) — 0 requirements
 
-(AI 聊天 / AI 动态跟 Obsidian 复刻无关, 保持现有实现)
+(AI chat / AI dynamic unrelated to Obsidian replica, keep existing implementation)
 
-### 编辑器主区 — 5 需求
+### Editor main area — 5 requirements
 
-| # | 需求 | 来源 | 接入位置 | 备注 |
+| # | Requirement | Source | Integration location | Note |
 |---|---|---|---|---|
-| 8 | Markdown 编辑器解析 [[name]] 显示为内部链接 (蓝色下划线, ⌘+click 跳转) | ticket 12 Internal Link Parser | 编辑器主区 文本渲染层 | 跟 Obsidian wikilink 渲染一致 |
-| 9 | 编辑器自动重写 [[old_name]] → [[new_name]] (重命名 note 时) | ticket 16 Note Composer.rename | 编辑器主区 + BacklinkResolver 联动 | Note Composer 重命名触发自动扫描所有 content |
-| 10 | 编辑器自动合并多个 note 内容 (合并时) | ticket 16 Note Composer.merge | 编辑器主区 + Note Composer 联动 | merge 简化: 拼接内容, 中间空行 |
-| 11 | 编辑器插入模板 (新建 note 时) | ticket 15 Templates | 文件菜单 → 新建 → 选模板 → 自动插入 {{date}} 等 tokens | 跟 Obsidian Templates 行为一致 |
-| 12 | 编辑器实时字数统计 (右上 badge) | ticket 20 Word count | 编辑器主区 右上角 badge | 实时更新, 作家每日字数 |
+| 8 | Markdown editor parses `[[name]]` display as internal link (blue underline, ⌘+click jump) | ticket 12 Internal Link Parser | Editor main area text rendering layer | Consistent with Obsidian wikilink rendering |
+| 9 | Editor auto rewrite `[[old_name]]` → `[[new_name]]` (when renaming note) | ticket 16 Note Composer.rename | Editor main area + BacklinkResolver linkage | Note Composer rename triggers auto scan all content |
+| 10 | Editor auto merge multiple note contents (when merging) | ticket 16 Note Composer.merge | Editor main area + Note Composer linkage | merge simplified: concatenate content, middle blank line |
+| 11 | Editor insert template (when creating new note) | ticket 15 Templates | File menu → New → select template → auto insert `{{date}}` etc tokens | Consistent with Obsidian Templates behavior |
+| 12 | Editor real-time word count (top-right badge) | ticket 20 Word count | Editor main area top-right badge | Real-time update, writer daily word count |
 
-### 全局命令 / 菜单 — 5 需求
+### Global commands / menus — 5 requirements
 
-| # | 需求 | 来源 | 接入位置 | 备注 |
+| # | Requirement | Source | Integration location | Note |
 |---|---|---|---|---|
-| 13 | 文件菜单: 新建 note (选模板) | ticket 15 Templates | 菜单 "文件" → "新建" → 弹模板选择 (ticket 15 TemplatePicker) | Apple HIG 标准 "新建项目" |
-| 14 | 文件菜单: 重命名 / 合并 / 拆分 note | ticket 16 Note Composer | 菜单 "文件" → "Composer" submenu | 跟 ticket 13 ticket 11 已有菜单布局一致 |
-| 15 | 视图菜单: Outline / Backlinks / Search / Canvas / Bases panel 切换 | ticket 12/13/17/18/21 | 菜单 "视图" → 已有 "恢复默认布局", 新增 5 个 panel 切换 | 跟 ticket 14 ticket 09 "视图" 顶级菜单范式一致 |
-| 16 | ⌘O 全局: Quick Switcher 弹窗 | ticket 19 Quick Switcher | 顶栏菜单 / 全局快捷键 | Apple Spotlight 同范式 (⌘+Space) |
-| 17 | ⌘⇧B 全局: Bookmarks 弹窗 | ticket 22 Bookmarks | 顶栏菜单 / 全局快捷键 | 跨 note 收藏夹 |
+| 13 | File menu: New note (select template) | ticket 15 Templates | Menu "File" → "New" → popup template selection (ticket 15 TemplatePicker) | Apple HIG standard "New Project" |
+| 14 | File menu: Rename / Merge / Split note | ticket 16 Note Composer | Menu "File" → "Composer" submenu | Consistent with ticket 13 ticket 11 existing menu layout |
+| 15 | View menu: Outline / Backlinks / Search / Canvas / Bases panel switch | ticket 12/13/17/18/21 | Menu "View" → existing "Restore Default Layout", new 5 panel switches | Consistent with ticket 14 ticket 09 "View" top-level menu pattern |
+| 16 | ⌘O global: Quick Switcher popup | ticket 19 Quick Switcher | Top bar menu / global shortcut | Apple Spotlight same pattern (⌘+Space) |
+| 17 | ⌘⇧B global: Bookmarks popup | ticket 22 Bookmarks | Top bar menu / global shortcut | Cross-note favorites |
 
-### Bookmarks / Quick Actions — 2 需求
+### Bookmarks / Quick Actions — 2 requirements
 
-| # | 需求 | 来源 | 接入位置 | 备注 |
+| # | Requirement | Source | Integration location | Note |
 |---|---|---|---|---|
-| 18 | 右栏 Bookmarks tab (跟 Outline / Backlinks 共存) | ticket 22 Bookmarks | 编辑器右栏 新增 Bookmarks tab | 跟 ticket 12 / 21 panel tab 切换 |
-| 19 | 编辑器右上 Bookmark 按钮 (添加当前 note 到收藏) | ticket 22 Bookmarks | 编辑器主区 右上角 + 顶栏右 | ⌘+D 快捷键 |
+| 18 | Right pane Bookmarks tab (coexists with Outline / Backlinks) | ticket 22 Bookmarks | Editor right pane new Bookmarks tab | Switch with ticket 12 / 21 panel tabs |
+| 19 | Editor top-right Bookmark button (add current note to favorites) | ticket 22 Bookmarks | Editor main area top-right + top bar right | ⌘+D shortcut |
 
-## 优先级矩阵
+## Priority matrix
 
-| 优先级 | 需求 | 来源 | 工期估 |
+| Priority | Requirement | Source | Effort estimate |
 |---|---|---|---|
-| 🟢 P0 (写作 app 强需求) | 2 Outline 右栏, 3 Backlinks 右栏, 5 Search 全文, 9 重命名自动重写链接, 12 字数统计 badge, 8 wikilink 渲染, 16 ⌘O Quick Switcher | ticket 12/17/19/20/21 | 2-3 周 |
-| 🟡 P1 (核心增强) | 6 Canvas 独立区, 13 新建模板, 15 视图菜单, 18 Bookmarks tab | ticket 13/15/22 | 2-3 周 |
-| 🟢 P2 (写作体验增强) | 1 顶栏章节切换, 10 合并 note, 11 拆分 note, 14 Composer submenu, 4 Quick Switcher 按钮, 17 �⇧B Bookmarks, 19 Bookmark 添加按钮, 7 Bases 独立区 | ticket 12/13/15/16/18/19/20/22 | 3-4 周 |
+| 🟢 P0 (writing app strong requirement) | 2 Outline right pane, 3 Backlinks right pane, 5 Search full-text, 9 Rename auto rewrite links, 12 Word count badge, 8 wikilink rendering, 16 ⌘O Quick Switcher | ticket 12/17/19/20/21 | 2-3 weeks |
+| 🟡 P1 (core enhancement) | 6 Canvas independent zone, 13 New template, 15 View menu, 18 Bookmarks tab | ticket 13/15/22 | 2-3 weeks |
+| 🟢 P2 (writing experience enhancement) | 1 Top bar chapter switch, 10 Merge note, 11 Split note, 14 Composer submenu, 4 Quick Switcher button, 17 ⌘⇧B Bookmarks, 19 Bookmark add button, 7 Bases independent zone | ticket 12/13/15/16/18/19/20/22 | 3-4 weeks |
 
-## UI 改动对 LayoutTokens 的影响
+## UI changes impact on LayoutTokens
 
-| 需求 | 改动 | 跟 ticket 14 死原则冲突? |
+| Requirement | Change | Conflict with ticket 14 dead principle? |
 |---|---|---|
-| 2/3/5/18 右栏 panel tabs | 上 band 编辑器右栏宽度比例 (794 PT → 减少) + 新增 panel tab 切换 | ❌ 不冲突 (内部 sub-tabs) |
-| 6 Canvas 独立区 | 上 band 4 区 → 5 区 (新增 1 区, 比例重分) | ❌ 冲突 (LayoutTokens 是死原则, 比例已 1:1 PT 锁定) — 需老板 拍 |
-| 7 Bases 独立区 | 同上 | ❌ 同上 |
+| 2/3/5/18 right pane panel tabs | Upper band editor right pane width ratio (794 PT → reduction) + new panel tab switch | ❌ No conflict (internal sub-tabs) |
+| 6 Canvas independent zone | Upper band 4 zones → 5 zones (new 1 zone, ratio redivided) | ❌ Conflict (LayoutTokens is dead principle, ratio already 1:1 PT locked) — needs 老板 拍 |
+| 7 Bases independent zone | Same as above | ❌ Same |
 
-**关键决策点:** 需求 6/7 Canvas + Bases 独立区 跟 ticket 14 LayoutTokens 死原则冲突 (1920×984 PT 1:1 锁定, 6 区布局), 需老板 拍才能动. 或者用 **panel tabs 切换** (右栏多 tab 切换) 避开 layout 改动.
+**Key decision point:** Requirements 6/7 Canvas + Bases independent zones conflict with ticket 14 LayoutTokens dead principle (1920×984 PT 1:1 locked, 6-zone layout), needs 老板 拍 to change. Or use **panel tabs switch** (right pane multi-tab switch) to avoid layout changes.
 
-## 接入顺序建议 (按工作量大但稳 + 依赖关系)
+## Integration order suggestion (by large workload but stable + dependency relationship)
 
-**Phase 1 (P0 强需求, 1-2 周)**
-1. ticket 12 Backlinks 右栏 (后端已完整, 前端 standalone View 直接接入)
-2. ticket 21 Outline 右栏 (跟 Backlinks 共用右栏 tab 切换)
-3. ticket 17 Search ⌘F (跟 Backlinks 共用右栏 tab 切换)
-4. ticket 20 Word count 顶栏 badge (独立小 widget, 改动最小)
-5. ticket 19 Quick Switcher ⌘O (独立弹窗, 不影响 layout)
+**Phase 1 (P0 strong requirement, 1-2 weeks)**
+1. ticket 12 Backlinks right pane (backend already complete, front-end standalone View directly connects)
+2. ticket 21 Outline right pane (shares right pane tab switch with Backlinks)
+3. ticket 17 Search ⌘F (shares right pane tab switch with Backlinks)
+4. ticket 20 Word count top bar badge (independent small widget, smallest change)
+5. ticket 19 Quick Switcher ⌘O (independent popup, doesn't affect layout)
 
-**Phase 2 (P1 核心增强, 2-3 周)**
-6. ticket 13 Canvas (用 panel tabs 切换避开 layout 改动)
-7. ticket 18 Bases (同上)
-8. ticket 15 Templates 菜单集成
-9. ticket 22 Bookmarks 右栏
+**Phase 2 (P1 core enhancement, 2-3 weeks)**
+6. ticket 13 Canvas (use panel tabs switch to avoid layout change)
+7. ticket 18 Bases (same)
+8. ticket 15 Templates menu integration
+9. ticket 22 Bookmarks right pane
 
-**Phase 3 (P2 写作体验增强, 3-4 周)**
-10. ticket 16 Note Composer 菜单 + 自动重写
-11. ticket 12 wikilink 编辑器渲染 (蓝色下划线 + ⌘+click 跳转)
-12. 顶栏章节切换下拉
+**Phase 3 (P2 writing experience enhancement, 3-4 weeks)**
+10. ticket 16 Note Composer menu + auto rewrite
+11. ticket 12 wikilink editor rendering (blue underline + ⌘+click jump)
+12. Top bar chapter switch dropdown
 
-## 不接入清单 (按 wenshu 定位判断)
+## Don't-connect list (per wenshu positioning)
 
-| 模块 | 不接入原因 |
+| Module | Reason for not connecting |
 |---|---|
-| 跟 Obsidian 同步 (Obsidian Sync) | 闭源付费, wenshu 本地自管 |
-| 跟 Obsidian Publish | 闭源付费, wenshu 写作不需要公开发布 |
-| Plugin API (动态加载) | wenshu 单 app 编译, 不需要扩展机制 |
+| Sync with Obsidian (Obsidian Sync) | Closed-source paid, wenshu local self-management |
+| Sync with Obsidian Publish | Closed-source paid, wenshu writing doesn't need public publishing |
+| Plugin API (dynamic loading) | wenshu single-app compiled, doesn't need extension mechanism |
 | Mobile (iOS/Android) | wenshu macOS-only (老板 8/18 拍) |
-| Web viewer (iframe) | 写作 app 不需要 |
-| Daily Notes (日历自动创建) | 写作 app 不需要 |
-| Command Palette (⌘⇧P) | wenshu `.commands` 顶级菜单已够 |
-| Slash commands (编辑器内 /) | 写作 app 不需要 |
+| Web viewer (iframe) | Writing app doesn't need |
+| Daily Notes (calendar auto create) | Writing app doesn't need |
+| Command Palette (⌘⇧P) | wenshu `.commands` top-level menu enough |
+| Slash commands (in editor /) | Writing app doesn't need |
 
-## 后续 ticket (按 wenshu 定位)
+## Subsequent tickets (per wenshu positioning)
 
-- 整合 UI 接入 ticket: ticket 24 (右栏 panel tabs 框架) + ticket 25 (Quick Switcher ⌘O) + ticket 26 (顶栏字数 badge) + ...
-- 接入顺序: Phase 1 → Phase 2 → Phase 3, 每 ticket 1 commit
-- 老板 macOS 验后开始接入前端 (现阶段 12 个 standalone SwiftUI View 等老板验)
+- Integrate UI connection ticket: ticket 24 (right pane panel tabs framework) + ticket 25 (Quick Switcher ⌘O) + ticket 26 (top bar word count badge) + ...
+- Connection order: Phase 1 → Phase 2 → Phase 3, each ticket 1 commit
+- After 老板 macOS verifies, start front-end integration (currently 12 standalone SwiftUI Views await 老板 verification)

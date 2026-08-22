@@ -1,50 +1,49 @@
-# 01 — 菜单栏可见修法 (A 选项: 注释 WenshuAppDelegate + .commandsReplaced, 老板 2026-08-19 拍)
+# 01 — Menu bar visible fix (option A: comment WenshuAppDelegate + .commandsReplaced, 老板 2026-08-19 拍)
 
 **What to build:**
-老板 2026-08-19 反馈: 整个 macOS 顶部菜单栏没看到 (commit 4c42fa79 已写 .commands 但老板实测没显示).
-deleg_a9c4fde9 47 分钟 + 120 tool calls 查 Apple 真值找到真因 (P0):
-- vdhamer/Photo-Club-Hub-HTML#248 公开记录
-- `CommandGroup(replacing: X) { }` 不删除 group, 替换为空 group 仍贡献 separator
-- WenshuAppDelegate 在 SwiftUI 完成 main menu 之前动了 NSWindow
-- macOS 27 beta lazy menu populate = 整个顶部菜单栏根本没安装
+老板 2026-08-19 reported: entire macOS top menu bar not visible (commit `4c42fa79` already wrote `.commands` but 老板 actual test shows not displayed).
+deleg_a9c4fde9 47 minutes + 120 tool calls to check Apple truth, found root cause (P0):
+- vdhamer/Photo-Club-Hub-HTML#248 public record
+- `CommandGroup(replacing: X) { }` does not delete group, replacing with empty group still contributes separator
+- WenshuAppDelegate touched NSWindow before SwiftUI finished main menu
+- macOS 27 beta lazy menu populate = entire top menu bar never installed
 
-业务语言描述 (老板懂):
-- macOS 27 改: SwiftUI 自己装菜单栏, 但如果有人先动了 NSWindow, macOS 系统就放弃装菜单栏
-- 修法 (选项 A): 让 SwiftUI 自己装菜单栏, WenshuAppDelegate 不再提前动 NSWindow
-- 加 `.commandsReplaced` 强制 install (Apple 官方提供)
+Business-language description (老板 understands):
+- macOS 27 changed: SwiftUI installs menu bar itself, but if someone touches NSWindow first, macOS system gives up installing menu bar
+- Fix (option A): let SwiftUI install menu bar itself, WenshuAppDelegate no longer touches NSWindow early
+- Add `.commandsReplaced` force install (Apple official provided)
 
-改完:
-- WenshuAppDelegate.applicationDidFinishLaunching 删 setContentSize / center (提前动 NSWindow 代码)
-- WenshuAppDelegate 留 SelfScreenshot (WS_SCREENSHOT env)
-- WindowGroup 加 `.commandsReplaced { LayoutShellView() }` 强制 install main menu
-- 拖拽线 / 分割线 / cursor / 1 PT / 颜色 / 圆头 / hover 全不动
+After change:
+- `WenshuAppDelegate.applicationDidFinishLaunching` delete `setContentSize` / `center` (early NSWindow-touching code)
+- WenshuAppDelegate keep SelfScreenshot (WS_SCREENSHOT env)
+- WindowGroup add `.commandsReplaced { LayoutShellView() }` force install main menu
+- Splitters / dividers / cursor / 1 PT / color / rounded caps / hover all unchanged
 
-**Blocked by:** None (subagent 报告 + 真因 + 修法已就绪)
-
-**Status:** ready-for-agent → impl done → 等老板验截图
+**Blocked by:** None (subagent report + root cause + fix ready)
+**Status:** ready-for-agent → impl done → waiting for 老板 verify screenshot
 
 ## Acceptance criteria
 
-- [ ] macOS 顶部菜单栏可见 (老板截图验)
-- [ ] "文枢" 顶级下能看到 "设置..." (⌘,)
-- [ ] "文件" 顶级下能看到 "新建项目" (⌘N)
-- [ ] "视图" 顶级下能看到 "恢复默认布局" (⌘⇧R)
-- [ ] 菜单栏其他项不变 (Apple / 文枢 / 文件 / 编辑 / 显示 / 视图 / 窗口 / 帮助)
-- [ ] WenshuAppDelegate.applicationDidFinishLaunching 不再提前动 NSWindow
-- [ ] WindowGroup 加 .commandsReplaced 强制 install main menu
-- [ ] swift build exit 0
-- [ ] 拖拽线 / 分割线 / cursor / 1 PT / 颜色 / 圆头 / hover 全不动 (cursor ticket 03 commit f65bb329 保留)
-- [ ] macOS chrome 52 PT 不动
-- [ ] LayoutTokens / bandH / toolbar 宽度 不动
+- [ ] macOS top menu bar visible (老板 screenshot verify)
+- [ ] Under "文枢" top-level can see "Settings..." (⌘,)
+- [ ] Under "File" top-level can see "New Project" (⌘N)
+- [ ] Under "View" top-level can see "Restore Default Layout" (⌘⇧R)
+- [ ] Menu bar other items unchanged (Apple / 文枢 / File / Edit / Show / View / Window / Help)
+- [ ] `WenshuAppDelegate.applicationDidFinishLaunching` no longer touches NSWindow early
+- [ ] WindowGroup adds `.commandsReplaced` force install main menu
+- [ ] `swift build` exit 0
+- [ ] Splitters / dividers / cursor / 1 PT / color / rounded caps / hover all unchanged (cursor ticket 03 commit `f65bb329` preserved)
+- [ ] macOS chrome 52 PT unchanged
+- [ ] LayoutTokens / bandH / toolbar width unchanged
 
-## 真因引用
+## Root-cause references
 
 - vdhamer/Photo-Club-Hub-HTML#248: https://github.com/vdhamer/Photo-Club-Hub-HTML/issues/248
-- SwiftUI .commands: https://developer.apple.com/documentation/swiftui/app/commands
-- SwiftUI .commandsReplaced: https://developer.apple.com/documentation/swiftui/commandsreplaced
+- SwiftUI `.commands`: https://developer.apple.com/documentation/swiftui/app/commands
+- SwiftUI `.commandsReplaced`: https://developer.apple.com/documentation/swiftui/commandsreplaced
 
-## 业务语言描述修法 (老板懂)
+## Business-language fix description (老板 understands)
 
-- 不让 wenshu 在 SwiftUI 装菜单栏之前动 NSWindow
-- 让 macOS 系统自己装菜单栏
-- 加 .commandsReplaced 强制装, 不让 macOS 跳过
+- Don't let wenshu touch NSWindow before SwiftUI installs menu bar
+- Let macOS system install menu bar itself
+- Add `.commandsReplaced` force install, don't let macOS skip

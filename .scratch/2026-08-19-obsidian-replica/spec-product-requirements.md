@@ -1,282 +1,281 @@
-# 文枢产品功能需求清单 — 老板 2026-08-19 evening 拍
+# 文枢 product feature requirements list — 老板 2026-08-19 evening 拍
 
 > Date: 2026-08-19 evening
-> 视角: 业务语言 (老板懂的产品功能, 不是技术清单)
-> 真值源:
-> 1. hermes 复刻 14 模块 (v0.18 ticket 01-31, commit `047b43cfa`..`c3b8a035e`)
-> 2. Obsidian 复刻 11 模块 (v0.19 ticket 12-23, commit `bc4cfd76b`..`a85226c66`)
-> 3. wenshu 现有框架: 6 区 layout / Book+Bookshelf+Document 3 类 / Library / LibraryOutlineView
-> 4. wenshu 目标: Apple 全家桶长篇虚构小说 AI 创作平台, macOS-only, 自建轻量 AI 内核
+> Perspective: business language (product features 老板 understands, not technical list)
+> Truth source:
+> 1. hermes replica 14 modules (v0.18 ticket 01-31, commit `047b43cfa`..`c3b8a035e`)
+> 2. Obsidian replica 11 modules (v0.19 ticket 12-23, commit `bc4cfd76b`..`a85226c66`)
+> 3. wenshu existing framework: 6-zone layout / Book+Bookshelf+Document 3 types / Library / LibraryOutlineView
+> 4. wenshu goal: Apple stack long-form fiction novel AI creation platform, macOS-only, self-built lightweight AI kernel
 
-## 一、核心叙事 — 文枢能做什么
+## One, Core narrative — what 文枢 can do
 
-**文枢 = 给长篇小说作者用的"全能工作台", 把 hermes 的 AI 能力 + Obsidian 的笔记能力 + 苹果原生 macOS 体验, 全部融进写小说的工作流里.**
+**文枢 = "full-featured workbench" for long-form novel authors, merging hermes's AI capabilities + Obsidian's note-taking capabilities + Apple native macOS experience, all into the novel-writing workflow.**
 
-一句话定位: "在文枢里, 你不用切出去打开浏览器 / 备忘录 / 写作软件 — 写小说需要的所有事, 都在这一个窗口."
+One-line positioning: "Inside 文枢, you don't need to switch out to open a browser / memos / writing software — everything you need to write a novel is in this one window."
 
-老板 (写小说的人) 在文枢里能做的事:
-1. 写小说 (主战场: 编辑器 + 大纲 + 人物 + 章节)
-2. 管设定 (人物关系 / 势力图 / 时间线 / 地点)
-3. 查资料 (网页抓取 / OCR 截图 / 本地文件 / 历史素材)
-4. 跟 AI 协作 (聊天 / 让 AI 改稿 / 让 AI 查历史 / 调度其他 AI agent)
-5. 管进度 (字数 / 截止日期 / 章节看板 / 写作日历)
-6. 备份 / 恢复 / 跨书架切换
+老板 (the novel writer) can do these things in 文枢:
+1. Write novels (main battleground: editor + outline + characters + chapters)
+2. Manage settings (character relationships / faction maps / timeline / locations)
+3. Look up information (web fetch / OCR screenshot / local files / historical material)
+4. Collaborate with AI (chat / have AI edit drafts / have AI look up history / dispatch other AI agents)
+5. Manage progress (word count / deadlines / chapter kanban / writing calendar)
+6. Backup / restore / cross-bookshelf switch
 
-## 二、用户旅程 — 老板的一天
+## Two, User journey — 老板's day
 
-| 阶段 | 老板做什么 | 文枢哪些模块帮忙 |
+| Phase | What 老板 does | Which 文枢 modules help |
 |---|---|---|
-| 1. 早上开电脑 | 打开文枢, 看到昨晚写到哪 + 今日字数 + 截止日期 | WordCount (字数) + Todo (今日 todo) + MiniMax Agent (跟 AI 问早安 / 提醒) + Bookmarks (上次收藏) |
-| 2. 列今日写作大纲 | 看 Outline 树 + 翻 Bases 人物表 | Outline (章节树) + Bases (人物表) + Graph (人物关系图) |
-| 3. 开始写章节 | 编辑器主区, 边写边插 [[林黛玉]] 自动补全 | Wikilink 编辑器渲染 + Backlinks (反向链接, 看 [[林黛玉]] 在哪些章节出现过) + Search (搜"飞鸟集"等设定) |
-| 4. 卡壳 | 跟 AI 聊天, 让 AI 帮续写 | MiniMax Agent (chat sheet) + Skill (调续写 skill) + Multi-Agent (派给改稿 agent) |
-| 5. 查资料 | 搜资料, 抓网页, OCR 截图 | Web Fetch (右键 Insert URL) + Vision (右键 OCR 图片) + File Tools (本地文件 import) |
-| 6. 写完一章 | 跑字数统计 + 标完成 | WordCount (顶栏右实时) + Bases (章节进度表) + Kanban (章节看板) |
-| 7. 晚上存档 | 改章节名 / 合并章节 / 自动备份 | Note Composer (rename / merge / split, 自动重写链接) + Backup (Toolbar 备份按钮) |
-| 8. 写作白板 | 画人物关系图 / 情节线 | Canvas (Toolbar Canvas 按钮, 弹 JSON Canvas 视图, 跟 Obsidian 兼容) |
-| 9. 听章节 | TTS 朗读检查节奏 | TTS (Toolbar 朗读按钮) |
-| 10. 定时任务 | 设定时自动保存 / 自动备份 | Cron (Settings 定时任务) |
-| 11. 跨书架 | 写另一本书, 切换 | Quick Switcher (⌘O 弹窗, 跨书架 fuzzy 搜索) |
-| 12. 写作历史 | 查"文枢写过什么" | Memory (Toolbar 记忆按钮 + Popover, 复刻 hermes mem0) |
+| 1. Turn on computer in morning | Open 文枢, see where stopped last night + today's word count + deadlines | WordCount (word count) + Todo (today's todo) + MiniMax Agent (chat with AI good morning / reminder) + Bookmarks (last favorites) |
+| 2. List today's writing outline | See Outline tree + browse Bases character table | Outline (chapter tree) + Bases (character table) + Graph (character relationship graph) |
+| 3. Start writing chapter | Editor main area, while writing insert [[Lin Daiyu]] auto-complete | Wikilink editor rendering + Backlinks (reverse link, see where [[Lin Daiyu]] appeared) + Search (search "Chuangzao ji" etc settings) |
+| 4. Stuck | Chat with AI, have AI help continue writing | MiniMax Agent (chat sheet) + Skill (call continue-writing skill) + Multi-Agent (dispatch to editing agent) |
+| 5. Look up information | Search materials, fetch web pages, OCR screenshots | Web Fetch (right-click Insert URL) + Vision (right-click OCR image) + File Tools (local file import) |
+| 6. Finish one chapter | Run word count + mark complete | WordCount (top-right real-time) + Bases (chapter progress table) + Kanban (chapter kanban) |
+| 7. Evening archive | Change chapter name / merge chapters / auto-backup | Note Composer (rename / merge / split, auto rewrite links) + Backup (Toolbar backup button) |
+| 8. Writing whiteboard | Draw character relationship graph / plot lines | Canvas (Toolbar Canvas button, popup JSON Canvas view, Obsidian-compatible) |
+| 9. Listen to chapter | TTS read aloud to check rhythm | TTS (Toolbar read-aloud button) |
+| 10. Scheduled task | Set timed auto-save / auto-backup | Cron (Settings scheduled tasks) |
+| 11. Cross-bookshelf | Write another book, switch | Quick Switcher (⌘O popup, cross-bookshelf fuzzy search) |
+| 12. Writing history | Look up "what 文枢 has written" | Memory (Toolbar memory button + Popover, replica hermes mem0) |
 
-## 三、需求清单 — 按模块分类 (业务语言)
+## Three, Requirements list — by module (business language)
 
-### A. 写小说主战场 (P0, 必接)
+### A. Novel-writing main battleground (P0, must connect)
 
-| # | 业务需求 | 模块 | 来源 | 接入位置 |
+| # | Business requirement | Module | Source | Connection location |
 |---|---|---|---|---|
-| A1 | 打开文枢, 直接接着昨晚写 | 现有 Library + LibraryOutlineView | wenshu 现有 | 已实现, 不动 |
-| A2 | 编辑器主区写章节, 跟 Pages 一样流畅 | 现有 BookEditorSheet | wenshu 现有 | 已实现, 不动 |
-| A3 | 章节里写 [[林黛玉]] 自动变成蓝色下划线链接, ⌘+click 跳转 | InternalLink Parser + Wikilink 编辑器渲染 | v0.19 ticket 12 | 编辑器主区 文本渲染层 |
-| A4 | 顶栏右实时显示当前章节字数 | WordCount | v0.19 ticket 20 | 顶栏右 widget |
-| A5 | 编辑器右栏显示当前章节反向链接 (哪些其他章节引用了它) | BacklinksPanel | v0.19 ticket 12 | 编辑器右栏 panel tab |
-| A6 | 编辑器右栏显示当前章节大纲 (H1-H6 跳转) | OutlinePanel | v0.19 ticket 21 | 编辑器右栏 panel tab (跟 Backlinks 共存) |
-| A7 | 编辑器右栏全文搜章节内容 | SearchPanel | v0.19 ticket 17 | 编辑器右栏 panel tab |
-| A8 | ⌘O 弹窗, fuzzy 搜所有书架的 note / 章节, 快速跳转 | QuickSwitcher | v0.19 ticket 19 | 全局快捷键 ⌘O (Apple Spotlight 同范式) |
+| A1 | Open 文枢, directly continue from last night | Existing Library + LibraryOutlineView | wenshu existing | Already implemented, don't touch |
+| A2 | Editor main area write chapter, as smooth as Pages | Existing BookEditorSheet | wenshu existing | Already implemented, don't touch |
+| A3 | Write `[[Lin Daiyu]]` in chapter auto becomes blue underlined link, ⌘+click to jump | InternalLink Parser + Wikilink editor rendering | v0.19 ticket 12 | Editor main area text rendering layer |
+| A4 | Top bar right real-time show current chapter word count | WordCount | v0.19 ticket 20 | Top bar right widget |
+| A5 | Editor right pane show current chapter reverse links (which other chapters reference it) | BacklinksPanel | v0.19 ticket 12 | Editor right pane panel tab |
+| A6 | Editor right pane show current chapter outline (H1-H6 jump) | OutlinePanel | v0.19 ticket 21 | Editor right pane panel tab (coexists with Backlinks) |
+| A7 | Editor right pane full-text search chapter content | SearchPanel | v0.19 ticket 17 | Editor right pane panel tab |
+| A8 | ⌘O popup, fuzzy search all bookshelf notes / chapters, quick jump | QuickSwitcher | v0.19 ticket 19 | Global shortcut ⌘O (same Apple Spotlight pattern) |
 
-### B. 管设定 (P0-P1, 强需求)
+### B. Manage settings (P0-P1, strong requirement)
 
-| # | 业务需求 | 模块 | 来源 | 接入位置 |
+| # | Business requirement | Module | Source | Connection location |
 |---|---|---|---|---|
-| B1 | 人物表: 显示所有人物 (姓名 / 年龄 / 关系 / 出场章节) | Bases 数据库视图 | v0.19 ticket 18 | 上 band 新 1 区 / 或右栏 panel tab |
-| B2 | 人物关系图谱: 节点 = 人物, 边 = 关系 | Graph view | v0.19 ticket 14 | 上 band 新 1 区 / 或独立 tab |
-| B3 | 势力 / 朝代 / 法宝 / 地点 表 | Bases (复用) | v0.19 ticket 18 | 同 B1 |
-| B4 | 写作白板: 画情节线 / 关系图 (跟 Obsidian Canvas 兼容) | Canvas + JSON Canvas 1:1 | v0.19 ticket 13 | Toolbar Canvas 按钮 / 或独立 tab |
-| B5 | 写章节大纲时, 自动应用模板 (章节 / 短篇 / 笔记) | Templates | v0.19 ticket 15 | Toolbar "新建" 按钮 → 模板选择 sheet |
-| B6 | 时间线 / 章节进度表 | Bases (复用) | v0.19 ticket 18 | 同 B1 |
+| B1 | Character table: show all characters (name / age / relationship / appearing chapters) | Bases database view | v0.19 ticket 18 | Upper band new 1 zone / or right pane panel tab |
+| B2 | Character relationship graph: nodes = characters, edges = relationships | Graph view | v0.19 ticket 14 | Upper band new 1 zone / or independent tab |
+| B3 | Faction / dynasty / magic weapon / location tables | Bases (reuse) | v0.19 ticket 18 | Same as B1 |
+| B4 | Writing whiteboard: draw plot lines / relationship graph (Obsidian Canvas compatible) | Canvas + JSON Canvas 1:1 | v0.19 ticket 13 | Toolbar Canvas button / or independent tab |
+| B5 | When writing chapter outline, auto-apply template (chapter / short story / note) | Templates | v0.19 ticket 15 | Toolbar "New" button → template selection sheet |
+| B6 | Timeline / chapter progress table | Bases (reuse) | v0.19 ticket 18 | Same as B1 |
 
-### C. AI 协作 (P0-P1, 强需求)
+### C. AI collaboration (P0-P1, strong requirement)
 
-| # | 业务需求 | 模块 | 来源 | 接入位置 |
+| # | Business requirement | Module | Source | Connection location |
 |---|---|---|---|---|
-| C1 | 跟 AI 聊天, 让 AI 续写 / 改稿 | MiniMax Agent | v0.18 ticket 03+31 (MiniMaxVerifier) | Toolbar "Agent" 按钮 → chat sheet |
-| C2 | 老板能手动 invoke 35 个 skill (续写 / 翻译 / 校对 / 风格转换) | Skill UI (复刻 hermes skills_hub) | v0.18 ticket 02 | Settings → Skills 列表 |
-| C3 | 派任务给其他 agent (改稿 agent / 校对 agent / 翻译 agent) | Multi-Agent UI | v0.18 ticket 04 | Settings → 代理 列表 |
-| C4 | 查"文枢之前写过什么" (长期记忆) | Memory UI | v0.18 ticket 01 | Toolbar "记忆" 按钮 + Popover |
+| C1 | Chat with AI, have AI continue writing / edit drafts | MiniMax Agent | v0.18 ticket 03+31 (MiniMaxVerifier) | Toolbar "Agent" button → chat sheet |
+| C2 | 老板 can manually invoke 35 skills (continue writing / translate / proofread / style conversion) | Skill UI (replica hermes skills_hub) | v0.18 ticket 02 | Settings → Skills list |
+| C3 | Dispatch tasks to other agents (editing agent / proofreading agent / translation agent) | Multi-Agent UI | v0.18 ticket 04 | Settings → Agents list |
+| C4 | Look up "what 文枢 has written before" (long-term memory) | Memory UI | v0.18 ticket 01 | Toolbar "Memory" button + Popover |
 
-### D. 查资料 / 处理文本 (P1)
+### D. Information lookup / text processing (P1)
 
-| # | 业务需求 | 模块 | 来源 | 接入位置 |
+| # | Business requirement | Module | Source | Connection location |
 |---|---|---|---|---|
-| D1 | 抓网页内容到文枢 (查资料) | Web Fetch | v0.18 ticket 09 | 编辑器右键 "Insert URL" |
-| D2 | OCR 截图, 把图里的文字插到章节里 | Vision | v0.18 ticket 10 | 编辑器右键 "OCR 图片" |
-| D3 | 导入本地文本文件 / 导出章节为文件 | File Tools | v0.18 ticket 07 | 编辑器右键菜单 + Toolbar 打开/保存 |
-| D4 | TTS 朗读当前章节 (听节奏) | TTS / AVMedia | v0.18 ticket 11 | Toolbar "朗读" 按钮 |
-| D5 | 在文枢内跑 shell 脚本 (批量处理) | Process | v0.18 ticket 08 | Toolbar "运行" 按钮 + NSTextField 输入 |
+| D1 | Fetch web content into 文枢 (look up info) | Web Fetch | v0.18 ticket 09 | Editor right-click "Insert URL" |
+| D2 | OCR screenshot, insert text from image into chapter | Vision | v0.18 ticket 10 | Editor right-click "OCR image" |
+| D3 | Import local text files / export chapter as file | File Tools | v0.18 ticket 07 | Editor right-click menu + Toolbar open/save |
+| D4 | TTS read current chapter aloud (listen to rhythm) | TTS / AVMedia | v0.18 ticket 11 | Toolbar "Read" button |
+| D5 | Run shell scripts inside 文枢 (batch processing) | Process | v0.18 ticket 08 | Toolbar "Run" button + NSTextField input |
 
-### E. 管进度 / 管时间 (P1)
+### E. Manage progress / time (P1)
 
-| # | 业务需求 | 模块 | 来源 | 接入位置 |
+| # | Business requirement | Module | Source | Connection location |
 |---|---|---|---|---|
-| E1 | 章节看板: backlog / in-progress / done | Kanban UI | v0.18 ticket 05 | 侧栏 "项目" 标签 |
-| E2 | 今日 todo (简版 GTD) | Todo UI | v0.18 ticket 06 | 侧栏 "今日" 标签 |
-| E3 | 定时任务 (自动保存 / 自动备份) | Cron UI | v0.18 ticket 21 | Settings "定时任务" 列表 |
+| E1 | Chapter kanban: backlog / in-progress / done | Kanban UI | v0.18 ticket 05 | Sidebar "Projects" tab |
+| E2 | Today's todo (simple GTD) | Todo UI | v0.18 ticket 06 | Sidebar "Today" tab |
+| E3 | Scheduled tasks (auto-save / auto-backup) | Cron UI | v0.18 ticket 21 | Settings "Scheduled tasks" list |
 
-### F. 管文档 / 编辑工具 (P1-P2)
+### F. Document management / editing tools (P1-P2)
 
-| # | 业务需求 | 模块 | 来源 | 接入位置 |
+| # | Business requirement | Module | Source | Connection location |
 |---|---|---|---|---|
-| F1 | 重命名章节, 自动重写所有 [[旧名]] → [[新名]] | Note Composer (rename) | v0.19 ticket 16 | 文件菜单 → 重命名 (跟 #5 Backlinks 联动) |
-| F2 | 合并两个章节 → 自动重写链接 | Note Composer (merge) | v0.19 ticket 16 | 文件菜单 → 合并 |
-| F3 | 拆分一个章节 → 自动重写链接 | Note Composer (split) | v0.19 ticket 16 | 文件菜单 → 拆分 |
-| F4 | 收藏重要章节 / 设定片段 (跨书架) | Bookmarks UI | v0.19 ticket 22 | Toolbar 添加按钮 + ⌘⇧B 弹窗 + 编辑器右栏 tab |
+| F1 | Rename chapter, auto rewrite all `[[old_name]]` → `[[new_name]]` | Note Composer (rename) | v0.19 ticket 16 | File menu → Rename (linked with #5 Backlinks) |
+| F2 | Merge two chapters → auto rewrite links | Note Composer (merge) | v0.19 ticket 16 | File menu → Merge |
+| F3 | Split one chapter → auto rewrite links | Note Composer (split) | v0.19 ticket 16 | File menu → Split |
+| F4 | Favorite important chapters / setting fragments (cross-bookshelf) | Bookmarks UI | v0.19 ticket 22 | Toolbar add button + ⌘⇧B popup + editor right pane tab |
 
-### G. 数据安全 / 自动化 (P2)
+### G. Data security / automation (P2)
 
-| # | 业务需求 | 模块 | 来源 | 接入位置 |
+| # | Business requirement | Module | Source | Connection location |
 |---|---|---|---|---|
-| G1 | 一键备份整个项目, 跨书架 | Backup UI | v0.18 ticket 26 | Toolbar "备份" 按钮 |
-| G2 | 定时自动备份 | Cron + Backup 联动 | v0.18 ticket 21+26 | Settings 定时任务 |
+| G1 | One-click backup entire project, cross-bookshelf | Backup UI | v0.18 ticket 26 | Toolbar "Backup" button |
+| G2 | Scheduled auto-backup | Cron + Backup linkage | v0.18 ticket 21+26 | Settings scheduled tasks |
 
-## 四、模块关联关系 (模块依赖图)
+## Four, Module relationship (module dependency graph)
 
 ```
-[wenshu 现有框架]
+[wenshu existing framework]
   Library / LibraryOutlineView / Book / Bookshelf / Document / FileSystemLibraryStore
      ↑
      │
-[Obsidian 复刻 (写小说)]
+[Obsidian replica (write novel)]
      │
      ├─ LinkGraph (LinkIndex + InternalLinkParser + BacklinkResolver)
-     │   └─ 依赖: 现有 Document
+     │   └─ Dependency: existing Document
      │
      ├─ Search (FullTextSearch SQLite FTS5)
-     │   └─ 依赖: 现有 Document content
+     │   └─ Dependency: existing Document content
      │
      ├─ Outline (OutlineExtractor)
-     │   └─ 依赖: 现有 Document content
+     │   └─ Dependency: existing Document content
      │
      ├─ WordCount (WordCounter)
-     │   └─ 依赖: 现有 Document content
+     │   └─ Dependency: existing Document content
      │
      ├─ Canvas / Graph / Bases / Templates / Composer
-     │   └─ 依赖: 现有 Document + LinkIndex (Composer 联动 Backlinks)
+     │   └─ Dependency: existing Document + LinkIndex (Composer linked with Backlinks)
      │
      ├─ QuickSwitcher (fuzzy search)
-     │   └─ 依赖: 现有 Library (跨书架)
+     │   └─ Dependency: existing Library (cross-bookshelf)
      │
      └─ Bookmarks (BookmarkStore)
-         └─ 依赖: 现有 Library / Document
+         └─ Dependency: existing Library / Document
      ↑
      │
-[hermes 复刻 (AI + 工具)]
+[hermes replica (AI + tools)]
      │
-     ├─ Memory (MemoryStore SQLite, 复刻 hermes mem0)
-     │   └─ 独立, 跟现有 Document 关联 (Memory 内容可来自 Document)
+     ├─ Memory (MemoryStore SQLite, replica hermes mem0)
+     │   └─ Independent, related to existing Document (Memory content can come from Document)
      │
-     ├─ Skill (SkillRegistry, 复刻 hermes skills_hub)
-     │   └─ 独立, 通过 Skill UI invoke
+     ├─ Skill (SkillRegistry, replica hermes skills_hub)
+     │   └─ Independent, invoke through Skill UI
      │
      ├─ Agent (AgentProtocol + AgentRuntime + MiniMaxVerifier)
-     │   └─ 依赖: SkillRegistry (agent 调用 skill) + Memory (agent 查记忆)
+     │   └─ Dependency: SkillRegistry (agent calls skill) + Memory (agent queries memory)
      │
-     ├─ Kanban / Todo (项目进度 + GTD)
-     │   └─ 跟现有 Document 关联 (章节 = kanban task)
+     ├─ Kanban / Todo (project progress + GTD)
+     │   └─ Related to existing Document (chapter = kanban task)
      │
-     ├─ File / Process / Web / Vision / AV (工具集)
-     │   └─ 独立, 通过编辑器官右键菜单 / Toolbar 接入
+     ├─ File / Process / Web / Vision / AV (tool set)
+     │   └─ Independent, connected through editor right-click menu / Toolbar
      │
-     └─ Cron / Backup (自动化 + 备份)
-         └─ 独立, 通过 Settings / Toolbar 接入
+     └─ Cron / Backup (automation + backup)
+         └─ Independent, connected through Settings / Toolbar
 ```
 
-**关键联动 (老板接入时一起做):**
+**Key linkages (do together when connecting):**
+1. **LinkGraph linkage**: Wikilink editor rendering + Backlinks panel + `[[wikilink]]` auto-complete — same LinkIndex three connection points
+2. **Outline linkage**: 老板's list (sidebar) + my list (right pane) — same OutlineExtractor either-or connection
+3. **Composer + Backlinks linkage**: rename triggers auto rewrite → must connect Composer together with Backlinks
+4. **Memory + Document linkage**: Memory content extracted from Document, 老板 queries "what's been written"
+5. **Agent + Skill linkage**: Agent calls Skill, chat sheet selects skill
+6. **Cron + Backup linkage**: scheduled auto-backup
 
-1. **LinkGraph 联动**: Wikilink 编辑器渲染 + Backlinks 面板 + [[wikilink]] 自动补全 — 同一 LinkIndex 三种接入
-2. **Outline 联动**: 老板清单 (侧栏) + 我清单 (右栏) — 同一 OutlineExtractor 二选一接入
-3. **Composer + Backlinks 联动**: rename 触发自动重写 → 必须接 Composer 同时接 Backlinks
-4. **Memory + Document 联动**: Memory 内容从 Document 抽取, 老板查"写过什么"
-5. **Agent + Skill 联动**: Agent 调用 Skill, chat sheet 选 skill
-6. **Cron + Backup 联动**: 定时自动备份
+## Five, Priority + connection order (business value sort)
 
-## 五、优先级 + 接入顺序 (业务价值排序)
+### 🔥 P0 must connect (1-2 weeks, core novel-writing experience)
 
-### � P0 必接 (1-2 周, 写小说的核心体验)
-
-| # | 业务需求 | 接入后老板能立刻做什么 |
+| # | Business requirement | What 老板 can immediately do after connection |
 |---|---|---|
-| A3 | Wikilink 编辑器渲染 | 章节里写 [[林黛玉]] 自动链接, 一跳就到 |
-| A4 | 顶栏字数 badge | 实时知道今天写多少字 |
-| A5 | Backlinks 面板 | 写当前章节时看到所有引用它的设定 |
-| A6 | Outline 面板 | 编辑器右栏看大纲, 点击跳章节 |
-| A7 | Search 全文搜索 | ⌘F 搜"飞鸟集"等设定片段 |
-| A8 | Quick Switcher ⌘O | 跨书架快速跳 |
-| C1 | MiniMax Agent chat | 跟 AI 聊续写 |
-| C2 | Skill UI | 手动 invoke 35 skill |
-| C4 | Memory UI | 查"文枢写过什么" |
+| A3 | Wikilink editor rendering | Write `[[Lin Daiyu]]` in chapter auto link, one click jump |
+| A4 | Top bar word count badge | Real-time know how many words written today |
+| A5 | Backlinks panel | When writing current chapter see all settings referencing it |
+| A6 | Outline panel | Editor right pane see outline, click jump chapter |
+| A7 | Search full-text search | ⌘F search "Chuangzao ji" etc setting fragments |
+| A8 | Quick Switcher ⌘O | Cross-bookshelf quick jump |
+| C1 | MiniMax Agent chat | Chat with AI to continue writing |
+| C2 | Skill UI | Manually invoke 35 skills |
+| C4 | Memory UI | Query "what 文枢 has written" |
 
-### 🟡 P1 核心增强 (2-3 周, 让文枢比单纯编辑器更值)
+### 🟡 P1 core enhancement (2-3 weeks, make 文枢 more valuable than plain editor)
 
-| # | 业务需求 | 接入后老板能做什么 |
+| # | Business requirement | What 老板 can do after connection |
 |---|---|---|
-| B1-B6 | Bases / Graph / Canvas / Templates (B 系列) | 人物表 / 关系图 / 白板 / 模板, 写作工作流完整 |
-| D1-D5 | 工具集 (D 系列, Web / Vision / File / TTS / Process) | 编辑器右键菜单 / Toolbar 一键查资料 |
-| E1-E3 | Kanban / Todo / Cron (E 系列) | 进度管理 + 定时任务 |
-| F1-F4 | Composer / Bookmarks (F 系列) | 重命名章节自动重写链接 + 收藏 |
+| B1-B6 | Bases / Graph / Canvas / Templates (B series) | Character table / relationship graph / whiteboard / templates, complete writing workflow |
+| D1-D5 | Tool set (D series, Web / Vision / File / TTS / Process) | Editor right-click menu / Toolbar one-key lookup |
+| E1-E3 | Kanban / Todo / Cron (E series) | Progress management + scheduled tasks |
+| F1-F4 | Composer / Bookmarks (F series) | Rename chapter auto rewrite links + favorites |
 
-### 🟢 P2 收尾 (3-4 周, 锦上添花)
+### 🟢 P2 wrap-up (3-4 weeks, icing on cake)
 
-| # | 业务需求 | 接入后老板能做什么 |
+| # | Business requirement | What 老板 can do after connection |
 |---|---|---|
-| C3 | Multi-Agent UI | 派任务给多个 AI agent |
-| D5 | Process / TTS | 跑脚本 + 听章节 |
-| G1-G2 | Backup + Cron 联动 | 定时自动备份 |
+| C3 | Multi-Agent UI | Dispatch tasks to multiple AI agents |
+| D5 | Process / TTS | Run scripts + listen to chapters |
+| G1-G2 | Backup + Cron linkage | Scheduled auto-backup |
 
-## 六、最终实现的功能 (老板 macOS 验后, 文枢能做的事)
+## Six, Final implemented features (after 老板 macOS verifies, what 文枢 can do)
 
-### 老板写小说的一天 (接入全部后)
+### 老板's novel-writing day (after all connected)
 
 ```
-07:00  打开文枢 → 看到昨晚写到第几章 + 今日 todo + AI 提醒 (Memory / Todo / MiniMax)
-07:10  看大纲, 翻人物表, 看人物关系图 (Outline / Bases / Graph)
-07:30  开始写章节 → 边写边插 [[林黛玉]] 自动跳转 (Wikilink / Backlinks)
-08:00  卡壳 → 跟 AI 聊天续写 / invoke skill (MiniMax Agent / Skill)
-08:30  查资料 → 抓网页 / OCR 截图 (Web Fetch / Vision)
-09:00  写完一章 → 跑字数 / 标完成 / 加入看板 (WordCount / Kanban)
-12:00  中午休息 → 听昨晚写的章节 (TTS)
-18:00  晚上写作 → 画情节白板 (Canvas)
-19:00  改章节名 → 自动重写所有链接 (Composer + Backlinks 联动)
-20:00  收藏重要片段 → ⌘⇧B 弹窗 (Bookmarks)
-22:00  存档 → 一键备份 / 定时自动备份 (Backup / Cron)
-23:00  跨书架写另一本 → ⌘O 快速跳 (Quick Switcher)
+07:00  Open 文枢 → see which chapter stopped last night + today's todo + AI reminder (Memory / Todo / MiniMax)
+07:10  See outline, browse character table, see character relationship graph (Outline / Bases / Graph)
+07:30  Start writing chapter → while writing insert [[Lin Daiyu]] auto jump (Wikilink / Backlinks)
+08:00  Stuck → chat with AI continue writing / invoke skill (MiniMax Agent / Skill)
+08:30  Look up information → fetch web / OCR screenshot (Web Fetch / Vision)
+09:00  Finish one chapter → run word count / mark complete / add to kanban (WordCount / Kanban)
+12:00  Lunch break → listen to chapter written last night (TTS)
+18:00  Evening writing → draw plot whiteboard (Canvas)
+19:00  Change chapter name → auto rewrite all links (Composer + Backlinks linkage)
+20:00  Favorite important fragments → ⌘⇧B popup (Bookmarks)
+22:00  Archive → one-key backup / scheduled auto-backup (Backup / Cron)
+23:00  Cross-bookshelf write another → ⌘O quick jump (Quick Switcher)
 ```
 
-### 文枢最终能力 (26 项业务需求全部接入)
+### 文枢 final capabilities (all 26 business requirements connected)
 
-| 维度 | 能力 |
+| Dimension | Capability |
 |---|---|
-| 写作 | 编辑器主区 + 实时字数 + 反向链接 + 大纲跳转 + 全文搜索 + wikilink 渲染 |
-| 设定 | 人物表 + 关系图 + 势力图 + 写作白板 (Obsidian Canvas 兼容) + 模板 |
-| AI | 跟 AI 聊天 + invoke 35 skill + 派给其他 agent + 查长期记忆 |
-| 资料 | 抓网页 + OCR 截图 + 导入本地文件 + 朗读 + 跑脚本 |
-| 进度 | 章节看板 + 今日 todo + 定时任务 |
-| 编辑 | 重命名章节 + 自动重写链接 + 合并 + 拆分 |
-| 安全 | 一键备份 + 定时自动备份 |
+| Writing | Editor main area + real-time word count + reverse links + outline jump + full-text search + wikilink rendering |
+| Settings | Character table + relationship graph + faction graph + writing whiteboard (Obsidian Canvas compatible) + templates |
+| AI | Chat with AI + invoke 35 skills + dispatch to other agents + query long-term memory |
+| Information | Web fetch + OCR screenshot + import local file + read aloud + run scripts |
+| Progress | Chapter kanban + today's todo + scheduled tasks |
+| Editing | Rename chapter + auto rewrite links + merge + split |
+| Security | One-key backup + scheduled auto-backup |
 
-**文枢 = Apple 全家桶长篇小说 AI 创作平台 = 写小说需要的所有事, 都在一个窗口.**
+**文枢 = Apple stack long-form novel AI creation platform = everything you need to write a novel is in one window.**
 
-## 七、跟 LayoutTokens 死原则的冲突 (需老板拍)
+## Seven, Conflict with LayoutTokens dead principles (needs 老板 拍)
 
-| 需求 | 冲突 | 备选 |
+| Requirement | Conflict | Alternative |
 |---|---|---|
-| B1 Bases 独立区 | 上 band 4 → 5 区, 跟 ticket 14 死原则冲突 | 用 panel tabs 切换 (编辑器右栏多 tab, Bases 跟 Outline/Backlinks/Search 共享) |
-| B2 Graph 独立区 | 同 Bases | 同上 |
-| B4 Canvas 独立区 | 同 Bases | 同上 |
+| B1 Bases independent zone | Upper band 4 → 5 zones, conflicts with ticket 14 dead principle | Use panel tabs (editor right pane multiple tabs, Bases shares with Outline/Backlinks/Search) |
+| B2 Graph independent zone | Same as Bases | Same |
+| B4 Canvas independent zone | Same as Bases | Same |
 
-**建议**: Bases / Graph / Canvas 都用 panel tabs 接入, 不动 LayoutTokens 死原则.
+**Suggestion**: Bases / Graph / Canvas all use panel tabs, don't touch LayoutTokens dead principles.
 
-## 八、跟现有 6 区 layout 的整合
+## Eight, Integration with existing 6-zone layout
 
 ```
-顶栏 (titleBar)
-├─ A4 字数 badge (右)
-├─ A8 Quick Switcher 入口 (右图标)
-├─ C1 Agent 入口 (右图标)
-├─ C2 Skill 入口 (右图标)
-├─ C4 Memory 入口 (右图标)
-├─ D3 File 打开/保存 (右)
-├─ D4 TTS 朗读 (右)
-├─ D5 Process 运行 (右)
-├─ F4 Bookmark 添加 (右)
-└─ G1 Backup (右)
+Top bar (titleBar)
+├─ A4 word count badge (right)
+├─ A8 Quick Switcher entry (right icon)
+├─ C1 Agent entry (right icon)
+├─ C2 Skill entry (right icon)
+├─ C4 Memory entry (right icon)
+├─ D3 File open/save (right)
+├─ D4 TTS read aloud (right)
+├─ D5 Process run (right)
+├─ F4 Bookmark add (right)
+└─ G1 Backup (right)
 
-上 band (4 区)
-├─ 1 区 (200 PT 项目侧栏): E1 Kanban / E2 Todo (NavigationSplitView 侧栏叠加)
-├─ 2 区 (520 PT 项目预览): 现有
-├─ 3 区 (794 PT 编辑器): A2 现有编辑器主区 + A3 wikilink 渲染
-│   └─ 编辑器右栏 (panel tabs): A5 Backlinks / A6 Outline / A7 Search / F4 Bookmarks (4 tab 切换)
-└─ 4 区 (400 PT 工具): 现有
+Upper band (4 zones)
+├─ Zone 1 (200 PT project sidebar): E1 Kanban / E2 Todo (NavigationSplitView sidebar overlay)
+├─ Zone 2 (520 PT project preview): existing
+├─ Zone 3 (794 PT editor): A2 existing editor main area + A3 wikilink rendering
+│   └─ Editor right pane (panel tabs): A5 Backlinks / A6 Outline / A7 Search / F4 Bookmarks (4 tab switch)
+└─ Zone 4 (400 PT tools): existing
 
-下 band (2 区)
-├─ 1 区 (1518 PT AI 聊天): 现有 + C1 MiniMax Agent chat (整合)
-└─ 2 区 (400 PT AI 动态): 现有
+Lower band (2 zones)
+├─ Zone 1 (1518 PT AI chat): existing + C1 MiniMax Agent chat (integrated)
+└─ Zone 2 (400 PT AI dynamic): existing
 ```
 
-**不动 LayoutTokens 死原则 (1920×984 PT 1:1 锁定)** — 所有新增 UI 通过顶栏 / 工具栏 / 侧栏 / 编辑器右栏 panel tabs 接入.
+**Don't touch LayoutTokens dead principles (1920×984 PT 1:1 locked)** — all new UI through top bar / toolbar / sidebar / editor right pane panel tabs.
 
-## 九、待办 (老板拍)
+## Nine, Todo (老板 拍)
 
-1. 拍 P0 开工 (9 项业务需求, 1-2 周)
-2. 拍 Bases / Graph / Canvas 走 panel tabs (避开 LayoutTokens 死原则)
-3. 拍 Outline 走右栏 or 侧栏 (老板另一会话的清单 + 我清单冲突)
-4. 拍后续 ticket 排期: ticket 24 (panel tabs 框架) + ticket 25+ (按 Phase 顺序)
+1. 拍 P0 start work (9 business requirements, 1-2 weeks)
+2. 拍 Bases / Graph / Canvas through panel tabs (avoid LayoutTokens dead principles)
+3. 拍 Outline through right pane or sidebar (老板 another session's list + my list conflict)
+4. 拍 subsequent ticket scheduling: ticket 24 (panel tabs framework) + ticket 25+ (per Phase order)
