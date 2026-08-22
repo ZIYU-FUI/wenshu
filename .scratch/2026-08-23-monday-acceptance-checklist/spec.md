@@ -10,7 +10,7 @@
 | # | 验什么 | 怎么验 | 期望 |
 |---|---|---|---|
 | 0.1 | 分支 + build | `git checkout wt/multi-agent-dispatch` 然后 `swift build` | build 成功, 无 error |
-| 0.2 | 跑测试 | `swift test` | 544 tests pass in 75 suites |
+| 0.2 | 跑测试 | `swift test` | 571 tests pass in 78 suites (post v0.23 audit #014, was 544 in 75 at 8/22) |
 | 0.3 | 启动 binary | `swift run WenshuApp` 或 Xcode 启动 | 6-zone layout 显示 |
 | 0.4 | 看 sub-agent 看板 (新加) | 点 aiDynamic zone 顶 toolbar `checklist.checked` 图标 | 弹 "Sub-agent progress" sheet, 显示空 "no sub-agent tasks yet" |
 
@@ -177,7 +177,7 @@
 | 12.2 | 双轴 code-review | 看 commit messages | 每个 commit body 有 "Code-review axes: Standards + Spec" 段 |
 | 12.3 | 1 commit per gap | `git log --oneline main..HEAD \| grep "v0.23 ticket 013"` | 11 commits (gap 1-11) + 1 domain modeling |
 | 12.4 | Leaf-level changes | 看 commit 文件列表 | 不改 LayoutShellView / WenshuAppDelegate / parent components |
-| 12.5 | swift test pass | `swift test` | 544 / 75 pass |
+| 12.5 | swift test pass | `swift test` | 571 / 78 pass |
 | 12.6 | swift build clean | `swift build` | 0 error, 0 warning (除了 pre-existing actor isolation) |
 
 ---
@@ -217,7 +217,7 @@
 
 1. **`cd /Volumes/ANAN/Engineering/wenshu`**
 2. **`git checkout wt/multi-agent-dispatch`**
-3. **`swift test`** → 验 0.2 (期望 544 pass)
+3. **`swift test`** → 验 0.2 (期望 571 pass)
 4. **`swift run WenshuApp`** (或 Xcode 启动)
 5. 打开 app → 验 0.3-13.1 按顺序点
 6. 表格填验收结果, 任何不通过告诉我, 我开新 commit 修

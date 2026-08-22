@@ -9,7 +9,7 @@ import Foundation
 import Testing
 @testable import WenshuApp
 
-@Suite("ProviderResolution (动态 key + baseURL routing)")
+@Suite("ProviderResolution (动态 key + baseURL routing)", .serialized)
 struct ProviderResolutionTests {
 
     // MARK: - WenshuLLMModel.providerSlug
