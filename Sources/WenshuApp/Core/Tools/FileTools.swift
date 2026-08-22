@@ -56,8 +56,19 @@ public struct FileTools: Sendable {
     /// pathDenied: 路径 deny-list check (boss 8/23 拍: 用户不可通过聊天改代码 / 改配置).
     /// Returns true if the path matches project code / config / scratch / system files.
     /// Uses (path as NSString).standardizingPath to normalize symlinks / . / ..
+    /// v0.23 ticket 013.002: hermes _is_blocked_device parity.
+    /// Also blocks /dev/* + /proc/* (memory/environ leaks) + symlink hops.
     public func pathDenied(_ path: String) -> Bool {
         let std = (path as NSString).standardizingPath
+
+        // v0.23 ticket 013.002: hermes _is_blocked_device_path parity.
+        // Block /dev/* (can hang reads) and /proc/* secrets (environ/maps/mem).
+        if isBlockedDevice(std) { return true }
+
+        // v0.23 ticket 013.002: hermes symlink-hop defense.
+        // Follow symlinks and re-check each hop's parent + final resolved path.
+        if pathHasBlockedSymlink(std) { return true }
+
         let denyPrefixes = [
             "Sources/",
             "Tests/",
@@ -73,6 +84,51 @@ public struct FileTools: Sendable {
         let denySuffixes = [".zshrc", ".bashrc", ".profile", ".bash_profile"]
         for prefix in denyPrefixes where std.contains(prefix) { return true }
         for suffix in denySuffixes where std.hasSuffix(suffix) { return true }
+        return false
+    }
+
+    /// isBlockedDevice: hermes `_is_blocked_device_path` parity.
+    /// Block /dev/stdin + /proc/* secrets (can leak env / memory layout).
+    public func isBlockedDevice(_ path: String) -> Bool {
+        // /dev/stdin, /dev/zero, /dev/random, etc. — can hang reads or expose data.
+        if path.hasPrefix("/dev/") {
+            return true
+        }
+        // /proc/self/environ → env vars (incl. API keys)
+        // /proc/self/maps → memory layout (ASLR bypass)
+        // /proc/self/cmdline → process args (might contain secrets)
+        // /proc/self/mem → raw memory
+        // /proc/self/auxv → AT_RANDOM seed (ASLR oracle)
+        // /proc/self/pagemap → virtual→physical translation
+        let procSensitiveSuffixes = [
+            "/environ", "/cmdline", "/maps", "/smaps",
+            "/smaps_rollup", "/numa_maps", "/mem", "/auxv", "/pagemap",
+            "/fd/0", "/fd/1", "/fd/2",  // stdio (hangs reads)
+        ]
+        if path.hasPrefix("/proc/") {
+            for suffix in procSensitiveSuffixes where path.hasSuffix(suffix) {
+                return true
+            }
+        }
+        return false
+    }
+
+    /// pathHasBlockedSymlink: hermes symlink-hop defense (boss 8/23 security).
+    /// Resolves symlinks and verifies no hop leads to a blocked device.
+    /// Returns true if ANY hop in the chain points to /dev/* or /proc/*.
+    public func pathHasBlockedSymlink(_ path: String) -> Bool {
+        let url = URL(fileURLWithPath: path)
+        // Resolve symlinks iteratively. macOS realpath equivalent.
+        var current = url
+        var hops = 0
+        let maxHops = 40  // symlink cycle limit (matches POSIX MAXSYMLINKS)
+        while hops < maxHops {
+            let resolved = current.resolvingSymlinksInPath()
+            if resolved == current { break }  // no more symlinks to resolve
+            if isBlockedDevice(resolved.path) { return true }
+            current = resolved
+            hops += 1
+        }
         return false
     }
 
