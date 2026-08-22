@@ -292,7 +292,8 @@ public actor WenshuWorkspace {
     /// updateManifestTimestamp: called on any write.
     public func updateManifestTimestamp() throws {
         let now = Date().timeIntervalSince1970
-        try exec("UPDATE ws_manifest SET updated_at = \(now);")
+        // v0.23 audit #014 fix (HIGH): parameterized SQL, no string interpolation.
+        try exec("UPDATE ws_manifest SET updated_at = ?;", [now])
     }
 
     // MARK: - Backup / Export / Integrity
@@ -338,6 +339,53 @@ public actor WenshuWorkspace {
             sqlite3_free(errMsg)
             throw WenshuWorkspaceError.execFailed(sql: sql, message: msg)
         }
+    }
+
+    /// exec with parameter binding (v0.23 audit #014 fix — replaces string concat).
+    /// Use for any SQL with non-literal values: timestamps, IDs, user input, etc.
+    /// Maintains project's "all SQL parameterized" rule.
+    public func exec(_ sql: String, _ params: [Any?]?) throws {
+        var stmt: OpaquePointer?
+        defer { sqlite3_finalize(stmt) }
+        guard sqlite3_prepare_v2(dbPtr, sql, -1, &stmt, nil) == SQLITE_OK else {
+            throw WenshuWorkspaceError.execFailed(sql: sql, message: "prepare failed: \(lastErrorMessage(db: dbPtr))")
+        }
+        // Bind params.
+        if let params = params {
+            for (i, param) in params.enumerated() {
+                let idx = Int32(i + 1)
+                let rc: Int32
+                switch param {
+                case let s as String:
+                    rc = sqlite3_bind_text(stmt, idx, s, -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
+                case let d as Double:
+                    rc = sqlite3_bind_double(stmt, idx, d)
+                case let i as Int:
+                    rc = sqlite3_bind_int64(stmt, idx, Int64(i))
+                case let i as Int64:
+                    rc = sqlite3_bind_int64(stmt, idx, i)
+                case let b as Bool:
+                    rc = sqlite3_bind_int(stmt, idx, b ? 1 : 0)
+                case nil:
+                    rc = sqlite3_bind_null(stmt, idx)
+                default:
+                    // Fallback: convert to string.
+                    rc = sqlite3_bind_text(stmt, idx, String(describing: param!), -1, unsafeBitCast(-1, to: sqlite3_destructor_type.self))
+                }
+                if rc != SQLITE_OK {
+                    throw WenshuWorkspaceError.execFailed(sql: sql, message: "bind failed at param \(i): \(lastErrorMessage(db: dbPtr))")
+                }
+            }
+        }
+        guard sqlite3_step(stmt) == SQLITE_DONE else {
+            throw WenshuWorkspaceError.execFailed(sql: sql, message: "step failed: \(lastErrorMessage(db: dbPtr))")
+        }
+    }
+
+    /// lastErrorMessage helper.
+    private func lastErrorMessage(db: OpaquePointer?) -> String {
+        guard let cString = sqlite3_errmsg(db) else { return "unknown" }
+        return String(cString: cString)
     }
 
     /// queryScalarInt: run scalar SELECT, return Int result (or nil on error).

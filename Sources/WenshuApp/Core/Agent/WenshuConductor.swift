@@ -234,10 +234,15 @@ public actor WenshuConductor {
             // Run sub-agents in parallel
             subResults = await withTaskGroup(of: (String, String).self) { group in
                 for (name, _) in tasks {
+                    // v0.23 audit #014 fix (HIGH): pre-validate cast once, skip unknown.
+                    // Was: 'SubAgentIdentity.Name(rawValue: name)!' — crash risk.
+                    guard let identityName = SubAgentIdentity.Name(rawValue: name) else {
+                        continue  // skip unknown sub-agent name
+                    }
                     group.addTask { [self] in
                         // Each sub-agent gets its own system prompt + tools (v0.23 ticket 001)
                         let agentPrompt = """
-                        \(SubAgentIdentity.systemPrompt(name: SubAgentIdentity.Name(rawValue: name)!))
+                        \(SubAgentIdentity.systemPrompt(name: identityName))
 
                         ---
 
@@ -247,7 +252,7 @@ public actor WenshuConductor {
                         """
                         guard let response = try? await self.verifier.chat(
                             agentPrompt,
-                            system: SubAgentIdentity.systemPrompt(name: SubAgentIdentity.Name(rawValue: name)!),
+                            system: SubAgentIdentity.systemPrompt(name: identityName),
                             model: model
                         ) else {
                             return (name, "(subagent unreachable)")
