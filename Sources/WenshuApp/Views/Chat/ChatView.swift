@@ -6,7 +6,7 @@
 //
 //  业务语言描述 (老板懂):
 //  - wenshu 左下 zone 改成真 chat (消息列表 + 输入框 + 发送按钮)
-//  - 点发送 → AgentRuntime.delegateTask → MiniMaxVerifier.ping 调 MiniMax-M3
+//  - 点发送 → AgentRuntime.delegateTask → WenshuVerifier.ping 调 MiniMax-M3
 //  - MiniMax key 端到端调通 (Q22 真验证, ticket 31 done, HTTP 200)
 //  - 工程管理老板授权 + 不需要验收
 //
@@ -24,7 +24,7 @@ public struct ChatMessage: Equatable, Identifiable, Sendable {
     public let timestamp: Date
     public var isPlaceholder: Bool
     public var tokens: Int?    // real LLM API usage.total_tokens (nil if user message or unavailable)
-    public var thinking: String?    // CoT thinking content from MiniMaxBlock.thinking (folded footnote UI)
+    public var thinking: String?    // CoT thinking content from WenshuLLMBlock.thinking (folded footnote UI)
 
     public init(
         id: UUID = UUID(),
@@ -69,7 +69,7 @@ public final class ChatViewModel {
     public var inputText: String = ""
     public var isSending: Bool = false
     public var lastError: String?
-    public var currentModel: String = UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? MiniMaxModel.m3.rawValue
+    public var currentModel: String = UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? WenshuLLMModel.m3.rawValue
     public var availableModels: [String] = []
     public var contextUsed: Int = 0
     public var contextMax: Int = 131072  // MiniMax-M3 真值 context window = 128k = 131072 tokens (Hermes ModelInfoResponse.context_length 范式)
@@ -93,9 +93,9 @@ public final class ChatViewModel {
     public func loadAvailableModels() async {
         let base = ProcessInfo.processInfo.environment["MINIMAX_CN_BASE_URL"] ?? "https://api.minimaxi.com/anthropic"
         if let key = LLMKeychain.loadKeySync(), !key.isEmpty {
-            availableModels = await MiniMaxModelFetcher.loadModelIds(apiKey: key, baseUrl: base)
+            availableModels = await WenshuLLMModelFetcher.loadModelIds(apiKey: key, baseUrl: base)
         } else {
-            availableModels = MiniMaxModel.allCases.map { $0.rawValue }
+            availableModels = WenshuLLMModel.allCases.map { $0.rawValue }
         }
         if !availableModels.contains(currentModel) {
             availableModels = [currentModel] + availableModels
@@ -137,7 +137,7 @@ public final class ChatViewModel {
             let currentModel: String = UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? "MiniMax-M3"
             NSLog("[wenshu.model] effective model: %@ (UserDefaults source)", currentModel)
             var reply: String
-            var replyThinking: String?    // MiniMaxBlock.thinking footnote UI
+            var replyThinking: String?    // WenshuLLMBlock.thinking footnote UI
             var replyTokens: Int?
             if let conductor = conductor {
                 let result = try await conductor.handle(userMessage: text, sessionId: sessionId, model: currentModel)
@@ -146,9 +146,9 @@ public final class ChatViewModel {
                 replyTokens = result.totalTokens
             } else {
                 // fallback 调 shared verifier — real usage from response.usage
-                let verifier = MiniMaxVerifier()
+                let verifier = WenshuVerifier()
                 let response = try await verifier.chat(text, model: currentModel)
-                // union decode MiniMaxBlock (text/thinking/tool_use) — concat all text blocks for reply
+                // union decode WenshuLLMBlock (text/thinking/tool_use) — concat all text blocks for reply
                 // pick first thinking block for ChatMessage.thinking footnote UI (Apple HIG footnote 范式)
                 reply = response.content.map(\.displayText).joined()
                 if reply.isEmpty {
@@ -169,7 +169,7 @@ public final class ChatViewModel {
 
             // trigger summary generation (LLM + saveSummary + deleteOldMessages order)
             if let store = store {
-                let verifier = MiniMaxVerifier()
+                let verifier = WenshuVerifier()
                 Task { @MainActor in
                     _ = try? await store.summarizeIfNeeded(sessionId: sessionId, lastN: 10, threshold: 20, verifier: verifier)
                 }

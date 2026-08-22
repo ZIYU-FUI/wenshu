@@ -219,7 +219,7 @@ struct WenshuApp: App {
 struct SettingView: View {
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
     @AppStorage("wenshu.llm.provider") private var providerSlug: String = Provider.minimaxCn.slug
-    @AppStorage("wenshu.llm.model") private var llmModel: String = MiniMaxModel.m3.rawValue
+    @AppStorage("wenshu.llm.model") private var llmModel: String = WenshuLLMModel.m3.rawValue
     @AppStorage("wenshu.llm.reasoningEffort") private var reasoningEffort: String = "medium"
     @State private var selectedTab: SettingsTab = .general
     @State private var liveModelIds: [String] = []
@@ -289,7 +289,7 @@ struct SettingView: View {
 
     private func selectProvider(_ p: Provider) {
         providerSlug = p.slug
-        llmModel = p.defaultModels.first ?? MiniMaxModel.m3.rawValue
+        llmModel = p.defaultModels.first ?? WenshuLLMModel.m3.rawValue
         liveModelIds = []
         refreshProviderStatus()
     }
@@ -715,7 +715,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     nonisolated(unsafe) static var openSettings: OpenSettingsAction?
 
     static let sharedRuntime = AgentRuntime()
-    static let sharedVerifier = MiniMaxVerifier()
+    static let sharedVerifier = WenshuVerifier()
     static let sharedChatStore: ChatSessionStore? = {
         // v0.21 ticket 06: actor init 不能在 static let 闭包里直接调用 (Swift 6 strict concurrency)
         // 退回 nil, applicationDidFinishLaunching 重新创建并赋值给 var sharedChatStore
@@ -1125,11 +1125,11 @@ struct ChatZoneView: View {
             }
         }
     }
-    @State private var availableModels: [String] = MiniMaxModel.allCases.map { $0.rawValue }
+    @State private var availableModels: [String] = WenshuLLMModel.allCases.map { $0.rawValue }
     // v0.21 ticket 43 step 3: picker ↔ UserDefaults 同步修复 = @AppStorage (Apple SwiftUI 真值, 源单一 UserDefaults, 双向自动同步)
     // 修复前 ChatZoneView.currentModel 是 @State 不绑 UserDefaults, ChatViewModel.currentModel 是 init default 读 UserDefaults 一次 = 切 picker 后两条状态链断开
     // @AppStorage 是 Apple HIG 真值, 源单一 UserDefaults, 自动响应变化, 修复 picker 跟 ChatViewModel 同步
-    @AppStorage("wenshu.llm.model") private var currentModel: String = MiniMaxModel.m3.rawValue
+    @AppStorage("wenshu.llm.model") private var currentModel: String = WenshuLLMModel.m3.rawValue
     // v0.21 ticket 43 step 1 NSLog trace: 锁 selectedTab 当前真值 (Q63 verify-before-claim)
     @State private var selectedTab: ChatZoneTab = .chat
     // v0.21 ticket 40: 持有 ChatViewModel 实例 + 共享给 ChatView, 让 bottom toolbar 读 vm.contextUsed 自动 propagate
@@ -1195,7 +1195,7 @@ struct ChatZoneView: View {
                 .task {
                     let base = ProcessInfo.processInfo.environment["MINIMAX_CN_BASE_URL"] ?? "https://api.minimaxi.com/anthropic"
                     if let key = LLMKeychain.loadKeySync(), !key.isEmpty {
-                        availableModels = await MiniMaxModelFetcher.loadModelIds(apiKey: key, baseUrl: base)
+                        availableModels = await WenshuLLMModelFetcher.loadModelIds(apiKey: key, baseUrl: base)
                     }
                     if !availableModels.contains(currentModel) {
                         availableModels = [currentModel] + availableModels

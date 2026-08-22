@@ -12,13 +12,13 @@ import Foundation
 struct AgentProtocolTests {
     private static func makeProtocol() -> AgentProtocol {
         // v0.21 ticket 03 + code-review S3: handle 无 verifier 时 throw (echo 已删), 测试期望走 fallback error 路径
-        // 测试 agent 真值用 MiniMaxVerifier (没 key → ping fail → error 路径, 但不是 echo)
+        // 测试 agent 真值用 WenshuVerifier (没 key → ping fail → error 路径, 但不是 echo)
         AgentProtocol(agentCard: AgentCard(
             name: "test-agent",
             description: "测试 agent",
             skills: ["search", "memory"],
             endpoint: "in-process://test-agent"
-        ), verifier: MiniMaxVerifier())
+        ), verifier: WenshuVerifier())
     }
 
     @Test("message/send 创建 task 并返回 status")
@@ -32,7 +32,7 @@ struct AgentProtocolTests {
         ))
         let response = await protocol_.handle(request)
         // v0.21 ticket 03 + code-review S3: handle 无 echo fallback, 没 LLM 成功 → error != nil
-        // 测试 agent MiniMaxVerifier 没 key → LLM fail → error 是 LLM failed
+        // 测试 agent WenshuVerifier 没 key → LLM fail → error 是 LLM failed
         #expect(response.error != nil)
         if response.error == nil {
             Issue.record("expected LLM failure (no API key), got success")

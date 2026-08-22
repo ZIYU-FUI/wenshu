@@ -1,5 +1,5 @@
 //
-//  MiniMaxModelFetcher.swift · v0.21 ticket 04
+//  WenshuLLMModelFetcher.swift · v0.21 ticket 04
 //
 
 import Foundation
@@ -21,7 +21,7 @@ actor ModelCache {
     }
 }
 
-enum MiniMaxModelFetcher {
+enum WenshuLLMModelFetcher {
     static func fetchLiveModelIds(apiKey: String, baseUrl: String) async -> [String]? {
         let base = baseUrl.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         let candidates = [base, base + "/v1"]

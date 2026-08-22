@@ -1,5 +1,5 @@
 //
-//  MiniMaxVerifierTests.swift · Wenshu · v0.18 ticket 31 (verify MiniMax)
+//  WenshuVerifierTests.swift · Wenshu · v0.18 ticket 31 (verify wenshu LLM key)
 //
 //  集成测试 wenshu AgentProtocol (A2A) + MiniMax API 真值连接.
 //  跑: source ~/.hermes/profiles/pocock/.env && MINIMAX_CN_API_KEY="$MINIMAX_CN_API_KEY" swift test
@@ -9,8 +9,8 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("MiniMaxVerifier (wenshu 调通 agent)")
-struct MiniMaxVerifierTests {
+@Suite("WenshuVerifier (wenshu LLM API integration)")
+struct WenshuVerifierTests {
     /// 跳过测试如果 env 没 MiniMax key
     private static var hasAPIKey: Bool {
         let key = ProcessInfo.processInfo.environment["MINIMAX_CN_API_KEY"] ?? ""
@@ -23,7 +23,7 @@ struct MiniMaxVerifierTests {
             // dev env has no real key, skip (Apple Swift Testing: not a failure)
             return
         }
-        let verifier = MiniMaxVerifier()
+        let verifier = WenshuVerifier()
         let response = try await verifier.ping()
         #expect(response.model == "MiniMax-M3")
         #expect(response.role == "assistant")
@@ -36,15 +36,15 @@ struct MiniMaxVerifierTests {
     @Test("MiniMax key 缺失抛错")
     func testMissingAPIKey() async {
         // 用空 env 创 verifier
-        let verifier = MiniMaxVerifier(baseURL: "https://api.minimaxi.com/anthropic", apiKey: "")
-        await #expect(throws: MiniMaxError.self) {
+        let verifier = WenshuVerifier(baseURL: "https://api.minimaxi.com/anthropic", apiKey: "")
+        await #expect(throws: WenshuLLMError.self) {
             _ = try await verifier.ping()
         }
     }
 
     @Test("无效 baseURL 抛错")
     func testInvalidBaseURL() async {
-        let verifier = MiniMaxVerifier(baseURL: "not a url", apiKey: "fake")
+        let verifier = WenshuVerifier(baseURL: "not a url", apiKey: "fake")
         await #expect(throws: (any Error).self) {
             _ = try await verifier.ping()
         }

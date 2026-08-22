@@ -223,7 +223,7 @@ public actor ChatSessionStore {
         sessionId: String,
         lastN: Int = 10,
         threshold: Int = 20,
-        verifier: MiniMaxVerifier
+        verifier: WenshuVerifier
     ) async throws -> Bool {
         guard let cutoff = try summaryCutoffTimestamp(sessionId: sessionId, keepLastN: lastN) else {
             return false  // 不需要 trigger summary

@@ -1,5 +1,5 @@
 //
-//  MiniMaxVerifier.swift · Wenshu · v0.18 ticket 31 (verify MiniMax key)
+//  WenshuVerifier.swift · Wenshu · v0.18 ticket 31 (verify MiniMax key)
 //
 //  验证 wenshu AgentProtocol 用 MiniMax key 调通.
 //  老板 2026-08-19 拍 "验证, 用我们的 MiniMax 的 key 看能否真的用你复刻的 hermes 核心调通 anget".
@@ -13,7 +13,7 @@
 import Foundation
 
 /// MiniMax 真值 (Anthropic 兼容协议)
-public struct MiniMaxMessage: Codable, Sendable {
+public struct WenshuLLMMessage: Codable, Sendable {
     public let role: String
     public let content: String
     public init(role: String, content: String) {
@@ -22,11 +22,11 @@ public struct MiniMaxMessage: Codable, Sendable {
     }
 }
 
-public struct MiniMaxRequest: Codable, Sendable {
+public struct WenshuLLMRequest: Codable, Sendable {
     public let model: String
     public let max_tokens: Int
-    public let messages: [MiniMaxMessage]
-    public init(model: String, max_tokens: Int, messages: [MiniMaxMessage]) {
+    public let messages: [WenshuLLMMessage]
+    public init(model: String, max_tokens: Int, messages: [WenshuLLMMessage]) {
         self.model = model
         self.max_tokens = max_tokens
         self.messages = messages
@@ -38,7 +38,7 @@ public struct MiniMaxRequest: Codable, Sendable {
 // MiniMax M2.7 returns thinking blocks before text (chain-of-thought 范式)
 // M3 returns plain text blocks. JSONDecoder keyed container 之前 hardcoded require "text" key
 // 在 content[0] → M2.7 thinking block 抛 DecodingError.keyNotFound.
-public enum MiniMaxBlock: Codable, Sendable, Equatable {
+public enum WenshuLLMBlock: Codable, Sendable, Equatable {
     case text(String)
     case thinking(text: String, signature: String?)
     case toolUse(id: String, name: String, input: String)
@@ -109,7 +109,7 @@ public enum MiniMaxBlock: Codable, Sendable, Equatable {
 
 // v0.21 ticket 34: real LLM API usage (Apple Anthropic protocol)
 // { "usage": { "input_tokens": N, "output_tokens": N, "cache_creation_input_tokens": N, "cache_read_input_tokens": N } }
-public struct MiniMaxUsage: Codable, Sendable, Equatable {
+public struct WenshuLLMUsage: Codable, Sendable, Equatable {
     public let input_tokens: Int
     public let output_tokens: Int
     public let cache_creation_input_tokens: Int?
@@ -129,15 +129,15 @@ public struct MiniMaxUsage: Codable, Sendable, Equatable {
     }
 }
 
-public struct MiniMaxResponse: Codable, Sendable {
+public struct WenshuLLMResponse: Codable, Sendable {
     public let id: String
     public let model: String
     public let role: String
-    public let content: [MiniMaxBlock]   // v0.21 ticket 39: union decode (text / thinking / tool_use)
+    public let content: [WenshuLLMBlock]   // v0.21 ticket 39: union decode (text / thinking / tool_use)
     public let stop_reason: String?
-    public let usage: MiniMaxUsage?
+    public let usage: WenshuLLMUsage?
 
-    public init(id: String, model: String, role: String, content: [MiniMaxBlock], stop_reason: String? = nil, usage: MiniMaxUsage? = nil) {
+    public init(id: String, model: String, role: String, content: [WenshuLLMBlock], stop_reason: String? = nil, usage: WenshuLLMUsage? = nil) {
         self.id = id
         self.model = model
         self.role = role
@@ -147,13 +147,13 @@ public struct MiniMaxResponse: Codable, Sendable {
     }
 }
 
-/// MiniMaxVerifier: 验证 wenshu AgentProtocol 调 MiniMax API 真值
-public actor MiniMaxVerifier {
+/// WenshuVerifier: 验证 wenshu AgentProtocol 调 MiniMax API 真值
+public actor WenshuVerifier {
     private let baseURL: String
     private let apiKey: String
     private let model: String
 
-    public init(baseURL: String? = nil, apiKey: String? = nil, model: MiniMaxModel = .m3) {
+    public init(baseURL: String? = nil, apiKey: String? = nil, model: WenshuLLMModel = .m3) {
         // 优先 Keychain (CLAUDE.md L42 真值范式), fallback env (向后兼容, dev env 仍 work)
         if let baseURL = baseURL, let apiKey = apiKey {
             self.baseURL = baseURL
@@ -174,21 +174,21 @@ public actor MiniMaxVerifier {
     }
 
     /// ping: 简单 1 消息真值
-    public func ping() async throws -> MiniMaxResponse {
-        let request = MiniMaxRequest(
+    public func ping() async throws -> WenshuLLMResponse {
+        let request = WenshuLLMRequest(
             model: model,
             max_tokens: 50,
-            messages: [MiniMaxMessage(role: "user", content: "ping")]
+            messages: [WenshuLLMMessage(role: "user", content: "ping")]
         )
         return try await send(request: request)
     }
 
     /// chat: 1 消息 user content 真值 (v0.21 ticket 03 fallback 用, AgentProtocol LLM 失败后 ChatViewModel 走这条)
-    public func chat(_ text: String) async throws -> MiniMaxResponse {
-        let request = MiniMaxRequest(
+    public func chat(_ text: String) async throws -> WenshuLLMResponse {
+        let request = WenshuLLMRequest(
             model: model,
             max_tokens: 1024,
-            messages: [MiniMaxMessage(role: "user", content: text)]
+            messages: [WenshuLLMMessage(role: "user", content: text)]
         )
         return try await send(request: request)
     }
@@ -196,22 +196,22 @@ public actor MiniMaxVerifier {
     /// v0.21 ticket 38: chat overload that takes model at call time
     /// (boss 2026-08-22 反馈 "切换了 AI 没有真的换" = original chat() uses self.model from init = hardcoded)
     /// This overload lets ChatViewModel pass current model from UserDefaults at call time
-    public func chat(_ text: String, model overrideModel: String) async throws -> MiniMaxResponse {
-        let request = MiniMaxRequest(
+    public func chat(_ text: String, model overrideModel: String) async throws -> WenshuLLMResponse {
+        let request = WenshuLLMRequest(
             model: overrideModel,
             max_tokens: 1024,
-            messages: [MiniMaxMessage(role: "user", content: text)]
+            messages: [WenshuLLMMessage(role: "user", content: text)]
         )
         return try await send(request: request)
     }
 
     /// send: 实际调 MiniMax API (Apple URLSession 真值)
-    public func send(request: MiniMaxRequest) async throws -> MiniMaxResponse {
+    public func send(request: WenshuLLMRequest) async throws -> WenshuLLMResponse {
         guard !apiKey.isEmpty else {
-            throw MiniMaxError.missingAPIKey
+            throw WenshuLLMError.missingAPIKey
         }
         guard let url = URL(string: "\(baseURL)/v1/messages") else {
-            throw MiniMaxError.invalidBaseURL(url: baseURL)
+            throw WenshuLLMError.invalidBaseURL(url: baseURL)
         }
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
@@ -226,11 +226,11 @@ public actor MiniMaxVerifier {
         let bodyPreview = String(data: data.prefix(500), encoding: .utf8) ?? "<non-utf8 body>"
         NSLog("[wenshu.chat] response status=%d body=%@", statusCode, bodyPreview)
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-            throw MiniMaxError.httpError(statusCode: statusCode, body: bodyPreview)
+            throw WenshuLLMError.httpError(statusCode: statusCode, body: bodyPreview)
         }
         let decoder = JSONDecoder()
         do {
-            return try decoder.decode(MiniMaxResponse.self, from: data)
+            return try decoder.decode(WenshuLLMResponse.self, from: data)
         } catch {
             NSLog("[wenshu.chat] decoder error: %@", String(describing: error))
             throw error
@@ -238,7 +238,7 @@ public actor MiniMaxVerifier {
     }
 }
 
-public enum MiniMaxError: Error {
+public enum WenshuLLMError: Error {
     case missingAPIKey
     case invalidBaseURL(url: String)
     case httpError(statusCode: Int, body: String)

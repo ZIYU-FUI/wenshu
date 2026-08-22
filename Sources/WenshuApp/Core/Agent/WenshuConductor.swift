@@ -13,11 +13,11 @@ import Foundation
 /// 文枢调度器 (actor 线程安全, 跟 AgentRuntime / KanbanStore / MemoryStore 一致).
 public actor WenshuConductor {
     private let runtime: AgentRuntime
-    private let verifier: MiniMaxVerifier
+    private let verifier: WenshuVerifier
     private let kanbanStore: KanbanStore
     private let sessionStore: ChatSessionStore?
 
-    public init(runtime: AgentRuntime, verifier: MiniMaxVerifier, kanbanStore: KanbanStore, sessionStore: ChatSessionStore? = nil) {
+    public init(runtime: AgentRuntime, verifier: WenshuVerifier, kanbanStore: KanbanStore, sessionStore: ChatSessionStore? = nil) {
         self.runtime = runtime
         self.verifier = verifier
         self.kanbanStore = kanbanStore
@@ -29,7 +29,7 @@ public actor WenshuConductor {
     /// code-review S4 graceful degradation: LLM fail 不抛, fallback synthesis 仍返 reply (老板 macOS 不见 Error 系统消息)
     /// v0.21 ticket 34: 返回 (reply, totalTokens) — totalTokens = intent + sub-agent + synthesis 真实 LLM API usage 累加
     /// v0.21 ticket 38: handle 增加 model 参数 (boss 反馈 "切换了 AI 没有真的换" = 原 handle 用 verifier.init 的 hardcoded model)
-    /// v0.21 ticket 39: 加 thinking 字段 (MiniMaxBlock.thinking footnote UI, Apple HIG footnote 范式)
+    /// v0.21 ticket 39: 加 thinking 字段 (WenshuLLMBlock.thinking footnote UI, Apple HIG footnote 范式)
     public func handle(userMessage: String, sessionId: String, model: String) async -> (reply: String, totalTokens: Int, thinking: String?) {
         // 步骤 1: 写 1 个 conductor 父 task 到 KanbanStore (看板进度, ChatView 不显)
         let conductorTask: KanbanTask?
@@ -58,7 +58,7 @@ public actor WenshuConductor {
         ["search", "outline"]
         """
         if let intentResponse = try? await verifier.chat(intentPrompt, model: model) {
-            // v0.21 ticket 39: union decode MiniMaxBlock (text / thinking / tool_use)
+            // v0.21 ticket 39: union decode WenshuLLMBlock (text / thinking / tool_use)
             let intentRaw = intentResponse.content.map(\.displayText).joined()
             if !intentRaw.isEmpty {
                 selectedAgents = parseAgentList(intentRaw)
@@ -84,7 +84,7 @@ public actor WenshuConductor {
 
         // 步骤 4: 调 LLM 合成最终回复 (S4 fallback: synthesis fail → 返原文 + 默认合成语)
         let synthesisPrompt = buildSynthesisPrompt(userMessage: userMessage, subResults: subResults)
-        var finalThinking: String?    // v0.21 ticket 39: MiniMaxBlock.thinking
+        var finalThinking: String?    // v0.21 ticket 39: WenshuLLMBlock.thinking
         let finalReply: String
         if let response = try? await verifier.chat(synthesisPrompt, model: model) {
             // v0.21 ticket 39: union decode concat all text blocks (M2.7 有 thinking block 前置)

@@ -25,7 +25,7 @@ struct AgentRuntimeTests {
                 description: "测试 agent \(name)",
                 skills: ["test"],
                 endpoint: "in-process://\(name)"
-            ), verifier: MiniMaxVerifier())
+            ), verifier: WenshuVerifier())
         )
     }
 

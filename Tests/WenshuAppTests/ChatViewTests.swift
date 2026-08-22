@@ -25,7 +25,7 @@ struct ChatViewTests {
     @MainActor
     func testInitialState() {
         let runtime = AgentRuntime()
-        let verifier = MiniMaxVerifier()
+        let verifier = WenshuVerifier()
         let vm = ChatViewModel()
         #expect(vm.messages.isEmpty)
         #expect(vm.inputText.isEmpty)
@@ -37,7 +37,7 @@ struct ChatViewTests {
     @MainActor
     func testClear() {
         let runtime = AgentRuntime()
-        let verifier = MiniMaxVerifier()
+        let verifier = WenshuVerifier()
         let vm = ChatViewModel()
         // 直接 push (绕过 send 异步)
         vm.messages.append(ChatMessage(role: .user, content: "test"))
@@ -51,7 +51,7 @@ struct ChatViewTests {
     @MainActor
     func testSendEmpty() async {
         let runtime = AgentRuntime()
-        let verifier = MiniMaxVerifier()
+        let verifier = WenshuVerifier()
         let vm = ChatViewModel()
         vm.inputText = "   "
         await vm.send()

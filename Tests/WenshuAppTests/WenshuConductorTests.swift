@@ -14,7 +14,7 @@ struct WenshuConductorTests {
         let kanban = try KanbanStore(path: tmpPath("conductor"))
         try await kanban.bootstrap()
         let runtime = AgentRuntime()
-        let verifier = MiniMaxVerifier()  // 没 key, LLM 失败, 验证 graceful degradation (S4 不抛)
+        let verifier = WenshuVerifier()  // 没 key, LLM 失败, 验证 graceful degradation (S4 不抛)
         let conductor = WenshuConductor(runtime: runtime, verifier: verifier, kanbanStore: kanban)
 
         // S4 graceful degradation: handle 不抛 (即使 LLM fail), 返 fallback reply (不是 throw)

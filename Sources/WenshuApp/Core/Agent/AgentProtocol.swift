@@ -156,9 +156,9 @@ public actor AgentProtocol {
     private var tasks: [UUID: AgentTask] = [:]
     private var tasksByAgent: [String: [UUID]] = [:]
     private let agentCard: AgentCard
-    private let verifier: MiniMaxVerifier?
+    private let verifier: WenshuVerifier?
 
-    public init(agentCard: AgentCard, verifier: MiniMaxVerifier? = nil) {
+    public init(agentCard: AgentCard, verifier: WenshuVerifier? = nil) {
         self.agentCard = agentCard
         self.verifier = verifier
     }
@@ -187,7 +187,7 @@ public actor AgentProtocol {
         task.status = .running
         task.messages.append(message)
         task.updatedAt = Date()
-        // 真值: 调 MiniMaxVerifier 真合成 agent 回复 (v0.21 ticket 03 + code-review S3 spec violation 修法)
+        // 真值: 调 WenshuVerifier 真合成 agent 回复 (v0.21 ticket 03 + code-review S3 spec violation 修法)
         // 无条件调 verifier, 没 verifier → throw (spec ticket 03 step 1 '删 echo 真值' 无条件)
         guard let verifier = verifier else {
             task.status = .failed

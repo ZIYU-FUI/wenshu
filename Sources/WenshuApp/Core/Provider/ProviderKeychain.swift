@@ -13,7 +13,7 @@
 //  Fixes:
 //  - ticket 02 acceptance: enum shim + Storing protocol + 2 backend (not literal actor)
 //  - ticket 02 dev env skip: InMemoryKeychainStore for test isolation
-//  - ticket 03 dev env skip: MiniMaxVerifierTests.testPingReal returns early without
+//  - ticket 03 dev env skip: WenshuVerifierTests.testPingReal returns early without
 //    Issue.record (Apple Swift Testing: record() counts as failure)
 //
 

@@ -39,7 +39,7 @@ struct WenshuCoreIntegrationTests {
             skills: ["memory", "kanban"],
             endpoint: "in-process://integration"
         )
-        let agent = AgentProtocol(agentCard: card, verifier: MiniMaxVerifier())
+        let agent = AgentProtocol(agentCard: card, verifier: WenshuVerifier())
         let runtime = AgentRuntime()
         await runtime.register(AgentRegistration(name: "integration-agent", card: card, process: agent))
         // v0.21 ticket 03 + code-review S3: LLM 失败 → delegateFailed 抛错
