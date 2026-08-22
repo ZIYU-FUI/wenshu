@@ -176,28 +176,52 @@ public actor WenshuVerifier {
         "元婴", "飞升", "天劫", "雷劫", "心魔", "魔障",
     ]
 
-    private let baseURL: String
-    private let apiKey: String
     private let model: String
 
+    /// v0.23 ticket 010.002: apiKey + baseURL no longer frozen at init.
+    /// They are resolved PER LLM CALL via resolveCredentials() — boss 8/23 拍:
+    /// 用户切 model/key 后主 + 子 agent 必须同步切,否则 mismatch 卡死.
     public init(baseURL: String? = nil, apiKey: String? = nil, model: WenshuLLMModel = .m3) {
-        // 优先 Keychain (CLAUDE.md L42 真值范式), fallback env (向后兼容, dev env 仍 work)
-        if let baseURL = baseURL, let apiKey = apiKey {
-            self.baseURL = baseURL
-            self.apiKey = apiKey
-        } else {
-            let envBaseURL = ProcessInfo.processInfo.environment["MINIMAX_CN_BASE_URL"] ?? "https://api.minimaxi.com/anthropic"
-            var resolvedKey = ProcessInfo.processInfo.environment["MINIMAX_CN_API_KEY"] ?? ""
-            if resolvedKey.isEmpty {
-                // v0.21 ticket 03: Keychain 读真值
-                if let stored = LLMKeychain.loadKeySync(), !stored.isEmpty {
-                    resolvedKey = stored
-                }
-            }
-            self.baseURL = envBaseURL
-            self.apiKey = resolvedKey
-        }
+        // model 是唯一 capture 的 (它跟 verifier 行为绑定,不像 credentials 是 Settings 配置).
+        // apiKey / baseURL 留作 override-only 参数 (测试用), default = nil → resolveCredentials() 走 UserDefaults + Keychain.
+        _ = baseURL  // unused; resolveCredentials() handles via UserDefaults + ProviderCatalog
+        _ = apiKey
         self.model = model.rawValue
+    }
+
+    /// Resolved credentials struct.
+    public struct ResolvedCredentials: Sendable {
+        public let apiKey: String
+        public let baseURL: String
+        public let providerSlug: String
+    }
+
+    /// resolveCredentials: read provider slug from UserDefaults + key from Keychain.
+    /// Called on every send() invocation — no caching (Settings page may change key mid-session).
+    /// Strategy:
+    ///   1. UserDefaults "wenshu.provider.slug" override (if set, use it; else default to model.providerSlug)
+    ///   2. Look up provider in ProviderCatalog
+    ///   3. Load key from AppleKeychain for that provider slug
+    ///   4. Return (apiKey, baseURL, providerSlug)
+    public func resolveCredentials(model overrideModel: WenshuLLMModel? = nil) throws -> ResolvedCredentials {
+        let modelEnum = overrideModel ?? WenshuLLMModel(rawValue: model) ?? .m3
+        // 1. Provider slug: UserDefaults override (if any), else model.providerSlug.
+        let userDefaultsSlug = UserDefaults.standard.string(forKey: "wenshu.provider.slug")
+        let effectiveSlug = userDefaultsSlug?.isEmpty == false ? userDefaultsSlug! : modelEnum.providerSlug
+        // 2. Look up provider.
+        guard let provider = Provider.by(slug: effectiveSlug) else {
+            throw WenshuLLMError.invalidBaseURL(url: "unknown provider slug: \(effectiveSlug)")
+        }
+        // 3. Load key from Keychain for that provider.
+        let keychainStore = AppleKeychainStore()
+        guard let key = keychainStore.loadKeySync(for: provider), !key.isEmpty else {
+            throw WenshuLLMError.missingAPIKey  // existing error type
+        }
+        return ResolvedCredentials(
+            apiKey: key,
+            baseURL: provider.defaultBaseURL,
+            providerSlug: effectiveSlug
+        )
     }
 
     /// ping: 简单 1 消息真值
@@ -253,15 +277,19 @@ public actor WenshuVerifier {
         outputKind: OutputKind = .chat,
         extraSystemPrompt: String? = nil
     ) async throws -> WenshuLLMResponse {
-        guard !apiKey.isEmpty else {
+        // v0.23 ticket 010.002: resolve credentials per call (boss 8/23 拍).
+        // UserDefaults + Keychain are read fresh each time so Settings changes
+        // take effect immediately on the next LLM call.
+        let creds = try resolveCredentials()
+        guard !creds.apiKey.isEmpty else {
             throw WenshuLLMError.missingAPIKey
         }
-        guard let url = URL(string: "\(baseURL)/v1/messages") else {
-            throw WenshuLLMError.invalidBaseURL(url: baseURL)
+        guard let url = URL(string: "\(creds.baseURL)/v1/messages") else {
+            throw WenshuLLMError.invalidBaseURL(url: creds.baseURL)
         }
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
-        urlRequest.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        urlRequest.setValue(creds.apiKey, forHTTPHeaderField: "x-api-key")
         urlRequest.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
         urlRequest.setValue("application/json", forHTTPHeaderField: "content-type")
 
