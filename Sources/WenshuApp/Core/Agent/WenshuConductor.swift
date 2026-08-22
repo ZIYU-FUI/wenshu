@@ -156,6 +156,7 @@ public actor WenshuConductor {
         // v0.22 ticket 001: prepend 文枢 agent identity (WenshuConductorIdentity.systemPrompt)
         // as system prompt. The send() method already injects the pollution-defense
         // systemPromptEnglishOnly as the first system segment; our identity follows.
+        // v0.23 ticket 002: 5 sub-agent names instead of 5 module names.
         let intentPrompt = """
         \(WenshuConductorIdentity.systemPrompt)
 
@@ -163,42 +164,104 @@ public actor WenshuConductor {
 
         你是 wenshu 文枢调度器. 收到 user 消息: "\(userMessage)"
 
-        可派子 agent (wenshu v0.19 模块):
-        - search: 全文搜索 (SQLite FTS5 trigram)
-        - outline: 章节大纲 (H1-H6 tree)
-        - wordcount: 字数统计
-        - linkgraph: 内部链接 + backlinks
-        - composer: 笔记合并 / 拆分 / 重命名
+        可派子 agent (5 专职领域专家):
+        - researcher: 找资料 (search / web / linkgraph 工具)
+        - writer: 写 / 改 (composer / template / wordcount 工具)
+        - analyst: 分析结构 (outline / bases / graph 工具)
+        - archivist: 管记忆 (memory / bookmark / backup 工具)
+        - auditor: 质量门控 (read-only memory), 自动跑如果 writer / analyst 在选
 
-        派 0-N 个子 agent (JSON array, 仅 agent name, 不要解释):
-        ["search", "outline"]
+        派 1-3 个子 agent (JSON array, 仅 agent name, 不要解释):
+        ["researcher", "writer"]
         """
         if let intentResponse = try? await verifier.chat(intentPrompt, system: WenshuConductorIdentity.systemPrompt, model: model) {
             // v0.21 ticket 39: union decode WenshuLLMBlock (text / thinking / tool_use)
             let intentRaw = intentResponse.content.map(\.displayText).joined()
             if !intentRaw.isEmpty {
-                selectedAgents = parseAgentList(intentRaw)
+                selectedAgents = parseAgentList(intentRaw).filter { name in
+                    SubAgentIdentity.Name(rawValue: name) != nil
+                }
             }
             // v0.21 ticket 34: 累加 intent classify real token usage
             totalTokens += intentResponse.usage?.total_tokens ?? 0
         }
         // intent classify fail → selectedAgents 仍空 [] → S4 graceful degradation
+        // v0.23 ticket 002: filter unknown agent names to prevent invalid dispatch
 
-        // 步骤 3: 派 0-N 个子 agent task 到 KanbanStore + 收集结果 (子 agent 失败不影响整体)
+        // 步骤 3: 派 0-N 个子 agent 并行 (TaskGroup) + 收集结果 (v0.23 ticket 002)
+        // v0.23 ticket 002: TaskGroup parallel dispatch replaces serial for-loop.
+        // Each sub-agent has independent system prompt (SubAgentIdentity.systemPrompt).
         var subResults: [(String, String)] = []
-        for agentName in selectedAgents {
-            if let subTask = try? await kanbanStore.add(title: "\(agentName): \(userMessage.prefix(30))", status: .running) {
-                if let task = try? await runtime.delegateTask(to: agentName, content: userMessage, fromAgent: "wenshu-conductor"),
-                   let agentReply = task.messages.last(where: { $0.role == .agent })?.content {
-                    subResults.append((agentName, agentReply))
-                } else {
-                    subResults.append((agentName, "(subagent unreachable)"))
+        if !selectedAgents.isEmpty {
+            // Build tasks (add to KanbanStore first, before TaskGroup, so all parallel tasks see the same state)
+            var tasks: [(name: String, kanbanTaskId: String?)] = []
+            for agentName in selectedAgents {
+                let kTask = try? await kanbanStore.add(title: "\(agentName): \(userMessage.prefix(30))", status: .running)
+                tasks.append((name: agentName, kanbanTaskId: kTask?.id))
+            }
+            // Run sub-agents in parallel
+            subResults = await withTaskGroup(of: (String, String).self) { group in
+                for (name, _) in tasks {
+                    group.addTask { [self] in
+                        // Each sub-agent gets its own system prompt + tools (v0.23 ticket 001)
+                        let agentPrompt = """
+                        \(SubAgentIdentity.systemPrompt(name: SubAgentIdentity.Name(rawValue: name)!))
+
+                        ---
+
+                        User task: \(userMessage)
+
+                        (Run your tools per your role; return JSON per your output format)
+                        """
+                        guard let response = try? await self.verifier.chat(
+                            agentPrompt,
+                            system: SubAgentIdentity.systemPrompt(name: SubAgentIdentity.Name(rawValue: name)!),
+                            model: model
+                        ) else {
+                            return (name, "(subagent unreachable)")
+                        }
+                        return (name, response.content.map(\.displayText).joined())
+                    }
                 }
-                _ = try? await kanbanStore.transition(id: subTask.id, to: .done)
+                var collected: [(String, String)] = []
+                for await result in group {
+                    collected.append(result)
+                }
+                return collected
+            }
+            // Mark kanban tasks done (after collection)
+            for (name, kanbanId) in tasks {
+                if let id = kanbanId {
+                    _ = try? await kanbanStore.transition(id: id, to: .done)
+                }
+            }
+            // v0.23 ticket 002: Auditor runs if Writer or Analyst in selection.
+            let needsAudit = selectedAgents.contains("writer") || selectedAgents.contains("analyst")
+            if needsAudit {
+                let auditorPrompt = """
+                \(SubAgentIdentity.systemPrompt(name: .auditor))
+
+                ---
+
+                Sub-agent outputs to verify:
+                \(subResults.map { "• \($0.0): \($0.1.prefix(300))" }.joined(separator: "\n\n"))
+
+                Return your verdict as JSON per your output format.
+                """
+                if let auditorResponse = try? await verifier.chat(
+                    auditorPrompt,
+                    system: SubAgentIdentity.systemPrompt(name: .auditor),
+                    model: model
+                ) {
+                    let verdict = auditorResponse.content.map(\.displayText).joined()
+                    subResults.append(("auditor", verdict))
+                    totalTokens += auditorResponse.usage?.total_tokens ?? 0
+                }
             }
         }
 
         // 步骤 4: 调 LLM 合成最终回复 (S4 fallback: synthesis fail → 返原文 + 默认合成语)
+        // v0.23 ticket 002: synthesis now includes auditor verdict if any.
         let synthesisPrompt = buildSynthesisPrompt(userMessage: userMessage, subResults: subResults)
         var finalThinking: String?    // v0.21 ticket 39: WenshuLLMBlock.thinking
         let finalReply: String
