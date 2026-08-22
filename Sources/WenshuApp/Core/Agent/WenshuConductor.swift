@@ -33,6 +33,9 @@ public actor WenshuConductor {
     private let processTools: ProcessTools = ProcessTools()
     private let webTools: WebTools = WebTools()
     private let visionTools: VisionTools = VisionTools()
+    /// h14: AVMediaTools — agent toolkit dispatch + chat UI read-aloud button.
+    /// See .scratch/2026-08-22-frontend-integration/issues/h14-avmedia-tools-frontend.md.
+    private let avMediaTools: AVMediaTools = AVMediaTools()
 
     public init(
         runtime: AgentRuntime,
@@ -96,6 +99,7 @@ public actor WenshuConductor {
     /// - process: input = shell command → returns stdout
     /// - web: input = URL → returns extracted markdown
     /// - vision: input = image path → returns recognized text
+    /// - av: input = text → speaks aloud (fire-and-forget)
     public func invokeTool(name: String, input: String) async -> String {
         switch name {
         case "file":
@@ -107,6 +111,9 @@ public actor WenshuConductor {
         case "vision":
             let results = (try? await visionTools.recognizeText(imagePath: input)) ?? []
             return results.map(\.text).joined(separator: "\n")
+        case "av":
+            avMediaTools.speak(text: input)
+            return "[spoken]"
         default:
             return ""
         }
