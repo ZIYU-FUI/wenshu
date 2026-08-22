@@ -23,9 +23,27 @@ public struct ProcessResult: Equatable, Sendable {
     }
 }
 
+/// ProcessToolError: errors thrown by ProcessTools (v0.23 ticket 008: chat-triggered shell deny).
+public enum ProcessToolError: Error, LocalizedError {
+    case chatShellDenied(command: String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .chatShellDenied(let cmd):
+            return "shell access blocked (boss 8/23 拍: 用户不可通过聊天改系统): \(cmd)"
+        }
+    }
+}
+
 /// ProcessTools: 本地 process ops
 public struct ProcessTools: Sendable {
     public init() {}
+
+    /// runShell: 跑 shell 命令. v0.23 ticket 008: blocked from chat path.
+    /// Use wenshu-devtool CLI for legitimate shell access (boss 8/23 拍).
+    public func runShell(_ command: String, workingDirectory: String? = nil) throws -> ProcessResult {
+        throw ProcessToolError.chatShellDenied(command: command)
+    }
 
     /// run: 跑 1 个命令 + 拿 stdout/stderr/exit code (Apple Process 真值)
     public func run(executable: String, arguments: [String] = [], workingDirectory: String? = nil) throws -> ProcessResult {
@@ -50,10 +68,9 @@ public struct ProcessTools: Sendable {
         )
     }
 
-    /// runShell: 跑 shell 命令 (走 /bin/sh -c, 真值: macOS 默认 shell)
-    public func runShell(_ command: String, workingDirectory: String? = nil) throws -> ProcessResult {
-        try run(executable: "/bin/sh", arguments: ["-c", command], workingDirectory: workingDirectory)
-    }
+    /// runShell: 已弃用 — v0.23 ticket 008: chat-triggered shell blocked (boss 8/23 拍).
+    /// Use wenshu-devtool CLI for legitimate shell access.
+    /// (stub below replaced by the deny-only runShell earlier in this file.)
 
     /// isRunning: 查 process 是否在跑 (Apple Process 真值)
     public func isRunning(processID: Int32) -> Bool {
