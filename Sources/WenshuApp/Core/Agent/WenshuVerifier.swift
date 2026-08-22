@@ -199,14 +199,18 @@ public actor WenshuVerifier {
     /// resolveCredentials: read provider slug from UserDefaults + key from Keychain.
     /// Called on every send() invocation — no caching (Settings page may change key mid-session).
     /// Strategy:
-    ///   1. UserDefaults "wenshu.provider.slug" override (if set, use it; else default to model.providerSlug)
+    ///   1. UserDefaults "wenshu.llm.provider" override (matches @AppStorage in App.swift line 221)
+    ///      (if set, use it; else default to model.providerSlug)
     ///   2. Look up provider in ProviderCatalog
     ///   3. Load key from AppleKeychain for that provider slug
     ///   4. Return (apiKey, baseURL, providerSlug)
     public func resolveCredentials(model overrideModel: WenshuLLMModel? = nil) throws -> ResolvedCredentials {
         let modelEnum = overrideModel ?? WenshuLLMModel(rawValue: model) ?? .m3
         // 1. Provider slug: UserDefaults override (if any), else model.providerSlug.
-        let userDefaultsSlug = UserDefaults.standard.string(forKey: "wenshu.provider.slug")
+        // NOTE: key name 'wenshu.llm.provider' matches @AppStorage in App.swift line 221.
+        // (v0.23 ticket 010.005 fix — was 'wenshu.provider.slug' which never matched the
+        // existing @AppStorage binding, so the override never took effect.)
+        let userDefaultsSlug = UserDefaults.standard.string(forKey: "wenshu.llm.provider")
         let effectiveSlug = userDefaultsSlug?.isEmpty == false ? userDefaultsSlug! : modelEnum.providerSlug
         // 2. Look up provider.
         guard let provider = Provider.by(slug: effectiveSlug) else {

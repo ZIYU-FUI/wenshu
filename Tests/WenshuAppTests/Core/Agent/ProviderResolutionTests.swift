@@ -38,7 +38,7 @@ struct ProviderResolutionTests {
     @Test("resolveCredentials: no UserDefaults override → use model.providerSlug")
     func testResolveCredentialsUsesDefaults() async throws {
         // Clear UserDefaults override
-        UserDefaults.standard.removeObject(forKey: "wenshu.provider.slug")
+        UserDefaults.standard.removeObject(forKey: "wenshu.llm.provider")
         let verifier = WenshuVerifier(model: .m3)
         // Sandbox has no Keychain key — expect throw (missingAPIKey or other).
         do {
@@ -55,8 +55,8 @@ struct ProviderResolutionTests {
 
     @Test("resolveCredentials: with UserDefaults override → use override")
     func testResolveCredentialsRespectsUserOverride() async throws {
-        UserDefaults.standard.set("minimax-cn", forKey: "wenshu.provider.slug")
-        defer { UserDefaults.standard.removeObject(forKey: "wenshu.provider.slug") }
+        UserDefaults.standard.set("minimax-cn", forKey: "wenshu.llm.provider")
+        defer { UserDefaults.standard.removeObject(forKey: "wenshu.llm.provider") }
         let verifier = WenshuVerifier(model: .m3)
         do {
             let creds = try await verifier.resolveCredentials()
@@ -72,8 +72,8 @@ struct ProviderResolutionTests {
     func testResolveCredentialsThrowsOnMissingKey() async throws {
         // Use a provider slug that has no Keychain key in sandbox.
         // Save an override to a non-existent provider, expect error.
-        UserDefaults.standard.set("definitely-not-a-real-provider", forKey: "wenshu.provider.slug")
-        defer { UserDefaults.standard.removeObject(forKey: "wenshu.provider.slug") }
+        UserDefaults.standard.set("definitely-not-a-real-provider", forKey: "wenshu.llm.provider")
+        defer { UserDefaults.standard.removeObject(forKey: "wenshu.llm.provider") }
         let verifier = WenshuVerifier(model: .m3)
         await #expect(throws: (any Error).self) {
             _ = try await verifier.resolveCredentials()
@@ -85,7 +85,7 @@ struct ProviderResolutionTests {
     @Test("send() uses resolveCredentials() result (no frozen apiKey)")
     func testSendUsesResolvedCredentials() async {
         // Clear all UserDefaults + ensure no Keychain key.
-        UserDefaults.standard.removeObject(forKey: "wenshu.provider.slug")
+        UserDefaults.standard.removeObject(forKey: "wenshu.llm.provider")
         let verifier = WenshuVerifier(model: .m3)
         let request = WenshuLLMRequest(
             model: "MiniMax-M3",
