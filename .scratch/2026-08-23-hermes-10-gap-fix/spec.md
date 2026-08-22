@@ -57,7 +57,7 @@ Each ticket:
 ## Acceptance criteria (overall)
 
 - [ ] 12 commits, all green
-- [ ] swift test: 429 + new = 470+ tests pass
+- [ ] swift test: 571 (per 2026-08-23 audit #014) tests pass
 - [ ] swift build: exit 0
 - [ ] Pollution词 0 leak
 - [ ] All 10 gaps implemented per hermes contract

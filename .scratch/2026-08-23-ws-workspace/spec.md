@@ -250,7 +250,7 @@ Menu: File → Export Workspace → Save As...
 - [ ] Backward compat: old `ChatSessionStore.chat.sqlite` etc. still readable during migration window
 - [ ] Backup: `cp workspace.ws backup.ws` → restore in different dir → all data accessible
 - [ ] Integrity check: workspace checksum verified on open
-- [ ] swift test: 544 + new (target 580+) all pass
+- [ ] swift test: 571 all pass (per 2026-08-23 audit #014)
 - [ ] Code-review 2 axes (Standards + Spec)
 
 ## Out of scope (deferred to v0.24+)

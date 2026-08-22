@@ -95,7 +95,7 @@ Similar — `cronjob` tool blocked at sub-agent level.
 - [ ] `WenshuConductor.invokeTool` takes optional `callerAgent` parameter
 - [ ] When callerAgent is sub-agent and tool is in DELEGATE_BLOCKED_TOOLS → reject
 - [ ] Tests verify 5 blocked tools × 5 sub-agents = blocked combinations
-- [ ] swift build + tests pass (target 414 + new = 425+)
+- [ ] swift build + tests pass (target 571 (per 2026-08-23 audit #014))
 - [ ] Code-review 2 axes
 
 ## Out of scope (deferred)
