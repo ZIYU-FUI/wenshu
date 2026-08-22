@@ -12,4 +12,15 @@ public enum WenshuLLMModel: String, CaseIterable, Sendable {
 
     /// Settings Picker 显示的 label (= rawValue, 配完不显, 老板原话)
     public var label: String { rawValue }
+
+    /// v0.23 ticket 010.001: provider slug for routing.
+    /// Maps each model to its provider's slug (used by WenshuVerifier.resolveCredentials
+    /// to look up the correct apiKey + baseURL from Keychain + ProviderCatalog).
+    /// Boss 2026-08-23 拍: 用户切 model 时主 + 子 agent 同步切,否则 mismatch 卡死.
+    public var providerSlug: String {
+        switch self {
+        case .m3, .m2, .reasoning:
+            return "minimax-cn"
+        }
+    }
 }
