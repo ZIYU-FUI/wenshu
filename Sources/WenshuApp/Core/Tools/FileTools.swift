@@ -37,9 +37,44 @@ public struct PatchHunk: Sendable {
     }
 }
 
+/// FileToolError: errors thrown by FileTools (v0.23 ticket 008: path guard).
+public enum FileToolError: Error, LocalizedError {
+    case pathDenied(path: String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .pathDenied(let path):
+            return "path denied (boss 8/23 拍: 用户不可通过聊天改系统): \(path)"
+        }
+    }
+}
+
 /// FileTools: 本地 file ops 工具
 public struct FileTools: Sendable {
     public init() {}
+
+    /// pathDenied: 路径 deny-list check (boss 8/23 拍: 用户不可通过聊天改代码 / 改配置).
+    /// Returns true if the path matches project code / config / scratch / system files.
+    /// Uses (path as NSString).standardizingPath to normalize symlinks / . / ..
+    public func pathDenied(_ path: String) -> Bool {
+        let std = (path as NSString).standardizingPath
+        let denyPrefixes = [
+            "Sources/",
+            "Tests/",
+            "Package.swift",
+            ".scratch/",
+            "Tools/wenshu-devtool/",
+            "/.wenshu/",
+            "/.hermes/",
+            "/etc/",
+            "/System/",
+            "/usr/",
+        ]
+        let denySuffixes = [".zshrc", ".bashrc", ".profile", ".bash_profile"]
+        for prefix in denyPrefixes where std.contains(prefix) { return true }
+        for suffix in denySuffixes where std.hasSuffix(suffix) { return true }
+        return false
+    }
 
     /// read: 读文件真值
     public func read(path: String) throws -> String {
@@ -47,13 +82,17 @@ public struct FileTools: Sendable {
     }
 
     /// write: 写文件真值 (原子写, Apple 真值: .atomicWrite)
+    /// v0.23 ticket 008: path guard rejects deny-list paths.
     public func write(path: String, content: String) throws {
+        if pathDenied(path) { throw FileToolError.pathDenied(path: path) }
         let url = URL(fileURLWithPath: path)
         try content.write(to: url, atomically: true, encoding: .utf8)
     }
 
     /// patch: 1 处替换真值 (hermes patch 1 处简化)
+    /// v0.23 ticket 008: path guard rejects deny-list paths.
     public func patch(path: String, hunk: PatchHunk) throws {
+        if pathDenied(path) { throw FileToolError.pathDenied(path: path) }
         let original = try read(path: path)
         guard original.contains(hunk.oldText) else {
             throw FileToolsError.patchNotFound(path: path, oldText: hunk.oldText)
