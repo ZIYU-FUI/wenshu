@@ -167,6 +167,15 @@ public actor WenshuVerifier {
     - ※ (marker glyph used in project notation)
     """
 
+    /// Stop sequences injected for short-output calls. Triggers Anthropic-compatible
+    /// protocol to terminate generation on any forbidden token match.
+    /// DO NOT use for long-output calls (chapter drafts) — would terminate
+    /// the entire generation on first match, catastrophic for novel writing.
+    public static let shortOutputStopSequences: [String] = [
+        "修真", "渡劫", "筑基", "返虚", "结丹", "金丹",
+        "元婴", "飞升", "天劫", "雷劫", "心魔", "魔障",
+    ]
+
     private let baseURL: String
     private let apiKey: String
     private let model: String
@@ -198,7 +207,7 @@ public actor WenshuVerifier {
             max_tokens: 50,
             messages: [WenshuLLMMessage(role: "user", content: "ping")]
         )
-        return try await send(request: request)
+        return try await send(request: request, outputKind: .shortText)
     }
 
     /// chat: 1 消息 user content 真值 (v0.21 ticket 03 fallback 用, AgentProtocol LLM 失败后 ChatViewModel 走这条)
@@ -208,7 +217,7 @@ public actor WenshuVerifier {
             max_tokens: 1024,
             messages: [WenshuLLMMessage(role: "user", content: text)]
         )
-        return try await send(request: request)
+        return try await send(request: request, outputKind: .shortText)
     }
 
     /// v0.21 ticket 38: chat overload that takes model at call time
@@ -220,13 +229,18 @@ public actor WenshuVerifier {
             max_tokens: 1024,
             messages: [WenshuLLMMessage(role: "user", content: text)]
         )
-        return try await send(request: request)
+        return try await send(request: request, outputKind: .shortText)
     }
 
     /// send: 实际调 MiniMax API (Apple URLSession 真值)
     /// `extraSystemPrompt` is appended after the built-in English-only constant.
     /// The Anthropic-compatible request body always carries `systemPromptEnglishOnly` as the first system segment.
-    public func send(request: WenshuLLMRequest, extraSystemPrompt: String? = nil) async throws -> WenshuLLMResponse {
+    /// `outputKind` controls whether `stop_sequences` is attached (short outputs only).
+    public func send(
+        request: WenshuLLMRequest,
+        outputKind: OutputKind = .chat,
+        extraSystemPrompt: String? = nil
+    ) async throws -> WenshuLLMResponse {
         guard !apiKey.isEmpty else {
             throw WenshuLLMError.missingAPIKey
         }
@@ -247,6 +261,12 @@ public actor WenshuVerifier {
             "messages": request.messages.map { ["role": $0.role, "content": $0.content] },
             "system": [WenshuVerifier.systemPromptEnglishOnly] + (extraSystemPrompt.map { [$0] } ?? []),
         ]
+        // Tier 2 of pollution-defense: stop_sequences for short outputs.
+        // Anthropic protocol terminates generation on first match — fine for short
+        // outputs (re-generate is cheap), catastrophic for chapter drafts.
+        if outputKind == .shortText {
+            body["stop_sequences"] = WenshuVerifier.shortOutputStopSequences
+        }
         urlRequest.httpBody = try JSONSerialization.data(withJSONObject: body)
         NSLog("[wenshu.chat] request: model=%@ max_tokens=%d messages=%d", request.model, request.max_tokens, request.messages.count)
         let (data, response) = try await URLSession.shared.data(for: urlRequest)
