@@ -100,7 +100,17 @@ public actor WenshuConductor {
     /// - web: input = URL → returns extracted markdown
     /// - vision: input = image path → returns recognized text
     /// - av: input = text → speaks aloud (fire-and-forget)
-    public func invokeTool(name: String, input: String) async -> String {
+    public func invokeTool(name: String, input: String, caller: AgentCaller = .main) async -> String {
+        // v0.23 ticket 012: hermes DELEGATE_BLOCKED_TOOLS parity (boss 8/23 拍).
+        // Sub-agents cannot call delegate_task / clarify / send_message / cronjob (any op).
+        // Sub-agents can call memory but only for read ops (no add/delete).
+        if caller.isSubAgent {
+            let parts = input.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
+            let op = parts.first.map(String.init) ?? ""
+            if let reason = SubAgentPermissions.checkPermission(tool: name, op: op) {
+                return reason
+            }
+        }
         // v0.23 ticket 008.003: tool-level allowlist (boss 8/23 拍: 用户不可通过聊天改系统).
         // input format: "op:arg" (e.g. "read:./file.txt", "write:./Sources/foo.swift")
         // Unknown op = blocked (per-tool allowlist below).

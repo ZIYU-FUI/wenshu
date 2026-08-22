@@ -59,12 +59,16 @@ struct SubAgentIdentityTests {
         #expect(tools.contains("graph"))
     }
 
-    @Test("Archivist tools = memory + bookmark + backup")
+    @Test("Archivist tools = bookmark + backup (memory removed in v0.23 ticket 012 hermes parity)")
     func archivistTools() {
         let tools = SubAgentIdentity.tools(name: .archivist)
-        #expect(tools.contains("memory"))
         #expect(tools.contains("bookmark"))
         #expect(tools.contains("backup"))
+        // v0.23 ticket 012: archivist no longer has memory tool.
+        // Per hermes DELEGATE_BLOCKED_TOOLS: memory writes are main-agent exclusive.
+        // Archivist's job (bookmark + backup) doesn't require memory writes;
+        // memory is managed by main agent (WenshuConductor) via post-turn sync.
+        #expect(!tools.contains("memory"))
     }
 
     @Test("Auditor tools = memory only (read-only)")

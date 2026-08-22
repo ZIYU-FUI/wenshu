@@ -38,13 +38,15 @@ public enum SubAgentIdentity {
     }
 
     /// Per-sub-agent tool list. Forwarded to WenshuConductor.invokeTool dispatch.
+    /// v0.23 ticket 012: removed "memory" from archivist (hermes parity — sub-agents
+    /// never write to shared memory; only main agent has memory access via post-turn sync).
     public static func tools(name: Name) -> [String] {
         switch name {
         case .researcher: return ["search", "web", "linkgraph"]
         case .writer: return ["composer", "template", "wordcount"]
         case .analyst: return ["outline", "bases", "graph"]
-        case .archivist: return ["memory", "bookmark", "backup"]
-        case .auditor: return ["memory"]  // read-only canonical settings lookup
+        case .archivist: return ["bookmark", "backup"]  // memory removed (hermes DELEGATE_BLOCKED_TOOLS)
+        case .auditor: return ["memory"]  // read-only — system prompt enforces (hermes contract)
         }
     }
 
