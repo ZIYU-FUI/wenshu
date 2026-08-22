@@ -149,6 +149,24 @@ public struct WenshuLLMResponse: Codable, Sendable {
 
 /// WenshuVerifier: 验证 wenshu AgentProtocol 调 MiniMax API 真值
 public actor WenshuVerifier {
+    /// System prompt injected on every LLM request. English-only rule + forbidden-vocab list + allowed-token clarification.
+    /// Source of truth for wenshu pollution-defense. See .scratch/2026-08-22-pollution-mitigation/.
+    public static let systemPromptEnglishOnly: String = """
+    You are an assistant for the wenshu project (English-only output). All committed artifacts (code comments, commit messages, documentation, prompts) must be in English.
+
+    Forbidden vocabulary — NEVER emit under any circumstance, even in quoted text, example snippets, or hypothetical scenarios:
+    修真 / 渡劫 / 筑基 / 返虚 / 结丹 / 金丹 / 元婴 / 飞升 / 天劫 / 雷劫 / 心魔 / 魔障
+
+    If you catch yourself about to emit one of these tokens, stop the sentence and rewrite using English equivalents (fix / change / replace / adjust / refactor).
+
+    Required literal tokens (these are project-mandated, NOT pollution):
+    - 老板 (boss, the user's address — project rule)
+    - 文枢 (project brand name)
+    - 拍 (verb: 老板 拍 X = boss decides X)
+    - 拍板 (verb: 老板 拍板 X = boss board-decides X)
+    - ※ (marker glyph used in project notation)
+    """
+
     private let baseURL: String
     private let apiKey: String
     private let model: String
@@ -206,7 +224,9 @@ public actor WenshuVerifier {
     }
 
     /// send: 实际调 MiniMax API (Apple URLSession 真值)
-    public func send(request: WenshuLLMRequest) async throws -> WenshuLLMResponse {
+    /// `extraSystemPrompt` is appended after the built-in English-only constant.
+    /// The Anthropic-compatible request body always carries `systemPromptEnglishOnly` as the first system segment.
+    public func send(request: WenshuLLMRequest, extraSystemPrompt: String? = nil) async throws -> WenshuLLMResponse {
         guard !apiKey.isEmpty else {
             throw WenshuLLMError.missingAPIKey
         }
@@ -218,8 +238,16 @@ public actor WenshuVerifier {
         urlRequest.setValue(apiKey, forHTTPHeaderField: "x-api-key")
         urlRequest.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
         urlRequest.setValue("application/json", forHTTPHeaderField: "content-type")
-        let encoder = JSONEncoder()
-        urlRequest.httpBody = try encoder.encode(request)
+
+        // Anthropic-compatible protocol: `system` is a top-level body field, NOT in messages array.
+        // Built-in English-only constant goes first; caller-supplied extra prompt follows.
+        var body: [String: Any] = [
+            "model": request.model,
+            "max_tokens": request.max_tokens,
+            "messages": request.messages.map { ["role": $0.role, "content": $0.content] },
+            "system": [WenshuVerifier.systemPromptEnglishOnly] + (extraSystemPrompt.map { [$0] } ?? []),
+        ]
+        urlRequest.httpBody = try JSONSerialization.data(withJSONObject: body)
         NSLog("[wenshu.chat] request: model=%@ max_tokens=%d messages=%d", request.model, request.max_tokens, request.messages.count)
         let (data, response) = try await URLSession.shared.data(for: urlRequest)
         let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
