@@ -1,76 +1,145 @@
 # Frontend integration — 26 modules (Hermes replica 14 + Obsidian replica 12)
 
-> 老板 2026-08-22 拍: "我看你说的是十四模块，是否是全量？我们复刻了 hermes.obsidian 两个项目的核心模块，应该比这个多".
-> Pocock previous盘点错了 — 漏了 12 个 hermes v0.18 复刻 (MemoryStore + SkillRegistry 之外全漏数了).
-> Total real replica scope = **26 modules** (14 Hermes + 12 Obsidian).
-> This spec = 26 frontend integration tickets, 1 commit each.
+> 老板 2026-08-22 拍: "我看你说的是十四模块，是否是全量？" + "模块之间是有关联关系的，需要你做好分析和会话，不是每个模块都需要有前端入口，有可能只是后端服务和调度，这需要你来判断".
+> Pocock 第一次盘点错了 (漏了 13 个 hermes v0.18 复刻) = **14 → 26 modules**.
+> Pocock 第二次也错了 (以为每个模块都要 UI 入口) = **23 tickets → 16 UI + 5 backend = 21 tickets**.
+> This spec v0.3 = frontend integration tickets grouped by **layer** (user-facing UI vs backend-only).
 
 ## Business language (老板 understands)
 
 Previously (8/19 + 8/19 evening) 老板拍 "复刻后端, 前端不接入核心项目" — backend done, frontend never mounted.
 
-Today (8/22) 老板拍 "把所有复刻全都接入前端, 周一看到".
+Today (8/22) 老板拍 "把所有复刻全都接入前端, 周一看到" — 但**接入** 意思是:
+- **User-facing UI**: 用户在 App 上看得到 / 点得到 (toolbar icon / menu item / pane)
+- **Backend wiring**: 模块被其他模块调用 (agent invoke / persistence),用户不可见,**不需要 UI**
 
-26 modules in scope:
-- 14 Hermes replica modules (8/19 shipped, backend done)
-  - 3 already wired (AgentProtocol, AgentRuntime, WenshuConductor → used by ChatView / App.swift chat flow)
-  - 11 not mounted
-- 12 Obsidian replica modules (8/19 evening shipped, backend done)
-  - 0 mounted
+Not every module needs UI entry. Some modules are **services for other modules** — that's correct architecture, not lazy frontend.
 
-After this work: every replica module's SwiftUI view挂载在 App 上, 老板周一可 macOS 启 binary 看效果给修改意见.
+After this work: 16 modules 挂 UI, 5 modules wired backend, 3 already wired unchanged, 2 deferred (out of scope). Total 26 modules → app is fully functional.
 
-## Full inventory (26 modules)
+## Architecture analysis (per boss 拍 "做好分析和会话")
 
-### Hermes replica (14 modules)
+### Module dependency graph
 
-| # | Module | Files | Already wired? | Frontend target |
-|---|--------|-------|----------------|------------------|
-| H01 | **MemoryStore** | `Memory/MemoryStore.swift` | ❌ (only mentioned in comments) | WenshuConductor.init() background |
-| H02 | **SkillRegistry** | `Skills/SkillRegistry.swift` | ❌ | WenshuConductor.init() background |
-| H03 | **AgentProtocol** | `Agent/AgentProtocol.swift` | ✅ (used by ChatView) | already wired — no work |
-| H04 | **AgentRuntime** | `Agent/AgentRuntime.swift` | ✅ (used by ChatView) | already wired — no work |
-| H05 | **WenshuConductor** | `Agent/WenshuConductor.swift` | ✅ (used by App + ChatView) | already wired — no work |
-| H06 | **KanbanStore** | `Kanban/KanbanStore.swift` | ❌ | New view in Z-NOVEL right pane |
-| H07 | **TodoStore** | `Todo/TodoStore.swift` | ❌ | Z-CHAT right pane or modal |
-| H08 | **Cronjob** | `Cron/Cronjob.swift` | ❌ | Settings page (cron schedule list) |
-| H09 | **Backup** | `Backup/Backup.swift` | ❌ | File menu or Settings page |
-| H10 | **FileTools** | `Tools/FileTools.swift` | ❌ | Agent toolkit (no UI; WenshuConductor.invoke) |
-| H11 | **ProcessTools** | `Tools/ProcessTools.swift` | ❌ | Agent toolkit (no UI; WenshuConductor.invoke) |
-| H12 | **WebTools** | `Tools/WebTools.swift` | ❌ | Agent toolkit (no UI; WenshuConductor.invoke) |
-| H13 | **VisionTools** | `Tools/VisionTools.swift` | ❌ | Agent toolkit (no UI; WenshuConductor.invoke) |
-| H14 | **AVMediaTools** | `Tools/AVMediaTools.swift` | ❌ | Agent toolkit + chat read-aloud button |
+```
+                    [User]
+                       ↓
+                 WenshuApp.swift (root, no UI tool registry)
+                       ↓
+              ChatView + LayoutShellView (6-zone + tab switching)
+                       ↓
+            ┌──────────┼──────────────┐
+            ↓          ↓              ↓
+       Z-TITLE    Z-NOVEL        Z-CHAT
+       toolbar    toolbar        toolbar
+            ↓          ↓              ↓
+       (graph,    (backlinks,    (todo,
+        search,    canvas,        context,
+        qswitch,   templates,     read-aloud,
+        word,      composer,      chat)
+        bookmarks) bases)
+            ↓          ↓              ↓
+       [User-visible features]
 
-### Obsidian replica (12 modules)
+                  ┌──── Backend (no UI) ────┐
+                  ↓           ↓             ↓
+              WenshuConductor (already wired)
+              ├ AgentProtocol (already)
+              ├ AgentRuntime (already)
+              ├ MemoryStore (wire)
+              ├ SkillRegistry (wire)
+              ├ FileTools (wire)
+              ├ ProcessTools (wire)
+              ├ WebTools (wire)
+              ├ VisionTools (wire)
+              ├ AVMediaTools (wire)
+              ↓
+           [Persistence + Tools] (callbacks into agent flow)
+```
 
-| # | Module | Files | Already wired? | Frontend target |
-|---|--------|-------|----------------|------------------|
-| O01 | **Backlinks** | `LinkGraph/*` (4 files) | ❌ | Z-NOVEL top toolbar icon switch |
-| O02 | **Canvas** | `Canvas/*` (2 files) | ❌ | Z-NOVEL top toolbar icon switch (fullscreen modal) |
-| O03 | **Graph view** | `Graph/*` (2 files) | ❌ | Z-TITLE toolbar icon switch (fullscreen modal) |
-| O04 | **Templates** | `Templates/*` (2 files) | ❌ | File menu "New from Template..." |
-| O05 | **Note Composer** | `Composer/*` (2 files) | ❌ | Z-NOVEL document row context menu |
-| O06 | **Full-text Search** | `Search/*` (2 files) | ❌ | Z-TITLE toolbar + ⌘F shortcut |
-| O07 | **Bases** | `Bases/*` (2 files) | ❌ | Z-NOVEL toolbar toggle (cards ↔ bases) |
-| O08 | **Quick Switcher** | `QuickSwitcher/*` (2 files) | ❌ | Z-TITLE toolbar + ⌘O shortcut |
-| O09 | **Word Count** | `WordCount/*` (2 files) | ❌ | Z-TITLE toolbar badge |
-| O10 | **Outline** | `Outline/*` (2 files) | ❌ | Z-NOVEL right pane tab (alongside Backlinks) |
-| O11 | **Bookmarks** | `Bookmarks/*` (2 files) | ❌ | Z-TITLE toolbar + View menu |
-| O12 | **Obsidian Integration** | n/a (test only) | ✅ (ObsidianFixturesTests pass) | verification only |
+### Already-wired (3 modules, no work)
 
-## Already-wired modules (3, no work needed)
+- H03 AgentProtocol — used by ChatView for A2A message flow
+- H04 AgentRuntime — used by ChatView for multi-agent dispatch
+- H05 WenshuConductor — used by App + ChatView for chat flow
 
-- H03 AgentProtocol — used by ChatView
-- H04 AgentRuntime — used by ChatView
-- H05 WenshuConductor — used by App + ChatView
+These are the **conductor layer** — already in place, no UI changes needed.
 
-## Tickets to write (23)
+### Layer A — User-facing UI (16 modules, 16 tickets)
 
-Already-wired 3 modules = no tickets. Remaining 23 modules = 23 tickets.
+Each gets a visible toolbar / menu / pane entry:
 
-(Note: 5 tools H10-H14 are not real "frontend mounts" — they're agent toolkit access. They count as 5 tickets but each = 1-line wiring to WenshuConductor.invokeTool() method. Lightweight.)
+| # | Module | UI entry | Reason |
+|---|--------|----------|--------|
+| O01 | Backlinks | Z-NOVEL right pane tab | writers need reverse-link lookup |
+| O02 | Canvas | Z-NOVEL toolbar → fullscreen modal | advanced visual canvas |
+| O03 | Graph view | Z-TITLE toolbar → fullscreen modal | relationship visualization |
+| O04 | Templates | File menu "New from Template..." | daily driver for new docs |
+| O05 | Note Composer | Z-NOVEL document row context menu | merge / split / rename |
+| O06 | Full-text Search | Z-TITLE toolbar + ⌘F shortcut | universal search |
+| O07 | Bases | Z-NOVEL toolbar toggle (cards ↔ bases) | database view |
+| O08 | Quick Switcher | Z-TITLE toolbar + ⌘O shortcut | universal nav |
+| O09 | Word Count | Z-TITLE toolbar badge (always visible) | must-have for writers |
+| O10 | Outline | Z-NOVEL right pane tab (alongside Backlinks) | document structure |
+| O11 | Bookmarks | Z-TITLE toolbar + View menu | cross-doc favorites |
+| H06 | KanbanStore | Z-NOVEL right pane (third tab after Backlinks/Outline) | task tracking |
+| H07 | TodoStore | Z-CHAT right pane (tabbed with ContextUsage) | quick todos |
+| H08 | Cronjob | Settings page section | scheduled tasks |
+| H09 | Backup | Settings page section + File menu | vault backup |
+| H14 | AVMediaTools read-aloud | Z-CHAT toolbar speaker icon | hear AI reply |
 
-## Per-ticket constraints (boss拍)
+### Layer B — Backend wiring (5 modules, 5 tickets, no UI)
+
+These are services used by other modules (primarily WenshuConductor → agent → invoke tool). No user-visible UI entry — they're invoked programmatically.
+
+| # | Module | Wire to | Reason (no UI) |
+|---|--------|---------|----------------|
+| H01 | MemoryStore | `WenshuConductor` (add as property; bootstrap on init) | Long-term memory persistence for agent. User invokes via chat ("remember this"); agent stores / retrieves automatically. **No settings page needed** — works invisibly. |
+| H02 | SkillRegistry | `WenshuConductor` (scan on init; expose `invokeSkill`) | Skills loaded at startup; agent invokes them. User sees the **result** in chat, not the registry itself. |
+| H10 | FileTools | `WenshuConductor.invokeTool("file", ...)` | Agent toolkit. User triggers via chat ("read this file"); agent reads. No UI affordance needed. |
+| H11 | ProcessTools | `WenshuConductor.invokeTool("process", ...)` | Agent toolkit. Same pattern. |
+| H12 | WebTools | `WenshuConductor.invokeTool("web", ...)` | Agent toolkit. Same pattern. |
+| H13 | VisionTools | `WenshuConductor.invokeTool("vision", ...)` | Agent toolkit. Same pattern. |
+| (H14 toolkit part) | AVMediaTools | `WenshuConductor.invokeTool("av", ...)` | Agent toolkit. UI part is in Layer A. |
+
+(Note: H14 has both Layer A UI = read-aloud button, AND Layer B backend = invokeTool dispatch. 1 ticket covers both.)
+
+### Layer C — Out of scope (deferred)
+
+- O12 Obsidian Integration cross-tool verify — already done as test fixture (`ObsidianFixturesTests.swift` passes). No new ticket needed.
+
+## Tickets (21 total)
+
+### Layer A — UI tickets (16)
+
+1. O01 Backlinks — Z-NOVEL right pane tab
+2. O02 Canvas — Z-NOVEL toolbar fullscreen modal
+3. O03 Graph view — Z-TITLE toolbar fullscreen modal
+4. O04 Templates — File menu sheet
+5. O05 Note Composer — Z-NOVEL context menu
+6. O06 Full-text Search — Z-TITLE toolbar + ⌘F
+7. O07 Bases — Z-NOVEL toolbar toggle
+8. O08 Quick Switcher — Z-TITLE toolbar + ⌘O
+9. O09 Word Count — Z-TITLE toolbar badge
+10. O10 Outline — Z-NOVEL right pane tab
+11. O11 Bookmarks — Z-TITLE toolbar + View menu
+12. H06 KanbanStore — Z-NOVEL right pane (third tab)
+13. H07 TodoStore — Z-CHAT right pane tab
+14. H08 Cronjob — Settings page section
+15. H09 Backup — Settings page section + File menu
+16. H14 AVMediaTools — Z-CHAT toolbar read-aloud + agent invokeTool
+
+### Layer B — Backend tickets (5)
+
+17. H01 MemoryStore — `WenshuConductor` wiring
+18. H02 SkillRegistry — `WenshuConductor` wiring
+19. H10 FileTools — `WenshuConductor.invokeTool` dispatch
+20. H11 ProcessTools — `WenshuConductor.invokeTool` dispatch
+21. H12 WebTools + H13 VisionTools — combined (similar pattern, both agent toolkits)
+
+## Total: 21 tickets, 21 commits, 1 branch `wt/frontend-integration`
+
+## Per-ticket constraints (boss拍 unchanged)
 
 - 修改只发生在叶子组件
 - **不要修改 LayoutShellView / ZoneModule / WenshuApp root entry**
@@ -78,48 +147,73 @@ Already-wired 3 modules = no tickets. Remaining 23 modules = 23 tickets.
 - 1 ticket = 1 commit
 - code-review 2 axes per commit
 
-## Order of execution
+## Execution order
 
-Phase A — Background wiring (low risk, 7 tickets):
-- H01 MemoryStore, H02 SkillRegistry, H10 FileTools, H11 ProcessTools, H12 WebTools, H13 VisionTools, H14 AVMediaTools
+**Phase A — Backend wiring (5 tickets, low risk, no UI):**
+1. H01 MemoryStore (background)
+2. H02 SkillRegistry (background)
+3. H10 FileTools (toolkit dispatch)
+4. H11 ProcessTools (toolkit dispatch)
+5. H12 WebTools + H13 VisionTools (combined toolkit dispatch)
+- Plus H14 toolkit part (UI button in Phase B)
 
-Phase B — UI mounts (12 tickets, in zone toolbar / pane):
-- H06 KanbanStore, H07 TodoStore, H08 Cronjob, H09 Backup
-- O01-O11 (11 obsidian modules)
-
-Phase C — Verification:
-- O12 (already done as test)
-
-## Branch
-
-`wt/frontend-integration` — 23 commits on one branch, 1 PR.
+**Phase B — UI mounts (16 tickets):**
+- Z-TITLE toolbar: O03 Graph + O06 Search + O08 Quick Switcher + O09 Word Count + O11 Bookmarks
+- Z-NOVEL toolbar: O02 Canvas + O07 Bases
+- Z-NOVEL right pane (TabView): O01 Backlinks + O10 Outline + H06 Kanban
+- Z-NOVEL document row context menu: O05 Note Composer
+- File menu: O04 Templates
+- View menu: O11 Bookmarks
+- Settings page: H08 Cron + H09 Backup
+- Z-CHAT right pane: H07 Todo + H14 read-aloud button
 
 ## Acceptance criteria (overall)
 
-- [ ] 23 modules imported in wenshu binary
-- [ ] 3 already-wired modules unchanged
+- [ ] 16 modules have UI entry (Layer A)
+- [ ] 5 modules wired backend-only (Layer B)
+- [ ] 3 already-wired unchanged
+- [ ] 2 deferred (Memory/Skill UI viewer = future work)
 - [ ] swift build exit 0
-- [ ] swift test: 338 tests + new frontend tests pass
-- [ ] macOS binary launches, all 23 modules visible / functional
-- [ ] Boss 拍 review (周一 on-machine verification)
+- [ ] swift test: 338 + new tests pass
+- [ ] macOS binary launches, all 16 UI entries visible
+- [ ] Boss 拍 review (周一 on-machine)
 - [ ] Code-review 2 axes per ticket
+
+## Why some modules are correctly backend-only
+
+Boss 拍 "模块之间是有关联关系的, 不是每个模块都需要有前端入口, 有可能只是后端服务和调度".
+
+Real example: agent memory retention. When user chats with agent:
+1. User: "记住这个人物的设定"
+2. Agent stores via MemoryStore.add(content)
+3. MemoryStore persists to SQLite
+4. Next session: agent reads via MemoryStore.search(query)
+
+User never needs to open a "Memory Viewer" UI for this to work. **MemoryStore is correctly invisible.** Forcing UI = bad UX (settings page nobody visits).
+
+Same for SkillRegistry: user sees the skill's **effect** in agent reply, not the registry itself. **SkillRegistry is correctly invisible.**
+
+Same for 4 tools (File / Process / Web / Vision): user invokes via chat ("summarize this URL"), agent does it. **Tools are correctly invisible.**
+
+Forcing UI on these = clutter, not value.
 
 ## What this spec does NOT cover
 
 - Backend changes (already done)
-- WenshuConductor refactor (only minimal wiring needed)
-
-## Risks
-
-- 23 tickets = lots of UI work. Boss拍 review = need to expect multi-round UI adjustments
-- Some modules may not have natural UI entry in current 6-zone layout (e.g. Cronjob, Backup). Mitigation: place in Settings pane
+- New layout zones (boss拍 hard constraint)
+- Skill / Memory UI viewers (future, if user demand)
 
 ## Out of scope
 
 - Renaming any replica modules
 - Changing backend logic
-- New layout zones (boss拍 hard constraint)
+- Memory viewer / Skill manager UI
+
+## Follow-up (after boss reviews 周一)
+
+- CONTEXT.md updates for `ObsidianReplicaScope` + `HermesReplicaScope` glossary entries
+- ADR `0008-frontend-integration-plan.md` documenting layer decisions
 
 ---
 
-*Spec v0.2 · 2026-08-22 pocock · project root = `/Volumes/ANAN/Engineering/wenshu/`*
+*Spec v0.3 · 2026-08-22 pocock · project root = `/Volumes/ANAN/Engineering/wenshu/`*

@@ -1,70 +1,82 @@
 # Frontend integration — issues index
 
-> Parent spec: `.scratch/2026-08-22-frontend-integration/spec.md` (v0.2 — 26 modules total).
-> 23 tickets to write (3 already wired, no ticket).
+> Parent spec: `.scratch/2026-08-22-frontend-integration/spec.md` (v0.3 — 26 modules / 20 commits).
+> 老板 2026-08-22 拍: "模块之间是有关联关系的, 不是每个模块都需要有前端入口, 有可能只是后端服务和调度".
 
-## Hermes replica tickets (11)
+## Layer A — User-facing UI tickets (16)
 
-| # | Issue | Module | Status |
-|---|-------|--------|--------|
-| h01 | `h01-memorystore-frontend.md` | MemoryStore | ready |
-| h02 | `h02-skill-registry-frontend.md` | SkillRegistry | ready |
-| h03 | (already wired) | AgentProtocol | done (no work) |
-| h04 | (already wired) | AgentRuntime | done (no work) |
-| h05 | (already wired) | WenshuConductor | done (no work) |
-| h06 | `h06-kanbanstore-frontend.md` | KanbanStore | ready |
-| h07 | `h07-todostore-frontend.md` | TodoStore | ready |
-| h08 | `h08-cronjob-frontend.md` | Cronjob | ready |
-| h09 | `h09-backup-frontend.md` | Backup | ready |
-| h10 | `h10-file-tools-frontend.md` | FileTools | ready (agent toolkit) |
-| h11 | `h11-process-tools-frontend.md` | ProcessTools | ready (agent toolkit) |
-| h12 | `h12-web-tools-frontend.md` | WebTools | ready (agent toolkit) |
-| h13 | `h13-vision-tools-frontend.md` | VisionTools | ready (agent toolkit) |
-| h14 | `h14-avmedia-tools-frontend.md` | AVMediaTools | ready (toolkit + read-aloud UI) |
+| # | Issue | Module | UI entry |
+|---|-------|--------|----------|
+| o01 | `o01-backlinks-frontend.md` | Backlinks | Z-NOVEL right pane tab |
+| o02 | `o02-canvas-frontend.md` | Canvas | Z-NOVEL toolbar fullscreen modal |
+| o03 | `o03-graph-view-frontend.md` | Graph view | Z-TITLE toolbar fullscreen modal |
+| o04 | `o04-templates-frontend.md` | Templates | File menu sheet |
+| o05 | `o05-note-composer-frontend.md` | Note Composer | Z-NOVEL context menu |
+| o06 | `o06-fulltext-search-frontend.md` | Full-text Search | Z-TITLE toolbar + ⌘F |
+| o07 | `o07-bases-frontend.md` | Bases | Z-NOVEL toolbar toggle |
+| o08 | `o08-quick-switcher-frontend.md` | Quick Switcher | Z-TITLE toolbar + ⌘O |
+| o09 | `o09-word-count-frontend.md` | Word Count | Z-TITLE toolbar badge |
+| o10 | `o10-outline-frontend.md` | Outline | Z-NOVEL right pane tab |
+| o11 | `o11-bookmarks-frontend.md` | Bookmarks | Z-TITLE toolbar + View menu |
+| h06 | `h06-kanbanstore-frontend.md` | KanbanStore | Z-NOVEL right pane (third tab) |
+| h07 | `h07-todostore-frontend.md` | TodoStore | Z-CHAT right pane tab |
+| h08 | `h08-cronjob-frontend.md` | Cronjob | Settings page section |
+| h09 | `h09-backup-frontend.md` | Backup | Settings page + File menu |
+| h14 | `h14-avmedia-tools-frontend.md` | AVMediaTools read-aloud | Z-CHAT toolbar button |
 
-## Obsidian replica tickets (12)
+## Layer B — Backend wiring tickets (4, no UI)
 
-| # | Issue | Module | Status |
-|---|-------|--------|--------|
-| o01 | `o01-backlinks-frontend.md` | Backlinks | ready |
-| o02 | `o02-canvas-frontend.md` | Canvas | ready |
-| o03 | `o03-graph-view-frontend.md` | Graph view | ready |
-| o04 | `o04-templates-frontend.md` | Templates | ready |
-| o05 | `o05-note-composer-frontend.md` | Note Composer | ready |
-| o06 | `o06-fulltext-search-frontend.md` | Full-text Search | ready |
-| o07 | `o07-bases-frontend.md` | Bases | ready |
-| o08 | `o08-quick-switcher-frontend.md` | Quick Switcher | ready |
-| o09 | `o09-word-count-frontend.md` | Word Count | ready |
-| o10 | `o10-outline-frontend.md` | Outline | ready |
-| o11 | `o11-bookmarks-frontend.md` | Bookmarks | ready |
-| o12 | `o12-obsidian-integration-tests.md` | Obsidian Integration | ready (verification) |
+| # | Issue | Module(s) | Wire to |
+|---|-------|-----------|---------|
+| h01 | `h01-memorystore-frontend.md` | MemoryStore | `WenshuConductor` (bootstrap on init) |
+| h02 | `h02-skill-registry-frontend.md` | SkillRegistry | `WenshuConductor` (scan + invokeSkill) |
+| h10 | `h10-tools-frontend.md` | FileTools + ProcessTools + WebTools + VisionTools (4 in 1) | `WenshuConductor.invokeTool` dispatch |
+| (h14 toolkit part) | covered in `h14-avmedia-tools-frontend.md` | AVMediaTools agent invokeTool | `WenshuConductor.invokeTool("av", ...)` |
 
-## Total: 23 commits on `wt/frontend-integration` branch
+## Already-wired (3, no work)
+
+- h03 AgentProtocol — used by ChatView
+- h04 AgentRuntime — used by ChatView
+- h05 WenshuConductor — used by App + ChatView
+
+## Total
+
+- 16 UI commits + 4 backend commits + 0 already-wired = **20 commits** on `wt/frontend-integration` branch
+- o12 (Obsidian Integration tests) — already done, not a new ticket
 
 ## Order
 
-Phase A — Background wiring (low risk, 7 tickets, no UI):
-1. h01 MemoryStore
-2. h02 SkillRegistry
-3. h10-h13 4 tools (File / Process / Web / Vision)
-4. h14 AVMediaTools (toolkit part — UI button in later phase)
+**Phase A — Backend wiring (5 commits, low risk, no UI):**
+1. h01 MemoryStore (conductor property + bootstrap)
+2. h02 SkillRegistry (conductor scan + invokeSkill)
+3. h10 Tools dispatch (conductor invokeTool — 4 tools in 1 commit)
+4. h14 toolkit part (conductor invokeTool "av")
 
-Phase B — UI mounts (16 tickets):
-- Z-NOVEL toolbar: o01 Backlinks + o02 Canvas + o05 Composer + o07 Bases + h06 Kanban
-- Z-TITLE toolbar: o03 Graph + o09 Word Count + o06 Search + o08 Quick Switcher + o11 Bookmarks
-- Z-NOVEL right pane: o10 Outline
-- Z-CHAT: h07 Todo + h14 read-aloud button
-- Settings: h08 Cron + h09 Backup
+**Phase B — UI mounts (16 commits):**
+- Z-TITLE toolbar: o03 Graph + o06 Search + o08 Quick Switcher + o09 Word Count + o11 Bookmarks
+- Z-NOVEL toolbar: o02 Canvas + o07 Bases
+- Z-NOVEL right pane: o01 Backlinks + o10 Outline + h06 Kanban
+- Z-NOVEL context menu: o05 Note Composer
 - File menu: o04 Templates
 - View menu: o11 Bookmarks
+- Settings page: h08 Cron + h09 Backup
+- Z-CHAT right pane: h07 Todo
+- Z-CHAT toolbar: h14 read-aloud button
 
-Phase C — Verification:
-- o12 Obsidian Integration cross-tool verify
+**Phase C — Verification:**
+- o12 already done (ObsidianFixturesTests)
 
 ## Per-ticket constraints
 
 - 修改只发生在叶子组件
 - **不要修改 LayoutShellView / ZoneModule / WenshuApp root entry**
-- 1 zone = 1 commit = independent (no cross-zone blast radius)
-- 1 ticket 1 commit, test pass before next
+- 每个 zone 修改不互相影响
+- 1 ticket = 1 commit
 - code-review 2 axes per commit
+
+## File count
+
+- 16 Layer A issues (o01-o11 + h06-h09 + h14)
+- 4 Layer B issues (h01 + h02 + h10 + h14 covers backend too)
+- 1 _index.md
+- Total = 21 .md files in this directory
