@@ -940,8 +940,10 @@ struct ZoneIcon: View {
 
 /// 区域顶部工具栏: 30 PT 高, 3 SF Symbol 占位 + 占位文字 + 底 2 PT 分割线.
 /// 宽度由父组件约束自动撑到区域模块宽度 (不画穿 splitter).
+/// v0.22 ticket B-0: 支持 [ZoneToolbarAction] 参数 (默认空 = placeholder mode, 向后兼容).
 struct ZoneTopToolbar: View {
     let iconNames: [String]
+    var actions: [ZoneToolbarAction] = []
 
     var body: some View {
         let toolbarH = LayoutTokens.toolbarHeight  // 30 PT
@@ -949,10 +951,24 @@ struct ZoneTopToolbar: View {
         DesignColor.zoneSurface
             .frame(height: toolbarH)
             .overlay(alignment: .topLeading) {
-                // 3 SF Symbol icon: 起点 y=6, 间距 9 PT
+                // 真功能 mode (有 actions): button 触发
+                // Placeholder mode (空 actions): 老 SF Symbol 占位 (向后兼容)
                 HStack(spacing: 9) {
-                    ForEach(0..<iconNames.count, id: \.self) { i in
-                        ZoneIcon(systemName: iconNames[i], size: 18)
+                    if actions.isEmpty {
+                        ForEach(0..<iconNames.count, id: \.self) { i in
+                            ZoneIcon(systemName: iconNames[i], size: 18)
+                        }
+                    } else {
+                        ForEach(Array(actions.enumerated()), id: \.offset) { _, item in
+                            Button {
+                                item.action()
+                            } label: {
+                                ZoneIcon(systemName: item.icon, size: 18)
+                            }
+                            .buttonStyle(.plain)
+                            .help(item.label)
+                            .accessibilityLabel(item.label)
+                        }
                     }
                 }
                 .padding(.leading, 18)
@@ -973,6 +989,14 @@ struct ZoneTopToolbar: View {
                 DesignColor.splitterLine.frame(height: 1)
             }
     }
+}
+
+/// Zone toolbar action config (v0.22 ticket B-0): one toolbar icon button.
+/// Boss 2026-08-22 拍: 每个 zone 顶部 icon 真的用起来 (不再 placeholder).
+struct ZoneToolbarAction {
+    let label: String      // accessibility + tooltip
+    let icon: String       // SF Symbol name
+    let action: () -> Void
 }
 
 /// 区域底部工具栏: 30 PT 高, 左/右各占位文字 + 顶 2 PT 分割线.
