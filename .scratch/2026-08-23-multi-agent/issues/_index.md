@@ -7,10 +7,25 @@
 
 | # | Issue | Depends on | Status |
 |---|-------|------------|--------|
-| 001 | `001-sub-agent-identity.md` (5 sub-agent system prompts) | — | pending |
-| 002 | `002-conductor-taskgroup-dispatch.md` (TaskGroup parallel + Auditor + synthesis) | 001 | pending |
-| 003 | `003-agent-runtime-tools.md` (AgentRuntime tools param) | 001 | pending |
-| 004 | `004-multi-agent-dispatch-tests.md` (8 tests) | 001 + 002 + 003 | pending |
+| 001 | `001-sub-agent-identity.md` (5 sub-agent system prompts) | — | ✅ done |
+| 002 | `002-conductor-taskgroup-dispatch.md` (TaskGroup parallel + Auditor + synthesis) | 001 | ✅ done |
+| 003 | `003-agent-runtime-tools.md` (AgentRuntime tools param) | 001 | ⚠️ **SKIPPED** — see note |
+| 004 | `004-multi-agent-dispatch-tests.md` (8 tests) | 001 + 002 + 003 | pending (003 dependency dropped) |
+
+## Note on ticket 003 (SKIPPED)
+
+Boss拍 5 expert model + ticket 002 implementation chose a simpler path:
+`WenshuConductor` calls `verifier.chat(_:system:model:)` directly with the
+sub-agent's system prompt, **bypassing `AgentRuntime.delegateTask()`**.
+
+This was a design decision: the new model treats sub-agents as direct LLM
+calls with independent system prompts, not as a separate A2A dispatch layer.
+`AgentRuntime` remains available for future use (e.g. multi-process dispatch),
+but is not on the hot path.
+
+Therefore ticket 003 (modify AgentRuntime delegateTask signature) is **NOT
+REQUIRED** for the v0.23 multi-agent dispatch MVP. Deferred to v0.24+ if
+sub-agents ever need true A2A protocol.
 
 ## Order
 
