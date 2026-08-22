@@ -101,11 +101,28 @@ public actor WenshuConductor {
     /// - vision: input = image path → returns recognized text
     /// - av: input = text → speaks aloud (fire-and-forget)
     public func invokeTool(name: String, input: String) async -> String {
+        // v0.23 ticket 008.003: tool-level allowlist (boss 8/23 拍: 用户不可通过聊天改系统).
+        // input format: "op:arg" (e.g. "read:./file.txt", "write:./Sources/foo.swift")
+        // Unknown op = blocked (per-tool allowlist below).
+        let parts = input.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
+        let op = parts.first.map(String.init) ?? ""
+        let arg = parts.count > 1 ? String(parts[1]) : ""
+
         switch name {
         case "file":
-            return (try? fileTools.read(path: input)) ?? ""
+            // Allowlist: read / list / search only (NOT write / patch).
+            guard ["read", "list", "search"].contains(op) else {
+                return "(tool blocked: file.\(op) is in deny-list — boss 8/23 拍: 用户不可通过聊天改代码 / 改配置)"
+            }
+            switch op {
+            case "read": return (try? fileTools.read(path: arg)) ?? ""
+            case "list": return (try? fileTools.list(path: arg).map { $0.path }.joined(separator: "\n")) ?? ""
+            case "search": return (try? fileTools.search(rootDir: arg, pattern: "").joined(separator: "\n")) ?? ""
+            default: return ""
+            }
         case "process":
-            return (try? processTools.runShell(input))?.stdout ?? ""
+            // Deny all (chat-triggered shell = arbitrary code execution).
+            return "(tool blocked: process is deny-all — boss 8/23 拍: 用户不可通过聊天改系统. 使用 wenshu-devtool CLI.)"
         case "web":
             return (try? await webTools.extract(url: input)) ?? ""
         case "vision":
@@ -115,7 +132,7 @@ public actor WenshuConductor {
             avMediaTools.speak(text: input)
             return "[spoken]"
         default:
-            return ""
+            return "(tool blocked: unknown tool '\(name)')"
         }
     }
 
