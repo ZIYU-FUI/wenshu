@@ -252,7 +252,8 @@ public enum WenshuWorkspaceMigrator {
     // MARK: - helpers
 
     private static func backupDirectory() -> URL {
-        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? URL(fileURLWithPath: NSHomeDirectory() + "/Library/Application Support")
         // ISO timestamp + UUID suffix for absolute uniqueness (handles multiple
         // migrations on same minute).
         let timestamp = ISO8601DateFormatter().string(from: Date())
@@ -277,14 +278,26 @@ public enum WenshuWorkspaceMigrator {
     }
 
     /// countRows: open an external sqlite file, return row count for a table.
+    /// v0.23 audit #014: table name is whitelisted (tableForKind returns a
+    /// safe literal), defense-in-depth against any future caller passing
+    /// untrusted input.
     private static func countRows(at path: URL, table: String) throws -> Int {
         guard !table.isEmpty else { return 0 }
+        // Whitelist: table name must come from tableForKind's allowed set.
+        let allowed: Set<String> = [
+            "chat_messages", "kanban_tasks", "memories", "skills",
+            "ZNOTE", "novel"
+        ]
+        guard allowed.contains(table) else {
+            return 0
+        }
         var handle: OpaquePointer?
         let flags = SQLITE_OPEN_READONLY
         guard sqlite3_open_v2(path.path, &handle, flags, nil) == SQLITE_OK else {
             return 0
         }
         defer { sqlite3_close(handle) }
+        // table is whitelisted literal — safe to interpolate.
         let sql = "SELECT COUNT(*) FROM \(table);"
         var stmt: OpaquePointer?
         defer { sqlite3_finalize(stmt) }

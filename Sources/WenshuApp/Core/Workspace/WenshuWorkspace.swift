@@ -32,7 +32,8 @@ public actor WenshuWorkspace {
 
     /// Default workspace file path.
     public static let defaultPath: URL = {
-        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? URL(fileURLWithPath: NSHomeDirectory() + "/Library/Application Support")
         return support
             .appendingPathComponent("wenshu", isDirectory: true)
             .appendingPathComponent("workspace.ws")
