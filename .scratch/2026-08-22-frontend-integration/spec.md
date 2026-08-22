@@ -1,128 +1,125 @@
-# Frontend integration — 14 modules (Obsidian replica + Hermes replica)
+# Frontend integration — 26 modules (Hermes replica 14 + Obsidian replica 12)
 
-> 老板 2026-08-22 拍: 把所有 hermes / obsidian 复刻模块接入前端,周一到公司看效果给修改意见.
-> Source of truth: `.scratch/2026-08-22-inventory/spec.md` (B-category盘点结果).
-> This spec = 14 frontend integration tickets, one per module.
+> 老板 2026-08-22 拍: "我看你说的是十四模块，是否是全量？我们复刻了 hermes.obsidian 两个项目的核心模块，应该比这个多".
+> Pocock previous盘点错了 — 漏了 12 个 hermes v0.18 复刻 (MemoryStore + SkillRegistry 之外全漏数了).
+> Total real replica scope = **26 modules** (14 Hermes + 12 Obsidian).
+> This spec = 26 frontend integration tickets, 1 commit each.
 
 ## Business language (老板 understands)
 
-Previously (8/19 evening) 老板拍 "复刻后端, 前端不接入核心项目". Today (8/22) 老板拍 "把所有复刻全都接入前端, 周一看到".
+Previously (8/19 + 8/19 evening) 老板拍 "复刻后端, 前端不接入核心项目" — backend done, frontend never mounted.
 
-14 modules in scope:
-- 12 Obsidian replica modules (8/19 evening shipped, backend done, frontend never mounted)
-- 2 Hermes replica modules (8/19 shipped, `MemoryStore` partially dead, `SkillRegistry` fully dead)
+Today (8/22) 老板拍 "把所有复刻全都接入前端, 周一看到".
+
+26 modules in scope:
+- 14 Hermes replica modules (8/19 shipped, backend done)
+  - 3 already wired (AgentProtocol, AgentRuntime, WenshuConductor → used by ChatView / App.swift chat flow)
+  - 11 not mounted
+- 12 Obsidian replica modules (8/19 evening shipped, backend done)
+  - 0 mounted
 
 After this work: every replica module's SwiftUI view挂载在 App 上, 老板周一可 macOS 启 binary 看效果给修改意见.
 
-## Architecture context (frontend placement decision per 6-zone layout)
+## Full inventory (26 modules)
 
-wenshu v0.21 layout (per ADR-0001 + `LayoutShellView.swift`):
+### Hermes replica (14 modules)
 
-```
-┌─────────────────────────────────────────────────────┐
-│ Z-TITLE  (title bar, 28pt)                            │
-├─────────────┬────────────────────────┬───────────────┤
-│ Z-NOVEL     │ Z-CHAT                 │ (6 zones total)│
-│ (Bookshelf) │ (ChatView + chat       │               │
-│ left col    │  bottom bar)           │               │
-│ ~200pt      │ ~1320pt                │               │
-│             │                        │               │
-│             │                        │               │
-├─────────────┴────────────────────────┴───────────────┤
-│ (status / context bar, 6pt)                          │
-└─────────────────────────────────────────────────────┘
-```
+| # | Module | Files | Already wired? | Frontend target |
+|---|--------|-------|----------------|------------------|
+| H01 | **MemoryStore** | `Memory/MemoryStore.swift` | ❌ (only mentioned in comments) | WenshuConductor.init() background |
+| H02 | **SkillRegistry** | `Skills/SkillRegistry.swift` | ❌ | WenshuConductor.init() background |
+| H03 | **AgentProtocol** | `Agent/AgentProtocol.swift` | ✅ (used by ChatView) | already wired — no work |
+| H04 | **AgentRuntime** | `Agent/AgentRuntime.swift` | ✅ (used by ChatView) | already wired — no work |
+| H05 | **WenshuConductor** | `Agent/WenshuConductor.swift` | ✅ (used by App + ChatView) | already wired — no work |
+| H06 | **KanbanStore** | `Kanban/KanbanStore.swift` | ❌ | New view in Z-NOVEL right pane |
+| H07 | **TodoStore** | `Todo/TodoStore.swift` | ❌ | Z-CHAT right pane or modal |
+| H08 | **Cronjob** | `Cron/Cronjob.swift` | ❌ | Settings page (cron schedule list) |
+| H09 | **Backup** | `Backup/Backup.swift` | ❌ | File menu or Settings page |
+| H10 | **FileTools** | `Tools/FileTools.swift` | ❌ | Agent toolkit (no UI; WenshuConductor.invoke) |
+| H11 | **ProcessTools** | `Tools/ProcessTools.swift` | ❌ | Agent toolkit (no UI; WenshuConductor.invoke) |
+| H12 | **WebTools** | `Tools/WebTools.swift` | ❌ | Agent toolkit (no UI; WenshuConductor.invoke) |
+| H13 | **VisionTools** | `Tools/VisionTools.swift` | ❌ | Agent toolkit (no UI; WenshuConductor.invoke) |
+| H14 | **AVMediaTools** | `Tools/AVMediaTools.swift` | ❌ | Agent toolkit + chat read-aloud button |
 
-(Note: rough sketch; current 6-zone layout is more complex per LayoutTokens / v0.21. Verify with `LayoutShellView.swift` at implementation time.)
+### Obsidian replica (12 modules)
 
-## Frontend placement plan (boss拍 at implementation time)
+| # | Module | Files | Already wired? | Frontend target |
+|---|--------|-------|----------------|------------------|
+| O01 | **Backlinks** | `LinkGraph/*` (4 files) | ❌ | Z-NOVEL top toolbar icon switch |
+| O02 | **Canvas** | `Canvas/*` (2 files) | ❌ | Z-NOVEL top toolbar icon switch (fullscreen modal) |
+| O03 | **Graph view** | `Graph/*` (2 files) | ❌ | Z-TITLE toolbar icon switch (fullscreen modal) |
+| O04 | **Templates** | `Templates/*` (2 files) | ❌ | File menu "New from Template..." |
+| O05 | **Note Composer** | `Composer/*` (2 files) | ❌ | Z-NOVEL document row context menu |
+| O06 | **Full-text Search** | `Search/*` (2 files) | ❌ | Z-TITLE toolbar + ⌘F shortcut |
+| O07 | **Bases** | `Bases/*` (2 files) | ❌ | Z-NOVEL toolbar toggle (cards ↔ bases) |
+| O08 | **Quick Switcher** | `QuickSwitcher/*` (2 files) | ❌ | Z-TITLE toolbar + ⌘O shortcut |
+| O09 | **Word Count** | `WordCount/*` (2 files) | ❌ | Z-TITLE toolbar badge |
+| O10 | **Outline** | `Outline/*` (2 files) | ❌ | Z-NOVEL right pane tab (alongside Backlinks) |
+| O11 | **Bookmarks** | `Bookmarks/*` (2 files) | ❌ | Z-TITLE toolbar + View menu |
+| O12 | **Obsidian Integration** | n/a (test only) | ✅ (ObsidianFixturesTests pass) | verification only |
 
-Each module gets a clear UI entry point. Boss 拍哪 zone 接哪个 module, 暂列建议如下:
+## Already-wired modules (3, no work needed)
 
-| # | Module | Suggested placement | Entry trigger | Notes |
-|---|--------|---------------------|---------------|-------|
-| 1 | **Backlinks** (issue 12) | Z-NOVEL right pane / Z-CHAT inspector | Click on document → right pane shows reverse links | Highest ROI; writers need it |
-| 2 | **Graph view** (issue 14) | New "Graph" button in Z-TITLE toolbar | Click → modal fullscreen graph (Apple HIG Spotlight pattern) | Visual showcase |
-| 3 | **Canvas / JSON Canvas** (issue 13) | New "Canvas" button in Z-NOVEL toolbar | Click → fullscreen canvas editor | Power user feature |
-| 4 | **Templates** (issue 15) | New "New from Template" item in File menu (Hermes appChrome pattern) | File menu → pick template → create note | Daily driver |
-| 5 | **Note Composer** (issue 16) | Right-click on document row → context menu (Merge / Split / Rename) | Same Hermes right-click pattern | Power user |
-| 6 | **Full-text Search** (issue 17) | ⌘F or search button in Z-TITLE toolbar | Click → search panel overlay | Universal |
-| 7 | **Bases** (issue 18) | New "Bases" view option in Z-NOVEL (replaces card grid when active) | Toggle in toolbar | Database view |
-| 8 | **Quick Switcher** (issue 19) | ⌘O (Apple HIG Spotlight) | Global shortcut → modal popup | Universal |
-| 9 | **Word Count** (issue 20) | Z-TITLE toolbar tiny badge | Always visible | Must-have for writers |
-| 10 | **Outline** (issue 21) | Z-NOVEL inspector / right pane | Click on document → outline panel | Writers need it |
-| 11 | **Bookmarks** (issue 22) | New "Bookmarks" item in View menu | Click → modal bookmarks panel | Power user |
-| 12 | **Obsidian Integration** (issue 23) | Cross-tool integration test | n/a (not a UI feature) | Already done as test fixture |
-| 13 | **MemoryStore** (Hermes replica 01) | WenshuConductor init() | Background — no UI; agent uses for context retention | Already partially wired |
-| 14 | **SkillRegistry** (Hermes replica 02) | Background — load SKILL.md files at startup | No UI; agent uses to load wenshu-specific skills | Currently dead |
+- H03 AgentProtocol — used by ChatView
+- H04 AgentRuntime — used by ChatView
+- H05 WenshuConductor — used by App + ChatView
 
-Boss 拍 these placements when reviewing the spec. Adjust per 老板 intent.
+## Tickets to write (23)
 
-## Tickets (1 module = 1 issue file = 1 commit per po workflow)
+Already-wired 3 modules = no tickets. Remaining 23 modules = 23 tickets.
 
-Each ticket = 1 SwiftUI view import + minimal app entry point. No backend changes (already done). Each = 1 commit.
+(Note: 5 tools H10-H14 are not real "frontend mounts" — they're agent toolkit access. They count as 5 tickets but each = 1-line wiring to WenshuConductor.invokeTool() method. Lightweight.)
 
-### Frontend integration tickets
+## Per-ticket constraints (boss拍)
 
-- `001-backlinks-frontend.md` — import `BacklinksPanel` in Z-NOVEL right pane
-- `002-graph-view-frontend.md` — mount `GraphView` via Z-TITLE button
-- `003-canvas-frontend.md` — mount `CanvasView` via Z-NOVEL toolbar button
-- `004-templates-frontend.md` — add `TemplatePicker` to File menu
-- `005-note-composer-frontend.md` — add context menu entries on document rows
-- `006-fulltext-search-frontend.md` — add ⌘F shortcut + search panel overlay
-- `007-bases-frontend.md` — add Bases view toggle in Z-NOVEL toolbar
-- `008-quick-switcher-frontend.md` — add ⌘O shortcut + QuickSwitcherWindow
-- `009-word-count-frontend.md` — add `WordCountBadge` to Z-TITLE toolbar
-- `010-outline-frontend.md` — mount `OutlinePanel` in right pane (next to Backlinks)
-- `011-bookmarks-frontend.md` — add Bookmarks menu item in View menu
-- `012-obsidian-integration-tests.md` — verify all 11 frontend integrations + ObsidianFixturesTests
-- `013-memorystore-frontend.md` — wire `MemoryStore` to `WenshuConductor.init()` (background)
-- `014-skill-registry-frontend.md` — wire `SkillRegistry.scan()` at startup + invoke from WenshuConductor
+- 修改只发生在叶子组件
+- **不要修改 LayoutShellView / ZoneModule / WenshuApp root entry**
+- 每个 zone 修改不互相影响
+- 1 ticket = 1 commit
+- code-review 2 axes per commit
 
-## Order of execution (boss-determined)
+## Order of execution
 
-推荐 sequential, 14 commits on one branch:
+Phase A — Background wiring (low risk, 7 tickets):
+- H01 MemoryStore, H02 SkillRegistry, H10 FileTools, H11 ProcessTools, H12 WebTools, H13 VisionTools, H14 AVMediaTools
 
-1. `wt/frontend-integration` branch off main
-2. Tickets 013 + 014 (background wiring, no UI) — first, since they're code-only
-3. Tickets 001-012 (UI integrations) — boss拍 order or default顺序
-4. Final commit = ticket 012 integration test verification
+Phase B — UI mounts (12 tickets, in zone toolbar / pane):
+- H06 KanbanStore, H07 TodoStore, H08 Cronjob, H09 Backup
+- O01-O11 (11 obsidian modules)
+
+Phase C — Verification:
+- O12 (already done as test)
+
+## Branch
+
+`wt/frontend-integration` — 23 commits on one branch, 1 PR.
 
 ## Acceptance criteria (overall)
 
-- [ ] 14 modules imported in wenshu binary
+- [ ] 23 modules imported in wenshu binary
+- [ ] 3 already-wired modules unchanged
 - [ ] swift build exit 0
 - [ ] swift test: 338 tests + new frontend tests pass
-- [ ] macOS binary launches, all 14 modules visible / functional
+- [ ] macOS binary launches, all 23 modules visible / functional
 - [ ] Boss 拍 review (周一 on-machine verification)
-- [ ] Code-review 2 axes per ticket (Standards + Spec)
+- [ ] Code-review 2 axes per ticket
 
 ## What this spec does NOT cover
 
-- Backend changes (already done 8/19, no changes expected)
-- Test changes (existing tests cover backend; new frontend tests = visual verification only)
-- AGENTS.md / CONTEXT.md updates (deferred until boss confirms final integration)
+- Backend changes (already done)
+- WenshuConductor refactor (only minimal wiring needed)
 
 ## Risks
 
-- **UI conflicts**: 14 modules all wanting Z-NOVEL space. Mitigation: boss拍 placement decisions before implementation.
-- **Hotkey collisions**: ⌘F + ⌘O + ⌘⇧P etc. may conflict with system shortcuts. Mitigation: check macOS HIG reserved shortcuts list.
-- **Performance**: 12 views mounted at once = startup latency. Mitigation: lazy mount (render only when tab/pane opened).
-- **Boss change of mind**: 14 tickets × 1 commit each = 14 commits; if boss调整 design mid-week, refactor cost is high. Mitigation: each ticket small + reversible.
-- **Integration test regression**: ObsidianFixturesTests already covers backend; if frontend mount breaks Codable encode/decode, integration tests surface it.
+- 23 tickets = lots of UI work. Boss拍 review = need to expect multi-round UI adjustments
+- Some modules may not have natural UI entry in current 6-zone layout (e.g. Cronjob, Backup). Mitigation: place in Settings pane
 
 ## Out of scope
 
-- Renaming any replica modules (already done in pollution-mitigation ticket 1)
-- Changing backend logic (already done)
-- Migrating to a new layout (boss拍)
-
-## Follow-up (after boss reviews on 周一)
-
-- CONTEXT.md updates for `ObsidianReplicaScope` + `HermesReplicaScope` glossary entries
-- ADR `0008-frontend-integration-plan.md` documenting placement decisions
-- Update inventory spec (this file obsoletes the "KEEP all" recommendation)
+- Renaming any replica modules
+- Changing backend logic
+- New layout zones (boss拍 hard constraint)
 
 ---
 
-*Spec v0.1 · 2026-08-22 pocock · project root = `/Volumes/ANAN/Engineering/wenshu/`*
+*Spec v0.2 · 2026-08-22 pocock · project root = `/Volumes/ANAN/Engineering/wenshu/`*
