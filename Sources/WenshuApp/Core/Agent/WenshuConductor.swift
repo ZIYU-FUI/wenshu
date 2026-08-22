@@ -26,6 +26,13 @@ public actor WenshuConductor {
     /// See .scratch/2026-08-22-frontend-integration/issues/h02-skill-registry-frontend.md.
     private var skillRegistry: SkillRegistry?
     private var skillRegistryBootstrapped: Bool = false
+    /// h10: agent toolkit dispatch (FileTools + ProcessTools + WebTools + VisionTools).
+    /// Tools are stateless structs, no bootstrap needed.
+    /// See .scratch/2026-08-22-frontend-integration/issues/h10-tools-frontend.md.
+    private let fileTools: FileTools = FileTools()
+    private let processTools: ProcessTools = ProcessTools()
+    private let webTools: WebTools = WebTools()
+    private let visionTools: VisionTools = VisionTools()
 
     public init(
         runtime: AgentRuntime,
@@ -82,6 +89,27 @@ public actor WenshuConductor {
         await ensureSkillRegistryBootstrapped()
         guard let registry = skillRegistry else { return [] }
         return (try? await registry.list()) ?? []
+    }
+
+    /// h10: dispatch an agent tool call. Returns "" on unknown tool / failure.
+    /// - file: input = file path → returns file content
+    /// - process: input = shell command → returns stdout
+    /// - web: input = URL → returns extracted markdown
+    /// - vision: input = image path → returns recognized text
+    public func invokeTool(name: String, input: String) async -> String {
+        switch name {
+        case "file":
+            return (try? fileTools.read(path: input)) ?? ""
+        case "process":
+            return (try? processTools.runShell(input))?.stdout ?? ""
+        case "web":
+            return (try? await webTools.extract(url: input)) ?? ""
+        case "vision":
+            let results = (try? await visionTools.recognizeText(imagePath: input)) ?? []
+            return results.map(\.text).joined(separator: "\n")
+        default:
+            return ""
+        }
     }
 
     /// h01: persist a memory for the current user. No-op if MemoryStore unavailable.
