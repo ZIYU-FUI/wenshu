@@ -61,3 +61,11 @@ pasted-*.png
 # swift test 临时 sandbox 文件 (v0.18 ticket 02/05/06 subagent 跑 swift test 时用 cwd + UUID 临时目录, 留项目根)
 # 跟 .scratch/<feature>/ 调研目录区分: .test-* 是 sandbox 自动生成, .scratch/ 是 po main flow 调研 trace
 .test-*
+
+# wenshu .ws migration backup directories (boss 2026-08-23 ticket 014.002)
+# Auto-created by WenshuWorkspaceMigrator.real() before any write.
+# Per 5-layer risk defense: never auto-delete, but never git-track.
+backup-pre-ws-migration-*/
+
+# Autonomous audit log directories (sub-agent sessions)
+wenshu-audit-*/

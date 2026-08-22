@@ -1,0 +1,99 @@
+name: wenshu CI
+
+on:
+  push:
+    branches: [main, wt/**]
+  pull_request:
+    branches: [main]
+
+# Cancel in-progress runs when a new commit lands on the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: macos-14
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history for tag detection
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app
+
+      - name: Show Swift version
+        run: swift --version
+
+      - name: Swift build
+        run: swift build 2>&1 | tee /tmp/wenshu-build.log
+
+      - name: Swift test
+        # Capture test count for PR comment + tracking
+        run: |
+          swift test 2>&1 | tee /tmp/wenshu-test.log
+          TEST_LINE=$(grep "Test run" /tmp/wenshu-test.log | tail -1)
+          echo "## $TEST_LINE" >> $GITHUB_STEP_SUMMARY
+          # Fail if any test failed
+          if echo "$TEST_LINE" | grep -q "failed"; then
+            echo "Tests failed — see log"
+            exit 1
+          fi
+
+      - name: Pollution check
+        run: |
+          # Verify no pollution vocab in code commits
+          POLLUTION=$(git log --all -p | grep -E "修真|渡劫|筑基|返虚|结丹|金丹|元婴|飞升|天劫|雷劫|心魔|魔障" | grep -v "AGENTS.md\|CONTEXT.md\|WenshuVerifier\|WenshuAgentIdentity\|commit_filter.py\|test_block_pollution" | wc -l | tr -d ' ')
+          if [ "$POLLUTION" -gt 0 ]; then
+            echo "Pollution leak found: $POLLUTION lines"
+            exit 1
+          fi
+          echo "Pollution check passed: 0 leak"
+
+      - name: Verify pre-commit hook installed
+        run: |
+          if [ ! -x .git/hooks/pre-commit ]; then
+            echo "WARNING: pre-commit hook not installed. Run Tools/wenshu-devtool/install_hook.sh"
+          else
+            echo "Pre-commit hook installed"
+          fi
+
+      - name: Upload test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wenshu-test-log
+          path: /tmp/wenshu-test.log
+          retention-days: 7
+
+  # Lint commit messages for conventional commits + English-only
+  lint-commits:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 100
+
+      - name: Check commit message format
+        run: |
+          # Verify each commit message is English + follows conventional format
+          git log --format=%s -10 | while read SUBJECT; do
+            # Skip merge commits
+            if echo "$SUBJECT" | grep -qE "^Merge"; then
+              continue
+            fi
+            # Verify conventional commit prefix
+            if ! echo "$SUBJECT" | grep -qE "^(feat|fix|docs|test|refactor|chore|perf|build|ci)(\(wenshu\))?:"; then
+              echo "Bad commit subject: $SUBJECT"
+              exit 1
+            fi
+            # Verify no CJK in subject
+            if echo "$SUBJECT" | grep -qE "[一-鿿]"; then
+              echo "CJK in commit subject: $SUBJECT"
+              exit 1
+            fi
+          done
+          echo "Commit message format check passed"

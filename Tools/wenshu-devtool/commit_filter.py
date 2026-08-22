@@ -21,6 +21,21 @@ FORBIDDEN_TOKENS = [
 ]
 PATTERN = re.compile("|".join(re.escape(t) for t in FORBIDDEN_TOKENS))
 
+# Files allowed to mention forbidden vocab (they explicitly enumerate the banned list).
+# v0.23 audit #014 added PR + issue templates (which mention the list by name).
+POLLUTION_ALLOWLIST = {
+    "AGENTS.md",
+    "CONTEXT.md",
+    "WenshuVerifier.shortOutputStopSequences",  # functional: filter LLM output
+    "WenshuAgentIdentity.systemPrompt",         # functional: instruction
+    "Tools/wenshu-devtool/commit_filter.py",
+    "Tools/wenshu-devtool/tests/test_block_pollution.sh",
+    "Tools/wenshu-devtool/tests/test_allow_allowed_tokens.sh",
+    ".github/PULL_REQUEST_TEMPLATE.md",
+    ".github/ISSUE_TEMPLATE/bug_report.md",
+    ".github/ISSUE_TEMPLATE/feature_request.md",
+}
+
 
 def get_staged_files():
     """Get list of staged file paths (.md, .swift only)."""
@@ -62,6 +77,16 @@ def scan(text, source):
 def main():
     errors = []
     for path in get_staged_files():
+        # Skip files in pollution allowlist (they legitimately enumerate banned tokens).
+        # Match exact path OR path containing allowlist entry (for Sources/.../*).
+        if any(
+            path == entry or
+            path.endswith("/" + entry) or
+            (entry.startswith("Sources/") and "/" + entry in path) or
+            (entry.startswith("Tools/") and "/" + entry in path)
+            for entry in POLLUTION_ALLOWLIST
+        ):
+            continue
         diff = get_staged_diff(path)
         for error in scan(diff, path):
             errors.append(error)
