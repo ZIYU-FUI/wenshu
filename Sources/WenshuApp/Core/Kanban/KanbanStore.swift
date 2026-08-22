@@ -129,8 +129,13 @@ public actor KanbanStore {
         ]
         for stmt in alterStatements {
             // ALTER TABLE ADD COLUMN is idempotent only with IF NOT EXISTS (sqlite 3.35+).
-            // Use try? since ALTER TABLE may fail if column exists.
-            _ = try? exec(stmt)
+            // v0.23 audit #014 fix: log failures (boss 8/23 risk-averse:
+            // surface silent ALTER failures to user / developer).
+            do {
+                _ = try exec(stmt)
+            } catch {
+                NSLog("[KanbanStore] ALTER failed (expected on sqlite<3.35 or already applied): \(error)")
+            }
         }
     }
 

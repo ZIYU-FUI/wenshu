@@ -71,9 +71,16 @@ public struct SubAgentProgressView: View {
         }
         .task(id: refreshTrigger) {
             // Auto-refresh every 2s (Apple HIG live update pattern).
-            while true {
+            // v0.23 audit #014 fix: check cancellation between refresh
+            // + sleep (boss 8/23 risk-averse: don't leak refresh cycles
+            // on view dismiss).
+            while !Task.isCancelled {
                 refreshTasks()
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                do {
+                    try await Task.sleep(nanoseconds: 2_000_000_000)
+                } catch {
+                    return  // cancelled mid-sleep
+                }
             }
         }
     }

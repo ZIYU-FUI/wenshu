@@ -62,7 +62,10 @@ public actor WenshuConductor {
         do {
             try await store.bootstrap()
         } catch {
-            // Failure → memory disabled (graceful degradation per v0.21 ticket 04 S4).
+            // v0.23 audit #014 fix: reset bootstrapped flag on failure so
+            // next call retries (boss 8/23 risk-averse: don't permanently
+            // disable memory if bootstrap transiently fails).
+            memoryStoreBootstrapped = false
             memoryStore = nil
         }
     }
@@ -75,7 +78,9 @@ public actor WenshuConductor {
         do {
             _ = try await registry.list()
         } catch {
-            // Failure → skills disabled (graceful degradation).
+            // v0.23 audit #014 fix: reset bootstrapped flag on failure so
+            // next call retries (don't permanently disable skills).
+            skillRegistryBootstrapped = false
             skillRegistry = nil
         }
     }
@@ -256,8 +261,13 @@ public actor WenshuConductor {
                 }
                 return collected
             }
+            // v0.23 audit #014 fix: check cancellation before kanban write
+            // (boss 8/23 risk-averse: don't write kanban state for cancelled runs).
+            // Note: handle() doesn't throw, so guard with Task.isCancelled and
+            // skip the kanban transitions if cancelled (loop body no-ops).
+            let isCancelled = Task.isCancelled
             // Mark kanban tasks done (after collection)
-            for (name, kanbanId) in tasks {
+            for (name, kanbanId) in tasks where !isCancelled {
                 if let id = kanbanId {
                     _ = try? await kanbanStore.transition(id: id, to: .done)
                 }
@@ -336,7 +346,10 @@ public actor WenshuConductor {
 
         // 步骤 5: 标 conductor 父 task done (如果有)
         if let conductorTask = conductorTask {
-            _ = try? await kanbanStore.transition(id: conductorTask.id, to: .done)
+            // v0.23 audit #014 fix: don't write kanban state if cancelled.
+            if !Task.isCancelled {
+                _ = try? await kanbanStore.transition(id: conductorTask.id, to: .done)
+            }
         }
 
         return (finalReply, totalTokens, finalThinking)

@@ -121,3 +121,13 @@ This makes Fix 3 trivial: **no listener needed** because resolveCredentials() ru
 - Live streaming partial results (separate work item)
 - Per-query budget cap (separate work item)
 - Auto-failover (A key exhausts → auto-switch to B key without user action — deferred to v0.25+)
+---
+
+## v0.23 audit #014 update (2026-08-23)
+
+Boss 2026-08-23 audit found: this spec proposes adding `.claudeSonnet` / `.gpt4o` cases to `WenshuLLMModel`. But boss 2026-08-21 拍 (v0.21 ticket 04) was "3 个 default model" = `.m3 / .m2 / .reasoning`, all MiniMax. Adding anthropic/openai cases was NOT in boss's original scope. Multi-provider routing (current implementation, ticket 010.001) supports anthropic/openai via WenshuVerifier.resolveCredentials reading UserDefaults `wenshu.llm.provider` + ProviderCatalog, but the WenshuLLMModel enum intentionally stays MiniMax-only per boss's 8/21 directive.
+
+Decision (autonomous, pending boss review):
+- Spec proposed adding cases → deferred to v0.24 (boss 8/25 review)
+- Current code (3 MiniMax cases + dynamic provider resolution) works per boss's 8/21 directive
+- If boss 8/25 wants anthropic/openai cases added, that's a 1-line additive change (new enum cases + providerSlug switch arms). Currently deferred.
