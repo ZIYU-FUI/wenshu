@@ -16,12 +16,52 @@ public actor WenshuConductor {
     private let verifier: WenshuVerifier
     private let kanbanStore: KanbanStore
     private let sessionStore: ChatSessionStore?
+    /// Long-term memory persistence for agent. Optional — bootstrap failure degrades gracefully (memory disabled).
+    /// Bootstrap is lazy on first `handle()` call (Swift actors cannot await in init).
+    /// See .scratch/2026-08-22-frontend-integration/issues/h01-memorystore-frontend.md.
+    private var memoryStore: MemoryStore?
+    private var memoryStoreBootstrapped: Bool = false
 
-    public init(runtime: AgentRuntime, verifier: WenshuVerifier, kanbanStore: KanbanStore, sessionStore: ChatSessionStore? = nil) {
+    public init(
+        runtime: AgentRuntime,
+        verifier: WenshuVerifier,
+        kanbanStore: KanbanStore,
+        sessionStore: ChatSessionStore? = nil,
+        memoryStore: MemoryStore? = nil
+    ) {
         self.runtime = runtime
         self.verifier = verifier
         self.kanbanStore = kanbanStore
         self.sessionStore = sessionStore
+        self.memoryStore = memoryStore
+        // Bootstrap deferred to first handle() call (Swift actor init cannot await).
+    }
+
+    /// h01: lazy bootstrap of MemoryStore. Idempotent.
+    private func ensureMemoryStoreBootstrapped() async {
+        guard !memoryStoreBootstrapped else { return }
+        memoryStoreBootstrapped = true
+        guard let store = memoryStore else { return }
+        do {
+            try await store.bootstrap()
+        } catch {
+            // Failure → memory disabled (graceful degradation per v0.21 ticket 04 S4).
+            memoryStore = nil
+        }
+    }
+
+    /// h01: persist a memory for the current user. No-op if MemoryStore unavailable.
+    public func addMemory(content: String) async {
+        await ensureMemoryStoreBootstrapped()
+        guard let store = memoryStore else { return }
+        _ = try? await store.add(userId: "wenshu-user", content: content)
+    }
+
+    /// h01: search memories for context. Returns [] if MemoryStore unavailable.
+    public func searchMemory(query: String, limit: Int = 5) async -> [Memory] {
+        await ensureMemoryStoreBootstrapped()
+        guard let store = memoryStore else { return [] }
+        return (try? await store.search(userId: "wenshu-user", query: query, limit: limit)) ?? []
     }
 
     /// handle: 收 user message, 派子 agent, 合成最终回复
