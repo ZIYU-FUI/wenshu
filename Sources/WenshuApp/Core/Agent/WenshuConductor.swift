@@ -235,6 +235,23 @@ public actor WenshuConductor {
                     _ = try? await kanbanStore.transition(id: id, to: .done)
                 }
             }
+            // v0.23 ticket 006: write 1-line sub-agent run summary to ChatSessionStore
+            // (boss 8/23 拍: 用户不需要执行细节, 只看结果即可 — no full LLM dialogue stored).
+            if let session = sessionStore {
+                for (name, result) in subResults {
+                    let summary = String(result.prefix(200))  // 1-line 摘要, not full output
+                    let run = SubAgentRun(
+                        id: UUID().uuidString,
+                        agentName: name,
+                        title: "\(name): \(userMessage.prefix(50))",
+                        status: result.hasPrefix("(subagent unreachable)") ? .failed : .done,
+                        startedAt: Date(),
+                        completedAt: Date(),
+                        resultSummary: summary
+                    )
+                    _ = try? await session.recordSubAgentRun(run, sessionId: "default")
+                }
+            }
             // v0.23 ticket 002: Auditor runs if Writer or Analyst in selection.
             let needsAudit = selectedAgents.contains("writer") || selectedAgents.contains("analyst")
             if needsAudit {

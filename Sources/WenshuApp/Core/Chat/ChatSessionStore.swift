@@ -49,8 +49,25 @@ public actor ChatSessionStore {
             last_message_id TEXT
         );
         """
+        // v0.23 ticket 006: sub-agent run trace (boss 8/23 拍: "用户不需要执行细节, 只看结果即可").
+        // Schema: id / session_id / agent_name / title / status / started_at / completed_at / result_summary.
+        // NOT stored: full LLM dialogue, system prompts, intermediate steps.
+        let subAgentRunSql = """
+        CREATE TABLE IF NOT EXISTS sub_agent_runs (
+            id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL DEFAULT 'default',
+            agent_name TEXT NOT NULL,
+            title TEXT NOT NULL,
+            status TEXT NOT NULL,
+            started_at REAL NOT NULL,
+            completed_at REAL,
+            result_summary TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_sub_agent_runs_session ON sub_agent_runs(session_id, started_at);
+        """
         try exec(sql)
         try exec(summarySql)
+        try exec(subAgentRunSql)
     }
 
     /// loadMessages: 按 timestamp ASC 加载 1 session 的全部消息 (跟 ChatView UI 渲染顺序一致)
@@ -266,6 +283,103 @@ public actor ChatSessionStore {
         guard let db = db else { return "no db handle" }
         return String(cString: sqlite3_errmsg(db))
     }
+
+    // MARK: - v0.23 ticket 006: sub-agent run trace
+
+    /// recordSubAgentRun: 写 1 条 sub-agent run summary.
+    /// Boss 8/23 拍: "用户不需要执行细节, 只看结果即可" — 不存 LLM 中间对话, 只存 1-line result summary.
+    public func recordSubAgentRun(_ run: SubAgentRun, sessionId: String) throws {
+        let sql = "INSERT OR REPLACE INTO sub_agent_runs (id, session_id, agent_name, title, status, started_at, completed_at, result_summary) VALUES (?, ?, ?, ?, ?, ?, ?, ?);"
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(dbPtr.db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            throw ChatSessionStoreError.prepareFailed(message: ChatSessionStore.sqliteErmsg(dbPtr.db))
+        }
+        defer { sqlite3_finalize(stmt) }
+        sqlite3_bind_text(stmt, 1, run.id, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_text(stmt, 2, sessionId, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_text(stmt, 3, run.agentName, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_text(stmt, 4, run.title, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_text(stmt, 5, run.status.rawValue, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_double(stmt, 6, run.startedAt.timeIntervalSince1970)
+        if let completedAt = run.completedAt {
+            sqlite3_bind_double(stmt, 7, completedAt.timeIntervalSince1970)
+        } else {
+            sqlite3_bind_null(stmt, 7)
+        }
+        if let summary = run.resultSummary {
+            sqlite3_bind_text(stmt, 8, summary, -1, SQLITE_TRANSIENT)
+        } else {
+            sqlite3_bind_null(stmt, 8)
+        }
+        guard sqlite3_step(stmt) == SQLITE_DONE else {
+            throw ChatSessionStoreError.stepFailed(message: ChatSessionStore.sqliteErmsg(dbPtr.db))
+        }
+    }
+
+    /// loadSubAgentRuns: 按 started_at ASC 加载 1 session 的全部 sub-agent run.
+    /// Used by future "trace replay" view (boss 8/23 拍: 看板任务清单, 任务状态就够).
+    public func loadSubAgentRuns(sessionId: String) throws -> [SubAgentRun] {
+        let sql = "SELECT id, agent_name, title, status, started_at, completed_at, result_summary FROM sub_agent_runs WHERE session_id = ? ORDER BY started_at ASC;"
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(dbPtr.db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            throw ChatSessionStoreError.prepareFailed(message: ChatSessionStore.sqliteErmsg(dbPtr.db))
+        }
+        defer { sqlite3_finalize(stmt) }
+        sqlite3_bind_text(stmt, 1, sessionId, -1, SQLITE_TRANSIENT)
+        var results: [SubAgentRun] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            let id = ChatSessionStore.textColumn(stmt, 0) ?? ""
+            let agentName = ChatSessionStore.textColumn(stmt, 1) ?? ""
+            let title = ChatSessionStore.textColumn(stmt, 2) ?? ""
+            let statusStr = ChatSessionStore.textColumn(stmt, 3) ?? "running"
+            let startedAt = Date(timeIntervalSince1970: sqlite3_column_double(stmt, 4))
+            let completedAt: Date? = sqlite3_column_type(stmt, 5) == SQLITE_NULL
+                ? nil : Date(timeIntervalSince1970: sqlite3_column_double(stmt, 5))
+            let resultSummary: String? = sqlite3_column_type(stmt, 6) == SQLITE_NULL
+                ? nil : ChatSessionStore.textColumn(stmt, 6)
+            let status = SubAgentRunStatus(rawValue: statusStr) ?? .running
+            results.append(SubAgentRun(
+                id: id, agentName: agentName, title: title, status: status,
+                startedAt: startedAt, completedAt: completedAt, resultSummary: resultSummary
+            ))
+        }
+        return results
+    }
+}
+
+/// SubAgentRun: 1-line summary of one sub-agent run.
+public struct SubAgentRun: Equatable, Sendable {
+    public let id: String
+    public let agentName: String
+    public let title: String
+    public let status: SubAgentRunStatus
+    public let startedAt: Date
+    public let completedAt: Date?
+    public let resultSummary: String?
+
+    public init(
+        id: String,
+        agentName: String,
+        title: String,
+        status: SubAgentRunStatus,
+        startedAt: Date,
+        completedAt: Date? = nil,
+        resultSummary: String? = nil
+    ) {
+        self.id = id
+        self.agentName = agentName
+        self.title = title
+        self.status = status
+        self.startedAt = startedAt
+        self.completedAt = completedAt
+        self.resultSummary = resultSummary
+    }
+}
+
+public enum SubAgentRunStatus: String, Codable, Sendable, CaseIterable {
+    case running
+    case done
+    case failed
 }
 
 /// StoredChatMessage: DB 层的 chat message 真值 (= ChatMessage 简化, 不带 ChatRole 因为 source 字段已含 role 真值). 范式跟 TodoItem 一致 (id + content + 时间).
