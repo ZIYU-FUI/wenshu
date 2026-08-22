@@ -1046,10 +1046,15 @@ struct ZoneModule: View {
     private var innerBandH: CGFloat { bandH - 2 * toolbarH }  // 顶栏底栏间内容区
 
     var body: some View {
-        // 区域模块 = 顶栏 (上) + 内容区 (中) + 底栏 (下). 
+        // 区域模块 = 顶栏 (上) + 内容区 (中) + 底栏 (下).
         // .aiChat 跳过底栏: ChatZoneView 自带底栏 (= v0.21 ticket 10 修因因 替换 chat zone 底栏 '占位文字' 位置)
+        // v0.22 ticket B-0: ZoneTopToolbar supports ZoneToolbarAction (placeholder mode when actions empty).
+        // ZoneModule passes per-slot actions here. Individual tickets wire their own actions.
         VStack(spacing: 0) {
-            ZoneTopToolbar(iconNames: ["book.closed", "magnifyingglass", "slider.horizontal.3"])
+            ZoneTopToolbar(
+                iconNames: ["book.closed", "magnifyingglass", "slider.horizontal.3"],
+                actions: toolbarActions(for: slot)
+            )
                 .frame(height: toolbarH, alignment: .top)
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -1059,6 +1064,13 @@ struct ZoneModule: View {
             }
         }
         .background(slot == .aiDynamic ? DesignColor.dynamicZoneSurface : .clear)
+    }
+
+    /// v0.22: per-slot toolbar actions. Currently empty — wired by individual UI mount tickets.
+    /// Each ticket commits: (1) new view file, (2) action closure here.
+    private func toolbarActions(for slot: ZoneSlot) -> [ZoneToolbarAction] {
+        // Empty by default. Tickets add cases as they ship.
+        return []
     }
 
     @ViewBuilder
