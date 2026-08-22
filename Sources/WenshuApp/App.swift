@@ -1268,7 +1268,9 @@ struct ChatZoneView: View {
             }
         }
     }
-    @State private var availableModels: [String] = WenshuLLMModel.allCases.map { $0.rawValue }
+    // v0.23 ticket 011.002: change from flat [String] to sectioned [AvailableProviderModels].
+    // Boss 8/23 拍: 我配了三个厂家的 key, 模型切换应分组展示可用模型合集.
+    @State private var availableSections: [AvailableProviderModels] = []
     // v0.21 ticket 43 step 3: picker ↔ UserDefaults 同步修复 = @AppStorage (Apple SwiftUI 真值, 源单一 UserDefaults, 双向自动同步)
     // 修复前 ChatZoneView.currentModel 是 @State 不绑 UserDefaults, ChatViewModel.currentModel 是 init default 读 UserDefaults 一次 = 切 picker 后两条状态链断开
     // @AppStorage 是 Apple HIG 真值, 源单一 UserDefaults, 自动响应变化, 修复 picker 跟 ChatViewModel 同步
@@ -1307,10 +1309,28 @@ struct ChatZoneView: View {
                 .animation(.default, value: selectedTab)
                 HStack(spacing: 0) {
                 Menu {
-                    ForEach(ModelDisplay.curated(availableModels), id: \.self) { entry in
-                        Button(entry.display) {
-                            // v0.21 ticket 43 step 3: @AppStorage 自动写 UserDefaults (Apple HIG 真值, 不手动 set)
-                            currentModel = entry.id
+                    // v0.23 ticket 011.002: sectioned picker (boss 8/23 拍).
+                    // Each section = provider with a configured Keychain key.
+                    // Models = provider.defaultModels (curated list).
+                    if availableSections.isEmpty {
+                        Text("No provider keys configured")
+                            .font(.caption)
+                    } else {
+                        ForEach(availableSections, id: \.provider.slug) { section in
+                            Section(section.provider.name) {
+                                ForEach(section.models, id: \.self) { model in
+                                    Button {
+                                        currentModel = model
+                                    } label: {
+                                        HStack {
+                                            Text(model)
+                                            if model == currentModel {
+                                                Image(systemName: "checkmark")
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 } label: {
@@ -1336,12 +1356,17 @@ struct ChatZoneView: View {
                 .buttonStyle(.plain)
                 .padding(.leading, 14)
                 .task {
-                    let base = ProcessInfo.processInfo.environment["MINIMAX_CN_BASE_URL"] ?? "https://api.minimaxi.com/anthropic"
-                    if let key = LLMKeychain.loadKeySync(), !key.isEmpty {
-                        availableModels = await WenshuLLMModelFetcher.loadModelIds(apiKey: key, baseUrl: base)
-                    }
-                    if !availableModels.contains(currentModel) {
-                        availableModels = [currentModel] + availableModels
+                    // v0.23 ticket 011.002: load sectioned available models from Keychain.
+                    // (was: live-fetch from minimax API; now: discover all configured providers.)
+                    availableSections = AvailableModelsDiscovery.loadFromKeychain()
+                    // Ensure currentModel is in some section; if not, add a fallback section
+                    // so the picker always shows the currently-selected model.
+                    if !availableSections.contains(where: { $0.models.contains(currentModel) }) {
+                        let fallback = Provider.by(slug: "minimax-cn") ?? Provider.all[0]
+                        availableSections.append(AvailableProviderModels(
+                            provider: fallback,
+                            models: [currentModel]
+                        ))
                     }
                 }
 
