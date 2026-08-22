@@ -1057,6 +1057,8 @@ struct ZoneModule: View {
     @State private var showingCron: Bool = false
     @State private var showingBackup: Bool = false
     @State private var showingQuickSwitcher: Bool = false
+    // v0.23 ticket 005: sub-agent progress 明盒 (boss 8/23 拍: '让用户知道工作进度的明盒').
+    @State private var showingSubAgentProgress: Bool = false
     // h14: last AI reply text (for read-aloud).
     @State private var lastAIReply: String = ""
 
@@ -1103,6 +1105,7 @@ struct ZoneModule: View {
         .sheet(isPresented: $showingCron) { CronScheduleView() }
         .sheet(isPresented: $showingBackup) { BackupView() }
         .sheet(isPresented: $showingQuickSwitcher) { QuickSwitcherWindow() }
+        .sheet(isPresented: $showingSubAgentProgress) { SubAgentProgressView() }
     }
 
     /// h14: read aloud the last AI reply via WenshuConductor.invokeTool(av:).
@@ -1137,12 +1140,14 @@ struct ZoneModule: View {
                 ),
             ]
         case .aiDynamic:
-            // o11 Bookmarks (right-bottom small zone).
+            // v0.23 ticket 005: sub-agent progress 明盒 (boss 8/23 拍: '让用户知道工作进度的明盒').
+            // 看板放在 aiDynamic zone, 显示当前正在跑的 sub-agent 任务.
+            // Bookmarks (o11) 暂不挂 toolbar, 留给 v0.24 (周一轮回).
             return [
                 ZoneToolbarAction(
-                    label: "Bookmarks",
-                    icon: "bookmark",
-                    action: { showingBookmarks.toggle() }
+                    label: "Sub-agent progress",
+                    icon: "checklist.checked",
+                    action: { showingSubAgentProgress.toggle() }
                 ),
             ]
         case .projectSidebar:
