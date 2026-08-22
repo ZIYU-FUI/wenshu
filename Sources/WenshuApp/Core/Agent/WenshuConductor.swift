@@ -21,19 +21,26 @@ public actor WenshuConductor {
     /// See .scratch/2026-08-22-frontend-integration/issues/h01-memorystore-frontend.md.
     private var memoryStore: MemoryStore?
     private var memoryStoreBootstrapped: Bool = false
+    /// Local Skills registry (replica of hermes skills_hub). Skills loaded at startup, agent invokes.
+    /// Lazy bootstrap for the same actor isolation reason as MemoryStore.
+    /// See .scratch/2026-08-22-frontend-integration/issues/h02-skill-registry-frontend.md.
+    private var skillRegistry: SkillRegistry?
+    private var skillRegistryBootstrapped: Bool = false
 
     public init(
         runtime: AgentRuntime,
         verifier: WenshuVerifier,
         kanbanStore: KanbanStore,
         sessionStore: ChatSessionStore? = nil,
-        memoryStore: MemoryStore? = nil
+        memoryStore: MemoryStore? = nil,
+        skillRegistry: SkillRegistry? = nil
     ) {
         self.runtime = runtime
         self.verifier = verifier
         self.kanbanStore = kanbanStore
         self.sessionStore = sessionStore
         self.memoryStore = memoryStore
+        self.skillRegistry = skillRegistry
         // Bootstrap deferred to first handle() call (Swift actor init cannot await).
     }
 
@@ -48,6 +55,33 @@ public actor WenshuConductor {
             // Failure → memory disabled (graceful degradation per v0.21 ticket 04 S4).
             memoryStore = nil
         }
+    }
+
+    /// h02: lazy bootstrap of SkillRegistry. Lists available skills.
+    private func ensureSkillRegistryBootstrapped() async {
+        guard !skillRegistryBootstrapped else { return }
+        skillRegistryBootstrapped = true
+        guard let registry = skillRegistry else { return }
+        do {
+            _ = try await registry.list()
+        } catch {
+            // Failure → skills disabled (graceful degradation).
+            skillRegistry = nil
+        }
+    }
+
+    /// h02: invoke a wenshu local skill. Returns "" if registry unavailable or skill not found.
+    public func invokeSkill(name: String, input: String = "") async -> String {
+        await ensureSkillRegistryBootstrapped()
+        guard let registry = skillRegistry else { return "" }
+        return (try? await registry.invoke(name: name, input: input)) ?? ""
+    }
+
+    /// h02: list available skills (for agent context). Returns [] if registry unavailable.
+    public func availableSkills() async -> [String] {
+        await ensureSkillRegistryBootstrapped()
+        guard let registry = skillRegistry else { return [] }
+        return (try? await registry.list()) ?? []
     }
 
     /// h01: persist a memory for the current user. No-op if MemoryStore unavailable.
