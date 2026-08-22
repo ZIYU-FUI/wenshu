@@ -153,7 +153,14 @@ public actor WenshuConductor {
 
         // 步骤 2: 调 LLM intent classify, 失败 fallback → 0 子 agent, 不抛
         var selectedAgents: [String] = []
+        // v0.22 ticket 001: prepend 文枢 agent identity (WenshuConductorIdentity.systemPrompt)
+        // as system prompt. The send() method already injects the pollution-defense
+        // systemPromptEnglishOnly as the first system segment; our identity follows.
         let intentPrompt = """
+        \(WenshuConductorIdentity.systemPrompt)
+
+        ---
+
         你是 wenshu 文枢调度器. 收到 user 消息: "\(userMessage)"
 
         可派子 agent (wenshu v0.19 模块):
@@ -166,7 +173,7 @@ public actor WenshuConductor {
         派 0-N 个子 agent (JSON array, 仅 agent name, 不要解释):
         ["search", "outline"]
         """
-        if let intentResponse = try? await verifier.chat(intentPrompt, model: model) {
+        if let intentResponse = try? await verifier.chat(intentPrompt, system: WenshuConductorIdentity.systemPrompt, model: model) {
             // v0.21 ticket 39: union decode WenshuLLMBlock (text / thinking / tool_use)
             let intentRaw = intentResponse.content.map(\.displayText).joined()
             if !intentRaw.isEmpty {
@@ -195,7 +202,8 @@ public actor WenshuConductor {
         let synthesisPrompt = buildSynthesisPrompt(userMessage: userMessage, subResults: subResults)
         var finalThinking: String?    // v0.21 ticket 39: WenshuLLMBlock.thinking
         let finalReply: String
-        if let response = try? await verifier.chat(synthesisPrompt, model: model) {
+        // v0.22 ticket 001: prepend 文枢 agent identity for synthesis call.
+        if let response = try? await verifier.chat(synthesisPrompt, system: WenshuConductorIdentity.systemPrompt, model: model) {
             // v0.21 ticket 39: union decode concat all text blocks (M2.7 有 thinking block 前置)
             let text = response.content.map(\.displayText).joined()
             if !text.isEmpty {

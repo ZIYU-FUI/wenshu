@@ -232,6 +232,18 @@ public actor WenshuVerifier {
         return try await send(request: request, outputKind: .shortText)
     }
 
+    /// v0.22 ticket 001 (文枢 agent 基础设定): chat overload that takes an explicit system prompt.
+    /// Used by WenshuConductor to prepend the agent identity (WenshuConductorIdentity.systemPrompt).
+    /// Default model = self.model (conductor uses runtime model).
+    public func chat(_ text: String, system: String, model overrideModel: String? = nil) async throws -> WenshuLLMResponse {
+        let request = WenshuLLMRequest(
+            model: overrideModel ?? model,
+            max_tokens: 1024,
+            messages: [WenshuLLMMessage(role: "user", content: text)]
+        )
+        return try await send(request: request, outputKind: .shortText, extraSystemPrompt: system)
+    }
+
     /// send: 实际调 MiniMax API (Apple URLSession 真值)
     /// `extraSystemPrompt` is appended after the built-in English-only constant.
     /// The Anthropic-compatible request body always carries `systemPromptEnglishOnly` as the first system segment.
