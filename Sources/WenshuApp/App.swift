@@ -185,12 +185,11 @@ struct WenshuApp: App {
             // SettingsEnvironmentCapturer 之前包 LayoutShellView 注入 OpenSettingsAction, 但 openSettings?() → nil (Q15 翻车 #11), 现在 NSMenu 自己装 + 自创建 NSWindow 装 SettingView 不需要 capture
             SettingsEnvironmentCapturer(library: library, appearanceMode: appearanceMode)
         }
-        // Boss 8/24 反馈: 标题栏用的是 macOS 的, 不是我们自己写的, 是直接
-// 引入, 运行时自动渲染的. macOS SwiftUI .windowStyle(.titleBar) =
-// 28 PT native titlebar (red/yellow/green traffic lights + window title
-// at top, rendered by NSWindow at runtime). This is the correct choice
-// - 不要自写 CustomTitleBar (会变成 双层).
-.windowStyle(.titleBar)  // macOS native 28 PT titlebar (auto-rendered)
+        // Boss 8/24 反馈: '用 52 的那个'. Apple SwiftUI macOS 14+ windowToolbarStyle
+// options: .automatic, .unified (52 PT), .unifiedCompact (28 PT), .expanded.
+.windowStyle(.titleBar)
+        // v0.24 boss验收fix: 用 52 PT 那款 (.unified). Boss 8/24 拍: '用 52 的那个'.
+        .windowToolbarStyle(.unified)  // 52 PT unified toolbar chrome (Apple HIG)
         .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // 老板 Sketch 设计基准 1920×984 PT
         // v0.24 boss验收fix: .contentMinSize (window doesn't shrink below initial
         // size, can grow to fit larger content).
