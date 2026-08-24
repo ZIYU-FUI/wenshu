@@ -1305,18 +1305,34 @@ struct ChatZoneView: View {
                 Group {
                     switch selectedTab {
                     case .chat:
-                        // v0.24 boss验收fix: help text overlay centered over chat zone.
+                        // v0.24 boss验收fix: ZStack fills full chat zone, help text centered.
                         ZStack {
                             ChatView(conductor: conductor, store: store, vm: vm)
                             if currentModel.isEmpty {
                                 ChatHelpTextOverlay {
                                     UserDefaults.standard.set("providerApi", forKey: "wenshu.settingsTab")
-                                    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+                                    // Try multiple approaches to open Settings scene:
+                    // 1. showSettingsWindow: (macOS 12+)
+                    // 2. openSettings: extension (macOS 14+)
+                    let sel1 = Selector(("showSettingsWindow:"))
+                    let sel2 = Selector(("openSettings:"))
+                    if NSApp.sendAction(sel1, to: nil, from: nil) {
+                        // success
+                    } else if NSApp.sendAction(sel2, to: nil, from: nil) {
+                        // success
+                    } else {
+                        // Fallback: Apple menu → Settings... via menu bar
+                        if let menu = NSApp.mainMenu, let appMenu = menu.items.first,
+                           let submenu = appMenu.submenu, let settingsItem = submenu.items.first(where: { $0.title.contains("Settings") || $0.title.contains("设置") }) {
+                            NSApp.activate(ignoringOtherApps: true)
+                            settingsItem.target?.perform(settingsItem.action, with: settingsItem)
+                        }
+                    }
                                 }
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 .allowsHitTesting(true)
                             }
                         }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                     case .search:
                         ChatZoneStubView(title: "搜索", icon: "magnifyingglass")
                     case .settings:
