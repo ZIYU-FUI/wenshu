@@ -1029,7 +1029,7 @@ struct ZoneTopToolbar: View {
             .overlay(alignment: .topLeading) {
                 // 真功能 mode (有 actions): button 触发
                 // Placeholder mode (空 actions): 老 SF Symbol 占位 (向后兼容)
-                HStack(spacing: 9) {
+                HStack(spacing: 15) {
                     if actions.isEmpty {
                         ForEach(0..<iconNames.count, id: \.self) { i in
                             ZoneIcon(systemName: iconNames[i], size: 18)

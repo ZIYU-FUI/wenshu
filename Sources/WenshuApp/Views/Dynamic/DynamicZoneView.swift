@@ -70,7 +70,7 @@ struct DynamicZoneTabBar: View {
     @Binding var selectedTab: DynamicZoneView.DynamicTab
 
     var body: some View {
-        HStack(spacing: 9) {
+        HStack(spacing: 15) {
             ForEach(DynamicZoneView.DynamicTab.allCases.filter { $0 != .search }) { tab in
                 Button {
                     selectedTab = tab
