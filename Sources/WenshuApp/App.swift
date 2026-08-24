@@ -28,9 +28,9 @@ extension Notification.Name {
     static let wenshuChatStoreReady = Notification.Name("com.wenshu.chatStoreReady")
     // v0.24 boss验收fix: defocus chat input when user clicks outside.
     static let wenshuDefocusChatInput = Notification.Name("com.wenshu.defocusChatInput")
-    // v0.24 boss验收fix: post when user changes '智能体对你的称呼' in Settings.
-    // Listeners (e.g. future SoulPatchWriter) regenerate dynamic content.
-    static let wenshuUserAddressChanged = Notification.Name("com.wenshu.userAddressChanged")
+    // (Removed: .wenshuUserAddressChanged — Spec axis GAP review confirmed no
+    // consumers, dead code. WenshuConductorIdentity.userAddress reads UserDefaults
+    // fresh at LLM call time = automatic dynamic propagation, no event needed.)
 }
 
 // MARK: - Layout tokens (比例算子 0~1, 老板 8/18 答 "1:1 PT 真值" + 8/18 再拍 "换算成比例")
@@ -379,16 +379,12 @@ struct SettingView: View {
                 // WenshuConductorIdentity.userAddress reads fresh each call).
                 TextField("智能体对你的称呼", text: $userAddress, prompt: Text("用户"))
                     .textFieldStyle(.roundedBorder)
-                    .onChange(of: userAddress) { _, newValue in
-                        // Background handler: write to soul/user patch files
-                        // (boss 8/24 OOB '触发后台处理, 把 soul 文件的称呼替换掉').
-                        // Currently = NSLog audit + future hook for file write.
-                        NSLog("[wenshu.userAddress] changed to: \(newValue)")
-                        NotificationCenter.default.post(
-                            name: .wenshuUserAddressChanged,
-                            object: newValue
-                        )
-                    }
+                    // v0.24 boss验收fix (Spec axis GAP review): no .onChange
+                    // handler. Reason: WenshuConductorIdentity.userAddress reads
+                    // from UserDefaults fresh at every LLM call time (= automatic
+                    // dynamic propagation, no notification needed). Boss 8/24 OOB
+                    // '触发后台处理' = dynamic read (not file mutation, since
+                    // systemPrompt is compile-time static let bundled in binary).
                 Text("智能体（文枢）会用这个称呼来指代你。默认：用户")
                     .font(.caption)
                     .foregroundStyle(.secondary)
