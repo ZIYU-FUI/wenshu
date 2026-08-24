@@ -325,33 +325,9 @@ public struct ChatView: View {
         }
         // v0.24 boss验收fix (2026-08-24): help text DIRECTLY below input box.
         // Boss 8/24 (out-of-band): '请先在设置中设置好大模型提供方。点击设置'
-        // (设置 clickable, jumps to Settings → provider tab).
-        Group {
-            if !hasUsableKey {
-                HStack(spacing: 4) {
-                    Text("请先在")
-                        .foregroundStyle(.secondary)
-                    // v0.24 boss验收fix: NSApp.showSettingsWindow (works without capture).
-                    // UserDefaults pre-set selects providerApi tab.
-                    Button {
-                        UserDefaults.standard.set("providerApi", forKey: "wenshu.settingsTab")
-                        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-                    } label: {
-                        Text("设置")
-                            .foregroundStyle(Color.accentColor)
-                            .underline()
-                    }
-                    .buttonStyle(.plain)
-                    Text("中设置好大模型提供方")
-                        .foregroundStyle(.secondary)
-                }
-                .font(.caption)
-                .padding(.horizontal, 18)
-                .padding(.bottom, 6)
-            }
-        }
-        .animation(.default, value: vm.isSending)
-        .animation(.default, value: hasUsableKey)
+        // v0.24 boss验收fix: help text moved to ChatZoneView as centered overlay
+        // (was: bottom of ChatView, not centered per boss 8/24 feedback).
+        EmptyView()
     }
 }
 

@@ -1305,7 +1305,18 @@ struct ChatZoneView: View {
                 Group {
                     switch selectedTab {
                     case .chat:
-                        ChatView(conductor: conductor, store: store, vm: vm)
+                        // v0.24 boss验收fix: help text overlay centered over chat zone.
+                        ZStack {
+                            ChatView(conductor: conductor, store: store, vm: vm)
+                            if currentModel.isEmpty {
+                                ChatHelpTextOverlay {
+                                    UserDefaults.standard.set("providerApi", forKey: "wenshu.settingsTab")
+                                    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+                                }
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .allowsHitTesting(true)
+                            }
+                        }
                     case .search:
                         ChatZoneStubView(title: "搜索", icon: "magnifyingglass")
                     case .settings:
@@ -1440,14 +1451,11 @@ struct ChatZoneTabBar: View {
                 Button {
                     selectedTab = tab
                 } label: {
-                    // v0.24 boss验收fix: icon + 中文 label (boss 8/24 follow-up: need labels).
-                    VStack(spacing: 2) {
-                        Image(systemName: tab.icon)
-                            .font(.system(size: 18))
-                        Text(tab.rawValue)
-                            .font(.system(size: 10))
-                    }
-                    .foregroundStyle(tab == selectedTab ? Color.accentColor : Color.secondary)
+                    // v0.24 boss验收fix: icon only, no title label.
+// Boss 8/24 follow-up: 'tab 里标题小字不需要'.
+                    Image(systemName: tab.icon)
+                        .font(.system(size: 18))
+                        .foregroundStyle(tab == selectedTab ? Color.accentColor : Color.secondary)
                 }
                 .buttonStyle(.plain)
                 .contentShape(Rectangle())

@@ -96,7 +96,7 @@ struct ZoneContentView: View {
 /// ZoneContentTabBar: Apple HIG tab bar (跟 ChatZoneTabBar / DynamicZoneTabBar 一致).
 /// 顶栏 SF Symbol + 中文 label + .accentColor on selected.
 struct ZoneContentTabBar: View {
-    struct Item: Identifiable {
+    struct Item: Identifiable, Equatable {
         let id: String  // stable String (matches Tab.id)
         let label: String
         let icon: String
@@ -105,23 +105,24 @@ struct ZoneContentTabBar: View {
     let items: [Item]
     @Binding var selection: String
 
+    // v0.24 boss验收fix: selectedItem (Item with matching label) for icon highlighting.
+    private var selectedItem: Item? {
+        items.first(where: { $0.label == selection })
+    }
+
     var body: some View {
         HStack(spacing: 9) {
             ForEach(items) { item in
                 Button {
                     selection = item.id
                 } label: {
-                    // v0.24 boss验收fix: icon + 中文 label below (boss 8/24 follow-up:
-// '不知道这代表什么功能' = need labels for discoverability).
-// v0.24 boss验收fix (earlier): icon only - changed back after boss feedback.
-// v0.24 boss验收fix: 未选中 .secondary, icon size 18 (统一).
-                VStack(spacing: 2) {
-                    Image(systemName: item.icon)
-                        .font(.system(size: 18))
-                    Text(item.label)
-                        .font(.system(size: 10))
-                }
-                .foregroundStyle(item.id == selection ? Color.accentColor : Color.secondary)
+                    // v0.24 boss验收fix: icon only, no title label.
+// Boss 8/24 follow-up: 'tab 里标题小字不需要' (was: labels added earlier, now removed).
+// Boss feedback: '所有 icon 后面不要加文字, tab 只有 icon'.
+// 未选中 .secondary, icon size 18 (统一).
+                Image(systemName: item.icon)
+                    .font(.system(size: 18))
+                    .foregroundStyle(item == selectedItem ? Color.accentColor : Color.secondary)
                 }
                 .buttonStyle(.plain)
                 .contentShape(Rectangle())
