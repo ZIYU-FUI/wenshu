@@ -91,12 +91,24 @@ public final class ChatViewModel {
     }
 
     public func loadAvailableModels() async {
-        let base = ProcessInfo.processInfo.environment["MINIMAX_CN_BASE_URL"] ?? "https://api.minimaxi.com/anthropic"
-        if let key = LLMKeychain.loadKeySync(), !key.isEmpty {
-            availableModels = await WenshuLLMModelFetcher.loadModelIds(apiKey: key, baseUrl: base)
-        } else {
-            availableModels = WenshuLLMModel.allCases.map { $0.rawValue }
+        // v0.24 boss验收fix (2026-08-24): use multi-provider discovery.
+        // Was: fallback to WenshuLLMModel.allCases (3 MiniMax-only cases).
+        // Now: query all configured providers via AvailableModelsDiscovery,
+        // sectioned by provider per ticket 011 spec.
+        let configured = AvailableModelsDiscovery.loadFromKeychain()
+        var modelIds: [String] = []
+        for section in configured {
+            for modelId in section.models {
+                // Prefix with provider slug for clarity (e.g. "anthropic / claude-3.7-sonnet").
+                modelIds.append(modelId)
+            }
         }
+        if modelIds.isEmpty {
+            // No provider keys configured. Fall back to MiniMax hardcoded
+            // list (current WenshuLLMModel scope per boss 8/21).
+            modelIds = WenshuLLMModel.allCases.map { $0.rawValue }
+        }
+        availableModels = modelIds
         if !availableModels.contains(currentModel) {
             availableModels = [currentModel] + availableModels
         }

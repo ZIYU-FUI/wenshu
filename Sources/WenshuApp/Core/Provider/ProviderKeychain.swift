@@ -62,8 +62,12 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
             kSecAttrService as String: AppleKeychainStore.service,
             kSecAttrAccount as String: account,
             kSecValueData as String: keyData,
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
-            kSecUseDataProtectionKeychain as String: true
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock
+            // v0.24 boss验收fix (2026-08-24): removed 'kSecUseDataProtectionKeychain: true'.
+            // This iOS-only flag on macOS requires explicit entitlement
+            // (kSecAttrAccessGroupFile or similar) and triggers -34018
+            // errSecMissingEntitlement on ad-hoc signed apps. The default
+            // (file-based) keychain on macOS works without entitlement.
         ]
         let status = SecItemAdd(addQuery as CFDictionary, nil)
         guard status == errSecSuccess else { throw ProviderKeychainError.keychainStatus(status) }
