@@ -1238,11 +1238,14 @@ struct ZoneModule: View {
                 ("反链", "link", AnyView(BacklinksPanel())),
             ])
         case .specializedTools:
-            // SpecializedTools tabs: 画布 / 数据库 / 作曲.
+            // v0.24 boss验收fix (2026-08-24): 删 '作曲' tab.
+            // Boss 8/24 feedback: '作曲是干什么的, 我不知道' → 拍 '可以删'.
+            // ComposerPanel = v0.19 Obsidian replica 时期 dead code, 没接到核心
+            // 写作流, 留 '画布' (auto-gen 图像, boss 拍保留) + '数据库' (改看板).
+            // SpecializedTools tabs now: 画布 / 数据库 (2 tab).
             ZoneContentView(zoneSlug: "specializedTools", tabs: [
                 ("画布", "scribble", AnyView(CanvasView())),
                 ("数据库", "tablecells", AnyView(BaseView())),
-                ("作曲", "music.note", AnyView(ComposerPanel())),
             ])
         case .aiChat:
             // ChatZoneView 自带 ChatZoneTabBar (chat / search / settings), 已 1 层.
