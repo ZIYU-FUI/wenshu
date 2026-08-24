@@ -80,12 +80,10 @@ enum LayoutTokens {
 
     // 顶栏色块比例 (老板 8/18 Q3 答: 22/82/142 起点 + 38 PT 宽 + 60 PT 等距)
     static let iconLeadingRatio: CGFloat = 18.0 / 1920.0  // 起点 18 PT (老板 8/18 改 18 PT, 旧 22 PT)
-    static let iconSizeRatio: CGFloat = 18.0 / 1920.0     // 18 PT 边长 (老板 8/18 改 18x18, 旧 38x38)
-    // v0.24 boss验收fix (Boss 8/24): tab icon 用 LayoutTokens.iconSize (18 PT) 显式
-    // .frame(width:18, height:18), 不是只靠 .font(.system(size: 18)).
-    // .font only sets font size, visual box can grow due to .imageScale or implicit
-    // large symbol scale. 显式 .frame 强制 18x18 PT 占面积 (= boss 8/24 拍).
-    static let iconSize: CGFloat = 18
+    static let iconSizeRatio: CGFloat = 12.0 / 1920.0     // 12 PT 边长 (老板 8/24 拍 '改成 12×12')
+    // v0.24 boss验收fix (Boss 8/24): tab icon 12×12 PT.
+    // Boss 拍 '改成 12×12 吧' (after 18×18 too big).
+    static let iconSize: CGFloat = 12
     static let iconSpacingRatio: CGFloat = 18.0 / 1920.0  // 18 PT 等距 (老板 8/18 改 18 PT = icon 间距, 起点 18/54/90 相邻 36 - 18 = 18)
 
     // 底栏占位元素 (老板 8/18 拍 "icon 18×18, 占位文字苹果字符样式正文尺寸") — 绝对 PT 不走比例
@@ -1519,7 +1517,7 @@ struct ChatZoneTabBar: View {
 // Boss 8/24 follow-up: 'tab 里标题小字不需要'.
                     Image(systemName: tab.icon)
                         .font(.system(size: LayoutTokens.iconSize))
-                        .imageScale(.medium)  // v0.24: 强制 SF Symbol 视觉 small, 防止 frame 溢出
+                        .imageScale(.large)  // v0.24 boss验收fix (Boss 8/24): 12 PT font → ~12 PT visual: 强制 SF Symbol 视觉 small, 防止 frame 溢出
                         .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                         .foregroundStyle(tab == selectedTab ? Color.accentColor : Color.secondary)
                 }
