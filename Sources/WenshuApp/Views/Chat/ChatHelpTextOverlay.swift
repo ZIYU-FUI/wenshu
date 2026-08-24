@@ -15,6 +15,8 @@ public struct ChatHelpTextOverlay: View {
     let onSettingsTap: () -> Void
 
     public var body: some View {
+        // v0.24 boss验收fix: explicit center alignment (horizontal + vertical)
+        // so help text floats in chat zone's geometric center.
         VStack(spacing: 8) {
             Text("请先在")
                 .foregroundStyle(.secondary)
@@ -33,10 +35,8 @@ public struct ChatHelpTextOverlay: View {
                 .font(.caption)
         }
         .font(.body)
+        .multilineTextAlignment(.center)
         .padding(24)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.black.opacity(0.001))  // tappable area, invisible
-        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 }

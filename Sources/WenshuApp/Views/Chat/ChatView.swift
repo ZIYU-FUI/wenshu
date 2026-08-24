@@ -296,7 +296,7 @@ public struct ChatView: View {
             HStack(spacing: 8) {
                 // v0.24 boss验收fix (2026-08-24): placeholder shows different text based on key state.
                 // Boss 8/24 (out-of-band): '请先在设置中设置好大模型提供方'.
-                TextField(hasUsableKey ? "输入消息..." : "请先在设置中设置好大模型提供方",
+                TextField("输入消息...",
                           text: $vm.inputText, axis: .vertical)
                     .textFieldStyle(.roundedBorder)
                     .lineLimit(1...4)
