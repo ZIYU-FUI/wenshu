@@ -60,6 +60,7 @@ struct DynamicZoneView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .animation(.default, value: selectedTab)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)  // prevent window shrink
         .background(DesignColor.dynamicZoneSurface)
     }
 }

@@ -39,6 +39,7 @@ struct ZoneContentView: View {
     @State private var selectedTabId: String
 
     var body: some View {
+        // v0.24 boss验收fix: force body to fill zone (prevent window shrink).
         VStack(spacing: 0) {
             ZoneContentTabBar(items: tabs.map { ZoneContentTabBar.Item(id: $0.id, label: $0.label, icon: $0.icon) }, selection: selectionBinding)
             // v0.24 boss验收fix (2026-08-24): pass maxWidth/maxHeight explicitly to AnyView
@@ -53,6 +54,7 @@ struct ZoneContentView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .animation(.default, value: selectedTabId)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)  // prevent window shrink
     }
 
     // v0.24 boss验收fix (2026-08-24): persist tab selection per zone across launches.

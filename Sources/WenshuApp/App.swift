@@ -1462,6 +1462,7 @@ struct ChatZoneView: View {
             }
             .background(DesignColor.zoneSurface)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)  // prevent window shrink
     }
 }
 
