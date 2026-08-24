@@ -26,7 +26,8 @@ public struct TodoListView: View {
             }
         }
         .padding()
-        .frame(minWidth: 360, minHeight: 240)
+        // v0.24 boss验收fix: flexible sizing (zone size controlled by splitter, not view).
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .task {
             if store == nil { store = try? TodoStore() }
         }

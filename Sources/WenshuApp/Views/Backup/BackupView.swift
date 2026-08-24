@@ -19,6 +19,7 @@ public struct BackupView: View {
                 .foregroundStyle(.secondary)
         }
         .padding()
-        .frame(minWidth: 420, minHeight: 300)
+        // v0.24 boss验收fix: flexible sizing (zone size controlled by splitter, not view).
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }

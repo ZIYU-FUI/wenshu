@@ -66,9 +66,10 @@ struct DynamicZoneTabBar: View {
                     selectedTab = tab
                 } label: {
                     // v0.24 boss验收fix (2026-08-24): icon only, no text label.
+// Boss follow-up: 未选中用 .tertiary (不是主题色), icon size = 18 (统一).
                 Image(systemName: tab.icon)
-                    .font(.system(size: 14))
-                    .foregroundStyle(tab == selectedTab ? Color.accentColor : DesignColor.accentBlue)
+                    .font(.system(size: 18))
+                    .foregroundStyle(tab == selectedTab ? Color.accentColor : Color.secondary)
                 }
                 .buttonStyle(.plain)
                 .contentShape(Rectangle())
