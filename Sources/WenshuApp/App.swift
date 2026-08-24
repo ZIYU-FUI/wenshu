@@ -20,6 +20,8 @@ import AppKit
 // 顶层 .commands 拿不到 vm 实例, 走 NotificationCenter 转发)
 extension Notification.Name {
     static let wenshuResetLayout = Notification.Name("com.wenshu.resetLayout")
+    // v0.24 boss验收fix: notify when ProviderKeychain changes (Settings save key).
+    static let wenshuProviderKeychainChanged = Notification.Name("com.wenshu.providerKeychainChanged")
 }
 
 // MARK: - Layout tokens (比例算子 0~1, 老板 8/18 答 "1:1 PT 真值" + 8/18 再拍 "换算成比例")
@@ -507,6 +509,14 @@ struct SettingView: View {
             apiError = nil
             apiExpandedProviders.remove(provider.slug)
             refreshProviderStatus()
+            // v0.24 boss验收fix: notify ChatZoneView (and other listeners) that
+            // the keychain changed so they can refresh their model pickers without
+            // requiring an app restart.
+            NotificationCenter.default.post(
+                name: .wenshuProviderKeychainChanged,
+                object: nil,
+                userInfo: ["slug": provider.slug]
+            )
         } catch {
             apiError = "保存失败: \(error.localizedDescription)"
         }
@@ -1372,6 +1382,19 @@ struct ChatZoneView: View {
                     // don't add a fallback section — show "无模型可用" placeholder only.
                     // When currentModel is set but not in any section, add fallback so
                     // user can see/select it.
+                    if !currentModel.isEmpty,
+                       !availableSections.contains(where: { $0.models.contains(currentModel) }) {
+                        let fallback = Provider.by(slug: "minimax-cn") ?? Provider.all[0]
+                        availableSections.append(AvailableProviderModels(
+                            provider: fallback,
+                            models: [currentModel]
+                        ))
+                    }
+                }
+                // v0.24 boss验收fix: re-load on ProviderKeychain change
+                // (Settings save key → notification → re-populate availableSections).
+                .onReceive(NotificationCenter.default.publisher(for: .wenshuProviderKeychainChanged)) { _ in
+                    availableSections = AvailableModelsDiscovery.loadFromKeychain()
                     if !currentModel.isEmpty,
                        !availableSections.contains(where: { $0.models.contains(currentModel) }) {
                         let fallback = Provider.by(slug: "minimax-cn") ?? Provider.all[0]
