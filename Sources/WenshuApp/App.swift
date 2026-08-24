@@ -190,6 +190,20 @@ struct WenshuApp: App {
         // to fit small tab content like TemplatePicker/ChatZoneStubView).
         .windowResizability(.contentMinSize)
         .commands {
+            // v0.24 boss验收fix: Settings... menu item (Cmd+,).
+            // This is required for SwiftUI Settings scene to be accessible.
+            // Without this, the menu has no Settings item and showSettingsWindow:
+            // selector doesn't work.
+            CommandGroup(replacing: .appSettings) {
+                // v0.24 boss验收fix: tap menu item = trigger @Environment(\.openSettings).
+                // The Button is a no-op body, but SwiftUI's Commands system
+                // auto-wires this to the @Environment(\.openSettings) closure
+                // captured by SettingsEnvironmentCapturer.
+                Button("设置…") {
+                    WenshuAppDelegate.openSettings?()
+                }
+                .keyboardShortcut(",", modifiers: .command)
+            }
             CommandGroup(after: .newItem) {
                 Button("新建项目", action: {})
                     .keyboardShortcut("n", modifiers: .command)
@@ -1319,16 +1333,12 @@ struct ChatZoneView: View {
                                 ChatHelpTextOverlay {
                                     UserDefaults.standard.set("providerApi", forKey: "wenshu.settingsTab")
                                     // v0.24 boss验收fix: 4-tier approach to open Settings.
-                                    // v0.24 boss验收fix: open System Settings via NSWorkspace URL scheme.
-                                    // SwiftUI Settings scene is unreliable on ad-hoc signed apps.
-                                    if let url = URL(string: "x-apple.systempreferences:") {
-                                        NSWorkspace.shared.open(url)
-                                    } else {
-                                        let task = Process()
-                                        task.launchPath = "/usr/bin/osascript"
-                                        task.arguments = ["-e", "tell application \"System Settings\" to activate"]
-                                        try? task.run()
-                                    }
+                                    // v0.24 boss验收fix: open in-app Settings scene (文枢 settings, not
+                                    // System Settings.app). Uses captured WenshuAppDelegate.openSettings
+                                    // (set by SettingsEnvironmentCapturer on .onAppear).
+                                    // UserDefaults pre-set selects providerApi tab.
+                                    UserDefaults.standard.set("providerApi", forKey: "wenshu.settingsTab")
+                                    WenshuAppDelegate.openSettings?()
                                 }
                                 .allowsHitTesting(true)
                             }
