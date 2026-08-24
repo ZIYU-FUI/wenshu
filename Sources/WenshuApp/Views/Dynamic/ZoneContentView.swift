@@ -26,7 +26,9 @@ import SwiftUI
 /// Used by the 4 "general" zones (projectSidebar / projectPreview / editor / specializedTools).
 struct ZoneContentView: View {
     struct Tab: Identifiable {
-        let id = UUID()
+        // v0.24 boss验收fix: use String label as ID (UUID auto-generated per re-render
+        // → stale selectedTabId after re-render → no tab marked selected).
+        let id: String
         let label: String
         let icon: String
         let content: AnyView
@@ -34,7 +36,7 @@ struct ZoneContentView: View {
 
     let tabs: [Tab]
 
-    @State private var selectedTabId: UUID
+    @State private var selectedTabId: String
 
     var body: some View {
         VStack(spacing: 0) {
@@ -43,7 +45,7 @@ struct ZoneContentView: View {
             // so it inherits zone size (not forces zone to grow). Without this,
             // AnyView collapses to its intrinsic size and zone shrinks to ~0.
             Group {
-                if let selected = tabs.first(where: { $0.id == selectedTabId }) {
+                if let selected = tabs.first(where: { $0.label == selectedTabId }) {
                     selected.content
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
@@ -59,25 +61,25 @@ struct ZoneContentView: View {
     private let storageKey: String
 
     init(zoneSlug: String, tabs: [(label: String, icon: String, content: AnyView)]) {
-        let mapped = tabs.map { Tab(label: $0.label, icon: $0.icon, content: $0.content) }
+        let mapped = tabs.map { Tab(id: $0.label, label: $0.label, icon: $0.icon, content: $0.content) }
         self.tabs = mapped
         self.storageKey = "wenshu.tabIndex.\(zoneSlug)"
         // Restore selected tab from UserDefaults (or default to first tab).
         // v0.24 boss验收fix: handle invalid saved value (e.g. tab list changed)
         // by falling back to first tab + resetting stored index.
         let savedIndex = UserDefaults.standard.integer(forKey: self.storageKey)
-        let initialUUID: UUID
+        let initialLabel: String
         if mapped.indices.contains(savedIndex) {
-            initialUUID = mapped[savedIndex].id
+            initialLabel = mapped[savedIndex].label
         } else {
-            initialUUID = mapped.first?.id ?? UUID()
+            initialLabel = mapped.first?.label ?? ""
             // Reset stored index to 0 so future launches start at first tab.
             UserDefaults.standard.set(0, forKey: self.storageKey)
         }
-        _selectedTabId = State(initialValue: initialUUID)
+        _selectedTabId = State(initialValue: mapped.first?.label ?? "")
     }
 
-    private var selectionBinding: Binding<UUID> {
+    private var selectionBinding: Binding<String> {
         Binding(
             get: { selectedTabId },
             set: { newId in
@@ -95,13 +97,13 @@ struct ZoneContentView: View {
 /// 顶栏 SF Symbol + 中文 label + .accentColor on selected.
 struct ZoneContentTabBar: View {
     struct Item: Identifiable {
-        let id: UUID
+        let id: String  // stable String (matches Tab.id)
         let label: String
         let icon: String
     }
 
     let items: [Item]
-    @Binding var selection: UUID
+    @Binding var selection: String
 
     var body: some View {
         HStack(spacing: 9) {
