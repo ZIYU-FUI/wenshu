@@ -755,6 +755,19 @@ private struct SettingsEnvironmentCapturer: View {
             .environment(library)
             .preferredColorScheme(appearanceMode.colorScheme)
             .onAppear { WenshuAppDelegate.openSettings = openSettings }
+            // v0.24 boss验收fix: Apple macOS 52 PT toolbar chrome via
+            // .toolbar { ToolbarItem(placement: .principal) }.
+            // Boss 8/24 拍: '用 52 的那个'.
+            // - .windowToolbarStyle(.unified) (= 52 PT chrome) is applied at WindowGroup level
+            // - but .toolbar content is needed to actually render the toolbar area at 52 PT.
+            // - ToolbarItem(placement: .principal) puts '文枢' title in the center.
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("文枢")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.primary)
+                }
+            }
     }
 }
 
