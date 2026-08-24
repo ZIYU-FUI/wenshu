@@ -1126,15 +1126,30 @@ struct ZoneModule: View {
 //   - chat zone: ChatZoneTabBar (chat / search / settings)
 //   - dynamic zone: DynamicZoneTabBar (进度 / 待办 / 搜索)
 //   - other 4 zones: ZoneContentTabBar (placeholder tabs, future wired)
-// v0.24 boss验收fix (2026-08-24): alignment: .top so tab bar flush at top of zone.
-        // (was: default .center caused tab bar to appear mid-zone in upper band.)
+// v0.24 boss验收fix (Boss 8/24 拍 2 选 1):
+        // - 上半区 4 zone 加 52 PT per-zone title bar (像 Pages/Excel 列标题)
+        // - 下半区 2 zone 不加 (macOS 28 PT native 即可)
         VStack(alignment: .leading, spacing: 0) {
+            if isUpperZone {
+                ZoneTitleBar(slot: slot)
+            }
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .background(slot == .aiDynamic ? DesignColor.dynamicZoneSurface : .clear)
         // v0.22: sheet presentations for each toolbar action. Single modifier tree,
         // one per showing-* flag. Each ticket wires its view here.
+        }
+
+        /// v0.24 boss验收fix: 上半区 4 zone 加 52 PT per-zone title bar.
+        /// 下半区 2 zone 不加 (macOS 28 PT native 即可).
+        private var isUpperZone: Bool {
+            switch slot {
+            case .projectSidebar, .projectPreview, .editor, .specializedTools:
+                return true
+            case .aiChat, .aiDynamic:
+                return false
+            }
         }
 
     /// h14: read aloud the last AI reply via WenshuConductor.invokeTool(av:).
