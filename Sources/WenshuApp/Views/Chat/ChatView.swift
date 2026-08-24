@@ -306,7 +306,12 @@ public struct ChatView: View {
                     .onSubmit { Task { await vm.send() } }
                     // Defocus when key becomes unusable (e.g. user removed key).
                     .onChange(of: vm.currentModel) { _, new in
-                        if new.isEmpty { inputFocused = false }
+                        if new.isEmpty {
+                            inputFocused = false
+                        } else {
+                            // v0.24 boss验收fix: focus input when key becomes available.
+                            inputFocused = true
+                        }
                     }
                 Button {
                     Task { await vm.send() }
