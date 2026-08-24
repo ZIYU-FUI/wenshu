@@ -79,17 +79,29 @@ public struct LibraryOnboardingView: View {
                     .padding(.horizontal, 24)
             }
 
-            VStack(spacing: 8) {
+            VStack(spacing: 12) {
+                // v0.24 boss验收fix: use NSSavePanel for new .ws (Apple HIG 'create
+                // new file' pattern) + NSOpenPanel for existing .ws (Apple HIG 'open
+                // existing file' pattern). FCP-style 2-button UX.
                 Button {
-                    showOpenPanel()
+                    showSavePanel()
                 } label: {
-                    Label("选择 .ws 库...", systemImage: "folder.badge.plus")
+                    Label("新建 .ws 库...", systemImage: "doc.badge.plus")
                         .frame(width: 240, height: 32)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
 
-                Text("可以选择现有 .ws 文件, 或新建一个")
+                Button {
+                    showOpenPanel()
+                } label: {
+                    Label("打开现有 .ws 库...", systemImage: "folder")
+                        .frame(width: 240, height: 32)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+
+                Text("新建 = 全新库文件, 打开 = 选已有 .ws")
                     .font(.system(size: 11))
                     .foregroundStyle(.tertiary)
             }
@@ -100,27 +112,23 @@ public struct LibraryOnboardingView: View {
         .background(DesignColor.zoneSurface)
     }
 
-    /// showOpenPanel: NSOpenPanel for selecting .ws file location.
-    /// Allows both selecting existing .ws files AND creating new ones
-    /// (via canChooseFiles + canCreateDirectories = true).
+    /// showOpenPanel: NSOpenPanel for selecting existing .ws file.
+    /// Apple HIG 'open existing file' pattern. Allows user to browse
+    /// and select an already-existing .ws library file.
     private func showOpenPanel() {
         let panel = NSOpenPanel()
-        panel.title = "选择 .ws 库文件"
-        panel.message = "选择一个现有的 .ws 库文件, 或创建一个新的"
-        panel.prompt = "选择"
+        panel.title = "打开现有 .ws 库"
+        panel.message = "选择一个现有的 .ws 库文件"
+        panel.prompt = "打开"
         panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = false  // .ws is a file, not dir
+        panel.canChooseDirectories = false
         panel.canChooseFiles = true
-        panel.canCreateDirectories = true
+        panel.canCreateDirectories = false
         panel.showsHiddenFiles = false
-        // Filter to .ws files (with 'All files' fallback)
         if #available(macOS 11.0, *) {
             panel.allowedContentTypes = []
         }
-        // Default save name for new .ws
-        panel.nameFieldStringValue = "wenshu.ws"
 
-        // Present as sheet on the main window
         if let window = NSApp.mainWindow {
             panel.beginSheetModal(for: window) { response in
                 if response == .OK, let url = panel.url {
@@ -128,7 +136,39 @@ public struct LibraryOnboardingView: View {
                 }
             }
         } else {
-            // Fallback: modal
+            if panel.runModal() == .OK, let url = panel.url {
+                onLibraryPicked(url)
+            }
+        }
+    }
+
+    /// showSavePanel: NSSavePanel for creating new .ws file.
+    /// Apple HIG 'create new file' pattern. Default nameFieldStringValue
+    /// = "wenshu.ws" (or "untitled.ws" fallback). User picks folder + filename
+    /// inline. This is the FCP-style 'create new event library' UX.
+    private func showSavePanel() {
+        let panel = NSSavePanel()
+        panel.title = "新建 .ws 库"
+        panel.message = "选择 .ws 库文件的保存位置"
+        panel.prompt = "创建"
+        panel.nameFieldStringValue = "wenshu.ws"
+        panel.nameFieldLabel = "库文件名"
+        panel.showsTagField = false
+        panel.canCreateDirectories = true
+        panel.isExtensionHidden = false
+        panel.allowedContentTypes = []
+        if #available(macOS 11.0, *) {
+            // Allow .ws extension to be added automatically
+            panel.canSelectHiddenExtension = true
+        }
+
+        if let window = NSApp.mainWindow {
+            panel.beginSheetModal(for: window) { response in
+                if response == .OK, let url = panel.url {
+                    onLibraryPicked(url)
+                }
+            }
+        } else {
             if panel.runModal() == .OK, let url = panel.url {
                 onLibraryPicked(url)
             }
