@@ -294,9 +294,9 @@ public struct ChatView: View {
 
             // 输入框 + 发送按钮 (Apple HIG SwiftUI 真值)
             HStack(spacing: 8) {
-                // v0.24 boss验收fix: placeholder shows different text based on key state.
-                // Boss 8/24: 未配 key 时显示 '暂无模型可用，请先配置模型'.
-                TextField(hasUsableKey ? "输入消息..." : "暂无模型可用，请先配置模型",
+                // v0.24 boss验收fix (2026-08-24): placeholder shows different text based on key state.
+                // Boss 8/24 (out-of-band): '请先在设置中设置好大模型提供方'.
+                TextField(hasUsableKey ? "输入消息..." : "请先在设置中设置好大模型提供方",
                           text: $vm.inputText, axis: .vertical)
                     .textFieldStyle(.roundedBorder)
                     .lineLimit(1...4)
@@ -322,6 +322,30 @@ public struct ChatView: View {
                 .disabled(vm.inputText.isEmpty || vm.isSending)
             }
             .padding(.horizontal, 18)
+            // v0.24 boss验收fix (2026-08-24): help text below input when no key.
+            // Boss 8/24 (out-of-band): '请先在设置中设置好大模型提供方。点击设置'
+            // (设置 clickable, jumps to Settings → provider tab).
+            Group {
+                if !hasUsableKey {
+                    HStack(spacing: 4) {
+                        Text("请先在")
+                            .foregroundStyle(.secondary)
+                        Button {
+                            WenshuAppDelegate.openSettings?()
+                        } label: {
+                            Text("设置")
+                                .foregroundStyle(Color.accentColor)
+                                .underline()
+                        }
+                        .buttonStyle(.plain)
+                        Text("中设置好大模型提供方")
+                            .foregroundStyle(.secondary)
+                    }
+                    .font(.caption)
+                    .padding(.horizontal, 18)
+                    .padding(.bottom, 2)
+                }
+            }
             .padding(.bottom, 4)
         }
         .animation(.default, value: vm.isSending)
