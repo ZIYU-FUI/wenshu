@@ -79,7 +79,7 @@ struct DynamicZoneTabBar: View {
 // Boss 8/24 follow-up: 'tab 里标题小字不需要'.
                 Image(systemName: tab.icon)
                     .font(.system(size: LayoutTokens.iconSize))
-                    .imageScale(.small)  // v0.24: 强制 SF Symbol 视觉 small, 防止 frame 溢出
+                    .imageScale(.medium)  // v0.24: 强制 SF Symbol 视觉 small, 防止 frame 溢出
                     .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                     .foregroundStyle(tab == selectedTab ? Color.accentColor : Color.secondary)
                 }
