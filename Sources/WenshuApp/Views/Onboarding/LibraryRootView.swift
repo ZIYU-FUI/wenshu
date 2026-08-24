@@ -36,12 +36,33 @@ import SwiftUI
 import AppKit
 
 /// LibraryRootView: Routes between onboarding (first launch) and main app.
+///
+/// Trigger condition (Boss 8/24 OOB 拍: '如果持久化信息没有库文件信息,
+/// 就需要进到建库选库页面'):
+/// - if UserDefaults 'wenshu.libraryPath' empty → onboarding
+/// - if UserDefaults 'wenshu.libraryPath' set but path doesn't exist
+///   on disk (= 老板 deleted 仓库 externally, or 仓库 was on a now-disconnected
+///   drive) → onboarding (re-pick)
+/// - else (= path set + path exists) → main app LayoutShellView
 public struct LibraryRootView: View {
     @AppStorage("wenshu.libraryPath") private var libraryPath: String = ""
 
+    private var shouldShowOnboarding: Bool {
+        // v0.24 boss验收fix (Boss 8/24 OOB): trigger condition.
+        // 1. If libraryPath empty → onboarding (first launch).
+        if libraryPath.isEmpty { return true }
+        // 2. If libraryPath set but path doesn't exist on disk → onboarding
+        // (boss deleted folder externally, or path invalid).
+        // FileManager.default.fileExists(atPath:isDirectory:) = 0 if missing.
+        var isDir: ObjCBool = false
+        let exists = FileManager.default.fileExists(atPath: libraryPath, isDirectory: &isDir)
+        if !exists { return true }
+        return false
+    }
+
     public var body: some View {
         Group {
-            if libraryPath.isEmpty {
+            if shouldShowOnboarding {
                 LibraryOnboardingView(onLibraryPicked: { url in
                     libraryPath = url.path
                 })
