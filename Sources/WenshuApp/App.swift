@@ -181,9 +181,7 @@ struct WenshuApp: App {
         WindowGroup("文枢") {
             // v0.21 ticket 01 (重做 #10): 撤回 SettingsEnvironmentCapturer wrapper (commit a78d758bc Q15 翻车 #11 dead code)
             // SettingsEnvironmentCapturer 之前包 LayoutShellView 注入 OpenSettingsAction, 但 openSettings?() → nil (Q15 翻车 #11), 现在 NSMenu 自己装 + 自创建 NSWindow 装 SettingView 不需要 capture
-            LayoutShellView()
-                .environment(library)
-                .preferredColorScheme(appearanceMode.colorScheme)
+            SettingsEnvironmentCapturer(library: library, appearanceMode: appearanceMode)
         }
         .windowStyle(.titleBar)  // 老板 8/18 拍 macOS 52 PT unified titlebar chrome = 老板自定义 52 PT 顶栏, 视觉合一
         .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // 老板 Sketch 设计基准 1920×984 PT (v0.15 ticket 005 响应式: LayoutShellView 删 fixed frame, window 用 defaultSize 给 SwiftUI 初始 size hint)
@@ -227,7 +225,13 @@ struct SettingView: View {
     // when this is empty.
     @AppStorage("wenshu.llm.model") private var llmModel: String = ""
     @AppStorage("wenshu.llm.reasoningEffort") private var reasoningEffort: String = "medium"
-    @State private var selectedTab: SettingsTab = .general
+    // v0.24 boss验收fix: @AppStorage so chat '设置' link can jump to provider tab.
+    @AppStorage("wenshu.settingsTab") private var selectedTabRaw: String = "general"
+
+    private var selectedTab: SettingsTab {
+        get { SettingsTab(rawValue: selectedTabRaw) ?? .general }
+        nonmutating set { selectedTabRaw = newValue.rawValue }
+    }
     @State private var liveModelIds: [String] = []
     @State private var isLoadingModels = false
     @State private var providersWithKeys: Set<String> = []
@@ -256,7 +260,10 @@ struct SettingView: View {
     var body: some View {
         VStack(spacing: 0) {
             // 顶部 toolbar (Pages 范式, 老板画的图 2 红框位置): 3 个 segmented tab
-            Picker("", selection: $selectedTab) {
+            Picker("", selection: Binding(
+                    get: { selectedTab },
+                    set: { selectedTab = $0 }
+                )) {
                 ForEach(SettingsTab.allCases) { tab in
                     Label(tab.rawValue, systemImage: tab.icon).tag(tab)
                 }
@@ -711,10 +718,16 @@ private struct ProviderKeyInputSheet: View {
 /// v0.21 ticket 01 (重做 #7): 透明 helper view — 在 view tree 内捕获 @Environment(\.openSettings) OpenSettingsAction,
 /// 注入到 WenshuAppDelegate.openSettings 静态字段, NSMenu "设置…" action 调 closure 弹 SwiftUI Settings { { } Scene
 /// (Stack Overflow 65355696 + orchetect/SettingsAccess 真值)
+// v0.24 boss验收fix (2026-08-24): accept library + appearanceMode so it can
+    // wrap LayoutShellView with the same modifiers as the original WindowGroup.
 private struct SettingsEnvironmentCapturer: View {
     @Environment(\.openSettings) private var openSettings
+    let library: WenshuLibrary
+    let appearanceMode: AppearanceMode
     var body: some View {
         LayoutShellView()
+            .environment(library)
+            .preferredColorScheme(appearanceMode.colorScheme)
             .onAppear { WenshuAppDelegate.openSettings = openSettings }
     }
 }

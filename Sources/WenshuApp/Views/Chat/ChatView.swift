@@ -330,7 +330,11 @@ public struct ChatView: View {
                     HStack(spacing: 4) {
                         Text("请先在")
                             .foregroundStyle(.secondary)
+                        // v0.24 boss验收fix: set SettingsTab to .providerApi via UserDefaults
+                        // (SettingsTab is @AppStorage in Settings page),
+                        // then open Settings scene via captured OpenSettingsAction.
                         Button {
+                            UserDefaults.standard.set("providerApi", forKey: "wenshu.settingsTab")
                             WenshuAppDelegate.openSettings?()
                         } label: {
                             Text("设置")
