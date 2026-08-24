@@ -219,7 +219,11 @@ struct WenshuApp: App {
 struct SettingView: View {
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
     @AppStorage("wenshu.llm.provider") private var providerSlug: String = Provider.minimaxCn.slug
-    @AppStorage("wenshu.llm.model") private var llmModel: String = WenshuLLMModel.m3.rawValue
+    // v0.24 boss验收fix (2026-08-24): default to empty string when no provider
+    // key configured (not "MiniMax-M3" which implies a MiniMax provider is
+    // selected even when user has no key). UI shows "无模型可用" placeholder
+    // when this is empty.
+    @AppStorage("wenshu.llm.model") private var llmModel: String = ""
     @AppStorage("wenshu.llm.reasoningEffort") private var reasoningEffort: String = "medium"
     @State private var selectedTab: SettingsTab = .general
     @State private var liveModelIds: [String] = []
@@ -1274,7 +1278,8 @@ struct ChatZoneView: View {
     // v0.21 ticket 43 step 3: picker ↔ UserDefaults 同步修复 = @AppStorage (Apple SwiftUI 真值, 源单一 UserDefaults, 双向自动同步)
     // 修复前 ChatZoneView.currentModel 是 @State 不绑 UserDefaults, ChatViewModel.currentModel 是 init default 读 UserDefaults 一次 = 切 picker 后两条状态链断开
     // @AppStorage 是 Apple HIG 真值, 源单一 UserDefaults, 自动响应变化, 修复 picker 跟 ChatViewModel 同步
-    @AppStorage("wenshu.llm.model") private var currentModel: String = WenshuLLMModel.m3.rawValue
+    // v0.24 boss验收fix (2026-08-24): default empty (no key) instead of "MiniMax-M3".
+    @AppStorage("wenshu.llm.model") private var currentModel: String = ""
     // v0.21 ticket 43 step 1 NSLog trace: 锁 selectedTab 当前真值 (Q63 verify-before-claim)
     @State private var selectedTab: ChatZoneTab = .chat
     // v0.21 ticket 40: 持有 ChatViewModel 实例 + 共享给 ChatView, 让 bottom toolbar 读 vm.contextUsed 自动 propagate
@@ -1341,8 +1346,12 @@ struct ChatZoneView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "cpu")
                             .foregroundStyle(.tertiary)
-                        Text(ModelDisplay.lookup(currentModel).display)
+                        // v0.24 boss验收fix (2026-08-24): when no provider key configured,
+                            // currentModel is empty. Show "无模型可用" placeholder
+                            // instead of empty text.
+                            Text(currentModel.isEmpty ? "无模型可用" : ModelDisplay.lookup(currentModel).display)
                             .font(.system(size: 13))
+                            .foregroundStyle(currentModel.isEmpty ? .secondary : .tertiary)
                             .foregroundStyle(.tertiary)
                         Image(systemName: "chevron.up.chevron.down")
                             .font(.system(size: 11))
@@ -1359,9 +1368,12 @@ struct ChatZoneView: View {
                     // v0.23 ticket 011.002: load sectioned available models from Keychain.
                     // (was: live-fetch from minimax API; now: discover all configured providers.)
                     availableSections = AvailableModelsDiscovery.loadFromKeychain()
-                    // Ensure currentModel is in some section; if not, add a fallback section
-                    // so the picker always shows the currently-selected model.
-                    if !availableSections.contains(where: { $0.models.contains(currentModel) }) {
+                    // v0.24 boss验收fix: when currentModel is empty (no key configured),
+                    // don't add a fallback section — show "无模型可用" placeholder only.
+                    // When currentModel is set but not in any section, add fallback so
+                    // user can see/select it.
+                    if !currentModel.isEmpty,
+                       !availableSections.contains(where: { $0.models.contains(currentModel) }) {
                         let fallback = Provider.by(slug: "minimax-cn") ?? Provider.all[0]
                         availableSections.append(AvailableProviderModels(
                             provider: fallback,
