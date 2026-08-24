@@ -246,6 +246,8 @@ public struct ChatView: View {
     }
 
     public var body: some View {
+        // v0.24 boss验收fix: listen for global defocus notification.
+        // Boss 8/24 feedback: '点其它区域, 文本框还是不失焦'.
         VStack(spacing: 0) {
             // 消息列表 (ScrollView + LazyVStack 真值)
             ScrollViewReader { proxy in
@@ -334,11 +336,9 @@ public struct ChatView: View {
         // (was: bottom of ChatView, not centered per boss 8/24 feedback).
         EmptyView()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // v0.24 boss验收fix: tap on empty area (outside TextField) to defocus.
-        // Boss 8/24 feedback: '点击除了文本框以外地方, 文本枢没有失焦'.
-        // Apple HIG: click on background = resign first responder.
-        .contentShape(Rectangle())
-        .onTapGesture {
+        // v0.24 boss验收fix: defocus when user clicks outside chat zone.
+        // Boss 8/24 feedback: '点其它区域, 文本框还是不失焦'.
+        .onReceive(NotificationCenter.default.publisher(for: .wenshuDefocusChatInput)) { _ in
             inputFocused = false
         }
     }

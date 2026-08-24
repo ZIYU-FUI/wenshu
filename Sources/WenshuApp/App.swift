@@ -22,6 +22,8 @@ extension Notification.Name {
     static let wenshuResetLayout = Notification.Name("com.wenshu.resetLayout")
     // v0.24 boss验收fix: notify when ProviderKeychain changes (Settings save key).
     static let wenshuProviderKeychainChanged = Notification.Name("com.wenshu.providerKeychainChanged")
+    // v0.24 boss验收fix: defocus chat input when user clicks outside.
+    static let wenshuDefocusChatInput = Notification.Name("com.wenshu.defocusChatInput")
 }
 
 // MARK: - Layout tokens (比例算子 0~1, 老板 8/18 答 "1:1 PT 真值" + 8/18 再拍 "换算成比例")
@@ -880,6 +882,13 @@ struct LayoutShellView: View {
                 })
                 // 下 band: 2 区 + 1 拖拽线 (老板 8/18 拍 "上四下两")
                 LowerBandZone(vm: vm, totalW: totalW, bandH: vm.lowerBandH(totalHeight: contentH - 2))
+            }
+            // v0.24 boss验收fix: tap anywhere posts defocus notification so chat
+            // input loses focus when user clicks outside TextField.
+            // Boss 8/24 feedback: '点其它区域, 文本框还是不失焦'.
+            .contentShape(Rectangle())
+            .onTapGesture {
+                NotificationCenter.default.post(name: .wenshuDefocusChatInput, object: nil)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .wenshuResetLayout)) { _ in
