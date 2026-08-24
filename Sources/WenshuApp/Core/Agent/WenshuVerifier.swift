@@ -303,7 +303,13 @@ public actor WenshuVerifier {
             "model": request.model,
             "max_tokens": request.max_tokens,
             "messages": request.messages.map { ["role": $0.role, "content": $0.content] },
-            "system": [WenshuVerifier.systemPromptEnglishOnly] + (extraSystemPrompt.map { [$0] } ?? []),
+            // v0.24 boss验收fix (Boss 8/24 OOB): concat system prompts into single string
+            // instead of array. Some minimax cn API deployments ignore second
+            // entry when 'system' is an array (= single-string protocol fallback).
+            // Mirrors hermes-agent/gateway/run.py single context_prompt pattern.
+            "system": (extraSystemPrompt ?? "").isEmpty
+                ? WenshuVerifier.systemPromptEnglishOnly
+                : WenshuVerifier.systemPromptEnglishOnly + "\n\n---\n\n" + (extraSystemPrompt ?? ""),
         ]
         // Tier 2 of pollution-defense: stop_sequences for short outputs.
         // Anthropic protocol terminates generation on first match — fine for short
