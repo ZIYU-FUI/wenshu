@@ -334,6 +334,13 @@ public struct ChatView: View {
         // (was: bottom of ChatView, not centered per boss 8/24 feedback).
         EmptyView()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // v0.24 boss验收fix: tap on empty area (outside TextField) to defocus.
+        // Boss 8/24 feedback: '点击除了文本框以外地方, 文本枢没有失焦'.
+        // Apple HIG: click on background = resign first responder.
+        .contentShape(Rectangle())
+        .onTapGesture {
+            inputFocused = false
+        }
     }
 }
 
