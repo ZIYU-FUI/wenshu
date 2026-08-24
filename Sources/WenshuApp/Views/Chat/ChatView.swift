@@ -328,6 +328,7 @@ public struct ChatView: View {
         // v0.24 boss验收fix: help text moved to ChatZoneView as centered overlay
         // (was: bottom of ChatView, not centered per boss 8/24 feedback).
         EmptyView()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
