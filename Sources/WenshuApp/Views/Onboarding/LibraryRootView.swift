@@ -184,18 +184,17 @@ Group {
         .background(DesignColor.zoneSurface)
     }
 
-    /// showOpenPanel: NSOpenPanel for selecting existing 仓库 (folder).
-    /// Apple HIG 'open existing directory' pattern. Boss 8/24 拍 '让客户指定
-    /// 一个文枢仓库' = 仓库 is a directory (not .ws file). All chat/books/
-    /// kanban/todo subdirs live under this folder.
+    /// showOpenPanel: NSOpenPanel for selecting existing .ws file.
+    /// Boss 8/24 OOB 拍: .ws file is the 仓库 format (technical file, not
+    /// folder). Apple HIG 'open existing file' pattern.
     private func showOpenPanel() {
         let panel = NSOpenPanel()
         panel.title = "打开已有文枢仓库"
-        panel.message = "选择一个现有的文枢仓库文件夹"
+        panel.message = "选择一个现有的文枢仓库文件"
         panel.prompt = "打开"
         panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = true
-        panel.canChooseFiles = false
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
         panel.canCreateDirectories = false
         panel.showsHiddenFiles = false
         if #available(macOS 11.0, *) {
@@ -215,26 +214,30 @@ Group {
         }
     }
 
-    /// showSavePanel: NSOpenPanel with canCreateDirectories for new 仓库.
-    /// Boss 8/24 拍 '文枢仓库' = folder. Apple HIG 'create new directory'
-    /// pattern (NSOpenPanel with canCreateDirectories = true behaves like
-    /// Finder's 'New Folder' button — user types folder name, click 'Create',
-    /// folder is created + selected).
+    /// showSavePanel: NSSavePanel for new .ws file.
+    /// Boss 8/24 OOB 拍: '.ws 默认的文件名, 取用户电脑的用户名.
+    /// 我的电脑应该是 anbaiqiang. 所以建出来的文件应该叫 anbaiqiang.ws'
+    /// = default name = NSUserName() (Apple API for current Mac username).
+    /// Apple HIG 'create new file' pattern (NSSavePanel with default name).
     private func showSavePanel() {
-        let panel = NSOpenPanel()
+        let panel = NSSavePanel()
         panel.title = "新建文枢仓库"
-        panel.message = "选择或新建一个文枢仓库文件夹"
+        panel.message = "选择一个位置保存你的文枢仓库"
         panel.prompt = "创建"
-        panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = true
-        panel.canChooseFiles = false
+        // v0.24 boss验收fix (Boss 8/24 OOB): default filename = NSUserName() + ".ws"
+        // NSUserName() = current Mac username (Apple API, returns "anbaiqiang"
+        // on 老板's machine). Boss 拍 '我的电脑应该是 anbaiqiang'.
+        let username = NSUserName()
+        panel.nameFieldStringValue = "\(username).ws"
+        panel.nameFieldLabel = "仓库文件名"
+        panel.showsTagField = false
         panel.canCreateDirectories = true
-        panel.showsHiddenFiles = false
-        // Boss 拍 '让客户指定一个文枢仓库' (no .ws file). Just create directory
-        // with name "文枢仓库" or user-chosen name. WenshuWorkspace will
-        // initialize subdirs (shelves/ books/ chat.sqlite etc.) on first use.
-        panel.nameFieldStringValue = "文枢仓库"
+        panel.isExtensionHidden = false
+        // Boss 拍 '不用说库用件叫 .ws' (no .ws in user-facing text) but the
+        // file IS .ws (technical file format, like .photoslibrary or .fcpbundle).
+        // Show extension so user sees what they're creating.
         if #available(macOS 11.0, *) {
+            panel.canSelectHiddenExtension = true
             panel.allowedContentTypes = []
         }
 
