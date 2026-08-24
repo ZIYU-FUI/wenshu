@@ -223,7 +223,7 @@ struct SettingView: View {
     @AppStorage("wenshu.llm.provider") private var providerSlug: String = Provider.minimaxCn.slug
     // v0.24 boss验收fix (2026-08-24): default to empty string when no provider
     // key configured (not "MiniMax-M3" which implies a MiniMax provider is
-    // selected even when user has no key). UI shows "无模型可用" placeholder
+    // selected even when user has no key). UI shows "暂无模型可用，请先配置模型" placeholder
     // when this is empty.
     @AppStorage("wenshu.llm.model") private var llmModel: String = ""
     @AppStorage("wenshu.llm.reasoningEffort") private var reasoningEffort: String = "medium"
@@ -1329,19 +1329,17 @@ struct ChatZoneView: View {
                     // v0.21 ticket 37: drop .menuStyle(.borderlessButton) — that wrapper overrides
                     //   foregroundStyle. Default Menu style lets our per-element .tertiary apply.
                     // v0.21 ticket 42 老板 17:35: .menuStyle(.button) + .buttonStyle(.plain) (Apple deprecated .borderedButton 提示真值组合)
+                    // v0.24 boss验收fix: all elements use .secondary (Apple standard dark text)
+                    // Boss 8/24: '暗文字的颜色都不对, 请用暗文字的 apple 样式'.
                     HStack(spacing: 4) {
                         Image(systemName: "cpu")
-                            .foregroundStyle(.tertiary)
-                        // v0.24 boss验收fix (2026-08-24): when no provider key configured,
-                            // currentModel is empty. Show "无模型可用" placeholder
-                            // instead of empty text.
-                            Text(currentModel.isEmpty ? "无模型可用" : ModelDisplay.lookup(currentModel).display)
+                            .foregroundStyle(.secondary)
+                        Text(currentModel.isEmpty ? "暂无模型可用，请先配置模型" : ModelDisplay.lookup(currentModel).display)
                             .font(.system(size: 13))
-                            .foregroundStyle(currentModel.isEmpty ? .secondary : .tertiary)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(.secondary)
                         Image(systemName: "chevron.up.chevron.down")
                             .font(.system(size: 11))
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(.secondary)
                     }
                     .padding(.bottom, 6)
                     .frame(height: LayoutTokens.toolbarHeight, alignment: .bottomLeading)
@@ -1399,9 +1397,10 @@ struct ChatZoneView: View {
 
                 HStack(spacing: 6) {
                     // v0.21 ticket 40: 读 vm.contextUsed (Apple @Observable 自动 propagate, 不再写死 @State contextUsed = 0)
+                    // v0.24 boss验收fix: Apple standard dark text (.secondary).
                     Text("\(compactNumber(vm.contextUsed)) / \(compactNumber(vm.contextMax))")
                         .font(.system(size: 13))
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(.secondary)
                     ProgressView(value: Double(min(vm.contextUsed, vm.contextMax)), total: Double(max(1, vm.contextMax)))
                         .progressViewStyle(.linear)
                         .frame(width: 80)
