@@ -1151,15 +1151,15 @@ VStack(spacing: 0) {
         switch slot {
         case .projectSidebar:
             // v0.24 boss验收fix (2026-08-24): 统一 6-zone 1 层模式 + 接真视图 (no sheets, no placeholders).
-            // ProjectSidebar tabs: 大纲 / 收藏 / 模板.
-            ZoneContentView(tabs: [
+            // zoneSlug 用于 tab selection 持久化 (每个 zone 独立 key).
+            ZoneContentView(zoneSlug: "projectSidebar", tabs: [
                 ("大纲", "list.bullet.rectangle", AnyView(DesignColor.zoneSurface.overlay(alignment: .topLeading) { LibraryOutlineViewContent(library: library) })),
                 ("收藏", "bookmark", AnyView(BookmarkPanel())),
                 ("模板", "doc.badge.plus", AnyView(TemplatePicker())),
             ])
         case .projectPreview:
             // ProjectPreview tabs: 预览 / 图 / 搜索.
-            ZoneContentView(tabs: [
+            ZoneContentView(zoneSlug: "projectPreview", tabs: [
                 ("预览", "eye", AnyView(DesignColor.zoneSurface)),
                 ("图", "circle.grid.cross.fill", AnyView(GraphView())),
                 ("搜索", "magnifyingglass", AnyView(SearchPanel())),
@@ -1168,14 +1168,14 @@ VStack(spacing: 0) {
             // Editor tabs: 编辑 / 大纲 / 反链.
             // v0.24 boss验收fix: 保留原 4 PT inset 设计意图 (背景 y=60~884, 正文 y=64~882, 上下 4 PT 视觉下沉, 左右 flush).
             // 编辑 tab: 占位 (WenshuEditor view deferred to v0.24+, 没接到 doc reader).
-            ZoneContentView(tabs: [
+            ZoneContentView(zoneSlug: "editor", tabs: [
                 ("编辑", "pencil", AnyView(DesignColor.zoneSurface.overlay { Color.white.opacity(0.55).padding([.top, .bottom], editorInset) })),
                 ("大纲", "list.bullet", AnyView(OutlinePanel())),
                 ("反链", "link", AnyView(BacklinksPanel())),
             ])
         case .specializedTools:
             // SpecializedTools tabs: 画布 / 数据库 / 作曲.
-            ZoneContentView(tabs: [
+            ZoneContentView(zoneSlug: "specializedTools", tabs: [
                 ("画布", "scribble", AnyView(CanvasView())),
                 ("数据库", "tablecells", AnyView(BaseView())),
                 ("作曲", "music.note", AnyView(ComposerPanel())),
@@ -1257,8 +1257,14 @@ struct ChatZoneView: View {
     // @AppStorage 是 Apple HIG 真值, 源单一 UserDefaults, 自动响应变化, 修复 picker 跟 ChatViewModel 同步
     // v0.24 boss验收fix (2026-08-24): default empty (no key) instead of "MiniMax-M3".
     @AppStorage("wenshu.llm.model") private var currentModel: String = ""
-    // v0.21 ticket 43 step 1 NSLog trace: 锁 selectedTab 当前真值 (Q63 verify-before-claim)
-    @State private var selectedTab: ChatZoneTab = .chat
+    // v0.24 boss验收fix (2026-08-24): persist tab selection across launches.
+    // Boss 8/24: '每个区域的 tab 选中状态应该持久化'.
+    @AppStorage("wenshu.tabIndex.aiChat") private var selectedTabRaw: String = "对话"
+
+    private var selectedTab: ChatZoneTab {
+        get { ChatZoneTab(rawValue: selectedTabRaw) ?? .chat }
+        nonmutating set { selectedTabRaw = newValue.rawValue }
+    }
     // v0.21 ticket 40: 持有 ChatViewModel 实例 + 共享给 ChatView, 让 bottom toolbar 读 vm.contextUsed 自动 propagate
     @State private var vm: ChatViewModel
     private let contextMax: Int = 131072
@@ -1277,7 +1283,10 @@ struct ChatZoneView: View {
                 // Apple HIG 真值: Button(.plain) + contentShape(Rectangle()) 整条热区响应 (ticket 17 + 21 已修复范式)
                 // + .foregroundStyle(.accentColor) 选中态高亮
                 // + Apple 默认动画 .animation(.default, value: selectedTab) (Q58.4)
-                ChatZoneTabBar(selectedTab: $selectedTab)
+                ChatZoneTabBar(selectedTab: Binding(
+                get: { selectedTab },
+                set: { selectedTab = $0 }
+            ))
                 Group {
                     switch selectedTab {
                     case .chat:
@@ -1428,10 +1437,10 @@ struct ChatZoneTabBar: View {
                 .contentShape(Rectangle())
             }
         }
+        // v0.24 boss验收fix: flush at top of zone (was: padded 6 PT down).
         .padding(.leading, 18)
-        .padding(.top, 6)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(height: LayoutTokens.toolbarHeight)  // 30 PT (跟其它 5 区 ZoneTopToolbar 一致)
+        .frame(height: LayoutTokens.toolbarHeight)  // 30 PT
         .background(DesignColor.zoneSurface)
         .overlay(alignment: .bottom) {
             DesignColor.splitterLine.frame(height: 1)

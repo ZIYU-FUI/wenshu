@@ -34,6 +34,8 @@ struct ZoneContentView: View {
 
     let tabs: [Tab]
 
+    @State private var selectedTabId: UUID
+
     var body: some View {
         VStack(spacing: 0) {
             ZoneContentTabBar(items: tabs.map { ZoneContentTabBar.Item(id: $0.id, label: $0.label, icon: $0.icon) }, selection: selectionBinding)
@@ -51,18 +53,36 @@ struct ZoneContentView: View {
         }
     }
 
-    @State private var selectedTabId: UUID
+    // v0.24 boss验收fix (2026-08-24): persist tab selection per zone across launches.
+// Boss 8/24 feedback: '每个区域的 tab 应该有一个是选中的, 选中状态应该持久化'.
+// Implemented via zone-specific UserDefaults key (one per zone).
+    private let storageKey: String
 
-    init(tabs: [(label: String, icon: String, content: AnyView)]) {
+    init(zoneSlug: String, tabs: [(label: String, icon: String, content: AnyView)]) {
         let mapped = tabs.map { Tab(label: $0.label, icon: $0.icon, content: $0.content) }
         self.tabs = mapped
-        _selectedTabId = State(initialValue: mapped.first?.id ?? UUID())
+        self.storageKey = "wenshu.tabIndex.\(zoneSlug)"
+        // Restore selected tab from UserDefaults (or default to first tab).
+        let savedIndex = UserDefaults.standard.integer(forKey: self.storageKey)
+        let initialUUID: UUID
+        if mapped.indices.contains(savedIndex) {
+            initialUUID = mapped[savedIndex].id
+        } else {
+            initialUUID = mapped.first?.id ?? UUID()
+        }
+        _selectedTabId = State(initialValue: initialUUID)
     }
 
     private var selectionBinding: Binding<UUID> {
         Binding(
             get: { selectedTabId },
-            set: { selectedTabId = $0 }
+            set: { newId in
+                selectedTabId = newId
+                // Persist current tab index for next launch.
+                if let idx = tabs.firstIndex(where: { $0.id == newId }) {
+                    UserDefaults.standard.set(idx, forKey: storageKey)
+                }
+            }
         )
     }
 }
@@ -96,8 +116,9 @@ struct ZoneContentTabBar: View {
                 .contentShape(Rectangle())
             }
         }
+        // v0.24 boss验收fix: flush at top of zone (was: padded 6 PT down, made tab
+// bar appear mid-zone).
         .padding(.leading, 18)
-        .padding(.top, 6)
         .frame(maxWidth: .infinity, alignment: .leading)
         .frame(height: LayoutTokens.toolbarHeight)
         .background(DesignColor.zoneSurface)

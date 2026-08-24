@@ -33,11 +33,20 @@ struct DynamicZoneView: View {
         }
     }
 
-    @State private var selectedTab: DynamicTab = .subAgentProgress
+    // v0.24 boss验收fix: persist tab selection across launches.
+    @AppStorage("wenshu.tabIndex.aiDynamic") private var selectedTabRaw: String = "进度"
+
+    private var selectedTab: DynamicTab {
+        get { DynamicTab(rawValue: selectedTabRaw) ?? .subAgentProgress }
+        nonmutating set { selectedTabRaw = newValue.rawValue }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            DynamicZoneTabBar(selectedTab: $selectedTab)
+            DynamicZoneTabBar(selectedTab: Binding(
+                get: { selectedTab },
+                set: { selectedTab = $0 }
+            ))
             Group {
                 switch selectedTab {
                 case .todo:
@@ -75,8 +84,8 @@ struct DynamicZoneTabBar: View {
                 .contentShape(Rectangle())
             }
         }
+        // v0.24 boss验收fix: flush at top of zone (was: padded 6 PT down).
         .padding(.leading, 18)
-        .padding(.top, 6)
         .frame(maxWidth: .infinity, alignment: .leading)
         .frame(height: LayoutTokens.toolbarHeight)
         .background(DesignColor.zoneSurface)
