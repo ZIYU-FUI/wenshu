@@ -262,4 +262,47 @@ Group {
             }
         }
     }
+
+// MARK: - Bundle creation helper (Boss 8/24 OOB fix)
+
+}  // close LibraryOnboardingView struct
+
+extension LibraryOnboardingView {
+    /// createWenshuWorkspace: explicitly create the package directory at url
+    /// (NSSavePanel may not create the directory if Info.plist registration
+    /// isn't fully loaded by Finder). Also create initial subdirs for
+    /// 文枢 仓库 (= shelves/ books/ chat.sqlite kanban.sqlite todo.sqlite).
+    static func createWenshuWorkspace(at url: URL) {
+        let fm = FileManager.default
+        // 1. Create root package directory if not exists
+        if !fm.fileExists(atPath: url.path) {
+            try? fm.createDirectory(at: url, withIntermediateDirectories: true)
+        }
+        // 2. Create subdirs (shelves/, books/, chapters/, assets/, backups/)
+        let subdirs = ["shelves", "books", "chapters", "assets", "backups"]
+        for sub in subdirs {
+            let subURL = url.appendingPathComponent(sub)
+            if !fm.fileExists(atPath: subURL.path) {
+                try? fm.createDirectory(at: subURL, withIntermediateDirectories: true)
+            }
+        }
+        // 3. Create initial Info.plist inside package (Apple HIG pattern for
+        // custom bundles; declares what package type this is)
+        let infoPlistURL = url.appendingPathComponent("Info.plist")
+        if !fm.fileExists(atPath: infoPlistURL.path) {
+            let plist: [String: Any] = [
+                "CFBundleIdentifier": "com.wenshu.\(url.deletingPathExtension().lastPathComponent)",
+                "CFBundleName": url.deletingPathExtension().lastPathComponent,
+                "CFBundlePackageType": "WSPC",
+                "CFBundleShortVersionString": "0.24.0",
+                "CFBundleVersion": "1",
+                "WSPCreatedAt": ISO8601DateFormatter().string(from: Date()),
+            ]
+            if let data = try? PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0) {
+                try? data.write(to: infoPlistURL)
+            }
+        }
+        NSLog("[wenshu.library] created package: %@", url.path)
+    }
 }
+
