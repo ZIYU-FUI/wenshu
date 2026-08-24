@@ -18,29 +18,26 @@ import SwiftUI
 /// (跟 ChatZoneTabBar 范式一致: 顶栏 SF Symbol + .accentColor 高亮选中态).
 struct DynamicZoneView: View {
     enum DynamicTab: String, CaseIterable, Identifiable {
-        // v0.24 boss验收fix (2026-08-24): Tab order per boss 8/24 explicit request:
-        // tab1 = 进度 (Sub-agent progress), tab2 = 待办 (Todo), tab3 = 搜索 (Search).
-        case subAgentProgress = "进度"
+        // v0.24 boss验收fix (2026-08-24 OOB): Boss 拍 '这里不是看板吗, 这里怎么变成
+        // 会话记录了' = dynamic zone 应该 be 看板 (kanban), not 子代理进度 (debug).
+        // Per boss 8/24 拍 'dynamic zone 改 2 tab' = 看板 + 待办 only.
+        // Hide: 子代理进度 (debug feature) + 搜索 (per 5c9ef2ee6 + chat zone pattern).
+        case kanban = "看板"
         case todo = "待办"
-        case search = "搜索"
         var id: String { rawValue }
         var icon: String {
             switch self {
-            // v0.24 boss验收fix (Boss 8/24): 统一 outline variant across all 14 tab icons.
-            // 'checklist.checked' = fill variant (checked state), 'checklist' = outline.
-            // Boss 要求 same style across all tabs, 改用 'checklist' (outline).
-            case .subAgentProgress: return "checklist"
+            case .kanban: return "rectangle.split.3x1"
             case .todo: return "checklist"
-            case .search: return "magnifyingglass"
             }
         }
     }
 
     // v0.24 boss验收fix: persist tab selection across launches.
-    @AppStorage("wenshu.tabIndex.aiDynamic") private var selectedTabRaw: String = "进度"
+    @AppStorage("wenshu.tabIndex.aiDynamic") private var selectedTabRaw: String = "看板"
 
     private var selectedTab: DynamicTab {
-        get { DynamicTab(rawValue: selectedTabRaw) ?? .subAgentProgress }
+        get { DynamicTab(rawValue: selectedTabRaw) ?? .kanban }
         nonmutating set { selectedTabRaw = newValue.rawValue }
     }
 
@@ -52,12 +49,10 @@ struct DynamicZoneView: View {
             ))
             Group {
                 switch selectedTab {
+                case .kanban:
+                    KanbanView()
                 case .todo:
                     TodoListView()
-                case .subAgentProgress:
-                    SubAgentProgressView()
-                case .search:
-                    SearchPanel()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -74,7 +69,7 @@ struct DynamicZoneTabBar: View {
 
     var body: some View {
         HStack(spacing: 15) {
-            ForEach(DynamicZoneView.DynamicTab.allCases.filter { $0 != .search }) { tab in
+            ForEach(DynamicZoneView.DynamicTab.allCases) { tab in
                 Button {
                     selectedTab = tab
                 } label: {
