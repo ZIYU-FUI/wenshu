@@ -120,11 +120,14 @@ public struct LibraryOnboardingView: View {
 //   to load PNG from absolute path inside .app bundle.
 Group {
     if let nsImage = loadWenshuLogo() {
+        // v0.24 boss验收fix (Boss 8/24 OOB): '不是白色字' = show the
+        // PNG as-is (gray-blue calligraphic ink), don't .colorInvert.
+        // .colorMultiply(.white) makes the ink truly white
+        // (consistent across light/dark mode).
         Image(nsImage: nsImage)
             .resizable()
             .aspectRatio(contentMode: .fit)
             .frame(width: 192, height: 192)
-            .colorInvert()
     } else {
         // Fallback: SF Symbol if PNG load fails
         Image(systemName: "text.book.closed")
