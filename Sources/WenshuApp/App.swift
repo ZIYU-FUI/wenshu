@@ -1056,19 +1056,6 @@ struct ZoneModule: View {
     @Environment(WenshuLibrary.self) private var library
 
     // v0.22: sheet showing flags for each toolbar action. Independent per slot.
-    @State private var showingBookmarks: Bool = false
-    @State private var showingTemplates: Bool = false
-    @State private var showingGraph: Bool = false
-    @State private var showingBacklinks: Bool = false
-    @State private var showingOutline: Bool = false
-    @State private var showingCanvas: Bool = false
-    @State private var showingBases: Bool = false
-    @State private var showingComposer: Bool = false
-    @State private var showingKanban: Bool = false
-    @State private var showingWordCount: Bool = false
-    @State private var showingCron: Bool = false
-    @State private var showingBackup: Bool = false
-    @State private var showingQuickSwitcher: Bool = false
     // v0.24 boss验收fix: re-added for projectPreview zone (Search toolbar icon).
     @State private var showingSearch: Bool = false
     // v0.23 ticket 005: sub-agent progress 明盒 (boss 8/23 拍: '让用户知道工作进度的明盒').
@@ -1099,20 +1086,7 @@ VStack(spacing: 0) {
         .background(slot == .aiDynamic ? DesignColor.dynamicZoneSurface : .clear)
         // v0.22: sheet presentations for each toolbar action. Single modifier tree,
         // one per showing-* flag. Each ticket wires its view here.
-        .sheet(isPresented: $showingBookmarks) { BookmarkPanel() }
-        .sheet(isPresented: $showingTemplates) { TemplatePicker() }
-        .sheet(isPresented: $showingGraph) { GraphView() }
-        .sheet(isPresented: $showingBacklinks) { BacklinksPanel() }
-        .sheet(isPresented: $showingOutline) { OutlinePanel() }
-        .sheet(isPresented: $showingCanvas) { CanvasView() }
-        .sheet(isPresented: $showingBases) { BaseView() }
-        .sheet(isPresented: $showingComposer) { ComposerPanel() }
-        .sheet(isPresented: $showingKanban) { KanbanView() }
-        .sheet(isPresented: $showingWordCount) { WordCountBadge() }
-        .sheet(isPresented: $showingCron) { CronScheduleView() }
-        .sheet(isPresented: $showingBackup) { BackupView() }
-        .sheet(isPresented: $showingQuickSwitcher) { QuickSwitcherWindow() }
-    }
+        }
 
     /// h14: read aloud the last AI reply via WenshuConductor.invokeTool(av:).
     private func readAloudLastReply() async {
@@ -1147,7 +1121,7 @@ VStack(spacing: 0) {
                 ZoneToolbarAction(
                     label: "Templates",
                     icon: "doc.badge.plus",
-                    action: { showingTemplates.toggle() }
+                    action: {}
                 ),
             ]
         case .projectPreview:
@@ -1157,7 +1131,7 @@ VStack(spacing: 0) {
                 ZoneToolbarAction(
                     label: "Graph",
                     icon: "circle.grid.cross.fill",
-                    action: { showingGraph.toggle() }
+                    action: {}
                 ),
                 ZoneToolbarAction(
                     label: "Search",
@@ -1176,34 +1150,35 @@ VStack(spacing: 0) {
         // v0.15 ticket 005 范式: 每个 case 自己 Color + overlay (跟 ticket 005 一样, ticket 006 撤回 P3-4)
         switch slot {
         case .projectSidebar:
-            // v0.24 boss验收fix: 统一 6-zone 1 层模式 (跟 chat/dynamic zone 一样, 用内部 tab bar).
-            // ProjectSidebar tabs: 大纲 / 收藏 / 模板 (per boss 8/24 "可以多 tab").
+            // v0.24 boss验收fix (2026-08-24): 统一 6-zone 1 层模式 + 接真视图 (no sheets, no placeholders).
+            // ProjectSidebar tabs: 大纲 / 收藏 / 模板.
             ZoneContentView(tabs: [
                 ("大纲", "list.bullet.rectangle", AnyView(DesignColor.zoneSurface.overlay(alignment: .topLeading) { LibraryOutlineViewContent(library: library) })),
-                ("收藏", "bookmark", AnyView(DesignColor.zoneSurface)),
-                ("模板", "doc.badge.plus", AnyView(DesignColor.zoneSurface)),
+                ("收藏", "bookmark", AnyView(BookmarkPanel())),
+                ("模板", "doc.badge.plus", AnyView(TemplatePicker())),
             ])
         case .projectPreview:
-            // ProjectPreview tabs: 预览 / 关系图 / 搜索.
+            // ProjectPreview tabs: 预览 / 图 / 搜索.
             ZoneContentView(tabs: [
                 ("预览", "eye", AnyView(DesignColor.zoneSurface)),
-                ("图", "circle.grid.cross.fill", AnyView(DesignColor.zoneSurface)),
-                ("搜索", "magnifyingglass", AnyView(DesignColor.zoneSurface)),
+                ("图", "circle.grid.cross.fill", AnyView(GraphView())),
+                ("搜索", "magnifyingglass", AnyView(SearchPanel())),
             ])
         case .editor:
             // Editor tabs: 编辑 / 大纲 / 反链.
             // v0.24 boss验收fix: 保留原 4 PT inset 设计意图 (背景 y=60~884, 正文 y=64~882, 上下 4 PT 视觉下沉, 左右 flush).
+            // 编辑 tab: 占位 (WenshuEditor view deferred to v0.24+, 没接到 doc reader).
             ZoneContentView(tabs: [
                 ("编辑", "pencil", AnyView(DesignColor.zoneSurface.overlay { Color.white.opacity(0.55).padding([.top, .bottom], editorInset) })),
-                ("大纲", "list.bullet", AnyView(DesignColor.zoneSurface)),
-                ("反链", "link", AnyView(DesignColor.zoneSurface)),
+                ("大纲", "list.bullet", AnyView(OutlinePanel())),
+                ("反链", "link", AnyView(BacklinksPanel())),
             ])
         case .specializedTools:
-            // SpecializedTools tabs: 画布 / 数据库 / 词数.
+            // SpecializedTools tabs: 画布 / 数据库 / 作曲.
             ZoneContentView(tabs: [
-                ("画布", "scribble", AnyView(DesignColor.zoneSurface)),
-                ("数据库", "tablecells", AnyView(DesignColor.zoneSurface)),
-                ("词数", "number", AnyView(DesignColor.zoneSurface)),
+                ("画布", "scribble", AnyView(CanvasView())),
+                ("数据库", "tablecells", AnyView(BaseView())),
+                ("作曲", "music.note", AnyView(ComposerPanel())),
             ])
         case .aiChat:
             // ChatZoneView 自带 ChatZoneTabBar (chat / search / settings), 已 1 层.
