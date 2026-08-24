@@ -131,6 +131,8 @@ struct ZoneContentTabBar: View {
                 // point size, visual box can grow with implicit .imageScale).
                 Image(systemName: item.icon)
                     .font(.system(size: LayoutTokens.iconSize))
+                    .imageScale(.small)  // v0.24 boss验收fix (Boss 8/24): 强制 SF Symbol 视觉 size = .small
+                    // (= ~13 PT at 18 PT font), 防止 .large implicit scale 让 icon 撑出 frame.
                     .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                     .foregroundStyle(item == selectedItem ? Color.accentColor : Color.secondary)
                 }
