@@ -1319,29 +1319,16 @@ struct ChatZoneView: View {
                                 ChatHelpTextOverlay {
                                     UserDefaults.standard.set("providerApi", forKey: "wenshu.settingsTab")
                                     // v0.24 boss验收fix: 4-tier approach to open Settings.
-                    // 1. Direct SettingsWindow showSettingsWindow: action (macOS 12+).
-                    // 2. openSettings: action (macOS 14+).
-                    // 3. Walk main menu → Settings... menu item.
-                    // 4. AppleScript 'tell application "System Settings"' (last resort).
-                    let sel1 = Selector(("showSettingsWindow:"))
-                    let sel2 = Selector(("openSettings:"))
-                    if NSApp.sendAction(sel1, to: nil, from: nil) {
-                        // success
-                    } else if NSApp.sendAction(sel2, to: nil, from: nil) {
-                        // success
-                    } else if let menu = NSApp.mainMenu,
-                              let appMenuItem = menu.items.first(where: { $0.title.contains("Settings") || $0.title.contains("设置") }),
-                              let submenu = appMenuItem.submenu,
-                              let settingsItem = submenu.items.first(where: { $0.title.contains("Settings") || $0.title.contains("设置") }) {
-                        NSApp.activate(ignoringOtherApps: true)
-                        settingsItem.target?.perform(settingsItem.action, with: settingsItem)
-                    } else {
-                        // AppleScript fallback - launch System Settings.app
-                        let task = Process()
-                        task.launchPath = "/usr/bin/osascript"
-                        task.arguments = ["-e", "tell application \"System Settings\" to activate"]
-                        try? task.run()
-                    }
+                                    // v0.24 boss验收fix: open System Settings via NSWorkspace URL scheme.
+                                    // SwiftUI Settings scene is unreliable on ad-hoc signed apps.
+                                    if let url = URL(string: "x-apple.systempreferences:") {
+                                        NSWorkspace.shared.open(url)
+                                    } else {
+                                        let task = Process()
+                                        task.launchPath = "/usr/bin/osascript"
+                                        task.arguments = ["-e", "tell application \"System Settings\" to activate"]
+                                        try? task.run()
+                                    }
                                 }
                                 .allowsHitTesting(true)
                             }
