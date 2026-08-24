@@ -754,10 +754,21 @@ private struct SettingsEnvironmentCapturer: View {
     let library: WenshuLibrary
     let appearanceMode: AppearanceMode
     var body: some View {
-        // v0.24 boss验收fix: explicit min frame to prevent window from shrinking
-        // when tab content is small (e.g. ChatZoneStubView with single icon + text).
-        // Apple HIG: .frame(minWidth:minHeight:) on root = window min size.
-        LayoutShellView()
+        // v0.24 boss验收fix (Boss 8/24 OOB 拍 '和 FCP 一样, 首次运行, 无论
+        // 是否要建书架, 都要先指定一个 .ws 文件的库文件位置'): first-launch
+        // .ws file picker. NSOpenPanel for selecting .ws file location
+        // (FCP-style Event Library UX). Save to UserDefaults wenshu.libraryPath.
+        // WenshuWorkspace is initialized with the picked path (WenshuWorkspace
+        // path already supports custom URL via init).
+        //
+        // LibraryRootView is a wrapper that:
+        // 1. Checks UserDefaults wenshu.libraryPath
+        // 2. If not set, shows NSOpenPanel to pick .ws file
+        // 3. If set, just renders LayoutShellView
+        // 4. All file I/O (chat / kanban / books / etc.) goes through .ws
+        //    subdirectories (shelves/, books/, chat/, kanban/, todo/, assets/)
+        //    = WenshuWorkspace manages this layout.
+        LibraryRootView()
             .frame(minWidth: 1280, minHeight: 720)
             .environment(library)
             .preferredColorScheme(appearanceMode.colorScheme)
