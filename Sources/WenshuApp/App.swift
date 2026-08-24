@@ -22,6 +22,10 @@ extension Notification.Name {
     static let wenshuResetLayout = Notification.Name("com.wenshu.resetLayout")
     // v0.24 boss验收fix: notify when ProviderKeychain changes (Settings save key).
     static let wenshuProviderKeychainChanged = Notification.Name("com.wenshu.providerKeychainChanged")
+    // v0.24 boss验收fix (Boss 8/24): chat store ready notification.
+    // Posted after applicationDidFinishLaunching creates ChatSessionStore.
+    // ChatView listens and reloads history when received (= retry load).
+    static let wenshuChatStoreReady = Notification.Name("com.wenshu.chatStoreReady")
     // v0.24 boss验收fix: defocus chat input when user clicks outside.
     static let wenshuDefocusChatInput = Notification.Name("com.wenshu.defocusChatInput")
 }
@@ -809,15 +813,24 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // v0.21 ticket 06: 同步创建 ChatSessionStore + KanbanStore + WenshuConductor (不能在 static let 闭包里调 actor init)
         // 用 unsafeMutablePointer / 临时 instance var 临时持有 — 因为 static let 是 immutable, 不能后续赋值
+// v0.24 boss验收fix (Boss 8/24 反馈 '聊天记录持久化, 我没看到'):
+        // add NSLog for chat store init + bootstrap errors (silent catch 之前
+        // makes debugging hard), and post .wenshuChatStoreReady notification
+        // so ChatView can retry load when store becomes available.
         let chatStore: ChatSessionStore?
         do {
             let store = try ChatSessionStore()
             try store.bootstrap()
             chatStore = store
+            NSLog("[wenshu.chatStore] init OK: store created successfully")
         } catch {
             chatStore = nil
+            NSLog("[wenshu.chatStore] init FAILED: \(error)")
         }
         Self.sharedChatStoreRef = chatStore  // code-review H1 修法
+        if chatStore != nil {
+            NotificationCenter.default.post(name: .wenshuChatStoreReady, object: nil)
+        }
         let kanbanStore: KanbanStore?
         do {
             let store = try KanbanStore()

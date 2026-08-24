@@ -278,9 +278,13 @@ public struct ChatView: View {
                 if let store = vm.valueForStore() {
                     if let loaded = try? await store.loadMessages(sessionId: vm.valueForSessionId()) {
                         let mapped = loaded.map { stored in
-                            ChatMessage(
+                            // v0.24 boss验收fix: preserve role from stored.source.
+                            // Was: hardcoded .agent (wrong, user messages shown as agent).
+                            // Now: parse source = "user" → .user role, "wenshu" → .agent.
+                            let resolvedRole: ChatRole = (stored.source == "user") ? .user : .agent
+                            return ChatMessage(
                                 id: UUID(uuidString: stored.id) ?? UUID(),
-                                role: .agent,
+                                role: resolvedRole,
                                 source: ChatSource(rawValue: stored.source) ?? .wenshu,
                                 content: stored.content,
                                 timestamp: stored.timestamp,
@@ -337,10 +341,35 @@ public struct ChatView: View {
         EmptyView()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         // v0.24 boss验收fix: defocus when user clicks outside chat zone.
-        // Boss 8/24 feedback: '点其它区域, 文本框还是不失焦'.
-        .onReceive(NotificationCenter.default.publisher(for: .wenshuDefocusChatInput)) { _ in
-            inputFocused = false
+// Boss 8/24 feedback: '点其它区域, 文本框还是不失焦'.
+.onReceive(NotificationCenter.default.publisher(for: .wenshuDefocusChatInput)) { _ in
+    inputFocused = false
+}
+// v0.24 boss验收fix (Boss 8/24 反馈 '聊天记录持久化, 我没看到'):
+// listen for .wenshuChatStoreReady (posted after applicationDidFinishLaunching
+// creates ChatSessionStore). If store wasn't ready at .task time (race
+// condition), retry loading now. Also retry append message if store
+// was nil at send time (we just store in memory, then re-append here).
+.onReceive(NotificationCenter.default.publisher(for: .wenshuChatStoreReady)) { _ in
+    if let store = vm.valueForStore() {
+        Task { @MainActor in
+            if let loaded = try? await store.loadMessages(sessionId: vm.valueForSessionId()) {
+                let mapped = loaded.map { stored in
+                    let resolvedRole: ChatRole = (stored.source == "user") ? .user : .agent
+                    return ChatMessage(
+                        id: UUID(uuidString: stored.id) ?? UUID(),
+                        role: resolvedRole,
+                        source: ChatSource(rawValue: stored.source) ?? .wenshu,
+                        content: stored.content,
+                        timestamp: stored.timestamp,
+                        tokens: stored.tokens
+                    )
+                }
+                vm.replaceMessages(mapped)
+            }
         }
+    }
+}
     }
 }
 
