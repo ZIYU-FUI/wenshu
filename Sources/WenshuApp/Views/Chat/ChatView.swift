@@ -227,6 +227,12 @@ public final class ChatViewModel {
 /// ChatView: 左下 zone UI (Apple HIG SwiftUI + conductor + store)
 public struct ChatView: View {
     @State private var vm: ChatViewModel
+    // v0.24 boss验收fix (2026-08-24): focus management for input box.
+    // Boss 8/24 feedback: when no provider key, chat input should be disabled
+    // AND lose focus (no cursor blinking, no keyboard capture).
+    @FocusState private var inputFocused: Bool
+    // Reactive check: is the current model usable?
+    private var hasUsableKey: Bool { !vm.currentModel.isEmpty && !vm.isSending }
 
     public init(conductor: WenshuConductor? = nil, store: ChatSessionStore? = nil, sessionId: String = "default", vm: ChatViewModel? = nil) {
         // optional ChatViewModel injection (ChatZoneView shared vm for bottom toolbar
@@ -291,7 +297,14 @@ public struct ChatView: View {
                 TextField("输入消息...", text: $vm.inputText, axis: .vertical)
                     .textFieldStyle(.roundedBorder)
                     .lineLimit(1...4)
+                    // v0.24 boss验收fix: disable when no key configured.
+                    .disabled(!hasUsableKey)
+                    .focused($inputFocused)
                     .onSubmit { Task { await vm.send() } }
+                    // Defocus when key becomes unusable (e.g. user removed key).
+                    .onChange(of: vm.currentModel) { _, new in
+                        if new.isEmpty { inputFocused = false }
+                    }
                 Button {
                     Task { await vm.send() }
                 } label: {
