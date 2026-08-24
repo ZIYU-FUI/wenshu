@@ -5,13 +5,13 @@
 
 ## Tickets (already done by boss + assistant)
 
-| # | Commit | Issue | Status | Description |
-|---|--------|-------|--------|-------------|
-| 015.001 | `aa7caca7f` | WenshuLLMError LocalizedError | **DONE** (boss) | SwiftUI 失败 path 显示 default error → 加 LocalizedError + 中文 errorDescription |
-| 015.002 | `4f4a22f17` | Keychain -34018 + multi-provider picker | **DONE** (boss) | iOS-only `kSecUseDataProtectionKeychain` removed on macOS; ChatView fallback rewired to AvailableModelsDiscovery |
-| 015.003 | `c83a131b2` | Model picker "无模型可用" (App.swift) | **DONE** (boss, partial) | 4 default locations in App.swift set to '' + UI placeholder text |
-| 015.004 | `0e306f6b4` | ChatView.swift line 76 + 154 (drift catch) | **DONE** (assistant) | Boss's commit message claimed 4 locations fixed, only App.swift was — ChatView.swift was missed. Caught by regression test, fixed in this commit |
-| 015.005 | `351704a08` | Regression tests (9 tests) | **DONE** (assistant) | Tests for boss's 3 fixes + 2 doc-drift catches |
+| # | Commit | Ticket file | Status | Description |
+|---|--------|-------------|--------|-------------|
+| 015.001 | `aa7caca7f` | [`001-wenshu-llm-error-localized.md`](./001-wenshu-llm-error-localized.md) | **DONE** (boss) | SwiftUI 失败 path 显示 default error → 加 LocalizedError + 中文 errorDescription |
+| 015.002 | `4f4a22f17` | [`002-keychain-34018-multi-provider-picker.md`](./002-keychain-34018-multi-provider-picker.md) | **DONE** (boss) | iOS-only `kSecUseDataProtectionKeychain` removed on macOS; ChatView fallback rewired to AvailableModelsDiscovery |
+| 015.003 | `c83a131b2` | [`003-model-picker-no-model-placeholder.md`](./003-model-picker-no-model-placeholder.md) | **DONE** (boss, partial) | 4 default locations in App.swift set to '' + UI placeholder text |
+| 015.004 | `0e306f6b4` | [`004-chatview-doc-drift-catch.md`](./004-chatview-doc-drift-catch.md) | **DONE** (assistant) | Boss's commit message claimed 4 locations fixed, only App.swift was — ChatView.swift was missed. Caught by regression test, fixed in this commit |
+| 015.005 | `351704a08` | [`005-regression-tests.md`](./005-regression-tests.md) | **DONE** (assistant) | Tests for boss's 3 fixes + 2 doc-drift catches |
 
 ## Execution order (already happened)
 
