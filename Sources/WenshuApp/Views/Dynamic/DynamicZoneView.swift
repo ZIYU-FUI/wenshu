@@ -78,7 +78,8 @@ struct DynamicZoneTabBar: View {
                     // v0.24 boss验收fix: icon only, no title label.
 // Boss 8/24 follow-up: 'tab 里标题小字不需要'.
                 Image(systemName: tab.icon)
-                    .font(.system(size: 18))
+                    .font(.system(size: LayoutTokens.iconSize))
+                    .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                     .foregroundStyle(tab == selectedTab ? Color.accentColor : Color.secondary)
                 }
                 .buttonStyle(.plain)

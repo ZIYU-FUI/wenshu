@@ -125,9 +125,13 @@ struct ZoneContentTabBar: View {
                     // v0.24 boss验收fix: icon only, no title label.
 // Boss 8/24 follow-up: 'tab 里标题小字不需要' (was: labels added earlier, now removed).
 // Boss feedback: '所有 icon 后面不要加文字, tab 只有 icon'.
-// 未选中 .secondary, icon size 18 (统一).
+// 未选中 .secondary, icon size 18 PT (LayoutTokens.iconSize = 18 PT 占面积).
+                // v0.24 boss验收fix (Boss 8/24): 显式 .frame(width: 18, height: 18)
+                // 强制 18x18 PT 占面积, 不要只靠 .font(size: 18) (font only sets
+                // point size, visual box can grow with implicit .imageScale).
                 Image(systemName: item.icon)
-                    .font(.system(size: 18))
+                    .font(.system(size: LayoutTokens.iconSize))
+                    .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                     .foregroundStyle(item == selectedItem ? Color.accentColor : Color.secondary)
                 }
                 .buttonStyle(.plain)
