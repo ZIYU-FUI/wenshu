@@ -1506,7 +1506,7 @@ struct ChatZoneTabBar: View {
 
     var body: some View {
         HStack(spacing: 9) {
-            ForEach(ChatZoneView.ChatZoneTab.allCases) { tab in
+            ForEach(ChatZoneView.ChatZoneTab.allCases.filter { $0 == .chat }) { tab in
                 Button {
                     selectedTab = tab
                 } label: {
