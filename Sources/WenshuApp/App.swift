@@ -728,7 +728,11 @@ private struct SettingsEnvironmentCapturer: View {
     let library: WenshuLibrary
     let appearanceMode: AppearanceMode
     var body: some View {
+        // v0.24 boss验收fix: explicit min frame to prevent window from shrinking
+        // when tab content is small (e.g. ChatZoneStubView with single icon + text).
+        // Apple HIG: .frame(minWidth:minHeight:) on root = window min size.
         LayoutShellView()
+            .frame(minWidth: 1280, minHeight: 720)
             .environment(library)
             .preferredColorScheme(appearanceMode.colorScheme)
             .onAppear { WenshuAppDelegate.openSettings = openSettings }
