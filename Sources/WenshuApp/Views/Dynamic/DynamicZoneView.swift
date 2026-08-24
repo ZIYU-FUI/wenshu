@@ -65,12 +65,9 @@ struct DynamicZoneTabBar: View {
                 Button {
                     selectedTab = tab
                 } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: tab.icon)
-                            .font(.system(size: 14))
-                        Text(tab.rawValue)
-                            .font(.system(size: 11))
-                    }
+                    // v0.24 boss验收fix (2026-08-24): icon only, no text label.
+                Image(systemName: tab.icon)
+                    .font(.system(size: 14))
                     .foregroundStyle(tab == selectedTab ? Color.accentColor : DesignColor.accentBlue)
                 }
                 .buttonStyle(.plain)

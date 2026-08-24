@@ -85,12 +85,10 @@ struct ZoneContentTabBar: View {
                 Button {
                     selection = item.id
                 } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: item.icon)
-                            .font(.system(size: 14))
-                        Text(item.label)
-                            .font(.system(size: 11))
-                    }
+                    // v0.24 boss验收fix (2026-08-24): icon only, no text label.
+// Boss feedback: '所有 icon 后面不要加文字, tab 只有 icon'.
+                Image(systemName: item.icon)
+                    .font(.system(size: 14))
                     .foregroundStyle(item.id == selection ? Color.accentColor : DesignColor.accentBlue)
                 }
                 .buttonStyle(.plain)
