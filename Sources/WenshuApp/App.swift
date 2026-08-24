@@ -28,6 +28,9 @@ extension Notification.Name {
     static let wenshuChatStoreReady = Notification.Name("com.wenshu.chatStoreReady")
     // v0.24 boss验收fix: defocus chat input when user clicks outside.
     static let wenshuDefocusChatInput = Notification.Name("com.wenshu.defocusChatInput")
+    // v0.24 boss验收fix: post when user changes '智能体对你的称呼' in Settings.
+    // Listeners (e.g. future SoulPatchWriter) regenerate dynamic content.
+    static let wenshuUserAddressChanged = Notification.Name("com.wenshu.userAddressChanged")
 }
 
 // MARK: - Layout tokens (比例算子 0~1, 老板 8/18 答 "1:1 PT 真值" + 8/18 再拍 "换算成比例")
@@ -256,6 +259,12 @@ struct SettingView: View {
     @AppStorage("wenshu.llm.reasoningEffort") private var reasoningEffort: String = "medium"
     // v0.24 boss验收fix: @AppStorage so chat '设置' link can jump to provider tab.
     @AppStorage("wenshu.settingsTab") private var selectedTabRaw: String = "general"
+    // v0.24 boss验收fix (Boss 8/24 OOB '在设置里加一个, LLM 对你的称呼'):
+    // Settings UI exposes user-set value for the agent-to-user address.
+    // WenshuConductorIdentity.userAddress reads from this key at LLM call time
+    // (= dynamic per-chat, no static prompt rebuild needed).
+    // Boss 8/24拍 default = "用户" (NOT "老板" — that's hermes-side convention).
+    @AppStorage("wenshu.userAddress") private var userAddress: String = "用户"
 
     private var selectedTab: SettingsTab {
         get { SettingsTab(rawValue: selectedTabRaw) ?? .general }
@@ -359,6 +368,30 @@ struct SettingView: View {
                     }
                 }
                 .pickerStyle(.radioGroup)
+            }
+            Section("智能体对你的称呼") {
+                // v0.24 boss验收fix (Boss 8/24 OOB): user-set value for agent-to-user
+                // address. Read by WenshuConductorIdentity.userAddress at LLM call
+                // time (= dynamic per-chat). User CANNOT modify via chat
+                // (hermes 8/23 rule: 用户不可通过聊天改系统).
+                // On change, trigger background task to regenerate dynamic
+                // agent-identity content (system prompt rebuild = free, since
+                // WenshuConductorIdentity.userAddress reads fresh each call).
+                TextField("智能体对你的称呼", text: $userAddress, prompt: Text("用户"))
+                    .textFieldStyle(.roundedBorder)
+                    .onChange(of: userAddress) { _, newValue in
+                        // Background handler: write to soul/user patch files
+                        // (boss 8/24 OOB '触发后台处理, 把 soul 文件的称呼替换掉').
+                        // Currently = NSLog audit + future hook for file write.
+                        NSLog("[wenshu.userAddress] changed to: \(newValue)")
+                        NotificationCenter.default.post(
+                            name: .wenshuUserAddressChanged,
+                            object: newValue
+                        )
+                    }
+                Text("智能体（文枢）会用这个称呼来指代你。默认：用户")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
             Section("通用设置") {
                 Text("Pages 范式, 不用管功能")
