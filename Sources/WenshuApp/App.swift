@@ -1378,10 +1378,15 @@ struct ChatZoneView: View {
                     // v0.23 ticket 011.002: load sectioned available models from Keychain.
                     // (was: live-fetch from minimax API; now: discover all configured providers.)
                     availableSections = AvailableModelsDiscovery.loadFromKeychain()
-                    // v0.24 boss验收fix: when currentModel is empty (no key configured),
-                    // don't add a fallback section — show "无模型可用" placeholder only.
-                    // When currentModel is set but not in any section, add fallback so
-                    // user can see/select it.
+                    // v0.24 boss验收fix: when currentModel is empty AND at least one
+                    // provider is now configured, auto-select the first available
+                    // model so the user doesn't see "无模型可用" right after saving
+                    // their first key.
+                    if currentModel.isEmpty, let firstSection = availableSections.first, let firstModel = firstSection.models.first {
+                        currentModel = firstModel
+                    }
+                    // If currentModel is set but not in any section, add fallback
+                    // so user can see/select it.
                     if !currentModel.isEmpty,
                        !availableSections.contains(where: { $0.models.contains(currentModel) }) {
                         let fallback = Provider.by(slug: "minimax-cn") ?? Provider.all[0]
@@ -1395,6 +1400,15 @@ struct ChatZoneView: View {
                 // (Settings save key → notification → re-populate availableSections).
                 .onReceive(NotificationCenter.default.publisher(for: .wenshuProviderKeychainChanged)) { _ in
                     availableSections = AvailableModelsDiscovery.loadFromKeychain()
+                    // v0.24 boss验收fix: when currentModel is empty AND at least one
+                    // provider is now configured, auto-select the first available
+                    // model so the user doesn't see "无模型可用" right after saving
+                    // their first key.
+                    if currentModel.isEmpty, let firstSection = availableSections.first, let firstModel = firstSection.models.first {
+                        currentModel = firstModel
+                    }
+                    // If currentModel is set but not in any section, add fallback
+                    // so user can see/select it.
                     if !currentModel.isEmpty,
                        !availableSections.contains(where: { $0.models.contains(currentModel) }) {
                         let fallback = Provider.by(slug: "minimax-cn") ?? Provider.all[0]
