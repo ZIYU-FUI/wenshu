@@ -69,7 +69,11 @@ public final class ChatViewModel {
     public var inputText: String = ""
     public var isSending: Bool = false
     public var lastError: String?
-    public var currentModel: String = UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? WenshuLLMModel.m3.rawValue
+    // v0.24 boss验收fix (2026-08-24): default empty string when no provider key
+    // configured (not "MiniMax-M3" which implies a MiniMax provider is
+    // selected even when user has no key). UI shows "无模型可用" placeholder
+    // when this is empty.
+    public var currentModel: String = UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? ""
     public var availableModels: [String] = []
     public var contextUsed: Int = 0
     public var contextMax: Int = 131072  // MiniMax-M3 真值 context window = 128k = 131072 tokens (Hermes ModelInfoResponse.context_length 范式)
@@ -146,7 +150,8 @@ public final class ChatViewModel {
             // = 原 send() 不传 model → conductor/verifier 用 hardcoded .m3)
             // We need to pass model to the LLM call so the AI actually uses boss's selected model
             // trace: effective model per send
-            let currentModel: String = UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? "MiniMax-M3"
+            // v0.24 boss验收fix (2026-08-24): default empty string when no key.
+            let currentModel: String = UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? ""
             NSLog("[wenshu.model] effective model: %@ (UserDefaults source)", currentModel)
             var reply: String
             var replyThinking: String?    // WenshuLLMBlock.thinking footnote UI
