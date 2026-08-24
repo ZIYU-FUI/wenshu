@@ -294,7 +294,10 @@ public struct ChatView: View {
 
             // 输入框 + 发送按钮 (Apple HIG SwiftUI 真值)
             HStack(spacing: 8) {
-                TextField("输入消息...", text: $vm.inputText, axis: .vertical)
+                // v0.24 boss验收fix: placeholder shows different text based on key state.
+                // Boss 8/24: 未配 key 时显示 '暂无模型可用，请先配置模型'.
+                TextField(hasUsableKey ? "输入消息..." : "暂无模型可用，请先配置模型",
+                          text: $vm.inputText, axis: .vertical)
                     .textFieldStyle(.roundedBorder)
                     .lineLimit(1...4)
                     // v0.24 boss验收fix: disable when no key configured.

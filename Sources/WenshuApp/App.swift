@@ -1329,12 +1329,10 @@ struct ChatZoneView: View {
                     // v0.21 ticket 37: drop .menuStyle(.borderlessButton) — that wrapper overrides
                     //   foregroundStyle. Default Menu style lets our per-element .tertiary apply.
                     // v0.21 ticket 42 老板 17:35: .menuStyle(.button) + .buttonStyle(.plain) (Apple deprecated .borderedButton 提示真值组合)
-                    // v0.24 boss验收fix: all elements use .secondary (Apple standard dark text)
-                    // Boss 8/24: '暗文字的颜色都不对, 请用暗文字的 apple 样式'.
                     HStack(spacing: 4) {
                         Image(systemName: "cpu")
                             .foregroundStyle(.secondary)
-                        Text(currentModel.isEmpty ? "暂无模型可用，请先配置模型" : ModelDisplay.lookup(currentModel).display)
+                        Text(currentModel.isEmpty ? "无模型可用" : ModelDisplay.lookup(currentModel).display)
                             .font(.system(size: 13))
                             .foregroundStyle(.secondary)
                         Image(systemName: "chevron.up.chevron.down")
