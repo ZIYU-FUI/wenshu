@@ -163,8 +163,15 @@ public final class ChatViewModel {
                 replyTokens = result.totalTokens
             } else {
                 // fallback 调 shared verifier — real usage from response.usage
+                // v0.24 boss验收fix (Boss 8/24 OOB): prepend WenshuConductorIdentity.systemPrompt
+                // (= 文枢 SOUL) so LLM returns 文枢 identity, not MiniMax vendor identity.
+                // Without this, minimax cn API returns its default identity
+                // ('MiniMax 开发的 AI 助手') because chat(_:model:) overload
+                // doesn't prepend any system prompt.
                 let verifier = WenshuVerifier()
-                let response = try await verifier.chat(text, model: currentModel)
+                let response = try await verifier.chat(text,
+                                                       system: WenshuConductorIdentity.systemPrompt,
+                                                       model: currentModel)
                 // union decode WenshuLLMBlock (text/thinking/tool_use) — concat all text blocks for reply
                 // pick first thinking block for ChatMessage.thinking footnote UI (Apple HIG footnote 范式)
                 reply = response.content.map(\.displayText).joined()
