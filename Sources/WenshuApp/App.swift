@@ -1228,7 +1228,9 @@ struct ZoneModule: View {
             // ProjectPreview tabs: 预览 / 图 / 搜索.
             ZoneContentView(zoneSlug: "projectPreview", tabs: [
                 ("预览", "eye", AnyView(DesignColor.zoneSurface)),
-                ("图", "circle.grid.cross.fill", AnyView(GraphView())),
+                // v0.24 boss验收fix (Boss 8/24): 统一 outline variant (其他 13 个 icons 都 outline,
+                // 只有 'circle.grid.cross.fill' 是实心 fill). 删 .fill suffix.
+                ("图", "circle.grid.cross", AnyView(GraphView())),
                 ("搜索", "magnifyingglass", AnyView(SearchPanel())),
             ])
         case .editor:

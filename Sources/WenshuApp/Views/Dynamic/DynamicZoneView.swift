@@ -26,7 +26,10 @@ struct DynamicZoneView: View {
         var id: String { rawValue }
         var icon: String {
             switch self {
-            case .subAgentProgress: return "checklist.checked"
+            // v0.24 boss验收fix (Boss 8/24): 统一 outline variant across all 14 tab icons.
+            // 'checklist.checked' = fill variant (checked state), 'checklist' = outline.
+            // Boss 要求 same style across all tabs, 改用 'checklist' (outline).
+            case .subAgentProgress: return "checklist"
             case .todo: return "checklist"
             case .search: return "magnifyingglass"
             }
