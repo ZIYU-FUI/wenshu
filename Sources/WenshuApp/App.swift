@@ -185,12 +185,12 @@ struct WenshuApp: App {
             // SettingsEnvironmentCapturer 之前包 LayoutShellView 注入 OpenSettingsAction, 但 openSettings?() → nil (Q15 翻车 #11), 现在 NSMenu 自己装 + 自创建 NSWindow 装 SettingView 不需要 capture
             SettingsEnvironmentCapturer(library: library, appearanceMode: appearanceMode)
         }
-        // v0.24 boss验收fix: 标题栏用 52 PT 那款 (Boss 8/24 拍 from 2 options:
-// 28 PT small vs 52 PT full). Apple SwiftUI macOS 14+ native options:
-// .titleBar (28 PT small), .hiddenTitleBar (no title bar). No native
-// 52 PT option. So use .hiddenTitleBar + render custom 52 PT title bar
-// inside LayoutShellView body (see CustomTitleBar view below).
-.windowStyle(.hiddenTitleBar)  // hide native 28 PT, use custom 52 PT
+        // Boss 8/24 反馈: 标题栏用的是 macOS 的, 不是我们自己写的, 是直接
+// 引入, 运行时自动渲染的. macOS SwiftUI .windowStyle(.titleBar) =
+// 28 PT native titlebar (red/yellow/green traffic lights + window title
+// at top, rendered by NSWindow at runtime). This is the correct choice
+// - 不要自写 CustomTitleBar (会变成 双层).
+.windowStyle(.titleBar)  // macOS native 28 PT titlebar (auto-rendered)
         .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // 老板 Sketch 设计基准 1920×984 PT
         // v0.24 boss验收fix: .contentMinSize (window doesn't shrink below initial
         // size, can grow to fit larger content).
@@ -870,7 +870,7 @@ struct LayoutShellView: View {
         // 不加 fixed frame + 不加 max(...) floor (v0.15 ticket 005 修响应式 bug)
         GeometryReader { proxy in
             let totalW = proxy.size.width
-            let contentH = proxy.size.height - 52  // custom 52 PT title bar at top of window
+            let contentH = proxy.size.height  // NSWindow.contentRect (已扣 macOS titlebar chrome by NSWindow at runtime)
             // v0.15 ticket 021 修: 老板 2026-08-19 拍 "除非要求硬编码的地方, 不要用 PT 写界面框架, 用比例写"
             //   死原则: 52 (macOS chrome 由 .windowStyle(.titleBar) 提供) + 932 (contentH) = 984
             //   932 = 上半 + 拖拽线 + 下半, 上半 = 下半 = (932 - 2) / 2 = 465 PT
@@ -878,8 +878,6 @@ struct LayoutShellView: View {
             //   bandH 用比例算子 vm.upperBandH(totalHeight: contentH - 2) (ticket 014 D_h 响应 + 比例算子, -2 留给 D_h 拖拽线)
             let bandH = vm.upperBandH(totalHeight: contentH - 2)
             VStack(spacing: 0) {
-                // v0.24 boss验收fix: custom 52 PT title bar (Boss 8/24 picks 52 PT).
-                CustomTitleBar()
                 // 上 band: 4 区 + 3 拖拽线 (Apple HIG HStack 范式)
                 UpperBandZone(vm: vm, totalW: totalW, bandH: bandH)
                 // D_h 横拖拽线 (上/下 band 之间, v0.14.0 撤销 inert, 拍可拖)
