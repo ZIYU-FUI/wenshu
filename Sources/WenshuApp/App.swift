@@ -1440,10 +1440,14 @@ struct ChatZoneTabBar: View {
                 Button {
                     selectedTab = tab
                 } label: {
-                    // v0.24 boss验收fix: 未选中用 .tertiary (不是主题色), icon size 18 (统一).
-                    Image(systemName: tab.icon)
-                        .font(.system(size: 18))
-                        .foregroundStyle(tab == selectedTab ? Color.accentColor : Color.secondary)
+                    // v0.24 boss验收fix: icon + 中文 label (boss 8/24 follow-up: need labels).
+                    VStack(spacing: 2) {
+                        Image(systemName: tab.icon)
+                            .font(.system(size: 18))
+                        Text(tab.rawValue)
+                            .font(.system(size: 10))
+                    }
+                    .foregroundStyle(tab == selectedTab ? Color.accentColor : Color.secondary)
                 }
                 .buttonStyle(.plain)
                 .contentShape(Rectangle())

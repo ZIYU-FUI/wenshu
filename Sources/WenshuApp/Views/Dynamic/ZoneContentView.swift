@@ -109,12 +109,17 @@ struct ZoneContentTabBar: View {
                 Button {
                     selection = item.id
                 } label: {
-                    // v0.24 boss验收fix (2026-08-24): icon only, no text label.
-// Boss feedback: '所有 icon 后面不要加文字, tab 只有 icon'.
-// Boss follow-up: 未选中用 .tertiary (不是主题色), icon size = 18 (统一).
-                Image(systemName: item.icon)
-                    .font(.system(size: 18))
-                    .foregroundStyle(item.id == selection ? Color.accentColor : Color.secondary)
+                    // v0.24 boss验收fix: icon + 中文 label below (boss 8/24 follow-up:
+// '不知道这代表什么功能' = need labels for discoverability).
+// v0.24 boss验收fix (earlier): icon only - changed back after boss feedback.
+// v0.24 boss验收fix: 未选中 .secondary, icon size 18 (统一).
+                VStack(spacing: 2) {
+                    Image(systemName: item.icon)
+                        .font(.system(size: 18))
+                    Text(item.label)
+                        .font(.system(size: 10))
+                }
+                .foregroundStyle(item.id == selection ? Color.accentColor : Color.secondary)
                 }
                 .buttonStyle(.plain)
                 .contentShape(Rectangle())

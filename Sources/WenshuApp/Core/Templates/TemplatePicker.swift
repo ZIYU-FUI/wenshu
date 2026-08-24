@@ -44,7 +44,7 @@ public struct TemplatePicker: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Template")
+            Text("模板")
                 .font(.headline)
             Text("模板字符数: \(viewModel.template.count)")
             Text("渲染字符数: \(viewModel.rendered.count)")

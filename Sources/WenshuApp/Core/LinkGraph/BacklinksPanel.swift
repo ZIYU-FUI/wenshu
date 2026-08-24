@@ -66,7 +66,7 @@ public struct BacklinksPanel: View {
         // placeholder: 老板 macOS 验后再补实际渲染
         // 现阶段只显示 docId + backlinks 数量, 验证 ViewModel 数据通路
         VStack(alignment: .leading, spacing: 8) {
-            Text("Backlinks")
+            Text("反链")
                 .font(.headline)
             if viewModel.isLoading {
                 Text("加载中…")
@@ -74,7 +74,7 @@ public struct BacklinksPanel: View {
                 Text("错误: \(error)")
                     .foregroundStyle(.red)
             } else {
-                Text("docId: \(viewModel.docId)")
+                Text("文档 ID: \(viewModel.docId)")
                     .font(.caption)
                 Text("链接数: \(viewModel.backlinks.count)")
                 ForEach(viewModel.backlinks, id: \.offset) { link in
