@@ -75,6 +75,28 @@ public struct LibraryRootView: View {
 
 
 
+/// v0.24 boss验收fix: NSImage load helper (for PNG not in .xcassets).
+/// Searches multiple paths in .app bundle for wenshu-original-fanbai.png.
+private func loadWenshuLogo() -> NSImage? {
+    // Build process: Package.swift copies AppIcon.icon/ → Wenshu.app/Contents/Resources/AppIcon.icon/
+    // AppIcon.icon contains icon.json (Apple Icon Composer format) and Assets/ subdir.
+    let paths = [
+        // 1. Subdirectory: Resources/AppIcon.icon/Assets/wenshu-original-fanbai.png
+        Bundle.main.url(forResource: "wenshu-original-fanbai", withExtension: "png",
+                        subdirectory: "AppIcon.icon/Assets"),
+        // 2. Root of bundle: Resources/wenshu-original-fanbai.png
+        Bundle.main.url(forResource: "wenshu-original-fanbai", withExtension: "png"),
+        // 3. Source path (for swift run debug): Sources/WenshuApp/Resources/AppIcon.icon/Assets/
+        URL(fileURLWithPath: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Resources/AppIcon.icon/Assets/wenshu-original-fanbai.png"),
+    ]
+    for path in paths {
+        if let url = path, let nsImage = NSImage(contentsOf: url) {
+            return nsImage
+        }
+    }
+    return nil
+}
+
 /// LibraryOnboardingView: First-launch .ws file picker (NSOpenPanel).
 /// Shows welcome + '选择 .ws 库' button. User must select or create a
 /// .ws file location (FCP-style event library UX).
@@ -87,14 +109,29 @@ public struct LibraryOnboardingView: View {
 
 // v0.24 boss验收fix (Boss 8/24 OOB): 红框 (books.vertical) 替换成文枢 LOGO.
 // Boss 拍 '我是说这个文件' (= use wenshu-original-fanbai.png directly).
-// .colorInvert() + .colorMultiply(.white) converts 灰-blue ink to white
-// text. .resizable + .aspectRatio keeps aspect ratio. No background/border
-// added by SwiftUI (PNG's yellow bg is part of asset, not added by view).
-Image("wenshu-original-fanbai")
-    .resizable()
-    .aspectRatio(contentMode: .fit)
-    .frame(width: 192, height: 192)
-    .colorInvert()
+// .colorInvert() converts 灰-blue ink to white text. .resizable +
+// .aspectRatio keeps aspect ratio.
+//
+// Why NSImage(contentsOf:) not Image("wenshu-original-fanbai"):
+//   Package.swift copies entire AppIcon.icon/ folder to .app bundle, but
+//   SwiftUI Image("name") only finds images in .xcassets or main bundle
+//   root, NOT in subdirectories. So Image("wenshu-original-fanbai")
+//   returns empty (= "没有内容" = no icon visible). Use NSImage(contentsOf:)
+//   to load PNG from absolute path inside .app bundle.
+Group {
+    if let nsImage = loadWenshuLogo() {
+        Image(nsImage: nsImage)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: 192, height: 192)
+            .colorInvert()
+    } else {
+        // Fallback: SF Symbol if PNG load fails
+        Image(systemName: "text.book.closed")
+            .font(.system(size: 96))
+            .foregroundStyle(.white)
+    }
+}
 
             VStack(spacing: 12) {
                 Text("欢迎使用文枢")
