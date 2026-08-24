@@ -116,17 +116,18 @@ public struct LibraryOnboardingView: View {
         .background(DesignColor.zoneSurface)
     }
 
-    /// showOpenPanel: NSOpenPanel for selecting existing .ws file.
-    /// Apple HIG 'open existing file' pattern. Allows user to browse
-    /// and select an already-existing .ws library file.
+    /// showOpenPanel: NSOpenPanel for selecting existing 仓库 (folder).
+    /// Apple HIG 'open existing directory' pattern. Boss 8/24 拍 '让客户指定
+    /// 一个文枢仓库' = 仓库 is a directory (not .ws file). All chat/books/
+    /// kanban/todo subdirs live under this folder.
     private func showOpenPanel() {
         let panel = NSOpenPanel()
-        panel.title = "打开现有 .ws 库"
-        panel.message = "选择一个现有的 .ws 库文件"
+        panel.title = "打开已有文枢仓库"
+        panel.message = "选择一个现有的文枢仓库文件夹"
         panel.prompt = "打开"
         panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = false
-        panel.canChooseFiles = true
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
         panel.canCreateDirectories = false
         panel.showsHiddenFiles = false
         if #available(macOS 11.0, *) {
@@ -146,24 +147,27 @@ public struct LibraryOnboardingView: View {
         }
     }
 
-    /// showSavePanel: NSSavePanel for creating new .ws file.
-    /// Apple HIG 'create new file' pattern. Default nameFieldStringValue
-    /// = "wenshu.ws" (or "untitled.ws" fallback). User picks folder + filename
-    /// inline. This is the FCP-style 'create new event library' UX.
+    /// showSavePanel: NSOpenPanel with canCreateDirectories for new 仓库.
+    /// Boss 8/24 拍 '文枢仓库' = folder. Apple HIG 'create new directory'
+    /// pattern (NSOpenPanel with canCreateDirectories = true behaves like
+    /// Finder's 'New Folder' button — user types folder name, click 'Create',
+    /// folder is created + selected).
     private func showSavePanel() {
-        let panel = NSSavePanel()
-        panel.title = "新建 .ws 库"
-        panel.message = "选择 .ws 库文件的保存位置"
+        let panel = NSOpenPanel()
+        panel.title = "新建文枢仓库"
+        panel.message = "选择或新建一个文枢仓库文件夹"
         panel.prompt = "创建"
-        panel.nameFieldStringValue = "wenshu.ws"
-        panel.nameFieldLabel = "库文件名"
-        panel.showsTagField = false
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
         panel.canCreateDirectories = true
-        panel.isExtensionHidden = false
-        panel.allowedContentTypes = []
+        panel.showsHiddenFiles = false
+        // Boss 拍 '让客户指定一个文枢仓库' (no .ws file). Just create directory
+        // with name "文枢仓库" or user-chosen name. WenshuWorkspace will
+        // initialize subdirs (shelves/ books/ chat.sqlite etc.) on first use.
+        panel.nameFieldStringValue = "文枢仓库"
         if #available(macOS 11.0, *) {
-            // Allow .ws extension to be added automatically
-            panel.canSelectHiddenExtension = true
+            panel.allowedContentTypes = []
         }
 
         if let window = NSApp.mainWindow {
