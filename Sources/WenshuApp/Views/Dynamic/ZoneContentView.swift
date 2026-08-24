@@ -39,11 +39,10 @@ struct ZoneContentView: View {
     @State private var selectedTabId: String
 
     var body: some View {
-        // v0.24 boss验收fix: ZStack(Color.clear) ensures zone has full intrinsic
-        // size even when tab content is small (e.g. BookmarkPanel = text only).
-        ZStack {
-            Color.clear
-            VStack(spacing: 0) {
+        // v0.24 boss验收fix: simpler structure (VStack only, no ZStack wrapper
+        // which was regressing tab bar visibility). .frame(minHeight: 600)
+        // forces window contentMinSize.
+        VStack(spacing: 0) {
             ZoneContentTabBar(items: tabs.map { ZoneContentTabBar.Item(id: $0.id, label: $0.label, icon: $0.icon) }, selection: selectionBinding)
             // v0.24 boss验收fix (2026-08-24): pass maxWidth/maxHeight explicitly to AnyView
             // so it inherits zone size (not forces zone to grow). Without this,
@@ -56,7 +55,6 @@ struct ZoneContentView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .animation(.default, value: selectedTabId)
-            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)  // prevent window shrink
         .frame(minHeight: 600)  // v0.24: explicit min height (window contentMinSize)
