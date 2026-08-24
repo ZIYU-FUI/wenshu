@@ -2,31 +2,34 @@
 //  LibraryRootView.swift · Wenshu · v0.24 boss验收
 //
 //  Boss 2026-08-24 OOB 拍: '和 FCP 一样, 首次运行, 无论是否要建书架,
-//  都要先指定一个 .ws 文件的库文件位置'.
+//  都要先指定一个 .ws 文件的库文件位置' (tactical UX 拍板).
+//  Boss 8/24 follow-up: '文字不要带有我们的决策, 什么和 FCP 一样.
+//  就直接说, 这个库文件的做用. 也不用说库用件叫 .ws.
+//  就说让客户指定一个文枢仓库'.
 //
-//  Apple HIG 参考: FCP / Lightroom / Photos 都要求 first launch 时
-//  user 选择 1 个 library file (e.g. .fcpbundle, .lrcat, .photoslibrary),
-//  保存 to UserDefaults, 之后所有 data 都进 this library.
+//  User-facing text (per boss 拍): no decision words (和 FCP 一样, 比 X 好,
+//  etc.), no .ws 库 件术语, just describe the purpose. Use '文枢仓库'
+//  terminology.
 //
-//  wenshu .ws file = wenshu workspace (per AGENTS.md §11). 用户 selected .ws
-//  file path stored in UserDefaults 'wenshu.libraryPath' (bookmark data for
-//  sandboxed app, or plain path for non-sandboxed).
+//  Apple HIG 参考: 1 个 library file = 1 个 .lrlibrary (Lightroom) /
+//  .photoslibrary (Photos) / .fcpbundle (FCP). Boss 拍 wenshu 用 '仓库'.
+//  Selected path stored in UserDefaults 'wenshu.libraryPath'.
 //
 //  LibraryRootView behavior:
 //  1. If 'wenshu.libraryPath' NOT set → show LibraryOnboardingView (NSOpenPanel)
 //  2. If 'wenshu.libraryPath' set → show LayoutShellView (main app)
-//  3. User can change library via Settings → '更换 .ws 库' button (future)
+//  3. User can change library via Settings → '更换仓库' button (future)
 //
-//  .ws folder structure (organize per boss 拍):
-//  - workspace.ws       = main workspace database (1 file)
-//  - shelves/           = book shelves (sub-libraries, FCP-style)
-//  - books/             = individual book content (.md files)
-//  - chat.sqlite        = chat history (migrated from chat.sqlite)
-//  - kanban.sqlite      = kanban board (migrated from kanban.db)
-//  - todo.sqlite        = todo list (migrated from todo.db)
-//  - assets/            = images, attachments, other binary files
-//  - chapters/          = book chapters (long-form content)
-//  - backups/           = auto-generated backups
+//  文枢仓库 folder structure (planned for ticket 5):
+//  - 仓库根/             = the 仓库 (selected location)
+//  - shelves/             = book shelves (sub-libraries)
+//  - books/               = individual book content (.md)
+//  - chat.sqlite          = chat history
+//  - kanban.sqlite        = kanban board
+//  - todo.sqlite          = todo list
+//  - assets/              = images, attachments
+//  - chapters/            = book chapters (long-form content)
+//  - backups/             = auto-generated backups
 //
 
 import SwiftUI
@@ -68,10 +71,10 @@ public struct LibraryOnboardingView: View {
             VStack(spacing: 12) {
                 Text("欢迎使用文枢")
                     .font(.system(size: 28, weight: .semibold))
-                Text("请选择 .ws 库文件位置")
+                Text("请指定文枢仓库的位置")
                     .font(.system(size: 17))
                     .foregroundStyle(.secondary)
-                Text("和 Final Cut Pro 一样, 你的所有书架 / 聊天记录 / 看板 / 任务 / 资产 都会保存在这个 .ws 库里。")
+                Text("文枢会把你的书架、聊天记录、看板、任务、资产都保存在这个仓库里。")
                     .font(.system(size: 13))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -80,13 +83,14 @@ public struct LibraryOnboardingView: View {
             }
 
             VStack(spacing: 12) {
-                // v0.24 boss验收fix: use NSSavePanel for new .ws (Apple HIG 'create
-                // new file' pattern) + NSOpenPanel for existing .ws (Apple HIG 'open
-                // existing file' pattern). FCP-style 2-button UX.
+                // v0.24 boss验收fix (Boss 8/24 反馈: '文字不要带有我们的决策'):
+                // - 2 buttons = 新建 / 打开 (标准 macOS 范式, not 决策描述)
+                // - 文案 不用 '库' / '.ws' / 'Final Cut Pro' (boss 拍 不要带决策)
+                // - boss 拍 '让客户指定一个文枢仓库' → primary text = '新建文枢仓库'
                 Button {
                     showSavePanel()
                 } label: {
-                    Label("新建 .ws 库...", systemImage: "doc.badge.plus")
+                    Label("新建文枢仓库", systemImage: "doc.badge.plus")
                         .frame(width: 240, height: 32)
                 }
                 .buttonStyle(.borderedProminent)
@@ -95,13 +99,13 @@ public struct LibraryOnboardingView: View {
                 Button {
                     showOpenPanel()
                 } label: {
-                    Label("打开现有 .ws 库...", systemImage: "folder")
+                    Label("打开已有文枢仓库", systemImage: "folder")
                         .frame(width: 240, height: 32)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.large)
 
-                Text("新建 = 全新库文件, 打开 = 选已有 .ws")
+                Text("新建 = 创建新仓库, 打开 = 选择已有仓库")
                     .font(.system(size: 11))
                     .foregroundStyle(.tertiary)
             }
