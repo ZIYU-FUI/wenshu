@@ -57,7 +57,8 @@ struct ZoneContentView: View {
             .animation(.default, value: selectedTabId)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)  // prevent window shrink
-        .frame(minHeight: 600)  // v0.24: explicit min height (window contentMinSize)
+        // Note: do NOT add .frame(minHeight: 600) - it breaks upper band
+        // (which is only ~485 PT tall, 600 PT min would push it out of view).
     }
 
     // v0.24 boss验收fix (2026-08-24): persist tab selection per zone across launches.
