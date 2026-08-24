@@ -36,4 +36,15 @@ cp -R "Sources/WenshuApp/Resources/AppIcon.icon" "$RES_DIR/AppIcon.icon"
 echo ">>> ad-hoc codesign"
 codesign --force --deep --sign - "$APP_DIR"
 
+# v0.24 boss验收fix (Boss 8/24 OOB): re-register app with Launch Services
+# so Finder picks up UTExportedTypeDeclarations (com.wenshu.workspace +
+# com.apple.package conformance = .ws files appear as packages, right-click
+# → '显示包内容'). Without lsregister, the new Info.plist is not picked up
+# and Finder treats .ws as ordinary directory (= cannot '显示包内容').
+LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+if [ -x "$LSREGISTER" ]; then
+    echo ">>> lsregister -f $APP_DIR (re-register UTI)"
+    "$LSREGISTER" -f "$APP_DIR" >/dev/null 2>&1 || true
+fi
+
 echo ">>> done. open with: open $APP_DIR"

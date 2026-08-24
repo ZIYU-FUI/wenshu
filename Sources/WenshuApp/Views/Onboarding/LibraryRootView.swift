@@ -250,16 +250,21 @@ Group {
             panel.allowedContentTypes = []
         }
 
-        if let window = NSApp.mainWindow {
-            panel.beginSheetModal(for: window) { response in
-                if response == .OK, let url = panel.url {
-                    onLibraryPicked(url)
-                }
-            }
-        } else {
-            if panel.runModal() == .OK, let url = panel.url {
+        // v0.24 boss验收fix (Boss 8/24 OOB '点了创建, 不成功'): NSSavePanel
+        // returns URL on OK but does NOT actually create the entity.
+        // For .ws registered as com.apple.package (= Finder bundle),
+        // caller must create as directory. Call createWenshuWorkspace
+        // (at:) to make package + subdirs on disk.
+        let handle: (NSApplication.ModalResponse) -> Void = { response in
+            if response == .OK, let url = panel.url {
+                Self.createWenshuWorkspace(at: url)
                 onLibraryPicked(url)
             }
+        }
+        if let window = NSApp.mainWindow {
+            panel.beginSheetModal(for: window, completionHandler: handle)
+        } else {
+            handle(panel.runModal())
         }
     }
 
