@@ -48,12 +48,21 @@ public struct LibraryRootView: View {
     @AppStorage("wenshu.libraryPath") private var libraryPath: String = ""
 
     private var shouldShowOnboarding: Bool {
-        // v0.24 boss验收fix (Boss 8/24 OOB): trigger condition.
-        // 1. If libraryPath empty → onboarding (first launch).
+        // v0.24 boss验收fix (Boss 8/24 OOB): trigger condition strict.
+        //
+        // Boss 拍 'anbaiqiang.ws' = wenshu 仓库 = .ws file (not folder).
+        // Trigger = libraryPath empty OR path doesn't end with '.ws' OR
+        // .ws file doesn't exist on disk.
+        //
+        // v0.24 boss验收fix #2 (Boss 8/24 OOB follow-up): 之前 trigger only
+        // checked path existence, too lax. Boss 之前 saved '/Users/anbaiqiang/Documents'
+        // (= parent folder, not anbaiqiang.ws file) → existed on disk → trigger
+        // passed → main UI shown, even though no .ws file 实际 created.
+        // Fix: require path ends with '.ws' AND file exists.
         if libraryPath.isEmpty { return true }
-        // 2. If libraryPath set but path doesn't exist on disk → onboarding
-        // (boss deleted folder externally, or path invalid).
-        // FileManager.default.fileExists(atPath:isDirectory:) = 0 if missing.
+        // v0.24 boss验收fix: must end with .ws extension
+        if !libraryPath.hasSuffix(".ws") { return true }
+        // File must exist
         var isDir: ObjCBool = false
         let exists = FileManager.default.fileExists(atPath: libraryPath, isDirectory: &isDir)
         if !exists { return true }
