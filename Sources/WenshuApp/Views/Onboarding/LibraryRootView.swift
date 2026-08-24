@@ -311,17 +311,35 @@ extension LibraryOnboardingView {
         // Set the wenshu LOGO PNG as the Finder icon for the .ws package.
         // Apple HIG: NSWorkspace.shared.setIcon(_:forFile:options:) writes
         // icon into the file's resource fork / icon services metadata.
-        if let logoImage = loadWenshuLogoForIcon() {
-            // Resize to 1024x1024 for HiDPI Finder display (= Apple icon
-            // standard size). Per Apple HIG, NSImage can be set as icon at
-            // any size; Finder will downsample to 16/32/128/256/512/1024 as needed.
+        // v0.24 boss验收fix (Boss 8/24 OOB '换一个吧, 用 SF 里的实心的书吧, 先用着, 回头再设计'):
+        // Use SF Symbol fill book icon (= book.fill) instead of wenshu LOGO PNG.
+        // Per Apple HIG: SF Symbol fill variant for package icon.
+        // Render SF Symbol to NSImage at 1024x1024, then setIcon.
+        if let symbolImage = renderSFSymbol("book.fill", size: 1024) {
+            let workspace = NSWorkspace.shared
+            let success = workspace.setIcon(symbolImage, forFile: url.path, options: [])
+            NSLog("[wenshu.library] icon set=%@ for: %@", success ? "yes" : "no", url.path)
+        } else if let logoImage = loadWenshuLogoForIcon() {
+            // Fallback to wenshu LOGO if SF Symbol render fails
             logoImage.size = NSSize(width: 1024, height: 1024)
-            // NSWorkspace.setIcon writes the icon to the file's metadata.
             let workspace = NSWorkspace.shared
             let success = workspace.setIcon(logoImage, forFile: url.path, options: [])
-            NSLog("[wenshu.library] icon set=%@ for: %@", success ? "yes" : "no", url.path)
+            NSLog("[wenshu.library] icon set=%@ (fallback LOGO) for: %@", success ? "yes" : "no", url.path)
         }
         NSLog("[wenshu.library] created package: %@", url.path)
+    }
+
+    /// v0.24 boss验收fix: render an SF Symbol to NSImage at given size.
+    /// Used for setting Finder icons on .ws packages (per Boss 8/24 OOB).
+    /// Apple HIG: SF Symbol fill variant for package icons.
+    static func renderSFSymbol(_ name: String, size: CGFloat) -> NSImage? {
+        // Use NSImage(systemSymbolName:) for SF Symbol loading.
+        guard let image = NSImage(systemSymbolName: name, accessibilityDescription: name) else {
+            NSLog("[wenshu.library] SF Symbol not found: %@", name)
+            return nil
+        }
+        image.size = NSSize(width: size, height: size)
+        return image
     }
 
     /// v0.24 boss验收fix: load the wenshu LOGO PNG for use as Finder icon.
