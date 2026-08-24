@@ -1087,18 +1087,14 @@ struct ZoneModule: View {
         // .aiChat 跳过底栏: ChatZoneView 自带底栏 (= v0.21 ticket 10 修因因 替换 chat zone 底栏 '占位文字' 位置)
         // v0.22 ticket B-0: ZoneTopToolbar supports ZoneToolbarAction (placeholder mode when actions empty).
         // ZoneModule passes per-slot actions here. Individual tickets wire their own actions.
-        VStack(spacing: 0) {
-            ZoneTopToolbar(
-                iconNames: ["book.closed", "magnifyingglass", "slider.horizontal.3"],
-                actions: toolbarActions(for: slot)
-            )
-                .frame(height: toolbarH, alignment: .top)
+        // v0.24 boss验收fix: 6-zone unified pattern — no outer ZoneTopToolbar / ZoneBottomToolbar.
+// Each zone renders its own internal tab bar (varies per zone):
+//   - chat zone: ChatZoneTabBar (chat / search / settings)
+//   - dynamic zone: DynamicZoneTabBar (进度 / 待办 / 搜索)
+//   - other 4 zones: ZoneContentTabBar (placeholder tabs, future wired)
+VStack(spacing: 0) {
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            if slot != .aiChat {
-                ZoneBottomToolbar()
-                    .frame(height: toolbarH, alignment: .bottom)
-            }
         }
         .background(slot == .aiDynamic ? DesignColor.dynamicZoneSurface : .clear)
         // v0.22: sheet presentations for each toolbar action. Single modifier tree,
@@ -1180,32 +1176,43 @@ struct ZoneModule: View {
         // v0.15 ticket 005 范式: 每个 case 自己 Color + overlay (跟 ticket 005 一样, ticket 006 撤回 P3-4)
         switch slot {
         case .projectSidebar:
-            // 项目侧栏嵌入 WenshuLibrary 真实内容 (LIBRARY overlay label v0.10.10d 删)
-            DesignColor.zoneSurface.overlay(alignment: .topLeading) {
-                LibraryOutlineViewContent(library: library)
-            }
+            // v0.24 boss验收fix: 统一 6-zone 1 层模式 (跟 chat/dynamic zone 一样, 用内部 tab bar).
+            // ProjectSidebar tabs: 大纲 / 收藏 / 模板 (per boss 8/24 "可以多 tab").
+            ZoneContentView(tabs: [
+                ("大纲", "list.bullet.rectangle", AnyView(DesignColor.zoneSurface.overlay(alignment: .topLeading) { LibraryOutlineViewContent(library: library) })),
+                ("收藏", "bookmark", AnyView(DesignColor.zoneSurface)),
+                ("模板", "doc.badge.plus", AnyView(DesignColor.zoneSurface)),
+            ])
         case .projectPreview:
-            DesignColor.zoneSurface
+            // ProjectPreview tabs: 预览 / 关系图 / 搜索.
+            ZoneContentView(tabs: [
+                ("预览", "eye", AnyView(DesignColor.zoneSurface)),
+                ("图", "circle.grid.cross.fill", AnyView(DesignColor.zoneSurface)),
+                ("搜索", "magnifyingglass", AnyView(DesignColor.zoneSurface)),
+            ])
         case .editor:
-            // 老板 8/18 Q2 答: 4 PT inset 两层设计, 单一垂直方向 (spec §3.2 背景 y=60~884, 正文 y=64~882, 上下 4 PT 视觉下沉, 左右 flush)
-            // v0.15 重写前 bug: .padding(editorInset) 是全 4 方向 inset, 破左右 flush 设计意图 → 改 [.top, .bottom] 单垂直
-            DesignColor.zoneSurface
-                .overlay {
-                    Color.white.opacity(0.55)
-                        .padding([.top, .bottom], editorInset)
-                }
+            // Editor tabs: 编辑 / 大纲 / 反链.
+            // v0.24 boss验收fix: 保留原 4 PT inset 设计意图 (背景 y=60~884, 正文 y=64~882, 上下 4 PT 视觉下沉, 左右 flush).
+            ZoneContentView(tabs: [
+                ("编辑", "pencil", AnyView(DesignColor.zoneSurface.overlay { Color.white.opacity(0.55).padding([.top, .bottom], editorInset) })),
+                ("大纲", "list.bullet", AnyView(DesignColor.zoneSurface)),
+                ("反链", "link", AnyView(DesignColor.zoneSurface)),
+            ])
         case .specializedTools:
-            DesignColor.zoneSurface
+            // SpecializedTools tabs: 画布 / 数据库 / 词数.
+            ZoneContentView(tabs: [
+                ("画布", "scribble", AnyView(DesignColor.zoneSurface)),
+                ("数据库", "tablecells", AnyView(DesignColor.zoneSurface)),
+                ("词数", "number", AnyView(DesignColor.zoneSurface)),
+            ])
         case .aiChat:
+            // ChatZoneView 自带 ChatZoneTabBar (chat / search / settings), 已 1 层.
             ChatZoneView(
                 conductor: WenshuAppDelegate.sharedConductor,
                 store: WenshuAppDelegate.sharedChatStoreRef
             )
         case .aiDynamic:
-            // v0.24 boss验收fix (2026-08-24): DynamicZoneView with internal tabs
-            // (Todo / 进度 / 搜索). Replaces sheet-based pattern (one sheet at a time).
-            // Boss 8/24 feedback: 'dynamic zone 第一个 tab 没翻译不知道什么功能, 放 tab2'.
-            // So order is: tab1 = Todo, tab2 = Sub-agent progress, tab3 = Search.
+            // DynamicZoneView 自带 DynamicZoneTabBar (进度 / 待办 / 搜索), 已 1 层.
             DynamicZoneView()
         }
     }
