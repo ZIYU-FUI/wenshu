@@ -73,6 +73,8 @@ public struct LibraryRootView: View {
     }
 }
 
+
+
 /// LibraryOnboardingView: First-launch .ws file picker (NSOpenPanel).
 /// Shows welcome + '选择 .ws 库' button. User must select or create a
 /// .ws file location (FCP-style event library UX).
@@ -83,11 +85,16 @@ public struct LibraryOnboardingView: View {
         VStack(spacing: 24) {
             Spacer()
 
-            // Welcome icon (large SF Symbol)
-            Image(systemName: "books.vertical")
-                .font(.system(size: 96))
-                .foregroundStyle(.tint)
-                .symbolRenderingMode(.hierarchical)
+// v0.24 boss验收fix (Boss 8/24 OOB): 红框 (books.vertical) 替换成文枢 LOGO.
+// Boss 拍 '直接用 PNG' + '白色文字, 不需要背景和边框'.
+// The current wenshu-original-fanbai.png has yellow background + 'AI生成'
+// + '即梦AI' watermarks (= not clean per boss 拍). Until boss provides a
+// clean LOGO PNG, fallback to SF Symbol 'text.book.closed' (closest semantic
+// match: book + text). When clean PNG available, replace with
+// Image("wenshu-logo").resizable().renderingMode(.template).foregroundColor(.white).
+Image(systemName: "text.book.closed")
+    .font(.system(size: 96))
+    .foregroundStyle(.white)
 
             VStack(spacing: 12) {
                 Text("欢迎使用文枢")
