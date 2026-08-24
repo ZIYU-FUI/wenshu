@@ -307,7 +307,38 @@ extension LibraryOnboardingView {
                 try? data.write(to: infoPlistURL)
             }
         }
+        // v0.24 boss验收fix (Boss 8/24 OOB '这个文件没有自己的图标, 可以用文枢的 LOGO 不'):
+        // Set the wenshu LOGO PNG as the Finder icon for the .ws package.
+        // Apple HIG: NSWorkspace.shared.setIcon(_:forFile:options:) writes
+        // icon into the file's resource fork / icon services metadata.
+        if let logoImage = loadWenshuLogoForIcon() {
+            // Resize to 1024x1024 for HiDPI Finder display (= Apple icon
+            // standard size). Per Apple HIG, NSImage can be set as icon at
+            // any size; Finder will downsample to 16/32/128/256/512/1024 as needed.
+            logoImage.size = NSSize(width: 1024, height: 1024)
+            // NSWorkspace.setIcon writes the icon to the file's metadata.
+            let workspace = NSWorkspace.shared
+            let success = workspace.setIcon(logoImage, forFile: url.path, options: [])
+            NSLog("[wenshu.library] icon set=%@ for: %@", success ? "yes" : "no", url.path)
+        }
         NSLog("[wenshu.library] created package: %@", url.path)
+    }
+
+    /// v0.24 boss验收fix: load the wenshu LOGO PNG for use as Finder icon.
+    /// Searches multiple paths in priority order (Bundle.main → absolute path).
+    static func loadWenshuLogoForIcon() -> NSImage? {
+        let paths = [
+            Bundle.main.url(forResource: "wenshu-original-fanbai", withExtension: "png",
+                            subdirectory: "AppIcon.icon/Assets"),
+            Bundle.main.url(forResource: "wenshu-original-fanbai", withExtension: "png"),
+            URL(fileURLWithPath: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Resources/AppIcon.icon/Assets/wenshu-original-fanbai.png"),
+        ]
+        for path in paths {
+            if let url = path, let nsImage = NSImage(contentsOf: url) {
+                return nsImage
+            }
+        }
+        return nil
     }
 }
 
