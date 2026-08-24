@@ -20,10 +20,10 @@ public struct SubAgentProgressView: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Sub-agent progress")
+                Text("子代理进度")
                     .font(.headline)
                 Spacer()
-                Text("\(runningCount) running · \(doneCount) done")
+                Text("\(runningCount) 进行中 · \(doneCount) 已完成")
                     .font(.system(size: 11))
                     .foregroundStyle(.tertiary)
             }
@@ -35,7 +35,7 @@ public struct SubAgentProgressView: View {
                     .font(.system(size: 13))
                     .foregroundStyle(.tertiary)
             } else if tasks.isEmpty {
-                Text("(no sub-agent tasks yet — chat with 文枢 to see progress)")
+                Text("(暂无子代理任务 — 与文枢对话以触发)")
                     .font(.system(size: 13))
                     .foregroundStyle(.tertiary)
             } else {
@@ -51,11 +51,11 @@ public struct SubAgentProgressView: View {
             Spacer()
 
             HStack {
-                Text("Live update from KanbanStore (actor) — auto-refresh every 2s + manual refresh button.")
+                Text("从 KanbanStore (actor) 实时更新 — 每 2 秒自动刷新 + 手动刷新按钮")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                 Spacer()
-                Button("Refresh") {
+                Button("刷新") {
                     refreshTrigger += 1
                 }
                 .buttonStyle(.bordered)

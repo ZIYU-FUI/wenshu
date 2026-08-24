@@ -1056,8 +1056,6 @@ struct ZoneModule: View {
     @Environment(WenshuLibrary.self) private var library
 
     // v0.22: sheet showing flags for each toolbar action. Independent per slot.
-    @State private var showingTodo: Bool = false
-    @State private var showingSearch: Bool = false
     @State private var showingBookmarks: Bool = false
     @State private var showingTemplates: Bool = false
     @State private var showingGraph: Bool = false
@@ -1071,8 +1069,9 @@ struct ZoneModule: View {
     @State private var showingCron: Bool = false
     @State private var showingBackup: Bool = false
     @State private var showingQuickSwitcher: Bool = false
+    // v0.24 boss验收fix: re-added for projectPreview zone (Search toolbar icon).
+    @State private var showingSearch: Bool = false
     // v0.23 ticket 005: sub-agent progress 明盒 (boss 8/23 拍: '让用户知道工作进度的明盒').
-    @State private var showingSubAgentProgress: Bool = false
     // h14: last AI reply text (for read-aloud).
     @State private var lastAIReply: String = ""
 
@@ -1104,8 +1103,6 @@ struct ZoneModule: View {
         .background(slot == .aiDynamic ? DesignColor.dynamicZoneSurface : .clear)
         // v0.22: sheet presentations for each toolbar action. Single modifier tree,
         // one per showing-* flag. Each ticket wires its view here.
-        .sheet(isPresented: $showingTodo) { TodoListView() }
-        .sheet(isPresented: $showingSearch) { SearchPanel() }
         .sheet(isPresented: $showingBookmarks) { BookmarkPanel() }
         .sheet(isPresented: $showingTemplates) { TemplatePicker() }
         .sheet(isPresented: $showingGraph) { GraphView() }
@@ -1119,7 +1116,6 @@ struct ZoneModule: View {
         .sheet(isPresented: $showingCron) { CronScheduleView() }
         .sheet(isPresented: $showingBackup) { BackupView() }
         .sheet(isPresented: $showingQuickSwitcher) { QuickSwitcherWindow() }
-        .sheet(isPresented: $showingSubAgentProgress) { SubAgentProgressView() }
     }
 
     /// h14: read aloud the last AI reply via WenshuConductor.invokeTool(av:).
@@ -1145,26 +1141,10 @@ struct ZoneModule: View {
                 ),
             ]
         case .aiDynamic:
-            // v0.24 boss验收fix (2026-08-24): Todo + Search 移过来 + 保留 Sub-agent progress.
-            // Dynamic zone = 动态内容工具 (Todo / Search / Bookmarks / Sub-agent progress).
-            // Chat-specific 工具 (Read Aloud) 留在 chat zone.
-            return [
-                ZoneToolbarAction(
-                    label: "Todo",
-                    icon: "checklist",
-                    action: { showingTodo.toggle() }
-                ),
-                ZoneToolbarAction(
-                    label: "Search",
-                    icon: "magnifyingglass",
-                    action: { showingSearch.toggle() }
-                ),
-                ZoneToolbarAction(
-                    label: "Sub-agent progress",
-                    icon: "checklist.checked",
-                    action: { showingSubAgentProgress.toggle() }
-                ),
-            ]
+            // v0.24 boss验收fix (2026-08-24): Toolbar 清空 (no icons needed).
+            // Dynamic zone uses internal tabs (任务 / 进度 / 搜索) in DynamicZoneView.
+            // 顶栏 ZoneTopToolbar is empty placeholder mode (backward compatible).
+            return []
         case .projectSidebar:
             // o04 Templates (project sidebar — template picker for new docs).
             return [
@@ -1222,7 +1202,11 @@ struct ZoneModule: View {
                 store: WenshuAppDelegate.sharedChatStoreRef
             )
         case .aiDynamic:
-            DesignColor.zoneSurface
+            // v0.24 boss验收fix (2026-08-24): DynamicZoneView with internal tabs
+            // (Todo / 进度 / 搜索). Replaces sheet-based pattern (one sheet at a time).
+            // Boss 8/24 feedback: 'dynamic zone 第一个 tab 没翻译不知道什么功能, 放 tab2'.
+            // So order is: tab1 = Todo, tab2 = Sub-agent progress, tab3 = Search.
+            DynamicZoneView()
         }
     }
 }
