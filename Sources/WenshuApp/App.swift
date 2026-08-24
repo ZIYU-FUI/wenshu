@@ -1134,8 +1134,20 @@ struct ZoneModule: View {
         // Empty by default. Tickets add cases as they ship.
         switch slot {
         case .aiChat:
-            // h07 Todo + h14 read-aloud + o06 Search (top 3 priorities for chat zone).
-            // State binding: showingTodo / showingReadAloud / showingSearch.
+            // v0.24 boss验收fix (2026-08-24): Todo + Search 移到 dynamic zone.
+            // Chat zone 顶栏只剩 chat-specific (Read Aloud = TTS last AI reply).
+            // 内层 ChatZoneTabBar 仍显示 chat/search/settings 3 internal tabs.
+            return [
+                ZoneToolbarAction(
+                    label: "Read Aloud",
+                    icon: "speaker.wave.2",
+                    action: { Task { await readAloudLastReply() } }
+                ),
+            ]
+        case .aiDynamic:
+            // v0.24 boss验收fix (2026-08-24): Todo + Search 移过来 + 保留 Sub-agent progress.
+            // Dynamic zone = 动态内容工具 (Todo / Search / Bookmarks / Sub-agent progress).
+            // Chat-specific 工具 (Read Aloud) 留在 chat zone.
             return [
                 ZoneToolbarAction(
                     label: "Todo",
@@ -1147,17 +1159,6 @@ struct ZoneModule: View {
                     icon: "magnifyingglass",
                     action: { showingSearch.toggle() }
                 ),
-                ZoneToolbarAction(
-                    label: "Read Aloud",
-                    icon: "speaker.wave.2",
-                    action: { Task { await readAloudLastReply() } }
-                ),
-            ]
-        case .aiDynamic:
-            // v0.23 ticket 005: sub-agent progress 明盒 (boss 8/23 拍: '让用户知道工作进度的明盒').
-            // 看板放在 aiDynamic zone, 显示当前正在跑的 sub-agent 任务.
-            // Bookmarks (o11) 暂不挂 toolbar, 留给 v0.24 (周一轮回).
-            return [
                 ZoneToolbarAction(
                     label: "Sub-agent progress",
                     icon: "checklist.checked",
