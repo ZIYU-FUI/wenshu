@@ -1079,9 +1079,11 @@ struct ZoneModule: View {
 //   - chat zone: ChatZoneTabBar (chat / search / settings)
 //   - dynamic zone: DynamicZoneTabBar (进度 / 待办 / 搜索)
 //   - other 4 zones: ZoneContentTabBar (placeholder tabs, future wired)
-VStack(spacing: 0) {
+// v0.24 boss验收fix (2026-08-24): alignment: .top so tab bar flush at top of zone.
+        // (was: default .center caused tab bar to appear mid-zone in upper band.)
+        VStack(alignment: .leading, spacing: 0) {
             content
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .background(slot == .aiDynamic ? DesignColor.dynamicZoneSurface : .clear)
         // v0.22: sheet presentations for each toolbar action. Single modifier tree,
