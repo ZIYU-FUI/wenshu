@@ -330,8 +330,21 @@ public actor WenshuVerifier {
     }
 }
 
-public enum WenshuLLMError: Error {
+public enum WenshuLLMError: Error, LocalizedError {
     case missingAPIKey
     case invalidBaseURL(url: String)
     case httpError(statusCode: Int, body: String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .missingAPIKey:
+            return "API key 未配置. 请在 Settings → Provider 配置 API key."
+        case .invalidBaseURL(let url):
+            return "Provider base URL 无效: \(url). 请在 Settings 检查 provider 选择."
+        case .httpError(let statusCode, let body):
+            // Show status code + brief body (truncated for UI).
+            let brief = body.prefix(120)
+            return "LLM HTTP \(statusCode): \(brief)"
+        }
+    }
 }
