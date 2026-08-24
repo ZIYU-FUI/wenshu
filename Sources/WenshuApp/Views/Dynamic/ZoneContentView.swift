@@ -37,9 +37,13 @@ struct ZoneContentView: View {
     var body: some View {
         VStack(spacing: 0) {
             ZoneContentTabBar(items: tabs.map { ZoneContentTabBar.Item(id: $0.id, label: $0.label, icon: $0.icon) }, selection: selectionBinding)
+            // v0.24 boss验收fix (2026-08-24): pass maxWidth/maxHeight explicitly to AnyView
+            // so it inherits zone size (not forces zone to grow). Without this,
+            // AnyView collapses to its intrinsic size and zone shrinks to ~0.
             Group {
                 if let selected = tabs.first(where: { $0.id == selectedTabId }) {
                     selected.content
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

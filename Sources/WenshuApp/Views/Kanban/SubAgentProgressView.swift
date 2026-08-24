@@ -63,7 +63,10 @@ public struct SubAgentProgressView: View {
             }
         }
         .padding()
-        .frame(minWidth: 480, minHeight: 320)
+        // v0.24 boss验收fix (2026-08-24): removed fixed minWidth/minHeight.
+        // Tab content must follow zone size, not force zone to be 480x320.
+        // Boss 8/24 feedback: 'tab 视图不改变区域大小, 自动适配区域大小'.
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .task {
             if store == nil {
                 store = try? KanbanStore()

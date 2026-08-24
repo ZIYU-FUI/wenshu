@@ -26,7 +26,8 @@ public struct KanbanView: View {
             }
         }
         .padding()
-        .frame(minWidth: 480, minHeight: 320)
+        // v0.24 boss验收fix: flexible size (was: 480x320 min forcing zone to grow).
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .task {
             if store == nil { store = try? KanbanStore() }
         }
