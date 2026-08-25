@@ -199,15 +199,15 @@ struct WenshuApp: App {
             // SettingsEnvironmentCapturer 之前包 LayoutShellView 注入 OpenSettingsAction, 但 openSettings?() → nil (Q15 翻车 #11), 现在 NSMenu 自己装 + 自创建 NSWindow 装 SettingView 不需要 capture
             SettingsEnvironmentCapturer(library: library, appearanceMode: appearanceMode)
         }
-        // Boss 8/24 反馈: '用 52 的那个'. Apple SwiftUI macOS 14+ windowToolbarStyle
-// options: .automatic, .unified (52 PT), .unifiedCompact (28 PT), .expanded.
+        // Boss 8/24 feedback: 'use the 52 PT one'. Apple SwiftUI macOS 14+ windowToolbarStyle
+        // options: .automatic, .unified (52 PT), .unifiedCompact (28 PT), .expanded.
         // v0.24 fix (Boss 8/25 28th OOB 'use default size' + Apple docs):
         // use .unified (52 PT) = macOS default toolbar style. Per Apple
         // developer.apple.com/documentation/SwiftUI/WindowToolbarStyle,
         // .unified is the default style (52 PT). .unifiedCompact is
-        // COMPACT (= smaller, NOT default). Boss拍 'default size' = .unified.
+        // COMPACT (= smaller, NOT default). Boss spec 'default size' = .unified.
         .windowToolbarStyle(.unified(showsTitle: false))  // 52 PT default toolbar, title hidden
-        .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // 老板 Sketch 设计基准 1920×984 PT
+        .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // Boss Sketch design baseline 1920x984 PT
         // v0.24 boss验收fix: .contentMinSize (window doesn't shrink below initial
         // size, can grow to fit larger content).
         .windowResizability(.contentMinSize)
