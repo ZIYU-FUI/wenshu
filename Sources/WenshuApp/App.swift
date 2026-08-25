@@ -1113,17 +1113,27 @@ struct LayoutShellView: View {
                             Capsule()
                                 .fill(Color(nsColor: .controlBackgroundColor))
                         )
-                        // 导出 single button, no inner capsule
-                        Button {
-                            vm.exportEbook(format: "epub")
-                        } label: {
-                            Image(systemName: "square.and.arrow.up")
-                                .foregroundStyle(Color.primary)
-                                .frame(width: 18, height: 18)
-                                .contentShape(Rectangle())
+                        // v0.24 fix (Boss 8/25 23rd OOB '括号代表分组'): 导出 in
+                        // 1 dark capsule (= Group 2 of right side, Boss拍 '2 个 括号
+                        // = 2 个 胶囊'). Each group has its own inner dark capsule.
+                        HStack(spacing: 0) {
+                            Button {
+                                vm.exportEbook(format: "epub")
+                            } label: {
+                                Image(systemName: "square.and.arrow.up")
+                                    .foregroundStyle(Color.primary)
+                                    .frame(width: 18, height: 18)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .help("导出电子书 (PDF / EPUB / MOBI / TXT)")
                         }
-                        .buttonStyle(.plain)
-                        .help("导出电子书 (PDF / EPUB / MOBI / TXT)")
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule()
+                                .fill(Color(nsColor: .controlBackgroundColor))
+                        )
                     }
                     .padding(4)
                     .background(
