@@ -46,3 +46,62 @@ Boss拍: '没有接口获取的到吗' (boss checking if API exists to query con
 - Code-review axes (Standards + Spec): both PASS.
 - Domain-modeling: CONTEXT.md add entry for 'MiniMax-M3 context window = 1M tokens'.
 - Confirm: boss 拍 '通过验收'.
+
+---
+
+# Boss 2026-08-25 second OOB spec (post contextMax fix)
+
+Boss follow-up拍:
+1. '你的会话记录是存在 .ws 文件里吗' (= chat.sqlite 应 在 user-chosen 仓库 anbaiqiang.ws/ 内, 不是 legacy ~/Library/Application Support/wenshu/).
+2. '重启 APP 都是新开一个会话吗, 我需要让用户视觉上看到, 一直只有一个会话. 但真实过程中的上下文压缩, 等用户无感知' (= single session visible + auto context compression invisible to user).
+3. '查一下 hermes 也可以一直在一个会话里持续聊天. 看看是怎么实现的'.
+4. '用户的聊天数据, 也应该是库文件的一部分, 这样客户在打包库文件到另一台电脑后, 就可以直接接续. 上下文内容是否也可以持久化. 我看现在 hermes. 我重新打开 APP, 上下文内容也还在'.
+
+## 现状 (post contextMax fix)
+- chat.sqlite location: `~/Library/Application Support/wenshu/chat.sqlite` (= legacy, not in anbaiqiang.ws/).
+- kanban.db location: `~/Library/Application Support/wenshu/kanban.db` (= same legacy issue).
+- todo.db location: `~/Library/Application Support/wenshu/todo.db` (= same).
+- anbaiqiang.ws/ contents: `Icon`, `Info.plist` only (= empty warehouse, no chat/kanban/todo data).
+- vm.contextUsed accumulates unbounded (= no compression).
+- User perception: 每重启 = empty session visible (= 看起来 'new session') — 实际上 history is loaded via .task 但 显示 在 chat UI = 先 show placeholder, 之后 load history fill back.
+
+## Hermes pattern (research)
+1. **Single session persistence**:
+   - Hermes Desktop (Electron) = LevelDB at `~/Library/Application Support/Hermes/Local Storage/leveldb/` (auto-load on launch).
+   - Hermes CLI/gateway = SQLite via SessionStore (`session_state.db` + SessionEntry load).
+   - ConversationState dataclass: 'survives turns, not boundaries' (= state persists across all turns of one conversation).
+   - On app launch, session loads automatically (= user sees continuous history).
+2. **Auto context compression** (from `agent/context_compressor.py`):
+   - Self-contained class with OpenAI client for summarization.
+   - Auto-summarize middle turns when context > limit (using auxiliary cheap model).
+   - Protect head + tail context (= recent N turns + system prompt + recent user input).
+   - Token-budget tail protection (dynamic, not fixed message count).
+   - Tool output pruning before LLM summarization (cheap pre-pass).
+   - Iterative summary updates (= preserves info across multiple compactions).
+   - User sees only summary card 'Compressed: 30 → 12 messages' (= invisible compression).
+3. **Portable library** (= user-chosen location):
+   - Hermes doesn't have user-chosen warehouse (= data in app sandbox).
+   - wenshu needs different approach: data INSIDE .ws file (= portable).
+
+## Spec真值
+- Single user-visible session: ✓ already done (= sessionId='default' + .task load history).
+- Chat data in .ws: ❌ need ticket 015.005 (= move chat.sqlite to anbaiqiang.ws/chat.sqlite).
+- kanban/todo in .ws: ❌ need ticket 015.011 (= same pattern).
+- Auto context compression: ❌ need ticket 015.010.
+
+## Tickets
+- ticket 015.005: Move chat.sqlite from `~/Library/Application Support/wenshu/chat.sqlite` to `<wenshu.libraryPath>/chat.sqlite`.
+  - UserDefaults 'wenshu.libraryPath' = boss's selected .ws path (= anbaiqiang.ws).
+  - ChatSessionStore.init(path: ??) accepts custom path (= use UserDefaults value).
+  - On warehouse change (= user picks new .ws folder), copy existing chat.sqlite to new location OR start fresh (= UX choice).
+- ticket 015.010: Auto context compression when contextUsed > 80% of contextMax.
+  - Per hermes pattern: summary middle turns using auxiliary model (= cheap, fast).
+  - Insert summary card into messages array (= user sees 'Earlier conversation summarized' marker).
+  - Context budget tail protection (= keep recent N turns + system prompt + recent user input).
+- ticket 015.011: Move kanban.db + todo.db to anbaiqiang.ws/ (= same pattern as 015.005).
+
+## Done criterion
+- App restart shows same chat history (= ticket 015.005 wiring).
+- Context auto-compresses when >80% (= ticket 015.010).
+- All 3 db files (chat/kanban/todo) inside anbaiqiang.ws/ (= tickets 015.005+015.011).
+- User perception: 一直只有一个会话 + 上下文自动管理 (= invisible to user).
