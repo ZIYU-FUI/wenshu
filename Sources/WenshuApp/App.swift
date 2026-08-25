@@ -1015,12 +1015,14 @@ struct LayoutShellView: View {
             // offsets are zero (= fresh install, no user drag yet).
             .overlay(alignment: .topLeading) {
                 if vm.areRightSplittersAligned() {
-                    // Calculate X position of the right splitters (= 4th zone
-                    // ends here). Render a continuous vertical line spanning
-                    // full window height (= from top of VStack to bottom).
-                    // The D_h horizontal splitter will overlay on top (= it's
-                    // a 1 PT horizontal line at the band boundary).
-                    let rightX = totalW * CGFloat(vm.projectSidebarRatio + vm.projectPreviewRatio + vm.editorWRatio) + 0.5  // 0.5 = center of 1 PT line
+                    // v0.24 boss验收fix (Boss 8/25 fifth OOB '拖拽线上下接上') +
+                    // 双轴 FAIL fix (ticket 015.018): overlay at D_v5 X (= aiChat
+                    // ratio) NOT D_v3 X (= projectSidebar+preview+editor sum).
+                    // D_v3 X = 1514/1920, D_v5 X = 1518/1920 (= 4 PT off).
+                    // To merge 'looks like one line' we cover D_v5 with the
+                    // overlay AND hide D_v3 (VSplitter(splitterIndex: 2)) via
+                    // conditional render in UpperBandZone below.
+                    let rightX = totalW * CGFloat(vm.aiChatRatio) + 0.5  // 0.5 = center of 1 PT line
                     Rectangle()
                         .fill(Color(nsColor: .separatorColor))
                         .frame(width: 1, height: contentH - 2)
@@ -1087,8 +1089,17 @@ struct UpperBandZone: View {
             VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 1, vm: vm)
             ZoneModule(slot: .editor, vm: vm, totalW: totalW, bandH: bandH)
                 .frame(width: editor)
-            // D_v3: 编辑器 / 专用工具 (splitterIndex 2)
-            VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 2, vm: vm)
+            // D_v3: 编辑器 / 专用工具 (splitterIndex 2).
+            // v0.24 boss验收fix (Boss 8/25 fifth OOB ticket 015.018 + 双轴 FAIL fix):
+            // conditionally hide D_v3 when right splitters are aligned (= initial
+            // state at offsets=0). Otherwise D_v3 stays visible at its own X
+            // (= projectSidebar+preview+editor sum) which is 4 PT to the left
+            // of D_v5 (= aiChat ratio). The overlay line covers D_v5, so hiding
+            // D_v3 makes the right edge look like ONE continuous vertical line
+            // (= Boss spec '看起来就像一条').
+            if !vm.areRightSplittersAligned() {
+                VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 2, vm: vm)
+            }
             ZoneModule(slot: .specializedTools, vm: vm, totalW: totalW, bandH: bandH)
                 .frame(width: tools)
         }
