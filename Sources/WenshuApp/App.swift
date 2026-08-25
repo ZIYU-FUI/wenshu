@@ -1097,8 +1097,14 @@ struct LayoutShellView: View {
                 // Center Divider (from ticket 015.028) removed (= Boss 16th OOB
                 // '正中间的一个没有内容的按钮 全都不要'). Toolbar order:
                 // [3 left file actions] + [4 zone toggles in 1 group] + [1 export separate].
-                ToolbarItem(placement: .primaryAction) {
-                    // Right group: 导出 (independent per Boss拍)
+                // v0.24 fix (Boss 8/25 18th OOB '你是如何把新建打开导入分离出来的,
+                // 就怎么把导出分离出去'): .cancellationAction placement
+                // (= Apple HIG convention for independent action like
+                // export/save, visually separated from main toolbar cluster).
+                // This mirrors the visual gap that 新建/打开/导入 get by being
+                // in their own .navigation group (= left cluster).
+                ToolbarItem(placement: .cancellationAction) {
+                    // Independent group: 导出 (= Boss拍 '独立')
                     Button {
                         vm.exportEbook(format: "epub")
                     } label: {
