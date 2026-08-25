@@ -1149,18 +1149,14 @@ struct UpperBandZone: View {
             ZoneModule(slot: .editor, vm: vm, totalW: totalW, bandH: bandH)
                 .frame(width: editor)
             // D_v3: 编辑器 / 专用工具 (splitterIndex 2)
-            // v0.24 boss验收fix (Boss 8/25 eleventh OOB ticket 015.024
-            // '红框中, 出现了两条拖拽线'): D_v3 conditionally hidden.
-            // At initial state toolsWRatio == dynamicWRatio == 400/1920,
-            // so D_v3 X (= 1514 PT) and D_v5 X (= 1518 PT) are 4 PT apart
-            // (= visible double line at right edge). Hide D_v3 when
-            // aligned (predicate-based like ticket 015.018 commit
-            // 6f3019e50) so only D_v5 is visible at right edge.
-            // When user drags either D_v3 or D_v5, predicate flips false
-            // and D_v3 re-renders (= per-zone splitter control restored).
-            if !vm.areRightSplittersAligned() {
-                VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 2, vm: vm)
-            }
+            // v0.24 boss验收fix (Boss 8/25 15th OOB '工具区不能拖拽了. 修好'):
+            // reverted conditional hide from ticket 015.024 (= 4 PT double-line
+            // fix) because hiding D_v3 makes it impossible to drag 工具区 width.
+            // Per Boss 8/25 8th OOB '不要纠结线的问题, 核心是比例': visual
+            // double-line at initial state is acceptable (= priority is drag
+            // functionality, not pixel-perfect alignment). Boss can still
+            // independently adjust toolsWRatio via D_v3.
+            VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 2, vm: vm)
             ZoneModule(slot: .specializedTools, vm: vm, totalW: totalW, bandH: bandH)
                 .frame(width: tools)
         }
