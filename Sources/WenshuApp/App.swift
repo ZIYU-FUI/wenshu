@@ -1054,38 +1054,59 @@ struct LayoutShellView: View {
                     }
                     .help("导入")
                 }
-                // v0.24 fix (Boss 8/25 20th OOB '只要一层胶囊'): use
-                // ToolbarItemGroup(placement: .automatic) for 4 zone toggles
-                // (= macOS HIG 1 layer of grouping, no extra HStack+Capsule wrap).
+                // v0.24 fix (Boss 8/25 21st OOB '显隐 4 个按钮, 一个胶囊, 居右, 在导出按钮左边'):
+                // wrap 4 zone visibility toggles in 1 HStack + Capsule (= 1 capsule
+                // group per Boss拍 '一个胶囊'). 1 layer only (= no nested wrap).
+                // 居右 in .automatic placement (= left of 导出 in .primaryAction).
                 ToolbarItemGroup(placement: .automatic) {
-                    Button {
-                        vm.toggleZone(slot: .projectSidebar)
-                    } label: {
-                        Label("项目管理区", systemImage: "sidebar.left")
-                            .foregroundStyle(vm.isZoneVisible(slot: .projectSidebar) ? Color.accentColor : Color.secondary)
+                    HStack(spacing: 4) {
+                        Button {
+                            vm.toggleZone(slot: .projectSidebar)
+                        } label: {
+                            Image(systemName: "sidebar.left")
+                                .foregroundStyle(vm.isZoneVisible(slot: .projectSidebar) ? Color.accentColor : Color.secondary)
+                                .frame(width: 18, height: 18)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .help(vm.isZoneVisible(slot: .projectSidebar) ? "隐藏 项目管理区" : "显示 项目管理区")
+                        Button {
+                            vm.toggleZone(slot: .specializedTools)
+                        } label: {
+                            Image(systemName: "wrench.and.screwdriver")
+                                .foregroundStyle(vm.isZoneVisible(slot: .specializedTools) ? Color.accentColor : Color.secondary)
+                                .frame(width: 18, height: 18)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .help(vm.isZoneVisible(slot: .specializedTools) ? "隐藏 工具区" : "显示 工具区")
+                        Button {
+                            vm.toggleZone(slot: .aiChat)
+                        } label: {
+                            Image(systemName: "bubble.left")
+                                .foregroundStyle(vm.isZoneVisible(slot: .aiChat) ? Color.accentColor : Color.secondary)
+                                .frame(width: 18, height: 18)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .help(vm.isZoneVisible(slot: .aiChat) ? "隐藏 聊天区" : "显示 聊天区")
+                        Button {
+                            vm.toggleZone(slot: .aiDynamic)
+                        } label: {
+                            Image(systemName: "chart.bar")
+                                .foregroundStyle(vm.isZoneVisible(slot: .aiDynamic) ? Color.accentColor : Color.secondary)
+                                .frame(width: 18, height: 18)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .help(vm.isZoneVisible(slot: .aiDynamic) ? "隐藏 动态区" : "显示 动态区")
                     }
-                    .help(vm.isZoneVisible(slot: .projectSidebar) ? "隐藏 项目管理区" : "显示 项目管理区")
-                    Button {
-                        vm.toggleZone(slot: .specializedTools)
-                    } label: {
-                        Label("工具区", systemImage: "wrench.and.screwdriver")
-                            .foregroundStyle(vm.isZoneVisible(slot: .specializedTools) ? Color.accentColor : Color.secondary)
-                    }
-                    .help(vm.isZoneVisible(slot: .specializedTools) ? "隐藏 工具区" : "显示 工具区")
-                    Button {
-                        vm.toggleZone(slot: .aiChat)
-                    } label: {
-                        Label("聊天区", systemImage: "bubble.left")
-                            .foregroundStyle(vm.isZoneVisible(slot: .aiChat) ? Color.accentColor : Color.secondary)
-                    }
-                    .help(vm.isZoneVisible(slot: .aiChat) ? "隐藏 聊天区" : "显示 聊天区")
-                    Button {
-                        vm.toggleZone(slot: .aiDynamic)
-                    } label: {
-                        Label("动态区", systemImage: "chart.bar")
-                            .foregroundStyle(vm.isZoneVisible(slot: .aiDynamic) ? Color.accentColor : Color.secondary)
-                    }
-                    .help(vm.isZoneVisible(slot: .aiDynamic) ? "隐藏 动态区" : "显示 动态区")
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule()
+                            .fill(Color(nsColor: .controlBackgroundColor))
+                    )
                 }
                 // v0.24 fix (Boss 8/25 16th OOB ticket 015.030 '分得不对,
                 // 右边的四个显隐功能是一组, 导出独立'): correct grouping =
@@ -1096,17 +1117,29 @@ struct LayoutShellView: View {
                 // Center Divider (from ticket 015.028) removed (= Boss 16th OOB
                 // '正中间的一个没有内容的按钮 全都不要'). Toolbar order:
                 // [3 left file actions] + [4 zone toggles in 1 group] + [1 export separate].
-                // v0.24 fix (Boss 8/25 20th OOB '导出要在最右'): 导出 in
-                // .primaryAction placement (= rightmost slot, AFTER 4 toggles
-                // which are in .automatic placement). 1 layer only (= no
-                // extra HStack+Capsule wrap).
+                // v0.24 fix (Boss 8/25 21st OOB '导出 1 个按钮, 一个胶囊, 最右.
+                // 到导出你就参考 pages 的导出'): 导出 in 1 HStack + Capsule
+                // (= 1 button 1 capsule, Boss拍 '一个胶囊'). Pages reference:
+                // share icon in 1 capsule, rightmost. 1 layer only.
                 ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        vm.exportEbook(format: "epub")
-                    } label: {
-                        Label("导出", systemImage: "square.and.arrow.up")
+                    HStack(spacing: 0) {
+                        Button {
+                            vm.exportEbook(format: "epub")
+                        } label: {
+                            Image(systemName: "square.and.arrow.up")
+                                .foregroundStyle(Color.primary)
+                                .frame(width: 18, height: 18)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .help("导出电子书 (PDF / EPUB / MOBI / TXT)")
                     }
-                    .help("导出电子书 (PDF / EPUB / MOBI / TXT)")
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule()
+                            .fill(Color(nsColor: .controlBackgroundColor))
+                    )
                 }
             }
         }
