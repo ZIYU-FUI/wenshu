@@ -1054,10 +1054,11 @@ struct LayoutShellView: View {
                     }
                     .help("导入")
                 }
-                // v0.24 fix (Boss 8/25 22nd OOB '单独一层实现分离'): 4 toggles + 导出
-                // wrapped in 1 outer glass capsule (see .primaryAction below).
-                // Inner 4 toggles keep own dark capsule (Boss拍 '里面那层分开是对的').
-                // 导出 single button, no inner capsule (Boss拍 '单独一层实现分离').
+                // v0.24 fix (Boss 8/25 24th OOB '样式不对, 参考新建, 打开, 导入的
+                // 样式. 你现在包了两层'): 2 separate right groups (Boss 23rd OOB
+                // '括号代表分组'), each with 1 plain rounded background matching
+                // left group style (= 1 layer only, no outer glass, no nested
+                // sub-capsule).
                 ToolbarItem(placement: .primaryAction) {
                     HStack(spacing: 0) {
                         // 4 toggles HStack (with inner capsule background) +
@@ -1116,18 +1117,21 @@ struct LayoutShellView: View {
                         // v0.24 fix (Boss 8/25 23rd OOB '括号代表分组'): 导出 in
                         // 1 dark capsule (= Group 2 of right side, Boss拍 '2 个 括号
                         // = 2 个 胶囊'). Each group has its own inner dark capsule.
-                        HStack(spacing: 0) {
-                            Button {
-                                vm.exportEbook(format: "epub")
-                            } label: {
-                                Image(systemName: "square.and.arrow.up")
-                                    .foregroundStyle(Color.primary)
-                                    .frame(width: 18, height: 18)
-                                    .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            .help("导出电子书 (PDF / EPUB / MOBI / TXT)")
+                        // v0.24 fix (Boss 8/25 24th OOB '样式不对, 参考新建, 打开,
+                        // 导入的样式. 你现在包了两层'): 导出 button in 1 plain
+                        // rounded capsule matching left group style (= 1 layer only,
+                        // no outer glass, no nested sub-capsule). Same
+                        // controlBackgroundColor as left group.
+                        Button {
+                            vm.exportEbook(format: "epub")
+                        } label: {
+                            Image(systemName: "square.and.arrow.up")
+                                .foregroundStyle(Color.primary)
+                                .frame(width: 18, height: 18)
+                                .contentShape(Rectangle())
                         }
+                        .buttonStyle(.plain)
+                        .help("导出电子书 (PDF / EPUB / MOBI / TXT)")
                         .padding(.horizontal, 6)
                         .padding(.vertical, 4)
                         .background(
@@ -1135,13 +1139,6 @@ struct LayoutShellView: View {
                                 .fill(Color(nsColor: .controlBackgroundColor))
                         )
                     }
-                    .padding(4)
-                    .background(
-                        // v0.24 fix (Boss 8/25 22nd OOB '用外面那层玻璃质感的'):
-                        // outer layer uses Apple HIG .regularMaterial (= 玻璃质感).
-                        Capsule()
-                            .fill(.regularMaterial)
-                    )
                 }
             }
         }
