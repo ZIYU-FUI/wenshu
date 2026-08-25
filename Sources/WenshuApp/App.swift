@@ -1040,6 +1040,15 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
 struct LayoutShellView: View {
     /// v0.10.1 拖拽交互: VM 持有 6 个 offset (5 竖 + 1 横), 6 splitter 的 onDrag 调 vm.adjust*
     @State private var vm = LayoutShellViewModel()
+    // v0.24 fix (Boss 8/25 63rd OOB 'still not work, check official docs'):
+    // use @AppStorage directly in view body per Apple HIG (per WWDC23
+    // 'Discover Observation in SwiftUI' + Apple migration guide).
+    // @AppStorage in body auto-tracks UserDefaults via SwiftUI's
+    // built-in observation (= no need for @Observable class indirection).
+    @AppStorage("wenshu.zoneVisible.projectSidebar") private var showProjectSidebar: Bool = true
+    @AppStorage("wenshu.zoneVisible.specializedTools") private var showSpecializedTools: Bool = true
+    @AppStorage("wenshu.zoneVisible.aiChat") private var showAIChat: Bool = true
+    @AppStorage("wenshu.zoneVisible.aiDynamic") private var showAIDynamic: Bool = true
 
     var body: some View {
         // v0.24 fix (Boss 8/25 62nd OOB 'still not work, BUGs everywhere'):
@@ -1064,13 +1073,13 @@ struct LayoutShellView: View {
             let bandH = vm.upperBandH(totalHeight: contentH - 2)
             VStack(spacing: 0) {
                 // 上 band: 4 区 + 3 拖拽线 (Apple HIG HStack 范式)
-                UpperBandZone(vm: vm, totalW: totalW, bandH: bandH)
+                UpperBandZone(vm: vm, showProjectSidebar: showProjectSidebar, totalW: totalW, bandH: bandH)
                 // D_h 横拖拽线 (上/下 band 之间, v0.14.0 撤销 inert, 拍可拖)
                 NativeSplitter(orientation: .horizontal, length: totalW, onDrag: { dy in
                     vm.adjustBandSplit(delta: dy, totalHeight: contentH - 2)
                 })
                 // 下 band: 2 区 + 1 拖拽线 (老板 8/18 拍 "上四下两")
-                LowerBandZone(vm: vm, totalW: totalW, bandH: vm.lowerBandH(totalHeight: contentH - 2))
+                LowerBandZone(vm: vm, showAIChat: showAIChat, showAIDynamic: showAIDynamic, totalW: totalW, bandH: vm.lowerBandH(totalHeight: contentH - 2))
             }
             // v0.24 boss验收fix (Boss 8/25 eighth OOB '不要纠结线的问题, 核心是比例'):
             // overlay REMOVED. Boss拍 core spec = the rightmost zone widths
@@ -1137,36 +1146,44 @@ struct LayoutShellView: View {
                 // export button all in 1 group, Spacer first pushes the whole
                 // group to rightmost position (= the whole group tight
                 // against right edge, no per-button separator).
+                // v0.24 fix (Boss 8/25 63rd OOB 'still not work, check official
+                // docs'): use @AppStorage directly in view body per Apple
+                // HIG (per WWDC23 'Discover Observation in SwiftUI' + Apple
+                // migration guide). @AppStorage in body auto-tracks
+                // UserDefaults via SwiftUI's built-in observation (= per
+                // meshworld cheatsheet: 'Writing to the property updates
+                // UserDefaults and triggers a SwiftUI re-render'). This
+                // replaces the indirection through LayoutShellViewModel.
                 ToolbarItemGroup(placement: .automatic) {
                     Spacer()
                     Button {
-                        vm.toggleZone(slot: .projectSidebar)
+                        showProjectSidebar.toggle()
                     } label: {
                         Image(systemName: "sidebar.left")
                     }
-                    .foregroundStyle(vm.isZoneVisible(slot: .projectSidebar) ? Color.accentColor : Color.secondary)
-                    .help(vm.isZoneVisible(slot: .projectSidebar) ? "隐藏 项目管理区" : "显示 项目管理区")
+                    .foregroundStyle(showProjectSidebar ? Color.accentColor : Color.secondary)
+                    .help(showProjectSidebar ? "隐藏 项目管理区" : "显示 项目管理区")
                     Button {
-                        vm.toggleZone(slot: .specializedTools)
+                        showSpecializedTools.toggle()
                     } label: {
                         Image(systemName: "wrench.and.screwdriver")
                     }
-                    .foregroundStyle(vm.isZoneVisible(slot: .specializedTools) ? Color.accentColor : Color.secondary)
-                    .help(vm.isZoneVisible(slot: .specializedTools) ? "隐藏 工具区" : "显示 工具区")
+                    .foregroundStyle(showSpecializedTools ? Color.accentColor : Color.secondary)
+                    .help(showSpecializedTools ? "隐藏 工具区" : "显示 工具区")
                     Button {
-                        vm.toggleZone(slot: .aiChat)
+                        showAIChat.toggle()
                     } label: {
                         Image(systemName: "bubble.left")
                     }
-                    .foregroundStyle(vm.isZoneVisible(slot: .aiChat) ? Color.accentColor : Color.secondary)
-                    .help(vm.isZoneVisible(slot: .aiChat) ? "隐藏 聊天区" : "显示 聊天区")
+                    .foregroundStyle(showAIChat ? Color.accentColor : Color.secondary)
+                    .help(showAIChat ? "隐藏 聊天区" : "显示 聊天区")
                     Button {
-                        vm.toggleZone(slot: .aiDynamic)
+                        showAIDynamic.toggle()
                     } label: {
                         Image(systemName: "chart.bar")
                     }
-                    .foregroundStyle(vm.isZoneVisible(slot: .aiDynamic) ? Color.accentColor : Color.secondary)
-                    .help(vm.isZoneVisible(slot: .aiDynamic) ? "隐藏 动态区" : "显示 动态区")
+                    .foregroundStyle(showAIDynamic ? Color.accentColor : Color.secondary)
+                    .help(showAIDynamic ? "隐藏 动态区" : "显示 动态区")
                     Button {
                         vm.exportEbook(format: "epub")
                     } label: {
@@ -1206,6 +1223,7 @@ struct VSplitter: View {
 
 struct UpperBandZone: View {
     let vm: LayoutShellViewModel
+    let showProjectSidebar: Bool
     let totalW: CGFloat
     let bandH: CGFloat
     var body: some View {
@@ -1230,7 +1248,9 @@ struct UpperBandZone: View {
         // IMPORTANT (= Spec fix per sub-agent review): sidebarExtraRatio is
         // the RATIO (= 0.2), NOT PT. Multiplying by totalW TWICE (= totalW
         // * (ratio + totalW * ratio)) was a previous bug.
-        let sidebarIsVisible = vm.isZoneVisible(slot: .projectSidebar)
+        // v0.24 fix (Boss 8/25 63rd OOB): use local showProjectSidebar
+        // (= direct @AppStorage from view body) instead of vm.isZoneVisible.
+        let sidebarIsVisible = showProjectSidebar
         let sidebarExtraRatio = sidebarIsVisible ? 0.0 : CGFloat(vm.projectSidebarRatio)
         let sidebar = (totalW * CGFloat(vm.projectSidebarRatio)).rounded()
         let preview = (totalW * (CGFloat(vm.projectPreviewRatio) + (sidebarExtraRatio * 0.254))).rounded()
@@ -1283,6 +1303,8 @@ struct LowerBandZone: View {
     /// 老板 8/18 拍 "上四下两" = 下 band 2 区: AI聊天 (整宽 1518 PT) + AI 动态 (400 PT)
     /// 1 拖拽线 D_v5 (x=1518, AI聊天 / AI 动态)
     let vm: LayoutShellViewModel
+    let showAIChat: Bool
+    let showAIDynamic: Bool
     let totalW: CGFloat
     let bandH: CGFloat
     var body: some View {
@@ -1293,17 +1315,19 @@ struct LowerBandZone: View {
         // (= no fractional PT = no sub-pixel rendering gap).
         let aiChatW = (totalW * CGFloat(vm.aiChatRatio)).rounded()
         let dynamicW = (totalW * CGFloat(vm.dynamicWRatio)).rounded()
-        // v0.24 fix (Boss 8/25 57th OOB '一个一个来'): lower band 2 zones always
-        // render (= not yet implemented for toggle, future tickets will add).
+        // v0.24 fix (Boss 8/25 63rd OOB): use direct @AppStorage
+        // showAIChat + showAIDynamic from view body for hide/show.
         HStack(spacing: 0) {
-            // aiChat always render (not yet implemented for toggle)
-            ZoneModule(slot: .aiChat, vm: vm, totalW: totalW, bandH: bandH)
-                .frame(width: aiChatW)
+            if showAIChat {
+                ZoneModule(slot: .aiChat, vm: vm, totalW: totalW, bandH: bandH)
+                    .frame(width: aiChatW)
+            }
             // D_v5: AI chat / AI dynamic (splitterIndex 4)
             VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 4, vm: vm)
-            // aiDynamic always render (not yet implemented for toggle)
-            ZoneModule(slot: .aiDynamic, vm: vm, totalW: totalW, bandH: bandH)
-                .frame(width: dynamicW)
+            if showAIDynamic {
+                ZoneModule(slot: .aiDynamic, vm: vm, totalW: totalW, bandH: bandH)
+                    .frame(width: dynamicW)
+            }
         }
         .frame(height: bandH)  // explicit SwiftUI VStack layout lower band height, responds to vm.bandOffset mutate, reverse direction conservation
     }
