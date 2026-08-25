@@ -1444,12 +1444,14 @@ struct ZoneModule: View {
         // v0.15 ticket 005 范式: 每个 case 自己 Color + overlay (跟 ticket 005 一样, ticket 006 撤回 P3-4)
         switch slot {
         case .projectSidebar:
-            // v0.24 boss验收fix (2026-08-24): 统一 6-zone 1 层模式 + 接真视图 (no sheets, no placeholders).
-            // zoneSlug 用于 tab selection 持久化 (每个 zone 独立 key).
+            // v0.24 boss验收fix (Boss 8/25 seventh OOB ticket 015.020):
+            // hide 收藏 + 模板 tabs (Boss拍 '现有的收藏和模版没有用'), keep
+            // only tab1 outline (= library books/shelves tree). Renamed label
+            // '大纲' -> '书架' + icon 'list.bullet.rectangle' -> 'books.vertical.fill'
+            // (= Apple SF Symbol = solid bookshelf, matches Boss spec
+            // '选一个合适的 ICON 替换').
             ZoneContentView(zoneSlug: "projectSidebar", tabs: [
-                ("大纲", "list.bullet.rectangle", AnyView(DesignColor.zoneSurface.overlay(alignment: .topLeading) { LibraryOutlineViewContent(library: library) })),
-                ("收藏", "bookmark", AnyView(BookmarkPanel())),
-                ("模板", "doc.badge.plus", AnyView(TemplatePicker())),
+                ("书架", "books.vertical.fill", AnyView(DesignColor.zoneSurface.overlay(alignment: .topLeading) { LibraryOutlineViewContent(library: library) })),
             ])
         case .projectPreview:
             // ProjectPreview tabs: 预览 / 图 / 搜索.
