@@ -1112,14 +1112,13 @@ struct LayoutShellView: View {
                     .foregroundStyle(vm.isZoneVisible(slot: .aiDynamic) ? Color.accentColor : Color.secondary)
                     .help(vm.isZoneVisible(slot: .aiDynamic) ? "隐藏 动态区" : "显示 动态区")
                 }
-                // v0.24 fix (Boss 8/25 33rd OOB 'use official way, separate export'):
-                // 导出 in its own ToolbarItem with .confirmationAction placement
-                // (= Apple HIG convention for independent confirmation actions
-                // like export/share/save, visually separated from primary
-                // actions). Per Apple developer.apple.com/documentation/SwiftUI/
-                // ToolbarItemPlacement, .confirmationAction = 'center of the
-                // trailing toolbar area, may be separated by other items'.
-                ToolbarItem(placement: .confirmationAction) {
+                // v0.24 fix (Boss 8/25 34th OOB 'move the whole group to right'):
+                // 导出 in its own .primaryAction ToolbarItem (= same placement
+                // as 4 toggles, clustered at right with no visual separator
+                // between them). Per Apple HIG, .primaryAction = 'rightmost
+                // position, used for primary actions'. 5 buttons in 1 right
+                // cluster, all at default Apple HIG size.
+                ToolbarItem(placement: .primaryAction) {
                     Button {
                         vm.exportEbook(format: "epub")
                     } label: {
