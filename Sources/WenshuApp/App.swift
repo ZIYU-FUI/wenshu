@@ -1127,21 +1127,26 @@ struct LayoutShellView: View {
                         // v0.24 fix (Boss 8/25 28th OOB '改成单层对了'): remove inner
                         // Capsule (= 1 layer per group, Boss confirms). The toolbar's
                         // native .regularMaterial provides the visual wrap.
-                        // v0.24 fix (Boss 8/25 24th OOB '样式不对, 参考新建, 打开,
-                        // 导入的样式'): 导出 in 1 plain rounded capsule (= 1 layer
-                        // only, controlBackgroundColor, same style as left group).
+                        // v0.24 fix (Boss 8/25 30th OOB '把导出改成我截图这样'):
+                        // big circular button (60x60 PT) with white icon on black
+                        // background (= per Boss 截图: large round button with
+                        // single share icon in center). 1 layer only.
                         Button {
                             vm.exportEbook(format: "epub")
                         } label: {
                             Image(systemName: "square.and.arrow.up")
-                                .foregroundStyle(Color.primary)
-                                .frame(width: 18, height: 18)
-                                .contentShape(Rectangle())
+                                .font(.system(size: 22, weight: .medium))
+                                .foregroundStyle(.white)
+                                .frame(width: 60, height: 60)
+                                .background(
+                                    Circle()
+                                        .fill(Color.black)
+                                )
+                                .clipShape(Circle())
+                                .contentShape(Circle())
                         }
                         .buttonStyle(.plain)
                         .help("导出电子书 (PDF / EPUB / MOBI / TXT)")
-                        // v0.24 fix (Boss 8/25 28th OOB '改成单层对了'): remove inner
-                        // Capsule (= 1 layer per group, Boss confirms).
                     }
                 }
             }
