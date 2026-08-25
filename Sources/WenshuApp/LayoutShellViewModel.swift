@@ -144,4 +144,25 @@ final class LayoutShellViewModel {
             offsets[index] -= step
         }
     }
+
+    /// v0.24 boss验收fix (Boss 8/25 fifth OOB '拖拽线上下接上'): return true
+    /// when the right-most splitter positions (= D_v3 upper + D_v5 lower) are
+    /// aligned (= same X coordinate). At initial state (= all offsets = 0),
+    /// toolsWRatio = dynamicWRatio = 400/1920, so X positions match. After
+    /// user drags D_v3 or D_v5, they diverge (= return false).
+    /// 1 PT pixel-perfect alignment per Boss spec.
+    func areRightSplittersAligned() -> Bool {
+        // Compute X position of D_v3 (= end of editor + start of tools) =
+        // projectSidebar + projectPreview + editor (scaled by totalWidth).
+        // D_v5 X position = projectSidebar + projectPreview + editor + tools
+        // (= end of all 4 upper zones) when toolsWRatio == aiChatRatio.
+        // Wait — D_v5 is between aiChat and dynamic, so D_v5 X = aiChatRatio * totalWidth.
+        // For D_v3 X = D_v5 X: toolsWRatio == aiChatRatio (not dynamicWRatio!).
+        // Actually boss image: upper rightmost (specializedTools, between editor
+        // and specializedTools = D_v3) and lower rightmost (dynamic, between
+        // chat and dynamic = D_v5). When toolsWRatio == dynamicWRatio (= initial
+        // state, both = 400/1920), X positions match (= boss's exact spec).
+        let tolerance: Double = 0.0001  // 1 PT in 1920 PT width
+        return abs(toolsWRatio - dynamicWRatio) < tolerance
+    }
 }

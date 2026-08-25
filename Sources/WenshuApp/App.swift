@@ -1005,6 +1005,29 @@ struct LayoutShellView: View {
                 // 下 band: 2 区 + 1 拖拽线 (老板 8/18 拍 "上四下两")
                 LowerBandZone(vm: vm, totalW: totalW, bandH: vm.lowerBandH(totalHeight: contentH - 2))
             }
+            // v0.24 boss验收fix (Boss 8/25 fifth OOB '拖拽线上下接上'): overlay
+            // a single continuous vertical line at the X position shared by
+            // D_v3 (editor/specializedTools) and D_v5 (chat/dynamic) when
+            // initial widths are identical (offsets=0 default). At other
+            // offsets, the splitter positions may diverge — Boss request is
+            // specifically for the initial-state alignment, so this overlay
+            // only activates when vm.toolsWRatio == vm.dynamicWRatio AND all
+            // offsets are zero (= fresh install, no user drag yet).
+            .overlay(alignment: .topLeading) {
+                if vm.areRightSplittersAligned() {
+                    // Calculate X position of the right splitters (= 4th zone
+                    // ends here). Render a continuous vertical line spanning
+                    // full window height (= from top of VStack to bottom).
+                    // The D_h horizontal splitter will overlay on top (= it's
+                    // a 1 PT horizontal line at the band boundary).
+                    let rightX = totalW * CGFloat(vm.projectSidebarRatio + vm.projectPreviewRatio + vm.editorWRatio) + 0.5  // 0.5 = center of 1 PT line
+                    Rectangle()
+                        .fill(Color(nsColor: .separatorColor))
+                        .frame(width: 1, height: contentH - 2)
+                        .position(x: rightX, y: (contentH - 2) / 2)
+                        .allowsHitTesting(false)
+                }
+            }
             // v0.24 boss验收fix: tap anywhere posts defocus notification so chat
             // input loses focus when user clicks outside TextField.
             // Boss 8/24 feedback: '点其它区域, 文本框还是不失焦'.
