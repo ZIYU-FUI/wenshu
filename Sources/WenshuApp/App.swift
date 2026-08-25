@@ -1181,8 +1181,20 @@ struct ZoneToolbarAction {
 /// 区域底部工具栏: 30 PT 高, 左/右各占位文字 + 顶 2 PT 分割线.
 /// 宽度由父组件约束自动撑到区域模块宽度 (不画穿 splitter).
 /// v0.22 ticket o09: 右侧占位文字替换为 WordCountInlineLabel (default 0 字).
+/// v0.24 boss验收fix (Boss 8/25 third OOB '其它五区的底栏都丢了'):
+/// Restore ZoneBottomToolbar with per-zone status info. Per Boss plan A:
+/// - projectSidebar = 书架数
+/// - editor = 字数
+/// - preview = 章节数
+/// - specializedTools = placeholder '工具就绪'
+/// Per-zone status passed as parameter (boss 8/25 OOB '每 zone 自己的 status info').
 struct ZoneBottomToolbar: View {
     @State private var wordCountViewModel: WordCountViewModel = WordCountViewModel()
+    let status: String  // v0.24: per-zone status info (= 书架数 / 字数 / 章节数 / etc.)
+
+    init(status: String = "") {
+        self.status = status
+    }
 
     var body: some View {
         let toolbarH = LayoutTokens.toolbarHeight
@@ -1192,7 +1204,9 @@ struct ZoneBottomToolbar: View {
                 DesignColor.splitterLine.frame(height: 1)
             }
             .overlay(alignment: .bottomLeading) {
-                Text("占位文字")
+                // v0.24 boss验收fix: per-zone status info (left side).
+                // Empty status = placeholder text (= backward compatible).
+                Text(status.isEmpty ? "占位文字" : status)
                     .font(.system(size: 13))
                     .foregroundStyle(.tertiary)
                     .padding(.leading, 18)
@@ -1202,7 +1216,8 @@ struct ZoneBottomToolbar: View {
             }
             .overlay(alignment: .bottomTrailing) {
                 // o09: right placeholder text replaced by WordCountInlineLabel.
-                // Currently shows '0 字' (no document selected yet — wiring follows in a follow-up commit).
+                // Kept for chat zone (where word count makes sense). For other zones,
+                // the right side stays empty until ticket 015.013 wires real per-zone data.
                 WordCountInlineLabel(viewModel: wordCountViewModel)
                     .padding(.trailing, 18)
                     .padding(.bottom, 6)
@@ -1231,6 +1246,37 @@ struct ZoneModule: View {
     /// 老板 8/18 Q2 答: 4 PT inset = 单一垂直方向 (spec §3.2 "背景 y=60~884, 正文 y=64~882", 上下 4 PT 视觉下沉, 左右 flush)
     /// v0.15 ticket 005 改名: editorInsetRatio → editorVerticalInsetRatio (明确垂直方向)
     private var editorInset: CGFloat { bandH * LayoutTokens.editorVerticalInsetRatio }  // 4 PT 单一垂直
+
+    /// v0.24 boss验收fix (Boss 8/25 third OOB ticket 015.012): per-zone
+    /// status info text (= 书架数, 章节数, 字数, etc.). Per Boss plan A.
+    /// Empty string = placeholder mode (= fallback '占位文字' in toolbar view).
+    /// Real data wiring follows in ticket 015.013 (= needs library + book + chapter models).
+    private func zoneStatus(for slot: ZoneSlot) -> String {
+        switch slot {
+        case .projectSidebar:
+            // Per Boss plan A: 书架数 (= WenshuLibrary shelves count).
+            // Wiring deferred to ticket 015.013.
+            return "书架: \(library.shelves.count)"
+        case .projectPreview:
+            // Per Boss plan A: 章节数 + 当前章节号.
+            // Wiring deferred to ticket 015.013.
+            return "章节: 0"
+        case .editor:
+            // Per Boss plan A: 字数 + 进度 %.
+            // Wiring deferred to ticket 015.013.
+            return "字数: 0"
+        case .specializedTools:
+            // Per Boss plan A: placeholder '工具就绪' (= tools ready).
+            return "工具就绪"
+        case .aiChat:
+            // Skip (= chat zone uses in-child ChatBottomToolbar).
+            return ""
+        case .aiDynamic:
+            // Dynamic zone keeps inner tab bar only (= Kanban view already
+            // shows progress). Outer toolbar still rendered but with empty status.
+            return ""
+        }
+    }
     // v0.10.8: 撤掉 chatInputW/H 私有属性, 老板 8/18 拍 "新图没画聊天输入框"
     private var innerBandH: CGFloat { bandH - 2 * toolbarH }  // 顶栏底栏间内容区
 
@@ -1252,6 +1298,13 @@ struct ZoneModule: View {
         VStack(alignment: .leading, spacing: 0) {
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            // v0.24 boss验收fix (Boss 8/25 third OOB '其它五区的底栏都丢了'):
+            // Re-add ZoneBottomToolbar for all slots except .aiChat (= chat keeps
+            // its own internal ChatBottomToolbar per ticket 10).
+            // Per Boss plan A: per-zone status info (书架数, 章节数, 字数, etc.).
+            if slot != .aiChat {
+                ZoneBottomToolbar(status: zoneStatus(for: slot))
+            }
         }
         .background(slot == .aiDynamic ? DesignColor.dynamicZoneSurface : .clear)
         // v0.22: sheet presentations for each toolbar action. Single modifier tree,
