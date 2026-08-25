@@ -1110,14 +1110,9 @@ struct LayoutShellView: View {
                             Capsule()
                                 .fill(Color(nsColor: .controlBackgroundColor))
                         )
-                        // v0.24 fix (Boss 8/25 23rd OOB '括号代表分组'): 导出 in
-                        // 1 dark capsule (= Group 2 of right side, Boss拍 '2 个 括号
-                        // = 2 个 胶囊'). Each group has its own inner dark capsule.
                         // v0.24 fix (Boss 8/25 24th OOB '样式不对, 参考新建, 打开,
-                        // 导入的样式. 你现在包了两层'): 导出 button in 1 plain
-                        // rounded capsule matching left group style (= 1 layer only,
-                        // no outer glass, no nested sub-capsule). Same
-                        // controlBackgroundColor as left group.
+                        // 导入的样式'): 导出 in 1 plain rounded capsule (= 1 layer
+                        // only, controlBackgroundColor, same style as left group).
                         Button {
                             vm.exportEbook(format: "epub")
                         } label: {
