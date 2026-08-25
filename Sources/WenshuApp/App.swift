@@ -104,7 +104,7 @@ enum LayoutTokens {
     // 800 (= 80% design) - 4 (= 1 × 4 splitter) = 796 (= design includes splitter)
     // Total column = 796+200 = 996 + 4 splitter = 1000 (= exact fit, no HStack shrinkage).
     // Lower band 2 zones (80/20 = 100% total):
-    static let aiChatRatio: CGFloat = 794.0 / 1000.0         // 80% design - 1 splitter
+    static let aiChatRatio: CGFloat = 796.0 / 1000.0         // 80% design - 1 splitter @ 4 PT
     static let dynamicWRatio: CGFloat = 200.0 / 1000.0       // 20% (= Boss 45th OOB)
 
     // 编辑器两层设计 (老板 8/18 Q2 答: 有意两层, 不要删)
