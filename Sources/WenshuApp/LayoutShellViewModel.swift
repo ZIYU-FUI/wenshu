@@ -62,10 +62,11 @@ final class LayoutShellViewModel {
     @ObservationIgnored @AppStorage("wenshu.zoneVisible.specializedTools") var specializedToolsVisible: Bool = true
     @ObservationIgnored @AppStorage("wenshu.zoneVisible.aiChat") var aiChatVisible: Bool = true
     @ObservationIgnored @AppStorage("wenshu.zoneVisible.aiDynamic") var aiDynamicVisible: Bool = true
-    // v0.24 fix (Boss 8/25 59th OOB '四个按钮点击都没有效果'): bumpable
-    // trigger token. @ObservationTracked so any change forces SwiftUI to
-    // re-render (= required because @AppStorage flags are @ObservationIgnored).
-    // toggleZone bumps this token before + after flag flip.
+    // v0.24 fix (Boss 8/25 59th OOB '4 toggles clicks have no effect'):
+    // bumpable trigger token. @ObservationTracked so any change forces
+    // SwiftUI to re-render (= required because @AppStorage flags are
+    // @ObservationIgnored). toggleZone bumps this token before + after
+    // flag flip.
     @ObservationTracked var revisionToken: UInt64 = 0
 
     /// v0.24 boss验收fix (Boss 8/25 tenth OOB ticket 015.023): query helper.
@@ -82,7 +83,8 @@ final class LayoutShellViewModel {
         }
     }
 
-    /// v0.24 boss验收fix (Boss 8/25 60th OOB '对应功能要在菜单栏实现'):
+    /// v0.24 boss acceptance fix (Boss 8/25 60th OOB 'corresponding
+    /// functionality should be implemented in menu bar'):
     /// init() listens for wenshuToggleZone NotificationCenter posts from
     /// menu bar CommandGroup buttons (= menu bar is primary command
     /// surface per Apple HIG Rule 3). Notification posts the ZoneSlot,
@@ -99,13 +101,15 @@ final class LayoutShellViewModel {
         }
     }
 
-    /// v0.24 boss验收fix (Boss 8/25 tenth OOB ticket 015.023): toggle visibility
-    /// for given slot. Editor zone toggle is a no-op (= Boss拍).
-    /// v0.24 fix (Boss 8/25 59th OOB '四个按钮点击都没有效果'): bump
-    /// revisionToken before flag flip so SwiftUI @Observable re-renders
-    /// the view (= @ObservationTracked revisionToken change triggers
-    /// objectWillChange). The @AppStorage flag is @ObservationIgnored so
-    /// flag flip alone doesn't trigger re-render.
+    /// v0.24 boss acceptance fix (Boss 8/25 tenth OOB ticket 015.023):
+    /// toggle visibility for given slot. Editor zone toggle is a no-op
+    /// (= Boss spec).
+    /// v0.24 fix (Boss 8/25 59th OOB '4 toggles clicks have no effect'):
+    /// bump revisionToken before flag flip so SwiftUI @Observable
+    /// re-renders the view (= @ObservationTracked revisionToken change
+    /// triggers objectWillChange). The @AppStorage flag is
+    /// @ObservationIgnored so flag flip alone doesn't trigger
+    /// re-render.
     func toggleZone(slot: ZoneSlot) {
         // Notify SwiftUI views to re-render BEFORE changing state
         revisionToken &+= 1
