@@ -1017,12 +1017,15 @@ struct LayoutShellView: View {
             .onTapGesture {
                 NotificationCenter.default.post(name: .wenshuDefocusChatInput, object: nil)
             }
-            // v0.24 boss验收fix (Boss 8/25 tenth OOB ticket 015.023): macOS
-            // window toolbar buttons. Left = 3 file actions (= 新建, 打开, 导入);
-            // Right = 4 zone visibility toggles + 1 export button. Editor
-            // zone NOT toggleable per Boss spec.
+            // v0.24 boss验收fix (Boss 8/25 13th OOB ticket 015.027): macOS
+            // window toolbar = 3 groups per Boss spec:
+            //   1. Left (= after red/yellow/green window controls): 新建 / 打开 / 导入
+            //   2. Center: 4 zone visibility toggles (= 项目管理区 /工具区 / 聊天区 / 动态区)
+            //   3. Right (separate): 导出
+            // Removed per Boss拍: 标题 '文枢', 中间title, '+' button (= not in spec).
             .toolbar {
-                ToolbarItemGroup(placement: .primaryAction) {
+                ToolbarItemGroup(placement: .navigation) {
+                    // Left group: 3 file actions
                     Button {
                         NSLog("[wenshu.toolbar] tap: 新建 (placeholder)")
                     } label: {
@@ -1042,12 +1045,8 @@ struct LayoutShellView: View {
                     }
                     .help("导入")
                 }
-                ToolbarItem(placement: .principal) {
-                    Text("文枢")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.primary)
-                }
-                ToolbarItemGroup(placement: .automatic) {
+                ToolbarItemGroup(placement: .primaryAction) {
+                    // Center group: 4 zone visibility toggles (= Boss拍 '一组')
                     Button {
                         vm.toggleZone(slot: .projectSidebar)
                     } label: {
@@ -1076,6 +1075,9 @@ struct LayoutShellView: View {
                             .foregroundStyle(vm.isZoneVisible(slot: .aiDynamic) ? Color.accentColor : Color.secondary)
                     }
                     .help(vm.isZoneVisible(slot: .aiDynamic) ? "隐藏 动态区" : "显示 动态区")
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    // Right group (separate): 导出
                     Button {
                         vm.exportEbook(format: "epub")
                     } label: {

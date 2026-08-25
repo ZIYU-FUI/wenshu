@@ -85,16 +85,11 @@ struct LibraryOutlineView: View {
         .listStyle(.plain)  // 老板 8/18: unifica zone background
         .scrollContentBackground(.hidden)  // List 透明底色, 用 ZoneModule DesignColor.zoneSurface
         .frame(minWidth: 200, idealWidth: 260)
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    sheet = .newShelf
-                } label: {
-                    Label("新建书架", systemImage: "plus")
-                }
-                .help("新建书架 (= ⌘N)")
-            }
-        }
+        // v0.24 boss验收fix (Boss 8/25 13th OOB ticket 015.027): removed
+        // ToolbarItem '新建书架' (+ button) per Boss拍 '加号按钮 不要了'.
+        // New shelf creation now lives in the emptyLibrary CTA (= ticket
+        // 015.026 FCP-style onboarding wizard step 1) and the global toolbar
+        // '新建' button (left group, ticket 015.023).
         .sheet(item: $sheet) { kind in
             switch kind {
             case .newShelf:
@@ -190,18 +185,45 @@ struct LibraryOutlineView: View {
 
     @ViewBuilder
     private var emptyLibrary: some View {
+        // v0.24 boss验收fix (Boss 8/25 12th OOB ticket 015.026 '参考 FCP,
+        // 引导新建书架 + 建第一本书'): FCP-style onboarding wizard.
+        // Two states: 0 shelves -> 'create first shelf' CTA; >0 shelves
+        // but 0 books -> 'create first book' CTA (= next onboarding step).
+        let firstShelf = library.shelves.first
+        let firstShelfHasBooks: Bool = {
+            guard let shelfId = firstShelf?.id,
+                  let books = try? library.books(in: shelfId) else { return false }
+            return !books.isEmpty
+        }()
         VStack(spacing: 8) {
-            Image(systemName: "books.vertical")
+            Image(systemName: firstShelfHasBooks ? "books.vertical" : "books.vertical.fill")
                 .font(.title)
                 .imageScale(.large)
                 .foregroundStyle(.tertiary)
-            Text("还没有书架")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-            Button("新建第一个书架") {
-                sheet = .newShelf
+            if firstShelf == nil {
+                // Step 1: create first shelf
+                Text("还没有书架")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                Button("新建第一个书架") {
+                    sheet = .newShelf
+                }
+                .controlSize(.small)
+            } else if !firstShelfHasBooks {
+                // Step 2: create first book in first shelf
+                Text("书架 \"\(firstShelf!.name)\" 还没有书")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                Button("建第一本书") {
+                    sheet = .newBook(parentShelfId: firstShelf!.id)
+                }
+                .controlSize(.small)
+            } else {
+                // Defensive: both checks failed (shelf has books but listed here)
+                Text("还没有书")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
             }
-            .controlSize(.small)
         }
         .frame(maxWidth: .infinity, alignment: .center)
         .padding(.vertical, 16)
