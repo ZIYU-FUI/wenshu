@@ -1038,117 +1038,89 @@ struct LayoutShellView: View {
                 // 3.(一个导出按钮)'): wrap left 3 file actions in 1 dark capsule
                 // (= 1 of 3 separate 胶囊 groups, Pages style). Same control
                 // BackgroundColor as right groups (= 1 layer, no outer glass).
+                // v0.24 fix (Boss 8/25 32nd OOB 'ICON超出胶囊范围, 查官方'):
+                // per Apple HIG (= nilcoalescing.com macOS toolbar guide), use
+                // default toolbar item sizes (= no custom .frame, .font,
+                // .padding, .background). Let macOS toolbar manage everything.
                 ToolbarItemGroup(placement: .navigation) {
-                    HStack(spacing: 4) {
-                        Button {
-                            NSLog("[wenshu.toolbar] tap: 新建 (placeholder)")
-                        } label: {
-                            Image(systemName: "doc.badge.plus")
-                                .foregroundStyle(Color.primary)
-                                .frame(width: 18, height: 18)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .help("新建")
-                        Button {
-                            NSLog("[wenshu.toolbar] tap: 打开 (placeholder)")
-                        } label: {
-                            Image(systemName: "folder")
-                                .foregroundStyle(Color.primary)
-                                .frame(width: 18, height: 18)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .help("打开")
-                        Button {
-                            NSLog("[wenshu.toolbar] tap: 导入 (placeholder)")
-                        } label: {
-                            Image(systemName: "square.and.arrow.down")
-                                .foregroundStyle(Color.primary)
-                                .frame(width: 18, height: 18)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .help("导入")
+                    Button {
+                        NSLog("[wenshu.toolbar] tap: 新建 (placeholder)")
+                    } label: {
+                        Image(systemName: "doc.badge.plus")
                     }
-                    // v0.24 fix (Boss 8/25 28th OOB '1 layer first'): remove inner
-                    // Capsule background. The toolbar's native .regularMaterial
-                    // (from .unified(showsTitle: false)) provides the gray wrap
-                    // visually (= 1 layer, no nested backgrounds).
+                    .help("新建")
+                    Button {
+                        NSLog("[wenshu.toolbar] tap: 打开 (placeholder)")
+                    } label: {
+                        Image(systemName: "folder")
+                    }
+                    .help("打开")
+                    Button {
+                        NSLog("[wenshu.toolbar] tap: 导入 (placeholder)")
+                    } label: {
+                        Image(systemName: "square.and.arrow.down")
+                    }
+                    .help("导入")
                 }
                 // v0.24 fix (Boss 8/25 27th OOB 'match Pages reference'): 2 separate
                 // right groups (Boss 23rd OOB 'parentheses = grouping'), each with
                 // 1 gray Pages-style capsule (controlBackgroundColor, 1 layer only,
                 // no inner black).
+                // v0.24 fix (Boss 8/25 32nd OOB 'ICON超出胶囊范围, 查官方'):
+                // per Apple HIG (= nilcoalescing.com macOS toolbar guide), use
+                // default toolbar item sizes (= no custom .frame, .font, .padding,
+                // .background, .buttonStyle). 4 zone visibility toggles + 导出 in
+                // 1 single .primaryAction group (= 1 layer, no nested wrap).
+                // v0.24 fix (Boss 8/25 32nd OOB 'ICON超出胶囊范围, 查官方'):
+                // 4 zone visibility toggles in 4 separate .primaryAction
+                // ToolbarItems (= each toggle = 1 item, no overflow in 1 group).
+                // Per Apple HIG, default toolbar item size = system-managed
+                // (= no custom .frame, .font, .padding, .background).
                 ToolbarItem(placement: .primaryAction) {
-                    HStack(spacing: 4) {
-                        HStack(spacing: 4) {
-                            // 4 zone toggles keep inner capsule (= Boss 22nd OOB)
-                            Button {
-                                vm.toggleZone(slot: .projectSidebar)
-                            } label: {
-                                Image(systemName: "sidebar.left")
-                                    .foregroundStyle(vm.isZoneVisible(slot: .projectSidebar) ? Color.accentColor : Color.secondary)
-                                    .frame(width: 18, height: 18)
-                                    .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            .help(vm.isZoneVisible(slot: .projectSidebar) ? "隐藏 项目管理区" : "显示 项目管理区")
-                            Button {
-                                vm.toggleZone(slot: .specializedTools)
-                            } label: {
-                                Image(systemName: "wrench.and.screwdriver")
-                                    .foregroundStyle(vm.isZoneVisible(slot: .specializedTools) ? Color.accentColor : Color.secondary)
-                                    .frame(width: 18, height: 18)
-                                    .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            .help(vm.isZoneVisible(slot: .specializedTools) ? "隐藏 工具区" : "显示 工具区")
-                            Button {
-                                vm.toggleZone(slot: .aiChat)
-                            } label: {
-                                Image(systemName: "bubble.left")
-                                    .foregroundStyle(vm.isZoneVisible(slot: .aiChat) ? Color.accentColor : Color.secondary)
-                                    .frame(width: 18, height: 18)
-                                    .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            .help(vm.isZoneVisible(slot: .aiChat) ? "隐藏 聊天区" : "显示 聊天区")
-                            Button {
-                                vm.toggleZone(slot: .aiDynamic)
-                            } label: {
-                                Image(systemName: "chart.bar")
-                                    .foregroundStyle(vm.isZoneVisible(slot: .aiDynamic) ? Color.accentColor : Color.secondary)
-                                    .frame(width: 18, height: 18)
-                                    .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            .help(vm.isZoneVisible(slot: .aiDynamic) ? "隐藏 动态区" : "显示 动态区")
-                        }
-                        // v0.24 fix (Boss 8/25 28th OOB '1 layer first'): remove
-                        // inner Capsule (= 1 layer per group, Boss confirms). The
-                        // toolbar's native .regularMaterial provides the visual wrap.
-                        // v0.24 fix (Boss 8/25 30th OOB 'change export to my screenshot'):
-                        // big circular button (60x60 PT) with white icon on black
-                        // background (= per Boss screenshot: large round button with
-                        // single share icon in center). 1 layer only.
-                        Button {
-                            vm.exportEbook(format: "epub")
-                        } label: {
-                            Image(systemName: "square.and.arrow.up")
-                                .font(.system(size: 22, weight: .medium))
-                                .foregroundStyle(.white)
-                                .frame(width: 60, height: 60)
-                                .background(
-                                    Circle()
-                                        .fill(Color.black)
-                                )
-                                .clipShape(Circle())
-                                .contentShape(Circle())
-                        }
-                        .buttonStyle(.plain)
-                        .help("导出电子书 (PDF / EPUB / MOBI / TXT)")
+                    Button {
+                        vm.toggleZone(slot: .projectSidebar)
+                    } label: {
+                        Image(systemName: "sidebar.left")
                     }
+                    .foregroundStyle(vm.isZoneVisible(slot: .projectSidebar) ? Color.accentColor : Color.secondary)
+                    .help(vm.isZoneVisible(slot: .projectSidebar) ? "隐藏 项目管理区" : "显示 项目管理区")
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        vm.toggleZone(slot: .specializedTools)
+                    } label: {
+                        Image(systemName: "wrench.and.screwdriver")
+                    }
+                    .foregroundStyle(vm.isZoneVisible(slot: .specializedTools) ? Color.accentColor : Color.secondary)
+                    .help(vm.isZoneVisible(slot: .specializedTools) ? "隐藏 工具区" : "显示 工具区")
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        vm.toggleZone(slot: .aiChat)
+                    } label: {
+                        Image(systemName: "bubble.left")
+                    }
+                    .foregroundStyle(vm.isZoneVisible(slot: .aiChat) ? Color.accentColor : Color.secondary)
+                    .help(vm.isZoneVisible(slot: .aiChat) ? "隐藏 聊天区" : "显示 聊天区")
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        vm.toggleZone(slot: .aiDynamic)
+                    } label: {
+                        Image(systemName: "chart.bar")
+                    }
+                    .foregroundStyle(vm.isZoneVisible(slot: .aiDynamic) ? Color.accentColor : Color.secondary)
+                    .help(vm.isZoneVisible(slot: .aiDynamic) ? "隐藏 动态区" : "显示 动态区")
+                }
+                // v0.24 fix (Boss 8/25 30th OOB 'change export to my screenshot'):
+                // 导出 in its own .primaryAction ToolbarItem (5th button).
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        vm.exportEbook(format: "epub")
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    .help("导出电子书 (PDF / EPUB / MOBI / TXT)")
                 }
             }
         }
