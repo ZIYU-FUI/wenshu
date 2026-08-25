@@ -40,6 +40,54 @@ final class LayoutShellViewModel {
     /// 拖拽边界
     static let minOffset: Double = -0.15
     static let maxOffset: Double = +0.15
+
+    // v0.24 boss验收fix (Boss 8/25 tenth OOB ticket 015.023): zone visibility
+    // state for 4 toggle zones (= projectSidebar, specializedTools, aiChat,
+    // aiDynamic). Editor zone NOT toggleable per Boss spec.
+    // @AppStorage for persistence across launches (= Boss 8/24 '每个区域的
+    // tab 选中状态应该持久化' pattern).
+    // v0.24 boss验收fix: @ObservationIgnored prevents conflict with @ObservationTracked
+    // (LayoutShellViewModel is @Observable, but @AppStorage already provides
+    // its own reactive storage via UserDefaults notifications).
+    @ObservationIgnored @AppStorage("wenshu.zoneVisible.projectSidebar") var projectSidebarVisible: Bool = true
+    @ObservationIgnored @AppStorage("wenshu.zoneVisible.specializedTools") var specializedToolsVisible: Bool = true
+    @ObservationIgnored @AppStorage("wenshu.zoneVisible.aiChat") var aiChatVisible: Bool = true
+    @ObservationIgnored @AppStorage("wenshu.zoneVisible.aiDynamic") var aiDynamicVisible: Bool = true
+
+    /// v0.24 boss验收fix (Boss 8/25 tenth OOB ticket 015.023): query helper.
+    /// Returns visibility for given slot. Editor zone always true (= Boss拍
+    /// '编辑器永远不能隐藏').
+    func isZoneVisible(slot: ZoneSlot) -> Bool {
+        switch slot {
+        case .projectSidebar: return projectSidebarVisible
+        case .projectPreview: return true  // editor = always visible
+        case .editor: return true
+        case .specializedTools: return specializedToolsVisible
+        case .aiChat: return aiChatVisible
+        case .aiDynamic: return aiDynamicVisible
+        }
+    }
+
+    /// v0.24 boss验收fix (Boss 8/25 tenth OOB ticket 015.023): toggle visibility
+    /// for given slot. Editor zone toggle is a no-op (= Boss拍).
+    func toggleZone(slot: ZoneSlot) {
+        switch slot {
+        case .projectSidebar: projectSidebarVisible.toggle()
+        case .projectPreview: break  // editor = always visible, no-op
+        case .editor: break  // always visible, no-op
+        case .specializedTools: specializedToolsVisible.toggle()
+        case .aiChat: aiChatVisible.toggle()
+        case .aiDynamic: aiDynamicVisible.toggle()
+        }
+        NSLog("[wenshu.layout] toggleZone: slot=%@ visible=%d", String(describing: slot), isZoneVisible(slot: slot) ? 1 : 0)
+    }
+
+    /// v0.24 boss验收fix (Boss 8/25 tenth OOB ticket 015.023): placeholder for
+    /// e-book export (= Boss拍 '最右加一个导出功能, 用于导出市面上常见的电子书格式').
+    /// Real format conversion logic deferred to future ticket (= PDF/EPUB/MOBI/TXT).
+    func exportEbook(format: String = "epub") {
+        NSLog("[wenshu.layout] exportEbook: format=%@ (placeholder; real conversion future ticket)", format)
+    }
     static let minBandOffset: Double = -1.0
     static let maxBandOffset: Double = +1.0
     static let minZoneRatio: Double = 0.04
