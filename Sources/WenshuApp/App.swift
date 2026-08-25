@@ -1069,10 +1069,10 @@ struct LayoutShellView: View {
                 // TRAILING edge (= right side) on macOS, the official Apple
                 // pattern = ToolbarItemGroup(.automatic) with Spacer() first
                 // (= pushes all buttons to trailing edge, per Stack Overflow
-                // accepted answer for macOS SwiftUI). 4 toggles + 导出 all in
-                // 1 group, Spacer first pushes the whole group to rightmost
-                // position (= the whole group tight against right edge, no
-                // per-button separator).
+                // accepted answer for macOS SwiftUI). 4 zone toggles +
+                // export button all in 1 group, Spacer first pushes the whole
+                // group to rightmost position (= the whole group tight
+                // against right edge, no per-button separator).
                 ToolbarItemGroup(placement: .automatic) {
                     Spacer()
                     Button {
