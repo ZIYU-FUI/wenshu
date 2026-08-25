@@ -118,6 +118,19 @@ final class LayoutShellViewModel {
         Double(LayoutTokens.dynamicWRatio) - offsets[4]
     }
 
+    /// v0.24 boss验收fix (Boss 8/25 eleventh OOB ticket 015.024 '红框中,
+    /// 出现了两条拖拽线'): return true when right-most ZONE widths
+    /// (= specializedTools upper + aiDynamic lower) match (= Boss spec
+    /// '宽度是一模一样的'). At initial state (offsets=0),
+    /// toolsWRatio = dynamicWRatio = 400/1920. After user drags D_v3
+    /// or D_v5, they diverge. Used by UpperBandZone to conditionally
+    /// render D_v3 splitter (= prevents double-line visual at right
+    /// edge when aligned).
+    func areRightSplittersAligned() -> Bool {
+        let tolerance: Double = 0.0001  // ~0.2 PT at 1920 PT width
+        return abs(toolsWRatio - dynamicWRatio) < tolerance
+    }
+
     // MARK: - 拖拽回调 (老板 8/18 拍 D_v1~D_v5 1 PT 黑线, 6 PT hit area, 增量拖拽)
 
     /// D_v1: 项目侧栏 / 项目预览 (vertical, deltaX 增量)
