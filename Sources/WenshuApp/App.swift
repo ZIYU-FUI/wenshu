@@ -1078,6 +1078,14 @@ struct LayoutShellView: View {
                     }
                     .help(vm.isZoneVisible(slot: .aiDynamic) ? "隐藏 动态区" : "显示 动态区")
                 }
+                // v0.24 fix (Boss 8/25 14th OOB ticket 015.028 '右边的按钮从红线处
+                // 拆成两组, 导出独立'): visual separator between 4 zone toggles
+                // and export. Per Boss image red box, the 2 right groups are
+                // visually separated by a divider (= Apple HIG toolbar separator).
+                // title 'Wenshu' is already removed (per Boss拍 '文枢标题不要').
+                ToolbarItem(placement: .principal) {
+                    Divider()
+                }
                 ToolbarItem(placement: .primaryAction) {
                     // Right group (separate): 导出
                     Button {
