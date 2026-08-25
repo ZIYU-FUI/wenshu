@@ -1060,11 +1060,7 @@ struct LayoutShellView: View {
                 // left group style (= 1 layer only, no outer glass, no nested
                 // sub-capsule).
                 ToolbarItem(placement: .primaryAction) {
-                    HStack(spacing: 0) {
-                        // 4 toggles HStack (with inner capsule background) +
-                        // 导出 button (no inner capsule) = inside 1 outer glass
-                        // capsule (= Boss拍 '用外面那层玻璃质感的').
-                        // 4 toggles
+                    HStack(spacing: 8) {
                         HStack(spacing: 4) {
                             // 4 zone toggles keep inner capsule (= Boss 22nd OOB)
                             Button {
