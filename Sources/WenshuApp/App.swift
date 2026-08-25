@@ -72,21 +72,18 @@ enum LayoutTokens {
     // 老板 8/18 拍 "数对" = 拖拽线 1 PT 视觉线摊给左右 zone (各 0.5 PT)
     // 中间 1 + 中间 2 = 1920 - 200 - 400 = 1320
     // 维持原值 558 + 762 (中间 1 + 中间 2 = 1320) = 上 band 4 zone 1920 ✓
-    // v0.24 fix (Boss 8/25 49th OOB 'splitter 18 PT, counted into editor'):
-    // Boss clarified: real BUG = previous Boss 44th OOB fix subtracted
-    // 12/4 PT from toolsWRatio/aiChatRatio to absorb splitters (= changed
-    // other zone ratios, breaking 20/20/40/20 design).
-    // Correct fix = splitter hit area counted into the largest column
-    // (= editor upper / aiChat lower), other columns preserve design ratios
-    // (= sidebar 200, preview 200, editor contains 3 splitters = 382, tools 200).
-    // Total column = 200+200+382+200 = 982 + 18 splitters = 1000
+    // v0.24 fix (Boss 8/25 50th OOB '还是差了一两个像素' + 51st OOB '尝试修一下'):
+    // hit area 6 -> 4 PT (= NativeSplitter.swift). 3 splitters upper = 12 PT (not 18).
+    // Splitter hit area counted into the largest column (= editor),
+    // other columns preserve design ratios.
+    // Total column = 200+200+388+200 = 988 + 12 splitters = 1000
     // (= exact fit, no HStack shrinkage).
     // Upper band 4 zones (20/20/40/20 = 100% total):
     static let projectSidebarRatio: CGFloat = 200.0 / 1000.0  // 20% (= Boss 45th OOB)
     static let projectPreviewRatio: CGFloat = 200.0 / 1000.0  // 20% (= Boss 45th OOB)
-    // v0.24 fix (Boss 8/25 49th OOB): editor itself contains 3 splitters (= 18 PT hit area).
-    // 400 (= 40% design) - 18 (= 3 × 6 splitters) = 382 (= design includes splitter)
-    static let editorWRatio: CGFloat = 382.0 / 1000.0         // 40% design - 3 splitters
+    // v0.24 fix (Boss 8/25 51st OOB): editor itself contains 3 splitters (= 12 PT hit area @ 4 PT each).
+    // 400 (= 40% design) - 12 (= 3 × 4 splitters) = 388 (= design includes splitter)
+    static let editorWRatio: CGFloat = 388.0 / 1000.0         // 40% design - 3 splitters @ 4 PT
     static let toolsWRatio: CGFloat = 200.0 / 1000.0         // 20% (= Boss 45th OOB)
 
     // v0.24 fix (Boss 8/25 41st OOB 'originally 400, check official docs to fix visual width mismatch'):
@@ -101,10 +98,11 @@ enum LayoutTokens {
     // v0.24 fix (Boss 8/25 44th OOB '代码宽度不对'): drop aiChatRatio 1518 -> 1514
     // to absorb 1 splitter hit area (1 × 6 PT = 6 PT). New sum = 1514+400
     // = 1914 + 6 splitter = 1920 PT (= exact window width, no HStack shrinkage).
-    // v0.24 fix (Boss 8/25 49th OOB 'splitter 6 PT, counted into chat'):
-    // aiChat itself contains 1 splitter (= 6 PT hit area).
-    // 800 (= 80% design) - 6 (= 1 × 6 splitter) = 794 (= design includes splitter)
-    // Total column = 794+200 = 994 + 6 splitter = 1000 (= exact fit, no HStack shrinkage).
+    // v0.24 fix (Boss 8/25 50th OOB '还是差了一两个像素' + 51st OOB '尝试修一下'):
+    // hit area 6 -> 4 PT. 1 splitter lower = 4 PT (not 6).
+    // aiChat itself contains 1 splitter (= 4 PT hit area @ 4 PT).
+    // 800 (= 80% design) - 4 (= 1 × 4 splitter) = 796 (= design includes splitter)
+    // Total column = 796+200 = 996 + 4 splitter = 1000 (= exact fit, no HStack shrinkage).
     // Lower band 2 zones (80/20 = 100% total):
     static let aiChatRatio: CGFloat = 794.0 / 1000.0         // 80% design - 1 splitter
     static let dynamicWRatio: CGFloat = 200.0 / 1000.0       // 20% (= Boss 45th OOB)

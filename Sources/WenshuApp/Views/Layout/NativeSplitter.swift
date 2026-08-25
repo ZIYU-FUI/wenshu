@@ -24,7 +24,11 @@ struct NativeSplitter: View {
 
     private static let lineThickness: CGFloat = 1   // 静态 1 PT (Apple 系统 divider 色)
     private static let hoveredThickness: CGFloat = 3  // hover 3 PT (Apple 系统亮色)
-    private static let hitAreaThickness: CGFloat = 6  // hit area 6 PT (Apple 标准 hit area)
+    // v0.24 fix (Boss 8/25 50th OOB '还是差了一两个像素' + 51st OOB '尝试修一下'):
+    // reduce hit area from 6 PT to 4 PT to minimize sub-pixel rendering
+    // mismatch at 1.452 scale (= window 1452 / base 1000 = 1.452 = 6/1.452 = 4.13 PT scaled).
+    // Smaller hit area = less layout space consumed = less uneven distribution.
+    private static let hitAreaThickness: CGFloat = 4  // hit area 4 PT (reduced from 6 to fix sub-pixel mismatch)
 
     /// Orientation 真值
     enum Orientation: Sendable {
