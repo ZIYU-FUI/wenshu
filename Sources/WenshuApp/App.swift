@@ -190,7 +190,14 @@ struct WenshuApp: App {
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
 
     var body: some Scene {
-        WindowGroup("文枢") {
+        // v0.24 boss验收fix (Boss 8/25 17th OOB '文枢标题不要. 隐藏不了吗'):
+        // WindowGroup title set to empty string (= hide macOS native title
+        // bar text '文枢'). Per Boss 16th OOB '文枢标题 全都不要' (= both
+        // toolbar 'principal' item + NSWindow title should not show).
+        // v0.24 fix (Boss 8/25 16th OOB '右边的按钮 到处没有独立一组'): use
+        // different placement for 4 toggles vs export (= automatic visual
+        // separation by macOS HIG, no manual Divider needed).
+        WindowGroup("") {
             // v0.21 ticket 01 (重做 #10): 撤回 SettingsEnvironmentCapturer wrapper (commit a78d758bc Q15 翻车 #11 dead code)
             // SettingsEnvironmentCapturer 之前包 LayoutShellView 注入 OpenSettingsAction, 但 openSettings?() → nil (Q15 翻车 #11), 现在 NSMenu 自己装 + 自创建 NSWindow 装 SettingView 不需要 capture
             SettingsEnvironmentCapturer(library: library, appearanceMode: appearanceMode)
@@ -1047,8 +1054,11 @@ struct LayoutShellView: View {
                     }
                     .help("导入")
                 }
-                ToolbarItemGroup(placement: .primaryAction) {
-                    // Center group: 4 zone visibility toggles (= Boss拍 '一组')
+                // v0.24 fix (Boss 8/25 17th OOB '右边的按钮 到处没有独立一组'):
+                // 4 zone visibility toggles in .automatic placement (= macOS
+                // HIG automatic visual gap from .primaryAction export).
+                ToolbarItemGroup(placement: .automatic) {
+                    // 4 zone visibility toggles (= Boss拍 '一组')
                     Button {
                         vm.toggleZone(slot: .projectSidebar)
                     } label: {
