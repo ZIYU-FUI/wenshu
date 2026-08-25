@@ -76,16 +76,16 @@ public final class ChatViewModel {
     public var currentModel: String = UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? ""
     public var availableModels: [String] = []
     public var contextUsed: Int = 0
-    // v0.24 boss验收fix (Boss 8/25 拍 'minimax m3 不是 1mb 的上下文吗, 你现在设定的才是 131k'):
-// MiniMax M3 context window = 1_000_000 tokens per official docs
-// (https://www.minimax.io/models/text/m3 = '1M Context'; max output 512K).
-// Empirical limit on public anthropic-compatible endpoint per hermes-agent
-// issue #37289 = ~512K input cap (vendor enforces lower than marketed).
-// Decision: use official value (1M) so context budgeting matches docs;
-// actual API may reject >512K (vendor issue, not wenshu).
-// Note: Live API /v1/models does NOT return context_length field (= no
-// API to query per Boss 拍 '没有接口获取的到吗' = boss confirmed no API).
-public var contextMax: Int = 1_000_000
+        // v0.24 boss验收fix (Boss 8/25 OOB 'minimax m3 is not 1MB context window?
+    // you set 131k'): MiniMax-M3 context window = 1_000_000 tokens per official
+    // docs (https://www.minimax.io/models/text/m3 = '1M Context';
+    // max output 512K). Empirical limit on public anthropic-compatible endpoint
+    // per hermes-agent issue #37289 = ~512K input cap (vendor enforces lower
+    // than marketed). Decision: use official value (1M) so context budgeting
+    // matches docs; actual API may reject >512K (vendor issue, not wenshu).
+    // Note: Live API /v1/models does NOT return context_length field (= no API
+    // to query per Boss 8/25 '没有接口获取的到吗' = boss confirmed no API).
+    public var contextMax: Int = 1_000_000
 
     private let conductor: WenshuConductor?
     private let store: ChatSessionStore?
