@@ -1184,15 +1184,19 @@ struct UpperBandZone: View {
         // CGFloat to integer CGFloat (= SwiftUI will render exact PT).
         // v0.24 fix (Boss 8/25 58th OOB '收起后上半区的其它三栏重新分配宽度,
         // 盛满上半区, 过程中要有过度动画'): when projectSidebar hidden,
-        // redistribute its 200 PT to other 3 zones proportionally so they
-        // fill upper band. preview/tools share 25.4% each, editor 49.2%
-        // (proportional to their existing ratios).
+        // redistribute its 200 PT (= ratio 200/1000 = 0.2) to other 3 zones
+        // proportionally so they fill upper band. preview/tools share
+        // 25.4% each of the extra ratio (= 0.0508), editor 49.2%
+        // (= 0.0984), of = sidebarExtraRatio (0.2 * split = 0.0508/0.0984/0.0508).
+        // IMPORTANT (= Spec fix per sub-agent review): sidebarExtraRatio is
+        // the RATIO (= 0.2), NOT PT. Multiplying by totalW TWICE (= totalW
+        // * (ratio + totalW * ratio)) was a previous bug.
         let sidebarIsVisible = vm.isZoneVisible(slot: .projectSidebar)
-        let sidebarExtra = sidebarIsVisible ? 0.0 : (totalW * CGFloat(vm.projectSidebarRatio))
+        let sidebarExtraRatio = sidebarIsVisible ? 0.0 : CGFloat(vm.projectSidebarRatio)
         let sidebar = (totalW * CGFloat(vm.projectSidebarRatio)).rounded()
-        let preview = (totalW * (CGFloat(vm.projectPreviewRatio) + (sidebarExtra * 0.254))).rounded()
-        let editor  = (totalW * (CGFloat(vm.editorWRatio) + (sidebarExtra * 0.492))).rounded()
-        let tools   = (totalW * (CGFloat(vm.toolsWRatio) + (sidebarExtra * 0.254))).rounded()
+        let preview = (totalW * (CGFloat(vm.projectPreviewRatio) + (sidebarExtraRatio * 0.254))).rounded()
+        let editor  = (totalW * (CGFloat(vm.editorWRatio) + (sidebarExtraRatio * 0.492))).rounded()
+        let tools   = (totalW * (CGFloat(vm.toolsWRatio) + (sidebarExtraRatio * 0.254))).rounded()
         // v0.24 fix (Boss 8/25 57th OOB '界面全改丢了, 先实现第一个按钮对应的
         // 项目管理区, 一个一个来'): only wrap projectSidebar (= first
         // button = sidebar.left, corresponding to projectSidebar zone) in
