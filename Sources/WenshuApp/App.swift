@@ -1031,28 +1031,50 @@ struct LayoutShellView: View {
             // Chinese per Boss 8/25 'UI 全中文' rule (= UI strings exempt
             // from AGENTS.md §11 English-only rule).
             .toolbar {
-                // v0.24 fix (Boss 8/25 20th OOB '本来左边的新建打开导入是对的, 你又多
-                // 改了内容'): revert left group to original NSLog placeholders
-                // (= Boss拍 left was correct before ticket 015.034 over-wrap).
+                // v0.24 fix (Boss 8/25 25th OOB '看到 pages 的样式了没, 胶囊有多
+                // 个. 我们就需要三个胶囊 1.(新建, 打开, 导入) 2.(四个显隐开关)
+                // 3.(一个导出按钮)'): wrap left 3 file actions in 1 dark capsule
+                // (= 1 of 3 separate 胶囊 groups, Pages style). Same control
+                // BackgroundColor as right groups (= 1 layer, no outer glass).
                 ToolbarItemGroup(placement: .navigation) {
-                    Button {
-                        NSLog("[wenshu.toolbar] tap: 新建 (placeholder)")
-                    } label: {
-                        Label("新建", systemImage: "doc.badge.plus")
+                    HStack(spacing: 4) {
+                        Button {
+                            NSLog("[wenshu.toolbar] tap: 新建 (placeholder)")
+                        } label: {
+                            Image(systemName: "doc.badge.plus")
+                                .foregroundStyle(Color.primary)
+                                .frame(width: 18, height: 18)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .help("新建")
+                        Button {
+                            NSLog("[wenshu.toolbar] tap: 打开 (placeholder)")
+                        } label: {
+                            Image(systemName: "folder")
+                                .foregroundStyle(Color.primary)
+                                .frame(width: 18, height: 18)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .help("打开")
+                        Button {
+                            NSLog("[wenshu.toolbar] tap: 导入 (placeholder)")
+                        } label: {
+                            Image(systemName: "square.and.arrow.down")
+                                .foregroundStyle(Color.primary)
+                                .frame(width: 18, height: 18)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .help("导入")
                     }
-                    .help("新建")
-                    Button {
-                        NSLog("[wenshu.toolbar] tap: 打开 (placeholder)")
-                    } label: {
-                        Label("打开", systemImage: "folder")
-                    }
-                    .help("打开")
-                    Button {
-                        NSLog("[wenshu.toolbar] tap: 导入 (placeholder)")
-                    } label: {
-                        Label("导入", systemImage: "square.and.arrow.down")
-                    }
-                    .help("导入")
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule()
+                            .fill(Color(nsColor: .controlBackgroundColor))
+                    )
                 }
                 // v0.24 fix (Boss 8/25 24th OOB '样式不对, 参考新建, 打开, 导入的
                 // 样式. 你现在包了两层'): 2 separate right groups (Boss 23rd OOB
