@@ -201,11 +201,11 @@ struct WenshuApp: App {
         }
         // Boss 8/24 反馈: '用 52 的那个'. Apple SwiftUI macOS 14+ windowToolbarStyle
 // options: .automatic, .unified (52 PT), .unifiedCompact (28 PT), .expanded.
-        // v0.24 fix (Boss 8/25 28th OOB '尺寸改成默认尺寸' + Apple docs):
+        // v0.24 fix (Boss 8/25 28th OOB 'use default size' + Apple docs):
         // use .unified (52 PT) = macOS default toolbar style. Per Apple
         // developer.apple.com/documentation/SwiftUI/WindowToolbarStyle,
         // .unified is the default style (52 PT). .unifiedCompact is
-        // COMPACT (= smaller, NOT default). Boss拍 '默认尺寸' = .unified.
+        // COMPACT (= smaller, NOT default). Boss拍 'default size' = .unified.
         .windowToolbarStyle(.unified(showsTitle: false))  // 52 PT default toolbar, title hidden
         .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // 老板 Sketch 设计基准 1920×984 PT
         // v0.24 boss验收fix: .contentMinSize (window doesn't shrink below initial
@@ -1071,10 +1071,10 @@ struct LayoutShellView: View {
                         .buttonStyle(.plain)
                         .help("导入")
                     }
-                    // v0.24 fix (Boss 8/25 28th OOB '先改成单层胶囊再说'):
-                    // remove inner Capsule background. The toolbar's native
-                    // .regularMaterial (from .unified(showsTitle: false)) provides
-                    // the gray wrap visually (= 1 layer, no nested backgrounds).
+                    // v0.24 fix (Boss 8/25 28th OOB '1 layer first'): remove inner
+                    // Capsule background. The toolbar's native .regularMaterial
+                    // (from .unified(showsTitle: false)) provides the gray wrap
+                    // visually (= 1 layer, no nested backgrounds).
                 }
                 // v0.24 fix (Boss 8/25 27th OOB 'match Pages reference'): 2 separate
                 // right groups (Boss 23rd OOB 'parentheses = grouping'), each with
@@ -1125,12 +1125,12 @@ struct LayoutShellView: View {
                             .buttonStyle(.plain)
                             .help(vm.isZoneVisible(slot: .aiDynamic) ? "隐藏 动态区" : "显示 动态区")
                         }
-                        // v0.24 fix (Boss 8/25 28th OOB '改成单层对了'): remove inner
-                        // Capsule (= 1 layer per group, Boss confirms). The toolbar's
-                        // native .regularMaterial provides the visual wrap.
-                        // v0.24 fix (Boss 8/25 30th OOB '把导出改成我截图这样'):
+                        // v0.24 fix (Boss 8/25 28th OOB '1 layer first'): remove
+                        // inner Capsule (= 1 layer per group, Boss confirms). The
+                        // toolbar's native .regularMaterial provides the visual wrap.
+                        // v0.24 fix (Boss 8/25 30th OOB 'change export to my screenshot'):
                         // big circular button (60x60 PT) with white icon on black
-                        // background (= per Boss 截图: large round button with
+                        // background (= per Boss screenshot: large round button with
                         // single share icon in center). 1 layer only.
                         Button {
                             vm.exportEbook(format: "epub")
