@@ -1213,10 +1213,15 @@ struct ZoneToolbarAction {
 /// Per-zone status passed as parameter (boss 8/25 OOB '每 zone 自己的 status info').
 struct ZoneBottomToolbar: View {
     @State private var wordCountViewModel: WordCountViewModel = WordCountViewModel()
-    let status: String  // v0.24: per-zone status info (= shelf count / word count / chapter count / etc.)
+    let status: String  // v0.24: per-zone status info (left side, = shelf count / word count / chapter count / etc.)
+    // v0.24 boss验收fix (Boss 8/25 sixth OOB ticket 015.019): per-zone right
+    // status. Default empty = no right text rendered (= keep WordCount
+    // fallback). projectSidebar uses '书: N' (= total book count per Boss spec).
+    let rightStatus: String
 
-    init(status: String = "") {
+    init(status: String = "", rightStatus: String = "") {
         self.status = status
+        self.rightStatus = rightStatus
     }
 
     var body: some View {
@@ -1238,14 +1243,26 @@ struct ZoneBottomToolbar: View {
                     .allowsHitTesting(false)
             }
             .overlay(alignment: .bottomTrailing) {
-                // o09: right placeholder text replaced by WordCountInlineLabel.
-                // Kept for chat zone (where word count makes sense). For other zones,
-                // the right side stays empty until ticket 015.013 wires real per-zone data.
-                WordCountInlineLabel(viewModel: wordCountViewModel)
-                    .padding(.trailing, 18)
-                    .padding(.bottom, 6)
-                    .frame(height: toolbarH, alignment: .bottomTrailing)
-                    .allowsHitTesting(false)
+                // v0.24 boss验收fix (Boss 8/25 sixth OOB ticket 015.019):
+                // right-side status text. Per Boss spec '右边的字数改成, 书 N
+                // (取实际的数)', projectSidebar shows '书: N' (= total book
+                // count). Empty rightStatus = render WordCountInlineLabel
+                // (= chat zone word count fallback per o09 ticket).
+                if rightStatus.isEmpty {
+                    WordCountInlineLabel(viewModel: wordCountViewModel)
+                        .padding(.trailing, 18)
+                        .padding(.bottom, 6)
+                        .frame(height: toolbarH, alignment: .bottomTrailing)
+                        .allowsHitTesting(false)
+                } else {
+                    Text(rightStatus)
+                        .font(.system(size: 13))
+                        .foregroundStyle(.tertiary)
+                        .padding(.trailing, 18)
+                        .padding(.bottom, 6)
+                        .frame(height: toolbarH, alignment: .bottomTrailing)
+                        .allowsHitTesting(false)
+                }
             }
     }
 }
@@ -1302,6 +1319,23 @@ struct ZoneModule: View {
             return "看板"
         }
     }
+
+    /// v0.24 boss验收fix (Boss 8/25 sixth OOB ticket 015.019): per-zone
+    /// right-side status. Empty string = no right text rendered (= chat
+    /// zone keeps WordCountInlineLabel fallback per o09). Per Boss plan A:
+    /// - projectSidebar: '书: N' (= total book count from library).
+    /// - other zones: empty (= keep WordCountInlineLabel word count).
+    private func rightStatus(for slot: ZoneSlot) -> String {
+        switch slot {
+        case .projectSidebar:
+            // Per Boss 8/25 sixth OOB: '右边的字数改成, 书 N (取实际的数)'.
+            // Total book count across all shelves (= library.bookCount).
+            return "书: \(library.bookCount)"
+        case .projectPreview, .editor, .specializedTools, .aiChat, .aiDynamic:
+            // Empty = no right text (= WordCountInlineLabel fallback).
+            return ""
+        }
+    }
     // v0.10.8: 撤掉 chatInputW/H 私有属性, 老板 8/18 拍 "新图没画聊天输入框"
     private var innerBandH: CGFloat { bandH - 2 * toolbarH }  // 顶栏底栏间内容区
 
@@ -1329,7 +1363,7 @@ struct ZoneModule: View {
             // Per Boss plan A: per-zone status info (shelf count, chapter count,
             // word count, etc.).
             if slot != .aiChat {
-                ZoneBottomToolbar(status: zoneStatus(for: slot))
+                ZoneBottomToolbar(status: zoneStatus(for: slot), rightStatus: rightStatus(for: slot))
             }
         }
         .background(slot == .aiDynamic ? DesignColor.dynamicZoneSurface : .clear)

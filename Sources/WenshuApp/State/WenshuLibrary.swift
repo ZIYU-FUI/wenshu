@@ -31,6 +31,12 @@ final class WenshuLibrary {
     /// All bookshelves, sorted by updatedAt descending (= Apple HIG Finder
     /// 'Recents' convention).
     private(set) var shelves: [Bookshelf] = []
+    /// v0.24 boss验收fix (Boss 8/25 sixth OOB ticket 015.019): total book
+    /// count across all shelves (= used by projectSidebar bottom toolbar
+    /// right-side status "书: N"). Computed by iterating store.loadBooks
+    /// for each shelf; cached in @Observable mirror so UI updates
+    /// reactively when shelves/books change.
+    private(set) var bookCount: Int = 0
 
     /// The user's current selection (= Apple HIG document-based apps
     /// default to a single selection; v0.02.0 is single-selection only).
@@ -76,6 +82,24 @@ final class WenshuLibrary {
                 // empty state will render and the user can pick one.
             }
         }
+        // v0.24 boss验收fix (Boss 8/25 sixth OOB ticket 015.019): compute
+        // total book count across all shelves (= used by projectSidebar
+        // bottom toolbar right-side status '书: N').
+        recomputeBookCount()
+    }
+
+    /// v0.24 boss验收fix (Boss 8/25 sixth OOB ticket 015.019): recompute
+    /// bookCount by summing books across all shelves. Public so views can
+    /// trigger recomputation after shelf/book add/remove mutations.
+    public func recomputeBookCount() {
+        var total = 0
+        for shelf in shelves {
+            if let books = try? store.loadBooks(shelfId: shelf.id) {
+                total += books.count
+            }
+        }
+        bookCount = total
+        NSLog("[wenshu.library] recomputeBookCount: %d (shelf count=%d)", total, shelves.count)
     }
 
     /// URL to display in the UI (= 'Library at <rootURL>'). The view
