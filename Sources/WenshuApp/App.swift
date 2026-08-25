@@ -1176,10 +1176,18 @@ struct UpperBandZone: View {
         // v0.15 ticket 022.5: 撤回 ticket 022 .containerRelativeFrame (写死宽度, 不能拖拽)
         //   老板 2026-08-19 拍: "要能实现拖拽, 要能实现比例, 因为 windows 还要能调整大小, 等到 windows 实现调整大小后, 整个框架也要自适应, 你写成硬编码的宽度, 不法实现"
         //   修法: 改回 LayoutTokens.ratio * totalW (比例写死, 但响应 resize 因为用 totalW * ratio, VSplitter 改 offsets 影响宽度)
-        let sidebar = totalW * CGFloat(vm.projectSidebarRatio)
-        let preview = totalW * CGFloat(vm.projectPreviewRatio)
-        let editor  = totalW * CGFloat(vm.editorWRatio)
-        let tools   = totalW * CGFloat(vm.toolsWRatio)
+        // v0.24 fix (Boss 8/25 50th OOB '还是差了一两个像素' + Apple docs):
+        // per stackoverflow.com / swiftui-lab.com, SwiftUI HStack with
+        // .frame(width:) on every child may render 1 PT gap due to
+        // sub-pixel rounding (= each child width is fractional PT, total
+        // may not be exactly integer = visible 1-2 PT gap).
+        // Fix per Apple HIG = round each width to integer (= no fractional
+        // PT = no sub-pixel rendering gap). Use .rounded() to convert
+        // CGFloat to integer CGFloat (= SwiftUI will render exact PT).
+        let sidebar = (totalW * CGFloat(vm.projectSidebarRatio)).rounded()
+        let preview = (totalW * CGFloat(vm.projectPreviewRatio)).rounded()
+        let editor  = (totalW * CGFloat(vm.editorWRatio)).rounded()
+        let tools   = (totalW * CGFloat(vm.toolsWRatio)).rounded()
         HStack(spacing: 0) {
             ZoneModule(slot: .projectSidebar, vm: vm, totalW: totalW, bandH: bandH)
                 .frame(width: sidebar)
@@ -1192,7 +1200,7 @@ struct UpperBandZone: View {
             ZoneModule(slot: .editor, vm: vm, totalW: totalW, bandH: bandH)
                 .frame(width: editor)
             // D_v3: 编辑器 / 专用工具 (splitterIndex 2)
-            // v0.24 boss验收fix (Boss 8/25 15th OOB '工具区不能拖拽了. 修好'):
+            // v0.24 boss acceptance fix (Boss 8/25 15th OOB '工具区不能拖拽了. 修好'):
             // reverted conditional hide from ticket 015.024 (= 4 PT double-line
             // fix) because hiding D_v3 makes it impossible to drag 工具区 width.
             // Per Boss 8/25 8th OOB '不要纠结线的问题, 核心是比例': visual
@@ -1217,8 +1225,12 @@ struct LowerBandZone: View {
     let bandH: CGFloat
     var body: some View {
         // v0.15 ticket 022.5: 撤回 ticket 022 (改回 LayoutTokens.ratio * totalW)
-        let aiChatW = totalW * CGFloat(vm.aiChatRatio)
-        let dynamicW = totalW * CGFloat(vm.dynamicWRatio)
+        // v0.24 fix (Boss 8/25 50th OOB '还是差了一两个像素' + Apple docs):
+        // per stackoverflow.com / swiftui-lab.com, SwiftUI HStack may
+        // render 1 PT gap due to sub-pixel rounding. Round to integer
+        // (= no fractional PT = no sub-pixel rendering gap).
+        let aiChatW = (totalW * CGFloat(vm.aiChatRatio)).rounded()
+        let dynamicW = (totalW * CGFloat(vm.dynamicWRatio)).rounded()
         HStack(spacing: 0) {
             ZoneModule(slot: .aiChat, vm: vm, totalW: totalW, bandH: bandH)
                 .frame(width: aiChatW)
