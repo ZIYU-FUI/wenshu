@@ -815,6 +815,42 @@ private struct SettingsEnvironmentCapturer: View {
 
 /// AppDelegate: WenshuCore runtime + macOS app init
 final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
+    // v0.24 boss验收fix (Boss 8/25 OOB Spec axis GAP): one-time migration
+    // from legacy chat.sqlite to warehouse. Preserves chat history when
+    // user first picks a .ws warehouse in onboarding (= avoids silent data loss).
+    // Idempotent: if legacy file doesn't exist or new file already exists, skip.
+    private static func migrateLegacyChatIfNeeded(warehousePath: String, chatDbPath: String?) {
+        guard let chatDbPath = chatDbPath else { return }
+        let fm = FileManager.default
+        // Legacy path: ~/Library/Application Support/wenshu/chat.sqlite
+        guard let appSupport = try? fm.url(for: .applicationSupportDirectory,
+                                            in: .userDomainMask,
+                                            appropriateFor: nil,
+                                            create: false)
+                .appendingPathComponent("wenshu", isDirectory: true)
+                .appendingPathComponent("chat.sqlite") else {
+            return
+        }
+        // Skip if legacy file doesn't exist
+        guard fm.fileExists(atPath: appSupport.path) else { return }
+        let newURL = URL(fileURLWithPath: chatDbPath)
+        // Skip if new file already exists (= no overwrite)
+        guard !fm.fileExists(atPath: newURL.path) else { return }
+        // Ensure warehouse directory exists
+        let warehouseDir = (chatDbPath as NSString).deletingLastPathComponent
+        if !fm.fileExists(atPath: warehouseDir) {
+            try? fm.createDirectory(atPath: warehouseDir, withIntermediateDirectories: true)
+        }
+        // Copy legacy → warehouse
+        do {
+            try fm.copyItem(at: appSupport, to: newURL)
+            NSLog("[wenshu.chatStore] migrated legacy chat.sqlite to %@", chatDbPath)
+        } catch {
+            NSLog("[wenshu.chatStore] legacy chat migration FAILED: %@", String(describing: error))
+        }
+    }
+
+    
     // v0.21 ticket 01 (重做 #7): 持 SwiftUI 14+ OpenSettingsAction (LayoutShellView .onAppear 注入, OpenSettingsAction.callAsFunction() 触发)
     nonisolated(unsafe) static var openSettings: OpenSettingsAction?
 
@@ -860,6 +896,13 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             // Place chat.sqlite inside it.
             (path as NSString).appendingPathComponent("chat.sqlite")
         }
+        // v0.24 boss验收fix (Boss 8/25 OOB Spec axis GAP): one-time migration
+        // from legacy chat.sqlite to warehouse (preserves chat history when
+        // user first picks a .ws warehouse in onboarding).
+        if let warehouse = warehousePath {
+            Self.migrateLegacyChatIfNeeded(warehousePath: warehouse, chatDbPath: chatDbPath)
+        }
+
         let chatStore: ChatSessionStore?
         do {
             let store = try ChatSessionStore(path: chatDbPath)
