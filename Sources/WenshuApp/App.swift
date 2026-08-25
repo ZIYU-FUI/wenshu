@@ -1072,17 +1072,19 @@ struct LayoutShellView: View {
                     .padding(.horizontal, 6)
                     .padding(.vertical, 4)
                     .background(
+                        // v0.24 fix (Boss 8/25 26th OOB '把背景那个灰色的胶囊去掉.
+                        // 只留一层黑色的'): use opaque black (= no toolbar material
+                        // blur showing through) instead of controlBackgroundColor.
                         Capsule()
-                            .fill(Color(nsColor: .controlBackgroundColor))
+                            .fill(Color.black)
                     )
                 }
-                // v0.24 fix (Boss 8/25 24th OOB '样式不对, 参考新建, 打开, 导入的
-                // 样式. 你现在包了两层'): 2 separate right groups (Boss 23rd OOB
-                // '括号代表分组'), each with 1 plain rounded background matching
-                // left group style (= 1 layer only, no outer glass, no nested
-                // sub-capsule).
+                // v0.24 fix (Boss 8/25 26th OOB '把背景那个灰色的胶囊去掉.
+                // 只留一层黑色的'): 2 separate right groups (Boss 23rd OOB
+                // '括号代表分组'), each with 1 black opaque capsule, HStack
+                // spacing = 4 PT (= minimal gap, no outer gray wrapper).
                 ToolbarItem(placement: .primaryAction) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: 4) {
                         HStack(spacing: 4) {
                             // 4 zone toggles keep inner capsule (= Boss 22nd OOB)
                             Button {
@@ -1129,8 +1131,10 @@ struct LayoutShellView: View {
                         .padding(.horizontal, 6)
                         .padding(.vertical, 4)
                         .background(
+                            // v0.24 fix (Boss 8/25 26th OOB '只留一层黑色的'):
+                            // opaque black to prevent toolbar material blur.
                             Capsule()
-                                .fill(Color(nsColor: .controlBackgroundColor))
+                                .fill(Color.black)
                         )
                         // v0.24 fix (Boss 8/25 24th OOB '样式不对, 参考新建, 打开,
                         // 导入的样式'): 导出 in 1 plain rounded capsule (= 1 layer
@@ -1148,8 +1152,10 @@ struct LayoutShellView: View {
                         .padding(.horizontal, 6)
                         .padding(.vertical, 4)
                         .background(
+                            // v0.24 fix (Boss 8/25 26th OOB '只留一层黑色的'):
+                            // opaque black to prevent toolbar material blur.
                             Capsule()
-                                .fill(Color(nsColor: .controlBackgroundColor))
+                                .fill(Color.black)
                         )
                     }
                 }
