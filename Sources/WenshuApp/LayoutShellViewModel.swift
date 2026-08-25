@@ -91,21 +91,16 @@ final class LayoutShellViewModel {
     /// menu bar CommandGroup buttons (= menu bar is primary command
     /// surface per Apple HIG Rule 3). Notification posts the ZoneSlot,
     /// listener calls toggleZone (= same code path as toolbar buttons).
-    /// v0.24 fix (Boss 8/25 61st OOB 'still not work + projectSidebar
-    /// gone'): reset 4 zone @AppStorage to true on init (= ensures
-    /// default state even if previous toggle clicks hid zones). This
-    /// makes the side effect of any earlier toggling gone, restoring
-    /// boss spec 'default = visible' (per Boss 58th OOB).
+    /// v0.24 fix (Boss 8/25 62nd OOB 'still not work, BUGs everywhere'):
+    /// remove forced @AppStorage reset in init() (= was breaking user
+    /// persistence — Boss拍 user can toggle any zone to hide, and that
+    /// state should persist across launches). @AppStorage default =
+    /// true works for first-time users; subsequent toggles persist via
+    /// UserDefaults. Earlier test cycles had stale UserDefaults state
+    /// (= projectSidebar = 0 from manual toggle clicks); reset that
+    /// one-off via 'defaults delete' shell command, then init() stays
+    /// clean (= only sets up NotificationCenter listener).
     init() {
-        // Boss 61st OOB 'default = visible': reset all 4 zone flags to
-        // true (= restore Boss 58th OOB 'projectSidebar default visible'
-        // invariant). User can still toggle any zone to hide via menu
-        // bar / toolbar buttons.
-        UserDefaults.standard.set(true, forKey: "wenshu.zoneVisible.projectSidebar")
-        UserDefaults.standard.set(true, forKey: "wenshu.zoneVisible.specializedTools")
-        UserDefaults.standard.set(true, forKey: "wenshu.zoneVisible.aiChat")
-        UserDefaults.standard.set(true, forKey: "wenshu.zoneVisible.aiDynamic")
-
         NotificationCenter.default.addObserver(
             forName: .wenshuToggleZone,
             object: nil,

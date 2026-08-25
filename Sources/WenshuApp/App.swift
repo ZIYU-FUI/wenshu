@@ -1042,6 +1042,14 @@ struct LayoutShellView: View {
     @State private var vm = LayoutShellViewModel()
 
     var body: some View {
+        // v0.24 fix (Boss 8/25 62nd OOB 'still not work, BUGs everywhere'):
+        // Read revisionToken (= explicit dependency for Observation
+        // tracking, per Apple Observation framework). Without reading
+        // revisionToken in body, SwiftUI may not re-render when
+        // toggleZone bumps the token, since @AppStorage flag is
+        // @ObservationIgnored (= not auto-tracked).
+        let _revisionTokenForDependency = vm.revisionToken
+
         // GeometryReader 拿窗口实际尺寸, 比例算子 × 实 PT = 任何窗口大小 1:1 自适应 (Apple HIG responsive)
         // macOS .unified(compact:) 52 PT toolbar 由 WindowGroup windowStyle 提供 (老板 2026-08-19 拍不写自定标题栏)
         // 不加 fixed frame + 不加 max(...) floor (v0.15 ticket 005 修响应式 bug)
