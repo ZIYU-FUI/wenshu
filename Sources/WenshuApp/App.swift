@@ -1078,16 +1078,17 @@ struct LayoutShellView: View {
                     }
                     .help(vm.isZoneVisible(slot: .aiDynamic) ? "隐藏 动态区" : "显示 动态区")
                 }
-                // v0.24 fix (Boss 8/25 14th OOB ticket 015.028 '右边的按钮从红线处
-                // 拆成两组, 导出独立'): visual separator between 4 zone toggles
-                // and export. Per Boss image red box, the 2 right groups are
-                // visually separated by a divider (= Apple HIG toolbar separator).
-                // title 'Wenshu' is already removed (per Boss拍 '文枢标题不要').
-                ToolbarItem(placement: .principal) {
-                    Divider()
-                }
+                // v0.24 fix (Boss 8/25 16th OOB ticket 015.030 '分得不对,
+                // 右边的四个显隐功能是一组, 导出独立'): correct grouping =
+                // 4 zone visibility toggles (= 项目管理区 / 工具区 / 聊天区 / 动态区)
+                // in one ToolbarItemGroup (= '一组' per Boss拍), and 导出 in
+                // a SEPARATE ToolbarItemGroup (= '独立' per Boss拍).
+                // Per Boss 16th OOB: '文枢标题, 正中间的一个没有内容的按钮, 全都不要'.
+                // Center Divider (from ticket 015.028) removed (= Boss 16th OOB
+                // '正中间的一个没有内容的按钮 全都不要'). Toolbar order:
+                // [3 left file actions] + [4 zone toggles in 1 group] + [1 export separate].
                 ToolbarItem(placement: .primaryAction) {
-                    // Right group (separate): 导出
+                    // Right group: 导出 (independent per Boss拍)
                     Button {
                         vm.exportEbook(format: "epub")
                     } label: {
