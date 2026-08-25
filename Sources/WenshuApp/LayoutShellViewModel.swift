@@ -145,20 +145,4 @@ final class LayoutShellViewModel {
         }
     }
 
-    /// v0.24 boss验收fix (Boss 8/25 fifth OOB ticket 015.018): return true
-    /// when right-most ZONE widths (= specializedTools upper + aiDynamic lower)
-    /// match (= Boss spec '宽度是一模一样的'). At initial state (offsets=0),
-    /// toolsWRatio = dynamicWRatio = 400/1920. After user drags D_v3 (= edit
-    /// upper right zone) or D_v5 (= edit lower right zone), they diverge.
-    ///
-    /// Note: D_v3 X position (= projectSidebar+projectPreview+editor sum, ~1514/1920)
-    /// differs from D_v5 X position (= aiChatRatio = 1518/1920) by 4 PT at
-    /// defaults. The visual merger 'looks like one line' is achieved by
-    /// (a) hiding D_v3 when this predicate returns true, AND
-    /// (b) overlaying a continuous vertical line at D_v5 X (in LayoutShellView body).
-    /// See ticket 015.018 双轴 review for math.
-    func areRightSplittersAligned() -> Bool {
-        let tolerance: Double = 0.0001  // ~0.2 PT at 1920 PT width
-        return abs(toolsWRatio - dynamicWRatio) < tolerance
-    }
 }

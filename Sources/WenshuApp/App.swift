@@ -1005,31 +1005,15 @@ struct LayoutShellView: View {
                 // 下 band: 2 区 + 1 拖拽线 (老板 8/18 拍 "上四下两")
                 LowerBandZone(vm: vm, totalW: totalW, bandH: vm.lowerBandH(totalHeight: contentH - 2))
             }
-            // v0.24 boss验收fix (Boss 8/25 fifth OOB '拖拽线上下接上'): overlay
-            // a single continuous vertical line at the X position shared by
-            // D_v3 (editor/specializedTools) and D_v5 (chat/dynamic) when
-            // initial widths are identical (offsets=0 default). At other
-            // offsets, the splitter positions may diverge — Boss request is
-            // specifically for the initial-state alignment, so this overlay
-            // only activates when vm.toolsWRatio == vm.dynamicWRatio AND all
-            // offsets are zero (= fresh install, no user drag yet).
-            .overlay(alignment: .topLeading) {
-                if vm.areRightSplittersAligned() {
-                    // v0.24 boss验收fix (Boss 8/25 fifth OOB '拖拽线上下接上') +
-                    // 双轴 FAIL fix (ticket 015.018): overlay at D_v5 X (= aiChat
-                    // ratio) NOT D_v3 X (= projectSidebar+preview+editor sum).
-                    // D_v3 X = 1514/1920, D_v5 X = 1518/1920 (= 4 PT off).
-                    // To merge 'looks like one line' we cover D_v5 with the
-                    // overlay AND hide D_v3 (VSplitter(splitterIndex: 2)) via
-                    // conditional render in UpperBandZone below.
-                    let rightX = totalW * CGFloat(vm.aiChatRatio) + 0.5  // 0.5 = center of 1 PT line
-                    Rectangle()
-                        .fill(Color(nsColor: .separatorColor))
-                        .frame(width: 1, height: contentH - 2)
-                        .position(x: rightX, y: (contentH - 2) / 2)
-                        .allowsHitTesting(false)
-                }
-            }
+            // v0.24 boss验收fix (Boss 8/25 eighth OOB '不要纠结线的问题, 核心是比例'):
+            // overlay REMOVED. Boss拍 core spec = the rightmost zone widths
+            // (specializedTools upper + aiDynamic lower) must have the same
+            // ratio of total width. LayoutTokens.toolsWRatio ==
+            // LayoutTokens.dynamicWRatio = 400/1920 already satisfies this
+            // at initial state (= both zones 400/1920 * totalWidth = same).
+            // Splitter positions may still differ slightly (= D_v3 X =
+            // 1514/1920 vs D_v5 X = 1518/1920, 4 PT off) — that's a
+            // splitter placement issue, not a zone-width issue.
             // v0.24 boss验收fix: tap anywhere posts defocus notification so chat
             // input loses focus when user clicks outside TextField.
             // Boss 8/24 feedback: '点其它区域, 文本框还是不失焦'.
@@ -1089,17 +1073,12 @@ struct UpperBandZone: View {
             VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 1, vm: vm)
             ZoneModule(slot: .editor, vm: vm, totalW: totalW, bandH: bandH)
                 .frame(width: editor)
-            // D_v3: 编辑器 / 专用工具 (splitterIndex 2).
-            // v0.24 boss验收fix (Boss 8/25 fifth OOB ticket 015.018 + 双轴 FAIL fix):
-            // conditionally hide D_v3 when right splitters are aligned (= initial
-            // state at offsets=0). Otherwise D_v3 stays visible at its own X
-            // (= projectSidebar+preview+editor sum) which is 4 PT to the left
-            // of D_v5 (= aiChat ratio). The overlay line covers D_v5, so hiding
-            // D_v3 makes the right edge look like ONE continuous vertical line
-            // (= Boss spec '看起来就像一条').
-            if !vm.areRightSplittersAligned() {
-                VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 2, vm: vm)
-            }
+            // D_v3: 编辑器 / 专用工具 (splitterIndex 2)
+            // v0.24 boss验收fix (Boss 8/25 eighth OOB '不要纠结线的问题, 核心是比例'):
+            // D_v3 restored (= no longer hidden) — Boss removed overlay
+            // approach. Core fix = toolsWRatio == dynamicWRatio
+            // (= 400/1920 already satisfied at initial state).
+            VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 2, vm: vm)
             ZoneModule(slot: .specializedTools, vm: vm, totalW: totalW, bandH: bandH)
                 .frame(width: tools)
         }
