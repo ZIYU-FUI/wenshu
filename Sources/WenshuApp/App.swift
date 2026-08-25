@@ -1035,60 +1035,71 @@ struct LayoutShellView: View {
             // Chinese per Boss 8/25 'UI 全中文' rule (= UI strings exempt
             // from AGENTS.md §11 English-only rule).
             .toolbar {
+                // v0.24 fix (Boss 8/25 19th OOB): 3 file actions wrapped in
+                // HStack + Capsule background (per Boss image, all 3 toolbar
+                // groups are in capsules: file actions / 4 toggles / export).
                 ToolbarItemGroup(placement: .navigation) {
-                    // Left group: 3 file actions
-                    Button {
-                        NSLog("[wenshu.toolbar] tap: 新建 (placeholder)")
-                    } label: {
-                        Label("新建", systemImage: "doc.badge.plus")
+                    HStack(spacing: 0) {
+                        // Left group: 3 file actions in 1 capsule
+                        Button {
+                            NSLog("[wenshu.toolbar] tap: 新建 (placeholder)")
+                        } label: {
+                            Label("新建", systemImage: "doc.badge.plus")
+                        }
+                        .help("新建")
+                        Button {
+                            NSLog("[wenshu.toolbar] tap: 打开 (placeholder)")
+                        } label: {
+                            Label("打开", systemImage: "folder")
+                        }
+                        .help("打开")
+                        Button {
+                            NSLog("[wenshu.toolbar] tap: 导入 (placeholder)")
+                        } label: {
+                            Label("导入", systemImage: "square.and.arrow.down")
+                        }
+                        .help("导入")
                     }
-                    .help("新建")
-                    Button {
-                        NSLog("[wenshu.toolbar] tap: 打开 (placeholder)")
-                    } label: {
-                        Label("打开", systemImage: "folder")
-                    }
-                    .help("打开")
-                    Button {
-                        NSLog("[wenshu.toolbar] tap: 导入 (placeholder)")
-                    } label: {
-                        Label("导入", systemImage: "square.and.arrow.down")
-                    }
-                    .help("导入")
+                    .padding(4)
+                    .background(
+                        Capsule()
+                            .fill(Color(nsColor: .controlBackgroundColor).opacity(0.6))
+                    )
                 }
-                // v0.24 fix (Boss 8/25 17th OOB '右边的按钮 到处没有独立一组'):
-                // 4 zone visibility toggles in .automatic placement (= macOS
-                // HIG automatic visual gap from .primaryAction export).
+                // v0.24 fix (Boss 8/25 19th OOB '显/隐 四个开关在一个胶囊内, 导出按钮
+                // 单独在一个胶囊内. 同时放在最右边'): wrap 4 zone visibility
+                // toggles in a HStack with rounded rectangle background (= Apple
+                // HIG macOS toolbar capsule). The 4 toggles are 1 capsule group
+                // (Boss拍 '一组').
                 ToolbarItemGroup(placement: .automatic) {
-                    // 4 zone visibility toggles (= Boss拍 '一组')
-                    Button {
-                        vm.toggleZone(slot: .projectSidebar)
-                    } label: {
-                        Label("项目管理区", systemImage: "sidebar.left")
-                            .foregroundStyle(vm.isZoneVisible(slot: .projectSidebar) ? Color.accentColor : Color.secondary)
+                    HStack(spacing: 0) {
+                        // 4 zone visibility toggles in 1 capsule (= Boss拍 '一组')
+                        ToolbarCapsuleButton(
+                            icon: "sidebar.left",
+                            isActive: vm.isZoneVisible(slot: .projectSidebar),
+                            help: vm.isZoneVisible(slot: .projectSidebar) ? "隐藏 项目管理区" : "显示 项目管理区"
+                        ) { vm.toggleZone(slot: .projectSidebar) }
+                        ToolbarCapsuleButton(
+                            icon: "wrench.and.screwdriver",
+                            isActive: vm.isZoneVisible(slot: .specializedTools),
+                            help: vm.isZoneVisible(slot: .specializedTools) ? "隐藏 工具区" : "显示 工具区"
+                        ) { vm.toggleZone(slot: .specializedTools) }
+                        ToolbarCapsuleButton(
+                            icon: "bubble.left",
+                            isActive: vm.isZoneVisible(slot: .aiChat),
+                            help: vm.isZoneVisible(slot: .aiChat) ? "隐藏 聊天区" : "显示 聊天区"
+                        ) { vm.toggleZone(slot: .aiChat) }
+                        ToolbarCapsuleButton(
+                            icon: "chart.bar",
+                            isActive: vm.isZoneVisible(slot: .aiDynamic),
+                            help: vm.isZoneVisible(slot: .aiDynamic) ? "隐藏 动态区" : "显示 动态区"
+                        ) { vm.toggleZone(slot: .aiDynamic) }
                     }
-                    .help(vm.isZoneVisible(slot: .projectSidebar) ? "隐藏 项目管理区" : "显示 项目管理区")
-                    Button {
-                        vm.toggleZone(slot: .specializedTools)
-                    } label: {
-                        Label("工具区", systemImage: "wrench.and.screwdriver")
-                            .foregroundStyle(vm.isZoneVisible(slot: .specializedTools) ? Color.accentColor : Color.secondary)
-                    }
-                    .help(vm.isZoneVisible(slot: .specializedTools) ? "隐藏 工具区" : "显示 工具区")
-                    Button {
-                        vm.toggleZone(slot: .aiChat)
-                    } label: {
-                        Label("聊天区", systemImage: "bubble.left")
-                            .foregroundStyle(vm.isZoneVisible(slot: .aiChat) ? Color.accentColor : Color.secondary)
-                    }
-                    .help(vm.isZoneVisible(slot: .aiChat) ? "隐藏 聊天区" : "显示 聊天区")
-                    Button {
-                        vm.toggleZone(slot: .aiDynamic)
-                    } label: {
-                        Label("动态区", systemImage: "chart.bar")
-                            .foregroundStyle(vm.isZoneVisible(slot: .aiDynamic) ? Color.accentColor : Color.secondary)
-                    }
-                    .help(vm.isZoneVisible(slot: .aiDynamic) ? "隐藏 动态区" : "显示 动态区")
+                    .padding(4)
+                    .background(
+                        Capsule()
+                            .fill(Color(nsColor: .controlBackgroundColor).opacity(0.6))
+                    )
                 }
                 // v0.24 fix (Boss 8/25 16th OOB ticket 015.030 '分得不对,
                 // 右边的四个显隐功能是一组, 导出独立'): correct grouping =
@@ -1099,20 +1110,24 @@ struct LayoutShellView: View {
                 // Center Divider (from ticket 015.028) removed (= Boss 16th OOB
                 // '正中间的一个没有内容的按钮 全都不要'). Toolbar order:
                 // [3 left file actions] + [4 zone toggles in 1 group] + [1 export separate].
-                // v0.24 fix (Boss 8/25 18th OOB '你是如何把新建打开导入分离出来的,
-                // 就怎么把导出分离出去'): .cancellationAction placement
-                // (= Apple HIG convention for independent action like
-                // export/save, visually separated from main toolbar cluster).
-                // This mirrors the visual gap that 新建/打开/导入 get by being
-                // in their own .navigation group (= left cluster).
+                // v0.24 fix (Boss 8/25 19th OOB '导出按钮单独在一个胶囊内.
+                // 同时放在最右边'): wrap 导出 in its own HStack + Capsule
+                // background, placed at rightmost via .cancellationAction.
                 ToolbarItem(placement: .cancellationAction) {
-                    // Independent group: 导出 (= Boss拍 '独立')
-                    Button {
-                        vm.exportEbook(format: "epub")
-                    } label: {
-                        Label("导出", systemImage: "square.and.arrow.up")
+                    HStack(spacing: 0) {
+                        // 导出 in 1 capsule (= Boss拍 '单独一个胶囊内')
+                        Button {
+                            vm.exportEbook(format: "epub")
+                        } label: {
+                            Label("导出", systemImage: "square.and.arrow.up")
+                        }
+                        .help("导出电子书 (PDF / EPUB / MOBI / TXT)")
                     }
-                    .help("导出电子书 (PDF / EPUB / MOBI / TXT)")
+                    .padding(4)
+                    .background(
+                        Capsule()
+                            .fill(Color(nsColor: .controlBackgroundColor).opacity(0.6))
+                    )
                 }
             }
         }
@@ -1129,6 +1144,27 @@ struct LayoutShellView: View {
 // 5 个竖拖拽线 (D_v1/D_v2/D_v3/D_v5) 共享同一签名 (orientation, length, splitterIndex),
 // 内部调 vm.adjust(_:delta:totalWidth:) 表驱动, 改 1 处 = 5 竖拖拽线全响应.
 // D_h 横拖拽线在 LayoutShellView 直接用 NativeSplitter(.horizontal, ...) 调 vm.adjustBandSplit.
+
+/// v0.24 boss验收fix (Boss 8/25 19th OOB '显/隐 四个开关在一个胶囊内'):
+/// reusable toolbar capsule button (= 1 button in a capsule group).
+/// Used by 4 zone visibility toggles in the right toolbar cluster.
+struct ToolbarCapsuleButton: View {
+    let icon: String
+    let isActive: Bool
+    let help: String
+    let action: () -> Void
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(isActive ? Color.accentColor : Color.secondary)
+                .frame(width: 28, height: 22)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
+    }
+}
 
 struct VSplitter: View {
     let length: CGFloat
