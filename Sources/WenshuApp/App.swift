@@ -1256,18 +1256,18 @@ struct ZoneModule: View {
         case .projectSidebar:
             // Per Boss plan A: shelf count (= WenshuLibrary.shelves.count).
             // Wiring deferred to ticket 015.013.
-            return "Shelves: \(library.shelves.count)"
+            return "书架: \(library.shelves.count)"
         case .projectPreview:
             // Per Boss plan A: chapter count + current chapter number.
             // Wiring deferred to ticket 015.013.
-            return "Chapters: 0"
+            return "章节: 0"
         case .editor:
             // Per Boss plan A: word count + progress %.
             // Wiring deferred to ticket 015.013.
-            return "Words: 0"
+            return "字数: 0"
         case .specializedTools:
             // Per Boss plan A: placeholder 'tools ready'.
-            return "Tools ready"
+            return "工具就绪"
         case .aiChat:
             // Skip (= chat zone uses in-child ChatBottomToolbar).
             return ""
@@ -1276,7 +1276,7 @@ struct ZoneModule: View {
             // 'Kanban' status label (= inner tab has the kanban board with
             // progress). Outer toolbar rendered with explicit placeholder
             // instead of silent fallback to 'placeholder text' (Standards F2 fix).
-            return "Kanban"
+            return "看板"
         }
     }
     // v0.10.8: 撤掉 chatInputW/H 私有属性, 老板 8/18 拍 "新图没画聊天输入框"
