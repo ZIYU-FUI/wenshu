@@ -851,8 +851,9 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // v0.24 boss验收fix (Boss 8/25 OOB '你的会话记录是存在 .ws 文件里吗'):
         // ChatSessionStore location = wenshu warehouse (anbaiqiang.ws/) if set,
         // else fall back to legacy ~/Library/Application Support/wenshu/chat.sqlite.
-        // Per boss spec: '用户的聊天数据, 也应该是库文件的一部分, 这样客户在
-        // 打包库文件到另一台电脑后, 就可以直接接续'.
+        // Per boss spec: chat data must be part of the warehouse file so the
+        // customer can copy the warehouse to another Mac and continue the
+        // session history directly.
         let warehousePath = UserDefaults.standard.string(forKey: "wenshu.libraryPath")
         let chatDbPath: String? = warehousePath.map { path in
             // Warehouse is the directory selected via onboarding (.ws folder).
@@ -864,10 +865,14 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             let store = try ChatSessionStore(path: chatDbPath)
             try store.bootstrap()
             chatStore = store
-            NSLog("[wenshu.chatStore] init OK: store created at %@", store.dbPath)
+            // v0.24 boss验收fix (Standards F3): log caller-side path (chatDbPath)
+            // instead of store.dbPath — keeps dbPath encapsulated (= private).
+            NSLog("[wenshu.chatStore] init OK: store created at %@", chatDbPath ?? "<legacy>")
         } catch {
             chatStore = nil
-            NSLog("[wenshu.chatStore] init FAILED: \(error)")
+            // v0.24 boss验收fix: also log the attempted path on failure
+            // (was missing path info, made debugging hard).
+            NSLog("[wenshu.chatStore] init FAILED at %@: %@", chatDbPath ?? "<legacy>", String(describing: error))
         }
         Self.sharedChatStoreRef = chatStore  // code-review H1 修法
         if chatStore != nil {

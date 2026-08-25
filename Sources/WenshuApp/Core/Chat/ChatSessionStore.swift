@@ -8,7 +8,7 @@ import SQLite3
 /// ChatSessionStore: SQLite-backed chat message persistence. 1 session_id = 1 个延续会话 (老板 2026-08-21 拍 "用户永远看到的只有一个会话"). schema 2 表: chat_messages + chat_summaries. 范式跟 TodoStore / MemoryStore / KanbanStore 一致 (actor + SQLite).
 public actor ChatSessionStore {
     private let dbPtr: SQLitePtr
-    public let dbPath: String  // v0.24: public for App.swift init logging
+    private let dbPath: String  // private; callers log their own path (Standards F3 fix)
 
     public init(path: String? = nil) throws {
         let url: URL
