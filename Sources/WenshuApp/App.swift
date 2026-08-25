@@ -1062,7 +1062,7 @@ struct LayoutShellView: View {
                     }
                     .help("导入")
                 }
-                // v0.24 fix (Boss 8/25 37th OOB '查官方文档, 如何居右'):
+                // v0.24 fix (Boss 8/25 37th OOB 'check official docs, how to right-align'):
                 // per Apple developer.apple.com/documentation/SwiftUI/
                 // ToolbarItemPlacement/primaryAction, '.primaryAction' on
                 // macOS = LEADING edge (= left side). To put buttons on
@@ -1071,7 +1071,8 @@ struct LayoutShellView: View {
                 // (= pushes all buttons to trailing edge, per Stack Overflow
                 // accepted answer for macOS SwiftUI). 4 toggles + 导出 all in
                 // 1 group, Spacer first pushes the whole group to rightmost
-                // position (= 整组 紧贴 最右 边, no per-button separator).
+                // position (= the whole group tight against right edge, no
+                // per-button separator).
                 ToolbarItemGroup(placement: .automatic) {
                     Spacer()
                     Button {
