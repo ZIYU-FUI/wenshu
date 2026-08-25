@@ -89,8 +89,11 @@ public final class ChatViewModel {
 
     private let conductor: WenshuConductor?
     private let store: ChatSessionStore?
-    nonisolated(unsafe) private var sessionId: String  // v0.24 boss验收fix (Boss 8/25 OOB ticket 015.014): mutable so archive flow can replace. nonisolated(unsafe) for Swift 6 concurrency.
-    public var sessionIdPublic: String { sessionId }  // read-only accessor for UI logging
+    // v0.24 boss验收fix (Boss 8/25 OOB ticket 015.014 + F2 cleanup): @MainActor
+    // isolation replaces nonisolated(unsafe) for Swift 6 concurrency safety.
+    // Mutable so archive flow can replace. sessionIdPublic accessor dropped
+    // (SUGGEST 1 fix = valueForSessionId() already exists).
+    @MainActor private var sessionId: String
 
     public init(conductor: WenshuConductor? = nil, store: ChatSessionStore? = nil, sessionId: String = "default", initialMessages: [ChatMessage] = []) {
         self.conductor = conductor
@@ -249,7 +252,7 @@ public final class ChatViewModel {
 
     /// valueForStore: 暴露 store 给 ChatView .task modifier (避免 init race condition)
     public nonisolated func valueForStore() -> ChatSessionStore? { store }
-    public nonisolated func valueForSessionId() -> String { sessionId }
+    public func valueForSessionId() -> String { sessionId }  // v0.24 boss验收fix (F2): @MainActor-isolated with sessionId
 
     /// replaceMessages: ChatView .task 加载完成后整体替换 (避免增量 append 重复)
     public func replaceMessages(_ newMessages: [ChatMessage]) {

@@ -1554,15 +1554,29 @@ struct ChatZoneView: View {
     // persistence yet, that's ticket 015.015 follow-up). User can re-trigger
     // archive from same session (idempotent snapshot).
     private func archiveAndStartNewSession() {
-        let oldSessionId = vm.sessionIdPublic
+        // Snapshot atomic (= SUGGEST 4 fix from Standards report).
+        let oldSessionId = vm.valueForSessionId()
         let messageCount = vm.messages.count
         let contextUsedBefore = vm.contextUsed
-        NSLog("[wenshu.chat] archive session: id=%@ messages=%d contextUsed=%d",
-              oldSessionId, messageCount, contextUsedBefore)
+        // v0.24 boss验收fix (Boss 8/25 fourth OOB Spec axis FAIL for ticket
+        // 015.014): durable archive persistence (= Boss spec '回档现有会话
+        // 和上下文'). Writes to chat_archives table via ChatSessionStore.
+        if let store = store {
+            do {
+                try store.archiveSession(sessionId: oldSessionId,
+                                          messageCount: messageCount,
+                                          contextUsed: contextUsedBefore)
+            } catch {
+                NSLog("[wenshu.chat] archive FAILED: %@", String(describing: error))
+            }
+        } else {
+            NSLog("[wenshu.chat] archive session (no store): id=%@ messages=%d contextUsed=%d",
+                  oldSessionId, messageCount, contextUsedBefore)
+        }
         // Start new session
         vm.startNewSession()
         NSLog("[wenshu.chat] new session started: id=%@ messages=%d contextUsed=%d",
-              vm.sessionIdPublic, vm.messages.count, vm.contextUsed)
+              vm.valueForSessionId(), vm.messages.count, vm.contextUsed)
     }
 
     var body: some View {

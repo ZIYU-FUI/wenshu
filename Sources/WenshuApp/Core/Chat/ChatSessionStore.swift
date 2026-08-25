@@ -49,6 +49,25 @@ public actor ChatSessionStore {
             last_message_id TEXT
         );
         """
+        // v0.24 boss验收fix (Boss 8/25 fourth OOB Spec axis FAIL for ticket
+        // 015.014): chat_archives table for durable session archival.
+        // Per Boss spec: '回档现有会话和上下文'. Idempotent migration.
+        let chatArchivesSql = """
+        CREATE TABLE IF NOT EXISTS chat_archives (
+            id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL,
+            archived_at REAL NOT NULL,
+            message_count INTEGER NOT NULL,
+            context_used INTEGER NOT NULL,
+            summary TEXT
+        );
+        """
+        if sqlite3_exec(dbPtr.db, chatArchivesSql, nil, nil, nil) != SQLITE_OK {
+            let errMsg = ChatSessionStore.sqliteErmsg(dbPtr.db)
+            if !errMsg.contains("duplicate table name") {
+                NSLog("[wenshu.chatStore] chat_archives warning: %@", errMsg)
+            }
+        }
 
         // v0.24 boss验收fix (Boss 8/25 OOB chat persistence bug):
         // ALTER TABLE chat_messages ADD COLUMN tokens INTEGER (idempotent —
@@ -127,6 +146,36 @@ public actor ChatSessionStore {
         guard sqlite3_step(stmt) == SQLITE_DONE else {
             throw ChatSessionStoreError.stepFailed(message: ChatSessionStore.sqliteErmsg(dbPtr.db))
         }
+    }
+
+    /// v0.24 boss验收fix (Boss 8/25 fourth OOB Spec axis FAIL for ticket
+    /// 015.014): archiveSession writes a snapshot of the current session
+    /// to chat_archives table (= Boss spec '回档现有会话和上下文').
+    /// Idempotent via primary key conflict (= INSERT OR REPLACE).
+    public func archiveSession(sessionId: String, messageCount: Int, contextUsed: Int, summary: String? = nil) throws {
+        let id = "arc_" + UUID().uuidString.prefix(12).lowercased()
+        let archivedAt = Date().timeIntervalSince1970
+        let sql = "INSERT OR REPLACE INTO chat_archives (id, session_id, archived_at, message_count, context_used, summary) VALUES (?, ?, ?, ?, ?, ?);"
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(dbPtr.db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            throw ChatSessionStoreError.prepareFailed(message: ChatSessionStore.sqliteErmsg(dbPtr.db))
+        }
+        defer { sqlite3_finalize(stmt) }
+        sqlite3_bind_text(stmt, 1, id, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_text(stmt, 2, sessionId, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_double(stmt, 3, archivedAt)
+        sqlite3_bind_int64(stmt, 4, Int64(messageCount))
+        sqlite3_bind_int64(stmt, 5, Int64(contextUsed))
+        if let summary = summary {
+            sqlite3_bind_text(stmt, 6, summary, -1, SQLITE_TRANSIENT)
+        } else {
+            sqlite3_bind_null(stmt, 6)
+        }
+        guard sqlite3_step(stmt) == SQLITE_DONE else {
+            throw ChatSessionStoreError.stepFailed(message: ChatSessionStore.sqliteErmsg(dbPtr.db))
+        }
+        NSLog("[wenshu.chatStore] archived session: id=%@ session=%@ messages=%d contextUsed=%d",
+              id, sessionId, messageCount, contextUsed)
     }
 
     /// clear: 清空 1 session 的 messages, 保留 summary (老板可以多次开始新 chat, 旧 history 留底)
