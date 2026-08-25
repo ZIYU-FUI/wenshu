@@ -1038,7 +1038,7 @@ struct LayoutShellView: View {
                 // 3.(一个导出按钮)'): wrap left 3 file actions in 1 dark capsule
                 // (= 1 of 3 separate 胶囊 groups, Pages style). Same control
                 // BackgroundColor as right groups (= 1 layer, no outer glass).
-                // v0.24 fix (Boss 8/25 32nd OOB 'ICON超出胶囊范围, 查官方'):
+                // v0.24 fix (Boss 8/25 32nd OOB 'ICON outside capsule, check official'):
                 // per Apple HIG (= nilcoalescing.com macOS toolbar guide), use
                 // default toolbar item sizes (= no custom .frame, .font,
                 // .padding, .background). Let macOS toolbar manage everything.
@@ -1066,12 +1066,12 @@ struct LayoutShellView: View {
                 // right groups (Boss 23rd OOB 'parentheses = grouping'), each with
                 // 1 gray Pages-style capsule (controlBackgroundColor, 1 layer only,
                 // no inner black).
-                // v0.24 fix (Boss 8/25 32nd OOB 'ICON超出胶囊范围, 查官方'):
+                // v0.24 fix (Boss 8/25 32nd OOB 'ICON outside capsule, check official'):
                 // per Apple HIG (= nilcoalescing.com macOS toolbar guide), use
                 // default toolbar item sizes (= no custom .frame, .font, .padding,
                 // .background, .buttonStyle). 4 zone visibility toggles + 导出 in
                 // 1 single .primaryAction group (= 1 layer, no nested wrap).
-                // v0.24 fix (Boss 8/25 32nd OOB 'ICON超出胶囊范围, 查官方'):
+                // v0.24 fix (Boss 8/25 32nd OOB 'ICON outside capsule, check official'):
                 // 4 zone visibility toggles in 4 separate .primaryAction
                 // ToolbarItems (= each toggle = 1 item, no overflow in 1 group).
                 // Per Apple HIG, default toolbar item size = system-managed
