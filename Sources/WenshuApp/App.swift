@@ -1072,17 +1072,17 @@ struct LayoutShellView: View {
                     .padding(.horizontal, 6)
                     .padding(.vertical, 4)
                     .background(
-                        // v0.24 fix (Boss 8/25 27th OOB '图一是当前样式, 图二是 pages
-                        // 的, 参考 pages 实现'): use controlBackgroundColor (= gray,
-                        // matches Pages reference, 1 layer only, no inner black).
+                        // v0.24 fix (Boss 8/25 27th OOB 'match Pages reference'):
+                        // use controlBackgroundColor (= gray, matches Pages style,
+                        // 1 layer only, no inner black).
                         Capsule()
                             .fill(Color(nsColor: .controlBackgroundColor))
                     )
                 }
-                // v0.24 fix (Boss 8/25 27th OOB '图一是当前样式, 图二是 pages
-                // 的, 参考 pages 实现'): 2 separate right groups (Boss 23rd OOB
-                // '括号代表分组'), each with 1 gray Pages-style capsule
-                // (controlBackgroundColor, 1 layer only, no inner black).
+                // v0.24 fix (Boss 8/25 27th OOB 'match Pages reference'): 2 separate
+                // right groups (Boss 23rd OOB 'parentheses = grouping'), each with
+                // 1 gray Pages-style capsule (controlBackgroundColor, 1 layer only,
+                // no inner black).
                 ToolbarItem(placement: .primaryAction) {
                     HStack(spacing: 4) {
                         HStack(spacing: 4) {
@@ -1131,7 +1131,7 @@ struct LayoutShellView: View {
                         .padding(.horizontal, 6)
                         .padding(.vertical, 4)
                         .background(
-                            // v0.24 fix (Boss 8/25 27th OOB '参考 pages 实现'):
+                            // v0.24 fix (Boss 8/25 27th OOB 'match Pages reference'):
                             // controlBackgroundColor (= gray, Pages style, 1 layer).
                             Capsule()
                                 .fill(Color(nsColor: .controlBackgroundColor))
@@ -1152,7 +1152,7 @@ struct LayoutShellView: View {
                         .padding(.horizontal, 6)
                         .padding(.vertical, 4)
                         .background(
-                            // v0.24 fix (Boss 8/25 27th OOB '参考 pages 实现'):
+                            // v0.24 fix (Boss 8/25 27th OOB 'match Pages reference'):
                             // controlBackgroundColor (= gray, Pages style, 1 layer).
                             Capsule()
                                 .fill(Color(nsColor: .controlBackgroundColor))
