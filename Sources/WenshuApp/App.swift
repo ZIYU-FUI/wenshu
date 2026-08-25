@@ -77,16 +77,17 @@ enum LayoutTokens {
     static let editorWRatio: CGFloat = 794.0 / 1920.0         // v0.15 ticket 012 修: 老板 2026-08-19 改 794 PT (724,52,794,465) (mcp__sketch__run_code 真值)
     static let toolsWRatio: CGFloat = 400.0 / 1920.0
 
-    // v0.24 fix (Boss 8/25 38th OOB '按比例的右上区和右下区视觉上宽度对齐'):
+    // v0.24 fix (Boss 8/25 38th OOB 'right zones proportional visual width alignment'):
     // per Apple docs (= developer.apple.com/documentation/appkit/nssplitview/
     // adjustsubviews/), proportional resize means subviews maintain relative
-    // sizes. Boss拍 '按比例' = make 右上区 (= editorWRatio + toolsWRatio =
-    // 1194/1920 = 62.18%) and 右下区 (= dynamicWRatio) visually equal width.
+    // sizes. Boss spec 'proportional' = make upper-right zone (= editorWRatio +
+    // toolsWRatio = 1194/1920 = 62.18%) and lower-right zone (= dynamicWRatio)
+    // visually equal width.
     // Fix: aiChatRatio + dynamicWRatio = 1920 (= 1 full window), so
-    // dynamicWRatio = 1194/1920 (= match 右上区) + aiChatRatio = 726/1920
-    // (= drop from 1518 down to 726).
-    static let aiChatRatio: CGFloat = 726.0 / 1920.0         // v0.24 boss验收fix (Boss 38th OOB): drop 1518 -> 726 to make 右下区 = 右上区
-    static let dynamicWRatio: CGFloat = 1194.0 / 1920.0     // v0.24 boss验收fix (Boss 38th OOB): make 下右 = 上右 (= 1194 PT)
+    // dynamicWRatio = 1194/1920 (= match upper-right zone) +
+    // aiChatRatio = 726/1920 (= drop from 1518 down to 726).
+    static let aiChatRatio: CGFloat = 726.0 / 1920.0         // v0.24 boss acceptance fix (Boss 38th OOB): drop 1518 to 726 to make lower-right = upper-right
+    static let dynamicWRatio: CGFloat = 1194.0 / 1920.0     // v0.24 boss acceptance fix (Boss 38th OOB): make lower-right = upper-right (= 1194 PT)
 
     // 编辑器两层设计 (老板 8/18 Q2 答: 有意两层, 不要删)
     static let editorInsetRatio: CGFloat = 4.0 / 984.0  // = 0.0041
