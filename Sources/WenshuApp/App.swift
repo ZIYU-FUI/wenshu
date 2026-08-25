@@ -1062,17 +1062,18 @@ struct LayoutShellView: View {
                     }
                     .help("导入")
                 }
-                // v0.24 fix (Boss 8/25 35th OOB '整组 紧贴 最右 边'):
-                // 4 zone visibility toggles in 1 ToolbarItemGroup(.primaryAction)
-                // (= 1 整组, 紧贴 居右, no per-button separator). Per Apple HIG
-                // (= developer.apple.com/documentation/SwiftUI/ToolbarItemGroup),
-                // ToolbarItemGroup = 'group of related toolbar items rendered as
-                // a single cluster'. 导出 in separate ToolbarItem(.primaryAction)
-                // (= 2 groups total, all at right, no visual separator between
-                // them per Boss 34th OOB '整组 居右'). Per Boss 32nd OOB '查官方',
-                // default toolbar item size = system-managed (= no custom .frame,
-                // .font, .padding, .background).
-                ToolbarItemGroup(placement: .primaryAction) {
+                // v0.24 fix (Boss 8/25 37th OOB '查官方文档, 如何居右'):
+                // per Apple developer.apple.com/documentation/SwiftUI/
+                // ToolbarItemPlacement/primaryAction, '.primaryAction' on
+                // macOS = LEADING edge (= left side). To put buttons on
+                // TRAILING edge (= right side) on macOS, the official Apple
+                // pattern = ToolbarItemGroup(.automatic) with Spacer() first
+                // (= pushes all buttons to trailing edge, per Stack Overflow
+                // accepted answer for macOS SwiftUI). 4 toggles + 导出 all in
+                // 1 group, Spacer first pushes the whole group to rightmost
+                // position (= 整组 紧贴 最右 边, no per-button separator).
+                ToolbarItemGroup(placement: .automatic) {
+                    Spacer()
                     Button {
                         vm.toggleZone(slot: .projectSidebar)
                     } label: {
@@ -1101,10 +1102,6 @@ struct LayoutShellView: View {
                     }
                     .foregroundStyle(vm.isZoneVisible(slot: .aiDynamic) ? Color.accentColor : Color.secondary)
                     .help(vm.isZoneVisible(slot: .aiDynamic) ? "隐藏 动态区" : "显示 动态区")
-                    // v0.24 fix (Boss 8/25 36th OOB '红框区 居右'): put 导出
-                    // INSIDE the same ToolbarItemGroup as 4 toggles (= 5 buttons
-                    // in 1 group, no separator between 4 toggles and 导出, 整组
-                    // 紧贴 最右 边 per Boss image).
                     Button {
                         vm.exportEbook(format: "epub")
                     } label: {
