@@ -1186,39 +1186,39 @@ struct UpperBandZone: View {
         let preview = (totalW * CGFloat(vm.projectPreviewRatio)).rounded()
         let editor  = (totalW * CGFloat(vm.editorWRatio)).rounded()
         let tools   = (totalW * CGFloat(vm.toolsWRatio)).rounded()
-        // v0.24 fix (Boss 8/25 55th OOB '4 toggles did not implement their 4 zones show/hide effect'):
-        // Wrap each ZoneModule in if vm.isZoneVisible(slot:) (= zone
-        // hidden = no content). Splitters stay visible (= drag functionality
-        // preserved per Boss 15th OOB 'tools zone cannot be dragged. fix it').
-        // When user toggles a zone off, ZoneModule disappears, adjacent
-        // splitters still drag-able to redistribute width to remaining
-        // visible zones.
+        // v0.24 fix (Boss 8/25 57th OOB '界面全改丢了, 先实现第一个按钮对应的
+        // 项目管理区, 一个一个来'): only wrap projectSidebar (= first
+        // button = sidebar.left, corresponding to projectSidebar zone) in
+        // if statement (= zone hide/show). Other 3 upper zones (preview,
+        // editor, tools) and both lower zones (aiChat, aiDynamic) always
+        // render (= 防止 UI broken / interface lost). Per Boss 57th OOB
+        // '一个一个来', future tickets will add the other 3 toggles one by one.
+        // Splitters stay visible (per Boss 15th OOB) so drag functionality
+        // is preserved when projectSidebar is hidden.
         HStack(spacing: 0) {
+            // D_v0.5: project sidebar (wraps in if for hide/show)
             if vm.isZoneVisible(slot: .projectSidebar) {
                 ZoneModule(slot: .projectSidebar, vm: vm, totalW: totalW, bandH: bandH)
                     .frame(width: sidebar)
             }
             // D_v1: project sidebar / project preview (splitterIndex 0)
             VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 0, vm: vm)
-            if vm.isZoneVisible(slot: .projectPreview) {
-                ZoneModule(slot: .projectPreview, vm: vm, totalW: totalW, bandH: bandH)
-                    .frame(width: preview)
-            }
+            // preview always render (not yet implemented for toggle)
+            ZoneModule(slot: .projectPreview, vm: vm, totalW: totalW, bandH: bandH)
+                .frame(width: preview)
             // D_v2: project preview / editor (splitterIndex 1)
             VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 1, vm: vm)
-            if vm.isZoneVisible(slot: .editor) {
-                ZoneModule(slot: .editor, vm: vm, totalW: totalW, bandH: bandH)
-                    .frame(width: editor)
-            }
+            // editor always render (not yet implemented for toggle)
+            ZoneModule(slot: .editor, vm: vm, totalW: totalW, bandH: bandH)
+                .frame(width: editor)
             // D_v3: editor / specialized tools (splitterIndex 2)
             // Per Boss 8/25 15th OOB 'tools zone cannot be dragged. fix it':
             // keep D_v3 visible even when adjacent zones are hidden
             // (= drag preserved).
             VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 2, vm: vm)
-            if vm.isZoneVisible(slot: .specializedTools) {
-                ZoneModule(slot: .specializedTools, vm: vm, totalW: totalW, bandH: bandH)
-                    .frame(width: tools)
-            }
+            // tools always render (not yet implemented for toggle)
+            ZoneModule(slot: .specializedTools, vm: vm, totalW: totalW, bandH: bandH)
+                .frame(width: tools)
         }
         .frame(height: bandH)  // 显式告诉 SwiftUI VStack layout 上 band 高度, 响应 vm.bandOffset mutate
     }
@@ -1240,19 +1240,17 @@ struct LowerBandZone: View {
         // (= no fractional PT = no sub-pixel rendering gap).
         let aiChatW = (totalW * CGFloat(vm.aiChatRatio)).rounded()
         let dynamicW = (totalW * CGFloat(vm.dynamicWRatio)).rounded()
-        // v0.24 fix (Boss 8/25 55th OOB): same fix as upper band (= wrap each
-        // ZoneModule in if vm.isZoneVisible, keep splitters visible).
+        // v0.24 fix (Boss 8/25 57th OOB '一个一个来'): lower band 2 zones always
+        // render (= not yet implemented for toggle, future tickets will add).
         HStack(spacing: 0) {
-            if vm.isZoneVisible(slot: .aiChat) {
-                ZoneModule(slot: .aiChat, vm: vm, totalW: totalW, bandH: bandH)
-                    .frame(width: aiChatW)
-            }
+            // aiChat always render (not yet implemented for toggle)
+            ZoneModule(slot: .aiChat, vm: vm, totalW: totalW, bandH: bandH)
+                .frame(width: aiChatW)
             // D_v5: AI chat / AI dynamic (splitterIndex 4)
             VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 4, vm: vm)
-            if vm.isZoneVisible(slot: .aiDynamic) {
-                ZoneModule(slot: .aiDynamic, vm: vm, totalW: totalW, bandH: bandH)
-                    .frame(width: dynamicW)
-            }
+            // aiDynamic always render (not yet implemented for toggle)
+            ZoneModule(slot: .aiDynamic, vm: vm, totalW: totalW, bandH: bandH)
+                .frame(width: dynamicW)
         }
         .frame(height: bandH)  // explicit SwiftUI VStack layout lower band height, responds to vm.bandOffset mutate, reverse direction conservation
     }
