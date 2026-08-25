@@ -77,12 +77,15 @@ enum LayoutTokens {
     static let editorWRatio: CGFloat = 794.0 / 1920.0         // v0.15 ticket 012 修: 老板 2026-08-19 改 794 PT (724,52,794,465) (mcp__sketch__run_code 真值)
     static let toolsWRatio: CGFloat = 400.0 / 1920.0
 
-    // v0.24 fix (Boss 8/25 41st OOB '原本就是400, 查文档解决视觉不等宽问题'):
-    // Boss澄清: 上右 (specializedTools) 和 下右 (aiDynamic) 原本 设计 都 = 400 PT.
-    // 我之前 commit b8d8c04a8 错误 把 dynamicWRatio 改到 1194 (= Boss 38th OOB
-    // 误解, Boss 41st OOB 澄清 = 原本就是400). Revert dynamicWRatio 1194 -> 400,
-    // aiChatRatio 726 -> 1518 (= back to original 8/18 design values).
-    // 真正 问题 = 同样 400 PT 视觉上 不等宽 (= 要查文档解决).
+    // v0.24 fix (Boss 8/25 41st OOB 'originally 400, check official docs to fix visual width mismatch'):
+    // Boss clarified: upper-right (specializedTools) and lower-right (aiDynamic)
+    // original design both = 400 PT.
+    // My previous commit b8d8c04a8 incorrectly changed dynamicWRatio to 1194
+    // (= Boss 38th OOB misinterpretation, Boss 41st OOB clarified = originally 400).
+    // Revert dynamicWRatio 1194 -> 400, aiChatRatio 726 -> 1518 (= back to
+    // original 8/18 design values).
+    // Real problem = same 400 PT visually different widths (= need to check
+    // official docs for proper fix).
     static let aiChatRatio: CGFloat = 1518.0 / 1920.0      // v0.24 revert Boss 38th OOB (= Boss 41st OOB '原本就是1518')
     static let dynamicWRatio: CGFloat = 400.0 / 1920.0     // v0.24 revert Boss 38th OOB (= Boss 41st OOB '原本就是400')
 
