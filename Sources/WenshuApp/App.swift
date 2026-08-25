@@ -1182,12 +1182,13 @@ struct UpperBandZone: View {
         // Fix per Apple HIG = round each width to integer (= no fractional
         // PT = no sub-pixel rendering gap). Use .rounded() to convert
         // CGFloat to integer CGFloat (= SwiftUI will render exact PT).
-        // v0.24 fix (Boss 8/25 58th OOB '收起后上半区的其它三栏重新分配宽度,
-        // 盛满上半区, 过程中要有过度动画'): when projectSidebar hidden,
-        // redistribute its 200 PT (= ratio 200/1000 = 0.2) to other 3 zones
-        // proportionally so they fill upper band. preview/tools share
-        // 25.4% each of the extra ratio (= 0.0508), editor 49.2%
-        // (= 0.0984), of = sidebarExtraRatio (0.2 * split = 0.0508/0.0984/0.0508).
+        // v0.24 fix (Boss 8/25 58th OOB 'after collapse, redistribute other 3
+        // zones' widths to fill upper band, with transition animation'):
+        // when projectSidebar hidden, redistribute its 200 PT (= ratio
+        // 200/1000 = 0.2) to other 3 zones proportionally so they fill
+        // upper band. preview/tools share 25.4% each of the extra ratio
+        // (= 0.0508), editor 49.2% (= 0.0984), of = sidebarExtraRatio
+        // (0.2 * split = 0.0508/0.0984/0.0508).
         // IMPORTANT (= Spec fix per sub-agent review): sidebarExtraRatio is
         // the RATIO (= 0.2), NOT PT. Multiplying by totalW TWICE (= totalW
         // * (ratio + totalW * ratio)) was a previous bug.
