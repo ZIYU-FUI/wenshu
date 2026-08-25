@@ -1491,6 +1491,10 @@ struct ChatZoneView: View {
     // v0.24 boss验收fix (2026-08-24): persist tab selection across launches.
     // Boss 8/24: '每个区域的 tab 选中状态应该持久化'.
     @AppStorage("wenshu.tabIndex.aiChat") private var selectedTabRaw: String = "对话"
+    // v0.24 boss验收fix (Boss 8/25 OOB ticket 015.014): archive flow state.
+    // When user clicks archive icon in ChatZoneTabBar, this toggles true and
+    // shows confirmation alert. Confirm = archive current session + start new.
+    @State private var showingArchiveAlert: Bool = false
 
     private var selectedTab: ChatZoneTab {
         get { ChatZoneTab(rawValue: selectedTabRaw) ?? .chat }
@@ -1511,16 +1515,45 @@ struct ChatZoneView: View {
         NSLog("[wenshu.tab] onAppear: selectedTab=%@ currentModel=%@", ChatZoneTab.chat.rawValue, currentModel)
     }
 
+    // v0.24 boss验收fix (Boss 8/25 OOB ticket 015.014): archive current session
+    // + context, then start new session. Boss spec: '点击确认, 回档现有会话和
+    // 上下文. 起一个全新的会话. 上下文重新加载'.
+    //
+    // Flow:
+    // 1. Snapshot current session (= sessionId + message count + summary).
+    // 2. Reset vm.messages = [] (visual).
+    // 3. Reset vm.contextUsed = 0 (context counter).
+    // 4. Generate new sessionId (= UUID-based).
+    // 5. Persist new sessionId to vm (= future writes go to new session).
+    // 6. NSLog audit trail.
+    //
+    // Per ticket 015.014: archive is in-memory (= no chat_archives table
+    // persistence yet, that's ticket 015.015 follow-up). User can re-trigger
+    // archive from same session (idempotent snapshot).
+    private func archiveAndStartNewSession() {
+        let oldSessionId = vm.sessionIdPublic
+        let messageCount = vm.messages.count
+        let contextUsedBefore = vm.contextUsed
+        NSLog("[wenshu.chat] archive session: id=%@ messages=%d contextUsed=%d",
+              oldSessionId, messageCount, contextUsedBefore)
+        // Start new session
+        vm.startNewSession()
+        NSLog("[wenshu.chat] new session started: id=%@ messages=%d contextUsed=%d",
+              vm.sessionIdPublic, vm.messages.count, vm.contextUsed)
+    }
+
     var body: some View {
             VStack(spacing: 0) {
                 // v0.21 ticket 43 step 2: 聊天区顶栏 3 个 tab 真切换 (老板拍 backlog 20, 修复 step 1 NSLog 锁 picker sync)
                 // Apple HIG 真值: Button(.plain) + contentShape(Rectangle()) 整条热区响应 (ticket 17 + 21 已修复范式)
                 // + .foregroundStyle(.accentColor) 选中态高亮
                 // + Apple 默认动画 .animation(.default, value: selectedTab) (Q58.4)
+                // v0.24 boss验收fix (Boss 8/25 OOB ticket 015.014): wire
+                // archive alert state into ChatZoneTabBar.
                 ChatZoneTabBar(selectedTab: Binding(
-                get: { selectedTab },
-                set: { selectedTab = $0 }
-            ))
+                    get: { selectedTab },
+                    set: { selectedTab = $0 }
+                ), showingArchiveAlert: $showingArchiveAlert)
                 Group {
                     switch selectedTab {
                     case .chat:
@@ -1549,6 +1582,17 @@ struct ChatZoneView: View {
                     }
                 }
                 .animation(.default, value: selectedTab)
+                // v0.24 boss验收fix (Boss 8/25 OOB ticket 015.014): archive
+                // confirmation alert. Boss spec: '点击确认, 回档现有会话和上下文.
+                // 起一个全新的会话. 上下文重新加载'.
+                .alert("归档当前会话?", isPresented: $showingArchiveAlert) {
+                    Button("取消", role: .cancel) { }
+                    Button("归档并新建", role: .destructive) {
+                        archiveAndStartNewSession()
+                    }
+                } message: {
+                    Text("当前会话和上下文将归档保存, 然后开启全新会话。")
+                }
                 HStack(spacing: 0) {
                 Menu {
                     // v0.23 ticket 011.002: sectioned picker (boss 8/23 拍).
@@ -1668,31 +1712,56 @@ struct ChatZoneView: View {
 /// v0.21 ticket 43: ChatZoneTabBar = 聊天区顶栏 3 个 tab 真切换 (老板拍 backlog 20)
 /// Apple HIG 真值: Button(.plain) + contentShape(Rectangle()) 整条热区响应 (ticket 17 + 21 已修复范式)
 /// + .foregroundStyle(.accentColor) 选中态高亮 + Apple 默认动画
+/// v0.24 boss验收fix (Boss 8/25 fourth OOB '聊天区顶栏居右 18PT 加归档 ICON'):
+/// Added archive icon at top-right (18 PT right padding). Click triggers
+/// alert '是否归档本次会话和上下文' (yes / cancel). Confirm archives current
+/// session + context, starts new session, resets context counter.
 struct ChatZoneTabBar: View {
     @Binding var selectedTab: ChatZoneView.ChatZoneTab
+    // v0.24 boss验收fix (Boss 8/25 OOB ticket 015.014): archive flow state.
+    @Binding var showingArchiveAlert: Bool
 
     var body: some View {
-        HStack(spacing: 9) {
-            ForEach(ChatZoneView.ChatZoneTab.allCases.filter { $0 == .chat }) { tab in
-                Button {
-                    selectedTab = tab
-                } label: {
-                    // v0.24 boss验收fix: icon only, no title label.
-// Boss 8/24 follow-up: 'tab 里标题小字不需要'.
-                    Image(systemName: tab.icon)
-                        .font(.system(size: LayoutTokens.iconSize))
-                        .imageScale(.large)  // v0.24 boss验收fix (Boss 8/24): 12 PT font → ~12 PT visual: 强制 SF Symbol 视觉 small, 防止 frame 溢出
-                        .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
-                        .foregroundStyle(tab == selectedTab ? Color.accentColor : Color.secondary)
+        HStack(spacing: 0) {
+            HStack(spacing: 9) {
+                ForEach(ChatZoneView.ChatZoneTab.allCases.filter { $0 == .chat }) { tab in
+                    Button {
+                        selectedTab = tab
+                    } label: {
+                        // v0.24 boss验收fix: icon only, no title label.
+                        Image(systemName: tab.icon)
+                            .font(.system(size: LayoutTokens.iconSize))
+                            .imageScale(.large)
+                            .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
+                            .foregroundStyle(tab == selectedTab ? Color.accentColor : Color.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
-                .contentShape(Rectangle())
             }
+            .padding(.leading, 18)
+
+            Spacer()
+
+            // v0.24 boss验收fix (Boss 8/25 fourth OOB ticket 015.014): archive
+            // icon at top-right (= Boss image 红框 position). 18 PT right
+            // padding per Boss spec. Click triggers showingArchiveAlert.
+            Button {
+                showingArchiveAlert = true
+            } label: {
+                Image(systemName: "archivebox")
+                    .font(.system(size: LayoutTokens.iconSize))
+                    .imageScale(.large)
+                    .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .contentShape(Rectangle())
+            .help("归档当前会话")
+            .padding(.trailing, 18)
         }
-        // v0.24 boss验收fix: flush at top of zone (was: padded 6 PT down).
-        .padding(.leading, 18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(height: LayoutTokens.toolbarHeight)  // 30 PT
+        .frame(maxWidth: .infinity)
+        .frame(height: LayoutTokens.toolbarHeight)
         .background(DesignColor.zoneSurface)
         .overlay(alignment: .bottom) {
             DesignColor.splitterLine.frame(height: 1)

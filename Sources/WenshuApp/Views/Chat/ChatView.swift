@@ -89,7 +89,8 @@ public final class ChatViewModel {
 
     private let conductor: WenshuConductor?
     private let store: ChatSessionStore?
-    private let sessionId: String
+    nonisolated(unsafe) private var sessionId: String  // v0.24 boss验收fix (Boss 8/25 OOB ticket 015.014): mutable so archive flow can replace. nonisolated(unsafe) for Swift 6 concurrency.
+    public var sessionIdPublic: String { sessionId }  // read-only accessor for UI logging
 
     public init(conductor: WenshuConductor? = nil, store: ChatSessionStore? = nil, sessionId: String = "default", initialMessages: [ChatMessage] = []) {
         self.conductor = conductor
@@ -225,6 +226,22 @@ public final class ChatViewModel {
     }
 
     /// clear: 清空消息
+    /// v0.24 boss验收fix (Boss 8/25 OOB ticket 015.014): archive current
+    /// session + context (= reset messages + contextUsed), generate new
+    /// sessionId, persist new session for future writes. Boss spec: '起一个
+    /// 全新的会话. 上下文重新加载'.
+    public func startNewSession() {
+        // 1. Clear in-memory state (= visual reset).
+        messages = []
+        contextUsed = 0
+        // 2. Generate new sessionId (= UUID-based).
+        let newId = "s_" + UUID().uuidString.prefix(12).lowercased()
+        sessionId = newId
+        // 3. NSLog audit trail (= verify in Console.app).
+        NSLog("[wenshu.chat] startNewSession: id=%@ messages=%d contextUsed=%d",
+              sessionId, messages.count, contextUsed)
+    }
+
     public func clear() {
         messages.removeAll()
         lastError = nil

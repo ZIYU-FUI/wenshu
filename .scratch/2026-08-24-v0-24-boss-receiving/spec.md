@@ -160,3 +160,66 @@ Code state:
   shelf count, etc.).
 - Status updates on app state changes (= reactive via @Observable /
   @AppStorage / @State).
+
+
+---
+
+# Boss 2026-08-25 fourth OOB spec (chat zone archive + per-book project files)
+
+Boss拍 4 个 spec:
+
+## Spec 1: Chat zone archive icon (UI ticket)
+- 聊天区顶栏 居右 18PT 加一个 归档 ICON (per Boss image 2026-08-25
+  composer-images/composer_2026-08-25_02-03-55-434_120cf9.png 红框位置).
+- 点击 → 弹 alert '是否归档本次会话和上下文'.
+- 点击确认 → 回档现有会话和上下文 (= save as archive).
+- 起一个全新的会话 (= new sessionId).
+- 上下文重新加载 (= load context for new session).
+
+## Spec 2: Per-book project files
+- 每本书应该有类似 po 全链路方法论的项目管理文件 (= wenshu-style
+  AGENTS.md + README.md + CONTEXT.md equivalents inside each book
+  folder inside .ws).
+- 每本书的上下文 (= per-book context).
+- 会话消息记录 (= chat history per book).
+
+## Spec 3: Project sidebar selection sync
+- 项目管理区(=左上 projectSidebar) 的目录树切换时,
+- 其他五区需要根据项目的不同同步切换 (= other 5 zones re-sync to
+  selected book).
+
+## Spec 4: Long-form 剧情依赖延续 (= long-term context mgmt per book)
+- 每个项目 = 每本书, 应该 有 独立的长期管理文档.
+- 类似我们现在开发文枢的项目文档 (= AGENTS.md / README.md / CONTEXT.md).
+- Boss 提示: 解决 长文写作的剧情依赖延续问题 (= long-form narrative
+  continuity across chapters / sessions).
+
+## Tickets (per boss 8/22 '1 zone 1 ticket 1 commit')
+- ticket 015.014: Chat zone archive icon + alert + session archive flow
+  (= Spec 1, immediate UI ticket).
+- ticket 015.015: Per-book project files (= wenshu-style AGENTS.md +
+  README.md + CONTEXT.md equivalents inside book folder).
+- ticket 015.016: Project sidebar selection sync (= other 5 zones
+  re-sync to selected book).
+- ticket 015.017: Long-form 剧情依赖延续 (= long-term context per book,
+  similar to wenshu AGENTS.md).
+
+## Order
+1. ticket 015.014 (UI archive icon) - implement immediately (= Boss image
+   shows red-boxed area, missing icon).
+2. ticket 015.015 (per-book project files) - architectural, multiple commits.
+3. ticket 015.016 (project sync) - depends on ticket 015.015 (= needs book
+   model + selection state).
+4. ticket 015.017 (long-form context) - depends on tickets 015.015 +
+   015.016 (= needs per-book context infrastructure).
+
+## Done criterion per ticket
+- ticket 015.014: archive icon visible at chat zone top-right (18 PT
+  padding), click triggers alert, confirm creates new session and
+  archives old (= new sessionId, archive saved to chat_archives table).
+- ticket 015.015: each book folder inside .ws/ has AGENTS.md / README.md /
+  CONTEXT.md created on book creation (= like wenshu root layout).
+- ticket 015.016: clicking a book in projectSidebar updates other 5 zones
+  to show that book's content (= reactively via @Observable).
+- ticket 015.017: per-book long-term context loaded into chat zone context
+  (= like AGENTS.md context injection in wenshu dev).
