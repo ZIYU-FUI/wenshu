@@ -1072,17 +1072,17 @@ struct LayoutShellView: View {
                     .padding(.horizontal, 6)
                     .padding(.vertical, 4)
                     .background(
-                        // v0.24 fix (Boss 8/25 26th OOB '把背景那个灰色的胶囊去掉.
-                        // 只留一层黑色的'): use opaque black (= no toolbar material
-                        // blur showing through) instead of controlBackgroundColor.
+                        // v0.24 fix (Boss 8/25 27th OOB '图一是当前样式, 图二是 pages
+                        // 的, 参考 pages 实现'): use controlBackgroundColor (= gray,
+                        // matches Pages reference, 1 layer only, no inner black).
                         Capsule()
-                            .fill(Color.black)
+                            .fill(Color(nsColor: .controlBackgroundColor))
                     )
                 }
-                // v0.24 fix (Boss 8/25 26th OOB '把背景那个灰色的胶囊去掉.
-                // 只留一层黑色的'): 2 separate right groups (Boss 23rd OOB
-                // '括号代表分组'), each with 1 black opaque capsule, HStack
-                // spacing = 4 PT (= minimal gap, no outer gray wrapper).
+                // v0.24 fix (Boss 8/25 27th OOB '图一是当前样式, 图二是 pages
+                // 的, 参考 pages 实现'): 2 separate right groups (Boss 23rd OOB
+                // '括号代表分组'), each with 1 gray Pages-style capsule
+                // (controlBackgroundColor, 1 layer only, no inner black).
                 ToolbarItem(placement: .primaryAction) {
                     HStack(spacing: 4) {
                         HStack(spacing: 4) {
@@ -1131,10 +1131,10 @@ struct LayoutShellView: View {
                         .padding(.horizontal, 6)
                         .padding(.vertical, 4)
                         .background(
-                            // v0.24 fix (Boss 8/25 26th OOB '只留一层黑色的'):
-                            // opaque black to prevent toolbar material blur.
+                            // v0.24 fix (Boss 8/25 27th OOB '参考 pages 实现'):
+                            // controlBackgroundColor (= gray, Pages style, 1 layer).
                             Capsule()
-                                .fill(Color.black)
+                                .fill(Color(nsColor: .controlBackgroundColor))
                         )
                         // v0.24 fix (Boss 8/25 24th OOB '样式不对, 参考新建, 打开,
                         // 导入的样式'): 导出 in 1 plain rounded capsule (= 1 layer
@@ -1152,10 +1152,10 @@ struct LayoutShellView: View {
                         .padding(.horizontal, 6)
                         .padding(.vertical, 4)
                         .background(
-                            // v0.24 fix (Boss 8/25 26th OOB '只留一层黑色的'):
-                            // opaque black to prevent toolbar material blur.
+                            // v0.24 fix (Boss 8/25 27th OOB '参考 pages 实现'):
+                            // controlBackgroundColor (= gray, Pages style, 1 layer).
                             Capsule()
-                                .fill(Color.black)
+                                .fill(Color(nsColor: .controlBackgroundColor))
                         )
                     }
                 }
