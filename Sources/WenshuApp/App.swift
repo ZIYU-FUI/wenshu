@@ -1054,24 +1054,10 @@ struct LayoutShellView: View {
                     }
                     .help("导入")
                 }
-                // v0.24 fix (Boss 8/25 22nd OOB): 4 toggles + 导出 moved into 1
-                // outer glass capsule (see .primaryAction below). No separate
-                // .automatic group needed (= they live inside the outer glass
-                // capsule now, Boss拍 '单独一层实现分离').
-                // 右边的四个显隐功能是一组, 导出独立'): correct grouping =
-                // 4 zone visibility toggles (= 项目管理区 / 工具区 / 聊天区 / 动态区)
-                // in one ToolbarItemGroup (= '一组' per Boss拍), and 导出 in
-                // a SEPARATE ToolbarItemGroup (= '独立' per Boss拍).
-                // Per Boss 16th OOB: '文枢标题, 正中间的一个没有内容的按钮, 全都不要'.
-                // Center Divider (from ticket 015.028) removed (= Boss 16th OOB
-                // '正中间的一个没有内容的按钮 全都不要'). Toolbar order:
-                // [3 left file actions] + [4 zone toggles in 1 group] + [1 export separate].
-                // v0.24 fix (Boss 8/25 22nd OOB '为什么要多套一层黑色的胶囊, 不要多
-                // 套一层, 里面那层分开是对的, 用外面那层玻璃质感的, 单独一层实现
-                // 分离'): wrap 4 toggles + 导出 in 1 single outer glass capsule
-                // (= Apple HIG .regularMaterial for 玻璃质感). Inner 4 toggles
-                // keep their own capsule (Boss拍 '里面那层分开是对的'). 导出
-                // in single button (no inner capsule, Boss拍 '单独一层实现分离').
+                // v0.24 fix (Boss 8/25 22nd OOB '单独一层实现分离'): 4 toggles + 导出
+                // wrapped in 1 outer glass capsule (see .primaryAction below).
+                // Inner 4 toggles keep own dark capsule (Boss拍 '里面那层分开是对的').
+                // 导出 single button, no inner capsule (Boss拍 '单独一层实现分离').
                 ToolbarItem(placement: .primaryAction) {
                     HStack(spacing: 0) {
                         // 4 toggles HStack (with inner capsule background) +
