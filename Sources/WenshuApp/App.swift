@@ -1182,10 +1182,17 @@ struct UpperBandZone: View {
         // Fix per Apple HIG = round each width to integer (= no fractional
         // PT = no sub-pixel rendering gap). Use .rounded() to convert
         // CGFloat to integer CGFloat (= SwiftUI will render exact PT).
+        // v0.24 fix (Boss 8/25 58th OOB '收起后上半区的其它三栏重新分配宽度,
+        // 盛满上半区, 过程中要有过度动画'): when projectSidebar hidden,
+        // redistribute its 200 PT to other 3 zones proportionally so they
+        // fill upper band. preview/tools share 25.4% each, editor 49.2%
+        // (proportional to their existing ratios).
+        let sidebarIsVisible = vm.isZoneVisible(slot: .projectSidebar)
+        let sidebarExtra = sidebarIsVisible ? 0.0 : (totalW * CGFloat(vm.projectSidebarRatio))
         let sidebar = (totalW * CGFloat(vm.projectSidebarRatio)).rounded()
-        let preview = (totalW * CGFloat(vm.projectPreviewRatio)).rounded()
-        let editor  = (totalW * CGFloat(vm.editorWRatio)).rounded()
-        let tools   = (totalW * CGFloat(vm.toolsWRatio)).rounded()
+        let preview = (totalW * (CGFloat(vm.projectPreviewRatio) + (sidebarExtra * 0.254))).rounded()
+        let editor  = (totalW * (CGFloat(vm.editorWRatio) + (sidebarExtra * 0.492))).rounded()
+        let tools   = (totalW * (CGFloat(vm.toolsWRatio) + (sidebarExtra * 0.254))).rounded()
         // v0.24 fix (Boss 8/25 57th OOB '界面全改丢了, 先实现第一个按钮对应的
         // 项目管理区, 一个一个来'): only wrap projectSidebar (= first
         // button = sidebar.left, corresponding to projectSidebar zone) in
@@ -1195,9 +1202,11 @@ struct UpperBandZone: View {
         // '一个一个来', future tickets will add the other 3 toggles one by one.
         // Splitters stay visible (per Boss 15th OOB) so drag functionality
         // is preserved when projectSidebar is hidden.
+        // Per Boss 58th OOB '过程中要有过度动画': animate sidebar hide/show
+        // via .animation(.easeInOut, value: sidebarIsVisible) modifier.
         HStack(spacing: 0) {
             // D_v0.5: project sidebar (wraps in if for hide/show)
-            if vm.isZoneVisible(slot: .projectSidebar) {
+            if sidebarIsVisible {
                 ZoneModule(slot: .projectSidebar, vm: vm, totalW: totalW, bandH: bandH)
                     .frame(width: sidebar)
             }
@@ -1221,6 +1230,7 @@ struct UpperBandZone: View {
                 .frame(width: tools)
         }
         .frame(height: bandH)  // 显式告诉 SwiftUI VStack layout 上 band 高度, 响应 vm.bandOffset mutate
+        .animation(.easeInOut(duration: 0.25), value: sidebarIsVisible)  // Per Boss 58th OOB '过程中要有过度动画'
     }
 }
 
