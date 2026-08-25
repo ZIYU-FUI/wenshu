@@ -72,7 +72,7 @@ enum LayoutTokens {
     // 老板 8/18 拍 "数对" = 拖拽线 1 PT 视觉线摊给左右 zone (各 0.5 PT)
     // 中间 1 + 中间 2 = 1920 - 200 - 400 = 1320
     // 维持原值 558 + 762 (中间 1 + 中间 2 = 1320) = 上 band 4 zone 1920 ✓
-    // v0.24 fix (Boss 8/25 45th + 46th OOB '默认宽度按1000, 上四栏比例20 20 40 20'):
+    // v0.24 fix (Boss 8/25 45th + 46th OOB 'default width 1000, upper 4 zones ratio 20 20 40 20'):
     // changed base from 1920 to 1000 (= per Boss 46th OOB).
     // Upper band 4 zones (20/20/40/20 = 100% total):
     static let projectSidebarRatio: CGFloat = 200.0 / 1000.0  // 20% (= Boss 45th OOB)
@@ -92,7 +92,7 @@ enum LayoutTokens {
     // v0.24 fix (Boss 8/25 44th OOB '代码宽度不对'): drop aiChatRatio 1518 -> 1514
     // to absorb 1 splitter hit area (1 × 6 PT = 6 PT). New sum = 1514+400
     // = 1914 + 6 splitter = 1920 PT (= exact window width, no HStack shrinkage).
-    // v0.24 fix (Boss 8/25 45th + 46th OOB '下两栏比例80 20, 默认宽度按1000'):
+    // v0.24 fix (Boss 8/25 45th + 46th OOB 'lower 2 zones ratio 80 20, default width 1000'):
     // Lower band 2 zones (80/20 = 100% total):
     static let aiChatRatio: CGFloat = 800.0 / 1000.0         // 80% (= Boss 45th OOB)
     static let dynamicWRatio: CGFloat = 200.0 / 1000.0       // 20% (= Boss 45th OOB)
