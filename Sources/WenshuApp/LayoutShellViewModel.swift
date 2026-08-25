@@ -49,15 +49,17 @@ final class LayoutShellViewModel {
     // v0.24 boss验收fix: @ObservationIgnored prevents conflict with @ObservationTracked
     // (LayoutShellViewModel is @Observable, but @AppStorage already provides
     // its own reactive storage via UserDefaults notifications).
-    // v0.24 fix (Boss 8/25 59th OOB '四个按钮点击都没有效果'): restore
-    // @ObservationIgnored annotation. Per SwiftUI Observation framework
-    // (@Observable), removing @ObservationIgnored causes macro conflict
-    // ('invalid redeclaration of synthesized property _projectSidebarVisible')
-    // because @AppStorage has its own backing storage that conflicts with
-    // @Observable's auto-synthesized storage.
-    // Real fix = toggleZone calls objectWillChange.send() manually to
-    // notify SwiftUI views to re-render. See toggleZone() implementation
-    // below.
+    // v0.24 fix (Boss 8/25 59th OOB '4 toggles clicks have no effect'):
+    // restore @ObservationIgnored annotation. Per SwiftUI Observation
+    // framework (@Observable), removing @ObservationIgnored causes
+    // macro conflict ('invalid redeclaration of synthesized property
+    // _projectSidebarVisible') because @AppStorage has its own backing
+    // storage that conflicts with @Observable's auto-synthesized
+    // storage.
+    // Real fix = toggleZone bumps the @ObservationTracked revisionToken
+    // (= see below) to trigger objectWillChange, which makes SwiftUI
+    // re-render. Initial attempt to call objectWillChange.send()
+    // directly failed because @Observable hides that method.
     @ObservationIgnored @AppStorage("wenshu.zoneVisible.projectSidebar") var projectSidebarVisible: Bool = true
     @ObservationIgnored @AppStorage("wenshu.zoneVisible.specializedTools") var specializedToolsVisible: Bool = true
     @ObservationIgnored @AppStorage("wenshu.zoneVisible.aiChat") var aiChatVisible: Bool = true
