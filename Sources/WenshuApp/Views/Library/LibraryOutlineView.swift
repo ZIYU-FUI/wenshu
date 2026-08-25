@@ -284,22 +284,69 @@ struct LibraryOutlineView: View {
 
 private struct BookOutlineRow: View {
     let book: Book
+    /// v0.24 boss验收fix (Boss 8/25 ninth OOB ticket 015.022): book
+    /// expansion state (= FCP Browser style 3-level disclosure).
+    /// Default expanded per Apple HIG Finder convention so user sees
+    /// book structure on first launch.
+    @State private var isExpanded: Bool = true
+
+    var body: some View {
+        DisclosureGroup(isExpanded: $isExpanded) {
+            // v0.24 boss验收fix (Boss 8/25 ninth OOB ticket 015.022):
+            // FCP-style 3-level structure = book header + book structure
+            // categories (= 章节, 设定, 资料库 = Apple HIG 3 standard).
+            // Per Boss拍 '书下的目录就是我们之前定义的, 书的结构目录,
+            // 世界观, 角色, 资料库等' = the 3 standard categories cover the
+            // core writing app needs. User can add per-book custom folders
+            // (= future ticket).
+            ForEach(BookCategory.allCases, id: \.self) { category in
+                BookCategoryOutlineRow(book: book, category: category)
+            }
+        } label: {
+            Label {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(book.title)
+                        .lineLimit(1)
+                    if !book.author.isEmpty {
+                        Text(book.author)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+            } icon: {
+                Image(systemName: "book")
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+/// v0.24 boss验收fix (Boss 8/25 ninth OOB ticket 015.022): 1 row per book
+/// structure category (= 章节 / 设定 / 资料库 = 3 standard Apple HIG
+/// categories). Future ticket may add per-book custom categories
+/// (= 人物 / 世界观 / 音频 etc, per Boss image) by extending BookCategory
+/// enum or by per-book overrides.
+private struct BookCategoryOutlineRow: View {
+    let book: Book
+    let category: BookCategory
 
     var body: some View {
         Label {
-            VStack(alignment: .leading, spacing: 1) {
-                Text(book.title)
+            HStack {
+                Text(category.displayName)
                     .lineLimit(1)
-                if !book.author.isEmpty {
-                    Text(book.author)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
+                Spacer()
+                // Future ticket: show document count per category
+                // (= FCP Browser shows badge with item count).
+                // Empty for now (= no document count query wired).
             }
         } icon: {
-            Image(systemName: "book")
-                .foregroundStyle(.secondary)
+            Image(systemName: category.icon)
+                .foregroundStyle(.tertiary)
         }
+        // v0.24 boss验收fix: make row selectable click (= future ticket
+        // wires category selection to BookOutlineView's category-filter).
+        .contentShape(Rectangle())
     }
 }
