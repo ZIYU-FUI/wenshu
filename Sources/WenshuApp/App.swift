@@ -1062,20 +1062,6 @@ struct LayoutShellView: View {
                     }
                     .help("导入")
                 }
-                // v0.24 fix (Boss 8/25 27th OOB 'match Pages reference'): 2 separate
-                // right groups (Boss 23rd OOB 'parentheses = grouping'), each with
-                // 1 gray Pages-style capsule (controlBackgroundColor, 1 layer only,
-                // no inner black).
-                // v0.24 fix (Boss 8/25 32nd OOB 'ICON outside capsule, check official'):
-                // per Apple HIG (= nilcoalescing.com macOS toolbar guide), use
-                // default toolbar item sizes (= no custom .frame, .font, .padding,
-                // .background, .buttonStyle). 4 zone visibility toggles + 导出 in
-                // 1 single .primaryAction group (= 1 layer, no nested wrap).
-                // v0.24 fix (Boss 8/25 32nd OOB 'ICON outside capsule, check official'):
-                // 4 zone visibility toggles in 4 separate .primaryAction
-                // ToolbarItems (= each toggle = 1 item, no overflow in 1 group).
-                // Per Apple HIG, default toolbar item size = system-managed
-                // (= no custom .frame, .font, .padding, .background).
                 // v0.24 fix (Boss 8/25 35th OOB '整组 紧贴 最右 边'):
                 // 4 zone visibility toggles in 1 ToolbarItemGroup(.primaryAction)
                 // (= 1 整组, 紧贴 居右, no per-button separator). Per Apple HIG
@@ -1083,7 +1069,9 @@ struct LayoutShellView: View {
                 // ToolbarItemGroup = 'group of related toolbar items rendered as
                 // a single cluster'. 导出 in separate ToolbarItem(.primaryAction)
                 // (= 2 groups total, all at right, no visual separator between
-                // them per Boss 34th OOB '整组 居右').
+                // them per Boss 34th OOB '整组 居右'). Per Boss 32nd OOB '查官方',
+                // default toolbar item size = system-managed (= no custom .frame,
+                // .font, .padding, .background).
                 ToolbarItemGroup(placement: .primaryAction) {
                     Button {
                         vm.toggleZone(slot: .projectSidebar)
