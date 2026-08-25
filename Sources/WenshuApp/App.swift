@@ -75,7 +75,10 @@ enum LayoutTokens {
     static let projectSidebarRatio: CGFloat = 200.0 / 1920.0
     static let projectPreviewRatio: CGFloat = 520.0 / 1920.0  // 老板 8/18 改 520 PT (201,52,520,465)
     static let editorWRatio: CGFloat = 794.0 / 1920.0         // v0.15 ticket 012 修: 老板 2026-08-19 改 794 PT (724,52,794,465) (mcp__sketch__run_code 真值)
-    static let toolsWRatio: CGFloat = 400.0 / 1920.0
+    // v0.24 fix (Boss 8/25 44th OOB '代码宽度不对'): drop toolsWRatio 400 -> 388
+    // to absorb 3 splitter hit areas (3 × 6 PT = 18 PT). New sum = 200+520+794+388
+    // = 1902 + 18 splitters = 1920 PT (= exact window width, no HStack shrinkage).
+    static let toolsWRatio: CGFloat = 388.0 / 1920.0
 
     // v0.24 fix (Boss 8/25 41st OOB 'originally 400, check official docs to fix visual width mismatch'):
     // Boss clarified: upper-right (specializedTools) and lower-right (aiDynamic)
@@ -86,7 +89,10 @@ enum LayoutTokens {
     // original 8/18 design values).
     // Real problem = same 400 PT visually different widths (= need to check
     // official docs for proper fix).
-    static let aiChatRatio: CGFloat = 1518.0 / 1920.0      // v0.24 revert Boss 38th OOB (= Boss 41st OOB '原本就是1518')
+    // v0.24 fix (Boss 8/25 44th OOB '代码宽度不对'): drop aiChatRatio 1518 -> 1514
+    // to absorb 1 splitter hit area (1 × 6 PT = 6 PT). New sum = 1514+400
+    // = 1914 + 6 splitter = 1920 PT (= exact window width, no HStack shrinkage).
+    static let aiChatRatio: CGFloat = 1514.0 / 1920.0     // v0.24 boss acceptance fix (Boss 44th OOB): drop 1518 -> 1514 to absorb 1 splitter
     static let dynamicWRatio: CGFloat = 400.0 / 1920.0     // v0.24 revert Boss 38th OOB (= Boss 41st OOB '原本就是400')
 
     // 编辑器两层设计 (老板 8/18 Q2 答: 有意两层, 不要删)
