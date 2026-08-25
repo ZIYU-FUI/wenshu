@@ -1382,8 +1382,11 @@ struct ChatZoneView: View {
         nonmutating set { selectedTabRaw = newValue.rawValue }
     }
     // v0.21 ticket 40: 持有 ChatViewModel 实例 + 共享给 ChatView, 让 bottom toolbar 读 vm.contextUsed 自动 propagate
+    // v0.24 boss验收fix (Boss 8/25 OOB 'minimax m3 不是 1mb 的上下文吗', 双轴
+    // Spec axis sub-agent report FAIL): dead contextMax field removed. Was
+    // 131072 (M2 series value) and unused (= UI reads vm.contextMax from
+    // ChatViewModel). Stale after commit dc741ceac fix.
     @State private var vm: ChatViewModel
-    private let contextMax: Int = 131072
 
     init(conductor: WenshuConductor?, store: ChatSessionStore?) {
         self.conductor = conductor
