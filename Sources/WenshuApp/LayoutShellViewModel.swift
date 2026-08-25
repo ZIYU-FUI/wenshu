@@ -44,8 +44,8 @@ final class LayoutShellViewModel {
     // v0.24 boss验收fix (Boss 8/25 tenth OOB ticket 015.023): zone visibility
     // state for 4 toggle zones (= projectSidebar, specializedTools, aiChat,
     // aiDynamic). Editor zone NOT toggleable per Boss spec.
-    // @AppStorage for persistence across launches (= Boss 8/24 '每个区域的
-    // tab 选中状态应该持久化' pattern).
+    // @AppStorage for persistence across launches (= Boss 8/24 'tab selection
+    // state per zone needs to persist' pattern).
     // v0.24 boss验收fix: @ObservationIgnored prevents conflict with @ObservationTracked
     // (LayoutShellViewModel is @Observable, but @AppStorage already provides
     // its own reactive storage via UserDefaults notifications).
