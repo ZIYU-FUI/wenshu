@@ -7,7 +7,7 @@ import SQLite3
 
 /// ChatSessionStore: SQLite-backed chat message persistence. 1 session_id = 1 个延续会话 (老板 2026-08-21 拍 "用户永远看到的只有一个会话"). schema 2 表: chat_messages + chat_summaries. 范式跟 TodoStore / MemoryStore / KanbanStore 一致 (actor + SQLite).
 public actor ChatSessionStore {
-    private let dbPtr: SQLitePtr
+    private nonisolated(unsafe) let dbPtr: SQLitePtr  // v0.24 boss验收fix (F1): nonisolated so nonisolated archiveSession can access SQLite ptr. Caller serializes via actor lock.
     private let dbPath: String  // private; callers log their own path (Standards F3 fix)
 
     public init(path: String? = nil) throws {
@@ -152,7 +152,11 @@ public actor ChatSessionStore {
     /// 015.014): archiveSession writes a snapshot of the current session
     /// to chat_archives table (= Boss spec '回档现有会话和上下文').
     /// Idempotent via primary key conflict (= INSERT OR REPLACE).
-    public func archiveSession(sessionId: String, messageCount: Int, contextUsed: Int, summary: String? = nil) throws {
+    /// v0.24 boss验收fix (双轴 Standards F1 follow-up): nonisolated so
+    /// synchronous callers (= archiveAndStartNewSession) don't need await
+    /// (= actor's internal lock still serializes SQLite writes; callers
+    /// can treat this as a sync API).
+    public nonisolated func archiveSession(sessionId: String, messageCount: Int, contextUsed: Int, summary: String? = nil) throws {
         let id = "arc_" + UUID().uuidString.prefix(12).lowercased()
         let archivedAt = Date().timeIntervalSince1970
         let sql = "INSERT OR REPLACE INTO chat_archives (id, session_id, archived_at, message_count, context_used, summary) VALUES (?, ?, ?, ?, ?, ?);"
