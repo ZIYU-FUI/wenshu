@@ -72,13 +72,13 @@ enum LayoutTokens {
     // 老板 8/18 拍 "数对" = 拖拽线 1 PT 视觉线摊给左右 zone (各 0.5 PT)
     // 中间 1 + 中间 2 = 1920 - 200 - 400 = 1320
     // 维持原值 558 + 762 (中间 1 + 中间 2 = 1320) = 上 band 4 zone 1920 ✓
-    static let projectSidebarRatio: CGFloat = 200.0 / 1920.0
-    static let projectPreviewRatio: CGFloat = 520.0 / 1920.0  // 老板 8/18 改 520 PT (201,52,520,465)
-    static let editorWRatio: CGFloat = 794.0 / 1920.0         // v0.15 ticket 012 修: 老板 2026-08-19 改 794 PT (724,52,794,465) (mcp__sketch__run_code 真值)
-    // v0.24 fix (Boss 8/25 44th OOB '代码宽度不对'): drop toolsWRatio 400 -> 388
-    // to absorb 3 splitter hit areas (3 × 6 PT = 18 PT). New sum = 200+520+794+388
-    // = 1902 + 18 splitters = 1920 PT (= exact window width, no HStack shrinkage).
-    static let toolsWRatio: CGFloat = 388.0 / 1920.0
+    // v0.24 fix (Boss 8/25 45th + 46th OOB '默认宽度按1000, 上四栏比例20 20 40 20'):
+    // changed base from 1920 to 1000 (= per Boss 46th OOB).
+    // Upper band 4 zones (20/20/40/20 = 100% total):
+    static let projectSidebarRatio: CGFloat = 200.0 / 1000.0  // 20% (= Boss 45th OOB)
+    static let projectPreviewRatio: CGFloat = 200.0 / 1000.0  // 20% (= Boss 45th OOB)
+    static let editorWRatio: CGFloat = 400.0 / 1000.0         // 40% (= Boss 45th OOB)
+    static let toolsWRatio: CGFloat = 200.0 / 1000.0         // 20% (= Boss 45th OOB)
 
     // v0.24 fix (Boss 8/25 41st OOB 'originally 400, check official docs to fix visual width mismatch'):
     // Boss clarified: upper-right (specializedTools) and lower-right (aiDynamic)
@@ -92,8 +92,10 @@ enum LayoutTokens {
     // v0.24 fix (Boss 8/25 44th OOB '代码宽度不对'): drop aiChatRatio 1518 -> 1514
     // to absorb 1 splitter hit area (1 × 6 PT = 6 PT). New sum = 1514+400
     // = 1914 + 6 splitter = 1920 PT (= exact window width, no HStack shrinkage).
-    static let aiChatRatio: CGFloat = 1514.0 / 1920.0     // v0.24 boss acceptance fix (Boss 44th OOB): drop 1518 -> 1514 to absorb 1 splitter
-    static let dynamicWRatio: CGFloat = 400.0 / 1920.0     // v0.24 revert Boss 38th OOB (= Boss 41st OOB '原本就是400')
+    // v0.24 fix (Boss 8/25 45th + 46th OOB '下两栏比例80 20, 默认宽度按1000'):
+    // Lower band 2 zones (80/20 = 100% total):
+    static let aiChatRatio: CGFloat = 800.0 / 1000.0         // 80% (= Boss 45th OOB)
+    static let dynamicWRatio: CGFloat = 200.0 / 1000.0       // 20% (= Boss 45th OOB)
 
     // 编辑器两层设计 (老板 8/18 Q2 答: 有意两层, 不要删)
     static let editorInsetRatio: CGFloat = 4.0 / 984.0  // = 0.0041
