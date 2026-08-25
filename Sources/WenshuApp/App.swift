@@ -102,9 +102,9 @@ enum LayoutTokens {
     // to absorb 1 splitter hit area (1 × 6 PT = 6 PT). New sum = 1514+400
     // = 1914 + 6 splitter = 1920 PT (= exact window width, no HStack shrinkage).
     // v0.24 fix (Boss 8/25 49th OOB 'splitter 6 PT, counted into chat'):
-    // aiChat 自己 包含 1 splitter (= 6 PT hit area).
-    // 800 (= 80% design) - 6 (= 1 × 6 splitter) = 794 (= 含 splitter design)
-    // 总 column = 794+200 = 994 + 6 splitter = 1000 (= exact fit, no HStack shrinkage).
+    // aiChat itself contains 1 splitter (= 6 PT hit area).
+    // 800 (= 80% design) - 6 (= 1 × 6 splitter) = 794 (= design includes splitter)
+    // Total column = 794+200 = 994 + 6 splitter = 1000 (= exact fit, no HStack shrinkage).
     // Lower band 2 zones (80/20 = 100% total):
     static let aiChatRatio: CGFloat = 794.0 / 1000.0         // 80% design - 1 splitter
     static let dynamicWRatio: CGFloat = 200.0 / 1000.0       // 20% (= Boss 45th OOB)
