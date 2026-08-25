@@ -259,12 +259,10 @@ struct SettingView: View {
     @AppStorage("wenshu.llm.reasoningEffort") private var reasoningEffort: String = "medium"
     // v0.24 boss验收fix: @AppStorage so chat '设置' link can jump to provider tab.
     @AppStorage("wenshu.settingsTab") private var selectedTabRaw: String = "general"
-    // v0.24 boss验收fix (Boss 8/24 OOB '在设置里加一个, LLM 对你的称呼'):
-    // Settings UI exposes user-set value for the agent-to-user address.
-    // WenshuConductorIdentity.userAddress reads from this key at LLM call time
-    // (= dynamic per-chat, no static prompt rebuild needed).
-    // Boss 8/24拍 default = "用户" (NOT "老板" — that's hermes-side convention).
-    @AppStorage("wenshu.userAddress") private var userAddress: String = "用户"
+    // v0.24 fix: Settings UI exposes user-set value for agent-to-user address.
+    // WenshuConductorIdentity.userAddress reads this key at LLM call time.
+    // Boss 8/24 clarification: default = 'user' (not 'boss' = hermes-side convention).
+    @AppStorage("wenshu.userAddress") private var userAddress: String = "user"
 
     private var selectedTab: SettingsTab {
         get { SettingsTab(rawValue: selectedTabRaw) ?? .general }
@@ -369,23 +367,16 @@ struct SettingView: View {
                 }
                 .pickerStyle(.radioGroup)
             }
-            Section("智能体对你的称呼") {
-                // v0.24 boss验收fix (Boss 8/24 OOB): user-set value for agent-to-user
-                // address. Read by WenshuConductorIdentity.userAddress at LLM call
-                // time (= dynamic per-chat). User CANNOT modify via chat
-                // (hermes 8/23 rule: 用户不可通过聊天改系统).
-                // On change, trigger background task to regenerate dynamic
-                // agent-identity content (system prompt rebuild = free, since
-                // WenshuConductorIdentity.userAddress reads fresh each call).
-                TextField("智能体对你的称呼", text: $userAddress, prompt: Text("用户"))
+            Section("Agent user address") {
+                // v0.24 fix (Boss 8/24 OOB): user-set value for agent-to-user address.
+                // Read by WenshuConductorIdentity.userAddress at LLM call time
+                // (dynamic per-chat). User cannot modify via chat per AGENTS.md.
+                // Reason for no .onChange handler: WenshuConductorIdentity.
+                // userAddress reads UserDefaults fresh each LLM call = automatic
+                // dynamic propagation, no event-driven mechanism needed.
+                TextField("Agent user address", text: $userAddress, prompt: Text("user"))
                     .textFieldStyle(.roundedBorder)
-                    // v0.24 boss验收fix (Spec axis GAP review): no .onChange
-                    // handler. Reason: WenshuConductorIdentity.userAddress reads
-                    // from UserDefaults fresh at every LLM call time (= automatic
-                    // dynamic propagation, no notification needed). Boss 8/24 OOB
-                    // '触发后台处理' = dynamic read (not file mutation, since
-                    // systemPrompt is compile-time static let bundled in binary).
-                Text("智能体（文枢）会用这个称呼来指代你。默认：用户")
+                Text("Agent (文枢) addresses you with this term. Default: user")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
