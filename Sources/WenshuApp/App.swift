@@ -201,10 +201,11 @@ struct WenshuApp: App {
         }
         // Boss 8/24 反馈: '用 52 的那个'. Apple SwiftUI macOS 14+ windowToolbarStyle
 // options: .automatic, .unified (52 PT), .unifiedCompact (28 PT), .expanded.
-        // v0.24 fix: use 52 PT .unified style. Plus showsTitle: false per
-        // Boss 17th OOB (= Apple HIG API to hide title slot in unified
-        // chrome, per developer.apple.com/documentation/SwiftUI/WindowToolbarStyle).
-        .windowToolbarStyle(.unified(showsTitle: false))  // 52 PT unified toolbar, title hidden
+        // v0.24 fix (Boss 8/25 28th OOB '尺寸改成默认尺寸'): use default
+        // .unifiedCompact (28 PT) toolbar (= macOS default smaller size, Boss拍
+        // '用默认尺寸' = no custom 52 PT override). Per Boss 17th OOB,
+        // showsTitle: false still hides title slot.
+        .windowToolbarStyle(.unifiedCompact(showsTitle: false))  // 28 PT default toolbar, title hidden
         .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // 老板 Sketch 设计基准 1920×984 PT
         // v0.24 boss验收fix: .contentMinSize (window doesn't shrink below initial
         // size, can grow to fit larger content).
@@ -1069,15 +1070,10 @@ struct LayoutShellView: View {
                         .buttonStyle(.plain)
                         .help("导入")
                     }
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 4)
-                    .background(
-                        // v0.24 fix (Boss 8/25 27th OOB 'match Pages reference'):
-                        // use controlBackgroundColor (= gray, matches Pages style,
-                        // 1 layer only, no inner black).
-                        Capsule()
-                            .fill(Color(nsColor: .controlBackgroundColor))
-                    )
+                    // v0.24 fix (Boss 8/25 28th OOB '先改成单层胶囊再说'):
+                    // remove inner Capsule background. The toolbar's native
+                    // .regularMaterial (from .unified(showsTitle: false)) provides
+                    // the gray wrap visually (= 1 layer, no nested backgrounds).
                 }
                 // v0.24 fix (Boss 8/25 27th OOB 'match Pages reference'): 2 separate
                 // right groups (Boss 23rd OOB 'parentheses = grouping'), each with
@@ -1128,14 +1124,9 @@ struct LayoutShellView: View {
                             .buttonStyle(.plain)
                             .help(vm.isZoneVisible(slot: .aiDynamic) ? "隐藏 动态区" : "显示 动态区")
                         }
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 4)
-                        .background(
-                            // v0.24 fix (Boss 8/25 27th OOB 'match Pages reference'):
-                            // controlBackgroundColor (= gray, Pages style, 1 layer).
-                            Capsule()
-                                .fill(Color(nsColor: .controlBackgroundColor))
-                        )
+                        // v0.24 fix (Boss 8/25 28th OOB '改成单层对了'): remove inner
+                        // Capsule (= 1 layer per group, Boss confirms). The toolbar's
+                        // native .regularMaterial provides the visual wrap.
                         // v0.24 fix (Boss 8/25 24th OOB '样式不对, 参考新建, 打开,
                         // 导入的样式'): 导出 in 1 plain rounded capsule (= 1 layer
                         // only, controlBackgroundColor, same style as left group).
@@ -1149,14 +1140,8 @@ struct LayoutShellView: View {
                         }
                         .buttonStyle(.plain)
                         .help("导出电子书 (PDF / EPUB / MOBI / TXT)")
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 4)
-                        .background(
-                            // v0.24 fix (Boss 8/25 27th OOB 'match Pages reference'):
-                            // controlBackgroundColor (= gray, Pages style, 1 layer).
-                            Capsule()
-                                .fill(Color(nsColor: .controlBackgroundColor))
-                        )
+                        // v0.24 fix (Boss 8/25 28th OOB '改成单层对了'): remove inner
+                        // Capsule (= 1 layer per group, Boss confirms).
                     }
                 }
             }
