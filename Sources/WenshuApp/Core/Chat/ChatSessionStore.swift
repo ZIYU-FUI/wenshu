@@ -49,6 +49,20 @@ public actor ChatSessionStore {
             last_message_id TEXT
         );
         """
+
+        // v0.24 boss验收fix (Boss 8/25 OOB chat persistence bug):
+        // ALTER TABLE chat_messages ADD COLUMN tokens INTEGER (idempotent —
+        // SQLite returns "duplicate column name" if already exists, swallowed).
+        // Existing chat.sqlite (created before commit 39e8d436c) lacks tokens
+        // column; vm.send() agent append fails silently with "no such column:
+        // tokens" because CREATE TABLE IF NOT EXISTS does not migrate schema.
+        let alterSql = "ALTER TABLE chat_messages ADD COLUMN tokens INTEGER;"
+        if sqlite3_exec(dbPtr.db, alterSql, nil, nil, nil) != SQLITE_OK {
+            let errMsg = ChatSessionStore.sqliteErmsg(dbPtr.db)
+            if !errMsg.contains("duplicate column name") {
+                NSLog("[wenshu.chatStore] schema migration warning: %@", errMsg)
+            }
+        }
         // v0.23 ticket 006: sub-agent run trace (boss 8/23 拍: "用户不需要执行细节, 只看结果即可").
         // Schema: id / session_id / agent_name / title / status / started_at / completed_at / result_summary.
         // NOT stored: full LLM dialogue, system prompts, intermediate steps.
