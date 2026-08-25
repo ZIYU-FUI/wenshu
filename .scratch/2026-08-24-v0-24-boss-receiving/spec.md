@@ -105,3 +105,58 @@ Boss follow-up拍:
 - Context auto-compresses when >80% (= ticket 015.010).
 - All 3 db files (chat/kanban/todo) inside anbaiqiang.ws/ (= tickets 015.005+015.011).
 - User perception: 一直只有一个会话 + 上下文自动管理 (= invisible to user).
+
+
+---
+
+# Boss 2026-08-25 third OOB spec (zone bottom toolbar)
+
+Boss 拍: '六个区现在只有聊天区有底栏了. 其它五区的底栏不知道什么时候都丢了'.
+
+Boss ask A (clarify): 恢复所有 5 zones 用 ZoneBottomToolbar, 每 zone 自己
+的 status info (= projectSidebar = 书架数, editor = 字数, preview = 章节数
+etc).
+
+## 现状 (post v0.24)
+- chat zone: 内嵌 ChatBottomToolbar (= model picker + context usage)
+- dynamic zone: internal tab bar (看板 / 待办) — but NO outer bottom toolbar
+- 其他 4 zones (projectSidebar, projectPreview, editor, specializedTools):
+  只有 content, no bottom toolbar at all (= v0.24 boss拍 removed
+  outer ZoneTopToolbar/ZoneBottomToolbar)
+
+Code state:
+- ZoneBottomToolbar struct exists at App.swift:1184 (defined, never
+  instantiated = dead code).
+- ZoneModule body comment at App.swift:1242: 'v0.24 boss验收fix:
+  6-zone unified pattern — no outer ZoneTopToolbar / ZoneBottomToolbar'
+- Per boss 8/25 OOB: re-add ZoneBottomToolbar for 5 non-chat zones.
+
+## Per-zone status info design (= boss 拍 'A')
+- projectSidebar: 书架数 (= count of WenshuLibrary shelves)
+- projectPreview: 章节数 (= count of chapters in selected book) + 当前章节号
+- editor: 字数 (= wordCount of current chapter) + 进度 %
+- specializedTools: 工具状态 (= placeholder "工具就绪")
+- dynamic zone: 子 agent 进度 (= already in Kanban view) — keep inner tab
+  only
+- chat zone: model picker + context usage (existing, no change)
+
+## Fix
+- Modify ZoneModule.body to include ZoneBottomToolbar for all slots
+  EXCEPT .aiChat (= chat keeps its own internal ChatBottomToolbar).
+- Pass per-slot status content via new ViewModifier or per-slot computed
+  property.
+
+## Tickets
+- ticket 015.012 (this): Re-add ZoneBottomToolbar for all 6 zones with
+  per-zone status content (= A plan).
+- ticket 015.013 (next): Per-zone status content (word count, chapter count,
+  etc.) wired to actual data sources.
+
+## Done criterion
+- All 6 zones display ZoneBottomToolbar at bottom (visible per ZoneModule
+  parent component, not inner).
+- Chat zone retains its custom in-child ChatBottomToolbar (= no duplicate).
+- Other 5 zones show per-zone status info (= word count, chapter count,
+  shelf count, etc.).
+- Status updates on app state changes (= reactive via @Observable /
+  @AppStorage / @State).
