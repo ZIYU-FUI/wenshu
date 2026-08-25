@@ -82,6 +82,23 @@ final class LayoutShellViewModel {
         }
     }
 
+    /// v0.24 boss验收fix (Boss 8/25 60th OOB '对应功能要在菜单栏实现'):
+    /// init() listens for wenshuToggleZone NotificationCenter posts from
+    /// menu bar CommandGroup buttons (= menu bar is primary command
+    /// surface per Apple HIG Rule 3). Notification posts the ZoneSlot,
+    /// listener calls toggleZone (= same code path as toolbar buttons).
+    init() {
+        NotificationCenter.default.addObserver(
+            forName: .wenshuToggleZone,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            if let slot = notification.object as? ZoneSlot {
+                self?.toggleZone(slot: slot)
+            }
+        }
+    }
+
     /// v0.24 boss验收fix (Boss 8/25 tenth OOB ticket 015.023): toggle visibility
     /// for given slot. Editor zone toggle is a no-op (= Boss拍).
     /// v0.24 fix (Boss 8/25 59th OOB '四个按钮点击都没有效果'): bump

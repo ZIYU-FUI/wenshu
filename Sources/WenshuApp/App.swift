@@ -18,6 +18,13 @@ import AppKit
 
 // 老板 8/18 拍 "重置界面布局" 通知桥 (LayoutShellView 用 @State 私有 vm,
 // 顶层 .commands 拿不到 vm 实例, 走 NotificationCenter 转发)
+
+// v0.24 fix (Boss 8/25 60th OOB '对应功能要在菜单栏实现'): notification
+// name for menu bar zone toggle buttons (= CommandGroup can't directly
+// access vm instance, so menu items post notification, vm listens).
+extension Notification.Name {
+    static let wenshuToggleZone = Notification.Name("wenshu.toggleZone")
+}
 extension Notification.Name {
     static let wenshuResetLayout = Notification.Name("com.wenshu.resetLayout")
     // v0.24 boss验收fix: notify when ProviderKeychain changes (Settings save key).
@@ -263,6 +270,29 @@ struct WenshuApp: App {
                     .keyboardShortcut("Z", modifiers: [.command, .shift])
             }
             CommandGroup(after: .sidebar) {
+                Divider()
+                // v0.24 fix (Boss 8/25 60th OOB menu bar primary): 4 zone
+                // toggle menu items. Per Apple HIG Rule 1.3 (toggle
+                // checkmarks for on/off states). Toggle forwards via
+                // NotificationCenter to vm (= .commands block can't access
+                // vm directly per L20). Static labels (= dynamic checkmark
+                // would require vm access which commands lack).
+                Button("显示/隐藏 项目管理区") {
+                    NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.projectSidebar)
+                }
+                .keyboardShortcut("1", modifiers: [.command, .shift])
+                Button("显示/隐藏 工具区") {
+                    NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.specializedTools)
+                }
+                .keyboardShortcut("2", modifiers: [.command, .shift])
+                Button("显示/隐藏 聊天区") {
+                    NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.aiChat)
+                }
+                .keyboardShortcut("3", modifiers: [.command, .shift])
+                Button("显示/隐藏 动态区") {
+                    NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.aiDynamic)
+                }
+                .keyboardShortcut("4", modifiers: [.command, .shift])
                 Divider()
                 Button("恢复默认布局") {
                     NotificationCenter.default.post(name: .wenshuResetLayout, object: nil)
