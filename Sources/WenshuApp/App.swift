@@ -1101,8 +1101,10 @@ struct LayoutShellView: View {
                     }
                     .foregroundStyle(vm.isZoneVisible(slot: .aiDynamic) ? Color.accentColor : Color.secondary)
                     .help(vm.isZoneVisible(slot: .aiDynamic) ? "隐藏 动态区" : "显示 动态区")
-                }
-                ToolbarItem(placement: .primaryAction) {
+                    // v0.24 fix (Boss 8/25 36th OOB '红框区 居右'): put 导出
+                    // INSIDE the same ToolbarItemGroup as 4 toggles (= 5 buttons
+                    // in 1 group, no separator between 4 toggles and 导出, 整组
+                    // 紧贴 最右 边 per Boss image).
                     Button {
                         vm.exportEbook(format: "epub")
                     } label: {
