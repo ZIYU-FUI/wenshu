@@ -1076,7 +1076,15 @@ struct LayoutShellView: View {
                 // ToolbarItems (= each toggle = 1 item, no overflow in 1 group).
                 // Per Apple HIG, default toolbar item size = system-managed
                 // (= no custom .frame, .font, .padding, .background).
-                ToolbarItem(placement: .primaryAction) {
+                // v0.24 fix (Boss 8/25 35th OOB '整组 紧贴 最右 边'):
+                // 4 zone visibility toggles in 1 ToolbarItemGroup(.primaryAction)
+                // (= 1 整组, 紧贴 居右, no per-button separator). Per Apple HIG
+                // (= developer.apple.com/documentation/SwiftUI/ToolbarItemGroup),
+                // ToolbarItemGroup = 'group of related toolbar items rendered as
+                // a single cluster'. 导出 in separate ToolbarItem(.primaryAction)
+                // (= 2 groups total, all at right, no visual separator between
+                // them per Boss 34th OOB '整组 居右').
+                ToolbarItemGroup(placement: .primaryAction) {
                     Button {
                         vm.toggleZone(slot: .projectSidebar)
                     } label: {
@@ -1084,8 +1092,6 @@ struct LayoutShellView: View {
                     }
                     .foregroundStyle(vm.isZoneVisible(slot: .projectSidebar) ? Color.accentColor : Color.secondary)
                     .help(vm.isZoneVisible(slot: .projectSidebar) ? "隐藏 项目管理区" : "显示 项目管理区")
-                }
-                ToolbarItem(placement: .primaryAction) {
                     Button {
                         vm.toggleZone(slot: .specializedTools)
                     } label: {
@@ -1093,8 +1099,6 @@ struct LayoutShellView: View {
                     }
                     .foregroundStyle(vm.isZoneVisible(slot: .specializedTools) ? Color.accentColor : Color.secondary)
                     .help(vm.isZoneVisible(slot: .specializedTools) ? "隐藏 工具区" : "显示 工具区")
-                }
-                ToolbarItem(placement: .primaryAction) {
                     Button {
                         vm.toggleZone(slot: .aiChat)
                     } label: {
@@ -1102,8 +1106,6 @@ struct LayoutShellView: View {
                     }
                     .foregroundStyle(vm.isZoneVisible(slot: .aiChat) ? Color.accentColor : Color.secondary)
                     .help(vm.isZoneVisible(slot: .aiChat) ? "隐藏 聊天区" : "显示 聊天区")
-                }
-                ToolbarItem(placement: .primaryAction) {
                     Button {
                         vm.toggleZone(slot: .aiDynamic)
                     } label: {
@@ -1112,12 +1114,6 @@ struct LayoutShellView: View {
                     .foregroundStyle(vm.isZoneVisible(slot: .aiDynamic) ? Color.accentColor : Color.secondary)
                     .help(vm.isZoneVisible(slot: .aiDynamic) ? "隐藏 动态区" : "显示 动态区")
                 }
-                // v0.24 fix (Boss 8/25 34th OOB 'move the whole group to right'):
-                // 导出 in its own .primaryAction ToolbarItem (= same placement
-                // as 4 toggles, clustered at right with no visual separator
-                // between them). Per Apple HIG, .primaryAction = 'rightmost
-                // position, used for primary actions'. 5 buttons in 1 right
-                // cluster, all at default Apple HIG size.
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         vm.exportEbook(format: "epub")
