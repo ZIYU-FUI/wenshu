@@ -848,12 +848,23 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // add NSLog for chat store init + bootstrap errors (silent catch 之前
         // makes debugging hard), and post .wenshuChatStoreReady notification
         // so ChatView can retry load when store becomes available.
+        // v0.24 boss验收fix (Boss 8/25 OOB '你的会话记录是存在 .ws 文件里吗'):
+        // ChatSessionStore location = wenshu warehouse (anbaiqiang.ws/) if set,
+        // else fall back to legacy ~/Library/Application Support/wenshu/chat.sqlite.
+        // Per boss spec: '用户的聊天数据, 也应该是库文件的一部分, 这样客户在
+        // 打包库文件到另一台电脑后, 就可以直接接续'.
+        let warehousePath = UserDefaults.standard.string(forKey: "wenshu.libraryPath")
+        let chatDbPath: String? = warehousePath.map { path in
+            // Warehouse is the directory selected via onboarding (.ws folder).
+            // Place chat.sqlite inside it.
+            (path as NSString).appendingPathComponent("chat.sqlite")
+        }
         let chatStore: ChatSessionStore?
         do {
-            let store = try ChatSessionStore()
+            let store = try ChatSessionStore(path: chatDbPath)
             try store.bootstrap()
             chatStore = store
-            NSLog("[wenshu.chatStore] init OK: store created successfully")
+            NSLog("[wenshu.chatStore] init OK: store created at %@", store.dbPath)
         } catch {
             chatStore = nil
             NSLog("[wenshu.chatStore] init FAILED: \(error)")
