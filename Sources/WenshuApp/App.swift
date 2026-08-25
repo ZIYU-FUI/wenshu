@@ -1186,28 +1186,37 @@ struct UpperBandZone: View {
         let preview = (totalW * CGFloat(vm.projectPreviewRatio)).rounded()
         let editor  = (totalW * CGFloat(vm.editorWRatio)).rounded()
         let tools   = (totalW * CGFloat(vm.toolsWRatio)).rounded()
+        // v0.24 fix (Boss 8/25 55th OOB '四个开关都没有实现对应的四个栏的显隐效果'):
+        // Wrap each ZoneModule in if vm.isZoneVisible(slot: .<slot>) (= zone
+        // hidden = no content). Splitters stay visible (= drag functionality
+        // preserved per Boss 15th OOB '工具区不能拖拽了. 修好'). When user
+        // toggles a zone off, ZoneModule disappears, adjacent splitters still
+        // drag-able to redistribute width to remaining visible zones.
         HStack(spacing: 0) {
-            ZoneModule(slot: .projectSidebar, vm: vm, totalW: totalW, bandH: bandH)
-                .frame(width: sidebar)
+            if vm.isZoneVisible(slot: .projectSidebar) {
+                ZoneModule(slot: .projectSidebar, vm: vm, totalW: totalW, bandH: bandH)
+                    .frame(width: sidebar)
+            }
             // D_v1: 项目侧栏 / 项目预览 (splitterIndex 0)
             VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 0, vm: vm)
-            ZoneModule(slot: .projectPreview, vm: vm, totalW: totalW, bandH: bandH)
-                .frame(width: preview)
+            if vm.isZoneVisible(slot: .projectPreview) {
+                ZoneModule(slot: .projectPreview, vm: vm, totalW: totalW, bandH: bandH)
+                    .frame(width: preview)
+            }
             // D_v2: 项目预览 / 编辑器 (splitterIndex 1)
             VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 1, vm: vm)
-            ZoneModule(slot: .editor, vm: vm, totalW: totalW, bandH: bandH)
-                .frame(width: editor)
+            if vm.isZoneVisible(slot: .editor) {
+                ZoneModule(slot: .editor, vm: vm, totalW: totalW, bandH: bandH)
+                    .frame(width: editor)
+            }
             // D_v3: 编辑器 / 专用工具 (splitterIndex 2)
-            // v0.24 boss acceptance fix (Boss 8/25 15th OOB '工具区不能拖拽了. 修好'):
-            // reverted conditional hide from ticket 015.024 (= 4 PT double-line
-            // fix) because hiding D_v3 makes it impossible to drag 工具区 width.
-            // Per Boss 8/25 8th OOB '不要纠结线的问题, 核心是比例': visual
-            // double-line at initial state is acceptable (= priority is drag
-            // functionality, not pixel-perfect alignment). Boss can still
-            // independently adjust toolsWRatio via D_v3.
+            // Per Boss 8/25 15th OOB '工具区不能拖拽了. 修好': keep D_v3
+            // visible even when adjacent zones are hidden (= drag preserved).
             VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 2, vm: vm)
-            ZoneModule(slot: .specializedTools, vm: vm, totalW: totalW, bandH: bandH)
-                .frame(width: tools)
+            if vm.isZoneVisible(slot: .specializedTools) {
+                ZoneModule(slot: .specializedTools, vm: vm, totalW: totalW, bandH: bandH)
+                    .frame(width: tools)
+            }
         }
         .frame(height: bandH)  // 显式告诉 SwiftUI VStack layout 上 band 高度, 响应 vm.bandOffset mutate
     }
@@ -1229,13 +1238,19 @@ struct LowerBandZone: View {
         // (= no fractional PT = no sub-pixel rendering gap).
         let aiChatW = (totalW * CGFloat(vm.aiChatRatio)).rounded()
         let dynamicW = (totalW * CGFloat(vm.dynamicWRatio)).rounded()
+        // v0.24 fix (Boss 8/25 55th OOB): same fix as upper band (= wrap each
+        // ZoneModule in if vm.isZoneVisible, keep splitters visible).
         HStack(spacing: 0) {
-            ZoneModule(slot: .aiChat, vm: vm, totalW: totalW, bandH: bandH)
-                .frame(width: aiChatW)
+            if vm.isZoneVisible(slot: .aiChat) {
+                ZoneModule(slot: .aiChat, vm: vm, totalW: totalW, bandH: bandH)
+                    .frame(width: aiChatW)
+            }
             // D_v5: AI 聊天 / AI 动态 (splitterIndex 4)
             VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 4, vm: vm)
-            ZoneModule(slot: .aiDynamic, vm: vm, totalW: totalW, bandH: bandH)
-                .frame(width: dynamicW)
+            if vm.isZoneVisible(slot: .aiDynamic) {
+                ZoneModule(slot: .aiDynamic, vm: vm, totalW: totalW, bandH: bandH)
+                    .frame(width: dynamicW)
+            }
         }
         .frame(height: bandH)  // 显式告诉 SwiftUI VStack layout 下 band 高度, 响应 vm.bandOffset mutate, 反方向守恒
     }
