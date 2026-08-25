@@ -85,11 +85,11 @@ struct LibraryOutlineView: View {
         .listStyle(.plain)  // 老板 8/18: unifica zone background
         .scrollContentBackground(.hidden)  // List 透明底色, 用 ZoneModule DesignColor.zoneSurface
         .frame(minWidth: 200, idealWidth: 260)
-        // v0.24 boss验收fix (Boss 8/25 13th OOB ticket 015.027): removed
-        // ToolbarItem '新建书架' (+ button) per Boss拍 '加号按钮 不要了'.
-        // New shelf creation now lives in the emptyLibrary CTA (= ticket
-        // 015.026 FCP-style onboarding wizard step 1) and the global toolbar
-        // '新建' button (left group, ticket 015.023).
+        // v0.24 fix (Boss 8/25 13th OOB ticket 015.027): removed ToolbarItem
+        // 'new shelf' (+ button) per Boss拍. New shelf creation now lives in
+        // the emptyLibrary CTA (= ticket 015.026 FCP-style onboarding wizard
+        // step 1) and the global toolbar 'new' button (left group, ticket
+        // 015.023).
         .sheet(item: $sheet) { kind in
             switch kind {
             case .newShelf:
@@ -185,8 +185,8 @@ struct LibraryOutlineView: View {
 
     @ViewBuilder
     private var emptyLibrary: some View {
-        // v0.24 boss验收fix (Boss 8/25 12th OOB ticket 015.026 '参考 FCP,
-        // 引导新建书架 + 建第一本书'): FCP-style onboarding wizard.
+        // v0.24 fix (Boss 8/25 12th OOB ticket 015.026 '参考 FCP, 引导新建
+        // 书架 + 建第一本书'): FCP-style onboarding wizard.
         // Two states: 0 shelves -> 'create first shelf' CTA; >0 shelves
         // but 0 books -> 'create first book' CTA (= next onboarding step).
         let firstShelf = library.shelves.first

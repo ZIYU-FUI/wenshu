@@ -1017,12 +1017,14 @@ struct LayoutShellView: View {
             .onTapGesture {
                 NotificationCenter.default.post(name: .wenshuDefocusChatInput, object: nil)
             }
-            // v0.24 boss验收fix (Boss 8/25 13th OOB ticket 015.027): macOS
-            // window toolbar = 3 groups per Boss spec:
-            //   1. Left (= after red/yellow/green window controls): 新建 / 打开 / 导入
-            //   2. Center: 4 zone visibility toggles (= 项目管理区 /工具区 / 聊天区 / 动态区)
-            //   3. Right (separate): 导出
-            // Removed per Boss拍: 标题 '文枢', 中间title, '+' button (= not in spec).
+            // v0.24 fix (Boss 8/25 13th OOB ticket 015.027): macOS window
+            // toolbar reorganized into 3 groups per Boss spec. Boss image shows
+            // 3 red boxes (= left file actions group, center 4 zone toggles
+            // group, right export group). Removed per Boss拍: title 'Wenshu',
+            // center title, '+' button (= not in spec).
+            // UI labels (新建/打开/导入/项目管理区/工具区/聊天区/动态区/导出) are
+            // Chinese per Boss 8/25 'UI 全中文' rule (= UI strings exempt
+            // from AGENTS.md §11 English-only rule).
             .toolbar {
                 ToolbarItemGroup(placement: .navigation) {
                     // Left group: 3 file actions
