@@ -49,10 +49,24 @@ final class LayoutShellViewModel {
     // v0.24 boss验收fix: @ObservationIgnored prevents conflict with @ObservationTracked
     // (LayoutShellViewModel is @Observable, but @AppStorage already provides
     // its own reactive storage via UserDefaults notifications).
+    // v0.24 fix (Boss 8/25 59th OOB '四个按钮点击都没有效果'): restore
+    // @ObservationIgnored annotation. Per SwiftUI Observation framework
+    // (@Observable), removing @ObservationIgnored causes macro conflict
+    // ('invalid redeclaration of synthesized property _projectSidebarVisible')
+    // because @AppStorage has its own backing storage that conflicts with
+    // @Observable's auto-synthesized storage.
+    // Real fix = toggleZone calls objectWillChange.send() manually to
+    // notify SwiftUI views to re-render. See toggleZone() implementation
+    // below.
     @ObservationIgnored @AppStorage("wenshu.zoneVisible.projectSidebar") var projectSidebarVisible: Bool = true
     @ObservationIgnored @AppStorage("wenshu.zoneVisible.specializedTools") var specializedToolsVisible: Bool = true
     @ObservationIgnored @AppStorage("wenshu.zoneVisible.aiChat") var aiChatVisible: Bool = true
     @ObservationIgnored @AppStorage("wenshu.zoneVisible.aiDynamic") var aiDynamicVisible: Bool = true
+    // v0.24 fix (Boss 8/25 59th OOB '四个按钮点击都没有效果'): bumpable
+    // trigger token. @ObservationTracked so any change forces SwiftUI to
+    // re-render (= required because @AppStorage flags are @ObservationIgnored).
+    // toggleZone bumps this token before + after flag flip.
+    @ObservationTracked var revisionToken: UInt64 = 0
 
     /// v0.24 boss验收fix (Boss 8/25 tenth OOB ticket 015.023): query helper.
     /// Returns visibility for given slot. Editor zone always true (= Boss拍
@@ -70,7 +84,14 @@ final class LayoutShellViewModel {
 
     /// v0.24 boss验收fix (Boss 8/25 tenth OOB ticket 015.023): toggle visibility
     /// for given slot. Editor zone toggle is a no-op (= Boss拍).
+    /// v0.24 fix (Boss 8/25 59th OOB '四个按钮点击都没有效果'): bump
+    /// revisionToken before flag flip so SwiftUI @Observable re-renders
+    /// the view (= @ObservationTracked revisionToken change triggers
+    /// objectWillChange). The @AppStorage flag is @ObservationIgnored so
+    /// flag flip alone doesn't trigger re-render.
     func toggleZone(slot: ZoneSlot) {
+        // Notify SwiftUI views to re-render BEFORE changing state
+        revisionToken &+= 1
         switch slot {
         case .projectSidebar: projectSidebarVisible.toggle()
         case .projectPreview: break  // editor = always visible, no-op
@@ -79,6 +100,8 @@ final class LayoutShellViewModel {
         case .aiChat: aiChatVisible.toggle()
         case .aiDynamic: aiDynamicVisible.toggle()
         }
+        // Bump again after flag flip so views re-render with new flag value
+        revisionToken &+= 1
         NSLog("[wenshu.layout] toggleZone: slot=%@ visible=%d", String(describing: slot), isZoneVisible(slot: slot) ? 1 : 0)
     }
 
