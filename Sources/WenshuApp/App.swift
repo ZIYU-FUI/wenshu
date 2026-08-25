@@ -201,11 +201,12 @@ struct WenshuApp: App {
         }
         // Boss 8/24 反馈: '用 52 的那个'. Apple SwiftUI macOS 14+ windowToolbarStyle
 // options: .automatic, .unified (52 PT), .unifiedCompact (28 PT), .expanded.
-        // v0.24 fix (Boss 8/25 28th OOB '尺寸改成默认尺寸'): use default
-        // .unifiedCompact (28 PT) toolbar (= macOS default smaller size, Boss拍
-        // '用默认尺寸' = no custom 52 PT override). Per Boss 17th OOB,
-        // showsTitle: false still hides title slot.
-        .windowToolbarStyle(.unifiedCompact(showsTitle: false))  // 28 PT default toolbar, title hidden
+        // v0.24 fix (Boss 8/25 28th OOB '尺寸改成默认尺寸' + Apple docs):
+        // use .unified (52 PT) = macOS default toolbar style. Per Apple
+        // developer.apple.com/documentation/SwiftUI/WindowToolbarStyle,
+        // .unified is the default style (52 PT). .unifiedCompact is
+        // COMPACT (= smaller, NOT default). Boss拍 '默认尺寸' = .unified.
+        .windowToolbarStyle(.unified(showsTitle: false))  // 52 PT default toolbar, title hidden
         .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // 老板 Sketch 设计基准 1920×984 PT
         // v0.24 boss验收fix: .contentMinSize (window doesn't shrink below initial
         // size, can grow to fit larger content).
