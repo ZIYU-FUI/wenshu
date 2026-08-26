@@ -13,6 +13,7 @@
 //
 
 import SwiftUI
+import Lucide
 
 /// DynamicZoneView: 动态区 body. 3 tabs (任务 / 进度 / 搜索) + Apple HIG TabBar pattern
 /// (跟 ChatZoneTabBar 范式一致: 顶栏 SF Symbol + .accentColor 高亮选中态).
@@ -106,10 +107,20 @@ struct DynamicZoneTabBar: View {
                 // Button's hit area), icon (Lucide 18 PT) as .overlay
                 // aligned .center (= icon visually centered within the
                 // 28×28 hot area, no clipping).
+                // v0.25.1 (= ticket 023 dynamic zone Lucide-first):
+                // owner 2026-08-26 OOB '右下看板和 todo 的两个 ICON
+                // 没有显示出来' = ticket 022 changed icon names to
+                // Lucide kebab-case ('layout-grid' / 'layout-list'),
+                // but raw `Image(systemName: tab.icon)` returns empty
+                // for non-SF names (= icons invisible even though
+                // AXButton is rendered with empty label). Fix = use
+                // `dynamicZoneTabBarIcon(tab.icon)` helper (= Layer 1
+                // Lucide path = Layer 3 SF fallback = ticket 009
+                // pattern = ZoneContentView's zoneContentTabBarIcon).
                 Color.clear
                     .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
                     .overlay(alignment: .center) {
-                        Image(systemName: tab.icon)
+                        dynamicZoneTabBarIcon(tab.icon)
                             .font(.system(size: LayoutTokens.iconSize))
                             .imageScale(.large)
                             .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
@@ -172,5 +183,27 @@ struct DynamicZoneTabBar: View {
             DesignColor.splitterLine.frame(height: 1)
         }
         .animation(.default, value: selectedTab)
+    }
+
+    /// v0.25.1 (= ticket 023 dynamic zone Lucide-first icon helper):
+    /// owner 2026-08-26 OOB '右下看板和 todo 的两个 ICON 没有显示出来' =
+    /// ticket 022 swapped the dynamic zone icon strings to Lucide
+    /// kebab-case names ('layout-grid' / 'layout-list') but DynamicZoneView
+    /// tab bar was still using direct `Image(systemName: tab.icon)`. Since
+    /// 'layout-grid' / 'layout-list' are NOT valid SF Symbol names,
+    /// `Image(systemName: ...)` returns an empty image (= the icon is
+    /// invisible even though the AXButton is rendered). Fix = apply the
+    /// same Lucide-first / SF-symbol-fallback pattern (= Layer 3 fallback)
+    /// used in ZoneContentView's zoneContentTabBarIcon helper (ticket 009).
+    /// When tab.icon matches a Lucide kebab-case name, render via Lucide;
+    /// else fall back to `Image(systemName:)`. 'layout-grid' /
+    /// 'layout-list' are valid Lucide cases (= Layer 1 path fires).
+    @ViewBuilder
+    private func dynamicZoneTabBarIcon(_ systemName: String) -> some View {
+        if let lucide = Lucide(systemName) {
+            lucide
+        } else {
+            Image(systemName: systemName)
+        }
     }
 }
