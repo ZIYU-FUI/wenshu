@@ -1073,7 +1073,7 @@ struct LayoutShellView: View {
             let bandH = vm.upperBandH(totalHeight: contentH - 2)
             VStack(spacing: 0) {
                 // 上 band: 4 区 + 3 拖拽线 (Apple HIG HStack 范式)
-                UpperBandZone(vm: vm, showProjectSidebar: showProjectSidebar, totalW: totalW, bandH: bandH)
+                UpperBandZone(vm: vm, showProjectSidebar: showProjectSidebar, showSpecializedTools: showSpecializedTools, totalW: totalW, bandH: bandH)
                 // D_h 横拖拽线 (上/下 band 之间, v0.14.0 撤销 inert, 拍可拖)
                 NativeSplitter(orientation: .horizontal, length: totalW, onDrag: { dy in
                     vm.adjustBandSplit(delta: dy, totalHeight: contentH - 2)
@@ -1224,6 +1224,7 @@ struct VSplitter: View {
 struct UpperBandZone: View {
     let vm: LayoutShellViewModel
     let showProjectSidebar: Bool
+    let showSpecializedTools: Bool
     let totalW: CGFloat
     let bandH: CGFloat
     var body: some View {
@@ -1250,11 +1251,21 @@ struct UpperBandZone: View {
         // * (ratio + totalW * ratio)) was a previous bug.
         // v0.24 fix (Boss 8/25 63rd OOB): use local showProjectSidebar
         // (= direct @AppStorage from view body) instead of vm.isZoneVisible.
+        // v0.24 fix (Boss 8/25 65th OOB '实装第二个按钮'): when EITHER
+        // sidebar OR tools is hidden, redistribute its width to the
+        // remaining 3 zones. preview and tools share 25.4% of extra
+        // ratio each, editor gets 49.2% (= proportional to existing
+        // design ratios).
         let sidebarIsVisible = showProjectSidebar
-        let sidebarExtraRatio = sidebarIsVisible ? 0.0 : CGFloat(vm.projectSidebarRatio)
+        let toolsIsVisible = showSpecializedTools
+        let sidebarExtraRatio = !sidebarIsVisible ? CGFloat(vm.projectSidebarRatio) : 0.0
+        let toolsExtraRatio = !toolsIsVisible ? CGFloat(vm.toolsWRatio) : 0.0
         let sidebar = (totalW * CGFloat(vm.projectSidebarRatio)).rounded()
-        let preview = (totalW * (CGFloat(vm.projectPreviewRatio) + (sidebarExtraRatio * 0.254))).rounded()
-        let editor  = (totalW * (CGFloat(vm.editorWRatio) + (sidebarExtraRatio * 0.492))).rounded()
+        // preview gets 25.4% of any extra ratio (from sidebar OR tools)
+        let preview = (totalW * (CGFloat(vm.projectPreviewRatio) + (sidebarExtraRatio * 0.254) + (toolsExtraRatio * 0.254))).rounded()
+        // editor gets 49.2% of any extra ratio
+        let editor  = (totalW * (CGFloat(vm.editorWRatio) + (sidebarExtraRatio * 0.492) + (toolsExtraRatio * 0.492))).rounded()
+        // tools (only if visible, else 0 width = skipped in render)
         let tools   = (totalW * (CGFloat(vm.toolsWRatio) + (sidebarExtraRatio * 0.254))).rounded()
         // v0.24 fix (Boss 8/25 57th OOB '界面全改丢了, 先实现第一个按钮对应的
         // 项目管理区, 一个一个来'): only wrap projectSidebar (= first
@@ -1292,10 +1303,14 @@ struct UpperBandZone: View {
             // Per Boss 8/25 15th OOB 'tools zone cannot be dragged. fix it':
             // keep D_v3 visible even when adjacent zones are hidden
             // (= drag preserved).
-            VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 2, vm: vm)
-            // tools always render (not yet implemented for toggle)
-            ZoneModule(slot: .specializedTools, vm: vm, totalW: totalW, bandH: bandH)
-                .frame(width: tools)
+            // v0.24 fix (Boss 8/25 65th OOB '实装第二个按钮'): hide D_v3
+            // when specializedTools is hidden (= same pattern as D_v1
+            // per Boss 64th OOB = move inside if block).
+            if showSpecializedTools {
+                VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 2, vm: vm)
+                ZoneModule(slot: .specializedTools, vm: vm, totalW: totalW, bandH: bandH)
+                    .frame(width: tools)
+            }
         }
         .frame(height: bandH)  // 显式告诉 SwiftUI VStack layout 上 band 高度, 响应 vm.bandOffset mutate
         .animation(.easeInOut(duration: 0.25), value: sidebarIsVisible)  // Per Boss 58th OOB '过程中要有过度动画'
