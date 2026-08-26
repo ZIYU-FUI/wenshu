@@ -146,6 +146,18 @@ struct ZoneContentTabBar: View {
                     // in 18×18 PT frame with 0.5 PT padding each side)
                     .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                     .foregroundStyle(item == selectedItem ? Color.accentColor : Color.secondary)
+                    // v0.25.1 (= ticket 010 tab selected-state underline):
+                    // owner 2026-08-26 OOB '现在的 tab 的选定状态 ICON 下
+                    // 没有那个选定的小横线' = add Apple HIG canonical
+                    // selected-tab underline (= 2 PT accent bar at
+                    // bottom of selected tab, full button width).
+                    .overlay(alignment: .bottom) {
+                        if item == selectedItem {
+                            Rectangle()
+                                .fill(Color.accentColor)
+                                .frame(height: LayoutTokens.tabUnderlineHeight)
+                        }
+                    }
                 }
                 .buttonStyle(.plain)
                 .contentShape(Rectangle())

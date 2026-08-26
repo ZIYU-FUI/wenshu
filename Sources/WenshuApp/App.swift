@@ -153,6 +153,15 @@ enum LayoutTokens {
     // total hit area (= same as chatTabHotArea constant, kept separate
     // for clarity: hitPad is the lever, hitArea is the resulting size).
     static let chatTabHitPad: CGFloat = 5
+    // v0.25.1 (= ticket 010 tab selected-state underline): owner 2026-
+    // 08-26 OOB '现在的 tab 的选定状态 ICON 下没有那个选定的小横线' =
+    // Apple HIG canonical selected-tab underline (= ~2 PT height accent
+    // bar at bottom of selected tab, full button width). All 3 tab bar
+    // classes (DynamicZoneView / ZoneContentView / ChatZoneTabBar) use
+    // this constant for the underline height; the underline color is
+    // Color.accentColor (= Apple system accent, matches selected-tab
+    // icon color so the visual cue is consistent).
+    static let tabUnderlineHeight: CGFloat = 2
     static let iconSpacingRatio: CGFloat = 18.0 / 1920.0  // 18 PT 等距 (老板 8/18 改 18 PT = icon 间距, 起点 18/54/90 相邻 36 - 18 = 18)
 
     // 底栏占位元素 (老板 8/18 拍 "icon 18×18, 占位文字苹果字符样式正文尺寸") — 绝对 PT 不走比例
@@ -2218,6 +2227,18 @@ struct ChatZoneTabBar: View {
                             .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                             .foregroundStyle(tab == selectedTab ? Color.accentColor : Color.secondary)
                             .padding(.all, LayoutTokens.chatTabHitPad)
+                            // v0.25.1 (= ticket 010 tab selected-state underline):
+                            // owner 2026-08-26 OOB '现在的 tab 的选定状态 ICON 下
+                            // 没有那个选定的小横线' = add Apple HIG canonical
+                            // selected-tab underline (= 2 PT accent bar at
+                            // bottom of selected tab, full button width).
+                            .overlay(alignment: .bottom) {
+                                if tab == selectedTab {
+                                    Rectangle()
+                                        .fill(Color.accentColor)
+                                        .frame(height: LayoutTokens.tabUnderlineHeight)
+                                }
+                            }
                     }
                     .buttonStyle(.plain)
                     .contentShape(Rectangle())
