@@ -133,6 +133,16 @@ enum LayoutTokens {
     // ticket 006 followup will address it (= scope of THIS patch is just icon
     // size).
     static let iconSize: CGFloat = 18
+    // v0.25.1 (= ticket 007 chat-zone tab hot area): owner 2026-08-26 OOB
+    // '热区有点问题 现在好像是 ICON 本身是热区 需要你让 ICON 18×18 的区域
+    // 是热区 不然很难点的到' = inflate click target from icon visual size
+    // (= 18 PT) to a fixed hot area that maps to the boss 8/11 fix3
+    // 'four chat tab height set to 28 PT' (= 28 PT). Hot area applied to
+    // BOTH chat tabs (.chat + the right archive-flow icon) for consistency.
+    // Hot zone = 28 PT (= boss 8/11 fix3) leaves 2 PT vertical padding in
+    // the 30 PT toolbar (= flush fit). Inner icon stays at LayoutTokens.iconSize
+    // (= 18 PT, ticket 006) so visual size unchanged from previous commit.
+    static let chatTabHotArea: CGFloat = 28
     static let iconSpacingRatio: CGFloat = 18.0 / 1920.0  // 18 PT 等距 (老板 8/18 改 18 PT = icon 间距, 起点 18/54/90 相邻 36 - 18 = 18)
 
     // 底栏占位元素 (老板 8/18 拍 "icon 18×18, 占位文字苹果字符样式正文尺寸") — 绝对 PT 不走比例
@@ -2199,6 +2209,7 @@ struct ChatZoneTabBar: View {
                             .foregroundStyle(tab == selectedTab ? Color.accentColor : Color.secondary)
                     }
                     .buttonStyle(.plain)
+                    .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
                     .contentShape(Rectangle())
                 }
             }
@@ -2209,12 +2220,19 @@ struct ChatZoneTabBar: View {
             // v0.24 boss验收fix (Boss 8/25 fourth OOB ticket 015.014): archive
             // icon at top-right (= Boss image 红框 position). 18 PT right
             // padding per Boss spec. Click triggers showingArchiveAlert.
+            // v0.25.1 (= ticket 005): right-side chat-zone icon = Lucide
+            // .inbox (= owner 2026-08-26 OOB, replacing the prior "archivebox"
+            // SF Symbol archive-flow icon). Minimal-impact same helper.
+            // v0.25.1 (= ticket 007 chat-zone tab hot area):
+            // owner 2026-08-26 OOB '热区有点问题 现在好像是 ICON 本身是热区
+            // 需要你让 ICON 18×18 的区域是热区 不然很难点的到' = inflate
+            // the clickable area from 18×18 to 28×28 PT (= boss 8/11 fix3
+            // 'four chat tab height set to 28 PT'). Hot zone paired with
+            // .contentShape(.rect()) so the entire 28×28 PT box is the
+            // click target (= not the visual glyph only).
             Button {
                 showingArchiveAlert = true
             } label: {
-                // v0.25.1 (= ticket 005): right-side chat-zone icon = Lucide
-                // .inbox (= owner 2026-08-26 OOB, replacing the prior "archivebox"
-                // SF Symbol archive-flow icon). Minimal-impact same helper.
                 chatZoneTabBarIcon("inbox")
                     .font(.system(size: LayoutTokens.iconSize))
                     .imageScale(.large)
@@ -2222,6 +2240,7 @@ struct ChatZoneTabBar: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
+            .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
             .contentShape(Rectangle())
             .help("归档当前会话")
             .padding(.trailing, 18)
