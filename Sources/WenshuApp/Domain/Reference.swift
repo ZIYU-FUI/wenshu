@@ -22,29 +22,29 @@ import Foundation
 /// reference lives). v0.26 supports raw + entities; abstracts + indexes
 /// land in v0.27+ (= LLM-driven extraction from chat).
 enum ReferenceLayer: String, CaseIterable, Codable, Sendable {
-    case raw
-    case entities
-    case abstracts
-    case indexes
+    case layerRaw
+    case layerEntities
+    case layerAbstracts
+    case layerIndexes
 
     /// Filesystem directory name (= the layer's subdirectory under
     /// `reference-library/`).
     var directoryName: String {
         switch self {
-        case .raw:       return "raw"
-        case .entities:  return "entities"
-        case .abstracts: return "abstracts"
-        case .indexes:   return "indexes"
+        case .layerRaw:       return "raw"
+        case .layerEntities:  return "entities"
+        case .layerAbstracts: return "abstracts"
+        case .layerIndexes:   return "indexes"
         }
     }
 
     /// Chinese display label (= boss 8/25 'UI 全中文').
     var displayName: String {
         switch self {
-        case .raw:       return "原始资料"
-        case .entities:  return "实体"
-        case .abstracts: return "抽象"
-        case .indexes:   return "索引"
+        case .layerRaw:       return "原始资料"
+        case .layerEntities:  return "实体"
+        case .layerAbstracts: return "抽象"
+        case .layerIndexes:   return "索引"
         }
     }
 
@@ -53,18 +53,18 @@ enum ReferenceLayer: String, CaseIterable, Codable, Sendable {
     /// user wants to see LLM-derived content.
     var isUserFacing: Bool {
         switch self {
-        case .raw, entities: return true
-        case .abstracts, indexes: return false
+        case .layerRaw, .layerEntities: return true
+        case .layerAbstracts, .layerIndexes: return false
         }
     }
 
     /// SF Symbol name for the card icon.
     var icon: String {
         switch self {
-        case .raw:       return "tray.full.fill"
-        case .entities:  return "person.crop.square.fill"
-        case .abstracts: return "circle.grid.cross.fill"
-        case .indexes:   return "magnifyingglass.circle.fill"
+        case .layerRaw:       return "tray.full.fill"
+        case .layerEntities:  return "person.crop.square.fill"
+        case .layerAbstracts: return "circle.grid.cross.fill"
+        case .layerIndexes:   return "magnifyingglass.circle.fill"
         }
     }
 }
@@ -118,7 +118,7 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
         title: String,
         source: String? = nil,
         url: String? = nil,
-        layer: ReferenceLayer = .raw,
+        layer: ReferenceLayer = .layerRaw,
         summary: String = "",
         characterRefIds: [UUID] = [],
         worldRefIds: [UUID] = [],
