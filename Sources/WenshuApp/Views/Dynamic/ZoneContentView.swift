@@ -124,7 +124,7 @@ struct ZoneContentTabBar: View {
     }
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 0) {
             ForEach(items) { item in
                 Button {
                     selection = item.id
@@ -194,7 +194,7 @@ struct ZoneContentTabBar: View {
                                 .fill(Color.accentColor)
                                 .frame(height: LayoutTokens.tabUnderlineHeight)
                                 .matchedGeometryEffect(id: "tabBarUnderline", in: tabBarNamespace, isSource: true)
-                                    .offset(y: 4)  // v0.25.1 ticket 021: push underline down 4 PT below icon (boss 8/26 OOB '距离 ICON 太近了')
+                                    .offset(y: 2)  // v0.25.1 ticket 022: reduce offset 4 → 2 PT (= boss OOB '小横线不见了' = offset 4 PT pushed underline below 30 PT toolbar bottom edge, clipped. Reduced to 2 PT = underline visible at y=28+2-2=28 PT, just within 30 PT toolbar)
                         }
                     }
                 }

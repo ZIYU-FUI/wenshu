@@ -1637,7 +1637,7 @@ struct ZoneTopToolbar: View {
             .overlay(alignment: .topLeading) {
                 // 真功能 mode (有 actions): button 触发
                 // Placeholder mode (空 actions): 老 SF Symbol 占位 (向后兼容)
-                HStack(spacing: 10) {
+                HStack(spacing: 0) {
                     if actions.isEmpty {
                         ForEach(0..<iconNames.count, id: \.self) { i in
                             ZoneIcon(systemName: iconNames[i], size: 18)
@@ -2390,7 +2390,7 @@ struct ChatZoneTabBar: View {
                                         // Boss 8/22 sixth OOB backlog 20), the
                                         // slide animation already works.
                                         .matchedGeometryEffect(id: "tabBarUnderline", in: tabBarNamespace, isSource: true)
-                                    .offset(y: 4)  // v0.25.1 ticket 021: push underline down 4 PT below icon (boss 8/26 OOB '距离 ICON 太近了')
+                                    .offset(y: 2)  // v0.25.1 ticket 022: reduce offset 4 → 2 PT (= boss OOB '小横线不见了' = offset 4 PT pushed underline below 30 PT toolbar bottom edge, clipped. Reduced to 2 PT = underline visible at y=28+2-2=28 PT, just within 30 PT toolbar)
                                 }
                             }
                     }
@@ -2419,24 +2419,20 @@ struct ChatZoneTabBar: View {
             Button {
                 showingArchiveAlert = true
             } label: {
+                // v0.25.1 (= ticket 022 chat zone archive button — old
+                // ICON removal): owner 2026-08-26 OOB '聊天右上角 那个
+                // 老的 ICON 又出现了 删掉' = previous ticket 021 patch
+                // wrapped the archive button label in BOTH chatZoneTabBarIcon
+                // ('inbox') AND a redundant Image(systemName: 'archivebox')
+                // inside the Color.clear overlay (= 2 icons rendered at
+                // the same position, the SF archivebox was the 'old
+                // ICON' that boss wanted removed). Fix = use chatZoneTabBarIcon
+                // ('inbox') directly as the label (= Lucide .inbox is the
+                // canonical archive flow icon per ticket 005), drop the
+                // duplicate SF archivebox.
                 chatZoneTabBarIcon("inbox")
-                    .font(.system(size: LayoutTokens.iconSize))
-                    .imageScale(.large)
                     .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                     .foregroundStyle(.secondary)
-                    // v0.25.1 (= ticket 021 followup Apple HIG canonical):
-                    // Color.clear as BASE (= label intrinsic = 28×28 =
-                    // Button hit area), archive icon as .overlay centered.
-                    // Previous ticket 020 had it inverted.
-                    Color.clear
-                        .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
-                        .overlay(alignment: .center) {
-                            Image(systemName: "archivebox")
-                                .font(.system(size: LayoutTokens.iconSize))
-                                .imageScale(.large)
-                                .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
-                        }
-                        .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .contentShape(Rectangle())

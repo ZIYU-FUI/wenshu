@@ -27,8 +27,14 @@ struct DynamicZoneView: View {
         var id: String { rawValue }
         var icon: String {
             switch self {
-            case .kanban: return "rectangle.split.3x1"
-            case .todo: return "checklist"
+            // v0.25.1 (= ticket 022 dynamic zone tab icons): owner
+            // 2026-08-26 OOB '右下角区 两个 teb 可以开始换了 teb1 换成
+            // layout-grid teb2 换成 layout-list' = SF rectangle.split.3x1
+            // → Lucide layout-grid (= 4-cell grid icon, 看板 board
+            // visual metaphor). SF checklist → Lucide layout-list
+            // (= row-based list icon, 待办 list visual metaphor).
+            case .kanban: return "layout-grid"
+            case .todo: return "layout-list"
             }
         }
     }
@@ -82,7 +88,7 @@ struct DynamicZoneTabBar: View {
     @Namespace private var tabBarNamespace
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 0) {
             ForEach(DynamicZoneView.DynamicTab.allCases) { tab in
                 Button {
                     selectedTab = tab
@@ -148,7 +154,7 @@ struct DynamicZoneTabBar: View {
                                 .fill(Color.accentColor)
                                 .frame(height: LayoutTokens.tabUnderlineHeight)
                                 .matchedGeometryEffect(id: "tabBarUnderline", in: tabBarNamespace, isSource: true)
-                                    .offset(y: 4)  // v0.25.1 ticket 021: push underline down 4 PT below icon (boss 8/26 OOB '距离 ICON 太近了')
+                                    .offset(y: 2)  // v0.25.1 ticket 022: reduce offset 4 → 2 PT (= boss OOB '小横线不见了' = offset 4 PT pushed underline below 30 PT toolbar bottom edge, clipped. Reduced to 2 PT = underline visible at y=28+2-2=28 PT, just within 30 PT toolbar)
                         }
                     }
                 }
