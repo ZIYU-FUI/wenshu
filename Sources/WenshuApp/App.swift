@@ -1081,16 +1081,23 @@ struct LayoutShellView: View {
             // all hidden), editor zone should fill ENTIRE content area instead
             // of being constrained to upper band (= upperBandH = totalHeight,
             // lowerBandH = 0). All 5 hidden = no use for the 50/50 band split.
+            // v0.24 fix (Boss 8/25 73rd OOB '下半区隐藏时, 上半区的栏高度自适应到全高'):
+            // when ONLY lower band zones are hidden (= aiChat + aiDynamic both
+            // off, but upper band zones still visible), upper band should also
+            // fill full content area (= lower band = 0 since empty).
             let allZonesHidden = !showProjectSidebar && !showProjectPreview && !showSpecializedTools && !showAIChat && !showAIDynamic
-            let upperBandHeight: CGFloat = allZonesHidden ? (contentH - 2) : vm.upperBandH(totalHeight: contentH - 2)
-            let lowerBandHeight: CGFloat = allZonesHidden ? 0 : vm.lowerBandH(totalHeight: contentH - 2)
+            let lowerBandAllHidden = !showAIChat && !showAIDynamic
+            let hideLowerBand = allZonesHidden || lowerBandAllHidden
+            let upperBandHeight: CGFloat = hideLowerBand ? (contentH - 2) : vm.upperBandH(totalHeight: contentH - 2)
+            let lowerBandHeight: CGFloat = hideLowerBand ? 0 : vm.lowerBandH(totalHeight: contentH - 2)
             let bandH = upperBandHeight
             VStack(spacing: 0) {
                 // 上 band: 4 区 + 3 拖拽线 (Apple HIG HStack 范式)
                 UpperBandZone(vm: vm, showProjectSidebar: showProjectSidebar, showProjectPreview: showProjectPreview, showSpecializedTools: showSpecializedTools, totalW: totalW, bandH: bandH)
-                // v0.24 fix (Boss 8/25 72nd OOB): hide D_h splitter + lower band
-                // when all 5 zones hidden (= no band boundary to split).
-                if !allZonesHidden {
+                // v0.24 fix (Boss 8/25 72nd + 73rd OOB): hide D_h splitter + lower band
+                // when all 5 zones hidden OR when lower band zones are all hidden
+                // (= no band boundary to split).
+                if !hideLowerBand {
                     // D_h 横拖拽线 (上/下 band 之间, v0.14.0 撤销 inert, 拍可拖)
                     NativeSplitter(orientation: .horizontal, length: totalW, onDrag: { dy in
                         vm.adjustBandSplit(delta: dy, totalHeight: contentH - 2)
