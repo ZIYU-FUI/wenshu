@@ -1249,26 +1249,23 @@ struct UpperBandZone: View {
         // IMPORTANT (= Spec fix per sub-agent review): sidebarExtraRatio is
         // the RATIO (= 0.2), NOT PT. Multiplying by totalW TWICE (= totalW
         // * (ratio + totalW * ratio)) was a previous bug.
-        // v0.24 fix (Boss 8/25 63rd OOB): use local showProjectSidebar
-        // (= direct @AppStorage from view body) instead of vm.isZoneVisible.
-        // v0.24 fix (Boss 8/25 65th OOB '实装第二个按钮'): when EITHER
-        // sidebar OR tools is hidden, redistribute its width to the
-        // remaining 3 zones. preview and tools share 25.4% of extra
-        // ratio each, editor gets 49.2% (= proportional to existing
-        // design ratios).
-        let sidebarIsVisible = showProjectSidebar
-        let toolsIsVisible = showSpecializedTools
-        let sidebarExtraRatio = !sidebarIsVisible ? CGFloat(vm.projectSidebarRatio) : 0.0
-        let toolsExtraRatio = !toolsIsVisible ? CGFloat(vm.toolsWRatio) : 0.0
+        // v0.24 fix (Boss 8/25 66th OOB '复刻项目管理区动效, 效果都很好'):
+        // replicate 015.062 sidebar pattern exactly. Use direct
+        // @AppStorage properties (= showProjectSidebar, showSpecializedTools)
+        // for the animation value (per Apple HIG + WWDC23 'Discover
+        // Observation in SwiftUI' = @AppStorage directly in view body
+        // is the canonical pattern). No need for local bool mirrors
+        // (= the Bool() multiplication is the Boss 66th OOB fix for the
+        // '盛满上半区' promise per Boss 58th OOB).
+        let sidebarExtraRatio = !showProjectSidebar ? CGFloat(vm.projectSidebarRatio) : 0.0
+        let toolsExtraRatio = !showSpecializedTools ? CGFloat(vm.toolsWRatio) : 0.0
         let sidebar = (totalW * CGFloat(vm.projectSidebarRatio)).rounded()
         // preview gets 25.4% of any extra ratio (from sidebar OR tools)
         let preview = (totalW * (CGFloat(vm.projectPreviewRatio) + (sidebarExtraRatio * 0.254) + (toolsExtraRatio * 0.254))).rounded()
         // editor gets 49.2% of any extra ratio
         let editor  = (totalW * (CGFloat(vm.editorWRatio) + (sidebarExtraRatio * 0.492) + (toolsExtraRatio * 0.492))).rounded()
-        // v0.24 fix (Boss 8/25 65th OOB Spec GAP): when tools hidden, do not
-        // allocate 25.4% of sidebarExtraRatio to tools (= tools not rendered).
-        // This keeps the upper band fully filled (= Boss 58th OOB '盛满上半区').
-        let tools   = (totalW * (CGFloat(vm.toolsWRatio) * (toolsIsVisible ? 1.0 : 0.0) + (sidebarExtraRatio * 0.254) * (toolsIsVisible ? 1.0 : 0.0))).rounded()
+        // tools (only allocated when visible, else 0 width = skipped in render)
+        let tools   = (totalW * (CGFloat(vm.toolsWRatio) * (showSpecializedTools ? 1.0 : 0.0) + (sidebarExtraRatio * 0.254) * (showSpecializedTools ? 1.0 : 0.0))).rounded()
         // v0.24 fix (Boss 8/25 57th OOB '界面全改丢了, 先实现第一个按钮对应的
         // 项目管理区, 一个一个来'): only wrap projectSidebar (= first
         // button = sidebar.left, corresponding to projectSidebar zone) in
@@ -1282,7 +1279,7 @@ struct UpperBandZone: View {
         // via .animation(.easeInOut, value: sidebarIsVisible) modifier.
         HStack(spacing: 0) {
             // D_v0.5: project sidebar (wraps in if for hide/show)
-            if sidebarIsVisible {
+            if showProjectSidebar {
                 ZoneModule(slot: .projectSidebar, vm: vm, totalW: totalW, bandH: bandH)
                     .frame(width: sidebar)
                 // D_v1: project sidebar / project preview (splitterIndex 0)
@@ -1315,7 +1312,13 @@ struct UpperBandZone: View {
             }
         }
         .frame(height: bandH)  // 显式告诉 SwiftUI VStack layout 上 band 高度, 响应 vm.bandOffset mutate
-        .animation(.easeInOut(duration: 0.25), value: sidebarIsVisible)  // Per Boss 58th OOB '过程中要有过度动画'
+        // v0.24 fix (Boss 8/25 66th OOB '复刻项目管理区动效'): animate
+        // BOTH sidebar AND tools hide/show (= per Boss 57th OOB + 58th OOB
+        // '收起展开的动效都很好'). Previous 015.069 only animated sidebar
+        // (= tools toggle had no animation = '效果不如项目管理区'). Now
+        // tools toggle gets same .easeInOut animation as sidebar.
+        .animation(.easeInOut(duration: 0.25), value: showProjectSidebar)
+        .animation(.easeInOut(duration: 0.25), value: showSpecializedTools)
     }
 }
 
