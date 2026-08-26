@@ -1272,9 +1272,14 @@ struct UpperBandZone: View {
             if sidebarIsVisible {
                 ZoneModule(slot: .projectSidebar, vm: vm, totalW: totalW, bandH: bandH)
                     .frame(width: sidebar)
+                // D_v1: project sidebar / project preview (splitterIndex 0)
+                VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 0, vm: vm)
             }
-            // D_v1: project sidebar / project preview (splitterIndex 0)
-            VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 0, vm: vm)
+            // v0.24 fix (Boss 8/25 64th OOB '收起时, 项目管理区, 还留了几个像素的宽度'):
+            // When sidebar is hidden, D_v1 VSplitter's 4 PT hit area (= Boss
+            // 50th OOB 'hit area 4 PT') would still render at the leftmost
+            // position, leaving a few pixels of width. Move D_v1 inside the
+            // 'if sidebarIsVisible' block so it disappears with the sidebar.
             // preview always render (not yet implemented for toggle)
             ZoneModule(slot: .projectPreview, vm: vm, totalW: totalW, bandH: bandH)
                 .frame(width: preview)
