@@ -114,7 +114,20 @@ struct DynamicZoneTabBar: View {
                     // Rectangle so SwiftUI can slide it between tab
                     // positions (= replaces ticket 010's per-button
                     // crossfade with single shared bar translating L/R).
-                    .padding(.all, LayoutTokens.chatTabHitPad)
+                    // v0.25.1 (= ticket 018 explicit 28×28 hot zone):
+                    // owner 2026-08-26 OOB '现在的 ICON 还是不是很好点 能不能
+                    // 写一个 28×28 的透明矩形的热区' = ticket 011's
+                    // .padding inflation was still flaky (= owner reported
+                    // icons hard to click). Replace with explicit
+                    // Color.clear.frame(28, 28).contentShape(.rect) =
+                    // Apple HIG canonical pattern for plain-style button
+                    // hot area (= explicit rectangular layer reserves
+                    // 28×28 layout space + registers hit area via
+                    // contentShape + provides the Color.clear backing
+                    // SwiftUI hit-tester needs for reliable detection).
+                    Color.clear
+                        .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
+                        .contentShape(Rectangle())
                     .overlay(alignment: .bottom) {
                         if tab == selectedTab {
                             Rectangle()

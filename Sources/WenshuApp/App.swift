@@ -1886,20 +1886,26 @@ struct ZoneModule: View {
                 ("书架", "book-open", AnyView(DesignColor.zoneSurface.overlay(alignment: .topLeading) { LibraryOutlineViewContent(library: library) })),
             ])
         case .projectPreview:
-            // ProjectPreview tabs: 预览 / 图 / [搜索 hidden].
+            // ProjectPreview tabs: 章节预览 / 图 / [搜索 hidden].
             // v0.25.1 (= ticket 014 second-column-first icon): owner
             // 2026-08-26 OOB '第二栏的第一个 章节预览 用 book-open-text' =
             // SF 'eye' → Lucide 'book-open-text' (= open book with text
             // lines glyph, matches '章节预览' / ChapterPreview content
             // metaphor better than eye symbol).
+            // v0.25.1 (= ticket 017 second-column-first icon swap):
+            // owner 2026-08-26 OOB '将章节预览换成 book-open-check' =
+            // Lucide 'book-open-text' → Lucide 'book-open-check' (= open
+            // book with check-mark glyph, = chapter-read / chapter-marked-
+            // complete semantic, matches '章节预览' content better than
+            // generic open-book).
             // v0.25.1 (= ticket 014 second-column-third tab hidden):
             // owner 2026-08-26 OOB '第二栏的第三个 搜索功能做的位置不对
             // 先隐藏' = Search tab removed from projectPreview tab bar.
             // SearchPanel code stays (= not deleted, just not surfaced
             // in this location per owner spec). projectPreview now
-            // has 2 tabs only: 预览 + 图.
+            // has 2 tabs only: 章节预览 + 图.
             ZoneContentView(zoneSlug: "projectPreview", tabs: [
-                ("预览", "book-open-text", AnyView(DesignColor.zoneSurface)),
+                ("预览", "book-open-check", AnyView(DesignColor.zoneSurface)),
                 // v0.24 boss验收fix (Boss 8/24): 统一 outline variant (其他 13 个 icons 都 outline,
                 // 只有 'circle.grid.cross.fill' 是实心 fill). 删 .fill suffix.
                 // v0.25.1 (= ticket 012): owner 2026-08-26 OOB '第二栏的第二个
@@ -1911,9 +1917,15 @@ struct ZoneModule: View {
         case .editor:
             // Editor tabs: 编辑 / 大纲 / 反链.
             // v0.24 boss验收fix: 保留原 4 PT inset 设计意图 (背景 y=60~884, 正文 y=64~882, 上下 4 PT 视觉下沉, 左右 flush).
+            // v0.25.1 (= ticket 017 third-column-first icon): owner
+            // 2026-08-26 OOB '将第三栏的第一个 ICON 编辑器的 ICON 换成
+            // book-open-text' = SF 'pencil' → Lucide 'book-open-text'
+            // (= open book with text lines glyph, matches editor
+            // '章节预览' / chapter-edit content metaphor better than
+            // pencil).
             // 编辑 tab: 占位 (WenshuEditor view deferred to v0.24+, 没接到 doc reader).
             ZoneContentView(zoneSlug: "editor", tabs: [
-                ("编辑", "pencil", AnyView(DesignColor.zoneSurface.overlay { Color.white.opacity(0.55).padding([.top, .bottom], editorInset) })),
+                ("编辑", "book-open-text", AnyView(DesignColor.zoneSurface.overlay { Color.white.opacity(0.55).padding([.top, .bottom], editorInset) })),
                 ("大纲", "list.bullet", AnyView(OutlinePanel())),
                 ("反链", "link", AnyView(BacklinksPanel())),
             ])
@@ -2278,7 +2290,17 @@ struct ChatZoneTabBar: View {
                             .imageScale(.large)
                             .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                             .foregroundStyle(tab == selectedTab ? Color.accentColor : Color.secondary)
-                            .padding(.all, LayoutTokens.chatTabHitPad)
+                            // v0.25.1 (= ticket 018 explicit 28×28 hot zone):
+                            // owner 2026-08-26 OOB '现在的 ICON 还是不是很好点
+                            // 能不能写一个 28×28 的透明矩形的热区' = ticket
+                            // 008's .padding(.all, chatTabHitPad) was still
+                            // flaky (= owner reported icons hard to click).
+                            // Replace with explicit Color.clear.frame(28, 28)
+                            // .contentShape(.rect) = Apple HIG canonical
+                            // pattern for plain-style button hot area.
+                            Color.clear
+                                .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
+                                .contentShape(Rectangle())
                             // v0.25.1 (= ticket 010 tab selected-state underline):
                             // owner 2026-08-26 OOB '现在的 tab 的选定状态 ICON 下
                             // 没有那个选定的小横线' = add Apple HIG canonical
