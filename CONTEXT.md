@@ -3,6 +3,22 @@
 > Domain glossary for wenshu. Every agent reads this before working on the project. Update when a new domain word enters the codebase.
 > English-only rule applies (see `AGENTS.md` top section). Sole address for the user = "老板".
 
+## FCP Library Replica domain words (v0.26 — boss 2026-08-26 OOB)
+
+| Term | Definition |
+|------|------------|
+| **库 (Library)** | The entire `.ws` repo selected via NSOpenPanel onboarding (single instance, locked to `UserDefaults.wenshu.libraryPath`). Holds Info.plist + chat.sqlite + Icon + shelves/ + reference-library/ + cache/. Switching books = reloading data scoped to that book (= Apple standard @Observable pattern; single `BookStore` singleton). |
+| **书架 (Bookshelf)** | User-named parent container of books. `shelves/<shelf-uuid>/{shelf.json, books/}`. Multiple instances. |
+| **书 (Book)** | One novel project (= one FCP Event). `shelves/<shelf>/books/<book-uuid>/`. Carries 8 standard folders (world/ characters/ outlines/ chapters/ drafts/ sessions/ foreshadowing/ placeholders/) + 8 JSON sidecars + 2 per-book JSON data files (kanban.json, todo.json). |
+| **资料库 (Reference Library)** | The library's default bookshelf (= the `ReferenceLibrary` type, sibling to user-created `shelves/`). User CANNOT delete or rename it. `reference-library/{raw, entities, abstracts, indexes}/` (= Karpathy LLM Wiki 4-layer pattern; only `entities/` is user-facing). |
+| **章节 (Chapter)** | `.md` files under `books/<book-uuid>/chapters/`. NOT a domain entity (= filesystem convention only). |
+| **世界观 (World-building)** | `.md` files under `books/<book-uuid>/world/`. Book-private. |
+| **角色 (Character)** | `.md` files under `books/<book-uuid>/characters/`. Book-private. Includes narrative POV characters per FCP Role pattern. |
+| **看板 (Kanban)** | Per-book structured data at `books/<book-uuid>/kanban.json`. Replaces v0.25.x app-level `kanban.db`. |
+| **Todo** | Per-book structured data at `books/<book-uuid>/todo.json`. Replaces v0.25.x app-level `todo.db`. |
+| **智能查询 (Smart Query)** | Saved-search at `reference-library/indexes/saved-searches/*.json`. v0.27+ feature; v0.26 ships static skeleton only. |
+| **库属性 (Library Properties)** | Settings panel triggered by Settings → 库属性. Shows current .ws path + Finder reveal + Move Warehouse + Reset Library buttons. |
+
 ## Identity
 
 - **wenshu / 文枢** = Apple-stack-exclusive long-form fictional-novel AI authoring platform.

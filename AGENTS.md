@@ -13,10 +13,9 @@ This file = wenshu project baseline + cross-role address hard constraint. Single
 
 # §11 Project baseline
 
-- Stack = Swift / SwiftUI + CoreData + single-process coroutine + self-built lightweight AI kernel.
-- No external AI platform calls (any code file).
+- Stack = Swift / SwiftUI + Swift Observation (@Observable) + filesystem JSON + Markdown (per-book private content) + Apple HIG (.fcpbundle-style directory, single-process, no third-party SDK). NO CoreData. NO external AI platform calls (any code file).
 - v1 LLM provider supports minimax cn only (Anthropic-compatible protocol).
-- `.ws` single file = CoreData + attachments, locally self-managed.
+- `.ws` directory (= macOS package, NSOpenPanel-selected at onboarding) = per-library container. Holds: Info.plist (= Apple HIG bundle metadata; CFBundlePackageType=WSPC + WSSchemaVersion) + chat.sqlite (= global LLM chat history; 45 KB at v0.24 ship) + Icon (= Finder icon) + shelves/ (= user-created bookshelves; multiple) + reference-library/ (= library's default bookshelf; system-managed, ONE instance, user CANNOT delete or rename; holds LLM Wiki 4 layers: raw/ + entities/ + abstracts/ + indexes/) + cache/ (= thumbnails + search index + export temp). Per-book structure = `shelves/<shelf-uuid>/books/<book-uuid>/` with 8 standard folders (world/ characters/ outlines/ chapters/ drafts/ sessions/ foreshadowing/ placeholders/) + 8 JSON sidecars + 2 per-book JSON data files (kanban.json, todo.json). Per-book private world + characters + foreshadowing + placeholders; reference-library is library-public (= cross-book reusable raw materials).
 - Apple stack exclusive (macOS / iPad / iPhone). Current target = macOS-only single platform (老板 8/18 拍).
 - Project root = `/Volumes/ANAN/Engineering/wenshu/`.
 - Apple Developer Program paid on release (individual $99 / year).
@@ -32,6 +31,7 @@ This file = wenshu project baseline + cross-role address hard constraint. Single
 - Do not self-write wenshu CLI (文枢 = Swift desktop app, not CLI).
 - Do not touch any hermes self-owned file under `~/.hermes/`.
 - Do not touch any file under `.archive/wenshu-monorepo-fork/`.
+- Single-shelf model (= boss 2026-08-26 OOB): user has exactly one `.ws` library; onboarding is one-time; switching `.ws` paths requires Library Properties panel "Reset Library" (= clears UserDefaults.wenshu.libraryPath + returns to onboarding).
 
 # §12 Cross-role expression hard constraint
 
@@ -40,4 +40,4 @@ This file = wenshu project baseline + cross-role address hard constraint. Single
 
 ---
 
-*AGENTS.md v0.07.2 · 2026-08-22 pocock single agent · English-only cleanup · project root = /Volumes/ANAN/Engineering/wenshu/*
+*AGENTS.md v0.07.3 · 2026-08-26 pocock single agent · FCP library replica + new .ws layout (shelves/ + reference-library/) + per-book 8 folders + 2 JSON data files + Apple @Observable (no CoreData) · English-only · project root = /Volumes/ANAN/Engineering/wenshu/*
