@@ -1831,6 +1831,14 @@ struct ZoneModule: View {
             // → Lucide 'waypoints' (= 3-dot connected nodes graph glyph, 2x2 cross
             // replaced with linear-path node markers; matches the GraphView content
             // visual metaphor better than 'circle.grid.cross').
+            // v0.25.1 (= ticket 014 second-column-third icon hidden): owner
+            // 2026-08-26 OOB '第二栏的第三个 搜索功能做的位置不对 先隐藏' =
+            // Search tab removed from projectPreview top toolbar. Search
+            // functionality (= SearchPanel + showingSearch state + keyboard
+            // shortcut) preserved (= will be moved to a different location in
+            // a future ticket per owner spec). The SearchPanel import stays
+            // intact (= SearchPanel struct not deleted, just not surfaced in
+            // this tab bar).
             return [
                 ZoneToolbarAction(
                     label: "Graph",
@@ -1861,12 +1869,23 @@ struct ZoneModule: View {
             // (= Apple SF Symbol = solid bookshelf, matches Boss spec
             // '选一个合适的 ICON 替换').
             ZoneContentView(zoneSlug: "projectSidebar", tabs: [
-                ("书架", "square-library", AnyView(DesignColor.zoneSurface.overlay(alignment: .topLeading) { LibraryOutlineViewContent(library: library) })),
+                ("书架", "book-open", AnyView(DesignColor.zoneSurface.overlay(alignment: .topLeading) { LibraryOutlineViewContent(library: library) })),
             ])
         case .projectPreview:
-            // ProjectPreview tabs: 预览 / 图 / 搜索.
+            // ProjectPreview tabs: 预览 / 图 / [搜索 hidden].
+            // v0.25.1 (= ticket 014 second-column-first icon): owner
+            // 2026-08-26 OOB '第二栏的第一个 章节预览 用 book-open-text' =
+            // SF 'eye' → Lucide 'book-open-text' (= open book with text
+            // lines glyph, matches '章节预览' / ChapterPreview content
+            // metaphor better than eye symbol).
+            // v0.25.1 (= ticket 014 second-column-third tab hidden):
+            // owner 2026-08-26 OOB '第二栏的第三个 搜索功能做的位置不对
+            // 先隐藏' = Search tab removed from projectPreview tab bar.
+            // SearchPanel code stays (= not deleted, just not surfaced
+            // in this location per owner spec). projectPreview now
+            // has 2 tabs only: 预览 + 图.
             ZoneContentView(zoneSlug: "projectPreview", tabs: [
-                ("预览", "eye", AnyView(DesignColor.zoneSurface)),
+                ("预览", "book-open-text", AnyView(DesignColor.zoneSurface)),
                 // v0.24 boss验收fix (Boss 8/24): 统一 outline variant (其他 13 个 icons 都 outline,
                 // 只有 'circle.grid.cross.fill' 是实心 fill). 删 .fill suffix.
                 // v0.25.1 (= ticket 012): owner 2026-08-26 OOB '第二栏的第二个
@@ -1874,7 +1893,6 @@ struct ZoneModule: View {
                 // waypoints (= linear-path node markers glyph, matches
                 // GraphView content metaphor better than the 2x2 cross).
                 ("图", "waypoints", AnyView(GraphView())),
-                ("搜索", "magnifyingglass", AnyView(SearchPanel())),
             ])
         case .editor:
             // Editor tabs: 编辑 / 大纲 / 反链.
