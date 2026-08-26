@@ -281,6 +281,9 @@ struct WenshuApp: App {
                     NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.projectSidebar)
                 }
                 .keyboardShortcut("1", modifiers: [.command, .shift])
+                Button("显示/隐藏 素材预览区") {
+                    NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.projectPreview)
+                }
                 Button("显示/隐藏 工具区") {
                     NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.specializedTools)
                 }
@@ -1046,6 +1049,9 @@ struct LayoutShellView: View {
     // @AppStorage in body auto-tracks UserDefaults via SwiftUI's
     // built-in observation (= no need for @Observable class indirection).
     @AppStorage("wenshu.zoneVisible.projectSidebar") private var showProjectSidebar: Bool = true
+    // v0.24 fix (Boss 8/25 70th OOB '少设计了一个按钮, 第2栏的素材区没有设计按钮'):
+    // add 5th toggle button for projectPreview zone (= 素材预览区).
+    @AppStorage("wenshu.zoneVisible.projectPreview") private var showProjectPreview: Bool = true
     @AppStorage("wenshu.zoneVisible.specializedTools") private var showSpecializedTools: Bool = true
     @AppStorage("wenshu.zoneVisible.aiChat") private var showAIChat: Bool = true
     @AppStorage("wenshu.zoneVisible.aiDynamic") private var showAIDynamic: Bool = true
@@ -1073,7 +1079,7 @@ struct LayoutShellView: View {
             let bandH = vm.upperBandH(totalHeight: contentH - 2)
             VStack(spacing: 0) {
                 // 上 band: 4 区 + 3 拖拽线 (Apple HIG HStack 范式)
-                UpperBandZone(vm: vm, showProjectSidebar: showProjectSidebar, showSpecializedTools: showSpecializedTools, totalW: totalW, bandH: bandH)
+                UpperBandZone(vm: vm, showProjectSidebar: showProjectSidebar, showProjectPreview: showProjectPreview, showSpecializedTools: showSpecializedTools, totalW: totalW, bandH: bandH)
                 // D_h 横拖拽线 (上/下 band 之间, v0.14.0 撤销 inert, 拍可拖)
                 NativeSplitter(orientation: .horizontal, length: totalW, onDrag: { dy in
                     vm.adjustBandSplit(delta: dy, totalHeight: contentH - 2)
@@ -1163,6 +1169,19 @@ struct LayoutShellView: View {
                     }
                     .foregroundStyle(showProjectSidebar ? Color.accentColor : Color.secondary)
                     .help(showProjectSidebar ? "隐藏 项目管理区" : "显示 项目管理区")
+                // v0.24 fix (Boss 8/25 70th OOB '少设计了一个按钮, 第2栏的素材区没有设计按钮'):
+                // 5th toggle button for projectPreview zone (= 素材预览区),
+                // inserted AFTER the sidebar toggle button per Boss 70th OOB
+                // step 1 spec.
+                Button {
+                    showProjectPreview.toggle()
+                } label: {
+                    Image(systemName: "eye.fill")
+                        .frame(width: 18, height: 18)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(showProjectPreview ? Color.accentColor : Color.secondary)
+                .help(showProjectPreview ? "隐藏 素材预览区" : "显示 素材预览区")
                     Button {
                         showSpecializedTools.toggle()
                     } label: {
@@ -1224,6 +1243,8 @@ struct VSplitter: View {
 struct UpperBandZone: View {
     let vm: LayoutShellViewModel
     let showProjectSidebar: Bool
+    // v0.24 fix (Boss 8/25 70th OOB): 5th toggle for projectPreview zone.
+    let showProjectPreview: Bool
     let showSpecializedTools: Bool
     let totalW: CGFloat
     let bandH: CGFloat
@@ -1258,14 +1279,18 @@ struct UpperBandZone: View {
         // (= the Bool() multiplication is the Boss 66th OOB fix for the
         // '盛满上半区' promise per Boss 58th OOB).
         let sidebarExtraRatio = !showProjectSidebar ? CGFloat(vm.projectSidebarRatio) : 0.0
+        let previewExtraRatio = !showProjectPreview ? CGFloat(vm.projectPreviewRatio) : 0.0
         let toolsExtraRatio = !showSpecializedTools ? CGFloat(vm.toolsWRatio) : 0.0
         let sidebar = (totalW * CGFloat(vm.projectSidebarRatio)).rounded()
-        // preview gets 25.4% of any extra ratio (from sidebar OR tools)
-        let preview = (totalW * (CGFloat(vm.projectPreviewRatio) + (sidebarExtraRatio * 0.254) + (toolsExtraRatio * 0.254))).rounded()
-        // editor gets 49.2% of any extra ratio
-        let editor  = (totalW * (CGFloat(vm.editorWRatio) + (sidebarExtraRatio * 0.492) + (toolsExtraRatio * 0.492))).rounded()
+        // v0.24 fix (Boss 8/25 70th OOB): when preview hidden, do not
+        // allocate its ratio to preview (= preview not rendered). Editor
+        // still gets full .frame(maxWidth: .infinity) per Boss 69th OOB fix
+        // (= visible zones with layoutPriority 1 fill HStack).
+        let preview = 0  // preview uses .frame(maxWidth: .infinity), not fixed width
+        // editor gets 49.2% of any extra ratio (from sidebar OR preview OR tools)
+        let editor  = (totalW * (CGFloat(vm.editorWRatio) + (sidebarExtraRatio * 0.492) + (previewExtraRatio * 0.492) + (toolsExtraRatio * 0.492))).rounded()
         // tools (only allocated when visible, else 0 width = skipped in render)
-        let tools   = (totalW * (CGFloat(vm.toolsWRatio) * (showSpecializedTools ? 1.0 : 0.0) + (sidebarExtraRatio * 0.254) * (showSpecializedTools ? 1.0 : 0.0))).rounded()
+        let tools   = (totalW * (CGFloat(vm.toolsWRatio) * (showSpecializedTools ? 1.0 : 0.0) + (sidebarExtraRatio * 0.254) * (showSpecializedTools ? 1.0 : 0.0) + (previewExtraRatio * 0.254) * (showSpecializedTools ? 1.0 : 0.0))).rounded()
         // v0.24 fix (Boss 8/25 57th OOB '界面全改丢了, 先实现第一个按钮对应的
         // 项目管理区, 一个一个来'): only wrap projectSidebar (= first
         // button = sidebar.left, corresponding to projectSidebar zone) in
@@ -1310,11 +1335,17 @@ struct UpperBandZone: View {
             // This is the Apple官方推荐 way for HStack zones to redistribute
             // when siblings are conditionally removed (= layoutPriority alone
             // is priority hint, but .frame(width:) overrides stretch behavior).
-            ZoneModule(slot: .projectPreview, vm: vm, totalW: totalW, bandH: bandH)
-                .frame(maxWidth: .infinity, alignment: .top)
-                .layoutPriority(1)  // grow to fill HStack when sidebar/tools hidden
-            // D_v2: project preview / editor (splitterIndex 1)
-            VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 1, vm: vm)
+            // v0.24 fix (Boss 8/25 70th OOB '素材预览区加一个按钮'): wrap
+            // projectPreview ZoneModule + D_v2 VSplitter in if block.
+            // D_v2 separates preview from editor, so if preview is hidden,
+            // D_v2 has no purpose. Same pattern as D_v1 / D_v3 (Boss 64th OOB).
+            if showProjectPreview {
+                ZoneModule(slot: .projectPreview, vm: vm, totalW: totalW, bandH: bandH)
+                    .frame(maxWidth: .infinity, alignment: .top)
+                    .layoutPriority(1)  // grow to fill HStack when sidebar/tools/preview hidden
+                // D_v2: project preview / editor (splitterIndex 1)
+                VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 1, vm: vm)
+            }
             // editor always render (not yet implemented for toggle)
             ZoneModule(slot: .editor, vm: vm, totalW: totalW, bandH: bandH)
                 .frame(maxWidth: .infinity, alignment: .top)
@@ -1339,7 +1370,9 @@ struct UpperBandZone: View {
         // '收起展开的动效都很好'). Previous 015.069 only animated sidebar
         // (= tools toggle had no animation = '效果不如项目管理区'). Now
         // tools toggle gets same .easeInOut animation as sidebar.
+        // v0.24 fix (Boss 8/25 70th OOB): also animate projectPreview.
         .animation(.easeInOut(duration: 0.25), value: showProjectSidebar)
+        .animation(.easeInOut(duration: 0.25), value: showProjectPreview)
         .animation(.easeInOut(duration: 0.25), value: showSpecializedTools)
     }
 }
