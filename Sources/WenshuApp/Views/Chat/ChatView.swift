@@ -511,7 +511,7 @@ public struct ChatView: View {
                     // ring (ticket 034) + 8 PT outer top margin
                     // (ticket 034 final 3) preserved.
                     .textFieldStyle(.plain)
-                    .frame(height: 32)  // v0.25.1 ticket 035: textfield height 32 PT (= boss OOB '本文框的高度 32 你不要改动他' = 跟 button 高度 一致 + 水平居中 + 8 PT outer top margin + 1 PT focus ring + Lucide .send 全部保留). 修真因 修真因 (= 把 textfield visual 拉高 跟 button 一致 = 32 PT)
+                    .frame(height: 24)  // v0.25.1 ticket 037: textfield height 24 PT (= boss OOB '现在文本框不是 32 了吗 不管是多少 改成和文本框一样高' = 当前 textfield 视觉 是 24 PT, 不再改 = pin 24 PT). Button 也 修真因 = 24 PT (= 跟 文本框 一致)
                     .padding(.horizontal, 12)
                     .background(
                         ZStack {
@@ -545,10 +545,10 @@ public struct ChatView: View {
                     }
                 }
                 .buttonStyle(.borderedProminent)
-                .controlSize(.regular)  // v0.25.1 ticket 036 followup: explicit .regular control size (= 32 PT height per Apple HIG, = matches textfield 32 PT height)
-                .frame(height: 32)  // v0.25.1 ticket 036: send button height 32 PT (= boss OOB '发送按钮高度调整到 32 和文本框一样' = match textfield 32 PT height). HStack .center alignment (= ticket 033 final) = both elements share the same vertical center axis.
+                .controlSize(.small)  // v0.25.1 ticket 037: explicit .small control size (= 24 PT height per Apple HIG, = matches textfield 24 PT height per boss OOB '不管是多少 改成和文本框一样高')
+                .frame(height: 24)  // v0.25.1 ticket 037: send button height 24 PT (= match textfield 24 PT height per boss OOB)
                 .disabled(vm.inputText.isEmpty || vm.isSending)
-                .padding(.top, 8)  // v0.25.1 ticket 034 final 3: 8 PT outer top margin on chat input HStack
+                .padding(.top, 16)  // v0.25.1 ticket 037: 8 PT additional outer top margin per boss OOB '文本框上面 8PT 不够 再加 8 吧' (= 8 PT existing + 8 PT new = 16 PT total outer top margin on chat input HStack)
             }
             .padding(.horizontal, 18)
         }
