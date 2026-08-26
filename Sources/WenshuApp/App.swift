@@ -1302,14 +1302,22 @@ struct UpperBandZone: View {
             // when the group is stretched.' = visible zones get extra width
             // when sibling hidden (= Apple官方推荐 way to handle conditional
             // HStack children, no manual width pre-compute needed).
+            // v0.24 fix (Boss 8/25 69th OOB '工具栏隐藏后, 其它三栏占用整个上半区的计算有问题'):
+            // per Apple HIG 'Building layouts with stack views' doc, use
+            // .frame(maxWidth: .infinity) (= take all available space) on
+            // visible zones INSTEAD of .frame(width: preview) which uses
+            // pre-computed fixed width (= leftover gap when sibling hidden).
+            // This is the Apple官方推荐 way for HStack zones to redistribute
+            // when siblings are conditionally removed (= layoutPriority alone
+            // is priority hint, but .frame(width:) overrides stretch behavior).
             ZoneModule(slot: .projectPreview, vm: vm, totalW: totalW, bandH: bandH)
-                .frame(width: preview)
+                .frame(maxWidth: .infinity, alignment: .top)
                 .layoutPriority(1)  // grow to fill HStack when sidebar/tools hidden
             // D_v2: project preview / editor (splitterIndex 1)
             VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 1, vm: vm)
             // editor always render (not yet implemented for toggle)
             ZoneModule(slot: .editor, vm: vm, totalW: totalW, bandH: bandH)
-                .frame(width: editor)
+                .frame(maxWidth: .infinity, alignment: .top)
                 .layoutPriority(1)  // grow to fill HStack when sidebar/tools hidden
             // D_v3: editor / specialized tools (splitterIndex 2)
             // Per Boss 8/25 15th OOB 'tools zone cannot be dragged. fix it':
