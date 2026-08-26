@@ -546,9 +546,8 @@ public struct ChatView: View {
                         }
                     }
                 }
-                .buttonStyle(.bordered)  // v0.25.1 ticket 038: changed from .borderedProminent to .bordered (= no outer shadow/glow, = button visual box = exact frame, = visually aligned with textfield). boss OOB '按钮会比文本框低一些 文本框和按钮怎么能水平看起来就是齐的呢' = previous .borderedProminent style adds an outer shadow + glow that visually extended the button frame below the textfield, making the button look 'lower' than the textfield. .bordered style has a flat rounded border (= no shadow = visual alignment with textfield)
-                .controlSize(.small)  // v0.25.1 ticket 037: explicit .small control size (= 24 PT height per Apple HIG, = matches textfield 24 PT height per boss OOB '不管是多少 改成和文本框一样高')
-                .frame(height: 24)  // v0.25.1 ticket 037: send button height 24 PT (= match textfield 24 PT height per boss OOB)
+                .buttonStyle(.plain)  // v0.25.1 ticket 038 final 4: keep .plain (= no minimum height constraint). Use explicit .frame(height: 47) to match textfield visual height per pixel truth measurement (= textfield = 47 PT, button = 37 PT = 10 PT short = boss OOB '文本框比按钮高 10PT 以上' = make button 47 PT = match textfield).
+                .frame(height: 47)  // v0.25.1 ticket 038 final 4: pin button visual height to 47 PT to match textfield visual height per pixel truth + boss OOB '按钮和文本框一样高'
                 .disabled(vm.inputText.isEmpty || vm.isSending)
                 .padding(.top, 16)  // v0.25.1 ticket 037: 8 PT additional outer top margin per boss OOB '文本框上面 8PT 不够 再加 8 吧' (= 8 PT existing + 8 PT new = 16 PT total outer top margin on chat input HStack)
             }
