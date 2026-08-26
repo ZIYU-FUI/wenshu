@@ -544,7 +544,7 @@ public struct ChatView: View {
                         }
                     }
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.bordered)  // v0.25.1 ticket 038: changed from .borderedProminent to .bordered (= no outer shadow/glow, = button visual box = exact frame, = visually aligned with textfield). boss OOB '按钮会比文本框低一些 文本框和按钮怎么能水平看起来就是齐的呢' = previous .borderedProminent style adds an outer shadow + glow that visually extended the button frame below the textfield, making the button look 'lower' than the textfield. .bordered style has a flat rounded border (= no shadow = visual alignment with textfield)
                 .controlSize(.small)  // v0.25.1 ticket 037: explicit .small control size (= 24 PT height per Apple HIG, = matches textfield 24 PT height per boss OOB '不管是多少 改成和文本框一样高')
                 .frame(height: 24)  // v0.25.1 ticket 037: send button height 24 PT (= match textfield 24 PT height per boss OOB)
                 .disabled(vm.inputText.isEmpty || vm.isSending)
