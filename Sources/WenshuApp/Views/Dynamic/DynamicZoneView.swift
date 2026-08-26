@@ -165,7 +165,7 @@ struct DynamicZoneTabBar: View {
                                 .fill(Color.accentColor)
                                 .frame(height: LayoutTokens.tabUnderlineHeight)
                                 .matchedGeometryEffect(id: "tabBarUnderline", in: tabBarNamespace, isSource: true)
-                                    .offset(y: 2)  // v0.25.1 ticket 022: reduce offset 4 → 2 PT (= boss OOB '小横线不见了' = offset 4 PT pushed underline below 30 PT toolbar bottom edge, clipped. Reduced to 2 PT = underline visible at y=28+2-2=28 PT, just within 30 PT toolbar)
+                                    .offset(y: 0)  // v0.25.1 ticket 024: offset adjusted for tabUnderlineHeight 3 PT (= underline at y=28-3=25 to 28 PT, flush with toolbar bottom = no offset needed since icon is centered at y=5-23 PT, 2 PT gap between icon bottom and underline top)
                         }
                     }
                 }

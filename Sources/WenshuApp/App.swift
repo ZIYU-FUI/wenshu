@@ -239,7 +239,19 @@ enum LayoutTokens {
     // this constant for the underline height; the underline color is
     // Color.accentColor (= Apple system accent, matches selected-tab
     // icon color so the visual cue is consistent).
-    static let tabUnderlineHeight: CGFloat = 2
+    // v0.25.1 (= ticket 024 underline height = 3 PT for cross-grid icon
+    // distinctness): owner 2026-08-26 OOB '那个下面的小横线 看起来高
+    // 度不一样' = the .layout-grid Lucide icon has internal grid lines
+    // (= horizontal borders for the 4 cells) that visually MERGE with
+    // the 2 PT underline bar below the icon (= makes the right-side
+    // underline appear thicker than the left-side .bot underline, even
+    // though both = same constant). Fix = bump tabUnderlineHeight
+    // 2 → 3 PT (= the underline is now visually heavier than any
+    // icon-internal horizontal line, so the .layout-grid bottom grid
+    // line no longer merges with the accent-color underline). Apple
+    // HIG acceptable range for tab-bar indicator = 2-4 PT (= 3 PT
+    // is within canonical macOS segmented control style).
+    static let tabUnderlineHeight: CGFloat = 3
     static let iconSpacingRatio: CGFloat = 18.0 / 1920.0  // 18 PT 等距 (老板 8/18 改 18 PT = icon 间距, 起点 18/54/90 相邻 36 - 18 = 18)
 
     // 底栏占位元素 (老板 8/18 拍 "icon 18×18, 占位文字苹果字符样式正文尺寸") — 绝对 PT 不走比例
@@ -2390,7 +2402,7 @@ struct ChatZoneTabBar: View {
                                         // Boss 8/22 sixth OOB backlog 20), the
                                         // slide animation already works.
                                         .matchedGeometryEffect(id: "tabBarUnderline", in: tabBarNamespace, isSource: true)
-                                    .offset(y: 2)  // v0.25.1 ticket 022: reduce offset 4 → 2 PT (= boss OOB '小横线不见了' = offset 4 PT pushed underline below 30 PT toolbar bottom edge, clipped. Reduced to 2 PT = underline visible at y=28+2-2=28 PT, just within 30 PT toolbar)
+                                    .offset(y: 0)  // v0.25.1 ticket 024: offset adjusted for tabUnderlineHeight 3 PT (= underline at y=28-3=25 to 28 PT, flush with toolbar bottom = no offset needed since icon is centered at y=5-23 PT, 2 PT gap between icon bottom and underline top)
                                 }
                             }
                     }
