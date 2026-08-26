@@ -1826,10 +1826,15 @@ struct ZoneModule: View {
         case .projectPreview:
             // o09 Word Count inline + o03 Graph + o06 Search (preview zone — main content).
             // Word count already in ZoneBottomToolbar; here we add graph + search.
+            // v0.25.1 (= ticket 012 second-column-second icon): owner 2026-08-26
+            // OOB '第二栏的第二个 关系图的图标换成 waypoints' = SF 'circle.grid.cross'
+            // → Lucide 'waypoints' (= 3-dot connected nodes graph glyph, 2x2 cross
+            // replaced with linear-path node markers; matches the GraphView content
+            // visual metaphor better than 'circle.grid.cross').
             return [
                 ZoneToolbarAction(
                     label: "Graph",
-                    icon: "circle.grid.cross.fill",
+                    icon: "waypoints",
                     action: {}
                 ),
                 ZoneToolbarAction(
@@ -1864,7 +1869,11 @@ struct ZoneModule: View {
                 ("预览", "eye", AnyView(DesignColor.zoneSurface)),
                 // v0.24 boss验收fix (Boss 8/24): 统一 outline variant (其他 13 个 icons 都 outline,
                 // 只有 'circle.grid.cross.fill' 是实心 fill). 删 .fill suffix.
-                ("图", "circle.grid.cross", AnyView(GraphView())),
+                // v0.25.1 (= ticket 012): owner 2026-08-26 OOB '第二栏的第二个
+                // 关系图的图标换成 waypoints' = SF circle.grid.cross → Lucide
+                // waypoints (= linear-path node markers glyph, matches
+                // GraphView content metaphor better than the 2x2 cross).
+                ("图", "waypoints", AnyView(GraphView())),
                 ("搜索", "magnifyingglass", AnyView(SearchPanel())),
             ])
         case .editor:
@@ -2209,6 +2218,17 @@ struct ChatZoneTabBar: View {
     @Binding var selectedTab: ChatZoneView.ChatZoneTab
     // v0.24 boss验收fix (Boss 8/25 OOB ticket 015.014): archive flow state.
     @Binding var showingArchiveAlert: Bool
+    // v0.25.1 (= ticket 013 underline slide animation): owner 2026-08-26
+    // OOB '能不能让那个小横线的动画变成左右移动 不是渐隐渐显' =
+    // matchedGeometryEffect pattern (= owner wants L/R slide, NOT
+    // crossfade). Even though ChatZoneTabBar currently only shows 1
+    // visible tab (= .chat, filtered via ForEach with .chat only),
+    // the namespace + matchedGeometryEffect pattern is applied for
+    // consistency with DynamicZoneTabBar + ZoneContentTabBar. If owner
+    // later unhides .search / .settings tabs (= Boss 8/22 sixth OOB
+    // '老板拍 backlog 20 chat tab 1/2/3 真切换'), the slide animation
+    // already works (= no extra retrofit).
+    @Namespace private var tabBarNamespace
 
     var body: some View {
         HStack(spacing: 0) {
@@ -2237,6 +2257,16 @@ struct ChatZoneTabBar: View {
                                     Rectangle()
                                         .fill(Color.accentColor)
                                         .frame(height: LayoutTokens.tabUnderlineHeight)
+                                        // v0.25.1 (= ticket 013): matchedGeometryEffect
+                                        // namespace ID on the bar Rectangle so
+                                        // SwiftUI can slide it between tab
+                                        // positions (= replaces ticket 010's
+                                        // per-button crossfade with single shared
+                                        // bar translating L/R). When owner
+                                        // unhides .search / .settings tabs (=
+                                        // Boss 8/22 sixth OOB backlog 20), the
+                                        // slide animation already works.
+                                        .matchedGeometryEffect(id: "tabBarUnderline", in: tabBarNamespace, isSource: true)
                                 }
                             }
                     }

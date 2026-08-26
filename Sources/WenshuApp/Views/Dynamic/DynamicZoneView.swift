@@ -66,6 +66,20 @@ struct DynamicZoneView: View {
 /// DynamicZoneTabBar: 顶栏 3 SF Symbol tab + 选中态 .accentColor (跟 ChatZoneTabBar 范式一致)
 struct DynamicZoneTabBar: View {
     @Binding var selectedTab: DynamicZoneView.DynamicTab
+    // v0.25.1 (= ticket 013 underline slide animation): owner 2026-08-26
+    // OOB '能不能让那个小横线的动画变成左右移动 不是渐隐渐显' =
+    // replace the per-button crossfade underline (= ticket 010 = each
+    // tab's .overlay(alignment:.bottom) renders its own bar, so switching
+    // tabs fades old bar out + fades new bar in = crossfade) with a
+    // SINGLE shared bar that translates horizontally between selected
+    // tab positions (= 老板 '左右移动' = left-right slide, NOT crossfade).
+    // Implementation per Apple HIG + SwiftUI docs: SwiftUI's
+    // .matchedGeometryEffect(id:in:isSource:) on the underline Rectangle
+    // lets SwiftUI animate the bar's position across HStack tab buttons.
+    // When the selected tab changes, SwiftUI computes the new tab's
+    // frame and slides the matched bar (= via internal CAAnimation).
+    // `@Namespace` provides the match scope (= one per tab bar class).
+    @Namespace private var tabBarNamespace
 
     var body: some View {
         HStack(spacing: 15) {
@@ -95,12 +109,18 @@ struct DynamicZoneTabBar: View {
                     // extends the icon render bounds to 28 PT; .overlay
                     // (.bottom) keeps the Apple HIG selected-tab underline
                     // anchored at the bottom of the inflated box).
+                    // v0.25.1 (= ticket 013 underline slide animation):
+                    // matchedGeometryEffect namespace ID on the bar
+                    // Rectangle so SwiftUI can slide it between tab
+                    // positions (= replaces ticket 010's per-button
+                    // crossfade with single shared bar translating L/R).
                     .padding(.all, LayoutTokens.chatTabHitPad)
                     .overlay(alignment: .bottom) {
                         if tab == selectedTab {
                             Rectangle()
                                 .fill(Color.accentColor)
                                 .frame(height: LayoutTokens.tabUnderlineHeight)
+                                .matchedGeometryEffect(id: "tabBarUnderline", in: tabBarNamespace, isSource: true)
                         }
                     }
                 }

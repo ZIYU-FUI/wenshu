@@ -111,6 +111,12 @@ struct ZoneContentTabBar: View {
 
     let items: [Item]
     @Binding var selection: String
+    // v0.25.1 (= ticket 013 underline slide animation): owner 2026-08-26
+    // OOB '能不能让那个小横线的动画变成左右移动 不是渐隐渐显'. See
+    // DynamicZoneTabBar comment (= matchedGeometryEffect pattern). One
+    // namespace per tab bar class (= SwiftUI requires the namespace to
+    // scope within a single view tree).
+    @Namespace private var tabBarNamespace
 
     // v0.24 boss验收fix: selectedItem (Item with matching label) for icon highlighting.
     private var selectedItem: Item? {
@@ -161,12 +167,18 @@ struct ZoneContentTabBar: View {
                     // now use the same 28×28 hot area + Apple HIG
                     // underline + reliability contentShape + clear
                     // background pattern.
+                    // v0.25.1 (= ticket 013 underline slide animation):
+                    // matchedGeometryEffect namespace ID on the bar
+                    // Rectangle so SwiftUI can slide it between tab
+                    // positions (= replaces ticket 010's per-button
+                    // crossfade with single shared bar translating L/R).
                     .padding(.all, LayoutTokens.chatTabHitPad)
                     .overlay(alignment: .bottom) {
                         if item == selectedItem {
                             Rectangle()
                                 .fill(Color.accentColor)
                                 .frame(height: LayoutTokens.tabUnderlineHeight)
+                                .matchedGeometryEffect(id: "tabBarUnderline", in: tabBarNamespace, isSource: true)
                         }
                     }
                 }
