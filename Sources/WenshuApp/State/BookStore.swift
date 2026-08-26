@@ -75,9 +75,12 @@ final class BookStore: @unchecked Sendable {
     var referenceLibrary: ReferenceLibrary = ReferenceLibrary()
 
     /// Init (= v0.27 wiring): takes the LibraryStores bundle from the
-    /// launch result. The v0.26 init signature is retained for back-
-    /// compat (= existing callers can still construct a stub BookStore
-    /// for tests; the canonical path is via LibraryLaunchResult.makeBookStore()).
+    /// launch result. The v0.26 init signature was preserved for back-
+    /// compat in commit 1de8e0e7f (= pre-v0.27 tests + callers), but
+    /// git grep shows zero external callers; the init is removed in
+    /// this commit to fix the S5 sentinel path bug (= reload(bookId:)
+    /// would have written to `/books/<uuid>/` if any future caller used
+    /// the back-compat init).
     init(stores: LibraryStores) {
         self.stores = stores
         self.worldStore = stores.makeBookStores(for: stores.shelvesRoot)
@@ -85,23 +88,6 @@ final class BookStore: @unchecked Sendable {
         self.characterStore = stores.makeBookStores(for: stores.shelvesRoot)
             .characterStore
         self.referenceStore = stores.referenceStore
-    }
-
-    /// v0.26 back-compat init (= preserved so existing tests + callers
-    /// don't break; new code should use the LibraryStores-based init).
-    init(
-        worldStore: WorldStoring,
-        characterStore: CharacterStoring,
-        referenceStore: ReferenceStoring
-    ) {
-        self.stores = LibraryStores(
-            shelvesRoot: URL(fileURLWithPath: "/"),
-            referenceLibraryRoot: URL(fileURLWithPath: "/"),
-            referenceStore: referenceStore
-        )
-        self.worldStore = worldStore
-        self.characterStore = characterStore
-        self.referenceStore = referenceStore
     }
 
     /// The 3 v0.26 entity stores (= kept as direct properties for the
