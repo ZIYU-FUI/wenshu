@@ -93,6 +93,22 @@ struct DynamicZoneTabBar: View {
                     .font(.system(size: LayoutTokens.iconSize))
                     .imageScale(.large)  // v0.24 boss验收fix (Boss 8/24): 12 PT font → ~12 PT visual: 强制 SF Symbol 视觉 small, 防止 frame 溢出
                     .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
+                                        // v0.25.1 (= ticket 020 hot area centered over icon):
+                    // owner 2026-08-26 OOB '热区是写了 但是没有叠加到
+                    // ICON 上 而是放在了 ICON 后在'. Per Apple SwiftUI
+                    // hit-testing rules (medium.com/@davidhu-sg hit-testing
+                    // traps article + developer.apple.com/documentation/
+                    // swiftui/buttonstyle docs) = Button's hit area = label's
+                    // intrinsic content size, NOT outer .frame. Fix = wrap
+                    // icon in explicit Color.clear.frame(28, 28).contentShape
+                    // (.rect) INSIDE the label closure (= label's intrinsic
+                    // size = 28x28 → Button's hit area = 28x28 → icon centered
+                    // within it via .overlay alignment center).
+                    .overlay(alignment: .center) {
+                        Color.clear
+                            .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
+                            .contentShape(Rectangle())
+                    }
                     .foregroundStyle(tab == selectedTab ? Color.accentColor : Color.secondary)
                     // v0.25.1 (= ticket 010 tab selected-state underline):
                     // owner 2026-08-26 OOB '现在的 tab 的选定状态 ICON 下
@@ -125,9 +141,7 @@ struct DynamicZoneTabBar: View {
                     // 28×28 layout space + registers hit area via
                     // contentShape + provides the Color.clear backing
                     // SwiftUI hit-tester needs for reliable detection).
-                    Color.clear
-                        .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
-                        .contentShape(Rectangle())
+                    .buttonStyle(IconButtonStyle())
                     .overlay(alignment: .bottom) {
                         if tab == selectedTab {
                             Rectangle()
