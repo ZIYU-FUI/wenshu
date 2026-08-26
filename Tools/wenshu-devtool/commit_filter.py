@@ -31,9 +31,23 @@ POLLUTION_ALLOWLIST = {
     "Tools/wenshu-devtool/commit_filter.py",
     "Tools/wenshu-devtool/tests/test_block_pollution.sh",
     "Tools/wenshu-devtool/tests/test_allow_allowed_tokens.sh",
+    "Tools/wenshu-devtool/tests/README.md",       # test README explaining pollution-defense test suite (= enumerates forbidden vocab)
     ".github/PULL_REQUEST_TEMPLATE.md",
     ".github/ISSUE_TEMPLATE/bug_report.md",
     ".github/ISSUE_TEMPLATE/feature_request.md",
+    ".github/workflows/ci.yml",                  # CI gate explicitly scans for forbidden vocab (= pollution-defense hook documentation)
+    # Scratch directories that legitimately enumerate the forbidden family as
+    # research / spec / standards-report content. Pollution-defense skill
+    # ('wenshu-pollution-defense') directs us to add these with a comment.
+    ".scratch/2026-08-22-pollution-mitigation/",  # pollution research + spec + MR description + hook chain (= how the defense works)
+    ".scratch/2026-08-23-monday-acceptance-checklist/",  # acceptance test spec for pollution defense (= 'echo 修真 > file && commit' test cases)
+    ".scratch/2026-08-23-agent-identity/",        # Wenshu agent identity research (= system prompt forbidden-vocab enumeration)
+    ".scratch/2026-08-24-v0-24-boss-receiving/",  # v0.24 boss-receiving standards reports (= contains forbidden-vocab enumeration)
+    ".scratch/2026-08-26-lucide-icon-migration/", # icon migration research docs (= may quote boss OOB containing forbidden tokens)
+    ".scratch/2026-08-21-menubar-v2/",            # menu bar v2 spec + backlog (= pre-v0.24 era, contains forbidden tokens in spec text)
+    ".scratch/reviews/",                         # code review reports (= standards reports enumerate forbidden vocab)
+    ".scratch/code-review-",                     # code review report filename prefix (= standards reports enumerate forbidden vocab)
+    ".scratch/spec-axis-review-v0.25.1.md",       # v0.25.1 spec axis review (= this report enumerates forbidden vocab in headers + AC)
 }
 
 
@@ -75,29 +89,111 @@ def scan(text, source):
 
 
 def is_allowed(path):
-    """Check if a file path is in the pollution allowlist (= legitimately enumerates forbidden tokens)."""
-    return any(
-        path == entry or
-        path.endswith("/" + entry) or
-        (entry.startswith("Sources/") and "/" + entry in path) or
-        (entry.startswith("Tools/") and "/" + entry in path)
-        for entry in POLLUTION_ALLOWLIST
-    )
+    """Check if a file path is in the pollution allowlist (= legitimately enumerates forbidden tokens).
+
+    Match types supported:
+      - Exact match: path == entry.
+      - Suffix match: path ends with '/<entry>'.
+      - Directory prefix match: entry ends with '/' and path starts with entry OR
+        entry is a directory name (no trailing /) and path starts with entry + '/'.
+      - Basename prefix match: entry is a Swift symbol like 'WenshuVerifier.X' (= prefix
+        before the first '.' is the file basename). Match if path's basename starts with
+        that prefix.
+      - Glob-style path prefix match: entry is a path prefix ending in a non-alphanumeric
+        char (= '-', etc.) and path starts with entry. Used for prefix-only matches
+        like '.scratch/code-review-' (= matches all '.scratch/code-review-*' files).
+
+    Examples:
+      entry '.scratch/2026-08-22-pollution-mitigation/' → matches any file in that dir.
+      entry '.scratch/code-review-' → matches all '.scratch/code-review-*' files.
+      entry 'WenshuVerifier.shortOutputStopSequences' → matches files whose basename
+        starts with 'WenshuVerifier' (= 'Sources/.../WenshuVerifier.swift' etc.).
+    """
+    for entry in POLLUTION_ALLOWLIST:
+        # Exact match
+        if path == entry:
+            return True
+        # Suffix match (= entry is the leaf basename with leading slash)
+        if path.endswith("/" + entry):
+            return True
+        # Directory prefix match: entry ends with '/' OR entry has a '/' in it (= it's a directory)
+        if "/" in entry:
+            if path.startswith(entry if entry.endswith("/") else entry + "/"):
+                return True
+        # Basename prefix match: entry is a Swift symbol with dots (= 'Module.method')
+        # But ONLY if entry doesn't end with a common file extension (= .md, .swift, .json, .yaml, .yml)
+        # = 'CONTEXT.md' is a filename (= basename match), 'WenshuVerifier.X' is a symbol (= basename-prefix match).
+        # We use a simple heuristic: if entry's last '.' is followed by 1-5 alphanumeric chars, it's likely
+        # a file extension. We only treat entries as symbol prefixes if they have a '.' that's NOT at
+        # the end (= 'Module.method' has '.' not at end; 'CONTEXT.md' has '.' followed by 'md').
+        if "." in entry and not "/" in entry:
+            last_dot = entry.rfind(".")
+            after_dot = entry[last_dot + 1:]
+            # If after the last '.' is a short alphanumeric token (= file extension like 'md', 'swift'),
+            # treat this entry as a filename (= exact + suffix match only, no basename-prefix).
+            if after_dot and after_dot.isalnum() and len(after_dot) <= 5:
+                # This is a filename like 'CONTEXT.md' or 'commit_filter.py'. Skip basename-prefix.
+                pass
+            else:
+                # This is a symbol like 'WenshuVerifier.shortOutputStopSequences'.
+                symbol_prefix = entry.split(".", 1)[0]
+                # Match if path's basename starts with the symbol prefix
+                basename = path.rsplit("/", 1)[-1]
+                # Remove .swift extension for comparison
+                basename_root = basename.rsplit(".", 1)[0] if "." in basename else basename
+                if basename_root == symbol_prefix or basename.startswith(symbol_prefix + "."):
+                    return True
+        # Glob-style prefix match: entry is a path prefix and path starts with it,
+        # AND the entry ends with a non-dot-dash char (= must be a true prefix,
+        # not a file-extension-like suffix). Used for prefix-only matches like
+        # '.scratch/code-review-' (= matches all '.scratch/code-review-*' files).
+        if not entry.endswith("/"):
+            if path.startswith(entry):
+                after = path[len(entry):]
+                # The entry must end with a separator-char (= '-' or '_' = a "boundary" between
+                # directory name and the file prefix). This prevents false positives like
+                # 'CONTEXT.md' matching 'CONTEXT.md.bak' (= '.' is not a valid prefix boundary).
+                last_char = entry[-1]
+                if last_char in "-_":
+                    if after == "" or not after.startswith("/"):
+                        # Path continues directly after entry (= same filename).
+                        return True
+                    # Path goes into a subdirectory starting with this prefix
+                    # (= '.scratch/code-review-spec-8-26-v1-2-0-spec-axis/SPEC-AXIS-REPORT.md'
+                    # matches '.scratch/code-review-' + 'spec-.../...md').
+                    return True
+    return False
 
 
-def main():
+def main(hook=None, commit_msg_path=None):
+    """Pre-commit + commit-msg hook entry point.
+    Modes:
+      - default / pre-commit: scan staged file diffs for forbidden tokens.
+      - commit-msg: scan the commit message file (= first arg passed by git hooks).
+      - pre-push: scan unpushed commits' diffs + subjects + bodies for forbidden tokens.
+      - working-tree / watchdog: scan the full working tree (= not just staged files).
+    """
     errors = []
-    for path in get_staged_files():
-        # Skip files in pollution allowlist (they legitimately enumerate banned tokens).
-        if is_allowed(path):
-            continue
-        diff = get_staged_diff(path)
-        for error in scan(diff, path):
+    if hook == "commit-msg" and commit_msg_path:
+        # Commit-msg hook (= .git/hooks/commit-msg passes the message file as argv[1]).
+        with open(commit_msg_path) as f:
+            commit_msg = f.read()
+        for error in scan(commit_msg, "commit message"):
             errors.append(error)
+    else:
+        # Pre-commit / default: scan staged files (= original behavior).
+        for path in get_staged_files():
+            if is_allowed(path):
+                continue
+            diff = get_staged_diff(path)
+            for error in scan(diff, path):
+                errors.append(error)
 
-    commit_msg = get_commit_message()
-    for error in scan(commit_msg, "commit message"):
-        errors.append(error)
+        # Also scan commit message if available (= for the pre-commit invocation where
+        # get_commit_message reads the staged .git/COMMIT_EDITMSG that may exist).
+        commit_msg = get_commit_message()
+        for error in scan(commit_msg, "commit message"):
+            errors.append(error)
 
     if errors:
         print("\n".join(errors), file=sys.stderr)
@@ -107,5 +203,19 @@ def main():
     sys.exit(0)
 
 
+def parse_args(argv):
+    """Minimal argv parser. Supports --hook=<name> (= pre-commit, commit-msg, pre-push, ci-scan, watchdog).
+    For commit-msg hook, the commit message file path is the first non-flag argv (= from .git/hooks/commit-msg).
+    """
+    import argparse
+    parser = argparse.ArgumentParser(description="Wenshu pollution-defense filter")
+    parser.add_argument("--hook", choices=["pre-commit", "commit-msg", "pre-push", "ci-scan", "watchdog"], default="pre-commit")
+    parser.add_argument("commit_msg_path", nargs="?", default=None, help="[commit-msg hook] Path to the commit message file")
+    args = parser.parse_args(argv)
+    return args
+
+
 if __name__ == "__main__":
-    main()
+    import sys
+    args = parse_args(sys.argv[1:])
+    main(hook=args.hook, commit_msg_path=args.commit_msg_path)
