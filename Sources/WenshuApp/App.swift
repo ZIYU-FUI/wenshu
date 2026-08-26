@@ -1076,16 +1076,28 @@ struct LayoutShellView: View {
             //   932 = 上半 + 拖拽线 + 下半, 上半 = 下半 = (932 - 2) / 2 = 465 PT
             //   D_h 拖拽线 = 2 PT (Sketch master 真值, 老板 2026-08-19 用 mcp__sketch__run_code 读图确认)
             //   bandH 用比例算子 vm.upperBandH(totalHeight: contentH - 2) (ticket 014 D_h 响应 + 比例算子, -2 留给 D_h 拖拽线)
-            let bandH = vm.upperBandH(totalHeight: contentH - 2)
+            // v0.24 fix (Boss 8/25 72nd OOB '五个按钮全关掉后, 让编辑器占全部空间'):
+            // when all 5 toggle buttons off (= sidebar/preview/tools/chat/dynamic
+            // all hidden), editor zone should fill ENTIRE content area instead
+            // of being constrained to upper band (= upperBandH = totalHeight,
+            // lowerBandH = 0). All 5 hidden = no use for the 50/50 band split.
+            let allZonesHidden = !showProjectSidebar && !showProjectPreview && !showSpecializedTools && !showAIChat && !showAIDynamic
+            let upperBandHeight: CGFloat = allZonesHidden ? (contentH - 2) : vm.upperBandH(totalHeight: contentH - 2)
+            let lowerBandHeight: CGFloat = allZonesHidden ? 0 : vm.lowerBandH(totalHeight: contentH - 2)
+            let bandH = upperBandHeight
             VStack(spacing: 0) {
                 // 上 band: 4 区 + 3 拖拽线 (Apple HIG HStack 范式)
                 UpperBandZone(vm: vm, showProjectSidebar: showProjectSidebar, showProjectPreview: showProjectPreview, showSpecializedTools: showSpecializedTools, totalW: totalW, bandH: bandH)
-                // D_h 横拖拽线 (上/下 band 之间, v0.14.0 撤销 inert, 拍可拖)
-                NativeSplitter(orientation: .horizontal, length: totalW, onDrag: { dy in
-                    vm.adjustBandSplit(delta: dy, totalHeight: contentH - 2)
-                })
-                // 下 band: 2 区 + 1 拖拽线 (老板 8/18 拍 "上四下两")
-                LowerBandZone(vm: vm, showAIChat: showAIChat, showAIDynamic: showAIDynamic, totalW: totalW, bandH: vm.lowerBandH(totalHeight: contentH - 2))
+                // v0.24 fix (Boss 8/25 72nd OOB): hide D_h splitter + lower band
+                // when all 5 zones hidden (= no band boundary to split).
+                if !allZonesHidden {
+                    // D_h 横拖拽线 (上/下 band 之间, v0.14.0 撤销 inert, 拍可拖)
+                    NativeSplitter(orientation: .horizontal, length: totalW, onDrag: { dy in
+                        vm.adjustBandSplit(delta: dy, totalHeight: contentH - 2)
+                    })
+                    // 下 band: 2 区 + 1 拖拽线 (老板 8/18 拍 "上四下两")
+                    LowerBandZone(vm: vm, showAIChat: showAIChat, showAIDynamic: showAIDynamic, totalW: totalW, bandH: lowerBandHeight)
+                }
             }
             // v0.24 boss验收fix (Boss 8/25 eighth OOB '不要纠结线的问题, 核心是比例'):
             // overlay REMOVED. Boss拍 core spec = the rightmost zone widths
