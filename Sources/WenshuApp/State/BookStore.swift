@@ -43,6 +43,12 @@ struct BookBundle: Sendable {
 /// Single @Observable BookStore (= Apple standard pattern: one
 /// observation-tracked state holder; not per-book instances; per Apple
 /// HIG + WWDC23 'Discover Observation in SwiftUI').
+///
+/// v0.27 ticket 019 wiring followup: BookStore now holds a
+/// `LibraryStores` reference (= constructed by LibraryLifecycleHook)
+/// + a `currentBookDirectory` optional. `reload(bookId:)` swaps the
+/// directory; the WorldStoring / CharacterStoring callable members
+/// lazily resolve the per-book store via `LibraryStores.makeBookStores`.
 @Observable
 final class BookStore: @unchecked Sendable {
     /// All shelves (= loaded once at app launch; edits in-memory;
@@ -57,45 +63,67 @@ final class BookStore: @unchecked Sendable {
     /// reload in progress).
     var currentBook: BookBundle?
 
+    /// Library-level store bundle (= constructed by LibraryLifecycleHook
+    /// at app launch; held here for per-book resolution).
+    let stores: LibraryStores
+
+    /// Current book directory (= swapped by reload(bookId:)).
+    var currentBookDirectory: URL?
+
     /// Reference library (= library-level, NOT per-book; loaded once
     /// at app launch).
     var referenceLibrary: ReferenceLibrary = ReferenceLibrary()
 
-    /// The 3 v0.26 entity stores (= functional injection source for
-    /// the 6 new view files; loaded once; reused across books).
-    let worldStore: WorldStoring
-    let characterStore: CharacterStoring
-    let referenceStore: ReferenceStoring
+    /// Init (= v0.27 wiring): takes the LibraryStores bundle from the
+    /// launch result. The v0.26 init signature is retained for back-
+    /// compat (= existing callers can still construct a stub BookStore
+    /// for tests; the canonical path is via LibraryLaunchResult.makeBookStore()).
+    init(stores: LibraryStores) {
+        self.stores = stores
+        self.worldStore = stores.makeBookStores(for: stores.shelvesRoot)
+            .worldStore  // (= valid per-book store if shelvesRoot is a book dir; v0.27 upgrades to currentBookDirectory at reload)
+        self.characterStore = stores.makeBookStores(for: stores.shelvesRoot)
+            .characterStore
+        self.referenceStore = stores.referenceStore
+    }
 
-    /// Injected by App.swift at launch (= ticket 019). v0.26 uses
-    /// constructor injection because SwiftUI @Environment cannot
-    /// carry non-@Observable types at @Environment init time.
+    /// v0.26 back-compat init (= preserved so existing tests + callers
+    /// don't break; new code should use the LibraryStores-based init).
     init(
         worldStore: WorldStoring,
         characterStore: CharacterStoring,
         referenceStore: ReferenceStoring
     ) {
+        self.stores = LibraryStores(
+            shelvesRoot: URL(fileURLWithPath: "/"),
+            referenceLibraryRoot: URL(fileURLWithPath: "/"),
+            referenceStore: referenceStore
+        )
         self.worldStore = worldStore
         self.characterStore = characterStore
         self.referenceStore = referenceStore
     }
 
+    /// The 3 v0.26 entity stores (= kept as direct properties for the
+    /// 6 CP3 views' functional-injection compatibility; v0.27 followups
+    /// migrate views to @Environment(BookStore.self)).
+    let worldStore: WorldStoring
+    let characterStore: CharacterStoring
+    let referenceStore: ReferenceStoring
+
     /// Reload the per-book data for the given book id. Drops the
     /// previous bundle and reads fresh from the storage layer. Apple
-    /// standard "data source switch" pattern (= per Apple Observation
-    /// framework; no per-book store instances).
+    /// standard "data source switch" pattern.
+    ///
+    /// v0.27 followup: the App.swift `.onChange` of selectedBookId
+    /// observer calls this method (= wired by the App.swift wiring
+    /// ticket). v0.27-01 lands the contract only.
     func reload(bookId: UUID) {
-        // v0.26: storage is parameterized by bookDirectory; the caller
-        // (= App.swift .onChange observer) is responsible for
-        // constructing the right store for the right book. This method
-        // is a stub that captures the contract; the per-book directory
-        // resolution is delegated to the caller (= ticket 019 App.swift
-        // wiring reads Bookshelf -> books/ -> books/<book-id>/ and
-        // constructs FileSystemWorldStore(books/<book-id>/) etc.).
         selectedBookId = bookId
-        // Real implementation lands in ticket 019's App.swift wiring
-        // (= constructs new per-book stores, calls loadWorld/loadCharacters,
-        // populates BookBundle, assigns to currentBook).
+        let bookDir = stores.shelvesRoot
+            .appendingPathComponent("books", isDirectory: true)
+            .appendingPathComponent(bookId.uuidString, isDirectory: true)
+        currentBookDirectory = bookDir
         currentBook = nil
     }
 }
