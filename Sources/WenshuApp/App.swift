@@ -461,9 +461,9 @@ struct SettingView: View {
             Section {
                 ForEach(Provider.all) { p in
                     HStack {
-                        Image(systemName: providersWithKeys.contains(p.slug) ? "key.fill" : "key")
-                            .foregroundStyle(providersWithKeys.contains(p.slug) ? .green : .secondary)
-                            .frame(width: 16)
+                        providersWithKeys.contains(p.slug)
+                            ? WenshuIcon.keyFill.image(size: 16, foregroundStyle: .green)
+                            : WenshuIcon.key.image(size: 16, foregroundStyle: .secondary)
                         Text(p.name)
                             .font(.body)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -485,9 +485,7 @@ struct SettingView: View {
                                 .foregroundStyle(.tertiary)
                         }
                         if p.slug == providerSlug {
-                            Image(systemName: "checkmark")
-                                .foregroundStyle(.blue)
-                                .font(.caption)
+                            WenshuIcon.checkmark.image(size: 13, foregroundStyle: .blue)
                         }
                     }
                     .contentShape(Rectangle())
@@ -598,9 +596,9 @@ struct SettingView: View {
     private func providerApiRow(_ p: Provider) -> some View {
         let hasKey = providersWithKeys.contains(p.slug)
         return HStack(spacing: 12) {
-            Image(systemName: hasKey ? "key.fill" : "key")
-                .foregroundStyle(hasKey ? Color.green : Color.secondary)
-                .frame(width: 18)
+            hasKey
+                ? WenshuIcon.keyFill.image(size: 18, foregroundStyle: .green)
+                : WenshuIcon.key.image(size: 18, foregroundStyle: .secondary)
             Text(p.name)
                 .font(.body)
             Spacer()
@@ -693,9 +691,7 @@ struct SettingView: View {
             Section {
                 ForEach(AuxTask.allCases, id: \.self) { task in
                     HStack {
-                        Image(systemName: task.icon)
-                            .foregroundStyle(.secondary)
-                            .frame(width: 18)
+                        WenshuIcon.image(name: task.icon, size: 18, foregroundStyle: .secondary)
                         Text(task.label)
                             .font(.body)
                         Spacer()
@@ -1154,19 +1150,19 @@ struct LayoutShellView: View {
                     Button {
                         NSLog("[wenshu.toolbar] tap: 新建 (placeholder)")
                     } label: {
-                        Image(systemName: "doc.badge.plus")
+                        WenshuIcon.docBadgePlus.image(size: 18)
                     }
                     .help("新建")
                     Button {
                         NSLog("[wenshu.toolbar] tap: 打开 (placeholder)")
                     } label: {
-                        Image(systemName: "folder")
+                        WenshuIcon.folder.image(size: 18)
                     }
                     .help("打开")
                     Button {
                         NSLog("[wenshu.toolbar] tap: 导入 (placeholder)")
                     } label: {
-                        Image(systemName: "square.and.arrow.down")
+                        WenshuIcon.squareAndArrowDown.image(size: 18)
                     }
                     .help("导入")
                 }
@@ -1194,9 +1190,8 @@ struct LayoutShellView: View {
                     Button {
                         showProjectSidebar.toggle()
                     } label: {
-                        Image(systemName: "sidebar.left")
+                        WenshuIcon.sidebarLeft.image(size: 18, foregroundStyle: showProjectSidebar ? Color.accentColor : Color.secondary)
                     }
-                    .foregroundStyle(showProjectSidebar ? Color.accentColor : Color.secondary)
                     .help(showProjectSidebar ? "隐藏 项目管理区" : "显示 项目管理区")
                 // v0.24 fix (Boss 8/25 70th OOB '少设计了一个按钮, 第2栏的素材区没有设计按钮'):
                 // 5th toggle button for projectPreview zone (= 素材预览区),
@@ -1205,7 +1200,7 @@ struct LayoutShellView: View {
                 Button {
                     showProjectPreview.toggle()
                 } label: {
-                    Image(systemName: "eye.fill")
+                    WenshuIcon.eyeFill.image(size: 18)
                         .frame(width: 18, height: 18)
                 }
                 .buttonStyle(.plain)
@@ -1214,28 +1209,25 @@ struct LayoutShellView: View {
                     Button {
                         showSpecializedTools.toggle()
                     } label: {
-                        Image(systemName: "wrench.and.screwdriver")
+                        WenshuIcon.wrenchAndScrewdriver.image(size: 18, foregroundStyle: showSpecializedTools ? Color.accentColor : Color.secondary)
                     }
-                    .foregroundStyle(showSpecializedTools ? Color.accentColor : Color.secondary)
                     .help(showSpecializedTools ? "隐藏 工具区" : "显示 工具区")
                     Button {
                         showAIChat.toggle()
                     } label: {
-                        Image(systemName: "bubble.left")
+                        WenshuIcon.bubbleLeft.image(size: 18, foregroundStyle: showAIChat ? Color.accentColor : Color.secondary)
                     }
-                    .foregroundStyle(showAIChat ? Color.accentColor : Color.secondary)
                     .help(showAIChat ? "隐藏 聊天区" : "显示 聊天区")
                     Button {
                         showAIDynamic.toggle()
                     } label: {
-                        Image(systemName: "chart.bar")
+                        WenshuIcon.chartBar.image(size: 18, foregroundStyle: showAIDynamic ? Color.accentColor : Color.secondary)
                     }
-                    .foregroundStyle(showAIDynamic ? Color.accentColor : Color.secondary)
                     .help(showAIDynamic ? "隐藏 动态区" : "显示 动态区")
                     Button {
                         vm.exportEbook(format: "epub")
                     } label: {
-                        Image(systemName: "square.and.arrow.up")
+                        WenshuIcon.squareAndArrowUp.image(size: 18)
                     }
                     .help("导出电子书 (PDF / EPUB / MOBI / TXT)")
                 }
@@ -1487,9 +1479,14 @@ struct ZoneIcon: View {
         // v0.15 ticket 017.5 修: 老板 2026-08-19 拍 "SF Symbol 是是字号, 不是尺寸"
         // 只用 .font(.system(size:)) 给字号, 不用 .frame 约束尺寸
         // SF Symbol 字号 18 PT 视觉占 SF Symbol 默认 padding (~16 PT 视觉), 不撑 18×18 框
-        Image(systemName: systemName)
-            .font(.system(size: size))
-            .foregroundStyle(DesignColor.accentBlue)
+        //
+        // v0.25 ticket 002: route through WenshuIcon Layer 3 path (= dynamic
+        // string). 老板 8/26 的"全换" mandate = SF→Lucide; placeholder icon
+        // names in `iconNames: [String]` + `ZoneToolbarAction.icon` continue
+        // through the Layer 3 fallback path so a typo or a name that doesn't
+        // exist in Lucide renders the Lucide circleQuestionMark glyph instead
+        // of crashing or rendering blank.
+        WenshuIcon.image(name: systemName, size: size, foregroundStyle: DesignColor.accentBlue)
     }
 }
 
@@ -2037,7 +2034,7 @@ struct ChatZoneView: View {
                                         HStack {
                                             Text(model)
                                             if model == currentModel {
-                                                Image(systemName: "checkmark")
+                                                WenshuIcon.checkmark.image(size: 13, foregroundStyle: .blue)
                                             }
                                         }
                                     }
@@ -2051,14 +2048,11 @@ struct ChatZoneView: View {
                     //   foregroundStyle. Default Menu style lets our per-element .tertiary apply.
                     // v0.21 ticket 42 老板 17:35: .menuStyle(.button) + .buttonStyle(.plain) (Apple deprecated .borderedButton 提示真值组合)
                     HStack(spacing: 4) {
-                        Image(systemName: "cpu")
-                            .foregroundStyle(.secondary)
+                        WenshuIcon.cpu.image(size: 13, foregroundStyle: .secondary)
                         Text(currentModel.isEmpty ? "无模型可用" : ModelDisplay.lookup(currentModel).display)
                             .font(.system(size: 13))
                             .foregroundStyle(.secondary)
-                        Image(systemName: "chevron.up.chevron.down")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
+                        WenshuIcon.chevronUpChevronDown.image(size: 11, foregroundStyle: .secondary)
                     }
                     .padding(.bottom, 6)
                     .frame(height: LayoutTokens.toolbarHeight, alignment: .bottomLeading)
@@ -2155,10 +2149,7 @@ struct ChatZoneTabBar: View {
                         selectedTab = tab
                     } label: {
                         // v0.24 boss验收fix: icon only, no title label.
-                        Image(systemName: tab.icon)
-                            .font(.system(size: LayoutTokens.iconSize))
-                            .imageScale(.large)
-                            .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
+                        WenshuIcon.image(name: tab.icon, size: LayoutTokens.iconSize)
                             .foregroundStyle(tab == selectedTab ? Color.accentColor : Color.secondary)
                     }
                     .buttonStyle(.plain)
@@ -2175,11 +2166,7 @@ struct ChatZoneTabBar: View {
             Button {
                 showingArchiveAlert = true
             } label: {
-                Image(systemName: "archivebox")
-                    .font(.system(size: LayoutTokens.iconSize))
-                    .imageScale(.large)
-                    .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
-                    .foregroundStyle(.secondary)
+                WenshuIcon.archivebox.image(size: 18, foregroundStyle: .secondary)
             }
             .buttonStyle(.plain)
             .contentShape(Rectangle())
@@ -2204,9 +2191,7 @@ struct ChatZoneStubView: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 48))
-                .foregroundStyle(.tertiary)
+            WenshuIcon.image(name: icon, size: 48, foregroundStyle: .tertiary)
             Text("\(title) (开发中)")
                 .font(.system(size: 15))
                 .foregroundStyle(.tertiary)

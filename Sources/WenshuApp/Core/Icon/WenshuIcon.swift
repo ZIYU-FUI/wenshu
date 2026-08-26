@@ -200,6 +200,10 @@ extension WenshuIcon {
     /// For toggle on/off states (= spec §6 deferred), a future ticket can
     /// layer a `.fill()` modifier here; today we don't.
     ///
+    /// The `foregroundStyle` parameter accepts any `ShapeStyle` (= Color,
+    /// `HierarchicalShapeStyle` like `.tertiary`, `Material`, etc.) so call
+    /// sites don't have to translate between style hierarchies.
+    ///
     /// `@MainActor` annotation is required because `Lucide.init(_:)` is
     /// main-actor-isolated. SwiftUI view bodies are main-actor, so this
     /// doesn't add friction.
@@ -207,12 +211,12 @@ extension WenshuIcon {
     @ViewBuilder
     func image(
         size: CGFloat = 16,
-        foregroundStyle: Color? = nil
+        foregroundStyle: (any ShapeStyle)? = nil
     ) -> some View {
         let icon = Lucide(lucideIcon)
             .frame(width: size, height: size)
         if let foregroundStyle {
-            icon.foregroundStyle(foregroundStyle)
+            icon.foregroundStyle(AnyShapeStyle(foregroundStyle))
         } else {
             // Layer 2: explicit `Color.primary` floor so the icon is never
             // invisible against a foreground-less SwiftUI environment.
@@ -239,7 +243,7 @@ extension WenshuIcon {
     static func image(
         name: String,
         size: CGFloat = 16,
-        foregroundStyle: Color? = nil
+        foregroundStyle: (any ShapeStyle)? = nil
     ) -> some View {
         // Layer 3 fallback: when `Lucide(name)` returns nil, render the Lucide
         // "missing icon" glyph instead of crashing or rendering blank.
@@ -247,7 +251,7 @@ extension WenshuIcon {
         let primary = Lucide(name) ?? Lucide(.circleQuestionMark)
         let framed = primary.frame(width: size, height: size)
         if let foregroundStyle {
-            framed.foregroundStyle(foregroundStyle)
+            framed.foregroundStyle(AnyShapeStyle(foregroundStyle))
         } else {
             // Layer 2: same Color.primary floor as the type-safe path.
             framed.foregroundStyle(Color.primary)

@@ -129,11 +129,8 @@ struct ZoneContentTabBar: View {
                 // v0.24 boss验收fix (Boss 8/24): 显式 .frame(width: 18, height: 18)
                 // 强制 18x18 PT 占面积, 不要只靠 .font(size: 18) (font only sets
                 // point size, visual box can grow with implicit .imageScale).
-                Image(systemName: item.icon)
-                    .font(.system(size: LayoutTokens.iconSize))
-                    .imageScale(.large)  // v0.24 boss验收fix (Boss 8/24): 12 PT font → ~12 PT visual boss验收fix (Boss 8/24): SF Symbol 视觉 size = ~17 PT
-                    // (= .medium at 18 PT font, slightly smaller than font to fit
-                    // in 18×18 PT frame with 0.5 PT padding each side)
+                // v0.25 ticket 002: route through WenshuIcon Layer 3 path.
+                WenshuIcon.image(name: item.icon, size: LayoutTokens.iconSize)
                     .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                     .foregroundStyle(item == selectedItem ? Color.accentColor : Color.secondary)
                 }

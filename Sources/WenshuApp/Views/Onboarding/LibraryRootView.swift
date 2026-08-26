@@ -138,10 +138,10 @@ Group {
             .aspectRatio(contentMode: .fit)
             .frame(width: 192, height: 192)
     } else {
-        // Fallback: SF Symbol if PNG load fails
-        Image(systemName: "text.book.closed")
-            .font(.system(size: 96))
-            .foregroundStyle(.white)
+        // Fallback: Lucide glyph (= v0.25 ticket 002 — bring-shrubbery/lucide-swift 1.25.0).
+        // SF Symbols fallback retained in spirit via WenshuIcon.textBookClosed case
+        // (= SF `text.book.closed` → Lucide `bookText`).
+        WenshuIcon.textBookClosed.image(size: 96, foregroundStyle: .white)
     }
 }
 

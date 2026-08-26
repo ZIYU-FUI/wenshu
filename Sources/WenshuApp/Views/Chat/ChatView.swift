@@ -362,7 +362,7 @@ public struct ChatView: View {
                         ProgressView()
                             .controlSize(.small)
                     } else {
-                        Image(systemName: "paperplane.fill")
+                        WenshuIcon.paperplaneFill.image(size: 14, foregroundStyle: .white)
                     }
                 }
                 .buttonStyle(.borderedProminent)
@@ -417,7 +417,10 @@ struct ChatMessageView: View {
     var body: some View {
         HStack(alignment: .top) {
             // 消息来源 icon (SF Symbol Apple HIG 真值, 按 source 显示 user / 文枢 / 系统)
-            Image(systemName: sourceIcon)
+            // v0.25 ticket 002: render source icon through WenshuIcon Layer 3 path
+            // (= dynamic-string fallback: misregistered names render
+            // Lucide circleQuestionMark instead of blank/crash).
+            WenshuIcon.image(name: sourceIcon, size: 24)
                 .foregroundStyle(sourceColor)
                 .frame(width: 24, height: 24)
             VStack(alignment: .leading, spacing: 4) {
@@ -430,7 +433,7 @@ struct ChatMessageView: View {
                         // brain SF Symbol — 🤖 emoji per user feedback
                         // New SF Symbol: person.crop.circle.badge.questionmark (Apple SF Symbols 5+
                         // real value, round face + question mark = robot assistant face style, closest to 🤖)
-                        Image(systemName: "person.crop.circle.badge.questionmark")
+                        WenshuIcon.personCropCircleBadgeQuestionmark.image(size: 16)
                             .symbolEffect(.pulse, options: .repeating)
                             .foregroundStyle(.secondary)
                         Text(message.content)
@@ -454,8 +457,7 @@ struct ChatMessageView: View {
                                 .transition(.opacity)
                         } label: {
                             HStack(spacing: 4) {
-                                Image(systemName: "brain")
-                                    .font(.caption)
+                                WenshuIcon.brain.image(size: 12)
                                 Text("AI 思考过程")
                                     .font(.caption)
                             }

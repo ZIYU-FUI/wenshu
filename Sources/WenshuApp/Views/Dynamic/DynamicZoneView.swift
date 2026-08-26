@@ -75,9 +75,10 @@ struct DynamicZoneTabBar: View {
                 } label: {
                     // v0.24 boss验收fix: icon only, no title label.
 // Boss 8/24 follow-up: 'tab 里标题小字不需要'.
-                Image(systemName: tab.icon)
-                    .font(.system(size: LayoutTokens.iconSize))
-                    .imageScale(.large)  // v0.24 boss验收fix (Boss 8/24): 12 PT font → ~12 PT visual: 强制 SF Symbol 视觉 small, 防止 frame 溢出
+                // v0.25 ticket 002: route through WenshuIcon Layer 3 path
+                // (= dynamic-string fallback: unknown tab icon names
+                // render Lucide circleQuestionMark, not blank/crash).
+                WenshuIcon.image(name: tab.icon, size: LayoutTokens.iconSize)
                     .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                     .foregroundStyle(tab == selectedTab ? Color.accentColor : Color.secondary)
                 }
