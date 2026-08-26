@@ -1325,12 +1325,18 @@ struct UpperBandZone: View {
         // toggle via second .animation modifier for showSpecializedTools.
         HStack(spacing: 0) {
             // D_v0.5: project sidebar (wraps in if for hide/show)
+            // v0.24 fix (Boss 8/25 74th OOB '显隐功能毕业'): add Apple官方推荐
+            // .transition(.opacity) (= fade in/out) per swiftui-garden.com +
+            // createwithswift.com for hide/show transitions. Combined with
+            // .animation(.easeInOut, value: showProjectSidebar) below.
             if showProjectSidebar {
                 ZoneModule(slot: .projectSidebar, vm: vm, totalW: totalW, bandH: bandH)
                     .frame(width: sidebar)
                     .layoutPriority(0)  // explicit (= keep current size, don't grow)
+                    .transition(.opacity.combined(with: .move(edge: .leading)))
                 // D_v1: project sidebar / project preview (splitterIndex 0)
                 VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 0, vm: vm)
+                    .transition(.opacity)
             }
             // v0.24 fix (Boss 8/25 64th OOB '收起时, 项目管理区, 还留了几个像素的宽度'):
             // When sidebar is hidden, D_v1 VSplitter's 4 PT hit area (= Boss
@@ -1358,12 +1364,15 @@ struct UpperBandZone: View {
             // projectPreview ZoneModule + D_v2 VSplitter in if block.
             // D_v2 separates preview from editor, so if preview is hidden,
             // D_v2 has no purpose. Same pattern as D_v1 / D_v3 (Boss 64th OOB).
+            // v0.24 fix (Boss 8/25 74th OOB): add transition for hide/show.
             if showProjectPreview {
                 ZoneModule(slot: .projectPreview, vm: vm, totalW: totalW, bandH: bandH)
                     .frame(maxWidth: .infinity, alignment: .top)
-                    .layoutPriority(1)  // grow to fill HStack when sidebar/tools/preview hidden
+                    .layoutPriority(1)
+                    .transition(.opacity)
                 // D_v2: project preview / editor (splitterIndex 1)
                 VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 1, vm: vm)
+                    .transition(.opacity)
             }
             // editor always render (not yet implemented for toggle)
             ZoneModule(slot: .editor, vm: vm, totalW: totalW, bandH: bandH)
@@ -1376,11 +1385,14 @@ struct UpperBandZone: View {
             // v0.24 fix (Boss 8/25 65th OOB '实装第二个按钮'): hide D_v3
             // when specializedTools is hidden (= same pattern as D_v1
             // per Boss 64th OOB = move inside if block).
+            // v0.24 fix (Boss 8/25 74th OOB): add transition for hide/show.
             if showSpecializedTools {
                 VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 2, vm: vm)
+                    .transition(.opacity)
                 ZoneModule(slot: .specializedTools, vm: vm, totalW: totalW, bandH: bandH)
                     .frame(width: tools)
-                    .layoutPriority(0)  // explicit (= keep current size, don't grow)
+                    .layoutPriority(0)
+                    .transition(.opacity.combined(with: .move(edge: .trailing)))
             }
         }
         .frame(height: bandH)  // 显式告诉 SwiftUI VStack layout 上 band 高度, 响应 vm.bandOffset mutate
@@ -1422,20 +1434,25 @@ struct LowerBandZone: View {
             // aiDynamic ZoneModules + D_v5 splitter in if blocks. Use
             // .frame(maxWidth: .infinity) per Boss 69th OOB pattern so
             // visible zone fills lower band when sibling hidden.
+            // v0.24 fix (Boss 8/25 74th OOB): add transition for hide/show.
             if showAIChat {
                 ZoneModule(slot: .aiChat, vm: vm, totalW: totalW, bandH: bandH)
                     .frame(maxWidth: .infinity, alignment: .top)
-                    .layoutPriority(1)  // grow to fill when aiDynamic hidden
+                    .layoutPriority(1)
+                    .transition(.opacity.combined(with: .move(edge: .leading)))
             }
             // D_v5: AI chat / AI dynamic (splitterIndex 4). Per Boss 64th
             // OOB pattern, hide D_v5 when either side hidden.
             if showAIChat && showAIDynamic {
                 VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 4, vm: vm)
+                    .transition(.opacity)
             }
+            // v0.24 fix (Boss 8/25 74th OOB): add transition for hide/show.
             if showAIDynamic {
                 ZoneModule(slot: .aiDynamic, vm: vm, totalW: totalW, bandH: bandH)
                     .frame(maxWidth: .infinity, alignment: .top)
-                    .layoutPriority(1)  // grow to fill when aiChat hidden
+                    .layoutPriority(1)
+                    .transition(.opacity.combined(with: .move(edge: .trailing)))
             }
         }
         .frame(height: bandH)  // explicit SwiftUI VStack layout lower band height
