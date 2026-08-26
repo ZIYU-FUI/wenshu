@@ -38,7 +38,6 @@ struct WorldOutlineView: View {
     @State private var entries: [WorldEntry] = []
     @State private var loadError: String?
     @State private var showCreateSheet: Bool = false
-    @State private var newEntryName: String = ""
 
     var body: some View {
         Group {
