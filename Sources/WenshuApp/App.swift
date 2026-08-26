@@ -1398,18 +1398,31 @@ struct LowerBandZone: View {
         // v0.24 fix (Boss 8/25 63rd OOB): use direct @AppStorage
         // showAIChat + showAIDynamic from view body for hide/show.
         HStack(spacing: 0) {
+            // v0.24 fix (Boss 8/25 71st OOB '实装下半区两个栏'): wrap aiChat +
+            // aiDynamic ZoneModules + D_v5 splitter in if blocks. Use
+            // .frame(maxWidth: .infinity) per Boss 69th OOB pattern so
+            // visible zone fills lower band when sibling hidden.
             if showAIChat {
                 ZoneModule(slot: .aiChat, vm: vm, totalW: totalW, bandH: bandH)
-                    .frame(width: aiChatW)
+                    .frame(maxWidth: .infinity, alignment: .top)
+                    .layoutPriority(1)  // grow to fill when aiDynamic hidden
             }
-            // D_v5: AI chat / AI dynamic (splitterIndex 4)
-            VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 4, vm: vm)
+            // D_v5: AI chat / AI dynamic (splitterIndex 4). Per Boss 64th
+            // OOB pattern, hide D_v5 when either side hidden.
+            if showAIChat && showAIDynamic {
+                VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 4, vm: vm)
+            }
             if showAIDynamic {
                 ZoneModule(slot: .aiDynamic, vm: vm, totalW: totalW, bandH: bandH)
-                    .frame(width: dynamicW)
+                    .frame(maxWidth: .infinity, alignment: .top)
+                    .layoutPriority(1)  // grow to fill when aiChat hidden
             }
         }
-        .frame(height: bandH)  // explicit SwiftUI VStack layout lower band height, responds to vm.bandOffset mutate, reverse direction conservation
+        .frame(height: bandH)  // explicit SwiftUI VStack layout lower band height
+        // v0.24 fix (Boss 8/25 71st OOB): animate aiChat + aiDynamic hide/show
+        // (= per Boss 66th OOB '复刻过来' pattern).
+        .animation(.easeInOut(duration: 0.25), value: showAIChat)
+        .animation(.easeInOut(duration: 0.25), value: showAIDynamic)
     }
 }
 
