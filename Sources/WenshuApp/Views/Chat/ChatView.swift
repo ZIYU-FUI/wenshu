@@ -545,6 +545,7 @@ public struct ChatView: View {
                     }
                 }
                 .buttonStyle(.borderedProminent)
+                .controlSize(.regular)  // v0.25.1 ticket 036 followup: explicit .regular control size (= 32 PT height per Apple HIG, = matches textfield 32 PT height)
                 .frame(height: 32)  // v0.25.1 ticket 036: send button height 32 PT (= boss OOB '发送按钮高度调整到 32 和文本框一样' = match textfield 32 PT height). HStack .center alignment (= ticket 033 final) = both elements share the same vertical center axis.
                 .disabled(vm.inputText.isEmpty || vm.isSending)
                 .padding(.top, 8)  // v0.25.1 ticket 034 final 3: 8 PT outer top margin on chat input HStack
