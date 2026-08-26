@@ -143,6 +143,16 @@ enum LayoutTokens {
     // the 30 PT toolbar (= flush fit). Inner icon stays at LayoutTokens.iconSize
     // (= 18 PT, ticket 006) so visual size unchanged from previous commit.
     static let chatTabHotArea: CGFloat = 28
+    // v0.25.1 (= ticket 008 chat-zone tab hit reliability): owner 2026-08-26
+    // OOB '还是有点问题 响应不是每次都能响应' = prior ticket 007 fix
+    // (= .frame(28,28) + contentShape) was flaky on plain-style Button. Per
+    // Apple HIG + SwiftUI Forums canon: reliable hit extension on plain
+    // buttons = inline `.padding(.all, hitPad)` inside the label (= the
+    // padding extends the inner view's rendered bounds, which the outer
+    // button uses as its hit area). 5 PT padding + 18 PT icon = 28 PT
+    // total hit area (= same as chatTabHotArea constant, kept separate
+    // for clarity: hitPad is the lever, hitArea is the resulting size).
+    static let chatTabHitPad: CGFloat = 5
     static let iconSpacingRatio: CGFloat = 18.0 / 1920.0  // 18 PT 等距 (老板 8/18 改 18 PT = icon 间距, 起点 18/54/90 相邻 36 - 18 = 18)
 
     // 底栏占位元素 (老板 8/18 拍 "icon 18×18, 占位文字苹果字符样式正文尺寸") — 绝对 PT 不走比例
@@ -2207,10 +2217,11 @@ struct ChatZoneTabBar: View {
                             .imageScale(.large)
                             .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                             .foregroundStyle(tab == selectedTab ? Color.accentColor : Color.secondary)
+                            .padding(.all, LayoutTokens.chatTabHitPad)
                     }
                     .buttonStyle(.plain)
-                    .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
                     .contentShape(Rectangle())
+                    .background(Color.clear)
                 }
             }
             .padding(.leading, 18)
@@ -2238,10 +2249,11 @@ struct ChatZoneTabBar: View {
                     .imageScale(.large)
                     .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                     .foregroundStyle(.secondary)
+                    .padding(.all, LayoutTokens.chatTabHitPad)
             }
             .buttonStyle(.plain)
-            .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
             .contentShape(Rectangle())
+            .background(Color.clear)
             .help("归档当前会话")
             .padding(.trailing, 18)
         }
