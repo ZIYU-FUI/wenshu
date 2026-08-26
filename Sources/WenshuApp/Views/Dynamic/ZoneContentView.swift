@@ -124,7 +124,7 @@ struct ZoneContentTabBar: View {
     }
 
     var body: some View {
-        HStack(spacing: 15) {
+        HStack(spacing: 18) {
             ForEach(items) { item in
                 Button {
                     selection = item.id

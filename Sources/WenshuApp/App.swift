@@ -153,6 +153,20 @@ enum LayoutTokens {
     // total hit area (= same as chatTabHotArea constant, kept separate
     // for clarity: hitPad is the lever, hitArea is the resulting size).
     static let chatTabHitPad: CGFloat = 5
+    // v0.25.1 (= ticket 015 unified icon button hot area): owner 2026-08-26
+    // OOB '所有的 ICON 的热区都要像归档 ICON 一样处理' = the '归档'
+    // ICON (= chat zone top-right .inbox button, ticket 007 + 008 pattern)
+    // is the canonical hit-area reference for ALL icon buttons in the
+    // project. Apply same hot-area treatment (= 28×28 PT inflated hot
+    // area via inline .padding(.all, LayoutTokens.iconButtonHotPad); .frame
+    // stays 18 PT visual size; .contentShape(Rectangle()); .background
+    // (.clear) for SwiftUI hit-tester reliability) to:
+    //  - upper main toolbar (8 global buttons: 新建/打开/导入 + 4 zone
+    //    toggle + 导出)
+    //  - chat zone send button (.paperplane.fill)
+    //  - the 11 tab buttons across 3 tab bar classes (= already applied
+    //    in ticket 011, kept unchanged).
+    static let iconButtonHotPad: CGFloat = 5
     // v0.25.1 (= ticket 010 tab selected-state underline): owner 2026-
     // 08-26 OOB '现在的 tab 的选定状态 ICON 下没有那个选定的小横线' =
     // Apple HIG canonical selected-tab underline (= ~2 PT height accent
@@ -1559,7 +1573,7 @@ struct ZoneTopToolbar: View {
             .overlay(alignment: .topLeading) {
                 // 真功能 mode (有 actions): button 触发
                 // Placeholder mode (空 actions): 老 SF Symbol 占位 (向后兼容)
-                HStack(spacing: 15) {
+                HStack(spacing: 18) {
                     if actions.isEmpty {
                         ForEach(0..<iconNames.count, id: \.self) { i in
                             ZoneIcon(systemName: iconNames[i], size: 18)

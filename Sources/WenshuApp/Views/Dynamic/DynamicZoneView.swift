@@ -82,7 +82,7 @@ struct DynamicZoneTabBar: View {
     @Namespace private var tabBarNamespace
 
     var body: some View {
-        HStack(spacing: 15) {
+        HStack(spacing: 18) {
             ForEach(DynamicZoneView.DynamicTab.allCases) { tab in
                 Button {
                     selectedTab = tab
