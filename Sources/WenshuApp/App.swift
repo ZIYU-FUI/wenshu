@@ -1265,8 +1265,10 @@ struct UpperBandZone: View {
         let preview = (totalW * (CGFloat(vm.projectPreviewRatio) + (sidebarExtraRatio * 0.254) + (toolsExtraRatio * 0.254))).rounded()
         // editor gets 49.2% of any extra ratio
         let editor  = (totalW * (CGFloat(vm.editorWRatio) + (sidebarExtraRatio * 0.492) + (toolsExtraRatio * 0.492))).rounded()
-        // tools (only if visible, else 0 width = skipped in render)
-        let tools   = (totalW * (CGFloat(vm.toolsWRatio) + (sidebarExtraRatio * 0.254))).rounded()
+        // v0.24 fix (Boss 8/25 65th OOB Spec GAP): when tools hidden, do not
+        // allocate 25.4% of sidebarExtraRatio to tools (= tools not rendered).
+        // This keeps the upper band fully filled (= Boss 58th OOB '盛满上半区').
+        let tools   = (totalW * (CGFloat(vm.toolsWRatio) * (toolsIsVisible ? 1.0 : 0.0) + (sidebarExtraRatio * 0.254) * (toolsIsVisible ? 1.0 : 0.0))).rounded()
         // v0.24 fix (Boss 8/25 57th OOB '界面全改丢了, 先实现第一个按钮对应的
         // 项目管理区, 一个一个来'): only wrap projectSidebar (= first
         // button = sidebar.left, corresponding to projectSidebar zone) in
