@@ -451,13 +451,11 @@ public struct ChatView: View {
                 //    textfield and send button than current 8 PT).
                 TextField("输入消息...",
                           text: $vm.inputText, axis: .vertical)
-                    .textFieldStyle(.roundedBorder)
                     .lineLimit(1...4)
                     // v0.24 boss验收fix: disable when no key configured.
                     .disabled(!hasUsableKey)
                     .focused($inputFocused)
                     .onSubmit { Task { await vm.send() } }
-                    // Defocus when key becomes unusable (e.g. user removed key).
                     .onChange(of: vm.currentModel) { _, new in
                         if new.isEmpty {
                             inputFocused = false
@@ -466,7 +464,22 @@ public struct ChatView: View {
                             inputFocused = true
                         }
                     }
-                    .padding(.top, 0)  // v0.25.1 ticket 033 final 2: dropped .padding(.top, 8) per boss OOB '还是不对 是水平居中' (= the 8 PT top padding was offsetting the textfield center down 8 PT, making .center alignment look off)
+                    .padding(.top, 8)  // v0.25.1 ticket 030 restored (= boss OOB '水平居中保持 然后那向上的 8PT 还是要保留的' = preserve the 8 PT gap above textfield per ticket 030)
+                    // v0.25.1 (= ticket 034 chat textfield focus ring
+                    // = 1 PT): owner 2026-08-26 OOB '文本框聚焦时 这个
+                    // 蓝色描边太粗了 改成 1PT 试试' = SwiftUI
+                    // TextField .roundedBorder style has a default
+                    // focus ring ~2-3 PT thick. Boss wants the focus
+                    // ring thinned to 1 PT. Fix = override the default
+                    // .roundedBorder style with a custom rounded
+                    // border using .textFieldStyle(.plain) (= removes
+                    // system focus ring) + add a conditional
+                    // RoundedRectangle stroke (lineWidth: 1) on focus.
+                    .textFieldStyle(.plain)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6)
+                            .strokeBorder(inputFocused ? Color.accentColor : Color.gray.opacity(0.4), lineWidth: 1)
+                    )
                 Button {
                     Task { await vm.send() }
                 } label: {
