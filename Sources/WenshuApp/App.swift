@@ -1847,7 +1847,7 @@ struct ZoneModule: View {
             // (= Apple SF Symbol = solid bookshelf, matches Boss spec
             // '选一个合适的 ICON 替换').
             ZoneContentView(zoneSlug: "projectSidebar", tabs: [
-                ("书架", "books.vertical.fill", AnyView(DesignColor.zoneSurface.overlay(alignment: .topLeading) { LibraryOutlineViewContent(library: library) })),
+                ("书架", "square-library", AnyView(DesignColor.zoneSurface.overlay(alignment: .topLeading) { LibraryOutlineViewContent(library: library) })),
             ])
         case .projectPreview:
             // ProjectPreview tabs: 预览 / 图 / 搜索.

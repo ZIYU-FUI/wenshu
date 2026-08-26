@@ -21,6 +21,7 @@
 //
 
 import SwiftUI
+import Lucide
 
 /// Generic tab content view: 1-layer pattern with multiple internal tabs.
 /// Used by the 4 "general" zones (projectSidebar / projectPreview / editor / specializedTools).
@@ -129,7 +130,16 @@ struct ZoneContentTabBar: View {
                 // v0.24 boss验收fix (Boss 8/24): 显式 .frame(width: 18, height: 18)
                 // 强制 18x18 PT 占面积, 不要只靠 .font(size: 18) (font only sets
                 // point size, visual box can grow with implicit .imageScale).
-                Image(systemName: item.icon)
+                // v0.25.1 (= ticket 009 zone-content Lucide icon swap):
+                // owner 2026-08-26 OOB '左上的项目管理区的顶栏 icon 换成
+                // square-library' = SF books.vertical.fill → Lucide .squareLibrary
+                // (= 2x2 stack of horizontal lines, like a library shelf icon).
+                // Minimal-impact: same Lucide-first / SF-symbol-fallback helper
+                // pattern (= Layer 3 fallback); when item.icon matches a Lucide
+                // kebab-case name, render via Lucide; else fall back to SF
+                // Image(systemName:). Both .bot and .squareLibrary are valid
+                // Lucide icons so Layer 1 path is used.
+                zoneContentTabBarIcon(item.icon)
                     .font(.system(size: LayoutTokens.iconSize))
                     .imageScale(.large)  // v0.24 boss验收fix (Boss 8/24): 12 PT font → ~12 PT visual boss验收fix (Boss 8/24): SF Symbol 视觉 size = ~17 PT
                     // (= .medium at 18 PT font, slightly smaller than font to fit
@@ -151,5 +161,19 @@ struct ZoneContentTabBar: View {
             DesignColor.splitterLine.frame(height: 1)
         }
         .animation(.default, value: selection)
+    }
+
+    /// v0.25.1 (= ticket 009 zone-content Lucide icon swap): same Lucide-first /
+    /// SF-symbol-fallback pattern as `chatZoneTabBarIcon` (= App.swift ChatZoneTabBar
+    /// helper, ticket 005). Try `Lucide(systemName)` first; on nil fall back to
+    /// `Image(systemName:)`. Preserves 100% SF Symbol behavior for non-Lucide
+    /// icon names (= 5 zones with mixed SF + Lucide icons keep working).
+    @ViewBuilder
+    private func zoneContentTabBarIcon(_ systemName: String) -> some View {
+        if let lucide = Lucide(systemName) {
+            lucide
+        } else {
+            Image(systemName: systemName)
+        }
     }
 }
