@@ -151,6 +151,17 @@ struct ZoneContentTabBar: View {
                     // 没有那个选定的小横线' = add Apple HIG canonical
                     // selected-tab underline (= 2 PT accent bar at
                     // bottom of selected tab, full button width).
+                    // v0.25.1 (= ticket 011 unified tab hot area):
+                    // owner 2026-08-26 OOB '所有的都按聊天的这个小机器人的
+                    // 位置实现 居底' = apply chat-tab hot-area pattern
+                    // (= 28×28 PT inflated via inline .padding(.all,
+                    // chatTabHitPad)) to zone-content tabs (= 4 zones:
+                    // 项目侧栏/素材预览/编辑/工具). All site tab bars
+                    // (chat zone + dynamic zone + 4 zone-content zones)
+                    // now use the same 28×28 hot area + Apple HIG
+                    // underline + reliability contentShape + clear
+                    // background pattern.
+                    .padding(.all, LayoutTokens.chatTabHitPad)
                     .overlay(alignment: .bottom) {
                         if item == selectedItem {
                             Rectangle()
@@ -161,6 +172,7 @@ struct ZoneContentTabBar: View {
                 }
                 .buttonStyle(.plain)
                 .contentShape(Rectangle())
+                .background(Color.clear)
             }
         }
         // v0.24 boss验收fix: flush at top of zone (was: padded 6 PT down, made tab
