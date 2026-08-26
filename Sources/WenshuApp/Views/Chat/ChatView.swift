@@ -337,9 +337,10 @@ public struct ChatView: View {
 
             // 输入框 + 发送按钮 (Apple HIG SwiftUI 真值)
             // v0.25.1 (= ticket 030 chat send button 8 PT textfield
-            // top padding): owner 2026-08-26 OOB '聊天文本框上加 8 PT
-            // 的间隔' = add 8 PT gap between the Divider above and
-            // the TextField (= textfield top padding = 8 PT, so the
+            // top padding + button vertical center alignment):
+            // owner 2026-08-26 OOB '聊天文本框上加 8 PT 的间隔' =
+            // add 8 PT gap between the Divider above and the
+            // TextField (= textfield top padding = 8 PT, so the
             // input area has visual breathing room from the divider
             // line). Implementation: HStack(spacing: 8) reverted to
             // baseline (= boss corrected ticket 030's HStack 8→16
@@ -347,7 +348,29 @@ public struct ChatView: View {
             // between textfield and send button), TextField gains
             // .padding(.top, 8) (= 8 PT gap above the textfield,
             // = the actual boss OOB intent).
-            HStack(spacing: 8) {
+            // v0.25.1 (= ticket 031 chat send button vertical
+            // center alignment): owner 2026-08-26 OOB '按钮也
+            // 跟上上去了 把按钮改成与文本框居中' = with the 8 PT
+            // top padding on TextField, the TextField's effective
+            // top edge shifted down 8 PT (= 24 PT height + 8 PT top
+            // padding = 32 PT total box). The send button's default
+            // HStack alignment = .top (= button top edge aligns with
+            // the TextField's top edge, which is now 8 PT below the
+            // original position). Fix = change HStack alignment to
+            // .center (= button vertically centered relative to the
+            // full TextField + padding box).
+            // v0.25.1 (= ticket 032 chat textfield height = 32 PT):
+            // owner 2026-08-26 OOB '文本框的高度 和按钮的高度改成一至
+            // 都和按钮一个高' = make the textfield visual height
+            // match the send button height (= 32 PT). Current = textfield
+            // visual height 24 PT (= SwiftUI default TextField with
+            // .roundedBorder). Button height = ~32 PT (with .padding).
+            // Fix = add .frame(height: 32) on the TextField (= textfield
+            // visual height now matches button = both 32 PT). The 8 PT
+            // top padding preserved (= 8 PT gap above textfield per
+            // ticket 030) so total TextField + padding box = 40 PT
+            // (= 8 PT gap + 32 PT textfield visual).
+            HStack(alignment: .center, spacing: 8) {
                 // v0.24 boss验收fix (2026-08-24): placeholder shows different text based on key state.
                 // Boss 8/24 (out-of-band): '请先在设置中设置好大模型提供方'.
                 // v0.25.1 (= ticket 030 chat send button Lucide icon + 8 PT textfield padding):
@@ -384,7 +407,8 @@ public struct ChatView: View {
                             inputFocused = true
                         }
                     }
-                    .padding(.top, 8)  // v0.25.1 ticket 030 followup: 8 PT gap ABOVE the textfield (= boss OOB '聊天文本框上加 8 PT 的间隔' = 文本框向上加 8 PT 间隔, NOT between textfield and send button as I misread in ticket 030)
+                    .padding(.top, 8)  // v0.25.1 ticket 030: 8 PT gap ABOVE the textfield (= boss OOB '聊天文本框上加 8 PT 的间隔' = 文本框向上加 8 PT 间隔, NOT between textfield and send button as I misread in ticket 030)
+                    .frame(height: 32)  // v0.25.1 ticket 032: textfield visual height 32 PT = match send button height (= boss OOB '文本框的高度 和按钮的高度改成一至 都和按钮一个高')
                 Button {
                     Task { await vm.send() }
                 } label: {
