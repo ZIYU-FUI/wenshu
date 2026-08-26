@@ -1284,6 +1284,7 @@ struct UpperBandZone: View {
             if showProjectSidebar {
                 ZoneModule(slot: .projectSidebar, vm: vm, totalW: totalW, bandH: bandH)
                     .frame(width: sidebar)
+                    .layoutPriority(0)  // explicit (= keep current size, don't grow)
                 // D_v1: project sidebar / project preview (splitterIndex 0)
                 VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 0, vm: vm)
             }
@@ -1293,13 +1294,23 @@ struct UpperBandZone: View {
             // position, leaving a few pixels of width. Move D_v1 inside the
             // 'if showProjectSidebar' block so it disappears with the sidebar.
             // preview always render (not yet implemented for toggle)
+            // v0.24 fix (Boss 8/25 67th OOB '收起后其它区重新分配占用宽度有问题'):
+            // use .layoutPriority(1) per Apple HIG layoutPriority doc
+            // (developer.apple.com/documentation/swiftui/view/layoutpriority):
+            // 'Setting a higher layout priority encourages the higher priority
+            // view to shrink later when the group is shrunk and stretch sooner
+            // when the group is stretched.' = visible zones get extra width
+            // when sibling hidden (= Apple官方推荐 way to handle conditional
+            // HStack children, no manual width pre-compute needed).
             ZoneModule(slot: .projectPreview, vm: vm, totalW: totalW, bandH: bandH)
                 .frame(width: preview)
+                .layoutPriority(1)  // grow to fill HStack when sidebar/tools hidden
             // D_v2: project preview / editor (splitterIndex 1)
             VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 1, vm: vm)
             // editor always render (not yet implemented for toggle)
             ZoneModule(slot: .editor, vm: vm, totalW: totalW, bandH: bandH)
                 .frame(width: editor)
+                .layoutPriority(1)  // grow to fill HStack when sidebar/tools hidden
             // D_v3: editor / specialized tools (splitterIndex 2)
             // Per Boss 8/25 15th OOB 'tools zone cannot be dragged. fix it':
             // keep D_v3 visible even when adjacent zones are hidden
@@ -1311,6 +1322,7 @@ struct UpperBandZone: View {
                 VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 2, vm: vm)
                 ZoneModule(slot: .specializedTools, vm: vm, totalW: totalW, bandH: bandH)
                     .frame(width: tools)
+                    .layoutPriority(0)  // explicit (= keep current size, don't grow)
             }
         }
         .frame(height: bandH)  // 显式告诉 SwiftUI VStack layout 上 band 高度, 响应 vm.bandOffset mutate
