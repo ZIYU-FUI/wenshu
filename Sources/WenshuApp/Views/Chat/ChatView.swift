@@ -336,12 +336,18 @@ public struct ChatView: View {
             Divider()
 
             // 输入框 + 发送按钮 (Apple HIG SwiftUI 真值)
-            // v0.25.1 (= ticket 030 chat send button 8 PT extra gap):
-            // owner 2026-08-26 OOB '聊天文本框上加 8 PT 的间隔' = add
-            // 8 PT additional gap between textfield and send button
-            // (= 8 PT boss-spoken + current 8 PT = 16 PT total visual
-            // breathing room per Apple HIG TextField conventions).
-            HStack(spacing: 16) {
+            // v0.25.1 (= ticket 030 chat send button 8 PT textfield
+            // top padding): owner 2026-08-26 OOB '聊天文本框上加 8 PT
+            // 的间隔' = add 8 PT gap between the Divider above and
+            // the TextField (= textfield top padding = 8 PT, so the
+            // input area has visual breathing room from the divider
+            // line). Implementation: HStack(spacing: 8) reverted to
+            // baseline (= boss corrected ticket 030's HStack 8→16
+            // change as wrong, = the gap is ABOVE the textfield not
+            // between textfield and send button), TextField gains
+            // .padding(.top, 8) (= 8 PT gap above the textfield,
+            // = the actual boss OOB intent).
+            HStack(spacing: 8) {
                 // v0.24 boss验收fix (2026-08-24): placeholder shows different text based on key state.
                 // Boss 8/24 (out-of-band): '请先在设置中设置好大模型提供方'.
                 // v0.25.1 (= ticket 030 chat send button Lucide icon + 8 PT textfield padding):
@@ -378,7 +384,7 @@ public struct ChatView: View {
                             inputFocused = true
                         }
                     }
-                    .padding(.horizontal, 8)  // v0.25.1 ticket 030: 8 PT textfield inner padding (= boss OOB '聊天文本框上加 8 PT 的间隔')
+                    .padding(.top, 8)  // v0.25.1 ticket 030 followup: 8 PT gap ABOVE the textfield (= boss OOB '聊天文本框上加 8 PT 的间隔' = 文本框向上加 8 PT 间隔, NOT between textfield and send button as I misread in ticket 030)
                 Button {
                     Task { await vm.send() }
                 } label: {
