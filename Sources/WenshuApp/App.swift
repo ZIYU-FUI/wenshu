@@ -239,19 +239,16 @@ enum LayoutTokens {
     // this constant for the underline height; the underline color is
     // Color.accentColor (= Apple system accent, matches selected-tab
     // icon color so the visual cue is consistent).
-    // v0.25.1 (= ticket 024 underline height = 3 PT for cross-grid icon
-    // distinctness): owner 2026-08-26 OOB '那个下面的小横线 看起来高
-    // 度不一样' = the .layout-grid Lucide icon has internal grid lines
-    // (= horizontal borders for the 4 cells) that visually MERGE with
-    // the 2 PT underline bar below the icon (= makes the right-side
-    // underline appear thicker than the left-side .bot underline, even
-    // though both = same constant). Fix = bump tabUnderlineHeight
-    // 2 → 3 PT (= the underline is now visually heavier than any
-    // icon-internal horizontal line, so the .layout-grid bottom grid
-    // line no longer merges with the accent-color underline). Apple
-    // HIG acceptable range for tab-bar indicator = 2-4 PT (= 3 PT
-    // is within canonical macOS segmented control style).
-    static let tabUnderlineHeight: CGFloat = 3
+    // v0.25.1 (= ticket 025 underline height = 1 PT per owner spec):
+    // owner 2026-08-26 OOB 'ICON 下划线全部改成 1PT' = bump down
+    // from 3 PT (= ticket 024) to 1 PT (= owner final spec, = a
+    // minimal visual hint rather than a heavy accent bar). Apple
+    // HIG acceptable range for tab-bar selected indicator =
+    // 1-4 PT (= 1 PT is the thinnest canonical option, = Apple
+    // HIG Finder sidebar selected indicator style per developer
+    // .apple.com/design/human-interface-guidelines/components/
+    // navigation/sidebars).
+    static let tabUnderlineHeight: CGFloat = 1
     static let iconSpacingRatio: CGFloat = 18.0 / 1920.0  // 18 PT 等距 (老板 8/18 改 18 PT = icon 间距, 起点 18/54/90 相邻 36 - 18 = 18)
 
     // 底栏占位元素 (老板 8/18 拍 "icon 18×18, 占位文字苹果字符样式正文尺寸") — 绝对 PT 不走比例
@@ -1282,19 +1279,57 @@ struct LayoutShellView: View {
                     Button {
                         NSLog("[wenshu.toolbar] tap: 新建 (placeholder)")
                     } label: {
-                        Image(systemName: "doc.badge.plus")
+                        // v0.25.1 (= ticket 026 toolbar file-action Lucide
+                        // icons): owner 2026-08-26 OOB '标题栏的三个按钮
+                        // 新建换成 folder-plus 打开换成 folder-open 导
+                        // 入换成 folder-input' = SF doc.badge.plus →
+                        // Lucide folder-plus (= new file folder icon
+                        // with + mark, = file-creation metaphor better
+                        // than doc-with-+). Use Lucide(string) (= no
+                        // argument label, failable init) so kebab-case
+                        // strings resolve to LucideIcon enum (= Layer
+                        // 1 path fires, icon glyph renders). Lucide
+                        // returns Lucide? (= on nil, falls back to
+                        // Image(systemName:) Layer 3 path for any
+                        // future SF-only icons).
+                        if let lucide = Lucide("folder-plus") {
+                            lucide
+                        } else {
+                            Image(systemName: "doc.badge.plus")
+                        }
                     }
                     .help("新建")
                     Button {
                         NSLog("[wenshu.toolbar] tap: 打开 (placeholder)")
                     } label: {
-                        Image(systemName: "folder")
+                        // v0.25.1 (= ticket 026): SF folder → Lucide
+                        // folder-open (= open folder icon, = file-open
+                        // metaphor). Lucide(_:) failable init resolves
+                        // kebab-case string to LucideIcon enum (= Layer
+                        // 1 path); on nil, falls back to Image(systemName:)
+                        // (= SF Layer 3 fallback).
+                        if let lucide = Lucide("folder-open") {
+                            lucide
+                        } else {
+                            Image(systemName: "folder")
+                        }
                     }
                     .help("打开")
                     Button {
                         NSLog("[wenshu.toolbar] tap: 导入 (placeholder)")
                     } label: {
-                        Image(systemName: "square.and.arrow.down")
+                        // v0.25.1 (= ticket 026): SF
+                        // square.and.arrow.down → Lucide folder-input
+                        // (= folder icon with downward arrow, =
+                        // file-import metaphor). Lucide(_:) failable
+                        // init resolves kebab-case string to LucideIcon
+                        // (= Layer 1 path); on nil, falls back to
+                        // Image(systemName:) (= SF Layer 3 fallback).
+                        if let lucide = Lucide("folder-input") {
+                            lucide
+                        } else {
+                            Image(systemName: "square.and.arrow.down")
+                        }
                     }
                     .help("导入")
                 }
