@@ -511,7 +511,7 @@ public struct ChatView: View {
                     // ring (ticket 034) + 8 PT outer top margin
                     // (ticket 034 final 3) preserved.
                     .textFieldStyle(.plain)
-                    .frame(height: 24)  // v0.25.1 ticket 037: textfield height 24 PT (= boss OOB '现在文本框不是 32 了吗 不管是多少 改成和文本框一样高' = 当前 textfield 视觉 是 24 PT, 不再改 = pin 24 PT). Button 也 修真因 = 24 PT (= 跟 文本框 一致)
+                    .frame(height: 24)  // v0.25.1 ticket 037: textfield height 24 PT (= boss OOB '现在文本框不是 32 了吗 不管是多少 改成和文本框一样高' = 当前 textfield 视觉 是 24 PT, 不再改 = pin 24 PT). Button also 24 PT (= 跟 文本框 一致)
                     .padding(.horizontal, 12)
                     .background(
                         ZStack {
