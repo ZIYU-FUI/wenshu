@@ -74,18 +74,22 @@ def scan(text, source):
             yield f"ERROR: forbidden vocabulary '{token}' in {source}:{line_no} | {context}"
 
 
+def is_allowed(path):
+    """Check if a file path is in the pollution allowlist (= legitimately enumerates forbidden tokens)."""
+    return any(
+        path == entry or
+        path.endswith("/" + entry) or
+        (entry.startswith("Sources/") and "/" + entry in path) or
+        (entry.startswith("Tools/") and "/" + entry in path)
+        for entry in POLLUTION_ALLOWLIST
+    )
+
+
 def main():
     errors = []
     for path in get_staged_files():
         # Skip files in pollution allowlist (they legitimately enumerate banned tokens).
-        # Match exact path OR path containing allowlist entry (for Sources/.../*).
-        if any(
-            path == entry or
-            path.endswith("/" + entry) or
-            (entry.startswith("Sources/") and "/" + entry in path) or
-            (entry.startswith("Tools/") and "/" + entry in path)
-            for entry in POLLUTION_ALLOWLIST
-        ):
+        if is_allowed(path):
             continue
         diff = get_staged_diff(path)
         for error in scan(diff, path):

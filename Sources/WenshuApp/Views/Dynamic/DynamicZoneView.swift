@@ -29,7 +29,7 @@ struct DynamicZoneView: View {
         var icon: String {
             switch self {
             // v0.25.1 (= ticket 022 dynamic zone tab icons): owner
-            // 2026-08-26 OOB '右下角区 两个 teb 可以开始换了 teb1 换成
+            // 2026-08-26 OOB 右下角区 两个 teb 切换: teb1 -> layout-grid, teb2 -> layout-list
             // layout-grid teb2 换成 layout-list' = SF rectangle.split.3x1
             // → Lucide layout-grid (= 4-cell grid icon, 看板 board
             // visual metaphor). SF checklist → Lucide layout-list

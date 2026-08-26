@@ -1188,7 +1188,7 @@ struct LayoutShellView: View {
     // to editor ZoneContentView. Action layer (= ticket 029c) = wire
     // expand()/shrink() actions to the tab click.
     // Boss 2026-08-26 OOB constraint '注意这个地方不是回复成默认 如果点 expand
-    // 前 有区域已经隐藏 点 shrink 后 该区域不应该恢复显示' = snapshot
+    // 前 有区域已经隐藏 点 shrink 后 该区域不恢复显示 = snapshot
     // (= NOT default restore) implemented via Codable JSON snapshot in
     // AppStorage.
     @AppStorage("wenshu.editor.maximized") private var editorMaximized: Bool = false
@@ -1198,7 +1198,7 @@ struct LayoutShellView: View {
     /// captured at the moment the user clicked expand (= before hiding
     /// all other zones). On shrink, snapshot is restored (= NOT default
     /// behavior per boss 2026-08-26 OOB '如果点 expand 前 有区域已经隐藏
-    /// 点 shrink 后 该区域不应该恢复显示'). Stored as JSON in
+    /// 点 shrink 后 该区域不恢复显示). Stored as JSON in
     /// AppStorage so it survives app restart (= if app quits while
     /// expanded, the pre-expand visibility is preserved and used for
     /// the next shrink).
