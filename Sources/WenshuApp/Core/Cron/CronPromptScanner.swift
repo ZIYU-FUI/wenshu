@@ -32,8 +32,8 @@ public enum CronPromptScanner {
 
     /// Invisible / control characters that are common LLM prompt injection vectors.
     /// Source: hermes _check_invisible_unicode — ZWJ, RLO, RTL, zero-width chars.
-    private static let invisibleChars: Set<Character> = {
-        var chars = Set<Character>()
+    private static let invisibleChars: Set<Swift.Character> = {
+        var chars = Set<Swift.Character>()
         // Zero-width joiner / non-joiner / space
         chars.insert("\u{200D}")  // ZWJ
         chars.insert("\u{200C}")  // ZWNJ
@@ -60,7 +60,7 @@ public enum CronPromptScanner {
         // (ZWJ + adjacent chars form 1 grapheme cluster → invisible in for-char loop).
         var foundInvisible: [Unicode.Scalar] = []
         for scalar in prompt.unicodeScalars {
-            let char = Character(scalar)
+            let char = Swift.Character(scalar)
             if invisibleChars.contains(char) {
                 foundInvisible.append(scalar)
             }

@@ -66,7 +66,10 @@ public struct ProcessTools: Sendable {
             throw ProcessToolError.readOnlyDenied(command: command, reason: "command '\(baseCmd)' not in read-only whitelist. allowed: \(Self.readOnlyCommands.sorted().joined(separator: ", "))")
         }
         // Reject shell metacharacters that could be used for command injection.
-        let dangerousChars: Set<Character> = [";", "&", "|", ">", "<", "`", "$", "(", ")", "{", "}", "*", "?", "[", "]", "!", "~", "#"]
+        // NOTE: use Swift.Character explicitly because WenshuApp.Character (this
+        // project's Character enum = ticket 002) shadows the standard library
+        // Character type in this scope.
+        let dangerousChars: Set<Swift.Character> = [";", "&", "|", ">", "<", "`", "$", "(", ")", "{", "}", "*", "?", "[", "]", "!", "~", "#"]
         for char in trimmed {
             if dangerousChars.contains(char) {
                 throw ProcessToolError.readOnlyDenied(command: command, reason: "shell metacharacter '\(char)' not allowed in read-only mode (defense against command injection)")
