@@ -2062,10 +2062,18 @@ struct ZoneModule: View {
             // (= open book with text lines glyph, matches editor
             // '章节预览' / chapter-edit content metaphor better than
             // pencil).
-            // 编辑 tab: 占位 (WenshuEditor view deferred to v0.24+, 没接到 doc reader).
+            // v0.25.1 (= ticket 028 editor zone 2nd + 3rd tab icons):
+            // owner 2026-08-26 OOB '编辑器栏 第 3 个 teb 换成 link
+            // 第 2 个 teb 换成 puzzle' = SF list.bullet (大纲 tab) →
+            // Lucide puzzle (= interlocking puzzle-piece glyph, =
+            // outline / hierarchical outline metaphor); SF link
+            // (反链 tab, same icon name as Lucide kebab-case) →
+            // Lucide link (= chain link glyph, = backlink / cross-
+            // reference metaphor). Note: 'link' SF Symbol name
+            // resolves to Lucide 'link' (= direct name match).
             ZoneContentView(zoneSlug: "editor", tabs: [
                 ("编辑", "book-open-text", AnyView(DesignColor.zoneSurface.overlay { Color.white.opacity(0.55).padding([.top, .bottom], editorInset) })),
-                ("大纲", "list.bullet", AnyView(OutlinePanel())),
+                ("大纲", "puzzle", AnyView(OutlinePanel())),
                 ("反链", "link", AnyView(BacklinksPanel())),
             ])
         case .specializedTools:
