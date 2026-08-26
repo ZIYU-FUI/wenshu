@@ -32,7 +32,6 @@ This file = wenshu project baseline + cross-role address hard constraint. Single
 - Do not self-write wenshu CLI (文枢 = Swift desktop app, not CLI).
 - Do not touch any hermes self-owned file under `~/.hermes/`.
 - Do not touch any file under `.archive/wenshu-monorepo-fork/`.
-- Third-party deps (= SPM packages) are allowed when owner-approved via grill (= owner 2026-08-26 grill, see `.scratch/2026-08-26-lucide-icon-migration/`). ANAN does not silently add SDKs. First applied = `bring-shrubbery/lucide-swift 1.25.0` (v0.25 ticket 001).
 
 # §12 Cross-role expression hard constraint
 
