@@ -370,7 +370,16 @@ public struct ChatView: View {
             // top padding preserved (= 8 PT gap above textfield per
             // ticket 030) so total TextField + padding box = 40 PT
             // (= 8 PT gap + 32 PT textfield visual).
-            HStack(alignment: .center, spacing: 8) {
+            // v0.25.1 (= ticket 033 chat send button BOTTOM
+            // alignment): owner 2026-08-26 OOB '还是没有对齐 按钮和
+            // 文本框向下对齐' = the previous ticket 031's .center
+            // alignment still didn't match. Boss corrected again:
+            // button should be aligned to the BOTTOM of the textfield
+            // (= .bottom alignment, not .center). The button's
+            // bottom edge aligns with the textfield's bottom edge
+            // (Apple HIG toolbar convention: action button at
+            // baseline of input field).
+            HStack(alignment: .bottom, spacing: 8) {
                 // v0.24 boss验收fix (2026-08-24): placeholder shows different text based on key state.
                 // Boss 8/24 (out-of-band): '请先在设置中设置好大模型提供方'.
                 // v0.25.1 (= ticket 030 chat send button Lucide icon + 8 PT textfield padding):
