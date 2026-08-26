@@ -1091,6 +1091,15 @@ struct LayoutShellView: View {
             let upperBandHeight: CGFloat = hideLowerBand ? (contentH - 2) : vm.upperBandH(totalHeight: contentH - 2)
             let lowerBandHeight: CGFloat = hideLowerBand ? 0 : vm.lowerBandH(totalHeight: contentH - 2)
             let bandH = upperBandHeight
+            // v0.24 fix (Boss 8/25 75th OOB '上半区占用下半区时, 过渡动画没有'):
+            // add .animation(.easeInOut, value: hideLowerBand) on VStack (= animates
+            // ALL animatable values when band height changes via allZonesHidden or
+            // lowerBandAllHidden triggers per Boss 72nd + 73rd OOB). Per Apple
+            // developer.apple.com/documentation/swiftui/animation: '.animation(_:value:)'
+            // applies animation to all animatable values within the view when value
+            // changes. Per Boss 74th OOB '显隐功能就毕业了' + Boss 75th OOB:
+            // band height transitions are now smooth (= no instant snap when
+            // lower band collapses or all 5 zones hidden).
             VStack(spacing: 0) {
                 // 上 band: 4 区 + 3 拖拽线 (Apple HIG HStack 范式)
                 UpperBandZone(vm: vm, showProjectSidebar: showProjectSidebar, showProjectPreview: showProjectPreview, showSpecializedTools: showSpecializedTools, totalW: totalW, bandH: bandH)
@@ -1106,6 +1115,7 @@ struct LayoutShellView: View {
                     LowerBandZone(vm: vm, showAIChat: showAIChat, showAIDynamic: showAIDynamic, totalW: totalW, bandH: lowerBandHeight)
                 }
             }
+            .animation(.easeInOut(duration: 0.25), value: hideLowerBand)  // Per Boss 75th OOB
             // v0.24 boss验收fix (Boss 8/25 eighth OOB '不要纠结线的问题, 核心是比例'):
             // overlay REMOVED. Boss拍 core spec = the rightmost zone widths
             // (specializedTools upper + aiDynamic lower) must have the same
