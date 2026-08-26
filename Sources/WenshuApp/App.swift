@@ -15,6 +15,7 @@
 
 import SwiftUI
 import AppKit
+import Lucide
 
 // 老板 8/18 拍 "重置界面布局" 通知桥 (LayoutShellView 用 @State 私有 vm,
 // 顶层 .commands 拿不到 vm 实例, 走 NotificationCenter 转发)
@@ -1478,7 +1479,12 @@ struct LowerBandZone: View {
 /// 区域顶/底栏共享 icon 占位渲染 (老板 8/18 拍 "用 SF 替换矩形" → 矩形 = 占位标记, 用 SF Symbol 替换)
 /// 老板 2026-08-19 拍 "我的蓝色占位矩形,用 SF ICON 替代" → SF Symbol Image 直接替
 /// v0.14.5: 重写 ZoneIcon helper, 顶栏 3 SF Symbol + 底栏占位 SF Symbol = 全部 SF Symbol
-/// 老板 8/18 拍 "画矩形占位, 帮我用 SF 占位替换" → SF Symbol Image 不是 ShapePath 矩形
+/// v0.25.1 (= ticket 005 chat-zone icons): owner requested Lucide icons for chat
+/// zone top-toolbar (.bot left, .inbox right). Minimal-impact: ZoneIcon's body
+/// now tries `Lucide(systemName)` first; if the failable init returns nil
+/// (= systemName is not a valid Lucide kebab-case name like "bot" / "inbox")
+/// fall back to `Image(systemName:)` (= original SF Symbol rendering, kept
+/// 100% identical for all non-changed call sites).
 struct ZoneIcon: View {
     let systemName: String
     let size: CGFloat
@@ -1487,9 +1493,17 @@ struct ZoneIcon: View {
         // v0.15 ticket 017.5 修: 老板 2026-08-19 拍 "SF Symbol 是是字号, 不是尺寸"
         // 只用 .font(.system(size:)) 给字号, 不用 .frame 约束尺寸
         // SF Symbol 字号 18 PT 视觉占 SF Symbol 默认 padding (~16 PT 视觉), 不撑 18×18 框
-        Image(systemName: systemName)
-            .font(.system(size: size))
-            .foregroundStyle(DesignColor.accentBlue)
+        //
+        // v0.25.1: Lucide-first try, SF Symbol fallback. Style unchanged.
+        if let lucide = Lucide(systemName) {
+            lucide
+                .frame(width: size, height: size)
+                .foregroundStyle(DesignColor.accentBlue)
+        } else {
+            Image(systemName: systemName)
+                .font(.system(size: size))
+                .foregroundStyle(DesignColor.accentBlue)
+        }
     }
 }
 
@@ -1737,13 +1751,25 @@ struct ZoneModule: View {
         switch slot {
         case .aiChat:
             // v0.24 boss验收fix (2026-08-24): Todo + Search 移到 dynamic zone.
-            // Chat zone 顶栏只剩 chat-specific (Read Aloud = TTS last AI reply).
-            // 内层 ChatZoneTabBar 仍显示 chat/search/settings 3 internal tabs.
+            // v0.25.1 (= ticket 005): chat zone 顶栏 2 icons — owner 2026-08-26
+            // OOB 指定 左 = Lucide `.bot` 顶栏图标, 右 = Lucide `.inbox` 顶栏图标.
+            // Action callbacks kept as placeholders (= owner specified ICON
+            // SWAP-ONLY, NOT 功能 实现; chat zone inner ChatBottomToolbar carries
+            // the actual TTS / read-aloud control). Icons pass Lucide kebab-case
+            // name strings (= "bot" / "inbox") into ZoneIcon; ZoneIcon body now
+            // (= ticket 005 patch) tries Lucide(systemName) first, falls back
+            // to Image(systemName:) on nil (= preserved SF Symbol behavior
+            // for non-chat call sites).
             return [
                 ZoneToolbarAction(
-                    label: "Read Aloud",
-                    icon: "speaker.wave.2",
-                    action: { Task { await readAloudLastReply() } }
+                    label: "Bot",
+                    icon: "bot",
+                    action: {}
+                ),
+                ZoneToolbarAction(
+                    label: "Inbox",
+                    icon: "inbox",
+                    action: {}
                 ),
             ]
         case .aiDynamic:
@@ -1886,9 +1912,9 @@ struct ChatZoneView: View {
         var id: String { rawValue }
         var icon: String {
             switch self {
-            case .chat: return "person.crop.circle.badge.questionmark"  // 老板拍 "用机器人" = ticket 30+33 robot face
-            case .search: return "magnifyingglass"  // 老板拍 "保留现在的这个"
-            case .settings: return "slider.horizontal.3"  // 老板拍 "保留现在的这个"
+            case .chat: return "bot"  // v0.25.1 (= ticket 005): 老板 2026-08-26 拍 .bot 直接替换 SF person.crop... (= Lucide-first helper 在 ChatZoneTabBar 里用了, "bot" 命中 Lucide, SF Symbol 作为 fallback). Old (= ticket 015.014 robot face) was SF `person.crop.circle.badge.questionmark` (= Lucifer 没有同名, 只能 Image(systemName:) fallback, 不再使用).
+            case .search: return "magnifyingglass"  // 老板 8/25 拍 "保留现在的这个"
+            case .settings: return "slider.horizontal.3"  // 老板 8/25 拍 "保留现在的这个"
             }
         }
     }
@@ -2155,7 +2181,10 @@ struct ChatZoneTabBar: View {
                         selectedTab = tab
                     } label: {
                         // v0.24 boss验收fix: icon only, no title label.
-                        Image(systemName: tab.icon)
+                        // v0.25.1 (= ticket 005): left chat-zone tab renders Lucide
+                        // .bot (= owner 2026-08-26 OOB). Minimal-impact same
+                        // Lucide-first / SF-symbol-fallback helper as ZoneIcon.
+                        chatZoneTabBarIcon(tab.icon)
                             .font(.system(size: LayoutTokens.iconSize))
                             .imageScale(.large)
                             .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
@@ -2175,7 +2204,10 @@ struct ChatZoneTabBar: View {
             Button {
                 showingArchiveAlert = true
             } label: {
-                Image(systemName: "archivebox")
+                // v0.25.1 (= ticket 005): right-side chat-zone icon = Lucide
+                // .inbox (= owner 2026-08-26 OOB, replacing the prior "archivebox"
+                // SF Symbol archive-flow icon). Minimal-impact same helper.
+                chatZoneTabBarIcon("inbox")
                     .font(.system(size: LayoutTokens.iconSize))
                     .imageScale(.large)
                     .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
@@ -2193,6 +2225,19 @@ struct ChatZoneTabBar: View {
             DesignColor.splitterLine.frame(height: 1)
         }
         .animation(.default, value: selectedTab)
+    }
+
+    /// v0.25.1 (= ticket 005): Lucide-first view helper for chat-zone toolbar
+    /// icons. Same fallback semantics as ZoneIcon: try `Lucide(name:)` first,
+    /// fall back to `Image(systemName:)` on nil. Used by both the left tab
+    /// button (ForEach filtered to .chat) and the right archive-flow button.
+    @ViewBuilder
+    private func chatZoneTabBarIcon(_ systemName: String) -> some View {
+        if let lucide = Lucide(systemName) {
+            lucide
+        } else {
+            Image(systemName: systemName)
+        }
     }
 }
 

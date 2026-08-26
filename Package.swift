@@ -18,11 +18,25 @@ let package = Package(
         .executable(name: "WenshuApp", targets: ["WenshuApp"])
     ],
     dependencies: [
-        // v0.00.0 bootstrap: no third-party deps. Add later via /to-tickets (LLM provider etc.)
+        // v0.25.1 (= ticket 005 chat-zone icons): third-party SPM dep brought back
+        // specifically for the chat zone icons (= bring-shrubbery/lucide-swift
+        // 1.25.0). Owner 2026-08-26 OOB approved Lucide ('the bot icon and user
+        // icon, we replace with Lucide .bot / .inbox / .botMessageSquare /
+        // .userRound'); per AGENTS.md §11 + ticket 003 baseline-unlock rule
+        // (= every third-party SDK requires owner-grill approval before
+        // adding). Owner approved Lucide for this single chat-zone use.
+        // No WenshuIcon abstraction layer (= ticket 002 over-engineered and
+        // broke button functionality; reverted in tickets 002/003/004
+        // followup). This re-introduction is single-purpose: just the chat
+        // zone icon swap, nothing else.
+        .package(url: "https://github.com/bring-shrubbery/lucide-swift.git", exact: "1.25.0"),
     ],
     targets: [
         .executableTarget(
             name: "WenshuApp",
+            dependencies: [
+                .product(name: "Lucide", package: "lucide-swift"),
+            ],
             path: "Sources/WenshuApp",
             exclude: [
                 // Info.plist + AppIcon are bundled by Scripts/build-app.sh into

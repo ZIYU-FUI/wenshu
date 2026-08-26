@@ -14,6 +14,7 @@
 //
 
 import SwiftUI
+import Lucide
 
 /// 1 条消息真值 (user / 文枢 / 系统 三方, 文枢背后多 agent 调度不进 ChatMessage 流)
 public struct ChatMessage: Equatable, Identifiable, Sendable {
@@ -416,10 +417,22 @@ struct ChatMessageView: View {
 
     var body: some View {
         HStack(alignment: .top) {
-            // 消息来源 icon (SF Symbol Apple HIG 真值, 按 source 显示 user / 文枢 / 系统)
-            Image(systemName: sourceIcon)
-                .foregroundStyle(sourceColor)
-                .frame(width: 24, height: 24)
+            // 消息来源 icon: Lucide .userRound (user) / .botMessageSquare
+            // (wenshu agent) per owner 2026-08-26 directive; SF Symbol keeps
+            // for .system (= exclamationmark.triangle). Avatar only = no
+            // other UI change (= chat zone style/colour/frame preserved).
+            Group {
+                switch message.source {
+                case .user:
+                    Lucide(.userRound)
+                case .wenshu:
+                    Lucide(.botMessageSquare)
+                case .system:
+                    Image(systemName: sourceIcon)
+                }
+            }
+            .foregroundStyle(sourceColor)
+            .frame(width: 24, height: 24)
             VStack(alignment: .leading, spacing: 4) {
                 Text(sourceLabel)
                     .font(.caption)
