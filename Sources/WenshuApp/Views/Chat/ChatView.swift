@@ -379,7 +379,24 @@ public struct ChatView: View {
             // bottom edge aligns with the textfield's bottom edge
             // (Apple HIG toolbar convention: action button at
             // baseline of input field).
-            HStack(alignment: .bottom, spacing: 8) {
+            // v0.25.1 (= ticket 033 followup 2: chat send button
+            // CENTER alignment — boss corrected AGAIN): owner
+            // 2026-08-26 OOB '还是不对 你还是文本框和按钮居中对齐吧'
+            // = after 3 alignment attempts (.center, .bottom,
+            // .bottom + height 32), the actual visual boss wants
+            // is .center alignment. The earlier ticket 031's
+            // .center was correct on alignment but the button's
+            // height wasn't pinned (= 40 PT, vs textfield 32 PT),
+            // so visually the .center alignment didn't look right
+            // because the button was already too tall. Now with
+            // ticket 033 followup's .frame(height: 32) pinning the
+            // button to 32 PT (= matches textfield), boss confirmed
+            // .center alignment is the right behavior. Final state:
+            // HStack(alignment: .center, spacing: 8) with both
+            // elements at 32 PT height = button + textfield
+            // vertically centered (= same height + same center
+            // baseline).
+            HStack(alignment: .center, spacing: 8) {
                 // v0.24 boss验收fix (2026-08-24): placeholder shows different text based on key state.
                 // Boss 8/24 (out-of-band): '请先在设置中设置好大模型提供方'.
                 // v0.25.1 (= ticket 030 chat send button Lucide icon + 8 PT textfield padding):
