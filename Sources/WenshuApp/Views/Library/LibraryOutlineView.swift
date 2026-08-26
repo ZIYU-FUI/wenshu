@@ -196,7 +196,10 @@ struct LibraryOutlineView: View {
             return !books.isEmpty
         }()
         VStack(spacing: 8) {
-            WenshuIcon.booksVertical.image(size: 38, foregroundStyle: .tertiary)
+            Image(systemName: firstShelfHasBooks ? "books.vertical" : "books.vertical.fill")
+                .font(.title)
+                .imageScale(.large)
+                .foregroundStyle(.tertiary)
             if firstShelf == nil {
                 // Step 1: create first shelf
                 Text("还没有书架")
@@ -290,7 +293,8 @@ struct LibraryOutlineView: View {
             Text(shelf.name)
                 .lineLimit(1)
         } icon: {
-            WenshuIcon.booksVertical.image(size: 14, foregroundStyle: .secondary)
+            Image(systemName: "books.vertical")
+                .foregroundStyle(.secondary)
         }
         // Apple HIG: when a row is selected in a sidebar list, its
         // background is the system accent. SwiftUI List + tag handles
@@ -333,7 +337,8 @@ private struct BookOutlineRow: View {
                     }
                 }
             } icon: {
-                WenshuIcon.book.image(size: 14, foregroundStyle: .secondary)
+                Image(systemName: "book")
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -359,7 +364,8 @@ private struct BookCategoryOutlineRow: View {
                 // Empty for now (= no document count query wired).
             }
         } icon: {
-            WenshuIcon.image(name: category.icon, size: 14, foregroundStyle: .tertiary)
+            Image(systemName: category.icon)
+                .foregroundStyle(.tertiary)
         }
         // v0.24 boss验收fix: make row selectable click (= future ticket
         // wires category selection to BookOutlineView's category-filter).

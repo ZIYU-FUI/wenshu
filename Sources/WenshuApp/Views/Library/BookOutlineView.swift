@@ -68,7 +68,9 @@ struct BookOutlineView: View {
         VStack(alignment: .leading, spacing: 12) {
             // Section header (= category icon + display name + count)
             HStack(spacing: 8) {
-                WenshuIcon.image(name: category.icon, size: 18, foregroundStyle: .secondary)
+                Image(systemName: category.icon)
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
                 Text(category.displayName)
                     .font(.headline)
                 Text("\(docs.count)")
@@ -118,7 +120,10 @@ struct BookOutlineView: View {
 
     private var noBookSelected: some View {
         VStack(spacing: 8) {
-            WenshuIcon.book.image(size: 38, foregroundStyle: .tertiary)
+            Image(systemName: "book.pages")
+                .font(.title)
+                .imageScale(.large)
+                .foregroundStyle(.tertiary)
             Text("先在左边选一本书")
                 .font(.callout)
                 .foregroundStyle(.secondary)
@@ -136,7 +141,9 @@ private struct DocumentCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
-                WenshuIcon.image(name: document.category.icon, size: 16, foregroundStyle: .secondary)
+                Image(systemName: document.category.icon)
+                    .font(.system(size: 16))
+                    .foregroundStyle(.secondary)
                 Text(document.title)
                     .font(.headline)
                     .lineLimit(1)
