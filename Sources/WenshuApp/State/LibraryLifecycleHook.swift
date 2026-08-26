@@ -59,18 +59,3 @@ struct PerBookStores: Sendable {
 struct LibraryLaunchResult: Sendable {
     let stores: LibraryStores
 }
-
-// MARK: - BookStore construction
-
-/// Resolver protocol for the current per-book directory (= v0.27 cargo:
-/// BookStore needs to know which book's directory is "current" so the
-/// reusable stores can pick the right per-book FileSystem store).
-///
-/// v0.27 implementation: BookStore reload(bookId:) writes its own
-/// currentBookDirectory; the reusable stores read from BookStore at
-/// call time. The shared resolver pattern keeps BookStore decoupled
-/// from any particular store implementation.
-protocol BookDirectoryResolving: AnyObject, Sendable {
-    /// Current book directory URL (= nil when no book is selected).
-    func currentBookDirectory() -> URL?
-}
