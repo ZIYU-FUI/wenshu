@@ -391,11 +391,44 @@ public struct ChatView: View {
             // because the button was already too tall. Now with
             // ticket 033 followup's .frame(height: 32) pinning the
             // button to 32 PT (= matches textfield), boss confirmed
-            // .center alignment is the right behavior. Final state:
-            // HStack(alignment: .center, spacing: 8) with both
-            // elements at 32 PT height = button + textfield
-            // vertically centered (= same height + same center
-            // baseline).
+            // .center alignment is the right behavior.
+            // v0.25.1 (= ticket 033 final 2: chat send button
+            // HORIZONTAL alignment = drop the 8 PT top padding +
+            // drop the .frame(height: 32) textfield pin + drop the
+            // .frame(height: 32) button pin — owner 2026-08-26 OOB
+            // '还是不对 是水平居中' = the 4 previous attempts all
+            // tried to vertically align the textfield with the button,
+            // but the actual visual boss wants is HORIZONTAL center
+            // alignment (= the .center alignment already does this,
+            // = but with 8 PT top padding + .frame(height: 32) the
+            // textfield is offset down 8 PT + extended to 32 PT,
+            // = making the visual center NOT match the button).
+            // The right fix = drop the 8 PT top padding (= 0 PT
+            // padding = textfield is its natural 24 PT height) AND
+            // drop the .frame(height: 32) on both textfield and
+            // button (= let each take its natural default height;
+            // SwiftUI TextField with .roundedBorder = 24 PT, Button
+            // with .borderedProminent = ~40 PT). With the 8 PT
+            // padding dropped + height pins dropped, the HStack
+            // .center alignment = both elements centered at the
+            // natural height axis. But '水平居中' = horizontal
+            // center, = the user wants the textfield + button to
+            // share the same VERTICAL center line (= each element's
+            // vertical center on the same y = the HStack .center
+            // alignment IS the answer, but with natural heights,
+            // not forced 32 PT).
+            // Final approach (= this ticket 033 final 2):
+            // 1. drop .padding(.top, 8) on TextField (= boss OOB
+            //    interpreted '水平居中' as 'remove my 8 PT top
+            //    padding that's making the visual center off').
+            // 2. drop .frame(height: 32) on TextField (= use natural
+            //    TextField height = 24 PT).
+            // 3. drop .frame(height: 32) on Button (= use natural
+            //    Button height = ~40 PT).
+            // 4. KEEP HStack(alignment: .center, spacing: 8) (= the
+            //    alignment that boss has been trying to tell us to
+            //    use all along, = vertical center between the two
+            //    elements at their natural heights).
             HStack(alignment: .center, spacing: 8) {
                 // v0.24 boss验收fix (2026-08-24): placeholder shows different text based on key state.
                 // Boss 8/24 (out-of-band): '请先在设置中设置好大模型提供方'.
@@ -433,8 +466,7 @@ public struct ChatView: View {
                             inputFocused = true
                         }
                     }
-                    .padding(.top, 8)  // v0.25.1 ticket 030: 8 PT gap ABOVE the textfield (= boss OOB '聊天文本框上加 8 PT 的间隔' = 文本框向上加 8 PT 间隔, NOT between textfield and send button as I misread in ticket 030)
-                    .frame(height: 32)  // v0.25.1 ticket 032: textfield visual height 32 PT = match send button height (= boss OOB '文本框的高度 和按钮的高度改成一至 都和按钮一个高')
+                    .padding(.top, 0)  // v0.25.1 ticket 033 final 2: dropped .padding(.top, 8) per boss OOB '还是不对 是水平居中' (= the 8 PT top padding was offsetting the textfield center down 8 PT, making .center alignment look off)
                 Button {
                     Task { await vm.send() }
                 } label: {
@@ -459,7 +491,7 @@ public struct ChatView: View {
                     }
                 }
                 .buttonStyle(.borderedProminent)
-                .frame(height: 32)  // v0.25.1 ticket 033 followup: pin button height to 32 PT to match textfield visual height (= boss OOB '视觉上 文本框和按钮高度还是不一至' = button default height ~40 PT with .borderedProminent is taller than textfield 32 PT, = pin to 32 PT for visual match)
+                // v0.25.1 ticket 033 final 2: dropped .frame(height: 32) per boss OOB '还是不对 是水平居中' (= use natural button height, let HStack .center alignment handle vertical center based on natural heights)
                 .disabled(vm.inputText.isEmpty || vm.isSending)
             }
             .padding(.horizontal, 18)
