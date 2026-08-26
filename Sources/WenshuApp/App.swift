@@ -1292,10 +1292,29 @@ struct LayoutShellView: View {
                         // returns Lucide? (= on nil, falls back to
                         // Image(systemName:) Layer 3 path for any
                         // future SF-only icons).
+                        // v0.25.1 (= ticket 027 icon visual = explicit 18×18 PT box):
+                        // owner 2026-08-26 OOB '尺寸有点大 改成 18*18'
+                        // = the upper toolbar Lucide icons render at
+                        // Lucide's intrinsic 24 PT size (= no explicit
+                        // frame, no .aspectRatio constraint), making
+                        // them visually larger than the 18 PT icons in
+                        // the tab bars (= inconsistent visual size
+                        // across the project). Fix = add explicit
+                        // .frame(width: 18, height: 18) on each icon
+                        // (= visual 占面积 = 18×18 PT, matches the
+                        // tab-bar icons + matches Apple's HIG icon
+                        // toolbar style per developer.apple.com/design/
+                        // human-interface-guidelines/components/menus
+                        // and-toolbars/toolbars). iconSize constant
+                        // already 18 PT (= ticket 006 baseline) but
+                        // the explicit .frame is needed to override
+                        // Lucide's intrinsic 24 PT viewBox.
                         if let lucide = Lucide("folder-plus") {
                             lucide
+                                .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                         } else {
                             Image(systemName: "doc.badge.plus")
+                                .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                         }
                     }
                     .help("新建")
@@ -1310,8 +1329,10 @@ struct LayoutShellView: View {
                         // (= SF Layer 3 fallback).
                         if let lucide = Lucide("folder-open") {
                             lucide
+                                .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                         } else {
                             Image(systemName: "folder")
+                                .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                         }
                     }
                     .help("打开")
@@ -1327,8 +1348,10 @@ struct LayoutShellView: View {
                         // Image(systemName:) (= SF Layer 3 fallback).
                         if let lucide = Lucide("folder-input") {
                             lucide
+                                .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                         } else {
                             Image(systemName: "square.and.arrow.down")
+                                .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                         }
                     }
                     .help("导入")
@@ -1358,6 +1381,7 @@ struct LayoutShellView: View {
                         showProjectSidebar.toggle()
                     } label: {
                         Image(systemName: "sidebar.left")
+                            .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                     }
                     .foregroundStyle(showProjectSidebar ? Color.accentColor : Color.secondary)
                     .help(showProjectSidebar ? "隐藏 项目管理区" : "显示 项目管理区")
@@ -1378,6 +1402,7 @@ struct LayoutShellView: View {
                         showSpecializedTools.toggle()
                     } label: {
                         Image(systemName: "wrench.and.screwdriver")
+                            .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                     }
                     .foregroundStyle(showSpecializedTools ? Color.accentColor : Color.secondary)
                     .help(showSpecializedTools ? "隐藏 工具区" : "显示 工具区")
@@ -1385,6 +1410,7 @@ struct LayoutShellView: View {
                         showAIChat.toggle()
                     } label: {
                         Image(systemName: "bubble.left")
+                            .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                     }
                     .foregroundStyle(showAIChat ? Color.accentColor : Color.secondary)
                     .help(showAIChat ? "隐藏 聊天区" : "显示 聊天区")
@@ -1392,6 +1418,7 @@ struct LayoutShellView: View {
                         showAIDynamic.toggle()
                     } label: {
                         Image(systemName: "chart.bar")
+                            .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                     }
                     .foregroundStyle(showAIDynamic ? Color.accentColor : Color.secondary)
                     .help(showAIDynamic ? "隐藏 动态区" : "显示 动态区")
@@ -1399,6 +1426,7 @@ struct LayoutShellView: View {
                         vm.exportEbook(format: "epub")
                     } label: {
                         Image(systemName: "square.and.arrow.up")
+                            .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                     }
                     .help("导出电子书 (PDF / EPUB / MOBI / TXT)")
                 }
