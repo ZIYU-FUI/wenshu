@@ -1276,7 +1276,9 @@ struct UpperBandZone: View {
         // Splitters stay visible (per Boss 15th OOB) so drag functionality
         // is preserved when projectSidebar is hidden.
         // Per Boss 58th OOB '过程中要有过度动画': animate sidebar hide/show
-        // via .animation(.easeInOut, value: sidebarIsVisible) modifier.
+        // via .animation(.easeInOut, value: showProjectSidebar) modifier.
+        // v0.24 fix (Boss 8/25 66th OOB '复刻过来'): also animate tools
+        // toggle via second .animation modifier for showSpecializedTools.
         HStack(spacing: 0) {
             // D_v0.5: project sidebar (wraps in if for hide/show)
             if showProjectSidebar {
@@ -1289,7 +1291,7 @@ struct UpperBandZone: View {
             // When sidebar is hidden, D_v1 VSplitter's 4 PT hit area (= Boss
             // 50th OOB 'hit area 4 PT') would still render at the leftmost
             // position, leaving a few pixels of width. Move D_v1 inside the
-            // 'if sidebarIsVisible' block so it disappears with the sidebar.
+            // 'if showProjectSidebar' block so it disappears with the sidebar.
             // preview always render (not yet implemented for toggle)
             ZoneModule(slot: .projectPreview, vm: vm, totalW: totalW, bandH: bandH)
                 .frame(width: preview)
