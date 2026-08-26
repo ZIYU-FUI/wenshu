@@ -545,7 +545,7 @@ public struct ChatView: View {
                     }
                 }
                 .buttonStyle(.borderedProminent)
-                // v0.25.1 ticket 033 final 2: dropped .frame(height: 32) per boss OOB '还是不对 是水平居中' (= use natural button height, let HStack .center alignment handle vertical center based on natural heights)
+                .frame(height: 32)  // v0.25.1 ticket 036: send button height 32 PT (= boss OOB '发送按钮高度调整到 32 和文本框一样' = match textfield 32 PT height). HStack .center alignment (= ticket 033 final) = both elements share the same vertical center axis.
                 .disabled(vm.inputText.isEmpty || vm.isSending)
                 .padding(.top, 8)  // v0.25.1 ticket 034 final 3: 8 PT outer top margin on chat input HStack
             }
