@@ -124,7 +124,7 @@ struct ZoneContentTabBar: View {
     }
 
     var body: some View {
-        HStack(spacing: 18) {
+        HStack(spacing: 10) {
             ForEach(items) { item in
                 Button {
                     selection = item.id
@@ -145,25 +145,20 @@ struct ZoneContentTabBar: View {
                 // kebab-case name, render via Lucide; else fall back to SF
                 // Image(systemName:). Both .bot and .squareLibrary are valid
                 // Lucide icons so Layer 1 path is used.
-                zoneContentTabBarIcon(item.icon)
-                    .font(.system(size: LayoutTokens.iconSize))
-                    .imageScale(.large)  // v0.24 boss验收fix (Boss 8/24): 12 PT font → ~12 PT visual boss验收fix (Boss 8/24): SF Symbol 视觉 size = ~17 PT
-                    // (= .medium at 18 PT font, slightly smaller than font to fit
-                    // in 18×18 PT frame with 0.5 PT padding each side)
-                    .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
-                                        // v0.25.1 (= ticket 020 hot area centered over icon):
-                    // owner 2026-08-26 OOB '热区是写了 但是没有叠加到
-                    // ICON 上 而是放在了 ICON 后在'. Per Apple SwiftUI
-                    // hit-testing rules = Button's hit area = label's
-                    // intrinsic content size, NOT outer .frame. Fix = wrap
-                    // icon in explicit Color.clear.frame(28, 28).contentShape
-                    // (.rect) INSIDE the label closure.
+                // v0.25.1 (= ticket 021 followup Apple HIG canonical):
+                // Color.clear as BASE (= label intrinsic = 28×28 = Button
+                // hit area), icon as .overlay centered. Previous ticket 020
+                // had it inverted (= clipped to 18×18).
+                Color.clear
+                    .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
                     .overlay(alignment: .center) {
-                        Color.clear
-                            .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
-                            .contentShape(Rectangle())
+                        zoneContentTabBarIcon(item.icon)
+                            .font(.system(size: LayoutTokens.iconSize))
+                            .imageScale(.large)
+                            .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
+                            .foregroundStyle(item == selectedItem ? Color.accentColor : Color.secondary)
                     }
-                    .foregroundStyle(item == selectedItem ? Color.accentColor : Color.secondary)
+                    .contentShape(Rectangle())
                     // v0.25.1 (= ticket 010 tab selected-state underline):
                     // owner 2026-08-26 OOB '现在的 tab 的选定状态 ICON 下
                     // 没有那个选定的小横线' = add Apple HIG canonical
@@ -199,6 +194,7 @@ struct ZoneContentTabBar: View {
                                 .fill(Color.accentColor)
                                 .frame(height: LayoutTokens.tabUnderlineHeight)
                                 .matchedGeometryEffect(id: "tabBarUnderline", in: tabBarNamespace, isSource: true)
+                                    .offset(y: 4)  // v0.25.1 ticket 021: push underline down 4 PT below icon (boss 8/26 OOB '距离 ICON 太近了')
                         }
                     }
                 }

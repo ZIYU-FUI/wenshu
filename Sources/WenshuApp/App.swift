@@ -1637,7 +1637,7 @@ struct ZoneTopToolbar: View {
             .overlay(alignment: .topLeading) {
                 // 真功能 mode (有 actions): button 触发
                 // Placeholder mode (空 actions): 老 SF Symbol 占位 (向后兼容)
-                HStack(spacing: 18) {
+                HStack(spacing: 10) {
                     if actions.isEmpty {
                         ForEach(0..<iconNames.count, id: \.self) { i in
                             ZoneIcon(systemName: iconNames[i], size: 18)
@@ -2346,31 +2346,21 @@ struct ChatZoneTabBar: View {
                         selectedTab = tab
                     } label: {
                         // v0.24 boss验收fix: icon only, no title label.
-                        // v0.25.1 (= ticket 005): left chat-zone tab renders Lucide
-                        // .bot (= owner 2026-08-26 OOB). Minimal-impact same
-                        // Lucide-first / SF-symbol-fallback helper as ZoneIcon.
-                        chatZoneTabBarIcon(tab.icon)
-                            .font(.system(size: LayoutTokens.iconSize))
-                            .imageScale(.large)
-                            .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
-                            .foregroundStyle(tab == selectedTab ? Color.accentColor : Color.secondary)
-                            // v0.25.1 (= ticket 020 hot area centered over icon):
-                            // owner 2026-08-26 OOB '热区是写了 但是没有叠加到
-                            // ICON 上 而是放在了 ICON 后在'. Per Apple SwiftUI
-                            // hit-testing rules (= medium.com/@davidhu-sg
-                            // hit-testing traps article + developer.apple.com/
-                            // documentation/swiftui/buttonstyle docs) =
-                            // Button's hit area = label's intrinsic content
-                            // size, NOT outer .frame. Fix = wrap icon in
-                            // explicit Color.clear.frame(28, 28).contentShape
-                            // (.rect) INSIDE the label closure (= .overlay
-                            // alignment: .center keeps the icon visually
-                            // centered within the 28 PT hot area).
+                        // v0.25.1 (= ticket 021 followup Apple HIG canonical):
+                        // Color.clear as BASE (= label intrinsic = 28×28 =
+                        // Button hit area), chatZoneTabBarIcon Lucide .bot /
+                        // .inbox as .overlay centered. Previous ticket 020
+                        // had it inverted (= clipped to 18×18).
+                        Color.clear
+                            .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
                             .overlay(alignment: .center) {
-                                Color.clear
-                                    .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
-                                    .contentShape(Rectangle())
+                                chatZoneTabBarIcon(tab.icon)
+                                    .font(.system(size: LayoutTokens.iconSize))
+                                    .imageScale(.large)
+                                    .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
+                                    .foregroundStyle(tab == selectedTab ? Color.accentColor : Color.secondary)
                             }
+                            .contentShape(Rectangle())
                             // v0.25.1 (= ticket 018 explicit 28×28 hot zone):
                             // owner 2026-08-26 OOB '现在的 ICON 还是不是很好点
                             // 能不能写一个 28×28 的透明矩形的热区' = ticket
@@ -2400,6 +2390,7 @@ struct ChatZoneTabBar: View {
                                         // Boss 8/22 sixth OOB backlog 20), the
                                         // slide animation already works.
                                         .matchedGeometryEffect(id: "tabBarUnderline", in: tabBarNamespace, isSource: true)
+                                    .offset(y: 4)  // v0.25.1 ticket 021: push underline down 4 PT below icon (boss 8/26 OOB '距离 ICON 太近了')
                                 }
                             }
                     }
@@ -2433,14 +2424,19 @@ struct ChatZoneTabBar: View {
                     .imageScale(.large)
                     .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                     .foregroundStyle(.secondary)
-                    // v0.25.1 (= ticket 020 hot area centered over icon):
-                    // .inbox archive button (= Boss 8/25 OOB ticket 015.014).
-                    .overlay(alignment: .center) {
-                        Color.clear
-                            .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(IconButtonStyle())
+                    // v0.25.1 (= ticket 021 followup Apple HIG canonical):
+                    // Color.clear as BASE (= label intrinsic = 28×28 =
+                    // Button hit area), archive icon as .overlay centered.
+                    // Previous ticket 020 had it inverted.
+                    Color.clear
+                        .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
+                        .overlay(alignment: .center) {
+                            Image(systemName: "archivebox")
+                                .font(.system(size: LayoutTokens.iconSize))
+                                .imageScale(.large)
+                                .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
+                        }
+                        .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .contentShape(Rectangle())

@@ -82,34 +82,34 @@ struct DynamicZoneTabBar: View {
     @Namespace private var tabBarNamespace
 
     var body: some View {
-        HStack(spacing: 18) {
+        HStack(spacing: 10) {
             ForEach(DynamicZoneView.DynamicTab.allCases) { tab in
                 Button {
                     selectedTab = tab
                 } label: {
                     // v0.24 boss验收fix: icon only, no title label.
 // Boss 8/24 follow-up: 'tab 里标题小字不需要'.
-                Image(systemName: tab.icon)
-                    .font(.system(size: LayoutTokens.iconSize))
-                    .imageScale(.large)  // v0.24 boss验收fix (Boss 8/24): 12 PT font → ~12 PT visual: 强制 SF Symbol 视觉 small, 防止 frame 溢出
-                    .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
-                                        // v0.25.1 (= ticket 020 hot area centered over icon):
-                    // owner 2026-08-26 OOB '热区是写了 但是没有叠加到
-                    // ICON 上 而是放在了 ICON 后在'. Per Apple SwiftUI
-                    // hit-testing rules (medium.com/@davidhu-sg hit-testing
-                    // traps article + developer.apple.com/documentation/
-                    // swiftui/buttonstyle docs) = Button's hit area = label's
-                    // intrinsic content size, NOT outer .frame. Fix = wrap
-                    // icon in explicit Color.clear.frame(28, 28).contentShape
-                    // (.rect) INSIDE the label closure (= label's intrinsic
-                    // size = 28x28 → Button's hit area = 28x28 → icon centered
-                    // within it via .overlay alignment center).
+                // v0.25.1 (= ticket 021 followup Apple HIG canonical):
+                // owner 2026-08-26 OOB '热区是写了 但是没有叠加到 ICON
+                // 上 而是放在了 ICON 后在' = previous ticket 020 attempt
+                // put Color.clear INSIDE the icon's .overlay (= clipped
+                // to 18×18 because overlay inherits base view's frame).
+                // Per Apple HIG + medium hit-testing traps article, the
+                // CORRECT pattern = Color.clear as the BASE view (= its
+                // .frame(28, 28) becomes the label's intrinsic size =
+                // Button's hit area), icon (Lucide 18 PT) as .overlay
+                // aligned .center (= icon visually centered within the
+                // 28×28 hot area, no clipping).
+                Color.clear
+                    .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
                     .overlay(alignment: .center) {
-                        Color.clear
-                            .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
-                            .contentShape(Rectangle())
+                        Image(systemName: tab.icon)
+                            .font(.system(size: LayoutTokens.iconSize))
+                            .imageScale(.large)
+                            .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
+                            .foregroundStyle(tab == selectedTab ? Color.accentColor : Color.secondary)
                     }
-                    .foregroundStyle(tab == selectedTab ? Color.accentColor : Color.secondary)
+                    .contentShape(Rectangle())
                     // v0.25.1 (= ticket 010 tab selected-state underline):
                     // owner 2026-08-26 OOB '现在的 tab 的选定状态 ICON 下
                     // 没有那个选定的小横线' = add Apple HIG canonical
@@ -148,6 +148,7 @@ struct DynamicZoneTabBar: View {
                                 .fill(Color.accentColor)
                                 .frame(height: LayoutTokens.tabUnderlineHeight)
                                 .matchedGeometryEffect(id: "tabBarUnderline", in: tabBarNamespace, isSource: true)
+                                    .offset(y: 4)  // v0.25.1 ticket 021: push underline down 4 PT below icon (boss 8/26 OOB '距离 ICON 太近了')
                         }
                     }
                 }
