@@ -50,22 +50,30 @@ public struct LibraryRootView: View {
     private var shouldShowOnboarding: Bool {
         // v0.24 boss验收fix (Boss 8/24 OOB): trigger condition strict.
         //
-        // Boss 拍 'anbaiqiang.ws' = wenshu 仓库 = .ws file (not folder).
+        // Boss 拍 'anbaiqiang.ws' = wenshu 仓库 = .ws directory (= per v0.26 spec ticket 015,
+        // .ws is now a macOS-style package directory, NOT a single file;
+        // LibraryRootView.swift:296-309 creates Info.plist inside it).
+        //
         // Trigger = libraryPath empty OR path doesn't end with '.ws' OR
-        // .ws file doesn't exist on disk.
+        // .ws directory doesn't exist on disk.
         //
         // v0.24 boss验收fix #2 (Boss 8/24 OOB follow-up): 之前 trigger only
         // checked path existence, too lax. Boss 之前 saved '/Users/anbaiqiang/Documents'
         // (= parent folder, not anbaiqiang.ws file) → existed on disk → trigger
         // passed → main UI shown, even though no .ws file 实际 created.
-        // Fix: require path ends with '.ws' AND file exists.
+        // v0.26 amendment: .ws is a DIRECTORY (not file); require path ends
+        // with '.ws' AND directory exists AND Info.plist is readable.
         if libraryPath.isEmpty { return true }
         // v0.24 boss验收fix: must end with .ws extension
         if !libraryPath.hasSuffix(".ws") { return true }
-        // File must exist
+        // Directory must exist (v0.26: .ws is a directory, not a file)
         var isDir: ObjCBool = false
         let exists = FileManager.default.fileExists(atPath: libraryPath, isDirectory: &isDir)
         if !exists { return true }
+        if !isDir.boolValue { return true }
+        // v0.26: Info.plist must be readable (= WSSchemaVersion check)
+        let infoPlistURL = URL(fileURLWithPath: libraryPath).appendingPathComponent("Info.plist")
+        if !FileManager.default.isReadableFile(atPath: infoPlistURL.path) { return true }
         return false
     }
 
@@ -193,17 +201,20 @@ Group {
         .background(DesignColor.zoneSurface)
     }
 
-    /// showOpenPanel: NSOpenPanel for selecting existing .ws file.
-    /// Boss 8/24 OOB 拍: .ws file is the 仓库 format (technical file, not
-    /// folder). Apple HIG 'open existing file' pattern.
+    /// showOpenPanel: NSOpenPanel for selecting existing .ws directory.
+    /// v0.26 amendment: .ws is now a DIRECTORY (= macOS-style package;
+    /// LibraryRootView.swift:296-309 creates Info.plist inside it).
+    /// Boss 8/24 OOB original: .ws file is the 仓库 format.
+    /// Boss 8/26 OOB clarification: .ws is the package directory containing
+    /// shelves/ + reference-library/ + cache/ + Info.plist + chat.sqlite.
     private func showOpenPanel() {
         let panel = NSOpenPanel()
         panel.title = "打开已有文枢仓库"
-        panel.message = "选择一个现有的文枢仓库文件"
+        panel.message = "选择一个现有的文枢仓库目录"
         panel.prompt = "打开"
         panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = false
-        panel.canChooseFiles = true
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
         panel.canCreateDirectories = false
         panel.showsHiddenFiles = false
         if #available(macOS 11.0, *) {
@@ -223,11 +234,15 @@ Group {
         }
     }
 
-    /// showSavePanel: NSSavePanel for new .ws file.
+    /// showSavePanel: NSSavePanel for new .ws package directory.
+    /// v0.26 amendment: .ws is now a package DIRECTORY (= boss 8/26 OOB
+    /// 'library-public / cross-book shared' model). The NSSavePanel still
+    /// takes a "filename" but createWenshuWorkspace creates a directory
+    /// at that name (no .ws file inside).
     /// Boss 8/24 OOB 拍: '.ws 默认的文件名, 取用户电脑的用户名.
     /// 我的电脑应该是 anbaiqiang. 所以建出来的文件应该叫 anbaiqiang.ws'
     /// = default name = NSUserName() (Apple API for current Mac username).
-    /// Apple HIG 'create new file' pattern (NSSavePanel with default name).
+    /// Apple HIG 'create new package' pattern (NSSavePanel with default name).
     private func showSavePanel() {
         let panel = NSSavePanel()
         panel.title = "新建文枢仓库"
@@ -238,23 +253,23 @@ Group {
         // on 老板's machine). Boss 拍 '我的电脑应该是 anbaiqiang'.
         let username = NSUserName()
         panel.nameFieldStringValue = "\(username).ws"
-        panel.nameFieldLabel = "仓库文件名"
+        panel.nameFieldLabel = "仓库名"
         panel.showsTagField = false
         panel.canCreateDirectories = true
         panel.isExtensionHidden = false
         // Boss 拍 '不用说库用件叫 .ws' (no .ws in user-facing text) but the
-        // file IS .ws (technical file format, like .photoslibrary or .fcpbundle).
-        // Show extension so user sees what they're creating.
+        // .ws package IS .ws (technical package format, like .photoslibrary
+        // or .fcpbundle). Show extension so user sees what they're creating.
         if #available(macOS 11.0, *) {
             panel.canSelectHiddenExtension = true
             panel.allowedContentTypes = []
         }
 
         // v0.24 boss验收fix (Boss 8/24 OOB '点了创建, 不成功'): NSSavePanel
-        // returns URL on OK but does NOT actually create the entity.
+        // returns URL on OK but does NOT actually create the directory.
         // For .ws registered as com.apple.package (= Finder bundle),
-        // caller must create as directory. Call createWenshuWorkspace
-        // (at:) to make package + subdirs on disk.
+        // caller must create the package directory. Call createWenshuWorkspace
+        // (at:) to make package + Info.plist + subdirs on disk.
         let handle: (NSApplication.ModalResponse) -> Void = { response in
             if response == .OK, let url = panel.url {
                 Self.createWenshuWorkspace(at: url)
