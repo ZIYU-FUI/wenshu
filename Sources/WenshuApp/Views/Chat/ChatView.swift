@@ -546,8 +546,8 @@ public struct ChatView: View {
                         }
                     }
                 }
-                .buttonStyle(.plain)  // v0.25.1 ticket 038 final 4: keep .plain (= no minimum height constraint). Use explicit .frame(height: 47) to match textfield visual height per pixel truth measurement (= textfield = 47 PT, button = 37 PT = 10 PT short = boss OOB '文本框比按钮高 10PT 以上' = make button 47 PT = match textfield).
-                .frame(height: 47)  // v0.25.1 ticket 038 final 4: pin button visual height to 47 PT to match textfield visual height per pixel truth + boss OOB '按钮和文本框一样高'
+                .buttonStyle(.plain)  // v0.25.1 ticket 038 final 5: keep .plain (= no minimum height constraint). DON'T change button .frame(height:) = revert to .frame(height: 24) per boss OOB '不要改按钮的高度'. Button visual height will be determined by SwiftUI natural rendering + Lucide icon frame.
+                .frame(height: 24)  // v0.25.1 ticket 038 final 5: revert to .frame(height: 24) per boss OOB '不要改按钮的高度 按钮和文本框一样高 只调按钮的位置'. Boss said don't change button height, only adjust position (= vertical center alignment).
                 .disabled(vm.inputText.isEmpty || vm.isSending)
                 .padding(.top, 16)  // v0.25.1 ticket 037: 8 PT additional outer top margin per boss OOB '文本框上面 8PT 不够 再加 8 吧' (= 8 PT existing + 8 PT new = 16 PT total outer top margin on chat input HStack)
             }
