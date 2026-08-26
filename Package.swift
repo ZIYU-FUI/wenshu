@@ -18,11 +18,22 @@ let package = Package(
         .executable(name: "WenshuApp", targets: ["WenshuApp"])
     ],
     dependencies: [
-        // v0.00.0 bootstrap: no third-party deps. Add later via /to-tickets (LLM provider etc.)
+        // v0.25: third-party icon set (= owner 2026-08-26 unlocked third-party deps with grill gate,
+        // see .scratch/2026-08-26-lucide-icon-migration/spec.md §3). Every new dep must be owner-approved
+        // via grill; ANAN does not silently add SDKs.
+        //
+        // Lucide (= bring-shrubbery/lucide-swift 1.25.0) — pure SwiftUI Shape renderer for Lucide Icons.
+        // 1700+ icons compiled into native Path code (no SVG at runtime), MIT license. macOS 14+ floor
+        // (= compatible with our macOS 27 target). Tracking upstream: package versions mirror Lucide
+        // exactly (= this 1.25.0 ships icons from lucide@1.25.0).
+        .package(url: "https://github.com/bring-shrubbery/lucide-swift.git", exact: "1.25.0"),
     ],
     targets: [
         .executableTarget(
             name: "WenshuApp",
+            dependencies: [
+                .product(name: "Lucide", package: "lucide-swift"),
+            ],
             path: "Sources/WenshuApp",
             exclude: [
                 // Info.plist + AppIcon are bundled by Scripts/build-app.sh into
