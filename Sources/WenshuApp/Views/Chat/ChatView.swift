@@ -336,9 +336,31 @@ public struct ChatView: View {
             Divider()
 
             // 输入框 + 发送按钮 (Apple HIG SwiftUI 真值)
-            HStack(spacing: 8) {
+            // v0.25.1 (= ticket 030 chat send button 8 PT extra gap):
+            // owner 2026-08-26 OOB '聊天文本框上加 8 PT 的间隔' = add
+            // 8 PT additional gap between textfield and send button
+            // (= 8 PT boss-spoken + current 8 PT = 16 PT total visual
+            // breathing room per Apple HIG TextField conventions).
+            HStack(spacing: 16) {
                 // v0.24 boss验收fix (2026-08-24): placeholder shows different text based on key state.
                 // Boss 8/24 (out-of-band): '请先在设置中设置好大模型提供方'.
+                // v0.25.1 (= ticket 030 chat send button Lucide icon + 8 PT textfield padding):
+                // owner 2026-08-26 OOB '聊天区 聊天文本框后面的按钮 发送的
+                // 小飞机换成 send 聊天文本框上加 8 PT 的间隔' =
+                // 1) replace SF paperplane.fill (= Apple Send ICON) with
+                //    Lucide .send (= paper plane icon, same visual
+                //    metaphor as SF paperplane but Lucide outline style
+                //    for consistency with the rest of the project per
+                //    ticket 005+).
+                // 2) add 8 PT horizontal padding to the textfield (= text
+                //    has 8 PT of breathing room from the rounded border,
+                //    = Apple HIG TextField default padding is 4 PT, owner
+                //    wants 12 PT effective = 4 + 8).
+                // 3) increase HStack(spacing: 8) to HStack(spacing: 16)
+                //    per owner spec '在聊天文本框上加 8 PT 的间隔' = add 8 PT
+                //    additional gap between textfield and send button
+                //    (= boss wants more visual breathing room between
+                //    textfield and send button than current 8 PT).
                 TextField("输入消息...",
                           text: $vm.inputText, axis: .vertical)
                     .textFieldStyle(.roundedBorder)
@@ -356,6 +378,7 @@ public struct ChatView: View {
                             inputFocused = true
                         }
                     }
+                    .padding(.horizontal, 8)  // v0.25.1 ticket 030: 8 PT textfield inner padding (= boss OOB '聊天文本框上加 8 PT 的间隔')
                 Button {
                     Task { await vm.send() }
                 } label: {
@@ -363,7 +386,20 @@ public struct ChatView: View {
                         ProgressView()
                             .controlSize(.small)
                     } else {
-                        Image(systemName: "paperplane.fill")
+                        // v0.25.1 (= ticket 030): Lucide .send icon
+                        // (= paper plane / send glyph) for the
+                        // send button. Replaces SF paperplane.fill
+                        // per boss 2026-08-26 OOB. Lucide-first
+                        // pattern with SF Symbol fallback (= Layer
+                        // 3 fallback) preserves behavior if
+                        // 'send' Lucide is missing.
+                        if let lucide = Lucide("send") {
+                            lucide
+                                .font(.system(size: 16))
+                                .frame(width: 16, height: 16)
+                        } else {
+                            Image(systemName: "paperplane.fill")
+                        }
                     }
                 }
                 .buttonStyle(.borderedProminent)
