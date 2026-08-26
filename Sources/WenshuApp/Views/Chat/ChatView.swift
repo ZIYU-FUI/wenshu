@@ -442,6 +442,7 @@ public struct ChatView: View {
                     }
                 }
                 .buttonStyle(.borderedProminent)
+                .frame(height: 32)  // v0.25.1 ticket 033 followup: pin button height to 32 PT to match textfield visual height (= boss OOB '视觉上 文本框和按钮高度还是不一至' = button default height ~40 PT with .borderedProminent is taller than textfield 32 PT, = pin to 32 PT for visual match)
                 .disabled(vm.inputText.isEmpty || vm.isSending)
             }
             .padding(.horizontal, 18)
