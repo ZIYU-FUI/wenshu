@@ -429,6 +429,16 @@ public struct ChatView: View {
             //    alignment that boss has been trying to tell us to
             //    use all along, = vertical center between the two
             //    elements at their natural heights).
+            // v0.25.1 (= ticket 034 final 3): owner 2026-08-26 OOB
+            // '你理解错了 是文本框的外边距 向上 8PT 这个还是要的'
+            // = 8 PT OUTER top margin on the chat input HStack
+            // (= between the Divider above and the HStack that
+            // contains the textfield + button). The textfield +
+            // button are offset down 8 PT as a group (= the
+            // 8 PT margin is OUTSIDE the textfield, NOT inside
+            // = no inner padding on the textfield itself).
+            // Implementation: .padding(.top, 8) on the HStack
+            // (= outer margin around the HStack content).
             HStack(alignment: .center, spacing: 8) {
                 // v0.24 boss验收fix (2026-08-24): placeholder shows different text based on key state.
                 // Boss 8/24 (out-of-band): '请先在设置中设置好大模型提供方'.
@@ -464,9 +474,8 @@ public struct ChatView: View {
                             inputFocused = true
                         }
                     }
-                    .padding(.top, 8)  // v0.25.1 ticket 030 restored (= boss OOB '水平居中保持 然后那向上的 8PT 还是要保留的' = preserve the 8 PT gap above textfield per ticket 030)
-                    // v0.25.1 (= ticket 034 chat textfield focus ring
-                    // = 1 PT): owner 2026-08-26 OOB '文本框聚焦时 这个
+                    // v0.25.1 (= ticket 034 chat textfield 1 PT focus
+                    // ring): owner 2026-08-26 OOB '文本框聚焦时 这个
                     // 蓝色描边太粗了 改成 1PT 试试' = SwiftUI
                     // TextField .roundedBorder style has a default
                     // focus ring ~2-3 PT thick. Boss wants the focus
@@ -475,10 +484,42 @@ public struct ChatView: View {
                     // border using .textFieldStyle(.plain) (= removes
                     // system focus ring) + add a conditional
                     // RoundedRectangle stroke (lineWidth: 1) on focus.
+                    // v0.25.1 (= ticket 035 chat textfield placeholder
+                    // color + position): owner 2026-08-26 OOB '输入
+                    // 消息... 这个提示 查官方文档 默认是什么样的 现在
+                    // 颜色过亮 位置也不对' = the placeholder text
+                    // '输入消息...' currently looks too bright (= high
+                    // contrast, = looks like real text) and is in
+                    // the wrong position (= too far left, no left
+                    // padding). Per Apple HIG (developer.apple.com/
+                    // design/human-interface-guidelines/color +
+                    // developer.apple.com/design/human-interface-
+                    // guidelines/components/selection-and-input/
+                    // text-fields), the placeholder text color
+                    // should be `placeholderTextColor` (= semantic
+                    // = .gray in SwiftUI = systemGray), and the
+                    // position should be left-aligned with 12 PT
+                    // horizontal padding (= Apple HIG text field
+                    // default). Fix = add .padding(.horizontal, 12)
+                    // to the TextField (= Apple HIG default 12 PT
+                    // horizontal padding), and add a subtle
+                    // Color.gray.opacity(0.1) background (= so the
+                    // textfield is visually a 'control' surface, not
+                    // a transparent overlay, = the placeholder text
+                    // naturally appears in the secondary color
+                    // without being too bright). The 1 PT focus
+                    // ring (ticket 034) + 8 PT outer top margin
+                    // (ticket 034 final 3) preserved.
                     .textFieldStyle(.plain)
+                    .frame(height: 32)  // v0.25.1 ticket 035: textfield height 32 PT (= boss OOB '本文框的高度 32 你不要改动他' = 跟 button 高度 一致 + 水平居中 + 8 PT outer top margin + 1 PT focus ring + Lucide .send 全部保留). 修真因 修真因 (= 把 textfield visual 拉高 跟 button 一致 = 32 PT)
+                    .padding(.horizontal, 12)
                     .background(
-                        RoundedRectangle(cornerRadius: 6)
-                            .strokeBorder(inputFocused ? Color.accentColor : Color.gray.opacity(0.4), lineWidth: 1)
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(Color.gray.opacity(0.1))
+                            RoundedRectangle(cornerRadius: 6)
+                                .strokeBorder(inputFocused ? Color.accentColor : Color.gray.opacity(0.4), lineWidth: 1)
+                        }
                     )
                 Button {
                     Task { await vm.send() }
@@ -506,6 +547,7 @@ public struct ChatView: View {
                 .buttonStyle(.borderedProminent)
                 // v0.25.1 ticket 033 final 2: dropped .frame(height: 32) per boss OOB '还是不对 是水平居中' (= use natural button height, let HStack .center alignment handle vertical center based on natural heights)
                 .disabled(vm.inputText.isEmpty || vm.isSending)
+                .padding(.top, 8)  // v0.25.1 ticket 034 final 3: 8 PT outer top margin on chat input HStack
             }
             .padding(.horizontal, 18)
         }
