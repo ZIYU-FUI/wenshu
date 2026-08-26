@@ -1470,17 +1470,9 @@ struct LowerBandZone: View {
 /// 区域顶/底栏共享 icon 占位渲染 (老板 8/18 拍 "用 SF 替换矩形" → 矩形 = 占位标记, 用 SF Symbol 替换)
 /// 老板 2026-08-19 拍 "我的蓝色占位矩形,用 SF ICON 替代" → SF Symbol Image 直接替
 /// v0.14.5: 重写 ZoneIcon helper, 顶栏 3 SF Symbol + 底栏占位 SF Symbol = 全部 SF Symbol
-/// v0.25 ticket 002 follow-up: zone-toolbar 'speaker.wave.2' SF Symbol had no Lucide
-/// equivalent in bring-shrubbery/lucide-swift@1.25.0 — owner 2026-08-26 'clean up
-/// everything' + macOS screenshot triggered owner red-box report (= 5 zone toolbar
-/// icons all rendered Lucide circleQuestionMark via the Layer-3 fallback path).
-/// Root cause = ZoneToolbarAction.icon: String + ZoneIcon's WenshuIcon.image(name:)
-/// routed SF Symbols through Layer-3 (= Layer-3 = mistyped-string fallback, never
-/// the right path for an SF→Lucide migration). Fix: ZoneIcon now takes a typed
-/// `iconCase: WenshuIcon` (= Layer-1 exhaustive-switch path = renders the right
-/// Lucide glyph).
+/// 老板 8/18 拍 "画矩形占位, 帮我用 SF 占位替换" → SF Symbol Image 不是 ShapePath 矩形
 struct ZoneIcon: View {
-    let iconCase: WenshuIcon
+    let systemName: String
     let size: CGFloat
     var body: some View {
         // 老板 8/18 拍 SF Symbol 替换矩形占位
@@ -1488,22 +1480,21 @@ struct ZoneIcon: View {
         // 只用 .font(.system(size:)) 给字号, 不用 .frame 约束尺寸
         // SF Symbol 字号 18 PT 视觉占 SF Symbol 默认 padding (~16 PT 视觉), 不撑 18×18 框
         //
-        // v0.25 ticket 002 followup: type-safe WenshuIcon case (= Layer 1 path,
-        // not Layer 3 fallback). WenshuIcon.lucideIcon renders the right Lucide
-        // glyph for every case; missingIcon case renders Lucide circleQuestionMark
-        // (= visual signal that the icon was never assigned to a Lucide case).
-        iconCase.image(size: size, foregroundStyle: DesignColor.accentBlue)
+        // v0.25 ticket 002: route through WenshuIcon Layer 3 path (= dynamic
+        // string). 老板 8/26 的"全换" mandate = SF→Lucide; placeholder icon
+        // names in `iconNames: [String]` + `ZoneToolbarAction.icon` continue
+        // through the Layer 3 fallback path so a typo or a name that doesn't
+        // exist in Lucide renders the Lucide circleQuestionMark glyph instead
+        // of crashing or rendering blank.
+        WenshuIcon.image(name: systemName, size: size, foregroundStyle: DesignColor.accentBlue)
     }
 }
 
-/// 区域顶部工具栏: 30 PT 高, 占位文字 + 底 2 PT 分割线.
+/// 区域顶部工具栏: 30 PT 高, 3 SF Symbol 占位 + 占位文字 + 底 2 PT 分割线.
 /// 宽度由父组件约束自动撑到区域模块宽度 (不画穿 splitter).
-/// v0.22 ticket B-0: 支持 [ZoneToolbarAction] 参数 (placeholder mode, 保留向后兼容).
-/// v0.25 ticket 002 followup: iconCases is `[WenshuIcon]` (= type-safe enum), not
-/// `[String]`, so the Layer-1 exhaustive-switch path is the one used (= no Layer 3
-/// fallback path is reached for zone-toolbar icons).
+/// v0.22 ticket B-0: 支持 [ZoneToolbarAction] 参数 (默认空 = placeholder mode, 向后兼容).
 struct ZoneTopToolbar: View {
-    let iconCases: [WenshuIcon]
+    let iconNames: [String]
     var actions: [ZoneToolbarAction] = []
 
     var body: some View {
@@ -1513,18 +1504,18 @@ struct ZoneTopToolbar: View {
             .frame(height: toolbarH)
             .overlay(alignment: .topLeading) {
                 // 真功能 mode (有 actions): button 触发
-                // Placeholder mode (空 actions): 老 iconCases 占位 (向后兼容)
+                // Placeholder mode (空 actions): 老 SF Symbol 占位 (向后兼容)
                 HStack(spacing: 15) {
                     if actions.isEmpty {
-                        ForEach(0..<iconCases.count, id: \.self) { i in
-                            ZoneIcon(iconCase: iconCases[i], size: 18)
+                        ForEach(0..<iconNames.count, id: \.self) { i in
+                            ZoneIcon(systemName: iconNames[i], size: 18)
                         }
                     } else {
                         ForEach(Array(actions.enumerated()), id: \.offset) { _, item in
                             Button {
                                 item.action()
                             } label: {
-                                ZoneIcon(iconCase: item.icon, size: 18)
+                                ZoneIcon(systemName: item.icon, size: 18)
                             }
                             .buttonStyle(.plain)
                             .help(item.label)
@@ -1556,10 +1547,7 @@ struct ZoneTopToolbar: View {
 /// Boss 2026-08-22 拍: 每个 zone 顶部 icon 真的用起来 (不再 placeholder).
 struct ZoneToolbarAction {
     let label: String      // accessibility + tooltip
-    let icon: WenshuIcon   // v0.25 ticket 002 fixup: type-safe WenshuIcon case
-                            // (= exhaustively mapped to Lucide via WenshuIcon.lucideIcon)
-                            // instead of String (= Layer 3 fallback path that renders
-                            // circleQuestionMark on every zone toolbar icon).
+    let icon: String       // SF Symbol name
     let action: () -> Void
 }
 
@@ -1751,16 +1739,7 @@ struct ZoneModule: View {
             return [
                 ZoneToolbarAction(
                     label: "Read Aloud",
-                    icon: .missingIcon,   // v0.25 ticket 002 followup fix: speaker.wave.2 SF
-                                          // Symbol had no Lucide equivalent in
-                                          // bring-shrubbery/lucide-swift@1.25.0 that
-                                          // rendered correctly (volume2 renders the
-                                          // volume-2 speaker glyph). Per owner
-                                          // 2026-08-26 'clean up everything':
-                                          // fall back to layer-3 missing-icon glyph
-                                          // until owner decides the right icon name.
-                                          // Replaced by `WenshuIcon` enum case in
-                                          // .lucideIcon (compiles either way).
+                    icon: "speaker.wave.2",
                     action: { Task { await readAloudLastReply() } }
                 ),
             ]
@@ -1774,7 +1753,7 @@ struct ZoneModule: View {
             return [
                 ZoneToolbarAction(
                     label: "Templates",
-                    icon: .docBadgePlus,
+                    icon: "doc.badge.plus",
                     action: {}
                 ),
             ]
@@ -1784,15 +1763,12 @@ struct ZoneModule: View {
             return [
                 ZoneToolbarAction(
                     label: "Graph",
-                    icon: .missingIcon,   // v0.25 ticket 002 followup fix:
-                                          // circle.grid.cross.fill has no Lucide
-                                          // equivalent. Layer-3 missing-icon
-                                          // glyph per owner grill-cleanup rule.
+                    icon: "circle.grid.cross.fill",
                     action: {}
                 ),
                 ZoneToolbarAction(
                     label: "Search",
-                    icon: .magnifyingglass,
+                    icon: "magnifyingglass",
                     action: { showingSearch.toggle() }
                 ),
             ]
