@@ -1180,6 +1180,112 @@ struct LayoutShellView: View {
     @AppStorage("wenshu.zoneVisible.specializedTools") private var showSpecializedTools: Bool = true
     @AppStorage("wenshu.zoneVisible.aiChat") private var showAIChat: Bool = true
     @AppStorage("wenshu.zoneVisible.aiDynamic") private var showAIDynamic: Bool = true
+    // v0.25.1 (= ticket 029a state layer): owner 2026-08-26 OOB
+    // '编辑器顶栏居右 放置一个新 ICON 用 expand 点击后 整个编辑器最大化
+    // 其它所有栏全都隐藏 此时 ICON 变成 shrink 点击后 恢复到刚刚点击
+    // expand 前的状态'. State layer (= this ticket) = persistence + snapshot
+    // logic. UI layer (= next ticket 029b) = add the 4th expand/shrink tab
+    // to editor ZoneContentView. Action layer (= ticket 029c) = wire
+    // expand()/shrink() actions to the tab click.
+    // Boss 2026-08-26 OOB constraint '注意这个地方不是回复成默认 如果点 expand
+    // 前 有区域已经隐藏 点 shrink 后 该区域不应该恢复显示' = snapshot
+    // (= NOT default restore) implemented via Codable JSON snapshot in
+    // AppStorage.
+    @AppStorage("wenshu.editor.maximized") private var editorMaximized: Bool = false
+    @AppStorage("wenshu.editor.preExpandVisibility") private var preExpandVisibilityJSON: String = ""
+
+    /// v0.25.1 (= ticket 029a): Codable snapshot of 5 zone-toggle flags
+    /// captured at the moment the user clicked expand (= before hiding
+    /// all other zones). On shrink, snapshot is restored (= NOT default
+    /// behavior per boss 2026-08-26 OOB '如果点 expand 前 有区域已经隐藏
+    /// 点 shrink 后 该区域不应该恢复显示'). Stored as JSON in
+    /// AppStorage so it survives app restart (= if app quits while
+    /// expanded, the pre-expand visibility is preserved and used for
+    /// the next shrink).
+    private struct VisibilitySnapshot: Codable {
+        let projectSidebar: Bool
+        let projectPreview: Bool
+        let specializedTools: Bool
+        let aiChat: Bool
+        let aiDynamic: Bool
+
+        static func capture(
+            projectSidebar: Bool,
+            projectPreview: Bool,
+            specializedTools: Bool,
+            aiChat: Bool,
+            aiDynamic: Bool
+        ) -> VisibilitySnapshot {
+            VisibilitySnapshot(
+                projectSidebar: projectSidebar,
+                projectPreview: projectPreview,
+                specializedTools: specializedTools,
+                aiChat: aiChat,
+                aiDynamic: aiDynamic
+            )
+        }
+    }
+
+    /// v0.25.1 (= ticket 029a): expand action. Snapshots current
+    /// visibility flags → hides all 5 other zones → editor zone now
+    /// occupies the full window. The expand ICON (= tab 029b) then
+    /// becomes `.shrink`.
+    private func expandEditor() {
+        // 1. Snapshot current visibility (= preserve any already-hidden
+        //    zones per boss OOB).
+        let snapshot = VisibilitySnapshot.capture(
+            projectSidebar: showProjectSidebar,
+            projectPreview: showProjectPreview,
+            specializedTools: showSpecializedTools,
+            aiChat: showAIChat,
+            aiDynamic: showAIDynamic
+        )
+        // 2. Persist snapshot to AppStorage (= survives app quit).
+        if let data = try? JSONEncoder().encode(snapshot),
+           let json = String(data: data, encoding: .utf8) {
+            preExpandVisibilityJSON = json
+        }
+        // 3. Hide all 5 other zones (= editor takes full window).
+        showProjectSidebar = false
+        showProjectPreview = false
+        showSpecializedTools = false
+        showAIChat = false
+        showAIDynamic = false
+        // 4. Mark editor as maximized (= UI layer shows `.shrink`
+        //    ICON instead of `.expand`).
+        editorMaximized = true
+    }
+
+    /// v0.25.1 (= ticket 029a): shrink action. Restores the
+    /// pre-expand visibility snapshot (= NOT default) → editor zone
+    /// shrinks back to its normal column position. The ICON then
+    /// reverts from `.shrink` to `.expand`.
+    private func shrinkEditor() {
+        // 1. Read snapshot from AppStorage.
+        guard let data = preExpandVisibilityJSON.data(using: .utf8),
+              let snapshot = try? JSONDecoder().decode(VisibilitySnapshot.self, from: data) else {
+            // No snapshot (= first shrink after crash / no expand ever
+            // happened). Default behavior: restore all 5 zones visible.
+            showProjectSidebar = true
+            showProjectPreview = true
+            showSpecializedTools = true
+            showAIChat = true
+            showAIDynamic = true
+            editorMaximized = false
+            preExpandVisibilityJSON = ""
+            return
+        }
+        // 2. Restore snapshot (= boss OOB constraint: pre-hidden zones
+        //    stay hidden).
+        showProjectSidebar = snapshot.projectSidebar
+        showProjectPreview = snapshot.projectPreview
+        showSpecializedTools = snapshot.specializedTools
+        showAIChat = snapshot.aiChat
+        showAIDynamic = snapshot.aiDynamic
+        // 3. Clear snapshot + mark editor as not maximized.
+        preExpandVisibilityJSON = ""
+        editorMaximized = false
+    }
 
     var body: some View {
         // v0.24 fix (Boss 8/25 62nd OOB 'still not work, BUGs everywhere'):
@@ -1226,8 +1332,22 @@ struct LayoutShellView: View {
             // band height transitions are now smooth (= no instant snap when
             // lower band collapses or all 5 zones hidden).
             VStack(spacing: 0) {
-                // 上 band: 4 区 + 3 拖拽线 (Apple HIG HStack 范式)
-                UpperBandZone(vm: vm, showProjectSidebar: showProjectSidebar, showProjectPreview: showProjectPreview, showSpecializedTools: showSpecializedTools, totalW: totalW, bandH: bandH)
+                            // v0.25.1 (= ticket 029a state layer): when editorMaximized
+                            // = true, override all 5 other-zone visibility flags to
+                            // false (= editor takes the full window). The original
+                            // @AppStorage flags stay in UserDefaults (= snapshot
+                            // behavior on shrink). Implementation per boss 8/25 ticket-
+                            // by-review spec = single source of truth = original flag
+                            // values, with editorMaximized masking them at render time
+                            // (= NO write-back to UserDefaults for the 5 flags during
+                            // expanded state, = no risk of losing pre-expand visibility).
+                            let visibleProjectSidebar = !editorMaximized && showProjectSidebar
+                            let visibleProjectPreview = !editorMaximized && showProjectPreview
+                            let visibleSpecializedTools = !editorMaximized && showSpecializedTools
+                            let visibleAIChat = !editorMaximized && showAIChat
+                            let visibleAIDynamic = !editorMaximized && showAIDynamic
+                            // 上 band: 4 区 + 3 拖拽线 (Apple HIG HStack 范式)
+                            UpperBandZone(vm: vm, showProjectSidebar: visibleProjectSidebar, showProjectPreview: visibleProjectPreview, showSpecializedTools: visibleSpecializedTools, totalW: totalW, bandH: bandH)
                 // v0.24 fix (Boss 8/25 72nd + 73rd OOB): hide D_h splitter + lower band
                 // when all 5 zones hidden OR when lower band zones are all hidden
                 // (= no band boundary to split).
@@ -1237,10 +1357,14 @@ struct LayoutShellView: View {
                         vm.adjustBandSplit(delta: dy, totalHeight: contentH - 2)
                     })
                     // 下 band: 2 区 + 1 拖拽线 (老板 8/18 拍 "上四下两")
-                    LowerBandZone(vm: vm, showAIChat: showAIChat, showAIDynamic: showAIDynamic, totalW: totalW, bandH: lowerBandHeight)
+                    LowerBandZone(vm: vm, showAIChat: visibleAIChat, showAIDynamic: visibleAIDynamic, totalW: totalW, bandH: lowerBandHeight)
                 }
             }
             .animation(.easeInOut(duration: 0.25), value: hideLowerBand)  // Per Boss 75th OOB
+            // v0.25.1 (= ticket 029a state layer): animate editorMaximized
+            // changes (= cross-fade when expanding / shrinking the editor
+            // zone). Apple HIG smooth cross-fade = 0.25s easeInOut.
+            .animation(.easeInOut(duration: 0.25), value: editorMaximized)
             // v0.24 boss验收fix (Boss 8/25 eighth OOB '不要纠结线的问题, 核心是比例'):
             // overlay REMOVED. Boss拍 core spec = the rightmost zone widths
             // (specializedTools upper + aiDynamic lower) must have the same
