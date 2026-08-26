@@ -36,6 +36,14 @@ struct ZoneContentView: View {
     }
 
     let tabs: [Tab]
+    // v0.25.1 (= ticket 029c-trailing-button editor zone expand/shrink):
+    // owner 2026-08-26 OOB '这个展开 要放在居右 他是一个按钮 不是
+    // 一个 teb' = optional trailing button rendered at the right
+    // edge of the tab bar (= independent of tab count). nil = no
+    // trailing button = default behavior preserved for all OTHER
+    // zone-content tab bars; only the editor zone passes a
+    // trailing expand/shrink button.
+    var trailingButton: AnyView? = nil
 
     @State private var selectedTabId: String
 
@@ -44,7 +52,7 @@ struct ZoneContentView: View {
         // which was regressing tab bar visibility). .frame(minHeight: 600)
         // forces window contentMinSize.
         VStack(spacing: 0) {
-            ZoneContentTabBar(items: tabs.map { ZoneContentTabBar.Item(id: $0.id, label: $0.label, icon: $0.icon) }, selection: selectionBinding)
+            ZoneContentTabBar(items: tabs.map { ZoneContentTabBar.Item(id: $0.id, label: $0.label, icon: $0.icon) }, selection: selectionBinding, trailingButton: trailingButton)
             // v0.24 boss验收fix (2026-08-24): pass maxWidth/maxHeight explicitly to AnyView
             // so it inherits zone size (not forces zone to grow). Without this,
             // AnyView collapses to its intrinsic size and zone shrinks to ~0.
@@ -67,9 +75,15 @@ struct ZoneContentView: View {
 // Implemented via zone-specific UserDefaults key (one per zone).
     private let storageKey: String
 
-    init(zoneSlug: String, tabs: [(label: String, icon: String, content: AnyView)]) {
+    init(zoneSlug: String, tabs: [(label: String, icon: String, content: AnyView)], trailingButton: AnyView? = nil) {
         let mapped = tabs.map { Tab(id: $0.label, label: $0.label, icon: $0.icon, content: $0.content) }
         self.tabs = mapped
+        // v0.25.1 (= ticket 029c-trailing-button editor zone expand/shrink):
+        // owner 2026-08-26 OOB '这个展开 要放在居右 他是一个按钮 不是
+        // 一个 teb' = optional trailing button parameter passed through
+        // to ZoneContentTabBar (= rendered at the right edge of the tab
+        // bar via Spacer()).
+        self.trailingButton = trailingButton
         self.storageKey = "wenshu.tabIndex.\(zoneSlug)"
         // Restore selected tab from UserDefaults (or default to first tab).
         // v0.24 boss验收fix: handle invalid saved value (e.g. tab list changed)
@@ -117,6 +131,22 @@ struct ZoneContentTabBar: View {
     // namespace per tab bar class (= SwiftUI requires the namespace to
     // scope within a single view tree).
     @Namespace private var tabBarNamespace
+
+    // v0.25.1 (= ticket 029c-trailing-button editor zone expand/shrink):
+    // owner 2026-08-26 OOB '这个展开 要放在居右 他是一个按钮 不是
+    // 一个 teb' = the expand/shrink toggle is NOT a tab (= no underline
+    // selected indicator, no selected-tab highlighting), it's a
+    // SEPARATE button pushed to the trailing edge of the tab bar
+    // (= per Apple HIG canonical toolbar pattern where action
+    // buttons sit at the trailing edge, separate from the
+    // selection tabs). trailingButton is an optional ViewBuilder
+    // parameter (= nil = no trailing button = default behavior
+    // preserved for all OTHER zone-content tab bars; only the
+    // editor zone passes a trailing expand/shrink button). The
+    // trailing button is pushed via Spacer() before it so it sits
+    // at the rightmost position (= independent of how many tabs
+    // the zone has).
+    var trailingButton: AnyView? = nil
 
     // v0.24 boss验收fix: selectedItem (Item with matching label) for icon highlighting.
     private var selectedItem: Item? {
@@ -201,6 +231,17 @@ struct ZoneContentTabBar: View {
                 .buttonStyle(.plain)
                 .contentShape(Rectangle())
                 .background(Color.clear)
+            }
+            // v0.25.1 (= ticket 029c-trailing-button editor zone expand
+            // /shrink): if a trailing button is provided, push it to
+            // the right edge of the tab bar via Spacer (= independent
+            // of how many tabs the zone has = always sits at the
+            // rightmost position). Apple HIG canonical pattern per
+            // developer.apple.com/design/human-interface-guidelines/
+            // components/menus-and-toolbars/toolbars.
+            if let trailingButton = trailingButton {
+                Spacer()
+                trailingButton
             }
         }
         // v0.24 boss验收fix: flush at top of zone (was: padded 6 PT down, made tab

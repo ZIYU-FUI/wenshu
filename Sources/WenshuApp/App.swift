@@ -1230,7 +1230,7 @@ struct LayoutShellView: View {
     /// visibility flags → hides all 5 other zones → editor zone now
     /// occupies the full window. The expand ICON (= tab 029b) then
     /// becomes `.shrink`.
-    private func expandEditor() {
+    func expandEditor() {
         // 1. Snapshot current visibility (= preserve any already-hidden
         //    zones per boss OOB).
         let snapshot = VisibilitySnapshot.capture(
@@ -1260,7 +1260,7 @@ struct LayoutShellView: View {
     /// pre-expand visibility snapshot (= NOT default) → editor zone
     /// shrinks back to its normal column position. The ICON then
     /// reverts from `.shrink` to `.expand`.
-    private func shrinkEditor() {
+    func shrinkEditor() {
         // 1. Read snapshot from AppStorage.
         guard let data = preExpandVisibilityJSON.data(using: .utf8),
               let snapshot = try? JSONDecoder().decode(VisibilitySnapshot.self, from: data) else {
@@ -1347,7 +1347,7 @@ struct LayoutShellView: View {
                             let visibleAIChat = !editorMaximized && showAIChat
                             let visibleAIDynamic = !editorMaximized && showAIDynamic
                             // 上 band: 4 区 + 3 拖拽线 (Apple HIG HStack 范式)
-                            UpperBandZone(vm: vm, showProjectSidebar: visibleProjectSidebar, showProjectPreview: visibleProjectPreview, showSpecializedTools: visibleSpecializedTools, totalW: totalW, bandH: bandH, editorMaximized: editorMaximized)
+                            UpperBandZone(vm: vm, showProjectSidebar: visibleProjectSidebar, showProjectPreview: visibleProjectPreview, showSpecializedTools: visibleSpecializedTools, totalW: totalW, bandH: bandH, editorMaximized: editorMaximized, onExpand: { self.expandEditor() }, onShrink: { self.shrinkEditor() })
                 // v0.24 fix (Boss 8/25 72nd + 73rd OOB): hide D_h splitter + lower band
                 // when all 5 zones hidden OR when lower band zones are all hidden
                 // (= no band boundary to split).
@@ -1357,7 +1357,7 @@ struct LayoutShellView: View {
                         vm.adjustBandSplit(delta: dy, totalHeight: contentH - 2)
                     })
                     // 下 band: 2 区 + 1 拖拽线 (老板 8/18 拍 "上四下两")
-                    LowerBandZone(vm: vm, showAIChat: visibleAIChat, showAIDynamic: visibleAIDynamic, totalW: totalW, bandH: lowerBandHeight, editorMaximized: editorMaximized)
+                    LowerBandZone(vm: vm, showAIChat: visibleAIChat, showAIDynamic: visibleAIDynamic, totalW: totalW, bandH: lowerBandHeight, editorMaximized: editorMaximized, onExpand: { self.expandEditor() }, onShrink: { self.shrinkEditor() })
                 }
             }
             .animation(.easeInOut(duration: 0.25), value: hideLowerBand)  // Per Boss 75th OOB
@@ -1597,6 +1597,10 @@ struct UpperBandZone: View {
     // Zone to the editor + specializedTools ZoneModule calls so the
     // editor's 4th tab icon can swap based on editorMaximized state.
     let editorMaximized: Bool
+    // v0.25.1 (= ticket 029c-trailing-button click action): propagate
+    // expand/shrink closures through UpperBandZone to ZoneModule.
+    var onExpand: () -> Void = {}
+    var onShrink: () -> Void = {}
     var body: some View {
         // v0.15 ticket 022.5: 撤回 ticket 022 .containerRelativeFrame (写死宽度, 不能拖拽)
         //   老板 2026-08-19 拍: "要能实现拖拽, 要能实现比例, 因为 windows 还要能调整大小, 等到 windows 实现调整大小后, 整个框架也要自适应, 你写成硬编码的宽度, 不法实现"
@@ -1660,7 +1664,7 @@ struct UpperBandZone: View {
             // createwithswift.com for hide/show transitions. Combined with
             // .animation(.easeInOut, value: showProjectSidebar) below.
             if showProjectSidebar {
-                ZoneModule(slot: .projectSidebar, vm: vm, totalW: totalW, bandH: bandH, editorMaximized: editorMaximized)
+                ZoneModule(slot: .projectSidebar, vm: vm, totalW: totalW, bandH: bandH, editorMaximized: editorMaximized, onExpand: {}, onShrink: {})
                     .frame(width: sidebar)
                     .layoutPriority(0)  // explicit (= keep current size, don't grow)
                     .transition(.opacity.combined(with: .move(edge: .leading)))
@@ -1696,7 +1700,7 @@ struct UpperBandZone: View {
             // D_v2 has no purpose. Same pattern as D_v1 / D_v3 (Boss 64th OOB).
             // v0.24 fix (Boss 8/25 74th OOB): add transition for hide/show.
             if showProjectPreview {
-                ZoneModule(slot: .projectPreview, vm: vm, totalW: totalW, bandH: bandH, editorMaximized: editorMaximized)
+                ZoneModule(slot: .projectPreview, vm: vm, totalW: totalW, bandH: bandH, editorMaximized: editorMaximized, onExpand: {}, onShrink: {})
                     .frame(maxWidth: .infinity, alignment: .top)
                     .layoutPriority(1)
                     .transition(.opacity)
@@ -1705,7 +1709,7 @@ struct UpperBandZone: View {
                     .transition(.opacity)
             }
             // editor always render (not yet implemented for toggle)
-            ZoneModule(slot: .editor, vm: vm, totalW: totalW, bandH: bandH, editorMaximized: editorMaximized)
+            ZoneModule(slot: .editor, vm: vm, totalW: totalW, bandH: bandH, editorMaximized: editorMaximized, onExpand: onExpand, onShrink: onShrink)
                 .frame(maxWidth: .infinity, alignment: .top)
                 .layoutPriority(1)  // grow to fill HStack when sidebar/tools hidden
             // D_v3: editor / specialized tools (splitterIndex 2)
@@ -1719,7 +1723,7 @@ struct UpperBandZone: View {
             if showSpecializedTools {
                 VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 2, vm: vm)
                     .transition(.opacity)
-                ZoneModule(slot: .specializedTools, vm: vm, totalW: totalW, bandH: bandH, editorMaximized: editorMaximized)
+                ZoneModule(slot: .specializedTools, vm: vm, totalW: totalW, bandH: bandH, editorMaximized: editorMaximized, onExpand: {}, onShrink: {})
                     .frame(width: tools)
                     .layoutPriority(0)
                     .transition(.opacity.combined(with: .move(edge: .trailing)))
@@ -1755,6 +1759,10 @@ struct LowerBandZone: View {
     // type View model requires passing through all intermediate
     // struct levels).
     let editorMaximized: Bool
+    // v0.25.1 (= ticket 029c-trailing-button click action): propagate
+    // expand/shrink closures through LowerBandZone to ZoneModule.
+    var onExpand: () -> Void = {}
+    var onShrink: () -> Void = {}
     var body: some View {
         // v0.15 ticket 022.5: 撤回 ticket 022 (改回 LayoutTokens.ratio * totalW)
         // v0.24 fix (Boss 8/25 50th OOB '还是差了一两个像素' + Apple docs):
@@ -1773,7 +1781,7 @@ struct LowerBandZone: View {
             // visible zone fills lower band when sibling hidden.
             // v0.24 fix (Boss 8/25 74th OOB): add transition for hide/show.
             if showAIChat {
-                ZoneModule(slot: .aiChat, vm: vm, totalW: totalW, bandH: bandH, editorMaximized: editorMaximized)
+                ZoneModule(slot: .aiChat, vm: vm, totalW: totalW, bandH: bandH, editorMaximized: editorMaximized, onExpand: {}, onShrink: {})
                     .frame(maxWidth: .infinity, alignment: .top)
                     .layoutPriority(1)
                     .transition(.opacity.combined(with: .move(edge: .leading)))
@@ -1786,7 +1794,7 @@ struct LowerBandZone: View {
             }
             // v0.24 fix (Boss 8/25 74th OOB): add transition for hide/show.
             if showAIDynamic {
-                ZoneModule(slot: .aiDynamic, vm: vm, totalW: totalW, bandH: bandH, editorMaximized: editorMaximized)
+                ZoneModule(slot: .aiDynamic, vm: vm, totalW: totalW, bandH: bandH, editorMaximized: editorMaximized, onExpand: {}, onShrink: {})
                     .frame(maxWidth: .infinity, alignment: .top)
                     .layoutPriority(1)
                     .transition(.opacity.combined(with: .move(edge: .trailing)))
@@ -1975,6 +1983,15 @@ struct ZoneModule: View {
     // string at next render). State + action layer remains in
     // LayoutShellView (= ticket 029a + 029c).
     let editorMaximized: Bool
+    // v0.25.1 (= ticket 029c-trailing-button click action): pass
+    // expand/shrink closures from LayoutShellView (= closures that
+    // capture LayoutShellView's self for access to its @AppStorage
+    // properties via $this.expandEditor / $this.shrinkEditor).
+    // Closure-passing avoids the LayoutShellView private method
+    // scope issue (= a View body's Button closure can't access
+    // private methods on a sibling struct in the same file).
+    let onExpand: () -> Void
+    let onShrink: () -> Void
     @Environment(WenshuLibrary.self) private var library
 
     // v0.22: sheet showing flags for each toolbar action. Independent per slot.
@@ -2199,7 +2216,12 @@ struct ZoneModule: View {
                 ("图", "waypoints", AnyView(GraphView())),
             ])
         case .editor:
-            // Editor tabs: 编辑 / 大纲 / 反链 / 展开.
+            // Editor tabs: 编辑 / 大纲 / 反链 (= 3 tabs; the
+            // expand/shrink toggle is NOT a tab per boss 2026-08-26
+            // OOB '这个展开 要放在居右 他是一个按钮 不是一个 teb' =
+            // it's a separate trailing button passed via the
+            // trailingButton parameter on ZoneContentView, rendered
+            // via Spacer() at the right edge of the tab bar).
             // v0.24 boss验收fix: 保留原 4 PT inset 设计意图 (背景 y=60~884, 正文 y=64~882, 上下 4 PT 视觉下沉, 左右 flush).
             // v0.25.1 (= ticket 017 third-column-first icon): owner
             // 2026-08-26 OOB '将第三栏的第一个 ICON 编辑器的 ICON 换成
@@ -2215,29 +2237,77 @@ struct ZoneModule: View {
             // (反链 tab, same icon name as Lucide kebab-case) →
             // Lucide link (= chain link glyph, = backlink / cross-
             // reference metaphor).
-            // v0.25.1 (= ticket 029b UI layer — 4th expand/shrink tab):
-            // owner 2026-08-26 OOB '编辑器顶栏居右 放置一个新 ICON
-            // 用 expand 点击后 整个编辑器最大化 其它所有栏全都隐藏
-            // 此时 ICON 变成 shrink 点击后 恢复到刚刚点击 expand 前的
-            // 状态 注意 这个地方不是回复成默认'. The 4th tab is the
-            // maximize toggle (= 'expand' when not editorMaximized,
-            // 'shrink' when editorMaximized = true). Label = '展开'
-            // (= 'expand' in Chinese). State layer (= ticket 029a)
-            // already declared @AppStorage editorMaximized +
-            // performExpand/performShrink; this ticket = UI layer
-            // only (= add the tab tuple, wire icon swap). Action
-            // layer (= ticket 029c) wires the click to performExpand/
-            // performShrink; edge cases (= ticket 029d) handle
-            // crash mid-expand + animation polish.
-            // Tab icon name is selected at render time by ZoneContent
-            // View (= empty AnyView content for this tab since the
-            // action is global, not tab-content-scoped).
-            ZoneContentView(zoneSlug: "editor", tabs: [
-                ("编辑", "book-open-text", AnyView(DesignColor.zoneSurface.overlay { Color.white.opacity(0.55).padding([.top, .bottom], editorInset) })),
-                ("大纲", "puzzle", AnyView(OutlinePanel())),
-                ("反链", "link", AnyView(BacklinksPanel())),
-                ("展开", editorMaximized ? "shrink" : "expand", AnyView(EmptyView())),
-            ])
+            // v0.25.1 (= ticket 029b + 029c-trailing-button): the
+            // expand/shrink toggle is rendered as a SEPARATE
+            // trailing button (= AnyView wrapped Button with
+            // Lucide 'expand' / 'shrink' icon swap based on
+            // editorMaximized state). Click action wired in ticket
+            // 029c (= performExpand / performShrink from ticket
+            // 029a). Hot area = 28×28 PT (= ticket 011 + 020 + 021
+            // pattern), icon visual = 18 PT (= ticket 006 + 027).
+            ZoneContentView(
+                zoneSlug: "editor",
+                tabs: [
+                    ("编辑", "book-open-text", AnyView(DesignColor.zoneSurface.overlay { Color.white.opacity(0.55).padding([.top, .bottom], editorInset) })),
+                    ("大纲", "puzzle", AnyView(OutlinePanel())),
+                    ("反链", "link", AnyView(BacklinksPanel())),
+                ],
+                trailingButton: AnyView(
+                    // v0.25.1 (= ticket 029c-trailing-button click
+                    // action): boss 2026-08-26 OOB '点击后 整个编
+                    // 辑器最大化 其它所有栏全都隐藏 此时 ICON 变
+                    // 成 shrink 点击后 恢复到刚刚点击 expand 前的
+                    // 状态'. Click handler dispatches to perform
+                    // Expand (= when !editorMaximized) or perform
+                    // Shrink (= when editorMaximized = true). State
+                    // + snapshot logic lives in LayoutShellView
+                    // (= ticket 029a).
+                    Button {
+                        if editorMaximized {
+                            onShrink()
+                        } else {
+                            onExpand()
+                        }
+                    } label: {
+                        // Lucide icon swap: 'expand' when not
+                        // maximized, 'shrink' when maximized
+                        // (= per boss spec '此时 ICON 变成 shrink').
+                        // Same Color.clear BASE + 28×28 hot area
+                        // pattern as tab icons (= ticket 011 + 020
+                        // + 021 canonical), no selected-tab
+                        // underline (= NOT a tab, per boss OOB).
+                        Color.clear
+                            .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
+                            .overlay(alignment: .center) {
+                                // v0.25.1 (= ticket 029c-trailing-button):
+                                // Lucide-first icon helper inline (= the
+                                // ZoneContentView's zoneContentTabBarIcon
+                                // helper is not in scope here, so repeat
+                                // the Layer 1 Lucide + Layer 3 SF fallback
+                                // pattern). Icon name: 'expand' when not
+                                // maximized, 'shrink' when maximized
+                                // (= per boss spec '此时 ICON 变成 shrink').
+                                if let lucide = Lucide(editorMaximized ? "shrink" : "expand") {
+                                    lucide
+                                        .font(.system(size: LayoutTokens.iconSize))
+                                        .imageScale(.large)
+                                        .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
+                                        .foregroundStyle(Color.secondary)
+                                } else {
+                                    Image(systemName: editorMaximized ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
+                                        .font(.system(size: LayoutTokens.iconSize))
+                                        .imageScale(.large)
+                                        .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
+                                        .foregroundStyle(Color.secondary)
+                                }
+                            }
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .contentShape(Rectangle())
+                    .help(editorMaximized ? "恢复 (shrink)" : "展开 (expand)")
+                )
+            )
         case .specializedTools:
             // v0.24 boss验收fix (2026-08-24): 删 '作曲' tab.
             // Boss 8/24 feedback: '作曲是干什么的, 我不知道' → 拍 '可以删'.
