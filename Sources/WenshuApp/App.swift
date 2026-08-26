@@ -1405,10 +1405,11 @@ struct LowerBandZone: View {
         // per stackoverflow.com / swiftui-lab.com, SwiftUI HStack may
         // render 1 PT gap due to sub-pixel rounding. Round to integer
         // (= no fractional PT = no sub-pixel rendering gap).
-        let aiChatW = (totalW * CGFloat(vm.aiChatRatio)).rounded()
-        let dynamicW = (totalW * CGFloat(vm.dynamicWRatio)).rounded()
         // v0.24 fix (Boss 8/25 63rd OOB): use direct @AppStorage
         // showAIChat + showAIDynamic from view body for hide/show.
+        // v0.24 fix (Boss 8/25 71st OOB): aiChatW + dynamicW removed
+        // (= per Boss 69th OOB maxWidth pattern, visible zones use
+        // .frame(maxWidth: .infinity) instead of fixed-width).
         HStack(spacing: 0) {
             // v0.24 fix (Boss 8/25 71st OOB '实装下半区两个栏'): wrap aiChat +
             // aiDynamic ZoneModules + D_v5 splitter in if blocks. Use
