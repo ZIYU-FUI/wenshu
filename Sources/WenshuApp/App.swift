@@ -121,10 +121,18 @@ enum LayoutTokens {
 
     // 顶栏色块比例 (老板 8/18 Q3 答: 22/82/142 起点 + 38 PT 宽 + 60 PT 等距)
     static let iconLeadingRatio: CGFloat = 18.0 / 1920.0  // 起点 18 PT (老板 8/18 改 18 PT, 旧 22 PT)
-    static let iconSizeRatio: CGFloat = 12.0 / 1920.0     // 12 PT 边长 (老板 8/24 拍 '改成 12×12')
-    // v0.24 boss验收fix (Boss 8/24): tab icon 12×12 PT.
-    // Boss 拍 '改成 12×12 吧' (after 18×18 too big).
-    static let iconSize: CGFloat = 12
+    static let iconSizeRatio: CGFloat = 18.0 / 1920.0     // 18 PT 边长 (老板 2026-08-26 '改成 18') — was 12 in v0.24 ticket 015.027 (= boss 8/24 '改成 12×12' = mid-step before '改成 18'). Now 18 PT for top-toolbar tab / archive icons.
+    // v0.24 boss验收fix (Boss 8/24): tab icon 12×12 PT (= interim; 老板 8/24 '改成 12×12' after 18×18 too big).
+    // v0.25.1 (= ticket 006 chat-zone icon size): 老板 2026-08-26 OOB '顶栏的 ICON 尺寸 现在有点过于小了 改成 18' = 12 → 18 PT.
+    // Scope = 顶栏 icon class only (= applies to LayoutTokens.iconSize, used
+    // by ChatZoneTabBar tab + archive + DynamicZoneView tab + ZoneContentView
+    // item, ALL top-toolbar tab icons). Bottom toolbar status bar (= text not
+    // icons) unchanged. Toolbar height hard-capped at 30 PT (= per Boss 8/18
+    // Sketch master): 18 PT icons render with 6 PT vertical padding each side (=
+    // flush fit, no overflow). If owner pushes back on the toolbar-height fit,
+    // ticket 006 followup will address it (= scope of THIS patch is just icon
+    // size).
+    static let iconSize: CGFloat = 18
     static let iconSpacingRatio: CGFloat = 18.0 / 1920.0  // 18 PT 等距 (老板 8/18 改 18 PT = icon 间距, 起点 18/54/90 相邻 36 - 18 = 18)
 
     // 底栏占位元素 (老板 8/18 拍 "icon 18×18, 占位文字苹果字符样式正文尺寸") — 绝对 PT 不走比例
