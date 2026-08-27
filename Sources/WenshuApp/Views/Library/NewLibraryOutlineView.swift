@@ -205,7 +205,9 @@ struct NewLibraryOutlineView: View {
                 FCPTreeNode(
                     id: book.id,
                     label: book.title,
-                    icon: "filmstrip",
+                    // v0.27 boss 8/27 OOB: Lucide has no 'filmstrip' (= FCP Browser
+                    // project icon); closest match = 'notebook'.
+                    icon: "notebook",
                     count: nil,
                     children: standardFolderNodes(for: book),
                     payloadKind: .book
@@ -265,12 +267,21 @@ struct NewLibraryOutlineView: View {
     /// ends at folder; doc content is rendered as cards in the
     /// projectPreview zone per the 无边记-style layout decided 8/27).
     private func standardFolderNodes(for book: Book) -> [FCPTreeNode] {
+        // v0.27 boss 8/27 OOB: Lucide does NOT have 'filmstrip' (=
+        // FCP Browser project icon; wenshu needs a book-equivalent
+        // Lucide icon); closest Lucide match = 'notebook' (= the
+        // canonical Lucide 'book' icon, a notebook-shaped outline;
+        // semantically closer to a novel project's container than
+        // 'book' which is more of a closed-book visual metaphor).
+        // For 小说草稿: Lucide has no 'file-edit'; closest match =
+        // 'file-pen-line' (= a file with a pen overlay; semantically
+        // = 'draft being edited').
         let standardFolders: [(name: String, icon: String)] = [
             ("世界观",       "globe"),
             ("角色",         "user-round"),
             ("章节大纲",     "list-tree"),
             ("小说正文",     "book-text"),
-            ("小说草稿",     "file-edit"),
+            ("小说草稿",     "file-pen-line"),
             ("LLM 会话",     "message-square"),
             ("伏笔",         "git-fork"),
             ("占位符",       "square-dashed"),
