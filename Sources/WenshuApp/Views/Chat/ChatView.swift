@@ -537,11 +537,11 @@ public struct ChatView: View {
                         // 'send' Lucide is missing.
                         if let lucide = Lucide("send") {
                             lucide
-                                .font(.system(size: 24))
+                                .aspectRatio(contentMode: .fit)
                                 .frame(width: 24, height: 24)  // v0.25.1 ticket 038 final 2: pin icon size to 24 PT (= button visual height per boss OOB '文本框比按钮高 10PT 以上' = textfield = 47 px tall vs button = 47 px tall = same height but icon offset from textfield text = icon center y=59.5 vs text center y=52 = icon 8 px too low = need to enlarge icon to match button visual box, not just 16 PT)
                         } else {
                             Image(systemName: "paperplane.fill")
-                                .font(.system(size: 24))
+                                .aspectRatio(contentMode: .fit)
                                 .frame(width: 24, height: 24)
                         }
                     }
@@ -607,10 +607,13 @@ struct ChatMessageView: View {
                 switch message.source {
                 case .user:
                     Lucide(.userRound)
+                        .aspectRatio(contentMode: .fit)
                 case .wenshu:
                     Lucide(.botMessageSquare)
+                        .aspectRatio(contentMode: .fit)
                 case .system:
                     Image(systemName: sourceIcon)
+                        .aspectRatio(contentMode: .fit)
                 }
             }
             .foregroundStyle(sourceColor)

@@ -2268,14 +2268,12 @@ struct ZoneModule: View {
                                 // (= per boss spec '此时 ICON 变成 shrink').
                                 if let lucide = Lucide(editorMaximized ? "shrink" : "expand") {
                                     lucide
-                                        .font(.system(size: LayoutTokens.iconSize))
-                                        .imageScale(.large)
+                                        .aspectRatio(contentMode: .fit)
                                         .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                                         .foregroundStyle(Color.secondary)
                                 } else {
                                     Image(systemName: editorMaximized ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
-                                        .font(.system(size: LayoutTokens.iconSize))
-                                        .imageScale(.large)
+                                        .aspectRatio(contentMode: .fit)
                                         .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                                         .foregroundStyle(Color.secondary)
                                 }
@@ -2649,8 +2647,7 @@ struct ChatZoneTabBar: View {
                             .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
                             .overlay(alignment: .center) {
                                 chatZoneTabBarIcon(tab.icon)
-                                    .font(.system(size: LayoutTokens.iconSize))
-                                    .imageScale(.large)
+                                    .aspectRatio(contentMode: .fit)
                                     .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                                     .foregroundStyle(tab == selectedTab ? Color.accentColor : Color.secondary)
                             }
@@ -2725,6 +2722,7 @@ struct ChatZoneTabBar: View {
                 // canonical archive flow icon per ticket 005), drop the
                 // duplicate SF archivebox.
                 chatZoneTabBarIcon("inbox")
+                    .aspectRatio(contentMode: .fit)
                     .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                     .foregroundStyle(.secondary)
             }

@@ -121,8 +121,7 @@ struct DynamicZoneTabBar: View {
                     .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
                     .overlay(alignment: .center) {
                         dynamicZoneTabBarIcon(tab.icon)
-                            .font(.system(size: LayoutTokens.iconSize))
-                            .imageScale(.large)
+                            .aspectRatio(contentMode: .fit)
                             .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                             .foregroundStyle(tab == selectedTab ? Color.accentColor : Color.secondary)
                     }

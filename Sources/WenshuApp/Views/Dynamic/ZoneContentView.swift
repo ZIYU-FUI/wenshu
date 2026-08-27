@@ -183,8 +183,7 @@ struct ZoneContentTabBar: View {
                     .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
                     .overlay(alignment: .center) {
                         zoneContentTabBarIcon(item.icon)
-                            .font(.system(size: LayoutTokens.iconSize))
-                            .imageScale(.large)
+                            .aspectRatio(contentMode: .fit)
                             .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                             .foregroundStyle(item == selectedItem ? Color.accentColor : Color.secondary)
                     }
