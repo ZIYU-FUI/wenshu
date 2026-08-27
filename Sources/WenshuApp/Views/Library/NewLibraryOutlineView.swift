@@ -208,10 +208,12 @@ struct NewLibraryOutlineView: View {
     }
 
     /// Build the tree from current store state (= shelves + books +
-    /// reference layer counts). Each user-named shelf is a parent
-    /// node; its books are children. ReferenceLibrary is a sibling
-    /// root node (= boss 8/26 OOB '资料库在书架级别露出，与所有用户
-    /// 建的书评级'); its layers are children.
+    /// folder contents + reference layer counts). Per boss 8/26 OOB
+    /// '项目点开 → 书下面向用户的文件夹' = each book has children
+    /// representing its 8 standard folders (世界 / 角色 / 章节大纲 /
+    /// 小说正文 / 小说草稿 / LLM 会话 / 伏笔 / 占位符); each folder
+    /// has children representing the .md docs inside (= recursive
+    /// tree = FCP Browser project view).
     private func buildTreeNodes() -> [FCPTreeNode] {
         var root: [FCPTreeNode] = []
         // Shelves (= user-named; book children = booksInShelf(shelf)).
@@ -223,7 +225,7 @@ struct NewLibraryOutlineView: View {
                     label: book.title,
                     icon: "filmstrip",
                     count: nil,
-                    children: [],
+                    children: standardFolderNodes(for: book),
                     payloadKind: .book
                 )
             }
@@ -270,6 +272,41 @@ struct NewLibraryOutlineView: View {
             payloadKind: .referenceLayer
         ))
         return root
+    }
+
+    /// Build the 8 standard folder children for a book node.
+    /// Per spec v5 ticket 001 + ticket 026: every book has these 8
+    /// standard folders (= user-facing per boss 8/26 OOB '面向用户的
+    /// 文件夹'). Folder names are Chinese UI strings (= UI 全中文
+    /// carve-out per boss 8/25). Per boss 8/27 OOB: doc files (= .md
+    /// inside each folder) are NOT shown in the sidebar tree (= sidebar
+    /// ends at folder; doc content is rendered as cards in the
+    /// projectPreview zone per the 无边记-style layout decided 8/27).
+    private func standardFolderNodes(for book: Book) -> [FCPTreeNode] {
+        let standardFolders: [(name: String, icon: String)] = [
+            ("世界观",       "globe"),
+            ("角色",         "user-round"),
+            ("章节大纲",     "list-tree"),
+            ("小说正文",     "book-text"),
+            ("小说草稿",     "file-edit"),
+            ("LLM 会话",     "message-square"),
+            ("伏笔",         "git-fork"),
+            ("占位符",       "square-dashed"),
+        ]
+        return standardFolders.map { (displayName, icon) in
+            // Stable UUID per (book, folder-name) tuple (= deterministic;
+            // = avoids row re-creation on every render).
+            let hashInput = displayName + book.id.uuidString
+            let hashHex = String(format: "%012x", abs(hashInput.hashValue & 0xFFFFFFFFFFF))
+            return FCPTreeNode(
+                id: UUID(uuidString: "00000000-0000-0000-\(hashHex)") ?? UUID(),
+                label: displayName,
+                icon: icon,
+                count: nil,
+                children: [],     // (= folder is leaf-level in sidebar; docs render in projectPreview).
+                payloadKind: .book
+            )
+        }
     }
 
     // MARK: - Sections
@@ -635,10 +672,13 @@ private struct FCPRowView: View {
                 // Per-entity icon.
                 iconView(node.icon)
                     .frame(width: 14, height: 14)
-                // Label.
+                // Label (= boss 8/27 OOB: shelf text bigger than book
+                // text = FCP Browser hierarchy style; .semibold shelf
+                // vs .regular book vs .secondary folder/doc).
                 Text(node.label)
-                    .font(.system(size: 12))
-                    .foregroundStyle(.primary)
+                    .font(labelFont(for: node.payloadKind))
+                    .fontWeight(labelWeight(for: node.payloadKind))
+                    .foregroundStyle(labelForeground(for: node.payloadKind))
                     .lineLimit(1)
                 Spacer(minLength: 4)
                 // Count badge (= right-aligned; only for parent nodes).
@@ -675,6 +715,40 @@ private struct FCPRowView: View {
             Image(systemName: "folder")
                 .font(.system(size: iconSize))
                 .foregroundStyle(Color.secondary)
+        }
+    }
+
+    // MARK: - Hierarchy text style (= boss 8/27 OOB: shelf > book > folder/doc)
+
+    /// Font size per payload kind (= boss 8/27 'shelf text bigger than
+    /// book text'; FCP Browser-style hierarchy).
+    /// - shelf: 13 PT (= FCP Browser section header)
+    /// - book: 12 PT (= FCP Browser item)
+    /// - referenceLayer: 11 PT (= indented children)
+    private func labelFont(for kind: NewLibraryOutlineView.FCPTreeNode.PayloadKind) -> Font {
+        switch kind {
+        case .shelf: return .system(size: 13)
+        case .book: return .system(size: 12)
+        case .referenceLayer: return .system(size: 11)
+        }
+    }
+
+    /// Font weight per payload kind (= shelf semibold = "section
+    /// header" emphasis; book + referenceLayer regular).
+    private func labelWeight(for kind: NewLibraryOutlineView.FCPTreeNode.PayloadKind) -> Font.Weight {
+        switch kind {
+        case .shelf: return .semibold
+        case .book, .referenceLayer: return .regular
+        }
+    }
+
+    /// Foreground color per payload kind (= shelf primary = section
+    /// header; book primary; folder/doc secondary = visually
+    /// de-emphasized child rows).
+    private func labelForeground(for kind: NewLibraryOutlineView.FCPTreeNode.PayloadKind) -> Color {
+        switch kind {
+        case .shelf, .book: return .primary
+        case .referenceLayer: return .secondary
         }
     }
 }
