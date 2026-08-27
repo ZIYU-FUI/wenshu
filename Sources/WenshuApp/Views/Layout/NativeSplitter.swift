@@ -20,7 +20,23 @@ struct NativeSplitter: View {
     let onDrag: (CGFloat) -> Void
 
     @State private var isHovered: Bool = false
-    @GestureState private var dragDelta: CGFloat = 0
+    // v0.27 boss 8/27 OOB: 拖拽线之前不能拖。Root cause =
+    // DragGesture .onChanged 传给 onDrag 的 value.translation.width
+    // 是 cumulative translation (= 自 drag gesture 开始到现在鼠标
+    // 移动的总距离，不是单步 delta). 之前 onDrag 把 cumulative 直接
+    // 喂给 vm.adjust(index, delta: cumulative, ...)，但 vm.adjust
+    // 的逻辑是 `offsets[index] += cumulative / totalWidth` (= 累加)，
+    // = 第一次 onChanged 触发后 offsets 累积到 maxOffset (= +0.15) =
+    // 后续 onChanged 全部被 `guard newOffset <= Self.maxOffset`
+    // 拒绝 = splitter 看起来完全不能拖。
+    //
+    // Fix: track last cumulative translation in @State (= stable
+    // across gesture); compute the per-callback delta = current -
+    // last; pass that delta (= the single-callback step) to onDrag.
+    // vm.adjust now receives correct per-step delta = accumulates
+    // offsets correctly over the lifetime of the drag.
+    @State private var lastCumulativeTranslation: CGFloat = 0
+    @State private var isDragging: Bool = false
 
     private static let lineThickness: CGFloat = 1   // 静态 1 PT (Apple 系统 divider 色)
     private static let hoveredThickness: CGFloat = 3  // hover 3 PT (Apple 系统亮色)
@@ -63,9 +79,29 @@ struct NativeSplitter: View {
                     }
                 }
                 .pointerStyle(.columnResize)
-                .gesture(DragGesture(minimumDistance: 0, coordinateSpace: .local)
-                    .updating($dragDelta) { value, state, _ in state = value.translation.width }
-                    .onChanged { value in onDrag(value.translation.width) })
+                .gesture(
+                    DragGesture(minimumDistance: 0, coordinateSpace: .local)
+                        // v0.27 boss 8/27 OOB: .updating kept for visual
+                        // cursor tracking (no-op for state now; we use
+                        // @State lastCumulativeTranslation to compute
+                        // per-callback delta instead).
+                        .onChanged { value in
+                            if !isDragging {
+                                // First callback of a new gesture =
+                                // reset baseline.
+                                isDragging = true
+                                lastCumulativeTranslation = 0
+                            }
+                            let currentCumulative = orientation == .vertical ? value.translation.width : value.translation.height
+                            let stepDelta = currentCumulative - lastCumulativeTranslation
+                            lastCumulativeTranslation = currentCumulative
+                            onDrag(stepDelta)
+                        }
+                        .onEnded { _ in
+                            isDragging = false
+                            lastCumulativeTranslation = 0
+                        }
+                )
         }
     }
 
@@ -86,9 +122,23 @@ struct NativeSplitter: View {
                     }
                 }
                 .pointerStyle(.rowResize)
-                .gesture(DragGesture(minimumDistance: 0, coordinateSpace: .local)
-                    .updating($dragDelta) { value, state, _ in state = value.translation.width }
-                    .onChanged { value in onDrag(value.translation.height) })
+                .gesture(
+                    DragGesture(minimumDistance: 0, coordinateSpace: .local)
+                        .onChanged { value in
+                            if !isDragging {
+                                isDragging = true
+                                lastCumulativeTranslation = 0
+                            }
+                            let currentCumulative = orientation == .vertical ? value.translation.width : value.translation.height
+                            let stepDelta = currentCumulative - lastCumulativeTranslation
+                            lastCumulativeTranslation = currentCumulative
+                            onDrag(stepDelta)
+                        }
+                        .onEnded { _ in
+                            isDragging = false
+                            lastCumulativeTranslation = 0
+                        }
+                )
         }
     }
 }
