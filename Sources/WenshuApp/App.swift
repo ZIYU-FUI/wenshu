@@ -91,6 +91,7 @@ extension Notification.Name {
     static let wenshuToggleZone = Notification.Name("wenshu.toggleZone")
     static let wenshuNewBookRequested = Notification.Name("wenshu.newBookRequested")
     static let wenshuNewShelfRequested = Notification.Name("wenshu.newShelfRequested")
+    static let wenshuImportRequested = Notification.Name("wenshu.importRequested")
 }
 extension Notification.Name {
     static let wenshuResetLayout = Notification.Name("com.wenshu.resetLayout")
@@ -404,6 +405,21 @@ struct WenshuApp: App {
                     }
                 }
                 .keyboardShortcut("n", modifiers: .command)
+                // v0.27 boss 8/27 OOB: 菜单栏同步 toolbar '导入' button.
+                // Per boss 8/27 standing rule 'a new feature should
+                // appear everywhere = synced', the menu bar gets a
+                // matching 导入 entry (= macOS-standard File → Import
+                // Convention; Cmd+Shift+I is the macOS default shortcut
+                // for File → Import per developer.apple.com/design/
+                // human-interface-guidelines/app-architecture/importing-
+                // and-exporting-data). Functionality deferred (= '功能
+                // 一会拷问后规划'); placeholder posts a
+                // NotificationCenter event so v0.27 followups can
+                // listen + implement.
+                Button("导入…") {
+                    NotificationCenter.default.post(name: .wenshuImportRequested, object: nil)
+                }
+                .keyboardShortcut("i", modifiers: [.command, .shift])
             }
             CommandGroup(replacing: .undoRedo) {
                 Button("撤销", action: {})
@@ -1417,21 +1433,21 @@ struct LayoutShellView: View {
                 // default toolbar item sizes (= no custom .frame, .font,
                 // .padding, .background). Let macOS toolbar manage everything.
                 ToolbarItemGroup(placement: .navigation) {
+                    // v0.27 boss 8/27 OOB: 新建按钮恢复 v0.25.x 原样式
+                    // (= SwiftUI toolbar 自动渲染的 Pages-style capsule),
+                    // ICON 换成 square-plus (= Lucide square-plus / SF
+                    // square.and.pencil), 点击后弹 Menu (新建书 / 新建书架).
+                    // Menu indicator (⌄) 去掉 via .menuStyle(.button)
+                    // + .buttonStyle(.plain) (= v0.21 ticket 42 combo).
                     Menu {
                         // v0.27 macOS-standard cross-component sync (boss
                         // 8/27 OOB): the toolbar '+' is a macOS standard
-                        // location for the File → New submenu. Per Apple
-                        // HIG (developer.apple.com/design/human-interface-
-                        // guidelines/components/menus-and-actions/menus),
-                        // a single '+' toolbar button conventionally opens
-                        // a Menu with the file-creation kinds (= New Book
-                        // / New Shelf here). Per boss 8/27 standing rule
-                        // 'a new feature should appear everywhere = synced':
-                        // both items post a NotificationCenter event that
+                        // location for the File → New submenu. Per boss
+                        // 8/27 standing rule 'a new feature should appear
+                        // everywhere = synced': both items post a
+                        // NotificationCenter event that
                         // NewLibraryOutlineView listens for and triggers
-                        // the matching sheet (= single source of truth for
-                        // the sheet state; the toolbar / File menu are
-                        // entry points only).
+                        // the matching sheet.
                         Button("新建书") {
                             NotificationCenter.default.post(name: .wenshuNewBookRequested, object: nil)
                         }
@@ -1439,86 +1455,38 @@ struct LayoutShellView: View {
                             NotificationCenter.default.post(name: .wenshuNewShelfRequested, object: nil)
                         }
                     } label: {
-                        // v0.25.1 (= ticket 026 toolbar file-action Lucide
-                        // icons): owner 2026-08-26 OOB '标题栏的三个按钮
-                        // 新建换成 folder-plus 打开换成 folder-open 导
-                        // 入换成 folder-input' = SF doc.badge.plus →
-                        // Lucide folder-plus (= new file folder icon
-                        // with + mark, = file-creation metaphor better
-                        // than doc-with-+). Use Lucide(string) (= no
-                        // argument label, failable init) so kebab-case
-                        // strings resolve to LucideIcon enum (= Layer
-                        // 1 path fires, icon glyph renders). Lucide
-                        // returns Lucide? (= on nil, falls back to
-                        // Image(systemName:) Layer 3 path for any
-                        // future SF-only icons).
-                        // v0.25.1 (= ticket 027 icon visual = explicit 18×18 PT box):
-                        // owner 2026-08-26 OOB '尺寸有点大 改成 18*18'
-                        // = the upper toolbar Lucide icons render at
-                        // Lucide's intrinsic 24 PT size (= no explicit
-                        // frame, no .aspectRatio constraint), making
-                        // them visually larger than the 18 PT icons in
-                        // the tab bars (= inconsistent visual size
-                        // across the project). Fix = add explicit
-                        // .frame(width: 18, height: 18) on each icon
-                        // (= visual 占面积 = 18×18 PT, matches the
-                        // tab-bar icons + matches Apple's HIG icon
-                        // toolbar style per developer.apple.com/design/
-                        // human-interface-guidelines/components/menus
-                        // and-toolbars/toolbars). iconSize constant
-                        // already 18 PT (= ticket 006 baseline) but
-                        // the explicit .frame is needed to override
-                        // Lucide's intrinsic 24 PT viewBox.
-                        if let lucide = Lucide("folder-plus") {
+                        if let lucide = Lucide("square-plus") {
                             lucide
                                 .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                         } else {
-                            Image(systemName: "doc.badge.plus")
+                            Image(systemName: "square.and.pencil")
                                 .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                         }
                     }
-                    // v0.27 boss 8/27 OOB '去掉新建按钮后面那个向下的箭头':
-                    // .menuStyle(.button) + .buttonStyle(.plain) hides the
-                    // default menu indicator (the ⌄ glyph) AND the button
-                    // chrome (borderless); the folder-plus icon stays as
-                    // the sole visual cue. v0.21 ticket 42 already used
-                    // this combo (= App.swift:2597-2599).
                     .menuStyle(.button)
                     .buttonStyle(.plain)
                     .help("新建")
+
+                    // v0.27 boss 8/27 OOB: 删除 '打开' button (= wenshu 是
+                    // single-library permanent per boss 8/26 Q12, 没有
+                    // 打开另一个库的需求; 想打开其他库用 '导入' 合并).
+                    // (= comment only; the Button block below was deleted.)
+
+                    // v0.27 boss 8/27 OOB: 保留 '导入' button (原样式 =
+                    // SwiftUI toolbar 自动 capsule), ICON 换成
+                    // square-arrow-right (= Lucide square-arrow-right /
+                    // SF arrow.down.doc; 功能稍后规划).
                     Button {
-                        NSLog("[wenshu.toolbar] tap: 打开 (placeholder)")
+                        // v0.27 MVP placeholder (= 功能待 boss 拷问后实装,
+                        // boss 8/27 OOB '导入等合并两个库'). 占位 logging
+                        // 保持 toolbar 交互可达 (= 用户点 = NSLog).
+                        NSLog("[wenshu.toolbar] tap: 导入 (功能待 v0.27 followup)")
                     } label: {
-                        // v0.25.1 (= ticket 026): SF folder → Lucide
-                        // folder-open (= open folder icon, = file-open
-                        // metaphor). Lucide(_:) failable init resolves
-                        // kebab-case string to LucideIcon enum (= Layer
-                        // 1 path); on nil, falls back to Image(systemName:)
-                        // (= SF Layer 3 fallback).
-                        if let lucide = Lucide("folder-open") {
+                        if let lucide = Lucide("square-arrow-right") {
                             lucide
                                 .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                         } else {
-                            Image(systemName: "folder")
-                                .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
-                        }
-                    }
-                    .help("打开")
-                    Button {
-                        NSLog("[wenshu.toolbar] tap: 导入 (placeholder)")
-                    } label: {
-                        // v0.25.1 (= ticket 026): SF
-                        // square.and.arrow.down → Lucide folder-input
-                        // (= folder icon with downward arrow, =
-                        // file-import metaphor). Lucide(_:) failable
-                        // init resolves kebab-case string to LucideIcon
-                        // (= Layer 1 path); on nil, falls back to
-                        // Image(systemName:) (= SF Layer 3 fallback).
-                        if let lucide = Lucide("folder-input") {
-                            lucide
-                                .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
-                        } else {
-                            Image(systemName: "square.and.arrow.down")
+                            Image(systemName: "arrow.down.doc")
                                 .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                         }
                     }
