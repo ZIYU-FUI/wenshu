@@ -30,12 +30,36 @@ let package = Package(
         // followup). This re-introduction is single-purpose: just the chat
         // zone icon swap, nothing else.
         .package(url: "https://github.com/bring-shrubbery/lucide-swift.git", exact: "1.25.0"),
+        // v0.27 ticket 027-31 (= boss 8/27 grill session 'Xcode 范式 +
+        // 用户自定义布局'): second approved third-party UI library
+        // exception per AGENTS.md §11.1.
+        //
+        // Selection rationale: bonsplit is the most actively-maintained
+        // macOS SwiftUI tab + split-pane library (= last commit 2026-05-19,
+        // 460 GitHub stars, 101 forks, MIT license, macOS-first, 120fps
+        // animations + keyboard nav + drag-and-drop tab reordering).
+        // Supersedes the earlier SplitView candidate (= commits reverted in
+        // d793578a5..3f1747147) which had gone 14 months without updates
+        // (= failed AGENTS.md §11.1 12-month active maintenance check).
+        //
+        // Acceptance criteria (= AGENTS.md §11.1 four conditions all met):
+        // - GitHub stars: 460 (>= 100 ✓)
+        // - Last commit: 2026-05-19 (within 12 months ✓)
+        // - License: MIT (commercial-friendly ✓)
+        // - macOS-first (✓; = native macOS tab bar library with SwiftUI support)
+        //
+        // First attempt 0b7da9154 was reverted by e5c8171f9 due to a transient
+        // LibreSSL SSL_ERROR_SYSCALL on the macOS host (= GitHub HTTPS was
+        // unreachable for several minutes). Network recovered and this is
+        // the second attempt.
+        .package(url: "https://github.com/almonk/bonsplit.git", from: "1.1.1"),
     ],
     targets: [
         .executableTarget(
             name: "WenshuApp",
             dependencies: [
                 .product(name: "Lucide", package: "lucide-swift"),
+                .product(name: "Bonsplit", package: "bonsplit"),
             ],
             path: "Sources/WenshuApp",
             exclude: [
