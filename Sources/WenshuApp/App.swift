@@ -619,7 +619,8 @@ struct SettingView: View {
             Section {
                 ForEach(Provider.all) { p in
                     HStack {
-                        Image(systemName: providersWithKeys.contains(p.slug) ? "key.fill" : "key")
+                        // v0.27 boss 8/27 OOB: SF 'key' / 'key.fill' → Lucide 'key'.
+                        LucideIconSystemFallback(providersWithKeys.contains(p.slug) ? "key.fill" : "key", size: 16)
                             .foregroundStyle(providersWithKeys.contains(p.slug) ? .green : .secondary)
                             .frame(width: 16)
                         Text(p.name)
@@ -643,7 +644,8 @@ struct SettingView: View {
                                 .foregroundStyle(.tertiary)
                         }
                         if p.slug == providerSlug {
-                            Image(systemName: "checkmark")
+                            // v0.27 boss 8/27 OOB: SF 'checkmark' → Lucide 'check'.
+                            LucideIconSystemFallback("checkmark")
                                 .foregroundStyle(.blue)
                                 .font(.caption)
                         }
@@ -756,7 +758,8 @@ struct SettingView: View {
     private func providerApiRow(_ p: Provider) -> some View {
         let hasKey = providersWithKeys.contains(p.slug)
         return HStack(spacing: 12) {
-            Image(systemName: hasKey ? "key.fill" : "key")
+            // v0.27 boss 8/27 OOB: SF 'key' / 'key.fill' → Lucide 'key'.
+            LucideIconSystemFallback(hasKey ? "key.fill" : "key", size: 18)
                 .foregroundStyle(hasKey ? Color.green : Color.secondary)
                 .frame(width: 18)
             Text(p.name)
@@ -851,7 +854,9 @@ struct SettingView: View {
             Section {
                 ForEach(AuxTask.allCases, id: \.self) { task in
                     HStack {
-                        Image(systemName: task.icon)
+                        // v0.27 boss 8/27 OOB: AuxTask.icon (dynamic SF
+                        // name string) → Lucide canonical via helper.
+                        LucideIconSystemFallback(task.icon, size: 18)
                             .foregroundStyle(.secondary)
                             .frame(width: 18)
                         Text(task.label)
@@ -1473,8 +1478,8 @@ struct LayoutShellView: View {
                     Button {
                         showProjectSidebar.toggle()
                     } label: {
-                        Image(systemName: "sidebar.left")
-                            .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
+                        // v0.27 boss 8/27 OOB: SF 'sidebar.left' → Lucide 'panel-left'.
+                        LucideIconSystemFallback("sidebar.left", size: LayoutTokens.iconSize)
                     }
                     .foregroundStyle(showProjectSidebar ? Color.accentColor : Color.secondary)
                     .help(showProjectSidebar ? "隐藏 项目管理区" : "显示 项目管理区")
@@ -1485,8 +1490,8 @@ struct LayoutShellView: View {
                 Button {
                     showProjectPreview.toggle()
                 } label: {
-                    Image(systemName: "eye.fill")
-                        .frame(width: 18, height: 18)
+                    // v0.27 boss 8/27 OOB: SF 'eye.fill' → Lucide 'eye'.
+                    LucideIconSystemFallback("eye.fill", size: 18)
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(showProjectPreview ? Color.accentColor : Color.secondary)
@@ -1494,32 +1499,32 @@ struct LayoutShellView: View {
                     Button {
                         showSpecializedTools.toggle()
                     } label: {
-                        Image(systemName: "wrench.and.screwdriver")
-                            .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
+                        // v0.27 boss 8/27 OOB: SF 'wrench.and.screwdriver' → Lucide 'wrench'.
+                        LucideIconSystemFallback("wrench.and.screwdriver", size: LayoutTokens.iconSize)
                     }
                     .foregroundStyle(showSpecializedTools ? Color.accentColor : Color.secondary)
                     .help(showSpecializedTools ? "隐藏 工具区" : "显示 工具区")
                     Button {
                         showAIChat.toggle()
                     } label: {
-                        Image(systemName: "bubble.left")
-                            .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
+                        // v0.27 boss 8/27 OOB: SF 'bubble.left' → Lucide 'message-square'.
+                        LucideIconSystemFallback("bubble.left", size: LayoutTokens.iconSize)
                     }
                     .foregroundStyle(showAIChat ? Color.accentColor : Color.secondary)
                     .help(showAIChat ? "隐藏 聊天区" : "显示 聊天区")
                     Button {
                         showAIDynamic.toggle()
                     } label: {
-                        Image(systemName: "chart.bar")
-                            .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
+                        // v0.27 boss 8/27 OOB: SF 'chart.bar' → Lucide 'chart-bar'.
+                        LucideIconSystemFallback("chart.bar", size: LayoutTokens.iconSize)
                     }
                     .foregroundStyle(showAIDynamic ? Color.accentColor : Color.secondary)
                     .help(showAIDynamic ? "隐藏 动态区" : "显示 动态区")
                     Button {
                         vm.exportEbook(format: "epub")
                     } label: {
-                        Image(systemName: "square.and.arrow.up")
-                            .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
+                        // v0.27 boss 8/27 OOB: SF 'square.and.arrow.up' → Lucide 'share-2'.
+                        LucideIconSystemFallback("square.and.arrow.up", size: LayoutTokens.iconSize)
                     }
                     .help("导出电子书 (PDF / EPUB / MOBI / TXT)")
                 }
@@ -2270,7 +2275,9 @@ struct ZoneModule: View {
                                         .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                                         .foregroundStyle(Color.secondary)
                                 } else {
-                                    Image(systemName: editorMaximized ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
+                                    // v0.27 boss 8/27 OOB: SF arrow symbols
+                                    // → Lucide 'minimize-2' / 'maximize-2'.
+                                    LucideIconSystemFallback(editorMaximized ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right", size: LayoutTokens.iconSize)
                                         .aspectRatio(contentMode: .fit)
                                         .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                                         .foregroundStyle(Color.secondary)
@@ -2507,7 +2514,8 @@ struct ChatZoneView: View {
                                         HStack {
                                             Text(model)
                                             if model == currentModel {
-                                                Image(systemName: "checkmark")
+                                                // v0.27 boss 8/27 OOB: SF 'checkmark' → Lucide 'check'.
+                                                LucideIconSystemFallback("checkmark")
                                             }
                                         }
                                     }
@@ -2521,12 +2529,14 @@ struct ChatZoneView: View {
                     //   foregroundStyle. Default Menu style lets our per-element .tertiary apply.
                     // v0.21 ticket 42 老板 17:35: .menuStyle(.button) + .buttonStyle(.plain) (Apple deprecated .borderedButton 提示真值组合)
                     HStack(spacing: 4) {
-                        Image(systemName: "cpu")
+                        // v0.27 boss 8/27 OOB: SF 'cpu' → Lucide 'cpu' (same name).
+                        LucideIconSystemFallback("cpu")
                             .foregroundStyle(.secondary)
                         Text(currentModel.isEmpty ? "无模型可用" : ModelDisplay.lookup(currentModel).display)
                             .font(.system(size: 13))
                             .foregroundStyle(.secondary)
-                        Image(systemName: "chevron.up.chevron.down")
+                        // v0.27 boss 8/27 OOB: SF 'chevron.up.chevron.down' → Lucide 'chevrons-up-down'.
+                        LucideIconSystemFallback("chevron.up.chevron.down")
                             .font(.system(size: 11))
                             .foregroundStyle(.secondary)
                     }
@@ -2758,8 +2768,8 @@ struct ChatZoneStubView: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 48))
+            // v0.27 boss 8/27 OOB: dynamic icon string → Lucide via helper.
+            LucideIconSystemFallback(icon, size: 48)
                 .foregroundStyle(.tertiary)
             Text("\(title) (开发中)")
                 .font(.system(size: 15))
