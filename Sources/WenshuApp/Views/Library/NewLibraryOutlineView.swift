@@ -136,8 +136,12 @@ struct NewLibraryOutlineView: View {
     /// + the editor expand button).
     @ViewBuilder
     var zoneHeaderButtons: some View {
-        // v0.27 boss 8/27 OOB: 间距调成 8 PT (= from 4 PT).
-        HStack(spacing: 8) {
+        // v0.27 boss 8/27 OOB correction: HStack(spacing: 8) 太远
+        // (= boss '现在是 4 吗，那就改成 0。改成 8 更远了'). Use
+        // HStack(spacing: 0) = 紧贴 hot area (= 28x28 each; the visual
+        // gap is the 10 PT (= 28-18) difference between hot area and
+        // 18 PT icon).
+        HStack(spacing: 0) {
             // 新建 Menu (= tap → menu with 新建书 / 新建书架).
             Menu {
                 Button("新建书") {
