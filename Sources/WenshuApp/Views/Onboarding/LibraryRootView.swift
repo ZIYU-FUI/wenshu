@@ -101,12 +101,39 @@ public struct LibraryRootView: View {
 private struct WiredShell: View {
     let libraryPath: String
     @State private var bookStore: BookStore?
+    // v0.27 ticket 027-34 (= boss 8/27 grill D1 'Xcode paradigm +
+    // user-customizable layout'): feature flag toggles between the
+    // legacy LayoutShellView and the new WorkspaceView (= wraps the
+    // WorkspaceStore). Defaults to false (= legacy LayoutShellView)
+    // while the WorkspaceView integration stabilizes. Boss can flip
+    // to true via UserDefaults once the new layout is verified.
+    @AppStorage("wenshu.useWorkspace") private var useWorkspace: Bool = false
+    // WorkspaceStore is only constructed when useWorkspace = true
+    // (= avoids running the new persistence layer when the flag is off).
+    @State private var workspaceStore: WorkspaceStore? = nil
 
     var body: some View {
         Group {
             if let bookStore = bookStore {
-                LayoutShellView()
-                    .environment(bookStore)
+                if useWorkspace {
+                    // WorkspaceView path (= boss 8/27 grill D1).
+                    // WorkspaceStore is constructed once per
+                    // WiredShell lifetime (= a new instance per
+                    // window); = its UserDefaults round-trip
+                    // preserves state across launches.
+                    if workspaceStore == nil {
+                        // Defer to a single task so we don't mutate
+                        // @State during view update.
+                        Color.clear
+                            .task { workspaceStore = WorkspaceStore() }
+                    } else if let workspaceStore = workspaceStore {
+                        WorkspaceView(store: workspaceStore)
+                            .environment(bookStore)
+                    }
+                } else {
+                    LayoutShellView()
+                        .environment(bookStore)
+                }
             } else {
                 ProgressView("正在启动文枢…")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
