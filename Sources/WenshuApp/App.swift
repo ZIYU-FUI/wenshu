@@ -1475,6 +1475,17 @@ struct LayoutShellView: View {
                                 .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                         }
                     }
+                    // macOS native toolbar button shape + hidden Menu
+                    // indicator (= boss 8/27 OOB):
+                    // .menuStyle(.button) hides the default ⌄ glyph
+                    // (= Apple's Menu button-style; treats the Menu
+                    // content as a button group rather than a pull-down
+                    // menu with an arrow).
+                    // .buttonStyle(.bordered) applies the macOS native
+                    // rounded-rectangle capsule shape (= Pages / Numbers
+                    // / Xcode toolbar buttons per Apple HIG).
+                    .menuStyle(.button)
+                    .buttonStyle(.bordered)
                     .help("新建")
 
                     // v0.27 boss 8/27 OOB: 删除 '打开' button (= wenshu 是

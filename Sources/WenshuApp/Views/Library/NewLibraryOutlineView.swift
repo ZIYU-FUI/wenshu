@@ -25,6 +25,20 @@ struct NewLibraryOutlineView: View {
     @State private var showNewShelfSheet: Bool = false
 
     var body: some View {
+        // v0.27 boss 8/27 OOB: right-click on the projectSidebar EMPTY
+        // area (= outside any shelf / book row) shows a macOS-standard
+        // context menu with New Book / New Shelf. Per Apple HIG
+        // (developer.apple.com/design/human-interface-guidelines/
+        // components/menus-and-actions/context-menus): context menus
+        // appear on right-click (= secondary click on macOS). Per boss
+        // 8/27 standing rule 'a new feature should appear everywhere
+        // = synced', this is the 4th entry point for 新建 (= toolbar
+        // '+' + File → 新建项目 + sidebar inline '+' + right-click
+        // context menu). contextMenu attached to the List's empty-area
+        // (= outside any row; SwiftUI List's context menu binds to
+        // rows, so we use .contextMenu(forSelectionType:) with .menu
+        // selection type to surface the menu on right-click of the
+        // empty list area).
         Group {
             if let error = loadError {
                 errorState(error)
@@ -44,6 +58,18 @@ struct NewLibraryOutlineView: View {
                 }
                 .listStyle(.sidebar)
                 .scrollContentBackground(.hidden)
+                .contextMenu(forSelectionType: UUID.self, menu: { _ in
+                    Button {
+                        showNewBookSheet = true
+                    } label: {
+                        Label("新建书", systemImage: "square.plus")
+                    }
+                    Button {
+                        showNewShelfSheet = true
+                    } label: {
+                        Label("新建书架", systemImage: "books.vertical.fill")
+                    }
+                })
             }
         }
         .onAppear(perform: reload)
