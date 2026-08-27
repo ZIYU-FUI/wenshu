@@ -101,25 +101,12 @@ public struct LibraryRootView: View {
 private struct WiredShell: View {
     let libraryPath: String
     @State private var bookStore: BookStore?
-    // v0.27 boss 8/27 OOB: feature flag toggles between the legacy
-    // LayoutShellView (= wenshu's in-house HStack/VStack +
-    // NativeSplitter implementation) and the new SplitViewLayoutView
-    // (= third-party stevengharris/SplitView-based implementation).
-    // Defaults to true (= SplitViewLayoutView) so users see the
-    // new shell immediately; = flip to false via in-app menu or
-    // UserDefaults to restore the legacy shell if needed.
-    @AppStorage("wenshu.useSplitView") private var useSplitView: Bool = true
 
     var body: some View {
         Group {
             if let bookStore = bookStore {
-                if useSplitView {
-                    SplitViewLayoutView()
-                        .environment(bookStore)
-                } else {
-                    LayoutShellView()
-                        .environment(bookStore)
-                }
+                LayoutShellView()
+                    .environment(bookStore)
             } else {
                 ProgressView("正在启动文枢…")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
