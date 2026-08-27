@@ -360,21 +360,6 @@ struct WenshuApp: App {
             // SettingsEnvironmentCapturer 之前包 LayoutShellView 注入 OpenSettingsAction, 但 openSettings?() → nil (Q15 翻车 #11), 现在 NSMenu 自己装 + 自创建 NSWindow 装 SettingView 不需要 capture
             SettingsEnvironmentCapturer(library: library, appearanceMode: appearanceMode)
         }
-        // v0.27 boss 8/27 OOB: in-app launcher for the SplitView drag
-        // smoke test (= commit f7cb45397's SplitterTestView). Per
-        // AGENTS.md §11.1 third-party library policy = SplitView is
-        // approved pending in-app verification before LayoutShellView
-        // rewrite. Uses SwiftUI's macOS-13+ Window scene (= independent
-        // top-level window; = not a panel/utility window since the
-        // test is interactive). .defaultPosition is left corner so the
-        // boss can see both the wenshu main window and the test window
-        // simultaneously.
-        Window("拖拽测试", id: "splitter-test") {
-            SplitterTestView()
-                .frame(minWidth: 800, minHeight: 600)
-        }
-        .defaultSize(width: 1000, height: 700)
-        .defaultPosition(.topTrailing)
         // Boss 8/24 feedback: 'use the 52 PT one'. Apple SwiftUI macOS 14+ windowToolbarStyle
         // options: .automatic, .unified (52 PT), .unifiedCompact (28 PT), .expanded.
         // v0.24 fix (Boss 8/25 28th OOB 'use default size' + Apple docs):
@@ -474,27 +459,6 @@ struct WenshuApp: App {
                     NotificationCenter.default.post(name: .wenshuResetLayout, object: nil)
                 }
                 .keyboardShortcut("R", modifiers: [.command, .shift])
-            }
-            // v0.27 boss 8/27 OOB: 'A' (= pre-adoption smoke test for the
-            // SplitView dependency added in commit 1c3685c75). Menu item
-            // opens a wenshu-internal test window that mirrors the 6-zone
-            // LayoutShellView shape (= sidebar / preview / editor / tools
-            // upper + chat / dynamic lower) using SplitView's HSplit /
-            // VSplit views. Boss can verify drag works (= positive test
-            // → commit LayoutShellView rewrite) or fails (= negative
-            // test → revert SplitView dep + investigate alternative).
-            // Per boss 8/27 'macOS standard sync' rule = menu bar is the
-            // canonical macOS launcher surface; Cmd+Shift+T is the
-            // convention for in-app developer/test windows.
-            CommandGroup(after: .windowArrangement) {
-                Button("拖拽测试") {
-                    NSApp.sendAction(Selector(("toggleFirstResponder:")), to: nil, from: nil)
-                    // v0.27: use SwiftUI's openWindow environment (= macOS 13+
-                    // API; works because the Window scene is declared with
-                    // id: 'splitter-test' in the App body above).
-                    OpenWindowActionBridge.openSplitterTest()
-                }
-                .keyboardShortcut("T", modifiers: [.command, .shift])
             }
         }
         Settings {
@@ -1058,12 +1022,6 @@ private struct SettingsEnvironmentCapturer: View {
             .environment(library)
             .preferredColorScheme(appearanceMode.colorScheme)
             .onAppear { WenshuAppDelegate.openSettings = openSettings }
-            // v0.27 boss 8/27 OOB: install the @Environment(\.openWindow)
-            // bridge so the .commands block (= menu bar 'Tools → 拖拽测试')
-            // can open the splitter-test window declared in App body.
-            // Per SwiftUI docs, @Environment(\.openWindow) must be
-            // captured inside a View body (= this is inside one).
-            .installOpenWindowBridge()
             // v0.24 boss验收fix: Apple macOS 52 PT toolbar chrome via
             // .toolbar { ToolbarItem(placement: .principal) }.
             // Boss 8/24 拍: '用 52 的那个'.
