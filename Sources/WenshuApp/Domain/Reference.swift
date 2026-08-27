@@ -58,13 +58,18 @@ enum ReferenceLayer: String, CaseIterable, Codable, Sendable {
         }
     }
 
-    /// SF Symbol name for the card icon.
+    /// Lucide icon name (= for direct Lucide lookup via Lucide("name")).
+    /// v0.27 boss 8/27 OOB: was SF Symbol name ('tray.full.fill' / etc.);
+    /// Lucide doesn't have those names (= returned nil → sidebar rows
+    /// rendered empty per boss 8/27 '资料库下面的两个文件夹没有
+    /// ICON'). Boss 8/27 '你查一下 lucide 的文档' = use the closest
+    /// Lucide equivalent that exists.
     var icon: String {
         switch self {
-        case .layerRaw:       return "tray.full.fill"
-        case .layerEntities:  return "person.crop.square.fill"
-        case .layerAbstracts: return "circle.grid.cross.fill"
-        case .layerIndexes:   return "magnifyingglass.circle.fill"
+        case .layerRaw:       return "inbox"
+        case .layerEntities:  return "user-round"
+        case .layerAbstracts: return "sparkles"
+        case .layerIndexes:   return "search"
         }
     }
 }

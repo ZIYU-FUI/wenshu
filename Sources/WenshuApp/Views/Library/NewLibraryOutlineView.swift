@@ -177,7 +177,8 @@ struct NewLibraryOutlineView: View {
         enum PayloadKind: Hashable {
             case shelf
             case book
-            case referenceLayer
+            case referenceLibrary   // v0.27 boss 8/27 OOB: 资料库本身也是一个特别的书架
+            case referenceLayer     // raw / entities / abstracts / indexes (= sub-node of referenceLibrary)
         }
 
         func hash(into hasher: inout Hasher) {
@@ -246,14 +247,17 @@ struct NewLibraryOutlineView: View {
         // (= Lucide icon: a square containing stacked horizontal lines
         // representing a library shelf; matches FCP Browser's
         // library-as-archive metaphor and Apple's library-app
-        // vocabulary).
+        // vocabulary). payloadKind = .referenceLibrary (= treats
+        // 资料库 as a 'special shelf' per boss 8/27; = same typography
+        // as user-named shelves via the .referenceLibrary branch in
+        // labelFont / labelWeight / labelForeground).
         root.append(FCPTreeNode(
             id: UUID(uuidString: "00000000-0000-0000-0000-000000000001") ?? UUID(),
             label: "资料库",
             icon: "square-library",
             count: layerChildren.count,
             children: layerChildren,
-            payloadKind: .referenceLayer
+            payloadKind: .referenceLibrary
         ))
         return root
     }
@@ -735,37 +739,42 @@ private struct FCPRowView: View {
     // MARK: - Hierarchy text style (= boss 8/27 OOB: shelf > book > folder/doc)
 
     /// Font size per payload kind (= boss 8/27 'shelf > book > folder/doc';
-    /// + boss 8/27 followup '资料库的字号样式没改，对齐' = reference
-    /// layer rows should match the same visual treatment as book rows
-    /// since both are 'user-clickable sub-nodes' = 12 PT regular primary).
+    /// + boss 8/27 followup '资料库本身也是一个特别的书架，所以资料库
+    /// 的字号样式没改，对齐，要跟书架一样' = referenceLibrary root
+    /// should look identical to a user-named shelf since it's a
+    /// 'special shelf' per boss's taxonomy = same font size + weight
+    /// + foreground as .shelf).
     /// - shelf: 13 PT semibold primary (= FCP Browser section header)
+    /// - referenceLibrary: 13 PT semibold primary (= boss 8/27 '跟书
+    ///   架一样'; = treat the reference library as a special shelf)
     /// - book: 12 PT regular primary (= FCP Browser item)
     /// - referenceLayer: 12 PT regular primary (= aligned with book per
     ///   boss 8/27; was 11 PT secondary in prior commit)
     private func labelFont(for kind: NewLibraryOutlineView.FCPTreeNode.PayloadKind) -> Font {
         switch kind {
-        case .shelf: return .system(size: 13)
+        case .shelf, .referenceLibrary: return .system(size: 13)
         case .book, .referenceLayer: return .system(size: 12)
         }
     }
 
     /// Font weight per payload kind (= shelf semibold = "section
-    /// header" emphasis; book + referenceLayer regular).
+    /// header" emphasis; referenceLibrary now ALSO semibold per boss
+    /// 8/27 '资料库本身也是一个特别的书架'; book + referenceLayer
+    /// regular).
     private func labelWeight(for kind: NewLibraryOutlineView.FCPTreeNode.PayloadKind) -> Font.Weight {
         switch kind {
-        case .shelf: return .semibold
+        case .shelf, .referenceLibrary: return .semibold
         case .book, .referenceLayer: return .regular
         }
     }
 
     /// Foreground color per payload kind (= shelf + book primary;
-    /// referenceLayer now ALSO primary per boss 8/27 '对齐' = visual
-    /// alignment with the projectSidebar default-shelf sub-nodes).
-    /// Was .secondary in prior commit; boss feedback = sub-nodes across
-    /// both root containers should look the same.
+    /// referenceLibrary + referenceLayer now ALSO primary per boss 8/27
+    /// '资料库本身也是一个特别的书架' = visual alignment with the
+    /// projectSidebar user-named shelf rows).
     private func labelForeground(for kind: NewLibraryOutlineView.FCPTreeNode.PayloadKind) -> Color {
         switch kind {
-        case .shelf, .book, .referenceLayer: return .primary
+        case .shelf, .referenceLibrary, .book, .referenceLayer: return .primary
         }
     }
 }
