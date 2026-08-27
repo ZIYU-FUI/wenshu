@@ -127,9 +127,13 @@ struct NewLibraryOutlineView: View {
     /// 2 icon buttons rendered in the projectSidebar zone header
     /// trailing area (= rendered via ZoneContentView's trailingButton
     /// parameter at app.swift:2155). Per boss 8/27 OOB: 新建 Menu +
-    /// 导入 plain Button. Both use the editor-expand icon-button
-    /// pattern (= Color.clear 28x28 hot area + icon overlay; matches
-    /// macOS zone-header icon style per Apple HIG zone-tab-bar pattern).
+    /// 导入 plain Button. Both use the editor-expand + chat-archive
+    /// icon-button pattern (= Color.clear 28x28 hot area + Lucide
+    /// icon overlay + .secondary foreground + .contentShape Rectangle
+    /// + .buttonStyle(IconButtonStyle()) for empty pass-through; matches
+    /// macOS zone-header icon style per Apple HIG zone-tab-bar pattern
+    /// AND the wenshu IconButtonStyle convention used by ChatZoneTabBar
+    /// + the editor expand button).
     @ViewBuilder
     var zoneHeaderButtons: some View {
         HStack(spacing: 4) {
@@ -161,6 +165,7 @@ struct NewLibraryOutlineView: View {
                     }
                     .contentShape(Rectangle())
             }
+            .buttonStyle(IconButtonStyle())
             // 导入 plain Button (= tap directly fires .wenshuImportRequested).
             Button {
                 NotificationCenter.default.post(name: .wenshuImportRequested, object: nil)
@@ -184,6 +189,7 @@ struct NewLibraryOutlineView: View {
                     }
                     .contentShape(Rectangle())
             }
+            .buttonStyle(IconButtonStyle())
         }
     }
 
