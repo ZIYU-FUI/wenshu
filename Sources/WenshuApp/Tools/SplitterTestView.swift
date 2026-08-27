@@ -17,57 +17,17 @@
 //   custom handles. Each pane has a show/hide toggle (= reproduces
 //   LayoutShellView's wenshu.zoneVisible.* behavior).
 //
-// v0.27 boss 8/27 OOB #2 (= positive test confirmed SplitView drag
-// works): '你先把测试 APP 的所有的拖拽线，改成 1PT.然后鼠标悬浮上去后，
-// 5PT 发光效果。热区也是 5PT。热区是不显示的' = wenshu splitter style spec:
-//   - visibleThickness (line drawn): 1 PT
-//   - hover state: 5 PT glow (= accent color, opacity ~0.4, animated)
-//   - hit area (invisibleThickness, the actual drag region): 5 PT
-//   - hit area is invisible (= transparent; only the visible 1 PT line
-//     shows, expanding to 5 PT on hover)
-// This matches the existing NativeSplitter implementation that was
-// the wenshu v0.24-v0.27 in-house splitter (= same Apple HIG line/hover
-// specs; = boss 8/27 wants SplitView's drag reliability PLUS the
-// existing wenshu splitter visual treatment).
+// HOW TO LAUNCH:
+//
+//   The App.swift wiring in commit 3 (= the next commit) adds a hidden
+//   menu item 'Tools → 拖拽测试' (= Cmd+Shift+T) that opens this window
+//   via SwiftUI's @Environment(\.openWindow). For now (= this commit),
+//   the file is only compiled (= no menu wiring yet); the boss can
+//   verify via `swift run` + manual Xcode preview, or wait for commit
+//   3 to land the in-app launcher.
 
 import SwiftUI
 import SplitView
-import Lucide
-
-/// WenshuSplitter — custom splitter conforming to SplitDivider.
-/// Implements the wenshu v0.27 visual spec (= boss 8/27 OOB):
-/// - 1 PT line at rest (Apple system separatorColor).
-/// - 5 PT accent-color glow on hover (eased in/out, 0.2s).
-/// - 5 PT invisible hit area (= invisibleThickness = 5).
-///
-/// Per SplitView docs (= README § Custom Splitters):
-///   'The styling.visibleThickness is the size your custom splitter
-///   displays itself in, and it also defines the spacing between the
-///   primary and secondary views inside of Split view.'
-///   'The Split view detects drag events occurring in the splitter. For
-///   this reason, you might want to use a ZStack with an underlying
-///   Color.clear that represents the styling.invisibleThickness if the
-///   styling.visibleThickness is too small for properly detecting the
-///   drag events.'
-///
-/// visibleThickness = 1 (= the visible line + spacing between panes).
-/// invisibleThickness = 5 (= the wider drag region; = the boss 8/27
-/// '热区是 5PT' spec).
-///
-/// Per SplitView v3.5 docs (= README § Modifying And Constraining The
-/// Default Splitter): 'you can change the way the default Splitter
-/// displays using the styling modifier. For example, you can change
-/// the color, inset, and thickness.' The `visibleThickness` (= drawn
-/// line) and `invisibleThickness` (= drag region) are direct
-/// parameters on the Split's `.styling(...)` modifier. HSplit / VSplit
-/// already use the default Splitter (= no custom View needed).
-/// wenshu's spec is therefore satisfied by the built-in default
-/// Splitter, no custom WenshuSplitter struct required.
-struct WenshuSplitter: View {
-    var body: some View {
-        Color.clear
-    }
-}
 
 /// SplitterTestView — 6-zone test harness for SplitView drag behavior.
 struct SplitterTestView: View {
@@ -76,53 +36,17 @@ struct SplitterTestView: View {
     @State private var showTools: Bool = true
     @State private var showDynamic: Bool = true
 
-    // v0.27 boss 8/27 OOB #2: wenshu splitter style spec = 1 PT line +
-    // 5 PT hover glow + 5 PT invisible hit area. SplitStyling controls
-    // both visible (the drawn line) and invisible (the drag region)
-    // thickness.
-    private let styling = SplitStyling(visibleThickness: 1, invisibleThickness: 5)
-    private let upperLayout = LayoutHolder()
-    private let lowerLayout = LayoutHolder()
-    private let sidebarHide = SideHolder()
-    private let previewHide = SideHolder()
-    private let toolsHide = SideHolder()
-    private let dynamicHide = SideHolder()
-
     var body: some View {
         VStack(spacing: 0) {
             // Top control bar (= visibility toggles; mirrors the
             // LayoutShellView's wenshu.zoneVisible.* AppStorage keys).
             HStack(spacing: 12) {
-                Toggle("Sidebar", isOn: Binding(
-                    get: { showSidebar },
-                    set: { newVal in
-                        showSidebar = newVal
-                        withAnimation { sidebarHide.toggle() }
-                    }
-                ))
-                Toggle("Preview", isOn: Binding(
-                    get: { showPreview },
-                    set: { newVal in
-                        showPreview = newVal
-                        withAnimation { previewHide.toggle() }
-                    }
-                ))
-                Toggle("Tools", isOn: Binding(
-                    get: { showTools },
-                    set: { newVal in
-                        showTools = newVal
-                        withAnimation { toolsHide.toggle() }
-                    }
-                ))
-                Toggle("Dynamic", isOn: Binding(
-                    get: { showDynamic },
-                    set: { newVal in
-                        showDynamic = newVal
-                        withAnimation { dynamicHide.toggle() }
-                    }
-                ))
+                Toggle("Sidebar", isOn: $showSidebar)
+                Toggle("Preview", isOn: $showPreview)
+                Toggle("Tools", isOn: $showTools)
+                Toggle("Dynamic", isOn: $showDynamic)
                 Spacer()
-                Text("拖动中间 5 PT 热区 (= invisibleThickness)")
+                Text("拖动中间的线，看能不能拖")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -133,57 +57,47 @@ struct SplitterTestView: View {
             Divider()
 
             // Splitter layout — replicates wenshu's 6-zone LayoutShellView
-            // shape with SplitView's HSplit / VSplit views + WenshuSplitter.
-            VSplit(
-                top: {
-                    HSplit(
-                        left: { if showSidebar {
-                            testPane("项目管理区", color: .blue)
-                                .frame(minWidth: 200)
-                        } },
-                        right: {
-                            HSplit(
-                                left: { if showPreview {
-                                    testPane("素材预览区", color: .purple)
-                                        .frame(minWidth: 200)
-                                } },
-                                right: {
-                                    HSplit(
-                                        left: { testPane("编辑器", color: .green)
-                                            .frame(minWidth: 300)
-                                        },
-                                        right: { if showTools {
-                                            testPane("工具区", color: .orange)
-                                                .frame(minWidth: 200)
-                                        } }
-                                    )
-                                    .styling(color: Color(nsColor: .separatorColor), visibleThickness: 1, invisibleThickness: 5)
-                                }
-                            )
-                            .styling(color: Color(nsColor: .separatorColor), visibleThickness: 1, invisibleThickness: 5)
-                        }
-                    )
-                    .styling(color: Color(nsColor: .separatorColor), visibleThickness: 1, invisibleThickness: 5)
-                    .hide(sidebarHide)
-                    .frame(minHeight: 300)
-                },
-                bottom: {
-                    HSplit(
-                        left: { testPane("聊天区", color: .pink)
-                            .frame(minWidth: 300)
-                        },
-                        right: { if showDynamic {
-                            testPane("动态区", color: .yellow)
-                                .frame(minWidth: 200)
-                        } }
-                    )
-                    .styling(color: Color(nsColor: .separatorColor), visibleThickness: 1, invisibleThickness: 5)
-                    .hide(dynamicHide)
-                    .frame(minHeight: 200)
-                }
-            )
-            .styling(color: Color(nsColor: .separatorColor), visibleThickness: 1, invisibleThickness: 5)
-            .frame(minHeight: 400)
+            // shape with SplitView's HSplit / VSplit views.
+            // Per SplitView v3.5 API: HSplit(left:right:), VSplit(top:bottom:).
+            VSplit(top: {
+                HSplit(
+                    left: { if showSidebar {
+                        testPane("项目管理区", color: .blue)
+                            .frame(minWidth: 200)
+                    } },
+                    right: {
+                        HSplit(
+                            left: { if showPreview {
+                                testPane("素材预览区", color: .purple)
+                                    .frame(minWidth: 200)
+                            } },
+                            right: {
+                                HSplit(
+                                    left: { testPane("编辑器", color: .green)
+                                        .frame(minWidth: 300)
+                                    },
+                                    right: { if showTools {
+                                        testPane("工具区", color: .orange)
+                                            .frame(minWidth: 200)
+                                    } }
+                                )
+                            }
+                        )
+                    }
+                )
+                .frame(minHeight: 300)
+            }, bottom: {
+                HSplit(
+                    left: { testPane("聊天区", color: .pink)
+                        .frame(minWidth: 300)
+                    },
+                    right: { if showDynamic {
+                        testPane("动态区", color: .yellow)
+                            .frame(minWidth: 200)
+                    } }
+                )
+                .frame(minHeight: 200)
+            })
         }
         .frame(minWidth: 800, minHeight: 600)
     }
