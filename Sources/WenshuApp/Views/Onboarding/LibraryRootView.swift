@@ -105,10 +105,16 @@ private struct WiredShell: View {
     // LayoutShellView (= wenshu's in-house HStack/VStack +
     // NativeSplitter implementation) and the new SplitViewLayoutView
     // (= third-party stevengharris/SplitView-based implementation).
-    // Defaults to true (= SplitViewLayoutView) so users see the
-    // new shell immediately; = flip to false via in-app menu or
-    // UserDefaults to restore the legacy shell if needed.
-    @AppStorage("wenshu.useSplitView") private var useSplitView: Bool = true
+    // Defaults to false (= legacy shell) per the dual-axis review
+    // finding on 027-28 (= SplitView last commit 2024-06-25 =
+    // 14 months ago; = fails AGENTS.md §11.1 12-month active
+    // maintenance requirement). The SplitViewLayoutView code is
+    // kept in the tree as the implementation that WILL be enabled
+    // once a more actively-maintained macOS splitter library is
+    // selected (= or the AGENTS.md §11.1 policy is relaxed).
+    // Flip to true via UserDefaults or in-app menu (TODO) to test
+    // the SplitView shell during development.
+    @AppStorage("wenshu.useSplitView") private var useSplitView: Bool = false
 
     var body: some View {
         Group {
