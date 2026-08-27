@@ -1433,21 +1433,33 @@ struct LayoutShellView: View {
                 // default toolbar item sizes (= no custom .frame, .font,
                 // .padding, .background). Let macOS toolbar manage everything.
                 ToolbarItemGroup(placement: .navigation) {
-                    // v0.27 boss 8/27 OOB: 新建按钮恢复 v0.25.x 原样式
-                    // (= SwiftUI toolbar 自动渲染的 Pages-style capsule),
-                    // ICON 换成 square-plus (= Lucide square-plus / SF
-                    // square.and.pencil), 点击后弹 Menu (新建书 / 新建书架).
-                    // Menu indicator (⌄) 去掉 via .menuStyle(.button)
-                    // + .buttonStyle(.plain) (= v0.21 ticket 42 combo).
+                    // v0.27 boss 8/27 OOB: 新建按钮 = macOS native toolbar
+                    // button shape (= rounded-rectangle capsule / Pages-style
+                    // outlined grey). Per Apple HIG (developer.apple.com/
+                    // design/human-interface-guidelines/components/toolbars):
+                    // toolbar buttons are bordered rounded-rectangle by
+                    // default. NO explicit .buttonStyle modifier (= let
+                    // SwiftUI toolbar apply the macOS native shape;
+                    // .buttonStyle(.bordered) / .plain both interfere
+                    // with the toolbar's native capsule rendering for
+                    // Menu-wrapped buttons).
+                    //
+                    // The Menu indicator (⌄) is intentionally KEPT here:
+                    // macOS HIG canonical toolbar Menu pattern DOES show
+                    // the ⌄ glyph (= it's the visual cue that the button
+                    // is a menu, not a single-action button). Earlier
+                    // attempts to hide it (= .menuStyle(.button) +
+                    // .buttonStyle(.plain)) made the button look like a
+                    // plain icon and broke the macOS visual affordance.
+                    //
+                    // Hot area: SwiftUI toolbar buttons get a built-in
+                    // minimum hit target (= the entire rounded-rectangle
+                    // capsule is clickable, not just the icon glyph).
                     Menu {
                         // v0.27 macOS-standard cross-component sync (boss
-                        // 8/27 OOB): the toolbar '+' is a macOS standard
-                        // location for the File → New submenu. Per boss
-                        // 8/27 standing rule 'a new feature should appear
-                        // everywhere = synced': both items post a
-                        // NotificationCenter event that
-                        // NewLibraryOutlineView listens for and triggers
-                        // the matching sheet.
+                        // 8/27 OOB): both items post a NotificationCenter
+                        // event that NewLibraryOutlineView listens for and
+                        // triggers the matching sheet.
                         Button("新建书") {
                             NotificationCenter.default.post(name: .wenshuNewBookRequested, object: nil)
                         }
@@ -1463,8 +1475,6 @@ struct LayoutShellView: View {
                                 .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                         }
                     }
-                    .menuStyle(.button)
-                    .buttonStyle(.plain)
                     .help("新建")
 
                     // v0.27 boss 8/27 OOB: 删除 '打开' button (= wenshu 是
