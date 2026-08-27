@@ -26,53 +26,33 @@ struct NewLibraryOutlineView: View {
     @State private var showNewShelfSheet: Bool = false
 
     var body: some View {
-        // v0.27 boss 8/27 OOB #3: 新建 + 导入 moved out of the macOS
-        // window toolbar into the projectSidebar zone (= right-aligned
-        // icon buttons in the zone header). Boss asked to follow the
-        // same pattern as the editor zone's expand button (= ticket
-        // 029c-trailing-button: Color.clear 28x28 hot area + icon
-        // overlay, no capsule border, plain visual). The two buttons
-        // sit in a trailingButton HStack on the zone's ZoneContentView
-        // (= app.swift:2155; the ZoneContentView already accepts an
-        // optional trailingButton parameter that renders at the right
-        // edge of the zone tab bar). The menu bar File → 新建项目 +
-        // File → 导入… entries remain (= macOS standard File menu);
-        // right-click context menu on sidebar empty area remains.
-        // Note: the macOS window toolbar no longer carries 新建 + 导入
-        // (= removed in commit 6beb3c015 = boss 8/27 '在标题栏里去掉').
-        Group {
-            if let error = loadError {
-                errorState(error)
-            } else {
-                List {
-                    if shelves.isEmpty {
-                        Text("暂无书架")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                            .listRowBackground(Color.clear)
-                    } else {
-                        ForEach(shelves) { shelf in
-                            shelfSection(shelf)
-                        }
-                    }
-                    referenceLibrarySection
-                }
-                .listStyle(.sidebar)
-                .scrollContentBackground(.hidden)
-                .contextMenu(forSelectionType: UUID.self, menu: { _ in
-                    Button {
-                        showNewBookSheet = true
-                    } label: {
-                        Label("新建书", systemImage: "square.plus")
-                    }
-                    Button {
-                        showNewShelfSheet = true
-                    } label: {
-                        Label("新建书架", systemImage: "books.vertical.fill")
-                    }
-                })
+        // v0.27 boss 8/27 OOB: rewrite the directory tree UI to follow
+        // FCP Browser style (= macOS 10.x ~ 14.x Finder sidebar + FCP
+        // project-sidebar style). Per Apple HIG (developer.apple.com/
+        // design/human-interface-guidelines/components/layout-and-
+        // organization/outline-views) + FCP Browser conventions:
+        // - Compact row height (~24 PT vs SwiftUI .sidebar default ~28)
+        // - Lucide chevron-right disclosure indicator (NOT NSOutlineView
+        //   triangle, NOT caret)
+        // - Left-aligned icon + title + right-aligned count badge
+        // - Per-entity icon (= filmstrip for library / bookshelf, book
+        //   for books, stack for ReferenceLibrary; matches FCP where
+        //   each entity type has a distinct icon)
+        // - Recursive tree rendered via custom FCPRowView + nested ForEach
+        //   (= SwiftUI OutlineGroup requires selection binding that
+        //   conflicts with the existing BookStore.selectedBookId
+        //   architecture; manual nesting is cleaner)
+        // - Plain .background without List chrome (= macOS HIG sidebar
+        //   is a flat tree, not a List).
+        VStack(spacing: 0) {
+            ForEach(buildTreeNodes()) { node in
+                FCPRowView(node: node, depth: 0)
             }
         }
+        .background(Color.clear)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 4)
+        .padding(.vertical, 4)
         .onAppear(perform: reload)
         .onChange(of: bookStore.selectedBookId) { _, newValue in
             selectedBookId = newValue
@@ -196,6 +176,89 @@ struct NewLibraryOutlineView: View {
             }
             .buttonStyle(IconButtonStyle())
         }
+    }
+
+    // MARK: - Tree model (= boss 8/27 OOB: FCP Browser style rewrite)
+
+    /// Recursive tree node (= FCP Browser projectSidebar model).
+    /// Each node = one row in the tree (= shelf / book / Reference
+    /// layer). Children rendered recursively via FCPRowView's ForEach.
+    /// Identity-based equality (= id-based Hashable; rename-friendly).
+    struct FCPTreeNode: Identifiable, Hashable {
+        let id: UUID
+        let label: String
+        let icon: String           // Lucide icon name (with SF fallback)
+        let count: Int?            // optional count badge (right-aligned)
+        let children: [FCPTreeNode]
+        let payloadKind: PayloadKind
+
+        enum PayloadKind: Hashable {
+            case shelf
+            case book
+            case referenceLayer
+        }
+
+        func hash(into hasher: inout Hasher) {
+            hasher.combine(id)
+        }
+
+        static func == (lhs: FCPTreeNode, rhs: FCPTreeNode) -> Bool {
+            lhs.id == rhs.id
+        }
+    }
+
+    /// Build the tree from current store state (= shelves + books +
+    /// reference layer counts). Each user-named shelf is a parent
+    /// node; its books are children. ReferenceLibrary is a sibling
+    /// root node (= boss 8/26 OOB '资料库在书架级别露出，与所有用户
+    /// 建的书评级'); its layers are children.
+    private func buildTreeNodes() -> [FCPTreeNode] {
+        var root: [FCPTreeNode] = []
+        // Shelves (= user-named; book children = booksInShelf(shelf)).
+        for shelf in shelves {
+            let books = booksInShelf(shelf)
+            let bookNodes = books.map { book in
+                FCPTreeNode(
+                    id: book.id,
+                    label: book.title,
+                    icon: "filmstrip",
+                    count: nil,
+                    children: [],
+                    payloadKind: .book
+                )
+            }
+            root.append(FCPTreeNode(
+                id: shelf.id,
+                label: shelf.name,
+                icon: "books.vertical.fill",
+                count: books.count,
+                children: bookNodes,
+                payloadKind: .shelf
+            ))
+        }
+        // ReferenceLibrary (= library-public default shelf; layer
+        // children = 2 user-facing layers per spec v5).
+        let layerChildren = ReferenceLayer.allCases
+            .filter { $0.isUserFacing }
+            .map { layer in
+                FCPTreeNode(
+                    id: UUID(uuidString: "00000000-0000-0000-0000-\(String(format: "%012x", layer.hashValue))") ?? UUID(),
+                    label: layer.displayName,
+                    icon: layer.icon,
+                    count: nil,
+                    children: [],
+                    payloadKind: .referenceLayer
+                )
+            }
+        root.append(FCPTreeNode(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000001") ?? UUID(),
+            label: "资料库",
+            icon: "book-stack",
+            count: layerChildren.count,
+            children: layerChildren,
+            payloadKind: .referenceLayer
+        ))
+        return root
     }
 
     // MARK: - Sections
@@ -508,5 +571,99 @@ private struct NewShelfSheet: View {
             .padding()
         }
         .frame(minWidth: 360, idealWidth: 420, minHeight: 200, idealHeight: 240)
+    }
+}
+// MARK: - FCP Browser style row (= boss 8/27 OOB: rewrite tree UI)
+
+/// One row in the FCP Browser-style projectSidebar tree.
+/// Layout (= Apple HIG + FCP convention):
+/// ```
+///   ▼  [icon]  [label]                  [count]
+///       └─ [icon]  [child label]                [count]
+/// ```
+/// - Disclosure triangle on the left (Lucide chevron-right rotated
+///   when expanded)
+/// - Per-entity icon (= FCP convention: filmstrip for library/book,
+///   books for bookshelf, book-stack for ReferenceLibrary)
+/// - Right-aligned count badge for parent nodes (child count)
+/// - Manual recursion via nested ForEach (= SwiftUI OutlineGroup
+///   requires a selection binding that conflicts with the existing
+///   BookStore.selectedBookId; nesting is cleaner here).
+private struct FCPRowView: View {
+    let node: NewLibraryOutlineView.FCPTreeNode
+    let depth: Int
+
+    @Environment(BookStore.self) private var bookStore
+    @State private var isExpanded: Bool = true
+
+    private let indentPT: CGFloat = 16
+    private let iconSize: CGFloat = 13
+    private let rowHeight: CGFloat = 22
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 4) {
+                // Indent (= each level pushes 16 PT right per FCP).
+                if depth > 0 {
+                    Color.clear.frame(width: CGFloat(depth) * indentPT)
+                }
+                // Disclosure chevron (= only if has children).
+                if !node.children.isEmpty {
+                    Button {
+                        isExpanded.toggle()
+                    } label: {
+                        Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(Color.secondary)
+                            .frame(width: 14, height: 14)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Color.clear.frame(width: 14, height: 14)
+                }
+                // Per-entity icon.
+                iconView(node.icon)
+                    .frame(width: 14, height: 14)
+                // Label.
+                Text(node.label)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                Spacer(minLength: 4)
+                // Count badge (= right-aligned; only for parent nodes).
+                if let count = node.count {
+                    Text("\(count)")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(height: rowHeight)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                if node.payloadKind == .book {
+                    bookStore.selectedBookId = node.id
+                }
+            }
+            // Children (= recursive render when expanded).
+            if isExpanded {
+                ForEach(node.children) { child in
+                    FCPRowView(node: child, depth: depth + 1)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func iconView(_ name: String) -> some View {
+        if let lucide = Lucide(name) {
+            lucide
+                .font(.system(size: iconSize))
+                .imageScale(.large)
+                .foregroundStyle(Color.secondary)
+        } else {
+            Image(systemName: "folder")
+                .font(.system(size: iconSize))
+                .foregroundStyle(Color.secondary)
+        }
     }
 }
