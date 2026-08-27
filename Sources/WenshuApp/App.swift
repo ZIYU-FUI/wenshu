@@ -2184,7 +2184,7 @@ struct ZoneModule: View {
             // (= Apple SF Symbol = solid bookshelf, matches Boss spec
             // '选一个合适的 ICON 替换').
             ZoneContentView(zoneSlug: "projectSidebar", tabs: [
-                ("书架", "book-open", AnyView(DesignColor.zoneSurface.overlay(alignment: .topLeading) { LibraryOutlineViewContent(library: library) })),
+                ("书架", "book-open", AnyView(DesignColor.zoneSurface.overlay(alignment: .topLeading) { LibraryOutlineViewContent() })),
             ])
         case .projectPreview:
             // ProjectPreview tabs: 章节预览 / 图 / [搜索 hidden].
@@ -2344,16 +2344,16 @@ enum ZoneSlot {
 
 // MARK: - Library outline (项目侧栏嵌入)
 
-/// 项目侧栏内容 (WenshuLibrary 真实内容)
-/// v0.10.10d 删 LIBRARY overlay label (老板 8/18 拍 "对齐了, 不用文字标签")
-/// v0.15 ticket 005: 删 LibraryOutlineViewContent.libraryHeader 死代码 + 改 comment
+/// 项目侧栏内容 (= v0.27 wiring: NewLibraryOutlineView reads from
+/// BookStore via @Environment). Replaces v0.25.x WenshuLibrary-backed
+/// LibraryOutlineView (= no longer used in production zone).
 struct LibraryOutlineViewContent: View {
-    let library: WenshuLibrary
+    @Environment(BookStore.self) private var bookStore
     var body: some View {
-        LibraryOutlineView(library: library)
+        NewLibraryOutlineView()
             .padding(.vertical, 2)
             .padding(8)
-            .allowsHitTesting(false)
+            .environment(bookStore)
     }
 }
 
