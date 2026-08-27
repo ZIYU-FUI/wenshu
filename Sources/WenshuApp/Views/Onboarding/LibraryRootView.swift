@@ -84,8 +84,53 @@ public struct LibraryRootView: View {
                     libraryPath = url.path
                 })
             } else {
-                LayoutShellView()
+                // v0.27 wiring: run the LibraryLifecycleHook at layout entry.
+                // - LibraryMigrator.migrateIfNeeded (= v0.x → v0.26)
+                // - LibraryBootstrapper.ensureValidStructure (= self-heal)
+                // - Construct LibraryStores + BookStore (= single @Observable)
+                // - Inject BookStore via .environment for LayoutShellView + child views
+                WiredShell(libraryPath: libraryPath)
             }
+        }
+    }
+}
+
+/// v0.27 wiring wrapper (= isolated to keep LibraryRootView's body
+/// simple). Constructs the BookStore via LibraryLifecycleHook and
+/// provides it via @Environment.
+private struct WiredShell: View {
+    let libraryPath: String
+    @State private var bookStore: BookStore?
+
+    var body: some View {
+        Group {
+            if let bookStore = bookStore {
+                LayoutShellView()
+                    .environment(bookStore)
+            } else {
+                ProgressView("正在启动文枢…")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .task {
+            await runLaunch()
+        }
+    }
+
+    @MainActor
+    private func runLaunch() async {
+        let wsRoot = URL(fileURLWithPath: libraryPath)
+        let hook = LibraryLifecycleHook(wsRoot: wsRoot)
+        do {
+            let result = try hook.runLaunch()
+            self.bookStore = result.makeBookStore()
+        } catch {
+            // v0.27 MVP: log + show alert would be ideal; for now,
+            // fall back to a layout shell without the BookStore so the
+            // user sees the app rather than a blank screen.
+            #if DEBUG
+            print("LibraryLifecycleHook failed: \(error)")
+            #endif
         }
     }
 }

@@ -59,3 +59,16 @@ struct PerBookStores: Sendable {
 struct LibraryLaunchResult: Sendable {
     let stores: LibraryStores
 }
+
+// MARK: - BookStore construction
+
+extension LibraryLaunchResult {
+    /// Build the singleton BookStore (= v0.27 ticket 027-01 wiring).
+    /// This is the one place that constructs the @Observable; App.swift
+    /// wiring (= WiredShell in LibraryRootView) passes it to LayoutShellView
+    /// via .environment(bookStore).
+    @MainActor
+    func makeBookStore() -> BookStore {
+        BookStore(stores: stores)
+    }
+}
