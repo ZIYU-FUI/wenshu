@@ -136,7 +136,8 @@ struct NewLibraryOutlineView: View {
     /// + the editor expand button).
     @ViewBuilder
     var zoneHeaderButtons: some View {
-        HStack(spacing: 4) {
+        // v0.27 boss 8/27 OOB: 间距调成 8 PT (= from 4 PT).
+        HStack(spacing: 8) {
             // 新建 Menu (= tap → menu with 新建书 / 新建书架).
             Menu {
                 Button("新建书") {
