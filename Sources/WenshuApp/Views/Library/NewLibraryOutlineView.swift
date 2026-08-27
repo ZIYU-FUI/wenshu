@@ -26,24 +26,12 @@ struct NewLibraryOutlineView: View {
     @State private var showNewShelfSheet: Bool = false
 
     var body: some View {
-        // v0.27 boss 8/27 OOB: rewrite the directory tree UI to follow
-        // FCP Browser style (= macOS 10.x ~ 14.x Finder sidebar + FCP
-        // project-sidebar style). Per Apple HIG (developer.apple.com/
-        // design/human-interface-guidelines/components/layout-and-
-        // organization/outline-views) + FCP Browser conventions:
-        // - Compact row height (~24 PT vs SwiftUI .sidebar default ~28)
-        // - Lucide chevron-right disclosure indicator (NOT NSOutlineView
-        //   triangle, NOT caret)
-        // - Left-aligned icon + title + right-aligned count badge
-        // - Per-entity icon (= filmstrip for library / bookshelf, book
-        //   for books, stack for ReferenceLibrary; matches FCP where
-        //   each entity type has a distinct icon)
-        // - Recursive tree rendered via custom FCPRowView + nested ForEach
-        //   (= SwiftUI OutlineGroup requires selection binding that
-        //   conflicts with the existing BookStore.selectedBookId
-        //   architecture; manual nesting is cleaner)
-        // - Plain .background without List chrome (= macOS HIG sidebar
-        //   is a flat tree, not a List).
+        // v0.27 boss 8/27 OOB: 目录树整体居左的边距，可以再小一些，让标
+        // 题的 ICON 与顶部 Tab 的 ICON 对齐 (= shrink left padding +
+        // indent so the shelf/book ICON aligns with the zone tab bar's
+        // tab icons). 那个折叠展开的小箭头，不计入对齐计算，就正常往
+        // 前挤就好 (= chevron is treated as an inline element, NOT as
+        // part of the indent column; the indent starts AT the icon).
         VStack(spacing: 0) {
             ForEach(buildTreeNodes()) { node in
                 FCPRowView(node: node, depth: 0)
@@ -51,7 +39,7 @@ struct NewLibraryOutlineView: View {
         }
         .background(Color.clear)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 4)
+        .padding(.horizontal, 2)
         .padding(.vertical, 4)
         .onAppear(perform: reload)
         .onChange(of: bookStore.selectedBookId) { _, newValue in
@@ -644,18 +632,27 @@ private struct FCPRowView: View {
     @Environment(BookStore.self) private var bookStore
     @State private var isExpanded: Bool = true
 
-    private let indentPT: CGFloat = 16
+    // v0.27 boss 8/27 OOB: indentPT 16 → 8 (= tighter; shelf/book ICON
+    // aligns with zone tab bar icons). chevron is INLINE (= not part
+    // of the indent column); chevron + icon sit immediately at the
+    // indent edge.
+    private let indentPT: CGFloat = 8
     private let iconSize: CGFloat = 13
     private let rowHeight: CGFloat = 22
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 4) {
-                // Indent (= each level pushes 16 PT right per FCP).
+                // Indent (= boss 8/27: chevron is NOT part of the indent;
+                // = the indent pushes the chevron+icon+label group right
+                // by N×8 PT). Chevron + icon + label all start at the
+                // same indent column.
                 if depth > 0 {
                     Color.clear.frame(width: CGFloat(depth) * indentPT)
                 }
-                // Disclosure chevron (= only if has children).
+                // Disclosure chevron (= inline; takes 14 PT regardless
+                // of disclosure state = layout stability for adjacent
+                // rows that mix expanded + collapsed subtrees).
                 if !node.children.isEmpty {
                     Button {
                         isExpanded.toggle()
