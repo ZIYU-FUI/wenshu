@@ -1477,6 +1477,14 @@ struct LayoutShellView: View {
                                 .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                         }
                     }
+                    // v0.27 boss 8/27 OOB '去掉新建按钮后面那个向下的箭头':
+                    // .menuStyle(.button) + .buttonStyle(.plain) hides the
+                    // default menu indicator (the ⌄ glyph) AND the button
+                    // chrome (borderless); the folder-plus icon stays as
+                    // the sole visual cue. v0.21 ticket 42 already used
+                    // this combo (= App.swift:2597-2599).
+                    .menuStyle(.button)
+                    .buttonStyle(.plain)
                     .help("新建")
                     Button {
                         NSLog("[wenshu.toolbar] tap: 打开 (placeholder)")
