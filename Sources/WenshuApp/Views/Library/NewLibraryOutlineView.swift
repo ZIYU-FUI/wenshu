@@ -725,16 +725,18 @@ private struct FCPRowView: View {
 
     // MARK: - Hierarchy text style (= boss 8/27 OOB: shelf > book > folder/doc)
 
-    /// Font size per payload kind (= boss 8/27 'shelf text bigger than
-    /// book text'; FCP Browser-style hierarchy).
-    /// - shelf: 13 PT (= FCP Browser section header)
-    /// - book: 12 PT (= FCP Browser item)
-    /// - referenceLayer: 11 PT (= indented children)
+    /// Font size per payload kind (= boss 8/27 'shelf > book > folder/doc';
+    /// + boss 8/27 followup '资料库的字号样式没改，对齐' = reference
+    /// layer rows should match the same visual treatment as book rows
+    /// since both are 'user-clickable sub-nodes' = 12 PT regular primary).
+    /// - shelf: 13 PT semibold primary (= FCP Browser section header)
+    /// - book: 12 PT regular primary (= FCP Browser item)
+    /// - referenceLayer: 12 PT regular primary (= aligned with book per
+    ///   boss 8/27; was 11 PT secondary in prior commit)
     private func labelFont(for kind: NewLibraryOutlineView.FCPTreeNode.PayloadKind) -> Font {
         switch kind {
         case .shelf: return .system(size: 13)
-        case .book: return .system(size: 12)
-        case .referenceLayer: return .system(size: 11)
+        case .book, .referenceLayer: return .system(size: 12)
         }
     }
 
@@ -747,13 +749,14 @@ private struct FCPRowView: View {
         }
     }
 
-    /// Foreground color per payload kind (= shelf primary = section
-    /// header; book primary; folder/doc secondary = visually
-    /// de-emphasized child rows).
+    /// Foreground color per payload kind (= shelf + book primary;
+    /// referenceLayer now ALSO primary per boss 8/27 '对齐' = visual
+    /// alignment with the projectSidebar default-shelf sub-nodes).
+    /// Was .secondary in prior commit; boss feedback = sub-nodes across
+    /// both root containers should look the same.
     private func labelForeground(for kind: NewLibraryOutlineView.FCPTreeNode.PayloadKind) -> Color {
         switch kind {
-        case .shelf, .book: return .primary
-        case .referenceLayer: return .secondary
+        case .shelf, .book, .referenceLayer: return .primary
         }
     }
 }
