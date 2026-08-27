@@ -30,12 +30,32 @@ let package = Package(
         // followup). This re-introduction is single-purpose: just the chat
         // zone icon swap, nothing else.
         .package(url: "https://github.com/bring-shrubbery/lucide-swift.git", exact: "1.25.0"),
+        // v0.27 boss 8/27 OOB: "从今天开始，任何功能，先查有没有三方库可以用".
+        // wenshu splitter drag (LayoutShellView NativeSplitter) didn't work
+        // because SwiftUI .gesture(.local) is unreliable on macOS 14+ when
+        // nested in HStack with .transition(= zone hide/show animation).
+        // Boss approved `stevengharris/SplitView` (= AGENTS.md §11.1 first
+        // approved third-party exception) as the splitter replacement.
+        //
+        // Per AGENTS.md §11.1 acceptance criteria (= SplitView meets all 4):
+        // - GitHub stars: 216 (>= 100 ✓)
+        // - Last commit: v3.5 within 12 months (active ✓)
+        // - License: MIT (commercial-friendly ✓)
+        // - macOS-first (✓; = NSSplitView SwiftUI wrapper designed for macOS
+        //   first; supports iOS/macOS/Catalyst but primary target is macOS).
+        //
+        // This commit adds the dep first; wenshu code does not yet import
+        // SplitView (= followup commit will rewrite LayoutShellView to use
+        // SplitView's HSplit / VSplit / Split views). v3.5 chosen = latest
+        // release on the v3 series (= no breaking changes from v3.x prior).
+        .package(url: "https://github.com/stevengharris/SplitView.git", exact: "3.5.0"),
     ],
     targets: [
         .executableTarget(
             name: "WenshuApp",
             dependencies: [
                 .product(name: "Lucide", package: "lucide-swift"),
+                .product(name: "SplitView", package: "SplitView"),
             ],
             path: "Sources/WenshuApp",
             exclude: [
