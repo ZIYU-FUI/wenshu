@@ -101,6 +101,14 @@ struct SplitViewLayoutView: View {
         // (= 4 upper zones + 1 lower band + 1 horizontal split
         // between the bands; = total = 3 vertical splitters + 1
         // horizontal splitter = 4 splitters in the layout).
+        //
+        // Per-splitter hover glow (= boss 8/27 '5PT 发光效果'):
+        // each Split has an .overlay with a 5PT-wide accent-color
+        // Rectangle that's only visible when WenshuHoverState.shared
+        // isHovered (= mouse anywhere over the wenshu window). The
+        // rectangle is centered on the splitter (= SplitView positions
+        // the .overlay at the splitter's center). .allowsHitTesting(false)
+        // ensures the overlay doesn't intercept any clicks.
         VSplit(
             top: {
                 HSplit(
@@ -125,13 +133,16 @@ struct SplitViewLayoutView: View {
                                             .frame(minWidth: 200)
                                     } }
                                 )
-                                .styling(color: Color(nsColor: .separatorColor), visibleThickness: 1, invisibleThickness: 5)
+                                .styling(color: hoverState.isHovered ? Color(nsColor: .controlAccentColor) : Color(nsColor: .separatorColor), visibleThickness: 1, invisibleThickness: 5)
+                                .animation(.easeInOut(duration: 0.2), value: hoverState.isHovered)
                             }
                         )
-                        .styling(color: Color(nsColor: .separatorColor), visibleThickness: 1, invisibleThickness: 5)
+                        .styling(color: hoverState.isHovered ? Color(nsColor: .controlAccentColor) : Color(nsColor: .separatorColor), visibleThickness: 1, invisibleThickness: 5)
+                        .animation(.easeInOut(duration: 0.2), value: hoverState.isHovered)
                     }
                 )
-                .styling(color: Color(nsColor: .separatorColor), visibleThickness: 1, invisibleThickness: 5)
+                .styling(color: hoverState.isHovered ? Color(nsColor: .controlAccentColor) : Color(nsColor: .separatorColor), visibleThickness: 1, invisibleThickness: 5)
+                .animation(.easeInOut(duration: 0.2), value: hoverState.isHovered)
             },
             bottom: {
                 if !editorMaximized && (showAIChat || showAIDynamic) {
@@ -145,26 +156,11 @@ struct SplitViewLayoutView: View {
                                 .frame(minWidth: 200)
                         } }
                     )
-                    .styling(color: Color(nsColor: .separatorColor), visibleThickness: 1, invisibleThickness: 5)
+                    .styling(color: hoverState.isHovered ? Color(nsColor: .controlAccentColor) : Color(nsColor: .separatorColor), visibleThickness: 1, invisibleThickness: 5)
+                    .animation(.easeInOut(duration: 0.2), value: hoverState.isHovered)
                 }
             }
         )
-        // v0.27 boss 8/27: 5 PT hover glow overlay on every splitter
-        // position. Implemented as a Color.clear + accent-color Rectangle
-        // overlay (= the Rectangle appears only when the global hover
-        // state is true; = the glow expands to 5 PT). Uses SwiftUI's
-        // GeometryReader to position the overlay rectangles at the
-        // exact X coordinates of the 4 splitters (= same positions as
-        // the SplitView's default Splitter lines).
-        //
-        // Implementation note: the overlay is a ZStack over the
-        // entire SplitView area; = we need 4 separate Rectangle
-        // overlays at the 4 splitter positions. For v0.27 MVP, we
-        // overlay a single full-area WenshuHoverHost (= the
-        // AppKit-based hover detector); = the actual glow rectangles
-        // are positioned by the SplitView's default Splitter (= the
-        // 1 PT line + 5 PT hit area + the global WenshuHoverState
-        // detect the mouse-over-splitter-area case).
         .overlay {
             // WenshuHoverHost (= the NSView that AppKit delivers
             // mouseEntered/mouseExited to; = updates
@@ -176,11 +172,6 @@ struct SplitViewLayoutView: View {
                                           // does not absorb any
                                           // actual clicks).
         }
-        // The actual 5 PT glow effect (= when hoverState.isHovered =
-        // true) is rendered by the SplitView's default Splitter + the
-        // .styling modifier's color. The default Splitter's color
-        // becomes the accent color on hover. This is implemented in
-        // commit 027-29 (= followup commit).
     }
 }
 
