@@ -39,7 +39,7 @@ struct NewLibraryOutlineView: View {
         }
         .background(Color.clear)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 2)
+        .padding(.horizontal, 0)
         .padding(.vertical, 4)
         .onAppear(perform: reload)
         .onChange(of: bookStore.selectedBookId) { _, newValue in
@@ -632,13 +632,17 @@ private struct FCPRowView: View {
     @Environment(BookStore.self) private var bookStore
     @State private var isExpanded: Bool = true
 
-    // v0.27 boss 8/27 OOB: indentPT 16 → 8 (= tighter; shelf/book ICON
-    // aligns with zone tab bar icons). chevron is INLINE (= not part
-    // of the indent column); chevron + icon sit immediately at the
-    // indent edge.
-    private let indentPT: CGFloat = 8
-    private let iconSize: CGFloat = 13
-    private let rowHeight: CGFloat = 22
+    // v0.27 boss 8/27 OOB: indentPT 8 → 4 (= tighter; boss 8/27
+    // '整体目录树，再往左 8 PT' = shrink left padding + indent
+    // additionally by ~8 PT from previous state). chevron remains
+    // INLINE (= not part of the indent column).
+    private let indentPT: CGFloat = 4
+    // v0.27 boss 8/27 OOB: 目录树里的 ICON，全都都改成 18*18 (= icon
+    // visual size 18 PT + 18 PT frame; matches wenshu's primary
+    // toolbar iconSize and the projectSidebar zone tab bar icons for
+    // visual consistency across the shell).
+    private let iconSize: CGFloat = 18
+    private let rowHeight: CGFloat = 28
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -650,7 +654,7 @@ private struct FCPRowView: View {
                 if depth > 0 {
                     Color.clear.frame(width: CGFloat(depth) * indentPT)
                 }
-                // Disclosure chevron (= inline; takes 14 PT regardless
+                // Disclosure chevron (= inline; takes 18 PT regardless
                 // of disclosure state = layout stability for adjacent
                 // rows that mix expanded + collapsed subtrees).
                 if !node.children.isEmpty {
@@ -658,17 +662,17 @@ private struct FCPRowView: View {
                         isExpanded.toggle()
                     } label: {
                         Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                            .font(.system(size: 10, weight: .semibold))
+                            .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(Color.secondary)
-                            .frame(width: 14, height: 14)
+                            .frame(width: 18, height: 18)
                     }
                     .buttonStyle(.plain)
                 } else {
-                    Color.clear.frame(width: 14, height: 14)
+                    Color.clear.frame(width: 18, height: 18)
                 }
                 // Per-entity icon.
                 iconView(node.icon)
-                    .frame(width: 14, height: 14)
+                    .frame(width: 18, height: 18)
                 // Label (= boss 8/27 OOB: shelf text bigger than book
                 // text = FCP Browser hierarchy style; .semibold shelf
                 // vs .regular book vs .secondary folder/doc).
