@@ -1433,85 +1433,21 @@ struct LayoutShellView: View {
                 // default toolbar item sizes (= no custom .frame, .font,
                 // .padding, .background). Let macOS toolbar manage everything.
                 ToolbarItemGroup(placement: .navigation) {
-                    // v0.27 boss 8/27 OOB: 新建按钮 = macOS native toolbar
-                    // button shape (= rounded-rectangle capsule / Pages-style
-                    // outlined grey). Per Apple HIG (developer.apple.com/
-                    // design/human-interface-guidelines/components/toolbars):
-                    // toolbar buttons are bordered rounded-rectangle by
-                    // default. NO explicit .buttonStyle modifier (= let
-                    // SwiftUI toolbar apply the macOS native shape;
-                    // .buttonStyle(.bordered) / .plain both interfere
-                    // with the toolbar's native capsule rendering for
-                    // Menu-wrapped buttons).
-                    //
-                    // The Menu indicator (⌄) is intentionally KEPT here:
-                    // macOS HIG canonical toolbar Menu pattern DOES show
-                    // the ⌄ glyph (= it's the visual cue that the button
-                    // is a menu, not a single-action button). Earlier
-                    // attempts to hide it (= .menuStyle(.button) +
-                    // .buttonStyle(.plain)) made the button look like a
-                    // plain icon and broke the macOS visual affordance.
-                    //
-                    // Hot area: SwiftUI toolbar buttons get a built-in
-                    // minimum hit target (= the entire rounded-rectangle
-                    // capsule is clickable, not just the icon glyph).
-                    Menu {
-                        // v0.27 macOS-standard cross-component sync (boss
-                        // 8/27 OOB): both items post a NotificationCenter
-                        // event that NewLibraryOutlineView listens for and
-                        // triggers the matching sheet.
-                        Button("新建书") {
-                            NotificationCenter.default.post(name: .wenshuNewBookRequested, object: nil)
-                        }
-                        Button("新建书架") {
-                            NotificationCenter.default.post(name: .wenshuNewShelfRequested, object: nil)
-                        }
-                    } label: {
-                        if let lucide = Lucide("square-plus") {
-                            lucide
-                                .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
-                        } else {
-                            Image(systemName: "square.and.pencil")
-                                .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
-                        }
-                    }
-                    // macOS native toolbar button shape + hidden Menu
-                    // indicator (= boss 8/27 OOB):
-                    // .menuStyle(.button) hides the default ⌄ glyph
-                    // (= Apple's Menu button-style; treats the Menu
-                    // content as a button group rather than a pull-down
-                    // menu with an arrow).
-                    // .buttonStyle(.bordered) applies the macOS native
-                    // rounded-rectangle capsule shape (= Pages / Numbers
-                    // / Xcode toolbar buttons per Apple HIG).
-                    .menuStyle(.button)
-                    .buttonStyle(.bordered)
-                    .help("新建")
+                    // v0.27 boss 8/27 OOB #3 (= moved from toolbar): the
+                    // 新建 + 导入 buttons are MOVED OUT of the macOS window
+                    // toolbar (= boss gave up fighting the SwiftUI toolbar's
+                    // ⌄ indicator / capsule styling debate) into the
+                    // projectSidebar top bar (= right-aligned icon buttons).
+                    // Per boss 8/27 standing rule 'a new feature should
+                    // appear everywhere = synced', the menu bar File →
+                    // 新建项目 + File → 导入… entries remain (= macOS
+                    // standard File menu), and right-click context menu
+                    // remains on the projectSidebar empty area.
 
                     // v0.27 boss 8/27 OOB: 删除 '打开' button (= wenshu 是
                     // single-library permanent per boss 8/26 Q12, 没有
                     // 打开另一个库的需求; 想打开其他库用 '导入' 合并).
                     // (= comment only; the Button block below was deleted.)
-
-                    // v0.27 boss 8/27 OOB: 保留 '导入' button (原样式 =
-                    // SwiftUI toolbar 自动 capsule), ICON 换成
-                    // square-arrow-right (= Lucide square-arrow-right /
-                    // SF arrow.down.doc; 功能稍后规划).
-                    Button {
-                        // v0.27 MVP placeholder (= 功能待 boss 拷问后实装,
-                        // boss 8/27 OOB '导入等合并两个库'). 占位 logging
-                        // 保持 toolbar 交互可达 (= 用户点 = NSLog).
-                        NSLog("[wenshu.toolbar] tap: 导入 (功能待 v0.27 followup)")
-                    } label: {
-                        if let lucide = Lucide("square-arrow-right") {
-                            lucide
-                                .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
-                        } else {
-                            Image(systemName: "arrow.down.doc")
-                                .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
-                        }
-                    }
-                    .help("导入")
                 }
                 // v0.24 fix (Boss 8/25 37th OOB 'check official docs, how to right-align'):
                 // per Apple developer.apple.com/documentation/SwiftUI/
