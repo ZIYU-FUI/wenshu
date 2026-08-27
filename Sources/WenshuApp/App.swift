@@ -89,6 +89,8 @@ struct IconButtonStyle: ButtonStyle {
 // access vm instance, so menu items post notification, vm listens).
 extension Notification.Name {
     static let wenshuToggleZone = Notification.Name("wenshu.toggleZone")
+    static let wenshuNewBookRequested = Notification.Name("wenshu.newBookRequested")
+    static let wenshuNewShelfRequested = Notification.Name("wenshu.newShelfRequested")
 }
 extension Notification.Name {
     static let wenshuResetLayout = Notification.Name("com.wenshu.resetLayout")
@@ -385,8 +387,23 @@ struct WenshuApp: App {
                 .keyboardShortcut(",", modifiers: .command)
             }
             CommandGroup(after: .newItem) {
-                Button("新建项目", action: {})
-                    .keyboardShortcut("n", modifiers: .command)
+                // v0.27 macOS-standard cross-component sync (boss 8/27
+                // OOB): File → 新建项目 is the macOS-standard menu item
+                // (= Cmd+N shortcut) for the file-creation kind. Per boss
+                // 8/27 standing rule 'a new feature should appear
+                // everywhere = synced', this Menu mirrors the toolbar '+'
+                // Menu (= 新建书 / 新建书架). Both sub-items post a
+                // NotificationCenter event that NewLibraryOutlineView
+                // listens for and triggers the matching sheet.
+                Menu("新建项目") {
+                    Button("新建书") {
+                        NotificationCenter.default.post(name: .wenshuNewBookRequested, object: nil)
+                    }
+                    Button("新建书架") {
+                        NotificationCenter.default.post(name: .wenshuNewShelfRequested, object: nil)
+                    }
+                }
+                .keyboardShortcut("n", modifiers: .command)
             }
             CommandGroup(replacing: .undoRedo) {
                 Button("撤销", action: {})
@@ -1400,8 +1417,27 @@ struct LayoutShellView: View {
                 // default toolbar item sizes (= no custom .frame, .font,
                 // .padding, .background). Let macOS toolbar manage everything.
                 ToolbarItemGroup(placement: .navigation) {
-                    Button {
-                        NSLog("[wenshu.toolbar] tap: 新建 (placeholder)")
+                    Menu {
+                        // v0.27 macOS-standard cross-component sync (boss
+                        // 8/27 OOB): the toolbar '+' is a macOS standard
+                        // location for the File → New submenu. Per Apple
+                        // HIG (developer.apple.com/design/human-interface-
+                        // guidelines/components/menus-and-actions/menus),
+                        // a single '+' toolbar button conventionally opens
+                        // a Menu with the file-creation kinds (= New Book
+                        // / New Shelf here). Per boss 8/27 standing rule
+                        // 'a new feature should appear everywhere = synced':
+                        // both items post a NotificationCenter event that
+                        // NewLibraryOutlineView listens for and triggers
+                        // the matching sheet (= single source of truth for
+                        // the sheet state; the toolbar / File menu are
+                        // entry points only).
+                        Button("新建书") {
+                            NotificationCenter.default.post(name: .wenshuNewBookRequested, object: nil)
+                        }
+                        Button("新建书架") {
+                            NotificationCenter.default.post(name: .wenshuNewShelfRequested, object: nil)
+                        }
                     } label: {
                         // v0.25.1 (= ticket 026 toolbar file-action Lucide
                         // icons): owner 2026-08-26 OOB '标题栏的三个按钮

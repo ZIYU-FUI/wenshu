@@ -50,6 +50,18 @@ struct NewLibraryOutlineView: View {
         .onChange(of: bookStore.selectedBookId) { _, newValue in
             selectedBookId = newValue
         }
+        // v0.27 cross-component sync (boss 8/27 OOB): receive macOS-standard
+        // menu commands (= toolbar '+' + File → 新建项目 / Cmd+N) from
+        // NotificationCenter and trigger the matching sheet. Without this
+        // listener, the toolbar '+' and File menu would be placeholders.
+        // Per boss 8/27 standing rule: 'a new feature, by macOS standard,
+        // should appear everywhere = synced'.
+        .onReceive(NotificationCenter.default.publisher(for: .wenshuNewBookRequested)) { _ in
+            showNewBookSheet = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .wenshuNewShelfRequested)) { _ in
+            showNewShelfSheet = true
+        }
         // NOTE: Toolbar 新建按钮 = boss 8/27 OOB 红框的那个 (= 复用 v0.25.x
         // 现有的 toolbar '+' 按钮). 不要在这里重复加 menu, 避免红框 +
         // 我们的 menu 双入口.
