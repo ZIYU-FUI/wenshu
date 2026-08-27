@@ -227,10 +227,16 @@ struct NewLibraryOutlineView: View {
                     payloadKind: .book
                 )
             }
+            // v0.27 boss 8/27 OOB icon for the default '从这里开始' shelf:
+            // square-dashed-mouse-pointer (= 'user starts here' visual
+            // metaphor; per Lucide icon catalog this is a click-target
+            // inside a dashed frame, matching the 'where the user
+            // begins' onboarding affordance).
+            let isDefaultShelf = (shelf.id.uuidString == "00000000-0000-0000-0000-000000000000")
             root.append(FCPTreeNode(
                 id: shelf.id,
                 label: shelf.name,
-                icon: "books.vertical.fill",
+                icon: isDefaultShelf ? "square-dashed-mouse-pointer" : "books.vertical.fill",
                 count: books.count,
                 children: bookNodes,
                 payloadKind: .shelf
@@ -250,10 +256,15 @@ struct NewLibraryOutlineView: View {
                     payloadKind: .referenceLayer
                 )
             }
+        // v0.27 boss 8/27 OOB icon for ReferenceLibrary root: square-library
+        // (= Lucide icon: a square containing stacked horizontal lines
+        // representing a library shelf; matches FCP Browser's
+        // library-as-archive metaphor and Apple's library-app
+        // vocabulary).
         root.append(FCPTreeNode(
             id: UUID(uuidString: "00000000-0000-0000-0000-000000000001") ?? UUID(),
             label: "资料库",
-            icon: "book-stack",
+            icon: "square-library",
             count: layerChildren.count,
             children: layerChildren,
             payloadKind: .referenceLayer
