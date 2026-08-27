@@ -57,7 +57,8 @@ struct SmartQueryView: View {
     private var list: some View {
         List(queries) { query in
             HStack {
-                Image(systemName: "magnifyingglass.circle")
+                // v0.27 boss 8/27 OOB: SF Symbol → Lucide canonical.
+                LucideIconSystemFallback("magnifyingglass.circle", size: 18)
                     .foregroundStyle(.tint)
                 VStack(alignment: .leading) {
                     Text(query.name)
@@ -79,8 +80,8 @@ struct SmartQueryView: View {
     @ViewBuilder
     private var emptyState: some View {
         VStack(spacing: 12) {
-            Image(systemName: "magnifyingglass.circle")
-                .font(.system(size: 48))
+            // v0.27 boss 8/27 OOB: SF Symbol → Lucide canonical.
+            LucideIconSystemFallback("magnifyingglass.circle", size: 48)
                 .foregroundStyle(.tertiary)
             Text("还没有智能查询")
                 .font(.headline)

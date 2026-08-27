@@ -128,9 +128,8 @@ struct NewLibraryOutlineView: View {
                                 .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                                 .foregroundStyle(Color.secondary)
                         } else {
-                            Image(systemName: "square.and.pencil")
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
+                            // v0.27 boss 8/27 OOB: SF Symbol fallback → Lucide canonical.
+                            LucideIconSystemFallback("square.and.pencil", size: LayoutTokens.iconSize)
                                 .foregroundStyle(Color.secondary)
                         }
                     }
@@ -150,9 +149,8 @@ struct NewLibraryOutlineView: View {
                                 .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                                 .foregroundStyle(Color.secondary)
                         } else {
-                            Image(systemName: "arrow.down.doc")
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
+                            // v0.27 boss 8/27 OOB: SF Symbol fallback → Lucide canonical.
+                            LucideIconSystemFallback("arrow.down.doc", size: LayoutTokens.iconSize)
                                 .foregroundStyle(Color.secondary)
                         }
                     }
@@ -334,7 +332,8 @@ struct NewLibraryOutlineView: View {
     @ViewBuilder
     private func shelfHeader(_ shelf: Bookshelf) -> some View {
         HStack {
-            Image(systemName: "books.vertical.fill")
+            // v0.27 boss 8/27 OOB: SF Symbol → Lucide canonical.
+            LucideIconSystemFallback("books.vertical.fill", size: 18)
                 .foregroundStyle(.tint)
             Text(shelf.name)
                 .font(.headline)
@@ -352,7 +351,8 @@ struct NewLibraryOutlineView: View {
             bookStore.selectedBookId = book.id
         } label: {
             HStack {
-                Image(systemName: "book.closed")
+                // v0.27 boss 8/27 OOB: SF Symbol → Lucide canonical.
+                LucideIconSystemFallback("book.closed", size: 18)
                     .foregroundStyle(selectedBookId == book.id ? Color.accentColor : .secondary)
                 VStack(alignment: .leading) {
                     Text(book.title)
@@ -374,7 +374,8 @@ struct NewLibraryOutlineView: View {
     @ViewBuilder
     private var referenceLibraryHeader: some View {
         HStack {
-            Image(systemName: "books.vertical.circle.fill")
+            // v0.27 boss 8/27 OOB: SF Symbol → Lucide canonical.
+            LucideIconSystemFallback("books.vertical.circle.fill", size: 18)
                 .foregroundStyle(.tint)
             Text("资料库")
                 .font(.headline)
@@ -388,7 +389,8 @@ struct NewLibraryOutlineView: View {
     @ViewBuilder
     private func layerRow(_ layer: ReferenceLayer) -> some View {
         HStack {
-            Image(systemName: layer.icon)
+            // v0.27 boss 8/27 OOB: SF Symbol → Lucide canonical via helper.
+            LucideIconSystemFallback(layer.icon, size: 18)
                 .foregroundStyle(.secondary)
             Text(layer.displayName)
                 .font(.callout)
@@ -404,8 +406,8 @@ struct NewLibraryOutlineView: View {
     @ViewBuilder
     private func errorState(_ message: String) -> some View {
         VStack(spacing: 12) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 36))
+            // v0.27 boss 8/27 OOB: SF Symbol → Lucide canonical.
+            LucideIconSystemFallback("exclamationmark.triangle", size: 36)
                 .foregroundStyle(.tertiary)
             Text(message)
                 .font(.caption)
@@ -657,10 +659,13 @@ private struct FCPRowView: View {
                     Button {
                         isExpanded.toggle()
                     } label: {
-                        Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(Color.secondary)
+                        // v0.27 boss 8/27 OOB: replace SF Symbol chevron
+                        // with LucideIconSystemFallback (= closest Lucide
+                        // equivalent 'chevron-right' / 'chevron-down';
+                        // helper handles the lookup chain).
+                        LucideIconSystemFallback(isExpanded ? "chevron.down" : "chevron.right")
                             .frame(width: 18, height: 18)
+                            .foregroundStyle(Color.secondary)
                     }
                     .buttonStyle(.plain)
                 } else {

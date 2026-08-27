@@ -1491,9 +1491,15 @@ struct LayoutShellView: View {
                     showProjectPreview.toggle()
                 } label: {
                     // v0.27 boss 8/27 OOB: SF 'eye.fill' → Lucide 'eye'.
-                    LucideIconSystemFallback("eye.fill", size: 18)
+                    // Also removed .buttonStyle(.plain) (= was the
+                    // outlier among the 5 toolbar zone toggle buttons;
+                    // .plain omits SwiftUI's default button sizing
+                    // helper = this button rendered visually smaller
+                    // than the other 4 zone toggle buttons per boss
+                    // 8/27 '菜单栏的红框，是尺寸错了，和其它的按钮长的
+                    // 不一样').
+                    LucideIconSystemFallback("eye.fill", size: LayoutTokens.iconSize)
                 }
-                .buttonStyle(.plain)
                 .foregroundStyle(showProjectPreview ? Color.accentColor : Color.secondary)
                 .help(showProjectPreview ? "隐藏 素材预览区" : "显示 素材预览区")
                     Button {
