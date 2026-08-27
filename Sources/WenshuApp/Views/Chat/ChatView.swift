@@ -540,9 +540,12 @@ public struct ChatView: View {
                                 .aspectRatio(contentMode: .fit)
                                 .frame(width: 24, height: 24)  // v0.25.1 ticket 038 final 2: pin icon size to 24 PT (= button visual height per boss OOB '文本框比按钮高 10PT 以上' = textfield = 47 px tall vs button = 47 px tall = same height but icon offset from textfield text = icon center y=59.5 vs text center y=52 = icon 8 px too low = need to enlarge icon to match button visual box, not just 16 PT)
                         } else {
-                            Image(systemName: "paperplane.fill")
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 24, height: 24)
+                            // v0.27 boss 8/27 OOB: replace SF Symbol 'paperplane.fill'
+                            // with the closest Lucide equivalent = 'send'.
+                            // Lucide 'send' exists (= paper-plane in 24x24 viewBox);
+                            // LucideIcon.fromSystemSymbol helper handles the lookup
+                            // + fallback chain.
+                            LucideIconSystemFallback("paperplane.fill", size: 24)
                         }
                     }
                 }
@@ -612,8 +615,9 @@ struct ChatMessageView: View {
                     Lucide(.botMessageSquare)
                         .aspectRatio(contentMode: .fit)
                 case .system:
-                    Image(systemName: sourceIcon)
-                        .aspectRatio(contentMode: .fit)
+                    // v0.27 boss 8/27 OOB: SF Symbol name → Lucide canonical
+                    // (= LucideIcon.fromSystemSymbol handles lookup + fallback).
+                    LucideIconSystemFallback(sourceIcon, size: 24)
                 }
             }
             .foregroundStyle(sourceColor)
@@ -625,11 +629,15 @@ struct ChatMessageView: View {
                 if message.isPlaceholder {
                     // 文枢 AI placeholder status indicator
                     HStack(spacing: 4) {
-                        // brain SF Symbol — 🤖 emoji per user feedback
-                        // New SF Symbol: person.crop.circle.badge.questionmark (Apple SF Symbols 5+
-                        // real value, round face + question mark = robot assistant face style, closest to 🤖)
-                        Image(systemName: "person.crop.circle.badge.questionmark")
-                            .symbolEffect(.pulse, options: .repeating)
+                        // v0.27 boss 8/27 OOB: replace SF Symbol with
+                        // closest Lucide equivalent. 'brain' = closest
+                        // semantically (= robot placeholder status
+                        // indicator); LucideIcon.fromSystemSymbol maps
+                        // 'person.crop.circle.badge.questionmark' →
+                        // 'bot-message-square' (= wenshu agent face per
+                        // Lucide; semantically = 'thinking' = good
+                        // placeholder icon).
+                        LucideIconSystemFallback("person.crop.circle.badge.questionmark", size: 16)
                             .foregroundStyle(.secondary)
                         Text(message.content)
                             .foregroundStyle(.secondary)
@@ -652,7 +660,11 @@ struct ChatMessageView: View {
                                 .transition(.opacity)
                         } label: {
                             HStack(spacing: 4) {
-                                Image(systemName: "brain")
+                                // v0.27 boss 8/27 OOB: replace SF Symbol 'brain'
+                                // with closest Lucide equivalent = 'brain'
+                                // (Lucide has 'brain' = same name, no mapping
+                                // needed).
+                                LucideIconSystemFallback("brain")
                                     .font(.caption)
                                 Text("AI 思考过程")
                                     .font(.caption)

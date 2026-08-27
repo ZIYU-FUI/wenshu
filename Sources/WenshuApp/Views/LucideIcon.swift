@@ -69,7 +69,7 @@ public func LucideIcon(_ name: String, size: CGFloat = 18) -> some View {
 /// - SF 'person' / 'person.crop.circle' → Lucide 'user'
 /// - SF 'tag' → Lucide 'tag'
 @ViewBuilder
-public func LucideIcon(fromSystemSymbol sfSymbol: String, size: CGFloat = 18) -> some View {
+public func LucideIconSystemFallback(_ sfSymbol: String, size: CGFloat = 18) -> some View {
     let lucideName = sfSymbolToLucideName(sfSymbol)
     if let lucide = Lucide(lucideName) {
         lucide
