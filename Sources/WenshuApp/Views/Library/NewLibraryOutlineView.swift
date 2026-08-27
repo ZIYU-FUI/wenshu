@@ -50,16 +50,9 @@ struct NewLibraryOutlineView: View {
         .onChange(of: bookStore.selectedBookId) { _, newValue in
             selectedBookId = newValue
         }
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Menu {
-                    Button("新建书架") { showNewShelfSheet = true }
-                    Button("新建书") { showNewBookSheet = true }
-                } label: {
-                    Image(systemName: "plus")
-                }
-            }
-        }
+        // NOTE: Toolbar 新建按钮 = boss 8/27 OOB 红框的那个 (= 复用 v0.25.x
+        // 现有的 toolbar '+' 按钮). 不要在这里重复加 menu, 避免红框 +
+        // 我们的 menu 双入口.
         .sheet(isPresented: $showNewBookSheet) {
             NewBookSheet(onSave: { book in
                 do {
