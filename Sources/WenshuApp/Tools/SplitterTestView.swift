@@ -50,15 +50,24 @@ import Lucide
 ///   styling.visibleThickness is too small for properly detecting the
 ///   drag events.'
 ///
-/// v0.27 boss 8/27 OOB: wenshu splitter visual spec (= 1 PT line + 5 PT
-/// hit area + hover glow) is now implemented by the production-ready
-/// WenshuSplitter struct (= Sources/WenshuApp/Views/Layout/
-/// WenshuSplitter.swift). This test view no longer needs its own
-/// placeholder WenshuSplitter (= it's a duplicate type that fails
-/// to compile). The test app uses the production WenshuSplitter via
-/// the project-wide import (= WenshuApp target = the production
-/// type lives in Sources/WenshuApp/Views/Layout/, and the test view
-/// in Sources/WenshuApp/Tools/ shares the same target).
+/// visibleThickness = 1 (= the visible line + spacing between panes).
+/// invisibleThickness = 5 (= the wider drag region; = the boss 8/27
+/// '热区是 5PT' spec).
+///
+/// Per SplitView v3.5 docs (= README § Modifying And Constraining The
+/// Default Splitter): 'you can change the way the default Splitter
+/// displays using the styling modifier. For example, you can change
+/// the color, inset, and thickness.' The `visibleThickness` (= drawn
+/// line) and `invisibleThickness` (= drag region) are direct
+/// parameters on the Split's `.styling(...)` modifier. HSplit / VSplit
+/// already use the default Splitter (= no custom View needed).
+/// wenshu's spec is therefore satisfied by the built-in default
+/// Splitter, no custom WenshuSplitter struct required.
+struct WenshuSplitter: View {
+    var body: some View {
+        Color.clear
+    }
+}
 
 /// SplitterTestView — 6-zone test harness for SplitView drag behavior.
 struct SplitterTestView: View {
