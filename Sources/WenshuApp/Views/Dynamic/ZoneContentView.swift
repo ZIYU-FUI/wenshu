@@ -262,10 +262,12 @@ struct ZoneContentTabBar: View {
     /// icon names (= 5 zones with mixed SF + Lucide icons keep working).
     @ViewBuilder
     private func zoneContentTabBarIcon(_ systemName: String) -> some View {
-        if let lucide = Lucide(systemName) {
-            lucide
-        } else {
-            Image(systemName: systemName)
-        }
+        // v0.27 boss 8/27 OOB: use the project-wide LucideIcon helper
+        // (= Sources/WenshuApp/Views/LucideIcon.swift) for visual
+        // size consistency across the shell. The helper resolves
+        // SF Symbol names via sfSymbolToLucideName mapping + falls
+        // back to the SF Symbol itself ONLY if Lucide lookup fails
+        // (= preserves boss's existing behavior).
+        LucideIconSystemFallback(systemName)
     }
 }

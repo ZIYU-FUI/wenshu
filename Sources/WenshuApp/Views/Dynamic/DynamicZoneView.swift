@@ -199,10 +199,7 @@ struct DynamicZoneTabBar: View {
     /// 'layout-list' are valid Lucide cases (= Layer 1 path fires).
     @ViewBuilder
     private func dynamicZoneTabBarIcon(_ systemName: String) -> some View {
-        if let lucide = Lucide(systemName) {
-            lucide
-        } else {
-            Image(systemName: systemName)
-        }
+        // v0.27 boss 8/27 OOB: use the project-wide LucideIcon helper.
+        LucideIconSystemFallback(systemName)
     }
 }
