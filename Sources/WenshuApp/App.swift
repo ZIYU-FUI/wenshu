@@ -1798,15 +1798,13 @@ struct ZoneIcon: View {
         // SF Symbol 字号 18 PT 视觉占 SF Symbol 默认 padding (~16 PT 视觉), 不撑 18×18 框
         //
         // v0.25.1: Lucide-first try, SF Symbol fallback. Style unchanged.
-        if let lucide = Lucide(systemName) {
-            lucide
-                .frame(width: size, height: size)
-                .foregroundStyle(DesignColor.accentBlue)
-        } else {
-            Image(systemName: systemName)
-                .font(.system(size: size))
-                .foregroundStyle(DesignColor.accentBlue)
-        }
+        // v0.27 boss 8/27 OOB: use the project-wide LucideIcon helper
+        // (= Sources/WenshuApp/Views/LucideIcon.swift) instead of inline
+        // Lucide + Image(systemName:) fallback chain. Helper resolves
+        // SF Symbol names via sfSymbolToLucideName mapping + falls back
+        // to Image(systemName:) only if Lucide lookup fails.
+        LucideIconSystemFallback(systemName, size: size)
+            .foregroundStyle(DesignColor.accentBlue)
     }
 }
 
@@ -2747,11 +2745,8 @@ struct ChatZoneTabBar: View {
     /// button (ForEach filtered to .chat) and the right archive-flow button.
     @ViewBuilder
     private func chatZoneTabBarIcon(_ systemName: String) -> some View {
-        if let lucide = Lucide(systemName) {
-            lucide
-        } else {
-            Image(systemName: systemName)
-        }
+        // v0.27 boss 8/27 OOB: use the project-wide LucideIcon helper.
+        LucideIconSystemFallback(systemName)
     }
 }
 
