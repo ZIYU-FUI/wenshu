@@ -85,13 +85,16 @@ struct LibraryMigrator: Sendable {
             try fm.createDirectory(at: shelvesRoot, withIntermediateDirectories: true)
         }
         // 2. Create the default shelf (= id = '00000000-0000-0000-0000-000000000000',
-        // name = 'Default Shelf' per spec v5 ticket 022 L312).
+        // name = '从这里开始' per boss 8/27 OOB (= used as the help-doc
+        // anchor shelf; the user can delete it once they have their own
+        // shelves; until deleted it holds the default book + default
+        // doc).
         let defaultShelfId = UUID(uuidString: "00000000-0000-0000-0000-000000000000") ?? UUID()
         let defaultShelfDir = shelvesRoot.appendingPathComponent(defaultShelfId.uuidString, isDirectory: true)
         if !fm.fileExists(atPath: defaultShelfDir.path) {
             try fm.createDirectory(at: defaultShelfDir, withIntermediateDirectories: true)
             // Write shelf.json
-            let defaultShelf = Bookshelf(id: defaultShelfId, name: "默认书架", createdAt: Date(), updatedAt: Date())
+            let defaultShelf = Bookshelf(id: defaultShelfId, name: "从这里开始", createdAt: Date(), updatedAt: Date())
             let data = try JSONEncoder().encode(defaultShelf)
             try data.write(to: defaultShelfDir.appendingPathComponent("shelf.json"))
         }
@@ -114,6 +117,20 @@ struct LibraryMigrator: Sendable {
                 // Collision: skip (= user manually created a same-id book in default shelf).
                 continue
             }
+        }
+        // 5. Rename the default shelf from legacy '默认书架' to '从这里开始'
+        // (= boss 8/27 OOB; legacy shelf.json in existing .ws gets updated
+        // in place so the user sees the new label without losing any
+        // books they may have created under it).
+        let shelfJSONURL = defaultShelfDir.appendingPathComponent("shelf.json")
+        if fm.fileExists(atPath: shelfJSONURL.path),
+           let data = try? Data(contentsOf: shelfJSONURL),
+           var existing = try? JSONDecoder().decode(Bookshelf.self, from: data),
+           existing.name == "默认书架" {
+            existing.name = "从这里开始"
+            existing.updatedAt = Date()
+            let updated = try JSONEncoder().encode(existing)
+            try updated.write(to: shelfJSONURL)
         }
     }
 
