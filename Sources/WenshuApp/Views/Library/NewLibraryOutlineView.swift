@@ -124,14 +124,12 @@ struct NewLibraryOutlineView: View {
                     .overlay(alignment: .center) {
                         if let lucide = Lucide("square-plus") {
                             lucide
-                                .font(.system(size: LayoutTokens.iconSize))
-                                .imageScale(.large)
+                                .aspectRatio(contentMode: .fit)
                                 .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                                 .foregroundStyle(Color.secondary)
                         } else {
                             Image(systemName: "square.and.pencil")
-                                .font(.system(size: LayoutTokens.iconSize))
-                                .imageScale(.large)
+                                .aspectRatio(contentMode: .fit)
                                 .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                                 .foregroundStyle(Color.secondary)
                         }
@@ -148,14 +146,12 @@ struct NewLibraryOutlineView: View {
                     .overlay(alignment: .center) {
                         if let lucide = Lucide("square-arrow-right") {
                             lucide
-                                .font(.system(size: LayoutTokens.iconSize))
-                                .imageScale(.large)
+                                .aspectRatio(contentMode: .fit)
                                 .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                                 .foregroundStyle(Color.secondary)
                         } else {
                             Image(systemName: "arrow.down.doc")
-                                .font(.system(size: LayoutTokens.iconSize))
-                                .imageScale(.large)
+                                .aspectRatio(contentMode: .fit)
                                 .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
                                 .foregroundStyle(Color.secondary)
                         }
@@ -707,14 +703,22 @@ private struct FCPRowView: View {
 
     @ViewBuilder
     private func iconView(_ name: String) -> some View {
+        // v0.27 boss 8/27 OOB: lucide-swift 官方 README 推荐 .frame(width:height:)
+        // 显式约束容器大小，让每个 icon 在自己的 viewBox 内填满 outline
+        // (= 'the view fills the outline rather than stroking it')。
+        // 不要用 .font() 因为 .font 触发 SF Symbol 的 baseline-aligned
+        // rendering，会让不同 Lucide icon 因为 viewBox 内的几何占据不同
+        // 区域，导致视觉大小不一致。.aspectRatio(.fit) 防止长宽比例
+        // 不同的 icon 被拉伸（保证 18×18 容器内等比缩放，视觉统一）。
         if let lucide = Lucide(name) {
             lucide
-                .font(.system(size: iconSize))
-                .imageScale(.large)
+                .aspectRatio(contentMode: .fit)
+                .frame(width: iconSize, height: iconSize)
                 .foregroundStyle(Color.secondary)
         } else {
             Image(systemName: "folder")
-                .font(.system(size: iconSize))
+                .aspectRatio(contentMode: .fit)
+                .frame(width: iconSize, height: iconSize)
                 .foregroundStyle(Color.secondary)
         }
     }
