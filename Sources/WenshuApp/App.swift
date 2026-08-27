@@ -2154,7 +2154,17 @@ struct ZoneModule: View {
             // '选一个合适的 ICON 替换').
             ZoneContentView(zoneSlug: "projectSidebar", tabs: [
                 ("书架", "book-open", AnyView(DesignColor.zoneSurface.overlay(alignment: .topLeading) { LibraryOutlineViewContent() })),
-            ])
+            ],
+            // v0.27 boss 8/27 OOB #3: 新建 + 入驻 buttons now live in the
+            // projectSidebar zone's trailingButton (= right-aligned icon
+            // buttons in the zone tab bar). Per boss 8/27 '参考编辑
+            // 器区的展开，聊天区的归档' = use the same icon-button
+            // pattern as the editor expand button (= ticket
+            // 029c-trailing-button: Color.clear 28×28 hot area + Lucide
+            // icon overlay). The trailingButton is one AnyView; the 2
+            // buttons sit in an HStack inside NewLibraryOutlineView.
+            trailingButton: AnyView(NewLibraryOutlineView().zoneHeaderButtons)
+            )
         case .projectPreview:
             // ProjectPreview tabs: 章节预览 / 图 / [搜索 hidden].
             // v0.25.1 (= ticket 014 second-column-first icon): owner

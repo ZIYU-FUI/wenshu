@@ -27,48 +27,50 @@ struct NewLibraryOutlineView: View {
 
     var body: some View {
         // v0.27 boss 8/27 OOB #3: 新建 + 导入 moved out of the macOS
-        // window toolbar into the projectSidebar top bar (= right-
-        // aligned icon buttons beside the '书架' title). The macOS
-        // window toolbar now only carries the zone-toggle buttons
-        // (= no ⌄ indicator fights; no .buttonStyle fights). Two icon
-        // buttons in the sidebar top bar = direct invocation (= no
-        // menu layer between icon and action). Menu bar File →
-        // 新建项目 + File → 导入… remain (= macOS standard File menu).
-        VStack(spacing: 0) {
-            sidebarTopBar
-            Divider()
-            Group {
-                if let error = loadError {
-                    errorState(error)
-                } else {
-                    List {
-                        if shelves.isEmpty {
-                            Text("暂无书架")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                                .listRowBackground(Color.clear)
-                        } else {
-                            ForEach(shelves) { shelf in
-                                shelfSection(shelf)
-                            }
+        // window toolbar into the projectSidebar zone (= right-aligned
+        // icon buttons in the zone header). Boss asked to follow the
+        // same pattern as the editor zone's expand button (= ticket
+        // 029c-trailing-button: Color.clear 28x28 hot area + icon
+        // overlay, no capsule border, plain visual). The two buttons
+        // sit in a trailingButton HStack on the zone's ZoneContentView
+        // (= app.swift:2155; the ZoneContentView already accepts an
+        // optional trailingButton parameter that renders at the right
+        // edge of the zone tab bar). The menu bar File → 新建项目 +
+        // File → 导入… entries remain (= macOS standard File menu);
+        // right-click context menu on sidebar empty area remains.
+        // Note: the macOS window toolbar no longer carries 新建 + 导入
+        // (= removed in commit 6beb3c015 = boss 8/27 '在标题栏里去掉').
+        Group {
+            if let error = loadError {
+                errorState(error)
+            } else {
+                List {
+                    if shelves.isEmpty {
+                        Text("暂无书架")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                            .listRowBackground(Color.clear)
+                    } else {
+                        ForEach(shelves) { shelf in
+                            shelfSection(shelf)
                         }
-                        referenceLibrarySection
                     }
-                    .listStyle(.sidebar)
-                    .scrollContentBackground(.hidden)
-                    .contextMenu(forSelectionType: UUID.self, menu: { _ in
-                        Button {
-                            showNewBookSheet = true
-                        } label: {
-                            Label("新建书", systemImage: "square.plus")
-                        }
-                        Button {
-                            showNewShelfSheet = true
-                        } label: {
-                            Label("新建书架", systemImage: "books.vertical.fill")
-                        }
-                    })
+                    referenceLibrarySection
                 }
+                .listStyle(.sidebar)
+                .scrollContentBackground(.hidden)
+                .contextMenu(forSelectionType: UUID.self, menu: { _ in
+                    Button {
+                        showNewBookSheet = true
+                    } label: {
+                        Label("新建书", systemImage: "square.plus")
+                    }
+                    Button {
+                        showNewShelfSheet = true
+                    } label: {
+                        Label("新建书架", systemImage: "books.vertical.fill")
+                    }
+                })
             }
         }
         .onAppear(perform: reload)
@@ -112,30 +114,26 @@ struct NewLibraryOutlineView: View {
         }
     }
 
-    // MARK: - Top bar (= boss 8/27 OOB #3: 新建 + 导入 moved here
-    // from the macOS window toolbar; now two right-aligned icon
-    // buttons in the sidebar top bar).
+    // MARK: - Zone header buttons (= boss 8/27 OOB #3: 新建 + 入驻
+    // rendered in the projectSidebar zone header via ZoneContentView's
+    // trailingButton parameter, NOT in a custom sidebarTopBar. Per
+    // boss 8/27 '参考编辑器区的展开' = use the same icon-button style
+    // as the editor expand button (= ticket 029c-trailing-button:
+    // Color.clear 28x28 hot area + Lucide icon overlay + .secondary
+    // foreground + contentShape Rectangle for full hit area).
+    // The two buttons are stacked in a trailingButton HStack (= the
+    // trailingButton parameter is one AnyView; HStack wraps both).
 
-    /// Sidebar top bar: 2 right-aligned icon buttons.
-    /// Per boss 8/27 OOB correction:
-    /// - 新建 (square-plus icon): Menu button (= tap to open a Menu
-    ///   with 新建书 / 新建书架; matches the macOS-standard toolbar '+'
-    ///   pattern where the '+' is a pull-down menu of file-creation
-    ///   kinds).
-    /// - 导入 (square-arrow-right icon): plain Button (= tap directly
-    ///   triggers the import flow; per boss 8/27 OOB '导入等合并两
-    ///   个库' the functionality is being planned in a followup; for
-    ///   now, posts the .wenshuImportRequested NotificationCenter
-    ///   event so the menu-bar 导入… entry + this button share one
-    ///   implementation when the import logic ships).
-    /// The macOS window toolbar no longer carries these buttons (= boss
-    /// gave up fighting the SwiftUI toolbar's ⌄ indicator + capsule
-    /// styling debate; per boss 8/27 '换个位置' = move to the sidebar).
+    /// 2 icon buttons rendered in the projectSidebar zone header
+    /// trailing area (= rendered via ZoneContentView's trailingButton
+    /// parameter at app.swift:2155). Per boss 8/27 OOB: 新建 Menu +
+    /// 导入 plain Button. Both use the editor-expand icon-button
+    /// pattern (= Color.clear 28x28 hot area + icon overlay; matches
+    /// macOS zone-header icon style per Apple HIG zone-tab-bar pattern).
     @ViewBuilder
-    private var sidebarTopBar: some View {
+    var zoneHeaderButtons: some View {
         HStack(spacing: 4) {
-            Spacer()
-            // 新建 button = Menu (= tap → menu with 新建书 / 新建书架)
+            // 新建 Menu (= tap → menu with 新建书 / 新建书架).
             Menu {
                 Button("新建书") {
                     showNewBookSheet = true
@@ -144,37 +142,49 @@ struct NewLibraryOutlineView: View {
                     showNewShelfSheet = true
                 }
             } label: {
-                if let lucide = Lucide("square-plus") {
-                    lucide
-                        .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
-                } else {
-                    Image(systemName: "square.and.pencil")
-                        .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
-                }
+                Color.clear
+                    .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
+                    .overlay(alignment: .center) {
+                        if let lucide = Lucide("square-plus") {
+                            lucide
+                                .font(.system(size: LayoutTokens.iconSize))
+                                .imageScale(.large)
+                                .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
+                                .foregroundStyle(Color.secondary)
+                        } else {
+                            Image(systemName: "square.and.pencil")
+                                .font(.system(size: LayoutTokens.iconSize))
+                                .imageScale(.large)
+                                .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
+                                .foregroundStyle(Color.secondary)
+                        }
+                    }
+                    .contentShape(Rectangle())
             }
-            .menuStyle(.button)
-            .buttonStyle(.bordered)
-            .help("新建")
-            // 导入 button = plain Button (= tap directly fires the
-            // import flow; posts .wenshuImportRequested so the
-            // menu-bar File → 导入… entry can share the same handler
-            // when the import logic ships in a followup).
+            // 导入 plain Button (= tap directly fires .wenshuImportRequested).
             Button {
                 NotificationCenter.default.post(name: .wenshuImportRequested, object: nil)
             } label: {
-                if let lucide = Lucide("square-arrow-right") {
-                    lucide
-                        .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
-                } else {
-                    Image(systemName: "arrow.down.doc")
-                        .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
-                }
+                Color.clear
+                    .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
+                    .overlay(alignment: .center) {
+                        if let lucide = Lucide("square-arrow-right") {
+                            lucide
+                                .font(.system(size: LayoutTokens.iconSize))
+                                .imageScale(.large)
+                                .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
+                                .foregroundStyle(Color.secondary)
+                        } else {
+                            Image(systemName: "arrow.down.doc")
+                                .font(.system(size: LayoutTokens.iconSize))
+                                .imageScale(.large)
+                                .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
+                                .foregroundStyle(Color.secondary)
+                        }
+                    }
+                    .contentShape(Rectangle())
             }
-            .buttonStyle(.bordered)
-            .help("导入")
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
     }
 
     // MARK: - Sections
