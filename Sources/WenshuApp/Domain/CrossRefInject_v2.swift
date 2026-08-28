@@ -1,12 +1,13 @@
 // CrossRefInject_v2.swift · Wenshu · v0.28
 //
-// Verbatim port from hermes-agent/agent/context_references.py +
-// hermes-agent/agent/context_engine.py (= wenshu M5 ticket 14 =
-// hermes-port batch 3 third ticket).
+// Verbatim port from hermes-agent/agent/context_references.py
+// (= wenshu M5 ticket 14 = hermes-port batch 3 third ticket).
 //
-// Source: hermes-agent/agent/context_references.py L29-65
-// (= ContextReferenceProvider ABC + BUILTIN_PREFIXES + plugin registry)
-// + L75-115 (= ContextCompletionItem + ContextReferenceProvider ABC)
+// Source: hermes-agent/agent/context_references.py
+// - L29-65 = ContextReferenceProvider ABC + BUILTIN_PREFIXES + plugin registry
+// - L239-325 = preprocess_context_references_async (= the per-reference
+//   prefix-fill + drop-on-overflow logic that the wenshu FIFO token-budget
+//   behavior adapts from)
 //
 // Scope refactor (= per Q109 doc-first + Q35 commit-description vs truth):
 // The full hermes `context_references` system is a plugin-registered
@@ -14,10 +15,13 @@
 // LOC of ABC + plugin lifecycle + completion + expand methods).
 // Wenshu's CrossRefInject is a more constrained surface (= inject entity
 // refs into chapter .md frontmatter, NOT a chat-input autocomplete).
-// The port that lands in this ticket is the **token-budget** part of
-// hermes's expand(): when the LLM response exceeds a token cap,
-// references are dropped FIFO (= highest-usage-count first) until the
-// response fits.
+// The port that lands in this ticket is the **token-budget** subset of
+// hermes's `preprocess_context_references_async`: when the LLM response
+// exceeds a token cap, references are dropped FIFO (= highest-usage-count
+// first) until the response fits. The hermes 25%/50% limits are NOT
+// applicable to the chapter-frontmatter use case (= we use a hard 100-token
+// default and a per-reference FIFO drop instead of a whole-batch admit/
+// refuse decision).
 //
 // Plugin registry (= the registry that lets plugins register custom
 // context-reference providers in hermes) is OUT of scope for this
@@ -130,7 +134,9 @@ struct CrossRefInject_v2: Sendable {
 
         // Greedy prefix-sum token budget check: accumulate the top-N entities
         // by usage until adding the next would exceed the budget. (= hermes
-        // expand() token-cap behavior, ported to Swift.)
+        // preprocess_context_references_async drop-on-overflow behavior,
+        // ported to Swift with a hard 100-token default instead of the
+        // hermes 25%/50% whole-batch limits.)
         var keptEntities: [Reference] = []
         var runningTokens = 0
         for entity in sortedEntities {
