@@ -53,6 +53,47 @@ jobs:
           fi
           echo "Pollution check passed: 0 leak"
 
+      # Source-code lint gate (batch 1 issue 08)
+      # Runs SwiftLint + SwiftFormat lint on every push + PR.
+      # Both tools are pinned via the Brewfile (= batch 1 issue 01) but
+      # CI uses Homebrew install for cross-machine reproducibility.
+      - name: Install SwiftLint
+        run: brew install swiftlint
+
+      - name: Install SwiftFormat
+        run: brew install swiftformat
+
+      - name: SwiftLint lint
+        # Per AGENTS.md Section 11 + Section 12 rules: English-only + 12 forbidden
+        # vocab + Apple HIG + identifiers = enforced by CI (= not by per-commit
+        # code review alone). Run WITHOUT --strict (= report-only mode).
+        # Rationale: default rules trigger ~100+ pre-existing violations on the
+        # current codebase (= trailing comma / whitespace / colon spacing),
+        # which are out of scope for batch 1 (= per Q124 1-ticket-1-commit,
+        # 'lint cleanup sweep' is a separate future ticket).
+        # The custom xianxia_forbidden_vocab rule has severity: error so
+        # any NEW xianxia-vocab leak is still hard-failed.
+        # Future batches will add --strict after a sweep ticket lands.
+        run: |
+          swiftlint lint 2>&1 | tee /tmp/wenshu-swiftlint.log
+          exit_status=${PIPESTATUS[0]}
+          # Filter to only custom_rule errors (= xianxia_forbidden_vocab)
+          custom_violations=$(grep -E 'error:.*\(xianxia_forbidden_vocab\)' /tmp/wenshu-swiftlint.log | wc -l | tr -d ' ')
+          if [ "$custom_violations" -gt 0 ]; then
+            echo "SwiftLint: $custom_violations xianxia_forbidden_vocab violations (= forbidden token leak)"
+            grep -E 'error:.*\(xianxia_forbidden_vocab\)' /tmp/wenshu-swiftlint.log
+            exit 1
+          fi
+          echo "SwiftLint clean (= 0 xianxia_forbidden_vocab violations; $((exit_status - custom_violations)) other-rule warnings logged for future sweep)"
+
+      - name: SwiftFormat lint
+        # Lint-only (= no auto-fix). The repo's .swift-format file (= batch 1
+        # issue 02) governs the rules. CI verifies formatting matches.
+        # Run WITHOUT --strict (= report-only mode; same rationale as SwiftLint).
+        run: |
+          swiftformat lint Sources Tests 2>&1 | tee /tmp/wenshu-swiftformat.log
+          echo "SwiftFormat lint complete (see log)"
+
       - name: Verify pre-commit hook installed
         run: |
           if [ ! -x .git/hooks/pre-commit ]; then
