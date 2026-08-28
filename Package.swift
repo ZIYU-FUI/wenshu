@@ -71,6 +71,15 @@ let package = Package(
         // the parser so a future swap is 1-file change.
         .package(url: "https://github.com/witekbobrowski/EPUBKit", from: "0.5.0"),
 
+        // RUNTIME — graph algorithms (batch 2 issue 04)
+        // Adopted per 2026-08-28-six-module-audit M4 (P1, 811 stars, 4.0.0,
+        // pure data: BFS / DFS / Dijkstra / Prim / Kruskal). Used by M4
+        // foreshadowing-graph algorithms (= 'which chapter recycles
+        // foreshadowing from chapter 12' = Dijkstra cross-chapter shortest
+        // path; recycling-graph = Prim minimum spanning tree). Consumer
+        // wiring lands with the v0.28 M4 graph-algorithms feature ticket.
+        .package(url: "https://github.com/davecom/SwiftGraph", from: "4.0.0"),
+
         // RUNTIME — SSE stream client
         .package(url: "https://github.com/mattt/EventSource", from: "1.5.1"),
 
@@ -136,6 +145,13 @@ let package = Package(
                 // ticket and feeds M5-15 LLM Wiki pipeline (= extract core
                 // settings + writing-style fingerprint into reference-library).
                 .product(name: "EPUBKit", package: "EPUBKit"),
+
+                // batch 2 issue 04: SwiftGraph product (= graph algorithms).
+                // Pure data (= BFS / DFS / Dijkstra / Prim / Kruskal); no view
+                // surface, no ADR-0008 risk. Consumer wiring lands with the
+                // v0.28 M4 graph-algorithms feature ticket (= ForeshadowingGraph
+                // service that maps cross-chapter recycling paths).
+                .product(name: "SwiftGraph", package: "SwiftGraph"),
                 .product(name: "EventSource", package: "EventSource"),
                 .product(name: "Textual", package: "textual"),
                 .product(name: "Inject", package: "Inject"),
