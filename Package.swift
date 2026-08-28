@@ -56,6 +56,13 @@ let package = Package(
         // not git tags). Pin to a permissive lower bound; SPM will pick latest.
         .package(url: "https://github.com/swiftlang/swift-markdown", from: "0.4.0"),
 
+        // RUNTIME — UI enhancement: code-fence syntax highlight (batch 2 issue 02)
+        // Adopted per 2026-08-28-six-module-audit M2 (P1, 105 stars, 185 languages,
+        // 89 themes, pure-Swift no JS). Thin 5-star margin above the 100-star gate
+        // is acceptable per boss拍 A. Consumer wiring lands with the v0.28 M2
+        // chapter-preview feature ticket (= separate from this adoption commit).
+        .package(url: "https://github.com/smittytone/HighlighterSwift", from: "3.1.0"),
+
         // RUNTIME — SSE stream client
         .package(url: "https://github.com/mattt/EventSource", from: "1.5.1"),
 
@@ -99,6 +106,14 @@ let package = Package(
                 .product(name: "ZIPFoundation", package: "ZIPFoundation"),
                 .product(name: "GRDB", package: "GRDB.swift"),
                 .product(name: "Markdown", package: "swift-markdown"),
+                // batch 2 issue 02: Highlighter product (= the SPM product name
+                // is `Highlighter` even though the repo URL is HighlighterSwift;
+                // see https://raw.githubusercontent.com/smittytone/HighlighterSwift/3.1.0/Package.swift).
+                // SwiftUI token list + SwiftUI CodeTextView (= Highlighter is the
+                // JS-bridge wrapper for highlight.js; pure-Swift wrapper, no Swift
+                // source files needed by wenshu). Consumer wiring lands with the
+                // v0.28 M2 chapter-preview feature ticket.
+                .product(name: "Highlighter", package: "HighlighterSwift"),
                 .product(name: "EventSource", package: "EventSource"),
                 .product(name: "Textual", package: "textual"),
                 .product(name: "Inject", package: "Inject"),
