@@ -26,8 +26,14 @@ let package = Package(
         // v0.25.1 chat-zone icons
         .package(url: "https://github.com/bring-shrubbery/lucide-swift.git", exact: "1.25.0"),
 
-        // RUNTIME — UserDefaults + shortcut wrappers
-        .package(url: "https://github.com/sindresorhus/Defaults", from: "8.2.0"),
+        // RUNTIME — UserDefaults typed wrapper (sindresorhus/Defaults 9.0.8)
+        // Bumped from 8.2.0 -> 9.0.8 per 2026-08-28-six-module-audit M6 recommendation.
+        // Zero source consumers (wenshu uses Apple Foundation UserDefaults + @AppStorage directly
+        // across LayoutShellViewModel / WorkspaceStore / ZoneContentView / LibraryRootView etc.;
+        // sindresorhus/Defaults remains as a pin for future feature work where typed Codable
+        // UserDefaults become beneficial — see v0.28 chat history migration ticket as the first
+        // candidate consumer).
+        .package(url: "https://github.com/sindresorhus/Defaults", from: "9.0.0"),
         .package(url: "https://github.com/sindresorhus/KeyboardShortcuts", from: "1.10.0"),
 
         // RUNTIME — async image pipeline
