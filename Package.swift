@@ -90,6 +90,17 @@ let package = Package(
         // hand-rolled spring-force as in-house fallback per boss拍 A.
         .package(url: "https://github.com/li3zhen1/Grape", from: "1.1.0"),
 
+        // RUNTIME — macOS platform integration (batch 2 issue 07)
+        // Adopted per 2026-08-28-six-module-audit M6 (= 218 stars, MIT,
+        // 1.3.0, 2025-02-25 last release per SPI; macOS 13+ required).
+        // Provides programmatic show / hide / toggle control over SwiftUI
+        // MenuBarExtra (= Apple SwiftUI MenuBarExtra API does NOT expose
+        // these controls natively). Used by the v0.28+ menu shape ticket
+        // (= adds a wenshu menu bar icon with scriptable show/hide on
+        // chat events). Falls under 'macOS platform integration allowed'
+        // per ADR-0008.
+        .package(url: "https://github.com/orchetect/MenuBarExtraAccess", from: "1.3.0"),
+
         // RUNTIME — SSE stream client
         .package(url: "https://github.com/mattt/EventSource", from: "1.5.1"),
 
@@ -170,6 +181,13 @@ let package = Package(
                 // NOT imported here. Only ForceSimulation (= pure data: physics
                 // spring simulation for force-directed graph layout) is adopted.
                 .product(name: "ForceSimulation", package: "Grape"),
+
+                // batch 2 issue 07: MenuBarExtraAccess product (= macOS
+                // platform integration for SwiftUI MenuBarExtra show/hide/toggle
+                // control). ADR-0008 carve-out: macOS platform integration IS
+                // allowed (= the lib is a pure macOS platform adapter, not a
+                // view-framework / pane / dock / split / drag library).
+                .product(name: "MenuBarExtraAccess", package: "MenuBarExtraAccess"),
                 .product(name: "EventSource", package: "EventSource"),
                 .product(name: "Textual", package: "textual"),
                 .product(name: "Inject", package: "Inject"),
