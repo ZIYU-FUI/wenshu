@@ -834,16 +834,24 @@ private func walkRoot(_ node: LayoutNode) -> [LayoutNode] {
 ///
 /// Persisted to UserDefaults under `wenshu.workspace.presets`. The
 /// `Default` preset (= isBuiltIn = true) is the FCP Browser 3-pane
-/// layout per the v0.28 free-layout boss拍 (b/II = WorkspaceView ON,
-/// FCP Browser paradigm). It is recreated on demand; user cannot
-/// delete it.
+/// layout per the v0.28 free-layout boss拍 (b/II). It is recreated
+/// on demand; user cannot delete it.
 struct LayoutPreset: Codable, Equatable, Identifiable {
     var id: UUID
     var name: String
     var workspace: WorkspaceState
     var isBuiltIn: Bool
 
+    /// Stable UUIDs for the 4 builtin presets (= ticket 028-005
+    /// §"Acceptance criteria" = 'each preset has a stable UUID per
+    /// app install'). Generated once here and reused forever; this
+    /// keeps UserDefaults round-trips stable across launches.
+    static let builtinDefaultID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
+    static let builtinFocusID = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
+    static let builtinTerminalDeckID = UUID(uuidString: "00000000-0000-0000-0000-000000000003")!
+    static let builtinQuadID = UUID(uuidString: "00000000-0000-0000-0000-000000000004")!
+
     static func builtinDefault(_ workspace: WorkspaceState) -> LayoutPreset {
-        LayoutPreset(id: UUID(), name: "默认", workspace: workspace, isBuiltIn: true)
+        LayoutPreset(id: builtinDefaultID, name: "默认", workspace: workspace, isBuiltIn: true)
     }
 }

@@ -66,8 +66,8 @@ final class WorkspaceStore: ObservableObject {
 
         // Load persisted state (= falls back to the built-in Default
         // preset if UserDefaults is empty or corrupted).
-        let builtin = Self.makeBuiltinWorkspace()
-        let builtinPreset = LayoutPreset.builtinDefault(builtin)
+        let builtinPresets = Self.makeBuiltinPresets()
+        let builtinDefault = builtinPresets.first { $0.isBuiltIn && $0.name == "默认" }!
 
         if let data = userDefaults.data(forKey: Self.workspaceKey),
            let decoded = try? jsonDecoder.decode(WorkspaceState.self, from: data) {
@@ -85,7 +85,7 @@ final class WorkspaceStore: ObservableObject {
         } else {
             // Persisted data missing or corrupted (= failed to
             // decode). Start fresh from the built-in Default.
-            self.workspace = builtin
+            self.workspace = builtinDefault.workspace
         }
 
         if let data = userDefaults.data(forKey: Self.presetsKey),
@@ -94,11 +94,13 @@ final class WorkspaceStore: ObservableObject {
             // If the persisted presets contain a v1 workspace, retire
             // them too (= same wholesale-retire logic).
             if decoded.contains(where: { $0.workspace.version != Self.currentSchemaVersion }) {
-                self.presets = [builtinPreset]
+                self.presets = builtinPresets
                 userDefaults.removeObject(forKey: Self.presetsKey)
             }
         } else {
-            self.presets = [builtinPreset]
+            // First launch (= no persisted presets): seed with the
+            // 4 builtin presets per 028-005.
+            self.presets = builtinPresets
         }
 
         if let uuidString = userDefaults.string(forKey: Self.currentPresetIDKey),
@@ -106,7 +108,7 @@ final class WorkspaceStore: ObservableObject {
            self.presets.contains(where: { $0.id == uuid }) {
             self.currentPresetID = uuid
         } else {
-            self.currentPresetID = builtinPreset.id
+            self.currentPresetID = builtinDefault.id
         }
     }
 
@@ -322,6 +324,230 @@ final class WorkspaceStore: ObservableObject {
             return nil
         }
         return walk(workspace.root)
+    }
+
+    /// Built-in presets (= the 4 wenshu ships by default per ticket
+    /// 028-005; literal port from hermes
+    /// `controller.tsx:392-440`). Names per spec.md i18n table:
+    /// "默认" / "Focus" / "Terminal deck" / "Quad".
+    ///
+    /// Built-in shapes (= per ticket 028-005 §"Built-in shapes"):
+    /// - builtinDefault = 6-zone shape (= upper 4 horizontal + lower 2
+    ///   horizontal; same as v0.27 makeBuiltinWorkspace before the
+    ///   028-002 FCP Browser retarget — preserved for users who want
+    ///   the legacy layout via the picker).
+    /// - builtinFocus = 2-pane sidebar + everything-else-as-tabs
+    ///   (= single-stage editor for distraction-free writing).
+    /// - builtinTerminalDeck = 3-pane top row + chat bottom (= the
+    ///   debug-band pattern).
+    /// - builtinQuad = 2x2 grid (= sidebar + editor on top; chat +
+    ///   dynamic on bottom).
+    static func makeBuiltinPresets() -> [LayoutPreset] {
+        return [
+            builtinDefaultPreset(),
+            builtinFocusPreset(),
+            builtinTerminalDeckPreset(),
+            builtinQuadPreset()
+        ]
+    }
+
+    private static func builtinDefaultPreset() -> LayoutPreset {
+        // Same as v0.27's 6-zone LayoutShellView shape (= upper 4 +
+        // lower 2 horizontal). Kept here for the 028-005 picker
+        // (= users who want the legacy 6-zone layout via the picker
+        // even after the FCP Browser 3-pane becomes default).
+        let sidebar = TabSpec.make(kind: .projectSidebar, title: "项目管理区")
+        let preview = TabSpec.make(kind: .projectPreview, title: "素材预览区")
+        let editor = TabSpec.make(kind: .editor, title: "编辑器")
+        let tools = TabSpec.make(kind: .specializedTools, title: "工具区")
+        let chat = TabSpec.make(kind: .aiChat, title: "聊天区")
+        let dynamic = TabSpec.make(kind: .aiDynamic, title: "动态区")
+
+        let sidebarPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 200, idealWidth: 240, flex: 0.4), tabs: [sidebar.id])
+        let previewPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 200, idealWidth: 280, flex: 0.5), tabs: [preview.id])
+        let editorPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 300, idealWidth: 700, flex: 1.0), tabs: [editor.id])
+        let toolsPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 200, idealWidth: 360, flex: 0.6), tabs: [tools.id])
+        let chatPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 200, idealWidth: 400, flex: 1.0), tabs: [chat.id])
+        let dynamicPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 200, idealWidth: 400, flex: 1.0), tabs: [dynamic.id])
+
+        let panes = [sidebarPane, previewPane, editorPane, toolsPane, chatPane, dynamicPane]
+        let tabs = [sidebar, preview, editor, tools, chat, dynamic]
+
+        // Tree shape: outer column split (upper band + lower band)
+        // with each band being a horizontal row split.
+        let upperBand = makeSplit(
+            orientation: .row,
+            children: [
+                makeGroup(panes: [sidebarPane.id]),
+                makeGroup(panes: [previewPane.id]),
+                makeGroup(panes: [editorPane.id]),
+                makeGroup(panes: [toolsPane.id])
+            ],
+            weights: [1, 1, 3.4, 1.25]
+        )
+        let lowerBand = makeSplit(
+            orientation: .row,
+            children: [
+                makeGroup(panes: [chatPane.id]),
+                makeGroup(panes: [dynamicPane.id])
+            ],
+            weights: [1, 1]
+        )
+        let root = makeSplit(
+            orientation: .column,
+            children: [upperBand, lowerBand],
+            weights: [3, 1]
+        )
+
+        return LayoutPreset(
+            id: LayoutPreset.builtinDefaultID,
+            name: "默认",
+            workspace: WorkspaceState(
+                root: root,
+                panes: panes,
+                tabs: tabs,
+                version: 2
+            ),
+            isBuiltIn: true
+        )
+    }
+
+    private static func builtinFocusPreset() -> LayoutPreset {
+        // 2-pane sidebar + everything-else-as-tabs (= single-stage
+        // editor with sidebar). Designed for distraction-free
+        // writing.
+        let sidebar = TabSpec.make(kind: .projectSidebar, title: "项目管理区")
+        let editor = TabSpec.make(kind: .editor, title: "编辑器")
+        let preview = TabSpec.make(kind: .projectPreview, title: "素材预览区")
+        let tools = TabSpec.make(kind: .specializedTools, title: "工具区")
+        let chat = TabSpec.make(kind: .aiChat, title: "聊天区")
+        let dynamic = TabSpec.make(kind: .aiDynamic, title: "动态区")
+
+        let sidebarPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 200, idealWidth: 240, flex: 0.4), tabs: [sidebar.id])
+        let editorPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 400, idealWidth: 900, flex: 1.0), tabs: [editor.id])
+
+        let panes = [sidebarPane, editorPane]
+        let tabs = [sidebar, editor, preview, tools, chat, dynamic]
+
+        // Tree: row split with sidebar on the left and editor on
+        // the right; editor is a group with multiple tabs (= the
+        // "all 5 as tabs in editor" pattern from the spec).
+        let root = makeSplit(
+            orientation: .row,
+            children: [
+                makeGroup(panes: [sidebarPane.id]),
+                makeGroup(panes: [editorPane.id, PaneID(), PaneID(), PaneID(), PaneID()])
+            ],
+            weights: [1, 4.6]
+        )
+
+        return LayoutPreset(
+            id: LayoutPreset.builtinFocusID,
+            name: "Focus",
+            workspace: WorkspaceState(
+                root: root,
+                panes: panes,
+                tabs: tabs,
+                version: 2
+            ),
+            isBuiltIn: true
+        )
+    }
+
+    private static func builtinTerminalDeckPreset() -> LayoutPreset {
+        // 4-pane top row + chat bottom (= the debug-band pattern).
+        let sidebar = TabSpec.make(kind: .projectSidebar, title: "项目管理区")
+        let editor = TabSpec.make(kind: .editor, title: "编辑器")
+        let preview = TabSpec.make(kind: .projectPreview, title: "素材预览区")
+        let tools = TabSpec.make(kind: .specializedTools, title: "工具区")
+        let chat = TabSpec.make(kind: .aiChat, title: "聊天区")
+
+        let sidebarPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 200, idealWidth: 240, flex: 0.4), tabs: [sidebar.id])
+        let editorPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 300, idealWidth: 700, flex: 1.0), tabs: [editor.id])
+        let inspectorPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 200, idealWidth: 360, flex: 0.6), tabs: [preview.id, tools.id])
+        let chatPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 200, idealWidth: 800, flex: 1.0), tabs: [chat.id])
+
+        let panes = [sidebarPane, editorPane, inspectorPane, chatPane]
+        let tabs = [sidebar, editor, preview, tools, chat]
+
+        let topRow = makeSplit(
+            orientation: .row,
+            children: [
+                makeGroup(panes: [sidebarPane.id]),
+                makeGroup(panes: [editorPane.id]),
+                makeGroup(panes: [inspectorPane.id])
+            ],
+            weights: [1, 3.2, 1.2]
+        )
+        let root = makeSplit(
+            orientation: .column,
+            children: [topRow, makeGroup(panes: [chatPane.id])],
+            weights: [3, 1]
+        )
+
+        return LayoutPreset(
+            id: LayoutPreset.builtinTerminalDeckID,
+            name: "Terminal deck",
+            workspace: WorkspaceState(
+                root: root,
+                panes: panes,
+                tabs: tabs,
+                version: 2
+            ),
+            isBuiltIn: true
+        )
+    }
+
+    private static func builtinQuadPreset() -> LayoutPreset {
+        // 2x2 grid (= sidebar + editor on top; chat + dynamic on
+        // bottom).
+        let sidebar = TabSpec.make(kind: .projectSidebar, title: "项目管理区")
+        let preview = TabSpec.make(kind: .projectPreview, title: "素材预览区")
+        let editor = TabSpec.make(kind: .editor, title: "编辑器")
+        let chat = TabSpec.make(kind: .aiChat, title: "聊天区")
+        let dynamic = TabSpec.make(kind: .aiDynamic, title: "动态区")
+
+        let sidebarPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 200, idealWidth: 240, flex: 0.4), tabs: [sidebar.id, preview.id])
+        let editorPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 300, idealWidth: 800, flex: 1.0), tabs: [editor.id])
+        let chatPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 200, idealWidth: 400, flex: 1.0), tabs: [chat.id])
+        let dynamicPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 200, idealWidth: 360, flex: 0.8), tabs: [dynamic.id])
+
+        let panes = [sidebarPane, editorPane, chatPane, dynamicPane]
+        let tabs = [sidebar, preview, editor, chat, dynamic]
+
+        let topRow = makeSplit(
+            orientation: .row,
+            children: [
+                makeGroup(panes: [sidebarPane.id]),
+                makeGroup(panes: [editorPane.id])
+            ],
+            weights: [1, 3]
+        )
+        let bottomRow = makeSplit(
+            orientation: .row,
+            children: [
+                makeGroup(panes: [chatPane.id]),
+                makeGroup(panes: [dynamicPane.id])
+            ],
+            weights: [1.4, 1]
+        )
+        let root = makeSplit(
+            orientation: .column,
+            children: [topRow, bottomRow],
+            weights: [3, 1]
+        )
+
+        return LayoutPreset(
+            id: LayoutPreset.builtinQuadID,
+            name: "Quad",
+            workspace: WorkspaceState(
+                root: root,
+                panes: panes,
+                tabs: tabs,
+                version: 2
+            ),
+            isBuiltIn: true
+        )
     }
 
     /// Built-in default workspace (= the FCP Browser 3-pane paradigm
