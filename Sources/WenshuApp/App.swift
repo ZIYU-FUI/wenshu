@@ -95,6 +95,10 @@ extension Notification.Name {
 }
 extension Notification.Name {
     static let wenshuResetLayout = Notification.Name("com.wenshu.resetLayout")
+    // v0.28 ticket 028-006: layout edit mode toggle notification
+    // (= posted by the View menu's "Layout edit mode" entry;
+    // WorkspaceView's LayoutEditMode singleton listens and flips).
+    static let wenshuToggleEditMode = Notification.Name("com.wenshu.toggleEditMode")
     // v0.24 boss验收fix: notify when ProviderKeychain changes (Settings save key).
     static let wenshuProviderKeychainChanged = Notification.Name("com.wenshu.providerKeychainChanged")
     // v0.24 boss验收fix (Boss 8/24): chat store ready notification.
@@ -459,6 +463,20 @@ struct WenshuApp: App {
                     NotificationCenter.default.post(name: .wenshuResetLayout, object: nil)
                 }
                 .keyboardShortcut("R", modifiers: [.command, .shift])
+                Divider()
+                // v0.28 ticket 028-006: Layout edit mode menu entry
+                // (= ⌘⇧\ toggles edit mode on/off; per the hermes
+                // sibling pattern of `view.flipPanes = mod+\` +
+                // `layout.editMode = mod+shift+\`). Posts a
+                // NotificationCenter event that the active
+                // WorkspaceView's LayoutEditMode singleton listens
+                // for and flips the bool (= the menu and the
+                // in-window hotkey share the same notification
+                // path so the user sees a consistent state).
+                Button("Layout edit mode") {
+                    NotificationCenter.default.post(name: .wenshuToggleEditMode, object: nil)
+                }
+                .keyboardShortcut(KeyEquivalent("\\"), modifiers: [.command, .shift])
             }
         }
         Settings {

@@ -26,6 +26,11 @@ import SwiftUI
 /// feature stabilizes).
 struct WorkspaceView: View {
     @ObservedObject var store: WorkspaceStore
+    /// Layout edit mode state (= v0.28 ticket 028-006). Owned by
+    /// the view (= fresh per window) so the per-window state stays
+    /// self-contained. The hotkey binding lives in
+    /// `EditModeHotkey.swift` (= ⌘⇧\ toggle, Escape exit).
+    @State private var editMode = LayoutEditMode()
 
     /// The flat list of panes (= rendered as a horizontal HStack).
     /// The root split direction (= vertical) is applied at the
@@ -42,6 +47,23 @@ struct WorkspaceView: View {
         // is removed; v2 = the only path. The WorkspaceView body
         // is now a thin shim that hands off to PaneRenderer.
         PaneRenderer(node: store.workspace.root, store: store)
+            .layoutEditHotkey(editMode)
+            .overlay(alignment: .topTrailing) {
+                // Edit mode indicator (= shows a small badge in
+                // the top-right corner when edit mode is on; the
+                // user can click it to toggle off, or press ⌘⇧\).
+                if editMode.isEnabled {
+                    EditModeBadge(isEnabled: $editMode.isEnabled)
+                        .padding(8)
+                }
+            }
+            // v0.28 ticket 028-006: View menu's "Layout edit mode"
+            // entry posts this notification (= ⌘⇧\); WorkspaceView
+            // listens and flips the LayoutEditMode singleton so the
+            // menu and the hotkey share the same state.
+            .onReceive(NotificationCenter.default.publisher(for: .wenshuToggleEditMode)) { _ in
+                editMode.toggle()
+            }
     }
 
     /// Render a tab's view (= dispatches on TabKind). Extracted
@@ -147,5 +169,41 @@ struct EditorPlaceholder: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.green.opacity(0.05))
+    }
+}
+/// EditModeBadge — small visual indicator shown in the top-right
+/// corner of WorkspaceView when layout edit mode is on. Click to
+/// toggle off (= same effect as pressing ⌘⇧\ again).
+///
+/// Per ticket 028-006 §"Acceptance criteria": the badge is the
+/// only edit-mode-related UI shipped in 028-006 (= the TreeEditBar
+/// and LayoutPicker are 028-007 / 028-009).
+private struct EditModeBadge: View {
+    @Binding var isEnabled: Bool
+
+    var body: some View {
+        Button(action: { isEnabled.toggle() }) {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(Color.accentColor)
+                    .frame(width: 8, height: 8)
+                Text("Layout edit mode")
+                    .font(.system(size: 11, weight: .medium))
+                Text(HotkeyFormatter.editModeCombo)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color.secondary.opacity(0.15))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .stroke(Color.accentColor.opacity(0.3), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
