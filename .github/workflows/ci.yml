@@ -32,7 +32,14 @@ jobs:
         run: swift build 2>&1 | tee /tmp/wenshu-build.log
 
       - name: Swift test
-        # Capture test count for PR comment + tracking
+        # Capture test count for PR comment + tracking.
+        # Per v0.28 ticket 028-011 §"Acceptance criteria" #4 the
+        # DragRegressionTests suite (= 8 tests) is part of the
+        # full `swift test` invocation; no separate filter is
+        # needed because the suite runs in the same target.
+        # Spec referenced '.github/workflows/test.yml' = our
+        # actual filename is 'ci.yml' (= same job, same trigger,
+        # same macos-14 runner).
         run: |
           swift test 2>&1 | tee /tmp/wenshu-test.log
           TEST_LINE=$(grep "Test run" /tmp/wenshu-test.log | tail -1)
