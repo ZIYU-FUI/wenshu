@@ -33,6 +33,10 @@ struct LayoutPicker: View {
     /// ticket 028-008 will wire this into the ZoneEditor).
     @State private var showingNewGridHint: Bool = false
 
+    /// Local state for opening the ZoneEditor sheet (= v0.28
+    /// ticket 028-008c integration).
+    @State private var showingZoneEditor: Bool = false
+
     /// Local state for the save-current-as-preset input reveal.
     @State private var showingSaveInput: Bool = false
     @State private var newPresetName: String = ""
@@ -65,11 +69,10 @@ struct LayoutPicker: View {
             .padding(.horizontal, 12)
             .padding(.top, 12)
 
-            // "+ 新建网格布局" dashed button (= ticket 028-008
-            // will wire this into ZoneEditor; for now the button
-            // shows a hint tooltip).
+            // "+ 新建网格布局" button (= v0.28 ticket 028-008c
+            // integration: opens the ZoneEditor sheet on tap).
             Button(action: {
-                showingNewGridHint.toggle()
+                showingZoneEditor = true
             }) {
                 HStack(spacing: 6) {
                     Image(systemName: "plus")
@@ -87,14 +90,8 @@ struct LayoutPicker: View {
             }
             .buttonStyle(.plain)
             .padding(.horizontal, 12)
-            .help(showingNewGridHint
-                  ? "028-008 ZoneEditor feature ticket lands in the v0.28 free-layout chain"
-                  : "新建网格布局 (= per-ticket-028-008 ZoneEditor overlay)")
-            if showingNewGridHint {
-                Text("028-008 ZoneEditor 落地后会接入 (= FancyZones-style overlay drag-to-merge)")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 12)
+            .sheet(isPresented: $showingZoneEditor) {
+                ZoneEditor(store: store)
             }
 
             Divider().padding(.horizontal, 12)
