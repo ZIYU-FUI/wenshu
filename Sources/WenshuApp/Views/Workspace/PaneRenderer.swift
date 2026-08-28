@@ -192,6 +192,7 @@ struct PaneRenderer: View {
                     panes: group.panes,
                     activePaneID: group.active,
                     tabs: store.workspace.tabs,
+                    paneLabels: buildPaneLabels(group: group),
                     onSelect: { paneID in
                         store.setActivePaneInGroup(groupID: group.id, paneID: paneID)
                     }
@@ -199,7 +200,7 @@ struct PaneRenderer: View {
             }
             // Active pane front-most.
             if let activePane = panes.first(where: { $0.id == group.active }) ?? panes.first {
-                paneHost(for: activePane)
+                paneHost(for: activePane, group: group)
             } else {
                 // Empty pane fallback (= should not happen post-
                 // normalize, but the renderer must be total).
@@ -209,10 +210,28 @@ struct PaneRenderer: View {
         }
     }
 
+    /// Build a `[PaneID: String]` lookup of pane titles from the
+    /// workspace's pane metadata + tabs (= resolves to the first
+    /// tab's title for each pane; the GroupTabStrip uses this to
+    /// show the right label for each tab).
+    private func buildPaneLabels(group: GroupNode) -> [PaneID: String] {
+        var labels: [PaneID: String] = [:]
+        for paneID in group.panes {
+            if let pane = store.workspace.pane(for: paneID),
+               let firstTabID = pane.tabIDs.first,
+               let tab = store.workspace.tab(for: firstTabID) {
+                labels[paneID] = tab.title
+            } else {
+                labels[paneID] = "面板"
+            }
+        }
+        return labels
+    }
+
     /// Single pane host (= wraps the pane in a frame + hosts the
     /// active tab's content view).
     @ViewBuilder
-    private func paneHost(for pane: PaneNode) -> some View {
+    private func paneHost(for pane: PaneNode, group: GroupNode) -> some View {
         let activeTab = pane.tabIDs.first.flatMap { id in store.workspace.tab(for: id) }
         Group {
             if let tab = activeTab {
@@ -228,6 +247,24 @@ struct PaneRenderer: View {
             minWidth: pane.frame.minWidth,
             idealWidth: pane.frame.idealWidth
         )
+        // Drop target for tab drags from other panes.
+        // Per ticket 028-004b2: each pane is a `.dropDestination`
+        // accepting drag drops. Center drop joins the group's tab
+        // list (= insertAtGroup with pos=.center); edge drops
+        // split the group (= insertAtGroup with pos=.left/right).
+        // For this first cut, we only handle center drops (= join
+        // as tab). Edge splits land in 028-008 ZoneEditor.
+        .dropDestination(for: String.self) { items, _ in
+            guard let paneIDString = items.first,
+                  let paneUUID = UUID(uuidString: paneIDString) else {
+                return false
+            }
+            let draggedPaneID = PaneID(paneUUID)
+            // Don't drag onto self.
+            guard draggedPaneID != pane.id else { return false }
+            store.movePaneWithinGroup(groupID: group.id, paneID: draggedPaneID, targetPaneID: pane.id)
+            return true
+        }
     }
 }
 
@@ -284,19 +321,24 @@ struct TabContentDispatcher: View {
 /// > 1 pane (= the FCP Browser / VS Code pattern). Selecting a tab
 /// front-s it (= sets `active` on the owning group).
 ///
-/// Out of scope for this commit (= per ticket 028-004 §"Out of
-/// scope"): the strip is read-only — drag-to-reorder tabs and
-/// drag-tab-out-of-strip are ticket 028-007.
+/// Per ticket 028-004b2: each tab is `.draggable` (= String payload
+/// = the PaneID UUID string), so the user can drag a tab from one
+/// group to another (= or to the same group to reorder). The drop
+/// target is the pane host (= see paneHost(.dropDestination)).
 private struct GroupTabStrip: View {
     let panes: [PaneID]
     let activePaneID: PaneID
     let tabs: [TabSpec]
+    /// Per-pane label lookup (= paneID → title). Provided by the
+    /// caller (= PaneRenderer) because the strip itself doesn't have
+    /// access to WorkspaceState.
+    let paneLabels: [PaneID: String]
     let onSelect: (PaneID) -> Void
 
     var body: some View {
         HStack(spacing: 0) {
             ForEach(panes, id: \.self) { paneID in
-                let label = firstTabTitle(for: paneID)
+                let label = paneLabels[paneID] ?? "面板"
                 Button(action: { onSelect(paneID) }) {
                     Text(label)
                         .font(.system(size: 11))
@@ -313,22 +355,22 @@ private struct GroupTabStrip: View {
                         .foregroundStyle(Color.secondary.opacity(0.3)),
                     alignment: .bottom
                 )
+                // Drag handle: drag a tab to drop it into another
+                // pane (= ticket 028-004b2). String payload = the
+                // PaneID's UUID string (= the receiver parses it back
+                // into a PaneID in the dropDestination closure).
+                .draggable(paneID.raw.uuidString) {
+                    // Drag preview: a small grey rectangle (= the
+                    // standard Apple pattern; full tab preview lands
+                    // in 028-007 when we have a tab icon asset).
+                    Text(label)
+                        .font(.system(size: 11))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.accentColor.opacity(0.25))
+                }
             }
         }
         .background(Color.secondary.opacity(0.08))
-    }
-
-    private func firstTabTitle(for paneID: PaneID) -> String {
-        // Look up the first tab in this pane's tabIDs list.
-        // For v0.28 first cut, panes carry their own tabIDs (= the
-        // v1 WorkspaceState's PaneNode had `tabIDs: [TabID]`; we
-        // preserved that field in v2). The pane-host resolves to the
-        // tab spec via `WorkspaceState.tab(for:)`.
-        // Since we don't have the PaneNode here directly, we fall
-        // back to the first tab whose id matches any of this
-        // pane's id (= pragmatic fallback; full lookup happens in
-        // paneHost).
-        _ = paneID
-        return tabs.first?.title ?? "面板"
     }
 }

@@ -238,6 +238,33 @@ final class WorkspaceStore: ObservableObject {
         save()
     }
 
+    /// Move a pane from one group to another (= the tab-drag UX
+    /// drop handler). The pane is removed from its source group and
+    /// joined as a tab in the target group (= center position).
+    ///
+    /// If the source group is reduced to zero panes by the removal,
+    /// the tree's `normalize` (= called by removePane) prunes the
+    /// empty group per the VS Code semantics.
+    func movePaneWithinGroup(groupID: String, paneID: PaneID, targetPaneID: PaneID) {
+        // Find the target group id by walking the tree from the
+        // target pane.
+        guard let targetGroup = findGroupOfPane(workspace.root, paneId: targetPaneID) else {
+            return
+        }
+        // Move via the file-scope pure function (= removes from
+        // source group + inserts as tab in target group with pos=.center).
+        let newRoot = movePane(
+            workspace.root,
+            paneId: paneID,
+            target: (groupId: targetGroup.id, pos: .center, before: nil)
+        )
+        workspace.root = newRoot
+        save()
+        _ = groupID // suppress unused warning (= groupID is for future
+                    // direct-group addressing; current implementation
+                    // uses targetPaneID to locate the target group).
+    }
+
     /// Private helper: walk the tree to find the split with `id` and
     /// update its weights; return the new tree (or nil if the split
     /// was not found).
