@@ -67,7 +67,13 @@ let package = Package(
         .package(url: "https://github.com/krzysztofzablocki/Inject", from: "1.6.0"),
 
         // TEST — SwiftUI view hierarchy inspection (testTarget only, no runtime)
-        .package(url: "https://github.com/nalexn/ViewInspector", from: "0.10.3")
+        .package(url: "https://github.com/nalexn/ViewInspector", from: "0.10.3"),
+
+        // RUNTIME — Apple first-party Logger API (telemetry; batch 1 issue 04)
+        // Adopted per 2026-08-28-six-module-audit M6. Zero source consumers yet;
+        // first consumer lands with v0.28+ wenshu CLI / daemon ticket (= future
+        // batch 2 work). Pin added now so the dep graph is ready when needed.
+        .package(url: "https://github.com/apple/swift-log", from: "1.5.4")
     ],
     targets: [
         .executableTarget(
