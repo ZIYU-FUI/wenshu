@@ -1,6 +1,6 @@
-// ReferenceEntityExtractorTests.swift · Wenshu (文枢) · v0.28
+// ReferenceEntityExtractorTests.swift · Wenshu  · v0.28
 //
-// Hermed-port validation tests for ReferenceEntityExtractor.swift
+// Hermes-port validation tests for ReferenceEntityExtractor.swift
 // (= wenshu M5 ticket 12 = batch 3 first ticket).
 //
 // Each test mirrors a hermes `_extract_entities` behavior contract:

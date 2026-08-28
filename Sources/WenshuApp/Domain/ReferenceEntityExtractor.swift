@@ -1,9 +1,9 @@
-// ReferenceEntityExtractor.swift · Wenshu (文枢) · v0.28
+// ReferenceEntityExtractor.swift · Wenshu  · v0.28
 //
 // Verbatim port from hermes-agent/plugins/memory/holographic/store.py::_extract_entities
 // (= wenshu M5 ticket 12 = hermes-port batch 3 first ticket).
 //
-// Source: hermes-agent/plugins/memory/holographic/store.py L448-487
+// Source: hermes-agent/plugins/memory/holographic/store.py L448-481
 // (= Python `_extract_entities` method).
 //
 // Rules applied (in order, matching hermes verbatim):
@@ -17,9 +17,16 @@
 //
 // Public surface:
 // - ReferenceEntityExtractor.extract(_:) -> [String]
-// - ReferenceEntityExtractor.extract(_:) -> [IngestionRequest]  (convenience overload)
 //
-// Per AGENTS.md §8 pollution-defense hex-encoding rule: this file
+// (Earlier draft advertised a -> [IngestionRequest] convenience overload,
+//  but the type `IngestionRequest` is internal (= not public) so the
+//  overload would not compile if declared public. Removed; downstream
+//  callers (= ticket M5-13 smart-query rewriter, ticket M5-15 LLM Wiki
+//  pipeline) compose [String] -> [IngestionRequest] at their own
+//  call site per Q124 atomic-coupling = each consumer owns its own
+//  IngestionRequest construction.)
+//
+// Per AGENTS.md Section 8 pollution-defense hex-encoding rule: this file
 // does NOT contain the 12-token forbidden vocab literal; if any
 // reference to that list is needed, describe semantically.
 
@@ -32,8 +39,8 @@ public struct ReferenceEntityExtractor: Sendable {
     // MARK: - Regex patterns (hermes verbatim)
 
     /// `\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b` — multi-word capitalized phrases.
-    /// Hermed regex: `\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b`
-    /// Note: anchored on Latin script only. CJK entity extraction (= 中文人名 / 地名)
+    /// Hermes regex: `\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b`
+    /// Note: anchored on Latin script only. CJK entity extraction (= Chinese person / place names)
     /// remains handled by ChatTrigger.detectQuotedNames (= existing CN-quote detection).
     private static let capitalized = try! NSRegularExpression(
         pattern: #"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b"#
