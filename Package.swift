@@ -80,6 +80,16 @@ let package = Package(
         // wiring lands with the v0.28 M4 graph-algorithms feature ticket.
         .package(url: "https://github.com/davecom/SwiftGraph", from: "4.0.0"),
 
+        // RUNTIME — force-directed graph layout (batch 2 issue 05, CONDITIONAL)
+        // Adopted per 2026-08-28-six-module-audit M4 + boss拍 A (= accept
+        // WARN, 15mo stale, 402 stars, MIT, macOS-first, Swift 6 ready,
+        // zero data-race). NOTE: only the ForceSimulation product is adopted
+        // (= pure data: physics spring simulation); the Grape SwiftUI view
+        // product (= MiniMap + Toolbar + Panel = ADR-0008 view-architecture
+        // risk surface) is REJECTED per the audit verdict. ~700 LOC
+        // hand-rolled spring-force as in-house fallback per boss拍 A.
+        .package(url: "https://github.com/li3zhen1/Grape", from: "1.1.0"),
+
         // RUNTIME — SSE stream client
         .package(url: "https://github.com/mattt/EventSource", from: "1.5.1"),
 
@@ -152,6 +162,14 @@ let package = Package(
                 // v0.28 M4 graph-algorithms feature ticket (= ForeshadowingGraph
                 // service that maps cross-chapter recycling paths).
                 .product(name: "SwiftGraph", package: "SwiftGraph"),
+
+                // batch 2 issue 05: ForceSimulation product from the Grape
+                // package. NOTE: the Grape package also defines a SwiftUI view
+                // product named 'Grape' (= MiniMap + Toolbar + Panel = ADR-0008
+                // view-architecture risk surface); that product is REJECTED and
+                // NOT imported here. Only ForceSimulation (= pure data: physics
+                // spring simulation for force-directed graph layout) is adopted.
+                .product(name: "ForceSimulation", package: "Grape"),
                 .product(name: "EventSource", package: "EventSource"),
                 .product(name: "Textual", package: "textual"),
                 .product(name: "Inject", package: "Inject"),
