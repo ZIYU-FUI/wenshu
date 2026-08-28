@@ -265,6 +265,34 @@ final class WorkspaceStore: ObservableObject {
                     // uses targetPaneID to locate the target group).
     }
 
+    /// Remove a pane from whatever group contains it (= the tab-close
+    /// UX per ticket 028-004b3). If the source group is reduced to
+    /// zero panes by the removal, the tree's `normalize` (= called
+    /// by removePane) prunes the empty group per the VS Code
+    /// semantics. If the entire tree is emptied (= the user closed
+    /// the last pane), the root becomes nil (= UI shows the empty-
+    /// pane fallback in PaneRenderer).
+    func removePaneFromGroup(paneID: PaneID) {
+        guard let newRoot = removePane(workspace.root, paneId: paneID) else {
+            // Tree emptied (= the user closed the last pane).
+            // We keep the workspace as-is (= root becomes nil but
+            // the panes/tabs metadata persists; the renderer
+            // shows the empty-pane fallback). Saving is a no-op
+            // for the tree but still useful for the JSON
+            // round-trip guarantee.
+            workspace = WorkspaceState(
+                root: makeGroup(panes: []),
+                panes: workspace.panes,
+                tabs: workspace.tabs,
+                version: 2
+            )
+            save()
+            return
+        }
+        workspace.root = newRoot
+        save()
+    }
+
     /// Private helper: walk the tree to find the split with `id` and
     /// update its weights; return the new tree (or nil if the split
     /// was not found).

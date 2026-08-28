@@ -195,6 +195,9 @@ struct PaneRenderer: View {
                     paneLabels: buildPaneLabels(group: group),
                     onSelect: { paneID in
                         store.setActivePaneInGroup(groupID: group.id, paneID: paneID)
+                    },
+                    onClose: { paneID in
+                        store.removePaneFromGroup(paneID: paneID)
                     }
                 )
             }
@@ -325,6 +328,10 @@ struct TabContentDispatcher: View {
 /// = the PaneID UUID string), so the user can drag a tab from one
 /// group to another (= or to the same group to reorder). The drop
 /// target is the pane host (= see paneHost(.dropDestination)).
+///
+/// Per ticket 028-004b3: each tab has a close button (= X glyph)
+/// that calls `onClose` (= dispatches to WorkspaceStore.removePane
+/// per the hermes pane-close semantics).
 private struct GroupTabStrip: View {
     let panes: [PaneID]
     let activePaneID: PaneID
@@ -334,20 +341,51 @@ private struct GroupTabStrip: View {
     /// access to WorkspaceState.
     let paneLabels: [PaneID: String]
     let onSelect: (PaneID) -> Void
+    let onClose: (PaneID) -> Void
 
     var body: some View {
         HStack(spacing: 0) {
             ForEach(panes, id: \.self) { paneID in
                 let label = paneLabels[paneID] ?? "面板"
-                Button(action: { onSelect(paneID) }) {
-                    Text(label)
-                        .font(.system(size: 11))
-                        .lineLimit(1)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .frame(maxWidth: .infinity)
+                HStack(spacing: 4) {
+                    Button(action: { onSelect(paneID) }) {
+                        Text(label)
+                            .font(.system(size: 11))
+                            .lineLimit(1)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.plain)
+                    // Drag handle: drag a tab to drop it into another
+                    // pane (= ticket 028-004b2). String payload = the
+                    // PaneID's UUID string (= the receiver parses it back
+                    // into a PaneID in the dropDestination closure).
+                    .draggable(paneID.raw.uuidString) {
+                        // Drag preview: a small grey rectangle (= the
+                        // standard Apple pattern; full tab preview lands
+                        // in 028-007 when we have a tab icon asset).
+                        Text(label)
+                            .font(.system(size: 11))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.accentColor.opacity(0.25))
+                    }
+                    // Close button (= ticket 028-004b3): per
+                    // VSCode / FCP Browser convention, a small X
+                    // glyph at the tab's right edge. Hidden if the
+                    // group has only 1 pane left (= can't close
+                    // the last pane — would empty the workspace).
+                    if panes.count > 1 {
+                        Button(action: { onClose(paneID) }) {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 14, height: 14)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
-                .buttonStyle(.plain)
                 .background(paneID == activePaneID ? Color.accentColor.opacity(0.15) : Color.clear)
                 .overlay(
                     Rectangle()
@@ -355,20 +393,6 @@ private struct GroupTabStrip: View {
                         .foregroundStyle(Color.secondary.opacity(0.3)),
                     alignment: .bottom
                 )
-                // Drag handle: drag a tab to drop it into another
-                // pane (= ticket 028-004b2). String payload = the
-                // PaneID's UUID string (= the receiver parses it back
-                // into a PaneID in the dropDestination closure).
-                .draggable(paneID.raw.uuidString) {
-                    // Drag preview: a small grey rectangle (= the
-                    // standard Apple pattern; full tab preview lands
-                    // in 028-007 when we have a tab icon asset).
-                    Text(label)
-                        .font(.system(size: 11))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.accentColor.opacity(0.25))
-                }
             }
         }
         .background(Color.secondary.opacity(0.08))
