@@ -73,7 +73,11 @@ let package = Package(
         // Adopted per 2026-08-28-six-module-audit M6. Zero source consumers yet;
         // first consumer lands with v0.28+ wenshu CLI / daemon ticket (= future
         // batch 2 work). Pin added now so the dep graph is ready when needed.
-        .package(url: "https://github.com/apple/swift-log", from: "1.5.4"),
+        // Forward-fix: pin to "1.15.0" (= actual SPM resolution per
+        // Package.resolved; the prior "from: 1.5.4" semver floor resolved to
+        // 1.15.0 which was a Q35 commit-message 描述 vs 真值 drift per the
+        // Spec-axis sub-agent V1.3 finding).
+        .package(url: "https://github.com/apple/swift-log", from: "1.15.0"),
 
         // TEST — SwiftUI pixel snapshot tests (batch 1 issue 05; testTarget only)
         // Adopted per 2026-08-28-six-module-audit M1 (drag-lost regression suite).
