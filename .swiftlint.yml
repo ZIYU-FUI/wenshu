@@ -45,3 +45,20 @@ disabled_rules:
   - trailing_newline
   - vertical_whitespace
   - type_body_length
+
+opt_in_rules:
+  - custom_rules
+
+# Custom rule: 12-token xianxia pollution-defense vocabulary (= per
+# AGENTS.md Section 8 hard rule + WenshuVerifier.shortOutputStopSequencesHex
+# hex-encoding pattern from commit 2748bb8). This is the SOURCE-side
+# defense; commit_filter.py is the message-side defense.
+# Severity: error => swiftlint exits non-zero on any leak => CI step
+# hard-fails the build (= enforces the gate automatically, no human
+# review needed for the forbidden-vocab invariant).
+custom_rules:
+  xianxia_forbidden_vocab:
+    name: "Xianxia forbidden vocab"
+    regex: '(修真|渡劫|筑基|返虚|结丹|金丹|元婴|飞升|天劫|雷劫|心魔|魔障)'
+    message: "Forbidden xianxia-vocab token found. Use hex-encoded form (see WenshuVerifier.shortOutputStopSequencesHex) or describe semantically."
+    severity: error

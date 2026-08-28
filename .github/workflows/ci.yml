@@ -72,19 +72,25 @@ jobs:
         # which are out of scope for batch 1 (= per Q124 1-ticket-1-commit,
         # 'lint cleanup sweep' is a separate future ticket).
         # The custom xianxia_forbidden_vocab rule has severity: error so
-        # any NEW xianxia-vocab leak is still hard-failed.
-        # Future batches will add --strict after a sweep ticket lands.
+        # swiftlint exits non-zero on any leak => the CI step hard-fails
+        # (= enforces the forbidden-vocab invariant automatically, no human
+        # review needed for this specific check).
         run: |
-          swiftlint lint 2>&1 | tee /tmp/wenshu-swiftlint.log
+          swiftlint lint --quiet 2>&1 | tee /tmp/wenshu-swiftlint.log
           exit_status=${PIPESTATUS[0]}
-          # Filter to only custom_rule errors (= xianxia_forbidden_vocab)
-          custom_violations=$(grep -E 'error:.*\(xianxia_forbidden_vocab\)' /tmp/wenshu-swiftlint.log | wc -l | tr -d ' ')
-          if [ "$custom_violations" -gt 0 ]; then
-            echo "SwiftLint: $custom_violations xianxia_forbidden_vocab violations (= forbidden token leak)"
-            grep -E 'error:.*\(xianxia_forbidden_vocab\)' /tmp/wenshu-swiftlint.log
-            exit 1
+          if [ "$exit_status" -ne 0 ]; then
+            # Distinguish: was it a real error (= xianxia leak or other error
+            # severity violation) or just info/warning volume from default rules?
+            error_count=$(grep -cE '^/.*: error:' /tmp/wenshu-swiftlint.log || true)
+            if [ "$error_count" -gt 0 ]; then
+              echo "SwiftLint hard-failed: $error_count error-severity violations (= includes any xianxia_forbidden_vocab leak)"
+              grep -E '^/.*: error:' /tmp/wenshu-swiftlint.log | head -50
+              exit 1
+            fi
+            echo "SwiftLint: $exit_status non-zero exit code but 0 error-severity violations (= all warnings/info; future sweep ticket will address)"
+            exit 0
           fi
-          echo "SwiftLint clean (= 0 xianxia_forbidden_vocab violations; $((exit_status - custom_violations)) other-rule warnings logged for future sweep)"
+          echo "SwiftLint clean (= 0 error-severity violations)"
 
       - name: SwiftFormat lint
         # Lint-only (= no auto-fix). The repo's .swift-format file (= batch 1
