@@ -89,6 +89,14 @@ public struct SmartQueryTrivialGate: Sendable {
         options: [.caseInsensitive]
     )
 
+    /// Hermes _INTERNAL_SENTENCE_RE = r"[.!?]\s+\S" (= matches any
+    /// sentence-boundary punctuation followed by whitespace + a non-
+    /// whitespace char, indicating multi-sentence candidates that should
+    /// be rejected). Mirrors hermes L39.
+    private static let internalSentence = try! NSRegularExpression(
+        pattern: #"[.!?]\s+\S"#
+    )
+
     // MARK: - Public surface
 
     /// Verbatim port of hermes `_normalize_rewrite(text)` (=
@@ -176,6 +184,24 @@ public struct SmartQueryTrivialGate: Sendable {
         // 8. Instruction-leak rejection
         guard Self.instructionLeak.firstMatch(in: candidate, range: fullRange) == nil else {
             return nil
+        }
+
+        // 9. Internal-sentence rejection (= hermes _INTERNAL_SENTENCE_RE):
+        // reject candidates with multiple sentences (after stripping trailing '?').
+        // Mirrors hermes _INTERNAL_SENTENCE_RE = r"[.!?]\s+\S".
+        let withoutTrailingQuestion = candidate.hasSuffix("?")
+            ? String(candidate.dropLast())
+            : candidate
+        let candidateRange = NSRange(location: 0, length: (withoutTrailingQuestion as NSString).length)
+        guard Self.internalSentence.firstMatch(in: withoutTrailingQuestion, range: candidateRange) == nil else {
+            return nil
+        }
+
+        // 10. Append trailing '?' if missing (= hermes lines 103-104).
+        // Mirrors hermes _normalize_rewrite behavior that ensures the output
+        // is always a question (= adds '?' if missing).
+        if !candidate.hasSuffix("?") {
+            candidate += "?"
         }
 
         return candidate

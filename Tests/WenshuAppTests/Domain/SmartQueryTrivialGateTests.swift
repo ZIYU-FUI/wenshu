@@ -200,4 +200,20 @@ struct SmartQueryTrivialGateTests {
         let result = gate.normalize("How was the user's earlier context set?")
         #expect(result == "How was the user's earlier context set?")
     }
+
+    @Test("rule 9: multi-sentence rejected (= hermes _INTERNAL_SENTENCE_RE)")
+    func rejectMultiSentence() {
+        // Multi-sentence candidate (= period + space + capital letter):
+        // the gate rejects per hermes _INTERNAL_SENTENCE_RE = r'[.!?]\s+\S'.
+        let result = gate.normalize("what was the user's first request. And second?")
+        #expect(result == nil)
+    }
+
+    @Test("rule 10: trailing '?' appended if missing (= hermes lines 103-104)")
+    func appendTrailingQuestion() {
+        // Candidate with question-start but no trailing '?':
+        // the gate appends '?' per hermes _normalize_rewrite behavior.
+        let result = gate.normalize("what was the user's first request")
+        #expect(result == "what was the user's first request?")
+    }
 }
