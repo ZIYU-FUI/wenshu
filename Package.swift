@@ -34,7 +34,15 @@ let package = Package(
         // UserDefaults become beneficial — see v0.28 chat history migration ticket as the first
         // candidate consumer).
         .package(url: "https://github.com/sindresorhus/Defaults", from: "9.0.0"),
-        .package(url: "https://github.com/sindresorhus/KeyboardShortcuts", from: "1.10.0"),
+        // RUNTIME — global shortcut binding (bump batch 2 issue 09)
+        // Bumped from 1.10.0 to 2.2.0 (= per 2026-08-28-six-module-audit
+        // M6 + boss拍 'v1 → v2 breaking-change risk 由 ticket 评估').
+        // Verified ZERO source consumers in wenshu (= the App.swift + view
+        // files use Apple's native .keyboardShortcut(...) modifier only; the
+        // KeyboardShortcuts lib is reserved for the v0.28+ Settings pane
+        // Keyboard tab where users can rebind global shortcuts via System
+        // Settings). v2 is API-compatible with v1 on the import side.
+        .package(url: "https://github.com/sindresorhus/KeyboardShortcuts", from: "2.2.0"),
 
         // RUNTIME — async image pipeline
         // Nuke major 13 ships NukeUI as a product in the main repo
