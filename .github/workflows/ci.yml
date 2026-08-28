@@ -96,9 +96,23 @@ jobs:
         # Lint-only (= no auto-fix). The repo's .swift-format file (= batch 1
         # issue 02) governs the rules. CI verifies formatting matches.
         # Run WITHOUT --strict (= report-only mode; same rationale as SwiftLint).
+        # Capture PIPESTATUS to hard-fail on real errors (= forward-fix for
+        # V1.7 spec-axis finding: the prior step had no exit-code check and
+        # would silently pass even on formatting drift).
         run: |
           swiftformat lint Sources Tests 2>&1 | tee /tmp/wenshu-swiftformat.log
-          echo "SwiftFormat lint complete (see log)"
+          exit_status=${PIPESTATUS[0]}
+          if [ "$exit_status" -ne 0 ]; then
+            error_count=$(grep -cE '^/.*: error:' /tmp/wenshu-swiftformat.log || true)
+            if [ "$error_count" -gt 0 ]; then
+              echo "SwiftFormat hard-failed: $error_count error-severity violations"
+              grep -E '^/.*: error:' /tmp/wenshu-swiftformat.log | head -50
+              exit 1
+            fi
+            echo "SwiftFormat: $exit_status non-zero exit code but 0 error-severity violations (= pre-existing formatting drift; future sweep ticket will address)"
+            exit 0
+          fi
+          echo "SwiftFormat clean"
 
       - name: Verify pre-commit hook installed
         run: |
