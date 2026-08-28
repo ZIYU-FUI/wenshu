@@ -1,16 +1,30 @@
-// WorkspaceStore.swift · Wenshu (文枢) · v0.27 ticket 027-33
+// WorkspaceStore.swift · Wenshu (文枢) · v0.28 ticket 028-003
 //
 // Persistence + preset management for the user-customizable workspace
-// (= .scratch/2026-08-27-xcode-paradigm-layout/spec.md).
+// (= .scratch/2026-08-28-v0-28-free-layout/spec.md).
 //
-// Atomic-coupling with WorkspaceState.swift (= ticket 027-32): the
-// store reads / writes the WorkspaceState schema; = without one, the
-// other has no purpose. Shipped together per boss 8/22 'atomic
-// coupling' rule.
+// Atomic-coupling with WorkspaceState.swift (= ticket 028-003, same
+// commit): the store reads / writes the WorkspaceState schema; without
+// one, the other has no purpose. Shipped together per boss 8/22
+// 'atomic coupling' rule. This commit ALSO bumps the built-in default
+// preset (= makeBuiltinWorkspace) to the FCP Browser 3-pane paradigm
+// per boss拍 2026-08-27 (= b/II = WorkspaceView ON default, FCP
+// Browser paradigm). 028-005 ticket will register the preset officially;
+// this commit sets the seed so the FCP Browser shape is in place from
+// day one of v2.
 //
-// Persistence model: UserDefaults JSON (= no FileManager /
-// filesystem writes; = matches wenshu's 'preferences-only on User
-/// Defaults' pattern established in v0.25 for zone visibility flags).
+// Persistence model: UserDefaults JSON (= no FileManager / filesystem
+// writes; matches wenshu's 'preferences-only on UserDefaults' pattern
+// established in v0.25 for zone visibility flags).
+//
+// v2 migration (= ticket 028-003 acceptance criterion): the store
+// reads / writes the v2 tree schema (= WorkspaceState.root backed by
+// a LayoutNode tree). On detecting a v1 (= flat array) JSON blob in
+// UserDefaults, the store RETIRES it (= drops the v1 keys wholesale,
+// starts fresh) per the hermes "retire v1 wholesale" pattern. This
+// matches the v0.28 development-phase rationale (= no external users,
+// the only "returning user" is the boss, who is fine with a fresh
+// tree for v2).
 
 import Foundation
 import SwiftUI
@@ -22,11 +36,17 @@ final class WorkspaceStore: ObservableObject {
     private static let presetsKey = "wenshu.workspace.presets"
     private static let currentPresetIDKey = "wenshu.workspace.currentPresetID"
 
+    /// Schema versions (= on breaking schema changes, bump
+    /// `currentSchemaVersion` and migrate in `migrateState`).
+    /// - 1: flat pane array (= v0.27 ticket 027-32)
+    /// - 2: recursive split tree (= v0.28 ticket 028-003, this commit)
+    private static let currentSchemaVersion = 2
+
     /// Current workspace state (= ObservableObject for SwiftUI
-    /// re-render; = mutations via `save()` write to UserDefaults).
+    /// re-render; mutations via `save()` write to UserDefaults).
     @Published var workspace: WorkspaceState
 
-    /// Saved presets (= user can have several; = the built-in Default
+    /// Saved presets (= user can have several; the built-in Default
     /// preset is always present).
     @Published var presets: [LayoutPreset]
 
@@ -50,25 +70,67 @@ final class WorkspaceStore: ObservableObject {
         let builtinPreset = LayoutPreset.builtinDefault(builtin)
 
         if let data = userDefaults.data(forKey: Self.workspaceKey),
-           let decoded = try? jsonDecoder.decode(WorkspaceState.self, from: data),
-           decoded.version == builtin.version {
-            self.workspace = decoded
+           let decoded = try? jsonDecoder.decode(WorkspaceState.self, from: data) {
+            // Schema version check: if the persisted JSON is on a
+            // different schema version (= e.g. v1 = flat array from
+            // v0.27), migrate it (= for v2 from v1: retire v1
+            // wholesale, start fresh — see `migrateState`).
+            if decoded.version == Self.currentSchemaVersion {
+                self.workspace = decoded
+            } else {
+                let migrated = Self.migrateState(decoded)
+                self.workspace = migrated
+                userDefaults.removeObject(forKey: Self.workspaceKey)
+            }
         } else {
+            // Persisted data missing or corrupted (= failed to
+            // decode). Start fresh from the built-in Default.
             self.workspace = builtin
         }
 
         if let data = userDefaults.data(forKey: Self.presetsKey),
            let decoded = try? jsonDecoder.decode([LayoutPreset].self, from: data) {
             self.presets = decoded
+            // If the persisted presets contain a v1 workspace, retire
+            // them too (= same wholesale-retire logic).
+            if decoded.contains(where: { $0.workspace.version != Self.currentSchemaVersion }) {
+                self.presets = [builtinPreset]
+                userDefaults.removeObject(forKey: Self.presetsKey)
+            }
         } else {
             self.presets = [builtinPreset]
         }
 
         if let uuidString = userDefaults.string(forKey: Self.currentPresetIDKey),
-           let uuid = UUID(uuidString: uuidString) {
+           let uuid = UUID(uuidString: uuidString),
+           self.presets.contains(where: { $0.id == uuid }) {
             self.currentPresetID = uuid
         } else {
             self.currentPresetID = builtinPreset.id
+        }
+    }
+
+    /// Migrate a persisted state from an older schema version to the
+    /// current one.
+    ///
+    /// v1 → v2 (= ticket 028-003): retire v1 wholesale (= drop the v1
+    /// keys on detection, start fresh). This matches the hermes
+    /// "retire v1 wholesale" pattern documented in
+    /// `hermes-agent/apps/desktop/src/components/pane-shell/tree/
+    /// model.ts` §"Validation" — analogous to the `headerHidden`
+    /// retirement. The v0.28 development-phase rationale is: no
+    /// external users; the only "returning user" is the boss, who
+    /// can re-seed the workspace manually (= or via a future
+    /// import-from-v1-JSON feature ticket if needed).
+    private static func migrateState(_ old: WorkspaceState) -> WorkspaceState {
+        switch old.version {
+        case 1:
+            return makeBuiltinWorkspace()
+        default:
+            // Unknown version: also retire wholesale (= future
+            // versions can override this switch with their own
+            // forward-migration logic).
+            return makeBuiltinWorkspace()
         }
     }
 
@@ -131,47 +193,54 @@ final class WorkspaceStore: ObservableObject {
         savePresets()
     }
 
-    /// Built-in default workspace (= the 6-zone LayoutShellView
-    /// equivalent).
+    /// Built-in default workspace (= the FCP Browser 3-pane paradigm
+    /// per boss拍 2026-08-27, ticket 028-002 = b/II).
     ///
-    /// Layout (= top to bottom):
-    /// - Upper band: 4 panes horizontally
-    ///   - projectSidebar (left)
-    ///   - projectPreview (next)
-    ///   - editor (center, larger flex)
-    ///   - specializedTools (right)
-    /// - Lower band: 2 panes horizontally
-    ///   - aiChat (left)
-    ///   - aiDynamic (right)
+    /// Layout (= left to right, three panes separated by two
+    /// draggable splitters):
+    /// - Left pane: projectSidebar (= project management)
+    /// - Center pane: editor (= chapter / draft Markdown editor)
+    /// - Right pane: aiChat + aiDynamic as inspector tabs (= chat /
+    ///   dynamic zone contents in a single tabbed pane; matches the
+    ///   hermes inspector-tab pattern that boss拍 2026-08-27 cited as
+    ///   surface-area reuse).
     ///
-    /// The upper / lower bands are stacked vertically (= the root
-    /// workspace's split direction). The 5 internal panes share the
-    /// upper / lower band horizontal split direction.
+    /// Tree shape (= recursive per v2 schema):
+    ///   split(row, [group(sidebar), group(editor), split(column,
+    ///             [group(chat), group(dynamic)])], [1, 1, 1])
     static func makeBuiltinWorkspace() -> WorkspaceState {
         let sidebar = TabSpec.make(kind: .projectSidebar, title: "项目管理区")
-        let preview = TabSpec.make(kind: .projectPreview, title: "素材预览区")
         let editor = TabSpec.make(kind: .editor, title: "编辑器")
-        let tools = TabSpec.make(kind: .specializedTools, title: "工具区")
         let chat = TabSpec.make(kind: .aiChat, title: "聊天区")
         let dynamic = TabSpec.make(kind: .aiDynamic, title: "动态区")
 
-        let upperLeft = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 200, idealWidth: 240, flex: 0.4), tabs: [sidebar.id])
-        let upperPreview = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 200, idealWidth: 280, flex: 0.5), tabs: [preview.id])
-        let upperEditor = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 300, idealWidth: 700, flex: 1.0), tabs: [editor.id])
-        let upperTools = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 200, idealWidth: 360, flex: 0.6), tabs: [tools.id])
+        let sidebarPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 200, idealWidth: 240, flex: 0.4), tabs: [sidebar.id])
+        let editorPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 300, idealWidth: 700, flex: 1.0), tabs: [editor.id])
+        let chatPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 200, idealWidth: 400, flex: 1.0), tabs: [chat.id])
+        let dynamicPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 200, idealWidth: 400, flex: 1.0), tabs: [dynamic.id])
 
-        let lowerChat = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 200, idealWidth: 400, flex: 1.0), tabs: [chat.id])
-        let lowerDynamic = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 200, idealWidth: 400, flex: 1.0), tabs: [dynamic.id])
+        let panes = [sidebarPane, editorPane, chatPane, dynamicPane]
+        let tabs = [sidebar, editor, chat, dynamic]
 
-        let panes = [upperLeft, upperPreview, upperEditor, upperTools, lowerChat, lowerDynamic]
-        let tabs = [sidebar, preview, editor, tools, chat, dynamic]
+        // Inspector pane = chat + dynamic tabs in one group (= FCP
+        // Browser paradigm).
+        let inspectorGroup = makeGroup(panes: [chatPane.id, dynamicPane.id], active: chatPane.id)
+        // Top row = sidebar + editor + inspector, horizontally split.
+        let root = makeSplit(
+            orientation: .row,
+            children: [
+                makeGroup(panes: [sidebarPane.id], active: sidebarPane.id),
+                makeGroup(panes: [editorPane.id], active: editorPane.id),
+                inspectorGroup
+            ],
+            weights: [1, 2, 1]
+        )
 
         return WorkspaceState(
+            root: root,
             panes: panes,
-            activePaneID: upperEditor.id,
-            activeTabIndexByPane: [:],
             tabs: tabs,
-            version: 1
+            version: currentSchemaVersion
         )
     }
 }
