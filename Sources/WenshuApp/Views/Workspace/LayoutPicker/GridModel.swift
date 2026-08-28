@@ -395,9 +395,27 @@ func doMerge(_ model: GridLayout, zoneIndices: [Int]) -> GridLayout {
 
 /// Compute the resizers (= shared edges) from a GridLayout.
 func modelToResizers(_ model: GridLayout) -> [GridResizer] {
-    // Vertical resizers (= between columns) — added per cell
-    // row's zone transitions.
     var resizers: [GridResizer] = []
+    // Vertical resizers (= between columns) — added per row's
+    // column transitions. Mirrors hermes grid-model.ts modelToResizers.
+    for r in 0..<model.rows {
+        var indices = uniquePreservingOrder(model.cellChildMap[r])
+        // For each adjacent-column pair with the same zone index,
+        // emit one vertical resizer.
+        for c in 0..<(indices.count - 1) {
+            let left = indices[c]
+            let right = indices[c + 1]
+            // A resizer separates two different zones (= they're
+            // distinct on the column boundary).
+            if left != right {
+                resizers.append(GridResizer(
+                    orientation: .vertical,
+                    negativeSideIndices: [left],
+                    positiveSideIndices: [right]
+                ))
+            }
+        }
+    }
     // Horizontal resizers (= between rows).
     for r in 0..<(model.rows - 1) {
         var indices = uniquePreservingOrder(model.cellChildMap[r])
@@ -410,4 +428,189 @@ func modelToResizers(_ model: GridLayout) -> [GridResizer] {
         }
     }
     return resizers
+}
+
+// MARK: - Percent-based splits (= used by AC#8 click-to-split on zone)
+
+/// Insert a vertical split (= new column) at the given percent
+/// (= MULTIPLIER-relative coordinate). Mirrors `splitZone` but
+/// keyed by percent (= 0..MULTIPLIER) rather than column index.
+/// Returns a new GridLayout with one more column.
+func splitAtColumnAt(_ model: GridLayout, atPercent percent: Int) -> GridLayout {
+    // Find the column whose boundary is closest to the given percent.
+    var colEdges = [0]
+    for w in model.columnPercents {
+        colEdges.append(colEdges.last! + w)
+    }
+    let totalWidth = colEdges.last!
+    guard totalWidth > 0 else { return model }
+    var bestIdx = 0
+    var bestDist = Int.max
+    for (i, edge) in colEdges.enumerated() where i > 0 {
+        let dist = abs(edge - percent)
+        if dist < bestDist {
+            bestDist = dist
+            bestIdx = i
+        }
+    }
+    return splitZone(model, atColumn: bestIdx)
+}
+
+/// Insert a horizontal split (= new row) at the given percent.
+/// Mirrors splitAtColumnAt but for rows (= adds a new row at the
+/// given vertical position).
+func splitAtRow(_ model: GridLayout, atPercent percent: Int) -> GridLayout {
+    var rowEdges = [0]
+    for h in model.rowPercents {
+        rowEdges.append(rowEdges.last! + h)
+    }
+    let totalHeight = rowEdges.last!
+    guard totalHeight > 0 else { return model }
+    var bestIdx = 0
+    var bestDist = Int.max
+    for (i, edge) in rowEdges.enumerated() where i > 0 {
+        let dist = abs(edge - percent)
+        if dist < bestDist {
+            bestDist = dist
+            bestIdx = i
+        }
+    }
+    // Split the row by injecting a new row index at bestIdx.
+    var maxIdx = 0
+    for row in model.cellChildMap {
+        for v in row {
+            if v > maxIdx { maxIdx = v }
+        }
+    }
+    let newZoneIndex = maxIdx + 1
+
+    var newGrid = model
+    var newCellChildMap: [[Int]] = []
+    for row in model.cellChildMap {
+        var newRow = row
+        if bestIdx <= newRow.count {
+            newRow.insert(newZoneIndex, at: bestIdx)
+        }
+        newCellChildMap.append(newRow)
+    }
+    newGrid.rows = model.rows + 1
+    // Steal half the current row's height for the new row.
+    let stolen = max(MIN_ZONE_SIZE, model.rowPercents[bestIdx] / 2)
+    var newRowPercents: [Int] = []
+    for (r, h) in model.rowPercents.enumerated() {
+        if r == bestIdx {
+            newRowPercents.append(h - stolen)
+            newRowPercents.append(stolen)
+        } else {
+            newRowPercents.append(h)
+        }
+    }
+    newGrid.rowPercents = newRowPercents
+    newGrid.cellChildMap = newCellChildMap
+    return newGrid
+}
+
+
+// MARK: - AC#11 dragResizer (= edge drag updates columnPercents)
+
+/// Apply a delta (= positive or negative percent in MULTIPLIER units)
+/// to the resizer at the given index. Mirrors hermes
+/// `grid-model.ts` `dragResizer(model, resizerIndex, delta)`.
+/// Returns the updated model (= or the original if the drag would
+/// violate MIN_ZONE_SIZE on either side of the resizer).
+///
+/// Sign convention: delta > 0 means the resizer moves RIGHT (= for
+/// vertical resizers) or DOWN (= for horizontal resizers). The
+/// negative-side zone grows, the positive-side zone shrinks.
+func dragResizer(_ model: GridLayout, resizerIndex: Int, delta: Int) -> GridLayout {
+    let resizers = modelToResizers(model)
+    guard resizerIndex >= 0 && resizerIndex < resizers.count else { return model }
+    let resizer = resizers[resizerIndex]
+    var newGrid = model
+    if resizer.orientation == .vertical {
+        // Vertical resizer = column boundary. Negative-side = left column(s);
+        // positive-side = right column(s). Apply delta to negative-side, -delta to positive-side.
+        var newPercents = model.columnPercents
+        // Validate the move first (= both sides must remain >= MIN_ZONE_SIZE).
+        for idx in resizer.negativeSideIndices {
+            guard idx < newPercents.count else { continue }
+            let newWidth = newPercents[idx] + delta
+            if newWidth < MIN_ZONE_SIZE { return model }
+            if newWidth > MULTIPLIER - MIN_ZONE_SIZE { return model }
+        }
+        for idx in resizer.positiveSideIndices {
+            guard idx < newPercents.count else { continue }
+            let newWidth = newPercents[idx] - delta
+            if newWidth < MIN_ZONE_SIZE { return model }
+        }
+        // Apply.
+        for idx in resizer.negativeSideIndices {
+            guard idx < newPercents.count else { continue }
+            newPercents[idx] += delta
+        }
+        for idx in resizer.positiveSideIndices {
+            guard idx < newPercents.count else { continue }
+            newPercents[idx] -= delta
+        }
+        newGrid.columnPercents = newPercents
+    } else {
+        // Horizontal resizer = row boundary.
+        var newPercents = model.rowPercents
+        for idx in resizer.negativeSideIndices {
+            guard idx < newPercents.count else { continue }
+            let newHeight = newPercents[idx] + delta
+            if newHeight < MIN_ZONE_SIZE { return model }
+        }
+        for idx in resizer.positiveSideIndices {
+            guard idx < newPercents.count else { continue }
+            let newHeight = newPercents[idx] - delta
+            if newHeight < MIN_ZONE_SIZE { return model }
+        }
+        for idx in resizer.negativeSideIndices {
+            guard idx < newPercents.count else { continue }
+            newPercents[idx] += delta
+        }
+        for idx in resizer.positiveSideIndices {
+            guard idx < newPercents.count else { continue }
+            newPercents[idx] -= delta
+        }
+        newGrid.rowPercents = newPercents
+    }
+    return newGrid
+}
+
+// MARK: - AC#10 mergeClosureIndices (= merge a contiguous range of zones)
+
+/// Merge a contiguous range of zones into one. Returns the
+/// updated model with the merged region collapsed to a single zone.
+/// Mirrors hermes `grid-model.ts` `mergeClosureIndices(model, indices)`.
+/// The merge is only valid if all `indices` are in a contiguous
+/// block (= same row + adjacent columns, OR same column + adjacent rows).
+func mergeClosureIndices(_ model: GridLayout, indices: [Int]) -> GridLayout {
+    guard indices.count >= 2 else { return model }
+    // Find the bounding box of the indices (= min/max top/left/bottom/right).
+    let zones = modelToZones(model) ?? []
+    let targets = indices.compactMap { idx in zones.first { $0.index == idx } }
+    guard targets.count == indices.count else { return model }
+
+    let minLeft = targets.map(\.left).min()!
+    let maxRight = targets.map(\.right).max()!
+    let minTop = targets.map(\.top).min()!
+    let maxBottom = targets.map(\.bottom).max()!
+
+    // Replace all child-map entries for the merged zones with a single zone index.
+    // Use the smallest index in the set as the merged zone's representative.
+    let representative = indices.min()!
+    var newCellChildMap = model.cellChildMap
+    for (r, row) in newCellChildMap.enumerated() {
+        for (c, v) in row.enumerated() {
+            if indices.contains(v) {
+                newCellChildMap[r][c] = representative
+            }
+        }
+    }
+    // Deduplicate columns/rows that are now uniform.
+    var newGrid = model
+    newGrid.cellChildMap = newCellChildMap
+    return newGrid
 }

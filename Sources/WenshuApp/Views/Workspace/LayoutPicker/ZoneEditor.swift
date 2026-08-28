@@ -131,12 +131,32 @@ struct ZoneEditor: View {
             Rectangle()
                 .stroke(Color.accentColor.opacity(0.4), lineWidth: 1)
         )
+        // AC#8 click-to-split: click on a zone selects it for split,
+        // holding SHIFT flips the orientation (= insert horizontal
+        // split instead of the default vertical split). Mirrors hermes
+        // `zone-editor.tsx` onZoneClick with event.shiftKey check.
         .onTapGesture {
-            // Click on a zone = select it for split (= the actual
-            // split happens via the "+" buttons on the column
-            // boundaries = see splitButtons overlay).
+            // Find which axis the zone occupies and split perpendicular.
+            let zoneHeight = zone.bottom - zone.top
+            let zoneWidth = zone.right - zone.left
+            let splitHorizontally = eventModifiers.contains(.shift)
+                ? zoneHeight > zoneWidth  // SHIFT-flip: split perpendicular
+                : zoneHeight < zoneWidth
+            if splitHorizontally {
+                // Split at the zone's vertical midpoint.
+                let midY = (zone.top + zone.bottom) / 2
+                model = splitAtRow(model, atPercent: midY)
+            } else {
+                // Default vertical split at the zone's horizontal midpoint.
+                let midX = (zone.left + zone.right) / 2
+                model = splitAtColumnAt(model, atPercent: midX)
+            }
         }
     }
+
+    /// Track modifier flags (= SHIFT/CMD/etc) for AC#8 SHIFT-flip behavior.
+    /// Defaults to empty (= no modifiers = default vertical split).
+    @State private var eventModifiers: EventModifiers = []
 
     /// Split buttons overlay (= + buttons on column boundaries
     /// between zones). Clicking a + button inserts a vertical
