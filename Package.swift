@@ -73,7 +73,13 @@ let package = Package(
         // Adopted per 2026-08-28-six-module-audit M6. Zero source consumers yet;
         // first consumer lands with v0.28+ wenshu CLI / daemon ticket (= future
         // batch 2 work). Pin added now so the dep graph is ready when needed.
-        .package(url: "https://github.com/apple/swift-log", from: "1.5.4")
+        .package(url: "https://github.com/apple/swift-log", from: "1.5.4"),
+
+        // TEST — SwiftUI pixel snapshot tests (batch 1 issue 05; testTarget only)
+        // Adopted per 2026-08-28-six-module-audit M1 (drag-lost regression suite).
+        // Pairs with ViewInspector: structure assertions vs pixel snapshots.
+        // Per the README, must be wired into testTarget ONLY (not runtime target).
+        .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.19.4")
     ],
     targets: [
         .executableTarget(
@@ -104,6 +110,10 @@ let package = Package(
             dependencies: [
                 "WenshuApp",
                 .product(name: "ViewInspector", package: "ViewInspector"),
+                // batch 1 issue 05: visual regression test support for ticket 028-011
+                // (= drag-lost regression suite). Pairs with ViewInspector: structure
+                // assertions vs pixel snapshots. README warns NOT to add to runtime target.
+                .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
             ],
             path: "Tests/WenshuAppTests"
         )
