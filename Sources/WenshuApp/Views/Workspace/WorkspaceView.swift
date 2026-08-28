@@ -35,78 +35,22 @@ struct WorkspaceView: View {
     /// built-in Default preset). Boss can split / rearrange via
     /// drag-and-drop in 027-36+.
     var body: some View {
-        // For v0.27 first cut (= before drag-and-drop = ticket 027-36),
-        // render the panes in their declared order (= upper band first
-        // 4 panes, lower band last 2 panes). Split directions follow
-        // the built-in Default preset (= see WorkspaceStore).
-        VStack(spacing: 0) {
-            // Upper band: 4 panes horizontally.
-            HStack(spacing: 0) {
-                ForEach(store.workspace.panes.prefix(4)) { pane in
-                    paneHost(for: pane)
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-
-            // Lower band: 2 panes horizontally (= drawn only if both
-            // are in the workspace; = always true for the built-in
-            // Default preset).
-            if store.workspace.panes.count >= 6 {
-                HStack(spacing: 0) {
-                    ForEach(store.workspace.panes.suffix(2)) { pane in
-                        paneHost(for: pane)
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            }
-        }
+        // v0.28 ticket 028-004 (= this commit): WorkspaceView now
+        // delegates to PaneRenderer (= recursive split-tree renderer
+        // for the v2 schema from ticket 028-003). The legacy flat-
+        // array rendering (= v0.27 LayoutShellView 6-zone shape)
+        // is removed; v2 = the only path. The WorkspaceView body
+        // is now a thin shim that hands off to PaneRenderer.
+        PaneRenderer(node: store.workspace.root, store: store)
     }
 
-    /// Single pane host (= wraps the pane in a frame + hosts the
-    /// active tab's content view).
+    /// Render a tab's view (= dispatches on TabKind). Extracted
+    /// from the original `renderTab(_ tab: TabSpec)` to take a bare
+    /// `TabKind` (= PaneRenderer's TabContentDispatcher only knows
+    /// the kind + title, not the full TabSpec).
     @ViewBuilder
-    private func paneHost(for pane: PaneNode) -> some View {
-        let activeTab = activeTab(for: pane)
-        Group {
-            if let tab = activeTab {
-                renderTab(tab)
-            } else {
-                Color.secondary.opacity(0.05)
-                    .overlay(Text("空面板"))
-            }
-        }
-        .frame(
-            minWidth: pane.frame.minWidth,
-            idealWidth: pane.frame.idealWidth,
-            maxWidth: .infinity,
-            minHeight: 0,
-            idealHeight: nil,
-            maxHeight: .infinity
-        )
-        .background(
-            RoundedRectangle(cornerRadius: 0)
-                .stroke(Color.secondary.opacity(0.15), lineWidth: 0.5)
-        )
-    }
-
-    /// Lookup the active tab for a pane (= first tab in tabIDs;
-    /// = future enhancement: read activeTabIndexByPane).
-    private func activeTab(for pane: PaneNode) -> TabSpec? {
-        pane.tabIDs.first.flatMap { id in
-            store.workspace.tab(for: id)
-        }
-    }
-
-    /// Render a tab's view (= dispatches on TabKind).
-    ///
-    /// This is where wenshu's existing zone views (= NewLibraryOutlineView,
-    /// ChatView, ZoneModuleView, etc.) are mapped to the workspace
-    /// tab kinds. The mapping mirrors the v0.27 LayoutShellView zone
-    /// rendering (= so the user sees the same visual result as before;
-    /// = only the layout mechanics change).
-    @ViewBuilder
-    private func renderTab(_ tab: TabSpec) -> some View {
-        switch tab.kind {
+    private func renderTabByKind(_ kind: TabKind) -> some View {
+        switch kind {
         case .projectSidebar:
             // NewLibraryOutlineView requires BookStore via @Environment;
             // = the workspace view reads it from the inherited
@@ -128,6 +72,16 @@ struct WorkspaceView: View {
         case .aiDynamic:
             ZoneModuleView(zoneSlot: .aiDynamic)
         }
+    }
+
+    /// Legacy method kept for backward-compatibility (= no callers
+    /// remain after the PaneRenderer refactor, but downstream
+    /// extensions may still reference it via the `renderTab`
+    /// closure). Forwards to `renderTabByKind` after looking up
+    /// the tab spec.
+    @ViewBuilder
+    private func renderTab(_ tab: TabSpec) -> some View {
+        renderTabByKind(tab.kind)
     }
 }
 

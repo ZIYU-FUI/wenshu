@@ -16,7 +16,7 @@ import AppKit
 /// NativeSplitter — 拖拽线 (SwiftUI 范式, 替代 v0.16/v0.17 NSView 范式)
 struct NativeSplitter: View {
     let orientation: Orientation
-    let length: CGFloat
+    let length: CGFloat?
     let onDrag: (CGFloat) -> Void
 
     @State private var isHovered: Bool = false
@@ -68,13 +68,13 @@ struct NativeSplitter: View {
             // 视觉 1 PT → hover 3 PT (Apple 系统色)
             Rectangle()
                 .fill(isHovered ? Color(nsColor: .controlAccentColor).opacity(0.25) : Color(nsColor: .separatorColor))
-                .frame(width: isHovered ? Self.hoveredThickness : Self.lineThickness, height: length)
+                .frame(width: isHovered ? Self.hoveredThickness : Self.lineThickness, height: length ?? 0)
                 .shadow(color: isHovered ? Color(nsColor: .controlAccentColor).opacity(0.15) : .clear, radius: isHovered ? 8 : 0)
                 .animation(.easeInOut(duration: 0.2), value: isHovered)
             // 透明 hit area 6 PT — 接管 mouse / cursor / drag (SwiftUI 真值)
             Color.clear
                 .contentShape(Rectangle())
-                .frame(width: Self.hitAreaThickness, height: length)
+                .frame(width: Self.hitAreaThickness, height: length ?? 0)
                 .onContinuousHover { phase in
                     switch phase {
                     case .active: isHovered = true
@@ -112,12 +112,12 @@ struct NativeSplitter: View {
         ZStack {
             Rectangle()
                 .fill(isHovered ? Color(nsColor: .controlAccentColor).opacity(0.25) : Color(nsColor: .separatorColor))
-                .frame(width: length, height: isHovered ? Self.hoveredThickness : Self.lineThickness)
+                .frame(width: length ?? 0, height: isHovered ? Self.hoveredThickness : Self.lineThickness)
                 .shadow(color: isHovered ? Color(nsColor: .controlAccentColor).opacity(0.15) : .clear, radius: isHovered ? 8 : 0)
                 .animation(.easeInOut(duration: 0.2), value: isHovered)
             Color.clear
                 .contentShape(Rectangle())
-                .frame(width: length, height: Self.hitAreaThickness)
+                .frame(width: length ?? 0, height: Self.hitAreaThickness)
                 .onContinuousHover { phase in
                     switch phase {
                     case .active: isHovered = true

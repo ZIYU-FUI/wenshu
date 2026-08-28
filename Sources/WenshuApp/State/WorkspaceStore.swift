@@ -193,6 +193,82 @@ final class WorkspaceStore: ObservableObject {
         savePresets()
     }
 
+    /// Adjust a split's weights by the given delta applied to a
+    /// specific child (= the drag-resize gesture's per-step delta).
+    ///
+    /// `childIndex` is the index of the LEFT/TOP sibling (= the
+    /// splitter sits between `childIndex` and `childIndex + 1`).
+    /// Positive `delta` (= drag right / down) grows the LEFT/TOP
+    /// sibling (= standard macOS split convention).
+    ///
+    /// Implementation: finds the split by id, scales its weights
+    /// array proportionally (= weight[i] += delta,
+    /// weight[i+1] -= delta, clamped at minWeight = 0.05 so a pane
+    /// never fully collapses under drag).
+    func adjustSplitWeights(splitID: String, childIndex: Int, delta: Double) {
+        let minWeight = 0.05
+        let newRoot = mapSplitWeights(splitID: splitID) { weights in
+            guard weights.count > childIndex + 1 else { return weights }
+            var w = weights
+            let left = w[childIndex]
+            let right = w[childIndex + 1]
+            // Apply the delta proportionally (= delta is in PT
+            // units; convert to weight by dividing by the total).
+            let total = left + right
+            let dW = delta / total
+            var newLeft = max(minWeight, min(1 - minWeight, left + dW))
+            let newRight = max(minWeight, total - newLeft)
+            newLeft = total - newRight
+            w[childIndex] = newLeft
+            w[childIndex + 1] = newRight
+            return w
+        }
+        if let newRoot {
+            workspace.root = newRoot
+            save()
+        }
+    }
+
+    /// Set the active pane in a group (= dispatches into the tree
+    /// pure function so callers can read the new tree without
+    /// manually walking it).
+    func setActivePaneInGroup(groupID: String, paneID: PaneID) {
+        let newRoot = setActivePane(workspace.root, groupId: groupID, paneId: paneID)
+        workspace.root = newRoot
+        save()
+    }
+
+    /// Private helper: walk the tree to find the split with `id` and
+    /// update its weights; return the new tree (or nil if the split
+    /// was not found).
+    private func mapSplitWeights(splitID: String, _ transform: ([Double]) -> [Double]) -> LayoutNode? {
+        func walk(_ node: LayoutNode) -> LayoutNode? {
+            if case .split(let s) = node {
+                if s.id == splitID {
+                    let newWeights = transform(s.weights)
+                    return .split(SplitNode(
+                        id: s.id, orientation: s.orientation,
+                        children: s.children, weights: newWeights
+                    ))
+                }
+                var updated: [LayoutNode] = []
+                for child in s.children {
+                    if let walked = walk(child) {
+                        updated.append(walked)
+                    } else {
+                        updated.append(child)
+                    }
+                }
+                return .split(SplitNode(
+                    id: s.id, orientation: s.orientation,
+                    children: updated, weights: s.weights
+                ))
+            }
+            return nil
+        }
+        return walk(workspace.root)
+    }
+
     /// Built-in default workspace (= the FCP Browser 3-pane paradigm
     /// per boss拍 2026-08-27, ticket 028-002 = b/II).
     ///
