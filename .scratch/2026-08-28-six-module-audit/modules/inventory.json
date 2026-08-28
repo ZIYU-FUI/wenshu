@@ -1,0 +1,117 @@
+{
+  "M1 Workspace Shell": {
+    "what": "LayoutShellView 6-zone + v0.28 free-layout WorkspaceView + WorkspaceState/Store + drag splitters (NativeSplitter self-implemented per ADR-0008)",
+    "existing": [
+      "LayoutShellView",
+      "WorkspaceView",
+      "WorkspaceState",
+      "WorkspaceStore",
+      "NativeSplitter",
+      "LayoutShellViewModel"
+    ],
+    "needs_survey": [
+      "LayoutEditMode palette (=",
+      "floating picker)",
+      "ZoneEditor (= FancyZones port)",
+      "drag-lost regression suite",
+      "user preset persistence"
+    ]
+  },
+  "M2 Book Reader & Editor": {
+    "what": "Markdown chapter/draft edit + chat zone + WordCount + Composer",
+    "existing": [
+      "Core/Composer",
+      "Core/WordCount",
+      "Views/Chat/ChatView",
+      "Core/Chat/ChatTrigger",
+      "swift-markdown 0.8.0 (parser)",
+      "Textual 0.5.0 (preview)"
+    ],
+    "needs_survey": [
+      "rich text editor (TextKit 2 / TextEditor replacement)",
+      "syntax highlight in code fences",
+      "diff view for draft revisions",
+      "page-mode reader (scroll-vs-paginate)",
+      "search-in-file"
+    ]
+  },
+  "M3 Project/Manuscript Manager": {
+    "what": "Library + Bookshelf + Book + Kanban + Todo + Search + Templates + QuickSwitcher + Bookmarks",
+    "existing": [
+      "FileSystem*Store.swift",
+      "BookStore.swift",
+      "Core/Kanban",
+      "Core/Todo",
+      "Core/Search",
+      "Core/Templates",
+      "Core/QuickSwitcher",
+      "Core/Bookmarks",
+      "Core/Bases",
+      "CacheManager"
+    ],
+    "needs_survey": [
+      "ranked full-text search (FTS5 / tantivy)",
+      "thumbnail generation pipeline (cover/portrait/asset)",
+      "PDF import (PDFKit first-party)",
+      "EPUB import",
+      ".ws bundle export/import (ZIP)"
+    ]
+  },
+  "M4 Foreshadowing & Plot Web": {
+    "what": "foreshadowing folder + Graph view + LinkGraph + Canvas + CrossRefInject",
+    "existing": [
+      "Core/Graph",
+      "Core/LinkGraph (Backlinks/InternalLinkParser/BacklinkResolver/LinkIndex)",
+      "Core/Canvas",
+      "Domain/CrossRefInject"
+    ],
+    "needs_survey": [
+      "graph layout algorithm (force-directed / tree)",
+      "graph view rendering (SwiftUI vs AppKit)",
+      "canvas / node-edge rendering",
+      "interactive graph node manipulation"
+    ]
+  },
+  "M5 Character & World Codex": {
+    "what": "characters/ + world/ + outline/ + SmartQuery + EntityIngestion + reference-library 4 layers",
+    "existing": [
+      "FileSystemCharacterStore.swift",
+      "FileSystemWorldStore.swift",
+      "Domain/Character.swift",
+      "Domain/World.swift",
+      "Domain/EntityIngestion.swift",
+      "Domain/SmartQuery*.swift",
+      "Core/Outline"
+    ],
+    "needs_survey": [
+      "fuzzy search as-you-type (fuse / FuzzyMatch)",
+      "entity extraction from prose (LLM-side, library for UI)",
+      "schema validation for markdown frontmatter",
+      "codex visualization (Character web)"
+    ]
+  },
+  "M6 Settings & Library": {
+    "what": ".ws onboarding + Settings tabs + Provider/Agent/Memory/Skill/Cron/Backup + Library lifecycle",
+    "existing": [
+      "Views/Settings",
+      "Views/Onboarding/LibraryRootView",
+      "Core/Provider",
+      "Core/Agent",
+      "Core/Memory",
+      "Core/Skills",
+      "Core/Cron",
+      "Core/Backup",
+      "Core/Tools (File/Web/Process/Vision/AV)",
+      "WenshuLibrary.swift",
+      "LibraryLifecycleHook.swift"
+    ],
+    "needs_survey": [
+      "menu bar extra toggle (MenuBarExtraAccess)",
+      "global shortcut binding (KeyboardShortcuts — P1 carry)",
+      "keychain for LLM API key",
+      "SSE stream client (EventSource)",
+      "MCP SDK (deferred)",
+      "logging pipeline"
+    ]
+  }
+}
