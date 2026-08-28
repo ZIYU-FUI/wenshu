@@ -1,6 +1,10 @@
-# Wenshu v0.28 integration batch 1 — 工程加固 + 首批4 adoptions
+# Wenshu v0.28 integration batch 1 — 工程加固 + 首批4 adoptions + batch 2 follow-up (status: complete)
 
 > Boss 2026-08-28 OOB: "整个项目" + "走完 8 步" (= Q34 po main flow 完整 checklist)
+
+## Status (= this spec = batch 1 spec, now with batch 2 completion notes appended)
+
+This spec covers batch 1 (= 4 adoptions + 3 工程加固 items). batch 2 (= 6 higher-runtime-risk adoptions) shipped in 7 atomic commits after this spec was finalized (= commit list c932249c5 / ed7042c07 / ebe6b9a67 / 3cd9ab7e6 / fa613b928 / 9d21d7c26 / 189763d48). All 8 batch-1 forward-fix commits + 7 batch-2 commits verified = total 15 atomic commits in the v0.28 integration chain.
 
 ## Scope (= Q34 step 1)
 
