@@ -37,6 +37,11 @@ struct LayoutPicker: View {
     /// ticket 028-008c integration).
     @State private var showingZoneEditor: Bool = false
 
+    /// Local state for the pending delete confirmation (= v0.28
+    /// ticket 028-009: deleting a user-saved preset requires a
+    /// .confirmationDialog before the destructive action).
+    @State private var pendingDeletePreset: LayoutPreset? = nil
+
     /// Local state for the save-current-as-preset input reveal.
     @State private var showingSaveInput: Bool = false
     @State private var newPresetName: String = ""
@@ -50,24 +55,52 @@ struct LayoutPicker: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            // Preset card grid (= 4 columns × N rows depending on
-            // the active preset list).
+            // Built-in templates section (= 4 builtin presets = the
+            // hermes `layout-picker.tsx:117-118` filter).
             LazyVGrid(columns: columns, spacing: 12) {
-                ForEach(store.presets) { preset in
+                ForEach(store.presets.filter { $0.isBuiltIn }) { preset in
                     PresetCard(
                         preset: preset,
                         isActive: preset.id == currentPresetID,
                         onSelect: {
                             onSelectPreset(preset)
                         },
-                        onDelete: preset.isBuiltIn ? nil : {
-                            store.deletePreset(preset)
-                        }
+                        onDelete: nil  // built-ins have no delete button
                     )
                 }
             }
             .padding(.horizontal, 12)
             .padding(.top, 12)
+
+            // Custom presets section (= user-saved = NOT built-in;
+            // hidden if empty per spec §"Acceptance criteria" #4).
+            let customPresets = store.presets.filter { !$0.isBuiltIn }
+            if !customPresets.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("自定义")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 12)
+                    LazyVGrid(columns: columns, spacing: 12) {
+                        ForEach(customPresets) { preset in
+                            PresetCard(
+                                preset: preset,
+                                isActive: preset.id == currentPresetID,
+                                onSelect: {
+                                    onSelectPreset(preset)
+                                },
+                                onDelete: {
+                                    pendingDeletePreset = preset
+                                }
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                }
+            }
 
             // "+ 新建网格布局" button (= v0.28 ticket 028-008c
             // integration: opens the ZoneEditor sheet on tap).
@@ -126,6 +159,32 @@ struct LayoutPicker: View {
             }
         }
         .frame(width: 26 * 16)
+        // v0.28 ticket 028-009: confirmation dialog for deleting
+        // a user-saved preset (= .confirmationDialog with
+        // presenting: the preset; macOS-standard destructive /
+        // cancel role buttons). Lives at the body level so it's
+        // not nested inside the conditional view that contains
+        // the preset grid (= SwiftUI ViewModifier inference
+        // needs the dialog to be at the same level as the
+        // .sheet it pairs with).
+        .confirmationDialog(
+            "删除 \u{201c}\(pendingDeletePreset?.name ?? "")\u{201d}?",
+            isPresented: Binding(
+                get: { pendingDeletePreset != nil },
+                set: { if !$0 { pendingDeletePreset = nil } }
+            ),
+            presenting: pendingDeletePreset
+        ) { preset in
+            Button("删除", role: .destructive) {
+                store.deletePreset(preset)
+                pendingDeletePreset = nil
+            }
+            Button("取消", role: .cancel) {
+                pendingDeletePreset = nil
+            }
+        } message: { preset in
+            Text("删除后无法撤销。模板 \"\(preset.name)\" 会从所有设备上移除。")
+        }
     }
 
     /// Reveal-state input for "save current layout as preset".
