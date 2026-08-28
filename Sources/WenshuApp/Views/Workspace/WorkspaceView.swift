@@ -64,6 +64,16 @@ struct WorkspaceView: View {
             .onReceive(NotificationCenter.default.publisher(for: .wenshuToggleEditMode)) { _ in
                 editMode.toggle()
             }
+            // v0.28 ticket 028-007: floating TreeEditBar with the
+            // LayoutPicker (= preset grid + new-grid button +
+            // save-current-as-preset input reveal). Shown only
+            // when edit mode is on (= per spec §"Acceptance
+            // criteria" #2).
+            .overlay {
+                if editMode.isEnabled {
+                    LayoutEditBar(store: store, editMode: editMode)
+                }
+            }
     }
 
     /// Render a tab's view (= dispatches on TabKind). Extracted
