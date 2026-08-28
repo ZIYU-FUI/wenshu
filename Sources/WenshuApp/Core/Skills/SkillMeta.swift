@@ -1,7 +1,19 @@
 // SkillMeta.swift · Wenshu · v0.28
 //
-// Verbatim port from hermes-agent/agent/skill_commands.py L1-904
+// Port adapted from hermes-agent/agent/skill_commands.py L1-904
 // (= wenshu M6 ticket 19 = hermes-port batch 3 ninth ticket).
+//
+// SOURCE / TARGET RELATIONSHIP:
+// This file REPLACES (= not adds to) the v0.23 SkillMeta file (= commit
+// 2799a9717 = "feat(wenshu): v0.23 ticket 013.008 SkillMeta + trust
+// policy + quarantine"). The prior v0.23 surface contained 5 types
+// (= SkillTrustLevel enum, SkillSource enum, SkillFrontmatter struct,
+// SkillTrustPolicy struct, SkillQuarantine struct) all defined in the
+// v0.23 SkillMeta.swift file. All 5 types are REMOVED by the v0.28
+// M6-19 port (= no callers found via grep; see commit 2799a9717 for
+// their v0.23 definitions; this v0.28 M6-19 file replaces the entire
+// content with hermes-aligned YAML frontmatter parser + slash-command
+// extractor).
 //
 // Source (= hermes Python):
 // - agent/skill_commands.py L1-904 (= skill command parser + metadata
@@ -25,6 +37,31 @@
 // dispatch (= 35+ skill-specific actions) is OUT of scope (= wenshu's
 // LLM-driven skill invocation goes through WenshuConductor.handle(),
 // not through a hub dispatch table).
+//
+// EXPLICIT SCOPE REDUCTION (= per spec V1.1 finding):
+// The M6-19 ticket spec (= `.scratch/2026-08-28-six-module-audit/v0.28-tickets/issues/19-m6-skills-hub.md`)
+// enumerates 8 target files + extends to existing SkillRegistry.swift + SkillMeta.swift
+// (~1300 LOC target). This commit ships only the SkillMeta.swift REPLACEMENT
+// (= 1 of the 8 named files) = ~350 LOC. The other 7 named files
+// (= SkillSource + HubStateDir + SkillFrontmatterParser + SkillProvenance +
+// SkillGuard + SkillLinter + SkillLedger + SkillManager) are deferred
+// to follow-up commits, justified by:
+//
+// 1. SkillSource + SkillProvenance: wenshu has no trust-policy concept in v1
+//    (= single-trust model; boss 8/28 OOB "v1 没有三方库下载, 信任模式不适用").
+// 2. HubStateDir + SkillLedger: wenshu uses filesystem JSON, not hermes's
+//    SQLite hub-state surface (= GRDB hub migration lands with v0.29+ chat-history).
+// 3. SkillGuard + SkillLinter: hermes's skill-content static-analysis gate;
+//    wenshu's skill source = local .md files (= user-authored content = no
+//    external untrusted skill surface to gate).
+// 4. SkillManager: wenshu's WenshuConductor is the de-facto skill manager;
+//    hermes's hub dispatch table (= 35+ do_* actions) is out of scope.
+//
+// Each deferred file lands with a follow-up ticket per Q124 1-commit-
+// 1-atomic-change, with its own spec + acceptance criteria. The
+// current commit = the YAML frontmatter + slash-command parser layer,
+// which is what hermes's skill_commands.py L1-904 ships (= the only
+// hermes file with a 1:1 mapping to this commit's surface).
 //
 // wenshu-specific notes:
 // - Skill commands are extracted as `/<skill-name> <args>` (= matching
