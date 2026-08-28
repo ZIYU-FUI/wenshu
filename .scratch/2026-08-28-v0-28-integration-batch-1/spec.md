@@ -10,7 +10,7 @@ This batch covers 4 adoptions (工程管理 + 低风险 framework bumps) + 3 工
 
 | # | Lib | Pin | Why batch 1 |
 |---|---|---|---|
-| 1 | `realm/SwiftLint` | 0.62.1 | binary tool, no runtime risk; needed for engineering hygiene (= AGENTS.md §11/§12 CI gate) |
+| 1 | `realm/SwiftLint` | 0.65.1 (= `brew info swiftlint` 2026-08-28 reports 0.65.1 as latest stable; supersedes the 0.62.1 cited in the six-module audit verdict which predated the current brew release) | binary tool, no runtime risk; needed for engineering hygiene (= AGENTS.md §11/§12 CI gate) |
 | 2 | `nicklockwood/SwiftFormat` | 0.62.1 | binary tool, no runtime risk; pairs with SwiftLint (= pre-commit formatter) |
 | 3 | `sindresorhus/Defaults` | 9.0.8 | UserDefaults typed wrapper bump; v9 has breaking changes but wenshu source already uses `@AppStorage` directly (not `Defaults` API), so zero source-code impact |
 | 4 | `apple/swift-log` | 1.5.4 | Apple first-party; doesn't impact any source code that doesn't import it |
@@ -66,3 +66,10 @@ This batch covers 4 adoptions (工程管理 + 低风险 framework bumps) + 3 工
 - v0.28 free-layout ticket 028-001+ (separate spec at `.scratch/2026-08-28-v0-28-free-layout/`)
 - Bonsplit (rejected per ADR-0008 path C)
 - [forbidden-vocab-1] literal tokens in commit body / source code (= pollution-defense hook active)
+
+
+## Version reconciliation (forward-fix per Standards-axis H3 finding)
+
+The original spec.md adopted SwiftLint 0.62.1 (= per the 2026-08-28-six-module-audit verdict) but the actual `brew info swiftlint` 2026-08-28 returned 0.65.1 (= latest stable). The 2c42cb22c commit body self-rationalized the bump to 0.65.1 (= "superseding the 0.62.1 from the six-module audit verdict") but the spec was not updated to match. This forward-fix reconciles the spec with the actual installed version (forward-fix commits = spec + ticket 01 + AGENTS.md). The decision criterion is: spec is the source of truth per Q34 chain (spec → tickets → commit), not commit body.
+
+SwiftFormat stayed at 0.62.1 (= no drift; brew info returned 0.62.1 as latest stable for swiftformat).
