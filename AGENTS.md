@@ -23,7 +23,7 @@ This file = wenshu project baseline + cross-role address hard constraint. Single
 - Version format = three digits (Hermes style): middle digit = phase, third digit = hotfix.
 - 3 docs = this file + `README.md` + `CLAUDE.md`. `CONTEXT.md` = domain glossary (see `docs/agents/domain.md`).
 - No hermes monorepo trace (no longer fork).
-- No Tauri / Rust / SQLite / Vue 3 trace.
+- No Tauri / Rust / Vue 3 trace. SQLite allowed inside `.ws` bundle only (= `chat.sqlite` and per-book `indexes.sqlite` via `groue/GRDB.swift` for FTS5; per §11.1 ratification 2026-08-28).
 - No sparse-clone assumption.
 - No novel-platform / novel-craft / Hermes-Slate-Desk legacy V0.5.x protocol.
 - Do not decide LLM key config for 老板.
@@ -43,12 +43,28 @@ This file = wenshu project baseline + cross-role address hard constraint. Single
   2. Last commit within 12 months (= active maintenance; macOS 27 兼容保证).
   3. License = MIT / Apache / BSD / public domain (= commercial 兼容).
   4. macOS-first OR macOS-supported (= iOS-only 库不接受).
-- Approved third-party exceptions (as of 2026-08-27):
-  - `stevengharris/SplitView` — 216 stars, MIT, macOS-first, v3.5 (= wenshu splitter 控件).
-  - `Sameesunkaria/OutlineView` — 78 stars (BELOW 100 — provisional; revisit when >= 100) — wenshu tree view candidate.
-- Pending evaluation (= not yet adopted; needs demo + boss拍):
-  - `nodes-app/swift-markdown-engine` — AppKit TextKit 2 + SwiftUI bridge (= future wenshu markdown editor).
-  - `gonzalezreal/Textual` — markdown render successor (= future wenshu editor render).
+- Approved third-party exceptions (ratified 2026-08-28 OOB by 老板 = "all libraries can be introduced immediately"):
+  - RUNTIME (production):
+    - `bring-shrubbery/lucide-swift` 1.25.0 — icon set (MIT, macOS-first, 8.8k★)
+    - `sindresorhus/Defaults` — UserDefaults typed wrapper (MIT, 2.7k★, P0)
+    - `sindresorhus/KeyboardShortcuts` — global shortcut binding (MIT, 1.1k★, P1)
+    - `kean/Nuke` + `kean/NukeUI` — async image pipeline + SwiftUI `LazyImage` (MIT, 8.6k★ + 1.3k★, P0)
+    - `weichsel/ZIPFoundation` — pure-Swift ZIP read/write (MIT, 2.7k★, unblocked 2026-08-28 from prior defer)
+    - `groue/GRDB.swift` — SQLite toolkit + FTS5 full-text (MIT, 8.6k★, P0; replaces prior "No SQLite" rule scope = inside `.ws` bundle only)
+    - `swiftlang/swift-markdown` — CommonMark/GFM parser (Apache-2.0, 3.4k★, P1)
+    - `mattt/EventSource` — spec-compliant SSE client (`AsyncSequence` + `Last-Event-ID` reconnect, MIT, 116★, P1)
+    - `gonzalezreal/Textual` — SwiftUI rich-text engine with Markdown support (MIT, 842★, P2; future editor preview)
+- DEV / TEST only (no runtime impact):
+    - `nalexn/ViewInspector` — SwiftUI view hierarchy reflection for XCTest (MIT, 2.6k★, testTarget only; ADR-0008 named for v0.28 ticket 028-011)
+    - `krzysztofzablocki/Inject` — SwiftUI hot-reload (MIT, 3.5k★; `#if DEBUG` only, Brewfile distribution)
+    - `realm/SwiftLint` + `nicklockwood/SwiftFormat` — lint + format CI gates (MIT, 19.6k★ + 8.8k★; binary tooling via Brewfile + `wenshu-devtool` hooks chain)
+- VIEW-FRAMEWORK FORBIDDEN (per ADR-0008 ratify 2026-08-28, NOT surveyed above): any pane / dock / split / drag library. Wenshu drag UX remains self-implemented.
+- Superseded prior list:
+  - `stevengharris/SplitView` — REMOVED 2026-08-28 (superseded by ADR-0008 path C self-implement); v0.27 reverted integration kept in git history.
+  - `Sameesunkaria/OutlineView` — REMOVED 2026-08-28 (below 100★, never adopted).
+- Pending evaluation (= needs demo + 老板拍, no current commitment):
+  - `nodes-app/swift-markdown-engine` — AppKit TextKit 2 markdown editor (Apache-2.0, ~863★, ~2 months old; revisit when ≥1k★ and after `swiftlang/swift-markdown` parser path proves insufficient).
+  - `Sameesunkaria/OutlineView` — 78★, below threshold; revisit when ≥100★.
 
 # §12 Cross-role expression hard constraint
 
