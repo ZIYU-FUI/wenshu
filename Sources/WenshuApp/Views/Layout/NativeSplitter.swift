@@ -17,7 +17,15 @@ import AppKit
 struct NativeSplitter: View {
     let orientation: Orientation
     let length: CGFloat?
+    /// Per-step drag delta callback (= called continuously during
+    /// the drag for live preview; the receiver can choose to update
+    /// transient state only here and defer persistence to
+    /// `onDragEnd`).
     let onDrag: (CGFloat) -> Void
+    /// End-of-drag callback (= called once when the drag ends; the
+    /// receiver should persist the new weights here to avoid
+    /// UserDefaults write storms during continuous drag).
+    var onDragEnd: (() -> Void)? = nil
 
     @State private var isHovered: Bool = false
     // v0.27 boss 8/27 OOB: 拖拽线之前不能拖。Root cause =
@@ -103,6 +111,7 @@ struct NativeSplitter: View {
                         .onEnded { _ in
                             isDragging = false
                             lastCumulativeTranslation = 0
+                            onDragEnd?()
                         }
                 )
         }
@@ -140,6 +149,7 @@ struct NativeSplitter: View {
                         .onEnded { _ in
                             isDragging = false
                             lastCumulativeTranslation = 0
+                            onDragEnd?()
                         }
                 )
         }

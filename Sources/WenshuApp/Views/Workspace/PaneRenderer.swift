@@ -48,6 +48,13 @@ import SwiftUI
 ///   `NativeSplitter` instances for drag-to-resize.
 /// - `.group` → renders a PaneStackView (= stack of PaneNode hosts
 ///   with the active pane front-most and a tab strip if > 1 pane).
+///
+/// Drag-to-resize persistence model (= ticket 028-004b1, this
+/// commit): during drag, we update local `@State` weights for the
+/// live preview only; on drag end, we commit the weights to
+/// `WorkspaceStore.adjustSplitWeights` (= which writes UserDefaults
+/// once). This avoids the UserDefaults write storm that the v0.27
+/// per-frame persistence caused.
 struct PaneRenderer: View {
     let node: LayoutNode
     @ObservedObject var store: WorkspaceStore
@@ -59,6 +66,11 @@ struct PaneRenderer: View {
     /// The ideal width unit (= 1 weight = 100 PT by default; can be
     /// tuned for high-DPI displays).
     private let weightUnit: CGFloat = 100
+
+    /// Local weight cache during drag (= holds the in-progress
+    /// weights as the user drags; cleared when drag ends and the
+    /// final weights are committed to the store).
+    @State private var dragCache: [String: [Double]] = [:]
 
     var body: some View {
         switch node {
@@ -73,20 +85,53 @@ struct PaneRenderer: View {
 
     @ViewBuilder
     private func splitContainer(_ split: SplitNode) -> some View {
+        // Resolve weights from the cache (= active drag) or the
+        // stored tree (= no active drag). The cache is keyed by
+        // split id so concurrent drags on different splits don't
+        // interfere.
+        let liveWeights = dragCache[split.id] ?? split.weights
+
         if split.orientation == .row {
             HStack(spacing: 0) {
                 ForEach(split.children.indices, id: \.self) { i in
                     PaneRenderer(node: split.children[i], store: store)
                         .frame(
                             minWidth: minChildSize,
-                            idealWidth: max(minChildSize, CGFloat(split.weights[i]) * weightUnit)
+                            idealWidth: max(minChildSize, CGFloat(liveWeights[i]) * weightUnit)
                         )
                     if i < split.children.count - 1 {
                         NativeSplitter(
                             orientation: .vertical,
                             length: nil,
                             onDrag: { delta in
-                                store.adjustSplitWeights(splitID: split.id, childIndex: i, delta: Double(delta))
+                                // Update the local cache only (= no
+                                // UserDefaults write). The store's
+                                // authoritative weights stay put
+                                // until drag end.
+                                var newWeights = liveWeights
+                                let minWeight = 0.05
+                                let total = newWeights[i] + newWeights[i + 1]
+                                guard total > 0 else { return }
+                                let dW = Double(delta) / total
+                                var newLeft = max(minWeight, min(1 - minWeight, newWeights[i] + dW))
+                                let newRight = max(minWeight, total - newLeft)
+                                newLeft = total - newRight
+                                newWeights[i] = newLeft
+                                newWeights[i + 1] = newRight
+                                dragCache[split.id] = newWeights
+                            },
+                            onDragEnd: {
+                                // Commit the cached weights to the
+                                // store (= single UserDefaults write).
+                                if let finalWeights = dragCache[split.id] {
+                                    for k in 0..<finalWeights.count {
+                                        let delta = finalWeights[k] - split.weights[k]
+                                        if abs(delta) > 0.0001 {
+                                            store.adjustSplitWeights(splitID: split.id, childIndex: k, delta: delta * Double(weightUnit))
+                                        }
+                                    }
+                                    dragCache.removeValue(forKey: split.id)
+                                }
                             }
                         )
                     }
@@ -98,14 +143,35 @@ struct PaneRenderer: View {
                     PaneRenderer(node: split.children[i], store: store)
                         .frame(
                             minHeight: minChildSize,
-                            idealHeight: max(minChildSize, CGFloat(split.weights[i]) * weightUnit)
+                            idealHeight: max(minChildSize, CGFloat(liveWeights[i]) * weightUnit)
                         )
                     if i < split.children.count - 1 {
                         NativeSplitter(
                             orientation: .horizontal,
                             length: nil,
                             onDrag: { delta in
-                                store.adjustSplitWeights(splitID: split.id, childIndex: i, delta: Double(delta))
+                                var newWeights = liveWeights
+                                let minWeight = 0.05
+                                let total = newWeights[i] + newWeights[i + 1]
+                                guard total > 0 else { return }
+                                let dW = Double(delta) / total
+                                var newTop = max(minWeight, min(1 - minWeight, newWeights[i] + dW))
+                                let newBottom = max(minWeight, total - newTop)
+                                newTop = total - newBottom
+                                newWeights[i] = newTop
+                                newWeights[i + 1] = newBottom
+                                dragCache[split.id] = newWeights
+                            },
+                            onDragEnd: {
+                                if let finalWeights = dragCache[split.id] {
+                                    for k in 0..<finalWeights.count {
+                                        let delta = finalWeights[k] - split.weights[k]
+                                        if abs(delta) > 0.0001 {
+                                            store.adjustSplitWeights(splitID: split.id, childIndex: k, delta: delta * Double(weightUnit))
+                                        }
+                                    }
+                                    dragCache.removeValue(forKey: split.id)
+                                }
                             }
                         )
                     }
