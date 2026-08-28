@@ -63,6 +63,14 @@ let package = Package(
         // chapter-preview feature ticket (= separate from this adoption commit).
         .package(url: "https://github.com/smittytone/HighlighterSwift", from: "3.1.0"),
 
+        // RUNTIME — EPUB 2/3 parser (batch 2 issue 03)
+        // Adopted per 2026-08-28-six-module-audit M3 (= EPUB import ticket
+        // trigger; feeds M5-15 LLM Wiki pipeline = extract core settings +
+        // writing-style fingerprint into reference-library). Sole-maintainer
+        // risk (316 stars, 5mo stale); thin EPUBImportService adapter wraps
+        // the parser so a future swap is 1-file change.
+        .package(url: "https://github.com/witekbobrowski/EPUBKit", from: "0.5.0"),
+
         // RUNTIME — SSE stream client
         .package(url: "https://github.com/mattt/EventSource", from: "1.5.1"),
 
@@ -114,6 +122,20 @@ let package = Package(
                 // source files needed by wenshu). Consumer wiring lands with the
                 // v0.28 M2 chapter-preview feature ticket.
                 .product(name: "Highlighter", package: "HighlighterSwift"),
+
+                // batch 2 issue 03: EPUBKit product (= EPUB 2/3 parser).
+                // Sole-maintainer risk (5mo stale, 316 stars) per audit; thin
+                // adapter protocol EPUBImportService wraps the parser so a future
+                // swap to Readium or self-implemented parser (ZIPFoundation + AEXML)
+                // is a 1-file change. NOTE: EPUBKit transitively depends on
+                // marmelroy/Zip (= a second ZIP engine alongside wenshu's own
+                // ZIPFoundation dep) — accepted per the 2026-08-28-six-module-
+                // audit M3 risk note (= 'no functional conflict; doesn't affect
+                // .ws export/import which uses wenshu's own ZIPFoundation dep').
+                // Consumer wiring lands with the v0.28 M3 EPUB-import feature
+                // ticket and feeds M5-15 LLM Wiki pipeline (= extract core
+                // settings + writing-style fingerprint into reference-library).
+                .product(name: "EPUBKit", package: "EPUBKit"),
                 .product(name: "EventSource", package: "EventSource"),
                 .product(name: "Textual", package: "textual"),
                 .product(name: "Inject", package: "Inject"),
