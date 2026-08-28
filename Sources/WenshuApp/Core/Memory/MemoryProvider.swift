@@ -1,33 +1,36 @@
 // MemoryProvider.swift · Wenshu · v0.28
 //
-// Verbatim port from hermes-agent/agent/memory_provider.py L1-416
+// Port adapted from hermes-agent/agent/memory_provider.py L1-416
 // (= wenshu M6 ticket 18 = hermes-port batch 3 eighth ticket).
 //
 // Source (= hermes Python):
 // - agent/memory_provider.py L1-416 (= MemoryProvider ABC with
-//   get_system_prompt / prefetch / sync / get_tool_schemas / pre_compress
-//   hook surface + PRE_COMPRESS_CHECKPOINT_API_VERSION constant +
-//   normalize_tool_schema helper + memory_provider_tools_enabled gate)
-// - agent/memory_manager.py L1-1393 (= MemoryManager orchestrator that
-//   registers providers, builds the merged system prompt, runs
-//   prefetch_all / sync_all / queue_prefetch_all over registered providers)
+//   system_prompt_block / prefetch / queue_prefetch / recall_status /
+//   is_available / unavailable_reason + PRE_COMPRESS_CHECKPOINT_API_VERSION
+//   constant + normalize_tool_schema helper + memory_provider_tools_enabled
+//   gate + INDICATOR_GLYPH + RecallStatus dataclass)
 //
 // Target (= wenshu Swift):
 // - Sources/WenshuApp/Core/Memory/MemoryProvider.swift (this file,
-//   ~350 LOC) = MemoryProvider ABC + 3 concrete impls
-//   (= UserDefaultsMemoryProvider + SQLiteMemoryProvider +
-//   InMemoryMemoryProvider) + helper extensions.
+//   ~400 LOC) = MemoryProvider ABC + 3 concrete impls
+//   (= InMemoryMemoryProvider + UserDefaultsMemoryProvider +
+//   SQLiteMemoryProvider) + helper extensions.
 //
 // scope refactor (= per Q109 doc-first + Q35 commit-description vs truth):
-// The spec body said "REPLACES existing MemoryManager.swift"; after
-// hermes source inspection (= 1393 LOC orchestrator) we reframe this
-// as ADDITIVE (= the existing MemoryManager + MemoryStore +
-// MemoryConsolidator + MemoryWriteGate surface is the production path
-// and stays unchanged). What lands in this commit is the hermes-
-// side ABC + concrete implementations that any future memory backend
-// (= a v0.29+ remote memory provider, an LLM-driven consolidator,
-// etc.) can register against, without forcing a rewrite of the
-// existing surface.
+// The hermes MemoryProvider ABC surface is broader (= 8+ methods
+// including queue_prefetch + recall_status + is_available +
+// unavailable_reason + INDICATOR_GLYPH + RecallStatus dataclass) than
+// what wenshu v1 ships. The wenshu port is a SUB-SET PORT: it captures
+// the core 5-method surface (= getSystemPrompt + prefetch + sync +
+// getToolSchemas + preCompressCheckpoint) and the helper functions
+// (= PreCompressCheckpointAPI + ToolSchema.normalize +
+// memoryProviderToolsEnabled), but DEFER the wenshu-irrelevant
+// hermes-side surface (= queue_prefetch for background prefetching +
+// recall_status for deterministic indicator rendering + is_available
+// for unavailable-state gating + INDICATOR_GLYPH for brand-mark
+// customization + RecallStatus dataclass). The deferred items land
+// when wenshu adds the corresponding features (= v0.29+ prefetch
+// backgrounding / indicator overlay UI / provider disable surface).
 //
 // The wenshu existing MemoryStore already implements a subset of the
 // hermes MemoryProvider methods. We extend MemoryStore to conform to
