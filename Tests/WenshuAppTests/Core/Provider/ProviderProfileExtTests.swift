@@ -97,9 +97,13 @@ struct ProviderProfileExtTests {
 
     // MARK: - ModelMetadata
 
-    @Test("ModelMetadata.catalog has 2 entries (M3 + Text-01)")
+    @Test("ModelMetadata.catalog has 3 entries (M3 + M2 + Reasoning)")
     func modelMetadataCatalogSize() {
-        #expect(ModelMetadata.catalog.count == 2)
+        #expect(ModelMetadata.catalog.count == 3)
+        let ids = Set(ModelMetadata.catalog.map { $0.id })
+        #expect(ids.contains("MiniMax-M3"))
+        #expect(ids.contains("MiniMax-M2"))
+        #expect(ids.contains("MiniMax-Reasoning"))
     }
 
     @Test("ModelMetadata lookup by id")

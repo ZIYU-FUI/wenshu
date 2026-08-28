@@ -167,11 +167,14 @@ struct ModelMetadata: Sendable, Hashable, Codable {
 
 extension ModelMetadata {
     /// Static catalog of known models (= the v1 deployment only ships
-    /// the M2 + M3 series). Future models can extend this list.
+    /// the 3 canonical MiniMax series). Future models can extend this list.
+    /// IDs are aligned with Provider.swift's `defaultModels` lists:
+    ///   Provider.minimax.defaultModels = ["MiniMax-M3", "MiniMax-M2", "MiniMax-Reasoning"]
+    ///   Provider.minimaxCn.defaultModels = ["MiniMax-M3", "MiniMax-M2", "MiniMax-Reasoning"]
     static let catalog: [ModelMetadata] = [
         ModelMetadata(
             id: "MiniMax-M3",
-            displayName: "M2.7 high-speed",
+            displayName: "MiniMax M3",
             providerSlug: "minimax-cn",
             contextWindow: 128_000,
             costPerMillionInput: 0,
@@ -180,13 +183,23 @@ extension ModelMetadata {
             modalities: [.textInput, .textOutput]
         ),
         ModelMetadata(
-            id: "MiniMax-Text-01",
-            displayName: "M2 high-speed",
+            id: "MiniMax-M2",
+            displayName: "MiniMax M2",
             providerSlug: "minimax-cn",
             contextWindow: 128_000,
             costPerMillionInput: 0,
             costPerMillionOutput: 0,
             capabilities: [.chat, .streaming],
+            modalities: [.textInput, .textOutput]
+        ),
+        ModelMetadata(
+            id: "MiniMax-Reasoning",
+            displayName: "MiniMax Reasoning",
+            providerSlug: "minimax-cn",
+            contextWindow: 128_000,
+            costPerMillionInput: 0,
+            costPerMillionOutput: 0,
+            capabilities: [.chat, .streaming, .extendedThinking],
             modalities: [.textInput, .textOutput]
         )
     ]
