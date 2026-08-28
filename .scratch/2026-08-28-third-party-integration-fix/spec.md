@@ -68,6 +68,17 @@ swift package resolve
 swift build
 ```
 
+
+
+## Corrections from Spec-axis review (2026-08-28 forward-fix)
+
+Per Spec-axis code-review report (`.scratch/2026-08-28-third-party-integration-fix/spec-axis-report.md`):
+
+- **P1**: transitives count in commit `3177d3f48` body = "6 transitives"; actual = **3 transitives** (cmark-gfm 0.8.0, swift-concurrency-extras 1.4.1, swiftui-math 0.1.0). Correction: "3 transitives", not 6. No source change required (commit history is immutable per Q5.4 do-not-amend); this note serves as the audit trail.
+- **S1**: `sindresorhus/KeyboardShortcuts` pin `from: 1.10.0` resolves to 1.17.0 (latest in 1.x line); actual latest stable = **3.0.1** (2026-06-17). Forward-fix deferred to per-feature wiring ticket (= v0.28 Settings pane).
+- **S2**: `sindresorhus/Defaults` pin `from: 8.2.0` resolves to 8.2.0; actual latest stable = **9.0.9** (2026-06-23). Forward-fix deferred to per-feature wiring ticket (= v0.28 chat history migration). v8 → v9 carries breaking-change risk = requires boss ratification before silent bump.
+- **S3**: textual "uses releases not tags" comment in audit table applies only to `swiftlang/swift-markdown` (which uses GitHub Releases rather than git tags). `gonzalezreal/textual` does use git tags. Tidiness only; no source change required.
+
 ## References
 
 - `.scratch/2026-08-27-third-party-depscan/spec.md` — first-pass survey (8/27)
