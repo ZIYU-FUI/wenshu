@@ -36,6 +36,19 @@ struct ZoneEditor: View {
     @State private var model: GridLayout
     @State private var splitColumnIndex: Int? = nil
 
+    // AC#9: rubber-band drag state (= rectangle in canvas coordinates
+    // that the user is dragging to select a region).
+    @State private var dragStart: CGPoint? = nil
+    @State private var dragEnd: CGPoint? = nil
+    @State private var selectedZones: Set<Int> = []
+
+    // AC#11: edge drag state (= which resizer is being dragged).
+    @State private var draggingResizerIndex: Int? = nil
+    @State private var resizerDragStart: CGPoint? = nil
+
+    // Track the event modifiers flag (= SHIFT held during click for AC#8 SHIFT-flip).
+    @State private var eventModifiers: EventModifiers = []
+
     init(store: WorkspaceStore) {
         self.store = store
         // Initialize with the default template + zone count.
@@ -84,6 +97,12 @@ struct ZoneEditor: View {
                     model = buildModel(template: template, count: newValue)
                 }
             Spacer()
+            // AC#10: Merge button (= visible iff >= 2 zones selected).
+            Button("Merge (\(selectedZones.count))") {
+                mergeSelectedZones()
+            }
+            .buttonStyle(.bordered)
+            .disabled(!hasMultiSelection)
             Button("Cancel") {
                 dismiss()
             }
@@ -100,7 +119,8 @@ struct ZoneEditor: View {
         .padding(12)
     }
 
-    /// Grid canvas (= translucent numbered zones).
+    /// Grid canvas (= translucent numbered zones + rubber-band overlay +
+/// edge-resizer handles).
     private var gridCanvas: some View {
         GeometryReader { geo in
             ZStack {
@@ -110,8 +130,171 @@ struct ZoneEditor: View {
                 ForEach(modelToZones(model) ?? []) { zone in
                     zoneView(for: zone, in: geo.size)
                 }
+                // AC#11: edge resizer handles (= invisible hit-area rects
+                // along shared boundaries that the user can drag).
+                ForEach(Array(modelToResizers(model).enumerated()), id: \.offset) { idx, resizer in
+                    resizerHandleView(for: resizer, index: idx, in: geo.size)
+                }
+                // AC#9: rubber-band drag rectangle.
+                if let start = dragStart, let end = dragEnd {
+                    rubberBandView(from: start, to: end)
+                }
+                // AC#9: capture the drag gesture at the canvas level.
+                // (individual zones still receive their own .onTapGesture.)
+                canvasGestureLayer(in: geo.size)
             }
         }
+    }
+
+    /// Canvas-level gesture layer for AC#9 rubber-band + AC#10 selection
+    /// clearing. The drag gesture starts the rubber-band; the tap clears
+    /// the selection (= per hermes pattern: tap on canvas deselects all).
+    @ViewBuilder
+    private func canvasGestureLayer(in size: CGSize) -> some View {
+        Color.clear
+            .contentShape(Rectangle())
+            .onTapGesture {
+                selectedZones.removeAll()
+            }
+            .gesture(
+                DragGesture(minimumDistance: 5)
+                    .onChanged { value in
+                        dragStart = value.startLocation
+                        dragEnd = value.location
+                        // Update selection (= zones intersecting the rubber-band).
+                        let band = rubberBandRect(start: value.startLocation, end: value.location)
+                        selectedZones = Set((modelToZones(model) ?? [])
+                            .filter { zone in
+                                let z = zoneRect(zone: zone, in: size)
+                                return z.intersects(band)
+                            }
+                            .map { $0.index })
+                    }
+                    .onEnded { _ in
+                        dragStart = nil
+                        dragEnd = nil
+                    }
+            )
+    }
+
+    /// Compute the rubber-band rectangle (= normalized to top-left +
+    /// width + height regardless of drag direction).
+    private func rubberBandRect(start: CGPoint, end: CGPoint) -> CGRect {
+        let x = min(start.x, end.x)
+        let y = min(start.y, end.y)
+        let w = abs(end.x - start.x)
+        let h = abs(end.y - start.y)
+        return CGRect(x: x, y: y, width: w, height: h)
+    }
+
+    /// Render the rubber-band selection rectangle (= blue dashed border).
+    @ViewBuilder
+    private func rubberBandView(from start: CGPoint, to end: CGPoint) -> some View {
+        let rect = rubberBandRect(start: start, end: end)
+        Rectangle()
+            .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 1, dash: [4]))
+            .background(Color.accentColor.opacity(0.1))
+            .frame(width: rect.width, height: rect.height)
+            .position(x: rect.midX, y: rect.midY)
+    }
+
+    /// AC#11: render an edge resizer handle (= invisible hit area along
+    /// the boundary, with a thin visible line for affordance).
+    @ViewBuilder
+    private func resizerHandleView(for resizer: GridResizer, index: Int, in size: CGSize) -> some View {
+        // Compute the screen-space edge.
+        let edgeRect = resizerRect(for: resizer, in: size)
+        ZStack {
+            // Visible thin line (= 2pt wide for vertical, 2pt tall for horizontal).
+            Rectangle()
+                .fill(Color.accentColor.opacity(0.4))
+                .frame(
+                    width: resizer.orientation == .vertical ? 2 : edgeRect.width,
+                    height: resizer.orientation == .horizontal ? 2 : edgeRect.height
+                )
+                .position(x: edgeRect.midX, y: edgeRect.midY)
+            // Invisible larger hit area for dragging (= 16pt).
+            Rectangle()
+                .fill(Color.clear)
+                .frame(
+                    width: resizer.orientation == .vertical ? 16 : edgeRect.width,
+                    height: resizer.orientation == .horizontal ? 16 : edgeRect.height
+                )
+                .contentShape(Rectangle())
+                .position(x: edgeRect.midX, y: edgeRect.midY)
+                .onHover { hovering in
+                    if hovering {
+                        if resizer.orientation == .vertical {
+                            NSCursor.resizeLeftRight.push()
+                        } else {
+                            NSCursor.resizeUpDown.push()
+                        }
+                    } else {
+                        NSCursor.pop()
+                    }
+                }
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { value in
+                            if draggingResizerIndex == nil {
+                                draggingResizerIndex = index
+                                resizerDragStart = value.startLocation
+                            }
+                            // Apply the delta to the model.
+                            let start = resizerDragStart ?? value.startLocation
+                            let delta: Int
+                            if resizer.orientation == .vertical {
+                                delta = Int((value.location.x - start.x) / size.width * CGFloat(MULTIPLIER))
+                            } else {
+                                delta = Int((value.location.y - start.y) / size.height * CGFloat(MULTIPLIER))
+                            }
+                            if delta != 0 {
+                                model = dragResizer(model, resizerIndex: index, delta: delta)
+                                resizerDragStart = value.location
+                            }
+                        }
+                        .onEnded { _ in
+                            draggingResizerIndex = nil
+                            resizerDragStart = nil
+                            NSCursor.pop()
+                        }
+                )
+        }
+    }
+
+    /// Compute the screen-space edge rectangle for a resizer.
+    private func resizerRect(for resizer: GridResizer, in size: CGSize) -> CGRect {
+        // For vertical resizer: edge runs between the leftmost negative-side
+        // column's right boundary and the rightmost positive-side column's left
+        // boundary. For horizontal: analogous but in the y direction.
+        if resizer.orientation == .vertical {
+            // Sum columnPercents up to the leftmost negative-side column.
+            let colPercents = model.columnPercents
+            let left = colPercents.prefix(resizer.negativeSideIndices.first ?? 0).reduce(0, +)
+            let x = CGFloat(left) / CGFloat(MULTIPLIER) * size.width
+            let h = size.height
+            return CGRect(x: x - 8, y: 0, width: 16, height: h)
+        } else {
+            // Horizontal resizer = between rows.
+            let rowPercents = model.rowPercents
+            let top = rowPercents.prefix(resizer.negativeSideIndices.first ?? 0).reduce(0, +)
+            let y = CGFloat(top) / CGFloat(MULTIPLIER) * size.height
+            let w = size.width
+            return CGRect(x: 0, y: y - 8, width: w, height: 16)
+        }
+    }
+
+    /// Whether the current selection has >= 2 zones (= AC#10 Merge button enabled).
+    private var hasMultiSelection: Bool {
+        selectedZones.count >= 2
+    }
+
+    /// AC#10: merge the currently-selected zones into one.
+    private func mergeSelectedZones() {
+        guard selectedZones.count >= 2 else { return }
+        let indices = Array(selectedZones).sorted()
+        model = mergeClosureIndices(model, indices: indices)
+        selectedZones.removeAll()
     }
 
     /// Single zone view (= translucent gray rectangle with
@@ -153,10 +336,6 @@ struct ZoneEditor: View {
             }
         }
     }
-
-    /// Track modifier flags (= SHIFT/CMD/etc) for AC#8 SHIFT-flip behavior.
-    /// Defaults to empty (= no modifiers = default vertical split).
-    @State private var eventModifiers: EventModifiers = []
 
     /// Split buttons overlay (= + buttons on column boundaries
     /// between zones). Clicking a + button inserts a vertical
