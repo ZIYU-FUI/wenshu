@@ -69,6 +69,26 @@ final class WorkspaceStore: ObservableObject {
         let builtinPresets = Self.makeBuiltinPresets()
         let builtinDefault = builtinPresets.first { $0.isBuiltIn && $0.name == "默认" }!
 
+        // v0.28 Boss UX round 17 (Boss 2026-08-29 OOB '其他模版切换一下,
+        // 然后每个都截个图, 我看适配情况'): honor currentPresetID on
+        // FIRST launch too (= not just when the persisted workspace is
+        // present). Without this, switching preset via
+        // `defaults write wenshu.workspace.currentPresetID` only works
+        // when the persisted workspace is also overwritten (= the
+        // current code only sets currentPresetID, but then init reads
+        // workspace JSON which has the OLD layout = preset display is
+        // correct but the actual layout is from the old preset).
+        //
+        // Now: if currentPresetID points to a valid builtin preset,
+        // use that preset's workspace as the seed (= before the
+        // persisted JSON fallback).
+        var forcedPreset: LayoutPreset? = nil
+        if let uuidString = userDefaults.string(forKey: Self.currentPresetIDKey),
+           let uuid = UUID(uuidString: uuidString),
+           let matched = builtinPresets.first(where: { $0.id == uuid }) {
+            forcedPreset = matched
+        }
+
         if let data = userDefaults.data(forKey: Self.workspaceKey),
            let decoded = try? jsonDecoder.decode(WorkspaceState.self, from: data) {
             // Schema version check: if the persisted JSON is on a
@@ -82,9 +102,13 @@ final class WorkspaceStore: ObservableObject {
                 self.workspace = migrated
                 userDefaults.removeObject(forKey: Self.workspaceKey)
             }
+        } else if let preset = forcedPreset {
+            // No persisted workspace, but user selected a non-default
+            // preset via currentPresetID = use that preset's tree.
+            self.workspace = preset.workspace
         } else {
-            // Persisted data missing or corrupted (= failed to
-            // decode). Start fresh from the built-in Default.
+            // First launch / no persisted JSON + no forced preset:
+            // start fresh from the built-in Default.
             self.workspace = builtinDefault.workspace
         }
 
