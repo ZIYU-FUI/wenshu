@@ -172,8 +172,12 @@ struct ZoneModuleView: View {
             // Per v0.25.1 ticket 014: book-open-check + waypoints.
             // Per v0.25.1 ticket 014: search tab hidden (SearchPanel code
             // preserved elsewhere).
+            // v0.28 followup Boss UX round 24: preview tab content uses
+            // .ultraThinMaterial (= was DesignColor.zoneSurface =
+            // solid Color(nsColor: .controlBackgroundColor) = NOT
+            // Liquid Glass).
             ZoneContentView(zoneSlug: "projectPreview", tabs: [
-                ("预览", "book-open-check", AnyView(DesignColor.zoneSurface)),
+                ("预览", "book-open-check", AnyView(PreviewTabBackground())),
                 ("图", "waypoints", AnyView(GraphView())),
             ])
 
@@ -321,9 +325,13 @@ private struct EditModeBadge: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
+            // v0.28 followup Boss UX round 24: .regularMaterial
+            // replaces the solid Color.secondary.opacity(0.15) tint
+            // for the edit-mode badge background (= the floating
+            // badge that shows when ⌘⇧\ edit mode is on).
             .background(
                 RoundedRectangle(cornerRadius: 6)
-                    .fill(Color.secondary.opacity(0.15))
+                    .fill(.regularMaterial)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 6)
@@ -331,5 +339,19 @@ private struct EditModeBadge: View {
             )
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - PreviewTabBackground (= preview pane content background)
+//
+// v0.28 followup Boss UX round 24: simple helper that returns a
+// Color.clear view with .ultraThinMaterial background (= preview
+// pane content placeholder matches the Liquid Glass design language
+// used everywhere else). Used as the preview pane's first tab
+// content (until ticket 027-35 followup wires the real preview
+// content).
+private struct PreviewTabBackground: View {
+    var body: some View {
+        Color.clear.overlay(.ultraThinMaterial)
     }
 }

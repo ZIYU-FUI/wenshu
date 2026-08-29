@@ -118,7 +118,12 @@ private struct TaskRowView: View {
             Spacer()
         }
         .padding(8)
-        .background(DesignColor.zoneSurface)
+        // v0.28 followup Boss UX round 24: .regularMaterial replaces
+        // DesignColor.zoneSurface (= solid Color(nsColor: .controlBackgroundColor)
+        // = NOT Liquid Glass). The sub-agent progress card now uses
+        // the standard Liquid Glass card pattern (= matches macOS
+        // notification cards / activity cards).
+        .background(.regularMaterial)
         .cornerRadius(6)
     }
 

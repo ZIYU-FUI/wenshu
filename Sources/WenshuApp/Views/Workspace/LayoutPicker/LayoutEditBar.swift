@@ -117,9 +117,13 @@ struct LayoutEditBar: View {
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 4)
                         .padding(.vertical, 1)
+                        // v0.28 followup Boss UX round 24: .thinMaterial
+                        // (= light Liquid Glass) replaces the solid
+                        // Color.secondary.opacity(0.15) tint for the
+                        // selected preset highlight background.
                         .background(
                             RoundedRectangle(cornerRadius: 3)
-                                .fill(Color.secondary.opacity(0.15))
+                                .fill(.thinMaterial)
                         )
                 }
             }
@@ -136,9 +140,12 @@ struct LayoutEditBar: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
+        // v0.28 followup Boss UX round 24: .regularMaterial replaces
+        // Color.secondary.opacity(0.08) (= solid tinted) for the
+        // header drag handle background.
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .fill(Color.secondary.opacity(0.08))
+                .fill(.regularMaterial)
         )
         // The header is the drag handle; the rest of the palette
         // (= LayoutPicker) is non-draggable.

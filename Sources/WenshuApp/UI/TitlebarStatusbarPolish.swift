@@ -27,11 +27,18 @@ import AppKit
 public struct TitlebarControlStyle: ButtonStyle {
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .background(
-                configuration.isPressed
-                ? Color(nsColor: .controlBackgroundColor).opacity(0.5)
-                : Color.clear
-            )
+            // v0.28 followup Boss UX round 24: .thinMaterial (= light
+            // Liquid Glass) replaces Color(nsColor: .controlBackgroundColor)
+            // .opacity(0.5) for the titlebar/statusbar button press
+            // background. .thinMaterial is the canonical Apple HIG
+            // tint for pressed controls on macOS 26 Tahoe.
+            .background {
+                if configuration.isPressed {
+                    Color.clear.overlay(.thinMaterial)
+                } else {
+                    Color.clear
+                }
+            }
             .animation(.easeOut(duration: 0.1), value: configuration.isPressed)
     }
 }
@@ -89,11 +96,16 @@ public struct StatusbarActionStyle: ViewModifier {
     public func body(content: Content) -> some View {
         content
             .padding(.horizontal, 6)
-            .background(
-                isHover && !disabled
-                ? Color(nsColor: .controlBackgroundColor).opacity(0.4)
-                : Color.clear
-            )
+            // v0.28 followup Boss UX round 24: .thinMaterial (= light
+            // Liquid Glass) replaces Color(nsColor: .controlBackgroundColor)
+            // .opacity(0.4) for the statusbar item hover wash.
+            .background {
+                if isHover && !disabled {
+                    Color.clear.overlay(.thinMaterial)
+                } else {
+                    Color.clear
+                }
+            }
             .opacity(disabled ? 0.45 : 1.0)
             .onHover { hover in
                 isHover = hover

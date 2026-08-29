@@ -471,7 +471,11 @@ private struct GroupTabStrip: View {
                 )
             }
         }
-        .background(Color.secondary.opacity(0.08))
+        // v0.28 followup Boss UX round 24: .regularMaterial replaces
+        // Color.secondary.opacity(0.08) for the group tab bar
+        // background (= the floating group header inside a ZoneContentView
+        // that has multiple groups of panes).
+        .background(.regularMaterial)
     }
 }
 // MARK: - ChatZoneTopChrome (= chat zone top tab bar)

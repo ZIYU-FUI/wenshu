@@ -66,7 +66,14 @@ struct DynamicZoneView: View {
             .animation(.default, value: selectedTab)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)  // prevent window shrink
-        .background(DesignColor.dynamicZoneSurface)
+        // v0.28 followup Boss UX round 24 (Boss 2026-08-29 OOB
+        // '你也这样吧, 排场所有前端的组件, 代码, 看没有用液态玻璃
+        // 的都换一下'): .ultraThinMaterial replaces
+        // DesignColor.dynamicZoneSurface (= Color(nsColor: .underPageBackgroundColor)
+        // = solid color). The lightest Liquid Glass material matches
+        // the dynamic zone's content-heavy layout (= kanban / todo
+        // list don't need a strong tint).
+        .background(.ultraThinMaterial)
     }
 }
 
