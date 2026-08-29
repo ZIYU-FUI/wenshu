@@ -46,19 +46,28 @@ public struct WenshuChromeOverlay<Content: View>: View {
 
     public var body: some View {
         VStack(spacing: 0) {
-            // v0.28 followup Boss UX round 4: REMOVED the custom 34 PT
-            // AppTitlebar (= was overlapping with macOS native 52 PT
-            // titlebar + showed duplicate icons). Per Boss 2026-08-29
-            // OOB '原本在标题栏上的按钮, 现在不能放在标题栏上了是吗,
-            // 可以把现在你自己写的放原标题栏按钮的那一栏的按钮,
-            // 放在现在的标题栏上吗, 就现在 icon 这么大就行' = move
-            // the titlebar icons (= sidebar/preview/tools/model-picker)
-            // to the macOS native toolbar (= via .toolbar { ToolbarItem
-            // (placement: .principal) } on SettingsEnvironmentCapturer).
-            // The native macOS titlebar already shows traffic lights at
-            // 52 PT; toolbar items render next to the traffic lights per
-            // Apple HIG (= exact macOS-style toolbar buttons).
+            // v0.28 followup Boss UX round 8: Restore AppTitlebar
+            // (= custom 32 PT titlebar). Per Boss 2026-08-29 OOB
+            // '也不对, 胶囊还在, 只是尺寸调到了最小' = macOS native
+            // .toolbar { ... } always wraps icons in 1 unified pill
+            // (AppKit NSToolbar behavior, can't be disabled via SwiftUI).
+            // The only way to get a flat titlebar with bare icons
+            // (= hermes style) is to draw the titlebar manually in
+            // SwiftUI (= AppTitlebar = no AppKit container). This
+            // bypasses NSToolbar entirely and renders the icons in a
+            // custom HStack with no group background.
             //
+            // AppTitlebar size = 32 PT (= slightly slimmer than the
+            // old 34 PT, matches macOS native titlebar visual height
+            // when combined with the 28 PT minimal native titlebar
+            // above it). Total titlebar chrome = 28 + 32 = 60 PT
+            // (= close to the old 52 PT unified chrome).
+            AppTitlebar(
+                registry: ContributionRegistry(),
+                leftTools: titlebarLeftTools,
+                rightTools: titlebarRightTools,
+                title: nil
+            )
             // Main content (layout).
             content()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

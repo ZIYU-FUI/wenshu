@@ -29,7 +29,7 @@ import AppKit
 
 /// Titlebar height (= native traffic light standard). Matches Hermes
 /// `TITLEBAR_HEIGHT = 34`.
-public let kTitlebarHeight: CGFloat = 34
+public let kTitlebarHeight: CGFloat = 32
 
 /// Titlebar tool hit target (= both axes). Matches Hermes
 /// `TITLEBAR_CONTROL_SIZE = 24`. Tighter than the 30 PT boss originally
