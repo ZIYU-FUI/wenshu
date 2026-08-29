@@ -264,6 +264,47 @@ enum LayoutTokens {
     static let bottomTrailing: CGFloat = 18                // 18 PT 距右 (右占位 icon)
     static let placeholderIconSize: CGFloat = 18          // 18 PT 占位 icon 边长 (绝对值)
     static let placeholderTextLeadingRatio: CGFloat = 0.09  // 占位文字起点 18/200 = 9%
+
+    // v0.28 followup Boss UX round 33 (Boss 2026-08-29 OOB '各区域的
+    // 完整代码, 关于样式的, 不统一, 你要不盘一下'): single source
+    // of truth for chrome padding (= replaces magic numbers 4, 6, 8
+    // scattered across 15 files). Centralized here so future padding
+    // changes apply uniformly across the app (= one place to edit,
+    // every pane updates at once).
+    //
+    // Apple HIG canonical padding values for per-pane chrome items:
+    // - chromePaddingSmall = 4 PT (= tight spacing for chip / pill)
+    // - chromePaddingMedium = 6 PT (= standard for icon + text padding
+    //   in tab bars / statusbars — matches Apple HIG statusbar item
+    //   padding)
+    // - chromePaddingLarge = 8 PT (= roomier spacing for top/bottom
+    //   alignment of text inside chrome bars — matches Apple HIG
+    //   toolbar button padding)
+    // - chromePaddingLeading = 18 PT (= horizontal left padding from
+    //   tab bar edge to first item — matches Apple HIG toolbar left
+    //   padding for macOS 27 Tahoe tab bars)
+    // - chromePaddingTrailing = 18 PT (= horizontal right padding)
+    static let chromePaddingSmall: CGFloat = 4
+    static let chromePaddingMedium: CGFloat = 6
+    static let chromePaddingLarge: CGFloat = 8
+    static let chromePaddingLeading: CGFloat = 18
+    static let chromePaddingTrailing: CGFloat = 18
+
+    // v0.28 followup Boss UX round 33: single source of truth for
+    // per-region control heights (= chat input row buttons, tab
+    // buttons, hover hot areas). All instances of ".frame(height: 30)"
+    // for chrome controls should reference chromeControlHeight instead.
+    static let chromeControlHeight: CGFloat = 30
+
+    // v0.28 followup Boss UX round 33: single source of truth for
+    // visual divider / separator thickness. All instances of
+    // ".frame(height: 1)" for chrome separators should reference
+    // chromeDividerThickness (= 1 PT Apple HIG hairline).
+    static let chromeDividerThickness: CGFloat = 1
+
+    // v0.28 followup Boss UX round 33: selected-tab underline height.
+    // (= 1 PT per v0.25.1 ticket 025 owner spec)
+    static let tabUnderlineHeightNew: CGFloat = 1  // legacy alias for tabUnderlineHeight
 }
 
 // MARK: - Self screenshot (老板 8/14 12:38 + 8/15 14:48: 每次代码改完必 screenshot)
