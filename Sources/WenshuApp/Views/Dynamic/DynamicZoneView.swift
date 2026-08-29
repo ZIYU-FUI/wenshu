@@ -177,7 +177,9 @@ struct DynamicZoneTabBar: View {
         .padding(.leading, 18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .frame(height: LayoutTokens.toolbarHeight)
-        .background(DesignColor.zoneSurface)
+        // v0.28 followup Boss UX round 21: .background(.regularMaterial)
+        // (= Liquid Glass) — matches ChatZoneTopChrome + ZoneContentTabBar.
+        .background(.regularMaterial)
         .overlay(alignment: .bottom) {
             DesignColor.splitterLine.frame(height: 1)
         }

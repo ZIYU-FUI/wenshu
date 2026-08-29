@@ -227,9 +227,13 @@ struct ZoneModuleView: View {
 /// Real editor content view = ticket 027-35 followup; for now we
 /// render a subtle placeholder background matching the old 6区
 /// "Color.white.opacity(0.55) with 4 PT vertical inset" treatment.
+/// v0.28 followup Boss UX round 21: .regularMaterial replaces the
+/// DesignColor.zoneSurface (= solid) so the placeholder matches the
+/// Liquid Glass design language used everywhere else.
 private struct EditorContentPlaceholder: View {
     var body: some View {
-        DesignColor.zoneSurface
+        Color.clear
+            .background(.regularMaterial)
             .overlay {
                 Color.white.opacity(0.55)
                     .padding([.top, .bottom], LayoutTokens.editorVerticalInsetRatio * 100)

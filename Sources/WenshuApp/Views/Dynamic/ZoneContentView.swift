@@ -248,7 +248,16 @@ struct ZoneContentTabBar: View {
         .padding(.leading, 18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .frame(height: LayoutTokens.toolbarHeight)
-        .background(DesignColor.zoneSurface)
+        // v0.28 followup Boss UX round 21 (Boss 2026-08-29 OOB '聊天区
+        // 顶栏的颜色用的和其他的不一样'): Was using
+        // DesignColor.zoneSurface (= Color(nsColor: .controlBackgroundColor)
+        // = solid color, NOT Liquid Glass). Now uses .regularMaterial
+        // (= macOS 26 Tahoe Liquid Glass translucency = matches
+        // ChatZoneTopChrome + matches Apple's canonical per-pane tab
+        // bar look in Pages / Mail / Xcode). The toolbar still has
+        // a 1 PT separator at the bottom (= DesignColor.splitterLine
+        // = Apple standard hairline = works with Liquid Glass).
+        .background(.regularMaterial)
         .overlay(alignment: .bottom) {
             DesignColor.splitterLine.frame(height: 1)
         }

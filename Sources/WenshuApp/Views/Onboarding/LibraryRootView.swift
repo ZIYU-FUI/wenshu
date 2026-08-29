@@ -348,7 +348,10 @@ Group {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(DesignColor.zoneSurface)
+        // v0.28 followup Boss UX round 21: .background(.regularMaterial)
+        // (= Liquid Glass) for the onboarding empty state — matches
+        // all other chrome.
+        .background(.regularMaterial)
     }
 
     /// showOpenPanel: NSOpenPanel for selecting existing .ws directory.
