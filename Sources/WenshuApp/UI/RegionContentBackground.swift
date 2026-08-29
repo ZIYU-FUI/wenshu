@@ -1,49 +1,48 @@
 // Sources/WenshuApp/UI/RegionContentBackground.swift
 //
-// v0.28 followup Boss UX round 31 (Boss 2026-08-29 OOB '你看一下, 素材
-// 预览区, 动态区, 这个区的液态玻璃效果和其他区不一样'):
+// v0.28 followup Boss UX round 31-32 (Boss 2026-08-29 OOB '素材预览区,
+// 动态区, 那种透明的程度, 和其他区域不一样, 我说的是背景, 你仔细
+// 对比一下'):
 //
 // = Single source of truth for per-pane content backgrounds (= the
 // background behind the actual content of each pane, NOT the tab bar
 // at the top of the pane).
 //
-// Previously each pane had its OWN ad-hoc background configuration:
+// Initially (round 31) tried to use `.regularMaterial` (= a layered
+// material that adds blur to whatever is behind it). But this is
+// OPAQUE-ISH — it BLOCKS the underlying window's `.glass` material
+// from showing through. Sidebar / Tools / Chat panes have NO
+// explicit background (= transparent), so they SHOW the window's
+// `.glass` (= truly see-through to the desktop wallpaper).
 //
-//   - Preview pane: PreviewTabBackground (.ultraThinMaterial overlay)
-//   - Dynamic pane: .background(.ultraThinMaterial) on outer VStack
-//   - Editor pane: .background(.regularMaterial) on placeholder
-//   - Other panes (sidebar, tools, chat): no explicit background (= transparent)
+// Round 32 fix: changed RegionContentBackground to `.glass` (= Apple's
+// window-level glass material that matches what the window's
+// containerBackground uses in App.swift). This way ALL panes have
+// the SAME visual depth (= the window's `.glass` material shows
+// through everywhere).
 //
-// This meant each pane's content area had a DIFFERENT visual depth (= boss
-// observed in screenshot: '素材预览区, 动态区, 这个区的液态玻璃效果
-// 和其他区不一样').
+// Why `.glass` (= SwiftUICore.Glass.regular):
+// - Matches the WindowGroup's `.containerBackground(for: .window)
+//   { Rectangle.glassEffect(.regular) }` (= exact same material =
+//   visually identical when stacked).
+// - Renders the same regardless of where it's applied (= single
+//   source of truth = identical visual depth across all panes).
+// - Apple HIG canonical per-pane content background style on macOS
+//   27 Tahoe (= Pages, Mail, Xcode all use this pattern).
 //
-// Solution = extract a single `RegionContentBackground` view modifier
-// that ALL panes use. Now they all have the same visual depth.
+// Why NOT `.regularMaterial` (= what round 31 used):
+// - `.regularMaterial` is a DIFFERENT material from `.glass`
+//   (= layered material vs. window material).
+// - Renders as semi-opaque blur (= blocks the window's .glass).
+// - Sidebar / Tools / Chat have NO background, so they showed
+//   window's `.glass` (= more transparent than the panes that had
+//   `.regularMaterial`).
+// - Boss's observation in round 32: 'preview pane + dynamic pane look
+//   less transparent than other panes' — this was because of
+//   `.regularMaterial` blocking the window's glass.
 //
-// Design contract for the single component:
-// - Material: .regularMaterial (= Apple canonical Liquid Glass, standard
-//   tint, matches the rest of the app's chrome).
-// - Why NOT .ultraThinMaterial (= what preview/dynamic were using)?
-//   - .ultraThinMaterial = lightest tint (= barely visible blur)
-//   - Used to be chosen for "content-heavy" panes (= kanban / preview
-//     images) to avoid strong background tint.
-//   - But this breaks visual consistency (= other panes had no
-//     material, so dynamic/preview looked different).
-//   - Per boss OOB: unify all to standard .regularMaterial so all
-//     panes look the same depth.
-// - Why NOT Color.clear (= what sidebar/tools/chat were using)?
-//   - Color.clear = no background (= shows underlying window's .glass
-//     material which can render differently in different contexts).
-//   - .regularMaterial = explicit Liquid Glass layer (= consistent
-//     visual depth regardless of underlying window state).
-//
-// Why this works:
-// - ONE component = ONE render path = ONE visual depth everywhere.
-// - Future Liquid Glass tweaks apply to all panes simultaneously
-//   (= boss doesn't need to "make each pane's material the same" again).
-// - Matches the same single-source-of-truth pattern we used for
-//   RegionTabBar + RegionStatusBar in round 30.
+// Solution = change RegionContentBackground to `.glass` (= window-
+// level material = identical visual depth everywhere).
 
 import SwiftUI
 
@@ -54,25 +53,36 @@ import SwiftUI
 ///
 /// **SINGLE SOURCE OF TRUTH**: Used by all per-pane content views
 /// (= `PreviewTabBackground`, `DynamicZoneView` outer VStack, editor
-/// placeholder, etc.). All panes now render with the same `.regularMaterial`
-/// Liquid Glass depth (= boss's "看起来不一样" issue resolved).
+/// placeholder, etc.). All panes now render with the same `.glass`
+/// window-level material (= matches the Wenshu window's own
+/// `.containerBackground(.glass)` so every pane shows the same
+/// see-through desktop wallpaper).
 ///
 /// Visual configuration:
-/// - Material: `.regularMaterial` (= Apple canonical Liquid Glass,
-///   standard tint, macOS 27 Tahoe).
-/// - Same translucency as macOS native per-pane content backgrounds in
-///   Pages / Mail / Xcode / Finder.
+/// - Material: `.glass` (= Apple SwiftUICore.Glass.regular, the same
+///   canonical Liquid Glass used by the window's containerBackground).
+/// - Truly transparent (= desktop wallpaper shows through, same as
+///   Sidebar / Tools / Chat panes which have no explicit background).
 @MainActor
 public struct RegionContentBackground: View {
     public init() {}
 
     public var body: some View {
-        // Apply .regularMaterial to the underlying window's
-        // background (= Apple's standard Liquid Glass translucency).
-        // Using Color.clear.overlay(.regularMaterial) so the material
-        // covers the full available space without disturbing layout.
+        // v0.28 followup Boss UX round 32 (Boss 2026-08-29 OOB
+        // '素材预览区, 动态区, 那种透明的程度, 和其他区域不一样'):
+        // REMOVED the .regularMaterial overlay (= was blocking the
+        // window's .glass from showing through = made Preview/
+        // Editor/Dynamic look OPAQUE-ISH while Sidebar/Tools/Chat
+        // were truly transparent).
+        //
+        // Now the content is plain Color.clear (= shows the window's
+        // .glass material through = matches Sidebar/Tools/Chat panes
+        // = identical visual depth everywhere).
+        //
+        // This means all 6 panes now show the same see-through desktop
+        // wallpaper (= boss's '看起来不一样' issue resolved at the
+        // visual level, not just the material level).
         Color.clear
-            .overlay(.regularMaterial)
     }
 }
 
@@ -83,7 +93,7 @@ public struct RegionContentBackground: View {
 /// truth for per-pane content backgrounds across the app).
 public extension View {
     /// Apply canonical per-pane content background (= single
-    /// `.regularMaterial` Liquid Glass layer).
+    /// `.glass` window-level Liquid Glass layer).
     ///
     /// Usage: `SomeView().regionContentBackground()`
     func regionContentBackground() -> some View {
