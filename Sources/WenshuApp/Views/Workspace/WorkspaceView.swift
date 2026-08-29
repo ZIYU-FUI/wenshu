@@ -103,13 +103,27 @@ struct WorkspaceView: View {
                 ("书架", "book-open", AnyView(NewLibraryOutlineView())),
             ], trailingButton: AnyView(NewLibraryOutlineView().zoneHeaderButtons))
         case .projectPreview:
-            // ZoneModule wraps the world / character / reference
-            // preview (= the right sidebar in the legacy LayoutShellView).
-            ZoneModuleView(zoneSlot: .projectPreview)
+            // v0.28 followup Boss UX round 45 (Boss 2026-08-29 OOB
+            // '顶栏底栏都对不齐' = Preview/Tools were using old
+            // ZoneModuleView (= renders BOTH outer ZoneTopToolbar 30 PT
+            // + internal ZoneContentView tab bar 30 PT = DOUBLE chrome
+            // = 60 PT total, while Sidebar/Editor use only ZoneContentView
+            // = 30 PT SINGLE chrome). Y 错位 = 30 PT difference.
+            // Fix = convert Preview/Tools to use ZoneContentView directly
+            // (= single 30 PT chrome layer = matches Sidebar/Editor).
+            //
+            // The Preview/Tools' ZoneContentView uses tabs from
+            // projectPreviewChrome/specializedToolsChrome (= top actions
+            // list), with the actual content view (CanvasView/BaseView
+            // for Tools, GraphView for Preview) as the tab's body.
+            ZoneContentView(zoneSlug: "projectPreview", tabs: [
+                ("预览", "book-open-check", AnyView(GraphView())),
+                ("图", "waypoints", AnyView(GraphView())),
+            ])
         case .editor:
             // v0.28 followup Boss UX round 43: switch from
             // EditorPlaceholder (= text-only) to real ZoneContentView
-            // (= 3 tabs 编辑 / 大纲 / 反链 + trailing expand/shrink).
+            // (= 3 tabs 编辑/大纲/反链 + trailing expand/shrink).
             // This makes editor's top chrome consistent with the other
             // 3 general panes (= all use RegionTabBar = 30 PT tall at
             // the same Y).
@@ -119,7 +133,13 @@ struct WorkspaceView: View {
                 ("反链", "link", AnyView(EditorContentPlaceholder())),
             ], trailingButton: AnyView(EditorExpandShrinkTrailingButton()))
         case .specializedTools:
-            ZoneModuleView(zoneSlot: .specializedTools)
+            // v0.28 followup Boss UX round 45: switch from
+            // ZoneModuleView (= double chrome) to single
+            // ZoneContentView (= matches Sidebar/Editor/Preview).
+            ZoneContentView(zoneSlug: "specializedTools", tabs: [
+                ("画布", "scribble", AnyView(CanvasView())),
+                ("数据库", "tablecells", AnyView(BaseView())),
+            ])
         case .aiChat:
             ChatView()
         case .aiDynamic:

@@ -2585,7 +2585,16 @@ struct LibraryOutlineViewContent: View {
     @Environment(BookStore.self) private var bookStore
     var body: some View {
         NewLibraryOutlineView()
-            .padding(.vertical, 2)
+            // v0.28 followup Boss UX round 44 (Boss 2026-08-29 OOB
+            // '项目管理区和素材管理区的接缝, 顶栏底栏都对不齐' = the
+            // `.padding(.vertical, 2)` was pushing the sidebar content
+            // (= NewLibraryOutlineView's tree outline) up by 2 PT,
+            // which made the sidebar's bottom status bar (= "书:0")
+            // appear higher than the other 3 general panes'
+            // (= "章节:0" / "字数:0" / "工具就绪") = 视觉不对齐.
+            // Fix = removed `.padding(.vertical, 2)`. The horizontal
+            // `.padding(8)` (= 8 PT left/right margin) is preserved
+            // for the tree outline indentation.
             .padding(8)
             .environment(bookStore)
     }
