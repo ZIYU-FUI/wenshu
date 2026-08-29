@@ -376,7 +376,19 @@ struct WenshuApp: App {
         // .unified (52 PT) for now because .expanded was making macOS
         // WindowServer reject the Wenshu window creation. Re-add custom
         // chrome in a follow-up commit.
-        .windowToolbarStyle(.unified)  // 52 PT default toolbar (= shows title by default but hidden via ToolbarItemGroup(placement: .principal))
+        // v0.28 followup Boss UX round 7: Switch from .unified (= 52 PT
+        // with unified toolbar background = the entire titlebar area
+        // is one big rounded capsule containing all toolbar items, per
+        // macOS native AppKit NSToolbar behavior) to .unifiedCompact
+        // (= 28 PT compact chrome = minimal visual chrome = no large
+        // unified toolbar background = icons show as bare icons with
+        // no group container). Hermes uses Electron (= HTML/CSS custom
+        // titlebar = no AppKit NSToolbar = no group container). Wenshu
+        // is native SwiftUI macOS (= uses AppKit NSToolbar via
+        // .unified/.unifiedCompact). The closest to hermes look is
+        // .unifiedCompact (= 28 PT minimal chrome).
+        .windowToolbarStyle(.unifiedCompact(showsTitle: false))  // 28 PT compact chrome, no unified toolbar background
+        // .windowToolbarStyle(.unified)  // 52 PT default chrome with unified toolbar background (= wraps all items in 1 outer capsule)
         // .windowToolbarStyle(.automatic)  // 0 PT native; WenshuChromeOverlay provides 34 PT AppTitlebar
         // .windowToolbarStyle(.expanded)  // 0 PT native; WenshuChromeOverlay provides 34 PT AppTitlebar
         .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // Boss Sketch design baseline 1920x984 PT
