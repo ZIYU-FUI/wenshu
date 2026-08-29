@@ -176,11 +176,21 @@ private struct WiredShell: View {
                 // PaneVisibilityStore (= new framework). When false
                 // (= legacy path), toggles call LayoutShellView's
                 // @AppStorage state via shared UserDefaults keys.
+                //
+                // v0.28 followup Boss UX round 5 (Boss 2026-08-29 OOB
+                // '右上角标题栏按钮, 能否不要圆形胶囊, 只留 icon, 与
+                // hermes 类似' = use .buttonStyle(.plain) (= removes
+                // macOS native toolbar's default rounded capsule
+                // background). Hermes uses a flat titlebarButtonClass
+                // with hover-only background = icons show without the
+                // rounded background that macOS ToolbarItemGroup adds
+                // by default.
                 Button {
                     showProjectSidebar.toggle()
                 } label: {
                     LucideIconSystemFallback("sidebar.left", size: LayoutTokens.iconSize)
                 }
+                .buttonStyle(.plain)  // = no rounded capsule background, icon only (= hermes style)
                 .foregroundStyle(showProjectSidebar ? Color.accentColor : Color.secondary)
                 .help(showProjectSidebar ? "隐藏 项目管理区" : "显示 项目管理区")
 
@@ -189,6 +199,7 @@ private struct WiredShell: View {
                 } label: {
                     LucideIconSystemFallback("eye.fill", size: LayoutTokens.iconSize)
                 }
+                .buttonStyle(.plain)
                 .foregroundStyle(showProjectPreview ? Color.accentColor : Color.secondary)
                 .help(showProjectPreview ? "隐藏 素材预览区" : "显示 素材预览区")
 
@@ -197,6 +208,7 @@ private struct WiredShell: View {
                 } label: {
                     LucideIconSystemFallback("wrench.and.screwdriver", size: LayoutTokens.iconSize)
                 }
+                .buttonStyle(.plain)
                 .foregroundStyle(showSpecializedTools ? Color.accentColor : Color.secondary)
                 .help(showSpecializedTools ? "隐藏 工具区" : "显示 工具区")
 
@@ -205,6 +217,7 @@ private struct WiredShell: View {
                 } label: {
                     LucideIconSystemFallback("bubble.left", size: LayoutTokens.iconSize)
                 }
+                .buttonStyle(.plain)
                 .foregroundStyle(showAIChat ? Color.accentColor : Color.secondary)
                 .help(showAIChat ? "隐藏 聊天区" : "显示 聊天区")
 
@@ -213,6 +226,7 @@ private struct WiredShell: View {
                 } label: {
                     LucideIconSystemFallback("chart.bar", size: LayoutTokens.iconSize)
                 }
+                .buttonStyle(.plain)
                 .foregroundStyle(showAIDynamic ? Color.accentColor : Color.secondary)
                 .help(showAIDynamic ? "隐藏 动态区" : "显示 动态区")
 
@@ -227,6 +241,7 @@ private struct WiredShell: View {
                 } label: {
                     LucideIconSystemFallback("cpu", size: LayoutTokens.iconSize)
                 }
+                .buttonStyle(.plain)
                 .help("模型: \(modelName)")
 
                 Divider()
@@ -240,6 +255,7 @@ private struct WiredShell: View {
                 } label: {
                     LucideIconSystemFallback("square.and.arrow.up", size: LayoutTokens.iconSize)
                 }
+                .buttonStyle(.plain)
                 .help("导出电子书 (PDF / EPUB / MOBI / TXT)")
             }
         }
