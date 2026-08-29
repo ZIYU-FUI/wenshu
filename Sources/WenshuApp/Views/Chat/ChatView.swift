@@ -481,6 +481,17 @@ public struct ChatView: View {
                 TextField("输入消息...",
                           text: $vm.inputText, axis: .vertical)
                     .lineLimit(1...4)
+                    // v0.28 followup Boss UX round 27 (Boss 2026-08-29
+                    // OOB '你把文本框和按钮的空状态高度统一成 30pt'):
+                    // .multilineTextAlignment(.leading) + the default
+                    // .leading-to-trailing text flow makes the text
+                    // top-aligned by default (= text sits at the top
+                    // of the 30 PT frame, not centered). To match the
+                    // Send button's centered visual position (= button
+                    // label is centered within the 30 PT capsule),
+                    // use no special alignment (= SwiftUI TextField
+                    // axis: .vertical centers content by default
+                    // within the .frame(minHeight: 30) bounds).
                     // v0.24 boss验收fix: disable when no key configured.
                     .disabled(!hasUsableKey)
                     .focused($inputFocused)
@@ -531,23 +542,45 @@ public struct ChatView: View {
                     // (ticket 034 final 3) preserved.
                     .textFieldStyle(.plain)
                     // v0.28 followup Boss UX round 25 (Boss 2026-08-29
-                    // OOB '现在文本框会随着文字输入更多自动向上加高吗?')
-                    // = YES, removed .frame(height: 24) (= was pinning
-                    // the textfield to 24 PT regardless of content).
-                    // Now the TextField grows from 24 PT (= 1 line at
-                    // 13 PT font + 12 PT vertical padding) up to 4
-                    // lines via .lineLimit(1...4) (= Apple HIG canonical
-                    // Messages / Slack chat input row behavior).
+                    // OOB '现在文本框会随着文字输入更多自动向上加高吗?'):
+                    // the textfield now has 2 height modes:
+                    //
+                    // 1. EMPTY STATE (= no text): .frame(minHeight: 30)
+                    //    (= matches the Send button at 30 PT so the
+                    //    two controls look like the same height when
+                    //    there's no text — per Apple HIG canonical
+                    //    chat input row in Messages / Mail). Without
+                    //    this, the textfield's natural height (= ~22
+                    //    PT = font 13 PT + auto-padding) is visually
+                    //    shorter than the button (= 24 PT controlSize
+                    //    regular + 30 PT frame = 30 PT visual).
+                    //
+                    // 2. TYPING STATE (= text growing past 1 line):
+                    //    no max height pin so the textfield auto-
+                    //    grows from 30 PT (1 line) up to 4 lines via
+                    //    .lineLimit(1...4). The Send button stays
+                    //    bottom-anchored via HStack(alignment: .bottom).
+                    //
+                    // Why .frame(minHeight: 30) and not .frame(height: 30):
+                    // - .frame(height: 30) PIN the textfield to 30 PT
+                    //   regardless of content (= would block the auto-grow
+                    //   from round 25).
+                    // - .frame(minHeight: 30) ONLY enforces a minimum
+                    //   (= textfield starts at 30 PT when empty, but
+                    //   can grow larger when content is multi-line).
+                    //
+                    // v0.28 followup Boss UX round 27 (Boss 2026-08-29
+                    // OOB '你把文本框和按钮的空状态高度统一成 30pt'):
+                    // unified both empty-state heights at 30 PT
+                    // (= matches kZoneToolbarHeight = canonical chrome
+                    // height across the app).
                     //
                     // v0.25.1 (= ticket 037): was pinned to 24 PT per
                     // boss OOB '现在文本框不是 32 了吗 不管是多少
                     // 改成和文本框一样高' = at the time, the textfield
                     // visual was 24 PT (= 1 line) so boss wanted to
-                    // match the button height. Now with auto-grow,
-                    // the textfield starts at 24 PT (= 1 line, matching
-                    // button) and grows up to 4 lines (= ~ 80 PT =
-                    // = button stays vertically aligned at the bottom
-                    // via HStack(alignment: .bottom)).
+                    // match the button height.
+                    .frame(minHeight: 30)
                     .padding(.horizontal, 12)
                     // v0.28 followup Boss UX round 23 (Boss 2026-08-29
                     // OOB '文本框是液态玻璃样式的吗'): Was using
@@ -611,15 +644,20 @@ public struct ChatView: View {
                 // 1 PT separator border + tint-on-hover effect.
                 // The icon shrinks to 18 PT (= matches Apple's
                 // canonical glyph size for secondary toolbar buttons
-                // per Liquid Glass HIG). .frame(height: 24) keeps
+                // per Liquid Glass HIG). .frame(height: 30) keeps
                 // the button at Apple's standard control height
                 // (= same as the TextField so they align flush).
-                // The button visual now looks like Pages / Mail /
-                // Messages "Send" button (= the macOS canonical
-                // Liquid Glass secondary action button).
+                // v0.28 followup Boss UX round 27 (Boss 2026-08-29
+                // OOB '你把文本框和按钮的空状态高度统一成 30pt'):
+                // both TextField and Send button pinned to 30 PT
+                // (= canonical macOS HIG chat input height, same
+                // as zone tab bar / statusbar). Previously the
+                // TextField was visually ~22 PT (= font 13 PT +
+                // auto-padding = shorter than the button's 24 PT
+                // controlSize regular).
                 .buttonStyle(.bordered)
-                .controlSize(.regular)  // 24 PT control height (= matches TextField height)
-                .frame(height: 24)
+                .controlSize(.regular)  // 24 PT control height (= boss OOB)
+                .frame(height: 30)
                 .disabled(vm.inputText.isEmpty || vm.isSending)
                 // v0.28 followup Boss UX round 20 (Boss 2026-08-29 OOB
                 // '文本框和发送按钮位置上水平对齐'): REMOVED the
