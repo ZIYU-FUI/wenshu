@@ -152,37 +152,20 @@ private struct WiredShell: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        // v0.28 followup Boss UX round 4 + round 9 + round 11: macOS
-        // native toolbar (= 28 PT unifiedCompact chrome with traffic
-        // lights + double-click-to-zoom). Titlebar icons (= sidebar/
-        // preview/tools/chat/dynamic/model-picker/export) live here
-        // per Boss 2026-08-29 OOB '原本在标题栏上的按钮, 现在不能放
-        // 在标题栏上了是吗'.
+        // v0.28 followup Boss UX round 12 (Boss 2026-08-29 OOB '算了,
+        // 本来我们也要伪 apple 官方嘛, 用 52 高的那个原生标题栏,
+        // 把按钮放上面, 去掉自己写的那一栏, 全面适配液态玻璃'):
+        // = adopt Apple Liquid Glass design language fully. Use the
+        // default .unified toolbar background (= Liquid Glass material
+        // = the canonical macOS 26 Tahoe look). Each icon uses
+        // .buttonStyle(.plain) (= removes per-button capsule, matches
+        // hermes titlebarButtonClass style for the individual icon
+        // backgrounds; the outer Liquid Glass capsule remains per
+        // macOS standard).
         //
-        // Boss 2026-08-29 OOB '你查过文档吗, Mac os 允许不带胶囊吗?
-        // 27 版本是不是强制适配液态玻璃' = per Apple
-        // developer.apple.com/documentation/technologyoverviews/
-        // liquid-glass (= Apple macOS 26 Tahoe SwiftUI standard):
-        // "Standard components from SwiftUI, UIKit, and AppKit like
-        // controls and navigation elements pick up the appearance
-        // and behavior of this material automatically." = Liquid
-        // Glass IS automatic (= no opt-in). Boss asked specifically:
-        // can macOS toolbar run WITHOUT the glass capsule?
-        // Answer: YES via View.toolbarBackground(_:for:) (Apple
-        // developer.apple.com/documentation/swiftui/view/toolbarbackground)
-        // — introduced macOS 13.0, signature:
-        //   func toolbarBackground<S>(_ style: S, for bars: ToolbarPlacement...)
-        //     -> some View where S: ShapeStyle
-        // = pass `.clear` (= transparent ShapeStyle) for
-        // .windowToolbar placement (= matches the titlebar placement
-        // per developer.apple.com/documentation/swiftui/toolbarplacement/
-        // windowtoolbar = "the placement for the containing window's
-        // toolbar, sometimes referred to as the titlebar").
-        // = REMOVES the Liquid Glass capsule (= no rounded background)
-        // while keeping traffic lights + double-click-to-zoom.
-        //
-        // Single titlebar layer, no AppTitlebar, NO Liquid Glass
-        // capsule, native macOS chrome preserved.
+        // Single titlebar layer (= macOS native .unified 52 PT =
+        // traffic lights + 8 toolbar items in 1 unified capsule =
+        // matches Apple Pages / Xcode / Mail / Finder).
         .toolbar {
             ToolbarItem(placement: .navigation) {
                 Color.clear.frame(width: 1, height: 1)
@@ -262,17 +245,13 @@ private struct WiredShell: View {
                 .help("导出电子书 (PDF / EPUB / MOBI / TXT)")
             }
         }
-        // v0.28 followup Boss UX round 11: Remove the Liquid Glass
-        // capsule (= per Boss OOB 'Mac os 允许不带胶囊吗'). Per Apple
-        // developer.apple.com/documentation/swiftui/view/toolbarbackground,
-        // SwiftUI's toolbarBackground API lets the developer override
-        // the default Liquid Glass material with a custom ShapeStyle.
-        // Pass `.clear` (= transparent) for the `.windowToolbar`
-        // placement (= the containing window's toolbar = titlebar) to
-        // remove the capsule background entirely. The toolbar items
-        // still render (= traffic lights + icons remain), but the
-        // background is transparent (= no rounded pill).
-        .toolbarBackground(.clear, for: .windowToolbar)
+        // NOTE: v0.28 followup Boss UX round 11 attempted to remove
+        // the Liquid Glass capsule by passing .toolbarBackground(.clear,
+        // for: .windowToolbar). Boss round 12 overruled that (= decided
+        // to fully adopt Liquid Glass per Apple design language). The
+        // default Liquid Glass background now renders behind the
+        // toolbar items (= canonical macOS 26 Tahoe look matching
+        // Pages / Xcode / Mail / Finder).
         .task {
             await runLaunch()
         }

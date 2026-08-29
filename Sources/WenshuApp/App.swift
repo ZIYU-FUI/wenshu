@@ -372,23 +372,26 @@ struct WenshuApp: App {
         // developer.apple.com/documentation/SwiftUI/WindowToolbarStyle,
         // .unified is the default style (52 PT). .unifiedCompact is
         // COMPACT (= smaller, NOT default). Boss spec 'default size' = .unified.
-        // v0.28 followup (Boss 2026-08-29 OOB '调试视图框架'): reverted to
-        // .unified (52 PT) for now because .expanded was making macOS
-        // WindowServer reject the Wenshu window creation. Re-add custom
-        // chrome in a follow-up commit.
-        // v0.28 followup Boss UX round 7: Switch from .unified (= 52 PT
-        // with unified toolbar background = the entire titlebar area
-        // is one big rounded capsule containing all toolbar items, per
-        // macOS native AppKit NSToolbar behavior) to .unifiedCompact
-        // (= 28 PT compact chrome = minimal visual chrome = no large
-        // unified toolbar background = icons show as bare icons with
-        // no group container). Hermes uses Electron (= HTML/CSS custom
-        // titlebar = no AppKit NSToolbar = no group container). Wenshu
-        // is native SwiftUI macOS (= uses AppKit NSToolbar via
-        // .unified/.unifiedCompact). The closest to hermes look is
-        // .unifiedCompact (= 28 PT minimal chrome).
-        .windowToolbarStyle(.unifiedCompact(showsTitle: false))  // 28 PT compact chrome, no unified toolbar background
-        // .windowToolbarStyle(.unified)  // 52 PT default chrome with unified toolbar background (= wraps all items in 1 outer capsule)
+        // v0.28 followup Boss UX round 12 (Boss 2026-08-29 OOB '算了,
+        // 本来我们也要伪 apple 官方嘛, 用 52 高的那个原生标题栏,
+        // 把按钮放上面, 去掉自己写的那一栏, 全面适配液态玻璃'):
+        // = adopt Apple Liquid Glass design language fully per
+        // developer.apple.com/documentation/technologyoverviews/
+        // liquid-glass. Use .unified (= 52 PT default macOS chrome)
+        // = the full Liquid Glass titlebar experience (= traffic lights
+        // + grouped toolbar items in 1 unified capsule = the macOS 26
+        // Tahoe canonical look that Pages / Xcode / Mail / Finder all
+        // use). Remove .toolbarBackground(.clear) (= let the default
+        // Liquid Glass material render). Remove the custom AppTitlebar
+        // (= was 2-layer chrome = bad UX). 100% native macOS look.
+        //
+        // Final titlebar = 1 macOS native .unified 52 PT titlebar
+        // (= Apple standard = Liquid Glass = 1 unified capsule
+        // containing 8 toolbar items + traffic lights). No custom
+        // chrome above or below (= fully Apple-native = '伪 apple
+        // 官方' per Boss spec).
+        .windowToolbarStyle(.unified)  // 52 PT default macOS chrome with Liquid Glass unified toolbar background
+        // .windowToolbarStyle(.unifiedCompact(showsTitle: false))  // 28 PT compact chrome, no unified toolbar background
         // .windowToolbarStyle(.automatic)  // 0 PT native; WenshuChromeOverlay provides 34 PT AppTitlebar
         // .windowToolbarStyle(.expanded)  // 0 PT native; WenshuChromeOverlay provides 34 PT AppTitlebar
         .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // Boss Sketch design baseline 1920x984 PT
