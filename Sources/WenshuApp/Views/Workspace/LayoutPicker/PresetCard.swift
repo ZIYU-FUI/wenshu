@@ -40,15 +40,12 @@ struct PresetCard: View {
                     RoundedRectangle(cornerRadius: 6)
                         .fill(.ultraThinMaterial)
                 )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        .stroke(
-                            isActive
-                            ? Color.accentColor
-                            : Color(nsColor: .separatorColor),
-                            lineWidth: isActive ? 2 : 1
-                        )
-                )
+                // v0.28 followup Boss UX round 26: Apple .separator
+                // (= canonical Liquid Glass separator) replaces
+                // Color(nsColor: .separatorColor) for consistency with
+                // all other 1 PT splitters. Uses a helper view since
+                // Color and ShapeStyle can't be mixed in ternary.
+                .overlay(strokeOverlay(isActive: isActive))
             // Title.
             Text(preset.name)
                 .font(.system(size: 10, weight: isActive ? .semibold : .regular))
@@ -85,5 +82,27 @@ struct PresetCard: View {
         .onTapGesture {
             onSelect()
         }
+    }
+}
+// MARK: - strokeOverlay (= preset card stroke helper)
+//
+// v0.28 followup Boss UX round 26: helper view because Color and
+// ShapeStyle (= Apple .separator) have different types and can't
+// be mixed in a ternary expression.
+//
+// - isActive = true: Color.accentColor stroke, 2 PT (= selected)
+// - isActive = false: Apple HierarchicalShapeStyle .separator stroke,
+//   1 PT (= canonical Liquid Glass separator, macOS 26 Tahoe,
+//   semitransparent + adapts to dark/light mode)
+@ViewBuilder
+private func strokeOverlay(isActive: Bool) -> some View {
+    if isActive {
+        RoundedRectangle(cornerRadius: 6)
+            .stroke(Color.accentColor, lineWidth: 2)
+    } else {
+        // Apple .separator (= canonical Liquid Glass separator,
+        // macOS 26 Tahoe = semitransparent + adapts to dark/light).
+        RoundedRectangle(cornerRadius: 6)
+            .stroke(.separator as SeparatorShapeStyle, lineWidth: 1)
     }
 }

@@ -157,9 +157,14 @@ public struct TipModifier: ViewModifier {
                 .fill(.regularMaterial)
                 .shadow(color: Color.black.opacity(0.15), radius: 2, x: 0, y: 1)
         )
+        // v0.28 followup Boss UX round 26: 1 PT Apple .separator stroke
+        // replaces 0.5 PT Color(nsColor: .separatorColor) (= was different
+        // height than all other 1 PT splitters). Apple HierarchicalShapeStyle
+        // .separator (= canonical Liquid Glass separator, macOS 26 Tahoe)
+        // = semitransparent line that adapts to dark/light mode.
         .overlay(
             RoundedRectangle(cornerRadius: 4)
-                .stroke(Color(nsColor: .separatorColor), lineWidth: 0.5)
+                .stroke(.separator, lineWidth: 1)
         )
     }
 

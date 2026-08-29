@@ -255,11 +255,18 @@ struct ZoneContentTabBar: View {
         // (= macOS 26 Tahoe Liquid Glass translucency = matches
         // ChatZoneTopChrome + matches Apple's canonical per-pane tab
         // bar look in Pages / Mail / Xcode). The toolbar still has
-        // a 1 PT separator at the bottom (= DesignColor.splitterLine
-        // = Apple standard hairline = works with Liquid Glass).
+        // a 1 PT separator at the bottom (= Apple HierarchicalShapeStyle
+        // .separator = macOS 26 Tahoe canonical Liquid Glass separator
+        // = semitransparent line that adapts to dark/light mode).
+        // v0.28 followup Boss UX round 26: replaced DesignColor.splitterLine
+        // (= Color(nsColor: .separatorColor) = solid NSColor) with the
+        // canonical Apple .separator ShapeStyle for consistency with
+        // ZonePerRegionChrome + AppStatusbar splitters (= all 1 PT).
         .background(.regularMaterial)
         .overlay(alignment: .bottom) {
-            DesignColor.splitterLine.frame(height: 1)
+            Rectangle()
+                .fill(.separator)
+                .frame(height: 1)
         }
         .animation(.default, value: selection)
     }

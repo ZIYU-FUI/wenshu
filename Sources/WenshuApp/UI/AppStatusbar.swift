@@ -18,11 +18,14 @@ import AppKit
 
 // MARK: - Statusbar tokens (= matches hermes statusbar-controls.tsx)
 
-/// Statusbar item height (= 24 PT by default; can be overridden via
-/// LayoutTokens.statusBarHeight in wenshu context).
-public let kStatusbarItemHeight: CGFloat = 24
+/// Statusbar item height (= 30 PT, v0.28 followup Boss UX round 26:
+/// unified with per-region tab bar height so all chrome lines up
+/// flush when stacked vertically — was 24 PT previously, which
+/// didn't match the 30 PT zone tab bar above it).
+public let kStatusbarItemHeight: CGFloat = 30
 
-/// Statusbar bottom border (= 1 PT hairline).
+/// Statusbar top border (= 1 PT Apple .separator hairline, macOS 26
+/// Tahoe canonical Liquid Glass separator).
 public let kStatusbarBorderHeight: CGFloat = 1
 
 // MARK: - StatusbarItem (= matches hermes StatusbarItem)
@@ -123,9 +126,13 @@ public struct AppStatusbar: View {
         if !visible { EmptyView() }
         else {
             VStack(spacing: 0) {
+                // Top border (= 1 PT Apple .separator hairline).
+                // v0.28 followup Boss UX round 26: Apple HierarchicalShapeStyle
+                // .separator (= canonical Liquid Glass separator, macOS 26 Tahoe)
+                // replaces Color(nsColor: .separatorColor) (= solid NSColor).
                 Rectangle()
                     .frame(height: kStatusbarBorderHeight)
-                    .foregroundColor(Color(nsColor: .separatorColor))
+                    .foregroundStyle(.separator)
                 HStack(spacing: 0) {
                     // Left cluster.
                     HStack(spacing: 0) {

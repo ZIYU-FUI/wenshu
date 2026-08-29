@@ -43,6 +43,13 @@ import Lucide
 /// + `ZoneBottomToolbar`). Global AppTitlebar 34 PT + AppStatusbar 24 PT
 /// are separate (= different constants).
 public let kZoneToolbarHeight: CGFloat = 30
+// v0.28 followup Boss UX round 26 (Boss 2026-08-29 OOB '我发现合底栏
+// 顶栏的高度不一致, 分隔线高度也不一致'): canonical unified
+// chrome height = 30 PT (= matches the macOS HIG tab bar / statusbar
+// standard). All per-region toolbars (= zone top tab bar + zone
+// bottom status) AND the Wenshu global statusbar use this same
+// 30 PT value so they all line up flush when stacked vertically.
+public let kChromeHeight: CGFloat = 30
 
 /// Per-region icon visual size (= matches old `LayoutTokens.iconSize = 18`).
 public let kZoneToolbarIconSize: CGFloat = 18
@@ -136,8 +143,13 @@ public struct ZonePerRegionChrome<Content: View>: View {
     private var topBar: some View {
         VStack(spacing: 0) {
             // Top splitter line (= matches old .overlay(alignment: .top)).
+            // v0.28 followup Boss UX round 26: use Apple's HierarchicalShapeStyle
+            // .separator (= macOS 26 Tahoe canonical Liquid Glass separator =
+            // semitransparent line that adapts to dark/light mode automatically)
+            // instead of Color(nsColor: .separatorColor) (= solid NSColor).
+            // 1 PT height preserved.
             Rectangle()
-                .fill(Color(nsColor: .separatorColor))
+                .fill(.separator)
                 .frame(height: 1)
             HStack(spacing: 0) {
                 // Left: icon buttons (= matches old .overlay(alignment: .topLeading)).
@@ -207,8 +219,12 @@ public struct ZonePerRegionChrome<Content: View>: View {
             .frame(height: kZoneToolbarHeight - 1)
             .background(.regularMaterial)
             // Bottom splitter line (= matches old ZoneTopToolbar bottom splitter).
+            // v0.28 followup Boss UX round 26: Apple HierarchicalShapeStyle
+            // .separator (= canonical Liquid Glass separator) replaces
+            // Color(nsColor: .separatorColor) (= solid NSColor). 1 PT
+            // height preserved.
             Rectangle()
-                .fill(Color(nsColor: .separatorColor))
+                .fill(.separator)
                 .frame(height: 1)
         }
     }

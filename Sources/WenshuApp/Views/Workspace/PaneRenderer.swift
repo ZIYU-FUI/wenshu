@@ -463,10 +463,15 @@ private struct GroupTabStrip: View {
                     }
                 }
                 .background(paneID == activePaneID ? Color.accentColor.opacity(0.15) : Color.clear)
+                // Bottom 1 PT separator.
+                // v0.28 followup Boss UX round 26: Apple HierarchicalShapeStyle
+                // .separator (= canonical Liquid Glass separator, macOS 26 Tahoe)
+                // replaces Color.secondary.opacity(0.3) (= solid muted gray)
+                // for the group header bottom border.
                 .overlay(
                     Rectangle()
                         .frame(height: 1)
-                        .foregroundStyle(Color.secondary.opacity(0.3)),
+                        .foregroundStyle(.separator),
                     alignment: .bottom
                 )
             }
@@ -528,7 +533,12 @@ struct ChatZoneTopChrome: View {
             .help("归档本次会话")
             .padding(.trailing, 18)
         }
-        .frame(height: LayoutTokens.chatTabHotArea)
+        // v0.28 followup Boss UX round 26: use LayoutTokens.toolbarHeight
+        // (= 30 PT, the unified chrome height = matches the zone tab bar
+        // height) instead of LayoutTokens.chatTabHotArea (= 28 PT = was
+        // the tab button hit area, not the chrome height — using it for
+        // chrome made chat zone 2 PT shorter than other zone tab bars).
+        .frame(height: LayoutTokens.toolbarHeight)
         // v0.28 followup Boss UX round 13: use .regularMaterial so the
         // chat top chrome matches the rest of the Liquid Glass
         // adaptation (= the same translucency used in the bottom
@@ -536,9 +546,12 @@ struct ChatZoneTopChrome: View {
         .background(.regularMaterial)
         // Bottom 1 PT separator (= matches old ZoneTopToolbar bottom
         // splitter + ZoneContentTabBar footer).
+        // v0.28 followup Boss UX round 26: Apple HierarchicalShapeStyle
+        // .separator (= canonical Liquid Glass separator, macOS 26 Tahoe)
+        // replaces Color(nsColor: .separatorColor) (= solid NSColor).
         .overlay(alignment: .bottom) {
             Rectangle()
-                .fill(Color(nsColor: .separatorColor))
+                .fill(.separator)
                 .frame(height: 1)
         }
     }

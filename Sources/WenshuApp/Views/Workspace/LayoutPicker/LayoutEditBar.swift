@@ -67,11 +67,13 @@ struct LayoutEditBar: View {
                 .fill(.regularMaterial)
         )
         .overlay(
-            // v0.28 followup Boss UX round 19: use Apple standard
-            // separator color (= 1 PT hairline) instead of
-            // Color.secondary.opacity(0.3) (= solid color).
+            // v0.28 followup Boss UX round 19: 1 PT Apple .separator stroke
+            // (= canonical Liquid Glass separator, macOS 26 Tahoe)
+            // replaces Color(nsColor: .separatorColor) (= solid NSColor).
+            // v0.28 followup Boss UX round 26: confirm .separator style
+            // (= matches all other 1 PT splitters across the app).
             RoundedRectangle(cornerRadius: 10)
-                .stroke(Color(nsColor: .separatorColor), lineWidth: 1)
+                .stroke(.separator, lineWidth: 1)
         )
         .shadow(color: .black.opacity(0.2), radius: 12, x: 0, y: 4)
         .offset(x: palettePosition.x + dragOffset.width, y: palettePosition.y + dragOffset.height)

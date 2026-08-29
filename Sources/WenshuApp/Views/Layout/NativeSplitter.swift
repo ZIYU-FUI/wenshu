@@ -79,9 +79,16 @@ struct NativeSplitter: View {
 
     private var verticalBody: some View {
         ZStack {
-            // 视觉 1 PT → hover 3 PT (Apple 系统色)
+            // v0.28 followup Boss UX round 26: Apple HierarchicalShapeStyle
+            // .separator (= canonical Liquid Glass separator, macOS 26
+            // Tahoe = semitransparent line that adapts to dark/light
+            // mode automatically) replaces Color(nsColor: .separatorColor)
+            // (= solid NSColor) for the un-hovered 1 PT splitter line.
+            //
+            // Conditional needs explicit if/else since Color and ShapeStyle
+            // can't be mixed in a ternary expression.
             Rectangle()
-                .fill(isHovered ? Color(nsColor: .controlAccentColor).opacity(0.25) : Color(nsColor: .separatorColor))
+                .fill(separatorFill(isHovered: isHovered, length: length))
                 .frame(width: isHovered ? Self.hoveredThickness : Self.lineThickness, height: length ?? 0)
                 .shadow(color: isHovered ? Color(nsColor: .controlAccentColor).opacity(0.15) : .clear, radius: isHovered ? 8 : 0)
                 .animation(.easeInOut(duration: 0.2), value: isHovered)
@@ -125,8 +132,11 @@ struct NativeSplitter: View {
 
     private var horizontalBody: some View {
         ZStack {
+            // v0.28 followup Boss UX round 26: Apple .separator
+            // (= canonical Liquid Glass separator, macOS 26 Tahoe)
+            // replaces Color(nsColor: .separatorColor) (= solid NSColor).
             Rectangle()
-                .fill(isHovered ? Color(nsColor: .controlAccentColor).opacity(0.25) : Color(nsColor: .separatorColor))
+                .fill(separatorFill(isHovered: isHovered, length: length))
                 .frame(width: length ?? 0, height: isHovered ? Self.hoveredThickness : Self.lineThickness)
                 .shadow(color: isHovered ? Color(nsColor: .controlAccentColor).opacity(0.15) : .clear, radius: isHovered ? 8 : 0)
                 .animation(.easeInOut(duration: 0.2), value: isHovered)
@@ -162,20 +172,44 @@ struct NativeSplitter: View {
     }
 }
 
-/// StaticDividerHorizontal — 不可拖拽分割线 (Apple 系统色, 1 PT)
+/// StaticDividerHorizontal — 不可拖拽分割线 (Apple .separator, 1 PT)
 struct StaticDividerHorizontal: View {
     var body: some View {
+        // v0.28 followup Boss UX round 26: Apple HierarchicalShapeStyle
+        // .separator (= canonical Liquid Glass separator, macOS 26
+        // Tahoe) replaces Color(nsColor: .separatorColor) (= solid NSColor)
+        // for consistency with all other 1 PT splitters across the app.
         Rectangle()
-            .fill(Color(nsColor: .separatorColor))
+            .fill(.separator)
             .frame(height: 1)
     }
 }
 
-/// StaticDividerVertical — 不可拖拽分割线 (Apple 系统色, 1 PT)
+/// StaticDividerVertical — 不可拖拽分割线 (Apple .separator, 1 PT)
 struct StaticDividerVertical: View {
     var body: some View {
         Rectangle()
-            .fill(Color(nsColor: .separatorColor))
+            .fill(.separator)
             .frame(width: 1)
+    }
+}
+// MARK: - separatorFill (= unified 1 PT Apple .separator or hover wash)
+//
+// v0.28 followup Boss UX round 26: helper that returns the appropriate
+// ShapeStyle for the splitter line depending on hover state. Required
+// because Color and ShapeStyle (= HierarchicalShapeStyle.separator)
+// have different types and can't be mixed in a ternary expression.
+//
+// - hovered (= true) = Apple .controlAccentColor.opacity(0.25)
+//   (= Apple HIG hover wash for splitters, same as Pages / Mail / Xcode)
+// - not hovered = Apple HierarchicalShapeStyle .separator
+//   (= canonical Liquid Glass 1 PT hairline, macOS 26 Tahoe,
+//   semitransparent + adapts to dark/light mode automatically)
+@MainActor
+private func separatorFill(isHovered: Bool, length: CGFloat?) -> AnyShapeStyle {
+    if isHovered {
+        return AnyShapeStyle(Color(nsColor: .controlAccentColor).opacity(0.25))
+    } else {
+        return AnyShapeStyle(.separator as SeparatorShapeStyle)
     }
 }

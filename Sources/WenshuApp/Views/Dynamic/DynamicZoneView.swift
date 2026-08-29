@@ -187,8 +187,14 @@ struct DynamicZoneTabBar: View {
         // v0.28 followup Boss UX round 21: .background(.regularMaterial)
         // (= Liquid Glass) — matches ChatZoneTopChrome + ZoneContentTabBar.
         .background(.regularMaterial)
+        // v0.28 followup Boss UX round 26: Apple HierarchicalShapeStyle
+        // .separator (= canonical Liquid Glass separator, macOS 26 Tahoe)
+        // replaces DesignColor.splitterLine (= Color(nsColor: .separatorColor)
+        // = solid NSColor). 1 PT height preserved.
         .overlay(alignment: .bottom) {
-            DesignColor.splitterLine.frame(height: 1)
+            Rectangle()
+                .fill(.separator)
+                .frame(height: 1)
         }
         .animation(.default, value: selectedTab)
     }
