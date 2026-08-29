@@ -14,6 +14,7 @@
 // shipped in a single commit with PaneRenderer.
 
 import SwiftUI
+import Lucide
 
 /// WorkspaceView — the customizable-layout root (= the Xcode-paradigm
 /// replacement for LayoutShellView). Boss 2026-08-27 grill D1 chose
@@ -127,44 +128,147 @@ struct WorkspaceView: View {
 // its LayoutShellViewModel parameter; = see ticket 027-35 followup).
 // For now this view renders a placeholder color (= a sane default
 // that the user can see + interact with while the integration lands).
+// ZoneModuleView — verbatim port of the old v0.27 `ZoneModule` (=
+// App.swift:2060-2220). The OLD 6区 had a 3-layer chrome per zone:
+// 1. ZoneTopToolbar (30 PT) with zone actions (Graph / Search / expand
+//    trailing etc.). This layer is now an outer RegionPerRegionChrome.
+// 2. ZoneContentView (internal tab bar with ZoneContentTabBar)
+//    — Apple HIG canonical tab bar (= 28×28 hot area + Lucide icon +
+//    selected indicator underline + matchedGeometryEffect animation).
+//    Each zone has 1-N internal tabs (= e.g. editor has 3: 编辑/大纲/反链).
+// 3. ZoneBottomToolbar (30 PT) with per-zone status text (书架数 / 章节数
+//    / 字数 / 工具就绪 / 看板). Also now an outer ZonePerRegionChrome.
+//
+// The v0.27 `ZoneModule` had a single case that built the full
+// content view (= ZoneContentView for 4 general zones, ChatZoneView
+// for chat, DynamicZoneView for dynamic). This struct re-implements
+// that case-by-case dispatch using the actual ZoneContentView /
+// ChatView / DynamicZoneView (= the real tabbed views, not
+// placeholders). Boss 2026-08-29 OOB '原来的 teb 在当前框架下是不
+// 是有默认样式' = yes — every zone has a ZoneContentTabBar with
+// Lucide icons + accent underline + selected state. Per Boss
+// '完全不是 1:1' OOB, this commit restores 1:1 match by replacing
+// the placeholder text views with the real tabbed zone views.
+//
+// Per v0.27 boss 8/27 OOB #3: projectSidebar zone has `trailingButton`
+// (= NewLibraryOutlineView's zoneHeaderButtons = 新建 + 入驻 icon buttons).
+// Per v0.25.1 ticket 029c: editor zone has `trailingButton` (=
+// expand/shrink toggle button, icon swap based on editorMaximized).
+
 struct ZoneModuleView: View {
     let zoneSlot: ZoneSlot
 
     var body: some View {
-        // v0.27 first cut: a simple colored placeholder (= replaced by
-        // the real ZoneModule in ticket 027-35 once the LayoutShell
-        // ViewModel dependency is unwound).
         switch zoneSlot {
+        case .projectSidebar:
+            // 老 6区 projectSidebar = 1 tab (书架, with book-open icon)
+            // + trailingButton (新建 + 入驻 = NewLibraryOutlineView.zoneHeaderButtons).
+            ZoneContentView(zoneSlug: "projectSidebar", tabs: [
+                ("书架", "book-open", AnyView(LibraryOutlineViewContent())),
+            ], trailingButton: AnyView(NewLibraryOutlineView().zoneHeaderButtons))
+
         case .projectPreview:
-            VStack {
-                Text("素材预览区").font(.headline)
-                Text("World / Character / Reference preview (= v0.27 zone)")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.blue.opacity(0.05))
+            // 老 6区 projectPreview = 2 tabs (预览 / 图).
+            // Per v0.25.1 ticket 014: book-open-check + waypoints.
+            // Per v0.25.1 ticket 014: search tab hidden (SearchPanel code
+            // preserved elsewhere).
+            ZoneContentView(zoneSlug: "projectPreview", tabs: [
+                ("预览", "book-open-check", AnyView(DesignColor.zoneSurface)),
+                ("图", "waypoints", AnyView(GraphView())),
+            ])
+
         case .specializedTools:
-            VStack {
-                Text("工具区").font(.headline)
-                Text("Specialized Tools (= v0.27 zone)")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.orange.opacity(0.05))
+            // 老 6区 specializedTools = 2 tabs (画布 / 数据库).
+            // Per v0.24 boss 8/24 OOB: 删 '作曲' tab.
+            ZoneContentView(zoneSlug: "specializedTools", tabs: [
+                ("画布", "scribble", AnyView(CanvasView())),
+                ("数据库", "tablecells", AnyView(BaseView())),
+            ])
+
         case .aiDynamic:
-            VStack {
-                Text("动态区").font(.headline)
-                Text("AI Dynamic Content (= v0.27 zone)")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.yellow.opacity(0.05))
-        case .projectSidebar, .editor, .aiChat:
-            // Should never appear (= projectSidebar / editor / aiChat
-            // have dedicated views above; = guard for the
-            // unknown-default case to keep the compiler happy).
-            Color.clear
+            // 老 6区 aiDynamic = DynamicZoneView (= has its own
+            // DynamicZoneTabBar with 进度 / 待办 / 搜索).
+            // Per v0.24 boss 8/24 OOB: external toolbar 清空 (= the
+            // outer ZoneTopToolbar is empty placeholder mode).
+            DynamicZoneView()
+
+        case .aiChat:
+            // 老 6区 aiChat = ChatZoneView (= has its own ChatZoneTabBar
+            // with chat / search / settings). Per v0.25.1 ticket 005:
+            // top icons are Bot + Inbox.
+            ChatView()
+
+        case .editor:
+            // 老 6区 editor = 3 tabs (编辑 / 大纲 / 反链) + trailingButton
+            // (expand/shrink toggle). Real ZoneContentView — replaces
+            // EditorPlaceholder (= which was just text "Editor zone
+            // ticket 027-35 integration pending").
+            // Per v0.25.1 ticket 017 + 028: book-open-text + puzzle + link.
+            ZoneContentView(
+                zoneSlug: "editor",
+                tabs: [
+                    ("编辑", "book-open-text", AnyView(EditorContentPlaceholder())),
+                    ("大纲", "puzzle", AnyView(OutlinePanel())),
+                    ("反链", "link", AnyView(BacklinksPanel())),
+                ],
+                // v0.25.1 (= ticket 029c-trailing-button): expand/shrink
+                // trailing button. Boss 8/26 OOB '他是一个按钮 不是一个
+                // teb' = won't be a tab (= no selected underline), just
+                // a button at the right edge of the tab bar.
+                trailingButton: AnyView(
+                    EditorExpandShrinkTrailingButton()
+                )
+            )
         }
+    }
+}
+
+/// Editor main content placeholder (= replaces old DesignColor overlay).
+/// Real editor content view = ticket 027-35 followup; for now we
+/// render a subtle placeholder background matching the old 6区
+/// "Color.white.opacity(0.55) with 4 PT vertical inset" treatment.
+private struct EditorContentPlaceholder: View {
+    var body: some View {
+        DesignColor.zoneSurface
+            .overlay {
+                Color.white.opacity(0.55)
+                    .padding([.top, .bottom], LayoutTokens.editorVerticalInsetRatio * 100)
+            }
+    }
+}
+
+/// Editor expand/shrink trailing button (= old v0.25.1 ticket 029c).
+/// Per boss 8/26 OOB '点击后 整个编辑器最大化 其它所有栏全都隐藏
+/// 此时 ICON 变成 shrink 点击后 恢复到刚刚点击 expand 前的状态'.
+/// State + snapshot lives in LayoutShellView (= ticket 029a).
+private struct EditorExpandShrinkTrailingButton: View {
+    @State private var editorMaximized: Bool = false
+
+    var body: some View {
+        Button {
+            editorMaximized.toggle()
+        } label: {
+            Color.clear
+                .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
+                .overlay(alignment: .center) {
+                    // Lucide icon swap: 'expand' when not maximized,
+                    // 'shrink' when maximized (= per boss spec).
+                    if let lucide = Lucide(editorMaximized ? "shrink" : "expand") {
+                        lucide
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
+                            .foregroundStyle(Color.secondary)
+                    } else {
+                        Image(systemName: editorMaximized ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
+                            .foregroundStyle(Color.secondary)
+                    }
+                }
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(editorMaximized ? "恢复 (shrink)" : "展开 (expand)")
     }
 }
 

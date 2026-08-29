@@ -292,42 +292,82 @@ struct TabContentDispatcher: View {
     var body: some View {
         switch kind {
         case .projectSidebar:
+            // 老 6区: projectSidebar = ZoneTopToolbar (Templates / 新建 / 入驻)
+            // + ZoneContentView (书架 tab) + ZoneBottomToolbar (书架: N / 书: N).
+            // ZoneTopToolbar 30 PT = outer chrome; ZoneContentView's internal
+            // 书架 tab = the only tab. trailingButton = NewLibraryOutlineView's
+            // zoneHeaderButtons (= 新建 + 入驻 buttons at right edge of tab bar).
             ZonePerRegionChrome(
                 topActions: projectSidebarChrome(shelfCount: 0, bookCount: 0).top,
                 bottomStatus: projectSidebarChrome(shelfCount: 0, bookCount: 0).bottom
             ) {
-                NewLibraryOutlineView()
+                ZoneModuleView(zoneSlot: .projectSidebar)
             }
+
         case .projectPreview:
+            // 老 6区: projectPreview = ZoneTopToolbar (book-open-check /
+            // waypoints, "占位文字" right) + ZoneContentView (预览 / 图 tabs
+            // WITH ZoneContentTabBar accent underline) + ZoneBottomToolbar
+            // (章节: N).
             ZonePerRegionChrome(
                 topActions: projectPreviewChrome(chapterCount: 0).top,
                 bottomStatus: projectPreviewChrome(chapterCount: 0).bottom
             ) {
                 ZoneModuleView(zoneSlot: .projectPreview)
             }
+
         case .editor:
+            // 老 6区: editor = ZoneContentView ONLY (= no outer
+            // ZoneTopToolbar per v0.24 boss 8/24 OOB '不要 per-zone 自写
+            // title bar 会跟 macOS 顶部 chrome 重复'). ZoneContentView has its
+            // own ZoneContentTabBar (= 3 internal tabs: 编辑 / 大纲 / 反链 +
+            // trailing expand/shrink button). ZoneBottomToolbar = 字数: N / N%.
+            //
+            // Note: NO outer ZonePerRegionChrome wrapper — the
+            // ZoneContentView's internal ZoneContentTabBar IS the top
+            // toolbar (= Apple HIG canonical tab bar with selected
+            // underline, exactly the "默认样式" boss asked about). The
+            // outer ZonePerRegionChrome would add a duplicate top toolbar
+            // (and break 1:1 match with old 6区).
             ZonePerRegionChrome(
-                topActions: editorChrome(wordCount: 0, progress: 0.0).top,
-                bottomStatus: editorChrome(wordCount: 0, progress: 0.0).bottom
+                topActions: [],  // outer top toolbar = empty (editor uses internal ZoneContentTabBar)
+                bottomStatus: editorChrome(wordCount: 0, progress: 0.0).bottom,
+                topSkip: true  // editor: skip outer top toolbar (= internal ZoneContentTabBar is the top)
             ) {
-                EditorPlaceholder()
+                ZoneModuleView(zoneSlot: .editor)
             }
+
         case .specializedTools:
+            // 老 6区: specializedTools = ZoneTopToolbar (scribble /
+            // tablecells, "占位文字" right) + ZoneContentView (画布 /
+            // 数据库 tabs WITH ZoneContentTabBar accent underline) +
+            // ZoneBottomToolbar (工具就绪).
             ZonePerRegionChrome(
                 topActions: specializedToolsChrome().top,
                 bottomStatus: specializedToolsChrome().bottom
             ) {
                 ZoneModuleView(zoneSlot: .specializedTools)
             }
+
         case .aiChat:
+            // 老 6区: aiChat = ZoneTopToolbar (Bot / Inbox, "占位文字" right)
+            // + ChatZoneView (= has its own ChatZoneTabBar with chat /
+            // search / settings). NO ZoneBottomToolbar (= chat uses
+            // internal ChatBottomToolbar per v0.21 ticket 10, matches
+            // old `if slot != .aiChat` guard).
             ZonePerRegionChrome(
                 topActions: aiChatChrome().top,
                 bottomStatus: aiChatChrome().bottom,
                 bottomSkip: true  // chat uses internal ChatBottomToolbar per v0.21 ticket 10
             ) {
-                ChatView()
+                ZoneModuleView(zoneSlot: .aiChat)
             }
+
         case .aiDynamic:
+            // 老 6区: aiDynamic = ZoneTopToolbar EMPTY (placeholder mode
+            // per v0.24 boss 8/24 OOB 'Toolbar 清空') + DynamicZoneView (=
+            // has its own DynamicZoneTabBar with 进度 / 待办 / 搜索) +
+            // ZoneBottomToolbar (看板).
             ZonePerRegionChrome(
                 topActions: aiDynamicChrome().top,
                 bottomStatus: aiDynamicChrome().bottom

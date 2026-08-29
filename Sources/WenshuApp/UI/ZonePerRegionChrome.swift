@@ -94,25 +94,31 @@ public struct ZoneBottomStatus: Sendable {
 public struct ZonePerRegionChrome<Content: View>: View {
     let topActions: [ZoneTopAction]
     let bottomStatus: ZoneBottomStatus
-    let bottomSkip: Bool           // when true (= aiChat), skip bottom toolbar
+    let topSkip: Bool             // when true (= editor), skip top toolbar (= internal ZoneContentTabBar is the top)
+    let bottomSkip: Bool          // when true (= aiChat), skip bottom toolbar
     let content: () -> Content
 
     public init(
         topActions: [ZoneTopAction] = [],
         bottomStatus: ZoneBottomStatus = ZoneBottomStatus(),
+        topSkip: Bool = false,
         bottomSkip: Bool = false,
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.topActions = topActions
         self.bottomStatus = bottomStatus
+        self.topSkip = topSkip
         self.bottomSkip = bottomSkip
         self.content = content
     }
 
     public var body: some View {
         VStack(spacing: 0) {
-            // Top toolbar (= 30 PT, matches old ZoneTopToolbar).
-            topBar
+            // Top toolbar (= 30 PT, matches old ZoneTopToolbar). Skip when
+            // topSkip=true (= editor: internal ZoneContentTabBar is the top).
+            if !topSkip {
+                topBar
+            }
             // Region content (= fills remaining space).
             content()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
