@@ -75,14 +75,28 @@ public struct RegionContentBackground: View {
         // Editor/Dynamic look OPAQUE-ISH while Sidebar/Tools/Chat
         // were truly transparent).
         //
-        // Now the content is plain Color.clear (= shows the window's
-        // .glass material through = matches Sidebar/Tools/Chat panes
-        // = identical visual depth everywhere).
+        // Round 38 (Boss 2026-08-29 OOB '我看到的不是, 背景是白色一
+        // 片'): Color.clear was too transparent (= with light/white
+        // desktop wallpaper, panes look like a white blur = boss can't
+        // see where one pane ends and the next begins). Added a thin
+        // .ultraThinMaterial overlay (= lightest Liquid Glass tint =
+        // gives panes a subtle visible boundary while still letting
+        // the wallpaper show through = Apple HIG canonical per-pane
+        // content background style on macOS 27 Tahoe Pages / Mail /
+        // Xcode).
         //
-        // This means all 6 panes now show the same see-through desktop
-        // wallpaper (= boss's '看起来不一样' issue resolved at the
-        // visual level, not just the material level).
+        // Why .ultraThinMaterial (= NOT .regularMaterial):
+        // - .ultraThinMaterial = barely-there tint (= you can still see
+        //   the wallpaper, just slightly muted = perfect for
+        //   distinguishable panes with consistent Light/Dark mode).
+        // - .regularMaterial = more opaque (= boss's round 31
+        //   complaint about preview/dynamic looking less transparent
+        //   than sidebar/tools/chat).
+        // - .ultraThinMaterial is the sweet spot = panes are visible
+        //   (= boss can see pane boundaries) but not opaque
+        //   (= wallpaper still shows through).
         Color.clear
+            .overlay(.ultraThinMaterial)
     }
 }
 
