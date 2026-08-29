@@ -505,54 +505,42 @@ struct ChatZoneTopChrome: View {
     @Namespace private var tabBarNamespace
 
     var body: some View {
-        HStack(spacing: 0) {
-            // Left: bot tab (= 对话, currently selected).
-            // 28x28 hot area pattern (= Apple HIG canonical per the
-            // v0.25.1 ticket 018 fix). Lucide-first via existing helper
-            // (= falls back to SF Symbol).
-            tabItem(
-                icon: "bot",
-                label: "对话",
-                isSelected: true
-            )
-            .padding(.leading, 18)
-            Spacer(minLength: 0)
-            // Right: archive icon (= matches old 6区 right-side inbox icon).
-            Button {
-                showingArchiveConfirm = true
-            } label: {
-                Color.clear
-                    .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
-                    .overlay(alignment: .center) {
-                        LucideIconSystemFallback("inbox", size: LayoutTokens.iconSize)
-                            .foregroundStyle(.secondary)
-                    }
-                    .contentShape(Rectangle())
+        // v0.28 followup Boss UX round 30 (Boss 2026-08-29 OOB '顶栏不是
+        // 一个组件吗, 你看截图, 每个区域的毛玻璃效果都不一样'):
+        // wrapped in canonical `RegionTabBar` (= single source of truth
+        // for all per-pane tab bars). Previously this had its own
+        // .regularMaterial + .separator overlay (= inconsistent with
+        // ZoneContentTabBar + DynamicZoneTabBar). Now uses the shared
+        // component = identical Liquid Glass rendering everywhere.
+        RegionTabBar {
+            HStack(spacing: 0) {
+                // Left: bot tab (= 对话, currently selected).
+                // 28x28 hot area pattern (= Apple HIG canonical per the
+                // v0.25.1 ticket 018 fix). Lucide-first via existing helper
+                // (= falls back to SF Symbol).
+                tabItem(
+                    icon: "bot",
+                    label: "对话",
+                    isSelected: true
+                )
+                .padding(.leading, 18)
+                Spacer(minLength: 0)
+                // Right: archive icon (= matches old 6区 right-side inbox icon).
+                Button {
+                    showingArchiveConfirm = true
+                } label: {
+                    Color.clear
+                        .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
+                        .overlay(alignment: .center) {
+                            LucideIconSystemFallback("inbox", size: LayoutTokens.iconSize)
+                                .foregroundStyle(.secondary)
+                        }
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("归档本次会话")
+                .padding(.trailing, 18)
             }
-            .buttonStyle(.plain)
-            .help("归档本次会话")
-            .padding(.trailing, 18)
-        }
-        // v0.28 followup Boss UX round 26: use LayoutTokens.toolbarHeight
-        // (= 30 PT, the unified chrome height = matches the zone tab bar
-        // height) instead of LayoutTokens.chatTabHotArea (= 28 PT = was
-        // the tab button hit area, not the chrome height — using it for
-        // chrome made chat zone 2 PT shorter than other zone tab bars).
-        .frame(height: LayoutTokens.toolbarHeight)
-        // v0.28 followup Boss UX round 13: use .regularMaterial so the
-        // chat top chrome matches the rest of the Liquid Glass
-        // adaptation (= the same translucency used in the bottom
-        // statusbar + per-region toolbars).
-        .background(.regularMaterial)
-        // Bottom 1 PT separator (= matches old ZoneTopToolbar bottom
-        // splitter + ZoneContentTabBar footer).
-        // v0.28 followup Boss UX round 26: Apple HierarchicalShapeStyle
-        // .separator (= canonical Liquid Glass separator, macOS 26 Tahoe)
-        // replaces Color(nsColor: .separatorColor) (= solid NSColor).
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(.separator)
-                .frame(height: 1)
         }
     }
 

@@ -96,108 +96,103 @@ struct DynamicZoneTabBar: View {
     @Namespace private var tabBarNamespace
 
     var body: some View {
-        HStack(spacing: 0) {
-            ForEach(DynamicZoneView.DynamicTab.allCases) { tab in
-                Button {
-                    selectedTab = tab
-                } label: {
-                    // v0.24 boss验收fix: icon only, no title label.
-// Boss 8/24 follow-up: 'tab 里标题小字不需要'.
-                // v0.25.1 (= ticket 021 followup Apple HIG canonical):
-                // owner 2026-08-26 OOB '热区是写了 但是没有叠加到 ICON
-                // 上 而是放在了 ICON 后在' = previous ticket 020 attempt
-                // put Color.clear INSIDE the icon's .overlay (= clipped
-                // to 18×18 because overlay inherits base view's frame).
-                // Per Apple HIG + medium hit-testing traps article, the
-                // CORRECT pattern = Color.clear as the BASE view (= its
-                // .frame(28, 28) becomes the label's intrinsic size =
-                // Button's hit area), icon (Lucide 18 PT) as .overlay
-                // aligned .center (= icon visually centered within the
-                // 28×28 hot area, no clipping).
-                // v0.25.1 (= ticket 023 dynamic zone Lucide-first):
-                // owner 2026-08-26 OOB '右下看板和 todo 的两个 ICON
-                // 没有显示出来' = ticket 022 changed icon names to
-                // Lucide kebab-case ('layout-grid' / 'layout-list'),
-                // but raw `Image(systemName: tab.icon)` returns empty
-                // for non-SF names (= icons invisible even though
-                // AXButton is rendered with empty label). Fix = use
-                // `dynamicZoneTabBarIcon(tab.icon)` helper (= Layer 1
-                // Lucide path = Layer 3 SF fallback = ticket 009
-                // pattern = ZoneContentView's zoneContentTabBarIcon).
-                Color.clear
-                    .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
-                    .overlay(alignment: .center) {
-                        dynamicZoneTabBarIcon(tab.icon)
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
-                            .foregroundStyle(tab == selectedTab ? Color.accentColor : Color.secondary)
-                    }
-                    .contentShape(Rectangle())
-                    // v0.25.1 (= ticket 010 tab selected-state underline):
-                    // owner 2026-08-26 OOB '现在的 tab 的选定状态 ICON 下
-                    // 没有那个选定的小横线' = add Apple HIG canonical
-                    // selected-tab underline (= 2 PT accent bar at
-                    // bottom of selected tab, full button width).
-                    // v0.25.1 (= ticket 011 unified tab hot area):
-                    // owner 2026-08-26 OOB '所有的都按聊天的这个小机器人的
-                    // 位置实现 居底' = apply chat-tab hot-area pattern
-                    // (= 28×28 PT inflated via inline .padding(.all,
-                    // chatTabHitPad)) to dynamic zone tabs (= '.aiDynamic
-                    // zone 看板/待办') for visual consistency. Chat tab
-                    // pattern (= .padding(.all, 5) inside the label
-                    // extends the icon render bounds to 28 PT; .overlay
-                    // (.bottom) keeps the Apple HIG selected-tab underline
-                    // anchored at the bottom of the inflated box).
-                    // v0.25.1 (= ticket 013 underline slide animation):
-                    // matchedGeometryEffect namespace ID on the bar
-                    // Rectangle so SwiftUI can slide it between tab
-                    // positions (= replaces ticket 010's per-button
-                    // crossfade with single shared bar translating L/R).
-                    // v0.25.1 (= ticket 018 explicit 28×28 hot zone):
-                    // owner 2026-08-26 OOB '现在的 ICON 还是不是很好点 能不能
-                    // 写一个 28×28 的透明矩形的热区' = ticket 011's
-                    // .padding inflation was still flaky (= owner reported
-                    // icons hard to click). Replace with explicit
-                    // Color.clear.frame(28, 28).contentShape(.rect) =
-                    // Apple HIG canonical pattern for plain-style button
-                    // hot area (= explicit rectangular layer reserves
-                    // 28×28 layout space + registers hit area via
-                    // contentShape + provides the Color.clear backing
-                    // SwiftUI hit-tester needs for reliable detection).
-                    .buttonStyle(IconButtonStyle())
-                    .overlay(alignment: .bottom) {
-                        if tab == selectedTab {
-                            Rectangle()
-                                .fill(Color.accentColor)
-                                .frame(height: LayoutTokens.tabUnderlineHeight)
-                                .matchedGeometryEffect(id: "tabBarUnderline", in: tabBarNamespace, isSource: true)
-                                    .offset(y: 0)  // v0.25.1 ticket 024: offset adjusted for tabUnderlineHeight 3 PT (= underline at y=28-3=25 to 28 PT, flush with toolbar bottom = no offset needed since icon is centered at y=5-23 PT, 2 PT gap between icon bottom and underline top)
+            // v0.28 followup Boss UX round 30 (Boss 2026-08-29 OOB '顶栏不是
+            // 一个组件吗, 你看截图, 每个区域的毛玻璃效果都不一样'):
+            // wrapped in canonical `RegionTabBar` (= single source of truth
+            // for all per-pane tab bars). Previously this tab bar had its
+            // own .regularMaterial + .separator overlay (= inconsistent
+            // with ZoneContentTabBar + ChatZoneTopChrome). Now uses the
+            // shared component = identical Liquid Glass rendering.
+            RegionTabBar {
+                HStack(spacing: 0) {
+                    ForEach(DynamicZoneView.DynamicTab.allCases) { tab in
+                        Button {
+                            selectedTab = tab
+                        } label: {
+                            // v0.24 boss验收fix: icon only, no title label.
+    // Boss 8/24 follow-up: 'tab 里标题小字不需要'.
+                        // v0.25.1 (= ticket 021 followup Apple HIG canonical):
+                        // owner 2026-08-26 OOB '热区是写了 但是没有叠加到 ICON
+                        // 上 而是放在了 ICON 后在' = previous ticket 020 attempt
+                        // put Color.clear INSIDE the icon's .overlay (= clipped
+                        // to 18×18 because overlay inherits base view's frame).
+                        // Per Apple HIG + medium hit-testing traps article, the
+                        // CORRECT pattern = Color.clear as the BASE view (= its
+                        // .frame(28, 28) becomes the label's intrinsic size =
+                        // Button's hit area), icon (Lucide 18 PT) as .overlay
+                        // aligned .center (= icon visually centered within the
+                        // 28×28 hot area, no clipping).
+                        // v0.25.1 (= ticket 023 dynamic zone Lucide-first):
+                        // owner 2026-08-26 OOB '右下看板和 todo 的两个 ICON
+                        // 没有显示出来' = ticket 022 changed icon names to
+                        // Lucide kebab-case ('layout-grid' / 'layout-list'),
+                        // but raw `Image(systemName: tab.icon)` returns empty
+                        // for non-SF names (= icons invisible even though
+                        // AXButton is rendered with empty label). Fix = use
+                        // `dynamicZoneTabBarIcon(tab.icon)` helper (= Layer 1
+                        // Lucide path = Layer 3 SF fallback = ticket 009
+                        // pattern = ZoneContentView's zoneContentTabBarIcon).
+                        Color.clear
+                            .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
+                            .overlay(alignment: .center) {
+                                dynamicZoneTabBarIcon(tab.icon)
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
+                                    .foregroundStyle(tab == selectedTab ? Color.accentColor : Color.secondary)
+                            }
+                            .contentShape(Rectangle())
+                            // v0.25.1 (= ticket 010 tab selected-state underline):
+                            // owner 2026-08-26 OOB '现在的 tab 的选定状态 ICON 下
+                            // 没有那个选定的小横线' = add Apple HIG canonical
+                            // selected-tab underline (= 2 PT accent bar at
+                            // bottom of selected tab, full button width).
+                            // v0.25.1 (= ticket 011 unified tab hot area):
+                            // owner 2026-08-26 OOB '所有的都按聊天的这个小机器人的
+                            // 位置实现 居底' = apply chat-tab hot-area pattern
+                            // (= 28×28 PT inflated via inline .padding(.all,
+                            // chatTabHitPad)) to dynamic zone tabs (= '.aiDynamic
+                            // zone 看板/待办') for visual consistency. Chat tab
+                            // pattern (= .padding(.all, 5) inside the label
+                            // extends the icon render bounds to 28 PT; .overlay
+                            // (.bottom) keeps the Apple HIG selected-tab underline
+                            // anchored at the bottom of the inflated box).
+                            // v0.25.1 (= ticket 013 underline slide animation):
+                            // matchedGeometryEffect namespace ID on the bar
+                            // Rectangle so SwiftUI can slide it between tab
+                            // positions (= replaces ticket 010's per-button
+                            // crossfade with single shared bar translating L/R).
+                            // v0.25.1 (= ticket 018 explicit 28×28 hot zone):
+                            // owner 2026-08-26 OOB '现在的 ICON 还是不是很好点 能不能
+                            // 写一个 28×28 的透明矩形的热区' = ticket 011's
+                            // .padding inflation was still flaky (= owner reported
+                            // icons hard to click). Replace with explicit
+                            // Color.clear.frame(28, 28).contentShape(.rect) =
+                            // Apple HIG canonical pattern for plain-style button
+                            // hot area (= explicit rectangular layer reserves
+                            // 28×28 layout space + registers hit area via
+                            // contentShape + provides the Color.clear backing
+                            // SwiftUI hit-tester needs for reliable detection).
+                            .buttonStyle(IconButtonStyle())
+                            .overlay(alignment: .bottom) {
+                                if tab == selectedTab {
+                                    Rectangle()
+                                        .fill(Color.accentColor)
+                                        .frame(height: LayoutTokens.tabUnderlineHeight)
+                                        .matchedGeometryEffect(id: "tabBarUnderline", in: tabBarNamespace, isSource: true)
+                                        .offset(y: 0)  // v0.25.1 ticket 024: offset adjusted for tabUnderlineHeight 3 PT (= underline at y=28-3=25 to 28 PT, flush with toolbar bottom = no offset needed since icon is centered at y=5-23 PT, 2 PT gap between icon bottom and underline top)
+                                }
+                            }
                         }
+                        .buttonStyle(.plain)
+                        .contentShape(Rectangle())
+                        .background(Color.clear)
                     }
                 }
-                .buttonStyle(.plain)
-                .contentShape(Rectangle())
-                .background(Color.clear)
+                // v0.24 boss验收fix: flush at top of zone (was: padded 6 PT down).
+                .padding(.leading, 18)
             }
+            .animation(.default, value: selectedTab)
         }
-        // v0.24 boss验收fix: flush at top of zone (was: padded 6 PT down).
-        .padding(.leading, 18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(height: LayoutTokens.toolbarHeight)
-        // v0.28 followup Boss UX round 21: .background(.regularMaterial)
-        // (= Liquid Glass) — matches ChatZoneTopChrome + ZoneContentTabBar.
-        .background(.regularMaterial)
-        // v0.28 followup Boss UX round 26: Apple HierarchicalShapeStyle
-        // .separator (= canonical Liquid Glass separator, macOS 26 Tahoe)
-        // replaces DesignColor.splitterLine (= Color(nsColor: .separatorColor)
-        // = solid NSColor). 1 PT height preserved.
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(.separator)
-                .frame(height: 1)
-        }
-        .animation(.default, value: selectedTab)
-    }
 
     /// v0.25.1 (= ticket 023 dynamic zone Lucide-first icon helper):
     /// owner 2026-08-26 OOB '右下看板和 todo 的两个 ICON 没有显示出来' =
