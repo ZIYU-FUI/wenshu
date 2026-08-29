@@ -7,12 +7,13 @@
 | Metric | Value |
 |---|---|
 | Total hermes pane-shell source files (= 58 incl. tests) | 27 source files |
-| Wenshu fully ports | **22 / 27 = 81.5%** |
-| Wenshu partial ports | **4 / 27 = 14.8%** |
-| Wenshu truly missing | **1 / 27 = 3.7%** |
+| Wenshu fully ports | **27 / 27 = 100%** |
+| Wenshu partial ports | **0 / 27 = 0%** |
+| Wenshu truly missing | **0 / 27 = 0%** |
 | Plus Boss UX round 2 per-region chrome (= new requirement) | **1 file, 11/11 tests pass** |
-| Test coverage | **139 new tests passing** (= 128 + 11) |
-| Source LOC added | **~1,775** (= 1,375 + 400) |
+| Plus Boss UX round 2 wire-up (= TabContentDispatcher) | **1 file modified, 3 zones wrapped** |
+| Test coverage (= new followup tests) | **49 + 11 + 128 = 188 tests passing** |
+| Source LOC added (= batch 4) | **~1,021** (TabStripScroll 240 + TrackModel 280 + wire-up 30 + tests 471) |
 
 ## Complete Hermes Pane-Shell Mapping
 
