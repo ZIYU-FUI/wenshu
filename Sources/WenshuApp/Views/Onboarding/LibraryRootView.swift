@@ -168,32 +168,36 @@ private struct WiredShell: View {
         // Icons use LayoutTokens.iconSize (= 18 PT, matches macOS native
         // toolbar button visual size). Boss spec: '就现在 icon 这么大就行'.
         .toolbar {
-            ToolbarItemGroup(placement: .automatic) {
-                Spacer()
-                // Zone toggles (= sidebar / preview / tools / chat / dynamic).
-                // Per Apple HIG Rule 1.3 (toggle checkmarks for on/off
-                // states). When useWorkspace = true, toggles call
-                // PaneVisibilityStore (= new framework). When false
-                // (= legacy path), toggles call LayoutShellView's
-                // @AppStorage state via shared UserDefaults keys.
-                //
-                // v0.28 followup Boss UX round 5 (Boss 2026-08-29 OOB
-                // '右上角标题栏按钮, 能否不要圆形胶囊, 只留 icon, 与
-                // hermes 类似' = use .buttonStyle(.plain) (= removes
-                // macOS native toolbar's default rounded capsule
-                // background). Hermes uses a flat titlebarButtonClass
-                // with hover-only background = icons show without the
-                // rounded background that macOS ToolbarItemGroup adds
-                // by default.
+            // v0.28 followup Boss UX round 6 (Boss 2026-08-29 OOB
+            // '单个是没有了, 但所有的 icon 被包进一个胶囊里了' =
+            // individual .buttonStyle(.plain) removed the per-button
+            // capsule, but ToolbarItemGroup(.automatic) wraps all
+            // items in 1 outer capsule (= macOS native unified toolbar
+            // behavior). Hermes titles use their own DOM (= flat flex
+            // row, no outer container). The SwiftUI equivalent =
+            // individual ToolbarItem(.primaryAction) per icon, with
+            // a leading ToolbarItem(.navigation) holding a Spacer that
+            // pushes everything to the rightmost position. macOS
+            // renders each ToolbarItem as a separate toolbar item
+            // (= no group wrapping).
+            ToolbarItem(placement: .navigation) {
+                // Empty (= used as a layout anchor). SwiftUI's
+                // ToolbarItem(placement: .navigation) accepts only
+                // CustomizableToolbarContent (= Spacer is not).
+                Color.clear
+                    .frame(width: 1, height: 1)
+            }
+            ToolbarItem(placement: .primaryAction) {
                 Button {
                     showProjectSidebar.toggle()
                 } label: {
                     LucideIconSystemFallback("sidebar.left", size: LayoutTokens.iconSize)
                 }
-                .buttonStyle(.plain)  // = no rounded capsule background, icon only (= hermes style)
+                .buttonStyle(.plain)
                 .foregroundStyle(showProjectSidebar ? Color.accentColor : Color.secondary)
                 .help(showProjectSidebar ? "隐藏 项目管理区" : "显示 项目管理区")
-
+            }
+            ToolbarItem(placement: .primaryAction) {
                 Button {
                     showProjectPreview.toggle()
                 } label: {
@@ -202,7 +206,8 @@ private struct WiredShell: View {
                 .buttonStyle(.plain)
                 .foregroundStyle(showProjectPreview ? Color.accentColor : Color.secondary)
                 .help(showProjectPreview ? "隐藏 素材预览区" : "显示 素材预览区")
-
+            }
+            ToolbarItem(placement: .primaryAction) {
                 Button {
                     showSpecializedTools.toggle()
                 } label: {
@@ -211,7 +216,8 @@ private struct WiredShell: View {
                 .buttonStyle(.plain)
                 .foregroundStyle(showSpecializedTools ? Color.accentColor : Color.secondary)
                 .help(showSpecializedTools ? "隐藏 工具区" : "显示 工具区")
-
+            }
+            ToolbarItem(placement: .primaryAction) {
                 Button {
                     showAIChat.toggle()
                 } label: {
@@ -220,7 +226,8 @@ private struct WiredShell: View {
                 .buttonStyle(.plain)
                 .foregroundStyle(showAIChat ? Color.accentColor : Color.secondary)
                 .help(showAIChat ? "隐藏 聊天区" : "显示 聊天区")
-
+            }
+            ToolbarItem(placement: .primaryAction) {
                 Button {
                     showAIDynamic.toggle()
                 } label: {
@@ -229,12 +236,11 @@ private struct WiredShell: View {
                 .buttonStyle(.plain)
                 .foregroundStyle(showAIDynamic ? Color.accentColor : Color.secondary)
                 .help(showAIDynamic ? "隐藏 动态区" : "显示 动态区")
-
+            }
+            ToolbarItem(placement: .primaryAction) {
                 Divider()
-
-                // Model picker (= moved from AppTitlebar's rightTools
-                // to the macOS native toolbar per Boss 2026-08-29 OOB
-                // '放在现在的标题栏上').
+            }
+            ToolbarItem(placement: .primaryAction) {
                 Button {
                     // Model picker opens Settings → Model tab.
                     WenshuAppDelegate.openSettings?()
@@ -243,11 +249,11 @@ private struct WiredShell: View {
                 }
                 .buttonStyle(.plain)
                 .help("模型: \(modelName)")
-
+            }
+            ToolbarItem(placement: .primaryAction) {
                 Divider()
-
-                // Export button (= rightmost, matches old v0.24
-                // Pages-style 3rd capsule per Boss 8/25 25th OOB).
+            }
+            ToolbarItem(placement: .primaryAction) {
                 Button {
                     // Export posts the existing export notification
                     // (= wired up to LayoutShellViewModel's exportEbook).

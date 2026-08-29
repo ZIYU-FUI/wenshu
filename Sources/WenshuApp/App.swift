@@ -1574,91 +1574,92 @@ struct LayoutShellView: View {
                     // + File → 导入… entries remain in the .commands
                     // block below.)
                 }
-                ToolbarItemGroup(placement: .automatic) {
-                    Spacer()
-                    // Zone toggles (= sidebar / preview / tools / chat / dynamic).
-                    // Per Apple HIG Rule 1.3 (toggle checkmarks for
-                    // on/off states). Toggle forwards via
-                    // NotificationCenter to vm (= .commands block can't
-                    // access vm directly per L20).
-                // v0.28 followup Boss UX round 5 (Boss 2026-08-29 OOB
-                // '右上角标题栏按钮, 能否不要圆形胶囊, 只留 icon, 与
-                // hermes 类似' = use .buttonStyle(.plain) (= removes
-                // macOS native toolbar's default rounded capsule
-                // background). Hermes uses a flat titlebarButtonClass
-                // with hover-only background.
-                Button {
-                    showProjectSidebar.toggle()
-                } label: {
-                    LucideIconSystemFallback("sidebar.left", size: LayoutTokens.iconSize)
+                // v0.28 followup Boss UX round 6: Switch from
+                // ToolbarItemGroup(.automatic) (= wraps all items in
+                // one outer capsule) to individual ToolbarItem
+                // (.primaryAction) (= no group wrapping = icons show
+                // as bare icons, matching hermes titlebar style). The
+                // leading ToolbarItem(.navigation) holds a Spacer that
+                // pushes everything to the rightmost position.
+                ToolbarItem(placement: .navigation) {
+                    Color.clear.frame(width: 1, height: 1)
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(showProjectSidebar ? Color.accentColor : Color.secondary)
-                .help(showProjectSidebar ? "隐藏 项目管理区" : "显示 项目管理区")
-
-                Button {
-                    showProjectPreview.toggle()
-                } label: {
-                    LucideIconSystemFallback("eye.fill", size: LayoutTokens.iconSize)
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showProjectSidebar.toggle()
+                    } label: {
+                        LucideIconSystemFallback("sidebar.left", size: LayoutTokens.iconSize)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(showProjectSidebar ? Color.accentColor : Color.secondary)
+                    .help(showProjectSidebar ? "隐藏 项目管理区" : "显示 项目管理区")
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(showProjectPreview ? Color.accentColor : Color.secondary)
-                .help(showProjectPreview ? "隐藏 素材预览区" : "显示 素材预览区")
-
-                Button {
-                    showSpecializedTools.toggle()
-                } label: {
-                    LucideIconSystemFallback("wrench.and.screwdriver", size: LayoutTokens.iconSize)
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showProjectPreview.toggle()
+                    } label: {
+                        LucideIconSystemFallback("eye.fill", size: LayoutTokens.iconSize)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(showProjectPreview ? Color.accentColor : Color.secondary)
+                    .help(showProjectPreview ? "隐藏 素材预览区" : "显示 素材预览区")
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(showSpecializedTools ? Color.accentColor : Color.secondary)
-                .help(showSpecializedTools ? "隐藏 工具区" : "显示 工具区")
-
-                Button {
-                    showAIChat.toggle()
-                } label: {
-                    LucideIconSystemFallback("bubble.left", size: LayoutTokens.iconSize)
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showSpecializedTools.toggle()
+                    } label: {
+                        LucideIconSystemFallback("wrench.and.screwdriver", size: LayoutTokens.iconSize)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(showSpecializedTools ? Color.accentColor : Color.secondary)
+                    .help(showSpecializedTools ? "隐藏 工具区" : "显示 工具区")
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(showAIChat ? Color.accentColor : Color.secondary)
-                .help(showAIChat ? "隐藏 聊天区" : "显示 聊天区")
-
-                Button {
-                    showAIDynamic.toggle()
-                } label: {
-                    LucideIconSystemFallback("chart.bar", size: LayoutTokens.iconSize)
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showAIChat.toggle()
+                    } label: {
+                        LucideIconSystemFallback("bubble.left", size: LayoutTokens.iconSize)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(showAIChat ? Color.accentColor : Color.secondary)
+                    .help(showAIChat ? "隐藏 聊天区" : "显示 聊天区")
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(showAIDynamic ? Color.accentColor : Color.secondary)
-                .help(showAIDynamic ? "隐藏 动态区" : "显示 动态区")
-
-                Divider()
-
-                // Model picker (= moved from AppTitlebar's
-                // rightTools to the macOS native toolbar per Boss
-                // 2026-08-29 OOB '放在现在的标题栏上').
-                Button {
-                    // Model picker opens Settings → Model tab.
-                    WenshuAppDelegate.openSettings?()
-                } label: {
-                    LucideIconSystemFallback("cpu", size: LayoutTokens.iconSize)
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showAIDynamic.toggle()
+                    } label: {
+                        LucideIconSystemFallback("chart.bar", size: LayoutTokens.iconSize)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(showAIDynamic ? Color.accentColor : Color.secondary)
+                    .help(showAIDynamic ? "隐藏 动态区" : "显示 动态区")
                 }
-                .buttonStyle(.plain)
-                .help("模型: \(modelName)")
-
-                Divider()
-
-                // Export button (= rightmost, matches old v0.24
-                // Pages-style 3rd capsule per Boss 8/25 25th OOB).
-                Button {
-                    vm.exportEbook(format: "epub")
-                } label: {
-                    LucideIconSystemFallback("square.and.arrow.up", size: LayoutTokens.iconSize)
+                ToolbarItem(placement: .primaryAction) {
+                    Divider()
                 }
-                .buttonStyle(.plain)
-                .help("导出电子书 (PDF / EPUB / MOBI / TXT)")
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        // Model picker opens Settings → Model tab.
+                        WenshuAppDelegate.openSettings?()
+                    } label: {
+                        LucideIconSystemFallback("cpu", size: LayoutTokens.iconSize)
+                    }
+                    .buttonStyle(.plain)
+                    .help("模型: \(modelName)")
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Divider()
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        vm.exportEbook(format: "epub")
+                    } label: {
+                        LucideIconSystemFallback("square.and.arrow.up", size: LayoutTokens.iconSize)
+                    }
+                    .buttonStyle(.plain)
+                    .help("导出电子书 (PDF / EPUB / MOBI / TXT)")
+                }
             }
-        }
         }
         .onReceive(NotificationCenter.default.publisher(for: .wenshuResetLayout)) { _ in
             vm.reset()
