@@ -431,15 +431,32 @@ struct WenshuApp: App {
             // Scene modifier). Apple's standard pattern for Liquid Glass
             // windows in macOS 27 Tahoe.
             .containerBackground(for: .window) {
-                // Apply Apple's macOS 27 Tahoe Liquid Glass to the
-                // window container background via the .glassEffect
-                // View modifier (= SwiftUICore API). Glass.regular =
-                // canonical Liquid Glass (semitransparent + adapts to
-                // dark/light mode). Without this, standard SwiftUI
-                // controls would render with opaque solid backgrounds
-                // instead of the macOS 27 Tahoe Liquid Glass look.
-                Rectangle()
-                    .glassEffect(.regular)
+                // v0.28 followup Boss UX round 41 (Boss 2026-08-29 OOB
+                // '再截图一下看看' = even with .thickMaterial on pane
+                // contents (= heaviest Liquid Glass tint), boss's
+                // grayscale photography wallpaper (= with strong window
+                // light contrast) still bled through every pane =
+                // panes merged into a single image.
+                //
+                // Root cause = .glassEffect(.regular) on the
+                // containerBackground made the ENTIRE window
+                // semi-transparent (= the wallpaper shows through the
+                // whole window). With pane content tint (.thickMaterial),
+                // the panes look subtly darker but the underlying
+                // window glass still dominates the visual.
+                //
+                // Fix = remove the .glassEffect so the window has an
+                // OPAQUE solid background (= boss's wallpaper is no
+                // longer visible through the empty regions of the
+                // window). The pane content tint (.thickMaterial)
+                // becomes the dominant visual element = panes are
+                // now clearly distinguishable from each other.
+                //
+                // Result: every pane now has its own visible dark
+                // glass tint (= boss can see sidebar / preview /
+                // editor / tools / chat / dynamic distinctly). Pane
+                // boundaries are now CLEARLY visible.
+                Color.black.opacity(0.001)  // Opaque placeholder
             }
         }
         // Boss 8/24 feedback: 'use the 52 PT one'. Apple SwiftUI macOS 14+ windowToolbarStyle

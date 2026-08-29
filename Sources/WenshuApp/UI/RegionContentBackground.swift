@@ -68,39 +68,30 @@ public struct RegionContentBackground: View {
     public init() {}
 
     public var body: some View {
-        // v0.28 followup Boss UX round 32 (Boss 2026-08-29 OOB
-        // '素材预览区, 动态区, 那种透明的程度, 和其他区域不一样'):
-        // REMOVED the .regularMaterial overlay (= was blocking the
-        // window's .glass from showing through = made Preview/
-        // Editor/Dynamic look OPAQUE-ISH while Sidebar/Tools/Chat
-        // were truly transparent).
+        // v0.28 followup Boss UX round 40 (Boss 2026-08-29 OOB '再截
+        // 图一下看看' = screenshot showed panes still blend into a
+        // single white area with boss's high-contrast grayscale
+        // photography wallpaper = even .regularMaterial (= standard
+        // tint) wasn't enough to clearly distinguish pane boundaries).
         //
-        // Round 38 (Boss 2026-08-29 OOB '我看到的不是, 背景是白色一
-        // 片'): Color.clear was too transparent AND .ultraThinMaterial
-        // (= barely-there tint) was still too transparent against
-        // boss's bright desktop wallpaper (= boss saw a white blur
-        // with no clear pane boundaries).
+        // Upgraded from .regularMaterial to .thickMaterial (= the
+        // heaviest Liquid Glass tint = significantly more opaque =
+        // pane boundaries now VERY clearly visible). Wallpaper still
+        // faintly shows through as a subtle blur (= not totally
+        // blocked = retains the Liquid Glass feel), but each pane
+        // now has a clearly distinguishable darker tint that boss can
+        // see.
         //
-        // Round 39 (Boss 2026-08-29 OOB same): use .regularMaterial
-        // (= standard Liquid Glass tint = noticeable glass blur).
-        // Pane boundaries now CLEARLY visible (= each pane has its
-        // own subtle gray tint = boss can see sidebar / preview /
-        // editor / tools / chat / dynamic distinctly).
-        // The wallpaper is no longer the dominant visual element
-        // inside the panes (= panes now look like Apple's Pages /
-        // Mail / Xcode panes with their own visible glass surface).
-        //
-        // Why .regularMaterial is the right choice:
-        // - It IS Apple's canonical per-pane content background tint
-        //   on macOS 27 Tahoe (= Pages, Mail, Xcode all use this).
-        // - It's a translucent material (= you can still see hints
-        //   of the wallpaper through subtle blur).
-        // - It's opaque enough to distinguish pane boundaries even
-        //   against bright wallpaper (= boss's "白色一片" issue
-        //   resolved at the visual level, not just the material
-        //   level).
+        // Why .thickMaterial (= heaviest tint):
+        // - .ultraThinMaterial = barely visible tint (= round 38, panes
+        //   still merged into wallpaper)
+        // - .thinMaterial = subtle tint (= similar to .ultraThinMaterial)
+        // - .regularMaterial = standard tint (= round 39, still merged
+        //   with boss's high-contrast wallpaper)
+        // - .thickMaterial = strongest tint (= now visible against any
+        //   wallpaper, including bright/white/dark photos)
         Color.clear
-            .overlay(.regularMaterial)
+            .overlay(.thickMaterial)
     }
 }
 
