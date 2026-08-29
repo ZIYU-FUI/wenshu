@@ -343,17 +343,30 @@ struct TabContentDispatcher: View {
                 ZoneModuleView(zoneSlot: .specializedTools)
             }
         case .aiChat:
-            // No outer top (= internal ChatZoneTabBar for chat /
-            // search / settings IS the top chrome). NO bottom either
-            // (= chat uses internal ChatBottomToolbar per v0.21 ticket
-            // 10).
+            // v0.28 followup Boss UX round 16 (Boss 2026-08-29 OOB
+            // '聊天区的顶栏消失了' = restoring the chat top tab bar.
+            // Old 6区 had ChatZoneTabBar (= 3 tabs: 对话 / 搜索 / 设置
+            // + archive button on right). The new ChatView doesn't
+            // have an internal tab bar. Restore it via ChatZoneTopChrome
+            // (= simple inline HStack with bot icon + archive icon +
+            // selected underline, matches the Apple HIG canonical
+            // per-pane tab bar style used in 4 general zones).
+            // NO outer ZonePerRegionChrome (= ChatZoneTopChrome IS
+            // the top chrome, single layer).
             ZonePerRegionChrome(
                 topActions: [],
                 bottomStatus: aiChatChrome().bottom,
-                topSkip: true,
-                bottomSkip: true
+                topSkip: true,  // skip outer (= ChatZoneTopChrome IS the top)
+                bottomSkip: true  // chat uses internal ChatBottomToolbar per v0.21 ticket 10
             ) {
-                ZoneModuleView(zoneSlot: .aiChat)
+                ChatView()
+                    .safeAreaInset(edge: .top, spacing: 0) {
+                        // safeAreaInset adds a view above the ChatView
+                        // (= the top chrome) without ChatView needing to
+                        // know about it. Matches macOS 26 Tahoe pattern
+                        // (= content area + small top inset for tab bar).
+                        ChatZoneTopChrome()
+                    }
             }
         case .aiDynamic:
             // No outer top (= internal DynamicZoneTabBar for 进度 /
@@ -459,5 +472,100 @@ private struct GroupTabStrip: View {
             }
         }
         .background(Color.secondary.opacity(0.08))
+    }
+}
+// MARK: - ChatZoneTopChrome (= chat zone top tab bar)
+//
+// v0.28 followup Boss UX round 16 (Boss 2026-08-29 OOB '聊天区的顶栏
+// 消失了'): restore the chat zone top chrome (= old 6区 had
+// ChatZoneTabBar with 3 tabs + archive button). New ChatView
+// doesn't have an internal tab bar. ChatZoneTopChrome provides the
+// single top tab bar (= matches Apple HIG canonical per-pane
+// tab bar style used in 4 general zones via ZoneContentView's
+// ZoneContentTabBar). 1 chat zone = 1 single chrome layer.
+//
+// Visual: HStack with 1 active tab icon (bot = 对话 tab per old
+// 6区) on the left + 1 archive icon on the right, with selected
+// underline accent color (= matches the ZoneContentTabBar style).
+// 28 PT height (= matches LayoutTokens.chatTabHotArea for
+// consistency with the old 6区).
+
+@MainActor
+struct ChatZoneTopChrome: View {
+    @State private var showingArchiveConfirm: Bool = false
+    @Namespace private var tabBarNamespace
+
+    var body: some View {
+        HStack(spacing: 0) {
+            // Left: bot tab (= 对话, currently selected).
+            // 28x28 hot area pattern (= Apple HIG canonical per the
+            // v0.25.1 ticket 018 fix). Lucide-first via existing helper
+            // (= falls back to SF Symbol).
+            tabItem(
+                icon: "bot",
+                label: "对话",
+                isSelected: true
+            )
+            .padding(.leading, 18)
+            Spacer(minLength: 0)
+            // Right: archive icon (= matches old 6区 right-side inbox icon).
+            Button {
+                showingArchiveConfirm = true
+            } label: {
+                Color.clear
+                    .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
+                    .overlay(alignment: .center) {
+                        LucideIconSystemFallback("inbox", size: LayoutTokens.iconSize)
+                            .foregroundStyle(.secondary)
+                    }
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help("归档本次会话")
+            .padding(.trailing, 18)
+        }
+        .frame(height: LayoutTokens.chatTabHotArea)
+        // v0.28 followup Boss UX round 13: use .regularMaterial so the
+        // chat top chrome matches the rest of the Liquid Glass
+        // adaptation (= the same translucency used in the bottom
+        // statusbar + per-region toolbars).
+        .background(.regularMaterial)
+        // Bottom 1 PT separator (= matches old ZoneTopToolbar bottom
+        // splitter + ZoneContentTabBar footer).
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Color(nsColor: .separatorColor))
+                .frame(height: 1)
+        }
+    }
+
+    /// Single tab button (= Apple HIG canonical 28×28 hot area +
+    /// Lucide icon + selected underline). Mirrors ZoneContentTabBar's
+    /// tab pattern (= see Sources/WenshuApp/Views/Dynamic/ZoneContentView.swift).
+    @ViewBuilder
+    private func tabItem(icon: String, label: String, isSelected: Bool) -> some View {
+        Button {
+            // v0.28 followup round 16: chat has only 1 visible tab 当前,
+            // so the click is a no-op. Future expansion (= multiple tabs
+            // per chat zone) hooks here.
+        } label: {
+            Color.clear
+                .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
+                .overlay(alignment: .center) {
+                    LucideIconSystemFallback(icon, size: LayoutTokens.iconSize)
+                        .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+                }
+                .contentShape(Rectangle())
+                .overlay(alignment: .bottom) {
+                    if isSelected {
+                        Rectangle()
+                            .fill(Color.accentColor)
+                            .frame(height: LayoutTokens.tabUnderlineHeight)
+                            .matchedGeometryEffect(id: "chatTabUnderline", in: tabBarNamespace)
+                    }
+                }
+        }
+        .buttonStyle(.plain)
+        .help(label)
     }
 }
