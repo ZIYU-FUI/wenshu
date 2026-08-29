@@ -85,19 +85,39 @@ struct WorkspaceView: View {
     private func renderTabByKind(_ kind: TabKind) -> some View {
         switch kind {
         case .projectSidebar:
-            // NewLibraryOutlineView requires BookStore via @Environment;
-            // = the workspace view reads it from the inherited
-            // environment (= set by LibraryRootView).
-            NewLibraryOutlineView()
+            // v0.28 followup Boss UX round 43 (Boss 2026-08-29 OOB
+            // '看一下项目管理区的位置, Y 轴位置和素材管理区好像没对齐'
+            // = sidebar's top chrome (= "书架" tab + 新建/入驻 buttons
+            // inside NewLibraryOutlineView) was at a different Y than
+            // Preview/Editor/Tools (= which use ZoneContentView with
+            // RegionTabBar = 30 PT tall)). Fix = wrap NewLibraryOutlineView
+            // in ZoneContentView (= 1 "书架" tab + trailing 新建/入驻
+            // buttons via zoneHeaderButtons). Now sidebar uses the same
+            // canonical 30 PT RegionTabBar as the other 3 general
+            // panes (= identical Y position for all 4 top tab bars).
+            //
+            // NewLibraryOutlineView still needs to be inside the tab
+            // content slot (not above/around the tab bar) so its tree
+            // outline is the "书架" tab's content.
+            ZoneContentView(zoneSlug: "projectSidebar", tabs: [
+                ("书架", "book-open", AnyView(NewLibraryOutlineView())),
+            ], trailingButton: AnyView(NewLibraryOutlineView().zoneHeaderButtons))
         case .projectPreview:
             // ZoneModule wraps the world / character / reference
             // preview (= the right sidebar in the legacy LayoutShellView).
             ZoneModuleView(zoneSlot: .projectPreview)
         case .editor:
-            // The editor zone (= center; = main stage per boss 8/27
-            // B1). = v0.27 LayoutShellView uses ZoneContentView here;
-            // = we preserve that mapping.
-            EditorPlaceholder()
+            // v0.28 followup Boss UX round 43: switch from
+            // EditorPlaceholder (= text-only) to real ZoneContentView
+            // (= 3 tabs 编辑 / 大纲 / 反链 + trailing expand/shrink).
+            // This makes editor's top chrome consistent with the other
+            // 3 general panes (= all use RegionTabBar = 30 PT tall at
+            // the same Y).
+            ZoneContentView(zoneSlug: "editor", tabs: [
+                ("编辑", "book-open-text", AnyView(EditorContentPlaceholder())),
+                ("大纲", "puzzle", AnyView(EditorContentPlaceholder())),
+                ("反链", "link", AnyView(EditorContentPlaceholder())),
+            ], trailingButton: AnyView(EditorExpandShrinkTrailingButton()))
         case .specializedTools:
             ZoneModuleView(zoneSlot: .specializedTools)
         case .aiChat:
