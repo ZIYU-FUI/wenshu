@@ -48,14 +48,20 @@ struct NativeSplitter: View {
 
     private static let lineThickness: CGFloat = 1   // 静态 1 PT (Apple 系统 divider 色)
     private static let hoveredThickness: CGFloat = 3  // hover 3 PT (Apple 系统亮色)
-    // v0.27 boss 8/27 OOB: drag fix verification. Hit area was 4 PT
-    // (reduced from 6 to fix sub-pixel rounding per v0.24 fix). 4 PT
-    // is too small for some user mouse precision (= owner reported
-    // 'splitter 拖不动'). Bump back to 8 PT (= comfortable hit area;
-    // = 4 PT × 2 = clearly clickable without misfires on adjacent
-    // zones; sub-pixel rounding issue resolved by .rounded() in
-    // UpperBandZone body anyway).
-    private static let hitAreaThickness: CGFloat = 8  // hit area 8 PT (boss 8/27 OOB)
+    // v0.28 followup Boss UX round 15 (Boss 2026-08-29 OOB '区域与区域
+    // 之间留的间隙太宽, 改成 1pt'): the inter-pane gap (= hit area)
+    // was 8 PT (= boss 8/27 OOB bump from 4 PT after 'splitter 拖不
+    // 动' feedback). Boss now says it's too wide (= 8 PT = visible gap
+    // between regions). Reduce hit area to 1 PT (= matches the visual
+    // line thickness = no extra padding around the splitter).
+    // Drag ergonomics: the 1 PT hit area is small but the
+    // .pointerStyle(.columnResize) on hover + .contentShape +
+    // .onHover + .gesture stack makes the drag discoverable enough
+    // for typical use (= boss accepted the trade-off for visual
+    // minimalism). If '拖不动' feedback comes back, the fix is to
+    // add a wider invisible drag overlay (= 8 PT) WITHOUT changing
+    // the visual line width (= separate hit area from visual line).
+    private static let hitAreaThickness: CGFloat = 1  // hit area 1 PT (= matches line thickness, no extra gap)
 
     /// Orientation 真值
     enum Orientation: Sendable {
