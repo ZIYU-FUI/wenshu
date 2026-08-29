@@ -62,6 +62,12 @@ public struct WenshuChromeOverlay<Content: View>: View {
                 rightItems: statusbarRightItems
             )
         }
+        // v0.28 followup: force minimum size so SwiftUI WindowGroup
+        // doesn't collapse the window to intrinsic content size.
+        // Without this, the window defaults to ~30 PT (= just the
+        // AppTitlebar + nothing) because VStack's intrinsic content
+        // size = sum of fixed-height children only.
+        .frame(minWidth: 1280, minHeight: 720)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

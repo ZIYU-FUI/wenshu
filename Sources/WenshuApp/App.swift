@@ -371,12 +371,13 @@ struct WenshuApp: App {
         // developer.apple.com/documentation/SwiftUI/WindowToolbarStyle,
         // .unified is the default style (52 PT). .unifiedCompact is
         // COMPACT (= smaller, NOT default). Boss spec 'default size' = .unified.
-        // v0.28 followup (Boss 2026-08-29 OOB '完整复刻 hermes app'):
-        // .expanded (= 0 PT macOS native toolbar; our AppTitlebar 34 PT
-        // custom handles the titlebar). .unified kept commented below
-        // for reference.
-        .windowToolbarStyle(.expanded)  // 0 PT native; WenshuChromeOverlay provides 34 PT AppTitlebar
-        // .windowToolbarStyle(.unified(showsTitle: false))  // 52 PT default toolbar, title hidden
+        // v0.28 followup (Boss 2026-08-29 OOB '调试视图框架'): reverted to
+        // .unified (52 PT) for now because .expanded was making macOS
+        // WindowServer reject the Wenshu window creation. Re-add custom
+        // chrome in a follow-up commit.
+        .windowToolbarStyle(.unified(showsTitle: false))  // 52 PT default toolbar, title hidden
+        // .windowToolbarStyle(.automatic)  // 0 PT native; WenshuChromeOverlay provides 34 PT AppTitlebar
+        // .windowToolbarStyle(.expanded)  // 0 PT native; WenshuChromeOverlay provides 34 PT AppTitlebar
         .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // Boss Sketch design baseline 1920x984 PT
         // v0.24 boss验收fix: .contentMinSize (window doesn't shrink below initial
         // size, can grow to fit larger content).
@@ -1077,6 +1078,13 @@ private struct ProviderKeyInputSheet: View {
                     version: "v0.28"
                 )
             ) {
+                // v0.28 followup (Boss 2026-08-29 OOB '调试视图框架'):
+                // TEMPORARILY removed WenshuChromeOverlay (= was making
+                // the window collapse to 30 PT and triggering macOS
+                // WindowServer rejection prompts). Use raw LibraryRootView
+                // for now to verify the view framework works without
+                // the custom chrome. Re-add chrome after basic Wenshu
+                // window is confirmed visible.
                 LibraryRootView()
             }
             .frame(minWidth: 1280, minHeight: 720)
@@ -1084,20 +1092,10 @@ private struct ProviderKeyInputSheet: View {
             .preferredColorScheme(appearanceMode.colorScheme)
             .onAppear {
                 WenshuAppDelegate.openSettings = openSettings
-                // v0.28 followup (Boss 2026-08-29 OOB 'wenshu 为什么有两层窗口'):
-                // hide the macOS native titlebar AFTER the SwiftUI WindowGroup
-                // creates the actual NSWindow (= NSApp.windows is empty at
-                // applicationDidFinishLaunching time; SwiftUI windows are
-                // created lazily when the scene becomes active).
-                DispatchQueue.main.async {
-                    for window in NSApp.windows where window.contentView != nil {
-                        window.titlebarAppearsTransparent = true
-                        window.titleVisibility = .hidden
-                        if !window.styleMask.contains(.fullSizeContentView) {
-                            window.styleMask.insert(.fullSizeContentView)
-                        }
-                    }
-                }
+                // v0.28 followup (Boss 2026-08-29 OOB '调试视图框架'):
+                // removed the titlebar hide loop (= was causing
+                // re-render loop). Re-add with proper delay in a
+                // follow-up commit.
             }
             // v0.28 ticket 028-006 followup: ⌘⇧\ hotkey + Escape
             // exit at the top-level wrapper (= not just inside
