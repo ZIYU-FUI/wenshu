@@ -131,7 +131,7 @@ public struct TipModifier: ViewModifier {
                 Text(keybind)
                     .font(.system(size: 10, weight: .medium, design: .monospaced))
                     .foregroundColor(.secondary)
-                    .padding(.horizontal, 4)
+                    .padding(.horizontal, LayoutTokens.chromePaddingSmall)
                     // v0.28 followup Boss UX round 19 (Boss 2026-08-29
                     // OOB '所有区域的顶栏, 底栏, 背景, 用的颜色, 可
                     // 以适配液态玻璃吗'): keybind chip background =
@@ -144,8 +144,8 @@ public struct TipModifier: ViewModifier {
                     )
             }
         }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 3)
+        .padding(.horizontal, LayoutTokens.chromePaddingMedium)
+        .padding(.vertical, LayoutTokens.chromePaddingSmall - 1)
         // v0.28 followup Boss UX round 19: tooltip background =
         // .regularMaterial (= Apple standard tooltip Liquid Glass =
         // matches macOS tooltip look in Pages / Mail / Xcode). Per

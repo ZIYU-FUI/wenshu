@@ -157,7 +157,7 @@ public struct AppStatusbar: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .trailing)
                 }
-                .padding(.horizontal, 6)
+                .padding(.horizontal, LayoutTokens.chromePaddingMedium)
                 .frame(height: kStatusbarItemHeight)
                 // v0.28 followup Boss UX round 13 (Boss 2026-08-29 OOB
                 // '其他区域背景, 组件什么的, 有没有需要适配液态玻璃的'):
@@ -227,7 +227,7 @@ private struct StatusbarItemView: View {
                 }
             }
             .foregroundColor(.secondary)
-            .padding(.horizontal, 6)
+            .padding(.horizontal, LayoutTokens.chromePaddingMedium)
             .frame(height: kStatusbarItemHeight)
             .background(
                 isHover

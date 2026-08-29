@@ -346,7 +346,7 @@ public struct ChatView: View {
             // baseline (= boss corrected ticket 030's HStack 8→16
             // change as wrong, = the gap is ABOVE the textfield not
             // between textfield and send button), TextField gains
-            // .padding(.top, 8) (= 8 PT gap above the textfield,
+            // .padding(.top, LayoutTokens.chromePaddingLarge) (= 8 PT gap above the textfield,
             // = the actual boss OOB intent).
             // v0.25.1 (= ticket 031 chat send button vertical
             // center alignment): owner 2026-08-26 OOB '按钮也
@@ -418,7 +418,7 @@ public struct ChatView: View {
             // alignment IS the answer, but with natural heights,
             // not forced 32 PT).
             // Final approach (= this ticket 033 final 2):
-            // 1. drop .padding(.top, 8) on TextField (= boss OOB
+            // 1. drop .padding(.top, LayoutTokens.chromePaddingLarge) on TextField (= boss OOB
             //    interpreted '水平居中' as 'remove my 8 PT top
             //    padding that's making the visual center off').
             // 2. drop .frame(height: 32) on TextField (= use natural
@@ -561,8 +561,8 @@ public struct ChatView: View {
                     //    .lineLimit(1...4). The Send button stays
                     //    bottom-anchored via HStack(alignment: .bottom).
                     //
-                    // Why .frame(minHeight: 30) and not .frame(height: 30):
-                    // - .frame(height: 30) PIN the textfield to 30 PT
+                    // Why .frame(minHeight: 30) and not .frame(height: LayoutTokens.chromeControlHeight):
+                    // - .frame(height: LayoutTokens.chromeControlHeight) PIN the textfield to 30 PT
                     //   regardless of content (= would block the auto-grow
                     //   from round 25).
                     // - .frame(minHeight: 30) ONLY enforces a minimum
@@ -644,7 +644,7 @@ public struct ChatView: View {
                 // 1 PT separator border + tint-on-hover effect.
                 // The icon shrinks to 18 PT (= matches Apple's
                 // canonical glyph size for secondary toolbar buttons
-                // per Liquid Glass HIG). .frame(height: 30) keeps
+                // per Liquid Glass HIG). .frame(height: LayoutTokens.chromeControlHeight) keeps
                 // the button at Apple's standard control height
                 // (= same as the TextField so they align flush).
                 // v0.28 followup Boss UX round 27 (Boss 2026-08-29
@@ -657,7 +657,7 @@ public struct ChatView: View {
                 // controlSize regular).
                 .buttonStyle(.bordered)
                 .controlSize(.regular)  // 24 PT control height (= boss OOB)
-                .frame(height: 30)
+                .frame(height: LayoutTokens.chromeControlHeight)
                 .disabled(vm.inputText.isEmpty || vm.isSending)
                 // v0.28 followup Boss UX round 20 (Boss 2026-08-29 OOB
                 // '文本框和发送按钮位置上水平对齐'): REMOVED the

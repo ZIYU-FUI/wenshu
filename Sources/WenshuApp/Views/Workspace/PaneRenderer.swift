@@ -428,8 +428,8 @@ private struct GroupTabStrip: View {
                         Text(label)
                             .font(.system(size: 11))
                             .lineLimit(1)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
+                            .padding(.horizontal, LayoutTokens.chromePaddingLarge)
+                            .padding(.vertical, LayoutTokens.chromePaddingSmall)
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.plain)
@@ -443,8 +443,8 @@ private struct GroupTabStrip: View {
                         // in 028-007 when we have a tab icon asset).
                         Text(label)
                             .font(.system(size: 11))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
+                            .padding(.horizontal, LayoutTokens.chromePaddingLarge)
+                            .padding(.vertical, LayoutTokens.chromePaddingSmall)
                             .background(Color.accentColor.opacity(0.25))
                     }
                     // Close button (= ticket 028-004b3): per
@@ -523,7 +523,7 @@ struct ChatZoneTopChrome: View {
                     label: "对话",
                     isSelected: true
                 )
-                .padding(.leading, 18)
+                .padding(.leading, LayoutTokens.chromePaddingLeading)
                 Spacer(minLength: 0)
                 // Right: archive icon (= matches old 6区 right-side inbox icon).
                 Button {
@@ -539,7 +539,7 @@ struct ChatZoneTopChrome: View {
                 }
                 .buttonStyle(.plain)
                 .help("归档本次会话")
-                .padding(.trailing, 18)
+                .padding(.trailing, LayoutTokens.chromePaddingTrailing)
             }
         }
     }

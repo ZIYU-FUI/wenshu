@@ -176,15 +176,15 @@ public struct ZonePerRegionChrome<Content: View>: View {
                         }
                     }
                 }
-                .padding(.leading, 18)
-                .padding(.top, 6)
+                .padding(.leading, LayoutTokens.chromePaddingLeading)
+                .padding(.top, LayoutTokens.chromePaddingMedium)
                 Spacer(minLength: 0)
                 // Right: placeholder text (= matches old "占位文字").
                 Text(topActions.isEmpty ? "占位文字" : "")
                     .font(.system(size: 13))
                     .foregroundStyle(.tertiary)
-                    .padding(.trailing, 18)
-                    .padding(.top, 8)
+                    .padding(.trailing, LayoutTokens.chromePaddingTrailing)
+                    .padding(.top, LayoutTokens.chromePaddingLarge)
             }
             // v0.28 followup Boss UX round 29: kZoneToolbarHeight = 30 PT
             // (was -1 = 29 PT, leftover from old separator-outside-bar
@@ -210,16 +210,16 @@ public struct ZonePerRegionChrome<Content: View>: View {
                 Text(bottomStatus.left.isEmpty ? "占位文字" : bottomStatus.left)
                     .font(.system(size: 13))
                     .foregroundStyle(.tertiary)
-                    .padding(.leading, 18)
-                    .padding(.bottom, 6)
+                    .padding(.leading, LayoutTokens.chromePaddingLeading)
+                    .padding(.bottom, LayoutTokens.chromePaddingMedium)
                     .allowsHitTesting(false)
                 Spacer(minLength: 0)
                 // Right: rightStatus text (= matches old .overlay(alignment: .bottomTrailing)).
                 Text(bottomStatus.right.isEmpty ? "" : bottomStatus.right)
                     .font(.system(size: 13))
                     .foregroundStyle(.tertiary)
-                    .padding(.trailing, 18)
-                    .padding(.bottom, 6)
+                    .padding(.trailing, LayoutTokens.chromePaddingTrailing)
+                    .padding(.bottom, LayoutTokens.chromePaddingMedium)
                     .allowsHitTesting(false)
             }
             // v0.28 followup Boss UX round 29 (Boss 2026-08-29 OOB

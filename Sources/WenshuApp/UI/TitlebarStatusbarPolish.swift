@@ -95,7 +95,7 @@ public struct StatusbarActionStyle: ViewModifier {
 
     public func body(content: Content) -> some View {
         content
-            .padding(.horizontal, 6)
+            .padding(.horizontal, LayoutTokens.chromePaddingMedium)
             // v0.28 followup Boss UX round 24: .thinMaterial (= light
             // Liquid Glass) replaces Color(nsColor: .controlBackgroundColor)
             // .opacity(0.4) for the statusbar item hover wash.
