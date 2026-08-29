@@ -1082,7 +1082,23 @@ private struct ProviderKeyInputSheet: View {
             .frame(minWidth: 1280, minHeight: 720)
             .environment(library)
             .preferredColorScheme(appearanceMode.colorScheme)
-            .onAppear { WenshuAppDelegate.openSettings = openSettings }
+            .onAppear {
+                WenshuAppDelegate.openSettings = openSettings
+                // v0.28 followup (Boss 2026-08-29 OOB 'wenshu 为什么有两层窗口'):
+                // hide the macOS native titlebar AFTER the SwiftUI WindowGroup
+                // creates the actual NSWindow (= NSApp.windows is empty at
+                // applicationDidFinishLaunching time; SwiftUI windows are
+                // created lazily when the scene becomes active).
+                DispatchQueue.main.async {
+                    for window in NSApp.windows where window.contentView != nil {
+                        window.titlebarAppearsTransparent = true
+                        window.titleVisibility = .hidden
+                        if !window.styleMask.contains(.fullSizeContentView) {
+                            window.styleMask.insert(.fullSizeContentView)
+                        }
+                    }
+                }
+            }
             // v0.28 ticket 028-006 followup: ⌘⇧\ hotkey + Escape
             // exit at the top-level wrapper (= not just inside
             // WorkspaceView) so the keyboard shortcut works

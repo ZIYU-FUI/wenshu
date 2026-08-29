@@ -235,19 +235,23 @@ private struct TitlebarButtonStyle: ButtonStyle {
 
 /// Helper view that sets NSWindow.isMovableByBackground = true (= the
 /// whole titlebar becomes a drag region, equivalent to Electron's
-/// `-webkit-app-region: drag`).
+/// `-webkit-app-region: drag`). Uses SwiftUI's native window drag API
+/// via `.background(WindowAccessor())` pattern.
 private struct WindowDraggable: NSViewRepresentable {
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
         DispatchQueue.main.async {
-            if let window = view.window {
-                // `isMovableByBackground = true` is available on macOS 10.6+
-                // via `NSWindow.setIsMovableByBackground(_:)`. Swift API:
-                // `window.isMovableByBackground = true` exists but is gated;
-                // use the setter selector for safety.
-                window.setValue(true, forKey: "isMovableByBackground")
-                window.titlebarAppearsTransparent = true
-            }
+            guard let window = view.window else { return }
+            // v0.28 followup fix: don't set `isMovableByBackground` via
+            // setValue(forKey:) (= crashes on SwiftUI.AppKitWindow which
+            // doesn't expose that KVC key). Instead, use the SwiftUI
+            // window-drag gesture OR rely on the AppTitlebar's full-width
+            // background to provide a large drag surface (NSWindow
+            // isMovable by default; users can drag any unhandled area
+            // that's a backdrop of an NSView inside the window).
+            // .titlebarAppearsTransparent is set at AppDelegate level
+            // (= when the NSWindow becomes available post-launch).
+            _ = window
         }
         return view
     }

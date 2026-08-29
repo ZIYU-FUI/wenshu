@@ -48,6 +48,13 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
     public init() {}
 
     public func saveKeySync(_ key: String, for provider: Provider) throws {
+        // v0.28 followup (Boss 2026-08-29 OOB '注释掉密码功能'): bypass
+        // macOS Keychain entirely. Real SecItemAdd would trigger the
+        // SecurityAgent modal prompt. Stub returns success.
+        // Restore the real implementation when boss returns to Mac and
+        // is ready to enter the real password.
+        return
+        /*
         guard !key.isEmpty else { throw ProviderKeychainError.invalidKeyFormat }
         let keyData = Data(key.utf8)
         let account = "\(provider.slug).api.key"
@@ -71,9 +78,18 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
         ]
         let status = SecItemAdd(addQuery as CFDictionary, nil)
         guard status == errSecSuccess else { throw ProviderKeychainError.keychainStatus(status) }
+        */
     }
 
     public func loadKeySync(for provider: Provider) -> String? {
+        // v0.28 followup (Boss 2026-08-29 OOB '注释掉密码功能'): bypass
+        // macOS Keychain entirely (= avoid SecurityAgent modal prompt).
+        // Returns a debug key string so LLM calls can complete the
+        // request flow without prompting for user credentials.
+        // Restore the real SecItemCopyMatching code below when boss
+        // returns to Mac and is ready to enter the real password.
+        return "wenshu.debug.api.key"
+        /*
         let account = "\(provider.slug).api.key"
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -86,9 +102,13 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
         let status = SecItemCopyMatching(query as CFDictionary, &item)
         guard status == errSecSuccess, let data = item as? Data else { return nil }
         return String(data: data, encoding: .utf8)
+        */
     }
 
     public func deleteKeySync(for provider: Provider) throws {
+        // v0.28 followup (Boss 2026-08-29 OOB '注释掉密码功能'): bypass.
+        return
+        /*
         let account = "\(provider.slug).api.key"
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -99,9 +119,13 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
         guard status == errSecSuccess || status == errSecItemNotFound else {
             throw ProviderKeychainError.keychainStatus(status)
         }
+        */
     }
 
     public func listProvidersWithKeys() -> [String] {
+        // v0.28 followup (Boss 2026-08-29 OOB '注释掉密码功能'): bypass.
+        return []
+        /*
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: AppleKeychainStore.service,
@@ -113,6 +137,7 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
         guard status == errSecSuccess, let array = items as? [[String: Any]] else { return [] }
         return array.compactMap { $0[kSecAttrAccount as String] as? String }
             .compactMap { $0.hasSuffix(".api.key") ? String($0.dropLast(".api.key".count)) : nil }
+        */
     }
 }
 
@@ -150,7 +175,12 @@ public final class InMemoryKeychainStore: ProviderKeychainStoring, @unchecked Se
 /// Delegates to `ProviderKeychain.backend` (default = AppleKeychainStore for production).
 /// Tests override `backend` via `setBackendForTesting()`.
 public enum ProviderKeychain {
-    public nonisolated(unsafe) static var backend: any ProviderKeychainStoring = AppleKeychainStore()
+    // v0.28 followup (Boss 2026-08-29 OOB '注释掉密码功能'): changed
+    // default backend to InMemoryKeychainStore so the app doesn't
+    // touch the Security framework at launch (= avoids the
+    // SecurityAgent modal prompt). The real AppleKeychainStore can
+    // still be used by explicit `setBackendForTesting` for tests.
+    public nonisolated(unsafe) static var backend: any ProviderKeychainStoring = InMemoryKeychainStore()
 
     /// Test-only override. Production code must never call this.
     public static func setBackendForTesting(_ store: any ProviderKeychainStoring) {
