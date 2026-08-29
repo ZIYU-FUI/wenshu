@@ -157,7 +157,10 @@ public struct ZonePerRegionChrome<Content: View>: View {
                     if topActions.isEmpty {
                         // Placeholder mode: render empty 30 PT strip (= backward
                         // compatible with old "占位文字" mode).
-                        Color.clear.frame(width: 1, height: kZoneToolbarHeight - 1)
+                        // v0.28 followup Boss UX round 29: matches
+                        // kZoneToolbarHeight = 30 PT (was -1 = 29 PT,
+                        // leftover from old separator-outside-bar design).
+                        Color.clear.frame(width: 1, height: kZoneToolbarHeight)
                     } else {
                         ForEach(topActions) { action in
                             Button {
@@ -183,7 +186,10 @@ public struct ZonePerRegionChrome<Content: View>: View {
                     .padding(.trailing, 18)
                     .padding(.top, 8)
             }
-            .frame(height: kZoneToolbarHeight - 1)
+            // v0.28 followup Boss UX round 29: kZoneToolbarHeight = 30 PT
+            // (was -1 = 29 PT, leftover from old separator-outside-bar
+            // design). Now matches ZoneContentTabBar + bottom bar height.
+            .frame(height: kZoneToolbarHeight)
             // v0.28 followup Boss UX round 13 (Boss 2026-08-29 OOB
             // '其他区域背景, 组件什么的, 有没有需要适配液态玻璃的'):
             // Use .regularMaterial (= macOS 26 Tahoe Liquid Glass
@@ -216,7 +222,20 @@ public struct ZonePerRegionChrome<Content: View>: View {
                     .padding(.bottom, 6)
                     .allowsHitTesting(false)
             }
-            .frame(height: kZoneToolbarHeight - 1)
+            // v0.28 followup Boss UX round 29 (Boss 2026-08-29 OOB
+            // '库管理区的顶栏高度看起来像是少了 1pt, 底栏少了分隔线'):
+            // was .frame(height: kZoneToolbarHeight - 1) = 29 PT (= 1 PT
+            // less than the canonical 30 PT chrome height). The '- 1'
+            // was a leftover from when the bottom separator was rendered
+            // outside the bar (= total = bar + separator = 30 PT). Now
+            // that the separator is overlaid inside the bar's bottom
+            // edge, the bar should be the full 30 PT (= matches
+            // ZoneContentTabBar height + matches the unified kChromeHeight
+            // from round 26). The overlay separator still draws at the
+            // bottom edge, but the bar's background material now fills
+            // all 30 PT (= no 1 PT gap between the bar's bottom and
+            // the separator line).
+            .frame(height: kZoneToolbarHeight)
             .background(.regularMaterial)
             // Bottom splitter line (= matches old ZoneTopToolbar bottom splitter).
             // v0.28 followup Boss UX round 26: Apple HierarchicalShapeStyle
