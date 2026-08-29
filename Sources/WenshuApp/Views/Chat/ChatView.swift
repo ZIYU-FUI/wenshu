@@ -538,19 +538,37 @@ public struct ChatView: View {
                         if let lucide = Lucide("send") {
                             lucide
                                 .aspectRatio(contentMode: .fit)
-                                .frame(width: 24, height: 24)  // v0.25.1 ticket 038 final 2: pin icon size to 24 PT (= button visual height per boss OOB '文本框比按钮高 10PT 以上' = textfield = 47 px tall vs button = 47 px tall = same height but icon offset from textfield text = icon center y=59.5 vs text center y=52 = icon 8 px too low = need to enlarge icon to match button visual box, not just 16 PT)
+                                .frame(width: 18, height: 18)  // v0.28 followup Boss UX round 18: shrink to 18 PT (= matches macOS HIG secondary button glyph size = 13-16 PT, but slightly larger to read clearly inside the bordered Liquid Glass capsule)
                         } else {
                             // v0.27 boss 8/27 OOB: replace SF Symbol 'paperplane.fill'
                             // with the closest Lucide equivalent = 'send'.
                             // Lucide 'send' exists (= paper-plane in 24x24 viewBox);
                             // LucideIcon.fromSystemSymbol helper handles the lookup
                             // + fallback chain.
-                            LucideIconSystemFallback("paperplane.fill", size: 24)
+                            LucideIconSystemFallback("paperplane.fill", size: 18)
                         }
                     }
                 }
-                .buttonStyle(.plain)  // v0.25.1 ticket 038 final 5: keep .plain (= no minimum height constraint). DON'T change button .frame(height:) = revert to .frame(height: 24) per boss OOB '不要改按钮的高度'. Button visual height will be determined by SwiftUI natural rendering + Lucide icon frame.
-                .frame(height: 24)  // v0.25.1 ticket 038 final 5: revert to .frame(height: 24) per boss OOB '不要改按钮的高度 按钮和文本框一样高 只调按钮的位置'. Boss said don't change button height, only adjust position (= vertical center alignment).
+                // v0.28 followup Boss UX round 18 (Boss 2026-08-29 OOB
+                // '输入信息右边的发送按钮, 用液态玻璃默认按钮的样式,
+                // 换一个'): Use .bordered = the standard macOS Liquid
+                // Glass secondary button style (= Apple's canonical
+                // "default button" look in macOS 26 Tahoe). Per Apple
+                // developer.apple.com/documentation/SwiftUI/PrimitiveButtonStyle,
+                // .bordered renders a translucent rounded capsule
+                // (= Liquid Glass material in macOS 26+) with a
+                // 1 PT separator border + tint-on-hover effect.
+                // The icon shrinks to 18 PT (= matches Apple's
+                // canonical glyph size for secondary toolbar buttons
+                // per Liquid Glass HIG). .frame(height: 24) keeps
+                // the button at Apple's standard control height
+                // (= same as the TextField so they align flush).
+                // The button visual now looks like Pages / Mail /
+                // Messages "Send" button (= the macOS canonical
+                // Liquid Glass secondary action button).
+                .buttonStyle(.bordered)
+                .controlSize(.regular)  // 24 PT control height (= matches TextField height)
+                .frame(height: 24)
                 .disabled(vm.inputText.isEmpty || vm.isSending)
                 .padding(.top, 16)  // v0.25.1 ticket 037: 8 PT additional outer top margin per boss OOB '文本框上面 8PT 不够 再加 8 吧' (= 8 PT existing + 8 PT new = 16 PT total outer top margin on chat input HStack)
             }
