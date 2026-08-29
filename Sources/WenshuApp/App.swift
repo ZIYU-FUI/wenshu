@@ -621,6 +621,14 @@ struct SettingView: View {
     // WenshuConductorIdentity.userAddress reads this key at LLM call time.
     // Boss 8/24 clarification: default = 'user' (not 'boss' = hermes-side convention).
     @AppStorage("wenshu.userAddress") private var userAddress: String = "user"
+    // v0.28 followup Boss UX round 49 (Boss 2026-08-29 OOB '在设置里加一个功能,
+    // 液态玻璃透明度调节' = Liquid Glass opacity slider). User can tune
+    // how strong the per-pane Liquid Glass tint is (= 0.0 = fully transparent
+    // wallpaper shows through / 1.0 = pane is solid). Stored in @AppStorage
+    // so it persists across launches. Applied via LiquidGlassOpacity environment
+    // value (= RegionContentBackground, RegionTabBar, RegionStatusBar
+    // all read this value to compute their material strength).
+    @AppStorage("wenshu.liquidGlassOpacity") private var liquidGlassOpacity: Double = 0.5
 
     private var selectedTab: SettingsTab {
         get { SettingsTab(rawValue: selectedTabRaw) ?? .general }
@@ -724,6 +732,28 @@ struct SettingView: View {
                     }
                 }
                 .pickerStyle(.radioGroup)
+            }
+            Section("液态玻璃") {
+                // v0.28 followup Boss UX round 49 (Boss 2026-08-29 OOB
+                // '在设置里加一个功能, 液态玻璃透明度调节'): Slider for
+                // Liquid Glass opacity. 0.0 = fully transparent (= no
+                // tint, wallpaper 100% visible), 0.5 = default (= subtle
+                // glass tint), 1.0 = strong tint (= pane is darker, less
+                // wallpaper visible). Live preview via LiquidGlassOpacity
+                // environment value = applies immediately to all panes.
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("液态玻璃透明度")
+                        Spacer()
+                        Text("\(Int(liquidGlassOpacity * 100))%")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+                    Slider(value: $liquidGlassOpacity, in: 0.0...1.0, step: 0.05)
+                    Text("0% = 完全透明 · 50% = 默认 · 100% = 强烈 tint")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
             }
             Section("Agent user address") {
                 // v0.24 fix (Boss 8/24 OOB): user-set value for agent-to-user address.
@@ -1147,6 +1177,13 @@ private struct ProviderKeyInputSheet: View {
         /// useWorkspace on, would already be ON — saves them a second
         /// keystroke).
         @State private var editMode = LayoutEditMode()
+    // v0.28 followup Boss UX round 49 (Boss 2026-08-29 OOB
+    // '在设置里加一个功能, 液态玻璃透明度调节'): bridge the
+    // SettingView's @AppStorage slider value to the SwiftUI
+    // environment via .liquidGlassOpacityEnvironment (= injected
+    // below in body). Default = 0.5 (= subtle glass tint = matches
+    // the existing pane look).
+    @AppStorage("wenshu.liquidGlassOpacity") private var liquidGlassOpacity: Double = 0.5
         // v0.28 followup (Boss 2026-08-29 OOB '完整复刻 hermes app'): model
         // name + context usage state (= feeds the titlebar/statusbar chrome).
         @AppStorage("wenshu.llm.model") private var modelName: String = "MiniMax-M3"
@@ -1200,6 +1237,14 @@ private struct ProviderKeyInputSheet: View {
             .frame(minWidth: 1280, minHeight: 720)
             .environment(library)
             .preferredColorScheme(appearanceMode.colorScheme)
+            // v0.28 followup Boss UX round 49 (Boss 2026-08-29 OOB
+            // '在设置里加一个功能, 液态玻璃透明度调节'): inject the
+            // Liquid Glass opacity value (from @AppStorage slider in
+            // SettingView) into the SwiftUI environment so all per-pane
+            // chrome (= RegionContentBackground, RegionTabBar,
+            // RegionStatusBar) can read it and apply the right tint
+            // strength.
+            .liquidGlassOpacityEnvironment(liquidGlassOpacity)
             .onAppear {
                 WenshuAppDelegate.openSettings = openSettings
                 // v0.28 followup (Boss 2026-08-29 OOB '调试视图框架'):

@@ -67,24 +67,42 @@ import SwiftUI
 public struct RegionContentBackground: View {
     public init() {}
 
+    // v0.28 followup Boss UX round 49 (Boss 2026-08-29 OOB
+    // '在设置里加一个功能, 液态玻璃透明度调节'): read the user's
+    // Liquid Glass opacity preference from the SwiftUI environment
+    // (= set by `SettingView.liquidGlassOpacity` AppStorage slider
+    // and propagated via .liquidGlassOpacityEnvironment from the root
+    // view). Default = 0.5 (= subtle glass tint = matches the
+    // existing pane look when no slider value is set).
+    @Environment(\.liquidGlassOpacity) private var liquidGlassOpacity: Double
+
     public var body: some View {
-        // v0.28 followup Boss UX round 47 (Boss 2026-08-29 OOB
-        // '项目管理区总是很特别, 项目管理区和素材预览区中间的分隔线
-        // 和其他区域都不同' = the .regularMaterial / .thickMaterial
-        // overlays were covering the divider lines between panes.
-        // Tried lowering to .regularMaterial (= round 47) = still
-        // covered the divider.
+        // v0.28 followup Boss UX round 49 (Boss 2026-08-29 OOB
+        // '在设置里加一个功能, 液态玻璃透明度调节'): maps the
+        // `liquidGlassOpacity` environment value (= 0.0 to 1.0) to a
+        // SwiftUI Material strength (= 4 discrete levels, gradient
+        // between them so the slider feels smooth):
+        // - 0.00 - 0.24 = Color.clear (= no tint, full wallpaper visibility)
+        // - 0.25 - 0.49 = .ultraThinMaterial (= subtle glass tint)
+        // - 0.50 - 0.74 = .regularMaterial (= standard glass tint)
+        // - 0.75 - 1.00 = .thickMaterial (= strong tint, dividers may
+        //   be covered = balanced with pane visibility requirement)
         //
-        // Round 48 (this commit): REMOVED the material overlay entirely.
-        // The pane background is now plain Color.clear (= truly
-        // transparent). Pane visibility comes from the window-level
-        // .glass containerBackground (= set in App.swift round 41) +
-        // the 1 PT .separator at the bottom of RegionTabBar/RegionStatusBar
-        // (= pane boundaries visible via the tab/status bars' separators).
-        // Divider lines between panes (rendered by NativeSplitter at
-        // 1 PT Apple .separator ShapeStyle) are now FULLY visible
-        // from top to bottom (= no material covering them).
-        Color.clear
+        // Boss can tune in Settings → 通用 → 液态玻璃 slider.
+        // Slider value updates immediately via @AppStorage = no need
+        // to restart the app.
+        if liquidGlassOpacity < 0.25 {
+            Color.clear
+        } else if liquidGlassOpacity < 0.5 {
+            Color.clear
+                .overlay(.ultraThinMaterial)
+        } else if liquidGlassOpacity < 0.75 {
+            Color.clear
+                .overlay(.regularMaterial)
+        } else {
+            Color.clear
+                .overlay(.thickMaterial)
+        }
     }
 }
 
