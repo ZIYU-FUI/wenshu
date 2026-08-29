@@ -31,10 +31,15 @@ public struct TitlebarControlStyle: ButtonStyle {
             // Liquid Glass) replaces Color(nsColor: .controlBackgroundColor)
             // .opacity(0.5) for the titlebar/statusbar button press
             // background. .thinMaterial is the canonical Apple HIG
-            // tint for pressed controls on macOS 26 Tahoe.
+            // v0.28 followup Boss UX round 35 (Boss 2026-08-29 OOB '各区域的
+            // 完整代码, 关于样式的, 不统一'): use the canonical
+            // RegionHoverWashStyle (= single source of truth for
+            // hover/pressed wash across the app) instead of ad-hoc
+            // Color.clear.overlay(.thinMaterial) (= same visual
+            // result but single source of truth = easier to maintain).
             .background {
                 if configuration.isPressed {
-                    Color.clear.overlay(.thinMaterial)
+                    Color.clear.overlay(RegionHoverWashStyle())
                 } else {
                     Color.clear
                 }
@@ -96,12 +101,13 @@ public struct StatusbarActionStyle: ViewModifier {
     public func body(content: Content) -> some View {
         content
             .padding(.horizontal, LayoutTokens.chromePaddingMedium)
-            // v0.28 followup Boss UX round 24: .thinMaterial (= light
-            // Liquid Glass) replaces Color(nsColor: .controlBackgroundColor)
-            // .opacity(0.4) for the statusbar item hover wash.
+            // v0.28 followup Boss UX round 35 (Boss 2026-08-29 OOB '各区域的
+            // 完整代码, 关于样式的, 不统一'): use canonical
+            // RegionHoverWashStyle (= single source of truth for
+            // hover/pressed wash = .thinMaterial).
             .background {
                 if isHover && !disabled {
-                    Color.clear.overlay(.thinMaterial)
+                    Color.clear.overlay(RegionHoverWashStyle())
                 } else {
                     Color.clear
                 }

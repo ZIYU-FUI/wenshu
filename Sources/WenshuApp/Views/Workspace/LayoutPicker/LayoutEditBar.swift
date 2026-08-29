@@ -122,10 +122,13 @@ struct LayoutEditBar: View {
                         // v0.28 followup Boss UX round 24: .thinMaterial
                         // (= light Liquid Glass) replaces the solid
                         // Color.secondary.opacity(0.15) tint for the
-                        // selected preset highlight background.
+                        // v0.28 followup Boss UX round 35 (Boss 2026-08-29 OOB '各区域的
+                        // 完整代码, 关于样式的, 不统一'): use canonical
+                        // RegionHoverWashStyle (= single source of truth
+                        // for hover/pressed wash = .thinMaterial).
                         .background(
                             RoundedRectangle(cornerRadius: 3)
-                                .fill(.thinMaterial)
+                                .fill(RegionHoverWashStyle())
                         )
                 }
             }
