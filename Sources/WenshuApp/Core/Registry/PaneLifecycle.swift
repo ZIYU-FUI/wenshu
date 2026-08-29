@@ -97,12 +97,18 @@ public func reconcilePaneLifecycle(
     var entries: [String: PaneLifecycleEntry] = [:]
     var clock = previous.clock
 
-    // Step 1: prune panes no longer present.
+    // Step 1: initialize ALL panes in paneIds (= default parked). Pane
+    // state from `previous` overrides (= inherits lastVisible clock).
     for id in options.paneIds {
         if let prior = previous.entries[id] {
             entries[id] = PaneLifecycleEntry(
                 lifecycle: .parked,  // default; will override below
                 lastVisible: prior.lastVisible
+            )
+        } else {
+            entries[id] = PaneLifecycleEntry(
+                lifecycle: .parked,  // default; will override below
+                lastVisible: 0
             )
         }
     }
