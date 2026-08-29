@@ -217,8 +217,11 @@ public actor WenshuVerifier {
             throw WenshuLLMError.invalidBaseURL(url: "unknown provider slug: \(effectiveSlug)")
         }
         // 3. Load key from Keychain for that provider.
-        let keychainStore = AppleKeychainStore()
-        guard let key = keychainStore.loadKeySync(for: provider), !key.isEmpty else {
+        // v0.28 followup: use the shared ProviderKeychain backend (= respects
+        // setBackendForTesting for dev/cua verify) instead of constructing
+        // a fresh AppleKeychainStore (which would always hit the real
+        // keychain regardless of the debug override).
+        guard let key = ProviderKeychain.loadKeySync(for: provider), !key.isEmpty else {
             throw WenshuLLMError.missingAPIKey  // existing error type
         }
         return ResolvedCredentials(

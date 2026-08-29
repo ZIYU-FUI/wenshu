@@ -1020,6 +1020,17 @@ private struct SettingsEnvironmentCapturer: View {
     @Environment(\.openSettings) private var openSettings
     let library: WenshuLibrary
     let appearanceMode: AppearanceMode
+    /// v0.28 ticket 028-006 followup: layout edit mode state at
+    /// the top-level wrapper (= so the ⌘⇧\ hotkey + Window menu
+    /// entry work regardless of whether the user is on the
+    /// WorkspaceView path or the legacy LayoutShellView path).
+    /// The PaneRenderer / LayoutEditBar surface in 028-006 + 028-007
+    /// only consumes the boolean when useWorkspace == true; on the
+    /// legacy path, toggling the bool still has user-visible effect
+    /// (= the EditModeBadge in WorkspaceView, when the user flips
+    /// useWorkspace on, would already be ON — saves them a second
+    /// keystroke).
+    @State private var editMode = LayoutEditMode()
     var body: some View {
         // v0.24 boss验收fix (Boss 8/24 OOB 拍 '和 FCP 一样, 首次运行, 无论
         // 是否要建书架, 都要先指定一个 .ws 文件的库文件位置'): first-launch
@@ -1040,6 +1051,22 @@ private struct SettingsEnvironmentCapturer: View {
             .environment(library)
             .preferredColorScheme(appearanceMode.colorScheme)
             .onAppear { WenshuAppDelegate.openSettings = openSettings }
+            // v0.28 ticket 028-006 followup: ⌘⇧\ hotkey + Escape
+            // exit at the top-level wrapper (= not just inside
+            // WorkspaceView) so the keyboard shortcut works
+            // regardless of which layout path the user is on
+            // (= LayoutShellView legacy path or WorkspaceView
+            // FCP Browser path). The LayoutEditMode singleton
+            // persists its state to UserDefaults so the boolean
+            // survives path switches (= flipping useWorkspace
+            // preserves the edit-mode state).
+            .layoutEditHotkey(editMode)
+            // Listen for the View menu's "Layout edit mode" entry
+            // (= same notification path as the WorkspaceView body;
+            // 028-006 followup so it works on both paths).
+            .onReceive(NotificationCenter.default.publisher(for: .wenshuToggleEditMode)) { _ in
+                editMode.toggle()
+            }
             // v0.24 boss验收fix: Apple macOS 52 PT toolbar chrome via
             // .toolbar { ToolbarItem(placement: .principal) }.
             // Boss 8/24 拍: '用 52 的那个'.
@@ -1097,6 +1124,19 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     // v0.21 ticket 01 (重做 #7): 持 SwiftUI 14+ OpenSettingsAction (LayoutShellView .onAppear 注入, OpenSettingsAction.callAsFunction() 触发)
     nonisolated(unsafe) static var openSettings: OpenSettingsAction?
 
+    /// v0.28 followup: debug Keychain override for cua / dev env without
+    /// user-attached login keychain (= the InMemoryKeychainStore stub
+    /// prevents SecItemCopyMatching from blocking wenshu main thread
+    /// on the Keychain permission modal during dev/verify). Gated by
+    /// WENSHU_DEBUG_INMEMORY_KEYCHAIN env var (= 1 = use in-memory stub,
+    /// 0 = use real Apple keychain). Production builds never set this.
+    static let sharedKeychainBackend: Void = {
+        if ProcessInfo.processInfo.environment["WENSHU_DEBUG_INMEMORY_KEYCHAIN"] == "1" {
+            ProviderKeychain.setBackendForTesting(InMemoryKeychainStore())
+            NSLog("[wenshu.debug] keychain backend = InMemoryKeychainStore (debug override)")
+        }
+    }()
+
     static let sharedRuntime = AgentRuntime()
     static let sharedVerifier = WenshuVerifier()
     static let sharedChatStore: ChatSessionStore? = {
@@ -1118,6 +1158,9 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
+        // v0.28 followup: force-evaluate sharedKeychainBackend so the
+        // debug override takes effect before any Keychain access.
+        _ = Self.sharedKeychainBackend
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {

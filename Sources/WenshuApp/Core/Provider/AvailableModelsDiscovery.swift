@@ -27,12 +27,15 @@ public enum AvailableModelsDiscovery {
     /// Returns empty array if no providers are configured (e.g. fresh install).
     /// Sync (AppleKeychainStore.loadKeySync is sync). Caller wraps in async if needed.
     public static func loadFromKeychain() -> [AvailableProviderModels] {
-        let keychain = AppleKeychainStore()
+        // v0.28 followup: use the shared ProviderKeychain backend (= respects
+        // setBackendForTesting for dev/cua verify) instead of constructing
+        // a fresh AppleKeychainStore (which would always hit the real
+        // keychain regardless of the debug override).
         return Provider.all.compactMap { provider in
             // Skip providers that don't store keys (e.g. require OAuth).
             guard !provider.requiresOAuth else { return nil }
             // Check Keychain for this provider's key.
-            guard let key = keychain.loadKeySync(for: provider), !key.isEmpty else {
+            guard let key = ProviderKeychain.loadKeySync(for: provider), !key.isEmpty else {
                 return nil  // user hasn't configured this provider
             }
             return AvailableProviderModels(
