@@ -364,6 +364,42 @@ struct WenshuApp: App {
             // v0.21 ticket 01 (重做 #10): 撤回 SettingsEnvironmentCapturer wrapper (commit a78d758bc Q15 翻车 #11 dead code)
             // SettingsEnvironmentCapturer 之前包 LayoutShellView 注入 OpenSettingsAction, 但 openSettings?() → nil (Q15 翻车 #11), 现在 NSMenu 自己装 + 自创建 NSWindow 装 SettingView 不需要 capture
             SettingsEnvironmentCapturer(library: library, appearanceMode: appearanceMode)
+            // v0.28 followup Boss UX round 28 (Boss 2026-08-29 OOB '那是不是
+            // 拖拽线也有默认的液态玻璃的样式, 这样的, 你把我们所有用到
+            // 的组件, 用默认的液态玻璃样式实现, 我们最多调一下尺寸,
+            // 动画效果, 过渡效果等等, 都用默认的, 我说的所有的, 不是
+            // 目前可见的, 是有一些弹窗等等, 都用 27 的液态玻璃搞定'):
+            //
+            // Apply .containerBackground(for: .window) at the root view
+            // (= SettingsEnvironmentCapturer inside WindowGroup) so the
+            // WINDOW'S container background uses Apple's Glass.regular
+            // shapeStyle (= macOS 27 Tahoe canonical Liquid Glass =
+            // semitransparent + adapts to dark/light mode).
+            //
+            // Per Apple developer.apple.com/documentation/technologyoverviews/
+            // liquid-glass: "Standard components from SwiftUI, UIKit,
+            // and AppKit pick up the appearance and behavior of this
+            // material automatically." (= once .containerBackground is
+            // set to .glass, all standard SwiftUI controls in the
+            // window — Button, TextField, Toggle, Picker, Menu, Slider,
+            // ProgressView, Popover, Sheet, Alert — render with Liquid
+            // Glass appearance by default).
+            //
+            // Applied at this layer (= root view inside WindowGroup)
+            // because .containerBackground is a View modifier (= not a
+            // Scene modifier). Apple's standard pattern for Liquid Glass
+            // windows in macOS 27 Tahoe.
+            .containerBackground(for: .window) {
+                // Apply Apple's macOS 27 Tahoe Liquid Glass to the
+                // window container background via the .glassEffect
+                // View modifier (= SwiftUICore API). Glass.regular =
+                // canonical Liquid Glass (semitransparent + adapts to
+                // dark/light mode). Without this, standard SwiftUI
+                // controls would render with opaque solid backgrounds
+                // instead of the macOS 27 Tahoe Liquid Glass look.
+                Rectangle()
+                    .glassEffect(.regular)
+            }
         }
         // Boss 8/24 feedback: 'use the 52 PT one'. Apple SwiftUI macOS 14+ windowToolbarStyle
         // options: .automatic, .unified (52 PT), .unifiedCompact (28 PT), .expanded.
