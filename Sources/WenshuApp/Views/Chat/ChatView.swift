@@ -437,8 +437,16 @@ public struct ChatView: View {
             // button are offset down 8 PT as a group (= the
             // 8 PT margin is OUTSIDE the textfield, NOT inside
             // = no inner padding on the textfield itself).
-            // Implementation: .padding(.top, 8) on the HStack
-            // (= outer margin around the HStack content).
+            // v0.28 followup Boss UX round 20: HStack(alignment: .center,
+            // spacing: 8) with .padding(.top, 16) (= 16 PT outer top
+            // margin applied to the entire HStack, = both TextField
+            // and Send button offset down 16 PT together = no
+            // misalignment). Per Apple HIG for chat input rows in
+            // Messages / Slack, TextField and Send button should be
+            // vertically centered at the SAME baseline. Both are
+            // 24 PT tall (= TextField.frame(height: 24) + Button
+            // .controlSize(.regular)), and HStack(alignment: .center)
+            // centers them vertically at the HStack midline.
             HStack(alignment: .center, spacing: 8) {
                 // v0.24 boss验收fix (2026-08-24): placeholder shows different text based on key state.
                 // Boss 8/24 (out-of-band): '请先在设置中设置好大模型提供方'.
@@ -570,8 +578,32 @@ public struct ChatView: View {
                 .controlSize(.regular)  // 24 PT control height (= matches TextField height)
                 .frame(height: 24)
                 .disabled(vm.inputText.isEmpty || vm.isSending)
-                .padding(.top, 16)  // v0.25.1 ticket 037: 8 PT additional outer top margin per boss OOB '文本框上面 8PT 不够 再加 8 吧' (= 8 PT existing + 8 PT new = 16 PT total outer top margin on chat input HStack)
+                // v0.28 followup Boss UX round 20 (Boss 2026-08-29 OOB
+                // '文本框和发送按钮位置上水平对齐'): REMOVED the
+                // .padding(.top, 16) here (= was misaligning the
+                // button with the TextField because the TextField
+                // had no equivalent top padding = button was 16 PT
+                // below the TextField top edge). Now both TextField
+                // (= 24 PT frame height) and Send button (= 24 PT
+                // frame height) are flush at the HStack top edge
+                // and HStack(alignment: .center) centers them
+                // vertically (= Apple HIG canonical for chat input
+                // rows in Messages / Slack). The 16 PT outer top
+                // margin (= boss 8/26 OOB '文本框上面 8PT 不够 再
+                // 加 8 吧') is now applied to the entire HStack
+                // (= both TextField and button offset down together,
+                // = no misalignment).
+                // Apply the outer top margin (= 16 PT = 8 PT existing
+                // + 8 PT new) to the HStack (= not to the button).
             }
+            // v0.28 followup Boss UX round 20: 16 PT outer top margin
+            // moved from .padding(.top, 16) on the button (= was
+            // misaligning the button with TextField) to the HStack
+            // (= both TextField and Send button offset down 16 PT
+            // together, no misalignment). HStack(alignment: .center)
+            // vertically centers both 24 PT controls at the HStack
+            // midline (= Apple HIG canonical for chat input rows).
+            .padding(.top, 16)
             .padding(.horizontal, 18)
         }
         // v0.24 boss验收fix (2026-08-24): help text DIRECTLY below input box.
