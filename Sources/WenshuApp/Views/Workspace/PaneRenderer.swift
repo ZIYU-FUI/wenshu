@@ -294,15 +294,30 @@ struct TabContentDispatcher: View {
         case .projectSidebar:
             NewLibraryOutlineView()
         case .projectPreview:
-            ZoneModuleView(zoneSlot: .projectPreview)
+            RegionPerZoneChrome(
+                topItems: defaultPreviewRegionChrome(chapterCount: 0).0,
+                bottomItems: defaultPreviewRegionChrome(chapterCount: 0).1
+            ) {
+                ZoneModuleView(zoneSlot: .projectPreview)
+            }
         case .editor:
             EditorPlaceholder()
         case .specializedTools:
-            ZoneModuleView(zoneSlot: .specializedTools)
+            RegionPerZoneChrome(
+                topItems: defaultToolsRegionChrome().0,
+                bottomItems: defaultToolsRegionChrome().1
+            ) {
+                ZoneModuleView(zoneSlot: .specializedTools)
+            }
         case .aiChat:
             ChatView()
         case .aiDynamic:
-            ZoneModuleView(zoneSlot: .aiDynamic)
+            RegionPerZoneChrome(
+                topItems: defaultDynamicRegionChrome().0,
+                bottomItems: defaultDynamicRegionChrome().1
+            ) {
+                ZoneModuleView(zoneSlot: .aiDynamic)
+            }
         }
     }
 }
