@@ -605,6 +605,15 @@ public struct ChatView: View {
             // midline (= Apple HIG canonical for chat input rows).
             .padding(.top, 16)
             .padding(.horizontal, 18)
+            // v0.28 followup Boss UX round 22 (Boss 2026-08-29 OOB
+            // '文本框, 发送按钮, 距离底边都加上 10pt'): 10 PT outer
+            // bottom margin (= both TextField + Send button offset up
+            // 10 PT from the bottom edge of the chat pane = not flush
+            // against the bottom = Apple HIG canonical for chat input
+            // rows = matches the Apple Messages / Slack / Mail Compose
+            // chat input layout where the input row has breathing
+            // room from the window bottom edge).
+            .padding(.bottom, 10)
         }
         // v0.24 boss验收fix (2026-08-24): help text DIRECTLY below input box.
         // Boss 8/24 (out-of-band): '请先在设置中设置好大模型提供方。点击设置'
