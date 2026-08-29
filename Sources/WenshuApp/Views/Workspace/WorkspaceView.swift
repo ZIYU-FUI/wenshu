@@ -282,12 +282,20 @@ struct EditorPlaceholder: View {
                 .font(.caption).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.green.opacity(0.05))
+        // v0.28 followup Boss UX round 19 (Boss 2026-08-29 OOB '所有
+        // 区域的顶栏, 底栏, 背景, 用的颜色, 可以适配液态玻璃吗'):
+        // Use .ultraThinMaterial instead of Color.green.opacity(0.05)
+        // (= solid green placeholder = inconsistent with the
+        // Liquid Glass design language). Editor zone has no
+        // wired-in content yet (= ticket 027-35 followup), so use the
+        // lightest Liquid Glass material as a placeholder that
+        // matches the rest of the workspace.
+        .background(.ultraThinMaterial)
     }
 }
 /// EditModeBadge — small visual indicator shown in the top-right
-/// corner of WorkspaceView when layout edit mode is on. Click to
-/// toggle off (= same effect as pressing ⌘⇧\ again).
+// corner of WorkspaceView when layout edit mode is on. Click to
+// toggle off (= same effect as pressing ⌘⇧\ again).
 ///
 /// Per ticket 028-006 §"Acceptance criteria": the badge is the
 /// only edit-mode-related UI shipped in 028-006 (= the TreeEditBar

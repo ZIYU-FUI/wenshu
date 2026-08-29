@@ -54,13 +54,24 @@ struct LayoutEditBar: View {
             )
         }
         .frame(width: 26 * 16)  // 26rem (= 26 * 16 PT in macOS 1x)
+        // v0.28 followup Boss UX round 19 (Boss 2026-08-29 OOB '所有
+        // 区域的顶栏, 底栏, 背景, 用的颜色, 可以适配液态玻璃吗'):
+        // LayoutEditBar floating palette background = .regularMaterial
+        // (= macOS standard Liquid Glass translucent capsule =
+        // matches Apple's canonical floating palette look in Mail /
+        // Pages / Xcode). Previously used
+        // Color(NSColor.windowBackgroundColor).opacity(0.95) (= solid
+        // 95% opaque color = NOT translucent = wrong for Liquid Glass).
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .fill(Color(NSColor.windowBackgroundColor).opacity(0.95))
+                .fill(.regularMaterial)
         )
         .overlay(
+            // v0.28 followup Boss UX round 19: use Apple standard
+            // separator color (= 1 PT hairline) instead of
+            // Color.secondary.opacity(0.3) (= solid color).
             RoundedRectangle(cornerRadius: 10)
-                .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                .stroke(Color(nsColor: .separatorColor), lineWidth: 1)
         )
         .shadow(color: .black.opacity(0.2), radius: 12, x: 0, y: 4)
         .offset(x: palettePosition.x + dragOffset.width, y: palettePosition.y + dragOffset.height)

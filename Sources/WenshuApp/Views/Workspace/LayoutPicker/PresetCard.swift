@@ -27,16 +27,25 @@ struct PresetCard: View {
             PresetThumbnail(workspace: preset.workspace)
                 .aspectRatio(4.0 / 3.0, contentMode: .fit)
                 .frame(maxWidth: .infinity)
+                // v0.28 followup Boss UX round 19 (Boss 2026-08-29 OOB
+                // '所有区域的顶栏, 底栏, 背景, 用的颜色, 可以适配液
+                // 态玻璃吗'): preset card thumbnail background =
+                // .ultraThinMaterial (= the lightest Liquid Glass
+                // material = subtle tint without overwhelming the
+                // thumbnail preview). Per Apple HIG (= macOS 26 Tahoe
+                // preset card pattern in Finder preview pane), use the
+                // thinnest material so the thumbnail content stays
+                // dominant.
                 .background(
                     RoundedRectangle(cornerRadius: 6)
-                        .fill(Color.secondary.opacity(0.06))
+                        .fill(.ultraThinMaterial)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 6)
                         .stroke(
                             isActive
                             ? Color.accentColor
-                            : Color.secondary.opacity(0.2),
+                            : Color(nsColor: .separatorColor),
                             lineWidth: isActive ? 2 : 1
                         )
                 )

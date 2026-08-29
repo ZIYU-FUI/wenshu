@@ -132,17 +132,29 @@ public struct TipModifier: ViewModifier {
                     .font(.system(size: 10, weight: .medium, design: .monospaced))
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 4)
+                    // v0.28 followup Boss UX round 19 (Boss 2026-08-29
+                    // OOB '所有区域的顶栏, 底栏, 背景, 用的颜色, 可
+                    // 以适配液态玻璃吗'): keybind chip background =
+                    // .thickMaterial (= denser Liquid Glass chip =
+                    // Apple standard for inset keybind indicators on
+                    // toolbars).
                     .background(
                         RoundedRectangle(cornerRadius: 3)
-                            .fill(Color(nsColor: .controlBackgroundColor))
+                            .fill(.thickMaterial)
                     )
             }
         }
         .padding(.horizontal, 6)
         .padding(.vertical, 3)
+        // v0.28 followup Boss UX round 19: tooltip background =
+        // .regularMaterial (= Apple standard tooltip Liquid Glass =
+        // matches macOS tooltip look in Pages / Mail / Xcode). Per
+        // Apple developer.apple.com/documentation/SwiftUI/Tooltip,
+        // tooltips are translucent rounded capsules with a 1 PT
+        // hairline border + subtle drop shadow.
         .background(
             RoundedRectangle(cornerRadius: 4)
-                .fill(Color(nsColor: .windowBackgroundColor))
+                .fill(.regularMaterial)
                 .shadow(color: Color.black.opacity(0.15), radius: 2, x: 0, y: 1)
         )
         .overlay(
