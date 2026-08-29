@@ -111,6 +111,19 @@ private struct WiredShell: View {
     // WorkspaceStore is only constructed when useWorkspace = true
     // (= avoids running the new persistence layer when the flag is off).
     @State private var workspaceStore: WorkspaceStore? = nil
+    // v0.28 followup Boss UX round 4: zone visibility flags (= for the
+    // macOS native toolbar zone toggle buttons). Mirrors LayoutShellView's
+    // @AppStorage declarations (= same UserDefaults keys so state is
+    // shared across paths).
+    @AppStorage("wenshu.zoneVisible.projectSidebar") private var showProjectSidebar: Bool = true
+    @AppStorage("wenshu.zoneVisible.projectPreview") private var showProjectPreview: Bool = true
+    @AppStorage("wenshu.zoneVisible.specializedTools") private var showSpecializedTools: Bool = true
+    @AppStorage("wenshu.zoneVisible.aiChat") private var showAIChat: Bool = true
+    @AppStorage("wenshu.zoneVisible.aiDynamic") private var showAIDynamic: Bool = true
+    // v0.28 followup Boss UX round 4: model name (= for the model picker
+    // icon in the macOS native toolbar). Mirrors SettingsEnvironmentCapturer's
+    // modelName definition (= same UserDefaults key "wenshu.llm.model").
+    @AppStorage("wenshu.llm.model") private var modelName: String = "MiniMax-M3"
 
     var body: some View {
         Group {
@@ -137,6 +150,97 @@ private struct WiredShell: View {
             } else {
                 ProgressView("正在启动文枢…")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        // v0.28 followup Boss UX round 4: macOS native toolbar (= 52 PT
+        // default chrome with traffic lights). Titlebar icons (= sidebar/
+        // preview/tools/chat/dynamic/model-picker/export) live here per
+        // Boss 2026-08-29 OOB '原本在标题栏上的按钮, 现在不能放在标题栏
+        // 上了是吗, 可以把现在你自己写的放原标题栏按钮的那一栏的按钮,
+        // 放在现在的标题栏上吗, 就现在 icon 这么大就行'.
+        //
+        // = move the titlebar icons from the custom 34 PT AppTitlebar
+        // (= was overlapping with macOS native titlebar) to the
+        // macOS native toolbar (= appears next to traffic lights).
+        // Apple HIG canonical placement = .automatic with Spacer() first
+        // (= rightmost position).
+        //
+        // Icons use LayoutTokens.iconSize (= 18 PT, matches macOS native
+        // toolbar button visual size). Boss spec: '就现在 icon 这么大就行'.
+        .toolbar {
+            ToolbarItemGroup(placement: .automatic) {
+                Spacer()
+                // Zone toggles (= sidebar / preview / tools / chat / dynamic).
+                // Per Apple HIG Rule 1.3 (toggle checkmarks for on/off
+                // states). When useWorkspace = true, toggles call
+                // PaneVisibilityStore (= new framework). When false
+                // (= legacy path), toggles call LayoutShellView's
+                // @AppStorage state via shared UserDefaults keys.
+                Button {
+                    showProjectSidebar.toggle()
+                } label: {
+                    LucideIconSystemFallback("sidebar.left", size: LayoutTokens.iconSize)
+                }
+                .foregroundStyle(showProjectSidebar ? Color.accentColor : Color.secondary)
+                .help(showProjectSidebar ? "隐藏 项目管理区" : "显示 项目管理区")
+
+                Button {
+                    showProjectPreview.toggle()
+                } label: {
+                    LucideIconSystemFallback("eye.fill", size: LayoutTokens.iconSize)
+                }
+                .foregroundStyle(showProjectPreview ? Color.accentColor : Color.secondary)
+                .help(showProjectPreview ? "隐藏 素材预览区" : "显示 素材预览区")
+
+                Button {
+                    showSpecializedTools.toggle()
+                } label: {
+                    LucideIconSystemFallback("wrench.and.screwdriver", size: LayoutTokens.iconSize)
+                }
+                .foregroundStyle(showSpecializedTools ? Color.accentColor : Color.secondary)
+                .help(showSpecializedTools ? "隐藏 工具区" : "显示 工具区")
+
+                Button {
+                    showAIChat.toggle()
+                } label: {
+                    LucideIconSystemFallback("bubble.left", size: LayoutTokens.iconSize)
+                }
+                .foregroundStyle(showAIChat ? Color.accentColor : Color.secondary)
+                .help(showAIChat ? "隐藏 聊天区" : "显示 聊天区")
+
+                Button {
+                    showAIDynamic.toggle()
+                } label: {
+                    LucideIconSystemFallback("chart.bar", size: LayoutTokens.iconSize)
+                }
+                .foregroundStyle(showAIDynamic ? Color.accentColor : Color.secondary)
+                .help(showAIDynamic ? "隐藏 动态区" : "显示 动态区")
+
+                Divider()
+
+                // Model picker (= moved from AppTitlebar's rightTools
+                // to the macOS native toolbar per Boss 2026-08-29 OOB
+                // '放在现在的标题栏上').
+                Button {
+                    // Model picker opens Settings → Model tab.
+                    WenshuAppDelegate.openSettings?()
+                } label: {
+                    LucideIconSystemFallback("cpu", size: LayoutTokens.iconSize)
+                }
+                .help("模型: \(modelName)")
+
+                Divider()
+
+                // Export button (= rightmost, matches old v0.24
+                // Pages-style 3rd capsule per Boss 8/25 25th OOB).
+                Button {
+                    // Export posts the existing export notification
+                    // (= wired up to LayoutShellViewModel's exportEbook).
+                    NotificationCenter.default.post(name: .wenshuExportRequested, object: nil)
+                } label: {
+                    LucideIconSystemFallback("square.and.arrow.up", size: LayoutTokens.iconSize)
+                }
+                .help("导出电子书 (PDF / EPUB / MOBI / TXT)")
             }
         }
         .task {

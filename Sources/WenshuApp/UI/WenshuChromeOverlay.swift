@@ -46,17 +46,24 @@ public struct WenshuChromeOverlay<Content: View>: View {
 
     public var body: some View {
         VStack(spacing: 0) {
-            // Titlebar (top, 34 PT).
-            AppTitlebar(
-                registry: ContributionRegistry(),
-                leftTools: titlebarLeftTools,
-                rightTools: titlebarRightTools,
-                title: nil
-            )
+            // v0.28 followup Boss UX round 4: REMOVED the custom 34 PT
+            // AppTitlebar (= was overlapping with macOS native 52 PT
+            // titlebar + showed duplicate icons). Per Boss 2026-08-29
+            // OOB '原本在标题栏上的按钮, 现在不能放在标题栏上了是吗,
+            // 可以把现在你自己写的放原标题栏按钮的那一栏的按钮,
+            // 放在现在的标题栏上吗, 就现在 icon 这么大就行' = move
+            // the titlebar icons (= sidebar/preview/tools/model-picker)
+            // to the macOS native toolbar (= via .toolbar { ToolbarItem
+            // (placement: .principal) } on SettingsEnvironmentCapturer).
+            // The native macOS titlebar already shows traffic lights at
+            // 52 PT; toolbar items render next to the traffic lights per
+            // Apple HIG (= exact macOS-style toolbar buttons).
+            //
             // Main content (layout).
             content()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            // Statusbar (bottom, 24 PT).
+            // Statusbar (bottom, 24 PT) — kept (= not in macOS native
+            // titlebar range, separate concern).
             AppStatusbar(
                 leftItems: statusbarLeftItems,
                 rightItems: statusbarRightItems
@@ -64,9 +71,6 @@ public struct WenshuChromeOverlay<Content: View>: View {
         }
         // v0.28 followup: force minimum size so SwiftUI WindowGroup
         // doesn't collapse the window to intrinsic content size.
-        // Without this, the window defaults to ~30 PT (= just the
-        // AppTitlebar + nothing) because VStack's intrinsic content
-        // size = sum of fixed-height children only.
         .frame(minWidth: 1280, minHeight: 720)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

@@ -92,6 +92,7 @@ extension Notification.Name {
     static let wenshuNewBookRequested = Notification.Name("wenshu.newBookRequested")
     static let wenshuNewShelfRequested = Notification.Name("wenshu.newShelfRequested")
     static let wenshuImportRequested = Notification.Name("wenshu.importRequested")
+    static let wenshuExportRequested = Notification.Name("wenshu.exportRequested")
 }
 extension Notification.Name {
     static let wenshuResetLayout = Notification.Name("com.wenshu.resetLayout")
@@ -375,7 +376,7 @@ struct WenshuApp: App {
         // .unified (52 PT) for now because .expanded was making macOS
         // WindowServer reject the Wenshu window creation. Re-add custom
         // chrome in a follow-up commit.
-        .windowToolbarStyle(.unified(showsTitle: false))  // 52 PT default toolbar, title hidden
+        .windowToolbarStyle(.unified)  // 52 PT default toolbar (= shows title by default but hidden via ToolbarItemGroup(placement: .principal))
         // .windowToolbarStyle(.automatic)  // 0 PT native; WenshuChromeOverlay provides 34 PT AppTitlebar
         // .windowToolbarStyle(.expanded)  // 0 PT native; WenshuChromeOverlay provides 34 PT AppTitlebar
         .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // Boss Sketch design baseline 1920x984 PT
@@ -1316,6 +1317,10 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
 struct LayoutShellView: View {
     /// v0.10.1 拖拽交互: VM 持有 6 个 offset (5 竖 + 1 横), 6 splitter 的 onDrag 调 vm.adjust*
     @State private var vm = LayoutShellViewModel()
+    // v0.28 followup Boss UX round 4: model name (= for the model picker
+    // icon in the macOS native toolbar). Mirrors SettingsEnvironmentCapturer's
+    // modelName definition (= same UserDefaults key "wenshu.llm.model").
+    @AppStorage("wenshu.llm.model") private var modelName: String = "MiniMax-M3"
     // v0.24 fix (Boss 8/25 63rd OOB 'still not work, check official docs'):
     // use @AppStorage directly in view body per Apple HIG (per WWDC23
     // 'Discover Observation in SwiftUI' + Apple migration guide).
@@ -1538,108 +1543,104 @@ struct LayoutShellView: View {
             // Chinese per Boss 8/25 'UI 全中文' rule (= UI strings exempt
             // from AGENTS.md §11 English-only rule).
             .toolbar {
-                // v0.24 fix (Boss 8/25 25th OOB '看到 pages 的样式了没, 胶囊有多
-                // 个. 我们就需要三个胶囊 1.(新建, 打开, 导入) 2.(四个显隐开关)
-                // 3.(一个导出按钮)'): wrap left 3 file actions in 1 dark capsule
-                // (= 1 of 3 separate 胶囊 groups, Pages style). Same control
-                // BackgroundColor as right groups (= 1 layer, no outer glass).
-                // v0.24 fix (Boss 8/25 32nd OOB 'ICON outside capsule, check official'):
-                // per Apple HIG (= nilcoalescing.com macOS toolbar guide), use
-                // default toolbar item sizes (= no custom .frame, .font,
-                // .padding, .background). Let macOS toolbar manage everything.
+                // v0.28 followup Boss UX round 4: Move titlebar icons
+                // (= sidebar/preview/tools/model-picker) to the macOS
+                // native toolbar. Per Boss 2026-08-29 OOB '原本在标题栏
+                // 上的按钮, 现在不能放在标题栏上了是吗, 可以把现在你
+                // 自己写的放原标题栏按钮的那一栏的按钮, 放在现在的
+                // 标题栏上吗, 就现在 icon 这么大就行' = put the
+                // titlebar icons on the macOS native titlebar (= 52 PT
+                // with traffic lights + .unified showsTitle:false).
+                //
+                // The toolbar below combines:
+                // - 4 zone toggle icons (= sidebar/preview/tools/chat/dynamic)
+                //   that were already here per v0.24/v0.27 boss OOBs.
+                // - 1 model picker icon (= the icon that was in the
+                //   custom 34 PT AppTitlebar as `model-picker` per
+                //   AppTitlebar.swift:296-308). Now moves to the macOS
+                //   native toolbar (= .principal placement = centered,
+                //   the canonical Apple HIG toolbar location).
+                //
+                // All icons use LayoutTokens.iconSize (= 18 PT, matches
+                // macOS native toolbar button visual size per Apple's
+                // HIG). Boss spec: '就现在 icon 这么大就行' = current
+                // icon size (18 PT, Lucide-first / SF Symbol fallback).
                 ToolbarItemGroup(placement: .navigation) {
-                    // v0.27 boss 8/27 OOB #3 (= moved from toolbar): the
-                    // 新建 + 导入 buttons are MOVED OUT of the macOS window
-                    // toolbar (= boss gave up fighting the SwiftUI toolbar's
-                    // ⌄ indicator / capsule styling debate) into the
-                    // projectSidebar top bar (= right-aligned icon buttons).
-                    // Per boss 8/27 standing rule 'a new feature should
-                    // appear everywhere = synced', the menu bar File →
-                    // 新建项目 + File → 导入… entries remain (= macOS
-                    // standard File menu), and right-click context menu
-                    // remains on the projectSidebar empty area.
-
-                    // v0.27 boss 8/27 OOB: 删除 '打开' button (= wenshu 是
-                    // single-library permanent per boss 8/26 Q12, 没有
-                    // 打开另一个库的需求; 想打开其他库用 '导入' 合并).
-                    // (= comment only; the Button block below was deleted.)
+                    // (Empty: per v0.27 boss 8/27 OOB #3, the 新建 +
+                    // 导入 buttons were MOVED OUT of the macOS window
+                    // toolbar into the projectSidebar top bar. Per boss
+                    // 8/27 standing rule 'a new feature should appear
+                    // everywhere = synced', the menu bar File → 新建项目
+                    // + File → 导入… entries remain in the .commands
+                    // block below.)
                 }
-                // v0.24 fix (Boss 8/25 37th OOB 'check official docs, how to right-align'):
-                // per Apple developer.apple.com/documentation/SwiftUI/
-                // ToolbarItemPlacement/primaryAction, '.primaryAction' on
-                // macOS = LEADING edge (= left side). To put buttons on
-                // TRAILING edge (= right side) on macOS, the official Apple
-                // pattern = ToolbarItemGroup(.automatic) with Spacer() first
-                // (= pushes all buttons to trailing edge, per Stack Overflow
-                // accepted answer for macOS SwiftUI). 4 zone toggles +
-                // export button all in 1 group, Spacer first pushes the whole
-                // group to rightmost position (= the whole group tight
-                // against right edge, no per-button separator).
-                // v0.24 fix (Boss 8/25 63rd OOB 'still not work, check official
-                // docs'): use @AppStorage directly in view body per Apple
-                // HIG (per WWDC23 'Discover Observation in SwiftUI' + Apple
-                // migration guide). @AppStorage in body auto-tracks
-                // UserDefaults via SwiftUI's built-in observation (= per
-                // meshworld cheatsheet: 'Writing to the property updates
-                // UserDefaults and triggers a SwiftUI re-render'). This
-                // replaces the indirection through LayoutShellViewModel.
                 ToolbarItemGroup(placement: .automatic) {
                     Spacer()
+                    // Zone toggles (= sidebar / preview / tools / chat / dynamic).
+                    // Per Apple HIG Rule 1.3 (toggle checkmarks for
+                    // on/off states). Toggle forwards via
+                    // NotificationCenter to vm (= .commands block can't
+                    // access vm directly per L20).
                     Button {
                         showProjectSidebar.toggle()
                     } label: {
-                        // v0.27 boss 8/27 OOB: SF 'sidebar.left' → Lucide 'panel-left'.
                         LucideIconSystemFallback("sidebar.left", size: LayoutTokens.iconSize)
                     }
                     .foregroundStyle(showProjectSidebar ? Color.accentColor : Color.secondary)
                     .help(showProjectSidebar ? "隐藏 项目管理区" : "显示 项目管理区")
-                // v0.24 fix (Boss 8/25 70th OOB '少设计了一个按钮, 第2栏的素材区没有设计按钮'):
-                // 5th toggle button for projectPreview zone (= 素材预览区),
-                // inserted AFTER the sidebar toggle button per Boss 70th OOB
-                // step 1 spec.
-                Button {
-                    showProjectPreview.toggle()
-                } label: {
-                    // v0.27 boss 8/27 OOB: SF 'eye.fill' → Lucide 'eye'.
-                    // Also removed .buttonStyle(.plain) (= was the
-                    // outlier among the 5 toolbar zone toggle buttons;
-                    // .plain omits SwiftUI's default button sizing
-                    // helper = this button rendered visually smaller
-                    // than the other 4 zone toggle buttons per boss
-                    // 8/27 '菜单栏的红框，是尺寸错了，和其它的按钮长的
-                    // 不一样').
-                    LucideIconSystemFallback("eye.fill", size: LayoutTokens.iconSize)
-                }
-                .foregroundStyle(showProjectPreview ? Color.accentColor : Color.secondary)
-                .help(showProjectPreview ? "隐藏 素材预览区" : "显示 素材预览区")
+
+                    Button {
+                        showProjectPreview.toggle()
+                    } label: {
+                        LucideIconSystemFallback("eye.fill", size: LayoutTokens.iconSize)
+                    }
+                    .foregroundStyle(showProjectPreview ? Color.accentColor : Color.secondary)
+                    .help(showProjectPreview ? "隐藏 素材预览区" : "显示 素材预览区")
+
                     Button {
                         showSpecializedTools.toggle()
                     } label: {
-                        // v0.27 boss 8/27 OOB: SF 'wrench.and.screwdriver' → Lucide 'wrench'.
                         LucideIconSystemFallback("wrench.and.screwdriver", size: LayoutTokens.iconSize)
                     }
                     .foregroundStyle(showSpecializedTools ? Color.accentColor : Color.secondary)
                     .help(showSpecializedTools ? "隐藏 工具区" : "显示 工具区")
+
                     Button {
                         showAIChat.toggle()
                     } label: {
-                        // v0.27 boss 8/27 OOB: SF 'bubble.left' → Lucide 'message-square'.
                         LucideIconSystemFallback("bubble.left", size: LayoutTokens.iconSize)
                     }
                     .foregroundStyle(showAIChat ? Color.accentColor : Color.secondary)
                     .help(showAIChat ? "隐藏 聊天区" : "显示 聊天区")
+
                     Button {
                         showAIDynamic.toggle()
                     } label: {
-                        // v0.27 boss 8/27 OOB: SF 'chart.bar' → Lucide 'chart-bar'.
                         LucideIconSystemFallback("chart.bar", size: LayoutTokens.iconSize)
                     }
                     .foregroundStyle(showAIDynamic ? Color.accentColor : Color.secondary)
                     .help(showAIDynamic ? "隐藏 动态区" : "显示 动态区")
+
+                    Divider()
+
+                    // Model picker (= moved from AppTitlebar's
+                    // rightTools to the macOS native toolbar per Boss
+                    // 2026-08-29 OOB '放在现在的标题栏上').
+                    Button {
+                        // Model picker opens Settings → Model tab.
+                        WenshuAppDelegate.openSettings?()
+                    } label: {
+                        LucideIconSystemFallback("cpu", size: LayoutTokens.iconSize)
+                    }
+                    .help("模型: \(modelName)")
+
+                    Divider()
+
+                    // Export button (= rightmost, matches old v0.24
+                    // Pages-style 3rd capsule per Boss 8/25 25th OOB).
                     Button {
                         vm.exportEbook(format: "epub")
                     } label: {
-                        // v0.27 boss 8/27 OOB: SF 'square.and.arrow.up' → Lucide 'share-2'.
                         LucideIconSystemFallback("square.and.arrow.up", size: LayoutTokens.iconSize)
                     }
                     .help("导出电子书 (PDF / EPUB / MOBI / TXT)")
