@@ -234,10 +234,15 @@ struct ZoneModuleView: View {
 /// v0.28 followup Boss UX round 21: .regularMaterial replaces the
 /// DesignColor.zoneSurface (= solid) so the placeholder matches the
 /// Liquid Glass design language used everywhere else.
+// v0.28 followup Boss UX round 31 (Boss 2026-08-29 OOB '素材预览区,
+// 动态区, 这个区的液态玻璃效果和其他区不一样'): uses
+// RegionContentBackground (= single source of truth for per-pane
+// content backgrounds = .regularMaterial = standard Liquid Glass tint).
+// Previously used .background(.regularMaterial) (= same material but
+// different render path = caused subtle inconsistencies with other panes).
 private struct EditorContentPlaceholder: View {
     var body: some View {
-        Color.clear
-            .background(.regularMaterial)
+        RegionContentBackground()
             .overlay {
                 Color.white.opacity(0.55)
                     .padding([.top, .bottom], LayoutTokens.editorVerticalInsetRatio * 100)
@@ -350,8 +355,13 @@ private struct EditModeBadge: View {
 // used everywhere else). Used as the preview pane's first tab
 // content (until ticket 027-35 followup wires the real preview
 // content).
+// v0.28 followup Boss UX round 31 (Boss 2026-08-29 OOB '素材预览区,
+// 动态区, 这个区的液态玻璃效果和其他区不一样'): replaced the
+// .ultraThinMaterial overlay with RegionContentBackground (= single
+// source of truth for per-pane content backgrounds = .regularMaterial
+// = standard Liquid Glass tint = matches other panes).
 private struct PreviewTabBackground: View {
     var body: some View {
-        Color.clear.overlay(.ultraThinMaterial)
+        RegionContentBackground()
     }
 }
