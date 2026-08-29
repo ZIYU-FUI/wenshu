@@ -292,29 +292,45 @@ struct TabContentDispatcher: View {
     var body: some View {
         switch kind {
         case .projectSidebar:
-            NewLibraryOutlineView()
+            ZonePerRegionChrome(
+                topActions: projectSidebarChrome(shelfCount: 0, bookCount: 0).top,
+                bottomStatus: projectSidebarChrome(shelfCount: 0, bookCount: 0).bottom
+            ) {
+                NewLibraryOutlineView()
+            }
         case .projectPreview:
-            RegionPerZoneChrome(
-                topItems: defaultPreviewRegionChrome(chapterCount: 0).0,
-                bottomItems: defaultPreviewRegionChrome(chapterCount: 0).1
+            ZonePerRegionChrome(
+                topActions: projectPreviewChrome(chapterCount: 0).top,
+                bottomStatus: projectPreviewChrome(chapterCount: 0).bottom
             ) {
                 ZoneModuleView(zoneSlot: .projectPreview)
             }
         case .editor:
-            EditorPlaceholder()
+            ZonePerRegionChrome(
+                topActions: editorChrome(wordCount: 0, progress: 0.0).top,
+                bottomStatus: editorChrome(wordCount: 0, progress: 0.0).bottom
+            ) {
+                EditorPlaceholder()
+            }
         case .specializedTools:
-            RegionPerZoneChrome(
-                topItems: defaultToolsRegionChrome().0,
-                bottomItems: defaultToolsRegionChrome().1
+            ZonePerRegionChrome(
+                topActions: specializedToolsChrome().top,
+                bottomStatus: specializedToolsChrome().bottom
             ) {
                 ZoneModuleView(zoneSlot: .specializedTools)
             }
         case .aiChat:
-            ChatView()
+            ZonePerRegionChrome(
+                topActions: aiChatChrome().top,
+                bottomStatus: aiChatChrome().bottom,
+                bottomSkip: true  // chat uses internal ChatBottomToolbar per v0.21 ticket 10
+            ) {
+                ChatView()
+            }
         case .aiDynamic:
-            RegionPerZoneChrome(
-                topItems: defaultDynamicRegionChrome().0,
-                bottomItems: defaultDynamicRegionChrome().1
+            ZonePerRegionChrome(
+                topActions: aiDynamicChrome().top,
+                bottomStatus: aiDynamicChrome().bottom
             ) {
                 ZoneModuleView(zoneSlot: .aiDynamic)
             }

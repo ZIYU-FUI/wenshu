@@ -1,118 +1,162 @@
-// ZonePerRegionChromeTests.swift · Wenshu (文枢) · v0.28 followup Boss UX round 2
+// ZonePerRegionChromeTests.swift · Wenshu (文枢) · v0.28 followup Boss UX round 3
 //
-// Tests for per-region top/bottom toolbar components. Boss 2026-08-29
-// OOB '老的六区, 是顶栏底栏在各区域里都有配' = old 6区 = per-region
-// top + bottom toolbars, new framework should match this pattern.
+// Tests for per-region top + bottom toolbar components. Boss 2026-08-29
+// OOB '按老六区已经实现的复刻' = port the OLD 6区 ZoneTopToolbar +
+// ZoneBottomToolbar exactly (= 30 PT each, per-slot icons + status
+// text from v0.27 ZoneModule).
 
 import XCTest
 import SwiftUI
 @testable import WenshuApp
 
-final class RegionPerZoneChromeTokenTests: XCTestCase {
-    func testRegionToolbarHeight() {
-        XCTAssertEqual(kRegionPerZoneToolbarHeight, 30)
+final class ZoneToolbarHeightTests: XCTestCase {
+    func testToolbarHeight() {
+        XCTAssertEqual(kZoneToolbarHeight, 30)
+    }
+
+    func testIconSize() {
+        XCTAssertEqual(kZoneToolbarIconSize, 18)
     }
 }
 
 @MainActor
-final class RegionPerZoneChromeViewTests: XCTestCase {
+final class ZonePerRegionChromeViewTests: XCTestCase {
     func testChromeRenders() {
-        // Just verify it can be constructed.
-        _ = RegionPerZoneChrome {
+        _ = ZonePerRegionChrome {
             Text("test")
         }
     }
 
     func testChromeWithTopAndBottom() {
-        _ = RegionPerZoneChrome(
-            topItems: [
-                RegionTopItem(id: "test", iconName: "plus", label: "Test")
+        _ = ZonePerRegionChrome(
+            topActions: [
+                ZoneTopAction(id: "test", label: "Test", icon: "plus")
             ],
-            bottomItems: [
-                RegionBottomItem(id: "status", label: "Status")
-            ]
+            bottomStatus: ZoneBottomStatus(left: "Status", right: "")
+        ) {
+            Text("test")
+        }
+    }
+
+    func testChromeBottomSkip() {
+        _ = ZonePerRegionChrome(
+            bottomSkip: true
         ) {
             Text("test")
         }
     }
 }
 
-final class DefaultPerRegionChromeTests: XCTestCase {
+final class DefaultZoneChromeTests: XCTestCase {
     func testSidebarChrome() {
-        let (top, bottom) = defaultSidebarRegionChrome(bookCount: 5, shelfCount: 2)
-        XCTAssertEqual(top.count, 2)
-        XCTAssertEqual(top[0].id, "new-book")
-        XCTAssertEqual(top[1].id, "search")
-        XCTAssertEqual(bottom.count, 2)
-        XCTAssertEqual(bottom[0].label, "书架: 2")
-        XCTAssertEqual(bottom[1].label, "书: 5")
+        let (top, bottom) = projectSidebarChrome(shelfCount: 5, bookCount: 12)
+        XCTAssertEqual(top.count, 3)
+        XCTAssertEqual(top[0].id, "templates")
+        XCTAssertEqual(top[0].icon, "doc.badge.plus")
+        XCTAssertEqual(top[1].id, "new-book")
+        XCTAssertEqual(top[1].icon, "book-open")
+        XCTAssertEqual(top[2].id, "archive")
+        XCTAssertEqual(top[2].icon, "archive")
+        XCTAssertEqual(bottom.left, "书架: 5")
+        XCTAssertEqual(bottom.right, "书: 12")
     }
 
     func testPreviewChrome() {
-        let (top, bottom) = defaultPreviewRegionChrome(chapterCount: 12)
+        let (top, bottom) = projectPreviewChrome(chapterCount: 12)
         XCTAssertEqual(top.count, 2)
-        XCTAssertEqual(top[0].id, "search")
-        XCTAssertEqual(top[1].id, "filter")
-        XCTAssertEqual(bottom.count, 1)
-        XCTAssertEqual(bottom[0].label, "章节: 12")
+        XCTAssertEqual(top[0].id, "preview")
+        XCTAssertEqual(top[0].icon, "book-open-check")
+        XCTAssertEqual(top[1].id, "graph")
+        XCTAssertEqual(top[1].icon, "waypoints")
+        XCTAssertEqual(bottom.left, "章节: 12")
+        XCTAssertEqual(bottom.right, "")
     }
 
     func testEditorChrome() {
-        let (top, bottom) = defaultEditorRegionChrome(wordCount: 3500, progress: 0.42)
-        XCTAssertEqual(top.count, 5)  // bold, italic, underline, list, more
-        XCTAssertEqual(top[0].id, "bold")
-        XCTAssertEqual(bottom.count, 2)
-        XCTAssertEqual(bottom[0].label, "字数: 3500")
-        XCTAssertEqual(bottom[1].detail, "42%")
+        let (top, bottom) = editorChrome(wordCount: 3500, progress: 0.42)
+        XCTAssertEqual(top.count, 3)
+        XCTAssertEqual(top[0].id, "edit")
+        XCTAssertEqual(top[0].icon, "book-open-text")
+        XCTAssertEqual(top[1].id, "outline")
+        XCTAssertEqual(top[1].icon, "puzzle")
+        XCTAssertEqual(top[2].id, "backlinks")
+        XCTAssertEqual(top[2].icon, "link")
+        XCTAssertEqual(bottom.left, "字数: 3500")
+        XCTAssertEqual(bottom.right, "42%")
     }
 
-    func testToolsChrome() {
-        let (top, bottom) = defaultToolsRegionChrome()
+    func testSpecializedToolsChrome() {
+        let (top, bottom) = specializedToolsChrome()
         XCTAssertEqual(top.count, 2)
-        XCTAssertEqual(bottom.count, 1)
-        XCTAssertEqual(bottom[0].label, "工具就绪")
+        XCTAssertEqual(top[0].id, "canvas")
+        XCTAssertEqual(top[0].icon, "scribble")
+        XCTAssertEqual(top[1].id, "database")
+        XCTAssertEqual(top[1].icon, "tablecells")
+        XCTAssertEqual(bottom.left, "工具就绪")
+        XCTAssertEqual(bottom.right, "")
     }
 
-    func testChatChromeEmpty() {
-        // Chat zone has its own internal toolbar (= in-child ChatBottomToolbar).
-        let (top, bottom) = defaultChatRegionChrome()
-        XCTAssertEqual(top.count, 0)
-        XCTAssertEqual(bottom.count, 0)
+    func testAIChatChrome() {
+        let (top, bottom) = aiChatChrome()
+        XCTAssertEqual(top.count, 2)
+        XCTAssertEqual(top[0].id, "bot")
+        XCTAssertEqual(top[0].icon, "bot")
+        XCTAssertEqual(top[1].id, "inbox")
+        XCTAssertEqual(top[1].icon, "inbox")
+        XCTAssertEqual(bottom.left, "")
+        XCTAssertEqual(bottom.right, "")
     }
 
-    func testDynamicChrome() {
-        let (top, bottom) = defaultDynamicRegionChrome()
-        XCTAssertEqual(top.count, 3)  // progress, todo, search
-        XCTAssertEqual(bottom.count, 1)
-        XCTAssertEqual(bottom[0].label, "看板")
+    func testAIDynamicChrome() {
+        let (top, bottom) = aiDynamicChrome()
+        XCTAssertEqual(top.count, 0)  // dynamic uses internal DynamicZoneTabBar
+        XCTAssertEqual(bottom.left, "看板")
+        XCTAssertEqual(bottom.right, "")
     }
 }
 
-final class RegionTopItemTests: XCTestCase {
-    func testItemConstruction() {
-        let item = RegionTopItem(
+final class ZoneTopActionTests: XCTestCase {
+    func testConstruction() {
+        let action = ZoneTopAction(
             id: "test",
-            iconName: "plus",
             label: "Test",
+            icon: "plus",
             onSelect: { print("clicked") }
         )
-        XCTAssertEqual(item.id, "test")
-        XCTAssertEqual(item.iconName, "plus")
-        XCTAssertEqual(item.label, "Test")
+        XCTAssertEqual(action.id, "test")
+        XCTAssertEqual(action.label, "Test")
+        XCTAssertEqual(action.icon, "plus")
     }
 }
 
-final class RegionBottomItemTests: XCTestCase {
-    func testItemConstruction() {
-        let item = RegionBottomItem(
-            id: "status",
-            label: "Active",
-            detail: "5/10",
-            iconName: "check"
-        )
-        XCTAssertEqual(item.id, "status")
-        XCTAssertEqual(item.label, "Active")
-        XCTAssertEqual(item.detail, "5/10")
-        XCTAssertEqual(item.iconName, "check")
+final class ZoneBottomStatusTests: XCTestCase {
+    func testDefaultEmpty() {
+        let s = ZoneBottomStatus()
+        XCTAssertEqual(s.left, "")
+        XCTAssertEqual(s.right, "")
+    }
+
+    func testConstruction() {
+        let s = ZoneBottomStatus(left: "书架: 3", right: "书: 12")
+        XCTAssertEqual(s.left, "书架: 3")
+        XCTAssertEqual(s.right, "书: 12")
+    }
+}
+
+final class ZoneChromeIconTests: XCTestCase {
+    @MainActor
+    func testLucideIcon() {
+        _ = ZoneChromeIcon(systemName: "waypoints")
+    }
+
+    @MainActor
+    func testSFFallbackIcon() {
+        // SF Symbol that Lucide doesn't have
+        _ = ZoneChromeIcon(systemName: "magnifyingglass")
+    }
+
+    @MainActor
+    func testCustomSize() {
+        _ = ZoneChromeIcon(systemName: "plus", size: 24)
     }
 }
