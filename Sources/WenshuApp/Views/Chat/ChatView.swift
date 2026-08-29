@@ -447,7 +447,18 @@ public struct ChatView: View {
             // 24 PT tall (= TextField.frame(height: 24) + Button
             // .controlSize(.regular)), and HStack(alignment: .center)
             // centers them vertically at the HStack midline.
-            HStack(alignment: .center, spacing: 8) {
+            //
+            // v0.28 followup Boss UX round 25 (Boss 2026-08-29 OOB
+            // '现在文本框会随着文字输入更多自动向上加高吗?'): changed
+            // HStack alignment from .center → .bottom so the Send
+            // button stays anchored at the bottom of the chat input
+            // row even as the TextField grows from 24 PT (= 1 line) to
+            // up to 80 PT (= 4 lines). Per Apple HIG canonical chat
+            // input row in Messages / Slack, the Send button is bottom-
+            // anchored (= never floats) while the textfield expands
+            // upward. This is the same pattern as Apple's chat input
+            // everywhere on macOS 26 Tahoe.
+            HStack(alignment: .bottom, spacing: 8) {
                 // v0.24 boss验收fix (2026-08-24): placeholder shows different text based on key state.
                 // Boss 8/24 (out-of-band): '请先在设置中设置好大模型提供方'.
                 // v0.25.1 (= ticket 030 chat send button Lucide icon + 8 PT textfield padding):
@@ -519,7 +530,24 @@ public struct ChatView: View {
                     // ring (ticket 034) + 8 PT outer top margin
                     // (ticket 034 final 3) preserved.
                     .textFieldStyle(.plain)
-                    .frame(height: 24)  // v0.25.1 ticket 037: textfield height 24 PT (= boss OOB '现在文本框不是 32 了吗 不管是多少 改成和文本框一样高' = 当前 textfield 视觉 是 24 PT, 不再改 = pin 24 PT). Button also 24 PT (= 跟 文本框 一致)
+                    // v0.28 followup Boss UX round 25 (Boss 2026-08-29
+                    // OOB '现在文本框会随着文字输入更多自动向上加高吗?')
+                    // = YES, removed .frame(height: 24) (= was pinning
+                    // the textfield to 24 PT regardless of content).
+                    // Now the TextField grows from 24 PT (= 1 line at
+                    // 13 PT font + 12 PT vertical padding) up to 4
+                    // lines via .lineLimit(1...4) (= Apple HIG canonical
+                    // Messages / Slack chat input row behavior).
+                    //
+                    // v0.25.1 (= ticket 037): was pinned to 24 PT per
+                    // boss OOB '现在文本框不是 32 了吗 不管是多少
+                    // 改成和文本框一样高' = at the time, the textfield
+                    // visual was 24 PT (= 1 line) so boss wanted to
+                    // match the button height. Now with auto-grow,
+                    // the textfield starts at 24 PT (= 1 line, matching
+                    // button) and grows up to 4 lines (= ~ 80 PT =
+                    // = button stays vertically aligned at the bottom
+                    // via HStack(alignment: .bottom)).
                     .padding(.horizontal, 12)
                     // v0.28 followup Boss UX round 23 (Boss 2026-08-29
                     // OOB '文本框是液态玻璃样式的吗'): Was using
