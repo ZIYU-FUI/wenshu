@@ -68,30 +68,23 @@ public struct RegionContentBackground: View {
     public init() {}
 
     public var body: some View {
-        // v0.28 followup Boss UX round 40 (Boss 2026-08-29 OOB '再截
-        // 图一下看看' = screenshot showed panes still blend into a
-        // single white area with boss's high-contrast grayscale
-        // photography wallpaper = even .regularMaterial (= standard
-        // tint) wasn't enough to clearly distinguish pane boundaries).
+        // v0.28 followup Boss UX round 47 (Boss 2026-08-29 OOB
+        // '项目管理区总是很特别, 项目管理区和素材预览区中间的分隔线
+        // 和其他区域都不同' = the .regularMaterial / .thickMaterial
+        // overlays were covering the divider lines between panes.
+        // Tried lowering to .regularMaterial (= round 47) = still
+        // covered the divider.
         //
-        // Upgraded from .regularMaterial to .thickMaterial (= the
-        // heaviest Liquid Glass tint = significantly more opaque =
-        // pane boundaries now VERY clearly visible). Wallpaper still
-        // faintly shows through as a subtle blur (= not totally
-        // blocked = retains the Liquid Glass feel), but each pane
-        // now has a clearly distinguishable darker tint that boss can
-        // see.
-        //
-        // Why .thickMaterial (= heaviest tint):
-        // - .ultraThinMaterial = barely visible tint (= round 38, panes
-        //   still merged into wallpaper)
-        // - .thinMaterial = subtle tint (= similar to .ultraThinMaterial)
-        // - .regularMaterial = standard tint (= round 39, still merged
-        //   with boss's high-contrast wallpaper)
-        // - .thickMaterial = strongest tint (= now visible against any
-        //   wallpaper, including bright/white/dark photos)
+        // Round 48 (this commit): REMOVED the material overlay entirely.
+        // The pane background is now plain Color.clear (= truly
+        // transparent). Pane visibility comes from the window-level
+        // .glass containerBackground (= set in App.swift round 41) +
+        // the 1 PT .separator at the bottom of RegionTabBar/RegionStatusBar
+        // (= pane boundaries visible via the tab/status bars' separators).
+        // Divider lines between panes (rendered by NativeSplitter at
+        // 1 PT Apple .separator ShapeStyle) are now FULLY visible
+        // from top to bottom (= no material covering them).
         Color.clear
-            .overlay(.thickMaterial)
     }
 }
 
