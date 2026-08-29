@@ -234,19 +234,24 @@ struct ZoneModuleView: View {
 /// v0.28 followup Boss UX round 21: .regularMaterial replaces the
 /// DesignColor.zoneSurface (= solid) so the placeholder matches the
 /// Liquid Glass design language used everywhere else.
-// v0.28 followup Boss UX round 31 (Boss 2026-08-29 OOB '素材预览区,
-// 动态区, 这个区的液态玻璃效果和其他区不一样'): uses
-// RegionContentBackground (= single source of truth for per-pane
-// content backgrounds = .regularMaterial = standard Liquid Glass tint).
-// Previously used .background(.regularMaterial) (= same material but
-// different render path = caused subtle inconsistencies with other panes).
+// v0.28 followup Boss UX round 37 (Boss 2026-08-29 OOB '编辑器因为
+// 背景是白色? 所有亮度看起来不一样是吗' = YES, the editor pane
+// had Color.white.opacity(0.55) overlay (= intentionally lighter
+// tint than other panes for placeholder visibility). REMOVED that
+// overlay so the editor placeholder matches the other 5 panes in
+// depth/brightness (= truly transparent = shows desktop wallpaper
+// through like Sidebar/Preview/Tools/Chat/Dynamic).
 private struct EditorContentPlaceholder: View {
     var body: some View {
+        // v0.28 followup Boss UX round 37: REMOVED the
+        // Color.white.opacity(0.55) overlay (= was making the editor
+        // pane appear LIGHTER than the other 5 panes = boss noticed
+        // "编辑器因为背景是白色? 所有亮度看起来不一样"). Now the
+        // editor placeholder is just RegionContentBackground() =
+        // truly transparent = identical visual depth to Sidebar/
+        // Preview/Tools/Chat/Dynamic (= boss's "亮度看起来不一样"
+        // issue resolved).
         RegionContentBackground()
-            .overlay {
-                Color.white.opacity(0.55)
-                    .padding([.top, .bottom], LayoutTokens.editorVerticalInsetRatio * 100)
-            }
     }
 }
 
