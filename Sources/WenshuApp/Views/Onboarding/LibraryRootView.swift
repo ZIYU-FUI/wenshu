@@ -152,22 +152,102 @@ private struct WiredShell: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        // v0.28 followup Boss UX round 4: macOS native toolbar (= 52 PT
-        // default chrome with traffic lights). Titlebar icons (= sidebar/
-        // preview/tools/chat/dynamic/model-picker/export) live here per
-        // Boss 2026-08-29 OOB '原本在标题栏上的按钮, 现在不能放在标题栏
-        // 上了是吗, 可以把现在你自己写的放原标题栏按钮的那一栏的按钮,
-        // 放在现在的标题栏上吗, 就现在 icon 这么大就行'.
+        // v0.28 followup Boss UX round 4 + round 9: macOS native toolbar
+        // (= 28 PT unifiedCompact chrome with traffic lights + double-
+        // click-to-zoom). Titlebar icons (= sidebar/preview/tools/chat/
+        // dynamic/model-picker/export) live here per Boss 2026-08-29
+        // OOB '原本在标题栏上的按钮, 现在不能放在标题栏上了是吗,
+        // 可以把现在你自己写的放原标题栏按钮的那一栏的按钮, 放在
+        // 现在的标题栏上吗, 就现在 icon 这么大就行'.
         //
-        // = move the titlebar icons from the custom 34 PT AppTitlebar
-        // (= was overlapping with macOS native titlebar) to the
-        // macOS native toolbar (= appears next to traffic lights).
-        // Apple HIG canonical placement = .automatic with Spacer() first
-        // (= rightmost position).
+        // = single titlebar layer (= macOS native = traffic lights +
+        // toolbar items = matches Apple Pages / Xcode / Mail). No
+        // AppTitlebar (= avoids 2-layer chrome per Boss round 9 OOB
+        // '没有在 mac 自带的标题栏上, 你是独立写了一个实现的').
         //
-        // Icons use LayoutTokens.iconSize (= 18 PT, matches macOS native
-        // toolbar button visual size). Boss spec: '就现在 icon 这么大就行'.
-
+        // Each icon uses individual ToolbarItem(placement: .primaryAction)
+        // (= no ToolbarItemGroup wrap = no outer pill). .buttonStyle
+        // (.plain) removes the per-button capsule (= flat icons, matches
+        // hermes titlebarButtonClass style).
+        .toolbar {
+            ToolbarItem(placement: .navigation) {
+                Color.clear.frame(width: 1, height: 1)
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    showProjectSidebar.toggle()
+                } label: {
+                    LucideIconSystemFallback("sidebar.left", size: LayoutTokens.iconSize)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(showProjectSidebar ? Color.accentColor : Color.secondary)
+                .help(showProjectSidebar ? "隐藏 项目管理区" : "显示 项目管理区")
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    showProjectPreview.toggle()
+                } label: {
+                    LucideIconSystemFallback("eye.fill", size: LayoutTokens.iconSize)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(showProjectPreview ? Color.accentColor : Color.secondary)
+                .help(showProjectPreview ? "隐藏 素材预览区" : "显示 素材预览区")
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    showSpecializedTools.toggle()
+                } label: {
+                    LucideIconSystemFallback("wrench.and.screwdriver", size: LayoutTokens.iconSize)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(showSpecializedTools ? Color.accentColor : Color.secondary)
+                .help(showSpecializedTools ? "隐藏 工具区" : "显示 工具区")
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    showAIChat.toggle()
+                } label: {
+                    LucideIconSystemFallback("bubble.left", size: LayoutTokens.iconSize)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(showAIChat ? Color.accentColor : Color.secondary)
+                .help(showAIChat ? "隐藏 聊天区" : "显示 聊天区")
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    showAIDynamic.toggle()
+                } label: {
+                    LucideIconSystemFallback("chart.bar", size: LayoutTokens.iconSize)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(showAIDynamic ? Color.accentColor : Color.secondary)
+                .help(showAIDynamic ? "隐藏 动态区" : "显示 动态区")
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Divider()
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    WenshuAppDelegate.openSettings?()
+                } label: {
+                    LucideIconSystemFallback("cpu", size: LayoutTokens.iconSize)
+                }
+                .buttonStyle(.plain)
+                .help("模型: \(modelName)")
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Divider()
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    NotificationCenter.default.post(name: .wenshuExportRequested, object: nil)
+                } label: {
+                    LucideIconSystemFallback("square.and.arrow.up", size: LayoutTokens.iconSize)
+                }
+                .buttonStyle(.plain)
+                .help("导出电子书 (PDF / EPUB / MOBI / TXT)")
+            }
+        }
         .task {
             await runLaunch()
         }

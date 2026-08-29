@@ -46,28 +46,18 @@ public struct WenshuChromeOverlay<Content: View>: View {
 
     public var body: some View {
         VStack(spacing: 0) {
-            // v0.28 followup Boss UX round 8: Restore AppTitlebar
-            // (= custom 32 PT titlebar). Per Boss 2026-08-29 OOB
-            // '也不对, 胶囊还在, 只是尺寸调到了最小' = macOS native
-            // .toolbar { ... } always wraps icons in 1 unified pill
-            // (AppKit NSToolbar behavior, can't be disabled via SwiftUI).
-            // The only way to get a flat titlebar with bare icons
-            // (= hermes style) is to draw the titlebar manually in
-            // SwiftUI (= AppTitlebar = no AppKit container). This
-            // bypasses NSToolbar entirely and renders the icons in a
-            // custom HStack with no group background.
+            // v0.28 followup Boss UX round 9 (Boss 2026-08-29 OOB
+            // '没有在 mac 自带的标题栏上, 你是独立写了一个实现的, 导致
+            // 上半区看起来有两层顶栏' + '等下, 那样会没有红黄绿按钮,
+            // 也不可以双击放大, 试过了'): REMOVED the custom AppTitlebar
+            // (= gave 2 titlebar layers = bad UX). The macOS native
+            // titlebar (= 28 PT unifiedCompact with traffic lights +
+            // double-click-to-zoom) hosts the toolbar items directly
+            // via the .toolbar { ToolbarItem(...) } block on
+            // WiredShell (= macOS standard = 1 titlebar layer = no
+            // duplication). Hermes verbatim style (= flat icons next
+            // to traffic lights, no extra custom chrome).
             //
-            // AppTitlebar size = 32 PT (= slightly slimmer than the
-            // old 34 PT, matches macOS native titlebar visual height
-            // when combined with the 28 PT minimal native titlebar
-            // above it). Total titlebar chrome = 28 + 32 = 60 PT
-            // (= close to the old 52 PT unified chrome).
-            AppTitlebar(
-                registry: ContributionRegistry(),
-                leftTools: titlebarLeftTools,
-                rightTools: titlebarRightTools,
-                title: nil
-            )
             // Main content (layout).
             content()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

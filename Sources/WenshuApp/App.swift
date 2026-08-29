@@ -1226,6 +1226,18 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // v0.28 followup Boss UX round 9 (Boss 2026-08-29 OOB '等下,
+        // 那样会没有红黄绿按钮, 也不可以双击放大, 试过了' =
+        // titlebarAppearsTransparent + titleVisibility = .hidden
+        // removes traffic lights AND double-click-to-zoom
+        // (= breaks macOS standard window controls). Don't do that.
+        // Keep the macOS native titlebar (= 28 PT compact with
+        // traffic lights + double-click-to-zoom) and put the titlebar
+        // icons INSIDE it via .toolbar { ToolbarItem(.principal) }
+        // (= exactly macOS standard = native toolbar buttons next to
+        // traffic lights = matches Apple Pages / Xcode / Mail etc.).
+        // No AppTitlebar (= avoids 2-layer chrome).
+        //
         // v0.21 ticket 06: 同步创建 ChatSessionStore + KanbanStore + WenshuConductor (不能在 static let 闭包里调 actor init)
         // 用 unsafeMutablePointer / 临时 instance var 临时持有 — 因为 static let 是 immutable, 不能后续赋值
 // v0.24 boss验收fix (Boss 8/24 反馈 '聊天记录持久化, 我没看到'):
