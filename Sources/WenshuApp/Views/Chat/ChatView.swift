@@ -521,10 +521,25 @@ public struct ChatView: View {
                     .textFieldStyle(.plain)
                     .frame(height: 24)  // v0.25.1 ticket 037: textfield height 24 PT (= boss OOB '现在文本框不是 32 了吗 不管是多少 改成和文本框一样高' = 当前 textfield 视觉 是 24 PT, 不再改 = pin 24 PT). Button also 24 PT (= 跟 文本框 一致)
                     .padding(.horizontal, 12)
+                    // v0.28 followup Boss UX round 23 (Boss 2026-08-29
+                    // OOB '文本框是液态玻璃样式的吗'): Was using
+                    // Color.gray.opacity(0.1) (= solid 10% opacity
+                    // gray = NOT Liquid Glass). Now uses
+                    // .regularMaterial (= macOS 26 Tahoe Liquid Glass
+                    // translucency = matches the Apple HIG canonical
+                    // TextField look in Messages / Mail / Xcode).
+                    // The placeholder text naturally appears in
+                    // the secondary color (= .gray via SwiftUI's
+                    // semantic foregroundStyle) on the Liquid Glass
+                    // background, just like Apple Messages / Slack.
+                    // The 1 PT focus ring (borderColor on focus)
+                    // stays as Color.accentColor / Color.gray.opacity(0.4)
+                    // (= works correctly with Liquid Glass per Apple
+                    // HIG).
                     .background(
                         ZStack {
                             RoundedRectangle(cornerRadius: 6)
-                                .fill(Color.gray.opacity(0.1))
+                                .fill(.regularMaterial)
                             RoundedRectangle(cornerRadius: 6)
                                 .strokeBorder(inputFocused ? Color.accentColor : Color.gray.opacity(0.4), lineWidth: 1)
                         }
