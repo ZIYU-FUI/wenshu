@@ -60,7 +60,7 @@ struct ReferenceLibraryOutlineView: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.5))
+        .background(.thinMaterial)
     }
 
     // MARK: - Content
@@ -188,7 +188,7 @@ private struct ReferenceCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Color(nsColor: .controlBackgroundColor))
+                .fill(Color.clear)
         )
     }
 }
