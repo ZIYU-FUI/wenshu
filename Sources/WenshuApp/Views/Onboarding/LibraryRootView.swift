@@ -152,23 +152,37 @@ private struct WiredShell: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        // v0.28 followup Boss UX round 4 + round 9: macOS native toolbar
-        // (= 28 PT unifiedCompact chrome with traffic lights + double-
-        // click-to-zoom). Titlebar icons (= sidebar/preview/tools/chat/
-        // dynamic/model-picker/export) live here per Boss 2026-08-29
-        // OOB '原本在标题栏上的按钮, 现在不能放在标题栏上了是吗,
-        // 可以把现在你自己写的放原标题栏按钮的那一栏的按钮, 放在
-        // 现在的标题栏上吗, 就现在 icon 这么大就行'.
+        // v0.28 followup Boss UX round 4 + round 9 + round 11: macOS
+        // native toolbar (= 28 PT unifiedCompact chrome with traffic
+        // lights + double-click-to-zoom). Titlebar icons (= sidebar/
+        // preview/tools/chat/dynamic/model-picker/export) live here
+        // per Boss 2026-08-29 OOB '原本在标题栏上的按钮, 现在不能放
+        // 在标题栏上了是吗'.
         //
-        // = single titlebar layer (= macOS native = traffic lights +
-        // toolbar items = matches Apple Pages / Xcode / Mail). No
-        // AppTitlebar (= avoids 2-layer chrome per Boss round 9 OOB
-        // '没有在 mac 自带的标题栏上, 你是独立写了一个实现的').
+        // Boss 2026-08-29 OOB '你查过文档吗, Mac os 允许不带胶囊吗?
+        // 27 版本是不是强制适配液态玻璃' = per Apple
+        // developer.apple.com/documentation/technologyoverviews/
+        // liquid-glass (= Apple macOS 26 Tahoe SwiftUI standard):
+        // "Standard components from SwiftUI, UIKit, and AppKit like
+        // controls and navigation elements pick up the appearance
+        // and behavior of this material automatically." = Liquid
+        // Glass IS automatic (= no opt-in). Boss asked specifically:
+        // can macOS toolbar run WITHOUT the glass capsule?
+        // Answer: YES via View.toolbarBackground(_:for:) (Apple
+        // developer.apple.com/documentation/swiftui/view/toolbarbackground)
+        // — introduced macOS 13.0, signature:
+        //   func toolbarBackground<S>(_ style: S, for bars: ToolbarPlacement...)
+        //     -> some View where S: ShapeStyle
+        // = pass `.clear` (= transparent ShapeStyle) for
+        // .windowToolbar placement (= matches the titlebar placement
+        // per developer.apple.com/documentation/swiftui/toolbarplacement/
+        // windowtoolbar = "the placement for the containing window's
+        // toolbar, sometimes referred to as the titlebar").
+        // = REMOVES the Liquid Glass capsule (= no rounded background)
+        // while keeping traffic lights + double-click-to-zoom.
         //
-        // Each icon uses individual ToolbarItem(placement: .primaryAction)
-        // (= no ToolbarItemGroup wrap = no outer pill). .buttonStyle
-        // (.plain) removes the per-button capsule (= flat icons, matches
-        // hermes titlebarButtonClass style).
+        // Single titlebar layer, no AppTitlebar, NO Liquid Glass
+        // capsule, native macOS chrome preserved.
         .toolbar {
             ToolbarItem(placement: .navigation) {
                 Color.clear.frame(width: 1, height: 1)
@@ -248,6 +262,17 @@ private struct WiredShell: View {
                 .help("导出电子书 (PDF / EPUB / MOBI / TXT)")
             }
         }
+        // v0.28 followup Boss UX round 11: Remove the Liquid Glass
+        // capsule (= per Boss OOB 'Mac os 允许不带胶囊吗'). Per Apple
+        // developer.apple.com/documentation/swiftui/view/toolbarbackground,
+        // SwiftUI's toolbarBackground API lets the developer override
+        // the default Liquid Glass material with a custom ShapeStyle.
+        // Pass `.clear` (= transparent) for the `.windowToolbar`
+        // placement (= the containing window's toolbar = titlebar) to
+        // remove the capsule background entirely. The toolbar items
+        // still render (= traffic lights + icons remain), but the
+        // background is transparent (= no rounded pill).
+        .toolbarBackground(.clear, for: .windowToolbar)
         .task {
             await runLaunch()
         }
