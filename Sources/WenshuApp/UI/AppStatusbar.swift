@@ -152,7 +152,17 @@ public struct AppStatusbar: View {
                 }
                 .padding(.horizontal, 6)
                 .frame(height: kStatusbarItemHeight)
-                .background(Color(nsColor: .windowBackgroundColor))
+                // v0.28 followup Boss UX round 13 (Boss 2026-08-29 OOB
+                // '其他区域背景, 组件什么的, 有没有需要适配液态玻璃的'):
+                // Use .regularMaterial (= macOS 26 Tahoe Liquid Glass
+                // translucency) instead of solid windowBackgroundColor.
+                // Per Apple developer.apple.com/documentation/
+                // swiftui/materials (= the Liquid Glass material catalog
+                // for SwiftUI on macOS 13+), .regularMaterial is the
+                // standard translucent material used for toolbars /
+                // statusbars / sidebars (= exactly the macOS 26 Tahoe
+                // Liquid Glass look applied to a custom statusbar view).
+                .background(.regularMaterial)
                 .contextMenu {
                     Button("Reset statusbar layout") {
                         onResetLayout()

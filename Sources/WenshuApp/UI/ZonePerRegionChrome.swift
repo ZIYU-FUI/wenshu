@@ -172,7 +172,13 @@ public struct ZonePerRegionChrome<Content: View>: View {
                     .padding(.top, 8)
             }
             .frame(height: kZoneToolbarHeight - 1)
-            .background(Color(nsColor: .windowBackgroundColor))
+            // v0.28 followup Boss UX round 13 (Boss 2026-08-29 OOB
+            // '其他区域背景, 组件什么的, 有没有需要适配液态玻璃的'):
+            // Use .regularMaterial (= macOS 26 Tahoe Liquid Glass
+            // translucency) for the per-region top + bottom toolbar
+            // (= matches the macOS native per-region chrome style on
+            // 26 Tahoe = same Liquid Glass material as the titlebar).
+            .background(.regularMaterial)
         }
     }
 
@@ -199,7 +205,7 @@ public struct ZonePerRegionChrome<Content: View>: View {
                     .allowsHitTesting(false)
             }
             .frame(height: kZoneToolbarHeight - 1)
-            .background(Color(nsColor: .windowBackgroundColor))
+            .background(.regularMaterial)
             // Bottom splitter line (= matches old ZoneTopToolbar bottom splitter).
             Rectangle()
                 .fill(Color(nsColor: .separatorColor))

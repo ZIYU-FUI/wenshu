@@ -152,99 +152,64 @@ private struct WiredShell: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        // v0.28 followup Boss UX round 12 (Boss 2026-08-29 OOB '算了,
-        // 本来我们也要伪 apple 官方嘛, 用 52 高的那个原生标题栏,
-        // 把按钮放上面, 去掉自己写的那一栏, 全面适配液态玻璃'):
-        // = adopt Apple Liquid Glass design language fully. Use the
-        // default .unified toolbar background (= Liquid Glass material
-        // = the canonical macOS 26 Tahoe look). Each icon uses
-        // .buttonStyle(.plain) (= removes per-button capsule, matches
-        // hermes titlebarButtonClass style for the individual icon
-        // backgrounds; the outer Liquid Glass capsule remains per
-        // macOS standard).
-        //
-        // Single titlebar layer (= macOS native .unified 52 PT =
-        // traffic lights + 8 toolbar items in 1 unified capsule =
-        // matches Apple Pages / Xcode / Mail / Finder).
+// v0.28 followup Boss UX round 13 (Boss 2026-08-29 OOB '没有
+        // 分组, 分好组'): Use ToolbarItemGroup(= segmented Liquid
+        // Glass capsule per group, the canonical macOS 26 Tahoe
+        // pattern). Each group = 1 visually-grouped capsule with a
+        // gap between groups (= matches Apple Pages / Xcode / Finder
+        // toolbar style exactly). 3 groups:
+        // - Group 1: 5 zone toggles (sidebar/preview/tools/chat/dynamic)
+        // - Group 2: model picker (= separate capsule after the zone-toggle group)
+        // - Group 3: export (= rightmost, third capsule)
         .toolbar {
-            ToolbarItem(placement: .navigation) {
-                Color.clear.frame(width: 1, height: 1)
-            }
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    showProjectSidebar.toggle()
-                } label: {
+            ToolbarItemGroup(placement: .primaryAction) {
+                Button { showProjectSidebar.toggle() } label: {
                     LucideIconSystemFallback("sidebar.left", size: LayoutTokens.iconSize)
                 }
-                .buttonStyle(.plain)
                 .foregroundStyle(showProjectSidebar ? Color.accentColor : Color.secondary)
                 .help(showProjectSidebar ? "隐藏 项目管理区" : "显示 项目管理区")
-            }
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    showProjectPreview.toggle()
-                } label: {
+                Button { showProjectPreview.toggle() } label: {
                     LucideIconSystemFallback("eye.fill", size: LayoutTokens.iconSize)
                 }
-                .buttonStyle(.plain)
                 .foregroundStyle(showProjectPreview ? Color.accentColor : Color.secondary)
                 .help(showProjectPreview ? "隐藏 素材预览区" : "显示 素材预览区")
-            }
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    showSpecializedTools.toggle()
-                } label: {
+                Button { showSpecializedTools.toggle() } label: {
                     LucideIconSystemFallback("wrench.and.screwdriver", size: LayoutTokens.iconSize)
                 }
-                .buttonStyle(.plain)
                 .foregroundStyle(showSpecializedTools ? Color.accentColor : Color.secondary)
                 .help(showSpecializedTools ? "隐藏 工具区" : "显示 工具区")
-            }
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    showAIChat.toggle()
-                } label: {
+                Button { showAIChat.toggle() } label: {
                     LucideIconSystemFallback("bubble.left", size: LayoutTokens.iconSize)
                 }
-                .buttonStyle(.plain)
                 .foregroundStyle(showAIChat ? Color.accentColor : Color.secondary)
                 .help(showAIChat ? "隐藏 聊天区" : "显示 聊天区")
-            }
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    showAIDynamic.toggle()
-                } label: {
+                Button { showAIDynamic.toggle() } label: {
                     LucideIconSystemFallback("chart.bar", size: LayoutTokens.iconSize)
                 }
-                .buttonStyle(.plain)
                 .foregroundStyle(showAIDynamic ? Color.accentColor : Color.secondary)
                 .help(showAIDynamic ? "隐藏 动态区" : "显示 动态区")
             }
-            ToolbarItem(placement: .primaryAction) {
-                Divider()
-            }
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    WenshuAppDelegate.openSettings?()
-                } label: {
+            ToolbarItemGroup(placement: .primaryAction) {
+                Button { WenshuAppDelegate.openSettings?() } label: {
                     LucideIconSystemFallback("cpu", size: LayoutTokens.iconSize)
                 }
-                .buttonStyle(.plain)
                 .help("模型: \(modelName)")
             }
-            ToolbarItem(placement: .primaryAction) {
-                Divider()
-            }
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    NotificationCenter.default.post(name: .wenshuExportRequested, object: nil)
-                } label: {
+            ToolbarItemGroup(placement: .primaryAction) {
+                Button { NotificationCenter.default.post(name: .wenshuExportRequested, object: nil) } label: {
                     LucideIconSystemFallback("square.and.arrow.up", size: LayoutTokens.iconSize)
                 }
-                .buttonStyle(.plain)
                 .help("导出电子书 (PDF / EPUB / MOBI / TXT)")
             }
         }
+        // NOTE: v0.28 followup Boss UX round 11 attempted to remove
+        // the Liquid Glass capsule by passing .toolbarBackground(.clear,
+        // for: .windowToolbar). Boss round 12 overruled that (= decided
+        // to fully adopt Liquid Glass per Apple design language). The
+        // default Liquid Glass background now renders behind the
+        // toolbar items (= canonical macOS 26 Tahoe look matching
+        // Pages / Xcode / Mail / Finder).
+
         // NOTE: v0.28 followup Boss UX round 11 attempted to remove
         // the Liquid Glass capsule by passing .toolbarBackground(.clear,
         // for: .windowToolbar). Boss round 12 overruled that (= decided
