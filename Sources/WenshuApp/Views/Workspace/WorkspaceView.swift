@@ -231,29 +231,34 @@ struct ZoneModuleView: View {
 /// Real editor content view = ticket 027-35 followup; for now we
 /// render a subtle placeholder background matching the old 6区
 /// "Color.white.opacity(0.55) with 4 PT vertical inset" treatment.
-/// v0.28 followup Boss UX round 21: .regularMaterial replaces the
+// v0.28 followup Boss UX round 21: .regularMaterial replaces the
 /// DesignColor.zoneSurface (= solid) so the placeholder matches the
 /// Liquid Glass design language used everywhere else.
-// v0.28 followup Boss UX round 37 (Boss 2026-08-29 OOB '编辑器因为
-// 背景是白色? 所有亮度看起来不一样是吗' = YES, the editor pane
-// had Color.white.opacity(0.55) overlay (= intentionally lighter
-// tint than other panes for placeholder visibility). REMOVED that
-// overlay so the editor placeholder matches the other 5 panes in
-// depth/brightness (= truly transparent = shows desktop wallpaper
-// through like Sidebar/Preview/Tools/Chat/Dynamic).
+// v0.28 followup Boss UX round 31 (Boss 2026-08-29 OOB '素材预览区,
+// 动态区, 这个区的液态玻璃效果和其他区不一样'): uses
+// RegionContentBackground (= single source of truth for per-pane
+// content backgrounds = .regularMaterial = standard Liquid Glass tint).
+// Previously used .background(.regularMaterial) (= same material but
+// different render path = caused subtle inconsistencies with other panes).
+//
+// v0.28 followup Boss UX round 42: REMOVED the inline
+// RegionContentBackground (= now applied automatically by
+// ZonePerRegionChrome in round 42 = single source of truth for
+// per-pane content backgrounds). Keeping this as a placeholder
+// for the editor placeholder content (= shows the actual editor
+// surface).
 private struct EditorContentPlaceholder: View {
     var body: some View {
         // v0.28 followup Boss UX round 37: REMOVED the
         // Color.white.opacity(0.55) overlay (= was making the editor
         // pane appear LIGHTER than the other 5 panes = boss noticed
         // "编辑器因为背景是白色? 所有亮度看起来不一样"). Now the
-        // editor placeholder is just RegionContentBackground() =
-        // truly transparent = identical visual depth to Sidebar/
-        // Preview/Tools/Chat/Dynamic (= boss's "亮度看起来不一样"
-        // issue resolved).
-        RegionContentBackground()
+        // editor placeholder is just empty (= the background is
+        // now applied uniformly by ZonePerRegionChrome).
+        Color.clear
     }
 }
+
 
 /// Editor expand/shrink trailing button (= old v0.25.1 ticket 029c).
 /// Per boss 8/26 OOB '点击后 整个编辑器最大化 其它所有栏全都隐藏
@@ -354,19 +359,14 @@ private struct EditModeBadge: View {
 
 // MARK: - PreviewTabBackground (= preview pane content background)
 //
-// v0.28 followup Boss UX round 24: simple helper that returns a
-// Color.clear view with .ultraThinMaterial background (= preview
-// pane content placeholder matches the Liquid Glass design language
-// used everywhere else). Used as the preview pane's first tab
-// content (until ticket 027-35 followup wires the real preview
-// content).
-// v0.28 followup Boss UX round 31 (Boss 2026-08-29 OOB '素材预览区,
-// 动态区, 这个区的液态玻璃效果和其他区不一样'): replaced the
-// .ultraThinMaterial overlay with RegionContentBackground (= single
-// source of truth for per-pane content backgrounds = .regularMaterial
-// = standard Liquid Glass tint = matches other panes).
+// v0.28 followup Boss UX round 42 (Boss 2026-08-29 OOB '缺三个区,
+// 项目管理, 工具, 聊天, 都没进你的样式表'): REMOVED the inline
+// RegionContentBackground call. The background is now applied
+// uniformly by ZonePerRegionChrome (= single source of truth for
+// per-pane content backgrounds). PreviewTabBackground is now just
+// Color.clear (= will be wrapped automatically by the chrome layer).
 private struct PreviewTabBackground: View {
     var body: some View {
-        RegionContentBackground()
+        Color.clear
     }
 }

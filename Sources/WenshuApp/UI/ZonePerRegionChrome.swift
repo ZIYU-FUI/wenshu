@@ -127,8 +127,16 @@ public struct ZonePerRegionChrome<Content: View>: View {
                 topBar
             }
             // Region content (= fills remaining space).
+            // v0.28 followup Boss UX round 42 (Boss 2026-08-29 OOB
+            // '缺三个区, 项目管理, 工具, 聊天, 都没进你的样式表' =
+            // Sidebar / Tools / Chat / Dynamic panes were missing
+            // the RegionContentBackground wrapper). Apply it here at
+            // the ZonePerRegionChrome layer (= wraps ALL 6 panes
+            // uniformly = single source of truth for the canonical
+            // per-pane content background).
             content()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(RegionContentBackground())
             // Bottom toolbar (= 30 PT, matches old ZoneBottomToolbar).
             if !bottomSkip {
                 bottomBar
