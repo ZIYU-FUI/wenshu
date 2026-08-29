@@ -371,7 +371,12 @@ struct WenshuApp: App {
         // developer.apple.com/documentation/SwiftUI/WindowToolbarStyle,
         // .unified is the default style (52 PT). .unifiedCompact is
         // COMPACT (= smaller, NOT default). Boss spec 'default size' = .unified.
-        .windowToolbarStyle(.unified(showsTitle: false))  // 52 PT default toolbar, title hidden
+        // v0.28 followup (Boss 2026-08-29 OOB '完整复刻 hermes app'):
+        // .expanded (= 0 PT macOS native toolbar; our AppTitlebar 34 PT
+        // custom handles the titlebar). .unified kept commented below
+        // for reference.
+        .windowToolbarStyle(.expanded)  // 0 PT native; WenshuChromeOverlay provides 34 PT AppTitlebar
+        // .windowToolbarStyle(.unified(showsTitle: false))  // 52 PT default toolbar, title hidden
         .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // Boss Sketch design baseline 1920x984 PT
         // v0.24 boss验收fix: .contentMinSize (window doesn't shrink below initial
         // size, can grow to fit larger content).
@@ -1016,37 +1021,64 @@ private struct ProviderKeyInputSheet: View {
 /// (Stack Overflow 65355696 + orchetect/SettingsAccess 真值)
 // v0.24 boss验收fix (2026-08-24): accept library + appearanceMode so it can
     // wrap LayoutShellView with the same modifiers as the original WindowGroup.
-private struct SettingsEnvironmentCapturer: View {
-    @Environment(\.openSettings) private var openSettings
-    let library: WenshuLibrary
-    let appearanceMode: AppearanceMode
-    /// v0.28 ticket 028-006 followup: layout edit mode state at
-    /// the top-level wrapper (= so the ⌘⇧\ hotkey + Window menu
-    /// entry work regardless of whether the user is on the
-    /// WorkspaceView path or the legacy LayoutShellView path).
-    /// The PaneRenderer / LayoutEditBar surface in 028-006 + 028-007
-    /// only consumes the boolean when useWorkspace == true; on the
-    /// legacy path, toggling the bool still has user-visible effect
-    /// (= the EditModeBadge in WorkspaceView, when the user flips
-    /// useWorkspace on, would already be ON — saves them a second
-    /// keystroke).
-    @State private var editMode = LayoutEditMode()
-    var body: some View {
-        // v0.24 boss验收fix (Boss 8/24 OOB 拍 '和 FCP 一样, 首次运行, 无论
-        // 是否要建书架, 都要先指定一个 .ws 文件的库文件位置'): first-launch
-        // .ws file picker. NSOpenPanel for selecting .ws file location
-        // (FCP-style Event Library UX). Save to UserDefaults wenshu.libraryPath.
-        // WenshuWorkspace is initialized with the picked path (WenshuWorkspace
-        // path already supports custom URL via init).
-        //
-        // LibraryRootView is a wrapper that:
-        // 1. Checks UserDefaults wenshu.libraryPath
-        // 2. If not set, shows NSOpenPanel to pick .ws file
-        // 3. If set, just renders LayoutShellView
-        // 4. All file I/O (chat / kanban / books / etc.) goes through .ws
-        //    subdirectories (shelves/, books/, chat/, kanban/, todo/, assets/)
-        //    = WenshuWorkspace manages this layout.
-        LibraryRootView()
+    private struct SettingsEnvironmentCapturer: View {
+        @Environment(\.openSettings) private var openSettings
+        let library: WenshuLibrary
+        let appearanceMode: AppearanceMode
+        /// v0.28 ticket 028-006 followup: layout edit mode state at
+        /// the top-level wrapper (= so the ⌘⇧\ hotkey + Window menu
+        /// entry work regardless of whether the user is on the
+        /// WorkspaceView path or the legacy LayoutShellView path).
+        /// The PaneRenderer / LayoutEditBar surface in 028-006 + 028-007
+        /// only consumes the boolean when useWorkspace == true; on the
+        /// legacy path, toggling the bool still has user-visible effect
+        /// (= the EditModeBadge in WorkspaceView, when the user flips
+        /// useWorkspace on, would already be ON — saves them a second
+        /// keystroke).
+        @State private var editMode = LayoutEditMode()
+        // v0.28 followup (Boss 2026-08-29 OOB '完整复刻 hermes app'): model
+        // name + context usage state (= feeds the titlebar/statusbar chrome).
+        @AppStorage("wenshu.llm.model") private var modelName: String = "MiniMax-M3"
+        @AppStorage("wenshu.llm.status") private var llmStatus: String = "Idle"
+        @AppStorage("wenshu.context.usagePercent") private var contextUsagePercent: Int = 0
+        var body: some View {
+            // v0.24 boss验收fix (Boss 8/24 OOB 拍 '和 FCP 一样, 首次运行, 无论
+            // 是否要建书架, 都要先指定一个 .ws 文件的库文件位置'): first-launch
+            // .ws file picker. NSOpenPanel for selecting .ws file location
+            // (FCP-style Event Library UX). Save to UserDefaults wenshu.libraryPath.
+            // WenshuWorkspace is initialized with the picked path (WenshuWorkspace
+            // path already supports custom URL via init).
+            //
+            // LibraryRootView is a wrapper that:
+            // 1. Checks UserDefaults wenshu.libraryPath
+            // 2. If not set, shows NSOpenPanel to pick .ws file
+            // 3. If set, just renders LayoutShellView
+            // 4. All file I/O (chat / kanban / books / etc.) goes through .ws
+            //    subdirectories (shelves/, books/, chat/, kanban/, todo/, assets/)
+            //    = WenshuWorkspace manages this layout.
+            //
+            // v0.28 followup (Boss 2026-08-29 OOB '完整复刻 hermes app'): wrap
+            // LibraryRootView with WenshuChromeOverlay (= AppTitlebar 34 PT
+            // top + AppStatusbar 24 PT bottom). Override .windowToolbarStyle
+            // (.unified) (= 52 PT macOS default chrome) with .expanded (= no
+            // macOS native toolbar; we provide our own).
+            WenshuChromeOverlay(
+                titlebarLeftTools: defaultWenshuTitlebarLeft(),
+                titlebarRightTools: defaultWenshuTitlebarRight(
+                    modelName: modelName,
+                    contextUsagePercent: contextUsagePercent
+                ),
+                statusbarLeftItems: defaultWenshuStatusbarLeft(
+                    modelName: modelName,
+                    llmStatus: llmStatus,
+                    contextUsagePercent: contextUsagePercent
+                ),
+                statusbarRightItems: defaultWenshuStatusbarRight(
+                    version: "v0.28"
+                )
+            ) {
+                LibraryRootView()
+            }
             .frame(minWidth: 1280, minHeight: 720)
             .environment(library)
             .preferredColorScheme(appearanceMode.colorScheme)
@@ -1076,8 +1108,11 @@ private struct SettingsEnvironmentCapturer: View {
             // v0.24 boss验收fix (Boss 8/25 tenth OOB ticket 015.023):
             // toolbar buttons moved to LayoutShellView body (= this
             // outer view doesn't have access to vm; inner view does).
+            // v0.28 followup (Boss 2026-08-29 OOB '完整复刻 hermes app'):
+            // .expanded (= 0 PT macOS native toolbar; our AppTitlebar
+            // handles the 34 PT custom titlebar).
+        }
     }
-}
 
 // v0.21 ticket 01 (重做 #10): 删 SettingsEnvironmentCapturer (Q15 翻车链 #11 dead code) + VibeMeter Mirror reflection NSApp.openSettings extension (Q15 翻车链 #12 dead code)
 // Spec sub-agent 报告 (deleg_10289a6b): installMainMenu 装 6 项 + 自创建 NSWindow 装 SettingView = 真稳方案
