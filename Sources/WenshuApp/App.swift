@@ -1672,9 +1672,23 @@ struct LayoutShellView: View {
                 // (= no band boundary to split).
                 if !hideLowerBand {
                     // D_h 横拖拽线 (上/下 band 之间, v0.14.0 撤销 inert, 拍可拖)
-                    NativeSplitter(orientation: .horizontal, length: totalW, onDrag: { dy in
-                        vm.adjustBandSplit(delta: dy, totalHeight: contentH - 2)
-                    })
+                    // v0.28 followup Boss UX round B (Boss 2026-08-30 OOB
+                    // '5根拖拽线可以抽象吗'): D_v0 (= the only horizontal
+                    // splitter) now uses the unified `PaneSplitter(spec:)`
+                    // component (= ComponentIndex.md Level 5.5) instead of
+                    // inlining `NativeSplitter(orientation: .horizontal, ...)`.
+                    // Before: D_v0 bypassed the `VSplitter` wrapper entirely
+                    // (= 2 different splitter implementations for 5 splitters).
+                    // After: all 5 splitters go through `PaneSplitter(spec:)`.
+                    PaneSplitter(spec: SplitterSpec(
+                        id: "D_v0",
+                        orientation: .horizontal,
+                        length: totalW,
+                        totalSize: contentH - 2,
+                        onDrag: { dy in
+                            vm.adjustBandSplit(delta: dy, totalHeight: contentH - 2)
+                        }
+                    ))
                     // 下 band: 2 区 + 1 拖拽线 (老板 8/18 拍 "上四下两")
                     LowerBandZone(vm: vm, showAIChat: visibleAIChat, showAIDynamic: visibleAIDynamic, totalW: totalW, bandH: lowerBandHeight, editorMaximized: editorMaximized, onExpand: { self.expandEditor() }, onShrink: { self.shrinkEditor() })
                 }
@@ -1841,6 +1855,16 @@ struct LayoutShellView: View {
 // 内部调 vm.adjust(_:delta:totalWidth:) 表驱动, 改 1 处 = 5 竖拖拽线全响应.
 // D_h 横拖拽线在 LayoutShellView 直接用 NativeSplitter(.horizontal, ...) 调 vm.adjustBandSplit.
 
+/// v0.28 followup Boss UX round B (Boss 2026-08-30 OOB '5根拖拽线可以
+/// 抽象吗'): Legacy wrapper kept for backward compatibility (= callers
+/// in App.swift still use `VSplitter(length:totalWidth:splitterIndex:vm:)`).
+/// New code should use `PaneSplitter(spec:)` directly with a `SplitterSpec`
+/// value (= ComponentIndex.md Level 5.5).
+///
+/// Deprecation timeline:
+/// - v0.28 (this commit): add PaneSplitter + SplitterSpec
+/// - v0.29: migrate all 5 call sites to SplitterSpec
+/// - v0.30: delete this wrapper
 struct VSplitter: View {
     let length: CGFloat
     let totalWidth: CGFloat
@@ -1940,7 +1964,14 @@ struct UpperBandZone: View {
                     .layoutPriority(0)  // explicit (= keep current size, don't grow)
                     .transition(.opacity.combined(with: .move(edge: .leading)))
                 // D_v1: project sidebar / project preview (splitterIndex 0)
-                VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 0, vm: vm)
+                // v0.28 followup Boss UX round B: now uses PaneSplitter(spec:).
+                PaneSplitter(spec: SplitterSpec(
+                    id: "D_v1",
+                    orientation: .vertical,
+                    length: bandH,
+                    totalSize: totalW,
+                    onDrag: { dx in vm.adjust(0, delta: dx, totalWidth: totalW) }
+                ))
                     .transition(.opacity)
             }
             // v0.24 fix (Boss 8/25 64th OOB '收起时, 项目管理区, 还留了几个像素的宽度'):
@@ -1976,7 +2007,14 @@ struct UpperBandZone: View {
                     .layoutPriority(1)
                     .transition(.opacity)
                 // D_v2: project preview / editor (splitterIndex 1)
-                VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 1, vm: vm)
+                // v0.28 followup Boss UX round B: now uses PaneSplitter(spec:).
+                PaneSplitter(spec: SplitterSpec(
+                    id: "D_v2",
+                    orientation: .vertical,
+                    length: bandH,
+                    totalSize: totalW,
+                    onDrag: { dx in vm.adjust(1, delta: dx, totalWidth: totalW) }
+                ))
                     .transition(.opacity)
             }
             // editor always render (not yet implemented for toggle)
@@ -1992,7 +2030,15 @@ struct UpperBandZone: View {
             // per Boss 64th OOB = move inside if block).
             // v0.24 fix (Boss 8/25 74th OOB): add transition for hide/show.
             if showSpecializedTools {
-                VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 2, vm: vm)
+                // D_v3: editor / specialized tools (splitterIndex 2)
+                // v0.28 followup Boss UX round B: now uses PaneSplitter(spec:).
+                PaneSplitter(spec: SplitterSpec(
+                    id: "D_v3",
+                    orientation: .vertical,
+                    length: bandH,
+                    totalSize: totalW,
+                    onDrag: { dx in vm.adjust(2, delta: dx, totalWidth: totalW) }
+                ))
                     .transition(.opacity)
                 ZoneModule(slot: .specializedTools, vm: vm, totalW: totalW, bandH: bandH, editorMaximized: editorMaximized, onExpand: {}, onShrink: {})
                     .frame(width: tools)
@@ -2060,7 +2106,16 @@ struct LowerBandZone: View {
             // D_v5: AI chat / AI dynamic (splitterIndex 4). Per Boss 64th
             // OOB pattern, hide D_v5 when either side hidden.
             if showAIChat && showAIDynamic {
-                VSplitter(length: bandH, totalWidth: totalW, splitterIndex: 4, vm: vm)
+                // D_v5: AI chat / AI dynamic (splitterIndex 4). Per Boss 64th
+                // OOB pattern, hide D_v5 when either side hidden.
+                // v0.28 followup Boss UX round B: now uses PaneSplitter(spec:).
+                PaneSplitter(spec: SplitterSpec(
+                    id: "D_v5",
+                    orientation: .vertical,
+                    length: bandH,
+                    totalSize: totalW,
+                    onDrag: { dx in vm.adjust(4, delta: dx, totalWidth: totalW) }
+                ))
                     .transition(.opacity)
             }
             // v0.24 fix (Boss 8/25 74th OOB): add transition for hide/show.

@@ -221,8 +221,28 @@ Each component has:
 - **API**:
   ```swift
   VSplitter(length: 200, totalWidth: 1200, splitterIndex: 0, vm: layoutVM)
-  // VSplitter wraps NativeSplitter with vm.adjust() callback
+  // VSplitter wraps NativeSplitter with vm.adjust() callback (= legacy wrapper)
   ```
+
+### 5.1.5 PaneSplitter + SplitterSpec (NEW, Round B)
+- **Path**: `Sources/WenshuApp/Views/Layout/PaneSplitter.swift`
+- **Purpose**: Unified wrapper for ALL 5 splitters (= D_v0 horizontal band split + D_v1/D_v2/D_v3/D_v5 vertical zone splits). Listed in ComponentIndex.md Level 5.5.
+- **Use when**: Adding ANY new pane splitter (= don't inline `NativeSplitter(...)` or call legacy `VSplitter` directly)
+- **Don't use when**: Defining a non-draggable divider (= use `StaticDividerVertical/Horizontal`)
+- **API**:
+  ```swift
+  PaneSplitter(spec: SplitterSpec(
+      id: "D_v1",
+      orientation: .vertical,    // = drag left/right
+      length: bandH,
+      totalSize: totalW,
+      onDrag: { dx in vm.adjustSidebarPreview(delta: dx, totalWidth: totalW) }
+  ))
+  ```
+- **vs VSplitter (= legacy wrapper)**:
+  - VSplitter: only takes `splitterIndex: Int` (= magic numbers 0/1/2/4)
+  - PaneSplitter: takes `SplitterSpec` (= data-driven with explicit id + orientation + callbacks)
+- **Replaces**: Inlines all 5 `NativeSplitter(...)` + `VSplitter(...)` calls
 
 ### 5.2 StaticDividerVertical / StaticDividerHorizontal
 - **Path**: `Sources/WenshuApp/Views/Layout/NativeSplitter.swift`
