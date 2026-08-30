@@ -1966,18 +1966,14 @@ struct UpperBandZone: View {
                     // v0.28 followup Boss UX round 60 (Boss 2026-08-30 OOB
                     // '虽然你说找到问题了, 但我现在看图还是黑色的'):
                     // apply the same white overlay (brightness 75) that
-                    // the editor pane uses (= Color.white.opacity(0.55)
-                    // = the editor's "book" placeholder). This makes the
-                    // sidebar visually consistent with the editor pane
-                    // (= both have a soft white tint = no longer "black").
+                    // the editor pane uses. Without this, sidebar showed
+                    // brightness 36 (= bare window background = "black").
                     //
-                    // Without this overlay, the sidebar showed brightness
-                    // 36 (= bare window background showing through = boss's
-                    // "black" complaint). Editor = 75 (with overlay) =
-                    // visible contrast.
-                    .overlay(alignment: .topLeading) {
-                        Color.white.opacity(0.55)
-                    }
+                    // Round 61 fix: use .background() (= draws BEHIND
+                    // content, fills entire space) instead of .overlay()
+                    // (= draws IN FRONT but the content layer blocks
+                    // portions of it when content has its own background).
+                    .background(Color.white.opacity(0.55))
                     // v0.28 followup Boss UX round 57: add a SOLID white
                     // trailing-edge overlay (= 1 PT white line drawn
                     // AFTER the pane's content background, so it
@@ -2030,11 +2026,9 @@ struct UpperBandZone: View {
                     .frame(maxWidth: .infinity, alignment: .top)
                     .layoutPriority(1)
                     .transition(.opacity)
-                    // v0.28 followup Boss UX round 60: add the same white
-                    // overlay as the editor + sidebar (= match brightness).
-                    .overlay(alignment: .topLeading) {
-                        Color.white.opacity(0.55)
-                    }
+                    // v0.28 followup Boss UX round 61: .background()
+                    // (= fills entire pane) instead of .overlay().
+                    .background(Color.white.opacity(0.55))
                 // D_v2: project preview / editor (splitterIndex 1)
                 // v0.28 followup Boss UX round B: now uses PaneSplitter(spec:).
                 PaneSplitter(spec: SplitterSpec(
@@ -2052,9 +2046,7 @@ struct UpperBandZone: View {
                 .layoutPriority(1)  // grow to fill HStack when sidebar/tools hidden
                 // Editor already has the white overlay in renderTabByKind
                 // (WorkspaceView). For the legacy path, also add it here:
-                .overlay(alignment: .topLeading) {
-                    Color.white.opacity(0.55)
-                }
+                .background(Color.white.opacity(0.55))
             // D_v3: editor / specialized tools (splitterIndex 2)
             // Per Boss 8/25 15th OOB 'tools zone cannot be dragged. fix it':
             // keep D_v3 visible even when adjacent zones are hidden
@@ -2078,11 +2070,9 @@ struct UpperBandZone: View {
                     .frame(width: tools)
                     .layoutPriority(0)
                     .transition(.opacity.combined(with: .move(edge: .trailing)))
-                    // v0.28 followup Boss UX round 60: match the white
-                    // overlay of other 3 general panes.
-                    .overlay(alignment: .topLeading) {
-                        Color.white.opacity(0.55)
-                    }
+                    // v0.28 followup Boss UX round 61: .background()
+                    // (= fills entire pane) instead of .overlay().
+                    .background(Color.white.opacity(0.55))
             }
         }
         .frame(height: bandH)  // 显式告诉 SwiftUI VStack layout 上 band 高度, 响应 vm.bandOffset mutate
