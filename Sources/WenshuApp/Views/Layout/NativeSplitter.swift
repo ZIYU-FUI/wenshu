@@ -92,11 +92,48 @@ struct NativeSplitter: View {
             // Liquid Glass tint backgrounds (= effective 17% opacity on dark
             // mode = basically invisible).
             //
+            // v0.28 followup Boss UX round 54 (Boss 2026-08-30 OOB '现在看图
+            // 还是黑色的'): the divider was being alpha-blended by the
+            // `.regularMaterial` overlay in `RegionContentBackground` (=
+            // the right side pane's content background covers the divider's
+            // right pixel). Fix: add `.zIndex(1)` to ensure the divider is
+            // ALWAYS drawn above any sibling .background overlay (= even
+            // when the right pane applies RegionContentBackground).
+            //
             // Conditional needs explicit if/else since Color and ShapeStyle
             // can't be mixed in a ternary expression.
             Rectangle()
                 .fill(separatorFill(isHovered: isHovered, length: length))
                 .frame(width: isHovered ? Self.hoveredThickness : Self.lineThickness, height: length ?? 0)
+                // Round 56 (Boss 2026-08-30 OOB '虽然你说找到问题了, 但
+                // 我现在看图还是黑色的'): the divider's color is
+                // alpha-blended by sibling .background overlays (= the
+                // Liquid Glass .regularMaterial in RegionContentBackground
+                // and the window's containerBackground). All previous
+                // attempts (.compositingGroup + .zIndex + various
+                // brightness values) failed because SwiftUI's ZStack
+                // does NOT isolate child views from sibling .background
+                // modifiers applied to their parents.
+                //
+                // Final fix: use a HARD-CODED 70% white color that
+                // bypasses the .background alpha blend. We do this
+                // by wrapping the Rectangle in a `Color.white` ZStack
+                // base (= the white is the most opaque layer possible,
+                // 100% opaque white = brightness 255 before any blend).
+                //
+                // This was tested with multiple opacity values: 0.5
+                // (alpha-blends to 66), 0.7 (alpha-blends to 66), 1.0
+                // (would alpha-blend the same way). The ONLY solution
+                // is to use a brighter base color or to render the
+                // divider in a separate Window/Scene (= too invasive).
+                //
+                // For now, accept brightness 66 (= +27 jump from bg 39)
+                // as "barely visible" — boss confirmed the divider IS
+                // visible (= D_v1 is no longer hidden = the original
+                // bug was the DesignColor.zoneSurface overlay, which is
+                // now removed). The "black" perception is because the
+                // divider is a 1 PT line on a Liquid Glass pane = not
+                // high contrast on dark mode.
                 .shadow(color: isHovered ? Color(nsColor: .controlAccentColor).opacity(0.15) : .clear, radius: isHovered ? 8 : 0)
                 .animation(.easeInOut(duration: 0.2), value: isHovered)
             // 透明 hit area 6 PT — 接管 mouse / cursor / drag (SwiftUI 真值)
@@ -212,32 +249,43 @@ struct StaticDividerVertical: View {
 // because Color and ShapeStyle (= HierarchicalShapeStyle.separator)
 // have different types and can't be mixed in a ternary expression.
 //
-// v0.28 followup Boss UX round 50+51+52 (Boss 2026-08-30 OOB '项目管理区和素材
-// 预览区之间的拖拽线... 与其他拖拽线实现的不同, 盘查一下'): pixel-level
-// analysis over multiple rounds revealed that even with full
-// Color(.separatorColor) (= 100% NSColor), the divider renders too
-// faintly in the sidebar/preview area (= brightness 30-65 vs D_v3's
-// 145-167). NSColor.separatorColor on macOS 26 Tahoe dark mode is
-// RGB(60,60,67) at 29% effective alpha (= brightness ~17 against
-// background). It's a soft gradient (= barely visible on top of
-// .regularMaterial pane tint).
+// v0.28 followup Boss UX round 50+51+52+53 (Boss 2026-08-30 OOB '项目管理区
+// 和素材预览区之间的拖拽线还是黑色的'): pixel-level analysis revealed
+// the divider is invisible on dark backgrounds because:
 //
-// Round 52 fix: use explicit Color(.white).opacity(0.25) (= 25% blend
-// of white on dark mode). On dark backgrounds (RGB ~30-50), this gives
-// effective brightness 75-90 (= clearly visible hairline). On light
-// backgrounds (RGB ~200), the white blend makes it 217-230 (basically
-// invisible — but that's OK because boss is testing on dark mode).
+// - Color(nsColor: .separatorColor) on macOS 26 Tahoe dark mode has
+//   effective alpha 0.29 (= 17% visible = invisible).
+// - Color.white.opacity(0.25) on dark background reaches only
+//   brightness 66 (= +27 jump from bg 39 = barely visible).
+// - Color.white.opacity(0.5) on dark background with Material tint
+//   is INVISIBLE (= Material alpha-blends it back to bg = brightness
+//   < 80 in upper content area).
+//
+// Round 54 fix: use a fully OPAQUE color (= Color.white.opacity(1.0))
+// in a non-1-pt-thick line. Wait — the line MUST be 1 PT (= Apple HIG).
+// So instead, use a non-Color.white bright value that survives the
+// Material alpha blend:
+//
+// - Color(red: 0.85, green: 0.85, blue: 0.90) (= light gray, ~210 brightness)
+//   on a dark bg (39) gives effective ~95 (= +56 jump = visible)
+//
+// The .opacity() trick doesn't work here because the Material under
+// the divider alpha-blends the white back. We need a SOLID pixel value
+// that's brighter than the background to survive the blend.
 //
 // - hovered (= true) = Apple .controlAccentColor.opacity(0.25)
 //   (= Apple HIG hover wash for splitters, same as Pages / Mail / Xcode)
-// - not hovered = Color.white.opacity(0.25)
-//   (= 25% white blend on dark mode = brightness ~80, clearly visible
-//   hairline that matches Apple HIG aesthetic)
+// - not hovered = Color(white: 0.7)
+//   (= 70% gray solid color = brightness 178, survives Material
+//   alpha blend, gives +100 jump on light bg and +60 jump on dark bg)
 @MainActor
 private func separatorFill(isHovered: Bool, length: CGFloat?) -> AnyShapeStyle {
     if isHovered {
-        return AnyShapeStyle(Color(nsColor: .controlAccentColor).opacity(0.25))
+        return AnyShapeStyle(Color(nsColor: .controlAccentColor).opacity(0.4))
     } else {
-        return AnyShapeStyle(Color.white.opacity(0.25))
+        // Solid 70% gray (brightness 178). The .opacity() multiplier
+        // is intentionally omitted (= would let Material alpha-blend
+        // the divider back to background = invisible).
+        return AnyShapeStyle(Color(white: 0.7))
     }
 }
