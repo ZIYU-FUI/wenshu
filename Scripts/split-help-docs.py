@@ -38,7 +38,7 @@ def write_md(folder_name: str, filename: str, title: str, content: str) -> Path:
 
 
 # ============================================================
-# 1. Characters: Split 6-agents.md → 6 separate files
+# 1. 角色: Split 六个Agent.md → 6 separate files
 # ============================================================
 
 print("\n=== 1. 角色: 六个Agent → 6 files ===")
@@ -258,7 +258,7 @@ agent_files = [
     },
 ]
 
-# Track that the parent file 6-agents.md should be deleted
+# Track that the parent file 六个Agent.md should be deleted
 parent_role_file = shelf_root / "characters" / "六个Agent.md"
 
 for agent in agent_files:
@@ -273,21 +273,21 @@ print(f"\n  Created {len(agent_files)} files in 角色/")
 
 
 # ============================================================
-# 2. Chapters: Split functional-modules.md → 8 separate files
+# 2. 小说正文: Split 功能模块说明.md → 8 separate files
 # ============================================================
 
 print("\n=== 2. 小说正文: 功能模块说明 → 8 files ===")
 
 # We split into:
-# 1. Project Management (Sidebar)
-# 2. Material Preview (Project Preview)
-# 3. Editor
-# 4. Specialized Tools
-# 5. Chat
-# 6. Dynamic
-# 7. Reference Library
-# 8. Title + Status bar
-# 9. Interaction conventions (Keyboard shortcuts)
+# 1. 项目管理区 (Sidebar)
+# 2. 素材预览区 (Project Preview)
+# 3. 编辑器 (Editor)
+# 4. 工具区 (Specialized Tools)
+# 5. 聊天区 (Chat)
+# 6. 动态区 (Dynamic)
+# 7. 资料库 (Reference Library)
+# 8. 标题栏 + 状态栏 (Title + Status bar)
+# 9. 交互约定 (Keyboard shortcuts)
 # Total = 9 (the 8 zones + 1 keyboard reference)
 
 module_files = [
@@ -614,7 +614,7 @@ module_files = [
     },
 ]
 
-# Track that the parent file functional-modules.md should be deleted
+# Track that the parent file 功能模块说明.md should be deleted
 parent_module_file = shelf_root / "chapters" / "功能模块说明.md"
 
 for module in module_files:
