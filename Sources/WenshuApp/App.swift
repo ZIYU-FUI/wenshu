@@ -750,26 +750,26 @@ struct SettingView: View {
                             .foregroundStyle(.secondary)
                     }
                     Slider(value: $liquidGlassOpacity, in: 0.0...1.0, step: 0.05)
-                    Text("0% = 完全透明 · 50% = 默认 · 100% = 强烈 tint")
+                    Text("0% = 完全透明 · 50% = 默认 · 100% = 强烈玻璃")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
             }
-            Section("Agent user address") {
+            Section("Agent 称呼") {
                 // v0.24 fix (Boss 8/24 OOB): user-set value for agent-to-user address.
                 // Read by WenshuConductorIdentity.userAddress at LLM call time
                 // (dynamic per-chat). User cannot modify via chat per AGENTS.md.
                 // Reason for no .onChange handler: WenshuConductorIdentity.
                 // userAddress reads UserDefaults fresh each LLM call = automatic
                 // dynamic propagation, no event-driven mechanism needed.
-                TextField("Agent user address", text: $userAddress, prompt: Text("user"))
+                TextField("Agent 称呼", text: $userAddress, prompt: Text("user"))
                     .textFieldStyle(.roundedBorder)
-                Text("Agent (文枢) addresses you with this term. Default: user")
+                Text("Agent（文枢）用这个称呼叫你。默认：user")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
             Section("通用设置") {
-                Text("Pages 范式, 不用管功能")
+                Text("Pages 范式，不用管功能")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
