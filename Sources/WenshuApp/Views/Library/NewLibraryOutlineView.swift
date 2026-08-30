@@ -124,11 +124,10 @@ struct NewLibraryOutlineView: View {
                     Label {
                         Text(shelf.name)
                     } icon: {
-                        LucideIcon(
+                        LucideIconSidebar(
                             shelf.id.uuidString == "00000000-0000-0000-0000-000000000000"
                                 ? "square-dashed-mouse-pointer"
-                                : "books.vertical.fill",
-                            size: 14
+                                : "books.vertical.fill"
                         )
                         .foregroundStyle(.primary)
                     }
@@ -144,8 +143,8 @@ struct NewLibraryOutlineView: View {
                         Label {
                             Text(category.displayName)
                         } icon: {
-                            LucideIcon(category.icon, size: 14)
-                                .foregroundStyle(.primary)
+                            LucideIconSidebar(category.icon)
+                        .foregroundStyle(.primary)
                         }
                         .badge(entitiesCount(in: category))
                         .tag(SidebarItem.referenceCategory(category.directoryName))
@@ -154,8 +153,8 @@ struct NewLibraryOutlineView: View {
                     Label {
                         Text("资料库")
                     } icon: {
-                        LucideIcon("square-library", size: 14)
-                            .foregroundStyle(.primary)
+                        LucideIconSidebar("square-library")
+                        .foregroundStyle(.primary)
                     }
                     .badge(usedCategories().count)
                     .tag(SidebarItem.referenceLibraryRoot)
@@ -235,6 +234,13 @@ struct NewLibraryOutlineView: View {
     /// sidebar" (= book + folders = 2 levels). Folders are visual
     /// placeholders (= current docs hidden per boss OOB), so each
     /// folder has no badge (= displays no count).
+    ///
+    /// v0.30 boss 8/30 OOB '目录树有一个按文字从这里开始, 那个应该是
+    /// 没用的, 正式的从这里开始缺少 ICON' = book row missing icon. Root
+    /// cause = wrong Lucide icon name 'book.closed' (= doesn't exist in
+    /// Lucide; falls back to Color.clear in LucideIcon helper). Correct
+    /// Lucide canonical name = 'book' (= case book = "book" in
+    /// LucideIcon enum).
     @ViewBuilder
     private func bookRowWithFolders(_ book: Book) -> some View {
         let folders = standardFolderNames
@@ -244,7 +250,7 @@ struct NewLibraryOutlineView: View {
             Label {
                 Text(book.title)
             } icon: {
-                LucideIcon("book.closed", size: 14)
+                LucideIconSidebar("book")
                     .foregroundStyle(.primary)
             }
             .tag(SidebarItem.book(book.id))
@@ -254,7 +260,7 @@ struct NewLibraryOutlineView: View {
                     Label {
                         Text(folder.displayName)
                     } icon: {
-                        LucideIcon(folder.icon, size: 14)
+                        LucideIconSidebar(folder.icon)
                             .foregroundStyle(.primary)
                     }
                 }
@@ -262,7 +268,7 @@ struct NewLibraryOutlineView: View {
                 Label {
                     Text(book.title)
                 } icon: {
-                    LucideIcon("book.closed", size: 14)
+                    LucideIconSidebar("book")
                         .foregroundStyle(.primary)
                 }
                 .tag(SidebarItem.book(book.id))

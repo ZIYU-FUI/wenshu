@@ -12,6 +12,31 @@
 import SwiftUI
 import Lucide
 
+/// Resolves the macOS sidebar icon size preference (= NSTableViewDefaultSizeMode
+/// in NSGlobalDomain). Maps the 1/2/3 raw integer to a Point size for custom
+/// Lucide icons so they adapt to the user's "Sidebar icon size" system preference
+/// (= Apple HIG Sidebars: 'A sidebar's row height, text, and glyph size depend
+/// on its overall size, which can be small, medium, or large.').
+///
+/// v0.30 boss 8/30 OOB test 'Apple 系统设置 → General → Sidebar icon size = 改
+/// Small/Medium/Large 看 sidebar 是否跟随' = sidebar icons should adapt when
+/// user changes system preference. Custom Lucide icons (= non-SF-Symbol) need
+/// to manually read this setting (= SF Symbols auto-adapt via SwiftUI's
+/// Label intrinsic sizing).
+///
+/// Mapping per Apple HIG (Finder/Mail/Notes sidebar defaults):
+/// - Small  (rawValue 1) → 12 PT
+/// - Medium (rawValue 2) → 14 PT (= default)
+/// - Large  (rawValue 3) → 18 PT
+public func wenshuSidebarIconSize() -> CGFloat {
+    let raw = UserDefaults.standard.integer(forKey: "NSTableViewDefaultSizeMode")
+    switch raw {
+    case 1: return 12   // Small
+    case 3: return 18   // Large
+    default: return 14 // Medium (= 2 OR 0 unset = default fallback)
+    }
+}
+
 /// Wenshu canonical icon helper. Resolves an icon name (= wenshu
 /// convention = Lucide kebab-case) into a Lucide View. Falls back to
 /// an empty 18x18 frame for missing icons (= followup: add the
@@ -19,9 +44,11 @@ import Lucide
 ///
 /// Usage:
 /// ```swift
-/// LucideIcon("folder")                   // Lucide folder icon
-/// LucideIcon("chevron-right", size: 12)  // 12 PT chevron
-/// LucideIcon.fromSystemSymbol("checkmark")  // SF 'checkmark' → Lucide 'check'
+/// LucideIcon("folder")                          // 18 PT (= general usage)
+/// LucideIcon("chevron-right", size: 12)         // 12 PT explicit override
+/// LucideIcon.sidebar("folder")                  // 14 PT (= sidebar icon size,
+///                                               //  adapts to NSTableViewDefaultSizeMode)
+/// LucideIcon.fromSystemSymbol("checkmark")      // SF 'checkmark' → Lucide 'check'
 /// ```
 @ViewBuilder
 public func LucideIcon(_ name: String, size: CGFloat = 18) -> some View {
@@ -35,6 +62,16 @@ public func LucideIcon(_ name: String, size: CGFloat = 18) -> some View {
         Color.clear
             .frame(width: size, height: size)
     }
+}
+
+/// Sidebar icon variant (= size derived from macOS sidebar icon size
+/// system preference). Use this for icons inside List(.sidebar) rows.
+/// Per Apple HIG, sidebar icons MUST adapt to user's "Sidebar icon size"
+/// preference (= Small/Medium/Large). Without this, custom icons stay
+/// fixed while SF Symbols auto-resize, breaking visual harmony.
+@ViewBuilder
+public func LucideIconSidebar(_ name: String) -> some View {
+    LucideIcon(name, size: wenshuSidebarIconSize())
 }
 
 /// Icon helper that takes an SF Symbol name (= legacy / boss shorthand)
