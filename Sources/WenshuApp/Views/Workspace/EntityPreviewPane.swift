@@ -157,10 +157,13 @@ struct EntityPreviewPane: View {
             emptyState(message: "资料库里还没有实体.\n导入研究材料后 LLM 会自动分类.")
         } else {
             // v0.30 boss OOB '因为素材预览区只显示当前选定目录的卡片,
-            // 所以只需要卡片流, 一直铺下去即可'.
+            // 所以只需要卡片流, 一直铺下去即可' + '素材预览区不需要这个标题,
+            // 卡片平铺即可'.
             //
+            // NO header above the card grid (= boss confirmed the title
+            // is not needed). Just the flat LazyVGrid of cards.
             // Single flat LazyVGrid (= no per-category section headers,
-            // no category sub-headers). Cards flow continuously
+            // no global count header). Cards flow continuously
             // (= 无边记 sticky-note style). Sort by:
             //   1. category (= alphabetical, = library taxonomy)
             //   2. title (= alphabetical within category)
@@ -173,29 +176,14 @@ struct EntityPreviewPane: View {
                 return lhs.title < rhs.title
             }
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    // Single flat count header (= no category breakdown;
-                    // user sees the total and can scroll through all cards)
-                    HStack {
-                        LucideIcon("square-library", size: 24)
-                            .foregroundStyle(.tint)
-                        Text("资料库")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                        Text("(\(sorted.count) 张卡片)")
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                    }
-                    LazyVGrid(columns: columns, spacing: 16) {
-                        ForEach(sorted) { entity in
-                            EntityCard(entity: entity) {
-                                onEntityDoubleClick(entity)
-                            }
+                LazyVGrid(columns: columns, spacing: 16) {
+                    ForEach(sorted) { entity in
+                        EntityCard(entity: entity) {
+                            onEntityDoubleClick(entity)
                         }
                     }
                 }
-                .padding(.bottom, 24)
+                .padding(20)
             }
         }
     }
@@ -231,9 +219,19 @@ struct EntityPreviewPane: View {
 /// Tap = select (= not wired yet). Double-click = open in editor (= boss
 /// Ticket 3 hook).
 ///
-/// Boss OOB '用随心记的卡片流样式' = 无边记 (= Apple Freeform) sticky-note
-/// style. We use a simple rounded card with light background (= Apple
-/// standard `.thickMaterial` for cards in iOS/macOS apps).
+/// Boss OOB v0.30: '卡片要用我们引入的缩略图的库, 加缩略图'. Thumbnail
+/// strategy: since Reference entities are text-only (= .md bodies with
+/// no associated image), we use the EntityType icon as a large
+/// prominent thumbnail (= e.g. user-round for character, lightbulb
+/// for concept). The icon is rendered at 64 PT with a tinted gradient
+/// background (= the type's distinguishing color). This gives each
+/// card a strong visual identity at a glance (= matches 无边记 / Notion
+/// "card cover" pattern).
+///
+/// Future: when entities get real images (= e.g. character portrait,
+/// location map), NukeUI's LazyImage will replace the type icon. The
+/// image-pipeline integration is deferred to v0.31+ (= needs image
+/// storage infrastructure that doesn't exist yet).
 private struct EntityCard: View {
     let entity: Reference
     let onDoubleClick: () -> Void
@@ -243,52 +241,62 @@ private struct EntityCard: View {
     @State private var lastTapTime: Date = .distantPast
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // Header: type badge + category chip
-            HStack(spacing: 6) {
-                LucideIcon(entity.entityType.icon, size: 14)
-                    .foregroundStyle(.tint)
-                Text("[\(entity.entityType.displayName)]")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                if let cat = entity.category {
-                    Text(cat.shortName)
+        VStack(alignment: .leading, spacing: 0) {
+            // THUMBNAIL: type icon as a large prominent header
+            // (= boss OOB: 卡片要加缩略图). 64 PT icon on a tinted
+            // gradient background = the card's "cover" image.
+            ZStack {
+                LinearGradient(
+                    colors: [
+                        Color.accentColor.opacity(0.18),
+                        Color.accentColor.opacity(0.08),
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                LucideIcon(entity.entityType.icon, size: 64)
+                    .foregroundStyle(Color.accentColor.opacity(0.85))
+            }
+            .frame(height: 100)
+            .frame(maxWidth: .infinity)
+            // TEXT content below the thumbnail
+            VStack(alignment: .leading, spacing: 6) {
+                // Type badge + category chip (= condensed header)
+                HStack(spacing: 4) {
+                    Text("[\(entity.entityType.displayName)]")
                         .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.secondary.opacity(0.08))
-                        .clipShape(Capsule())
+                        .foregroundStyle(.tint)
+                    if let cat = entity.category {
+                        Text(cat.shortName)
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1)
+                            .background(Color.secondary.opacity(0.08))
+                            .clipShape(Capsule())
+                    }
+                    Spacer()
+                }
+                // Title
+                Text(entity.title)
+                    .font(.headline)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                // Summary
+                if !entity.summary.isEmpty {
+                    Text(entity.summary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(3)
+                        .multilineTextAlignment(.leading)
                 }
             }
-            // Title
-            Text(entity.title)
-                .font(.headline)
-                .lineLimit(2)
-                .multilineTextAlignment(.leading)
-            // Summary
-            if !entity.summary.isEmpty {
-                Text(entity.summary)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(3)
-                    .multilineTextAlignment(.leading)
-            }
-            // Source (= if present)
-            if let source = entity.source, !source.isEmpty {
-                Text(source)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(1)
-            }
+            .padding(10)
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(.background)
-                .shadow(color: .black.opacity(0.08), radius: 4, x: 0, y: 2)
+                .fill(Color.clear)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
