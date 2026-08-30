@@ -31,6 +31,7 @@ func registerBuiltinPanes(_ registry: ContributionRegistry) {
         title: "Sidebar",
         order: 10,
         render: {
+            // v0.30: NewLibraryOutlineView has default dummy binding init.
             AnyView(NewLibraryOutlineView())
         }
     ))
@@ -42,6 +43,8 @@ func registerBuiltinPanes(_ registry: ContributionRegistry) {
         title: "Preview",
         order: 20,
         render: {
+            // v0.30: ZoneModuleView has default dummy binding initializer,
+            // so the call site can omit the binding args.
             AnyView(ZoneModuleView(zoneSlot: .projectPreview))
         }
     ))
@@ -64,6 +67,7 @@ func registerBuiltinPanes(_ registry: ContributionRegistry) {
         title: "Tools",
         order: 40,
         render: {
+            // v0.30: default-init available.
             AnyView(ZoneModuleView(zoneSlot: .specializedTools))
         }
     ))
@@ -86,6 +90,7 @@ func registerBuiltinPanes(_ registry: ContributionRegistry) {
         title: "Dynamic",
         order: 60,
         render: {
+            // v0.30: default-init available.
             AnyView(ZoneModuleView(zoneSlot: .aiDynamic))
         }
     ))
@@ -125,16 +130,20 @@ func renderTabByRegistry(
 private func renderTabByKindFallback(_ kind: TabKind) -> some View {
     switch kind {
     case .projectSidebar:
+        // v0.30: NewLibraryOutlineView has default dummy binding initializer.
         NewLibraryOutlineView()
     case .projectPreview:
+        // v0.30: ZoneModuleView has default dummy binding initializer.
         ZoneModuleView(zoneSlot: .projectPreview)
     case .editor:
         EditorPlaceholder()
     case .specializedTools:
+        // v0.30: default-init available.
         ZoneModuleView(zoneSlot: .specializedTools)
     case .aiChat:
         ChatView()
     case .aiDynamic:
+        // v0.30: default-init available.
         ZoneModuleView(zoneSlot: .aiDynamic)
     }
 }

@@ -27,6 +27,20 @@ import Lucide
 /// feature stabilizes).
 struct WorkspaceView: View {
     @ObservedObject var store: WorkspaceStore
+
+    /// v0.30 boss OOB: 实体分类在目录树里是最后一层, 点击后, 实体文档
+    /// 要用随心记的卡片流样式显示在素材管理区 (= projectPreview).
+    /// Tracks which entity category is currently selected in the sidebar
+    /// (= nil = overview mode showing all entities).
+    @State private var selectedEntityCategory: EntityCategory? = nil
+
+    /// v0.30: tracks which entity card is currently being viewed in
+    /// detail mode (= single card with full .md body).
+    @State private var selectedEntity: Reference? = nil
+
+    /// v0.30: BookStore env (= for reference loading in preview pane).
+    @Environment(BookStore.self) private var bookStore
+
     /// Layout edit mode state (= v0.28 ticket 028-006). Owned by
     /// the view (= fresh per window) so the per-window state stays
     /// self-contained. The hotkey binding lives in
@@ -99,8 +113,13 @@ struct WorkspaceView: View {
             // NewLibraryOutlineView still needs to be inside the tab
             // content slot (not above/around the tab bar) so its tree
             // outline is the "书架" tab's content.
+            // v0.30: pass bindings so sidebar selection → preview pane.
+            // The trailingButton uses the default-init (doesn't drive preview).
             ZoneContentView(zoneSlug: "projectSidebar", tabs: [
-                ("书架", "book-open", AnyView(NewLibraryOutlineView())),
+                ("书架", "book-open", AnyView(NewLibraryOutlineView(
+                    selectedEntityCategory: $selectedEntityCategory,
+                    selectedEntity: $selectedEntity
+                ))),
             ], trailingButton: AnyView(NewLibraryOutlineView().zoneHeaderButtons))
         case .projectPreview:
             // v0.28 followup Boss UX round 45 (Boss 2026-08-29 OOB
@@ -209,14 +228,39 @@ struct WorkspaceView: View {
 struct ZoneModuleView: View {
     let zoneSlot: ZoneSlot
 
+    /// v0.30: bindings passed from WorkspaceView so sidebar category
+    /// selection → preview pane can react (= same Binding reference).
+    /// Default value `nil` (= for non-workspace callers that don't
+    /// drive the preview pane).
+    @Binding var selectedEntityCategory: EntityCategory?
+    @Binding var selectedEntity: Reference?
+
+    /// v0.30: default initializer for non-workspace callers.
+    /// (= pass dummy constants explicitly, see RegisteredPanes.swift)
+    init(
+        zoneSlot: ZoneSlot,
+        selectedEntityCategory: Binding<EntityCategory?> = .constant(nil),
+        selectedEntity: Binding<Reference?> = .constant(nil)
+    ) {
+        self.zoneSlot = zoneSlot
+        self._selectedEntityCategory = selectedEntityCategory
+        self._selectedEntity = selectedEntity
+    }
+
     var body: some View {
         switch zoneSlot {
         case .projectSidebar:
             // 老 6区 projectSidebar = 1 tab (书架, with book-open icon)
             // + trailingButton (新建 + 入驻 = NewLibraryOutlineView.zoneHeaderButtons).
             ZoneContentView(zoneSlug: "projectSidebar", tabs: [
-                ("书架", "book-open", AnyView(LibraryOutlineViewContent())),
-            ], trailingButton: AnyView(NewLibraryOutlineView().zoneHeaderButtons))
+                ("书架", "book-open", AnyView(NewLibraryOutlineView(
+                    selectedEntityCategory: $selectedEntityCategory,
+                    selectedEntity: $selectedEntity
+                ))),
+            ], trailingButton: AnyView(NewLibraryOutlineView(
+                selectedEntityCategory: .constant(nil),
+                selectedEntity: .constant(nil)
+            ).zoneHeaderButtons))
 
         case .projectPreview:
             // 老 6区 projectPreview = 2 tabs (预览 / 图).
@@ -227,8 +271,21 @@ struct ZoneModuleView: View {
             // .ultraThinMaterial (= was DesignColor.zoneSurface =
             // solid Color(nsColor: .controlBackgroundColor) = NOT
             // Liquid Glass).
+            // v0.30 Ticket 2 (= boss OOB): replaced PreviewTabBackground
+            // (= Color.clear stub) with EntityPreviewPane (= real
+            // card flow showing entities from the reference library).
+            // Tabs = "预览" (= overview/all entities), "图" (= future).
             ZoneContentView(zoneSlug: "projectPreview", tabs: [
-                ("预览", "book-open-check", AnyView(PreviewTabBackground())),
+                ("预览", "book-open-check", AnyView(EntityPreviewPane(
+                    selectedCategory: selectedEntityCategory,
+                    selectedEntity: selectedEntity,
+                    onEntityDoubleClick: { entity in
+                        // v0.30 Ticket 3 hook: open in editor.
+                        // For now: just print; Ticket 3 will wire this
+                        // to editor zone + replace EditorContentPlaceholder.
+                        NSLog("EntityPreviewPane: double-click entity %@", entity.title)
+                    }
+                ))),
                 ("图", "waypoints", AnyView(GraphView())),
             ])
 

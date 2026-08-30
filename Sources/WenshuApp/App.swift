@@ -2633,6 +2633,7 @@ struct ZoneModule: View {
             // 029c-trailing-button: Color.clear 28×28 hot area + Lucide
             // icon overlay). The trailingButton is one AnyView; the 2
             // buttons sit in an HStack inside NewLibraryOutlineView.
+            // v0.30: NewLibraryOutlineView has default dummy binding init.
             trailingButton: AnyView(NewLibraryOutlineView().zoneHeaderButtons)
             )
         case .projectPreview:
@@ -2806,10 +2807,11 @@ enum ZoneSlot {
 /// 项目侧栏内容 (= v0.27 wiring: NewLibraryOutlineView reads from
 /// BookStore via @Environment). Replaces v0.25.x WenshuLibrary-backed
 /// LibraryOutlineView (= no longer used in production zone).
-struct LibraryOutlineViewContent: View {
-    @Environment(BookStore.self) private var bookStore
-    var body: some View {
-        NewLibraryOutlineView()
+    struct LibraryOutlineViewContent: View {
+        @Environment(BookStore.self) private var bookStore
+        var body: some View {
+            // v0.30: NewLibraryOutlineView has default dummy binding init.
+            NewLibraryOutlineView()
             // v0.28 followup Boss UX round 44 (Boss 2026-08-29 OOB
             // '项目管理区和素材管理区的接缝, 顶栏底栏都对不齐' = the
             // `.padding(.vertical, 2)` was pushing the sidebar content

@@ -16,11 +16,27 @@ import Lucide
 struct NewLibraryOutlineView: View {
     @Environment(BookStore.self) private var bookStore
 
+    /// v0.30: parent passes binding (= WorkspaceView owns the state).
+    /// When sidebar category is tapped, WorkspaceView's selectedEntityCategory
+    /// updates → preview pane shows the category-scoped grid.
+    /// Default-init available (= for non-workspace callers via `.constant(nil)`).
+    @Binding var selectedEntityCategory: EntityCategory?
+    @Binding var selectedEntity: Reference?
+
+    /// v0.30: default initializer (= non-workspace callers = registered
+    /// panes, zoneHeaderButtons, fallback render).
+    init(
+        selectedEntityCategory: Binding<EntityCategory?> = .constant(nil),
+        selectedEntity: Binding<Reference?> = .constant(nil)
+    ) {
+        self._selectedEntityCategory = selectedEntityCategory
+        self._selectedEntity = selectedEntity
+    }
+
     @State private var shelves: [Bookshelf] = []
     @State private var books: [Book] = []
     @State private var selectedBookId: UUID?
     @State private var selectedReferenceLayer: ReferenceLayer = .layerEntities
-    @State private var selectedCategory: EntityCategory? = nil  // v0.29: 资料库分类选中
     @State private var references: [Reference] = []
     @State private var loadError: String?
     @State private var showNewBookSheet: Bool = false
@@ -440,7 +456,10 @@ struct NewLibraryOutlineView: View {
         }
         .contentShape(Rectangle())
         .onTapGesture {
-            selectedCategory = category
+            // v0.30: bubble category selection up to WorkspaceView (= drives
+            // EntityPreviewPane's category-scoped grid mode).
+            selectedEntityCategory = category
+            selectedEntity = nil  // (= clear detail view when switching category)
         }
     }
 
