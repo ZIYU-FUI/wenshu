@@ -70,8 +70,28 @@ public enum EntityType: String, CaseIterable, Codable, Sendable, Identifiable, H
         }
     }
 
-    /// Short 1-char label (= for tight UI like sidebar chips).
+    /// v0.30 boss OOB: '别用缩写, 就是那个念, 地, 人, 全称不也就才两个字,
+    /// 最多四个字, 够显示'. Full Chinese name (= 2-4 chars, plenty of
+    /// sidebar space). Used as inline prefix in sidebar (= '[人物] 李白').
     public var shortName: String {
+        switch self {
+        case .character: return "人物"
+        case .location: return "地点"
+        case .event: return "事件"
+        case .concept: return "概念"
+        case .artifact: return "物品"
+        case .organization: return "组织"
+        case .era: return "朝代"
+        case .work: return "作品"
+        case .other: return "其他"
+        }
+    }
+
+    /// Ultra-compact 1-char abbreviation (= only for very tight UIs
+    /// like the projectPreview card header chip where space is critical).
+    /// Boss OOB prefers shortName (full 2-4 char Chinese name); this
+    /// 1-char variant is kept for future use but NOT the default.
+    public var ultraShortName: String {
         switch self {
         case .character: return "人"
         case .location: return "地"
