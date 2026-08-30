@@ -49,6 +49,15 @@ POLLUTION_ALLOWLIST = {
     ".scratch/code-review-",                     # code review report filename prefix (= standards reports enumerate forbidden vocab)
     ".scratch/spec-axis-review-v0.25.1.md",       # v0.25.1 spec axis review (= this report enumerates forbidden vocab in headers + AC)
     ".scratch/2026-08-26-fcp-library-replica/",   # v0.26 FCP library replica spec + code review reports (= sub-agent standards + spec reports enumerate forbidden vocab in carve-out documentation)
+    # v0.30 batches added 2026-08-30 (= boss sweep .scratch/ audit trail):
+    ".scratch/v0.30-pre-pane-fixes/",               # v0.30 pre-pane-fixes spec + tickets + code-review reports enumerate forbidden vocab in findings
+    ".scratch/v0.30-sidebar-preview-pane/",         # v0.30 sidebar/preview-pane spec + tickets + code-review reports + Q22 visual verification
+    ".scratch/v0.30-polish-fixes/",                 # v0.30 polish-fixes spec + tickets + code-review reports
+    ".scratch/v0.30-batch3/",                       # v0.30 batch3 spec + tickets + code-review reports
+    # Additional v0.28 / spec-axis carve-outs for sweep 2026-08-30:
+    ".scratch/2026-08-28-v0-28-free-layout/",       # v0.28 free-layout spec + tickets + code-review reports enumerate forbidden vocab
+    ".scratch/2026-08-28-v0-28-integration-batch-1/", # v0.28 integration batch 1 spec + tickets + standards reports enumerate forbidden vocab
+    ".scratch/code-review-spec-8-26-v1-2-0-spec-axis/", # spec-axis review (= standards reports enumerate forbidden vocab)
 }
 
 
