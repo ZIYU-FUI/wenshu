@@ -44,7 +44,7 @@ import Foundation
 /// hidden. New categories are added to the sidebar automatically as
 /// entities are added to them (= the UI calls `EntityClassifier`
 /// on save which sets the category, and the sidebar reloads).
-public enum EntityCategory: String, CaseIterable, Codable, Sendable, Identifiable {
+public enum EntityCategory: String, CaseIterable, Codable, Sendable, Identifiable, Hashable {
     // MARK: - 22 顶级分类 (《中图法》第五版简化)
 
     case a = "A"  // 马克思主义、列宁主义、毛泽东思想、邓小平理论

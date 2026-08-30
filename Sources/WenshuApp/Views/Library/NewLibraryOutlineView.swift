@@ -236,29 +236,37 @@ struct NewLibraryOutlineView: View {
                 // boss 2026-08-30 OOB: sidebar 显示分类文件夹 (历史/科学/...),
                 // 不直接显示实体. categories = 仅含 ≥1 实体的 (增量显示).
                 let usedCategories = computeUsedCategories()
-                let categoryChildren = usedCategories.map { cat -> FCPTreeNode in
-                    // Children = entity refs in this category (per boss OOB)
-                    let entitiesInCategory = (try? bookStore.referenceStore.loadAllReferences()) ?? []
-                        .filter { $0.layer == .layerEntities && $0.category == cat }
-                    let entityChildren = entitiesInCategory.map { ref -> FCPTreeNode in
-                        FCPTreeNode(
-                            id: ref.id,
-                            label: ref.title,
-                            icon: "file-text",
-                            count: nil,
-                            children: [],
-                            payloadKind: .reference  // = entity leaf (= preview/edit on click)
-                        )
-                    }
-                    return FCPTreeNode(
-                        id: UUID(uuidString: "00000000-0000-0000-0000-\(String(format: "%012x", cat.directoryName.hashValue))") ?? UUID(),
-                        label: cat.displayName,
-                        icon: cat.icon,
-                        count: entitiesInCategory.count,
-                        children: entityChildren,
-                        payloadKind: .referenceCategory  // v0.29 new payload kind
-                    )
-                }
+                                // v0.29: load snapshot once (= used by both filter log + render
+                                // below; avoids 2nd loadAllReferences() potentially returning
+                                // a different list). categoryChildren is built from this
+                                // same snapshot to ensure render matches the logged filter.
+                                let allRefsDirect = (try? bookStore.referenceStore.loadAllReferences()) ?? []
+                                let categoryChildren = usedCategories.map { cat -> FCPTreeNode in
+                                    // Children = entity refs in this category (per boss OOB).
+                                    // Uses the same snapshot (= allRefsDirect) for both the
+                                    // category node and its children to keep the render
+                                    // consistent with computeUsedCategories above.
+                                    let entitiesInCategory = allRefsDirect
+                                        .filter { $0.layer == .layerEntities && $0.category == cat }
+                                    let entityChildren = entitiesInCategory.map { ref -> FCPTreeNode in
+                                        FCPTreeNode(
+                                            id: ref.id,
+                                            label: ref.title,
+                                            icon: "file-text",
+                                            count: nil,
+                                            children: [],
+                                            payloadKind: .reference  // = entity leaf (= preview/edit on click)
+                                        )
+                                    }
+                                    return FCPTreeNode(
+                                        id: UUID(uuidString: "00000000-0000-0000-0000-\(String(format: "%012x", cat.directoryName.hashValue))") ?? UUID(),
+                                        label: cat.displayName,
+                                        icon: cat.icon,
+                                        count: entitiesInCategory.count,
+                                        children: entityChildren,
+                                        payloadKind: .referenceCategory  // v0.29 new payload kind
+                                    )
+                                }
                 // v0.27 boss 8/27 OOB icon for ReferenceLibrary root: square-library
                 // (= Lucide icon: a square containing stacked horizontal lines
                 // representing a library shelf; matches FCP Browser's
