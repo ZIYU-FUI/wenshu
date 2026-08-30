@@ -133,12 +133,23 @@ struct WorkspaceView: View {
                 ("反链", "link", AnyView(EditorContentPlaceholder())),
             ], trailingButton: AnyView(EditorExpandShrinkTrailingButton()))
         case .specializedTools:
-            // v0.28 followup Boss UX round 45: switch from
-            // ZoneModuleView (= double chrome) to single
-            // ZoneContentView (= matches Sidebar/Editor/Preview).
+            // v0.29 boss 2026-08-30 OOB '替换, 用伏笔替换第一个 teb,
+            // 用占位替换第二个 teb. 现在的画布功能以后实现':
+            // - Replaced tab 1 '画布' (scribble) with '伏笔'
+            //   (git-fork = matches the 伏笔 folder icon in sidebar).
+            // - Replaced tab 2 '数据库' (tablecells) with '占位符'
+            //   (square-dashed = matches the 占位符 folder icon in sidebar).
+            // - Both new tabs use placeholder views (= ForeshadowingView +
+            //   PlaceholderView) = actual content lands in v0.30+
+            //   (per the v0.28 batch 2 ticket 04 M4 ForeshadowingGraph
+            //   service + M4 placeholder scanner).
+            // - CanvasView + BaseView files KEPT (= not deleted, just
+            //   not wired into tools pane) per ComponentIndex.md
+            //   'unused components' pattern (= ready to be re-wired
+            //   later when boss implements the canvas feature).
             ZoneContentView(zoneSlug: "specializedTools", tabs: [
-                ("画布", "scribble", AnyView(CanvasView())),
-                ("数据库", "tablecells", AnyView(BaseView())),
+                ("伏笔", "git-fork", AnyView(ForeshadowingView())),
+                ("占位符", "square-dashed", AnyView(PlaceholderView())),
             ])
         case .aiChat:
             ChatView()
@@ -222,11 +233,11 @@ struct ZoneModuleView: View {
             ])
 
         case .specializedTools:
-            // 老 6区 specializedTools = 2 tabs (画布 / 数据库).
-            // Per v0.24 boss 8/24 OOB: 删 '作曲' tab.
+            // 老 6区 specializedTools = 2 tabs (伏笔 / 占位符 per
+            // v0.29 boss 2026-08-30 OOB; was 画布 / 数据库 in v0.28).
             ZoneContentView(zoneSlug: "specializedTools", tabs: [
-                ("画布", "scribble", AnyView(CanvasView())),
-                ("数据库", "tablecells", AnyView(BaseView())),
+                ("伏笔", "git-fork", AnyView(ForeshadowingView())),
+                ("占位符", "square-dashed", AnyView(PlaceholderView())),
             ])
 
         case .aiDynamic:
