@@ -365,14 +365,14 @@ struct EntityPreviewPane: View {
     /// Convert Chinese title to its pinyin first letter (= uppercase).
     /// Uses Apple's CFStringTransform (kCFStringTransformToLatin +
     /// kCFStringTransformStripDiacritics). Empty/whitespace titles
-    /// bucket to "~" (= sorts last). Example mappings are documented in
-    /// spec.md (= "Li Bai" -> "L", "Du Fu" -> "D", "Chi Bi Zhi Zhan" -> "C").
+    /// bucket to "~" (= sorts last). Example mapping documented in
+    /// spec.md (= "李白" -> "L", "杜甫" -> "D", "赤壁之战" -> "C").
     private func pinyinFirstLetter(_ title: String) -> String {
         let mutable = NSMutableString(string: title)
         // Convert CJK characters to latinized pinyin with diacritics
-        // (= produces accented latin output for CJK input).
+        // (e.g. "李白" -> "Lǐ Bái").
         CFStringTransform(mutable, nil, kCFStringTransformToLatin, false)
-        // Strip diacritics (= remove tone marks from pinyin output).
+        // Strip diacritics (e.g. "Lǐ Bái" -> "Li Bai").
         CFStringTransform(mutable, nil, kCFStringTransformStripDiacritics, false)
         let latinized = (mutable as String).trimmingCharacters(in: .whitespaces)
         // First non-whitespace character, uppercased. Empty titles bucket
@@ -411,8 +411,8 @@ struct EntityPreviewPane: View {
 /// prominent thumbnail (= e.g. user-round for character, lightbulb
 /// for concept). The icon is rendered at 64 PT with a tinted gradient
 /// background (= the type's distinguishing color). This gives each
-/// card a strong visual identity at a glance (= matches Notion
-/// "card cover" pattern).
+/// This gives each card a strong visual identity at a glance
+/// (= matches Notion "card cover" pattern).
 ///
 /// Future: when entities get real images (= e.g. character portrait,
 /// location map), NukeUI's LazyImage will replace the type icon. The

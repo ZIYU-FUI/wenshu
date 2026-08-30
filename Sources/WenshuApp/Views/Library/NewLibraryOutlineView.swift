@@ -318,7 +318,7 @@ struct NewLibraryOutlineView: View {
     //
     // Per boss 8/27 '复用 v0.25.x 现有的 toolbar "+" 按钮': the toolbar
     // '+' button (= main app toolbar, not sidebar header) drives the
-    // "new book / new shelf" menu. This trailingButton is rendered via
+    // "新建书 / 新建书架" menu. This trailingButton is rendered via
     // ZoneContentView's trailingButton parameter (= app.swift:2155)
     // and shows icon buttons in the projectSidebar zone header.
 
