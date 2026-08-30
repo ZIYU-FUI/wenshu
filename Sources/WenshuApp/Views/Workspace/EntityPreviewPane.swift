@@ -156,51 +156,46 @@ struct EntityPreviewPane: View {
         if allEntities.isEmpty {
             emptyState(message: "资料库里还没有实体.\n导入研究材料后 LLM 会自动分类.")
         } else {
+            // v0.30 boss OOB '因为素材预览区只显示当前选定目录的卡片,
+            // 所以只需要卡片流, 一直铺下去即可'.
+            //
+            // Single flat LazyVGrid (= no per-category section headers,
+            // no category sub-headers). Cards flow continuously
+            // (= 无边记 sticky-note style). Sort by:
+            //   1. category (= alphabetical, = library taxonomy)
+            //   2. title (= alphabetical within category)
+            // for stable visual order (= doesn't shuffle on re-render).
+            let sorted = allEntities.sorted { lhs, rhs in
+                // Sort by category rawValue first, then by title
+                let lCat = lhs.category?.rawValue ?? "ZZ"  // nil-categorized at end
+                let rCat = rhs.category?.rawValue ?? "ZZ"
+                if lCat != rCat { return lCat < rCat }
+                return lhs.title < rhs.title
+            }
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 16) {
+                    // Single flat count header (= no category breakdown;
+                    // user sees the total and can scroll through all cards)
                     HStack {
                         LucideIcon("square-library", size: 24)
                             .foregroundStyle(.tint)
                         Text("资料库")
                             .font(.title2)
                             .fontWeight(.semibold)
-                        Text("(\(allEntities.count) 个实体 · \(Set(allEntities.compactMap { $0.category }).count) 个分类)")
+                        Text("(\(sorted.count) 张卡片)")
                             .font(.callout)
                             .foregroundStyle(.secondary)
                         Spacer()
                     }
-                    ForEach(EntityCategory.allCases) { category in
-                        let inCat = allEntities.filter { $0.category == category }
-                        if !inCat.isEmpty {
-                            categorySection(category: category, entities: inCat)
+                    LazyVGrid(columns: columns, spacing: 16) {
+                        ForEach(sorted) { entity in
+                            EntityCard(entity: entity) {
+                                onEntityDoubleClick(entity)
+                            }
                         }
                     }
                 }
                 .padding(.bottom, 24)
-            }
-        }
-    }
-
-    /// Inline category section in overview grid.
-    @ViewBuilder
-    private func categorySection(category: EntityCategory, entities: [Reference]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                LucideIcon(category.icon, size: 18)
-                    .foregroundStyle(.secondary)
-                Text(category.displayName)
-                    .font(.headline)
-                Text("(\(entities.count))")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-                Spacer()
-            }
-            LazyVGrid(columns: columns, spacing: 12) {
-                ForEach(entities) { entity in
-                    EntityCard(entity: entity) {
-                        onEntityDoubleClick(entity)
-                    }
-                }
             }
         }
     }
