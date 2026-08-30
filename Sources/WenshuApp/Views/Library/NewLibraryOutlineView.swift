@@ -1,6 +1,4 @@
-// NewLibraryOutlineView.swift · Wenshu · v0.30 Apple HIG sidebar
-// (Project brand name: 文枢 = wenshu in Chinese, declared in AGENTS.md §11)
-//
+// NewLibraryOutlineView.swift · Wenshu (文枢) · v0.30 Apple HIG sidebar
 //
 // v0.30 boss 2026-08-30 OOB: '如果你要 100% Apple native, 我想选这个'.
 //
@@ -279,9 +277,8 @@ struct NewLibraryOutlineView: View {
     }
 
     /// v0.30: 5 user-facing standard folder names + icons (= per spec
-    /// v5 ticket 001 + ticket 026). 3 hidden folders (LLM sessions /
-    /// foreshadowing / placeholders) NOT shown per boss 8/30 sidebar
-    /// cleanup.
+    /// v5 ticket 001 + ticket 026). 3 hidden folders (LLM 会话, 伏笔,
+    /// 占位符) NOT shown per boss 8/30 sidebar cleanup.
     private var standardFolderNames: [(name: String, displayName: String, icon: String)] {
         [
             ("world",      "世界观",      "globe"),
@@ -314,7 +311,7 @@ struct NewLibraryOutlineView: View {
         books.filter { $0.shelfId == shelf.id }
     }
 
-    // MARK: - Zone header buttons (= create + import)
+    // MARK: - Zone header buttons (= 新建 + 入驻)
     //
     // Per boss 8/27 '复用 v0.25.x 现有的 toolbar "+" 按钮': the toolbar
     // '+' button (= main app toolbar, not sidebar header) drives the
@@ -323,24 +320,24 @@ struct NewLibraryOutlineView: View {
     // and shows icon buttons in the projectSidebar zone header.
 
     /// 2 icon buttons rendered in the projectSidebar zone header
-    /// trailing area. Per boss 8/27 OOB #3 (= commit bca226704): create
-    /// Menu + import plain Button. Both use the editor-expand +
-    /// chat-archive icon-button pattern (= 28x28 hot area + Lucide icon
-    /// overlay + .secondary foreground + .contentShape Rectangle).
+    /// trailing area. Per boss 8/27 OOB #3 (= commit bca226704): 新建 Menu +
+    /// 入驻 plain Button. Both use the editor-expand + chat-archive
+    /// icon-button pattern (= 28x28 hot area + Lucide icon overlay +
+    /// .secondary foreground + .contentShape Rectangle).
     ///
     /// v0.30 boss 8/30 OOB '恢复那两个按钮, 还有 icon' = restore the
     /// original v0.27-style buttons and icons:
-    /// - create icon = "square-plus" (Lucide canonical, NOT SF "plus")
-    /// - import icon = "square-arrow-right" (Lucide canonical)
+    /// - 新建 icon = "square-plus" (Lucide canonical, NOT SF "plus")
+    /// - 入驻 icon = "square-arrow-right" (Lucide canonical)
     ///
     /// v0.30 dev drift (= what NOT to do): I had used SF Symbol "plus"
-    /// for the create icon (= losing the Lucide canonical name + visual
+    /// for the 新建 icon (= losing the Lucide canonical name + visual
     /// consistency with the rest of the sidebar tree icons). Boss caught
     /// it. Restored to Lucide canonical per bca226704.
     @ViewBuilder
     var zoneHeaderButtons: some View {
         HStack(spacing: 0) {
-            // Create Menu (= tap → menu with "New Book" / "New Shelf").
+            // 新建 Menu (= tap → menu with 新建书 / 新建书架).
             Menu {
                 Button("新建书") {
                     showNewBookSheet = true
@@ -356,7 +353,7 @@ struct NewLibraryOutlineView: View {
             }
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)
-            // Import plain Button (= tap directly fires .wenshuImportRequested
+            // 入驻 plain Button (= tap directly fires .wenshuImportRequested
             // notification; consumed by the main app toolbar listener =
             // opens the macOS NSOpenPanel for importing external research
             // materials into the library).
@@ -462,7 +459,7 @@ struct NewLibraryOutlineView: View {
     }
 }
 
-// MARK: - Sheets (= new book / new shelf modals)
+// MARK: - Sheets (= 新建书 / 新建书架 modals)
 
 private struct NewBookSheet: View {
     let onSave: (Book) -> Void
