@@ -51,7 +51,11 @@ struct NewLibraryOutlineView: View {
         // part of the indent column; the indent starts AT the icon).
         VStack(spacing: 0) {
             ForEach(buildTreeNodes()) { node in
-                FCPRowView(node: node, depth: 0)
+                FCPRowView(
+                    node: node,
+                    depth: 0,
+                    selectedCategory: $selectedEntityCategory
+                )
             }
         }
         .background(Color.clear)
@@ -765,6 +769,17 @@ private struct FCPRowView: View {
     let depth: Int
 
     @Environment(BookStore.self) private var bookStore
+
+    /// v0.30 boss OOB: '左侧目录树缺少选定效果'. Pass selection state
+    /// from parent (= WorkspaceView or NewLibraryOutlineView's local
+    /// selection for folders) so this row knows whether to highlight.
+    /// - For .book nodes: compare to `bookStore.selectedBookId`
+    /// - For .referenceCategory nodes: compare to `selectedCategory` binding
+    ///
+    /// Default nil (= this row is NOT selected). WorkspaceView's sidebar
+    /// passes the binding so the highlight works end-to-end.
+    @Binding var selectedCategory: EntityCategory?
+
     @State private var isExpanded: Bool = true
 
     // v0.27 boss 8/27 OOB: indentPT 8 → 4 (= tighter; boss 8/27
@@ -778,6 +793,24 @@ private struct FCPRowView: View {
     // visual consistency across the shell).
     private let iconSize: CGFloat = 18
     private let rowHeight: CGFloat = 28
+
+    /// v0.30: 选中状态 (= true if this row is the currently selected
+    /// item). Driven by `payloadKind` + matching ID/category.
+    private var isSelected: Bool {
+        switch node.payloadKind {
+        case .book:
+            return bookStore.selectedBookId == node.id
+        case .referenceCategory:
+            // For reference categories, the id embeds the category
+            // directory name's hash (= stable per category).
+            // Match by reading the category from the label/comparing
+            // via a stored association: use a heuristic = the
+            // node.label == selectedCategory.displayName
+            return selectedCategory?.displayName == node.label
+        default:
+            return false
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -838,16 +871,41 @@ private struct FCPRowView: View {
             // the whole row's content = ensures count badge has 18 PT
             // breathing room from the right divider / pane edge.
             .padding(.trailing, 18)
+            // v0.30 boss OOB: '左侧目录树缺少选定效果'. When this row
+            // is the currently selected item (= bookStore.selectedBookId
+            // matches for .book, or selectedCategory matches for
+            // .referenceCategory), apply a tinted background highlight
+            // (= Apple HIG standard selection pattern). Uses
+            // Color.accentColor at 0.12 opacity (= subtle, not garish;
+            // matches macOS Finder / Mail / Notes selection style).
+            .background(
+                isSelected
+                    ? Color.accentColor.opacity(0.12)
+                    : Color.clear,
+                in: RoundedRectangle(cornerRadius: 4, style: .continuous)
+            )
             .contentShape(Rectangle())
             .onTapGesture {
                 if node.payloadKind == .book {
                     bookStore.selectedBookId = node.id
+                } else if node.payloadKind == .referenceCategory {
+                    // v0.30: select the corresponding category (= find
+                    // which EntityCategory matches this node's label).
+                    // Sidebar tap → WorkspaceView.selectedEntityCategory
+                    // → EntityPreviewPane shows the category-scoped grid.
+                    if let cat = EntityCategory.allCases.first(where: { $0.displayName == node.label }) {
+                        selectedCategory = cat
+                    }
                 }
             }
             // Children (= recursive render when expanded).
             if isExpanded {
                 ForEach(node.children) { child in
-                    FCPRowView(node: child, depth: depth + 1)
+                    FCPRowView(
+                        node: child,
+                        depth: depth + 1,
+                        selectedCategory: $selectedCategory
+                    )
                 }
             }
         }
