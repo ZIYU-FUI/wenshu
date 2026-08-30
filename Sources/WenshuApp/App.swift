@@ -2188,6 +2188,10 @@ struct ZoneBottomToolbar: View {
     // status. Default empty = no right text rendered (= keep WordCount
     // fallback). projectSidebar uses '书: N' (= total book count per Boss spec).
     let rightStatus: String
+    // v0.28 followup Boss UX round 53 (Boss 2026-08-30 OOB): read user's
+    // Liquid Glass opacity preference from environment (= set by Settings →
+    // 通用 → 液态玻璃 透明度 slider, round 49). Default 0.5 (= subtle glass).
+    @Environment(\.liquidGlassOpacity) private var liquidGlassOpacity: Double
 
     init(status: String = "", rightStatus: String = "") {
         self.status = status
@@ -2196,10 +2200,32 @@ struct ZoneBottomToolbar: View {
 
     var body: some View {
         let toolbarH = LayoutTokens.toolbarHeight
-        DesignColor.zoneSurface
+        // v0.28 followup Boss UX round 53 (Boss 2026-08-30 OOB '其他都对了,
+        // 只有项目管理和素材预览之间的还不对, 项目管理区底栏比其他低 1-2 像素,
+        // 其他拖拽线是液态玻璃全透明, 项目管理区不是'): ZoneBottomToolbar
+        // (= all 6 panes' bottom toolbars including projectSidebar) was
+        // using DesignColor.zoneSurface (= solid NSColor). This made the
+        // projectSidebar visibly different from preview/editor/tools (= those
+        // use RegionStatusBar which renders with Liquid Glass .regularMaterial).
+        //
+        // Round 53 fix: switch to Color.clear.overlay(.regularMaterial) (= same
+        // Liquid Glass treatment as all other pane chrome). This makes the
+        // projectSidebar bottom toolbar visually identical to preview/editor/
+        // tools (= all uniformly translucent). Sidebar also gets the same
+        // .separator hairline divider at top instead of the old solid
+        // DesignColor.splitterLine (= matches the unified 1 PT Apple HIG
+        // hairline used everywhere else per round 26).
+        //
+        // The user can also tune this via the new Settings → 通用 → 液态玻璃
+        // 透明度 slider (= round 49 feature): liquidGlassOpacity
+        // reads the slider value and maps to a 4-tier Material strength.
+        Color.clear
+            .overlay(materialForOpacity(liquidGlassOpacity))
             .frame(height: toolbarH)
             .overlay(alignment: .top) {
-                DesignColor.splitterLine.frame(height: 1)
+                Rectangle()
+                    .fill(Color.white.opacity(0.25))
+                    .frame(height: 1)
             }
             .overlay(alignment: .bottomLeading) {
                 // v0.24 fix: per-zone status info (left side).
@@ -2234,6 +2260,28 @@ struct ZoneBottomToolbar: View {
                         .allowsHitTesting(false)
                 }
             }
+    }
+
+    /// v0.28 followup Boss UX round 53: maps the user's Liquid Glass
+    /// opacity preference (= 0.0 to 1.0) to a SwiftUI Material strength.
+    /// Same 4-tier mapping as `RegionContentBackground` (= round 49).
+    /// - 0.00 - 0.24 = no tint (= Color.clear, fully transparent)
+    /// - 0.25 - 0.49 = .ultraThinMaterial (= subtle glass)
+    /// - 0.50 - 0.74 = .regularMaterial (= standard glass, default)
+    /// - 0.75 - 1.00 = .thickMaterial (= strong tint)
+    @ViewBuilder
+    private func materialForOpacity(_ value: Double) -> some View {
+        Group {
+            if value < 0.25 {
+                Color.clear
+            } else if value < 0.5 {
+                Color.clear.overlay(.ultraThinMaterial)
+            } else if value < 0.75 {
+                Color.clear.overlay(.regularMaterial)
+            } else {
+                Color.clear.overlay(.thickMaterial)
+            }
+        }
     }
 }
 
