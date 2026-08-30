@@ -7,7 +7,7 @@
 //
 // = The material management zone (projectPreview) content for entities.
 // Replaces PreviewTabBackground's stub (= Color.clear) with a real
-// card-flow grid (= 无边记-style sticky-note layout).
+// card-flow grid (= Notion-like sticky-note layout).
 //
 // 3 view modes (boss OOB):
 // 1. All entities (= when nothing selected) — show all 9 seeded entities
@@ -279,9 +279,10 @@ struct EntityPreviewPane: View {
             //
             // Single flat LazyVGrid (= no per-category section headers,
             // no global count header). Cards flow continuously
-            // (= 无边记 sticky-note style). Sort by current `sortOrder`
-            // (= boss 8/30 OOB: default 拼音首字母; user can pick
-            // 创建时间 or 修改时间 via top-right sort menu icon).
+            // (= Notion-like sticky-note style). Sort by current
+            // sortOrder (= boss 8/30 OOB: default .pinyinFirstLetter;
+            // user can pick .createdAt or .modifiedAt via top-right
+            // sort menu icon).
             let sorted = sortEntities(allEntities, by: sortOrder)
             GeometryReader { geometry in
                 ScrollView {
@@ -363,13 +364,15 @@ struct EntityPreviewPane: View {
 
     /// Convert Chinese title to its pinyin first letter (= uppercase).
     /// Uses Apple's CFStringTransform (kCFStringTransformToLatin +
-    /// kCFStringTransformStripDiacritics). Example: "李白" → "L",
-    /// "未分类研究材料" → "W", "宋朝海上丝绸之路" → "S".
+    /// kCFStringTransformStripDiacritics). Empty/whitespace titles
+    /// bucket to "~" (= sorts last). Example mapping documented in
+    /// spec.md (= "李白" -> "L", "杜甫" -> "D", "赤壁之战" -> "C").
     private func pinyinFirstLetter(_ title: String) -> String {
         let mutable = NSMutableString(string: title)
-        // Convert CJK characters to latinized pinyin (e.g. "李白" → "Lǐ Bái").
+        // Convert CJK characters to latinized pinyin with diacritics
+        // (e.g. "李白" -> "Lǐ Bái").
         CFStringTransform(mutable, nil, kCFStringTransformToLatin, false)
-        // Strip diacritics (e.g. "Lǐ Bái" → "Li Bai").
+        // Strip diacritics (e.g. "Lǐ Bái" -> "Li Bai").
         CFStringTransform(mutable, nil, kCFStringTransformStripDiacritics, false)
         let latinized = (mutable as String).trimmingCharacters(in: .whitespaces)
         // First non-whitespace character, uppercased. Empty titles bucket
@@ -408,8 +411,8 @@ struct EntityPreviewPane: View {
 /// prominent thumbnail (= e.g. user-round for character, lightbulb
 /// for concept). The icon is rendered at 64 PT with a tinted gradient
 /// background (= the type's distinguishing color). This gives each
-/// card a strong visual identity at a glance (= matches 无边记 / Notion
-/// "card cover" pattern).
+/// This gives each card a strong visual identity at a glance
+/// (= matches Notion "card cover" pattern).
 ///
 /// Future: when entities get real images (= e.g. character portrait,
 /// location map), NukeUI's LazyImage will replace the type icon. The
