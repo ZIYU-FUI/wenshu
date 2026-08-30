@@ -27,6 +27,7 @@ struct EntitySeed {
     let summary: String
     let body: String
     let category: String?  // "K", "E", etc. or nil for unclassified
+    let entityType: Int    // 1-9 (= EntityType.promptNumber, see EntityType.swift)
 }
 
 let seeds: [EntitySeed] = [
@@ -50,7 +51,8 @@ let seeds: [EntitySeed] = [
 
         贞观之治是中国历史上少有的盛世之一, 为后来的开元盛世奠定了基础。
         """,
-        category: "K"
+        category: "K",
+        entityType: 3  // event
     ),
     EntitySeed(
         title: "赤壁之战",
@@ -70,7 +72,8 @@ let seeds: [EntitySeed] = [
 
         此战之后, 三国鼎立的局面基本形成。
         """,
-        category: "K"
+        category: "K",
+        entityType: 3  // event
     ),
     EntitySeed(
         title: "罗马帝国兴亡",
@@ -90,7 +93,8 @@ let seeds: [EntitySeed] = [
 
         凯撒被刺 (前 44)、奥古斯都建立帝制 (前 27)、君士坦丁堡迁都 (330)、西罗马灭亡 (476)。
         """,
-        category: "K"
+        category: "K",
+        entityType: 3  // event (= the rise+fall is one event arc)
     ),
 
     // E — 军事 (1 entity)
@@ -113,7 +117,8 @@ let seeds: [EntitySeed] = [
         - 善于利用地形
         - 重骑兵与轻步兵协同
         """,
-        category: "E"
+        category: "E",
+        entityType: 4  // concept (= tactical philosophy)
     ),
 
     // F — 经济 (1 entity)
@@ -140,36 +145,61 @@ let seeds: [EntitySeed] = [
 
         海上贸易为宋朝带来了大量财政收入, 也促进了造船和航海技术的发展。
         """,
-        category: "F"
+        category: "F",
+        entityType: 2  // location (= trade route)
     ),
 
-    // I — 文学 (1 entity)
+    // I — 文学 (2 entities, both character / I2)
     EntitySeed(
-        title: "李白与杜甫",
-        summary: "唐代最伟大的两位诗人。",
+        title: "李白",
+        summary: "唐代浪漫主义诗人, 被誉为 '诗仙', 字太白。",
         body: """
-        # 李白与杜甫
+        # 李白
 
-        李白 (701-762) 与杜甫 (712-770) 是中国唐代最伟大的两位诗人, 被并称为 "李杜"。
+        李白 (701-762), 字太白, 号青莲居士, 是中国唐代最伟大的浪漫主义诗人之一, 被誉为 "诗仙"。
 
-        ## 李白
+        ## 生平
 
-        - 诗仙, 浪漫主义诗人
-        - 代表作: 《静夜思》、《将进酒》、《蜀道难》
+        李白生于碎叶城 (今吉尔吉斯斯坦境内), 5 岁随父迁居四川江油。
 
-        ## 杜甫
+        ## 代表作
 
-        - 诗圣, 现实主义诗人
-        - 代表作: 《春望》、《登高》、《茅屋为秋风所破歌》
+        - 《静夜思》: "床前明月光, 疑是地上霜"
+        - 《将进酒》: "君不见黄河之水天上来"
 
-        ## 历史影响
+        ## 历史地位
 
-        李杜的诗作对中国后世诗歌发展产生了深远影响。
+        李白的诗歌对中国后世影响深远, 是中华文化瑰宝的重要组成部分。
         """,
-        category: "I"
+        category: "I",
+        entityType: 1  // character
+    ),
+    EntitySeed(
+        title: "杜甫",
+        summary: "唐代现实主义诗人, 被誉为 '诗圣', 字子美。",
+        body: """
+        # 杜甫
+
+        杜甫 (712-770), 字子美, 自号少陵野老, 是中国唐代最伟大的现实主义诗人之一, 被誉为 "诗圣", 与李白并称 "李杜"。
+
+        ## 生平
+
+        杜甫生于河南巩县, 中年后经历安史之乱, 颠沛流离。
+
+        ## 代表作
+
+        - 《春望》: "国破山河在, 城春草木深"
+        - 《登高》: "无边落木萧萧下, 不尽长江滚滚来"
+
+        ## 历史地位
+
+        杜甫的诗歌记录了唐代由盛转衰的历史, 被誉为 "诗史"。
+        """,
+        category: "I",
+        entityType: 1  // character
     ),
 
-    // B — 哲学、宗教 (1 entity, low-keyword test)
+    // B — 哲学、宗教 (1 entity, type = concept)
     EntitySeed(
         title: "王阳明心学",
         summary: "明代哲学家王阳明的心学体系。",
@@ -188,15 +218,17 @@ let seeds: [EntitySeed] = [
 
         心学在明清两代影响深远, 后传入日本、朝鲜。
         """,
-        category: "B"
+        category: "B",
+        entityType: 4  // concept
     ),
 
-    // unclassified (= category = nil)
+    // unclassified (= category = nil, entityType = other)
     EntitySeed(
         title: "未分类研究材料",
         summary: "一个还没经过分类的研究材料。",
         body: "# 未分类研究材料\n\n这里应该是一段还没经过实体分类的内容, 会落到 layerEntities 但 category 为 nil, sidebar 不显示。\n",
-        category: nil
+        category: nil,
+        entityType: 9  // other
     ),
 ]
 
@@ -241,6 +273,7 @@ for seed in seeds {
         "layer": "layerEntities",
         "category": seed.category as Any? ?? NSNull(),
         "subcategory": NSNull(),
+        "entityType": seed.entityType,  // v0.30: EntityType enum = promptNumber
         "characterRefIds": [] as [Any],
         "worldRefIds": [] as [Any],
         "bookRefIds": [] as [Any],

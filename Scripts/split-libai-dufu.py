@@ -54,6 +54,7 @@ li_bai = {
     "layer": "layerEntities",
     "category": "I",
     "subcategory": "I2",
+    "entityType": 1,  # v0.30: 1 = character
     "characterRefIds": [],
     "worldRefIds": [],
     "bookRefIds": [],
@@ -70,6 +71,7 @@ du_fu = {
     "layer": "layerEntities",
     "category": "I",
     "subcategory": "I2",
+    "entityType": 1,  # v0.30: 1 = character
     "characterRefIds": [],
     "worldRefIds": [],
     "bookRefIds": [],

@@ -110,17 +110,93 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
     var layer: ReferenceLayer
 
     /// v0.29 boss 2026-08-30 OOB: library-taxonomy category (= assigned
-    /// at save time by `EntityClassifier`). Drives the on-disk
-    /// subdirectory under `reference-library/entities/<category>/`.
-    /// Only set for entities (= layer == .layerEntities); nil for raw
-    /// materials (= .layerRaw, which are LLM-only and not browsed by
-    /// the user per round 28 OOB).
+    /// at save time by `EntityClassifier`). Optional for backward
+    /// compatibility (= legacy raw materials may not have a category).
     var category: EntityCategory?
 
     /// Optional 2nd-level subcategory code (= e.g. "I2" for "中国文学").
     /// Set by the LLM classifier when it picks a fine-grained match.
     /// Optional (= most entities fit in the top-level bucket).
     var subcategory: String?
+
+    /// v0.30 boss 2026-08-30 OOB: entity-type (= orthogonal to category).
+    /// 9 cases (= character / location / event / concept / artifact /
+    /// organization / era / work / other). The FIRST explicit
+    /// entity-definition rule wenshu has (= previous versions relied
+    /// on hermes Python's 4 regex surface-form rules, not semantic
+    /// type). Defaults to .other for legacy entities (= Codable migration).
+    ///
+    /// v0.30 custom Codable: accepts BOTH string ("character") AND integer
+    /// (= 1) representations on decode. The seed-script writes integers
+    /// (= matches EntityType.promptNumber for LLM output). String form
+    /// remains supported for human-readable JSON files.
+    var entityType: EntityType
+
+    // MARK: - v0.30 Codable migration: entityType fallback to .other
+    //
+    // Legacy entities.json (pre-v0.30) doesn't have entityType field.
+    // Strict Codable would fail decoding (= "Key 'entityType' not found").
+    // Custom init(from:) provides a graceful migration path: missing
+    // entityType → .other (= safe default; user can re-classify later
+    // via LLM classifier once v1 ships).
+    //
+    // Also handles both string and integer representations of entityType
+    // (= string = "character" / integer = 1). Seed scripts use integers
+    // (= matches LLM promptNumber), human-readable exports use strings.
+
+    private enum CodingKeys: String, CodingKey {
+        case id, title, source, url, layer, category, subcategory
+        case entityType, summary, characterRefIds, worldRefIds
+        case bookRefIds, createdAt, updatedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        title = try c.decode(String.self, forKey: .title)
+        source = try c.decodeIfPresent(String.self, forKey: .source)
+        url = try c.decodeIfPresent(String.self, forKey: .url)
+        layer = try c.decode(ReferenceLayer.self, forKey: .layer)
+        category = try c.decodeIfPresent(EntityCategory.self, forKey: .category)
+        subcategory = try c.decodeIfPresent(String.self, forKey: .subcategory)
+        // v0.30: entityType may be encoded as String ("character") OR Int (1).
+        // Try Int first (= matches seed-script + LLM prompt format), fall
+        // back to String (= matches human-readable format).
+        if let intVal = try? c.decodeIfPresent(Int.self, forKey: .entityType) {
+            entityType = EntityType.fromPromptNumber(intVal)
+        } else if let strVal = try? c.decodeIfPresent(String.self, forKey: .entityType),
+                  let parsed = EntityType(rawValue: strVal) {
+            entityType = parsed
+        } else {
+            entityType = .other
+        }
+        summary = try c.decode(String.self, forKey: .summary)
+        characterRefIds = try c.decodeIfPresent([UUID].self, forKey: .characterRefIds) ?? []
+        worldRefIds = try c.decodeIfPresent([UUID].self, forKey: .worldRefIds) ?? []
+        bookRefIds = try c.decodeIfPresent([UUID].self, forKey: .bookRefIds) ?? []
+        createdAt = try c.decode(Date.self, forKey: .createdAt)
+        updatedAt = try c.decode(Date.self, forKey: .updatedAt)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(title, forKey: .title)
+        try c.encodeIfPresent(source, forKey: .source)
+        try c.encodeIfPresent(url, forKey: .url)
+        try c.encode(layer, forKey: .layer)
+        try c.encodeIfPresent(category, forKey: .category)
+        try c.encodeIfPresent(subcategory, forKey: .subcategory)
+        // Encode as string (= human-readable; readers without EntityType
+        // knowledge can still interpret "character" / "location" / etc.).
+        try c.encode(entityType.rawValue, forKey: .entityType)
+        try c.encode(summary, forKey: .summary)
+        try c.encode(characterRefIds, forKey: .characterRefIds)
+        try c.encode(worldRefIds, forKey: .worldRefIds)
+        try c.encode(bookRefIds, forKey: .bookRefIds)
+        try c.encode(createdAt, forKey: .createdAt)
+        try c.encode(updatedAt, forKey: .updatedAt)
+    }
 
     /// One-line summary shown on the card (= boss 8/26 '卡片样式就是
     /// 展示文档的重点摘要').
@@ -148,6 +224,7 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
         layer: ReferenceLayer = .layerRaw,
         category: EntityCategory? = nil,
         subcategory: String? = nil,
+        entityType: EntityType = .other,
         summary: String = "",
         characterRefIds: [UUID] = [],
         worldRefIds: [UUID] = [],
@@ -162,6 +239,7 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
         self.layer = layer
         self.category = category
         self.subcategory = subcategory
+        self.entityType = entityType
         self.summary = summary
         self.characterRefIds = characterRefIds
         self.worldRefIds = worldRefIds

@@ -249,10 +249,19 @@ struct NewLibraryOutlineView: View {
                                     let entitiesInCategory = allRefsDirect
                                         .filter { $0.layer == .layerEntities && $0.category == cat }
                                     let entityChildren = entitiesInCategory.map { ref -> FCPTreeNode in
-                                        FCPTreeNode(
+                                        // v0.30: prefix entity name with type badge
+                                        // (= e.g. '[人] 李白' for character entities)
+                                        // for visual at-a-glance distinction. Boss OOB
+                                        // '为什么有联名实体, 比如李白与杜甫. 为什么这个是
+                                        // 体会在一起' = solved by type + category
+                                        // decomposition (= each entity is ONE type +
+                                        // ONE category, never merged).
+                                        let typeBadge = "[\(ref.entityType.shortName)]"
+                                        let displayLabel = "\(typeBadge) \(ref.title)"
+                                        return FCPTreeNode(
                                             id: ref.id,
-                                            label: ref.title,
-                                            icon: "file-text",
+                                            label: displayLabel,
+                                            icon: ref.entityType.icon,
                                             count: nil,
                                             children: [],
                                             payloadKind: .reference  // = entity leaf (= preview/edit on click)

@@ -55,20 +55,24 @@ public struct EntityClassifier: Sendable {
 
     /// Classify a reference (= title + summary + body) into an
     /// EntityCategory. Always returns a category (= falls back to .z
-    /// = 综合性图书 = "catch-all" if both passes fail).
+    /// = 综合性图书 if both passes fail).
+    ///
+    /// v0.30: also returns EntityType (default = .other for keyword
+    /// pass, LLM-determined when LLM fallback is invoked).
     public func classify(
         title: String,
         summary: String = "",
         body: String = "",
         useLLMFallback: Bool = true,
         llmCallback: LLMCallback? = nil
-    ) async -> EntityCategory {
-        // 1st pass: keyword matching (= sync, fast, no LLM cost)
+    ) async -> (category: EntityCategory, entityType: EntityType) {
+        // 1st pass: keyword matching (= sync, fast, no LLM cost).
+        // Keyword pass doesn't infer EntityType (= .other as default).
         let keywordResult = keywordClassify(title: title, summary: summary, body: body)
 
         // If keyword result is confident (= clear winner), use it directly
         if keywordResult.confidence >= 0.6 {
-            return keywordResult.category
+            return (keywordResult.category, .other)
         }
 
         // 2nd pass: LLM (only if enabled + LLM callback available)
@@ -81,7 +85,7 @@ public struct EntityClassifier: Sendable {
                     llmCallback: llm
                 )
                 if llmResult.confidence >= 0.5 {
-                    return llmResult.category
+                    return (llmResult.category, llmResult.entityType)
                 }
             } catch {
                 // LLM failed (= network down, etc.) = fall through to
@@ -91,7 +95,7 @@ public struct EntityClassifier: Sendable {
         }
 
         // Fallback (= keyword result OR .z = 综合性图书)
-        return keywordResult.category
+        return (keywordResult.category, .other)
     }
 
     // MARK: - Keyword classifier (1st pass)
@@ -149,46 +153,64 @@ public struct EntityClassifier: Sendable {
     /// Result of the LLM pass.
     public struct LLMResult: Sendable {
         public let category: EntityCategory
+        public let entityType: EntityType  // v0.30: new field
         public let confidence: Double
     }
 
-    /// Ask the LLM to classify (= returns the category letter as a
-    /// single character A-Z).
+    /// Ask the LLM to classify (= returns the category letter + entity-type
+    /// number, separated by space, e.g. 'K 3' = history + event).
     private func llmClassifier(
         title: String,
         summary: String,
         body: String,
         llmCallback: LLMCallback
     ) async throws -> LLMResult {
-        // Build a structured prompt (= request 1-char response for
-        // fast parsing).
+        // Build a structured prompt (= request "CATEGORY_LETTER TYPE_NUMBER"
+        // for fast parse).
         let categoriesList = EntityCategory.allCases
             .map { "\($0.rawValue) = \($0.displayName)" }
             .joined(separator: "\n")
+        // v0.30: include EntityType (= 9 types) so LLM can classify both
+        // the subject area AND the object nature.
+        let typesList = EntityType.allCases
+            .map { "\($0.promptNumber) = \($0.displayName): \($0.description)" }
+            .joined(separator: "\n")
         let prompt = """
-        你是一个图书馆分类专家。请将下面的资料归类到《中国图书馆分类法》(中图法) 的 22 个一级类目之一。
+        你是一个图书馆分类 + 实体类型判定专家。请将下面的资料同时判定:
+        1) 所属类目 (= 《中国图书馆分类法》一级类目, 用字母)
+        2) 实体类型 (= 这是什么类型的对象, 用数字)
 
         ## 资料信息
         - 标题: \(title)
         - 摘要: \(summary)
         - 正文 (前 500 字): \(String(body.prefix(500)))
 
-        ## 22 个一级类目
+        ## 22 个一级类目 (= 第一个输出字母)
         \(categoriesList)
 
+        ## 9 个实体类型 (= 第二个输出数字)
+        \(typesList)
+
         ## 输出要求
-        - 只输出一个字母（A-Z，不含 L/M/O），代表最合适的类目
-        - 例如你的答案是: K
+        - 输出一行, 字母 + 空格 + 数字, 例如 'K 3'
+        - K = 第一个字母 (类目), 3 = 第二个数字 (类型)
         - 不要任何解释, 不要任何其他文字, 不要标点
         """
         let response = try await llmCallback(prompt)
         let trimmed = response.trimmingCharacters(in: .whitespacesAndNewlines)
-        // Parse single letter A-Z (also accept lowercase)
-        if let firstChar = trimmed.first, let category = EntityCategory(rawValue: String(firstChar).uppercased()) {
-            return LLMResult(category: category, confidence: 0.7)  // LLM = "trust but verify"
+        // Parse "K 3" format
+        let parts = trimmed.split(separator: " ", maxSplits: 1).map(String.init)
+        guard parts.count == 2 else {
+            // Fallback: try old single-letter format for backward compat
+            if let firstChar = trimmed.first, let cat = EntityCategory(rawValue: String(firstChar).uppercased()) {
+                return LLMResult(category: cat, entityType: .other, confidence: 0.5)
+            }
+            return LLMResult(category: .z, entityType: .other, confidence: 0.0)
         }
-        // Parse failed = return catch-all
-        return LLMResult(category: .z, confidence: 0.0)
+        let cat = EntityCategory(rawValue: parts[0].uppercased()) ?? .z
+        let typeNum = Int(parts[1]) ?? 9
+        let type = EntityType.fromPromptNumber(typeNum)
+        return LLMResult(category: cat, entityType: type, confidence: 0.7)
     }
 
     // MARK: - Keyword dictionary
