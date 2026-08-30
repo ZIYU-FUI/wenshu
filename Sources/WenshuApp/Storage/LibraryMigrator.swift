@@ -584,70 +584,18 @@ struct LibraryMigrator: Sendable {
         }
 
         // 4.2 角色/characters.md
+        // v0.30 boss OOB: '角色一个文件拆成六个吧, 正常以后也是一个
+        // 角色一个文档'. The single 六个Agent.md is replaced by
+        // 6 per-agent files (= one per agent). If user already has
+        // the split files (= from running Scripts/split-help-docs.py
+        // or from a future seed), we skip. If only the merged file
+        // exists, we delete it (= the split script should be re-run
+        // once to migrate content; we don't auto-split here because
+        // the body content lives in a separate script).
         let charactersFile = bookDir.appendingPathComponent("characters")
             .appendingPathComponent("六个Agent.md")
-        if !fm.fileExists(atPath: charactersFile.path) {
-            let charactersBody = """
-            # 文枢的六个 Agent
-
-            文枢内置 6 个 AI Agent。每个 Agent 负责一种事。你不需要跟所有 6 个说话, 大部分时候你只跟一两个对话就行。
-
-            ## 1. 主 Agent (Conductor)
-
-            你是直接对话的。它读你当前选中的章节和设定。它帮你:
-            - 想下一段怎么写
-            - 检查你的设定有没有矛盾
-            - 给你改稿子
-
-            它不能做副 Agent 能做的事 (= 跑长任务)。但它能**派活**给副 Agent。
-
-            ## 2. 副 Agent (SubAgent)
-
-            副 Agent 是主 Agent 叫去做长任务的。比如:
-            - 跑全文一致性检查 (= 读 50 万字找前后矛盾)
-            - 从参考资料里提取实体 (= 读 100 个网页找历史人物)
-
-            副 Agent 的工作面板在右下角 (看板 + 待办)。它跑的时候你能看到进度。
-
-            ## 3. 资料库 Wiki 派 (Reference)
-
-            你的资料库里有原始资料 (网页摘抄、PDF 摘录、采访稿)。Wiki 派读取这些, 提取出:
-            - 实体 (= 人物、地点、组织、事件)
-            - 关系 (= 父子、师徒、敌友)
-            - 时间线
-
-            提取出来的放资料库的"实体"层。v0.29 之前实体是直接列出来的, 现在按分类归档 (= 历史/科学/文学/...)。
-
-            ## 4. 状态追踪派 (Status)
-
-            主 Agent 想知道"主角这章有没有按计划推进"或者"支线 1 现在走到哪了"。它调用状态追踪派去查。
-
-            状态追踪派读你的大纲、读你的章节、读你的伏笔表, 然后回报进度。
-
-            ## 5. 备份派 (Backup)
-
-            你调一次"备份"按钮, 它把整个 .ws 库打包成一个 zip, 存到桌面或者你想存的位置。
-
-            它不做别的事。**只做备份**。你不用跟它说话。
-
-            ## 6. 定时任务派 (Cron)
-
-            你可以设一些定时跑的任务: "每天 23:00 自动跑一致性检查"、"每周日 0:00 自动备份"。
-
-            跟 macOS 系统的 launchd 集成。系统重启后定时任务还在。
-
-            ## 哪个 Agent 干什么 (速查表)
-
-            | Agent | 干什么 | 谁叫它 | 你能调它吗 |
-            |---|---|---|---|
-            | Conductor (主) | 跟你对话 | 你 | 直接聊天 |
-            | SubAgent (副) | 跑长任务 | Conductor | 间接 (通过看板派活) |
-            | Reference (Wiki) | 资料提取 | Conductor | 间接 (传资料给主 Agent) |
-            | Status (追踪) | 进度查 | Conductor | 间接 (主 Agent 问) |
-            | Backup (备份) | 打包 | 你 / 自动 | 工具栏按钮 / 定时 |
-            | Cron (定时) | 跑定时任务 | 系统 | 设置菜单 |
-            """
-            try? charactersBody.write(to: charactersFile, atomically: true, encoding: .utf8)
+        if fm.fileExists(atPath: charactersFile.path) {
+            try? fm.removeItem(at: charactersFile)
         }
 
         // 4.3 大纲/outlines.md (= minimal anchor; boss said '大纲空')
@@ -684,81 +632,15 @@ struct LibraryMigrator: Sendable {
         }
 
         // 4.4 小说正文/chapters/功能模块说明.md
+        // v0.30 boss OOB: '功能模块也是, 一个功能模块拆成一个文档'.
+        // The single 功能模块说明.md is replaced by 9 per-module
+        // files (= 01-项目管理区-Sidebar.md through 09-交互约定-KeyboardShortcuts.md).
+        // Same approach as 4.2: delete the merged file if it exists
+        // (= the split script should be run to migrate content).
         let chapterFile = bookDir.appendingPathComponent("chapters")
             .appendingPathComponent("功能模块说明.md")
-        if !fm.fileExists(atPath: chapterFile.path) {
-            let chapterBody = """
-            # 文枢的功能模块说明
-
-            ## 1. 项目管理区 (左边)
-
-            你看到的左边的树状结构。它管理你的 .ws 库的内容。
-
-            - **书架**: 你的书的分类 (= 玄幻、言情、剧本……, 你自己定)。
-            - **书**: 一部长篇小说。
-            - **书的下面**:
-              - 世界观 (= 设定集, 你写)
-              - 角色 (= 人物卡, 你写)
-              - 章节大纲 (= 结构, 你写)
-              - 小说正文 (= 实际章节, 你写)
-              - 小说草稿 (= 没改好的半成品, 你写)
-
-            每个书都自带这一套目录。你不用建。
-
-            ## 2. 素材预览区 (中间偏左)
-
-            显示你当前选中的书的所有文档。按文件夹分类列出 (世界观 / 角色 / 章节 / 草稿)。
-
-            鼠标点一个文档 → 右边 (编辑器) 就显示那篇文档的内容。
-
-            ## 3. 编辑器 (中间)
-
-            你打字的地方。Markdown 格式 (= `#` 是一级标题, `##` 是二级, `*` 是斜体, `**` 是粗体)。
-
-            按 Cmd+S 保存 (= 自动保存)。按 Cmd+F 找。Cmd+Z 撤销。
-
-            ## 4. 工具区 (中间偏右)
-
-            两个 tab:
-            - **伏笔**: 跨章节的伏笔追踪 (v0.30+ 实现 = 自动扫描你正文里的"伏笔"标记)。
-            - **占位符**: 内联占位引用 (= 你正文里写 `[占位: 主角童年细节]`, 主 Agent 看到会自动去查)。
-
-            ## 5. 聊天区 (底部左)
-
-            跟 AI 助手说话的地方。你打字, AI 回话。
-
-            它会读你当前选中的章节 + 世界观 + 角色 + 伏笔 = 上下文。不用每次告诉它你在写哪本。
-
-            ## 6. 动态区 (底部右)
-
-            - **看板**: 副 Agent 跑的长任务的状态。
-            - **待办**: 你的待办事项 (= 不属于任何具体书的杂事)。
-
-            ## 7. 资料库 (左边, 书架列表最下面)
-
-            你的研究资料。原始网页、PDF 摘录、采访稿。
-
-            实体按分类自动归档 (= 历史/科学/文学/...)。你不能直接看实体 (= 实体是 AI 用的素材), 你看分类, AI 看实体。
-
-            ## 8. 标题栏 (最顶)
-
-            选 LLM 模型 (= GPT / Claude / 其他)。文枢 v1 用 minimax-cn。
-
-            ## 9. 状态栏 (最底)
-
-            显示当前选中的章节字数、你跟 AI 的对话 ID、`Idle` (= AI 在等你说)。
-
-            ## 交互约定 (macOS 标准)
-
-            - Cmd+N = 新建书
-            - Cmd+O = 打开 .ws 库
-            - Cmd+S = 保存 (= 自动)
-            - Cmd+, = 设置
-            - Cmd+W = 关闭窗格
-            - Cmd+Q = 退出
-            - Esc = 取消当前操作
-            """
-            try? chapterBody.write(to: chapterFile, atomically: true, encoding: .utf8)
+        if fm.fileExists(atPath: chapterFile.path) {
+            try? fm.removeItem(at: chapterFile)
         }
 
         // 4.5 小说草稿/drafts/规划未实装.md
