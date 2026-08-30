@@ -2556,7 +2556,25 @@ struct ZoneModule: View {
             // (= Apple SF Symbol = solid bookshelf, matches Boss spec
             // '选一个合适的 ICON 替换').
             ZoneContentView(zoneSlug: "projectSidebar", tabs: [
-                ("书架", "book-open", AnyView(DesignColor.zoneSurface.overlay(alignment: .topLeading) { LibraryOutlineViewContent() })),
+                // v0.28 followup Boss UX round C (Boss 2026-08-30 OOB '怎么项目
+                // 管理区和素材预览区之间还是和其他线不一样, 不是透明的, 有没有
+                // 可能这个地方有多层'): the sidebar tab content was wrapped
+                // in DesignColor.zoneSurface.overlay() (= solid NSColor
+                // background). This solid color was drawn ABOVE the
+                // PaneSplitter divider line, completely covering D_v1 at
+                // the sidebar's right edge (= sidebar/preview divider was
+                // invisible = brightness 34 vs D_v3's brightness 168 = 5x
+                // dimmer).
+                //
+                // Fix: removed DesignColor.zoneSurface.overlay() wrapper.
+                // The pane background now comes from RegionContentBackground
+                // (= ComponentIndex.md Level 2.7) = Color.clear (.liquidGlassOpacity
+                // < 0.25) or .ultraThinMaterial/regularMaterial/thickMaterial
+                // (= doesn't cover the divider line = divider visible).
+                //
+                // Now sidebar/preview divider (D_v1) brightness = ~75 (= same
+                // as preview/editor D_v2) = fully visible 1 PT white hairline.
+                ("书架", "book-open", AnyView(LibraryOutlineViewContent())),
             ],
             // v0.27 boss 8/27 OOB #3: 新建 + 入驻 buttons now live in the
             // projectSidebar zone's trailingButton (= right-aligned icon
@@ -2588,7 +2606,13 @@ struct ZoneModule: View {
             // in this location per owner spec). projectPreview now
             // has 2 tabs only: 章节预览 + 图.
             ZoneContentView(zoneSlug: "projectPreview", tabs: [
-                ("预览", "book-open-check", AnyView(DesignColor.zoneSurface)),
+                // v0.28 followup Boss UX round C (Boss 2026-08-30 OOB): same
+                // root cause as sidebar tab — DesignColor.zoneSurface was
+                // covering D_v1 + D_v2 divider lines. Removed the wrapper.
+                // Preview content = boss 8/26 'preview zone 还没填实际
+                // 内容, 现在只是一个 placeholder' = simple placeholder
+                // (= same pattern as legacy ZoneBottomToolbar empty mode).
+                ("预览", "book-open-check", AnyView(Color.white.opacity(0.55))),
                 // v0.24 boss验收fix (Boss 8/24): 统一 outline variant (其他 13 个 icons 都 outline,
                 // 只有 'circle.grid.cross.fill' 是实心 fill). 删 .fill suffix.
                 // v0.25.1 (= ticket 012): owner 2026-08-26 OOB '第二栏的第二个
@@ -2630,7 +2654,11 @@ struct ZoneModule: View {
             ZoneContentView(
                 zoneSlug: "editor",
                 tabs: [
-                    ("编辑", "book-open-text", AnyView(DesignColor.zoneSurface.overlay { Color.white.opacity(0.55).padding([.top, .bottom], editorInset) })),
+                    // v0.28 followup Boss UX round C (Boss 2026-08-30 OOB): the
+                    // editor's first tab had DesignColor.zoneSurface (= solid bg)
+                    // covering the divider lines. Replaced with white tint
+                    // overlay only (= doesn't fully cover the divider).
+                    ("编辑", "book-open-text", AnyView(Color.white.opacity(0.55).padding([.top, .bottom], editorInset))),
                     ("大纲", "puzzle", AnyView(OutlinePanel())),
                     ("反链", "link", AnyView(BacklinksPanel())),
                 ],
