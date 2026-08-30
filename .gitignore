@@ -69,3 +69,18 @@ backup-pre-ws-migration-*/
 
 # Autonomous audit log directories (sub-agent sessions)
 wenshu-audit-*/
+
+# Bonsplit external dependency probe artifact (= third-party package clone,
+# NOT wenshu source per AGENTS.md §11.1 — we don't vendor third-party code).
+# Only probe-report.md (= audit trail) is preserved in git (= see commit
+# d326d49b3). The rest of the clone is reproducible from public github.
+.scratch/2026-08-27-bonsplit-probe/BonsplitProbe/
+.scratch/2026-08-27-bonsplit-probe/Example/
+.scratch/2026-08-27-bonsplit-probe/Tests/
+.scratch/2026-08-27-bonsplit-probe/Sources/
+.scratch/2026-08-27-bonsplit-probe/www/
+.scratch/2026-08-27-bonsplit-probe/CHANGELOG.md
+.scratch/2026-08-27-bonsplit-probe/LICENSE
+.scratch/2026-08-27-bonsplit-probe/Package.swift
+.scratch/2026-08-27-bonsplit-probe/README.md
+.scratch/2026-08-27-bonsplit-probe/.gitignore
