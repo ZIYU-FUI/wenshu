@@ -314,8 +314,20 @@ struct NewLibraryOutlineView: View {
     // and shows icon buttons in the projectSidebar zone header.
 
     /// 2 icon buttons rendered in the projectSidebar zone header
-    /// trailing area. Per boss 8/27 OOB: 新建 Menu + 导入 plain Button.
-    /// Both use the editor-expand + chat-archive icon-button pattern.
+    /// trailing area. Per boss 8/27 OOB #3 (= commit bca226704): 新建 Menu +
+    /// 入驻 plain Button. Both use the editor-expand + chat-archive
+    /// icon-button pattern (= 28x28 hot area + Lucide icon overlay +
+    /// .secondary foreground + .contentShape Rectangle).
+    ///
+    /// v0.30 boss 8/30 OOB '恢复那两个按钮, 还有 icon' = restore the
+    /// original v0.27-style buttons and icons:
+    /// - 新建 icon = "square-plus" (Lucide canonical, NOT SF "plus")
+    /// - 入驻 icon = "square-arrow-right" (Lucide canonical)
+    ///
+    /// v0.30 dev drift (= what NOT to do): I had used SF Symbol "plus"
+    /// for the 新建 icon (= losing the Lucide canonical name + visual
+    /// consistency with the rest of the sidebar tree icons). Boss caught
+    /// it. Restored to Lucide canonical per bca226704.
     @ViewBuilder
     var zoneHeaderButtons: some View {
         HStack(spacing: 0) {
@@ -328,12 +340,26 @@ struct NewLibraryOutlineView: View {
                     showNewShelfSheet = true
                 }
             } label: {
-                Image(systemName: "plus")
+                LucideIcon("square-plus", size: 18)
                     .frame(width: 28, height: 28)
                     .contentShape(Rectangle())
+                    .foregroundStyle(Color.secondary)
             }
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)
+            // 入驻 plain Button (= tap directly fires .wenshuImportRequested
+            // notification; consumed by the main app toolbar listener =
+            // opens the macOS NSOpenPanel for importing external research
+            // materials into the library).
+            Button {
+                NotificationCenter.default.post(name: .wenshuImportRequested, object: nil)
+            } label: {
+                LucideIcon("square-arrow-right", size: 18)
+                    .frame(width: 28, height: 28)
+                    .contentShape(Rectangle())
+                    .foregroundStyle(Color.secondary)
+            }
+            .buttonStyle(.plain)
         }
     }
 
