@@ -238,6 +238,22 @@ final class WenshuLibrary {
         try store.loadDocuments(bookId: bookId, category: category)
     }
 
+    /// v0.30 boss OOB '为什么角色, 世界观, 后面没有显示数字': count .md
+    /// files directly by folder directory name. Doesn't require
+    /// BookCategory (= which only has 3 cases = chapter/setting/research;
+    /// the 5 user-facing folders use custom directory names like
+    /// 'world' / 'characters' / 'outlines' that aren't in BookCategory).
+    /// Returns 0 for missing folders (= forgiving convention).
+    ///
+    /// v0.30 followup: this can be replaced by a proper BookCategory
+    /// extension (= add `world` / `characters` cases) once the
+    /// Document model migrates to support all 5 folder types.
+    /// Note: delegate to BookStore (= same impl, available there too).
+    func folderDocumentCount(bookId: UUID, folderDirectoryName: String) -> Int {
+        guard let bookStore = store as? BookStore else { return 0 }
+        return bookStore.folderDocumentCount(bookId: bookId, folderDirectoryName: folderDirectoryName)
+    }
+
     /// Reads the full MD body of a document (= what the EDITOR will
     /// load into its text view). Throws .documentNotFound if the .md
     /// isn't on disk.

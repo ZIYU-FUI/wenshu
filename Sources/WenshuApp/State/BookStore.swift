@@ -112,6 +112,51 @@ final class BookStore: @unchecked Sendable {
         currentBookDirectory = bookDir
         currentBook = nil
     }
+
+    /// v0.30 boss OOB '为什么角色, 世界观, 后面没有显示数字': count .md
+    /// files directly by folder directory name. Doesn't require
+    /// BookCategory (= which only has 3 cases = chapter/setting/research;
+    /// the 5 user-facing folders use custom directory names like
+    /// 'world' / 'characters' / 'outlines' that aren't in BookCategory).
+    /// Returns 0 for missing folders (= forgiving convention).
+    ///
+    /// v0.30 followup: this can be replaced by a proper BookCategory
+    /// extension (= add `world` / `characters` cases) once the
+    /// Document model migrates to support all 5 folder types.
+    ///
+    /// Path layout (= per FCP library replica spec v5):
+    ///   <ws>/shelves/<shelf-id>/books/<book-id>/<folder-name>/*.md
+    ///
+    /// Scans all shelves for the book (= books can be in any shelf).
+    /// Forgiving: missing folder / permission error = 0.
+    func folderDocumentCount(bookId: UUID, folderDirectoryName: String) -> Int {
+        let fm = FileManager.default
+        let shelvesRoot = stores.shelvesRoot
+
+        // Find which shelf contains the book
+        guard let shelfDirs = try? fm.contentsOfDirectory(
+            at: shelvesRoot,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else { return 0 }
+
+        for shelfDir in shelfDirs {
+            let folderURL = shelfDir
+                .appendingPathComponent("books", isDirectory: true)
+                .appendingPathComponent(bookId.uuidString, isDirectory: true)
+                .appendingPathComponent(folderDirectoryName, isDirectory: true)
+            guard let contents = try? fm.contentsOfDirectory(
+                at: folderURL,
+                includingPropertiesForKeys: [.isRegularFileKey],
+                options: [.skipsHiddenFiles]
+            ) else { continue }
+            let mdCount = contents.filter { url in
+                url.pathExtension.lowercased() == "md"
+            }.count
+            if mdCount > 0 { return mdCount }
+        }
+        return 0
+    }
 }
 
 /// Library-public reference library (= the library's default shelf per

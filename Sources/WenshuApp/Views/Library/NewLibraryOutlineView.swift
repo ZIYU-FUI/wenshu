@@ -337,23 +337,31 @@ struct NewLibraryOutlineView: View {
         // - 占位符 (square-dashed) → tools pane (= v0.30 will move)
         // - LLM 会话 (message-square) → chat zone auto-load (= never
         //   user-facing in sidebar)
-        let standardFolders: [(name: String, icon: String)] = [
-            ("世界观",       "globe"),
-            ("角色",         "user-round"),
-            ("章节大纲",     "list-tree"),
-            ("小说正文",     "book-text"),
-            ("小说草稿",     "file-pen-line"),
+        let standardFolders: [(name: String, icon: String, directoryName: String)] = [
+            ("世界观",       "globe",            "world"),
+            ("角色",         "user-round",       "characters"),
+            ("章节大纲",     "list-tree",        "outlines"),
+            ("小说正文",     "book-text",        "chapters"),
+            ("小说草稿",     "file-pen-line",    "drafts"),
         ]
-        return standardFolders.map { (displayName, icon) in
+        return standardFolders.map { (displayName, icon, directoryName) in
             // Stable UUID per (book, folder-name) tuple (= deterministic;
             // = avoids row re-creation on every render).
             let hashInput = displayName + book.id.uuidString
             let hashHex = String(format: "%012x", abs(hashInput.hashValue & 0xFFFFFFFFFFF))
+            // v0.30 boss OOB '为什么角色, 世界观, 后面没有显示数字':
+            // count = number of .md files in the on-disk folder.
+            // Forgiving: missing folder / permission error = 0 (= no
+            // crash, just no badge).
+            let docCount = bookStore.folderDocumentCount(
+                bookId: book.id,
+                folderDirectoryName: directoryName
+            )
             return FCPTreeNode(
                 id: UUID(uuidString: "00000000-0000-0000-\(hashHex)") ?? UUID(),
                 label: displayName,
                 icon: icon,
-                count: nil,
+                count: docCount,
                 children: [],     // (= folder is leaf-level in sidebar; docs render in projectPreview).
                 payloadKind: .book
             )
