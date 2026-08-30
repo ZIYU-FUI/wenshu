@@ -3165,6 +3165,10 @@ struct ChatZoneTabBar: View {
                                     Rectangle()
                                         .fill(Color.accentColor)
                                         .frame(height: DesignTokens.tabUnderlineHeight)
+                                        // v0.28 followup Boss UX (Boss 2026-08-30
+                                        // OOB '加满圆角, 两头圆'): .clipShape(Capsule())
+                                        // for fully rounded ends on the underline.
+                                        .clipShape(Capsule())
                                         // v0.25.1 (= ticket 013): matchedGeometryEffect
                                         // namespace ID on the bar Rectangle so
                                         // SwiftUI can slide it between tab
@@ -3175,7 +3179,7 @@ struct ChatZoneTabBar: View {
                                         // Boss 8/22 sixth OOB backlog 20), the
                                         // slide animation already works.
                                         .matchedGeometryEffect(id: "tabBarUnderline", in: tabBarNamespace, isSource: true)
-                                    .offset(y: 0)  // v0.25.1 ticket 024: offset adjusted for tabUnderlineHeight 3 PT (= underline at y=28-3=25 to 28 PT, flush with toolbar bottom = no offset needed since icon is centered at y=5-23 PT, 2 PT gap between icon bottom and underline top)
+                                    .offset(y: 0)  // v0.25.1 ticket 024: offset adjusted for tabUnderlineHeight 1 PT (= underline at y=27-28 PT, flush with toolbar bottom; 1 PT below icon bottom = 2 PT gap)
                                 }
                             }
                     }

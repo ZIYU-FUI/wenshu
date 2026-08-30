@@ -104,17 +104,23 @@ public struct PaneIconTab: View {
                 }
                 .contentShape(Rectangle())
                 // Apple HIG canonical selected-state underline:
-                // - 3 PT height (= DesignTokens.tabUnderlineHeight)
+                // - 1 PT height (= DesignTokens.tabUnderlineHeight)
                 // - accent color
                 // - bottom-anchored (= at the bottom of the 28 PT hot area)
                 // - matchedGeometryEffect for L/R slide animation (= not
                 //   per-tab crossfade)
+                // - .clipShape(Capsule()) for fully rounded ends (= two
+                //   round caps on both sides, per boss 2026-08-30 OOB
+                //   '加满圆角, 两头圆'). Capsule() is the same as a fully
+                //   rounded RoundedRectangle (= radius = height/2 = 0.5 PT
+                //   for a 1 PT line, giving a perfect oval/lozenge shape).
                 .overlay(alignment: .bottom) {
                     if isSelected {
                         Rectangle()
                             .fill(Color.accentColor)
                             .frame(height: DesignTokens.tabUnderlineHeight)
                             .matchedGeometryEffect(id: namespaceID, in: namespace)
+                            .clipShape(Capsule())  // Rounded ends
                     }
                 }
         }

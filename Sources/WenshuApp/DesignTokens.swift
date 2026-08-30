@@ -58,9 +58,11 @@ public enum DesignTokens {
     /// Per-pane tab icon size (= 18×18 PT, fits within 28 PT hot area).
     public static let tabIconSize: CGFloat = 18
 
-    /// Per-pane tab selected-state underline height (= 3 PT, Apple HIG
-    /// standard for tab bar selected indicator).
-    public static let tabUnderlineHeight: CGFloat = 3
+    /// Per-pane tab selected-state underline height (= 1 PT, Apple HIG
+    /// standard for tab bar selected indicator). The line is rendered
+    /// with `.clipShape(Capsule())` for fully rounded ends (= two
+    /// round caps on both sides, per boss 2026-08-30 OOB '加满圆角, 两头圆').
+    public static let tabUnderlineHeight: CGFloat = 1
 
     // MARK: - Dividers
 
