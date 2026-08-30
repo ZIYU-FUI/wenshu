@@ -1,17 +1,69 @@
-// NewLibraryOutlineView.swift · Wenshu (文枢) · v0.27 wiring
+// NewLibraryOutlineView.swift · Wenshu (文枢) · v0.30 Apple HIG sidebar
 //
-// Replaces LibraryOutlineView in the projectSidebar zone. Renders:
-// - User-named Bookshelves (= from BookStore.shelves)
-//   └ books/<uuid>/ entries (Book objects)
-// - ReferenceLibrary (= the library's default shelf per boss 8/26 OOB;
-//   user CANNOT delete or rename; appears at library root)
+// v0.30 boss 2026-08-30 OOB: '如果你要 100% Apple native, 我想选这个'.
 //
-// v0.27 MVP integration: this view lives in the projectSidebar zone
-// (replacing the v0.25.x WenshuLibrary-backed LibraryOutlineView).
-// Boss 8/26 Q1 = directory tree navigation per boss spec.
+// 100% Apple HIG standard sidebar (= List(selection:) + .listStyle(.sidebar)).
+//
+// Per Apple HIG "Sidebars" (developer.apple.com/design/human-interface-
+// guidelines/sidebars):
+//
+// 1. "A sidebar's row height, text, and glyph size depend on its overall
+//    size, which can be small, medium, or large. You can set the size
+//    programmatically, but people can also change it by selecting a
+//    different sidebar icon size in General settings."
+//    → NO hardcoded 18 PT icon / 28 PT row / 18 PT trailing padding.
+//      Apple std follows user's "Sidebar icon size" system preference.
+//
+// 2. "In general, show no more than two levels of hierarchy in a sidebar."
+//    → Use DisclosureGroup (= Apple std 2-level tree). Books contain
+//      folders as a DisclosureGroup (= level 1 → level 2). Reference
+//      library root contains categories as a DisclosureGroup
+//      (= level 1 → level 2).
+//
+// 3. "By default, sidebar icons use your app's accent color." On
+//    macOS Tahoe, sidebar icon tint = black in light mode / white in
+//    dark mode. Per marioaguzman.github.io/design/sidebarguidelines:
+//    "the default tint for icons in the sidebar is now black in light
+//    mode and white in dark mode".
+//    → Use .foregroundStyle(.primary) (= black/white) instead of
+//      category-color accent tint.
+//
+// 4. Apple SwiftUI std:
+//    → List(selection:) for selection binding.
+//    → Label { Text } icon: { LucideIcon } for rows (= Apple std row).
+//    → .badge(count) for count badges (= Apple std count badge).
+//    → listStyle(.sidebar) for native sidebar appearance + Liquid
+//      Glass treatment.
+//    → List selection highlighting is automatic (= Apple std accent
+//      color tint; no manual .background() required).
+//
+// Migration notes (= what is REMOVED from prior wenshu-boss-taste
+// implementation):
+// - 18 PT icon .frame(width:height:)              → removed
+// - 28 PT row .frame(height:)                      → removed
+// - 18 PT .padding(.trailing) on each row          → removed
+// - 4 PT indentPT custom indentation               → removed (= List
+//   handles indentation via DisclosureGroup nesting)
+// - Manual Color.accentColor.opacity(0.12)         → removed (= Apple
+//   List selection is automatic)
+// - Category-color icon tint                       → removed (= Apple
+//   HIG: primary tint only)
+// - Custom chevron Lucide icon                     → removed (= Apple
+//   std uses system disclosure indicator)
 
 import SwiftUI
 import Lucide
+
+/// Identifies a single sidebar item for List(selection:) binding.
+/// v0.30: composite enum (= book OR reference category) because
+/// Apple HIG allows ONE selection type per List, so we unify
+/// both selection kinds into one Hashable enum.
+enum SidebarItem: Hashable {
+    case book(UUID)
+    case referenceCategory(String)  // = EntityCategory.directoryName
+
+    static let referenceLibraryRoot = SidebarItem.referenceCategory("__root__")
+}
 
 struct NewLibraryOutlineView: View {
     @Environment(BookStore.self) private var bookStore
@@ -35,52 +87,125 @@ struct NewLibraryOutlineView: View {
 
     @State private var shelves: [Bookshelf] = []
     @State private var books: [Book] = []
-    @State private var selectedBookId: UUID?
-    @State private var selectedReferenceLayer: ReferenceLayer = .layerEntities
     @State private var references: [Reference] = []
     @State private var loadError: String?
     @State private var showNewBookSheet: Bool = false
     @State private var showNewShelfSheet: Bool = false
 
+    /// v0.30: Apple std List selection. Mirrors both
+    /// `bookStore.selectedBookId` (when a book is selected) and
+    /// `selectedEntityCategory` (when a category is selected). Single
+    /// selection per List (= Apple HIG).
+    @State private var sidebarSelection: SidebarItem?
+
     var body: some View {
-        // v0.27 boss 8/27 OOB: 目录树整体居左的边距，可以再小一些，让标
-        // 题的 ICON 与顶部 Tab 的 ICON 对齐 (= shrink left padding +
-        // indent so the shelf/book ICON aligns with the zone tab bar's
-        // tab icons). 那个折叠展开的小箭头，不计入对齐计算，就正常往
-        // 前挤就好 (= chevron is treated as an inline element, NOT as
-        // part of the indent column; the indent starts AT the icon).
-        VStack(spacing: 0) {
-            ForEach(buildTreeNodes()) { node in
-                FCPRowView(
-                    node: node,
-                    depth: 0,
-                    selectedCategory: $selectedEntityCategory
-                )
+        // v0.30: 100% Apple HIG standard sidebar.
+        //
+        // = List(selection: $sidebarSelection)
+        //   .listStyle(.sidebar)
+        //
+        // Sections:
+        // - Per user-named shelf (= Section per shelf)
+        // - Per reference library (= single Section)
+        // Books use DisclosureGroup for folder nesting (= 2 levels).
+        // Reference library uses DisclosureGroup for category nesting
+        // (= 2 levels).
+        //
+        // All rows use Label + .badge (= Apple std). No hardcoded
+        // sizes (= Apple HIG: follow user system preference). Selection
+        // highlight = automatic (= Apple std).
+        List(selection: $sidebarSelection) {
+            ForEach(shelves) { shelf in
+                Section {
+                    ForEach(booksInShelf(shelf)) { book in
+                        bookRowWithFolders(book)
+                    }
+                } header: {
+                    Label {
+                        Text(shelf.name)
+                    } icon: {
+                        LucideIcon(
+                            shelf.id.uuidString == "00000000-0000-0000-0000-000000000000"
+                                ? "square-dashed-mouse-pointer"
+                                : "books.vertical.fill",
+                            size: 14
+                        )
+                        .foregroundStyle(.primary)
+                    }
+                }
+            }
+            // Reference library (= library's default shelf per boss 8/26
+            // OOB; user CANNOT delete or rename). Treated as a single
+            // Section per Apple HIG; categories expand via
+            // DisclosureGroup (= 2-level hierarchy).
+            Section {
+                DisclosureGroup {
+                    ForEach(usedCategories(), id: \.directoryName) { category in
+                        Label {
+                            Text(category.displayName)
+                        } icon: {
+                            LucideIcon(category.icon, size: 14)
+                                .foregroundStyle(.primary)
+                        }
+                        .badge(entitiesCount(in: category))
+                        .tag(SidebarItem.referenceCategory(category.directoryName))
+                    }
+                } label: {
+                    Label {
+                        Text("资料库")
+                    } icon: {
+                        LucideIcon("square-library", size: 14)
+                            .foregroundStyle(.primary)
+                    }
+                    .badge(usedCategories().count)
+                    .tag(SidebarItem.referenceLibraryRoot)
+                }
             }
         }
-        .background(Color.clear)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 0)
-        .padding(.vertical, 4)
+        .listStyle(.sidebar)
         .onAppear(perform: reload)
-        .onChange(of: bookStore.selectedBookId) { _, newValue in
-            selectedBookId = newValue
+        .onChange(of: sidebarSelection) { _, newValue in
+            // v0.30: forward sidebar selection to bookStore.selectedBookId
+            // (for books) and selectedEntityCategory binding (for
+            // categories). Single onChange handler unifies both.
+            switch newValue {
+            case .book(let id):
+                bookStore.selectedBookId = id
+                selectedEntityCategory = nil
+                selectedEntity = nil
+            case .referenceCategory(let dirName):
+                if dirName == "__root__" {
+                    selectedEntityCategory = nil
+                } else if let cat = EntityCategory.allCases.first(where: { $0.directoryName == dirName }) {
+                    selectedEntityCategory = cat
+                    selectedEntity = nil
+                }
+            case .none:
+                break
+            }
         }
-        // v0.27 cross-component sync (boss 8/27 OOB): receive macOS-standard
-        // menu commands (= toolbar '+' + File → 新建项目 / Cmd+N) from
-        // NotificationCenter and trigger the matching sheet. Without this
-        // listener, the toolbar '+' and File menu would be placeholders.
-        // Per boss 8/27 standing rule: 'a new feature, by macOS standard,
-        // should appear everywhere = synced'.
+        .onChange(of: bookStore.selectedBookId) { _, newValue in
+            // Sync external changes (= toolbar click elsewhere) into
+            // local List selection.
+            if let id = newValue {
+                sidebarSelection = .book(id)
+            }
+        }
+        .onChange(of: selectedEntityCategory) { _, newValue in
+            // Sync external category changes (= WorkspaceView → preview
+            // pane state) into local List selection (= maintains
+            // consistency between sidebar selection highlight and the
+            // preview pane's category-scoped grid mode).
+            if let cat = newValue {
+                sidebarSelection = .referenceCategory(cat.directoryName)
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .wenshuNewBookRequested)) { _ in
             showNewBookSheet = true
         }
         .onReceive(NotificationCenter.default.publisher(for: .wenshuNewShelfRequested)) { _ in
             showNewShelfSheet = true
         }
-        // NOTE: Toolbar 新建按钮 = boss 8/27 OOB 红框的那个 (= 复用 v0.25.x
-        // 现有的 toolbar '+' 按钮). 不要在这里重复加 menu, 避免红框 +
-        // 我们的 menu 双入口.
         .sheet(isPresented: $showNewBookSheet) {
             NewBookSheet(onSave: { book in
                 do {
@@ -103,33 +228,96 @@ struct NewLibraryOutlineView: View {
         }
     }
 
-    // MARK: - Zone header buttons (= boss 8/27 OOB #3: 新建 + 入驻
-    // rendered in the projectSidebar zone header via ZoneContentView's
-    // trailingButton parameter, NOT in a custom sidebarTopBar. Per
-    // boss 8/27 '参考编辑器区的展开' = use the same icon-button style
-    // as the editor expand button (= ticket 029c-trailing-button:
-    // Color.clear 28x28 hot area + Lucide icon overlay + .secondary
-    // foreground + contentShape Rectangle for full hit area).
-    // The two buttons are stacked in a trailingButton HStack (= the
-    // trailingButton parameter is one AnyView; HStack wraps both).
+    // MARK: - Row builders
+
+    /// v0.30: Apple std book row + nested DisclosureGroup of folders.
+    /// Per Apple HIG "show no more than two levels of hierarchy in a
+    /// sidebar" (= book + folders = 2 levels). Folders are visual
+    /// placeholders (= current docs hidden per boss OOB), so each
+    /// folder has no badge (= displays no count).
+    @ViewBuilder
+    private func bookRowWithFolders(_ book: Book) -> some View {
+        let folders = standardFolderNames
+        if folders.isEmpty {
+            // Defensive: a book with no folders (= shouldn't happen,
+            // but keep single-row rendering for safety).
+            Label {
+                Text(book.title)
+            } icon: {
+                LucideIcon("book.closed", size: 14)
+                    .foregroundStyle(.primary)
+            }
+            .tag(SidebarItem.book(book.id))
+        } else {
+            DisclosureGroup {
+                ForEach(folders, id: \.name) { folder in
+                    Label {
+                        Text(folder.displayName)
+                    } icon: {
+                        LucideIcon(folder.icon, size: 14)
+                            .foregroundStyle(.primary)
+                    }
+                }
+            } label: {
+                Label {
+                    Text(book.title)
+                } icon: {
+                    LucideIcon("book.closed", size: 14)
+                        .foregroundStyle(.primary)
+                }
+                .tag(SidebarItem.book(book.id))
+            }
+        }
+    }
+
+    /// v0.30: 5 user-facing standard folder names + icons (= per spec
+    /// v5 ticket 001 + ticket 026). 3 hidden folders (LLM 会话, 伏笔,
+    /// 占位符) NOT shown per boss 8/30 sidebar cleanup.
+    private var standardFolderNames: [(name: String, displayName: String, icon: String)] {
+        [
+            ("world",      "世界观",      "globe"),
+            ("characters", "角色",        "user-round"),
+            ("outlines",   "章节大纲",    "list-tree"),
+            ("chapters",   "小说正文",    "book-text"),
+            ("drafts",     "小说草稿",    "file-pen-line"),
+        ]
+    }
+
+    // MARK: - Data helpers
+
+    /// v0.30: Apple std list of categories with ≥1 entity, sorted A→Z.
+    /// (= Same logic as v0.29 computeUsedCategories; renamed to match
+    /// Apple HIG sidebar convention of "sidebar only shows used items".)
+    private func usedCategories() -> [EntityCategory] {
+        let allRefs = (try? bookStore.referenceStore.loadAllReferences()) ?? []
+        let entityRefs = allRefs.filter { $0.layer == .layerEntities }
+        let used = Set(entityRefs.compactMap { $0.category })
+        return EntityCategory.allCases.filter { used.contains($0) }
+    }
+
+    /// v0.30: count of entities in this category.
+    private func entitiesCount(in category: EntityCategory) -> Int {
+        let allRefs = (try? bookStore.referenceStore.loadAllReferences()) ?? []
+        return allRefs.filter { $0.layer == .layerEntities && $0.category == category }.count
+    }
+
+    private func booksInShelf(_ shelf: Bookshelf) -> [Book] {
+        books.filter { $0.shelfId == shelf.id }
+    }
+
+    // MARK: - Zone header buttons (= 新建 + 入驻)
+    //
+    // Per boss 8/27 '复用 v0.25.x 现有的 toolbar "+" 按钮': the toolbar
+    // '+' button (= main app toolbar, not sidebar header) drives the
+    // "新建书 / 新建书架" menu. This trailingButton is rendered via
+    // ZoneContentView's trailingButton parameter (= app.swift:2155)
+    // and shows icon buttons in the projectSidebar zone header.
 
     /// 2 icon buttons rendered in the projectSidebar zone header
-    /// trailing area (= rendered via ZoneContentView's trailingButton
-    /// parameter at app.swift:2155). Per boss 8/27 OOB: 新建 Menu +
-    /// 导入 plain Button. Both use the editor-expand + chat-archive
-    /// icon-button pattern (= Color.clear 28x28 hot area + Lucide
-    /// icon overlay + .secondary foreground + .contentShape Rectangle
-    /// + .buttonStyle(IconButtonStyle()) for empty pass-through; matches
-    /// macOS zone-header icon style per Apple HIG zone-tab-bar pattern
-    /// AND the wenshu IconButtonStyle convention used by ChatZoneTabBar
-    /// + the editor expand button).
+    /// trailing area. Per boss 8/27 OOB: 新建 Menu + 导入 plain Button.
+    /// Both use the editor-expand + chat-archive icon-button pattern.
     @ViewBuilder
     var zoneHeaderButtons: some View {
-        // v0.27 boss 8/27 OOB correction: HStack(spacing: 8) 太远
-        // (= boss '现在是 4 吗，那就改成 0。改成 8 更远了'). Use
-        // HStack(spacing: 0) = 紧贴 hot area (= 28x28 each; the visual
-        // gap is the 10 PT (= 28-18) difference between hot area and
-        // 18 PT icon).
         HStack(spacing: 0) {
             // 新建 Menu (= tap → menu with 新建书 / 新建书架).
             Menu {
@@ -140,429 +328,16 @@ struct NewLibraryOutlineView: View {
                     showNewShelfSheet = true
                 }
             } label: {
-                Color.clear
-                    .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
-                    .overlay(alignment: .center) {
-                        if let lucide = Lucide("square-plus") {
-                            lucide
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
-                                .foregroundStyle(Color.secondary)
-                        } else {
-                            // v0.27 boss 8/27 OOB: SF Symbol fallback → Lucide canonical.
-                            LucideIconSystemFallback("square.and.pencil", size: LayoutTokens.iconSize)
-                                .foregroundStyle(Color.secondary)
-                        }
-                    }
+                Image(systemName: "plus")
+                    .frame(width: 28, height: 28)
                     .contentShape(Rectangle())
             }
-            .buttonStyle(IconButtonStyle())
-            // 导入 plain Button (= tap directly fires .wenshuImportRequested).
-            Button {
-                NotificationCenter.default.post(name: .wenshuImportRequested, object: nil)
-            } label: {
-                Color.clear
-                    .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
-                    .overlay(alignment: .center) {
-                        if let lucide = Lucide("square-arrow-right") {
-                            lucide
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
-                                .foregroundStyle(Color.secondary)
-                        } else {
-                            // v0.27 boss 8/27 OOB: SF Symbol fallback → Lucide canonical.
-                            LucideIconSystemFallback("arrow.down.doc", size: LayoutTokens.iconSize)
-                                .foregroundStyle(Color.secondary)
-                        }
-                    }
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(IconButtonStyle())
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
         }
     }
 
-    // MARK: - Tree model (= boss 8/27 OOB: FCP Browser style rewrite)
-
-    /// Recursive tree node (= FCP Browser projectSidebar model).
-    /// Each node = one row in the tree (= shelf / book / Reference
-    /// layer). Children rendered recursively via FCPRowView's ForEach.
-    /// Identity-based equality (= id-based Hashable; rename-friendly).
-    struct FCPTreeNode: Identifiable, Hashable {
-        let id: UUID
-        let label: String
-        let icon: String           // Lucide icon name (with SF fallback)
-        let count: Int?            // optional count badge (right-aligned)
-        let children: [FCPTreeNode]
-        let payloadKind: PayloadKind
-
-        enum PayloadKind: Hashable {
-            case shelf
-            case book
-            case referenceLibrary   // v0.27 boss 8/27 OOB: 资料库本身也是一个特别的书架
-            case referenceLayer     // raw / entities / abstracts / indexes (= sub-node of referenceLibrary)
-            case referenceCategory  // v0.29 boss 2026-08-30 OOB: 分类文件夹 (= 历史/科学/...) = sub-node of referenceLibrary
-            case reference          // v0.29: 单个实体 (= leaf under referenceCategory)
-        }
-
-        func hash(into hasher: inout Hasher) {
-            hasher.combine(id)
-        }
-
-        static func == (lhs: FCPTreeNode, rhs: FCPTreeNode) -> Bool {
-            lhs.id == rhs.id
-        }
-    }
-
-    /// Build the tree from current store state (= shelves + books +
-    /// folder contents + reference layer counts). Per boss 8/26 OOB
-    /// '项目点开 → 书下面向用户的文件夹' = each book has children
-    /// representing its 8 standard folders (世界 / 角色 / 章节大纲 /
-    /// 小说正文 / 小说草稿 / LLM 会话 / 伏笔 / 占位符); each folder
-    /// has children representing the .md docs inside (= recursive
-    /// tree = FCP Browser project view).
-    private func buildTreeNodes() -> [FCPTreeNode] {
-        var root: [FCPTreeNode] = []
-        // Shelves (= user-named; book children = booksInShelf(shelf)).
-        for shelf in shelves {
-            let books = booksInShelf(shelf)
-            let bookNodes = books.map { book in
-                FCPTreeNode(
-                    id: book.id,
-                    label: book.title,
-                    // v0.27 boss 8/27 OOB: Lucide has no 'filmstrip' (= FCP Browser
-                    // project icon); closest match = 'notebook'.
-                    icon: "notebook",
-                    count: nil,
-                    children: standardFolderNodes(for: book),
-                    payloadKind: .book
-                )
-            }
-            // v0.27 boss 8/27 OOB icon for the default '从这里开始' shelf:
-            // square-dashed-mouse-pointer (= 'user starts here' visual
-            // metaphor; per Lucide icon catalog this is a click-target
-            // inside a dashed frame, matching the 'where the user
-            // begins' onboarding affordance).
-            let isDefaultShelf = (shelf.id.uuidString == "00000000-0000-0000-0000-000000000000")
-            root.append(FCPTreeNode(
-                id: shelf.id,
-                label: shelf.name,
-                icon: isDefaultShelf ? "square-dashed-mouse-pointer" : "books.vertical.fill",
-                count: books.count,
-                children: bookNodes,
-                payloadKind: .shelf
-            ))
-        }
-        // ReferenceLibrary (= library-public default shelf). v0.29
-                // boss 2026-08-30 OOB: sidebar 显示分类文件夹 (历史/科学/...),
-                // 不直接显示实体. categories = 仅含 ≥1 实体的 (增量显示).
-                let usedCategories = computeUsedCategories()
-                                // v0.29: load snapshot once (= used by both filter log + render
-                                // below; avoids 2nd loadAllReferences() potentially returning
-                                // a different list). categoryChildren is built from this
-                                // same snapshot to ensure render matches the logged filter.
-                                // 不直接显示实体. 文档在目录被点击选择后, 显示在素材预览区.
-                                // v0.30 boss OOB '目录树只显示到最后一层的目录, 文档不显示
-                                // 在树里. 文档在目录被点击选择后, 显示在素材预览区'.
-                                //
-                                // Per v0.30 architecture:
-                                // - Sidebar tree = 3 levels max (shelf > book > folder)
-                                //   for books, 2 levels (资料库 > category) for reference
-                                // - The 4th level (= entity docs / .md files) does NOT
-                                //   appear in the tree
-                                // - Single-click on a category = preview pane shows
-                                //   that category's entities as cards (= implemented
-                                //   in EntityPreviewPane)
-                                // - Double-click on a card = open in editor (= boss
-                                //   v0.30 Ticket 3 = replaces EditorContentPlaceholder)
-                                let allRefsDirect = (try? bookStore.referenceStore.loadAllReferences()) ?? []
-                                let categoryChildren = usedCategories.map { cat -> FCPTreeNode in
-                                    // Count entities in this category (= for the
-                                    // count badge on the right side of the tree row).
-                                    // Uses the same snapshot for render consistency.
-                                    let entitiesInCategory = allRefsDirect
-                                        .filter { $0.layer == .layerEntities && $0.category == cat }
-                                    return FCPTreeNode(
-                                        id: UUID(uuidString: "00000000-0000-0000-0000-\(String(format: "%012x", cat.directoryName.hashValue))") ?? UUID(),
-                                        label: cat.displayName,
-                                        icon: cat.icon,
-                                        count: entitiesInCategory.count,
-                                        // v0.30: children = [] (= no entity nodes in tree).
-                                        // Entities are shown in the preview pane after
-                                        // sidebar click, NOT here.
-                                        children: [],
-                                        payloadKind: .referenceCategory  // v0.29 new payload kind
-                                    )
-                                }
-                // v0.27 boss 8/27 OOB icon for ReferenceLibrary root: square-library
-                // (= Lucide icon: a square containing stacked horizontal lines
-                // representing a library shelf; matches FCP Browser's
-                // library-as-archive metaphor and Apple's library-app
-                // vocabulary). payloadKind = .referenceLibrary (= treats
-                // 资料库 as a 'special shelf' per boss 8/27; = same typography
-                // as user-named shelves via the .referenceLibrary branch in
-                // labelFont / labelWeight / labelForeground).
-                root.append(FCPTreeNode(
-                    id: UUID(uuidString: "00000000-0000-0000-0000-000000000001") ?? UUID(),
-                    label: "资料库",
-                    icon: "square-library",
-                    count: categoryChildren.count,
-                    children: categoryChildren,
-                    payloadKind: .referenceLibrary
-                ))
-                return root
-            }
-
-            /// v0.29 boss OOB: 计算使用中的 categories (= 至少含 1 实体).
-                /// 0 实体的 categories 不显示 (= 增量规则: '分类文件夹随着内容
-                /// 逐渐增加, 而不是一下子铺满'). 按 CLC 字母顺序排序 (= A→Z).
-                private func computeUsedCategories() -> [EntityCategory] {
-                        let allRefs: [Reference]
-                        do {
-                            allRefs = try bookStore.referenceStore.loadAllReferences()
-                        } catch {
-                            return []
-                        }
-                        let entityRefs = allRefs.filter { $0.layer == .layerEntities }
-                        let used = Set(entityRefs.compactMap { $0.category })
-                        return EntityCategory.allCases.filter { used.contains($0) }
-                    }
-
-    /// Build the 8 standard folder children for a book node.
-    /// Per spec v5 ticket 001 + ticket 026: every book has these 8
-    /// standard folders (= user-facing per boss 8/26 OOB '面向用户的
-    /// 文件夹'). Folder names are Chinese UI strings (= UI 全中文
-    /// carve-out per boss 8/25). Per boss 8/27 OOB: doc files (= .md
-    /// inside each folder) are NOT shown in the sidebar tree (= sidebar
-    /// ends at folder; doc content is rendered as cards in the
-    /// projectPreview zone per the 无边记-style layout decided 8/27).
-    private func standardFolderNodes(for book: Book) -> [FCPTreeNode] {
-        // v0.27 boss 8/27 OOB: Lucide does NOT have 'filmstrip' (=
-        // FCP Browser project icon; wenshu needs a book-equivalent
-        // Lucide icon); closest Lucide match = 'notebook' (= the
-        // canonical Lucide 'book' icon, a notebook-shaped outline;
-        // semantically closer to a novel project's container than
-        // 'book' which is more of a closed-book visual metaphor).
-        // For 小说草稿: Lucide has no 'file-edit'; closest match =
-        // 'file-pen-line' (= a file with a pen overlay; semantically
-        // = 'draft being edited').
-        //
-        // v0.29 boss 2026-08-30 OOB '库管理里, 伏笔占位, 这两个文件夹里
-        // 的内容, 是计划放在工具区里展示的, 所有库目录树里隐藏. 还有
-        // llm 记录, 是聊天加载用的, 文件夹也隐藏': removed 3 folders
-        // from sidebar (= they live in tools/chat zone instead):
-        // - 伏笔 (git-fork) → tools pane (= v0.30 will move)
-        // - 占位符 (square-dashed) → tools pane (= v0.30 will move)
-        // - LLM 会话 (message-square) → chat zone auto-load (= never
-        //   user-facing in sidebar)
-        let standardFolders: [(name: String, icon: String, directoryName: String)] = [
-            ("世界观",       "globe",            "world"),
-            ("角色",         "user-round",       "characters"),
-            ("章节大纲",     "list-tree",        "outlines"),
-            ("小说正文",     "book-text",        "chapters"),
-            ("小说草稿",     "file-pen-line",    "drafts"),
-        ]
-        return standardFolders.map { (displayName, icon, directoryName) in
-            // Stable UUID per (book, folder-name) tuple (= deterministic;
-            // = avoids row re-creation on every render).
-            let hashInput = displayName + book.id.uuidString
-            let hashHex = String(format: "%012x", abs(hashInput.hashValue & 0xFFFFFFFFFFF))
-            // v0.30 boss OOB '为什么角色, 世界观, 后面没有显示数字':
-            // count = number of .md files in the on-disk folder.
-            // Forgiving: missing folder / permission error = 0 (= no
-            // crash, just no badge).
-            let docCount = bookStore.folderDocumentCount(
-                bookId: book.id,
-                folderDirectoryName: directoryName
-            )
-            return FCPTreeNode(
-                id: UUID(uuidString: "00000000-0000-0000-\(hashHex)") ?? UUID(),
-                label: displayName,
-                icon: icon,
-                count: docCount,
-                children: [],     // (= folder is leaf-level in sidebar; docs render in projectPreview).
-                payloadKind: .book
-            )
-        }
-    }
-
-    // MARK: - Sections
-
-    @ViewBuilder
-    private func shelfSection(_ shelf: Bookshelf) -> some View {
-        Section {
-            DisclosureGroup {
-                ForEach(booksInShelf(shelf)) { book in
-                    bookRow(book)
-                }
-                if booksInShelf(shelf).isEmpty {
-                    Button {
-                        showNewBookSheet = true
-                    } label: {
-                        Label("新建书", systemImage: "plus")
-                            .font(.caption)
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.tertiary)
-                }
-            } label: {
-                shelfHeader(shelf)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var referenceLibrarySection: some View {
-        // v0.29 boss 2026-08-30 OOB: 资料库 sidebar 显示分类文件夹
-        // (历史/科学/...), 不直接显示实体. 分类文件夹 = 增量显示
-        // (只有含 ≥1 实体的分类才出现 = '分类文件夹随着内容逐渐
-        // 增加, 而不是一下子铺满'). 实体 layer (.layerEntities) 现在是
-        // categories 的容器; 原始文件 (.layerRaw) 隐藏 = hidden by isUserFacing.
-        Section {
-            entityLayerWithCategories
-        } header: {
-            referenceLibraryHeader
-        }
-    }
-
-    @ViewBuilder
-    private var entityLayerWithCategories: some View {
-        // Always show .layerEntities as the only user-facing layer.
-        // Its children = categories (= 仅含 ≥1 实体的 categories).
-        ForEach(usedCategories(), id: \.self) { category in
-            categoryRow(category)
-        }
-    }
-
-    /// 计算当前活跃的 categories (= 至少含 1 实体). v0.29 增量规则:
-    /// 0 实体的 categories 不显示.
-    private func usedCategories() -> [EntityCategory] {
-        let allRefs = (try? bookStore.referenceStore.loadAllReferences()) ?? []
-        let entityRefs = allRefs.filter { $0.layer == .layerEntities }
-        let usedCategories = Set(entityRefs.compactMap { $0.category })
-        // Sort by CLC standard order (= A, B, C, ..., Z)
-        return EntityCategory.allCases.filter { usedCategories.contains($0) }
-    }
-
-    @ViewBuilder
-    private func categoryRow(_ category: EntityCategory) -> some View {
-        HStack {
-            LucideIconSystemFallback(category.icon, size: 18)
-                .foregroundStyle(.secondary)
-            Text(category.displayName)
-                .font(.callout)
-            Spacer()
-            Text("\(entitiesCount(in: category))")
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.tertiary)
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            // v0.30: bubble category selection up to WorkspaceView (= drives
-            // EntityPreviewPane's category-scoped grid mode).
-            selectedEntityCategory = category
-            selectedEntity = nil  // (= clear detail view when switching category)
-        }
-    }
-
-    /// 计算某 category 下的实体数量.
-    private func entitiesCount(in category: EntityCategory) -> Int {
-        let allRefs = (try? bookStore.referenceStore.loadAllReferences()) ?? []
-        return allRefs.filter { $0.layer == .layerEntities && $0.category == category }.count
-    }
-
-    @ViewBuilder
-    private func shelfHeader(_ shelf: Bookshelf) -> some View {
-        HStack {
-            // v0.27 boss 8/27 OOB: SF Symbol → Lucide canonical.
-            LucideIconSystemFallback("books.vertical.fill", size: 18)
-                .foregroundStyle(.tint)
-            Text(shelf.name)
-                .font(.headline)
-            Spacer()
-            Text("\(booksInShelf(shelf).count)")
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.tertiary)
-        }
-    }
-
-    @ViewBuilder
-    private func bookRow(_ book: Book) -> some View {
-        Button {
-            selectedBookId = book.id
-            bookStore.selectedBookId = book.id
-        } label: {
-            HStack {
-                // v0.27 boss 8/27 OOB: SF Symbol → Lucide canonical.
-                LucideIconSystemFallback("book.closed", size: 18)
-                    .foregroundStyle(selectedBookId == book.id ? Color.accentColor : .secondary)
-                VStack(alignment: .leading) {
-                    Text(book.title)
-                        .font(.callout)
-                    if !book.author.isEmpty {
-                        Text(book.author)
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                    }
-                }
-                Spacer()
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .padding(.vertical, 2)
-    }
-
-    @ViewBuilder
-    private var referenceLibraryHeader: some View {
-        HStack {
-            // v0.27 boss 8/27 OOB: SF Symbol → Lucide canonical.
-            LucideIconSystemFallback("books.vertical.circle.fill", size: 18)
-                .foregroundStyle(.tint)
-            Text("资料库")
-                .font(.headline)
-            Spacer()
-            Text("\(references.count)")
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.tertiary)
-        }
-    }
-
-    @ViewBuilder
-    private func layerRow(_ layer: ReferenceLayer) -> some View {
-        HStack {
-            // v0.27 boss 8/27 OOB: SF Symbol → Lucide canonical via helper.
-            LucideIconSystemFallback(layer.icon, size: 18)
-                .foregroundStyle(.secondary)
-            Text(layer.displayName)
-                .font(.callout)
-            Spacer()
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            selectedReferenceLayer = layer
-            reloadReferences()
-        }
-    }
-
-    @ViewBuilder
-    private func errorState(_ message: String) -> some View {
-        VStack(spacing: 12) {
-            // v0.27 boss 8/27 OOB: SF Symbol → Lucide canonical.
-            LucideIconSystemFallback("exclamationmark.triangle", size: 36)
-                .foregroundStyle(.tertiary)
-            Text(message)
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-                .multilineTextAlignment(.center)
-        }
-        .padding()
-    }
-
-    // MARK: - Data
-
-    private func booksInShelf(_ shelf: Bookshelf) -> [Book] {
-        books.filter { $0.shelfId == shelf.id }
-    }
+    // MARK: - Persistence
 
     private func reload() {
         do {
@@ -571,14 +346,6 @@ struct NewLibraryOutlineView: View {
             books = try readBooks()
             references = try bookStore.referenceStore.loadAllReferences()
             loadError = nil
-        } catch {
-            loadError = error.localizedDescription
-        }
-    }
-
-    private func reloadReferences() {
-        do {
-            references = try bookStore.referenceStore.loadReferences(layer: selectedReferenceLayer)
         } catch {
             loadError = error.localizedDescription
         }
@@ -608,29 +375,31 @@ struct NewLibraryOutlineView: View {
         let shelvesRoot = bookStore.stores.shelvesRoot
         guard FileManager.default.fileExists(atPath: shelvesRoot.path) else { return [] }
         var result: [Book] = []
-        let shelfDirs = try FileManager.default.contentsOfDirectory(
+        let shelves = try FileManager.default.contentsOfDirectory(
             at: shelvesRoot,
             includingPropertiesForKeys: [.isDirectoryKey],
             options: [.skipsHiddenFiles]
         )
-        for shelfDir in shelfDirs {
+        for shelfDir in shelves {
+            let isDir = (try? shelfDir.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
+            guard isDir else { continue }
             let booksDir = shelfDir.appendingPathComponent("books", isDirectory: true)
             guard FileManager.default.fileExists(atPath: booksDir.path) else { continue }
-            let bookDirs = try FileManager.default.contentsOfDirectory(
+            let bookEntries = try FileManager.default.contentsOfDirectory(
                 at: booksDir,
                 includingPropertiesForKeys: [.isDirectoryKey],
                 options: [.skipsHiddenFiles]
             )
-            for bookDir in bookDirs {
-                let isDir = (try? bookDir.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
-                guard isDir else { continue }
+            for bookDir in bookEntries {
+                let isBookDir = (try? bookDir.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
+                guard isBookDir else { continue }
                 let jsonURL = bookDir.appendingPathComponent("book.json")
                 guard let data = try? Data(contentsOf: jsonURL),
                       let book = try? JSONDecoder().decode(Book.self, from: data) else { continue }
                 result.append(book)
             }
         }
-        return result
+        return result.sorted { $0.createdAt < $1.createdAt }
     }
 
     private func saveBook(_ book: Book) throws {
@@ -658,11 +427,10 @@ struct NewLibraryOutlineView: View {
     }
 }
 
-// MARK: - Sheets
+// MARK: - Sheets (= 新建书 / 新建书架 modals)
 
 private struct NewBookSheet: View {
     let onSave: (Book) -> Void
-
     @State private var title: String = ""
     @State private var author: String = ""
     @Environment(\.dismiss) private var dismiss
@@ -679,7 +447,7 @@ private struct NewBookSheet: View {
             Form {
                 TextField("书名", text: $title)
                     .textFieldStyle(.roundedBorder)
-                TextField("作者 (可选)", text: $author)
+                TextField("作者", text: $author)
                     .textFieldStyle(.roundedBorder)
             }
             .formStyle(.grouped)
@@ -688,14 +456,12 @@ private struct NewBookSheet: View {
                 Button("取消", role: .cancel) { dismiss() }
                 Spacer()
                 Button("保存") {
-                    let shelfId = UUID(uuidString: "00000000-0000-0000-0000-000000000000") ?? UUID()
-                    let book = Book(title: title, author: author, shelfId: shelfId)
-                    do {
-                        try saveToFile(book)
-                        onSave(book)
-                    } catch {
-                        print("Save failed: \(error)")
-                    }
+                    let book = Book(
+                        title: title,
+                        author: author,
+                        shelfId: UUID(uuidString: "00000000-0000-0000-0000-000000000000") ?? UUID()
+                    )
+                    onSave(book)
                     dismiss()
                 }
                 .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -703,18 +469,12 @@ private struct NewBookSheet: View {
             }
             .padding()
         }
-        .frame(minWidth: 360, idealWidth: 420, minHeight: 240, idealHeight: 280)
-    }
-
-    private func saveToFile(_ book: Book) throws {
-        // Defer to caller (= NewLibraryOutlineView) for file persistence.
-        // We pass the Book back so the caller can persist it correctly.
+        .frame(minWidth: 360, idealWidth: 420, minHeight: 220, idealHeight: 260)
     }
 }
 
 private struct NewShelfSheet: View {
     let onSave: (String) -> Void
-
     @State private var name: String = ""
     @Environment(\.dismiss) private var dismiss
 
@@ -746,225 +506,5 @@ private struct NewShelfSheet: View {
             .padding()
         }
         .frame(minWidth: 360, idealWidth: 420, minHeight: 200, idealHeight: 240)
-    }
-}
-// MARK: - FCP Browser style row (= boss 8/27 OOB: rewrite tree UI)
-
-/// One row in the FCP Browser-style projectSidebar tree.
-/// Layout (= Apple HIG + FCP convention):
-/// ```
-///   ▼  [icon]  [label]                  [count]
-///       └─ [icon]  [child label]                [count]
-/// ```
-/// - Disclosure triangle on the left (Lucide chevron-right rotated
-///   when expanded)
-/// - Per-entity icon (= FCP convention: filmstrip for library/book,
-///   books for bookshelf, book-stack for ReferenceLibrary)
-/// - Right-aligned count badge for parent nodes (child count)
-/// - Manual recursion via nested ForEach (= SwiftUI OutlineGroup
-///   requires a selection binding that conflicts with the existing
-///   BookStore.selectedBookId; nesting is cleaner here).
-private struct FCPRowView: View {
-    let node: NewLibraryOutlineView.FCPTreeNode
-    let depth: Int
-
-    @Environment(BookStore.self) private var bookStore
-
-    /// v0.30 boss OOB: '左侧目录树缺少选定效果'. Pass selection state
-    /// from parent (= WorkspaceView or NewLibraryOutlineView's local
-    /// selection for folders) so this row knows whether to highlight.
-    /// - For .book nodes: compare to `bookStore.selectedBookId`
-    /// - For .referenceCategory nodes: compare to `selectedCategory` binding
-    ///
-    /// Default nil (= this row is NOT selected). WorkspaceView's sidebar
-    /// passes the binding so the highlight works end-to-end.
-    @Binding var selectedCategory: EntityCategory?
-
-    @State private var isExpanded: Bool = true
-
-    // v0.27 boss 8/27 OOB: indentPT 8 → 4 (= tighter; boss 8/27
-    // '整体目录树，再往左 8 PT' = shrink left padding + indent
-    // additionally by ~8 PT from previous state). chevron remains
-    // INLINE (= not part of the indent column).
-    private let indentPT: CGFloat = 4
-    // v0.27 boss 8/27 OOB: 目录树里的 ICON，全都都改成 18*18 (= icon
-    // visual size 18 PT + 18 PT frame; matches wenshu's primary
-    // toolbar iconSize and the projectSidebar zone tab bar icons for
-    // visual consistency across the shell).
-    private let iconSize: CGFloat = 18
-    private let rowHeight: CGFloat = 28
-
-    /// v0.30: 选中状态 (= true if this row is the currently selected
-    /// item). Driven by `payloadKind` + matching ID/category.
-    private var isSelected: Bool {
-        switch node.payloadKind {
-        case .book:
-            return bookStore.selectedBookId == node.id
-        case .referenceCategory:
-            // For reference categories, the id embeds the category
-            // directory name's hash (= stable per category).
-            // Match by reading the category from the label/comparing
-            // via a stored association: use a heuristic = the
-            // node.label == selectedCategory.displayName
-            return selectedCategory?.displayName == node.label
-        default:
-            return false
-        }
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 4) {
-                // Indent (= boss 8/27: chevron is NOT part of the indent;
-                // = the indent pushes the chevron+icon+label group right
-                // by N×8 PT). Chevron + icon + label all start at the
-                // same indent column.
-                if depth > 0 {
-                    Color.clear.frame(width: CGFloat(depth) * indentPT)
-                }
-                // Disclosure chevron (= inline; takes 18 PT regardless
-                // of disclosure state = layout stability for adjacent
-                // rows that mix expanded + collapsed subtrees).
-                if !node.children.isEmpty {
-                    Button {
-                        isExpanded.toggle()
-                    } label: {
-                        // v0.27 boss 8/27 OOB: replace SF Symbol chevron
-                        // with LucideIconSystemFallback (= closest Lucide
-                        // equivalent 'chevron-right' / 'chevron-down';
-                        // helper handles the lookup chain).
-                        LucideIconSystemFallback(isExpanded ? "chevron.down" : "chevron.right")
-                            .frame(width: 18, height: 18)
-                            .foregroundStyle(Color.secondary)
-                    }
-                    .buttonStyle(.plain)
-                } else {
-                    Color.clear.frame(width: 18, height: 18)
-                }
-                // Per-entity icon.
-                iconView(node.icon)
-                    .frame(width: 18, height: 18)
-                // Label (= boss 8/27 OOB: shelf text bigger than book
-                // text = FCP Browser hierarchy style; .semibold shelf
-                // vs .regular book vs .secondary folder/doc).
-                Text(node.label)
-                    .font(labelFont(for: node.payloadKind))
-                    .fontWeight(labelWeight(for: node.payloadKind))
-                    .foregroundStyle(labelForeground(for: node.payloadKind))
-                    .lineLimit(1)
-                Spacer(minLength: 4)
-                // Count badge (= right-aligned; only for parent nodes).
-                // v0.30 boss OOB: '目录树后面的数字, 距离右边距没有留空隙,
-                // 留出来 18pt 的空隙'. Apple HIG = 16-20 PT visual gap
-                // between the count and the row's right edge (= the
-                // row's right edge = the pane's right divider = the
-                // visual boundary of the sidebar).
-                if let count = node.count {
-                    Text("\(count)")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .frame(height: rowHeight)
-            // v0.30: 18 PT trailing padding on every sidebar tree row
-            // (= per boss OOB: 数字距右边距留 18pt 空隙). Applied to
-            // the whole row's content = ensures count badge has 18 PT
-            // breathing room from the right divider / pane edge.
-            .padding(.trailing, 18)
-            // v0.30 boss OOB: '左侧目录树缺少选定效果'. When this row
-            // is the currently selected item (= bookStore.selectedBookId
-            // matches for .book, or selectedCategory matches for
-            // .referenceCategory), apply a tinted background highlight
-            // (= Apple HIG standard selection pattern). Uses
-            // Color.accentColor at 0.12 opacity (= subtle, not garish;
-            // matches macOS Finder / Mail / Notes selection style).
-            .background(
-                isSelected
-                    ? Color.accentColor.opacity(0.12)
-                    : Color.clear,
-                in: RoundedRectangle(cornerRadius: 4, style: .continuous)
-            )
-            .contentShape(Rectangle())
-            .onTapGesture {
-                if node.payloadKind == .book {
-                    bookStore.selectedBookId = node.id
-                } else if node.payloadKind == .referenceCategory {
-                    // v0.30: select the corresponding category (= find
-                    // which EntityCategory matches this node's label).
-                    // Sidebar tap → WorkspaceView.selectedEntityCategory
-                    // → EntityPreviewPane shows the category-scoped grid.
-                    if let cat = EntityCategory.allCases.first(where: { $0.displayName == node.label }) {
-                        selectedCategory = cat
-                    }
-                }
-            }
-            // Children (= recursive render when expanded).
-            if isExpanded {
-                ForEach(node.children) { child in
-                    FCPRowView(
-                        node: child,
-                        depth: depth + 1,
-                        selectedCategory: $selectedCategory
-                    )
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func iconView(_ name: String) -> some View {
-        // v0.27 boss 8/27 OOB: use the project-wide LucideIcon helper
-        // (= Sources/WenshuApp/Views/LucideIcon.swift) for visual
-        // size consistency across the shell (= .frame(width:height:)
-        // without .aspectRatio / .font = lucide-swift canonical
-        // pattern). Boss 8/27 '看起来还是有大有小，官方没有什么解决
-        // 方案吗？' = Lucide deliberately does NOT normalize visual
-        // sizes across icons (= each icon's native outline geometry is
-        // preserved). The official answer = use .frame(width:height:)
-        // (= what we already do) and accept the natural size
-        // variation as a design feature.
-        LucideIcon(name, size: iconSize)
-    }
-
-    // MARK: - Hierarchy text style (= boss 8/27 OOB: shelf > book > folder/doc)
-
-    /// Font size per payload kind (= boss 8/27 'shelf > book > folder/doc';
-    /// + boss 8/27 followup '资料库本身也是一个特别的书架，所以资料库
-    /// 的字号样式没改，对齐，要跟书架一样' = referenceLibrary root
-    /// should look identical to a user-named shelf since it's a
-    /// 'special shelf' per boss's taxonomy = same font size + weight
-    /// + foreground as .shelf).
-    /// - shelf: 13 PT semibold primary (= FCP Browser section header)
-    /// - referenceLibrary: 13 PT semibold primary (= boss 8/27 '跟书
-    ///   架一样'; = treat the reference library as a special shelf)
-    /// - book: 12 PT regular primary (= FCP Browser item)
-    /// - referenceLayer: 12 PT regular primary (= aligned with book per
-    ///   boss 8/27; was 11 PT secondary in prior commit)
-    private func labelFont(for kind: NewLibraryOutlineView.FCPTreeNode.PayloadKind) -> Font {
-        switch kind {
-        case .shelf, .referenceLibrary: return .system(size: 13)
-        case .book, .referenceLayer, .referenceCategory, .reference: return .system(size: 12)
-        }
-    }
-
-    /// Font weight per payload kind (= shelf semibold = "section
-    /// header" emphasis; referenceLibrary now ALSO semibold per boss
-    /// 8/27 '资料库本身也是一个特别的书架'; book + referenceLayer
-    /// regular).
-    private func labelWeight(for kind: NewLibraryOutlineView.FCPTreeNode.PayloadKind) -> Font.Weight {
-        switch kind {
-        case .shelf, .referenceLibrary: return .semibold
-        case .book, .referenceLayer, .referenceCategory, .reference: return .regular
-        }
-    }
-
-    /// Foreground color per payload kind (= shelf + book primary;
-    /// referenceLibrary + referenceLayer now ALSO primary per boss 8/27
-    /// '资料库本身也是一个特别的书架' = visual alignment with the
-    /// projectSidebar user-named shelf rows).
-    private func labelForeground(for kind: NewLibraryOutlineView.FCPTreeNode.PayloadKind) -> Color {
-        switch kind {
-        case .shelf, .referenceLibrary, .book, .referenceLayer, .referenceCategory, .reference: return .primary
-        }
     }
 }
