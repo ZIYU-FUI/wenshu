@@ -1963,6 +1963,30 @@ struct UpperBandZone: View {
                     .frame(width: sidebar)
                     .layoutPriority(0)  // explicit (= keep current size, don't grow)
                     .transition(.opacity.combined(with: .move(edge: .leading)))
+                    // v0.28 followup Boss UX round 60 (Boss 2026-08-30 OOB
+                    // '虽然你说找到问题了, 但我现在看图还是黑色的'):
+                    // apply the same white overlay (brightness 75) that
+                    // the editor pane uses (= Color.white.opacity(0.55)
+                    // = the editor's "book" placeholder). This makes the
+                    // sidebar visually consistent with the editor pane
+                    // (= both have a soft white tint = no longer "black").
+                    //
+                    // Without this overlay, the sidebar showed brightness
+                    // 36 (= bare window background showing through = boss's
+                    // "black" complaint). Editor = 75 (with overlay) =
+                    // visible contrast.
+                    .overlay(alignment: .topLeading) {
+                        Color.white.opacity(0.55)
+                    }
+                    // v0.28 followup Boss UX round 57: add a SOLID white
+                    // trailing-edge overlay (= 1 PT white line drawn
+                    // AFTER the pane's content background, so it
+                    // survives the Material alpha-blend).
+                    .overlay(alignment: .trailing) {
+                        Rectangle()
+                            .fill(Color(white: 0.85))
+                            .frame(width: 1)
+                    }
                 // D_v1: project sidebar / project preview (splitterIndex 0)
                 // v0.28 followup Boss UX round B: now uses PaneSplitter(spec:).
                 PaneSplitter(spec: SplitterSpec(
@@ -2006,6 +2030,11 @@ struct UpperBandZone: View {
                     .frame(maxWidth: .infinity, alignment: .top)
                     .layoutPriority(1)
                     .transition(.opacity)
+                    // v0.28 followup Boss UX round 60: add the same white
+                    // overlay as the editor + sidebar (= match brightness).
+                    .overlay(alignment: .topLeading) {
+                        Color.white.opacity(0.55)
+                    }
                 // D_v2: project preview / editor (splitterIndex 1)
                 // v0.28 followup Boss UX round B: now uses PaneSplitter(spec:).
                 PaneSplitter(spec: SplitterSpec(
@@ -2021,6 +2050,11 @@ struct UpperBandZone: View {
             ZoneModule(slot: .editor, vm: vm, totalW: totalW, bandH: bandH, editorMaximized: editorMaximized, onExpand: onExpand, onShrink: onShrink)
                 .frame(maxWidth: .infinity, alignment: .top)
                 .layoutPriority(1)  // grow to fill HStack when sidebar/tools hidden
+                // Editor already has the white overlay in renderTabByKind
+                // (WorkspaceView). For the legacy path, also add it here:
+                .overlay(alignment: .topLeading) {
+                    Color.white.opacity(0.55)
+                }
             // D_v3: editor / specialized tools (splitterIndex 2)
             // Per Boss 8/25 15th OOB 'tools zone cannot be dragged. fix it':
             // keep D_v3 visible even when adjacent zones are hidden
@@ -2044,6 +2078,11 @@ struct UpperBandZone: View {
                     .frame(width: tools)
                     .layoutPriority(0)
                     .transition(.opacity.combined(with: .move(edge: .trailing)))
+                    // v0.28 followup Boss UX round 60: match the white
+                    // overlay of other 3 general panes.
+                    .overlay(alignment: .topLeading) {
+                        Color.white.opacity(0.55)
+                    }
             }
         }
         .frame(height: bandH)  // 显式告诉 SwiftUI VStack layout 上 band 高度, 响应 vm.bandOffset mutate
@@ -2448,6 +2487,26 @@ struct ZoneModule: View {
         VStack(alignment: .leading, spacing: 0) {
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                // v0.28 followup Boss UX round 58 (Boss 2026-08-30 OOB
+                // '虽然你说找到问题了, 但我现在看图还是黑色的'): the
+                // legacy ZoneModule (used in LayoutShellView path)
+                // didn't apply RegionContentBackground (= ComponentIndex.md
+                // Level 2.7) to the content area. Result: sidebar area
+                // (= NewLibraryOutlineView tree) showed the window's
+                // bare black background through the empty tree area
+                // (= boss's "sidebar is black" complaint).
+                //
+                // Fix: apply .regionContentBackground() to the content
+                // view inside ZoneModule (= matches the new
+                // ZonePerRegionChrome which already does this). Now
+                // sidebar / preview / editor / tools all show the
+                // Liquid Glass tint (= not bare black).
+                .regionContentBackground()
+                // Round 59: also explicitly .background() the entire
+                // VStack with the tint to ensure the empty space
+                // (= below the tree content) also shows the Liquid
+                // Glass material instead of bare black.
+                .background(Color.clear)
             // v0.24 fix (Boss 8/25 third OOB 'other 5 zones lost bottom toolbar'):
             // Re-add ZoneBottomToolbar for all slots except .aiChat (= chat keeps
             // its own internal ChatBottomToolbar per ticket 10).
