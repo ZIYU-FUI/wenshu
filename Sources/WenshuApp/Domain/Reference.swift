@@ -48,13 +48,22 @@ enum ReferenceLayer: String, CaseIterable, Codable, Sendable {
         }
     }
 
-    /// Whether this layer is user-facing (= visible in the UI) or
-    /// LLM-derived (= hidden in v0.26). v0.27+ can revisit this if the
-    /// user wants to see LLM-derived content.
+    /// Whether this layer is user-facing (= visible in the UI).
+    ///
+    /// v0.29 boss 2026-08-30 OOB '资料库的原始文件目录也是, 用户不需要
+    /// 看到. 实体保留': `.layerRaw` (= original source files = user
+    /// doesn't need to browse these directly = they're for LLM ingestion)
+    /// is now NOT user-facing. `.layerEntities` remains user-facing.
+    /// `.layerAbstracts` + `.layerIndexes` are LLM-derived (= already
+    /// hidden per their semantic nature).
+    ///
+    /// v0.26 historical: only `.layerRaw` + `.layerEntities` were
+    /// user-facing; `.layerAbstracts` + `.layerIndexes` LLM-derived.
+    /// v0.29: `.layerRaw` also LLM-only (= user browses entities instead).
     var isUserFacing: Bool {
         switch self {
-        case .layerRaw, .layerEntities: return true
-        case .layerAbstracts, .layerIndexes: return false
+        case .layerEntities: return true
+        case .layerRaw, .layerAbstracts, .layerIndexes: return false
         }
     }
 

@@ -280,15 +280,21 @@ struct NewLibraryOutlineView: View {
         // For 小说草稿: Lucide has no 'file-edit'; closest match =
         // 'file-pen-line' (= a file with a pen overlay; semantically
         // = 'draft being edited').
+        //
+        // v0.29 boss 2026-08-30 OOB '库管理里, 伏笔占位, 这两个文件夹里
+        // 的内容, 是计划放在工具区里展示的, 所有库目录树里隐藏. 还有
+        // llm 记录, 是聊天加载用的, 文件夹也隐藏': removed 3 folders
+        // from sidebar (= they live in tools/chat zone instead):
+        // - 伏笔 (git-fork) → tools pane (= v0.30 will move)
+        // - 占位符 (square-dashed) → tools pane (= v0.30 will move)
+        // - LLM 会话 (message-square) → chat zone auto-load (= never
+        //   user-facing in sidebar)
         let standardFolders: [(name: String, icon: String)] = [
             ("世界观",       "globe"),
             ("角色",         "user-round"),
             ("章节大纲",     "list-tree"),
             ("小说正文",     "book-text"),
             ("小说草稿",     "file-pen-line"),
-            ("LLM 会话",     "message-square"),
-            ("伏笔",         "git-fork"),
-            ("占位符",       "square-dashed"),
         ]
         return standardFolders.map { (displayName, icon) in
             // Stable UUID per (book, folder-name) tuple (= deterministic;
@@ -335,7 +341,17 @@ struct NewLibraryOutlineView: View {
     private var referenceLibrarySection: some View {
         Section {
             DisclosureGroup {
-                ForEach(ReferenceLayer.allCases.filter { $0.isUserFacing }, id: \.self) { layer in
+                // v0.29 boss 2026-08-30 OOB '资料库的原始文件目录也是,
+                // 用户不需要看到. 实体保留': removed .layerRaw (= original
+                // source files = user doesn't need to see this), kept
+                // .layerEntities (= LLM-derived entities = user-facing).
+                // .layerAbstracts and .layerIndexes are LLM-derived
+                // (= already hidden via isUserFacing = false).
+                ForEach(
+                    ReferenceLayer.allCases
+                        .filter { $0.isUserFacing && $0 != .layerRaw },
+                    id: \.self
+                ) { layer in
                     layerRow(layer)
                 }
             } label: {
