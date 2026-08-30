@@ -43,9 +43,25 @@ struct EntityPreviewPane: View {
     /// Callback when user double-clicks a card (= boss Ticket 3).
     let onEntityDoubleClick: (Reference) -> Void
 
-    private let columns = [
-        GridItem(.adaptive(minimum: 220, maximum: 320), spacing: 16, alignment: .topLeading)
-    ]
+    /// v0.30 boss OOB: '卡片多列显示, 默认两列, 如果区域被拖拽宽度变窄,
+    /// 不够两列, 自动适配成一列, 人话就是卡片流, 宽度自适应'.
+    ///
+    /// Adaptive column count:
+    /// - preview pane width >= twoColumnBreakpoint: 2 columns (= default)
+    /// - preview pane width <  twoColumnBreakpoint: 1 column (= narrow)
+    ///
+    /// Why 280 PT threshold:
+    /// - Per v0.28 LayoutTokens.projectPreviewRatio = 0.20 (= preview
+    ///   pane gets 20% of total workspace width = 384 PT at 1920 PT total)
+    /// - Card min content + padding needs ~120-150 PT (= readable summary
+    ///   + thumbnail)
+    /// - 2 cards side by side = 240-300 PT + 16 PT gap = ~256-316 PT
+    /// - 280 PT threshold = preview always defaults to 2 columns
+    ///   at the default 20% ratio (= boss's "default two columns"
+    ///   requirement)
+    /// - If user drags the preview divider to shrink it (< 280 PT),
+    ///   falls back to 1 column automatically
+    private static let twoColumnBreakpoint: CGFloat = 280
 
     var body: some View {
         let allEntities = loadAllEntities()
@@ -136,15 +152,17 @@ struct EntityPreviewPane: View {
             if inCategory.isEmpty {
                 emptyState(message: "该分类下暂无实体")
             } else {
-                ScrollView {
-                    LazyVGrid(columns: columns, spacing: 16) {
-                        ForEach(inCategory) { entity in
-                            EntityCard(entity: entity) {
-                                onEntityDoubleClick(entity)
+                GeometryReader { geometry in
+                    ScrollView {
+                        LazyVGrid(columns: adaptiveColumns(width: geometry.size.width), spacing: 16) {
+                            ForEach(inCategory) { entity in
+                                EntityCard(entity: entity) {
+                                    onEntityDoubleClick(entity)
+                                }
                             }
                         }
+                        .padding(.vertical, 8)
                     }
-                    .padding(.vertical, 8)
                 }
             }
         }
@@ -175,15 +193,17 @@ struct EntityPreviewPane: View {
                 if lCat != rCat { return lCat < rCat }
                 return lhs.title < rhs.title
             }
-            ScrollView {
-                LazyVGrid(columns: columns, spacing: 16) {
-                    ForEach(sorted) { entity in
-                        EntityCard(entity: entity) {
-                            onEntityDoubleClick(entity)
+            GeometryReader { geometry in
+                ScrollView {
+                    LazyVGrid(columns: adaptiveColumns(width: geometry.size.width), spacing: 16) {
+                        ForEach(sorted) { entity in
+                            EntityCard(entity: entity) {
+                                onEntityDoubleClick(entity)
+                            }
                         }
                     }
+                    .padding(20)
                 }
-                .padding(20)
             }
         }
     }
@@ -212,6 +232,23 @@ struct EntityPreviewPane: View {
 
     private func loadBody(for entity: Reference) -> String? {
         try? bookStore.referenceStore.loadReferenceBody(id: entity.id)
+    }
+
+    /// v0.30 boss OOB: 卡片多列显示, 默认两列, 宽度不够自动 1 列.
+    /// Returns adaptive GridItem array based on the available width.
+    /// - width >= twoColumnBreakpoint: 2 columns (= default = boss request)
+    /// - width <  twoColumnBreakpoint: 1 column (= narrow, single flow)
+    private func adaptiveColumns(width: CGFloat) -> [GridItem] {
+        if width >= Self.twoColumnBreakpoint {
+            // 2 fixed columns (= 50/50 split with spacing in between)
+            return [
+                GridItem(.flexible(), spacing: 16, alignment: .topLeading),
+                GridItem(.flexible(), spacing: 16, alignment: .topLeading),
+            ]
+        } else {
+            // 1 column (= full width)
+            return [GridItem(.flexible(), spacing: 16, alignment: .topLeading)]
+        }
     }
 }
 
