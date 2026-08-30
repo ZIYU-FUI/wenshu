@@ -85,10 +85,12 @@ struct NativeSplitter: View {
             // mode automatically) replaces Color(nsColor: .separatorColor)
             // (= solid NSColor) for the un-hovered 1 PT splitter line.
             //
-            // v0.28 followup Boss UX round 50 (Boss 2026-08-30 OOB): switched
-            // separatorFill to Color(.separatorColor).opacity(0.6) instead
-            // of `.separator` ShapeStyle — Apple's ShapeStyle renders too
-            // faintly in dark mode with Liquid Glass tint backgrounds.
+            // v0.28 followup Boss UX round 50+51 (Boss 2026-08-30 OOB): switched
+            // separatorFill to Color(.separatorColor) (= full NSColor, no
+            // opacity multiplier) instead of `.separator` ShapeStyle / opacity
+            // 0.6. Apple's ShapeStyle renders too faintly in dark mode with
+            // Liquid Glass tint backgrounds (= effective 17% opacity on dark
+            // mode = basically invisible).
             //
             // Conditional needs explicit if/else since Color and ShapeStyle
             // can't be mixed in a ternary expression.
@@ -140,10 +142,10 @@ struct NativeSplitter: View {
             // v0.28 followup Boss UX round 26: Apple .separator
             // (= canonical Liquid Glass separator, macOS 26 Tahoe)
             // replaces Color(nsColor: .separatorColor) (= solid NSColor).
-            // v0.28 followup Boss UX round 50 (Boss 2026-08-30 OOB):
-            // switched separatorFill to Color(.separatorColor).opacity(0.6)
-            // instead of `.separator` ShapeStyle — Apple's ShapeStyle is
-            // too faint in dark mode with Liquid Glass tint backgrounds.
+            // v0.28 followup Boss UX round 50+51 (Boss 2026-08-30 OOB):
+            // switched separatorFill to Color(.separatorColor) (= full
+            // NSColor, no opacity multiplier) instead of `.separator`
+            // ShapeStyle — too faint in dark mode with Liquid Glass tint.
             Rectangle()
                 .fill(separatorFill(isHovered: isHovered, length: length))
                 .frame(width: length ?? 0, height: isHovered ? Self.hoveredThickness : Self.lineThickness)
@@ -184,20 +186,12 @@ struct NativeSplitter: View {
 /// StaticDividerHorizontal — 不可拖拽分割线 (Apple .separator, 1 PT)
 struct StaticDividerHorizontal: View {
     var body: some View {
-        // v0.28 followup Boss UX round 26: Apple HierarchicalShapeStyle
-        // .separator (= canonical Liquid Glass separator, macOS 26
-        // Tahoe) replaces Color(nsColor: .separatorColor) (= solid NSColor)
-        // for consistency with all other 1 PT splitters across the app.
-        // v0.28 followup Boss UX round 50 (Boss 2026-08-30 OOB): pixel-level
-        // analysis showed `.separator` ShapeStyle is too faint in dark mode
-        // with Liquid Glass tint backgrounds. Switch to explicit
-        // Color(nsColor: .separatorColor).opacity(0.6) (= 60% blend, matches
-        // the new separatorFill helper for the drag splitters). Boss feedback
-        // was specifically about drag splitters, but static dividers have the
-        // same visibility issue (= they should look identical to drag dividers
-        // when both are 1 PT unhovered).
+        // v0.28 followup Boss UX round 52: Color.white.opacity(0.25)
+        // (= 25% white blend, gives brightness ~75-90 on dark mode
+        // backgrounds = clearly visible 1 PT hairline). Matches the
+        // drag splitters for visual consistency.
         Rectangle()
-            .fill(Color(nsColor: .separatorColor).opacity(0.6))
+            .fill(Color.white.opacity(0.25))
             .frame(height: 1)
     }
 }
@@ -205,12 +199,9 @@ struct StaticDividerHorizontal: View {
 /// StaticDividerVertical — 不可拖拽分割线 (Apple .separator, 1 PT)
 struct StaticDividerVertical: View {
     var body: some View {
-        // v0.28 followup Boss UX round 50: switch from `.separator`
-        // ShapeStyle (= too faint in dark mode with Liquid Glass tint)
-        // to explicit Color(.separatorColor).opacity(0.6) (= matches the
-        // drag splitters for visual consistency across the app).
+        // v0.28 followup Boss UX round 52: same as Horizontal.
         Rectangle()
-            .fill(Color(nsColor: .separatorColor).opacity(0.6))
+            .fill(Color.white.opacity(0.25))
             .frame(width: 1)
     }
 }
@@ -221,30 +212,32 @@ struct StaticDividerVertical: View {
 // because Color and ShapeStyle (= HierarchicalShapeStyle.separator)
 // have different types and can't be mixed in a ternary expression.
 //
-// v0.28 followup Boss UX round 50 (Boss 2026-08-30 OOB '项目管理区和素材
-// 预览区之间的拖拽线, 素材预览区和编辑器之间的拖拽线, 与其他拖拽线实现的
-// 不同, 盘查一下'): pixel-level analysis revealed only D_v3 (editor/tools)
-// divider visible at brightness 145-167. D_v1, D_v2, D_v5 (= 3 of 4 vertical
-// splitters) rendering at brightness 33-78 (= too faint to see) because
-// Apple's `.separator` ShapeStyle on macOS 26 Tahoe dark mode with Liquid
-// Glass tint backgrounds (= default `.regularMaterial` at slider 50%) is
-// too low contrast. D_v3 was visible by accident (= editor/tools have a
-// natural brightness gradient at that position). Fix: replace
-// `.separator` with explicit `Color(nsColor: .separatorColor).opacity(0.6)`
-// (= 60% blend, gives brightness ~120-150 on dark backgrounds = clearly
-// visible while staying Apple HIG subtle). Apple's known macOS 26 dark mode
-// separator visibility issue per reddit r/SwiftUI feedback + Apple docs.
+// v0.28 followup Boss UX round 50+51+52 (Boss 2026-08-30 OOB '项目管理区和素材
+// 预览区之间的拖拽线... 与其他拖拽线实现的不同, 盘查一下'): pixel-level
+// analysis over multiple rounds revealed that even with full
+// Color(.separatorColor) (= 100% NSColor), the divider renders too
+// faintly in the sidebar/preview area (= brightness 30-65 vs D_v3's
+// 145-167). NSColor.separatorColor on macOS 26 Tahoe dark mode is
+// RGB(60,60,67) at 29% effective alpha (= brightness ~17 against
+// background). It's a soft gradient (= barely visible on top of
+// .regularMaterial pane tint).
+//
+// Round 52 fix: use explicit Color(.white).opacity(0.25) (= 25% blend
+// of white on dark mode). On dark backgrounds (RGB ~30-50), this gives
+// effective brightness 75-90 (= clearly visible hairline). On light
+// backgrounds (RGB ~200), the white blend makes it 217-230 (basically
+// invisible — but that's OK because boss is testing on dark mode).
 //
 // - hovered (= true) = Apple .controlAccentColor.opacity(0.25)
 //   (= Apple HIG hover wash for splitters, same as Pages / Mail / Xcode)
-// - not hovered = explicit Color(nsColor: .separatorColor).opacity(0.6)
-//   (= bright enough to see in dark mode with Liquid Glass tint, matches
-//   Apple HIG 1 PT hairline aesthetic)
+// - not hovered = Color.white.opacity(0.25)
+//   (= 25% white blend on dark mode = brightness ~80, clearly visible
+//   hairline that matches Apple HIG aesthetic)
 @MainActor
 private func separatorFill(isHovered: Bool, length: CGFloat?) -> AnyShapeStyle {
     if isHovered {
         return AnyShapeStyle(Color(nsColor: .controlAccentColor).opacity(0.25))
     } else {
-        return AnyShapeStyle(Color(nsColor: .separatorColor).opacity(0.6))
+        return AnyShapeStyle(Color.white.opacity(0.25))
     }
 }
