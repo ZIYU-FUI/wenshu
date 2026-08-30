@@ -149,7 +149,7 @@ let seeds: [EntitySeed] = [
         entityType: 2  // location (= trade route)
     ),
 
-    // I — literature (2 entities, both character / I2)
+    // I — 文学 (2 entities, both character / I2)
     EntitySeed(
         title: "李白",
         summary: "唐代浪漫主义诗人, 被誉为 '诗仙', 字太白。",
@@ -199,7 +199,7 @@ let seeds: [EntitySeed] = [
         entityType: 1  // character
     ),
 
-    // B — philosophy + religion (1 entity, type = concept)
+    // B — 哲学、宗教 (1 entity, type = concept)
     EntitySeed(
         title: "王阳明心学",
         summary: "明代哲学家王阳明的心学体系。",

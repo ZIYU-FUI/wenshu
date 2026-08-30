@@ -14,9 +14,9 @@
 // - Category = subject matter (= library taxonomy)
 // - Type = object nature (= domain ontology)
 //
-// Example: 'Li Bai' = character (type) + literature I (category).
-//          'Chi Bi Zhi Zhan' = event (type) + history K (category).
-//          'Tang Chao' = era (type) + history K (category).
+// Example: '李白' = character (type) + literature I (category).
+//          '赤壁之战' = event (type) + history K (category).
+//          '唐朝' = era (type) + history K (category).
 //
 // This is the v0.30 strict schema (= codable, validated by linter, enforced
 // by LLM classifier). It is the FIRST explicit entity-definition rule
@@ -72,7 +72,7 @@ public enum EntityType: String, CaseIterable, Codable, Sendable, Identifiable, H
 
     /// v0.30 boss OOB: '别用缩写, 就是那个念, 地, 人, 全称不也就才两个字,
     /// 最多四个字, 够显示'. Full Chinese name (= 2-4 chars, plenty of
-    /// sidebar space). Used as inline prefix in sidebar (= '[character] Li Bai').
+    /// sidebar space). Used as inline prefix in sidebar (= '[人物] 李白').
     public var shortName: String {
         switch self {
         case .character: return "人物"
