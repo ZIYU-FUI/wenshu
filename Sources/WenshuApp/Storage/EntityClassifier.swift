@@ -21,7 +21,7 @@
 // So we use keyword for the easy cases, and LLM only for the ambiguous
 // ones (= ~5% of entities that don't have obvious keyword signals).
 //
-// "增量" (incremental) rule: the sidebar only shows categories that
+// "Incremental" rule: the sidebar only shows categories that
 // have at least 1 entity. Empty categories = hidden. So as entities
 // are added, new category folders appear in the sidebar (= exactly
 // what boss wants).
@@ -55,7 +55,7 @@ public struct EntityClassifier: Sendable {
 
     /// Classify a reference (= title + summary + body) into an
     /// EntityCategory. Always returns a category (= falls back to .z
-    /// = 综合性图书 if both passes fail).
+    /// = Z-category catch-all if both passes fail).
     ///
     /// v0.30: also returns EntityType (default = .other for keyword
     /// pass, LLM-determined when LLM fallback is invoked).
@@ -94,7 +94,7 @@ public struct EntityClassifier: Sendable {
             }
         }
 
-        // Fallback (= keyword result OR .z = 综合性图书)
+        // Fallback (= keyword result OR .z = Z-category catch-all)
         return (keywordResult.category, .other)
     }
 
@@ -126,7 +126,7 @@ public struct EntityClassifier: Sendable {
         }
 
         guard let topEntry = scores.max(by: { $0.value < $1.value }) else {
-            // No keywords matched = return .z (= 综合性图书 = catch-all)
+            // No keywords matched = return .z (= Z-category catch-all)
             return KeywordResult(category: .z, confidence: 0.0)
         }
         let topCategory = topEntry.key
@@ -269,7 +269,7 @@ public struct EntityClassifier: Sendable {
         .v: ["航空", "航天", "飞机", "火箭", "卫星", "空间站", "太空船", "宇航员", "宇宙飞船", "探月", "火星", "aviation", "aerospace", "aircraft", "rocket", "satellite", "space station", "spaceship", "astronaut", "太空", "宇宙航行", "航天飞机", "探月计划", "火星探测", "喷气式", "螺旋桨", "民航", "机长", "空军"],
         // X — 环境科学、安全科学
         .x: ["环境", "污染", "环保", "气候变暖", "废物", "垃圾", "回收", "生态保护", "灾害", "地震", "洪水", "火灾", "事故", "安全", "环境科学", "environment", "pollution", "climate change", "recycling", "disaster", "earthquake", "flood", "fire", "safety", "温室气体", "碳排放", "垃圾分类", "自然灾害", "事故调查", "安全检查"],
-        // Z — 综合性图书
+        // Z — Z-category (= catch-all)
         .z: ["百科", "全书", "综合", "手册", "指南", "年鉴", "词典", "辞典", "encyclopedia", "handbook", "manual", "yearbook", "dictionary", "总览", "综合类", "参考工具", "指南"],
     ]
 }
