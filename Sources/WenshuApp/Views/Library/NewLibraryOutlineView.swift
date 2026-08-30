@@ -256,39 +256,36 @@ struct NewLibraryOutlineView: View {
                                 // below; avoids 2nd loadAllReferences() potentially returning
                                 // a different list). categoryChildren is built from this
                                 // same snapshot to ensure render matches the logged filter.
+                                // 不直接显示实体. 文档在目录被点击选择后, 显示在素材预览区.
+                                // v0.30 boss OOB '目录树只显示到最后一层的目录, 文档不显示
+                                // 在树里. 文档在目录被点击选择后, 显示在素材预览区'.
+                                //
+                                // Per v0.30 architecture:
+                                // - Sidebar tree = 3 levels max (shelf > book > folder)
+                                //   for books, 2 levels (资料库 > category) for reference
+                                // - The 4th level (= entity docs / .md files) does NOT
+                                //   appear in the tree
+                                // - Single-click on a category = preview pane shows
+                                //   that category's entities as cards (= implemented
+                                //   in EntityPreviewPane)
+                                // - Double-click on a card = open in editor (= boss
+                                //   v0.30 Ticket 3 = replaces EditorContentPlaceholder)
                                 let allRefsDirect = (try? bookStore.referenceStore.loadAllReferences()) ?? []
                                 let categoryChildren = usedCategories.map { cat -> FCPTreeNode in
-                                    // Children = entity refs in this category (per boss OOB).
-                                    // Uses the same snapshot (= allRefsDirect) for both the
-                                    // category node and its children to keep the render
-                                    // consistent with computeUsedCategories above.
+                                    // Count entities in this category (= for the
+                                    // count badge on the right side of the tree row).
+                                    // Uses the same snapshot for render consistency.
                                     let entitiesInCategory = allRefsDirect
                                         .filter { $0.layer == .layerEntities && $0.category == cat }
-                                    let entityChildren = entitiesInCategory.map { ref -> FCPTreeNode in
-                                        // v0.30: prefix entity name with type badge
-                                        // (= e.g. '[人] 李白' for character entities)
-                                        // for visual at-a-glance distinction. Boss OOB
-                                        // '为什么有联名实体, 比如李白与杜甫. 为什么这个是
-                                        // 体会在一起' = solved by type + category
-                                        // decomposition (= each entity is ONE type +
-                                        // ONE category, never merged).
-                                        let typeBadge = "[\(ref.entityType.shortName)]"
-                                        let displayLabel = "\(typeBadge) \(ref.title)"
-                                        return FCPTreeNode(
-                                            id: ref.id,
-                                            label: displayLabel,
-                                            icon: ref.entityType.icon,
-                                            count: nil,
-                                            children: [],
-                                            payloadKind: .reference  // = entity leaf (= preview/edit on click)
-                                        )
-                                    }
                                     return FCPTreeNode(
                                         id: UUID(uuidString: "00000000-0000-0000-0000-\(String(format: "%012x", cat.directoryName.hashValue))") ?? UUID(),
                                         label: cat.displayName,
                                         icon: cat.icon,
                                         count: entitiesInCategory.count,
-                                        children: entityChildren,
+                                        // v0.30: children = [] (= no entity nodes in tree).
+                                        // Entities are shown in the preview pane after
+                                        // sidebar click, NOT here.
+                                        children: [],
                                         payloadKind: .referenceCategory  // v0.29 new payload kind
                                     )
                                 }
