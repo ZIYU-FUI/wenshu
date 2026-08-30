@@ -25,6 +25,36 @@
 // type badge added.
 
 import SwiftUI
+import CoreFoundation  // v0.30: for CFStringTransform (pinyin sort)
+
+// MARK: - Sort order (v0.30 boss OOB)
+//
+// Boss 2026-08-30: '所有卡片默认排序是拼音首字母先后顺序, 在素材预览顶栏
+// 右边加 icon, 实现重排序功能. 目前选项, 首字母, 创建时间, 修改时间'.
+//
+// 3 sort options:
+// 1. .pinyinFirstLetter (= default) — Chinese pinyin alphabetical
+//    using CFStringTransform (kCFStringTransformToLatin +
+//    kCFStringTransformStripDiacritics)
+// 2. .createdAt — newest first (= most useful for research material
+//    tracking)
+// 3. .modifiedAt — most recently edited first (= for active writing)
+enum EntitySortOrder: String, CaseIterable, Identifiable {
+    case pinyinFirstLetter = "首字母"
+    case createdAt = "创建时间"
+    case modifiedAt = "修改时间"
+
+    var id: String { rawValue }
+
+    /// Lucide icon for the menu picker (= chevron-up-down for "sort").
+    var menuIcon: String {
+        switch self {
+        case .pinyinFirstLetter: return "arrow-down-a-z"
+        case .createdAt: return "clock"
+        case .modifiedAt: return "square-pen"
+        }
+    }
+}
 
 /// Content for the material management zone (= projectPreview).
 /// Renders entity cards in 3 modes:
@@ -42,6 +72,10 @@ struct EntityPreviewPane: View {
 
     /// Callback when user double-clicks a card (= boss Ticket 3).
     let onEntityDoubleClick: (Reference) -> Void
+
+    /// v0.30 boss OOB: '所有卡片默认排序是拼音首字母先后顺序'.
+    /// Default = .pinyinFirstLetter (= boss spec).
+    @State private var sortOrder: EntitySortOrder = .pinyinFirstLetter
 
     /// v0.30 boss OOB: '卡片多列显示, 默认两列, 如果区域被拖拽宽度变窄,
     /// 不够两列, 自动适配成一列, 人话就是卡片流, 宽度自适应'.
@@ -66,17 +100,82 @@ struct EntityPreviewPane: View {
     var body: some View {
         let allEntities = loadAllEntities()
 
-        Group {
-            if let entity = selectedEntity {
-                singleEntityDetail(entity)
-            } else if let category = selectedCategory {
-                categoryGrid(category: category, allEntities: allEntities)
-            } else {
-                overviewGrid(allEntities: allEntities)
+        VStack(spacing: 0) {
+            // Top toolbar (= sort menu on right).
+            // Hidden in singleEntityDetail mode (= detail mode shows
+            // its own back-button + entity metadata; sort doesn't apply).
+            if selectedEntity == nil {
+                previewTopBar()
+            }
+            Group {
+                if let entity = selectedEntity {
+                    singleEntityDetail(entity)
+                } else if let category = selectedCategory {
+                    categoryGrid(category: category, allEntities: allEntities)
+                } else {
+                    overviewGrid(allEntities: allEntities)
+                }
             }
         }
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// Top toolbar shown when cards are displayed (= NOT in detail mode).
+    /// Boss 8/30 OOB: '在素材预览顶栏右边加 icon, 实现重排序功能'.
+    ///
+    /// Layout: empty leading + Spacer + sort menu on right.
+    /// Sort menu icon shows current sort (= boss can always see which
+    /// sort is active without expanding the menu).
+    @ViewBuilder
+    private func previewTopBar() -> some View {
+        HStack {
+            Spacer()
+            sortMenuButton
+        }
+        .padding(.horizontal, 4)
+        .padding(.bottom, 8)
+    }
+
+    /// Apple-standard `Menu` (dropdown picker) for sort order.
+    /// Triggered by a button with the current sort icon + chevron-down
+    /// (= macOS standard pattern, e.g. Finder "Group By" / "Sort By").
+    private var sortMenuButton: some View {
+        Menu {
+            ForEach(EntitySortOrder.allCases) { order in
+                Button {
+                    sortOrder = order
+                } label: {
+                    Label {
+                        Text(order.rawValue)
+                    } icon: {
+                        LucideIcon(order.menuIcon, size: 14)
+                    }
+                    if order == sortOrder {
+                        // Mark current selection with a checkmark via
+                        // the system "selected" affordance.
+                        Image(systemName: "checkmark")
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                LucideIcon(sortOrder.menuIcon, size: 16)
+                    .foregroundStyle(.tint)
+                Image(systemName: "chevron.down")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(Color.accentColor.opacity(0.08))
+            )
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)  // hide default chevron (we draw our own)
+        .help("排序方式: \(sortOrder.rawValue)")
     }
 
     // MARK: - 3 view modes
@@ -178,21 +277,12 @@ struct EntityPreviewPane: View {
             // 所以只需要卡片流, 一直铺下去即可' + '素材预览区不需要这个标题,
             // 卡片平铺即可'.
             //
-            // NO header above the card grid (= boss confirmed the title
-            // is not needed). Just the flat LazyVGrid of cards.
             // Single flat LazyVGrid (= no per-category section headers,
             // no global count header). Cards flow continuously
-            // (= 无边记 sticky-note style). Sort by:
-            //   1. category (= alphabetical, = library taxonomy)
-            //   2. title (= alphabetical within category)
-            // for stable visual order (= doesn't shuffle on re-render).
-            let sorted = allEntities.sorted { lhs, rhs in
-                // Sort by category rawValue first, then by title
-                let lCat = lhs.category?.rawValue ?? "ZZ"  // nil-categorized at end
-                let rCat = rhs.category?.rawValue ?? "ZZ"
-                if lCat != rCat { return lCat < rCat }
-                return lhs.title < rhs.title
-            }
+            // (= 无边记 sticky-note style). Sort by current `sortOrder`
+            // (= boss 8/30 OOB: default 拼音首字母; user can pick
+            // 创建时间 or 修改时间 via top-right sort menu icon).
+            let sorted = sortEntities(allEntities, by: sortOrder)
             GeometryReader { geometry in
                 ScrollView {
                     LazyVGrid(columns: adaptiveColumns(width: geometry.size.width), spacing: 16) {
@@ -202,7 +292,7 @@ struct EntityPreviewPane: View {
                             }
                         }
                     }
-                    .padding(20)
+                    .padding(.vertical, 8)
                 }
             }
         }
@@ -232,6 +322,62 @@ struct EntityPreviewPane: View {
 
     private func loadBody(for entity: Reference) -> String? {
         try? bookStore.referenceStore.loadReferenceBody(id: entity.id)
+    }
+
+    /// Sort entities by the selected sort order (= boss 8/30 OOB).
+    /// Returns a NEW array (doesn't mutate input). Stable sort by using
+    /// id as the tiebreaker (= prevents visual shuffle on re-render
+    /// when entities have equal sort keys).
+    private func sortEntities(_ entities: [Reference], by order: EntitySortOrder) -> [Reference] {
+        switch order {
+        case .pinyinFirstLetter:
+            // Sort by pinyin first letter of title (= boss default).
+            // Uses CFStringTransform to convert Chinese to latinized
+            // pinyin, then strips diacritics, then uses first letter.
+            return entities.sorted { lhs, rhs in
+                let lKey = pinyinFirstLetter(lhs.title)
+                let rKey = pinyinFirstLetter(rhs.title)
+                if lKey != rKey { return lKey < rKey }
+                return lhs.id.uuidString < rhs.id.uuidString
+            }
+        case .createdAt:
+            // Newest first.
+            return entities.sorted { lhs, rhs in
+                if lhs.createdAt != rhs.createdAt {
+                    return lhs.createdAt > rhs.createdAt
+                }
+                return lhs.id.uuidString < rhs.id.uuidString
+            }
+        case .modifiedAt:
+            // Most recently modified first.
+            return entities.sorted { lhs, rhs in
+                let lMod = lhs.updatedAt
+                let rMod = rhs.updatedAt
+                if lMod != rMod {
+                    return lMod > rMod
+                }
+                return lhs.id.uuidString < rhs.id.uuidString
+            }
+        }
+    }
+
+    /// Convert Chinese title to its pinyin first letter (= uppercase).
+    /// Uses Apple's CFStringTransform (kCFStringTransformToLatin +
+    /// kCFStringTransformStripDiacritics). Example: "李白" → "L",
+    /// "未分类研究材料" → "W", "宋朝海上丝绸之路" → "S".
+    private func pinyinFirstLetter(_ title: String) -> String {
+        let mutable = NSMutableString(string: title)
+        // Convert CJK characters to latinized pinyin (e.g. "李白" → "Lǐ Bái").
+        CFStringTransform(mutable, nil, kCFStringTransformToLatin, false)
+        // Strip diacritics (e.g. "Lǐ Bái" → "Li Bai").
+        CFStringTransform(mutable, nil, kCFStringTransformStripDiacritics, false)
+        let latinized = (mutable as String).trimmingCharacters(in: .whitespaces)
+        // First non-whitespace character, uppercased. Empty titles bucket
+        // to "~" (= sorts last).
+        if let first = latinized.first {
+            return String(first).uppercased()
+        }
+        return "~"
     }
 
     /// v0.30 boss OOB: 卡片多列显示, 默认两列, 宽度不够自动 1 列.
