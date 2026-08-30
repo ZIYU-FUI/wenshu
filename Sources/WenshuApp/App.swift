@@ -196,7 +196,7 @@ enum LayoutTokens {
     static let iconSizeRatio: CGFloat = 18.0 / 1920.0     // 18 PT 边长 (老板 2026-08-26 '改成 18') — was 12 in v0.24 ticket 015.027 (= boss 8/24 '改成 12×12' = mid-step before '改成 18'). Now 18 PT for top-toolbar tab / archive icons.
     // v0.24 boss验收fix (Boss 8/24): tab icon 12×12 PT (= interim; 老板 8/24 '改成 12×12' after 18×18 too big).
     // v0.25.1 (= ticket 006 chat-zone icon size): 老板 2026-08-26 OOB '顶栏的 ICON 尺寸 现在有点过于小了 改成 18' = 12 → 18 PT.
-    // Scope = 顶栏 icon class only (= applies to LayoutTokens.iconSize, used
+    // Scope = 顶栏 icon class only (= applies to DesignTokens.tabIconSize, used
     // by ChatZoneTabBar tab + archive + DynamicZoneView tab + ZoneContentView
     // item, ALL top-toolbar tab icons). Bottom toolbar status bar (= text not
     // icons) unchanged. Toolbar height hard-capped at 30 PT (= per Boss 8/18
@@ -212,7 +212,7 @@ enum LayoutTokens {
     // 'four chat tab height set to 28 PT' (= 28 PT). Hot area applied to
     // BOTH chat tabs (.chat + the right archive-flow icon) for consistency.
     // Hot zone = 28 PT (= boss 8/11 fix3) leaves 2 PT vertical padding in
-    // the 30 PT toolbar (= flush fit). Inner icon stays at LayoutTokens.iconSize
+    // the 30 PT toolbar (= flush fit). Inner icon stays at DesignTokens.tabIconSize
     // (= 18 PT, ticket 006) so visual size unchanged from previous commit.
     static let chatTabHotArea: CGFloat = 28
     // v0.25.1 (= ticket 008 chat-zone tab hit reliability): owner 2026-08-26
@@ -1727,7 +1727,7 @@ struct LayoutShellView: View {
                 //   native toolbar (= .principal placement = centered,
                 //   the canonical Apple HIG toolbar location).
                 //
-                // All icons use LayoutTokens.iconSize (= 18 PT, matches
+                // All icons use DesignTokens.tabIconSize (= 18 PT, matches
                 // macOS native toolbar button visual size per Apple's
                 // HIG). Boss spec: '就现在 icon 这么大就行' = current
                 // icon size (18 PT, Lucide-first / SF Symbol fallback).
@@ -1754,7 +1754,7 @@ struct LayoutShellView: View {
                     Button {
                         showProjectSidebar.toggle()
                     } label: {
-                        LucideIconSystemFallback("sidebar.left", size: LayoutTokens.iconSize)
+                        LucideIconSystemFallback("sidebar.left", size: DesignTokens.tabIconSize)
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(showProjectSidebar ? Color.accentColor : Color.secondary)
@@ -1764,7 +1764,7 @@ struct LayoutShellView: View {
                     Button {
                         showProjectPreview.toggle()
                     } label: {
-                        LucideIconSystemFallback("eye.fill", size: LayoutTokens.iconSize)
+                        LucideIconSystemFallback("eye.fill", size: DesignTokens.tabIconSize)
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(showProjectPreview ? Color.accentColor : Color.secondary)
@@ -1774,7 +1774,7 @@ struct LayoutShellView: View {
                     Button {
                         showSpecializedTools.toggle()
                     } label: {
-                        LucideIconSystemFallback("wrench.and.screwdriver", size: LayoutTokens.iconSize)
+                        LucideIconSystemFallback("wrench.and.screwdriver", size: DesignTokens.tabIconSize)
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(showSpecializedTools ? Color.accentColor : Color.secondary)
@@ -1784,7 +1784,7 @@ struct LayoutShellView: View {
                     Button {
                         showAIChat.toggle()
                     } label: {
-                        LucideIconSystemFallback("bubble.left", size: LayoutTokens.iconSize)
+                        LucideIconSystemFallback("bubble.left", size: DesignTokens.tabIconSize)
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(showAIChat ? Color.accentColor : Color.secondary)
@@ -1794,7 +1794,7 @@ struct LayoutShellView: View {
                     Button {
                         showAIDynamic.toggle()
                     } label: {
-                        LucideIconSystemFallback("chart.bar", size: LayoutTokens.iconSize)
+                        LucideIconSystemFallback("chart.bar", size: DesignTokens.tabIconSize)
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(showAIDynamic ? Color.accentColor : Color.secondary)
@@ -1808,7 +1808,7 @@ struct LayoutShellView: View {
                         // Model picker opens Settings → Model tab.
                         WenshuAppDelegate.openSettings?()
                     } label: {
-                        LucideIconSystemFallback("cpu", size: LayoutTokens.iconSize)
+                        LucideIconSystemFallback("cpu", size: DesignTokens.tabIconSize)
                     }
                     .buttonStyle(.plain)
                     .help("模型: \(modelName)")
@@ -1820,7 +1820,7 @@ struct LayoutShellView: View {
                     Button {
                         vm.exportEbook(format: "epub")
                     } label: {
-                        LucideIconSystemFallback("square.and.arrow.up", size: LayoutTokens.iconSize)
+                        LucideIconSystemFallback("square.and.arrow.up", size: DesignTokens.tabIconSize)
                     }
                     .buttonStyle(.plain)
                     .help("导出电子书 (PDF / EPUB / MOBI / TXT)")
@@ -2118,7 +2118,7 @@ struct ZoneTopToolbar: View {
     var actions: [ZoneToolbarAction] = []
 
     var body: some View {
-        let toolbarH = LayoutTokens.toolbarHeight  // 30 PT
+        let toolbarH = DesignTokens.chromeHeight  // 30 PT
         // 顶栏背景: 撑满父级宽度 (区域模块宽), 高度 30 PT
         DesignColor.zoneSurface
             .frame(height: toolbarH)
@@ -2199,7 +2199,7 @@ struct ZoneBottomToolbar: View {
     }
 
     var body: some View {
-        let toolbarH = LayoutTokens.toolbarHeight
+        let toolbarH = DesignTokens.chromeHeight
         // v0.28 followup Boss UX round 53 (Boss 2026-08-30 OOB '其他都对了,
         // 只有项目管理和素材预览之间的还不对, 项目管理区底栏比其他低 1-2 像素,
         // 其他拖拽线是液态玻璃全透明, 项目管理区不是'): ZoneBottomToolbar
@@ -2318,7 +2318,7 @@ struct ZoneModule: View {
     // h14: last AI reply text (for read-aloud).
     @State private var lastAIReply: String = ""
 
-    private var toolbarH: CGFloat { LayoutTokens.toolbarHeight }  // v0.15 ticket 008: 老板 Sketch 真值 30 PT 1:1 硬编码
+    private var toolbarH: CGFloat { DesignTokens.chromeHeight }  // v0.15 ticket 008: 老板 Sketch 真值 30 PT 1:1 硬编码
     /// 老板 8/18 Q2 答: 4 PT inset = 单一垂直方向 (spec §3.2 "背景 y=60~884, 正文 y=64~882", 上下 4 PT 视觉下沉, 左右 flush)
     /// v0.15 ticket 005 改名: editorInsetRatio → editorVerticalInsetRatio (明确垂直方向)
     private var editorInset: CGFloat { bandH * LayoutTokens.editorVerticalInsetRatio }  // 4 PT 单一垂直
@@ -2604,7 +2604,7 @@ struct ZoneModule: View {
                         // + 021 canonical), no selected-tab
                         // underline (= NOT a tab, per boss OOB).
                         Color.clear
-                            .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
+                            .frame(width: DesignTokens.paneTabHotArea, height: DesignTokens.paneTabHotArea)
                             .overlay(alignment: .center) {
                                 // v0.25.1 (= ticket 029c-trailing-button):
                                 // Lucide-first icon helper inline (= the
@@ -2617,14 +2617,14 @@ struct ZoneModule: View {
                                 if let lucide = Lucide(editorMaximized ? "shrink" : "expand") {
                                     lucide
                                         .aspectRatio(contentMode: .fit)
-                                        .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
+                                        .frame(width: DesignTokens.tabIconSize, height: DesignTokens.tabIconSize)
                                         .foregroundStyle(Color.secondary)
                                 } else {
                                     // v0.27 boss 8/27 OOB: SF arrow symbols
                                     // → Lucide 'minimize-2' / 'maximize-2'.
-                                    LucideIconSystemFallback(editorMaximized ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right", size: LayoutTokens.iconSize)
+                                    LucideIconSystemFallback(editorMaximized ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right", size: DesignTokens.tabIconSize)
                                         .aspectRatio(contentMode: .fit)
-                                        .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
+                                        .frame(width: DesignTokens.tabIconSize, height: DesignTokens.tabIconSize)
                                         .foregroundStyle(Color.secondary)
                                 }
                             }
@@ -2895,7 +2895,7 @@ struct ChatZoneView: View {
                             .foregroundStyle(.secondary)
                     }
                     .padding(.bottom, 6)
-                    .frame(height: LayoutTokens.toolbarHeight, alignment: .bottomLeading)
+                    .frame(height: DesignTokens.chromeHeight, alignment: .bottomLeading)
                 }
                 // v0.21 ticket 42: Apple 真值组合 .menuStyle(.button) + .buttonStyle(.plain) = 去外壳 (Apple SwiftUI 14+ deprecated .borderedButton 提示路径)
                 .menuStyle(.button)
@@ -2961,7 +2961,7 @@ struct ChatZoneView: View {
                 }
                 .padding(.trailing, 18)
                 .padding(.bottom, 6)
-                .frame(height: LayoutTokens.toolbarHeight, alignment: .bottomTrailing)
+                .frame(height: DesignTokens.chromeHeight, alignment: .bottomTrailing)
             }
             .background(DesignColor.zoneSurface)
         }
@@ -3006,11 +3006,11 @@ struct ChatZoneTabBar: View {
                         // .inbox as .overlay centered. Previous ticket 020
                         // had it inverted (= clipped to 18×18).
                         Color.clear
-                            .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
+                            .frame(width: DesignTokens.paneTabHotArea, height: DesignTokens.paneTabHotArea)
                             .overlay(alignment: .center) {
                                 chatZoneTabBarIcon(tab.icon)
                                     .aspectRatio(contentMode: .fit)
-                                    .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
+                                    .frame(width: DesignTokens.tabIconSize, height: DesignTokens.tabIconSize)
                                     .foregroundStyle(tab == selectedTab ? Color.accentColor : Color.secondary)
                             }
                             .contentShape(Rectangle())
@@ -3032,7 +3032,7 @@ struct ChatZoneTabBar: View {
                                 if tab == selectedTab {
                                     Rectangle()
                                         .fill(Color.accentColor)
-                                        .frame(height: LayoutTokens.tabUnderlineHeight)
+                                        .frame(height: DesignTokens.tabUnderlineHeight)
                                         // v0.25.1 (= ticket 013): matchedGeometryEffect
                                         // namespace ID on the bar Rectangle so
                                         // SwiftUI can slide it between tab
@@ -3085,7 +3085,7 @@ struct ChatZoneTabBar: View {
                 // duplicate SF archivebox.
                 chatZoneTabBarIcon("inbox")
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
+                    .frame(width: DesignTokens.tabIconSize, height: DesignTokens.tabIconSize)
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
@@ -3095,7 +3095,7 @@ struct ChatZoneTabBar: View {
             .padding(.trailing, 18)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: LayoutTokens.toolbarHeight)
+        .frame(height: DesignTokens.chromeHeight)
         .background(DesignColor.zoneSurface)
         .overlay(alignment: .bottom) {
             DesignColor.splitterLine.frame(height: 1)

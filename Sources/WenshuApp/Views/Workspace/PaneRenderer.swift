@@ -496,7 +496,7 @@ private struct GroupTabStrip: View {
 // Visual: HStack with 1 active tab icon (bot = 对话 tab per old
 // 6区) on the left + 1 archive icon on the right, with selected
 // underline accent color (= matches the ZoneContentTabBar style).
-// 28 PT height (= matches LayoutTokens.chatTabHotArea for
+// 28 PT height (= matches DesignTokens.paneTabHotArea for
 // consistency with the old 6区).
 
 @MainActor
@@ -505,72 +505,33 @@ struct ChatZoneTopChrome: View {
     @Namespace private var tabBarNamespace
 
     var body: some View {
-        // v0.28 followup Boss UX round 30 (Boss 2026-08-29 OOB '顶栏不是
-        // 一个组件吗, 你看截图, 每个区域的毛玻璃效果都不一样'):
-        // wrapped in canonical `RegionTabBar` (= single source of truth
-        // for all per-pane tab bars). Previously this had its own
-        // .regularMaterial + .separator overlay (= inconsistent with
-        // ZoneContentTabBar + DynamicZoneTabBar). Now uses the shared
-        // component = identical Liquid Glass rendering everywhere.
-        RegionTabBar {
-            HStack(spacing: 0) {
-                // Left: bot tab (= 对话, currently selected).
-                // 28x28 hot area pattern (= Apple HIG canonical per the
-                // v0.25.1 ticket 018 fix). Lucide-first via existing helper
-                // (= falls back to SF Symbol).
-                tabItem(
-                    icon: "bot",
-                    label: "对话",
-                    isSelected: true
-                )
-                .padding(.leading, LayoutTokens.chromePaddingLeading)
-                Spacer(minLength: 0)
+        // v0.28 followup Boss UX round A (Phase 3 of refactor): ChatZoneTopChrome
+        // body now delegates to `PaneTabBar` generic component (= ComponentIndex.md
+        // Level 3.2). Was 74 LOC, now ~25 LOC. Behavior preserved 1:1.
+        PaneTabBar(
+            items: [
+                PaneTabItem(id: "chat", icon: "bot", label: "对话"),
+            ],
+            selection: .constant("chat"),
+            namespace: tabBarNamespace,
+            namespaceID: "chatTabUnderline",
+            trailing: {
                 // Right: archive icon (= matches old 6区 right-side inbox icon).
                 Button {
                     showingArchiveConfirm = true
                 } label: {
                     Color.clear
-                        .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
+                        .frame(width: DesignTokens.paneTabHotArea, height: DesignTokens.paneTabHotArea)
                         .overlay(alignment: .center) {
-                            LucideIconSystemFallback("inbox", size: LayoutTokens.iconSize)
+                            LucideIconSystemFallback("inbox", size: DesignTokens.tabIconSize)
                                 .foregroundStyle(.secondary)
                         }
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .help("归档本次会话")
-                .padding(.trailing, LayoutTokens.chromePaddingTrailing)
+                .padding(.trailing, DesignTokens.chromePaddingTrailing)
             }
-        }
-    }
-
-    /// Single tab button (= Apple HIG canonical 28×28 hot area +
-    /// Lucide icon + selected underline). Mirrors ZoneContentTabBar's
-    /// tab pattern (= see Sources/WenshuApp/Views/Dynamic/ZoneContentView.swift).
-    @ViewBuilder
-    private func tabItem(icon: String, label: String, isSelected: Bool) -> some View {
-        Button {
-            // v0.28 followup round 16: chat has only 1 visible tab 当前,
-            // so the click is a no-op. Future expansion (= multiple tabs
-            // per chat zone) hooks here.
-        } label: {
-            Color.clear
-                .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
-                .overlay(alignment: .center) {
-                    LucideIconSystemFallback(icon, size: LayoutTokens.iconSize)
-                        .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
-                }
-                .contentShape(Rectangle())
-                .overlay(alignment: .bottom) {
-                    if isSelected {
-                        Rectangle()
-                            .fill(Color.accentColor)
-                            .frame(height: LayoutTokens.tabUnderlineHeight)
-                            .matchedGeometryEffect(id: "chatTabUnderline", in: tabBarNamespace)
-                    }
-                }
-        }
-        .buttonStyle(.plain)
-        .help(label)
+        )
     }
 }

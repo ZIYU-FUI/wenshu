@@ -212,48 +212,17 @@ public struct ZonePerRegionChrome<Content: View>: View {
 
     @MainActor
     private var bottomBar: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                // Left: status text (= matches old .overlay(alignment: .bottomLeading)).
-                Text(bottomStatus.left.isEmpty ? "占位文字" : bottomStatus.left)
-                    .font(.system(size: 13))
-                    .foregroundStyle(.tertiary)
-                    .padding(.leading, LayoutTokens.chromePaddingLeading)
-                    .padding(.bottom, LayoutTokens.chromePaddingMedium)
-                    .allowsHitTesting(false)
-                Spacer(minLength: 0)
-                // Right: rightStatus text (= matches old .overlay(alignment: .bottomTrailing)).
-                Text(bottomStatus.right.isEmpty ? "" : bottomStatus.right)
-                    .font(.system(size: 13))
-                    .foregroundStyle(.tertiary)
-                    .padding(.trailing, LayoutTokens.chromePaddingTrailing)
-                    .padding(.bottom, LayoutTokens.chromePaddingMedium)
-                    .allowsHitTesting(false)
-            }
-            // v0.28 followup Boss UX round 29 (Boss 2026-08-29 OOB
-            // '库管理区的顶栏高度看起来像是少了 1pt, 底栏少了分隔线'):
-            // was .frame(height: kZoneToolbarHeight - 1) = 29 PT (= 1 PT
-            // less than the canonical 30 PT chrome height). The '- 1'
-            // was a leftover from when the bottom separator was rendered
-            // outside the bar (= total = bar + separator = 30 PT). Now
-            // that the separator is overlaid inside the bar's bottom
-            // edge, the bar should be the full 30 PT (= matches
-            // ZoneContentTabBar height + matches the unified kChromeHeight
-            // from round 26). The overlay separator still draws at the
-            // bottom edge, but the bar's background material now fills
-            // all 30 PT (= no 1 PT gap between the bar's bottom and
-            // the separator line).
-            .frame(height: kZoneToolbarHeight)
-            .background(.regularMaterial)
-            // Bottom splitter line (= matches old ZoneTopToolbar bottom splitter).
-            // v0.28 followup Boss UX round 26: Apple HierarchicalShapeStyle
-            // .separator (= canonical Liquid Glass separator) replaces
-            // Color(nsColor: .separatorColor) (= solid NSColor). 1 PT
-            // height preserved.
-            Rectangle()
-                .fill(.separator)
-                .frame(height: 1)
-        }
+        // v0.28 followup Boss UX round A (Boss 2026-08-30 OOB '你需要做一个
+        // 组件索引, 以后如果有新的地方用到相同的东西, 会自然而然的找到组件,
+        // 而不是默认自动写个新的'): Phase 5 of refactor. Now uses the
+        // new `PaneStatusBar` component (= ComponentIndex.md Level 2.6)
+        // instead of inline HStack { Text + Spacer + Text } pattern.
+        // PaneStatusBar wraps RegionStatusBar + applies DesignTokens
+        // statusFont + statusForeground + chrome paddings automatically.
+        PaneStatusBar(
+            leftText: bottomStatus.left,
+            rightText: bottomStatus.right
+        )
     }
 }
 
