@@ -821,6 +821,11 @@ private struct FCPRowView: View {
                     .lineLimit(1)
                 Spacer(minLength: 4)
                 // Count badge (= right-aligned; only for parent nodes).
+                // v0.30 boss OOB: '目录树后面的数字, 距离右边距没有留空隙,
+                // 留出来 18pt 的空隙'. Apple HIG = 16-20 PT visual gap
+                // between the count and the row's right edge (= the
+                // row's right edge = the pane's right divider = the
+                // visual boundary of the sidebar).
                 if let count = node.count {
                     Text("\(count)")
                         .font(.system(size: 11))
@@ -828,6 +833,11 @@ private struct FCPRowView: View {
                 }
             }
             .frame(height: rowHeight)
+            // v0.30: 18 PT trailing padding on every sidebar tree row
+            // (= per boss OOB: 数字距右边距留 18pt 空隙). Applied to
+            // the whole row's content = ensures count badge has 18 PT
+            // breathing room from the right divider / pane edge.
+            .padding(.trailing, 18)
             .contentShape(Rectangle())
             .onTapGesture {
                 if node.payloadKind == .book {
