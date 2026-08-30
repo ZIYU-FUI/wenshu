@@ -104,10 +104,15 @@ private struct WiredShell: View {
     // v0.27 ticket 027-34 (= boss 8/27 grill D1 'Xcode paradigm +
     // user-customizable layout'): feature flag toggles between the
     // legacy LayoutShellView and the new WorkspaceView (= wraps the
-    // WorkspaceStore). Defaults to false (= legacy LayoutShellView)
-    // while the WorkspaceView integration stabilizes. Boss can flip
-    // to true via UserDefaults once the new layout is verified.
-    @AppStorage("wenshu.useWorkspace") private var useWorkspace: Bool = false
+    // WorkspaceStore).
+    // v0.30 boss 8/30 OOB: '我看截图, 你把库管理顶栏右边的新建和导入按钮
+    // 改掉了' = trailing 新建/导入 buttons were MISSING in LayoutShellView
+    // path's screenshots because LayoutShellView uses ZoneModule (=
+    // no ZoneContentView trailingButton slot). Flipping default to
+    // true = WorkspaceView path (= has ZoneContentView trailingButton
+    // wiring per App.swift:2626 + v0.27 commit bca226704) = trailing
+    // buttons render correctly.
+    @AppStorage("wenshu.useWorkspace") private var useWorkspace: Bool = true
     // WorkspaceStore is only constructed when useWorkspace = true
     // (= avoids running the new persistence layer when the flag is off).
     @State private var workspaceStore: WorkspaceStore? = nil
