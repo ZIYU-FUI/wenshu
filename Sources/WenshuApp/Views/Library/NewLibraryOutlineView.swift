@@ -20,6 +20,7 @@ struct NewLibraryOutlineView: View {
     @State private var books: [Book] = []
     @State private var selectedBookId: UUID?
     @State private var selectedReferenceLayer: ReferenceLayer = .layerEntities
+    @State private var selectedCategory: EntityCategory? = nil  // v0.29: 资料库分类选中
     @State private var references: [Reference] = []
     @State private var loadError: String?
     @State private var showNewBookSheet: Bool = false
@@ -179,6 +180,8 @@ struct NewLibraryOutlineView: View {
             case book
             case referenceLibrary   // v0.27 boss 8/27 OOB: 资料库本身也是一个特别的书架
             case referenceLayer     // raw / entities / abstracts / indexes (= sub-node of referenceLibrary)
+            case referenceCategory  // v0.29 boss 2026-08-30 OOB: 分类文件夹 (= 历史/科学/...) = sub-node of referenceLibrary
+            case reference          // v0.29: 单个实体 (= leaf under referenceCategory)
         }
 
         func hash(into hasher: inout Hasher) {
@@ -229,38 +232,66 @@ struct NewLibraryOutlineView: View {
                 payloadKind: .shelf
             ))
         }
-        // ReferenceLibrary (= library-public default shelf; layer
-        // children = 2 user-facing layers per spec v5).
-        let layerChildren = ReferenceLayer.allCases
-            .filter { $0.isUserFacing }
-            .map { layer in
-                FCPTreeNode(
-                    id: UUID(uuidString: "00000000-0000-0000-0000-\(String(format: "%012x", layer.hashValue))") ?? UUID(),
-                    label: layer.displayName,
-                    icon: layer.icon,
-                    count: nil,
-                    children: [],
-                    payloadKind: .referenceLayer
-                )
+        // ReferenceLibrary (= library-public default shelf). v0.29
+                // boss 2026-08-30 OOB: sidebar 显示分类文件夹 (历史/科学/...),
+                // 不直接显示实体. categories = 仅含 ≥1 实体的 (增量显示).
+                let usedCategories = computeUsedCategories()
+                let categoryChildren = usedCategories.map { cat -> FCPTreeNode in
+                    // Children = entity refs in this category (per boss OOB)
+                    let entitiesInCategory = (try? bookStore.referenceStore.loadAllReferences()) ?? []
+                        .filter { $0.layer == .layerEntities && $0.category == cat }
+                    let entityChildren = entitiesInCategory.map { ref -> FCPTreeNode in
+                        FCPTreeNode(
+                            id: ref.id,
+                            label: ref.title,
+                            icon: "file-text",
+                            count: nil,
+                            children: [],
+                            payloadKind: .reference  // = entity leaf (= preview/edit on click)
+                        )
+                    }
+                    return FCPTreeNode(
+                        id: UUID(uuidString: "00000000-0000-0000-0000-\(String(format: "%012x", cat.directoryName.hashValue))") ?? UUID(),
+                        label: cat.displayName,
+                        icon: cat.icon,
+                        count: entitiesInCategory.count,
+                        children: entityChildren,
+                        payloadKind: .referenceCategory  // v0.29 new payload kind
+                    )
+                }
+                // v0.27 boss 8/27 OOB icon for ReferenceLibrary root: square-library
+                // (= Lucide icon: a square containing stacked horizontal lines
+                // representing a library shelf; matches FCP Browser's
+                // library-as-archive metaphor and Apple's library-app
+                // vocabulary). payloadKind = .referenceLibrary (= treats
+                // 资料库 as a 'special shelf' per boss 8/27; = same typography
+                // as user-named shelves via the .referenceLibrary branch in
+                // labelFont / labelWeight / labelForeground).
+                root.append(FCPTreeNode(
+                    id: UUID(uuidString: "00000000-0000-0000-0000-000000000001") ?? UUID(),
+                    label: "资料库",
+                    icon: "square-library",
+                    count: categoryChildren.count,
+                    children: categoryChildren,
+                    payloadKind: .referenceLibrary
+                ))
+                return root
             }
-        // v0.27 boss 8/27 OOB icon for ReferenceLibrary root: square-library
-        // (= Lucide icon: a square containing stacked horizontal lines
-        // representing a library shelf; matches FCP Browser's
-        // library-as-archive metaphor and Apple's library-app
-        // vocabulary). payloadKind = .referenceLibrary (= treats
-        // 资料库 as a 'special shelf' per boss 8/27; = same typography
-        // as user-named shelves via the .referenceLibrary branch in
-        // labelFont / labelWeight / labelForeground).
-        root.append(FCPTreeNode(
-            id: UUID(uuidString: "00000000-0000-0000-0000-000000000001") ?? UUID(),
-            label: "资料库",
-            icon: "square-library",
-            count: layerChildren.count,
-            children: layerChildren,
-            payloadKind: .referenceLibrary
-        ))
-        return root
-    }
+
+            /// v0.29 boss OOB: 计算使用中的 categories (= 至少含 1 实体).
+                /// 0 实体的 categories 不显示 (= 增量规则: '分类文件夹随着内容
+                /// 逐渐增加, 而不是一下子铺满'). 按 CLC 字母顺序排序 (= A→Z).
+                private func computeUsedCategories() -> [EntityCategory] {
+                        let allRefs: [Reference]
+                        do {
+                            allRefs = try bookStore.referenceStore.loadAllReferences()
+                        } catch {
+                            return []
+                        }
+                        let entityRefs = allRefs.filter { $0.layer == .layerEntities }
+                        let used = Set(entityRefs.compactMap { $0.category })
+                        return EntityCategory.allCases.filter { used.contains($0) }
+                    }
 
     /// Build the 8 standard folder children for a book node.
     /// Per spec v5 ticket 001 + ticket 026: every book has these 8
@@ -339,25 +370,59 @@ struct NewLibraryOutlineView: View {
 
     @ViewBuilder
     private var referenceLibrarySection: some View {
+        // v0.29 boss 2026-08-30 OOB: 资料库 sidebar 显示分类文件夹
+        // (历史/科学/...), 不直接显示实体. 分类文件夹 = 增量显示
+        // (只有含 ≥1 实体的分类才出现 = '分类文件夹随着内容逐渐
+        // 增加, 而不是一下子铺满'). 实体 layer (.layerEntities) 现在是
+        // categories 的容器; 原始文件 (.layerRaw) 隐藏 = hidden by isUserFacing.
         Section {
-            DisclosureGroup {
-                // v0.29 boss 2026-08-30 OOB '资料库的原始文件目录也是,
-                // 用户不需要看到. 实体保留': removed .layerRaw (= original
-                // source files = user doesn't need to see this), kept
-                // .layerEntities (= LLM-derived entities = user-facing).
-                // .layerAbstracts and .layerIndexes are LLM-derived
-                // (= already hidden via isUserFacing = false).
-                ForEach(
-                    ReferenceLayer.allCases
-                        .filter { $0.isUserFacing && $0 != .layerRaw },
-                    id: \.self
-                ) { layer in
-                    layerRow(layer)
-                }
-            } label: {
-                referenceLibraryHeader
-            }
+            entityLayerWithCategories
+        } header: {
+            referenceLibraryHeader
         }
+    }
+
+    @ViewBuilder
+    private var entityLayerWithCategories: some View {
+        // Always show .layerEntities as the only user-facing layer.
+        // Its children = categories (= 仅含 ≥1 实体的 categories).
+        ForEach(usedCategories(), id: \.self) { category in
+            categoryRow(category)
+        }
+    }
+
+    /// 计算当前活跃的 categories (= 至少含 1 实体). v0.29 增量规则:
+    /// 0 实体的 categories 不显示.
+    private func usedCategories() -> [EntityCategory] {
+        let allRefs = (try? bookStore.referenceStore.loadAllReferences()) ?? []
+        let entityRefs = allRefs.filter { $0.layer == .layerEntities }
+        let usedCategories = Set(entityRefs.compactMap { $0.category })
+        // Sort by CLC standard order (= A, B, C, ..., Z)
+        return EntityCategory.allCases.filter { usedCategories.contains($0) }
+    }
+
+    @ViewBuilder
+    private func categoryRow(_ category: EntityCategory) -> some View {
+        HStack {
+            LucideIconSystemFallback(category.icon, size: 18)
+                .foregroundStyle(.secondary)
+            Text(category.displayName)
+                .font(.callout)
+            Spacer()
+            Text("\(entitiesCount(in: category))")
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.tertiary)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            selectedCategory = category
+        }
+    }
+
+    /// 计算某 category 下的实体数量.
+    private func entitiesCount(in category: EntityCategory) -> Int {
+        let allRefs = (try? bookStore.referenceStore.loadAllReferences()) ?? []
+        return allRefs.filter { $0.layer == .layerEntities && $0.category == category }.count
     }
 
     @ViewBuilder
@@ -769,7 +834,7 @@ private struct FCPRowView: View {
     private func labelFont(for kind: NewLibraryOutlineView.FCPTreeNode.PayloadKind) -> Font {
         switch kind {
         case .shelf, .referenceLibrary: return .system(size: 13)
-        case .book, .referenceLayer: return .system(size: 12)
+        case .book, .referenceLayer, .referenceCategory, .reference: return .system(size: 12)
         }
     }
 
@@ -780,7 +845,7 @@ private struct FCPRowView: View {
     private func labelWeight(for kind: NewLibraryOutlineView.FCPTreeNode.PayloadKind) -> Font.Weight {
         switch kind {
         case .shelf, .referenceLibrary: return .semibold
-        case .book, .referenceLayer: return .regular
+        case .book, .referenceLayer, .referenceCategory, .reference: return .regular
         }
     }
 
@@ -790,7 +855,7 @@ private struct FCPRowView: View {
     /// projectSidebar user-named shelf rows).
     private func labelForeground(for kind: NewLibraryOutlineView.FCPTreeNode.PayloadKind) -> Color {
         switch kind {
-        case .shelf, .referenceLibrary, .book, .referenceLayer: return .primary
+        case .shelf, .referenceLibrary, .book, .referenceLayer, .referenceCategory, .reference: return .primary
         }
     }
 }

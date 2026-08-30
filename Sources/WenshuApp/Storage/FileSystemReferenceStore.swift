@@ -163,7 +163,13 @@ struct FileSystemReferenceStore: ReferenceStoring {
         }
         do {
             let data = try Data(contentsOf: indexURL)
-            return try JSONDecoder().decode([Reference].self, from: data)
+            // v0.29 boss 2026-08-30 OOB: support ISO8601 string dates
+            // (= how Reference is serialized in entities.json). Swift's
+            // default decoder uses Double (= Unix timestamp) which fails
+            // for ISO8601. Set .iso8601 strategy so we accept both.
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            return try decoder.decode([Reference].self, from: data)
         } catch {
             return []
         }
@@ -172,6 +178,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
     func saveReference(_ reference: Reference, bodyMarkdown: String) throws {
         try ensureReferenceLibraryRootExists()
         try ensureLayerDirectoryExists(layer: reference.layer)
+        try ensureEntityCategoryDirectoryExists(category: reference.category, layer: reference.layer)
 
         let refURL = reference.onDiskPath(under: referenceLibraryRoot)
         if FileManager.default.fileExists(atPath: refURL.path) {
@@ -188,6 +195,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
     func replaceReference(_ reference: Reference, bodyMarkdown: String) throws {
         try ensureReferenceLibraryRootExists()
         try ensureLayerDirectoryExists(layer: reference.layer)
+        try ensureEntityCategoryDirectoryExists(category: reference.category, layer: reference.layer)
 
         let refURL = reference.onDiskPath(under: referenceLibraryRoot)
         guard FileManager.default.fileExists(atPath: refURL.path) else {
@@ -260,6 +268,27 @@ struct FileSystemReferenceStore: ReferenceStoring {
         let dir = layerDirectory(layer)
         if !FileManager.default.fileExists(atPath: dir.path) {
             try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        }
+    }
+
+    /// v0.29 boss 2026-08-30 OOB: when saving an entity (= layer == .layerEntities)
+    /// with a category, ensure the category subdirectory exists. The category
+    /// folder is created LAZILY (= only when the first entity in that category
+    /// is saved). This is the "增量" rule (= boss: '分类文件夹随着内容
+    /// 逐渐增加, 而不是一下子铺满').
+    ///
+    /// When category is nil (= raw material OR unclassified entity), no
+    /// category dir is created (= falls back to flat layer dir).
+    private func ensureEntityCategoryDirectoryExists(
+        category: EntityCategory?,
+        layer: ReferenceLayer
+    ) throws {
+        guard layer == .layerEntities, let category = category else { return }
+        let categoryDir = referenceLibraryRoot
+            .appendingPathComponent("entities")
+            .appendingPathComponent(category.directoryName)
+        if !FileManager.default.fileExists(atPath: categoryDir.path) {
+            try FileManager.default.createDirectory(at: categoryDir, withIntermediateDirectories: true)
         }
     }
 

@@ -109,6 +109,19 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
     /// subdirectory under `reference-library/`.
     var layer: ReferenceLayer
 
+    /// v0.29 boss 2026-08-30 OOB: library-taxonomy category (= assigned
+    /// at save time by `EntityClassifier`). Drives the on-disk
+    /// subdirectory under `reference-library/entities/<category>/`.
+    /// Only set for entities (= layer == .layerEntities); nil for raw
+    /// materials (= .layerRaw, which are LLM-only and not browsed by
+    /// the user per round 28 OOB).
+    var category: EntityCategory?
+
+    /// Optional 2nd-level subcategory code (= e.g. "I2" for "中国文学").
+    /// Set by the LLM classifier when it picks a fine-grained match.
+    /// Optional (= most entities fit in the top-level bucket).
+    var subcategory: String?
+
     /// One-line summary shown on the card (= boss 8/26 '卡片样式就是
     /// 展示文档的重点摘要').
     var summary: String
@@ -133,6 +146,8 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
         source: String? = nil,
         url: String? = nil,
         layer: ReferenceLayer = .layerRaw,
+        category: EntityCategory? = nil,
+        subcategory: String? = nil,
         summary: String = "",
         characterRefIds: [UUID] = [],
         worldRefIds: [UUID] = [],
@@ -145,6 +160,8 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
         self.source = source
         self.url = url
         self.layer = layer
+        self.category = category
+        self.subcategory = subcategory
         self.summary = summary
         self.characterRefIds = characterRefIds
         self.worldRefIds = worldRefIds
@@ -158,10 +175,18 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
         "\(id.uuidString).md"
     }
 
-    /// Full on-disk path (= the ReferenceLibrary root + the layer
-    /// directory + the filename). Storage layer uses this.
+    /// Full on-disk path. v0.29: entities live at
+    /// `reference-library/entities/<category>/<uuid>.md` (= category
+    /// subdirectory). Raw materials stay flat at
+    /// `reference-library/raw/<uuid>.md`. Other layers flat.
     func onDiskPath(under referenceLibraryRoot: URL) -> URL {
-        referenceLibraryRoot
+        if layer == .layerEntities, let category = category {
+            return referenceLibraryRoot
+                .appendingPathComponent("entities")
+                .appendingPathComponent(category.directoryName)
+                .appendingPathComponent(filename)
+        }
+        return referenceLibraryRoot
             .appendingPathComponent(layer.directoryName)
             .appendingPathComponent(filename)
     }
