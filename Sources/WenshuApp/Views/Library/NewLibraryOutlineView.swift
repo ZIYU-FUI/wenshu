@@ -696,45 +696,20 @@ private struct NewShelfSheet: View {
     @State private var selectedIcon: String = "square-library"
     @Environment(\.dismiss) private var dismiss
 
-    /// v0.30 boss 8/31 OOB: curated preset list of Lucide icons
-    /// (= ~30 best-fit icons for shelf-like buckets). User must
-    /// pick one (= no empty state). Default selection = first item.
-    /// Sources: lucide.dev search "library, book, archive,
-    /// bookshelf, folder" = the most relevant semantic set for a
-    /// bookshelf sidebar.
-    private let shelfIconPresets: [String] = [
-        "square-library",       // = reference library (= default)
-        "books",                // = stack of books
-        "bookmark",             // = bookmark
-        "bookmark-plus",        // = add bookmark
-        "book-open",            // = open book
-        "book-open-check",      // = read book
-        "book-text",            // = book with text
-        "book-plus",            // = new book
-        "library-big",          // = big library
-        "archive",              // = archive
-        "archive-box",          // = archive box
-        "folder",               // = folder
-        "folder-open",          // = open folder
-        "folder-closed",        // = closed folder
-        "folder-tree",          // = folder tree
-        "book-shelf",           // = shelf of books (= NOT in Lucide; fallback)
-        "book-copy",            // = duplicate
-        "book-marked",          // = marked book
-        "library",              // = library (was previously .z default)
-        "scroll",               // = scroll
-        "scroll-text",          // = scroll with text
-        "file-text",            // = text file
-        "files",              // = multiple files
-        "book-heart",           // = favorite book
-        "book-key",             // = key book
-        "book-lock",            // = locked book
-        "book-up",              // = book up
-        "book-down",            // = book down
-        "book-type",            // = book type
-        "book-user",            // = book user (= author)
-        "bookmark-check",       // = bookmark check
-    ]
+    /// v0.30 boss 8/31 OOB: render the ENTIRE Lucide icon library
+    /// (= LucideIcon.allCases, an enum provided by lucide-swift that's
+    /// auto-generated from lucide-static@1.25.0 = ~1500 icons at
+    /// v0.30). No curated preset list = no guessing about which
+    /// icons exist. The user scrolls through every real Lucide
+    /// icon and picks one. Default = 'square-library' (= the
+    /// reference library icon, per boss OOB).
+    private var allLucideIcons: [String] {
+        // LucideIcon is `enum, CaseIterable, Sendable` with String
+        // rawValues (= the kebab-case icon name). `allCases.map(\.rawValue)`
+        // gives us the complete icon name list at runtime (= no
+        // hardcoded list, no manual sync when lucide-swift upgrades).
+        LucideIcon.allCases.map(\.rawValue)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -772,41 +747,49 @@ private struct NewShelfSheet: View {
                         }
                         Spacer()
                     }
-                    // Icon picker grid (= 6 columns x ~5 rows = 30
-                    // icons visible at once). Apple HIG canonical
-                    // picker pattern: small selectable tiles with
-                    // accent-color highlight on the selected one.
-                    LazyVGrid(
-                        columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6),
-                        spacing: 8
-                    ) {
-                        ForEach(shelfIconPresets, id: \.self) { iconName in
-                            Button {
-                                selectedIcon = iconName
-                            } label: {
-                                ZStack {
-                                    RoundedRectangle(cornerRadius: 6)
-                                        .fill(selectedIcon == iconName
-                                              ? Color.accentColor.opacity(0.25)
-                                              : Color.clear)
-                                        .frame(width: 40, height: 40)
-                                    LucideIcon(iconName, size: 24)
-                                        .foregroundStyle(selectedIcon == iconName
-                                                         ? Color.accentColor
-                                                         : Color.primary)
+                    // Icon picker grid (= 8 columns x many rows). The full
+                    // Lucide library has ~1500 icons so we wrap the
+                    // grid in a ScrollView (= user can scroll to
+                    // find the icon they want). The grid is
+                    // measured with a fixed height (= 320 PT =
+                    // ~7 visible rows of 40 PT tiles + spacing) and
+                    // scrolls inside.
+                    ScrollView {
+                        LazyVGrid(
+                            columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 8),
+                            spacing: 8
+                        ) {
+                            ForEach(allLucideIcons, id: \.self) { iconName in
+                                Button {
+                                    selectedIcon = iconName
+                                } label: {
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .fill(selectedIcon == iconName
+                                                  ? Color.accentColor.opacity(0.25)
+                                                  : Color.clear)
+                                            .frame(width: 40, height: 40)
+                                        LucideIcon(iconName, size: 24)
+                                            .foregroundStyle(selectedIcon == iconName
+                                                             ? Color.accentColor
+                                                             : Color.primary)
+                                    }
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .stroke(selectedIcon == iconName
+                                                    ? Color.accentColor
+                                                    : Color.gray.opacity(0.2),
+                                                    lineWidth: 1)
+                                    )
+                                    .buttonStyle(.plain)
                                 }
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 6)
-                                        .stroke(selectedIcon == iconName
-                                                ? Color.accentColor
-                                                : Color.gray.opacity(0.2),
-                                                lineWidth: 1)
-                                )
-                                .buttonStyle(.plain)
+                                .help(iconName)
                             }
-                            .help(iconName)
                         }
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 8)
                     }
+                    .frame(height: 320)
                 } header: {
                     Text("ICON (必选)")
                 }
