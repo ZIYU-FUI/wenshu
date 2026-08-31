@@ -280,9 +280,9 @@ struct NewLibraryOutlineView: View {
             })
         }
         .sheet(isPresented: $showNewShelfSheet) {
-            NewShelfSheet(onSave: { name in
+            NewShelfSheet(onSave: { name, icon in
                 do {
-                    try saveShelf(name: name)
+                    try saveShelf(name: name, icon: icon)
                     reload()
                 } catch {
                     loadError = error.localizedDescription
@@ -330,12 +330,14 @@ struct NewLibraryOutlineView: View {
             Label {
                 Text(shelf.name)
             } icon: {
-                LucideIconSidebar(
-                    shelf.id.uuidString == "00000000-0000-0000-0000-000000000000"
-                        ? "square-dashed-mouse-pointer"
-                        : "books.vertical.fill"
-                )
-                .foregroundStyle(.primary)
+                // v0.30 boss 8/31 OOB: use displayIcon (= user-picked
+                // icon if set; otherwise defaults based on whether
+                // this is the canonical default shelf or a user-
+                // created shelf). Previously hardcoded to two static
+                // icons, which left user-created shelves without
+                // any icon at all (= '新建书架后，暑假没有 ICON').
+                LucideIconSidebar(shelf.displayIcon)
+                    .foregroundStyle(.primary)
             }
             // v0.30 boss 8/31 OOB: shelf count badge (= total books
             // in this shelf). User reported '书架后面没有统计数字'.
@@ -622,8 +624,8 @@ struct NewLibraryOutlineView: View {
         try bootstrapper.ensureValidStructure()
     }
 
-    private func saveShelf(name: String) throws {
-        let shelf = Bookshelf(name: name)
+    private func saveShelf(name: String, icon: String?) throws {
+        let shelf = Bookshelf(name: name, icon: icon)
         let shelfDir = bookStore.stores.shelvesRoot
             .appendingPathComponent(shelf.id.uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: shelfDir, withIntermediateDirectories: true)
@@ -679,10 +681,60 @@ private struct NewBookSheet: View {
     }
 }
 
+// v0.30 boss 8/31 OOB: NewShelfSheet now lets the user pick a
+// Lucide icon for the new shelf. Default = 'square-library'
+// (= same icon as the reference library section, so a new
+// shelf visually reads as 'another library bucket'). User can
+// pick any Lucide icon from a curated preset list (= see
+// shelfIconPresets below). The icon is required (= the picker
+// always shows a selection; the Save button is enabled as
+// soon as the user picks).
 private struct NewShelfSheet: View {
-    let onSave: (String) -> Void
+    /// Callback receives both name AND selected icon.
+    let onSave: (String, String) -> Void
     @State private var name: String = ""
+    @State private var selectedIcon: String = "square-library"
     @Environment(\.dismiss) private var dismiss
+
+    /// v0.30 boss 8/31 OOB: curated preset list of Lucide icons
+    /// (= ~30 best-fit icons for shelf-like buckets). User must
+    /// pick one (= no empty state). Default selection = first item.
+    /// Sources: lucide.dev search "library, book, archive,
+    /// bookshelf, folder" = the most relevant semantic set for a
+    /// bookshelf sidebar.
+    private let shelfIconPresets: [String] = [
+        "square-library",       // = reference library (= default)
+        "books",                // = stack of books
+        "bookmark",             // = bookmark
+        "bookmark-plus",        // = add bookmark
+        "book-open",            // = open book
+        "book-open-check",      // = read book
+        "book-text",            // = book with text
+        "book-plus",            // = new book
+        "library-big",          // = big library
+        "archive",              // = archive
+        "archive-box",          // = archive box
+        "folder",               // = folder
+        "folder-open",          // = open folder
+        "folder-closed",        // = closed folder
+        "folder-tree",          // = folder tree
+        "book-shelf",           // = shelf of books (= NOT in Lucide; fallback)
+        "book-copy",            // = duplicate
+        "book-marked",          // = marked book
+        "library",              // = library (was previously .z default)
+        "scroll",               // = scroll
+        "scroll-text",          // = scroll with text
+        "file-text",            // = text file
+        "files",              // = multiple files
+        "book-heart",           // = favorite book
+        "book-key",             // = key book
+        "book-lock",            // = locked book
+        "book-up",              // = book up
+        "book-down",            // = book down
+        "book-type",            // = book type
+        "book-user",            // = book user (= author)
+        "bookmark-check",       // = bookmark check
+    ]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -694,8 +746,70 @@ private struct NewShelfSheet: View {
             .padding()
             Divider()
             Form {
-                TextField("书架名 (例如 长篇网文)", text: $name)
-                    .textFieldStyle(.roundedBorder)
+                Section {
+                    TextField("书架名 (例如 长篇网文)", text: $name)
+                        .textFieldStyle(.roundedBorder)
+                } header: {
+                    Text("名称")
+                }
+                Section {
+                    // Icon preview (= shows the selected icon at
+                    // large size so user can see what they're picking).
+                    HStack(spacing: 12) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.accentColor.opacity(0.15))
+                                .frame(width: 56, height: 56)
+                            LucideIcon(selectedIcon, size: 32)
+                                .foregroundStyle(Color.accentColor)
+                        }
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("已选 ICON")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text(selectedIcon)
+                                .font(.system(.caption, design: .monospaced))
+                        }
+                        Spacer()
+                    }
+                    // Icon picker grid (= 6 columns x ~5 rows = 30
+                    // icons visible at once). Apple HIG canonical
+                    // picker pattern: small selectable tiles with
+                    // accent-color highlight on the selected one.
+                    LazyVGrid(
+                        columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6),
+                        spacing: 8
+                    ) {
+                        ForEach(shelfIconPresets, id: \.self) { iconName in
+                            Button {
+                                selectedIcon = iconName
+                            } label: {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(selectedIcon == iconName
+                                              ? Color.accentColor.opacity(0.25)
+                                              : Color.clear)
+                                        .frame(width: 40, height: 40)
+                                    LucideIcon(iconName, size: 24)
+                                        .foregroundStyle(selectedIcon == iconName
+                                                         ? Color.accentColor
+                                                         : Color.primary)
+                                }
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .stroke(selectedIcon == iconName
+                                                ? Color.accentColor
+                                                : Color.gray.opacity(0.2),
+                                                lineWidth: 1)
+                                )
+                                .buttonStyle(.plain)
+                            }
+                            .help(iconName)
+                        }
+                    }
+                } header: {
+                    Text("ICON (必选)")
+                }
             }
             .formStyle(.grouped)
             Divider()
@@ -703,7 +817,7 @@ private struct NewShelfSheet: View {
                 Button("取消", role: .cancel) { dismiss() }
                 Spacer()
                 Button("保存") {
-                    onSave(name)
+                    onSave(name, selectedIcon)
                     dismiss()
                 }
                 .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -711,7 +825,7 @@ private struct NewShelfSheet: View {
             }
             .padding()
         }
-        .frame(minWidth: 360, idealWidth: 420, minHeight: 200, idealHeight: 240)
+        .frame(minWidth: 480, idealWidth: 540, minHeight: 480, idealHeight: 560)
     }
 }
 
