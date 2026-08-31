@@ -475,13 +475,19 @@ final class WorkspaceStore: ObservableObject {
             ],
             weights: [1, 2, 6, 1]
         )
+        // v0.30 boss 2026-09-01 OOB: lower band (chat + dynamic) gets a
+        // 70/30 ratio (= chat dominates, dynamic is a secondary
+        // Kanban/Todo pane). Previously this was 50/50 (= equal
+        // halves, which undervalued chat as the primary working
+        // surface for an authoring app). Boss OOB verbatim in
+        // .scratch/v0.30-pane-routing-splitter-fix/spec.md.
         let lowerBand = makeSplit(
             orientation: .row,
             children: [
                 makeGroup(panes: [chatPane.id]),
                 makeGroup(panes: [dynamicPane.id])
             ],
-            weights: [1, 1]
+            weights: [7, 3]
         )
         let root = makeSplit(
             orientation: .column,
