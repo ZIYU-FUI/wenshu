@@ -207,9 +207,32 @@ struct PreviewPane: View {
     /// yet; deferred to v0.31 ticket).
     let onEntityDoubleClick: (Reference) -> Void
 
+    /// v0.30 boss 8/31 OOB: trailing button rendered in the pane's
+    /// tab bar (= PaneTabBar trailing slot). Used by the project
+    /// preview scope to host the sort menu (= sorts the card grid
+    /// by 首字母 / 创建时间 / 修改时间). Default = nil = no trailing
+    /// button (= the scope just renders its tab bar + content).
+    var trailingButton: AnyView? = nil
+
     /// v0.30 boss OOB: '所有卡片默认排序是拼音首字母先后顺序'.
-    /// Default = .pinyinFirstLetter (= boss spec).
-    @State private var sortOrder: EntitySortOrder = .pinyinFirstLetter
+    /// Default = .pinyinFirstLetter (= boss spec). Owned by
+    /// WorkspaceView (= shared with PreviewSortMenuButton via
+    /// the @State binding) so changing the sort via the tab
+    /// bar trailing button re-renders this view's card grid.
+    @Binding var previewSortOrder: EntitySortOrder
+
+    /// Explicit init: required for @Binding in struct (= memberwise
+    /// init doesn't support @Binding in non-result-builder structs).
+    /// Pass-through of all other fields + wraps the binding.
+    init(
+        scope: PreviewScope,
+        onEntityDoubleClick: @escaping (Reference) -> Void,
+        previewSortOrder: Binding<EntitySortOrder>
+    ) {
+        self.scope = scope
+        self.onEntityDoubleClick = onEntityDoubleClick
+        self._previewSortOrder = previewSortOrder
+    }
 
     /// v0.30 boss OOB: '卡片多列显示, 默认两列, 如果区域被拖拽宽度变窄,
     /// 不够两列, 自动适配成一列, 人话就是卡片流, 宽度自适应'.
@@ -262,7 +285,6 @@ struct PreviewPane: View {
     private func referenceScopeView(category: EntityCategory?) -> some View {
         let allEntities = loadAllEntities()
         VStack(spacing: 0) {
-            previewTopBar()
             Group {
                 if let cat = category {
                     categoryGrid(category: cat, allEntities: allEntities)
@@ -280,7 +302,6 @@ struct PreviewPane: View {
     private func bookScopeView(bookId: UUID, folderName: String?) -> some View {
         let docs = loadBookDocs(bookId: bookId, folderName: folderName)
         VStack(spacing: 0) {
-            previewTopBar()
             if docs.isEmpty {
                 emptyState(
                     message: folderName != nil
@@ -305,71 +326,7 @@ struct PreviewPane: View {
         emptyState(message: "请选择左侧目录查看文档")
     }
 
-    /// Top toolbar shown when cards are displayed (= NOT in detail mode).
-    /// Boss 8/30 OOB: '在素材预览顶栏右边加 icon, 实现重排序功能'.
-    ///
-    /// Layout: empty leading + Spacer + sort menu on right.
-    /// Sort menu icon shows current sort (= boss can always see which
-    /// sort is active without expanding the menu).
-    @ViewBuilder
-    private func previewTopBar() -> some View {
-        HStack {
-            Spacer()
-            sortMenuButton
-        }
-        .padding(.horizontal, 4)
-        .padding(.bottom, 8)
-    }
 
-    /// Apple-standard `Menu` (dropdown picker) for sort order.
-    /// Triggered by a button with the current sort icon + chevron-down
-    /// (= macOS standard pattern, e.g. Finder "Group By" / "Sort By").
-    private var sortMenuButton: some View {
-        Menu {
-            ForEach(EntitySortOrder.allCases) { order in
-                Button {
-                    sortOrder = order
-                } label: {
-                    Label {
-                        Text(order.rawValue)
-                    } icon: {
-                        LucideIcon(order.menuIcon, size: 14)
-                    }
-                    if order == sortOrder {
-                        // Mark current selection with a checkmark via
-                        // the system "selected" affordance.
-                        Image(systemName: "checkmark")
-                    }
-                }
-            }
-        } label: {
-            // v0.30 boss 8/31 OOB: '排序 ICON 放到顶栏里, 居右,
-            // 把现在的排序规则, 用暗文字回显到 ICON 前面'. Layout
-            // = [sort rule text (dim)] + [chevron] + [sort icon]
-            // (= the ICON is the rightmost element, sort rule text
-            // appears to its left as muted text). The chevron stays
-            // (= macOS standard dropdown affordance).
-            HStack(spacing: 4) {
-                Text(sortOrder.rawValue)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)  // dim (= boss's 暗文字)
-                Image(systemName: "chevron.down")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                LucideIcon(sortOrder.menuIcon, size: 16)
-                    .foregroundStyle(.tint)  // rightmost (= 居右)
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .fill(Color.accentColor.opacity(0.08))
-            )
-        }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)  // hide default chevron (we draw our own)
-        .help("排序方式: \(sortOrder.rawValue)")
-    }
 
     // MARK: - 3 view modes
 
@@ -472,10 +429,10 @@ struct PreviewPane: View {
             //
             // Single flat LazyVGrid (= no per-category section headers,
             // no global count header). Cards flow continuously
-            // (= 无边记 sticky-note style). Sort by current `sortOrder`
+            // (= 无边记 sticky-note style). Sort by current `previewSortOrder`
             // (= boss 8/30 OOB: default 拼音首字母; user can pick
             // 创建时间 or 修改时间 via top-right sort menu icon).
-            let sorted = sortEntities(allEntities, by: sortOrder)
+            let sorted = sortEntities(allEntities, by: previewSortOrder)
             GeometryReader { geometry in
                 ScrollView {
                     LazyVGrid(columns: adaptiveColumns(width: geometry.size.width), spacing: 16) {
@@ -661,7 +618,7 @@ struct PreviewPane: View {
     /// card grid, but BookDocCard instead of EntityCard).
     @ViewBuilder
     private func bookDocsGrid(docs: [BookDoc]) -> some View {
-        let sorted = sortBookDocs(docs, by: sortOrder)
+        let sorted = sortBookDocs(docs, by: previewSortOrder)
         GeometryReader { geometry in
             ScrollView {
                 LazyVGrid(

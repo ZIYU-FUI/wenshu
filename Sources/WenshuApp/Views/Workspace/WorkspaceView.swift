@@ -50,6 +50,11 @@ struct WorkspaceView: View {
     /// AppStorage. Empty string = no selection (= first-launch state).
     @AppStorage("wenshu.sidebarSelection") private var persistedSidebarSelection: String = ""
 
+    /// v0.30 boss 8/31 OOB: card-grid sort order (= shared between
+    /// PreviewPane's cards and the sort menu in the preview pane's
+    /// tab bar trailing slot). Default = .pinyinFirstLetter.
+    @State private var previewSortOrder: EntitySortOrder = .pinyinFirstLetter
+
     /// v0.30 boss 8/31 OOB: convert sidebar selection to PreviewScope
     /// for the material management zone. Computed on every render so
     /// it stays in sync with `sidebarSelection`.
@@ -214,6 +219,18 @@ struct WorkspaceView: View {
             // `previewScope` (= driven by sidebarSelection). The tab
             // "图" stays on GraphView placeholder for future graph
             // view work.
+            // v0.30 boss 8/31 OOB: the sort menu is now the
+            // trailing button of the preview pane's tab bar (=
+            // rendered as the rightmost element in PaneTabBar's
+            // HStack, via the trailing: { } slot). Removed the
+            // separate previewTopBar() (= was a custom HStack BELOW
+            // the pane tab bar = visually "two toolbars stacked",
+            // confusing). Sort menu now lives IN the tab bar.
+            //
+            // The trailing button passes the shared
+            // previewSortOrder binding so changing the sort
+            // re-renders the card grid (= PreviewPane observes
+            // the same @State via its previewSortOrder parameter).
             ZoneContentView(zoneSlug: "projectPreview", tabs: [
                 ("预览", "book-open-check", AnyView(PreviewPane(
                     scope: previewScope,
@@ -222,10 +239,17 @@ struct WorkspaceView: View {
                         // For now: just print; Ticket 3 will wire this
                         // to editor zone + replace EditorContentPlaceholder.
                         NSLog("WorkspaceView.PreviewPane: double-click entity %@", entity.title)
-                    }
+                    },
+                    previewSortOrder: $previewSortOrder
                 ))),
                 ("图", "waypoints", AnyView(GraphView())),
-            ])
+            ], trailingButton: AnyView(
+                // v0.30 boss 8/31 OOB: '排序 ICON 放到顶栏里, 居右,
+                // ▼ 替换成 list-ordered icon'. The sort menu button
+                // shows [sort rule text (dim)] + [list-ordered icon
+                // (tint)] = icon居右 within the trailing button.
+                PreviewSortMenuButton(sortOrder: $previewSortOrder)
+            ))
         case .editor:
             // v0.28 followup Boss UX round 43: switch from
             // EditorPlaceholder (= text-only) to real ZoneContentView
@@ -406,7 +430,8 @@ struct ZoneModuleView: View {
                         // For now: just print; Ticket 3 will wire this
                         // to editor zone + replace EditorContentPlaceholder.
                         NSLog("ZoneModuleView.PreviewPane: double-click entity %@", entity.title)
-                    }
+                    },
+                    previewSortOrder: .constant(.pinyinFirstLetter)
                 ))),
                 ("图", "waypoints", AnyView(GraphView())),
             ])
@@ -598,5 +623,50 @@ private struct EditModeBadge: View {
 private struct PreviewTabBackground: View {
     var body: some View {
         Color.clear
+    }
+}
+
+
+/// v0.30 boss 8/31 OOB: sort menu button rendered in the preview
+/// pane's tab bar trailing slot. Layout = [sort rule text dim] +
+/// [list-ordered icon tint] (= icon居右 within the button). No
+/// chevron-down (= the icon IS the dropdown affordance).
+private struct PreviewSortMenuButton: View {
+    @Binding var sortOrder: EntitySortOrder
+
+    var body: some View {
+        Menu {
+            ForEach(EntitySortOrder.allCases) { order in
+                Button {
+                    sortOrder = order
+                } label: {
+                    Label {
+                        Text(order.rawValue)
+                    } icon: {
+                        LucideIcon(order.menuIcon, size: 14)
+                    }
+                    if order == sortOrder {
+                        Image(systemName: "checkmark")
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(sortOrder.rawValue)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                LucideIcon(sortOrder.menuIcon, size: 16)
+                    .foregroundStyle(.tint)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(Color.accentColor.opacity(0.08))
+            )
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .help("排序方式: \(sortOrder.rawValue)")
     }
 }
