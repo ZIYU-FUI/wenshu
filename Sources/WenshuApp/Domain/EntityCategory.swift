@@ -68,7 +68,7 @@ public enum EntityCategory: String, CaseIterable, Codable, Sendable, Identifiabl
     case u = "U"  // 交通运输
     case v = "V"  // 航空、航天
     case x = "X"  // 环境科学、安全科学
-    case z = "Z"  // 综合性图书
+    case z = "Z"  // 其它 (= catch-all fallback category, v0.30 boss 8/31)
 
     public var id: String { rawValue }
 
@@ -97,7 +97,7 @@ public enum EntityCategory: String, CaseIterable, Codable, Sendable, Identifiabl
         case .u: return "交通运输"
         case .v: return "航空、航天"
         case .x: return "环境科学、安全科学"
-        case .z: return "综合性图书"
+        case .z: return "其它"
         }
     }
 
@@ -126,15 +126,22 @@ public enum EntityCategory: String, CaseIterable, Codable, Sendable, Identifiabl
         case .u: return "交通"
         case .v: return "航天"
         case .x: return "环境"
-        case .z: return "综合"
+        case .z: return "其它"
         }
     }
 
     /// Filesystem directory name (= the on-disk folder under
     /// `reference-library/entities/`). Stable across rename (= Apple
     /// HIG: directory = identity, not the category's display label).
-    /// Uses lowercase letter (= POSIX-compliant).
-    public var directoryName: String { rawValue.lowercased() }
+    /// Uses lowercase letter (= POSIX-compliant) for all cases EXCEPT
+    /// `.z` (= 其他 fallback, uses Chinese name to match the fallback
+    /// convention so LLM output is consistent across the system).
+    public var directoryName: String {
+        switch self {
+        case .z: return "其它"
+        default: return rawValue.lowercased()
+        }
+    }
 
     /// Lucide icon name for sidebar folder display.
     public var icon: String {
