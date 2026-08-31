@@ -109,6 +109,17 @@ struct NewLibraryOutlineView: View {
     // the Menu pattern that failed to render inside the
     // ZoneContentTabBar trailing slot.
     @State private var showNewChoiceSheet: Bool = false
+    // v0.30 boss 8/31 OOB: context-menu state (= delete / rename
+    // confirmation). 'pendingDelete' holds the (kind, id) tuple
+    // for the item awaiting deletion; setting it shows an
+    // .alert with a confirm/cancel pair (= destructive action
+    // requires explicit confirmation per macOS HIG).
+    @State private var pendingDelete: PendingDelete?
+    // 'renaming' holds the (kind, id) for the item being renamed;
+    // setting it presents RenameItemSheet for the user to type a
+    // new name (= reuses the NewShelfSheet / NewBookSheet field
+    // patterns).
+    @State private var renaming: RenamingTarget?
 
     /// v0.30: Apple std List selection. Mirrors both
     /// `bookStore.selectedBookId` (when a book is selected) and
@@ -304,6 +315,90 @@ struct NewLibraryOutlineView: View {
                 }
             )
         }
+        // v0.30 boss 8/31 OOB: context-menu rename sheet (= opens
+        // when user picks '重命名…' from shelf or book context
+        // menu). The sheet pre-fills with the current name and
+        // runs the same duplicate + reserved-name validation as
+        // NewShelfSheet. User confirms to apply the rename.
+        .sheet(item: $renaming) { target in
+            Group {
+                if target.kind == .shelf {
+                    RenameItemSheet(
+                        title: "重命名书架",
+                        originalName: target.originalName,
+                        existingNames: shelves
+                            .filter { $0.id != target.itemId }
+                            .map { $0.name }
+                    ) { newName in
+                        do {
+                            try renameShelf(id: target.itemId, newName: newName)
+                            reload()
+                        } catch {
+                            loadError = error.localizedDescription
+                        }
+                    }
+                } else {
+                    RenameItemSheet(
+                        title: "重命名书",
+                        originalName: target.originalName,
+                        existingNames: books
+                            .filter { $0.id != target.itemId }
+                            .map { $0.title }
+                    ) { newTitle in
+                        do {
+                            try renameBook(id: target.itemId, newTitle: newTitle)
+                            reload()
+                        } catch {
+                            loadError = error.localizedDescription
+                        }
+                    }
+                }
+            }
+        }
+        // v0.30 boss 8/31 OOB: context-menu delete confirmation.
+        // Apple HIG: destructive operations require explicit
+        // confirmation via .alert (= the .destructive role on
+        // the button is not enough on macOS for safety). The
+        // alert message shows the count of children that will
+        // be deleted along with the target (= user sees exactly
+        // what they're losing before confirming).
+        .alert(
+            "确认删除?",
+            isPresented: Binding(
+                get: { pendingDelete != nil },
+                set: { if !$0 { pendingDelete = nil } }
+            ),
+            presenting: pendingDelete
+        ) { target in
+            Button("取消", role: .cancel) {
+                pendingDelete = nil
+            }
+            Button("删除", role: .destructive) {
+                do {
+                    switch target.kind {
+                    case .shelf:
+                        try deleteShelf(id: target.itemId)
+                    case .book:
+                        try deleteBook(id: target.itemId)
+                    }
+                    reload()
+                } catch {
+                    loadError = error.localizedDescription
+                }
+                pendingDelete = nil
+            }
+        } message: { target in
+            // Per Apple HIG: confirm dialogs should clearly state
+            // what will be lost. We show the target name + child
+            // count so the user knows the full blast radius.
+            let childCount = pendingDeleteChildCount(target: target)
+            if childCount > 0 {
+                let childKindLabel = target.kind == .shelf ? "书" : "文档"
+                Text("将永久删除 \(target.itemName) 以及其中的 \(childCount) 个\(childKindLabel)。此操作不可撤销。")
+            } else {
+                Text("将永久删除 \(target.itemName)。此操作不可撤销。")
+            }
+        }
     }
 
     // MARK: - Row builders
@@ -346,6 +441,33 @@ struct NewLibraryOutlineView: View {
             // in this shelf). User reported '书架后面没有统计数字'.
             .badge(books.count)
             .tag(SidebarItem.shelf(shelf.id))
+            // v0.30 boss 8/31 OOB: right-click context menu on shelf
+            // row. Apple HIG canonical contextMenu pattern. Two
+            // actions: 重命名 (= renames the shelf in place) +
+            // 删除 (= marks shelf for deletion, triggers .alert for
+            // confirmation). The default '从这里开始' shelf is NOT
+            // blocked here (= it has the same context menu as
+            // user-created shelves; the '资料库 不允许删除' rule
+            // only applies to the reference library Section, which
+            // is a different element).
+            .contextMenu {
+                Button("重命名…") {
+                    renaming = RenamingTarget(
+                        kind: .shelf,
+                        itemId: shelf.id,
+                        originalName: shelf.name,
+                        shelfId: nil
+                    )
+                }
+                Divider()
+                Button("删除…", role: .destructive) {
+                    pendingDelete = PendingDelete(
+                        kind: .shelf,
+                        itemId: shelf.id,
+                        itemName: shelf.name
+                    )
+                }
+            }
         }
     }
 
@@ -420,6 +542,30 @@ struct NewLibraryOutlineView: View {
                     folderDirectoryName: $1.name
                 )})
                 .tag(SidebarItem.book(book.id))
+                // v0.30 boss 8/31 OOB: right-click context menu on book
+                // row. Apple HIG canonical pattern. The 帮助 book in
+                // the default '从这里开始' shelf still gets the
+                // menu (= user can delete the help book if they
+                // want; the 资料库 rule is for the reference
+                // library Section, not for the default help book).
+                .contextMenu {
+                    Button("重命名…") {
+                        renaming = RenamingTarget(
+                            kind: .book,
+                            itemId: book.id,
+                            originalName: book.title,
+                            shelfId: book.shelfId
+                        )
+                    }
+                    Divider()
+                    Button("删除…", role: .destructive) {
+                        pendingDelete = PendingDelete(
+                            kind: .book,
+                            itemId: book.id,
+                            itemName: book.title
+                        )
+                    }
+                }
             }
         }
     }
@@ -655,6 +801,153 @@ struct NewLibraryOutlineView: View {
         try FileManager.default.createDirectory(at: shelfDir.appendingPathComponent("books"), withIntermediateDirectories: true)
         let data = try JSONEncoder().encode(shelf)
         try data.write(to: shelfDir.appendingPathComponent("shelf.json"))
+    }
+
+    /// v0.30 boss 8/31 OOB: count children (= books in shelf, or
+    /// .md files in book) that will be deleted along with the
+    /// target. Used by the .alert message so the user knows the
+    /// full blast radius before confirming.
+    private func pendingDeleteChildCount(target: PendingDelete) -> Int {
+        switch target.kind {
+        case .shelf:
+            // Books in this shelf
+            return books.filter { $0.shelfId == target.itemId }.count
+        case .book:
+            // .md files across all 5 standard folders
+            return standardFolderNames.reduce(0) { sum, folder in
+                sum + bookStore.folderDocumentCount(
+                    bookId: target.itemId,
+                    folderDirectoryName: folder.name
+                )
+            }
+        }
+    }
+
+    // v0.30 boss 8/31 OOB: context-menu actions. Per macOS HIG
+    // destructive operations require explicit confirmation (= an
+    // .alert with a '确认删除' button). The pendingDelete state
+    // is set by the context menu, which triggers the alert; the
+    // user confirms to actually execute the delete.
+
+    /// Delete a shelf (= entire shelf + all its books) from disk.
+    /// Apple HIG: requires confirmation because it's destructive
+    /// (= the user might not realize the shelf contains books).
+    private func deleteShelf(id: UUID) throws {
+        // Boss: '资料库不允许删除'. Enforce here as a defense in
+        // depth (= the reference library is a Section, not a Shelf,
+        // so its id is never passed here; but the check is cheap).
+        guard id.uuidString != "00000000-0000-0000-0000-000000000000" else {
+            throw ShelfDeleteError.cannotDeleteDefault
+        }
+        let shelfDir = bookStore.stores.shelvesRoot
+            .appendingPathComponent(id.uuidString, isDirectory: true)
+        if FileManager.default.fileExists(atPath: shelfDir.path) {
+            try FileManager.default.removeItem(at: shelfDir)
+        }
+    }
+
+    /// Delete a single book (= its shelf/<id>/books/<book-id>/ dir
+    /// + shelf.json metadata) from disk.
+    private func deleteBook(id: UUID) throws {
+        // Find which shelf contains the book (= we need its dir
+        // to compute the full path). Mirrors the v0.30 refactor
+        // that surfaced book lookup in WenshuLibrary.
+        guard let parentShelf = shelves.first(where: { shelf in
+            // Books live in <shelves>/<shelf-uuid>/books/<book-uuid>/
+            let booksDir = bookStore.stores.shelvesRoot
+                .appendingPathComponent(shelf.directoryName, isDirectory: true)
+                .appendingPathComponent("books", isDirectory: true)
+            return FileManager.default.fileExists(atPath:
+                booksDir.appendingPathComponent(id.uuidString).path
+            )
+        }) else { return }  // book not on disk = nothing to delete
+        let bookDir = bookStore.stores.shelvesRoot
+            .appendingPathComponent(parentShelf.directoryName, isDirectory: true)
+            .appendingPathComponent("books", isDirectory: true)
+            .appendingPathComponent(id.uuidString, isDirectory: true)
+        if FileManager.default.fileExists(atPath: bookDir.path) {
+            try FileManager.default.removeItem(at: bookDir)
+        }
+    }
+
+    /// Rename a shelf (= rewrites shelf.json with the new name).
+    /// The directory name (= UUID) is NOT changed (= identity =
+    /// stable per Apple HIG document-based app).
+    private func renameShelf(id: UUID, newName: String) throws {
+        let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Reserved name check (= same as saveShelf).
+        let reserved: Set<String> = ["资料库", "参考库", "reference library"]
+        if reserved.contains(where: { trimmed.caseInsensitiveCompare($0) == .orderedSame }) {
+            throw ShelfError.reservedName(trimmed)
+        }
+        // Duplicate check (= exclude the current shelf from
+        // existingNames, since renaming to the same name is allowed).
+        let others = shelves
+            .filter { $0.id != id }
+            .map { $0.name.trimmingCharacters(in: .whitespacesAndNewlines) }
+        if others.contains(where: { $0.caseInsensitiveCompare(trimmed) == .orderedSame }) {
+            throw ShelfError.duplicateName(trimmed)
+        }
+        let shelfDir = bookStore.stores.shelvesRoot
+            .appendingPathComponent(id.uuidString, isDirectory: true)
+        let shelfJSONURL = shelfDir.appendingPathComponent("shelf.json")
+        guard FileManager.default.fileExists(atPath: shelfJSONURL.path),
+              let data = try? Data(contentsOf: shelfJSONURL),
+              var existing = try? JSONDecoder().decode(Bookshelf.self, from: data)
+        else { return }
+        existing.name = trimmed
+        existing.updatedAt = Date()
+        let updated = try JSONEncoder().encode(existing)
+        try updated.write(to: shelfJSONURL)
+    }
+
+    /// Rename a book (= rewrites book.json with the new title).
+    private func renameBook(id: UUID, newTitle: String) throws {
+        let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Duplicate title check (= exclude current book).
+        let otherTitles = books
+            .filter { $0.id != id }
+            .map { $0.title.trimmingCharacters(in: .whitespacesAndNewlines) }
+        if otherTitles.contains(where: { $0.caseInsensitiveCompare(trimmed) == .orderedSame }) {
+            throw ShelfError.duplicateName(trimmed)
+        }
+        // Find the book dir (= same as deleteBook).
+        guard let parentShelf = shelves.first(where: { shelf in
+            let booksDir = bookStore.stores.shelvesRoot
+                .appendingPathComponent(shelf.directoryName, isDirectory: true)
+                .appendingPathComponent("books", isDirectory: true)
+            return FileManager.default.fileExists(atPath:
+                booksDir.appendingPathComponent(id.uuidString).path
+            )
+        }) else { return }
+        let bookJSONURL = bookStore.stores.shelvesRoot
+            .appendingPathComponent(parentShelf.directoryName, isDirectory: true)
+            .appendingPathComponent("books", isDirectory: true)
+            .appendingPathComponent(id.uuidString, isDirectory: true)
+            .appendingPathComponent("book.json")
+        guard FileManager.default.fileExists(atPath: bookJSONURL.path),
+              let data = try? Data(contentsOf: bookJSONURL),
+              var existing = try? JSONDecoder().decode(Book.self, from: data)
+        else { return }
+        existing.title = trimmed
+        existing.updatedAt = Date()
+        let updated = try JSONEncoder().encode(existing)
+        try updated.write(to: bookJSONURL)
+    }
+}
+
+/// v0.30 boss 8/31 OOB: dedicated error case for attempting to
+/// delete the default shelf (= "资料库 不允许删除"). Defense in
+/// depth = even if the context menu is bypassed, saveShelf /
+/// deleteShelf will refuse the operation.
+private enum ShelfDeleteError: LocalizedError {
+    case cannotDeleteDefault
+
+    var errorDescription: String? {
+        switch self {
+        case .cannotDeleteDefault:
+            return "默认书架 (= 资料库) 不能删除"
+        }
     }
 }
 
@@ -944,5 +1237,136 @@ struct NewChoiceSheet: View {
         }
         .padding(20)
         .frame(minWidth: 280, idealWidth: 320, minHeight: 180, idealHeight: 200)
+    }
+}
+
+// MARK: - Context menu support (= right-click delete / rename)
+
+// v0.30 boss 8/31 OOB: '在目录树实现右键删除、重命名功能.
+// 资料库不允许删除.' Apple HIG context menu pattern: right-click
+// any row to get a context menu with destructive actions (= delete
+// + rename). The reference library section is read-only
+// (= no context menu, because the reference library is a
+// built-in feature, not a user-managed shelf).
+
+/// Identifies which kind of item the pending action targets.
+private enum ItemKind: String, Identifiable {
+    case shelf
+    case book
+
+    var id: String { rawValue }
+
+    /// Apple HIG: confirm dialog wording varies by item type.
+    var displayName: String {
+        switch self {
+        case .shelf: return "书架"
+        case .book: return "书"
+        }
+    }
+}
+
+/// Holds the target of a pending delete confirmation (= shows an
+/// .alert asking user to confirm). Cleared when alert dismisses.
+private struct PendingDelete: Identifiable {
+    let id = UUID()
+    let kind: ItemKind
+    let itemId: UUID
+    let itemName: String
+}
+
+/// Holds the target of a pending rename (= shows RenameItemSheet).
+/// Bookshelf/Book id + initial name (pre-fill in TextField).
+private struct RenamingTarget: Identifiable {
+    let id = UUID()
+    let kind: ItemKind
+    let itemId: UUID
+    let originalName: String
+    let shelfId: UUID?  // only for books
+}
+
+/// v0.30 boss 8/31 OOB: simple sheet for renaming a shelf or book.
+/// Pre-fills the TextField with the current name; saves via the
+/// supplied closure. Same duplicate-check logic as NewShelfSheet
+/// (= passes existingNames to the validator).
+private struct RenameItemSheet: View {
+    let title: String  // = "重命名书架" or "重命名书"
+    let originalName: String
+    let existingNames: [String]
+    let onSave: (String) -> Void
+
+    @State private var name: String
+    @Environment(\.dismiss) private var dismiss
+
+    init(
+        title: String,
+        originalName: String,
+        existingNames: [String],
+        onSave: @escaping (String) -> Void
+    ) {
+        self.title = title
+        self.originalName = originalName
+        self.existingNames = existingNames
+        self.onSave = onSave
+        _name = State(initialValue: originalName)
+    }
+
+    /// v0.30 boss 8/31 OOB: same duplicate-check logic as
+    /// NewShelfSheet. Excludes the original name (= renaming to the
+    /// same name is allowed = no-op). Trims whitespace.
+    private var nameError: String? {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return nil }
+        if trimmed == originalName { return nil }  // same name = OK
+        if existingNames.contains(where: {
+            $0.trimmingCharacters(in: .whitespacesAndNewlines)
+                .caseInsensitiveCompare(trimmed) == .orderedSame
+        }) {
+            return "名称 \"\(trimmed)\" 已被使用. 请换一个名字"
+        }
+        return nil
+    }
+
+    private var isNameValid: Bool {
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && nameError == nil
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text(title).font(.headline)
+                Spacer()
+            }
+            .padding()
+            Divider()
+            Form {
+                TextField("名称", text: $name)
+                    .textFieldStyle(.roundedBorder)
+                if let nameError = nameError {
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                        Text(nameError)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                    .padding(.top, 2)
+                }
+            }
+            .formStyle(.grouped)
+            Divider()
+            HStack {
+                Button("取消", role: .cancel) { dismiss() }
+                Spacer()
+                Button("保存") {
+                    onSave(name.trimmingCharacters(in: .whitespacesAndNewlines))
+                    dismiss()
+                }
+                .disabled(!isNameValid)
+                .keyboardShortcut(.defaultAction)
+            }
+            .padding()
+        }
+        .frame(minWidth: 360, idealWidth: 420, minHeight: 160, idealHeight: 200)
     }
 }
