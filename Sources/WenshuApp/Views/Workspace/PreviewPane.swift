@@ -386,18 +386,15 @@ struct PreviewPane: View {
     @ViewBuilder
     private func categoryGrid(category: EntityCategory, allEntities: [Reference]) -> some View {
         let inCategory = allEntities.filter { $0.category == category }
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                LucideIcon(category.icon, size: 24)
-                    .foregroundStyle(.tint)
-                Text(category.displayName)
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                Text("(\(inCategory.count))")
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
-                Spacer()
-            }
+        // v0.30 boss 8/31 OOB: removed the category header HStack
+        // (= icon + category.displayName + count). Per boss: '资料
+        // 库里的, 素材预览区的红框里的这个标题没有用, 不需要,
+        // 删掉'. The sidebar already shows the category name (= when
+        // user clicks 资料库/历史、地理, the sidebar shows the
+        // selection); the preview pane's category header is
+        // redundant. Now the preview pane jumps directly to the
+        // card grid (= card thumbnails + card content).
+        VStack(alignment: .leading, spacing: 0) {
             if inCategory.isEmpty {
                 emptyState(message: "该分类下暂无实体")
             } else {
@@ -705,6 +702,13 @@ private struct EntityCard: View {
             // THUMBNAIL: type icon as a large prominent header
             // (= boss OOB: 卡片要加缩略图). 64 PT icon on a tinted
             // gradient background = the card's "cover" image.
+            //
+            // v0.30 boss 8/31 OOB: '素材卡片区, 左上角右上角, 缩略图
+            // 的是直角, 超出了卡片圆角范围'. Previously the thumbnail
+            // ZStack was a plain rectangle (= top-left and top-right
+            // corners stuck out past the card's 10 PT rounded
+            // corners). Now clipped to a top-rounded rectangle so
+            // the thumbnail sits flush with the card's top edge.
             ZStack {
                 LinearGradient(
                     colors: [
@@ -719,6 +723,18 @@ private struct EntityCard: View {
             }
             .frame(height: 100)
             .frame(maxWidth: .infinity)
+            // Clip top corners to match the card's 10 PT rounded
+            // corners (= topLeading + topTrailing = 10, bottom 0).
+            // Bottom corners stay square (= the thumbnail's bottom
+            // edge sits flush against the text content below).
+            .clipShape(
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 10,
+                    bottomLeadingRadius: 0,
+                    bottomTrailingRadius: 0,
+                    topTrailingRadius: 10
+                )
+            )
             // TEXT content below the thumbnail
             VStack(alignment: .leading, spacing: 6) {
                 // Type badge + modified-time chip (= condensed header).
@@ -848,6 +864,10 @@ private struct BookDocCard: View {
             // THUMBNAIL: folder icon as a large prominent header
             // (= matches the EntityCard thumbnail style for visual
             // consistency between scopes).
+            //
+            // v0.30 boss 8/31 OOB: same thumbnail corner clip fix
+            // as EntityCard (= top corners rounded to match card's
+            // 10 PT corners).
             ZStack {
                 LinearGradient(
                     colors: [
@@ -865,6 +885,14 @@ private struct BookDocCard: View {
             }
             .frame(height: 100)
             .frame(maxWidth: .infinity)
+            .clipShape(
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 10,
+                    bottomLeadingRadius: 0,
+                    bottomTrailingRadius: 0,
+                    topTrailingRadius: 10
+                )
+            )
             // TEXT content below the thumbnail
             VStack(alignment: .leading, spacing: 6) {
                 // v0.30 boss 8/31 OOB '换成最后一次编辑的时间, 没有
