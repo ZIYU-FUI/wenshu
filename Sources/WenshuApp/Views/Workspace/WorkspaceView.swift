@@ -38,13 +38,13 @@ struct WorkspaceView: View {
     /// detail mode (= single card with full .md body).
     @State private var selectedEntity: Reference? = nil
 
-    /// v0.30 boss 8/31 OOB '默认 app 进来是, 选定的是退出时的目录':
-    /// single source of truth for sidebar selection. Persisted to
-    /// UserDefaults so the selection survives app restart. The
-    /// sidebar tree reads this binding (= List(selection:)) and the
-    /// preview pane reads it (= decides scope: book / folder /
-    /// reference category / shelf).
-    @State private var sidebarSelection: SidebarItem? = nil
+    /// v0.30 boss 8/31 OOB '各区域之间的联动' (= option A = global
+    /// @Observable store, = commit eb3066bca). The cross-zone
+    /// UI state (= sidebarSelection / selectedEntity / etc.) lives
+    /// here, NOT in WorkspaceView's @State. WorkspaceView just
+    /// observes (= for the previewScope computed) and persists
+    /// (= for the @AppStorage round-trip via .onChange).
+    @Environment(AppState.self) private var appState
 
     /// v0.30 boss 8/31 OOB: JSON-encoded sidebar selection for
     /// AppStorage. Empty string = no selection (= first-launch state).
@@ -54,7 +54,7 @@ struct WorkspaceView: View {
     /// for the material management zone. Computed on every render so
     /// it stays in sync with `sidebarSelection`.
     private var previewScope: PreviewScope {
-        guard let item = sidebarSelection else { return .empty }
+        guard let item = appState.sidebarSelection else { return .empty }
         switch item {
         case .book(let bookId):
             return .bookScope(bookId: bookId, folderName: nil)
@@ -104,8 +104,7 @@ struct WorkspaceView: View {
         // is now a thin shim that hands off to PaneRenderer.
         PaneRenderer(
             node: store.workspace.root,
-            store: store,
-            sidebarSelection: $sidebarSelection
+            store: store
         )
             // v0.30 boss 8/31 OOB '默认 app 进来是, 选定的是退出时的
             // 目录': restore sidebar selection from AppStorage on
@@ -113,18 +112,18 @@ struct WorkspaceView: View {
             // empty state). Done here (= WorkspaceView root) so it
             // runs once per WiredShell lifetime.
             .onAppear {
-                if sidebarSelection == nil,
+                if appState.sidebarSelection == nil,
                    !persistedSidebarSelection.isEmpty,
                    let data = persistedSidebarSelection.data(using: .utf8),
                    let item = try? JSONDecoder().decode(
                     SidebarItem.self, from: data
                    ) {
-                    sidebarSelection = item
+                    appState.sidebarSelection = item
                 }
             }
             // v0.30 boss 8/31 OOB: every selection change writes back
             // to AppStorage (= so close + reopen restores state).
-            .onChange(of: sidebarSelection) { _, newValue in
+            .onChange(of: appState.sidebarSelection) { _, newValue in
                 if let item = newValue,
                    let data = try? JSONEncoder().encode(item),
                    let json = String(data: data, encoding: .utf8) {
@@ -188,7 +187,6 @@ struct WorkspaceView: View {
             // The trailingButton uses the default-init (doesn't drive preview).
             ZoneContentView(zoneSlug: "projectSidebar", tabs: [
                 ("书架", "book-open", AnyView(NewLibraryOutlineView(
-                    sidebarSelection: $sidebarSelection,
                     selectedEntityCategory: $selectedEntityCategory,
                     selectedEntity: $selectedEntity
                 ))),
@@ -322,17 +320,17 @@ struct ZoneModuleView: View {
     @Binding var selectedEntityCategory: EntityCategory?
     @Binding var selectedEntity: Reference?
 
-    /// v0.30 boss 8/31 OOB: sidebar selection binding (= drives
-    /// PreviewPane scope = book / folder / reference category /
-    /// shelf / empty). PaneRenderer forwards this from WorkspaceView.
-    @Binding var sidebarSelection: SidebarItem?
+    /// v0.30 boss 8/31 OOB '各区域之间的联动' (= option A):
+    /// AppState is the global @Observable source of truth.
+    /// ZoneModuleView reads it directly (= no @Binding chain).
+    @Environment(AppState.self) private var appState
 
     /// v0.30 boss 8/31 OOB: computed preview scope (= mirrors
     /// WorkspaceView's `previewScope`; duplicated here to keep
     /// ZoneModuleView self-contained without threading the scope
     /// through WorkspaceView → ZoneModuleView via another binding).
     private var previewScope: PreviewScope {
-        guard let item = sidebarSelection else { return .empty }
+        guard let item = appState.sidebarSelection else { return .empty }
         switch item {
         case .book(let bookId):
             return .bookScope(bookId: bookId, folderName: nil)
@@ -357,12 +355,10 @@ struct ZoneModuleView: View {
     /// (= pass dummy constants explicitly, see RegisteredPanes.swift)
     init(
         zoneSlot: ZoneSlot,
-        sidebarSelection: Binding<SidebarItem?> = .constant(nil),
         selectedEntityCategory: Binding<EntityCategory?> = .constant(nil),
         selectedEntity: Binding<Reference?> = .constant(nil)
     ) {
         self.zoneSlot = zoneSlot
-        self._sidebarSelection = sidebarSelection
         self._selectedEntityCategory = selectedEntityCategory
         self._selectedEntity = selectedEntity
     }
@@ -377,7 +373,6 @@ struct ZoneModuleView: View {
             // the sidebar click → preview pane scope works.
             ZoneContentView(zoneSlug: "projectSidebar", tabs: [
                 ("书架", "book-open", AnyView(NewLibraryOutlineView(
-                    sidebarSelection: $sidebarSelection,
                     selectedEntityCategory: $selectedEntityCategory,
                     selectedEntity: $selectedEntity
                 ))),

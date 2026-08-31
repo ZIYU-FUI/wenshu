@@ -146,20 +146,14 @@ struct NewLibraryOutlineView: View {
     @Binding var selectedEntityCategory: EntityCategory?
     @Binding var selectedEntity: Reference?
 
-    /// v0.30 boss 8/31 OOB '默认 app 进来是, 选定的是退出时的目录':
-    /// WorkspaceView owns the sidebar selection state (= for AppStorage
-    /// persistence). NewLibraryOutlineView's init takes the binding.
-    ///
-    /// Default initializer (= non-workspace callers = registered panes,
-    /// zoneHeaderButtons, fallback render). Uses a .constant binding
-    /// so the view still renders standalone (= the binding simply has
-    /// no effect there).
+    /// v0.30 boss 8/31 OOB: default initializer (= non-workspace
+    /// callers = registered panes, zoneHeaderButtons, fallback
+    /// render). All cross-zone state now reads via @Environment,
+    /// so this initializer takes no binding parameters.
     init(
-        sidebarSelection: Binding<SidebarItem?> = .constant(nil),
         selectedEntityCategory: Binding<EntityCategory?> = .constant(nil),
         selectedEntity: Binding<Reference?> = .constant(nil)
     ) {
-        self._sidebarSelection = sidebarSelection
         self._selectedEntityCategory = selectedEntityCategory
         self._selectedEntity = selectedEntity
     }
@@ -187,17 +181,11 @@ struct NewLibraryOutlineView: View {
     // patterns).
     @State private var renaming: RenamingTarget?
 
-    /// v0.30: Apple std List selection. Mirrors both
-    /// `bookStore.selectedBookId` (when a book is selected) and
-    /// `selectedEntityCategory` (when a category is selected). Single
-    /// selection per List (= Apple HIG).
-    ///
-    /// v0.30 boss 8/31 OOB '默认 app 进来是, 选定的是退出时的目录':
-    /// ownership moved to WorkspaceView (= .scratch/v0.30-preview-pane-
-    /// scope/issues/02-sidebar-selection-persistence.md) so WorkspaceView
-    /// can persist the selection across launches via @AppStorage.
-    /// NewLibraryOutlineView just observes and renders it.
-    @Binding var sidebarSelection: SidebarItem?
+    /// v0.30 boss 8/31 OOB '各区域之间的联动' (= option A = global
+    /// @Observable store): sidebar selection is now read directly
+    /// from AppState via @Environment (= no @Binding threaded
+    /// from WorkspaceView).
+    @Environment(AppState.self) private var appState
     // v0.30 boss 8/31 OOB (sidebar feedback bundle #1+2+3): per-shelf
     // DisclosureGroup expanded state (= remembers user expand/collapse
     // across selections). Keys = shelf.id, value = isExpanded.
@@ -226,7 +214,10 @@ struct NewLibraryOutlineView: View {
         // All rows use Label + .badge (= Apple std). No hardcoded
         // sizes (= Apple HIG: follow user system preference). Selection
         // highlight = automatic (= Apple std).
-        List(selection: $sidebarSelection) {
+        List(selection: Binding(
+            get: { appState.sidebarSelection },
+            set: { appState.sidebarSelection = $0 }
+        )) {
             // v0.30 boss 8/31 OOB (sidebar feedback bundle #1+2):
             // 'shelf "从这里开始" should be in the directory tree as
             // first level (= not a SwiftUI Section header)'. Replaced
@@ -235,7 +226,7 @@ struct NewLibraryOutlineView: View {
             // level 1, with chevron, instead of a grayed-out header).
             // The book rows inside the shelf (= level 2) are nested
             // inside the DisclosureGroup content. When a book row is
-            // selected (= sidebarSelection = .book(...)), its own
+            // selected (= appState.sidebarSelection = .book(...)), its own
             // nested DisclosureGroup for folders (= level 3) auto-
             // expands so 世界观 / 角色 / 章节大纲 / 小说正文 / 小说草稿
             // are visible without an extra tap (= boss OOB #3 'child
@@ -267,7 +258,7 @@ struct NewLibraryOutlineView: View {
                         .tag(SidebarItem.referenceCategory(category.directoryName))
                         // v0.30 boss 8/31 OOB: blue selection highlight
                         .background(
-                            sidebarSelection == .referenceCategory(category.directoryName)
+                            appState.sidebarSelection == .referenceCategory(category.directoryName)
                                 ? Color.accentColor.opacity(0.18)
                                 : Color.clear
                         )
@@ -284,7 +275,7 @@ struct NewLibraryOutlineView: View {
                     .tag(SidebarItem.referenceLibraryRoot)
                     // v0.30 boss 8/31 OOB: blue selection highlight
                     .background(
-                        sidebarSelection == .referenceLibraryRoot
+                        appState.sidebarSelection == .referenceLibraryRoot
                             ? Color.accentColor.opacity(0.18)
                             : Color.clear
                     )
@@ -342,7 +333,7 @@ struct NewLibraryOutlineView: View {
         // through (= follows the liquid-glass opacity slider in Settings).
         .scrollContentBackground(.hidden)
         .onAppear(perform: reload)
-        .onChange(of: sidebarSelection) { _, newValue in
+        .onChange(of: appState.sidebarSelection) { _, newValue in
             // v0.30: forward sidebar selection to bookStore.selectedBookId
             // (for books) and selectedEntityCategory binding (for
             // categories). Single onChange handler unifies both.
@@ -385,7 +376,7 @@ struct NewLibraryOutlineView: View {
             // Sync external changes (= toolbar click elsewhere) into
             // local List selection.
             if let id = newValue {
-                sidebarSelection = .book(id)
+                appState.sidebarSelection = .book(id)
             }
         }
         .onChange(of: selectedEntityCategory) { _, newValue in
@@ -394,7 +385,7 @@ struct NewLibraryOutlineView: View {
             // consistency between sidebar selection highlight and the
             // preview pane's category-scoped grid mode).
             if let cat = newValue {
-                sidebarSelection = .referenceCategory(cat.directoryName)
+                appState.sidebarSelection = .referenceCategory(cat.directoryName)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .wenshuNewBookRequested)) { _ in
@@ -590,7 +581,7 @@ struct NewLibraryOutlineView: View {
             // boss says '灰的那套不对，不用要'). The clipShape clips
             // the tint to the row rect (no spillover to adjacent rows).
             .background(
-                sidebarSelection == .shelf(shelf.id)
+                appState.sidebarSelection == .shelf(shelf.id)
                     ? Color.accentColor.opacity(0.18)
                     : Color.clear
             )
@@ -669,7 +660,7 @@ struct NewLibraryOutlineView: View {
             // = book/folder rows used Apple HIG default gray tint
             // while shelf/root used manual .background).
             .background(
-                sidebarSelection == .book(book.id)
+                appState.sidebarSelection == .book(book.id)
                     ? Color.accentColor.opacity(0.18)
                     : Color.clear
             )
@@ -699,12 +690,12 @@ struct NewLibraryOutlineView: View {
                     // propagate up to the DisclosureGroup label,
                     // which would otherwise collapse the parent's
                     // expansion state). The Button's tap also sets
-                    // sidebarSelection = .folder(...) (= the same
+                    // appState.sidebarSelection = .folder(...) (= the same
                     // path used by the .tag modifier, but the Button
                     // form is more reliable for nested rows inside
                     // a DisclosureGroup).
                     Button {
-                        sidebarSelection = .folder(
+                        appState.sidebarSelection = .folder(
                             bookId: book.id,
                             folderName: folder.name
                         )
@@ -728,7 +719,7 @@ struct NewLibraryOutlineView: View {
                     // v0.30 boss 8/31 OOB: blue selection highlight
                     // (= same override as shelf/root rows).
                     .background(
-                        sidebarSelection == .folder(bookId: book.id, folderName: folder.name)
+                        appState.sidebarSelection == .folder(bookId: book.id, folderName: folder.name)
                             ? Color.accentColor.opacity(0.18)
                             : Color.clear
                     )
@@ -754,7 +745,7 @@ struct NewLibraryOutlineView: View {
                 // v0.30 boss 8/31 OOB: blue selection highlight (= same
                 // override as shelf/root rows).
                 .background(
-                    sidebarSelection == .book(book.id)
+                    appState.sidebarSelection == .book(book.id)
                         ? Color.accentColor.opacity(0.18)
                         : Color.clear
                 )
@@ -816,7 +807,7 @@ struct NewLibraryOutlineView: View {
     /// whether the given book id is the currently selected sidebar
     /// item (= used by DisclosureGroup auto-expand logic).
     private func isBookSelected(_ id: UUID) -> Bool {
-        if case .book(let selectedId) = sidebarSelection {
+        if case .book(let selectedId) = appState.sidebarSelection {
             return selectedId == id
         }
         return false
@@ -1082,7 +1073,7 @@ struct NewLibraryOutlineView: View {
             switch first {
             case .shelf(let id):
                 Button("新建书…") {
-                    sidebarSelection = .shelf(id)
+                    appState.sidebarSelection = .shelf(id)
                     showNewBookSheet = true
                 }
                 Divider()
@@ -1178,12 +1169,12 @@ struct NewLibraryOutlineView: View {
     /// Returns (id, displayName) so the NewBookSheet can show
     /// the shelf name in its picker.
     private func resolveNewBookTargetShelf() -> (id: UUID, name: String) {
-        if case .book(let bookId) = sidebarSelection,
+        if case .book(let bookId) = appState.sidebarSelection,
            let book = books.first(where: { $0.id == bookId }),
            let shelf = shelves.first(where: { $0.id == book.shelfId }) {
             return (shelf.id, shelf.name)
         }
-        if case .shelf(let shelfId) = sidebarSelection,
+        if case .shelf(let shelfId) = appState.sidebarSelection,
            let shelf = shelves.first(where: { $0.id == shelfId }) {
             return (shelf.id, shelf.name)
         }
