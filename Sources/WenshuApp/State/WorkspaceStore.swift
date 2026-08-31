@@ -399,6 +399,10 @@ final class WorkspaceStore: ObservableObject {
 
         // Tree shape: outer column split (upper band + lower band)
         // with each band being a horizontal row split.
+        // v0.30 boss 8/31 OOB '各栏的默认比例需要调整一下 / 上半区,
+        // 10/20/60/10': upper band column weights = [1, 2, 6, 1]
+        // (= 1+2+6+1 = 10, so sidebar=10%, preview=20%, editor=60%,
+        // tools=10%). Previously [1, 1, 3.4, 1.25] ≈ 15/15/51/19.
         let upperBand = makeSplit(
             orientation: .row,
             children: [
@@ -407,7 +411,7 @@ final class WorkspaceStore: ObservableObject {
                 makeGroup(panes: [editorPane.id]),
                 makeGroup(panes: [toolsPane.id])
             ],
-            weights: [1, 1, 3.4, 1.25]
+            weights: [1, 2, 6, 1]
         )
         let lowerBand = makeSplit(
             orientation: .row,
