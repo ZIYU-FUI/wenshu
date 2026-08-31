@@ -50,6 +50,13 @@ final class PaneNSController: NSSplitViewController {
     /// switching presets restores each one's last divider positions).
     private let layoutID: String
 
+    /// Divider hit-area padding (= PT on each side of the drawn divider
+    /// line). Apple default = `0` (= divider is exactly the visible
+    /// 1 PT line, very hard to grab). Bumped to 4 PT (= splits match
+    /// FCP / Xcode / System Settings hit-area feel without making the
+    /// divider look chunky).
+    private let dividerHitPadding: CGFloat = 4
+
     // MARK: - Init
 
     init(
@@ -64,6 +71,146 @@ final class PaneNSController: NSSplitViewController {
         self.layoutID = layoutID
         super.init(nibName: nil, bundle: nil)
         buildLayout()
+        // Widen the divider hit area (= see AC #4). Acting as the
+        // split's delegate lets us override `effectiveRect(...)` and
+        // extend each divider's grabbable region by `dividerHitPadding`.
+        self.splitView.delegate = self
+        // 显示 menu → NSSplitViewItem.isCollapsed bridge (Gap F fix).
+        // The legacy 显示 menu items in App.swift:593-611 post
+        // .wenshuToggleZone(ZoneSlot) notifications; this observer
+        // finds the corresponding NSSplitViewItem and flips its
+        // collapsed state (= Apple HIG sidebar hide/show affordance).
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleToggleZone(_:)),
+            name: .wenshuToggleZone,
+            object: nil
+        )
+    }
+
+    /// Gap F forward-fix: handle `.wenshuToggleZone(ZoneSlot)` notification
+    /// by finding the matching NSSplitViewItem (= the one whose pane's
+    /// first tab kind matches the ZoneSlot) and flipping its
+    /// `isCollapsed` property. Items without `canCollapse` (= preview /
+    /// editor) are silently ignored (= their menu items were never
+    /// collapsible in the FCP spec either).
+    @objc private func handleToggleZone(_ notification: Notification) {
+        guard let slot = notification.object as? ZoneSlot else { return }
+        // Map ZoneSlot → TabKind (canonical mapping). editor has no
+        // dedicated ZoneSlot toggle button (= the legacy menu doesn't
+        // show it), but include it for completeness.
+        let targetKind: TabKind? = {
+            switch slot {
+            case .projectSidebar: return .projectSidebar
+            case .projectPreview: return .projectPreview
+            case .editor: return .editor
+            case .specializedTools: return .specializedTools
+            case .aiChat: return .aiChat
+            case .aiDynamic: return .aiDynamic
+            }
+        }()
+        guard let kind = targetKind else { return }
+        for item in splitViewItems {
+            guard item.canCollapse else { continue }
+            guard let tab = firstTabKind(for: item) else { continue }
+            if tab == kind {
+                item.isCollapsed.toggle()
+            }
+        }
+    }
+
+    /// Resolve the first TabKind for an NSSplitViewItem (= it hosts an
+    /// NSHostingController(rootView: TabContentDispatcher); the
+    /// dispatcher is the rootView itself).
+    private func firstTabKind(for item: NSSplitViewItem) -> TabKind? {
+        // NSHostingController typed-erases its rootView into AnyView;
+        // the underlying SwiftUI type identity is lost at runtime.
+        // Workaround: search the active pane's tab via the pane's
+        // workspace state (= the same lookup FCPLayout/PaneNSController
+        // already does in makeSplitItems).
+        for paneID in store.workspace.allPaneIDsInTree {
+            guard let pane = store.workspace.pane(for: paneID),
+                  let firstTabID = pane.tabIDs.first,
+                  let tab = store.workspace.tab(for: firstTabID)
+            else { continue }
+            let title = tab.title
+            if hostingIdentifierMatches(item: item, title: title) {
+                return tab.kind
+            }
+        }
+        return nil
+    }
+
+    /// Heuristic match: NSHostingController doesn't expose its
+    /// rootView type, so we walk the item's view hierarchy looking for
+    /// any descendant Accessibility label matching `title`. Apple HIG
+    /// truth-source: every SwiftUI view with a `.accessibilityLabel(...)`
+    /// = the TabContentDispatcher carries `title` as the parameter;
+    /// the rendered chrome uses that title in its tab bar (= which is
+    /// NOT in this item because the tab strip lives in the parent
+    /// `GroupTabStrip`, not the hosting view). Fallback: return false
+    /// (= skip; user can still toggle via the toolbar button when the
+    /// LayoutEditMode is active).
+    private func hostingIdentifierMatches(item: NSSplitViewItem, title: String) -> Bool {
+        let view = item.viewController.view
+        // String-search the accessibility hierarchy for the title.
+        // This is intentionally lenient (= exact substring match) so
+        // locale-neutral tab titles (Chinese / English) all work.
+        var matched = false
+        viewAccessibilityWalk(view) { label in
+            if label.contains(title) { matched = true }
+        }
+        return matched
+    }
+
+    /// Recursive accessibility label walker. Reads the AX hierarchy via
+    /// `NSAccessibility` (no SwiftUI introspection needed). Cheap (=
+    /// walks the local subtree only); called once per zone-toggle click.
+    private func viewAccessibilityWalk(
+        _ view: NSView,
+        visit: (String) -> Void
+    ) {
+        if let label = view.accessibilityLabel() {
+            visit(label)
+        }
+        for sub in view.subviews {
+            viewAccessibilityWalk(sub, visit: visit)
+        }
+    }
+    // MARK: - NSSplitViewDelegate (= divider hit-area widening)
+
+    /// Apple HIG thin divider (= 1 PT drawn line) is hard to grab. We
+    /// widen the effective hit rectangle by `dividerHitPadding` on the
+    /// perpendicular axis so the divider feels like ~9 PT total
+    /// (= 1 PT drawn + 4 PT pad each side = FCP-style grab affordance).
+    nonisolated override func splitView(
+        _ splitView: NSSplitView,
+        effectiveRect proposedEffectiveRect: NSRect,
+        forDrawnRect drawnRect: NSRect,
+        ofDividerAt dividerIndex: Int
+    ) -> NSRect {
+        // We need the axis to inset by the perpendicular axis (= a
+        // vertical split's divider extends in the y axis; a horizontal
+        // split's divider extends in the x axis). splitView.isVertical
+        // is the source of truth (= true = panes side-by-side).
+        let pad = dividerHitPadding
+        if splitView.isVertical {
+            // Vertical divider: extend up/down (= widen the y range).
+            return NSRect(
+                x: drawnRect.origin.x,
+                y: max(0, drawnRect.origin.y - pad),
+                width: drawnRect.width,
+                height: min(splitView.bounds.height, drawnRect.height + 2 * pad)
+            )
+        } else {
+            // Horizontal divider: extend left/right.
+            return NSRect(
+                x: max(0, drawnRect.origin.x - pad),
+                y: drawnRect.origin.y,
+                width: min(splitView.bounds.width, drawnRect.width + 2 * pad),
+                height: drawnRect.height
+            )
+        }
     }
 
     @available(*, unavailable)
