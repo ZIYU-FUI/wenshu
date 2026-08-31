@@ -343,12 +343,21 @@ struct PreviewPane: View {
                 }
             }
         } label: {
+            // v0.30 boss 8/31 OOB: '排序 ICON 放到顶栏里, 居右,
+            // 把现在的排序规则, 用暗文字回显到 ICON 前面'. Layout
+            // = [sort rule text (dim)] + [chevron] + [sort icon]
+            // (= the ICON is the rightmost element, sort rule text
+            // appears to its left as muted text). The chevron stays
+            // (= macOS standard dropdown affordance).
             HStack(spacing: 4) {
-                LucideIcon(sortOrder.menuIcon, size: 16)
-                    .foregroundStyle(.tint)
+                Text(sortOrder.rawValue)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)  // dim (= boss's 暗文字)
                 Image(systemName: "chevron.down")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
+                LucideIcon(sortOrder.menuIcon, size: 16)
+                    .foregroundStyle(.tint)  // rightmost (= 居右)
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
