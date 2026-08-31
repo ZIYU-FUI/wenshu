@@ -214,9 +214,25 @@ struct NewLibraryOutlineView: View {
         // All rows use Label + .badge (= Apple std). No hardcoded
         // sizes (= Apple HIG: follow user system preference). Selection
         // highlight = automatic (= Apple std).
+        // v0.30 boss 8/31 OOB '双击后蓝色小条消失, 状态和首次进入
+        // 不一样': List(.sidebar) on macOS has a 'click-selected-row-
+        // again-to-deselect' behavior (= standard Finder pattern).
+        // For wenshu, this means clicking 世界观 a second time clears
+        // the entire selection (= no sidebarSelection = no blue strip
+        // anywhere = the 'state not persistent' the user observed).
+        //
+        // Fix: wrap the binding in a guard that ignores nil writes
+        // (= the user can never accidentally clear their selection
+        // via List(.sidebar)'s click-to-deselect). The selection is
+        // only changed by explicit actions (= button taps, double-
+        // click toggles, etc.) — never by List's own deselect gesture.
         List(selection: Binding(
             get: { appState.sidebarSelection },
-            set: { appState.sidebarSelection = $0 }
+            set: { newValue in
+                if let newValue {
+                    appState.sidebarSelection = newValue
+                }
+            }
         )) {
             // v0.30 boss 8/31 OOB (sidebar feedback bundle #1+2):
             // 'shelf "从这里开始" should be in the directory tree as
