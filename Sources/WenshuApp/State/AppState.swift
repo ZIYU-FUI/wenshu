@@ -26,8 +26,6 @@
 // Adding a new cross-zone signal = add 1 var here, done. No init
 // signature changes, no binding chain updates.
 
-import Foundation
-import Observation
 import SwiftUI
 
 /// App-wide observable state for cross-zone UI communication.
@@ -41,6 +39,7 @@ import SwiftUI
 /// lives here. Persistence is handled at the observer (= typically
 /// WorkspaceView writes to `@AppStorage` via `.onChange`).
 @MainActor
+@Observable
 final class AppState {
 
     /// Sidebar tree selection (= 5 cases: .book(UUID) / .folder / .shelf

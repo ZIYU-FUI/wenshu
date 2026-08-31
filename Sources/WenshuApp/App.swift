@@ -412,6 +412,15 @@ struct WenshuApp: App {
     // 撤回 commit 4ef3e2e77 的 UserDefaults.standard.string 硬解, 改用 @AppStorage 真值响应式 (跟 SettingView 共享同一 key)
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
 
+    /// v0.30 boss 8/31 OOB '跨区通信的方案用 A' (= global
+    /// @Observable store). Per-window @State (= each WindowGroup
+    /// instance gets its own AppState = boss 8/27 OOB multi-window
+    /// future-proofing). All cross-zone UI signals (= sidebarSelection
+    /// / selectedEntity / selectedEntityCategory / previewSortOrder)
+    /// live in this single observable object. Descendants read it via
+    /// `@Environment(AppState.self) var appState`.
+    @State private var appState = AppState()
+
     var body: some Scene {
         // v0.24 fix (Boss 8/25 17th OOB 'hide Wenshu title'): WindowGroup
         // title set to empty string (= no NSWindow title shown). Combined
@@ -421,6 +430,12 @@ struct WenshuApp: App {
             // v0.21 ticket 01 (重做 #10): 撤回 SettingsEnvironmentCapturer wrapper (commit a78d758bc Q15 翻车 #11 dead code)
             // SettingsEnvironmentCapturer 之前包 LayoutShellView 注入 OpenSettingsAction, 但 openSettings?() → nil (Q15 翻车 #11), 现在 NSMenu 自己装 + 自创建 NSWindow 装 SettingView 不需要 capture
             SettingsEnvironmentCapturer(library: library, appearanceMode: appearanceMode)
+                // v0.30 boss 8/31 OOB: inject AppState at root so all
+                // descendants can read cross-zone UI state via
+                // `@Environment(AppState.self)`. Per-window state
+                // (= owned by @State on WenshuApp struct = each
+                // WindowGroup instance has its own AppState).
+                .environment(appState)
             // v0.28 followup Boss UX round 28 (Boss 2026-08-29 OOB '那是不是
             // 拖拽线也有默认的液态玻璃的样式, 这样的, 你把我们所有用到
             // 的组件, 用默认的液态玻璃样式实现, 我们最多调一下尺寸,
@@ -624,6 +639,15 @@ struct WenshuApp: App {
 /// Pages 真值 (红框位置) = 窗口内容顶部 toolbar 切换, 不是窗口标题栏按钮
 struct SettingView: View {
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
+
+    /// v0.30 boss 8/31 OOB '跨区通信的方案用 A' (= global
+    /// @Observable store). Per-window @State (= each WindowGroup
+    /// instance gets its own AppState = boss 8/27 OOB multi-window
+    /// future-proofing). All cross-zone UI signals (= sidebarSelection
+    /// / selectedEntity / selectedEntityCategory / previewSortOrder)
+    /// live in this single observable object. Descendants read it via
+    /// `@Environment(AppState.self) var appState`.
+    @State private var appState = AppState()
     @AppStorage("wenshu.llm.provider") private var providerSlug: String = Provider.minimaxCn.slug
     // v0.24 boss验收fix (2026-08-24): default to empty string when no provider
     // key configured (not "MiniMax-M3" which implies a MiniMax provider is
