@@ -191,12 +191,30 @@ struct NewLibraryOutlineView: View {
     // across selections). Keys = shelf.id, value = isExpanded.
     // Auto-expanded if any of its books is selected (= overrides user
     // collapse when user selects a book in this shelf).
+    //
+    // v0.30 boss 8/31 OOB '目录树的选定状态没有持久化': persist to
+    // AppStorage as JSON (= so close + reopen restores which shelf /
+    // book folders are expanded, matching the sidebar selection
+    // persistence). Uses AppStorage with rawValue = JSON-encoded
+    // string (= AppStorage doesn't natively support [UUID: Bool]).
     @State private var shelfDisclosureStates: [UUID: Bool] = [:]
+    // v0.30 boss 8/31 OOB '目录树的选定状态没有持久化':
+    // shelf DisclosureGroup expanded state persisted to AppStorage as
+    // JSON (= close + reopen restores which shelves are expanded).
+    // JSON shape: {"<UUID1>": true, "<UUID2>": false}.
+    @AppStorage("wenshu.shelfDisclosureStates") private var persistedShelfDisclosureStates: String = ""
     // v0.30 boss 8/31 OOB (sidebar feedback bundle #3): per-book
     // folder DisclosureGroup expanded state. Auto-expanded when this
     // book is the current sidebar selection (= folders visible
     // immediately on book tap). Keys = book.id, value = isExpanded.
+    //
+    // v0.30 boss 8/31 OOB: persisted to AppStorage (= see shelf
+    // comment above).
     @State private var bookDisclosureStates: [UUID: Bool] = [:]
+    // v0.30 boss 8/31 OOB: book DisclosureGroup expanded state
+    // persisted to AppStorage as JSON (= close + reopen restores
+    // which books' folder DisclosureGroups are expanded).
+    @AppStorage("wenshu.bookDisclosureStates") private var persistedBookDisclosureStates: String = ""
     /// v0.30 boss 8/31 OOB: hover state for each shelf row
     /// (= side-store keyed by shelf.id, since rows are built via
     /// @ViewBuilder helper functions that can't capture @State).
@@ -395,6 +413,16 @@ struct NewLibraryOutlineView: View {
         .scrollContentBackground(.hidden)
         .onAppear {
             reload()
+            // v0.30 boss 8/31 OOB '目录树的选定状态没有持久化':
+            // hydrate shelf/book disclosure states from AppStorage
+            // (= so which DisclosureGroups are expanded is preserved
+            // across launches).
+            shelfDisclosureStates = decodeDisclosureStates(
+                persistedShelfDisclosureStates
+            )
+            bookDisclosureStates = decodeDisclosureStates(
+                persistedBookDisclosureStates
+            )
             // v0.30 boss 8/31 OOB: '首次进入, 选定效果是灰色的, 不是
             // 系统色. 双击后会变成蓝色'. macOS 26 Tahoe List(.sidebar)
             // shows the SELECTED row in GRAY (= not accent color) on
@@ -466,6 +494,15 @@ struct NewLibraryOutlineView: View {
             if let id = newValue {
                 appState.sidebarSelection = .book(id)
             }
+        }
+        // v0.30 boss 8/31 OOB '目录树的选定状态没有持久化':
+        // persist disclosure state changes (= user clicked chevron
+        // to expand/collapse a shelf or book folder DisclosureGroup).
+        .onChange(of: shelfDisclosureStates) { _, newValue in
+            persistedShelfDisclosureStates = encodeDisclosureStates(newValue)
+        }
+        .onChange(of: bookDisclosureStates) { _, newValue in
+            persistedBookDisclosureStates = encodeDisclosureStates(newValue)
         }
         .onChange(of: selectedEntityCategory) { _, newValue in
             // Sync external category changes (= WorkspaceView → preview
@@ -1435,6 +1472,41 @@ struct NewLibraryOutlineView: View {
         existing.updatedAt = Date()
         let updated = try JSONEncoder().encode(existing)
         try updated.write(to: bookJSONURL)
+    }
+
+    // MARK: - v0.30 boss 8/31 OOB: DisclosureGroup state persistence
+    //
+    // Encode/decode [UUID: Bool] for AppStorage (= AppStorage
+    // requires String, so we round-trip via JSONEncoder/JSONDecoder).
+    // Empty string = no entries (= first-launch state). Empty dict
+    // (= '{}') decodes to an empty dict (= no expansion state).
+
+    private func encodeDisclosureStates(_ states: [UUID: Bool]) -> String {
+        // Convert UUID keys to strings (= JSON requires string keys)
+        let stringDict = Dictionary(
+            uniqueKeysWithValues: states.map { ($0.key.uuidString, $0.value) }
+        )
+        guard let data = try? JSONEncoder().encode(stringDict),
+              let s = String(data: data, encoding: .utf8) else {
+            return ""
+        }
+        return s
+    }
+
+    private func decodeDisclosureStates(_ json: String) -> [UUID: Bool] {
+        guard !json.isEmpty,
+              let data = json.data(using: .utf8),
+              let dict = try? JSONDecoder().decode([String: Bool].self, from: data)
+        else {
+            return [:]
+        }
+        var result: [UUID: Bool] = [:]
+        for (key, value) in dict {
+            if let uuid = UUID(uuidString: key) {
+                result[uuid] = value
+            }
+        }
+        return result
     }
 }
 
