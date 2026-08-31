@@ -78,9 +78,19 @@ struct PaneRenderer: View {
     /// can shrink under drag-to-resize).
     private let minChildSize: CGFloat = 200
 
-    /// The ideal width unit (= 1 weight = 100 PT by default; can be
-    /// tuned for high-DPI displays).
-    private let weightUnit: CGFloat = 100
+    /// v0.30 boss 8/31 OOB: weightUnit is now dynamic (= derived
+    /// from the parent's available width via GeometryReader, NOT
+    /// hardcoded to 100 PT). Previously the hardcoded value made
+    /// the upper band render at a fixed 1000 PT (= 10 weights *
+    /// 100 PT), leaving empty space on wider displays. Now the
+    /// panes fill the available width proportionally.
+    /// v0.30 boss 8/31 OOB: dynamic weight unit (= derived from
+    /// parent size, not hardcoded 100 PT).
+    private func weightUnitForTotal(_ total: CGFloat, weights: [Double]) -> CGFloat {
+        let totalWeight = weights.reduce(0, +)
+        guard totalWeight > 0 else { return 1 }
+        return total / CGFloat(totalWeight)
+    }
 
     /// Local weight cache during drag (= holds the in-progress
     /// weights as the user drags; cleared when drag ends and the
@@ -88,32 +98,54 @@ struct PaneRenderer: View {
     @State private var dragCache: [String: [Double]] = [:]
 
     var body: some View {
-        switch node {
-        case .split(let s):
-            splitContainer(s)
-        case .group(let g):
-            groupContainer(g)
+        GeometryReader { geometry in
+            switch node {
+            case .split(let s):
+                splitContainer(s, availableWidth: geometry.size.width, availableHeight: geometry.size.height)
+            case .group(let g):
+                groupContainer(g)
+            }
         }
     }
 
     // MARK: - Split container
 
     @ViewBuilder
-    private func splitContainer(_ split: SplitNode) -> some View {
+    private func splitContainer(
+        _ split: SplitNode,
+        availableWidth: CGFloat,
+        availableHeight: CGFloat
+    ) -> some View {
         // Resolve weights from the cache (= active drag) or the
         // stored tree (= no active drag). The cache is keyed by
         // split id so concurrent drags on different splits don't
         // interfere.
         let liveWeights = dragCache[split.id] ?? split.weights
 
+        // v0.30 boss 8/31 OOB '新比例还是没有实现': weightUnit is
+        // now derived from the parent's actual available size
+        // (= fills the whole pane, not a fixed 1000 PT).
+        let unit: CGFloat = split.orientation == .row
+            ? weightUnitForTotal(availableWidth, weights: liveWeights)
+            : weightUnitForTotal(availableHeight, weights: liveWeights)
+
         if split.orientation == .row {
             HStack(spacing: 0) {
                 ForEach(split.children.indices, id: \.self) { i in
                     PaneRenderer(node: split.children[i], store: store)
+                        // v0.30 boss 8/31 OOB: hard width frame + zero
+                        // layoutPriority sibling competition. Without
+                        // .layoutPriority(0), SwiftUI sometimes
+                        // distributes by intrinsic content. Using
+                        // `.frame(width: ...)` alone should fix the
+                        // exact width; we also set the child to
+                        // `.frame(maxWidth: .infinity)` to consume
+                        // its slice fully.
                         .frame(
-                            minWidth: minChildSize,
-                            idealWidth: max(minChildSize, CGFloat(liveWeights[i]) * weightUnit)
+                            width: max(minChildSize, CGFloat(liveWeights[i]) * unit),
+                            height: nil
                         )
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                     if i < split.children.count - 1 {
                         NativeSplitter(
                             orientation: .vertical,
@@ -137,7 +169,7 @@ struct PaneRenderer: View {
                                 let minWeight = 0.05
                                 let total = newWeights[i] + newWeights[i + 1]
                                 guard total > 0 else { return }
-                                let dW = Double(delta) / Double(weightUnit)
+                                let dW = Double(delta) / Double(unit)
                                 var newLeft = max(minWeight, min(1 - minWeight, newWeights[i] + dW))
                                 let newRight = max(minWeight, total - newLeft)
                                 newLeft = total - newRight
@@ -154,7 +186,7 @@ struct PaneRenderer: View {
                                 if let finalWeights = dragCache[split.id] {
                                     for k in 0..<finalWeights.count {
                                         let weightDelta = finalWeights[k] - split.weights[k]
-                                        let ptDelta = weightDelta * Double(weightUnit)
+                                        let ptDelta = weightDelta * Double(unit)
                                         if abs(ptDelta) > 0.0001 {
                                             store.adjustSplitWeights(splitID: split.id, childIndex: k, delta: ptDelta)
                                         }
@@ -170,10 +202,13 @@ struct PaneRenderer: View {
             VStack(spacing: 0) {
                 ForEach(split.children.indices, id: \.self) { i in
                     PaneRenderer(node: split.children[i], store: store)
+                        // v0.30 boss 8/31 OOB: hard height frame + fill
+                        // parent height (= see row-split comment).
                         .frame(
-                            minHeight: minChildSize,
-                            idealHeight: max(minChildSize, CGFloat(liveWeights[i]) * weightUnit)
+                            width: nil,
+                            height: max(minChildSize, CGFloat(liveWeights[i]) * unit)
                         )
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                     if i < split.children.count - 1 {
                         NativeSplitter(
                             orientation: .horizontal,
@@ -183,7 +218,7 @@ struct PaneRenderer: View {
                                 let minWeight = 0.05
                                 let total = newWeights[i] + newWeights[i + 1]
                                 guard total > 0 else { return }
-                                let dW = Double(delta) / Double(weightUnit)
+                                let dW = Double(delta) / Double(unit)
                                 var newTop = max(minWeight, min(1 - minWeight, newWeights[i] + dW))
                                 let newBottom = max(minWeight, total - newTop)
                                 newTop = total - newBottom
@@ -195,7 +230,7 @@ struct PaneRenderer: View {
                                 if let finalWeights = dragCache[split.id] {
                                     for k in 0..<finalWeights.count {
                                         let weightDelta = finalWeights[k] - split.weights[k]
-                                        let ptDelta = weightDelta * Double(weightUnit)
+                                        let ptDelta = weightDelta * Double(unit)
                                         if abs(ptDelta) > 0.0001 {
                                             store.adjustSplitWeights(splitID: split.id, childIndex: k, delta: ptDelta)
                                         }
@@ -285,10 +320,13 @@ struct PaneRenderer: View {
                     .overlay(Text("空面板"))
             }
         }
-        .frame(
-            minWidth: pane.frame.minWidth,
-            idealWidth: pane.frame.idealWidth
-        )
+        // v0.30 boss 8/31 OOB: paneHost no longer overrides the
+        // split-level frame's `width` (= the per-pane `idealWidth`
+        // was previously beating the split's weights, giving sidebar
+        // 240 PT instead of 100 PT regardless of weights). Now only
+        // `minWidth` is honored (= ensures the pane never shrinks
+        // below its declared minimum).
+        .frame(minWidth: pane.frame.minWidth)
         // Drop target for tab drags from other panes.
         // Per ticket 028-004b2: each pane is a `.dropDestination`
         // accepting drag drops. Center drop joins the group's tab
