@@ -115,9 +115,9 @@ enum EntitySortOrder: String, CaseIterable, Identifiable {
     /// Lucide icon for the menu picker (= chevron-up-down for "sort").
     var menuIcon: String {
         switch self {
-        case .pinyinFirstLetter: return "arrow-down-a-z"
-        case .createdAt: return "clock"
-        case .modifiedAt: return "square-pen"
+        case .pinyinFirstLetter: return "list-ordered"
+        case .createdAt: return "list-ordered"
+        case .modifiedAt: return "list-ordered"
         }
     }
 }
@@ -751,20 +751,19 @@ private struct EntityCard: View {
             .frame(maxWidth: .infinity)
             // TEXT content below the thumbnail
             VStack(alignment: .leading, spacing: 6) {
-                // Type badge + category chip (= condensed header)
+                // Type badge + modified-time chip (= condensed header).
+                // v0.30 boss 8/31 OOB: previously showed category
+                // shortName (= duplicated the title for category-less
+                // entities like the help docs). Now shows the
+                // formatted last-modified time (= at-a-glance
+                // freshness indicator, no duplication with the title).
                 HStack(spacing: 4) {
                     Text("[\(entity.entityType.displayName)]")
                         .font(.caption2)
                         .foregroundStyle(.tint)
-                    if let cat = entity.category {
-                        Text(cat.shortName)
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 1)
-                            .background(Color.secondary.opacity(0.08))
-                            .clipShape(Capsule())
-                    }
+                    Text(formatRelativeTime(entity.updatedAt))
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
                     Spacer()
                 }
                 // Title
@@ -804,6 +803,30 @@ private struct EntityCard: View {
     }
 }
 
+
+// MARK: - Last-modified time formatter
+//
+// v0.30 boss 8/31 OOB: card top-right now shows the entity's
+// last-modified time (= relative format = "刚刚 / 5 分钟前 / 昨天 /
+// 3 天前 / 2 周前 / 2025-08-15"). The helper uses macOS RelativeDate
+// TimeFormatter via Foundation (.relative formatting style), with
+// a fallback to absolute date string for entities older than 30 days.
+private func formatRelativeTime(_ date: Date) -> String {
+    let formatter = RelativeDateTimeFormatter()
+    formatter.unitsStyle = .short
+    formatter.dateTimeStyle = .named
+    let now = Date()
+    let delta = now.timeIntervalSince(date)
+    if delta < 60 * 60 * 24 * 30 { // < 30 days
+        return formatter.localizedString(for: date, relativeTo: now)
+    } else {
+        // > 30 days: show absolute date (= YYYY-MM-DD)
+        let absFormatter = DateFormatter()
+        absFormatter.dateFormat = "yyyy-MM-dd"
+        absFormatter.locale = Locale(identifier: "zh_CN")
+        return absFormatter.string(from: date)
+    }
+}
 /// Card view for a single .md document in a book folder.
 /// Boss 8/31 OOB '点 sidebar row → 右边素材区显示该目录的文档':
 /// every BookDoc renders as a card in the preview pane. Folder
