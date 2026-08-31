@@ -123,11 +123,21 @@ struct PaneRenderer: View {
                                 // UserDefaults write). The store's
                                 // authoritative weights stay put
                                 // until drag end.
+                                //
+                                // v0.30 boss 8/31 OOB fix: the old
+                                // formula `dW = delta / total` was
+                                // unit-broken (= PT / weight = wrong).
+                                // Correct: dW = delta / weightUnit
+                                // (= PT per 100 PT/weight = weight
+                                // delta). This makes the splitter
+                                // respond to drags of any pixel size
+                                // instead of clamping to minWeight on
+                                // the first frame.
                                 var newWeights = liveWeights
                                 let minWeight = 0.05
                                 let total = newWeights[i] + newWeights[i + 1]
                                 guard total > 0 else { return }
-                                let dW = Double(delta) / total
+                                let dW = Double(delta) / Double(weightUnit)
                                 var newLeft = max(minWeight, min(1 - minWeight, newWeights[i] + dW))
                                 let newRight = max(minWeight, total - newLeft)
                                 newLeft = total - newRight
@@ -138,11 +148,15 @@ struct PaneRenderer: View {
                             onDragEnd: {
                                 // Commit the cached weights to the
                                 // store (= single UserDefaults write).
+                                // adjustSplitWeights now expects PT
+                                // (= post-fix); convert weight delta
+                                // to PT delta via * weightUnit.
                                 if let finalWeights = dragCache[split.id] {
                                     for k in 0..<finalWeights.count {
-                                        let delta = finalWeights[k] - split.weights[k]
-                                        if abs(delta) > 0.0001 {
-                                            store.adjustSplitWeights(splitID: split.id, childIndex: k, delta: delta * Double(weightUnit))
+                                        let weightDelta = finalWeights[k] - split.weights[k]
+                                        let ptDelta = weightDelta * Double(weightUnit)
+                                        if abs(ptDelta) > 0.0001 {
+                                            store.adjustSplitWeights(splitID: split.id, childIndex: k, delta: ptDelta)
                                         }
                                     }
                                     dragCache.removeValue(forKey: split.id)
@@ -169,7 +183,7 @@ struct PaneRenderer: View {
                                 let minWeight = 0.05
                                 let total = newWeights[i] + newWeights[i + 1]
                                 guard total > 0 else { return }
-                                let dW = Double(delta) / total
+                                let dW = Double(delta) / Double(weightUnit)
                                 var newTop = max(minWeight, min(1 - minWeight, newWeights[i] + dW))
                                 let newBottom = max(minWeight, total - newTop)
                                 newTop = total - newBottom
@@ -180,9 +194,10 @@ struct PaneRenderer: View {
                             onDragEnd: {
                                 if let finalWeights = dragCache[split.id] {
                                     for k in 0..<finalWeights.count {
-                                        let delta = finalWeights[k] - split.weights[k]
-                                        if abs(delta) > 0.0001 {
-                                            store.adjustSplitWeights(splitID: split.id, childIndex: k, delta: delta * Double(weightUnit))
+                                        let weightDelta = finalWeights[k] - split.weights[k]
+                                        let ptDelta = weightDelta * Double(weightUnit)
+                                        if abs(ptDelta) > 0.0001 {
+                                            store.adjustSplitWeights(splitID: split.id, childIndex: k, delta: ptDelta)
                                         }
                                     }
                                     dragCache.removeValue(forKey: split.id)

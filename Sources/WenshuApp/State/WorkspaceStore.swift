@@ -231,17 +231,36 @@ final class WorkspaceStore: ObservableObject {
     /// array proportionally (= weight[i] += delta,
     /// weight[i+1] -= delta, clamped at minWeight = 0.05 so a pane
     /// never fully collapses under drag).
+    /// Adjust split weights based on a drag delta.
+    ///
+    /// v0.30 boss 8/31 OOB '新比例还是没有实现' (= bug fix): the
+    /// original formula `let dW = delta / total` was unit-broken
+    /// (= dividing PT by a dimensionless weight sum). The result
+    /// was a single 10 PT drag snapped left/right to the clamp
+    /// boundary (= minWeight 0.05 / 0.95), making the splitter feel
+    /// 'locked' (= the visible cursor moved but the weights never
+    /// changed because the clamp rejected every meaningful delta).
+    ///
+    /// Correct conversion: `delta` is in PT, `weightUnit` (from
+    /// PaneRenderer) is 100 PT per weight unit. So
+    /// `weight_delta = delta_PT / weightUnit`. The left/right pair
+    /// gets this delta applied proportionally to their existing
+    /// weights (= keeps their ratio, just shifts the total).
     func adjustSplitWeights(splitID: String, childIndex: Int, delta: Double) {
         let minWeight = 0.05
+        // PaneRenderer's weightUnit (= 100 PT per weight). Hard-coded
+        // here to keep this function self-contained; if the renderer
+        // changes the unit, both call sites must update in lock-step.
+        let weightUnit: Double = 100
         let newRoot = mapSplitWeights(splitID: splitID) { weights in
             guard weights.count > childIndex + 1 else { return weights }
             var w = weights
             let left = w[childIndex]
             let right = w[childIndex + 1]
-            // Apply the delta proportionally (= delta is in PT
-            // units; convert to weight by dividing by the total).
+            // Convert the PT delta to a weight delta (= apply the
+            // unit conversion that's been missing since v0.28).
+            let dW = delta / weightUnit
             let total = left + right
-            let dW = delta / total
             var newLeft = max(minWeight, min(1 - minWeight, left + dW))
             let newRight = max(minWeight, total - newLeft)
             newLeft = total - newRight
