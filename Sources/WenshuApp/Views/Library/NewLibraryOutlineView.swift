@@ -672,18 +672,39 @@ struct NewLibraryOutlineView: View {
                 // count badges were missing because folder rows
                 // didn't have .badge() modifier.
                 ForEach(folders, id: \.name) { folder in
-                    Label {
-                        Text(folder.displayName)
-                    } icon: {
-                        LucideIconSidebar(folder.icon)
-                            .foregroundStyle(.primary)
+                    // v0.30 boss 8/31 OOB: folder rows must NOT collapse
+                    // the parent DisclosureGroup on click. Wrapping in
+                    // a plain Button with sidebarSelection update on
+                    // tap gives the row its own tap target (= the
+                    // click is consumed by the button and does NOT
+                    // propagate up to the DisclosureGroup label,
+                    // which would otherwise collapse the parent's
+                    // expansion state). The Button's tap also sets
+                    // sidebarSelection = .folder(...) (= the same
+                    // path used by the .tag modifier, but the Button
+                    // form is more reliable for nested rows inside
+                    // a DisclosureGroup).
+                    Button {
+                        sidebarSelection = .folder(
+                            bookId: book.id,
+                            folderName: folder.name
+                        )
+                    } label: {
+                        Label {
+                            Text(folder.displayName)
+                        } icon: {
+                            LucideIconSidebar(folder.icon)
+                                .foregroundStyle(.primary)
+                        }
+                        .badge(bookStore.folderDocumentCount(
+                            bookId: book.id,
+                            folderDirectoryName: folder.name
+                        ))
                     }
-                    .badge(bookStore.folderDocumentCount(
-                        bookId: book.id,
-                        folderDirectoryName: folder.name
-                    ))
-                    // v0.30 boss 8/31 OOB: folder row is selectable
-                    // (= user tap scopes preview pane to this folder).
+                    .buttonStyle(.plain)
+                    .contentShape(Rectangle())
+                    // v0.30 boss 8/31 OOB: folder row tag (= enables
+                    // List(selection:) routing for this row).
                     .tag(SidebarItem.folder(bookId: book.id, folderName: folder.name))
                     // v0.30 boss 8/31 OOB: blue selection highlight
                     // (= same override as shelf/root rows).
