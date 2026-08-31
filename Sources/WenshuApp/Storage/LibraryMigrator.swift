@@ -157,6 +157,35 @@ struct LibraryMigrator: Sendable {
             let updated = try JSONEncoder().encode(existing)
             try updated.write(to: shelfJSONURL)
         }
+        // 2b. v0.30 boss 8/31 OOB (sidebar feedback bundle #1):
+        // rename existing default book title '从这里开始' → '帮助'
+        // (= disambiguates from the parent shelf name; applies to
+        // existing .ws installations so old libraries upgrade).
+        // Both possible book IDs are checked (= the current
+        // '00000000-0000-0000-0000-000000000001' canonical id and
+        // the legacy '11111111-1111-1111-1111-111111111111' id
+        // that was actually written by earlier wenshu versions).
+        let defaultBooksDir = defaultShelfDir.appendingPathComponent("books", isDirectory: true)
+        let legacyBookIds = [
+            UUID(uuidString: "00000000-0000-0000-0000-000000000001"),
+            UUID(uuidString: "11111111-1111-1111-1111-111111111111"),
+        ]
+        for legacyBookId in legacyBookIds {
+            guard let bookId = legacyBookId else { continue }
+            let bookDir = defaultBooksDir.appendingPathComponent(
+                bookId.uuidString, isDirectory: true
+            )
+            let bookJSONURL = bookDir.appendingPathComponent("book.json")
+            guard fm.fileExists(atPath: bookJSONURL.path),
+                  let data = try? Data(contentsOf: bookJSONURL),
+                  var existing = try? JSONDecoder().decode(Book.self, from: data),
+                  existing.title == "从这里开始"
+            else { continue }
+            existing.title = "帮助"
+            existing.updatedAt = Date()
+            let updated = try JSONEncoder().encode(existing)
+            try updated.write(to: bookJSONURL)
+        }
         // 3. Seed default help-doc anchor (= skipped if already present).
         try seedDefaultHelpDoc(in: defaultShelfDir, fm: fm)
     }
@@ -207,7 +236,13 @@ struct LibraryMigrator: Sendable {
         // book.json (= the book metadata).
         let defaultBook = Book(
             id: defaultBookId,
-            title: "从这里开始",
+            // v0.30 boss 8/31 OOB (sidebar feedback bundle #1):
+            // renamed default book title from '从这里开始' to '帮助'
+            // (= to disambiguate from the parent shelf, which has the
+            // same '从这里开始' name; the default book contains the
+            // official help-doc + test content, so '帮助' is more
+            // descriptive).
+            title: "帮助",
             author: "wenshu",
             shelfId: UUID(uuidString: "00000000-0000-0000-0000-000000000000") ?? UUID()
         )
