@@ -155,14 +155,16 @@ enum LayoutTokens {
     static let toolbarHeight: CGFloat = 30  // 老板 Sketch master 真值: 顶/底栏 30 PT (1:1 实现)
     // v0.15 重写后改名: editorInset 是单一垂直方向 (左右 flush, spec §3.2 故意两层设计)
     static let editorVerticalInsetRatio: CGFloat = 4.0 / 984.0  // = 0.0041 (编辑器 4 PT 上下 inset)
-    // v0.15 ticket 005: 删 LayoutTokens.horizontalSplitterRatio 死代码 (NativeSplitter 自己管 thickness)
+    // v0.15 ticket 005: 删 LayoutTokens.horizontalSplitterRatio dead code
+    // (the drag-to-resize logic is now provided by NSSplitView).
 
     // 上 band 4 zone 数对公式: (200, 中间 1, 中间 2, 400) = 1920
     // 老板 8/18 拍 "数对" = 拖拽线 1 PT 视觉线摊给左右 zone (各 0.5 PT)
     // 中间 1 + 中间 2 = 1920 - 200 - 400 = 1320
     // 维持原值 558 + 762 (中间 1 + 中间 2 = 1320) = 上 band 4 zone 1920 ✓
     // v0.24 fix (Boss 8/25 50th OOB '还是差了一两个像素' + 51st OOB '尝试修一下'):
-    // hit area 6 -> 4 PT (= NativeSplitter.swift). 3 splitters upper = 12 PT (not 18).
+    // hit area 6 -> 4 PT (= the drag-to-resize logic). 3 splitters
+    // upper = 12 PT (not 18).
     // Splitter hit area counted into the largest column (= editor),
     // other columns preserve design ratios.
     // Total column = 200+200+388+200 = 988 + 12 splitters = 1000

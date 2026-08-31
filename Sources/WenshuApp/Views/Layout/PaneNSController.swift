@@ -51,6 +51,13 @@ final class PaneNSController: NSSplitViewController {
     /// switching presets restores each one's last divider positions).
     private let layoutID: String
 
+    /// Applied-once flag: tracks whether the initial weight ratio
+    /// has been applied via setPosition. NSSplitView's bounds are 0
+    /// at init time (= controller not yet laid out), so applyWeights
+    /// must run on the FIRST viewDidLayout (= then autosaveName
+    /// takes over and user's manual drags persist across launches).
+    private var didApplyInitialWeights = false
+
     /// Divider hit-area padding (= PT on each side of the drawn divider
     /// line). Apple default = `0` (= divider is exactly the visible
     /// 1 PT line, very hard to grab). Bumped to 4 PT (= splits match
@@ -225,6 +232,12 @@ final class PaneNSController: NSSplitViewController {
     /// children + their NSSplitViewItems. Called once from `init`; the
     /// tree is then frozen for this controller's lifetime (= ticket 04
     /// will rebuild via SwiftUI re-make on preset switch).
+    /// Stores the root SplitNode weights so viewDidLayout can apply
+    /// them on first layout (= bounds are 0 at init time; we cannot
+    /// setPosition before the view is laid out). Captured during
+    /// buildLayout and consumed by viewDidLayout.
+    private var pendingRootWeights: [Double] = []
+
     private func buildLayout() {
         // Reset any inherited children (= safety against reuse).
         for child in children {
@@ -244,10 +257,61 @@ final class PaneNSController: NSSplitViewController {
         switch store.workspace.root {
         case .split(let split):
             self.splitView.isVertical = (split.orientation == .row)
+            // v0.30 boss 2026-09-01 OOB: NO autosaveName on the root
+            // (= Apple's autosave would restore the FIRST launch's
+            // default ratio and override our preset weights on
+            // every subsequent launch). Nested split controllers
+            // still get autosaveName (= user drag persistence for
+            // the inner pane arrangements, which is where manual
+            // tweaks actually happen).
+            self.splitView.autosaveName = nil
+            pendingRootWeights = split.weights
             installSplit(split, parent: self, parentOrientation: split.orientation == .row ? .row : .column)
         case .group(let group):
             self.splitView.isVertical = true
             installGroup(group)
+        }
+    }
+
+    override func viewDidLayout() {
+        super.viewDidLayout()
+        // v0.30 boss 2026-09-01 OOB fix: NSSplitView's bounds are
+        // 0 at init time, so applyWeights would compute positions
+        // against a 0-wide canvas. Wait until the first real
+        // layout, then apply the workspace weights. After this
+        // first apply, autosaveName takes over and user's manual
+        // drag offsets persist (= we don't re-apply on subsequent
+        // layout passes).
+        guard !didApplyInitialWeights, !pendingRootWeights.isEmpty else { return }
+        let splitView = self.splitView
+        guard splitView.bounds.width > 0, splitView.bounds.height > 0 else { return }
+        // Clear stale autosave entries that override our preset
+        // weights (= the FIRST launch persists these entries;
+        // subsequent launches re-read them and ignore our
+        // workspace weights). Without this, the ratio stays at
+        // whatever the very first launch's default was.
+        clearStaleAutosave()
+        applyWeights(pendingRootWeights, on: self)
+        didApplyInitialWeights = true
+    }
+
+    /// Remove the NSSplitView autosave entries (= UserDefaults
+    /// keys under "NSSplitView Subview Frames wenshu.split.*")
+    /// so the preset weight ratio applies on the next launch.
+    /// Apple's NSSplitView reads these keys BEFORE setPosition
+    /// (= if they're present, NSSplitView restores the saved
+    /// position and our weights are ignored).
+    private func clearStaleAutosave() {
+        let prefix = "NSSplitView Subview Frames wenshu.split.\(layoutID)."
+        let defaults = UserDefaults.standard
+        // Find all keys matching the prefix and remove them.
+        // UserDefaults doesn't expose key enumeration for arbitrary
+        // prefixes, so iterate the well-known per-split autosave
+        // keys via a dictionaryRepresentation scan.
+        for (key, _) in defaults.dictionaryRepresentation() {
+            if key.hasPrefix(prefix) {
+                defaults.removeObject(forKey: key)
+            }
         }
     }
 
@@ -266,6 +330,11 @@ final class PaneNSController: NSSplitViewController {
         // inside the column parent.
         if split.orientation == parentOrientation {
             installChildren(split.children, weights: split.weights, into: parent)
+            // Note: do NOT call applyWeights here (= bounds may be
+            // 0). viewDidLayout runs applyWeights on the ROOT after
+            // bounds are non-zero; nested splits inherit the
+            // initial autosaveName positions (= Apple's NSSplitView
+            // picks reasonable defaults for nested controllers).
             return
         }
 
@@ -279,6 +348,58 @@ final class PaneNSController: NSSplitViewController {
         nested.splitView.autosaveName = autosaveKey(for: split.id)
         installChildren(split.children, weights: split.weights, into: nested)
         parent.addChild(nested)
+        // Note: do NOT call applyWeights on the nested controller
+        // here. The nested controller's bounds become non-zero
+        // after viewDidLayout on the root (= our app's root view
+        // hierarchy). Nested splits inherit reasonable initial
+        // divider positions from NSSplitView's defaults and
+        // autosaveName will persist user's manual drag adjustments
+        // across launches.
+    }
+
+    /// v0.30 boss 2026-09-01 OOB fix: explicitly position each
+    /// NSSplitView divider according to the workspace weights array.
+    ///
+    /// Without this, NSSplitView treats all added items equally
+    /// (= it ignores any custom weights we pass through
+    /// installChildren). The result: a `.column` split with
+    /// `weights: [1, 1]` (= 50/50 expected) renders as ~25/75
+    /// (= NSSplitView's default column distribution).
+    ///
+    /// Apple HIG-compliant solution: use `setPosition(ofDividerAt:)`
+    /// to place each divider proportionally along the split axis.
+    /// This works alongside `autosaveName` (= the first launch
+    /// applies the preset ratio; subsequent launches respect the
+    /// user's manual drag adjustments).
+    private func applyWeights(_ weights: [Double], on controller: NSSplitViewController) {
+        let splitView = controller.splitView
+        // Walk each divider (= divider count = NSSplitViewItem count - 1).
+        let itemCount = controller.splitViewItems.count
+        guard itemCount >= 2 else { return }
+        let dividerCount = itemCount - 1
+        let total = weights.reduce(0, +)
+        guard total > 0 else { return }
+
+        // Cumulative weight position (= where each divider should sit).
+        var cumulative: CGFloat = 0
+        let isVertical = splitView.isVertical
+
+        for dividerIndex in 0..<dividerCount {
+            // Position of this divider = cumulative weight / total
+            // of the parent's available span.
+            cumulative += weights[dividerIndex]
+            let proportion = cumulative / CGFloat(total)
+
+            // Translate proportion to pixel position.
+            // For horizontal split (= isVertical = true = children
+            // side-by-side): position is along x = proportion * width.
+            // For vertical split (= isVertical = false = children
+            // stacked): position is along y = proportion * height.
+            let totalSpan: CGFloat = isVertical ? splitView.bounds.width : splitView.bounds.height
+            let position = totalSpan * proportion
+            NSLog("[wenshu.NS] applyWeights divider=\(dividerIndex) weight=\(weights[dividerIndex])/total=\(total) proportion=\(proportion) span=\(totalSpan) position=\(position)")
+            splitView.setPosition(position, ofDividerAt: dividerIndex)
+        }
     }
 
     /// Install each child node (= split OR group) as either a nested

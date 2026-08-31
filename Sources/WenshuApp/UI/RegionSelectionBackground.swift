@@ -4,14 +4,13 @@
 // 整代码, 关于样式的, 不统一, 你要不盘一下'):
 //
 // = Single source of truth for "selected row" backgrounds across
-// the app. Previously each outline view + the pane renderer used
-// DIFFERENT selection style implementations:
-//
-//   - PaneRenderer.swift (group tabs): Color.accentColor.opacity(0.15)
-//   - BookOutlineView.swift (sidebar): Color(nsColor: .controlBackgroundColor)
-//   - WorldOutlineView.swift (sidebar): Color(nsColor: .controlBackgroundColor)
-//   - CharacterOutlineView.swift (sidebar): Color(nsColor: .controlBackgroundColor)
-//   - ReferenceLibraryOutlineView.swift: Color(nsColor: .controlBackgroundColor).opacity(0.5)
+// the app. Previously each outline view used DIFFERENT selection
+// style implementations (= sidebar outlines all used system
+// controlBackgroundColor; the legacy PaneRenderer group tabs used
+// accentColor.opacity(0.15)). After v0.30's NSSplitView refactor
+// (= PaneRenderer deleted), the accentColor tint became the
+// canonical "selected" treatment (= Apple NSSplitView's native
+// selection tint + sidebar outlines via accentColor).
 //
 // Inconsistency root cause = 4 sidebar outline views used the SOLID
 // NSColor `.controlBackgroundColor` (= opaque gray = NOT Liquid
@@ -45,7 +44,8 @@ import SwiftUI
 /// Canonical "selected row" background fill (= single source of truth
 /// for all selection styles across the app).
 ///
-/// **SINGLE SOURCE OF TRUTH**: Used by PaneRenderer group tabs, sidebar
+/// **SINGLE SOURCE OF TRUTH**: Used by sidebar group tabs (= the
+/// only remaining consumer after PaneRenderer deletion).
 /// outline views (= Book / World / Character / Reference rows), etc.
 /// All selection rows now render with the same translucent Apple accent
 /// tint (= boss's "样式不统一" issue resolved for selection backgrounds).
@@ -72,7 +72,8 @@ import SwiftUI
 /// Canonical "selected row" background fill (= single source of truth
 /// for all selection styles across the app).
 ///
-/// **SINGLE SOURCE OF TRUTH**: Used by PaneRenderer group tabs, sidebar
+/// **SINGLE SOURCE OF TRUTH**: Used by sidebar group tabs (= the
+/// only remaining consumer after PaneRenderer deletion).
 /// outline views (= Book / World / Character / Reference rows), etc.
 /// All selection rows now render with the same translucent Apple accent
 /// tint (= boss's "样式不统一" issue resolved for selection backgrounds).

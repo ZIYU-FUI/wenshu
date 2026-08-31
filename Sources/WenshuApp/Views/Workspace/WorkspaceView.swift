@@ -1,17 +1,14 @@
 // WorkspaceView.swift · Wenshu (文枢) · v0.27 ticket 027-34
 //
 // SwiftUI host for the user-customizable workspace. Wraps the
-// WorkspaceStore and renders the pane tree via PaneRenderer.
+// WorkspaceStore and renders the pane tree via PaneSplitHost (=
+// NSViewControllerRepresentable wrapper around PaneNSController,
+// which is the NSSplitViewController subclass that walks
+// store.workspace.root and builds the native split view).
 //
 // This file = the WorkspaceView (root container) and the renderTab
 // dispatcher (= maps TabKind -> existing wenshu view). The recursive
-// pane rendering lives in PaneRenderer.swift (= ticket 027-35).
-//
-// Atomic-coupling with PaneRenderer.swift (= ticket 027-35):
-// WorkspaceView delegates the pane tree rendering to PaneRenderer;
-// = without PaneRenderer, WorkspaceView has no body. Per boss 8/22
-// '1 commit / 1 file; multi-file requires atomic justification':
-// shipped in a single commit with PaneRenderer.
+// pane rendering lives in PaneNSController.swift.
 
 import SwiftUI
 import Lucide
@@ -103,34 +100,20 @@ struct WorkspaceView: View {
     /// built-in Default preset). Boss can split / rearrange via
     /// drag-and-drop in 027-36+.
     var body: some View {
-        // v0.30 boss 2026-09-01 OOB fix: use a true if-else branch
-        // (= NOT an `.overlay`) so PaneRenderer and PaneSplitHost
-        // are NEVER both rendered at the same time. The previous
-        // `.overlay` pattern stacked both views (= PaneRenderer
-        // underneath, PaneSplitHost on top), wasting GPU/CPU and
-        // creating hidden interaction conflicts.
-        Group {
-            if store.workspace.useNSSplitView ?? false {
-                // Apple NSSplitView path (= ticket 01/02/03). Default
-                // OFF; opt-in via UserDefaults "wenshu.useNSSplitView".
-                PaneSplitHost(
-                    layout: FCPLayout(),
-                    store: store,
-                    appState: appState,
-                    bookStore: bookStore
-                )
-            } else {
-                // Legacy hand-rolled split-tree path (= the original
-                // v0.28 ticket 028-004 renderer). Preserved verbatim
-                // per boss OOB functional preservation rule; not
-                // deleted until PR 6 (= 2 stable builds after the
-                // NSSplitView path becomes default ON).
-                PaneRenderer(
-                    node: store.workspace.root,
-                    store: store
-                )
-            }
-        }
+        // v0.30 boss 2026-09-01 OOB: the legacy PaneRenderer path
+        // (= v0.28 ticket 028-004 hand-rolled split-tree renderer)
+        // was deleted per boss OOB (= the new NSSplitView code
+        // fully replicates the old behavior). WorkspaceView now
+        // ALWAYS renders the NSSplitView path (= PaneSplitHost +
+        // PaneNSController). The `useNSSplitView` feature flag
+        // stays in WorkspaceState for backward Codable
+        // compatibility but the UI no longer branches on it.
+        PaneSplitHost(
+            layout: FCPLayout(),
+            store: store,
+            appState: appState,
+            bookStore: bookStore
+        )
             // v0.30 boss 8/31 OOB '默认 app 进来是, 选定的是退出时的
             // 目录': restore sidebar selection from AppStorage on
             // first appear (= empty storage = no selection = default
@@ -188,7 +171,7 @@ struct WorkspaceView: View {
 
     /// Render a tab's view (= dispatches on TabKind). Extracted
     /// from the original `renderTab(_ tab: TabSpec)` to take a bare
-    /// `TabKind` (= PaneRenderer's TabContentDispatcher only knows
+    /// `TabKind` (= the SwiftUI TabContentDispatcher only knows
     /// the kind + title, not the full TabSpec).
     @ViewBuilder
     private func renderTabByKind(_ kind: TabKind) -> some View {
@@ -307,7 +290,7 @@ struct WorkspaceView: View {
     }
 
     /// Legacy method kept for backward-compatibility (= no callers
-    /// remain after the PaneRenderer refactor, but downstream
+    /// remain after the NSSplitView refactor, but downstream
     /// extensions may still reference it via the `renderTab`
     /// closure). Forwards to `renderTabByKind` after looking up
     /// the tab spec.

@@ -213,41 +213,11 @@ Each component has:
 
 ## 🖱️ LEVEL 5: Interaction 组件
 
-### 5.1 NativeSplitter
-- **Path**: `Sources/WenshuApp/Views/Layout/NativeSplitter.swift`
-- **Purpose**: Draggable 1 PT divider between panes (= .pointerStyle + DragGesture + hover wash)
-- **Use when**: Need to add a new draggable splitter between two regions
-- **Don't use when**: Building a non-draggable divider (= use `StaticDividerVertical` or `StaticDividerHorizontal`)
-- **API**:
-  ```swift
-  VSplitter(length: 200, totalWidth: 1200, splitterIndex: 0, vm: layoutVM)
-  // VSplitter wraps NativeSplitter with vm.adjust() callback (= legacy wrapper)
-  ```
-
-### 5.1.5 PaneSplitter + SplitterSpec (NEW, Round B)
-- **Path**: `Sources/WenshuApp/Views/Layout/PaneSplitter.swift`
-- **Purpose**: Unified wrapper for ALL 5 splitters (= D_v0 horizontal band split + D_v1/D_v2/D_v3/D_v5 vertical zone splits). Listed in ComponentIndex.md Level 5.5.
-- **Use when**: Adding ANY new pane splitter (= don't inline `NativeSplitter(...)` or call legacy `VSplitter` directly)
-- **Don't use when**: Defining a non-draggable divider (= use `StaticDividerVertical/Horizontal`)
-- **API**:
-  ```swift
-  PaneSplitter(spec: SplitterSpec(
-      id: "D_v1",
-      orientation: .vertical,    // = drag left/right
-      length: bandH,
-      totalSize: totalW,
-      onDrag: { dx in vm.adjustSidebarPreview(delta: dx, totalWidth: totalW) }
-  ))
-  ```
-- **vs VSplitter (= legacy wrapper)**:
-  - VSplitter: only takes `splitterIndex: Int` (= magic numbers 0/1/2/4)
-  - PaneSplitter: takes `SplitterSpec` (= data-driven with explicit id + orientation + callbacks)
-- **Replaces**: Inlines all 5 `NativeSplitter(...)` + `VSplitter(...)` calls
-
-### 5.2 StaticDividerVertical / StaticDividerHorizontal
-- **Path**: `Sources/WenshuApp/Views/Layout/NativeSplitter.swift`
-- **Purpose**: Non-draggable 1 PT divider (= canonical Liquid Glass hairline)
-- **Use when**: Need a visual separator but not user-draggable
+> v0.30 boss 2026-09-01 OOB: NativeSplitter + PaneSplitter + VSplitter
+> + StaticDividerVertical/Horizontal were deleted as dead code
+> (= superseded by the NSSplitView path which provides drag-to-resize
+> + autosave + canCollapse natively). Section 5 entries for those
+> types are removed from this index.
 
 ### 5.3 Tip
 - **Path**: `Sources/WenshuApp/UI/Components/Tip.swift`
