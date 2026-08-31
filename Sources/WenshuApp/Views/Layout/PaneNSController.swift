@@ -230,14 +230,23 @@ final class PaneNSController: NSSplitViewController {
         for child in children {
             removeChild(at: 0)
         }
-
-        // Walk the root (= a SplitNode in the default FCP preset = outer
-        // column split = upperBand + lowerBand).
+        // v0.30 boss 2026-09-01 OOB fix: explicitly set the root
+        // NSSplitView's axis to match the root SplitNode's
+        // orientation. Without this, NSSplitViewController defaults
+        // to `isVertical = true` (= horizontal row of panes), which
+        // is WRONG when the root is `.column` (= upper band + lower
+        // band stacked top-to-bottom). The result: the
+        // `installSplit` recursion sees parentOrientation = `.row`
+        // (= derived from NSSplitView.isVertical = true), and
+        // matches it against upperBand/lowerBand `.row` children,
+        // installing them as siblings in one row (= 6 panes side
+        // by side, NOT two bands stacked).
         switch store.workspace.root {
         case .split(let split):
-            installSplit(split, parent: self, parentOrientation: .column)
+            self.splitView.isVertical = (split.orientation == .row)
+            installSplit(split, parent: self, parentOrientation: split.orientation == .row ? .row : .column)
         case .group(let group):
-            // Single-group root (= rare; happens in single-pane layouts).
+            self.splitView.isVertical = true
             installGroup(group)
         }
     }
@@ -261,7 +270,12 @@ final class PaneNSController: NSSplitViewController {
         }
 
         // Different orientation → create a nested controller.
+        // Also set the nested controller's splitView.isVertical to
+        // match this split's orientation (= otherwise the nested
+        // controller defaults to isVertical = true and the children
+        // install wrong-axis).
         let nested = NSSplitViewController()
+        nested.splitView.isVertical = (split.orientation == .row)
         nested.splitView.autosaveName = autosaveKey(for: split.id)
         installChildren(split.children, weights: split.weights, into: nested)
         parent.addChild(nested)
