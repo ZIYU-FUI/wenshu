@@ -415,9 +415,13 @@ struct WenshuApp: App {
     /// v0.30 boss 8/31 OOB "option A for cross-zone communication"
     /// (= global @Observable store). Per-window @State (= each
     /// WindowGroup instance gets its own AppState = boss 8/27 OOB
-    /// multi-window future-proofing). All cross-zone UI signals
-    /// (sidebarSelection / selectedEntity / selectedEntityCategory /
-    /// previewSortOrder) live in this single observable object.
+    /// multi-window future-proofing). Currently hosts the
+    /// `sidebarSelection` signal (= the 4-layer @Binding chain
+    /// from commit d845fe9c9 has been collapsed to a single
+    /// `@Environment(AppState.self) var appState` lookup).
+    /// The 3 other signals declared in the original spec
+    /// (selectedEntity / selectedEntityCategory / previewSortOrder)
+    /// are tracked in v0.31 backlog (= see CONTEXT.md AppState row).
     /// Descendants read it via `@Environment(AppState.self) var appState`.
     @State private var appState = AppState()
 

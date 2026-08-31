@@ -51,12 +51,5 @@ final class AppState {
     /// (= JSON shape, = set by WorkspaceView's `.onChange`).
     var sidebarSelection: SidebarItem? = nil
 
-    /// Reference library entity detail selection (= the entity card
-    /// currently being viewed in single-card detail mode). Separate
-    /// from `sidebarSelection` (= = the sidebar tree selection) so
-    /// detail mode can render without changing which tree row is
-    /// highlighted.
-
-
     init() {}
 }
