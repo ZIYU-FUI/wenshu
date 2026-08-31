@@ -102,7 +102,11 @@ struct WorkspaceView: View {
         // array rendering (= v0.27 LayoutShellView 6-zone shape)
         // is removed; v2 = the only path. The WorkspaceView body
         // is now a thin shim that hands off to PaneRenderer.
-        PaneRenderer(node: store.workspace.root, store: store)
+        PaneRenderer(
+            node: store.workspace.root,
+            store: store,
+            sidebarSelection: $sidebarSelection
+        )
             // v0.30 boss 8/31 OOB '默认 app 进来是, 选定的是退出时的
             // 目录': restore sidebar selection from AppStorage on
             // first appear (= empty storage = no selection = default
@@ -203,8 +207,23 @@ struct WorkspaceView: View {
             // projectPreviewChrome/specializedToolsChrome (= top actions
             // list), with the actual content view (CanvasView/BaseView
             // for Tools, GraphView for Preview) as the tab's body.
+            //
+            // v0.30 boss 8/31 OOB '点 sidebar row → 右边素材区正常显示
+            // 目录下的文档，控制目录范围': PreviewPane is wired here
+            // (= the active WorkspaceView body) with the computed
+            // `previewScope` (= driven by sidebarSelection). The tab
+            // "图" stays on GraphView placeholder for future graph
+            // view work.
             ZoneContentView(zoneSlug: "projectPreview", tabs: [
-                ("预览", "book-open-check", AnyView(GraphView())),
+                ("预览", "book-open-check", AnyView(PreviewPane(
+                    scope: previewScope,
+                    onEntityDoubleClick: { entity in
+                        // v0.30 Ticket 3 hook: open in editor.
+                        // For now: just print; Ticket 3 will wire this
+                        // to editor zone + replace EditorContentPlaceholder.
+                        NSLog("WorkspaceView.PreviewPane: double-click entity %@", entity.title)
+                    }
+                ))),
                 ("图", "waypoints", AnyView(GraphView())),
             ])
         case .editor:
@@ -303,14 +322,47 @@ struct ZoneModuleView: View {
     @Binding var selectedEntityCategory: EntityCategory?
     @Binding var selectedEntity: Reference?
 
+    /// v0.30 boss 8/31 OOB: sidebar selection binding (= drives
+    /// PreviewPane scope = book / folder / reference category /
+    /// shelf / empty). PaneRenderer forwards this from WorkspaceView.
+    @Binding var sidebarSelection: SidebarItem?
+
+    /// v0.30 boss 8/31 OOB: computed preview scope (= mirrors
+    /// WorkspaceView's `previewScope`; duplicated here to keep
+    /// ZoneModuleView self-contained without threading the scope
+    /// through WorkspaceView → ZoneModuleView via another binding).
+    private var previewScope: PreviewScope {
+        guard let item = sidebarSelection else { return .empty }
+        switch item {
+        case .book(let bookId):
+            return .bookScope(bookId: bookId, folderName: nil)
+        case .folder(let bookId, let folderName):
+            return .bookScope(bookId: bookId, folderName: folderName)
+        case .shelf:
+            return .empty
+        case .referenceCategory(let dirName):
+            if dirName == "__root__" {
+                return .referenceScope(nil)
+            }
+            if let cat = EntityCategory.allCases.first(where: {
+                $0.directoryName == dirName
+            }) {
+                return .referenceScope(cat)
+            }
+            return .empty
+        }
+    }
+
     /// v0.30: default initializer for non-workspace callers.
     /// (= pass dummy constants explicitly, see RegisteredPanes.swift)
     init(
         zoneSlot: ZoneSlot,
+        sidebarSelection: Binding<SidebarItem?> = .constant(nil),
         selectedEntityCategory: Binding<EntityCategory?> = .constant(nil),
         selectedEntity: Binding<Reference?> = .constant(nil)
     ) {
         self.zoneSlot = zoneSlot
+        self._sidebarSelection = sidebarSelection
         self._selectedEntityCategory = selectedEntityCategory
         self._selectedEntity = selectedEntity
     }
@@ -320,8 +372,12 @@ struct ZoneModuleView: View {
         case .projectSidebar:
             // 老 6区 projectSidebar = 1 tab (书架, with book-open icon)
             // + trailingButton (新建 + 入驻 = NewLibraryOutlineView.zoneHeaderButtons).
+            // v0.30 boss 8/31 OOB: ZoneModuleView forwards its
+            // sidebarSelection binding to NewLibraryOutlineView so
+            // the sidebar click → preview pane scope works.
             ZoneContentView(zoneSlug: "projectSidebar", tabs: [
                 ("书架", "book-open", AnyView(NewLibraryOutlineView(
+                    sidebarSelection: $sidebarSelection,
                     selectedEntityCategory: $selectedEntityCategory,
                     selectedEntity: $selectedEntity
                 ))),
@@ -347,12 +403,12 @@ struct ZoneModuleView: View {
             // computed previewScope (= supports all 4 sidebar scopes).
             ZoneContentView(zoneSlug: "projectPreview", tabs: [
                 ("预览", "book-open-check", AnyView(PreviewPane(
-                    scope: .empty,
+                    scope: previewScope,
                     onEntityDoubleClick: { entity in
                         // v0.30 Ticket 3 hook: open in editor.
                         // For now: just print; Ticket 3 will wire this
                         // to editor zone + replace EditorContentPlaceholder.
-                        NSLog("PreviewPane: double-click entity %@", entity.title)
+                        NSLog("ZoneModuleView.PreviewPane: double-click entity %@", entity.title)
                     }
                 ))),
                 ("图", "waypoints", AnyView(GraphView())),

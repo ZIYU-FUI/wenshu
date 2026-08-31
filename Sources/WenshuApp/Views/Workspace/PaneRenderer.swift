@@ -59,6 +59,21 @@ struct PaneRenderer: View {
     let node: LayoutNode
     @ObservedObject var store: WorkspaceStore
 
+    /// v0.30 boss 8/31 OOB: forwarded sidebar selection binding
+    /// from WorkspaceView. Default = .constant nil for non-workspace
+    /// callers.
+    @Binding var sidebarSelection: SidebarItem?
+
+    init(
+        node: LayoutNode,
+        store: WorkspaceStore,
+        sidebarSelection: Binding<SidebarItem?> = .constant(nil)
+    ) {
+        self.node = node
+        self.store = store
+        self._sidebarSelection = sidebarSelection
+    }
+
     /// The minimum pane width / height (= clamps how small a child
     /// can shrink under drag-to-resize).
     private let minChildSize: CGFloat = 200
@@ -240,7 +255,16 @@ struct PaneRenderer: View {
             if let tab = activeTab {
                 // Dispatch the tab kind to the view via the
                 // shared renderer (= defined in WorkspaceView.swift).
-                TabContentDispatcher(kind: tab.kind, title: tab.title)
+                // The sidebarSelection binding is forwarded from
+                // WorkspaceView's @State (= see the
+                // TabContentDispatcher init default = .constant
+                // for non-workspace callers; here we forward the
+                // real binding from PaneRenderer).
+                TabContentDispatcher(
+                    kind: tab.kind,
+                    title: tab.title,
+                    sidebarSelection: $sidebarSelection
+                )
             } else {
                 Color.secondary.opacity(0.05)
                     .overlay(Text("空面板"))
@@ -289,6 +313,23 @@ struct TabContentDispatcher: View {
     let kind: TabKind
     let title: String
 
+    /// v0.30 boss 8/31 OOB '点 sidebar row → 右边素材区正常显示目录
+    /// 下的文档': forwarded sidebar selection binding from
+    /// WorkspaceView. ZoneModuleView (inside TabContentDispatcher)
+    /// needs this to drive the PreviewPane scope. Default = .constant
+    /// nil for non-workspace callers.
+    @Binding var sidebarSelection: SidebarItem?
+
+    init(
+        kind: TabKind,
+        title: String,
+        sidebarSelection: Binding<SidebarItem?> = .constant(nil)
+    ) {
+        self.kind = kind
+        self.title = title
+        self._sidebarSelection = sidebarSelection
+    }
+
     // v0.30 boss 8/31 OOB (sidebar feedback bundle #3): bottom status
     // '书架: N / 书: N' was hardcoded to 0. Now reads live counts
     // from BookStore (= the Environment value already propagated
@@ -334,7 +375,10 @@ struct TabContentDispatcher: View {
                 ).bottom,
                 topSkip: true  // ← skip outer top, use internal ZoneContentTabBar only
             ) {
-                ZoneModuleView(zoneSlot: .projectSidebar)
+                ZoneModuleView(
+                    zoneSlot: .projectSidebar,
+                    sidebarSelection: $sidebarSelection
+                )
             }
         case .projectPreview:
             // Same: no outer top toolbar (= internal ZoneContentTabBar
@@ -345,7 +389,10 @@ struct TabContentDispatcher: View {
                 bottomStatus: projectPreviewChrome(chapterCount: 0).bottom,
                 topSkip: true
             ) {
-                ZoneModuleView(zoneSlot: .projectPreview)
+                ZoneModuleView(
+                    zoneSlot: .projectPreview,
+                    sidebarSelection: $sidebarSelection
+                )
             }
         case .editor:
             // No outer top (= internal ZoneContentTabBar for 编辑 /
