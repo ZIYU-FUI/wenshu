@@ -272,13 +272,6 @@ struct NewLibraryOutlineView: View {
                         }
                         .badge(entitiesCount(in: category))
                         .tag(SidebarItem.referenceCategory(category.directoryName))
-                        // v0.30 boss 8/31 OOB: blue selection highlight
-                        .background(
-                            appState.sidebarSelection == .referenceCategory(category.directoryName)
-                                ? Color.accentColor.opacity(0.18)
-                                : Color.clear
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
                     }
                 } label: {
                     Label {
@@ -289,13 +282,6 @@ struct NewLibraryOutlineView: View {
                     }
                     .badge(usedCategories().count)
                     .tag(SidebarItem.referenceLibraryRoot)
-                    // v0.30 boss 8/31 OOB: blue selection highlight
-                    .background(
-                        appState.sidebarSelection == .referenceLibraryRoot
-                            ? Color.accentColor.opacity(0.18)
-                            : Color.clear
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
                 }
             }
         }
@@ -591,18 +577,7 @@ struct NewLibraryOutlineView: View {
             // v0.30 boss 8/31 OOB: shelf count badge (= total books
             // in this shelf). User reported '书架后面没有统计数字'.
             .badge(books.count)
-            .tag(SidebarItem.shelf(shelf.id))
-            // v0.30 boss 8/31 OOB: blue selection highlight
-            // (= override Apple HIG default List(.sidebar) gray tint;
-            // boss says '灰的那套不对，不用要'). The clipShape clips
-            // the tint to the row rect (no spillover to adjacent rows).
-            .background(
-                appState.sidebarSelection == .shelf(shelf.id)
-                    ? Color.accentColor.opacity(0.18)
-                    : Color.clear
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 4))
-            // v0.30 boss 8/31 OOB: right-click context menu on shelf
+            .tag(SidebarItem.shelf(shelf.id))            // v0.30 boss 8/31 OOB: right-click context menu on shelf
             // row. Apple HIG canonical contextMenu pattern. Two
             // actions: 重命名 (= renames the shelf in place) +
             // 删除 (= marks shelf for deletion, triggers .alert for
@@ -670,18 +645,7 @@ struct NewLibraryOutlineView: View {
                 LucideIconSidebar(book.displayIcon)
                     .foregroundStyle(.primary)
             }
-            .tag(SidebarItem.book(book.id))
-            // v0.30 boss 8/31 OOB: blue selection highlight (= same
-            // override as shelf/root rows; boss says '两套代码' issue
-            // = book/folder rows used Apple HIG default gray tint
-            // while shelf/root used manual .background).
-            .background(
-                appState.sidebarSelection == .book(book.id)
-                    ? Color.accentColor.opacity(0.18)
-                    : Color.clear
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 4))
-        } else {
+            .tag(SidebarItem.book(book.id))        } else {
             // v0.30 boss 8/31 OOB (sidebar feedback bundle #3):
             // 'child folders should be visible immediately when book
             // is selected' = auto-expand the folder DisclosureGroup
@@ -748,14 +712,6 @@ struct NewLibraryOutlineView: View {
                     // v0.30 boss 8/31 OOB: folder row tag (= enables
                     // List(selection:) routing for this row).
                     .tag(SidebarItem.folder(bookId: book.id, folderName: folder.name))
-                    // v0.30 boss 8/31 OOB: blue selection highlight
-                    // (= same override as shelf/root rows).
-                    .background(
-                        appState.sidebarSelection == .folder(bookId: book.id, folderName: folder.name)
-                            ? Color.accentColor.opacity(0.18)
-                            : Color.clear
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
                 }
             } label: {
                 Label {
@@ -773,16 +729,7 @@ struct NewLibraryOutlineView: View {
                     bookId: book.id,
                     folderDirectoryName: $1.name
                 )})
-                .tag(SidebarItem.book(book.id))
-                // v0.30 boss 8/31 OOB: blue selection highlight (= same
-                // override as shelf/root rows).
-                .background(
-                    appState.sidebarSelection == .book(book.id)
-                        ? Color.accentColor.opacity(0.18)
-                        : Color.clear
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 4))
-                // v0.30 boss 8/31 OOB '顺手做一下, 双击目录树展开合上
+                .tag(SidebarItem.book(book.id))                // v0.30 boss 8/31 OOB '顺手做一下, 双击目录树展开合上
                 // 的交互': double-click on the book label toggles the
                 // folder DisclosureGroup (= level 3 expand/collapse).
                 // Single click selects the book (= sets
