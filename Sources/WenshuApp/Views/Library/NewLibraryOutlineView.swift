@@ -277,47 +277,60 @@ struct NewLibraryOutlineView: View {
                     // '双击目录树展开合上' = standard Finder behavior,
                     // supported here via the DisclosureGroup's built-in
                     // gesture.
-                        // v0.30 boss 8/31 OOB: hover tint scope = ONLY
-                        // the text (= not the icon, not the badge).
+                        // v0.30 boss 8/31 OOB: hover tint scope =
+                        // whole label (= icon + text + badge), matches
+                        // the selection tint range.
                         Label {
                             Text(category.displayName)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .fill(categoryHoverStates[category.directoryName, default: false]
-                                            ? Color.accentColor.opacity(0.18)
-                                            : Color.clear)
-                                )
-                                .onHover { hovering in
-                                    categoryHoverStates[category.directoryName, default: false] = hovering
-                                }
                         } icon: {
                             LucideIconSidebar(category.icon)
                                 .foregroundStyle(.primary)
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        // v0.30 boss 8/31 OOB: manual selection bg.
+                        .listRowBackground(
+                            appState.sidebarSelection == .referenceCategory(category.directoryName)
+                                ? Color.accentColor.opacity(0.22)
+                                : Color.clear
+                        )
+                        .background(
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(categoryHoverStates[category.directoryName, default: false]
+                                    ? Color.accentColor.opacity(0.18)
+                                    : Color.clear)
+                        )
+                        .onHover { hovering in
+                            categoryHoverStates[category.directoryName, default: false] = hovering
                         }
                         .badge(entitiesCount(in: category))
                         .tag(SidebarItem.referenceCategory(category.directoryName))
                     }
                 } label: {
-                    // v0.30 boss 8/31 OOB: hover tint scope = ONLY the
-                    // text (= not the icon, not the badge).
+                    // v0.30 boss 8/31 OOB: hover tint scope = whole label
+                    // (= icon + text + badge), matches selection tint.
                     Label {
                         Text("资料库")
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(referenceRootHovered
-                                        ? Color.accentColor.opacity(0.18)
-                                        : Color.clear)
-                            )
-                            .onHover { hovering in
-                                referenceRootHovered = hovering
-                            }
                     } icon: {
                         LucideIconSidebar("square-library")
                             .foregroundStyle(.primary)
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    // v0.30 boss 8/31 OOB: manual selection bg.
+                    .listRowBackground(
+                        appState.sidebarSelection == .referenceLibraryRoot
+                            ? Color.accentColor.opacity(0.22)
+                            : Color.clear
+                    )
+                    .background(
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(referenceRootHovered
+                                ? Color.accentColor.opacity(0.18)
+                                : Color.clear)
+                    )
+                    .onHover { hovering in
+                        referenceRootHovered = hovering
                     }
                     .badge(usedCategories().count)
                     .tag(SidebarItem.referenceLibraryRoot)
@@ -641,38 +654,51 @@ struct NewLibraryOutlineView: View {
                 bookRowWithFolders(book)
             }
         } label: {
-            Label {
-                // v0.30 boss 8/31 OOB: hover tint scope = ONLY the
-                // text area (= not the icon, not the badge). Boss:
-                // '目录树的悬浮效果, 不是整条的, 是只有文字区域的,
-                // 需要优化'. Moved the hover effect from outside the
-                // Label (= affected icon + text + badge) to inside
-                // the Label's text content (= affects only the
-                // shelf name text).
-                Text(shelf.name)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(isHovered.wrappedValue
-                                ? Color.accentColor.opacity(0.18)
-                                : Color.clear)
-                    )
-                    .onHover { hovering in
-                        isHovered.wrappedValue = hovering
-                    }
-            } icon: {
-                // v0.30 boss 8/31 OOB: use displayIcon (= user-picked
-                // icon if set; otherwise defaults based on whether
-                // this is the canonical default shelf or a user-
-                // created shelf). Previously hardcoded to two static
-                // icons, which left user-created shelves without
-                // any icon at all (= '新建书架后，暑假没有 ICON').
+            // v0.30 boss 8/31 OOB: hover tint scope = whole label
+            // (= icon + text + badge), matching the selection tint
+            // range. Boss: '我建议你改成整个目录项, 和点击后的那个
+            // 选定一个范围'. Hover tint is slightly darker than
+            // selection (= 0.18 vs SwiftUI default List selection
+            // opacity) so the user can distinguish hover from
+            // selection.
+            HStack(spacing: 4) {
                 LucideIconSidebar(shelf.displayIcon)
                     .foregroundStyle(.primary)
+                Text(shelf.name)
+                if books.count > 0 {
+                    Text("\(books.count)")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            // v0.30 boss 8/31 OOB: manual selection background to
+            // ensure accent color on first render (= List(.sidebar)
+            // default selection tint is gray on cold-launch; manual
+            // .background override forces accent color from the
+            // first render pass).
+            .listRowBackground(
+                appState.sidebarSelection == .shelf(shelf.id)
+                    ? Color.accentColor.opacity(0.22)
+                    : Color.clear
+            )
+            .background(
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(isHovered.wrappedValue
+                        ? Color.accentColor.opacity(0.18)
+                        : Color.clear)
+            )
+            .onHover { hovering in
+                isHovered.wrappedValue = hovering
             }
             // v0.30 boss 8/31 OOB: shelf count badge (= total books
             // in this shelf). User reported '书架后面没有统计数字'.
+            // Now embedded in the HStack above (= custom count
+            // rendering) so the badge doesn't conflict with hover
+            // background (= hover covers entire HStack, including
+            // count, vs .badge() being outside the hover scope).
             .badge(books.count)
             .tag(SidebarItem.shelf(shelf.id))            // v0.30 boss 8/31 OOB: right-click context menu on shelf
             // row. Apple HIG canonical contextMenu pattern. Two
@@ -742,6 +768,11 @@ struct NewLibraryOutlineView: View {
                 LucideIconSidebar(book.displayIcon)
                     .foregroundStyle(.primary)
             }
+            .listRowBackground(
+                appState.sidebarSelection == .book(book.id)
+                    ? Color.accentColor.opacity(0.22)
+                    : Color.clear
+            )
             .tag(SidebarItem.book(book.id))        } else {
             // v0.30 boss 8/31 OOB (sidebar feedback bundle #3):
             // 'child folders should be visible immediately when book
@@ -793,24 +824,34 @@ struct NewLibraryOutlineView: View {
                             folderName: folder.name
                         )
                     } label: {
-                        // v0.30 boss 8/31 OOB: hover tint scope = ONLY
-                        // the text (= not the icon, not the badge).
+                        // v0.30 boss 8/31 OOB: hover tint scope = whole
+                        // label (= icon + text + badge), matches
+                        // selection tint range.
                         Label {
                             Text(folder.displayName)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .fill(folderHoverStates["\(book.id.uuidString)/\(folder.name)", default: false]
-                                            ? Color.accentColor.opacity(0.18)
-                                            : Color.clear)
-                                )
-                                .onHover { hovering in
-                                    folderHoverStates["\(book.id.uuidString)/\(folder.name)", default: false] = hovering
-                                }
                         } icon: {
                             LucideIconSidebar(folder.icon)
                                 .foregroundStyle(.primary)
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        // v0.30 boss 8/31 OOB: manual selection bg
+                        // (= forces accent color from first render).
+                        .listRowBackground(
+                            appState.sidebarSelection == .folder(
+                                bookId: book.id, folderName: folder.name
+                            )
+                                ? Color.accentColor.opacity(0.22)
+                                : Color.clear
+                        )
+                        .background(
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(folderHoverStates["\(book.id.uuidString)/\(folder.name)", default: false]
+                                    ? Color.accentColor.opacity(0.18)
+                                    : Color.clear)
+                        )
+                        .onHover { hovering in
+                            folderHoverStates["\(book.id.uuidString)/\(folder.name)", default: false] = hovering
                         }
                         .badge(bookStore.folderDocumentCount(
                             bookId: book.id,
@@ -839,6 +880,13 @@ struct NewLibraryOutlineView: View {
                     bookId: book.id,
                     folderDirectoryName: $1.name
                 )})
+                // v0.30 boss 8/31 OOB: manual selection bg (= forces
+                // accent color from first render).
+                .listRowBackground(
+                    appState.sidebarSelection == .book(book.id)
+                        ? Color.accentColor.opacity(0.22)
+                        : Color.clear
+                )
                 .tag(SidebarItem.book(book.id))                // v0.30 boss 8/31 OOB '顺手做一下, 双击目录树展开合上
                 // 的交互': double-click on the book label toggles the
                 // folder DisclosureGroup (= level 3 expand/collapse).
