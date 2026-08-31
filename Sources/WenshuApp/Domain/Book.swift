@@ -59,6 +59,11 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
     /// Author name; empty string = no author specified (= wenshu doesn't
     /// require one; we just record whatever the user types).
     var author: String
+    /// v0.30 boss 8/31 OOB: user-picked Lucide icon name for the
+    /// sidebar display. Optional for backward compat (= existing
+    /// books default to "book" via `displayIcon`). Mirrors the
+    /// Bookshelf.icon pattern (= same shape, same fallback).
+    var icon: String?
     /// Parent bookshelf (= filesystem constraint: the book's directory
     /// must live under its parent shelf's `books/`). Required at init so
     /// no orphan books ever land on disk.
@@ -77,6 +82,7 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
         id: UUID = UUID(),
         title: String,
         author: String = "",
+        icon: String? = nil,
         shelfId: UUID,
         length: BookLength = .medium,
         idea: String? = nil,
@@ -86,6 +92,7 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
         self.id = id
         self.title = title
         self.author = author
+        self.icon = icon
         self.shelfId = shelfId
         self.length = length
         self.idea = idea
@@ -98,6 +105,13 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
     /// identity, title is just the display label).
     var directoryName: String {
         id.uuidString
+    }
+
+    /// v0.30 boss 8/31 OOB: book icon for sidebar display. Returns
+    /// `icon` if set, otherwise the default "book" icon.
+    var displayIcon: String {
+        if let icon, !icon.isEmpty { return icon }
+        return "book"
     }
 
     // id-based identity (= Apple HIG document-based convention).
@@ -122,7 +136,7 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
     // list, etc.) should follow the same pattern.
 
     private enum CodingKeys: String, CodingKey {
-        case id, title, author, shelfId, length, idea, createdAt, updatedAt
+        case id, title, author, icon, shelfId, length, idea, createdAt, updatedAt
     }
 
     init(from decoder: Decoder) throws {
@@ -133,12 +147,14 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
         let shelfId = try c.decode(UUID.self, forKey: .shelfId)
         let length = try c.decodeIfPresent(BookLength.self, forKey: .length) ?? .medium
         let idea = try c.decodeIfPresent(String.self, forKey: .idea)
+        let icon = try c.decodeIfPresent(String.self, forKey: .icon)  // v0.30 boss OOB: optional
         let createdAt = try c.decode(Date.self, forKey: .createdAt)
         let updatedAt = try c.decode(Date.self, forKey: .updatedAt)
         self.init(
             id: id,
             title: title,
             author: author,
+            icon: icon,
             shelfId: shelfId,
             length: length,
             idea: idea,

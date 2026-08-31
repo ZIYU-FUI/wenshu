@@ -281,14 +281,26 @@ struct NewLibraryOutlineView: View {
             showNewChoiceSheet = true
         }
         .sheet(isPresented: $showNewBookSheet) {
-            NewBookSheet(onSave: { book in
-                do {
-                    try saveBook(book)
-                    reload()
-                } catch {
-                    loadError = error.localizedDescription
-                }
-            })
+            // v0.30 boss 8/31 OOB: pre-fill the new book with the
+            // currently-selected shelf id (= so clicking '新建书'
+            // while '测试书架' is selected creates the book in
+            // '测试书架' instead of always in the default shelf).
+            // The shelf picker inside the sheet lets the user
+            // override this (= change shelf before saving).
+            let target = resolveNewBookTargetShelf()
+            NewBookSheet(
+                onSave: { book in
+                    do {
+                        try saveBook(book)
+                        reload()
+                    } catch {
+                        loadError = error.localizedDescription
+                    }
+                },
+                targetShelfId: target.id,
+                targetShelfName: target.name,
+                availableShelves: shelves.map { ($0.id, $0.name) }
+            )
         }
         .sheet(isPresented: $showNewShelfSheet) {
             NewShelfSheet(
@@ -492,7 +504,9 @@ struct NewLibraryOutlineView: View {
             Label {
                 Text(book.title)
             } icon: {
-                LucideIconSidebar("book")
+                // v0.30 boss 8/31 OOB: use displayIcon (= user-picked
+                // icon if set, else default "book").
+                LucideIconSidebar(book.displayIcon)
                     .foregroundStyle(.primary)
             }
             .tag(SidebarItem.book(book.id))
@@ -531,7 +545,9 @@ struct NewLibraryOutlineView: View {
                 Label {
                     Text(book.title)
                 } icon: {
-                    LucideIconSidebar("book")
+                    // v0.30 boss 8/31 OOB: use displayIcon (= user-picked
+                    // icon if set, else default "book").
+                    LucideIconSidebar(book.displayIcon)
                         .foregroundStyle(.primary)
                 }
                 // v0.30 boss 8/31 OOB: book row count badge (= total
@@ -760,8 +776,13 @@ struct NewLibraryOutlineView: View {
     }
 
     private func saveBook(_ book: Book) throws {
+        // v0.30 boss 8/31 OOB: bug fix — the previous path
+        // duplicated the 'books' segment (= 'books/<shelf-uuid>/books/<book-uuid>')
+        // which would create the book in a non-standard location
+        // and break the LibraryBootstrapper invariants. The correct
+        // path is '<shelvesRoot>/<shelf-uuid>/books/<book-uuid>/',
+        // matching the v5 spec layout.
         let bookDir = bookStore.stores.shelvesRoot
-            .appendingPathComponent("books", isDirectory: true)
             .appendingPathComponent(book.shelfId.uuidString, isDirectory: true)
             .appendingPathComponent("books", isDirectory: true)
             .appendingPathComponent(book.id.uuidString, isDirectory: true)
@@ -821,6 +842,30 @@ struct NewLibraryOutlineView: View {
                 )
             }
         }
+    }
+
+    /// v0.30 boss 8/31 OOB: resolve the current target shelf id
+    /// for the '新建书' action. Logic (= first non-nil match):
+    /// 1. If sidebarSelection is .book → use that book's shelf
+    /// 2. If sidebarSelection is .shelf → use that shelf directly
+    /// 3. Fallback: default '从这里开始' shelf (id
+    ///    00000000-0000-0000-0000-000000000000)
+    /// Returns (id, displayName) so the NewBookSheet can show
+    /// the shelf name in its picker.
+    private func resolveNewBookTargetShelf() -> (id: UUID, name: String) {
+        if case .book(let bookId) = sidebarSelection,
+           let book = books.first(where: { $0.id == bookId }),
+           let shelf = shelves.first(where: { $0.id == book.shelfId }) {
+            return (shelf.id, shelf.name)
+        }
+        if case .shelf(let shelfId) = sidebarSelection,
+           let shelf = shelves.first(where: { $0.id == shelfId }) {
+            return (shelf.id, shelf.name)
+        }
+        // Fallback: default shelf.
+        let defaultId = UUID(uuidString: "00000000-0000-0000-0000-000000000000") ?? UUID()
+        let defaultName = shelves.first(where: { $0.id == defaultId })?.name ?? "从这里开始"
+        return (defaultId, defaultName)
     }
 
     // v0.30 boss 8/31 OOB: context-menu actions. Per macOS HIG
@@ -972,9 +1017,45 @@ private enum ShelfError: LocalizedError {
 
 private struct NewBookSheet: View {
     let onSave: (Book) -> Void
+    /// v0.30 boss 8/31 OOB: target shelf id (= where the new book
+    /// will be created). Pre-fills with the currently selected
+    /// shelf (= from sidebarSelection). If nothing is selected,
+    /// falls back to the default shelf id.
+    let targetShelfId: UUID
     @State private var title: String = ""
     @State private var author: String = ""
+    @State private var shelfId: UUID  // editable (= user can pick a different shelf)
+    @State private var selectedIcon: String = "book"  // v0.30 boss 8/31 OOB: user-picks icon
     @Environment(\.dismiss) private var dismiss
+
+    /// v0.30 boss 8/31 OOB: display name of the target shelf (=
+    /// shown in the picker as default selection). Lets the user
+    /// see "this book will go into 帮助" before saving.
+    let targetShelfName: String
+    /// v0.30 boss 8/31 OOB: all available shelves with their display
+    /// names (= the picker shows shelf names, not UUIDs).
+    let availableShelves: [(id: UUID, name: String)]
+
+    init(
+        onSave: @escaping (Book) -> Void,
+        targetShelfId: UUID,
+        targetShelfName: String,
+        availableShelves: [(id: UUID, name: String)]
+    ) {
+        self.onSave = onSave
+        self.targetShelfId = targetShelfId
+        self.targetShelfName = targetShelfName
+        self.availableShelves = availableShelves
+        _shelfId = State(initialValue: targetShelfId)
+    }
+
+    /// v0.30 boss 8/31 OOB: full Lucide icon library (=
+    /// LucideIcon.allCases from lucide-swift enum, ~1500 icons).
+    /// No guessing about which icon names exist; the user scrolls
+    /// through every real Lucide icon and picks one.
+    private var allLucideIcons: [String] {
+        LucideIcon.allCases.map(\.rawValue)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -990,6 +1071,77 @@ private struct NewBookSheet: View {
                     .textFieldStyle(.roundedBorder)
                 TextField("作者", text: $author)
                     .textFieldStyle(.roundedBorder)
+                // v0.30 boss 8/31 OOB: shelf picker (= user can
+                // choose which shelf this book goes into). Default
+                // = the currently-selected shelf (= so clicking
+                // 新建书 inside '测试书架' creates the book there).
+                // Picker shows shelf names (= not raw UUIDs).
+                Picker("归属书架", selection: $shelfId) {
+                    ForEach(availableShelves, id: \.id) { shelf in
+                        Text(shelf.name).tag(shelf.id)
+                    }
+                }
+                // v0.30 boss 8/31 OOB: icon picker (mirrors
+                // NewShelfSheet). Default = "book" (= matches
+                // existing book row icon). User can scroll through
+                // ~1500 real Lucide icons and pick any.
+                Section {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.accentColor.opacity(0.15))
+                                .frame(width: 56, height: 56)
+                            LucideIcon(selectedIcon, size: 32)
+                                .foregroundStyle(Color.accentColor)
+                        }
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("已选 ICON")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text(selectedIcon)
+                                .font(.system(.caption, design: .monospaced))
+                        }
+                        Spacer()
+                    }
+                    ScrollView {
+                        LazyVGrid(
+                            columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 8),
+                            spacing: 8
+                        ) {
+                            ForEach(allLucideIcons, id: \.self) { iconName in
+                                Button {
+                                    selectedIcon = iconName
+                                } label: {
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .fill(selectedIcon == iconName
+                                                  ? Color.accentColor.opacity(0.25)
+                                                  : Color.clear)
+                                            .frame(width: 40, height: 40)
+                                        LucideIcon(iconName, size: 24)
+                                            .foregroundStyle(selectedIcon == iconName
+                                                             ? Color.accentColor
+                                                             : Color.primary)
+                                    }
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .stroke(selectedIcon == iconName
+                                                    ? Color.accentColor
+                                                    : Color.gray.opacity(0.2),
+                                                    lineWidth: 1)
+                                    )
+                                    .buttonStyle(.plain)
+                                }
+                                .help(iconName)
+                            }
+                        }
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 8)
+                    }
+                    .frame(height: 320)
+                } header: {
+                    Text("ICON (必选)")
+                }
             }
             .formStyle(.grouped)
             Divider()
@@ -1000,7 +1152,8 @@ private struct NewBookSheet: View {
                     let book = Book(
                         title: title,
                         author: author,
-                        shelfId: UUID(uuidString: "00000000-0000-0000-0000-000000000000") ?? UUID()
+                        icon: selectedIcon,
+                        shelfId: shelfId
                     )
                     onSave(book)
                     dismiss()
@@ -1010,7 +1163,7 @@ private struct NewBookSheet: View {
             }
             .padding()
         }
-        .frame(minWidth: 360, idealWidth: 420, minHeight: 220, idealHeight: 260)
+        .frame(minWidth: 480, idealWidth: 540, minHeight: 720, idealHeight: 800)
     }
 }
 
