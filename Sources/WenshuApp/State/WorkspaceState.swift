@@ -788,6 +788,20 @@ struct WorkspaceState: Codable, Equatable {
     /// Schema version (= current = 2).
     var version: Int
 
+    /// v0.30 ticket 04 (= future-framework feature flag): opt-in to
+    /// the Apple-native NSSplitView path (= PaneLayout + PaneSplitHost
+    /// + PaneNSController) instead of the legacy hand-rolled PaneRenderer.
+    ///
+    /// Default `false` = existing users see ZERO behavior change on app
+    /// upgrade. Set via:
+    ///   defaults write com.wenshu.app wenshu.useNSSplitView -bool true
+    /// Reset via:
+    ///   defaults delete com.wenshu.app wenshu.useNSSplitView
+    ///
+    /// Marked `Optional` in Codable so old persisted JSON (without this
+    /// field) decodes as `nil` (= treated as OFF).
+    var useNSSplitView: Bool? = nil
+
     /// Lookup helper for a tab by ID (= O(n) over tabs; n is small).
     func tab(for id: TabID) -> TabSpec? {
         tabs.first(where: { $0.id == id })
