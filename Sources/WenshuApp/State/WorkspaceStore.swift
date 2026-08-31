@@ -489,10 +489,16 @@ final class WorkspaceStore: ObservableObject {
             ],
             weights: [7, 3]
         )
+        // v0.30 boss 2026-09-01 OOB: outer column split (= upper
+        // band + lower band stacked) is now 50/50 (= equal halves).
+        // Previously this was 75/25 (= upper band dominated, lower
+        // band was a thin strip), which undervalued the chat +
+        // dynamic surface. Boss OOB verbatim Chinese quote in
+        // .scratch/v0.30-pane-routing-splitter-fix/spec.md.
         let root = makeSplit(
             orientation: .column,
             children: [upperBand, lowerBand],
-            weights: [3, 1]
+            weights: [1, 1]
         )
 
         return LayoutPreset(
