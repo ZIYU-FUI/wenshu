@@ -60,6 +60,13 @@ import Lucide
 /// both selection kinds into one Hashable enum.
 enum SidebarItem: Hashable {
     case book(UUID)
+    // v0.30 boss 8/31 OOB (sidebar feedback bundle #1+2): shelf
+    // (= first tree level) is now a clickable tree row, not just a
+    // SwiftUI Section header. Tagging it with .shelf(UUID) lets the
+    // user select a shelf directly (= will eventually scope preview
+    // pane to the shelf; for now it just keeps the shelf row
+    // highlighted when selected).
+    case shelf(UUID)
     case referenceCategory(String)  // = EntityCategory.directoryName
 
     static let referenceLibraryRoot = SidebarItem.referenceCategory("__root__")
@@ -102,6 +109,17 @@ struct NewLibraryOutlineView: View {
     /// `selectedEntityCategory` (when a category is selected). Single
     /// selection per List (= Apple HIG).
     @State private var sidebarSelection: SidebarItem?
+    // v0.30 boss 8/31 OOB (sidebar feedback bundle #1+2+3): per-shelf
+    // DisclosureGroup expanded state (= remembers user expand/collapse
+    // across selections). Keys = shelf.id, value = isExpanded.
+    // Auto-expanded if any of its books is selected (= overrides user
+    // collapse when user selects a book in this shelf).
+    @State private var shelfDisclosureStates: [UUID: Bool] = [:]
+    // v0.30 boss 8/31 OOB (sidebar feedback bundle #3): per-book
+    // folder DisclosureGroup expanded state. Auto-expanded when this
+    // book is the current sidebar selection (= folders visible
+    // immediately on book tap). Keys = book.id, value = isExpanded.
+    @State private var bookDisclosureStates: [UUID: Bool] = [:]
 
     var body: some View {
         // v0.30: 100% Apple HIG standard sidebar.
@@ -120,23 +138,21 @@ struct NewLibraryOutlineView: View {
         // sizes (= Apple HIG: follow user system preference). Selection
         // highlight = automatic (= Apple std).
         List(selection: $sidebarSelection) {
+            // v0.30 boss 8/31 OOB (sidebar feedback bundle #1+2):
+            // 'shelf "从这里开始" should be in the directory tree as
+            // first level (= not a SwiftUI Section header)'. Replaced
+            // Section { } header: { Label { Text(shelf.name) } } with
+            // DisclosureGroup (= shelf is now a clickable tree row at
+            // level 1, with chevron, instead of a grayed-out header).
+            // The book rows inside the shelf (= level 2) are nested
+            // inside the DisclosureGroup content. When a book row is
+            // selected (= sidebarSelection = .book(...)), its own
+            // nested DisclosureGroup for folders (= level 3) auto-
+            // expands so 世界观 / 角色 / 章节大纲 / 小说正文 / 小说草稿
+            // are visible without an extra tap (= boss OOB #3 'child
+            // folders should be visible immediately on book select').
             ForEach(shelves) { shelf in
-                Section {
-                    ForEach(booksInShelf(shelf)) { book in
-                        bookRowWithFolders(book)
-                    }
-                } header: {
-                    Label {
-                        Text(shelf.name)
-                    } icon: {
-                        LucideIconSidebar(
-                            shelf.id.uuidString == "00000000-0000-0000-0000-000000000000"
-                                ? "square-dashed-mouse-pointer"
-                                : "books.vertical.fill"
-                        )
-                        .foregroundStyle(.primary)
-                    }
-                }
+                shelfRow(shelf)
             }
             // Reference library (= library's default shelf per boss 8/26
             // OOB; user CANNOT delete or rename). Treated as a single
@@ -184,6 +200,15 @@ struct NewLibraryOutlineView: View {
             switch newValue {
             case .book(let id):
                 bookStore.selectedBookId = id
+                selectedEntityCategory = nil
+                selectedEntity = nil
+            // v0.30 boss 8/31 OOB (sidebar feedback bundle #1+2): handle
+            // the new .shelf(UUID) sidebar selection. For now, selecting
+            // a shelf just clears book/category selection (= visual
+            // highlight only). Future ticket can wire shelf-level
+            // preview pane scoping (= show all books in this shelf).
+            case .shelf:
+                bookStore.selectedBookId = nil
                 selectedEntityCategory = nil
                 selectedEntity = nil
             case .referenceCategory(let dirName):
@@ -264,6 +289,42 @@ struct NewLibraryOutlineView: View {
 
     // MARK: - Row builders
 
+    /// v0.30 boss 8/31 OOB (sidebar feedback bundle #1+2+3): shelf
+    /// row (= first tree level). Wraps shelf + books + folders in a
+    /// single nested DisclosureGroup chain (= shelf is level 1, books
+    /// are level 2, folders under selected book are level 3).
+    ///
+    /// - Shelf label = `shelf.name` (= "从这里开始" by default).
+    /// - DisclosureGroup auto-expands when any of its child books is
+    ///   selected (= user sees the book immediately on shelf select).
+    /// - Book row contains its own nested DisclosureGroup of folders
+    ///   (= level 3). Folder rows have no further children (= leaf).
+    @ViewBuilder
+    private func shelfRow(_ shelf: Bookshelf) -> some View {
+        let books = booksInShelf(shelf)
+        let isShelfExpanded = books.contains { isBookSelected($0.id) }
+        DisclosureGroup(isExpanded: Binding(
+            get: { isShelfExpanded || shelfDisclosureStates[shelf.id, default: false] },
+            set: { shelfDisclosureStates[shelf.id] = $0 }
+        )) {
+            ForEach(books) { book in
+                bookRowWithFolders(book)
+            }
+        } label: {
+            Label {
+                Text(shelf.name)
+            } icon: {
+                LucideIconSidebar(
+                    shelf.id.uuidString == "00000000-0000-0000-0000-000000000000"
+                        ? "square-dashed-mouse-pointer"
+                        : "books.vertical.fill"
+                )
+                .foregroundStyle(.primary)
+            }
+            .tag(SidebarItem.shelf(shelf.id))
+        }
+    }
+
     /// v0.30: Apple std book row + nested DisclosureGroup of folders.
     /// Per Apple HIG "show no more than two levels of hierarchy in a
     /// sidebar" (= book + folders = 2 levels). Folders are visual
@@ -290,7 +351,16 @@ struct NewLibraryOutlineView: View {
             }
             .tag(SidebarItem.book(book.id))
         } else {
-            DisclosureGroup {
+            // v0.30 boss 8/31 OOB (sidebar feedback bundle #3):
+            // 'child folders should be visible immediately when book
+            // is selected' = auto-expand the folder DisclosureGroup
+            // when this book is the current sidebarSelection. User-
+            // controlled collapse is preserved via bookDisclosureStates.
+            let isBookSelectedNow = isBookSelected(book.id)
+            DisclosureGroup(isExpanded: Binding(
+                get: { isBookSelectedNow || bookDisclosureStates[book.id, default: false] },
+                set: { bookDisclosureStates[book.id] = $0 }
+            )) {
                 ForEach(folders, id: \.name) { folder in
                     Label {
                         Text(folder.displayName)
@@ -325,6 +395,16 @@ struct NewLibraryOutlineView: View {
     }
 
     // MARK: - Data helpers
+
+    /// v0.30 boss 8/31 OOB (sidebar feedback bundle #1+2+3): returns
+    /// whether the given book id is the currently selected sidebar
+    /// item (= used by DisclosureGroup auto-expand logic).
+    private func isBookSelected(_ id: UUID) -> Bool {
+        if case .book(let selectedId) = sidebarSelection {
+            return selectedId == id
+        }
+        return false
+    }
 
     /// v0.30: Apple std list of categories with ≥1 entity, sorted A→Z.
     /// (= Same logic as v0.29 computeUsedCategories; renamed to match
