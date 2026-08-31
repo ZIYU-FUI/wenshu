@@ -79,7 +79,17 @@ public struct RegionTabBar<Content: View>: View {
         }
         // Full-width, leading-aligned (= tabs start at left edge with
         // 18 PT horizontal padding from caller, matches Apple's Pages
-        // / Mail tab bar layout).
+        // / Mail tab bar layout). alignment: .leading + Spacer pushes
+        // trailing buttons to the right edge.
+        //
+        // v0.30 boss 8/31 OOB: previously the trailing slot in
+        // PaneTabBar (= PreviewSortMenuButton) was not visible
+        // (= Spacer(minLength: 0) collapsed because the outer
+        // .frame didn't force the HStack to fill the available
+        // width). Now .frame(maxWidth: .infinity, alignment: .leading)
+        // stays (= tabs start at left) but the HStack expands to
+        // fill the row width (= Spacer inside the HStack now has
+        // real space to consume = trailing button pushed right).
         .frame(maxWidth: .infinity, alignment: .leading)
         // Canonical 30 PT height (= matches kZoneToolbarHeight = 30 PT
         // = kChromeHeight = 30 PT = LayoutTokens.toolbarHeight = 30 PT
