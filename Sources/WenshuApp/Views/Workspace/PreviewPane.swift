@@ -880,13 +880,17 @@ private struct BookDocCard: View {
             .frame(maxWidth: .infinity)
             // TEXT content below the thumbnail
             VStack(alignment: .leading, spacing: 6) {
-                // Folder badge
+                // v0.30 boss 8/31 OOB '换成最后一次编辑的时间, 没有
+                // 生效': the previous version of this HStack showed
+                // doc.title (= duplicate of the card heading below).
+                // Now shows formatRelativeTime(doc.modifiedAt) = the
+                // last-modified time (= matches EntityCard pattern).
                 HStack(spacing: 4) {
                     Text("[\(folderEnum?.displayName ?? doc.folderName)]")
                         .font(.caption2)
                         .foregroundStyle(.tint)
                     Spacer()
-                    Text(doc.title)
+                    Text(formatRelativeTime(doc.modifiedAt))
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                         .lineLimit(1)
