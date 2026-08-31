@@ -215,20 +215,6 @@ struct NewLibraryOutlineView: View {
     // persisted to AppStorage as JSON (= close + reopen restores
     // which books' folder DisclosureGroups are expanded).
     @AppStorage("wenshu.bookDisclosureStates") private var persistedBookDisclosureStates: String = ""
-    /// v0.30 boss 8/31 OOB: hover state for each shelf row
-    /// (= side-store keyed by shelf.id, since rows are built via
-    /// @ViewBuilder helper functions that can't capture @State).
-    @State private var shelfHoverStates: [UUID: Bool] = [:]
-    /// v0.30 boss 8/31 OOB: hover state for each book row.
-    @State private var bookHoverStates: [UUID: Bool] = [:]
-    /// v0.30 boss 8/31 OOB: hover state for each folder row
-    /// (= keyed by composite "bookID/folderName").
-    @State private var folderHoverStates: [String: Bool] = [:]
-    /// v0.30 boss 8/31 OOB: hover state for each reference category row.
-    @State private var categoryHoverStates: [String: Bool] = [:]
-    /// v0.30 boss 8/31 OOB: hover state for reference library root.
-    @State private var referenceRootHovered: Bool = false
-
     var body: some View {
         // v0.30: 100% Apple HIG standard sidebar.
         //
@@ -306,23 +292,7 @@ struct NewLibraryOutlineView: View {
                         }
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        // v0.30 boss 8/31 OOB: manual selection bg.
-                        .listRowBackground(
-                            appState.sidebarSelection == .referenceCategory(category.directoryName)
-                                ? Color.accentColor.opacity(0.22)
-                                : Color.clear
-                        )
                         .badge(entitiesCount(in: category))
-                        // Hover bg AFTER .badge (= covers whole row).
-                        .background(
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(categoryHoverStates[category.directoryName, default: false]
-                                    ? Color.accentColor.opacity(0.18)
-                                    : Color.clear)
-                        )
-                        .onHover { hovering in
-                            categoryHoverStates[category.directoryName, default: false] = hovering
-                        }
                         .tag(SidebarItem.referenceCategory(category.directoryName))
                     }
                 } label: {
@@ -340,24 +310,7 @@ struct NewLibraryOutlineView: View {
                     }
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
-                    // v0.30 boss 8/31 OOB: manual selection bg.
-                    .listRowBackground(
-                        appState.sidebarSelection == .referenceLibraryRoot
-                            ? Color.accentColor.opacity(0.22)
-                            : Color.clear
-                    )
                     .badge(usedCategories().count)
-                    // Hover bg AFTER .badge (= covers the whole row
-                    // including the trailing badge slot).
-                    .background(
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(referenceRootHovered
-                                ? Color.accentColor.opacity(0.18)
-                                : Color.clear)
-                    )
-                    .onHover { hovering in
-                        referenceRootHovered = hovering
-                    }
                     .tag(SidebarItem.referenceLibraryRoot)
                 }
             }
@@ -675,22 +628,9 @@ struct NewLibraryOutlineView: View {
     ///   (= level 3). Folder rows have no further children (= leaf).
     @ViewBuilder
     private func shelfRow(_ shelf: Bookshelf) -> some View {
-        // v0.30 boss 8/31 OOB: hover state for shelf row (= subtle
-        // accent tint on mouse hover, matches PaneIconTab + cards).
-        let isHoveredBinding = Binding<Bool>(
-            get: { shelfHoverStates[shelf.id, default: false] },
-            set: { shelfHoverStates[shelf.id] = $0 }
-        )
-        return shelfRowImpl(shelf, isHovered: isHoveredBinding)
-    }
-
-    /// Implementation with explicit hover binding (= SwiftUI helper
-    /// extraction: can't capture @State inside @ViewBuilder).
-    @ViewBuilder
-    private func shelfRowImpl(_ shelf: Bookshelf, isHovered: Binding<Bool>) -> some View {
         let books = booksInShelf(shelf)
         let isShelfExpanded = books.contains { isBookSelected($0.id) }
-        DisclosureGroup(isExpanded: Binding(
+        return DisclosureGroup(isExpanded: Binding(
             get: { isShelfExpanded || shelfDisclosureStates[shelf.id, default: false] },
             set: { shelfDisclosureStates[shelf.id] = $0 }
         )) {
@@ -718,25 +658,6 @@ struct NewLibraryOutlineView: View {
             }
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
-            // v0.30 boss 8/31 OOB: manual selection background to
-            // ensure accent color on first render (= List(.sidebar)
-            // default selection tint is gray on cold-launch; manual
-            // .background override forces accent color from the
-            // first render pass).
-            .listRowBackground(
-                appState.sidebarSelection == .shelf(shelf.id)
-                    ? Color.accentColor.opacity(0.22)
-                    : Color.clear
-            )
-            .background(
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(isHovered.wrappedValue
-                        ? Color.accentColor.opacity(0.18)
-                        : Color.clear)
-            )
-            .onHover { hovering in
-                isHovered.wrappedValue = hovering
-            }
             // v0.30 boss 8/31 OOB: hover tint scope = whole row (= icon
             // + text + count), matching the selection tint range.
             // The custom count text above (= inline HStack with
@@ -811,11 +732,6 @@ struct NewLibraryOutlineView: View {
                 LucideIconSidebar(book.displayIcon)
                     .foregroundStyle(.primary)
             }
-            .listRowBackground(
-                appState.sidebarSelection == .book(book.id)
-                    ? Color.accentColor.opacity(0.22)
-                    : Color.clear
-            )
             .tag(SidebarItem.book(book.id))        } else {
             // v0.30 boss 8/31 OOB (sidebar feedback bundle #3):
             // 'child folders should be visible immediately when book
@@ -878,29 +794,10 @@ struct NewLibraryOutlineView: View {
                         }
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        // v0.30 boss 8/31 OOB: manual selection bg
-                        // (= forces accent color from first render).
-                        .listRowBackground(
-                            appState.sidebarSelection == .folder(
-                                bookId: book.id, folderName: folder.name
-                            )
-                                ? Color.accentColor.opacity(0.22)
-                                : Color.clear
-                        )
                         .badge(bookStore.folderDocumentCount(
                             bookId: book.id,
                             folderDirectoryName: folder.name
                         ))
-                        // Hover bg AFTER .badge (= covers whole row).
-                        .background(
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(folderHoverStates["\(book.id.uuidString)/\(folder.name)", default: false]
-                                    ? Color.accentColor.opacity(0.18)
-                                    : Color.clear)
-                        )
-                        .onHover { hovering in
-                            folderHoverStates["\(book.id.uuidString)/\(folder.name)", default: false] = hovering
-                        }
                     }
                     .buttonStyle(.plain)
                     .contentShape(Rectangle())
@@ -924,13 +821,6 @@ struct NewLibraryOutlineView: View {
                     bookId: book.id,
                     folderDirectoryName: $1.name
                 )})
-                // v0.30 boss 8/31 OOB: manual selection bg (= forces
-                // accent color from first render).
-                .listRowBackground(
-                    appState.sidebarSelection == .book(book.id)
-                        ? Color.accentColor.opacity(0.22)
-                        : Color.clear
-                )
                 .tag(SidebarItem.book(book.id))                // v0.30 boss 8/31 OOB '顺手做一下, 双击目录树展开合上
                 // 的交互': double-click on the book label toggles the
                 // folder DisclosureGroup (= level 3 expand/collapse).
