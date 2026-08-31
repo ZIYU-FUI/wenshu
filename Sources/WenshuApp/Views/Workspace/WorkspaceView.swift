@@ -103,34 +103,34 @@ struct WorkspaceView: View {
     /// built-in Default preset). Boss can split / rearrange via
     /// drag-and-drop in 027-36+.
     var body: some View {
-        // v0.28 ticket 028-004 (= this commit): WorkspaceView now
-        // delegates to PaneRenderer (= recursive split-tree renderer
-        // for the v2 schema from ticket 028-003). The legacy flat-
-        // array rendering (= v0.27 LayoutShellView 6-zone shape)
-        // is removed; v2 = the only path. The WorkspaceView body
-        // is now a thin shim that hands off to PaneRenderer.
-        PaneRenderer(
-            node: store.workspace.root,
-            store: store
-        )
-            // v0.30 ticket 04 (= future-framework wiring): if
-            // `useNSSplitView` flag is on (= opt-in via UserDefaults),
-            // swap PaneRenderer for the Apple-native NSSplitView path
-            // (= ticket 01/02/03's PaneLayout + PaneSplitHost +
-            // PaneNSController). Default OFF = existing users see ZERO
-            // behavior change on app upgrade.
-            .overlay {
-                if store.workspace.useNSSplitView ?? false {
-                    PaneSplitHost(
-                        layout: FCPLayout(),
-                        store: store,
-                        appState: appState,
-                        bookStore: bookStore
-                    )
-                    // Allow hit-testing (= overlay defaults to no-op).
-                    .allowsHitTesting(true)
-                }
+        // v0.30 boss 2026-09-01 OOB fix: use a true if-else branch
+        // (= NOT an `.overlay`) so PaneRenderer and PaneSplitHost
+        // are NEVER both rendered at the same time. The previous
+        // `.overlay` pattern stacked both views (= PaneRenderer
+        // underneath, PaneSplitHost on top), wasting GPU/CPU and
+        // creating hidden interaction conflicts.
+        Group {
+            if store.workspace.useNSSplitView ?? false {
+                // Apple NSSplitView path (= ticket 01/02/03). Default
+                // OFF; opt-in via UserDefaults "wenshu.useNSSplitView".
+                PaneSplitHost(
+                    layout: FCPLayout(),
+                    store: store,
+                    appState: appState,
+                    bookStore: bookStore
+                )
+            } else {
+                // Legacy hand-rolled split-tree path (= the original
+                // v0.28 ticket 028-004 renderer). Preserved verbatim
+                // per boss OOB functional preservation rule; not
+                // deleted until PR 6 (= 2 stable builds after the
+                // NSSplitView path becomes default ON).
+                PaneRenderer(
+                    node: store.workspace.root,
+                    store: store
+                )
             }
+        }
             // v0.30 boss 8/31 OOB '默认 app 进来是, 选定的是退出时的
             // 目录': restore sidebar selection from AppStorage on
             // first appear (= empty storage = no selection = default
