@@ -38,6 +38,47 @@ struct WorkspaceView: View {
     /// detail mode (= single card with full .md body).
     @State private var selectedEntity: Reference? = nil
 
+    /// v0.30 boss 8/31 OOB '默认 app 进来是, 选定的是退出时的目录':
+    /// single source of truth for sidebar selection. Persisted to
+    /// UserDefaults so the selection survives app restart. The
+    /// sidebar tree reads this binding (= List(selection:)) and the
+    /// preview pane reads it (= decides scope: book / folder /
+    /// reference category / shelf).
+    @State private var sidebarSelection: SidebarItem? = nil
+
+    /// v0.30 boss 8/31 OOB: JSON-encoded sidebar selection for
+    /// AppStorage. Empty string = no selection (= first-launch state).
+    @AppStorage("wenshu.sidebarSelection") private var persistedSidebarSelection: String = ""
+
+    /// v0.30 boss 8/31 OOB: convert sidebar selection to PreviewScope
+    /// for the material management zone. Computed on every render so
+    /// it stays in sync with `sidebarSelection`.
+    private var previewScope: PreviewScope {
+        guard let item = sidebarSelection else { return .empty }
+        switch item {
+        case .book(let bookId):
+            return .bookScope(bookId: bookId, folderName: nil)
+        case .folder(let bookId, let folderName):
+            return .bookScope(bookId: bookId, folderName: folderName)
+        case .shelf:
+            // Shelf row is not a document scope; preview pane shows
+            // a hint to drill into a book (= boss UX expectation:
+            // selecting a shelf doesn't reset the working set; it
+            // just highlights the shelf row).
+            return .empty
+        case .referenceCategory(let dirName):
+            if dirName == "__root__" {
+                return .referenceScope(nil)
+            }
+            if let cat = EntityCategory.allCases.first(where: {
+                $0.directoryName == dirName
+            }) {
+                return .referenceScope(cat)
+            }
+            return .empty
+        }
+    }
+
     /// v0.30: BookStore env (= for reference loading in preview pane).
     @Environment(BookStore.self) private var bookStore
 
@@ -62,6 +103,32 @@ struct WorkspaceView: View {
         // is removed; v2 = the only path. The WorkspaceView body
         // is now a thin shim that hands off to PaneRenderer.
         PaneRenderer(node: store.workspace.root, store: store)
+            // v0.30 boss 8/31 OOB '默认 app 进来是, 选定的是退出时的
+            // 目录': restore sidebar selection from AppStorage on
+            // first appear (= empty storage = no selection = default
+            // empty state). Done here (= WorkspaceView root) so it
+            // runs once per WiredShell lifetime.
+            .onAppear {
+                if sidebarSelection == nil,
+                   !persistedSidebarSelection.isEmpty,
+                   let data = persistedSidebarSelection.data(using: .utf8),
+                   let item = try? JSONDecoder().decode(
+                    SidebarItem.self, from: data
+                   ) {
+                    sidebarSelection = item
+                }
+            }
+            // v0.30 boss 8/31 OOB: every selection change writes back
+            // to AppStorage (= so close + reopen restores state).
+            .onChange(of: sidebarSelection) { _, newValue in
+                if let item = newValue,
+                   let data = try? JSONEncoder().encode(item),
+                   let json = String(data: data, encoding: .utf8) {
+                    persistedSidebarSelection = json
+                } else {
+                    persistedSidebarSelection = ""
+                }
+            }
             .layoutEditHotkey(editMode)
             .overlay(alignment: .topTrailing) {
                 // Edit mode indicator (= shows a small badge in
@@ -117,6 +184,7 @@ struct WorkspaceView: View {
             // The trailingButton uses the default-init (doesn't drive preview).
             ZoneContentView(zoneSlug: "projectSidebar", tabs: [
                 ("书架", "book-open", AnyView(NewLibraryOutlineView(
+                    sidebarSelection: $sidebarSelection,
                     selectedEntityCategory: $selectedEntityCategory,
                     selectedEntity: $selectedEntity
                 ))),
@@ -265,25 +333,26 @@ struct ZoneModuleView: View {
         case .projectPreview:
             // 老 6区 projectPreview = 2 tabs (预览 / 图).
             // Per v0.25.1 ticket 014: book-open-check + waypoints.
-            // Per v0.25.1 ticket 014: search tab hidden (SearchPanel code
-            // preserved elsewhere).
             // v0.28 followup Boss UX round 24: preview tab content uses
             // .ultraThinMaterial (= was DesignColor.zoneSurface =
             // solid Color(nsColor: .controlBackgroundColor) = NOT
             // Liquid Glass).
-            // v0.30 Ticket 2 (= boss OOB): replaced PreviewTabBackground
-            // (= Color.clear stub) with EntityPreviewPane (= real
-            // card flow showing entities from the reference library).
-            // Tabs = "预览" (= overview/all entities), "图" (= future).
+            //
+            // v0.30 boss 8/31 OOB: ZoneModuleView is the LEGACY
+            // pane registry path (= RegisteredPanes.swift). Callers
+            // don't pass a sidebarSelection binding (= they have no
+            // concept of book folder scoping), so this preview pane
+            // defaults to .empty scope (= empty state). The active
+            // WorkspaceView path uses PreviewPane directly with the
+            // computed previewScope (= supports all 4 sidebar scopes).
             ZoneContentView(zoneSlug: "projectPreview", tabs: [
-                ("预览", "book-open-check", AnyView(EntityPreviewPane(
-                    selectedCategory: selectedEntityCategory,
-                    selectedEntity: selectedEntity,
+                ("预览", "book-open-check", AnyView(PreviewPane(
+                    scope: .empty,
                     onEntityDoubleClick: { entity in
                         // v0.30 Ticket 3 hook: open in editor.
                         // For now: just print; Ticket 3 will wire this
                         // to editor zone + replace EditorContentPlaceholder.
-                        NSLog("EntityPreviewPane: double-click entity %@", entity.title)
+                        NSLog("PreviewPane: double-click entity %@", entity.title)
                     }
                 ))),
                 ("图", "waypoints", AnyView(GraphView())),

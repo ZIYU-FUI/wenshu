@@ -58,7 +58,7 @@ import Lucide
 /// v0.30: composite enum (= book OR reference category) because
 /// Apple HIG allows ONE selection type per List, so we unify
 /// both selection kinds into one Hashable enum.
-enum SidebarItem: Hashable {
+enum SidebarItem: Hashable, Codable {
     case book(UUID)
     // v0.30 boss 8/31 OOB (sidebar feedback bundle #1+2): shelf
     // (= first tree level) is now a clickable tree row, not just a
@@ -69,13 +69,71 @@ enum SidebarItem: Hashable {
     case shelf(UUID)
     // v0.30 boss 8/31 OOB (sidebar feedback bundle #3): folder row
     // (= third tree level, e.g. 世界观 / 角色 / 章节大纲 / 小说正文 /
-    // / 小说草稿). Tagging with .folder(bookId, folderName) lets the
-    // user select a folder directly; preview pane will scope to
+    // / 小说草稿). Tagging with .folder(bookId, folderName) lets
+    // the user select a folder directly; preview pane will scope to
     // that folder's content (= shows the .md files inside).
     case folder(bookId: UUID, folderName: String)
     case referenceCategory(String)  // = EntityCategory.directoryName
 
     static let referenceLibraryRoot = SidebarItem.referenceCategory("__root__")
+
+    // MARK: - v0.30 boss 8/31 OOB: Codable for AppStorage persistence
+    //
+    // Custom JSON encode/decode for @AppStorage (= AppStorage uses
+    // String, so we round-trip via JSONEncoder/JSONDecoder). Flat
+    // shape (= 'kind' discriminator + per-case keys) keeps the
+    // JSON human-readable in `defaults read`.
+    //
+    // JSON shapes:
+    //   {"kind": "book", "book": "<UUID>"}
+    //   {"kind": "shelf", "shelf": "<UUID>"}
+    //   {"kind": "folder", "book": "<UUID>", "folder": "world"}
+    //   {"kind": "referenceCategory", "referenceCategory": "文学"}
+    private enum CodingKeys: String, CodingKey {
+        case kind, book, shelf, folder, referenceCategory
+    }
+    private enum Kind: String, Codable {
+        case book, shelf, folder, referenceCategory
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .book(let id):
+            try c.encode(Kind.book, forKey: .kind)
+            try c.encode(id.uuidString, forKey: .book)
+        case .shelf(let id):
+            try c.encode(Kind.shelf, forKey: .kind)
+            try c.encode(id.uuidString, forKey: .shelf)
+        case .folder(let bookId, let folderName):
+            try c.encode(Kind.folder, forKey: .kind)
+            try c.encode(bookId.uuidString, forKey: .book)
+            try c.encode(folderName, forKey: .folder)
+        case .referenceCategory(let dirName):
+            try c.encode(Kind.referenceCategory, forKey: .kind)
+            try c.encode(dirName, forKey: .referenceCategory)
+        }
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let kind = try c.decode(Kind.self, forKey: .kind)
+        switch kind {
+        case .book:
+            let s = try c.decode(String.self, forKey: .book)
+            self = .book(UUID(uuidString: s) ?? UUID())
+        case .shelf:
+            let s = try c.decode(String.self, forKey: .shelf)
+            self = .shelf(UUID(uuidString: s) ?? UUID())
+        case .folder:
+            let s = try c.decode(String.self, forKey: .book)
+            let f = try c.decode(String.self, forKey: .folder)
+            self = .folder(bookId: UUID(uuidString: s) ?? UUID(), folderName: f)
+        case .referenceCategory:
+            let d = try c.decode(String.self, forKey: .referenceCategory)
+            self = .referenceCategory(d)
+        }
+    }
 }
 
 struct NewLibraryOutlineView: View {
@@ -88,12 +146,20 @@ struct NewLibraryOutlineView: View {
     @Binding var selectedEntityCategory: EntityCategory?
     @Binding var selectedEntity: Reference?
 
-    /// v0.30: default initializer (= non-workspace callers = registered
-    /// panes, zoneHeaderButtons, fallback render).
+    /// v0.30 boss 8/31 OOB '默认 app 进来是, 选定的是退出时的目录':
+    /// WorkspaceView owns the sidebar selection state (= for AppStorage
+    /// persistence). NewLibraryOutlineView's init takes the binding.
+    ///
+    /// Default initializer (= non-workspace callers = registered panes,
+    /// zoneHeaderButtons, fallback render). Uses a .constant binding
+    /// so the view still renders standalone (= the binding simply has
+    /// no effect there).
     init(
+        sidebarSelection: Binding<SidebarItem?> = .constant(nil),
         selectedEntityCategory: Binding<EntityCategory?> = .constant(nil),
         selectedEntity: Binding<Reference?> = .constant(nil)
     ) {
+        self._sidebarSelection = sidebarSelection
         self._selectedEntityCategory = selectedEntityCategory
         self._selectedEntity = selectedEntity
     }
@@ -125,7 +191,13 @@ struct NewLibraryOutlineView: View {
     /// `bookStore.selectedBookId` (when a book is selected) and
     /// `selectedEntityCategory` (when a category is selected). Single
     /// selection per List (= Apple HIG).
-    @State private var sidebarSelection: SidebarItem?
+    ///
+    /// v0.30 boss 8/31 OOB '默认 app 进来是, 选定的是退出时的目录':
+    /// ownership moved to WorkspaceView (= .scratch/v0.30-preview-pane-
+    /// scope/issues/02-sidebar-selection-persistence.md) so WorkspaceView
+    /// can persist the selection across launches via @AppStorage.
+    /// NewLibraryOutlineView just observes and renders it.
+    @Binding var sidebarSelection: SidebarItem?
     // v0.30 boss 8/31 OOB (sidebar feedback bundle #1+2+3): per-shelf
     // DisclosureGroup expanded state (= remembers user expand/collapse
     // across selections). Keys = shelf.id, value = isExpanded.

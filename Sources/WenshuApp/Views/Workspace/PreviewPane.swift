@@ -1,28 +1,35 @@
-// Sources/WenshuApp/Views/Workspace/EntityPreviewPane.swift
+// Sources/WenshuApp/Views/Workspace/PreviewPane.swift
 //
 // v0.30 boss 2026-08-30 OOB '实体分类在目录树里是最后一层, 点击后,
 // 实体文档要用随心记的卡片流样式显示在素材管理区, 然后双击卡片才会在
 // 编辑器里打开. 这就是我为什么说想实现编辑器和数据流, 得把这些前置
 // 做完的原因'. Ticket 2 (= the entity card flow).
 //
-// = The material management zone (projectPreview) content for entities.
-// Replaces PreviewTabBackground's stub (= Color.clear) with a real
-// card-flow grid (= 无边记-style sticky-note layout).
+// v0.30 boss 2026-08-31 OOB '点 sidebar row → 右边素材区显示该目录的
+// 文档, 控制目录范围': extended PreviewScope to cover both reference
+// library (= existing) AND book folder docs. File renamed from
+// EntityPreviewPane.swift to PreviewPane.swift (= it now serves both
+// scopes).
 //
-// 3 view modes (boss OOB):
-// 1. All entities (= when nothing selected) — show all 9 seeded entities
-//    as cards in a grid (per category grouping)
-// 2. Category selected — show only entities in that category as cards
-// 3. Entity selected — show single entity detail card (= large card
-//    with full summary + metadata)
+// Scope model (= v0.30 boss 8/31 OOB):
+// - .referenceScope(category): reference library entities. nil = all,
+//   non-nil = that category only.
+// - .bookScope(bookId, folderName): per-book documents. folderName nil =
+//   union of all 8 standard folders; folderName non-nil = that folder
+//   only.
+// - .shelfScope: shelf row selected = empty state hint.
+// - .empty: nothing selected = empty state hint.
+//
+// 3 sub-view modes (per scope):
+// 1. Overview grid (= when nothing selected within a scope).
+// 2. Category/folder-scoped grid (= filter active).
+// 3. Document detail (= single card with full body).
 //
 // Double-click on a card (= will be wired to editor in Ticket 3 = boss:
-// '双击卡片才会在编辑器里打开'). For now, single-click selects the entity.
+// '双击卡片才会在编辑器里打开'). For now, single-click selects.
 //
-// Grid uses LazyVGrid (= Apple standard for variable-height grid; matches
-// Finder icon view style). Cards are reference cards (= already defined
-// in ReferenceLibraryOutlineView.swift = ReferenceCard) but with the
-// type badge added.
+// Grid uses LazyVGrid (= Apple standard for variable-height grid;
+// matches Finder icon view style).
 
 import SwiftUI
 import CoreFoundation  // v0.30: for CFStringTransform (pinyin sort)
@@ -39,6 +46,65 @@ import CoreFoundation  // v0.30: for CFStringTransform (pinyin sort)
 // 2. .createdAt — newest first (= most useful for research material
 //    tracking)
 // 3. .modifiedAt — most recently edited first (= for active writing)
+// MARK: - v0.30 boss 8/31 OOB: BookFolder enum
+//
+// The 8 standard folders every book has on disk (= per AGENTS.md
+// §11 + LibraryMigrator.swift standardFolders). Used by PreviewPane
+// to scan all folders when scope = .bookScope(bookId, folderName: nil)
+// and to label each BookDoc's folder badge.
+//
+// Sidebar tree only displays 5 of these (= world / characters /
+// outlines / chapters / drafts), but the disk layout has all 8.
+// Sessions/foreshadowing/placeholders can still be reached via the
+// PreviewPane when the user picks them via API (= no UI yet for
+// picking non-sidebar folders; deferred to v0.31).
+enum BookFolder: String, CaseIterable {
+    case world
+    case characters
+    case outlines
+    case chapters
+    case drafts
+    case sessions
+    case foreshadowing
+    case placeholders
+
+    /// On-disk directory name (= matches rawValue; lowercase English
+    /// kebab-style for filesystem portability).
+    var directoryName: String { rawValue }
+
+    /// Display name shown in card folder badge. Maps to the 5 sidebar
+    /// folder labels where they overlap (= 世界观 / 角色 / 章节大纲 /
+    /// 小说正文 / 小说草稿) and uses a Chinese label for the 3
+    /// sidebar-hidden folders (= 会话 / 伏笔 / 占位符).
+    var displayName: String {
+        switch self {
+        case .world: return "世界观"
+        case .characters: return "角色"
+        case .outlines: return "章节大纲"
+        case .chapters: return "小说正文"
+        case .drafts: return "小说草稿"
+        case .sessions: return "会话"
+        case .foreshadowing: return "伏笔"
+        case .placeholders: return "占位符"
+        }
+    }
+
+    /// Lucide icon (= matches sidebar folder icons where they
+    /// overlap; placeholder icons for the 3 hidden folders).
+    var icon: String {
+        switch self {
+        case .world: return "globe"
+        case .characters: return "user-round"
+        case .outlines: return "list-tree"
+        case .chapters: return "book-text"
+        case .drafts: return "file-pen-line"
+        case .sessions: return "message-square"
+        case .foreshadowing: return "git-fork"
+        case .placeholders: return "square-dashed"
+        }
+    }
+}
+
 enum EntitySortOrder: String, CaseIterable, Identifiable {
     case pinyinFirstLetter = "首字母"
     case createdAt = "创建时间"
@@ -56,21 +122,89 @@ enum EntitySortOrder: String, CaseIterable, Identifiable {
     }
 }
 
+// MARK: - v0.30 boss 8/31 OOB: PreviewScope
+//
+// Defines which documents the preview pane should display. Driven by
+// the sidebar selection (= WorkspaceView computes `previewScope` from
+// `sidebarSelection` and passes it here). Each scope knows how to load
+// its documents and what view mode to render.
+//
+// Note: PreviewScope is NOT Equatable (the underlying SidebarItem is,
+// but PreviewScope is constructed from it; equality comparisons
+// happen upstream via sidebarSelection).
+enum PreviewScope: Hashable {
+    /// Reference library scope. category nil = root (= all entities);
+    /// category non-nil = that category only.
+    case referenceScope(EntityCategory?)
+    /// Book scope. folderName nil = all folders in this book; non-nil
+    /// = just that folder's .md files.
+    case bookScope(bookId: UUID, folderName: String?)
+    /// Shelf scope. No documents — preview pane shows a hint to
+    /// drill into a book. (= Boss UX: shelves are a tree level, not
+    /// a document scope.)
+    case shelfScope(shelfId: UUID)
+    /// Nothing selected. Preview pane shows an empty state.
+    case empty
+}
+
+// MARK: - v0.30 boss 8/31 OOB: BookDoc model
+//
+// Represents one .md file in a book folder. Loaded on demand from the
+// filesystem (= no caching yet; subsequent reads are fast on macOS
+// APFS). Used for the book-scope preview mode.
+struct BookDoc: Identifiable, Hashable {
+    let id: UUID = UUID()
+    /// Folder directory name (= "world", "characters", "outlines",
+    /// "chapters", "drafts", "sessions", "foreshadowing",
+    /// "placeholders"). Used for the folder badge in the card.
+    let folderName: String
+    /// Full filename including .md extension (= e.g.
+    /// "文枢是什么.md").
+    let fileName: String
+    /// File modification date (= used for sort: createdAt /
+    /// modifiedAt).
+    let modifiedAt: Date
+    /// File creation date (= used for sort: createdAt).
+    let createdAt: Date
+    /// Full .md body content (= used for card summary preview +
+    /// future editor binding).
+    let body: String
+
+    /// Display title (= filename without extension).
+    var title: String {
+        (fileName as NSString).deletingPathExtension
+    }
+
+    /// Truncated body for card preview (= first 200 chars).
+    var summary: String {
+        String(body.prefix(200))
+    }
+
+    /// Path component (= "world/文枢是什么.md") for sort by file
+    /// name within folder (= boss 8/31 OOB: directory scoping
+    /// includes the folder context).
+    var displayPath: String {
+        "\(folderName)/\(fileName)"
+    }
+}
+
 /// Content for the material management zone (= projectPreview).
-/// Renders entity cards in 3 modes:
-/// - selectedEntity != nil → single detail card
-/// - selectedCategory != nil → category-scoped grid
-/// - else → all-entities overview grid
-struct EntityPreviewPane: View {
+/// Renders cards in scope-driven modes:
+/// - .referenceScope(nil): all entities (= overview grid)
+/// - .referenceScope(.some): category-scoped entity grid
+/// - .bookScope(bookId, nil): all .md files in this book
+/// - .bookScope(bookId, folder): .md files in this folder only
+/// - .shelfScope / .empty: empty state hint
+struct PreviewPane: View {
     @Environment(BookStore.self) private var bookStore
 
-    /// Currently selected category (= set by sidebar tap). nil = all.
-    let selectedCategory: EntityCategory?
+    /// v0.30 boss 8/31 OOB: scope of documents to display. Driven by
+    /// sidebar selection (= WorkspaceView computes from sidebarSelection).
+    let scope: PreviewScope
 
-    /// Currently selected entity (= set by card tap). nil = no detail.
-    let selectedEntity: Reference?
-
-    /// Callback when user double-clicks a card (= boss Ticket 3).
+    /// Callback when user double-clicks an entity card (= boss Ticket
+    /// 3). Reference-only callback (= book docs aren't wired to editor
+    /// yet; deferred to v0.31 ticket).
     let onEntityDoubleClick: (Reference) -> Void
 
     /// v0.30 boss OOB: '所有卡片默认排序是拼音首字母先后顺序'.
@@ -98,27 +232,77 @@ struct EntityPreviewPane: View {
     private static let twoColumnBreakpoint: CGFloat = 280
 
     var body: some View {
-        let allEntities = loadAllEntities()
-
         VStack(spacing: 0) {
-            // Top toolbar (= sort menu on right).
-            // Hidden in singleEntityDetail mode (= detail mode shows
-            // its own back-button + entity metadata; sort doesn't apply).
-            if selectedEntity == nil {
-                previewTopBar()
-            }
+            // v0.30 boss 8/31 OOB: scope-driven dispatch. Each scope
+            // branch handles its own toolbar (some hide toolbar, e.g.
+            // empty state).
             Group {
-                if let entity = selectedEntity {
-                    singleEntityDetail(entity)
-                } else if let category = selectedCategory {
-                    categoryGrid(category: category, allEntities: allEntities)
-                } else {
-                    overviewGrid(allEntities: allEntities)
+                switch scope {
+                case .referenceScope(let category):
+                    referenceScopeView(category: category)
+                case .bookScope(let bookId, let folderName):
+                    bookScopeView(bookId: bookId, folderName: folderName)
+                case .shelfScope:
+                    shelfScopeView()
+                case .empty:
+                    emptyScopeView()
                 }
             }
         }
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: - Scope subviews
+
+    /// Reference library scope: existing entity card flow (= boss 8/30
+    /// OOB: '随心记的卡片流'). category nil = overview (= all
+    /// entities, flat grid per boss 8/30 OOB); non-nil = category filter.
+    @ViewBuilder
+    private func referenceScopeView(category: EntityCategory?) -> some View {
+        let allEntities = loadAllEntities()
+        VStack(spacing: 0) {
+            previewTopBar()
+            Group {
+                if let cat = category {
+                    categoryGrid(category: cat, allEntities: allEntities)
+                } else {
+                    overviewGrid(allEntities: allEntities)
+                }
+            }
+        }
+    }
+
+    /// Book scope: scan filesystem for .md files in the book folders.
+    /// folderName nil = union of all 8 standard folders; non-nil =
+    /// just that folder.
+    @ViewBuilder
+    private func bookScopeView(bookId: UUID, folderName: String?) -> some View {
+        let docs = loadBookDocs(bookId: bookId, folderName: folderName)
+        VStack(spacing: 0) {
+            previewTopBar()
+            if docs.isEmpty {
+                emptyState(
+                    message: folderName != nil
+                        ? "该目录下暂无文档"
+                        : "该书暂无文档"
+                )
+            } else {
+                bookDocsGrid(docs: docs)
+            }
+        }
+    }
+
+    /// Shelf scope: empty state with hint to drill into a book.
+    @ViewBuilder
+    private func shelfScopeView() -> some View {
+        emptyState(message: "选中书查看文档")
+    }
+
+    /// Empty scope: empty state with hint to select a sidebar item.
+    @ViewBuilder
+    private func emptyScopeView() -> some View {
+        emptyState(message: "请选择左侧目录查看文档")
     }
 
     /// Top toolbar shown when cards are displayed (= NOT in detail mode).
@@ -324,6 +508,109 @@ struct EntityPreviewPane: View {
         try? bookStore.referenceStore.loadReferenceBody(id: entity.id)
     }
 
+    /// v0.30 boss 8/31 OOB: load .md files from a book folder on the
+    /// filesystem. Walks all shelves (= shelves/<shelf>/books/<book>/)
+    /// to find the matching bookId, then scans one or more of the 8
+    /// standard folders for .md files.
+    ///
+    /// Errors (= missing folders, permission denied, etc.) are
+    /// silently skipped so a single bad folder doesn't break the
+    /// whole view (= partial load is more useful than nothing).
+    private func loadBookDocs(bookId: UUID, folderName: String?) -> [BookDoc] {
+        // Walk shelves root to find which shelf this bookId lives in.
+        // Layout = shelves/<shelf-uuid>/books/<book-uuid>/...
+        let shelvesRoot = bookStore.stores.shelvesRoot
+        guard FileManager.default.fileExists(atPath: shelvesRoot.path) else {
+            return []
+        }
+        let bookDirs: [URL]
+        if let shelfDirs = try? FileManager.default.contentsOfDirectory(
+            at: shelvesRoot,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        ) {
+            bookDirs = shelfDirs.compactMap { shelfDir in
+                let candidate = shelfDir
+                    .appendingPathComponent("books")
+                    .appendingPathComponent(bookId.uuidString)
+                return FileManager.default.fileExists(atPath: candidate.path)
+                    ? candidate
+                    : nil
+            }
+        } else {
+            bookDirs = []
+        }
+        guard let bookDir = bookDirs.first else { return [] }
+
+        // Determine which folders to scan.
+        let folders: [String]
+        if let folderName {
+            folders = [folderName]
+        } else {
+            folders = BookFolder.allCases.map(\.directoryName)
+        }
+
+        var docs: [BookDoc] = []
+        for folder in folders {
+            let dir = bookDir.appendingPathComponent(folder)
+            guard let entries = try? FileManager.default.contentsOfDirectory(
+                at: dir,
+                includingPropertiesForKeys: [
+                    URLResourceKey.contentModificationDateKey,
+                    URLResourceKey.creationDateKey
+                ],
+                options: [.skipsHiddenFiles]
+            ) else { continue }
+            for url in entries where url.pathExtension == "md" {
+                let body = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+                let attrs = try? url.resourceValues(forKeys: [
+                    URLResourceKey.contentModificationDateKey,
+                    URLResourceKey.creationDateKey
+                ])
+                let modifiedAt = attrs?.contentModificationDate ?? Date.distantPast
+                let createdAt = attrs?.creationDate ?? Date.distantPast
+                docs.append(BookDoc(
+                    folderName: folder,
+                    fileName: url.lastPathComponent,
+                    modifiedAt: modifiedAt,
+                    createdAt: createdAt,
+                    body: body
+                ))
+            }
+        }
+        return docs
+    }
+
+    /// Sort book docs by the current sort order (= same menu as entity
+    /// scope, but applied to BookDoc). Boss 8/31 OOB: sort still
+    /// defaults to .pinyinFirstLetter so docs in Chinese filenames
+    /// also flow alphabetically.
+    private func sortBookDocs(_ docs: [BookDoc], by order: EntitySortOrder) -> [BookDoc] {
+        switch order {
+        case .pinyinFirstLetter:
+            return docs.sorted { lhs, rhs in
+                let lKey = pinyinFirstLetter(lhs.title)
+                let rKey = pinyinFirstLetter(rhs.title)
+                if lKey != rKey { return lKey < rKey }
+                return lhs.fileName < rhs.fileName
+            }
+        case .createdAt:
+            return docs.sorted { lhs, rhs in
+                if lhs.createdAt != rhs.createdAt {
+                    return lhs.createdAt > rhs.createdAt
+                }
+                return lhs.fileName < rhs.fileName
+            }
+        case .modifiedAt:
+            return docs.sorted { lhs, rhs in
+                if lhs.modifiedAt != rhs.modifiedAt {
+                    return lhs.modifiedAt > rhs.modifiedAt
+                }
+                return lhs.fileName < rhs.fileName
+            }
+        }
+    }
+
     /// Sort entities by the selected sort order (= boss 8/30 OOB).
     /// Returns a NEW array (doesn't mutate input). Stable sort by using
     /// id as the tiebreaker (= prevents visual shuffle on re-render
@@ -357,6 +644,26 @@ struct EntityPreviewPane: View {
                     return lMod > rMod
                 }
                 return lhs.id.uuidString < rhs.id.uuidString
+            }
+        }
+    }
+
+    /// Flat LazyVGrid for book docs (= same visual style as entity
+    /// card grid, but BookDocCard instead of EntityCard).
+    @ViewBuilder
+    private func bookDocsGrid(docs: [BookDoc]) -> some View {
+        let sorted = sortBookDocs(docs, by: sortOrder)
+        GeometryReader { geometry in
+            ScrollView {
+                LazyVGrid(
+                    columns: adaptiveColumns(width: geometry.size.width),
+                    spacing: 16
+                ) {
+                    ForEach(sorted) { doc in
+                        BookDocCard(doc: doc)
+                    }
+                }
+                .padding(.vertical, 8)
             }
         }
     }
@@ -494,5 +801,90 @@ private struct EntityCard: View {
             // by sidebar tap, not card tap). Double-tap → open in editor.
         }
         .help("\(entity.entityType.displayName) — 双击在编辑器中打开")
+    }
+}
+
+/// Card view for a single .md document in a book folder.
+/// Boss 8/31 OOB '点 sidebar row → 右边素材区显示该目录的文档':
+/// every BookDoc renders as a card in the preview pane. Folder
+/// badge (= [世界观] etc.) identifies which folder the doc came
+/// from (= boss UX: visible at-a-glance folder context).
+///
+/// Interaction: tap = no-op for now (= future ticket wires single-
+/// tap → preview pane detail mode + editor). Double-tap → editor
+/// (= deferred to v0.31; the editor binding for book .md files
+/// isn't wired yet).
+private struct BookDocCard: View {
+    let doc: BookDoc
+
+    /// Resolve the BookFolder enum from the raw folder name string.
+    /// Falls back to nil for unknown folders (= e.g. if user creates
+    /// a non-standard folder manually).
+    private var folderEnum: BookFolder? {
+        BookFolder(rawValue: doc.folderName)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // THUMBNAIL: folder icon as a large prominent header
+            // (= matches the EntityCard thumbnail style for visual
+            // consistency between scopes).
+            ZStack {
+                LinearGradient(
+                    colors: [
+                        Color.accentColor.opacity(0.18),
+                        Color.accentColor.opacity(0.08),
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                LucideIcon(
+                    folderEnum?.icon ?? "file-text",
+                    size: 56
+                )
+                .foregroundStyle(Color.accentColor.opacity(0.85))
+            }
+            .frame(height: 100)
+            .frame(maxWidth: .infinity)
+            // TEXT content below the thumbnail
+            VStack(alignment: .leading, spacing: 6) {
+                // Folder badge
+                HStack(spacing: 4) {
+                    Text("[\(folderEnum?.displayName ?? doc.folderName)]")
+                        .font(.caption2)
+                        .foregroundStyle(.tint)
+                    Spacer()
+                    Text(doc.title)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                }
+                // Title (= filename without .md extension)
+                Text(doc.title)
+                    .font(.headline)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                // Summary (= first 200 chars of body)
+                if !doc.body.isEmpty {
+                    Text(doc.summary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(3)
+                        .multilineTextAlignment(.leading)
+                }
+            }
+            .padding(10)
+        }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.clear)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(Color.secondary.opacity(0.15), lineWidth: 0.5)
+        )
+        .contentShape(Rectangle())
+        .help("\(doc.displayPath) — 双击在编辑器中打开 (= 后续 ticket)")
     }
 }
