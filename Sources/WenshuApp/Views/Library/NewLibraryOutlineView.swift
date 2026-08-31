@@ -672,8 +672,24 @@ struct NewLibraryOutlineView: View {
             // when this book is the current sidebarSelection. User-
             // controlled collapse is preserved via bookDisclosureStates.
             let isBookSelectedNow = isBookSelected(book.id)
+            let isAnyFolderInsideSelected = folders.contains { folder in
+                appState.sidebarSelection == .folder(
+                    bookId: book.id, folderName: folder.name
+                )
+            }
+            // v0.30 boss 8/31 OOB '点世界观那一层会收起': the book
+            // DisclosureGroup previously collapsed when the user
+            // clicked a folder inside (= because the binding only
+            // checked 'isBookSelected', which is false once the
+            // selection moved from .book to .folder). Now we also
+            // keep it expanded when ANY folder inside is selected,
+            // so clicking 世界观 / 角色 / 章节大纲 / 小说正文 / 小说
+            // 草稿 keeps the parent expanded (= same visual model
+            // as Finder: a folder with a selected child stays open).
             DisclosureGroup(isExpanded: Binding(
-                get: { isBookSelectedNow || bookDisclosureStates[book.id, default: false] },
+                get: { isBookSelectedNow
+                       || isAnyFolderInsideSelected
+                       || bookDisclosureStates[book.id, default: false] },
                 set: { bookDisclosureStates[book.id] = $0 }
             )) {
                 // v0.30 boss 8/31 OOB (sidebar feedback bundle #3):
