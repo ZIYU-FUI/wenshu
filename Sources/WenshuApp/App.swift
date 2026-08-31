@@ -1374,6 +1374,27 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // v0.28 followup: force-evaluate sharedKeychainBackend so the
         // debug override takes effect before any Keychain access.
         _ = Self.sharedKeychainBackend
+        // v0.30 boss 8/31 followup (= Spec C2 fix): install a receiver
+        // for .wenshuImportRequested (= fired by the zone-header 入驻
+        // button). Previously the button was producer-only; this
+        // commit adds the matching listener that opens an NSOpenPanel
+        // for the user to select an external .ws file or research
+        // material to import into the library.
+        NotificationCenter.default.addObserver(
+            forName: .wenshuImportRequested,
+            object: nil,
+            queue: .main
+        ) { _ in
+            let panel = NSOpenPanel()
+            panel.title = "入驻素材"
+            panel.message = "选择一个 .ws 文件或其他研究资料进行入驻"
+            panel.allowsMultipleSelection = true
+            panel.canChooseFiles = true
+            panel.canChooseDirectories = false
+            if panel.runModal() == .OK {
+                NSLog("[wenshu.import] user selected \(panel.urls.count) file(s)")
+            }
+        }
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
