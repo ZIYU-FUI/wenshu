@@ -92,6 +92,15 @@ extension Notification.Name {
     static let wenshuNewBookRequested = Notification.Name("wenshu.newBookRequested")
     static let wenshuNewShelfRequested = Notification.Name("wenshu.newShelfRequested")
     static let wenshuImportRequested = Notification.Name("wenshu.importRequested")
+    // v0.30 boss 8/31 OOB #2 ('弹出菜单没有恢复'):
+    // notification posted by the zone-header new-icon button.
+    // Consumed by the NewLibraryOutlineView body (= real view hierarchy)
+    // via .onReceive, which toggles its showNewChoiceSheet @State and
+    // presents NewChoiceSheet. Mirrors the 入驻 pattern (= both buttons
+    // in the trailing slot use notification-based cross-instance signaling
+    // because the trailing slot is a separate NewLibraryOutlineView
+    // instance wrapped in AnyView).
+    static let wenshuChoiceRequested = Notification.Name("wenshu.choiceRequested")
     static let wenshuExportRequested = Notification.Name("wenshu.exportRequested")
 }
 extension Notification.Name {

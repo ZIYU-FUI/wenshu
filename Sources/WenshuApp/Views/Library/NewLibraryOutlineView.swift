@@ -210,6 +210,15 @@ struct NewLibraryOutlineView: View {
         .onReceive(NotificationCenter.default.publisher(for: .wenshuNewShelfRequested)) { _ in
             showNewShelfSheet = true
         }
+        // v0.30 boss 8/31 OOB #2 ('弹出菜单没有恢复'):
+        // The trailing-slot button posts .wenshuChoiceRequested; the
+        // sidebar body NewLibraryOutlineView (= this view, real view
+        // hierarchy) toggles its own showNewChoiceSheet @State and
+        // presents NewChoiceSheet. The trailing-slot instance cannot
+        // host .sheet itself (= AnyView wrapper).
+        .onReceive(NotificationCenter.default.publisher(for: .wenshuChoiceRequested)) { _ in
+            showNewChoiceSheet = true
+        }
         .sheet(isPresented: $showNewBookSheet) {
             NewBookSheet(onSave: { book in
                 do {
@@ -229,6 +238,18 @@ struct NewLibraryOutlineView: View {
                     loadError = error.localizedDescription
                 }
             })
+        }
+        .sheet(isPresented: $showNewChoiceSheet) {
+            NewChoiceSheet(
+                onNewBook: {
+                    showNewChoiceSheet = false
+                    showNewBookSheet = true
+                },
+                onNewShelf: {
+                    showNewChoiceSheet = false
+                    showNewShelfSheet = true
+                }
+            )
         }
     }
 
@@ -347,12 +368,29 @@ struct NewLibraryOutlineView: View {
         // slot (= only the import Button rendered). Replaced with a
         // simple Button pattern that mirrors the import Button =
         // notification + sheet pattern (no nested Menu).
+        //
+        // v0.30 boss 8/31 OOB #2 (after sheet test):
+        // The first fix attempted to attach .sheet directly on the
+        // trailing zoneHeaderButtons HStack. But the trailing slot
+        // uses a separate NewLibraryOutlineView() instance wrapped
+        // in AnyView (= WorkspaceView line ~255), so .sheet on that
+        // standalone instance had no place to attach (= SwiftUI
+        // AnyView discards view identity; sheets need a real parent
+        // in the view hierarchy). The new-icon button was visible
+        // (= button is a simple view) but tapping it set
+        // showNewChoiceSheet on the standalone instance which never
+        // re-rendered the trailing slot. Switched to NotificationCenter
+        // pattern (= mirrors the 入驻 button's .wenshuImportRequested):
+        // - Button tap posts .wenshuChoiceRequested notification.
+        // - The sidebar body NewLibraryOutlineView listens via
+        //   .onReceive and toggles its OWN showNewChoiceSheet state.
+        //   Sheets on the sidebar body ARE in the real view hierarchy.
         HStack(spacing: 0) {
-            // New plain Button (= tap opens the "New Book" / "New Shelf"
-            // choice as a sheet). The sheet itself presents the
-            // "New Book" / "New Shelf" two-button UI.
+            // New plain Button (= tap posts .wenshuChoiceRequested
+            // notification; consumed by the sidebar body listener
+            // which presents NewChoiceSheet).
             Button {
-                showNewChoiceSheet = true
+                NotificationCenter.default.post(name: .wenshuChoiceRequested, object: nil)
             } label: {
                 LucideIcon("square-plus", size: 18)
                     .frame(width: 28, height: 28)
@@ -375,18 +413,6 @@ struct NewLibraryOutlineView: View {
             }
             .buttonStyle(.plain)
             .help("Import")
-        }
-        .sheet(isPresented: $showNewChoiceSheet) {
-            NewChoiceSheet(
-                onNewBook: {
-                    showNewChoiceSheet = false
-                    showNewBookSheet = true
-                },
-                onNewShelf: {
-                    showNewChoiceSheet = false
-                    showNewShelfSheet = true
-                }
-            )
         }
     }
 
