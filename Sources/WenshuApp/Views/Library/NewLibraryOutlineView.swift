@@ -222,6 +222,23 @@ struct NewLibraryOutlineView: View {
             // No primary action (= double-click = open in editor
             // for books in a future ticket; for now, just no-op).
         }
+        // v0.30 boss 8/31 OOB: right-click on EMPTY area of sidebar
+        // (= the gap below the last row, before the next Section).
+        // .contextMenu(forSelectionType:) only fires on row hits;
+        // for empty-area right-click we use a plain .contextMenu on
+        // the List (= macOS 14+ behavior: shows when the user right-
+        // clicks anywhere inside the List, regardless of row hit).
+        // Apple HIG: empty-area context menu = top-level actions
+        // (= 创建新书架 is the canonical "I'm in the sidebar, I want
+        // to add something" action).
+        .contextMenu {
+            Button("新建书架…") {
+                showNewShelfSheet = true
+            }
+            Button("新建书…") {
+                showNewBookSheet = true
+            }
+        }
         // v0.30 boss 8/31 OOB ('Sidebar 背景 不跟液态玻璃透明度调整 / 之前已经实现的,
         // 改目录树的时候动到了, 修复'):
         // Apple HIG .sidebar listStyle draws its own opaque background
