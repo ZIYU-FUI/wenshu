@@ -21,10 +21,10 @@ import Lucide
 /// this paradigm over the FCP / Hermes alternatives.
 ///
 /// Boss 2026-08-27 standing goal: '重构落地'. This view is the
-/// production version (= replaces the v0.27 LayoutShellView when the
-/// `wenshu.useWorkspace` AppStorage flag is true; = the legacy
-/// LayoutShellView is kept as the fallback while the workspace
-/// feature stabilizes).
+/// production (= only) rendering path since v0.30. The v0.27
+/// LayoutShellView legacy path was removed in v0.30 (= 1310 lines
+/// deleted per boss 8/31 OOB '老六区没有用了，数据无用已经过期的代码，
+/// 去人无误后，可以清干净').
 struct WorkspaceView: View {
     @ObservedObject var store: WorkspaceStore
 

@@ -112,9 +112,11 @@ private struct WiredShell: View {
     // true = WorkspaceView path (= has ZoneContentView trailingButton
     // wiring per App.swift:2626 + v0.27 commit bca226704) = trailing
     // buttons render correctly.
-    @AppStorage("wenshu.useWorkspace") private var useWorkspace: Bool = true
-    // WorkspaceStore is only constructed when useWorkspace = true
-    // (= avoids running the new persistence layer when the flag is off).
+    // v0.30 boss 8/31 OOB: removed the legacy useWorkspace toggle
+    // (= no Settings/View writes to the AppStorage flag, so it was
+    // always-true dead code). WorkspaceStore is constructed once
+    // per WiredShell lifetime; its UserDefaults round-trip preserves
+    // state across launches.
     @State private var workspaceStore: WorkspaceStore? = nil
     // v0.28 followup Boss UX round 4: zone visibility flags (= for the
     // macOS native toolbar zone toggle buttons). Mirrors LayoutShellView's
@@ -133,23 +135,18 @@ private struct WiredShell: View {
     var body: some View {
         Group {
             if let bookStore = bookStore {
-                if useWorkspace {
-                    // WorkspaceView path (= boss 8/27 grill D1).
-                    // WorkspaceStore is constructed once per
-                    // WiredShell lifetime (= a new instance per
-                    // window); = its UserDefaults round-trip
-                    // preserves state across launches.
-                    if workspaceStore == nil {
-                        // Defer to a single task so we don't mutate
-                        // @State during view update.
-                        Color.clear
-                            .task { workspaceStore = WorkspaceStore() }
-                    } else if let workspaceStore = workspaceStore {
-                        WorkspaceView(store: workspaceStore)
-                            .environment(bookStore)
-                    }
-                } else {
-                    LayoutShellView()
+                // WorkspaceView path (= v0.28 followup).
+                // WorkspaceStore is constructed once per
+                // WiredShell lifetime (= a new instance per
+                // window); its UserDefaults round-trip preserves
+                // state across launches.
+                if workspaceStore == nil {
+                    // Defer to a single task so we don't mutate
+                    // @State during view update.
+                    Color.clear
+                        .task { workspaceStore = WorkspaceStore() }
+                } else if let workspaceStore = workspaceStore {
+                    WorkspaceView(store: workspaceStore)
                         .environment(bookStore)
                 }
             } else {

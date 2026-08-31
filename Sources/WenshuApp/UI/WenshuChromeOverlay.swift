@@ -6,8 +6,8 @@
 //
 // Architecture (= matches hermes pane-shell):
 // - Titlebar at top (= 34 PT custom, OUTSIDE layout tree)
-// - Layout (= 6区 builtinDefault in WorkspaceView, OR legacy
-//   LayoutShellView)
+// - Layout (= WorkspaceView only since v0.30; legacy 6区
+//   LayoutShellView was removed in v0.30 boss 8/31 OOB cleanup)
 // - Statusbar at bottom (= 24 PT custom, OUTSIDE layout tree)
 //
 // Features bundled (= boss listed):
@@ -20,8 +20,8 @@ import SwiftUI
 import AppKit
 
 /// Chrome overlay (= top titlebar + bottom statusbar wrapping the
-/// main content). Apply to any main content (= WorkspaceView or
-/// LayoutShellView).
+/// main content). Apply to WorkspaceView (= only rendering path
+/// since v0.30).
 @MainActor
 public struct WenshuChromeOverlay<Content: View>: View {
     let titlebarLeftTools: [TitlebarTool]
