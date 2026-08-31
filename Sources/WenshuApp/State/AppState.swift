@@ -1,10 +1,10 @@
 // Sources/WenshuApp/State/AppState.swift
 //
-// v0.30 boss 8/31 OOB '各区域之间的联动' (= adopted option A = global
-// @Observable + @Environment injection). This file centralizes
-// cross-zone UI state (= formerly scattered as @Binding across
-// 4 view layers = WorkspaceView → PaneRenderer →
-// TabContentDispatcher → ZoneModuleView → NewLibraryOutlineView,
+// v0.30 boss 8/31 OOB "option A for cross-zone communication"
+// (= adopted = global @Observable + @Environment injection).
+// This file centralizes cross-zone UI state (formerly scattered
+// as @Binding across 4 view layers = WorkspaceView -> PaneRenderer
+// -> TabContentDispatcher -> ZoneModuleView -> NewLibraryOutlineView,
 // per commit d845fe9c9).
 //
 // Why a global @Observable (= per Apple Observation framework,
@@ -56,17 +56,7 @@ final class AppState {
     /// from `sidebarSelection` (= = the sidebar tree selection) so
     /// detail mode can render without changing which tree row is
     /// highlighted.
-    var selectedEntity: Reference? = nil
 
-    /// Reference library category (= which category the sidebar
-    /// pointed at, = 资料库 → 文学 / 哲学 etc.). Drives the
-    /// `referenceScope(.some)` branch of PreviewPane.
-    var selectedEntityCategory: EntityCategory? = nil
-
-    /// Preview pane sort order (= applies to both entity-scope and
-    /// book-scope card flows). Default = pinyin first letter
-    /// (= boss 8/30 OOB '所有卡片默认排序是拼音首字母先后顺序').
-    var previewSortOrder: EntitySortOrder = .pinyinFirstLetter
 
     init() {}
 }

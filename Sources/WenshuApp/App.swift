@@ -412,13 +412,13 @@ struct WenshuApp: App {
     // 撤回 commit 4ef3e2e77 的 UserDefaults.standard.string 硬解, 改用 @AppStorage 真值响应式 (跟 SettingView 共享同一 key)
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
 
-    /// v0.30 boss 8/31 OOB '跨区通信的方案用 A' (= global
-    /// @Observable store). Per-window @State (= each WindowGroup
-    /// instance gets its own AppState = boss 8/27 OOB multi-window
-    /// future-proofing). All cross-zone UI signals (= sidebarSelection
-    /// / selectedEntity / selectedEntityCategory / previewSortOrder)
-    /// live in this single observable object. Descendants read it via
-    /// `@Environment(AppState.self) var appState`.
+    /// v0.30 boss 8/31 OOB "option A for cross-zone communication"
+    /// (= global @Observable store). Per-window @State (= each
+    /// WindowGroup instance gets its own AppState = boss 8/27 OOB
+    /// multi-window future-proofing). All cross-zone UI signals
+    /// (sidebarSelection / selectedEntity / selectedEntityCategory /
+    /// previewSortOrder) live in this single observable object.
+    /// Descendants read it via `@Environment(AppState.self) var appState`.
     @State private var appState = AppState()
 
     var body: some Scene {
@@ -639,15 +639,6 @@ struct WenshuApp: App {
 /// Pages 真值 (红框位置) = 窗口内容顶部 toolbar 切换, 不是窗口标题栏按钮
 struct SettingView: View {
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
-
-    /// v0.30 boss 8/31 OOB '跨区通信的方案用 A' (= global
-    /// @Observable store). Per-window @State (= each WindowGroup
-    /// instance gets its own AppState = boss 8/27 OOB multi-window
-    /// future-proofing). All cross-zone UI signals (= sidebarSelection
-    /// / selectedEntity / selectedEntityCategory / previewSortOrder)
-    /// live in this single observable object. Descendants read it via
-    /// `@Environment(AppState.self) var appState`.
-    @State private var appState = AppState()
     @AppStorage("wenshu.llm.provider") private var providerSlug: String = Provider.minimaxCn.slug
     // v0.24 boss验收fix (2026-08-24): default to empty string when no provider
     // key configured (not "MiniMax-M3" which implies a MiniMax provider is

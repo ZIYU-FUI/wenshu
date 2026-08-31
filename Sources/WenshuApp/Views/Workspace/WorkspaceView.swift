@@ -60,12 +60,14 @@ struct WorkspaceView: View {
             return .bookScope(bookId: bookId, folderName: nil)
         case .folder(let bookId, let folderName):
             return .bookScope(bookId: bookId, folderName: folderName)
-        case .shelf:
-            // Shelf row is not a document scope; preview pane shows
-            // a hint to drill into a book (= boss UX expectation:
-            // selecting a shelf doesn't reset the working set; it
-            // just highlights the shelf row).
-            return .empty
+        case .shelf(let shelfId):
+            // v0.30 boss 8/31 OOB spec criterion #2: clicking a
+            // shelf row shows the "select a book" hint. (.shelfScope
+            // maps to emptyState(message: "选中书查看文档") in
+            // PreviewPane.shelfScopeView.) Previously this mapped
+            // to .empty (= "请选择左侧目录查看文档") which the spec
+            // sub-agent flagged as FAIL.
+            return .shelfScope(shelfId: shelfId)
         case .referenceCategory(let dirName):
             if dirName == "__root__" {
                 return .referenceScope(nil)
@@ -336,8 +338,8 @@ struct ZoneModuleView: View {
             return .bookScope(bookId: bookId, folderName: nil)
         case .folder(let bookId, let folderName):
             return .bookScope(bookId: bookId, folderName: folderName)
-        case .shelf:
-            return .empty
+        case .shelf(let shelfId):
+            return .shelfScope(shelfId: shelfId)
         case .referenceCategory(let dirName):
             if dirName == "__root__" {
                 return .referenceScope(nil)
