@@ -186,6 +186,13 @@ struct NewLibraryOutlineView: View {
                         }
                         .badge(entitiesCount(in: category))
                         .tag(SidebarItem.referenceCategory(category.directoryName))
+                        // v0.30 boss 8/31 OOB: blue selection highlight
+                        .background(
+                            sidebarSelection == .referenceCategory(category.directoryName)
+                                ? Color.accentColor.opacity(0.18)
+                                : Color.clear
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
                     }
                 } label: {
                     Label {
@@ -196,6 +203,13 @@ struct NewLibraryOutlineView: View {
                     }
                     .badge(usedCategories().count)
                     .tag(SidebarItem.referenceLibraryRoot)
+                    // v0.30 boss 8/31 OOB: blue selection highlight
+                    .background(
+                        sidebarSelection == .referenceLibraryRoot
+                            ? Color.accentColor.opacity(0.18)
+                            : Color.clear
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
                 }
             }
         }
@@ -492,6 +506,16 @@ struct NewLibraryOutlineView: View {
             // in this shelf). User reported '书架后面没有统计数字'.
             .badge(books.count)
             .tag(SidebarItem.shelf(shelf.id))
+            // v0.30 boss 8/31 OOB: blue selection highlight
+            // (= override Apple HIG default List(.sidebar) gray tint;
+            // boss says '灰的那套不对，不用要'). The clipShape clips
+            // the tint to the row rect (no spillover to adjacent rows).
+            .background(
+                sidebarSelection == .shelf(shelf.id)
+                    ? Color.accentColor.opacity(0.18)
+                    : Color.clear
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 4))
             // v0.30 boss 8/31 OOB: right-click context menu on shelf
             // row. Apple HIG canonical contextMenu pattern. Two
             // actions: 重命名 (= renames the shelf in place) +
@@ -549,6 +573,16 @@ struct NewLibraryOutlineView: View {
                     .foregroundStyle(.primary)
             }
             .tag(SidebarItem.book(book.id))
+            // v0.30 boss 8/31 OOB: blue selection highlight (= same
+            // override as shelf/root rows; boss says '两套代码' issue
+            // = book/folder rows used Apple HIG default gray tint
+            // while shelf/root used manual .background).
+            .background(
+                sidebarSelection == .book(book.id)
+                    ? Color.accentColor.opacity(0.18)
+                    : Color.clear
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 4))
         } else {
             // v0.30 boss 8/31 OOB (sidebar feedback bundle #3):
             // 'child folders should be visible immediately when book
@@ -579,6 +613,14 @@ struct NewLibraryOutlineView: View {
                     // v0.30 boss 8/31 OOB: folder row is selectable
                     // (= user tap scopes preview pane to this folder).
                     .tag(SidebarItem.folder(bookId: book.id, folderName: folder.name))
+                    // v0.30 boss 8/31 OOB: blue selection highlight
+                    // (= same override as shelf/root rows).
+                    .background(
+                        sidebarSelection == .folder(bookId: book.id, folderName: folder.name)
+                            ? Color.accentColor.opacity(0.18)
+                            : Color.clear
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
                 }
             } label: {
                 Label {
@@ -597,6 +639,14 @@ struct NewLibraryOutlineView: View {
                     folderDirectoryName: $1.name
                 )})
                 .tag(SidebarItem.book(book.id))
+                // v0.30 boss 8/31 OOB: blue selection highlight (= same
+                // override as shelf/root rows).
+                .background(
+                    sidebarSelection == .book(book.id)
+                        ? Color.accentColor.opacity(0.18)
+                        : Color.clear
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 4))
                 // v0.30 boss 8/31 OOB: right-click context menu on book
                 // row. Apple HIG canonical pattern. The 帮助 book in
                 // the default '从这里开始' shelf still gets the
