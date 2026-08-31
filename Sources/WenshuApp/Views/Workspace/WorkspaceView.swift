@@ -650,18 +650,18 @@ private struct PreviewSortMenuButton: View {
     @State private var isHover: Bool = false
 
     var body: some View {
-        // ponytail fix: previous Menu + .menuStyle(.button) implementation
-        // collapsed to zero size inside ZoneContentView's trailing slot.
-        // The Menu view is wrapped in AnyView at ZoneContentTabBar layer
-        // which erases intrinsic size and SwiftUI's Menu doesn't render
-        // its label in this context. Replaced with explicit-frame Button
-        // (= .frame(width: 28, height: 28) on the icon = same pattern as
-        // NewButtonWithHover in sidebar's zoneHeaderButtons which DOES
-        // render correctly in the same slot).
+        // Q34 ticket 01 of v0.30-topbar-card-alignment: PaneIconTab
+        // pattern exactly (= Color.clear base + overlay icon +
+        // contentShape). The previous "plain Button + LucideIcon
+        // + .frame(width: 28, height: 28)" pattern collapsed to
+        // zero size inside ZoneContentView's trailing slot (= AnyView
+        // wrapper at ZoneContentTabBar erases intrinsic size).
+        // Color.clear base provides a guaranteed 28x28 hit area that
+        // survives AnyView wrapping, matching PaneIconTab which DOES
+        // render in the same slot.
         //
-        // Tap behavior: cycle through 3 sort orders. Icon updates to
-        // reflect current order. Text label shows the order name (= matches
-        // boss spec "icon for re-sort"). Hover tint matches sidebar pattern.
+        // Tap behavior: cycle through 3 sort orders. Icon updates
+        // to reflect current order.
         Button {
             switch sortOrder {
             case .pinyinFirstLetter: sortOrder = .createdAt
@@ -669,23 +669,20 @@ private struct PreviewSortMenuButton: View {
             case .modifiedAt: sortOrder = .pinyinFirstLetter
             }
         } label: {
-            // Lucide icon (size 18) wrapped in fixed 28x28 frame.
-            // Fixed frame = intrinsic size preserved through AnyView wrapper.
-            LucideIcon(sortOrder.menuIcon, size: 18)
-                .frame(width: 28, height: 28)
+            // PaneIconTab pattern: Color.clear as BASE, icon as
+            // .overlay centered. Fixed frame = intrinsic size preserved.
+            Color.clear
+                .frame(width: DesignTokens.paneTabHotArea, height: DesignTokens.paneTabHotArea)
+                .overlay(alignment: .center) {
+                    LucideIcon(sortOrder.menuIcon, size: DesignTokens.tabIconSize)
+                        .foregroundStyle(Color.secondary)
+                }
                 .contentShape(Rectangle())
-                .foregroundStyle(.tint)
         }
         .buttonStyle(.plain)
-        // Hover tint = Color.accentColor.opacity(0.12) on hover,
-        // matching PaneIconTab / NewButtonWithHover hover behavior.
         .onHover { hovering in
             isHover = hovering
         }
-        .background(
-            RoundedRectangle(cornerRadius: 4)
-                .fill(isHover ? Color.accentColor.opacity(0.12) : Color.clear)
-        )
         .help("排序方式: \(sortOrder.rawValue)")
     }
 }

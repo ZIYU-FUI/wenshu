@@ -293,6 +293,7 @@ struct PreviewPane: View {
                 }
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)  // v0.30 fix
     }
 
     /// Book scope: scan filesystem for .md files in the book folders.
@@ -312,6 +313,7 @@ struct PreviewPane: View {
                 bookDocsGrid(docs: docs)
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)  // v0.30 fix
     }
 
     /// Shelf scope: empty state with hint to drill into a book.
@@ -394,6 +396,16 @@ struct PreviewPane: View {
         // selection); the preview pane's category header is
         // redundant. Now the preview pane jumps directly to the
         // card grid (= card thumbnails + card content).
+        // v0.30 boss 8/31 OOB '预览区内容没有显示全，因为宽度调窄了，
+        // 预览区没有自动适配宽度' = preview pane content area is
+        // narrower than the pane (= 184 PT vs ~430 PT) because the
+        // outer VStack has no .frame(maxWidth: .infinity) = the
+        // inner GeometryReader takes the parent's intrinsic width
+        // (= 0) = the LazyVGrid falls back to a single column at
+        // narrow width = sort button / trailing icons at right edge
+        // get clipped by the content width, NOT the pane width.
+        // Fix = .frame(maxWidth: .infinity) on the outer VStack so
+        // GeometryReader reports the full pane width.
         VStack(alignment: .leading, spacing: 0) {
             if inCategory.isEmpty {
                 emptyState(message: "该分类下暂无实体")
@@ -412,6 +424,7 @@ struct PreviewPane: View {
                 }
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     /// Mode 3: all-entities overview grid (= group by category inline).

@@ -142,10 +142,20 @@ public struct PaneTabBar<Item: Identifiable & Sendable, Trailing: View>: View {
                 // (= independent of how many tabs the pane has = always
                 // sits at the rightmost position). Apple HIG canonical
                 // toolbar pattern (toolbars.action buttons at trailing edge).
-                if !(Trailing.self == EmptyView.self) {
-                    Spacer(minLength: 0)
-                    trailing()
-                }
+                // v0.30 ponytail fix v2: remove `Trailing.self == EmptyView.self`
+                // check (= always render trailing). Previous code skipped
+                // trailing when `Trailing` was inferred as EmptyView (= the
+                // default). When callers pass a real trailing via AnyView,
+                // SwiftUI's @ViewBuilder inference sometimes collapses the
+                // trailing closure's return type to EmptyView (= the
+                // type-check trick at runtime doesn't catch this) = trailing
+                // skipped = sort icon / expand icon never render.
+                //
+                // Fix: always render trailing. EmptyView collapses to 0
+                // width anyway (= no visual difference for callers that
+                // pass nil).
+                Spacer(minLength: 0)
+                trailing()
             }
             .padding(.leading, DesignTokens.chromePaddingLeading)
             // ponytail fix: the inner HStack had only intrinsic width

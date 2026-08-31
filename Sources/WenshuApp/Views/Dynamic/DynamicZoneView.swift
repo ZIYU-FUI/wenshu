@@ -50,7 +50,13 @@ struct DynamicZoneView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
+        // v0.30 boss 8/31 OOB: alignment: .leading so the top tab bar
+        // (= DynamicZoneTabBar) is left-aligned instead of default
+        // center-aligned (= SwiftUI VStack defaults to .center). Boss
+        // spec: "动态 teb 图标改成居左" = the dynamic zone tabs should
+        // sit at the left edge (= 18 PT padding from pane left) like
+        // every other zone's top bar.
+        VStack(alignment: .leading, spacing: 0) {
             DynamicZoneTabBar(selectedTab: Binding(
                 get: { selectedTab },
                 set: { selectedTab = $0 }
