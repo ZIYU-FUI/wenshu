@@ -246,22 +246,29 @@ final class WorkspaceStore: ObservableObject {
     /// `weight_delta = delta_PT / weightUnit`. The left/right pair
     /// gets this delta applied proportionally to their existing
     /// weights (= keeps their ratio, just shifts the total).
-    func adjustSplitWeights(splitID: String, childIndex: Int, delta: Double) {
+    func adjustSplitWeights(splitID: String, childIndex: Int, weightDelta: Double) {
         let minWeight = 0.05
-        // PaneRenderer's weightUnit (= 100 PT per weight). Hard-coded
-        // here to keep this function self-contained; if the renderer
-        // changes the unit, both call sites must update in lock-step.
-        let weightUnit: Double = 100
+        // v0.30 boss 2026-08-31 OOB '不能拖. 和 hit area 宽度没有
+        // 关系, 上半区的比例也还是不对, 编辑器吃掉因为拖拽线产生的
+        // 其它宽度': the previous implementation hardcoded
+        // `weightUnit = 100 PT` here AND had the renderer pass a PT
+        // delta (= double-conversion: PT -> weight via /100 here, then
+        // weight -> PT via *100 elsewhere). On a 997 PT window, the
+        // actual unit is 99.7 (= availableWidth / totalWeight), so the
+        // persisted weight after drag was 0.3% off from what the user
+        // saw during the drag (= drift across launches + visible
+        // jitter).
+        //
+        // Fix: callers (PaneRenderer.onDragEnd) now pass the WEIGHT
+        // delta (= already converted via the renderer's actual unit).
+        // No conversion here.
         let newRoot = mapSplitWeights(splitID: splitID) { weights in
             guard weights.count > childIndex + 1 else { return weights }
             var w = weights
             let left = w[childIndex]
             let right = w[childIndex + 1]
-            // Convert the PT delta to a weight delta (= apply the
-            // unit conversion that's been missing since v0.28).
-            let dW = delta / weightUnit
             let total = left + right
-            var newLeft = max(minWeight, min(1 - minWeight, left + dW))
+            var newLeft = max(minWeight, min(1 - minWeight, left + weightDelta))
             let newRight = max(minWeight, total - newLeft)
             newLeft = total - newRight
             w[childIndex] = newLeft

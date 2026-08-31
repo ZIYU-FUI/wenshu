@@ -132,20 +132,8 @@ struct PaneRenderer: View {
         if split.orientation == .row {
             HStack(spacing: 0) {
                 ForEach(split.children.indices, id: \.self) { i in
-                    PaneRenderer(node: split.children[i], store: store)
-                        // v0.30 boss 8/31 OOB: hard width frame + zero
-                        // layoutPriority sibling competition. Without
-                        // .layoutPriority(0), SwiftUI sometimes
-                        // distributes by intrinsic content. Using
-                        // `.frame(width: ...)` alone should fix the
-                        // exact width; we also set the child to
-                        // `.frame(maxWidth: .infinity)` to consume
-                        // its slice fully.
-                        .frame(
-                            width: max(minChildSize, CGFloat(liveWeights[i]) * unit),
-                            height: nil
-                        )
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    rowChild(node: split.children[i], store: store,
+                             weight: liveWeights[i], unit: unit)
                     if i < split.children.count - 1 {
                         NativeSplitter(
                             orientation: .vertical,
@@ -180,15 +168,20 @@ struct PaneRenderer: View {
                             onDragEnd: {
                                 // Commit the cached weights to the
                                 // store (= single UserDefaults write).
-                                // adjustSplitWeights now expects PT
-                                // (= post-fix); convert weight delta
-                                // to PT delta via * weightUnit.
+                                // v0.30 boss 8/31 OOB: adjustSplitWeights
+                                // now expects the WEIGHT delta (= not PT
+                                // delta); the previous PT->weight->PT
+                                // double-conversion caused 0.3% drift
+                                // between the visual drag and the
+                                // persisted state. The renderer already
+                                // computes weight deltas via the actual
+                                // unit during the drag (= liveWeights),
+                                // so we just pass through.
                                 if let finalWeights = dragCache[split.id] {
                                     for k in 0..<finalWeights.count {
                                         let weightDelta = finalWeights[k] - split.weights[k]
-                                        let ptDelta = weightDelta * Double(unit)
-                                        if abs(ptDelta) > 0.0001 {
-                                            store.adjustSplitWeights(splitID: split.id, childIndex: k, delta: ptDelta)
+                                        if abs(weightDelta) > 0.0001 {
+                                            store.adjustSplitWeights(splitID: split.id, childIndex: k, weightDelta: weightDelta)
                                         }
                                     }
                                     dragCache.removeValue(forKey: split.id)
@@ -201,14 +194,8 @@ struct PaneRenderer: View {
         } else {
             VStack(spacing: 0) {
                 ForEach(split.children.indices, id: \.self) { i in
-                    PaneRenderer(node: split.children[i], store: store)
-                        // v0.30 boss 8/31 OOB: hard height frame + fill
-                        // parent height (= see row-split comment).
-                        .frame(
-                            width: nil,
-                            height: max(minChildSize, CGFloat(liveWeights[i]) * unit)
-                        )
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    columnChild(node: split.children[i], store: store,
+                                weight: liveWeights[i], unit: unit)
                     if i < split.children.count - 1 {
                         NativeSplitter(
                             orientation: .horizontal,
@@ -230,9 +217,8 @@ struct PaneRenderer: View {
                                 if let finalWeights = dragCache[split.id] {
                                     for k in 0..<finalWeights.count {
                                         let weightDelta = finalWeights[k] - split.weights[k]
-                                        let ptDelta = weightDelta * Double(unit)
-                                        if abs(ptDelta) > 0.0001 {
-                                            store.adjustSplitWeights(splitID: split.id, childIndex: k, delta: ptDelta)
+                                        if abs(weightDelta) > 0.0001 {
+                                            store.adjustSplitWeights(splitID: split.id, childIndex: k, weightDelta: weightDelta)
                                         }
                                     }
                                     dragCache.removeValue(forKey: split.id)
@@ -243,6 +229,32 @@ struct PaneRenderer: View {
                 }
             }
         }
+    }
+
+    // MARK: - Child renderers (= extracted to reduce SwiftUI
+    // expression type-check complexity in the parent HStack/VStack).
+
+    @ViewBuilder
+    private func rowChild(node: LayoutNode, store: WorkspaceStore,
+                          weight: Double, unit: CGFloat) -> some View {
+        // v0.30 boss 8/31 OOB '上半区比例也还是不对, 编辑器吃掉因为
+        // 拖拽线产生的其它宽度': pin width to the exact weighted slice
+        // (= no .frame(maxWidth: .infinity, maxHeight: .infinity) =
+        // prevents the editor from absorbing splitter widths or
+        // rounding leftovers). Only allow vertical fill.
+        let width = max(minChildSize, CGFloat(weight) * unit)
+        PaneRenderer(node: node, store: store, sidebarSelection: _sidebarSelection)
+            .frame(width: width)
+            .frame(maxHeight: .infinity)
+    }
+
+    @ViewBuilder
+    private func columnChild(node: LayoutNode, store: WorkspaceStore,
+                             weight: Double, unit: CGFloat) -> some View {
+        let height = max(minChildSize, CGFloat(weight) * unit)
+        PaneRenderer(node: node, store: store, sidebarSelection: _sidebarSelection)
+            .frame(height: height)
+            .frame(maxWidth: .infinity)
     }
 
     // MARK: - Group container
