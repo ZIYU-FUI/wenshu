@@ -28,7 +28,7 @@ The flag is settable via `defaults write com.wenshu.app wenshu.useNSSplitView -b
 6. App launches with default OFF — UI unchanged from before
 7. With flag ON: drag dividers → resize works (= Apple NSSplitView native)
 8. With flag ON: quit + relaunch → divider positions persist (= Apple autosaveName)
-9. With flag ON: 显示菜单 "显示/隐藏 工具区" → tools pane collapses/expands (= NSSplitViewItem.isCollapsed)
+9. With flag ON: the display menu "Show/Hide Tools zone" → tools pane collapses/expands (= NSSplitViewItem.isCollapsed)
 
 ## File changes
 
@@ -51,5 +51,5 @@ If new path crashes or has regressions: `defaults delete com.wenshu.app wenshu.u
 - [ ] Set flag ON, relaunch — screenshot shows 6 panes (fixes the "only 2 panes" bug)
 - [ ] Drag a divider — pane width changes
 - [ ] Quit, relaunch — divider position preserved
-- [ ] Toggle 显示菜单 "显示/隐藏 工具区" — tools pane collapses
+- [ ] Toggle the display menu "Show/Hide Tools zone" — tools pane collapses
 - [ ] Toggle flag OFF, relaunch — old path works (= rollback verified)

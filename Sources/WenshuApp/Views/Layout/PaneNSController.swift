@@ -1,10 +1,11 @@
-// PaneNSController.swift · Wenshu (文枢) · v0.30 ticket 03 / 4
+// PaneNSController.swift · Wenshu · v0.30 ticket 03 / 4
 //
-// Future-framework native container (= boss 2026-08-31 OOB "用 Apple
-// 官方的 api 实现 FCP 的布局"). This NSSplitViewController subclass is
-// what FCPLayout.makeSplitController actually returns (= after ticket 01's
-// stub). It walks the recursive WorkspaceState tree and builds the
-// matching NSSplitView + NSSplitViewItem hierarchy.
+// Future-framework native container (= boss 2026-08-31 OOB:
+// "Implement the FCP layout using Apple official APIs"; see spec.md
+// for the verbatim Chinese quote). This NSSplitViewController subclass
+// is what FCPLayout.makeSplitController actually returns (= after
+// ticket 01's stub). It walks the recursive WorkspaceState tree
+// and builds the matching NSSplitView + NSSplitViewItem hierarchy.
 //
 // Ticket 03 / 4 scope (= this file):
 //   - Declare `final class PaneNSController: NSSplitViewController`
@@ -75,11 +76,11 @@ final class PaneNSController: NSSplitViewController {
         // split's delegate lets us override `effectiveRect(...)` and
         // extend each divider's grabbable region by `dividerHitPadding`.
         self.splitView.delegate = self
-        // 显示 menu → NSSplitViewItem.isCollapsed bridge (Gap F fix).
-        // The legacy 显示 menu items in App.swift:593-611 post
-        // .wenshuToggleZone(ZoneSlot) notifications; this observer
-        // finds the corresponding NSSplitViewItem and flips its
-        // collapsed state (= Apple HIG sidebar hide/show affordance).
+        // Display-menu bridge (= Gap F fix). The legacy "Display" menu items
+        // in App.swift:593-611 post .wenshuToggleZone(ZoneSlot)
+        // notifications; this observer finds the matching NSSplitViewItem
+        // and flips its collapsed state (= Apple HIG sidebar hide/show
+        // affordance).
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(handleToggleZone(_:)),
@@ -353,9 +354,9 @@ final class PaneNSController: NSSplitViewController {
         return isCollapsiblePane(paneID) ? 200 : 100
     }
 
-    /// Which panes can the user collapse (= via 显示 menu / sidebar
-    /// toggle). Matches FCP's collapsible sidebars + chat/dynamic zones.
-    /// Central panes (= editor) are NOT collapseable.
+    /// Which panes can the user collapse (= via the "Display" menu /
+    /// sidebar toolbar toggle). Matches FCP's collapsible sidebars +
+    /// chat/dynamic zones. Central panes (= editor) are NOT collapseable.
     private func isCollapsiblePane(_ paneID: PaneID) -> Bool {
         guard let pane = store.workspace.pane(for: paneID),
               let firstTabID = pane.tabIDs.first,

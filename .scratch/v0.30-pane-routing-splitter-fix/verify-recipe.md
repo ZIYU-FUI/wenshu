@@ -1,6 +1,6 @@
 # Q34 step 8 — Boss manual NSSplitView verification recipe
 
-> Built 2026-08-31 (= boss 2026-08-31 OOB "验证, 同时确认有没有垃圾代码干扰, 避免再修也生效")
+> Built 2026-08-31 (= boss 2026-08-31 OOB "verify, and confirm whether there's any garbage code interfering — avoid the case where a fix doesn't take effect")
 > PR 1-4 commits: bd565247c + 59bc66d69 + 74c327db9 + f380a2cd4 + 210d042ba + d54451539
 > App PID (latest): running wenshu.app at /Volumes/ANAN/Engineering/wenshu/build/Wenshu.app
 > Feature flag status (current): useNSSplitView = ON
@@ -24,9 +24,9 @@ The NSSplitView path is now active (= feature flag ON). Verify each Apple HIG st
 
 ### Check 3: Collapse / expand (= Apple canCollapse)
 
-- **Action**: Use the 显示 menu (= View menu, top bar). Click "显示/隐藏 项目管理区" to hide the sidebar. Then click again to restore.
+- **Action**: Use the the display menu (= View menu, top bar). Click "Show/Hide Project Management zone" to hide the sidebar. Then click again to restore.
 - **Expected**: Sidebar collapses to a thin strip (= Apple HIG animation), preview pane expands to fill. Reversing restores the sidebar to its previous width.
-- **Why this matters**: Verifies `isCollapsiblePane` correctly identifies sidebar / chat / dynamic / tools as collapsible (= ticket 03 helper). The 显示 menu wiring is deferred (= currently posts a notification but doesn't drive `NSSplitViewItem.isCollapsed` yet — if not working, that's expected scope, not a regression).
+- **Why this matters**: Verifies `isCollapsiblePane` correctly identifies sidebar / chat / dynamic / tools as collapsible (= ticket 03 helper). The the display menu wiring is deferred (= currently posts a notification but doesn't drive `NSSplitViewItem.isCollapsed` yet — if not working, that's expected scope, not a regression).
 
 ### Check 4: Liquid Glass material
 
@@ -36,7 +36,7 @@ The NSSplitView path is now active (= feature flag ON). Verify each Apple HIG st
 ### Check 5: All 6 panes still render
 
 - **Action**: Visually scan all 6 regions.
-- **Expected**: From left to right + top to bottom: 项目管理区 (sidebar) + 素材预览区 (preview) + 编辑器 (editor) + 工具区 (tools) + 聊天区 (chat) + 动态区 (dynamic). All 6 visible and content rendering. The preview pane should show 4 entity cards (赤壁之战 / 杜甫 / 汉尼拔的战术 / 李白).
+- **Expected**: From left to right + top to bottom: Project Management zone (sidebar) + Material Preview zone (preview) + Editor (editor) + Tools zone (tools) + Chat zone (chat) + Dynamic zone (dynamic). All 6 visible and content rendering. The preview pane should show 4 entity cards (Red Cliffs Battle / Du Fu / Hannibal Tactics / Li Bai).
 
 ## How to roll back (= if any check fails)
 
@@ -71,7 +71,7 @@ These are NOT regressions; they're deferred work tracked elsewhere:
 
 1. **Tree-style drag-rearrange** (= hermes-style free pane placement) — boss confirmed impossible per platform constraints. See spec.md "What this plan does NOT solve".
 2. **Per-pane position serialization** — Apple autosaveName handles divider positions; wenshu's own WorkspaceState schema is for preset switching, not individual divider positions.
-3. **显示 menu → `NSSplitViewItem.isCollapsed` wiring** — menu items currently post a notification but don't drive collapse state. If Check 3 fails because of this, that's the deferred scope, not a regression.
+3. **the display menu → `NSSplitViewItem.isCollapsed` wiring** — menu items currently post a notification but don't drive collapse state. If Check 3 fails because of this, that's the deferred scope, not a regression.
 
 ## If you find a bug
 

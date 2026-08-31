@@ -1,13 +1,13 @@
 # Plan A++ — replace hand-rolled PaneRenderer/Splitter with NSSplitView (Apple native)
 
-> Captured 2026-08-31 22:30 CST (= 老板 2026-08-31 OOB "用 Apple 官方的 api 实现 FCP 的布局, 之后每一种布局等于定制化开发, 以后再说, 想像 hermes 一样自由布局定制化, 框架不同, 应该无法实现").
-> Scope = v0.30 default FCP 6-zone preset ONLY. Other presets deferred per 老板 directive.
+> Captured 2026-08-31 22:30 CST (= boss 2026-08-31 OOB "Implement the FCP layout using Apple official APIs; each layout is custom-developed from here on. Imagine Hermes-style free layout customization — but the framework (= macOS native) makes that impossible").
+> Scope = v0.30 default FCP 6-zone preset ONLY. Other presets deferred per boss directive.
 
-## What 老板 actually said (= the core insight)
+## What boss actually said (= the core insight)
 
 1. FCP gives the user REAL freedom = hide/show + drag-to-resize. Wenshu must match this.
 2. Hermes is Electron = JS-can-do-anything. Wenshu is macOS native = Apple API ceiling.
-3. "想自由布局 = Apple API 不可能" → use Apple native NSSplitView, get the maximum freedom the platform offers (= divider drag, sidebar collapse, autosave positions).
+3. "Free layout is impossible on Apple API" → use Apple native NSSplitView, get the maximum freedom the platform offers (= divider drag, sidebar collapse, autosave positions).
 4. Each preset = custom dev. No reusable framework beyond Apple's.
 
 ## Apple NSSplitView (the API we're porting to)
@@ -81,7 +81,7 @@ These are EXACTLY the FCP / Xcode / System Settings features boss wants.
 
 ## What about per-preset customization?
 
-Boss: "每一种布局等于定制化开发" = each future preset (Xcode / Hermes / Quad) = its own `NSSplitViewController` subclass OR its own layout builder function. Reuse via composition (= each preset = a function that builds the NSSplitView tree from the pane list).
+Boss: "each layout is custom-developed" = each future preset (Xcode / Hermes / Quad) = its own `NSSplitViewController` subclass OR its own layout builder function. Reuse via composition (= each preset = a function that builds the NSSplitView tree from the pane list).
 
 ```swift
 protocol PaneLayout {
@@ -106,10 +106,10 @@ Each preset = one struct, one file, ~50 lines. **Custom dev per preset is OK bec
 2. Drag divider to resize (= Apple handles)
 3. Sidebar can collapse/expand via toolbar button (= matches FCP's hide/show)
 4. Divider positions persist across launches (= Apple autosaveName handles)
-5. Toolbar ↔ pane show/hide via the existing "显示" menu items (`显示/隐藏 工具区`, etc.)
+5. Toolbar ↔ pane show/hide via the existing "Display" menu items (`Show/Hide Tools zone`, etc.)
 
 **NOT in this commit (= deferred)**:
-- Rename builtin presets to "FCP 均衡 / Xcode 编辑器优先 / Hermes 对话优先"
+- Rename builtin presets to "FCP Balanced / Xcode Editor-priority / Hermes Chat-priority"
 - Quad 4-pane preset
 - User custom layout
 - 4th preset (Quad)
@@ -127,7 +127,7 @@ Per Q34 8-step (= after this spec):
 3. Step 5: implement (each ticket = 1 commit)
 4. Step 6: dual-axis code review (Standards + Spec)
 5. Step 7: CONTEXT.md update (= add "NSSplitView" domain term)
-6. Step 8: Q22 真验证 (= boss manually drags splitter + screenshots)
+6. Step 8: Q22 true verification (= boss manually drags splitter + screenshots)
 
 ## Pre-flight checklist (= before implementation)
 
@@ -146,20 +146,20 @@ Per Q34 8-step (= after this spec):
 
 ## What this plan does NOT solve (= out of scope per boss)
 
-- Hermes-style free pane placement (= drop pane anywhere, like a window manager). Boss confirmed: "想像 hermes 一样自由布局定制化, 框架不同, 应该无法实现". Punted.
+- Hermes-style free pane placement (= drop pane anywhere, like a window manager). Boss confirmed: "Imagine Hermes-style free layout customization — but the framework (= macOS native) makes that impossible". Punted.
 - Per-pane position serialization (= only Apple autosaveName, not custom format).
 - Custom divider style (= Liquid Glass line = Apple default).
 
 
 ## Dead-code deletion policy (= boss 2026-08-31 OOB revised)
 
-> 老板 2026-08-31 OOB (revised): "死代码不许删, 这不是我的决策, 如果通过我刚才解释的, 确认了, 以后用不到的代码, 可以删. 我不懂写代码, 我无法给你意见, 所以你要自己决策"
+> boss 2026-08-31 OOB (revised): "Don't delete dead code — that is not my decision. If you (= ANAN) judge the code is genuinely unrecoverable in the future-framework direction after our discussion, then you can delete it. I (= boss) don't write code, I can't give you a technical opinion, so you must decide on your own"
 
 ### The rule (= ANAN autonomous decision authority)
 
 **Dead code MAY be deleted** (= no boss confirmation needed), **provided ANAN has reasoned that the code is genuinely unrecoverable in the future framework direction**.
 
-The decision is ANAN's, not the boss's (= boss explicitly says "我不懂写代码"). The boss's role is to define the direction; ANAN's role is to execute.
+The decision is ANAN's, not the boss's (= boss explicitly says "I don't write code"). The boss's role is to define the direction; ANAN's role is to execute.
 
 ### What counts as "dead code in future framework" (= ANAN's checklist)
 
@@ -188,11 +188,11 @@ These are NOT dead code; they are intentional:
 
 1. **All 4 builtin presets** (`WorkspaceStore.makeBuiltinPresets()`) — boss uses these; renaming is out of scope this PR
 2. **`LayoutPicker` + `LayoutEditBar`** — preset picker UI; boss uses this to switch presets
-3. **显示菜单 items** (显示/隐藏 工具区 etc.) — boss uses these; NSSplitView integration just routes them to `isCollapsed` instead of `NotificationCenter`
+3. **the display menu items** (Show/Hide Tools zone etc.) — boss uses these; NSSplitView integration just routes them to `isCollapsed` instead of `NotificationCenter`
 4. **`AppState` @Observable** — cross-zone state
 5. **All Zone content views** (PreviewPane, NewLibraryOutlineView, etc.) — SwiftUI views stay intact, only the container changes
 6. **`PaneFrame.minWidth / idealWidth / flex` schema** — schema stability for user-saved custom presets (even if currently unused)
-7. **`wenshuResetLayout` notification + resetLayout action** — boss uses via 显示 menu
+7. **`wenshuResetLayout` notification + resetLayout action** — boss uses via the display menu
 
 ### What MAY be deleted (= ANAN judgment)
 

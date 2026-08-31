@@ -1,10 +1,17 @@
-// PaneLayout.swift · Wenshu (文枢) · v0.30 ticket 01 / 4
+// PaneLayout.swift · Wenshu · v0.30 ticket 01 / 4
 //
-// Future-framework pluggable shape (= boss 2026-08-31 OOB "用 Apple 官方的
-// api 实现 FCP 的布局, 之后每一种布局等于定制化开发"). Each preset
-// (= FCP / Xcode / Hermes / Quad / user-saved) becomes one PaneLayout
-// implementation that knows how to build its native NSSplitViewController
-// tree from a list of PaneNode.
+// Future-framework pluggable shape (= boss 2026-08-31 OOB:
+// "Implement the FCP layout using Apple official APIs; each layout
+// is custom-developed from here on". Each preset (= FCP / Xcode /
+// Hermes / Quad / user-saved) becomes one PaneLayout implementation
+// that knows how to build its native NSSplitViewController tree
+// from a list of PaneNode.
+//
+// The boss OOB verbatim Chinese quote (= preserved in .scratch/
+// spec.md + three-reference-layouts.md for full context) and
+// the design rationale (= one preset = one custom struct; no
+// reusable framework beyond Apple's NSSplitView) are documented
+// in .scratch/v0.30-pane-routing-splitter-fix/spec.md.
 //
 // Ticket 01 / 4 scope (= this file):
 //   - Declare `protocol PaneLayout`
@@ -30,7 +37,7 @@ import Foundation
 /// WorkspaceState; the existing preset tree stays the source of truth).
 ///
 /// One preset = one struct, one file. Adding a new preset = new struct
-/// implementing this protocol (= per boss "每一种布局等于定制化开发").
+/// implementing this protocol (= per boss "each layout is custom-developed"; see spec.md rationale).
 protocol PaneLayout {
     /// Stable identifier (= matches `LayoutPreset.name` for built-ins).
     /// Used by `autosaveName` so divider positions are persisted per

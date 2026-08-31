@@ -1,6 +1,6 @@
 # Three reference layouts - visual partition inventory
 
-> Captured 2026-08-31 23:07:45 CST (= 老板 2026-08-31 OOB "用快捷键把这几个软件所有隐藏的分区都调出来, 识别他的分区设计").
+> Captured 2026-08-31 23:07:45 CST (= boss 2026-08-31 OOB "use hotkeys to surface every hidden panel in these apps so you can identify their partition design").
 > Scope = informational only. v0.30 implementation targets ONLY the FCP-style 6-zone preset (the current wenshu default = builtinDefaultPreset). Other presets deferred to later milestones.
 
 ## Method (= how these were captured)
@@ -26,11 +26,11 @@ Captured wenshu.app currently renders ONLY 2 panes (sidebar + preview) - the edi
 +-------+----------------+----------------+-----------------+
 | Timeline (~20%)                                            |
 +-------------------------------------------------------------+
-| bottom bar (search + 360 项)                                |
+| bottom bar (search + 360 items)                                |
 +-------------------------------------------------------------+
 ```
 
-**Total = 4 vertical + 1 timeline + 1 top + 1 bottom = 7 panels (老板 calls this "FCP 8 区").**
+**Total = 4 vertical + 1 timeline + 1 top + 1 bottom = 7 panels (boss calls this "FCP 8-zone layout").**
 
 ## Xcode (3 vertical + top + 2 bottom = 6 panels)
 
@@ -44,7 +44,7 @@ Captured wenshu.app currently renders ONLY 2 panes (sidebar + preview) - the edi
 +-------------------------------------------------------------+
 ```
 
-**Total = 3 vertical + 1 top + 1 bottom = 5 panels. 老板 calls this "Xcode 编辑器优先" because the central editor pane dominates (~64%).**
+**Total = 3 vertical + 1 top + 1 bottom = 5 panels. boss calls this "Xcode Editor-priority" because the central editor pane dominates (~64%).**
 
 ## Hermes (1 vertical sidebar + 1 large center + 1 bottom composer + 1 statusbar = 4 panels)
 
@@ -63,33 +63,33 @@ Captured wenshu.app currently renders ONLY 2 panes (sidebar + preview) - the edi
 +-------------------------------------------------------------+
 ```
 
-**Total = 1 sidebar + 1 large center + 1 composer + 1 statusbar + 1 top toolbar = 5 panels. 老板 calls this "Hermes 对话优先" because the main pane is the chat conversation (~85%).**
+**Total = 1 sidebar + 1 large center + 1 composer + 1 statusbar + 1 top toolbar = 5 panels. boss calls this "Hermes Chat-priority" because the main pane is the chat conversation (~85%).**
 
 ## Cross-app design patterns (informational)
 
 | Concept          | FCP             | Xcode            | Hermes        | wenshu v0.30 default |
 |------------------|-----------------|------------------|---------------|----------------------|
 | Top toolbar      | yes 30 PT       | yes 30 PT        | yes 30 PT     | yes 30 PT (RegionTabBar) |
-| Left sidebar     | Library 13%     | Navigator 14%    | Sessions 8-10% | 项目管理区 14%      |
+| Left sidebar     | Library 13%     | Navigator 14%    | Sessions 8-10% | Project Management zone 14%      |
 | Center pane      | Viewer 35%      | Editor 64%       | Chat 85%      | Preview 13% (too narrow) |
 | Right pane 1     | Effects 13%     | Inspector 14%    | (none)        | Tools (MISSING)     |
 | Right pane 2     | Inspector 22%   | (none)           | (none)        | (none - wenshu has no 3rd pane) |
 | Bottom timeline  | Timeline 20%    | (none)           | (none)        | Chat + Dynamic (MISSING) |
 | Bottom composer  | Search bar      | Filter bar       | Composer + statusbar | Statusbar (MISSING composer) |
 
-## v0.30 scope (= 老板 2026-08-31 OOB)
+## v0.30 scope (= boss 2026-08-31 OOB)
 
-> "我们现在只先解决默认的, 文枢 6 区的框架 BUG, 其他模板以后实现"
+> "We will first solve the default wenshu 6-zone framework BUG; other templates to be implemented later"
 
 **Wenshu default = builtinDefaultPreset = FCP-style 6-zone** (= sidebar + preview + editor + tools top, chat + dynamic bottom). BUG = only 2 panes render (sidebar + preview); editor / tools / chat / dynamic missing from AX tree.
 
 **Fix scope (this commit)**:
 1. Restore PaneRenderer tree walk so all 6 panes render (= current rendering truncates to 2 panes - root cause in splitContainer / groupContainer routing)
-2. Fix splitter drag persistence (= commit `1b250dd8c` = needs Q22 真验证 with real mouse drag, not cliclick)
+2. Fix splitter drag persistence (= commit `1b250dd8c` = needs Q22 true verification with real mouse drag, not cliclick)
 3. Fix preview pane content fill width (= revert previous .frame(maxWidth: .infinity) hacks; replace with LayoutAPI / HSplitView native)
 
 **Fix scope (NOT this commit, deferred)**:
-- FCP / Xcode / Hermes named presets (rename builtin presets to FCP 均衡 / Xcode 编辑器优先 / Hermes 对话优先) - defer to v0.31+
+- FCP / Xcode / Hermes named presets (rename builtin presets to FCP Balanced / Xcode Editor-priority / Hermes Chat-priority) - defer to v0.31+
 - 4th preset = Quad - defer
 - User custom layout - defer
 

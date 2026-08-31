@@ -1,8 +1,9 @@
-// PaneSplitHost.swift · Wenshu (文枢) · v0.30 ticket 02 / 4
+// PaneSplitHost.swift · Wenshu · v0.30 ticket 02 / 4
 //
-// Future-framework SwiftUI ↔ AppKit bridge (= boss 2026-08-31 OOB
-// "用 Apple 官方的 api 实现 FCP 的布局"). This wrapper is the seam
-// SwiftUI uses to host the native NSSplitViewController (= ticket 03's
+// Future-framework SwiftUI-to-AppKit bridge (= boss 2026-08-31 OOB:
+// "Implement the FCP layout using Apple official APIs"; see spec.md
+// for the verbatim Chinese quote). This wrapper is the seam SwiftUI
+// uses to host the native NSSplitViewController (= ticket 03's
 // PaneNSController).
 //
 // Ticket 02 / 4 scope (= this file):
