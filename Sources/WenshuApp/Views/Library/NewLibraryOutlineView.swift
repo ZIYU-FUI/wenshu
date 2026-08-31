@@ -67,6 +67,12 @@ enum SidebarItem: Hashable {
     // pane to the shelf; for now it just keeps the shelf row
     // highlighted when selected).
     case shelf(UUID)
+    // v0.30 boss 8/31 OOB (sidebar feedback bundle #3): folder row
+    // (= third tree level, e.g. 世界观 / 角色 / 章节大纲 / 小说正文 /
+    // / 小说草稿). Tagging with .folder(bookId, folderName) lets the
+    // user select a folder directly; preview pane will scope to
+    // that folder's content (= shows the .md files inside).
+    case folder(bookId: UUID, folderName: String)
     case referenceCategory(String)  // = EntityCategory.directoryName
 
     static let referenceLibraryRoot = SidebarItem.referenceCategory("__root__")
@@ -200,6 +206,16 @@ struct NewLibraryOutlineView: View {
             switch newValue {
             case .book(let id):
                 bookStore.selectedBookId = id
+                selectedEntityCategory = nil
+                selectedEntity = nil
+            // v0.30 boss 8/31 OOB (sidebar feedback bundle #3): handle
+            // the new .folder(bookId, folderName) sidebar selection.
+            // For now, selecting a folder just clears book/category
+            // selection (= visual highlight only). Future ticket can
+            // wire folder-level preview pane scoping (= show all .md
+            // files in that folder with content previews).
+            case .folder:
+                bookStore.selectedBookId = nil
                 selectedEntityCategory = nil
                 selectedEntity = nil
             // v0.30 boss 8/31 OOB (sidebar feedback bundle #1+2): handle
@@ -361,6 +377,11 @@ struct NewLibraryOutlineView: View {
                 get: { isBookSelectedNow || bookDisclosureStates[book.id, default: false] },
                 set: { bookDisclosureStates[book.id] = $0 }
             )) {
+                // v0.30 boss 8/31 OOB (sidebar feedback bundle #3):
+                // folder count badge (= number of .md files in this
+                // folder). User reported '子目录后面没有显示数字' =
+                // count badges were missing because folder rows
+                // didn't have .badge() modifier.
                 ForEach(folders, id: \.name) { folder in
                     Label {
                         Text(folder.displayName)
@@ -368,6 +389,13 @@ struct NewLibraryOutlineView: View {
                         LucideIconSidebar(folder.icon)
                             .foregroundStyle(.primary)
                     }
+                    .badge(bookStore.folderDocumentCount(
+                        bookId: book.id,
+                        folderDirectoryName: folder.name
+                    ))
+                    // v0.30 boss 8/31 OOB: folder row is selectable
+                    // (= user tap scopes preview pane to this folder).
+                    .tag(SidebarItem.folder(bookId: book.id, folderName: folder.name))
                 }
             } label: {
                 Label {
