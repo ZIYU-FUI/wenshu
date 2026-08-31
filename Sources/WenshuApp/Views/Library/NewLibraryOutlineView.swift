@@ -91,9 +91,9 @@ struct NewLibraryOutlineView: View {
     @State private var loadError: String?
     @State private var showNewBookSheet: Bool = false
     @State private var showNewShelfSheet: Bool = false
-    // v0.30 boss 8/31 OOB ('顶栏右边的新建 ICON 没有了'): added a
-    // intermediate sheet (= "新建书 / 新建书架" two-button choice) to
-    // replace the Menu pattern that failed to render inside the
+    // v0.30 boss 8/31 OOB: added an intermediate sheet
+    // (= "New Book" / "New Shelf" two-button choice) to replace
+    // the Menu pattern that failed to render inside the
     // ZoneContentTabBar trailing slot.
     @State private var showNewChoiceSheet: Bool = false
 
@@ -341,16 +341,16 @@ struct NewLibraryOutlineView: View {
     /// it. Restored to Lucide canonical per bca226704.
     @ViewBuilder
     var zoneHeaderButtons: some View {
-        // v0.30 boss 8/31 OOB ('顶栏右边的新建 ICON 没有了'):
+        // v0.30 boss 8/31 OOB:
         // Menu style .borderlessButton + menuIndicator(.hidden) failed
-        // to render the 新建 icon inside the ZoneContentTabBar trailing
-        // slot (= only the 入驻 Button rendered). Replaced with a
-        // simple Button pattern that mirrors the 入驻 Button =
+        // to render the new-icon inside the ZoneContentTabBar trailing
+        // slot (= only the import Button rendered). Replaced with a
+        // simple Button pattern that mirrors the import Button =
         // notification + sheet pattern (no nested Menu).
         HStack(spacing: 0) {
-            // 新建 plain Button (= tap opens the "新建书 / 新建书架"
+            // New plain Button (= tap opens the "New Book" / "New Shelf"
             // choice as a sheet). The sheet itself presents the
-            // "新建书" / "新建书架" two-button UI.
+            // "New Book" / "New Shelf" two-button UI.
             Button {
                 showNewChoiceSheet = true
             } label: {
@@ -360,8 +360,8 @@ struct NewLibraryOutlineView: View {
                     .foregroundStyle(Color.secondary)
             }
             .buttonStyle(.plain)
-            .help("新建")
-            // 入驻 plain Button (= tap directly fires .wenshuImportRequested
+            .help("New")
+            // Import plain Button (= tap directly fires .wenshuImportRequested
             // notification; consumed by the main app toolbar listener =
             // opens the macOS NSOpenPanel for importing external research
             // materials into the library).
@@ -374,7 +374,7 @@ struct NewLibraryOutlineView: View {
                     .foregroundStyle(Color.secondary)
             }
             .buttonStyle(.plain)
-            .help("入驻")
+            .help("Import")
         }
         .sheet(isPresented: $showNewChoiceSheet) {
             NewChoiceSheet(
@@ -562,8 +562,8 @@ private struct NewShelfSheet: View {
     }
 }
 
-// v0.30 boss 8/31 OOB ('顶栏右边的新建 ICON 没有了'): replaced the
-// Menu-based "新建书 / 新建书架" picker (= failed to render inside
+// v0.30 boss 8/31 OOB: replaced the Menu-based
+// "New Book" / "New Shelf" picker (= failed to render inside
 // ZoneContentTabBar trailing slot) with a simple two-button sheet
 // picker. Apple HIG canonical sheet presentation.
 struct NewChoiceSheet: View {
