@@ -294,6 +294,8 @@ struct NewLibraryOutlineView: View {
                                 ? Color.accentColor.opacity(0.22)
                                 : Color.clear
                         )
+                        .badge(entitiesCount(in: category))
+                        // Hover bg AFTER .badge (= covers whole row).
                         .background(
                             RoundedRectangle(cornerRadius: 4)
                                 .fill(categoryHoverStates[category.directoryName, default: false]
@@ -303,12 +305,15 @@ struct NewLibraryOutlineView: View {
                         .onHover { hovering in
                             categoryHoverStates[category.directoryName, default: false] = hovering
                         }
-                        .badge(entitiesCount(in: category))
                         .tag(SidebarItem.referenceCategory(category.directoryName))
                     }
                 } label: {
-                    // v0.30 boss 8/31 OOB: hover tint scope = whole label
-                    // (= icon + text + badge), matches selection tint.
+                    // v0.30 boss 8/31 OOB: hover tint scope = whole row
+                    // (= icon + text + badge), matches the selection
+                    // tint scope. Boss: '悬浮实现的位置有问题, 不是
+                    // 整条, 不像选定'. Fix: the .background() must be
+                    // applied AFTER .badge() (= wraps the badge too,
+                    // not just the Label).
                     Label {
                         Text("资料库")
                     } icon: {
@@ -323,6 +328,9 @@ struct NewLibraryOutlineView: View {
                             ? Color.accentColor.opacity(0.22)
                             : Color.clear
                     )
+                    .badge(usedCategories().count)
+                    // Hover bg AFTER .badge (= covers the whole row
+                    // including the trailing badge slot).
                     .background(
                         RoundedRectangle(cornerRadius: 4)
                             .fill(referenceRootHovered
@@ -332,7 +340,6 @@ struct NewLibraryOutlineView: View {
                     .onHover { hovering in
                         referenceRootHovered = hovering
                     }
-                    .badge(usedCategories().count)
                     .tag(SidebarItem.referenceLibraryRoot)
                 }
             }
@@ -693,13 +700,12 @@ struct NewLibraryOutlineView: View {
             .onHover { hovering in
                 isHovered.wrappedValue = hovering
             }
-            // v0.30 boss 8/31 OOB: shelf count badge (= total books
-            // in this shelf). User reported '书架后面没有统计数字'.
-            // Now embedded in the HStack above (= custom count
-            // rendering) so the badge doesn't conflict with hover
-            // background (= hover covers entire HStack, including
-            // count, vs .badge() being outside the hover scope).
-            .badge(books.count)
+            // v0.30 boss 8/31 OOB: hover tint scope = whole row (= icon
+            // + text + count), matching the selection tint range.
+            // The custom count text above (= inline HStack with
+            // books.count) replaces the .badge() modifier, so the
+            // hover background covers the entire row including the
+            // count slot.
             .tag(SidebarItem.shelf(shelf.id))            // v0.30 boss 8/31 OOB: right-click context menu on shelf
             // row. Apple HIG canonical contextMenu pattern. Two
             // actions: 重命名 (= renames the shelf in place) +
@@ -844,6 +850,11 @@ struct NewLibraryOutlineView: View {
                                 ? Color.accentColor.opacity(0.22)
                                 : Color.clear
                         )
+                        .badge(bookStore.folderDocumentCount(
+                            bookId: book.id,
+                            folderDirectoryName: folder.name
+                        ))
+                        // Hover bg AFTER .badge (= covers whole row).
                         .background(
                             RoundedRectangle(cornerRadius: 4)
                                 .fill(folderHoverStates["\(book.id.uuidString)/\(folder.name)", default: false]
@@ -853,10 +864,6 @@ struct NewLibraryOutlineView: View {
                         .onHover { hovering in
                             folderHoverStates["\(book.id.uuidString)/\(folder.name)", default: false] = hovering
                         }
-                        .badge(bookStore.folderDocumentCount(
-                            bookId: book.id,
-                            folderDirectoryName: folder.name
-                        ))
                     }
                     .buttonStyle(.plain)
                     .contentShape(Rectangle())
