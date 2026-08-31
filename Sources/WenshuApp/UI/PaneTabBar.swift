@@ -148,6 +148,16 @@ public struct PaneTabBar<Item: Identifiable & Sendable, Trailing: View>: View {
                 }
             }
             .padding(.leading, DesignTokens.chromePaddingLeading)
+            // ponytail fix: the inner HStack had only intrinsic width
+            // (= sum of children), so the Spacer(minLength: 0) before
+            // trailing() had zero extra space to consume = trailing
+            // collapsed to sit immediately after the last tab. Adding
+            // .frame(maxWidth: .infinity) forces the inner HStack to
+            // fill the outer RegionTabBar's full width (= RegionTabBar
+            // already has .frame(maxWidth: .infinity) on its outer
+            // HStack), giving the Spacer real horizontal space to
+            // expand into = trailing button pushed to the right edge.
+            .frame(maxWidth: .infinity)
         }
         .animation(.default, value: selection)
     }

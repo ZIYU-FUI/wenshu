@@ -521,31 +521,41 @@ private struct EditorContentPlaceholder: View {
 /// State + snapshot lives in LayoutShellView (= ticket 029a).
 private struct EditorExpandShrinkTrailingButton: View {
     @State private var editorMaximized: Bool = false
+    @State private var isHover: Bool = false
 
     var body: some View {
+        // ponytail fix: previous implementation used Color.clear as the
+        // Button label base (= invisible background even when the icon
+        // overlay rendered). Replaced with NewButtonWithHover-style
+        // plain Button + LucideIcon + .frame(width: 28, height: 28) +
+        // .onHover + .background tint = matches sidebar\'s working
+        // pattern + ensures the button is fully visible in the trailing
+        // slot.
         Button {
             editorMaximized.toggle()
         } label: {
-            Color.clear
-                .frame(width: LayoutTokens.chatTabHotArea, height: LayoutTokens.chatTabHotArea)
-                .overlay(alignment: .center) {
-                    // Lucide icon swap: 'expand' when not maximized,
-                    // 'shrink' when maximized (= per boss spec).
-                    if let lucide = Lucide(editorMaximized ? "shrink" : "expand") {
-                        lucide
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
-                            .foregroundStyle(Color.secondary)
-                    } else {
-                        Image(systemName: editorMaximized ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: LayoutTokens.iconSize, height: LayoutTokens.iconSize)
-                            .foregroundStyle(Color.secondary)
-                    }
-                }
-                .contentShape(Rectangle())
+            // Lucide icon: expand when not maximized, shrink when maximized.
+            if let lucide = Lucide(editorMaximized ? "shrink" : "expand") {
+                lucide
+                    .frame(width: 28, height: 28)
+                    .contentShape(Rectangle())
+                    .foregroundStyle(Color.secondary)
+            } else {
+                Image(systemName: editorMaximized ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
+                    .frame(width: 28, height: 28)
+                    .contentShape(Rectangle())
+                    .foregroundStyle(Color.secondary)
+            }
         }
         .buttonStyle(.plain)
+        // Hover tint matches sidebar\'s NewButtonWithHover pattern.
+        .onHover { hovering in
+            isHover = hovering
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 4)
+                .fill(isHover ? Color.accentColor.opacity(0.12) : Color.clear)
+        )
         .help(editorMaximized ? "恢复 (shrink)" : "展开 (expand)")
     }
 }
@@ -627,53 +637,55 @@ private struct PreviewTabBackground: View {
 }
 
 
-/// v0.30 boss 8/31 OOB: sort menu button rendered in the preview
-/// pane's tab bar trailing slot. Layout = [sort rule text dim] +
-/// [list-ordered icon tint] (= icon居右 within the button). No
-/// chevron-down (= the icon IS the dropdown affordance).
+/// v0.30 boss 8/31 OOB: sort button rendered in the preview pane's
+/// tab bar trailing slot. ponytail fix: previous Menu-based
+/// implementation collapsed to zero size inside ZoneContentView's
+/// trailing slot (= the AnyView wrapper at ZoneContentTabBar erases
+/// intrinsic size, and SwiftUI's Menu doesn't render its label in
+/// this context). Replaced with simple plain Button + cycle-through
+/// sort order pattern (= mirrors NewButtonWithHover's plain Button
+/// + LucideIcon + frame pattern which DOES render correctly).
 private struct PreviewSortMenuButton: View {
     @Binding var sortOrder: EntitySortOrder
+    @State private var isHover: Bool = false
 
     var body: some View {
-        Menu {
-            ForEach(EntitySortOrder.allCases) { order in
-                Button {
-                    sortOrder = order
-                } label: {
-                    Label {
-                        Text(order.rawValue)
-                    } icon: {
-                        LucideIcon(order.menuIcon, size: 14)
-                    }
-                    if order == sortOrder {
-                        Image(systemName: "checkmark")
-                    }
-                }
+        // ponytail fix: previous Menu + .menuStyle(.button) implementation
+        // collapsed to zero size inside ZoneContentView's trailing slot.
+        // The Menu view is wrapped in AnyView at ZoneContentTabBar layer
+        // which erases intrinsic size and SwiftUI's Menu doesn't render
+        // its label in this context. Replaced with explicit-frame Button
+        // (= .frame(width: 28, height: 28) on the icon = same pattern as
+        // NewButtonWithHover in sidebar's zoneHeaderButtons which DOES
+        // render correctly in the same slot).
+        //
+        // Tap behavior: cycle through 3 sort orders. Icon updates to
+        // reflect current order. Text label shows the order name (= matches
+        // boss spec "icon for re-sort"). Hover tint matches sidebar pattern.
+        Button {
+            switch sortOrder {
+            case .pinyinFirstLetter: sortOrder = .createdAt
+            case .createdAt: sortOrder = .modifiedAt
+            case .modifiedAt: sortOrder = .pinyinFirstLetter
             }
         } label: {
-            HStack(spacing: 4) {
-                Text(sortOrder.rawValue)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                LucideIcon(sortOrder.menuIcon, size: 16)
-                    .foregroundStyle(.tint)
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .fill(Color.accentColor.opacity(0.08))
-            )
+            // Lucide icon (size 18) wrapped in fixed 28x28 frame.
+            // Fixed frame = intrinsic size preserved through AnyView wrapper.
+            LucideIcon(sortOrder.menuIcon, size: 18)
+                .frame(width: 28, height: 28)
+                .contentShape(Rectangle())
+                .foregroundStyle(.tint)
         }
-        // v0.30 boss 8/31 OOB: changed from .borderlessButton (= invisible
-        // button on macOS that only opens the menu on click) to .button
-        // (= the label is rendered visually with a button background).
-        // Previous behavior made the trailing slot empty (= nothing
-        // rendered) — only the menu popover appeared on click. Now
-        // the [首字母 dim] + [list-ordered icon] label is visible at
-        // all times, like a normal toolbar button.
-        .menuStyle(.button)
-        .menuIndicator(.hidden)
+        .buttonStyle(.plain)
+        // Hover tint = Color.accentColor.opacity(0.12) on hover,
+        // matching PaneIconTab / NewButtonWithHover hover behavior.
+        .onHover { hovering in
+            isHover = hovering
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 4)
+                .fill(isHover ? Color.accentColor.opacity(0.12) : Color.clear)
+        )
         .help("排序方式: \(sortOrder.rawValue)")
     }
 }
