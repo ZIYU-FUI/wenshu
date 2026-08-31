@@ -289,6 +289,12 @@ struct TabContentDispatcher: View {
     let kind: TabKind
     let title: String
 
+    // v0.30 boss 8/31 OOB (sidebar feedback bundle #3): bottom status
+    // '书架: N / 书: N' was hardcoded to 0. Now reads live counts
+    // from BookStore (= the Environment value already propagated
+    // from App.swift via .environment(bookStore)).
+    @Environment(BookStore.self) private var bookStore
+
     var body: some View {
         switch kind {
         case .projectSidebar:
@@ -306,7 +312,26 @@ struct TabContentDispatcher: View {
             // internal ZoneContentView).
             ZonePerRegionChrome(
                 topActions: [],  // empty (= no outer top toolbar)
-                bottomStatus: projectSidebarChrome(shelfCount: 0, bookCount: 0).bottom,
+                // v0.30 boss 8/31 OOB: count books by enumerating shelf
+                // directories on disk (= wenshu has no flat books
+                // array; each shelf dir contains a 'books/' subdir
+                // with one subdir per book).
+                bottomStatus: projectSidebarChrome(
+                    shelfCount: bookStore.shelves.count,
+                    bookCount: bookStore.shelves.reduce(0) { acc, shelfItem in
+                        let shelfBooksDir = bookStore.stores.shelvesRoot
+                            .appendingPathComponent(shelfItem.directoryName, isDirectory: true)
+                            .appendingPathComponent("books", isDirectory: true)
+                        let bookCount = (try? FileManager.default.contentsOfDirectory(
+                            at: shelfBooksDir,
+                            includingPropertiesForKeys: [.isDirectoryKey],
+                            options: [.skipsHiddenFiles]
+                        ).filter { url in
+                            (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
+                        }.count) ?? 0
+                        return acc + bookCount
+                    }
+                ).bottom,
                 topSkip: true  // ← skip outer top, use internal ZoneContentTabBar only
             ) {
                 ZoneModuleView(zoneSlot: .projectSidebar)
