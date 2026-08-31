@@ -280,14 +280,17 @@ struct NewLibraryOutlineView: View {
             })
         }
         .sheet(isPresented: $showNewShelfSheet) {
-            NewShelfSheet(onSave: { name, icon in
-                do {
-                    try saveShelf(name: name, icon: icon)
-                    reload()
-                } catch {
-                    loadError = error.localizedDescription
-                }
-            })
+            NewShelfSheet(
+                onSave: { name, icon in
+                    do {
+                        try saveShelf(name: name, icon: icon)
+                        reload()
+                    } catch {
+                        loadError = error.localizedDescription
+                    }
+                },
+                existingNames: shelves.map { $0.name }
+            )
         }
         .sheet(isPresented: $showNewChoiceSheet) {
             NewChoiceSheet(
@@ -625,13 +628,50 @@ struct NewLibraryOutlineView: View {
     }
 
     private func saveShelf(name: String, icon: String?) throws {
-        let shelf = Bookshelf(name: name, icon: icon)
+        // v0.30 boss 8/31 OOB: enforce duplicate name check before
+        // creating the shelf. wenshu uses shelf.name (= user-visible
+        // label) as a secondary identifier; while the filesystem
+        // identity is shelf.id (= UUID = no collisions), showing two
+        // shelves with the same name in the sidebar would confuse
+        // the user. Also block the reserved '资料库' name (= that's
+        // the reference library, which is a Section not a Shelf —
+        // see PaneRenderer.projectSidebar's reference category
+        // section, which is unrelated to the user shelves).
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Reserved names (= cannot be used for a user shelf).
+        let reservedNames: Set<String> = ["资料库", "参考库", "reference library"]
+        if reservedNames.contains(where: { trimmedName.caseInsensitiveCompare($0) == .orderedSame }) {
+            throw ShelfError.reservedName(trimmedName)
+        }
+        // Duplicate check (= case-insensitive, trim-insensitive).
+        let existingNames = shelves.map { $0.name.trimmingCharacters(in: .whitespacesAndNewlines) }
+        if existingNames.contains(where: { $0.caseInsensitiveCompare(trimmedName) == .orderedSame }) {
+            throw ShelfError.duplicateName(trimmedName)
+        }
+        let shelf = Bookshelf(name: trimmedName, icon: icon)
         let shelfDir = bookStore.stores.shelvesRoot
             .appendingPathComponent(shelf.id.uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: shelfDir, withIntermediateDirectories: true)
         try FileManager.default.createDirectory(at: shelfDir.appendingPathComponent("books"), withIntermediateDirectories: true)
         let data = try JSONEncoder().encode(shelf)
         try data.write(to: shelfDir.appendingPathComponent("shelf.json"))
+    }
+}
+
+/// v0.30 boss 8/31 OOB: explicit error cases for shelf creation
+/// (= duplicate name, reserved name). Each case carries the offending
+/// name so the sheet can surface a precise error message.
+private enum ShelfError: LocalizedError {
+    case duplicateName(String)
+    case reservedName(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .duplicateName(let name):
+            return "书架名 \"\(name)\" 已被使用. 请换一个名字。"
+        case .reservedName(let name):
+            return "\"\(name)\" 是系统保留名, 不能用作书架名. 请换一个名字."
+        }
     }
 }
 
@@ -692,9 +732,43 @@ private struct NewBookSheet: View {
 private struct NewShelfSheet: View {
     /// Callback receives both name AND selected icon.
     let onSave: (String, String) -> Void
+    /// v0.30 boss 8/31 OOB: existing shelf names (= passed in from
+    /// the parent so the sheet can run its own duplicate check on
+    /// every keystroke, without round-tripping through the parent
+    /// view). Trims whitespace + lowercases for case-insensitive
+    /// comparison. Includes the reserved '资料库' so it's blocked
+    /// from being used as a user shelf name.
+    let existingNames: [String]
     @State private var name: String = ""
     @State private var selectedIcon: String = "square-library"
     @Environment(\.dismiss) private var dismiss
+
+    /// v0.30 boss 8/31 OOB: inline validation (= duplicate name +
+    /// reserved name). Computed from the current `name` input on
+    /// every render. Returns a localized error message; nil =
+    /// no error (= Save enabled). Reserved names are hard-blocked;
+    /// duplicates with existing shelves are blocked.
+    private var nameError: String? {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return nil }  // empty = separate "name required" check via Save disabled
+        // Reserved names
+        let reserved: Set<String> = ["资料库", "参考库", "reference library"]
+        if reserved.contains(where: { trimmed.caseInsensitiveCompare($0) == .orderedSame }) {
+            return "\"\(trimmed)\" 是系统保留名, 不能用作书架名"
+        }
+        // Duplicate (= case-insensitive, trim-insensitive)
+        if existingNames.contains(where: {
+            $0.trimmingCharacters(in: .whitespacesAndNewlines)
+                .caseInsensitiveCompare(trimmed) == .orderedSame
+        }) {
+            return "书架名 \"\(trimmed)\" 已被使用. 请换一个名字"
+        }
+        return nil
+    }
+
+    private var isNameValid: Bool {
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && nameError == nil
+    }
 
     /// v0.30 boss 8/31 OOB: render the ENTIRE Lucide icon library
     /// (= LucideIcon.allCases, an enum provided by lucide-swift that's
@@ -724,6 +798,20 @@ private struct NewShelfSheet: View {
                 Section {
                     TextField("书架名 (例如 长篇网文)", text: $name)
                         .textFieldStyle(.roundedBorder)
+                    // v0.30 boss 8/31 OOB: inline error label under the
+                    // name field. Shows when the name is a duplicate
+                    // or reserved (= computed live in nameError).
+                    if let nameError = nameError {
+                        HStack(spacing: 6) {
+                            Image(systemName: "exclamationmark.circle.fill")
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                            Text(nameError)
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                        }
+                        .padding(.top, 2)
+                    }
                 } header: {
                     Text("名称")
                 }
@@ -803,7 +891,7 @@ private struct NewShelfSheet: View {
                     onSave(name, selectedIcon)
                     dismiss()
                 }
-                .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(!isNameValid)
                 .keyboardShortcut(.defaultAction)
             }
             .padding()
