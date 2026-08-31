@@ -167,6 +167,15 @@ struct NewLibraryOutlineView: View {
             }
         }
         .listStyle(.sidebar)
+        // v0.30 boss 8/31 OOB ('Sidebar 背景 不跟液态玻璃透明度调整 / 之前已经实现的,
+        // 改目录树的时候动到了, 修复'):
+        // Apple HIG .sidebar listStyle draws its own opaque background
+        // (= macOS 26 Tahoe canonical sidebar material), which covers
+        // the RegionContentBackground applied at ZonePerRegionChrome.
+        // .scrollContentBackground(.hidden) makes the list itself
+        // transparent so the parent's RegionContentBackground shows
+        // through (= follows the liquid-glass opacity slider in Settings).
+        .scrollContentBackground(.hidden)
         .onAppear(perform: reload)
         .onChange(of: sidebarSelection) { _, newValue in
             // v0.30: forward sidebar selection to bookStore.selectedBookId
