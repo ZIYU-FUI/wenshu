@@ -48,19 +48,14 @@ struct NativeSplitter: View {
 
     private static let lineThickness: CGFloat = 1   // 静态 1 PT (Apple 系统 divider 色)
     private static let hoveredThickness: CGFloat = 3  // hover 3 PT (Apple 系统亮色)
-    // v0.30 boss 2026-08-31 OOB '不能拖拽': boss cannot drag the
-    // splitter (= '拖不动' returned, exactly as the v0.28 comment
-    // predicted). Root cause: hit area = 1 PT (= visible line
-    // thickness) is too narrow for reliable cursor acquisition,
-    // especially on Retina displays where 1 PT ≈ 0.5 px after DPI
-    // rounding. Fix: separate hit area from visual line. Visual
-    // line stays at 1 PT (= matches Apple HIG canonical separator),
-    // but the drag overlay is now 8 PT (= 4 PT on each side of the
-    // line) without changing what the user sees. Cursor still
-    // appears via .pointerStyle(.columnResize) on hover; drag
-    // gesture still tracks via the .contentShape(Rectangle()) on
-    // the wider overlay.
-    private static let hitAreaThickness: CGFloat = 8  // hit area 8 PT (= 4 PT on each side of the 1 PT visual line; matches v0.27 '拖不动' fix)
+    // v0.30 boss 2026-08-31 OOB '不能拖, 和 hit area 宽度没有关系':
+    // hit area = 1 PT (= matches visual line thickness, no visible
+    // inter-pane gap). Per boss: '改回 1 PT' (= the wider 8 PT hit
+    // area I just added in commit a1e708e68 didn't fix the drag
+    // issue). Real drag bug is elsewhere (= likely in PaneRenderer
+    // or WorkspaceStore tree handling, see commit 8e6a332a1's
+    // 'half 区比例也还是不对' comment).
+    private static let hitAreaThickness: CGFloat = 1  // hit area 1 PT (= matches line thickness, no extra gap)
 
     /// Orientation 真值
     enum Orientation: Sendable {

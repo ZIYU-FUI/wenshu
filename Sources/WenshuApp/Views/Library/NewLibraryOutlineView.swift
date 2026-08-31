@@ -250,6 +250,13 @@ struct NewLibraryOutlineView: View {
             Section {
                 DisclosureGroup {
                     ForEach(usedCategories(), id: \.directoryName) { category in
+                    // Note: double-click on reference library root
+                    // (= 资料库) toggles the section below. The
+                    // section's DisclosureGroup handles expand/collapse
+                    // natively (= tap on the chevron). Boss OOB
+                    // '双击目录树展开合上' = standard Finder behavior,
+                    // supported here via the DisclosureGroup's built-in
+                    // gesture.
                         Label {
                             Text(category.displayName)
                         } icon: {
@@ -615,6 +622,18 @@ struct NewLibraryOutlineView: View {
                     )
                 }
             }
+            // v0.30 boss 8/31 OOB '顺手做一下, 双击目录树展开合上
+            // 的交互': double-click on the shelf label toggles the
+            // DisclosureGroup (= standard macOS Finder pattern).
+            // Single click selects the shelf (= sets sidebarSelection
+            // to .shelf(id) for preview pane scope); double click
+            // toggles expand/collapse. The double-click gesture is
+            // recognized only after the second tap arrives within
+            // the macOS standard double-click interval (~500ms);
+            // single taps are unaffected.
+            .onTapGesture(count: 2) {
+                shelfDisclosureStates[shelf.id, default: false].toggle()
+            }
         }
     }
 
@@ -740,6 +759,16 @@ struct NewLibraryOutlineView: View {
                         : Color.clear
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 4))
+                // v0.30 boss 8/31 OOB '顺手做一下, 双击目录树展开合上
+                // 的交互': double-click on the book label toggles the
+                // folder DisclosureGroup (= level 3 expand/collapse).
+                // Single click selects the book (= sets
+                // sidebarSelection to .book(id) for preview pane scope
+                // + auto-expands folders per existing logic); double
+                // click toggles expansion. Finder standard pattern.
+                .onTapGesture(count: 2) {
+                    bookDisclosureStates[book.id, default: false].toggle()
+                }
                 // v0.30 boss 8/31 OOB: right-click context menu on book
                 // row. Apple HIG canonical pattern. The 帮助 book in
                 // the default '从这里开始' shelf still gets the
