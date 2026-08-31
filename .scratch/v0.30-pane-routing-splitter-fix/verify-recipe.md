@@ -2,6 +2,7 @@
 
 > Built 2026-08-31 (= boss 2026-08-31 OOB "verify, and confirm whether there's any garbage code interfering — avoid the case where a fix doesn't take effect")
 > PR 1-4 commits: bd565247c + 59bc66d69 + 74c327db9 + f380a2cd4 + 210d042ba + d54451539
+> Forward-fix commits: 0b4084c00 (= divider hit-area + display menu bridge) + 3fc9441b5 (= H-3 English-only forward-fix)
 > App PID (latest): running wenshu.app at /Volumes/ANAN/Engineering/wenshu/build/Wenshu.app
 > Feature flag status (current): useNSSplitView = ON
 
