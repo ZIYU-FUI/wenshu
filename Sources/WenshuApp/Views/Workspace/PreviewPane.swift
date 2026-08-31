@@ -689,26 +689,59 @@ private struct EntityCard: View {
     let entity: Reference
     let onDoubleClick: () -> Void
 
-    /// Track tap count for double-click detection.
-    @State private var tapCount = 0
-    @State private var lastTapTime: Date = .distantPast
-    /// v0.30 boss 8/31 OOB: hover state for cards (= subtle accent
-    /// tint on mouse hover; Apple HIG default macOS hover pattern,
-    /// matches PaneIconTab + AppTitlebar).
+    /// v0.30 boss 8/31 OOB '我建议你资料库里的卡片, 也用书里的
+    /// 同一个组件, 没有必要实现两回一样的东西': EntityCard is now
+    /// a thin adapter that constructs a CardContent (= uniform
+    /// shape) and delegates rendering to the shared Card view.
+    /// All visual style (= thumbnail + metadata + hover + clip) is
+    /// owned by Card, NOT by EntityCard.
+
+    /// Adapter: build the CardContent (= uniform shape) from the
+    /// Reference entity.
+    private var cardContent: Card.CardContent {
+        Card.CardContent(
+            id: entity.id.uuidString,
+            typeLabel: entity.entityType.displayName,
+            iconName: entity.entityType.icon,
+            iconSize: 64,
+            title: entity.title,
+            summary: entity.summary,
+            modifiedAt: entity.updatedAt
+        )
+    }
+
+    var body: some View {
+        Card(content: cardContent, onDoubleClick: onDoubleClick)
+    }
+}
+
+
+private struct Card: View {
+    let content: CardContent
+    let onDoubleClick: () -> Void
+
     @State private var isHovered: Bool = false
+
+    struct CardContent: Identifiable, Hashable {
+        let id: String  // stable string (= UUID or row key for diffing)
+        let typeLabel: String  // e.g. "[世界观]" / "[人物]"
+        let iconName: String  // Lucide icon name (kebab-case)
+        let iconSize: CGFloat  // typically 56 for book docs, 64 for entities
+        let title: String  // card heading (= filename / entity title)
+        let summary: String  // card caption (= body excerpt)
+        let modifiedAt: Date  // for the timestamp chip
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // THUMBNAIL: type icon as a large prominent header
-            // (= boss OOB: 卡片要加缩略图). 64 PT icon on a tinted
-            // gradient background = the card's "cover" image.
+            // THUMBNAIL: icon as a large prominent header
+            // (= boss OOB: 卡片要加缩略图). Icon size varies per
+            // content type (= 64 PT for entities, 56 PT for book docs)
+            // but the visual pattern is the same.
             //
-            // v0.30 boss 8/31 OOB: '素材卡片区, 左上角右上角, 缩略图
-            // 的是直角, 超出了卡片圆角范围'. Previously the thumbnail
-            // ZStack was a plain rectangle (= top-left and top-right
-            // corners stuck out past the card's 10 PT rounded
-            // corners). Now clipped to a top-rounded rectangle so
-            // the thumbnail sits flush with the card's top edge.
+            // v0.30 boss 8/31 OOB: top corners rounded to match
+            // card's 10 PT rounded corners (= thumbnail sits flush
+            // with card's top edge, doesn't stick out).
             ZStack {
                 LinearGradient(
                     colors: [
@@ -718,15 +751,11 @@ private struct EntityCard: View {
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
-                LucideIcon(entity.entityType.icon, size: 64)
+                LucideIcon(content.iconName, size: content.iconSize)
                     .foregroundStyle(Color.accentColor.opacity(0.85))
             }
             .frame(height: 100)
             .frame(maxWidth: .infinity)
-            // Clip top corners to match the card's 10 PT rounded
-            // corners (= topLeading + topTrailing = 10, bottom 0).
-            // Bottom corners stay square (= the thumbnail's bottom
-            // edge sits flush against the text content below).
             .clipShape(
                 UnevenRoundedRectangle(
                     topLeadingRadius: 10,
@@ -737,29 +766,26 @@ private struct EntityCard: View {
             )
             // TEXT content below the thumbnail
             VStack(alignment: .leading, spacing: 6) {
-                // Type badge + modified-time chip (= condensed header).
-                // v0.30 boss 8/31 OOB: previously showed category
-                // shortName (= duplicated the title for category-less
-                // entities like the help docs). Now shows the
-                // formatted last-modified time (= at-a-glance
-                // freshness indicator, no duplication with the title).
+                // Type badge + modified-time chip (= condensed
+                // header). Both pieces of metadata share the top row.
                 HStack(spacing: 4) {
-                    Text("[\(entity.entityType.displayName)]")
+                    Text("[\(content.typeLabel)]")
                         .font(.caption2)
                         .foregroundStyle(.tint)
-                    Text(formatRelativeTime(entity.updatedAt))
+                    Text(formatRelativeTime(content.modifiedAt))
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
-                    Spacer()
+                        .lineLimit(1)
+                    Spacer(minLength: 0)
                 }
-                // Title
-                Text(entity.title)
+                // Title (= filename without .md extension / entity title)
+                Text(content.title)
                     .font(.headline)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
-                // Summary
-                if !entity.summary.isEmpty {
-                    Text(entity.summary)
+                // Summary (= first 200 chars of body)
+                if !content.summary.isEmpty {
+                    Text(content.summary)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(3)
@@ -778,11 +804,8 @@ private struct EntityCard: View {
                 .stroke(Color.secondary.opacity(0.15), lineWidth: 0.5)
         )
         // v0.30 boss 8/31 OOB: hover tint on the card body.
-        // The default Card has a transparent background; on hover,
-        // add a subtle accent tint (= Apple HIG list-row hover
-        // pattern = matches macOS Finder / Mail / Notes card hover).
-        // The tint is added BEFORE the thumbnail + text so it
-        // appears behind them (= z-stack order).
+        // Subtle accent tint on mouse hover + border darkens
+        // (= matches PaneIconTab hover pattern).
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill(isHovered
@@ -790,8 +813,6 @@ private struct EntityCard: View {
                     : Color.clear)
         )
         .overlay(
-            // Border darkens slightly on hover (= additional
-            // affordance for hover state, ~3x the stroke opacity).
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .stroke(isHovered
                     ? Color.accentColor.opacity(0.4)
@@ -804,53 +825,20 @@ private struct EntityCard: View {
             onDoubleClick()
         }
         .onTapGesture {
-            // Single tap = no-op for now (= preview mode selection wired
-            // by sidebar tap, not card tap). Double-tap → open in editor.
+            // Single tap = no-op (= preview mode selection wired by
+            // sidebar tap, not card tap).
         }
-        .help("\(entity.entityType.displayName) — 双击在编辑器中打开")
+        .help("\(content.typeLabel) — 双击在编辑器中打开")
     }
 }
 
-
-// MARK: - Last-modified time formatter
-//
-// v0.30 boss 8/31 OOB: card top-right now shows the entity's
-// last-modified time (= relative format = "刚刚 / 5 分钟前 / 昨天 /
-// 3 天前 / 2 周前 / 2025-08-15"). The helper uses macOS RelativeDate
-// TimeFormatter via Foundation (.relative formatting style), with
-// a fallback to absolute date string for entities older than 30 days.
-private func formatRelativeTime(_ date: Date) -> String {
-    let formatter = RelativeDateTimeFormatter()
-    formatter.unitsStyle = .short
-    formatter.dateTimeStyle = .named
-    let now = Date()
-    let delta = now.timeIntervalSince(date)
-    if delta < 60 * 60 * 24 * 30 { // < 30 days
-        return formatter.localizedString(for: date, relativeTo: now)
-    } else {
-        // > 30 days: show absolute date (= YYYY-MM-DD)
-        let absFormatter = DateFormatter()
-        absFormatter.dateFormat = "yyyy-MM-dd"
-        absFormatter.locale = Locale(identifier: "zh_CN")
-        return absFormatter.string(from: date)
-    }
-}
-/// Card view for a single .md document in a book folder.
-/// Boss 8/31 OOB '点 sidebar row → 右边素材区显示该目录的文档':
-/// every BookDoc renders as a card in the preview pane. Folder
-/// badge (= [世界观] etc.) identifies which folder the doc came
-/// from (= boss UX: visible at-a-glance folder context).
-///
-/// Interaction: tap = no-op for now (= future ticket wires single-
-/// tap → preview pane detail mode + editor). Double-tap → editor
-/// (= deferred to v0.31; the editor binding for book .md files
-/// isn't wired yet).
 private struct BookDocCard: View {
     let doc: BookDoc
 
-    /// v0.30 boss 8/31 OOB: hover state for book doc cards (= subtle
-    /// accent tint on mouse hover; same pattern as EntityCard).
-    @State private var isHovered: Bool = false
+    /// v0.30 boss 8/31 OOB '我建议你资料库里的卡片, 也用书里的
+    /// 同一个组件, 没有必要实现两回一样的东西': BookDocCard is now
+    /// a thin adapter that constructs a CardContent (= uniform
+    /// shape) and delegates rendering to the shared Card view.
 
     /// Resolve the BookFolder enum from the raw folder name string.
     /// Falls back to nil for unknown folders (= e.g. if user creates
@@ -859,105 +847,45 @@ private struct BookDocCard: View {
         BookFolder(rawValue: doc.folderName)
     }
 
+    /// Adapter: build the CardContent from the BookDoc.
+    private var cardContent: Card.CardContent {
+        Card.CardContent(
+            id: doc.id.uuidString,
+            typeLabel: folderEnum?.displayName ?? doc.folderName,
+            iconName: folderEnum?.icon ?? "file-text",
+            iconSize: 56,
+            title: doc.title,
+            summary: doc.summary,
+            modifiedAt: doc.modifiedAt
+        )
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // THUMBNAIL: folder icon as a large prominent header
-            // (= matches the EntityCard thumbnail style for visual
-            // consistency between scopes).
-            //
-            // v0.30 boss 8/31 OOB: same thumbnail corner clip fix
-            // as EntityCard (= top corners rounded to match card's
-            // 10 PT corners).
-            ZStack {
-                LinearGradient(
-                    colors: [
-                        Color.accentColor.opacity(0.18),
-                        Color.accentColor.opacity(0.08),
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                LucideIcon(
-                    folderEnum?.icon ?? "file-text",
-                    size: 56
-                )
-                .foregroundStyle(Color.accentColor.opacity(0.85))
-            }
-            .frame(height: 100)
-            .frame(maxWidth: .infinity)
-            .clipShape(
-                UnevenRoundedRectangle(
-                    topLeadingRadius: 10,
-                    bottomLeadingRadius: 0,
-                    bottomTrailingRadius: 0,
-                    topTrailingRadius: 10
-                )
-            )
-            // TEXT content below the thumbnail
-            VStack(alignment: .leading, spacing: 6) {
-                // v0.30 boss 8/31 OOB '换成最后一次编辑的时间, 没有
-                // 生效': the previous version of this HStack showed
-                // doc.title (= duplicate of the card heading below).
-                // Now shows formatRelativeTime(doc.modifiedAt) = the
-                // last-modified time (= matches EntityCard pattern).
-                HStack(spacing: 4) {
-                    Text("[\(folderEnum?.displayName ?? doc.folderName)]")
-                        .font(.caption2)
-                        .foregroundStyle(.tint)
-                    Spacer()
-                    Text(formatRelativeTime(doc.modifiedAt))
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                        .lineLimit(1)
-                }
-                // Title (= filename without .md extension)
-                Text(doc.title)
-                    .font(.headline)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
-                // Summary (= first 200 chars of body)
-                if !doc.body.isEmpty {
-                    Text(doc.summary)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(3)
-                        .multilineTextAlignment(.leading)
-                }
-            }
-            .padding(10)
-        }
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color.clear)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(Color.secondary.opacity(0.15), lineWidth: 0.5)
-        )
-        // v0.30 boss 8/31 OOB: hover tint on the card body.
-        // The default Card has a transparent background; on hover,
-        // add a subtle accent tint (= Apple HIG list-row hover
-        // pattern = matches macOS Finder / Mail / Notes card hover).
-        // The tint is added BEFORE the thumbnail + text so it
-        // appears behind them (= z-stack order).
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(isHovered
-                    ? Color.accentColor.opacity(0.12)
-                    : Color.clear)
-        )
-        .overlay(
-            // Border darkens slightly on hover (= additional
-            // affordance for hover state, ~3x the stroke opacity).
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(isHovered
-                    ? Color.accentColor.opacity(0.4)
-                    : Color.secondary.opacity(0.15),
-                    lineWidth: 0.5)
-        )
-        .onHover { isHovered = $0 }
-        .contentShape(Rectangle())
-        .help("\(doc.displayPath) — 双击在编辑器中打开 (= 后续 ticket)")
+        Card(content: cardContent, onDoubleClick: {})
+    }
+}
+
+
+// MARK: - Last-modified time formatter
+//
+// v0.30 boss 8/31 OOB: card top-right now shows the entity's /
+// book doc's last-modified time (= relative format = "刚刚 / 5
+// 分钟前 / 昨天 / 3 天前 / 2 周前 / 2025-08-15"). The helper uses
+// macOS RelativeDateTimeFormatter via Foundation (.relative
+// formatting style), with a fallback to absolute date string for
+// entries older than 30 days.
+private func formatRelativeTime(_ date: Date) -> String {
+    let formatter = RelativeDateTimeFormatter()
+    formatter.unitsStyle = .short
+    formatter.dateTimeStyle = .named
+    let now = Date()
+    let delta = now.timeIntervalSince(date)
+    if delta < 60 * 60 * 24 * 30 {
+        return formatter.localizedString(for: date, relativeTo: now)
+    } else {
+        let absFormatter = DateFormatter()
+        absFormatter.dateFormat = "yyyy-MM-dd"
+        absFormatter.locale = Locale(identifier: "zh_CN")
+        return absFormatter.string(from: date)
     }
 }
