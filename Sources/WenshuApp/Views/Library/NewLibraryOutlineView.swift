@@ -337,6 +337,9 @@ struct NewLibraryOutlineView: View {
                 )
                 .foregroundStyle(.primary)
             }
+            // v0.30 boss 8/31 OOB: shelf count badge (= total books
+            // in this shelf). User reported '书架后面没有统计数字'.
+            .badge(books.count)
             .tag(SidebarItem.shelf(shelf.id))
         }
     }
@@ -404,6 +407,13 @@ struct NewLibraryOutlineView: View {
                     LucideIconSidebar("book")
                         .foregroundStyle(.primary)
                 }
+                // v0.30 boss 8/31 OOB: book row count badge (= total
+                // .md files across all folders in this book). User
+                // reported '书后面没有统计数字'.
+                .badge(folders.reduce(0) { $0 + bookStore.folderDocumentCount(
+                    bookId: book.id,
+                    folderDirectoryName: $1.name
+                )})
                 .tag(SidebarItem.book(book.id))
             }
         }

@@ -169,7 +169,19 @@ struct FileSystemReferenceStore: ReferenceStoring {
             // for ISO8601. Set .iso8601 strategy so we accept both.
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
-            return try decoder.decode([Reference].self, from: data)
+            let references = try decoder.decode([Reference].self, from: data)
+            // v0.30 boss 8/31 OOB: normalize nil category to .z (= 其它)
+            // so unclassified references always show up in the sidebar
+            // under the catch-all category. The on-disk file remains
+            // unchanged (= category field still serialized as null);
+            // only the in-memory representation gets .z.
+            return references.map { ref in
+                var normalized = ref
+                if normalized.layer == .layerEntities && normalized.category == nil {
+                    normalized.category = .z
+                }
+                return normalized
+            }
         } catch {
             return []
         }
@@ -277,16 +289,23 @@ struct FileSystemReferenceStore: ReferenceStoring {
     /// is saved). This is the "增量" rule (= boss: '分类文件夹随着内容
     /// 逐渐增加, 而不是一下子铺满').
     ///
-    /// When category is nil (= raw material OR unclassified entity), no
-    /// category dir is created (= falls back to flat layer dir).
+    /// v0.30 boss 8/31 OOB: when category is nil (= unclassified entity
+    /// OR raw material that the user hasn't tagged), route to the
+    /// `.z` (= 其它) catch-all category instead of falling back to
+    /// the flat layer dir. Boss reported '资料库下级目录缺一个其它
+    /// 分类' — entities with nil category were invisible in the
+    /// sidebar but still counted (= hidden count).
     private func ensureEntityCategoryDirectoryExists(
         category: EntityCategory?,
         layer: ReferenceLayer
     ) throws {
-        guard layer == .layerEntities, let category = category else { return }
+        guard layer == .layerEntities else { return }
+        // v0.30 boss 8/31 OOB: nil category now routes to .z (= 其它)
+        // so unclassified entities have a visible sidebar bucket.
+        let effectiveCategory = category ?? .z
         let categoryDir = referenceLibraryRoot
             .appendingPathComponent("entities")
-            .appendingPathComponent(category.directoryName)
+            .appendingPathComponent(effectiveCategory.directoryName)
         if !FileManager.default.fileExists(atPath: categoryDir.path) {
             try FileManager.default.createDirectory(at: categoryDir, withIntermediateDirectories: true)
         }

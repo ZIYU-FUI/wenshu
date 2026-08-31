@@ -167,7 +167,13 @@ public enum EntityCategory: String, CaseIterable, Codable, Sendable, Identifiabl
         case .u: return "truck"                  // 交通
         case .v: return "plane"                  // 航天
         case .x: return "leaf-2"                  // 环境
-        case .z: return "library"                // 综合
+        // v0.30 boss 8/31 OOB: '其它的这个分类，没有 ICON. 需要配上一个'.
+        // Changed from "library" (= too generic; suggests "reference
+        // library" not "fallback bucket") to "package-open" (= an
+        // unboxed package = uncategorized material waiting to be
+        // sorted). The icon now visually conveys 'miscellaneous
+        // catch-all' instead of 'main reference library'.
+        case .z: return "package-open"           // 其它 (= catch-all)
         }
     }
 

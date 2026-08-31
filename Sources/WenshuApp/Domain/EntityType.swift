@@ -116,7 +116,7 @@ public enum EntityType: String, CaseIterable, Codable, Sendable, Identifiable, H
         case .organization: return "building-2"     // = institution
         case .era: return "clock-4"                 // = time period
         case .work: return "book-open"              // = creative work
-        case .other: return "circle-help"           // = unknown / help
+        case .other: return "circle-question-mark"   // = unknown / unclassified
         }
     }
 
