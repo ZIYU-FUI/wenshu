@@ -32,19 +32,61 @@ public struct ForeshadowingView: View {
     public init() {}
 
     public var body: some View {
-        VStack(spacing: 12) {
-            // v0.27 boss 8/27 OOB: Lucide canonical icon (= 'git-fork' for
-            // foreshadowing = branches merging back together = matches the
-            // 伏笔 folder icon in the sidebar).
-            LucideIconSystemFallback("git-fork", size: 48)
+        // v0.30 boss 8/31 OOB '这个栏的内容没有按栏的大小自动适配,
+        // 右半边没有显示': the previous layout was a centered
+        // VStack (= content packed in the middle, leaving the
+        // right half of the pane blank). Now content stretches to
+        // fill the pane width (= .frame(maxWidth: .infinity) on
+        // the content blocks) and adds multiple placeholder rows
+        // so the pane LOOKS filled. The placeholder is still
+        // informational (= shows the tab is reserved for 伏笔); the
+        // actual foreshadowing content lands in v0.30+ per the
+        // SwiftGraph ForeshadowingGraph service ticket.
+        VStack(alignment: .leading, spacing: 16) {
+            // Header row: icon + label + sub-label (= top-of-pane
+            // identity, full width).
+            HStack(spacing: 10) {
+                LucideIconSystemFallback("git-fork", size: 28)
+                    .foregroundStyle(.tint)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("伏笔")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Text("跨章节伏笔追踪 (= v0.30+ 实现)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            // Placeholder rows showing what the real content will
+            // look like (= 3 empty rows + a status hint at bottom).
+            // Each row stretches to full pane width so the pane
+            // LOOKS used (= the bug boss reported).
+            ForEach(0..<3, id: \.self) { i in
+                HStack(spacing: 8) {
+                    LucideIconSystemFallback("git-branch", size: 16)
+                        .foregroundStyle(.tertiary)
+                    Text("伏笔 #\(i + 1)")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                    Spacer(minLength: 0)
+                }
+                .padding(.vertical, 6)
+                .padding(.horizontal, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.secondary.opacity(0.06))
+                )
+            }
+            Spacer(minLength: 0)
+            Text("真实内容见 v0.30+ 实现 (= SwiftGraph ForeshadowingGraph service)")
+                .font(.caption2)
                 .foregroundStyle(.tertiary)
-            Text("伏笔")
-                .font(.title2)
-                .foregroundStyle(.secondary)
-            Text("跨章节伏笔追踪 (= v0.30+ 实现)")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .padding(12)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

@@ -429,18 +429,22 @@ final class WorkspaceStore: ObservableObject {
         // 10/20/60/10': upper band column weights = [1, 2, 6, 1]
         // (= 1+2+6+1 = 10, so sidebar=10%, preview=20%, editor=60%,
         // tools=10%). Previously [1, 1, 3.4, 1.25] ≈ 15/15/51/19.
-        // v0.30 boss 8/31 OOB '工具栏, 现在太小了, 根本显示不全':
-        // tools pane (= the rightmost column) was 10% (= weights [1]
-        // in 1+2+6+1 = 10). At 10% on a typical 1200 PT window =
-        // 120 PT for the tools pane = not enough to display the 2
-        // tab icons + their content without clipping. Boss asks for
-        // the tools pane to have more room; bumping toolsWRatio from
-        // 1 → 2 gives 2/(1+2+6+2) = 18% of upper band width = 218 PT
-        // on a 1200 PT window = plenty for tabs + content.
+        // v0.30 boss 8/31 OOB '如果这是 10, 那就不是 20 视觉效果,
+        // 这达不到目录树栏的两倍 / 如果这也是 10 / 这个栏的内容
+        // 没有按栏的大小自动适配, 右半边没有显示': restore the
+        // original 10/20/60/10 ratio (= sidebar 10%, preview 20%,
+        // editor 60%, tools 10%). The earlier commit
+        // (04b3e7ed0) bumped toolsWRatio from 1 to 2 (= 18%) but
+        // boss now wants the symmetric 10/20/60/10.
         //
-        // Note: this changes the upper band ratio from boss's earlier
-        // '10/20/60/10' (= commit b8fb940d2) to '9/18/55/18'. Boss
-        // explicitly accepted the change via the 8/31 OOB.
+        // To make preview visually = 2x sidebar (= preview really
+        // LOOKS twice as wide as sidebar), the preview pane content
+        // needs to fill the pane width (= use the full 20% width).
+        // The bug was that the placeholder content (1 card = 232 PT)
+        // appeared to be the same size as the sidebar (= 115 PT)
+        // because both have 1 card-like element. Fix in
+        // PreviewPane.swift: enforce 2-column grid when pane width
+        // >= 280 PT (= 2 cards side by side = looks 2x the sidebar).
         let upperBand = makeSplit(
             orientation: .row,
             children: [
@@ -449,7 +453,7 @@ final class WorkspaceStore: ObservableObject {
                 makeGroup(panes: [editorPane.id]),
                 makeGroup(panes: [toolsPane.id])
             ],
-            weights: [1, 2, 6, 2]
+            weights: [1, 2, 6, 1]
         )
         let lowerBand = makeSplit(
             orientation: .row,
