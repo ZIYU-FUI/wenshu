@@ -1025,34 +1025,31 @@ struct NewLibraryOutlineView: View {
         // - The sidebar body NewLibraryOutlineView listens via
         //   .onReceive and toggles its OWN showNewChoiceSheet state.
         //   Sheets on the sidebar body ARE in the real view hierarchy.
+        //
+        // v0.30 boss 8/31 OOB '红框里的 ICON 按钮也实现悬浮效果, 和
+        // TEB 同样即可': added @State isHover + .onHover + .background
+        // tint to both buttons (= matches PaneIconTab's hover tint
+        // pattern = Color.accentColor.opacity(0.12) on hover).
         HStack(spacing: 0) {
             // New plain Button (= tap posts .wenshuChoiceRequested
             // notification; consumed by the sidebar body listener
             // which presents NewChoiceSheet).
-            Button {
+            NewButtonWithHover(
+                iconName: "square-plus",
+                help: "New"
+            ) {
                 NotificationCenter.default.post(name: .wenshuChoiceRequested, object: nil)
-            } label: {
-                LucideIcon("square-plus", size: 18)
-                    .frame(width: 28, height: 28)
-                    .contentShape(Rectangle())
-                    .foregroundStyle(Color.secondary)
             }
-            .buttonStyle(.plain)
-            .help("New")
             // Import plain Button (= tap directly fires .wenshuImportRequested
             // notification; consumed by the main app toolbar listener =
             // opens the macOS NSOpenPanel for importing external research
             // materials into the library).
-            Button {
+            NewButtonWithHover(
+                iconName: "square-arrow-right",
+                help: "Import"
+            ) {
                 NotificationCenter.default.post(name: .wenshuImportRequested, object: nil)
-            } label: {
-                LucideIcon("square-arrow-right", size: 18)
-                    .frame(width: 28, height: 28)
-                    .contentShape(Rectangle())
-                    .foregroundStyle(Color.secondary)
             }
-            .buttonStyle(.plain)
-            .help("Import")
         }
     }
 
@@ -1981,5 +1978,42 @@ private struct RenameItemSheet: View {
             .padding()
         }
         .frame(minWidth: 360, idealWidth: 420, minHeight: 160, idealHeight: 200)
+    }
+}
+
+
+/// Helper for sidebar zone header icon buttons (= 新建 + 入驻).
+/// Wraps the icon in a Button + hover tint + rounded clip (= same
+/// pattern as PaneIconTab). Each call site gets its own @State
+/// hover tracking (= SwiftUI button identity).
+private struct NewButtonWithHover: View {
+    let iconName: String
+    let help: String
+    let action: () -> Void
+
+    @State private var isHover: Bool = false
+
+    var body: some View {
+        Button(action: action) {
+            LucideIcon(iconName, size: 18)
+                .frame(width: 28, height: 28)
+                .contentShape(Rectangle())
+                .foregroundStyle(Color.secondary)
+        }
+        .buttonStyle(.plain)
+        // v0.30 boss 8/31 OOB '红框里的 ICON 按钮也实现悬浮效果, 和
+        // TEB 同样即可': matches PaneIconTab hover pattern (= .onHover
+        // + manual .background tint = Color.accentColor.opacity(0.12)
+        // on hover, clipped to RoundedRectangle(4)).
+        .onHover { hovering in
+            isHover = hovering
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 4)
+                .fill(isHover
+                    ? Color.accentColor.opacity(0.12)
+                    : Color.clear)
+        )
+        .help(help)
     }
 }

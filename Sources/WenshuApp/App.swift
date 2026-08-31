@@ -1604,6 +1604,7 @@ struct ChatZoneView: View {
     // When user clicks archive icon in ChatZoneTabBar, this toggles true and
     // shows confirmation alert. Confirm = archive current session + start new.
     @State private var showingArchiveAlert: Bool = false
+    @State private var showingArchiveAlertHover: Bool = false
 
     private var selectedTab: ChatZoneTab {
         get { ChatZoneTab(rawValue: selectedTabRaw) ?? .chat }
@@ -1676,7 +1677,8 @@ struct ChatZoneView: View {
                 ChatZoneTabBar(selectedTab: Binding(
                     get: { selectedTab },
                     set: { selectedTab = $0 }
-                ), showingArchiveAlert: $showingArchiveAlert)
+                ), showingArchiveAlert: $showingArchiveAlert,
+                showingArchiveAlertHover: $showingArchiveAlertHover)
                 Group {
                     switch selectedTab {
                     case .chat:
@@ -1846,6 +1848,10 @@ struct ChatZoneTabBar: View {
     @Binding var selectedTab: ChatZoneView.ChatZoneTab
     // v0.24 boss验收fix (Boss 8/25 OOB ticket 015.014): archive flow state.
     @Binding var showingArchiveAlert: Bool
+    // v0.30 boss 8/31 OOB: hover state for the archive button (= passed
+    // down from owner struct since SwiftUI @State can't be observed
+    // across nested struct boundaries without @Binding).
+    @Binding var showingArchiveAlertHover: Bool
     // v0.25.1 (= ticket 013 underline slide animation): owner 2026-08-26
     // OOB '能不能让那个小横线的动画变成左右移动 不是渐隐渐显' =
     // matchedGeometryEffect pattern (= owner wants L/R slide, NOT
@@ -1939,6 +1945,12 @@ struct ChatZoneTabBar: View {
             // 'four chat tab height set to 28 PT'). Hot zone paired with
             // .contentShape(.rect()) so the entire 28×28 PT box is the
             // click target (= not the visual glyph only).
+            //
+            // v0.30 boss 8/31 OOB '红框里的 ICON 按钮也实现悬浮效果, 和
+            // TEB 同样即可': added hover state + .onHover + .background
+            // tint (= matches PaneIconTab's hover pattern = Color
+            // .accentColor.opacity(0.12) on hover, clipped to rounded
+            // rect).
             Button {
                 showingArchiveAlert = true
             } label: {
@@ -1960,7 +1972,17 @@ struct ChatZoneTabBar: View {
             }
             .buttonStyle(.plain)
             .contentShape(Rectangle())
-            .background(Color.clear)
+            // v0.30 boss 8/31 OOB: hover tint for the archive button.
+            // Matches PaneIconTab + sidebar zone header button pattern.
+            .background(
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(showingArchiveAlertHover
+                        ? Color.accentColor.opacity(0.12)
+                        : Color.clear)
+            )
+            .onHover { hovering in
+                showingArchiveAlertHover = hovering
+            }
             .help("归档当前会话")
             .padding(.trailing, 18)
         }
