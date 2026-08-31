@@ -665,7 +665,14 @@ private struct PreviewSortMenuButton: View {
                     .fill(Color.accentColor.opacity(0.08))
             )
         }
-        .menuStyle(.borderlessButton)
+        // v0.30 boss 8/31 OOB: changed from .borderlessButton (= invisible
+        // button on macOS that only opens the menu on click) to .button
+        // (= the label is rendered visually with a button background).
+        // Previous behavior made the trailing slot empty (= nothing
+        // rendered) — only the menu popover appeared on click. Now
+        // the [首字母 dim] + [list-ordered icon] label is visible at
+        // all times, like a normal toolbar button.
+        .menuStyle(.button)
         .menuIndicator(.hidden)
         .help("排序方式: \(sortOrder.rawValue)")
     }
