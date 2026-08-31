@@ -695,6 +695,10 @@ private struct EntityCard: View {
     /// Track tap count for double-click detection.
     @State private var tapCount = 0
     @State private var lastTapTime: Date = .distantPast
+    /// v0.30 boss 8/31 OOB: hover state for cards (= subtle accent
+    /// tint on mouse hover; Apple HIG default macOS hover pattern,
+    /// matches PaneIconTab + AppTitlebar).
+    @State private var isHovered: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -757,6 +761,28 @@ private struct EntityCard: View {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .stroke(Color.secondary.opacity(0.15), lineWidth: 0.5)
         )
+        // v0.30 boss 8/31 OOB: hover tint on the card body.
+        // The default Card has a transparent background; on hover,
+        // add a subtle accent tint (= Apple HIG list-row hover
+        // pattern = matches macOS Finder / Mail / Notes card hover).
+        // The tint is added BEFORE the thumbnail + text so it
+        // appears behind them (= z-stack order).
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(isHovered
+                    ? Color.accentColor.opacity(0.12)
+                    : Color.clear)
+        )
+        .overlay(
+            // Border darkens slightly on hover (= additional
+            // affordance for hover state, ~3x the stroke opacity).
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(isHovered
+                    ? Color.accentColor.opacity(0.4)
+                    : Color.secondary.opacity(0.15),
+                    lineWidth: 0.5)
+        )
+        .onHover { isHovered = $0 }
         .contentShape(Rectangle())
         .onTapGesture(count: 2) {
             onDoubleClick()
@@ -805,6 +831,10 @@ private func formatRelativeTime(_ date: Date) -> String {
 /// isn't wired yet).
 private struct BookDocCard: View {
     let doc: BookDoc
+
+    /// v0.30 boss 8/31 OOB: hover state for book doc cards (= subtle
+    /// accent tint on mouse hover; same pattern as EntityCard).
+    @State private var isHovered: Bool = false
 
     /// Resolve the BookFolder enum from the raw folder name string.
     /// Falls back to nil for unknown folders (= e.g. if user creates
@@ -877,6 +907,28 @@ private struct BookDocCard: View {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .stroke(Color.secondary.opacity(0.15), lineWidth: 0.5)
         )
+        // v0.30 boss 8/31 OOB: hover tint on the card body.
+        // The default Card has a transparent background; on hover,
+        // add a subtle accent tint (= Apple HIG list-row hover
+        // pattern = matches macOS Finder / Mail / Notes card hover).
+        // The tint is added BEFORE the thumbnail + text so it
+        // appears behind them (= z-stack order).
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(isHovered
+                    ? Color.accentColor.opacity(0.12)
+                    : Color.clear)
+        )
+        .overlay(
+            // Border darkens slightly on hover (= additional
+            // affordance for hover state, ~3x the stroke opacity).
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(isHovered
+                    ? Color.accentColor.opacity(0.4)
+                    : Color.secondary.opacity(0.15),
+                    lineWidth: 0.5)
+        )
+        .onHover { isHovered = $0 }
         .contentShape(Rectangle())
         .help("\(doc.displayPath) — 双击在编辑器中打开 (= 后续 ticket)")
     }
