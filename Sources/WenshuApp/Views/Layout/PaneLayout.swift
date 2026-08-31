@@ -53,6 +53,7 @@ protocol PaneLayout {
     /// `appState` + `bookStore` = environment values that must be
     /// propagated into each pane's SwiftUI view (= @Environment lookup
     /// chain breaks across AppKit bridge, so we thread them explicitly).
+    @MainActor
     func makeSplitController(
         panes: [PaneNode],
         store: WorkspaceStore,
@@ -79,25 +80,21 @@ protocol PaneLayout {
 struct FCPLayout: PaneLayout {
     let layoutID = "FCPLayout"
 
+    @MainActor
     func makeSplitController(
         panes: [PaneNode],
         store: WorkspaceStore,
         appState: AppState,
         bookStore: BookStore
     ) -> NSSplitViewController {
-        // Stub for ticket 01. Ticket 03 replaces this body with:
-        //   1. walk store.workspace.root (= SplitNode tree)
-        //   2. for each SplitNode.orientation = .row, create an
-        //      NSSplitView with isVertical = true
-        //   3. for each SplitNode.orientation = .column, create an
-        //      NSSplitView with isVertical = false
-        //   4. for each GroupNode, create NSSplitViewItem per pane
-        //      hosting NSHostingController(rootView: ZoneContentView(...))
-        //   5. set autosaveName = "wenshu.split.<layoutID>.<uuid>"
-        //   6. set canCollapse = true on sidebar / chat / dynamic items
-        // Until then: return an empty controller (= never wired until
-        // ticket 04 sets useNSSplitView = true; user-visible UI stays on
-        // the existing PaneRenderer path).
-        return NSSplitViewController()
+        // Ticket 03 wiring: delegate to PaneNSController (= recursive
+        // tree walker). PaneNSController owns the layout decisions; this
+        // struct only decides WHICH controller to use (= per preset).
+        return PaneNSController(
+            store: store,
+            appState: appState,
+            bookStore: bookStore,
+            layoutID: layoutID
+        )
     }
 }
