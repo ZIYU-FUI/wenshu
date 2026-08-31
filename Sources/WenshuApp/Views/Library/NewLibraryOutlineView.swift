@@ -334,7 +334,34 @@ struct NewLibraryOutlineView: View {
         // transparent so the parent's RegionContentBackground shows
         // through (= follows the liquid-glass opacity slider in Settings).
         .scrollContentBackground(.hidden)
-        .onAppear(perform: reload)
+        .onAppear {
+            reload()
+            // v0.30 boss 8/31 OOB: '首次进入, 选定效果是灰色的, 不是
+            // 系统色. 双击后会变成蓝色'. macOS 26 Tahoe List(.sidebar)
+            // shows the SELECTED row in GRAY (= not accent color) on
+            // the very first render pass, then switches to the user's
+            // accent color after the user interacts (= SwiftUI's
+            // selection-tint resolution timing).
+            //
+            // Root cause: on cold-launch, bookStore.selectedBookId is
+            // already set to the help book (= pre-populated by
+            // WenshuLibrary init), but onChange(of: bookStore.selected
+            // BookId) only fires on CHANGE (= not initial value), so
+            // appState.sidebarSelection stays nil/empty on the first
+            // render pass. Then when sidebarSelection IS set
+            // (via user interaction), SwiftUI re-renders with accent
+            // color.
+            //
+            // Fix: explicitly sync sidebarSelection from
+            // bookStore.selectedBookId in onAppear (= before the
+            // first render of the List). This way the List's first
+            // render already has selection = .book(helpBook.id), and
+            // SwiftUI uses the user's accent color from the start.
+            if let id = bookStore.selectedBookId,
+               appState.sidebarSelection == nil {
+                appState.sidebarSelection = .book(id)
+            }
+        }
         .onChange(of: appState.sidebarSelection) { _, newValue in
             // v0.30: forward sidebar selection to bookStore.selectedBookId
             // (for books) and selectedEntityCategory binding (for
