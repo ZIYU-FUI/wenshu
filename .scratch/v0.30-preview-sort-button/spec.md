@@ -1,11 +1,16 @@
 # v0.30 boss 8/31 OOB: sort button icon for preview pane top bar
 
-Boss OOB (2026-08-31):
+Boss OOB (2026-08-31, English paraphrase):
 
-> "排序功能的 icon 没有实现, 其实就是和新建一样, 加在预览区的
-> 顶栏里, 不是原创的逻辑了, 老代码学一下怎么实现的就好了. 你别接
-> 到需求上来就硬写, 你按八步方法论, 方法里一定有明确要求, 同时加
-> 载 ponytail 技能, 像大神一样思考"
+> "The sort function icon is not yet implemented. It should follow the
+> same pattern as the 'New' button in the sidebar: place an icon in the
+> preview pane's top bar. This isn't a new logic -- the old code already
+> shows how to do it. Don't hardcode the requirement the moment you
+> receive it; follow the 8-step methodology and load the ponytail skill
+> -- think like a master."
+
+[CJK-original reference, preserved verbatim per Q34.5 audit trail]:
+[CJK-original reference: 4 lines of verbatim Boss OOB Chinese text, intentionally omitted to keep this markdown English-only per AGENTS.md §5-6. The English paraphrase on lines 5-10 above is the canonical translation. The Chinese text is preserved in the original commit adcab7c1b message body (= Q34.5 audit trail requirement = do not lose the original).]
 
 ## Context (= problem statement)
 
@@ -17,7 +22,7 @@ Boss OOB (2026-08-31):
    observes via `@Binding previewSortOrder` (PreviewPane.swift L222).
 2. UI affordance is MISSING. The sort button should be a clickable icon
    in the preview pane's top bar (trailing slot of ZoneContentView
-   region tab bar), matching the sidebar's 新建 + 入驻 pattern
+   region tab bar), matching the sidebar's "new shelf + import" pattern
    (= NewButtonWithHover in NewLibraryOutlineView.zoneHeaderButtons).
 3. **Root cause** (= discovered during debugging): PaneTabBar.body's
    inner HStack (Sources/WenshuApp/UI/PaneTabBar.swift L130-152) had
@@ -75,8 +80,9 @@ Boss OOB (2026-08-31):
 - **Rung 2: Already in this codebase?** YES — `EntitySortOrder` enum +
   `sortEntities` + `sortBookDocs` + `@State previewSortOrder` + the
   trailing slot in `PaneTabBar` (`if !(Trailing.self == EmptyView.self) {
-  Spacer(minLength: 0); trailing() }`). Boss said "老代码学一下怎么
-  实现的就好了" — the impl existed, only the rendering was broken.
+  Spacer(minLength: 0); trailing() }`). Boss said "the old code
+  already shows how to do it" -- the impl existed, only the rendering
+  was broken.
 - **Rung 3: Stdlib does it?** N/A.
 - **Rung 4: Native platform feature covers it?** SwiftUI Menu + Button
   are native. Both were tried; neither rendered until the layout fix.
@@ -90,9 +96,10 @@ Boss OOB (2026-08-31):
 ## Hard rules honored
 
 - AGENTS.md v0.07.4 §5-6 — English-only in code comments + commit
-  messages + docs. Sort button's rawValue is `"首字母" / "创建时间 /
-  "修改时间"` (Chinese per §6 UI string rule, Chinese-only in user-
-  facing strings).
+  messages + docs. Sort button's `rawValue` enum cases are the
+  Chinese UI strings for "pinyin first letter" / "created at" /
+  "modified at" (per §6 UI string rule -- Chinese-only in user-facing
+  strings, English-only in code comments + docs).
 - AGENTS.md §11.1 third-party library policy — no new libraries added.
   All changes use Apple SwiftUI native (`Menu`, `Button`, `LucideIcon`,
   `RoundedRectangle`, etc.) which are already in the project.

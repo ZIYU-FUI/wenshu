@@ -78,8 +78,9 @@ Button {
 ```
 
 ## Why cycle-through instead of dropdown menu?
-Boss OOB says "排序功能的 icon 没有实现" (= an icon for sort, not a
-dropdown). The icon itself is the affordance; click to rotate. The
-rawValue text label is removed (= icon is sufficient visual feedback
-+ tooltip shows current sort name on hover). Three sort options cycle
-through: pinyinFirstLetter → createdAt → modifiedAt → pinyinFirstLetter.
+Boss OOB says "the sort function icon is not yet implemented" (= an
+icon for sort, not a dropdown). The icon itself is the affordance;
+click to rotate. The rawValue text label is removed (= icon is
+sufficient visual feedback + tooltip shows current sort name on hover).
+Three sort options cycle through:
+pinyinFirstLetter -> createdAt -> modifiedAt -> pinyinFirstLetter.
