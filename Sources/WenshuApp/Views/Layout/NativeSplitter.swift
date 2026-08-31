@@ -48,20 +48,19 @@ struct NativeSplitter: View {
 
     private static let lineThickness: CGFloat = 1   // 静态 1 PT (Apple 系统 divider 色)
     private static let hoveredThickness: CGFloat = 3  // hover 3 PT (Apple 系统亮色)
-    // v0.28 followup Boss UX round 15 (Boss 2026-08-29 OOB '区域与区域
-    // 之间留的间隙太宽, 改成 1pt'): the inter-pane gap (= hit area)
-    // was 8 PT (= boss 8/27 OOB bump from 4 PT after 'splitter 拖不
-    // 动' feedback). Boss now says it's too wide (= 8 PT = visible gap
-    // between regions). Reduce hit area to 1 PT (= matches the visual
-    // line thickness = no extra padding around the splitter).
-    // Drag ergonomics: the 1 PT hit area is small but the
-    // .pointerStyle(.columnResize) on hover + .contentShape +
-    // .onHover + .gesture stack makes the drag discoverable enough
-    // for typical use (= boss accepted the trade-off for visual
-    // minimalism). If '拖不动' feedback comes back, the fix is to
-    // add a wider invisible drag overlay (= 8 PT) WITHOUT changing
-    // the visual line width (= separate hit area from visual line).
-    private static let hitAreaThickness: CGFloat = 1  // hit area 1 PT (= matches line thickness, no extra gap)
+    // v0.30 boss 2026-08-31 OOB '不能拖拽': boss cannot drag the
+    // splitter (= '拖不动' returned, exactly as the v0.28 comment
+    // predicted). Root cause: hit area = 1 PT (= visible line
+    // thickness) is too narrow for reliable cursor acquisition,
+    // especially on Retina displays where 1 PT ≈ 0.5 px after DPI
+    // rounding. Fix: separate hit area from visual line. Visual
+    // line stays at 1 PT (= matches Apple HIG canonical separator),
+    // but the drag overlay is now 8 PT (= 4 PT on each side of the
+    // line) without changing what the user sees. Cursor still
+    // appears via .pointerStyle(.columnResize) on hover; drag
+    // gesture still tracks via the .contentShape(Rectangle()) on
+    // the wider overlay.
+    private static let hitAreaThickness: CGFloat = 8  // hit area 8 PT (= 4 PT on each side of the 1 PT visual line; matches v0.27 '拖不动' fix)
 
     /// Orientation 真值
     enum Orientation: Sendable {
