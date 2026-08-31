@@ -58,6 +58,10 @@ POLLUTION_ALLOWLIST = {
     ".scratch/2026-08-28-v0-28-free-layout/",       # v0.28 free-layout spec + tickets + code-review reports enumerate forbidden vocab
     ".scratch/2026-08-28-v0-28-integration-batch-1/", # v0.28 integration batch 1 spec + tickets + standards reports enumerate forbidden vocab
     ".scratch/code-review-spec-8-26-v1-2-0-spec-axis/", # spec-axis review (= standards reports enumerate forbidden vocab)
+    # v0.30 zone-header 新建 icon fix added 2026-08-31:
+    ".scratch/v0.30-zone-header-new-icon-fix/",    # zone-header 新建 icon fix spec + tickets + code-review reports
+    # CONTEXT.md hard rule list itself quotes the 修真 forbidden tokens (= single source of truth for the rule):
+    "CONTEXT.md",
 }
 
 
