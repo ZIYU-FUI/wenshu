@@ -91,6 +91,11 @@ struct NewLibraryOutlineView: View {
     @State private var loadError: String?
     @State private var showNewBookSheet: Bool = false
     @State private var showNewShelfSheet: Bool = false
+    // v0.30 boss 8/31 OOB ('顶栏右边的新建 ICON 没有了'): added a
+    // intermediate sheet (= "新建书 / 新建书架" two-button choice) to
+    // replace the Menu pattern that failed to render inside the
+    // ZoneContentTabBar trailing slot.
+    @State private var showNewChoiceSheet: Bool = false
 
     /// v0.30: Apple std List selection. Mirrors both
     /// `bookStore.selectedBookId` (when a book is selected) and
@@ -336,23 +341,26 @@ struct NewLibraryOutlineView: View {
     /// it. Restored to Lucide canonical per bca226704.
     @ViewBuilder
     var zoneHeaderButtons: some View {
+        // v0.30 boss 8/31 OOB ('顶栏右边的新建 ICON 没有了'):
+        // Menu style .borderlessButton + menuIndicator(.hidden) failed
+        // to render the 新建 icon inside the ZoneContentTabBar trailing
+        // slot (= only the 入驻 Button rendered). Replaced with a
+        // simple Button pattern that mirrors the 入驻 Button =
+        // notification + sheet pattern (no nested Menu).
         HStack(spacing: 0) {
-            // 新建 Menu (= tap → menu with 新建书 / 新建书架).
-            Menu {
-                Button("新建书") {
-                    showNewBookSheet = true
-                }
-                Button("新建书架") {
-                    showNewShelfSheet = true
-                }
+            // 新建 plain Button (= tap opens the "新建书 / 新建书架"
+            // choice as a sheet). The sheet itself presents the
+            // "新建书" / "新建书架" two-button UI.
+            Button {
+                showNewChoiceSheet = true
             } label: {
                 LucideIcon("square-plus", size: 18)
                     .frame(width: 28, height: 28)
                     .contentShape(Rectangle())
                     .foregroundStyle(Color.secondary)
             }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
+            .buttonStyle(.plain)
+            .help("新建")
             // 入驻 plain Button (= tap directly fires .wenshuImportRequested
             // notification; consumed by the main app toolbar listener =
             // opens the macOS NSOpenPanel for importing external research
@@ -366,6 +374,19 @@ struct NewLibraryOutlineView: View {
                     .foregroundStyle(Color.secondary)
             }
             .buttonStyle(.plain)
+            .help("入驻")
+        }
+        .sheet(isPresented: $showNewChoiceSheet) {
+            NewChoiceSheet(
+                onNewBook: {
+                    showNewChoiceSheet = false
+                    showNewBookSheet = true
+                },
+                onNewShelf: {
+                    showNewChoiceSheet = false
+                    showNewShelfSheet = true
+                }
+            )
         }
     }
 
@@ -538,5 +559,52 @@ private struct NewShelfSheet: View {
             .padding()
         }
         .frame(minWidth: 360, idealWidth: 420, minHeight: 200, idealHeight: 240)
+    }
+}
+
+// v0.30 boss 8/31 OOB ('顶栏右边的新建 ICON 没有了'): replaced the
+// Menu-based "新建书 / 新建书架" picker (= failed to render inside
+// ZoneContentTabBar trailing slot) with a simple two-button sheet
+// picker. Apple HIG canonical sheet presentation.
+struct NewChoiceSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let onNewBook: () -> Void
+    let onNewShelf: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("新建").font(.headline)
+                Spacer()
+                Button("取消") { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+            }
+            HStack(spacing: 12) {
+                Button {
+                    onNewBook()
+                } label: {
+                    VStack(spacing: 8) {
+                        LucideIcon("book-plus", size: 32)
+                        Text("新建书").font(.system(size: 13))
+                    }
+                    .frame(width: 110, height: 80)
+                }
+                .buttonStyle(.bordered)
+
+                Button {
+                    onNewShelf()
+                } label: {
+                    VStack(spacing: 8) {
+                        LucideIcon("library", size: 32)
+                        Text("新建书架").font(.system(size: 13))
+                    }
+                    .frame(width: 110, height: 80)
+                }
+                .buttonStyle(.bordered)
+            }
+            Spacer()
+        }
+        .padding(20)
+        .frame(minWidth: 280, idealWidth: 320, minHeight: 180, idealHeight: 200)
     }
 }
