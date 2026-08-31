@@ -167,13 +167,17 @@ enum LayoutTokens {
     // other columns preserve design ratios.
     // Total column = 200+200+388+200 = 988 + 12 splitters = 1000
     // (= exact fit, no HStack shrinkage).
-    // Upper band 4 zones (20/20/40/20 = 100% total):
-    static let projectSidebarRatio: CGFloat = 200.0 / 1000.0  // 20% (= Boss 45th OOB)
-    static let projectPreviewRatio: CGFloat = 200.0 / 1000.0  // 20% (= Boss 45th OOB)
+    // Upper band 4 zones (v0.30 boss 8/31 OOB '各栏的默认比例
+    // 需要调整一下 / 上半区，10/20/60/10'):
+    // projectSidebar=10 / projectPreview=20 / editor=60 / tools=10
+    // (totals 100% with no splitter overhead adjustment needed
+    // because the user just wants visual proportions per band).
+    static let projectSidebarRatio: CGFloat = 100.0 / 1000.0  // 10%
+    static let projectPreviewRatio: CGFloat = 200.0 / 1000.0  // 20%
     // v0.24 fix (Boss 8/25 51st OOB): editor itself contains 3 splitters (= 12 PT hit area @ 4 PT each).
-    // 400 (= 40% design) - 12 (= 3 × 4 splitters) = 388 (= design includes splitter)
-    static let editorWRatio: CGFloat = 388.0 / 1000.0         // 40% design - 3 splitters @ 4 PT
-    static let toolsWRatio: CGFloat = 200.0 / 1000.0         // 20% (= Boss 45th OOB)
+    // 600 (= 60% design) - 12 (= 3 × 4 splitters) = 588 (= design includes splitter)
+    static let editorWRatio: CGFloat = 588.0 / 1000.0         // 60% design - 3 splitters @ 4 PT
+    static let toolsWRatio: CGFloat = 100.0 / 1000.0         // 10%
 
     // v0.24 fix (Boss 8/25 41st OOB 'originally 400, check official docs to fix visual width mismatch'):
     // Boss clarified: upper-right (specializedTools) and lower-right (aiDynamic)
