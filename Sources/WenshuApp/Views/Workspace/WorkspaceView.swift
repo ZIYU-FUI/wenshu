@@ -157,6 +157,19 @@ struct WorkspaceView: View {
             .onReceive(NotificationCenter.default.publisher(for: .wenshuToggleEditMode)) { _ in
                 editMode.toggle()
             }
+            // v0.30 boss 2026-09-01 OOB fix: the View menu's "恢复默认
+            // 布局" item (= ⌘⇧R; both the SwiftUI Commands entry
+            // and the legacy NSMenu entry at App.swift:567 + 1442)
+            // posts .wenshuResetLayout. Without this onReceive, the
+            // notification had no observer and the menu item was
+            // a no-op. Listening here delegates to
+            // WorkspaceStore.resetToDefault (= reloads the built-in
+            // Default preset = upper band 10/20/60/10 weights, lower
+            // band 70/30 weights, root 50/50 column weights per the
+            // boss OOB ratios).
+            .onReceive(NotificationCenter.default.publisher(for: .wenshuResetLayout)) { _ in
+                store.resetToDefault()
+            }
             // v0.28 ticket 028-007: floating TreeEditBar with the
             // LayoutPicker (= preset grid + new-grid button +
             // save-current-as-preset input reveal). Shown only

@@ -198,10 +198,23 @@ final class WorkspaceStore: ObservableObject {
     }
 
     /// Reset the current workspace to the built-in Default preset.
+    /// v0.30 boss 2026-09-01 OOB fix: previously this called
+    /// `Self.makeBuiltinWorkspace()` (= the FCP Browser 3-pane
+    /// paradigm = sidebar + editor + inspector). Boss's "默认"
+    /// (= the built-in Default preset the menu restores to) is
+    /// the 6-zone layout = upper band 10/20/60/10 weights, lower
+    /// band 70/30 weights, root 50/50 column weights (= the
+    /// `builtinDefaultPreset()` 6-zone definition at line 424).
+    /// Switch the source to `builtinDefaultPreset()` so the menu's
+    /// '恢复默认布局' action actually restores the 6-zone layout
+    /// (= the same workspace the user would land in on a fresh
+    /// app install with the picker 6-zone shape selected).
     func resetToDefault() {
-        let builtin = Self.makeBuiltinWorkspace()
-        self.workspace = builtin
-        self.currentPresetID = presets.first(where: { $0.isBuiltIn })?.id
+        let builtinPresets = Self.makeBuiltinPresets()
+        let builtinDefault = builtinPresets.first(where: { $0.isBuiltIn && $0.name == "默认" })
+        let builtinWorkspace = builtinDefault?.workspace ?? Self.makeBuiltinWorkspace()
+        self.workspace = builtinWorkspace
+        self.currentPresetID = builtinDefault?.id ?? presets.first(where: { $0.isBuiltIn })?.id
         save()
         savePresets()
     }
