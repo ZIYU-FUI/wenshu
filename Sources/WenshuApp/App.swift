@@ -781,20 +781,27 @@ struct SettingView: View {
             Section("液态玻璃") {
                 // v0.28 followup Boss UX round 49 (Boss 2026-08-29 OOB
                 // '在设置里加一个功能, 液态玻璃透明度调节'): Slider for
-                // Liquid Glass opacity. 0.0 = fully transparent (= no
-                // tint, wallpaper 100% visible), 0.5 = default (= subtle
-                // glass tint), 1.0 = strong tint (= pane is darker, less
-                // wallpaper visible). Live preview via LiquidGlassOpacity
-                // environment value = applies immediately to all panes.
+                // Liquid Glass opacity. 0.0 = most translucent (= Apple
+                // .ultraThinMaterial), 0.5 = standard (= Apple
+                // .regularMaterial), 1.0 = most opaque (= Apple
+                // .bar / .ultraThickMaterial). Live preview via
+                // LiquidGlassOpacity environment value = applies
+                // immediately to all panes.
+                //
+                // v0.30 boss 2026-09-01 OOB (6-step ladder): step =
+                // 1/6 ≈ 0.1667 to match the 6 Material boundaries in
+                // Double.toLiquidGlassMaterial(). Slider position
+                // display lands on 0/17/33/50/67/83/100 (= each a
+                // distinct Material boundary).
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Text("液态玻璃透明度")
                         Spacer()
-                        Text("\(Int(liquidGlassOpacity * 100))%")
+                        Text("\(Int((liquidGlassOpacity * 100).rounded()))%")
                             .font(.caption.monospacedDigit())
                             .foregroundStyle(.secondary)
                     }
-                    Slider(value: $liquidGlassOpacity, in: 0.0...1.0, step: 0.05)
+                    Slider(value: $liquidGlassOpacity, in: 0.0...1.0, step: 1.0/6.0)
                         // v0.30 boss 2026-09-01 OOB (Slider sync bug fix):
                         // write back to UserDefaults + post the cross-instance
                         // notification (= the AppKit consumers like
@@ -808,7 +815,7 @@ struct SettingView: View {
                                 object: nil
                             )
                         }
-                    Text("0% = 完全透明 · 50% = 默认 · 100% = 强烈玻璃")
+                    Text("6 档阶梯（Apple Liquid Glass Material 完整集）· 0% = 最透 · 100% = 最不透明")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                     // v0.30 boss 2026-09-01 OOB: clarify the slider's
