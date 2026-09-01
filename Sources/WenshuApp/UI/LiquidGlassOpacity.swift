@@ -54,51 +54,41 @@ public extension View {
 // MARK: - Material mapping helper
 
 public extension Double {
-    /// v0.30 boss 2026-09-01 OOB (6-step ladder follow-up to the
-    /// titlebar-liquidglass scope fix): replace the prior 4-step
-    /// mapping with the canonical 6-step ladder (= Apple's 6
-    /// official Liquid Glass Materials, all from
-    /// `developer.apple.com/documentation/swiftui/material`).
+    /// v0.30 boss 2026-09-01 OOB (smooth slider, the divider
+    /// follow-up): replace the 6-step ladder (= Apple's 6 official
+    /// Liquid Glass Materials, one per 1/6 wide range) with a
+    /// continuous scale. Boss observed that the 6-step ladder
+    /// produced a visually identical tint across most of the
+    /// slider range (= Apple's .ultraThinMaterial / .thinMaterial
+    /// have alpha values that look identical at desktop distance)
+    /// and that "the changes between 0 and 100 are too small;
+    /// I want smooth 0 to 100 transition from fully transparent
+    /// to opaque".
     ///
-    /// Prior 4-step ladder collapsed the 0.00-0.49 range to
-    /// `.ultraThinMaterial` (= 2 adjacent slider positions looked
-    /// identical) and capped at `.thickMaterial` (= Apple also
-    /// ships `.ultraThickMaterial` + `.barMaterial` which the prior
-    /// ladder ignored). The new 6-step ladder uses ALL of Apple's
-    /// official Materials with equal-width ranges; each slider
-    /// position now produces a visibly distinct Material.
+    /// Implementation = Apple's `Material.opacity(_:)` API
+    /// (= macOS 27 / SwiftUI 27; the only public way to drive a
+    /// Material's alpha continuously). The base Material is
+    /// `.ultraThinMaterial` (= Apple's lightest Liquid Glass
+    /// tier; the minimum opaque base before alpha = 0 is even
+    /// considered). At slider = 0, `Material.opacity(0)` =
+    /// fully transparent (= the desktop wallpaper shows through
+    /// the title bar / tab bar / status bar / pane content). At
+    /// slider = 1, `Material.opacity(1)` = the lightest Liquid
+    /// Glass tier at full strength (= boss's "opaque" target;
+    /// not 100 % black, just the maximum tint).
     ///
-    /// Apple does NOT provide a programmatic "Material-for-fraction"
-    /// helper; this ladder is the canonical workaround (= Apple API
-    /// complete, custom mapping is the unavoidable part per boss
-    /// "不和 Apple 标准冲突不考虑自定义" since the API itself does
-    /// not collide with Apple's API surface).
-    ///
-    /// 6 equal-width ranges, each 1/6 ≈ 0.1667 wide:
-    /// - [0.000, 0.166) → .ultraThinMaterial
-    /// - [0.166, 0.333) → .thinMaterial
-    /// - [0.333, 0.500) → .regularMaterial
-    /// - [0.500, 0.666) → .thickMaterial
-    /// - [0.666, 0.833) → .ultraThickMaterial
-    /// - [0.833, 1.000] → .bar
+    /// The return type is `_OpacityShapeStyle<Material>` (= SwiftUI
+    /// internal; transparently a `ShapeStyle`) so every existing
+    /// caller (= RegionContentBackground / RegionTabBar /
+    /// RegionStatusBar / AppStatusbar / SettingsEnvironmentCapturer
+    /// .containerBackground) gets the smooth scale for free
+    /// without rewriting its call site.
     ///
     /// Boss can tune in Settings -> 通用 -> 液态玻璃 slider.
     /// Slider value updates immediately via the manual @State mirror
     /// (= no need to restart the app).
-    func toLiquidGlassMaterial() -> Material {
-        if self < 1.0/6.0 {
-            return .ultraThinMaterial
-        } else if self < 2.0/6.0 {
-            return .thinMaterial
-        } else if self < 3.0/6.0 {
-            return .regularMaterial
-        } else if self < 4.0/6.0 {
-            return .thickMaterial
-        } else if self < 5.0/6.0 {
-            return .ultraThickMaterial
-        } else {
-            return .bar
-        }
+    func toLiquidGlassMaterial() -> some ShapeStyle {
+        Material.ultraThinMaterial.opacity(self)
     }
 
     /// v0.30 boss 2026-09-01 OOB (6-step ladder + divider line): the
