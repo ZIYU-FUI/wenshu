@@ -163,29 +163,54 @@ private struct WiredShell: View {
         // - Group 1: 5 zone toggles (sidebar/preview/tools/chat/dynamic)
         // - Group 2: model picker (= separate capsule after the zone-toggle group)
         // - Group 3: export (= rightmost, third capsule)
+        // v0.30 boss 2026-09-01 OOB (zone toggle fix): the 5 toolbar
+        // zone-toggle buttons below were toggling only the @AppStorage
+        // booleans (= button tint flipped but the NSSplitView layout
+        // never reacted, because nothing read those keys). The actual
+        // hide/show is driven by `.wenshuToggleZone` notifications
+        // (= PaneNSController.swift:390 handleToggleZone matches the
+        // NSSplitViewItem by TabKind and flips `isCollapsed`). The fix
+        // = post the notification in addition to toggling the binding,
+        // so both the persistent state AND the live layout stay in
+        // sync (= button tint = persisted bool = collapsed state).
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
-                Button { showProjectSidebar.toggle() } label: {
+                Button {
+                    showProjectSidebar.toggle()
+                    NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.projectSidebar)
+                } label: {
                     LucideIconSystemFallback("sidebar.left", size: LayoutTokens.iconSize)
                 }
                 .foregroundStyle(showProjectSidebar ? Color.accentColor : Color.secondary)
                 .help(showProjectSidebar ? "隐藏 项目管理区" : "显示 项目管理区")
-                Button { showProjectPreview.toggle() } label: {
+                Button {
+                    showProjectPreview.toggle()
+                    NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.projectPreview)
+                } label: {
                     LucideIconSystemFallback("eye.fill", size: LayoutTokens.iconSize)
                 }
                 .foregroundStyle(showProjectPreview ? Color.accentColor : Color.secondary)
                 .help(showProjectPreview ? "隐藏 素材预览区" : "显示 素材预览区")
-                Button { showSpecializedTools.toggle() } label: {
+                Button {
+                    showSpecializedTools.toggle()
+                    NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.specializedTools)
+                } label: {
                     LucideIconSystemFallback("wrench.and.screwdriver", size: LayoutTokens.iconSize)
                 }
                 .foregroundStyle(showSpecializedTools ? Color.accentColor : Color.secondary)
                 .help(showSpecializedTools ? "隐藏 工具区" : "显示 工具区")
-                Button { showAIChat.toggle() } label: {
+                Button {
+                    showAIChat.toggle()
+                    NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.aiChat)
+                } label: {
                     LucideIconSystemFallback("bubble.left", size: LayoutTokens.iconSize)
                 }
                 .foregroundStyle(showAIChat ? Color.accentColor : Color.secondary)
                 .help(showAIChat ? "隐藏 聊天区" : "显示 聊天区")
-                Button { showAIDynamic.toggle() } label: {
+                Button {
+                    showAIDynamic.toggle()
+                    NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.aiDynamic)
+                } label: {
                     LucideIconSystemFallback("chart.bar", size: LayoutTokens.iconSize)
                 }
                 .foregroundStyle(showAIDynamic ? Color.accentColor : Color.secondary)

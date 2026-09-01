@@ -71,12 +71,59 @@ final class PaneNSController: NSSplitViewController {
         store: WorkspaceStore,
         appState: AppState,
         bookStore: BookStore,
-        layoutID: String
+        layoutID: String,
+        installObservers: Bool = true,
+        subtree: LayoutNode? = nil
     ) {
         self.store = store
         self.appState = appState
         self.bookStore = bookStore
         self.layoutID = layoutID
+        // v0.30 boss 2026-09-01 OOB (zone toggle fix): nested
+        // PaneNSController instances (= created by installSplit's
+        // different-orientation branch) render only the subtree
+        // they own. The previous design had every nested instance
+        // re-read `store.workspace.root` (= the FULL tree) in
+        // buildLayout, which then re-entered installSplit at the
+        // top level and recursed forever. Passing the subtree
+        // explicitly here makes nested controllers render exactly
+        // what their parent assigned them.
+        //
+        // Also: when invoked from installSplit's
+        // different-orientation branch (= the only nested path),
+        // the parent has ALREADY called `installChildren(children,
+        // into: nested)` on line 984 (= immediately after `let
+        // nested = PaneNSController(...)`). Running buildLayout
+        // here too would double-install the children (= 8 items
+        // for a 4-pane band = crash in applyWeights' divider
+        // iteration). The `installObservers: false` path already
+        // signals "nested instance"; we extend it to also skip
+        // buildLayout. `installObservers: true` (= the public
+        // entrypoint from FCPLayout.makeSplitController) keeps
+        // the full buildLayout path so the root controller still
+        // gets its tree built.
+        // v0.30 boss 2026-09-01 OOB (autosave early wipe): clear
+        // every wenshu.split.* autosave entry BEFORE the first
+        // NSSplitView is constructed anywhere. If a stale entry
+        // from a prior tree shape (= different split node UUIDs
+        // in the key suffix) survives, the very first
+        // NSSplitView.viewDidLayout pass will load those old
+        // positions into memory and warp the layout, even though
+        // viewDidLayout's own clearStaleAutosave() runs immediately
+        // before applyWeights (= the load happens during super
+        // init's view setup, before our clearStaleAutosave can
+        // run). The cost of doing this wipe on every launch is one
+        // dictionary scan = negligible. The benefit is that a
+        // fresh install (= no autosave yet) gets the pristine
+        // 15/20/50/15 / 70/30 / 50/50 layout the user just
+        // specified.
+        let prefix = "NSSplitView Subview Frames wenshu.split."
+        for (key, _) in UserDefaults.standard.dictionaryRepresentation() {
+            if key.hasPrefix(prefix) {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
+        self.subtree = subtree ?? store.workspace.root
         super.init(nibName: nil, bundle: nil)
         // Swap the default NSSplitView with WenshuSplitView
         // (= NSSplitView subclass with adjustSubviews override that
@@ -89,11 +136,23 @@ final class PaneNSController: NSSplitViewController {
         // self.viewLoaded is YES." We swap immediately after
         // super.init and before buildLayout (= which calls self.view).
         self.splitView = WenshuSplitView()
-        buildLayout()
+        if installObservers {
+            buildLayout()
+        }
         // Widen the divider hit area (= see AC #4). Acting as the
         // split's delegate lets us override `effectiveRect(...)` and
         // extend each divider's grabbable region by `dividerHitPadding`.
         self.splitView.delegate = self
+        // v0.30 boss 2026-09-01 OOB (zone toggle fix): nested
+        // PaneNSController instances are created by installSplit
+        // (= the parent child-controller path), so they re-enter this
+        // init. Without the `installObservers` gate, every nested
+        // controller would also register the `.wenshuToggleZone`
+        // observer and `applyPersistedZoneVisibility` would run
+        // repeatedly for every fold. Keep the observers on the
+        // root only (= single source of truth) — nested instances
+        // just hold the `paneKindByItem` map that the root walks.
+        guard installObservers else { return }
         // Display-menu bridge (= Gap F fix). The legacy "Display" menu items
         // in App.swift:593-611 post .wenshuToggleZone(ZoneSlot)
         // notifications; this observer finds the matching NSSplitViewItem
@@ -118,6 +177,73 @@ final class PaneNSController: NSSplitViewController {
             object: nil
         )
         applyDividerStyleForCurrentOpacity()
+        // v0.30 boss 2026-09-01 OOB (zone toggle startup sync): apply the
+        // persisted `wenshu.zoneVisible.*` bools from UserDefaults to
+        // the matching NSSplitViewItems NOW (= not on a notification,
+        // because no toggle has happened yet on a fresh launch). Without
+        // this, items always start expanded even when the user previously
+        // hid a zone (= every launch reopens hidden zones = boss
+        // feedback '已经失效'). Read defaults directly (= no AppStorage
+        // dance in this AppKit class) to keep the AppKit side free of
+        // SwiftUI property wrappers. The same call is repeated from
+        // viewDidLayout after the first weights apply (= NSSplitView's
+        // autosaveName round-trip can otherwise override the fold we
+        // set here).
+        applyPersistedZoneVisibility()
+    }
+
+    /// Apply `wenshu.zoneVisible.*` defaults to the matching
+    /// NSSplitViewItems. Runs once at init.
+    ///
+    /// v0.30 boss 2026-09-01 OOB: recursively walks self + every
+    /// nested PaneNSController child. Without the recursion, the
+    /// root's `splitViewItems` only contains the upper-band and
+    /// lower-band nested controllers (= wrap-mode items, canCollapse
+    /// = false), so the per-pane TabKind match never finds anything
+    /// to fold on a 6-zone layout. The nested controllers are where
+    /// the actual pane NSSplitViewItems live (= canCollapse = true).
+    private func applyPersistedZoneVisibility() {
+        let defaults = UserDefaults.standard
+        let mapping: [(String, TabKind)] = [
+            ("wenshu.zoneVisible.projectSidebar", .projectSidebar),
+            ("wenshu.zoneVisible.projectPreview", .projectPreview),
+            ("wenshu.zoneVisible.specializedTools", .specializedTools),
+            ("wenshu.zoneVisible.aiChat", .aiChat),
+            ("wenshu.zoneVisible.aiDynamic", .aiDynamic)
+        ]
+        // Flatten self + nested children controllers. The root walk
+        // is required because nested PaneNSController instances are
+        // created by `installSplit` and live as root.splitViewItems
+        // (= wrap-mode items, canCollapse = false). The per-pane
+        // TabKind lookup goes through `paneKindByItem`, populated
+        // by `makeSplitItems` at install time (= works regardless of
+        // whether NSHostingController has laid out its SwiftUI tree).
+        var controllers: [NSSplitViewController] = [self]
+        var queue: [NSSplitViewController] = [self]
+        while let next = queue.first {
+            queue.removeFirst()
+            for child in next.children {
+                if let splitChild = child as? PaneNSController {
+                    controllers.append(splitChild)
+                    queue.append(splitChild)
+                }
+            }
+        }
+        for (key, kind) in mapping {
+            guard defaults.object(forKey: key) != nil else { continue }
+            let shouldHide = !defaults.bool(forKey: key)
+            guard shouldHide else { continue }
+            for controller in controllers {
+                guard let paneController = controller as? PaneNSController else { continue }
+                for (idx, item) in controller.splitViewItems.enumerated() {
+                    guard item.canCollapse else { continue }
+                    guard let tab = paneController.paneKindByItem[idx] else { continue }
+                    if tab == kind {
+                        item.isCollapsed = true
+                    }
+                }
+            }
+        }
     }
 
     /// v0.30 boss 2026-09-01 OOB (Step 1 = restore API default): do NOT
@@ -387,6 +513,14 @@ final class PaneNSController: NSSplitViewController {
     /// `isCollapsed` property. Items without `canCollapse` (= preview /
     /// editor) are silently ignored (= their menu items were never
     /// collapsible in the FCP spec either).
+    ///
+    /// v0.30 boss 2026-09-01 OOB (zone toggle fix): walks self + all
+    /// nested PaneNSController children. The root controller's
+    /// splitViewItems only contain wrap-mode items for the
+    /// upper/lower bands (= canCollapse = false), so the per-pane
+    /// TabKind match never found anything to fold without the
+    /// recursion. See applyPersistedZoneVisibility() for the
+    /// matching initial-state logic.
     @objc private func handleToggleZone(_ notification: Notification) {
         guard let slot = notification.object as? ZoneSlot else { return }
         // Map ZoneSlot → TabKind (canonical mapping). editor has no
@@ -403,13 +537,46 @@ final class PaneNSController: NSSplitViewController {
             }
         }()
         guard let kind = targetKind else { return }
-        for item in splitViewItems {
-            guard item.canCollapse else { continue }
-            guard let tab = firstTabKind(for: item) else { continue }
-            if tab == kind {
-                item.isCollapsed.toggle()
+        // Flatten self + nested children PaneNSControllers. Each
+        // PaneNSController instance owns the `paneKindByItem` map
+        // for its subtree (= populated by `makeSplitItems` at install
+        // time), so the lookup goes straight from item to TabKind
+        // without depending on the SwiftUI hosting tree having laid
+        // out (= which only happens after init, so the original
+        // `firstTabKind(for:)` heuristic silently returned nil on
+        // startup). Keep observers on the root only via the
+        // `installObservers` init gate so a single notification
+        // triggers exactly one fold per matching pane.
+        var controllers: [NSSplitViewController] = [self]
+        var queue: [NSSplitViewController] = [self]
+        while let next = queue.first {
+            queue.removeFirst()
+            for child in next.children {
+                if let splitChild = child as? PaneNSController {
+                    controllers.append(splitChild)
+                    queue.append(splitChild)
+                }
             }
         }
+        for controller in controllers {
+            guard let paneController = controller as? PaneNSController else { continue }
+            for (idx, item) in controller.splitViewItems.enumerated() {
+                guard item.canCollapse else { continue }
+                guard let tab = paneController.paneKindByItem[idx] else { continue }
+                if tab == kind {
+                    item.isCollapsed.toggle()
+                }
+            }
+        }
+        // v0.30 boss 2026-09-01 OOB (auto-fill band on full
+        // collapse): after toggling, re-pin the root divider so
+        // the upper band fills the whole root height when the
+        // lower band is now fully hidden. Only the root observer
+        // (= us, since `installObservers: true` is the root-only
+        // path) actually has a root divider to move, but the
+        // guard inside adjustRootForCollapsedBands makes it safe
+        // to call from anywhere.
+        adjustRootForCollapsedBands()
     }
 
     /// Resolve the first TabKind for an NSSplitViewItem (= it hosts an
@@ -532,6 +699,23 @@ final class PaneNSController: NSSplitViewController {
     /// NSSplitViewItem for each, so weights at every level need
     /// their own applyWeights call).
     private var pendingWeights: [(NSSplitViewController, [Double])] = []
+    /// v0.30 boss 2026-09-01 OOB (zone toggle fix): records each
+    /// installed NSSplitViewItem's TabKind by its positional
+    /// index in `controller.splitViewItems` (NOT by
+    /// ObjectIdentifier; see `makeSplitItems` for why). Keyed by
+    /// `Int` (= index) so lookup at viewDidLayout / notification
+    /// handling time works regardless of whether NSSplitViewController
+    /// re-wrapped the items. Index 0 is enough for v0.30 because
+    /// every GroupNode renders exactly one pane (= multi-pane
+    /// groups are flattened by `makeSplitItems`).
+    private var paneKindByItem: [Int: TabKind] = [:]
+    /// v0.30 boss 2026-09-01 OOB (zone toggle fix): the subtree this
+    /// controller renders. The root instance renders `store.workspace.root`
+    /// (= the full tree); nested instances render the SplitNode they
+    /// were assigned by their parent installSplit call. Without this
+    /// distinction, every nested controller would re-enter installSplit
+    /// at the top of the tree (= infinite recursion + stack overflow).
+    private let subtree: LayoutNode
 
     private func buildLayout() {
         // Reset any inherited children (= safety against reuse).
@@ -549,7 +733,11 @@ final class PaneNSController: NSSplitViewController {
         // matches it against upperBand/lowerBand `.row` children,
         // installing them as siblings in one row (= 6 panes side
         // by side, NOT two bands stacked).
-        switch store.workspace.root {
+        // v0.30 boss 2026-09-01 OOB (zone toggle fix): read the
+        // subtree this controller owns (= NOT `store.workspace.root`,
+        // which would re-enter installSplit at the top of the full
+        // tree when called on a nested instance).
+        switch subtree {
         case .split(let split):
             self.splitView.isVertical = (split.orientation == .row)
             // v0.30 boss 2026-09-01 OOB: NO autosaveName on the root
@@ -596,7 +784,9 @@ final class PaneNSController: NSSplitViewController {
         var result: [(NSSplitViewController, [Double])] = []
         // The root always needs its weights (= its NSSplitView
         // hosts either the children directly or nested controllers).
-        if case .split(let rootSplit) = store.workspace.root {
+        // v0.30 boss 2026-09-01 OOB (zone toggle fix): read the
+        // owned subtree, not store.workspace.root (= see buildLayout).
+        if case .split(let rootSplit) = subtree {
             result.append((self, rootSplit.weights))
             // Walk children recursively. For each child that is a
             // .split (= becomes a nested controller), recurse and
@@ -745,25 +935,52 @@ final class PaneNSController: NSSplitViewController {
             guard let self else { return }
             guard !self.didApplyInitialWeights else { return }
             guard !self.pendingWeights.isEmpty else { return }
-            // Bounds readiness check on the root. Without this,
-            // setPosition computes against a 0-wide canvas and is
-            // a no-op.
             guard self.splitView.bounds.width > 0, self.splitView.bounds.height > 0 else { return }
             self.clearStaleAutosave()
             for (controller, weights) in self.pendingWeights {
                 self.applyWeights(weights, on: controller)
             }
             self.didApplyInitialWeights = true
-            // v0.30 boss 2026-09-01 OOB fix: tint the divider
-            // subviews AFTER the first weights apply (= dividers
-            // are now mounted at their final positions; tinting
-            // them is a one-time operation since they are
-            // persistent NSViews inside NSSplitView that don't
-            // get recreated on subsequent layout passes). The
-            // initial tint at init time (= line 120's
-            // applyDividerStyleForCurrentOpacity call) is a no-op
-            // because the divider subviews don't exist yet.
+            self.applyPersistedZoneVisibility()
             self.applyDividerStyleForCurrentOpacity()
+            self.adjustRootForCollapsedBands()
+        }
+    }
+
+    /// v0.30 boss 2026-09-01 OOB (auto-fill band on full collapse):
+    /// when both panes of the lower band (= chat + dynamic) are
+    /// collapsed, push the root column divider all the way to the
+    /// bottom edge so the upper band fills the entire root height.
+    /// When at least one lower pane is visible, restore the
+    /// preset 50/50 weights. Runs on the ROOT controller only.
+    private func adjustRootForCollapsedBands() {
+        guard case .split(let rootSplit) = subtree else { return }
+        guard rootSplit.orientation == .column else { return }
+        guard self.splitView.bounds.height > 0 else { return }
+        let rootItems = self.splitViewItems
+        guard rootItems.count == 2 else { return }
+        let lowerItem = rootItems[1]
+        var lowerCollapsed = true
+        var lowerHasCollapseable = false
+        func walk(_ controller: NSSplitViewController) {
+            for item in controller.splitViewItems {
+                if item.canCollapse {
+                    lowerHasCollapseable = true
+                    if !item.isCollapsed {
+                        lowerCollapsed = false
+                    }
+                }
+                if let child = item.viewController as? NSSplitViewController {
+                    walk(child)
+                }
+            }
+        }
+        walk(lowerItem.viewController as? NSSplitViewController ?? lowerItem.viewController as! NSSplitViewController)
+        let totalHeight = self.splitView.bounds.height
+        if lowerHasCollapseable && lowerCollapsed {
+            self.splitView.setPosition(totalHeight, ofDividerAt: 0)
+        } else {
+            self.splitView.setPosition(totalHeight * 0.5, ofDividerAt: 0)
         }
     }
 
@@ -774,18 +991,24 @@ final class PaneNSController: NSSplitViewController {
     /// (= if they're present, NSSplitView restores the saved
     /// position and our weights are ignored).
     private func clearStaleAutosave() {
-        let prefix = "NSSplitView Subview Frames wenshu.split.\(layoutID)."
-        let defaults = UserDefaults.standard
-        // Find all keys matching the prefix and remove them.
-        // UserDefaults doesn't expose key enumeration for arbitrary
-        // prefixes, so iterate the well-known per-split autosave
-        // keys via a dictionaryRepresentation scan.
-        for (key, _) in defaults.dictionaryRepresentation() {
-            if key.hasPrefix(prefix) {
-                defaults.removeObject(forKey: key)
+            // v0.30 boss 2026-09-01 OOB (autosave cleanup): remove ALL
+            // wenshu.split.* autosave entries, not just the current
+            // layoutID. The previous form only matched
+            // "NSSplitView Subview Frames wenshu.split.<layoutID>." =
+            // a stale entry from a prior SplitNode tree shape (= with
+            // a different UUID hash in the key suffix) survived and
+            // got applied to the new tree, warping the layout to the
+            // old proportions. Wipe everything wenshu.split.* on the
+            // first viewDidLayout so setPosition runs against a clean
+            // slate.
+            let prefix = "NSSplitView Subview Frames wenshu.split."
+            let defaults = UserDefaults.standard
+            for (key, _) in defaults.dictionaryRepresentation() {
+                if key.hasPrefix(prefix) {
+                    defaults.removeObject(forKey: key)
+                }
             }
         }
-    }
 
     /// Recursive: install a `SplitNode` into the parent controller as a
     /// nested NSSplitView (= child NSSplitViewController).
@@ -816,25 +1039,35 @@ final class PaneNSController: NSSplitViewController {
         }
 
         // Different orientation → create a nested controller.
-        // Also set the nested controller's splitView.isVertical to
-        // match this split's orientation (= otherwise the nested
-        // controller defaults to isVertical = true and the children
-        // install wrong-axis).
-        let nested = NSSplitViewController()
-        nested.splitView.isVertical = (split.orientation == .row)
-        nested.splitView.autosaveName = autosaveKey(for: split.id)
-        // Swap the default NSSplitView with WenshuSplitView
-        // (= same adjustSubviews override that makes pane frames
-        // touch + preserves drag hit-area). Must run BEFORE
-        // addChild (= which fires viewDidLoad + freezes the
-        // default NSSplitView identity). The nested controller's
-        // splitView property is settable here because the
-        // controller's own viewDidLoad has not yet fired (= the
-        // view only loads when parent.addChild triggers it).
-        nested.splitView = WenshuSplitView()
+        // v0.30 boss 2026-09-01 OOB (zone toggle fix): instantiate
+        // PaneNSController (= not the bare NSSplitViewController) so
+        // applyPersistedZoneVisibility / handleToggleZone can walk
+        // the controller tree and find each pane's TabKind via the
+        // `paneKindByItem` dictionary recorded by `makeSplitItems`.
+        // Without this, the nested controllers are untyped wrappers
+        // (= no TabKind lookup → no startup fold, no menu-toggle
+        // fold). The splitView / autosaveName wiring below mirrors
+        // the bare-NSSplitViewController path so the visual behaviour
+        // is unchanged.
+        let nested = PaneNSController(
+            store: store,
+            appState: appState,
+            bookStore: bookStore,
+            layoutID: split.id,
+            installObservers: false,
+            subtree: .split(split)
+        )
         nested.splitView.isVertical = (split.orientation == .row)
         nested.splitView.autosaveName = autosaveKey(for: split.id)
         installChildren(split.children, weights: split.weights, into: nested)
+        // v0.30 boss 2026-09-01 OOB (zone toggle fix): the nested
+        // controller skipped its own buildLayout (= avoids
+        // double-installing the children above), so its
+        // pendingWeights is empty. Register the nested's own
+        // weight entry here so viewDidLayout's deferred
+        // applyWeights still positions the band dividers
+        // correctly.
+        nested.pendingWeights.append((nested, split.weights))
         parent.addChild(nested)
         // Register this nested controller's weights for the
         // deferred apply pass (= viewDidLayout runs after bounds
@@ -859,28 +1092,19 @@ final class PaneNSController: NSSplitViewController {
     /// user's manual drag adjustments).
     private func applyWeights(_ weights: [Double], on controller: NSSplitViewController) {
         let splitView = controller.splitView
-        // Walk each divider (= divider count = NSSplitViewItem count - 1).
         let itemCount = controller.splitViewItems.count
         guard itemCount >= 2 else { return }
         let dividerCount = itemCount - 1
         let total = weights.reduce(0, +)
         guard total > 0 else { return }
 
-        // Cumulative weight position (= where each divider should sit).
         var cumulative: CGFloat = 0
         let isVertical = splitView.isVertical
 
         for dividerIndex in 0..<dividerCount {
-            // Position of this divider = cumulative weight / total
-            // of the parent's available span.
             cumulative += weights[dividerIndex]
             let proportion = cumulative / CGFloat(total)
 
-            // Translate proportion to pixel position.
-            // For horizontal split (= isVertical = true = children
-            // side-by-side): position is along x = proportion * width.
-            // For vertical split (= isVertical = false = children
-            // stacked): position is along y = proportion * height.
             let totalSpan: CGFloat = isVertical ? splitView.bounds.width : splitView.bounds.height
             let position = totalSpan * proportion
             splitView.setPosition(position, ofDividerAt: dividerIndex)
@@ -904,7 +1128,18 @@ final class PaneNSController: NSSplitViewController {
             case .split(let split):
                 installSplit(split, parent: controller, parentOrientation: controller.splitView.isVertical ? .row : .column)
             case .group(let group):
-                let items = makeSplitItems(for: group, weight: weight)
+                // v0.30 boss 2026-09-01 OOB (zone toggle fix): pass
+                // the target controller (= `into:`) through to
+                // makeSplitItems so the per-controller
+                // `paneKindByItem` map is populated on the right
+                // instance. Without this, a nested controller's
+                // groups would land in the ROOT's map (= the lookup
+                // in applyPersistedZoneVisibility would miss every
+                // nested pane because nested.paneKindByItem stays
+                // empty). The previous implicit `self.makeSplitItems`
+                // form rooted the map on whichever PaneNSController
+                // instance happened to be running the install pass.
+                let items = makeSplitItems(for: group, weight: weight, on: controller)
                 for item in items {
                     controller.addSplitViewItem(item)
                 }
@@ -919,9 +1154,18 @@ final class PaneNSController: NSSplitViewController {
     /// `NSHostingController(rootView: TabContentDispatcher)` so the
     /// pane's SwiftUI @Environment lookup still works (= threaded
     /// through init's appState + bookStore).
+    ///
+    /// v0.30 boss 2026-09-01 OOB (zone toggle fix): the `on` parameter
+    /// is the PaneNSController that will OWN the `paneKindByItem`
+    /// entry. It may be `self` (= caller is the owner) or a nested
+    /// controller (= caller is the root installChildren, target is a
+    /// nested controller's splitView). Without explicit ownership the
+    /// previous implicit `self` form rooted the map on whichever
+    /// instance happened to be running the install pass.
     private func makeSplitItems(
         for group: GroupNode,
-        weight: Double
+        weight: Double,
+        on owner: NSSplitViewController
     ) -> [NSSplitViewItem] {
         // Resolve the active pane (= fall back to first if missing).
         guard let activePaneID = group.panes.first(where: { $0 == group.active })
@@ -945,6 +1189,21 @@ final class PaneNSController: NSSplitViewController {
         let item = NSSplitViewItem(viewController: hosting)
         item.canCollapse = isCollapsiblePane(activePaneID)
         item.minimumThickness = minThickness(for: activePaneID, weight: weight)
+        // v0.30 boss 2026-09-01 OOB (zone toggle fix): record the
+        // mapping by the item's *index* within the OWNER
+        // controller's `splitViewItems` array (NOT by
+        // ObjectIdentifier; Apple may re-wrap NSSplitViewItem
+        // instances between install and viewDidLayout). The
+        // positional index is stable (= the i-th item at install
+        // time stays the i-th item at notification time, because
+        // `makeSplitItems` always returns exactly one item per
+        // group and `installChildren` calls `addSplitViewItem` in
+        // left-to-right order). The map lives on the owner (= the
+        // controller whose splitView will hold the item, which may
+        // be `self` or a nested controller).
+        if let ownerPaneController = owner as? PaneNSController {
+            ownerPaneController.paneKindByItem[owner.splitViewItems.count] = tab.kind
+        }
         return [item]
     }
 
@@ -952,7 +1211,7 @@ final class PaneNSController: NSSplitViewController {
     /// a single-pane layout). Mirrors `makeSplitItems` minus the parent
     /// controller split.
     private func installGroup(_ group: GroupNode) {
-        let items = makeSplitItems(for: group, weight: 1.0)
+        let items = makeSplitItems(for: group, weight: 1.0, on: self)
         for item in items {
             addSplitViewItem(item)
         }
@@ -975,17 +1234,20 @@ final class PaneNSController: NSSplitViewController {
     }
 
     /// Which panes can the user collapse (= via the "Display" menu /
-    /// sidebar toolbar toggle). Matches FCP's collapsible sidebars +
-    /// chat/dynamic zones. Central panes (= editor) are NOT collapseable.
+    /// sidebar toolbar toggle). Boss 2026-09-01 OOB rule: everything
+    /// except the editor is collapsible (= the editor is the one
+    /// pane the user is always writing in; collapsing it would
+    /// hide the work surface). Sidebar / preview / tools / chat /
+    /// dynamic all follow the standard FCP hide/show affordance.
     private func isCollapsiblePane(_ paneID: PaneID) -> Bool {
         guard let pane = store.workspace.pane(for: paneID),
               let firstTabID = pane.tabIDs.first,
               let tab = store.workspace.tab(for: firstTabID)
         else { return false }
         switch tab.kind {
-        case .projectSidebar, .aiChat, .aiDynamic, .specializedTools:
+        case .projectSidebar, .projectPreview, .specializedTools, .aiChat, .aiDynamic:
             return true
-        case .projectPreview, .editor:
+        case .editor:
             return false
         }
     }

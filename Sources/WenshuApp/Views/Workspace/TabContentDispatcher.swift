@@ -273,12 +273,19 @@ private struct GroupTabStrip: View {
 @MainActor
 struct ChatZoneTopChrome: View {
     @State private var showingArchiveConfirm: Bool = false
+    @State private var isArchiveHover: Bool = false
     @Namespace private var tabBarNamespace
 
     var body: some View {
         // v0.28 followup Boss UX round A (Phase 3 of refactor): ChatZoneTopChrome
         // body now delegates to `PaneTabBar` generic component (= ComponentIndex.md
         // Level 3.2). Was 74 LOC, now ~25 LOC. Behavior preserved 1:1.
+        //
+        // Boss 2026-09-01 OOB: removed the trailing button's local
+        // `.padding(.trailing, ...)` modifier (= was double-padding
+        // the icon: PaneTabBar now applies a single 18 PT trailing
+        // padding to the whole bar, so the local button padding
+        // pushed the icon 64 PT from the right edge instead of 18).
         PaneTabBar(
             items: [
                 PaneTabItem(id: "chat", icon: "bot", label: "对话"),
@@ -288,6 +295,13 @@ struct ChatZoneTopChrome: View {
             namespaceID: "chatTabUnderline",
             trailing: {
                 // Right: archive icon (= matches old 6区 right-side inbox icon).
+                //
+                // Boss 2026-09-01 OOB: added .onHover tint
+                // (= PaneIconTab's hover behaviour for consistency
+                // with the leading tabs). Without it, the archive
+                // button was the only chrome button that did not
+                // visually respond to mouse hover (= users had no
+                // feedback that the icon was clickable).
                 Button {
                     showingArchiveConfirm = true
                 } label: {
@@ -295,13 +309,15 @@ struct ChatZoneTopChrome: View {
                         .frame(width: DesignTokens.paneTabHotArea, height: DesignTokens.paneTabHotArea)
                         .overlay(alignment: .center) {
                             LucideIconSystemFallback("inbox", size: DesignTokens.tabIconSize)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(isArchiveHover ? Color.accentColor : Color.secondary)
                         }
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .onHover { hovering in
+                    isArchiveHover = hovering
+                }
                 .help("归档本次会话")
-                .padding(.trailing, DesignTokens.chromePaddingTrailing)
             }
         )
     }

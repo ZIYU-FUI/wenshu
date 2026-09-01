@@ -215,6 +215,35 @@ final class WorkspaceStore: ObservableObject {
         let builtinWorkspace = builtinDefault?.workspace ?? Self.makeBuiltinWorkspace()
         self.workspace = builtinWorkspace
         self.currentPresetID = builtinDefault?.id ?? presets.first(where: { $0.isBuiltIn })?.id
+        // v0.30 boss 2026-09-01 OOB (zone toggle reset): also
+        // reset the 5 `wenshu.zoneVisible.*` UserDefaults flags so
+        // a "恢复默认布局" call returns ALL panes to their visible
+        // state. Without this the layout tree resets but hidden
+        // panes stay hidden (= toolbar buttons and visible
+        // state go out of sync). Removes each flag via standard
+        // `removeObject(forKey:)` (= next launch reads
+        // `@AppStorage(...) = true` default).
+        let defaults = UserDefaults.standard
+        for key in [
+            "wenshu.zoneVisible.projectSidebar",
+            "wenshu.zoneVisible.projectPreview",
+            "wenshu.zoneVisible.specializedTools",
+            "wenshu.zoneVisible.aiChat",
+            "wenshu.zoneVisible.aiDynamic"
+        ] {
+            defaults.removeObject(forKey: key)
+        }
+        // v0.30 boss 2026-09-01 OOB (zone toggle reset): force-
+        // broadcast UserDefaults.didChangeNotification so the
+        // SwiftUI @AppStorage wrappers in WiredShell re-read the
+        // cleared keys (= default value `true` kicks in, toolbar
+        // buttons return to accent, panes un-hide). Without this
+        // post, SwiftUI's KVO observer sometimes misses the change
+        // (= view stays stale until the next launch).
+        NotificationCenter.default.post(
+            name: UserDefaults.didChangeNotification,
+            object: nil
+        )
         save()
         savePresets()
     }
@@ -446,12 +475,30 @@ final class WorkspaceStore: ObservableObject {
         let chat = TabSpec.make(kind: .aiChat, title: "聊天区")
         let dynamic = TabSpec.make(kind: .aiDynamic, title: "动态区")
 
-        let sidebarPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 200, idealWidth: 240, flex: 0.4), tabs: [sidebar.id])
-        let previewPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 200, idealWidth: 280, flex: 0.5), tabs: [preview.id])
-        let editorPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 300, idealWidth: 700, flex: 1.0), tabs: [editor.id])
-        let toolsPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 200, idealWidth: 360, flex: 0.6), tabs: [tools.id])
-        let chatPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 200, idealWidth: 400, flex: 1.0), tabs: [chat.id])
-        let dynamicPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 200, idealWidth: 400, flex: 1.0), tabs: [dynamic.id])
+        // v0.30 boss 2026-09-01 OOB (15/20/50/15 ratio): upper band
+        // column weights = [3, 4, 10, 3] (= 3+4+10+3 = 20, so
+        // sidebar=15%, preview=20%, editor=50%, tools=15%). The
+        // earlier 10/20/60/10 weights (= [1, 2, 6, 1]) were too
+        // narrow on sidebar and tools (= 145 PT each = users had
+        // to drag both edges wider on every fresh install). Boss
+        // now wants the symmetric 15/20/50/15 (= sidebar and
+        // tools at 217.8 PT each, preview at 290.4 PT, editor at
+        // 726 PT in a 1452 PT window).
+        //
+        // PaneFrame idealWidths (= PT) match the weights against
+        // the 1452 PT window so NSSplitView's natural layout
+        // already starts close to the target (= setPosition only
+        // needs to nudge, not redo, the layout). minWidths are
+        // kept low enough that the preset ratios can actually be
+        // achieved (= the previous 200 PT floor on sidebar/tools
+        // would have clamped both panes to 200 PT minimum and
+        // forced a 17/17/31/35 distribution, way off spec).
+        let sidebarPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 80, idealWidth: 218, flex: 0.4), tabs: [sidebar.id])
+        let previewPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 120, idealWidth: 290, flex: 0.5), tabs: [preview.id])
+        let editorPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 200, idealWidth: 726, flex: 1.0), tabs: [editor.id])
+        let toolsPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 80, idealWidth: 218, flex: 0.6), tabs: [tools.id])
+        let chatPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 120, idealWidth: 1016, flex: 1.0), tabs: [chat.id])
+        let dynamicPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 120, idealWidth: 436, flex: 1.0), tabs: [dynamic.id])
 
         let panes = [sidebarPane, previewPane, editorPane, toolsPane, chatPane, dynamicPane]
         let tabs = [sidebar, preview, editor, tools, chat, dynamic]
@@ -478,6 +525,13 @@ final class WorkspaceStore: ObservableObject {
         // because both have 1 card-like element. Fix in
         // PreviewPane.swift: enforce 2-column grid when pane width
         // >= 280 PT (= 2 cards side by side = looks 2x the sidebar).
+        // v0.30 boss 2026-09-01 OOB (15/20/50/15 ratio): upper band
+        // weights = [3, 4, 10, 3] (= total 20, so sidebar=15%,
+        // preview=20%, editor=50%, tools=15%). The earlier
+        // 10/20/60/10 weights (= [1, 2, 6, 1]) made sidebar and
+        // tools too narrow (= 145 PT each in a 1452 PT window,
+        // users had to drag both edges wider on every fresh
+        // install). 15/20/50/15 is the new boss spec.
         let upperBand = makeSplit(
             orientation: .row,
             children: [
@@ -486,7 +540,7 @@ final class WorkspaceStore: ObservableObject {
                 makeGroup(panes: [editorPane.id]),
                 makeGroup(panes: [toolsPane.id])
             ],
-            weights: [1, 2, 6, 1]
+            weights: [3, 4, 10, 3]
         )
         // v0.30 boss 2026-09-01 OOB: lower band (chat + dynamic) gets a
         // 70/30 ratio (= chat dominates, dynamic is a secondary
