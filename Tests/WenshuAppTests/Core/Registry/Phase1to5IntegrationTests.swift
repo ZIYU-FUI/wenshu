@@ -69,9 +69,25 @@ final class Phase1to5IntegrationTests: XCTestCase {
             weights: [2.0, 3.0]
         )
 
-        // 2. Apply it via WorkspaceStore.applyTree (= deep-clones).
+        // 2. Apply it via WorkspaceStore.loadPreset (= equivalent
+        // to the legacy applyTree deep-clone path removed in v0.30).
+        // Reuse the built-in default's panes + tabs so the
+        // resulting workspace is internally consistent.
         let store = WorkspaceStore(userDefaults: UserDefaults(suiteName: "test-\(UUID())")!)
-        store.applyTree(customLayout, presetID: UUID())
+        let builtinDefault = store.presets.first { $0.isBuiltIn && $0.name == "默认" }!
+        let presetID = UUID()
+        let preset = LayoutPreset(
+            id: presetID,
+            name: "test-applyTree",
+            workspace: WorkspaceState(
+                root: customLayout,
+                panes: builtinDefault.workspace.panes,
+                tabs: builtinDefault.workspace.tabs,
+                version: 2
+            ),
+            isBuiltIn: false
+        )
+        store.loadPreset(preset)
 
         // 3. Verify the tree structure is applied.
         if case .split(let s) = store.workspace.root {
