@@ -182,9 +182,15 @@ private struct WorldEntryCard: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Color.clear)
-        )
+        // v0.30 boss 2026-09-01 OOB: card background uses
+        // .glassEffect(.regular) (= Apple canonical Liquid Glass
+        // card on macOS 27 Tahoe per developer.apple.com/documentation/
+        // technologyoverviews/liquid-glass). .glassEffect is the
+        // macOS 27 SwiftUI API (= unlike the older Material enum
+        // which only adds a tint layer, .glassEffect adds the full
+        // Apple Liquid Glass shape: blur + specular highlight +
+        // shadow + adaptive opacity). The shape matches the card's
+        // RoundedRectangle outline (= 8 PT corner radius).
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 }
