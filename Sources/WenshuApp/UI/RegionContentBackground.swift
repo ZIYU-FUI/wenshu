@@ -78,31 +78,20 @@ public struct RegionContentBackground: View {
 
     public var body: some View {
         // v0.28 followup Boss UX round 49 (Boss 2026-08-29 OOB
-        // '在设置里加一个功能, 液态玻璃透明度调节'): maps the
-        // `liquidGlassOpacity` environment value (= 0.0 to 1.0) to a
-        // SwiftUI Material strength (= 4 discrete levels, gradient
-        // between them so the slider feels smooth):
-        // - 0.00 - 0.24 = Color.clear (= no tint, full wallpaper visibility)
-        // - 0.25 - 0.49 = .ultraThinMaterial (= subtle glass tint)
-        // - 0.50 - 0.74 = .regularMaterial (= standard glass tint)
-        // - 0.75 - 1.00 = .thickMaterial (= strong tint, dividers may
-        //   be covered = balanced with pane visibility requirement)
+        // '在设置里加一个功能, 液态玻璃透明度调节'): read the
+        // user's Liquid Glass opacity preference from the SwiftUI
+        // environment (= set by `SettingView.liquidGlassOpacity`
+        // AppStorage slider and propagated via
+        // .liquidGlassOpacityEnvironment from the root view).
+        // Default = 0.5 (= subtle glass tint).
         //
-        // Boss can tune in Settings → 通用 → 液态玻璃 slider.
-        // Slider value updates immediately via @AppStorage = no need
-        // to restart the app.
-        if liquidGlassOpacity < 0.25 {
-            Color.clear
-        } else if liquidGlassOpacity < 0.5 {
-            Color.clear
-                .overlay(.ultraThinMaterial)
-        } else if liquidGlassOpacity < 0.75 {
-            Color.clear
-                .overlay(.regularMaterial)
-        } else {
-            Color.clear
-                .overlay(.thickMaterial)
-        }
+        // v0.30 boss 2026-09-01 OOB: extracted the 4-step mapping
+        // into the `Double.toLiquidGlassMaterial()` helper on
+        // LiquidGlassOpacity.swift (= also used by RegionTabBar
+        // + RegionStatusBar so all chrome surfaces follow the
+        // same slider).
+        Color.clear
+            .overlay(liquidGlassOpacity.toLiquidGlassMaterial())
     }
 }
 

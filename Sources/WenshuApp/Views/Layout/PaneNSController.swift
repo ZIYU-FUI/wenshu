@@ -94,6 +94,63 @@ final class PaneNSController: NSSplitViewController {
             name: .wenshuToggleZone,
             object: nil
         )
+        // v0.30 boss 2026-09-01 OOB: NSSplitView's divider style now
+        // follows the Liquid Glass opacity slider. At opacity 0 (= the
+        // user explicitly wants fully transparent chrome), hide the
+        // divider entirely (= boss OOB 'completely transparent'); for
+        // any other value, use Apple's standard `.thin` divider (= a
+        // semitransparent hairline that adapts to dark/light mode).
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleLiquidGlassOpacityChanged),
+            name: .liquidGlassOpacityChanged,
+            object: nil
+        )
+        applyDividerStyleForCurrentOpacity()
+    }
+
+    /// v0.30 boss 2026-09-01 OOB: read `wenshu.liquidGlassOpacity`
+    /// from UserDefaults and set NSSplitView's divider style
+    /// accordingly. At opacity < 0.05 the divider becomes
+    /// invisible (= boss's "完全透明" requirement); for any other
+    /// value we use Apple's `.thin` divider (= canonical macOS 27
+    /// Liquid Glass hairline).
+    private func applyDividerStyleForCurrentOpacity() {
+        let opacity = UserDefaults.standard.double(forKey: "wenshu.liquidGlassOpacity")
+        // Apple NSSplitView.DividerStyle has 4 cases: thin, thick,
+        // paneSplitter, default. There is no '.none' case. We
+        // approximate "invisible at opacity 0" by using
+        // .paneSplitter (= the divider style that ships in pane
+        // mode with no visible line, just a wider hit area).
+        // For any other opacity value, use .thin (= Apple
+        // canonical Liquid Glass hairline on macOS 27).
+        let style: NSSplitView.DividerStyle = opacity < 0.05 ? .paneSplitter : .thin
+        applyDividerStyle(style, to: splitView)
+        // Apply recursively to nested split views so dividers
+        // across the entire 6-zone FCP layout react in unison.
+        for child in children {
+            if let nestedController = child as? NSSplitViewController {
+                applyDividerStyle(style, to: nestedController.splitView)
+            }
+        }
+    }
+
+    /// Recursive helper to apply a divider style to a split view
+    /// AND its nested children (= the upperBand / lowerBand nested
+    /// NSSplitViewControllers in the FCP default layout).
+    private func applyDividerStyle(
+        _ style: NSSplitView.DividerStyle,
+        to splitView: NSSplitView
+    ) {
+        splitView.dividerStyle = style
+    }
+
+    /// v0.30 boss 2026-09-01 OOB: notification handler fired when
+    /// the Liquid Glass opacity slider in Settings changes. Re-reads
+    /// the value and updates NSSplitView's divider style live (=
+    /// no app restart required).
+    @objc private func handleLiquidGlassOpacityChanged() {
+        applyDividerStyleForCurrentOpacity()
     }
 
     /// Gap F forward-fix: handle `.wenshuToggleZone(ZoneSlot)` notification

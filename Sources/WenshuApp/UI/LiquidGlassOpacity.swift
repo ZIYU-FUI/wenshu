@@ -51,6 +51,39 @@ public extension View {
     }
 }
 
+// MARK: - Material mapping helper
+
+public extension Double {
+    /// v0.30 boss 2026-09-01 OOB: extend Liquid Glass opacity
+    /// slider mapping from just the pane content background
+    /// (= RegionContentBackground, committed in v0.28 followup
+    /// round 49) to ALSO cover the per-pane title bar / status
+    /// bar / divider (= three surfaces that should follow the
+    /// same slider). Returns the SwiftUI Material for a given
+    /// opacity (= 4 discrete steps, matching Apple's Liquid
+    /// Glass translucency ladder).
+    ///
+    /// - 0.00 - 0.24: .ultraThinMaterial (= nearly invisible)
+    /// - 0.25 - 0.49: .ultraThinMaterial (= subtle glass tint)
+    /// - 0.50 - 0.74: .regularMaterial (= standard glass tint)
+    /// - 0.75 - 1.00: .thickMaterial (= strong tint)
+    ///
+    /// Boss can tune in Settings -> 通用 -> 液态玻璃 slider.
+    /// Slider value updates immediately via @AppStorage (= no
+    /// need to restart the app).
+    func toLiquidGlassMaterial() -> Material {
+        if self < 0.25 {
+            return .ultraThinMaterial
+        } else if self < 0.5 {
+            return .ultraThinMaterial
+        } else if self < 0.75 {
+            return .regularMaterial
+        } else {
+            return .thickMaterial
+        }
+    }
+}
+
 // MARK: - AppStorage bridge
 
 public extension Notification.Name {
