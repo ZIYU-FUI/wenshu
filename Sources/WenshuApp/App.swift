@@ -658,14 +658,22 @@ struct SettingView: View {
     // WenshuConductorIdentity.userAddress reads this key at LLM call time.
     // Boss 8/24 clarification: default = 'user' (not 'boss' = hermes-side convention).
     @AppStorage("wenshu.userAddress") private var userAddress: String = "user"
-    // v0.28 followup Boss UX round 49 (Boss 2026-08-29 OOB '在设置里加一个功能,
-    // 液态玻璃透明度调节' = Liquid Glass opacity slider). User can tune
-    // how strong the per-pane Liquid Glass tint is (= 0.0 = fully transparent
-    // wallpaper shows through / 1.0 = pane is solid). Stored in @AppStorage
-    // so it persists across launches. Applied via LiquidGlassOpacity environment
-    // value (= RegionContentBackground, RegionTabBar, RegionStatusBar
-    // all read this value to compute their material strength).
-    @AppStorage("wenshu.liquidGlassOpacity") private var liquidGlassOpacity: Double = 0.5
+    // v0.30 boss 2026-09-01 OOB (Slider sync bug fix): replaced
+    // @AppStorage("wenshu.liquidGlassOpacity") with a manual
+    // @State mirror. SwiftUI's @AppStorage does NOT actively
+    // re-read UserDefaults when an external tool writes to the
+    // key (= e.g. `defaults write com.wenshu.app wenshu.liquidGlassOpacity=0`
+    // from a terminal), so the slider UI got stuck at the init
+    // value (0.5) on launch. The manual @State mirror listens to
+    // UserDefaults.didChangeNotification and re-reads the key, so
+    // external writes propagate to the UI within one runloop tick.
+    // The mirror also writes back to UserDefaults + posts
+    // .liquidGlassOpacityChanged (= the existing notification the
+    // non-SwiftUI AppKit consumers like WenshuSplitView already
+    // listen to) on slider drag.
+    private static let liquidGlassOpacityKey = "wenshu.liquidGlassOpacity"
+    @State private var liquidGlassOpacity: Double = UserDefaults.standard
+        .double(forKey: liquidGlassOpacityKey)
 
     private var selectedTab: SettingsTab {
         get { SettingsTab(rawValue: selectedTabRaw) ?? .general }
@@ -787,6 +795,19 @@ struct SettingView: View {
                             .foregroundStyle(.secondary)
                     }
                     Slider(value: $liquidGlassOpacity, in: 0.0...1.0, step: 0.05)
+                        // v0.30 boss 2026-09-01 OOB (Slider sync bug fix):
+                        // write back to UserDefaults + post the cross-instance
+                        // notification (= the AppKit consumers like
+                        // WenshuSplitView.drawDivider listen to this) on
+                        // every slider drag. Manual @State binding doesn't
+                        // auto-write, so we own that side too.
+                        .onChange(of: liquidGlassOpacity) { _, newValue in
+                            UserDefaults.standard.set(newValue, forKey: Self.liquidGlassOpacityKey)
+                            NotificationCenter.default.post(
+                                name: .liquidGlassOpacityChanged,
+                                object: nil
+                            )
+                        }
                     Text("0% = 完全透明 · 50% = 默认 · 100% = 强烈玻璃")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
@@ -804,6 +825,21 @@ struct SettingView: View {
                     Text("影响除标题栏外的所有液态玻璃界面元素。标题栏跟随 macOS 系统设置（系统设置 → 辅助功能 → 显示 → 减少透明度）")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
+                }
+                // v0.30 boss 2026-09-01 OOB (Slider sync bug fix): react
+                // to UserDefaults changes from outside this View (= e.g.
+                // another Settings window, or a terminal running
+                // `defaults write com.wenshu.app wenshu.liquidGlassOpacity=0`).
+                // SwiftUI's @AppStorage did not actively re-read on
+                // external writes; the manual @State mirror needs an
+                // explicit observer. The filter (= does the
+                // notification's userInfo mention our key) avoids
+                // gratuitous re-renders on unrelated defaults changes.
+                .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in
+                    let stored = UserDefaults.standard.double(forKey: Self.liquidGlassOpacityKey)
+                    if stored != liquidGlassOpacity {
+                        liquidGlassOpacity = stored
+                    }
                 }
             }
             Section("Agent 称呼") {
