@@ -138,10 +138,52 @@ final class PaneNSController: NSSplitViewController {
     ///   expose a custom divider alpha either, but the divider
     ///   would be SwiftUI-native and controllable via overlay).
     private func applyDividerStyleForCurrentOpacity() {
-        // Intentionally empty: do not set dividerStyle (= Apple
-        // default = .thick). Step 1 = restore API default per
-        // boss 2026-09-01 OOB. Step 2 will pick a different
-        // implementation.
+        // v0.30 boss 2026-09-01 OOB (final design): the divider is
+        // 1 PT Apple default (= NSSplitView default dividerStyle =
+        // .thick, with 1 PT gap between subviews; boss accepted the
+        // Apple limit after multiple failed attempts to make it 0
+        // PT). The divider subview is tinted with NSColor.separatorColor
+        // (= Apple system color; auto-adapts to dark / light mode
+        // and renders as a dark hairline in dark mode / a light
+        // hairline in light mode). The Liquid Glass slider does
+        // NOT influence the divider visual.
+        //
+        // Per ponytail: do not subclass NSSplitView, do not override
+        // draw(_:) / adjustSubviews, do not set dividerStyle. Just
+        // walk the divider subviews (= the NSView instances
+        // NSSplitView internally mounts between subviews; their
+        // class name contains "Divider") and tint them with the
+        // Apple system separator color. The divider is visible,
+        // 1 PT, and uses Apple system color = boss's exact spec.
+        for splitView in allSplitViews() {
+            tintDividerSubviews(in: splitView)
+        }
+    }
+
+    /// Walk the controller + nested NSSplitViewControllers to
+    /// collect every NSSplitView (= the root + each nested split).
+    private func allSplitViews() -> [NSSplitView] {
+        var result: [NSSplitView] = [splitView]
+        for child in children {
+            if let nested = child as? NSSplitViewController {
+                result.append(nested.splitView)
+            }
+        }
+        return result
+    }
+
+    /// Tint each divider subview (= NSSplitView's internal NSView
+    /// between subviews; class name contains "Divider") with
+    /// NSColor.separatorColor (= Apple system color; auto-adapts
+    /// to dark / light mode). One Apple native NSColor constant +
+    /// one CGColor assignment = no custom view class needed.
+    private func tintDividerSubviews(in splitView: NSSplitView) {
+        for subview in splitView.subviews {
+            let className = String(describing: type(of: subview))
+            guard className.contains("Divider") else { continue }
+            subview.wantsLayer = true
+            subview.layer?.backgroundColor = NSColor.separatorColor.cgColor
+        }
     }
 
     /// v0.30 boss 2026-09-01 OOB (divider Step 1 = API default): the
@@ -540,6 +582,13 @@ final class PaneNSController: NSSplitViewController {
                 self.applyWeights(weights, on: controller)
             }
             self.didApplyInitialWeights = true
+            // After the first weights apply (= dividers are now
+            // mounted at their final positions), tint each divider
+            // subview with Apple system separator color. The tint
+            // only needs to run once because the divider subviews
+            // are persistent NSViews inside NSSplitView; they do
+            // not get recreated on subsequent layout passes.
+            self.applyDividerStyleForCurrentOpacity()
         }
     }
 
