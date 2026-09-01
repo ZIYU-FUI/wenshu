@@ -790,6 +790,20 @@ struct SettingView: View {
                     Text("0% = 完全透明 · 50% = 默认 · 100% = 强烈玻璃")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
+                    // v0.30 boss 2026-09-01 OOB: clarify the slider's
+                    // scope so the user does not expect it to control
+                    // the title bar (= title bar follows macOS System
+                    // Settings, per boss clarification 'let the title
+                    // bar follow the system, not the setting').
+                    // Affects: per-pane content + per-region tab/status
+                    // bar + bottom AppStatusbar. Does NOT affect the
+                    // title bar (.unified windowToolbarStyle is
+                    // system-managed; macOS System Settings ->
+                    // Accessibility -> Display -> Reduce transparency
+                    // is the title bar knob).
+                    Text("影响除标题栏外的所有液态玻璃界面元素。标题栏跟随 macOS 系统设置（系统设置 → 辅助功能 → 显示 → 减少透明度）")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
                 }
             }
             Section("Agent 称呼") {
