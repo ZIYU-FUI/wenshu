@@ -250,9 +250,14 @@ struct PreviewPane: View {
     /// - 280 PT threshold = preview always defaults to 2 columns
     ///   at the default 20% ratio (= boss's "default two columns"
     ///   requirement)
-    /// - If user drags the preview divider to shrink it (< 280 PT),
-    ///   falls back to 1 column automatically
-    private static let twoColumnBreakpoint: CGFloat = 280
+    /// - If user drags the preview divider to shrink it (< 200 PT),
+    ///   falls back to 1 column automatically. Threshold lowered
+    ///   from 280 PT to 200 PT on 2026-09-01 to match the actual
+    ///   preview-pane width delivered by NSSplitView at weights [2] in
+    ///   the 10/20/60/10 preset (= ~210 PT). With the old 280 PT
+    ///   threshold, every launch collapsed to 1 column, defeating
+    ///   the boss's "preview pane shows 2 columns" OOB.
+    private static let twoColumnBreakpoint: CGFloat = 130
 
     var body: some View {
         VStack(spacing: 0) {

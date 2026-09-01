@@ -232,11 +232,21 @@ final class PaneNSController: NSSplitViewController {
     /// children + their NSSplitViewItems. Called once from `init`; the
     /// tree is then frozen for this controller's lifetime (= ticket 04
     /// will rebuild via SwiftUI re-make on preset switch).
-    /// Stores the root SplitNode weights so viewDidLayout can apply
-    /// them on first layout (= bounds are 0 at init time; we cannot
-    /// setPosition before the view is laid out). Captured during
-    /// buildLayout and consumed by viewDidLayout.
-    private var pendingRootWeights: [Double] = []
+    /// Stores every (controller, weights) pair that needs divider
+    /// positions applied on the first layout pass. NSSplitView's
+    /// bounds are 0 at init time, so setPosition must run AFTER
+    /// viewDidLayout (= when bounds are non-zero). Captured during
+    /// buildLayout / installSplit and consumed by viewDidLayout.
+    ///
+    /// Includes the ROOT (= first tuple) plus all NESTED split
+    /// controllers (= the upperBand and lowerBand each have their
+    /// own weights that the root controller doesn't see). The view
+    /// hierarchy from a parent split propagates into the
+    /// per-controller controller.splitView (NSSplitViewController
+    /// keeps the children array and creates a corresponding
+    /// NSSplitViewItem for each, so weights at every level need
+    /// their own applyWeights call).
+    private var pendingWeights: [(NSSplitViewController, [Double])] = []
 
     private func buildLayout() {
         // Reset any inherited children (= safety against reuse).
@@ -265,12 +275,158 @@ final class PaneNSController: NSSplitViewController {
             // the inner pane arrangements, which is where manual
             // tweaks actually happen).
             self.splitView.autosaveName = nil
-            pendingRootWeights = split.weights
             installSplit(split, parent: self, parentOrientation: split.orientation == .row ? .row : .column)
+            // v0.30 boss 2026-09-01 OOB fix: AFTER the entire
+            // installSplit tree is built, walk the controller
+            // hierarchy and capture every NSSplitViewController's
+            // weights (= the items that ended up living on each
+            // controller's NSSplitView). Capturing here (= not
+            // incrementally inside installSplit) avoids the
+            // recursive-state bug where installSplit fires its
+            // SAME-orientation branch from inside installChildren,
+            // which doesn't know about pendingWeights.
+            pendingWeights = collectPendingWeights()
         case .group(let group):
             self.splitView.isVertical = true
             installGroup(group)
+            pendingWeights = [(self, [])]
         }
+    }
+
+    /// Walk the controller hierarchy (= self + every nested
+    /// NSSplitViewController child) and return one tuple per
+    /// controller whose splitView has more than one subview (=
+    /// i.e. it has at least one divider to position). The weights
+    /// array is computed from the matching SplitNode (= found by
+    /// walking the original tree in parallel).
+    ///
+    /// Implementation note: we walk via children traversal and
+    /// look up the matching SplitNode by structural position. For
+    /// the v0.30 FCP layout (= root column → upperBand row →
+    /// 4 groups + lowerBand row → 2 groups), the tree has 3
+    /// NSSplitViewControllers (= root column, upperBand row,
+    /// lowerBand row) and 3 weight sets (= [1,1], [1,2,6,1],
+    /// [7,3]). All 3 need applyWeights.
+    private func collectPendingWeights() -> [(NSSplitViewController, [Double])] {
+        var result: [(NSSplitViewController, [Double])] = []
+        // The root always needs its weights (= its NSSplitView
+        // hosts either the children directly or nested controllers).
+        if case .split(let rootSplit) = store.workspace.root {
+            result.append((self, rootSplit.weights))
+            // Walk children recursively. For each child that is a
+            // .split (= becomes a nested controller), recurse and
+            // also add the nested controller's own weights. For each
+            // child that is a .group, skip (= no nested controller
+            // and no divider on the parent to position because the
+            // parent has multiple items already).
+            for child in rootSplit.children {
+                collectPendingWeightsHelper(for: child, into: &result)
+            }
+        }
+        return result
+    }
+
+    /// Recursive helper for collectPendingWeights.
+    ///
+    /// Walk the SplitNode subtree in parallel with the
+    /// NSSplitViewController child array. Each .split child
+    /// corresponds to a nested NSSplitViewController (= the one
+    /// installSplit created via parent.addChild(nested)). We add
+    /// (nested, weights) to the result, then recurse into that
+    /// nested controller's children.
+    ///
+    /// Mapping from the controller side (= self.children, an
+    /// array of NSSplitViewController) to the SplitNode side
+    /// (= the children of this SplitNode) is by INDEX: the i-th
+    /// child controller corresponds to the i-th child .split
+    /// SplitNode. .group SplitNodes don't add a nested controller
+    /// (= they install items directly on the parent splitView),
+    /// so we skip them in the controller-walk.
+    private func collectPendingWeightsHelper(
+        for node: LayoutNode,
+        into result: inout [(NSSplitViewController, [Double])]
+    ) {
+        // Only nested NSSplitViewControllers (= those created by
+        // installSplit's different-orientation branch) need
+        // weights. SAME-orientation branches added the items
+        // directly to the parent controller's splitView (= the
+        // parent already got its weights from the caller's
+        // pendingWeights entry, which uses the matching
+        // rootSplit.weights). Nested controllers live in
+        // `self.children` (= an array of NSSplitViewController);
+        // for each .split node, we look up its controller by
+        // structural position.
+        switch node {
+        case .split(let split):
+            // Find the nested NSSplitViewController that
+            // corresponds to this SplitNode. Since installSplit
+            // is called in left-to-right order (= child[0] is the
+            // first nested controller), we walk the controller
+            // children and pair them with .split nodes by index.
+            // This works because installChildren preserves the
+            // children order.
+            let nestedControllerIndex = countSplitNodesBefore(node)
+            let nestedControllers = self.children.compactMap { $0 as? NSSplitViewController }
+            if nestedControllerIndex < nestedControllers.count {
+                let nested = nestedControllers[nestedControllerIndex]
+                result.append((nested, split.weights))
+                // Recurse into the nested controller with its own
+                // SplitNode tree (= walk the nested controller's
+                // children with this split's children).
+                collectNestedHelper(nested: nested, split: split, into: &result)
+            }
+        case .group:
+            // No nested controller for a .group node. Skip.
+            break
+        }
+    }
+
+    /// Recursive helper for nested NSSplitViewControllers: walk
+    /// the SplitNode subtree and pair with the nested controller's
+    /// own children (= which are also NSSplitViewControllers or
+    /// NSViewControllers holding direct items).
+    private func collectNestedHelper(
+        nested: NSSplitViewController,
+        split: SplitNode,
+        into result: inout [(NSSplitViewController, [Double])]
+    ) {
+        // Recurse into each child of this SplitNode, which is
+        // installed as items on `nested`'s splitView. If a child
+        // is itself a .split (= SAME-orientation case), then
+        // installSplit actually created ANOTHER nested controller
+        // (= `nested.children` has it). Otherwise (.group), no
+        // nested controller was created (= items went directly
+        // onto nested's splitView, so nested's weights cover them).
+        var splitChildIndex = 0
+        for child in split.children {
+            switch child {
+            case .split(let childSplit):
+                let nestedChildren = nested.children.compactMap { $0 as? NSSplitViewController }
+                if splitChildIndex < nestedChildren.count {
+                    let childNested = nestedChildren[splitChildIndex]
+                    result.append((childNested, childSplit.weights))
+                    collectNestedHelper(nested: childNested, split: childSplit, into: &result)
+                }
+                splitChildIndex += 1
+            case .group:
+                break
+            }
+        }
+    }
+
+    /// Count how many .split nodes appear before `node` in the
+    /// parent's children array. Used to pair .split SplitNodes with
+    /// the corresponding nested NSSplitViewController by index.
+    private func countSplitNodesBefore(_ node: LayoutNode) -> Int {
+        guard case .split(let parent) = store.workspace.root else { return 0 }
+        guard let index = parent.children.firstIndex(of: node) else { return 0 }
+        var count = 0
+        for i in 0..<index {
+            if case .split = parent.children[i] {
+                count += 1
+            }
+        }
+        return count
     }
 
     override func viewDidLayout() {
@@ -282,17 +438,38 @@ final class PaneNSController: NSSplitViewController {
         // first apply, autosaveName takes over and user's manual
         // drag offsets persist (= we don't re-apply on subsequent
         // layout passes).
-        guard !didApplyInitialWeights, !pendingRootWeights.isEmpty else { return }
-        let splitView = self.splitView
-        guard splitView.bounds.width > 0, splitView.bounds.height > 0 else { return }
-        // Clear stale autosave entries that override our preset
-        // weights (= the FIRST launch persists these entries;
-        // subsequent launches re-read them and ignore our
-        // workspace weights). Without this, the ratio stays at
-        // whatever the very first launch's default was.
-        clearStaleAutosave()
-        applyWeights(pendingRootWeights, on: self)
-        didApplyInitialWeights = true
+        //
+        // We dispatch via DispatchQueue.main.async so the deferred
+        // apply runs AFTER the entire buildLayout + installSplit
+        // chain completes. Without this, viewDidLayout fires the
+        // instant addChild returns (= before subsequent nested
+        // installSplit calls have appended their pendingWeights
+        // entries), so the root gets applied but nested controllers
+        // never receive their preset weights.
+        //
+        // We do NOT snapshot pendingWeights (= the snapshot is
+        // taken AFTER the async dispatch so nested appends land in
+        // the same runloop tick before we iterate). On the second
+        // async pass (= nested controllers' own viewDidLayout fires
+        // and triggers another async), didApplyInitialWeights is
+        // still false because the previous run bailed on zero
+        // bounds. We loop until we successfully applied weights to
+        // every entry AND the root's bounds are non-zero.
+        guard !didApplyInitialWeights else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            guard !self.didApplyInitialWeights else { return }
+            guard !self.pendingWeights.isEmpty else { return }
+            // Bounds readiness check on the root. Without this,
+            // setPosition computes against a 0-wide canvas and is
+            // a no-op.
+            guard self.splitView.bounds.width > 0, self.splitView.bounds.height > 0 else { return }
+            self.clearStaleAutosave()
+            for (controller, weights) in self.pendingWeights {
+                self.applyWeights(weights, on: controller)
+            }
+            self.didApplyInitialWeights = true
+        }
     }
 
     /// Remove the NSSplitView autosave entries (= UserDefaults
@@ -332,9 +509,14 @@ final class PaneNSController: NSSplitViewController {
             installChildren(split.children, weights: split.weights, into: parent)
             // Note: do NOT call applyWeights here (= bounds may be
             // 0). viewDidLayout runs applyWeights on the ROOT after
-            // bounds are non-zero; nested splits inherit the
-            // initial autosaveName positions (= Apple's NSSplitView
-            // picks reasonable defaults for nested controllers).
+            // bounds are non-zero. The parent controller's own
+            // divider positions (= the ones installed by the
+            // installChildren call above) are picked up by
+            // collectPendingWeights below, which walks the
+            // controller tree and captures every NSSplitViewController's
+            // installed weights from its parent's SplitNode (= the
+            // one whose children it received). See collectPendingWeights
+            // for the precise mapping.
             return
         }
 
@@ -348,13 +530,11 @@ final class PaneNSController: NSSplitViewController {
         nested.splitView.autosaveName = autosaveKey(for: split.id)
         installChildren(split.children, weights: split.weights, into: nested)
         parent.addChild(nested)
-        // Note: do NOT call applyWeights on the nested controller
-        // here. The nested controller's bounds become non-zero
-        // after viewDidLayout on the root (= our app's root view
-        // hierarchy). Nested splits inherit reasonable initial
-        // divider positions from NSSplitView's defaults and
-        // autosaveName will persist user's manual drag adjustments
-        // across launches.
+        // Register this nested controller's weights for the
+        // deferred apply pass (= viewDidLayout runs after bounds
+        // are non-zero; here the nested controller's bounds are
+        // still 0 so setPosition would no-op).
+        pendingWeights.append((nested, split.weights))
     }
 
     /// v0.30 boss 2026-09-01 OOB fix: explicitly position each
@@ -397,7 +577,6 @@ final class PaneNSController: NSSplitViewController {
             // stacked): position is along y = proportion * height.
             let totalSpan: CGFloat = isVertical ? splitView.bounds.width : splitView.bounds.height
             let position = totalSpan * proportion
-            NSLog("[wenshu.NS] applyWeights divider=\(dividerIndex) weight=\(weights[dividerIndex])/total=\(total) proportion=\(proportion) span=\(totalSpan) position=\(position)")
             splitView.setPosition(position, ofDividerAt: dividerIndex)
         }
     }
