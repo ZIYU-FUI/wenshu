@@ -281,27 +281,17 @@ struct NewLibraryOutlineView: View {
                     // '双击目录树展开合上' = standard Finder behavior,
                     // supported here via the DisclosureGroup's built-in
                     // gesture.
-                        // v0.30 boss 2026-09-01 OOB: match the shelfRow
-                        // style (= HStack with icon + text + count,
-                        // same padding) so the category row visually
-                        // matches the shelf rows AND ICON aligns with
-                        // the text on the same baseline. The previous
-                        // SwiftUI Label + .badge had icon mis-aligned
-                        // with text (= label baseline vs LucideIcon
-                        // baseline = different metrics).
-                        HStack(spacing: 4) {
-                            LucideIconSidebar(category.icon)
-                                .foregroundStyle(.primary)
+                        // v0.30 boss 2026-09-01 OOB '全 apple api 默认':
+                        // SwiftUI Label = List(.sidebar) handles icon-
+                        // text alignment + hover tint + selection tint
+                        // automatically. .badge = standard trailing
+                        // accessory.
+                        Label {
                             Text(category.displayName)
-                            if entitiesCount(in: category) > 0 {
-                                Text("\(entitiesCount(in: category))")
-                                    .font(.caption2)
-                                    .foregroundStyle(.tertiary)
-                            }
-                            Spacer(minLength: 0)
+                        } icon: {
+                            LucideIconSidebar(category.icon)
                         }
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
+                        .badge(entitiesCount(in: category))
                         .tag(SidebarItem.referenceCategory(category.directoryName))
                     }
                 } label: {
@@ -311,29 +301,21 @@ struct NewLibraryOutlineView: View {
                     // 整条, 不像选定'. Fix: the .background() must be
                     // applied AFTER .badge() (= wraps the badge too,
                     // not just the Label).
-                    // v0.30 boss 2026-09-01 OOB: match the shelfRow style
-                    // (= HStack with icon + text + count, same padding)
-                    // so the 资料库 row visually matches the other
-                    // shelves (= '从这里开始' / '测试书架') and hover
-                    // tint behaves identically across the sidebar.
-                    // Previously this was a SwiftUI Label + .badge
-                    // (= badge count rendered as a separate floating
-                    // pill rather than an inline count = visually
-                    // inconsistent and the hover tint scope skipped
-                    // the count slot).
-                    HStack(spacing: 4) {
-                        LucideIconSidebar("square-library")
-                            .foregroundStyle(.primary)
+                    // v0.30 boss 2026-09-01 OOB '全 apple api 默认': use
+                    // SwiftUI Label (= Apple's canonical sidebar
+                    // row component = List(.sidebar) handles the
+                    // icon-text alignment, hover tint, and selection
+                    // tint automatically per Apple HIG). The count
+                    // is rendered via .badge (= SwiftUI's standard
+                    // trailing accessory on a List(.sidebar) row =
+                    // automatic alignment with the other shelves'
+                    // counts).
+                    Label {
                         Text("资料库")
-                        if usedCategories().count > 0 {
-                            Text("\(usedCategories().count)")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                        }
-                        Spacer(minLength: 0)
+                    } icon: {
+                        LucideIconSidebar("square-library")
                     }
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
+                    .badge(usedCategories().count)
                     .tag(SidebarItem.referenceLibraryRoot)
                 }
             }
@@ -661,33 +643,20 @@ struct NewLibraryOutlineView: View {
                 bookRowWithFolders(book)
             }
         } label: {
-            // v0.30 boss 8/31 OOB: hover tint scope = whole label
-            // (= icon + text + badge), matching the selection tint
-            // range. Boss: '我建议你改成整个目录项, 和点击后的那个
-            // 选定一个范围'. Hover tint is slightly darker than
-            // selection (= 0.18 vs SwiftUI default List selection
-            // opacity) so the user can distinguish hover from
-            // selection.
-            HStack(spacing: 4) {
-                LucideIconSidebar(shelf.displayIcon)
-                    .foregroundStyle(.primary)
+            // v0.30 boss 2026-09-01 OOB '全 apple api 默认': use
+            // SwiftUI Label (= Apple's canonical sidebar row
+            // component = List(.sidebar) handles icon-text
+            // alignment, hover tint, and selection tint
+            // automatically per Apple HIG). The count is
+            // rendered via .badge (= SwiftUI's standard trailing
+            // accessory on a List(.sidebar) row = automatic
+            // alignment with the other shelves' counts).
+            Label {
                 Text(shelf.name)
-                if books.count > 0 {
-                    Text("\(books.count)")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                }
-                Spacer(minLength: 0)
+            } icon: {
+                LucideIconSidebar(shelf.displayIcon)
             }
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            // v0.30 boss 8/31 OOB: hover tint scope = whole row (= icon
-            // + text + count), matching the selection tint range.
-            // The custom count text above (= inline HStack with
-            // books.count) replaces the .badge() modifier, so the
-            // hover background covers the entire row including the
-            // count slot.
-            .tag(SidebarItem.shelf(shelf.id))            // v0.30 boss 8/31 OOB: right-click context menu on shelf
+            .badge(books.count > 0 ? books.count : 0)            // v0.30 boss 8/31 OOB: right-click context menu on shelf
             // row. Apple HIG canonical contextMenu pattern. Two
             // actions: 重命名 (= renames the shelf in place) +
             // 删除 (= marks shelf for deletion, triggers .alert for
