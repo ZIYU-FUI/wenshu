@@ -33,116 +33,43 @@ import SwiftUI
 
 // MARK: - WenshuSplitView (= NSSplitView subclass for custom background draw)
 //
-// v0.30 boss 2026-09-01 OOB: 'no divider line + panes gap-free'.
-// Apple NSSplitView's default `adjustSubviews()` (= which we now
-// override + call super) leaves 'room for dividers in between'
-// (= a 1 PT gap between each adjacent subview, = the 1 PT gap
-// the boss is seeing as 'a wide gap'). Per the NSSplitView.h
-// header: "Delegates that respond to this message should adjust
-// the frames of the uncollapsed subviews so that they exactly
-// fill the split view with room for dividers in between".
+// v0.30 boss 2026-09-01 OOB: the 1PT gap between panes shows the
+// NSSplitView's own background (= the gap area is painted by
+// NSSplitView's `draw(_:)` path, NOT by its layer). Setting
+// `layer.backgroundColor = .clear` (= the prior commit 3cac1b43a)
+// does not affect `draw(_:)`. The 1PT gap therefore remains
+// visible as the Apple default NSSplitView background color.
 //
-// Fix = override `adjustSubviews()`, call super (= get Apple's
-// weight-based widths), then shift each subview's origin so the
-// frames TOUCH (no 1 PT gap between them), and shrink the
-// divider subviews to 0 width. The last content subview is
-// extended to bounds.maxX/Y to absorb the 1 PT of leftover
-// space (= super's gap disappears entirely).
+// Fix = subclass NSSplitView and override `draw(_:)` to paint
+// nothing (= no background fill, no 1PT gap visible). The
+// divider subview (= which IS a real subview) still mounts and
+// still handles drag (= the hit area is preserved; drag still
+// works because the divider subview is a real NSView, not a
+// draw override).
 //
-// The previous attempt (commit b26639d65 = WenshuSplitView with
-// drawDivider override) broke the layout. The current
-// implementation only overrides adjustSubviews (= the standard
-// layout hook that AppKit calls after every subview change and
-// every bounds change = safe to override = no layout break).
-//
-// The draw(_:) override is empty (= paints nothing = the 1 PT gap
-// area is transparent; combined with subview frames touching, the
-// panes are visually gap-free).
+// Wiring = swap `self.splitView` immediately after super.init and
+// before `buildLayout()` (= before any code accesses `self.view`,
+// which triggers NSSplitViewController's internal viewDidLoad
+// that defaults the view to a vanilla NSSplitView). Per the
+// NSSplitViewController.h header:
+//   "To provide a custom NSSplitView, set the splitView property
+//    anytime before self.viewLoaded is YES."
 @MainActor
 final class WenshuSplitView: NSSplitView {
     override func draw(_ dirtyRect: NSRect) {
-        // Do nothing (= the 1 PT gap area is now transparent; the
-        // divider subview itself has its layer cleared in the parent
+        // Do nothing (= the 1PT gap is now invisible; the divider
+        // subview itself also has its layer cleared in the parent
         // controller, so no visible hairline either). Subviews
         // (= the user content panes) draw themselves normally
         // because draw(_:) only fills the NSSplitView's own
         // background; it does not erase subview content.
-    }
-
-    override func adjustSubviews() {
-        // 1. Apple's default layout (= super) = weight-based widths
-        // with a 1 PT gap between each adjacent subview.
-        super.adjustSubviews()
-
-        // 2. Shift each non-divider subview's origin to the previous
-        // subview's maxX (= the frames touch; the 1 PT gap is closed).
-        // 3. Shrink the divider subviews to 0 width (still mount =
-        // drag still works; not visible).
-        // 4. Extend the last content subview to bounds.maxX / maxY
-        // (= absorb the leftover 1 PT of space from the eliminated
-        // gap so the total = bounds exactly).
-        let isVert = isVertical
-        let bounds = self.bounds
-        var running: CGFloat = 0
-        for subview in subviews {
-            let className = String(describing: type(of: subview))
-            if className.contains("Divider") {
-                // Zero-width divider (= still mounted; drag still
-                // routes to it via AppKit's hit-testing).
-                if isVert {
-                    subview.frame = NSRect(
-                        x: 0, y: 0,
-                        width: 0, height: bounds.height
-                    )
-                } else {
-                    subview.frame = NSRect(
-                        x: 0, y: 0,
-                        width: bounds.width, height: 0
-                    )
-                }
-            } else {
-                // Content subview: place at running (= previous
-                // subview's maxX or bounds.origin), keep its current
-                // width (= Apple's weight-based width from super).
-                if isVert {
-                    subview.frame = NSRect(
-                        x: running, y: 0,
-                        width: subview.frame.width,
-                        height: bounds.height
-                    )
-                } else {
-                    subview.frame = NSRect(
-                        x: 0, y: running,
-                        width: bounds.width,
-                        height: subview.frame.height
-                    )
-                }
-                running = isVert ? subview.frame.maxX : subview.frame.maxY
-            }
-        }
-        // 4. Extend the last content subview to bounds.max so the
-        // total fills bounds exactly (the super gap is now gone but
-        // the last subview's width is super's original = short by
-        // the gap that super reserved; absorb that).
-        if let lastContent = subviews.last(where: {
-            !String(describing: type(of: $0)).contains("Divider")
-        }) {
-            if isVert {
-                lastContent.frame = NSRect(
-                    x: lastContent.frame.origin.x,
-                    y: 0,
-                    width: bounds.maxX - lastContent.frame.origin.x,
-                    height: bounds.height
-                )
-            } else {
-                lastContent.frame = NSRect(
-                    x: 0,
-                    y: lastContent.frame.origin.y,
-                    width: bounds.width,
-                    height: bounds.maxY - lastContent.frame.origin.y
-                )
-            }
-        }
+        //
+        // The divider subview IS a subview of NSSplitView; the
+        // divider subview is NOT drawn by this method (= AppKit
+        // draws the divider subview separately). Drag routing to
+        // the divider subview (= via AppKit's internal hit-testing
+        // + splitView:effectiveRect:ofDividerAt: delegate) still
+        // works because the divider subview is still mounted.
     }
 }
 
