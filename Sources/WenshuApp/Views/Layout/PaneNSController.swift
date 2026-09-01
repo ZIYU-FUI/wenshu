@@ -109,30 +109,54 @@ final class PaneNSController: NSSplitViewController {
         applyDividerStyleForCurrentOpacity()
     }
 
-    /// v0.30 boss 2026-09-01 OOB: read `wenshu.liquidGlassOpacity`
-    /// from UserDefaults and set NSSplitView's divider style
-    /// accordingly. At opacity < 0.05 the divider becomes
-    /// invisible (= boss's "完全透明" requirement); for any other
-    /// value we use Apple's `.thin` divider (= canonical macOS 27
-    /// Liquid Glass hairline).
+    /// v0.30 boss 2026-09-01 OOB (final design): divider line width
+    /// is 0 (= Apple `.paneSplitter` DividerStyle = no visible
+    /// hairline; pane separation is conveyed by background-color
+    /// difference between adjacent zones, NOT by a divider line).
+    /// The hit area for drag-to-resize is still 4 PT (= preserved
+    /// by the separate hit-area override; the visible line is
+    /// 0 PT).
+    ///
+    /// Prior attempts in this branch (reverted):
+    /// - 3-way DividerStyle mapping (= .paneSplitter / .thin /
+    ///   .thick) — boss rejected; divider must be width-0 always.
+    /// - Custom drawDivider via WenshuSplitView subclass — boss
+    ///   rejected; Apple does not expose a per-app divider alpha
+    ///   API, and wiring a custom NSSplitView subclass broke the
+    ///   layout (= replacing `self.splitView` after
+    ///   NSSplitViewController.init invalidates the controller's
+    ///   view hierarchy). Per boss 2026-09-01 OOB "if there is no
+    ///   corresponding API, do not implement it".
+    ///
+    /// Final state: divider is always `.paneSplitter` regardless of
+    /// the Liquid Glass slider. The slider does NOT control the
+    /// divider visual (= Apple API does not expose a divider alpha
+    /// API; controlling the divider width is also not the boss's
+    /// intent).
     private func applyDividerStyleForCurrentOpacity() {
-        let opacity = UserDefaults.standard.double(forKey: "wenshu.liquidGlassOpacity")
-        // Apple NSSplitView.DividerStyle has 4 cases: thin, thick,
-        // paneSplitter, default. There is no '.none' case. We
-        // approximate "invisible at opacity 0" by using
-        // .paneSplitter (= the divider style that ships in pane
-        // mode with no visible line, just a wider hit area).
-        // For any other opacity value, use .thin (= Apple
-        // canonical Liquid Glass hairline on macOS 27).
-        let style: NSSplitView.DividerStyle = opacity < 0.05 ? .paneSplitter : .thin
-        applyDividerStyle(style, to: splitView)
-        // Apply recursively to nested split views so dividers
-        // across the entire 6-zone FCP layout react in unison.
+        // width-0 divider: no visible hairline; panes are separated
+        // by background-color difference (= pane chrome uses the
+        // Liquid Glass slider, so the color difference between
+        // adjacent panes is visible when the slider != 0).
+        applyDividerStyle(.paneSplitter, to: splitView)
         for child in children {
             if let nestedController = child as? NSSplitViewController {
-                applyDividerStyle(style, to: nestedController.splitView)
+                applyDividerStyle(.paneSplitter, to: nestedController.splitView)
             }
         }
+    }
+
+    /// v0.30 boss 2026-09-01 OOB (divider width-0): the divider no
+    /// longer reacts to the Liquid Glass slider (= always
+    /// `.paneSplitter`). Kept as a stub (= still observes the
+    /// notification in case a future slider needs to update the
+    /// divider again) but no longer updates the divider.
+    @objc private func handleLiquidGlassOpacityChanged() {
+        // Intentionally empty: the divider is width-0 regardless of
+        // the slider value. Other consumers (RegionTabBar,
+        // RegionStatusBar, RegionContentBackground, AppStatusbar,
+        // WenshuSplitView alpha via override) still react to this
+        // notification; the divider itself no longer does.
     }
 
     /// Recursive helper to apply a divider style to a split view
@@ -143,14 +167,6 @@ final class PaneNSController: NSSplitViewController {
         to splitView: NSSplitView
     ) {
         splitView.dividerStyle = style
-    }
-
-    /// v0.30 boss 2026-09-01 OOB: notification handler fired when
-    /// the Liquid Glass opacity slider in Settings changes. Re-reads
-    /// the value and updates NSSplitView's divider style live (=
-    /// no app restart required).
-    @objc private func handleLiquidGlassOpacityChanged() {
-        applyDividerStyleForCurrentOpacity()
     }
 
     /// Gap F forward-fix: handle `.wenshuToggleZone(ZoneSlot)` notification
