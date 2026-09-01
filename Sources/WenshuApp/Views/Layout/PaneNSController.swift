@@ -109,54 +109,33 @@ final class PaneNSController: NSSplitViewController {
         applyDividerStyleForCurrentOpacity()
     }
 
-    /// v0.30 boss 2026-09-01 OOB (divider line: hide visual + keep draggable).
-    /// Apple NSSplitView in macOS 27 Tahoe renders dividers as
-    /// subviews inside `NSSplitView.subviews` (= class names contain
-    /// "Divider"; the divider is a real NSView, not a draw override).
-    /// To hide the divider visual without breaking drag (= the
-    /// `isHidden` flag would suppress mouse events; the drag handler
-    /// is subview-level), set the divider subview's
-    /// `layer.backgroundColor` to `.clear` (= subview stays in the
-    /// view hierarchy + still receives mouse events for drag; only
-    /// the visual hairline is removed).
+    /// v0.30 boss 2026-09-01 OOB (divider line: hide + keep draggable).
+    /// Apple NSSplitView.DividerStyle has 3 cases per the SDK header
+    /// (= NSSplitView.h):
+    ///   - .thick (= NSSplitViewDividerStyleThick = 1; default; wide
+    ///     grey bar; draws a visible line + drag-able).
+    ///   - .thin (= NSSplitViewDividerStyleThin = 2; 1 PT hairline;
+    ///     draws a visible line + drag-able).
+    ///   - .paneSplitter (= NSSplitViewDividerStylePaneSplitter = 3;
+    ///     **no visible line**; drag-able; hit area preserved).
     ///
-    /// Boss's spec = "divider line, I want no divider line shown but
-    /// can still drag". Achieved by:
-    /// 1. `NSSplitView.DividerStyle` left at Apple default (.thick)
-    ///    (= the divider subview is still mounted; drag works).
-    /// 2. Traverse `splitView.subviews` recursively (= root + nested
-    ///    controllers) and identify divider subviews by their class
-    ///    name (= class names contain "Divider" per the gunbark.dev
-    ///    reference pattern; verified on macOS 27 SDK where the
-    ///    AppKit private class is `_NSSplitViewDividerView`).
-    /// 3. For each divider subview, set
-    ///    `layer?.backgroundColor = CGColor.clear`. The subview is
-    ///    still there (= drag still routes to it via AppKit's
-    ///    `splitView:effectiveRect:forDrawnRect:ofDividerAt:`
-    ///    delegate mechanism) but renders no visible hairline.
+    /// Boss OOB: "divider line, I want no divider line shown but can
+    /// still drag". = `.paneSplitter` (= the 3rd case, exactly
+    /// matches the spec: no hairline + drag works).
+    ///
+    /// The slider does NOT influence the divider visual in this
+    /// design (= per Apple API surface, there is no per-alpha
+    /// control; boss rule = "if no corresponding API, do not
+    /// implement it"). Pane separation is conveyed by pane chrome
+    /// background-color difference (= the slider controls each
+    /// pane's tint independently).
     private func applyDividerStyleForCurrentOpacity() {
-        hideAllDividers(in: splitView)
+        // Always .paneSplitter = the Apple API for "no visible
+        // divider hairline + drag still works" (boss's exact spec).
+        applyDividerStyle(.paneSplitter, to: splitView)
         for child in children {
             if let nestedController = child as? NSSplitViewController {
-                hideAllDividers(in: nestedController.splitView)
-            }
-        }
-    }
-
-    /// Walk `splitView.subviews` and hide each divider subview's
-    /// background color (= subview stays in the hierarchy; drag
-    /// still routes through it).
-    private func hideAllDividers(in splitView: NSSplitView) {
-        for subview in splitView.subviews {
-            // AppKit divider subviews have a class name containing
-            // "Divider" (= the private class is _NSSplitViewDividerView
-            // on macOS 27). The split view's content subviews do NOT
-            // match this name (= they are the user's NSViewControllers
-            // or NSHostingControllers). Filtering on class name
-            // avoids hiding user content.
-            if String(describing: type(of: subview)).contains("Divider") {
-                subview.layer?.backgroundColor = CGColor.clear
-                subview.wantsLayer = true
+                applyDividerStyle(.paneSplitter, to: nestedController.splitView)
             }
         }
     }
