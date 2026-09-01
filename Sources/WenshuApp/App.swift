@@ -447,71 +447,6 @@ struct WenshuApp: App {
             // 的组件, 用默认的液态玻璃样式实现, 我们最多调一下尺寸,
             // 动画效果, 过渡效果等等, 都用默认的, 我说的所有的, 不是
             // 目前可见的, 是有一些弹窗等等, 都用 27 的液态玻璃搞定'):
-            //
-            // Apply .containerBackground(for: .window) at the root view
-            // (= SettingsEnvironmentCapturer inside WindowGroup) so the
-            // WINDOW'S container background uses Apple's Glass.regular
-            // shapeStyle (= macOS 27 Tahoe canonical Liquid Glass =
-            // semitransparent + adapts to dark/light mode).
-            //
-            // Per Apple developer.apple.com/documentation/technologyoverviews/
-            // liquid-glass: "Standard components from SwiftUI, UIKit,
-            // and AppKit pick up the appearance and behavior of this
-            // material automatically." (= once .containerBackground is
-            // set to .glass, all standard SwiftUI controls in the
-            // window — Button, TextField, Toggle, Picker, Menu, Slider,
-            // ProgressView, Popover, Sheet, Alert — render with Liquid
-            // Glass appearance by default).
-            //
-            // Applied at this layer (= root view inside WindowGroup)
-            // because .containerBackground is a View modifier (= not a
-            // Scene modifier). Apple's standard pattern for Liquid Glass
-            // windows in macOS 27 Tahoe.
-            .containerBackground(for: .window) {
-                // v0.28 followup Boss UX round 41 (Boss 2026-08-29 OOB
-                // '再截图一下看看' = even with .thickMaterial on pane
-                // contents (= heaviest Liquid Glass tint), boss's
-                // grayscale photography wallpaper (= with strong window
-                // light contrast) still bled through every pane =
-                // panes merged into a single image.
-                //
-                // Root cause = .glassEffect(.regular) on the
-                // containerBackground made the ENTIRE window
-                // semi-transparent (= the wallpaper shows through the
-                // whole window). With pane content tint (.thickMaterial),
-                // the panes look subtly darker but the underlying
-                // window glass still dominates the visual.
-                //
-                // Fix = remove the .glassEffect so the window has an
-                // OPAQUE solid background (= boss's wallpaper is no
-                // longer visible through the empty regions of the
-                // window). The pane content tint (.thickMaterial)
-                // becomes the dominant visual element = panes are
-                // now clearly distinguishable from each other.
-                //
-                // Result: every pane now has its own visible dark
-                // glass tint (= boss can see sidebar / preview /
-                // editor / tools / chat / dynamic distinctly). Pane
-                // boundaries are now CLEARLY visible.
-                // v0.30 boss 2026-09-01 OOB (divider round 2): the
-                // prior 'Color.black.opacity(0.001) opaque placeholder'
-                // (= the 'so the wallpaper is no longer visible through
-                // empty regions of the window' fix from v0.28 round 41)
-                // actually still let the desktop wallpaper show through
-                // the title bar (= opacity 0.001 = essentially transparent).
-                // Boss's complaint: 'title bar is transparent = desktop
-                // wallpaper shows through'. The Liquid Glass material
-                // the boss wants for the title bar is the Apple-native
-                // .windowBackgroundColor (= auto-adapts to dark / light
-                // mode; opaque by definition; the macOS 27 Tahoe
-                // canonical title bar color). Switching from
-                // 'Color.black.opacity(0.001)' (= 0.1% opaque = the
-                // boss's title-bar-transparency problem) to
-                // 'Color(nsColor: .windowBackgroundColor)' (= 100% opaque
-                // = no wallpaper bleed) is the right fix per the
-                // Liquid Glass design spec.
-                Color(nsColor: .windowBackgroundColor)
-            }
         }
         // Boss 8/24 feedback: 'use the 52 PT one'. Apple SwiftUI macOS 14+ windowToolbarStyle
         // options: .automatic, .unified (52 PT), .unifiedCompact (28 PT), .expanded.
@@ -818,7 +753,7 @@ struct SettingView: View {
                             .font(.caption.monospacedDigit())
                             .foregroundStyle(.secondary)
                     }
-                    Slider(value: $liquidGlassOpacity, in: 0.0...1.0, step: 1.0/6.0)
+                    Slider(value: $liquidGlassOpacity, in: 0.0...1.0, step: 0.01)
                         // v0.30 boss 2026-09-01 OOB (Slider sync bug fix):
                         // write back to UserDefaults + post the cross-instance
                         // notification (= the AppKit consumers like
@@ -1348,6 +1283,44 @@ private struct ProviderKeyInputSheet: View {
             .frame(minWidth: 1280, minHeight: 720)
             .environment(library)
             .preferredColorScheme(appearanceMode.colorScheme)
+            // v0.30 boss 2026-09-01 OOB (divider round 3): the
+            // .containerBackground(for: .window) modifier that
+            // was previously declared on App.body (= where it could
+            // not read the @AppStorage('wenshu.liquidGlassOpacity'
+            // value) is also declared here so the window background
+            // tint follows the liquidGlassOpacity slider. We use
+            // 'Color.clear.overlay(.material)' because the
+            // .containerBackground content builder requires
+            // 'some View' (= Color.clear.overlay returns 'some View')
+            // but 'liquidGlassOpacity.toLiquidGlassMaterial()'
+            // returns 'Material' (= not a View by itself). The
+            // 6-step ladder on LiquidGlassOpacity.swift maps
+            // slider 0 (= .ultraThinMaterial = fully transparent)
+            // to 1 (= .bar = fully opaque) so the user can dial
+            // the window background transparency from the Settings
+            // pane. Pane background tinting (= RegionContentBackground)
+            // also reads the same slider via @Environment so panes
+            // and window stay in sync.
+            .containerBackground(for: .window) {
+                // v0.30 boss 2026-09-01 OOB (slider round 3): the
+                // slider is now continuous (step = 0.01) and the
+                // containerBackground tint scales with it
+                // continuously via Material.opacity (= SwiftUI 27+
+                // API; 0 % = .ultraThinMaterial with alpha = 0 =
+                // fully transparent; 100 % = .ultraThinMaterial
+                // with alpha = 1 = maximum tint; the .ultraThin
+                // baseline is the lightest Liquid Glass tier so
+                // 'opaque' is the tint at 100 %, not a different
+                // material). The slider can also move through 0
+                // to 1 smoothly in 101 steps. We keep the
+                // .ultraThinMaterial base (= Apple's lightest
+                // glass material) instead of stepping through
+                // .thin/.regular/.thick/etc. because the boss
+                // wants smooth visual feedback (= no discrete
+                // jump as the slider passes each Material
+                // boundary).
+                Color.clear.overlay(Material.ultraThinMaterial.opacity(liquidGlassOpacity))
+            }
             // v0.28 followup Boss UX round 49 (Boss 2026-08-29 OOB
             // '在设置里加一个功能, 液态玻璃透明度调节'): inject the
             // Liquid Glass opacity value (from @AppStorage slider in

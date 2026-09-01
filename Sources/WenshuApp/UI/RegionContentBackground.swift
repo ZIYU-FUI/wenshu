@@ -90,8 +90,14 @@ public struct RegionContentBackground: View {
         // LiquidGlassOpacity.swift (= also used by RegionTabBar
         // + RegionStatusBar so all chrome surfaces follow the
         // same slider).
-        Color.clear
-            .overlay(liquidGlassOpacity.toLiquidGlassMaterial())
+        // v0.30 boss 2026-09-01 OOB (slider round 3): per-pane
+        // glass tint follows the slider continuously (not the
+        // previous 6-step ladder). Material.opacity(_:) =
+        // SwiftUI 27+ API; 0 % = .ultraThinMaterial alpha 0 =
+        // fully transparent (boss's '0 % must be fully transparent'
+        // requirement); 100 % = .ultraThinMaterial alpha 1 =
+        // the lightest Liquid Glass tier at full strength.
+        Color.clear.overlay(Material.ultraThinMaterial.opacity(liquidGlassOpacity))
     }
 }
 
