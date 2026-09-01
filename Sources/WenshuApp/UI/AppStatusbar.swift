@@ -106,6 +106,16 @@ public struct AppStatusbar: View {
     let onToggleItemVisibility: (String) -> Void
     let onResetLayout: () -> Void
 
+    // v0.30 boss 2026-09-01 OOB (clarification 'setting slider
+    // affects every wenshu UI except the title bar'): read the
+    // Liquid Glass opacity slider from the SwiftUI environment
+    // (= same env-key as RegionTabBar + RegionStatusBar + pane
+    // content background). The title bar itself is NOT touched here
+    // (= .windowToolbarStyle(.unified) follows macOS System
+    // Settings, per boss clarification 'let the title bar follow
+    // the system, not the setting').
+    @Environment(\.liquidGlassOpacity) private var liquidGlassOpacity: Double
+
     public init(
         leftItems: [StatusbarItem] = [],
         rightItems: [StatusbarItem] = [],
@@ -161,15 +171,22 @@ public struct AppStatusbar: View {
                 .frame(height: kStatusbarItemHeight)
                 // v0.28 followup Boss UX round 13 (Boss 2026-08-29 OOB
                 // '其他区域背景, 组件什么的, 有没有需要适配液态玻璃的'):
-                // Use .regularMaterial (= macOS 26 Tahoe Liquid Glass
-                // translucency) instead of solid windowBackgroundColor.
-                // Per Apple developer.apple.com/documentation/
-                // swiftui/materials (= the Liquid Glass material catalog
-                // for SwiftUI on macOS 13+), .regularMaterial is the
-                // standard translucent material used for toolbars /
-                // statusbars / sidebars (= exactly the macOS 26 Tahoe
-                // Liquid Glass look applied to a custom statusbar view).
-                .background(.regularMaterial)
+                // Use a Liquid Glass material instead of solid
+                // windowBackgroundColor. Per Apple developer.apple.com/
+                // documentation/swiftui/materials (= the Liquid Glass
+                // material catalog for SwiftUI on macOS 13+),
+                // .regularMaterial is the standard translucent material
+                // used for toolbars / statusbars / sidebars (= exactly
+                // the macOS 26 Tahoe Liquid Glass look applied to a
+                // custom statusbar view).
+                //
+                // v0.30 boss 2026-09-01 OOB (clarification 'setting
+                // slider affects every wenshu UI except the title
+                // bar'): the material now follows the Liquid Glass
+                // opacity slider via `Double.toLiquidGlassMaterial()`
+                // (= 4-step mapping, same as RegionTabBar +
+                // RegionStatusBar + RegionContentBackground).
+                .background(liquidGlassOpacity.toLiquidGlassMaterial())
                 .contextMenu {
                     Button("Reset statusbar layout") {
                         onResetLayout()
