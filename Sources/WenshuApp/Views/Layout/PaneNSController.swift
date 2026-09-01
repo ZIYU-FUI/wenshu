@@ -146,28 +146,7 @@ final class PaneNSController: NSSplitViewController {
     /// Walk `splitView.subviews` and hide each divider subview's
     /// background color (= subview stays in the hierarchy; drag
     /// still routes through it).
-    ///
-    /// v0.30 boss 2026-09-01 OOB: the 1PT gap between panes (= the
-    /// NSSplitView's own background showing through the divider
-    /// area) is now also cleared. The NSSplitView's own layer is
-    /// set to clear + wantsLayer, so the 1PT gap between divider
-    /// subviews (= the only remaining visible gap after the divider
-    /// subview is cleared) shows through to the window background
-    /// (= no Apple default white / black frame between panes).
-    ///
-    /// Note: `dividerThickness` is left at Apple default (= 1 PT).
-    /// We do NOT override dividerThickness to 0 (= would shrink the
-    /// divider subview to 0 PT; drag would break because the hit
-    /// area is gone). The 1 PT physical gap remains (= 1 PT of fully
-    /// transparent space = no visible line + drag still works because
-    /// the divider subview is still mounted + still receives mouse
-    /// events).
     private func hideAllDividers(in splitView: NSSplitView) {
-        // Clear the NSSplitView's own background so the 1 PT gap
-        // between divider subviews shows through to the window
-        // background (= no white / black Apple default frame).
-        splitView.wantsLayer = true
-        splitView.layer?.backgroundColor = .clear
         for subview in splitView.subviews {
             // AppKit divider subviews have a class name containing
             // "Divider" (= the private class is _NSSplitViewDividerView
@@ -176,7 +155,7 @@ final class PaneNSController: NSSplitViewController {
             // or NSHostingControllers). Filtering on class name
             // avoids hiding user content.
             if String(describing: type(of: subview)).contains("Divider") {
-                subview.layer?.backgroundColor = .clear
+                subview.layer?.backgroundColor = CGColor.clear
                 subview.wantsLayer = true
             }
         }
