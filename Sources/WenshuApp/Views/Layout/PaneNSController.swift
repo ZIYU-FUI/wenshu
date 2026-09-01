@@ -111,20 +111,48 @@ final class PaneNSController: NSSplitViewController {
 
     /// v0.30 boss 2026-09-01 OOB: read `wenshu.liquidGlassOpacity`
     /// from UserDefaults and set NSSplitView's divider style
-    /// accordingly. At opacity < 0.05 the divider becomes
-    /// invisible (= boss's "完全透明" requirement); for any other
-    /// value we use Apple's `.thin` divider (= canonical macOS 27
-    /// Liquid Glass hairline).
+    /// accordingly. The 6-step Material ladder maps to 3 visible
+    /// divider styles (= Apple's NSSplitView.DividerStyle enum has
+    /// exactly 4 cases: .thin / .thick / .paneSplitter / .default;
+    /// .default is unused):
+    ///
+    /// - [0.000, 1/6)  → .paneSplitter (= invisible; matches
+    ///   .ultraThin's "most translucent" — boss OOB 'divider
+    ///   should not be visible at opacity 0').
+    /// - [1/6, 3/6)    → .thin (= 1 PT hairline; matches .thin and
+    ///   .regular).
+    /// - [3/6, 1.000]  → .thick (= thicker hairline; matches
+    ///   .thick / .ultraThick / .bar).
+    ///
+    /// Apple NSSplitView.DividerStyle does NOT expose an alpha API
+    /// (= the divider's tint is fixed by the enum case). The 3-style
+    /// mapping is the canonical workaround: as the slider crosses
+    /// the 1/6 and 3/6 thresholds, the divider visibly changes from
+    /// invisible → thin → thick. Within each subrange (= e.g. 1/6
+    /// to 3/6) the visual stays consistent (= the Apple enum does
+    /// not interpolate, so within-range variance is not visible).
+    ///
+    /// v0.30 boss 2026-09-01 OOB (revert + redesign): the prior
+    /// attempt to override drawDivider via a WenshuSplitView
+    /// subclass (= `git revert b26639d65` reverted) broke the
+    /// layout (= replacing `self.splitView` after
+    /// `NSSplitViewController.init` invalidates the controller's
+    /// internal view hierarchy; nested children lost their items).
+    /// This 3-style mapping is the safe alternative: no NSSplitView
+    /// subclass, no drawDivider override, no layout disruption.
     private func applyDividerStyleForCurrentOpacity() {
         let opacity = UserDefaults.standard.double(forKey: "wenshu.liquidGlassOpacity")
-        // Apple NSSplitView.DividerStyle has 4 cases: thin, thick,
-        // paneSplitter, default. There is no '.none' case. We
-        // approximate "invisible at opacity 0" by using
-        // .paneSplitter (= the divider style that ships in pane
-        // mode with no visible line, just a wider hit area).
-        // For any other opacity value, use .thin (= Apple
-        // canonical Liquid Glass hairline on macOS 27).
-        let style: NSSplitView.DividerStyle = opacity < 0.05 ? .paneSplitter : .thin
+        let style: NSSplitView.DividerStyle
+        if opacity < 1.0/6.0 {
+            // ultraThin range: invisible (= hit area only).
+            style = .paneSplitter
+        } else if opacity < 3.0/6.0 {
+            // thin + regular range: 1 PT hairline.
+            style = .thin
+        } else {
+            // thick + ultraThick + bar range: thicker hairline.
+            style = .thick
+        }
         applyDividerStyle(style, to: splitView)
         // Apply recursively to nested split views so dividers
         // across the entire 6-zone FCP layout react in unison.

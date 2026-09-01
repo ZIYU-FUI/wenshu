@@ -100,38 +100,6 @@ public extension Double {
             return .bar
         }
     }
-
-    /// v0.30 boss 2026-09-01 OOB (6-step ladder + divider line): the
-    /// AppKit divider line (= `WenshuSplitView.drawDivider`) cannot
-    /// use SwiftUI Material directly (= it draws via `NSColor`). This
-    /// helper returns the `CGFloat` alpha for `NSColor.separatorColor`
-    /// matched to the same 6-step ladder (= same range boundaries
-    /// as `toLiquidGlassMaterial()`; the divider line alpha scales
-    /// with the slider so it stays consistent with the surrounding
-    /// chrome).
-    ///
-    /// 6 alpha outputs:
-    /// - [0.000, 0.166) → 0.5  (ultraThin; barely visible)
-    /// - [0.166, 0.333) → 0.6
-    /// - [0.333, 0.500) → 0.7  (regular)
-    /// - [0.500, 0.666) → 0.85 (thick)
-    /// - [0.666, 0.833) → 1.0  (ultraThick; fully opaque)
-    /// - [0.833, 1.000] → 1.0  (bar; fully opaque)
-    func toLiquidGlassDividerAlpha() -> CGFloat {
-        if self < 1.0/6.0 {
-            return 0.5
-        } else if self < 2.0/6.0 {
-            return 0.6
-        } else if self < 3.0/6.0 {
-            return 0.7
-        } else if self < 4.0/6.0 {
-            return 0.85
-        } else if self < 5.0/6.0 {
-            return 1.0
-        } else {
-            return 1.0
-        }
-    }
 }
 
 // MARK: - AppStorage bridge
