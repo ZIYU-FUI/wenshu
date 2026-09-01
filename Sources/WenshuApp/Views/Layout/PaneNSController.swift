@@ -31,50 +31,6 @@
 import AppKit
 import SwiftUI
 
-// MARK: - WenshuSplitView (= NSSplitView subclass for custom background draw)
-//
-// v0.30 boss 2026-09-01 OOB: the 1PT gap between panes shows the
-// NSSplitView's own background (= the gap area is painted by
-// NSSplitView's `draw(_:)` path, NOT by its layer). Setting
-// `layer.backgroundColor = .clear` (= the prior commit 3cac1b43a)
-// does not affect `draw(_:)`. The 1PT gap therefore remains
-// visible as the Apple default NSSplitView background color.
-//
-// Fix = subclass NSSplitView and override `draw(_:)` to paint
-// nothing (= no background fill, no 1PT gap visible). The
-// divider subview (= which IS a real subview) still mounts and
-// still handles drag (= the hit area is preserved; drag still
-// works because the divider subview is a real NSView, not a
-// draw override).
-//
-// Wiring = swap `self.splitView` immediately after super.init and
-// before `buildLayout()` (= before any code accesses `self.view`,
-// which triggers NSSplitViewController's internal viewDidLoad
-// that defaults the view to a vanilla NSSplitView). Per the
-// NSSplitViewController.h header:
-//   "To provide a custom NSSplitView, set the splitView property
-//    anytime before self.viewLoaded is YES."
-@MainActor
-final class WenshuSplitView: NSSplitView {
-    override func draw(_ dirtyRect: NSRect) {
-        // Do nothing (= the 1PT gap is now invisible; the divider
-        // subview itself also has its layer cleared in the parent
-        // controller, so no visible hairline either). Subviews
-        // (= the user content panes) draw themselves normally
-        // because draw(_:) only fills the NSSplitView's own
-        // background; it does not erase subview content.
-        //
-        // The divider subview IS a subview of NSSplitView; the
-        // divider subview is NOT drawn by this method (= AppKit
-        // draws the divider subview separately). Drag routing to
-        // the divider subview (= via AppKit's internal hit-testing
-        // + splitView:effectiveRect:ofDividerAt: delegate) still
-        // works because the divider subview is still mounted.
-    }
-}
-
-// MARK: - PaneNSController
-
 /// Native AppKit split container that hosts wenshu's existing SwiftUI
 /// pane views (= `TabContentDispatcher` per pane). Built from a
 /// `WorkspaceStore` snapshot; the tree walk is fully recursive.
@@ -122,17 +78,6 @@ final class PaneNSController: NSSplitViewController {
         self.bookStore = bookStore
         self.layoutID = layoutID
         super.init(nibName: nil, bundle: nil)
-        // v0.30 boss 2026-09-01 OOB: swap the default NSSplitView
-        // (= the root of this controller) for WenshuSplitView (= the
-        // NSSplitView subclass with custom draw(_:) that paints
-        // nothing = no 1PT gap visible). The swap must happen
-        // IMMEDIATELY after super.init and BEFORE buildLayout (= any
-        // access to self.view triggers NSSplitViewController's
-        // internal viewDidLoad which freezes the view to a vanilla
-        // NSSplitView; too late to swap then). Per the
-        // NSSplitViewController.h header: "set the splitView property
-        // anytime before self.viewLoaded is YES".
-        self.splitView = WenshuSplitView()
         buildLayout()
         // Widen the divider hit area (= see AC #4). Acting as the
         // split's delegate lets us override `effectiveRect(...)` and
@@ -690,18 +635,7 @@ final class PaneNSController: NSSplitViewController {
         // match this split's orientation (= otherwise the nested
         // controller defaults to isVertical = true and the children
         // install wrong-axis).
-        //
-        // v0.30 boss 2026-09-01 OOB (1PT gap removal): swap the
-        // nested NSSplitViewController's default splitView for
-        // WenshuSplitView (= same draw(_:) override as the root).
-        // The swap must happen BEFORE any splitView attribute is
-        // set (= setting `splitView.isVertical` triggers the lazy
-        // viewDidLoad which freezes the view to a vanilla
-        // NSSplitView; too late to swap after that). We access
-        // splitView (= to assign the swap) immediately after the
-        // constructor, then set all attributes + install children.
         let nested = NSSplitViewController()
-        nested.splitView = WenshuSplitView()
         nested.splitView.isVertical = (split.orientation == .row)
         nested.splitView.autosaveName = autosaveKey(for: split.id)
         installChildren(split.children, weights: split.weights, into: nested)
