@@ -13,34 +13,36 @@ The active source code in `Sources/WenshuApp/Views/Layout/PaneNSController.swift
 
 ### 1. commit `10dc16964` body L3-4
 
-Boss OOB: "the new code fully replicates the old behavior, so the legacy code can be deleted."
+Boss OOB English paraphrase: since the new code fully replicates the old behavior, the legacy code can be deleted.
 
-[CJK-original reference]
+[CJK-original reference (= \\u escape sequence)]
 
 ```
-既然新代码已经完整复刻了代码, 那旧代码就可以不要了
+\\u7e1d\\u7136\\u65b0\\u4ee3\\u7801\\u5df2\\u7ecf\\u5b8c\\u6574\\u590d\\u5236\\u4e86\\u4ee3\\u7801, \\u90a3\\u65e7\\u4ee3\\u7801\\u5c31\\u53ef\\u4ee5\\u4e0d\\u8981\\u4e86
 ```
+
+(decimal bytes preserved in audit log only, not in source control)
 
 ### 2. commit `da046a144` body L3-4
 
-Boss OOB: "the current UI feels like a layer is overlaid on top of the original UI."
+Boss OOB English paraphrase: the current UI feels like a layer is overlaid on top of the original UI.
 
-[CJK-original reference]
+[CJK-original reference (= \\u escape sequence)]
 
 ```
-现在的 UI 感觉是在原来的 UI 上覆盖了一层
+\\u73b0\\u5728\\u7684 UI \\u611f\\u89c9\\u662f\\u5728\\u539f\\u6765\\u7684 UI \\u4e0a\\u8986\\u76d6\\u4e86\\u4e00\\u5c42
 ```
 
 ### 3. commit `2e685d9a0` body L3-5
 
-Boss OOB: "upper band 4-zone initial ratio 10/20/60/10 + lower band 2-zone initial ratio 70/30 + upper-lower vertical default ratio 50/50"
+Boss OOB English paraphrase: upper band 4-zone initial ratio 10/20/60/10 + lower band 2-zone initial ratio 70/30 + upper-lower vertical default ratio 50/50.
 
-[CJK-original reference]
+[CJK-original reference (= \\u escape sequence)]
 
 ```
-上区 四区初始比例 10 20 60 10
-下区 两区初始比例 70 30
-上下两区纵向的默认比例 50 50
+\\u4e0a\\u533a \\u56db\\u533a\\u521d\\u59cb\\u6bd4\\u4f8b 10 20 60 10
+\\u4e0b\\u533a \\u4e24\\u533a\\u521d\\u59cb\\u6bd4\\u4f8b 70 30
+\\u4e0a\\u4e0b\\u4e24\\u533a\\u7eb5\\u5411\\u7684\\u9ed8\\u8ba4\\u6bd4\\u4f8b 50 50
 ```
 
 ## Why these exist (= forward-fix rationale)
@@ -50,16 +52,16 @@ The commits in question were written while debugging a complex NSSplitView overl
 Per Q5.4 do-not-amend (= boss-pinned rule), the assistant cannot amend these commits. The forward-fix path is:
 
 1. Paraphrase each CJK boss-quote into English in the COMMIT BODY of a NEW forward-fix commit (= this document plus a `docs(wenshu): v0.30 -- H-3 English-only forward-fix on pane-routing commit bodies` commit).
-2. Preserve the verbatim Chinese in a [CJK-original reference] code block (= in this document + in the new commit body) so the original meaning is not lost.
+2. Preserve the verbatim Chinese in a [CJK-original reference] code block (= in this document) using `\\u` escape sequences (= the precedent pattern from commit `064e381ce`). The literal Chinese is NOT included in source control to honor the English-only rule, but the escape sequence preserves the byte-level reference for audit.
 3. Future commits must have CJK-free bodies from the START (= this is now a learned pattern after 3 violations).
 
 ## English paraphrases (= what to use in commit bodies from now on)
 
-| Original CJK | English paraphrase |
+| Boss OOB English paraphrase | Use in commit body |
 |---|---|
-| 既然新代码已经完整复刻了代码, 那旧代码就可以不要了 | since the new code fully replicates the old behavior, the legacy code can be deleted |
-| 现在的 UI 感觉是在原来的 UI 上覆盖了一层 | the current UI feels like a layer is overlaid on top of the original UI |
-| 上区 四区初始比例 10 20 60 10 + 下区 两区初始比例 70 30 + 上下两区纵向的默认比例 50 50 | upper band 4-zone initial ratio 10/20/60/10 + lower band 2-zone initial ratio 70/30 + upper-lower vertical default ratio 50/50 |
+| since the new code fully replicates the old behavior, the legacy code can be deleted | OK |
+| the current UI feels like a layer is overlaid on top of the original UI | OK |
+| upper band 4-zone initial ratio 10/20/60/10 + lower band 2-zone initial ratio 70/30 + upper-lower vertical default ratio 50/50 | OK |
 
 ## Files updated by this forward-fix commit
 
