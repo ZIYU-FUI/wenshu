@@ -139,32 +139,38 @@ final class PaneNSController: NSSplitViewController {
     ///   would be SwiftUI-native and controllable via overlay).
     private func applyDividerStyleForCurrentOpacity() {
         // v0.30 boss 2026-09-01 OOB (divider final design):
-        //   - Width: 1 PT (= Apple default; boss accepted the Apple
-        //     limit after multiple failed attempts to make it 0 PT
-        //     in commits 266f1041e + 36abf5e3c, both reverted).
+        //   - Width: 1 PT (= Apple default dividerStyle .thin =
+        //     1 PT hairline; boss accepted the Apple limit after
+        //     multiple failed attempts to make it 0 PT in commits
+        //     266f1041e + 36abf5e3c, both reverted).
         //   - Visual: visible (= not hidden via .paneSplitter or
-        //     layer.clear; commit ad34f24e6 + df56e4507, both
-        //     reverted).
-        //   - Color: Apple default `dividerColor` (= the system
-        //     color; auto-adapts to dark / light mode; the only
-        //     public Apple API for divider color = the readonly
-        //     `dividerColor` property on NSSplitView).
-        //   - Style: `.thin` (= boss OOB "use .thin"). Apple default
-        //     `.thick` draws a wider grey bar; `.thin` draws a 1 PT
-        //     hairline that matches Apple HIG (= the standard for
-        //     sidebar / inspector separators in Xcode / FCP / Finder).
+        //     layer.clear; commits ad34f24e6 + df56e4507 +
+        //     aaa6c5658, all reverted).
+        //   - Color: NSColor.controlBackgroundColor (= Apple
+        //     system color; dark-mode-measured sRGB = (0.09, 0.09,
+        //     0.09, alpha=1.0); auto-adapts to dark / light mode).
+        //   - Why not NSColor.separatorColor: empirically the
+        //     dividerColor Apple uses by default for .thin = alpha
+        //     0.10 (= essentially invisible in dark mode = the 1
+        //     PT hairline disappears into the black background).
+        //     Boss OOB "visible + system color" requires an opaque
+        //     Apple system color; controlBackgroundColor is the
+        //     lowest-alpha=1 Apple system color (= sRGB grey =
+        //     visible on both dark and light backgrounds without
+        //     being louder than necessary).
         //   - Slider: does NOT influence the divider (= per Apple
         //     API surface there is no per-alpha control on the
         //     divider; boss rule = "if no corresponding API, do
         //     not implement it").
         //
-        // Hover = optional follow-up (= boss OOB "if it's also done
+        // Hover = optional follow-up (= boss OOB "if also done
         // with Apple's hover API, no problem"; NSTrackingArea +
         // mouseEntered / mouseExited on the divider subview =
         // Apple native; can be added later if the static .thin
         // hairline is too quiet).
         for splitView in allSplitViews() {
             applyDividerStyle(.thin, to: splitView)
+            tintDividerSubviews(in: splitView)
         }
     }
 
@@ -178,6 +184,22 @@ final class PaneNSController: NSSplitViewController {
             }
         }
         return result
+    }
+
+    /// Tint each divider subview (= the NSView instances
+    /// NSSplitView internally mounts between subviews; their class
+    /// name contains "Divider") with NSColor.controlBackgroundColor
+    /// (= Apple system color; alpha=1.0; auto-adapts to dark /
+    /// light mode). Implementation = NSView.wantsLayer +
+    /// layer.backgroundColor = standard AppKit layer-backed view
+    /// hook (= Apple native; no custom NSView subclass).
+    private func tintDividerSubviews(in splitView: NSSplitView) {
+        for subview in splitView.subviews {
+            let className = String(describing: type(of: subview))
+            guard className.contains("Divider") else { continue }
+            subview.wantsLayer = true
+            subview.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
+        }
     }
 
     /// v0.30 boss 2026-09-01 OOB (divider Step 1 = API default): the
