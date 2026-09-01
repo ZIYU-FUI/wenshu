@@ -31,6 +31,68 @@
 import AppKit
 import SwiftUI
 
+// MARK: - WenshuSplitView (= NSSplitView subclass for custom divider alpha)
+//
+// v0.30 boss 2026-09-01 OOB (divider follow slider): default
+// NSSplitView divider is alpha-fixed (= no Apple API to scale it).
+// To make the divider line follow the Liquid Glass opacity slider
+// (= 6-step ladder, .ultraThin → .bar / alpha 0.5 → 1.0), subclass
+// NSSplitView and override drawDivider to draw NSColor.separatorColor
+// at the slider-driven alpha. Boss asked for the divider to follow
+// the slider; this is the canonical AppKit approach (= same
+// pattern as v0.30 commit 01e8add69 + 104f2238d reverted).
+//
+// The drawn line is 1 PT wide (= Apple HIG thin divider on macOS 27)
+// centered in AppKit's divider rect (= so AppKit's wider rect does
+// not visually become a wider line; the rect grows for hit-area
+// padding, the line stays 1 PT).
+@MainActor
+final class WenshuSplitView: NSSplitView {
+    /// 1 PT hairline = Apple HIG canonical divider thickness on
+    /// macOS 27 Tahoe. Boss OOB: divider line always 1 PT (=
+    /// regardless of slider position; the slider controls the
+    /// alpha, not the width).
+    private static let dividerHairlineWidth: CGFloat = 1
+
+    override func drawDivider(in rect: NSRect) {
+        // Read slider value (= the same key the Settings slider
+        // + all other chrome consumers read; the manual @State mirror
+        // in App.swift writes back to UserDefaults on every drag).
+        let opacity = UserDefaults.standard.double(forKey: "wenshu.liquidGlassOpacity")
+        // Compute the alpha via the same 6-step ladder helper that
+        // drives the rest of wenshu chrome (single source of truth).
+        let alpha = opacity.toLiquidGlassDividerAlpha()
+        // Compute the perpendicular axis (= the axis the divider
+        // runs perpendicular to): for a vertical split (isVertical
+        // = true), the divider line runs vertically, so the
+        // perpendicular axis = horizontal = rect.width. For a
+        // horizontal split, perpendicular = vertical = rect.height.
+        let perpAxisWidth: CGFloat = isVertical ? rect.width : rect.height
+        // Center the 1 PT hairline in the divider rect.
+        let inset = max(0, (perpAxisWidth - Self.dividerHairlineWidth) / 2)
+        let paintRect: NSRect
+        if isVertical {
+            paintRect = NSRect(
+                x: rect.origin.x + inset,
+                y: rect.origin.y,
+                width: Self.dividerHairlineWidth,
+                height: rect.height
+            )
+        } else {
+            paintRect = NSRect(
+                x: rect.origin.x,
+                y: rect.origin.y + inset,
+                width: rect.width,
+                height: Self.dividerHairlineWidth
+            )
+        }
+        NSColor.separatorColor.withAlphaComponent(alpha).setFill()
+        paintRect.fill()
+    }
+}
+
+// MARK: - PaneNSController
+
 /// Native AppKit split container that hosts wenshu's existing SwiftUI
 /// pane views (= `TabContentDispatcher` per pane). Built from a
 /// `WorkspaceStore` snapshot; the tree walk is fully recursive.
@@ -78,6 +140,14 @@ final class PaneNSController: NSSplitViewController {
         self.bookStore = bookStore
         self.layoutID = layoutID
         super.init(nibName: nil, bundle: nil)
+        // v0.30 boss 2026-09-01 OOB (divider follow slider): swap
+        // the default NSSplitView (= the root of this controller)
+        // for WenshuSplitView (= the NSSplitView subclass with
+        // custom drawDivider that reads the Liquid Glass opacity
+        // slider). Without this, the root divider line would stay
+        // alpha-fixed at the Apple default; nested controllers get
+        // WenshuSplitView in installSplit below.
+        self.splitView = WenshuSplitView()
         buildLayout()
         // Widen the divider hit area (= see AC #4). Acting as the
         // split's delegate lets us override `effectiveRect(...)` and
@@ -147,10 +217,34 @@ final class PaneNSController: NSSplitViewController {
 
     /// v0.30 boss 2026-09-01 OOB: notification handler fired when
     /// the Liquid Glass opacity slider in Settings changes. Re-reads
-    /// the value and updates NSSplitView's divider style live (=
-    /// no app restart required).
+    /// the value and:
+    /// 1. Updates NSSplitView's divider style (= no-op for custom
+    ///    drawDivider, kept for backward compat with future Apple
+    ///    style changes).
+    /// 2. Invalidates WenshuSplitView so the custom drawDivider
+    ///    picks up the new alpha (= `needsDisplay = true` on the
+    ///    rect causes AppKit to re-invoke drawDivider on the next
+    ///    redraw cycle).
     @objc private func handleLiquidGlassOpacityChanged() {
         applyDividerStyleForCurrentOpacity()
+        // Force WenshuSplitView (= root + nested) to redraw the
+        // divider line with the new alpha. Without this, the
+        // divider would keep its old alpha until the next layout
+        // pass (= invisible if the user moves the slider fast).
+        redrawAllSplitViews()
+    }
+
+    /// Recurse into every WenshuSplitView (= the root + all nested
+    /// controllers) and mark them as needing display. AppKit will
+    /// then re-invoke `drawDivider(in:)` for each, picking up the
+    /// new alpha value from UserDefaults.
+    private func redrawAllSplitViews() {
+        splitView.needsDisplay = true
+        for child in children {
+            if let nestedController = child as? NSSplitViewController {
+                nestedController.splitView.needsDisplay = true
+            }
+        }
     }
 
     /// Gap F forward-fix: handle `.wenshuToggleZone(ZoneSlot)` notification
@@ -582,9 +676,16 @@ final class PaneNSController: NSSplitViewController {
         // match this split's orientation (= otherwise the nested
         // controller defaults to isVertical = true and the children
         // install wrong-axis).
+        //
+        // v0.30 boss 2026-09-01 OOB (divider follow slider): use
+        // WenshuSplitView (= the NSSplitView subclass with custom
+        // drawDivider) so the divider line alpha follows the Liquid
+        // Glass opacity slider. The default NSSplitView divider is
+        // alpha-fixed and cannot be customized via API.
         let nested = NSSplitViewController()
         nested.splitView.isVertical = (split.orientation == .row)
         nested.splitView.autosaveName = autosaveKey(for: split.id)
+        nested.splitView = WenshuSplitView()
         installChildren(split.children, weights: split.weights, into: nested)
         parent.addChild(nested)
         // Register this nested controller's weights for the
