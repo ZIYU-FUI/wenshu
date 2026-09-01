@@ -78,6 +78,17 @@ final class PaneNSController: NSSplitViewController {
         self.bookStore = bookStore
         self.layoutID = layoutID
         super.init(nibName: nil, bundle: nil)
+        // Swap the default NSSplitView with WenshuSplitView
+        // (= NSSplitView subclass with adjustSubviews override that
+        // makes pane frames touch). This must run BEFORE any code
+        // accesses `self.view` (= triggers NSSplitViewController's
+        // internal viewDidLoad that defaults the view to a vanilla
+        // NSSplitView; too late to swap after that). Per
+        // NSSplitViewController.h header: "To provide a custom
+        // NSSplitView, set the splitView property anytime before
+        // self.viewLoaded is YES." We swap immediately after
+        // super.init and before buildLayout (= which calls self.view).
+        self.splitView = WenshuSplitView()
         buildLayout()
         // Widen the divider hit area (= see AC #4). Acting as the
         // split's delegate lets us override `effectiveRect(...)` and
@@ -178,6 +189,133 @@ final class PaneNSController: NSSplitViewController {
             }
         }
         return result
+    }
+
+    /// v0.30 boss 2026-09-01 OOB: 1 PT ok + paneSplitter + hit-area
+    /// hidden was wrong (= Apple .paneSplitter leaves an 8 PT
+    /// physical gap between subviews even with dividerColor alpha=0;
+    /// the gap is what the boss sees as a 'wide divider line').
+    /// Real fix = subclass NSSplitView and override adjustSubviews
+    /// to shift each non-divider subview's origin so the frames
+    /// touch (= no visible gap between panes). The divider subview
+    /// is still mounted at its Apple-default width (= 8 PT for
+    /// .paneSplitter, 1 PT for .thin / .thick); AppKit still
+    /// routes mouseDown events to it (= drag works).
+    @MainActor
+    final class WenshuSplitView: NSSplitView {
+        override func draw(_ dirtyRect: NSRect) {
+            // No-op: the divider subview itself is the only thing
+            // NSSplitView draws between subviews, and
+            // dividerColor.alpha = 0 with .paneSplitter already
+            // means the divider subview paints nothing. This
+            // override exists for documentation / safety (= if
+            // a future Apple SDK change draws into the NSSplitView
+            // background, this empty override suppresses it).
+        }
+
+        override func adjustSubviews() {
+            // Apple's default layout (= super) sets each subview
+            // width according to its divider position weight +
+            // leaves a 1 PT or 8 PT (= depends on dividerStyle)
+            // gap between adjacent subviews (= the NSSplitView.h
+            // header doc: "Delegates that respond to this message
+            // should adjust the frames of the uncollapsed subviews
+            // so that they exactly fill the split view with room
+            // for dividers in between"). The room for dividers is
+            // exactly the gap the boss sees as the 'wide line'.
+            //
+            // Fix = after super, walk the subviews. For each
+            // non-divider subview, set its frame.origin to the
+            // previous non-divider subview's maxX (= makes the
+            // frames touch = no gap). Keep the divider subview's
+            // frame at its current bounds (= AppKit's internal
+            // divider hit-area is preserved = drag still works).
+            super.adjustSubviews()
+
+            let isVert = isVertical
+            let bounds = self.bounds
+            var running: CGFloat = 0
+            for subview in subviews {
+                let className = String(describing: type(of: subview))
+                if className.contains("Divider") {
+                    // Place the divider subview at running (= the
+                    // gap between the previous pane and the next)
+                    // and keep its current width (= Apple default
+                    // hit-area for the chosen dividerStyle =
+                    // 8 PT for .paneSplitter, 1 PT for .thin /
+                    // .thick). The hit-area is preserved so drag
+                    // still works; the divider is just sandwiched
+                    // between two touching pane frames instead of
+                    // an additional gap.
+                    if isVert {
+                        subview.frame = NSRect(
+                            x: running, y: 0,
+                            width: subview.frame.width,
+                            height: bounds.height
+                        )
+                    } else {
+                        subview.frame = NSRect(
+                            x: 0, y: running,
+                            width: bounds.width,
+                            height: subview.frame.height
+                        )
+                    }
+                } else {
+                    // Content pane: shift origin to running (= the
+                    // previous subview's maxX, whether divider or
+                    // content). The pane's width is kept at the
+                    // value super computed (= Apple's
+                    // weight-based layout from setPosition).
+                    if isVert {
+                        subview.frame = NSRect(
+                            x: running, y: 0,
+                            width: subview.frame.width,
+                            height: bounds.height
+                        )
+                    } else {
+                        subview.frame = NSRect(
+                            x: 0, y: running,
+                            width: bounds.width,
+                            height: subview.frame.height
+                        )
+                    }
+                    running = isVert
+                        ? subview.frame.maxX
+                        : subview.frame.maxY
+                }
+            }
+            // The last content subview now extends past the
+            // divider region (= maxX > bounds.max). Trim it back
+            // so the total fills bounds exactly. This is necessary
+            // because Apple's super layout reserved gap room
+            // between the last subview and the bounds edge; that
+            // gap is now in the last subview's width.
+            if let lastContent = subviews.last(where: {
+                !String(describing: type(of: $0)).contains("Divider")
+            }) {
+                if isVert {
+                    let excess = lastContent.frame.maxX - bounds.maxX
+                    if excess > 0 {
+                        lastContent.frame = NSRect(
+                            x: lastContent.frame.origin.x,
+                            y: 0,
+                            width: lastContent.frame.width - excess,
+                            height: bounds.height
+                        )
+                    }
+                } else {
+                    let excess = lastContent.frame.maxY - bounds.maxY
+                    if excess > 0 {
+                        lastContent.frame = NSRect(
+                            x: 0,
+                            y: lastContent.frame.origin.y,
+                            width: bounds.width,
+                            height: lastContent.frame.height - excess
+                        )
+                    }
+                }
+            }
+        }
     }
 
     /// v0.30 boss 2026-09-01 OOB (divider Step 1 = API default): the
@@ -633,6 +771,17 @@ final class PaneNSController: NSSplitViewController {
         // controller defaults to isVertical = true and the children
         // install wrong-axis).
         let nested = NSSplitViewController()
+        nested.splitView.isVertical = (split.orientation == .row)
+        nested.splitView.autosaveName = autosaveKey(for: split.id)
+        // Swap the default NSSplitView with WenshuSplitView
+        // (= same adjustSubviews override that makes pane frames
+        // touch + preserves drag hit-area). Must run BEFORE
+        // addChild (= which fires viewDidLoad + freezes the
+        // default NSSplitView identity). The nested controller's
+        // splitView property is settable here because the
+        // controller's own viewDidLoad has not yet fired (= the
+        // view only loads when parent.addChild triggers it).
+        nested.splitView = WenshuSplitView()
         nested.splitView.isVertical = (split.orientation == .row)
         nested.splitView.autosaveName = autosaveKey(for: split.id)
         installChildren(split.children, weights: split.weights, into: nested)
