@@ -493,7 +493,24 @@ struct WenshuApp: App {
                 // glass tint (= boss can see sidebar / preview /
                 // editor / tools / chat / dynamic distinctly). Pane
                 // boundaries are now CLEARLY visible.
-                Color.black.opacity(0.001)  // Opaque placeholder
+                // v0.30 boss 2026-09-01 OOB (divider round 2): the
+                // prior 'Color.black.opacity(0.001) opaque placeholder'
+                // (= the 'so the wallpaper is no longer visible through
+                // empty regions of the window' fix from v0.28 round 41)
+                // actually still let the desktop wallpaper show through
+                // the title bar (= opacity 0.001 = essentially transparent).
+                // Boss's complaint: 'title bar is transparent = desktop
+                // wallpaper shows through'. The Liquid Glass material
+                // the boss wants for the title bar is the Apple-native
+                // .windowBackgroundColor (= auto-adapts to dark / light
+                // mode; opaque by definition; the macOS 27 Tahoe
+                // canonical title bar color). Switching from
+                // 'Color.black.opacity(0.001)' (= 0.1% opaque = the
+                // boss's title-bar-transparency problem) to
+                // 'Color(nsColor: .windowBackgroundColor)' (= 100% opaque
+                // = no wallpaper bleed) is the right fix per the
+                // Liquid Glass design spec.
+                Color(nsColor: .windowBackgroundColor)
             }
         }
         // Boss 8/24 feedback: 'use the 52 PT one'. Apple SwiftUI macOS 14+ windowToolbarStyle
