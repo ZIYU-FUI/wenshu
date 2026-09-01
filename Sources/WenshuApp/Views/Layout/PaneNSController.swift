@@ -150,23 +150,17 @@ final class PaneNSController: NSSplitViewController {
     ///   would be SwiftUI-native and controllable via overlay).
     private func applyDividerStyleForCurrentOpacity() {
         // v0.30 boss 2026-09-01 OOB (divider final design):
-        //   - Style: .paneSplitter (= Apple official API: "no
-        //     visible divider line + drag still works"; the
-        //     divider subview remains mounted at its 8 PT hit-area
-        //     width, but NSSplitView draws NOTHING into it; the
-        //     subview is fully transparent and only serves as
-        //     AppKit's mouseDown target for divider dragging).
-        //   - Hit-area: hidden. No tint (= per boss OOB 2026-09-01
-        //     "既然选择不画, hit-area 也隐藏". The previous attempt
-        //     to tint the hit-area with NSColor.controlBackgroundColor
-        //     (= commit 88828ff24) made the hit-area subtly visible
-        //     as a 8 PT lighter band against the pane background;
-        //     removed because boss wants the hit-area fully
-        //     invisible until the user actually moves the mouse
-        //     over it).
+        //   - Width: 1 PT (= Apple default dividerStyle .thin;
+        //     boss accepted the Apple limit and pivoted from the
+        //     earlier .paneSplitter / 0-width / no-line attempts
+        //     to the standard HIG hairline).
+        //   - Visual: a visible 1 PT hairline in system dark color
+        //     (= 100% opaque alpha=1, dark-mode sRGB approx (0.09,
+        //     0.09, 0.09); auto-adapts to light / dark mode). Per
+        //     boss OOB "if a gap is required, I want a 1 PT visible
+        //     system dark 100% opaque line".
         //   - Drag: works regardless of the tint. AppKit routes
-        //     mouseDown events to the divider subview's hit-area
-        //     even when the subview has no background / no layer;
+        //     mouseDown events to the divider subview's hit-area;
         //     the effectiveRect delegate override (= 4 PT padding)
         //     still extends the hit-area to make the divider easy
         //     to grab.
@@ -174,8 +168,15 @@ final class PaneNSController: NSSplitViewController {
         //     API surface there is no per-alpha control on the
         //     divider; boss rule = "if no corresponding API, do
         //     not implement it").
+        //
+        // The adjustSubviews override on WenshuSplitView (= the
+        // subclass this controller sets as self.splitView in init)
+        // still makes pane frames touch (= the 1 PT hairline is
+        // drawn by the divider subview itself, not by a gap in the
+        // pane layout).
         for splitView in allSplitViews() {
-            applyDividerStyle(.paneSplitter, to: splitView)
+            applyDividerStyle(.thin, to: splitView)
+            tintDividerSubviews(in: splitView)
         }
     }
 
@@ -189,6 +190,45 @@ final class PaneNSController: NSSplitViewController {
             }
         }
         return result
+    }
+
+    /// Tint each divider subview (= the NSView instances
+    /// NSSplitView internally mounts between subviews; their class
+    /// name contains "Divider") with NSColor.controlBackgroundColor
+    /// (= Apple system color; dark-mode-measured sRGB = (0.09,
+    /// 0.09, 0.09, alpha=1.0); auto-adapts to dark / light mode).
+    /// Implementation = NSView.wantsLayer + layer.backgroundColor =
+    /// standard AppKit layer-backed view hook (= Apple native;
+    /// no custom NSView subclass).
+    /// Tint each divider subview (= the NSView instances
+    /// NSSplitView internally mounts between subviews; their class
+    /// name contains "Divider") with Apple system separator color
+    /// forced to 100% opaque.
+    ///
+    /// - Color: NSColor.separatorColor (= Apple system color =
+    ///   auto-adapts to dark / light mode; dark-mode-measured sRGB
+    ///   = (1.0, 1.0, 1.0, alpha=0.10); light-mode = white alpha
+    ///   = 0.29). Per boss OOB 2026-09-01 "use system color + alpha
+    ///   = 1.0 (= opaque / visible)".
+    /// - Force alpha = 1.0: separatorColor ships with alpha=0.10
+    ///   in dark mode (= essentially invisible against the pane
+    ///   background; this is exactly the boss complaint). We take
+    ///   the underlying CGColor (RGB unchanged) and overwrite the
+    ///   alpha component to 1.0 via CGColor.copy(alpha:). The
+    ///   underlying RGB stays the system value; only the alpha
+    ///   channel is overridden (= still a system-derived color,
+    ///   not a custom hand-picked RGBA).
+    /// - Implementation: NSView.wantsLayer + layer.backgroundColor
+    ///   = standard AppKit layer-backed view hook (= Apple
+    ///   native; no custom NSView subclass).
+    private func tintDividerSubviews(in splitView: NSSplitView) {
+        let systemColor = NSColor.separatorColor.cgColor.copy(alpha: 1.0)
+        for subview in splitView.subviews {
+            let className = String(describing: type(of: subview))
+            guard className.contains("Divider") else { continue }
+            subview.wantsLayer = true
+            subview.layer?.backgroundColor = systemColor
+        }
     }
 
     /// v0.30 boss 2026-09-01 OOB: 1 PT ok + paneSplitter + hit-area
@@ -714,6 +754,16 @@ final class PaneNSController: NSSplitViewController {
                 self.applyWeights(weights, on: controller)
             }
             self.didApplyInitialWeights = true
+            // v0.30 boss 2026-09-01 OOB fix: tint the divider
+            // subviews AFTER the first weights apply (= dividers
+            // are now mounted at their final positions; tinting
+            // them is a one-time operation since they are
+            // persistent NSViews inside NSSplitView that don't
+            // get recreated on subsequent layout passes). The
+            // initial tint at init time (= line 120's
+            // applyDividerStyleForCurrentOpacity call) is a no-op
+            // because the divider subviews don't exist yet.
+            self.applyDividerStyleForCurrentOpacity()
         }
     }
 
