@@ -109,49 +109,52 @@ final class PaneNSController: NSSplitViewController {
         applyDividerStyleForCurrentOpacity()
     }
 
-    /// v0.30 boss 2026-09-01 OOB (divider line: hide + keep draggable).
-    /// Apple NSSplitView.DividerStyle has 3 cases per the SDK header
-    /// (= NSSplitView.h):
-    ///   - .thick (= NSSplitViewDividerStyleThick = 1; default; wide
-    ///     grey bar; draws a visible line + drag-able).
-    ///   - .thin (= NSSplitViewDividerStyleThin = 2; 1 PT hairline;
-    ///     draws a visible line + drag-able).
-    ///   - .paneSplitter (= NSSplitViewDividerStylePaneSplitter = 3;
-    ///     **no visible line**; drag-able; hit area preserved).
+    /// v0.30 boss 2026-09-01 OOB (Step 1 = restore API default): do NOT
+    /// set the divider style programmatically. Apple NSSplitView
+    /// uses `.thick` by default (= the legacy divider visual). The
+    /// Liquid Glass slider does NOT influence the divider in this
+    /// interim state. Pane separation is conveyed by pane chrome
+    /// background-color difference (= the slider controls each pane's
+    /// background tint independently); the divider line is left at
+    /// Apple default.
     ///
-    /// Boss OOB: "divider line, I want no divider line shown but can
-    /// still drag". = `.paneSplitter` (= the 3rd case, exactly
-    /// matches the spec: no hairline + drag works).
+    /// Per boss 2026-09-01 OOB: "if there is no corresponding API,
+    /// do not implement it" — Apple NSSplitView.DividerStyle is an
+    /// enum with no alpha API; controlling the divider visual at all
+    /// is off the table until boss picks an implementation that
+    /// satisfies all constraints (= visually 1 PT hairline + hidden
+    /// when slider = 0 + does not break the layout).
     ///
-    /// The slider does NOT influence the divider visual in this
-    /// design (= per Apple API surface, there is no per-alpha
-    /// control; boss rule = "if no corresponding API, do not
-    /// implement it"). Pane separation is conveyed by pane chrome
-    /// background-color difference (= the slider controls each
-    /// pane's tint independently).
+    /// Step 2 (= TBD): a different divider implementation that
+    /// satisfies all three constraints. Candidates boss can
+    /// choose between (recorded for the follow-up spec):
+    /// - A: keep .thick as Apple default (= current Step 1 state).
+    /// - B: Subclass NSSplitView (= WenshuSplitView) constructed
+    ///   BEFORE super.init (= cannot swap self.splitView post-init
+    ///   per the b26639d65 layout-breaking precedent; the subclass
+    ///   must be installed at view-creation time).
+    /// - C: Drop NSSplitView entirely and build the 6-zone layout
+    ///   with SwiftUI HStack / VStack dividers (= SwiftUI does not
+    ///   expose a custom divider alpha either, but the divider
+    ///   would be SwiftUI-native and controllable via overlay).
     private func applyDividerStyleForCurrentOpacity() {
-        // Always .paneSplitter = the Apple API for "no visible
-        // divider hairline + drag still works" (boss's exact spec).
-        applyDividerStyle(.paneSplitter, to: splitView)
-        for child in children {
-            if let nestedController = child as? NSSplitViewController {
-                applyDividerStyle(.paneSplitter, to: nestedController.splitView)
-            }
-        }
+        // Intentionally empty: do not set dividerStyle (= Apple
+        // default = .thick). Step 1 = restore API default per
+        // boss 2026-09-01 OOB. Step 2 will pick a different
+        // implementation.
     }
 
-    /// v0.30 boss 2026-09-01 OOB (divider final design): divider is
-    /// always .paneSplitter (= no visible hairline, drag still
-    /// works). The notification is no longer needed (the divider
-    /// does not react to the slider), but the observer wiring is
-    /// retained to keep the existing init flow unchanged (= removing
-    /// the observer would be a separate cleanup ticket).
+    /// v0.30 boss 2026-09-01 OOB (divider Step 1 = API default): the
+    /// observer still receives the notification but does not mutate
+    /// the divider (= Apple default is the source of truth for the
+    /// divider visual). The handler is retained so the wiring
+    /// (= NotificationCenter.addObserver in init) remains valid;
+    /// removing it is a follow-up cleanup.
     @objc private func handleLiquidGlassOpacityChanged() {
-        // No-op: divider is always .paneSplitter regardless of
-        // the slider value (= boss OOB "no divider line shown,
-        // can still drag"). Retained as a stub so the
-        // NotificationCenter.addObserver selector in init still
-        // resolves.
+        // Intentionally empty: see applyDividerStyleForCurrentOpacity
+        // comment (= Step 1 restores API default; the divider no
+        // longer reacts to the slider until Step 2 picks a different
+        // implementation).
     }
 
     /// Recursive helper to apply a divider style to a split view
