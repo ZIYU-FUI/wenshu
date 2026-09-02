@@ -497,7 +497,7 @@ struct NewLibraryOutlineView: View {
             NewBookSheet(
                 onSave: { book in
                     do {
-                        try saveBook(book)
+                        try bookStore.sidebarSaveBook(book)
                         reload()
                     } catch {
                         loadError = error.localizedDescription
@@ -512,7 +512,7 @@ struct NewLibraryOutlineView: View {
             NewShelfSheet(
                 onSave: { name, icon in
                     do {
-                        try saveShelf(name: name, icon: icon)
+                        try bookStore.sidebarSaveShelf(name: name, icon: icon)
                         reload()
                     } catch {
                         loadError = error.localizedDescription
@@ -977,113 +977,16 @@ struct NewLibraryOutlineView: View {
     private func reload() {
         do {
             // Read shelves + books from the filesystem (= spec v5 layout).
-            shelves = try readShelves()
-            books = try readBooks()
+            // The inline FileManager + JSON adapter moved to
+            // `BookStore.sidebarLoadShelves()` / `sidebarLoadAllBooks()`
+            // in v0.32 (= no longer duplicated in this view).
+            shelves = try bookStore.sidebarLoadShelves()
+            books = try bookStore.sidebarLoadAllBooks()
             references = try bookStore.referenceStore.loadAllReferences()
             loadError = nil
         } catch {
             loadError = error.localizedDescription
         }
-    }
-
-    private func readShelves() throws -> [Bookshelf] {
-        let shelvesRoot = bookStore.stores.shelvesRoot
-        guard FileManager.default.fileExists(atPath: shelvesRoot.path) else { return [] }
-        let entries = try FileManager.default.contentsOfDirectory(
-            at: shelvesRoot,
-            includingPropertiesForKeys: [.isDirectoryKey],
-            options: [.skipsHiddenFiles]
-        )
-        var result: [Bookshelf] = []
-        for entry in entries {
-            let isDir = (try? entry.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
-            guard isDir else { continue }
-            let jsonURL = entry.appendingPathComponent("shelf.json")
-            guard let data = try? Data(contentsOf: jsonURL),
-                  let shelf = try? JSONDecoder().decode(Bookshelf.self, from: data) else { continue }
-            result.append(shelf)
-        }
-        return result.sorted { $0.createdAt < $1.createdAt }
-    }
-
-    private func readBooks() throws -> [Book] {
-        let shelvesRoot = bookStore.stores.shelvesRoot
-        guard FileManager.default.fileExists(atPath: shelvesRoot.path) else { return [] }
-        var result: [Book] = []
-        let shelves = try FileManager.default.contentsOfDirectory(
-            at: shelvesRoot,
-            includingPropertiesForKeys: [.isDirectoryKey],
-            options: [.skipsHiddenFiles]
-        )
-        for shelfDir in shelves {
-            let isDir = (try? shelfDir.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
-            guard isDir else { continue }
-            let booksDir = shelfDir.appendingPathComponent("books", isDirectory: true)
-            guard FileManager.default.fileExists(atPath: booksDir.path) else { continue }
-            let bookEntries = try FileManager.default.contentsOfDirectory(
-                at: booksDir,
-                includingPropertiesForKeys: [.isDirectoryKey],
-                options: [.skipsHiddenFiles]
-            )
-            for bookDir in bookEntries {
-                let isBookDir = (try? bookDir.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
-                guard isBookDir else { continue }
-                let jsonURL = bookDir.appendingPathComponent("book.json")
-                guard let data = try? Data(contentsOf: jsonURL),
-                      let book = try? JSONDecoder().decode(Book.self, from: data) else { continue }
-                result.append(book)
-            }
-        }
-        return result.sorted { $0.createdAt < $1.createdAt }
-    }
-
-    private func saveBook(_ book: Book) throws {
-        // v0.30 boss 8/31 OOB: bug fix — the previous path
-        // duplicated the 'books' segment (= 'books/<shelf-uuid>/books/<book-uuid>')
-        // which would create the book in a non-standard location
-        // and break the LibraryBootstrapper invariants. The correct
-        // path is '<shelvesRoot>/<shelf-uuid>/books/<book-uuid>/',
-        // matching the v5 spec layout.
-        let bookDir = bookStore.stores.shelvesRoot
-            .appendingPathComponent(book.shelfId.uuidString, isDirectory: true)
-            .appendingPathComponent("books", isDirectory: true)
-            .appendingPathComponent(book.id.uuidString, isDirectory: true)
-        try FileManager.default.createDirectory(at: bookDir, withIntermediateDirectories: true)
-        let data = try JSONEncoder().encode(book)
-        try data.write(to: bookDir.appendingPathComponent("book.json"))
-        // Run per-book bootstrap (= creates 8 folders + 2 JSON data files).
-        let bootstrapper = LibraryBootstrapper(wsRoot: bookStore.stores.referenceLibraryRoot.deletingLastPathComponent())
-        try bootstrapper.ensureValidStructure()
-    }
-
-    private func saveShelf(name: String, icon: String?) throws {
-        // v0.30 boss 8/31 OOB: enforce duplicate name check before
-        // creating the shelf. wenshu uses shelf.name (= user-visible
-        // label) as a secondary identifier; while the filesystem
-        // identity is shelf.id (= UUID = no collisions), showing two
-        // shelves with the same name in the sidebar would confuse
-        // the user. Also block the reserved '资料库' name (= that's
-        // the reference library, which is a Section not a Shelf —
-        // see PaneRenderer.projectSidebar's reference category
-        // section, which is unrelated to the user shelves).
-        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        // Reserved names (= cannot be used for a user shelf).
-        let reservedNames: Set<String> = ["资料库", "参考库", "reference library"]
-        if reservedNames.contains(where: { trimmedName.caseInsensitiveCompare($0) == .orderedSame }) {
-            throw ShelfError.reservedName(trimmedName)
-        }
-        // Duplicate check (= case-insensitive, trim-insensitive).
-        let existingNames = shelves.map { $0.name.trimmingCharacters(in: .whitespacesAndNewlines) }
-        if existingNames.contains(where: { $0.caseInsensitiveCompare(trimmedName) == .orderedSame }) {
-            throw ShelfError.duplicateName(trimmedName)
-        }
-        let shelf = Bookshelf(name: trimmedName, icon: icon)
-        let shelfDir = bookStore.stores.shelvesRoot
-            .appendingPathComponent(shelf.id.uuidString, isDirectory: true)
-        try FileManager.default.createDirectory(at: shelfDir, withIntermediateDirectories: true)
-        try FileManager.default.createDirectory(at: shelfDir.appendingPathComponent("books"), withIntermediateDirectories: true)
-        let data = try JSONEncoder().encode(shelf)
-        try data.write(to: shelfDir.appendingPathComponent("shelf.json"))
     }
 
     /// v0.30 boss 8/31 OOB: count children (= books in shelf, or
