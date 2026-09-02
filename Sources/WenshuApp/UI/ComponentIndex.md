@@ -132,7 +132,7 @@ Each component has:
 
 ### 2.7 RegionContentBackground
 - **Path**: `Sources/WenshuApp/UI/RegionContentBackground.swift`
-- **Purpose**: Pane content area background (= reads `liquidGlassOpacity` env value, maps to 4-tier Material strength)
+- **Purpose**: Pane content area background (= maps ZoneSlot to 4-tier Material strength via `.regularMaterial` / `.windowBackgroundColor` / Apple canonical NSColor)
 - **Use when**: Setting background of any pane's content area
 - **API**: `view.background(RegionContentBackground())`
 
@@ -258,47 +258,42 @@ Each component has:
 
 ---
 
-## 📋 LEVEL 7: Window chrome (= app-level)
+## 📋 LEVEL 7: Window chrome (= Apple-canonical macOS 26)
 
-### 7.1 AppTitlebar
-- **Path**: `Sources/WenshuApp/UI/AppTitlebar.swift`
-- **Purpose**: Custom macOS titlebar (= 32 PT toolbar with model selector + session indicator)
-- **Use when**: Building app-level titlebar variants
+Window chrome = 100% Apple canonical per macOS 26 Tahoe (= no custom wenshu wrappers since v0.34). LibraryRootView uses SwiftUI `.toolbar { ToolbarItemGroup }` + `.windowToolbarStyle(.unified)` (= the Pages / Xcode / Mail / Finder pattern). The custom AppTitlebar + AppStatusbar + WenshuChromeOverlay + TitlebarStatusbarPolish wrappers were deleted in v0.34 commit `69a43da65` (= dead chrome per boss OOB 'should be one component').
 
-### 7.2 AppStatusbar
-- **Path**: `Sources/WenshuApp/UI/AppStatusbar.swift`
-- **Purpose**: Bottom-of-window status bar (= "MiniMax-M3  Idle" + "wenshu v0.28  Sessions")
-- **Use when**: Building app-level status bar
+### 7.1 Apple canonical toolbar (= LibraryRootView)
+- **Path**: see `Sources/WenshuApp/App.swift:WindowGroup { ... }` around `LibraryRootView()` + `.windowToolbarStyle(.unified)`
+- **Purpose**: 1 macOS native .unified 52 PT titlebar (= traffic lights + grouped toolbar items in 1 unified capsule = the macOS 26 Tahoe canonical look)
+- **Use when**: ANY new top-level chrome (= never write a custom AppTitlebar/AppStatusbar/WenshuChromeOverlay again; use Apple's `.toolbar` API)
+- **Replaces**: All 4 deleted wrappers from v0.34 commit `69a43da65`
 
-### 7.3 TitlebarStatusbarPolish
-- **Path**: `Sources/WenshuApp/UI/TitlebarStatusbarPolish.swift`
-- **Purpose**: Polish layer for titlebar/statusbar (= hover/pressed state washes, .thinMaterial)
-- **Use when**: Adding interactive feedback to titlebar/statusbar buttons
-
-### 7.4 WenshuChromeOverlay
-- **Path**: `Sources/WenshuApp/UI/WenshuChromeOverlay.swift`
-- **Purpose**: Window-level chrome overlay (= optional unified macOS window chrome wrapper)
+### 7.2 Apple canonical status bar (= bottom of window)
+- **Path**: see `Sources/WenshuApp/App.swift:WindowGroup { ... }` around `LibraryRootView()` + `.toolbar { ToolbarItem(placement: .principal) { ... }` (= Apple macOS 26 status bar pattern)
+- **Purpose**: macOS standard window-level status (= model name / session indicator / ready state) without custom chrome
+- **Replaces**: custom AppStatusbar wrapper (deleted v0.34)
 
 ---
 
 ## 🚫 LEVEL 8: 已删除的废弃实现 (= 不要重新写)
 
-These were removed in Phase 4 (= single source of truth cleanup). **If you find yourself writing these patterns, STOP and use the canonical replacement.**
+These were removed in various phases (= v0.32 Apple-API-first sweep + v0.34 boss iron-rules pass). **If you find yourself writing these patterns, STOP and use the canonical replacement.**
 
 ### 8.1 ❌ ZoneModule
 - **Was in**: `Sources/WenshuApp/App.swift`
-- **Deleted**: Phase 4
+- **Deleted**: Phase 4 (= v0.28 followup Boss UX round A)
 - **Use instead**: `ZonePerRegionChrome` (= already exists in `Sources/WenshuApp/UI/ZonePerRegionChrome.swift`)
 
 ### 8.2 ❌ ZoneBottomToolbar
 - **Was in**: `Sources/WenshuApp/App.swift`
-- **Deleted**: Phase 4
-- **Use instead**: `PaneStatusBar` (= new in Phase 5)
+- **Deleted**: Phase 4 (= v0.28 followup Boss UX round A)
+- **Use instead**: `PaneStatusBar` (= new in Phase 5, file `Sources/WenshuApp/UI/PaneStatusBar.swift`)
 
 ### 8.3 ❌ ZoneContentTabBar / DynamicZoneTabBar / ChatZoneTopChrome (custom tab bodies)
-- **Was in**: `Sources/WenshuApp/Views/Dynamic/ZoneContentView.swift` + `DynamicZoneView.swift` + `Workspace/PaneRenderer.swift`
-- **Refactored**: Phase 2-3
-- **Use instead**: `PaneTabBar` + `PaneIconTab` (new generic components)
+- **Was in**: `Sources/WenshuApp/Views/Dynamic/ZoneContentView.swift` + `DynamicZoneView.swift` + `Workspace/TabContentDispatcher.swift`
+- **Refactored**: Phase 2-3 + v0.34 commits `dcde7cff5` + `a6b6c75d3`
+- **Use instead**: `PaneTabBar` + `PaneIconTab` + `PaneTrailingIconButton` (= new generic components in `Sources/WenshuApp/UI/PaneTabBar.swift`)
+- **Note**: `DynamicZoneTabBar` still survives (= enum ↔ string binding shim = SwiftUI Binding limitation; tracked in backlog.md entry B-02)
 
 ### 8.4 ❌ zoneContentTabBarIcon / dynamicZoneTabBarIcon / chatZoneTabBarIcon
 - **Was in**: same files as 8.3
@@ -312,6 +307,12 @@ These were removed in Phase 4 (= single source of truth cleanup). **If you find 
 ### 8.6 ❌ DesignColor.zoneSurface / DesignColor.splitterLine
 - **Was in**: `Sources/WenshuApp/UI/DesignColor.swift`
 - **Replaced**: Phase 1 (= use `.regularMaterial` + `Color.white.opacity(0.25)` respectively)
+
+### 8.7 ❌ AppTitlebar / AppStatusbar / TitlebarStatusbarPolish / WenshuChromeOverlay
+- **Was in**: `Sources/WenshuApp/UI/AppTitlebar.swift` + `AppStatusbar.swift` + `TitlebarStatusbarPolish.swift` + `WenshuChromeOverlay.swift`
+- **Deleted**: v0.34 commit `69a43da65` (= boss 2026-09-02 OOB 'use the most reasonable approach, should be unified into one component')
+- **Use instead**: SwiftUI `.toolbar { ToolbarItemGroup }` + `.windowToolbarStyle(.unified)` (= Apple macOS 26 canonical pattern; see LEVEL 7.1)
+- **Why deleted**: (1) AppTitlebar was self-written 34 PT chrome that duplicated Apple HIG behavior Apple provides for free via `.windowToolbarStyle(.unified)`. (2) AppStatusbar duplicated the standard macOS status bar pattern Apple provides via `.toolbar { ToolbarItem(placement: .principal) }`. (3) The whole 4-file chrome overlay was never rendered in production; App.swift had a comment marker `WenshuChromeOverlay but the wrapper was a TEMPORARILY-removed shell since 2026-08-29`.
 
 ---
 
