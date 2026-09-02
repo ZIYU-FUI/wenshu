@@ -17,7 +17,7 @@ public struct CronScheduleView: View {
             Text("Cron Schedule")
                 .font(.headline)
             Text("0 schedules · replica of hermes cronjob")
-                .font(.system(size: 13))
+                .font(.body)
                 .foregroundStyle(.secondary)
             if store == nil {
                 Text("(store unavailable — bootstrap may have failed)")

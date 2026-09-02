@@ -17,7 +17,7 @@ public struct TodoListView: View {
             Text("Todo")
                 .font(.headline)
             Text("0 items · replica of hermes todo")
-                .font(.system(size: 13))
+                .font(.body)
                 .foregroundStyle(.secondary)
             if store == nil {
                 Text("(store unavailable — bootstrap may have failed)")

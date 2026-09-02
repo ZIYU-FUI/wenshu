@@ -305,7 +305,7 @@ struct ZoneEditor: View {
         ZStack {
             Rectangle().fill(.tint.opacity(0.15))
             Text("\(zone.index + 1)")
-                .font(.system(size: 24, weight: .semibold))
+                .font(.title2.weight(.semibold))
                 .foregroundStyle(Color.accentColor)
         }
         .frame(width: frame.width, height: frame.height)
@@ -351,7 +351,7 @@ struct ZoneEditor: View {
                     // 0..MULTIPLIER coordinate space).
                     Button(action: { splitAtColumn(i) }) {
                         Image(systemName: "plus")
-                            .font(.system(size: 11, weight: .bold))
+                            .font(.caption.weight(.bold))
                             .foregroundStyle(.white)
                             .frame(width: 22, height: 22)
                             .background(Circle().fill(Color.accentColor))
