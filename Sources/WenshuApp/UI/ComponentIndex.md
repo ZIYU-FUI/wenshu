@@ -190,14 +190,19 @@ Each component has:
 - **Replaces**: `Sources/WenshuApp/UI/LiquidGlassOpacity.swift` (= deleted in v0.32 commit by Tier-1 rank-3 per `.scratch/v0.32-apple-api-audit/audit.md` §3). The previous hand-rolled `Double.toLiquidGlassMaterial()` 6-step ladder + user-tunable slider + `wenshu.liquidGlassOpacity` UserDefaults key + `.liquidGlassOpacityEnvironment` injection + `.liquidGlassOpacityChanged` notification were all removed.
 - **DON'T**: Re-implement a per-app opacity slider (= Apple's system-wide Reduce Transparency accessibility setting is the canonical knob). Use Apple `.glassEffect(.regular)` instead.
 
-### 4.2 RegionHoverWash
-- **Path**: `Sources/WenshuApp/UI/RegionHoverWash.swift`
-- **Purpose**: Standard hover state wash (= Apple HIG .thinMaterial overlay on hover)
-- **Use when**: Any tappable view needs hover feedback (= buttons, list rows, etc.)
+### 4.2 Hover / pressed wash (= bare `.thinMaterial`)
+
+- **Path**: N/A (= SwiftUI Material catalog value, macOS 27 Tahoe).
+- **Purpose**: Apple canonical hover/pressed wash (= light Liquid Glass tint). Use bare `.thinMaterial` directly (= no project-local ShapeStyle wrapper).
 - **API**:
   ```swift
-  view.background(RegionHoverWash(isHovered: isHovered))
+  // Hover background (when condition is true)
+  Color.clear.overlay(.thinMaterial)
+  
+  // Hover fill on a shape
+  RoundedRectangle(cornerRadius: 4).fill(.thinMaterial)
   ```
+- **Replaces**: `Sources/WenshuApp/UI/RegionHoverWash.swift` (= deleted in v0.32 commit `c52f9b190`; the previous self-written `RegionHoverWashStyle: ShapeStyle` wrapper just returned `.thinMaterial` from its `resolve()` method and added no semantic value over the bare Apple Material catalog value).
 
 ### 4.3 RegionSelectionBackground
 - **Path**: `Sources/WenshuApp/UI/RegionSelectionBackground.swift`
