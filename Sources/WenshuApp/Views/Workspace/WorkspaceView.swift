@@ -656,12 +656,31 @@ struct EditorPlaceholder: View {
             // Body: placeholder content. Ticket 05 swaps this for
             // swift-markdown rendered Text when mode = .preview; ticket 07
             // swaps for Apple TextEditor when mode = .edit.
-            VStack {
-                Text("编辑器").font(.headline)
-                Text("Editor zone (= v0.27 zone; = ticket 027-35 integration pending)")
-                    .font(.caption).foregroundStyle(.secondary)
-                Text("当前模式: \(mode.rawValue)")
-                    .font(.caption2).foregroundStyle(.tertiary)
+            ZStack {
+                // v0.34 ticket 05: preview mode uses swift-markdown
+                // (= AGENTS.md §11.1 pinned 0.4.0) AttributedString render
+                // for headers/bold/italic/lists/code/links, plus
+                // InternalLinkParser (= wenshu's existing parser, = 1:1
+                // Obsidian wikilink syntax) to make [[name]] clickable.
+                // Placeholder sample body until ticket 027-35 wires the
+                // real document load (= the Apple HIG DocumentGroup
+                // file-open path is the v0.35+ ticket).
+                if mode == .preview {
+                    EditorPreviewContent(
+                        markdownBody: Self.samplePreviewBody,
+                        wikilinkTarget: { _ in /* TODO: ticket 027-35 navigation */ }
+                    )
+                } else {
+                    // Mode = .edit: ticket 07 will replace this VStack
+                    // placeholder with Apple TextEditor.
+                    VStack {
+                        Text("编辑器").font(.headline)
+                        Text("Editor zone (= v0.27 zone; = ticket 027-35 integration pending)")
+                            .font(.caption).foregroundStyle(.secondary)
+                        Text("当前模式: \(mode.rawValue)")
+                            .font(.caption2).foregroundStyle(.tertiary)
+                    }
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             // v0.28 followup Boss UX round 19 (Boss 2026-08-29 OOB '所有
@@ -673,6 +692,141 @@ struct EditorPlaceholder: View {
             // lightest Liquid Glass material as a placeholder that
             // matches the rest of the workspace.
             .background(.ultraThinMaterial)
+        }
+    }
+
+    // v0.34 ticket 05: sample markdown body shown in preview mode (= used
+    // until ticket 027-35 wires the real .md document load via NSOpenPanel
+    // + Apple HIG DocumentGroup). Exercises all the rendering paths:
+    // header levels, bold/italic, bullet list, inline code, code fence,
+    // [[wikilink]] (= parsed by InternalLinkParser).
+    static let samplePreviewBody: String = """
+    # 文枢编辑区预览
+
+    这是 **粗体**, *斜体*, `inline code`, and a [regular link](https://apple.com).
+
+    ## 二级标题
+
+    - 列表项 1
+    - 列表项 2
+      - 嵌套列表
+    - 列表项 3
+
+    ## 代码块
+
+    ```swift
+    func hello() {
+        print("Hello, 文枢!")
+    }
+    ```
+
+    ## 内部链接
+
+    Refer to [[阳明心学]] and [[尚书|Classic Book]] as inline wikilinks.
+
+    > 这是引用块 — Obsidian 风格.
+    """
+
+    // v0.34 ticket 05: placeholder type alias for the wikilink navigation
+    // closure (= ticket 027-35 will replace with actual NavigationLink).
+    typealias WikilinkAction = (String) -> Void
+}
+
+/// EditorPreviewContent (= ticket 05): renders markdown body using
+/// swift-markdown (= AGENTS.md §11.1) AttributedString + converts
+/// [[wikilink]] occurrences (= via wenshu's existing InternalLinkParser)
+/// into clickable Button instances that surface the target ref via the
+/// `wikilinkTarget` closure (= ticket 027-35 wires navigation).
+///
+/// Spec user stories covered:
+///   US-2 (preview mode renders markdown headers/bold/italic/lists/code)
+///   US-9 ([[wikilink]] clickable, 1:1 Obsidian syntax)
+///   US-10 (InternalLinkParser same parser as wiki layer = consistency)
+///   US-12 (uses pinned swift-markdown 0.4.0)
+private struct EditorPreviewContent: View {
+    let markdownBody: String
+    let wikilinkTarget: EditorPlaceholder.WikilinkAction
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(parsedSegments, id: \.id) { segment in
+                    renderSegment(segment)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(16)
+        }
+    }
+
+    /// A parsed segment is either a chunk of markdown text (= rendered as
+    /// AttributedString) or a single wikilink (= clickable Button).
+    private enum Segment: Identifiable {
+        case text(String)
+        case wikilink(target: String, display: String)
+        var id: String {
+            switch self {
+            case .text(let s): return "t:" + s.prefix(64).description
+            case .wikilink(let t, _): return "w:" + t
+            }
+        }
+    }
+
+    private var parsedSegments: [Segment] {
+        let links = InternalLinkParser.parse(markdownBody)
+        guard !links.isEmpty else { return [.text(markdownBody)] }
+        var segments: [Segment] = []
+        var cursor = markdownBody.startIndex
+        let nsBody = markdownBody as NSString
+        for link in links {
+            let targetRange = NSRange(location: link.offset, length: link.text.utf16.count + 4)
+            // '[[', alias, ']]' = 2 + alias.utf16.count + 2
+            let fullMatchRange = NSRange(location: link.offset, length: "[[\(link.text)]]".utf16.count)
+            // Convert NSRange -> String.Index for slicing
+            if let textRange = Range(targetRange, in: markdownBody),
+               let fullRange = Range(fullMatchRange, in: markdownBody) {
+                if cursor < fullRange.lowerBound {
+                    segments.append(.text(String(markdownBody[cursor..<fullRange.lowerBound])))
+                }
+                segments.append(.wikilink(target: link.target, display: link.text))
+                cursor = fullRange.upperBound
+                _ = textRange; _ = nsBody
+            }
+        }
+        if cursor < markdownBody.endIndex {
+            segments.append(.text(String(markdownBody[cursor..<markdownBody.endIndex])))
+        }
+        return segments
+    }
+
+    @ViewBuilder
+    private func renderSegment(_ segment: Segment) -> some View {
+        switch segment {
+        case .text(let chunk):
+            // swift-markdown AttributedString rendering. The library
+            // handles headers, bold, italic, lists, code, code fences,
+            // blockquotes, links (= Obsidian parity).
+            if let attributed = try? AttributedString(markdown: chunk) {
+                Text(attributed)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                Text(chunk)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        case .wikilink(let target, let display):
+            // Obsidian wikilink: blue text, clickable. The internal
+            // wiki-link nav will be wired by ticket 027-35 (= today's
+            // placeholder closure is a no-op).
+            Button {
+                wikilinkTarget(target)
+            } label: {
+                Text("[[\(display)]]")
+                    .foregroundStyle(.blue)
+                    .underline()
+            }
+            .buttonStyle(.plain)
+            .help("Open: \(target)")
         }
     }
 }
