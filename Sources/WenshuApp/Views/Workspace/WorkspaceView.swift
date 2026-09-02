@@ -537,6 +537,10 @@ private struct EditorContentPlaceholder: View {
 /// Per boss 8/26 OOB '点击后 整个编辑器最大化 其它所有栏全都隐藏
 /// 此时 ICON 变成 shrink 点击后 恢复到刚刚点击 expand 前的状态'.
 /// State + snapshot lives in @AppStorage (= ticket 01, v0.34).
+/// v0.34 ticket 03: action closure now posts the .wenshuEditorMaximizedChanged
+/// notification (= PaneNSController listener installed by ticket 02 handles
+/// the actual layout mutation). The button stays a thin View-local proxy:
+/// read @AppStorage, write @AppStorage, post notification.
 private struct EditorExpandShrinkTrailingButton: View {
     // v0.34 ticket 01: replaced @State with @AppStorage (= Rule 11 + Apple
     // HIG standard storage; the bug ticket 03 fixes = no real persistence,
@@ -574,7 +578,21 @@ private struct EditorExpandShrinkTrailingButton: View {
                 ? "arrow.down.right.and.arrow.up.left"
                 : "arrow.up.left.and.arrow.down.right",
             tooltip: editorMaximized ? "恢复布局" : "展开全屏",
-            action: { editorMaximized.toggle() }
+            // v0.34 ticket 03 (= Q33 boss fix): the action was previously a
+            // dead `editorMaximized.toggle()` (= View-local @State only,
+            // no layout effect). Now it writes @AppStorage AND posts the
+            // .wenshuEditorMaximizedChanged notification, which
+            // PaneNSController.handleEditorMaximizedChanged listens for
+            // (= ticket 02 implementation). Notification.object carries
+            // the new Bool payload so the listener can branch on
+            // snapshot-and-collapse vs restore.
+            action: {
+                editorMaximized.toggle()
+                NotificationCenter.default.post(
+                    name: .wenshuEditorMaximizedChanged,
+                    object: editorMaximized
+                )
+            }
         )
     }
 }
