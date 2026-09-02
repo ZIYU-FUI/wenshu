@@ -126,7 +126,7 @@ public struct PaneTabBar<Item: Identifiable & Sendable, Trailing: View>: View {
 
     public var body: some View {
         RegionTabBar {
-            HStack(spacing: 0) {
+            HStack(spacing: DesignTokens.chromePaddingClusterGap) {
                 ForEach(items) { item in
                     PaneIconTab(
                         id: item[keyPath: idKeyPath],

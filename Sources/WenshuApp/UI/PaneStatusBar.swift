@@ -66,7 +66,7 @@ public struct PaneStatusBar: View {
 
     public var body: some View {
         RegionStatusBar {
-            HStack(spacing: 0) {
+            HStack(spacing: DesignTokens.chromePaddingClusterGap) {
                 // Left status text (= .tertiary + .system(size: 13)
                 // = Apple HIG secondary text on toolbar/statusbar)
                 Text(leftText.isEmpty ? "占位文字" : leftText)
