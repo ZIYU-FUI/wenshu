@@ -36,10 +36,21 @@ struct TabContentDispatcher: View {
     // from App.swift via .environment(bookStore)).
     @Environment(BookStore.self) private var bookStore
 
-    /// v0.30 boss 8/31 OOB '各区域之间的联动' (= option A = global
-    /// @Observable store). TabContentDispatcher reads sidebar
+    /// v0.30 boss 8/31 OOB '各区域之间的联动' (= option A =
+    /// global @Observable store). TabContentDispatcher reads sidebar
     /// selection directly from AppState (= no @Binding chain).
     @Environment(AppState.self) private var appState
+
+    // v0.34 boss 2026-09-02 OOB (B-02 multi-layer audit followup):
+    // ChatZoneTopChrome wrapper was deleted. The state and namespace
+    // it owned (= archive-confirm dialog state + per-instance
+    // SwiftUI namespace for the matchedGeometryEffect underline) are
+    // now owned by TabContentDispatcher directly (= single source of
+    // truth for chat zone top chrome). Migration path: see PaneTabBar
+    // documentation in commit dcde7cff5's "top-bar chrome flattening"
+    // section.
+    @State private var showingArchiveConfirm: Bool = false
+    @Namespace private var chatTabBarNamespace
 
     var body: some View {
         switch kind {
@@ -133,19 +144,20 @@ struct TabContentDispatcher: View {
             }
         case .aiChat:
             // v0.28 followup Boss UX round 16 (Boss 2026-08-29 OOB
-            // '聊天区的顶栏消失了' = restoring the chat top tab bar.
+            // '聊天区的顶栏消失了') = restoring the chat top tab bar.
             // Old 6区 had ChatZoneTabBar (= 3 tabs: 对话 / 搜索 / 设置
             // + archive button on right). The new ChatView doesn't
-            // have an internal tab bar. Restore it via ChatZoneTopChrome
-            // (= simple inline HStack with bot icon + archive icon +
-            // selected underline, matches the Apple HIG canonical
-            // per-pane tab bar style used in 4 general zones).
-            // NO outer ZonePerRegionChrome (= ChatZoneTopChrome IS
-            // the top chrome, single layer).
+            // have an internal tab bar.
+            // v0.34 boss 2026-09-02 OOB (B-02 multi-layer audit):
+            // the inline ChatZoneTopChrome wrapper was deleted; the
+            // PaneTabBar call now lives directly in this dispatch branch
+            // (= state + namespace held by TabContentDispatcher above).
+            // Single source of truth for chat top chrome.
+            // NO outer ZonePerRegionChrome (= this PaneTabBar IS the top chrome).
             ZonePerRegionChrome(
                 topActions: [],
                 bottomStatus: aiChatChrome().bottom,
-                topSkip: true,  // skip outer (= ChatZoneTopChrome IS the top)
+                topSkip: true,
                 bottomSkip: true,  // chat uses internal ChatBottomToolbar per v0.21 ticket 10
                 // v0.32 boss 2026-09-02 OOB: chat = content tier
                 // (= .windowBackgroundColor = matches Mail message
@@ -158,7 +170,27 @@ struct TabContentDispatcher: View {
                         // (= the top chrome) without ChatView needing to
                         // know about it. Matches macOS 26 Tahoe pattern
                         // (= content area + small top inset for tab bar).
-                        ChatZoneTopChrome()
+                        //
+                        // v0.34 boss 2026-09-02 OOB: use PaneTabBar directly
+                        // (= no ChatZoneTopChrome wrapper layer). Single
+                        // hard-coded chat tab item + archive trailing button
+                        // (= migrated to PaneTrailingIconButton helper from
+                        // commit dcde7cff5). namespaceID stays as
+                        // "chatTabUnderline" so the matchedGeometryEffect
+                        // anchor remains unique across the workspace.
+                        PaneTabBar(
+                            items: [PaneTabItem(id: "chat", icon: "bot", label: "对话")],
+                            selection: .constant("chat"),
+                            namespace: chatTabBarNamespace,
+                            namespaceID: "chatTabUnderline",
+                            trailing: {
+                                PaneTrailingIconButton(
+                                    icon: "inbox",
+                                    tooltip: "归档本次会话",
+                                    action: { showingArchiveConfirm = true }
+                                )
+                            }
+                        )
                     }
             }
         case .aiDynamic:
@@ -277,75 +309,5 @@ private struct GroupTabStrip: View {
         // background (= the floating group header inside a ZoneContentView
         // that has multiple groups of panes).
         .background(.regularMaterial)
-    }
-}
-// MARK: - ChatZoneTopChrome (= chat zone top tab bar)
-//
-// v0.28 followup Boss UX round 16 (Boss 2026-08-29 OOB '聊天区的顶栏
-// 消失了'): restore the chat zone top chrome (= old 6区 had
-// ChatZoneTabBar with 3 tabs + archive button). New ChatView
-// doesn't have an internal tab bar. ChatZoneTopChrome provides the
-// single top tab bar (= matches Apple HIG canonical per-pane
-// tab bar style used in 4 general zones via ZoneContentView's
-// ZoneContentTabBar). 1 chat zone = 1 single chrome layer.
-//
-// Visual: HStack with 1 active tab icon (bot = 对话 tab per old
-// 6区) on the left + 1 archive icon on the right, with selected
-// underline accent color (= matches the ZoneContentTabBar style).
-// 28 PT height (= matches DesignTokens.paneTabHotArea for
-// consistency with the old 6区).
-
-@MainActor
-struct ChatZoneTopChrome: View {
-    @State private var showingArchiveConfirm: Bool = false
-    @Namespace private var tabBarNamespace
-
-    var body: some View {
-        // v0.28 followup Boss UX round A (Phase 3 of refactor): ChatZoneTopChrome
-        // body now delegates to `PaneTabBar` generic component (= ComponentIndex.md
-        // Level 3.2). Was 74 LOC, now ~25 LOC. Behavior preserved 1:1.
-        //
-        // Boss 2026-09-01 OOB: removed the trailing button's local
-        // `.padding(.trailing, ...)` modifier (= was double-padding
-        // the icon: PaneTabBar now applies a single 18 PT trailing
-        // padding to the whole bar, so the local button padding
-        // pushed the icon 64 PT from the right edge instead of 18).
-        PaneTabBar(
-            items: [
-                PaneTabItem(id: "chat", icon: "bot", label: "对话"),
-            ],
-            selection: .constant("chat"),
-            namespace: tabBarNamespace,
-            namespaceID: "chatTabUnderline",
-            trailing: {
-                // Right: archive icon (= matches old 6区 right-side inbox icon).
-                // v0.34 boss 2026-09-02 OOB '聊天的右 ICON, 没有遵循组件的 hover':
-                // the chat archive trailing button was using a self-written
-                // hover state (= @State isArchiveHover + .onHover + icon
-                // foregroundStyle swap on hover). The hover visual
-                // (= .accentColor on the icon when hovered) diverged
-                // from the other 6 zones' tab bar hover (= .quaternary
-                // background wash via .hoverWash()). Migrated to the
-                // .hoverWash() modifier (= the single source of truth
-                // for chrome hover wash from commit 1df0cf394). Icon
-                // foregroundStyle is now always .secondary (= matches
-                // PaneIconTab's unselected-state foreground); the hover
-                // effect is the .quaternary background wash applied
-                // uniformly to all 6 zones' chrome buttons.
-                //
-                // v0.34 boss 2026-09-02 OOB (multi-layer audit): the trailing
-                // button shape itself (= Color.clear.frame(28,28).overlay(LucideIcon)
-                // + .hoverWash + .plain + .help) was duplicated between
-                // WorkspaceView.swift EditorExpandShrinkTrailingButton and
-                // ChatZoneTopChrome. Replaced both with the shared
-                // PaneTrailingIconButton helper (= ComponentIndex entry
-                // for the trailing slot canonical).
-                PaneTrailingIconButton(
-                    icon: "inbox",
-                    tooltip: "归档本次会话",
-                    action: { showingArchiveConfirm = true }
-                )
-            }
-        )
     }
 }
