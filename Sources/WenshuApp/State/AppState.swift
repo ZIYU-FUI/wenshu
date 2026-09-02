@@ -51,5 +51,13 @@ final class AppState {
     /// (= JSON shape, = set by WorkspaceView's `.onChange`).
     var sidebarSelection: SidebarItem? = nil
 
+    // v0.34 B-18 (= boss 9/2 OOB '现在用的, 这个编辑器, 是否自带
+    // 字数统计'): editor zone's live word count, owned globally so
+    // both the chrome bottom-bar left field (= "字数: N" in
+    // TabContentDispatcher.editor case) and any future editor-zone
+    // status widgets share one source of truth. EditorPlaceholder
+    // writes via .onChange(of: draft); chrome reads via @Environment.
+    var editorWordCount: Int = 0
+
     init() {}
 }
