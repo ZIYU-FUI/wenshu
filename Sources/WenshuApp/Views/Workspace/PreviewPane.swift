@@ -353,8 +353,8 @@ struct PreviewPane: View {
                     if let cat = entity.category {
                         Text(cat.displayName)
                             .font(.caption)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
+                            .padding(.horizontal, DesignTokens.chromePaddingVertical)
+                            .padding(.vertical, DesignTokens.chromePaddingMicro)
                             .background(.quaternary)
                             .clipShape(Capsule())
                     }
@@ -424,7 +424,7 @@ struct PreviewPane: View {
                                 }
                             }
                         }
-                        .padding(.vertical, 8)
+                        .padding(.vertical, DesignTokens.chromePaddingVertical)
                     }
                 }
             }
@@ -457,7 +457,7 @@ struct PreviewPane: View {
                             }
                         }
                     }
-                    .padding(.vertical, 8)
+                    .padding(.vertical, DesignTokens.chromePaddingVertical)
                 }
             }
         }
@@ -644,7 +644,7 @@ struct PreviewPane: View {
                         BookDocCard(doc: doc)
                     }
                 }
-                .padding(.vertical, 8)
+                .padding(.vertical, DesignTokens.chromePaddingVertical)
             }
         }
     }

@@ -72,8 +72,8 @@ public struct ForeshadowingView: View {
                         .foregroundStyle(.tertiary)
                     Spacer(minLength: 0)
                 }
-                .padding(.vertical, 6)
-                .padding(.horizontal, 8)
+                .padding(.vertical, DesignTokens.chromePaddingSmall)
+                .padding(.horizontal, DesignTokens.chromePaddingVertical)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
                     RoundedRectangle(cornerRadius: 4)

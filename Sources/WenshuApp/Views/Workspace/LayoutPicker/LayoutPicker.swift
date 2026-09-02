@@ -69,8 +69,8 @@ struct LayoutPicker: View {
                     )
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.top, 12)
+            .padding(.horizontal, DesignTokens.chromePaddingMedium)
+            .padding(.top, DesignTokens.chromePaddingMedium)
 
             // Custom presets section (= user-saved = NOT built-in;
             // hidden if empty per spec §"Acceptance criteria" #4).
@@ -83,7 +83,7 @@ struct LayoutPicker: View {
                             .foregroundStyle(.secondary)
                         Spacer()
                     }
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, DesignTokens.chromePaddingMedium)
                     LazyVGrid(columns: columns, spacing: 12) {
                         ForEach(customPresets) { preset in
                             PresetCard(
@@ -98,7 +98,7 @@ struct LayoutPicker: View {
                             )
                         }
                     }
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, DesignTokens.chromePaddingMedium)
                 }
             }
 
@@ -114,7 +114,7 @@ struct LayoutPicker: View {
                         .font(.caption)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
+                .padding(.vertical, DesignTokens.chromePaddingVertical)
                 .background(
                     RoundedRectangle(cornerRadius: 6)
                         .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
@@ -122,12 +122,12 @@ struct LayoutPicker: View {
                 )
             }
             .buttonStyle(.plain)
-            .padding(.horizontal, 12)
+            .padding(.horizontal, DesignTokens.chromePaddingMedium)
             .sheet(isPresented: $showingZoneEditor) {
                 ZoneEditor(store: store)
             }
 
-            Divider().padding(.horizontal, 12)
+            Divider().padding(.horizontal, DesignTokens.chromePaddingMedium)
 
             // Save-current-as-preset input reveal (= the button
             // shows initially; on click it expands into a text
@@ -147,15 +147,15 @@ struct LayoutPicker: View {
                             .font(.caption)
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, DesignTokens.chromePaddingVertical)
                     .background(
                         RoundedRectangle(cornerRadius: 6)
                             .fill(.quaternary)
                     )
                 }
                 .buttonStyle(.plain)
-                .padding(.horizontal, 12)
-                .padding(.bottom, 12)
+                .padding(.horizontal, DesignTokens.chromePaddingMedium)
+                .padding(.bottom, DesignTokens.chromePaddingMedium)
             }
         }
         .frame(width: 26 * 16)
@@ -208,12 +208,12 @@ struct LayoutPicker: View {
                 }
                 .buttonStyle(.borderless)
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, DesignTokens.chromePaddingMedium)
             Text("保存后会出现在上面的预设网格中")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
-                .padding(.horizontal, 12)
-                .padding(.bottom, 12)
+                .padding(.horizontal, DesignTokens.chromePaddingMedium)
+                .padding(.bottom, DesignTokens.chromePaddingMedium)
         }
     }
 

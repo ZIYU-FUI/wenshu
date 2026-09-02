@@ -784,8 +784,8 @@ struct NewLibraryOutlineView: View {
                             LucideIconSidebar(folder.icon)
                                 .foregroundStyle(.primary)
                         }
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
+                        .padding(.horizontal, DesignTokens.chromePaddingSmall)
+                        .padding(.vertical, DesignTokens.chromePaddingMicro)
                         .badge(bookStore.folderDocumentCount(
                             bookId: book.id,
                             folderDirectoryName: folder.name
@@ -1449,8 +1449,8 @@ private struct NewBookSheet: View {
                                 .help(iconName)
                             }
                         }
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 8)
+                        .padding(.horizontal, DesignTokens.chromePaddingMicro)
+                        .padding(.vertical, DesignTokens.chromePaddingVertical)
                     }
                     .frame(height: 320)
                 } header: {
@@ -1570,7 +1570,7 @@ private struct NewShelfSheet: View {
                                 .font(.caption)
                                 .foregroundStyle(.red)
                         }
-                        .padding(.top, 2)
+                        .padding(.top, DesignTokens.chromePaddingMicro)
                     }
                 } header: {
                     Text("名称")
@@ -1634,8 +1634,8 @@ private struct NewShelfSheet: View {
                                 .help(iconName)
                             }
                         }
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 8)
+                        .padding(.horizontal, DesignTokens.chromePaddingMicro)
+                        .padding(.vertical, DesignTokens.chromePaddingVertical)
                     }
                     .frame(height: 320)
                 } header: {
@@ -1817,7 +1817,7 @@ private struct RenameItemSheet: View {
                             .font(.caption)
                             .foregroundStyle(.red)
                     }
-                    .padding(.top, 2)
+                    .padding(.top, DesignTokens.chromePaddingMicro)
                 }
             }
             .formStyle(.grouped)
