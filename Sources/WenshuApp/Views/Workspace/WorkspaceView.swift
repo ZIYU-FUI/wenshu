@@ -661,7 +661,15 @@ struct EditorPlaceholder: View {
                 // user's current cursor selection (or inserts at cursor
                 // if no selection) with the matching MD syntax marker.
                 if mode == .edit {
-                    FormatToolbarButtons(draft: $draft)
+                    // v0.34 B-24: draft is now a computed property (= reads
+                    // active tab's draft via AppState). Wrap in a
+                    // Binding(get:set:) so child views (FormatToolbarButtons,
+                    // EditorEditContent) can still write through $draft
+                    // (= standard SwiftUI 2-way binding contract).
+                    FormatToolbarButtons(draft: Binding(
+                        get: { self.draft },
+                        set: { self.draft = $0 }
+                    ))
                 }
                 // Center slot: mode toggle (= ticket 04 + v0.34 ticket 10
                 // Cmd+E hotkey via .keyboardShortcut).
@@ -721,7 +729,12 @@ struct EditorPlaceholder: View {
             // v0.34 ticket 09: dirty-discard confirm dialog. Shown when
             // user tries to close with unsaved changes. Apple HIG
             // 2-option confirm pattern (= destructive + cancel).
-            .alert("未保存的更改将丢失", isPresented: $showDirtyDiscardConfirm) {
+            // B-24: showDirtyDiscardConfirm is now a computed property;
+            // = wrap in Binding(get:set:) for .alert's isPresented:.
+            .alert("未保存的更改将丢失", isPresented: Binding(
+                get: { self.showDirtyDiscardConfirm },
+                set: { self.showDirtyDiscardConfirm = $0 }
+            )) {
                 Button("放弃编辑", role: .destructive) {
                     // Discard: clear draft + reset to originalBody + close.
                     // Today = no-op beyond resetting state (= ticket 027-35
@@ -764,8 +777,15 @@ struct EditorPlaceholder: View {
                     // Q22 boss decision). Save button (added by ticket 08)
                     // .tint highlights when dirty; Cmd+S hotkey (ticket
                     // 10) triggers save.
+                    // B-24: draft is a computed property (= reads active
+                    // tab). Wrap in Binding(get:set:) so EditorEditContent
+                    // can still use @Binding draft (SwiftUI 2-way binding
+                    // contract).
                     EditorEditContent(
-                        draft: $draft,
+                        draft: Binding(
+                            get: { self.draft },
+                            set: { self.draft = $0 }
+                        ),
                         originalBody: originalBody,
                         onSave: { saveDraft() },
                         // v0.34 B-18: route live word count into shared
@@ -807,6 +827,22 @@ struct EditorPlaceholder: View {
         // mode keystroke stream; = this .onAppear covers the initial
         // state (= Apple HIG = seed reactive state at view mount).
         .onAppear {
+            // v0.34 B-24: seed the placeholder tab on first mount
+            // (= AppState.openTabs defaults to []). Seed with the
+            // samplePreviewBody as the placeholder draft so the
+            // preview-mode body is visible from the start. Single
+            // source of truth for the openTabs array; = no other
+            // view needs to seed.
+            if appState.openTabs.isEmpty {
+                let placeholder = EditorTab(
+                    id: EditorTab.placeholderId,
+                    documentPath: nil,
+                    draft: EditorPlaceholder.samplePreviewBody,
+                    originalBody: EditorPlaceholder.samplePreviewBody
+                )
+                appState.openTabs = [placeholder]
+                appState.activeTabId = EditorTab.placeholderId
+            }
             appState.editorWordCount = WordCounter.count(originalBody).charactersNoSpaces
             // v0.34 B-23: start the file-system watcher for the current
             // documentPath (nil = placeholder mode; = no-op). The watcher
@@ -825,28 +861,91 @@ struct EditorPlaceholder: View {
     // the sample preview body (= placeholder until ticket 027-35 wires
     // the real document load). dirty = draft != originalBody (= ticket
     // 08 reads this for the Save button's .tint highlight).
-    @State private var draft: String = EditorPlaceholder.samplePreviewBody
-    @State private var originalBody: String = EditorPlaceholder.samplePreviewBody
+    // v0.34 B-24: per-tab state lives on AppState.openTabs[activeTabIndex].
+    // EditorPlaceholder reads/writes the ACTIVE tab (= single source of
+    // truth). These computed properties expose the per-tab state to the
+    // rest of the view (= the @State versions are gone; = switching
+    // tabs switches the active data set; = matches Safari behavior).
+    private var activeTab: EditorTab? {
+        guard let idx = appState.openTabs.firstIndex(where: { $0.id == appState.activeTabId }) else { return nil }
+        return appState.openTabs[idx]
+    }
+    private var activeTabIndex: Int? {
+        appState.openTabs.firstIndex(where: { $0.id == appState.activeTabId })
+    }
+
+    private var draft: String {
+        get { activeTab?.draft ?? EditorPlaceholder.samplePreviewBody }
+        nonmutating set {
+            guard let idx = activeTabIndex else { return }
+            appState.openTabs[idx].draft = newValue
+        }
+    }
+    private var originalBody: String {
+        get { activeTab?.originalBody ?? EditorPlaceholder.samplePreviewBody }
+        nonmutating set {
+            guard let idx = activeTabIndex else { return }
+            appState.openTabs[idx].originalBody = newValue
+        }
+    }
+    private var documentPath: String? {
+        get { activeTab?.documentPath }
+        nonmutating set {
+            guard let idx = activeTabIndex else { return }
+            appState.openTabs[idx].documentPath = newValue
+        }
+    }
     /// Computed dirty flag (= ticket 08 reads this for the Save
-    /// button's .tint highlight). Plain computed (= not @State,
-    // = re-evaluated on each render from draft + originalBody).
-    private var isDirty: Bool { draft != originalBody }
-    // v0.34 ticket 07: save action writes draft back over originalBody;
-    // Cmd+S hotkey (ticket 10) calls this directly. mtime-conflict
-    // detection (= v0.35+ ticket; placeholder for now).
+    /// button's .tint highlight). Plain computed (= re-evaluated on
+    /// each render from the active tab's draft / originalBody).
+    private var isDirty: Bool {
+        guard let tab = activeTab else { return false }
+        return tab.draft != tab.originalBody
+    }
+    /// Per-tab auto-save Task. Reads from / writes to the active tab.
+    private var autoSaveTask: Task<Void, Never>? {
+        get { activeTab?.autoSaveTask }
+        nonmutating set {
+            guard let idx = activeTabIndex else { return }
+            appState.openTabs[idx].autoSaveTask = newValue
+        }
+    }
+    /// Per-tab file-system watcher (= B-23).
+    private var fileWatcher: DispatchSourceFileSystemObject? {
+        get { activeTab?.fileWatcher }
+        nonmutating set {
+            guard let idx = activeTabIndex else { return }
+            appState.openTabs[idx].fileWatcher = newValue
+        }
+    }
+    private var watchedFD: Int32 {
+        get { activeTab?.watchedFD ?? -1 }
+        nonmutating set {
+            guard let idx = activeTabIndex else { return }
+            appState.openTabs[idx].watchedFD = newValue
+        }
+    }
+    /// Per-tab external-change notification (= B-23 conflict).
+    private var externalChangeNotice: String? {
+        get { activeTab?.externalChangeNotice }
+        nonmutating set {
+            guard let idx = activeTabIndex else { return }
+            appState.openTabs[idx].externalChangeNotice = newValue
+        }
+    }
+    /// Per-tab dirty-discard alert state (= ticket 09).
+    private var showDirtyDiscardConfirm: Bool {
+        get { activeTab?.showDirtyDiscardConfirm ?? false }
+        nonmutating set {
+            guard let idx = activeTabIndex else { return }
+            appState.openTabs[idx].showDirtyDiscardConfirm = newValue
+        }
+    }
     // v0.34 B-22: save action writes draft back over originalBody (= dirty
     // detection clears). When documentPath is non-nil (= v0.35+ ticket
     // 027-35 wires real document load), also write to disk (= atomic
-    // UTF-8 = Apple HIG file write pattern; = mtime-conflict detection
-    // deferred to v0.35+ ticket). Cmd+S hotkey (ticket 10) and Save
-    // toolbar button both call this directly.
-    //
-    // B-22: explicitly notify the dirty transition handler with
-    // dirty = false (= Cmd+S = the document is now saved = any pending
-    // auto-save Task should be cancelled). Without this, a user who
-    // types, waits 2.9 seconds (= Task almost firing), then hits
-    // Cmd+S would see the auto-save Task fire after Cmd+S = wasteful
-    // double-write.
+    // UTF-8 = Apple HIG file write pattern). Cmd+S hotkey (ticket 10) and
+    // Save toolbar button both call this directly.
     private func saveDraft() {
         originalBody = draft
         writeDraftToDisk()
@@ -854,19 +953,12 @@ struct EditorPlaceholder: View {
     }
 
     // v0.34 B-21: write current draft to documentPath (= atomic UTF-8).
-    // No-op when documentPath is nil (= placeholder mode; = ticket
-    // 027-35 wires real document path). The placeholder docId
-    // "preview-sample" is used as a temp file name in tmp/, so even
-    // in placeholder mode the auto-save doesn't silently drop work.
     private func writeDraftToDisk() {
         let path = documentPath ?? "/tmp/wenshu-preview-sample.md"
         let url = URL(fileURLWithPath: path)
         do {
             try draft.write(to: url, atomically: true, encoding: .utf8)
         } catch {
-            // Apple HIG: silent failure on auto-save (= don't block
-            // user with modal on every write). Future ticket = surface
-            // a status indicator (= "保存失败" inline).
             #if DEBUG
             print("[wenshu.editor] auto-save failed: \(error)")
             #endif
@@ -1028,31 +1120,12 @@ struct EditorPlaceholder: View {
             autoSaveTask = nil
         }
     }
-    // v0.34 ticket 09: document-loaded flag. nil = placeholder mode
-    // (= "select document then expand" hint visible). Non-nil = a
-    // document is open. Today = nil (= placeholder until ticket 027-35
-    // wires real document load).
-    @State private var documentPath: String? = nil
-    // v0.34 B-21 (= boss 9/2 OOB 'auto-save, 停手 3 秒后' = Obsidian-
-    // style debounced auto-save). State holds the active debounce
-    // task (= cancelled on each new keystroke; = the 3-second timer
-    // restarts every time the user types). When the task fires, draft
-    // is written to disk (= atomic write per Apple HIG; = mtime-conflict
-    // detection deferred to v0.35+ ticket).
-    @State private var autoSaveTask: Task<Void, Never>?
-    // v0.34 B-23: file-system watcher state. fileWatcher holds the
-    // DispatchSource (= cancelled in stopFileWatcher); watchedFD holds
-    // the file descriptor (= open while the view is mounted; = closed
-    // in stopFileWatcher to avoid fd leaks).
-    @State private var fileWatcher: DispatchSourceFileSystemObject?
-    @State private var watchedFD: Int32 = -1
-    // v0.34 B-23: local notification posted when an external file
-    // change overwrites dirty user edits (= the .local-wenshu-conflict
-    // file saved the user's in-progress edits before clobbering).
-    @State private var externalChangeNotice: String? = nil
-    // v0.34 ticket 09: alert state for dirty-confirm dialog. Shows
-    // when user tries to close while isDirty. Reset on dialog dismiss.
-    @State private var showDirtyDiscardConfirm: Bool = false
+    // v0.34 B-24: documentPath + autoSaveTask + fileWatcher + watchedFD +
+    // externalChangeNotice + showDirtyDiscardConfirm are now computed
+    // properties (= read/write the active tab's state via AppState).
+    // Defined above as part of the per-tab state migration; = these
+    // View-local @State duplicates would shadow the active-tab reads.
+
     // v0.34 ticket 09: close handler. If dirty = present confirm dialog;
     // if clean = close immediately (= Apple HIG standard). Cmd+W (ticket
     // 10) routes through this same method.

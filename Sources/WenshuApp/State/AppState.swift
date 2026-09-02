@@ -65,8 +65,12 @@ final class AppState {
     // watcher). activeTabId identifies the currently focused tab.
     // Single source of truth across views (= TabContentDispatcher,
     // EditorPlaceholder, any future cross-zone tab bar).
-    var openTabs: [EditorTab] = [.placeholder]
-    var activeTabId: UUID = EditorTab.placeholderId
+    // The placeholder tab (= shows samplePreviewBody) is seeded with
+    // empty draft; = EditorPlaceholder.onAppear fills it with
+    // samplePreviewBody content (= avoids the circular dependency
+    // between AppState and EditorPlaceholder.samplePreviewBody).
+    var openTabs: [EditorTab] = []
+    var activeTabId: UUID = UUID()
 
     init() {}
 }
@@ -77,27 +81,63 @@ final class AppState {
 // document with independent state; = when the user opens a 2nd
 // document via double-click (= boss 9/2 OOB scenario), it creates a
 // new tab without disturbing the current tab's in-progress edits.
-struct EditorTab: Identifiable, Equatable {
+//
+// Lives in AppState (= @Observable); = cross-view reactivity without
+// @Binding plumbing. SwiftUI redraws the editor zone whenever any
+// field on the active tab changes (= @Observable per-property tracking).
+@MainActor
+@Observable
+final class EditorTab: Identifiable {
     let id: UUID
-    var documentPath: String?    // nil = placeholder / sample body
+    var documentPath: String?
     var draft: String
     var originalBody: String
-    var mode: EditorMode          // .preview | .edit
+    var mode: EditorMode
 
-    // Placeholder tab (= the default tab that shows samplePreviewBody).
-    // Single instance = single source of truth for the "no document
-    // open yet" state.
+    // v0.34 B-22 (per-tab): auto-save debounce Task. Replaces
+    // EditorPlaceholder's View-local autoSaveTask (= that pattern
+    // worked for one tab but doesn't survive a tab switch; = the
+    // 3-second timer must follow the active tab).
+    var autoSaveTask: Task<Void, Never>?
+
+    // v0.34 B-23 (per-tab): file-system watcher (= DispatchSource).
+    // Survives only while the tab is mounted (= cancelled on tab
+    // close or documentPath change).
+    var fileWatcher: DispatchSourceFileSystemObject?
+    var watchedFD: Int32 = -1
+
+    // v0.34 B-23: local notification posted when an external file
+    // change overwrites dirty user edits (= saves them to .local-wenshu-conflict-...md).
+    var externalChangeNotice: String?
+
+    // v0.34 ticket 09: dirty-discard alert (= only relevant in edit mode).
+    var showDirtyDiscardConfirm: Bool = false
+
+    init(
+        id: UUID,
+        documentPath: String?,
+        draft: String,
+        originalBody: String,
+        mode: EditorMode = .preview
+    ) {
+        self.id = id
+        self.documentPath = documentPath
+        self.draft = draft
+        self.originalBody = originalBody
+        self.mode = mode
+    }
+
+    /// Placeholder tab (= the default tab that shows samplePreviewBody).
+    /// Single instance = single source of truth for the "no document
+    /// open yet" state. Caller fills draft / originalBody with
+    /// EditorPlaceholder.samplePreviewBody (= can't reference the
+    /// EditorPlaceholder.samplePreviewBody static here because it
+    /// would create a circular dependency between AppState and the
+    /// EditorPlaceholder view file).
     static let placeholderId = UUID()
-    static let placeholder = EditorTab(
-        id: placeholderId,
-        documentPath: nil,
-        draft: "",  // filled by caller (= EditorPlaceholder.samplePreviewBody at use site)
-        originalBody: "",
-        mode: .preview
-    )
 }
 
-// v0.34 B-24: top-level enum (= EditorTab is a top-level struct; = can't
+// v0.34 B-24: top-level enum (= EditorTab is a top-level class; = can't
 // reference nested Mode). Mirrors the previous nested enum (= .preview
 // / .edit) but lifted to module scope. Was: EditorPlaceholder.Mode.
 // Carries iconName + tooltip (= the format-bar / keyboard-shortcut
