@@ -738,24 +738,50 @@ struct EditorPlaceholder: View {
 /// into clickable Button instances that surface the target ref via the
 /// `wikilinkTarget` closure (= ticket 027-35 wires navigation).
 ///
+/// v0.34 ticket 06: append wenshu's existing BacklinksPanel (= Core/LinkGraph/
+/// BacklinksPanel.swift, = v0.19 ticket 12 Obsidian replica) below the
+/// rendered markdown. ViewModel loads on `.task` (= Apple HIG async task
+/// lifecycle). Doc id is the placeholder sample body filename for now;
+/// ticket 027-35 will wire to the real open document.
+///
 /// Spec user stories covered:
 ///   US-2 (preview mode renders markdown headers/bold/italic/lists/code)
 ///   US-9 ([[wikilink]] clickable, 1:1 Obsidian syntax)
 ///   US-10 (InternalLinkParser same parser as wiki layer = consistency)
+///   US-11 (BacklinksPanel at bottom of preview, = Obsidian parity)
 ///   US-12 (uses pinned swift-markdown 0.4.0)
 private struct EditorPreviewContent: View {
     let markdownBody: String
     let wikilinkTarget: EditorPlaceholder.WikilinkAction
 
+    // v0.34 ticket 06: BacklinksViewModel is a fresh instance per preview
+    // (= ticket 027-35 will switch to a shared AppState-owned model so
+    // backlinks persist across document opens).
+    @State private var backlinksVM = BacklinksViewModel()
+
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(parsedSegments, id: \.id) { segment in
-                    renderSegment(segment)
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(parsedSegments, id: \.id) { segment in
+                        renderSegment(segment)
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(16)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(16)
+            // v0.34 ticket 06: BacklinksPanel below the rendered MD.
+            // 1 PT top border (= Apple HIG section divider) separates
+            // the panel from the document body. Height cap = 120 PT
+            // (= Apple HIG standard inspector footer size).
+            Divider()
+            BacklinksPanel(viewModel: backlinksVM)
+                .frame(maxHeight: 120)
+                .task {
+                    // Placeholder doc id for now (= ticket 027-35 will
+                    // pass the real document id from NSOpenPanel).
+                    await backlinksVM.load(docId: "preview-sample")
+                }
         }
     }
 
