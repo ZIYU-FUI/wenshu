@@ -510,7 +510,16 @@ final class PaneNSController: NSSplitViewController {
                 guard item.canCollapse else { continue }
                 guard let tab = paneController.paneKindByItem[idx] else { continue }
                 if tab == kind {
-                    item.isCollapsed.toggle()
+                    // v0.34 boss 2026-09-02 OOB '5 个 toolbar button 缺
+                    // push/pop 动画, 用 apple api 默认': route through
+                    // NSSplitViewItem.animator() (= AppKit canonical
+                    // animated property proxy) for the default AppKit
+                    // collapse/expand transition (= the same
+                    // push/pop animation as Finder sidebar hide/show,
+                    // Mail message pane hide/show, etc.). Plain
+                    // `item.isCollapsed.toggle()` (= the prior form)
+                    // is an instant snap (= no transition).
+                    item.animator().isCollapsed.toggle()
                 }
             }
         }
