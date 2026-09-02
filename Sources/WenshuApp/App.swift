@@ -565,6 +565,7 @@ struct WenshuApp: App {
                 .keyboardShortcut("4", modifiers: [.command, .shift])
                 Divider()
                 Button("恢复默认布局") {
+                    NSLog("[wenshu.reset] menu posted wenshuResetLayout")
                     NotificationCenter.default.post(name: .wenshuResetLayout, object: nil)
                 }
                 .keyboardShortcut("R", modifiers: [.command, .shift])
@@ -1440,6 +1441,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
 
     // v0.21 ticket 01 (重做 #7): "显示" → "恢复默认布局" NSMenu action (Q28 真值: 走 NSMenu 自己装中文 6 项, 不靠 SwiftUI commands 范式)
     @MainActor @objc func resetLayout(_ sender: Any?) {
+        NSLog("[wenshu.reset] NSMenu resetLayout(_:) called, posting")
         NotificationCenter.default.post(name: .wenshuResetLayout, object: nil)
     }
 
