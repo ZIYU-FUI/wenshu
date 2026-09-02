@@ -58,10 +58,19 @@ public struct PaneStatusBar: View {
     /// string = no right text rendered (= clean right edge).
     public let rightText: String
 
-    public init(leftText: String = "", centerText: String = "", rightText: String = "") {
+    /// B-16: optional tap handler on the right-aligned status text.
+    /// When non-nil, the right text is rendered as a Button (= clickable);
+    /// when nil (= default), it stays plain Text. Boss 9/2 OOB: editor
+    /// zone chrome right "反链 0" needs to be clickable to open a
+    /// popover with the full BacklinksPanel. `@Sendable` keeps the
+    /// struct Sendable (= required by Swift 6 strict concurrency).
+    public let rightOnTap: (@Sendable () -> Void)?
+
+    public init(leftText: String = "", centerText: String = "", rightText: String = "", rightOnTap: (@Sendable () -> Void)? = nil) {
         self.leftText = leftText
         self.centerText = centerText
         self.rightText = rightText
+        self.rightOnTap = rightOnTap
     }
 
     public var body: some View {
@@ -91,12 +100,34 @@ public struct PaneStatusBar: View {
                 Spacer(minLength: 0)
                 // Right status text
                 if !rightText.isEmpty {
-                    Text(rightText)
-                        .font(DesignTokens.statusFont)
-                        .foregroundStyle(DesignTokens.statusForeground)
-                        .padding(.trailing, DesignTokens.chromePaddingTrailing)
+                    // B-16: when rightOnTap is provided, render the
+                    // right text as a Button (= clickable affordance
+                    // for popover triggers like the editor zone's
+                    // "反链 0" label). Plain Button + .plain buttonStyle
+                    // = no native button chrome (= Apple HIG inline
+                    // action pattern). Hit area = the text + 8 PT
+                    // breathing room (= standard Apple HIG small target
+                    // padding for status bar actions).
+                    if let onTap = rightOnTap {
+                        Button(action: onTap) {
+                            Text(rightText)
+                                .font(DesignTokens.statusFont)
+                                .foregroundStyle(DesignTokens.statusForeground)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.trailing, DesignTokens.chromePaddingTrailing - 6)
                         .padding(.bottom, DesignTokens.chromePaddingVertical / 2)
-                        .allowsHitTesting(false)
+                        .help("点击查看详情")
+                    } else {
+                        Text(rightText)
+                            .font(DesignTokens.statusFont)
+                            .foregroundStyle(DesignTokens.statusForeground)
+                            .padding(.trailing, DesignTokens.chromePaddingTrailing)
+                            .padding(.bottom, DesignTokens.chromePaddingVertical / 2)
+                            .allowsHitTesting(false)
+                    }
                 }
             }
         }

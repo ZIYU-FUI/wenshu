@@ -63,6 +63,12 @@ struct TabContentDispatcher: View {
     // backlinks.count stays in sync).
     @State private var backlinksVM = BacklinksViewModel()
     @State private var backlinksCount: Int = 0
+    // B-16: popover state for the chrome bottom-right "反链 0" button.
+    // When the user taps the chrome bottom right text (= rendered as a
+    // clickable Button by PaneStatusBar when rightOnTap is non-nil),
+    // showBacklinksPopover flips true and a .popover with the full
+    // BacklinksPanel renders anchored at the chrome bottom edge.
+    @State private var showBacklinksPopover: Bool = false
 
     var body: some View {
         switch kind {
@@ -133,10 +139,13 @@ struct TabContentDispatcher: View {
             // with backlinks count; = spec spec v0.34 B-15).
             ZonePerRegionChrome(
                 topActions: [],
-                bottomStatus: editorChrome(
-                    wordCount: 0,
-                    backlinkCount: backlinksCount
-                ).bottom,
+                bottomStatus: ZoneBottomStatus(
+                    left: "字数: 0",
+                    right: "反链 \(backlinksCount)",
+                    // B-16: chrome bottom right text is clickable
+                    // (= tap triggers BacklinksPanel popover).
+                    rightOnTap: { showBacklinksPopover.toggle() }
+                ),
                 topSkip: true,
                 // v0.32 boss 2026-09-02 OOB: editor = content tier
                 // (= .windowBackgroundColor = matches Xcode editor
@@ -151,6 +160,15 @@ struct TabContentDispatcher: View {
             .task {
                 await backlinksVM.load(docId: "preview-sample")
                 backlinksCount = backlinksVM.backlinks.count
+            }
+            // B-16: BacklinksPanel popover, anchored to the chrome
+            // bottom-right (= the "反链 0" button). Apple HIG
+            // non-modal popover for contextual reference info.
+            // 320x280 PT = standard inspector popover footprint.
+            .popover(isPresented: $showBacklinksPopover, arrowEdge: .bottom) {
+                BacklinksPanel(viewModel: backlinksVM)
+                    .frame(width: 320, height: 280)
+                    .padding(8)
             }
         case .specializedTools:
             // No outer top (= internal ZoneContentTabBar for 画布 /
