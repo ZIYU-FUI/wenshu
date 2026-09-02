@@ -128,18 +128,18 @@ extension Notification.Name {
 // 公式: layoutPT(token) = totalW * ratio (e.g. projectSidebar ratio = 200/1920 = 0.1042)
 // Apple HIG responsive: GeometryReader 拿窗口实际尺寸 × 比例 = 任何窗口大小 1:1 自适应
 
-/// Apple Semantic Color — 全 dark mode 适配, 0 RGB 硬编码 (DesignTokens.swift v0.10.6 移到 App.swift)
-enum DesignColor {
-    /// 标题栏 (老板 Sketch #393939) → NSColor.windowBackgroundColor
-    static let titleBar: Color = Color(nsColor: .windowBackgroundColor)
-    /// 内容区底色 (老板 Sketch #202020) → NSColor.controlBackgroundColor
-    static let zoneSurface: Color = Color(nsColor: .controlBackgroundColor)
-    static let dynamicZoneSurface: Color = Color(nsColor: .underPageBackgroundColor)
-    /// 强调蓝 (Apple 系统亮色)
-    static let accentBlue: Color = Color(nsColor: .controlAccentColor)  // Apple 系统亮色 (dark/light 自适应)
-    /// 拖拽线 / 分割线 (Apple 系统 divider 色, dark/light 自适应)
-    static let splitterLine: Color = Color(nsColor: .separatorColor)
-}
+/// Apple Semantic Color — 全 dark mode 适配, 0 RGB 硬编码
+// v0.32 boss 2026-09-02 OOB ('全走 apple api 默认; 不要自写颜色
+// wrapper'): removed the `DesignColor` enum entirely. The 5 static
+// lets (= titleBar / zoneSurface / dynamicZoneSurface / accentBlue /
+// splitterLine) were each just a thin wrapper over a bare
+// `Color(nsColor: .NSColorStaticProperty)` Apple API call. The
+// wrapper added an extra type with no semantic value (= it renamed
+// Apple NSColor static properties with no-op translation). All 4
+// callers migrated to bare `Color(nsColor: .NSColor)` form in this
+// commit. The 1 unused member (dynamicZoneSurface) had zero callers
+// and is gone entirely. Apple canonical = direct NSColor calls; no
+// project-local color wrapper enum.
 
 enum LayoutTokens {
     // 设计基准 (Apple macOS 27 1x 下 1 PT = 1 PX)
@@ -1802,7 +1802,13 @@ struct ChatZoneView: View {
                 .padding(.bottom, 6)
                 .frame(height: DesignTokens.chromeHeight, alignment: .bottomTrailing)
             }
-            .background(DesignColor.zoneSurface)
+            // v0.32 boss 2026-09-02 OOB ('全走 apple api 默认; 不
+            // 要自写颜色 wrapper'): replace DesignColor.zoneSurface
+            // (= wrapper enum wrapping Color(nsColor: .control
+            // BackgroundColor)) with the bare Apple API call. The
+            // wrapper added an extra type with no semantic value
+            // (= it just renamed an Apple NSColor static property).
+            .background(Color(nsColor: .controlBackgroundColor))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)  // prevent window shrink
     }
@@ -1959,9 +1965,14 @@ struct ChatZoneTabBar: View {
         }
         .frame(maxWidth: .infinity)
         .frame(height: DesignTokens.chromeHeight)
-        .background(DesignColor.zoneSurface)
+        // v0.32 boss 2026-09-02 OOB: replace DesignColor.zoneSurface
+        // wrapper with bare Color(nsColor: .controlBackgroundColor).
+        .background(Color(nsColor: .controlBackgroundColor))
         .overlay(alignment: .bottom) {
-            DesignColor.splitterLine.frame(height: 1)
+            // v0.32 boss 2026-09-02 OOB: replace DesignColor.splitterLine
+            // wrapper with bare Color(nsColor: .separatorColor) (= Apple
+            // canonical separator = dark/light adaptive).
+            Color(nsColor: .separatorColor).frame(height: 1)
         }
         .animation(.default, value: selectedTab)
     }
@@ -1993,6 +2004,8 @@ struct ChatZoneStubView: View {
                 .foregroundStyle(.tertiary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(DesignColor.zoneSurface)
+        // v0.32 boss 2026-09-02 OOB: replace DesignColor.zoneSurface
+        // wrapper with bare Color(nsColor: .controlBackgroundColor).
+        .background(Color(nsColor: .controlBackgroundColor))
     }
 }
