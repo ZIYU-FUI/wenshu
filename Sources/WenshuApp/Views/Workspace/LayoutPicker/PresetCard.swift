@@ -68,8 +68,7 @@ struct PresetCard: View {
             if let onDelete = onDelete {
                 if isHovering {
                     Button(action: onDelete) {
-                        Image(systemName: "xmark")
-                            .font(.caption2.weight(.medium))
+                        LucideIconSystemFallback("xmark", size: 12)
                             .foregroundStyle(.secondary)
                             .frame(width: 28, height: 28)
                             .contentShape(Rectangle())

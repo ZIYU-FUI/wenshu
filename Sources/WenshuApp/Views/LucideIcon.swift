@@ -177,6 +177,27 @@ private func sfSymbolToLucideName(_ sfSymbol: String) -> String {
         "key.fill": "key",
         "chart.bar.fill": "chart-bar",
         "person.fill": "user",
+        // v0.34 boss 2026-09-02 OOB: extend mapping to cover every
+        // LucideIconSystemFallback callsite (= eliminate the Image(systemName:)
+        // fall-through branch in LucideIconSystemFallback's third layer).
+        // All 16 mappings below verified against lucide-swift 1.25.0
+        // (= .build/checkouts/lucide-swift/Sources/Lucide/LucideIcon.swift).
+        "brain": "brain",
+        "checkmark.circle.fill": "circle-check",
+        "circle.dashed": "circle-dashed",
+        "cpu": "cpu",
+        "exclamationmark.circle.fill": "triangle-alert",
+        "git-branch": "git-branch",
+        "git-fork": "git-fork",
+        "inbox": "inbox",
+        "magnifyingglass.circle": "search",
+        "plus": "plus",
+        "square.and.arrow.down": "square-arrow-down",
+        "square-dashed": "square-dashed",
+        "square-dashed-mouse-pointer": "square-dashed-mouse-pointer",
+        "text.book.closed": "book-text",
+        "xmark": "x",
+        "xmark.circle.fill": "x",
     ]
     return mapping[sfSymbol] ?? sfSymbol
 }

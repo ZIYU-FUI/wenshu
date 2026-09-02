@@ -251,8 +251,7 @@ private struct GroupTabStrip: View {
                     // the last pane — would empty the workspace).
                     if panes.count > 1 {
                         Button(action: { onClose(paneID) }) {
-                            Image(systemName: "xmark")
-                                .font(.caption2.weight(.medium))
+                            LucideIconSystemFallback("xmark", size: 10)
                                 .foregroundStyle(.secondary)
                                 .frame(width: 14, height: 14)
                         }
@@ -333,20 +332,19 @@ struct ChatZoneTopChrome: View {
                 // PaneIconTab's unselected-state foreground); the hover
                 // effect is the .quaternary background wash applied
                 // uniformly to all 6 zones' chrome buttons.
-                Button {
-                    showingArchiveConfirm = true
-                } label: {
-                    Color.clear
-                        .frame(width: DesignTokens.paneTabHotArea, height: DesignTokens.paneTabHotArea)
-                        .overlay(alignment: .center) {
-                            LucideIconSystemFallback("inbox", size: DesignTokens.tabIconSize)
-                                .foregroundStyle(.secondary)
-                        }
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .hoverWash()
-                .help("归档本次会话")
+                //
+                // v0.34 boss 2026-09-02 OOB (multi-layer audit): the trailing
+                // button shape itself (= Color.clear.frame(28,28).overlay(LucideIcon)
+                // + .hoverWash + .plain + .help) was duplicated between
+                // WorkspaceView.swift EditorExpandShrinkTrailingButton and
+                // ChatZoneTopChrome. Replaced both with the shared
+                // PaneTrailingIconButton helper (= ComponentIndex entry
+                // for the trailing slot canonical).
+                PaneTrailingIconButton(
+                    icon: "inbox",
+                    tooltip: "归档本次会话",
+                    action: { showingArchiveConfirm = true }
+                )
             }
         )
     }

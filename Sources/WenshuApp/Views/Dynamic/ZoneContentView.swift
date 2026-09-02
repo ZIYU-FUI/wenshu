@@ -47,12 +47,32 @@ struct ZoneContentView: View {
 
     @State private var selectedTabId: String
 
+    // v0.34 boss 2026-09-02 OOB: per-instance SwiftUI namespace for the
+    // matchedGeometryEffect underline (= SwiftUI requires the namespace
+    // to scope within a single view tree). Held by ZoneContentView now
+    // (= previously held by the deleted ZoneContentTabBar wrapper).
+    @Namespace private var tabBarNamespace
+
     var body: some View {
         // v0.24 boss验收fix: simpler structure (VStack only, no ZStack wrapper
         // which was regressing tab bar visibility). .frame(minHeight: 600)
         // forces window contentMinSize.
         VStack(spacing: 0) {
-            ZoneContentTabBar(items: tabs.map { ZoneContentTabBar.Item(id: $0.id, label: $0.label, icon: $0.icon) }, selection: selectionBinding, trailingButton: trailingButton)
+            // v0.34 boss 2026-09-02 OOB: use PaneTabBar directly (= the
+            // shared tab-bar generic). Deleted the ZoneContentTabBar
+            // wrapper (= ~187 LOC of thin adapter that just forwarded
+            // items + namespace + trailing to PaneTabBar). One canonical
+            // tab-bar component per workspace.
+            PaneTabBar(
+                items: tabs.map { PaneTabItem(id: $0.id, icon: $0.icon, label: $0.label) },
+                selection: selectionBinding,
+                namespace: tabBarNamespace,
+                trailing: {
+                    if let trailingButton = trailingButton {
+                        trailingButton
+                    }
+                }
+            )
             // v0.24 boss验收fix (2026-08-24): pass maxWidth/maxHeight explicitly to AnyView
             // so it inherits zone size (not forces zone to grow). Without this,
             // AnyView collapses to its intrinsic size and zone shrinks to ~0.
@@ -114,9 +134,16 @@ struct ZoneContentView: View {
     }
 }
 
-/// ZoneContentTabBar: Apple HIG tab bar (跟 ChatZoneTabBar / DynamicZoneTabBar 一致).
-/// 顶栏 SF Symbol + 中文 label + .accentColor on selected.
-struct ZoneContentTabBar: View {
+/// ZoneContentTabBar: Apple HIG tab bar (matches ChatZoneTabBar / DynamicZoneTabBar).
+/// Top bar SF Symbol + Chinese label + .accentColor on selected.
+///
+/// v0.34 boss 2026-09-02 OOB 'all-zone top bars have the same structure, why
+/// can't they be one component' (= apple-api-first #7 multi-layer audit).
+/// Deleted. ZoneContentView now uses `PaneTabBar` directly with a
+/// per-instance `@Namespace`. The wrapper contributed only ~12 lines of
+/// real logic (= items → PaneTabItem mapping + namespace forwarding +
+/// trailing button slot) which is now inlined at the call site.
+private struct ZoneContentTabBar: View {
     struct Item: Identifiable, Equatable {
         let id: String  // stable String (matches Tab.id)
         let label: String
