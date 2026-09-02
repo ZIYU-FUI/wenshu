@@ -1544,12 +1544,19 @@ struct ChatZoneView: View {
                             ChatView(conductor: conductor, store: store, vm: vm)
                             if currentModel.isEmpty {
                                 ChatHelpTextOverlay {
-                                    UserDefaults.standard.set("providerApi", forKey: "wenshu.settingsTab")
-                                    // v0.24 boss验收fix: 4-tier approach to open Settings.
-                                    // v0.24 boss验收fix: open in-app Settings scene (文枢 settings, not
-                                    // System Settings.app). Uses captured WenshuAppDelegate.openSettings
-                                    // (set by SettingsEnvironmentCapturer on .onAppear).
-                                    // UserDefaults pre-set selects providerApi tab.
+                                    // v0.34 Apple-API-first #5: the UserDefaults
+                                    // .set below writes the same key the
+                                    // SettingView's @AppStorage reads (= the
+                                    // canonical 'jump to providerApi tab on
+                                    // open Settings' pattern, see App.swift:559
+                                    // = SettingView's @AppStorage). The previous
+                                    // code wrote the key TWICE in a row (= dead
+                                    // 2nd write = typo from earlier ticket).
+                                    // Kept as UserDefaults because ChatView is a
+                                    // Model (= not a View), so @AppStorage is
+                                    // not applicable (= @AppStorage requires View
+                                    // context). UserDefaults IS the source of
+                                    // truth that @AppStorage reads from.
                                     UserDefaults.standard.set("providerApi", forKey: "wenshu.settingsTab")
                                     WenshuAppDelegate.openSettings?()
                                 }
