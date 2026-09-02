@@ -92,6 +92,17 @@ public enum DesignTokens {
     /// Replaces inline `.padding(.vertical, 1)`.
     public static let chromePaddingHotkeyVertical: CGFloat = 1
 
+    /// Toolbar / statusbar cluster internal icon-to-icon gap (= 4 PT).
+    /// Apple HIG canonical (= developer.apple.com/design/human-interface-
+    /// guidelines/toolbars): minimum spacing for grouped toolbar icons
+    /// (= the gap Finder / Mail / Pages use between grouped buttons in
+    /// the per-pane tab bar + status bar). Replaces inline
+    /// `HStack(spacing: 0)` between cluster buttons (= magic number
+    /// 0 = not Apple HIG, but Apple HStack requires a value; using
+    /// `0` was a self-rolled non-canonical choice = zero spacing
+    /// = buttons snapped together = Apple HIG violation).
+    public static let chromePaddingClusterGap: CGFloat = 4
+
     // MARK: - Tab metrics
 
     /// Per-pane tab button hot area (= 28×28 PT). Matches Apple HIG

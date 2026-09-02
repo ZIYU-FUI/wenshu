@@ -179,9 +179,9 @@ public struct ZonePerRegionChrome<Content: View>: View {
             Rectangle()
                 .fill(.separator)
                 .frame(height: 1)
-            HStack(spacing: 0) {
+            HStack(spacing: DesignTokens.chromePaddingClusterGap) {
                 // Left: icon buttons (= matches old .overlay(alignment: .topLeading)).
-                HStack(spacing: 0) {
+                HStack(spacing: DesignTokens.chromePaddingClusterGap) {
                     if topActions.isEmpty {
                         // Placeholder mode: render empty 30 PT strip (= backward
                         // compatible with old "占位文字" mode).

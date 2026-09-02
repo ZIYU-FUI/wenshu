@@ -78,6 +78,12 @@ public struct RegionTabBar<Content: View>: View {
     // system settings (= dark mode / Reduce Transparency).
 
     public var body: some View {
+        // RegionTabBar is a wrapper around the caller's content; spacing
+        // is the caller's choice (= caller provides tabs + trailing + spacers,
+        // so a single fixed HStack(spacing: 0) here keeps the caller's
+        // HStack consistent). PaneTabBar (the canonical caller) sets
+        // HStack(spacing: DesignTokens.chromePaddingClusterGap) for
+        // the 4 PT Apple HIG button gap.
         HStack(spacing: 0) {
             content()
         }
@@ -146,6 +152,10 @@ public struct RegionStatusBar<Content: View>: View {
     // system settings (= dark mode / Reduce Transparency).
 
     public var body: some View {
+        // RegionStatusBar is a wrapper around the caller's content;
+        // spacing is the caller's choice. PaneStatusBar (the canonical
+        // caller) sets HStack(spacing: DesignTokens.chromePaddingClusterGap)
+        // for the 4 PT Apple HIG gap between status text elements.
         HStack(spacing: 0) {
             content()
         }

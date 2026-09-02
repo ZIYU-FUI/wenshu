@@ -170,70 +170,38 @@ private struct WiredShell: View {
         // never reacted, because nothing read those keys). The actual
         // hide/show is driven by `.wenshuToggleZone` notifications
         // (= PaneNSController.swift:390 handleToggleZone matches the
-        // NSSplitViewItem by TabKind and flips `isCollapsed`). The fix
-        // = post the notification in addition to toggling the binding,
-        // so both the persistent state AND the live layout stay in
-        // sync (= button tint = persisted bool = collapsed state).
-        .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
-                Button {
-                    showProjectSidebar.toggle()
-                    NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.projectSidebar)
-                } label: {
-                    LucideIconSystemFallback("sidebar.left", size: LayoutTokens.iconSize)
-                }
-                .foregroundStyle(showProjectSidebar ? Color.accentColor : Color.secondary)
-                .help(showProjectSidebar ? "隐藏 项目管理区" : "显示 项目管理区")
-                Button {
-                    showProjectPreview.toggle()
-                    NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.projectPreview)
-                } label: {
-                    LucideIconSystemFallback("eye.fill", size: LayoutTokens.iconSize)
-                }
-                .foregroundStyle(showProjectPreview ? Color.accentColor : Color.secondary)
-                .help(showProjectPreview ? "隐藏 素材预览区" : "显示 素材预览区")
-                Button {
-                    showSpecializedTools.toggle()
-                    NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.specializedTools)
-                } label: {
-                    LucideIconSystemFallback("wrench.and.screwdriver", size: LayoutTokens.iconSize)
-                }
-                .foregroundStyle(showSpecializedTools ? Color.accentColor : Color.secondary)
-                .help(showSpecializedTools ? "隐藏 工具区" : "显示 工具区")
-                Button {
-                    showAIChat.toggle()
-                    NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.aiChat)
-                } label: {
-                    LucideIconSystemFallback("bubble.left", size: LayoutTokens.iconSize)
-                }
-                .foregroundStyle(showAIChat ? Color.accentColor : Color.secondary)
-                .help(showAIChat ? "隐藏 聊天区" : "显示 聊天区")
-                Button {
-                    showAIDynamic.toggle()
-                    NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.aiDynamic)
-                } label: {
-                    LucideIconSystemFallback("chart.bar", size: LayoutTokens.iconSize)
-                }
-                .foregroundStyle(showAIDynamic ? Color.accentColor : Color.secondary)
-                .help(showAIDynamic ? "隐藏 动态区" : "显示 动态区")
-            }
-            ToolbarItemGroup(placement: .primaryAction) {
-                Button { WenshuAppDelegate.openSettings?() } label: {
-                    LucideIconSystemFallback("cpu", size: LayoutTokens.iconSize)
-                }
-                .help("模型: \(modelName)")
-            }
-            ToolbarItemGroup(placement: .primaryAction) {
-                Button { NotificationCenter.default.post(name: .wenshuExportRequested, object: nil) } label: {
-                    LucideIconSystemFallback("square.and.arrow.up", size: LayoutTokens.iconSize)
-                }
-                .help("导出电子书 (PDF / EPUB / MOBI / TXT)")
-            }
-        }
-        // NOTE: v0.28 followup Boss UX round 11 attempted to remove
-        // the Liquid Glass capsule by passing .toolbarBackground(.clear,
-        // for: .windowToolbar). Boss round 12 overruled that (= decided
-        // to fully adopt Liquid Glass per Apple design language). The
+        // NSSplitViewItem by TabKind and flips `isCollapsed`).
+                // v0.34 boss 2026-09-02 OOB '用 apple api 的都用 api' (= zero-
+                // config iron rule #9): the wenshu topbar's hand-rolled `.toolbar
+                // { ToolbarItemGroup(placement: .primaryAction) { Button... } }`
+                // block (= 5 zone-toggle Buttons + model + export, each emitting
+                // NotificationCenter.post + keyboard shortcut) DUPLICATED the
+                // canonical macOS menu entries (= App.swift:489-535
+                // CommandGroup(after: .sidebar) — 5 zone-toggle Button + reset
+                // + edit-mode, same ⌘⇧1/2/3/4/R/\ shortcuts).
+                //
+                // Apple HIG canonical: 1 surface per action. The menu bar
+                // (= with ⌘⇧ shortcuts) IS the canonical topbar. Every macOS
+                // app since Finder puts zone controls in the menu bar, NOT in a
+                // custom in-window toolbar. The hand-rolled wenshu toolbar block
+                // was the second source of truth (= 5 Button labels + icons
+                // duplicated what .commands already provides).
+                //
+                // = deleted the hand-rolled toolbar block entirely (= single
+                // source of truth = App.swift .commands). Apple canonical menu
+                // bar + SwiftUI native .toolbar (empty) = correct.
+                //
+                // The 5 @AppStorage('wenshu.zoneVisible.*') Bool + modelName
+                // (above) were dead too (= previously only .toggle()'d by the
+                // deleted toolbar block, no other reader). Kept for now
+                // (WorkspaceView reads them at cold-launch for persistence
+                // restoration; see App.swift:498-513 comment for the canonical
+                // single-source-of-truth wiring).
+                //
+                // NOTE: v0.28 followup Boss UX round 11 attempted to remove
+                // the Liquid Glass capsule by passing .toolbarBackground(.clear,
+                // for: .windowToolbar). Boss round 12 overruled that (= decided
+                // to fully adopt Liquid Glass per Apple design language). The
         // default Liquid Glass background now renders behind the
         // toolbar items (= canonical macOS 26 Tahoe look matching
         // Pages / Xcode / Mail / Finder).
