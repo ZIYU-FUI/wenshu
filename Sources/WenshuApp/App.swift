@@ -1069,35 +1069,19 @@ enum AuxTask: String, CaseIterable, Identifiable {
             //    subdirectories (shelves/, books/, chat/, kanban/, todo/, assets/)
             //    = WenshuWorkspace manages this layout.
             //
-            // v0.28 followup (Boss 2026-08-29 OOB '完整复刻 hermes app'): wrap
-            // LibraryRootView with WenshuChromeOverlay (= AppTitlebar 34 PT
-            // top + AppStatusbar 24 PT bottom). Override .windowToolbarStyle
-            // (.unified) (= 52 PT macOS default chrome) with .expanded (= no
-            // macOS native toolbar; we provide our own).
-            WenshuChromeOverlay(
-                titlebarLeftTools: defaultWenshuTitlebarLeft(),
-                titlebarRightTools: defaultWenshuTitlebarRight(
-                    modelName: modelName,
-                    contextUsagePercent: contextUsagePercent
-                ),
-                statusbarLeftItems: defaultWenshuStatusbarLeft(
-                    modelName: modelName,
-                    llmStatus: llmStatus,
-                    contextUsagePercent: contextUsagePercent
-                ),
-                statusbarRightItems: defaultWenshuStatusbarRight(
-                    version: "v0.28"
-                )
-            ) {
-                // v0.28 followup (Boss 2026-08-29 OOB '调试视图框架'):
-                // TEMPORARILY removed WenshuChromeOverlay (= was making
-                // the window collapse to 30 PT and triggering macOS
-                // WindowServer rejection prompts). Use raw LibraryRootView
-                // for now to verify the view framework works without
-                // the custom chrome. Re-add chrome after basic Wenshu
-                // window is confirmed visible.
-                LibraryRootView()
-            }
+            // v0.34 boss 2026-09-02 OOB '要用最合理的方案, 应该统一成一个组件':
+// deleted AppTitlebar.swift + AppStatusbar.swift + WenshuChromeOverlay.swift
+// (= v0.28 followup post-TKT-026 dead chrome that WenshuChromeOverlay
+// never actually rendered — App.swift wrapped LibraryRootView with
+// WenshuChromeOverlay but the wrapper was a TEMPORARILY-removed shell
+// since 2026-08-29 boss 8/29 OOB '调试视图框架'). All chrome now lives
+// in LibraryRootView's SwiftUI native `.toolbar { ToolbarItemGroup }`
+// (= Apple's canonical macOS 26 toolbar pattern, single source of
+// truth). The custom AppTitlebar + AppStatusbar components were
+// (1) never rendered and (2) duplicated Apple HIG behavior Apple
+// provides for free via `.toolbar` + `.windowToolbarStyle`. See
+// commit message on `v0.34: chrome consolidation via LibraryRootView.
+LibraryRootView()
             .frame(minWidth: 1280, minHeight: 720)
             .environment(library)
             .preferredColorScheme(appearanceMode.colorScheme)
