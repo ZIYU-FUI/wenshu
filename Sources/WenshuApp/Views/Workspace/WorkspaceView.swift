@@ -641,14 +641,6 @@ struct EditorPlaceholder: View {
 
     @State private var mode: Mode = .preview
 
-    // v0.34 B-14: backlinks ViewModel lifted from EditorPreviewContent
-    // (= ticket 06) so the editor zone bottom-bar inline label and the
-    // popover (= BacklinksPanel) share one source of truth. Boss 9/2
-    // OOB: '反链不需要占空间, 放在编辑器区的底栏右边, 替换现有占位
-    // 文字, 点击可以弹出弹窗, 展示所有反链'.
-    @State private var backlinksVM = BacklinksViewModel()
-    @State private var showBacklinksPopover: Bool = false
-
     var body: some View {
         VStack(spacing: 0) {
             // v0.34 ticket 04: top toolbar (= 28 PT = DesignTokens.paneTabHotArea).
@@ -778,52 +770,6 @@ struct EditorPlaceholder: View {
             // lightest Liquid Glass material as a placeholder that
             // matches the rest of the workspace.
             .background(.ultraThinMaterial)
-            // v0.34 B-14: editor zone bottom bar (= Apple HIG standard
-            // per-zone status footer). Backlinks label right-aligned,
-            // click → .popover shows full BacklinksPanel. The bar
-            // REPLACES the legacy "字数: 0" placeholder text in this
-            // zone (= boss 9/2 OOB '替换现有占位文字').
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                HStack(spacing: DesignTokens.chromePaddingClusterGap) {
-                    Spacer()
-                    // Backlinks inline label = right-aligned, replaces
-                    // the legacy 字数:0 status text (= same visual
-                    // weight = .caption + .secondary, Apple HIG).
-                    Button {
-                        showBacklinksPopover.toggle()
-                    } label: {
-                        HStack(spacing: 4) {
-                            LucideIconSystemFallback("link", size: 12)
-                                .foregroundStyle(.secondary)
-                            Text("反链 \(backlinksVM.backlinks.count)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .help("查看当前文档的反向引用 (= 来源文档)")
-                    .popover(isPresented: $showBacklinksPopover, arrowEdge: .bottom) {
-                        // Apple HIG popover = non-modal contextual info
-                        // (= boss 9/2 recommendation). 320 PT width =
-                        // standard inspector popover. BacklinksPanel
-                        // reuses wenshu's existing v0.19 implementation.
-                        BacklinksPanel(viewModel: backlinksVM)
-                            .frame(width: 320, height: 280)
-                            .padding(8)
-                    }
-                }
-                .padding(.horizontal, DesignTokens.chromePaddingLeading)
-                .padding(.vertical, 4)
-                .background(.bar)
-            }
-            // v0.34 B-14: load backlinks when preview body shows
-            // (= same docId as ticket 06 placeholder; ticket 027-35
-            // wires the real document id from NSOpenPanel).
-            .onAppear {
-                Task {
-                    await backlinksVM.load(docId: "preview-sample")
-                }
-            }
         }
     }
 
@@ -921,25 +867,34 @@ private struct EditorPreviewContent: View {
     let markdownBody: String
     let wikilinkTarget: EditorPlaceholder.WikilinkAction
 
-    // v0.34 B-14 (= boss 9/2 OOB '反链不需要占空间, 放在编辑器区的
-    // 底栏右边, 替换现有占位文字, 点击可以弹出弹窗, 展示所有反链'):
-    // backlinks live in the editor zone bottom bar (= inline label)
-    // + popover, NOT in the preview body (= ticket 06's inline
-    // 120 PT panel). ViewModel moved up to EditorPlaceholder so both
-    // the inline label (= count display) and the popover (= full
-    // BacklinksPanel) share one source of truth.
+    // v0.34 ticket 06: BacklinksViewModel is a fresh instance per preview
+    // (= ticket 027-35 will switch to a shared AppState-owned model so
+    // backlinks persist across document opens).
+    @State private var backlinksVM = BacklinksViewModel()
 
     var body: some View {
-        // v0.34 B-14: remove ticket 06's inline 120 PT BacklinksPanel;
-        // backlinks are now in the editor zone bottom bar + popover.
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(parsedSegments, id: \.id) { segment in
-                    renderSegment(segment)
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(parsedSegments, id: \.id) { segment in
+                        renderSegment(segment)
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(16)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(16)
+            // v0.34 ticket 06: BacklinksPanel below the rendered MD.
+            // 1 PT top border (= Apple HIG section divider) separates
+            // the panel from the document body. Height cap = 120 PT
+            // (= Apple HIG standard inspector footer size).
+            Divider()
+            BacklinksPanel(viewModel: backlinksVM)
+                .frame(maxHeight: 120)
+                .task {
+                    // Placeholder doc id for now (= ticket 027-35 will
+                    // pass the real document id from NSOpenPanel).
+                    await backlinksVM.load(docId: "preview-sample")
+                }
         }
     }
 
