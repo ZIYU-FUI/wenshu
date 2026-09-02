@@ -217,18 +217,6 @@ private struct TitlebarButton: View {
     }
 }
 
-private struct TitlebarButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .background(
-                configuration.isPressed
-                ? Color(nsColor: .controlBackgroundColor)
-                : Color.clear
-            )
-            .animation(.easeOut(duration: 0.1), value: configuration.isPressed)
-    }
-}
-
 // MARK: - WindowDraggable (= make titlebar drag region)
 
 /// Helper view that sets NSWindow.isMovableByBackground = true (= the

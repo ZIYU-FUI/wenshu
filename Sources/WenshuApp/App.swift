@@ -22,64 +22,14 @@ import Lucide
 /// + developer.apple.com/documentation/swiftui/primitivebuttonstyle/plain),
 /// the canonical way to extend a plain-style button's hit area (= Apple
 /// "How do I make icon buttons easier to click on macOS?") is to implement
-/// a custom `ButtonStyle` (= or `PrimitiveButtonStyle` for more control) and
-/// wrap `configuration.label` in an explicit `.frame(width:height:)` +
-/// `.contentShape(Rectangle())`. Per Apple HIG, this is more reliable than
-/// `.padding` inflation (= which only affects rendered bounds, not the
-/// hit-tester's detected region) or inline `Color.clear.frame(...).contentShape(...)`
-/// (= which is what ticket 018 tried and SwiftUI Forums confirms is fragile
-/// because it doesn't go through the Button's hit-area machinery).
-///
-/// `IconButtonStyle` (= Apple HIG canonical helper for icon toolbar buttons) is
-/// a **transparent passthrough ButtonStyle** = per Apple developer.apple.com/
-/// documentation/swiftui/buttonstyle docs, ButtonStyle.configure(label:)
-/// gets the user's label closure; the hit-area geometry MUST live INSIDE
-/// the label closure (= cf. medium.com/@davidhu-sg hit-testing traps article
-/// "SwiftUI Hit-Testing Traps: Why Your Button Only Responds on the Text"
-/// = layout-expanding modifiers inside label closure work; ones outside
-/// get discarded by ButtonStyle). IconButtonStyle preserves the standard
-/// plain-style visual (= no decoration when idle, just pressed-state visual
-/// feedback per Apple SwiftUI ButtonStyle docs) without modifying label
-/// geometry (= the hit-area extension is the caller's responsibility, via
-/// .frame(...) + .contentShape(Rectangle()) INSIDE the label closure).
-///
-/// Usage (Apple HIG canonical pattern):
-/// ```swift
-/// Button(action: ...) {
-///     Color.clear                              // backing layer
-///         .frame(width: 28, height: 28)      // explicit hit area
-///         .overlay(alignment: .center) {     // icon centered in hit area
-///             Image(systemName: "...")
-///                 .font(.system(size: 18))
-///         }
-///         .contentShape(Rectangle())
-/// }
-/// .buttonStyle(IconButtonStyle())
-/// ```
-///
-/// Why no geometry inside makeBody (= ticket 020 lesson)?:
-/// Apple HIG docs (developer.apple.com/documentation/swiftui/buttonstyle):
-/// ButtonStyle.makeBody(configuration:) returns the rendered body, but
-/// SwiftUI's hit-tester derives the Button's hit area from the LABEL'S
-/// intrinsic content size (= the inner view's natural layout, NOT the
-/// outer .frame modifier applied to makeBody's return value). Adding
-/// `.frame(28, 28).contentShape(.rect)` inside makeBody (= the ticket 019
-/// attempt) gets DISCARDED by SwiftUI's hit-tester for plain-style
-/// buttons. The CORRECT pattern is to put the geometry INSIDE the label
-/// closure (= which is part of the caller's Button invocation), so the
-/// Button's hit-tester sees the explicit 28×28 frame.
-///
-/// Note: when ticket 020's `ZStack { Color.clear + configuration.label }
-/// .frame(28, 28).contentShape(Rectangle())` was applied inside
-///makeBody, the AX hit area regressed to 18×18 (= the label's intrinsic
-/// size) instead of expanding to 28×28. This confirms Apple's
-/// hit-tester rule = the label's intrinsic size = the hit area, NOT the
-///outer .frame on makeBody's return value.
-struct IconButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-    }
-}
+/// `IconButtonStyle` REMOVED in v0.34 Apple-API-first #3.
+/// Was a pass-through `makeBody { configuration.label }` (= no-op),
+/// single call site (App.swift:1820) inside the Button label closure
+/// while App.swift:1839 applied `.buttonStyle(.plain)` on the outer Button.
+/// SwiftUI button-style precedence = outer-wins, so the inner style was
+/// always superseded. Use Apple `.buttonStyle(.plain)` directly with
+/// `Color.clear.frame(28,28).contentShape(Rectangle())` inside the label
+/// closure (= Apple HIG canonical hot-area pattern).
 
 // 老板 8/18 拍 "重置界面布局" 通知桥 (LayoutShellView 用 @State 私有 vm,
 // 顶层 .commands 拿不到 vm 实例, 走 NotificationCenter 转发)
@@ -1807,7 +1757,10 @@ struct ChatZoneTabBar: View {
                             // Replace with explicit Color.clear.frame(28, 28)
                             // .contentShape(.rect) = Apple HIG canonical
                             // pattern for plain-style button hot area.
-                            .buttonStyle(IconButtonStyle())
+                            // (v0.34 Apple-API-first #3: removed inner
+                            // `.buttonStyle(IconButtonStyle())` here = it was
+                            // a no-op pass-through superseded by the outer
+                            // `.buttonStyle(.plain)` below.)
                             // v0.25.1 (= ticket 010 tab selected-state underline):
                             // owner 2026-08-26 OOB '现在的 tab 的选定状态 ICON 下
                             // 没有那个选定的小横线' = add Apple HIG canonical

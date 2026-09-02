@@ -21,29 +21,12 @@ import SwiftUI
 import AppKit
 
 // MARK: - Titlebar control hover state (= hermes titlebarButtonClass)
-
-/// Titlebar control hover state modifier (= matches Hermes
-/// `titlebarButtonClass` = `text-muted-foreground/85 hover:bg-(--ui-control-hover-background) hover:text-foreground`).
-public struct TitlebarControlStyle: ButtonStyle {
-    public func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            // v0.32 boss 2026-09-02 OOB ('全走 apple api 默认'):
-            // use bare Apple Material catalog directly (= the
-            // canonical SwiftUI .thinMaterial from the Material
-            // enum). The previous RegionHoverWashStyle wrapper
-            // added an extra type with no semantic value (= it
-            // just returned .thinMaterial from its resolve()
-            // method). Apple canonical = .thinMaterial direct call.
-            .background {
-                if configuration.isPressed {
-                    Color.clear.overlay(.thinMaterial)
-                } else {
-                    Color.clear
-                }
-            }
-            .animation(.easeOut(duration: 0.1), value: configuration.isPressed)
-    }
-}
+//
+// `TitlebarControlStyle` REMOVED in v0.34 Apple-API-first #3: zero callers
+// (only the equivalent hover/pressed wash is achieved via `.background(.regularMaterial)`
+// inline at each titlebar button site). Apple HIG canonical pressed-state
+// background = `.background(Color(nsColor: .controlBackgroundColor))` or
+// `.background(.regularMaterial)` direct (= no wrapper needed).
 
 // MARK: - Pre-Tahoe macOS Y-nudge (= hermes titlebarControlsYNudge)
 
