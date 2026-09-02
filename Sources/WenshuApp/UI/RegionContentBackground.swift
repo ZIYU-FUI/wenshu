@@ -65,39 +65,85 @@ import SwiftUI
 ///   Sidebar / Tools / Chat panes which have no explicit background).
 @MainActor
 public struct RegionContentBackground: View {
-    public init() {}
+    /// v0.32 boss 2026-09-02 OOB ('参考一下 FCP, 各区有不同的区域
+    /// 颜色, 这样各区很自然然的做了区分. 你看一下 apple api 的颜色,
+    /// 暗色模式是怎么分级的, 亮色模式是怎么分级的'): FCP-style
+    /// natural per-region differentiation via Apple-supplied NSColor
+    /// brightness tiers (= no custom RGB ladder, no opacity-tinted
+    /// divisions). The 6 zones map to 2 Apple-canonical tiers:
+    ///
+    /// - chrome tier (.controlBackgroundColor) for the 2 chrome
+    ///   zones (projectSidebar, specializedTools) = Apple HIG
+    ///   "large controls" (sidebar / inspector). Renders 1 tier
+    ///   LIGHTER than windowBackgroundColor in dark mode (= chrome
+    ///   appears raised above the content inset below).
+    /// - content tier (.windowBackgroundColor) for the 4 content
+    ///   zones (projectPreview, editor, aiChat, aiDynamic) = Apple
+    ///   HIG "document content" area (= the area beneath your
+    ///   window's views). Renders 1 tier DARKER than
+    ///   controlBackgroundColor in dark mode (= content appears
+    ///   inset into the window).
+    ///
+    /// Light mode reverses the brightness direction automatically
+    /// (= Apple's AppKit adapts the same NSColor call to the
+    /// opposite brightness direction without wenshu intervention).
+    /// See `.scratch/v0.32-color-apple-audit/audit.md` §1.2 for the
+    /// full light/dark brightness ladder table.
+    private let zone: ZoneSlot
 
-    // v0.28 followup Boss UX round 49 (Boss 2026-08-29 OOB
-    // '在设置里加一个功能, 液态玻璃透明度调节'): read the user's
-    // Liquid Glass opacity preference from the SwiftUI environment
-    // (= set by `SettingView.liquidGlassOpacity` AppStorage slider
-    // and propagated via .liquidGlassOpacityEnvironment from the root
-    // view). Default = 0.5 (= subtle glass tint = matches the
-    // existing pane look when no slider value is set).
-    @Environment(\.liquidGlassOpacity) private var liquidGlassOpacity: Double
+    /// Default initializer (= no zone). Used by legacy callers that
+    /// predate the v0.32 zone-routed colors (= e.g. SwiftUI previews,
+    /// or any caller that has not yet migrated). Default = chrome
+    /// tier (.controlBackgroundColor) because that is the more
+    /// common case (= 2 of 6 zones, plus it visually matches the
+    /// pre-v0.32 pane look so the migration is non-regressive for
+    /// any caller that has not migrated).
+    public init() {
+        self.zone = .projectSidebar
+    }
+
+    /// Zone-routed initializer (= v0.32). Caller passes the
+    /// ZoneSlot whose background is being rendered.
+    /// ZonePerRegionChrome is the single source-of-truth caller
+    /// (= all 6 zones go through it); this initializer exists so
+    /// the zone lookup is centralized here, not duplicated at
+    /// every call site. `internal` because ZoneSlot itself is
+    /// module-internal (= declared in App.swift without `public`).
+    init(zone: ZoneSlot) {
+        self.zone = zone
+    }
+
+    /// Apple-canonical NSColor per zone (= chrome tier or content
+    /// tier, per the audit mapping). Direct NSColor static property
+    /// call — no wrapper enum, no custom color construct. Boss
+    /// 2026-09-02 OOB hard rule: "你所有用的颜色, 都是 API 给的,
+    /// 不要自定义" — every color literal must come from an Apple
+    /// NSColor API.
+    private var appleBackground: Color {
+        switch zone {
+        case .projectSidebar, .specializedTools:
+            // Chrome tier (= sidebar / inspector / large control).
+            return Color(nsColor: .controlBackgroundColor)
+        case .projectPreview, .editor, .aiChat, .aiDynamic:
+            // Content tier (= "the area beneath your window's
+            // views" per Apple docs). Inset 1 tier darker than
+            // chrome in dark mode (= matches FCP viewer / Mail
+            // message list / Xcode editor depth).
+            return Color(nsColor: .windowBackgroundColor)
+        }
+    }
 
     public var body: some View {
-        // v0.28 followup Boss UX round 49 (Boss 2026-08-29 OOB
-        // '在设置里加一个功能, 液态玻璃透明度调节'): read the
-        // user's Liquid Glass opacity preference from the SwiftUI
-        // environment (= set by `SettingView.liquidGlassOpacity`
-        // AppStorage slider and propagated via
-        // .liquidGlassOpacityEnvironment from the root view).
-        // Default = 0.5 (= subtle glass tint).
-        //
-        // v0.30 boss 2026-09-01 OOB: extracted the 4-step mapping
-        // into the `Double.toLiquidGlassMaterial()` helper on
-        // LiquidGlassOpacity.swift (= also used by RegionTabBar
-        // + RegionStatusBar so all chrome surfaces follow the
-        // same slider).
-        // v0.30 boss 2026-09-01 OOB (slider round 3): per-pane
-        // glass tint follows the slider continuously (not the
-        // previous 6-step ladder). Material.opacity(_:) =
-        // SwiftUI 27+ API; 0 % = .ultraThinMaterial alpha 0 =
-        // fully transparent (boss's '0 % must be fully transparent'
-        // requirement); 100 % = .ultraThinMaterial alpha 1 =
-        // the lightest Liquid Glass tier at full strength.
-        Color.clear.overlay(Material.ultraThinMaterial.opacity(liquidGlassOpacity))
+        // v0.32 boss 2026-09-02 OOB ('用 macOS 自带液态玻璃,
+        // 跟随系统设置'): the previous Liquid Glass opacity
+        // slider + @Environment(\.liquidGlassOpacity) wiring
+        // was removed (LiquidGlassOpacity.swift deleted in v0.32
+        // Tier-1 rank-3). The opaque Apple NSColor backgrounds
+        // (chrome tier vs content tier) replace the slider —
+        // Apple auto-adapts to system settings (dark mode /
+        // Reduce Transparency / Increase Contrast) without a
+        // per-app slider that would conflict with the system.
+        Rectangle().fill(appleBackground)
     }
 }
 

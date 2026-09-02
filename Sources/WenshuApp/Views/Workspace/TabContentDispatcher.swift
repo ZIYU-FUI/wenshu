@@ -78,7 +78,11 @@ struct TabContentDispatcher: View {
                         return acc + bookCount
                     }
                 ).bottom,
-                topSkip: true  // ← skip outer top, use internal ZoneContentTabBar only
+                topSkip: true,  // ← skip outer top, use internal ZoneContentTabBar only
+                // v0.32 boss 2026-09-02 OOB: sidebar = chrome tier
+                // (= .controlBackgroundColor per Apple HIG "large
+                // controls" = sidebar / inspector / table view).
+                zone: .projectSidebar
             ) {
                 ZoneModuleView(zoneSlot: .projectSidebar)
             }
@@ -89,7 +93,13 @@ struct TabContentDispatcher: View {
             ZonePerRegionChrome(
                 topActions: [],
                 bottomStatus: projectPreviewChrome(chapterCount: 0).bottom,
-                topSkip: true
+                topSkip: true,
+                // v0.32 boss 2026-09-02 OOB: preview = content tier
+                // (= .windowBackgroundColor per Apple HIG "the area
+                // beneath your window's views" = content area;
+                // inset 1 tier darker than chrome in dark mode =
+                // matches FCP viewer depth).
+                zone: .projectPreview
             ) {
                 ZoneModuleView(zoneSlot: .projectPreview)
             }
@@ -99,7 +109,11 @@ struct TabContentDispatcher: View {
             ZonePerRegionChrome(
                 topActions: [],
                 bottomStatus: editorChrome(wordCount: 0, progress: 0.0).bottom,
-                topSkip: true
+                topSkip: true,
+                // v0.32 boss 2026-09-02 OOB: editor = content tier
+                // (= .windowBackgroundColor = matches Xcode editor
+                // and Pages document inset depth).
+                zone: .editor
             ) {
                 ZoneModuleView(zoneSlot: .editor)
             }
@@ -109,7 +123,11 @@ struct TabContentDispatcher: View {
             ZonePerRegionChrome(
                 topActions: [],
                 bottomStatus: specializedToolsChrome().bottom,
-                topSkip: true
+                topSkip: true,
+                // v0.32 boss 2026-09-02 OOB: tools = chrome tier
+                // (= .controlBackgroundColor = matches Xcode
+                // inspector / FCP inspector depth).
+                zone: .specializedTools
             ) {
                 ZoneModuleView(zoneSlot: .specializedTools)
             }
@@ -128,7 +146,11 @@ struct TabContentDispatcher: View {
                 topActions: [],
                 bottomStatus: aiChatChrome().bottom,
                 topSkip: true,  // skip outer (= ChatZoneTopChrome IS the top)
-                bottomSkip: true  // chat uses internal ChatBottomToolbar per v0.21 ticket 10
+                bottomSkip: true,  // chat uses internal ChatBottomToolbar per v0.21 ticket 10
+                // v0.32 boss 2026-09-02 OOB: chat = content tier
+                // (= .windowBackgroundColor = matches Mail message
+                // list / Messages conversation depth).
+                zone: .aiChat
             ) {
                 ChatView()
                     .safeAreaInset(edge: .top, spacing: 0) {
@@ -146,7 +168,11 @@ struct TabContentDispatcher: View {
             ZonePerRegionChrome(
                 topActions: [],
                 bottomStatus: aiDynamicChrome().bottom,
-                topSkip: true
+                topSkip: true,
+                // v0.32 boss 2026-09-02 OOB: dynamic / kanban =
+                // content tier (= .windowBackgroundColor = matches
+                // Xcode issue navigator depth).
+                zone: .aiDynamic
             ) {
                 ZoneModuleView(zoneSlot: .aiDynamic)
             }
