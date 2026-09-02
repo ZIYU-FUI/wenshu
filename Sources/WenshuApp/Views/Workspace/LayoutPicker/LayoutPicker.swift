@@ -79,7 +79,7 @@ struct LayoutPicker: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Text("自定义")
-                            .font(.system(size: 11, weight: .medium))
+                            .font(.caption.weight(.medium))
                             .foregroundStyle(.secondary)
                         Spacer()
                     }
@@ -109,9 +109,9 @@ struct LayoutPicker: View {
             }) {
                 HStack(spacing: 6) {
                     Image(systemName: "plus")
-                        .font(.system(size: 11))
+                        .font(.caption)
                     Text("新建网格布局")
-                        .font(.system(size: 11))
+                        .font(.caption)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
@@ -142,9 +142,9 @@ struct LayoutPicker: View {
                 }) {
                     HStack(spacing: 6) {
                         Image(systemName: "square.and.arrow.down")
-                            .font(.system(size: 11))
+                            .font(.caption)
                         Text("将当前排列保存为模板")
-                            .font(.system(size: 11))
+                            .font(.caption)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
@@ -210,7 +210,7 @@ struct LayoutPicker: View {
             }
             .padding(.horizontal, 12)
             Text("保存后会出现在上面的预设网格中")
-                .font(.system(size: 9))
+                .font(.caption2)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 12)
                 .padding(.bottom, 12)

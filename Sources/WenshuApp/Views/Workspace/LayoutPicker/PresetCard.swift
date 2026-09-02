@@ -48,7 +48,7 @@ struct PresetCard: View {
                 .overlay(strokeOverlay(isActive: isActive))
             // Title.
             Text(preset.name)
-                .font(.system(size: 10, weight: isActive ? .semibold : .regular))
+                .font(.caption2.weight(isActive ? .semibold : .regular))
                 .foregroundStyle(isActive ? Color.accentColor : Color.primary)
                 .lineLimit(1)
         }
@@ -65,7 +65,7 @@ struct PresetCard: View {
                 if isHovering {
                     Button(action: onDelete) {
                         Image(systemName: "xmark")
-                            .font(.system(size: 9, weight: .medium))
+                            .font(.caption2.weight(.medium))
                             .foregroundStyle(.secondary)
                             .frame(width: 28, height: 28)
                             .contentShape(Rectangle())

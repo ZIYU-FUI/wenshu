@@ -209,7 +209,7 @@ public struct ZonePerRegionChrome<Content: View>: View {
                 Spacer(minLength: 0)
                 // Right: placeholder text (= matches old "占位文字").
                 Text(topActions.isEmpty ? "占位文字" : "")
-                    .font(.system(size: 13))
+                    .font(.body)
                     .foregroundStyle(.tertiary)
                     .padding(.trailing, LayoutTokens.chromePaddingTrailing)
                     .padding(.top, LayoutTokens.chromePaddingLarge)

@@ -15,7 +15,7 @@ public struct BackupView: View {
             Text("Backup")
                 .font(.headline)
             Text("Replica of hermes backup (BackupTools struct)")
-                .font(.system(size: 13))
+                .font(.body)
                 .foregroundStyle(.secondary)
         }
         .padding()

@@ -333,12 +333,12 @@ Group {
 
             VStack(spacing: 12) {
                 Text("欢迎使用文枢")
-                    .font(.system(size: 28, weight: .semibold))
+                    .font(.title.weight(.semibold))
                 Text("请指定文枢仓库的位置")
-                    .font(.system(size: 17))
+                    .font(.title2)
                     .foregroundStyle(.secondary)
                 Text("文枢会把你的书架、聊天记录、看板、任务、资产都保存在这个仓库里。")
-                    .font(.system(size: 13))
+                    .font(.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 480)
@@ -369,7 +369,7 @@ Group {
                 .controlSize(.large)
 
                 Text("新建 = 创建新仓库, 打开 = 选择已有仓库")
-                    .font(.system(size: 11))
+                    .font(.caption)
                     .foregroundStyle(.tertiary)
             }
 

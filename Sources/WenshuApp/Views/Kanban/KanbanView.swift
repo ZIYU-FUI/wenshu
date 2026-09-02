@@ -17,7 +17,7 @@ public struct KanbanView: View {
             Text("Kanban")
                 .font(.headline)
             Text("Replica of hermes kanban_db")
-                .font(.system(size: 13))
+                .font(.body)
                 .foregroundStyle(.secondary)
             if store == nil {
                 Text("(store unavailable — bootstrap may have failed)")

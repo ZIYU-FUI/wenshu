@@ -635,9 +635,9 @@ private struct EditModeBadge: View {
                     .fill(Color.accentColor)
                     .frame(width: 8, height: 8)
                 Text("Layout edit mode")
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.caption.weight(.medium))
                 Text(HotkeyFormatter.editModeCombo)
-                    .font(.system(size: 11))
+                    .font(.caption)
                     .foregroundStyle(.secondary)
             }
             .padding(.horizontal, 10)

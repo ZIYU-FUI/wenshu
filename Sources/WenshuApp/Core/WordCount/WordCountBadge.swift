@@ -67,7 +67,7 @@ public struct WordCountInlineLabel: View {
             ? String(format: "%.1fk 字", Double(chars) / 1000.0)
             : "\(chars) 字"
         Text(display)
-            .font(.system(size: 13))
+            .font(.body)
             .foregroundStyle(.tertiary)
     }
 }

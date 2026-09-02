@@ -229,16 +229,16 @@ private struct StatusbarItemView: View {
             HStack(spacing: 4) {
                 if let iconName = item.iconName {
                     Image(systemName: iconName)
-                        .font(.system(size: 10, weight: .regular))
+                        .font(.caption2)
                 }
                 if let label = item.label {
                     Text(label)
-                        .font(.system(size: 11, weight: .regular))
+                        .font(.caption)
                         .lineLimit(1)
                 }
                 if let detail = item.detail {
                     Text(detail)
-                        .font(.system(size: 10, weight: .regular))
+                        .font(.caption2)
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                 }

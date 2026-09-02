@@ -1683,7 +1683,7 @@ struct NewChoiceSheet: View {
                 } label: {
                     VStack(spacing: 8) {
                         LucideIcon("book-plus", size: 32)
-                        Text("新建书").font(.system(size: 13))
+                        Text("新建书").font(.body)
                     }
                     .frame(width: 110, height: 80)
                 }
@@ -1694,7 +1694,7 @@ struct NewChoiceSheet: View {
                 } label: {
                     VStack(spacing: 8) {
                         LucideIcon("library", size: 32)
-                        Text("新建书架").font(.system(size: 13))
+                        Text("新建书架").font(.body)
                     }
                     .frame(width: 110, height: 80)
                 }

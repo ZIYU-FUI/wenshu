@@ -916,7 +916,7 @@ struct SettingView: View {
             Spacer()
             if hasKey {
                 Text(keyPrefix12(for: p))
-                    .font(.system(size: 11, design: .monospaced))
+                    .font(.caption.monospaced())
                     .foregroundStyle(.tertiary)
             } else {
                 Text("待配置")
@@ -1731,11 +1731,11 @@ struct ChatZoneView: View {
                         LucideIconSystemFallback("cpu")
                             .foregroundStyle(.secondary)
                         Text(currentModel.isEmpty ? "无模型可用" : ModelDisplay.lookup(currentModel).display)
-                            .font(.system(size: 13))
+                            .font(.body)
                             .foregroundStyle(.secondary)
                         // v0.27 boss 8/27 OOB: SF 'chevron.up.chevron.down' → Lucide 'chevrons-up-down'.
                         LucideIconSystemFallback("chevron.up.chevron.down")
-                            .font(.system(size: 11))
+                            .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                     .padding(.bottom, 6)
@@ -1796,7 +1796,7 @@ struct ChatZoneView: View {
                     // v0.21 ticket 40: 读 vm.contextUsed (Apple @Observable 自动 propagate, 不再写死 @State contextUsed = 0)
                     // v0.24 boss验收fix: Apple standard dark text (.secondary).
                     Text("\(compactNumber(vm.contextUsed)) / \(compactNumber(vm.contextMax))")
-                        .font(.system(size: 13))
+                        .font(.body)
                         .foregroundStyle(.secondary)
                     ProgressView(value: Double(min(vm.contextUsed, vm.contextMax)), total: Double(max(1, vm.contextMax)))
                         .progressViewStyle(.linear)
@@ -2005,7 +2005,7 @@ struct ChatZoneStubView: View {
             LucideIconSystemFallback(icon, size: 48)
                 .foregroundStyle(.tertiary)
             Text("\(title) (开发中)")
-                .font(.system(size: 15))
+                .font(.title3)
                 .foregroundStyle(.tertiary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

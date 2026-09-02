@@ -24,7 +24,7 @@ public struct SubAgentProgressView: View {
                     .font(.headline)
                 Spacer()
                 Text("\(runningCount) 进行中 · \(doneCount) 已完成")
-                    .font(.system(size: 11))
+                    .font(.caption)
                     .foregroundStyle(.tertiary)
             }
 
@@ -32,11 +32,11 @@ public struct SubAgentProgressView: View {
 
             if store == nil {
                 Text("(loading KanbanStore...)")
-                    .font(.system(size: 13))
+                    .font(.body)
                     .foregroundStyle(.tertiary)
             } else if tasks.isEmpty {
                 Text("(暂无子代理任务 — 与文枢对话以触发)")
-                    .font(.system(size: 13))
+                    .font(.body)
                     .foregroundStyle(.tertiary)
             } else {
                 ScrollView {
@@ -110,9 +110,9 @@ private struct TaskRowView: View {
             statusIcon
             VStack(alignment: .leading, spacing: 2) {
                 Text(task.title)
-                    .font(.system(size: 13))
+                    .font(.body)
                 Text(statusLabel)
-                    .font(.system(size: 11))
+                    .font(.caption)
                     .foregroundStyle(.tertiary)
             }
             Spacer()

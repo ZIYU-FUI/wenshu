@@ -109,13 +109,13 @@ struct LayoutEditBar: View {
         HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("布局")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.body.weight(.semibold))
                 HStack(spacing: 4) {
                     Text("选择一个布局，或在区域之间拖动面板")
-                        .font(.system(size: 10))
+                        .font(.caption2)
                         .foregroundStyle(.secondary)
                     Text(HotkeyFormatter.editModeCombo)
-                        .font(.system(size: 10, weight: .medium))
+                        .font(.caption2.weight(.medium))
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 4)
                         .padding(.vertical, 1)

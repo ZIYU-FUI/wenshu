@@ -223,7 +223,7 @@ private struct GroupTabStrip: View {
                 HStack(spacing: 4) {
                     Button(action: { onSelect(paneID) }) {
                         Text(label)
-                            .font(.system(size: 11))
+                            .font(.caption)
                             .lineLimit(1)
                             .padding(.horizontal, LayoutTokens.chromePaddingLarge)
                             .padding(.vertical, LayoutTokens.chromePaddingSmall)
@@ -239,7 +239,7 @@ private struct GroupTabStrip: View {
                         // standard Apple pattern; full tab preview lands
                         // in 028-007 when we have a tab icon asset).
                         Text(label)
-                            .font(.system(size: 11))
+                            .font(.caption)
                             .padding(.horizontal, LayoutTokens.chromePaddingLarge)
                             .padding(.vertical, LayoutTokens.chromePaddingSmall)
                             .background(.tint.opacity(0.25))
@@ -252,7 +252,7 @@ private struct GroupTabStrip: View {
                     if panes.count > 1 {
                         Button(action: { onClose(paneID) }) {
                             Image(systemName: "xmark")
-                                .font(.system(size: 9, weight: .medium))
+                                .font(.caption2.weight(.medium))
                                 .foregroundStyle(.secondary)
                                 .frame(width: 14, height: 14)
                         }
