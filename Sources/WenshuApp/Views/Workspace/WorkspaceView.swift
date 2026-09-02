@@ -581,23 +581,81 @@ private struct EditorExpandShrinkTrailingButton: View {
 
 /// EditorPlaceholder — temporary view for the editor zone (= the real
 /// EditorView integration is ticket 027-35 followup).
+/// v0.34 ticket 04: added EditorMode enum + preview/edit mode toggle
+/// button (= PaneTrailingIconButton with eye / pencil icon). Mode state
+/// is local (= @State, = ticket 05/07 will integrate with document load).
 struct EditorPlaceholder: View {
-    var body: some View {
-        VStack {
-            Text("编辑器").font(.headline)
-            Text("Editor zone (= v0.27 zone; = ticket 027-35 integration pending)")
-                .font(.caption).foregroundStyle(.secondary)
+    /// Editor zone display mode (= spec user stories 2-4).
+    /// `.preview` = rendered MD, read-only (= Obsidian preview).
+    /// `.edit` = TextEditor, writeable (= Obsidian edit).
+    /// v0.34 ticket 04: enum lives here; ticket 05 replaces the body
+    /// content with swift-markdown rendering, ticket 07 replaces with
+    /// Apple TextEditor.
+    enum Mode: String, CaseIterable, Identifiable {
+        case preview
+        case edit
+        var id: String { rawValue }
+        var iconName: String {
+            switch self {
+            case .preview: return "eye"
+            case .edit:    return "pencil"
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // v0.28 followup Boss UX round 19 (Boss 2026-08-29 OOB '所有
-        // 区域的顶栏, 底栏, 背景, 用的颜色, 可以适配液态玻璃吗'):
-        // Use .ultraThinMaterial instead of Color.green.opacity(0.05)
-        // (= solid green placeholder = inconsistent with the
-        // Liquid Glass design language). Editor zone has no
-        // wired-in content yet (= ticket 027-35 followup), so use the
-        // lightest Liquid Glass material as a placeholder that
-        // matches the rest of the workspace.
-        .background(.ultraThinMaterial)
+        var tooltip: String {
+            switch self {
+            case .preview: return "预览模式"
+            case .edit:    return "编辑模式"
+            }
+        }
+    }
+
+    @State private var mode: Mode = .preview
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // v0.34 ticket 04: top toolbar (= 28 PT = DesignTokens.paneTabHotArea).
+            // Mode toggle centered; expand/shrink/close placeholders for tickets 08/09/10.
+            // Tool bar persists across both preview and edit modes (= Apple HIG
+            // document-window toolbar pattern; Obsidian uses the same shape).
+            HStack(spacing: 0) {
+                // Left slot: empty for now (= ticket 08 will add doc basename).
+                Spacer()
+                // Center slot: mode toggle.
+                PaneTrailingIconButton(
+                    icon: mode.iconName,
+                    tooltip: mode.tooltip,
+                    action: {
+                        mode = (mode == .preview) ? .edit : .preview
+                    }
+                )
+                Spacer()
+                // Right slot: empty for now (= tickets 08/09/10 will add
+                // save + expand + close buttons in that order).
+            }
+            .frame(height: DesignTokens.paneTabHotArea)
+            .background(.bar)
+
+            // Body: placeholder content. Ticket 05 swaps this for
+            // swift-markdown rendered Text when mode = .preview; ticket 07
+            // swaps for Apple TextEditor when mode = .edit.
+            VStack {
+                Text("编辑器").font(.headline)
+                Text("Editor zone (= v0.27 zone; = ticket 027-35 integration pending)")
+                    .font(.caption).foregroundStyle(.secondary)
+                Text("当前模式: \(mode.rawValue)")
+                    .font(.caption2).foregroundStyle(.tertiary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // v0.28 followup Boss UX round 19 (Boss 2026-08-29 OOB '所有
+            // 区域的顶栏, 底栏, 背景, 用的颜色, 可以适配液态玻璃吗'):
+            // Use .ultraThinMaterial instead of Color.green.opacity(0.05)
+            // (= solid green placeholder = inconsistent with the
+            // Liquid Glass design language). Editor zone has no
+            // wired-in content yet (= ticket 027-35 followup), so use the
+            // lightest Liquid Glass material as a placeholder that
+            // matches the rest of the workspace.
+            .background(.ultraThinMaterial)
+        }
     }
 }
 /// EditModeBadge — small visual indicator shown in the top-right
