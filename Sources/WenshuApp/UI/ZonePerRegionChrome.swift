@@ -78,13 +78,22 @@ public struct ZoneTopAction: Identifiable, Sendable {
 }
 
 /// Per-region bottom status text (= matches old `ZoneBottomToolbar.status`).
+///
+/// B-16: added `rightOnTap` closure for clickable right-field text
+/// (= e.g. editor zone "反链 0" label triggers popover). Default nil
+/// keeps backward compat with sidebar/preview/tools/dynamic zones
+/// whose right text is plain (= no tap affordance). `@Sendable`
+/// wrapper preserves the struct's Sendable conformance (= closure
+/// captures stay on the MainActor; = Swift 6 strict concurrency safe).
 public struct ZoneBottomStatus: Sendable {
     public let left: String        // left-aligned text (e.g. "章节: 0", "书架: 3")
-    public let right: String       // right-aligned text (e.g. "书: 5")
+    public let right: String       // right-aligned text (e.g. "书: 5", "反链 0")
+    public let rightOnTap: (@Sendable () -> Void)?  // optional tap handler on right text (= boss 9/2 OOB '右下的反链 0, 点击可以弹窗')
 
-    public init(left: String = "", right: String = "") {
+    public init(left: String = "", right: String = "", rightOnTap: (@Sendable () -> Void)? = nil) {
         self.left = left
         self.right = right
+        self.rightOnTap = rightOnTap
     }
 }
 
@@ -175,9 +184,13 @@ public struct ZonePerRegionChrome<Content: View>: View {
         // instead of inline HStack { Text + Spacer + Text } pattern.
         // PaneStatusBar wraps RegionStatusBar + applies DesignTokens
         // statusFont + statusForeground + chrome paddings automatically.
+        // B-16: forward bottomStatus.rightOnTap so PaneStatusBar can
+        // render the right text as a clickable Button (= editor zone's
+        // "反链 0" popover trigger).
         PaneStatusBar(
             leftText: bottomStatus.left,
-            rightText: bottomStatus.right
+            rightText: bottomStatus.right,
+            rightOnTap: bottomStatus.rightOnTap
         )
     }
 }

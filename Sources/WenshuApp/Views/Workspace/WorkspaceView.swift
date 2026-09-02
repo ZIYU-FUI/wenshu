@@ -498,7 +498,10 @@ struct ZoneModuleView: View {
                     // EditorPlaceholder (= ticket 04-10 toolbar + mode toggle).
                     ("编辑", "book-open-text", AnyView(EditorPlaceholder())),
                     ("大纲", "puzzle", AnyView(OutlinePanel())),
-                    ("反链", "link", AnyView(BacklinksPanel())),
+                    // v0.34 B-16: removed the "反链" tab here (= boss 9/2 OOB
+                    // '反链占的区域还是要去掉的'). Backlinks are now
+                    // surfaced via the chrome bottom-right "反链 0"
+                    // label click → popover (= spec user stories 8 + 11).
                 ],
                 // v0.25.1 (= ticket 029c-trailing-button): expand/shrink
                 // trailing button. Boss 8/26 OOB '他是一个按钮 不是一个
