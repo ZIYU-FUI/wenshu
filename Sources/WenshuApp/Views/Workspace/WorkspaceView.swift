@@ -558,41 +558,36 @@ private struct EditorContentPlaceholder: View {
 /// State + snapshot lives in LayoutShellView (= ticket 029a).
 private struct EditorExpandShrinkTrailingButton: View {
     @State private var editorMaximized: Bool = false
-    @State private var isHover: Bool = false
 
     var body: some View {
-        // ponytail fix: previous implementation used Color.clear as the
-        // Button label base (= invisible background even when the icon
-        // overlay rendered). Replaced with NewButtonWithHover-style
-        // plain Button + LucideIcon + .frame(width: 28, height: 28) +
-        // .onHover + .background tint = matches sidebar\'s working
-        // pattern + ensures the button is fully visible in the trailing
-        // slot.
+        // v0.34 boss 2026-09-02 OOB '编辑器右边的 ICON, 尺寸没有遵循组件':
+        // the editor expand/shrink trailing button was using raw `Lucide(...)`
+        // (= no size parameter = Lucide default size, not Apple HIG standard
+        // 18 PT tab icon). Migrated to the SAME icon-rendering pattern as
+        // PaneIconTab: Color.clear as 28 PT hot area base + icon as centered
+        // .overlay with explicit DesignTokens.tabIconSize (= 18 PT). Now
+        // visually identical to the leading tab icons in the same row
+        // (= the 6 zones' tab bar visual contract is uniform).
+        //
+        // Hover plumbing also migrated to .hoverWash() (= previous commit's
+        // single source of truth for hover wash; removed the per-site
+        // .onHover + .background tint + @State isHover + .clipShape plumbing).
         Button {
             editorMaximized.toggle()
         } label: {
-            // Lucide icon: expand when not maximized, shrink when maximized.
-            if let lucide = Lucide(editorMaximized ? "shrink" : "expand") {
-                lucide
-                    .frame(width: 28, height: 28)
-                    .contentShape(Rectangle())
+            Color.clear
+                .frame(width: DesignTokens.paneTabHotArea, height: DesignTokens.paneTabHotArea)
+                .overlay(alignment: .center) {
+                    LucideIconSystemFallback(
+                        editorMaximized ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right",
+                        size: DesignTokens.tabIconSize
+                    )
                     .foregroundStyle(Color.secondary)
-            } else {
-                Image(systemName: editorMaximized ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
-                    .frame(width: 28, height: 28)
-                    .contentShape(Rectangle())
-                    .foregroundStyle(Color.secondary)
-            }
+                }
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        // Hover tint matches sidebar\'s NewButtonWithHover pattern.
-        .onHover { hovering in
-            isHover = hovering
-        }
-        .background(
-            RoundedRectangle(cornerRadius: 4)
-                .fill(isHover ? AnyShapeStyle(.quaternary) : AnyShapeStyle(Color.clear))
-        )
+        .hoverWash()
         .help(editorMaximized ? "恢复布局" : "展开全屏")
     }
 }
