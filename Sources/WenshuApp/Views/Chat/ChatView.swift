@@ -602,7 +602,7 @@ public struct ChatView: View {
                             RoundedRectangle(cornerRadius: 6)
                                 .fill(.regularMaterial)
                             RoundedRectangle(cornerRadius: 6)
-                                .strokeBorder(inputFocused ? Color.accentColor : Color.gray.opacity(0.4), lineWidth: 1)
+                                .strokeBorder(inputFocused ? AnyShapeStyle(.tint) : AnyShapeStyle(.separator), lineWidth: 1)
                         }
                     )
                 Button {

@@ -242,7 +242,7 @@ private struct GroupTabStrip: View {
                             .font(.system(size: 11))
                             .padding(.horizontal, LayoutTokens.chromePaddingLarge)
                             .padding(.vertical, LayoutTokens.chromePaddingSmall)
-                            .background(Color.accentColor.opacity(0.25))
+                            .background(.tint.opacity(0.25))
                     }
                     // Close button (= ticket 028-004b3): per
                     // VSCode / FCP Browser convention, a small X
@@ -259,7 +259,7 @@ private struct GroupTabStrip: View {
                         .buttonStyle(.plain)
                     }
                 }
-                .background(paneID == activePaneID ? Color.accentColor.opacity(0.15) : Color.clear)
+                .background(paneID == activePaneID ? AnyShapeStyle(.tint.opacity(0.15)) : AnyShapeStyle(Color.clear))
                 // Bottom 1 PT separator.
                 // v0.28 followup Boss UX round 26: Apple HierarchicalShapeStyle
                 // .separator (= canonical Liquid Glass separator, macOS 26 Tahoe)

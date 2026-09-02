@@ -591,7 +591,7 @@ private struct EditorExpandShrinkTrailingButton: View {
         }
         .background(
             RoundedRectangle(cornerRadius: 4)
-                .fill(isHover ? Color.accentColor.opacity(0.12) : Color.clear)
+                .fill(isHover ? AnyShapeStyle(.quaternary) : AnyShapeStyle(Color.clear))
         )
         .help(editorMaximized ? "恢复布局" : "展开全屏")
     }
@@ -652,7 +652,7 @@ private struct EditModeBadge: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 6)
-                    .stroke(Color.accentColor.opacity(0.3), lineWidth: 1)
+                    .stroke(.tint.opacity(0.3), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)

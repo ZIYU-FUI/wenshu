@@ -118,7 +118,7 @@ struct LayoutPicker: View {
                 .background(
                     RoundedRectangle(cornerRadius: 6)
                         .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
-                        .foregroundStyle(Color.secondary.opacity(0.5))
+                        .foregroundStyle(.tertiary)
                 )
             }
             .buttonStyle(.plain)
@@ -150,7 +150,7 @@ struct LayoutPicker: View {
                     .padding(.vertical, 8)
                     .background(
                         RoundedRectangle(cornerRadius: 6)
-                            .fill(Color.accentColor.opacity(0.1))
+                            .fill(.quaternary)
                     )
                 }
                 .buttonStyle(.plain)
