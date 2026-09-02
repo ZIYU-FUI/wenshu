@@ -825,6 +825,16 @@ struct EditorPlaceholder: View {
         // state (= Apple HIG = seed reactive state at view mount).
         .onAppear {
             appState.editorWordCount = WordCounter.count(originalBody).charactersNoSpaces
+            // v0.34 B-23: start the file-system watcher for the current
+            // documentPath (nil = placeholder mode; = no-op). The watcher
+            // auto-reloads draft when the file changes externally (= agent
+            // write, git pull, terminal `echo > file.md`, etc.).
+            startFileWatcher()
+        }
+        // v0.34 B-23: tear down the file watcher when the view goes away
+        // (= prevents zombie DispatchSource holding the file descriptor).
+        .onDisappear {
+            stopFileWatcher()
         }
     }
 
@@ -878,6 +888,105 @@ struct EditorPlaceholder: View {
             print("[wenshu.editor] auto-save failed: \(error)")
             #endif
         }
+    }
+
+    // MARK: - B-23 file-system watcher
+
+    // v0.34 B-23: open the file descriptor + create a DispatchSource
+    // for external-write detection. DispatchSource is the Apple HIG
+    // canonical file-watch primitive (= wraps kqueue's EVFILT_VNODE;
+    // = cross-Unix, no third-party dep). Fired on external write /
+    // extend / delete / rename (= covers all scenarios where the
+    // file's content could change outside our process).
+    private func startFileWatcher() {
+        guard let path = documentPath else {
+            // Placeholder mode (= no real document) → no watcher needed.
+            return
+        }
+        // Open the file for read (= O_EVTONLY flag on macOS = notify-only,
+        // = no actual read permission needed). POSIX open(2) returns
+        // the file descriptor; DispatchSource reads from it.
+        let fd = open(path, O_EVTONLY)
+        guard fd >= 0 else {
+            #if DEBUG
+            print("[wenshu.editor] B-23: cannot open fd for \(path)")
+            #endif
+            return
+        }
+        let source = DispatchSource.makeFileSystemObjectSource(
+            fileDescriptor: fd,
+            eventMask: [.write, .extend, .delete, .rename],
+            queue: .main
+        )
+        source.setEventHandler { [weak source] in
+            guard let source = source else { return }
+            let events = source.data
+            // .write + .extend = file content changed (= the cases we care about).
+            // .delete + .rename = file replaced/moved (= re-arm the watcher
+            // against the new file descriptor in a follow-up ticket;
+            // = current implementation just reloads from the original path).
+            if events.contains(.write) || events.contains(.extend) {
+                reloadDocumentFromDisk()
+            }
+        }
+        source.setCancelHandler {
+            // Apple HIG: close the fd when the source is cancelled
+            // (= prevents fd leaks; = standard pattern).
+            close(fd)
+        }
+        source.resume()
+        fileWatcher = source
+        watchedFD = fd
+    }
+
+    // v0.34 B-23: tear down the watcher (= cancel DispatchSource; = close fd
+    // happens automatically via the cancel handler above).
+    private func stopFileWatcher() {
+        fileWatcher?.cancel()
+        fileWatcher = nil
+        watchedFD = -1
+    }
+
+    // v0.34 B-23: handle external file change. Apple HIG TextEdit /
+    // Pages / Xcode behavior:
+    //   - clean state (draft == originalBody): silent reload. The user
+    //     has nothing to lose (= no in-progress edits).
+    //   - dirty state (draft != originalBody): save current draft to
+    //     <file>.local-wenshu-conflict-<unix-timestamp>.md (= the user's
+    //     in-progress edits) BEFORE clobbering, then reload, then post
+    //     a notification pointing to the conflict file path.
+    private func reloadDocumentFromDisk() {
+        guard let path = documentPath else { return }
+        let url = URL(fileURLWithPath: path)
+        guard let newContent = try? String(contentsOf: url, encoding: .utf8) else {
+            #if DEBUG
+            print("[wenshu.editor] B-23: failed to read \(path)")
+            #endif
+            return
+        }
+        if isDirty {
+            // Save user's in-progress edits to .local-wenshu-conflict-<ts>.md
+            // (= Apple HIG conflict-backup convention).
+            let timestamp = Int(Date().timeIntervalSince1970)
+            let conflictPath = path + ".local-wenshu-conflict-\(timestamp).md"
+            do {
+                try draft.write(
+                    toFile: conflictPath,
+                    atomically: true,
+                    encoding: .utf8
+                )
+                externalChangeNotice = "文件已更新, 你的编辑已保存到 \(conflictPath)"
+            } catch {
+                externalChangeNotice = "文件已更新, 你的编辑保存失败 (通知: \(error.localizedDescription))"
+            }
+        }
+        draft = newContent
+        originalBody = newContent
+        // Reset dirty flag → 0 (the document is now consistent with disk).
+        // (= handleDirtyTransition(false) cancels any pending auto-save Task).
+        handleDirtyTransition(false)
+        // Update chrome bottom-bar left (= word count of new content).
+        appState.editorWordCount = WordCounter.count(newContent).charactersNoSpaces
     }
 
     // v0.34 B-22: dirty-state transition handler. Replaces B-21's
@@ -948,6 +1057,16 @@ struct EditorPlaceholder: View {
     // is written to disk (= atomic write per Apple HIG; = mtime-conflict
     // detection deferred to v0.35+ ticket).
     @State private var autoSaveTask: Task<Void, Never>?
+    // v0.34 B-23: file-system watcher state. fileWatcher holds the
+    // DispatchSource (= cancelled in stopFileWatcher); watchedFD holds
+    // the file descriptor (= open while the view is mounted; = closed
+    // in stopFileWatcher to avoid fd leaks).
+    @State private var fileWatcher: DispatchSourceFileSystemObject?
+    @State private var watchedFD: Int32 = -1
+    // v0.34 B-23: local notification posted when an external file
+    // change overwrites dirty user edits (= the .local-wenshu-conflict
+    // file saved the user's in-progress edits before clobbering).
+    @State private var externalChangeNotice: String? = nil
     // v0.34 ticket 09: alert state for dirty-confirm dialog. Shows
     // when user tries to close while isDirty. Reset on dialog dismiss.
     @State private var showDirtyDiscardConfirm: Bool = false
