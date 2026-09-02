@@ -786,7 +786,12 @@ struct EditorPlaceholder: View {
                         // keystroke; = Foundation-only = microseconds.
                         onWordCountChange: { count in
                             appState.editorWordCount = count
-                        }
+                        },
+                        // v0.34 B-21: debounced auto-save trigger
+                        // (= host cancels + restarts the 3-second
+                        // Task on each keystroke = save 3 seconds after
+                        // user stops typing).
+                        onAutoSaveTrigger: { triggerAutoSave() }
                     )
                 }
             }
@@ -800,6 +805,17 @@ struct EditorPlaceholder: View {
             // lightest Liquid Glass material as a placeholder that
             // matches the rest of the workspace.
             .background(.ultraThinMaterial)
+        }
+        // v0.34 B-18: on editor zone mount, seed AppState.editorWordCount
+        // with the character count of the initial body (= sample body
+        // in placeholder mode; = real document body post-ticket 027-35).
+        // Without this, the chrome bottom-bar left field shows "字数: 0"
+        // even when the preview-mode sample body has 200+ chars. The
+        // .onChange(of: draft) inside EditorEditContent covers the edit-
+        // mode keystroke stream; = this .onAppear covers the initial
+        // state (= Apple HIG = seed reactive state at view mount).
+        .onAppear {
+            appState.editorWordCount = WordCounter.count(originalBody).charactersNoSpaces
         }
     }
 
@@ -816,14 +832,67 @@ struct EditorPlaceholder: View {
     // v0.34 ticket 07: save action writes draft back over originalBody;
     // Cmd+S hotkey (ticket 10) calls this directly. mtime-conflict
     // detection (= v0.35+ ticket; placeholder for now).
+    // v0.34 B-21: save action writes draft back over originalBody (= dirty
+    // detection clears). When documentPath is non-nil (= v0.35+ ticket
+    // 027-35 wires real document load), also write to disk (= atomic
+    // UTF-8 = Apple HIG file write pattern; = mtime-conflict detection
+    // deferred to v0.35+ ticket). Cmd+S hotkey (ticket 10) and Save
+    // toolbar button both call this directly.
     private func saveDraft() {
         originalBody = draft
+        writeDraftToDisk()
+    }
+
+    // v0.34 B-21: write current draft to documentPath (= atomic UTF-8).
+    // No-op when documentPath is nil (= placeholder mode; = ticket
+    // 027-35 wires real document path). The placeholder docId
+    // "preview-sample" is used as a temp file name in tmp/, so even
+    // in placeholder mode the auto-save doesn't silently drop work.
+    private func writeDraftToDisk() {
+        let path = documentPath ?? "/tmp/wenshu-preview-sample.md"
+        let url = URL(fileURLWithPath: path)
+        do {
+            try draft.write(to: url, atomically: true, encoding: .utf8)
+        } catch {
+            // Apple HIG: silent failure on auto-save (= don't block
+            // user with modal on every write). Future ticket = surface
+            // a status indicator (= "保存失败" inline).
+            #if DEBUG
+            print("[wenshu.editor] auto-save failed: \(error)")
+            #endif
+        }
+    }
+
+    // v0.34 B-21: debounced auto-save trigger. Cancels any in-flight
+    // autoSaveTask (= the 3-second timer restarts every time the
+    // user types; = Obsidian-style "save after stop typing" pattern).
+    // Called from .onChange(of: draft) inside EditorEditContent.
+    private func triggerAutoSave() {
+        autoSaveTask?.cancel()
+        autoSaveTask = Task {
+            // Obsidian default auto-save debounce = 3 seconds of
+            // inactivity. Apple HIG doesn't define a canonical
+            // debounce duration; = matches the boss spec = 3 seconds.
+            try? await Task.sleep(for: .seconds(3))
+            if !Task.isCancelled {
+                await MainActor.run {
+                    writeDraftToDisk()
+                }
+            }
+        }
     }
     // v0.34 ticket 09: document-loaded flag. nil = placeholder mode
     // (= "select document then expand" hint visible). Non-nil = a
     // document is open. Today = nil (= placeholder until ticket 027-35
     // wires real document load).
     @State private var documentPath: String? = nil
+    // v0.34 B-21 (= boss 9/2 OOB 'auto-save, 停手 3 秒后' = Obsidian-
+    // style debounced auto-save). State holds the active debounce
+    // task (= cancelled on each new keystroke; = the 3-second timer
+    // restarts every time the user types). When the task fires, draft
+    // is written to disk (= atomic write per Apple HIG; = mtime-conflict
+    // detection deferred to v0.35+ ticket).
+    @State private var autoSaveTask: Task<Void, Never>?
     // v0.34 ticket 09: alert state for dirty-confirm dialog. Shows
     // when user tries to close while isDirty. Reset on dialog dismiss.
     @State private var showDirtyDiscardConfirm: Bool = false
@@ -1017,6 +1086,11 @@ private struct EditorEditContent: View {
     // left field). Decoupled from AppState so EditorEditContent
     // stays a pure rendering surface (= no @Environment coupling).
     let onWordCountChange: (Int) -> Void
+    // v0.34 B-21: auto-save debounce trigger (= host cancels +
+    // restarts the 3-second Task on each call; = Obsidian-style
+    // save-after-stop-typing). Decoupled from the auto-save Task
+    // implementation (= EditorEditContent doesn't know about Task).
+    let onAutoSaveTrigger: () -> Void
 
     /// Read-only dirty flag (= computed from the binding's current value).
     private var isDirty: Bool { draft != originalBody }
@@ -1045,6 +1119,11 @@ private struct EditorEditContent: View {
             // whitespace, line breaks, tabs).
             .onChange(of: draft) { _, newValue in
                 onWordCountChange(WordCounter.count(newValue).charactersNoSpaces)
+                // v0.34 B-21: debounced auto-save (= Obsidian-style
+                // "save after stop typing for 3 seconds" pattern).
+                // cancel + restart on each keystroke = the timer
+                // only fires when the user has stopped typing.
+                onAutoSaveTrigger()
             }
             // Dirty status surfaced to the host via the `onSave` closure
             // (= not strictly needed by TextEditor itself; the host reads
