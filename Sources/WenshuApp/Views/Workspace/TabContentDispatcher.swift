@@ -299,7 +299,6 @@ private struct GroupTabStrip: View {
 @MainActor
 struct ChatZoneTopChrome: View {
     @State private var showingArchiveConfirm: Bool = false
-    @State private var isArchiveHover: Bool = false
     @Namespace private var tabBarNamespace
 
     var body: some View {
@@ -321,13 +320,19 @@ struct ChatZoneTopChrome: View {
             namespaceID: "chatTabUnderline",
             trailing: {
                 // Right: archive icon (= matches old 6区 right-side inbox icon).
-                //
-                // Boss 2026-09-01 OOB: added .onHover tint
-                // (= PaneIconTab's hover behaviour for consistency
-                // with the leading tabs). Without it, the archive
-                // button was the only chrome button that did not
-                // visually respond to mouse hover (= users had no
-                // feedback that the icon was clickable).
+                // v0.34 boss 2026-09-02 OOB '聊天的右 ICON, 没有遵循组件的 hover':
+                // the chat archive trailing button was using a self-written
+                // hover state (= @State isArchiveHover + .onHover + icon
+                // foregroundStyle swap on hover). The hover visual
+                // (= .accentColor on the icon when hovered) diverged
+                // from the other 6 zones' tab bar hover (= .quaternary
+                // background wash via .hoverWash()). Migrated to the
+                // .hoverWash() modifier (= the single source of truth
+                // for chrome hover wash from commit 1df0cf394). Icon
+                // foregroundStyle is now always .secondary (= matches
+                // PaneIconTab's unselected-state foreground); the hover
+                // effect is the .quaternary background wash applied
+                // uniformly to all 6 zones' chrome buttons.
                 Button {
                     showingArchiveConfirm = true
                 } label: {
@@ -335,14 +340,12 @@ struct ChatZoneTopChrome: View {
                         .frame(width: DesignTokens.paneTabHotArea, height: DesignTokens.paneTabHotArea)
                         .overlay(alignment: .center) {
                             LucideIconSystemFallback("inbox", size: DesignTokens.tabIconSize)
-                                .foregroundStyle(isArchiveHover ? Color.accentColor : Color.secondary)
+                                .foregroundStyle(.secondary)
                         }
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .onHover { hovering in
-                    isArchiveHover = hovering
-                }
+                .hoverWash()
                 .help("归档本次会话")
             }
         )
