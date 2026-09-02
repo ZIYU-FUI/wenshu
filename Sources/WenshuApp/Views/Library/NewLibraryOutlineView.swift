@@ -1403,7 +1403,7 @@ private struct NewBookSheet: View {
                     HStack(spacing: 12) {
                         ZStack {
                             RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.accentColor.opacity(0.15))
+                                .fill(.tint.opacity(0.15))
                                 .frame(width: 56, height: 56)
                             LucideIcon(selectedIcon, size: 32)
                                 .foregroundStyle(Color.accentColor)
@@ -1429,8 +1429,8 @@ private struct NewBookSheet: View {
                                     ZStack {
                                         RoundedRectangle(cornerRadius: 6)
                                             .fill(selectedIcon == iconName
-                                                  ? Color.accentColor.opacity(0.25)
-                                                  : Color.clear)
+                                                  ? AnyShapeStyle(.tint.opacity(0.25))
+                                                  : AnyShapeStyle(Color.clear))
                                             .frame(width: 40, height: 40)
                                         LucideIcon(iconName, size: 24)
                                             .foregroundStyle(selectedIcon == iconName
@@ -1440,8 +1440,8 @@ private struct NewBookSheet: View {
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 6)
                                             .stroke(selectedIcon == iconName
-                                                    ? Color.accentColor
-                                                    : Color.gray.opacity(0.2),
+                                                    ? AnyShapeStyle(Color.accentColor)
+                                                    : AnyShapeStyle(.separator),
                                                     lineWidth: 1)
                                     )
                                     .buttonStyle(.plain)
@@ -1581,7 +1581,7 @@ private struct NewShelfSheet: View {
                     HStack(spacing: 12) {
                         ZStack {
                             RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.accentColor.opacity(0.15))
+                                .fill(.tint.opacity(0.15))
                                 .frame(width: 56, height: 56)
                             LucideIcon(selectedIcon, size: 32)
                                 .foregroundStyle(Color.accentColor)
@@ -1614,8 +1614,8 @@ private struct NewShelfSheet: View {
                                     ZStack {
                                         RoundedRectangle(cornerRadius: 6)
                                             .fill(selectedIcon == iconName
-                                                  ? Color.accentColor.opacity(0.25)
-                                                  : Color.clear)
+                                                  ? AnyShapeStyle(.tint.opacity(0.25))
+                                                  : AnyShapeStyle(Color.clear))
                                             .frame(width: 40, height: 40)
                                         LucideIcon(iconName, size: 24)
                                             .foregroundStyle(selectedIcon == iconName
@@ -1625,8 +1625,8 @@ private struct NewShelfSheet: View {
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 6)
                                             .stroke(selectedIcon == iconName
-                                                    ? Color.accentColor
-                                                    : Color.gray.opacity(0.2),
+                                                    ? AnyShapeStyle(Color.accentColor)
+                                                    : AnyShapeStyle(.separator),
                                                     lineWidth: 1)
                                     )
                                     .buttonStyle(.plain)
@@ -1868,8 +1868,8 @@ private struct NewButtonWithHover: View {
         .background(
             RoundedRectangle(cornerRadius: 4)
                 .fill(isHover
-                    ? Color.accentColor.opacity(0.12)
-                    : Color.clear)
+                    ? AnyShapeStyle(.quaternary)
+                    : AnyShapeStyle(Color.clear))
         )
         .help(help)
     }

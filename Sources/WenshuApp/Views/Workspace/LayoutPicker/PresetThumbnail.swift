@@ -62,7 +62,7 @@ struct PresetThumbnail: View {
                 if group.panes.count > 1 {
                     VStack(spacing: 0) {
                         Rectangle()
-                            .fill(Color.secondary.opacity(0.4))
+                            .fill(.tertiary)
                             .frame(height: max(1, size.height * 0.08))
                         Spacer(minLength: 0)
                     }

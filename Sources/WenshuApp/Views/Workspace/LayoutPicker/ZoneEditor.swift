@@ -125,7 +125,7 @@ struct ZoneEditor: View {
         GeometryReader { geo in
             ZStack {
                 // Background.
-                Color.secondary.opacity(0.05)
+                Rectangle().fill(.quaternary)
                 // Zones.
                 ForEach(modelToZones(model) ?? []) { zone in
                     zoneView(for: zone, in: geo.size)
@@ -193,7 +193,7 @@ struct ZoneEditor: View {
         let rect = rubberBandRect(start: start, end: end)
         Rectangle()
             .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 1, dash: [4]))
-            .background(Color.accentColor.opacity(0.1))
+            .background(.quaternary)
             .frame(width: rect.width, height: rect.height)
             .position(x: rect.midX, y: rect.midY)
     }
@@ -207,7 +207,7 @@ struct ZoneEditor: View {
         ZStack {
             // Visible thin line (= 2pt wide for vertical, 2pt tall for horizontal).
             Rectangle()
-                .fill(Color.accentColor.opacity(0.4))
+                .fill(.tint.opacity(0.4))
                 .frame(
                     width: resizer.orientation == .vertical ? 2 : edgeRect.width,
                     height: resizer.orientation == .horizontal ? 2 : edgeRect.height
@@ -303,7 +303,7 @@ struct ZoneEditor: View {
     private func zoneView(for zone: GridZone, in size: CGSize) -> some View {
         let frame = zoneRect(zone: zone, in: size)
         ZStack {
-            Color.accentColor.opacity(0.15)
+            Rectangle().fill(.tint.opacity(0.15))
             Text("\(zone.index + 1)")
                 .font(.system(size: 24, weight: .semibold))
                 .foregroundStyle(Color.accentColor)
@@ -312,7 +312,7 @@ struct ZoneEditor: View {
         .position(x: frame.midX, y: frame.midY)
         .overlay(
             Rectangle()
-                .stroke(Color.accentColor.opacity(0.4), lineWidth: 1)
+                .stroke(.tint.opacity(0.4), lineWidth: 1)
         )
         // AC#8 click-to-split: click on a zone selects it for split,
         // holding SHIFT flips the orientation (= insert horizontal

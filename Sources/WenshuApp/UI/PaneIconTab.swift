@@ -138,8 +138,8 @@ public struct PaneIconTab: View {
         .onHover { isHover = $0 }
         .background(
             isHover
-                ? Color.accentColor.opacity(0.12)
-                : Color.clear
+                ? AnyShapeStyle(.quaternary)
+                : AnyShapeStyle(Color.clear)
         )
         .clipShape(RoundedRectangle(cornerRadius: 4))
         .help(label)

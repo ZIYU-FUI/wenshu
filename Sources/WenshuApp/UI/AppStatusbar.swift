@@ -248,7 +248,7 @@ private struct StatusbarItemView: View {
             .frame(height: kStatusbarItemHeight)
             .background(
                 isHover
-                    ? Color(nsColor: .controlBackgroundColor).opacity(0.4)
+                    ? Color(nsColor: .controlBackgroundColor)
                     : Color.clear
             )
             .contentShape(Rectangle())

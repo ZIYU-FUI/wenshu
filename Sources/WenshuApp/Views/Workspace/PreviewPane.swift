@@ -355,7 +355,7 @@ struct PreviewPane: View {
                             .font(.caption)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
-                            .background(Color.secondary.opacity(0.1))
+                            .background(.quaternary)
                             .clipShape(Capsule())
                     }
                 }
@@ -762,15 +762,12 @@ private struct Card: View {
             // with card's top edge, doesn't stick out).
             ZStack {
                 LinearGradient(
-                    colors: [
-                        Color.accentColor.opacity(0.18),
-                        Color.accentColor.opacity(0.08),
-                    ],
+                    colors: [Color.accentColor.opacity(0.18), Color(nsColor: .quaternaryLabelColor)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
                 LucideIcon(content.iconName, size: content.iconSize)
-                    .foregroundStyle(Color.accentColor.opacity(0.85))
+                    .foregroundStyle(.tint.opacity(0.85))
             }
             .frame(height: 100)
             .frame(maxWidth: .infinity)
@@ -819,7 +816,7 @@ private struct Card: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(Color.secondary.opacity(0.15), lineWidth: 0.5)
+                .stroke(.tertiary, lineWidth: 0.5)
         )
         // v0.30 boss 8/31 OOB: hover tint on the card body.
         // Subtle accent tint on mouse hover + border darkens
@@ -827,14 +824,14 @@ private struct Card: View {
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill(isHovered
-                    ? Color.accentColor.opacity(0.12)
-                    : Color.clear)
+                    ? AnyShapeStyle(.quaternary)
+                    : AnyShapeStyle(Color.clear))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .stroke(isHovered
-                    ? Color.accentColor.opacity(0.4)
-                    : Color.secondary.opacity(0.15),
+                    ? AnyShapeStyle(.tint.opacity(0.4))
+                    : AnyShapeStyle(.tertiary),
                     lineWidth: 0.5)
         )
         .onHover { isHovered = $0 }

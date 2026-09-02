@@ -199,7 +199,7 @@ private struct TitlebarButton: View {
         } label: {
             Image(systemName: tool.iconName)
                 .font(.system(size: kTitlebarIconSize, weight: .regular))
-                .foregroundColor(tool.active ? .primary : Color.secondary.opacity(0.85))
+                .foregroundStyle(tool.active ? .primary : .secondary)
                 .frame(width: kTitlebarControlSize, height: kTitlebarControlSize)
                 .contentShape(Rectangle())
         }
@@ -211,7 +211,7 @@ private struct TitlebarButton: View {
         }
         .background(
             isHover
-                ? Color(nsColor: .controlBackgroundColor).opacity(0.3)
+                ? Color(nsColor: .controlBackgroundColor)
                 : Color.clear
         )
         .help(tool.label)
@@ -224,7 +224,7 @@ private struct TitlebarButtonStyle: ButtonStyle {
         configuration.label
             .background(
                 configuration.isPressed
-                ? Color(nsColor: .controlBackgroundColor).opacity(0.5)
+                ? Color(nsColor: .controlBackgroundColor)
                 : Color.clear
             )
             .animation(.easeOut(duration: 0.1), value: configuration.isPressed)

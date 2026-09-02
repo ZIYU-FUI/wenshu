@@ -1959,8 +1959,8 @@ struct ChatZoneTabBar: View {
             .background(
                 RoundedRectangle(cornerRadius: 4)
                     .fill(showingArchiveAlertHover
-                        ? Color.accentColor.opacity(0.12)
-                        : Color.clear)
+                        ? AnyShapeStyle(.quaternary)
+                        : AnyShapeStyle(Color.clear))
             )
             .onHover { hovering in
                 showingArchiveAlertHover = hovering

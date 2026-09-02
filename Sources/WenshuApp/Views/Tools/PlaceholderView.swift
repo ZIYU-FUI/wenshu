@@ -64,7 +64,7 @@ public struct PlaceholderView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.secondary.opacity(0.06))
+                        .fill(.quaternary)
                 )
             }
             Spacer(minLength: 0)
