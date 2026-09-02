@@ -618,40 +618,23 @@ private struct EditorExpandShrinkTrailingButton: View {
 /// button (= PaneTrailingIconButton with eye / pencil icon). Mode state
 /// is local (= @State, = ticket 05/07 will integrate with document load).
 struct EditorPlaceholder: View {
-    /// Editor zone display mode (= spec user stories 2-4).
-    /// `.preview` = rendered MD, read-only (= Obsidian preview).
-    /// `.edit` = TextEditor, writeable (= Obsidian edit).
-    /// v0.34 ticket 04: enum lives here; ticket 05 replaces the body
-    /// content with swift-markdown rendering, ticket 07 replaces with
-    /// Apple TextEditor.
-    enum Mode: String, CaseIterable, Identifiable {
-        case preview
-        case edit
-        var id: String { rawValue }
-        var iconName: String {
-            switch self {
-            case .preview: return "eye"
-            case .edit:    return "pencil"
-            }
-        }
-        var tooltip: String {
-            switch self {
-            case .preview: return "预览模式"
-            case .edit:    return "编辑模式"
-            }
-        }
+    // v0.34 B-24: Mode enum lifted to module scope (= EditorMode, in
+    // AppState.swift; = so EditorTab can reference it). The nested
+    // Mode enum was removed; = EditorPlaceholder.Mode.iconName /
+    // .tooltip helpers became EditorMode.iconName / .tooltip (= same
+    // shape; = one-line update at every usage).
+    /// v0.34 ticket 04: mode lives on the active tab (= AppState.openTabs
+    /// [activeTabId].mode). Reading the active tab's mode instead of a
+    /// View-local @State = each tab keeps its own preview/edit state
+    /// (= switching tabs preserves mode; = matches Safari behavior).
+    private var mode: EditorMode {
+        appState.openTabs.first(where: { $0.id == appState.activeTabId })?.mode ?? .preview
+    }
+    private func setMode(_ newMode: EditorMode) {
+        guard let idx = appState.openTabs.firstIndex(where: { $0.id == appState.activeTabId }) else { return }
+        appState.openTabs[idx].mode = newMode
     }
 
-    @State private var mode: Mode = .preview
-
-    // v0.34 B-18: editor zone word count. Writes the live character
-    // count (= WordCounter.count(draft).charactersNoSpaces) to the
-    // shared AppState.editorWordCount on every draft change. The
-    // chrome bottom-bar left field reads AppState.editorWordCount
-    // (= single source of truth, no per-view recompute, no .task
-    // round-trip). WordCounter is Foundation-only (= no observable
-    // state; = pure String → WordCount function), so .onChange is the
-    // right Apple HIG primitive (= re-evaluates per keystroke).
     @Environment(AppState.self) private var appState
 
     var body: some View {
@@ -687,7 +670,7 @@ struct EditorPlaceholder: View {
                     icon: mode.iconName,
                     tooltip: mode.tooltip,
                     action: {
-                        mode = (mode == .preview) ? .edit : .preview
+                        setMode(mode == .preview ? .edit : .preview)
                     }
                 )
                 .keyboardShortcut("e", modifiers: .command)  // v0.34 ticket 10
