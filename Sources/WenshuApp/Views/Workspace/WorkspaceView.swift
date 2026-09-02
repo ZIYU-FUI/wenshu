@@ -671,15 +671,18 @@ struct EditorPlaceholder: View {
                         wikilinkTarget: { _ in /* TODO: ticket 027-35 navigation */ }
                     )
                 } else {
-                    // Mode = .edit: ticket 07 will replace this VStack
-                    // placeholder with Apple TextEditor.
-                    VStack {
-                        Text("编辑器").font(.headline)
-                        Text("Editor zone (= v0.27 zone; = ticket 027-35 integration pending)")
-                            .font(.caption).foregroundStyle(.secondary)
-                        Text("当前模式: \(mode.rawValue)")
-                            .font(.caption2).foregroundStyle(.tertiary)
-                    }
+                    // v0.34 ticket 07: edit mode uses Apple SwiftUI
+                    // TextEditor (= HIG standard multi-line text input).
+                    // @State draft holds the working copy; dirty detection
+                    // = draft != originalBody (character-level diff per
+                    // Q22 boss decision). Save button (added by ticket 08)
+                    // .tint highlights when dirty; Cmd+S hotkey (ticket
+                    // 10) triggers save.
+                    EditorEditContent(
+                        draft: $draft,
+                        originalBody: originalBody,
+                        onSave: { saveDraft() }
+                    )
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -693,6 +696,23 @@ struct EditorPlaceholder: View {
             // matches the rest of the workspace.
             .background(.ultraThinMaterial)
         }
+    }
+
+    // v0.34 ticket 07: edit-mode state owner. Both fields initialise from
+    // the sample preview body (= placeholder until ticket 027-35 wires
+    // the real document load). dirty = draft != originalBody (= ticket
+    // 08 reads this for the Save button's .tint highlight).
+    @State private var draft: String = EditorPlaceholder.samplePreviewBody
+    @State private var originalBody: String = EditorPlaceholder.samplePreviewBody
+    /// Computed dirty flag (= ticket 08 reads this for the Save
+    /// button's .tint highlight). Plain computed (= not @State,
+    // = re-evaluated on each render from draft + originalBody).
+    private var isDirty: Bool { draft != originalBody }
+    // v0.34 ticket 07: save action writes draft back over originalBody;
+    // Cmd+S hotkey (ticket 10) calls this directly. mtime-conflict
+    // detection (= v0.35+ ticket; placeholder for now).
+    private func saveDraft() {
+        originalBody = draft
     }
 
     // v0.34 ticket 05: sample markdown body shown in preview mode (= used
@@ -854,6 +874,45 @@ private struct EditorPreviewContent: View {
             .buttonStyle(.plain)
             .help("Open: \(target)")
         }
+    }
+}
+
+/// EditorEditContent (= ticket 07): Apple SwiftUI TextEditor wrapper for
+/// edit mode. The host (EditorPlaceholder) owns the draft state + save
+/// logic; this view is the rendering surface only. Apple HIG TextEditor
+/// (= Rule 7 system component) provides standard macOS text editing
+/// behaviors for free: undo, find, accessibility, IME.
+///
+/// Spec user stories covered:
+///   US-6 (Edit mode = Apple SwiftUI TextEditor, HIG standard)
+///   US-7 (Save button highlights when dirty, = .tint on draft != original)
+///   US-8 (Close button placeholder; see ticket 09)
+///   US-13 (no custom NSTextView wrapper = Apple standard)
+///   US-22 (character-level dirty detection)
+private struct EditorEditContent: View {
+    @Binding var draft: String
+    let originalBody: String
+    let onSave: () -> Void
+
+    /// Read-only dirty flag (= computed from the binding's current value).
+    private var isDirty: Bool { draft != originalBody }
+
+    var body: some View {
+        // Apple HIG TextEditor (= no NSTextView wrapper per Rule 7).
+        // Native font = .body (= Apple HIG default = 13 PT on macOS).
+        // .padding(12) gives Apple HIG standard inner margin. The
+        // .ultraThinMaterial background on the host provides the
+        // editor zone's Liquid Glass surface.
+        TextEditor(text: $draft)
+            .font(.body)
+            .padding(12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Dirty status surfaced to the host via the `onSave` closure
+            // (= not strictly needed by TextEditor itself; the host reads
+            // `draft` and `originalBody` to decide dirty highlighting
+            // on the Save button at ticket 08). Kept here so future
+            // status-bar additions (= line count, dirty indicator)
+            // have a clear anchor.
     }
 }
 /// EditModeBadge — small visual indicator shown in the top-right
