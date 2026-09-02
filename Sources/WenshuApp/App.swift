@@ -37,40 +37,14 @@ import Lucide
 // v0.24 fix (Boss 8/25 60th OOB '对应功能要在菜单栏实现'): notification
 // name for menu bar zone toggle buttons (= CommandGroup can't directly
 // access vm instance, so menu items post notification, vm listens).
-extension Notification.Name {
-    static let wenshuToggleZone = Notification.Name("wenshu.toggleZone")
-    static let wenshuNewBookRequested = Notification.Name("wenshu.newBookRequested")
-    static let wenshuNewShelfRequested = Notification.Name("wenshu.newShelfRequested")
-    static let wenshuImportRequested = Notification.Name("wenshu.importRequested")
-    // v0.30 boss 8/31 OOB #2 ('弹出菜单没有恢复'):
-    // notification posted by the zone-header new-icon button.
-    // Consumed by the NewLibraryOutlineView body (= real view hierarchy)
-    // via .onReceive, which toggles its showNewChoiceSheet @State and
-    // presents NewChoiceSheet. Mirrors the 入驻 pattern (= both buttons
-    // in the trailing slot use notification-based cross-instance signaling
-    // because the trailing slot is a separate NewLibraryOutlineView
-    // instance wrapped in AnyView).
-    static let wenshuChoiceRequested = Notification.Name("wenshu.choiceRequested")
-    static let wenshuExportRequested = Notification.Name("wenshu.exportRequested")
-}
-extension Notification.Name {
-    static let wenshuResetLayout = Notification.Name("com.wenshu.resetLayout")
-    // v0.28 ticket 028-006: layout edit mode toggle notification
-    // (= posted by the View menu's "Layout edit mode" entry;
-    // WorkspaceView's LayoutEditMode singleton listens and flips).
-    static let wenshuToggleEditMode = Notification.Name("com.wenshu.toggleEditMode")
-    // v0.24 boss验收fix: notify when ProviderKeychain changes (Settings save key).
-    static let wenshuProviderKeychainChanged = Notification.Name("com.wenshu.providerKeychainChanged")
-    // v0.24 boss验收fix (Boss 8/24): chat store ready notification.
-    // Posted after applicationDidFinishLaunching creates ChatSessionStore.
-    // ChatView listens and reloads history when received (= retry load).
-    static let wenshuChatStoreReady = Notification.Name("com.wenshu.chatStoreReady")
-    // v0.24 boss验收fix: defocus chat input when user clicks outside.
-    static let wenshuDefocusChatInput = Notification.Name("com.wenshu.defocusChatInput")
-    // (Removed: .wenshuUserAddressChanged — Spec axis GAP review confirmed no
-    // consumers, dead code. WenshuConductorIdentity.userAddress reads UserDefaults
-    // fresh at LLM call time = automatic dynamic propagation, no event needed.)
-}
+// v0.34 boss 2026-09-02 OOB (B-04 backlog entry): all Notification.Name
+// definitions moved to Sources/WenshuApp/Core/Notifications/AppNotifications.swift
+// (= single source of truth, grouped into AppCommands / AppStateEvents /
+// LayoutEvents enums, unified to "com.wenshu.X" naming per Apple
+// Notification Programming Topics reverse-DNS convention). Backward-compat
+// accessors (= .wenshuXxx on Notification.Name) live in that file for
+// the migration window so the 17 existing call sites compile unchanged.
+extension Notification.Name {}  // placeholder; all members moved to AppNotifications.swift
 
 // MARK: - Layout tokens (比例算子 0~1, 老板 8/18 答 "1:1 PT 真值" + 8/18 再拍 "换算成比例")
 //
