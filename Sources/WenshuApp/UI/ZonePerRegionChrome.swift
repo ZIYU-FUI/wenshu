@@ -218,13 +218,20 @@ public struct ZonePerRegionChrome<Content: View>: View {
             // (was -1 = 29 PT, leftover from old separator-outside-bar
             // design). Now matches ZoneContentTabBar + bottom bar height.
             .frame(height: kZoneToolbarHeight)
-            // v0.28 followup Boss UX round 13 (Boss 2026-08-29 OOB
-            // '其他区域背景, 组件什么的, 有没有需要适配液态玻璃的'):
-            // Use .regularMaterial (= macOS 26 Tahoe Liquid Glass
-            // translucency) for the per-region top + bottom toolbar
-            // (= matches the macOS native per-region chrome style on
-            // 26 Tahoe = same Liquid Glass material as the titlebar).
-            .background(.regularMaterial)
+            // v0.32 boss 2026-09-02 OOB ('默认不加液态玻璃效果,
+            // 我们就不加; 默认带的, 我们就默认带; 不能空着,
+            // 空着透明了'): replace .regularMaterial (Apple
+            // translucent Liquid Glass) with Apple canonical
+            // controlBackgroundColor (Apple opaque NSColor) =
+            // matches the same fix already applied to RegionTabBar
+            // + AppStatusbar in commits 8fb3f15dd + 76203ea59.
+            // .regularMaterial here made the 6 per-region top
+            // toolbars wash out (= translucent overlay covered the
+            // pane content tier beneath, eliminating the brightness
+            // delta between chrome tier .controlBackgroundColor and
+            // content tier .windowBackgroundColor). opaque Apple
+            // NSColor = visual brightness delta is preserved.
+            .background(Color(nsColor: .controlBackgroundColor))
         }
     }
 
