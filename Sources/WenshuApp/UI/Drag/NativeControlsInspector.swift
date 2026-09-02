@@ -85,12 +85,15 @@ private func nativeOverlayWidth(of window: NSWindow) -> CGFloat {
 @MainActor
 public func windowDragStripWidth(
     for window: NSWindow?,
-    firstToolOffset: CGFloat = kTitlebarControlOffsetX
+    firstToolOffset: CGFloat = 74
 ) -> CGFloat {
     guard let rect = inspectNativeControls(for: window, viewportWidth: 0) else {
         // No controls (= fullscreen) → drag strip is the entire
-        // titlebar. Tools should sit at the left edge.
-        return kTitlebarEdgeInset
+        // titlebar. Tools should sit at the left edge (= Apple HIG
+        // canonical 12 PT symmetric cluster edge inset; canonical
+        // value, not a project token, per boss 2026-09-02 OOB
+        // '用 api 默认间距, 不用换算, 不用管值').
+        return 12
     }
     // Drag strip = width of controls rect (= the entire traffic-light band).
     // User can drag the window by hovering over this strip.
