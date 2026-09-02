@@ -534,6 +534,210 @@ final class PaneNSController: NSSplitViewController {
         adjustRootForCollapsedBands()
     }
 
+    // v0.34 ticket 02 (= spec .scratch/v0.34-editor-preview-and-expand/spec.md).
+    // Mirror of handleToggleZone for the editor-expand path:
+    // when @AppStorage("wenshu.editorMaximized") flips, the
+    // EditorExpandShrinkTrailingButton posts
+    // Notification.Name.wenshuEditorMaximizedChanged with the
+    // new Bool as the object payload. We then either:
+    //
+    //   (a) snapshot the 6 zone's isCollapsed state + editor zone
+    //       split weight to UserDefaults JSON BEFORE hiding the
+    //       5 non-editor zones (= Q38 boss decision: 全状态
+    //       snapshot, not just zone visible), so shrink restore
+    //       can return to the exact pre-expand layout;
+    //
+    //   (b) read the snapshot JSON and restore the same 6 zone
+    //       state on shrink (= reverse order matters: editor
+    //       weight first, then visibility).
+    //
+    // Notification flow (= boss 9/2 B-04 pattern, see AppCommands
+    // + AppNotifications.swift for the single source of truth).
+    @objc func handleEditorMaximizedChanged(_ notification: Notification) {
+        let maximize = (notification.object as? Bool) ?? false
+        if maximize {
+            captureEditorExpandSnapshot()
+            collapseAllNonEditorZones()
+        } else {
+            restoreEditorExpandSnapshot()
+        }
+        // Same auto-fill band pin as handleToggleZone (= keep upper
+        // band filling root height when lower band goes fully
+        // hidden on expand).
+        adjustRootForCollapsedBands()
+    }
+
+    /// v0.34 ticket 02: capture the 6 zone's isCollapsed state + the
+    /// editor zone's current split weight (= Q38 boss "全状态 snapshot"
+    /// decision). Written to UserDefaults BEFORE any layout mutation,
+    /// so the restore path reads back the exact pre-expand layout.
+    private func captureEditorExpandSnapshot() {
+        var snapshot: [String: Any] = [:]
+        // 1. 6 zone isCollapsed state (canonical ZoneSlot string names).
+        // ZoneSlot is a plain enum (= not String-backed, no rawValue);
+        // use String(describing:) for stable JSON keys (= case names).
+        var zoneVisible: [String: Bool] = [:]
+        for slot in allZoneSlots() {
+            zoneVisible[zoneSlotKey(slot)] = isZoneVisible(slot)
+        }
+        snapshot["zoneVisible"] = zoneVisible
+        // 2. Editor zone split weight (= for restoring the editor's
+        // relative size on shrink). Nil if editor not measurable
+        // (= safe default = nil).
+        snapshot["editorWeight"] = currentEditorSplitWeight()
+        // 3. Serialize to JSON for UserDefaults.
+        if let data = try? JSONSerialization.data(withJSONObject: snapshot, options: []),
+           let json = String(data: data, encoding: .utf8) {
+            UserDefaults.standard.set(json, forKey: "wenshu.editorExpand.snapshot")
+        }
+    }
+
+    /// v0.34 ticket 02: read snapshot from UserDefaults, restore 6 zone
+    /// isCollapsed + editor split weight (= reverse of capture, so editor
+    /// weight first, then visibility).
+    private func restoreEditorExpandSnapshot() {
+        guard let json = UserDefaults.standard.string(forKey: "wenshu.editorExpand.snapshot"),
+              let data = json.data(using: .utf8),
+              let snapshot = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
+        else { return }
+        // Editor weight first (= so visibility flip later applies the
+        // correct starting frame).
+        if let weight = snapshot["editorWeight"] as? Double {
+            applyEditorSplitWeight(weight)
+        }
+        // Zone visibility restore.
+        if let zoneVisible = snapshot["zoneVisible"] as? [String: Bool] {
+            for slot in allZoneSlots() {
+                let key = zoneSlotKey(slot)
+                guard let wantVisible = zoneVisible[key] else { continue }
+                let isVisible = isZoneVisible(slot)
+                if wantVisible != isVisible {
+                    toggleZone(slot)
+                }
+            }
+        }
+    }
+
+    /// v0.34 ticket 02: stable JSON key for a ZoneSlot case (= mirror
+    /// Swift's `\(slot)` interpolation, which yields "projectSidebar"
+    /// etc.; used as the dictionary key in the snapshot JSON).
+    private func zoneSlotKey(_ slot: ZoneSlot) -> String {
+        switch slot {
+        case .projectSidebar:   return "projectSidebar"
+        case .projectPreview:   return "projectPreview"
+        case .editor:           return "editor"
+        case .specializedTools: return "specializedTools"
+        case .aiChat:           return "aiChat"
+        case .aiDynamic:        return "aiDynamic"
+        }
+    }
+
+    /// v0.34 ticket 02: explicit list of all ZoneSlot cases (= ZoneSlot
+    /// is not CaseIterable; mirror the enum's 6-case definition here).
+    private func allZoneSlots() -> [ZoneSlot] {
+        [.projectSidebar, .projectPreview, .editor,
+         .specializedTools, .aiChat, .aiDynamic]
+    }
+
+    /// v0.34 ticket 02: query isCollapsed across self + nested
+    /// PaneNSControllers for a ZoneSlot. True = zone is currently
+    /// visible (= not collapsed). Helper for captureEditorExpandSnapshot.
+    private func isZoneVisible(_ slot: ZoneSlot) -> Bool {
+        let kind = zoneSlotToTabKind(slot)
+        guard let kind else { return true }
+        for (idx, item) in splitViewItems.enumerated() {
+            guard let tab = paneKindByItem[idx], tab == kind else { continue }
+            return !item.isCollapsed
+        }
+        // Check nested controllers (= same flatten as handleToggleZone).
+        for child in children {
+            if let splitChild = child as? PaneNSController,
+               let visible = splitChild.isZoneVisibleRecursive(kind) {
+                return visible
+            }
+        }
+        return true
+    }
+
+    private func isZoneVisibleRecursive(_ kind: TabKind) -> Bool? {
+        for (idx, item) in splitViewItems.enumerated() {
+            guard let tab = paneKindByItem[idx], tab == kind else { continue }
+            return !item.isCollapsed
+        }
+        for child in children {
+            if let splitChild = child as? PaneNSController,
+               let visible = splitChild.isZoneVisibleRecursive(kind) {
+                return visible
+            }
+        }
+        return nil
+    }
+
+    /// v0.34 ticket 02: collapse the 5 non-editor zones (= hide sidebar /
+    /// preview / tools / chat / dynamic; editor stays visible and takes
+    /// the freed space).
+    private func collapseAllNonEditorZones() {
+        let nonEditor: [ZoneSlot] = [.projectSidebar, .projectPreview,
+                                    .specializedTools, .aiChat, .aiDynamic]
+        for slot in nonEditor where isZoneVisible(slot) {
+            toggleZone(slot)
+        }
+    }
+
+    /// v0.34 ticket 02: ZoneSlot → TabKind canonical mapping (= mirror
+    /// of the switch in handleToggleZone, factorised out for reuse).
+    private func zoneSlotToTabKind(_ slot: ZoneSlot) -> TabKind? {
+        switch slot {
+        case .projectSidebar: return .projectSidebar
+        case .projectPreview: return .projectPreview
+        case .editor: return .editor
+        case .specializedTools: return .specializedTools
+        case .aiChat: return .aiChat
+        case .aiDynamic: return .aiDynamic
+        }
+    }
+
+    /// v0.34 ticket 02: read the editor zone's current split weight.
+    /// Returns nil if the editor isn't measureable from this controller
+    /// (= e.g. nested in a child; the root observer's call still works).
+    private func currentEditorSplitWeight() -> Double? {
+        for (idx, item) in splitViewItems.enumerated() {
+            guard let tab = paneKindByItem[idx], tab == .editor else { continue }
+            // NSSplitViewItem.holdingPriority is NSLayoutConstraint.Priority
+            // (= wraps a Float); use .rawValue to get the underlying
+            // value, then Double-promote for JSON serialization.
+            return Double(item.holdingPriority.rawValue)
+        }
+        // Recurse into children (= same flatten as handleToggleZone).
+        for child in children {
+            if let splitChild = child as? PaneNSController,
+               let weight = splitChild.currentEditorSplitWeight() {
+                return weight
+            }
+        }
+        return nil
+    }
+
+    /// v0.34 ticket 02: restore the editor zone's prior split weight
+    /// (= `holdingPriority` is AppKit's canonical property for this;
+    /// same value captured in currentEditorSplitWeight). If the
+    /// weight argument is nil, no-op (= safe default).
+    private func applyEditorSplitWeight(_ weight: Double) {
+        // NSLayoutConstraint.Priority(rawValue:) takes a Float directly
+        // (= no String coercion needed). Clamp to [0, 1] to avoid
+        // out-of-range priority warnings (= rawValue > 1 is invalid).
+        let clamped = NSLayoutConstraint.Priority(Float(max(0.0, min(weight, 1.0))))
+        for (idx, item) in splitViewItems.enumerated() {
+            guard let tab = paneKindByItem[idx], tab == .editor else { continue }
+            item.holdingPriority = clamped
+        }
+        for child in children {
+            if let splitChild = child as? PaneNSController {
+                splitChild.applyEditorSplitWeight(weight)
+            }
+        }
+    }
+
     /// Resolve the first TabKind for an NSSplitViewItem (= it hosts an
     /// NSHostingController(rootView: TabContentDispatcher); the
     /// dispatcher is the rootView itself).
