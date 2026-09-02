@@ -419,7 +419,7 @@ struct PreviewPane: View {
                     ScrollView {
                         LazyVGrid(columns: adaptiveColumns(width: geometry.size.width), spacing: 16) {
                             ForEach(inCategory) { entity in
-                                EntityCard(entity: entity) {
+                                Card(source: .reference(entity)) {
                                     onEntityDoubleClick(entity)
                                 }
                             }
@@ -452,7 +452,7 @@ struct PreviewPane: View {
                 ScrollView {
                     LazyVGrid(columns: adaptiveColumns(width: geometry.size.width), spacing: 16) {
                         ForEach(sorted) { entity in
-                            EntityCard(entity: entity) {
+                            Card(source: .reference(entity)) {
                                 onEntityDoubleClick(entity)
                             }
                         }
@@ -641,7 +641,7 @@ struct PreviewPane: View {
                     spacing: 16
                 ) {
                     ForEach(sorted) { doc in
-                        BookDocCard(doc: doc)
+                        Card(source: .bookDoc(doc), onDoubleClick: {})
                     }
                 }
                 .padding(.vertical, DesignTokens.chromePaddingVertical)
@@ -703,70 +703,60 @@ struct PreviewPane: View {
 /// location map), NukeUI's LazyImage will replace the type icon. The
 /// image-pipeline integration is deferred to v0.31+ (= needs image
 /// storage infrastructure that doesn't exist yet).
-private struct EntityCard: View {
-    let entity: Reference
-    let onDoubleClick: () -> Void
+/// Single canonical card view for the material preview zone.
+/// Boss 2026-09-02 OOB: 'style owned by parent, data composition unified too' —
+    /// one component for both Reference (reference library) and BookDoc (bookshelf).
+/// Data extraction lives INSIDE the view; no per-source adapter structs.
+///
+/// CardSource = the only "data shape" the card knows. Adding a new
+/// source type = one new case + one computed-property branch.
+private enum CardSource {
+    case reference(Reference)
+    case bookDoc(BookDoc)
 
-    /// v0.30 boss 8/31 OOB '我建议你资料库里的卡片, 也用书里的
-    /// 同一个组件, 没有必要实现两回一样的东西': EntityCard is now
-    /// a thin adapter that constructs a CardContent (= uniform
-    /// shape) and delegates rendering to the shared Card view.
-    /// All visual style (= thumbnail + metadata + hover + clip) is
-    /// owned by Card, NOT by EntityCard.
-
-    /// Adapter: build the CardContent (= uniform shape) from the
-    /// Reference entity.
-    private var cardContent: Card.CardContent {
-        Card.CardContent(
-            id: entity.id.uuidString,
-            typeLabel: entity.entityType.displayName,
-            iconName: entity.entityType.icon,
-            iconSize: 64,
-            title: entity.title,
-            summary: entity.summary,
-            modifiedAt: entity.updatedAt
-        )
+    /// Lucide icon name (= the only visual differentiator between
+    /// sources; everything else is uniform).
+    var iconName: String {
+        switch self {
+        case .reference(let r): return r.entityType.icon
+        case .bookDoc(let d): return BookFolder(rawValue: d.folderName)?.icon ?? "file-text"
+        }
     }
 
-    var body: some View {
-        Card(content: cardContent, onDoubleClick: onDoubleClick)
+    /// Card heading (= filename without extension / entity title).
+    var title: String {
+        switch self {
+        case .reference(let r): return r.title
+        case .bookDoc(let d): return d.title
+        }
+    }
+
+    /// One-line summary (boss 8/26 'card style = document key-summary excerpt').
+    var summary: String {
+        switch self {
+        case .reference(let r): return r.summary
+        case .bookDoc(let d): return d.summary
+        }
     }
 }
 
-
 private struct Card: View {
-    let content: CardContent
+    let source: CardSource
     let onDoubleClick: () -> Void
 
     @State private var isHovered: Bool = false
 
-    struct CardContent: Identifiable, Hashable {
-        let id: String  // stable string (= UUID or row key for diffing)
-        let typeLabel: String  // e.g. "[世界观]" / "[人物]"
-        let iconName: String  // Lucide icon name (kebab-case)
-        let iconSize: CGFloat  // typically 56 for book docs, 64 for entities
-        let title: String  // card heading (= filename / entity title)
-        let summary: String  // card caption (= body excerpt)
-        let modifiedAt: Date  // for the timestamp chip
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // THUMBNAIL: icon as a large prominent header
-            // (= boss OOB: 卡片要加缩略图). Icon size varies per
-            // content type (= 64 PT for entities, 56 PT for book docs)
-            // but the visual pattern is the same.
-            //
-            // v0.30 boss 8/31 OOB: top corners rounded to match
-            // card's 10 PT rounded corners (= thumbnail sits flush
-            // with card's top edge, doesn't stick out).
+            // (= boss OOB: cards need thumbnails).
             ZStack {
                 LinearGradient(
                     colors: [Color.accentColor.opacity(0.18), Color(nsColor: .quaternaryLabelColor)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
-                LucideIcon(content.iconName, size: content.iconSize)
+                LucideIcon(source.iconName, size: 64)
                     .foregroundStyle(.tint.opacity(0.85))
             }
             .frame(height: 100)
@@ -780,27 +770,15 @@ private struct Card: View {
                 )
             )
             // TEXT content below the thumbnail
+            // Boss 2026-09-02: reference-library card standard = title + one-line summary,
+            // no [type] badge, no timestamp chip, no iconSize split.
             VStack(alignment: .leading, spacing: 6) {
-                // Type badge + modified-time chip (= condensed
-                // header). Both pieces of metadata share the top row.
-                HStack(spacing: 4) {
-                    Text("[\(content.typeLabel)]")
-                        .font(.caption2)
-                        .foregroundStyle(.tint)
-                    Text(formatRelativeTime(content.modifiedAt))
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                        .lineLimit(1)
-                    Spacer(minLength: 0)
-                }
-                // Title (= filename without .md extension / entity title)
-                Text(content.title)
+                Text(source.title)
                     .font(.headline)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
-                // Summary (= first 200 chars of body)
-                if !content.summary.isEmpty {
-                    Text(content.summary)
+                if !source.summary.isEmpty {
+                    Text(source.summary)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(3)
@@ -810,22 +788,11 @@ private struct Card: View {
             .padding(10)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
+        // Boss 2026-09-02: parent component owns style, child component only does function.
+        // Hover tint (= matches PaneIconTab hover pattern).
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color.clear)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(.tertiary, lineWidth: 0.5)
-        )
-        // v0.30 boss 8/31 OOB: hover tint on the card body.
-        // Subtle accent tint on mouse hover + border darkens
-        // (= matches PaneIconTab hover pattern).
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(isHovered
-                    ? AnyShapeStyle(.quaternary)
-                    : AnyShapeStyle(Color.clear))
+                .fill(isHovered ? AnyShapeStyle(.quaternary) : AnyShapeStyle(Color.clear))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -843,64 +810,6 @@ private struct Card: View {
             // Single tap = no-op (= preview mode selection wired by
             // sidebar tap, not card tap).
         }
-        .help("\(content.typeLabel) — 双击在编辑器中打开")
-    }
-}
-
-private struct BookDocCard: View {
-    let doc: BookDoc
-
-    /// v0.30 boss 8/31 OOB '我建议你资料库里的卡片, 也用书里的
-    /// 同一个组件, 没有必要实现两回一样的东西': BookDocCard is now
-    /// a thin adapter that constructs a CardContent (= uniform
-    /// shape) and delegates rendering to the shared Card view.
-
-    /// Resolve the BookFolder enum from the raw folder name string.
-    /// Falls back to nil for unknown folders (= e.g. if user creates
-    /// a non-standard folder manually).
-    private var folderEnum: BookFolder? {
-        BookFolder(rawValue: doc.folderName)
-    }
-
-    /// Adapter: build the CardContent from the BookDoc.
-    private var cardContent: Card.CardContent {
-        Card.CardContent(
-            id: doc.id.uuidString,
-            typeLabel: folderEnum?.displayName ?? doc.folderName,
-            iconName: folderEnum?.icon ?? "file-text",
-            iconSize: 56,
-            title: doc.title,
-            summary: doc.summary,
-            modifiedAt: doc.modifiedAt
-        )
-    }
-
-    var body: some View {
-        Card(content: cardContent, onDoubleClick: {})
-    }
-}
-
-
-// MARK: - Last-modified time formatter
-//
-// v0.30 boss 8/31 OOB: card top-right now shows the entity's /
-// book doc's last-modified time (= relative format = "刚刚 / 5
-// 分钟前 / 昨天 / 3 天前 / 2 周前 / 2025-08-15"). The helper uses
-// macOS RelativeDateTimeFormatter via Foundation (.relative
-// formatting style), with a fallback to absolute date string for
-// entries older than 30 days.
-private func formatRelativeTime(_ date: Date) -> String {
-    let formatter = RelativeDateTimeFormatter()
-    formatter.unitsStyle = .short
-    formatter.dateTimeStyle = .named
-    let now = Date()
-    let delta = now.timeIntervalSince(date)
-    if delta < 60 * 60 * 24 * 30 {
-        return formatter.localizedString(for: date, relativeTo: now)
-    } else {
-        let absFormatter = DateFormatter()
-        absFormatter.dateFormat = "yyyy-MM-dd"
-        absFormatter.locale = Locale(identifier: "zh_CN")
-        return absFormatter.string(from: date)
+        .help("Double-click to open in editor")
     }
 }

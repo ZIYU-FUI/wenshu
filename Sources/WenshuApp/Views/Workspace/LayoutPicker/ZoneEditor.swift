@@ -350,8 +350,7 @@ struct ZoneEditor: View {
                     // and column i (= at colEdges[i] in the
                     // 0..MULTIPLIER coordinate space).
                     Button(action: { splitAtColumn(i) }) {
-                        Image(systemName: "plus")
-                            .font(.caption.weight(.bold))
+                        LucideIconSystemFallback("plus", size: 14)
                             .foregroundStyle(.white)
                             .frame(width: 22, height: 22)
                             .background(Circle().fill(Color.accentColor))

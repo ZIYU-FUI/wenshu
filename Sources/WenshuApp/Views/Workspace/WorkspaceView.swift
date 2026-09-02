@@ -43,9 +43,11 @@ struct WorkspaceView: View {
     /// (= for the @AppStorage round-trip via .onChange).
     @Environment(AppState.self) private var appState
 
-    /// v0.30 boss 8/31 OOB: JSON-encoded sidebar selection for
-    /// AppStorage. Empty string = no selection (= first-launch state).
-    @AppStorage("wenshu.sidebarSelection") private var persistedSidebarSelection: String = ""
+    // v0.34 boss 2026-09-02 OOB 'sidebar + preview should share one unified persistence interface':
+    // Sidebar selection persistence moved into NewLibraryOutlineView's
+    // unified SidebarState (= single AppStorage key 'wenshu.sidebarState').
+    // WorkspaceView only reads appState.sidebarSelection (= single
+    // source of truth); no separate persistence here.
 
     /// v0.30 boss 8/31 OOB: card-grid sort order (= shared between
     /// PreviewPane's cards and the sort menu in the preview pane's
@@ -114,32 +116,11 @@ struct WorkspaceView: View {
             appState: appState,
             bookStore: bookStore
         )
-            // v0.30 boss 8/31 OOB '默认 app 进来是, 选定的是退出时的
-            // 目录': restore sidebar selection from AppStorage on
-            // first appear (= empty storage = no selection = default
-            // empty state). Done here (= WorkspaceView root) so it
-            // runs once per WiredShell lifetime.
-            .onAppear {
-                if appState.sidebarSelection == nil,
-                   !persistedSidebarSelection.isEmpty,
-                   let data = persistedSidebarSelection.data(using: .utf8),
-                   let item = try? JSONDecoder().decode(
-                    SidebarItem.self, from: data
-                   ) {
-                    appState.sidebarSelection = item
-                }
-            }
-            // v0.30 boss 8/31 OOB: every selection change writes back
-            // to AppStorage (= so close + reopen restores state).
-            .onChange(of: appState.sidebarSelection) { _, newValue in
-                if let item = newValue,
-                   let data = try? JSONEncoder().encode(item),
-                   let json = String(data: data, encoding: .utf8) {
-                    persistedSidebarSelection = json
-                } else {
-                    persistedSidebarSelection = ""
-                }
-            }
+            // v0.34 boss 2026-09-02 OOB: sidebar selection persistence
+            // moved to NewLibraryOutlineView's unified SidebarState.
+            // WorkspaceView no longer owns any @AppStorage key for
+            // sidebar state — single source of truth lives where the
+            // sidebar renders.
             .layoutEditHotkey(editMode)
             .overlay(alignment: .topTrailing) {
                 // Edit mode indicator (= shows a small badge in
@@ -572,23 +553,22 @@ private struct EditorExpandShrinkTrailingButton: View {
         // Hover plumbing also migrated to .hoverWash() (= previous commit's
         // single source of truth for hover wash; removed the per-site
         // .onHover + .background tint + @State isHover + .clipShape plumbing).
-        Button {
-            editorMaximized.toggle()
-        } label: {
-            Color.clear
-                .frame(width: DesignTokens.paneTabHotArea, height: DesignTokens.paneTabHotArea)
-                .overlay(alignment: .center) {
-                    LucideIconSystemFallback(
-                        editorMaximized ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right",
-                        size: DesignTokens.tabIconSize
-                    )
-                    .foregroundStyle(Color.secondary)
-                }
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .hoverWash()
-        .help(editorMaximized ? "恢复布局" : "展开全屏")
+        //
+        // v0.34 boss 2026-09-02 OOB (multi-layer audit): the trailing-button
+        // shape (Color.clear.frame(28,28).overlay(LucideIcon) + .hoverWash +
+        // .plain + .help) was duplicated between WorkspaceView.swift
+        // EditorExpandShrinkTrailingButton and TabContentDispatcher.swift
+        // ChatZoneTopChrome. Replaced both with the shared
+        // PaneTrailingIconButton helper. EditorExpandShrinkTrailingButton
+        // now retains only the icon-toggle state (= editorMaximized) and
+        // the tooltip string (= editorMaximized ? "恢复布局" : "展开全屏").
+        PaneTrailingIconButton(
+            icon: editorMaximized
+                ? "arrow.down.right.and.arrow.up.left"
+                : "arrow.up.left.and.arrow.down.right",
+            tooltip: editorMaximized ? "恢复布局" : "展开全屏",
+            action: { editorMaximized.toggle() }
+        )
     }
 }
 

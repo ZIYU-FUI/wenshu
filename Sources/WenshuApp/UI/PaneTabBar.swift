@@ -195,3 +195,44 @@ public struct PaneTabItem: Identifiable, Sendable {
         self.label = label
     }
 }
+
+// MARK: - PaneTrailingIconButton (v0.34 boss 2026-09-02 OOB)
+//
+// Canonical trailing-button helper used by `PaneTabBar.trailing` slots
+// (= editor's expand/shrink + chat's archive button are both this pattern).
+// Single source of truth for the icon-only button shape that matches
+// PaneIconTab visually (= 28 PT hot area + 18 PT icon + .secondary
+// foreground + .hoverWash() background wash + .plain buttonStyle).
+//
+// Apple HIG rationale: the trailing slot in a tab bar is for action
+// buttons (separate from selection tabs). This helper unifies the
+// self-written copies that had drifted between WorkspaceView.swift
+// (= EditorExpandShrinkTrailingButton) and TabContentDispatcher.swift
+// (= ChatZoneTopChrome archive button).
+@MainActor
+public struct PaneTrailingIconButton: View {
+    public let icon: String
+    public let tooltip: String
+    public let action: () -> Void
+
+    public init(icon: String, tooltip: String, action: @escaping () -> Void) {
+        self.icon = icon
+        self.tooltip = tooltip
+        self.action = action
+    }
+
+    public var body: some View {
+        Button(action: action) {
+            Color.clear
+                .frame(width: DesignTokens.paneTabHotArea, height: DesignTokens.paneTabHotArea)
+                .overlay(alignment: .center) {
+                    LucideIconSystemFallback(icon, size: DesignTokens.tabIconSize)
+                        .foregroundStyle(.secondary)
+                }
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .hoverWash()
+        .help(tooltip)
+    }
+}

@@ -198,23 +198,26 @@ struct NewLibraryOutlineView: View {
     // persistence). Uses AppStorage with rawValue = JSON-encoded
     // string (= AppStorage doesn't natively support [UUID: Bool]).
     @State private var shelfDisclosureStates: [UUID: Bool] = [:]
-    // v0.30 boss 8/31 OOB '目录树的选定状态没有持久化':
-    // shelf DisclosureGroup expanded state persisted to AppStorage as
-    // JSON (= close + reopen restores which shelves are expanded).
-    // JSON shape: {"<UUID1>": true, "<UUID2>": false}.
-    @AppStorage("wenshu.shelfDisclosureStates") private var persistedShelfDisclosureStates: String = ""
     // v0.30 boss 8/31 OOB (sidebar feedback bundle #3): per-book
     // folder DisclosureGroup expanded state. Auto-expanded when this
     // book is the current sidebar selection (= folders visible
     // immediately on book tap). Keys = book.id, value = isExpanded.
-    //
-    // v0.30 boss 8/31 OOB: persisted to AppStorage (= see shelf
-    // comment above).
     @State private var bookDisclosureStates: [UUID: Bool] = [:]
-    // v0.30 boss 8/31 OOB: book DisclosureGroup expanded state
-    // persisted to AppStorage as JSON (= close + reopen restores
-    // which books' folder DisclosureGroups are expanded).
-    @AppStorage("wenshu.bookDisclosureStates") private var persistedBookDisclosureStates: String = ""
+    // v0.34 boss 2026-09-02 OOB: reference-library DisclosureGroup expansion state.
+    @State private var referenceLibraryDisclosureExpanded: Bool = false
+
+    // v0.34 boss 2026-09-02 OOB 'sidebar + preview should share one unified
+    // persistence interface': ONE AppStorage key, ONE Codable struct, ONE onAppear + ONE onChange.
+    // Replaces the previous 3 scattered @AppStorage strings:
+    // - wenshu.shelfDisclosureStates (= shelf Expanded)
+    // - wenshu.bookDisclosureStates (= book Expanded)
+    // - wenshu.referenceLibraryDisclosureExpanded (= library Expanded)
+    // - wenshu.sidebarSelection (= top-level selection, owned by
+    //   WorkspaceView; moved here for unified persistence)
+    //
+    // Single source of truth: SidebarState = shelf/book/library expansion
+    // + sidebar selection. Write/read ONE key in AppStorage.
+    @AppStorage("wenshu.sidebarState") private var persistedSidebarState: String = ""
     var body: some View {
         // v0.30: 100% Apple HIG standard sidebar.
         //
@@ -272,7 +275,18 @@ struct NewLibraryOutlineView: View {
             // Section per Apple HIG; categories expand via
             // DisclosureGroup (= 2-level hierarchy).
             Section {
-                DisclosureGroup {
+                DisclosureGroup(isExpanded: Binding(
+                    // v0.34 boss 2026-09-02 OOB: mirror shelf/book pattern.
+                    // Get side: if a category is selected OR the
+                    // persisted bool says expanded, return true.
+                    // Set side: writes to local @State (= onChange then
+                    // persists to AppStorage).
+                    get: {
+                        isReferenceCategorySelected()
+                            || referenceLibraryDisclosureExpanded
+                    },
+                    set: { referenceLibraryDisclosureExpanded = $0 }
+                )) {
                     ForEach(usedCategories(), id: \.directoryName) { category in
                     // Note: double-click on reference library root
                     // (= 资料库) toggles the section below. The
@@ -375,12 +389,15 @@ struct NewLibraryOutlineView: View {
             // hydrate shelf/book disclosure states from AppStorage
             // (= so which DisclosureGroups are expanded is preserved
             // across launches).
-            shelfDisclosureStates = decodeDisclosureStates(
-                persistedShelfDisclosureStates
-            )
-            bookDisclosureStates = decodeDisclosureStates(
-                persistedBookDisclosureStates
-            )
+            // v0.34 boss 2026-09-02 OOB 'sidebar + preview should share one unified
+            // persistence interface':
+            // ONE call restores ALL sidebar state (= shelf expansion,
+            // book expansion, reference library expansion, top-level
+            // selection). Replaces the previous 4 scattered
+            // decode/encode round-trips. Adding a new persisted field
+            // = one property on SidebarState + one line in
+            // applySidebarState(_:); no new onAppear hook needed.
+            applySidebarState(SidebarState.from(jsonString: persistedSidebarState))
             // v0.30 boss 8/31 OOB: '首次进入, 选定效果是灰色的, 不是
             // 系统色. 双击后会变成蓝色'. macOS 26 Tahoe List(.sidebar)
             // shows the SELECTED row in GRAY (= not accent color) on
@@ -456,11 +473,24 @@ struct NewLibraryOutlineView: View {
         // v0.30 boss 8/31 OOB '目录树的选定状态没有持久化':
         // persist disclosure state changes (= user clicked chevron
         // to expand/collapse a shelf or book folder DisclosureGroup).
-        .onChange(of: shelfDisclosureStates) { _, newValue in
-            persistedShelfDisclosureStates = encodeDisclosureStates(newValue)
+        // v0.34 boss 2026-09-02 OOB: one unified write covers shelf
+        // expansion, book expansion, library expansion, AND selection.
+        .onChange(of: shelfDisclosureStates) { _, _ in
+            persistedSidebarState = snapshotSidebarState().jsonString
         }
-        .onChange(of: bookDisclosureStates) { _, newValue in
-            persistedBookDisclosureStates = encodeDisclosureStates(newValue)
+        .onChange(of: bookDisclosureStates) { _, _ in
+            persistedSidebarState = snapshotSidebarState().jsonString
+        }
+        // v0.34 boss 2026-09-02 OOB: reference-library disclosure expansion write-back.
+        .onChange(of: referenceLibraryDisclosureExpanded) { _, _ in
+            persistedSidebarState = snapshotSidebarState().jsonString
+        }
+        // v0.34 boss 2026-09-02 OOB: selection changes also go through unified interface.
+        // Selection can be written by List(selection:) (= user click), or by
+        // WorkspaceView / onAppear (= cross-component shared state). Any source
+        // triggers a single snapshot write-back.
+        .onChange(of: appState.sidebarSelection) { _, _ in
+            persistedSidebarState = snapshotSidebarState().jsonString
         }
         .onChange(of: selectedEntityCategory) { _, newValue in
             // Sync external category changes (= WorkspaceView → preview
@@ -876,6 +906,18 @@ struct NewLibraryOutlineView: View {
         return false
     }
 
+    /// v0.34 boss 2026-09-02 OOB: reference-library section DisclosureGroup
+    /// expansion state mirror logic. Mirrors `isBookSelected` for the reference
+    /// library (= the DisclosureGroup's get-side check that overrides
+    /// the persisted state when a category is currently selected, so
+    /// the section stays open while the user reads).
+    private func isReferenceCategorySelected() -> Bool {
+        if case .referenceCategory = appState.sidebarSelection {
+            return true
+        }
+        return false
+    }
+
     /// v0.30: Apple std list of categories with ≥1 entity, sorted A→Z.
     /// (= Same logic as v0.29 computeUsedCategories; renamed to match
     /// Apple HIG sidebar convention of "sidebar only shows used items".)
@@ -1261,11 +1303,94 @@ struct NewLibraryOutlineView: View {
 
     // MARK: - v0.30 boss 8/31 OOB: DisclosureGroup state persistence
     //
+    // MARK: - SidebarState (unified persistence, v0.34)
+    //
+    // Boss 2026-09-02 OOB: 'sidebar + preview should share one unified persistence interface'.
+    // Single Codable struct = single source of truth for ALL sidebar
+    // persistence (= shelf expansion + book expansion + reference
+    // library expansion + top-level selection). Replaces the
+    // previous 4 scattered @AppStorage strings.
+    //
+    // Single AppStorage key 'wenshu.sidebarState' holds the JSON
+    // encoding of this struct. Read once on appear, write on any
+    // field change. Adding a new persisted sidebar field = one new
+    // property here + one hook in applyFrom(_:) + one writer in
+    // snapshot(); no new AppStorage key needed.
+    private struct SidebarState: Codable, Equatable {
+        var shelfExpanded: [UUID: Bool]
+        var bookExpanded: [UUID: Bool]
+        var referenceLibraryExpanded: Bool
+        var selection: SidebarItem?
+
+        init(
+            shelfExpanded: [UUID: Bool] = [:],
+            bookExpanded: [UUID: Bool] = [:],
+            referenceLibraryExpanded: Bool = false,
+            selection: SidebarItem? = nil
+        ) {
+            self.shelfExpanded = shelfExpanded
+            self.bookExpanded = bookExpanded
+            self.referenceLibraryExpanded = referenceLibraryExpanded
+            self.selection = selection
+        }
+
+        /// Encode to JSON string for AppStorage.
+        /// Empty string = no persisted state (= first-launch / wiped).
+        var jsonString: String {
+            guard let data = try? JSONEncoder().encode(self),
+                  let s = String(data: data, encoding: .utf8) else {
+                return ""
+            }
+            return s
+        }
+
+        /// Decode from JSON string (= empty = default empty state).
+        static func from(jsonString: String) -> SidebarState {
+            guard !jsonString.isEmpty,
+                  let data = jsonString.data(using: .utf8),
+                  let state = try? JSONDecoder().decode(SidebarState.self, from: data)
+            else {
+                return SidebarState()
+            }
+            return state
+        }
+    }
+
+    /// Snapshot the current UI state into a SidebarState (= for
+    /// write-back on any field change). Single function = single
+    /// place that knows the mapping from local @State to persisted
+    /// shape.
+    private func snapshotSidebarState() -> SidebarState {
+        SidebarState(
+            shelfExpanded: shelfDisclosureStates,
+            bookExpanded: bookDisclosureStates,
+            referenceLibraryExpanded: referenceLibraryDisclosureExpanded,
+            selection: appState.sidebarSelection
+        )
+    }
+
+    /// Apply a SidebarState to the local @State + appState. Single
+    /// function = single place that knows the inverse mapping. Called
+    /// once in .onAppear (= cold-launch restore).
+    private func applySidebarState(_ state: SidebarState) {
+        shelfDisclosureStates = state.shelfExpanded
+        bookDisclosureStates = state.bookExpanded
+        referenceLibraryDisclosureExpanded = state.referenceLibraryExpanded
+        // Selection restore is guarded: only override if the caller
+        // (= WiredShell / onAppear) hasn't set a default yet.
+        if let saved = state.selection, appState.sidebarSelection == nil {
+            appState.sidebarSelection = saved
+        }
+    }
+
     // Encode/decode [UUID: Bool] for AppStorage (= AppStorage
     // requires String, so we round-trip via JSONEncoder/JSONDecoder).
     // Empty string = no entries (= first-launch state). Empty dict
     // (= '{}') decodes to an empty dict (= no expansion state).
-
+    // Retained as private helpers because SidebarState.jsonString is
+    // the canonical path now; these are kept only for callers that
+    // imported the old keys (= legacy migration is no-op since the
+    // new key is single).
     private func encodeDisclosureStates(_ states: [UUID: Bool]) -> String {
         // Convert UUID keys to strings (= JSON requires string keys)
         let stringDict = Dictionary(
@@ -1563,8 +1688,7 @@ private struct NewShelfSheet: View {
                     // or reserved (= computed live in nameError).
                     if let nameError = nameError {
                         HStack(spacing: 6) {
-                            Image(systemName: "exclamationmark.circle.fill")
-                                .font(.caption)
+                            LucideIconSystemFallback("exclamationmark.circle.fill", size: 12)
                                 .foregroundStyle(.red)
                             Text(nameError)
                                 .font(.caption)
@@ -1810,8 +1934,7 @@ private struct RenameItemSheet: View {
                     .textFieldStyle(.roundedBorder)
                 if let nameError = nameError {
                     HStack(spacing: 6) {
-                        Image(systemName: "exclamationmark.circle.fill")
-                            .font(.caption)
+                        LucideIconSystemFallback("exclamationmark.circle.fill", size: 12)
                             .foregroundStyle(.red)
                         Text(nameError)
                             .font(.caption)

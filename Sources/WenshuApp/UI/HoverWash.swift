@@ -33,7 +33,7 @@
 // - ZoneEditor.swift onHover handler pushes/pops NSCursor (= hover
 //   semantics = 'change the mouse cursor to resize', not 'apply a
 //   background wash' = different responsibility).
-// - PreviewPane.swift BookDocCard uses .stroke on hover (= hover
+// - PreviewPane.swift card uses .stroke on hover (= hover
 //   semantics = 'tint the card outline', not 'fill the background'
 //   = different visual feedback type).
 //

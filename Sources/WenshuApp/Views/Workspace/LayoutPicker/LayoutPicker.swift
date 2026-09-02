@@ -108,8 +108,7 @@ struct LayoutPicker: View {
                 showingZoneEditor = true
             }) {
                 HStack(spacing: 6) {
-                    Image(systemName: "plus")
-                        .font(.caption)
+                    LucideIconSystemFallback("plus", size: 12)
                     Text("新建网格布局")
                         .font(.caption)
                 }
@@ -141,8 +140,7 @@ struct LayoutPicker: View {
                     }
                 }) {
                     HStack(spacing: 6) {
-                        Image(systemName: "square.and.arrow.down")
-                            .font(.caption)
+                        LucideIconSystemFallback("square.and.arrow.down", size: 12)
                         Text("将当前排列保存为模板")
                             .font(.caption)
                     }

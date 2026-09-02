@@ -292,9 +292,8 @@ Group {
             .aspectRatio(contentMode: .fit)
             .frame(width: 192, height: 192)
     } else {
-        // Fallback: SF Symbol if PNG load fails
-        Image(systemName: "text.book.closed")
-            .font(.system(size: 96))
+        // Fallback: Lucide canonical if PNG load fails (boss 2026-09-02: SF Symbol fully replaced)
+        LucideIconSystemFallback("text.book.closed", size: 96)
             .foregroundStyle(.white)
     }
 }
