@@ -119,16 +119,15 @@ struct LayoutEditBar: View {
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 4)
                         .padding(.vertical, 1)
-                        // v0.28 followup Boss UX round 24: .thinMaterial
-                        // (= light Liquid Glass) replaces the solid
-                        // Color.secondary.opacity(0.15) tint for the
-                        // v0.28 followup Boss UX round 35 (Boss 2026-08-29 OOB '各区域的
-                        // 完整代码, 关于样式的, 不统一'): use canonical
-                        // RegionHoverWashStyle (= single source of truth
-                        // for hover/pressed wash = .thinMaterial).
+                        // v0.32 boss 2026-09-02 OOB ('全走 apple api
+                        // 默认'): use bare Apple Material catalog
+                        // directly (= the canonical SwiftUI .thin
+                        // Material from the Material enum). The
+                        // previous RegionHoverWashStyle wrapper
+                        // added an extra type with no semantic value.
                         .background(
                             RoundedRectangle(cornerRadius: 3)
-                                .fill(RegionHoverWashStyle())
+                                .fill(.thinMaterial)
                         )
                 }
             }
