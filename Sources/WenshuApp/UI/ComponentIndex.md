@@ -182,18 +182,13 @@ Each component has:
 
 ## 🎨 LEVEL 4: Style + visual effects
 
-### 4.1 LiquidGlassOpacity environment value
-- **Path**: `Sources/WenshuApp/UI/LiquidGlassOpacity.swift`
-- **Purpose**: Read user's Liquid Glass opacity preference (= 0.0 to 1.0, set by Settings slider)
-- **Use when**: Any chrome view that should respect the user's opacity preference
-- **API**:
-  ```swift
-  @Environment(\.liquidGlassOpacity) var liquidGlassOpacity: Double  // 0.0 - 1.0
-  
-  // Apply:
-  Color.clear.overlay(liquidGlassOpacity > 0.5 ? AnyShapeStyle(.regularMaterial) : AnyShapeStyle(.ultraThinMaterial))
-  ```
-- **DON'T**: Use `.regularMaterial` directly (= bypasses user preference)
+### 4.1 Liquid Glass background (Apple canonical `.glassEffect(.regular)`)
+
+- **Path**: N/A (= SwiftUI built-in modifier; macOS 27 Tahoe Liquid Glass).
+- **Purpose**: Apple canonical Liquid Glass background for any wenshu chrome. Apple auto-adapts to dark mode / Reduce Transparency / Increase Contrast (= system-managed, no per-app slider).
+- **Use when**: Any pane / tab bar / status bar / region background needs the canonical macOS Liquid Glass look. Apply `.glassEffect(.regular)` (= standalone View modifier; requires a View receiver — `Color.clear.glassEffect(.regular)` when the glass IS the background, or `.glassEffect(.regular, in: Shape)` for shape-specific glass).
+- **Replaces**: `Sources/WenshuApp/UI/LiquidGlassOpacity.swift` (= deleted in v0.32 commit by Tier-1 rank-3 per `.scratch/v0.32-apple-api-audit/audit.md` §3). The previous hand-rolled `Double.toLiquidGlassMaterial()` 6-step ladder + user-tunable slider + `wenshu.liquidGlassOpacity` UserDefaults key + `.liquidGlassOpacityEnvironment` injection + `.liquidGlassOpacityChanged` notification were all removed.
+- **DON'T**: Re-implement a per-app opacity slider (= Apple's system-wide Reduce Transparency accessibility setting is the canonical knob). Use Apple `.glassEffect(.regular)` instead.
 
 ### 4.2 RegionHoverWash
 - **Path**: `Sources/WenshuApp/UI/RegionHoverWash.swift`
