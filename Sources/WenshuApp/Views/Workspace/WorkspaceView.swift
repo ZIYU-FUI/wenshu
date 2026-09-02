@@ -167,8 +167,31 @@ struct WorkspaceView: View {
             // Default preset = upper band 10/20/60/10 weights, lower
             // band 70/30 weights, root 50/50 column weights per the
             // boss OOB ratios).
+            //
+            // v0.31 boss 2026-09-02 OOB (Apple canonical reset): the
+            // .wenshuResetLayout notification now also un-collapses
+            // the on-screen NSSplitView (= the menu item was previously
+            // a no-op for the live layout — only the WorkspaceStore
+            // data model refreshed, while the rendered zones stayed
+            // hidden). The BFS finds the root PaneNSController (= the
+            // same SwiftUI NSHostingController-wrap workaround used
+            // by the 5 toggle buttons) and calls its public
+            // `restoreAllZones()` method (= Apple HIG canonical:
+            // NSSplitViewItem.isCollapsed = false + setPosition).
             .onReceive(NotificationCenter.default.publisher(for: .wenshuResetLayout)) { _ in
+                NSLog("[wenshu.reset] observer fired (WorkspaceView.onReceive)")
                 store.resetToDefault()
+                // Apple canonical reset (= un-collapse every pane
+                // and re-pin the preset divider positions). The
+                // rootPane lookup walks the SwiftUI
+                // NSHostingController chain so it works under
+                // macOS 27 SwiftUI WindowGroup (= contentViewController
+                // is the hosting controller, not the split
+                // controller).
+                let root = NSApp.mainWindow?.contentViewController
+                    ?? NSApp.keyWindow?.contentViewController
+                    ?? NSApp.windows.first(where: { $0.contentViewController != nil })?.contentViewController
+                findPaneController(in: root)?.restoreAllZones()
             }
             // v0.28 ticket 028-007: floating TreeEditBar with the
             // LayoutPicker (= preset grid + new-grid button +
@@ -699,4 +722,61 @@ private struct PreviewSortMenuButton: View {
         }
         .help("排序方式: \(sortOrder.rawValue)")
     }
+}
+
+// MARK: - findPaneController (Apple canonical view-tree BFS)
+//
+// SwiftUI macOS 27 WindowGroup wraps the entire view tree inside
+// an `AppKitWindowHostingController`. The hosting controller's
+// `children` array is empty (= PaneNSController lives as the
+// `viewController` of an NSSplitView subview, NOT as a child VC).
+// Walk both the VC tree AND the view tree together (= shared
+// visited set on ObjectIdentifier so the BFS is cycle-safe; the
+// previous recursive impl crashed with a 74586-deep stack
+// overflow because SwiftUI's `nextResponder` chain forms a
+// cycle).
+@MainActor
+fileprivate func findPaneController(in root: NSViewController?) -> PaneNSController? {
+    guard let root else { return nil }
+    var visited: Set<ObjectIdentifier> = []
+    var queue: [AnyObject] = [root]
+    var scanned = 0
+    while let obj = queue.first {
+        queue.removeFirst()
+        let id = ObjectIdentifier(obj)
+        guard !visited.contains(id) else { continue }
+        visited.insert(id)
+        scanned += 1
+        if let p = obj as? PaneNSController {
+            NSLog("[wenshu.reset] BFS found PaneNSController after scanning \(scanned) obj(s) (type=\(type(of: obj)))")
+            return p
+        }
+        // For a VC: enqueue its children + view tree.
+        if let vc = obj as? NSViewController {
+            queue.append(contentsOf: vc.children)
+            queue.append(vc.view)
+            continue
+        }
+        // For a view: enqueue its subviews. Check the view's
+        // `nextResponder as? NSViewController` (= the standard
+        // AppKit way to find a VC from a view) ONLY if the view
+        // itself isn't a known type (= avoids walking the whole
+        // responder chain into a cycle).
+        if let v = obj as? NSView {
+            queue.append(contentsOf: v.subviews)
+            // One-shot nextResponder probe: standard AppKit API,
+            // safe because we don't recurse into it (= the next
+            // loop iteration just tests it for PaneNSController
+            // and otherwise enqueues its children + view, which
+            // terminates in O(1) per view because the responder
+            // chain is acyclic for the first hop).
+            if let next = v.nextResponder as? NSViewController,
+               !visited.contains(ObjectIdentifier(next)) {
+                queue.append(next)
+            }
+            continue
+        }
+    }
+    NSLog("[wenshu.reset] BFS failed: scanned \(scanned) obj(s), no PaneNSController found under root=\(type(of: root))")
+    return nil
 }

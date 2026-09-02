@@ -102,27 +102,6 @@ final class PaneNSController: NSSplitViewController {
         // entrypoint from FCPLayout.makeSplitController) keeps
         // the full buildLayout path so the root controller still
         // gets its tree built.
-        // v0.30 boss 2026-09-01 OOB (autosave early wipe): clear
-        // every wenshu.split.* autosave entry BEFORE the first
-        // NSSplitView is constructed anywhere. If a stale entry
-        // from a prior tree shape (= different split node UUIDs
-        // in the key suffix) survives, the very first
-        // NSSplitView.viewDidLayout pass will load those old
-        // positions into memory and warp the layout, even though
-        // viewDidLayout's own clearStaleAutosave() runs immediately
-        // before applyWeights (= the load happens during super
-        // init's view setup, before our clearStaleAutosave can
-        // run). The cost of doing this wipe on every launch is one
-        // dictionary scan = negligible. The benefit is that a
-        // fresh install (= no autosave yet) gets the pristine
-        // 15/20/50/15 / 70/30 / 50/50 layout the user just
-        // specified.
-        let prefix = "NSSplitView Subview Frames wenshu.split."
-        for (key, _) in UserDefaults.standard.dictionaryRepresentation() {
-            if key.hasPrefix(prefix) {
-                UserDefaults.standard.removeObject(forKey: key)
-            }
-        }
         self.subtree = subtree ?? store.workspace.root
         super.init(nibName: nil, bundle: nil)
         // Swap the default NSSplitView with WenshuSplitView
@@ -281,7 +260,7 @@ final class PaneNSController: NSSplitViewController {
         //     earlier .paneSplitter / 0-width / no-line attempts
         //     to the standard HIG hairline).
         //   - Visual: a visible 1 PT hairline in system dark color
-        //     (= 100% opaque alpha=1, dark-mode sRGB approx (0.09,
+        //     (= 100% opaque alpha=1, dark-mode-measured sRGB approx (0.09,
         //     0.09, 0.09); auto-adapts to light / dark mode). Per
         //     boss OOB "if a gap is required, I want a 1 PT visible
         //     system dark 100% opaque line".
@@ -302,7 +281,6 @@ final class PaneNSController: NSSplitViewController {
         // pane layout).
         for splitView in allSplitViews() {
             applyDividerStyle(.thin, to: splitView)
-            tintDividerSubviews(in: splitView)
         }
     }
 
@@ -316,45 +294,6 @@ final class PaneNSController: NSSplitViewController {
             }
         }
         return result
-    }
-
-    /// Tint each divider subview (= the NSView instances
-    /// NSSplitView internally mounts between subviews; their class
-    /// name contains "Divider") with NSColor.controlBackgroundColor
-    /// (= Apple system color; dark-mode-measured sRGB = (0.09,
-    /// 0.09, 0.09, alpha=1.0); auto-adapts to dark / light mode).
-    /// Implementation = NSView.wantsLayer + layer.backgroundColor =
-    /// standard AppKit layer-backed view hook (= Apple native;
-    /// no custom NSView subclass).
-    /// Tint each divider subview (= the NSView instances
-    /// NSSplitView internally mounts between subviews; their class
-    /// name contains "Divider") with Apple system separator color
-    /// forced to 100% opaque.
-    ///
-    /// - Color: NSColor.separatorColor (= Apple system color =
-    ///   auto-adapts to dark / light mode; dark-mode-measured sRGB
-    ///   = (1.0, 1.0, 1.0, alpha=0.10); light-mode = white alpha
-    ///   = 0.29). Per boss OOB 2026-09-01 "use system color + alpha
-    ///   = 1.0 (= opaque / visible)".
-    /// - Force alpha = 1.0: separatorColor ships with alpha=0.10
-    ///   in dark mode (= essentially invisible against the pane
-    ///   background; this is exactly the boss complaint). We take
-    ///   the underlying CGColor (RGB unchanged) and overwrite the
-    ///   alpha component to 1.0 via CGColor.copy(alpha:). The
-    ///   underlying RGB stays the system value; only the alpha
-    ///   channel is overridden (= still a system-derived color,
-    ///   not a custom hand-picked RGBA).
-    /// - Implementation: NSView.wantsLayer + layer.backgroundColor
-    ///   = standard AppKit layer-backed view hook (= Apple
-    ///   native; no custom NSView subclass).
-    private func tintDividerSubviews(in splitView: NSSplitView) {
-        let systemColor = NSColor.separatorColor.cgColor.copy(alpha: 1.0)
-        for subview in splitView.subviews {
-            let className = String(describing: type(of: subview))
-            guard className.contains("Divider") else { continue }
-            subview.wantsLayer = true
-            subview.layer?.backgroundColor = systemColor
-        }
     }
 
     /// v0.30 boss 2026-09-01 OOB: 1 PT ok + paneSplitter + hit-area
@@ -930,13 +869,12 @@ final class PaneNSController: NSSplitViewController {
         // still false because the previous run bailed on zero
         // bounds. We loop until we successfully applied weights to
         // every entry AND the root's bounds are non-zero.
-        guard !didApplyInitialWeights else { return }
+        guard !self.didApplyInitialWeights else { return }
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             guard !self.didApplyInitialWeights else { return }
             guard !self.pendingWeights.isEmpty else { return }
             guard self.splitView.bounds.width > 0, self.splitView.bounds.height > 0 else { return }
-            self.clearStaleAutosave()
             for (controller, weights) in self.pendingWeights {
                 self.applyWeights(weights, on: controller)
             }
@@ -983,32 +921,6 @@ final class PaneNSController: NSSplitViewController {
             self.splitView.setPosition(totalHeight * 0.5, ofDividerAt: 0)
         }
     }
-
-    /// Remove the NSSplitView autosave entries (= UserDefaults
-    /// keys under "NSSplitView Subview Frames wenshu.split.*")
-    /// so the preset weight ratio applies on the next launch.
-    /// Apple's NSSplitView reads these keys BEFORE setPosition
-    /// (= if they're present, NSSplitView restores the saved
-    /// position and our weights are ignored).
-    private func clearStaleAutosave() {
-            // v0.30 boss 2026-09-01 OOB (autosave cleanup): remove ALL
-            // wenshu.split.* autosave entries, not just the current
-            // layoutID. The previous form only matched
-            // "NSSplitView Subview Frames wenshu.split.<layoutID>." =
-            // a stale entry from a prior SplitNode tree shape (= with
-            // a different UUID hash in the key suffix) survived and
-            // got applied to the new tree, warping the layout to the
-            // old proportions. Wipe everything wenshu.split.* on the
-            // first viewDidLayout so setPosition runs against a clean
-            // slate.
-            let prefix = "NSSplitView Subview Frames wenshu.split."
-            let defaults = UserDefaults.standard
-            for (key, _) in defaults.dictionaryRepresentation() {
-                if key.hasPrefix(prefix) {
-                    defaults.removeObject(forKey: key)
-                }
-            }
-        }
 
     /// Recursive: install a `SplitNode` into the parent controller as a
     /// nested NSSplitView (= child NSSplitViewController).
@@ -1250,6 +1162,98 @@ final class PaneNSController: NSSplitViewController {
         case .editor:
             return false
         }
+    }
+
+    // MARK: - Apple HIG canonical zone toggle (= boss 2026-09-02 OOB)
+
+    /// Apple-style public toggle for a single zone. Called by the 5
+    /// toolbar buttons + the 5 menu items (= boss rule: no wenshu-side
+    /// notification or UserDefaults round-trip; NSSplitView's own
+    /// `autosaveName` persists the per-item collapsed flag
+    /// natively). Implemented as a thin wrapper around the
+    /// `handleToggleZone(_:)` notification observer below.
+    func toggleZone(_ slot: ZoneSlot) {
+        let kind: TabKind
+        switch slot {
+        case .projectSidebar:   kind = .projectSidebar
+        case .projectPreview:   kind = .projectPreview
+        case .editor:           kind = .editor
+        case .specializedTools: kind = .specializedTools
+        case .aiChat:           kind = .aiChat
+        case .aiDynamic:        kind = .aiDynamic
+        }
+        // Apple canonical animation. Reuse the notification path so
+        // callers (= toolbar + menu) get identical behavior.
+        NotificationCenter.default.post(name: .wenshuToggleZone, object: slot)
+        _ = kind  // (= identity; the notification carries `slot`)
+    }
+
+    /// Cmd+Shift+R "恢复默认布局" reset action. Un-collapse every
+    /// pane (= Apple NSSplitViewItem.isCollapsed = false) and
+    /// re-apply the canonical preset weights (= setPosition on the
+    /// owning split). WorkspaceView's `.wenshuResetLayout` observer
+    /// calls this after refreshing WorkspaceStore, so the menu
+    /// command actually un-collapses the on-screen layout (= not
+    /// just the data model).
+    @objc func restoreAllZones() {
+        NSLog("[wenshu.reset] restoreAllZones() enter; found \(collectPaneControllers().count) controller(s)")
+        for controller in collectPaneControllers() {
+            var flipped = 0
+            for item in controller.splitViewItems {
+                guard item.canCollapse else { continue }
+                if item.isCollapsed {
+                    item.isCollapsed = false
+                    flipped += 1
+                }
+            }
+            NSLog("[wenshu.reset] controller \(type(of: controller)) un-collapsed \(flipped) item(s)")
+        }
+        // Re-apply the preset divider positions (= Apple
+        // NSSplitView's setPosition(ofDividerAt:) on the divider
+        // that owns each band). Without this, the visible panes
+        // keep whatever width they had after the last user drag
+        // (= autosaveName).
+        NSLog("[wenshu.reset] applying \(pendingWeights.count) pending weight(s)")
+        for (controller, weights) in pendingWeights {
+            applyWeights(weights, on: controller)
+        }
+        adjustRootForCollapsedBands()
+        NSLog("[wenshu.reset] restoreAllZones() exit")
+    }
+
+    /// Editor-zone "expand" trailing button action. Hide every
+    /// collapsible zone (= sidebar + preview + tools + chat +
+    /// dynamic) in one call. Apple HIG canonical = walk + flip
+    /// each via animator().
+    @objc func toggleAllNonEditorZones() {
+        for controller in collectPaneControllers() {
+            for (idx, item) in controller.splitViewItems.enumerated() {
+                guard item.canCollapse else { continue }
+                guard let tabKind = controller.paneKindByItem[idx] else { continue }
+                guard tabKind != .editor else { continue }
+                item.animator().isCollapsed.toggle()
+            }
+        }
+    }
+
+    /// Flatten self + every nested PaneNSController child into an
+    /// array. The root controller hosts wrap-mode items (= the
+    /// upper-band and lower-band nested controllers live as
+    /// root.splitViewItems); the per-pane NSSplitViewItems live on
+    /// the nested controllers.
+    private func collectPaneControllers() -> [PaneNSController] {
+        var result: [PaneNSController] = [self]
+        var queue: [NSSplitViewController] = [self]
+        while let next = queue.first {
+            queue.removeFirst()
+            for child in next.children {
+                if let splitChild = child as? PaneNSController {
+                    result.append(splitChild)
+                    queue.append(splitChild)
+                }
+            }
+        }
+        return result
     }
 
     // MARK: - autosaveName key (= per-layout + per-split)

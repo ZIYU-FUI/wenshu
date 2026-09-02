@@ -34,6 +34,7 @@
 
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
 
 /// LibraryRootView: Routes between onboarding (first launch) and main app.
 ///
@@ -398,7 +399,19 @@ Group {
         panel.canCreateDirectories = false
         panel.showsHiddenFiles = false
         if #available(macOS 11.0, *) {
-            panel.allowedContentTypes = []
+            // v0.30 boss 2026-09-01 OOB (UTI filter): was `[]` (= default
+            // filter hid .ws package directories on macOS 27 Tahoe).
+            // Now explicitly allow the exported UTI from
+            // Info.plist's UTExportedTypeDeclarations (= surfaces
+            // .ws packages with the wenshu bundle icon).
+            if let wsType = UTType("com.wenshu.workspace") {
+                panel.allowedContentTypes = [wsType]
+            } else {
+                // Fallback: no filter (= shows everything, user can
+                // navigate manually). Better than default which hides
+                // the .ws packages.
+                panel.allowedContentTypes = []
+            }
         }
 
         if let window = NSApp.mainWindow {
