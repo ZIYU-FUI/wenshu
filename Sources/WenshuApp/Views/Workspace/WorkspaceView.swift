@@ -632,13 +632,21 @@ struct EditorPlaceholder: View {
     var body: some View {
         VStack(spacing: 0) {
             // v0.34 ticket 04: top toolbar (= 28 PT = DesignTokens.paneTabHotArea).
-            // Mode toggle centered; expand/shrink/close placeholders for tickets 08/09/10.
+            // v0.34 ticket 08: full layout per spec Implementation Decision E:
+            //   [doc basename (left)] [mode toggle (center)] [save + expand + close (right)]
             // Tool bar persists across both preview and edit modes (= Apple HIG
             // document-window toolbar pattern; Obsidian uses the same shape).
-            HStack(spacing: 0) {
-                // Left slot: empty for now (= ticket 08 will add doc basename).
+            HStack(spacing: DesignTokens.chromePaddingClusterGap) {
+                // v0.34 ticket 08: left slot = doc basename placeholder.
+                // Today = static text (= preview sample name); ticket
+                // 027-35 will pass the real document basename from NSOpenPanel.
+                Text("preview-sample.md")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                // v0.34 ticket 08: center slot = mode toggle (= ticket 04).
                 Spacer()
-                // Center slot: mode toggle.
                 PaneTrailingIconButton(
                     icon: mode.iconName,
                     tooltip: mode.tooltip,
@@ -646,10 +654,36 @@ struct EditorPlaceholder: View {
                         mode = (mode == .preview) ? .edit : .preview
                     }
                 )
+                // v0.34 ticket 08: right slot = save + expand + close.
+                //   - Save button: only in .edit mode; .tint when dirty (gray otherwise).
+                //   - Expand button: ticket 03 (EditorExpandShrinkTrailingButton).
+                //   - Close button: ticket 09 (placeholder for now, no action).
                 Spacer()
-                // Right slot: empty for now (= tickets 08/09/10 will add
-                // save + expand + close buttons in that order).
+                // Save button visible only in edit mode (= Apple HIG
+                // convention = no save affordance when there's nothing to save).
+                if mode == .edit {
+                    PaneTrailingIconButton(
+                        icon: "square.and.arrow.down",
+                        tooltip: isDirty ? "保存 (有未保存的修改)" : "已保存",
+                        action: { saveDraft() }
+                    )
+                    // Apple HIG tint: when dirty, swap foreground from
+                    // .secondary (= default for trailing buttons) to .tint
+                    // (= Apple HIG accent color, signals action affordance).
+                    .foregroundStyle(isDirty ? Color.accentColor : Color.secondary)
+                }
+                PaneTrailingIconButton(
+                    icon: "rectangle.expand.vertical",
+                    tooltip: "展开/收起编辑器区",
+                    action: { /* ticket 03 listener handles expand */ }
+                )
+                PaneTrailingIconButton(
+                    icon: "xmark",
+                    tooltip: "关闭编辑器 (Cmd+W)",
+                    action: { /* ticket 09 wires close + dirty confirm */ }
+                )
             }
+            .padding(.horizontal, DesignTokens.chromePaddingLeading)
             .frame(height: DesignTokens.paneTabHotArea)
             .background(.bar)
 
