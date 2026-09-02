@@ -745,6 +745,11 @@ struct EditorPlaceholder: View {
                     // wires real document close).
                     draft = originalBody
                     documentPath = nil
+                    // v0.34 B-22: discard = no more writes ever (= the
+                    // edits are thrown away). Cancel any pending auto-save
+                    // Task + notify handler with dirty = false (= matches
+                    // the post-discard state).
+                    handleDirtyTransition(false)
                 }
                 Button("继续编辑", role: .cancel) { }
             } message: {
@@ -787,11 +792,15 @@ struct EditorPlaceholder: View {
                         onWordCountChange: { count in
                             appState.editorWordCount = count
                         },
-                        // v0.34 B-21: debounced auto-save trigger
-                        // (= host cancels + restarts the 3-second
-                        // Task on each keystroke = save 3 seconds after
-                        // user stops typing).
-                        onAutoSaveTrigger: { triggerAutoSave() }
+                        // v0.34 B-22: route dirty-state transitions
+                        // (= false→true = user started editing;
+                        // true→false = Cmd+S or auto-save completed).
+                        // The handler runs ONCE per transition (= no
+                        // per-keystroke Task churn; = Apple HIG
+                        // TextEdit / Pages behavior).
+                        onDirtyChange: { newDirty in
+                            handleDirtyTransition(newDirty)
+                        }
                     )
                 }
             }
@@ -832,15 +841,23 @@ struct EditorPlaceholder: View {
     // v0.34 ticket 07: save action writes draft back over originalBody;
     // Cmd+S hotkey (ticket 10) calls this directly. mtime-conflict
     // detection (= v0.35+ ticket; placeholder for now).
-    // v0.34 B-21: save action writes draft back over originalBody (= dirty
+    // v0.34 B-22: save action writes draft back over originalBody (= dirty
     // detection clears). When documentPath is non-nil (= v0.35+ ticket
     // 027-35 wires real document load), also write to disk (= atomic
     // UTF-8 = Apple HIG file write pattern; = mtime-conflict detection
     // deferred to v0.35+ ticket). Cmd+S hotkey (ticket 10) and Save
     // toolbar button both call this directly.
+    //
+    // B-22: explicitly notify the dirty transition handler with
+    // dirty = false (= Cmd+S = the document is now saved = any pending
+    // auto-save Task should be cancelled). Without this, a user who
+    // types, waits 2.9 seconds (= Task almost firing), then hits
+    // Cmd+S would see the auto-save Task fire after Cmd+S = wasteful
+    // double-write.
     private func saveDraft() {
         originalBody = draft
         writeDraftToDisk()
+        handleDirtyTransition(false)
     }
 
     // v0.34 B-21: write current draft to documentPath (= atomic UTF-8).
@@ -863,22 +880,60 @@ struct EditorPlaceholder: View {
         }
     }
 
-    // v0.34 B-21: debounced auto-save trigger. Cancels any in-flight
-    // autoSaveTask (= the 3-second timer restarts every time the
-    // user types; = Obsidian-style "save after stop typing" pattern).
-    // Called from .onChange(of: draft) inside EditorEditContent.
-    private func triggerAutoSave() {
-        autoSaveTask?.cancel()
-        autoSaveTask = Task {
-            // Obsidian default auto-save debounce = 3 seconds of
-            // inactivity. Apple HIG doesn't define a canonical
-            // debounce duration; = matches the boss spec = 3 seconds.
-            try? await Task.sleep(for: .seconds(3))
-            if !Task.isCancelled {
-                await MainActor.run {
-                    writeDraftToDisk()
+    // v0.34 B-22: dirty-state transition handler. Replaces B-21's
+    // triggerAutoSave (= that fired on every keystroke = wasteful
+    // Task creation per char; = boss 9/2 OOB flagged as inefficient).
+    //
+    // Logic (= matches Apple HIG TextEdit / Pages auto-save behavior):
+    //   - dirty = true  (= user started editing after a clean state):
+    //     start ONE 3-second Task. The Task fires `writeDraftToDisk`
+    //     then clears `originalBody` (= makes dirty → false = ends the
+    //     cycle). Subsequent keystrokes within the 3-second window
+    //     just keep `dirty = true` (= no new Task = the existing one
+    //     still fires once).
+    //   - dirty = false (= Cmd+S saved, or auto-save Task fired, or
+    //     discard happened): cancel the pending Task (= no more writes;
+    //     = the document is already saved).
+    //
+    // Result: at most 1 active Task at any time, regardless of typing
+    // speed. Saves exactly once per dirty→clean cycle. No memory churn.
+    private func handleDirtyTransition(_ isDirty: Bool) {
+        if isDirty {
+            // User just started editing (= dirty → true). Start the
+            // 3-second Task. If one was already pending (= e.g. user
+            // typed, waited, saved, typed again quickly), reuse it:
+            // a new Task replaces the old one (= Task.cancel + new
+            // = 1 active Task). Apple HIG Task structured concurrency
+            // handles the lifecycle.
+            if autoSaveTask == nil {
+                autoSaveTask = Task {
+                    // 3-second debounce (= boss 9/2 'auto-save, 停手
+                    // 3 秒后'). Apple HIG doesn't define a canonical
+                    // duration; = matches macOS TextEdit / Pages default.
+                    try? await Task.sleep(for: .seconds(3))
+                    if !Task.isCancelled {
+                        await MainActor.run {
+                            writeDraftToDisk()
+                            // B-22: after auto-save, mark the document
+                            // as clean (= originalBody = draft = no
+                            // longer dirty). This transitions dirty →
+                            // false → handleDirtyTransition(false)
+                            // → cancels any future Task (= idempotent
+                            // = the just-completed Task won't fire
+                            // again because the state is already
+                            // consistent).
+                            originalBody = draft
+                        }
+                    }
+                    autoSaveTask = nil
                 }
             }
+        } else {
+            // dirty = false (= user just saved via Cmd+S, OR the
+            // auto-save Task just completed and set originalBody =
+            // draft above). Cancel any pending Task (= no more writes).
+            autoSaveTask?.cancel()
+            autoSaveTask = nil
         }
     }
     // v0.34 ticket 09: document-loaded flag. nil = placeholder mode
@@ -1086,11 +1141,14 @@ private struct EditorEditContent: View {
     // left field). Decoupled from AppState so EditorEditContent
     // stays a pure rendering surface (= no @Environment coupling).
     let onWordCountChange: (Int) -> Void
-    // v0.34 B-21: auto-save debounce trigger (= host cancels +
-    // restarts the 3-second Task on each call; = Obsidian-style
-    // save-after-stop-typing). Decoupled from the auto-save Task
-    // implementation (= EditorEditContent doesn't know about Task).
-    let onAutoSaveTrigger: () -> Void
+    // v0.34 B-22: dirty-state change callback. Host routes true (= user
+    // started editing) to schedule the auto-save Task; false (= document
+    // is saved or just got saved via Cmd+S) to cancel any pending Task.
+    // Replaces B-21's onAutoSaveTrigger (= that triggered on every
+    // keystroke, wasting memory creating a fresh Task per char; = boss
+    // 9/2 OOB flagged as inefficient). Decoupled from Task internals
+    // (= EditorEditContent doesn't know about Task).
+    let onDirtyChange: (Bool) -> Void
 
     /// Read-only dirty flag (= computed from the binding's current value).
     private var isDirty: Bool { draft != originalBody }
@@ -1119,11 +1177,25 @@ private struct EditorEditContent: View {
             // whitespace, line breaks, tabs).
             .onChange(of: draft) { _, newValue in
                 onWordCountChange(WordCounter.count(newValue).charactersNoSpaces)
-                // v0.34 B-21: debounced auto-save (= Obsidian-style
-                // "save after stop typing for 3 seconds" pattern).
-                // cancel + restart on each keystroke = the timer
-                // only fires when the user has stopped typing.
-                onAutoSaveTrigger()
+                // v0.34 B-22: auto-save is NOT triggered on every
+                // keystroke (= that wastes memory creating a fresh
+                // Task per keystroke; = Obsidian-style debounce that
+                // the boss 9/2 flagged as inefficient). Instead,
+                // auto-save runs once per dirty→clean transition
+                // (= Apple HIG standard auto-save = save when the
+                // document transitions from dirty to saved, not on
+                // every keystroke). The handler is wired below in
+                // .onChange(of: isDirty) → onDirtyChange().
+            }
+            // v0.34 B-22: wire auto-save to dirty-state transitions,
+            // NOT to every keystroke. When dirty becomes true
+            // (= user starts editing), schedule a 3-second Task.
+            // When dirty becomes false (= either Cmd+S saved the
+            // document or the auto-save Task fired), cancel any
+            // pending Task (= no more writes; = matches Apple HIG
+            // TextEdit / Pages behavior).
+            .onChange(of: isDirty) { _, newDirty in
+                onDirtyChange(newDirty)
             }
             // Dirty status surfaced to the host via the `onSave` closure
             // (= not strictly needed by TextEditor itself; the host reads
