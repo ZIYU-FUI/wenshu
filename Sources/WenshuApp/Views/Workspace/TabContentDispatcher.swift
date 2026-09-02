@@ -52,6 +52,18 @@ struct TabContentDispatcher: View {
     @State private var showingArchiveConfirm: Bool = false
     @Namespace private var chatTabBarNamespace
 
+    // v0.34 B-15 (= boss 9/2 OOB follow-up to B-14): the chrome bottom
+    // status now reads "字数: 0 / 反链 N" (= replaces the legacy "N%"
+    // progress placeholder). BacklinksViewModel lives here too (= own
+    // loader for the chrome status; EditorPlaceholder holds its own
+    // copy for the popover content. Slight redundancy vs single source
+    // of truth, but matches the existing zone-level loader pattern
+    // and avoids threading the popover's @State through the chrome
+    // hierarchy. The two loaders read the same BacklinkResolver, so
+    // backlinks.count stays in sync).
+    @State private var backlinksVM = BacklinksViewModel()
+    @State private var backlinksCount: Int = 0
+
     var body: some View {
         switch kind {
         case .projectSidebar:
@@ -116,10 +128,15 @@ struct TabContentDispatcher: View {
             }
         case .editor:
             // No outer top (= internal ZoneContentTabBar for 编辑 /
-            // 大纲 / 反链 IS the top chrome). Bottom status = 字数 / N%.
+            // 大纲 / 反链 IS the top chrome). Bottom status = 字数 / 反链
+            // (= boss 9/2 OOB replaces the legacy "N%" progress text
+            // with backlinks count; = spec spec v0.34 B-15).
             ZonePerRegionChrome(
                 topActions: [],
-                bottomStatus: editorChrome(wordCount: 0, progress: 0.0).bottom,
+                bottomStatus: editorChrome(
+                    wordCount: 0,
+                    backlinkCount: backlinksCount
+                ).bottom,
                 topSkip: true,
                 // v0.32 boss 2026-09-02 OOB: editor = content tier
                 // (= .windowBackgroundColor = matches Xcode editor
@@ -127,6 +144,13 @@ struct TabContentDispatcher: View {
                 zone: .editor
             ) {
                 ZoneModuleView(zoneSlot: .editor)
+            }
+            // v0.34 B-15: trigger backlinks load on first appear.
+            // .task runs once when the editor zone is mounted (= won't
+            // re-fetch on every re-render; = Apple HIG async task lifecycle).
+            .task {
+                await backlinksVM.load(docId: "preview-sample")
+                backlinksCount = backlinksVM.backlinks.count
             }
         case .specializedTools:
             // No outer top (= internal ZoneContentTabBar for 画布 /

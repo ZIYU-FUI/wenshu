@@ -281,15 +281,16 @@ public func projectPreviewChrome(chapterCount: Int) -> (top: [ZoneTopAction], bo
 /// separate trailing button per boss 2026-08-26 OOB '他是一个按钮
 /// 不是一个 teb' = wired separately via `editorTrailingAction` param).
 ///
-/// Bottom: left = "字数: N", right = "N%" (progress).
-public func editorChrome(wordCount: Int, progress: Double) -> (top: [ZoneTopAction], bottom: ZoneBottomStatus) {
+/// Bottom: left = "字数: N" (= reserved for future real word count
+/// implementation; today = static 0), right = "反链 N" (boss 9/2 OOB:
+/// REPLACE the legacy "N%" progress placeholder with backlinks count).
+public func editorChrome(wordCount: Int, backlinkCount: Int) -> (top: [ZoneTopAction], bottom: ZoneBottomStatus) {
     let top = [
         ZoneTopAction(id: "edit", label: "编辑", icon: "book-open-text"),
         ZoneTopAction(id: "outline", label: "大纲", icon: "puzzle"),
         ZoneTopAction(id: "backlinks", label: "反链", icon: "link"),
     ]
-    let percent = Int(progress * 100)
-    let bottom = ZoneBottomStatus(left: "字数: \(wordCount)", right: "\(percent)%")
+    let bottom = ZoneBottomStatus(left: "字数: \(wordCount)", right: "反链 \(backlinkCount)")
     return (top, bottom)
 }
 
