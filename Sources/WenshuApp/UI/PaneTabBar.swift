@@ -157,7 +157,16 @@ public struct PaneTabBar<Item: Identifiable & Sendable, Trailing: View>: View {
                 Spacer(minLength: 0)
                 trailing()
             }
-            .padding(.leading, DesignTokens.chromePaddingLeading)
+            // v0.34 boss 2026-09-02 OOB '父组件需要定一下, 左右间距对称':
+            // the PaneTabBar chrome parent controls the symmetric outer
+            // inset. Previously (.padding(.leading, chromePaddingLeading)
+            // only) the inner HStack was left-aligned with 18 PT left
+            // edge inset but 0 PT right (= visually asymmetric across
+            // the 6 zones). Apple HIG canonical toolbar = symmetric
+            // outer edge inset (Photos / Music / Mail tab bar use the
+            // same leading + trailing value). Now both sides use
+            // chromePaddingLeading (= 18 PT) = Apple HIG symmetric.
+            .padding(.horizontal, DesignTokens.chromePaddingLeading)
             // ponytail fix: the inner HStack had only intrinsic width
             // (= sum of children), so the Spacer(minLength: 0) before
             // trailing() had zero extra space to consume = trailing
