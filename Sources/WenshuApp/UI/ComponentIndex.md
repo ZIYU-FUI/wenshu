@@ -219,14 +219,17 @@ Each component has:
 > + autosave + canCollapse natively). Section 5 entries for those
 > types are removed from this index.
 
-### 5.3 Tip
-- **Path**: `Sources/WenshuApp/UI/Components/Tip.swift`
-- **Purpose**: Apple HIG canonical tooltip (= tiny popup on hover/long-press)
-- **Use when**: Adding contextual help to any UI element
+### 5.3 Tooltip (Apple SwiftUI `.help()`)
 
-### 5.4 DropAffordance / EscapeLayers / NativeControlsInspector / TabStripScroll
+- **Path**: N/A (= SwiftUI built-in modifier).
+- **Purpose**: Apple HIG canonical tooltip (= tiny popup on hover/long-press). The OS handles the warm-window delay and the popup rendering (= no custom code).
+- **Use when**: Any view needs contextual help text. Apply `.help("Toggle sidebar (⌘B)")` to the view (= Apple canonical since macOS 11).
+- **Replaces**: `Sources/WenshuApp/UI/Components/Tip.swift` (= 221-LOC custom `TipController` + `TipModifier` with a hand-rolled 300 ms warm-window; deleted in v0.32 commit by Tier-1 rank-1 deletion per `.scratch/v0.32-apple-api-audit/audit.md` §3).
+
+### 5.4 DropAffordance / NativeControlsInspector
+
 - **Path**: `Sources/WenshuApp/UI/Drag/*.swift`
-- **Purpose**: Drag-and-drop infrastructure (= drop zone highlight, escape-key dismissal, control inspector, horizontal tab scrolling)
+- **Purpose**: Drag-and-drop infrastructure (= drop zone highlight, control inspector). EscapeLayers + TabStripScroll were retired in v0.31 (= deleted; see v0.31 audit §2.3 + §2.6).
 
 ---
 
