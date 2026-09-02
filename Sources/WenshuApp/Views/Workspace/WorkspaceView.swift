@@ -593,7 +593,7 @@ private struct EditorExpandShrinkTrailingButton: View {
             RoundedRectangle(cornerRadius: 4)
                 .fill(isHover ? Color.accentColor.opacity(0.12) : Color.clear)
         )
-        .help(editorMaximized ? "恢复 (shrink)" : "展开 (expand)")
+        .help(editorMaximized ? "恢复布局" : "展开全屏")
     }
 }
 

@@ -103,19 +103,35 @@ public struct ZonePerRegionChrome<Content: View>: View {
     let bottomStatus: ZoneBottomStatus
     let topSkip: Bool             // when true (= editor), skip top toolbar (= internal ZoneContentTabBar is the top)
     let bottomSkip: Bool          // when true (= aiChat), skip bottom toolbar
+    // v0.32 boss 2026-09-02 OOB: ZoneSlot routed to
+    // RegionContentBackground (= chrome tier vs content tier per
+    // FCP-style brightness delta). nil = legacy caller (= chrome
+    // tier fallback so SwiftUI previews + tests keep working).
+    let zone: ZoneSlot?
     let content: () -> Content
 
-    public init(
+    // v0.32: zone parameter is module-internal because ZoneSlot is
+    // internal (= declared in App.swift without `public`). The init
+    // itself drops `public` to match.
+    init(
         topActions: [ZoneTopAction] = [],
         bottomStatus: ZoneBottomStatus = ZoneBottomStatus(),
         topSkip: Bool = false,
         bottomSkip: Bool = false,
+        // v0.32 boss 2026-09-02 OOB ('参考一下 FCP, 各区有不同的
+        // 区域颜色'): the ZoneSlot is now plumbed through to
+        // RegionContentBackground (= single source of truth for
+        // per-zone pane content color). Default = nil so legacy
+        // callers (= SwiftUI previews, tests) keep working
+        // unchanged (= they fall back to the chrome tier).
+        zone: ZoneSlot? = nil,
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.topActions = topActions
         self.bottomStatus = bottomStatus
         self.topSkip = topSkip
         self.bottomSkip = bottomSkip
+        self.zone = zone
         self.content = content
     }
 
@@ -134,9 +150,13 @@ public struct ZonePerRegionChrome<Content: View>: View {
             // the ZonePerRegionChrome layer (= wraps ALL 6 panes
             // uniformly = single source of truth for the canonical
             // per-pane content background).
+            // v0.32 boss 2026-09-02 OOB: pass the routed ZoneSlot
+            // through (= chrome tier or content tier per FCP-style
+            // brightness delta). nil falls back to the chrome tier
+            // so SwiftUI previews + tests keep working unchanged.
             content()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(RegionContentBackground())
+                .background(zone.map(RegionContentBackground.init(zone:)) ?? RegionContentBackground())
             // Bottom toolbar (= 30 PT, matches old ZoneBottomToolbar).
             if !bottomSkip {
                 bottomBar
