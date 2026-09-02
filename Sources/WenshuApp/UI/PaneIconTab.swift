@@ -73,12 +73,9 @@ public struct PaneIconTab: View {
     /// Tap callback (= usually `selection = tab.id`).
     public let onTap: () -> Void
 
-    // v0.30 boss 8/31 OOB ('all Apple components should use the
-    // default hover effect if available'): .hoverEffect is visionOS-only
-    // (= unavailable on macOS per Swift compiler error). Apple HIG
-    // alternative on macOS = .onHover callback + manual highlight
-    // background (= same pattern as AppTitlebar and AppStatusbar).
-    @State private var isHover: Bool = false
+    // v0.34: hover state moved to .hoverWash() modifier (= single source
+    // of truth, see Sources/WenshuApp/UI/HoverWash.swift). Removed the
+    // per-component @State isHover + .onHover + .background plumbing.
 
     public init(
         id: String,
@@ -132,16 +129,7 @@ public struct PaneIconTab: View {
                 }
         }
         .buttonStyle(.plain)
-        // v0.30 boss 8/31 OOB: Apple default hover effect on macOS
-        // (= .hoverEffect unavailable; use .onHover + manual highlight
-        // background pattern, matching AppTitlebar/AppStatusbar).
-        .onHover { isHover = $0 }
-        .background(
-            isHover
-                ? AnyShapeStyle(.quaternary)
-                : AnyShapeStyle(Color.clear)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 4))
+        .hoverWash()
         .help(label)
     }
 }

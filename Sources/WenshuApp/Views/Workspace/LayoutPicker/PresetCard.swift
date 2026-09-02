@@ -18,7 +18,11 @@ struct PresetCard: View {
     let onDelete: (() -> Void)?
 
     /// Whether the delete button should show (= triggered on
+    /// Whether the delete button should show (= triggered on
     /// hover; v0.28 first cut uses @State for simplicity).
+    /// v0.34: this state still tracks the delete-button conditional
+    /// (mixed use case = wash + conditional trailing button).
+    /// The .quaternary wash plumbing is delegated to .hoverWash().
     @State private var isHovering: Bool = false
 
     var body: some View {
@@ -76,9 +80,7 @@ struct PresetCard: View {
             }
         }
         .contentShape(Rectangle())
-        .onHover { hovering in
-            isHovering = hovering
-        }
+        .hoverWash()
         .onTapGesture {
             onSelect()
         }
