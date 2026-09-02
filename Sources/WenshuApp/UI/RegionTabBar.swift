@@ -73,10 +73,9 @@ public struct RegionTabBar<Content: View>: View {
         self.content = content
     }
 
-    // v0.30 boss 2026-09-01 OOB: title bar (= 30 PT top chrome)
-    // now follows the Liquid Glass opacity slider (= same
-    // env-key as the pane content background). Default = 0.5.
-    @Environment(\.liquidGlassOpacity) private var liquidGlassOpacity: Double
+    // v0.32 boss 2026-09-02 OOB: Apple canonical .glassEffect(.regular)
+    // replaces the Liquid Glass opacity slider. Apple auto-adapts to
+    // system settings (= dark mode / Reduce Transparency).
 
     public var body: some View {
         HStack(spacing: 0) {
@@ -100,11 +99,14 @@ public struct RegionTabBar<Content: View>: View {
         // = kChromeHeight = 30 PT = LayoutTokens.toolbarHeight = 30 PT
         // = unified chrome height across the app in round 26).
         .frame(height: LayoutTokens.toolbarHeight)
-        // v0.30 boss 2026-09-01 OOB: Apple canonical Liquid Glass
-        // background now follows the opacity slider via
-        // `Double.toLiquidGlassMaterial()` (= 4-step mapping,
-        // matches RegionContentBackground's logic).
-        .background(liquidGlassOpacity.toLiquidGlassMaterial())
+        // v0.32 boss 2026-09-02 OOB ('默认不加液态玻璃效果,
+        // 我们就不加; 默认带的, 我们就默认带; 不能空着,
+        // 空着透明了'): use Apple canonical controlBackgroundColor
+        // (= NSColor controlBackgroundColor; macOS 27 Tahoe default
+        // = system-managed color that adapts to dark / light mode
+        // + accent tint; no per-pane glass specular, no transparent
+        // see-through to the desktop wallpaper).
+        .background(Color(nsColor: .controlBackgroundColor))
         // 1 PT Apple .separator ShapeStyle (= canonical Liquid Glass
         // hairline, semitransparent + dark/light adaptive). Applied
         // ONCE here as bottom overlay (= no manual Color, no NSColor,
@@ -139,10 +141,9 @@ public struct RegionStatusBar<Content: View>: View {
         self.content = content
     }
 
-    // v0.30 boss 2026-09-01 OOB: status bar (= 30 PT bottom
-    // chrome) now follows the Liquid Glass opacity slider
-    // (= same env-key as title bar + pane content background).
-    @Environment(\.liquidGlassOpacity) private var liquidGlassOpacity: Double
+    // v0.32 boss 2026-09-02 OOB: Apple canonical .glassEffect(.regular)
+    // replaces the Liquid Glass opacity slider. Apple auto-adapts to
+    // system settings (= dark mode / Reduce Transparency).
 
     public var body: some View {
         HStack(spacing: 0) {
@@ -150,10 +151,14 @@ public struct RegionStatusBar<Content: View>: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .frame(height: LayoutTokens.toolbarHeight)
-        // v0.30 boss 2026-09-01 OOB: status bar background now
-        // follows the Liquid Glass opacity slider (= same 4-step
-        // mapping as title bar + pane content background).
-        .background(liquidGlassOpacity.toLiquidGlassMaterial())
+        // v0.32 boss 2026-09-02 OOB ('默认不加液态玻璃效果,
+        // 我们就不加; 默认带的, 我们就默认带; 不能空着,
+        // 空着透明了'): use Apple canonical controlBackgroundColor
+        // (= NSColor controlBackgroundColor; macOS 27 Tahoe default
+        // = system-managed color that adapts to dark / light mode
+        // + accent tint; no per-pane glass specular, no transparent
+        // see-through to the desktop wallpaper).
+        .background(Color(nsColor: .controlBackgroundColor))
         // Top separator (1 PT Apple .separator) for the status bar
         // (= visually separates pane content from the bottom status).
         .overlay(alignment: .top) {
