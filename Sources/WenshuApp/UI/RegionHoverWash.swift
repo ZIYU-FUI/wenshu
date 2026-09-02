@@ -8,9 +8,7 @@
 // material:
 //
 //   - TitlebarStatusbarPolish.swift: Color.clear.overlay(.thinMaterial)
-//   - TitlebarStatusbarPolish.swift: Color.clear.overlay(.thinMaterial)
 //   - LayoutEditBar.swift: .fill(.thinMaterial)
-//   - ReferenceLibraryOutlineView.swift: .background(.thinMaterial)
 //
 // Inconsistency root cause = each site hand-implemented the same
 // "translucent wash" pattern. Visual consistency was OK but code
@@ -42,8 +40,7 @@ import SwiftUI
 ///
 /// **SINGLE SOURCE OF TRUTH**: Used by TitlebarStatusbarPolish (×2
 /// hover/pressed wash), LayoutEditBar (selected preset highlight),
-/// ReferenceLibraryOutlineView (hover wash), and any future hover
-/// sites.
+/// and any future hover sites.
 ///
 /// Visual configuration:
 /// - Tint: `.thinMaterial` (= Apple HIG canonical hover wash on macOS

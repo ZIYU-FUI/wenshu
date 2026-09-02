@@ -8,7 +8,6 @@
 //  业务语言描述 (老板懂):
 //  - BacklinksPanel 是 SwiftUI View, 给一个 docId 显示所有引用它的 source 链接
 //  - 现阶段只做 ViewModel 渲染逻辑, View 体留 placeholder (老板 macOS 验后再补 .body 接入)
-//  - 不接 LayoutShellView, 不接 BookEditorSheet, 不接 LibraryOutlineView
 //
 
 import Foundation
