@@ -137,11 +137,7 @@ public struct ZonePerRegionChrome<Content: View>: View {
 
     public var body: some View {
         VStack(spacing: 0) {
-            // Top toolbar (= 30 PT, matches old ZoneTopToolbar). Skip when
-            // topSkip=true (= editor: internal ZoneContentTabBar is the top).
-            if !topSkip {
-                topBar
-            }
+            // v0.34: topBar removed (= 0 active caller, see file-bottom comment).
             // Region content (= fills remaining space).
             // v0.28 followup Boss UX round 42 (Boss 2026-08-29 OOB
             // '缺三个区, 项目管理, 工具, 聊天, 都没进你的样式表' =
@@ -158,81 +154,14 @@ public struct ZonePerRegionChrome<Content: View>: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(zone.map(RegionContentBackground.init(zone:)) ?? RegionContentBackground())
             // Bottom toolbar (= 30 PT, matches old ZoneBottomToolbar).
+            // 5 of 6 active callers (sidebar/preview/editor/tools/dynamic)
+            // pass bottomSkip: false; chat passes bottomSkip: true (= chat
+            // uses its own internal ChatBottomToolbar per v0.21 ticket 10).
             if !bottomSkip {
                 bottomBar
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    // MARK: - Top toolbar (= matches old ZoneTopToolbar body)
-
-    @MainActor
-    private var topBar: some View {
-        VStack(spacing: 0) {
-            // Top splitter line (= matches old .overlay(alignment: .top)).
-            // v0.28 followup Boss UX round 26: use Apple's HierarchicalShapeStyle
-            // .separator (= macOS 26 Tahoe canonical Liquid Glass separator =
-            // semitransparent line that adapts to dark/light mode automatically)
-            // instead of Color(nsColor: .separatorColor) (= solid NSColor).
-            // 1 PT height preserved.
-            Rectangle()
-                .fill(.separator)
-                .frame(height: 1)
-            HStack(spacing: DesignTokens.chromePaddingClusterGap) {
-                // Left: icon buttons (= matches old .overlay(alignment: .topLeading)).
-                HStack(spacing: DesignTokens.chromePaddingClusterGap) {
-                    if topActions.isEmpty {
-                        // Placeholder mode: render empty 30 PT strip (= backward
-                        // compatible with old "占位文字" mode).
-                        // v0.28 followup Boss UX round 29: matches
-                        // kZoneToolbarHeight = 30 PT (was -1 = 29 PT,
-                        // leftover from old separator-outside-bar design).
-                        Color.clear.frame(width: 1, height: kZoneToolbarHeight)
-                    } else {
-                        ForEach(topActions) { action in
-                            Button {
-                                action.onSelect?()
-                            } label: {
-                                ZoneChromeIcon(systemName: action.icon)
-                                    .frame(width: 28, height: 28)
-                                    .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            .help(action.label)
-                            .accessibilityLabel(action.label)
-                        }
-                    }
-                }
-                .padding(.leading, LayoutTokens.chromePaddingLeading)
-                .padding(.top, LayoutTokens.chromePaddingMedium)
-                Spacer(minLength: 0)
-                // Right: placeholder text (= matches old "占位文字").
-                Text(topActions.isEmpty ? "占位文字" : "")
-                    .font(.body)
-                    .foregroundStyle(.tertiary)
-                    .padding(.trailing, LayoutTokens.chromePaddingTrailing)
-                    .padding(.top, LayoutTokens.chromePaddingLarge)
-            }
-            // v0.28 followup Boss UX round 29: kZoneToolbarHeight = 30 PT
-            // (was -1 = 29 PT, leftover from old separator-outside-bar
-            // design). Now matches ZoneContentTabBar + bottom bar height.
-            .frame(height: kZoneToolbarHeight)
-            // v0.32 boss 2026-09-02 OOB ('默认不加液态玻璃效果,
-            // 我们就不加; 默认带的, 我们就默认带; 不能空着,
-            // 空着透明了'): replace .regularMaterial (Apple
-            // translucent Liquid Glass) with Apple canonical
-            // controlBackgroundColor (Apple opaque NSColor) =
-            // matches the same fix already applied to RegionTabBar
-            // + AppStatusbar in commits 8fb3f15dd + 76203ea59.
-            // .regularMaterial here made the 6 per-region top
-            // toolbars wash out (= translucent overlay covered the
-            // pane content tier beneath, eliminating the brightness
-            // delta between chrome tier .controlBackgroundColor and
-            // content tier .windowBackgroundColor). opaque Apple
-            // NSColor = visual brightness delta is preserved.
-            .background(Color(nsColor: .controlBackgroundColor))
-        }
     }
 
     // MARK: - Bottom toolbar (= matches old ZoneBottomToolbar body)
@@ -252,6 +181,27 @@ public struct ZonePerRegionChrome<Content: View>: View {
         )
     }
 }
+
+// v0.34 boss 2026-09-02 OOB '所有区域的顶栏, 结构都一样, 为什么不能是一个组件'.
+// The topBar (which used to be a 'private var' in ZonePerRegionChrome)
+// was DEAD CODE: all 6 callers in TabContentDispatcher.swift pass
+// topActions: [] + topSkip: true, meaning the topBar was never rendered
+// (= each zone uses its own internal ZoneContentTabBar /
+// ChatZoneTopChrome / DynamicZoneTabBar). Removed in v0.34.
+//
+// Single-source-of-truth for per-pane top chrome (= the actual canonical
+// 3 different components that the 6 zones use) is now split across:
+//   - ZoneContentTabBar (sidebar/preview/editor/tools) — most common
+//   - ChatZoneTopChrome (aiChat)
+//   - DynamicZoneTabBar (aiDynamic)
+// All three follow the same Apple HIG structure (= HStack + icons +
+// selected underline + .controlBackgroundColor + 1 PT .separator).
+// Future ticket (= v0.35+ boss拍): merge these 3 into 1
+// WenshuZoneTopBar<ZoneSlot> generic component. Not done in v0.34
+// because each of the 3 has zone-specific state plumbing
+// (ZoneContentTabBar's matchedGeometryEffect namespace, ChatZoneTopChrome's
+// safeAreaInset integration, DynamicZoneTabBar's DynamicTab enum binding)
+// that would need to be re-architected as a generic state API first.
 
 // MARK: - Lucide + SF Symbol fallback icon (= matches old ZoneIcon)
 
