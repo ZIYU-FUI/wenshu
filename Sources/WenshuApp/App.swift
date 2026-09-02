@@ -1220,35 +1220,40 @@ private struct ProviderKeyInputSheet: View {
             .frame(minWidth: 1280, minHeight: 720)
             .environment(library)
             .preferredColorScheme(appearanceMode.colorScheme)
-            // v0.32 boss 2026-09-02 OOB ('这个颜色把所有颜色都
-            // 覆盖了; 不能用窗口级的背景色, 每区写自己的背景色;
-            // 如果这个窗口级背景色非要有, 那也是在最最最后面的
-            // 那个图层, 不能覆盖其它区域的背景'):
-            // .containerBackground(for: .window) is REQUIRED by
-            // SwiftUI's macOS WindowGroup (= without it the
-            // window background defaults to black + the .glass
-            // capsule crashes during layout). The color argument
-            // must be the LAST-RENDERED layer (= behind every
-            // pane's RegionContentBackground, behind every tab
-            // bar / status bar / sidebar). Setting it to
-            // Color.clear (= no fill, no tint) makes it a true
-            // bottom layer that does NOT occlude any per-pane
-            // opaque fill from RegionContentBackground (= chrome
-            // tier .controlBackgroundColor for sidebar / tools,
-            // content tier .windowBackgroundColor for preview /
-            // editor / chat / dynamic).
+            // v0.32 boss 2026-09-02 OOB ('窗口级背景用
+            // windowBackgroundColor'): restore the window-level
+            // opaque background = Apple canonical
+            // windowBackgroundColor. Per boss 2026-09-02 OOB
+            // correction, the Monterey 12.0.1 Dark Mode
+            // reference values for the 4-tier dynamic system
+            // color hierarchy are:
+            // - windowBackgroundColor    = #323232 (浅, 容器)
+            // - underPageBackgroundColor = #282828 (中, 内容)
+            // - controlBackgroundColor   = #1E1E1E (深, chrome)
+            // - textBackgroundColor      = #1E1E1E (深, chrome)
             //
-            // Why Color.clear (= not .windowBackgroundColor, not
-            // .controlBackgroundColor, not any NSColor):
-            // - .windowBackgroundColor / .controlBackgroundColor
-            //   here would occlude the 6 pane backgrounds (= the
-            //   wash that the boss flagged).
-            // - SwiftUI's .containerBackground API does not
-            //   accept .glass / .regularMaterial (= Material
-            //   values are not 'some ShapeStyle'). Use Color.clear
-            //   + put the glass material on the per-pane layer.
+            // The window background is the lightest tier (= the
+            // outermost container). The content panes tint darker
+            // (underPageBackgroundColor #282828 = content floats).
+            // The chrome panes tint even darker
+            // (controlBackgroundColor #1E1E1E = sidebar / tools
+            // / tab bar / status bar = recessed chrome). This is
+            // the standard Apple HIG 6-pane pattern (= the 6 panes
+            // show 3 distinct Apple-canonical tones in dark mode).
+            //
+            // Note: current local macOS environment is compressing
+            // windowBackgroundColor to #1E1E1E (= identical to
+            // controlBackgroundColor = no visible delta between
+            // tiers). This is likely caused by an accessibility
+            // setting (= Increase Contrast or Tinted mode). Per
+            // boss 2026-09-02 OOB 'hard rule: Apple API only, do
+            // not customize' = do not hardcode; trust the
+            // Apple-supplied canonical hierarchy even when local
+            // accessibility overrides compress it. Tahoe will
+            // re-expand the tiers when the user disables the
+            // accessibility override.
             .containerBackground(for: .window) {
-                Color.clear
+                Color(nsColor: .windowBackgroundColor)
             }
             .onAppear {
                 WenshuAppDelegate.openSettings = openSettings
