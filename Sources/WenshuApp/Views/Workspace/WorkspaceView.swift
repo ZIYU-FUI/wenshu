@@ -645,7 +645,8 @@ struct EditorPlaceholder: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
-                // v0.34 ticket 08: center slot = mode toggle (= ticket 04).
+                // Center slot: mode toggle (= ticket 04 + v0.34 ticket 10
+                // Cmd+E hotkey via .keyboardShortcut).
                 Spacer()
                 PaneTrailingIconButton(
                     icon: mode.iconName,
@@ -654,6 +655,7 @@ struct EditorPlaceholder: View {
                         mode = (mode == .preview) ? .edit : .preview
                     }
                 )
+                .keyboardShortcut("e", modifiers: .command)  // v0.34 ticket 10
                 // v0.34 ticket 08: right slot = save + expand + close.
                 //   - Save button: only in .edit mode; .tint when dirty (gray otherwise).
                 //   - Expand button: ticket 03 (EditorExpandShrinkTrailingButton).
@@ -671,17 +673,29 @@ struct EditorPlaceholder: View {
                     // .secondary (= default for trailing buttons) to .tint
                     // (= Apple HIG accent color, signals action affordance).
                     .foregroundStyle(isDirty ? Color.accentColor : Color.secondary)
+                    .keyboardShortcut("s", modifiers: .command)  // v0.34 ticket 10: Cmd+S
                 }
+                // v0.34 ticket 10: Cmd+Shift+E for editor expand toggle.
+                // Routes through .wenshuEditorMaximizedChanged (= same
+                // listener installed by ticket 03).
                 PaneTrailingIconButton(
                     icon: "rectangle.expand.vertical",
                     tooltip: "展开/收起编辑器区",
-                    action: { /* ticket 03 listener handles expand */ }
+                    action: {
+                        NotificationCenter.default.post(
+                            name: .wenshuEditorMaximizedChanged,
+                            object: true  // ticket 03 button is one-way expand;
+                                          // shrink path is the inverse toggle
+                        )
+                    }
                 )
+                .keyboardShortcut("e", modifiers: [.command, .shift])  // v0.34 ticket 10
                 PaneTrailingIconButton(
                     icon: "xmark",
                     tooltip: "关闭编辑器 (Cmd+W)",
                     action: { tryClose() }
                 )
+                .keyboardShortcut("w", modifiers: .command)  // v0.34 ticket 10: Cmd+W
             }
             .padding(.horizontal, DesignTokens.chromePaddingLeading)
             .frame(height: DesignTokens.paneTabHotArea)
