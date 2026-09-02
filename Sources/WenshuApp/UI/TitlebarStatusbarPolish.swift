@@ -27,19 +27,16 @@ import AppKit
 public struct TitlebarControlStyle: ButtonStyle {
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            // v0.28 followup Boss UX round 24: .thinMaterial (= light
-            // Liquid Glass) replaces Color(nsColor: .controlBackgroundColor)
-            // .opacity(0.5) for the titlebar/statusbar button press
-            // background. .thinMaterial is the canonical Apple HIG
-            // v0.28 followup Boss UX round 35 (Boss 2026-08-29 OOB '各区域的
-            // 完整代码, 关于样式的, 不统一'): use the canonical
-            // RegionHoverWashStyle (= single source of truth for
-            // hover/pressed wash across the app) instead of ad-hoc
-            // Color.clear.overlay(.thinMaterial) (= same visual
-            // result but single source of truth = easier to maintain).
+            // v0.32 boss 2026-09-02 OOB ('全走 apple api 默认'):
+            // use bare Apple Material catalog directly (= the
+            // canonical SwiftUI .thinMaterial from the Material
+            // enum). The previous RegionHoverWashStyle wrapper
+            // added an extra type with no semantic value (= it
+            // just returned .thinMaterial from its resolve()
+            // method). Apple canonical = .thinMaterial direct call.
             .background {
                 if configuration.isPressed {
-                    Color.clear.overlay(RegionHoverWashStyle())
+                    Color.clear.overlay(.thinMaterial)
                 } else {
                     Color.clear
                 }
@@ -101,13 +98,14 @@ public struct StatusbarActionStyle: ViewModifier {
     public func body(content: Content) -> some View {
         content
             .padding(.horizontal, LayoutTokens.chromePaddingMedium)
-            // v0.28 followup Boss UX round 35 (Boss 2026-08-29 OOB '各区域的
-            // 完整代码, 关于样式的, 不统一'): use canonical
-            // RegionHoverWashStyle (= single source of truth for
-            // hover/pressed wash = .thinMaterial).
+            // v0.32 boss 2026-09-02 OOB ('全走 apple api 默认'):
+            // use bare Apple Material catalog directly (= the
+            // canonical SwiftUI .thinMaterial from the Material
+            // enum). The previous RegionHoverWashStyle wrapper
+            // added an extra type with no semantic value.
             .background {
                 if isHover && !disabled {
-                    Color.clear.overlay(RegionHoverWashStyle())
+                    Color.clear.overlay(.thinMaterial)
                 } else {
                     Color.clear
                 }
