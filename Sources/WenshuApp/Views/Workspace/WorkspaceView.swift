@@ -644,6 +644,16 @@ struct EditorPlaceholder: View {
 
     @State private var mode: Mode = .preview
 
+    // v0.34 B-18: editor zone word count. Writes the live character
+    // count (= WordCounter.count(draft).charactersNoSpaces) to the
+    // shared AppState.editorWordCount on every draft change. The
+    // chrome bottom-bar left field reads AppState.editorWordCount
+    // (= single source of truth, no per-view recompute, no .task
+    // round-trip). WordCounter is Foundation-only (= no observable
+    // state; = pure String → WordCount function), so .onChange is the
+    // right Apple HIG primitive (= re-evaluates per keystroke).
+    @Environment(AppState.self) private var appState
+
     var body: some View {
         VStack(spacing: 0) {
             // v0.34 ticket 04: top toolbar (= 28 PT = DesignTokens.paneTabHotArea).
@@ -759,7 +769,14 @@ struct EditorPlaceholder: View {
                     EditorEditContent(
                         draft: $draft,
                         originalBody: originalBody,
-                        onSave: { saveDraft() }
+                        onSave: { saveDraft() },
+                        // v0.34 B-18: route live word count into shared
+                        // AppState.editorWordCount (= chrome bottom-bar
+                        // left field reads it). Recompute is per-
+                        // keystroke; = Foundation-only = microseconds.
+                        onWordCountChange: { count in
+                            appState.editorWordCount = count
+                        }
                     )
                 }
             }
@@ -985,6 +1002,11 @@ private struct EditorEditContent: View {
     @Binding var draft: String
     let originalBody: String
     let onSave: () -> Void
+    // v0.34 B-18: word count callback (= char count → host writes to
+    // AppState.editorWordCount, which chrome reads for the bottom-bar
+    // left field). Decoupled from AppState so EditorEditContent
+    // stays a pure rendering surface (= no @Environment coupling).
+    let onWordCountChange: (Int) -> Void
 
     /// Read-only dirty flag (= computed from the binding's current value).
     private var isDirty: Bool { draft != originalBody }
@@ -1004,6 +1026,16 @@ private struct EditorEditContent: View {
             .font(.body)
             .padding(DesignTokens.chromePaddingMedium)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // v0.34 B-18: write live character count via host callback
+            // (= per-keystroke; = Foundation-only recompute). Host
+            // (EditorPlaceholder) routes the value into
+            // AppState.editorWordCount for the chrome bottom-bar left
+            // field. WordCounter.count's charactersNoSpaces matches
+            // Obsidian's default Word count plugin behavior (= exclude
+            // whitespace, line breaks, tabs).
+            .onChange(of: draft) { _, newValue in
+                onWordCountChange(WordCounter.count(newValue).charactersNoSpaces)
+            }
             // Dirty status surfaced to the host via the `onSave` closure
             // (= not strictly needed by TextEditor itself; the host reads
             // `draft` and `originalBody` to decide dirty highlighting

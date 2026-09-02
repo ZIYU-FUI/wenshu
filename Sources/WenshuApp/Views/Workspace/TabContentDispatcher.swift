@@ -140,7 +140,12 @@ struct TabContentDispatcher: View {
             ZonePerRegionChrome(
                 topActions: [],
                 bottomStatus: ZoneBottomStatus(
-                    left: "字数: 0",
+                    // v0.34 B-18: chrome bottom left = live word count.
+                    // AppState.editorWordCount is written by
+                    // EditorEditContent's .onChange(of: draft) handler
+                    // (= single source of truth shared with any
+                    // future editor-zone status widget).
+                    left: "字数: \(appState.editorWordCount)",
                     right: "反链 \(backlinksCount)",
                     // B-16: chrome bottom right text is clickable
                     // (= tap triggers BacklinksPanel popover).
