@@ -1220,37 +1220,36 @@ private struct ProviderKeyInputSheet: View {
             .frame(minWidth: 1280, minHeight: 720)
             .environment(library)
             .preferredColorScheme(appearanceMode.colorScheme)
-            // v0.30 boss 2026-09-01 OOB (divider round 3): the
-            // .containerBackground(for: .window) modifier that
-            // was previously declared on App.body (= where it could
-            // not read the @AppStorage('wenshu.liquidGlassOpacity'
-            // value) is also declared here so the window background
-            // tint follows the liquidGlassOpacity slider. We use
-            // 'Color.clear.overlay(.material)' because the
-            // .containerBackground content builder requires
-            // 'some View' (= Color.clear.overlay returns 'some View')
-            // but 'liquidGlassOpacity.toLiquidGlassMaterial()'
-            // returns 'Material' (= not a View by itself). The
-            // 6-step ladder on LiquidGlassOpacity.swift maps
-            // slider 0 (= .ultraThinMaterial = fully transparent)
-            // to 1 (= .bar = fully opaque) so the user can dial
-            // the window background transparency from the Settings
-            // v0.32 boss 2026-09-02 OOB ('默认不加液态玻璃效果,
-            // 我们就不加; 默认带的, 我们就默认带; 不能空着,
-            // 空着透明了'): use Apple canonical windowBackgroundColor
-            // (= NSColor windowBackgroundColor; macOS 27 Tahoe default
-            // = system-managed color that adapts to dark / light mode
-            // + accent tint; no per-pane glass specular, no
-            // transparent see-through to the desktop wallpaper).
+            // v0.32 boss 2026-09-02 OOB ('这个颜色把所有颜色都
+            // 覆盖了; 不能用窗口级的背景色, 每区写自己的背景色;
+            // 如果这个窗口级背景色非要有, 那也是在最最最后面的
+            // 那个图层, 不能覆盖其它区域的背景'):
+            // .containerBackground(for: .window) is REQUIRED by
+            // SwiftUI's macOS WindowGroup (= without it the
+            // window background defaults to black + the .glass
+            // capsule crashes during layout). The color argument
+            // must be the LAST-RENDERED layer (= behind every
+            // pane's RegionContentBackground, behind every tab
+            // bar / status bar / sidebar). Setting it to
+            // Color.clear (= no fill, no tint) makes it a true
+            // bottom layer that does NOT occlude any per-pane
+            // opaque fill from RegionContentBackground (= chrome
+            // tier .controlBackgroundColor for sidebar / tools,
+            // content tier .windowBackgroundColor for preview /
+            // editor / chat / dynamic).
+            //
+            // Why Color.clear (= not .windowBackgroundColor, not
+            // .controlBackgroundColor, not any NSColor):
+            // - .windowBackgroundColor / .controlBackgroundColor
+            //   here would occlude the 6 pane backgrounds (= the
+            //   wash that the boss flagged).
+            // - SwiftUI's .containerBackground API does not
+            //   accept .glass / .regularMaterial (= Material
+            //   values are not 'some ShapeStyle'). Use Color.clear
+            //   + put the glass material on the per-pane layer.
             .containerBackground(for: .window) {
-                Color(nsColor: .windowBackgroundColor)
+                Color.clear
             }
-            // v0.32 boss 2026-09-02 OOB: removed
-            // \`.liquidGlassOpacityEnvironment(liquidGlassOpacity)\`
-            // injection (= self-rolled env-key no longer has any
-            // consumers after the four-callers migration to
-            // Apple .glassEffect). Apple canonical .glassEffect
-            // auto-applies project-wide without per-call env wiring.
             .onAppear {
                 WenshuAppDelegate.openSettings = openSettings
                 // v0.28 followup (Boss 2026-08-29 OOB '调试视图框架'):
