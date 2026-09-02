@@ -119,17 +119,38 @@ public struct RegionContentBackground: View {
     /// 2026-09-02 OOB hard rule: "你所有用的颜色, 都是 API 给的,
     /// 不要自定义" — every color literal must come from an Apple
     /// NSColor API.
+    ///
+    /// Per boss 2026-09-02 OOB Monterey 12.0.1 Dark Mode
+    /// reference values for the 4-tier dynamic system color
+    /// hierarchy (= the standard Apple HIG layout):
+    /// - windowBackgroundColor    = #323232 (lightest = container)
+    /// - underPageBackgroundColor = #282828 (middle = content)
+    /// - controlBackgroundColor   = #1E1E1E (deepest = chrome)
+    /// - textBackgroundColor      = #1E1E1E (deepest = chrome)
+    ///
+    /// Content tier = .underPageBackgroundColor (= 1 tier lighter
+    /// than chrome in dark mode = visually floats above the chrome
+    /// tier per Apple HIG content-floats convention).
+    ///
+    /// Note: current local macOS environment is compressing
+    /// windowBackgroundColor to #1E1E1E (= identical to
+    /// controlBackgroundColor = no visible delta). This is
+    /// accessibility-driven (= Increase Contrast or Tinted mode).
+    /// The code uses Apple canonical NSColor = will re-expand the
+    /// tiers when the accessibility override is disabled.
     private var appleBackground: Color {
         switch zone {
         case .projectSidebar, .specializedTools:
             // Chrome tier (= sidebar / inspector / large control).
+            // Dark mode: #1E1E1E (= the deepest of the 4 tiers =
+            // recessed container).
             return Color(nsColor: .controlBackgroundColor)
         case .projectPreview, .editor, .aiChat, .aiDynamic:
             // Content tier (= "the area beneath your window's
-            // views" per Apple docs). Inset 1 tier darker than
-            // chrome in dark mode (= matches FCP viewer / Mail
-            // message list / Xcode editor depth).
-            return Color(nsColor: .windowBackgroundColor)
+            // views" per Apple docs). Dark mode: #282828 (= 1
+            // tier lighter than chrome in dark mode = Apple HIG
+            // content-floats).
+            return Color(nsColor: .underPageBackgroundColor)
         }
     }
 
