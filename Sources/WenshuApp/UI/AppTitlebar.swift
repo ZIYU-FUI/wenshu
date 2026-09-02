@@ -156,7 +156,6 @@ public struct AppTitlebar: View {
                 Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.leading, 0)
 
             // Center: optional title.
             if let title {
@@ -178,7 +177,6 @@ public struct AppTitlebar: View {
                     .frame(width: kTitlebarEdgeInset, height: kTitlebarHeight)
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
-            .padding(.trailing, 0)
         }
         .frame(height: kTitlebarHeight)
         .accessibilityElement(children: .contain)

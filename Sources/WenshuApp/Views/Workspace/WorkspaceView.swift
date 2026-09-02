@@ -640,8 +640,8 @@ private struct EditModeBadge: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .padding(.horizontal, DesignTokens.chromePaddingChipHorizontal)
+            .padding(.vertical, DesignTokens.chromePaddingSmall)
             // v0.28 followup Boss UX round 24: .regularMaterial
             // replaces the solid Color.secondary.opacity(0.15) tint
             // for the edit-mode badge background (= the floating

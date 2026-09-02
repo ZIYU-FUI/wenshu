@@ -47,6 +47,51 @@ public enum DesignTokens {
     /// chromePaddingMedium (5) + chromePaddingLarge (6) (= inconsistent).
     public static let chromePaddingVertical: CGFloat = 8
 
+    /// Per-pane chrome micro padding (= 4 PT). Used for tight inset inside
+    /// chrome chrome (= icon-picker cells, tab handles, divider label gaps).
+    /// Replaces inline `.padding(.horizontal, 4)`.
+    public static let chromePaddingMicro: CGFloat = 4
+
+    /// Per-pane chrome small padding (= 6 PT). Used for status bar hover,
+    /// tight text padding inside chips, badge interior gaps.
+    /// Replaces inline `.padding(.vertical, 6)`.
+    public static let chromePaddingSmall: CGFloat = 6
+
+    /// Per-pane chrome medium padding (= 12 PT). Apple HIG standard for
+    /// bordered content rows (= chat input, popup buttons, picker rows).
+    /// Replaces inline `.padding(.horizontal, 12)`.
+    public static let chromePaddingMedium: CGFloat = 12
+
+    /// Per-pane chrome large padding (= 16 PT). Apple HIG standard for
+    /// stacked section separators (= onboarding body, Settings rows).
+    /// Replaces inline `.padding(.top, 16)`.
+    public static let chromePaddingLarge: CGFloat = 16
+
+    /// Per-pane chrome extra-large padding (= 24 PT). Used only for
+    /// onboarding hero text block (= one-time welcome layout).
+    /// Replaces inline `.padding(.horizontal, 24)`.
+    public static let chromePaddingXLarge: CGFloat = 24
+
+    /// Settings segmented picker leading inset (= 14 PT). Apple HIG
+    /// standard for inline picker alignment inside Settings rows.
+    /// Replaces inline `.padding(.leading, 14)`.
+    public static let chromePaddingPickerLeading: CGFloat = 14
+
+    /// Chat input outer bottom margin (= 10 PT). Apple HIG standard for
+    /// chat input row bottom inset (= Messages / Mail / Xcode).
+    /// Replaces inline `.padding(.bottom, 10)`.
+    public static let chromePaddingChatBottom: CGFloat = 10
+
+    /// Floating edit-mode indicator chip horizontal padding (= 10 PT).
+    /// Apple HIG standard for floating chip / badge layout.
+    /// Replaces inline `.padding(.horizontal, 10)`.
+    public static let chromePaddingChipHorizontal: CGFloat = 10
+
+    /// Hotkey chip micro vertical padding (= 1 PT). Apple HIG standard
+    /// for inline keyboard-shortcut chip inside toolbar labels.
+    /// Replaces inline `.padding(.vertical, 1)`.
+    public static let chromePaddingHotkeyVertical: CGFloat = 1
+
     // MARK: - Tab metrics
 
     /// Per-pane tab button hot area (= 28×28 PT). Matches Apple HIG

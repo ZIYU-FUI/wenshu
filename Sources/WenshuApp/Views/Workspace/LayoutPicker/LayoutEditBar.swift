@@ -117,8 +117,8 @@ struct LayoutEditBar: View {
                     Text(HotkeyFormatter.editModeCombo)
                         .font(.caption2.weight(.medium))
                         .foregroundStyle(.secondary)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 1)
+                        .padding(.horizontal, DesignTokens.chromePaddingMicro)
+                        .padding(.vertical, DesignTokens.chromePaddingHotkeyVertical)
                         // v0.32 boss 2026-09-02 OOB ('全走 apple api
                         // 默认'): use bare Apple Material catalog
                         // directly (= the canonical SwiftUI .thin
@@ -142,8 +142,8 @@ struct LayoutEditBar: View {
             }
             .buttonStyle(.bordered)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, DesignTokens.chromePaddingMedium)
+        .padding(.vertical, DesignTokens.chromePaddingVertical)
         // v0.28 followup Boss UX round 24: .regularMaterial replaces
         // Color.secondary.opacity(0.08) (= solid tinted) for the
         // header drag handle background.

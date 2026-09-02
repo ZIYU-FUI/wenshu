@@ -660,9 +660,9 @@ struct SettingView: View {
                 }
             }
             .pickerStyle(.segmented)
-            .padding(.horizontal, 24)
-            .padding(.top, 16)
-            .padding(.bottom, 8)
+            .padding(.horizontal, DesignTokens.chromePaddingXLarge)
+            .padding(.top, DesignTokens.chromePaddingLarge)
+            .padding(.bottom, DesignTokens.chromePaddingVertical)
             .onChange(of: selectedTab) { _, new in
                 if new == .providerApi { refreshProviderStatus() }
                 if new == .model {
@@ -833,7 +833,7 @@ struct SettingView: View {
                     .contentShape(Rectangle())
                     if apiExpandedProviders.contains(p.slug) {
                         providerApiEditor(for: p)
-                            .padding(.leading, 18)
+                            .padding(.leading, DesignTokens.chromePaddingLeading)
                             .transition(.opacity)
                     }
                 }
@@ -1738,13 +1738,13 @@ struct ChatZoneView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                    .padding(.bottom, 6)
+                    .padding(.bottom, DesignTokens.chromePaddingSmall)
                     .frame(height: DesignTokens.chromeHeight, alignment: .bottomLeading)
                 }
                 // v0.21 ticket 42: Apple 真值组合 .menuStyle(.button) + .buttonStyle(.plain) = 去外壳 (Apple SwiftUI 14+ deprecated .borderedButton 提示路径)
                 .menuStyle(.button)
                 .buttonStyle(.plain)
-                .padding(.leading, 14)
+                .padding(.leading, DesignTokens.chromePaddingPickerLeading)
                 .task {
                     // v0.23 ticket 011.002: load sectioned available models from Keychain.
                     // (was: live-fetch from minimax API; now: discover all configured providers.)
@@ -1803,8 +1803,8 @@ struct ChatZoneView: View {
                         .frame(width: 80)
                         .tint(vm.contextUsed >= vm.contextMax ? .red : (vm.contextUsed > vm.contextMax * 3 / 4 ? .orange : .green))
                 }
-                .padding(.trailing, 18)
-                .padding(.bottom, 6)
+                .padding(.trailing, DesignTokens.chromePaddingTrailing)
+                .padding(.bottom, DesignTokens.chromePaddingSmall)
                 .frame(height: DesignTokens.chromeHeight, alignment: .bottomTrailing)
             }
             // v0.32 boss 2026-09-02 OOB ('全走 apple api 默认; 不
@@ -1910,7 +1910,7 @@ struct ChatZoneTabBar: View {
                     .background(Color.clear)
                 }
             }
-            .padding(.leading, 18)
+            .padding(.leading, DesignTokens.chromePaddingLeading)
 
             Spacer()
 
@@ -1966,7 +1966,7 @@ struct ChatZoneTabBar: View {
                 showingArchiveAlertHover = hovering
             }
             .help("归档当前会话")
-            .padding(.trailing, 18)
+            .padding(.trailing, DesignTokens.chromePaddingTrailing)
         }
         .frame(maxWidth: .infinity)
         .frame(height: DesignTokens.chromeHeight)

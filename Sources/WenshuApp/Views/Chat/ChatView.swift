@@ -438,7 +438,7 @@ public struct ChatView: View {
             // 8 PT margin is OUTSIDE the textfield, NOT inside
             // = no inner padding on the textfield itself).
             // v0.28 followup Boss UX round 20: HStack(alignment: .center,
-            // spacing: 8) with .padding(.top, 16) (= 16 PT outer top
+            // spacing: 8) with .padding(.top, DesignTokens.chromePaddingLarge) (= 16 PT outer top
             // margin applied to the entire HStack, = both TextField
             // and Send button offset down 16 PT together = no
             // misalignment). Per Apple HIG for chat input rows in
@@ -530,7 +530,7 @@ public struct ChatView: View {
                     // = .gray in SwiftUI = systemGray), and the
                     // position should be left-aligned with 12 PT
                     // horizontal padding (= Apple HIG text field
-                    // default). Fix = add .padding(.horizontal, 12)
+                    // default). Fix = add .padding(.horizontal, DesignTokens.chromePaddingMedium)
                     // to the TextField (= Apple HIG default 12 PT
                     // horizontal padding), and add a subtle
                     // Color.gray.opacity(0.1) background (= so the
@@ -581,7 +581,7 @@ public struct ChatView: View {
                     // visual was 24 PT (= 1 line) so boss wanted to
                     // match the button height.
                     .frame(minHeight: 30)
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, DesignTokens.chromePaddingMedium)
                     // v0.28 followup Boss UX round 23 (Boss 2026-08-29
                     // OOB '文本框是液态玻璃样式的吗'): Was using
                     // Color.gray.opacity(0.1) (= solid 10% opacity
@@ -661,7 +661,7 @@ public struct ChatView: View {
                 .disabled(vm.inputText.isEmpty || vm.isSending)
                 // v0.28 followup Boss UX round 20 (Boss 2026-08-29 OOB
                 // '文本框和发送按钮位置上水平对齐'): REMOVED the
-                // .padding(.top, 16) here (= was misaligning the
+                // .padding(.top, DesignTokens.chromePaddingLarge) here (= was misaligning the
                 // button with the TextField because the TextField
                 // had no equivalent top padding = button was 16 PT
                 // below the TextField top edge). Now both TextField
@@ -678,14 +678,14 @@ public struct ChatView: View {
                 // + 8 PT new) to the HStack (= not to the button).
             }
             // v0.28 followup Boss UX round 20: 16 PT outer top margin
-            // moved from .padding(.top, 16) on the button (= was
+            // moved from .padding(.top, DesignTokens.chromePaddingLarge) on the button (= was
             // misaligning the button with TextField) to the HStack
             // (= both TextField and Send button offset down 16 PT
             // together, no misalignment). HStack(alignment: .center)
             // vertically centers both 24 PT controls at the HStack
             // midline (= Apple HIG canonical for chat input rows).
-            .padding(.top, 16)
-            .padding(.horizontal, 18)
+            .padding(.top, DesignTokens.chromePaddingLarge)
+            .padding(.horizontal, DesignTokens.chromePaddingLeading)
             // v0.28 followup Boss UX round 22 (Boss 2026-08-29 OOB
             // '文本框, 发送按钮, 距离底边都加上 10pt'): 10 PT outer
             // bottom margin (= both TextField + Send button offset up
@@ -694,7 +694,7 @@ public struct ChatView: View {
             // rows = matches the Apple Messages / Slack / Mail Compose
             // chat input layout where the input row has breathing
             // room from the window bottom edge).
-            .padding(.bottom, 10)
+            .padding(.bottom, DesignTokens.chromePaddingChatBottom)
         }
         // v0.24 boss验收fix (2026-08-24): help text DIRECTLY below input box.
         // Boss 8/24 (out-of-band): '请先在设置中设置好大模型提供方。点击设置'
@@ -796,7 +796,7 @@ struct ChatMessageView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .textSelection(.enabled)
-                                .padding(.top, 4)
+                                .padding(.top, DesignTokens.chromePaddingMicro)
                                 .transition(.opacity)
                         } label: {
                             HStack(spacing: 4) {
