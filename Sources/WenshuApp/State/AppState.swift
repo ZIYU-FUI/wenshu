@@ -59,5 +59,64 @@ final class AppState {
     // writes via .onChange(of: draft); chrome reads via @Environment.
     var editorWordCount: Int = 0
 
+    // v0.34 B-24 (= boss 9/2 OOB 'multi-tab editor, Safari style'):
+    // open document tabs in the editor zone. Each tab = one open
+    // document (= independent draft, mode, auto-save task, file
+    // watcher). activeTabId identifies the currently focused tab.
+    // Single source of truth across views (= TabContentDispatcher,
+    // EditorPlaceholder, any future cross-zone tab bar).
+    var openTabs: [EditorTab] = [.placeholder]
+    var activeTabId: UUID = EditorTab.placeholderId
+
     init() {}
+}
+
+// v0.34 B-24: per-tab editor state. Holds all data that was previously
+// View-local @State on EditorPlaceholder (= draft, originalBody,
+// mode, documentPath, autoSaveTask, fileWatcher). Each tab = one open
+// document with independent state; = when the user opens a 2nd
+// document via double-click (= boss 9/2 OOB scenario), it creates a
+// new tab without disturbing the current tab's in-progress edits.
+struct EditorTab: Identifiable, Equatable {
+    let id: UUID
+    var documentPath: String?    // nil = placeholder / sample body
+    var draft: String
+    var originalBody: String
+    var mode: EditorMode          // .preview | .edit
+
+    // Placeholder tab (= the default tab that shows samplePreviewBody).
+    // Single instance = single source of truth for the "no document
+    // open yet" state.
+    static let placeholderId = UUID()
+    static let placeholder = EditorTab(
+        id: placeholderId,
+        documentPath: nil,
+        draft: "",  // filled by caller (= EditorPlaceholder.samplePreviewBody at use site)
+        originalBody: "",
+        mode: .preview
+    )
+}
+
+// v0.34 B-24: top-level enum (= EditorTab is a top-level struct; = can't
+// reference nested Mode). Mirrors the previous nested enum (= .preview
+// / .edit) but lifted to module scope. Was: EditorPlaceholder.Mode.
+// Carries iconName + tooltip (= the format-bar / keyboard-shortcut
+// helpers previously read these from the nested Mode; = kept here
+// so EditorTab / EditorPlaceholder can both reference them).
+enum EditorMode: String, CaseIterable, Identifiable {
+    case preview
+    case edit
+    var id: String { rawValue }
+    var iconName: String {
+        switch self {
+        case .preview: return "eye"
+        case .edit:    return "pencil"
+        }
+    }
+    var tooltip: String {
+        switch self {
+        case .preview: return "预览模式"
+        case .edit:    return "编辑模式"
+        }
+    }
 }
