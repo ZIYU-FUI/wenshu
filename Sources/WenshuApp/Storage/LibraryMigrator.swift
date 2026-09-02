@@ -516,9 +516,10 @@ struct LibraryMigrator: Sendable {
         )
 
         // =================================================================
-        // 保留原本的 chapters.json (= LibraryOutlineView reads this for
-        // chapter listing). But now default-chapter = 功能模块说明
-        // (= was 从这里开始). Updated to point to the new help-doc.
+        // 保留原本的 chapters.json (= NewLibraryOutlineView surfaces
+        // book folders including chapters/ in the sidebar tree). Default
+        // chapter = 功能模块说明 (= was 从这里开始). Updated to point to
+        // the new help-doc.
         // =================================================================
         let chapter = Document(
             id: defaultBookId,            // (= use same UUID for simplicity)
