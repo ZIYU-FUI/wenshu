@@ -611,22 +611,13 @@ struct SettingView: View {
     // WenshuConductorIdentity.userAddress reads this key at LLM call time.
     // Boss 8/24 clarification: default = 'user' (not 'boss' = hermes-side convention).
     @AppStorage("wenshu.userAddress") private var userAddress: String = "user"
-    // v0.30 boss 2026-09-01 OOB (Slider sync bug fix): replaced
-    // @AppStorage("wenshu.liquidGlassOpacity") with a manual
-    // @State mirror. SwiftUI's @AppStorage does NOT actively
-    // re-read UserDefaults when an external tool writes to the
-    // key (= e.g. `defaults write com.wenshu.app wenshu.liquidGlassOpacity=0`
-    // from a terminal), so the slider UI got stuck at the init
-    // value (0.5) on launch. The manual @State mirror listens to
-    // UserDefaults.didChangeNotification and re-reads the key, so
-    // external writes propagate to the UI within one runloop tick.
-    // The mirror also writes back to UserDefaults + posts
-    // .liquidGlassOpacityChanged (= the existing notification the
-    // non-SwiftUI AppKit consumers like WenshuSplitView already
-    // listen to) on slider drag.
-    private static let liquidGlassOpacityKey = "wenshu.liquidGlassOpacity"
-    @State private var liquidGlassOpacity: Double = UserDefaults.standard
-        .double(forKey: liquidGlassOpacityKey)
+    // v0.32 boss 2026-09-02 OOB ('用 macOS 自带液态玻璃, 跟随系统设置'):
+    // the user-tunable Liquid Glass opacity slider + manual @State mirror
+    // + UserDefaults key + NotificationCenter wiring was removed
+    // (= 134 LOC of self-rolled ladder across App.swift + LiquidGlassOpacity.swift
+    // + 4 caller files). Apple canonical .glassEffect(.regular) auto-adapts
+    // to system settings (= dark mode / Reduce Transparency / Increase Contrast),
+    // so a per-app slider is unnecessary and conflicts with the system.
 
     private var selectedTab: SettingsTab {
         get { SettingsTab(rawValue: selectedTabRaw) ?? .general }
@@ -732,75 +723,22 @@ struct SettingView: View {
                 .pickerStyle(.radioGroup)
             }
             Section("液态玻璃") {
-                // v0.28 followup Boss UX round 49 (Boss 2026-08-29 OOB
-                // '在设置里加一个功能, 液态玻璃透明度调节'): Slider for
-                // Liquid Glass opacity. 0.0 = most translucent (= Apple
-                // .ultraThinMaterial), 0.5 = standard (= Apple
-                // .regularMaterial), 1.0 = most opaque (= Apple
-                // .bar / .ultraThickMaterial). Live preview via
-                // LiquidGlassOpacity environment value = applies
-                // immediately to all panes.
-                //
-                // v0.30 boss 2026-09-01 OOB (6-step ladder): step =
-                // 1/6 ≈ 0.1667 to match the 6 Material boundaries in
-                // Double.toLiquidGlassMaterial(). Slider position
-                // display lands on 0/17/33/50/67/83/100 (= each a
-                // distinct Material boundary).
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text("液态玻璃透明度")
-                        Spacer()
-                        Text("\(Int((liquidGlassOpacity * 100).rounded()))%")
-                            .font(.caption.monospacedDigit())
-                            .foregroundStyle(.secondary)
-                    }
-                    Slider(value: $liquidGlassOpacity, in: 0.0...1.0, step: 0.01)
-                        // v0.30 boss 2026-09-01 OOB (Slider sync bug fix):
-                        // write back to UserDefaults + post the cross-instance
-                        // notification (= the AppKit consumers like
-                        // WenshuSplitView.drawDivider listen to this) on
-                        // every slider drag. Manual @State binding doesn't
-                        // auto-write, so we own that side too.
-                        .onChange(of: liquidGlassOpacity) { _, newValue in
-                            UserDefaults.standard.set(newValue, forKey: Self.liquidGlassOpacityKey)
-                            NotificationCenter.default.post(
-                                name: .liquidGlassOpacityChanged,
-                                object: nil
-                            )
-                        }
-                    Text("6 档阶梯（Apple Liquid Glass Material 完整集）· 0% = 最透 · 100% = 最不透明")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                    // v0.30 boss 2026-09-01 OOB: clarify the slider's
-                    // scope so the user does not expect it to control
-                    // the title bar (= title bar follows macOS System
-                    // Settings, per boss clarification 'let the title
-                    // bar follow the system, not the setting').
-                    // Affects: per-pane content + per-region tab/status
-                    // bar + bottom AppStatusbar. Does NOT affect the
-                    // title bar (.unified windowToolbarStyle is
-                    // system-managed; macOS System Settings ->
-                    // Accessibility -> Display -> Reduce transparency
-                    // is the title bar knob).
-                    Text("影响除标题栏外的所有液态玻璃界面元素。标题栏跟随 macOS 系统设置（系统设置 → 辅助功能 → 显示 → 减少透明度）")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
-                // v0.30 boss 2026-09-01 OOB (Slider sync bug fix): react
-                // to UserDefaults changes from outside this View (= e.g.
-                // another Settings window, or a terminal running
-                // `defaults write com.wenshu.app wenshu.liquidGlassOpacity=0`).
-                // SwiftUI's @AppStorage did not actively re-read on
-                // external writes; the manual @State mirror needs an
-                // explicit observer. The filter (= does the
-                // notification's userInfo mention our key) avoids
-                // gratuitous re-renders on unrelated defaults changes.
-                .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in
-                    let stored = UserDefaults.standard.double(forKey: Self.liquidGlassOpacityKey)
-                    if stored != liquidGlassOpacity {
-                        liquidGlassOpacity = stored
-                    }
-                }
+                // v0.32 boss 2026-09-02 OOB ('用 macOS 自带液态玻璃,
+                // 跟随系统设置'): the previous user-tunable Liquid Glass
+                // opacity slider was removed (= 134 LOC of self-rolled
+                // ladder). Apple canonical .glassEffect(.regular) is
+                // applied project-wide (= AppStatusbar + RegionTabBar +
+                // RegionContentBackground + App root containerBackground)
+                // and Apple auto-adapts to:
+                //   - dark mode / light mode
+                //   - Accessibility > Display > Reduce transparency
+                //   - Accessibility > Display > Increase contrast
+                Text("液态玻璃跟随 macOS 系统设置")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text("调整外观：系统设置 → 外观；调整透明度：系统设置 → 辅助功能 → 显示 → 减少透明度")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
             }
             Section("Agent 称呼") {
                 // v0.24 fix (Boss 8/24 OOB): user-set value for agent-to-user address.
@@ -1224,15 +1162,13 @@ private struct ProviderKeyInputSheet: View {
         /// useWorkspace on, would already be ON — saves them a second
         /// keystroke).
         @State private var editMode = LayoutEditMode()
-    // v0.28 followup Boss UX round 49 (Boss 2026-08-29 OOB
-    // '在设置里加一个功能, 液态玻璃透明度调节'): bridge the
-    // SettingView's @AppStorage slider value to the SwiftUI
-    // environment via .liquidGlassOpacityEnvironment (= injected
-    // below in body). Default = 0.5 (= subtle glass tint = matches
-    // the existing pane look).
-    @AppStorage("wenshu.liquidGlassOpacity") private var liquidGlassOpacity: Double = 0.5
-        // v0.28 followup (Boss 2026-08-29 OOB '完整复刻 hermes app'): model
-        // name + context usage state (= feeds the titlebar/statusbar chrome).
+    // v0.32 boss 2026-09-02 OOB: removed the
+    /// \`@AppStorage("wenshu.liquidGlassOpacity")\` (= the user-tunable
+    /// slider + UserDefaults key + cross-instance notification plumbing
+    /// is gone). Apple canonical .glassEffect(.regular) auto-applies
+    /// project-wide and adapts to system settings, so a per-app slider
+    /// is no longer needed. The user-facing Settings entry now shows
+    /// an informational note pointing to macOS System Settings.
         @AppStorage("wenshu.llm.model") private var modelName: String = "MiniMax-M3"
         @AppStorage("wenshu.llm.status") private var llmStatus: String = "Idle"
         @AppStorage("wenshu.context.usagePercent") private var contextUsagePercent: Int = 0
@@ -1299,37 +1235,22 @@ private struct ProviderKeyInputSheet: View {
             // slider 0 (= .ultraThinMaterial = fully transparent)
             // to 1 (= .bar = fully opaque) so the user can dial
             // the window background transparency from the Settings
-            // pane. Pane background tinting (= RegionContentBackground)
-            // also reads the same slider via @Environment so panes
-            // and window stay in sync.
+            // v0.32 boss 2026-09-02 OOB ('默认不加液态玻璃效果,
+            // 我们就不加; 默认带的, 我们就默认带; 不能空着,
+            // 空着透明了'): use Apple canonical windowBackgroundColor
+            // (= NSColor windowBackgroundColor; macOS 27 Tahoe default
+            // = system-managed color that adapts to dark / light mode
+            // + accent tint; no per-pane glass specular, no
+            // transparent see-through to the desktop wallpaper).
             .containerBackground(for: .window) {
-                // v0.30 boss 2026-09-01 OOB (slider round 3): the
-                // slider is now continuous (step = 0.01) and the
-                // containerBackground tint scales with it
-                // continuously via Material.opacity (= SwiftUI 27+
-                // API; 0 % = .ultraThinMaterial with alpha = 0 =
-                // fully transparent; 100 % = .ultraThinMaterial
-                // with alpha = 1 = maximum tint; the .ultraThin
-                // baseline is the lightest Liquid Glass tier so
-                // 'opaque' is the tint at 100 %, not a different
-                // material). The slider can also move through 0
-                // to 1 smoothly in 101 steps. We keep the
-                // .ultraThinMaterial base (= Apple's lightest
-                // glass material) instead of stepping through
-                // .thin/.regular/.thick/etc. because the boss
-                // wants smooth visual feedback (= no discrete
-                // jump as the slider passes each Material
-                // boundary).
-                Color.clear.overlay(Material.ultraThinMaterial.opacity(liquidGlassOpacity))
+                Color(nsColor: .windowBackgroundColor)
             }
-            // v0.28 followup Boss UX round 49 (Boss 2026-08-29 OOB
-            // '在设置里加一个功能, 液态玻璃透明度调节'): inject the
-            // Liquid Glass opacity value (from @AppStorage slider in
-            // SettingView) into the SwiftUI environment so all per-pane
-            // chrome (= RegionContentBackground, RegionTabBar,
-            // RegionStatusBar) can read it and apply the right tint
-            // strength.
-            .liquidGlassOpacityEnvironment(liquidGlassOpacity)
+            // v0.32 boss 2026-09-02 OOB: removed
+            // \`.liquidGlassOpacityEnvironment(liquidGlassOpacity)\`
+            // injection (= self-rolled env-key no longer has any
+            // consumers after the four-callers migration to
+            // Apple .glassEffect). Apple canonical .glassEffect
+            // auto-applies project-wide without per-call env wiring.
             .onAppear {
                 WenshuAppDelegate.openSettings = openSettings
                 // v0.28 followup (Boss 2026-08-29 OOB '调试视图框架'):

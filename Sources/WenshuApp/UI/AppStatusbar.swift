@@ -110,11 +110,10 @@ public struct AppStatusbar: View {
     // affects every wenshu UI except the title bar'): read the
     // Liquid Glass opacity slider from the SwiftUI environment
     // (= same env-key as RegionTabBar + RegionStatusBar + pane
-    // content background). The title bar itself is NOT touched here
-    // (= .windowToolbarStyle(.unified) follows macOS System
-    // Settings, per boss clarification 'let the title bar follow
-    // the system, not the setting').
-    @Environment(\.liquidGlassOpacity) private var liquidGlassOpacity: Double
+    // v0.32 boss 2026-09-02 OOB: the Liquid Glass opacity env-key
+    // was removed (= .glassEffect(.regular) auto-applies project-wide).
+    // Apple canonical .windowToolbarStyle(.unified) follows macOS
+    // System Settings on the title bar.
 
     public init(
         leftItems: [StatusbarItem] = [],
@@ -180,13 +179,14 @@ public struct AppStatusbar: View {
                 // the macOS 26 Tahoe Liquid Glass look applied to a
                 // custom statusbar view).
                 //
-                // v0.30 boss 2026-09-01 OOB (clarification 'setting
-                // slider affects every wenshu UI except the title
-                // bar'): the material now follows the Liquid Glass
-                // opacity slider via `Double.toLiquidGlassMaterial()`
-                // (= 4-step mapping, same as RegionTabBar +
-                // RegionStatusBar + RegionContentBackground).
-                .background(liquidGlassOpacity.toLiquidGlassMaterial())
+                // v0.32 boss 2026-09-02 OOB ('默认不加液态玻璃效果,
+                // 我们就不加; 默认带的, 我们就默认带; 不能空着,
+                // 空着透明了'): use Apple canonical controlBackgroundColor
+                // (= NSColor controlBackgroundColor; macOS 27 Tahoe default
+                // = system-managed color that adapts to dark / light mode
+                // + accent tint; no per-pane glass specular, no
+                // transparent see-through to the desktop wallpaper).
+                .background(Color(nsColor: .controlBackgroundColor))
                 .contextMenu {
                     Button("Reset statusbar layout") {
                         onResetLayout()
