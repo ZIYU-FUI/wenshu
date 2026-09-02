@@ -680,12 +680,27 @@ struct EditorPlaceholder: View {
                 PaneTrailingIconButton(
                     icon: "xmark",
                     tooltip: "关闭编辑器 (Cmd+W)",
-                    action: { /* ticket 09 wires close + dirty confirm */ }
+                    action: { tryClose() }
                 )
             }
             .padding(.horizontal, DesignTokens.chromePaddingLeading)
             .frame(height: DesignTokens.paneTabHotArea)
             .background(.bar)
+            // v0.34 ticket 09: dirty-discard confirm dialog. Shown when
+            // user tries to close with unsaved changes. Apple HIG
+            // 2-option confirm pattern (= destructive + cancel).
+            .alert("未保存的更改将丢失", isPresented: $showDirtyDiscardConfirm) {
+                Button("放弃编辑", role: .destructive) {
+                    // Discard: clear draft + reset to originalBody + close.
+                    // Today = no-op beyond resetting state (= ticket 027-35
+                    // wires real document close).
+                    draft = originalBody
+                    documentPath = nil
+                }
+                Button("继续编辑", role: .cancel) { }
+            } message: {
+                Text("编辑器有未保存的更改, 关闭后将丢失.")
+            }
 
             // Body: placeholder content. Ticket 05 swaps this for
             // swift-markdown rendered Text when mode = .preview; ticket 07
@@ -747,6 +762,24 @@ struct EditorPlaceholder: View {
     // detection (= v0.35+ ticket; placeholder for now).
     private func saveDraft() {
         originalBody = draft
+    }
+    // v0.34 ticket 09: document-loaded flag. nil = placeholder mode
+    // (= "select document then expand" hint visible). Non-nil = a
+    // document is open. Today = nil (= placeholder until ticket 027-35
+    // wires real document load).
+    @State private var documentPath: String? = nil
+    // v0.34 ticket 09: alert state for dirty-confirm dialog. Shows
+    // when user tries to close while isDirty. Reset on dialog dismiss.
+    @State private var showDirtyDiscardConfirm: Bool = false
+    // v0.34 ticket 09: close handler. If dirty = present confirm dialog;
+    // if clean = close immediately (= Apple HIG standard). Cmd+W (ticket
+    // 10) routes through this same method.
+    private func tryClose() {
+        if isDirty {
+            showDirtyDiscardConfirm = true
+        } else {
+            documentPath = nil
+        }
     }
 
     // v0.34 ticket 05: sample markdown body shown in preview mode (= used
