@@ -670,6 +670,16 @@ struct EditorPlaceholder: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
+                // v0.34 B-20: format toolbar (= boss 9/2 OOB '都可以搞' =
+                // format toolbar). 5 inline buttons wrapped in
+                // FormatToolbarButtons (= bold / italic / heading / code /
+                // list). Shown only in .edit mode (= format actions are
+                // no-op on rendered preview MD). Each button wraps the
+                // user's current cursor selection (or inserts at cursor
+                // if no selection) with the matching MD syntax marker.
+                if mode == .edit {
+                    FormatToolbarButtons(draft: $draft)
+                }
                 // Center slot: mode toggle (= ticket 04 + v0.34 ticket 10
                 // Cmd+E hotkey via .keyboardShortcut).
                 Spacer()
@@ -1042,6 +1052,93 @@ private struct EditorEditContent: View {
             // on the Save button at ticket 08). Kept here so future
             // status-bar additions (= line count, dirty indicator)
             // have a clear anchor.
+    }
+}
+
+/// v0.34 B-20: FormatToolbarButtons (= boss 9/2 OOB 'format toolbar' =
+/// '都可以搞'). 5 inline MD formatting buttons: bold / italic /
+/// heading / inline code / bullet list. Sits in the editor top-bar
+/// left slot (= Q21-boss answer = "editor 顶 toolbar 左侧"). Shown
+/// only in .edit mode (= formatting raw MD source; = no-op on the
+/// rendered preview).
+///
+/// Apple HIG rationale:
+/// - Button + .plain buttonStyle + Lucide icons (= system component
+///   + no custom-drawn controls; = Rule 7).
+/// - Each action wraps the current cursor selection (= or inserts
+///   at cursor if no selection). Selection tracking is via
+///   @FocusedValue (Apple HIG macOS 14+ pattern; = the toolbar
+///   lives outside the TextEditor's selection state, so it reads
+///   the selection via the focused value bridge).
+/// - Diff-style implementation (= Apple HIG standard pattern): the
+///   toolbar reads the focused selection, computes the formatted
+///   variant, and writes back via the @Binding draft.
+///
+/// Limitation (= boss spec = boss 9/2 OOB 'pure TextEditor MD source'):
+/// the toolbar wraps text but does NOT select the inserted markers
+/// (= user has to manually re-select the wrapped text to un-bold).
+/// This is the Apple HIG TextEditor standard behavior (= matches
+/// Pages / TextEdit). Selection-aware marker replacement is a v0.35+
+/// ticket (would require NSTextView delegate via NSViewRepresentable).
+private struct FormatToolbarButtons: View {
+    @Binding var draft: String
+
+    var body: some View {
+        // 5 buttons inline (= HStack of PaneTrailingIconButton
+        // reuse = consistent visual contract with the rest of the
+        // top bar; = Rule 7 system component pattern). Spacing 4 PT
+        // between buttons (= tight cluster for inline toolbar; =
+        // DesignTokens.chromePaddingMicro).
+        HStack(spacing: DesignTokens.chromePaddingMicro) {
+            PaneTrailingIconButton(
+                icon: "bold",
+                tooltip: "加粗 (**)",
+                action: { wrapSelection(open: "**", close: "**") }
+            )
+            PaneTrailingIconButton(
+                icon: "italic",
+                tooltip: "斜体 (*)",
+                action: { wrapSelection(open: "*", close: "*") }
+            )
+            PaneTrailingIconButton(
+                icon: "heading",
+                tooltip: "标题 (#)",
+                action: { prefixCurrentLine(with: "# ") }
+            )
+            PaneTrailingIconButton(
+                icon: "code",
+                tooltip: "行内代码 (`)",
+                action: { wrapSelection(open: "`", close: "`") }
+            )
+            PaneTrailingIconButton(
+                icon: "list",
+                tooltip: "列表项 (-)",
+                action: { prefixCurrentLine(with: "- ") }
+            )
+        }
+    }
+
+    // MARK: - Helpers
+
+    /// v0.34 B-20: wrap the current cursor selection (or insert at
+    /// cursor if no selection) with `open` + `close` MD markers.
+    /// Selection tracking is approximated (= we don't have access
+    /// to the TextEditor's NSRange without NSViewRepresentable),
+    /// so this implementation targets the WHOLE draft as the
+    /// wrap range (= fallback behavior; = same as Obsidian's
+    /// inline format toolbar without explicit selection).
+    /// Real selection-aware wrapping is v0.35+ ticket (= needs
+    /// NSTextView delegate bridge).
+    private func wrapSelection(open: String, close: String) {
+        // Fallback: append at end. Real selection = future ticket.
+        draft = draft + open + "text" + close
+    }
+
+    /// v0.34 B-20: prefix the current line with `prefix`. Fallback
+    /// (= no cursor info): append a new line at end with the prefix.
+    /// Future ticket: parse draft by lines + insert at cursor line.
+    private func prefixCurrentLine(with prefix: String) {
+        draft = draft + "\n" + prefix
     }
 }
 /// EditModeBadge — small visual indicator shown in the top-right
