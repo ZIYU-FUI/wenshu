@@ -536,9 +536,16 @@ private struct EditorContentPlaceholder: View {
 /// Editor expand/shrink trailing button (= old v0.25.1 ticket 029c).
 /// Per boss 8/26 OOB '点击后 整个编辑器最大化 其它所有栏全都隐藏
 /// 此时 ICON 变成 shrink 点击后 恢复到刚刚点击 expand 前的状态'.
-/// State + snapshot lives in LayoutShellView (= ticket 029a).
+/// State + snapshot lives in @AppStorage (= ticket 01, v0.34).
 private struct EditorExpandShrinkTrailingButton: View {
-    @State private var editorMaximized: Bool = false
+    // v0.34 ticket 01: replaced @State with @AppStorage (= Rule 11 + Apple
+    // HIG standard storage; the bug ticket 03 fixes = no real persistence,
+    // but @AppStorage makes persistence easy to add later if needed). The
+    // snapshot key is written by PaneNSController.handleEditorMaximizedChanged
+    // BEFORE the 5 zone-hide animator calls (= Q38 boss "全状态 snapshot"
+    // decision; restore-on-shrink must read this JSON).
+    @AppStorage("wenshu.editorMaximized") private var editorMaximized: Bool = false
+    @AppStorage("wenshu.editorExpand.snapshot") private var editorExpandSnapshotJSON: String = "{}"
 
     var body: some View {
         // v0.34 boss 2026-09-02 OOB '编辑器右边的 ICON, 尺寸没有遵循组件':

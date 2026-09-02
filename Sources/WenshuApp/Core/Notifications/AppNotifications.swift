@@ -94,6 +94,15 @@ enum LayoutEvents: String, CaseIterable {
     /// ⌘⇧\ hotkey). Listened by WorkspaceView's LayoutEditMode singleton.
     /// v0.28 ticket 028-006.
     case toggleEditMode = "com.wenshu.toggleEditMode"
+
+    /// Editor expand/shrink toggle (= editor top-bar right-side expand icon).
+    /// Object payload: Bool (= true = expand, false = shrink). Posted by
+    /// EditorExpandShrinkTrailingButton when @AppStorage("wenshu.editorMaximized")
+    /// changes. Listened by PaneNSController.handleEditorMaximizedChanged(:_)
+    /// which snapshots 6-zone visibility + editor weight BEFORE hiding other
+    /// zones (= shrink restore per Q38 boss "全状态 snapshot" decision).
+    /// v0.34 ticket 01 (= spec: .scratch/v0.34-editor-preview-and-expand/spec.md).
+    case editorMaximizedChanged = "com.wenshu.editorMaximizedChanged"
 }
 
 // MARK: - Backward-compat accessors
@@ -125,6 +134,7 @@ extension Notification.Name {
     // LayoutEvents
     static let wenshuResetLayout = Notification.Name(LayoutEvents.resetLayout.rawValue)
     static let wenshuToggleEditMode = Notification.Name(LayoutEvents.toggleEditMode.rawValue)
+    static let wenshuEditorMaximizedChanged = Notification.Name(LayoutEvents.editorMaximizedChanged.rawValue)
 }
 
 // MARK: - Convenience factory
