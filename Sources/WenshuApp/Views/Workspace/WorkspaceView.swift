@@ -870,34 +870,30 @@ private struct EditorPreviewContent: View {
     let markdownBody: String
     let wikilinkTarget: EditorPlaceholder.WikilinkAction
 
-    // v0.34 ticket 06: BacklinksViewModel is a fresh instance per preview
-    // (= ticket 027-35 will switch to a shared AppState-owned model so
-    // backlinks persist across document opens).
-    @State private var backlinksVM = BacklinksViewModel()
+    // v0.34 B-17: BacklinksViewModel removed (= boss 9/2 OOB). Backlinks
+    // are surfaced via the chrome bottom-right popover (= B-16 in
+    // TabContentDispatcher.editor case), NOT inside the preview body.
 
     var body: some View {
-        VStack(spacing: 0) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(parsedSegments, id: \.id) { segment in
-                        renderSegment(segment)
-                    }
+        // v0.34 B-17: removed ticket 06's 120 PT inline BacklinksPanel +
+        // Divider + backlinksVM state (= boss 9/2 OOB '反链那 120
+        // 高度的空间还在, 不用在编辑器里占空间'). Backlinks are
+        // surfaced via the chrome bottom-right "反链 0" popover
+        // (= B-16 implementation; see TabContentDispatcher.editor case).
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(parsedSegments, id: \.id) { segment in
+                    renderSegment(segment)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(16)
             }
-            // v0.34 ticket 06: BacklinksPanel below the rendered MD.
-            // 1 PT top border (= Apple HIG section divider) separates
-            // the panel from the document body. Height cap = 120 PT
-            // (= Apple HIG standard inspector footer size).
-            Divider()
-            BacklinksPanel(viewModel: backlinksVM)
-                .frame(maxHeight: 120)
-                .task {
-                    // Placeholder doc id for now (= ticket 027-35 will
-                    // pass the real document id from NSOpenPanel).
-                    await backlinksVM.load(docId: "preview-sample")
-                }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            // v0.34 B-17: use DesignTokens.chromePaddingLarge (= 16 PT)
+            // instead of inline `.padding(16)`. Iron Rule 6 (= no magic
+            // numbers): all per-pane chrome padding routes through
+            // DesignTokens. Per `DesignTokens.swift` documentation:
+            // chromePaddingLarge = Apple HIG standard for stacked
+            // section separators (= matches preview body inset).
+            .padding(DesignTokens.chromePaddingLarge)
         }
     }
 
@@ -995,13 +991,18 @@ private struct EditorEditContent: View {
 
     var body: some View {
         // Apple HIG TextEditor (= no NSTextView wrapper per Rule 7).
-        // Native font = .body (= Apple HIG default = 13 PT on macOS).
-        // .padding(12) gives Apple HIG standard inner margin. The
-        // .ultraThinMaterial background on the host provides the
-        // editor zone's Liquid Glass surface.
+        // Native font = .body (= one of Apple's 11 standard text styles
+        // per Iron Rule 2; = Apple HIG default = 13 PT on macOS). User
+        // enlarges system font size → text scales automatically (= Apple
+        // HIG standard).
+        // .padding(DesignTokens.chromePaddingMedium = 12 PT) gives
+        // Apple HIG standard inner margin for bordered content rows
+        // (= chat input / picker rows pattern; matches Rule 6 no-magic-
+        // numbers rule by routing through DesignTokens instead of
+        // inline `.padding(12)`).
         TextEditor(text: $draft)
             .font(.body)
-            .padding(12)
+            .padding(DesignTokens.chromePaddingMedium)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             // Dirty status surfaced to the host via the `onSave` closure
             // (= not strictly needed by TextEditor itself; the host reads
