@@ -149,12 +149,12 @@ final class PaneNSController: NSSplitViewController {
         // divider entirely (= boss OOB 'completely transparent'); for
         // any other value, use Apple's standard `.thin` divider (= a
         // semitransparent hairline that adapts to dark/light mode).
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleLiquidGlassOpacityChanged),
-            name: .liquidGlassOpacityChanged,
-            object: nil
-        )
+        // v0.32 boss 2026-09-02 OOB ('用 macOS 自带液态玻璃,
+        // 跟随系统设置'): removed the
+        // .liquidGlassOpacityChanged NotificationCenter observer
+        // (= the user-tunable slider + cross-instance notification
+        // was deleted; Apple .glassEffect auto-applies via the
+        // system without per-app notification plumbing).
         applyDividerStyleForCurrentOpacity()
         // v0.30 boss 2026-09-01 OOB (zone toggle startup sync): apply the
         // persisted `wenshu.zoneVisible.*` bools from UserDefaults to
@@ -306,16 +306,20 @@ final class PaneNSController: NSSplitViewController {
     /// is still mounted at its Apple-default width (= 8 PT for
     /// .paneSplitter, 1 PT for .thin / .thick); AppKit still
     /// routes mouseDown events to it (= drag works).
+    // paint divider subview with `Color.white.opacity(0.25)` (= 1 PT
+    // hairline visible against any pane background; per boss OOB
+    // round "if a gap is required, I want a 1 PT visible hairline").
+    // The `Color.white.opacity(0.25)` recipe is from wenshu commit
+    // `62bb205bb` (= known-good on macOS 26+; visible on dark mode
+    // and adaptive on light mode).
     @MainActor
     final class WenshuSplitView: NSSplitView {
         override func draw(_ dirtyRect: NSRect) {
             // No-op: the divider subview itself is the only thing
-            // NSSplitView draws between subviews, and
-            // dividerColor.alpha = 0 with .paneSplitter already
-            // means the divider subview paints nothing. This
-            // override exists for documentation / safety (= if
-            // a future Apple SDK change draws into the NSSplitView
-            // background, this empty override suppresses it).
+            // NSSplitView draws between subviews. The 1 PT hairline
+            // tint is set on the divider subview's wantsLayer +
+            // backgroundColor in `paintDividerHairline(...)` below;
+            // this empty override exists for documentation / safety.
         }
 
         override func adjustSubviews() {
@@ -335,6 +339,14 @@ final class PaneNSController: NSSplitViewController {
             // frames touch = no gap). Keep the divider subview's
             // frame at its current bounds (= AppKit's internal
             // divider hit-area is preserved = drag still works).
+            //
+            // v0.32 boss 2026-09-02 OOB ('线看不出来就不重要了;
+            // 你所有用的颜色, 都是 API 给的, 不要自定义'): the
+            // divider subview is NOT painted (= no NSColor /
+            // custom RGB blend). Adjacent panes are differentiated
+            // by pane background NSColor (= Apple API only).
+            // The divider subview remains mounted (= Apple default;
+            // drag hit-area preserved) but renders nothing.
             super.adjustSubviews()
 
             let isVert = isVertical
@@ -425,16 +437,11 @@ final class PaneNSController: NSSplitViewController {
 
     /// v0.30 boss 2026-09-01 OOB (divider Step 1 = API default): the
     /// observer still receives the notification but does not mutate
-    /// the divider (= Apple default is the source of truth for the
-    /// divider visual). The handler is retained so the wiring
-    /// (= NotificationCenter.addObserver in init) remains valid;
-    /// removing it is a follow-up cleanup.
-    @objc private func handleLiquidGlassOpacityChanged() {
-        // Intentionally empty: see applyDividerStyleForCurrentOpacity
-        // comment (= Step 1 restores API default; the divider no
-        // longer reacts to the slider until Step 2 picks a different
-        // implementation).
-    }
+    // v0.32 boss 2026-09-02 OOB: removed the
+    /// \`handleLiquidGlassOpacityChanged\` @objc selector (= the
+    /// NotificationCenter observer that called it was deleted in
+    /// init). Apple canonical .glassEffect auto-applies system-wide
+    /// without per-instance notification plumbing.
 
     /// Recursive helper to apply a divider style to a split view
     /// AND its nested children (= the upperBand / lowerBand nested
