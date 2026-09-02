@@ -276,9 +276,18 @@ struct WorkspaceView: View {
             // 3 general panes (= all use RegionTabBar = 30 PT tall at
             // the same Y).
             ZoneContentView(zoneSlug: "editor", tabs: [
-                ("编辑", "book-open-text", AnyView(EditorContentPlaceholder())),
-                ("大纲", "puzzle", AnyView(EditorContentPlaceholder())),
-                ("反链", "link", AnyView(EditorContentPlaceholder())),
+                // v0.34 B-13 fix (= boss 9/2 'git grep BEFORE patch' rule):
+                // EditorContentPlaceholder was the OLD text-only placeholder
+                // (= deleted by tonight's v0.34 commit chain). All ticket 04-10
+                // patches (= mode toggle / preview/edit / toolbar / close + hotkeys)
+                // landed on EditorPlaceholder, but WorkspaceView kept instantiating
+                // the dead EditorContentPlaceholder. Replace with EditorPlaceholder
+                // (= the ticket 04-10 patched one with toolbar + mode toggle +
+                // save + expand + close; BacklinksPanel in preview mode;
+                // TextEditor in edit mode).
+                ("编辑", "book-open-text", AnyView(EditorPlaceholder())),
+                ("大纲", "puzzle", AnyView(EditorPlaceholder())),
+                ("反链", "link", AnyView(EditorPlaceholder())),
             ], trailingButton: AnyView(EditorExpandShrinkTrailingButton()))
         case .specializedTools:
             // v0.29 boss 2026-08-30 OOB '替换, 用伏笔替换第一个 teb,
@@ -484,7 +493,10 @@ struct ZoneModuleView: View {
             ZoneContentView(
                 zoneSlug: "editor",
                 tabs: [
-                    ("编辑", "book-open-text", AnyView(EditorContentPlaceholder())),
+                    // v0.34 B-13 fix (= boss 9/2 'git grep BEFORE patch' rule):
+                    // see L279 fix comment above; replace placeholder with
+                    // EditorPlaceholder (= ticket 04-10 toolbar + mode toggle).
+                    ("编辑", "book-open-text", AnyView(EditorPlaceholder())),
                     ("大纲", "puzzle", AnyView(OutlinePanel())),
                     ("反链", "link", AnyView(BacklinksPanel())),
                 ],
