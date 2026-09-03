@@ -1027,6 +1027,12 @@ enum AuxTask: String, CaseIterable, Identifiable {
         @AppStorage("wenshu.llm.model") private var modelName: String = "MiniMax-M3"
         @AppStorage("wenshu.llm.status") private var llmStatus: String = "Idle"
         @AppStorage("wenshu.context.usagePercent") private var contextUsagePercent: Int = 0
+        // v0.34 boss 2026-09-02 OOB: readiness report state (= set at
+        // app launch by the readiness check; surfaced via
+        // `ReadinessBanner` inside `.safeAreaInset(.top)` so the
+        // user sees any configuration gaps immediately).
+        @State private var readinessReport: ReadinessReport?
+
         var body: some View {
             // v0.24 boss验收fix (Boss 8/24 OOB 拍 '和 FCP 一样, 首次运行, 无论
             // 是否要建书架, 都要先指定一个 .ws 文件的库文件位置'): first-launch
@@ -1100,6 +1106,59 @@ LibraryRootView()
                 // removed the titlebar hide loop (= was causing
                 // re-render loop). Re-add with proper delay in a
                 // follow-up commit.
+            }
+            // v0.34 boss 2026-09-02 OOB: run readiness check at
+            // app launch. Aggregates chat / wiki / imageGen
+            // capability checks into a single ReadinessReport;
+            // surfaced via the banner below. Idempotent = re-runs
+            // when the user changes a provider key in Settings
+            // (= re-runs on the next view appear = no manual
+            // invalidation needed).
+            //
+            // Note: `providerSlug` lives on `SettingView` (not on
+            // this `SettingsEnvironmentCapturer`). Read it from
+            // UserDefaults directly (= same source as the
+            // @AppStorage backing; canonical Apple HIG avoid-state-
+            // duplication pattern).
+            .task {
+                let slug = UserDefaults.standard.string(
+                    forKey: "wenshu.llm.provider"
+                ) ?? Provider.minimaxCn.slug
+                let currentProvider = Provider.by(slug: slug) ?? .minimaxCn
+                // v0.34 image-gen API keys have no UserDefaults
+                // backing yet (= future Issue 02 followup adds
+                // `wenshu.imageGen.dashscope` + `wenshu.imageGen.openai`
+                // keys). Until then, image-gen readiness always
+                // reports `.warning` for `imageGen.apiKey.missing`
+                // (= banner shows the placeholder guidance until
+                // the storage lands).
+                let imageGenChain = ImageGenProviderChain(
+                    primary: DashScopeImageGenAdapter(apiKey: nil),
+                    fallback: OpenAIImageGenAdapter(apiKey: nil)
+                )
+                let check = WenshuReadinessCheck(providers: [
+                    ChatReadinessProvider(currentProvider: currentProvider),
+                    WikiReadinessProvider(currentProvider: currentProvider),
+                    ImageGenReadinessProvider(
+                        primary: imageGenChain.primary,
+                        fallback: imageGenChain.fallback
+                    )
+                ])
+                readinessReport = await check.run()
+            }
+            // v0.34 boss 2026-09-02 OOB: readiness banner (= Apple
+            // canonical top safe-area inset; sits below the
+            // toolbar). Hidden when readinessReport is nil OR
+            // empty (= all capabilities ready). Otherwise shows
+            // the top-severity issue + a "去设置" button that
+            // calls the Settings scene.
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if let report = readinessReport, !report.isReady {
+                    ReadinessBanner(
+                        report: report,
+                        openSettings: openSettings
+                    )
+                }
             }
             // v0.28 ticket 028-006 followup: ⌘⇧\ hotkey + Escape
             // exit at the top-level wrapper (= not just inside
