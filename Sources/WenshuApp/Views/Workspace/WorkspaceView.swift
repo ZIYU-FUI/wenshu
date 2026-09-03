@@ -187,15 +187,14 @@ struct WorkspaceView: View {
             originalBody: content,
             mode: .preview
         )
-        if !currentIsDirty,
-           let idx = appState.openTabs.firstIndex(where: { $0.id == appState.activeTabId }) {
-            // Replace the active tab in place.
-            appState.openTabs[idx] = newTab
-        } else {
-            // Push a new tab (= preserve current dirty edits OR no
-            // active tab to replace).
-            appState.openTabs.append(newTab)
-        }
+        // v0.34 B-26-FIX (= boss 9/3 '第一次双击可以换, 不是新 teb, 是替换了
+        // 老 teb'): always append a new tab (= Safari multi-tab strip
+        // behavior). Duplicate-tab detection (= the fingerprint check
+        // earlier in this function) handles the "switch to existing
+        // tab if same .md is open" case (= boss 9/3 '看是不是已有 teb
+        // 已经打开了当前 MD'). = no replacement of the active tab;
+        // = no "second click fails" race.
+        appState.openTabs.append(newTab)
         appState.activeTabId = newTab.id
     }
 
@@ -751,12 +750,22 @@ struct ZoneModuleView: View {
             originalBody: content,
             mode: .preview
         )
-        if !currentIsDirty,
-           let idx = appState.openTabs.firstIndex(where: { $0.id == appState.activeTabId }) {
-            appState.openTabs[idx] = newTab
-        } else {
-            appState.openTabs.append(newTab)
-        }
+        // v0.34 B-26-FIX (= boss 9/3 '第一次双击可以换, 不是新 teb, 是替换了
+        // 老 teb; 第二次双击失效'): the previous implementation tried
+        // to be smart (= replace the active tab if clean; append a new
+        // tab if dirty; = Safari "reuse clean tab" behavior). That was
+        // the wrong call: boss expected a real multi-tab = each
+        // double-click creates a NEW tab page (= the active placeholder
+        // tab stays as the first tab; = new tab is appended; = no
+        // replacement of the active tab).
+        //
+        // v0.34 B-26-FIX: always append (= Safari tab strip behavior).
+        // Duplicate-tab detection (boss 9/3 follow-up: '看是不是已有 teb
+        // 已经打开了当前 MD') happens earlier in this function (= the
+        // fingerprint check that switches to the existing tab if the
+        // .md body matches an already-open tab). = no replacement
+        // behavior; = no "second click fails" race.
+        appState.openTabs.append(newTab)
         appState.activeTabId = newTab.id
     }
 
