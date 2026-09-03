@@ -73,14 +73,27 @@ public struct ChatViewCompressionRow: View {
 
     /// Trigger manual compression (lives here, not in extension; reads
     /// vm.messages directly + writes compressionSummary to @State).
+    ///
+    /// 真实修改 path (= ticket 003 sub-step 5 acceptance criteria):
+    /// 1. map vm.messages -> [LLMMessage]
+    /// 2. cc.manualTrigger returns compressed [LLMMessage]
+    /// 3. map [LLMMessage] -> [ChatMessage] preserving id + timestamp
+    /// 4. vm.messages = compressed (= observability triggers ChatView re-render)
+    /// 5. vm.recomputeContextUsed() (= updates compression pill token count)
     private func manualCompress() async {
         guard !isCompressing else { return }
         isCompressing = true
         defer { isCompressing = false }
 
-        let llmMessages = vm.messages.map { msg -> LLMMessage in
+        let originals = vm.messages
+        guard originals.count >= 2 else {
+            compressionSummary = "Need at least 2 messages to compress"
+            return
+        }
+
+        let llmMessages = originals.map { msg -> LLMMessage in
             LLMMessage(
-                role: msg.role == .user ? .user : .assistant,
+                role: msg.role.toLLMRole,
                 blocks: [.text(msg.content)]
             )
         }
@@ -88,18 +101,84 @@ public struct ChatViewCompressionRow: View {
         let cc = ConversationCompression()
         let result = await cc.manualTrigger(messages: llmMessages, systemMessage: systemPrompt)
 
-        let before = vm.messages.count
+        let before = originals.count
         let after = result.messages.count
-        if after < before {
-            let ratio = Double(after) / Double(before)
-            let percent = Int((1.0 - ratio) * 100)
-            compressionSummary = String(
-                format: "📦 compressed %d%% (%d → %d messages)",
-                percent, before, after
-            )
-        } else {
+        guard after < before else {
             compressionSummary = "No compression needed"
+            return
         }
+
+        // Pair compressed LLMMessage results back to ChatMessage by index,
+        // preserving id + timestamp + tokens (from the original). This
+        // ensures the rest of ChatView (messages list, kanban, etc.)
+        // sees the same message identity after compression.
+        let compressedChat = result.messages.enumerated().map { idx, llm in
+            let original = originals[idx]
+            return ChatMessage(
+                id: original.id,
+                role: llm.role.fromLLMRole,
+                content: llm.firstTextContent,
+                timestamp: original.timestamp,
+                isPlaceholder: false,
+                tokens: original.tokens,
+                thinking: original.thinking
+            )
+        }
+
+        vm.messages = compressedChat
         vm.recomputeContextUsed()
+
+        let ratio = Double(after) / Double(before)
+        let percent = Int((1.0 - ratio) * 100)
+        compressionSummary = String(
+            format: "📦 compressed %d%% (%d → %d messages)",
+            percent, before, after
+        )
+    }
+}
+
+// MARK: - Role bridge (ChatRole ↔ LLMMessage.Role)
+// Ticket 003 sub-step 5 acceptance: compression round-trip preserves
+// message identity. Role bridge lives in this file (= single source of
+// truth for ChatView ↔ LLMMessage role mapping). Per §11.3 wenshu-side
+// wins, this bridge is a thin adapter over the existing ChatRole enum.
+
+extension ChatRole {
+    internal var toLLMRole: LLMMessage.Role {
+        switch self {
+        case .user: return .user
+        case .agent: return .assistant
+        case .system: return .user  // system messages travel as user in
+                                    // LLMMessage (= system prompt is
+                                    // always a top-level parameter, not
+                                    // an in-band message, per LLMConnector
+                                    // Anthropic-native semantics)
+        }
+    }
+}
+
+extension LLMMessage.Role {
+    internal var fromLLMRole: ChatRole {
+        switch self {
+        case .user: return .user
+        case .assistant: return .agent
+        case .tool: return .user  // tool result travels as user-visible
+                                   // status in ChatView (= tool execution
+                                   // is rendered inline above the agent
+                                   // response, see ChatMessageView line 941)
+        }
+    }
+}
+
+extension LLMMessage {
+    /// First text content from the blocks (= recovery for compressed
+    /// messages that may collapse multiple blocks into one). Ticket 003
+    /// sub-step 5 acceptance: ChatMessage.content is a String, so we
+    /// concatenate text blocks (= empty string if none).
+    internal var firstTextContent: String {
+        blocks.compactMap { block in
+            if case let .text(text) = block { return text }
+            return nil
+        }.joined(separator: "\n")
     }
 }
