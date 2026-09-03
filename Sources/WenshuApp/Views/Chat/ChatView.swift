@@ -158,48 +158,79 @@ public final class ChatViewModel {
         try? await store?.append(userMsgStored, sessionId: sessionId)
 
         do {
-            // WenshuConductor.handle (intent → sub-agent → LLM synthesis)
-            // receive real token count from LLM API
-            // read current model from UserDefaults
-            // = 原 send() 不传 model → conductor/verifier 用 hardcoded .m3)
-            // We need to pass model to the LLM call so the AI actually uses boss's selected model
-            // trace: effective model per send
-            // v0.24 boss验收fix (2026-08-24): default empty string when no key.
+            // v0.34: streaming path = render each text chunk as it
+            // arrives (= character-by-character, ChatGPT-style). The
+            // conductor path remains blocking for now (= its
+            // WenshuConductor.handle returns a single assembled
+            // reply = the WenshuConductor owns its own multi-agent
+            // pipeline and isn't yet adapted to streaming). v0.34
+            // ships streaming for the direct verifier path = the
+            // most common user flow.
             let currentModel: String = UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? ""
             NSLog("[wenshu.model] effective model: %@ (UserDefaults source)", currentModel)
             var reply: String
             var replyThinking: String?    // WenshuLLMBlock.thinking footnote UI
             var replyTokens: Int?
             if let conductor = conductor {
+                // Conductor path = blocking (= future ticket wires
+                // conductor to streaming; for v0.34 = direct verifier
+                // path is the streamed one).
                 let result = try await conductor.handle(userMessage: text, sessionId: sessionId, model: currentModel)
                 reply = result.reply
                 replyThinking = result.thinking
                 replyTokens = result.totalTokens
+                // Replace placeholder with real reply (tokens + thinking footnote)
+                if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
+                    NSLog("[wenshu.scroll] placeholder replace: id=%@ beforeCount=%d afterCount=%d", placeholderId.uuidString, messages.count, messages.count)
+                    messages[idx] = ChatMessage(id: placeholderId, role: .agent, source: .wenshu, content: reply, tokens: replyTokens, thinking: replyThinking)
+                }
             } else {
-                // fallback 调 shared verifier — real usage from response.usage
-                // v0.24 boss验收fix (Boss 8/24 OOB): prepend WenshuConductorIdentity.systemPrompt
-                // (= 文枢 SOUL) so LLM returns 文枢 identity, not MiniMax vendor identity.
-                // Without this, minimax cn API returns its default identity
-                // ('MiniMax 开发的 AI 助手') because chat(_:model:) overload
-                // doesn't prepend any system prompt.
+                // v0.34 streaming path: render each text chunk as
+                // it arrives (= user sees incremental text, not a
+                // 5-10s wait for the full reply).
                 let verifier = WenshuVerifier()
-                let response = try await verifier.chat(text,
-                                                       system: WenshuConductorIdentity.systemPrompt,
-                                                       model: currentModel)
-                // union decode WenshuLLMBlock (text/thinking/tool_use) — concat all text blocks for reply
-                // pick first thinking block for ChatMessage.thinking footnote UI (Apple HIG footnote 范式)
-                reply = response.content.map(\.displayText).joined()
+                let stream = verifier.streamChat(
+                    text,
+                    system: WenshuConductorIdentity.systemPrompt,
+                    model: currentModel
+                )
+                var buffer = ""
+                for try await block in stream {
+                    switch block {
+                    case .text(let chunk):
+                        buffer += chunk
+                        // v0.34 streaming: render the accumulated buffer
+                        // into the placeholder message (= SwiftUI
+                        // auto-re-renders as messages array changes).
+                        if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
+                            messages[idx] = ChatMessage(
+                                id: placeholderId,
+                                role: .agent,
+                                source: .wenshu,
+                                content: buffer,
+                                tokens: nil
+                            )
+                        }
+                    case .thinking(let text, _):
+                        replyThinking = (replyThinking ?? "") + text
+                    case .toolUse(let id, let name, _):
+                        // v0.34 streaming: future Issue 07 followup
+                        // wires tool-call rendering in the streaming
+                        // path. For now, log + continue.
+                        NSLog("[wenshu.stream] tool call: id=%@ name=%@", id, name)
+                    case .unknown(_, _):
+                        continue
+                    }
+                }
+                reply = buffer
                 if reply.isEmpty {
                     reply = "(no reply)"
                 }
-                replyThinking = response.content.compactMap(\.thinkingText).first
-                replyTokens = response.usage?.total_tokens
             }
-            // replace placeholder with real reply (tokens + thinking footnote)
-            if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
-                // trace: placeholder replacement count check
-                NSLog("[wenshu.scroll] placeholder replace: id=%@ beforeCount=%d afterCount=%d", placeholderId.uuidString, messages.count, messages.count)
-                messages[idx] = ChatMessage(id: placeholderId, role: .agent, source: .wenshu, content: reply, tokens: replyTokens, thinking: replyThinking)
+            // If the placeholder wasn't updated by streaming (= the
+            // blocking path), set it now (= single-replacement).
+            if !messages.contains(where: { $0.id == placeholderId }) {
+                messages.append(ChatMessage(id: placeholderId, role: .agent, source: .wenshu, content: reply))
             }
             let agentMsgStored = StoredChatMessage(id: placeholderId.uuidString, source: "wenshu", content: reply, timestamp: Date(), tokens: replyTokens)
             try? await store?.append(agentMsgStored, sessionId: sessionId)

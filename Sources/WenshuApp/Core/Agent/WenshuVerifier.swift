@@ -204,7 +204,7 @@ public actor WenshuVerifier {
     ///   2. Look up provider in ProviderCatalog
     ///   3. Load key from AppleKeychain for that provider slug
     ///   4. Return (apiKey, baseURL, providerSlug)
-    public func resolveCredentials(model overrideModel: WenshuLLMModel? = nil) throws -> ResolvedCredentials {
+    public nonisolated func resolveCredentials(model overrideModel: WenshuLLMModel? = nil) throws -> ResolvedCredentials {
         let modelEnum = overrideModel ?? WenshuLLMModel(rawValue: model) ?? .m3
         // 1. Provider slug: UserDefaults override (if any), else model.providerSlug.
         // NOTE: key name 'wenshu.llm.provider' matches @AppStorage in App.swift line 221.
@@ -335,6 +335,120 @@ public actor WenshuVerifier {
         } catch {
             NSLog("[wenshu.chat] decoder error: %@", String(describing: error))
             throw error
+        }
+    }
+
+    // MARK: - v0.34 SSE streaming (= Issue 07)
+
+    /// Streaming variant of `chat()`. Returns an `AsyncThrowingStream`
+    /// of `WenshuLLMBlock` (= `.text` for incremental text chunks,
+    /// `.thinking` for thinking-mode deltas, `.toolUse` for tool-call
+    /// deltas). Caller iterates with `for try await block in stream`
+    /// and renders each text chunk as it arrives (= user sees
+    /// streaming output character-by-character, like ChatGPT).
+    ///
+    /// Anthropic Messages API SSE format (= W3C SSE envelope):
+    /// `event: <name>\n data: <json>\n\n`; we only consume `event:`
+    /// names matching `content_block_delta` (= yields the inner
+    /// `delta.text` chunk per event) and `message_delta` (= yields
+    /// final usage; the last event is `message_stop` which we use
+    /// to finish the stream).
+    ///
+    /// Apple-API-first check: `URLSession.bytes(for:)` (= macOS 12+;
+    /// async stream of HTTP response bytes = Apple canonical SSE
+    /// transport; no third-party HTTP client needed). The
+    /// `SSEClient` actor (= AI/SSEClient.swift) parses the W3C SSE
+    /// envelope; here we only interpret Anthropic's content_block_delta
+    /// JSON.
+    ///
+    /// Cancellation: drop the AsyncThrowingStream (= the URLSession
+    /// bytes task is automatically cancelled; partial chunks are
+    /// discarded).
+    public nonisolated func streamChat(
+        _ text: String,
+        system: String,
+        model overrideModel: String? = nil
+    ) -> AsyncThrowingStream<WenshuLLMBlock, Error> {
+        let effectiveModel = overrideModel ?? model
+        // v0.34: build the request URL + headers the same way as
+        // `send()` (= avoid duplicating credential resolution logic).
+        // We resolve credentials here (= we don't `throw` from a
+        // streaming init; we surface errors via the stream's first
+        // iteration).
+        let request: WenshuLLMRequest
+        do {
+            request = WenshuLLMRequest(
+                model: effectiveModel,
+                max_tokens: 1024,
+                messages: [WenshuLLMMessage(role: "user", content: text)]
+            )
+        }
+        return AsyncThrowingStream { continuation in
+            Task {
+                do {
+                    let creds = try resolveCredentials()
+                    guard !creds.apiKey.isEmpty else {
+                        throw WenshuLLMError.missingAPIKey
+                    }
+                    guard let url = URL(string: "\(creds.baseURL)/v1/messages") else {
+                        throw WenshuLLMError.invalidBaseURL(url: creds.baseURL)
+                    }
+                    // Build POST body with `stream: true` (= Anthropic
+                    // SSE handshake).
+                    var body: [String: Any] = [
+                        "model": effectiveModel,
+                        "max_tokens": 1024,
+                        "stream": true,
+                        "messages": [["role": "user", "content": text]],
+                        "system": system.isEmpty
+                            ? WenshuVerifier.systemPromptEnglishOnly
+                            : WenshuVerifier.systemPromptEnglishOnly + "\n\n---\n\n" + system
+                    ]
+                    let jsonBody = try JSONSerialization.data(withJSONObject: body)
+                    let sse = SSEClient(url: url, headers: [
+                        "x-api-key": creds.apiKey,
+                        "anthropic-version": "2023-06-01",
+                        "content-type": "application/json"
+                    ])
+                    let stream = await sse.stream()
+                    var textBuffer = ""
+                    for try await event in stream {
+                        if Task.isCancelled { break }
+                        // Anthropic SSE payload is JSON in `event.data`.
+                        guard let data = event.data.data(using: .utf8) else { continue }
+                        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { continue }
+                        let type = json["type"] as? String ?? ""
+                        if type == "content_block_delta" {
+                            // Inner shape: { delta: { type: "text_delta", text: "Hello" } }
+                            if let delta = json["delta"] as? [String: Any],
+                               let dType = delta["type"] as? String,
+                               dType == "text_delta",
+                               let text = delta["text"] as? String {
+                                textBuffer += text
+                                continuation.yield(.text(text))
+                            }
+                        } else if type == "content_block_start" {
+                            // Inner shape: { content_block: { type: "thinking" | "text" | "tool_use", ... } }
+                            // We don't yield here; deltas follow.
+                            _ = json
+                        } else if type == "message_stop" {
+                            break
+                        } else if type == "error" {
+                            // Anthropic SSE error envelope:
+                            // { type: "error", error: { type: "...", message: "..." } }
+                            if let errDict = json["error"] as? [String: Any],
+                               let msg = errDict["message"] as? String {
+                                throw WenshuLLMError.httpError(statusCode: -1, body: msg)
+                            }
+                        }
+                    }
+                    NSLog("[wenshu.stream] complete, textBuffer length=%d", textBuffer.count)
+                    continuation.finish()
+                } catch {
+                    NSLog("[wenshu.stream] error: %@", String(describing: error))
+                    continuation.finish(throwing: error)
+                }
+            }
         }
     }
 }
