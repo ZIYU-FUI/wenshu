@@ -67,8 +67,8 @@ struct ContextEngineE2ETests {
         let cc = ConversationCompression(compressor: aggressiveCompressor)
         let messages: [LLMMessage] = (1...20).map { i in
             i.isMultiple(of: 2)
-                ? LLMMessage.user("msg \($i)")
-                : LLMMessage.assistant("reply \($i)")
+                ? LLMMessage.user("msg \(i)")
+                : LLMMessage.assistant("reply \(i)")
         }
 
         let result = await cc.historyAfterCompression(messages: messages, systemMessage: "sys")
@@ -87,7 +87,7 @@ struct ContextEngineE2ETests {
         #expect(bundle.isEmpty)
 
         // 2. Format = empty string (= no system-prompt dynamic tier)
-        let formatted = engine.formatContextBundle(bundle)
+        let formatted = await engine.formatContextBundle(bundle)
         #expect(formatted.isEmpty)
 
         // 3. Compressor sees no dynamic tier (= system prompt unchanged)
