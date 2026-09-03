@@ -6,15 +6,21 @@
 //  boss 2026-08-22 ticket 15 directive "modify the Settings page to
 //  replace the key-input popover with an inline secure text field").
 //
+//  Iron rule 6 compliance: layout/spacing uses DesignTokens.
+//
 
 import SwiftUI
+
+// File-scope constant (= Apple HIG 'label width' for inline form fields,
+// not in DesignTokens default catalog).
+private let labelWidth: CGFloat = 60
 
 public struct ConnectorAuthField: View {
 
     @Binding public var apiKey: String
     public let isConfigured: Bool
     @State private var isRevealed: Bool = false
-    public let provider: Provider  // passed from parent (ConnectorProfileRow)
+    public let provider: Provider
 
     public init(
         apiKey: Binding<String>,
@@ -29,9 +35,9 @@ public struct ConnectorAuthField: View {
     public var body: some View {
         HStack {
             Text("API key")
-                .font(.caption)
+                .font(DesignTokens.statusFont)
                 .foregroundStyle(.secondary)
-                .frame(width: 60, alignment: .leading)
+                .frame(width: labelWidth, alignment: .leading)
 
             Group {
                 if isRevealed {
@@ -66,7 +72,6 @@ public struct ConnectorAuthField: View {
         do {
             try ProviderKeychain.saveKeySync(apiKey, for: provider)
         } catch {
-            // Logged but not surfaced (= keychain errors are infra-level)
             NSLog("[wenshu.connector] failed to save key: %@", error.localizedDescription)
         }
     }

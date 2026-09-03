@@ -36,8 +36,8 @@ public struct LLMConnectorSettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            .padding(.horizontal, 12)
-            .padding(.top, 12)
+            .padding(.horizontal, DesignTokens.chromePaddingMedium)
+            .padding(.top, DesignTokens.chromePaddingMedium)
 
             Divider()
 
@@ -55,8 +55,8 @@ public struct LLMConnectorSettingsView: View {
                         )
                     }
                 }
-                .padding(.horizontal, 12)
-                .padding(.bottom, 12)
+                .padding(.horizontal, DesignTokens.chromePaddingMedium)
+                .padding(.bottom, DesignTokens.chromePaddingMedium)
             }
         }
         .background(Color(nsColor: .windowBackgroundColor))
