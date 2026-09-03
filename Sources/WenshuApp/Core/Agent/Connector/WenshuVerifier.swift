@@ -338,6 +338,76 @@ public actor WenshuVerifier {
         }
     }
 
+    /// sendViaMinimaxConnector: thin facade that delegates to the new
+    /// LLMConnector protocol via MinimaxConnector (= ticket 001 sub-step 8).
+    ///
+    /// Translates WenshuLLMRequest ↔ LLMMessage and WenshuLLMResponse ↔ LLMResponse
+    /// so the existing WenshuLLMRequest-based call sites (= AgentRuntime,
+    /// ChatSessionStore) can opt in to the new LLMConnector protocol without
+    /// breaking the established send() path.
+    ///
+    /// v0.35 ticket 001 sub-step 8 (= TB-B tracer-bullet). Existing send()
+    /// below remains the production path until all call sites migrate.
+    public func sendViaMinimaxConnector(
+        request: WenshuLLMRequest,
+        outputKind: OutputKind = .chat,
+        extraSystemPrompt: String? = nil
+    ) async throws -> WenshuLLMResponse {
+        // Translate WenshuLLMRequest → LLMMessage list
+        let messages: [LLMMessage] = request.messages.map { msg in
+            LLMMessage(role: LLMMessage.Role(rawValue: msg.role) ?? .user, blocks: [.text(msg.content)])
+        }
+
+        // Build LLMCallOptions
+        let systemPrompt: String? = (extraSystemPrompt ?? "").isEmpty
+            ? WenshuVerifier.systemPromptEnglishOnly
+            : WenshuVerifier.systemPromptEnglishOnly + "\n\n---\n\n" + (extraSystemPrompt ?? "")
+        let options = LLMCallOptions(
+            model: request.model,
+            maxTokens: request.max_tokens,
+            systemPrompt: systemPrompt,
+            temperature: nil
+        )
+
+        // Delegate to LLMConnector protocol (= wenshu-side wins thin facade)
+        let connector = MinimaxConnector()
+        let response = try await connector.send(messages: messages, options: options)
+
+        // Translate LLMResponse → WenshuLLMResponse (= preserve public API)
+        let content: [WenshuLLMBlock] = response.blocks.map { block in
+            switch block {
+            case .text(let s):
+                return .text(s)
+            case .thinking(let text, let signature):
+                return .thinking(text: text, signature: signature)
+            case .toolUse(let id, let name, let input):
+                return .toolUse(id: id, name: name, input: input)
+            case .toolResult(let toolUseID, let output):
+                return .text(output)  // collapse to text in legacy surface
+            }
+        }
+        let stopReasonString: String
+        switch response.stopReason {
+        case .endTurn: stopReasonString = "end_turn"
+        case .toolUse: stopReasonString = "tool_use"
+        case .maxTokens: stopReasonString = "max_tokens"
+        case .stopSequence: stopReasonString = "stop_sequence"
+        case .unknown: stopReasonString = "unknown"
+        }
+        let usage = WenshuLLMUsage(
+            input_tokens: response.usage.inputTokens,
+            output_tokens: response.usage.outputTokens
+        )
+        return WenshuLLMResponse(
+            id: response.id,
+            model: response.model,
+            role: "assistant",
+            content: content,
+            stop_reason: stopReasonString,
+            usage: usage
+        )
+    }
+
     // MARK: - v0.34 SSE streaming (= Issue 07)
 
     /// Streaming variant of `chat()`. Returns an `AsyncThrowingStream`
