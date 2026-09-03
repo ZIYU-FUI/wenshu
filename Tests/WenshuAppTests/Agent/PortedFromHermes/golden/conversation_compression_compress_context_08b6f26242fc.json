@@ -1,0 +1,13 @@
+{
+  "function": "compress_context",
+  "generator": "generate_golden.py v0.36",
+  "input": {
+    "keep_recent": 4,
+    "messages_count": 20
+  },
+  "module": "conversation_compression",
+  "output": {
+    "compressed_count": 16,
+    "kept_recent_count": 4
+  }
+}

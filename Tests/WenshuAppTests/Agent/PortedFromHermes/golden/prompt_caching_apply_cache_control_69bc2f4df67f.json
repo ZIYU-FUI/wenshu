@@ -1,0 +1,13 @@
+{
+  "function": "apply_cache_control",
+  "generator": "generate_golden.py v0.36",
+  "input": {
+    "messages_count": 4,
+    "ttl": "5m"
+  },
+  "module": "prompt_caching",
+  "output": {
+    "cache_breakpoints": 4,
+    "ttl": "5m"
+  }
+}
