@@ -119,12 +119,10 @@ struct MinimaxConnectorTests {
     @Test("Throw LLMConnectorError.transport on non-2xx HTTP status")
     func testTransportError() async throws {
         let stub = URLProtocolStub()
-        stub.response = HTTPURLResponse(
-            url: URL(string: "https://api.minimaxi.com/anthropic/v1/messages")!,
-            statusCode: 401,
-            httpVersion: "HTTP/1.1",
-            headerFields: ["Content-Type": "application/json"]
-        )!
+        stub.responseStatusCode = 401
+        stub.responseData = Data()
+        stub.responseHeaders = ["Content-Type": "application/json"]
+        stub.responseError = nil
 
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [URLProtocolStub.self]
@@ -145,53 +143,8 @@ struct MinimaxConnectorTests {
     }
 }
 
-// MARK: - URLProtocol stub
+// URLProtocolStub is shared from URLProtocolStub.swift (= Tests/WenshuAppTests/Agent/)
 
-private final class URLProtocolStub: URLProtocol {
-    nonisolated(unsafe) static var sharedResponse: Any?
-    nonisolated(unsafe) var capturedRequest: URLRequest?
-
-    var response: Any? {
-        get { Self.sharedResponse }
-        set { Self.sharedResponse = newValue }
-    }
-    var lastRequest: URLRequest? { capturedRequest }
-
-    override class func canInit(with request: URLRequest) -> Bool { true }
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
-
-    override func startLoading() {
-        let stub = Self()
-        stub.capturedRequest = self.request
-
-        if let httpResponse = response as? HTTPURLResponse {
-            client?.urlProtocol(self, didReceive: httpResponse, cacheStoragePolicy: .notAllowed)
-            client?.urlProtocol(self, didLoad: Data())
-        } else if let data = response as? Data {
-            let httpResponse = HTTPURLResponse(
-                url: self.request.url!,
-                statusCode: 200,
-                httpVersion: "HTTP/1.1",
-                headerFields: ["Content-Type": "application/json"]
-            )!
-            client?.urlProtocol(self, didReceive: httpResponse, cacheStoragePolicy: .notAllowed)
-            client?.urlProtocol(self, didLoad: data)
-        } else {
-            // Default empty 200 response
-            let httpResponse = HTTPURLResponse(
-                url: self.request.url!,
-                statusCode: 200,
-                httpVersion: "HTTP/1.1",
-                headerFields: ["Content-Type": "application/json"]
-            )!
-            client?.urlProtocol(self, didReceive: httpResponse, cacheStoragePolicy: .notAllowed)
-            client?.urlProtocol(self, didLoad: Data())
-        }
-        client?.urlProtocolDidFinishLoading(self)
-    }
-
-    override func stopLoading() {}
-}
 
 // MARK: - Anthropic-style response builder
 
