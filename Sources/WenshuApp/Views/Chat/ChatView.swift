@@ -365,6 +365,10 @@ public struct ChatView: View {
                 }
             }
 
+            // v0.35 ticket 003 sub-step 4 + 5: compression status pill + manual compress button.
+            // Per spec §6.4 UI mapping: 🟨 half-visible pill + 🟥 must-UI button.
+            ChatViewCompressionRow(vm: vm)
+
             Divider()
 
             // 输入框 + 发送按钮 (Apple HIG SwiftUI 真值)
