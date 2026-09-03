@@ -22,14 +22,27 @@ public struct ConnectorCredentials: Sendable {
     public let provider: Provider
     public let apiKey: String
     public let baseURL: String
+    /// v0.36 ticket 012: rotation metadata (= expiry + OAuth tokens).
+    /// nil if metadata not yet loaded (= fresh key, no rotation tracking).
+    public let metadata: ProviderKeychainMetadata?
 
-    public init(provider: Provider, apiKey: String, baseURL: String) {
+    public init(
+        provider: Provider,
+        apiKey: String,
+        baseURL: String,
+        metadata: ProviderKeychainMetadata? = nil
+    ) {
         self.provider = provider
         self.apiKey = apiKey
         self.baseURL = baseURL
+        self.metadata = metadata
     }
 
     /// Resolve credentials for a connector profile via existing ProviderKeychain.
+    ///
+    /// v0.36 ticket 012 sub-step 5: also loads metadata for expiry tracking.
+    /// Caller (= LLMConnector.send) should check `metadata.isExpired` and
+    /// trigger OAuth refresh before send if needed.
     ///
     /// - Parameters:
     ///   - provider: The connector profile (= Provider enum from Core/Provider).
@@ -43,10 +56,27 @@ public struct ConnectorCredentials: Sendable {
         } else {
             key = ProviderKeychain.loadKeySync(for: provider) ?? ""
         }
+        // v0.36 ticket 012: also load rotation metadata (= expiry + OAuth).
+        let metadata = ProviderKeychain.loadMetadata(for: provider)
         return ConnectorCredentials(
             provider: provider,
             apiKey: key,
-            baseURL: provider.defaultBaseURL
+            baseURL: provider.defaultBaseURL,
+            metadata: metadata
         )
+    }
+
+    /// True if credentials have rotation metadata AND metadata is expired.
+    /// Caller should trigger OAuth refresh before using these credentials.
+    public var needsRotation: Bool {
+        guard let metadata else { return false }
+        return metadata.isExpired && metadata.isOAuth
+    }
+
+    /// True if credentials are ready to use for an LLM call.
+    /// (= have a non-empty apiKey, or no auth required like Ollama).
+    public var isReady: Bool {
+        if provider.slug == "ollama" { return true }
+        return !apiKey.isEmpty
     }
 }
