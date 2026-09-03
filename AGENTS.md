@@ -14,8 +14,9 @@ This file = wenshu project baseline + cross-role address hard constraint. Single
 # §11 Project baseline
 
 - Stack = Swift / SwiftUI + Swift Observation (@Observable) + filesystem JSON + Markdown (per-book private content) + Apple HIG (.fcpbundle-style directory, single-process). NO CoreData. NO external AI platform calls (any code file).
+- §11 product positioning (boss 2026-09-03 拍): Wenshu is a writing tool, NOT an LLM platform. Wenshu never resells or bundles LLM access, never holds user tokens on its own backend, never charges for token consumption. LLM is a layer below Wenshu that the user provides via the §11.2 connector layer. Any PR that adds metering, billing, quota tracking, or token-bundling is out of scope.
 - v0.27 boss OOB: "从今天开始，任何功能，先查有没有三方库可以用。不重复造轮子是对的。我之前说不引入三方给自己挖坑了" = wenshu stack baseline 修正 — 第三方库允许（前提 = 见 §11.1 UI 控件例外清单）。
-- v1 LLM provider supports minimax cn only (Anthropic-compatible protocol).
+- v1 LLM connector architecture: 7 connector profiles (Anthropic / OpenAI / Gemini / DeepSeek / Ollama / OpenRouter / minimax cn). Provider-agnostic. User BYOK (bring your own key). NO default recommendation. Wenshu ships with the connector layer wired but every profile is empty until user supplies credentials. See §11.2 for the 7 profiles.
 - `.ws` directory (= macOS package, NSOpenPanel-selected at onboarding) = per-library container. Holds: Info.plist (= Apple HIG bundle metadata; CFBundlePackageType=WSPC + WSSchemaVersion) + chat.sqlite (= global LLM chat history; 45 KB at v0.24 ship) + Icon (= Finder icon) + shelves/ (= user-created bookshelves; multiple) + reference-library/ (= library's default bookshelf; system-managed, ONE instance, user CANNOT delete or rename; holds LLM Wiki 4 layers: raw/ + entities/ + abstracts/ + indexes/) + cache/ (= thumbnails + search index + export temp). Per-book structure = `shelves/<shelf-uuid>/books/<book-uuid>/` with 8 standard folders (world/ characters/ outlines/ chapters/ drafts/ sessions/ foreshadowing/ placeholders/) + 8 JSON sidecars + 2 per-book JSON data files (kanban.json, todo.json). Per-book private world + characters + foreshadowing + placeholders; reference-library is library-public (= cross-book reusable raw materials).
 - Apple stack exclusive (macOS / iPad / iPhone). Current target = macOS-only single platform (老板 8/18 拍).
 - Project root = `/Volumes/ANAN/Engineering/wenshu/`.
@@ -73,6 +74,37 @@ This file = wenshu project baseline + cross-role address hard constraint. Single
   - `nodes-app/swift-markdown-engine` — AppKit TextKit 2 markdown editor (Apache-2.0, ~863★, ~2 months old; revisit when ≥1k★ and after `swiftlang/swift-markdown` parser path proves insufficient).
   - `Sameesunkaria/OutlineView` — 78★, below threshold; revisit when ≥100★.
 
+# §11.2 LLM connector profiles (boss 2026-09-03 拍, ported from hermes agent core v0.x)
+
+| Priority | Profile | Protocol | Auth pattern | First-class scenario |
+|---|---|---|---|---|
+| P0 | Anthropic | Anthropic native | API key | Overseas direct, high-quality (claude-sonnet-4.5, claude-opus-4) |
+| P0 | OpenAI | OpenAI native | API key | Overseas mainstream (gpt-5, gpt-4.1) |
+| P0 | minimax cn | Anthropic-compatible | API key | Boss v0 test default; Anthropic-compatible |
+| P1 | DeepSeek | Anthropic-compatible | API key | China low-cost |
+| P1 | Gemini | Gemini native | API key | Cross-provider workflows (gemini-2.5-pro, gemini-2.5-flash) |
+| P1 | Ollama | OpenAI-compatible | None (local) | Privacy-sensitive, no-key users |
+| P2 | OpenRouter | OpenAI-compatible | API key | One key, all models |
+
+User picks profile in Settings → LLM Connector pane. No default. Wenshu UI shows no LLM details once a profile is configured.
+
+# §11.3 Agent ↔ other Core module interaction principle (boss 2026-09-03 拍, derived from hermes-core-translation spec §3.6)
+
+When the hermes-core-translation spec lands (= 10 code tickets + 1 docs ticket = spec at `.scratch/2026-09-03-hermes-core-translation/`), 5 wenshu existing modules overlap with hermes' ported layer:
+
+- `Core/Tools/FileTools.swift` + `ProcessTools.swift` + `AVMediaTools.swift` ↔ `Core/Agent/Tool/ReadFileTool.swift` + `WriteFileTool.swift`
+- `Core/Provider/ProviderKeychain.swift` ↔ `Core/Agent/Connector/ConnectorCredentials.swift`
+- `Core/Memory/MemoryManager.swift` + `MemoryProvider.swift` + `MemoryConsolidator.swift` ↔ `Core/Agent/Memory/MemoryManager.swift` + `MemoryProvider.swift` + `MemoryStore.swift`
+- `Core/Skills/SkillMeta.swift` + `SkillRegistry.swift` ↔ `Core/Agent/Skill/SkillUtils.swift` + `SkillPreprocessing.swift` + `SkillCommands.swift` + `SkillBundles.swift`
+- `Core/Chat/ChatSessionStore.swift` ↔ `Core/Agent/Conversation/ConversationLoop.swift`
+
+Decision (= wenshu-side wins):
+
+1. **wenshu-side wins**: the existing wenshu module is preserved; the hermes-port is a thin adapter that delegates to it. The port DOES NOT re-implement the wenshu-side behavior. Code duplication is forbidden.
+2. **Ticket boundary**: every ticket that touches one of these overlap pairs must state in its PR body "this PR uses wenshu-side wins pattern: [list wenshu modules it delegates to]". `/code-review` rejects any ticket that re-implements wenshu-side behavior.
+3. **Existing-code rename** (spec §3.5): ticket 001 renames 12 existing files under `Core/Agent/` into the new sub-directory structure. Renames happen BEFORE any new module is added. `git mv` preserves blame.
+4. **Future hermes-side wins**: any future ticket proposing "hermes port replaces wenshu-side" requires explicit boss拍. Default = wenshu-side wins. No silent replacement.
+
 # §12 Cross-role expression hard constraint
 
 - Sole address for 老板 = 老板. Every dialog / doc / commit message / comment / prompt uses 老板.
@@ -80,4 +112,4 @@ This file = wenshu project baseline + cross-role address hard constraint. Single
 
 ---
 
-*AGENTS.md v0.07.4 · 2026-08-27 pocock single agent · FCP library replica + new .ws layout (shelves/ + reference-library/) + per-book 8 folders + 2 JSON data files + Apple @Observable (no CoreData) + §11.1 third-party library policy + stevengharris/SplitView approved exception · English-only · project root = /Volumes/ANAN/Engineering/wenshu/*
+*AGENTS.md v0.08.0 · 2026-09-03 pocock single agent · FCP library replica + new .ws layout (shelves/ + reference-library/) + per-book 8 folders + 2 JSON data files + Apple @Observable (no CoreData) + §11.1 third-party library policy + §11.2 LLM connector profiles (Anthropic / OpenAI / Gemini / DeepSeek / Ollama / OpenRouter / minimax cn) + §11.3 agent ↔ other Core module interaction principle (wenshu-side wins) + §11 product-positioning rule (writing tool, not LLM platform) + v1 LLM provider clause rewritten from minimax cn only to 7 connector BYOK architecture · English-only · project root = /Volumes/ANAN/Engineering/wenshu/*
