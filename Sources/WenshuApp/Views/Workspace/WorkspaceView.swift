@@ -12,6 +12,7 @@
 
 import SwiftUI
 import Lucide
+import os.log  // v0.34 B-25: os_log for visual-verify debug prints
 
 /// WorkspaceView — the customizable-layout root (= the Xcode-paradigm
 /// replacement for LayoutShellView). Boss 2026-08-27 grill D1 chose
@@ -482,6 +483,13 @@ struct ZoneModuleView: View {
     /// ZoneModuleView reads it directly (= no @Binding chain).
     @Environment(AppState.self) private var appState
 
+    /// v0.34 B-25-fix (= boss 9/3 'PreviewPane双击没打开文档'):
+    /// ZoneModuleView also needs BookStore to read reference bodies
+    /// (= same as WorkspaceView's openCardInEditor). Injected via
+    /// the existing .environment(bookStore) call sites in App.swift
+    /// + LibraryRootView.
+    @Environment(BookStore.self) private var bookStore
+
     /// v0.30 boss 8/31 OOB: computed preview scope (= mirrors
     /// WorkspaceView's `previewScope`; duplicated here to keep
     /// ZoneModuleView self-contained without threading the scope
@@ -556,25 +564,23 @@ struct ZoneModuleView: View {
             ZoneContentView(zoneSlug: "projectPreview", tabs: [
                 ("预览", "book-open-check", AnyView(PreviewPane(
                     scope: previewScope,
-                    // v0.34 B-25: ZoneModuleView legacy path = inline
-                    // duplicate-tab check (= reuses the placeholder tab
-                    // if it's already loaded; otherwise no-op = avoids
-                    // duplicate tabs in the legacy path). WorkspaceView's
-                    // openCardInEditor has the same logic for the active
-                    // path; = ticket 027-35 will lift this into a shared
-                    // service.
+                    // v0.34 B-25-fix (= boss 9/3 '双击卡片没打开文档'):
+                    // ZoneModuleView's caller L561 is the ACTIVE path
+                    // (= not WorkspaceView's caller L355 which is dead
+                    // code). Route double-click to ZoneModuleView's own
+                    // openCardInEditor (= same logic as WorkspaceView's;
+                    // = ticket 027-35 will lift into a shared service).
+                    //
+                    // 2026-09-03 boss 9/3 follow-up: explicitly call
+                    // `self.openCardInEditor()` (= Swift strict capture
+                    // requirement = PreviewPane's @escaping closure
+                    // captured `self` implicitly, and the implicit
+                    // `openCardInEditor()` resolution went to the wrong
+                    // scope = the closure ran but the method was not
+                    // resolved to ZoneModuleView). Explicit `self.`
+                    // fixes the resolution.
                     onDoubleClick: {
-                        let sampleBody = EditorPlaceholder.samplePreviewBody
-                        let fingerprint = String(sampleBody.prefix(200))
-                        if let idx = appState.openTabs.firstIndex(where: {
-                            String($0.originalBody.prefix(200)) == fingerprint
-                        }) {
-                            appState.activeTabId = appState.openTabs[idx].id
-                        } else if let placeholderIdx = appState.openTabs.firstIndex(where: {
-                            $0.id == EditorTab.placeholderId
-                        }) {
-                            appState.activeTabId = appState.openTabs[placeholderIdx].id
-                        }
+                        self.openCardInEditor()
                     },
                     previewSortOrder: .constant(.pinyinFirstLetter)
                 ))),
@@ -631,6 +637,72 @@ struct ZoneModuleView: View {
             )
         }
     }
+
+    /// v0.34 B-25-fix (= boss 9/3 '双击卡片没打开文档'): ZoneModuleView
+    /// needs its own openCardInEditor (= WorkspaceView's openCardInEditor
+    /// is in a DIFFERENT struct = can't share via this same View type).
+    /// Code is duplicated from WorkspaceView's openCardInEditor. Ticket
+    /// 027-35 will lift into a workspace-level OpenCardInEditor service
+    /// (= same function called from both callers).
+    private func openCardInEditor() {
+        os_log("[wenshu.zone.openCardInEditor] entry scope=%{public}@", String(describing: previewScope))
+        let (path, content, title): (String?, String, String)
+        switch previewScope {
+        case .referenceScope(let category):
+            let entities = (try? bookStore.referenceStore.loadAllReferences()) ?? []
+            let filtered = entities.filter { entity in
+                entity.layer == .layerEntities
+                    && (category == nil || entity.category == category)
+            }
+            if let first = filtered.first {
+                let body = (try? bookStore.referenceStore.loadReferenceBody(id: first.id)) ?? first.summary
+                path = nil
+                content = body
+                title = first.title
+            } else {
+                path = nil; content = ""
+                title = category?.displayName ?? "资料库"
+            }
+        case .bookScope:
+            path = nil; content = ""; title = "book-doc"
+        case .shelfScope, .empty:
+            path = nil; content = ""; title = ""
+        }
+
+        guard !content.isEmpty else { return }
+
+        // Duplicate-tab check (= same logic as WorkspaceView's).
+        let fingerprint = String(content.prefix(200))
+        if let existingIdx = appState.openTabs.firstIndex(where: {
+            String($0.originalBody.prefix(200)) == fingerprint
+        }) {
+            appState.activeTabId = appState.openTabs[existingIdx].id
+            return
+        }
+
+        // Open new tab.
+        let currentIsDirty: Bool = {
+            guard let tab = appState.openTabs.first(where: { $0.id == appState.activeTabId }) else {
+                return false
+            }
+            return tab.draft != tab.originalBody
+        }()
+        let newTab = EditorTab(
+            id: UUID(),
+            documentPath: path,
+            draft: content,
+            originalBody: content,
+            mode: .preview
+        )
+        if !currentIsDirty,
+           let idx = appState.openTabs.firstIndex(where: { $0.id == appState.activeTabId }) {
+            appState.openTabs[idx] = newTab
+        } else {
+            appState.openTabs.append(newTab)
+        }
+        appState.activeTabId = newTab.id
+    }
+
 }
 
 /// Editor main content placeholder (= replaces old DesignColor overlay).

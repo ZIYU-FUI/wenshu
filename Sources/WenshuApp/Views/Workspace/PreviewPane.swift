@@ -33,6 +33,7 @@
 
 import SwiftUI
 import CoreFoundation  // v0.30: for CFStringTransform (pinyin sort)
+import os.log  // v0.34 B-25: os_log for visual-verify debug prints
 
 // MARK: - Sort order (v0.30 boss OOB)
 //
@@ -211,6 +212,16 @@ struct PreviewPane: View {
     /// sources since B-02's CardSource enum unification).
     let onDoubleClick: () -> Void
 
+    /// v0.34 B-25-debug: indirection so internal callers (= ForEach
+    /// Card sites) can log + trigger. log proves whether the caller's
+    /// closure actually fires (= BUG1 from boss 9/3 visual verify).
+    var triggerDoubleClick: () -> Void {
+        return {
+            os_log("[wenshu.PreviewPane.onDoubleClick] trigger firing")
+            self.onDoubleClick()
+        }
+    }
+
     /// v0.30 boss 8/31 OOB: trailing button rendered in the pane's
     /// tab bar (= PaneTabBar trailing slot). Used by the project
     /// preview scope to host the sort menu (= sorts the card grid
@@ -236,6 +247,7 @@ struct PreviewPane: View {
         self.scope = scope
         self.onDoubleClick = onDoubleClick
         self._previewSortOrder = previewSortOrder
+        os_log("[wenshu.PreviewPane.init] stored onDoubleClick closure")
     }
 
     /// v0.30 boss OOB: '卡片多列显示, 默认两列, 如果区域被拖拽宽度变窄,
@@ -424,7 +436,8 @@ struct PreviewPane: View {
                         LazyVGrid(columns: adaptiveColumns(width: geometry.size.width), spacing: 16) {
                             ForEach(inCategory) { entity in
                                 Card(source: .reference(entity)) {
-                                    onDoubleClick()
+                                    os_log("[wenshu.PreviewPane] reference card callback firing source=%{public}@", entity.title)
+                                    triggerDoubleClick()
                                 }
                             }
                         }
@@ -457,8 +470,8 @@ struct PreviewPane: View {
                     LazyVGrid(columns: adaptiveColumns(width: geometry.size.width), spacing: 16) {
                         ForEach(sorted) { entity in
                             Card(source: .reference(entity)) {
-                                onDoubleClick()
-                            }
+                                                                triggerDoubleClick()
+                                                            }
                         }
                     }
                     .padding(.vertical, DesignTokens.chromePaddingVertical)
@@ -646,7 +659,7 @@ struct PreviewPane: View {
                 ) {
                     ForEach(sorted) { doc in
                         Card(source: .bookDoc(doc)) {
-                            onDoubleClick()
+                            triggerDoubleClick()
                         }
                     }
                 }
@@ -809,12 +822,35 @@ private struct Card: View {
         )
         .onHover { isHovered = $0 }
         .contentShape(Rectangle())
+        // v0.34 B-25: Apple HIG canonical macOS double-click handler.
+        //
+        // Boss 9/3 OOB + 'git grep BEFORE patch' apple-api-first rule:
+        // `.onTapGesture(count: 2)` is Apple's documented macOS double-
+        // click handler (= developer.apple.com/documentation/swiftui/
+        // view/ontapgesture(count:perform:)). Per Apple's doc, attaching
+        // a single-tap handler BEFORE the double-tap handler causes
+        // the double-tap to NOT fire (= gestures short-circuit). The
+        // previous commit's `.simultaneousGesture` workaround was wrong
+        // (= boss 9/3 '你加载铁律, 看有没有符合 apple api 的方法' = use
+        // Apple's API directly = no workaround).
+        //
+        // The correct Apple HIG pattern is:
+        //   - Remove ALL other .onTapGesture / .simultaneousGesture on
+        //     the same view (= Apple's doc explicitly says "use Button
+        //     if you want both single and double tap").
+        //   - Use ONLY `.onTapGesture(count: 2)` (= Apple HIG TextEdit /
+        //     Finder pattern = single tap selects, double tap opens).
+        //
+        // Since wenshu's card needs single-tap SELECTION (= highlight
+        // the active card) AND double-tap OPEN (= open in editor),
+        // and Apple's API doesn't combine both cleanly on non-List
+        // views, we drop the single-tap handler (= PreviewPane's
+        // single-tap selection wasn't wired anyway; = the single tap
+        // did nothing — see the previous B-13 placeholder).
         .onTapGesture(count: 2) {
+            os_log("[wenshu.Card.onDoubleClick] source=%{public}@",
+                   source.title)
             onDoubleClick()
-        }
-        .onTapGesture {
-            // Single tap = no-op (= preview mode selection wired by
-            // sidebar tap, not card tap).
         }
         .help("Double-click to open in editor")
     }
