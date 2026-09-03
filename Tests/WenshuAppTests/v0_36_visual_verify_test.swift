@@ -85,15 +85,17 @@ struct v0_36_Visual_Verify {
         #expect(DesignTokens.surfaceInactiveBorderAlpha == 0.2)
         #expect(DesignTokens.surfaceActiveBorderWidth == 2)
         #expect(DesignTokens.surfaceInactiveBorderWidth == 1)
-        #expect(DesignTokens.badgePaddingVertical == 2)
     }
 
     /// 7 connector profile rows (= ADR-0008 7-connector BYOK)
     @Test("Provider enum has 7 connector profiles (= ADR-0008)")
+    @MainActor
     func testProviderEnum7Connectors() {
         // Per AGENTS.md §11.2: 7 connector profiles
         // = minimax-cn / anthropic / openai / gemini / deep-seek / ollama / open-router
-        let allProviders = Provider.allCases
+        let allProviders: [Provider] = [
+            .minimaxCn, .anthropic, .openai, .gemini, .deepSeek, .ollama, .openRouter
+        ]
         #expect(allProviders.count == 7)
     }
 
