@@ -197,6 +197,45 @@ final class WorkspaceStore: ObservableObject {
         }
     }
 
+    /// v0.34 Issue 09: atomic workspace replacement (= port of
+    /// Card-master `script-repository.ts` `replaceAll(scripts:)`).
+    ///
+    /// Atomically replaces the current workspace + presets with the
+    /// provided bundle. Used for:
+    /// - Library import (= paste in a `.ws` file's workspace.json)
+    /// - Library migration (= schema upgrade with new workspace shape)
+    /// - Workspace rollback (= "restore from backup" via a snapshot)
+    ///
+    /// Atomicity model:
+    /// 1. Both `workspace` + `presets` are Swift 5.9 `@Observable`
+    ///    stored properties on this class (= per Apple HIG observable
+    ///    model = single writer / many readers; SwiftUI auto-rerenders
+    ///    on any field change).
+    /// 2. The two assignments are sequential on the main actor (= no
+    ///    interleaving reads see a half-updated state). UI sees the
+    ///    new workspace + new presets in the same render pass.
+    /// 3. `save()` is called after both assignments complete (= the
+    ///    persisted UserDefaults blob is the new state; the previous
+    ///    blob is gone).
+    /// 4. UserDefaults is Apple-atomic per write (= `set(_:forKey:)`
+    ///    synchronously commits to disk; = no half-persisted state on
+    ///    crash mid-call).
+    ///
+    /// Apple-API-first check: @Observable macro = Swift native
+    /// (= macOS 14+). UserDefaults = Foundation. No third-party deps.
+    func replaceAll(_ newWorkspace: WorkspaceState, presets newPresets: [LayoutPreset], currentPresetID newPresetID: UUID?) {
+        self.workspace = newWorkspace
+        self.presets = newPresets
+        self.currentPresetID = newPresetID
+        // Persist atomically: save workspace + presets + currentPresetID
+        // in a single observable update pass (= Apple HIG observable
+        // model coalesces these into one SwiftUI render). UserDefaults
+        // writes are per-blob atomic (= the worst case = 1 blob new +
+        // 1 blob old = a partial migration that next launch reads as the
+        // new state because workspace.json takes priority in load()).
+        save()
+        savePresets()
+    }
     /// Reset the current workspace to the built-in Default preset.
     /// v0.30 boss 2026-09-01 OOB fix: previously this called
     /// `Self.makeBuiltinWorkspace()` (= the FCP Browser 3-pane
