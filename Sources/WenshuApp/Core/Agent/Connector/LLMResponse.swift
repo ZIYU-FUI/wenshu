@@ -20,14 +20,14 @@ import Foundation
 public struct LLMResponse: Sendable, Equatable {
     public let id: String
     public let model: String
-    public let blocks: [Block]
+    public let blocks: [LLMBlock]
     public let stopReason: StopReason
     public let usage: LLMUsage
 
     public init(
         id: String,
         model: String,
-        blocks: [Block],
+        blocks: [LLMBlock],
         stopReason: StopReason,
         usage: LLMUsage
     ) {
@@ -36,12 +36,6 @@ public struct LLMResponse: Sendable, Equatable {
         self.blocks = blocks
         self.stopReason = stopReason
         self.usage = usage
-    }
-
-    public enum Block: Sendable, Equatable {
-        case text(String)
-        case thinking(text: String, signature: String?)
-        case toolUse(id: String, name: String, input: String)
     }
 
     public enum StopReason: String, Sendable, Equatable, Codable {
@@ -63,4 +57,14 @@ public struct LLMUsage: Sendable, Equatable {
     }
 
     public var totalTokens: Int { inputTokens + outputTokens }
+}
+
+/// Cross-connector content block (= used by both LLMResponse.blocks and
+/// LLMConnector streaming callbacks). 4 variants per Anthropic Messages
+/// API content blocks pattern: text / thinking / tool_use / tool_result.
+public enum LLMBlock: Sendable, Equatable {
+    case text(String)
+    case thinking(text: String, signature: String?)
+    case toolUse(id: String, name: String, input: String)
+    case toolResult(toolUseID: String, output: String)
 }
