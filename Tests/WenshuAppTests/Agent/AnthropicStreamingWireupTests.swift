@@ -171,7 +171,7 @@ struct AnthropicSSEDecoderVerificationTests {
         {"index":0,"delta":{"type":"text_delta","text":"hello"}}
         """
         let chunk = AnthropicSSEDecoder.decode(event: event, data: data)
-        guard case let .contentBlockDelta(index, textDelta, inputDelta) = chunk?.kind else {
+        guard case let .contentBlockDelta(index, textDelta, inputDelta, _) = chunk?.kind else {
             Issue.record("Expected contentBlockDelta")
             return
         }
