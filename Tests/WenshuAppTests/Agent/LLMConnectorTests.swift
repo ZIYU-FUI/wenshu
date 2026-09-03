@@ -31,8 +31,9 @@ struct LLMConnectorTests {
     @Test("LLMConnector protocol can be conformed by a test type")
     func testProtocolConformance() async throws {
         let mock = MockLLMConnector()
-        let messages = [LLMMessage(role: .user, content: .text("hi"))]
-        let response = try await mock.send(messages: messages)
+        let messages = [LLMMessage(role: .user, blocks: [.text("hi")])]
+        let options = LLMCallOptions(model: "mock-model", maxTokens: 100)
+        let response = try await mock.send(messages: messages, options: options)
         #expect(response.blocks.count == 1)
         if case .text(let s) = response.blocks[0] {
             #expect(s == "echo: hi")
@@ -45,9 +46,9 @@ struct LLMConnectorTests {
 
     @Test("LLMMessage / LLMResponse support text + thinking + tool_use")
     func testCrossConnectorWireFormat() throws {
-        let textMsg = LLMMessage(role: .user, content: .text("hello"))
-        let toolMsg = LLMMessage(role: .assistant, content: .toolUse(id: "t1", name: "ReadFile", input: "{}"))
-        let toolResult = LLMMessage(role: .tool, content: .toolResult(toolUseID: "t1", output: "file content"))
+        let textMsg = LLMMessage(role: .user, blocks: [.text("hello")])
+        let toolMsg = LLMMessage(role: .assistant, blocks: [.toolUse(id: "t1", name: "ReadFile", input: "{}")])
+        let toolResult = LLMMessage(role: .tool, blocks: [.toolResult(toolUseID: "t1", output: "file content")])
         #expect(textMsg.role == .user)
         #expect(toolMsg.role == .assistant)
         #expect(toolResult.role == .tool)
@@ -116,7 +117,7 @@ struct LLMConnectorTests {
 // MARK: - Mock connector for test 1
 
 private actor MockLLMConnector: LLMConnector {
-    func send(messages: [LLMMessage]) async throws -> LLMResponse {
+    func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
         let userText: String
         if case .text(let s) = messages.last??.content {
             userText = s
@@ -125,7 +126,7 @@ private actor MockLLMConnector: LLMConnector {
         }
         return LLMResponse(
             id: "mock",
-            model: "mock-model",
+            model: options.model,
             blocks: [.text("echo: \\(userText)")],
             stopReason: .endTurn,
             usage: LLMUsage(inputTokens: 5, outputTokens: 5)
