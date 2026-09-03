@@ -109,7 +109,7 @@ struct LLMConnectorProtocolTests {
 // ============================================================================
 
 @Suite("ProviderKeychain + ProviderKeychainMetadata")
-struct ProviderKeychainTests {
+struct ComprehensiveProviderKeychainTests {
 
     @Test("ProviderKeychainMetadata default state")
     func defaultMetadata() {
