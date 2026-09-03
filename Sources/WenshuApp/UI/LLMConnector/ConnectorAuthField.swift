@@ -11,10 +11,6 @@
 
 import SwiftUI
 
-// File-scope constant (= Apple HIG 'label width' for inline form fields,
-// not in DesignTokens default catalog).
-private let labelWidth: CGFloat = 60
-
 public struct ConnectorAuthField: View {
 
     @Binding public var apiKey: String
@@ -37,7 +33,7 @@ public struct ConnectorAuthField: View {
             Text("API key")
                 .font(DesignTokens.statusFont)
                 .foregroundStyle(.secondary)
-                .frame(width: labelWidth, alignment: .leading)
+                .frame(width: DesignTokens.formLabelWidth, alignment: .leading)
 
             Group {
                 if isRevealed {

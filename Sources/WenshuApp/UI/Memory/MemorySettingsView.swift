@@ -14,8 +14,6 @@ private let smallChipCornerRadius: CGFloat = 3
 // File-scope constant (= Apple HIG subtle surface tint = 0.05 alpha).
 private let subtleSurfaceAlpha: CGFloat = 0.05
 
-// File-scope constant (= Apple HIG inline form-field label column width).
-private let rowLabelWidth: CGFloat = 80
 
 public struct MemorySettingsView: View {
     @State public var scope: MemoryScope = .perBook
@@ -50,7 +48,7 @@ public struct MemorySettingsView: View {
             // Retention slider
             HStack {
                 Text("Retention")
-                    .frame(width: rowLabelWidth, alignment: .leading)
+                    .frame(width: DesignTokens.settingsRowLabelWidth, alignment: .leading)
                 Slider(value: Binding(
                     get: { Double(retentionDays) },
                     set: { retentionDays = Int($0) }
@@ -58,7 +56,7 @@ public struct MemorySettingsView: View {
                 .disabled(!isMemoryEnabled)
                 Text("\\(retentionDays) days")
                     .monospacedDigit()
-                    .frame(width: rowLabelWidth, alignment: .trailing)
+                    .frame(width: DesignTokens.settingsRowLabelWidth, alignment: .trailing)
             }
 
             Divider()
