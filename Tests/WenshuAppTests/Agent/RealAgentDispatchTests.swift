@@ -273,4 +273,78 @@ struct RealAgentDispatchTests {
         #expect(received.count >= 1)
         _ = result
     }
+
+    /// v0.37 Batch 2.1 sub-step 4: ConversationResult structure verification.
+    /// Verifies that the result wraps an LLMResponse with expected
+    /// blocks + usage + stopReason (= hermes parity per ADR-0012).
+    @Test("ConversationResult: response.blocks + usage + stopReason match scripted")
+    func conversationResultStructure() async throws {
+        let mockConnector = MockLLMConnector(scriptedResponses: [
+            LLMResponse(
+                id: "resp-1",
+                model: "test-model",
+                blocks: [
+                    .thinking(text: "Reasoning about the request...", signature: "sig-1"),
+                    .text("Final answer.")
+                ],
+                stopReason: .endTurn,
+                usage: LLMUsage(inputTokens: 100, outputTokens: 50)
+            )
+        ])
+
+        let loop = ConversationLoop(
+            connector: mockConnector,
+            systemPrompt: "system"
+        )
+
+        let result = try await loop.runConversation(
+            userMessage: "test",
+            conversationHistory: nil
+        )
+
+        // Verify ConversationResult structure
+        #expect(result.response.model == "test-model")
+        #expect(result.response.blocks.count == 2)
+        #expect(result.response.usage.inputTokens == 100)
+        #expect(result.response.usage.outputTokens == 50)
+        #expect(result.response.stopReason == .endTurn)
+        #expect(!result.taskId.isEmpty)
+
+        // Verify blocks contain thinking + text
+        if case .thinking(let t, let sig) = result.response.blocks[0] {
+            #expect(t.contains("Reasoning"))
+            #expect(sig == "sig-1")
+        } else {
+            Issue.record("expected thinking block first")
+        }
+        if case .text(let s) = result.response.blocks[1] {
+            #expect(s == "Final answer.")
+        } else {
+            Issue.record("expected text block second")
+        }
+    }
+
+    /// v0.37 Batch 2.1 sub-step 4: ConversationResult.messages contains
+    /// the user message (= history tracking works).
+    @Test("ConversationResult: messages contain user input")
+    func conversationResultMessagesTracking() async throws {
+        let mockConnector = MockLLMConnector(response: "Hi there.")
+        let loop = ConversationLoop(
+            connector: mockConnector,
+            systemPrompt: "system"
+        )
+
+        let result = try await loop.runConversation(
+            userMessage: "Hello",
+            conversationHistory: nil
+        )
+
+        // Verify messages tracking
+        #expect(result.messages.count >= 1)
+        let hasUserMessage = result.messages.contains { msg in
+            if case .user = msg.role { return true }
+            return false
+        }
+        #expect(hasUserMessage)
+    }
 }
