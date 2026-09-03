@@ -76,7 +76,8 @@ struct PromptCachingE2ETests {
             )
         }
 
-        let cachedMessages = (await connector.snapshot()).messages ?? []
+        let cachedMessages = connector.capturedMessages ?? []
+        _ = (await connector.snapshot()).messageCount
         #expect(cachedMessages.count == 5)
 
         // Last 3 should have cache_control
@@ -94,7 +95,8 @@ struct PromptCachingE2ETests {
         let loop = ConversationLoop(connector: connector, systemPrompt: "stable")
 
         _ = try await loop.runConversation(userMessage: "msg")
-        let messages = (await connector.snapshot()).messages ?? []
+        let messages = connector.capturedMessages ?? []
+        _ = (await connector.snapshot()).messageCount
         let markedMessage = messages.first { $0["cache_control"] != nil }
 
         #expect(markedMessage?["cache_control"] as? [String: String] != nil)
@@ -167,8 +169,8 @@ private actor StubMinimaxConnector: LLMConnector {
     }
 
     /// Snapshot helper for tests (= returns captured state via async call).
-    func snapshot() -> (systemPrompt: String?, messages: [[String: Any]]?) {
-        (capturedSystemPrompt, capturedMessages)
+    func snapshot() -> (systemPrompt: String?, messageCount: Int) {
+        (capturedSystemPrompt, capturedMessages?.count ?? 0)
     }
 }
 
