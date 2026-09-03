@@ -185,18 +185,18 @@ struct ProviderKeychainTests {
     @Test("InMemoryKeychainStore: delete then load returns nil")
     func inMemoryDelete() throws {
         let store = InMemoryKeychainStore()
-        try store.saveKeySync("k", for: .openai)
-        try store.deleteKeySync(for: .openai)
-        #expect(store.loadKeySync(for: .openai) == nil)
+        try store.saveKeySync("k", for: .deepseek)
+        try store.deleteKeySync(for: .deepseek)
+        #expect(store.loadKeySync(for: .deepseek) == nil)
     }
 
     @Test("InMemoryKeychainStore: list providers with keys")
     func inMemoryList() throws {
         let store = InMemoryKeychainStore()
         try store.saveKeySync("k1", for: .anthropic)
-        try store.saveKeySync("k2", for: .openai)
+        try store.saveKeySync("k2", for: .openrouter)
         let keys = store.listProvidersWithKeys()
-        #expect(keys.sorted() == ["anthropic", "openai"])
+        #expect(keys.sorted() == ["anthropic", "openrouter"])
     }
 
     @Test("ProviderKeychainStoring default protocol methods are no-ops")
@@ -215,18 +215,18 @@ struct ProviderKeychainTests {
     @Test("Provider enum: 7 case slugs")
     func providerSlugs() {
         #expect(Provider.anthropic.slug == "anthropic")
-        #expect(Provider.openai.slug == "openai")
-        #expect(Provider.gemini.slug == "gemini")
-        #expect(Provider.deepSeek.slug == "deep-seek")
-        #expect(Provider.ollama.slug == "ollama")
-        #expect(Provider.openRouter.slug == "open-router")
         #expect(Provider.minimaxCn.slug == "minimax-cn")
+        #expect(Provider.gemini.slug == "gemini")
+        #expect(Provider.deepseek.slug == "deepseek")
+        #expect(Provider.ollama.slug == "ollama")
+        #expect(Provider.openrouter.slug == "openrouter")
+        #expect(Provider.minimax.slug == "minimax")
     }
 
     @Test("Provider.defaultBaseURL values")
     func providerBaseURLs() {
         #expect(Provider.anthropic.defaultBaseURL.contains("anthropic.com"))
-        #expect(Provider.openai.defaultBaseURL.contains("openai.com"))
+        #expect(Provider.openrouter.defaultBaseURL.contains("openrouter"))
         #expect(Provider.ollama.defaultBaseURL.contains("localhost"))
     }
 }
