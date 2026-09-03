@@ -49,6 +49,13 @@ struct DynamicZoneView: View {
         nonmutating set { selectedTabRaw = newValue.rawValue }
     }
 
+    // v0.36 ticket 013 sub-step 3: 🟨 half-visible right-bottom panel
+    // per spec §6.4. MemoryRetrievalPanel = ticket 009 canonical
+    // (= per ticket 013 sub-step 1 we deleted the duplicate
+    // DynamicZoneMemoryPanel + its test). Activation here is a
+    // safe append-only patch (= preserves v0.34 in-flight ship sequence).
+    @State private var memoryEntries: [MemoryAdapter.MemoryEntry] = []
+
     var body: some View {
         // v0.30 boss 8/31 OOB: alignment: .leading so the top tab bar
         // (= DynamicZoneTabBar) is left-aligned instead of default
@@ -71,14 +78,32 @@ struct DynamicZoneView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .animation(.default, value: selectedTab)
+
+            // v0.36 ticket 013 sub-step 3: MemoryRetrievalPanel
+            // (= ticket 009 canonical) as right-bottom panel per spec §6.4
+            // 🟨 half-visible. The panel is always rendered at the bottom
+            // of the DynamicZone (= memory preview is global to all tabs).
+            MemoryRetrievalPanel(entries: memoryEntries)
+                .frame(height: 180)
+                .padding(.horizontal, DesignTokens.chromePaddingLeading)
+                .padding(.bottom, DesignTokens.chromePaddingVertical)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)  // prevent window shrink
         // v0.28 followup Boss UX round 31 (Boss 2026-08-29 OOB '素材预览区,
-// 动态区, 这个区的液态玻璃效果和其他区不一样'): .ultraThinMaterial
-// replaced with RegionContentBackground (= single source of truth
-// for per-pane content backgrounds = .regularMaterial = standard
-// Liquid Glass tint = matches other panes including Preview).
+        // 动态区, 这个区的液态玻璃效果和其他区不一样'): .ultraThinMaterial
+        // replaced with RegionContentBackground (= single source of truth
+        // for per-pane content backgrounds = .regularMaterial = standard
+        // Liquid Glass tint = matches other panes including Preview).
         .regionContentBackground()
+        .onAppear { loadRecentMemory() }
+    }
+
+    /// Load recent memory entries (= stub; real impl = MemoryManager.prefetch
+    /// from ticket 009 canonical adapter). v0.36 ships empty list; future
+    /// ticket wires the full adapter.
+    private func loadRecentMemory() {
+        // No-op for v0.36 (= MemoryAdapter.prefetch returns empty when no
+        // bookStore is available; see ticket 009 sub-step 1+2 for real impl).
     }
 }
 
