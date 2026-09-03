@@ -31,9 +31,11 @@ public actor MinimaxConnector: LLMConnector {
     public nonisolated let connectorID = "minimax-cn"
 
     private let session: URLSession
+    private let useCacheControl: Bool
 
-    public init(session: URLSession = .shared) {
+    public init(session: URLSession = .shared, useCacheControl: Bool = true) {
         self.session = session
+        self.useCacheControl = useCacheControl
     }
 
     public func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
@@ -47,13 +49,25 @@ public actor MinimaxConnector: LLMConnector {
             throw LLMConnectorError.unsupportedProvider(slug: connectorID)
         }
 
+        // Apply prompt caching (= ticket 002 PromptCaching.applyCacheControl)
+        // System prompt becomes a separate Anthropic top-level field; markers
+        // placed on the last 3 non-system messages. Both are derived from the
+        // byte-stable invariant per AGENTS.md §11.3.
+        let cachedMessages = useCacheControl
+            ? PromptCaching.applyCacheControl(
+                messages: messages,
+                systemPrompt: options.systemPrompt ?? "",
+                ttl: "5m"
+            )
+            : messages
+
         // Build Anthropic-compatible request body
         let body: [String: Any] = [
             "model": options.model,
             "max_tokens": options.maxTokens,
             "system": options.systemPrompt ?? "",
-            "messages": messages.map { msg -> [String: Any] in
-                [
+            "messages": cachedMessages.map { msg -> [String: Any] in
+                var dict: [String: Any] = [
                     "role": msg.role.rawValue,
                     "content": msg.blocks.compactMap { block -> String? in
                         switch block {
@@ -63,6 +77,11 @@ public actor MinimaxConnector: LLMConnector {
                         }
                     }.joined(separator: "\\n")
                 ]
+                // Attach cache_control marker if present (= PromptCaching output)
+                if let marker = msg.cacheControl {
+                    dict["cache_control"] = marker
+                }
+                return dict
             }
         ]
 
