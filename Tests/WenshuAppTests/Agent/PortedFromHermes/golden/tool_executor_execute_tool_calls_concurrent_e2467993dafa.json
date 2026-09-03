@@ -1,0 +1,13 @@
+{
+  "function": "execute_tool_calls_concurrent",
+  "generator": "generate_golden.py v0.36",
+  "input": {
+    "timeout_seconds": 30,
+    "tool_calls_count": 3
+  },
+  "module": "tool_executor",
+  "output": {
+    "executed_count": 3,
+    "max_concurrent": 5
+  }
+}
