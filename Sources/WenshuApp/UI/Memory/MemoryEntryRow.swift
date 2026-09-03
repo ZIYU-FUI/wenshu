@@ -4,13 +4,13 @@
 //  Single source of truth for memory entry display rows.
 //  Originally two near-identical structs (= MemoryEntryRow in
 //  MemorySettingsView.swift + MemoryEntryRowCompact in
-//  DynamicZoneMemoryPanel.swift); unified here per Standards-axis S4
+//  MemoryRetrievalPanel.swift); unified here per Standards-axis S4 (= ticket 013 sub-step 1 deleted the duplicate DynamicZoneMemoryPanel + its test).
 //  Duplicated Code smell.
 //
 //  Two display variants via `compact: Bool` flag:
 //  - compact = false (MemorySettingsView, full Settings pane context):
 //    VStack { snippet lineLimit 2, source } with full chip background
-//  - compact = true (DynamicZoneMemoryPanel, sidebar context):
+//  - compact = true (MemoryRetrievalPanel, DynamicZone sidebar):
 //    VStack { snippet lineLimit 2, HStack { source + relevance score % } }
 //    with subtle background tint
 //
