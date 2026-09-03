@@ -117,7 +117,7 @@ public struct ChatViewCompressionRow: View {
             return ChatMessage(
                 id: original.id,
                 role: llm.role.fromLLMRole,
-                content: llm.firstTextContent,
+                content: llm.textContent,
                 timestamp: original.timestamp,
                 isPlaceholder: false,
                 tokens: original.tokens,
@@ -137,48 +137,8 @@ public struct ChatViewCompressionRow: View {
     }
 }
 
-// MARK: - Role bridge (ChatRole ↔ LLMMessage.Role)
-// Ticket 003 sub-step 5 acceptance: compression round-trip preserves
-// message identity. Role bridge lives in this file (= single source of
-// truth for ChatView ↔ LLMMessage role mapping). Per §11.3 wenshu-side
-// wins, this bridge is a thin adapter over the existing ChatRole enum.
-
-extension ChatRole {
-    internal var toLLMRole: LLMMessage.Role {
-        switch self {
-        case .user: return .user
-        case .agent: return .assistant
-        case .system: return .user  // system messages travel as user in
-                                    // LLMMessage (= system prompt is
-                                    // always a top-level parameter, not
-                                    // an in-band message, per LLMConnector
-                                    // Anthropic-native semantics)
-        }
-    }
-}
-
-extension LLMMessage.Role {
-    internal var fromLLMRole: ChatRole {
-        switch self {
-        case .user: return .user
-        case .assistant: return .agent
-        case .tool: return .user  // tool result travels as user-visible
-                                   // status in ChatView (= tool execution
-                                   // is rendered inline above the agent
-                                   // response, see ChatMessageView line 941)
-        }
-    }
-}
-
-extension LLMMessage {
-    /// First text content from the blocks (= recovery for compressed
-    /// messages that may collapse multiple blocks into one). Ticket 003
-    /// sub-step 5 acceptance: ChatMessage.content is a String, so we
-    /// concatenate text blocks (= empty string if none).
-    internal var firstTextContent: String {
-        blocks.compactMap { block in
-            if case let .text(text) = block { return text }
-            return nil
-        }.joined(separator: "\n")
-    }
-}
+// Role bridge + content bridge moved to ChatMessageBridge.swift per
+// Standards-axis S2 Feature Envy smell (= view was reaching into
+// ChatMessage + LLMMessage internals; bridge belongs on dedicated type).
+// Call sites in this file now use the same internal extensions (= they
+// resolve to the canonical declarations in ChatMessageBridge.swift).
