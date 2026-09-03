@@ -256,7 +256,7 @@ struct V0_37_Visual_Verify_Test {
 
     @Test("ADR-0012: Scope B hermes port documented")
     func adr0012_ScopeB() {
-        let path = "/Volumes/ANAN/Engineering/wenshu/docs/adr/0012-scope-b-hermes-port.md"
+        let path = "/Volumes/ANAN/Engineering/wenshu/docs/adr/0012-scope-b-hermes-non-frontend.md"
         #expect(FileManager.default.fileExists(atPath: path))
     }
 }
