@@ -300,10 +300,10 @@
 - **AgentSettingsView**: 🟥🟥🟥 Settings → Agent 3-pane (= LLM Connector + Memory + Skills). Tabs via Apple SwiftUI `Picker`. Ticket 006 + 009 + 010.
 - **LLMConnectorSettingsView**: 7 profile rows × (auth field + endpoint + test button). `ConnectorProfileRow` + `ConnectorAuthField` + `ConnectorTestButton`. Ticket 006.
 - **MemorySettingsView**: Memory scope + retention policy + recent entries. Ticket 009.
-- **MemoryRetrievalPanel**: 🟨 DynamicZone right-bottom panel. Embeddable in `DynamicZoneView`. Ticket 009.
+- **MemoryRetrievalPanel**: 🟨 DynamicZone right-bottom panel. Embeddable in `DynamicZoneView` (= ticket 009 canonical name; activation pending v0.34 ship sequence merge). v0.36 ticket 013 sub-step 1 deleted the duplicate `DynamicZoneMemoryPanel` (act-3 placeholder) + its test (= 0 production callers per boss cadence "git grep BEFORE patch" = safe to delete). Ticket 013 sub-step 2 = doc reconcile only; sub-step 3 = wire into `DynamicZoneView` when v0.34 ship sequence merges (= NOT in-flight now per boss cadence "不破坏 v0.34 ship sequence").
 - **SkillsSettingsView**: Skill list + slash-command tester. Ticket 010.
 - **ChatViewCompressionRow**: Compression pill + manual button (above `Divider()` in `ChatView`). Act-1.
-- **DynamicZoneMemoryPanel**: Standalone component (= Act-3, not yet embedded in `DynamicZoneView` pending v0.34 ship).
+- **DynamicZoneMemoryPanel**: REMOVED in v0.36 ticket 013 sub-step 1 (= duplicate of MemoryRetrievalPanel; 0 production callers per boss cadence). See CONTEXT.md ticket 013 entry above for deletion rationale.
 
 ### Identity / Architecture decisions
 
