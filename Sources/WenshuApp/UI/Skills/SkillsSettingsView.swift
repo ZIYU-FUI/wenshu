@@ -8,6 +8,9 @@
 
 import SwiftUI
 
+// File-scope constant (= Apple HIG subtle surface tint = 0.05 alpha).
+private let subtleSurfaceAlpha: CGFloat = 0.05
+
 public struct SkillsSettingsView: View {
     @State public var skills: [SkillAdapter.Skill]
     @State public var slashCommandBuffer: String = ""
@@ -50,7 +53,7 @@ public struct SkillsSettingsView: View {
                 Text("No skills installed yet. Skills are loaded from the skill registry.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, DesignTokens.chromePaddingSmall)
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 6) {
@@ -91,6 +94,6 @@ public struct SkillRow: View {
                 .labelsHidden()
         }
         .padding(6)
-        .background(Color.secondary.opacity(0.05), in: RoundedRectangle(cornerRadius: 4))
+        .background(Color.secondary.opacity(subtleSurfaceAlpha), in: RoundedRectangle(cornerRadius: 4))
     }
 }

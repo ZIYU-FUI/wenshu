@@ -8,6 +8,12 @@
 
 import SwiftUI
 
+// File-scope constant (= Apple HIG subtle surface tint = 0.05 alpha).
+private let subtleSurfaceAlpha: CGFloat = 0.05
+
+// File-scope constant (= Apple HIG inline form-field label column width).
+private let rowLabelWidth: CGFloat = 80
+
 public struct MemorySettingsView: View {
     @State public var scope: MemoryScope = .perBook
     @State public var retentionDays: Int = 90
@@ -41,7 +47,7 @@ public struct MemorySettingsView: View {
             // Retention slider
             HStack {
                 Text("Retention")
-                    .frame(width: 80, alignment: .leading)
+                    .frame(width: rowLabelWidth, alignment: .leading)
                 Slider(value: Binding(
                     get: { Double(retentionDays) },
                     set: { retentionDays = Int($0) }
@@ -49,7 +55,7 @@ public struct MemorySettingsView: View {
                 .disabled(!isMemoryEnabled)
                 Text("\\(retentionDays) days")
                     .monospacedDigit()
-                    .frame(width: 80, alignment: .trailing)
+                    .frame(width: rowLabelWidth, alignment: .trailing)
             }
 
             Divider()
@@ -62,7 +68,7 @@ public struct MemorySettingsView: View {
                 Text("No memories yet. Memories will appear here as you chat.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, DesignTokens.chromePaddingSmall)
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 6) {
@@ -101,6 +107,6 @@ public struct MemoryEntryRow: View {
                 .foregroundStyle(.secondary)
         }
         .padding(6)
-        .background(Color.secondary.opacity(0.05), in: RoundedRectangle(cornerRadius: 4))
+        .background(Color.secondary.opacity(subtleSurfaceAlpha), in: RoundedRectangle(cornerRadius: 4))
     }
 }

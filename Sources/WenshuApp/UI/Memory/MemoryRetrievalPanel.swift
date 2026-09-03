@@ -28,8 +28,8 @@ public struct MemoryRetrievalPanel: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            .padding(.horizontal, 8)
-            .padding(.top, 6)
+            .padding(.horizontal, DesignTokens.chromePaddingChipHorizontal)
+            .padding(.top, DesignTokens.chromePaddingSmall)
 
             if entries.isEmpty {
                 VStack {
@@ -47,7 +47,7 @@ public struct MemoryRetrievalPanel: View {
                             MemoryEntryRow(entry: entry)
                         }
                     }
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, DesignTokens.chromePaddingChipHorizontal)
                 }
             }
         }
