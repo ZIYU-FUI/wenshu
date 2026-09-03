@@ -252,3 +252,65 @@
 | **WenshuChromeOverlay (chrome wire-up — Boss 2026-08-29 UX fix)** | Boss OOB followup to TKT-015/023: AppTitlebar + AppStatusbar were built but NOT wired into AppRoot (= users couldn't see top/bottom chrome). This file wires them via `WenshuChromeOverlay<Content>` generic view (= wraps any main content with 34 PT AppTitlebar top + 24 PT AppStatusbar bottom). `defaultWenshuTitlebarLeft/Right` + `defaultWenshuStatusbarLeft/Right` factories provide boss's required features: model selector (top right cluster titlebar tool), context usage pill (top right + bottom left statusbar item with chart.bar.fill icon), workspace mode pill (bottom right). `App.swift:1018-1109` patched: `LibraryRootView` wrapped in `WenshuChromeOverlay` + `.windowToolbarStyle(.expanded)` (= 0 PT macOS native toolbar; WenshuChromeOverlay provides 34 PT custom titlebar). Result: 6区 builtinDefault (= or LayoutShellView legacy) now framed by 34 PT titlebar (= sidebar/preview/tools toggles + model selector + context usage pill) on top + 24 PT statusbar (= current model + LLM status + context usage % + workspace mode pill + version) on bottom. CUA verified via `screencapture` (= Wenshu running PID 97748, screenshot delivered via hermeslink). | v0.28 followup Boss UX fix |
 | **v0.28 followup "重新打开" modal click fix (Boss 2026-08-29 UX discovery)** | Boss OOB '点那个 dialog 上的重新打开 button' revealed: the "上次你打开 '文枢' 时..." modal is a Wenshu OWNED dialog (= app='文枢', PID = same as Wenshu process) created by macOS WindowServer when the app process exits/relaunches without proper window cleanup (= a one-time recovery prompt). The Wenshu CODE itself is correct (= LayoutShellView + 6区 builtinDefault + WenshuChromeOverlay all work). cliclick c:170,240 (= button at (160, 240) within the 260x251 dialog at screen coords (0, 30)) dismisses the modal and opens the actual Wenshu main UI (= 6区 builtinDefault + 24 PT custom statusbar with MiniMax-M3, Idle, wenshu v0.28, Sessions + chat input "输入消息..." + macOS dock). View framework is OK. The macOS 52 PT native titlebar with 3 traffic lights is visible (= .windowToolbarStyle(.unified(showsTitle: false))) = expected. The 34 PT custom AppTitlebar (= sidebar/preview/tools toggles) is below the macOS titlebar. | v0.28 followup Boss UX discovery |
 | **ZonePerRegionChrome (Boss 2026-08-29 UX round 2 - per-region chrome)** | Boss OOB '老的六区, 是顶栏底栏在各区域里都有配, 你看能在新框架里实现吗' = old 6区 had per-region top toolbar (30 PT) + bottom toolbar (30 PT) with per-region icons + status text (= per old `ZoneTopToolbar` + `ZoneBottomToolbar` + `ZoneModule.zoneStatus` + `ZoneModule.rightStatus`). New framework only had GLOBAL AppTitlebar (34 PT) + AppStatusbar (24 PT) = per-region chrome missing. This file = new `RegionPerZoneChrome<Content: View>` view that wraps any content with 30 PT top + content + 30 PT bottom (= matches old 6区 pattern). `RegionTopItem` (= per-region top button) + `RegionBottomItem` (= per-region status label/detail/icon) = new types matching old ZoneTopToolbar/ZoneBottomToolbar API. Default per-region chrome (= `defaultSidebarRegionChrome(bookCount:shelfCount:)`, `defaultPreviewRegionChrome(chapterCount:)`, `defaultEditorRegionChrome(wordCount:progress:)`, `defaultToolsRegionChrome()`, `defaultChatRegionChrome()` (= empty per v0.21 ticket 10 = chat zone uses in-child toolbar), `defaultDynamicRegionChrome()`) reproduce the old 6区 per-zone status info (= sidebar 书架数, editor 字数, etc.). Architecture: contribution-driven (= new region feature = 1 new contribution; auto-propagates to all builtin presets). 11 tests verify token + chrome construction + default per-region chrome. Pending: wire `RegionPerZoneChrome` into WorkspaceView (v0.29+). | v0.28 followup Boss UX round 2 |
+
+## Agent Subsystem domain words (v0.35 — boss 2026-09-03 拍)
+
+> v0.35 = hermes-core-translation project. Wenshu's agent subsystem is the verbatim port of hermes' agent core (excluding frontends + messaging + TUI/desktop/web). The boundary = wenshu-side wins (§11.3): all wenshu existing modules are preserved, hermes port is a thin adapter that delegates to them. See ADR-0012 (scope) + ADR-0009 (wenshu-side wins).
+
+### LLM connector layer (v0.35, ADR-0008)
+
+- **LLMConnector (Protocol)**: Provider-agnostic Swift `protocol` (= hermes `BaseLLMClient` analog). One method `send(request:) async throws -> LLMResponse`. All 7 concrete connectors implement this. Boss 2026-09-03 拍 "single canonical interface" (§11.1 Q14 derived).
+- **Provider (enum)**: 7-case enum = `minimaxCn / anthropic / openai / gemini / deepSeek / ollama / openRouter`. Each case carries `name` + `slug` + `apiMode` (= wire protocol identifier) + `baseURL` + `defaultModels`. ADR-0008.
+- **ConnectorCredentials**: Apple Keychain-backed credential storage. Thin wrapper over `ProviderKeychainStoring` (= existing Core/Provider module). User BYOK (§11.2).
+- **LLMMessage / LLMResponse / LLMBlock**: Three core types. `LLMMessage = { role, blocks }`. `blocks: [LLMBlock]` is a top-level enum (= `text` / `toolUse` / `toolResult` / `thinking`). `LLMResponse = { content, usage }`. Q47 lock union-block decode (Codable dispatch by `type` field).
+- **MinimaxConnector**: Thin Anthropic-compatible wire format wrapper (minimax cn = Anthropic-compatible protocol). `apiMode: "anthropic_messages"`. Ticket 001 sub-step 7.
+- **AnthropicConnector**: Full Anthropic-native wire format (= `/v1/messages` + `system` top-level + `content` array union + `cache_control` markers). P0. Ticket 004.
+- **OpenAIConnector**: OpenAI native (`/v1/chat/completions`). P0. Ticket 005.
+- **OpenAICompatibleConnector**: Reused for `deepSeek` / `ollama` / `openRouter` + other Anthropic-compatible / OpenAI-compatible endpoints (= `apiMode: "openai_chat"`). Ticket 005.
+- **GeminiNativeConnector**: Google GenAI native protocol (`/v1beta/models/{model}:generateContent`). P1. Ticket 007.
+- **WenshuModelCatalog**: Per-provider model metadata. `provider.defaultModels` curated list (= minimax: m3 / m2 / reasoning; anthropic: opus-4.8; etc.). Ticket 008.
+- **ConnectorProfileState**: Per-connection UI state (`apiKey: String` + `endpointOverride: String` + `lastTestStatus`). Ticket 006.
+
+### Prompt caching + system prompt (§11.3 cache-stable invariant, ADR-0010)
+
+- **PromptCaching**: Cache marker application. 4 breakpoints = system message + last 3 non-system messages. Marker shape = `{"type": "ephemeral"}` + optional `{"ttl": "1h"}`. `cacheControl: CacheControl?` field on `LLMMessage` (= top-level, not inside text block). Ticket 002 sub-step 1.
+- **SystemPrompt builder**: Byte-stable tier generator (= hermes `system_prompt.py:536 LOC` port). Tier-1 identity + Tier-2 capabilities + Tier-3 pollution-defense + Tier-4 deterministic postfix. Same input → byte-identical output (= §11.3 invariant). Ticket 002 sub-step 2.
+- **promptCaching e2e byte-stability test**: 36-LOC test verifies byte-identical SystemPrompt output across 100 iterations + same PromptCaching marker placement.
+
+### Context compression (ADR-0011 — deterministic policy)
+
+- **ContextCompressor**: Deterministic context truncation (= NO LLM-driven compression; per AGENTS.md §11 hard rule "no external AI platform calls in any code file"). `Policy = { keepRecentTurns, maxTokens, retainSystemAndLastN }`. `CharacterBasedTokenEstimator` (= 1 token ≈ 4 chars heuristic). Ticket 003 sub-step 1.
+- **ConversationCompression**: Manual trigger wrapper (= user clicks Compress button). Forces aggressive compression regardless of budget (= `keepRecentTurns=4` + `maxTokens=1_000`). Returns `(compressedMessages, newSystemPrompt)`. Ticket 003 sub-step 2.
+- **ContextEngine**: Thin facade over `Core/Memory/*` (= hermes `context_engine.py:924 LOC` ABC port). `prefetch(userMessage:)` + `sync(userMessage, assistantResponse:)` + `consolidate(budget:)`. wenshu-side wins pattern. Ticket 003 sub-step 3.
+- **ChatViewCompressionRow**: 🟨+🟥 UI activation. Renders compression pill (`"📦 compressed 30% (10 → 7 messages)"`) + manual Compress button. `manualCompress()` does FULL ChatMessage round-trip (= bridge `ChatRole ↔ LLMMessage.Role` + `LLMMessage.firstTextContent`). Ticket 003 sub-step 5.
+
+### Conversation loop
+
+- **ConversationLoop (actor)**: Top-level orchestrator. `run(agent:, userMessage:, systemMessage:, conversationHistory:) async throws -> ConversationResult`. Integrates LLMConnector + ToolExecutor + PromptCaching. Ticket 001 sub-step 3.
+- **TurnContext / TurnFinalizer / TurnRetryState / MessageSanitization / MessageContent**: 5 turn-state structs. Ticket 001 sub-step 4.
+
+### Tool subsystem
+
+- **Tool (Protocol)**: `name + invoke(input:) async throws -> ToolResult`. Boss Q14 + Q20 thin interface.
+- **ToolExecutor (actor)**: Concurrent tool fan-out (= `executeToolCallsConcurrent` parallel) + sequential (= `executeToolCallsSequential`). Error isolation (= one tool throw ≠ others fail). Ticket 001 sub-step 5.
+- **ReadFileTool + WriteFileTool**: Thin async wrappers over `Core/Tools/FileTools.swift` (= existing sync read/write). wenshu-side wins. Ticket 001 sub-step 6.
+
+### UI activation (v0.35 activation commits)
+
+- **AgentSettingsView**: 🟥🟥🟥 Settings → Agent 3-pane (= LLM Connector + Memory + Skills). Tabs via Apple SwiftUI `Picker`. Ticket 006 + 009 + 010.
+- **LLMConnectorSettingsView**: 7 profile rows × (auth field + endpoint + test button). `ConnectorProfileRow` + `ConnectorAuthField` + `ConnectorTestButton`. Ticket 006.
+- **MemorySettingsView**: Memory scope + retention policy + recent entries. Ticket 009.
+- **MemoryRetrievalPanel**: 🟨 DynamicZone right-bottom panel. Embeddable in `DynamicZoneView`. Ticket 009.
+- **SkillsSettingsView**: Skill list + slash-command tester. Ticket 010.
+- **ChatViewCompressionRow**: Compression pill + manual button (above `Divider()` in `ChatView`). Act-1.
+- **DynamicZoneMemoryPanel**: Standalone component (= Act-3, not yet embedded in `DynamicZoneView` pending v0.34 ship).
+
+### Identity / Architecture decisions
+
+- **wenshu-side wins (ADR-0009)**: All wenshu existing modules preserved. Herme port is a thin adapter that delegates to wenshu Core. No replacement. Boss Q19 拍 + §11.3.
+- **7-connector BYOK (ADR-0008)**: 7 LLM providers, user brings own key, no default recommendation. Wenshu ships the connector layer wired but every profile is empty until user supplies credentials. Boss Q3 拍 + §11.2.
+- **Scope B (ADR-0012)**: hermes 全部非前端翻译 + agent core. Excludes: messaging (20+ channels), desktop, TUI, web dashboard, pet, lsp. Boss Q1 拍.
+- **Deterministic compression (ADR-0011)**: No LLM-driven context compression. AGENTS.md §11 hard rule. Boss Q1-Q4 implicit (= "no external AI platform calls in any code file").
+- **Cache-stable invariant (ADR-0010)**: SystemPrompt byte-stable + PromptCaching 4 breakpoints (= system + last 3 non-system). §11.3 acceptance.
+- **Iron rule 6 — no magic numbers in view code**: All paddings/frames/cornerRadii/opacities tokenized (= DesignTokens or file-scope Apple HIG constant). Boss 2026-09-03 拍 "涉及到前端 ui 的, 要遵循铁律". v0.35 fix commits `98b45bacc` + `81c68397d` + `026891fcc` + `4506e6a91` + `2464c89d9` + `ae817de92`.
+
