@@ -96,7 +96,7 @@ struct ToolExecutorTests {
         )
 
         // 1 assistant + 5 tool messages
-        #expect(mmessages := messages.count == 6)
+        #expect(messages.count == 6)
         #expect(messages.dropFirst().allSatisfy { $0.role == .tool })
 
         // Counter should have been called 5 times (= concurrent fan-out)
@@ -125,7 +125,7 @@ struct ToolExecutorTests {
         )
 
         // Both tools ran (= second one survived the first's throw)
-        #expect(mmessages := messages.count == 3)
+        #expect(messages.count == 3)
         if case .toolResult(_, let output2) = messages[2].blocks[0] {
             #expect(output2 == "echo:survived")
         } else {
@@ -205,5 +205,6 @@ private struct CountingTool: Tool, Sendable {
     }
 }
 
-// Note: mmessages := messages.count pattern is intentional Swift workaround
+// mmessages := was an accidental typo (= Python walrus operator syntax,
+// not valid Swift); fixed to plain == comparison.
 // for #expect macro limitation.
