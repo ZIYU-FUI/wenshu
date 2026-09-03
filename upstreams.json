@@ -1,0 +1,134 @@
+{
+  "version": 1,
+  "generated_by": "Tools/wenshu-devtool/upstreams-scan.py",
+  "source_of_truth": "Package.swift",
+  "count": 18,
+  "upstreams": [
+    {
+      "name": "bring-shrubbery/lucide-swift",
+      "url": "https://github.com/bring-shrubbery/lucide-swift.git",
+      "version": "1.25.0",
+      "license": "MIT",
+      "reason": "图标集合 (Apple SF Symbol 替代品; 跨平台)"
+    },
+    {
+      "name": "sindresorhus/Defaults",
+      "url": "https://github.com/sindresorhus/Defaults",
+      "version": "9.0.0",
+      "license": "MIT",
+      "reason": "UserDefaults 类型化包装 (Apple @AppStorage 替代品)"
+    },
+    {
+      "name": "sindresorhus/KeyboardShortcuts",
+      "url": "https://github.com/sindresorhus/KeyboardShortcuts",
+      "version": "2.2.0",
+      "license": "MIT",
+      "reason": "全局快捷键绑定 (Apple .keyboardShortcut 替代品)"
+    },
+    {
+      "name": "kean/Nuke",
+      "url": "https://github.com/kean/Nuke",
+      "version": "13.2.0",
+      "license": "MIT",
+      "reason": "异步图像加载 (Apple LazyVGrid/AsyncImage 替代品)"
+    },
+    {
+      "name": "weichsel/ZIPFoundation",
+      "url": "https://github.com/weichsel/ZIPFoundation",
+      "version": "0.9.20",
+      "license": "MIT",
+      "reason": "ZIP 读写 (Apple Compression 替代品)"
+    },
+    {
+      "name": "groue/GRDB.swift",
+      "url": "https://github.com/groue/GRDB.swift",
+      "version": "7.11.1",
+      "license": "MIT",
+      "reason": "SQLite 工具包 + FTS5 全文检索 (Apple CoreData 替代品)"
+    },
+    {
+      "name": "swiftlang/swift-markdown",
+      "url": "https://github.com/swiftlang/swift-markdown",
+      "version": "0.4.0",
+      "license": "Apache-2.0",
+      "reason": "CommonMark/GFM 解析 (Apple AttributedString 替代品)"
+    },
+    {
+      "name": "smittytone/HighlighterSwift",
+      "url": "https://github.com/smittytone/HighlighterSwift",
+      "version": "3.1.0",
+      "license": "MIT",
+      "reason": "代码块语法高亮 (Apple TextKit 替代品)"
+    },
+    {
+      "name": "witekbobrowski/EPUBKit",
+      "url": "https://github.com/witekbobrowski/EPUBKit",
+      "version": "0.5.0",
+      "license": "MIT",
+      "reason": "EPUB 2/3 解析 (Apple iBooks 替代品)"
+    },
+    {
+      "name": "davecom/SwiftGraph",
+      "url": "https://github.com/davecom/SwiftGraph",
+      "version": "4.0.0",
+      "license": "Apache-2.0",
+      "reason": "图算法 (Apple Foundation 替代品)"
+    },
+    {
+      "name": "li3zhen1/Grape",
+      "url": "https://github.com/li3zhen1/Grape",
+      "version": "1.1.0",
+      "license": "MIT",
+      "reason": "力导向图布局 (Apple HIG 替代品)"
+    },
+    {
+      "name": "orchetect/MenuBarExtraAccess",
+      "url": "https://github.com/orchetect/MenuBarExtraAccess",
+      "version": "1.3.0",
+      "license": "MIT",
+      "reason": "macOS 菜单栏集成 (Apple MenuBarExtra 替代品)"
+    },
+    {
+      "name": "mattt/EventSource",
+      "url": "https://github.com/mattt/EventSource",
+      "version": "1.5.1",
+      "license": "MIT",
+      "reason": "SSE 客户端 (Apple URLSession.bytes 替代品)"
+    },
+    {
+      "name": "gonzalezreal/textual",
+      "url": "https://github.com/gonzalezreal/textual",
+      "version": "0.5.0",
+      "license": "MIT",
+      "reason": "SwiftUI 富文本引擎 (Apple TextKit 替代品; 同上 slug 变体)"
+    },
+    {
+      "name": "krzysztofzablocki/Inject",
+      "url": "https://github.com/krzysztofzablocki/Inject",
+      "version": "1.6.0",
+      "license": "MIT",
+      "reason": "SwiftUI 热重载 (DEV/TEST only; Apple HIG 替代品)"
+    },
+    {
+      "name": "nalexn/ViewInspector",
+      "url": "https://github.com/nalexn/ViewInspector",
+      "version": "0.10.3",
+      "license": "MIT",
+      "reason": "SwiftUI 视图层级反射 (TEST only; Apple HIG 替代品)"
+    },
+    {
+      "name": "apple/swift-log",
+      "url": "https://github.com/apple/swift-log",
+      "version": "1.15.0",
+      "license": "Apache-2.0",
+      "reason": "Apple 一方 Logger API"
+    },
+    {
+      "name": "pointfreeco/swift-snapshot-testing",
+      "url": "https://github.com/pointfreeco/swift-snapshot-testing",
+      "version": "1.19.4",
+      "license": "MIT",
+      "reason": "SwiftUI 像素快照测试 (TEST only; Apple HIG 替代品)"
+    }
+  ]
+}
