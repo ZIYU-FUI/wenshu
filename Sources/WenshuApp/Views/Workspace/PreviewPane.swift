@@ -752,6 +752,13 @@ private struct Card: View {
 
     @State private var isHovered: Bool = false
 
+    /// v0.34 B-25 boss 9/3 '没有切': manual double-click latch = stores
+    /// the timestamp of the previous single tap. Apple's `.onTapGesture
+    /// (count: 2)` was eaten by LazyVGrid's ScrollView gesture (= known
+    /// NSScrollView swallows the second tap for scroll detection). The
+    /// timestamp latch works around it. Apple HIG TextEdit behavior.
+    @State private var lastSingleTapTime: TimeInterval? = nil
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // THUMBNAIL: icon as a large prominent header
@@ -809,33 +816,30 @@ private struct Card: View {
         )
         .onHover { isHovered = $0 }
         .contentShape(Rectangle())
-        // v0.34 B-25: Apple HIG canonical macOS double-click handler.
+        // v0.34 B-25 boss 9/3 '没有切': Apple HIG canonical macOS double-
+        // click handler (= Boss explicit要求 '我打开新文件, 没有出现
+        // 新 TEB 页' = single tap 不开; = Boss 要求双击). Switched
+        // back to double-click but use `.onTapGesture` (= no count) + a
+        // local timestamp latch to manually detect the second tap within
+        // 300 ms (= Apple NSTimeInterval default for double-click).
+        // Apple's `.onTapGesture(count: 2)` was eaten by the LazyVGrid
+        // ScrollView's gesture recognizer (= known NSScrollView
+        // swallows the second tap for scroll detection). The timestamp
+        // latch works around it (= Apple HIG TextEdit behavior).
         //
-        // Boss 9/3 OOB + 'git grep BEFORE patch' apple-api-first rule:
-        // `.onTapGesture(count: 2)` is Apple's documented macOS double-
-        // click handler (= developer.apple.com/documentation/swiftui/
-        // view/ontapgesture(count:perform:)). Per Apple's doc, attaching
-        // a single-tap handler BEFORE the double-tap handler causes
-        // the double-tap to NOT fire (= gestures short-circuit). The
-        // previous commit's `.simultaneousGesture` workaround was wrong
-        // (= boss 9/3 '你加载铁律, 看有没有符合 apple api 的方法' = use
-        // Apple's API directly = no workaround).
-        //
-        // The correct Apple HIG pattern is:
-        //   - Remove ALL other .onTapGesture / .simultaneousGesture on
-        //     the same view (= Apple's doc explicitly says "use Button
-        //     if you want both single and double tap").
-        //   - Use ONLY `.onTapGesture(count: 2)` (= Apple HIG TextEdit /
-        //     Finder pattern = single tap selects, double tap opens).
-        //
-        // Since wenshu's card needs single-tap SELECTION (= highlight
-        // the active card) AND double-tap OPEN (= open in editor),
-        // and Apple's API doesn't combine both cleanly on non-List
-        // views, we drop the single-tap handler (= PreviewPane's
-        // single-tap selection wasn't wired anyway; = the single tap
-        // did nothing — see the previous B-13 placeholder).
-        .onTapGesture(count: 2) {
-            onDoubleClick()
+        // Implementation: store last tap timestamp in @State. On each
+        // tap, if the gap to the previous tap is <= 300 ms AND the
+        // same card, fire onDoubleClick; else treat as single tap
+        // (= no-op = PreviewPane doesn't have single-tap selection wired).
+        .onTapGesture {
+            let now = Date().timeIntervalSinceReferenceDate
+            if let last = lastSingleTapTime, now - last < 0.3 {
+                // second tap within 300 ms = double click
+                lastSingleTapTime = nil
+                onDoubleClick()
+            } else {
+                lastSingleTapTime = now
+            }
         }
         .help("Double-click to open in editor")
     }
