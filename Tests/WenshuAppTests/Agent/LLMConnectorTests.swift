@@ -114,27 +114,4 @@ struct LLMConnectorTests {
     }
 }
 
-// MARK: - Mock connector for test 1
-
-private actor MockLLMConnector: LLMConnector {
-    nonisolated let connectorID: String = "mock"
-    func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
-        let userText: String
-        if case let last = messages.last, let block = last?.blocks.first {
-            if case .text(let s) = block {
-                userText = s
-            } else {
-                userText = ""
-            }
-        } else {
-            userText = ""
-        }
-        return LLMResponse(
-            id: "mock",
-            model: options.model,
-            blocks: [.text("echo: \\(userText)")],
-            stopReason: .endTurn,
-            usage: LLMUsage(inputTokens: 5, outputTokens: 5)
-        )
-    }
-}
+// MockLLMConnector is shared from MockLLMConnector.swift
