@@ -92,9 +92,9 @@ struct v0_36_Visual_Verify {
     @MainActor
     func testProviderEnum7Connectors() {
         // Per AGENTS.md §11.2: 7 connector profiles
-        // = minimax-cn / anthropic / openai / gemini / deep-seek / ollama / open-router
+        // = minimax-cn / anthropic / minimax / gemini / deepseek / ollama / openrouter
         let allProviders: [Provider] = [
-            .minimaxCn, .anthropic, .openai, .gemini, .deepSeek, .ollama, .openRouter
+            .minimaxCn, .anthropic, .minimax, .gemini, .deepseek, .ollama, .openrouter
         ]
         #expect(allProviders.count == 7)
     }
