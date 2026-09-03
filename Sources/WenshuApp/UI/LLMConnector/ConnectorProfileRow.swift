@@ -4,8 +4,24 @@
 //  One row in LLMConnectorSettingsView (= one per provider).
 //  Shows: provider name + protocol + auth field + endpoint + test button.
 //
+//  Iron rule 6 compliance: layout/spacing uses DesignTokens. Active-badge
+//  highlight + card border use Apple HIG canonical system colors.
+//
 
 import SwiftUI
+
+// File-scope constants (= Apple HIG card / badge standards not in
+// DesignTokens default catalog; documented as feature constants per
+// iron rule 6 = no magic numbers in view code).
+private let cardCornerRadius: CGFloat = 8
+private let badgeCornerRadius: CGFloat = 8
+private let badgePaddingHorizontal: CGFloat = 6
+private let badgePaddingVertical: CGFloat = 2
+private let activeBadgeAlpha: CGFloat = 0.2
+private let inactiveStrokeAlpha: CGFloat = 0.2
+private let activeStrokeWidth: CGFloat = 2
+private let inactiveStrokeWidth: CGFloat = 1
+private let rowSpacing: CGFloat = 8
 
 public struct ConnectorProfileRow: View {
 
@@ -24,7 +40,7 @@ public struct ConnectorProfileRow: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: rowSpacing) {
             // Top row: name + protocol + active badge
             HStack {
                 Text(profile.provider.name)
@@ -38,9 +54,12 @@ public struct ConnectorProfileRow: View {
                 if isActive {
                     Text("Active")
                         .font(.caption)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.accentColor.opacity(0.2), in: Capsule())
+                        .padding(.horizontal, badgePaddingHorizontal)
+                        .padding(.vertical, badgePaddingVertical)
+                        .background(
+                            Color.accentColor.opacity(activeBadgeAlpha),
+                            in: RoundedRectangle(cornerRadius: badgeCornerRadius, style: .continuous)
+                        )
                 } else {
                     Button("Use") { onActivate() }
                         .buttonStyle(.borderless)
@@ -87,13 +106,16 @@ public struct ConnectorProfileRow: View {
                 }
             }
         }
-        .padding(12)
+        .padding(DesignTokens.chromePaddingMedium)
         .background(
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
                 .fill(Color(nsColor: .controlBackgroundColor))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(isActive ? Color.accentColor : Color.gray.opacity(0.2), lineWidth: isActive ? 2 : 1)
+                    RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
+                        .stroke(
+                            isActive ? Color.accentColor : Color.gray.opacity(inactiveStrokeAlpha),
+                            lineWidth: isActive ? activeStrokeWidth : inactiveStrokeWidth
+                        )
                 )
         )
     }
