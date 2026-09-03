@@ -134,7 +134,7 @@ struct HermesPortGoldenParityTests {
 
         // Swift port (= CharacterBasedTokenEstimator from ticket 003 sub-step 1)
         let estimator = CharacterBasedTokenEstimator()
-        let swiftTokens = estimator.estimate(text: text)
+        let swiftTokens = estimator.estimate(LLMMessage(role: .user, blocks: [.text(text)]))
 
         let hermesTokens = golden["output"] as? Int ?? -1
         #expect(swiftTokens == hermesTokens)
