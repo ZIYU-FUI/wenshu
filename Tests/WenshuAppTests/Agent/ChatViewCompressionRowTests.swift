@@ -8,6 +8,7 @@
 import Testing
 import Foundation
 import SwiftUI
+import UIKit
 @testable import WenshuApp
 
 @MainActor
@@ -32,10 +33,7 @@ struct ChatViewCompressionRowTests {
 
         // Render the view in a hidden host so the @State binding works
         let host = UIHostingController(
-            rootView: ChatViewCompressionRow(
-                vm: vm,
-                onShowCompressionDetail: { }
-            )
+            rootView: ChatViewCompressionRow(vm: vm)
         )
 
         // Trigger the compression via the public button tap (Button
