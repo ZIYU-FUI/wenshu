@@ -53,7 +53,7 @@ public struct RuntimeCWDDisplayChip: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallChip)
-                .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                .stroke(Color.secondary.opacity(0.2), lineWidth: DesignTokens.surfaceInactiveBorderWidth)
         )
         .task {
             await refreshLabel()
