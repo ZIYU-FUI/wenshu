@@ -117,10 +117,15 @@ struct LLMConnectorTests {
 // MARK: - Mock connector for test 1
 
 private actor MockLLMConnector: LLMConnector {
+    nonisolated let connectorID: String = "mock"
     func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
         let userText: String
-        if case .text(let s) = messages.last??.content {
-            userText = s
+        if case let last = messages.last, let block = last?.blocks.first {
+            if case .text(let s) = block {
+                userText = s
+            } else {
+                userText = ""
+            }
         } else {
             userText = ""
         }
