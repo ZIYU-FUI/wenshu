@@ -33,6 +33,7 @@
 
 import SwiftUI
 import CoreFoundation  // v0.30: for CFStringTransform (pinyin sort)
+import AppKit  // v0.34 B-26: NSDoubleClickInterval (= system double-click interval)
 
 // MARK: - Sort order (v0.30 boss OOB)
 //
@@ -752,12 +753,34 @@ private struct Card: View {
 
     @State private var isHovered: Bool = false
 
-    /// v0.34 B-25 boss 9/3 '没有切': manual double-click latch = stores
-    /// the timestamp of the previous single tap. Apple's `.onTapGesture
-    /// (count: 2)` was eaten by LazyVGrid's ScrollView gesture (= known
-    /// NSScrollView swallows the second tap for scroll detection). The
-    /// timestamp latch works around it. Apple HIG TextEdit behavior.
-    @State private var lastSingleTapTime: TimeInterval? = nil
+    /// v0.34 B-26 boss 9/3 '同目录只有第一次双击响应': Apple's
+    /// `.onTapGesture(count: 2)` was eaten by LazyVGrid's ScrollView
+    /// gesture recognizer. The previous attempt (= a timestamp
+    /// latch within 300 ms) was too tight (= macOS default
+    /// NSDoubleClickInterval is 500 ms, not 300) and lost subsequent
+    /// double-clicks after the first one (= the Card view was
+    /// re-evaluated by SwiftUI when openCardInEditor mutated
+    /// appState.openTabs; = the @State held across re-evaluations,
+    /// = the *next* single tap was treated as "first of a new pair"
+    /// but the user's actual second tap landed more than 300 ms
+    /// after the first (= because macOS users tap at ~500 ms
+    /// intervals; = the latch was too tight and dropped the
+    /// second click)).
+    ///
+    /// Switched to a click-count latch (= more robust to user
+    /// timing variance). Pair a single tap → count=1. The next tap
+    /// within `NSDoubleClickInterval` (= 500 ms via NSApp) → count=2
+    /// → fire onDoubleClick. Reset to 0 on the *third* tap (= a
+    /// triple-click is not a double-click). This matches macOS
+    /// Finder / TextEdit behavior.
+    ///
+    /// NOTE: SwiftUI's `@State` is reset when the view identity
+    /// changes (= the ForEach rebuilds the Card when the user
+    /// switches sidebar scope; = that is actually the desired
+    /// behavior here — switching scope = "fresh start" for the
+    /// double-click detector; = boss OOB '切换目录后, 会再次识别一次').
+    @State private var clickCount: Int = 0
+    @State private var lastClickTimestamp: TimeInterval = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -816,31 +839,49 @@ private struct Card: View {
         )
         .onHover { isHovered = $0 }
         .contentShape(Rectangle())
-        // v0.34 B-25 boss 9/3 '没有切': Apple HIG canonical macOS double-
-        // click handler (= Boss explicit要求 '我打开新文件, 没有出现
-        // 新 TEB 页' = single tap 不开; = Boss 要求双击). Switched
-        // back to double-click but use `.onTapGesture` (= no count) + a
-        // local timestamp latch to manually detect the second tap within
-        // 300 ms (= Apple NSTimeInterval default for double-click).
-        // Apple's `.onTapGesture(count: 2)` was eaten by the LazyVGrid
-        // ScrollView's gesture recognizer (= known NSScrollView
-        // swallows the second tap for scroll detection). The timestamp
-        // latch works around it (= Apple HIG TextEdit behavior).
-        //
-        // Implementation: store last tap timestamp in @State. On each
-        // tap, if the gap to the previous tap is <= 300 ms AND the
-        // same card, fire onDoubleClick; else treat as single tap
-        // (= no-op = PreviewPane doesn't have single-tap selection wired).
+        // v0.34 B-26 boss 9/3 '同目录只有第一次双击响应': click-count
+        // latch (= more robust than the 300 ms timestamp latch; = the
+        // user-reported failure was the timestamp being too tight).
+        // v0.34 B-26-FIX: every tap increments `clickCount`. The *next*
+        // tap within the macOS system double-click interval
+        // (= NSDoubleClickInterval = 500 ms via NSApp) is the second
+        // tap of a double-click (= fire onDoubleClick; reset count to
+        // 0). If the gap is too long, reset to 1 (= single tap; = no
+        // action since PreviewPane doesn't have single-tap selection
+        // wired). This matches macOS Finder / TextEdit / Safari tab
+        // bar double-click semantics.
         .onTapGesture {
             let now = Date().timeIntervalSinceReferenceDate
-            if let last = lastSingleTapTime, now - last < 0.3 {
-                // second tap within 300 ms = double click
-                lastSingleTapTime = nil
-                onDoubleClick()
+            let interval = NSEvent.doubleClickInterval  // 500 ms on macOS
+            if clickCount == 0 || now - lastClickTimestamp > interval {
+                // First tap of a new pair (= or first tap ever, or
+                // the previous pair timed out).
+                clickCount = 1
+                lastClickTimestamp = now
             } else {
-                lastSingleTapTime = now
+                // Second tap within the interval = double click.
+                clickCount = 0
+                lastClickTimestamp = 0
+                onDoubleClick()
             }
         }
-        .help("Double-click to open in editor")
+        // v0.34 B-26: Apple HIG tooltip (= .help = NSWindow tooltip =
+        // separate window per Apple HIG = the user can hover any tab
+        // label and get its full name; = matches macOS Finder /
+        // TextEdit tab bar tooltip behavior).
+        .help(source.title)
+    }
+
+    /// v0.34 B-26: derive the display title for a card (= file basename
+    /// without the .md extension; = boss 9/3 OOB '.md 的拓展名也不用
+    /// 显示'). Placeholder card = 'preview-sample' (= no .md extension,
+    /// = no path = render the short placeholder name).
+    private func tabDisplayTitle(tab: EditorTab) -> String {
+        if let path = tab.documentPath, !path.isEmpty {
+            let url = URL(fileURLWithPath: path)
+            let basename = url.deletingPathExtension().lastPathComponent
+            return basename.isEmpty ? "preview-sample" : basename
+        }
+        return "preview-sample"
     }
 }

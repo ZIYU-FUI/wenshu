@@ -891,6 +891,19 @@ struct EditorPlaceholder: View {
         appState.openTabs[idx].mode = newMode
     }
 
+    /// v0.34 B-26: derive the display title for a tab (= file basename
+    /// without the .md extension; = boss 9/3 OOB '.md 的拓展名也不用
+    /// 显示'). Placeholder tab = 'preview-sample' (= no .md extension,
+    /// = no path = render the short placeholder name).
+    private func tabDisplayTitle(tab: EditorTab) -> String {
+        if let path = tab.documentPath, !path.isEmpty {
+            let url = URL(fileURLWithPath: path)
+            let basename = url.deletingPathExtension().lastPathComponent
+            return basename.isEmpty ? "preview-sample" : basename
+        }
+        return "preview-sample"
+    }
+
     @Environment(AppState.self) private var appState
 
     var body: some View {
@@ -908,23 +921,41 @@ struct EditorPlaceholder: View {
             // when tabs overflow. = no formatting toolbar / no save
             // button (= the per-tab formatting + save hotkey move to
             // the new tab-bar layout as boss decides).
-            EditorTabBarBar(
-                tabs: appState.openTabs,
-                activeTabId: appState.activeTabId,
-                onSelect: { id in appState.activeTabId = id },
-                onClose: { id in
-                    // v0.34 B-26: close = remove from openTabs; if
-                    // closing the active tab, fall back to the next
-                    // remaining tab (= Apple HIG tabbed-document
-                    // behavior).
-                    guard let closeIdx = appState.openTabs.firstIndex(where: { $0.id == id }) else { return }
-                    let wasActive = (id == appState.activeTabId)
-                    appState.openTabs.remove(at: closeIdx)
-                    if wasActive, let first = appState.openTabs.first {
-                        appState.activeTabId = first.id
+            // v0.34 B-26 boss 9/3 '我打开新文件, 没有出现新 TEB 页' + '参考这个
+            // 样式, 修改 teb 的样式' (= reference image shows plain
+            // all-caps monospaced tab labels; = boss 9/3 follow-up:
+            // '不需要 ICON, 只要文档名就行, .md 的拓展名也不用显示').
+            // Editor top bar = a simple horizontal HStack of tab names
+            // (= .monospaced .caption text; = active tab = .tint color
+            // + .tint background tint at 0.12). No icons, no .md
+            // extension, no trailing buttons. Boss 9/3 follow-up '切
+            // 换目录后, 会再次识别一次' = when the user switches
+            // sidebar scope, the PreviewPane body re-renders AND the
+            // EditorTabBarBar (now inlined) re-renders too; = the
+            // SwiftUI @State click-count latch is reset (= which is
+            // the desired "fresh start" per boss OOB).
+            HStack(spacing: 0) {
+                ForEach(appState.openTabs) { tab in
+                    let title = tabDisplayTitle(tab: tab)
+                    let isActive = (tab.id == appState.activeTabId)
+                    Button(action: { appState.activeTabId = tab.id }) {
+                        Text(title)
+                            .font(.system(size: 12, weight: isActive ? .semibold : .regular, design: .monospaced))
+                            .foregroundStyle(isActive ? Color.accentColor : .secondary)
+                            .padding(.horizontal, 12)
+                            .frame(height: 28)
+                            .background(
+                                Rectangle()
+                                    .fill(isActive ? Color.accentColor.opacity(0.12) : Color.clear)
+                            )
                     }
+                    .buttonStyle(.plain)
+                    .help(title)
                 }
-            )
+                Spacer()
+            }
+            .frame(height: 32)
+            .background(.regularMaterial)
             // v0.34 ticket 09: dirty-discard confirm dialog. Shown when
             // user tries to close with unsaved changes. Apple HIG
             // 2-option confirm pattern (= destructive + cancel).
