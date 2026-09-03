@@ -135,4 +135,62 @@ public enum DesignTokens {
     /// Status bar foreground (= Apple HIG `.tertiary` HierarchicalShapeStyle).
     /// Replaces `.foregroundStyle(.tertiary)` in 16 files.
     public static let statusForeground: HierarchicalShapeStyle = .tertiary
+
+    // MARK: - Surface metrics (Apple HIG, v0.35 +1)
+
+    /// Card surface corner radius (= 8 PT, Apple HIG rounded card standard).
+    /// Replaces file-scope `cardCornerRadius: CGFloat = 8` in
+    /// ConnectorProfileRow + MemorySettingsView + SkillsSettingsView.
+    /// Round style = `.continuous` (Apple HIG 13+ corner style).
+    public static let surfaceCornerRadiusCard: CGFloat = 8
+
+    /// Badge surface corner radius (= 8 PT, Apple HIG capsule-style
+    /// badge standard). Replaces file-scope `badgeCornerRadius: CGFloat = 8`
+    /// in ConnectorProfileRow.
+    public static let surfaceCornerRadiusBadge: CGFloat = 8
+
+    /// Small-chip corner radius (= 3 PT, Apple HIG small-chip standard;
+    /// same value as `smallChipCornerRadius` in 3 files before H2 fix).
+    /// `.continuous` round style for macOS 27+ smooth corners.
+    public static let surfaceCornerRadiusSmallChip: CGFloat = 3
+
+    /// Form field label column width (= 60 PT, Apple HIG inline form
+    /// label standard). Replaces file-scope `labelWidth: CGFloat = 60`
+    /// in ConnectorAuthField.
+    public static let formLabelWidth: CGFloat = 60
+
+    /// Settings row label column width (= 80 PT, Apple HIG settings row
+    /// label standard = 80 PT accommodates Chinese 4-char label).
+    /// Replaces file-scope `rowLabelWidth: CGFloat = 80` in
+    /// MemorySettingsView.
+    public static let settingsRowLabelWidth: CGFloat = 80
+
+    /// Settings row vertical gap (= 8 PT, Apple HIG settings row standard).
+    /// Replaces file-scope `rowSpacing: CGFloat = 8` in ConnectorProfileRow.
+    public static let settingsRowSpacing: CGFloat = 8
+
+    /// Active surface tint alpha (= 0.2, Apple HIG subtle accent overlay).
+    /// Replaces file-scope `activeBadgeAlpha: CGFloat = 0.2` in
+    /// ConnectorProfileRow.
+    public static let surfaceActiveTintAlpha: CGFloat = 0.2
+
+    /// Inactive border tint alpha (= 0.2, Apple HIG subtle border).
+    /// Replaces file-scope `inactiveStrokeAlpha: CGFloat = 0.2` in
+    /// ConnectorProfileRow.
+    public static let surfaceInactiveBorderAlpha: CGFloat = 0.2
+
+    /// Active border width (= 2 PT, Apple HIG emphasized border for
+    /// selected/active state). Replaces file-scope `activeStrokeWidth:
+    /// CGFloat = 2` in ConnectorProfileRow.
+    public static let surfaceActiveBorderWidth: CGFloat = 2
+
+    /// Inactive border width (= 1 PT, Apple HIG standard border). Replaces
+    /// file-scope `inactiveStrokeWidth: CGFloat = 1` in ConnectorProfileRow.
+    public static let surfaceInactiveBorderWidth: CGFloat = 1
+
+    /// Badge interior vertical padding (= 2 PT, Apple HIG tight badge
+    /// standard; smaller than chromePaddingMicro because badge text is
+    /// caption-sized). Replaces inline `.padding(.vertical, 2)` in
+    /// ConnectorProfileRow.
+    public static let badgePaddingVertical: CGFloat = 2
 }
