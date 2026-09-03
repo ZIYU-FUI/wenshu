@@ -15,6 +15,11 @@ import Foundation
 
 struct EntityIngestion: Sendable {
     let referenceStore: ReferenceStoring
+    // v0.34 boss 2026-09-02 OOB: optional ImageGenService for
+    // cover-image generation. Set by the bootstrap layer
+    // (= LibraryBootstrapper); `nil` when no AI provider is
+    // configured (= legacy references stay `.none` coverImageStatus).
+    var imageGenService: ImageGenService?
 
     /// Ingest a single IngestionRequest. Returns true if a new entity
     /// was written; false if the entity already exists (= idempotent).
@@ -30,7 +35,40 @@ struct EntityIngestion: Sendable {
             summary: ""
         )
         try referenceStore.saveReference(reference, bodyMarkdown: defaultMarkdown(for: reference))
+        // v0.34: fire-and-forget thumbnail generation. The
+        // ingestion completes synchronously (= chat / pipeline
+        // doesn't wait); the thumbnail appears in the card grid
+        // when ImageGenService completes (.ready fires the
+        // SwiftUI re-render via @Observable).
+        if let imageGenService {
+            Task.detached(priority: .utility) {
+                await imageGenService.generateThumbnail(for: reference) { status in
+                    // v0.34: status callback is fire-and-forget
+                    // (= SwiftUI @Observable model listens to the
+                    // Reference's coverImageStatus directly; the
+                    // callback here is the single in-place update
+                    // point).
+                    Task { @MainActor in
+                        try? referenceStore.replaceReference(
+                            referenceWithStatus(reference, status: status),
+                            bodyMarkdown: ""
+                        )
+                    }
+                }
+            }
+        }
         return true
+    }
+
+    /// v0.34 helper: return a copy of `reference` with the given
+    /// coverImageStatus applied (= used by the async thumbnail
+    /// callback to persist updated state without racing the
+    /// synchronous `saveReference`).
+    private func referenceWithStatus(_ reference: Reference, status: CoverImageStatus) -> Reference {
+        var copy = reference
+        copy.coverImageStatus = status
+        copy.updatedAt = .now
+        return copy
     }
 
     /// Ingest a batch of requests. Returns the count of new entities

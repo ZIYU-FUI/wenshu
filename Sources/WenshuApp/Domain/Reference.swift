@@ -147,7 +147,7 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case id, title, source, url, layer, category, subcategory
         case entityType, summary, characterRefIds, worldRefIds
-        case bookRefIds, createdAt, updatedAt
+        case bookRefIds, createdAt, updatedAt, coverImageStatus
     }
 
     init(from decoder: Decoder) throws {
@@ -215,6 +215,7 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
 
     let createdAt: Date
     var updatedAt: Date
+    var coverImageStatus: CoverImageStatus?
 
     init(
         id: UUID = UUID(),
@@ -276,5 +277,42 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
+    }
+}
+
+
+/// v0.34 boss 2026-09-02 OOB '我在让卡片缩略图, 有内容可以显示':
+/// Status of the AI-generated cover image for a reference card.
+/// 5 cases (= pending / generating / ready / failed / none) tracking
+/// the lifecycle of the thumbnail generation task started by
+/// `ImageGenService` (= port of Card-master `image-generation-protocol.ts`).
+///
+/// - `.pending`: thumbnail generation queued (= not yet started)
+/// - `.generating`: AI provider request in flight
+/// - `.ready`: thumbnail cached at `<.ws>/cache/thumbnails/<uuid>.webp`
+/// - `.failed`: AI provider errored; placeholder shown on card
+/// - `.none`: user opted out / no title to generate from (= never queued)
+enum CoverImageStatus: String, Codable, Sendable, CaseIterable {
+    case pending
+    case generating
+    case ready
+    case failed
+    case none
+
+    /// True if the card should render the SF Symbol "photo"
+    /// placeholder (= .pending / .generating).
+    var showsPlaceholder: Bool {
+        self == .pending || self == .generating
+    }
+
+    /// True if the card should render the actual cover image.
+    var showsCoverImage: Bool {
+        self == .ready
+    }
+
+    /// True if the card should render the SF Symbol
+    /// "exclamationmark.triangle" error icon (= .failed).
+    var showsErrorIcon: Bool {
+        self == .failed
     }
 }
