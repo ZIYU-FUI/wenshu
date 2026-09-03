@@ -112,4 +112,4 @@ Decision (= wenshu-side wins):
 
 ---
 
-*AGENTS.md v0.08.0 · 2026-09-03 pocock single agent · FCP library replica + new .ws layout (shelves/ + reference-library/) + per-book 8 folders + 2 JSON data files + Apple @Observable (no CoreData) + §11.1 third-party library policy + §11.2 LLM connector profiles (Anthropic / OpenAI / Gemini / DeepSeek / Ollama / OpenRouter / minimax cn) + §11.3 agent ↔ other Core module interaction principle (wenshu-side wins) + §11 product-positioning rule (writing tool, not LLM platform) + v1 LLM provider clause rewritten from minimax cn only to 7 connector BYOK architecture · English-only · project root = /Volumes/ANAN/Engineering/wenshu/*
+*AGENTS.md v0.09.0 · 2026-09-03 pocock single agent · v0.37 ship packet (= hermes core translation complete + 11 port tickets + 7-connector BYOK + visual verify packet + 22 smoke tests + 175+ tests) + ADR-0013 v0.37 scope decisions + CHANGELOG.md v0.37 + Batch 1.1 test target cleanup (35 → 0 errors) + iron rule 6 compliance throughout (= no magic numbers in view code) · English-only · project root = /Volumes/ANAN/Engineering/wenshu/*

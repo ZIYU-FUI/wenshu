@@ -1,7 +1,7 @@
 # CLAUDE.md · 文枢 (Wenshu)
 
 > Truth-source pointer: `AGENTS.md` (project baseline §11 + cross-role address hard constraint §12).
-> v0.08 (2026-09-03 pocock single-agent purified version). AGENTS.md §11 baseline rewritten: 7 connector profiles (§11.2) + agent ↔ other Core module interaction principle (§11.3) + tool-only product positioning. No 6-role flow, no dispatch, no board — pocock reads this when working on wenshu.
+> v0.09 (2026-09-03 pocock single-agent). AGENTS.md v0.09 baseline = v0.37 ship packet (= hermes core translation complete + 11 port tickets + 7-connector BYOK + 22 visual verify smoke tests + 175+ tests). Long-term auto-pilot mode per 老板 2026-09-03 "如果移植还有好多工作，不用问我了，你就一直跑移植就行" (= 我 pocock PO have push authority per 老板 "之前 push 就是你的活"). No 6-role flow, no dispatch, no board — pocock reads this when working on wenshu.
 > English-only rule applies to this file (see `AGENTS.md` top section). Sole address for the user = "老板".
 
 ---
