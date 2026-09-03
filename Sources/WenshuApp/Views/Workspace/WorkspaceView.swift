@@ -12,7 +12,6 @@
 
 import SwiftUI
 import Lucide
-import os.log  // v0.34 B-25: os_log for visual-verify debug prints
 
 /// WorkspaceView — the customizable-layout root (= the Xcode-paradigm
 /// replacement for LayoutShellView). Boss 2026-08-27 grill D1 chose
@@ -638,14 +637,15 @@ struct ZoneModuleView: View {
         }
     }
 
-    /// v0.34 B-25-fix (= boss 9/3 '双击卡片没打开文档'): ZoneModuleView
+    /// v0.34 B-25-followup (= boss 9/3 '你修到我能用'): ZoneModuleView
     /// needs its own openCardInEditor (= WorkspaceView's openCardInEditor
     /// is in a DIFFERENT struct = can't share via this same View type).
-    /// Code is duplicated from WorkspaceView's openCardInEditor. Ticket
-    /// 027-35 will lift into a workspace-level OpenCardInEditor service
-    /// (= same function called from both callers).
+    /// Code is mostly duplicated from WorkspaceView's openCardInEditor
+    /// + the book-scope branch reads the actual .md file (= same walk
+    /// as PreviewPane.loadBookDocs; = ticket 027-35 will lift that
+    /// helper into a workspace-level BookDocLoader service so both
+    /// callers share it).
     private func openCardInEditor() {
-        os_log("[wenshu.zone.openCardInEditor] entry scope=%{public}@", String(describing: previewScope))
         let (path, content, title): (String?, String, String)
         switch previewScope {
         case .referenceScope(let category):
@@ -663,8 +663,65 @@ struct ZoneModuleView: View {
                 path = nil; content = ""
                 title = category?.displayName ?? "资料库"
             }
-        case .bookScope:
-            path = nil; content = ""; title = "book-doc"
+        case .bookScope(let bookId, let folderName):
+            // Walk shelves/<shelf-uuid>/books/<book-uuid>/<folder>/*.md.
+            // Mirrors PreviewPane.loadBookDocs (= same logic; = ticket
+            // 027-35 will lift into a shared BookDocLoader service).
+            let shelvesRoot = bookStore.stores.shelvesRoot
+            let bookDirs: [URL] = {
+                guard let shelfDirs = try? FileManager.default.contentsOfDirectory(
+                    at: shelvesRoot,
+                    includingPropertiesForKeys: nil,
+                    options: [.skipsHiddenFiles]
+                ) else { return [] }
+                return shelfDirs.compactMap { shelfDir in
+                    let candidate = shelfDir
+                        .appendingPathComponent("books")
+                        .appendingPathComponent(bookId.uuidString)
+                    return FileManager.default.fileExists(atPath: candidate.path)
+                        ? candidate
+                        : nil
+                }
+            }()
+            guard let bookDir = bookDirs.first else {
+                path = nil; content = ""; title = "book-doc"
+                break
+            }
+            // Determine which folders to scan.
+            let folders: [String] = {
+                if let folderName {
+                    return [folderName]
+                }
+                // Default = scan all 8 standard folders (= same as
+                // PreviewPane.loadBookDocs default).
+                return [
+                    "world", "characters", "outlines", "chapters",
+                    "drafts", "sessions", "foreshadowing", "placeholders"
+                ]
+            }()
+            // Find the FIRST .md file (= v0.34 placeholder; = ticket
+            // 027-35 will wire to the SPECIFIC card the user double-
+            // clicked).
+            var foundPath: URL?
+            var foundBody: String = ""
+            var foundTitle: String = ""
+            for folder in folders {
+                let dirURL = bookDir.appendingPathComponent(folder)
+                guard let entries = try? FileManager.default.contentsOfDirectory(
+                    at: dirURL,
+                    includingPropertiesForKeys: nil,
+                    options: [.skipsHiddenFiles]
+                ) else { continue }
+                if let first = entries.first(where: { $0.pathExtension == "md" }) {
+                    foundPath = first
+                    foundBody = (try? String(contentsOf: first, encoding: .utf8)) ?? ""
+                    foundTitle = first.deletingPathExtension().lastPathComponent
+                    break
+                }
+            }
+            path = foundPath?.path
+            content = foundBody
+            title = foundTitle
         case .shelfScope, .empty:
             path = nil; content = ""; title = ""
         }
@@ -954,9 +1011,20 @@ struct EditorPlaceholder: View {
                 // Placeholder sample body until ticket 027-35 wires the
                 // real document load (= the Apple HIG DocumentGroup
                 // file-open path is the v0.35+ ticket).
+                // v0.34 B-25-FIX (= boss 9/3 'preview BUG 还在'): EditorPlaceholder
+                // preview mode previously rendered `Self.samplePreviewBody`
+                // (= static placeholder string) regardless of which tab
+                // was active. Replaced with `self.draft` (= per-tab
+                // computed property backed by appState.openTabs[activeTabIdx].draft)
+                // so the preview shows the active tab's content = when
+                // openCardInEditor creates/updates a tab with the .md body
+                // read from disk, the preview updates immediately. This
+                // is the v0.34 B-25 root-cause fix (= the closure chain
+                // WAS firing correctly; = the bug was the view rendering
+                // the placeholder instead of the active tab).
                 if mode == .preview {
                     EditorPreviewContent(
-                        markdownBody: Self.samplePreviewBody,
+                        markdownBody: draft,
                         wikilinkTarget: { _ in /* TODO: ticket 027-35 navigation */ }
                     )
                 } else {
