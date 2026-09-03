@@ -34,7 +34,29 @@ struct EntityIngestion: Sendable {
             layer: .layerEntities,
             summary: ""
         )
-        try referenceStore.saveReference(reference, bodyMarkdown: defaultMarkdown(for: reference))
+        // v0.34 Issue 04: run preflight (= WikiEntityPreflight)
+        // before saveReference. Critical issues throw and abort
+        // the write (= library never lands in an inconsistent state
+        // with empty / duplicate-id / body-missing entities).
+        let body = defaultMarkdown(for: reference)
+        let allReferences = (try? referenceStore.loadAllReferences()) ?? []
+        let issues = WikiEntityPreflight.validate(
+            reference,
+            bodyMarkdown: body,
+            existingReferences: allReferences
+        )
+        if WikiEntityPreflight.hasErrors(issues) {
+            let summary = issues.filter { $0.severity == .error }
+                .map { "[\($0.code)] \($0.message)" }
+                .joined(separator: "\n")
+            NSLog("[wenshu.preflight] blocked: %@\n%@", reference.id.uuidString, summary)
+            throw PreflightError.issues(issues)
+        }
+        // Warnings: log + continue (= non-blocking).
+        for warning in issues where warning.severity == .warning {
+            NSLog("[wenshu.preflight] warning: %@", warning.message)
+        }
+        try referenceStore.saveReference(reference, bodyMarkdown: body)
         // v0.34: fire-and-forget thumbnail generation. The
         // ingestion completes synchronously (= chat / pipeline
         // doesn't wait); the thumbnail appears in the card grid
@@ -87,5 +109,24 @@ struct EntityIngestion: Sendable {
     /// matches entity name; empty body until LLM-derived summary lands).
     private func defaultMarkdown(for reference: Reference) -> String {
         "# \(reference.title)\n\n"
+    }
+}
+
+/// v0.34 Issue 04: thrown by `EntityIngestion.ingest` when
+/// preflight surfaces critical issues. Caller (= chat assistant /
+/// LLM Wiki pipeline) renders the issues array as user-facing
+/// diagnostic text (= Issue 06 UserFacingError integration point
+/// for future ticket).
+enum PreflightError: Error, LocalizedError {
+    case issues([PreflightIssue])
+
+    var errorDescription: String? {
+        switch self {
+        case .issues(let issues):
+            let errors = issues.filter { $0.severity == .error }
+            return "实体入库前检查未通过：\n" + errors
+                .map { "[\($0.code)] \($0.message)" }
+                .joined(separator: "\n")
+        }
     }
 }
