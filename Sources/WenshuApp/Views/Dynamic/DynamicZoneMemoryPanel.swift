@@ -11,6 +11,9 @@
 
 import SwiftUI
 
+// File-scope constant (= Apple HIG small-chip corner radius standard).
+private let smallChipCornerRadius: CGFloat = 3
+
 // Apple HIG canonical bottom-panel height for a 3-pane DynamicZone
 // (sidebar / content / memory). Token scope: panel height is a feature
 // constant, not a chrome dimension (= DesignTokens = chrome).
