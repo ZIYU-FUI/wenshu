@@ -20,7 +20,7 @@ import EventSource
 public struct AnthropicStreamingChunk: Sendable {
     public enum Kind: Sendable {
         case contentBlockStart(blockType: String, blockIndex: Int, toolId: String?, toolName: String?)
-        case contentBlockDelta(blockIndex: Int, textDelta: String?, inputDelta: String?)
+        case contentBlockDelta(blockIndex: Int, textDelta: String?, inputDelta: String?, thinkingDelta: String?)
         case contentBlockStop(blockIndex: Int)
         case messageDelta(stopReason: String?)
         case messageStop
@@ -66,12 +66,15 @@ public enum AnthropicSSEDecoder {
             case "content_block_delta":
                 guard let index = json["index"] as? Int,
                       let delta = json["delta"] as? [String: Any] else { return nil }
-                let textDelta = (delta["type"] as? String) == "text_delta" ? delta["text"] as? String : nil
-                let inputDelta = (delta["type"] as? String) == "input_json_delta" ? delta["partial_json"] as? String : nil
+                let deltaType = delta["type"] as? String
+                let textDelta = deltaType == "text_delta" ? delta["text"] as? String : nil
+                let inputDelta = deltaType == "input_json_delta" ? delta["partial_json"] as? String : nil
+                let thinkingDelta = deltaType == "thinking_delta" ? delta["thinking"] as? String : nil
                 return AnthropicStreamingChunk(kind: .contentBlockDelta(
                     blockIndex: index,
                     textDelta: textDelta,
-                    inputDelta: inputDelta
+                    inputDelta: inputDelta,
+                    thinkingDelta: thinkingDelta
                 ))
 
             case "content_block_stop":
@@ -121,7 +124,7 @@ public actor AnthropicToolUseCollector {
                 pendingByIndex[blockIndex] = PendingToolUse(id: id, name: name, inputJSON: "")
                 return nil
 
-            case .contentBlockDelta(let blockIndex, _, let inputDelta):
+            case .contentBlockDelta(let blockIndex, _, let inputDelta, _):
                 guard var pending = pendingByIndex[blockIndex],
                       let delta = inputDelta else { return nil }
                 pending.inputJSON += delta
