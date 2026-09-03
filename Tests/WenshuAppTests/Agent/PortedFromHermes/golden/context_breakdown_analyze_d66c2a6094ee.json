@@ -1,0 +1,33 @@
+{
+  "function": "analyze",
+  "generator": "generate_golden.py v0.36",
+  "input": {
+    "cached_breakpoints": 3,
+    "messages": [
+      {
+        "content": "msg 1",
+        "role": "user"
+      },
+      {
+        "content": "msg 2",
+        "role": "assistant"
+      },
+      {
+        "content": "msg 3",
+        "role": "user"
+      },
+      {
+        "content": "msg 4",
+        "role": "assistant"
+      }
+    ],
+    "system_prompt": "you are a helpful assistant"
+  },
+  "module": "context_breakdown",
+  "output": {
+    "older_tokens": 1,
+    "recent_cached_tokens": 3,
+    "system_tokens": 7,
+    "total_tokens": 11
+  }
+}
