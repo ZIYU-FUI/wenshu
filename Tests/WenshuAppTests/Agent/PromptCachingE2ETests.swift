@@ -76,7 +76,7 @@ struct PromptCachingE2ETests {
             )
         }
 
-        let cachedMessages = connector.capturedMessages ?? []
+        let cachedMessages = (await connector.readCapturedMessages()) ?? []
         _ = (await connector.snapshot()).messageCount
         #expect(cachedMessages.count == 5)
 
@@ -95,7 +95,7 @@ struct PromptCachingE2ETests {
         let loop = ConversationLoop(connector: connector, systemPrompt: "stable")
 
         _ = try await loop.runConversation(userMessage: "msg")
-        let messages = connector.capturedMessages ?? []
+        let messages = (await connector.readCapturedMessages()) ?? []
         _ = (await connector.snapshot()).messageCount
         let markedMessage = messages.first { $0["cache_control"] != nil }
 
@@ -171,6 +171,11 @@ private actor StubMinimaxConnector: LLMConnector {
     /// Snapshot helper for tests (= returns captured state via async call).
     func snapshot() -> (systemPrompt: String?, messageCount: Int) {
         (capturedSystemPrompt, capturedMessages?.count ?? 0)
+    }
+
+    /// Read captured messages (= actor-isolated accessor).
+    func readCapturedMessages() -> [[String: Any]]? {
+        capturedMessages
     }
 }
 
