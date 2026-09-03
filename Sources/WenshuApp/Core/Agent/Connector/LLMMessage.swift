@@ -23,10 +23,12 @@ import Foundation
 public struct LLMMessage: Sendable, Equatable {
     public let role: Role
     public let blocks: [LLMBlock]
+    public var cacheControl: [String: String]?
 
-    public init(role: Role, blocks: [LLMBlock]) {
+    public init(role: Role, blocks: [LLMBlock], cacheControl: [String: String]? = nil) {
         self.role = role
         self.blocks = blocks
+        self.cacheControl = cacheControl
     }
 
     public enum Role: String, Sendable, Codable, Equatable {
