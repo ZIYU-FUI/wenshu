@@ -9,7 +9,7 @@
 import SwiftUI
 
 // File-scope constant (= Apple HIG small-chip corner radius standard).
-private let smallChipCornerRadius: CGFloat = 4
+private let smallChipCornerRadius: CGFloat = 3
 
 // File-scope constant (= Apple HIG subtle surface tint = 0.05 alpha).
 private let subtleSurfaceAlpha: CGFloat = 0.05
