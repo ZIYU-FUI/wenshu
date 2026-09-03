@@ -8,6 +8,9 @@
 
 import SwiftUI
 
+// File-scope constant (= Apple HIG small-chip corner radius standard).
+private let smallChipCornerRadius: CGFloat = 4
+
 // File-scope constant (= Apple HIG subtle surface tint = 0.05 alpha).
 private let subtleSurfaceAlpha: CGFloat = 0.05
 
@@ -107,6 +110,6 @@ public struct MemoryEntryRow: View {
                 .foregroundStyle(.secondary)
         }
         .padding(6)
-        .background(Color.secondary.opacity(subtleSurfaceAlpha), in: RoundedRectangle(cornerRadius: 4))
+        .background(Color.secondary.opacity(subtleSurfaceAlpha), in: RoundedRectangle(cornerRadius: smallChipCornerRadius))
     }
 }
