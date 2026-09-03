@@ -34,11 +34,68 @@ public enum ProviderKeychainError: Error, LocalizedError {
 
 /// Storage backend for provider API keys. Production = Apple Keychain via Security framework.
 /// Tests inject `InMemory` to avoid OS Keychain entitlements requirement.
+///
+/// v0.36 ticket 012 (= credential rotation + OAuth) adds optional protocol
+/// methods with default no-op implementations. Backwards-compatible: existing
+/// implementations (= AppleKeychainStore / InMemoryKeychainStore) compile
+/// without changes. New backends can opt-in by overriding the rotation methods.
 public protocol ProviderKeychainStoring: Sendable {
     func saveKeySync(_ key: String, for provider: Provider) throws
     func loadKeySync(for provider: Provider) -> String?
     func deleteKeySync(for provider: Provider) throws
     func listProvidersWithKeys() -> [String]
+
+    // MARK: - v0.36 ticket 012 credential rotation + OAuth (optional)
+
+    /// ProviderKeychainMetadata for the given provider (= expiry timestamp
+    /// + OAuth refresh token if applicable). Default = nil (= no rotation
+    /// tracking). Override to enable rotation.
+    func loadMetadata(for provider: Provider) -> ProviderKeychainMetadata?
+
+    /// Save metadata (= call after successful saveKeySync to record expiry
+    /// or OAuth refresh token). Default = no-op.
+    func saveMetadata(_ metadata: ProviderKeychainMetadata, for provider: Provider) throws
+}
+
+extension ProviderKeychainStoring {
+    public func loadMetadata(for provider: Provider) -> ProviderKeychainMetadata? { nil }
+    public func saveMetadata(_ metadata: ProviderKeychainMetadata, for provider: Provider) throws {}
+}
+
+/// Metadata accompanying an API key for credential rotation + OAuth flows.
+/// Stored alongside the key (= Apple Keychain attribute, or in-memory dict
+/// for test backends).
+public struct ProviderKeychainMetadata: Sendable, Equatable, Codable {
+    public var expiresAt: Date?
+    public var oauthRefreshToken: String?
+    public var oauthAccessToken: String?
+    public var oauthScopes: [String]
+    public var rotatedAt: Date
+
+    public init(
+        expiresAt: Date? = nil,
+        oauthRefreshToken: String? = nil,
+        oauthAccessToken: String? = nil,
+        oauthScopes: [String] = [],
+        rotatedAt: Date = Date()
+    ) {
+        self.expiresAt = expiresAt
+        self.oauthRefreshToken = oauthRefreshToken
+        self.oauthAccessToken = oauthAccessToken
+        self.oauthScopes = oauthScopes
+        self.rotatedAt = rotatedAt
+    }
+
+    /// True if metadata expiry is in the past (= key needs rotation).
+    public var isExpired: Bool {
+        guard let expiresAt else { return false }
+        return expiresAt < Date()
+    }
+
+    /// True if metadata has OAuth credentials (= OAuth flow active).
+    public var isOAuth: Bool {
+        return oauthRefreshToken != nil || oauthAccessToken != nil
+    }
 }
 
 /// Default production backend — Apple Security framework (`kSecClassGenericPassword`).
