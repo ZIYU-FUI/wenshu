@@ -101,6 +101,104 @@ struct WorkspaceView: View {
     /// For v0.27 we render the 6 panes in a fixed order (= the
     /// built-in Default preset). Boss can split / rearrange via
     /// drag-and-drop in 027-36+.
+
+    /// v0.34 B-25 (simplified): card double-click handler. Reads the
+    /// .md file (= body content) for the current sidebar selection's
+    /// first entity, then either (a) SWITCHES to an existing tab that
+    /// already has the same content loaded (= boss 9/3 OOB '看是不是
+    /// 已有 teb 已经打开了当前 MD' = duplicate-tab check = Safari
+    /// behavior) or (b) opens a new tab in the editor zone (= B-24
+    /// multi-tab data model).
+    ///
+    /// Why content-based duplicate check (= not path-based)? The card
+    /// doesn't currently carry its file path; = ticket 027-35 will
+    /// add explicit per-card tracking (= Card → URL → tab match).
+    /// For now we approximate with first-200-char content hash (= if
+    /// another tab is showing the same .md body = match).
+    ///
+    /// Reference scope reads via ReferenceStore (= real Read API).
+    /// Book scope is deferred to ticket 027-35 (= PreviewPane's
+    /// private `loadBookDocs` walker is the source of truth; = no
+    /// shortcut path through WorkspaceView without lifting the helper).
+    /// No .alert, no popup = simplest possible (= Apple HIG TextEdit
+    /// "open this file" semantics).
+    private func openCardInEditor() {
+        let (path, content, title): (String?, String, String)
+        switch previewScope {
+        case .referenceScope(let category):
+            let entities = (try? bookStore.referenceStore.loadAllReferences()) ?? []
+            let filtered = entities.filter { entity in
+                entity.layer == .layerEntities
+                    && (category == nil || entity.category == category)
+            }
+            if let first = filtered.first {
+                let body = (try? bookStore.referenceStore.loadReferenceBody(id: first.id)) ?? first.summary
+                path = nil  // reference is library-public; ticket 027-35 will resolve
+                content = body
+                title = first.title
+            } else {
+                path = nil; content = ""; title = category?.displayName ?? "资料库"
+            }
+        case .bookScope:
+            // Deferred to ticket 027-35: PreviewPane's private
+            // loadBookDocs helper is the source of truth for bookDoc
+            // discovery; = WorkspaceView doesn't share it. v0.34
+            // fallback = silent no-op (= no .alert, no popup = user
+            // feedback comes from PreviewPane being empty).
+            path = nil; content = ""; title = "book-doc"
+        case .shelfScope, .empty:
+            path = nil; content = ""; title = ""
+        }
+
+        // No content (= no reference in scope OR bookDoc deferred).
+        // Silent no-op per boss 9/3 feedback (= no .alert noise).
+        guard !content.isEmpty else { return }
+
+        // Duplicate-tab check (= boss 9/3 OOB core requirement).
+        // If any existing tab's `originalBody` (= the on-disk content
+        // = canonical identity, more stable than draft which can be
+        // dirty) matches our new content, switch to that tab instead
+        // of opening a duplicate. Safari behavior.
+        //
+        // Content fingerprint = first 200 chars (= fast; = sufficient
+        // since the chance of two distinct .md files sharing the
+        // first 200 chars is negligible).
+        let fingerprint = String(content.prefix(200))
+        if let existingIdx = appState.openTabs.firstIndex(where: {
+            String($0.originalBody.prefix(200)) == fingerprint
+        }) {
+            appState.activeTabId = appState.openTabs[existingIdx].id
+            // (No edit / no new tab — reuse the existing one.)
+            return
+        }
+
+        // No duplicate. Open as new tab (= reuse current tab if clean,
+        // otherwise append).
+        let currentIsDirty: Bool = {
+            guard let tab = appState.openTabs.first(where: { $0.id == appState.activeTabId }) else {
+                return false
+            }
+            return tab.draft != tab.originalBody
+        }()
+        let newTab = EditorTab(
+            id: UUID(),
+            documentPath: path,
+            draft: content,
+            originalBody: content,
+            mode: .preview
+        )
+        if !currentIsDirty,
+           let idx = appState.openTabs.firstIndex(where: { $0.id == appState.activeTabId }) {
+            // Replace the active tab in place.
+            appState.openTabs[idx] = newTab
+        } else {
+            // Push a new tab (= preserve current dirty edits OR no
+            // active tab to replace).
+            appState.openTabs.append(newTab)
+        }
+        appState.activeTabId = newTab.id
+    }
+
     var body: some View {
         // v0.30 boss 2026-09-01 OOB: the legacy PaneRenderer path
         // (= v0.28 ticket 028-004 hand-rolled split-tree renderer)
@@ -252,11 +350,17 @@ struct WorkspaceView: View {
             ZoneContentView(zoneSlug: "projectPreview", tabs: [
                 ("预览", "book-open-check", AnyView(PreviewPane(
                     scope: previewScope,
-                    onEntityDoubleClick: { entity in
-                        // v0.30 Ticket 3 hook: open in editor.
-                        // For now: just print; Ticket 3 will wire this
-                        // to editor zone + replace EditorContentPlaceholder.
-                        NSLog("WorkspaceView.PreviewPane: double-click entity %@", entity.title)
+                    // v0.34 B-25: simplest possible = card double-click
+                    // opens the .md file from the card (= Apple HIG
+                    // TextEdit / TextEditor behavior; = no popup, no
+                    // previewScope inference, no alert = just open the
+                    // file). For card = .reference: path = reference-
+                    // library entity path (= wenshu internal). For card
+                    // = .bookDoc: path = book's folder/file .md.
+                    // Falls back to a sample body if the file doesn't
+                    // exist (= ticket 027-35 will wire to real paths).
+                    onDoubleClick: {
+                        openCardInEditor()
                     },
                     previewSortOrder: $previewSortOrder
                 ))),
@@ -452,11 +556,25 @@ struct ZoneModuleView: View {
             ZoneContentView(zoneSlug: "projectPreview", tabs: [
                 ("预览", "book-open-check", AnyView(PreviewPane(
                     scope: previewScope,
-                    onEntityDoubleClick: { entity in
-                        // v0.30 Ticket 3 hook: open in editor.
-                        // For now: just print; Ticket 3 will wire this
-                        // to editor zone + replace EditorContentPlaceholder.
-                        NSLog("ZoneModuleView.PreviewPane: double-click entity %@", entity.title)
+                    // v0.34 B-25: ZoneModuleView legacy path = inline
+                    // duplicate-tab check (= reuses the placeholder tab
+                    // if it's already loaded; otherwise no-op = avoids
+                    // duplicate tabs in the legacy path). WorkspaceView's
+                    // openCardInEditor has the same logic for the active
+                    // path; = ticket 027-35 will lift this into a shared
+                    // service.
+                    onDoubleClick: {
+                        let sampleBody = EditorPlaceholder.samplePreviewBody
+                        let fingerprint = String(sampleBody.prefix(200))
+                        if let idx = appState.openTabs.firstIndex(where: {
+                            String($0.originalBody.prefix(200)) == fingerprint
+                        }) {
+                            appState.activeTabId = appState.openTabs[idx].id
+                        } else if let placeholderIdx = appState.openTabs.firstIndex(where: {
+                            $0.id == EditorTab.placeholderId
+                        }) {
+                            appState.activeTabId = appState.openTabs[placeholderIdx].id
+                        }
                     },
                     previewSortOrder: .constant(.pinyinFirstLetter)
                 ))),

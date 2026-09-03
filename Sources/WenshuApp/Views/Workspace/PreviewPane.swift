@@ -202,10 +202,14 @@ struct PreviewPane: View {
     /// sidebar selection (= WorkspaceView computes from sidebarSelection).
     let scope: PreviewScope
 
-    /// Callback when user double-clicks an entity card (= boss Ticket
-    /// 3). Reference-only callback (= book docs aren't wired to editor
-    /// yet; deferred to v0.31 ticket).
-    let onEntityDoubleClick: (Reference) -> Void
+    /// v0.34 B-25: card-double-click callback (= replaces the B-13
+    /// empty NSLog placeholders + BUG1 from boss 9/3 macOS visual
+    /// verify). Type = `() -> Void` (= untyped; = matches the existing
+    /// B-02 single-Card pattern; = the actual card data is read from
+    /// the Card's own `source` field at call time, not via closure
+    /// capture; = same code path handles both reference and bookDoc
+    /// sources since B-02's CardSource enum unification).
+    let onDoubleClick: () -> Void
 
     /// v0.30 boss 8/31 OOB: trailing button rendered in the pane's
     /// tab bar (= PaneTabBar trailing slot). Used by the project
@@ -226,11 +230,11 @@ struct PreviewPane: View {
     /// Pass-through of all other fields + wraps the binding.
     init(
         scope: PreviewScope,
-        onEntityDoubleClick: @escaping (Reference) -> Void,
+        onDoubleClick: @escaping () -> Void,
         previewSortOrder: Binding<EntitySortOrder>
     ) {
         self.scope = scope
-        self.onEntityDoubleClick = onEntityDoubleClick
+        self.onDoubleClick = onDoubleClick
         self._previewSortOrder = previewSortOrder
     }
 
@@ -420,7 +424,7 @@ struct PreviewPane: View {
                         LazyVGrid(columns: adaptiveColumns(width: geometry.size.width), spacing: 16) {
                             ForEach(inCategory) { entity in
                                 Card(source: .reference(entity)) {
-                                    onEntityDoubleClick(entity)
+                                    onDoubleClick()
                                 }
                             }
                         }
@@ -453,7 +457,7 @@ struct PreviewPane: View {
                     LazyVGrid(columns: adaptiveColumns(width: geometry.size.width), spacing: 16) {
                         ForEach(sorted) { entity in
                             Card(source: .reference(entity)) {
-                                onEntityDoubleClick(entity)
+                                onDoubleClick()
                             }
                         }
                     }
@@ -641,7 +645,9 @@ struct PreviewPane: View {
                     spacing: 16
                 ) {
                     ForEach(sorted) { doc in
-                        Card(source: .bookDoc(doc), onDoubleClick: {})
+                        Card(source: .bookDoc(doc)) {
+                            onDoubleClick()
+                        }
                     }
                 }
                 .padding(.vertical, DesignTokens.chromePaddingVertical)
