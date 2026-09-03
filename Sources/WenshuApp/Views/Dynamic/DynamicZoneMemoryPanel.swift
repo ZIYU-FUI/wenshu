@@ -122,7 +122,7 @@ public struct MemoryEntryRowCompact: View {
         .padding(DesignTokens.chromePaddingMicro)
         .background(
             Color.secondary.opacity(0.5),
-            in: RoundedRectangle(cornerRadius: 3, style: .continuous)
+            in: RoundedRectangle(cornerRadius: smallChipCornerRadius, style: .continuous)
         )
     }
 }
