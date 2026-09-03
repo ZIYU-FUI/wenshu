@@ -273,4 +273,11 @@ public enum ProviderKeychain {
     public static func listProvidersWithKeys() -> [String] {
         backend.listProvidersWithKeys()
     }
+    // v0.36 ticket 012 shim methods (= delegate to backend).
+    public static func loadMetadata(for provider: Provider) -> ProviderKeychainMetadata? {
+        backend.loadMetadata(for: provider)
+    }
+    public static func saveMetadata(_ metadata: ProviderKeychainMetadata, for provider: Provider) throws {
+        try backend.saveMetadata(metadata, for: provider)
+    }
 }
