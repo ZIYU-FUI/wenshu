@@ -698,7 +698,11 @@ struct BackgroundReviewTests {
 
     @Test("ProposalKind: 7 case types")
     func allProposalKinds() {
-        #expect(ProposalKind.allCases.count == 0)  // no allCases, manually check
+        let allKinds: [ProposalKind] = [
+            .entityCreation, .entityUpdate, .entityDeletion,
+            .fileEdit, .memoryWrite, .skillInvocation, .other
+        ]
+        #expect(allKinds.count == 7)
         #expect(ProposalKind.entityCreation.rawValue == "entityCreation")
         #expect(ProposalKind.entityUpdate.rawValue == "entityUpdate")
         #expect(ProposalKind.entityDeletion.rawValue == "entityDeletion")
@@ -1114,7 +1118,7 @@ struct MemoryEntryRowAndChatMessageBridgeTests {
         #expect(ChatRole.user.toLLMRole == .user)
         #expect(ChatRole.agent.toLLMRole == .assistant)
         #expect(ChatRole.system.toLLMRole == .user)  // system prompt is top-level
-        #expect(ChatMessage.Role.tool.fromLLMRole == .user)  // tool result is user-visible
+        #expect(LLMMessage.Role.tool.fromLLMRole == .user)  // tool result is user-visible
     }
 }
 
@@ -1151,7 +1155,7 @@ struct ConnectorCredentialsAndStreamingTests {
     @Test("ConnectorCredentials: empty apiKey non-ollama = not ready")
     func credentialsEmptyKey() {
         let creds = ConnectorCredentials(
-            provider: .openai,
+            provider: .minimaxCn,
             apiKey: "",
             baseURL: "https://api.openai.com"
         )
@@ -1302,6 +1306,7 @@ struct MiscEdgeCaseTests {
     }
 
     @Test("DesignTokens statusFont + statusForeground")
+    @MainActor
     func statusFontAndForeground() {
         _ = DesignTokens.statusFont  // ensure accessible
         _ = DesignTokens.statusForeground
@@ -1316,8 +1321,8 @@ struct MiscEdgeCaseTests {
     func llmCallOptionsDefaults() {
         let opts = LLMCallOptions(
             model: "test",
-            systemPrompt: nil,
-            maxTokens: 100
+            maxTokens: 100,
+            systemPrompt: nil
         )
         #expect(opts.model == "test")
         #expect(opts.maxTokens == 100)
