@@ -40,7 +40,8 @@ struct PromptCachingE2ETests {
                 group.addTask {
                     let result = try? await loop.runConversation(userMessage: "msg")
                     // Extract system from connector's captured request
-                    return connector.capturedSystemPrompt ?? ""
+                    let snap = await connector.snapshot()
+                    return snap.systemPrompt ?? ""
                 }
             }
             var collected: [String] = []
@@ -75,7 +76,7 @@ struct PromptCachingE2ETests {
             )
         }
 
-        let cachedMessages = connector.capturedMessages ?? []
+        let cachedMessages = (await connector.snapshot()).messages ?? []
         #expect(cachedMessages.count == 5)
 
         // Last 3 should have cache_control
@@ -93,11 +94,13 @@ struct PromptCachingE2ETests {
         let loop = ConversationLoop(connector: connector, systemPrompt: "stable")
 
         _ = try await loop.runConversation(userMessage: "msg")
-        let messages = connector.capturedMessages ?? []
+        let messages = (await connector.snapshot()).messages ?? []
         let markedMessage = messages.first { $0["cache_control"] != nil }
 
         #expect(markedMessage?["cache_control"] as? [String: String] != nil)
-        #expect(markedMessage?["cache_control"]?["type"] as? String == "ephemeral")
+        if let cc = markedMessage?["cache_control"] as? [String: String] {
+            #expect(cc["type"] == "ephemeral")
+        }
     }
 
     // MARK: - Helpers
@@ -161,6 +164,11 @@ private actor StubMinimaxConnector: LLMConnector {
             stopReason: .endTurn,
             usage: LLMUsage(inputTokens: 0, outputTokens: 0)
         )
+    }
+
+    /// Snapshot helper for tests (= returns captured state via async call).
+    func snapshot() -> (systemPrompt: String?, messages: [[String: Any]]?) {
+        (capturedSystemPrompt, capturedMessages)
     }
 }
 
