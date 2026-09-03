@@ -80,6 +80,7 @@ public enum LLMConnectorError: Error, LocalizedError, Sendable {
     case transport(provider: String, statusCode: Int, body: String)
     case decode(provider: String, underlying: String)
     case unsupportedProvider(slug: String)
+    case streamingFailed(provider: String)  // v0.36 ticket 004 sub-step 4
 
     public var errorDescription: String? {
         switch self {
@@ -90,7 +91,9 @@ public enum LLMConnectorError: Error, LocalizedError, Sendable {
         case .decode(let p, let u):
             return "Provider '\\(p)' response decode failed: \\(u)"
         case .unsupportedProvider(let s):
-            return "Provider slug '\\(s)' is not a recognized connector profile."
+                    return "Provider slug '\(s)' is not a recognized connector profile."
+                case .streamingFailed(let p):
+                    return "Anthropic streaming failed for \(p)."
+                }
+            }
         }
-    }
-}
