@@ -334,11 +334,154 @@ public actor ChatSessionStore {
         let summary = response.content.map(\.displayText).joined()
 
         // 写 summary + 删老原文 (顺序不能反, 否则上下文丢失)
+        // v0.34 Issue 08: wrap in transact (= saveSummary +
+        // deleteOldMessages run as a single SQLite transaction;
+        // = if deleteOldMessages fails after saveSummary succeeded,
+        // the transaction rolls back the summary write too, so the
+        // library never lands in an inconsistent state where the
+        // summary references messages that still exist).
         if let firstOldId = oldMessages.first?.id {
-            try saveSummary(summary, sessionId: sessionId, lastMessageId: firstOldId)
+            try transact { txn in
+                try txn.saveSummary(summary, sessionId: sessionId, lastMessageId: firstOldId)
+                try txn.deleteOldMessages(sessionId: sessionId, beforeTimestamp: cutoff)
+            }
         }
-        try deleteOldMessages(sessionId: sessionId, beforeTimestamp: cutoff)
         return true
+    }
+
+    // MARK: - v0.34 Issue 08: transactional multi-step operations
+
+    /// Transaction handle = wraps the SQLite `dbPtr.db` for the
+    /// duration of a single transaction (= lifetime managed by
+    /// `transact` closure). Callers invoke `txn.saveSummary` /
+    /// `txn.deleteOldMessages` (= the 2 ops that need to be atomic)
+    /// via this handle, NOT via the actor directly (= the actor's
+    /// saveSummary / deleteOldMessages reject calls inside an active
+    /// transaction to prevent dead-lock).
+    public final class TransactionHandle {
+        fileprivate let db: OpaquePointer?
+        fileprivate unowned let store: ChatSessionStore
+
+        fileprivate init(db: OpaquePointer?, store: ChatSessionStore) {
+            self.db = db
+            self.store = store
+        }
+
+        /// v0.34: per-actor `saveSummary` that runs inside the
+        /// transaction (= uses `db` directly, no actor re-entry).
+        func saveSummary(
+            _ summary: String,
+            sessionId: String,
+            lastMessageId: String
+        ) throws {
+            try store._saveSummaryTx(
+                summary,
+                sessionId: sessionId,
+                lastMessageId: lastMessageId,
+                db: db
+            )
+        }
+
+        /// v0.34: per-actor `deleteOldMessages` that runs inside
+        /// the transaction.
+        func deleteOldMessages(sessionId: String, beforeTimestamp: Date) throws {
+            try store._deleteOldMessagesTx(
+                sessionId: sessionId,
+                beforeTimestamp: beforeTimestamp,
+                db: db
+            )
+        }
+    }
+
+    /// v0.34 Issue 08: atomic multi-step operation wrapper (= port of
+    /// Card-master `script-repository.ts` `transact()`).
+    ///
+    /// Caller pattern:
+    ///   try await store.transact { txn in
+    ///     try txn.saveSummary(...)
+    ///     try txn.deleteOldMessages(...)
+    ///   }
+    ///
+    /// Internals: BEGIN TRANSACTION; run closure with a
+    /// `TransactionHandle` (= exposes only the 2 atomic-only ops);
+    /// COMMIT on success or ROLLBACK on thrown error.
+    ///
+    /// Apple-API-first check: `sqlite3_exec` for BEGIN/COMMIT/ROLLBACK
+    /// (= Apple-bundled SQLite C API; no third-party libs).
+    public func transact(
+        _ operation: (TransactionHandle) throws -> Void
+    ) throws {
+        let db = dbPtr.db
+        // BEGIN TRANSACTION (= IMMEDIATE = upgrade to write lock
+        // immediately, = prevents the SQLITE_BUSY race when two
+        // write transactions interleave).
+        if sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION", nil, nil, nil) != SQLITE_OK {
+            throw ChatSessionStoreError.execFailed(message: ChatSessionStore.sqliteErmsg(db))
+        }
+        let handle = TransactionHandle(db: db, store: self)
+        do {
+            try operation(handle)
+            // COMMIT (= flush WAL to disk; per Apple HIG durability).
+            if sqlite3_exec(db, "COMMIT", nil, nil, nil) != SQLITE_OK {
+                throw ChatSessionStoreError.execFailed(message: ChatSessionStore.sqliteErmsg(db))
+            }
+        } catch {
+            // ROLLBACK on any thrown error (= keeps DB consistent).
+            _ = sqlite3_exec(db, "ROLLBACK", nil, nil, nil)
+            throw error
+        }
+    }
+
+    /// v0.34 Issue 08: transaction-internal `saveSummary` (= uses
+    /// the `db` handle directly so we don't recurse into the actor).
+    /// Same SQL as the public `saveSummary` but no actor isolation
+    /// (= the closure runs synchronously inside `transact`).
+    fileprivate nonisolated func _saveSummaryTx(
+        _ summary: String,
+        sessionId: String,
+        lastMessageId: String,
+        db: OpaquePointer?
+    ) throws {
+        let sql = """
+        INSERT OR REPLACE INTO chat_summaries (session_id, summary, last_message_id)
+        VALUES (?, ?, ?)
+        """
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            throw ChatSessionStoreError.prepareFailed(message: ChatSessionStore.sqliteErmsg(db))
+        }
+        defer { sqlite3_finalize(stmt) }
+        // SQLITE_TRANSIENT = SQLite makes a copy of the string (= safe
+        // across the call boundary).
+        let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+        sqlite3_bind_text(stmt, 1, sessionId, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_text(stmt, 2, summary, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_text(stmt, 3, lastMessageId, -1, SQLITE_TRANSIENT)
+        guard sqlite3_step(stmt) == SQLITE_DONE else {
+            throw ChatSessionStoreError.stepFailed(message: ChatSessionStore.sqliteErmsg(db))
+        }
+    }
+
+    /// v0.34 Issue 08: transaction-internal `deleteOldMessages`.
+    fileprivate nonisolated func _deleteOldMessagesTx(
+        sessionId: String,
+        beforeTimestamp: Date,
+        db: OpaquePointer?
+    ) throws {
+        let sql = "DELETE FROM chat_messages WHERE session_id = ? AND timestamp < ?"
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            throw ChatSessionStoreError.prepareFailed(message: ChatSessionStore.sqliteErmsg(db))
+        }
+        defer { sqlite3_finalize(stmt) }
+        let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+        sqlite3_bind_text(stmt, 1, sessionId, -1, SQLITE_TRANSIENT)
+        // SQLite stores Date as Double (= Unix timestamp via TimeInterval).
+        let timestampValue = beforeTimestamp.timeIntervalSince1970
+        sqlite3_bind_double(stmt, 2, timestampValue)
+        guard sqlite3_step(stmt) == SQLITE_DONE else {
+            throw ChatSessionStoreError.stepFailed(message: ChatSessionStore.sqliteErmsg(db))
+        }
     }
 
     private static func textColumn(_ stmt: OpaquePointer?, _ idx: Int32) -> String? {
