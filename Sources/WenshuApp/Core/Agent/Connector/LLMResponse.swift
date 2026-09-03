@@ -67,4 +67,35 @@ public enum LLMBlock: Sendable, Equatable {
     case thinking(text: String, signature: String?)
     case toolUse(id: String, name: String, input: String)
     case toolResult(toolUseID: String, output: String)
+
+    /// Canonical JSON representation for each block case.
+    /// Replaces the case .text / .toolUse / .toolResult switch repeated
+    /// in 5+ connector / tool files (= Standards-axis S5 Repeated
+    /// Switches smell). Polymorphic dispatch via Dictionary subscript.
+    public var asJSONObject: [String: Any] {
+        switch self {
+            case let .text(s):
+                return ["type": "text", "text": s]
+            case let .thinking(text, signature):
+                var dict: [String: Any] = ["type": "thinking", "thinking": text]
+                if let signature { dict["signature"] = signature }
+                return dict
+            case let .toolUse(id, name, input):
+                return ["type": "tool_use", "id": id, "name": name, "input": input]
+            case let .toolResult(toolUseID, output):
+                return ["type": "tool_result", "tool_use_id": toolUseID, "output": output]
+        }
+    }
+
+    /// Extract text content for display (= concatenation across text cases).
+    /// Replaces case .text { $0 } / case .thinking { $0.text } etc. in
+    /// 5+ files. Used by ChatMessageBridge.textContent + display paths.
+    public var textValue: String {
+        switch self {
+            case let .text(s): return s
+            case let .thinking(text, _): return text
+            case let .toolUse(_, _, input): return input
+            case let .toolResult(_, output): return output
+        }
+    }
 }
