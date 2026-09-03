@@ -1294,6 +1294,7 @@ struct LLMConnectorErrorAndToolExecutorTests {
 struct MiscEdgeCaseTests {
 
     @Test("DesignTokens chromePadding constants: non-zero")
+    @MainActor
     func chromePaddingConstants() {
         #expect(DesignTokens.chromePaddingLeading > 0)
         #expect(DesignTokens.chromePaddingTrailing > 0)
@@ -1313,6 +1314,7 @@ struct MiscEdgeCaseTests {
     }
 
     @Test("DesignTokens: chrome height 30 PT (= Apple HIG toolbar standard)")
+    @MainActor
     func chromeHeight() {
         #expect(DesignTokens.chromeHeight == 30)
     }
