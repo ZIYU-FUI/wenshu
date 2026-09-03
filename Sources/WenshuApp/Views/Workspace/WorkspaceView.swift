@@ -886,93 +886,36 @@ struct EditorPlaceholder: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // v0.34 ticket 04: top toolbar (= 28 PT = DesignTokens.paneTabHotArea).
-            // v0.34 ticket 08: full layout per spec Implementation Decision E:
-            //   [doc basename (left)] [mode toggle (center)] [save + expand + close (right)]
-            // Tool bar persists across both preview and edit modes (= Apple HIG
-            // document-window toolbar pattern; Obsidian uses the same shape).
-            HStack(spacing: DesignTokens.chromePaddingClusterGap) {
-                // v0.34 ticket 08: left slot = doc basename placeholder.
-                // Today = static text (= preview sample name); ticket
-                // 027-35 will pass the real document basename from NSOpenPanel.
-                Text("preview-sample.md")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                // v0.34 B-20: format toolbar (= boss 9/2 OOB '都可以搞' =
-                // format toolbar). 5 inline buttons wrapped in
-                // FormatToolbarButtons (= bold / italic / heading / code /
-                // list). Shown only in .edit mode (= format actions are
-                // no-op on rendered preview MD). Each button wraps the
-                // user's current cursor selection (or inserts at cursor
-                // if no selection) with the matching MD syntax marker.
-                if mode == .edit {
-                    // v0.34 B-24: draft is now a computed property (= reads
-                    // active tab's draft via AppState). Wrap in a
-                    // Binding(get:set:) so child views (FormatToolbarButtons,
-                    // EditorEditContent) can still write through $draft
-                    // (= standard SwiftUI 2-way binding contract).
-                    FormatToolbarButtons(draft: Binding(
-                        get: { self.draft },
-                        set: { self.draft = $0 }
-                    ))
-                }
-                // Center slot: mode toggle (= ticket 04 + v0.34 ticket 10
-                // Cmd+E hotkey via .keyboardShortcut).
-                Spacer()
-                PaneTrailingIconButton(
-                    icon: mode.iconName,
-                    tooltip: mode.tooltip,
-                    action: {
-                        setMode(mode == .preview ? .edit : .preview)
+            // v0.34 B-26-TABBAR (= boss 9/3 '把整个这一栏改成 teb 栏,
+            // 把后面的三个 ICON 按钮先全都去掉'): editor top bar replaced
+            // with a Safari-style tab strip showing every tab in
+            // `appState.openTabs`. Active tab is highlighted; each tab
+            // has a close button (= tap to remove from openTabs). Boss
+            // moved the 3 trailing icon buttons (= mode toggle, expand,
+            // close) elsewhere (= per boss OOB '我换个位置实现').
+            //
+            // Apple HIG tabbed-document pattern (= NSTabView / Safari
+            // tab strip): single-line HStack, scrollable horizontally
+            // when tabs overflow. = no formatting toolbar / no save
+            // button (= the per-tab formatting + save hotkey move to
+            // the new tab-bar layout as boss decides).
+            EditorTabBarBar(
+                tabs: appState.openTabs,
+                activeTabId: appState.activeTabId,
+                onSelect: { id in appState.activeTabId = id },
+                onClose: { id in
+                    // v0.34 B-26: close = remove from openTabs; if
+                    // closing the active tab, fall back to the next
+                    // remaining tab (= Apple HIG tabbed-document
+                    // behavior).
+                    guard let closeIdx = appState.openTabs.firstIndex(where: { $0.id == id }) else { return }
+                    let wasActive = (id == appState.activeTabId)
+                    appState.openTabs.remove(at: closeIdx)
+                    if wasActive, let first = appState.openTabs.first {
+                        appState.activeTabId = first.id
                     }
-                )
-                .keyboardShortcut("e", modifiers: .command)  // v0.34 ticket 10
-                // v0.34 ticket 08: right slot = save + expand + close.
-                //   - Save button: only in .edit mode; .tint when dirty (gray otherwise).
-                //   - Expand button: ticket 03 (EditorExpandShrinkTrailingButton).
-                //   - Close button: ticket 09 (placeholder for now, no action).
-                Spacer()
-                // Save button visible only in edit mode (= Apple HIG
-                // convention = no save affordance when there's nothing to save).
-                if mode == .edit {
-                    PaneTrailingIconButton(
-                        icon: "square.and.arrow.down",
-                        tooltip: isDirty ? "保存 (有未保存的修改)" : "已保存",
-                        action: { saveDraft() }
-                    )
-                    // Apple HIG tint: when dirty, swap foreground from
-                    // .secondary (= default for trailing buttons) to .tint
-                    // (= Apple HIG accent color, signals action affordance).
-                    .foregroundStyle(isDirty ? Color.accentColor : Color.secondary)
-                    .keyboardShortcut("s", modifiers: .command)  // v0.34 ticket 10: Cmd+S
                 }
-                // v0.34 ticket 10: Cmd+Shift+E for editor expand toggle.
-                // Routes through .wenshuEditorMaximizedChanged (= same
-                // listener installed by ticket 03).
-                PaneTrailingIconButton(
-                    icon: "rectangle.expand.vertical",
-                    tooltip: "展开/收起编辑器区",
-                    action: {
-                        NotificationCenter.default.post(
-                            name: .wenshuEditorMaximizedChanged,
-                            object: true  // ticket 03 button is one-way expand;
-                                          // shrink path is the inverse toggle
-                        )
-                    }
-                )
-                .keyboardShortcut("e", modifiers: [.command, .shift])  // v0.34 ticket 10
-                PaneTrailingIconButton(
-                    icon: "xmark",
-                    tooltip: "关闭编辑器 (Cmd+W)",
-                    action: { tryClose() }
-                )
-                .keyboardShortcut("w", modifiers: .command)  // v0.34 ticket 10: Cmd+W
-            }
-            .padding(.horizontal, DesignTokens.chromePaddingLeading)
-            .frame(height: DesignTokens.paneTabHotArea)
-            .background(.bar)
+            )
             // v0.34 ticket 09: dirty-discard confirm dialog. Shown when
             // user tries to close with unsaved changes. Apple HIG
             // 2-option confirm pattern (= destructive + cancel).
