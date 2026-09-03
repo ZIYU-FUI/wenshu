@@ -133,6 +133,84 @@ FIXTURES: List[Dict[str, Any]] = [
             "limit_per_minute": 60
         },
         "expected_output": {"requests_remaining": 55, "is_exhausted": False}
+    },
+    # v0.37 Batch 2.3 sub-step 1: extend FIXTURES to cover 6 more hermes modules
+    # (= 11 tickets total per spec §3.1 hermes port coverage).
+    {
+        "module": "prompt_caching",
+        "function": "apply_cache_control",
+        "input": {
+            "messages_count": 4,
+            "ttl": "5m"
+        },
+        # 4 messages = 1 system + 3 non-system. Last 3 get cache_control markers.
+        "expected_output": {
+            "cache_breakpoints": 4,
+            "ttl": "5m"
+        }
+    },
+    {
+        "module": "system_prompt",
+        "function": "build_system_prompt",
+        "input": {
+            "user_name": "Test User",
+            "book_title": "Test Book"
+        },
+        # Byte-stable system prompt (= 11.3 cache-stable invariant)
+        "expected_output": {
+            "bytes": 256,
+            "contains_user": True,
+            "contains_book": True
+        }
+    },
+    {
+        "module": "conversation_compression",
+        "function": "compress_context",
+        "input": {
+            "messages_count": 20,
+            "keep_recent": 4
+        },
+        # 20 messages, keep recent 4 = 16 compressed + 4 kept
+        "expected_output": {
+            "compressed_count": 16,
+            "kept_recent_count": 4
+        }
+    },
+    {
+        "module": "tool_executor",
+        "function": "execute_tool_calls_concurrent",
+        "input": {
+            "tool_calls_count": 3,
+            "timeout_seconds": 30
+        },
+        "expected_output": {
+            "executed_count": 3,
+            "max_concurrent": 5
+        }
+    },
+    {
+        "module": "memory_manager",
+        "function": "prefetch_relevant",
+        "input": {
+            "query": "Alice's backstory",
+            "memory_count": 10
+        },
+        # Top-K retrieval from memory subsystem
+        "expected_output": {
+            "prefetched_count": 5,
+            "relevance_threshold": 0.7
+        }
+    },
+    {
+        "module": "skill_registry",
+        "function": "list_enabled",
+        "input": {
+            "scope": "all"
+        },
+        "expected_output": {
+            "enabled_count": 12,
+            "available_count": 15
+        }
     }
 ]
 
