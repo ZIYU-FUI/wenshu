@@ -71,7 +71,7 @@ struct ChatViewCompressionRowTests {
             return ChatMessage(
                 id: orig.id,
                 role: llm.role.fromLLMRole,
-                content: llm.firstTextContent,
+                content: llm.textContent,
                 timestamp: orig.timestamp
             )
         }
@@ -97,37 +97,6 @@ struct ChatViewCompressionRowTests {
     }
 }
 
-// MARK: - Bridging helpers duplicated for test access
-// Ticket 003 sub-step 5: ChatViewCompressionRow exposes fileprivate
-// role bridge + firstTextContent helpers. These are duplicated here as
-// internal so the test can exercise the same compression round-trip
-// logic without touching the view's fileprivate surface.
-
-extension ChatRole {
-    internal var toLLMRole: LLMMessage.Role {
-        switch self {
-        case .user: return .user
-        case .agent: return .assistant
-        case .system: return .user
-        }
-    }
-}
-
-extension LLMMessage.Role {
-    internal var fromLLMRole: ChatRole {
-        switch self {
-        case .user: return .user
-        case .assistant: return .agent
-        case .tool: return .user
-        }
-    }
-}
-
-extension LLMMessage {
-    internal var firstTextContent: String {
-        blocks.compactMap { block in
-            if case let .text(text) = block { return text }
-            return nil
-        }.joined(separator: "\n")
-    }
-}
+// ChatMessageBridge extensions (= toLLMRole / fromLLMRole / textContent)
+// now live in ChatMessageBridge.swift per Standards-axis S2 Feature Envy
+// smell (= single source of truth). This test exercises them directly.
