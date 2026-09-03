@@ -83,7 +83,7 @@ struct ChatViewCompressionRowTests {
         for (idx, m) in vm.messages.enumerated() {
             #expect(m.id == originals[idx].id)
         }
-        _ = host  // suppress unused warning
+        _ = view  // suppress unused warning
     }
 
     @Test("single-message chat shows 'Need at least 2 messages to compress'")
