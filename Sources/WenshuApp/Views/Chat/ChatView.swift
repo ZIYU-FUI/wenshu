@@ -213,18 +213,19 @@ public final class ChatViewModel {
                 }
             }
         } catch {
-            // on failure, replace placeholder with error message
-            // Chinese error messages, not Swift Foundation data-loss text
-            let errMsg: String
-            if let decodingErr = error as? DecodingError {
-                errMsg = "模型 \(currentModel) 返回数据格式不支持 (DecodingError). 真因查 stderr [wenshu.chat] decoder error 行."
-            } else {
-                errMsg = "Error: \(error.localizedDescription)"
-            }
+            // v0.34: route through UserFacingError.from (= single
+            // source of truth for raw-error-to-Chinese translation;
+            // = replaces the prior ad-hoc "Error: \(localizedDescription)"
+            // which showed the raw English NSError text to the user).
+            let userErr = UserFacingError.from(
+                error,
+                context: currentModel
+            )
+            let errMsg = userErr.errorDescription ?? "未知错误。"
             if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
                 messages[idx] = ChatMessage(id: placeholderId, role: .system, source: .system, content: errMsg)
             }
-            lastError = error.localizedDescription
+            lastError = errMsg
         }
         isSending = false
     }
