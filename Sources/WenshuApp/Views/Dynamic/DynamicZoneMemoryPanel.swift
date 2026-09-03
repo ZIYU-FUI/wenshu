@@ -76,7 +76,7 @@ public struct DynamicZoneMemoryPanel: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: DesignTokens.chromePaddingMicro) {
                         ForEach(entries) { entry in
-                            MemoryEntryRowCompact(entry: entry)
+                            MemoryEntryRow(entry: entry)
                         }
                     }
                     .padding(.horizontal, DesignTokens.chromePaddingChipHorizontal)
@@ -95,34 +95,3 @@ public struct DynamicZoneMemoryPanel: View {
     }
 }
 
-public struct MemoryEntryRowCompact: View {
-    public let entry: MemoryAdapter.MemoryEntry
-
-    public init(entry: MemoryAdapter.MemoryEntry) {
-        self.entry = entry
-    }
-
-    public var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(entry.snippet)
-                .font(.caption2)
-                .lineLimit(2)
-            HStack {
-                Text(entry.source)
-                    .font(.caption2)
-                    .foregroundStyle(DesignTokens.statusForeground)
-                Spacer()
-                if entry.relevanceScore > 0 {
-                    Text(String(format: "%.0f%%", entry.relevanceScore * 100))
-                        .font(.caption2)
-                        .foregroundStyle(DesignTokens.statusForeground)
-                }
-            }
-        }
-        .padding(DesignTokens.chromePaddingMicro)
-        .background(
-            Color.secondary.opacity(0.5),
-            in: RoundedRectangle(cornerRadius: smallChipCornerRadius, style: .continuous)
-        )
-    }
-}

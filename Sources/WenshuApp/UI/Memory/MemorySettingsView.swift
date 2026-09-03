@@ -74,7 +74,7 @@ public struct MemorySettingsView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 6) {
                         ForEach(recentEntries) { entry in
-                            MemoryEntryRow(entry: entry)
+                            MemoryEntryRow(entry: entry, compact: false)
                         }
                     }
                 }
@@ -89,25 +89,4 @@ public struct MemorySettingsView: View {
 public enum MemoryScope: String, CaseIterable, Sendable {
     case perBook = "per_book"
     case libraryPublic = "library_public"
-}
-
-public struct MemoryEntryRow: View {
-    public let entry: MemoryAdapter.MemoryEntry
-
-    public init(entry: MemoryAdapter.MemoryEntry) {
-        self.entry = entry
-    }
-
-    public var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(entry.snippet)
-                .font(.caption)
-                .lineLimit(2)
-            Text(entry.source)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-        }
-        .padding(6)
-        .background(Color.secondary.opacity(subtleSurfaceAlpha), in: RoundedRectangle(cornerRadius: smallChipCornerRadius))
-    }
 }
