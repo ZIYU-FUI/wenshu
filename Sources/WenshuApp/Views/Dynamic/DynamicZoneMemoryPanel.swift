@@ -118,8 +118,8 @@ public struct MemoryEntryRowCompact: View {
         }
         .padding(DesignTokens.chromePaddingMicro)
         .background(
-            Color(nsColor: .controlBackgroundColor).opacity(0.5),
-            in: RoundedRectangle(cornerRadius: 3)
+            Color.secondary.opacity(0.5),
+            in: RoundedRectangle(cornerRadius: 3, style: .continuous)
         )
     }
 }
