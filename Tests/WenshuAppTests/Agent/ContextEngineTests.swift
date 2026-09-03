@@ -26,7 +26,7 @@ struct ContextEngineTests {
     func testFormatEmptyBundle() async {
         let engine = ContextEngine()
         let bundle = await engine.aggregateContextForTurn(bookId: nil, userMessage: "test")
-        let formatted = engine.formatContextBundle(bundle)
+        let formatted = await engine.formatContextBundle(bundle)
         #expect(formatted.isEmpty)
     }
 
@@ -44,7 +44,7 @@ struct ContextEngineTests {
             worldContext: [],
             foreshadowContext: []
         )
-        let formatted = engine.formatContextBundle(bundle)
+        let formatted = await engine.formatContextBundle(bundle)
         #expect(formatted.contains("Relevant memories"))
         #expect(formatted.contains("Alice is the protagonist"))
         #expect(formatted.contains("/book/world/character.md"))
@@ -59,7 +59,7 @@ struct ContextEngineTests {
             worldContext: ["Magic is forbidden"],
             foreshadowContext: ["Alice will betray Bob"]
         )
-        let formatted = engine.formatContextBundle(bundle)
+        let formatted = await engine.formatContextBundle(bundle)
         #expect(formatted.contains("Relevant memories"))
         #expect(formatted.contains("Characters"))
         #expect(formatted.contains("World"))
