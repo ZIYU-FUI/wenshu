@@ -202,6 +202,7 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
 /// Mirrors AppleKeychainStore public API (save / load / delete / list).
 public final class InMemoryKeychainStore: ProviderKeychainStoring, @unchecked Sendable {
     private var store: [String: String] = [:]
+    private var metadata: [String: ProviderKeychainMetadata] = [:]
     private let lock = NSLock()
 
     public init() {}
@@ -220,11 +221,24 @@ public final class InMemoryKeychainStore: ProviderKeychainStoring, @unchecked Se
     public func deleteKeySync(for provider: Provider) throws {
         lock.lock(); defer { lock.unlock() }
         store.removeValue(forKey: provider.slug)
+        metadata.removeValue(forKey: provider.slug)
     }
 
     public func listProvidersWithKeys() -> [String] {
         lock.lock(); defer { lock.unlock() }
         return Array(store.keys).sorted()
+    }
+
+    // MARK: - v0.36 ticket 012 metadata (= in-memory for test backend)
+
+    public func loadMetadata(for provider: Provider) -> ProviderKeychainMetadata? {
+        lock.lock(); defer { lock.unlock() }
+        return metadata[provider.slug]
+    }
+
+    public func saveMetadata(_ metadata: ProviderKeychainMetadata, for provider: Provider) throws {
+        lock.lock(); defer { lock.unlock() }
+        self.metadata[provider.slug] = metadata
     }
 }
 
