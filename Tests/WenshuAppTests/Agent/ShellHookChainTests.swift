@@ -257,6 +257,10 @@ private actor RecordingHook: ShellHook {
     var lastPostResult: ToolResult?
     var lastPostResponse: LLMResponse?
 
+    init(name: String) {
+        self.name = name
+    }
+
     func preToolCall(_ call: ToolCall) async throws {
         preCount += 1
         lastPreCall = call

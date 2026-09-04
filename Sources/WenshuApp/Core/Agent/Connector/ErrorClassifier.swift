@@ -39,7 +39,7 @@ public enum LLMErrorCategory: String, Sendable, Equatable, Codable, CaseIterable
 }
 
 /// Classified error (= category + raw underlying + optional user message).
-public struct ClassifiedLLMError: Sendable, Equatable {
+public struct ClassifiedLLMError: Error, Sendable, Equatable {
     public let category: LLMErrorCategory
     public let underlying: String
     public let userMessage: String
