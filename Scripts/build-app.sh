@@ -78,11 +78,12 @@ if [ ! -f "$ENTITLEMENT_FILE" ]; then
     echo ">>> warning: Wenshu.entitlements not found at $ENTITLEMENT_FILE — keychain will fail at runtime"
 fi
 # --deep applies recursively to nested binaries (Hermes worker, etc.)
-# --entitlements embeds the keychain-access-groups + app-sandbox entries
-# --options runtime hardens (linker-level hardening; ad-hoc compatible)
+# --entitlements embeds the keychain-access-groups + app-sandbox entries.
+# Note: do NOT use --options runtime here; macOS rejects --options runtime
+# combined with ad-hoc signature (= RBSRequestErrorDomain Code=5 Launch failed).
+# Entitlement embed without runtime hardening works for keychain access.
 codesign --force --deep --sign - \
     --entitlements "$ENTITLEMENT_FILE" \
-    --options runtime \
     "$APP_DIR"
 
 # v0.24 boss验收fix (Boss 8/24 OOB): re-register app with Launch Services
