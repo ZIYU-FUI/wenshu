@@ -8,8 +8,9 @@
 // editor / tools / chat / dynamic). Listed in ComponentIndex.md Level 3.1.
 //
 // = replaces the duplicated Button + Color.clear + LucideIcon + contentShape +
-// matchedGeometry underline code (= was duplicated in 3 places: ZoneContentTabBar,
-// DynamicZoneTabBar, ChatZoneTopChrome, ~90 LOC each = ~270 LOC total).
+// matchedGeometry underline code (= was duplicated in 2 surviving call sites:
+// ZoneContentTabBar and DynamicZoneTabBar, ~90 LOC each = ~180 LOC total).
+// The chat-zone wrapper was the third duplicated site (= since deleted in v0.34).
 //
 // Use this component for any new per-pane tab button. Don't write a new
 // Button with the same pattern (= check ComponentIndex.md first).
