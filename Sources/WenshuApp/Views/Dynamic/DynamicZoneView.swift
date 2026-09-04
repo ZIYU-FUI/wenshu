@@ -1,5 +1,5 @@
 //
-//  DynamicZoneView.swift · Wenshu · v0.24 boss验收
+//  DynamicZoneView.swift · Wenshu · v0.24 boss验收 + v0.41 WIRE-OPENBOX-001
 //
 //  Boss 2026-08-24 拍: dynamic zone 应该是 tab 模式 (跟 chat zone 的 ChatZoneTabBar 一致),
 //  不应该是 sheet 模式 (sheet 一次只能看一个, 不能 tab 切换).
@@ -10,6 +10,11 @@
 //  - tab3: 搜索 (Search) — SearchPanel (o06)
 //
 //  Per AGENTS.md §12 中文为主, tab labels 中文.
+//
+//  v0.41 WIRE-OPENBOX-001 (P2 #21): agent progress panel added at the
+//  top of the zone (= below the tab bar, above the kanban/todo body).
+//  Reads from `AgentProgressTracker.shared` (= written by
+//  ConversationLoop). Only renders when a turn is currently in flight.
 //
 
 import SwiftUI
@@ -68,6 +73,12 @@ struct DynamicZoneView: View {
                 get: { selectedTab },
                 set: { selectedTab = $0 }
             ))
+            // WIRE-OPENBOX-001 (v0.41 P2 #21): agent progress panel.
+            // Top-of-zone strip that surfaces real-time step-by-step
+            // feedback from the running ConversationLoop turn. Only
+            // renders when an entry is currently running (= user just
+            // sent a message; loop is in flight). Hidden when idle.
+            AgentProgressPanel()
             Group {
                 switch selectedTab {
                 case .kanban:
