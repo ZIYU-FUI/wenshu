@@ -21,16 +21,30 @@ Per 老板 2026-09-03 "如果移植还有好多工作，不用问我了，你就
 - 每 commit 1 RULE 1 commit (= per boss cadence)
 - Final push = 我 (pocock PO) per 您 "之前 push 就是你的活" + mem0 "PM-direct plan is to merge and push"
 
-### D2: Hermes port scope = 100% complete (= per ADR-0012)
+### D2: Hermes port scope = Batch 2.3 ticket scope complete; full 43-module coverage = partial (= per boss OOB 2026-09-04)
 
-V0.37 Batch 2 (= all sub-steps) completes the hermes port:
-- 11 hermes port tickets = all ported
-- 11 hermes modules = covered by golden parity tests
+V0.37 Batch 2 (= all sub-steps) completes the Batch 2.3 ticket scope:
+
+- 11 hermes port tickets = all ported (= per the Batch 2.3 sub-step 3 manifest)
+- 11 hermes modules (= ~15 of 43 hermes modules when expanded to module-grain) = covered by golden parity tests
 - Real agent dispatch end-to-end = 9 tests pass
 - L30 thinking blocks = supported
 - 7-connector BYOK end-to-end = 10 tests
 
-Per `hermes-port-manifest.md` (= Batch 2.3 sub-step 3).
+Per `hermes-port-manifest.md` (= Batch 2.3 sub-step 3, as ratified 2026-09-03).
+
+Correction 2026-09-04: per boss OOB 'hermes 整体翻译成 swift, 整个工作树都完成了?'
++ '先不验收, 先继续把工作树干完', ADR-0012's scope-B verdict (= full
+hermes non-frontend = 100% complete) was based on the PARTIAL Batch 2.3
+11-ticket manifest. The full hermes port scope per spec §2.1 (38 must-translate
+core) + §2.2 (5 grey thin-port) = 43 modules, of which 4 are NOT YET authored
+as dedicated wenshu Swift files (= prompt_builder, tool_dispatch_helpers,
+tool_result_classification, retry_utils — inlined into other Swift files;
+these are the work-tree gap per boss OOB 2026-09-04). The honest count
+lives in the corrected `.scratch/2026-09-03-hermes-core-translation/hermes-port-manifest.md`
+Coverage section. This ADR's D2 verdict is preserved for historical accuracy
+(= what was believed complete on 2026-09-03 ratification) but the
+ground-truth manifest supersedes it.
 
 ### D3: v0.37 visual verification packet = 一次性 verify by 老板
 

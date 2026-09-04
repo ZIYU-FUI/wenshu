@@ -88,22 +88,89 @@ This file = wenshu project baseline + cross-role address hard constraint. Single
 
 User picks profile in Settings → LLM Connector pane. No default. Wenshu UI shows no LLM details once a profile is configured.
 
-# §11.3 Agent ↔ other Core module interaction principle (boss 2026-09-03 拍, derived from hermes-core-translation spec §3.6)
+# §11.3 Agent ↔ other Core module interaction principle (boss 2026-09-03 拍, derived from hermes-core-translation spec §3.6; corrected 2026-09-04 per boss OOB 'hermes 整体翻译成 swift, 整个工作树都完成了?' + '先不验收, 先继续把工作树干完')
 
-When the hermes-core-translation spec lands (= 10 code tickets + 1 docs ticket = spec at `.scratch/2026-09-03-hermes-core-translation/`), 5 wenshu existing modules overlap with hermes' ported layer:
+The hermes-core-translation spec at `.scratch/2026-09-03-hermes-core-translation/spec.md`
+enumerates 43 in-scope hermes modules (= 38 must-translate core per spec §2.1 + 5
+grey thin-port per spec §2.2). Of these, 5 wenshu existing modules overlap with
+hermes' ported layer and follow the wenshu-side wins pattern (= existing wenshu
+module preserved; hermes-port is a thin adapter that delegates to it). The
+remaining 38 modules are covered by direct ports in `Sources/WenshuApp/Core/Agent/`,
+`Sources/WenshuApp/Core/Provider/`, and other wenshu Core sub-directories, or are
+still deferred (= the work-tree gap per boss OOB 2026-09-04 '继续把工作树干完').
 
-- `Core/Tools/FileTools.swift` + `ProcessTools.swift` + `AVMediaTools.swift` ↔ `Core/Agent/Tool/ReadFileTool.swift` + `WriteFileTool.swift`
-- `Core/Provider/ProviderKeychain.swift` ↔ `Core/Agent/Connector/ConnectorCredentials.swift`
-- `Core/Memory/MemoryManager.swift` + `MemoryProvider.swift` + `MemoryConsolidator.swift` ↔ `Core/Agent/Memory/MemoryManager.swift` + `MemoryProvider.swift` + `MemoryStore.swift`
-- `Core/Skills/SkillMeta.swift` + `SkillRegistry.swift` ↔ `Core/Agent/Skill/SkillUtils.swift` + `SkillPreprocessing.swift` + `SkillCommands.swift` + `SkillBundles.swift`
-- `Core/Chat/ChatSessionStore.swift` ↔ `Core/Agent/Conversation/ConversationLoop.swift`
+Full per-module mapping (= all 43 hermes modules → wenshu Swift counterpart, with
+status = ✅ direct port / ⚠️ wenshu-side wins / 🟦 thin-port / ❌ deferred) lives in
+the manifest at `.scratch/2026-09-03-hermes-core-translation/hermes-port-manifest.md`
+§ "Hermès vs wenshu summary". The 5 wenshu-side wins pairs (= the projects that
+matter for ADR-0009 / code-duplication-forbidden principle) are:
 
-Decision (= wenshu-side wins):
+| Hermes Python | Wenshu existing (source of truth) | Hermes-port adapter | Decision |
+|---|---|---|---|
+| `agent/tool_executor.py` (tool surface) | `Core/Tools/FileTools.swift` + `ProcessTools.swift` + `AVMediaTools.swift` + `VisionTools.swift` + `WebTools.swift` | `Core/Agent/Tool/ReadFileTool.swift` + `WriteFileTool.swift` (thin agent-port wrappers) | **wenshu-side wins** |
+| `agent/credential_pool.py` + `credential_persistence.py` + `credential_sources.py` + `secret_sources/` + `secret_scope.py` | `Core/Provider/ProviderKeychain.swift` + `AppleKeychainStore.swift` + `InMemoryKeychainStore.swift` + `ProviderKeychainMetadata.swift` + `OAuthFlow.swift` | `Core/Agent/Connector/ConnectorCredentials.swift` (thin adapter) | **wenshu-side wins** |
+| `agent/memory_manager.py` + `memory_provider.py` | `Core/Memory/MemoryManager.swift` + `MemoryProvider.swift` + `MemoryStore.swift` + `MemoryConsolidator.swift` + `MemoryWriteGate.swift` | `Core/Agent/Memory/MemoryAdapter.swift` (thin adapter) | **wenshu-side wins** |
+| `agent/skill_utils.py` + `skill_preprocessing.py` + `skill_commands.py` + `skill_bundles.py` | `Core/Skills/SkillMeta.swift` + `SkillRegistry.swift` | `Core/Agent/Skill/SkillAdapter.swift` (thin adapter; protocol shape) | **wenshu-side wins** |
+| `agent/conversation_loop.py` (session persistence boundary) | `Core/Chat/ChatSessionStore.swift` (SQLite `chat_messages` + `chat_archives` tables per §11 baseline) | `Core/Agent/Conversation/ConversationLoop.swift` (engine that PRODUCES stream events; does NOT know about persistence) | **wenshu-side wins** |
 
-1. **wenshu-side wins**: the existing wenshu module is preserved; the hermes-port is a thin adapter that delegates to it. The port DOES NOT re-implement the wenshu-side behavior. Code duplication is forbidden.
-2. **Ticket boundary**: every ticket that touches one of these overlap pairs must state in its PR body "this PR uses wenshu-side wins pattern: [list wenshu modules it delegates to]". `/code-review` rejects any ticket that re-implements wenshu-side behavior.
-3. **Existing-code rename** (spec §3.5): ticket 001 renames 12 existing files under `Core/Agent/` into the new sub-directory structure. Renames happen BEFORE any new module is added. `git mv` preserves blame.
-4. **Future hermes-side wins**: any future ticket proposing "hermes port replaces wenshu-side" requires explicit boss拍. Default = wenshu-side wins. No silent replacement.
+The 43 hermes modules per spec §2.1 + §2.2 are covered across the wenshu tree
+(= `Sources/WenshuApp/Core/Agent/`, `Core/Provider/`, `Core/Memory/`, `Core/Skills/`,
+`Core/Tools/`, `Core/Chat/`, plus `UI/LLMConnector/` for the Settings UI). The
+ground-truth tally per the parallel gap audit at
+`.scratch/2026-09-04-hermes-port-gap-audit.md` (read-only static analysis
+2026-09-04):
+
+- 6 ✅ direct port (14%) — have a dedicated wenshu Swift file that ports the
+  behavior 1:1 (= prompt_caching, error_classifier, turn_retry_state,
+  context_breakdown, rate_limit_tracker, runtime_cwd).
+- 11 ✅ wenshu-side wins (26%) — existing wenshu Core module (= pre-dates the
+  hermes port) is the source of truth; hermes-port = thin adapter that delegates
+  to it. The 5 pairs below account for 5 of the 11; the other 6 wenshu-side wins
+  modules (= context_compressor, tool_guardrails, display, background_review,
+  curator, credits_tracker) have no hermes-overlap conflict but use the
+  wenshu-source-of-truth + thin-adapter pattern per ADR-0009.
+- 18 ⚠️ partial (42%) — Swift file exists but is a stub / minimum-surface /
+  wire-up-not-yet-done; Z-contract golden tests on most would fail.
+- 8 ❌ missing (19%) — no Swift file exists; spec §3.1 target file has not been
+  authored (= prompt_builder, chat_completion_helpers, agent_runtime_helpers,
+  tool_dispatch_helpers, skill_bundles, secret_sources + secret_scope, retry_utils,
+  shell_hooks).
+
+Per boss OOB 2026-09-04 '先不验收, 先继续把工作树干完' = the 26 incomplete
+(= 18 ⚠️ partial + 8 ❌ missing) are the work-tree to fill in.
+
+Decision (= wenshu-side wins, per ADR-0009):
+
+1. **wenshu-side wins**: for the 5 overlap pairs above, the existing wenshu
+   module is preserved; the hermes-port is a thin adapter that delegates to it.
+   The port DOES NOT re-implement the wenshu-side behavior. Code duplication is
+   forbidden. The full per-module table at `.scratch/2026-09-03-hermes-core-translation/hermes-port-manifest.md`
+   shows which hermes modules land in `Core/Agent/` (= hermes-port thin adapters)
+   and which are absorbed by existing wenshu Core modules (= wenshu-side wins).
+2. **Ticket boundary**: every ticket that touches one of these overlap pairs must
+   state in its PR body "this PR uses wenshu-side wins pattern: [list wenshu
+   modules it delegates to]". `/code-review` rejects any ticket that re-implements
+   wenshu-side behavior.
+3. **Existing-code rename** (spec §3.5): ticket 001 renames 12 existing files
+   under `Core/Agent/` into the new sub-directory structure. Renames happen BEFORE
+   any new module is added. `git mv` preserves blame.
+4. **Future hermes-side wins**: any future ticket proposing "hermes port replaces
+   wenshu-side" requires explicit boss拍. Default = wenshu-side wins. No silent
+   replacement.
+5. **Work-tree coverage** (boss OOB 2026-09-04 '继续把工作树干完'): the 26
+   incomplete hermes modules (= 18 ⚠️ partial + 8 ❌ missing per the gap audit at
+   `.scratch/2026-09-04-hermes-port-gap-audit.md`) are tracked in the manifest's
+   Coverage section. The 8 ❌ missing modules (= prompt_builder,
+   chat_completion_helpers, agent_runtime_helpers, tool_dispatch_helpers,
+   skill_bundles, secret_sources + secret_scope, retry_utils, shell_hooks) have
+   zero Swift surface today; each future ticket that authors a dedicated wenshu
+   Swift file for one of these must update the manifest's Coverage tally +
+   Hermès-vs-wenshu summary table.
+
+Note: this section (§11.3) covers the 5 wenshu-side wins pairs. The full per-module
+mapping (= all 43 hermes modules with their wenshu Swift counterpart) lives in the
+manifest, NOT here, to keep this section (= project-level baseline principle)
+stable while the per-module work-tree evolves.
 
 # §12 Cross-role expression hard constraint
 
