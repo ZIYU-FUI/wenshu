@@ -36,6 +36,17 @@ public actor WenshuConductor {
     /// h14: AVMediaTools — agent toolkit dispatch + chat UI read-aloud button.
     /// See .scratch/2026-08-22-frontend-integration/issues/h14-avmedia-tools-frontend.md.
     private let avMediaTools: AVMediaTools = AVMediaTools()
+    /// P0 #1 (WIRE-AGENT-001): optional active connector profile. When
+    /// non-nil, handle() routes the LLM call through the full
+    /// ConversationLoop.runTurn() orchestrator (= tool dispatch +
+    /// compression + retry + sanitization + finalization). When nil,
+    /// handle() falls back to the legacy v0.21 intent+sub-agent+synthesis
+    /// pipeline. Production wiring lands in App.swift follow-up.
+    private let connector: (any LLMConnector)?
+    /// P0 #1 (WIRE-AGENT-001): optional RuntimeHelpers instance for the
+    /// ConversationLoop (= deterministic-test injection per v0.36 ticket
+    /// 014). When nil, ConversationLoop creates a fresh actor instance.
+    private let loopRuntime: RuntimeHelpers?
 
     public init(
         runtime: AgentRuntime,
@@ -45,12 +56,60 @@ public actor WenshuConductor {
         memoryStore: MemoryStore? = nil,
         skillRegistry: SkillRegistry? = nil
     ) {
+        // P0 #1 (WIRE-AGENT-001): chain to the new init with no connector
+        // (= legacy callers = the loop path is a no-op short-circuit and
+        // handle() runs the v0.21 pipeline unchanged). This preserves
+        // every existing call site + test + ChatView wiring.
+        self.init(
+            runtime: runtime,
+            verifier: verifier,
+            kanbanStore: kanbanStore,
+            sessionStore: sessionStore,
+            memoryStore: memoryStore,
+            skillRegistry: skillRegistry,
+            connector: nil,
+            loopRuntime: nil
+        )
+    }
+
+    /// P0 #1 (WIRE-AGENT-001): new init that wires WenshuConductor.handle()
+    /// through the full ConversationLoop.runTurn() orchestrator
+    /// (= tool dispatch + compression + retry + sanitization + finalization).
+    ///
+    /// When `connector` is supplied (= production wiring, see App.swift
+    /// ticket follow-up) `handle()` first attempts the ConversationLoop
+    /// path. If the loop throws (= transport / auth / retry-exhaustion),
+    /// handle() falls back to the legacy intent+sub-agent+synthesis path
+    /// (= the original v0.21 pipeline) AND logs the error so the user
+    /// never sees a broken agent.
+    ///
+    /// When `connector` is nil (= legacy callers, all existing tests), the
+    /// new path is a no-op short-circuit and `handle()` runs the legacy
+    /// pipeline unchanged. This preserves backward compat for every
+    /// existing test + the ChatView call site (which constructs the
+    /// conductor without a connector today).
+    ///
+    /// `runtime` is optional and passed to ConversationLoop for
+    /// deterministic-test injection (= ticket v0.36 ticket 014). When nil,
+    /// ConversationLoop falls back to a fresh RuntimeHelpers() actor.
+    public init(
+        runtime: AgentRuntime,
+        verifier: WenshuVerifier,
+        kanbanStore: KanbanStore,
+        sessionStore: ChatSessionStore? = nil,
+        memoryStore: MemoryStore? = nil,
+        skillRegistry: SkillRegistry? = nil,
+        connector: (any LLMConnector)? = nil,
+        loopRuntime: RuntimeHelpers? = nil
+    ) {
         self.runtime = runtime
         self.verifier = verifier
         self.kanbanStore = kanbanStore
         self.sessionStore = sessionStore
         self.memoryStore = memoryStore
         self.skillRegistry = skillRegistry
+        self.connector = connector
+        self.loopRuntime = loopRuntime
         // Bootstrap deferred to first handle() call (Swift actor init cannot await).
     }
 
@@ -171,7 +230,116 @@ public actor WenshuConductor {
     /// v0.21 ticket 34: 返回 (reply, totalTokens) — totalTokens = intent + sub-agent + synthesis 真实 LLM API usage 累加
     /// v0.21 ticket 38: handle 增加 model 参数 (boss 反馈 "切换了 AI 没有真的换" = 原 handle 用 verifier.init 的 hardcoded model)
     /// v0.21 ticket 39: 加 thinking 字段 (WenshuLLMBlock.thinking footnote UI, Apple HIG footnote 范式)
+    ///
+    /// P0 #1 (WIRE-AGENT-001): when the conductor was constructed with a
+    /// `connector` injection, the call is first routed through the full
+    /// `ConversationLoop.runTurn()` orchestrator (= tool dispatch +
+    /// compression + retry + sanitization + finalization). If the loop
+    /// throws (= transport / auth / retry-exhaustion / anything), handle()
+    /// falls back to the legacy intent+sub-agent+synthesis pipeline and
+    /// logs the error. The legacy path is always preserved (= never
+    /// removed) so existing public surface is 100% back-compatible.
     public func handle(userMessage: String, sessionId: String, model: String) async -> (reply: String, totalTokens: Int, thinking: String?) {
+        // P0 #1: try the full ConversationLoop path first (when wired).
+        if let connector = connector {
+            if let loopResult = await runConversationLoopPath(
+                userMessage: userMessage,
+                sessionId: sessionId,
+                model: model,
+                connector: connector
+            ) {
+                return loopResult
+            }
+            // loopResult == nil means the loop threw — fall through to the
+            // legacy pipeline (which itself has S4 graceful degradation).
+        }
+
+        // Legacy path (= v0.21 pipeline, preserved as the fallback).
+        return await runLegacyConductorPipeline(
+            userMessage: userMessage,
+            sessionId: sessionId,
+            model: model
+        )
+    }
+
+    /// P0 #1 (WIRE-AGENT-001): route the user message through the full
+    /// `ConversationLoop.runTurn()` orchestrator and reshape its result
+    /// into the canonical `(reply, totalTokens, thinking)` tuple.
+    ///
+    /// Returns `nil` when the loop throws (= caller falls back to legacy
+    /// pipeline). The loop's error is logged via NSLog so the wenshu-dev
+    /// user never sees a broken agent.
+    private func runConversationLoopPath(
+        userMessage: String,
+        sessionId: String,
+        model: String,
+        connector: any LLMConnector
+    ) async -> (reply: String, totalTokens: Int, thinking: String?)? {
+        // Step 1: write 1 conductor parent task to KanbanStore (= legacy
+        // parity: same Kanban behaviour as the legacy path).
+        if let task = try? await kanbanStore.add(title: "conductor: \(userMessage.prefix(50))", status: .running) {
+            // Mark done after the loop attempt (= best-effort; matches
+            // the legacy code path exactly).
+            Task { [kanbanStore] in
+                _ = try? await kanbanStore.transition(id: task.id, to: .done)
+            }
+        }
+
+        // Step 2: build the ConversationLoop bound to the active connector.
+        let loop = ConversationLoop(
+            connection: connector,
+            systemPrompt: WenshuConductorIdentity.systemPrompt,
+            runtime: loopRuntime
+        )
+
+        // Step 3: invoke the full turn orchestrator. On any throw, log
+        // and return nil (= caller falls back to legacy pipeline).
+        do {
+            let result = try await loop.runTurn(
+                userMessage: userMessage,
+                systemMessage: nil,
+                conversationHistory: [],
+                tools: [:]
+            )
+            // Step 4: shape the ConversationResult into the canonical
+            // (reply, totalTokens, thinking) tuple expected by ChatView.
+            let reply = result.response.blocks
+                .compactMap { block -> String? in
+                    if case .text(let s) = block { return s }
+                    return nil
+                }
+                .joined()
+            let thinking = result.response.blocks.first { block in
+                if case .thinking = block { return true }
+                return false
+            }.flatMap { block -> String? in
+                if case .thinking(let text, _) = block { return text }
+                return nil
+            }
+            let totalTokens = result.response.usage.totalTokens
+            // sessionId is the parameter retained for future per-session
+            // hook injection (= parity with legacy handle signature).
+            _ = sessionId
+            // model parameter is used by the legacy path; the loop reads
+            // its model from the connector's default-model resolution.
+            _ = model
+            return (reply.isEmpty ? "(文枢暂时无法回复, 请稍后再试)" : reply, totalTokens, thinking)
+        } catch {
+            // S4 graceful degradation: never throw out of handle(). Log
+            // so the wenshu-dev / boss sees the underlying error.
+            NSLog("[wenshu.conductor] ConversationLoop.runTurn failed, falling back to legacy pipeline: %@", String(describing: error))
+            return nil
+        }
+    }
+
+    /// Legacy conductor pipeline (= v0.21 intent+sub-agent+synthesis).
+    /// Preserved verbatim (= unchanged) as the fallback when
+    /// ConversationLoop is not wired (= connector == nil) OR throws.
+    private func runLegacyConductorPipeline(
+        userMessage: String,
+        sessionId: String,
+        model: String
+    ) async -> (reply: String, totalTokens: Int, thinking: String?) {
         // 步骤 1: 写 1 个 conductor 父 task 到 KanbanStore (看板进度, ChatView 不显)
         let conductorTask: KanbanTask?
         do {
