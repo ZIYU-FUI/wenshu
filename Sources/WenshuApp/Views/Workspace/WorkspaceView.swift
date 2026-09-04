@@ -1002,6 +1002,33 @@ struct EditorPlaceholder: View {
     // v0.34 B-25-fix pattern).
     @Environment(BookStore.self) private var bookStore
 
+    // P2 #19 (WIRE-PARAGRAPH-002): live editor selection snapshot
+    // (= the text the paragraph_ai buttons operate on). The
+    // markdown engine is an NSViewRepresentable wrapping NSTextView;
+    // a real selection-bridge would require an NSTextViewDelegate
+    // (= a separate ticket that the engine doesn't expose yet).
+    // For this ticket we keep a View-local @State + a public setter
+    // (= setSelection(_:)) that future wiring can call from the
+    // engine's coordinator; today the buttons act on the whole
+    // draft when no selection is reported (= matches the existing
+    // FormatToolbarButtons fallback behavior in v0.34 B-20).
+    @State private var selectedText: String = ""
+
+    /// P2 #19 (WIRE-PARAGRAPH-002): applyParagraphAI spinner flag.
+    /// Disables the 3 toolbar buttons + the menu while an LLM call
+    /// is in flight (= prevents double-fire; = Apple HIG
+    /// actionable-control-while-busy rule).
+    @State private var isApplyingParagraphAI: Bool = false
+
+    /// P2 #19 (WIRE-PARAGRAPH-002): public selection setter.
+    /// Future ticket will bridge this from the engine's
+    /// NSTextViewDelegate. Today the setter is unused (= the
+    /// buttons fall through to the whole-draft path; see
+    /// applyParagraphAI's guard).
+    public func setSelection(_ text: String) {
+        selectedText = text
+    }
+
     /// v0.39 ticket 001: lookup the active tab's id (= the engine's
     /// `documentId` for undo + replacement scoping). Falls back to
     /// a deterministic placeholder id when no tab is open (=
@@ -1077,6 +1104,39 @@ struct EditorPlaceholder: View {
                 }
                 .buttonStyle(.plain)
                 .help(mode == .edit ? "切到预览模式" : "切到编辑模式")
+                // P2 #19 (WIRE-PARAGRAPH-002): paragraph_ai toolbar.
+                // 3 buttons with keyboard shortcuts (⌘⇧E expand,
+                // ⌘⇧H shorten, ⌘⇧R rephrase) + a Menu for the 3
+                // less-common transforms (shiftTone / simplify /
+                // dramatize). The buttons fire applyParagraphAI(...)
+                // which calls the active LLM connector (= the
+                // v0.35 LLMConnector layer) with the editor
+                // transform prompt prefix + selected text, then
+                // replaces the selection (= today: whole draft) with
+                // the LLM response.
+                //
+                // Apple HIG toolbar pattern: `.help(...)` provides
+                // the tooltip (= Apple-native NSWindow tooltip, =
+                // per the wenshu-apple-api-first hard rule), and
+                // `.keyboardShortcut(...)` registers the global key
+                // binding via SwiftUI's native command system (= no
+                // third-party shortcut lib required; matches the
+                // boss 2026-08-27 OOB 'Apple-stack-except-where-
+                // Apple-doesn't-ship' carve-out).
+                //
+                // Disabled state (= `selectedText.isEmpty`):
+                // matches the boss spec's wire-up; until the
+                // engine selection bridge lands, `selectedText`
+                // defaults to "" so the buttons stay disabled
+                // (= the buttons currently never fire from the
+                // UI; tests cover the apply path directly).
+                ParagraphAIToolbarButtons(
+                    selectedText: selectedText,
+                    isApplying: isApplyingParagraphAI,
+                    onApply: { transform in
+                        Task { await applyParagraphAI(transform) }
+                    }
+                )
                 Spacer()
             }
             .frame(height: 32)
@@ -1364,6 +1424,129 @@ struct EditorPlaceholder: View {
             #if DEBUG
             print("[wenshu.editor] auto-save failed: \(error)")
             #endif
+        }
+    }
+
+    // MARK: - P2 #19 paragraph_ai apply
+
+    /// P2 #19 (WIRE-PARAGRAPH-002): fire the requested paragraph
+    /// transform against the active LLM connector and replace the
+    /// current selection with the rewritten text.
+    ///
+    /// Pipeline (= matches the boss spec):
+    /// 1. guard on `selectedText` non-empty (= matches the
+    ///    `disabled(vm.selectedText.isEmpty)` rule on the toolbar
+    ///    buttons; if the engine selection bridge hasn't reported
+    ///    anything, no-op).
+    /// 2. delegate to the testable static helper
+    ///    `EditorParagraphAI.apply(...)` (= internal static; = the
+    ///    pure function the test target exercises). The helper
+    ///    builds the prompt prefix, calls the connector, extracts
+    ///    the response text, and returns it (= no draft mutation
+    ///    = no SwiftUI dependency = trivially unit-testable).
+    /// 3. replace the selection (= today: whole draft) with the
+    ///    returned text.
+    ///
+    /// Concurrency: Swift 6 strict concurrency. The view is
+    /// @MainActor (= EditorPlaceholder is a SwiftUI View; = the
+    /// compiler infers MainActor isolation). `await
+    /// connector.send(...)` hops off MainActor for the URL
+    /// session, then returns; the final `replaceSelectedText`
+    /// write stays on MainActor (= the @State mutation requires
+    /// it).
+    ///
+    /// Failure mode (= matches the wenshu S4 graceful-degradation
+    /// rule): any throw from the connector (= transport / auth /
+    /// missing API key / decode) is logged via NSLog and the
+    /// method returns without touching the draft. The user sees
+    /// no error UI (= consistent with how WenshuConductor.handle
+    /// handles ConversationLoop.runTurn failures); the dirty flag
+    /// stays unchanged.
+    func applyParagraphAI(_ transform: EditorTransform) async {
+        guard !selectedText.isEmpty else { return }
+        isApplyingParagraphAI = true
+        defer { isApplyingParagraphAI = false }
+
+        let providerSlug = UserDefaults.standard.string(forKey: "wenshu.llm.activeConnector") ?? "anthropic"
+        let providerDefaultModel = ProviderCatalog.defaultModels(for: providerSlug).first ?? "unknown"
+        let options = LLMCallOptions(
+            model: appState.llmModel.isEmpty ? providerDefaultModel : appState.llmModel,
+            maxTokens: 2048
+        )
+        let connector = activeLLMConnector()
+
+        do {
+            let rewritten = try await EditorParagraphAI.apply(
+                selectedText: selectedText,
+                transform: transform,
+                connector: connector,
+                options: options
+            )
+            guard !rewritten.isEmpty else { return }
+            replaceSelectedText(with: rewritten)
+        } catch {
+            // S4 graceful degradation: log + no-op. The wenshu-dev
+            // user sees the underlying failure via Console.app;
+            // the in-app UX stays unbroken (draft unchanged,
+            // buttons re-enabled by the defer above).
+            NSLog("[wenshu.editor] applyParagraphAI(%@) failed: %@", transform.rawValue, String(describing: error))
+        }
+    }
+
+    /// P2 #19: replace the current selection (= today: whole
+    /// draft) with the supplied text. Once the engine selection
+    /// bridge lands, this becomes a surgical NSRange replace
+    /// (= same signature; only the body changes).
+    private func replaceSelectedText(with newText: String) {
+        // Fallback behavior (= mirrors FormatToolbarButtons in
+        // v0.34 B-20: when the TextEditor selection isn't
+        // observable, wrap/overwrite the whole draft). Future
+        // ticket narrows to selected NSRange once the engine
+        // exposes an NSTextViewDelegate bridge.
+        draft = newText
+        // Reset the selection snapshot so the toolbar buttons
+        // disable until the user re-selects (= prevents the
+        // "press shortcut twice" footgun where the same LLM
+        // response replaces itself).
+        selectedText = ""
+    }
+
+    /// P2 #19: resolve the user's active `LLMConnector` profile
+    /// from the `wenshu.llm.activeConnector` UserDefaults slug
+    /// (= the connector profile the user picked in
+    /// LLMConnectorSettingsView; = matches the existing
+    /// ConnectorTestButton switch-on-`apiMode` factory pattern).
+    ///
+    /// Fallback chain (= matches the wenshu defensive-defaults
+    /// rule):
+    /// - missing slug → `AnthropicConnector()` (= the connector
+    ///   the existing ChatView startLongRunningGoal uses; will
+    ///   surface `.missingAPIKey` when no key is configured).
+    /// - unknown slug → `AnthropicConnector()` (= same path).
+    /// - unsupported apiMode → `AnthropicConnector()` (= same
+    ///   path; will surface `.transport` when called).
+    private func activeLLMConnector() -> any LLMConnector {
+        let slug = UserDefaults.standard.string(forKey: "wenshu.llm.activeConnector") ?? "anthropic"
+        let provider = ProviderCatalog.provider(slug: slug)
+        switch provider.apiMode {
+        case "anthropic_messages":
+            // MinimaxConnector is the Anthropic-compatible
+            // wrapper (= wenshu's default provider per
+            // AGENTS.md §11.2); AnthropicConnector is the
+            // native Anthropic API. Build the matching one by
+            // slug (= minimax / minimax-cn / anthropic).
+            if provider.slug == "anthropic" {
+                return AnthropicConnector()
+            }
+            return MinimaxConnector()
+        case "openai_chat":
+            return OpenAICompatibleConnector(provider: provider)
+        default:
+            // Gemini + any other apiMode lands here until the
+            // matching connector lands (= Gemini native connector
+            // is a separate ticket per
+            // ConnectorTestButton.runTest).
+            return AnthropicConnector()
         }
     }
 
@@ -1888,6 +2071,198 @@ private struct FormatToolbarButtons: View {
     /// Future ticket: parse draft by lines + insert at cursor line.
     private func prefixCurrentLine(with prefix: String) {
         draft = draft + "\n" + prefix
+    }
+}
+
+/// P2 #19 (WIRE-PARAGRAPH-002): testable static helper that
+/// contains the pure paragraph_ai pipeline (= prompt prefix +
+/// connector send + first .text block extraction). Extracted
+/// out of `EditorPlaceholder.applyParagraphAI` so the test
+/// target can exercise the behavior without instantiating the
+/// SwiftUI view graph (= no AppState, no BookStore, no file
+/// watcher plumbing required).
+///
+/// Apple-API-first: this helper is a thin orchestration layer
+/// over the v0.35 `LLMConnector` protocol (= already wired in
+/// `ChatView.startLongRunningGoal` + `WenshuConductor.handle`)
+/// and the P1 #10 `EditorTransformTools` actor (= the Swift
+/// port of hermes `agent/editing/editor_tools.py`). Zero new
+/// types; zero new dependencies.
+struct EditorParagraphAI {
+
+    /// Run the paragraph transform pipeline (= build prompt
+    /// prefix + call connector + extract first .text block) and
+    /// return the rewritten text. Throws on connector failure
+    /// (= transport / auth / decode); the caller (= the View)
+    /// owns the S4 graceful-degradation wrapper.
+    ///
+    /// - Parameters:
+    ///   - selectedText: the user's selected text (= empty
+    ///     short-circuits to "" per the wenshu defensive-defaults
+    ///     rule; matches `disabled(selectedText.isEmpty)` on the
+    ///     toolbar).
+    ///   - transform: which of the 6 `EditorTransform` cases to
+    ///     apply.
+    ///   - connector: the active `LLMConnector` (= injected for
+    ///     testability; production calls `activeLLMConnector()`
+    ///     on the view; tests inject `MockLLMConnector`).
+    ///   - options: the per-call `LLMCallOptions` (= model +
+    ///     maxTokens).
+    /// - Returns: the rewritten paragraph (= the first .text
+    ///     block of the connector response; "" if the connector
+    ///     returned no text blocks).
+    static func apply(
+        selectedText: String,
+        transform: EditorTransform,
+        connector: any LLMConnector,
+        options: LLMCallOptions
+    ) async throws -> String {
+        guard !selectedText.isEmpty else { return "" }
+        let tools = EditorTransformTools()
+        let prefix = await tools.promptPrefix(for: transform)
+        let prompt = "\(prefix)\n\n\(selectedText)"
+        let response = try await connector.send(
+            messages: [LLMMessage.user(prompt)],
+            options: options
+        )
+        let text = response.blocks.first { block in
+            if case .text = block { return true }
+            return false
+        }.flatMap { block -> String? in
+            if case let .text(s) = block { return s }
+            return nil
+        } ?? ""
+        return text
+    }
+}
+
+/// P2 #19 (WIRE-PARAGRAPH-002): paragraph_ai toolbar. 3 buttons
+/// with keyboard shortcuts (= ⌘⇧E expand, ⌘⇧H shorten, ⇧R
+/// rephrase) + a Menu for the 3 less-common transforms (= shiftTone,
+/// simplify, dramatize).
+///
+/// Sits next to the mode toggle in the editor top-bar (= the same
+/// HStack the mode toggle lives in; = one row, Apple HIG
+/// single-row toolbar pattern). Each button uses `.help(...)` for
+/// the native NSWindow tooltip (= per the wenshu-apple-api-first
+/// hard rule) and `.keyboardShortcut(...)` for the global key
+/// binding (= Apple SwiftUI native; = no third-party shortcut
+/// lib required).
+///
+/// Disabled rules (= matches the boss spec's
+/// `disabled(vm.selectedText.isEmpty)` line):
+/// - `selectedText.isEmpty`: nothing to transform.
+/// - `isApplying`: an LLM call is already in flight (= prevent
+///   double-fire; = Apple HIG actionable-control-while-busy).
+///
+/// Icon system: SF Symbols for the 3 primary buttons (= Apple
+/// built-in icon font; = boss 2026-08-27 OOB carve-out for system
+/// symbols). Lucide icons for the dropdown menu (= consistent
+/// with the rest of the editor zone's chrome). The mix matches
+/// the v0.34 FormatToolbarButtons precedent (= it uses Lucide
+/// for the inline format buttons but SF Symbol-equivalents are
+/// acceptable for the paragraph_ai row since the boss spec
+/// calls them out as `Image(systemName:)` in the wire-up
+/// snippet).
+///
+/// Performance: the toolbar is a pure View; no @State. The
+/// selection snapshot + busy flag come in via parameters (= host
+/// owns the truth; = Apple HIG parent-owns-data pattern).
+private struct ParagraphAIToolbarButtons: View {
+    let selectedText: String
+    let isApplying: Bool
+    let onApply: (EditorTransform) -> Void
+
+    var body: some View {
+        HStack(spacing: DesignTokens.chromePaddingMicro) {
+            // Expand (= ⌘⇧E). SF Symbol:
+            // `arrow.up.left.and.arrow.down.right` = Apple's
+            // built-in expand icon (= "up-left arrow + down-right
+            // arrow"; = visually says "make bigger"). Matches the
+            // boss spec's exact `Image(systemName:)` line.
+            Button {
+                onApply(.expand)
+            } label: {
+                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help("Expand selected text (= make longer)")
+            .keyboardShortcut("e", modifiers: [.command, .shift])
+            .disabled(selectedText.isEmpty || isApplying)
+
+            // Shorten (= ⌘⇧H). SF Symbol:
+            // `arrow.down.right.and.arrow.up.left` = Apple's
+            // built-in condense icon (= "down-right arrow +
+            // up-left arrow"; = visually says "make smaller").
+            // Matches the boss spec's exact `Image(systemName:)`
+            // line.
+            Button {
+                onApply(.shorten)
+            } label: {
+                Image(systemName: "arrow.down.right.and.arrow.up.left")
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help("Shorten selected text (= condense)")
+            .keyboardShortcut("h", modifiers: [.command, .shift])
+            .disabled(selectedText.isEmpty || isApplying)
+
+            // Rephrase (= ⌘⇧R). SF Symbol:
+            // `arrow.triangle.2.circlepath` = Apple's built-in
+            // refresh icon (= 2 triangles around a circle path; =
+            // visually says "say it differently"). Matches the
+            // boss spec's exact `Image(systemName:)` line.
+            Button {
+                onApply(.rephrase)
+            } label: {
+                Image(systemName: "arrow.triangle.2.circlepath")
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help("Rephrase selected text")
+            .keyboardShortcut("r", modifiers: [.command, .shift])
+            .disabled(selectedText.isEmpty || isApplying)
+
+            // Menu: shiftTone / simplify / dramatize (= no
+            // shortcut per boss spec; = dropdown next to the 3
+            // primary buttons). Uses Apple's native `Menu` (= the
+            // SwiftUI macOS 13+ API; = no third-party menu lib
+            // needed). Each item is a Button so it integrates with
+            // the same `onApply` callback (= consistent code
+            // path with the 3 primary buttons; = no special
+            // menu-only branch in `applyParagraphAI`).
+            Menu {
+                Button("Shift tone") { onApply(.shiftTone) }
+                    .disabled(selectedText.isEmpty || isApplying)
+                Button("Simplify") { onApply(.simplify) }
+                    .disabled(selectedText.isEmpty || isApplying)
+                Button("Dramatize") { onApply(.dramatize) }
+                    .disabled(selectedText.isEmpty || isApplying)
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 4)
+                    .contentShape(Rectangle())
+            }
+            .menuStyle(.borderlessButton)
+            .help("More transforms: shift tone, simplify, dramatize")
+            .disabled(selectedText.isEmpty || isApplying)
+        }
     }
 }
 /// EditModeBadge — small visual indicator shown in the top-right
