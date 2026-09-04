@@ -360,7 +360,12 @@ struct WenshuApp: App {
         WindowGroup("") {
             // v0.21 ticket 01 (重做 #10): 撤回 SettingsEnvironmentCapturer wrapper (commit a78d758bc Q15 翻车 #11 dead code)
             // SettingsEnvironmentCapturer 之前包 LayoutShellView 注入 OpenSettingsAction, 但 openSettings?() → nil (Q15 翻车 #11), 现在 NSMenu 自己装 + 自创建 NSWindow 装 SettingView 不需要 capture
-            SettingsEnvironmentCapturer(library: library, appearanceMode: appearanceMode)
+            // CHATBOX-002 (2026-09-04): wrap with CommandPaletteHost so the
+            // ⌘K sheet binds to the WindowGroup scene (= the sheet
+            // inherits the window's focus + key state per Apple HIG).
+            CommandPaletteHost {
+                SettingsEnvironmentCapturer(library: library, appearanceMode: appearanceMode)
+            }
                 // v0.30 boss 8/31 OOB: inject AppState at root so all
                 // descendants can read cross-zone UI state via
                 // `@Environment(AppState.self)`. Per-window state
@@ -419,6 +424,18 @@ struct WenshuApp: App {
                     WenshuAppDelegate.openSettings?()
                 }
                 .keyboardShortcut(",", modifiers: .command)
+            }
+            // CHATBOX-002 (2026-09-04): ⌘K command palette (= hermes
+            // commands.py + slash_registry.py parity). Replaces
+            // .newItem group so ⌘K shows the palette instead of the
+            // macOS-default "New File" behavior. Posts
+            // .wenshuShowCommandPalette (= the SwiftUI scene listens
+            // and presents the palette sheet).
+            CommandGroup(replacing: .newItem) {
+                Button("Open Command Palette") {
+                    CommandPaletteController.show()
+                }
+                .keyboardShortcut("k", modifiers: .command)
             }
             CommandGroup(after: .newItem) {
                 // v0.27 macOS-standard cross-component sync (boss 8/27
