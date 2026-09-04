@@ -660,15 +660,15 @@ struct SettingView: View {
     private var generalTab: some View {
         // Pages 范式参考 UI, 不用管功能 (老板 8/21 拍 "参考 UI 用 Apple 标准, 不是让你做一个一样的通用设置")
         Form {
-            Section("外观") {
-                Picker("外观", selection: $appearanceMode) {
+            Section(WenshuI18n.t("settings.general.appearance")) {
+                Picker(WenshuI18n.t("settings.general.appearance"), selection: $appearanceMode) {
                     ForEach(AppearanceMode.allCases) { mode in
                         Text(mode.label).tag(mode)
                     }
                 }
                 .pickerStyle(.radioGroup)
             }
-            Section("液态玻璃") {
+            Section(WenshuI18n.t("settings.general.liquidGlass")) {
                 // v0.32 boss 2026-09-02 OOB ('用 macOS 自带液态玻璃,
                 // 跟随系统设置'): the previous user-tunable Liquid Glass
                 // opacity slider was removed (= 134 LOC of self-rolled
@@ -679,28 +679,28 @@ struct SettingView: View {
                 //   - dark mode / light mode
                 //   - Accessibility > Display > Reduce transparency
                 //   - Accessibility > Display > Increase contrast
-                Text("液态玻璃跟随 macOS 系统设置")
+                Text(WenshuI18n.t("settings.general.liquidGlass.body"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Text("调整外观：系统设置 → 外观；调整透明度：系统设置 → 辅助功能 → 显示 → 减少透明度")
+                Text(WenshuI18n.t("settings.general.liquidGlass.hint"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
-            Section("Agent 称呼") {
+            Section(WenshuI18n.t("settings.general.agentAddress")) {
                 // v0.24 fix (Boss 8/24 OOB): user-set value for agent-to-user address.
                 // Read by WenshuConductorIdentity.userAddress at LLM call time
                 // (dynamic per-chat). User cannot modify via chat per AGENTS.md.
                 // Reason for no .onChange handler: WenshuConductorIdentity.
                 // userAddress reads UserDefaults fresh each LLM call = automatic
                 // dynamic propagation, no event-driven mechanism needed.
-                TextField("Agent 称呼", text: $userAddress, prompt: Text("user"))
+                TextField(WenshuI18n.t("settings.general.agentAddress"), text: $userAddress, prompt: Text(WenshuI18n.t("settings.general.agentAddress.prompt")))
                     .textFieldStyle(.roundedBorder)
-                Text("Agent（文枢）用这个称呼叫你。默认：user")
+                Text(WenshuI18n.t("settings.general.agentAddress.help"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            Section("通用设置") {
-                Text("Pages 范式，不用管功能")
+            Section(WenshuI18n.t("settings.general.misc")) {
+                Text(WenshuI18n.t("settings.general.misc.placeholderNote"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -939,7 +939,7 @@ struct SettingView: View {
                     Text("最高").tag("max" as String)
                 }
                 .pickerStyle(.menu)
-                Text("EFFORT = Anthropic output_config.effort (low/medium/high/xhigh/max). 模型可用级别看 minimax 文档.")
+                Text(WenshuI18n.t("settings.model.reasoning.effortHint"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } header: {
