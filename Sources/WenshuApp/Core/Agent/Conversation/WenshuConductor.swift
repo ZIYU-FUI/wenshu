@@ -1,11 +1,24 @@
 //
 //  WenshuConductor.swift · Wenshu · v0.21 ticket 04 (文枢单显多 agent 隐身)
+//                          P0 #1 (WIRE-AGENT-001, 2026-09-04)
+//                          P0 #2 (WIRE-AGENT-002, 2026-09-04)
 //
 //  文枢主 agent 调度器: 收 user message → 调 LLM intent classify → 派 0-N 个 v0.19 模块 agent → 等结果 → 调 LLM 合成最终回复.
 //  调度进度走 KanbanStore 看板 (user 查 Kanban), ChatView 不显 subagent 隐身 (老板 2026-08-21 拍).
 //
 //  复用 v0.19 12 模块后端 (LinkGraph / Search / Template / Composer / Graph / Canvas / Bases / QuickSwitcher / WordCount / Outline / Bookmarks / Verifier),
 //  范式跟 AgentRuntime 一致 (actor in-process 真值).
+//
+//  P0 #2 (WIRE-AGENT-002): the conductor now accepts a `tools: [String:
+//  any Tool]` registry at construction time. When the loop path runs
+//  (= connector wired), the registry is passed through to
+//  `ConversationLoop.runTurn(...tools:)` so the ToolExecutor dispatches
+//  tool_use blocks against registered wenshu tools (= e.g. the
+//  ParagraphAITool stub; future skill + subagent tools wire the same
+//  way). Callers that do not register tools (= the legacy v0.21 callers
+//  + every existing test) keep the previous behavior unchanged because
+//  the default value is `[:]`. See wayfinder plan at
+//  `.scratch/2026-09-04-wenshu-integration-plan.md` ticket #2.
 //
 
 import Foundation
@@ -47,6 +60,16 @@ public actor WenshuConductor {
     /// ConversationLoop (= deterministic-test injection per v0.36 ticket
     /// 014). When nil, ConversationLoop creates a fresh actor instance.
     private let loopRuntime: RuntimeHelpers?
+    /// P0 #2 (WIRE-AGENT-002): tool registry forwarded to
+    /// `ConversationLoop.runTurn(...tools:)` when the loop path runs.
+    /// Callers (= App.swift, tests) pre-register wenshu tools at
+    /// construction time (= e.g. ParagraphAITool for paragraph-level
+    /// AI editing). When the loop path is NOT active (= legacy callers
+    /// with no connector), this field is silently ignored because
+    /// `runLegacyConductorPipeline` does not consult the registry.
+    /// Default = empty (= no tools) preserves every existing test +
+    /// call site without modification.
+    private let tools: [String: any Tool]
 
     public init(
         runtime: AgentRuntime,
@@ -54,12 +77,17 @@ public actor WenshuConductor {
         kanbanStore: KanbanStore,
         sessionStore: ChatSessionStore? = nil,
         memoryStore: MemoryStore? = nil,
-        skillRegistry: SkillRegistry? = nil
+        skillRegistry: SkillRegistry? = nil,
+        tools: [String: any Tool] = [:]
     ) {
         // P0 #1 (WIRE-AGENT-001): chain to the new init with no connector
         // (= legacy callers = the loop path is a no-op short-circuit and
         // handle() runs the v0.21 pipeline unchanged). This preserves
         // every existing call site + test + ChatView wiring.
+        // P0 #2 (WIRE-AGENT-002): `tools` is forwarded to the new init
+        // so the registry survives the chain (= legacy callers passing
+        // a registry but no connector still keep their tools in case
+        // the loop path is enabled later in the same lifetime).
         self.init(
             runtime: runtime,
             verifier: verifier,
@@ -68,7 +96,8 @@ public actor WenshuConductor {
             memoryStore: memoryStore,
             skillRegistry: skillRegistry,
             connector: nil,
-            loopRuntime: nil
+            loopRuntime: nil,
+            tools: tools
         )
     }
 
@@ -100,7 +129,8 @@ public actor WenshuConductor {
         memoryStore: MemoryStore? = nil,
         skillRegistry: SkillRegistry? = nil,
         connector: (any LLMConnector)? = nil,
-        loopRuntime: RuntimeHelpers? = nil
+        loopRuntime: RuntimeHelpers? = nil,
+        tools: [String: any Tool] = [:]
     ) {
         self.runtime = runtime
         self.verifier = verifier
@@ -110,6 +140,11 @@ public actor WenshuConductor {
         self.skillRegistry = skillRegistry
         self.connector = connector
         self.loopRuntime = loopRuntime
+        // P0 #2 (WIRE-AGENT-002): store the tool registry so the loop
+        // path (= runConversationLoopPath) can pass it through to
+        // ConversationLoop.runTurn(...tools:). Default = empty so
+        // every existing call site compiles unchanged.
+        self.tools = tools
         // Bootstrap deferred to first handle() call (Swift actor init cannot await).
     }
 
@@ -266,6 +301,14 @@ public actor WenshuConductor {
     /// `ConversationLoop.runTurn()` orchestrator and reshape its result
     /// into the canonical `(reply, totalTokens, thinking)` tuple.
     ///
+    /// P0 #2 (WIRE-AGENT-002): forwards the conductor's `tools`
+    /// registry to `ConversationLoop.runTurn(...tools:)` so the
+    /// ToolExecutor dispatches tool_use blocks against registered
+    /// wenshu tools (= ParagraphAITool for paragraph-level AI,
+    /// future skill tools, future subagent tools). The registry is
+    /// captured at construction time (= ChatViewModel pre-registers
+    /// ParagraphAITool.shared before constructing the conductor).
+    ///
     /// Returns `nil` when the loop throws (= caller falls back to legacy
     /// pipeline). The loop's error is logged via NSLog so the wenshu-dev
     /// user never sees a broken agent.
@@ -299,7 +342,10 @@ public actor WenshuConductor {
                 userMessage: userMessage,
                 systemMessage: nil,
                 conversationHistory: [],
-                tools: [:]
+                // P0 #2 (WIRE-AGENT-002): forward the conductor's
+                // tool registry so ToolExecutor dispatches against
+                // registered wenshu tools.
+                tools: tools
             )
             // Step 4: shape the ConversationResult into the canonical
             // (reply, totalTokens, thinking) tuple expected by ChatView.

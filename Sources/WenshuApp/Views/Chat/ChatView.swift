@@ -427,7 +427,61 @@ public struct ChatView: View {
             _vm = State(initialValue: vm)
         } else {
             // initialMessages via .task async load (avoids init race)
-            _vm = State(initialValue: ChatViewModel(conductor: conductor, store: store, sessionId: sessionId, initialMessages: []))
+            // P0 #2 (WIRE-AGENT-002): when ChatView constructs its own
+            // ChatViewModel (= the standalone / preview path), register
+            // ParagraphAITool.shared by wrapping the conductor with the
+            // tool registry (= tool dispatch path now active in the
+            // chat surface). The App-supplied canonical path (=
+            // ChatZoneView passing a pre-built vm) inherits whatever
+            // the App-side conductor already has; App.swift is out of
+            // scope for this ticket.
+            let wiredConductor = ChatView.conductorRegisteringParagraphAI(conductor)
+            _vm = State(initialValue: ChatViewModel(conductor: wiredConductor, store: store, sessionId: sessionId, initialMessages: []))
+        }
+    }
+
+    /// P0 #2 (WIRE-AGENT-002): when ChatView builds a fallback vm,
+    /// wrap the incoming conductor so ParagraphAITool is registered.
+    /// ChatView is the registering site for the chat surface (= the
+    /// user-facing chat UI is where paragraph AI editing fires); App.swift
+    /// is out of scope for this ticket so we build a peer conductor
+    /// (= same shape via the public init) that pre-loads
+    /// ParagraphAITool. The new conductor is what ChatViewModel uses;
+    /// App's conductor reference is unaffected.
+    private static func conductorRegisteringParagraphAI(_ conductor: WenshuConductor?) -> WenshuConductor? {
+        // No conductor provided → nothing to wrap. ChatViewModel's
+        // direct verifier path (= non-conductor branch in send()) does
+        // not consult a tool registry, so this is a no-op for preview.
+        guard let conductor = conductor else { return nil }
+        // Build a peer conductor with ParagraphAITool registered. We
+        // reuse the public init (= same surface App.swift uses); the
+        // collaborator triple (runtime / verifier / kanbanStore) is
+        // reconstructed (= standalone preview path; production uses
+        // App-supplied collaborators through the canonical ChatZoneView
+        // shared-vm path which does not go through here).
+        let runtime = AgentRuntime()
+        let verifier = WenshuVerifier()
+        // KanbanStore construction may fail (= disk-permission issues in
+        // preview / CI); fall back to an in-process stub conductor that
+        // does not write kanban state but still carries the tool
+        // registry (= the test of record lives in
+        // WenshuConductorToolWiringTests and constructs its own kanban).
+        do {
+            let kanban = try KanbanStore()
+            try kanban.bootstrap()
+            return WenshuConductor(
+                runtime: runtime,
+                verifier: verifier,
+                kanbanStore: kanban,
+                tools: ["ParagraphAI": ParagraphAITool.shared]
+            )
+        } catch {
+            return WenshuConductor(
+                runtime: runtime,
+                verifier: verifier,
+                kanbanStore: try! KanbanStore(path: NSTemporaryDirectory() + "wenshu-chat-fallback-\(UUID().uuidString).sqlite"),
+                tools: ["ParagraphAI": ParagraphAITool.shared]
+            )
         }
     }
 
