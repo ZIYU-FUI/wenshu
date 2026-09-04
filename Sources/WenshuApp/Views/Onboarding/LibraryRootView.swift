@@ -93,7 +93,45 @@ public struct LibraryRootView: View {
                 // - Construct LibraryStores + BookStore (= single @Observable)
                 // - Inject BookStore via .environment for LayoutShellView + child views
                 WiredShell(libraryPath: libraryPath)
+                    // P2 #20 (WIRE-LIBRARIAN-001): one-line hint telling
+                    // the user they can ask the chat to create / rename /
+                    // delete books via the slash command. Rendered as a
+                    // thin top banner above the WiredShell content so
+                    // the hint is visible immediately after the library
+                    // is opened (= before the user opens the chat zone).
+                    .safeAreaInset(edge: .top) {
+                        ChatBookManagerHint()
+                    }
             }
+        }
+    }
+}
+
+/// P2 #20 (WIRE-LIBRARIAN-001): one-line hint surfaced above the
+/// WiredShell layout that tells the user the chat surface can
+/// create / rename / delete books via a slash command. Apple HIG
+/// "single-purpose banner" pattern (= thin, non-modal, dismissable
+/// by scrolling). Lives in `LibraryRootView.swift` (= the only
+/// file the WIRE-LIBRARIAN-001 ticket allows touching) so the
+/// hint is visible the moment the library is opened, without
+/// requiring the user to navigate to the chat zone first.
+private struct ChatBookManagerHint: View {
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "wand.and.stars")
+                .font(.caption)
+            Text("Tell the chat to create a book: e.g. ")
+                .font(.caption)
+            Text("/create-book My new novel")
+                .font(.caption.monospaced())
+                .foregroundStyle(.tint)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.thinMaterial)
+        .overlay(alignment: .bottom) {
+            Divider()
         }
     }
 }
