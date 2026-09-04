@@ -518,13 +518,29 @@ struct WenshuApp: App {
 /// 不是 macOS Settings { } Scene 自动装标题栏 segmented tab 按钮 (commit 0082bd1fe + 030a58355 真硬违反)
 /// Pages 真值 (红框位置) = 窗口内容顶部 toolbar 切换, 不是窗口标题栏按钮
 struct SettingView: View {
+    @Environment(AppState.self) private var appState
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
     @AppStorage("wenshu.llm.provider") private var providerSlug: String = Provider.minimaxCn.slug
+    // B-05: wenshu.llm.model centralization. The `wenshu.llm.model`
+    // UserDefaults key now has a single owner = `AppState.llmModel`.
+    // SettingView reads + writes via the appState (an @Observable
+    // property) and uses a custom Binding for the Picker so the
+    // existing `$llmModel` selection API still works without
+    // touching the surrounding body.
     // v0.24 boss验收fix (2026-08-24): default to empty string when no provider
     // key configured (not "MiniMax-M3" which implies a MiniMax provider is
     // selected even when user has no key). UI shows "暂无模型可用，请先配置模型" placeholder
     // when this is empty.
-    @AppStorage("wenshu.llm.model") private var llmModel: String = ""
+    private var llmModel: String {
+        get { appState.llmModel }
+        nonmutating set { appState.llmModel = newValue }
+    }
+    private var llmModelBinding: Binding<String> {
+        Binding(
+            get: { appState.llmModel },
+            set: { appState.llmModel = $0 }
+        )
+    }
     @AppStorage("wenshu.llm.reasoningEffort") private var reasoningEffort: String = "medium"
     // v0.24 boss验收fix: @AppStorage so chat '设置' link can jump to provider tab.
     @AppStorage("wenshu.settingsTab") private var selectedTabRaw: String = "general"
@@ -908,7 +924,7 @@ struct SettingView: View {
                     Task { await reloadModels() }
                 }
 
-                Picker("模型", selection: $llmModel) {
+                Picker("模型", selection: llmModelBinding) {
                     ForEach(modelIdList, id: \.self) { id in
                         Text(id).tag(id)
                     }
@@ -1097,7 +1113,12 @@ enum AuxTask: String, CaseIterable, Identifiable {
         /// useWorkspace on, would already be ON — saves them a second
         /// keystroke).
         @State private var editMode = LayoutEditMode()
-        @AppStorage("wenshu.llm.model") private var modelName: String = "MiniMax-M3"
+        // B-05: `wenshu.llm.model` now has a single owner =
+        // AppState.llmModel. The previous dead `modelName` @AppStorage
+        // declaration (= no body reads, removed by the v0.34 toolbar
+        // flatten) is dropped here. Captured environment is enough to
+        // expose the value to any future nested consumer via
+        // `@Environment(AppState.self)`.
         @AppStorage("wenshu.llm.status") private var llmStatus: String = "Idle"
         @AppStorage("wenshu.context.usagePercent") private var contextUsagePercent: Int = 0
         var body: some View {
@@ -1471,8 +1492,17 @@ struct ChatZoneView: View {
     // 修复前 ChatZoneView.currentModel 是 @State 不绑 UserDefaults, ChatViewModel.currentModel 是 init default 读 UserDefaults 一次 = 切 picker 后两条状态链断开
     // @AppStorage 是 Apple HIG 真值, 源单一 UserDefaults, 自动响应变化, 修复 picker 跟 ChatViewModel 同步
     // v0.24 boss验收fix (2026-08-24): default empty (no key) instead of "MiniMax-M3".
-    @AppStorage("wenshu.llm.model") private var currentModel: String = ""
-    // v0.24 boss验收fix (2026-08-24): persist tab selection across launches.
+    // B-05: `wenshu.llm.model` is now owned by AppState.llmModel (single
+    // source of truth). ChatZoneView reads + writes via the env-injected
+    // appState (= same proxy pattern as SettingView above) so the
+    // picker / VM sync story (= ticket 43) still holds = both the
+    // ChatZoneView picker and ChatViewModel.currentModel read the same
+    // canonical value through AppState.
+    @Environment(AppState.self) private var appState
+    private var currentModel: String {
+        get { appState.llmModel }
+        nonmutating set { appState.llmModel = newValue }
+    }
     // Boss 8/24: '每个区域的 tab 选中状态应该持久化'.
     @AppStorage("wenshu.tabIndex.aiChat") private var selectedTabRaw: String = "对话"
     // v0.24 boss验收fix (Boss 8/25 OOB ticket 015.014): archive flow state.

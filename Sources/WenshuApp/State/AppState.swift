@@ -72,7 +72,33 @@ final class AppState {
     var openTabs: [EditorTab] = []
     var activeTabId: UUID = UUID()
 
-    init() {}
+    // B-05: wenshu.llm.model centralization. Single owner of the
+    // active LLM model id (= was previously scattered as 4 separate
+    // @AppStorage("wenshu.llm.model") declarations across App.swift
+    // + LibraryRootView.swift, plus 3 raw UserDefaults reads/writes
+    // in ChatView.swift = 7 different observation surfaces for 1
+    // UserDefaults key). Now AppState.llmModel is the only owner;
+    // init seeds from the existing UserDefaults value (= preserves
+    // existing user choice across launches; Swift `didSet` does NOT
+    // fire during init so no redundant write happens on launch) and
+    // didSet writes back on every subsequent change (= mirror of the
+    // WorkspaceStore UserDefaults pattern in this same State/ folder).
+    // All callers now read/write `appState.llmModel` (= one path, no
+    // synchronization drift across zones).
+    var llmModel: String = "" {
+        didSet {
+            guard oldValue != llmModel else { return }
+            UserDefaults.standard.set(llmModel, forKey: "wenshu.llm.model")
+        }
+    }
+
+    init() {
+        // B-05: seed from the existing UserDefaults value. didSet is
+        // not called during init (= Swift property wrapper semantics),
+        // so this assignment does NOT trigger a write back to
+        // UserDefaults on launch (= pure read-side migration).
+        self.llmModel = UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? ""
+    }
 }
 
 // v0.34 B-24: per-tab editor state. Holds all data that was previously
