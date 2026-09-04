@@ -39,6 +39,35 @@ fi
 # AppIcon (.icon Icon Composer 格式) → Contents/Resources/AppIcon.icon (CFBundleIconFile="AppIcon" 解析路径)
 cp -R "Sources/WenshuApp/Resources/AppIcon.icon" "$RES_DIR/AppIcon.icon"
 
+# v0.38 P2: copy SPM-generated i18n bundle into the .app so
+# WenshuI18n.bundle resolution finds it at runtime (= Settings tab
+# labels and other i18n catalog strings display correctly).
+# SPM may place the bundle under .build/release/, .build/debug/, or
+# .build/out/Products/{Debug,Release}/ (= multiple spellings observed
+# across SPM versions); probe the common locations then fall back to
+# a recursive find under .build.
+SPM_BUNDLE_PATH=""
+for candidate in \
+    ".build/release/Wenshu_WenshuApp.bundle" \
+    ".build/debug/Wenshu_WenshuApp.bundle" \
+    ".build/out/Products/Release/Wenshu_WenshuApp.bundle" \
+    ".build/out/Products/Debug/Wenshu_WenshuApp.bundle"; do
+    if [ -d "$candidate" ]; then
+        SPM_BUNDLE_PATH="$candidate"
+        break
+    fi
+done
+if [ -z "$SPM_BUNDLE_PATH" ]; then
+    # Fallback: search anywhere under .build (in case SPM nesting changes)
+    SPM_BUNDLE_PATH="$(find .build -name 'Wenshu_WenshuApp.bundle' -type d 2>/dev/null | head -1 || true)"
+fi
+if [ -n "$SPM_BUNDLE_PATH" ] && [ -d "$SPM_BUNDLE_PATH" ]; then
+    cp -R "$SPM_BUNDLE_PATH" "$RES_DIR/Wenshu_WenshuApp.bundle"
+    echo ">>> copied i18n bundle: $SPM_BUNDLE_PATH -> $RES_DIR/Wenshu_WenshuApp.bundle"
+else
+    echo ">>> warning: SPM i18n bundle not found under .build/ (WenshuI18n.t will return key paths)"
+fi
+
 # macOS 27 dark/light/tinted 自动跟随系统主题: AppKit 按 effectiveAppearance 从 AppIcon.icon 派生.
 # Apple Icon Composer 范式: 1 份 LOGO.icon + icon.json + Assets/ 主图 PNG, macOS 27 自动派生 dark/light/tinted + platform mask (squares shared / circles watchOS).
 # Apple HIG 范式: https://developer.apple.com/design/human-interface-guidelines/app-icons
