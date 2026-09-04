@@ -1133,9 +1133,26 @@ struct EditorPlaceholder: View {
                     documentPath: nil,
                     draft: EditorPlaceholder.samplePreviewBody,
                     originalBody: EditorPlaceholder.samplePreviewBody
+                    // v0.39 ticket 001-A-extended: mode omitted = uses
+                    // EditorTab default = .edit (= was .preview in
+                    // v0.34; = the user is in the live editor from
+                    // the start, not raw-text preview).
                 )
                 appState.openTabs = [placeholder]
                 appState.activeTabId = EditorTab.placeholderId
+            } else {
+                // v0.39 ticket 001-A-extended: migrate any existing
+                // .preview tab to .edit (= v0.34 default was .preview,
+                // so any tab the user had open at the time of the
+                // upgrade lands in raw-text preview mode without
+                // this upgrade). User can still flip back to .preview
+                // via the mode toggle button (= the eye/pencil icon
+                // in the tab strip = v0.39 ticket 001-C).
+                for idx in appState.openTabs.indices {
+                    if appState.openTabs[idx].mode == .preview {
+                        appState.openTabs[idx].mode = .edit
+                    }
+                }
             }
             appState.editorWordCount = WordCounter.count(originalBody).charactersNoSpaces
             // v0.34 B-23: start the file-system watcher for the current
