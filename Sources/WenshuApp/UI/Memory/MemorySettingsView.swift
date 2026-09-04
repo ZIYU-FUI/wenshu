@@ -25,36 +25,36 @@ public struct MemorySettingsView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Memory")
+            Text(WenshuI18n.t("settings.memory.title"))
                 .font(.headline)
-            Text("Wenshu remembers context from past conversations. Configure scope + retention below.")
+            Text(WenshuI18n.t("settings.memory.subtitle"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
             Divider()
 
             // Enable toggle
-            Toggle("Enable memory subsystem", isOn: $isMemoryEnabled)
+            Toggle(WenshuI18n.t("settings.memory.enable"), isOn: $isMemoryEnabled)
                 .toggleStyle(.switch)
 
             // Scope selector
-            Picker("Scope", selection: $scope) {
-                Text("Per-book only").tag(MemoryScope.perBook)
-                Text("Library-public (cross-book)").tag(MemoryScope.libraryPublic)
+            Picker(WenshuI18n.t("settings.memory.scope"), selection: $scope) {
+                Text(WenshuI18n.t("settings.memory.scope.perBook")).tag(MemoryScope.perBook)
+                Text(WenshuI18n.t("settings.memory.scope.libraryPublic")).tag(MemoryScope.libraryPublic)
             }
             .pickerStyle(.segmented)
             .disabled(!isMemoryEnabled)
 
             // Retention slider
             HStack {
-                Text("Retention")
+                Text(WenshuI18n.t("settings.memory.retention"))
                     .frame(width: DesignTokens.settingsRowLabelWidth, alignment: .leading)
                 Slider(value: Binding(
                     get: { Double(retentionDays) },
                     set: { retentionDays = Int($0) }
                 ), in: 7...365, step: 1)
                 .disabled(!isMemoryEnabled)
-                Text("\\(retentionDays) days")
+                Text(WenshuI18n.tf("settings.memory.retention.value", retentionDays))
                     .monospacedDigit()
                     .frame(width: DesignTokens.settingsRowLabelWidth, alignment: .trailing)
             }
@@ -62,11 +62,11 @@ public struct MemorySettingsView: View {
             Divider()
 
             // Recent memory entries list
-            Text("Recent memories (\\(recentEntries.count))")
+            Text(WenshuI18n.tf("settings.memory.recent", recentEntries.count))
                 .font(.subheadline)
 
             if recentEntries.isEmpty {
-                Text("No memories yet. Memories will appear here as you chat.")
+                Text(WenshuI18n.t("settings.memory.recent.empty"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(.vertical, DesignTokens.chromePaddingSmall)
