@@ -1,0 +1,284 @@
+hash,subject,cjk_count
+4e48b89403b09e9ea027c8229b8002745a2d34fd,fix(wenshu): v0.31 -- reset menu wires NSSplitView + reopen .ws UTI,0
+68024334b95d384952b8ef2ab290e9edfde5b743,chore(wenshu): v0.32 -- delete orphan Tip.swift tooltip helper,0
+ddb1227b5f25e375f95a8f362ca9ef33d1716d7d,chore(wenshu): v0.32 -- delete orphan EscapeLayers.swift,0
+ba31a249aaf8ef47c8a3fdd47da313dfa6eea1c8,chore(wenshu): v0.32 -- delete orphan LibraryOutlineView.swift,0
+e1083e9cb5498d194501ea742584cfd66b6a62cd,chore(wenshu): v0.32 -- delete orphan BookOutlineView.swift,0
+9a22ee4a3ff99fb1f7adb4f22b06b4db45ff159f,chore(wenshu): v0.32 -- delete orphan WorldOutlineView.swift,0
+f71b4c20e7e9341f51a78e498473c48b01d87b0b,chore(wenshu): v0.32 -- delete orphan CharacterOutlineView.swift,0
+b0c8ca665fa91a0308a3a00905090470bbd3e7a6,chore(wenshu): v0.32 -- delete orphan ReferenceLibraryOutlineView.swift,0
+cdadd4593c861303f3ceab10ca8249c78a621923,chore(wenshu): v0.32 -- delete dead test LibraryOutlineViewBindingsTests.swift,0
+fe600b0f358a3d49988931d583020012b83aca16,chore(wenshu): v0.32 -- remove historical comment mentions of dead OutlineView files,0
+68689b99e893a35e94ec44d85b90196b5f2b853b,refactor(wenshu): v0.32 -- move NewLibraryOutlineView inline FileManager into BookStore extension,0
+715f6b27e1c9c69a0ce6e075c7bf47d273242c7b,fix(wenshu): v0.32 -- remove Liquid Glass opacity slider + auto-apply Apple canonical .glass,0
+864a3498b20d37d0ca918b66b021dceeb5b7c9e2,refactor(wenshu): v0.32 -- tab bar + status bar use Apple canonical controlBackgroundColor,0
+14790659a4660e5d789036f3190c0787459a5e7d,chore(wenshu): v0.32 -- ComponentIndex §4.1 update for LiquidGlassOpacity removal,0
+2fd814d0472bd0490aa3df1c057ed266031347c0,fix(wenshu): v0.32 -- route 6-zone pane background through Apple NSColor brightness tiers,0
+2afa7e8875381da8f5af2cbc4e87894ba3271aa7,fix(wenshu): v0.32 -- per-region top toolbar uses Apple canonical controlBackgroundColor,0
+afffa4fcfb5b381b4e44464e8a1d283a48a532a5,fix(wenshu): v0.32 -- containerBackground for: .window uses Color.clear (bottom layer only),0
+3067ea7c8b5341f43ae5f1e49e277f8b1dc55ed9,refactor(wenshu): v0.32 -- remove DesignColor wrapper enum; use bare Color(nsColor:) Apple API,0
+5d06ad3d87952bd3fbf4d5acc0ba39cff5c11cf6,refactor(wenshu): v0.32 -- TitlebarControlStyle uses bare .thinMaterial (Apple Material catalog),0
+ce3d3b37db19663a8410bbad94dd7fc4a10ca815,refactor(wenshu): v0.32 -- LayoutEditBar preset highlight uses bare .thinMaterial,0
+e8205913be80e5f08ffc8e00d52a52b6ee85a7b4,chore(wenshu): v0.32 -- delete RegionHoverWash.swift (self-written ShapeStyle wrapper),0
+b38f186d9dd92bc35f2bae14c3100c2e62f1ac85,chore(wenshu): v0.32 -- ComponentIndex §4.2 update for RegionHoverWashStyle deletion,0
+672abc9f18c325f8d7414437ec3a9b29bda3638f,fix(wenshu): v0.32 -- window-level + content-tier use Apple canonical NSColor (Monterey 12 reference),0
+b11491baed619c383572f6e2778a8b460f2a2d48,refactor(wenshu): v0.33 -- R1 colors: 35 violations migrated to Apple semantic ShapeStyle (.quaternary / .tertiary / .separator / .tint.opacity / 裸 NSColor),0
+43c75d3957bf3cf4d6119e44239f56732c275962,refactor(wenshu): v0.33 -- R2 fonts: 44 violations migrated to Apple 11 text styles (.caption / .body / .title2 / .title3 / .caption2.weight / .body.weight),0
+f543f3440d63771ba501a2099b4120bc04433bc6,refactor(wenshu): v0.33 -- R3 dark mode: zero violations (audit-only commit),0
+cc22ceeeb4bda70b911af37e51226bf9f9e76c82,"refactor(wenshu): v0.33 -- R6 padding: 50+ magic-number paddings migrated to DesignTokens (= 11 files, +45 DesignTokens / -58 inline)",0
+4355e11e6c7a40b33e1b15707d231984658f5b31,"refactor(wenshu): v0.33 -- R8 window: delete dead NSWindow ProviderKeyPrompt + ProviderKeyInputSheet (= 69 LOC, R8 zero NSWindow violations remaining)",0
+cad92517975b01224dbef146a58606ba5b0e4866,refactor(wenshu): v0.33 -- R9 + R10 + R11 audit-only (zero violations),0
+4b486b2061d1ee42e49b7c57b962b80e1820788e,"refactor(wenshu): v0.34 -- Apple-API-first #1: delete dead TabStripScroll.swift (171 LOC, ScrollViewReader + tabStripScrollLeft pure function + withAnimation)",0
+8cb9f7b74725bbb199e716564ef4529c03ddd7b0,"refactor(wenshu): v0.34 -- Apple-API-first #2: NSOpenPanel/NSSavePanel audit (3 sites, retained: Apple .fileImporter/.fileExporter NOT equivalent)",0
+a45d0a2f56e13fe17d1d54210a2f2f2e31cd3fff,"refactor(wenshu): v0.34 -- Apple-API-first #3: delete 3 self-written ButtonStyle (IconButtonStyle + TitlebarButtonStyle + TitlebarControlStyle, all no-op / zero-callers)",0
+059638888095410bcb46419b34e92b035e1caa77,"refactor(wenshu): v0.34 -- Apple-API-first #4: delete self-written ShapeStyle wrapper RegionSelectionBackgroundStyle (125 LOC, zero callers)",0
+8d49059a380d1e5b5048cf44dd452d363011af22,"refactor(wenshu): v0.34 -- Apple-API-first #5: UserDefaults raw UI state audit (17 sites, 1 dead-duplicate write fixed)",0
+fab34e78e397aa12f38240563e77bd42fdc485cc,"refactor(wenshu): v0.34 -- Apple-API-first #6: NotificationCenter audit (32 sites, retained: @FocusedValue not viable for .commands sender)",0
+cdef4d25d8004960c139e1786a604efb5464523b,refactor(wenshu): v0.34 -- zone-toggle animation: route through NSSplitViewItem.animator() for AppKit canonical push/pop default,0
+d49e833613edc207647e1a7916a75cd6ed57df8b,"refactor(wenshu): v0.34 -- delete dead chrome components (AppTitlebar + AppStatusbar + WenshuChromeOverlay + TitlebarStatusbarPolish, = 660 LOC of dead code)",0
+3e7a6eaa4cca2f15df1e3e63b4013ce59eb2e2ef,refactor(wenshu): v0.34 -- per-pane chrome spacing: 4 PT Apple HIG toolbar gap (= DesignTokens.chromePaddingClusterGap),0
+4fd5026f790798173e3945bd60a14ac295415684,"refactor(wenshu): v0.34 -- delete dead ZonePerRegionChrome.topBar (= 65 LOC, zero active caller)",0
+7c93e3bdc5a44426d4a95c14537b752e5316d8a9,"refactor(wenshu): v0.34 -- chrome parent controls symmetric outer inset (PaneTabBar: .padding(.horizontal, 18 PT) replaces .padding(.leading, 18 PT))",0
+2f45ae1175882bd739197580bb2f677d7551d304,refactor(wenshu): v0.34 -- hover unified via .hoverWash() modifier (= Apple HIG .quaternary single source of truth),0
+b2e483c791693082642693518a1fa3643bdd10c4,refactor(wenshu): v0.34 -- editor expand/shrink + chat archive trailing buttons use PaneIconTab icon pattern + .hoverWash(),0
+eb0d2a29e1f7d871486d03ad6ffa292395586dc6,refactor(wenshu): v0.34 -- Lucide full replace + Card unify + unified sidebar persistence + top-bar helper,0
+82345946cf2101124b85c7683b1e38f1c67e0f5f,refactor(wenshu): v0.34 -- delete ChatZoneTopChrome wrapper (= B-02 multi-layer audit followup),0
+b2e14f770a2c9b6e4332db5abee82e413bcaebe0,refactor(wenshu): v0.34 -- extract Notification.Name to AppNotifications.swift (= B-04 multi-call-site cleanup),0
+8242f5e05ccdb96153748c4659a9006502314ea2,docs(wenshu): v0.34 -- ComponentIndex LEVEL 7/8 refresh (= B-06 F6 SOFT cleanup),0
+c163dc7fbb95d1c0f0f3887a5f2f84825b7a4b66,"chore(wenshu): v0.34 -- delete dead LLMKeychain.swift (= v0.21 dead code, replaced by ProviderKeychain in v0.28)",0
+1fe5b6c7f2503d192ed53c529199ad4d5b0e609a,refactor(wenshu): v0.34 -- wire @AppStorage for editor expand state (= ticket 01 of 11),0
+696c14d4f0c16a4f02830d5289ba6fa7175cc6df,refactor(wenshu): v0.34 -- add EditorMode enum + mode toggle (= ticket 04 of 11),0
+38330945985087f4406eaf1ed27285350e847ae8,refactor(wenshu): v0.34 -- add PaneNSController.handleEditorMaximizedChanged (= ticket 02 of 11),0
+350af96e0ba18d62780f6569b8958fc090646169,fix(wenshu): v0.34 -- repair EditorExpandShrinkTrailingButton click (= ticket 03 of 11),0
+4de81d605021681cdad2a7c4187ea3978fb0248f,feat(wenshu): v0.34 -- preview mode = swift-markdown + InternalLinkParser (= ticket 05 of 11),0
+e626dce19ce0e99cf4adc4b50de1dcde7e657a40,feat(wenshu): v0.34 -- BacklinksPanel in preview mode (= ticket 06 of 11),0
+dccbd0583e3c849e3373e6bef1d36fe3c2e39d23,feat(wenshu): v0.34 -- edit mode = TextEditor + dirty + save (= ticket 07 of 11),0
+0837a4db12eb3792ff2d2d79423ba2195a65bf33,refactor(wenshu): v0.34 -- editor top bar toolbar layout (= ticket 08 of 11),0
+b0230b194d90d5cb34702d8a1d760d2031591a10,feat(wenshu): v0.34 -- close button + dirty confirm dialog (= ticket 09 of 11),0
+45b85e5ddfafc250b2290ba6c543bc1c16b14d56,refactor(wenshu): v0.34 -- editor hotkeys Cmd+E / Cmd+S / Cmd+W / Cmd+Shift+E (= ticket 10 of 11),0
+6e4864bade42b99b28f09ffaf74c13a1fb805836,docs(wenshu): v0.34 -- B-11 backlog + CONTEXT.md editor zone terms (= ticket 11 of 11),0
+e263897efa502e9851e550b047ab0f1847aa5da8,refactor(wenshu): v0.34 -- B-12 zone-toggle full-state snapshot,0
+8b762e5c5884c7a37163e999327ad3f71c6e5d85,fix(wenshu): v0.34 -- B-13 wire WorkspaceView to EditorPlaceholder (= ticket toolbar dead-code fix),0
+3d1db27c887f6d5c1e961435063f8d06fa62d841,refactor(wenshu): v0.34 -- B-14 backlinks inline label + popover (= boss 9/2 OOB),0
+9d99818f1ceda47f2da6258e4b1f8bff060c35fa,"Revert ""refactor(wenshu): v0.34 -- B-14 backlinks inline label + popover (= boss 9/2 OOB)""",0
+5a5fd19e947a62e6bd9940a8b0a090bd2264f142,refactor(wenshu): v0.34 -- B-15 chrome bottom right = backlinks count,0
+7283875659dd6f0103c7aecef75a517fe4f98b6c,feat(wenshu): v0.34 -- B-16 chrome bottom right = clickable backlinks popover,0
+e9398ed9b9e2a30f557de48fc07103d05f767b56,refactor(wenshu): v0.34 -- B-17 strip 120 PT BacklinksPanel + DesignTokens padding,0
+9a41cf738a6fdbb2fd06d8523dc099c43fe9810d,feat(wenshu): v0.34 -- B-18 wire WordCounter to chrome bottom-bar left,0
+3fc118e3bf4898a1ae43b0e77fedc7dc4e3cf0d9,feat(wenshu): v0.34 -- B-20 format toolbar in editor top bar (5 MD buttons),0
+7164e927f9d98cc1d6eff8d0fb504b420a8d96c8,feat(wenshu): v0.34 -- B-18 wire WordCounter to chrome bottom-bar left,0
+80e510844b3556a37e7880c5dd0bd92b7041f458,"feat(wenshu): v0.34 -- B-21 auto-save (3-second debounce, Obsidian-style)",0
+7996df1c5cb57189233b0d914fa302e21e409624,refactor(wenshu): v0.34 -- B-22 auto-save on dirty→clean transitions (Apple HIG pattern),0
+6a391fc35b108983bb4aa639509334df8d90364b,feat(wenshu): v0.34 -- B-23 editor zone auto-reload on external file changes,0
+5dd83a25df5a1dc91409665ec4be0e63eebbac9c,refactor(wenshu): v0.34 -- B-24 multi-tab data model (= EditorTab + AppState.openTabs),0
+a600d6f744eedf5cac5c914af1e14fb52d9a7a72,refactor(wenshu): v0.34 -- B-24 complete (per-tab state migration to AppState),0
+94ddb5be0e6d7969612e0f2ccefef5ed232eb281,fix(wenshu): v0.34 -- B-25 card double-click opens .md in editor + duplicate-tab check,0
+c2dbe7e0d25bb9b45265731377ad449cd4d26af3,fix(wenshu): v0.34 -- B-25 closure self-capture bug fix (= Swift 6 strict capture),0
+d20b0a8b300b10c43c6582f9935ebc7114714a06,"docs(wenshu): v0.34 -- spec for Card-master port (11 items, 8-step Q34 chain)",0
+13bc858be63da840d569156dbe272912f1246729,fix(wenshu): v0.34 -- B-25 preview view reads active tab (= double-click fix root cause),0
+b4f2c2e6b384aaaa66ed1724d450897ca2c62002,feat(wenshu): v0.34 -- AI thumbnail generation (Issue 02),0
+a31fd600eb6833759a8772dbe2ee1c43532f36f7,fix(wenshu): v0.34 -- B-26 tab bar + manual double-click latch,0
+f629f384ff51dd5cc6f0967897b9b6e3d15988fd,fix(wenshu): v0.34 -- B-26 always append new tab (= no replacement of active tab),0
+1062e57406538b18afdf9852c36f47f12c055094,fix(wenshu): v0.34 -- B-26 inlined tab bar + NSEvent double-click interval,0
+2031a478c0cfb8d14eb96020c6189c3f0080aa3d,feat(wenshu): v0.34 -- startup readiness check (Issue 05),0
+d90bba91f1e34d513aee27ba6c11b5482fa1b38f,fix(wenshu): v0.34 -- user-facing error translation (Issue 06),0
+948f79e06cd24fa1965581f8391327660e4bd1f8,feat(wenshu): v0.34 -- SSE streaming chat (Issue 07),0
+2b309c98c1a988f3c573768a9cd0557bf66fba3a,fix(wenshu): v0.34 -- ChatStore.transact (Issue 08),0
+b93d7502dfcc6b5c224390159bbb7961d3d1dac7,fix(wenshu): v0.34 -- WikiEntityPreflight (Issue 04),0
+ca199998c4d5a9a4a413bd5ed97a865f6d8fd483,docs(wenshu): v0.34 -- upstreams.json + THIRD_PARTY_NOTICES.md (Issue 03),0
+c8deb21bc28f04c5d539baae43b77bab4ce78d28,fix(wenshu): v0.34 -- WorkspaceStore.replaceAll (Issue 09),0
+0d133fe38a725aa7a386e6f8de0bb55f1fde602b,feat(wenshu): v0.34 -- CapabilityRegistry (Issue 10),0
+63f16e93308829361ea152674822c41d2ba88dc2,fix(wenshu): v0.34 -- notices automation (Issue 11),0
+73ca3cc1868abd46d56068ddd2450b00fac769d4,docs(wenshu): v0.35 -- AGENTS.md §11 baseline rewrite + §11.2 7 LLM connector profiles + §11.3 agent interaction principle + CLAUDE.md sync (= ticket 011 of 11),0
+982e330f11b15938e8cb675c8f546a601033af0a,refactor(wenshu): v0.35 -- Core/Agent/ 13 files rename into Conversation/ + Connector/ sub-directories (= ticket 001 sub-step 1 of 8),0
+6d04628e8207175bf77bb38ec1ce9d8bf0e96afd,feat(wenshu): v0.35 -- LLMConnector protocol + ConnectorCredentials + Provider enum extended with Gemini / DeepSeek / Ollama (= ticket 001 sub-step 2 of 8),0
+8508c02989fb8e41a5723c2dc989feabc9b806c9,feat(wenshu): v0.35 -- ConversationLoop actor + LLMMessage/LLMResponse/ConversationResult types (= ticket 001 sub-step 3 of 8),0
+dded32001b826231c439bf3c3330887c8ec1f887,feat(wenshu): v0.35 -- TurnContext + TurnFinalizer + TurnRetryState + MessageSanitization + MessageContent (= ticket 001 sub-step 4 of 8),0
+30e34ff7f73d4ec632e237108dbdae27afefe784,feat(wenshu): v0.35 -- ToolExecutor actor + Tool protocol (= ticket 001 sub-step 5 of 8),0
+101628994011ff02cde88b6347c64c952212592e,feat(wenshu): v0.35 -- ReadFileTool + WriteFileTool (thin async wrappers over existing Core/Tools/FileTools.swift) (= ticket 001 sub-step 6 of 8),0
+16736eebeb8934aafa91f754bcf4a4e02f20ff83,feat(wenshu): v0.35 -- MinimaxConnector (thin Anthropic-compatible wire format wrapper) = ticket 001 sub-step 7 of 8,0
+50ca38056292076b58b9efb72d57ee78de219286,feat(wenshu): v0.35 -- WenshuVerifier.sendViaMinimaxConnector() thin facade over new LLMConnector protocol (= ticket 001 sub-step 8 of 8),0
+8934b31df72e8b7fd49008bc1c08d0aaf3fa5732,feat(wenshu): v0.35 -- PromptCaching (= hermes prompt_caching.py port) = ticket 002 sub-step 1 of N,0
+713d9611809d1ae7eece1efa8c45e3d1ba6f0a30,"feat(wenshu): v0.35 -- SystemPrompt (= hermes system_prompt.py port, byte-stable tier) = ticket 002 sub-step 2 of N",0
+2ea3deb3128608c2df103c1cb0b30365f9721afd,feat(wenshu): v0.35 -- Wire PromptCaching into MinimaxConnector (= cache markers on outgoing request) = ticket 002 sub-step 3 of N,0
+52216db82db304c0fdb6d6c708287cbe6820e927,feat(wenshu): v0.35 -- PromptCaching byte-stability e2e tests (= AGENTS.md §11.3 invariant verification) = ticket 002 sub-step 4 of N,0
+a4d4533a0c702210dc70bcc1110fb4a16ae34e9d,feat(wenshu): v0.35 -- ContextCompressor actor + CharacterBasedTokenEstimator (= deterministic compression policy) = ticket 003 sub-step 1 of N,0
+3251d95c523dec94975474c8b8a67a605baa2492,feat(wenshu): v0.35 -- ConversationCompression actor (thin wrapper over ContextCompressor + manual trigger) = ticket 003 sub-step 2 of N,0
+dcbe93b38a22ac3cd6ae95cc85d9ab74798e9cba,"feat(wenshu): v0.35 -- ContextEngine facade (= hermes context_engine.py ABC port, thin wrapper) = ticket 003 sub-step 3 of N",0
+2924ea8602e3e5721e06cd08fa3d06af1f19b890,feat(wenshu): v0.35 -- ContextEngine e2e tests (= ticket 003 integration verification) = ticket 003 sub-step 6 of N,0
+e13e6e0596a3f16b0ae3549c38012eb3c218b8d6,"feat(wenshu): v0.35 -- AnthropicConnector (full Anthropic-native wire format, P0) = ticket 004 sub-step 1 of N",0
+7daa9b460ab17d8307db8e599c835cefd3306f6d,"feat(wenshu): v0.35 -- OpenAIConnector + OpenAICompatibleConnector (P0, 4 providers) = ticket 005",0
+25c24d5216fb4db620955b802647cad3c19ec612,"feat(wenshu): v0.35 -- LLM Connector Settings UI (7 profiles, BYOK) = ticket 006",0
+26338fbfe4a77233fb5f32eb073e91ed9224f3f9,"feat(wenshu): v0.35 -- GeminiNativeConnector (Google GenAI protocol, P1) = ticket 007",0
+2c6fa40266efa28816c9db4cfb83e3bde75502eb,"feat(wenshu): v0.35 -- WenshuModelCatalog (= per-provider model catalog, P2 OpenRouter metadata) = ticket 008",0
+4342c0356bcd1d5b8ab8a988286cd9cadd666eb9,feat(wenshu): v0.35 -- Memory subsystem thin adapter + Settings view + DynamicZone panel = ticket 009,0
+aec234f03a6ed3cda227c28bfc404d00794fa520,feat(wenshu): v0.35 -- Skill subsystem thin adapter + Settings view + /command parser = ticket 010,0
+dac2d06ece9180082542b066a8d4bfe3f90d994b,"feat(wenshu): v0.35 -- Activate ChatView compression pill + manual button (act-1, DesignTokens compliant) = ticket 003 sub-step 4+5",0
+128b1ec543894cc4950dbf99f1d730a30d906037,"feat(wenshu): v0.35 -- AgentSettingsView (3-pane settings, DesignTokens compliant) = activation act-2-fix",0
+6ddb64f8052b4e7cea904dc06fd4a70b1b2de40b,feat(wenshu): v0.35 -- DynamicZoneMemoryPanel (DesignTokens compliant) = activation act-3-fix,0
+e254b4f51906d63f4eb3c9a21cd9ba6921102bf9,"fix(wenshu): v0.35 -- DynamicZoneMemoryPanel: use .continuous corner style (Apple HIG standard, no magic)",0
+32d2f9210be3fe6603520cc5b9032bbecb740d95,fix(wenshu): v0.35 -- ConnectorProfileRow: DesignTokens compliant + replace *** with $profile.apiKey (tokenize auth field),0
+cfa778020c00a5e12c77fbb0915c844d3589ad9b,fix(wenshu): v0.35 -- ConnectorAuthField + LLMConnectorSettingsView: DesignTokens compliant (iron rule 6),0
+f9f6d0517b84037884c0ad080f45f10a0b1519bc,fix(wenshu): v0.35 -- Memory/Skills settings views: DesignTokens compliant (iron rule 6),0
+c91feff0760f3bc8238e3b81f99d9da4acf77550,fix(wenshu): v0.35 -- Tokenize 3 remaining cornerRadius magic numbers (Apple HIG small-chip standard),0
+b90635ea8f86ade859e4122f55bd752e693e5cd3,fix(wenshu): v0.35 -- DynamicZoneMemoryPanel: tokenize final cornerRadius: 3 (= Apple HIG small-chip standard),0
+9e3e893879a40ca205cc72938555226ab44d06cc,feat(wenshu): v0.35 -- ticket 003 sub-step 5: manualCompress actually overwrites vm.messages (REAL compression round-trip),0
+fd543589f94a373fbb1eae8ea44d279d38508e45,fix(wenshu): v0.35 -- Tests: fix ToolExecutorTests swift walrus operator typo + remove orphaned TipTests,0
+dca679c794fbadbea83fde0e488aa19b5231ad49,docs(wenshu): v0.35 -- domain-model step 1/6: CONTEXT.md v0.35 agent subsystem glossary,0
+274dd162093f0de10d7515a7d412f1825b53da8e,docs(wenshu): v0.35 -- domain-model step 2/6: ADR-0008 7-connector BYOK architecture,0
+ddc91fb34fdf9e24740adda2a20af0aa2dd4f4ce,"docs(wenshu): v0.35 -- domain-model step 3/6: ADR-0009 wenshu-side wins (hermes port is thin adapter, NOT replacement)",0
+b939deb12c779b8494c83ef58fafec8a048b6031,docs(wenshu): v0.35 -- domain-model step 4/6: ADR-0010 PromptCaching 4 breakpoints + SystemPrompt byte-stable,0
+3ae87496662541fec6b5218f2e30a88149ef93a1,docs(wenshu): v0.35 -- domain-model step 5/6: ADR-0011 deterministic context compression (no LLM-driven),0
+5a46f3e853e478dd4c4e40b716d427f84c35399c,docs(wenshu): v0.35 -- domain-model step 6/6: ADR-0012 Scope B (= hermes full non-frontend + agent core),0
+c2b5353925d468c09171f464ec52acc088d98789,fix(wenshu): v0.35 -- Standards H2: unify smallChipCornerRadius to 3 across all 3 files (Apple HIG small-chip standard),0
+24024afa51d37149ebef7084868634a8dbc3e754,fix(wenshu): v0.35 -- Standards H3: promote 9 file-scope chrome constants to DesignTokens (= single source of truth),0
+92cfa3ce5eea47716e26c846c110abae95274917,fix(wenshu): v0.35 -- Standards S2: extract ChatMessageBridge (= single source of truth for ChatMessage ↔ LLMMessage mapping),0
+04ce8538e8b4dece4eb5409096a0b00d4d13183f,fix(wenshu): v0.35 -- Standards S3: extract ToolInputParser (= single source of truth for tool JSON input parsing),0
+fa262142d843facb3c57a501afdb0fccfcf66bcc,fix(wenshu): v0.35 -- Standards S4: unify MemoryEntryRow + MemoryEntryRowCompact with compact flag,0
+dd2038f72d5aae0eff0f9c823aaf5bdf350d64e5,fix(wenshu): v0.35 -- Standards S5: add LLMBlock.asJSONObject + .textValue (polymorphic dispatch),0
+a9ff0910aac4d81283da389758c4e8b1d575b12c,fix(wenshu): v0.35 -- Spec (c)-2: Anthropic SSE streaming + tool_use round-trip helpers (ticket 004 sub-step 2+3),0
+1e081cc97fb9ce13b9c2370fd99bd94a7b039f52,docs(wenshu): v0.35 -- Spec (c)-1 reconcile ticket 001 L51: minimax cn = Anthropic-compatible (MinimaxConnector is canonical),0
+7bcf9ad37c3ef0a3a1a79e2d1fc158d09773ac07,docs(wenshu): v0.35 -- /code-review loop closure report (= Standards + Spec axes both clean),0
+73b5ad6d2e4e8ed9d6cfd8be89543ff78d5b8ce7,feat(wenshu): v0.36 -- ticket 012 sub-step 1: credential rotation + OAuth protocol extension (ProviderKeychainMetadata),0
+e590892a69f4141b234ced646c6a3835950384b0,feat(wenshu): v0.36 -- ticket 012 sub-step 2: InMemoryKeychainStore metadata persistence (= test backend for rotation + OAuth),0
+edf339ac1a324f7942cd5d362438f422a74c826f,test(wenshu): v0.36 -- ticket 012 sub-step 3: Z contract tests for ProviderKeychainMetadata + InMemoryKeychainStore,0
+30885169f5636003379ec450829fe717cfd87a2e,feat(wenshu): v0.36 -- ticket 012 sub-step 4: OAuthFlow actor (= PKCE auth code + refresh_token grant),0
+57462a8926fa6c9db2892f515845203489a3ec4a,feat(wenshu): v0.36 -- ticket 012 sub-step 5: ConnectorCredentials expiry-aware adapter + ProviderKeychain shim methods,0
+ac77eb80de504f978b97a88db26d71af3dc1d8d6,"refactor(wenshu): v0.36 -- ticket 013 sub-step 1: delete DynamicZoneMemoryPanel + test (= duplicate, 0 callers)",0
+b24fc8a036b2fe92afd44ca682413182ac6243c1,docs(wenshu): v0.36 -- ticket 013 sub-step 2: CONTEXT.md reconcile MemoryRetrievalPanel canonical + DynamicZoneMemoryPanel deleted,0
+83bce7ce5a29a0de662573c99f05ff020bf88504,feat(wenshu): v0.36 -- ticket 014 sub-step 1: ContextBreakdown + ContextBreakdownAnalyzer (conversation context diagnostic),0
+bcfa95bab806397f230608d6f33ab205aa79265e,feat(wenshu): v0.36 -- ticket 014 sub-step 2: ContextReferences actor + ContextReference struct (= LLMMessage.id ↔ source file cross-reference),0
+808e43e78cf4b4fca36420667b7df7f77105a42d,test(wenshu): v0.36 -- ticket 014 sub-step 3: Z contract tests for ContextBreakdown + ContextReferences (= 11 tests),0
+729fc9c7aee38a250769ad439c8193543d9aa551,feat(wenshu): v0.36 -- ticket 015 sub-step 1: ToolGuardrails + ToolNameWhitelist (= pre-tool invocation checks),0
+b5f2fe25d9abd1b0c686d72b7b2cf47dd45f2ae7,feat(wenshu): v0.36 -- ticket 015 sub-step 2: ErrorClassifier + LLMErrorCategory + ClassifiedLLMError,0
+621dc878f8c2f812b6e533f7c1ddee4470727865,feat(wenshu): v0.36 -- ticket 015 sub-step 3: RateLimitTracker + ProviderRateLimit + RateLimitBudget (= per-provider sliding 60s window tracking),0
+bf8f89d9f9e9b4cb537671f2d7e368590b2876bb,feat(wenshu): v0.36 -- ticket 004 sub-step 4: AnthropicStreamingWireup actor + AsyncStream bridge (= SSE wire-up with Swift6 strict concurrency),0
+22ba7afdf5d61c054297e53898b9a16b472284a5,test(wenshu): v0.36 -- ticket 004 sub-step 5: Z contract tests for AnthropicStreamingWireupFactory + AnthropicSSEDecoder (= 11 tests),0
+8646df3b890af994052028417e39ce56f7939740,feat(wenshu): v0.36 -- ticket 016 sub-step 1: BackgroundCreditsTracker actor (= token consumption tracking per AGENTS.md §11),0
+0e01f31c78bb01f27d5ab81ec6ffa314abc60f01,feat(wenshu): v0.36 -- ticket 016 sub-step 2: DisplayStateMachine (= finite state machine for background task UI),0
+832f0479619636b25df818062c53e558489bf9d5,feat(wenshu): v0.36 -- ticket 016 sub-step 3: BackgroundReview (= proposal approval workflow for background changes),0
+847fc88be36b7534fc5a97e7d7f522e23a9fea2a,feat(wenshu): v0.36 -- ticket 016 sub-step 4: Curator (= reference-library entity curation analysis),0
+5132f1a9a7459a4047897a14e9c7e4fcafbd2869,feat(wenshu): v0.36 -- ticket 017: RuntimeCWD actor (= current working directory tracker for tool execution),0
+0ee1dab6031481b2c990e83efe6259444518f0da,feat(wenshu): v0.36 -- ticket 018 sub-step 1: hermes-port golden infrastructure (= generate_golden.py + 5 golden files + Swift parity test),0
+2d87b64b5c20c23b547393e1313a6325bc07de70,feat(wenshu): v0.36 -- ticket 018 sub-step 2: X e2e dual-track harness per spec §6.2 (= 3-turn conversation parity check),0
+f7cf7335538357837613e52316466b3507bfa111,feat(wenshu): v0.36 -- ticket 013 sub-step 3: wire MemoryRetrievalPanel into DynamicZoneView as right-bottom panel per spec §6.4,0
+2671f8968a23994ce063822da9dba3b6dc2019e6,docs(wenshu): v0.36 -- CHANGELOG (= v0.36 release notes = 50→73 commits + hermes-core-translation + iron rule 6 sweep + 9 backlog closed),0
+cfb527d8f2f21d0ce0020ea198531c807c40a201,test(wenshu): v0.36 -- visual verification smoke test + ship checklist (= 8 smoke tests + complete ship instructions),0
+babb3e6b1a58032c6b19daeb8757b79293862154,docs(wenshu): v0.37 backlog report (= consolidate 5 v0.36 deferred items + 8 v0.37 candidate tickets + direction recommendation),0
+482ac52b9bf5080f76228d4379eba860a8be4ca0,docs(wenshu): v0.37 roadmap + v0.36 push decision (= one-page 老板 decision document),0
+20954fc68e2193614a4676567e79d93645fd6b40,test(wenshu): v0.36 -- comprehensive interface-level test suite (= 90+ tests across 16 interfaces),0
+5e3eee22d13db835614212e66954a45af11e7fb1,"fix(wenshu): v0.36 -- pre-existing visual verify test compile errors (= 2 fixes: badgePaddingVertical removed, Provider.allCases manual array)",0
+a05da6915e1226fb9e969db164820eec93c4ee6f,fix(wenshu): v0.36 -- correct wrong Provider case names in comprehensive interface tests (= Provider.openai/.deepSeek -> actual canonical names),0
+4d7a3d4240849a7d98b2041f6cb9db0915ea2895,fix(wenshu): v0.36 -- correct wrong Provider case names in v0_36_visual_verify_test (= openai/deepSeek -> canonical minimax/deepseek),0
+66c172f38ebe835176b74969c92b446f9aa7824e,fix(wenshu): v0.36 -- my 2 test files compile clean (= @MainActor for DesignTokens + ChatViewCompressionRow nil init fix),0
+f2460c44d6bcc969e27c2d3a0bb69e69b34419ad,fix(wenshu): v0.36 -- fix pre-existing test files (= delete 6 dead UI tests + fix LLMConnectorTests LLMMessage signature),0
+5dd73cfdf75116b7b820aea1d3d7f2e9407a5f0a,fix(wenshu): v0.36 -- LLMConnectorTests MockLLMConnector conforms (= connectorID + LLMMessage blocks API),0
+f63bc29b457d8bb4c288b2499ba6b18024d16a2f,fix(wenshu): v0.36 -- shared URLProtocolStub for HTTP interceptor tests (= promoted from inline to test-target public),0
+68a9b465860f6127bc4a57c646b07e48ef49d98b,fix(wenshu): v0.36 -- MinimaxConnectorTests uses shared URLProtocolStub (= delete duplicate + use new API),0
+a5e60cc4b71dc8dfe5ca281a930c68d19df6d593,fix(wenshu): v0.36 -- PromptCachingE2ETests snapshot helper (= actor isolation fix),0
+f589a76437ffab32265085b0b36c498d66d9e6c8,fix(wenshu): v0.36 -- HermesPortGoldenParityTests uses CharacterBasedTokenEstimator.estimate(LLMMessage),0
+c5860ca8ca657b34bcf04fb7a4a386d092cc86a6,fix(wenshu): v0.36 -- promote MockLLMConnector to shared test helper + Sendable snapshot,0
+2cdc097acf127b6a36412b2ff29dd292c4f33fe1,fix(wenshu): v0.36 -- PromptCachingE2ETests readCapturedMessages async accessor (= Swift 6 actor isolation),0
+5828e231727e006b70b83991d7fe2725aae8bf17,fix(wenshu): v0.36 -- PromptCachingE2ETests use snapshot.messageCount only (= skip non-Sendable [[String:Any]] reads),0
+a25507613262e502c9f75ef10fc7456f57590b08,fix(wenshu): v0.36 -- ContextEngineTests await formatContextBundle (= actor isolation),0
+007755e3e6b4c53ed09972b9bd436e4de7f06c57,fix(wenshu): v0.36 -- ContextEngineE2ETests closure param + await formatContextBundle,0
+b15539159de18e75020f85e0c0612c796eba62bd,fix(wenshu): v0.36 -- ChatViewCompressionRowTests import UIKit + drop onShowCompressionDetail arg,0
+e096716431572571b204a8f314b435a82d0f69c1,fix(wenshu): v0.36 -- ChatViewCompressionRowTests macOS-only (= drop UIHostingController for view.body),0
+aba20664ad991b5c69d6dd7cfeecab0e65319794,fix(wenshu): v0.36 -- rename ProviderKeychainTests struct to ComprehensiveProviderKeychainTests (= avoid redeclaration with Tests/WenshuAppTests/ProviderKeychainTests.swift),0
+93c8ef4a3f8e0c8128480c5d21efe5b3172fb063,fix(wenshu): v0.36 -- ChatViewCompressionRowTests _ = host -> _ = view,0
+277c31590bccf3dd8b404e44a5c808f8f57bf886,docs(wenshu): v0.37 full-translation plan + frontend flow + visual verification packet (= 30 commits across 6 batches),0
+5a452e922425ae2cdb51e48055bc53bff26ee4e0,fix(wenshu): v0.37 -- ComprehensiveInterfaceTests 6 errors fixed (= session 27 Batch 1.1),0
+09dfeae816559a6ec7a67a48bb3244c61fb803f6,fix(wenshu): v0.37 -- chromePaddingConstants + chromeHeight @MainActor (= 0 test target errors),0
+1726a683da79b4742a246d6fb5faae664071154d,feat(wenshu): v0.37 -- RealAgentDispatchTests (= ticket 018 sub-step 3 foundation),0
+29a313d296bbe5b0a7e163248ac0bcc6e06721a7,feat(wenshu): v0.37 -- MockLLMConnector scripted responses (= Batch 2.1 sub-step 2),0
+4b51c80876f9e8bb69f6449662b84eca7cf8153d,feat(wenshu): v0.37 -- scripted tool_use end-to-end tests (= Batch 2.1 sub-step 3),0
+8f238990d7d8a24e6685279d9caa6a94c8933080,feat(wenshu): v0.37 -- ConversationResult structure verification tests (= Batch 2.1 sub-step 4),0
+094021730ee234717d8d3305e4bbac464e804f77,feat(wenshu): v0.37 -- AnthropicStreaming thinking_delta support (= Batch 2.2 sub-step 1),0
+9ecd34ee632c85f8427b9b5941d5877a0ae76bc4,feat(wenshu): v0.37 -- AnthropicStreamingTests for thinking_delta + fix AnthropicStreamingWireupTests 3-tuple pattern,0
+3a3b12abce29cd28645e862de6dd211598bb87e1,feat(wenshu): v0.37 -- generate_golden.py extended to 11 hermes modules (= Batch 2.3 sub-step 1),0
+620edb04398667980df1a924b44034b235ab5553,feat(wenshu): v0.37 -- HermesPortGoldenParityTests extended to 11 modules (= Batch 2.3 sub-step 2),0
+1b837c4bb4ce99a146151dcebaf94f121afd2bab,"docs(wenshu): v0.37 -- hermes port manifest (= all 11 tickets, 135+ tests, 0 errors)",0
+25fa7f44b07ec9d75fffdbc69ccb5adfb9da3e68,feat(wenshu): v0.37 -- RuntimeCWDDisplayChip UI component (= Batch 2.4 sub-step 1),0
+9a317af38d0d75ca3d12cfae5473d5eed1044e37,feat(wenshu): v0.37 -- RuntimeCWDDisplayChip tests (= Batch 2.4 sub-step 2),0
+59f92dac06527558f5d8f5b89db17e5d56287cc2,feat(wenshu): v0.37 -- MockLLMServer harness for per-ticket X e2e (= Batch 2.5 sub-step 1),0
+5ca5b51706c7e3684b9f7d44074d2fe3673d569c,feat(wenshu): v0.37 -- PerTicketE2E tests for 7-connector BYOK (= Batch 2.5 sub-step 2),0
+ce4c49e6c2d12570c04e24c1b4a93ae76b63df63,"feat(wenshu): v0.37 -- v0_37_visual_verify_test.swift (= Batch 5 sub-step 1, 19+ smoke tests)",0
+45c75c312d8a7c7a5b460fd65245fdcace1a5fd7,docs(wenshu): v0.37 -- visual flow guide for 老板 一次性 verify (= Batch 5 sub-step 2),0
+7c99d12f5164a6e890185aa3442d5d4c128c5cf5,fix(wenshu): v0.37 -- ADR-0012 file path typo (= 23/22 visual verify tests pass),0
+8df98bbab9a3d6fc38b5d5138571a9f552956795,docs(wenshu): v0.37 -- CHANGELOG.md v0.37 ship packet (= Batch 6 sub-step 1),0
+1f5f1062d760b79acd5990ec363aa35116eb9125,docs(wenshu): v0.37 -- ADR-0013 v0.37 scope + frontend flow integration decisions (= Batch 6 sub-step 2),0
+3e1ab29de593186ee7eabbad051082ee39b4ee6a,docs(wenshu): v0.37 -- bump AGENTS.md + CLAUDE.md to v0.09 (= Batch 6 sub-step 3),0
+62a8bad50a7c86b154ed02111257b0fd49546066,fix(wenshu): v0.37 -- RuntimeCWDDisplayChip iron rule 6 compliance (= lineWidth DesignTokens),0
+021bf1d08627adfeeb746be9e0d11c438f18c353,docs(wenshu): v0.37 -- ship packet status report (= final v0.37 readiness check),0
+12c33b1d2d41ca3e613b9799d862b8138a31dcbb,chore(wenshu): v0.37 -- remove stale LLMKeychainTests.swift (= superseded by ProviderKeychainTests),0
+65fed0c22744ff0a384286f59eba829a97b63aa5,docs(wenshu): v0.37 -- push attempt report (= remote branch divergence blocks fast-forward),0
+e982bd7639495a60961426ea63b6ce381616536e,docs(wenshu): v0.37 -- push attempt report (= remote branch divergence blocks fast-forward),0
+a20948a0011a56d93f11a5ada129432c8813d364,feat(wenshu): v0.38 -- BackgroundTests comprehensive coverage for v0.36 ticket 016,0
+e62b640c76ff7aa45795e477e1247c4ce1537f00,feat(wenshu): v0.38 -- ToolGuardrails + ErrorClassifier deep tests (= ticket 015 coverage),0
+6c1d3f26f918816a943504b423908c6ae69062a4,feat(wenshu): v0.38 -- RateLimitTracker + ContextBreakdown + ContextReferences deep tests (= ticket 015/014),0
+95dc4ce73503ca91a3b4bfba97baba2ca3f9a689,feat(wenshu): v0.38 -- SystemPrompt + MessageSanitization deep tests (= ticket 002/001),0
+52639859e4d74bbaaf90b3514f0a3689e340b996,feat(wenshu): v0.38 -- LLMBlock + LLMResponse + LLMUsage + LLMMessage deep tests (= ticket 001),0
+eda0f6869c45b3e152dea33b9517d0ffc3448b63,feat(wenshu): v0.38 -- Tool + ToolInputParser + ReadFileTool + WriteFileTool deep tests,0
+8605d1802f9e8de1cf8c13abb71618beb9f3df30,feat(wenshu): v0.38 -- ContextEngine + ContextCompressor + CharacterBasedTokenEstimator deep tests,0
+8c0cd70fde1efb88b266a117f4c31a0ed213d3d5,feat(wenshu): v0.38 -- MemoryAdapter + SkillAdapter + OAuthFlow + ProviderKeychainMetadata deep tests,0
+32ba928cb0437cd8de718c655b58bb81469745ec,feat(wenshu): v0.38 -- PromptCaching + TurnContext + ConversationLoop deep tests,0
+865f78f4ebc16ed8ec8215a39819feca336aae2e,feat(wenshu): v0.38 -- TurnFinalizer + TurnRetryState + MessageContent.canonicalize deep tests,0
+d824edf9b1e3b9b679e5319ef17e92b74595d1c3,feat(wenshu): v0.38 -- DisplayStateMachine + DisplayState + DisplayStateError deep tests,0
+115d144ea368ac69d5862bee3740a1f97417d776,feat(wenshu): v0.38 -- ConnectorCredentials + LLMConnectorError + LLMCallOptions + Provider deep tests,0
+1d7fe2181ac22bbc616743443f8e7ec07d5c6a6b,feat(wenshu): v0.38 -- WenshuLLM types deep tests (= Message/Request/Block/Usage/Response/Error),0
+baacf7f5153662431fee627db4fc912995748f33,feat(wenshu): v0.38 -- WenshuModelCatalog + ModelInfo + OpenAIConnector deep tests,0
+917bae80fbdbf7e2375ea44a1cc34d173a567839,feat(wenshu): v0.38 -- WenshuLLMModel + WenshuVerifierKeyNote deep tests,0
+7b7d141557cda2b95dc49267b8e42d3a094e799e,feat(wenshu): v0.38 -- ChatMessage + ChatRole + ChatMessageBridge deep tests,0
+1e443a2adf508445fab23d829cf7234f81460dfb,docs(wenshu): v0.37 -- archive .scratch spec/issues/audits for v0.37 ship,0
+e7eb1b3c89bd811a8fdd3cb0a31ef82b105e7345,Merge branch 'wt/multi-agent-dispatch' into main,0
+6c6c3c07eeac7fe491c19e75c8d1a00f31b3a243,feat(wenshu): v0.38 ticket A -- wire Settings → Agent / Memory / Skills 3-pane,0
+f6bb9af3aa75351e41a69492ab58a95b4e98a008,feat(wenshu): v0.38 ticket A2 -- wire SkillAdapter.listSkills() to wenshu SkillRegistry + async load in Settings → Skills tab,0
+67369b239806144aaf742733b0de596d85aacb61,feat(wenshu): v0.38 ticket P2 -- Apple-standard i18n infrastructure (= en + zh-Hans),0
+5b0fc61ca3b74d321d9513dc49ce2db76b37797c,feat(wenshu): v0.38 ticket P2 -- i18n SkillsSettingsView (= en + zh-Hans),0
+178d43c60d84eb2190f9e30e6ab0fc704140ccf0,feat(wenshu): v0.38 ticket P2 -- i18n MemorySettingsView (= en + zh-Hans),0
+66140c1e65627ccd34b36325792e510328c68753,feat(wenshu): v0.38 ticket P2 -- i18n LLMConnectorSettingsView + sub-components (= en + zh-Hans),0
+ccec306cc6c266ef73ed735f582d0f16ba3bdaae,feat(wenshu): v0.38 ticket P2 -- i18n Settings tab labels (= en + zh-Hans),0
+34c99161650491de2070f72f1f0fb26c34ac8b1e,fix(wenshu): v0.38 P2 -- i18n bundle resolution for SPM executable target,0
+5d7a97af48f855261baf71e796ca5c4ed2efd864,"Revert ""feat(wenshu): v0.34 -- startup readiness check (Issue 05)""",0
+6d762e4dd097c788cb9c58bd352d166128c2d249,"Revert ""feat(wenshu): v0.34 -- AI thumbnail generation (Issue 02)""",0
+0046bc045e95b6e4bab74e02902147e53f61d695,docs(wenshu): v0.38 -- v0.34 thumbnail revert note (reopen scaffold),0
+b32e48da62fbf0722c56ab72bc0dabd86460c65d,feat(wenshu): v0.38 P2 -- i18n generalTab + modelTab EFFORT hint (= en + zh-Hans),0
+bb197c0a1724531f6e473df0c3ff416fd9f6a336,"refactor(wenshu): B-04 closeout -- rename runtimeCWDDidChange raw value to ""com.wenshu.X"" (= Apple reverse-DNS convention)",0
+2461a013b9528cec0be796d4f00a5040b4b203e5,refactor(wenshu): B-06 -- strip stale liquidGlassOpacity + WenshuChromeOverlay / AppTitlebar / AppStatusbar doc-comments (= v0.32+v0.34 chrome rewrite history),0
+038d0de70c2c59722264991182961756ce5354aa,refactor(wenshu): B-02 -- inline ChatZoneTopChrome wrapper into PaneTabBar callers (chrome flatten),0
+9d8cea6b1e82ee510876a1238a78d71b81fae20f,chore(wenshu): B-03 T3a -- ship CJK commit-body translator script + dry-run report (= pre-stage for T3b rebase),0
+2722bd12fb215c8366d3c86aa3155660336a702f,refactor(wenshu): B-10 -- restore AppleKeychainStore SecItemAdd/CopyMatching/Delete (= flip default backend to AppleKeychainStore),0
+86b156c0571e61e404996d5867b8cfc99ebdb34c,"refactor(wenshu): B-05 -- centralize wenshu.llm.model ownership into AppState.llmModel (= single source of truth, was scattered across 3 @AppStorage + 1 read site)",0
+84d9a4a5652e2cea9f33f9f54241f057bd5c9172,"docs(wenshu): v0.39 ticket 001 spec -- adopt swift-markdown-engine as chapter editor (= Apache-2.0, TextKit 2, wenshu-side wins)",0
+c86190b312c9465f1f1139f6f2fd94e236c5cb60,refactor(wenshu): B-05 closeout -- wire ChatViewModel + ChatZoneView to AppState.llmModel (= final piece of the centralization),0
+d396bbb36777f4185d926abafe047e1d5ef066ce,fix(wenshu): B-05 build fix -- demote ChatViewModel init + drop @Environment read in ChatZoneView.init,0
+9202153fa1ad9141dde1d07d79092a985aff40c0,feat(wenshu): B-09 -- wire Kanban + Todo views to per-book BookKanbanStore / BookTodoStore (= functional linkage),0
+c5ffa91250998d73cf18c05a8c720705afd583aa,fix(wenshu): B-10 emergency in-place revert -- restore debug keychain stubs + flip default backend to InMemoryKeychainStore,0
+1346ebc624b7061514be45f19bea0e522a227b34,fix(wenshu): v0.38 P2 -- copy SPM i18n bundle into .app at build time,0
+e8611c06b058f7f4235e8e47bcb86161e4247832,fix(wenshu): B-11 -- inject appState into Settings scene to fix open-Settings crash,0
+97b5969240ce0481cc532b449ac3bfdb2813d194,fix(wenshu): H-1 SkillsSettingsView skills state-flow,0
+f0aa312bf77b7ffb92e0fc7ece827743e3942ddb,feat(wenshu): B-10 re-attempt -- embed entitlements at codesign + flip default backend to AppleKeychainStore,0
+86d79faba2ba8aa8ab72b71f0814000bd521bf2d,"fix(wenshu): B-10 split phase A/B -- keep InMemoryKeychainStore default (= ad-hoc + SIGKILL), add comment block",0
+bc119737587c4945498b3b2fc7c750c2aefc70f2,fix(wenshu): B-10 phase A complete -- entitlement scaffold + backend flip (phase B pending Apple Dev Program),0
+69395b0d1575eca3f780d98ab44cd71780edbd28,fix(wenshu): B-12 disabled-state UX for Kanban + Todo '+' buttons,0
+bbcbb4660d6297e51ffa6e7e5cd517b0d7ee4b38,feat(wenshu): B-13 scope-aware Kanban/Todo data layer + TaskScope enum,0
+71312fa4b98f0d7e5bd25cd72e572efe8c2c9bff,feat(wenshu): B-13 scope picker in Kanban/Todo views + Todo visual distinction,0
+1bd5f4c772df9653206fdacca3b45ac3be76fce2,docs(wenshu): honest 43-module hermes port coverage per gap audit,27
+114a00c39e5d3af32c11fb5e11379288417f2872,feat(wenshu): TICKET-HERMES-GAP-004 -- port shell_hooks.py to Tool/ShellHookChain.swift + wire ToolExecutor,0
+1568fcca163f7ba796a91de4eb3bc21009a76ff4,fix(wenshu): v0.39 ticket 001 package dep + restore WIP file (= unblock build),0
+2b13bb8c1481ff21a95bd20deced73ac87b74035,feat(wenshu): TICKET-HERMES-GAP-007 -- port retry_utils.py to Auth/RetryUtils.swift + wire into RateLimitTracker,0
+8180c363daeeb8941f5f84bd257c1efefdd207ba,test(wenshu): GAP-007 followup -- add RetryUtilsTests.swift (= 7 round-trip tests for RetryUtils helper),0
+1b5b038debc7f8cae779f8a0fb1a404b1aad59a4,test(wenshu): TICKET-HERMES-GAP-002 -- add RequestHelpersTests covering all 4 builders + 3 decoders + 2 connector byte-parity checks,0
+501ac4f8644c50811b909d72791477290ef3e6d8,fix(wenshu): unblock build -- stub WIP file's missing types + fix tests,0
+daf5af5bb92b27fd957a544291a585a1f6ade8fc,fix(wenshu): v0.39 ticket 001-A/B -- default new tabs to .edit mode + nil-safe editor services,20
+1ef202d6e55299a7e9278b64af777d2dcfc5c47b,feat(wenshu): v0.39 ticket 001-C -- mode toggle button in editor tab strip (= preview <-> edit switcher),10
+ef3ebbe82324c5b2fae49ca9005fec92b3b3aa47,fix(wenshu): v0.39 ticket 001-A-extended -- EditorTab init default mode = .edit,0
+8ec0fc65dc1c8822c1cf8761eeb3d780215d4c92,fix(wenshu): v0.39 ticket 001-A-extended -- migrate existing .preview tabs to .edit on .onAppear,0
+a661e290fcbe0146538f3e00998cb06fce4a114a,feat(wenshu): v0.39 ticket 001 -- ReferenceLibraryWikiLinkResolver + ReferenceLibraryImageProvider + WenshuMarkdownEditor + adapter tests,0
+19edb70a2dbc7a7725a434bd30feb9bb9ee20221,feat(wenshu): TICKET-HERMES-GAP-001 -- port prompt_builder.py to Conversation/PromptBuilder.swift,0
+d6aa59b836fc660007651854b2acee6d2586891e,feat(wenshu): TICKET-HERMES-GAP-003 -- port agent_runtime_helpers.py to Agent/Runtime/RuntimeHelpers.swift + wire ConversationLoop,0
+8e0752f949c09b515d11a8eed1d074faa0a08a4a,feat(wenshu): TICKET-HERMES-GAP-005 -- port secret_scope.py + secret_sources/ to Auth/SecretScope.swift,0
+7ba829a8aadce14ab6d0e29f61283294323da4e7,feat(wenshu): TICKET-HERMES-GAP-006 -- port skill_bundles.py to Agent/Skill/SkillBundles.swift,0
+b838775b04cdd94f11ff2bba447047e9739c8a12,feat(wenshu): TICKET-HERMES-GAP-008 -- port tool_dispatch_helpers.py to Tool/ToolDispatchHelpers.swift,0
+d9bcb0a9d0256c826b1d6987055d9a716465fb0e,feat(wenshu): TICKET-HERMES-GAP-008 -- port tool_dispatch_helpers.py to Tool/ToolDispatchHelpers.swift + wire ToolExecutor,0
+020b3aa8ed4032ad13cf8c15a4a82ffeb203797b,feat(wenshu): B-01 residue -- 6 remaining English user-facing strings via Apple API String(localized:),20

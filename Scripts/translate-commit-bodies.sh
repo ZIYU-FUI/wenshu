@@ -197,6 +197,24 @@ LOOKUPS = [
     ("继续推进移植",               "keep porting"),
     ("走苹果 api",                 "use Apple APIs"),
     ("多语言化顺手做了",           "do i18n while you are at it"),
+    # B-03 T3b additions (2026-09-04) -- phrases observed in the live
+    # 6585a0476^..HEAD range (= the 3 commits whose bodies still held CJK
+    # after the T3a sample lookup was written). Inserted BEFORE the
+    # single-character lookups below so the longer phrase wins the
+    # substring match (= `先继续` inside `先不验收, 先继续把工作树干完`
+    # would otherwise be matched by `继续` -> `continue` first).
+    ("视图无法进入 MD 编辑模式, 只是预览模式, 不能打字",
+     "cannot enter MD edit mode, only preview mode, cannot type"),
+    ("视图无法进入 MD 编辑模式",
+     "cannot enter MD edit mode"),
+    ("hermes 整体翻译成 swift, 整个工作树都完成了?",
+     "is the entire hermes-to-Swift port complete across the whole tree?"),
+    ("先不验收, 先继续把工作树干完",
+     "skip verification for now, keep finishing the work tree"),
+    ("全中文化,是走 apple api 的多语言,不是硬改",
+     "fully localized via Apple API i18n, not by hard-editing strings"),
+    ("布局编辑模式",             "layout edit mode"),
+    ("布局",                       "layout"),
     ("整个视觉",                   "the whole visual"),
     ("暂时不验",                   "skip verification for now"),
     ("继续移植",                   "keep porting"),
