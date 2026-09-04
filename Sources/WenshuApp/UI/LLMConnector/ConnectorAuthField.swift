@@ -30,7 +30,7 @@ public struct ConnectorAuthField: View {
 
     public var body: some View {
         HStack {
-            Text("API key")
+            Text(WenshuI18n.t("settings.connector.field.apiKey"))
                 .font(DesignTokens.statusFont)
                 .foregroundStyle(.secondary)
                 .frame(width: DesignTokens.formLabelWidth, alignment: .leading)
