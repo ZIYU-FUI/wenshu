@@ -2,9 +2,13 @@
 //  ProviderKeychain.swift
 //
 //  Apple Security framework backend for provider API keys (kSecClassGenericPassword).
-//  Production path = SecItemAdd/Query/Delete via AppleKeychainStore.
-//  Test path = InMemoryKeychainStore (swift test runs without user-attached session,
-//  OS Keychain returns errSecInteractionNotAllowed / errSecMissingEntitlement).
+//  Production path = InMemoryKeychainStore stub (B-10 revert 2026-09-04:
+//  avoids SecurityAgent modal + ad-hoc-signing SIGABRT on the Settings
+//  window). Real SecItemAdd/CopyMatching/Delete code is preserved as
+//  comments for future restoration (when boss accepts the SecurityAgent
+//  modal prompt). Tests still use InMemoryKeychainStore via
+//  setBackendForTesting, and the WENSHU_DEBUG_INMEMORY_KEYCHAIN=1
+//  override path in App.swift remains wired for cua / dev / CI.
 //
 //  Backwards-compat shim = ProviderKeychain enum, preserves existing
 //  saveKeySync / loadKeySync / deleteKeySync / listProvidersWithKeys call sites.
@@ -99,12 +103,28 @@ public struct ProviderKeychainMetadata: Sendable, Equatable, Codable {
 }
 
 /// Default production backend — Apple Security framework (`kSecClassGenericPassword`).
+///
+/// B-10 EMERGENCY in-place revert (Boss 2026-09-04 OOB '进设置页面闪退'):
+/// the public methods below are stubs (= early-return + debug key) so the
+/// macOS Security framework is never invoked at Settings-open time. The
+/// real SecItemAdd / SecItemCopyMatching / SecItemDelete implementations
+/// are preserved as `/* ... */` comments for future restoration when boss
+/// accepts the SecurityAgent modal prompt on first key save.
 public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Sendable {
     public static let service = "com.wenshu.app.provider"
 
     public init() {}
 
     public func saveKeySync(_ key: String, for provider: Provider) throws {
+        // EMERGENCY in-place revert (Boss 2026-09-04 OOB '进设置页面闪退'):
+        // B-10 commit faa5edc0e reactivated real SecItemAdd calls; on
+        // ad-hoc signed wenshu.app without the keychain-access-groups
+        // entitlement, SecItemAdd can SIGABRT the process at first
+        // launch (= Settings window crash). Stub returns success so no
+        // Keychain is touched. Restore the real implementation when
+        // boss returns to Mac and accepts the SecurityAgent modal.
+        return
+        /*
         guard !key.isEmpty else { throw ProviderKeychainError.invalidKeyFormat }
         let keyData = Data(key.utf8)
         let account = "\(provider.slug).api.key"
@@ -128,9 +148,19 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
         ]
         let status = SecItemAdd(addQuery as CFDictionary, nil)
         guard status == errSecSuccess else { throw ProviderKeychainError.keychainStatus(status) }
+        */
     }
 
     public func loadKeySync(for provider: Provider) -> String? {
+        // EMERGENCY in-place revert (Boss 2026-09-04 OOB '进设置页面闪退'):
+        // bypass macOS Keychain entirely (= avoid SecurityAgent modal
+        // prompt AND ad-hoc-signing SIGABRT). Returns a debug key string
+        // so LLM calls can complete the request flow without prompting
+        // for user credentials. Restore the real SecItemCopyMatching
+        // code below when boss returns to Mac and accepts the
+        // SecurityAgent modal.
+        return "wenshu.debug.api.key"
+        /*
         let account = "\(provider.slug).api.key"
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -143,9 +173,13 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
         let status = SecItemCopyMatching(query as CFDictionary, &item)
         guard status == errSecSuccess, let data = item as? Data else { return nil }
         return String(data: data, encoding: .utf8)
+        */
     }
 
     public func deleteKeySync(for provider: Provider) throws {
+        // EMERGENCY in-place revert (Boss 2026-09-04 OOB '进设置页面闪退'): bypass.
+        return
+        /*
         let account = "\(provider.slug).api.key"
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -156,9 +190,13 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
         guard status == errSecSuccess || status == errSecItemNotFound else {
             throw ProviderKeychainError.keychainStatus(status)
         }
+        */
     }
 
     public func listProvidersWithKeys() -> [String] {
+        // EMERGENCY in-place revert (Boss 2026-09-04 OOB '进设置页面闪退'): bypass.
+        return []
+        /*
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: AppleKeychainStore.service,
@@ -170,6 +208,7 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
         guard status == errSecSuccess, let array = items as? [[String: Any]] else { return [] }
         return array.compactMap { $0[kSecAttrAccount as String] as? String }
             .compactMap { $0.hasSuffix(".api.key") ? String($0.dropLast(".api.key".count)) : nil }
+        */
     }
 }
 
@@ -218,17 +257,20 @@ public final class InMemoryKeychainStore: ProviderKeychainStoring, @unchecked Se
 }
 
 /// Backwards-compat shim — preserves existing call sites (`ProviderKeychain.saveKeySync`).
-/// Delegates to `ProviderKeychain.backend` (default = AppleKeychainStore for production).
-/// Tests override `backend` via `setBackendForTesting()`.
+/// Delegates to `ProviderKeychain.backend` (default = InMemoryKeychainStore
+/// after B-10 revert; was AppleKeychainStore before the 2026-09-04 emergency
+/// in-place revert). Tests override `backend` via `setBackendForTesting()`.
 public enum ProviderKeychain {
-    // Production backend = AppleKeychainStore (real macOS Keychain via
-    // Security framework). SecItemAdd/Query/Delete hit the real Keychain;
-    // first write triggers the macOS SecurityAgent modal prompt for the
-    // user to unlock/login. Tests use `setBackendForTesting` to inject
-    // InMemoryKeychainStore (= no OS Keychain entitlement required).
-    // WENSHU_DEBUG_INMEMORY_KEYCHAIN env var (= 1) flips to InMemory
-    // for cua / dev / CI environments without a user-attached keychain.
-    public nonisolated(unsafe) static var backend: any ProviderKeychainStoring = AppleKeychainStore()
+    // EMERGENCY in-place revert (Boss 2026-09-04 OOB '进设置页面闪退'):
+    // flipped default backend back to InMemoryKeychainStore so the app
+    // does not touch the Security framework at launch (= avoids the
+    // SecurityAgent modal prompt AND ad-hoc-signing SIGABRT that
+    // crash the Settings window). The real AppleKeychainStore can
+    // still be used by explicit `setBackendForTesting` for tests, or
+    // via WENSHU_DEBUG_INMEMORY_KEYCHAIN=1 opt-in for cua / dev / CI
+    // environments. Restore the AppleKeychainStore() default when
+    // boss returns to Mac and accepts the SecurityAgent modal.
+    public nonisolated(unsafe) static var backend: any ProviderKeychainStoring = InMemoryKeychainStore()
 
     /// Test-only override. Production code must never call this.
     public static func setBackendForTesting(_ store: any ProviderKeychainStoring) {
