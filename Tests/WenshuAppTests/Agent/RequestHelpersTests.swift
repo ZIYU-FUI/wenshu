@@ -32,7 +32,7 @@ import Testing
 import Foundation
 @testable import WenshuApp
 
-@Suite("RequestHelpers (TICKET-HERMES-GAP-002)")
+@Suite("RequestHelpers (TICKET-HERMES-GAP-002)", .serialized)
 struct RequestHelpersTests {
 
     // MARK: - 1. Anthropic native request builder
@@ -305,6 +305,8 @@ struct RequestHelpersTests {
     func testConnectorAfterRefactorAnthropic() async throws {
         let stub = URLProtocolStub()
         stub.response = makeAnthropicResponse(content: "ok")
+        URLProtocolStub.register(stub)
+        defer { URLProtocolStub.unregister() }
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [URLProtocolStub.self]
         let session = URLSession(configuration: config)
@@ -319,7 +321,25 @@ struct RequestHelpersTests {
             options: LLMCallOptions(model: "claude-sonnet-4-5", systemPrompt: "stable")
         )
 
-        let body = try JSONSerialization.jsonObject(with: stub.lastRequest!.httpBody!) as? [String: Any]
+        // URLSession migrates `httpBody` -> `httpBodyStream` for POST bodies,
+        // so `httpBody` may be nil even when bytes are present. Drain the
+        // stream when httpBody is missing (= captures the real request body).
+        let captured = URLProtocolStub.stub?.lastRequest
+        let bodyData: Data = try {
+            if let direct = captured?.httpBody { return direct }
+            guard let stream = captured?.httpBodyStream else { return Data() }
+            stream.open()
+            defer { stream.close() }
+            var buf = Data()
+            var chunk = [UInt8](repeating: 0, count: 4096)
+            while stream.hasBytesAvailable {
+                let n = stream.read(&chunk, maxLength: chunk.count)
+                if n <= 0 { break }
+                buf.append(chunk, count: n)
+            }
+            return buf
+        }()
+        let body = try JSONSerialization.jsonObject(with: bodyData) as? [String: Any]
 
         // Verify the canonical wire shape (= pre-refactor AnthropicConnector).
         #expect(body?["model"] as? String == "claude-sonnet-4-5")
@@ -341,6 +361,8 @@ struct RequestHelpersTests {
     func testConnectorAfterRefactorOpenAI() async throws {
         let stub = URLProtocolStub()
         stub.response = makeOpenAIResponse(content: "ok")
+        URLProtocolStub.register(stub)
+        defer { URLProtocolStub.unregister() }
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [URLProtocolStub.self]
         let session = URLSession(configuration: config)
@@ -355,7 +377,22 @@ struct RequestHelpersTests {
             options: LLMCallOptions(model: "gpt-5", systemPrompt: "stable")
         )
 
-        let body = try JSONSerialization.jsonObject(with: stub.lastRequest!.httpBody!) as? [String: Any]
+        let captured = URLProtocolStub.stub?.lastRequest
+        let bodyData: Data = try {
+            if let direct = captured?.httpBody { return direct }
+            guard let stream = captured?.httpBodyStream else { return Data() }
+            stream.open()
+            defer { stream.close() }
+            var buf = Data()
+            var chunk = [UInt8](repeating: 0, count: 4096)
+            while stream.hasBytesAvailable {
+                let n = stream.read(&chunk, maxLength: chunk.count)
+                if n <= 0 { break }
+                buf.append(chunk, count: n)
+            }
+            return buf
+        }()
+        let body = try JSONSerialization.jsonObject(with: bodyData) as? [String: Any]
 
         // Verify the canonical wire shape (= pre-refactor OpenAIConnector).
         #expect(body?["model"] as? String == "gpt-5")
