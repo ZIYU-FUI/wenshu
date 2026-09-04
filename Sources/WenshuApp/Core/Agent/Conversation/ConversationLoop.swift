@@ -1,5 +1,6 @@
 //
 //  ConversationLoop.swift · Wenshu · v0.35 ticket 001 sub-step 3
+//  + TICKET-HERMES-GAP-001 refactor (2026-09-04).
 //
 //  ConversationLoop actor = the Swift port of hermes'
 //  conversation_loop.run_conversation (= L523-L546, 9-param entry).
@@ -123,7 +124,18 @@ public actor ConversationLoop {
         messages.append(LLMMessage.user(userMessage))
 
         // Resolve system prompt (= systemMessage override > persistent systemPrompt)
-        let effectiveSystemPrompt = systemMessage ?? systemPrompt
+        // Per TICKET-HERMES-GAP-001 (2026-09-04): compose stable + dynamic tiers
+        // via PromptBuilder instead of the v0.35 placeholder string that
+        // wrapped the ephemeral hint with a Context: prefix. The dynamic tier
+        // composes from ContextEngine + MemoryAdapter + SkillAdapter + caller
+        // extras; for this sub-step, those are empty (= ticket 009 wires
+        // ContextEngine + ticket 010 wires SkillAdapter), so the dynamic tier
+        // reduces to the ephemeral hint as a final block. The placeholder
+        // Swift template no longer appears anywhere in the source tree.
+        let effectiveSystemPrompt = composeSystemPrompt(
+            override: systemMessage,
+            persistent: systemPrompt
+        )
 
         // Build call options (= model defaults to first defaultModel of
         // the active connector profile; per-call override not yet wired in
@@ -179,6 +191,68 @@ public actor ConversationLoop {
         }
         // Custom slug (= spec §7.3 custom provider case)
         return "unknown-model"
+    }
+
+    /// Compose the effective system prompt via PromptBuilder
+    /// (= TICKET-HERMES-GAP-001 refactor, 2026-09-04).
+    ///
+    /// Resolution chain:
+    ///   1. `override` (per-turn systemMessage from caller) — wins if present.
+    ///      The override is treated as a CALLER MESSAGE (appended as the
+    ///      ephemeral hint section in the dynamic tier) so the stable tier
+    ///      stays byte-stable across turns (= cache-friendly).
+    ///   2. `persistent` (ConversationLoop's persistent systemPrompt) —
+    ///      treated as the EPHEMERAL HINT for the dynamic tier when no
+    ///      override is supplied (= preserves v0.35 behavior where the
+    ///      caller could pass a per-loop hint via the systemPrompt init
+    ///      parameter). The stable tier is the byte-stable identity from
+    ///      SystemPrompt.stableTier().
+    ///   3. Neither — return nil (no system prompt; connector decides the
+    ///      default behavior).
+    ///
+    /// Dynamic-tier composition pulls in ContextEngine + MemoryAdapter +
+    /// SkillAdapter; in this sub-step those dependencies are not yet wired
+    /// into the loop (= ticket 009 + ticket 010), so the dynamic tier
+    /// reduces to the ephemeral hint as the final block. Future tickets
+    /// can extend this method to read live data from those adapters.
+    private nonisolated func composeSystemPrompt(
+        override: String?,
+        persistent: String?
+    ) -> String? {
+        // Determine the ephemeral hint source (= which string flows into
+        // the dynamic tier's "Context: ..." section).
+        let ephemeralHint = override ?? persistent ?? ""
+
+        // Stable tier: always the byte-stable identity (no caller override
+        // path for the stable tier — stable tier is byte-stable BY DEFINITION).
+        let stable = SystemPrompt.stableTier()
+
+        // Dynamic tier: composed via PromptBuilder (= the GAP-001 path).
+        // Empty hint = empty dynamic tier (and PromptBuilder returns "").
+        let dynamic = PromptBuilder.dynamicTier(
+            contextBundle: ContextEngine.ContextBundle(
+                memories: [],
+                characterContext: [],
+                worldContext: [],
+                foreshadowContext: []
+            ),
+            memories: [],
+            skills: [],
+            callerExtras: [:],
+            ephemeralHint: ephemeralHint
+        )
+
+        // No hint + no dynamic = no system prompt at all (= caller chose
+        // to send the conversation without a system prompt; connector
+        // handles the default).
+        if ephemeralHint.isEmpty {
+            return stable.isEmpty ? nil : stable
+        }
+
+        // Join stable + dynamic with the canonical separator (= same
+        // separator SystemPrompt.build uses; matches PromptBuilder's
+        // buildOpenAISystem / buildGeminiSystemInstruction output).
+        return stable + "\n\n---\n\n" + dynamic
     }
 }
 
