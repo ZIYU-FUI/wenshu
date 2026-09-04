@@ -389,8 +389,7 @@ struct WenshuApp: App {
         // + grouped toolbar items in 1 unified capsule = the macOS 26
         // Tahoe canonical look that Pages / Xcode / Mail / Finder all
         // use). Remove .toolbarBackground(.clear) (= let the default
-        // Liquid Glass material render). Remove the custom AppTitlebar
-        // (= was 2-layer chrome = bad UX). 100% native macOS look.
+        // Liquid Glass material render). 100% native macOS look.
         //
         // Final titlebar = 1 macOS native .unified 52 PT titlebar
         // (= Apple standard = Liquid Glass = 1 unified capsule
@@ -399,8 +398,6 @@ struct WenshuApp: App {
         // 官方' per Boss spec).
         .windowToolbarStyle(.unified)  // 52 PT default macOS chrome with Liquid Glass unified toolbar background
         // .windowToolbarStyle(.unifiedCompact(showsTitle: false))  // 28 PT compact chrome, no unified toolbar background
-        // .windowToolbarStyle(.automatic)  // 0 PT native; WenshuChromeOverlay provides 34 PT AppTitlebar
-        // .windowToolbarStyle(.expanded)  // 0 PT native; WenshuChromeOverlay provides 34 PT AppTitlebar
         .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // Boss Sketch design baseline 1920x984 PT
         // v0.24 boss验收fix: .contentMinSize (window doesn't shrink below initial
         // size, can grow to fit larger content).
@@ -669,13 +666,10 @@ struct SettingView: View {
                 .pickerStyle(.radioGroup)
             }
             Section(WenshuI18n.t("settings.general.liquidGlass")) {
-                // v0.32 boss 2026-09-02 OOB ('用 macOS 自带液态玻璃,
-                // 跟随系统设置'): the previous user-tunable Liquid Glass
-                // opacity slider was removed (= 134 LOC of self-rolled
-                // ladder). Apple canonical .glassEffect(.regular) is
-                // applied project-wide (= AppStatusbar + RegionTabBar +
-                // RegionContentBackground + App root containerBackground)
-                // and Apple auto-adapts to:
+                // Apple canonical .glassEffect(.regular) auto-applies
+                // project-wide (per-pane content background +
+                // per-region tab bar + per-region status bar + app
+                // root containerBackground) and Apple auto-adapts to:
                 //   - dark mode / light mode
                 //   - Accessibility > Display > Reduce transparency
                 //   - Accessibility > Display > Increase contrast
@@ -1103,13 +1097,6 @@ enum AuxTask: String, CaseIterable, Identifiable {
         /// useWorkspace on, would already be ON — saves them a second
         /// keystroke).
         @State private var editMode = LayoutEditMode()
-    // v0.32 boss 2026-09-02 OOB: removed the
-    /// \`@AppStorage("wenshu.liquidGlassOpacity")\` (= the user-tunable
-    /// slider + UserDefaults key + cross-instance notification plumbing
-    /// is gone). Apple canonical .glassEffect(.regular) auto-applies
-    /// project-wide and adapts to system settings, so a per-app slider
-    /// is no longer needed. The user-facing Settings entry now shows
-    /// an informational note pointing to macOS System Settings.
         @AppStorage("wenshu.llm.model") private var modelName: String = "MiniMax-M3"
         @AppStorage("wenshu.llm.status") private var llmStatus: String = "Idle"
         @AppStorage("wenshu.context.usagePercent") private var contextUsagePercent: Int = 0
@@ -1129,18 +1116,9 @@ enum AuxTask: String, CaseIterable, Identifiable {
             //    subdirectories (shelves/, books/, chat/, kanban/, todo/, assets/)
             //    = WenshuWorkspace manages this layout.
             //
-            // v0.34 boss 2026-09-02 OOB '要用最合理的方案, 应该统一成一个组件':
-// deleted AppTitlebar.swift + AppStatusbar.swift + WenshuChromeOverlay.swift
-// (= v0.28 followup post-TKT-026 dead chrome that WenshuChromeOverlay
-// never actually rendered — App.swift wrapped LibraryRootView with
-// WenshuChromeOverlay but the wrapper was a TEMPORARILY-removed shell
-// since 2026-08-29 boss 8/29 OOB '调试视图框架'). All chrome now lives
-// in LibraryRootView's SwiftUI native `.toolbar { ToolbarItemGroup }`
-// (= Apple's canonical macOS 26 toolbar pattern, single source of
-// truth). The custom AppTitlebar + AppStatusbar components were
-// (1) never rendered and (2) duplicated Apple HIG behavior Apple
-// provides for free via `.toolbar` + `.windowToolbarStyle`. See
-// commit message on `v0.34: chrome consolidation via LibraryRootView.
+            // All chrome now lives in LibraryRootView's SwiftUI native
+            // `.toolbar { ToolbarItemGroup }` (= Apple's canonical macOS 26
+            // toolbar pattern, single source of truth).
 LibraryRootView()
             .frame(minWidth: 1280, minHeight: 720)
             .environment(library)
@@ -1212,9 +1190,6 @@ LibraryRootView()
             // v0.24 boss验收fix (Boss 8/25 tenth OOB ticket 015.023):
             // toolbar buttons moved to LayoutShellView body (= this
             // outer view doesn't have access to vm; inner view does).
-            // v0.28 followup (Boss 2026-08-29 OOB '完整复刻 hermes app'):
-            // .expanded (= 0 PT macOS native toolbar; our AppTitlebar
-            // handles the 34 PT custom titlebar).
         }
     }
 
@@ -1335,7 +1310,6 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // icons INSIDE it via .toolbar { ToolbarItem(.principal) }
         // (= exactly macOS standard = native toolbar buttons next to
         // traffic lights = matches Apple Pages / Xcode / Mail etc.).
-        // No AppTitlebar (= avoids 2-layer chrome).
         //
         // v0.21 ticket 06: 同步创建 ChatSessionStore + KanbanStore + WenshuConductor (不能在 static let 闭包里调 actor init)
         // 用 unsafeMutablePointer / 临时 instance var 临时持有 — 因为 static let 是 immutable, 不能后续赋值

@@ -40,8 +40,7 @@ import Lucide
 
 /// Per-region top + bottom toolbar height (= matches old 6区
 /// `LayoutTokens.toolbarHeight = 30`, also matches v0.27 `ZoneTopToolbar`
-/// + `ZoneBottomToolbar`). Global AppTitlebar 34 PT + AppStatusbar 24 PT
-/// are separate (= different constants).
+/// + `ZoneBottomToolbar`).
 public let kZoneToolbarHeight: CGFloat = 30
 // v0.28 followup Boss UX round 26 (Boss 2026-08-29 OOB '我发现合底栏
 // 顶栏的高度不一致, 分隔线高度也不一致'): canonical unified
