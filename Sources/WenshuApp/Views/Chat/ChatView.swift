@@ -70,11 +70,20 @@ public final class ChatViewModel {
     public var inputText: String = ""
     public var isSending: Bool = false
     public var lastError: String?
+    // B-05: wenshu.llm.model centralization. The model id was
+    // previously scattered as 7 different reads/writes (4 @AppStorage
+    // + 3 raw UserDefaults); the canonical owner is now
+    // `AppState.llmModel`. ChatViewModel.holds a strong reference
+    // to the injected AppState (= same lifetime as conductor / store)
+    // so every read below resolves to the same source of truth, and
+    // `switchModel(_:)` writes back to AppState (= triggers the
+    // AppState didSet → UserDefaults round-trip).
     // v0.24 boss验收fix (2026-08-24): default empty string when no provider key
     // configured (not "MiniMax-M3" which implies a MiniMax provider is
     // selected even when user has no key). UI shows "无模型可用" placeholder
     // when this is empty.
-    public var currentModel: String = UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? ""
+    private let appState: AppState?
+    public var currentModel: String { appState?.llmModel ?? "" }
     public var availableModels: [String] = []
     public var contextUsed: Int = 0
         // v0.24 boss验收fix (Boss 8/25 OOB 'minimax m3 is not 1MB context window?
@@ -96,16 +105,23 @@ public final class ChatViewModel {
     // (SUGGEST 1 fix = valueForSessionId() already exists).
     @MainActor private var sessionId: String
 
-    public init(conductor: WenshuConductor? = nil, store: ChatSessionStore? = nil, sessionId: String = "default", initialMessages: [ChatMessage] = []) {
+    public init(conductor: WenshuConductor? = nil, store: ChatSessionStore? = nil, sessionId: String = "default", initialMessages: [ChatMessage] = [], appState: AppState? = nil) {
         self.conductor = conductor
         self.store = store
         self.sessionId = sessionId
         self.messages = initialMessages
+        // B-05: hold a strong reference to the AppState instance so
+        // currentModel / switchModel can read + write the canonical
+        // owner. Caller passes the env-injected AppState (= same
+        // lifetime as the WindowGroup that owns it).
+        self.appState = appState
     }
 
     public func switchModel(_ id: String) {
-        currentModel = id
-        UserDefaults.standard.set(id, forKey: "wenshu.llm.model")
+        // B-05: write to the canonical owner (= AppState.llmModel),
+        // which then mirrors to UserDefaults via its didSet. No raw
+        // UserDefaults call here (= single owner maintained).
+        appState?.llmModel = id
     }
 
     public func loadAvailableModels() async {
@@ -166,8 +182,12 @@ public final class ChatViewModel {
             // pipeline and isn't yet adapted to streaming). v0.34
             // ships streaming for the direct verifier path = the
             // most common user flow.
-            let currentModel: String = UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? ""
-            NSLog("[wenshu.model] effective model: %@ (UserDefaults source)", currentModel)
+            // B-05: read the model id from the canonical owner (= same value
+            // `vm.currentModel` returns, via the shared AppState
+            // reference). No more raw UserDefaults read here (= single
+            // owner maintained).
+            let currentModel: String = self.currentModel
+            NSLog("[wenshu.model] effective model: %@ (AppState source)", currentModel)
             var reply: String
             var replyThinking: String?    // WenshuLLMBlock.thinking footnote UI
             var replyTokens: Int?
@@ -293,7 +313,7 @@ public final class ChatViewModel {
     }
 }
 
-/// ChatView: 左下 zone UI (Apple HIG SwiftUI + conductor + store)
+/// ChatView: 左下 zone UI (Apple SwiftUI + conductor + store)
 public struct ChatView: View {
     @State private var vm: ChatViewModel
     // v0.24 boss验收fix (2026-08-24): focus management for input box.
@@ -306,6 +326,13 @@ public struct ChatView: View {
     public init(conductor: WenshuConductor? = nil, store: ChatSessionStore? = nil, sessionId: String = "default", vm: ChatViewModel? = nil) {
         // optional ChatViewModel injection (ChatZoneView shared vm for bottom toolbar
         // 读 vm.contextUsed 自动 propagate. Q51 子组件 override 父组件部分, 不动 ChatViewModel.send() body, 不动 ChatView body)
+        // B-05: when ChatZoneView passes a pre-constructed `vm` (=
+        // the canonical path), the AppState is already injected into
+        // the vm in ChatZoneView.init. When ChatView creates its own
+        // vm (= the standalone path), the env-injected AppState is
+        // resolved via `.task` after init (= can't read @Environment
+        // inside init). Either way, currentModel routes through
+        // AppState.llmModel.
         if let vm = vm {
             _vm = State(initialValue: vm)
         } else {
