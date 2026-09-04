@@ -397,24 +397,21 @@ struct WorkspaceView: View {
                 ("反链", "link", AnyView(EditorPlaceholder())),
             ], trailingButton: AnyView(EditorExpandShrinkTrailingButton()))
         case .specializedTools:
-            // v0.29 boss 2026-08-30 OOB '替换, 用伏笔替换第一个 teb,
-            // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-            // 用占位替换第二个 teb. 现在的画布功能以后实现':
-            // - Replaced tab 1 '画布' (scribble) with '伏笔'
-            //   (git-fork = matches the 伏笔 folder icon in sidebar).
-            // - Replaced tab 2 '数据库' (tablecells) with '占位符'
-            //   (square-dashed = matches the 占位符 folder icon in sidebar).
-            // - Both new tabs use placeholder views (= ForeshadowingView +
-            //   PlaceholderView) = actual content lands in v0.30+
-            //   (per the v0.28 batch 2 ticket 04 M4 ForeshadowingGraph
-            //   service + M4 placeholder scanner).
-            // - CanvasView + BaseView files KEPT (= not deleted, just
-            //   not wired into tools pane) per ComponentIndex.md
-            //   'unused components' pattern (= ready to be re-wired
-            //   later when boss implements the canvas feature).
+            // 老 6区 specializedTools = 3 tabs (= 伏笔 / 占位符 /
+            // LongFormGuardrails per P1 ticket #6
+            // [WIRE-SPECIALIZEDTOOLS-001] 2026-09-04).
+            //   - 伏笔 (= git-fork) + 占位符 (= square-dashed) per
+            //     v0.29 boss 2026-08-30 OOB '替换, 用伏笔替换第一个
+            //     teb, 用占位替换第二个 teb. 现在的画布功能以后实现'
+            //   - LongFormGuardrails (= shield-check) per P1
+            //     ticket #6 (= port long_form_guardrails.py from
+            //     hermes = THE top competitive moat per boss 8/27).
+            //     Real content (= 6 guardrail kinds + add / remove /
+            //     run check); auto-derived on first open.
             ZoneContentView(zoneSlug: "specializedTools", tabs: [
                 ("伏笔", "git-fork", AnyView(ForeshadowingView())),
                 ("占位符", "square-dashed", AnyView(PlaceholderView())),
+                ("Long-Form", "shield-check", AnyView(LongFormGuardrailsView())),
             ])
         case .aiChat:
             ChatView()
@@ -591,11 +588,13 @@ struct ZoneModuleView: View {
             ])
 
         case .specializedTools:
-            // 老 6区 specializedTools = 2 tabs (伏笔 / 占位符 per
-            // v0.29 boss 2026-08-30 OOB; was 画布 / 数据库 in v0.28).
+            // 老 6区 specializedTools = 3 tabs (伏笔 / 占位符 /
+            // LongFormGuardrails per P1 ticket #6
+            // [WIRE-SPECIALIZEDTOOLS-001] 2026-09-04).
             ZoneContentView(zoneSlug: "specializedTools", tabs: [
                 ("伏笔", "git-fork", AnyView(ForeshadowingView())),
                 ("占位符", "square-dashed", AnyView(PlaceholderView())),
+                ("Long-Form", "shield-check", AnyView(LongFormGuardrailsView())),
             ])
 
         case .aiDynamic:
