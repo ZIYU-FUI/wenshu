@@ -31,12 +31,13 @@
 
 import Foundation
 
+enum SkillAdapterError: Error { case noMatch(String) }
+
 public actor SkillAdapter {
     public struct Skill: Sendable, Equatable, Identifiable {
         public let name: String
         public let description: String
         public let enabled: Bool
-
         public var id: String { name }
     }
 
@@ -164,7 +165,14 @@ public actor SkillAdapter {
         return (skillName, remainder)
     }
 
-    // MARK: - 35 do_* hub commands (= HERMES-PARTIAL-017)
+    public func routeInput(_ input: String, contextFiles: [String] = []) async throws -> (skillName: String, remainder: String) {
+        if let match = await SkillKeywordMatcher.shared.match(input: input, contextFiles: contextFiles) {
+            return (match.skillName, input)
+        }
+        if let slash = Self.parseSlashCommand(input) { return slash }
+        throw SkillAdapterError.noMatch(input)
+    }
+
 
     /// Look up a hub command by name.
     public static func hubCommand(named name: String) -> HubCommand? {
