@@ -273,6 +273,14 @@ run_apply() {
     local msg_filter
     msg_filter="$(mktemp -t translate-commit-bodies-msgfilter.XXXXXX.sh)"
     build_msg_filter > "$msg_filter"
+    # Append `write_msg_filter_py` so the msg-filter script (which is
+    # invoked standalone by git filter-branch) can call it. Otherwise
+    # we'd get `write_msg_filter_py: command not found` on first line.
+    {
+        echo
+        echo "# ---- embedded write_msg_filter_py ----"
+        write_msg_filter_py
+    } >> "$msg_filter"
     chmod +x "$msg_filter"
 
     # 1. Snapshot the pre-apply tip so rollback = `git reset --hard`.
