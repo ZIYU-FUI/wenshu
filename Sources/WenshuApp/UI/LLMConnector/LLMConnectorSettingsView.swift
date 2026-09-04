@@ -30,9 +30,9 @@ public struct LLMConnectorSettingsView: View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
             VStack(alignment: .leading, spacing: 4) {
-                Text("LLM Connector")
+                Text(WenshuI18n.t("settings.connector.header"))
                     .font(.headline)
-                Text("Pick an active LLM provider + supply credentials. Wenshu is BYOK (= bring your own key).")
+                Text(WenshuI18n.t("settings.connector.subtitle"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

@@ -68,6 +68,10 @@
 "settings.connector.field.apiKey"  = "API key";
 "settings.connector.field.endpoint" = "Endpoint";
 "settings.connector.field.test"    = "Test connection";
+"settings.connector.noKeyRequired" = "No key required (local)";
+"settings.connector.status.testing" = "Testing…";
+"settings.connector.status.passed" = "Test passed";
+"settings.connector.status.retry"  = "Retry";
 
 // MARK: - Memory tab (= App.swift memoryTab → MemorySettingsView)
 "settings.memory.title"       = "Memory";

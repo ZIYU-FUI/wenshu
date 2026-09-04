@@ -39,7 +39,7 @@ public struct ConnectorProfileRow: View {
                     .foregroundStyle(.secondary)
                 Spacer()
                 if isActive {
-                    Text("Active")
+                    Text(WenshuI18n.t("settings.connector.row.active"))
                         .font(.caption)
                         .padding(.horizontal, DesignTokens.chromePaddingSmall)
                         .padding(.vertical, DesignTokens.badgePaddingVertical)
@@ -48,7 +48,7 @@ public struct ConnectorProfileRow: View {
                             in: RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusBadge, style: .continuous)
                         )
                 } else {
-                    Button("Use") { onActivate() }
+                    Button(WenshuI18n.t("settings.connector.row.use")) { onActivate() }
                         .buttonStyle(.borderless)
                 }
             }
@@ -61,14 +61,14 @@ public struct ConnectorProfileRow: View {
                     provider: profile.provider
                 )
             } else {
-                Text("No key required (local)")
+                Text(WenshuI18n.t("settings.connector.noKeyRequired"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
             // Endpoint URL (= editable override)
             HStack {
-                Text("Endpoint")
+                Text(WenshuI18n.t("settings.connector.field.endpoint"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 TextField("", text: $profile.endpointOverride)
