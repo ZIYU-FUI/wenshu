@@ -968,6 +968,25 @@ struct EditorPlaceholder: View {
                     .buttonStyle(.plain)
                     .help(title)
                 }
+                // v0.39 ticket 001-C: mode toggle (= preview <-> edit).
+                // The boss reported '视图无法进入 MD 编辑模式' which
+                // was actually two issues (= default = .preview +
+                // no UI to flip it). openCardInEditor now defaults
+                // to .edit (= the 001-A fix), but users still need
+                // a way to flip back to .preview when they want the
+                // rendered-only view. This button lives in the tab
+                // strip = the only chrome the editor zone has left
+                // after v0.34 B-26 stripped the trailing buttons.
+                Button(action: { setMode(mode == .edit ? .preview : .edit) }) {
+                    Image(systemName: mode == .edit ? "eye" : "pencil")
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help(mode == .edit ? "切到预览模式" : "切到编辑模式")
                 Spacer()
             }
             .frame(height: 32)
