@@ -559,13 +559,26 @@ struct SettingView: View {
     }
 
     enum SettingsTab: String, CaseIterable, Identifiable {
-        case general = "通用"
-        case providerApi = "提供方 API"
-        case model = "模型"
-        case agent = "Agent"
-        case memory = "Memory"
-        case skills = "Skills"
+        case general
+        case providerApi
+        case model
+        case agent
+        case memory
+        case skills
         var id: String { rawValue }
+        /// Localized display label (v0.38 P2). Uses the same catalog keys
+        /// as the tab Picker rendering, so the segmented control labels
+        /// follow the user's OS language.
+        var displayName: String {
+            switch self {
+            case .general: return WenshuI18n.t("settings.tab.general")
+            case .providerApi: return WenshuI18n.t("settings.tab.providerApi")
+            case .model: return WenshuI18n.t("settings.tab.model")
+            case .agent: return WenshuI18n.t("settings.tab.agent")
+            case .memory: return WenshuI18n.t("settings.tab.memory")
+            case .skills: return WenshuI18n.t("settings.tab.skills")
+            }
+        }
         var icon: String {
             switch self {
             case .general: return "gearshape"
@@ -586,7 +599,7 @@ struct SettingView: View {
                     set: { selectedTab = $0 }
                 )) {
                 ForEach(SettingsTab.allCases) { tab in
-                    Label(tab.rawValue, systemImage: tab.icon).tag(tab)
+                    Label(tab.displayName, systemImage: tab.icon).tag(tab)
                 }
             }
             .pickerStyle(.segmented)
