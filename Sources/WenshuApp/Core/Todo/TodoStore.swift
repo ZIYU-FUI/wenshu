@@ -60,6 +60,15 @@ public actor TodoStore {
     private let dbPtr: SQLitePtr
     private let dbPath: String
 
+    /// WIRE-TODO-001: listeners subscribed to writes (= AsyncStream
+    /// of `TodoItem`). Each `add` / `setStatus` / `delete` fires a
+    /// `notify(_:)` so the UI (= TodoListView, future widgets) can
+    /// re-read on the fly instead of polling. Keyed by subscription
+    /// token (= UUID) so `unsubscribe` can drop one without touching
+    /// the rest. Continuations are flushed on deinit (= finalizer
+    /// safety net: never leave a consumer hanging on a closed actor).
+    private var listeners: [UUID: AsyncStream<TodoItem>.Continuation] = [:]
+
     public init(path: String? = nil) throws {
         let url: URL
         if let path = path {
@@ -118,6 +127,7 @@ public actor TodoStore {
         guard sqlite3_step(stmt) == SQLITE_DONE else {
             throw TodoStoreError.stepFailed(message: TodoStore.sqliteErmsg(dbPtr.db))
         }
+        notify(todo)
         return todo
     }
 
@@ -134,6 +144,11 @@ public actor TodoStore {
         sqlite3_bind_text(stmt, 3, id, -1, SQLITE_TRANSIENT)
         guard sqlite3_step(stmt) == SQLITE_DONE else {
             throw TodoStoreError.stepFailed(message: TodoStore.sqliteErmsg(dbPtr.db))
+        }
+        // WIRE-TODO-001: notify listeners with the post-update row so
+        // they don't need to re-query to see the new status.
+        if let updated = try get(id: id) {
+            notify(updated)
         }
     }
 
@@ -176,6 +191,10 @@ public actor TodoStore {
     }
 
     public func delete(id: String) throws {
+        // WIRE-TODO-001: capture the row before deletion so listeners
+        // see the removed item via the stream (= consumers that
+        // re-list() on every notification will see it disappear).
+        let removed: TodoItem? = try get(id: id)
         let sql = "DELETE FROM todos WHERE id = ?;"
         var stmt: OpaquePointer?
         guard sqlite3_prepare_v2(dbPtr.db, sql, -1, &stmt, nil) == SQLITE_OK else {
@@ -185,6 +204,9 @@ public actor TodoStore {
         sqlite3_bind_text(stmt, 1, id, -1, SQLITE_TRANSIENT)
         guard sqlite3_step(stmt) == SQLITE_DONE else {
             throw TodoStoreError.stepFailed(message: TodoStore.sqliteErmsg(dbPtr.db))
+        }
+        if let removed = removed {
+            notify(removed)
         }
     }
 
@@ -212,6 +234,48 @@ public actor TodoStore {
         let created = Date(timeIntervalSince1970: sqlite3_column_double(stmt, 5))
         let updated = Date(timeIntervalSince1970: sqlite3_column_double(stmt, 6))
         return TodoItem(id: id, title: title, status: status, priority: priority, dueDate: due, createdAt: created, updatedAt: updated)
+    }
+
+    // MARK: - WIRE-TODO-001: subscribe / unsubscribe / notify
+
+    /// Subscribe to TodoStore writes. Returns:
+    ///   - `id`: the subscription token (= pass back to `unsubscribe`
+    ///     to cancel without touching other listeners).
+    ///   - `stream`: an `AsyncStream<TodoItem>` that yields the
+    ///     affected row after each `add` / `setStatus` / `delete`.
+    ///
+    /// Consumers typically `for await item in stream { await refresh() }`
+    /// — the stream element carries the changed item but the consumer
+    /// owns the refresh policy (= in practice, re-read `list()`).
+    ///
+    /// The stream is buffered with the default unbounded policy so a
+    /// slow consumer doesn't block the actor; a terminated stream
+    /// (= via `unsubscribe` or `deinit`) is finalized and yields no
+    /// further elements.
+    public func subscribe() -> (id: UUID, stream: AsyncStream<TodoItem>) {
+        let id = UUID()
+        let (stream, continuation) = AsyncStream<TodoItem>.makeStream()
+        listeners[id] = continuation
+        return (id, stream)
+    }
+
+    /// Cancel a subscription. The matching continuation is dropped and
+    /// finalized (= no more elements). Safe to call with an unknown
+    /// id (= no-op).
+    public func unsubscribe(_ id: UUID) {
+        if let c = listeners.removeValue(forKey: id) {
+            c.finish()
+        }
+    }
+
+    /// Fire-and-forget notification: yield the affected row to every
+    /// active listener. Detached continuations (= already finished
+    /// by their consumer) are silently dropped. `nil` is a no-op.
+    private func notify(_ item: TodoItem) {
+        guard !listeners.isEmpty else { return }
+        for (_, continuation) in listeners {
+            continuation.yield(item)
+        }
     }
 
     private func exec(_ sql: String) throws {
