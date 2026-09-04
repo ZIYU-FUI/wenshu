@@ -32,15 +32,15 @@ Batch 2.3 11-ticket enumeration, not the full 43-module audit.
 
 | Bucket | Count | % | What this means |
 |---|---|---|---|
-| ✅ direct port | 6 | 14% | hermes Python module has a dedicated wenshu Swift file that ports the behavior 1:1 (verified by doc-comment citation + comparable LOC + matching public API). Modules: prompt_caching, error_classifier, turn_retry_state, context_breakdown, rate_limit_tracker, runtime_cwd. |
+| ✅ direct port | 7 | 16% | hermes Python module has a dedicated wenshu Swift file that ports the behavior 1:1 (verified by doc-comment citation + comparable LOC + matching public API). Modules: prompt_caching, error_classifier, turn_retry_state, context_breakdown, rate_limit_tracker, runtime_cwd, chat_completion_helpers. |
 | ✅ wenshu-side wins | 11 | 26% | existing wenshu Core module (= pre-dates the hermes port) is the source of truth; hermes-port = thin adapter that delegates to it per ADR-0009 / AGENTS.md §11.3 wenshu-side wins pattern. No code duplication. Modules: context_compressor, credential_pool, tool_guardrails, memory_manager, memory_provider, skill_utils, credential_persistence, display, background_review, curator, credits_tracker. |
 | ⚠️ partial | 18 | 42% | Swift file exists with a doc-comment citing the hermes module, but the implementation is a stub / minimum-surface / wire-up-not-yet-done. Z-contract golden tests on most of these would fail. Modules: conversation_loop, auxiliary_client, tool_executor, conversation_compression, agent_init, anthropic_adapter, turn_context, turn_finalizer, message_sanitization, message_content, tool_result_classification, system_prompt, context_engine, context_references, model_metadata, skill_preprocessing, skill_commands, credential_sources. |
-| ❌ missing | 8 | 19% | No Swift file exists; spec §3.1 lists a target file but it has not been authored. The hermes module has zero Swift surface. Modules: prompt_builder, chat_completion_helpers, agent_runtime_helpers, tool_dispatch_helpers, skill_bundles, secret_sources + secret_scope, retry_utils, shell_hooks. |
-| **TOTAL** | **43** | **100%** | = 6 ✅ direct port + 11 ✅ wenshu-side wins + 18 ⚠️ partial + 8 ❌ missing |
+| ❌ missing | 7 | 16% | No Swift file exists; spec §3.1 lists a target file but it has not been authored. The hermes module has zero Swift surface. Modules: prompt_builder, agent_runtime_helpers, tool_dispatch_helpers, skill_bundles, secret_sources + secret_scope, retry_utils, shell_hooks. (chat_completion_helpers was previously listed here but landed 2026-09-04 via TICKET-HERMES-GAP-002 commit `1b5b038de`; see ✅ direct port row.) |
+| **TOTAL** | **43** | **100%** | = 7 ✅ direct port + 11 ✅ wenshu-side wins + 18 ⚠️ partial + 7 ❌ missing |
 
-Honest tally: **17/43 modules fully done** (= direct port + wenshu-side wins) and
-**26/43 incomplete** (= partial + missing) per the gap audit. Per boss OOB
-2026-09-04 '先不验收, 先继续把工作树干完' = the 26 incomplete modules are the
+Honest tally: **18/43 modules fully done** (= direct port + wenshu-side wins) and
+**25/43 incomplete** (= partial + missing) per the gap audit. Per boss OOB
+2026-09-04 '先不验收, 先继续把工作树干完' = the 25 incomplete modules are the
 work-tree to fill in. The original '100% complete' verdict on this file was
 based on the partial 11-ticket Batch 2.3 manifest (= ~15 of 43 modules) and
 does not reflect the full 43-module reality.
@@ -95,25 +95,27 @@ will add additional tests.
 
 Per spec §3.1 hermes port coverage — full 43-module honest tally:
 
-- ✅ 6 modules direct port (= prompt_caching, error_classifier, turn_retry_state,
-  context_breakdown, rate_limit_tracker, runtime_cwd; ~6 LOC of 43)
+- ✅ 7 modules direct port (= prompt_caching, error_classifier, turn_retry_state,
+  context_breakdown, rate_limit_tracker, runtime_cwd, chat_completion_helpers;
+  bumped from 6 → 7 on 2026-09-04 via TICKET-HERMES-GAP-002 = RequestHelpers.swift 426 LOC)
 - ✅ 11 modules wenshu-side wins (= context_compressor, credential_pool,
   tool_guardrails, memory_manager, memory_provider, skill_utils,
   credential_persistence, display, background_review, curator,
   credits_tracker; per ADR-0009 / AGENTS.md §11.3)
 - ⚠️ 18 modules partial (= Swift file exists but is stub / minimum-surface /
   wire-up-not-yet-done; Z-contract golden tests on most would fail)
-- ❌ 8 modules missing (= no Swift file exists; spec §3.1 target file has not
-  been authored)
+- ❌ 7 modules missing (= no Swift file exists; spec §3.1 target file has not
+  been authored; reduced from 8 after TICKET-HERMES-GAP-002 landed 2026-09-04)
 - ✅ 7-connector BYOK layer (= per ADR-0008)
 - ✅ PromptCaching 4 breakpoints (= per ADR-0010)
 - ✅ Deterministic context compression (= per ADR-0011, no LLM-based compression)
 
-The 26 incomplete modules (= 18 ⚠️ partial + 8 ❌ missing) are the work-tree to
-fill in per boss OOB 2026-09-04 '先不验收, 先继续把工作树干完'. The 8 ❌ missing
-modules are the most pressing: prompt_builder, chat_completion_helpers,
-agent_runtime_helpers, tool_dispatch_helpers, skill_bundles, secret_sources +
-secret_scope, retry_utils, shell_hooks.
+The 25 incomplete modules (= 18 ⚠️ partial + 7 ❌ missing) are the work-tree to
+fill in per boss OOB 2026-09-04 '先不验收, 先继续把工作树干完'. The 7 ❌ missing
+modules are the most pressing: prompt_builder, agent_runtime_helpers,
+tool_dispatch_helpers, skill_bundles, secret_sources + secret_scope, retry_utils,
+shell_hooks. (chat_completion_helpers removed 2026-09-04 — landed via
+TICKET-HERMES-GAP-002 commit `1b5b038de` = RequestHelpers.swift 426 LOC.)
 
 ## Outstanding deferred items (= per v0.37 backlog)
 
@@ -164,7 +166,7 @@ below per their actual port state.
 | 5 | `agent/prompt_caching.py:119` | `Core/Agent/Conversation/PromptCaching.swift` (100 LOC) | ✅ direct port |
 | 6 | `agent/context_compressor.py:3082` | `Core/Agent/Conversation/ContextCompressor.swift` (128 LOC) | ✅ wenshu-side wins — design divergence per §11 baseline 'no external AI platform calls' |
 | 7 | `agent/conversation_compression.py:1367` | `Core/Agent/Conversation/ConversationCompression.swift` (66 LOC) | ⚠️ partial — `historyAfterCompression` + `manualTrigger` ported; no integration with ConversationLoop; no auto-trigger; no persistence |
-| 8 | `agent/chat_completion_helpers.py:3103` | — (0 LOC) | ❌ missing — no Swift file references this module; marshaling logic inlined per-connector (= code duplication) |
+| 8 | `agent/chat_completion_helpers.py:3103` | `Core/Agent/Connector/RequestHelpers.swift` (426 LOC) | ✅ direct port — landed 2026-09-04 via TICKET-HERMES-GAP-002 commit `1b5b038de` (= RequestHelpersTests covering 4 builders + 3 decoders + 2 connector byte-parity checks; 426 LOC Swift ports the 3,103-LOC hermes helper module per spec §3.1) |
 | 9 | `agent/agent_runtime_helpers.py:3209` | — (0 LOC) | ❌ missing — no Swift file references this module |
 | 10 | `agent/agent_init.py:2103` | `Core/Agent/Conversation/AgentLifecycleTracker.swift` (285 LOC) | ⚠️ partial — file cites `agent_init.py` but wenshu implementation is for subagent lifecycle, NOT for agent_init bootstrap |
 | 11 | `agent/anthropic_adapter.py:2789` | `Core/Agent/Connector/{AnthropicConnector,AnthropicStreaming,AnthropicStreamingWireup}.swift` (528 LOC) | ⚠️ partial — covers basic Anthropic; missing `redacted_thinking` blocks; missing thinking signature propagation; missing multi-content image/document blocks |
@@ -272,36 +274,38 @@ because the wenshu module = source of truth + hermes-port = thin adapter pattern
   scope only.
 - **Full hermes port scope B (43 modules per spec §2.1 + §2.2)** = PARTIAL.
   Per the gap audit at `.scratch/2026-09-04-hermes-port-gap-audit.md`:
-  - 6 ✅ direct port (14%) — 17/43 modules fully done when combined with wenshu-side wins
+  - 7 ✅ direct port (16%) — 18/43 modules fully done when combined with wenshu-side wins (was 6 / 17; bumped 2026-09-04 by TICKET-HERMES-GAP-002 = chat_completion_helpers landed)
   - 11 ✅ wenshu-side wins (26%)
   - 18 ⚠️ partial (42%) — Swift file exists but is a stub / minimum-surface / wire-up-not-yet-done
-  - 8 ❌ missing (19%) — no Swift file exists; spec §3.1 target file has not been authored
-- **Honest tally** = 17/43 modules fully done + 26/43 incomplete (= partial + missing).
-  Per boss OOB 2026-09-04 '先不验收, 先继续把工作树干完' = the 26 incomplete modules are
+  - 7 ❌ missing (16%) — no Swift file exists; spec §3.1 target file has not been authored (was 8; bumped down by TICKET-HERMES-GAP-002)
+- **Honest tally** = 18/43 modules fully done + 25/43 incomplete (= partial + missing).
+  Per boss OOB 2026-09-04 '先不验收, 先继续把工作树干完' = the 25 incomplete modules are
   the work-tree to fill in.
-- **The 8 ❌ missing modules** (= the most pressing work-tree items): prompt_builder,
-  chat_completion_helpers, agent_runtime_helpers, tool_dispatch_helpers, skill_bundles,
+- **The 7 ❌ missing modules** (= the most pressing work-tree items): prompt_builder,
+  agent_runtime_helpers, tool_dispatch_helpers, skill_bundles,
   secret_sources + secret_scope, retry_utils, shell_hooks. These have ZERO Swift
   surface today; future tickets must author dedicated wenshu Swift files for each
   (= spec §3.1 lists the target filenames for most of these).
+  (chat_completion_helpers was removed from this list 2026-09-04 — it landed via
+  TICKET-HERMES-GAP-002 commit `1b5b038de`.)
 - **Test coverage** = 135+ tests cover the 11 Batch 2.3 tickets (= the ~15 modules
-  that landed in Batch 2.3). The 26 incomplete modules have minimal or no test
+  that landed in Batch 2.3). The 25 incomplete modules have minimal or no test
   coverage. Additional tests will be added as these modules get filled in.
 - **Build status** = clean (= 0 source + 0 test compile errors).
 
-V0.37 is NOT ready to proceed with Batch 3 until the 26 incomplete modules are
+V0.37 is NOT ready to proceed with Batch 3 until the 25 incomplete modules are
 filled in (= the work-tree per boss OOB 2026-09-04 '继续把工作树干完'). The
 next-session priority order (= per gap audit "What should be filled in next"
-section) is: ❌ missing modules first (= 8 modules with zero Swift surface),
-then ⚠️ partial modules with the highest LOC gap (= conversation_loop, chat_completion_helpers,
-agent_runtime_helpers, anthropic_adapter, credential_sources, conversation_compression).
+section) is: ❌ missing modules first (= 7 modules with zero Swift surface),
+then ⚠️ partial modules with the highest LOC gap (= conversation_loop, anthropic_adapter,
+credential_sources, conversation_compression, auxiliary_client, model_metadata).
 
 ---
 
 *Manifest v0.37 · 2026-09-03 (corrected 2026-09-04 per boss OOB + parallel gap audit) ·
 pocock single-agent · Batch 2.3 ticket scope = 100% complete (= 11 tickets, ~15 of 43 modules);
 full hermes port scope B (43 modules) = PARTIAL: 6 ✅ direct port + 11 ✅ wenshu-side wins
-+ 18 ⚠️ partial + 8 ❌ missing = 17/43 fully done, 26/43 incomplete · English-only +
++ 18 ⚠️ partial + 7 ❌ missing = 18/43 fully done, 25/43 incomplete · English-only +
 老板 address per AGENTS.md §12*
 
 ---
