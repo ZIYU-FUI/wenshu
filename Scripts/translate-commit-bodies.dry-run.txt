@@ -1,0 +1,224 @@
+6585a04763ff26627d478def02dc3f54a178c39a fix(wenshu): v0.31 -- reset menu wires NSSplitView + reopen .ws UTI | 65 non-ASCII bytes
+6f717a43231c4b7870244a891145249b7a4aec70 chore(wenshu): v0.32 -- delete orphan Tip.swift tooltip helper | 106 non-ASCII bytes
+55e3d3f579c6022ed60c66d258b5534d4720311a chore(wenshu): v0.32 -- delete orphan EscapeLayers.swift | 72 non-ASCII bytes
+a802c95f41d6f5eac8d2e3638bdfe41f469b16f9 chore(wenshu): v0.32 -- delete orphan LibraryOutlineView.swift | 2 non-ASCII bytes
+db23ef9321a9224bc3129806d862a6410f1598aa chore(wenshu): v0.32 -- delete orphan BookOutlineView.swift | 23 non-ASCII bytes
+3b1cc19ada7232599809933c8ac881f043467436 chore(wenshu): v0.32 -- delete orphan ReferenceLibraryOutlineView.swift | 2 non-ASCII bytes
+1f454f595241b311bf9700a9a32d54c9670d46a6 chore(wenshu): v0.32 -- remove historical comment mentions of dead OutlineView files | 8 non-ASCII bytes
+cf5508881617cd1beecdc6edacbc003e8fd610ee refactor(wenshu): v0.32 -- move NewLibraryOutlineView inline FileManager into BookStore extension | 2 non-ASCII bytes
+76203ea597f3dca16ef3c7fc168924ed68903fe1 fix(wenshu): v0.32 -- remove Liquid Glass opacity slider + auto-apply Apple canonical .glass | 91 non-ASCII bytes
+8fb3f15ddd3b39b9908069cbc4bfdeb149915113 refactor(wenshu): v0.32 -- tab bar + status bar use Apple canonical controlBackgroundColor | 168 non-ASCII bytes
+fe460928122eb81c4d72157c98ead6ce3c67508a chore(wenshu): v0.32 -- ComponentIndex §4.1 update for LiquidGlassOpacity removal | 49 non-ASCII bytes
+abd42133875c11aeb0f2cd656bb285e49209ce94 fix(wenshu): v0.32 -- route 6-zone pane background through Apple NSColor brightness tiers | 194 non-ASCII bytes
+d44eee5889de3d278fb83248fd305dc6032a5a50 fix(wenshu): v0.32 -- per-region top toolbar uses Apple canonical controlBackgroundColor | 113 non-ASCII bytes
+e5bf3d62ebcac61fe38b694e64ec633a313e638b fix(wenshu): v0.32 -- containerBackground for: .window uses Color.clear (bottom layer only) | 218 non-ASCII bytes
+dc9766fb6d21bf23185686054c5e630e511d4aef refactor(wenshu): v0.32 -- remove DesignColor wrapper enum; use bare Color(nsColor:) Apple API | 32 non-ASCII bytes
+e8a432e0f339d71623bb452ab51ce06d6ffd8ad7 refactor(wenshu): v0.32 -- TitlebarControlStyle uses bare .thinMaterial (Apple Material catalog) | 17 non-ASCII bytes
+7427cbe74d998c29ee2561ca6d2a505081db0f3d refactor(wenshu): v0.32 -- LayoutEditBar preset highlight uses bare .thinMaterial | 17 non-ASCII bytes
+c52f9b19062c60d6e58db4dba5dfc7166d241418 chore(wenshu): v0.32 -- delete RegionHoverWash.swift (self-written ShapeStyle wrapper) | 17 non-ASCII bytes
+89e9757323e64607338f38551613e509da283046 chore(wenshu): v0.32 -- ComponentIndex §4.2 update for RegionHoverWashStyle deletion | 18 non-ASCII bytes
+71119f97ff7f8287f2b795fbe1a00217ee28617a fix(wenshu): v0.32 -- window-level + content-tier use Apple canonical NSColor (Monterey 12 reference) | 122 non-ASCII bytes
+05e82b85b5a4f71b35815a85e138920d69c4a736 refactor(wenshu): v0.33 -- R1 colors: 35 violations migrated to Apple semantic ShapeStyle (.quaternary / .tertiary / .separator / .tint.opacity / 裸 NSColor) | 315 non-ASCII bytes
+4e0667d214eeb77ed71b01a767247d83fd1c5f0b refactor(wenshu): v0.33 -- R2 fonts: 44 violations migrated to Apple 11 text styles (.caption / .body / .title2 / .title3 / .caption2.weight / .body.weight) | 312 non-ASCII bytes
+9af8787af483238507a2286dab23aad537e52231 refactor(wenshu): v0.33 -- R3 dark mode: zero violations (audit-only commit) | 483 non-ASCII bytes
+d5dede91da94f4b6800926a84d5917f4b188fc36 refactor(wenshu): v0.33 -- R6 padding: 50+ magic-number paddings migrated to DesignTokens (= 11 files, +45 DesignTokens / -58 inline) | 327 non-ASCII bytes
+b36cff4a308bdb3761b5836770ca2f25833adee2 refactor(wenshu): v0.33 -- R8 window: delete dead NSWindow ProviderKeyPrompt + ProviderKeyInputSheet (= 69 LOC, R8 zero NSWindow violations remaining) | 468 non-ASCII bytes
+365ccdca3ad6ad69a1298047421d36125e9f2f4c refactor(wenshu): v0.33 -- R9 + R10 + R11 audit-only (zero violations) | 771 non-ASCII bytes
+b713dafae817eb26491246e97caf2d7a4e7a67f2 refactor(wenshu): v0.34 -- Apple-API-first #1: delete dead TabStripScroll.swift (171 LOC, ScrollViewReader + tabStripScrollLeft pure function + withAnimation) | 393 non-ASCII bytes
+a4f04f09dfe662fe88119ca20feb7ad1433bd3a4 refactor(wenshu): v0.34 -- Apple-API-first #2: NSOpenPanel/NSSavePanel audit (3 sites, retained: Apple .fileImporter/.fileExporter NOT equivalent) | 488 non-ASCII bytes
+689fe13d0abd766cc4f252c44f84de107b9950b9 refactor(wenshu): v0.34 -- Apple-API-first #3: delete 3 self-written ButtonStyle (IconButtonStyle + TitlebarButtonStyle + TitlebarControlStyle, all no-op / zero-callers) | 360 non-ASCII bytes
+496c96532d9c2997ec36f6115790792b5580d2c7 refactor(wenshu): v0.34 -- Apple-API-first #4: delete self-written ShapeStyle wrapper RegionSelectionBackgroundStyle (125 LOC, zero callers) | 396 non-ASCII bytes
+71859775044d8807d19adf548356130451133a03 refactor(wenshu): v0.34 -- Apple-API-first #5: UserDefaults raw UI state audit (17 sites, 1 dead-duplicate write fixed) | 597 non-ASCII bytes
+85f87a68f758abcda31aa7ce5e4ae764bdc504be refactor(wenshu): v0.34 -- Apple-API-first #6: NotificationCenter audit (32 sites, retained: @FocusedValue not viable for .commands sender) | 769 non-ASCII bytes
+125840d0fe047e4d441e7d3ad42be5f8fb7e9c2c refactor(wenshu): v0.34 -- zone-toggle animation: route through NSSplitViewItem.animator() for AppKit canonical push/pop default | 360 non-ASCII bytes
+69a43da652ead66849abfe3070da37135fed86f0 refactor(wenshu): v0.34 -- delete dead chrome components (AppTitlebar + AppStatusbar + WenshuChromeOverlay + TitlebarStatusbarPolish, = 660 LOC of dead code) | 366 non-ASCII bytes
+9a2dd1f8ec3e7c574ee79da63fcf6b3d0727dd72 refactor(wenshu): v0.34 -- per-pane chrome spacing: 4 PT Apple HIG toolbar gap (= DesignTokens.chromePaddingClusterGap) | 261 non-ASCII bytes
+b8472bbbd93b3c21aca0ad7f6926dc506b49e1ec refactor(wenshu): v0.34 -- delete dead ZonePerRegionChrome.topBar (= 65 LOC, zero active caller) | 204 non-ASCII bytes
+9ec8eb00c9b3f8d0cc08aa08533d55ad271f1833 refactor(wenshu): v0.34 -- chrome parent controls symmetric outer inset (PaneTabBar: .padding(.horizontal, 18 PT) replaces .padding(.leading, 18 PT)) | 279 non-ASCII bytes
+1df0cf3946ef54a2eccf45db705943cd5f62d6d1 refactor(wenshu): v0.34 -- hover unified via .hoverWash() modifier (= Apple HIG .quaternary single source of truth) | 45 non-ASCII bytes
+88c2858e252c659f6ab07644f664959ceb1a47dd refactor(wenshu): v0.34 -- editor expand/shrink + chat archive trailing buttons use PaneIconTab icon pattern + .hoverWash() | 123 non-ASCII bytes
+a6b6c75d31b7a51910649b30aafe19bad21b23ea refactor(wenshu): v0.34 -- delete ChatZoneTopChrome wrapper (= B-02 multi-layer audit followup) | 36 non-ASCII bytes
+da63d41075c428cf78143d3b2f813e1130d0760b docs(wenshu): v0.34 -- ComponentIndex LEVEL 7/8 refresh (= B-06 F6 SOFT cleanup) | 26 non-ASCII bytes
+ecddef4a3f25e97448f7dbf2028d2cc9a74f6a2e chore(wenshu): v0.34 -- delete dead LLMKeychain.swift (= v0.21 dead code, replaced by ProviderKeychain in v0.28) | 24 non-ASCII bytes
+64e4af6e268ade09112f6a99df3e16047aa21f93 refactor(wenshu): v0.34 -- add EditorMode enum + mode toggle (= ticket 04 of 11) | 6 non-ASCII bytes
+5875bba192b3eaabcdaf3c53d3698f39611f1a0d refactor(wenshu): v0.34 -- add PaneNSController.handleEditorMaximizedChanged (= ticket 02 of 11) | 45 non-ASCII bytes
+1f8ee9340470da82b35841c3afbc75d8dc2a9a95 fix(wenshu): v0.34 -- repair EditorExpandShrinkTrailingButton click (= ticket 03 of 11) | 6 non-ASCII bytes
+7968e479ccd9e0a970c8805d02ad0daef1aaa1a8 feat(wenshu): v0.34 -- preview mode = swift-markdown + InternalLinkParser (= ticket 05 of 11) | 4 non-ASCII bytes
+e1eeecc390ea516d92d5e593c2440a332776f92e feat(wenshu): v0.34 -- BacklinksPanel in preview mode (= ticket 06 of 11) | 3 non-ASCII bytes
+2770dd484e87882313cc27c8b0f227f5e77a5f37 feat(wenshu): v0.34 -- close button + dirty confirm dialog (= ticket 09 of 11) | 51 non-ASCII bytes
+41a1e7ad53624375b822659a6469b2fdd6a664af refactor(wenshu): v0.34 -- editor hotkeys Cmd+E / Cmd+S / Cmd+W / Cmd+Shift+E (= ticket 10 of 11) | 15 non-ASCII bytes
+a9ed46344bdb2575648ef030b736c6cda3115470 docs(wenshu): v0.34 -- B-11 backlog + CONTEXT.md editor zone terms (= ticket 11 of 11) | 38 non-ASCII bytes
+ec28f66472c26b7f2aaaedd88441751155beb247 refactor(wenshu): v0.34 -- B-12 zone-toggle full-state snapshot | 159 non-ASCII bytes
+854b73a67596dad79cf14c5849c9f87d9e6d57b5 refactor(wenshu): v0.34 -- B-14 backlinks inline label + popover (= boss 9/2 OOB) | 165 non-ASCII bytes
+ebd924571186f73121c955db91f84f1b990a3b80 refactor(wenshu): v0.34 -- B-15 chrome bottom right = backlinks count | 87 non-ASCII bytes
+f6ea041ed9022caaf30c69082729da7312a0c80c feat(wenshu): v0.34 -- B-16 chrome bottom right = clickable backlinks popover | 123 non-ASCII bytes
+902c9f91cbafdf0fac1aa2c93204a088fb9353c7 refactor(wenshu): v0.34 -- B-17 strip 120 PT BacklinksPanel + DesignTokens padding | 111 non-ASCII bytes
+a3ed8ff84168c5a6c8de92276730b4704b94ff63 feat(wenshu): v0.34 -- B-18 wire WordCounter to chrome bottom-bar left | 57 non-ASCII bytes
+8d38497269cd2825888bce9290a3f32b94b4eac0 feat(wenshu): v0.34 -- B-20 format toolbar in editor top bar (5 MD buttons) | 60 non-ASCII bytes
+f18089fd9a50c2ee226e41a9234bd5311a13edba feat(wenshu): v0.34 -- B-18 wire WordCounter to chrome bottom-bar left | 57 non-ASCII bytes
+53be9871f17b6e14c129d89d11fe29f7ec93a9da feat(wenshu): v0.34 -- B-21 auto-save (3-second debounce, Obsidian-style) | 15 non-ASCII bytes
+ae7f95ea0c7941bc1957ae57f2e713aefa0c9624 refactor(wenshu): v0.34 -- B-22 auto-save on dirty→clean transitions (Apple HIG pattern) | 210 non-ASCII bytes
+ccc85eee5e8d71e2756d3efd7cff227d46f5217e feat(wenshu): v0.34 -- B-23 editor zone auto-reload on external file changes | 72 non-ASCII bytes
+1d0f65eeadf9d7fc7bb6c8c9b8109b49eeceeac7 refactor(wenshu): v0.34 -- B-24 multi-tab data model (= EditorTab + AppState.openTabs) | 60 non-ASCII bytes
+50716c9d744e6fac4f15e9ef0def5862c8e18d05 refactor(wenshu): v0.34 -- B-24 complete (per-tab state migration to AppState) | 117 non-ASCII bytes
+f938e69b2122ba5cd5e397c2571169323fea0931 fix(wenshu): v0.34 -- B-25 card double-click opens .md in editor + duplicate-tab check | 87 non-ASCII bytes
+b53e2f405c6c754288ecc4811b79bde25af08bd5 fix(wenshu): v0.34 -- B-25 closure self-capture bug fix (= Swift 6 strict capture) | 51 non-ASCII bytes
+b592178f76dd1509cd5be20a804aee6674180e92 docs(wenshu): v0.34 -- spec for Card-master port (11 items, 8-step Q34 chain) | 49 non-ASCII bytes
+3159cec82148e64b8d94c169bee335635f04f0d5 fix(wenshu): v0.34 -- B-25 preview view reads active tab (= double-click fix root cause) | 186 non-ASCII bytes
+9c3a317aa415713d33aaf1f88d5b2906cbd9f40f feat(wenshu): v0.34 -- AI thumbnail generation (Issue 02) | 239 non-ASCII bytes
+1a8f38a6b58989bf0e999e4ffed30412d555824d fix(wenshu): v0.34 -- B-26 tab bar + manual double-click latch | 231 non-ASCII bytes
+8450714f8a2ac5b337c4857317ec160e7a5fb8a1 fix(wenshu): v0.34 -- B-26 always append new tab (= no replacement of active tab) | 159 non-ASCII bytes
+2756c1e73f3581871e0386e451cb9f574687aa76 fix(wenshu): v0.34 -- B-26 inlined tab bar + NSEvent double-click interval | 216 non-ASCII bytes
+60f3b92ee3f53756dd41519079ae2f56f985c73c feat(wenshu): v0.34 -- startup readiness check (Issue 05) | 77 non-ASCII bytes
+d8cd8a96ab39ffc0c037cb6acf5d4277beaea1da fix(wenshu): v0.34 -- user-facing error translation (Issue 06) | 125 non-ASCII bytes
+8e37e9c5d381f3d6ca7e4228ad55b2adce5ee947 feat(wenshu): v0.34 -- SSE streaming chat (Issue 07) | 128 non-ASCII bytes
+ba54c0d66041a5268ec57b7e0ff91bf086d156ac fix(wenshu): v0.34 -- ChatStore.transact (Issue 08) | 146 non-ASCII bytes
+44204f332a1f3db26674d373d958286e3a4f5a69 fix(wenshu): v0.34 -- WikiEntityPreflight (Issue 04) | 113 non-ASCII bytes
+8489fda939f1e24c9bc71fedba94290dc1aa392b docs(wenshu): v0.34 -- upstreams.json + THIRD_PARTY_NOTICES.md (Issue 03) | 116 non-ASCII bytes
+32a6bf8442550b3d628c7e86332939d687d92aad fix(wenshu): v0.34 -- WorkspaceStore.replaceAll (Issue 09) | 134 non-ASCII bytes
+2a19086c9c0546d9a7c44143af52a653481d4a0b feat(wenshu): v0.34 -- CapabilityRegistry (Issue 10) | 65 non-ASCII bytes
+8af44f28f89e831dbef36595f14cd1cda0855b5c fix(wenshu): v0.34 -- notices automation (Issue 11) | 125 non-ASCII bytes
+8a6fa8936a0798b22551ce5034595895f2cde8c7 docs(wenshu): v0.35 -- AGENTS.md §11 baseline rewrite + §11.2 7 LLM connector profiles + §11.3 agent interaction principle + CLAUDE.md sync (= ticket 011 of 11) | 12 non-ASCII bytes
+3091098cc9ce6645dd5b12f59ffb1b495773a7c0 refactor(wenshu): v0.35 -- Core/Agent/ 13 files rename into Conversation/ + Connector/ sub-directories (= ticket 001 sub-step 1 of 8) | 8 non-ASCII bytes
+b783ef39e326cc9ceb19dc7ba8d80a5432de4549 feat(wenshu): v0.35 -- LLMConnector protocol + ConnectorCredentials + Provider enum extended with Gemini / DeepSeek / Ollama (= ticket 001 sub-step 2 of 8) | 20 non-ASCII bytes
+52b9e6e3736fb5e56ca463c8714704d9ebb96c8c feat(wenshu): v0.35 -- ConversationLoop actor + LLMMessage/LLMResponse/ConversationResult types (= ticket 001 sub-step 3 of 8) | 16 non-ASCII bytes
+8bfb1ba565cb29205821afe0e769fbbffc1251f2 feat(wenshu): v0.35 -- TurnContext + TurnFinalizer + TurnRetryState + MessageSanitization + MessageContent (= ticket 001 sub-step 4 of 8) | 6 non-ASCII bytes
+eaf60fc1dc0e9a8a267ddc651f80eb68bcd8c8ab feat(wenshu): v0.35 -- ToolExecutor actor + Tool protocol (= ticket 001 sub-step 5 of 8) | 6 non-ASCII bytes
+3f1a6974129c5342f4f461fe3a4f88b1ce1c5602 feat(wenshu): v0.35 -- ReadFileTool + WriteFileTool (thin async wrappers over existing Core/Tools/FileTools.swift) (= ticket 001 sub-step 6 of 8) | 11 non-ASCII bytes
+66f0578aef50d21ba5d27ee75cded96be9e5d566 feat(wenshu): v0.35 -- MinimaxConnector (thin Anthropic-compatible wire format wrapper) = ticket 001 sub-step 7 of 8 | 8 non-ASCII bytes
+2a2a5f9ba9714f84d1f115c812100daf342fcf01 feat(wenshu): v0.35 -- WenshuVerifier.sendViaMinimaxConnector() thin facade over new LLMConnector protocol (= ticket 001 sub-step 8 of 8) | 8 non-ASCII bytes
+93c9c943f9e16d6e9fed8f616ae338432edbac66 feat(wenshu): v0.35 -- PromptCaching (= hermes prompt_caching.py port) = ticket 002 sub-step 1 of N | 6 non-ASCII bytes
+a947d489456ece97db9b7b46c5aadcb5a83f989f feat(wenshu): v0.35 -- SystemPrompt (= hermes system_prompt.py port, byte-stable tier) = ticket 002 sub-step 2 of N | 12 non-ASCII bytes
+12dcb2564885784bfb280cc3d154d6f15eb95536 feat(wenshu): v0.35 -- Wire PromptCaching into MinimaxConnector (= cache markers on outgoing request) = ticket 002 sub-step 3 of N | 8 non-ASCII bytes
+9c097fe5b6cf2528342a4c1edab9da26042004b7 feat(wenshu): v0.35 -- PromptCaching byte-stability e2e tests (= AGENTS.md §11.3 invariant verification) = ticket 002 sub-step 4 of N | 14 non-ASCII bytes
+7b84690efd82a734788b3e2d6f585a598c49e200 feat(wenshu): v0.35 -- ContextCompressor actor + CharacterBasedTokenEstimator (= deterministic compression policy) = ticket 003 sub-step 1 of N | 12 non-ASCII bytes
+7dfdf6d9ebb37facee1eb4529dba27627f8edfd4 feat(wenshu): v0.35 -- ConversationCompression actor (thin wrapper over ContextCompressor + manual trigger) = ticket 003 sub-step 2 of N | 6 non-ASCII bytes
+1d533a7b46ea207683fc0962be6408cf41036f97 feat(wenshu): v0.35 -- ContextEngine facade (= hermes context_engine.py ABC port, thin wrapper) = ticket 003 sub-step 3 of N | 8 non-ASCII bytes
+a3b851c2cc15f4c91f08c400a99d2301d8757442 feat(wenshu): v0.35 -- ContextEngine e2e tests (= ticket 003 integration verification) = ticket 003 sub-step 6 of N | 8 non-ASCII bytes
+6760c6b4d750a9e45beb589560369b8666ef8479 feat(wenshu): v0.35 -- AnthropicConnector (full Anthropic-native wire format, P0) = ticket 004 sub-step 1 of N | 8 non-ASCII bytes
+020385e728e9dd508bfcd68d4cb90eda3959f862 feat(wenshu): v0.35 -- OpenAIConnector + OpenAICompatibleConnector (P0, 4 providers) = ticket 005 | 8 non-ASCII bytes
+9fb0c9d713b075555fceb2865b1669ce0721e655 feat(wenshu): v0.35 -- LLM Connector Settings UI (7 profiles, BYOK) = ticket 006 | 20 non-ASCII bytes
+00e7015adc2612d55a70d3d38461b524101e8a4d feat(wenshu): v0.35 -- GeminiNativeConnector (Google GenAI protocol, P1) = ticket 007 | 6 non-ASCII bytes
+ce62d67d0e2c73fa10fa421980f0df1dab39ca22 feat(wenshu): v0.35 -- WenshuModelCatalog (= per-provider model catalog, P2 OpenRouter metadata) = ticket 008 | 9 non-ASCII bytes
+81ed9c144dac3a4aa1df2a9ef264a00edccbd187 feat(wenshu): v0.35 -- Memory subsystem thin adapter + Settings view + DynamicZone panel = ticket 009 | 32 non-ASCII bytes
+cbfd0f3828cda93ba803636191c99dae9d378077 feat(wenshu): v0.35 -- Skill subsystem thin adapter + Settings view + /command parser = ticket 010 | 27 non-ASCII bytes
+8fbc2634edfac12759152cdec2ed6c733219d496 feat(wenshu): v0.35 -- Activate ChatView compression pill + manual button (act-1, DesignTokens compliant) = ticket 003 sub-step 4+5 | 48 non-ASCII bytes
+1f719e01aa5adf8e34c4aa26fc39d15e43efe0a0 feat(wenshu): v0.35 -- AgentSettingsView (3-pane settings, DesignTokens compliant) = activation act-2-fix | 48 non-ASCII bytes
+7a9789ed3dc71aa8e26a55bfb9d228193d85b4ad feat(wenshu): v0.35 -- DynamicZoneMemoryPanel (DesignTokens compliant) = activation act-3-fix | 40 non-ASCII bytes
+ae817de92b51da228f23c11286e4c0c8b07ba61b fix(wenshu): v0.35 -- DynamicZoneMemoryPanel: use .continuous corner style (Apple HIG standard, no magic) | 32 non-ASCII bytes
+98b45baccb765aa665ab57d317c2eba3e99736b8 fix(wenshu): v0.35 -- ConnectorProfileRow: DesignTokens compliant + replace *** with $profile.apiKey (tokenize auth field) | 32 non-ASCII bytes
+81c68397df6b149803031d3b75aa7c8acfb395dc fix(wenshu): v0.35 -- ConnectorAuthField + LLMConnectorSettingsView: DesignTokens compliant (iron rule 6) | 32 non-ASCII bytes
+026891fcc36132d256e3f3a5d9d5c89b1094c3b4 fix(wenshu): v0.35 -- Memory/Skills settings views: DesignTokens compliant (iron rule 6) | 32 non-ASCII bytes
+4506e6a91c67622f3599df0e766eb84550555172 fix(wenshu): v0.35 -- Tokenize 3 remaining cornerRadius magic numbers (Apple HIG small-chip standard) | 32 non-ASCII bytes
+4caac9b672d97403c0d3b71b327e8e292bb904fd feat(wenshu): v0.35 -- ticket 003 sub-step 5: manualCompress actually overwrites vm.messages (REAL compression round-trip) | 2 non-ASCII bytes
+a0cb72e322535705ef5a1f91a3e70f1945fe03db docs(wenshu): v0.35 -- domain-model step 1/6: CONTEXT.md v0.35 agent subsystem glossary | 31 non-ASCII bytes
+2f94c723f7002187ba35f137ba8db1eb562f5087 docs(wenshu): v0.35 -- domain-model step 2/6: ADR-0008 7-connector BYOK architecture | 36 non-ASCII bytes
+5b36c67721bd29feb296a2f2c1351782dcb2255d docs(wenshu): v0.35 -- domain-model step 3/6: ADR-0009 wenshu-side wins (hermes port is thin adapter, NOT replacement) | 33 non-ASCII bytes
+b0c5b43546a381be5dd031040ac306a185357149 docs(wenshu): v0.35 -- domain-model step 4/6: ADR-0010 PromptCaching 4 breakpoints + SystemPrompt byte-stable | 34 non-ASCII bytes
+c15b2e1a4f5e192dc766f72581948137a83f8565 docs(wenshu): v0.35 -- domain-model step 5/6: ADR-0011 deterministic context compression (no LLM-driven) | 36 non-ASCII bytes
+38400d8a4030cf49b8644f14bb8a4d07aa327a6c docs(wenshu): v0.35 -- domain-model step 6/6: ADR-0012 Scope B (= hermes full non-frontend + agent core) | 75 non-ASCII bytes
+e1b4da764f1459a0d7eb5265c01f7e118ed6b317 fix(wenshu): v0.35 -- Standards H2: unify smallChipCornerRadius to 3 across all 3 files (Apple HIG small-chip standard) | 33 non-ASCII bytes
+0c14329c3c5fd50af8cdcec0eb1d29c180f0635e fix(wenshu): v0.35 -- Standards H3: promote 9 file-scope chrome constants to DesignTokens (= single source of truth) | 30 non-ASCII bytes
+856afc982b80ac358816dc149e09a54eb77970e6 fix(wenshu): v0.35 -- Standards S2: extract ChatMessageBridge (= single source of truth for ChatMessage ↔ LLMMessage mapping) | 33 non-ASCII bytes
+71691153ec157335b3c80db257a1d5db73915b37 fix(wenshu): v0.35 -- Standards S3: extract ToolInputParser (= single source of truth for tool JSON input parsing) | 20 non-ASCII bytes
+8a2f45c4e36e292eacb8d7d9638b9d3391bf3ddf fix(wenshu): v0.35 -- Standards S4: unify MemoryEntryRow + MemoryEntryRowCompact with compact flag | 20 non-ASCII bytes
+7f85b05a79f46401ad320d0f97d7674e88240cbc fix(wenshu): v0.35 -- Standards S5: add LLMBlock.asJSONObject + .textValue (polymorphic dispatch) | 18 non-ASCII bytes
+67f34f778f7ac9514023bf6070d8bd08e8edf557 fix(wenshu): v0.35 -- Spec (c)-2: Anthropic SSE streaming + tool_use round-trip helpers (ticket 004 sub-step 2+3) | 22 non-ASCII bytes
+c976d9f34020ae09356df74d6c2d4cac5b6d75f5 docs(wenshu): v0.35 -- Spec (c)-1 reconcile ticket 001 L51: minimax cn = Anthropic-compatible (MinimaxConnector is canonical) | 34 non-ASCII bytes
+df5f4007de1835810694514c7c772a06d6602277 docs(wenshu): v0.35 -- /code-review loop closure report (= Standards + Spec axes both clean) | 41 non-ASCII bytes
+3900c7dd92f3dab9e822af5505fde564920ed061 feat(wenshu): v0.36 -- ticket 012 sub-step 1: credential rotation + OAuth protocol extension (ProviderKeychainMetadata) | 44 non-ASCII bytes
+c3cbc91eaa584b7d8eecf84d2cf45dd7d6c26119 feat(wenshu): v0.36 -- ticket 012 sub-step 2: InMemoryKeychainStore metadata persistence (= test backend for rotation + OAuth) | 78 non-ASCII bytes
+d02ee9c2367b00279627cad9f6a03c943e2cf20e test(wenshu): v0.36 -- ticket 012 sub-step 3: Z contract tests for ProviderKeychainMetadata + InMemoryKeychainStore | 27 non-ASCII bytes
+52dfe0a3dbc219730d417d77a592dbeeb77486bb feat(wenshu): v0.36 -- ticket 012 sub-step 4: OAuthFlow actor (= PKCE auth code + refresh_token grant) | 34 non-ASCII bytes
+9555d37b0451abf049ab8ed4f94a3d2f8756fe38 feat(wenshu): v0.36 -- ticket 012 sub-step 5: ConnectorCredentials expiry-aware adapter + ProviderKeychain shim methods | 29 non-ASCII bytes
+4fe24fae077c50263fd852fee1e448459dcbf764 refactor(wenshu): v0.36 -- ticket 013 sub-step 1: delete DynamicZoneMemoryPanel + test (= duplicate, 0 callers) | 51 non-ASCII bytes
+31dd1683306298e2784ae78ef79b99c804ed0bd2 docs(wenshu): v0.36 -- ticket 013 sub-step 2: CONTEXT.md reconcile MemoryRetrievalPanel canonical + DynamicZoneMemoryPanel deleted | 50 non-ASCII bytes
+03894782b5f425265eb07897a1f1eb20e6acd451 feat(wenshu): v0.36 -- ticket 014 sub-step 1: ContextBreakdown + ContextBreakdownAnalyzer (conversation context diagnostic) | 14 non-ASCII bytes
+4d226e083af83fe4f1bcaf0a0b3f9cf39e4288ee feat(wenshu): v0.36 -- ticket 014 sub-step 2: ContextReferences actor + ContextReference struct (= LLMMessage.id ↔ source file cross-reference) | 18 non-ASCII bytes
+7273c93baf0cf849e87f0898d745d8549da271a4 test(wenshu): v0.36 -- ticket 014 sub-step 3: Z contract tests for ContextBreakdown + ContextReferences (= 11 tests) | 12 non-ASCII bytes
+93cc7379294eef0e26e5539bcc7e4fe48b0c5ba1 feat(wenshu): v0.36 -- ticket 015 sub-step 1: ToolGuardrails + ToolNameWhitelist (= pre-tool invocation checks) | 16 non-ASCII bytes
+022fbac4b38717bdbdb158c53f6deb29ce301733 feat(wenshu): v0.36 -- ticket 015 sub-step 2: ErrorClassifier + LLMErrorCategory + ClassifiedLLMError | 16 non-ASCII bytes
+c42438a66ab40366cd314dc74bafa8c8008d33f6 feat(wenshu): v0.36 -- ticket 015 sub-step 3: RateLimitTracker + ProviderRateLimit + RateLimitBudget (= per-provider sliding 60s window tracking) | 18 non-ASCII bytes
+ec513ec5517084cbce439bc873e903511efa19c2 feat(wenshu): v0.36 -- ticket 004 sub-step 4: AnthropicStreamingWireup actor + AsyncStream bridge (= SSE wire-up with Swift6 strict concurrency) | 93 non-ASCII bytes
+58616bd77c3486ba9dc48813d208a8a436317556 test(wenshu): v0.36 -- ticket 004 sub-step 5: Z contract tests for AnthropicStreamingWireupFactory + AnthropicSSEDecoder (= 11 tests) | 42 non-ASCII bytes
+fd14701e68713fb461390a8187c2925005b9871a feat(wenshu): v0.36 -- ticket 016 sub-step 1: BackgroundCreditsTracker actor (= token consumption tracking per AGENTS.md §11) | 24 non-ASCII bytes
+7de3855e55c6226f004c7a1692af9ce7d403f40c feat(wenshu): v0.36 -- ticket 016 sub-step 2: DisplayStateMachine (= finite state machine for background task UI) | 20 non-ASCII bytes
+66b29a4b0cb66c68361aaf3f5eaa0cdc1db685dd feat(wenshu): v0.36 -- ticket 016 sub-step 3: BackgroundReview (= proposal approval workflow for background changes) | 21 non-ASCII bytes
+680aa0fdc927e54ec5590b33b4a45d1b681205c3 feat(wenshu): v0.36 -- ticket 016 sub-step 4: Curator (= reference-library entity curation analysis) | 20 non-ASCII bytes
+912da6bf95d22dcfbb347373a4e5462b102cf8e9 feat(wenshu): v0.36 -- ticket 017: RuntimeCWD actor (= current working directory tracker for tool execution) | 38 non-ASCII bytes
+0a0f910c74565e6d14d7950ab4ef0d046b721d03 feat(wenshu): v0.36 -- ticket 018 sub-step 1: hermes-port golden infrastructure (= generate_golden.py + 5 golden files + Swift parity test) | 90 non-ASCII bytes
+bd962dd783c23bd80885eae9613aa08d73a57342 feat(wenshu): v0.36 -- ticket 018 sub-step 2: X e2e dual-track harness per spec §6.2 (= 3-turn conversation parity check) | 32 non-ASCII bytes
+707b760e96853ead2a116ce86facc470eb6700c5 feat(wenshu): v0.36 -- ticket 013 sub-step 3: wire MemoryRetrievalPanel into DynamicZoneView as right-bottom panel per spec §6.4 | 32 non-ASCII bytes
+fdd6e263cc43d5919fb7b75311e3d4983ab0e4cd docs(wenshu): v0.36 -- CHANGELOG (= v0.36 release notes = 50→73 commits + hermes-core-translation + iron rule 6 sweep + 9 backlog closed) | 51 non-ASCII bytes
+916cd5c12b94e4b954aea9f39a9f27d423c81d5f test(wenshu): v0.36 -- visual verification smoke test + ship checklist (= 8 smoke tests + complete ship instructions) | 113 non-ASCII bytes
+18138ad621b8688631085502061d7d12f752b605 docs(wenshu): v0.37 backlog report (= consolidate 5 v0.36 deferred items + 8 v0.37 candidate tickets + direction recommendation) | 108 non-ASCII bytes
+28679177db23ddca5d877287bb30c12cec288a1f docs(wenshu): v0.37 roadmap + v0.36 push decision (= one-page 老板 decision document) | 201 non-ASCII bytes
+3aedca2ce17b692a6510a6e05aa224c38c1dd04b test(wenshu): v0.36 -- comprehensive interface-level test suite (= 90+ tests across 16 interfaces) | 144 non-ASCII bytes
+13067a1cf57d54a050de5a05eee00e0e762a1abd fix(wenshu): v0.36 -- pre-existing visual verify test compile errors (= 2 fixes: badgePaddingVertical removed, Provider.allCases manual array) | 45 non-ASCII bytes
+6234813d5d4e297326fc763fcf6c62457abf5be9 fix(wenshu): v0.36 -- correct wrong Provider case names in comprehensive interface tests (= Provider.openai/.deepSeek -> actual canonical names) | 87 non-ASCII bytes
+be9f9f64ed844712c54ab7f3ce52e6e687026442 fix(wenshu): v0.36 -- correct wrong Provider case names in v0_36_visual_verify_test (= openai/deepSeek -> canonical minimax/deepseek) | 75 non-ASCII bytes
+faeb23006582d9ca76ed26d21ad2213641591998 fix(wenshu): v0.36 -- my 2 test files compile clean (= @MainActor for DesignTokens + ChatViewCompressionRow nil init fix) | 153 non-ASCII bytes
+45035616cbb47890b7384f51eeed353234f33ebe fix(wenshu): v0.36 -- fix pre-existing test files (= delete 6 dead UI tests + fix LLMConnectorTests LLMMessage signature) | 66 non-ASCII bytes
+d3853e0f63de44d946cd86f15838790639eaafa3 fix(wenshu): v0.36 -- shared URLProtocolStub for HTTP interceptor tests (= promoted from inline to test-target public) | 6 non-ASCII bytes
+675bc3332215eb8912e778470ac61bf4f6518ef0 fix(wenshu): v0.36 -- MinimaxConnectorTests uses shared URLProtocolStub (= delete duplicate + use new API) | 60 non-ASCII bytes
+5cdcbc9f9c0c58f49d420125e56aa18ef9c2ec89 fix(wenshu): v0.36 -- PromptCachingE2ETests snapshot helper (= actor isolation fix) | 6 non-ASCII bytes
+3d8d6c934619939fc76faae4de3ab0c6d7310584 fix(wenshu): v0.36 -- HermesPortGoldenParityTests uses CharacterBasedTokenEstimator.estimate(LLMMessage) | 6 non-ASCII bytes
+49cc4893bf962bea0c2119fc55e614f92b69e747 fix(wenshu): v0.36 -- promote MockLLMConnector to shared test helper + Sendable snapshot | 6 non-ASCII bytes
+0e7948e2bf3104699e47fccbafb06ed504ab7f71 fix(wenshu): v0.36 -- rename ProviderKeychainTests struct to ComprehensiveProviderKeychainTests (= avoid redeclaration with Tests/WenshuAppTests/ProviderKeychainTests.swift) | 60 non-ASCII bytes
+b26054aa243abbf6ed45394bc4b468e400389a85 docs(wenshu): v0.37 full-translation plan + frontend flow + visual verification packet (= 30 commits across 6 batches) | 180 non-ASCII bytes
+a3ba1a4495e0514d6cbe9f139203e23bf897d035 fix(wenshu): v0.37 -- ComprehensiveInterfaceTests 6 errors fixed (= session 27 Batch 1.1) | 96 non-ASCII bytes
+4d7087dcda765e53799c57161914403eae9b7dab fix(wenshu): v0.37 -- chromePaddingConstants + chromeHeight @MainActor (= 0 test target errors) | 63 non-ASCII bytes
+236c866b8e45eabb1199eadd6fb08b904884c567 feat(wenshu): v0.37 -- RealAgentDispatchTests (= ticket 018 sub-step 3 foundation) | 147 non-ASCII bytes
+07ff4b90040e47dc2d549ca5d4290b5a81e902b3 feat(wenshu): v0.37 -- MockLLMConnector scripted responses (= Batch 2.1 sub-step 2) | 108 non-ASCII bytes
+227abb0aaa5a97022cffc7abae34fca3b33ee52b feat(wenshu): v0.37 -- scripted tool_use end-to-end tests (= Batch 2.1 sub-step 3) | 108 non-ASCII bytes
+21b41fdb5659fa65c1baf3b2f812d29f0a0ebcec feat(wenshu): v0.37 -- ConversationResult structure verification tests (= Batch 2.1 sub-step 4) | 108 non-ASCII bytes
+d2635057fae8d2de58ceb00e8f0c896459512b0a feat(wenshu): v0.37 -- AnthropicStreaming thinking_delta support (= Batch 2.2 sub-step 1) | 108 non-ASCII bytes
+f9387b73c2fdfbad40b7ed879bcb3c01ba8c2c48 feat(wenshu): v0.37 -- AnthropicStreamingTests for thinking_delta + fix AnthropicStreamingWireupTests 3-tuple pattern | 108 non-ASCII bytes
+166f78d3cfd80f97dae490ebf9a8f79e30330172 feat(wenshu): v0.37 -- generate_golden.py extended to 11 hermes modules (= Batch 2.3 sub-step 1) | 110 non-ASCII bytes
+95e6117369d4cb4093e5724491972bf369d64580 feat(wenshu): v0.37 -- HermesPortGoldenParityTests extended to 11 modules (= Batch 2.3 sub-step 2) | 110 non-ASCII bytes
+3810162d600e1bc182dfc393ba265785eeb232df docs(wenshu): v0.37 -- hermes port manifest (= all 11 tickets, 135+ tests, 0 errors) | 110 non-ASCII bytes
+47c5c649de1fe93baa8dc48b11608ae82d8bf5cf feat(wenshu): v0.37 -- RuntimeCWDDisplayChip UI component (= Batch 2.4 sub-step 1) | 102 non-ASCII bytes
+4a1d07168670f337f2af3f9dd967561e6f069c61 feat(wenshu): v0.37 -- RuntimeCWDDisplayChip tests (= Batch 2.4 sub-step 2) | 51 non-ASCII bytes
+0795bdba05484d155d841733f37bd03e4a36371f feat(wenshu): v0.37 -- MockLLMServer harness for per-ticket X e2e (= Batch 2.5 sub-step 1) | 102 non-ASCII bytes
+5b69d1142edbae226c1dc2f532a7d3b8b4e79914 feat(wenshu): v0.37 -- PerTicketE2E tests for 7-connector BYOK (= Batch 2.5 sub-step 2) | 102 non-ASCII bytes
+fe5a1f3157ff7c41c37f7629b7edc8795a8dffc1 feat(wenshu): v0.37 -- v0_37_visual_verify_test.swift (= Batch 5 sub-step 1, 19+ smoke tests) | 147 non-ASCII bytes
+6c80650abd9ee2b4e1e3e15f8368c68020192f41 docs(wenshu): v0.37 -- visual flow guide for 老板 一次性 verify (= Batch 5 sub-step 2) | 222 non-ASCII bytes
+694a5bcf2f40a5bffc101bb5385ab87656e7a5eb fix(wenshu): v0.37 -- ADR-0012 file path typo (= 23/22 visual verify tests pass) | 81 non-ASCII bytes
+0608433fe9e30f2216a241cf5b8ff22c000f7ec9 docs(wenshu): v0.37 -- CHANGELOG.md v0.37 ship packet (= Batch 6 sub-step 1) | 159 non-ASCII bytes
+5fd4566b7e0d8e79e5621b3ab0bd507162095435 docs(wenshu): v0.37 -- ADR-0013 v0.37 scope + frontend flow integration decisions (= Batch 6 sub-step 2) | 156 non-ASCII bytes
+c82c3db9e4c6eac62fb1966acb5a7694c8bbc672 docs(wenshu): v0.37 -- bump AGENTS.md + CLAUDE.md to v0.09 (= Batch 6 sub-step 3) | 141 non-ASCII bytes
+ad0ae91530f407dad8a5da3ed96ce7891fe9a90e fix(wenshu): v0.37 -- RuntimeCWDDisplayChip iron rule 6 compliance (= lineWidth DesignTokens) | 117 non-ASCII bytes
+dc95d18b4cd2d85fa24dd6b252d7450515aafabb docs(wenshu): v0.37 -- ship packet status report (= final v0.37 readiness check) | 165 non-ASCII bytes
+4560fe0169e918138006578c793a866348ce7c0e chore(wenshu): v0.37 -- remove stale LLMKeychainTests.swift (= superseded by ProviderKeychainTests) | 132 non-ASCII bytes
+a8689c35eed4d7c727697d2b943f99412459a3bd docs(wenshu): v0.37 -- push attempt report (= remote branch divergence blocks fast-forward) | 198 non-ASCII bytes
+24ece3d9c29eb3155d4caa66b9f9cd7c1a8530ad docs(wenshu): v0.37 -- push attempt report (= remote branch divergence blocks fast-forward) | 198 non-ASCII bytes
+9087fb96adcace55b09c666d65a39d5958d4f7ac feat(wenshu): v0.38 -- BackgroundTests comprehensive coverage for v0.36 ticket 016 | 105 non-ASCII bytes
+3f0e3da560c0aa8dac54d483ae8b12b9200fee05 feat(wenshu): v0.38 -- ToolGuardrails + ErrorClassifier deep tests (= ticket 015 coverage) | 105 non-ASCII bytes
+187b5d33ce827a313b84844df91208695e5f128d feat(wenshu): v0.38 -- RateLimitTracker + ContextBreakdown + ContextReferences deep tests (= ticket 015/014) | 105 non-ASCII bytes
+1b62994092a98d0474a9b68cec70c9f1b13c216f feat(wenshu): v0.38 -- SystemPrompt + MessageSanitization deep tests (= ticket 002/001) | 105 non-ASCII bytes
+6dd27437093d2a20cbdb22ef591ac9cf31c89a87 feat(wenshu): v0.38 -- LLMBlock + LLMResponse + LLMUsage + LLMMessage deep tests (= ticket 001) | 105 non-ASCII bytes
+eaa5ee1bed2c2708f6cae553b98286ebec64c8dc feat(wenshu): v0.38 -- Tool + ToolInputParser + ReadFileTool + WriteFileTool deep tests | 105 non-ASCII bytes
+81bb621e4ba62275868e947b955da384cf0dc144 feat(wenshu): v0.38 -- ContextEngine + ContextCompressor + CharacterBasedTokenEstimator deep tests | 105 non-ASCII bytes
+971e8aabf8bf1497721dec165f5158edc6c8a784 feat(wenshu): v0.38 -- MemoryAdapter + SkillAdapter + OAuthFlow + ProviderKeychainMetadata deep tests | 105 non-ASCII bytes
+7e531c4789f4976b71dbb5823f1bb1a63f24e52c feat(wenshu): v0.38 -- PromptCaching + TurnContext + ConversationLoop deep tests | 105 non-ASCII bytes
+3c433973c7151a2078c4c8e0a753749acd5c1759 feat(wenshu): v0.38 -- TurnFinalizer + TurnRetryState + MessageContent.canonicalize deep tests | 105 non-ASCII bytes
+4b32f39efa31dec7e551ec1a3dfc21f2cb8daa98 feat(wenshu): v0.38 -- DisplayStateMachine + DisplayState + DisplayStateError deep tests | 105 non-ASCII bytes
+ac8d0d8813265b36473d4b7772766d2f0fbab484 feat(wenshu): v0.38 -- ConnectorCredentials + LLMConnectorError + LLMCallOptions + Provider deep tests | 105 non-ASCII bytes
+ae00832644334cb8e932701a727f6311f49f05d1 feat(wenshu): v0.38 -- WenshuLLM types deep tests (= Message/Request/Block/Usage/Response/Error) | 105 non-ASCII bytes
+befc6d81d37c3a01c78389135dbc816c5ff23f2f feat(wenshu): v0.38 -- WenshuModelCatalog + ModelInfo + OpenAIConnector deep tests | 105 non-ASCII bytes
+248d5e451f3081b5fbaed96733026b22209a1de8 feat(wenshu): v0.38 -- WenshuLLMModel + WenshuVerifierKeyNote deep tests | 108 non-ASCII bytes
+c703ffcdf01ff5243855084fb13a950bcde2e8a5 feat(wenshu): v0.38 -- ChatMessage + ChatRole + ChatMessageBridge deep tests | 135 non-ASCII bytes
+1787bf43451c68299c9b6ac8f6e834891cc18adc docs(wenshu): v0.37 -- archive .scratch spec/issues/audits for v0.37 ship | 60 non-ASCII bytes
+ef41a7e47723d87cf3db0344c1276fb0d0b12038 Merge branch 'wt/multi-agent-dispatch' into main | 88 non-ASCII bytes
+8d9b9134ba990881813ba55641e6110a63e51e46 feat(wenshu): v0.38 ticket A -- wire Settings → Agent / Memory / Skills 3-pane | 72 non-ASCII bytes
+3ba98572107818c768d60cf0620502e2239462f1 feat(wenshu): v0.38 ticket A2 -- wire SkillAdapter.listSkills() to wenshu SkillRegistry + async load in Settings → Skills tab | 41 non-ASCII bytes
+0b0478722fa81e3325f0a18d2cc00ace9f78c6c8 feat(wenshu): v0.38 ticket P2 -- Apple-standard i18n infrastructure (= en + zh-Hans) | 174 non-ASCII bytes
+d0b165ee2d6a01b9eaf216929ab304da7386967f feat(wenshu): v0.38 ticket P2 -- i18n SkillsSettingsView (= en + zh-Hans) | 144 non-ASCII bytes
+3c769c4b4eac7929cfa4eb29acf8e39c83938280 feat(wenshu): v0.38 ticket P2 -- i18n MemorySettingsView (= en + zh-Hans) | 60 non-ASCII bytes
+178c503a56f564fa9d05b9df41c4162e6de38d9f feat(wenshu): v0.38 ticket P2 -- i18n LLMConnectorSettingsView + sub-components (= en + zh-Hans) | 78 non-ASCII bytes
+c1f44206ea47023a0301ed33c70519637e35b6e2 feat(wenshu): v0.38 ticket P2 -- i18n Settings tab labels (= en + zh-Hans) | 105 non-ASCII bytes
+dbc2129f2650ac3bb6ba490c067a35d4a49be5f4 fix(wenshu): v0.38 P2 -- i18n bundle resolution for SPM executable target | 60 non-ASCII bytes
+b4e54fb4f420613aebd42519a7eec80f3e27754e Revert "feat(wenshu): v0.34 -- AI thumbnail generation (Issue 02)" | 204 non-ASCII bytes
+a9d46000e1169be1f53d8fcbcf19cf4969c73fbf feat(wenshu): v0.38 P2 -- i18n generalTab + modelTab EFFORT hint (= en + zh-Hans) | 132 non-ASCII bytes
+43cc14f7f4598ec0b1a33e7373f9886a46b86046 refactor(wenshu): B-06 -- strip stale liquidGlassOpacity + WenshuChromeOverlay / AppTitlebar / AppStatusbar doc-comments (= v0.32+v0.34 chrome rewrite history) | 3 non-ASCII bytes
+82e45d777929f2e47f13d300148bea056bfbc868 refactor(wenshu): B-02 -- inline ChatZoneTopChrome wrapper into PaneTabBar callers (chrome flatten) | 12 non-ASCII bytes
