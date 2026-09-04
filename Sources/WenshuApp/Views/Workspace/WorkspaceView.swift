@@ -397,11 +397,13 @@ struct WorkspaceView: View {
                 ("反链", "link", AnyView(EditorPlaceholder())),
             ], trailingButton: AnyView(EditorExpandShrinkTrailingButton()))
         case .specializedTools:
-            // 老 6区 specializedTools = 4 tabs (= 伏笔 / 占位符 /
+            // 老 6区 specializedTools = 5 tabs (= 伏笔 / 占位符 /
             // LongFormGuardrails per P1 ticket #6
             // [WIRE-SPECIALIZEDTOOLS-001] 2026-09-04 +
             // ReaderExperience per P1 ticket #7
-            // [WIRE-SPECIALIZEDTOOLS-002] 2026-09-04).
+            // [WIRE-SPECIALIZEDTOOLS-002] 2026-09-04 +
+            // PlotThread per P1 ticket #8
+            // [WIRE-SPECIALIZEDTOOLS-003] 2026-09-04).
             //   - 伏笔 (= git-fork) + 占位符 (= square-dashed) per
             //     v0.29 boss 2026-08-30 OOB '替换, 用伏笔替换第一个
             //     teb, 用占位替换第二个 teb. 现在的画布功能以后实现'
@@ -416,12 +418,25 @@ struct WorkspaceView: View {
             //     foreshadowing / cliffhanger / payoff). Real
             //     content (= chapter-text input + 5-analyzer
             //     picker + report panel).
+            //   - PlotThread (= git-branch) per P1 ticket #8
+            //     (= port plot_thread.py from hermes = open /
+            //     developing / resolved / abandoned thread
+            //     tracker + stale detection + recycling map).
+            //     Real content (= add / remove threads scoped
+            //     to the selected book).
+            //   - GenreFit (= book-marked) per P1 ticket #9
+            //     (= port genre_fit.py from hermes = 10 genre
+            //     presets + convention analyzer). Real content
+            //     (= chapter-text input + genre picker + score
+            //     badge + matched / missing / forbidden / vocab
+            //     sections).
             ZoneContentView(zoneSlug: "specializedTools", tabs: [
                 ("伏笔", "git-fork", AnyView(ForeshadowingView())),
                 ("占位符", "square-dashed", AnyView(PlaceholderView())),
                 ("Long-Form", "shield-check", AnyView(LongFormGuardrailsView())),
                 ("Reader-Exp", "sparkles", AnyView(ReaderExperienceView())),
                 ("Plot-Thread", "git-branch", AnyView(PlotThreadView())),
+                ("Genre-Fit", "book-marked", AnyView(GenreFitView())),
             ])
         case .aiChat:
             ChatView()
