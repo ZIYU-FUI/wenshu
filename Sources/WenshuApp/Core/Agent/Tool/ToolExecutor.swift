@@ -1,6 +1,7 @@
 //
 //  ToolExecutor.swift · Wenshu · v0.35 ticket 001 sub-step 5
 //                          TICKET-HERMES-GAP-004 (hook chain wiring)
+//                          TICKET-HERMES-GAP-008 (dispatch hook chain)
 //
 //  Tool dispatch actor. Maps to hermes tool_executor.py
 //  (= execute_tool_calls_concurrent at L306, execute_tool_calls_sequential
@@ -21,8 +22,10 @@
 //    1. Extract .toolUse blocks from assistantMessage
 //    2. Look up each tool by name from the registry
 //    3. Fire ShellHookChain.preToolCall (= TICKET-HERMES-GAP-004)
+//       + ToolDispatchHookChain.firePreDispatch (= TICKET-HERMES-GAP-008)
 //    4. Invoke tool.execute(input:) (= returns String output)
 //    5. Fire ShellHookChain.postToolCall (= TICKET-HERMES-GAP-004)
+//       + ToolDispatchHookChain.firePostDispatch (= TICKET-HERMES-GAP-008)
 //    6. Build .toolResult(toolUseID:output:) LLMBlock + wrap in .tool LLMMessage
 //    7. Append to messages list
 //
@@ -43,11 +46,22 @@ public actor ToolExecutor {
     /// registry). Inject hooks via `init(hookChain:)`.
     public let hookChain: ShellHookChain
 
+    /// Dispatch hook chain (= TICKET-HERMES-GAP-008). Default = empty
+    /// (= `firePreDispatch` / `firePostDispatch` are no-ops on an empty
+    /// registry). Inject hooks via `init(hookChain:dispatchHookChain:)`.
+    /// Parallel to `hookChain`; keyed by `(toolName, input)` for
+    /// dispatch-layer observation (= e.g. metrics, audit log).
+    public let dispatchHookChain: ToolDispatchHookChain
+
     /// Initializer that accepts an optional pre-configured hook chain.
     /// Omitting the argument = `ShellHookChain()` = empty registry =
     /// identical behavior to the pre-GAP-004 no-arg `init()`.
-    public init(hookChain: ShellHookChain = ShellHookChain()) {
+    public init(
+        hookChain: ShellHookChain = ShellHookChain(),
+        dispatchHookChain: ToolDispatchHookChain = ToolDispatchHookChain()
+    ) {
         self.hookChain = hookChain
+        self.dispatchHookChain = dispatchHookChain
     }
 
     /// Run tool_use blocks sequentially (= one at a time, in order).
@@ -81,6 +95,13 @@ public actor ToolExecutor {
             // chain = no-op, so behavior is identical to pre-GAP-004.
             try await hookChain.firePreToolCall(call)
 
+            // TICKET-HERMES-GAP-008: fire dispatch-layer pre hook
+            // (= observation + optional veto keyed by toolName/input).
+            // Throws to abort (= the LLM sees the error as a tool
+            // result). Empty chain = no-op.
+            let dispatchInput = ToolDispatchInputParser.parse(input)
+            try await dispatchHookChain.firePreDispatch(toolName: toolName, input: dispatchInput)
+
             let output: String
             var didError = false
             do {
@@ -104,6 +125,11 @@ public actor ToolExecutor {
             // no-op.
             let result = ToolResult(toolCallID: toolUseID, output: output, isError: didError)
             try await hookChain.firePostToolCall(call, result: result)
+
+            // TICKET-HERMES-GAP-008: fire dispatch-layer post hook.
+            // Throws are swallowed inside `firePostDispatch` (= matches
+            // hermes post-hook non-fatal semantics).
+            await dispatchHookChain.firePostDispatch(toolName: toolName, input: dispatchInput, output: output)
 
             let toolMessage = LLMMessage(
                 role: .tool,
@@ -156,6 +182,18 @@ public actor ToolExecutor {
                         return IndexedOutput(index: index, toolUseID: toolUseID, output: rejectionOutput)
                     }
 
+                    // TICKET-HERMES-GAP-008: fire dispatch-layer pre hook.
+                    // Same shape as the GAP-004 hook but parallel layer
+                    // keyed by (toolName, input). Throws abort (= LLM
+                    // sees the error as a tool result).
+                    let dispatchInput = ToolDispatchInputParser.parse(input)
+                    do {
+                        try await self.dispatchHookChain.firePreDispatch(toolName: toolName, input: dispatchInput)
+                    } catch {
+                        let rejectionOutput = "Error: pre-dispatch hook rejected: \\(error.localizedDescription)"
+                        return IndexedOutput(index: index, toolUseID: toolUseID, output: rejectionOutput)
+                    }
+
                     let output: String
                     var didError = false
                     do {
@@ -183,6 +221,12 @@ public actor ToolExecutor {
                         // hooks must not break the tool execution path).
                         _ = error
                     }
+
+                    // TICKET-HERMES-GAP-008: fire dispatch-layer post
+                    // hook. Throws are swallowed inside
+                    // `firePostDispatch` (= same observability contract
+                    // as the GAP-004 post hook).
+                    await self.dispatchHookChain.firePostDispatch(toolName: toolName, input: dispatchInput, output: output)
                     return IndexedOutput(index: index, toolUseID: toolUseID, output: output)
                 }
             }
