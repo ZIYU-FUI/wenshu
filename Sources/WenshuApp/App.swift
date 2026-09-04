@@ -562,12 +562,18 @@ struct SettingView: View {
         case general = "通用"
         case providerApi = "提供方 API"
         case model = "模型"
+        case agent = "Agent"
+        case memory = "Memory"
+        case skills = "Skills"
         var id: String { rawValue }
         var icon: String {
             switch self {
             case .general: return "gearshape"
             case .providerApi: return "key.horizontal"
             case .model: return "cpu"
+            case .agent: return "person.crop.circle"
+            case .memory: return "brain"
+            case .skills: return "command"
             }
         }
     }
@@ -602,6 +608,9 @@ struct SettingView: View {
                 case .general: generalTab
                 case .providerApi: providerApiTab
                 case .model: modelTab
+                case .agent: agentTab
+                case .memory: memoryTab
+                case .skills: skillsTab
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -953,6 +962,36 @@ struct SettingView: View {
         }
         .formStyle(.grouped)
         .onAppear { Task { await reloadModels() } }
+    }
+
+    private var agentTab: some View {
+        // v0.38 ticket A (= Settings → Agent 3-pane wire-up):
+        // wire LLMConnectorSettingsView (= v0.36 ticket 006 ship, isolated file
+        // pre-wire) into Settings scene. 7 connector profile rows rendered.
+        LLMConnectorSettingsView(
+            activeConnectorID: providerSlug,
+            profiles: ConnectorProfileState.allDefaults
+        )
+        .padding(DesignTokens.chromePaddingMedium)
+    }
+
+    private var memoryTab: some View {
+        // v0.38 ticket A: wire MemorySettingsView (= v0.35 ticket 009 ship,
+        // isolated file pre-wire) into Settings scene. Scope + retention +
+        // recent memory entries rendered.
+        MemorySettingsView()
+            .padding(DesignTokens.chromePaddingMedium)
+    }
+
+    private var skillsTab: some View {
+        // v0.38 ticket A: wire SkillsSettingsView (= v0.35 ticket 010 ship,
+        // isolated file pre-wire) into Settings scene. Installed skills list
+        // + slash-command tester rendered. Pass empty initial skills array;
+        // SkillsSettingsView shows "No skills installed yet" placeholder when
+        // empty (= graceful degradation; per v0.36 ticket 006 spec the
+        // skills loader is the next ticket, not Settings wiring).
+        SkillsSettingsView(skills: [])
+            .padding(DesignTokens.chromePaddingMedium)
     }
 
 } 
