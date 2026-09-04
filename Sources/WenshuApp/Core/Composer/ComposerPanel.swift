@@ -38,7 +38,7 @@ public struct ComposerPanel: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Composer")
+            Text("合成器")
                 .font(.headline)
             Text("上次操作: \(viewModel.lastOperation)")
             Text("结果字符数: \(viewModel.lastResult.count)")

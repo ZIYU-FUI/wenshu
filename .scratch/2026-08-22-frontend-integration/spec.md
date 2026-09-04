@@ -217,3 +217,24 @@ Forcing UI on these = clutter, not value.
 ---
 
 *Spec v0.3 · 2026-08-22 pocock · project root = `/Volumes/ANAN/Engineering/wenshu/`*
+
+---
+
+## v0.23 audit #014 update (2026-08-23)
+
+> Boss 2026-08-23 拍: '全项目代码 review, 跑一遍, 双轴测试没跑的需求, 跑一遍'.
+> Sub-agent Spec audit found: this spec claims "21 tickets" but only 5
+> frontend-integration commits actually landed on `wt/frontend-integration`
+> (h01 / h02 / h10 / h14 / o09). The other 16 tickets are spec-only, no commits.
+
+**Current state** (as of 2026-08-23):
+- 21 tickets planned (15 UI + 5 backend + 1 wrapper) — **5 done, 16 not started**
+- Done: h01 (MemoryStore), h02 (SkillRegistry), h10 (FileTools), h14 (Cronjob), o09 (Outline)
+- Pending: 16 tickets (UI integration of agent modules + obsidian replicas)
+
+**Boss拍 8/22 选择方向 1 (full integration, 1 ticket 1 commit, leaf-only)**
+currently in progress on `wt/frontend-integration` branch. Estimated
+completion: 4-6 weeks of incremental work.
+
+Remediation: keep this note inline so future readers see the spec/code gap.
+Total commits on wt/frontend-integration: see `git log main..wt/frontend-integration`.
