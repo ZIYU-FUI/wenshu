@@ -450,6 +450,13 @@ struct WorkspaceView: View {
             //     chapter pickers + excerpt field + add row +
             //     events list + timeline section + contradictions
             //     section).
+            //   - Tag-Manager (= tag) per P1 ticket #14
+            //     (= port tag_manager.py from hermes = 5 tag
+            //     categories + 4 targets + tag cloud + filter).
+            //     Real content (= label TextField + category
+            //     picker + add-row + tag list + apply-row with
+            //     tag / target / entity-uuid pickers + applications
+            //     list + tag cloud + filter section).
             ZoneContentView(zoneSlug: "specializedTools", tabs: [
                 ("伏笔", "git-fork", AnyView(ForeshadowingView())),
                 ("占位符", "square-dashed", AnyView(PlaceholderView())),
@@ -460,6 +467,7 @@ struct WorkspaceView: View {
                 ("Emotion-Curve", "activity", AnyView(EmotionCurveView())),
                 ("Chars-Rel", "users", AnyView(CharacterRelationshipsView())),
                 ("Chars-Life", "clock", AnyView(CharacterLifecycleView())),
+                ("Tag-Manager", "tag", AnyView(TagManagerView())),
             ])
         case .aiChat:
             ChatView()
