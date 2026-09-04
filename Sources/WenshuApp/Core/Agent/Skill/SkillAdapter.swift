@@ -34,6 +34,12 @@ import Foundation
 enum SkillAdapterError: Error { case noMatch(String) }
 
 public actor SkillAdapter {
+    /// Shared singleton (= used by ChatViewModel.routeInput() in CHATBOX-001
+    /// to dispatch slash commands without each call site constructing its own
+    /// actor). Pure additive surface — existing `SkillAdapter()` initializers
+    /// remain valid.
+    public static let shared = SkillAdapter()
+
     public struct Skill: Sendable, Equatable, Identifiable {
         public let name: String
         public let description: String
@@ -152,6 +158,61 @@ public actor SkillAdapter {
         // Stub for sub-step 1
         _ = input
         return "stub: invoked \(name) with input length \(input.count)"
+    }
+
+    /// Parse-and-invoke result (= hermes `parseSlashCommand` + skill
+    /// dispatch return shape). CHATBOX-001 wire target — ChatViewModel
+    /// routes slash commands through this before falling through to the
+    /// LLM path.
+    public struct ParsedInvocation: Sendable, Equatable {
+        public let skillName: String
+        public let remainder: String
+        public let result: String
+        public let source: Source
+        public enum Source: String, Sendable, Equatable {
+            case slashCommand
+            case keywordMatch
+        }
+        public init(skillName: String, remainder: String, result: String, source: Source) {
+            self.skillName = skillName
+            self.remainder = remainder
+            self.result = result
+            self.source = source
+        }
+    }
+
+    /// Parse user input for slash / keyword match AND invoke the matching
+    /// skill (= single-call replacement for the parse-then-invoke two-step
+    /// that ChatViewModel.routeInput() would otherwise do). Returns a
+    /// ParsedInvocation with the skill name, remainder (= text after the
+    /// skill name), and the skill's string output. Throws if neither a
+    /// slash command nor a keyword match resolved (= caller falls back to
+    /// LLM path).
+    public func parseAndInvoke(_ input: String, contextFiles: [String] = []) async throws -> ParsedInvocation {
+        // 1. Try explicit slash command first (= explicit /skill always wins
+        //    over implicit keyword matching — same precedence as
+        //    routeInput() above).
+        if let slash = Self.parseSlashCommand(input) {
+            let result = try await invoke(name: slash.skillName, input: slash.remainder)
+            return ParsedInvocation(
+                skillName: slash.skillName,
+                remainder: slash.remainder,
+                result: result,
+                source: .slashCommand
+            )
+        }
+        // 2. Fall back to keyword matching (= implicit skill trigger;
+        //    routeInput() handles this same case).
+        if let match = await SkillKeywordMatcher.shared.match(input: input, contextFiles: contextFiles) {
+            let result = try await invoke(name: match.skillName, input: input)
+            return ParsedInvocation(
+                skillName: match.skillName,
+                remainder: input,
+                result: result,
+                source: .keywordMatch
+            )
+        }
+        throw SkillAdapterError.noMatch(input)
     }
 
     /// Parse a user message for slash-command prefix.

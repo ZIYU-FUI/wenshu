@@ -165,6 +165,41 @@ public final class ChatViewModel {
         NSLog("[wenshu.context] sum tokens after recompute: %d (messages=%d)", contextUsed, messages.count)
     }
 
+    /// CHATBOX-001 (2026-09-04): routeInput is the new front-door for chat
+    /// input. It dispatches `/<skill>` slash commands through
+    /// SkillAdapter.parseAndInvoke BEFORE the LLM path; non-slash text falls
+    /// through to `send()`. Empty input is a no-op. Slash input that fails
+    /// (= parseAndInvoke throws) also falls through to `send()` for graceful
+    /// degradation (= unknown skill name should still reach the LLM).
+    public func routeInput() async {
+        let input = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !input.isEmpty else { return }
+
+        // CHATBOX-001: try explicit slash command / keyword match FIRST.
+        // SkillAdapter.parseAndInvoke throws SkillAdapterError.noMatch when
+        // neither slash nor keyword resolves — we catch + fall through.
+        do {
+            let parsed = try await SkillAdapter.shared.parseAndInvoke(input)
+            // Skill resolved — record the result as a system message and
+            // clear the draft. The skill's own output is the user-visible
+            // reply; we don't re-send it through the LLM.
+            messages.append(ChatMessage(
+                role: .system,
+                source: .system,
+                content: "Skill /\(parsed.skillName) → \(parsed.result)"
+            ))
+            inputText = ""
+            return
+        } catch {
+            // Slash/keyword failed (= unknown skill, stub error, etc.) →
+            // fall through to the LLM path so the user isn't left with a
+            // dropped message.
+        }
+
+        // No slash match → existing LLM send path.
+        await send()
+    }
+
     /// send: 发消息 → 文枢主 agent 合成
     public func send() async {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -574,7 +609,7 @@ public struct ChatView: View {
                     // v0.24 boss验收fix: disable when no key configured.
                     .disabled(!hasUsableKey)
                     .focused($inputFocused)
-                    .onSubmit { Task { await vm.send() } }
+                    .onSubmit { Task { await vm.routeInput() } }
                     .onChange(of: vm.currentModel) { _, new in
                         if new.isEmpty {
                             inputFocused = false
@@ -689,7 +724,7 @@ public struct ChatView: View {
                         }
                     )
                 Button {
-                    Task { await vm.send() }
+                    Task { await vm.routeInput() }
                 } label: {
                     if vm.isSending {
                         ProgressView()
