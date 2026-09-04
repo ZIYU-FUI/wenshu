@@ -248,6 +248,11 @@ private struct WiredShell: View {
         do {
             let result = try hook.runLaunch()
             self.bookStore = result.makeBookStore()
+            // B-07 015.019 (boss 2026-09-04 OOB '往后推进'):
+            // populate the reactive `books` mirror at launch so
+            // `bookStore.books.count` (= the sidebar bottom-status
+            // "书: N" source) is correct on the first render.
+            self.bookStore?.reloadAllBooks()
         } catch {
             // v0.27 MVP: log + show alert would be ideal; for now,
             // fall back to a layout shell without the BookStore so the

@@ -89,25 +89,17 @@ struct TabContentDispatcher: View {
             // internal ZoneContentView).
             ZonePerRegionChrome(
                 topActions: [],  // empty (= no outer top toolbar)
-                // v0.30 boss 8/31 OOB: count books by enumerating shelf
-                // directories on disk (= wenshu has no flat books
-                // array; each shelf dir contains a 'books/' subdir
-                // with one subdir per book).
+                // B-07 015.019 (boss 2026-09-04 OOB '往后推进'):
+                // bottom status book count now reads from
+                // `bookStore.books.count` (= reactive, kept in sync
+                // by `BookStore.sidebarSaveBook` /
+                // `sidebarDeleteBook`). Previous v0.30 fix ran an
+                // inline `FileManager.contentsOfDirectory` walk at
+                // every render (= non-reactive, ran on every body
+                // re-evaluation). The reactive mirror fixes both.
                 bottomStatus: projectSidebarChrome(
                     shelfCount: bookStore.shelves.count,
-                    bookCount: bookStore.shelves.reduce(0) { acc, shelfItem in
-                        let shelfBooksDir = bookStore.stores.shelvesRoot
-                            .appendingPathComponent(shelfItem.directoryName, isDirectory: true)
-                            .appendingPathComponent("books", isDirectory: true)
-                        let bookCount = (try? FileManager.default.contentsOfDirectory(
-                            at: shelfBooksDir,
-                            includingPropertiesForKeys: [.isDirectoryKey],
-                            options: [.skipsHiddenFiles]
-                        ).filter { url in
-                            (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
-                        }.count) ?? 0
-                        return acc + bookCount
-                    }
+                    bookCount: bookStore.books.count
                 ).bottom,
                 topSkip: true,  // ← skip outer top, use internal ZoneContentTabBar only
                 // v0.32 boss 2026-09-02 OOB: sidebar = chrome tier

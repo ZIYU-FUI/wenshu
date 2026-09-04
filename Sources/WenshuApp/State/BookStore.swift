@@ -56,6 +56,22 @@ final class BookStore: @unchecked Sendable {
     /// save on change).
     var shelves: [Bookshelf] = []
 
+    /// B-07 015.019 (boss 2026-09-04 OOB '往后推进'): reactive
+    /// flat list of every book across every shelf (= mirrors the
+    /// result of `sidebarLoadAllBooks()`). Views that need a
+    /// live book count (= projectSidebar bottom status "书: N")
+    /// bind to `books.count` instead of running an inline
+    /// `FileManager.contentsOfDirectory` scan at render time.
+    /// Sorted by `createdAt` ascending (= matches the order the
+    /// `NewLibraryOutlineView` shows them).
+    ///
+    /// Initialized empty; the caller (= `LibraryRootView`'s
+    /// layout shell) calls `reloadAllBooks()` once at launch.
+    /// Mutations through `sidebarSaveBook(_:)` /
+    /// `sidebarDeleteBook(id:)` keep the array in sync (= no
+    /// stale counts).
+    var books: [Book] = []
+
     /// Currently selected book id (= drives currentBook reload via
     /// SwiftUI .onChange observer in App.swift).
     var selectedBookId: UUID?
@@ -251,6 +267,40 @@ extension BookStore {
         try data.write(to: bookDir.appendingPathComponent("book.json"))
         let bootstrapper = LibraryBootstrapper(wsRoot: stores.referenceLibraryRoot.deletingLastPathComponent())
         try bootstrapper.ensureValidStructure()
+        // B-07 015.019: keep `books` in sync. Insert in
+        // `createdAt`-ascending order (= matches
+        // `sidebarLoadAllBooks()` sort). If a duplicate id already
+        // exists, replace it (= idempotent re-save guard).
+        if let existingIndex = books.firstIndex(where: { $0.id == book.id }) {
+            books[existingIndex] = book
+        } else {
+            books.append(book)
+            books.sort { $0.createdAt < $1.createdAt }
+        }
+    }
+
+    /// B-07 015.019: delete a book by id. Mirrors
+    /// `sidebarSaveBook(_:)` for removals (= keeps the reactive
+    /// `books` array in sync so `bookStore.books.count` stays
+    /// accurate after a remove). Idempotent: deleting an unknown
+    /// id is a no-op for both the disk and the in-memory mirror.
+    func sidebarDeleteBook(id: UUID) throws {
+        // Resolve the on-disk directory (= walk shelves). If not
+        // found, treat as no-op (= mirror stays empty for that id).
+        if let bookDir = bookDirectory(bookId: id) {
+            try FileManager.default.removeItem(at: bookDir)
+        }
+        books.removeAll { $0.id == id }
+    }
+
+    /// B-07 015.019: refresh the reactive `books` array from
+    /// disk (= reads every `<shelvesRoot>/<shelf>/books/<id>/book.json`).
+    /// Called once at launch (= by `LibraryRootView`'s layout
+    /// shell) and from any view that has just performed a bulk
+    /// mutation outside of `sidebarSaveBook` /
+    /// `sidebarDeleteBook`.
+    func reloadAllBooks() {
+        books = (try? sidebarLoadAllBooks()) ?? []
     }
 
     /// Create a new shelf on disk with reserved-name + duplicate-name
