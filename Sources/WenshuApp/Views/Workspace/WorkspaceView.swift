@@ -437,6 +437,12 @@ struct WorkspaceView: View {
             //     content (= chapter-text input + window-count
             //     stepper + Canvas curve visualization + report
             //     panel).
+            //   - Character-Relationships (= users) per P1 ticket #12
+            //     (= port character_relationships.py from hermes =
+            //     8 relationship kinds + relationship graph +
+            //     inconsistency detection). Real content (= from /
+            //     to / kind pickers + add row + relationships list
+            //     + inconsistencies section).
             ZoneContentView(zoneSlug: "specializedTools", tabs: [
                 ("伏笔", "git-fork", AnyView(ForeshadowingView())),
                 ("占位符", "square-dashed", AnyView(PlaceholderView())),
@@ -445,6 +451,7 @@ struct WorkspaceView: View {
                 ("Plot-Thread", "git-branch", AnyView(PlotThreadView())),
                 ("Genre-Fit", "book-marked", AnyView(GenreFitView())),
                 ("Emotion-Curve", "activity", AnyView(EmotionCurveView())),
+                ("Chars-Rel", "users", AnyView(CharacterRelationshipsView())),
             ])
         case .aiChat:
             ChatView()
