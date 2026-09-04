@@ -123,15 +123,24 @@ private struct WiredShell: View {
     // macOS native toolbar zone toggle buttons). Mirrors LayoutShellView's
     // @AppStorage declarations (= same UserDefaults keys so state is
     // shared across paths).
-    @AppStorage("wenshu.zoneVisible.projectSidebar") private var showProjectSidebar: Bool = true
-    @AppStorage("wenshu.zoneVisible.projectPreview") private var showProjectPreview: Bool = true
-    @AppStorage("wenshu.zoneVisible.specializedTools") private var showSpecializedTools: Bool = true
-    @AppStorage("wenshu.zoneVisible.aiChat") private var showAIChat: Bool = true
-    @AppStorage("wenshu.zoneVisible.aiDynamic") private var showAIDynamic: Bool = true
+    // B-05: `wenshu.zoneVisible.*` are now owned by WorkspaceStore
+    // (single source of truth). The 5 @AppStorage declarations below
+    // were dead (= the hand-rolled toolbar block that toggled them
+    // was removed by the v0.34 toolbar flatten). The actual
+    // hide/show is driven by `.wenshuToggleZone` notifications read
+    // by `PaneNSController.applyPersistedZoneVisibility()` at startup
+    // (= reads UserDefaults directly, no SwiftUI property wrapper
+    // dance on the AppKit side) and `WorkspaceStore.resetToDefault()`
+    // clears them on '恢复默认布局'.
+    //
     // v0.28 followup Boss UX round 4: model name (= for the model picker
     // icon in the macOS native toolbar). Mirrors SettingsEnvironmentCapturer's
     // modelName definition (= same UserDefaults key "wenshu.llm.model").
-    @AppStorage("wenshu.llm.model") private var modelName: String = "MiniMax-M3"
+    // B-05: `wenshu.llm.model` now has a single owner =
+    // AppState.llmModel. The dead `modelName` @AppStorage declaration
+    // (= removed by the v0.34 toolbar flatten) is dropped. The model
+    // picker reads `appState.llmModel` directly via
+    // `@Environment(AppState.self)`.
 
     var body: some View {
         Group {
@@ -197,6 +206,17 @@ private struct WiredShell: View {
                 // (WorkspaceView reads them at cold-launch for persistence
                 // restoration; see App.swift:498-513 comment for the canonical
                 // single-source-of-truth wiring).
+                //
+                // B-05 update: the 'Kept for now' clause above is now
+                // resolved (= the dead declarations were removed
+                // entirely). Persistence for `wenshu.zoneVisible.*` is
+                // owned by WorkspaceStore (single source of truth,
+                // reset in `WorkspaceStore.resetToDefault()`) and
+                // applied on startup by
+                // `PaneNSController.applyPersistedZoneVisibility()`.
+                // The `wenshu.llm.model` value is owned by
+                // `AppState.llmModel` (= the canonical @Observable
+                // owner, see AppState.swift for the full rationale).
                 //
                 // NOTE: v0.28 followup Boss UX round 11 attempted to remove
                 // the Liquid Glass capsule by passing .toolbarBackground(.clear,
