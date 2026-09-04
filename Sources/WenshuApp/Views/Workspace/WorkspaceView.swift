@@ -12,6 +12,7 @@
 
 import SwiftUI
 import Lucide
+import MarkdownEngine  // v0.39 ticket 001: MarkdownEditorConfiguration type
 
 /// WorkspaceView — the customizable-layout root (= the Xcode-paradigm
 /// replacement for LayoutShellView). Boss 2026-08-27 grill D1 chose
@@ -905,6 +906,21 @@ struct EditorPlaceholder: View {
     }
 
     @Environment(AppState.self) private var appState
+    // v0.39 ticket 001: WenshuEditorServicesFactory.make needs
+    // referenceLibraryRoot + active book root. Both come from
+    // BookStore (= injected via .environment(bookStore) at the
+    // WindowGroup root in App.swift + LibraryRootView, per
+    // v0.34 B-25-fix pattern).
+    @Environment(BookStore.self) private var bookStore
+
+    /// v0.39 ticket 001: lookup the active tab's id (= the engine's
+    /// `documentId` for undo + replacement scoping). Falls back to
+    /// a deterministic placeholder id when no tab is open (=
+    /// editor in initial state with no document).
+    private var activeTabIdString: String {
+        appState.openTabs.first(where: { $0.id == appState.activeTabId })?.id.uuidString
+            ?? "wenshu-editor-no-tab"
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -1044,7 +1060,25 @@ struct EditorPlaceholder: View {
                         // TextEdit / Pages behavior).
                         onDirtyChange: { newDirty in
                             handleDirtyTransition(newDirty)
-                        }
+                        },
+                        // v0.39 ticket 001: pre-built markdown engine
+                        // configuration. Built once per active-tab switch
+                        // (= rebuilds the WikiLinkResolver + ImageProvider
+                        // against the active book's path). Engine
+                        // configuration is captured by the editor view
+                        // (= stable across onChange of draft).
+                        // v0.39 ticket 001-B: pass bookStore directly;
+                        // factory handles nil (= the v0.39 path that
+                        // survives the AnyView-wrapped EditorPlaceholder
+                        // when the environment chain hasn't propagated
+                        // BookStore yet on early zone activation).
+                        configuration: WenshuEditorServicesFactory.make(
+                            bookStore: bookStore
+                        ),
+                        // v0.39 ticket 001: stable per-tab id, passed
+                        // to engine as `documentId` so undo + pending
+                        // replacements are scoped to this tab.
+                        draftId: activeTabIdString
                     )
                 }
             }
@@ -1536,17 +1570,26 @@ private struct EditorPreviewContent: View {
     }
 }
 
-/// EditorEditContent (= ticket 07): Apple SwiftUI TextEditor wrapper for
-/// edit mode. The host (EditorPlaceholder) owns the draft state + save
-/// logic; this view is the rendering surface only. Apple HIG TextEditor
-/// (= Rule 7 system component) provides standard macOS text editing
-/// behaviors for free: undo, find, accessibility, IME.
+/// EditorEditContent (= v0.34 ticket 07, v0.39 ticket 001 upgrade):
+/// Markdown editor surface. v0.34 used Apple SwiftUI TextEditor
+/// (= HIG multi-line text input). v0.39 ticket 001 swaps it for
+/// nodes-app/swift-markdown-engine via the wenshu-side wrapper
+/// `WenshuMarkdownEditor` (NSViewRepresentable around the engine's
+/// NativeTextViewWrapper). Engine gives us TextKit 2 layout, live
+/// markdown styling, code-fence syntax highlight, wiki-link
+/// resolution against reference-library, and image embed resolution.
+/// The host (EditorPlaceholder / WorkspaceView) owns the draft state
+/// + save logic + markdown engine configuration (= built by
+/// `WenshuEditorServicesFactory` from BookStore + active book path);
+/// this view is the rendering surface only. Apple HIG behaviors
+/// (undo, find, accessibility, IME) are inherited from NSTextView
+/// (= the engine's underlying view).
 ///
 /// Spec user stories covered:
-///   US-6 (Edit mode = Apple SwiftUI TextEditor, HIG standard)
+///   US-6 (Edit mode = markdown-aware editor, v0.39 swap)
 ///   US-7 (Save button highlights when dirty, = .tint on draft != original)
 ///   US-8 (Close button placeholder; see ticket 09)
-///   US-13 (no custom NSTextView wrapper = Apple standard)
+///   US-13 (no hand-rolled NSTextView wrapper — engine wraps it)
 ///   US-22 (character-level dirty detection)
 private struct EditorEditContent: View {
     @Binding var draft: String
@@ -1565,24 +1608,36 @@ private struct EditorEditContent: View {
     // 9/2 OOB flagged as inefficient). Decoupled from Task internals
     // (= EditorEditContent doesn't know about Task).
     let onDirtyChange: (Bool) -> Void
+    // v0.39 ticket 001: pre-built markdown engine configuration. Host
+    // (WorkspaceView) builds this once per active-tab switch via
+    // WenshuEditorServicesFactory.make(referenceLibraryRoot:activeBookRoot:).
+    // The configuration owns the 4 service protocols (= wenshu implements
+    // 2: WikiLinkResolver + EmbeddedImageProvider; the engine's
+    // HighlighterSwiftBridge is transitive via MarkdownEngineCodeBlocks;
+    // LaTeX is not wired in 001).
+    let configuration: MarkdownEditorConfiguration
+    // v0.39 ticket 001: stable per-tab id, passed to engine as
+    // `documentId` so undo history + pending replacements are scoped
+    // to each editor instance (= prevents cross-tab state bleed).
+    let draftId: String
 
     /// Read-only dirty flag (= computed from the binding's current value).
     private var isDirty: Bool { draft != originalBody }
 
     var body: some View {
-        // Apple HIG TextEditor (= no NSTextView wrapper per Rule 7).
-        // Native font = .body (= one of Apple's 11 standard text styles
-        // per Iron Rule 2; = Apple HIG default = 13 PT on macOS). User
-        // enlarges system font size → text scales automatically (= Apple
-        // HIG standard).
-        // .padding(DesignTokens.chromePaddingMedium = 12 PT) gives
-        // Apple HIG standard inner margin for bordered content rows
-        // (= chat input / picker rows pattern; matches Rule 6 no-magic-
-        // numbers rule by routing through DesignTokens instead of
-        // inline `.padding(12)`).
-        TextEditor(text: $draft)
-            .font(.body)
-            .padding(DesignTokens.chromePaddingMedium)
+        // v0.39 ticket 001: nodes-app/swift-markdown-engine (TextKit 2,
+        // live markdown styling, wiki-link resolution, image embeds,
+        // code-fence syntax highlight via transitive HighlighterSwift
+        // bridge) replaces Apple SwiftUI TextEditor. The engine's
+        // NativeTextViewWrapper provides the NSTextView-based edit
+        // surface (= Apple-standard undo, find, accessibility, IME).
+        // WenshuMarkdownEditor is a thin NSViewRepresentable wrapper
+        // (= keeps EditorEditContent a pure rendering surface).
+        WenshuMarkdownEditor(
+            text: $draft,
+            draftId: draftId,
+            configuration: configuration
+        )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             // v0.34 B-18: write live character count via host callback
             // (= per-keystroke; = Foundation-only recompute). Host
@@ -1614,7 +1669,7 @@ private struct EditorEditContent: View {
                 onDirtyChange(newDirty)
             }
             // Dirty status surfaced to the host via the `onSave` closure
-            // (= not strictly needed by TextEditor itself; the host reads
+            // (= not strictly needed by the editor itself; the host reads
             // `draft` and `originalBody` to decide dirty highlighting
             // on the Save button at ticket 08). Kept here so future
             // status-bar additions (= line count, dirty indicator)

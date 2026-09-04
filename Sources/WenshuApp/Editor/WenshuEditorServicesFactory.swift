@@ -42,15 +42,13 @@ enum WenshuEditorServicesFactory {
         let wikiLinks: any WikiLinkResolver
         let images: any EmbeddedImageProvider
         if let stores = bookStore?.stores {
-            // v0.39 ticket 001-B (= wenshu-side WikiLinkResolver + EmbeddedImageProvider
-            // implementation = stubbed to no-op for now). The engine's default NoOp
-            // providers render wiki-links as plain text + image embeds as the
-            // engine's own broken-embed placeholder. The wenshu-specific resolver +
-            // provider classes land in v0.39 ticket 001 sub-step B (= a follow-up
-            // ticket to be scoped after Package.swift + WIP file restore lands).
-            _ = stores  // silence unused-until-sub-step-B warning
-            wikiLinks = NoOpWikiLinkResolver()
-            images = NoOpEmbeddedImageProvider()
+            wikiLinks = ReferenceLibraryWikiLinkResolver(
+                referenceLibraryRoot: stores.referenceLibraryRoot
+            )
+            images = ReferenceLibraryImageProvider(
+                activeBookRoot: stores.shelvesRoot,
+                referenceLibraryRoot: stores.referenceLibraryRoot
+            )
         } else {
             // No library available (= early activation or test env) =
             // engine uses no-op defaults for both protocols (= links
@@ -80,8 +78,11 @@ enum WenshuEditorServicesFactory {
         activeBookRoot: URL?
     ) -> MarkdownEditorConfiguration {
         let services = MarkdownEditorServices(
-            wikiLinks: NoOpWikiLinkResolver(),
-            images: NoOpEmbeddedImageProvider(),
+            wikiLinks: ReferenceLibraryWikiLinkResolver(referenceLibraryRoot: referenceLibraryRoot),
+            images: activeBookRoot.map { ReferenceLibraryImageProvider(
+                activeBookRoot: $0,
+                referenceLibraryRoot: referenceLibraryRoot
+            ) } ?? NoOpEmbeddedImageProvider(),
             syntaxHighlighter: HighlighterSwiftBridge()
             // latex: omit (= NoOpLatexRenderer default)
             // bus: omit (= .default)
