@@ -1,5 +1,42 @@
 # CHANGELOG · Wenshu
 
+## v0.37.1 (2026-09-04)
+
+Wenshu v0.37 ship packet followup (= 30+ commits):
+
+### Backlog closeout (= boss 2026-09-04 OOB 'push all backlog to done')
+- B-01 residue: 6 English UI strings translated via Apple API String(localized:) (= `f5492d061`)
+- B-02: top-bar chrome flattened (= `038d0de70`)
+- B-03 T3a + T3b: 36+ historical commit bodies translated to English (= `4863ccb27`, `efcb402f6`, `25dea412a`, `0b2befae8`, `c01395fbf`, `3d995eef9`)
+- B-04: Notification.Name naming unified (= AppNotifications.swift)
+- B-05: AppState centralization (= wenshu.llm.model + zoneVisible; `4f809f189`, `23161607f`, `8cc36c2a5`)
+- B-06: stale doc-comment sweep (= liquidGlassOpacity + WenshuChromeOverlay)
+- B-09: Kanban + Todo functional linkage (= per-book KanbanStore + TodoStore; `d88681f2e`)
+- B-10 phase A: Apple Keychain entitlements scaffold (= codesign + entitlement file; `6a628d1f4`, `777fc89a2`, `07b1a6870`)
+- B-11: editor preview/edit mode + expand fix (= 11 v0.34 tickets; `f30591210`)
+- B-12: disabled-state UX for Kanban + Todo '+' buttons (= `64714ebe8`)
+- B-13: scope unification data layer (TaskScope enum + scope picker UI; `a94319066`, `80f4009b9`)
+
+### Hermes core translation followup (= HERMES-GAP-001..008 = 8 tickets)
+- HERMES-GAP-001: prompt_builder.py → Conversation/PromptBuilder.swift (= 1971 LOC ported; `8b771cfaf`)
+- HERMES-GAP-002: chat_completion_helpers.py → Connector/RequestHelpers.swift (= 3,103 LOC ported → 426 LOC Swift; 9 tests; `1b5b038de`, `190655d3e`)
+- HERMES-GAP-003: agent_runtime_helpers.py → Agent/Runtime/RuntimeHelpers.swift (= 3,209 LOC ported; 10 tests; `b3feb2c30`)
+- HERMES-GAP-004: shell_hooks.py → Tool/ShellHookChain.swift (= 928 LOC ported; 8 tests; `c8bcb715a`)
+- HERMES-GAP-005: secret_scope.py + secret_sources/ → Auth/SecretScope.swift (= 605 LOC ported; 4 tests; `c443f3995`)
+- HERMES-GAP-006: skill_bundles.py → Agent/Skill/SkillBundles.swift (= 438 LOC ported; 4 tests; `26c7589a0`)
+- HERMES-GAP-007: retry_utils.py → Auth/RetryUtils.swift (= 154 LOC ported; 7 tests; `7fbfd49a3`, `f26f83f38`)
+- HERMES-GAP-008: tool_dispatch_helpers.py → Tool/ToolDispatchHelpers.swift (= 503 LOC ported; 5 tests; `ce3e0a870`, `8eb56d3b4`)
+
+### v0.39 ticket 001 (= swift-markdown-engine integration)
+- swift-markdown-engine dep added (= Apache-2.0, TextKit 2, wenshu-side wins)
+- ReferenceLibraryWikiLinkResolver + ReferenceLibraryImageProvider
+- WenshuMarkdownEditor adapter (= mode toggle preview/edit; `e20eb9839`, `7cceb2b01`, `7e9963e62`, `2d87ebb8f`)
+- 5 adapter tests pass
+- Build green (= `1dfc5f296`, `0a5a3694b` unblock followups)
+
+### Manifest drift fix (= today's editorial cleanup)
+- `.scratch/2026-09-03-hermes-core-translation/hermes-port-manifest.md` updated: chat_completion_helpers moved from ❌ missing → ✅ direct port after TICKET-HERMES-GAP-002 landed; tally 6/17 → 7/18 fully done; 8 ❌ missing → 7 ❌ missing; 26/43 incomplete → 25/43 incomplete (= commit `21aa6f67f`)
+
 ## v0.37 — 2026-09-03 — v0.36 deferred + 7-connector e2e + visual verify packet
 
 This version completes all v0.36 deferred items and adds the
