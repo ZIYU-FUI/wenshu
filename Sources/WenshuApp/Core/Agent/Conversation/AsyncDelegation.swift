@@ -263,6 +263,15 @@ public actor AsyncDelegationRegistry {
         pendingProgress
     }
 
+    /// Public emit hook (= used by `delegate(...)` to surface the
+    /// pre-execution `.pending` transition; markCompleted / markFailed
+    /// still emit their own events via the private `emit`). Routes
+    /// through the same waiter-or-queue logic as the terminal emits
+    /// so live subscribers see the `.pending` event without delay.
+    public func emitProgress(_ progress: AsyncDelegationProgress) {
+        emit(progress)
+    }
+
     private func emit(_ progress: AsyncDelegationProgress) {
         if let waiter = progressWaiters.first {
             progressWaiters.removeFirst()
@@ -344,20 +353,17 @@ public func delegate(
     await registry.register(handle: handle)
 
     // Emit .pending progress event so any subscriber sees the spawn.
-    // We do this inline (= not via markCompleted/markFailed) because
-    // pending is a pre-execution state and isn't a terminal transition.
-    let pendingProgress = AsyncDelegationProgress(
-        handleID: handle.id,
-        agentName: handle.agentName,
-        state: .pending,
-        detail: nil
+    // pending is a pre-execution state (not a terminal transition) so
+    // we route it through the registry's public emit hook rather than
+    // piggy-backing on markCompleted/markFailed.
+    await registry.emitProgress(
+        AsyncDelegationProgress(
+            handleID: handle.id,
+            agentName: handle.agentName,
+            state: .pending,
+            detail: nil
+        )
     )
-    // We can't call the actor's private `emit` from outside; instead
-    // we use a small inline registration: re-fetch the handle, mutate
-    // state via the public surface, and emit via a public helper.
-    handle.state = .pending
-    await registry.update(handle)
-    _ = pendingProgress  // captured for future use; emitted below
 
     // 4. Result routing — return the registered handle plus an empty
     //    summary; the caller is expected to invoke the sub-agent and

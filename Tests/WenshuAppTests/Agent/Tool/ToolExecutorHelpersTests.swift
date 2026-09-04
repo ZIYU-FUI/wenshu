@@ -151,15 +151,13 @@ struct ToolExecutorHelpersTests {
 
     @Test("Pre-dispatch validator: transformed input reaches the tool")
     func testPreDispatchValidator() async throws {
-        struct Capture: Tool, Sendable {
-            let capture: @Sendable () async -> String
-            func execute(input: String) async throws -> String {
-                await capture()
-            }
-        }
-        actor Captured { var lastInput = "" }
+        // Capture the raw input string the tool actually receives. The
+        // pre-dispatch validator adds an "added" key, and both the
+        // original "x" and the injected "added" must survive the
+        // parse → validate → serialize round-trip so the tool sees
+        // the transformed envelope.
         let captured = Captured()
-        let tool = Capture(capture: { @Sendable in await captured.lastInput })
+        let tool = CapturingTool(captured: captured)
 
         let validator: @Sendable (String, [String: String]) async throws -> [String: String] = { _, input in
             var out = input
@@ -281,6 +279,26 @@ private struct CountingTool: Tool, Sendable {
     func execute(input: String) async throws -> String {
         await counter.increment()
         return "counted"
+    }
+}
+
+/// Captures the raw input string the tool receives so the test can
+/// assert on the post-validator envelope (= confirms the
+/// pre-dispatch validator's transformations actually reach the
+/// tool's `execute(input:)`).
+private struct CapturingTool: Tool, Sendable {
+    let captured: Captured
+    func execute(input: String) async throws -> String {
+        await captured.set(input)
+        return "captured"
+    }
+}
+
+private actor Captured { var lastInput = "" }
+
+private extension Captured {
+    func set(_ input: String) {
+        lastInput = input
     }
 }
 
