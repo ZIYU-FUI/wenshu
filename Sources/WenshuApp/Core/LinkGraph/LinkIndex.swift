@@ -119,6 +119,7 @@ public actor LinkIndex {
         }
     }
 
+    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
     /// 加 1 条链接
     public func add(_ link: Link) throws {
         let sql = """

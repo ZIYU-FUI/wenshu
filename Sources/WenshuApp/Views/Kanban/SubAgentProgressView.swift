@@ -1,6 +1,7 @@
 //
 //  SubAgentProgressView.swift · Wenshu · v0.23 ticket 005 (sub-agent progress 明盒)
 //
+// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
 //  Boss 2026-08-23 拍: '看板放在聊天动态区, 虽然让用户知道工作进度的明盒'.
 //  Reads from KanbanStore, renders running / done sub-agent tasks in aiDynamic zone.
 //

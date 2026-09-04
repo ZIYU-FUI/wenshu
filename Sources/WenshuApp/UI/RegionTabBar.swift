@@ -1,6 +1,7 @@
 // Sources/WenshuApp/UI/RegionTabBar.swift
 //
 // v0.28 followup Boss UX round 30 (Boss 2026-08-29 OOB '顶栏不是一个
+// [CJK-TRANSLATE] 2 line(s) awaiting manual translation (see git blame for original CJK text)
 // 组件吗, 底栏不是一个组件吗, 背景区不是一个组件吗, 你看截图, 每
 // 个区域的毛玻璃效果都不一样, 感觉是某些设定不一样'):
 //
@@ -111,6 +112,7 @@ public struct RegionTabBar<Content: View>: View {
         // = unified chrome height across the app in round 26).
         .frame(height: LayoutTokens.toolbarHeight)
         // v0.32 boss 2026-09-02 OOB ('默认不加液态玻璃效果,
+        // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
         // 我们就不加; 默认带的, 我们就默认带; 不能空着,
         // 空着透明了'): use Apple canonical controlBackgroundColor
         // (= NSColor controlBackgroundColor; macOS 27 Tahoe default
@@ -167,6 +169,7 @@ public struct RegionStatusBar<Content: View>: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .frame(height: LayoutTokens.toolbarHeight)
         // v0.32 boss 2026-09-02 OOB ('默认不加液态玻璃效果,
+        // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
         // 我们就不加; 默认带的, 我们就默认带; 不能空着,
         // 空着透明了'): use Apple canonical controlBackgroundColor
         // (= NSColor controlBackgroundColor; macOS 27 Tahoe default

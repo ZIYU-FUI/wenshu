@@ -1,5 +1,6 @@
 // Document.swift · Wenshu (Wenshu) · v0.03.0 (document module)
 //
+// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
 // v53 (= 老板 8/15 17:48 '在第二栏里, 显示书的所有章节, 设定, 资料库, 这
 // 里的文档需要分类'): the second column of the layout shows a card
 // grid (= FCP Browser filmstrip pattern) of MD documents grouped by
@@ -12,6 +13,7 @@
 // 'title' falls back to the first H1 of the MD, or the filename if no
 // H1 is present).
 //
+// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
 // Owner 8/15 15:55: '架构需要先定好, 不能没事加个东西, 然后重构一堆
 // 东西'. The shape of Document is locked by `Tests/WenshuAppTests/
 // Domain/DocumentTests.swift`. Adding any required field forces the

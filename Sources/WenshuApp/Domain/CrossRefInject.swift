@@ -1,6 +1,7 @@
 // CrossRefInject.swift · Wenshu (文枢) · v0.27 (FCP library replica)
 //
 // Auto-injects entity references into chapter .md files (= per boss
+// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
 // 8/26 '实体被整个项目自动引用').
 //
 // Strategy (v0.27 MVP):

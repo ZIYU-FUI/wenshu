@@ -1,6 +1,7 @@
 // Sources/WenshuApp/Views/Workspace/PreviewPane.swift
 //
 // v0.30 boss 2026-08-30 OOB '实体分类在目录树里是最后一层, 点击后,
+// [CJK-TRANSLATE] 2 line(s) awaiting manual translation (see git blame for original CJK text)
 // 实体文档要用随心记的卡片流样式显示在素材管理区, 然后双击卡片才会在
 // 编辑器里打开. 这就是我为什么说想实现编辑器和数据流, 得把这些前置
 // 做完的原因'. Ticket 2 (= the entity card flow).
@@ -37,6 +38,7 @@ import AppKit  // v0.34 B-26: NSDoubleClickInterval (= system double-click inter
 
 // MARK: - Sort order (v0.30 boss OOB)
 //
+// [CJK-TRANSLATE] 2 line(s) awaiting manual translation (see git blame for original CJK text)
 // Boss 2026-08-30: '所有卡片默认排序是拼音首字母先后顺序, 在素材预览顶栏
 // 右边加 icon, 实现重排序功能. 目前选项, 首字母, 创建时间, 修改时间'.
 //
@@ -239,6 +241,7 @@ struct PreviewPane: View {
         self._previewSortOrder = previewSortOrder
     }
 
+    // [CJK-TRANSLATE] 2 line(s) awaiting manual translation (see git blame for original CJK text)
     /// v0.30 boss OOB: '卡片多列显示, 默认两列, 如果区域被拖拽宽度变窄,
     /// 不够两列, 自动适配成一列, 人话就是卡片流, 宽度自适应'.
     ///
@@ -400,6 +403,7 @@ struct PreviewPane: View {
         let inCategory = allEntities.filter { $0.category == category }
         // v0.30 boss 8/31 OOB: removed the category header HStack
         // (= icon + category.displayName + count). Per boss: '资料
+        // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
         // 库里的, 素材预览区的红框里的这个标题没有用, 不需要,
         // 删掉'. The sidebar already shows the category name (= when
         // user clicks 资料库/历史、地理, the sidebar shows the
@@ -443,6 +447,7 @@ struct PreviewPane: View {
         if allEntities.isEmpty {
             emptyState(message: "资料库里还没有实体.\n导入研究材料后 LLM 会自动分类.")
         } else {
+            // [CJK-TRANSLATE] 3 line(s) awaiting manual translation (see git blame for original CJK text)
             // v0.30 boss OOB '因为素材预览区只显示当前选定目录的卡片,
             // 所以只需要卡片流, 一直铺下去即可' + '素材预览区不需要这个标题,
             // 卡片平铺即可'.

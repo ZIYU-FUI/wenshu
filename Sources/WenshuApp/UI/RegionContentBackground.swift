@@ -1,6 +1,7 @@
 // Sources/WenshuApp/UI/RegionContentBackground.swift
 //
 // v0.28 followup Boss UX round 31-32 (Boss 2026-08-29 OOB '素材预览区,
+// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
 // 动态区, 那种透明的程度, 和其他区域不一样, 我说的是背景, 你仔细
 // 对比一下'):
 //
@@ -66,6 +67,7 @@ import SwiftUI
 @MainActor
 public struct RegionContentBackground: View {
     /// v0.32 boss 2026-09-02 OOB ('参考一下 FCP, 各区有不同的区域
+    // [CJK-TRANSLATE] 2 line(s) awaiting manual translation (see git blame for original CJK text)
     /// 颜色, 这样各区很自然然的做了区分. 你看一下 apple api 的颜色,
     /// 暗色模式是怎么分级的, 亮色模式是怎么分级的'): FCP-style
     /// natural per-region differentiation via Apple-supplied NSColor

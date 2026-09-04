@@ -4,6 +4,7 @@
 //  Boss 2026-08-24 OOB 拍: '和 FCP 一样, 首次运行, 无论是否要建书架,
 //  都要先指定一个 .ws 文件的库文件位置' (tactical UX 拍板).
 //  Boss 8/24 follow-up: '文字不要带有我们的决策, 什么和 FCP 一样.
+// [CJK-TRANSLATE] 2 line(s) awaiting manual translation (see git blame for original CJK text)
 //  就直接说, 这个库文件的做用. 也不用说库用件叫 .ws.
 //  就说让客户指定一个文枢仓库'.
 //
@@ -39,6 +40,7 @@ import UniformTypeIdentifiers
 /// LibraryRootView: Routes between onboarding (first launch) and main app.
 ///
 /// Trigger condition (Boss 8/24 OOB 拍: '如果持久化信息没有库文件信息,
+// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
 /// 就需要进到建库选库页面'):
 /// - if UserDefaults 'wenshu.libraryPath' empty → onboarding
 /// - if UserDefaults 'wenshu.libraryPath' set but path doesn't exist
@@ -106,6 +108,7 @@ private struct WiredShell: View {
     // user-customizable layout'): feature flag toggles between the
     // legacy LayoutShellView and the new WorkspaceView (= wraps the
     // WorkspaceStore).
+    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
     // v0.30 boss 8/30 OOB: '我看截图, 你把库管理顶栏右边的新建和导入按钮
     // 改掉了' = trailing 新建/导入 buttons were MISSING in LayoutShellView
     // path's screenshots because LayoutShellView uses ZoneModule (=

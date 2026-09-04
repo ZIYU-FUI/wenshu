@@ -92,6 +92,7 @@ public func windowDragStripWidth(
         // titlebar. Tools should sit at the left edge (= Apple HIG
         // canonical 12 PT symmetric cluster edge inset; canonical
         // value, not a project token, per boss 2026-09-02 OOB
+        // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
         // '用 api 默认间距, 不用换算, 不用管值').
         return 12
     }

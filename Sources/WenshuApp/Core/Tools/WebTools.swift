@@ -53,7 +53,7 @@ public struct WebTools: Sendable {
     /// htmlToMarkdown: 简化 HTML → markdown 转换 (hermes web_extract 简化版)
     public static func htmlToMarkdown(_ html: String) -> String {
         var output = html
-        // 简单标签替换
+        // Simple Tab Replace
         let replacements: [(String, String)] = [
             ("<h1>", "\n# "), ("</h1>", "\n"),
             ("<h2>", "\n## "), ("</h2>", "\n"),
@@ -69,7 +69,7 @@ public struct WebTools: Sendable {
         for (from, to) in replacements {
             output = output.replacingOccurrences(of: from, with: to)
         }
-        // 去掉剩余 HTML 标签 (粗略)
+        // Remove remaining HTML tags (blank)
         output = output.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
         return output.trimmingCharacters(in: .whitespacesAndNewlines)
     }

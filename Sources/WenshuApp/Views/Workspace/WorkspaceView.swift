@@ -22,10 +22,12 @@ import MarkdownEngine  // v0.39 ticket 001: MarkdownEditorConfiguration type
 /// production (= only) rendering path since v0.30. The v0.27
 /// LayoutShellView legacy path was removed in v0.30 (= 1310 lines
 /// deleted per boss 8/31 OOB '老六区没有用了，数据无用已经过期的代码，
+// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
 /// 去人无误后，可以清干净').
 struct WorkspaceView: View {
     @ObservedObject var store: WorkspaceStore
 
+    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
     /// v0.30 boss OOB: 实体分类在目录树里是最后一层, 点击后, 实体文档
     /// 要用随心记的卡片流样式显示在素材管理区 (= projectPreview).
     /// Tracks which entity category is currently selected in the sidebar
@@ -293,6 +295,7 @@ struct WorkspaceView: View {
         switch kind {
         case .projectSidebar:
             // v0.28 followup Boss UX round 43 (Boss 2026-08-29 OOB
+            // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
             // '看一下项目管理区的位置, Y 轴位置和素材管理区好像没对齐'
             // = sidebar's top chrome (= "书架" tab + 新建/入驻 buttons
             // inside NewLibraryOutlineView) was at a different Y than
@@ -395,6 +398,7 @@ struct WorkspaceView: View {
             ], trailingButton: AnyView(EditorExpandShrinkTrailingButton()))
         case .specializedTools:
             // v0.29 boss 2026-08-30 OOB '替换, 用伏笔替换第一个 teb,
+            // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
             // 用占位替换第二个 teb. 现在的画布功能以后实现':
             // - Replaced tab 1 '画布' (scribble) with '伏笔'
             //   (git-fork = matches the 伏笔 folder icon in sidebar).
@@ -780,6 +784,7 @@ struct ZoneModuleView: View {
 /// DesignColor.zoneSurface (= solid) so the placeholder matches the
 /// Liquid Glass design language used everywhere else.
 // v0.28 followup Boss UX round 31 (Boss 2026-08-29 OOB '素材预览区,
+// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
 // 动态区, 这个区的液态玻璃效果和其他区不一样'): uses
 // RegionContentBackground (= single source of truth for per-pane
 // content backgrounds = .regularMaterial = standard Liquid Glass tint).
@@ -806,6 +811,7 @@ private struct EditorContentPlaceholder: View {
 
 
 /// Editor expand/shrink trailing button (= old v0.25.1 ticket 029c).
+// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
 /// Per boss 8/26 OOB '点击后 整个编辑器最大化 其它所有栏全都隐藏
 /// 此时 ICON 变成 shrink 点击后 恢复到刚刚点击 expand 前的状态'.
 /// State + snapshot lives in @AppStorage (= ticket 01, v0.34).
@@ -940,6 +946,7 @@ struct EditorPlaceholder: View {
             // v0.34 B-26 boss 9/3 '我打开新文件, 没有出现新 TEB 页' + '参考这个
             // 样式, 修改 teb 的样式' (= reference image shows plain
             // all-caps monospaced tab labels; = boss 9/3 follow-up:
+            // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
             // '不需要 ICON, 只要文档名就行, .md 的拓展名也不用显示').
             // Editor top bar = a simple horizontal HStack of tab names
             // (= .monospaced .caption text; = active tab = .tint color
@@ -1103,6 +1110,7 @@ struct EditorPlaceholder: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             // v0.28 followup Boss UX round 19 (Boss 2026-08-29 OOB '所有
+            // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
             // 区域的顶栏, 底栏, 背景, 用的颜色, 可以适配液态玻璃吗'):
             // Use .ultraThinMaterial instead of Color.green.opacity(0.05)
             // (= solid green placeholder = inconsistent with the

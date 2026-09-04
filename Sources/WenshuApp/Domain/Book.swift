@@ -10,6 +10,7 @@
 // 意点'). Both fields have defaults + Codable back-compat (= v0.02.x
 // book.json files without these keys still decode).
 //
+// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
 // Owner 8/15 15:55: '架构需要先定好, 不能没事加个东西, 然后重构一堆
 // 东西'. The shape of Book is locked by `Tests/WenshuAppTests/Domain/
 // BookTests.swift`. Adding any required field forces the architectural

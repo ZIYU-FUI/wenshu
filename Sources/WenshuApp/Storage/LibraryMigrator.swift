@@ -191,6 +191,7 @@ struct LibraryMigrator: Sendable {
     }
 
     /// Seed the default help-doc book + doc under '从这里开始' shelf.
+    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
     /// Boss 8/27 OOB: '把这个默认结构落地，写在默认书架里，默认书，
     /// 然后默认的文档'. Idempotent: only seeds if the default book id
     /// (= '11111111-...-111111111111') is absent (= preserved even if
@@ -200,9 +201,11 @@ struct LibraryMigrator: Sendable {
     /// v0.29 boss 2026-08-30 OOB '用从这里开始教我们的帮助文档, 也当
     /// 测试用的文件': expanded the seed from 1 help-doc (= in
     /// chapters/) to 5 .md files across 5 user-facing folders:
+    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
     /// - 世界观: 文枢介绍 + 用户说明
     /// - 角色: 6 Agent 定位
     /// - 大纲: 空 (= boss didn't request content)
+    // [CJK-TRANSLATE] 2 line(s) awaiting manual translation (see git blame for original CJK text)
     /// - 小说正文: 功能模块说明
     /// - 小说草稿: 规划未实装的功能说明
     private func seedDefaultHelpDoc(in shelfDir: URL, fm: FileManager = .default) throws {
@@ -620,6 +623,7 @@ struct LibraryMigrator: Sendable {
         }
 
         // 4.2 角色/characters.md
+        // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
         // v0.30 boss OOB: '角色一个文件拆成六个吧, 正常以后也是一个
         // 角色一个文档'. The single 六个Agent.md is replaced by
         // 6 per-agent files (= one per agent). If user already has

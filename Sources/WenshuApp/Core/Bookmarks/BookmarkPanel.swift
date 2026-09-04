@@ -18,7 +18,7 @@ public final class BookmarkViewModel {
         self.store = store
     }
 
-    /// 加载所有书签
+    /// Load all bookmarks
     public func load() async {
         guard let store else {
             self.bookmarks = []

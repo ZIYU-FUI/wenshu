@@ -77,7 +77,7 @@ public enum BaseParser {
         return BaseDocument(formulas: formulas, viewCount: viewCount)
     }
 
-    /// 编码到字符串 (测试用)
+    /// Encoding to String (test)
     public static func encode(_ document: BaseDocument) -> String {
         var lines: [String] = []
         if !document.formulas.isEmpty {

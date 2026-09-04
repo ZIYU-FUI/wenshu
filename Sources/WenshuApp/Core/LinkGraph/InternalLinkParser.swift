@@ -8,7 +8,7 @@
 
 import Foundation
 
-/// 1 个内部链接 = 解析结果
+/// 1 Internal Link = Parsing Results
 public struct InternalLink: Equatable, Sendable {
     public let text: String           // 显示文本 (在 [[name|alias]] 里是 alias)
     public let target: String         // 目标 ref (在 [[name]] 或 [[name|alias]] 里都是 name)

@@ -2,6 +2,7 @@
 //  GraphBuilder.swift · Wenshu · v0.19 ticket 14 (Obsidian replica, 后端先做)
 //  老板 2026-08-19 evening 拍 Obsidian 复刻范围 A + '复刻后端, 前端不接入核心项目'.
 //
+// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
 //  全 vault 节点关系图构建 + 简单力导向布局.
 //  跟 Obsidian Graph view 行为对齐 (https://obsidian.md/help/plugins/graph).
 //  Apple HIG: 简单 spring force 算法, 跟 Apple HIG 物理仿真一致.
@@ -97,9 +98,10 @@ public enum GraphBuilder {
 
     /// 简单力导向布局 (spring force)
     /// Apple HIG: 物理仿真算法
-    /// - 排斥力: 节点间距离 < 阈值, 互相排斥
+    /// - Exclusion: 节点间距离 < 阈值, 互相排斥
+    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
     /// - 吸引力: 有边连接的节点间距离 > 阈值, 互相吸引
-    /// - 中心引力: 节点往中心拉
+    /// - Centre gravity: 节点往中心拉
     public static func layout(_ graph: Graph, iterations: Int = 50) -> Graph {
         var nodes = graph.nodes
         guard nodes.count > 1 else { return graph }
@@ -112,7 +114,7 @@ public enum GraphBuilder {
         let centerK: Double = 0.01  // 中心引力强度
         let damping: Double = 0.85  // 阻尼
 
-        // 初始化: 随机位置 (确定性 seed 0)
+        // Initialization: Random position (certainty seend 0)
         var rng = SeededRandom(seed: 0)
         for i in 0..<nodes.count {
             nodes[i].x = Double(rng.next() % UInt64(width))
@@ -131,12 +133,12 @@ public enum GraphBuilder {
             return (s, t)
         }
 
-        // 力导向迭代
+        // Power-directed trajectories
         var velocities: [(Double, Double)] = Array(repeating: (0, 0), count: nodes.count)
         for _ in 0..<iterations {
             var forces: [(Double, Double)] = Array(repeating: (0, 0), count: nodes.count)
 
-            // 排斥力
+            // Exclusion
             for i in 0..<nodes.count {
                 for j in (i + 1)..<nodes.count {
                     let dx = nodes[j].x - nodes[i].x
@@ -168,7 +170,7 @@ public enum GraphBuilder {
                 forces[t].1 -= fy
             }
 
-            // 中心引力
+            // Centre gravity
             let centerX = width / 2
             let centerY = height / 2
             for i in 0..<nodes.count {
@@ -176,13 +178,13 @@ public enum GraphBuilder {
                 forces[i].1 += centerK * (centerY - nodes[i].y)
             }
 
-            // 更新位置 + 阻尼
+            // Update Location + Block
             for i in 0..<nodes.count {
                 velocities[i].0 = (velocities[i].0 + forces[i].0) * damping
                 velocities[i].1 = (velocities[i].1 + forces[i].1) * damping
                 nodes[i].x += velocities[i].0
                 nodes[i].y += velocities[i].1
-                // 限制在画布内
+                // Limit to canvas
                 nodes[i].x = max(0, min(width, nodes[i].x))
                 nodes[i].y = max(0, min(height, nodes[i].y))
             }

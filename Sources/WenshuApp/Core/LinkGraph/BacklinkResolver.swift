@@ -18,7 +18,7 @@ import Foundation
 public protocol DocumentIndexing: Sendable {
     /// 给 doc 显示名 (例如 "林黛玉"), 拿 doc_id (可空, 因为 [[new name]] 暂未对应到已有文档)
     func docId(forName name: String) async -> String?
-    /// 给 doc_id, 拿显示名 (反向, 给面板渲染用)
+    /// To doc id, get a display name (reverse, render the panel)
     func name(forDocId docId: String) async -> String?
 }
 
@@ -35,9 +35,9 @@ public actor BacklinkResolver {
     /// 解析 markdown content, 清空 sourceDocId 的旧链接, 批量入库新链接
     public func resolve(content: String, sourceDocId: String) async throws {
         let parsed = InternalLinkParser.parse(content)
-        // 清空旧链接 (文档重写时)
+        // Empty old links (when document rewrite)
         try await index.removeAll(sourceDocId: sourceDocId)
-        // 批量入库
+        // Batch Library
         for link in parsed {
             let targetDocId = await documentIndex.docId(forName: link.target)
             try await index.add(

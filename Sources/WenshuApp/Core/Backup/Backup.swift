@@ -10,7 +10,7 @@
 
 import Foundation
 
-/// 备份元数据真值
+/// Backup metadata truth
 public struct BackupMetadata: Equatable, Sendable {
     public let id: String
     public let sourcePath: String
@@ -117,7 +117,7 @@ public struct BackupTools: Sendable {
         try fm.removeItem(at: destRoot.appendingPathComponent(backupName, isDirectory: true))
     }
 
-    /// 目录大小真值 (递归)
+    /// Real directory size (regression)
     private func directorySize(at url: URL) throws -> Int64 {
         let fm = FileManager.default
         let resourceKeys: [URLResourceKey] = [.fileSizeKey, .isRegularFileKey]

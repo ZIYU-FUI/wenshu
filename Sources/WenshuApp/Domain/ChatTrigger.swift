@@ -3,6 +3,7 @@
 // Detects when a chat message hints at a new entity (= a character /
 // world fact / research reference) and emits an `IngestionRequest`
 // for the LLM Wiki pipeline. v0.27 spec: '用户聊着小说的剧情，实体就
+// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
 // 调研出来了，然后又被整个项目自动引用'.
 //
 // Trigger heuristics (v0.27 MVP, conservative):

@@ -1,6 +1,7 @@
 // Sources/WenshuApp/Domain/EntityCategory.swift
 //
 // v0.29 boss 2026-08-30 OOB '资料库里的实体文件夹, 我觉得不能直接
+// [CJK-TRANSLATE] 3 line(s) awaiting manual translation (see git blame for original CJK text)
 // 显示实体, 用户会不知道是什么意思, 实体需要按分类新建成多个文件夹,
 // 这里直接显示这些分类文件夹, 比如, 历史, 科学, 这样的分类,
 // 你可以参考图书馆的分类法, 这一个规则, 自动归类实体':
@@ -47,6 +48,7 @@ import Foundation
 public enum EntityCategory: String, CaseIterable, Codable, Sendable, Identifiable, Hashable {
     // MARK: - 22 顶级分类 (《中图法》第五版简化)
 
+    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
     case a = "A"  // 马克思主义、列宁主义、毛泽东思想、邓小平理论
     case b = "B"  // 哲学、宗教
     case c = "C"  // 社会科学总论

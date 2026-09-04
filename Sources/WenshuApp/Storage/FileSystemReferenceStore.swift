@@ -287,6 +287,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
     /// with a category, ensure the category subdirectory exists. The category
     /// folder is created LAZILY (= only when the first entity in that category
     /// is saved). This is the "增量" rule (= boss: '分类文件夹随着内容
+    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
     /// 逐渐增加, 而不是一下子铺满').
     ///
     /// v0.30 boss 8/31 OOB: when category is nil (= unclassified entity

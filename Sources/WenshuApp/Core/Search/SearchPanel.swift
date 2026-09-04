@@ -25,7 +25,7 @@ public final class SearchViewModel {
         self.query = q
     }
 
-    /// 跑搜索
+    /// Run search
     public func runSearch() async {
         guard let search else {
             self.results = []

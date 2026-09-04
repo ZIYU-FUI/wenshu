@@ -350,6 +350,7 @@ final class WorkspaceStore: ObservableObject {
     func adjustSplitWeights(splitID: String, childIndex: Int, weightDelta: Double) {
         let minWeight = 0.05
         // v0.30 boss 2026-08-31 OOB '不能拖. 和 hit area 宽度没有
+        // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
         // 关系, 上半区的比例也还是不对, 编辑器吃掉因为拖拽线产生的
         // 其它宽度': the previous implementation hardcoded
         // `weightUnit = 100 PT` here AND had the renderer pass a PT
@@ -549,6 +550,7 @@ final class WorkspaceStore: ObservableObject {
         // (= 1+2+6+1 = 10, so sidebar=10%, preview=20%, editor=60%,
         // tools=10%). Previously [1, 1, 3.4, 1.25] ≈ 15/15/51/19.
         // v0.30 boss 8/31 OOB '如果这是 10, 那就不是 20 视觉效果,
+        // [CJK-TRANSLATE] 2 line(s) awaiting manual translation (see git blame for original CJK text)
         // 这达不到目录树栏的两倍 / 如果这也是 10 / 这个栏的内容
         // 没有按栏的大小自动适配, 右半边没有显示': restore the
         // original 10/20/60/10 ratio (= sidebar 10%, preview 20%,

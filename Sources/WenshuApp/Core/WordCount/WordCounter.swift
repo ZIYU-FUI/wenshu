@@ -52,10 +52,10 @@ public enum WordCounter {
                 chineseChars += 1
             }
         }
-        // 3. 字符总数 (含 / 不含空格)
+        // 3. Total number of characters (includes / without spaces)
         let characters = content.count
         let charactersNoSpaces = content.filter { $0 != " " && $0 != "\n" && $0 != "\t" }.count
-        // 4. 句数 (中文句号 / 英文句号 / 问号 / 感叹号)
+        // 4. Period (Chinese stop / English stop / question mark / exclamation mark)
         let sentences = countSentences(content)
         // 5. 段落数 (按 \n\n 或 起始分割)
         let paragraphs = countParagraphs(content)

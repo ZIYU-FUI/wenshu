@@ -77,6 +77,7 @@ public actor FullTextSearch {
     /// FTS5 虚拟表 (跟 Obsidian Search 索引结构 1:1, schema = doc_id / title / body)
     /// Apple HIG 真值: https://www.sqlite.org/fts5.html (built-in virtual table)
     /// tokenizer 用 trigram (SQLite 3.34+): 支持 CJK 整词匹配 ("林黛玉" → 命中)
+    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
     /// 限制: 单字 / 短词搜索不工作 (trigram 需要 3+ 字符) — 写作 app 搜完整角色名 / 章节名 OK
     private func createSchema() throws {
         let sql = """
@@ -99,6 +100,7 @@ public actor FullTextSearch {
         }
     }
 
+    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
     /// 索引 1 个文档 (upsert: 先删除旧的, 再插入新的)
     public func index(docId: String, title: String, body: String) throws {
         // FTS5 没有原生 UPDATE, 用 delete + insert
@@ -117,6 +119,7 @@ public actor FullTextSearch {
         }
     }
 
+    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
     /// 删除 1 个文档
     public func remove(docId: String) throws {
         let sql = "DELETE FROM docs_fts WHERE doc_id = ?;"

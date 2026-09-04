@@ -4,6 +4,7 @@
 // (= Notes / Reminders / Finder 'New Folder' dialog): a single text field
 // for the name, Cancel + OK buttons, keyboard focus on the field at open.
 //
+// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
 // Owner 8/15 15:55: '架构需要先定好, 不能没事加个东西, 然后重构一堆
 // 东西'. The modal is a pure view; the callback closes over a single
 // mutation (= addShelf / renameShelf from WenshuLibrary). No direct

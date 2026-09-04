@@ -32,6 +32,7 @@ struct PresetCard: View {
                 .aspectRatio(4.0 / 3.0, contentMode: .fit)
                 .frame(maxWidth: .infinity)
                 // v0.28 followup Boss UX round 19 (Boss 2026-08-29 OOB
+                // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
                 // '所有区域的顶栏, 底栏, 背景, 用的颜色, 可以适配液
                 // 态玻璃吗'): preset card thumbnail background =
                 // .ultraThinMaterial (= the lightest Liquid Glass

@@ -199,6 +199,7 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
     }
 
     /// One-line summary shown on the card (= boss 8/26 '卡片样式就是
+    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
     /// 展示文档的重点摘要').
     var summary: String
 

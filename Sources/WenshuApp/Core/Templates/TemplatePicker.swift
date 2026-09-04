@@ -16,14 +16,14 @@ public final class TemplateViewModel {
 
     public init() {}
 
-    /// 加载模板
+    /// Load Template
     public func load(template: String, title: String = "Untitled") {
         self.template = template
         self.title = title
         self.error = nil
     }
 
-    /// 渲染当前模板
+    /// Render the current template
     public func render() {
         let context = TemplateContext(title: title)
         do {

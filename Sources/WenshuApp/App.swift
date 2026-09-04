@@ -129,7 +129,7 @@ enum LayoutTokens {
     static let aiChatRatio: CGFloat = 796.0 / 1000.0         // 80% design - 1 splitter @ 4 PT
     static let dynamicWRatio: CGFloat = 200.0 / 1000.0       // 20% (= Boss 45th OOB)
 
-    // 编辑器两层设计 (老板 8/18 Q2 答: 有意两层, 不要删)
+    // Editor Two Layers Design
     static let editorInsetRatio: CGFloat = 4.0 / 984.0  // = 0.0041
 
 
@@ -148,6 +148,7 @@ enum LayoutTokens {
     // size).
     static let iconSize: CGFloat = 18
     // v0.25.1 (= ticket 007 chat-zone tab hot area): owner 2026-08-26 OOB
+    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
     // '热区有点问题 现在好像是 ICON 本身是热区 需要你让 ICON 18×18 的区域
     // 是热区 不然很难点的到' = inflate click target from icon visual size
     // (= 18 PT) to a fixed hot area that maps to the boss 8/11 fix3
@@ -201,7 +202,7 @@ enum LayoutTokens {
     static let tabUnderlineHeight: CGFloat = 1
     static let iconSpacingRatio: CGFloat = 18.0 / 1920.0  // 18 PT 等距 (老板 8/18 改 18 PT = icon 间距, 起点 18/54/90 相邻 36 - 18 = 18)
 
-    // 底栏占位元素 (老板 8/18 拍 "icon 18×18, 占位文字苹果字符样式正文尺寸") — 绝对 PT 不走比例
+    // Bottom Bar Bit Elements (Boss 8/18 decision "icon 18 x 18, in the body size of an apple character style) - Absolute PT does not go
     static let bottomLeading: CGFloat = 18                 // 18 PT 距左 (左占位文字)
     static let bottomTrailing: CGFloat = 18                // 18 PT 距右 (右占位 icon)
     static let placeholderIconSize: CGFloat = 18          // 18 PT 占位 icon 边长 (绝对值)
@@ -367,6 +368,7 @@ struct WenshuApp: App {
                 // WindowGroup instance has its own AppState).
                 .environment(appState)
             // v0.28 followup Boss UX round 28 (Boss 2026-08-29 OOB '那是不是
+            // [CJK-TRANSLATE] 4 line(s) awaiting manual translation (see git blame for original CJK text)
             // 拖拽线也有默认的液态玻璃的样式, 这样的, 你把我们所有用到
             // 的组件, 用默认的液态玻璃样式实现, 我们最多调一下尺寸,
             // 动画效果, 过渡效果等等, 都用默认的, 我说的所有的, 不是
@@ -380,6 +382,7 @@ struct WenshuApp: App {
         // .unified is the default style (52 PT). .unifiedCompact is
         // COMPACT (= smaller, NOT default). Boss spec 'default size' = .unified.
         // v0.28 followup Boss UX round 12 (Boss 2026-08-29 OOB '算了,
+        // [CJK-TRANSLATE] 2 line(s) awaiting manual translation (see git blame for original CJK text)
         // 本来我们也要伪 apple 官方嘛, 用 52 高的那个原生标题栏,
         // 把按钮放上面, 去掉自己写的那一栏, 全面适配液态玻璃'):
         // = adopt Apple Liquid Glass design language fully per
@@ -525,6 +528,7 @@ struct WenshuApp: App {
 /// 老板 8/21 拍 'Pages 范式实现设置面板的 UI, 用 macOS 27 的组件'
 /// = 顶部 toolbar (3 个 segmented tab, Pages 真值, 老板画的图 2 红框位置)
 /// 不是 macOS Settings { } Scene 自动装标题栏 segmented tab 按钮 (commit 0082bd1fe + 030a58355 真硬违反)
+// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
 /// Pages 真值 (红框位置) = 窗口内容顶部 toolbar 切换, 不是窗口标题栏按钮
 struct SettingView: View {
     @Environment(AppState.self) private var appState
@@ -1136,6 +1140,7 @@ enum AuxTask: String, CaseIterable, Identifiable {
         @AppStorage("wenshu.context.usagePercent") private var contextUsagePercent: Int = 0
         var body: some View {
             // v0.24 boss验收fix (Boss 8/24 OOB 拍 '和 FCP 一样, 首次运行, 无论
+            // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
             // 是否要建书架, 都要先指定一个 .ws 文件的库文件位置'): first-launch
             // .ws file picker. NSOpenPanel for selecting .ws file location
             // (FCP-style Event Library UX). Save to UserDefaults wenshu.libraryPath.
@@ -1335,6 +1340,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // v0.28 followup Boss UX round 9 (Boss 2026-08-29 OOB '等下,
+        // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
         // 那样会没有红黄绿按钮, 也不可以双击放大, 试过了' =
         // titlebarAppearsTransparent + titleVisibility = .hidden
         // removes traffic lights AND double-click-to-zoom
@@ -1454,6 +1460,7 @@ enum ZoneSlot {
             // v0.30: NewLibraryOutlineView has default dummy binding init.
             NewLibraryOutlineView()
             // v0.28 followup Boss UX round 44 (Boss 2026-08-29 OOB
+            // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
             // '项目管理区和素材管理区的接缝, 顶栏底栏都对不齐' = the
             // `.padding(.vertical, 2)` was pushing the sidebar content
             // (= NewLibraryOutlineView's tree outline) up by 2 PT,
@@ -1499,7 +1506,7 @@ struct ChatZoneView: View {
         }
     }
     // v0.23 ticket 011.002: change from flat [String] to sectioned [AvailableProviderModels].
-    // Boss 8/23 拍: 我配了三个厂家的 key, 模型切换应分组展示可用模型合集.
+    // Boss 8/23 decision: I've got three manufacturers' key, model switching should show the available model combinations.
     @State private var availableSections: [AvailableProviderModels] = []
     // v0.21 ticket 43 step 3: picker ↔ UserDefaults 同步修复 = @AppStorage (Apple SwiftUI 真值, 源单一 UserDefaults, 双向自动同步)
     // 修复前 ChatZoneView.currentModel 是 @State 不绑 UserDefaults, ChatViewModel.currentModel 是 init default 读 UserDefaults 一次 = 切 picker 后两条状态链断开
@@ -1557,6 +1564,7 @@ struct ChatZoneView: View {
 
     // v0.24 boss验收fix (Boss 8/25 OOB ticket 015.014): archive current session
     // + context, then start new session. Boss spec: '点击确认, 回档现有会话和
+    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
     // 上下文. 起一个全新的会话. 上下文重新加载'.
     //
     // Flow:
@@ -1646,6 +1654,7 @@ struct ChatZoneView: View {
                 .animation(.default, value: selectedTab)
                 // v0.24 boss验收fix (Boss 8/25 OOB ticket 015.014): archive
                 // confirmation alert. Boss spec: '点击确认, 回档现有会话和上下文.
+                // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
                 // 起一个全新的会话. 上下文重新加载'.
                 .alert("归档当前会话?", isPresented: $showingArchiveAlert) {
                     Button("取消", role: .cancel) { }
@@ -1796,6 +1805,7 @@ struct ChatZoneTabBar: View {
     // across nested struct boundaries without @Binding).
     @Binding var showingArchiveAlertHover: Bool
     // v0.25.1 (= ticket 013 underline slide animation): owner 2026-08-26
+    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
     // OOB '能不能让那个小横线的动画变成左右移动 不是渐隐渐显' =
     // matchedGeometryEffect pattern (= owner wants L/R slide, NOT
     // crossfade). Even though ChatZoneTabBar currently only shows 1

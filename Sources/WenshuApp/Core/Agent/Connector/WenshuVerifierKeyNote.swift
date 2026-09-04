@@ -9,6 +9,7 @@
 //    analyst / archivist / auditor) call into the same verifier.
 //  - Sub-agents do NOT have their own API key.
 //  - User cannot configure a different key per agent (boss 8/23 拍:
+// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
 //    '用户不能改相关配置. 我们的设置都有 gui 的设置页面').
 //
 //  This is the default behavior — no code change needed. This commit

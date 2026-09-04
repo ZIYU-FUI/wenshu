@@ -17,6 +17,7 @@ import SwiftUI
 ///
 /// **Use this** for the first tab of the specializedTools pane.
 /// Replaces the old CanvasView (= which moved to a future ticket per
+// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
 /// '现在的画布功能以后实现').
 ///
 /// Content roadmap (= not implemented yet):

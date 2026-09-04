@@ -4,6 +4,7 @@
 // swap for MetadataQuery / CoreData / CloudKit later without changing
 // the contract (= LibraryStoring) or any caller (= view layer).
 //
+// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
 // Owner 8/15 15:55: '架构需要先定好, 不能没事加个东西, 然后重构一堆
 // 东西'. By satisfying LibraryStoringContractTests, this implementation
 // is the architectural reference: any future impl must behave the same.
@@ -337,6 +338,7 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
     // MARK: - Document ops (v0.03.0)
     //
     // Layout (= 老板 8/15 15:55 '架构需要先定好, 不能没事加个东西, 然后
+    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
     // 重构一堆东西'):
     //   ~/Documents/wenshu/<shelf>/<book>/
     //     book.json

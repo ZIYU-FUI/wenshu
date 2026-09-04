@@ -55,6 +55,7 @@ struct LayoutEditBar: View {
         }
         .frame(width: 26 * 16)  // 26rem (= 26 * 16 PT in macOS 1x)
         // v0.28 followup Boss UX round 19 (Boss 2026-08-29 OOB '所有
+        // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
         // 区域的顶栏, 底栏, 背景, 用的颜色, 可以适配液态玻璃吗'):
         // LayoutEditBar floating palette background = .regularMaterial
         // (= macOS standard Liquid Glass translucent capsule =

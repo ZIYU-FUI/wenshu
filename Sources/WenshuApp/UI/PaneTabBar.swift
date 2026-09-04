@@ -1,6 +1,7 @@
 // Sources/WenshuApp/UI/PaneTabBar.swift
 //
 // v0.28 followup Boss UX round A (Boss 2026-08-30 OOB '你需要做一个组件索引,
+// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
 // 以后如果有新的地方用到相同的东西, 会自然而然的找到组件, 而不是默认自动
 // 写个新的'): Phase 3 of 5-phase component refactor.
 //

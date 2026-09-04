@@ -143,7 +143,7 @@ public enum TemplateEngine {
             else { continue }
             let key = String(template[keyRange])
             let defaultValue = String(template[defaultRange])
-            // 跳过已处理的
+            // Skip processed
             if ["date", "time", "title", "author"].contains(key) { continue }
             // 如果在 context.custom 里, 已被前处理替换; 跳过
             if context.custom[key] != nil { continue }

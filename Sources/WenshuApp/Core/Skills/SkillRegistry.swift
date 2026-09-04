@@ -132,6 +132,7 @@ public actor SkillRegistry {
             }
         }
         if !foundEnd {
+            // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
             // 没找到结束 ---, 整个文件是 body
             return (SkillFrontmatter(name: "unknown", description: ""), raw)
         }

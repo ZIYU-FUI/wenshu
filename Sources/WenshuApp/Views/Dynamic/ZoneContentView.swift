@@ -2,6 +2,7 @@
 //  ZoneContentView.swift · Wenshu · v0.24 boss验收
 //
 //  Boss 2026-08-24 拍 (out-of-band): 所有区域都 一样, 可以叫 tab 视图.
+// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
 //  不可以加顶栏, 只保留一层顶栏, 可以多 tab.
 //
 //  Pattern (跟 ChatZoneView 的 ChatZoneTabBar + DynamicZoneView 的 DynamicZoneTabBar 统一):
@@ -153,6 +154,7 @@ private struct ZoneContentTabBar: View {
     let items: [Item]
     @Binding var selection: String
     // v0.25.1 (= ticket 013 underline slide animation): owner 2026-08-26
+    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
     // OOB '能不能让那个小横线的动画变成左右移动 不是渐隐渐显'. See
     // PaneTabBar comment (= matchedGeometryEffect pattern). One
     // namespace per tab bar class (= SwiftUI requires the namespace to

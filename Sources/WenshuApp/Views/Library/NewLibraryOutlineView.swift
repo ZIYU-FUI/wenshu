@@ -264,6 +264,7 @@ struct NewLibraryOutlineView: View {
             // inside the DisclosureGroup content. When a book row is
             // selected (= appState.sidebarSelection = .book(...)), its own
             // nested DisclosureGroup for folders (= level 3) auto-
+            // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
             // expands so 世界观 / 角色 / 章节大纲 / 小说正文 / 小说草稿
             // are visible without an extra tap (= boss OOB #3 'child
             // folders should be visible immediately on book select').
@@ -350,6 +351,7 @@ struct NewLibraryOutlineView: View {
         // kind (= shelf, book, reference category) to show the
         // right actions (= '新建书' only on shelves, etc.). The
         // reference library section is excluded (= per boss OOB
+        // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
         // '资料库不允许删除').
         .contextMenu(forSelectionType: SidebarItem.self) { selectedItems in
             contextMenuForSelection(selectedItems)
@@ -375,6 +377,7 @@ struct NewLibraryOutlineView: View {
             }
         }
         // v0.30 boss 8/31 OOB ('Sidebar 背景 不跟液态玻璃透明度调整 / 之前已经实现的,
+        // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
         // 改目录树的时候动到了, 修复'):
         // Apple HIG .sidebar listStyle draws its own opaque background
         // (= macOS 26 Tahoe canonical sidebar material), which covers

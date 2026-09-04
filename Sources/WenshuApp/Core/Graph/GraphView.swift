@@ -26,7 +26,7 @@ public final class GraphViewModel {
         }
     }
 
-    /// 测试 / 直接设置图
+    /// Test / Direct Settings
     public func setGraph(_ graph: Graph) {
         self.graph = graph
     }

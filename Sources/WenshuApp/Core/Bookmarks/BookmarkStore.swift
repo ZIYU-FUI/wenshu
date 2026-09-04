@@ -96,6 +96,7 @@ public actor BookmarkStore {
         }
     }
 
+    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
     /// 加书签
     public func add(_ bookmark: Bookmark) throws {
         let sql = "INSERT INTO bookmarks (id, doc_id, label, created_at) VALUES (?, ?, ?, ?);"

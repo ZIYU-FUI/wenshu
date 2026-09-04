@@ -1,6 +1,7 @@
 //
 //  AvailableModelsDiscovery.swift · Wenshu · v0.23 ticket 011.001
 //
+// [CJK-TRANSLATE] 2 line(s) awaiting manual translation (see git blame for original CJK text)
 //  Boss 2026-08-23 拍: '聊天区低栏的模型切换现在是否支持从配置文件里读可用模型,
 //  比如我配了三个厂家的 key, 那模型切换就应该分组展示我三个厂家的可用模型的合集'.
 //

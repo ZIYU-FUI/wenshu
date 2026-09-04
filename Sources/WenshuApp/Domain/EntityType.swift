@@ -1,6 +1,7 @@
 // Sources/WenshuApp/Domain/EntityType.swift
 //
 // v0.30 boss 2026-08-30 OOB '分类法有没有预置大量, 因为我们无法预知用户
+// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
 // 会调研什么. 实体如何定义, 是不是有规则, 你不是已经复刻了 llm wiki,
 // 那里面有规则吗'. Boss chose option A: 'v0.30 加 EntityType enum +
 // strict schema':

@@ -340,6 +340,7 @@ final class PaneNSController: NSSplitViewController {
             // divider hit-area is preserved = drag still works).
             //
             // v0.32 boss 2026-09-02 OOB ('线看不出来就不重要了;
+            // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
             // 你所有用的颜色, 都是 API 给的, 不要自定义'): the
             // divider subview is NOT painted (= no NSColor /
             // custom RGB blend). Adjacent panes are differentiated
@@ -510,6 +511,7 @@ final class PaneNSController: NSSplitViewController {
                 guard let tab = paneController.paneKindByItem[idx] else { continue }
                 if tab == kind {
                     // v0.34 B-12 (= boss 2026-09-02 OOB '各区显示隐藏
+                    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
                     // 也存在同样的 bug = 因为只记录显隐不也记录其他,
                     // 导致显隐多次后, 视图完全混乱'): capture full
                     // 6-zone state BEFORE hiding (= Q38 boss "全状态

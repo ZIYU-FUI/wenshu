@@ -139,7 +139,7 @@ public enum JSONCanvasCodec {
         }
     }
 
-    /// 从字符串解码
+    /// Decoding from String
     public static func decode(_ string: String) throws -> CanvasDocument {
         guard let data = string.data(using: .utf8) else {
             throw CodecError.decodingFailed("not utf8")
@@ -147,7 +147,7 @@ public enum JSONCanvasCodec {
         return try decode(data)
     }
 
-    /// 编码到字符串
+    /// Encoding to String
     public static func encodeToString(_ document: CanvasDocument) throws -> String {
         let data = try encode(document)
         guard let s = String(data: data, encoding: .utf8) else {

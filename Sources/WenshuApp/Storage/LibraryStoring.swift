@@ -1,5 +1,6 @@
 // LibraryStoring.swift · Wenshu (Wenshu) · v0.02.0 (bookshelf module)
 //
+// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
 // Owner 8/15 15:55: '架构需要先定好, 不能没事加个东西, 然后重构一堆东西'.
 //
 // This file is the architectural root of the wenshu library system.

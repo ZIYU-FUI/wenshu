@@ -75,6 +75,7 @@ struct TabContentDispatcher: View {
         switch kind {
         case .projectSidebar:
             // v0.28 followup Boss UX round 14 (Boss 2026-08-29 OOB
+            // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
             // '检查各区的顶栏个底栏, 配合截图看, 有的实现了两层, 解
             // 决一下'): No outer ZonePerRegionChrome (= the old
             // ZoneTopToolbar outer 30 PT) — the internal

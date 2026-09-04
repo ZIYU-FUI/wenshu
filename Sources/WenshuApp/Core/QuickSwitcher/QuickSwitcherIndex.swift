@@ -28,22 +28,22 @@ public struct SwitcherItem: Equatable, Sendable, Identifiable {
 public enum QuickSwitcherIndex {
 
     /// Fuzzy match: query 在 text 里子串匹配 (不区分大小写), 算分
-    /// 评分: 完全匹配 > 前缀匹配 > 包含匹配
+    /// 评分: 完全匹配 > 前缀匹配 > Include matching
     /// Apple HIG: Foundation NSString.caseInsensitiveCompare
     public static func fuzzyScore(query: String, text: String) -> Int? {
         guard !query.isEmpty else { return 0 }
         let lowerQ = query.lowercased()
         let lowerT = text.lowercased()
 
-        // 完全匹配
+        // Perfect match.
         if lowerT == lowerQ {
             return 1000
         }
-        // 前缀匹配
+        // Prefix Match
         if lowerT.hasPrefix(lowerQ) {
             return 500
         }
-        // 包含匹配
+        // Include matching
         if lowerT.contains(lowerQ) {
             // 字符序匹配 (Apple HIG fuzzy match)
             let charScore = characterOrderScore(query: lowerQ, text: lowerT)
@@ -57,6 +57,7 @@ public enum QuickSwitcherIndex {
         return fuzzyScore > 0 ? fuzzyScore : nil
     }
 
+    // [CJK-TRANSLATE] 2 line(s) awaiting manual translation (see git blame for original CJK text)
     /// 字符序匹配: query 的每个字符按顺序出现在 text 里
     /// 评分: 越紧凑 (字符越近) 分数越高
     private static func characterOrderScore(query: String, text: String) -> Int {
@@ -73,7 +74,7 @@ public enum QuickSwitcherIndex {
             ti += 1
         }
         guard qi == qChars.count else { return 0 }
-        // 越紧凑分数越高 (最大相邻距离越小越好)
+        // The closer the score, the higher.
         let span = (matchedPositions.last ?? 0) - (matchedPositions.first ?? 0) + 1
         let density = Double(qChars.count) / Double(span)
         return Int(density * 50)  // 0-50

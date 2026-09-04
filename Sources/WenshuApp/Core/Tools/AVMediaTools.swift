@@ -44,6 +44,7 @@ public struct AVMediaTools: Sendable {
     }
 
     /// estimateDuration: 估算朗读时长真值 (不真播放, 算法估算)
+    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
     /// 简化公式: 字符数 / 语速 (中英文 ~3-5 字/秒, 默认 4 字/秒)
     public func estimateDuration(text: String, rate: Float = 0.5) -> TimeInterval {
         let charactersPerSecond = 4.0 * Double(rate / 0.5)

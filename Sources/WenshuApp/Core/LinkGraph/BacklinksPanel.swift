@@ -5,6 +5,7 @@
 //  Standalone SwiftUI View + ViewModel, 不接 LayoutShellView, 等老板验 macOS.
 //  ViewModel 跟 v0.18 ticket 04 AgentRuntime 同范式: @MainActor + Observable (苹果 Swift 6 strict concurrency).
 //
+// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
 //  业务语言描述 (老板懂):
 //  - BacklinksPanel 是 SwiftUI View, 给一个 docId 显示所有引用它的 source 链接
 //  - 现阶段只做 ViewModel 渲染逻辑, View 体留 placeholder (老板 macOS 验后再补 .body 接入)

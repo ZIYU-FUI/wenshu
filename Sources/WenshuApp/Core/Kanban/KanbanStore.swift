@@ -98,7 +98,7 @@ public actor KanbanStore {
         self.dbPtr = ptr
     }
 
-    /// 启动时调用: 建表
+    /// Call on startup: Form
     public func bootstrap() throws {
         let sql = """
         CREATE TABLE IF NOT EXISTS kanban_tasks (

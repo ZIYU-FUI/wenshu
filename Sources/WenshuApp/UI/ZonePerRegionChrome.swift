@@ -148,6 +148,7 @@ public struct ZonePerRegionChrome<Content: View>: View {
             // v0.34: topBar removed (= 0 active caller, see file-bottom comment).
             // Region content (= fills remaining space).
             // v0.28 followup Boss UX round 42 (Boss 2026-08-29 OOB
+            // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
             // '缺三个区, 项目管理, 工具, 聊天, 都没进你的样式表' =
             // Sidebar / Tools / Chat / Dynamic panes were missing
             // the RegionContentBackground wrapper). Apply it here at
@@ -177,6 +178,7 @@ public struct ZonePerRegionChrome<Content: View>: View {
     @MainActor
     private var bottomBar: some View {
         // v0.28 followup Boss UX round A (Boss 2026-08-30 OOB '你需要做一个
+        // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
         // 组件索引, 以后如果有新的地方用到相同的东西, 会自然而然的找到组件,
         // 而不是默认自动写个新的'): Phase 5 of refactor. Now uses the
         // new `PaneStatusBar` component (= ComponentIndex.md Level 2.6)

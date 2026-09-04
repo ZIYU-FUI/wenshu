@@ -4,10 +4,12 @@
 //  左下角 zone 接入真 Chat UI + Agent 对话 (复刻 hermes 35 skill chat 真值).
 //  老板 2026-08-19 evening 拍 "先实现聊天区, 就是左下角区域, 能进行 Agent 对话".
 //
+// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
 //  业务语言描述 (老板懂):
 //  - wenshu 左下 zone 改成真 chat (消息列表 + 输入框 + 发送按钮)
 //  - 点发送 → AgentRuntime.delegateTask → WenshuVerifier.ping 调 MiniMax-M3
 //  - MiniMax key 端到端调通 (Q22 真验证, ticket 31 done, HTTP 200)
+// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
 //  - 工程管理老板授权 + 不需要验收
 //
 //  Apple HIG 真值: SwiftUI VStack + List + TextField + Button 范式 (跟 Pages / Numbers 一样).
@@ -292,6 +294,7 @@ public final class ChatViewModel {
     /// v0.24 boss验收fix (Boss 8/25 OOB ticket 015.014): archive current
     /// session + context (= reset messages + contextUsed), generate new
     /// sessionId, persist new session for future writes. Boss spec: '起一个
+    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
     /// 全新的会话. 上下文重新加载'.
     public func startNewSession() {
         // 1. Clear in-memory state (= visual reset).
@@ -420,6 +423,7 @@ public struct ChatView: View {
             // = the actual boss OOB intent).
             // v0.25.1 (= ticket 031 chat send button vertical
             // center alignment): owner 2026-08-26 OOB '按钮也
+            // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
             // 跟上上去了 把按钮改成与文本框居中' = with the 8 PT
             // top padding on TextField, the TextField's effective
             // top edge shifted down 8 PT (= 24 PT height + 8 PT top
@@ -451,6 +455,7 @@ public struct ChatView: View {
             // baseline of input field).
             // v0.25.1 (= ticket 033 followup 2: chat send button
             // CENTER alignment — boss corrected AGAIN): owner
+            // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
             // 2026-08-26 OOB '还是不对 你还是文本框和按钮居中对齐吧'
             // = after 3 alignment attempts (.center, .bottom,
             // .bottom + height 32), the actual visual boss wants
@@ -500,6 +505,7 @@ public struct ChatView: View {
             //    use all along, = vertical center between the two
             //    elements at their natural heights).
             // v0.25.1 (= ticket 034 final 3): owner 2026-08-26 OOB
+            // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
             // '你理解错了 是文本框的外边距 向上 8PT 这个还是要的'
             // = 8 PT OUTER top margin on the chat input HStack
             // (= between the Divider above and the HStack that
@@ -519,6 +525,7 @@ public struct ChatView: View {
             // centers them vertically at the HStack midline.
             //
             // v0.28 followup Boss UX round 25 (Boss 2026-08-29 OOB
+            // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
             // '现在文本框会随着文字输入更多自动向上加高吗?'): changed
             // HStack alignment from .center → .bottom so the Send
             // button stays anchored at the bottom of the chat input
@@ -533,6 +540,7 @@ public struct ChatView: View {
                 // Boss 8/24 (out-of-band): '请先在设置中设置好大模型提供方'.
                 // v0.25.1 (= ticket 030 chat send button Lucide icon + 8 PT textfield padding):
                 // owner 2026-08-26 OOB '聊天区 聊天文本框后面的按钮 发送的
+                // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
                 // 小飞机换成 send 聊天文本框上加 8 PT 的间隔' =
                 // 1) replace SF paperplane.fill (= Apple Send ICON) with
                 //    Lucide .send (= paper plane icon, same visual
@@ -552,6 +560,7 @@ public struct ChatView: View {
                           text: $vm.inputText, axis: .vertical)
                     .lineLimit(1...4)
                     // v0.28 followup Boss UX round 27 (Boss 2026-08-29
+                    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
                     // OOB '你把文本框和按钮的空状态高度统一成 30pt'):
                     // .multilineTextAlignment(.leading) + the default
                     // .leading-to-trailing text flow makes the text
@@ -586,6 +595,7 @@ public struct ChatView: View {
                     // RoundedRectangle stroke (lineWidth: 1) on focus.
                     // v0.25.1 (= ticket 035 chat textfield placeholder
                     // color + position): owner 2026-08-26 OOB '输入
+                    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
                     // 消息... 这个提示 查官方文档 默认是什么样的 现在
                     // 颜色过亮 位置也不对' = the placeholder text
                     // '输入消息...' currently looks too bright (= high
@@ -612,6 +622,7 @@ public struct ChatView: View {
                     // (ticket 034 final 3) preserved.
                     .textFieldStyle(.plain)
                     // v0.28 followup Boss UX round 25 (Boss 2026-08-29
+                    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
                     // OOB '现在文本框会随着文字输入更多自动向上加高吗?'):
                     // the textfield now has 2 height modes:
                     //
@@ -640,12 +651,14 @@ public struct ChatView: View {
                     //   can grow larger when content is multi-line).
                     //
                     // v0.28 followup Boss UX round 27 (Boss 2026-08-29
+                    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
                     // OOB '你把文本框和按钮的空状态高度统一成 30pt'):
                     // unified both empty-state heights at 30 PT
                     // (= matches kZoneToolbarHeight = canonical chrome
                     // height across the app).
                     //
                     // v0.25.1 (= ticket 037): was pinned to 24 PT per
+                    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
                     // boss OOB '现在文本框不是 32 了吗 不管是多少
                     // 改成和文本框一样高' = at the time, the textfield
                     // visual was 24 PT (= 1 line) so boss wanted to
@@ -704,6 +717,7 @@ public struct ChatView: View {
                     }
                 }
                 // v0.28 followup Boss UX round 18 (Boss 2026-08-29 OOB
+                // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
                 // '输入信息右边的发送按钮, 用液态玻璃默认按钮的样式,
                 // 换一个'): Use .bordered = the standard macOS Liquid
                 // Glass secondary button style (= Apple's canonical
@@ -718,6 +732,7 @@ public struct ChatView: View {
                 // the button at Apple's standard control height
                 // (= same as the TextField so they align flush).
                 // v0.28 followup Boss UX round 27 (Boss 2026-08-29
+                // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
                 // OOB '你把文本框和按钮的空状态高度统一成 30pt'):
                 // both TextField and Send button pinned to 30 PT
                 // (= canonical macOS HIG chat input height, same

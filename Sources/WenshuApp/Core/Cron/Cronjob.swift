@@ -45,7 +45,7 @@ public actor CronjobStore {
 
     public func add(_ job: Cronjob) {
         jobs[job.id] = job
-        // 实际生成 plist (简化版, 不真写文件)
+        // Actual plist generation (simplified, unwritten)
     }
 
     public func get(id: String) -> Cronjob? {
@@ -76,7 +76,7 @@ public actor CronjobStore {
     /// nextRun: 估算下次运行 (简化版, 不真算 cron)
     public static func nextRun(schedule: String, after date: Date = Date()) -> Date? {
         guard parseSchedule(schedule) else { return nil }
-        // 简化: 加 1 小时 (实际需 cron 解析库)
+        // Simplified: Add 1 hour (actual cron parser)
         return date.addingTimeInterval(3600)
     }
 }

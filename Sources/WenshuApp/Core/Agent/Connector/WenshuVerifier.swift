@@ -4,6 +4,7 @@
 //  验证 wenshu AgentProtocol 用 MiniMax key 调通.
 //  老板 2026-08-19 拍 "验证, 用我们的 MiniMax 的 key 看能否真的用你复刻的 hermes 核心调通 anget".
 //
+// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
 //  业务语言描述 (老板懂):
 //  - wenshu AgentProtocol (A2A 协议) → MiniMax API (Anthropic 兼容协议)
 //  - 真值: 用 MiniMax key 调 MiniMax-M3 模型, 验证 "ping" 返 200

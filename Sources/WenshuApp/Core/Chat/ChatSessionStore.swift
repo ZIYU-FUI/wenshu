@@ -333,6 +333,7 @@ public actor ChatSessionStore {
         // v0.21 ticket 39: union decode (text / thinking / tool_use) — concat all text blocks for summary
         let summary = response.content.map(\.displayText).joined()
 
+        // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
         // 写 summary + 删老原文 (顺序不能反, 否则上下文丢失)
         // v0.34 Issue 08: wrap in transact (= saveSummary +
         // deleteOldMessages run as a single SQLite transaction;

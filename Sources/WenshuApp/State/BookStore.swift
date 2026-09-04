@@ -1,6 +1,7 @@
 // BookStore.swift · Wenshu (文枢) · v0.26 (FCP library replica) + B-13 scope unification
 //
 // Single BookStore @Observable singleton (= boss 8/26 OOB "反面 apple 标
+// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
 // 准实现是对的, 符合苹果的标准" + "用最少的代码, 符合苹果的标准, 实现
 // 最好"). Holds the per-book in-memory state (= the 10 standard entries
 // per book + per-book JSON data: kanban + todo + the 8 folder indexes).
@@ -321,6 +322,7 @@ extension BookStore {
 // MARK: - B-13 scope unification (= Kanban / Todo / reference-library data tree)
 //
 // Boss 2026-09-04 OOB:
+// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
 //   - "这两个看板都有同一个问题, 只识别书的目录, 书的子目录, 按说也是书的
 //     目录, 不支持" — the old `bookDirectory(bookId:)` only resolved the
 //     book root. The 8 standard sub-folders (= `chapters/` etc.) and the
