@@ -78,17 +78,48 @@ public struct KanbanView: View {
 
     /// Inline-create row (Apple HIG text field + return-to-submit).
     /// Disabled when no book is selected or the text is empty.
+    /// B-12 fix: `.disabled(...)` is placed BEFORE `.buttonStyle(...)`
+    /// so SwiftUI applies the disabled visual state (gray-out) to the
+    /// button content, not to the styled wrapper; `.help(...)` exposes
+    /// the reason on hover; an inline caption explains why the button
+    /// is inactive when no book is selected (= Apple HIG disabled-control
+    /// feedback).
     private var inputRow: some View {
-        HStack(spacing: 6) {
-            TextField("新看板标题…", text: $newTicketTitle)
-                .textFieldStyle(.roundedBorder)
-                .onSubmit { addTicket() }
-            Button(action: addTicket) {
-                Label("新建", systemImage: "plus")
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                TextField("新看板标题…", text: $newTicketTitle)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit { addTicket() }
+                Button(action: addTicket) {
+                    Label("新建", systemImage: "plus")
+                }
+                .disabled(!canAdd)
+                .buttonStyle(.borderedProminent)
+                .help(addButtonHelp)
             }
-            .buttonStyle(.borderedProminent)
-            .disabled(!canAdd)
+            if bookDirectory == nil {
+                Text("未选书 — 在左侧书架里选一本书, 看板才会加载")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            } else if newTicketTitle.trimmingCharacters(in: .whitespaces).isEmpty {
+                Text("输入标题后才能新建")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
         }
+    }
+
+    /// Tooltip for the disabled/disabled-reason-aware add button.
+    /// Empty when canAdd so hovering an enabled button shows no stale
+    /// "please…" text.
+    private var addButtonHelp: String {
+        if bookDirectory == nil {
+            return "先在左侧书架里选一本书"
+        }
+        if newTicketTitle.trimmingCharacters(in: .whitespaces).isEmpty {
+            return "请输入标题"
+        }
+        return "新建看板票据"
     }
 
     @ViewBuilder

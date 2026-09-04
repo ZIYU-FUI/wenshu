@@ -75,24 +75,55 @@ public struct TodoListView: View {
     /// Inline-create row (Apple HIG text field + priority picker
     /// + return-to-submit). Disabled when no book is selected or
     /// the text is empty.
+    /// B-12 fix: `.disabled(...)` is placed BEFORE `.buttonStyle(...)`
+    /// so SwiftUI applies the disabled visual state (gray-out) to the
+    /// button content, not to the styled wrapper; `.help(...)` exposes
+    /// the reason on hover; an inline caption explains why the button
+    /// is inactive when no book is selected (= Apple HIG disabled-control
+    /// feedback).
     private var inputRow: some View {
-        HStack(spacing: 6) {
-            TextField("新待办标题…", text: $newItemTitle)
-                .textFieldStyle(.roundedBorder)
-                .onSubmit { addItem() }
-            Picker("优先级", selection: $newItemPriority) {
-                ForEach(TodoPriority.allCases, id: \.self) { p in
-                    Text(label(for: p)).tag(p)
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                TextField("新待办标题…", text: $newItemTitle)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit { addItem() }
+                Picker("优先级", selection: $newItemPriority) {
+                    ForEach(TodoPriority.allCases, id: \.self) { p in
+                        Text(label(for: p)).tag(p)
+                    }
                 }
+                .pickerStyle(.menu)
+                .fixedSize()
+                Button(action: addItem) {
+                    Label("新建", systemImage: "plus")
+                }
+                .disabled(!canAdd)
+                .buttonStyle(.borderedProminent)
+                .help(addButtonHelp)
             }
-            .pickerStyle(.menu)
-            .fixedSize()
-            Button(action: addItem) {
-                Label("新建", systemImage: "plus")
+            if bookDirectory == nil {
+                Text("未选书 — 在左侧书架里选一本书, 待办才会加载")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            } else if newItemTitle.trimmingCharacters(in: .whitespaces).isEmpty {
+                Text("输入标题后才能新建")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
             }
-            .buttonStyle(.borderedProminent)
-            .disabled(!canAdd)
         }
+    }
+
+    /// Tooltip for the disabled/disabled-reason-aware add button.
+    /// Empty when canAdd so hovering an enabled button shows no stale
+    /// "please…" text.
+    private var addButtonHelp: String {
+        if bookDirectory == nil {
+            return "先在左侧书架里选一本书"
+        }
+        if newItemTitle.trimmingCharacters(in: .whitespaces).isEmpty {
+            return "请输入标题"
+        }
+        return "新建待办项"
     }
 
     @ViewBuilder
