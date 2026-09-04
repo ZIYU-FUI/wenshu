@@ -426,10 +426,17 @@ struct WorkspaceView: View {
             //     to the selected book).
             //   - GenreFit (= book-marked) per P1 ticket #9
             //     (= port genre_fit.py from hermes = 10 genre
-            //     presets + convention analyzer). Real content
-            //     (= chapter-text input + genre picker + score
+            //     presets + convention analyzer). Real
+            //     content (= chapter-text input + genre picker + score
             //     badge + matched / missing / forbidden / vocab
             //     sections).
+            //   - EmotionCurve (= activity) per P1 ticket #11
+            //     (= port emotion_curve.py from hermes = per-
+            //     window sentiment scoring + volatility + flat-
+            //     spot detection + pacing-lift suggestions). Real
+            //     content (= chapter-text input + window-count
+            //     stepper + Canvas curve visualization + report
+            //     panel).
             ZoneContentView(zoneSlug: "specializedTools", tabs: [
                 ("伏笔", "git-fork", AnyView(ForeshadowingView())),
                 ("占位符", "square-dashed", AnyView(PlaceholderView())),
@@ -437,6 +444,7 @@ struct WorkspaceView: View {
                 ("Reader-Exp", "sparkles", AnyView(ReaderExperienceView())),
                 ("Plot-Thread", "git-branch", AnyView(PlotThreadView())),
                 ("Genre-Fit", "book-marked", AnyView(GenreFitView())),
+                ("Emotion-Curve", "activity", AnyView(EmotionCurveView())),
             ])
         case .aiChat:
             ChatView()
