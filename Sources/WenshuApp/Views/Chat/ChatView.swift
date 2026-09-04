@@ -370,6 +370,100 @@ public final class ChatViewModel {
         isSending = false
     }
 
+    /// WIRE-AGENT-003 (2026-09-04): start a long-running goal via the
+    /// HermesGoals / GoalsManager Ralph loop. Reads `inputText` (= the
+    /// current chat draft) as the goal prompt, constructs a fresh
+    /// GoalsManager with the active AnthropicConnector (=
+    /// placeholder connector — the AppState.activeConnector plumbing
+    /// is a follow-up ticket; the hard-rule allowlist for this
+    /// ticket = ChatView.swift only), launches runGoal in a detached
+    /// background Task, and records the goal in the system message
+    /// stream so the user sees progress / errors.
+    ///
+    /// Acceptance (= per P0 #3 brief):
+    /// - empty input → no-op (= no GoalsManager created)
+    /// - non-empty input → spawn GoalsManager + runGoal in background
+    /// - clears the input draft on entry
+    /// - appends a system ChatMessage on start + completion / failure
+    public func startLongRunningGoal() async {
+        let goal = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !goal.isEmpty else { return }
+
+        // Main + auxiliary connector. Both fallback to AnthropicConnector
+        // (= a real LLMConnector that errors with .missingAPIKey when no
+        // key is configured; the user sees the failure in the system
+        // message). The AppState.activeConnector wiring is a separate
+        // ticket — out of allowlist for this one.
+        let mainConnector: any LLMConnector = AnthropicConnector()
+        let auxiliaryConnector: any LLMConnector = mainConnector
+
+        // Runtime with default sinks + no mock-time (= test seam left
+        // open for future GoalsManager-runtime-tests; runGoal only
+        // reads runtime.now() between iterations).
+        let runtime = RuntimeHelpers()
+
+        // Per-session persistence directory under NSTemporaryDirectory.
+        // HermesGoals.swift's GoalsManager.persistGoal requires the
+        // directory to be writable (= tests use the same temp-scoped
+        // pattern; see HermesGoalsTests.makeTempPersistenceDir).
+        let persistenceDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("WenshuGoals-\(UUID().uuidString)", isDirectory: true)
+
+        let manager = GoalsManager(
+            mainConnector: mainConnector,
+            auxiliaryConnector: auxiliaryConnector,
+            runtime: runtime,
+            maxIterations: 10,
+            persistenceDirectory: persistenceDirectory
+        )
+
+        // Initial persistence: record the goal's starting state so
+        // the JSON file is visible in the persistence directory even
+        // before runGoal produces any work. HermesGoals.swift does
+        // not auto-persist; persistGoal is the explicit hook.
+        let goalId = UUID()
+        try? await manager.persistGoal(
+            goalId,
+            work: GoalsWork(goal: goal, work: "", iterations: 0, context: [])
+        )
+
+        let shortHandle = String(goalId.uuidString.prefix(8))
+        messages.append(ChatMessage(
+            role: .system,
+            source: .system,
+            content: "Long-running goal started: \(goal) (handle \(shortHandle))"
+        ))
+
+        // Clear the draft (= mirrors the routeInput() end-state so the
+        // user can keep typing while the Ralph loop runs in background).
+        inputText = ""
+
+        // Detached background Task: GoalsManager.runGoal does its own
+        // actor-isolated loop (= no @MainActor coupling), so we can
+        // safely detach and bounce back to MainActor for chat updates.
+        let capturedGoal = goal
+        Task.detached(priority: .background) { [manager] in
+            do {
+                let result = try await manager.runGoal(capturedGoal)
+                await MainActor.run {
+                    self.messages.append(ChatMessage(
+                        role: .system,
+                        source: .system,
+                        content: "Goal completed: \(capturedGoal) (iterations: \(result.iterations))"
+                    ))
+                }
+            } catch {
+                await MainActor.run {
+                    self.messages.append(ChatMessage(
+                        role: .system,
+                        source: .system,
+                        content: "Goal failed: \(capturedGoal) (\(error.localizedDescription))"
+                    ))
+                }
+            }
+        }
+    }
+
     /// clear: 清空消息
     /// v0.24 boss验收fix (Boss 8/25 OOB ticket 015.014): archive current
     /// session + context (= reset messages + contextUsed), generate new
@@ -878,6 +972,38 @@ public struct ChatView: View {
                 .controlSize(.regular)  // 24 PT control height (= boss OOB)
                 .frame(height: LayoutTokens.chromeControlHeight)
                 .disabled(vm.inputText.isEmpty || vm.isSending)
+                // WIRE-AGENT-003 (2026-09-04): start-long-running-goal
+                // button. ⌘⇧G shortcut per P0 #3 brief. Lives next to
+                // the Send button so the user has both single-turn
+                // (= Send → routeInput → send) and multi-turn Ralph loop
+                // (= ⌘⇧G → startLongRunningGoal → GoalsManager.runGoal)
+                // reachable from the same input row. The button is
+                // disabled when the draft is empty (= no goal text to
+                // run); it does NOT block on isSending because the Ralph
+                // loop runs in background (= the user can keep chatting).
+                Button {
+                    Task { await vm.startLongRunningGoal() }
+                } label: {
+                    // "target" SF Symbol (= the closest metaphor to the
+                    // Ralph loop = "fire this goal at the agent and let
+                    // it run until done"). Lucide equivalent (.target)
+                    // used for visual consistency with the rest of the
+                    // chat input row (= Lucide-first per project
+                    // v0.27 boss OOB).
+                    if let lucide = Lucide("target") {
+                        lucide
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 18, height: 18)
+                    } else {
+                        LucideIconSystemFallback("target", size: 18)
+                    }
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.regular)
+                .frame(height: LayoutTokens.chromeControlHeight)
+                .disabled(vm.inputText.isEmpty)
+                .help("Start long-running goal (Ralph loop: agent keeps working until the auxiliary judge says done)")
+                .keyboardShortcut("g", modifiers: [.command, .shift])
                 // v0.28 followup Boss UX round 20 (Boss 2026-08-29 OOB
                 // '文本框和发送按钮位置上水平对齐'): REMOVED the
                 // .padding(.top, DesignTokens.chromePaddingLarge) here (= was misaligning the
