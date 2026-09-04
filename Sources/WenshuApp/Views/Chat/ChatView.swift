@@ -105,7 +105,14 @@ public final class ChatViewModel {
     // (SUGGEST 1 fix = valueForSessionId() already exists).
     @MainActor private var sessionId: String
 
-    public init(conductor: WenshuConductor? = nil, store: ChatSessionStore? = nil, sessionId: String = "default", initialMessages: [ChatMessage] = [], appState: AppState? = nil) {
+    // B-05 build fix: demote from `public init` to internal `init`. AppState
+    // is internal (= `final class AppState`, no access modifier), and a
+    // `public init` cannot accept an internal type as a parameter. Both
+    // call sites (App.swift:1528 + ChatView.swift:340) are inside the
+    // WenshuApp module, so internal access is sufficient. The class itself
+    // stays `public final class` so existing public surface (currentModel,
+    // messages, send, etc.) is unchanged.
+    init(conductor: WenshuConductor? = nil, store: ChatSessionStore? = nil, sessionId: String = "default", initialMessages: [ChatMessage] = [], appState: AppState? = nil) {
         self.conductor = conductor
         self.store = store
         self.sessionId = sessionId

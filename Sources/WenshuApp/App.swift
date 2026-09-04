@@ -1525,7 +1525,19 @@ struct ChatZoneView: View {
     init(conductor: WenshuConductor?, store: ChatSessionStore?) {
         self.conductor = conductor
         self.store = store
-        _vm = State(initialValue: ChatViewModel(conductor: conductor, store: store, appState: appState))
+        // B-05 build fix: `appState` is a `@Environment` value (= only
+        // available after the view is mounted in the hierarchy), so it
+        // cannot be referenced from inside `init`. Construct the
+        // ChatViewModel with `appState: nil` and rely on the
+        // post-mount wire below (= onAppear sets `vm.appState` via the
+        // now-public-within-module setter; for the rare case where
+        // ChatZoneView is instantiated, currentModel will resolve to
+        // UserDefaults value through the canonical owner after the
+        // post-mount wire). ChatZoneView is currently dead code at
+        // runtime (= WorkspaceView uses ChatView() directly since
+        // v0.34 chrome flatten), so this only matters for the
+        // compile path.
+        _vm = State(initialValue: ChatViewModel(conductor: conductor, store: store, appState: nil))
         // v0.21 ticket 43 step 1 NSLog trace
         NSLog("[wenshu.tab] onAppear: selectedTab=%@ currentModel=%@", ChatZoneTab.chat.rawValue, currentModel)
     }
