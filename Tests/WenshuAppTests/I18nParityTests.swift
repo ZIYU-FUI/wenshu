@@ -62,6 +62,25 @@ struct I18nParityTests {
         #expect(zh.contains("settings.tab.general"))
     }
 
+    @Test("WenshuI18n.t resolves known keys to non-key values")
+    func tResolvesKnownKeys() {
+        // v0.38 ticket P2: regression test for the SPM bundle-resolution
+        // bug discovered after screenshot verify. Previously, when running
+        // from an SPM-built executable (= not a Xcode/.app build), t() would
+        // return the key path itself because Bundle.main could not find the
+        // .lproj directory. The fix in WenshuI18n.swift searches
+        // Wenshu_WenshuApp.bundle next to the binary. This test pins the
+        // contract: known keys must NOT round-trip to themselves.
+        let general = WenshuI18n.t("settings.tab.general")
+        #expect(general != "settings.tab.general", "t() returned key path instead of translated value — bundle resolution likely broken")
+        #expect(!general.isEmpty, "t() returned empty string")
+        // At minimum the value must be one of the two known translations
+        // (Apple NSLocalizedString picks en or zh-Hans based on the test
+        // process's NSLocale; both translations are valid).
+        let knownValues: Set<String> = ["General", "通用"]
+        #expect(knownValues.contains(general), "t() returned unexpected value: \(general)")
+    }
+
     @Test("en catalog has all expected settings.* keys")
     func enHasAllSettingsKeys() throws {
         let en = try #require(Self.loadCatalog("Localizable", ext: "strings"))
