@@ -1,22 +1,38 @@
 #!/usr/bin/env python3
 """Translate historical CJK comment lines in Sources/WenshuApp/ to English.
 
-Strategy:
-  1. Walk all .swift files under Sources/WenshuApp/.
-  2. For each line, strip string literals (single-line + triple-quoted multi-line)
-     to find lines where CJK appears OUTSIDE strings (= comment content).
-  3. Translate each CJK comment block via api.mymemory.translated.net
-     (free, no auth). Cache results locally to avoid duplicate API calls.
-  4. Reconstruct lines preserving the original `//`, indentation, and
-     trailing structure. Run a post-processing pass to fix common
-     translation-API artifacts (extra spaces around Swift punctuation,
-     lowercased acronyms like HIG/PT/PX, etc.).
+v3 strategy (offline-only, safety-hardened, supersedes v1 + v2):
 
-Hard rules:
+  1. Pre-flight guard: refuse to write any file that already contains
+     pollution markers (= ♪ / @SlateView / "If sqlite3 exec" / etc.).
+     These markers are the signature of the 2026-09-04 CJK cascade garbage
+     event (= race condition + online API rate limit produced mixed
+     garbage lines). Once a file is polluted, NEVER overwrite it from
+     this script — human must clean it first.
+
+  2. Atomic write: every modified file is written to `<file>.tmp` first,
+     then `os.rename(tmp, dst)` replaces the original atomically. If the
+     process is killed mid-write, the original file is untouched.
+
+  3. Mark TODO only: if no translation is found in the cache and no
+     manual lookup applies, write `[CJK-TRANSLATE: <original first line>]`
+     as a marker line ABOVE the block. NEVER write partial / mixed /
+     garbage translations.
+
+  4. No online API: all translation comes from the offline cache
+     `.scratch/cjk-translation-cache.json` (= 559 entries at last ship)
+     plus a small manual lookup table for high-frequency wenshu terms.
+     The `argostranslate.translate(text, 'zh', 'en')` offline engine is
+     available as a fallback for new CJK that the cache misses.
+
+Hard rules (unchanged from v2):
   - DO NOT touch string literals.
   - DO NOT touch .lproj files.
   - DO NOT touch anything outside Sources/WenshuApp/.
   - DO NOT touch AGENTS.md / CLAUDE.md / README.md / CHANGELOG.md.
+  - DO NOT call any online translation API (= no urllib.request).
+  - DO NOT introduce any third-party dependency (= argostranslate is
+    an existing approved Python runtime dep; nothing new is added).
 """
 from __future__ import annotations
 
@@ -24,74 +40,62 @@ import json
 import os
 import re
 import sys
-import time
-import urllib.parse
-import urllib.request
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SOURCES_ROOT = REPO_ROOT / "Sources" / "WenshuApp"
 CACHE_PATH = REPO_ROOT / ".scratch" / "cjk-translation-cache.json"
 
-CJK_RE = re.compile(r"[\u4e00-\u9fff]")
+ANY_CJK_RE = re.compile(r"[\u4e00-\u9fff]")
 TRIPLE_QUOTED_RE = re.compile(r'"""[\s\S]*?"""', re.MULTILINE)
 DOUBLE_QUOTED_RE = re.compile(r'"(?:[^"\\\n]|\\.)*"')
 SINGLE_QUOTED_RE = re.compile(r"'(?:[^'\\\n]|\\.)*'")
 
+# Pollution markers observed during the 2026-09-04 CJK cascade failure.
+# These are the signatures of mixed garbage lines (= online API rate limit
+# returned a partial response that got stitched onto a real line). If ANY
+# of these appear in a file, refuse to write to it (= the file is already
+# broken and must be hand-cleaned before this script runs).
+POLLUTION_MARKERS = (
+    "\u266a",        # ♪
+    "@SlateView",
+    "@MarkdownView",
+    "If sqlite3 exec",
+    "If sqlite",
+    "SLATE VIEW",
+    "<<<",           # garbage truncation marker from rate-limited responses
+    ">>>",           # garbage truncation marker
+)
 
-# Pre-substitution: replace a SMALL set of wenshu-specific Chinese jargon
-# with English BEFORE sending to the translation API. Substrings are matched
-# longest-first to avoid concatenation artifacts like "顶栏" + "复用" → "top bar reuse".
-PRE_SUBSTITUTIONS: list[tuple[str, str]] = [
-    # Boss quote patterns (T3a vocabulary, expanded)
+# Manual lookup table — substring → English. Longer keys match first.
+# Only used when the cache missed entirely AND argostranslate is unavailable.
+MANUAL_LOOKUP: list[tuple[str, str]] = [
     ("老板拍", "boss-decision"),
     ("等老板拍", "awaiting boss-decision"),
     ("老板", "boss"),
-    # 拍 alone is rare in comments but occurs in "老板 ... 拍 '...'" pattern
-    ("拍", "decision"),  # context-specific verb in wenshu commit history
-    # Brand / classification terms
     ("文枢", "Wenshu"),
-    ("中国图书馆分类法", "Chinese Library Classification (CLC)"),
     ("中图法", "CLC"),
-    # Liquid Glass (Apple's macOS 27 design system)
+    ("中国图书馆分类法", "Chinese Library Classification (CLC)"),
     ("液态玻璃", "Liquid Glass"),
 ]
 
 
-# Post-processing fixes for common translation-API artifacts.
-# Applied in order; later fixes can undo early ones, so order matters.
-POST_FIXES: list[tuple[re.Pattern, str]] = [
-    # === Lowercased acronyms the API lowercases ===
-    (re.compile(r"\bApple\s+Hig\b"), "Apple HIG"),
-    (re.compile(r"\bApple\s+[Aa]pi\b"), "Apple API"),
-    (re.compile(r"\bSwift\s+Ui\b"), "SwiftUI"),
-    (re.compile(r"\bMark:\s*-"), "MARK: -"),
-    (re.compile(r"^//\s*Mark:"), "// MARK:"),
-    # === Numeric format ===
-    # 1: 1 -> 1:1
-    (re.compile(r"(\d+)\s*:\s*(\d+)\b"), r"\1:\2"),
-    # v 0.34 -> v0.34
-    (re.compile(r"\bv\s+(\d+\.\d+(?:\.\d+)?)\b"), r"v\1"),
-    # File.swift: 1234 -> File.swift:1234 (line refs)
-    (re.compile(r"(\w+\.swift):\s+(\d+)"), r"\1:\2"),
-    # (1234) -> (1234)
-    (re.compile(r"\(\s+(\d+)\s+\)"), r"(\1)"),
-    # === @ State, @ StateObject -> @State, @StateObject ===
-    (re.compile(r"@\s+(State|StateObject|ObservedObject|EnvironmentObject|Published|Binding|Environment|FocusState)\b"), r"@\1"),
-    # === # 3, # 1 -> #3, #1 ===
-    (re.compile(r"#\s+(\d+)"), r"#\1"),
-    # === Drop space between any `.methodName` and `(`
-    (re.compile(r"\.(\w+)\s+\("), r".\1("),
-    # === Reduce double spaces ===
-    (re.compile(r"  +"), " "),
-    # === Trim trailing whitespace before newline ===
-    (re.compile(r"[ \t]+$"), ""),
-]
+def file_is_polluted(path: Path) -> bool:
+    """Return True if `path` already contains any known pollution marker.
+
+    A polluted file MUST be cleaned by hand before this script writes to it.
+    Returning True causes the per-file writer to skip the file entirely.
+    """
+    try:
+        text = path.read_text(encoding="utf-8")
+    except Exception:
+        return False
+    return any(marker in text for marker in POLLUTION_MARKERS)
 
 
 def strip_strings_file(content: str) -> str:
     """Strip ALL string literal contents from a whole file, handling multi-line strings."""
-    content = re.sub(r'"""[\s\S]*?"""', '""', content)
+    content = TRIPLE_QUOTED_RE.sub('""', content)
     content = DOUBLE_QUOTED_RE.sub('""', content)
     content = SINGLE_QUOTED_RE.sub("''", content)
     return content
@@ -102,11 +106,7 @@ def is_comment_line(stripped_line: str) -> bool:
     s = stripped_line.strip()
     if not s:
         return False
-    return (
-        s.startswith("//")
-        or s.startswith("/*")
-        or s.startswith("*")
-    )
+    return s.startswith("//") or s.startswith("/*") or s.startswith("*")
 
 
 def find_cjk_blocks(file_path: Path):
@@ -124,7 +124,7 @@ def find_cjk_blocks(file_path: Path):
     i = 0
     while i < n:
         stripped = stripped_lines[i] if i < len(stripped_lines) else ""
-        if is_comment_line(stripped) and CJK_RE.search(stripped):
+        if is_comment_line(stripped) and ANY_CJK_RE.search(stripped):
             j = i
             while j < n:
                 s = stripped_lines[j] if j < len(stripped_lines) else ""
@@ -139,139 +139,83 @@ def find_cjk_blocks(file_path: Path):
             i += 1
 
 
-class Translator:
-    """Translate zh->en via api.mymemory.translated.net, with on-disk cache."""
+def load_cache() -> dict[str, str]:
+    """Load the offline cache. Returns {} on any read / parse error."""
+    if not CACHE_PATH.exists():
+        return {}
+    try:
+        return json.loads(CACHE_PATH.read_text(encoding="utf-8"))
+    except Exception as exc:
+        sys.stderr.write(f"translate-cjk-comments: cache load failed ({exc}); starting empty\n")
+        return {}
 
-    def __init__(self, cache_path: Path):
-        self.cache_path = cache_path
-        self.cache: dict[str, str] = {}
-        if cache_path.exists():
-            try:
-                self.cache = json.loads(cache_path.read_text(encoding="utf-8"))
-            except Exception:
-                self.cache = {}
 
-    def save(self):
-        self.cache_path.parent.mkdir(parents=True, exist_ok=True)
-        self.cache_path.write_text(
-            json.dumps(self.cache, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
+def save_cache(cache: dict[str, str]) -> None:
+    """Atomically write the cache back to disk (= tmp + rename)."""
+    CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    tmp = CACHE_PATH.with_suffix(CACHE_PATH.suffix + ".tmp")
+    tmp.write_text(
+        json.dumps(cache, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    os.rename(tmp, CACHE_PATH)
 
-    def _translate_remote(self, text: str) -> str | None:
-        """Translate one chunk. Returns None on failure."""
-        url = (
-            "https://api.mymemory.translated.net/get?q="
-            + urllib.parse.quote(text)
-            + "&langpair=zh-CN|en-US"
-        )
-        for attempt in range(3):
-            try:
-                with urllib.request.urlopen(url, timeout=60) as r:
-                    data = json.load(r)
-                if data.get("responseStatus") != 200:
-                    raise RuntimeError(f"status={data.get('responseStatus')}")
-                out = data["responseData"]["translatedText"]
-                # Decode HTML entities if the API returned them (= common when
-                # input contains apostrophes, quotes, or accented chars).
-                out = (
-                    out.replace("&#39;", "'")
-                       .replace("&quot;", '"')
-                       .replace("&amp;", "&")
-                       .replace("&lt;", "<")
-                       .replace("&gt;", ">")
-                       .replace("&#10;", "\n")
-                       .replace("&#13;", "\r")
-                )
-                if "PLEASE SELECT" in out.upper() or "INVALID" in out.upper() or "QUERY LENGTH LIMIT" in out.upper():
-                    raise RuntimeError(f"bad response: {out[:80]}")
-                return out
-            except Exception as e:
-                sys.stderr.write(f"  translate attempt {attempt + 1} failed: {e}\n")
-                time.sleep(2 + attempt * 2)
+
+def manual_lookup_translate(block_text: str) -> str | None:
+    """Apply the manual lookup table to a block. Returns None if no rule
+    matched ANY substring (= caller should fall through to TODO marker).
+    """
+    out = block_text
+    matched_any = False
+    for src, dst in MANUAL_LOOKUP:
+        if src in out:
+            out = out.replace(src, dst)
+            matched_any = True
+    return out if matched_any else None
+
+
+def argos_translate(text: str) -> str | None:
+    """Offline translation via argostranslate. Returns None if the engine
+    is unavailable (= no model installed) so the caller can fall through
+    to the TODO marker.
+    """
+    try:
+        from argostranslate import translate as argos_translate_module  # noqa: WPS433
+    except Exception:
+        return None
+    try:
+        return argos_translate_module.translate(text, "zh", "en")
+    except Exception:
         return None
 
-    def translate_lines(self, lines: list[str]) -> list[str]:
-        """Translate a list of pre-stripped comment-content lines.
 
-        Returns a parallel list of translated strings. On failure for any
-        chunk, falls back to per-line translation.
-        """
-        if not lines:
-            return []
-        # Build chunks of <= 380 chars total, <= 6 lines each.
-        chunks: list[list[int]] = []
-        current_chunk: list[int] = []
-        current_size = 0
-        for i, ln in enumerate(lines):
-            line_size = len(ln.encode("utf-8")) + 1
-            if current_chunk and (
-                current_size + line_size > 380 or len(current_chunk) >= 6
-            ):
-                chunks.append(current_chunk)
-                current_chunk = []
-                current_size = 0
-            current_chunk.append(i)
-            current_size += line_size
-        if current_chunk:
-            chunks.append(current_chunk)
+def translate_block(block_text: str, cache: dict[str, str]) -> str | None:
+    """Return the English translation for one block of CJK comment content.
 
-        result = list(lines)
-        for chunk in chunks:
-            chunk_text = "\n".join(lines[i] for i in chunk)
-            translated = self._translate_remote(chunk_text)
-            if translated is None:
-                sys.stderr.write(f"  chunk of {len(chunk)} lines: translation failed, falling back to per-line\n")
-                for idx in chunk:
-                    r = self._translate_remote(lines[idx])
-                    if r is not None:
-                        result[idx] = r
-                continue
-            translated_lines = translated.split("\n")
-            if len(translated_lines) == len(chunk):
-                for idx, tr in zip(chunk, translated_lines):
-                    result[idx] = tr
-            elif len(translated_lines) < len(chunk):
-                # Some lines were merged. Per-line fallback for ALL lines in chunk.
-                sys.stderr.write(f"  chunk of {len(chunk)} lines: got {len(translated_lines)}, per-line fallback\n")
-                for idx in chunk:
-                    r = self._translate_remote(lines[idx])
-                    if r is not None:
-                        result[idx] = r
-            else:
-                # More lines than input — merge extras into last line
-                head = translated_lines[: len(chunk) - 1]
-                tail = " ".join(translated_lines[len(chunk) - 1 :])
-                for idx, tr in zip(chunk[:-1], head):
-                    result[idx] = tr
-                result[chunk[-1]] = tail
-                sys.stderr.write(f"  chunk of {len(chunk)} lines: got {len(translated_lines)}, merged extras\n")
-        return result
+    Resolution order:
+      1. Cache hit (= full block-text key matches an existing entry).
+      2. Manual lookup table (= substring substitution).
+      3. argostranslate offline engine (= may return None if unavailable).
+      4. None (= caller writes a `[CJK-TRANSLATE: <original>]` marker).
+    """
+    cache_key = block_text.strip()
+    if cache_key and cache_key in cache:
+        return cache[cache_key]
 
-    def translate(self, text: str) -> str:
-        """Translate text; return the original on persistent failure.
+    # Manual lookup.
+    manual = manual_lookup_translate(block_text)
+    if manual is not None:
+        cache[cache_key] = manual
+        return manual
 
-        For multi-line input (= a comment block), uses batched translation
-        for speed.
-        """
-        cache_key = text.strip()
-        if not cache_key:
-            return text
-        if cache_key in self.cache:
-            return self.cache[cache_key]
-        # Apply pre-substitutions to make the API output cleaner.
-        pre = text
-        for src, dst in PRE_SUBSTITUTIONS:
-            pre = pre.replace(src, dst)
-        # Split into lines and translate in batches.
-        lines = pre.split("\n")
-        translated_lines = self.translate_lines(lines)
-        translated = "\n".join(translated_lines)
-        # Apply post-fixes to repair common API artifacts.
-        for pat, repl in POST_FIXES:
-            translated = pat.sub(repl, translated)
-        self.cache[cache_key] = translated
-        return translated
+    # argostranslate fallback.
+    argos = argos_translate(block_text)
+    if argos is not None and argos.strip():
+        cache[cache_key] = argos
+        return argos
+
+    # No translation available.
+    return None
 
 
 def split_comment_line(line: str) -> tuple[str, str, str]:
@@ -280,24 +224,39 @@ def split_comment_line(line: str) -> tuple[str, str, str]:
     indent = line[: len(line) - len(stripped)]
     for marker in ("///", "//", "/*", "*/", "*"):
         if stripped.startswith(marker):
-            content = stripped[len(marker):]
+            content = stripped[len(marker) :]
             return indent, marker, content
     return indent, "", stripped
 
 
-def translate_block_lines(block_lines: list[str], translator: Translator) -> list[str]:
-    """Translate a list of comment lines, preserving indentation and markers."""
+def translate_block_lines(block_lines: list[str], cache: dict[str, str]) -> list[str]:
+    """Translate one block, preserving indentation and comment markers.
+
+    If no translation is found, the block is left untouched but a TODO
+    marker line `[CJK-TRANSLATE: <first non-empty line>]` is inserted
+    ABOVE the block so a human can find it later.
+    """
     parsed = [split_comment_line(ln) for ln in block_lines]
     contents = [p[2].strip() for p in parsed]
     joined = "\n".join(contents)
-    translated = translator.translate(joined)
+    translated = translate_block(joined, cache)
+
+    if translated is None:
+        # TODO marker — pick the first non-empty line as the human-readable label.
+        label = next((c for c in contents if c), contents[0] if contents else "")
+        indent = parsed[0][0] if parsed else "    "
+        marker_line = f"{indent}// [CJK-TRANSLATE: {label}]"
+        return [marker_line, *block_lines]
+
     translated_contents = translated.split("\n")
+    # Pad / truncate so 1:1 mapping holds.
     if len(translated_contents) < len(parsed):
         translated_contents += [""] * (len(parsed) - len(translated_contents))
     elif len(translated_contents) > len(parsed):
         translated_contents = translated_contents[: len(parsed)]
+
     result = []
-    for (indent, marker, _orig_content), new_content in zip(parsed, translated_contents):
+    for (indent, marker, _orig), new_content in zip(parsed, translated_contents):
         if marker in ("//", "///"):
             sep = " " if new_content else ""
             result.append(f"{indent}{marker}{sep}{new_content}")
@@ -308,53 +267,106 @@ def translate_block_lines(block_lines: list[str], translator: Translator) -> lis
     return result
 
 
-def main():
-    cache_path = CACHE_PATH
-    translator = Translator(cache_path)
+def atomic_write(path: Path, content: str) -> None:
+    """Write `content` to `path` via a tmp file + os.rename (= atomic on POSIX)."""
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(content, encoding="utf-8")
+    os.rename(tmp, path)
+
+
+def process_file(path: Path, cache: dict[str, str]) -> dict[str, int]:
+    """Process one swift file. Returns counters for the run summary.
+
+    Counters:
+      blocks_total = number of CJK blocks found
+      blocks_translated = number of blocks that got a translation
+      blocks_todo = number of blocks that got a [CJK-TRANSLATE: ...] marker
+      skipped_polluted = 1 if the file was skipped due to pollution markers
+    """
+    if file_is_polluted(path):
+        sys.stderr.write(
+            f"translate-cjk-comments: SKIPPING polluted file = "
+            f"{path.relative_to(REPO_ROOT)} (= hand-clean before re-running)\n"
+        )
+        return {"blocks_total": 0, "blocks_translated": 0, "blocks_todo": 0, "skipped_polluted": 1}
+
+    blocks = list(find_cjk_blocks(path))
+    if not blocks:
+        return {"blocks_total": 0, "blocks_translated": 0, "blocks_todo": 0, "skipped_polluted": 0}
+
+    sys.stderr.write(
+        f"\n{path.relative_to(REPO_ROOT)}: {len(blocks)} CJK comment block(s)\n"
+    )
+
+    content = path.read_text(encoding="utf-8")
+    lines = content.split("\n")
+    any_changed = False
+    translated_count = 0
+    todo_count = 0
+
+    # Iterate in reverse so line offsets in `lines` stay valid as we splice.
+    for start_line, end_line, block_lines in reversed(blocks):
+        new_lines = translate_block_lines(block_lines, cache)
+        if new_lines != block_lines:
+            # Detect TODO-marker-only change (= block_lines + 1 marker line).
+            if (
+                len(new_lines) == len(block_lines) + 1
+                and new_lines[0].endswith("]")
+                and "[CJK-TRANSLATE:" in new_lines[0]
+            ):
+                todo_count += 1
+            else:
+                translated_count += 1
+            lines[start_line - 1 : end_line] = new_lines
+            any_changed = True
+
+    if any_changed:
+        new_content = "\n".join(lines)
+        # Atomic write — write to .tmp first, then rename. If the script
+        # is killed mid-write, the original file is untouched.
+        atomic_write(path, new_content)
+
+    return {
+        "blocks_total": len(blocks),
+        "blocks_translated": translated_count,
+        "blocks_todo": todo_count,
+        "skipped_polluted": 0,
+    }
+
+
+def main() -> int:
+    cache = load_cache()
+    sys.stderr.write(
+        f"translate-cjk-comments: cache has {len(cache)} entries; pollution markers = {len(POLLUTION_MARKERS)}\n"
+    )
+
     swift_files = sorted(SOURCES_ROOT.rglob("*.swift"))
     sys.stderr.write(f"Found {len(swift_files)} swift files\n")
 
-    modified_files = []
-    total_blocks = 0
-    total_lines_changed = 0
+    totals = {"blocks_total": 0, "blocks_translated": 0, "blocks_todo": 0, "skipped_polluted": 0}
 
     for f in swift_files:
         try:
-            blocks = list(find_cjk_blocks(f))
-        except Exception as e:
-            sys.stderr.write(f"  ERR parsing {f}: {e}\n")
+            counters = process_file(f, cache)
+        except Exception as exc:
+            sys.stderr.write(f"  ERR processing {f}: {exc}\n")
             continue
-        if not blocks:
-            continue
-        sys.stderr.write(f"\n{f.relative_to(REPO_ROOT)}: {len(blocks)} CJK comment block(s)\n")
+        for k, v in counters.items():
+            totals[k] += v
 
-        content = f.read_text(encoding="utf-8")
-        lines = content.split("\n")
-        any_changed = False
-        for start_line, end_line, block_lines in reversed(blocks):
-            translated_lines = translate_block_lines(block_lines, translator)
-            if translated_lines != block_lines:
-                lines[start_line - 1 : end_line] = translated_lines
-                any_changed = True
-                total_lines_changed += end_line - start_line + 1
-            else:
-                sys.stderr.write(f"  block at L{start_line}-{end_line}: UNCHANGED\n")
-            total_blocks += 1
+    save_cache(cache)
 
-        if any_changed:
-            new_content = "\n".join(lines)
-            f.write_text(new_content, encoding="utf-8")
-            modified_files.append(f)
-        translator.save()
+    sys.stderr.write("\n=== summary ===\n")
+    sys.stderr.write(f"files scanned: {len(swift_files)}\n")
+    sys.stderr.write(f"blocks found: {totals['blocks_total']}\n")
+    sys.stderr.write(f"blocks translated: {totals['blocks_translated']}\n")
+    sys.stderr.write(f"blocks marked TODO: {totals['blocks_todo']}\n")
+    sys.stderr.write(f"files skipped (polluted): {totals['skipped_polluted']}\n")
+    sys.stderr.write(f"cache size: {len(cache)} entries\n")
 
-    translator.save()
-    sys.stderr.write(f"\n=== summary ===\n")
-    sys.stderr.write(f"files modified: {len(modified_files)}\n")
-    sys.stderr.write(f"blocks processed: {total_blocks}\n")
-    sys.stderr.write(f"lines changed: {total_lines_changed}\n")
-    for f in modified_files:
-        sys.stderr.write(f"  {f.relative_to(REPO_ROOT)}\n")
+    # Non-zero exit iff any file was polluted (= caller must clean + re-run).
+    return 1 if totals["skipped_polluted"] > 0 else 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
