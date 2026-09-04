@@ -61,12 +61,23 @@ if [ -z "$SPM_BUNDLE_PATH" ]; then
     # Fallback: search anywhere under .build (in case SPM nesting changes)
     SPM_BUNDLE_PATH="$(find .build -name 'Wenshu_WenshuApp.bundle' -type d 2>/dev/null | head -1 || true)"
 fi
-if [ -n "$SPM_BUNDLE_PATH" ] && [ -d "$SPM_BUNDLE_PATH" ]; then
-    cp -R "$SPM_BUNDLE_PATH" "$RES_DIR/Wenshu_WenshuApp.bundle"
-    echo ">>> copied i18n bundle: $SPM_BUNDLE_PATH -> $RES_DIR/Wenshu_WenshuApp.bundle"
-else
-    echo ">>> warning: SPM i18n bundle not found under .build/ (WenshuI18n.t will return key paths)"
-fi
+# Copy all third-party SPM-generated resource bundles into the .app
+# (= Highlighter_Highlighter, GRDB_GRDB, Defaults_Defaults, etc.) so
+# their `Bundle.module` lookups succeed at runtime. Without these,
+# wenshu SIGKILLs at launch with 'unable to find bundle named X' (= e.g.
+# Highlighter's fatal in Highlighter/resource_bundle_accessor.swift:44).
+# Iterate every SPM-generated bundle (= *.bundle directory in
+# .build/out/Products/Release/) and copy it to .app/Contents/Resources/.
+for spmbundle in .build/out/Products/Release/*.bundle; do
+    if [ -d "$spmbundle" ]; then
+        bundle_name="$(basename "$spmbundle")"
+        # Skip the wenshu one (= handled separately above)
+        if [ "$bundle_name" != "Wenshu_WenshuApp.bundle" ]; then
+            cp -R "$spmbundle" "$RES_DIR/"
+            echo ">>> copied SPM bundle: $spmbundle -> $RES_DIR/$bundle_name"
+        fi
+    fi
+done
 
 # macOS 27 dark/light/tinted 自动跟随系统主题: AppKit 按 effectiveAppearance 从 AppIcon.icon 派生.
 # Apple Icon Composer 范式: 1 份 LOGO.icon + icon.json + Assets/ 主图 PNG, macOS 27 自动派生 dark/light/tinted + platform mask (squares shared / circles watchOS).
