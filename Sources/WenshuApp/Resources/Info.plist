@@ -34,5 +34,47 @@
     <false/>
     <key>NSSupportsSuddenTermination</key>
     <false/>
+    <!-- v0.24 boss验收fix (Boss 8/24 OOB): .ws = wenshu 仓库 package type.
+         '库应该是个包文件, 右建点会出现显示包内容' (= package, like
+         .photoslibrary / .fcpbundle / .musiclibrary). Register .ws as
+         exported type so Finder treats name.ws as bundle directory
+         (right-click → '显示包内容' reveals contents). -->
+    <key>UTExportedTypeDeclarations</key>
+    <array>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>com.wenshu.workspace</string>
+            <key>UTTypeDescription</key>
+            <string>文枢仓库</string>
+            <key>UTTypeConformsTo</key>
+            <array>
+                <string>com.apple.package</string>
+            </array>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array>
+                    <string>ws</string>
+                </array>
+            </dict>
+        </dict>
+    </array>
+    <!-- Declare app handles .ws files (CFBundleDocumentTypes for
+         document-based open / NSOpenPanel canChooseFiles + .ws) -->
+    <key>CFBundleDocumentTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>文枢仓库</string>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>LSHandlerRank</key>
+            <string>Owner</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>com.wenshu.workspace</string>
+            </array>
+        </dict>
+    </array>
 </dict>
 </plist>

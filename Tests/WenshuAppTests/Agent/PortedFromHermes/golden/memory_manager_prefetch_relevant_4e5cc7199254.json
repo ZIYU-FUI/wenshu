@@ -1,0 +1,13 @@
+{
+  "function": "prefetch_relevant",
+  "generator": "generate_golden.py v0.36",
+  "input": {
+    "memory_count": 10,
+    "query": "Alice's backstory"
+  },
+  "module": "memory_manager",
+  "output": {
+    "prefetched_count": 5,
+    "relevance_threshold": 0.7
+  }
+}

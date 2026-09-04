@@ -24,17 +24,24 @@ import Foundation
 struct Bookshelf: Identifiable, Hashable, Codable, Sendable {
     let id: UUID
     var name: String
+    /// v0.30 boss 8/31 OOB: shelf icon name (= Lucide kebab-case,
+    /// e.g. "square-library"). Optional for backward compat (=
+    /// existing shelves default to "books-vertical.fill" via
+    /// `displayIcon`).
+    var icon: String?
     let createdAt: Date
     var updatedAt: Date
 
     init(
         id: UUID = UUID(),
         name: String,
+        icon: String? = nil,
         createdAt: Date = .now,
         updatedAt: Date = .now
     ) {
         self.id = id
         self.name = name
+        self.icon = icon
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -44,6 +51,19 @@ struct Bookshelf: Identifiable, Hashable, Codable, Sendable {
     /// filesystem identity, name is just the display label).
     var directoryName: String {
         id.uuidString
+    }
+
+    /// v0.30 boss 8/31 OOB: shelf icon for sidebar display. Returns
+    /// `icon` if set, otherwise a default Lucide icon name. The
+    /// default varies based on whether the shelf is the canonical
+    /// 'default shelf' (= "square-dashed-mouse-pointer" = placeholder
+    /// cursor, signaling 'start here') vs a user-created shelf
+    /// (= "books-vertical.fill" = generic stack of books).
+    var displayIcon: String {
+        if let icon, !icon.isEmpty { return icon }
+        return id.uuidString == "00000000-0000-0000-0000-000000000000"
+            ? "square-dashed-mouse-pointer"
+            : "books-vertical.fill"
     }
 
     // id-based identity (= Apple HIG document-based app convention: URL

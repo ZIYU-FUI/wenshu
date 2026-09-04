@@ -108,4 +108,68 @@ struct ChatSessionStoreTests {
     private func tmpPath(_ tag: String) -> String {
         NSTemporaryDirectory() + "wenshu-chat-\(tag)-\(UUID().uuidString).sqlite"
     }
+
+    // MARK: - v0.23 ticket 006: sub-agent run trace
+
+    @Test("v0.23 ticket 006: bootstrap 创建 sub_agent_runs 表 (不抛错)")
+    func testSubAgentRunBootstrap() async throws {
+        let store = try ChatSessionStore(path: tmpPath("subrun-bootstrap"))
+        try await store.bootstrap()  // sub_agent_runs 表也创建
+    }
+
+    @Test("v0.23 ticket 006: recordSubAgentRun 写 + loadSubAgentRuns 读 (round-trip)")
+    func testSubAgentRunRoundTrip() async throws {
+        let store = try ChatSessionStore(path: tmpPath("subrun-roundtrip"))
+        try await store.bootstrap()
+        let run = SubAgentRun(
+            id: "sub-001",
+            agentName: "writer",
+            title: "writer: 续写捕快抓贼",
+            status: .done,
+            startedAt: Date(),
+            completedAt: Date(),
+            resultSummary: "新章节 1200 字, wuxia 风格"
+        )
+        try await store.recordSubAgentRun(run, sessionId: "default")
+        let loaded = try await store.loadSubAgentRuns(sessionId: "default")
+        #expect(loaded.count == 1)
+        #expect(loaded[0].id == "sub-001")
+        #expect(loaded[0].agentName == "writer")
+        #expect(loaded[0].status == .done)
+        #expect(loaded[0].resultSummary == "新章节 1200 字, wuxia 风格")
+    }
+
+    @Test("v0.23 ticket 006: 多 sub-agent run 按 started_at ASC 排序")
+    func testSubAgentRunOrdering() async throws {
+        let store = try ChatSessionStore(path: tmpPath("subrun-ordering"))
+        try await store.bootstrap()
+        // Insert out of order
+        try await store.recordSubAgentRun(SubAgentRun(
+            id: "b", agentName: "writer", title: "second", status: .done,
+            startedAt: Date(timeIntervalSince1970: 1000), resultSummary: "n2"
+        ), sessionId: "default")
+        try await store.recordSubAgentRun(SubAgentRun(
+            id: "a", agentName: "researcher", title: "first", status: .done,
+            startedAt: Date(timeIntervalSince1970: 500), resultSummary: "n1"
+        ), sessionId: "default")
+        let loaded = try await store.loadSubAgentRuns(sessionId: "default")
+        #expect(loaded.count == 2)
+        #expect(loaded[0].id == "a")  // earlier first
+        #expect(loaded[1].id == "b")
+    }
+
+    @Test("v0.23 ticket 006: status 3 case (running / done / failed) 持久化正确")
+    func testSubAgentRunStatusAllCases() async throws {
+        let store = try ChatSessionStore(path: tmpPath("subrun-status"))
+        try await store.bootstrap()
+        for status in [SubAgentRunStatus.running, .done, .failed] {
+            try await store.recordSubAgentRun(SubAgentRun(
+                id: "id-\(status.rawValue)", agentName: "x", title: "x",
+                status: status, startedAt: Date()
+            ), sessionId: "default")
+        }
+        let loaded = try await store.loadSubAgentRuns(sessionId: "default")
+        let statuses = Set(loaded.map(\.status))
+        #expect(statuses == Set([.running, .done, .failed]))
+    }
 }

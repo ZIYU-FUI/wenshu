@@ -1,0 +1,14 @@
+{
+  "function": "build_system_prompt",
+  "generator": "generate_golden.py v0.36",
+  "input": {
+    "book_title": "Test Book",
+    "user_name": "Test User"
+  },
+  "module": "system_prompt",
+  "output": {
+    "bytes": 256,
+    "contains_book": true,
+    "contains_user": true
+  }
+}
