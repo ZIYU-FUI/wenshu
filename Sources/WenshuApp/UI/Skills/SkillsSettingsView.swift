@@ -15,11 +15,16 @@ private let smallChipCornerRadius: CGFloat = 3
 private let subtleSurfaceAlpha: CGFloat = 0.05
 
 public struct SkillsSettingsView: View {
-    @State public var skills: [SkillAdapter.Skill]
+    // v0.38 ticket A3 fix: skills is a passive input from the parent loader
+    // (= SkillsSettingsLoader). Holding it as @State seeded via init() would
+    // freeze the initial array and ignore later parent updates. Plain `let`
+    // re-injects on every parent body re-render, so SkillAdapter.listSkills()
+    // results flow through. The parent loader still owns the @State array.
+    public let skills: [SkillAdapter.Skill]
     @State public var slashCommandBuffer: String = ""
 
     public init(skills: [SkillAdapter.Skill] = []) {
-        self._skills = State(initialValue: skills)
+        self.skills = skills
     }
 
     public var body: some View {
