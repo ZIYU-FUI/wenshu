@@ -261,16 +261,14 @@ public final class InMemoryKeychainStore: ProviderKeychainStoring, @unchecked Se
 /// after B-10 revert; was AppleKeychainStore before the 2026-09-04 emergency
 /// in-place revert). Tests override `backend` via `setBackendForTesting()`.
 public enum ProviderKeychain {
-    // EMERGENCY in-place revert (Boss 2026-09-04 OOB '进设置页面闪退'):
-    // flipped default backend back to InMemoryKeychainStore so the app
-    // does not touch the Security framework at launch (= avoids the
-    // SecurityAgent modal prompt AND ad-hoc-signing SIGABRT that
-    // crash the Settings window). The real AppleKeychainStore can
-    // still be used by explicit `setBackendForTesting` for tests, or
-    // via WENSHU_DEBUG_INMEMORY_KEYCHAIN=1 opt-in for cua / dev / CI
-    // environments. Restore the AppleKeychainStore() default when
-    // boss returns to Mac and accepts the SecurityAgent modal.
-    public nonisolated(unsafe) static var backend: any ProviderKeychainStoring = InMemoryKeychainStore()
+    // B-10 re-attempt (Boss 2026-09-04): default backend = real AppleKeychainStore
+    // (kSecClassGenericPassword via Security framework). Settings crash root
+    // cause (= missing .environment(appState), fixed in B-11) and the
+    // missing entitlements embed (= fixed in build-app.sh via
+    // codesign --entitlements) are both resolved. WENSHU_DEBUG_INMEMORY_KEYCHAIN=1
+    // env var in App.swift still flips to InMemoryKeychainStore for cua /
+    // dev / CI contexts. Tests inject InMemory via setBackendForTesting().
+    public nonisolated(unsafe) static var backend: any ProviderKeychainStoring = AppleKeychainStore()
 
     /// Test-only override. Production code must never call this.
     public static func setBackendForTesting(_ store: any ProviderKeychainStoring) {

@@ -72,8 +72,18 @@ fi
 # Apple Icon Composer 范式: 1 份 LOGO.icon + icon.json + Assets/ 主图 PNG, macOS 27 自动派生 dark/light/tinted + platform mask (squares shared / circles watchOS).
 # Apple HIG 范式: https://developer.apple.com/design/human-interface-guidelines/app-icons
 
-echo ">>> ad-hoc codesign"
-codesign --force --deep --sign - "$APP_DIR"
+echo ">>> ad-hoc codesign with entitlements"
+ENTITLEMENT_FILE="$PROJECT_ROOT/Sources/WenshuApp/Resources/Wenshu.entitlements"
+if [ ! -f "$ENTITLEMENT_FILE" ]; then
+    echo ">>> warning: Wenshu.entitlements not found at $ENTITLEMENT_FILE — keychain will fail at runtime"
+fi
+# --deep applies recursively to nested binaries (Hermes worker, etc.)
+# --entitlements embeds the keychain-access-groups + app-sandbox entries
+# --options runtime hardens (linker-level hardening; ad-hoc compatible)
+codesign --force --deep --sign - \
+    --entitlements "$ENTITLEMENT_FILE" \
+    --options runtime \
+    "$APP_DIR"
 
 # v0.24 boss验收fix (Boss 8/24 OOB): re-register app with Launch Services
 # so Finder picks up UTExportedTypeDeclarations (com.wenshu.workspace +
