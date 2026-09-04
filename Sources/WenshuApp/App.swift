@@ -984,17 +984,51 @@ struct SettingView: View {
     }
 
     private var skillsTab: some View {
-        // v0.38 ticket A: wire SkillsSettingsView (= v0.35 ticket 010 ship,
-        // isolated file pre-wire) into Settings scene. Installed skills list
-        // + slash-command tester rendered. Pass empty initial skills array;
-        // SkillsSettingsView shows "No skills installed yet" placeholder when
-        // empty (= graceful degradation; per v0.36 ticket 006 spec the
-        // skills loader is the next ticket, not Settings wiring).
-        SkillsSettingsView(skills: [])
+        // v0.38 ticket A2: wrap SkillsSettingsView in a small loader view that
+        // owns @State skills + triggers .task async load via SkillAdapter.
+        // SkillAdapter is an actor (= v0.35 ticket 010 spec); listSkills() is
+        // async; SkillsSettingsView is a passive view (= @State skills binding
+        // = parent must populate). Loader view bridges the two per SwiftUI
+        // canonical state ownership pattern.
+        SkillsSettingsLoader()
             .padding(DesignTokens.chromePaddingMedium)
     }
 
-} 
+}
+
+/// v0.38 ticket A2: thin loader view that owns the @State array of
+/// SkillAdapter.Skill + triggers an async load on appear. Bridges the
+/// gap between async actor-isolated SkillAdapter.listSkills() (= v0.35
+/// ticket 010 spec) and the passive SkillsSettingsView (= expects an
+/// already-populated @State binding). Per Apple SwiftUI canonical state
+/// ownership pattern (= child view owns its own data, parent provides
+/// the read site).
+private struct SkillsSettingsLoader: View {
+    @State private var skills: [SkillAdapter.Skill] = []
+    @State private var hasLoaded: Bool = false
+
+    var body: some View {
+        // v0.38 ticket A2: SkillsSettingsView is a public View with @State
+        // binding; passing our @State array as init() seeds its state. The
+        // empty-array placeholder ("No skills installed yet") shows briefly
+        // while .task fires; once listSkills() returns, the @State
+        // reassignment triggers a re-render with the populated list.
+        SkillsSettingsView(skills: skills)
+            .task {
+                let loaded = await SkillAdapter().listSkills()
+                await MainActor.run {
+                    self.skills = loaded
+                    self.hasLoaded = true
+                }
+            }
+            // v0.38 ticket A2: hidden accessibility hint that conveys
+            // load state to assistive tech; visible UI is unchanged
+            // (= Settings tab is a known site; the user can see skills
+            // populate in real time).
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("Skills settings" + (hasLoaded ? " (\(skills.count) loaded)" : " (loading)"))
+    }
+}
 
 /// 辅助任务 (Hermes AUX_TASKS 真值: vision/web_extract/compression/skills_hub/approval/mcp/title_generation/curator)
 enum AuxTask: String, CaseIterable, Identifiable {
