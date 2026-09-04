@@ -469,6 +469,16 @@ struct WorkspaceView: View {
             //     entity-uuid / context pickers + links list +
             //     suggest section with context TextField +
             //     suggestions list).
+            //   - Book-Setting-Constraints (= book-lock) per
+            //     P1 ticket #16 (= port book_setting_constraints.py
+            //     from hermes = 3 severities + 4 scopes +
+            //     chapter-text check). Real content (= title +
+            //     description + severity + scope + appliesTo +
+            //     forbidden-patterns fields + add-row +
+            //     constraints list + chapter-text TextEditor +
+            //     check button + violations section).
+            //     FINAL P1 ticket (= 12th and last tab in the
+            //     specializedTools pane).
             ZoneContentView(zoneSlug: "specializedTools", tabs: [
                 ("伏笔", "git-fork", AnyView(ForeshadowingView())),
                 ("占位符", "square-dashed", AnyView(PlaceholderView())),
@@ -481,6 +491,7 @@ struct WorkspaceView: View {
                 ("Chars-Life", "clock", AnyView(CharacterLifecycleView())),
                 ("Tag-Manager", "tag", AnyView(TagManagerView())),
                 ("Idea-Library", "lightbulb", AnyView(IdeaLibraryView())),
+                ("Book-Settings", "book-lock", AnyView(BookSettingConstraintsView())),
             ])
         case .aiChat:
             ChatView()
