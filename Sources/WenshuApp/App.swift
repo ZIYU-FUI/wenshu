@@ -509,6 +509,15 @@ struct WenshuApp: App {
         Settings {
             SettingView()
         }
+        // B-11: inject AppState into the Settings scene so
+        // SettingView's `@Environment(AppState.self) private var
+        // appState` lookup (= appState.llmModel on the model picker
+        // binding) doesn't assert-fail when the user opens Settings
+        // via ⌘,. Without this, opening Settings crashed in
+        // `_assertionFailure` from `EnvironmentValues.subscript.getter`
+        // because the Settings scene had no `.environment(appState)`
+        // modifier (= only the WindowGroup's content view had one).
+        .environment(appState)
     }
 }
 
