@@ -73,6 +73,16 @@ let package = Package(
         // not git tags). Pin to a permissive lower bound; SPM will pick latest.
         .package(url: "https://github.com/swiftlang/swift-markdown", from: "0.4.0"),
 
+        // RUNTIME — chapter editor (v0.39 ticket 001, boss 2026-09-04 OOB '尝试接入')
+        // Adopted per .scratch/2026-09-04-editor-migration/spec.md §2.1. nodes-app/swift-markdown-engine
+        // = 971★ / Apache-2.0 / 3 contributors / Munich+Zurich / 0.12.0 latest 2026-08-10
+        // (= macOS 14+ only, TextKit 2, half-year 5 minor releases). Per AGENTS.md §11.1
+        // 4-criteria gate (= 100★ + 12mo + Apache-2.0 + macOS-first) all met. SPM product
+        // = `MarkdownEngineCodeBlocks` (already pulls HighlighterSwift which wenshu has
+        // pinned). Consumer wiring lands with v0.39 ticket 001 (= WenshuMarkdownEditor
+        // wrapper + 2 service adapters in `Sources/WenshuApp/Editor/`).
+        .package(url: "https://github.com/nodes-app/swift-markdown-engine", from: "0.12.0"),
+
         // RUNTIME — UI enhancement: code-fence syntax highlight (batch 2 issue 02)
         // Adopted per 2026-08-28-six-module-audit M2 (P1, 105 stars, 185 languages,
         // 89 themes, pure-Swift no JS). Thin 5-star margin above the 100-star gate
@@ -161,6 +171,8 @@ let package = Package(
                 .product(name: "ZIPFoundation", package: "ZIPFoundation"),
                 .product(name: "GRDB", package: "GRDB.swift"),
                 .product(name: "Markdown", package: "swift-markdown"),
+                // v0.39 ticket 001: chapter editor.
+                .product(name: "MarkdownEngineCodeBlocks", package: "swift-markdown-engine"),
                 // batch 2 issue 02: Highlighter product (= the SPM product name
                 // is `Highlighter` even though the repo URL is HighlighterSwift;
                 // see https://raw.githubusercontent.com/smittytone/HighlighterSwift/3.1.0/Package.swift).
