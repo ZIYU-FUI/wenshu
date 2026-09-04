@@ -284,3 +284,224 @@ struct AgentInitDefaults: Sendable, Hashable {
         }
     }
 }
+
+// MARK: - Bootstrap (= HERMES-PARTIAL-005: agent_init.py bootstrap surface)
+
+/// Per-step bootstrap status (= hermes agent_init.py init_agent performs
+/// ~60 setup steps; we expose the bootstrap result as a typed bag so the
+/// caller can introspect what loaded and what didn't).
+public struct bootstrapStatus: Sendable, Equatable {
+    public let configLoaded: Bool
+    public let credentialsResolved: Bool
+    public let skillRegistryLoaded: Bool
+    public let memoryLoaded: Bool
+    public let contextEngineLoaded: Bool
+    public let systemPromptComposed: Bool
+    public let failedSteps: [String]
+
+    public init(
+        configLoaded: Bool = false,
+        credentialsResolved: Bool = false,
+        skillRegistryLoaded: Bool = false,
+        memoryLoaded: Bool = false,
+        contextEngineLoaded: Bool = false,
+        systemPromptComposed: Bool = false,
+        failedSteps: [String] = []
+    ) {
+        self.configLoaded = configLoaded
+        self.credentialsResolved = credentialsResolved
+        self.skillRegistryLoaded = skillRegistryLoaded
+        self.memoryLoaded = memoryLoaded
+        self.contextEngineLoaded = contextEngineLoaded
+        self.systemPromptComposed = systemPromptComposed
+        self.failedSteps = failedSteps
+    }
+
+    /// All bootstrap steps completed without failures.
+    public var isComplete: Bool {
+        return configLoaded
+            && credentialsResolved
+            && skillRegistryLoaded
+            && memoryLoaded
+            && contextEngineLoaded
+            && systemPromptComposed
+            && failedSteps.isEmpty
+    }
+}
+
+/// Bootstrap step hooks (= hermes init_agent body side effects; the
+/// caller wires the side effects through closures so the bootstrap driver
+/// itself stays free of import cycles with the agent runtime).
+public struct BootstrapHooks: Sendable {
+    public var loadConfig: @Sendable () throws -> Void
+    public var resolveCredentials: @Sendable () throws -> Void
+    public var loadSkillRegistry: @Sendable () throws -> Void
+    public var loadMemory: @Sendable () throws -> Void
+    public var loadContextEngine: @Sendable () throws -> Void
+    public var composeSystemPrompt: @Sendable () throws -> Void
+
+    public init(
+        loadConfig: @escaping @Sendable () throws -> Void = {},
+        resolveCredentials: @escaping @Sendable () throws -> Void = {},
+        loadSkillRegistry: @escaping @Sendable () throws -> Void = {},
+        loadMemory: @escaping @Sendable () throws -> Void = {},
+        loadContextEngine: @escaping @Sendable () throws -> Void = {},
+        composeSystemPrompt: @escaping @Sendable () throws -> Void = {}
+    ) {
+        self.loadConfig = loadConfig
+        self.resolveCredentials = resolveCredentials
+        self.loadSkillRegistry = loadSkillRegistry
+        self.loadMemory = loadMemory
+        self.loadContextEngine = loadContextEngine
+        self.composeSystemPrompt = composeSystemPrompt
+    }
+
+    /// Default no-op hooks (= for tests).
+    public static let noop = BootstrapHooks()
+
+    /// Successful hooks (= mark each step as completed; for tests).
+    public static let success = BootstrapHooks(
+        loadConfig: {},
+        resolveCredentials: {},
+        loadSkillRegistry: {},
+        loadMemory: {},
+        loadContextEngine: {},
+        composeSystemPrompt: {}
+    )
+}
+
+/// Bootstrap driver. Runs the 6-step init_agent surface (= hermes
+/// agent_init.py bootstrap = load config + credentials + skill registry +
+/// memory + context engine + system prompt) and returns a typed status.
+///
+/// Per hermes agent_init.py L260-560: init_agent is the longest method
+/// in the codebase (= 60+ parameters, ~1,400 LOC of attribute init +
+/// provider auto-detection + credential resolution + context-engine
+/// bootstrap). The wenshu-side-wins surface is a thin driver that calls
+/// each step in order; the heavy lifting lives in the caller-provided
+/// hooks (= testable + import-cycle-free).
+public actor AgentBootstrapper {
+    private let hooks: BootstrapHooks
+
+    public init(hooks: BootstrapHooks = .noop) {
+        self.hooks = hooks
+    }
+
+    /// Run the bootstrap. Each step is independent; a failure in one
+    /// step does not abort the others (= hermes pattern: collect
+    /// failed_steps rather than raising).
+    public func bootstrap() async -> bootstrapStatus {
+        var status = bootstrapStatus()
+        var failed: [String] = []
+
+        // 1. Load config (= hermes load_config at init_agent body start).
+        do {
+            try hooks.loadConfig()
+            status = bootstrapStatus(
+                configLoaded: true,
+                credentialsResolved: status.credentialsResolved,
+                skillRegistryLoaded: status.skillRegistryLoaded,
+                memoryLoaded: status.memoryLoaded,
+                contextEngineLoaded: status.contextEngineLoaded,
+                systemPromptComposed: status.systemPromptComposed,
+                failedSteps: status.failedSteps
+            )
+        } catch {
+            failed.append("load_config: \(error)")
+        }
+
+        // 2. Resolve credentials.
+        do {
+            try hooks.resolveCredentials()
+            status = bootstrapStatus(
+                configLoaded: status.configLoaded,
+                credentialsResolved: true,
+                skillRegistryLoaded: status.skillRegistryLoaded,
+                memoryLoaded: status.memoryLoaded,
+                contextEngineLoaded: status.contextEngineLoaded,
+                systemPromptComposed: status.systemPromptComposed,
+                failedSteps: status.failedSteps
+            )
+        } catch {
+            failed.append("resolve_credentials: \(error)")
+        }
+
+        // 3. Load skill registry.
+        do {
+            try hooks.loadSkillRegistry()
+            status = bootstrapStatus(
+                configLoaded: status.configLoaded,
+                credentialsResolved: status.credentialsResolved,
+                skillRegistryLoaded: true,
+                memoryLoaded: status.memoryLoaded,
+                contextEngineLoaded: status.contextEngineLoaded,
+                systemPromptComposed: status.systemPromptComposed,
+                failedSteps: status.failedSteps
+            )
+        } catch {
+            failed.append("load_skill_registry: \(error)")
+        }
+
+        // 4. Load memory subsystem.
+        do {
+            try hooks.loadMemory()
+            status = bootstrapStatus(
+                configLoaded: status.configLoaded,
+                credentialsResolved: status.credentialsResolved,
+                skillRegistryLoaded: status.skillRegistryLoaded,
+                memoryLoaded: true,
+                contextEngineLoaded: status.contextEngineLoaded,
+                systemPromptComposed: status.systemPromptComposed,
+                failedSteps: status.failedSteps
+            )
+        } catch {
+            failed.append("load_memory: \(error)")
+        }
+
+        // 5. Load context engine.
+        do {
+            try hooks.loadContextEngine()
+            status = bootstrapStatus(
+                configLoaded: status.configLoaded,
+                credentialsResolved: status.credentialsResolved,
+                skillRegistryLoaded: status.skillRegistryLoaded,
+                memoryLoaded: status.memoryLoaded,
+                contextEngineLoaded: true,
+                systemPromptComposed: status.systemPromptComposed,
+                failedSteps: status.failedSteps
+            )
+        } catch {
+            failed.append("load_context_engine: \(error)")
+        }
+
+        // 6. Compose system prompt.
+        do {
+            try hooks.composeSystemPrompt()
+            status = bootstrapStatus(
+                configLoaded: status.configLoaded,
+                credentialsResolved: status.credentialsResolved,
+                skillRegistryLoaded: status.skillRegistryLoaded,
+                memoryLoaded: status.memoryLoaded,
+                contextEngineLoaded: status.contextEngineLoaded,
+                systemPromptComposed: true,
+                failedSteps: status.failedSteps
+            )
+        } catch {
+            failed.append("compose_system_prompt: \(error)")
+        }
+
+        // Apply accumulated failures.
+        if !failed.isEmpty {
+            status = bootstrapStatus(
+                configLoaded: status.configLoaded,
+                credentialsResolved: status.credentialsResolved,
+                skillRegistryLoaded: status.skillRegistryLoaded,
+                memoryLoaded: status.memoryLoaded,
+                contextEngineLoaded: status.contextEngineLoaded,
+                systemPromptComposed: status.systemPromptComposed,
+                failedSteps: failed
+            )
+        }
+        return status
+    }
+}
