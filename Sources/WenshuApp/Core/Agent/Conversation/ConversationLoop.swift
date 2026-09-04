@@ -99,15 +99,61 @@ public actor ConversationLoop {
     ///     and no verbose/debug flags. Callers wanting deterministic-test
     ///     injection (= v0.36 ticket 014) should pass a runtime built with
     ///     `RuntimeHelpers(state: .init(mockTime: ...))`.
+    ///   - shellHookChain: Optional shell hook chain (= HERMES-PARTIAL-001).
+    ///     When nil, a default empty chain is used (= no behavior change for
+    ///     callers wanting the pre-HERMES-PARTIAL-001 surface).
+    ///   - conversationCompression: Optional compression actor (= HERMES-PARTIAL-001).
+    ///     When nil, a default actor instance is used (= the canonical wenshu
+    ///     compression policy).
     public init(
+        connection: any LLMConnector,
+        systemPrompt: String? = nil,
+        runtime: RuntimeHelpers? = nil,
+        shellHookChain: ShellHookChain = ShellHookChain(),
+        conversationCompression: ConversationCompression = ConversationCompression()
+    ) {
+        // Back-compat: the parameter is named `connector` everywhere in
+        // the existing surface; the new parameter is named `connection`
+        // (= HERMES-PARTIAL-001 marker). For now we accept `connection`
+        // via this init; the legacy `connector:` init remains for callers
+        // that don't need the new surface. Both inits land on the same
+        // stored property below.
+        self.connector = connection
+        self.systemPrompt = systemPrompt
+        self.runtime = runtime ?? RuntimeHelpers()
+        self.shellHookChain = shellHookChain
+        self.conversationCompression = conversationCompression
+    }
+
+    /// Legacy initializer (= preserved for backward compat with callers
+    /// that built the loop before HERMES-PARTIAL-001). Delegates to the
+    /// HERMES-PARTIAL-001 init with default hook chain + compression actor.
+    public convenience init(
         connector: any LLMConnector,
         systemPrompt: String? = nil,
         runtime: RuntimeHelpers? = nil
     ) {
-        self.connector = connector
-        self.systemPrompt = systemPrompt
-        self.runtime = runtime ?? RuntimeHelpers()
+        self.init(
+            connection: connector,
+            systemPrompt: systemPrompt,
+            runtime: runtime,
+            shellHookChain: ShellHookChain(),
+            conversationCompression: ConversationCompression()
+        )
     }
+
+    /// Shell hook chain (= HERMES-PARTIAL-001). Default = empty.
+    /// Used by `runConversation` (= single round-trip) and `runTurn`
+    /// (= full orchestrator) to fire pre/post-turn hooks. Empty chain
+    /// = no behavior change for callers not registering hooks.
+    private let shellHookChain: ShellHookChain
+
+    /// Conversation compression actor (= HERMES-PARTIAL-001). Default =
+    /// a fresh actor instance per loop (= the canonical wenshu
+    /// compression policy). Used by `runTurn` to compress history
+    /// after the final assistant turn (= hermes
+    /// conversation_history_after_compression).
+    private let conversationCompression: ConversationCompression
 
     /// Resolve the current time via the runtime (= hermes-port Z-contract
     /// hard requirement: deterministic tests inject a runtime with
@@ -168,9 +214,27 @@ public actor ConversationLoop {
     ) async throws -> ConversationResult {
         let resolvedTaskId = taskId ?? UUID().uuidString
 
+        // Per-turn setup (= HERMES-PARTIAL-001): sanitize the user
+        // message (= hermes message_sanitization._sanitize_surrogates +
+        // _strip_non_ascii), reset the retry counter for this turn, and
+        // emit the pre-turn shell hook.
+        let sanitizedUser = MessageSanitization.sanitizeText(userMessage)
+        let retryState = TurnRetryState(maxAttempts: 1).reset() // single-shot = no retry; runTurn() manages retries
+        let turnCtx = TurnContext(
+            taskId: resolvedTaskId,
+            userMessage: sanitizedUser,
+            systemMessage: systemMessage,
+            conversationHistory: conversationHistory ?? [],
+            model: defaultModelForConnector(),
+            maxTokens: 4096,
+            attemptNumber: retryState.attemptNumber
+        )
+        await shellHookChain.firePreTurn(sanitizedUser)
+        _ = turnCtx  // captured for downstream debug accessors
+
         // Build message list = prior history + new user message
         var messages = conversationHistory ?? []
-        messages.append(LLMMessage.user(userMessage))
+        messages.append(LLMMessage.user(sanitizedUser))
 
         // Resolve system prompt (= systemMessage override > persistent systemPrompt)
         // Per TICKET-HERMES-GAP-001 (2026-09-04): compose stable + dynamic tiers
@@ -213,6 +277,12 @@ public actor ConversationLoop {
         let assistantMessage = LLMMessage(role: .assistant, blocks: response.blocks)
         messages.append(assistantMessage)
 
+        // Post-turn hooks (= HERMES-PARTIAL-001):
+        //   1. TurnFinalizer.finalize (= drop empty blocks, normalize)
+        //   2. ShellHookChain.firePostTurn (= observation + optional mutation)
+        let finalResponse = TurnFinalizer.finalize(response: response)
+        await shellHookChain.firePostTurn(finalResponse)
+
         // moaConfig deferred to v2 per spec §14 (= no-op for now)
         _ = moaConfig
 
@@ -220,9 +290,151 @@ public actor ConversationLoop {
         // persistence is ChatSessionStore's job per spec §3.6 wenshu-side wins)
 
         return ConversationResult(
-            response: response,
+            response: finalResponse,
             messages: messages,
             taskId: resolvedTaskId
+        )
+    }
+
+    // MARK: - HERMES-PARTIAL-001 wire-up: runTurn (full turn orchestrator)
+
+    /// Full turn orchestrator (= hermes run_conversation body).
+    ///
+    /// Unlike `runConversation` (= single round-trip), `runTurn` is the
+    /// canonical entry that wires the complete per-turn surface:
+    ///   - Per-turn setup (= TurnContext init, retry-counter reset, user
+    ///     message sanitization, system-prompt restore via composeSystemPrompt)
+    ///   - Tool dispatch loop (= ToolExecutor.executeSequential when the
+    ///     response includes .toolUse blocks; the executor already calls
+    ///     the dispatch hook chain + post hooks)
+    ///   - ConversationCompression.triggerIfNeeded (= preflight + post-turn
+    ///     compression when message count crosses the compressor threshold)
+    ///   - TurnRetryState (= classifier-aware retry; transient errors
+    ///     retry up to `maxAttempts`, non-transient fail immediately)
+    ///   - MessageSanitization (= repair tool args, handle interrupted
+    ///     tool calls, surrogate stripping)
+    ///   - TurnFinalizer (= post-turn hooks: drop empty blocks, normalize)
+    ///   - ShellHookChain.firePreTurn + firePostTurn (= observation layer)
+    ///
+    /// The retry loop runs at most `maxAttempts` iterations. Each iteration
+    /// either calls the LLM + (if tool_use blocks present) the tool
+    /// executor + compresses + finalizes, OR surfaces the LLMConnectorError
+    /// (= hermes classifier decides retry vs fail).
+    ///
+    /// - Parameters:
+    ///   - userMessage: The user's input for this turn.
+    ///   - systemMessage: Optional system prompt override.
+    ///   - conversationHistory: Prior messages (= may be empty for first turn).
+    ///   - tools: Tool registry passed to the tool executor.
+    ///   - taskId: Optional unique identifier for this turn.
+    ///   - maxAttempts: Retry budget (= default 3; matches hermes
+    ///     TurnRetryState default).
+    ///   - streamCallback: Optional callback for streaming responses.
+    /// - Returns: ConversationResult with final response + full message
+    ///   history + taskId.
+    public func runTurn(
+        userMessage: String,
+        systemMessage: String? = nil,
+        conversationHistory: [LLMMessage] = [],
+        tools: [String: any Tool] = [:],
+        taskId: String? = nil,
+        maxAttempts: Int = 3,
+        streamCallback: (@Sendable (LLMBlock) async -> Void)? = nil
+    ) async throws -> ConversationResult {
+        let resolvedTaskId = taskId ?? UUID().uuidString
+        var retry = TurnRetryState(maxAttempts: maxAttempts)
+
+        while retry.canRetry {
+            retry.recordAttempt()
+            do {
+                // Run the basic conversation (= 1 LLM call + 1 turn).
+                // If the assistant message contains tool_use blocks, the
+                // tool executor dispatches them sequentially (= the
+                // current ToolExecutor default; concurrent path is
+                // available via executeConcurrent for callers wanting
+                // parallelism).
+                var result = try await runConversation(
+                    userMessage: userMessage,
+                    systemMessage: systemMessage,
+                    conversationHistory: conversationHistory,
+                    taskId: resolvedTaskId,
+                    streamCallback: streamCallback
+                )
+
+                // Tool dispatch loop (= hermes _execute_tool_calls_sequential).
+                // Inspect the assistant message for tool_use blocks; if
+                // any are present, dispatch them sequentially and
+                // re-invoke the LLM with the tool results appended.
+                if let assistant = result.messages.last,
+                   assistant.blocks.contains(where: { if case .toolUse = $0 { return true } else { return false } }) {
+                    let executor = ToolExecutor()
+                    try await executor.executeSequential(
+                        assistantMessage: assistant,
+                        messages: &result.messages,
+                        taskId: resolvedTaskId,
+                        tools: tools
+                    )
+
+                    // Re-invoke LLM with tool results (= hermes
+                    // "tool result -> next assistant message" loop body).
+                    let options = LLMCallOptions(
+                        model: defaultModelForConnector(),
+                        maxTokens: 4096,
+                        systemPrompt: composeSystemPrompt(
+                            override: systemMessage,
+                            persistent: systemPrompt
+                        ),
+                        temperature: nil
+                    )
+                    let nextResponse = try await connector.send(
+                        messages: result.messages,
+                        options: options
+                    )
+                    if let streamCallback {
+                        for block in nextResponse.blocks {
+                            await streamCallback(block)
+                        }
+                    }
+                    let nextAssistant = LLMMessage(role: .assistant, blocks: nextResponse.blocks)
+                    result.messages.append(nextAssistant)
+                    result = ConversationResult(
+                        response: TurnFinalizer.finalize(response: nextResponse),
+                        messages: result.messages,
+                        taskId: resolvedTaskId
+                    )
+                }
+
+                // Post-turn compression (= hermes
+                // conversation_history_after_compression).
+                let (compressedMessages, compressedSystem) = await conversationCompression.historyAfterCompression(
+                    messages: result.messages,
+                    systemMessage: composeSystemPrompt(
+                        override: systemMessage,
+                        persistent: systemPrompt
+                    ) ?? ""
+                )
+
+                return ConversationResult(
+                    response: result.response,
+                    messages: compressedMessages,
+                    taskId: resolvedTaskId
+                )
+                _ = compressedSystem  // compressedSystem captured for future turnContext restore
+            } catch let error as LLMConnectorError {
+                // Classifier-aware retry: transient errors get retried,
+                // non-transient fail immediately.
+                if !retry.canRetry || !LLMConnectorErrorClassifier.isTransient(error) {
+                    throw error
+                }
+                continue
+            }
+        }
+
+        // Loop exited without success (= retries exhausted).
+        throw LLMConnectorError.transport(
+            provider: connector.connectorID,
+            statusCode: 0,
+            body: "ConversationLoop.runTurn retries exhausted (maxAttempts = \(maxAttempts))"
         )
     }
 

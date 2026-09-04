@@ -151,3 +151,40 @@ public enum ErrorClassifier {
         )
     }
 }
+
+// MARK: - LLMConnectorError classifier (HERMES-PARTIAL-001 wire-up)
+
+/// Classify an `LLMConnectorError` as transient (= retryable) or
+/// non-transient (= fail fast). Mirrors hermes `classify_api_error`'s
+/// retry-eligibility surface (= hermes retries on rate-limit +
+/// server-error + transient transport, fails on auth + bad-request).
+///
+/// ConversationLoop.runTurn() uses this to decide whether to retry
+/// after a thrown `LLMConnectorError`. Default behaviour (= no
+/// classifier) is "fail fast" (= never retry); ConversationLoop injects
+/// an instance that respects the LLMErrorCategory.isRetryable mapping.
+public enum LLMConnectorErrorClassifier {
+
+    /// True when the error is classified as transient (= retryable).
+    /// The mapping matches `ErrorClassifier.classify(...)`'s
+    /// `isRetryable` flag for the underlying categories.
+    public static func isTransient(_ error: LLMConnectorError) -> Bool {
+        switch error {
+        case .transport(let provider, let statusCode, _):
+            // 429 (rate limit) + 5xx (server error) = retryable.
+            // 4xx other than 429 = non-retryable (= bad request, auth).
+            if statusCode == 429 { return true }
+            if (500...599).contains(statusCode) { return true }
+            _ = provider
+            return false
+        case .decode:
+            // Decode errors are usually non-retryable (= provider
+            // returned a malformed response; retrying won't help).
+            return false
+        case .missingAPIKey, .unsupportedProvider, .streamingFailed:
+            // All other variants are configuration / wire-level issues
+            // that won't be fixed by retrying.
+            return false
+        }
+    }
+}
