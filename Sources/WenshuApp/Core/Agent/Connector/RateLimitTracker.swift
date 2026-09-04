@@ -136,6 +136,38 @@ public actor RateLimitTracker {
     public func clear(providerSlug: String) {
         records.removeValue(forKey: providerSlug)
     }
+
+    /// Run `operation` under `RateLimitTracker` + `RetryUtils` so that the
+    /// first 429 from the provider triggers the documented exponential
+    /// backoff (= ticket GAP-007 wiring). Provider slug is recorded against
+    /// this tracker for each attempt (= attempts count toward the budget).
+    ///
+    /// - Parameters:
+    ///   - providerSlug: provider profile (= e.g. "anthropic", "openai").
+    ///   - maxAttempts: total attempts (= initial + retries).
+    ///   - operation: the async LLM call.
+    /// - Returns: the operation's result on first success.
+    /// - Throws: the last error after exhausting retries (= e.g. a final 429).
+    public func performWithRetry<T: Sendable>(
+        providerSlug: String,
+        maxAttempts: Int = 3,
+        base: TimeInterval = 1.0,
+        cap: TimeInterval = 60.0,
+        operation: @Sendable @escaping () async throws -> T
+    ) async throws -> T {
+        // Record against this actor BEFORE each try (= count attempts toward
+        // budget). Use the `RetryUtils.withClassifierRetry` overload so
+        // non-retryable `ClassifiedLLMError` (= 400/401/403/404) fail fast
+        // instead of consuming retry slots.
+        try await RetryUtils.withClassifierRetry(
+            maxAttempts: maxAttempts,
+            base: base,
+            cap: cap
+        ) {
+            await self.recordRequest(providerSlug: providerSlug)
+            return try await operation()
+        }
+    }
 }
 
 /// Current budget snapshot (= returned by RateLimitTracker).

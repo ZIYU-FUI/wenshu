@@ -1,5 +1,6 @@
 //
 //  OpenAIConnector.swift · Wenshu · v0.35 ticket 005
+//                                  TICKET-HERMES-GAP-002 (request marshaling extracted)
 //
 //  OpenAI native + OpenAI-compatible connector (= ticket 005, P0).
 //
@@ -8,10 +9,14 @@
 //    - OpenAICompatibleConnector: thin wrappers over minimax cn + DeepSeek
 //      + Ollama + OpenRouter (= all use the OpenAI chat completions protocol)
 //
-//  Why one file: hermes auxiliary_client.py L1-L7469 handles all
-//  OpenAI-compatible providers via the same request/response shape; wenshu
-//  follows the same pattern. The Provider enum's apiMode field
-//  ('openai_chat') routes via this file.
+//  Per TICKET-HERMES-GAP-002 (= hermes-port gap audit §2.1 #8), the
+//  request-body + response-decoding marshaling has been extracted to
+//  `Connector/RequestHelpers.swift`. Both connectors now share
+//  `RequestHelpers.buildOpenAIRequest` + `RequestHelpers.decodeOpenAIResponse`.
+//  Connector-specific concerns remaining here: credential resolution, URL
+//  building, auth headers (= Bearer for OpenAI native, optional Bearer
+//  for OpenAI-compatible to support Ollama's no-auth local), transport
+//  send, and HTTP-status error path.
 //
 //  v0.35 ticket 005 (= 1 commit covering both connectors).
 //
@@ -36,25 +41,23 @@ public actor OpenAIConnector: LLMConnector {
             throw LLMConnectorError.missingAPIKey(provider: connectorID)
         }
 
-        guard let url = URL(string: "\\(credentials.baseURL)/chat/completions") else {
+        guard let url = URL(string: "\(credentials.baseURL)/chat/completions") else {
             throw LLMConnectorError.unsupportedProvider(slug: connectorID)
         }
 
-        // OpenAI chat completions API: messages array with role + content (string)
-        let body: [String: Any] = [
-            "model": options.model,
-            "max_tokens": options.maxTokens,
-            "messages": buildOpenAIMessages(
-                systemPrompt: options.systemPrompt,
-                userMessages: messages
-            )
-        ]
+        // Build OpenAI chat completions request body via shared helper.
+        let body = try RequestHelpers.buildOpenAIRequest(
+            model: options.model,
+            messages: messages,
+            maxTokens: options.maxTokens,
+            systemPrompt: options.systemPrompt
+        )
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("Bearer \\(credentials.apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(credentials.apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "content-type")
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        request.httpBody = body
 
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
@@ -63,8 +66,12 @@ public actor OpenAIConnector: LLMConnector {
             throw LLMConnectorError.transport(provider: connectorID, statusCode: statusCode, body: bodyPreview)
         }
 
-        // Decode OpenAI chat completion response
-        return try decodeOpenAIResponse(data: data, model: options.model, providerID: connectorID)
+        // Decode via shared helper (= TICKET-HERMES-GAP-002).
+        return try RequestHelpers.decodeOpenAIResponse(
+            data: data,
+            model: options.model,
+            providerID: connectorID
+        )
     }
 }
 
@@ -90,26 +97,25 @@ public actor OpenAICompatibleConnector: LLMConnector {
             throw LLMConnectorError.missingAPIKey(provider: connectorID)
         }
 
-        guard let url = URL(string: "\\(credentials.baseURL)/chat/completions") else {
+        guard let url = URL(string: "\(credentials.baseURL)/chat/completions") else {
             throw LLMConnectorError.unsupportedProvider(slug: connectorID)
         }
 
-        let body: [String: Any] = [
-            "model": options.model,
-            "max_tokens": options.maxTokens,
-            "messages": buildOpenAIMessages(
-                systemPrompt: options.systemPrompt,
-                userMessages: messages
-            )
-        ]
+        // Build OpenAI-compatible request body via shared helper.
+        let body = try RequestHelpers.buildOpenAIRequest(
+            model: options.model,
+            messages: messages,
+            maxTokens: options.maxTokens,
+            systemPrompt: options.systemPrompt
+        )
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         if !credentials.apiKey.isEmpty {
-            request.setValue("Bearer \\(credentials.apiKey)", forHTTPHeaderField: "Authorization")
+            request.setValue("Bearer \(credentials.apiKey)", forHTTPHeaderField: "Authorization")
         }
         request.setValue("application/json", forHTTPHeaderField: "content-type")
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        request.httpBody = body
 
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
@@ -118,67 +124,11 @@ public actor OpenAICompatibleConnector: LLMConnector {
             throw LLMConnectorError.transport(provider: connectorID, statusCode: statusCode, body: bodyPreview)
         }
 
-        return try decodeOpenAIResponse(data: data, model: options.model, providerID: connectorID)
-    }
-}
-
-// MARK: - Shared OpenAI wire format helpers
-
-/// Build the OpenAI chat completions messages array (= system message
-/// prepended to user/assistant/tool messages, all with role + content).
-private func buildOpenAIMessages(
-    systemPrompt: String?,
-    userMessages: [LLMMessage]
-) -> [[String: Any]] {
-    var messages: [[String: Any]] = []
-    if let sys = systemPrompt, !sys.isEmpty {
-        messages.append(["role": "system", "content": sys])
-    }
-    for msg in userMessages {
-        // Flatten content blocks to single string (= OpenAI protocol)
-        let content = msg.blocks.compactMap { block -> String? in
-            switch block {
-            case .text(let s): return s
-            case .thinking(let t, _): return t
-            default: return nil
-            }
-        }.joined(separator: "\n")
-        messages.append(["role": msg.role.rawValue, "content": content])
-    }
-    return messages
-}
-
-/// Decode OpenAI chat completion response (= shared between OpenAIConnector
-/// + OpenAICompatibleConnector).
-private func decodeOpenAIResponse(data: Data, model: String, providerID: String) throws -> LLMResponse {
-    guard
-        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-        let choices = json["choices"] as? [[String: Any]],
-        let firstChoice = choices.first,
-        let message = firstChoice["message"] as? [String: Any]
-    else {
-        throw LLMConnectorError.decode(provider: providerID, underlying: "missing choices[0].message")
-    }
-
-    let content = message["content"] as? String ?? ""
-    let model2 = json["model"] as? String ?? model
-    let id = json["id"] as? String ?? UUID().uuidString
-    let finishReason = firstChoice["finish_reason"] as? String
-    let stopReason: LLMResponse.StopReason = finishReason == "length" ? .maxTokens : .endTurn
-
-    var usage = LLMUsage(inputTokens: 0, outputTokens: 0)
-    if let usageDict = json["usage"] as? [String: Any] {
-        usage = LLMUsage(
-            inputTokens: usageDict["prompt_tokens"] as? Int ?? 0,
-            outputTokens: usageDict["completion_tokens"] as? Int ?? 0
+        // Decode via shared helper (= TICKET-HERMES-GAP-002).
+        return try RequestHelpers.decodeOpenAIResponse(
+            data: data,
+            model: options.model,
+            providerID: connectorID
         )
     }
-
-    return LLMResponse(
-        id: id,
-        model: model2,
-        blocks: content.isEmpty ? [] : [.text(content)],
-        stopReason: stopReason,
-        usage: usage
-    )
 }

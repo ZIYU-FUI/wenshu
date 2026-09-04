@@ -1,6 +1,6 @@
 //
 //  AnthropicConnector.swift · Wenshu · v0.35 ticket 004 sub-step 1
-//
+//                                  TICKET-HERMES-GAP-002 (request marshaling extracted)
 //  Anthropic native connector (= ticket 004 sub-step 1).
 //  P0 connector profile, full wire format support per AGENTS.md §11.2.
 //
@@ -10,6 +10,13 @@
 //    - Thinking blocks (extended thinking + signatures)
 //    - Tool use round-trip (= tool_use + tool_result blocks)
 //    - SSE streaming (lands in ticket 004 sub-step 2)
+//
+//  Per TICKET-HERMES-GAP-002 (= hermes-port gap audit §2.1 #8), the
+//  request-body + response-decoding marshaling has been extracted to
+//  `Connector/RequestHelpers.swift` so each connector is a thin
+//  wrapper over the shared helpers. Connector-specific concerns
+//  remaining here: credential resolution, URL building, auth headers,
+//  transport send, and HTTP-status error path.
 //
 //  v0.35 ticket 004 (= 1 of N sub-steps).
 //
@@ -34,11 +41,14 @@ public actor AnthropicConnector: LLMConnector {
             throw LLMConnectorError.missingAPIKey(provider: connectorID)
         }
 
-        guard let url = URL(string: "\\(credentials.baseURL)/v1/messages") else {
+        guard let url = URL(string: "\(credentials.baseURL)/v1/messages") else {
             throw LLMConnectorError.unsupportedProvider(slug: connectorID)
         }
 
-        // Apply prompt caching
+        // Apply prompt caching (= ticket 002 PromptCaching.applyCacheControl).
+        // System prompt gets a structured cache_control marker in the request
+        // body (= built by `RequestHelpers.buildAnthropicRequest`); the last
+        // 3 non-system messages get per-message + per-text-block markers.
         let cachedMessages = useCacheControl
             ? PromptCaching.applyCacheControl(
                 messages: messages,
@@ -47,61 +57,20 @@ public actor AnthropicConnector: LLMConnector {
             )
             : messages
 
-        // Build Anthropic-native request body
-        // (= differs from MinimaxConnector by NOT joining text blocks into single string;
-        //    Anthropic expects structured content blocks array)
-        let body: [String: Any] = [
-            "model": options.model,
-            "max_tokens": options.maxTokens,
-            "system": [
-                "type": "text",
-                "text": options.systemPrompt ?? "",
-                "cache_control": ["type": "ephemeral"]
-            ],
-            "messages": cachedMessages.map { msg -> [String: Any] in
-                var dict: [String: Any] = [
-                    "role": msg.role.rawValue,
-                    "content": msg.blocks.map { block -> [String: Any] in
-                        switch block {
-                        case .text(let s):
-                            var d: [String: Any] = ["type": "text", "text": s]
-                            if let marker = msg.cacheControl {
-                                d["cache_control"] = marker
-                            }
-                            return d
-                        case .thinking(let t, let sig):
-                            var d: [String: Any] = ["type": "thinking", "thinking": t]
-                            if let sig { d["signature"] = sig }
-                            return d
-                        case .toolUse(let id, let name, let input):
-                            return [
-                                "type": "tool_use",
-                                "id": id,
-                                "name": name,
-                                "input": input.data(using: .utf8) ?? Data()
-                            ]
-                        case .toolResult(let toolUseID, let output):
-                            return [
-                                "type": "tool_result",
-                                "tool_use_id": toolUseID,
-                                "content": output
-                            ]
-                        }
-                    }
-                ]
-                if let marker = msg.cacheControl {
-                    dict["cache_control"] = marker
-                }
-                return dict
-            }
-        ]
+        // Build request body via shared helper (= TICKET-HERMES-GAP-002).
+        let body = try RequestHelpers.buildAnthropicRequest(
+            model: options.model,
+            messages: cachedMessages,
+            maxTokens: options.maxTokens,
+            systemPrompt: options.systemPrompt
+        )
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue(credentials.apiKey, forHTTPHeaderField: "x-api-key")
         request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
         request.setValue("application/json", forHTTPHeaderField: "content-type")
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        request.httpBody = body
 
         // Send
         let (data, response) = try await session.data(for: request)
@@ -113,67 +82,11 @@ public actor AnthropicConnector: LLMConnector {
             throw LLMConnectorError.transport(provider: connectorID, statusCode: http.statusCode, body: bodyPreview)
         }
 
-        // Decode Anthropic-native response (= structured content blocks)
-        guard
-            let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-            let content = json["content"] as? [[String: Any]]
-        else {
-            throw LLMConnectorError.decode(provider: connectorID, underlying: "missing content array")
-        }
-
-        var blocks: [LLMBlock] = []
-        for block in content {
-            guard let type = block["type"] as? String else { continue }
-            switch type {
-            case "text":
-                if let text = block["text"] as? String {
-                    blocks.append(.text(text))
-                }
-            case "thinking":
-                if let thinking = block["thinking"] as? String {
-                    let signature = block["signature"] as? String
-                    blocks.append(.thinking(text: thinking, signature: signature))
-                }
-            case "tool_use":
-                if let id = block["id"] as? String,
-                   let name = block["name"] as? String,
-                   let input = block["input"] {
-                    let inputString: String
-                    if let inputDict = input as? [String: Any],
-                       let data = try? JSONSerialization.data(withJSONObject: inputDict),
-                       let s = String(data: data, encoding: .utf8) {
-                        inputString = s
-                    } else if let s = input as? String {
-                        inputString = s
-                    } else {
-                        inputString = "{}"
-                    }
-                    blocks.append(.toolUse(id: id, name: name, input: inputString))
-                }
-            default:
-                break
-            }
-        }
-
-        let model = json["model"] as? String ?? options.model
-        let id = json["id"] as? String ?? UUID().uuidString
-        let stopReasonRaw = json["stop_reason"] as? String ?? "unknown"
-        let stopReason = LLMResponse.StopReason(rawValue: stopReasonRaw) ?? .unknown
-
-        var usage = LLMUsage(inputTokens: 0, outputTokens: 0)
-        if let usageDict = json["usage"] as? [String: Any] {
-            usage = LLMUsage(
-                inputTokens: usageDict["input_tokens"] as? Int ?? 0,
-                outputTokens: usageDict["output_tokens"] as? Int ?? 0
-            )
-        }
-
-        return LLMResponse(
-            id: id,
-            model: model,
-            blocks: blocks,
-            stopReason: stopReason,
-            usage: usage
+        // Decode via shared helper (= TICKET-HERMES-GAP-002).
+        return try RequestHelpers.decodeAnthropicResponse(
+            data: data,
+            model: options.model,
+            providerID: connectorID
         )
     }
 }

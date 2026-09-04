@@ -1,5 +1,6 @@
 //
 //  MinimaxConnector.swift · Wenshu · v0.35 ticket 001 sub-step 7
+//                                      TICKET-HERMES-GAP-002 (request marshaling extracted)
 //
 //  Minimax cn connector (= thin Anthropic-compatible wire format wrapper).
 //
@@ -9,6 +10,7 @@
 //
 //  In sub-step 7 (= TB-B tracer-bullet's first connector), we implement
 //  the MINIMUM surface that lets the rest of the agent stack run end-to-end:
+//:
 //    - send(messages:options:) -> LLMResponse via URLSession
 //    - x-api-key + anthropic-version headers
 //    - text-only request/response (= no tool_use yet, lands in ticket 004)
@@ -21,6 +23,12 @@
 //
 //  Pre-tool guardrail: reuses ConnectorCredentials (= AGENTS.md §11.3
 //  wenshu-side wins: thin wrapper over existing ProviderKeychain).
+//
+//  Per TICKET-HERMES-GAP-002 (= hermes-port gap audit §2.1 #8), the
+//  request-body marshaling is in `Connector/RequestHelpers.swift`
+//  (= `buildMinimaxRequest`). The response decoder is shared with
+//  `AnthropicConnector` (= `decodeAnthropicResponse`) since Minimax
+//  returns Anthropic-shaped content blocks.
 //
 //  v0.35 sub-step 7 of 8 for ticket 001.
 //
@@ -45,14 +53,14 @@ public actor MinimaxConnector: LLMConnector {
             throw LLMConnectorError.missingAPIKey(provider: connectorID)
         }
 
-        guard let url = URL(string: "\\(credentials.baseURL)/v1/messages") else {
+        guard let url = URL(string: "\(credentials.baseURL)/v1/messages") else {
             throw LLMConnectorError.unsupportedProvider(slug: connectorID)
         }
 
-        // Apply prompt caching (= ticket 002 PromptCaching.applyCacheControl)
-        // System prompt becomes a separate Anthropic top-level field; markers
-        // placed on the last 3 non-system messages. Both are derived from the
-        // byte-stable invariant per AGENTS.md §11.3.
+        // Apply prompt caching (= ticket 002 PromptCaching.applyCacheControl).
+        // Per-message cache_control marker on the last 3 non-system messages
+        // (= the Anthropic-compatible 4th-breakpoint on system is NOT wired
+        // for Minimax; Minimax does not honor structured `system` blocks).
         let cachedMessages = useCacheControl
             ? PromptCaching.applyCacheControl(
                 messages: messages,
@@ -61,36 +69,24 @@ public actor MinimaxConnector: LLMConnector {
             )
             : messages
 
-        // Build Anthropic-compatible request body
-        let body: [String: Any] = [
-            "model": options.model,
-            "max_tokens": options.maxTokens,
-            "system": options.systemPrompt ?? "",
-            "messages": cachedMessages.map { msg -> [String: Any] in
-                var dict: [String: Any] = [
-                    "role": msg.role.rawValue,
-                    "content": msg.blocks.compactMap { block -> String? in
-                        switch block {
-                        case .text(let s): return s
-                        case .thinking(let t, _): return t
-                        default: return nil
-                        }
-                    }.joined(separator: "\\n")
-                ]
-                // Attach cache_control marker if present (= PromptCaching output)
-                if let marker = msg.cacheControl {
-                    dict["cache_control"] = marker
-                }
-                return dict
-            }
-        ]
+        // Build Anthropic-compatible request body via shared helper
+        // (= TICKET-HERMES-GAP-002). Note: this is the **Minimax-compatible**
+        // helper (= plain-string `system`, joined-string `content`), not the
+        // Anthropic-native helper (= structured `system`, block-array
+        // `content`). The two wire formats are NOT byte-equivalent.
+        let body = try RequestHelpers.buildMinimaxRequest(
+            model: options.model,
+            messages: cachedMessages,
+            maxTokens: options.maxTokens,
+            systemPrompt: options.systemPrompt
+        )
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue(credentials.apiKey, forHTTPHeaderField: "x-api-key")
         request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
         request.setValue("application/json", forHTTPHeaderField: "content-type")
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        request.httpBody = body
 
         // Send
         let (data, response) = try await session.data(for: request)
@@ -102,51 +98,12 @@ public actor MinimaxConnector: LLMConnector {
             throw LLMConnectorError.transport(provider: connectorID, statusCode: http.statusCode, body: bodyPreview)
         }
 
-        // Decode Anthropic-style response (= text only for sub-step 7)
-        guard
-            let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-            let content = json["content"] as? [[String: Any]]
-        else {
-            throw LLMConnectorError.decode(provider: connectorID, underlying: "missing content array")
-        }
-
-        var blocks: [LLMBlock] = []
-        for block in content {
-            guard let type = block["type"] as? String else { continue }
-            switch type {
-            case "text":
-                if let text = block["text"] as? String {
-                    blocks.append(.text(text))
-                }
-            case "thinking":
-                if let thinking = block["thinking"] as? String {
-                    let signature = block["signature"] as? String
-                    blocks.append(.thinking(text: thinking, signature: signature))
-                }
-            default:
-                break
-            }
-        }
-
-        let model = json["model"] as? String ?? options.model
-        let id = json["id"] as? String ?? UUID().uuidString
-        let stopReasonRaw = json["stop_reason"] as? String ?? "unknown"
-        let stopReason = LLMResponse.StopReason(rawValue: stopReasonRaw) ?? .unknown
-
-        var usage = LLMUsage(inputTokens: 0, outputTokens: 0)
-        if let usageDict = json["usage"] as? [String: Any] {
-            usage = LLMUsage(
-                inputTokens: usageDict["input_tokens"] as? Int ?? 0,
-                outputTokens: usageDict["output_tokens"] as? Int ?? 0
-            )
-        }
-
-        return LLMResponse(
-            id: id,
-            model: model,
-            blocks: blocks,
-            stopReason: stopReason,
-            usage: usage
+        // Decode Anthropic-style response (= text only for sub-step 7).
+        // Shared with AnthropicConnector via `decodeAnthropicResponse`.
+        return try RequestHelpers.decodeAnthropicResponse(
+            data: data,
+            model: options.model,
+            providerID: connectorID
         )
     }
 }

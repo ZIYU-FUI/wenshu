@@ -1,15 +1,24 @@
 //
 //  GeminiNativeConnector.swift · Wenshu · v0.35 ticket 007
+//                                         TICKET-HERMES-GAP-002 (request marshaling extracted)
 //
 //  Gemini native connector (= P1, ticket 007).
 //  Google GenAI protocol (= generateContent endpoint).
 //  apiMode = 'google_genai' (per Provider enum).
 //
-//  v0.35 ticket 007 (= 1 commit covering Gemini native).
+//  Per TICKET-HERMES-GAP-002 (= hermes-port gap audit §2.1 #8), the
+//  request-body + response-decoding marshaling has been extracted to
+//  `Connector/RequestHelpers.swift` so each connector is a thin wrapper.
+//  Connector-specific concerns remaining here: credential resolution,
+// URL
+//  building (= ?key= query param), transport send, and HTTP-status
+//  error path.
 //
 //  Note: DeepSeek + Ollama are already covered by OpenAICompatibleConnector
 //  (= ticket 005, since they use the OpenAI chat completions protocol).
 //  This file adds only the Google-specific wire format.
+//
+//  v0.35 ticket 007 (= 1 commit covering Gemini native).
 //
 
 import Foundation
@@ -31,44 +40,22 @@ public actor GeminiNativeConnector: LLMConnector {
         }
 
         // Gemini generateContent endpoint (use ?key= query param for API key)
-        guard let url = URL(string: "\\(credentials.baseURL)/models/\\(options.model):generateContent?key=\\(credentials.apiKey)") else {
+        guard let url = URL(string: "\(credentials.baseURL)/models/\(options.model):generateContent?key=\(credentials.apiKey)") else {
             throw LLMConnectorError.unsupportedProvider(slug: connectorID)
         }
 
-        // Build Gemini request body (= contents array with parts)
-        var contents: [[String: Any]] = []
-        if let sys = options.systemPrompt, !sys.isEmpty {
-            // Gemini uses systemInstruction field (= top-level)
-            // (= system message is a separate field, not in contents)
-            _ = sys  // captured separately
-        }
-        for msg in messages {
-            let role = msg.role == .user ? "user" : "model"
-            let parts: [[String: Any]] = msg.blocks.compactMap { block in
-                switch block {
-                case .text(let s): return ["text": s]
-                default: return nil
-                }
-            }
-            if !parts.isEmpty {
-                contents.append(["role": role, "parts": parts])
-            }
-        }
-
-        var body: [String: Any] = [
-            "contents": contents
-        ]
-        if let sys = options.systemPrompt, !sys.isEmpty {
-            body["systemInstruction"] = ["parts": [["text": sys]]]
-        }
-        if options.maxTokens > 0 {
-            body["generationConfig"] = ["maxOutputTokens": options.maxTokens]
-        }
+        // Build Gemini request body via shared helper (= TICKET-HERMES-GAP-002).
+        let body = try RequestHelpers.buildGeminiRequest(
+            model: options.model,
+            messages: messages,
+            maxTokens: options.maxTokens,
+            systemPrompt: options.systemPrompt
+        )
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "content-type")
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        request.httpBody = body
 
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
@@ -77,35 +64,11 @@ public actor GeminiNativeConnector: LLMConnector {
             throw LLMConnectorError.transport(provider: connectorID, statusCode: statusCode, body: bodyPreview)
         }
 
-        // Decode Gemini response (= candidates[0].content.parts)
-        guard
-            let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-            let candidates = json["candidates"] as? [[String: Any]],
-            let first = candidates.first,
-            let content = first["content"] as? [String: Any],
-            let parts = content["parts"] as? [[String: Any]]
-        else {
-            throw LLMConnectorError.decode(provider: connectorID, underlying: "missing candidates[0].content.parts")
-        }
-
-        let text = parts.compactMap { $0["text"] as? String }.joined(separator: "\n")
-        let model = json["modelVersion"] as? String ?? options.model
-        let id = "gemini-\\(UUID().uuidString.prefix(12))"
-
-        var usage = LLMUsage(inputTokens: 0, outputTokens: 0)
-        if let metadata = json["usageMetadata"] as? [String: Any] {
-            usage = LLMUsage(
-                inputTokens: metadata["promptTokenCount"] as? Int ?? 0,
-                outputTokens: metadata["candidatesTokenCount"] as? Int ?? 0
-            )
-        }
-
-        return LLMResponse(
-            id: id,
-            model: model,
-            blocks: text.isEmpty ? [] : [.text(text)],
-            stopReason: .endTurn,
-            usage: usage
+        // Decode via shared helper (= TICKET-HERMES-GAP-002).
+        return try RequestHelpers.decodeGeminiResponse(
+            data: data,
+            model: options.model,
+            providerID: connectorID
         )
     }
 }
