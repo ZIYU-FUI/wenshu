@@ -397,9 +397,11 @@ struct WorkspaceView: View {
                 ("反链", "link", AnyView(EditorPlaceholder())),
             ], trailingButton: AnyView(EditorExpandShrinkTrailingButton()))
         case .specializedTools:
-            // 老 6区 specializedTools = 3 tabs (= 伏笔 / 占位符 /
+            // 老 6区 specializedTools = 4 tabs (= 伏笔 / 占位符 /
             // LongFormGuardrails per P1 ticket #6
-            // [WIRE-SPECIALIZEDTOOLS-001] 2026-09-04).
+            // [WIRE-SPECIALIZEDTOOLS-001] 2026-09-04 +
+            // ReaderExperience per P1 ticket #7
+            // [WIRE-SPECIALIZEDTOOLS-002] 2026-09-04).
             //   - 伏笔 (= git-fork) + 占位符 (= square-dashed) per
             //     v0.29 boss 2026-08-30 OOB '替换, 用伏笔替换第一个
             //     teb, 用占位替换第二个 teb. 现在的画布功能以后实现'
@@ -408,10 +410,17 @@ struct WorkspaceView: View {
             //     hermes = THE top competitive moat per boss 8/27).
             //     Real content (= 6 guardrail kinds + add / remove /
             //     run check); auto-derived on first open.
+            //   - ReaderExperience (= sparkles) per P1 ticket #7
+            //     (= port reader_experience.py from hermes = 5
+            //     reader-experience analyzers: tension / pacing /
+            //     foreshadowing / cliffhanger / payoff). Real
+            //     content (= chapter-text input + 5-analyzer
+            //     picker + report panel).
             ZoneContentView(zoneSlug: "specializedTools", tabs: [
                 ("伏笔", "git-fork", AnyView(ForeshadowingView())),
                 ("占位符", "square-dashed", AnyView(PlaceholderView())),
                 ("Long-Form", "shield-check", AnyView(LongFormGuardrailsView())),
+                ("Reader-Exp", "sparkles", AnyView(ReaderExperienceView())),
             ])
         case .aiChat:
             ChatView()
@@ -588,13 +597,16 @@ struct ZoneModuleView: View {
             ])
 
         case .specializedTools:
-            // 老 6区 specializedTools = 3 tabs (伏笔 / 占位符 /
+            // 老 6区 specializedTools = 4 tabs (伏笔 / 占位符 /
             // LongFormGuardrails per P1 ticket #6
-            // [WIRE-SPECIALIZEDTOOLS-001] 2026-09-04).
+            // [WIRE-SPECIALIZEDTOOLS-001] 2026-09-04 +
+            // ReaderExperience per P1 ticket #7
+            // [WIRE-SPECIALIZEDTOOLS-002] 2026-09-04).
             ZoneContentView(zoneSlug: "specializedTools", tabs: [
                 ("伏笔", "git-fork", AnyView(ForeshadowingView())),
                 ("占位符", "square-dashed", AnyView(PlaceholderView())),
                 ("Long-Form", "shield-check", AnyView(LongFormGuardrailsView())),
+                ("Reader-Exp", "sparkles", AnyView(ReaderExperienceView())),
             ])
 
         case .aiDynamic:
