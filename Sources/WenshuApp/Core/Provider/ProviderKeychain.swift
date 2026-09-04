@@ -105,13 +105,6 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
     public init() {}
 
     public func saveKeySync(_ key: String, for provider: Provider) throws {
-        // v0.28 followup (Boss 2026-08-29 OOB '注释掉密码功能'): bypass
-        // macOS Keychain entirely. Real SecItemAdd would trigger the
-        // SecurityAgent modal prompt. Stub returns success.
-        // Restore the real implementation when boss returns to Mac and
-        // is ready to enter the real password.
-        return
-        /*
         guard !key.isEmpty else { throw ProviderKeychainError.invalidKeyFormat }
         let keyData = Data(key.utf8)
         let account = "\(provider.slug).api.key"
@@ -135,18 +128,9 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
         ]
         let status = SecItemAdd(addQuery as CFDictionary, nil)
         guard status == errSecSuccess else { throw ProviderKeychainError.keychainStatus(status) }
-        */
     }
 
     public func loadKeySync(for provider: Provider) -> String? {
-        // v0.28 followup (Boss 2026-08-29 OOB '注释掉密码功能'): bypass
-        // macOS Keychain entirely (= avoid SecurityAgent modal prompt).
-        // Returns a debug key string so LLM calls can complete the
-        // request flow without prompting for user credentials.
-        // Restore the real SecItemCopyMatching code below when boss
-        // returns to Mac and is ready to enter the real password.
-        return "wenshu.debug.api.key"
-        /*
         let account = "\(provider.slug).api.key"
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -159,13 +143,9 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
         let status = SecItemCopyMatching(query as CFDictionary, &item)
         guard status == errSecSuccess, let data = item as? Data else { return nil }
         return String(data: data, encoding: .utf8)
-        */
     }
 
     public func deleteKeySync(for provider: Provider) throws {
-        // v0.28 followup (Boss 2026-08-29 OOB '注释掉密码功能'): bypass.
-        return
-        /*
         let account = "\(provider.slug).api.key"
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -176,13 +156,9 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
         guard status == errSecSuccess || status == errSecItemNotFound else {
             throw ProviderKeychainError.keychainStatus(status)
         }
-        */
     }
 
     public func listProvidersWithKeys() -> [String] {
-        // v0.28 followup (Boss 2026-08-29 OOB '注释掉密码功能'): bypass.
-        return []
-        /*
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: AppleKeychainStore.service,
@@ -194,7 +170,6 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
         guard status == errSecSuccess, let array = items as? [[String: Any]] else { return [] }
         return array.compactMap { $0[kSecAttrAccount as String] as? String }
             .compactMap { $0.hasSuffix(".api.key") ? String($0.dropLast(".api.key".count)) : nil }
-        */
     }
 }
 
@@ -246,14 +221,13 @@ public final class InMemoryKeychainStore: ProviderKeychainStoring, @unchecked Se
 /// Delegates to `ProviderKeychain.backend` (default = AppleKeychainStore for production).
 /// Tests override `backend` via `setBackendForTesting()`.
 public enum ProviderKeychain {
-    // v0.30 boss 2026-08-30 followup: restored AppleKeychainStore as the
-    // default backend (= the InMemoryKeychainStore fallback added by
-    // the v0.28 weekend debug hack has been reverted). Production builds
-    // now hit the real macOS Keychain (= user enters their password
-    // once at first launch, SecItemAdd/Query/Delete thereafter). The
-    // WENSHU_DEBUG_INMEMORY_KEYCHAIN env var override is still wired
-    // (= re-enable InMemoryKeychainStore by setting the env var, for
-    // cua / dev / CI environments without user-attached keychain).
+    // Production backend = AppleKeychainStore (real macOS Keychain via
+    // Security framework). SecItemAdd/Query/Delete hit the real Keychain;
+    // first write triggers the macOS SecurityAgent modal prompt for the
+    // user to unlock/login. Tests use `setBackendForTesting` to inject
+    // InMemoryKeychainStore (= no OS Keychain entitlement required).
+    // WENSHU_DEBUG_INMEMORY_KEYCHAIN env var (= 1) flips to InMemory
+    // for cua / dev / CI environments without a user-attached keychain.
     public nonisolated(unsafe) static var backend: any ProviderKeychainStoring = AppleKeychainStore()
 
     /// Test-only override. Production code must never call this.
