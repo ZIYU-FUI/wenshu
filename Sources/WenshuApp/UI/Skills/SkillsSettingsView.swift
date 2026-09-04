@@ -24,9 +24,9 @@ public struct SkillsSettingsView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Skills")
+            Text(WenshuI18n.t("settings.skills.title"))
                 .font(.headline)
-            Text("Skills are /-prefixed commands that extend the agent (= /compress, /help, /rewind, etc.).")
+            Text(WenshuI18n.t("settings.skills.subtitle"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -34,13 +34,13 @@ public struct SkillsSettingsView: View {
 
             // Skill command tester
             HStack {
-                Text("Try a command:")
+                Text(WenshuI18n.t("settings.skills.tryCommand"))
                     .font(.caption)
-                TextField("/compress focus on chapter 3", text: $slashCommandBuffer)
+                TextField(WenshuI18n.t("settings.skills.tryCommand.placeholder"), text: $slashCommandBuffer)
                     .textFieldStyle(.roundedBorder)
                     .font(.caption)
                 if let parsed = SkillAdapter.parseSlashCommand(slashCommandBuffer) {
-                    Text("→ \\(parsed.skillName)")
+                    Text(WenshuI18n.ts("settings.skills.parsedHint", parsed.skillName))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -49,11 +49,11 @@ public struct SkillsSettingsView: View {
             Divider()
 
             // Installed skills list
-            Text("Installed skills (\\(skills.count))")
+            Text(WenshuI18n.tf("settings.skills.installed", skills.count))
                 .font(.subheadline)
 
             if skills.isEmpty {
-                Text("No skills installed yet. Skills are loaded from the skill registry.")
+                Text(WenshuI18n.t("settings.skills.installed.empty"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(.vertical, DesignTokens.chromePaddingSmall)
