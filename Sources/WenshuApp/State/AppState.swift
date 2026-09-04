@@ -144,7 +144,13 @@ final class EditorTab: Identifiable {
         documentPath: String?,
         draft: String,
         originalBody: String,
-        mode: EditorMode = .preview
+        // v0.39 ticket 001-A-extended: default to .edit (= was .preview
+    // in v0.34; = the reason the placeholder tab and any caller that
+    // uses the default init landed users in raw-text preview mode
+    // rather than the live-styling editor). openCardInEditor passes
+    // .edit explicitly too, but this default is the one the placeholder
+    // tab + 027-35 document-load ticket use, so it must match.
+    mode: EditorMode = .edit
     ) {
         self.id = id
         self.documentPath = documentPath
