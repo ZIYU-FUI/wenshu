@@ -421,6 +421,7 @@ struct WorkspaceView: View {
                 ("占位符", "square-dashed", AnyView(PlaceholderView())),
                 ("Long-Form", "shield-check", AnyView(LongFormGuardrailsView())),
                 ("Reader-Exp", "sparkles", AnyView(ReaderExperienceView())),
+                ("Plot-Thread", "git-branch", AnyView(PlotThreadView())),
             ])
         case .aiChat:
             ChatView()
@@ -607,6 +608,7 @@ struct ZoneModuleView: View {
                 ("占位符", "square-dashed", AnyView(PlaceholderView())),
                 ("Long-Form", "shield-check", AnyView(LongFormGuardrailsView())),
                 ("Reader-Exp", "sparkles", AnyView(ReaderExperienceView())),
+                ("Plot-Thread", "git-branch", AnyView(PlotThreadView())),
             ])
 
         case .aiDynamic:
