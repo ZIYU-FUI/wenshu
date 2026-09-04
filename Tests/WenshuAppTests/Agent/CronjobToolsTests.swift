@@ -23,8 +23,8 @@ struct CronjobToolsTests {
     func testCreateAndList() async {
         let tools = CronjobTools()
         let createParams = CronjobTools.CronJobParams(
-            schedule: "0 * * * *",
             prompt: "save the current chapter",
+            schedule: "0 * * * *",
             name: "HourlySave"
         )
         let createResult = await tools.cronjob(action: "create", params: createParams)
@@ -50,8 +50,8 @@ struct CronjobToolsTests {
     func testPauseResume() async {
         let tools = CronjobTools()
         _ = await tools.cronjob(action: "create", params: CronjobTools.CronJobParams(
-            schedule: "*/5 * * * *",
             prompt: "ping",
+            schedule: "*/5 * * * *",
             name: "Ping"
         ))
         let list1 = await tools.cronjob(action: "list")
@@ -70,8 +70,8 @@ struct CronjobToolsTests {
     func testRemove() async {
         let tools = CronjobTools()
         _ = await tools.cronjob(action: "create", params: CronjobTools.CronJobParams(
-            schedule: "0 0 * * *",
             prompt: "doomed",
+            schedule: "0 0 * * *",
             name: "Doomed"
         ))
         let list1 = await tools.cronjob(action: "list")

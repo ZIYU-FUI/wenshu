@@ -21,7 +21,7 @@ struct ContextEngineBundleTests {
     @Test("assembleBundle builds a bundle from explicit inputs")
     func testAssembleBundleBasic() async {
         let engine = ContextEngine()
-        let bundle = engine.assembleBundle(
+        let bundle = await engine.assembleBundle(
             ephemeralHint: "today is Tuesday",
             cacheableReferences: ["ref 1", "ref 2"],
             perTurnMemos: [

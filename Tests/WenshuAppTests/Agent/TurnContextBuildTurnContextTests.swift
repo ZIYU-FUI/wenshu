@@ -19,25 +19,26 @@ struct TurnContextBuildTurnContextTests {
 
     // MARK: - Test 1: All hooks fire in hermes order
 
-    actor OrderRecorder {
-        var order: [String] = []
-        func record(_ s: String) { order.append(s) }
-        var snapshot: [String] { order }
+    final class OrderRecorder: @unchecked Sendable {
+        private let lock = NSLock()
+        private var orderStorage: [String] = []
+        func record(_ s: String) { lock.withLock { orderStorage.append(s) } }
+        var snapshot: [String] { lock.withLock { orderStorage } }
     }
 
     @Test("buildTurnContext fires the 9 setup hooks in hermes order")
     func testBuildRunsAllHooksInOrder() async throws {
         let recorder = OrderRecorder()
         let hooks = TurnContextBuilder.Hooks(
-            installSafeStdio: { await recorder.record("stdio") },
-            sanitizeSurrogates: { s in await recorder.record("sanitize"); return s },
-            restorePrimaryRuntime: { await recorder.record("restore_runtime") },
-            setAuxiliaryRuntimeMain: { _, _, _, _, _ in await recorder.record("aux") },
-            resetToolGuardrails: { await recorder.record("guardrails") },
-            refreshCredentials: { await recorder.record("creds") },
-            restoreOrBuildSystemPrompt: { await recorder.record("prompt"); return "you are wenshu" },
-            resetRetryCounters: { await recorder.record("retry"); return ["x": 0] },
-            persistUserMessage: { _, _ in await recorder.record("persist") }
+            installSafeStdio: { recorder.record("stdio") },
+            sanitizeSurrogates: { s in recorder.record("sanitize"); return s },
+            restorePrimaryRuntime: { recorder.record("restore_runtime") },
+            setAuxiliaryRuntimeMain: { _, _, _, _, _ in recorder.record("aux") },
+            resetToolGuardrails: { recorder.record("guardrails") },
+            refreshCredentials: { recorder.record("creds") },
+            restoreOrBuildSystemPrompt: { recorder.record("prompt"); return "you are wenshu" },
+            resetRetryCounters: { recorder.record("retry"); return ["x": 0] },
+            persistUserMessage: { _, _ in recorder.record("persist") }
         )
         let builder = TurnContextBuilder(hooks: hooks)
         let ctx = builder.buildTurnContext(
@@ -45,7 +46,7 @@ struct TurnContextBuildTurnContextTests {
             conversationHistory: [],
             model: "claude-3-5"
         )
-        let order = await recorder.snapshot
+        let order = recorder.snapshot
         let expected = ["stdio", "aux", "restore_runtime", "creds", "retry", "guardrails", "sanitize", "prompt", "persist"]
         #expect(order == expected)
         #expect(ctx.systemMessage == "you are wenshu")
@@ -103,22 +104,23 @@ struct TurnContextBuildTurnContextTests {
 
     // MARK: - Test 4: Credential refresh fires before prompt restore
 
-    actor TimingRecorder {
-        var timeline: [String] = []
-        func mark(_ s: String) { timeline.append(s) }
-        var snapshot: [String] { timeline }
+    final class TimingRecorder: @unchecked Sendable {
+        private let lock = NSLock()
+        private var timelineStorage: [String] = []
+        func mark(_ s: String) { lock.withLock { timelineStorage.append(s) } }
+        var snapshot: [String] { lock.withLock { timelineStorage } }
     }
 
     @Test("credential refresh runs before system prompt restore (= hermes order)")
     func testCredentialRefresh() async throws {
         let rec = TimingRecorder()
         let hooks = TurnContextBuilder.Hooks(
-            refreshCredentials: { await rec.mark("creds") },
-            restoreOrBuildSystemPrompt: { await rec.mark("prompt"); return "ok" }
+            refreshCredentials: { rec.mark("creds") },
+            restoreOrBuildSystemPrompt: { rec.mark("prompt"); return "ok" }
         )
         let builder = TurnContextBuilder(hooks: hooks)
         _ = builder.buildTurnContext(userMessage: "x", conversationHistory: [], model: "m")
-        let t = await rec.snapshot
+        let t = rec.snapshot
         #expect(t.firstIndex(of: "creds")! < t.firstIndex(of: "prompt")!)
     }
 

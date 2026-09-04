@@ -139,7 +139,7 @@ public struct AuxiliaryTaskConfig: Sendable, Equatable {
     public let temperature: Double?
     public let maxTokens: Int?
     public let timeoutSeconds: Double
-    public let extraBody: [String: Any]
+    public let extraBody: [String: String]
 
     public init(
         task: String,
@@ -149,7 +149,7 @@ public struct AuxiliaryTaskConfig: Sendable, Equatable {
         temperature: Double? = nil,
         maxTokens: Int? = nil,
         timeoutSeconds: Double = 60.0,
-        extraBody: [String: Any] = [:]
+        extraBody: [String: String] = [:]
     ) {
         self.task = task
         self.provider = provider
@@ -229,7 +229,7 @@ public enum AuxiliaryTaskRegistry {
     }
 
     /// Resolve the extra body (= hermes _get_task_extra_body).
-    public static func extraBody(task: String) -> [String: Any] {
+    public static func extraBody(task: String) -> [String: String] {
         return config(for: task).extraBody
     }
 }
@@ -332,12 +332,12 @@ public actor AuxiliaryClient {
     /// push). Returns any events that should be flushed now (= prior
     /// pending events with a different eventType, or events whose
     /// coalesce window has elapsed).
-    public func pushSSE(_ event: SSECoalescedEvent) -> [SSECoalescedEvent] {
+    public func pushSSE(_ event: SSECoalescedEvent) async -> [SSECoalescedEvent] {
         return await coalescer.push(event)
     }
 
     /// Drain the coalescer (= call when the stream ends).
-    public func drainSSE() -> [SSECoalescedEvent] {
+    public func drainSSE() async -> [SSECoalescedEvent] {
         return await coalescer.take()
     }
 

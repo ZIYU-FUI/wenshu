@@ -194,11 +194,11 @@ public enum SystemPrompt {
     /// (= HERMES-PARTIAL-012: per-provider + per-locale + dynamic-tier).
     ///
     /// Returns the three hermes tiers:
-        * ``stable``   — identity + tool guidance + per-provider operational
-          guidance + skills prompt + environment hints + platform hints.
-        * ``dynamic``  — caller-supplied system message + ephemeral hint.
-        * ``context``  — context files (AGENTS.md, .cursorrules, etc.)
-          and locale-specific identity. (Empty by default in wenshu.)
+    /// * ``stable``   — identity + tool guidance + per-provider operational
+    ///   guidance + skills prompt + environment hints + platform hints.
+    /// * ``dynamic``  — caller-supplied system message + ephemeral hint.
+    /// * ``context``  — context files (AGENTS.md, .cursorrules, etc.)
+    ///   and locale-specific identity. (Empty by default in wenshu.)
     public static func buildParts(options: BuildOptions) -> [String: String] {
         var parts: [String: String] = [:]
 

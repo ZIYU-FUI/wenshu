@@ -128,7 +128,7 @@ public enum SkillFrontmatterParser {
                 continue
             }
             let result = runInlineShell(command: cmd, cwd: skillDir, timeout: timeout)
-            let fullNSRange = NSRange(fullRange.location, length: fullRange.length)
+            let fullNSRange = NSRange(location: fullRange.location, length: fullRange.length)
             if let swiftRange = Range(fullNSRange, in: out) {
                 out.replaceSubrange(swiftRange, with: result)
             }

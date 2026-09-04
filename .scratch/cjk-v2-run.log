@@ -1,0 +1,68 @@
+Cache entries (filtered): 559
+Sources root: /Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp
+
+Swift files scanned: 241
+
+Sources/WenshuApp/App.swift: cache=0 manual=0 todo=14 old_markers_removed=42 blocks=10
+Sources/WenshuApp/Core/Agent/Connector/WenshuVerifier.swift: cache=0 manual=0 todo=1 old_markers_removed=4 blocks=1
+Sources/WenshuApp/Core/Agent/Connector/WenshuVerifierKeyNote.swift: cache=0 manual=0 todo=1 old_markers_removed=3 blocks=1
+Sources/WenshuApp/Core/Agent/Conversation/SystemPrompt.swift: cache=0 manual=0 todo=0 old_markers_removed=10 blocks=0
+Sources/WenshuApp/Core/Agent/Conversation/WenshuConductor.swift: cache=0 manual=0 todo=0 old_markers_removed=1 blocks=0
+Sources/WenshuApp/Core/Bookmarks/BookmarkStore.swift: cache=0 manual=0 todo=1 old_markers_removed=3 blocks=1
+Sources/WenshuApp/Core/Chat/ChatSessionStore.swift: cache=0 manual=0 todo=1 old_markers_removed=4 blocks=1
+Sources/WenshuApp/Core/Composer/NoteComposer.swift: cache=0 manual=0 todo=1 old_markers_removed=3 blocks=1
+Sources/WenshuApp/Core/Graph/GraphBuilder.swift: cache=0 manual=0 todo=2 old_markers_removed=10 blocks=2
+Sources/WenshuApp/Core/LinkGraph/BacklinksPanel.swift: cache=0 manual=0 todo=1 old_markers_removed=3 blocks=1
+Sources/WenshuApp/Core/LinkGraph/LinkIndex.swift: cache=0 manual=0 todo=1 old_markers_removed=3 blocks=1
+Sources/WenshuApp/Core/Provider/AvailableModelsDiscovery.swift: cache=0 manual=0 todo=2 old_markers_removed=6 blocks=1
+Sources/WenshuApp/Core/QuickSwitcher/QuickSwitcherIndex.swift: cache=0 manual=0 todo=2 old_markers_removed=8 blocks=1
+Sources/WenshuApp/Core/Search/FullTextSearch.swift: cache=0 manual=0 todo=3 old_markers_removed=9 blocks=3
+Sources/WenshuApp/Core/Skills/SkillRegistry.swift: cache=0 manual=0 todo=1 old_markers_removed=3 blocks=1
+Sources/WenshuApp/Core/Tools/AVMediaTools.swift: cache=0 manual=0 todo=1 old_markers_removed=3 blocks=1
+Sources/WenshuApp/DesignTokens.swift: cache=0 manual=0 todo=1 old_markers_removed=3 blocks=1
+Sources/WenshuApp/Domain/Book.swift: cache=0 manual=0 todo=1 old_markers_removed=3 blocks=1
+Sources/WenshuApp/Domain/Bookshelf.swift: cache=0 manual=0 todo=1 old_markers_removed=3 blocks=1
+Sources/WenshuApp/Domain/Character.swift: cache=0 manual=0 todo=1 old_markers_removed=3 blocks=1
+Sources/WenshuApp/Domain/ChatTrigger.swift: cache=0 manual=0 todo=1 old_markers_removed=3 blocks=1
+Sources/WenshuApp/Domain/CrossRefInject.swift: cache=0 manual=0 todo=1 old_markers_removed=3 blocks=1
+Sources/WenshuApp/Domain/Document.swift: cache=0 manual=0 todo=2 old_markers_removed=6 blocks=2
+Sources/WenshuApp/Domain/EntityCategory.swift: cache=0 manual=0 todo=4 old_markers_removed=12 blocks=2
+Sources/WenshuApp/Domain/EntityType.swift: cache=0 manual=0 todo=1 old_markers_removed=3 blocks=1
+Sources/WenshuApp/Domain/Reference.swift: cache=0 manual=0 todo=1 old_markers_removed=3 blocks=1
+Sources/WenshuApp/Domain/World.swift: cache=0 manual=0 todo=2 old_markers_removed=6 blocks=2
+Sources/WenshuApp/State/BookStore.swift: cache=0 manual=0 todo=2 old_markers_removed=6 blocks=2
+Sources/WenshuApp/State/WorkspaceStore.swift: cache=0 manual=0 todo=3 old_markers_removed=9 blocks=2
+Sources/WenshuApp/Storage/EntityClassifier.swift: cache=0 manual=0 todo=11 old_markers_removed=43 blocks=9
+Sources/WenshuApp/Storage/FileSystemLibraryStore.swift: cache=0 manual=0 todo=2 old_markers_removed=6 blocks=2
+Sources/WenshuApp/Storage/FileSystemReferenceStore.swift: cache=0 manual=0 todo=1 old_markers_removed=3 blocks=1
+Sources/WenshuApp/Storage/LibraryMigrator.swift: cache=0 manual=0 todo=5 old_markers_removed=151 blocks=4
+Sources/WenshuApp/Storage/LibraryStoring.swift: cache=0 manual=0 todo=1 old_markers_removed=3 blocks=1
+Sources/WenshuApp/UI/Agent/RuntimeCWDDisplayChip.swift: cache=0 manual=0 todo=1 old_markers_removed=3 blocks=1
+Sources/WenshuApp/UI/Drag/NativeControlsInspector.swift: cache=0 manual=0 todo=1 old_markers_removed=3 blocks=1
+Sources/WenshuApp/UI/PaneIconTab.swift: cache=0 manual=0 todo=1 old_markers_removed=3 blocks=1
+Sources/WenshuApp/UI/PaneStatusBar.swift: cache=0 manual=0 todo=1 old_markers_removed=3 blocks=1
+Sources/WenshuApp/UI/PaneTabBar.swift: cache=0 manual=0 todo=1 old_markers_removed=3 blocks=1
+Sources/WenshuApp/UI/RegionContentBackground.swift: cache=0 manual=0 todo=3 old_markers_removed=9 blocks=2
+Sources/WenshuApp/UI/RegionTabBar.swift: cache=0 manual=0 todo=4 old_markers_removed=12 blocks=3
+Sources/WenshuApp/UI/ZonePerRegionChrome.swift: cache=0 manual=0 todo=2 old_markers_removed=6 blocks=2
+Sources/WenshuApp/Views/Chat/ChatView.swift: cache=0 manual=0 todo=15 old_markers_removed=45 blocks=15
+Sources/WenshuApp/Views/Dynamic/ZoneContentView.swift: cache=0 manual=0 todo=2 old_markers_removed=6 blocks=2
+Sources/WenshuApp/Views/Kanban/SubAgentProgressView.swift: cache=0 manual=0 todo=1 old_markers_removed=3 blocks=1
+Sources/WenshuApp/Views/Layout/PaneNSController.swift: cache=0 manual=0 todo=2 old_markers_removed=6 blocks=2
+Sources/WenshuApp/Views/Library/BookshelfEditorSheet.swift: cache=0 manual=0 todo=1 old_markers_removed=3 blocks=1
+Sources/WenshuApp/Views/Library/NewLibraryOutlineView.swift: cache=0 manual=0 todo=3 old_markers_removed=9 blocks=3
+Sources/WenshuApp/Views/Onboarding/LibraryRootView.swift: cache=0 manual=0 todo=4 old_markers_removed=12 blocks=3
+Sources/WenshuApp/Views/Tools/ForeshadowingView.swift: cache=0 manual=0 todo=1 old_markers_removed=3 blocks=1
+Sources/WenshuApp/Views/Tools/PlaceholderView.swift: cache=0 manual=0 todo=1 old_markers_removed=3 blocks=1
+Sources/WenshuApp/Views/Workspace/LayoutPicker/LayoutEditBar.swift: cache=0 manual=0 todo=1 old_markers_removed=3 blocks=1
+Sources/WenshuApp/Views/Workspace/LayoutPicker/PresetCard.swift: cache=0 manual=0 todo=1 old_markers_removed=3 blocks=1
+Sources/WenshuApp/Views/Workspace/PreviewPane.swift: cache=0 manual=0 todo=10 old_markers_removed=30 blocks=5
+Sources/WenshuApp/Views/Workspace/TabContentDispatcher.swift: cache=0 manual=0 todo=1 old_markers_removed=3 blocks=1
+Sources/WenshuApp/Views/Workspace/WorkspaceView.swift: cache=0 manual=0 todo=8 old_markers_removed=16 blocks=8
+
+=== TOTALS ===
+Files changed: 56
+Translated via cache:  0
+Translated via manual: 0
+Marked TODO:           138
+Old markers removed:   571

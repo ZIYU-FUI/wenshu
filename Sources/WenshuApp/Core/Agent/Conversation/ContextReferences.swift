@@ -122,9 +122,12 @@ public actor ContextReferences {
             byFile.removeValue(forKey: ref.sourceFile)
         }
         for (session, ids) in bySession {
-            ids.remove(messageID)
-            if ids.isEmpty {
+            var idsCopy = ids
+            idsCopy.remove(messageID)
+            if idsCopy.isEmpty {
                 bySession.removeValue(forKey: session)
+            } else {
+                bySession[session] = idsCopy
             }
         }
     }

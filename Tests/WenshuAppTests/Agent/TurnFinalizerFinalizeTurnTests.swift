@@ -82,14 +82,15 @@ struct TurnFinalizerFinalizeTurnTests {
 
     @Test("finalizeTurn records max_iterations_reached exit reason when budget blown")
     func testFinalizeTurnBudgetExhausted() {
-        actor BudgetRecorder {
-            var called = false
-            func mark() { called = true }
-            var snapshot: Bool { called }
+        final class BudgetRecorder: @unchecked Sendable {
+            private let lock = NSLock()
+            private var calledStorage = false
+            func mark() { lock.withLock { calledStorage = true } }
+            var snapshot: Bool { lock.withLock { calledStorage } }
         }
         let rec = BudgetRecorder()
         let hooks = TurnFinalizer.PostTurnHooks(
-            recordBudgetExhaustion: { _, _ in await rec.mark() }
+            recordBudgetExhaustion: { _, _ in rec.mark() }
         )
         var messages: [LLMMessage] = []
         let finalized = TurnFinalizer.finalizeTurn(
@@ -105,7 +106,7 @@ struct TurnFinalizerFinalizeTurnTests {
             taskId: "task1",
             hooks: hooks
         )
-        let called = await rec.snapshot
+        let called = rec.snapshot
         #expect(called == true)
         #expect(finalized.exitReason.hasPrefix("max_iterations_reached"))
         #expect(finalized.completed == false)

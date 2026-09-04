@@ -9,7 +9,7 @@ import Testing
 @testable import WenshuApp
 
 @Suite("AsyncDelegation (hermes async delegation parity)")
-struct AsyncDelegationTests {
+struct AsyncDelegationInfrastructureTests {
 
     @Test("register + get round-trip")
     func testRegisterGet() async {

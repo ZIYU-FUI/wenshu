@@ -66,7 +66,7 @@ public actor CronjobTools {
         public var prompt: String?
         public var schedule: String?
         public var name: String?
-        public var repeat: Int?
+        public var `repeat`: Int?
         public var deliver: String?
         public var skill: String?
         public var skills: [String]?
@@ -86,7 +86,7 @@ public actor CronjobTools {
             prompt: String? = nil,
             schedule: String? = nil,
             name: String? = nil,
-            repeat repeat_: Int? = nil,
+            `repeat`: Int? = nil,
             deliver: String? = nil,
             skill: String? = nil,
             skills: [String]? = nil,
@@ -105,7 +105,7 @@ public actor CronjobTools {
             self.prompt = prompt
             self.schedule = schedule
             self.name = name
-            self.repeat = repeat_
+            self.`repeat` = `repeat`
             self.deliver = deliver
             self.skill = skill
             self.skills = skills
@@ -126,9 +126,9 @@ public actor CronjobTools {
     public struct CronToolResult: Sendable, Equatable {
         public let success: Bool
         public let output: String
-        public let data: [String: Any]
+        public let data: [String: String]
 
-        public init(success: Bool, output: String, data: [String: Any] = [:]) {
+        public init(success: Bool, output: String, data: [String: String] = [:]) {
             self.success = success
             self.output = output
             self.data = data
@@ -169,11 +169,14 @@ public actor CronjobTools {
             return CronToolResult(success: false, output: "create requires either prompt or at least one skill")
         }
         // Scan the prompt for injection markers (= hermes _scan_cron_prompt).
-        if let scanErr = CronPromptScanner.scan(prompt: prompt) {
-            return CronToolResult(success: false, output: scanErr)
+        switch CronPromptScanner.scan(prompt) {
+        case .clean:
+            break
+        case .blocked(let reason), .suspicious(let reason):
+            return CronToolResult(success: false, output: reason)
         }
         // Validate the schedule (= hermes parse_schedule).
-        if CronScheduleParser.parse(schedule) == nil {
+        if (try? CronExpression.parse(schedule)) == nil {
             return CronToolResult(success: false, output: "Invalid cron schedule: \(schedule)")
         }
         let job = Cronjob(
@@ -197,7 +200,7 @@ public actor CronjobTools {
         return CronToolResult(
             success: true,
             output: summary.isEmpty ? "(no cron jobs)" : summary,
-            data: ["count": filtered.count]
+            data: ["count": String(filtered.count)]
         )
     }
 
@@ -209,7 +212,7 @@ public actor CronjobTools {
         return CronToolResult(
             success: true,
             output: "\(job.name): schedule=\(job.schedule), enabled=\(job.enabled)",
-            data: ["id": job.id, "name": job.name, "schedule": job.schedule, "enabled": job.enabled]
+            data: ["id": job.id, "name": job.name, "schedule": job.schedule, "enabled": String(job.enabled)]
         )
     }
 
@@ -223,7 +226,7 @@ public actor CronjobTools {
         }
         if let schedule = params.schedule {
             // Validate the new schedule before storing.
-            if CronScheduleParser.parse(schedule) == nil {
+            if (try? CronExpression.parse(schedule)) == nil {
                 return CronToolResult(success: false, output: "Invalid cron schedule: \(schedule)")
             }
             unwrapped.schedule = schedule

@@ -201,7 +201,7 @@ public enum AnthropicAdapter {
                 if url.hasPrefix("data:") {
                     let stripped = String(url.dropFirst("data:".count))
                     let parts = stripped.split(separator: ",", maxSplits: 1)
-                    let mt = String(parts.first ?? mediaType)
+                    let mt = String(parts.first ?? Substring(mediaType))
                     let data = parts.count > 1 ? String(parts[1]) : ""
                     return .document(source: ContentBlock.DocumentSource(
         kind: .base64, mediaType: mt, data: data

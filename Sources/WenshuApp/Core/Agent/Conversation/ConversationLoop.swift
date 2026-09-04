@@ -54,7 +54,7 @@ import Foundation
 /// full message history + taskId for tracing + telemetry).
 public struct ConversationResult: Sendable {
     public let response: LLMResponse
-    public let messages: [LLMMessage]
+    public var messages: [LLMMessage]
     public let taskId: String
 
     public init(response: LLMResponse, messages: [LLMMessage], taskId: String) {
@@ -128,7 +128,7 @@ public actor ConversationLoop {
     /// Legacy initializer (= preserved for backward compat with callers
     /// that built the loop before HERMES-PARTIAL-001). Delegates to the
     /// HERMES-PARTIAL-001 init with default hook chain + compression actor.
-    public convenience init(
+    public init(
         connector: any LLMConnector,
         systemPrompt: String? = nil,
         runtime: RuntimeHelpers? = nil
@@ -219,7 +219,8 @@ public actor ConversationLoop {
         // _strip_non_ascii), reset the retry counter for this turn, and
         // emit the pre-turn shell hook.
         let sanitizedUser = MessageSanitization.sanitizeText(userMessage)
-        let retryState = TurnRetryState(maxAttempts: 1).reset() // single-shot = no retry; runTurn() manages retries
+        var retryState = TurnRetryState(maxAttempts: 1)
+        retryState.reset() // single-shot = no retry; runTurn() manages retries
         let turnCtx = TurnContext(
             taskId: resolvedTaskId,
             userMessage: sanitizedUser,
@@ -229,7 +230,7 @@ public actor ConversationLoop {
             maxTokens: 4096,
             attemptNumber: retryState.attemptNumber
         )
-        await shellHookChain.firePreTurn(sanitizedUser)
+        try await shellHookChain.firePreTurn(sanitizedUser)
         _ = turnCtx  // captured for downstream debug accessors
 
         // Build message list = prior history + new user message
@@ -281,7 +282,7 @@ public actor ConversationLoop {
         //   1. TurnFinalizer.finalize (= drop empty blocks, normalize)
         //   2. ShellHookChain.firePostTurn (= observation + optional mutation)
         let finalResponse = TurnFinalizer.finalize(response: response)
-        await shellHookChain.firePostTurn(finalResponse)
+        try await shellHookChain.firePostTurn(finalResponse)
 
         // moaConfig deferred to v2 per spec §14 (= no-op for now)
         _ = moaConfig

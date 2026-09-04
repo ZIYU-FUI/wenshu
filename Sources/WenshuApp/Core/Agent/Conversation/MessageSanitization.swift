@@ -265,7 +265,7 @@ public enum MessageSanitization {
         for scalar in text.unicodeScalars {
             let v = scalar.value
             if v < 0x80 {
-                out.append(Character(scalar))
+                out.append(Swift.Character(UnicodeScalar(v)!))
             } else {
                 out.append("?")
             }

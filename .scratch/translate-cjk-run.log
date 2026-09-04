@@ -1,0 +1,217 @@
+Found 235 swift files
+
+Sources/WenshuApp/AI/SSEClient.swift: 1 CJK comment block(s)
+/Users/anbaiqiang/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+
+Sources/WenshuApp/AI/UserFacingError.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/App.swift: 85 CJK comment block(s)
+
+Sources/WenshuApp/Core/Agent/Connector/WenshuLLMModel.swift: 4 CJK comment block(s)
+
+Sources/WenshuApp/Core/Agent/Connector/WenshuVerifier.swift: 16 CJK comment block(s)
+
+Sources/WenshuApp/Core/Agent/Connector/WenshuVerifierKeyNote.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Core/Agent/Conversation/AgentProtocol.swift: 19 CJK comment block(s)
+
+Sources/WenshuApp/Core/Agent/Conversation/AgentRuntime.swift: 13 CJK comment block(s)
+
+Sources/WenshuApp/Core/Agent/Conversation/AsyncDelegation.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Core/Agent/Conversation/SubAgentIdentity.swift: 2 CJK comment block(s)
+
+Sources/WenshuApp/Core/Agent/Conversation/SubAgentPermissions.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Core/Agent/Conversation/WenshuAgentIdentity.swift: 3 CJK comment block(s)
+
+Sources/WenshuApp/Core/Agent/Conversation/WenshuConductor.swift: 23 CJK comment block(s)
+  block at L307-307: UNCHANGED
+
+Sources/WenshuApp/Core/Backup/Backup.swift: 8 CJK comment block(s)
+
+Sources/WenshuApp/Core/Bases/BaseParser.swift: 8 CJK comment block(s)
+
+Sources/WenshuApp/Core/Bases/BaseView.swift: 3 CJK comment block(s)
+
+Sources/WenshuApp/Core/Bookmarks/BookmarkPanel.swift: 3 CJK comment block(s)
+
+Sources/WenshuApp/Core/Bookmarks/BookmarkStore.swift: 8 CJK comment block(s)
+
+Sources/WenshuApp/Core/Canvas/CanvasView.swift: 4 CJK comment block(s)
+
+Sources/WenshuApp/Core/Canvas/JSONCanvasCodec.swift: 9 CJK comment block(s)
+
+Sources/WenshuApp/Core/Chat/ChatSessionStore.swift: 23 CJK comment block(s)
+
+Sources/WenshuApp/Core/Composer/ComposerPanel.swift: 4 CJK comment block(s)
+
+Sources/WenshuApp/Core/Composer/NoteComposer.swift: 8 CJK comment block(s)
+
+Sources/WenshuApp/Core/Cron/CronPromptScanner.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Core/Cron/Cronjob.swift: 8 CJK comment block(s)
+
+Sources/WenshuApp/Core/Graph/GraphBuilder.swift: 21 CJK comment block(s)
+
+Sources/WenshuApp/Core/Graph/GraphView.swift: 4 CJK comment block(s)
+
+Sources/WenshuApp/Core/Kanban/KanbanRole.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Core/Kanban/KanbanStore.swift: 14 CJK comment block(s)
+
+Sources/WenshuApp/Core/LinkGraph/BacklinkResolver.swift: 14 CJK comment block(s)
+
+Sources/WenshuApp/Core/LinkGraph/BacklinksPanel.swift: 6 CJK comment block(s)
+
+Sources/WenshuApp/Core/LinkGraph/InternalLinkParser.swift: 9 CJK comment block(s)
+
+Sources/WenshuApp/Core/LinkGraph/LinkIndex.swift: 16 CJK comment block(s)
+
+Sources/WenshuApp/Core/Memory/MemoryConsolidator.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Core/Memory/MemoryManager.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Core/Memory/MemoryStore.swift: 16 CJK comment block(s)
+  block at L205-205: UNCHANGED
+
+Sources/WenshuApp/Core/Memory/MemoryWriteGate.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Core/Notifications/AppNotifications.swift: 2 CJK comment block(s)
+
+Sources/WenshuApp/Core/Outline/OutlineExtractor.swift: 13 CJK comment block(s)
+
+Sources/WenshuApp/Core/Outline/OutlinePanel.swift: 3 CJK comment block(s)
+
+Sources/WenshuApp/Core/Provider/AvailableModelsDiscovery.swift: 2 CJK comment block(s)
+
+Sources/WenshuApp/Core/Provider/ModelDisplay.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Core/Provider/ProviderKeychain.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Core/QuickSwitcher/QuickSwitcherIndex.swift: 14 CJK comment block(s)
+
+Sources/WenshuApp/Core/QuickSwitcher/QuickSwitcherWindow.swift: 4 CJK comment block(s)
+
+Sources/WenshuApp/Core/Registry/ContributionRegistry.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Core/Registry/Geometry.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Core/Registry/PaneLifecycle.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Core/Registry/PaneVisibilityStore.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Core/Registry/PaneVisibleContext.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Core/Registry/RegisteredPanes.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Core/Registry/WorkspaceScope.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Core/Search/FullTextSearch.swift: 11 CJK comment block(s)
+
+Sources/WenshuApp/Core/Search/SearchPanel.swift: 4 CJK comment block(s)
+
+Sources/WenshuApp/Core/Skills/SkillRegistry.swift: 15 CJK comment block(s)
+  block at L103-103: UNCHANGED
+
+Sources/WenshuApp/Core/Templates/TemplateEngine.swift: 19 CJK comment block(s)
+
+Sources/WenshuApp/Core/Templates/TemplatePicker.swift: 4 CJK comment block(s)
+
+Sources/WenshuApp/Core/Todo/TodoStore.swift: 5 CJK comment block(s)
+
+Sources/WenshuApp/Core/Tools/AVMediaTools.swift: 7 CJK comment block(s)
+
+Sources/WenshuApp/Core/Tools/FileTools.swift: 10 CJK comment block(s)
+
+Sources/WenshuApp/Core/Tools/ProcessTools.swift: 7 CJK comment block(s)
+
+Sources/WenshuApp/Core/Tools/VisionTools.swift: 6 CJK comment block(s)
+
+Sources/WenshuApp/Core/Tools/WebTools.swift: 8 CJK comment block(s)
+
+Sources/WenshuApp/Core/WordCount/WordCountBadge.swift: 3 CJK comment block(s)
+
+Sources/WenshuApp/Core/WordCount/WordCounter.swift: 13 CJK comment block(s)
+
+Sources/WenshuApp/Core/Workspace/WenshuWorkspace.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Core/Workspace/WenshuWorkspaceMigrator.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/DesignTokens.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Domain/Book.swift: 3 CJK comment block(s)
+
+Sources/WenshuApp/Domain/Capabilities/CapabilityRegistry.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Domain/Character.swift: 5 CJK comment block(s)
+
+Sources/WenshuApp/Domain/ChatTrigger.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Domain/CrossRefInject.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Domain/Document.swift: 4 CJK comment block(s)
+
+Sources/WenshuApp/Domain/EntityCategory.swift: 4 CJK comment block(s)
+
+Sources/WenshuApp/Domain/EntityIngestion.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Domain/EntityType.swift: 2 CJK comment block(s)
+
+Sources/WenshuApp/Domain/Reference.swift: 4 CJK comment block(s)
+
+Sources/WenshuApp/Domain/SmartQuery.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Domain/SmartQueryParser.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Domain/WikiEntityPreflight.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Domain/World.swift: 4 CJK comment block(s)
+
+Sources/WenshuApp/State/AppState.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/State/BookStore.swift: 2 CJK comment block(s)
+
+Sources/WenshuApp/State/EditModeHotkey.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/State/LayoutEditMode.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/State/LibraryLifecycleHook.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/State/TrackModel.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/State/TreeHistory.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/State/WenshuLibrary.swift: 3 CJK comment block(s)
+
+Sources/WenshuApp/State/WorkspaceState.swift: 2 CJK comment block(s)
+
+Sources/WenshuApp/State/WorkspaceStore.swift: 5 CJK comment block(s)
+
+Sources/WenshuApp/Storage/BookKanbanStore.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Storage/BookTodoStore.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Storage/CacheManager.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Storage/EntityClassifier.swift: 28 CJK comment block(s)
+  block at L226-226: UNCHANGED
+  block at L222-222: UNCHANGED
+  block at L220-220: UNCHANGED
+
+Sources/WenshuApp/Storage/FileSystemCharacterStore.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Storage/FileSystemLibraryStore.swift: 2 CJK comment block(s)
+
+Sources/WenshuApp/Storage/FileSystemReferenceStore.swift: 4 CJK comment block(s)
+
+Sources/WenshuApp/Storage/FileSystemWorldStore.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Storage/LibraryBootstrapper.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Storage/LibraryInfo.swift: 1 CJK comment block(s)
+
+Sources/WenshuApp/Storage/LibraryMigrator.swift: 16 CJK comment block(s)
+/Applications/Xcode-beta.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/multiprocessing/resource_tracker.py:216: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '

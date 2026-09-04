@@ -62,15 +62,20 @@ struct MessageSanitizationRepairTests {
     @Test("sanitizeSurrogates drops lone high surrogates while preserving paired ones")
     func testSurrogateStrip() {
         // Lone high surrogate (no matching low surrogate) → drop.
-        let dirty = "hello\u{D800}world"
+        // Swift rejects literal surrogate scalars in string literals, so
+        // we construct the test input via UTF-16 code units (= exactly
+        // what we want to test that sanitizeSurrogates strips).
+        let loneHigh: [UInt16] = [0xD800]
+        let dirty = "hello" + String(decoding: loneHigh, as: UTF16.self) + "world"
         let clean = MessageSanitization.sanitizeSurrogates(dirty)
-        #expect(!clean.contains("\u{D800}"))
+        #expect(!clean.utf16.contains(0xD800))
         #expect(clean.contains("hello"))
         #expect(clean.contains("world"))
         // Lone low surrogate → drop.
-        let dirty2 = "hello\u{DC00}world"
+        let loneLow: [UInt16] = [0xDC00]
+        let dirty2 = "hello" + String(decoding: loneLow, as: UTF16.self) + "world"
         let clean2 = MessageSanitization.sanitizeSurrogates(dirty2)
-        #expect(!clean2.contains("\u{DC00}"))
+        #expect(!clean2.utf16.contains(0xDC00))
     }
 
     // MARK: - Test 6: Close interrupted tool sequence
@@ -123,7 +128,7 @@ struct MessageSanitizationRepairTests {
     @Test("escapeInvalidCharsInJSONStrings escapes literal control chars inside JSON strings")
     func testEscapeInvalid() {
         // JSON with a literal tab inside a string value (hermes repair pass 4).
-        let raw = #"{"a":"line1	line2"}"#
+        let raw = #"{"a":"line1\#tline2"}"#
         let escaped = MessageSanitization.escapeInvalidCharsInJSONStrings(raw)
         #expect(escaped.contains("\\t"))
     }

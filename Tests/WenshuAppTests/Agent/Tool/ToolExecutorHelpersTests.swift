@@ -24,7 +24,6 @@ struct ToolExecutorHelpersTests {
 
     @Test("Permission gate: denied tool emits denial toolResult without invoking the tool")
     func testPermissionGate() async throws {
-        actor CallCounter { var count = 0 }
         let counter = CallCounter()
         let tool = CountingTool(counter: counter)
 
@@ -153,14 +152,14 @@ struct ToolExecutorHelpersTests {
     @Test("Pre-dispatch validator: transformed input reaches the tool")
     func testPreDispatchValidator() async throws {
         struct Capture: Tool, Sendable {
-            let capture: () async -> String
+            let capture: @Sendable () async -> String
             func execute(input: String) async throws -> String {
                 await capture()
             }
         }
         actor Captured { var lastInput = "" }
         let captured = Captured()
-        let tool = Capture(capture: { await captured.lastInput })
+        let tool = Capture(capture: { @Sendable in await captured.lastInput })
 
         let validator: @Sendable (String, [String: String]) async throws -> [String: String] = { _, input in
             var out = input
@@ -280,7 +279,13 @@ private actor CallCounter { var count = 0 }
 private struct CountingTool: Tool, Sendable {
     let counter: CallCounter
     func execute(input: String) async throws -> String {
-        await counter.count += 1
+        await counter.increment()
         return "counted"
+    }
+}
+
+private extension CallCounter {
+    func increment() {
+        count += 1
     }
 }

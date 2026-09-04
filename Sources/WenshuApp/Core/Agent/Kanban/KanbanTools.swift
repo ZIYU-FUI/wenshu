@@ -41,7 +41,7 @@ import Foundation
 /// KanbanStore that exposes the action dispatcher the chat surface uses.
 public actor KanbanTools {
     private let store: KanbanStore
-    private static var sharedPlaceholder: KanbanStore?
+    private static nonisolated(unsafe) var sharedPlaceholder: KanbanStore?
 
     public init(store: KanbanStore? = nil) {
         // Tests can pass an explicit store; otherwise we lazily build one
@@ -142,9 +142,9 @@ public actor KanbanTools {
     public struct KanbanToolResult: Sendable, Equatable {
         public let success: Bool
         public let output: String
-        public let data: [String: Any]
+        public let data: [String: String]
 
-        public init(success: Bool, output: String, data: [String: Any] = [:]) {
+        public init(success: Bool, output: String, data: [String: String] = [:]) {
             self.success = success
             self.output = output
             self.data = data
@@ -183,7 +183,7 @@ public actor KanbanTools {
             return KanbanToolResult(success: false, output: "task_id is required for show")
         }
         do {
-            guard let task = try store.get(id: id) else {
+            guard let task = try await store.get(id: id) else {
                 return KanbanToolResult(success: false, output: "Task not found: \(id)")
             }
             return KanbanToolResult(
@@ -200,14 +200,14 @@ public actor KanbanTools {
     private func list(params: KanbanParams) async -> KanbanToolResult {
         let statusFilter: KanbanStatus? = params.status.flatMap { KanbanStatus(rawValue: $0) }
         do {
-            let tasks = try store.list(status: statusFilter)
+            let tasks = try await store.list(status: statusFilter)
             let limited = params.limit.map { Array(tasks.prefix($0)) } ?? tasks
             let summary = limited.map { "\($0.id): \($0.title) [\($0.status.rawValue)]" }
                 .joined(separator: "\n")
             return KanbanToolResult(
                 success: true,
                 output: summary.isEmpty ? "(no tasks)" : summary,
-                data: ["count": limited.count]
+                data: ["count": String(limited.count)]
             )
         } catch {
             return KanbanToolResult(success: false, output: "list failed: \(error)")
@@ -220,11 +220,10 @@ public actor KanbanTools {
             return KanbanToolResult(success: false, output: "title is required for create")
         }
         do {
-            let task = try store.add(
+            let task = try await store.add(
                 title: title,
-                body: params.body,
-                assignee: params.assignee,
-                priority: params.priority ?? 3
+                priority: params.priority ?? 3,
+                assignee: params.assignee
             )
             return KanbanToolResult(
                 success: true,
@@ -242,7 +241,7 @@ public actor KanbanTools {
             return KanbanToolResult(success: false, output: "task_id is required for complete")
         }
         do {
-            try store.transition(id: id, to: .done)
+            try await store.transition(id: id, to: .done)
             return KanbanToolResult(
                 success: true,
                 output: "Completed task: \(id)",
@@ -259,7 +258,7 @@ public actor KanbanTools {
             return KanbanToolResult(success: false, output: "task_id is required for block")
         }
         do {
-            try store.transition(id: id, to: .blocked)
+            try await store.transition(id: id, to: .blocked)
             return KanbanToolResult(
                 success: true,
                 output: "Blocked task: \(id) — \(params.reason ?? "(no reason)")"
@@ -276,7 +275,7 @@ public actor KanbanTools {
             return KanbanToolResult(success: false, output: "task_id is required for unblock")
         }
         do {
-            try store.transition(id: id, to: .ready)
+            try await store.transition(id: id, to: .ready)
             return KanbanToolResult(
                 success: true,
                 output: "Unblocked task: \(id)"
@@ -342,7 +341,7 @@ public actor KanbanTools {
             )
         }
         do {
-            try store.transition(id: id, to: newStatus)
+            try await store.transition(id: id, to: newStatus)
             return KanbanToolResult(
                 success: true,
                 output: "Transitioned \(id) → \(newStatus.rawValue)"
