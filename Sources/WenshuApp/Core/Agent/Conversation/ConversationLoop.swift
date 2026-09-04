@@ -36,6 +36,15 @@
 //
 //  v0.35 sub-step 3 of 8 for ticket 001.
 //
+//  TICKET-HERMES-GAP-003 wire-up (2026-09-04): ConversationLoop now
+//  holds an optional `RuntimeHelpers` reference (default = a fresh actor
+//  instance per ConversationLoop; callers may inject a custom one for
+//  deterministic-test paths). The runtime is consulted via `await
+//  runtime.now()` whenever the loop needs a timestamp (= hermes-port
+//  Z-contract hard requirement per v0.36 ticket 014). No literal `Date()`
+//  calls remain in the loop body — see `Sources/WenshuApp/Core/Agent/
+//  Runtime/RuntimeHelpers.swift` for the actor surface.
+//
 
 import Foundation
 
@@ -65,6 +74,18 @@ public actor ConversationLoop {
     private let connector: any LLMConnector
     private let systemPrompt: String?
 
+    /// Runtime state (= mock-time / verbose / debug / credential chain).
+    /// Optional: when nil, the loop falls back to a fresh default
+    /// `RuntimeHelpers()` instance (= wall-clock now, no verbose / debug,
+    /// env-var-or-keychain credential chain). Tests inject a stub with
+    /// `mockTime` set for deterministic timestamps.
+    ///
+    /// TICKET-HERMES-GAP-003 wire-up: stored as a `let` because the
+    /// `RuntimeHelpers` actor is itself immutable (= its `initialState`
+    /// is the source of truth; mutations return new instances). This
+    /// keeps the ConversationLoop actor's isolation contract intact.
+    private let runtime: RuntimeHelpers
+
     /// Build a ConversationLoop bound to an active LLMConnector.
     ///
     /// - Parameters:
@@ -73,9 +94,37 @@ public actor ConversationLoop {
     ///   - systemPrompt: Optional byte-stable system prompt prefix (= per
     ///     AGENTS.md §11.3 cache-stable invariant; full cache_control marker
     ///     lands in ticket 002 PromptCaching.swift).
-    public init(connector: any LLMConnector, systemPrompt: String? = nil) {
+    ///   - runtime: Optional runtime helper (= TICKET-HERMES-GAP-003).
+    ///     When nil, a default actor instance is created with no mock-time
+    ///     and no verbose/debug flags. Callers wanting deterministic-test
+    ///     injection (= v0.36 ticket 014) should pass a runtime built with
+    ///     `RuntimeHelpers(state: .init(mockTime: ...))`.
+    public init(
+        connector: any LLMConnector,
+        systemPrompt: String? = nil,
+        runtime: RuntimeHelpers? = nil
+    ) {
         self.connector = connector
         self.systemPrompt = systemPrompt
+        self.runtime = runtime ?? RuntimeHelpers()
+    }
+
+    /// Resolve the current time via the runtime (= hermes-port Z-contract
+    /// hard requirement: deterministic tests inject a runtime with
+    /// `mockTime` set; production gets `Date()` from the default runtime).
+    /// Public so downstream modules (= TurnFinalizer, ContextCompressor)
+    /// can call the loop's clock instead of touching `Date()` directly.
+    public func now() async -> Date {
+        await runtime.now()
+    }
+
+    /// Expose the underlying `RuntimeHelpers` for callers that need direct
+    /// access to verbose/debug emission or credential resolution. TICKET-
+    /// HERMES-GAP-003 makes the runtime a first-class collaboration
+    /// surface (= callers compose `runtime.vprint(_:)` rather than
+    /// reinventing their own verbose flag).
+    public func currentRuntime() -> RuntimeHelpers {
+        runtime
     }
 
     /// Run a complete conversation turn (= hermes run_conversation L523-L546).
