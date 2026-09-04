@@ -443,6 +443,13 @@ struct WorkspaceView: View {
             //     inconsistency detection). Real content (= from /
             //     to / kind pickers + add row + relationships list
             //     + inconsistencies section).
+            //   - Character-Lifecycle (= clock) per P1 ticket #13
+            //     (= port character_lifecycle.py from hermes = 8
+            //     lifecycle stages + timeline + contradiction
+            //     detection). Real content (= character / stage /
+            //     chapter pickers + excerpt field + add row +
+            //     events list + timeline section + contradictions
+            //     section).
             ZoneContentView(zoneSlug: "specializedTools", tabs: [
                 ("伏笔", "git-fork", AnyView(ForeshadowingView())),
                 ("占位符", "square-dashed", AnyView(PlaceholderView())),
@@ -452,6 +459,7 @@ struct WorkspaceView: View {
                 ("Genre-Fit", "book-marked", AnyView(GenreFitView())),
                 ("Emotion-Curve", "activity", AnyView(EmotionCurveView())),
                 ("Chars-Rel", "users", AnyView(CharacterRelationshipsView())),
+                ("Chars-Life", "clock", AnyView(CharacterLifecycleView())),
             ])
         case .aiChat:
             ChatView()
