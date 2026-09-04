@@ -168,12 +168,31 @@ set -euo pipefail
 #    NB: `head -n 1` then `tail -n +2` in two separate `$(...)`
 #    command substitutions does NOT work -- both substitutions consume
 #    stdin, and the first one eats the entire message before `tail` can
-#    see the body (= B-03 T3b 2026-09-04 lesson learned: an earlier
-#    `git filter-branch --apply` produced 284 commit objects with EMPTY
-#    bodies, discovered on verification and immediately rolled back via
-#    `git reset --hard refs/backup/translate-commit-bodies-pre`). Read
-#    the whole message into a variable first, then split.
-FULL=$(cat)
+#    see the body. B-03 T3b lesson 1 (= fix below).
+#
+#    NB 2: `FULL=$(cat)` ALSO fails -- bash command substitution strips
+#    trailing newlines from the captured output (= `man bash` under
+#    `Command Substitution`). For an empty-body commit whose message
+#    is just `subject\n`, `FULL` ends up as `subject` with no newline,
+#    and `${FULL%%$'\\n'*}` and `${FULL#*$'\\n'}` BOTH match the
+#    whole string (= no `\n` to split on). Result: subject gets
+#    printed once as-is, then re-emitted via the python pipeline as
+#    a "body line" with the [AUTO-TRANSLATED, PLEASE REVIEW] marker
+#    prefix. B-03 T3b lesson 2 (= fix below).
+#
+#    Fix: read stdin one chunk at a time without command substitution,
+#    preserving every byte including trailing newlines. The
+#    `IFS= read -r -d ''` loop reads NUL-delimited records (= stdin
+#    never has NULs from git filter-branch); the final partial chunk
+#    is restored by the `[ -n "$chunk" ] && FULL+="$chunk"` guard.
+FULL=""
+while IFS= read -r -d '' chunk || [ -n "$chunk" ]; do
+    FULL+="$chunk"
+done < /dev/stdin
+if [ -n "$chunk" ]; then
+    FULL+="$chunk"
+fi
+
 FIRST_LINE="${FULL%%$'\n'*}"
 REST="${FULL#*$'\n'}"
 
