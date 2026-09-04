@@ -24,10 +24,35 @@ public actor SkillAdapter {
 
     public init() {}
 
-    /// List all available skills (= thin delegate to wenshu SkillRegistry.list).
+    /// List all available skills (= thin delegate to wenshu SkillRegistry.list
+    /// + SkillRegistry.load for description). Per AGENTS.md §11.3 wenshu-side
+    /// wins pattern (= ticket 010 spec §3.6).
     public func listSkills() async -> [Skill] {
-        // Stub for sub-step 1; wenshu SkillRegistry wiring lands in v0.35.1
-        return []
+        let registry = SkillRegistry()
+        let names: [String]
+        do {
+            names = try await registry.list()
+        } catch {
+            // v0.38 ticket A2: graceful degradation — if SkillRegistry throws
+            // (= no skills dir, perm denied, etc.), return empty array (= matches
+            // pre-stub behavior; tests SkillAdapterTests.testListSkillsStub +
+            // MemorySkillOAuthTests.listSkillsEmpty both assert isEmpty == true).
+            return []
+        }
+        var skills: [Skill] = []
+        for name in names {
+            // v0.38 ticket A2: graceful degradation per skill — if load fails
+            // (= corrupt SKILL.md, missing frontmatter, etc.), skip the broken
+            // skill rather than throwing the whole list. Future enhancement:
+            // surface a "broken skill" UI marker in Settings.
+            guard let loaded = try? await registry.load(name: name) else { continue }
+            skills.append(Skill(
+                name: loaded.frontmatter.name == "unknown" ? name : loaded.frontmatter.name,
+                description: loaded.frontmatter.description,
+                enabled: true
+            ))
+        }
+        return skills
     }
 
     /// Invoke a skill by name (= thin delegate to wenshu SkillRegistry.invoke).
