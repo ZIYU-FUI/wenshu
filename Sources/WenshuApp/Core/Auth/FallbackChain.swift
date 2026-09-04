@@ -51,7 +51,12 @@ public struct FallbackChain: Sendable, Codable, Equatable {
 
 /// A minimal request envelope (= hermes' `api_messages`).
 /// Sufficient for the executor's purposes; the connector does the rest.
-public struct LLMRequest: Sendable {
+///
+/// Naming note: `LLMRequest` already exists in `ShellHookChain.swift`
+/// (= the hook-side placeholder type). This dispatch-side type is named
+/// `DispatchRequest` to avoid the public-API collision (= AGENTS.md
+/// hard rule: don't remove existing public surface).
+public struct DispatchRequest: Sendable {
     public let messages: [LLMMessage]
     public let options: LLMCallOptions
 
@@ -67,8 +72,8 @@ public struct LLMRequest: Sendable {
         maxTokens: Int = 4096,
         systemPrompt: String? = nil,
         temperature: Double? = nil
-    ) -> LLMRequest {
-        LLMRequest(
+    ) -> DispatchRequest {
+        DispatchRequest(
             messages: [LLMMessage.user(text)],
             options: LLMCallOptions(
                 model: model,
@@ -171,7 +176,7 @@ public protocol FallbackConnectorResolver: Sendable {
     /// or fail depending on the executor variant).
     func resolve(
         provider: String,
-        request: LLMRequest
+        request: DispatchRequest
     ) async -> ResolvedConnector?
 }
 
@@ -202,7 +207,7 @@ public actor FallbackChainExecutor {
     /// Throws `FallbackChainError.emptyChain` if the chain is empty.
     /// Throws `FallbackChainError.allFailed(attempts:)` if every provider fails.
     public func execute(
-        request: LLMRequest,
+        request: DispatchRequest,
         chain: FallbackChain
     ) async throws -> FallbackExecutionResult {
         guard !chain.isEmpty else { throw FallbackChainError.emptyChain }
@@ -242,7 +247,7 @@ public actor FallbackChainExecutor {
     /// no fallback tried). Used when callers want explicit primary-first
     /// semantics (= e.g. when the chain is "primary only").
     public func executeOrThrow(
-        request: LLMRequest,
+        request: DispatchRequest,
         chain: FallbackChain
     ) async throws -> LLMResponse {
         guard let first = chain.providers.first else { throw FallbackChainError.emptyChain }
@@ -260,7 +265,7 @@ public actor FallbackChainExecutor {
     /// Run one provider attempt (= with per-provider timeout).
     /// Marks the AuthKey status based on outcome.
     private func runOne(
-        request: LLMRequest,
+        request: DispatchRequest,
         provider: String,
         providerIndex: Int,
         attempt: Int
@@ -307,7 +312,7 @@ public actor FallbackChainExecutor {
     /// rate-limited, 401/403 -> auth-failed, 5xx -> networkError).
     private func sendWithTimeout(
         connector: any LLMConnector,
-        request: LLMRequest,
+        request: DispatchRequest,
         apiKey: String,
         provider: String,
         timeout: TimeInterval

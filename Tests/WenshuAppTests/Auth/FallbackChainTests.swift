@@ -1,7 +1,7 @@
 //
 //  FallbackChainTests.swift · Wenshu · HERMES-DISPATCH-002
 //
-//  Tests for `FallbackChain` + `FallbackChainExecutor` + `LLMRequest`.
+//  Tests for `FallbackChain` + `FallbackChainExecutor` + `DispatchRequest`.
 //  Uses the `swift-testing` framework per the rest of the WenshuAppTests tree.
 //
 
@@ -39,7 +39,7 @@ final class StubConnector: LLMConnector, @unchecked Sendable {
 struct StubResolver: FallbackConnectorResolver {
     let mapping: [String: ResolvedConnector]
 
-    func resolve(provider: String, request: LLMRequest) async -> ResolvedConnector? {
+    func resolve(provider: String, request: DispatchRequest) async -> ResolvedConnector? {
         mapping[provider]
     }
 }

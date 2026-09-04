@@ -127,7 +127,7 @@ public actor AutoRotatingConnector {
     /// send `request`, return the result OR throw on failure.
     /// The wrapper observes the thrown error and decides to rotate.
     private let performSend:
-        @Sendable (LLMRequest, AutoRotationSendContext) async throws -> LLMResponse
+        @Sendable (DispatchRequest, AutoRotationSendContext) async throws -> LLMResponse
 
     /// Unused for send path (kept for the public init signature contract).
     /// Reserved for the future ticket 014 wiring (= "send with primary
@@ -139,7 +139,7 @@ public actor AutoRotatingConnector {
         pool: AuthPool,
         policy: AutoRotationPolicy = .init(),
         performSend: @Sendable @escaping (
-            LLMRequest,
+            DispatchRequest,
             AutoRotationSendContext
         ) async throws -> LLMResponse
     ) {
@@ -152,7 +152,7 @@ public actor AutoRotatingConnector {
     /// Send the request, rotating through the AuthPool on transient errors.
     /// The active provider is inferred from the first usable key in the
     /// pool (= hermes-style: pick the best key, use its provider).
-    public func send(request: LLMRequest) async throws -> LLMResponse {
+    public func send(request: DispatchRequest) async throws -> LLMResponse {
         // Pick initial key (= defines the provider we're targeting).
         let allKeys = await pool.allKeys()
         guard let firstOk = allKeys.first(where: { KeychainSelector.isValid($0) }) else {
@@ -170,7 +170,7 @@ public actor AutoRotatingConnector {
     /// Send targeting a specific provider (= bypasses initial-key inference).
     /// Useful when the caller already knows which provider to use.
     public func send(
-        request: LLMRequest,
+        request: DispatchRequest,
         provider: String
     ) async throws -> LLMResponse {
         return try await sendWithRotation(
@@ -184,11 +184,22 @@ public actor AutoRotatingConnector {
     // MARK: - Private
 
     private func sendWithRotation(
-        request: LLMRequest,
+        request: DispatchRequest,
         provider: String,
         excludedKeyIds: Set<UUID>,
         attemptCount: Int
     ) async throws -> LLMResponse {
+        // Budget check FIRST: if we've already used our rotation budget,
+        // surface `.exhausted` (= caller's fallback chain takes over).
+        // Without this, the loop recurses until pickKey returns nil and
+        // surfaces `.noMoreKeys` (= correct but less informative).
+        if attemptCount >= policy.maxRotations {
+            throw AutoRotationError.exhausted(
+                provider: provider,
+                attempts: attemptCount,
+                lastError: "maxRotations (\(policy.maxRotations)) reached"
+            )
+        }
         // Pick best non-excluded key for this provider.
         let candidate = try await pickKey(
             for: provider,
@@ -218,14 +229,6 @@ public actor AutoRotatingConnector {
             )
             if !shouldRotate {
                 throw AutoRotationError.nonRetryable(statusCode: classified.statusCode ?? 0)
-            }
-            // Exhausted rotation budget?
-            if attemptCount + 1 > policy.maxRotations {
-                throw AutoRotationError.exhausted(
-                    provider: provider,
-                    attempts: attemptCount + 1,
-                    lastError: classified.userMessage
-                )
             }
             // Rotate: try next key (excluding the one that just failed).
             return try await sendWithRotation(

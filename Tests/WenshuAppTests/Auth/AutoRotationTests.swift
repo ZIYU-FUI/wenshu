@@ -24,7 +24,7 @@ actor ScriptedSend {
         self.responses = responses
     }
 
-    func invoke(_ request: LLMRequest, context: AutoRotationSendContext) async throws -> LLMResponse {
+    func invoke(_ request: DispatchRequest, context: AutoRotationSendContext) async throws -> LLMResponse {
         let idx = min(callCount, responses.count - 1)
         observedContexts.append(context)
         callCount += 1
@@ -153,7 +153,7 @@ struct AutoRotationTests {
         ])
         let wrapper = AutoRotatingConnector(
             pool: pool,
-            policy: .init(maxRotations: 2)  // budget = 2 rotations past the initial send
+            policy: .init(maxRotations: 2)  // budget = 2 attempts total (initial = rotation 0)
         ) { req, ctx in
             try await script.invoke(req, context: ctx)
         }
@@ -165,7 +165,9 @@ struct AutoRotationTests {
             Issue.record("expected exhausted error")
         } catch let AutoRotationError.exhausted(provider, attempts, _) {
             #expect(provider == "anthropic")
-            #expect(attempts == 3)  // 1 initial + 2 rotations
+            // 2 attempts total (= initial + 1 rotation) before exhausting;
+            // the 3rd attempt is blocked by the budget guard.
+            #expect(attempts == 2)
         } catch {
             Issue.record("expected exhausted, got \(error)")
         }
