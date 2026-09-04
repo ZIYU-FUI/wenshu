@@ -284,4 +284,36 @@ extension BookStore {
         let data = try JSONEncoder().encode(shelf)
         try data.write(to: shelfDir.appendingPathComponent("shelf.json"))
     }
+
+    /// Resolve the on-disk directory for a given book id by scanning
+    /// every shelf (= a book id is unique across the library; it lives
+    /// in exactly one shelf, so we walk shelves/<shelf>/books/<id>).
+    ///
+    /// B-09 (= kanban + todo UI functional linkage): the Kanban + Todo
+    /// views use this to construct per-book ``BookKanbanStore`` /
+    /// ``BookTodoStore`` instances (= read/write kanban.json + todo.json
+    /// inside the active book directory). Returns nil if the book id
+    /// is not on disk (= caller decides how to render the empty state).
+    ///
+    /// Apple HIG: pure helper on the data store (= no SwiftUI
+    /// dependency; trivially testable; matches `folderDocumentCount`
+    /// scan pattern above).
+    func bookDirectory(bookId: UUID) -> URL? {
+        let fm = FileManager.default
+        let shelvesRoot = stores.shelvesRoot
+        guard let shelfEntries = try? fm.contentsOfDirectory(
+            at: shelvesRoot,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        ) else { return nil }
+        for shelfEntry in shelfEntries {
+            let candidate = shelfEntry
+                .appendingPathComponent("books", isDirectory: true)
+                .appendingPathComponent(bookId.uuidString, isDirectory: true)
+            if fm.fileExists(atPath: candidate.path) {
+                return candidate
+            }
+        }
+        return nil
+    }
 }
