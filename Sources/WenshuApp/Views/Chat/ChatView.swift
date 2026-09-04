@@ -542,6 +542,13 @@ public struct ChatView: View {
     /// (= same shape via the public init) that pre-loads
     /// ParagraphAITool. The new conductor is what ChatViewModel uses;
     /// App's conductor reference is unaffected.
+    ///
+    /// P0 #5 (WIRE-AGENT-005): the same register site now also wires
+    /// KanbanStoreTool (= thin adapter exposing the KanbanTools
+    /// LLM-facing dispatcher through the Tool protocol). The
+    /// KanbanStore that the WenshuConductor takes ownership of is
+    /// the canonical wenshu-side task store; KanbanStoreTool reads /
+    /// writes through it via KanbanTools.kanban(action:params:).
     private static func conductorRegisteringParagraphAI(_ conductor: WenshuConductor?) -> WenshuConductor? {
         // No conductor provided → nothing to wrap. ChatViewModel's
         // direct verifier path (= non-conductor branch in send()) does
@@ -563,18 +570,32 @@ public struct ChatView: View {
         do {
             let kanban = try KanbanStore()
             try kanban.bootstrap()
+            // P0 #5 (WIRE-AGENT-005): register KanbanStoreTool so the
+            // LLM can create / list / show / transition / block /
+            // unblock / complete kanban tickets directly from the
+            // chat surface. The KanbanTools actor wraps the same
+            // `kanban` store the WenshuConductor owns, so tool writes
+            // are observable in the OpenBox KanbanView immediately.
+            let kanbanTools = KanbanTools(store: kanban)
             return WenshuConductor(
                 runtime: runtime,
                 verifier: verifier,
                 kanbanStore: kanban,
-                tools: ["ParagraphAI": ParagraphAITool.shared]
+                tools: [
+                    "ParagraphAI": ParagraphAITool.shared,
+                    "kanban": KanbanStoreTool(kanbanTools: kanbanTools)
+                ]
             )
         } catch {
+            let fallback = try! KanbanStore(path: NSTemporaryDirectory() + "wenshu-chat-fallback-\(UUID().uuidString).sqlite")
             return WenshuConductor(
                 runtime: runtime,
                 verifier: verifier,
-                kanbanStore: try! KanbanStore(path: NSTemporaryDirectory() + "wenshu-chat-fallback-\(UUID().uuidString).sqlite"),
-                tools: ["ParagraphAI": ParagraphAITool.shared]
+                kanbanStore: fallback,
+                tools: [
+                    "ParagraphAI": ParagraphAITool.shared,
+                    "kanban": KanbanStoreTool(kanbanTools: KanbanTools(store: fallback))
+                ]
             )
         }
     }
