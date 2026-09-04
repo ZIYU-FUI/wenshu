@@ -457,6 +457,18 @@ struct WorkspaceView: View {
             //     picker + add-row + tag list + apply-row with
             //     tag / target / entity-uuid pickers + applications
             //     list + tag cloud + filter section).
+            //   - Idea-Library (= lightbulb) per P1 ticket #15
+            //     (= port idea_library.py from hermes = 5
+            //     statuses + link to chapter / character /
+            //     plot-thread + search + suggest). Real content
+            //     (= title TextField + description TextEditor +
+            //     status picker + tag TextField + add-row +
+            //     search bar + status / tag filter pickers +
+            //     ideas list with status badge + tag chips +
+            //     remove button + link section with target /
+            //     entity-uuid / context pickers + links list +
+            //     suggest section with context TextField +
+            //     suggestions list).
             ZoneContentView(zoneSlug: "specializedTools", tabs: [
                 ("伏笔", "git-fork", AnyView(ForeshadowingView())),
                 ("占位符", "square-dashed", AnyView(PlaceholderView())),
@@ -468,6 +480,7 @@ struct WorkspaceView: View {
                 ("Chars-Rel", "users", AnyView(CharacterRelationshipsView())),
                 ("Chars-Life", "clock", AnyView(CharacterLifecycleView())),
                 ("Tag-Manager", "tag", AnyView(TagManagerView())),
+                ("Idea-Library", "lightbulb", AnyView(IdeaLibraryView())),
             ])
         case .aiChat:
             ChatView()
