@@ -155,15 +155,10 @@ public struct RegionContentBackground: View {
     }
 
     public var body: some View {
-        // v0.32 boss 2026-09-02 OOB ('用 macOS 自带液态玻璃,
-        // 跟随系统设置'): the previous Liquid Glass opacity
-        // slider + @Environment(\.liquidGlassOpacity) wiring
-        // was removed (LiquidGlassOpacity.swift deleted in v0.32
-        // Tier-1 rank-3). The opaque Apple NSColor backgrounds
-        // (chrome tier vs content tier) replace the slider —
-        // Apple auto-adapts to system settings (dark mode /
-        // Reduce Transparency / Increase Contrast) without a
-        // per-app slider that would conflict with the system.
+        // Per-pane content background = opaque Apple NSColor (chrome
+        // tier vs content tier). Apple .glassEffect auto-applies
+        // project-wide and auto-adapts to system settings (dark mode,
+        // Reduce Transparency, Increase Contrast).
         Rectangle().fill(appleBackground)
     }
 }

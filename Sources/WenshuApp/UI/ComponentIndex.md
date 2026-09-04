@@ -187,7 +187,7 @@ Each component has:
 - **Path**: N/A (= SwiftUI built-in modifier; macOS 27 Tahoe Liquid Glass).
 - **Purpose**: Apple canonical Liquid Glass background for any wenshu chrome. Apple auto-adapts to dark mode / Reduce Transparency / Increase Contrast (= system-managed, no per-app slider).
 - **Use when**: Any pane / tab bar / status bar / region background needs the canonical macOS Liquid Glass look. Apply `.glassEffect(.regular)` (= standalone View modifier; requires a View receiver — `Color.clear.glassEffect(.regular)` when the glass IS the background, or `.glassEffect(.regular, in: Shape)` for shape-specific glass).
-- **Replaces**: `Sources/WenshuApp/UI/LiquidGlassOpacity.swift` (= deleted in v0.32 commit by Tier-1 rank-3 per `.scratch/v0.32-apple-api-audit/audit.md` §3). The previous hand-rolled `Double.toLiquidGlassMaterial()` 6-step ladder + user-tunable slider + `wenshu.liquidGlassOpacity` UserDefaults key + `.liquidGlassOpacityEnvironment` injection + `.liquidGlassOpacityChanged` notification were all removed.
+- **Replaces**: The pre-v0.32 hand-rolled 6-step Material ladder + per-app opacity slider. The previous hand-rolled ladder + UserDefaults opacity key + SwiftUI Environment injection + notification plumbing were all removed in v0.32.
 - **DON'T**: Re-implement a per-app opacity slider (= Apple's system-wide Reduce Transparency accessibility setting is the canonical knob). Use Apple `.glassEffect(.regular)` instead.
 
 ### 4.2 Hover / pressed wash (= bare `.thinMaterial`)
@@ -260,18 +260,17 @@ Each component has:
 
 ## 📋 LEVEL 7: Window chrome (= Apple-canonical macOS 26)
 
-Window chrome = 100% Apple canonical per macOS 26 Tahoe (= no custom wenshu wrappers since v0.34). LibraryRootView uses SwiftUI `.toolbar { ToolbarItemGroup }` + `.windowToolbarStyle(.unified)` (= the Pages / Xcode / Mail / Finder pattern). The custom AppTitlebar + AppStatusbar + WenshuChromeOverlay + TitlebarStatusbarPolish wrappers were deleted in v0.34 commit `69a43da65` (= dead chrome per boss OOB 'should be one component').
+Window chrome = 100% Apple canonical per macOS 26 Tahoe. LibraryRootView uses SwiftUI `.toolbar { ToolbarItemGroup }` + `.windowToolbarStyle(.unified)` (= the Pages / Xcode / Mail / Finder pattern).
 
 ### 7.1 Apple canonical toolbar (= LibraryRootView)
 - **Path**: see `Sources/WenshuApp/App.swift:WindowGroup { ... }` around `LibraryRootView()` + `.windowToolbarStyle(.unified)`
 - **Purpose**: 1 macOS native .unified 52 PT titlebar (= traffic lights + grouped toolbar items in 1 unified capsule = the macOS 26 Tahoe canonical look)
-- **Use when**: ANY new top-level chrome (= never write a custom AppTitlebar/AppStatusbar/WenshuChromeOverlay again; use Apple's `.toolbar` API)
+- **Use when**: ANY new top-level chrome (= use Apple's `.toolbar` API)
 - **Replaces**: All 4 deleted wrappers from v0.34 commit `69a43da65`
 
 ### 7.2 Apple canonical status bar (= bottom of window)
 - **Path**: see `Sources/WenshuApp/App.swift:WindowGroup { ... }` around `LibraryRootView()` + `.toolbar { ToolbarItem(placement: .principal) { ... }` (= Apple macOS 26 status bar pattern)
 - **Purpose**: macOS standard window-level status (= model name / session indicator / ready state) without custom chrome
-- **Replaces**: custom AppStatusbar wrapper (deleted v0.34)
 
 ---
 
@@ -308,11 +307,11 @@ These were removed in various phases (= v0.32 Apple-API-first sweep + v0.34 boss
 - **Was in**: `Sources/WenshuApp/UI/DesignColor.swift`
 - **Replaced**: Phase 1 (= use `.regularMaterial` + `Color.white.opacity(0.25)` respectively)
 
-### 8.7 ❌ AppTitlebar / AppStatusbar / TitlebarStatusbarPolish / WenshuChromeOverlay
-- **Was in**: `Sources/WenshuApp/UI/AppTitlebar.swift` + `AppStatusbar.swift` + `TitlebarStatusbarPolish.swift` + `WenshuChromeOverlay.swift`
-- **Deleted**: v0.34 commit `69a43da65` (= boss 2026-09-02 OOB 'use the most reasonable approach, should be unified into one component')
+### 8.7 ❌ Self-written window chrome wrappers (deleted v0.34)
+- **Was in**: 4 custom SwiftUI wrappers under `Sources/WenshuApp/UI/` (= 1 fixed-top + 1 fixed-bottom + 1 polish + 1 overlay) — all deleted in v0.34
+- **Deleted**: v0.34 commit `69a43da65` (boss OOB 'use the most reasonable approach, should be unified into one component')
 - **Use instead**: SwiftUI `.toolbar { ToolbarItemGroup }` + `.windowToolbarStyle(.unified)` (= Apple macOS 26 canonical pattern; see LEVEL 7.1)
-- **Why deleted**: (1) AppTitlebar was self-written 34 PT chrome that duplicated Apple HIG behavior Apple provides for free via `.windowToolbarStyle(.unified)`. (2) AppStatusbar duplicated the standard macOS status bar pattern Apple provides via `.toolbar { ToolbarItem(placement: .principal) }`. (3) The whole 4-file chrome overlay was never rendered in production; App.swift had a comment marker `WenshuChromeOverlay but the wrapper was a TEMPORARILY-removed shell since 2026-08-29`.
+- **Why deleted**: All 4 wrappers duplicated Apple HIG behavior Apple provides for free via `.windowToolbarStyle(.unified)` + `.toolbar { ToolbarItem(placement: .principal) }`. The whole 4-file chrome overlay was never rendered in production.
 
 ---
 

@@ -150,11 +150,10 @@ final class PaneNSController: NSSplitViewController {
         // any other value, use Apple's standard `.thin` divider (= a
         // semitransparent hairline that adapts to dark/light mode).
         // v0.32 boss 2026-09-02 OOB ('用 macOS 自带液态玻璃,
-        // 跟随系统设置'): removed the
-        // .liquidGlassOpacityChanged NotificationCenter observer
-        // (= the user-tunable slider + cross-instance notification
-        // was deleted; Apple .glassEffect auto-applies via the
-        // system without per-app notification plumbing).
+        // 跟随系统设置'): removed the user-tunable Liquid Glass
+        // opacity slider + cross-instance notification plumbing.
+        // Apple .glassEffect auto-applies via the system without
+        // per-app notification plumbing.
         applyDividerStyleForCurrentOpacity()
         // v0.30 boss 2026-09-01 OOB (zone toggle startup sync): apply the
         // persisted `wenshu.zoneVisible.*` bools from UserDefaults to
