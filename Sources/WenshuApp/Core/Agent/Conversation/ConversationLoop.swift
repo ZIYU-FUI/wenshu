@@ -45,6 +45,13 @@
 //  calls remain in the loop body — see `Sources/WenshuApp/Core/Agent/
 //  Runtime/RuntimeHelpers.swift` for the actor surface.
 //
+//  WIRE-AGENT-006 (v0.41 P2 #21): ConversationLoop now drives an
+//  `AgentProgressTracker` (= library-level, ephemeral, actor). The
+//  tracker emits step events as the turn progresses so the OpenBox
+//  panel (= DynamicZoneView progress strip) can render real-time
+//  feedback to the user. Default = `.noop` (= zero overhead for
+//  unit tests + callers that don't care about progress emission).
+//
 
 import Foundation
 
@@ -105,12 +112,17 @@ public actor ConversationLoop {
     ///   - conversationCompression: Optional compression actor (= HERMES-PARTIAL-001).
     ///     When nil, a default actor instance is used (= the canonical wenshu
     ///     compression policy).
+    ///   - progressTracker: Optional agent progress tracker (= WIRE-AGENT-006).
+    ///     When nil, `AgentProgressTracker.noop` is used (= zero overhead; no
+    ///     progress events emitted). Pass a shared instance to surface step-
+    ///     by-step feedback in the OpenBox panel during a turn.
     public init(
         connection: any LLMConnector,
         systemPrompt: String? = nil,
         runtime: RuntimeHelpers? = nil,
         shellHookChain: ShellHookChain = ShellHookChain(),
-        conversationCompression: ConversationCompression = ConversationCompression()
+        conversationCompression: ConversationCompression = ConversationCompression(),
+        progressTracker: AgentProgressTracker = .noop
     ) {
         // Back-compat: the parameter is named `connector` everywhere in
         // the existing surface; the new parameter is named `connection`
@@ -123,6 +135,7 @@ public actor ConversationLoop {
         self.runtime = runtime ?? RuntimeHelpers()
         self.shellHookChain = shellHookChain
         self.conversationCompression = conversationCompression
+        self.progressTracker = progressTracker
     }
 
     /// Legacy initializer (= preserved for backward compat with callers
@@ -138,7 +151,8 @@ public actor ConversationLoop {
             systemPrompt: systemPrompt,
             runtime: runtime,
             shellHookChain: ShellHookChain(),
-            conversationCompression: ConversationCompression()
+            conversationCompression: ConversationCompression(),
+            progressTracker: .noop
         )
     }
 
@@ -154,6 +168,12 @@ public actor ConversationLoop {
     /// after the final assistant turn (= hermes
     /// conversation_history_after_compression).
     private let conversationCompression: ConversationCompression
+
+    /// Agent progress tracker (= WIRE-AGENT-006). Default = `.noop`
+    /// (= an actor that accepts the same calls but emits no events).
+    /// Used by `runTurn` to surface step-by-step feedback to the
+    /// OpenBox panel during a conversation turn.
+    private let progressTracker: AgentProgressTracker
 
     /// Resolve the current time via the runtime (= hermes-port Z-contract
     /// hard requirement: deterministic tests inject a runtime with
@@ -345,9 +365,52 @@ public actor ConversationLoop {
         let resolvedTaskId = taskId ?? UUID().uuidString
         var retry = TurnRetryState(maxAttempts: maxAttempts)
 
+        // WIRE-AGENT-006 (v0.41 P2 #21): start the agent progress
+        // entry for this turn. The sessionId defaults to the taskId
+        // (= caller may use a richer id later; the OpenBox panel
+        // matches by taskId today). The OpenBox panel polls
+        // `current(sessionId:)` every render cycle.
+        let sessionId = resolvedTaskId
+        var progressEntry = await progressTracker.start(
+            sessionId: sessionId,
+            label: "Reading user message"
+        )
+
         while retry.canRetry {
             retry.recordAttempt()
             do {
+                // WIRE-AGENT-006 step 2: "Compressing context if needed".
+                // The current code path triggers compression only after
+                // the LLM response (= hermes parity), so this step is
+                // a no-op for now (= the tracker entry simply advances
+                // past it). Future tickets that preflight-compress before
+                // the LLM call can hook real work here.
+                await progressTracker.advance(
+                    id: progressEntry.id,
+                    label: "Compressing context if needed"
+                )
+
+                // WIRE-AGENT-006 step 3 + 4: "Building prompt" + "Calling LLM".
+                // Prompt construction and the actual LLM round-trip
+                // both happen inside runConversation; we surface this
+                // combined phase with a generous ETA (= the LLM
+                // round-trip dominates wall-clock time). The ETA
+                // estimate is intentionally conservative (= 8s for
+                // the calling phase) so the OpenBox panel shows a
+                // realistic countdown that the next step will clear.
+                await progressTracker.setStep(
+                    id: progressEntry.id,
+                    stepNumber: 3,
+                    label: "Building prompt",
+                    etaSeconds: nil
+                )
+                await progressTracker.setStep(
+                    id: progressEntry.id,
+                    stepNumber: 4,
+                    label: "Calling LLM",
+                    etaSeconds: 8
+                )
+
                 // Run the basic conversation (= 1 LLM call + 1 turn).
                 // If the assistant message contains tool_use blocks, the
                 // tool executor dispatches them sequentially (= the
@@ -362,12 +425,30 @@ public actor ConversationLoop {
                     streamCallback: streamCallback
                 )
 
+                // WIRE-AGENT-006 step 5: "Parsing response". The LLM
+                // response is already in result.response (= parsed
+                // blocks); the loop has nothing extra to do here other
+                // than signal that the parse phase finished.
+                await progressTracker.setStep(
+                    id: progressEntry.id,
+                    stepNumber: 5,
+                    label: "Parsing response",
+                    etaSeconds: nil
+                )
+
                 // Tool dispatch loop (= hermes _execute_tool_calls_sequential).
                 // Inspect the assistant message for tool_use blocks; if
                 // any are present, dispatch them sequentially and
                 // re-invoke the LLM with the tool results appended.
                 if let assistant = result.messages.last,
                    assistant.blocks.contains(where: { if case .toolUse = $0 { return true } else { return false } }) {
+                    // WIRE-AGENT-006 step 6: "Executing tools".
+                    await progressTracker.setStep(
+                        id: progressEntry.id,
+                        stepNumber: 6,
+                        label: "Executing tools",
+                        etaSeconds: nil
+                    )
                     let executor = ToolExecutor()
                     try await executor.executeSequential(
                         assistantMessage: assistant,
@@ -378,6 +459,15 @@ public actor ConversationLoop {
 
                     // Re-invoke LLM with tool results (= hermes
                     // "tool result -> next assistant message" loop body).
+                    // Briefly re-show step 4 "Calling LLM" since the
+                    // second LLM round-trip is what users feel as the
+                    // longest stretch of step 6.
+                    await progressTracker.setStep(
+                        id: progressEntry.id,
+                        stepNumber: 4,
+                        label: "Calling LLM (after tools)",
+                        etaSeconds: 4
+                    )
                     let options = LLMCallOptions(
                         model: defaultModelForConnector(),
                         maxTokens: 4096,
@@ -405,8 +495,16 @@ public actor ConversationLoop {
                     )
                 }
 
-                // Post-turn compression (= hermes
-                // conversation_history_after_compression).
+                // WIRE-AGENT-006 step 7: "Finalizing reply". Post-turn
+                // compression (= hermes
+                // conversation_history_after_compression) runs as part
+                // of finalization; surface it under the same step.
+                await progressTracker.setStep(
+                    id: progressEntry.id,
+                    stepNumber: 7,
+                    label: "Finalizing reply",
+                    etaSeconds: nil
+                )
                 let (compressedMessages, compressedSystem) = await conversationCompression.historyAfterCompression(
                     messages: result.messages,
                     systemMessage: composeSystemPrompt(
@@ -415,6 +513,9 @@ public actor ConversationLoop {
                     ) ?? ""
                 )
 
+                // WIRE-AGENT-006: mark the entry as succeeded.
+                await progressTracker.complete(id: progressEntry.id, status: .succeeded)
+
                 return ConversationResult(
                     response: result.response,
                     messages: compressedMessages,
@@ -422,16 +523,33 @@ public actor ConversationLoop {
                 )
                 _ = compressedSystem  // compressedSystem captured for future turnContext restore
             } catch let error as LLMConnectorError {
+                // WIRE-AGENT-006: mark the entry as failed on retryable
+                // error too (= the user sees the failed step in the
+                // OpenBox panel even if the loop will retry). The next
+                // retry iteration's `advance(...)` will reset the step
+                // to step 4 "Calling LLM" so the user sees a fresh
+                // attempt.
+                await progressTracker.complete(id: progressEntry.id, status: .failed)
                 // Classifier-aware retry: transient errors get retried,
                 // non-transient fail immediately.
                 if !retry.canRetry || !LLMConnectorErrorClassifier.isTransient(error) {
                     throw error
                 }
+                // Open a fresh running entry for the retry iteration
+                // so the OpenBox panel shows progress again. The
+                // previous entry is already marked failed above; the
+                // `current(sessionId:)` lookup will skip it (= status
+                // != .running) and return the new entry instead.
+                progressEntry = await progressTracker.start(
+                    sessionId: sessionId,
+                    label: "Reading user message"
+                )
                 continue
             }
         }
 
         // Loop exited without success (= retries exhausted).
+        await progressTracker.complete(id: progressEntry.id, status: .failed)
         throw LLMConnectorError.transport(
             provider: connector.connectorID,
             statusCode: 0,
