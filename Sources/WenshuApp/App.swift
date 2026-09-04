@@ -500,7 +500,7 @@ struct WenshuApp: App {
                 // for and flips the bool (= the menu and the
                 // in-window hotkey share the same notification
                 // path so the user sees a consistent state).
-                Button("Layout edit mode") {
+                Button(WenshuI18n.t("button.layout_edit_mode")) {
                     NotificationCenter.default.post(name: .wenshuToggleEditMode, object: nil)
                 }
                 .keyboardShortcut(KeyEquivalent("\\"), modifiers: [.command, .shift])
@@ -1058,7 +1058,11 @@ private struct SkillsSettingsLoader: View {
             // (= Settings tab is a known site; the user can see skills
             // populate in real time).
             .accessibilityElement(children: .contain)
-            .accessibilityLabel("Skills settings" + (hasLoaded ? " (\(skills.count) loaded)" : " (loading)"))
+            .accessibilityLabel(
+                hasLoaded
+                    ? WenshuI18n.tf("a11y.skills_settings.loaded", skills.count)
+                    : WenshuI18n.t("a11y.skills_settings.loading")
+            )
     }
 }
 

@@ -95,3 +95,16 @@
 "statusbar.words"   = "字数: %d";
 "statusbar.backlinks" = "反链 %d";
 "statusbar.toolsReady" = "工具就绪";
+
+// MARK: - 其他 UI (= B-01 残留: View 菜单、connector 状态徽标、布局编辑器、
+//       workspace 级 help tooltip). 命名沿用 `<surface>.<feature>`
+//       (= `button.*`、`help.*`、`a11y.*`). 中文文案中冒号用全角「：」.
+// B-01 residue: per boss 2026-09-04, English-only comment above explains the key.
+"button.layout_edit_mode" = "布局编辑模式";
+"a11y.skills_settings.loaded" = "技能设置（已加载 %d 项）";
+"a11y.skills_settings.loading" = "技能设置（加载中）";
+"help.key_saved_to_keychain" = "密钥已保存到钥匙串";
+"button.zone_editor.merge" = "合并（%d）";
+"button.zone_editor.cancel" = "取消";
+"button.zone_editor.save" = "保存";
+"help.open_target" = "打开：%@";

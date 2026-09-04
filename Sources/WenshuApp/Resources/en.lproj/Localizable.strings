@@ -101,3 +101,15 @@
 "statusbar.words"   = "Words: %d";
 "statusbar.backlinks" = "Backlinks: %d";
 "statusbar.toolsReady" = "Tools ready";
+
+// MARK: - Misc UI (= B-01 residue: View menu, connector badges, layout editor,
+//       and workspace-level help tooltips). Names follow the convention
+//       `<surface>.<feature>` (= `button.*`, `help.*`, `a11y.*`).
+"button.layout_edit_mode" = "Layout edit mode";
+"a11y.skills_settings.loaded" = "Skills settings (%d loaded)";
+"a11y.skills_settings.loading" = "Skills settings (loading)";
+"help.key_saved_to_keychain" = "Key saved to Keychain";
+"button.zone_editor.merge" = "Merge (%d)";
+"button.zone_editor.cancel" = "Cancel";
+"button.zone_editor.save" = "Save";
+"help.open_target" = "Open: %@";

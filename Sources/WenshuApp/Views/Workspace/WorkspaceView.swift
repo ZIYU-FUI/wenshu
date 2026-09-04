@@ -1601,7 +1601,7 @@ private struct EditorPreviewContent: View {
                     .underline()
             }
             .buttonStyle(.plain)
-            .help("Open: \(target)")
+            .help(WenshuI18n.ts("help.open_target", target))
         }
     }
 }

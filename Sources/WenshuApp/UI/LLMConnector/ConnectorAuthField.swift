@@ -58,7 +58,7 @@ public struct ConnectorAuthField: View {
             if isConfigured {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(.green)
-                    .help("Key saved to Keychain")
+                    .help(WenshuI18n.t("help.key_saved_to_keychain"))
             }
         }
     }

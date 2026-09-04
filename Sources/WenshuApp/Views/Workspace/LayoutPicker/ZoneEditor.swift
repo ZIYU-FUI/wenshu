@@ -98,16 +98,16 @@ struct ZoneEditor: View {
                 }
             Spacer()
             // AC#10: Merge button (= visible iff >= 2 zones selected).
-            Button("Merge (\(selectedZones.count))") {
+            Button(WenshuI18n.tf("button.zone_editor.merge", selectedZones.count)) {
                 mergeSelectedZones()
             }
             .buttonStyle(.bordered)
             .disabled(!hasMultiSelection)
-            Button("Cancel") {
+            Button(WenshuI18n.t("button.zone_editor.cancel")) {
                 dismiss()
             }
             .buttonStyle(.bordered)
-            Button("Save") {
+            Button(WenshuI18n.t("button.zone_editor.save")) {
                 saveAsPreset()
             }
             .buttonStyle(.borderedProminent)
