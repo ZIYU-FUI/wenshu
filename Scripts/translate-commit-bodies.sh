@@ -186,18 +186,9 @@ printf '\n'
 #    Use a tempfile for the python script because the heredoc form
 #    `python3 - <<'PYEOF' ... PYEOF` overrides the pipe from `printf`
 #    (= the heredoc redirection for python's stdin takes the body
-#    AWAY from the pipeline; B-03 T3b 2026-09-04 lesson learned). See
-#    `write_msg_filter_py` for the script body.
-MSG_FILTER_PY=$(mktemp -t translate-commit-bodies-py.XXXXXX.py)
-write_msg_filter_py > "$MSG_FILTER_PY"
-printf '%s' "$REST" | python3 "$MSG_FILTER_PY"
-rm -f "$MSG_FILTER_PY"
-FILTER
-}
-
-# Emit the python script that applies the LOOKUPS table to body lines.
-# Kept separate from `build_msg_filter` so the bash heredoc inside
-# `build_msg_filter` does not have to swallow CJK string literals.
+#    AWAY from the pipeline; B-03 T3b 2026-09-04 lesson learned). The
+#    python script body is emitted by `write_msg_filter_py` at line 30
+#    (= below) so it's defined before line 38 calls it.
 write_msg_filter_py() {
     cat <<'PYEOF'
 import sys
@@ -269,18 +260,17 @@ for raw in sys.stdin:
 PYEOF
 }
 
+MSG_FILTER_PY=$(mktemp -t translate-commit-bodies-py.XXXXXX.py)
+write_msg_filter_py > "$MSG_FILTER_PY"
+printf '%s' "$REST" | python3 "$MSG_FILTER_PY"
+rm -f "$MSG_FILTER_PY"
+FILTER
+}
+
 run_apply() {
     local msg_filter
     msg_filter="$(mktemp -t translate-commit-bodies-msgfilter.XXXXXX.sh)"
     build_msg_filter > "$msg_filter"
-    # Append `write_msg_filter_py` so the msg-filter script (which is
-    # invoked standalone by git filter-branch) can call it. Otherwise
-    # we'd get `write_msg_filter_py: command not found` on first line.
-    {
-        echo
-        echo "# ---- embedded write_msg_filter_py ----"
-        write_msg_filter_py
-    } >> "$msg_filter"
     chmod +x "$msg_filter"
 
     # 1. Snapshot the pre-apply tip so rollback = `git reset --hard`.
