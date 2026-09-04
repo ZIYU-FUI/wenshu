@@ -1,0 +1,16 @@
+Sources/WenshuApp/Domain/CrossRefInject_v2.swift:1:// CrossRefInject_v2.swift · Wenshu · v0.28
+Sources/WenshuApp/Domain/CrossRefInject_v2.swift:59:struct CrossRefInject_v2: Sendable {
+Sources/WenshuApp/Domain/CrossRefInject_v2.swift:189:/// ticket that consumes CrossRefInject_v2 fully replaces v0.27 callers).
+Tests/WenshuAppTests/Domain/CrossRefInject_v2Tests.swift:1:// CrossRefInject_v2Tests.swift · Wenshu · v0.28
+Tests/WenshuAppTests/Domain/CrossRefInject_v2Tests.swift:3:// Hermes-port validation tests for CrossRefInject_v2.swift
+Tests/WenshuAppTests/Domain/CrossRefInject_v2Tests.swift:13:@Suite("CrossRefInject_v2 (hermes verbatim port — M5 ticket 14)")
+Tests/WenshuAppTests/Domain/CrossRefInject_v2Tests.swift:14:struct CrossRefInject_v2Tests {
+Tests/WenshuAppTests/Domain/CrossRefInject_v2Tests.swift:28:            .appendingPathComponent("CrossRefInject_v2Test-\(UUID().uuidString)")
+Tests/WenshuAppTests/Domain/CrossRefInject_v2Tests.swift:69:        let sut = CrossRefInject_v2(referenceStore: store, bookDirectory: dir)
+Tests/WenshuAppTests/Domain/CrossRefInject_v2Tests.swift:90:        let sut = CrossRefInject_v2(referenceStore: store, bookDirectory: dir)
+Tests/WenshuAppTests/Domain/CrossRefInject_v2Tests.swift:120:        let sut = CrossRefInject_v2(referenceStore: store, bookDirectory: dir)
+Tests/WenshuAppTests/Domain/CrossRefInject_v2Tests.swift:132:        let sut = CrossRefInject_v2(referenceStore: store, bookDirectory: dir)
+Tests/WenshuAppTests/Domain/CrossRefInject_v2Tests.swift:140:            .appendingPathComponent("CrossRefInject_v2Test-nocp-\(UUID().uuidString)")
+Tests/WenshuAppTests/Domain/CrossRefInject_v2Tests.swift:143:        let sut = CrossRefInject_v2(referenceStore: store, bookDirectory: tmpDir)
+Tests/WenshuAppTests/Domain/CrossRefInject_v2Tests.swift:156:        let sut = CrossRefInject_v2(referenceStore: store, bookDirectory: dir)
+CONTEXT.md:225:| **CrossRefInject_v2 (hermes verbatim port) (M5-14) | hermes-agent `agent/context_engine.py` expand() token-cap behavior verbatim port (= FIFO drop when references exceed the token budget). Replaces v0.27 `CrossRefInject` (= rule-based surface-form matching with no token cap) with: (1) token budget parameter (= maxTokens on runInjection; default 100 tokens), (2) usage-count tracking (= each reference's usage count = how many chapters it appears in; higher-usage references survive future budget cuts first), (3) idempotency preserved from v0.27. Ties broken by entity id UUID lexicographic order (= deterministic across runs). Token estimation = 1 token per 4 chars (= GPT-tiktoken rule of thumb). Used by reference-library auto-injection; the legacy v0.27 `CrossRefInject` type stays available as `LegacyCrossRefInject` typealias for backward compatibility during the migration window. Plugin registry (= hermes `context_references.py` L29-65) is OUT of scope (= lands with M5-15 LLMWikiIngestor). | v0.28 batch 3 |

@@ -1,0 +1,5 @@
+30:final class WenshuLibrary {
+33:    private(set) var shelves: [Bookshelf] = []
+44:    private(set) var selectedShelfId: UUID?
+183:    private(set) var selectedBookId: UUID?
+315:    private(set) var selectedDocumentId: UUID?
