@@ -1,0 +1,9 @@
+{
+  "function": "count_tokens_rough",
+  "generator": "generate_golden.py v0.36",
+  "input": {
+    "text": "hello world this is a test"
+  },
+  "module": "context_compressor",
+  "output": 7
+}

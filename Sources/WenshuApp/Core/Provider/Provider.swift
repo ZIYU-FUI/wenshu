@@ -141,10 +141,44 @@ public struct Provider: Identifiable, Hashable, Sendable {
         defaultModels: []
     )
 
+    // v0.35 ticket 001 sub-step 2 (= hermes-core-translation spec §3.2):
+    // 3 new connector profiles added per AGENTS.md §11.2 (P1/P1/P1).
+    // Other 4 (= Anthropic / OpenAI / minimax cn / OpenRouter) were already
+    // present in the existing wenshu Provider enum (= v0.21 ticket 01).
+
+    public static let gemini = Provider(
+        slug: "gemini",
+        name: "Gemini",
+        defaultBaseURL: "https://generativelanguage.googleapis.com/v1beta",
+        apiMode: "google_genai",
+        authHeader: .bearer,
+        defaultModels: ["gemini-2.5-pro", "gemini-2.5-flash"]
+    )
+
+    public static let deepseek = Provider(
+        slug: "deepseek",
+        name: "DeepSeek",
+        defaultBaseURL: "https://api.deepseek.com/v1",
+        apiMode: "anthropic_messages",
+        authHeader: .bearer,
+        defaultModels: ["deepseek-chat", "deepseek-reasoner"]
+    )
+
+    public static let ollama = Provider(
+        slug: "ollama",
+        name: "Ollama (local)",
+        defaultBaseURL: "http://localhost:11434/v1",
+        apiMode: "openai_chat",
+        authHeader: .bearer,
+        defaultModels: ["llama3.3", "mistral"]
+    )
+
     public static let all: [Provider] = [
         .openrouter, .nous, .minimax, .minimaxCn,
         .openaiCodex, .copilot, .copilotAcp, .xaiOauth,
-        .stepfun, .anthropic, .custom
+        .stepfun, .anthropic, .custom,
+        // v0.35 ticket 001 sub-step 2 additions
+        .gemini, .deepseek, .ollama
     ]
 
     public static func by(slug: String) -> Provider? {

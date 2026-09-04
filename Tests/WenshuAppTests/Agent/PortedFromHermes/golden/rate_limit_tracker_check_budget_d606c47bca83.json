@@ -1,0 +1,14 @@
+{
+  "function": "check_budget",
+  "generator": "generate_golden.py v0.36",
+  "input": {
+    "limit_per_minute": 60,
+    "provider": "anthropic",
+    "requests_in_last_minute": 5
+  },
+  "module": "rate_limit_tracker",
+  "output": {
+    "is_exhausted": false,
+    "requests_remaining": 55
+  }
+}

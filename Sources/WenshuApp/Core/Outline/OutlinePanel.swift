@@ -32,7 +32,7 @@ public struct OutlinePanel: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Outline")
+            Text("大纲")
                 .font(.headline)
             Text("条目数: \(viewModel.items.count)")
             ForEach(viewModel.items) { item in

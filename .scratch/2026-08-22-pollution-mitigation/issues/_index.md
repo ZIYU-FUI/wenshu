@@ -2,15 +2,20 @@
 
 > Parent spec: `.scratch/2026-08-22-pollution-mitigation/spec.md`.
 > PR scope = 1 PR, 4 commits. Issue = 1 commit each.
+>
+> **STATUS (v0.23 audit update 2026-08-23)**: All 4 tickets SHIPPED on `wt/pollution-3-layer-defense`
+> branch (commits `73dc59db7` rename / `d07627c69` system prompt / `8afe5c2fb` OutputKind /
+> `5451d6376` pre-commit filter). Branch merged to `main` at `v0.07.2` tag.
+> This index was stale ("pending" → actually "done"). Boss 8/23 audit spec #014 fix.
 
 ## Tickets (1 PR = 4 commits)
 
 | # | Commit | Issue | Status | Depends on |
 |---|--------|-------|--------|------------|
-| 1 | Rename MiniMax* → Wenshu* + extract LLM types | `001-rename-minimax-to-wenshu.md` | pending | — |
-| 2 | WenshuVerifier system prompt + forbidden vocab | `002-wenshu-verifier-system-prompt.md` | pending | 1 |
-| 3 | OutputKind enum + stop sequences on short output | `003-output-kind-stop-sequences.md` | pending | 2 |
-| 4 | Pre-commit filter script + install + tests | `004-pre-commit-filter.md` | pending | — |
+| 1 | Rename MiniMax* → Wenshu* + extract LLM types | `001-rename-minimax-to-wenshu.md` | **DONE** (commit `73dc59db7`) | — |
+| 2 | WenshuVerifier system prompt + forbidden vocab | `002-wenshu-verifier-system-prompt.md` | **DONE** (commit `d07627c69`) | 1 |
+| 3 | OutputKind enum + stop sequences on short output | `003-output-kind-stop-sequences.md` | **DONE** (commit `8afe5c2fb`) | 2 |
+| 4 | Pre-commit filter script + install + tests | `004-pre-commit-filter.md` | **DONE** (commit `5451d6376`) | — |
 
 ## Execution order
 

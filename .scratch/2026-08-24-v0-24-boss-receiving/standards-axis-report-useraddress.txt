@@ -1,0 +1,132 @@
+# Standards Axis Report
+
+**Reviewed commits:** `24fca4ce9`, `a03a02f3b`  
+**Scope:** `Sources/WenshuApp/App.swift`, `Sources/WenshuApp/Core/Agent/SubAgentIdentity.swift`  
+**Repository:** `/Volumes/ANAN/Engineering/wenshu`  
+**Working tree:** clean
+
+## PASS
+
+- **English-only hard rule: violated by the commit messages and commit bodies.**
+  - `24fca4ce9` contains Chinese commit text, including `Settings UI 智能体对你的称呼` and Chinese body text.
+  - `a03a02f3b` contains Chinese commit text, including `SubAgentIdentity hardcoded 老板 → dynamic userAddress` and Chinese body text.
+  - This conflicts with the stated §11 rule that commit messages must be English-only.
+  - The code itself also contains existing and newly added Chinese UI strings, prompt text, and comments. The exception for `老板`/`文枢` does not cover arbitrary Chinese prose or identifiers.
+
+- **Allowed terminology:** no occurrences of the 12 forbidden cultivation terms were found in the reviewed files:
+  - `修真`
+  - `渡劫`
+  - `筑基`
+  - `返虚`
+  - `结丹`
+  - `金丹`
+  - `元婴`
+  - `飞升`
+  - `天劫`
+  - `雷劫`
+  - `心魔`
+  - `魔障`
+
+- **Apple HIG / SwiftUI reactive pattern:**
+  - `App.swift:369-375` uses `TextField` with an `@AppStorage` binding.
+  - `App.swift:377-383` uses `.onChange(of:)` and posts a `NotificationCenter` event.
+  - `@AppStorage("wenshu.userAddress")` at `App.swift:262-264` is an appropriate SwiftUI persistence mechanism.
+  - The notification name follows the project’s `wenshu*` naming pattern.
+
+- **UserDefaults naming:**
+  - `wenshu.userAddress` is correctly namespaced with the required `wenshu.*` prefix.
+  - Notification name `.wenshuUserAddressChanged` is also correctly namespaced.
+
+- **Vendor-neutral naming:**
+  - Added property `userAddress`, notification `.wenshuUserAddressChanged`, and references to `WenshuConductorIdentity.userAddress` do not introduce `MiniMax*` naming.
+  - No newly introduced vendor-specific type or property was found.
+
+- **Boss-anchored audit comments:**
+  - `App.swift:31-33`, `App.swift:261-264`, and `SubAgentIdentity.swift:204-207` identify the relevant boss decision/date or OOB context.
+  - The comments explicitly document the change and intended propagation behavior.
+
+- **One-ticket/one-commit/one-file structure:**
+  - `24fca4ce9` changes only `Sources/WenshuApp/App.swift`.
+  - `a03a02f3b` changes only `Sources/WenshuApp/Core/Agent/SubAgentIdentity.swift`.
+  - Each commit has a focused change scope and does not bundle unrelated files.
+
+- **Atomic change scope:**
+  - The first commit is limited to the Settings UI, persistence, and notification hook.
+  - The second commit is limited to replacing the hardcoded sub-agent address with dynamic interpolation.
+  - No unrelated refactor or bundled implementation change was found.
+
+## FAIL
+
+### 1. Commit messages violate the English-only rule
+
+- `24fca4ce9`
+  - Commit subject includes Chinese: `Settings UI 智能体对你的称呼`.
+  - Commit body contains multiple Chinese sentences and phrases.
+- `a03a02f3b`
+  - Commit subject includes Chinese: `SubAgentIdentity hardcoded 老板 → dynamic userAddress`.
+  - Commit body contains multiple Chinese sentences and phrases.
+
+This is a direct standards violation, not merely a style concern. The project explicitly treats commit messages as English-only.
+
+### 2. Added comments violate the English-only rule
+
+The new comments are not consistently English-only. Examples include:
+
+- `App.swift:31`
+  - `post when user changes '智能体对你的称呼' in Settings.`
+- `App.swift:32`
+  - `Listeners (e.g. future SoulPatchWriter) regenerate dynamic content.`
+  - The surrounding project convention contains Chinese in adjacent existing comments, but this review’s stated English-only standard applies to new comments as well.
+- `App.swift:261-264`
+  - Contains the Chinese UI string `智能体对你的称呼` and Chinese comments.
+- `App.swift:371-376`
+  - Added section comments include Chinese phrases such as `在设置里加一个` and `用户不可通过聊天改系统`.
+- `SubAgentIdentity.swift:204-207`
+  - New comments include `智能体对你的称呼` and `老板`.
+
+The exception permitting `老板` as the sole address and `文枢` as the brand does not automatically permit mixed Chinese explanations in code comments.
+
+### 3. New code identifiers and UI content are not fully vendor-neutral or English-only
+
+- `App.swift:264`:
+  - `private var userAddress: String = "用户"`
+- `App.swift:371`:
+  - `Section("智能体对你的称呼")`
+- `App.swift:375`:
+  - `TextField("智能体对你的称呼", text: $userAddress, prompt: Text("用户"))`
+
+These are UI strings rather than API identifiers, but the stated rule says no Chinese characters in code. The literal default `"用户"` and the section/title strings are therefore non-compliant under a strict reading. `老板`/`文枢` are explicitly allowed, but `用户` is not listed as an exception in the task context.
+
+The changed prompt text in `SubAgentIdentity.swift:200` and `:213` also uses Chinese prompt content, including `"改代码"`, `"改设定"`, and `"改配置文件"`. This is existing prompt-content behavior affected by the commit’s replacement, and the task explicitly requires reviewing pollution and English-only standards in code. It is a standards concern.
+
+### 4. New documentation comments mix English and Chinese
+
+Examples:
+
+- `App.swift:376-378`
+  - English and Chinese text appear together:
+    - `Boss 8/24拍 default = "用户"`
+- `SubAgentIdentity.swift:204-207`
+  - English explanation contains Chinese quoted UI text and address text.
+- `SubAgentIdentity.swift:209`
+  - Existing bilingual prompt header remains, but the changed file is within the review scope and the standard says comments must be English-only.
+
+## SUGGEST
+
+- Keep commit subjects and bodies entirely English; use terms such as `Settings UI for agent user address` and `replace hardcoded user address in SubAgentIdentity`.
+- Convert new code comments to English-only prose. Preserve `老板` only where it is the project’s explicitly allowed address convention.
+- Consider using an English or explicitly permitted default for the settings value. Under the strict project rule, `"用户"` is not listed among the allowed literals, while `"用户"` is also a Chinese-coded default value rather than merely user-facing localized UI text.
+- If Chinese prompt text is intentionally required for product behavior, document that as a separate approved exception rather than treating the change as English-only.
+- The code uses interpolation in a `static let` prompt:
+  - `SubAgentIdentity.swift:200`
+  - `SubAgentIdentity.swift:213`
+  
+  This is readable and scoped correctly, but the comments should distinguish that the `String` value is evaluated when the property is accessed, rather than describing it as compile-time dynamic behavior.
+- The notification currently posts `newValue` as `object:`. If consumers need a strongly typed payload, the notification object type is weakly typed; this is a minor maintainability suggestion, not a violation of the requested standards.
+- `App.swift:375` uses `.textFieldStyle(.roundedBorder)`, which is a reasonable macOS-compatible SwiftUI presentation. No blocking HIG issue found.
+
+## VERDICT
+
+**NEEDS-FIX**
+
+The code structure, SwiftUI persistence pattern, notification naming, forbidden-vocabulary check, and commit/file atomicity pass. However, the commits and newly added comments/content do not satisfy the project’s explicit English-only standard. The two commit messages are the clearest blocking violations, with additional non-compliant mixed-language comments and Chinese code literals.

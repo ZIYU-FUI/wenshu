@@ -1,0 +1,22 @@
+{
+  "function": "extract_text",
+  "generator": "generate_golden.py v0.36",
+  "input": {
+    "blocks": [
+      {
+        "text": "first",
+        "type": "text"
+      },
+      {
+        "text": "second",
+        "type": "text"
+      },
+      {
+        "text": "third",
+        "type": "text"
+      }
+    ]
+  },
+  "module": "message_sanitization",
+  "output": "first\nsecond\nthird"
+}

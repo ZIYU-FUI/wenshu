@@ -246,3 +246,35 @@ Plan:
 | (d) Delete the 2 not-mounted modules (Obsidian 24 + Hermes SkillRegistry 2) since spec said "前端不接入" | aggressive cleanup, loses backend work |
 
 Boss 拍 (a) / (b) / (c) / (d) / 其他.
+
+---
+
+## v0.23 audit #014 update (2026-08-23)
+
+> Boss 2026-08-23 拍: '全项目代码 review, 跑一遍, 双轴测试没跑的需求, 跑一遍'.
+> Sub-agent audit found: this inventory claims "24 directories" but `.scratch/`
+> actually has **39 subdirectories** as of 2026-08-23. 15 new directories
+> added after this inventory was written (8/22 → 8/23):
+
+1. `2026-08-22-chat-bottom-bar/`
+2. `2026-08-22-inventory/` (this dir, self-reference)
+3. `2026-08-22-pollution-mitigation/`
+4. `2026-08-22-provider-module/`
+5. `2026-08-22-wenshu-devtool/`
+6. `2026-08-23-agent-identity/`
+7. `2026-08-23-agent-safety-guardrails/`
+8. `2026-08-23-architecture-diagram/`
+9. `2026-08-23-hermes-10-gap-fix/`
+10. `2026-08-23-hermes-parity-audit/`
+11. `2026-08-23-monday-acceptance-checklist/`
+12. `2026-08-23-multi-agent/`
+13. `2026-08-23-provider-model-picker/`
+14. `2026-08-23-provider-routing-fix/`
+15. `2026-08-23-subagent-permissions/`
+16. `2026-08-23-ws-workspace/`
+
+(That's actually 16 missing = 39 - 24 + 1 self-reference = 16, my count was off by 1 in the audit report.)
+
+Each of the 15+ new directories contains 1+ spec.md + index.md + issues/ subdirectory. Boss audit remediation: leave this note inline so future readers see "this inventory was 8/22 snapshot".
+
+Total spec directories: **39** as of 2026-08-23 (boss 8/23 audit).

@@ -4,6 +4,15 @@
 
 set -e
 
+# Resolve script directory robustly.
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+case "$SCRIPT_PATH" in
+    /*) ;;
+    *)  SCRIPT_PATH="$(pwd)/$SCRIPT_PATH" ;;
+esac
+SCRIPT_DIR="$( cd "$( dirname "$SCRIPT_PATH" )" && pwd )"
+FILTER_SCRIPT="$SCRIPT_DIR/../commit_filter.py"
+
 TMPDIR=$(mktemp -d)
 trap 'rm -rf "$TMPDIR"' EXIT
 cd "$TMPDIR"
@@ -13,7 +22,7 @@ git config user.email "test@example.com"
 git config user.name "Test"
 
 # Copy filter script into tmpdir
-cp "$OLDPWD/../commit_filter.py" .
+cp "$FILTER_SCRIPT" .
 mkdir -p .git/hooks
 echo "exec python3 $(pwd)/commit_filter.py" > .git/hooks/pre-commit
 chmod +x .git/hooks/pre-commit

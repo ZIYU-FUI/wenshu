@@ -405,7 +405,7 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
 
     func loadDocumentContent(id: UUID, bookId: UUID, category: BookCategory) throws -> String {
         let fm = FileManager.default
-        let path = documentPath(id: id, bookId: bookId, category: category)
+        let path = try documentPath(id: id, bookId: bookId, category: category)
         guard fm.fileExists(atPath: path.path) else {
             throw LibraryStoringError(kind: .documentNotFound(id))
         }
@@ -439,7 +439,7 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
 
         // Atomic write: tmp file + rename. Same pattern as saveShelf /
         // saveBook. Crash mid-write = tmp file orphaned, .md untouched.
-        let path = documentPath(id: id, bookId: bookId, category: category)
+        let path = try documentPath(id: id, bookId: bookId, category: category)
         let tmpPath = path.deletingLastPathComponent()
             .appendingPathComponent("\(id.uuidString).md.tmp")
         let data = content.data(using: .utf8) ?? Data()
@@ -466,7 +466,7 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
 
     func deleteDocument(id: UUID, bookId: UUID, category: BookCategory) throws {
         let fm = FileManager.default
-        let path = documentPath(id: id, bookId: bookId, category: category)
+        let path = try documentPath(id: id, bookId: bookId, category: category)
         // Idempotent (= the contract is "no-op if missing", like
         // deleteShelf and deleteBook).
         guard fm.fileExists(atPath: path.path) else { return }
@@ -510,9 +510,13 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
     }
 
     /// <root>/<shelf-id>/books/<book-id>/<category.directoryName>/<docId>.md
-    private func documentPath(id: UUID, bookId: UUID, category: BookCategory) -> URL {
-        categoryDirectory(bookId: bookId, category: category)!
-            .appendingPathComponent("\(id.uuidString).md")
+    /// v0.23 audit #014 fix: don't force-unwrap. If book directory missing
+    /// (corrupted state), throw instead of crashing.
+    private func documentPath(id: UUID, bookId: UUID, category: BookCategory) throws -> URL {
+        guard let dir = categoryDirectory(bookId: bookId, category: category) else {
+            throw LibraryStoringError(kind: .parentBookNotFound(bookId))
+        }
+        return dir.appendingPathComponent("\(id.uuidString).md")
     }
 
     // MARK: - MD parsing (= title from H1, summary from body)

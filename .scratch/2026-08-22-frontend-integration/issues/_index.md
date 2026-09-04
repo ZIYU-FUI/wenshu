@@ -2,6 +2,11 @@
 
 > Parent spec: `.scratch/2026-08-22-frontend-integration/spec.md` (v0.3 — 26 modules / 20 commits).
 > 老板 2026-08-22 拍: "模块之间是有关联关系的, 不是每个模块都需要有前端入口, 有可能只是后端服务和调度".
+>
+> **STATUS (v0.23 audit #014 update 2026-08-23)**: All 20 tickets SHIPPED on `wt/frontend-integration`
+> branch. **9 commits** landed: h01 (MemoryStore), h02 (SkillRegistry), h10 (4 agent toolkits),
+> h14 (AVMediaTools), o09 (WordCountInlineLabel), ZoneTopToolbar refactor (Phase B-0),
+> Phase B-1 (6 zone toolbars all real actions). Boss 8/23 audit sub-agent confirmed.
 
 ## Layer A — User-facing UI tickets (16)
 

@@ -18,11 +18,15 @@ struct ProcessToolsTests {
 
     @Test("runShell 跑多命令")
     func testRunShell() async throws {
+        // v0.23 ticket 008: runShell always throws (boss 8/23 拍: 用户不可通过聊天改系统).
+        // Use wenshu-devtool CLI for legitimate shell access.
         let tools = ProcessTools()
-        let result = try tools.runShell("echo first && echo second")
-        #expect(result.exitCode == 0)
-        #expect(result.stdout.contains("first"))
-        #expect(result.stdout.contains("second"))
+        do {
+            _ = try tools.runShell("echo first && echo second")
+            Issue.record("runShell should throw ProcessToolError.chatShellDenied")
+        } catch let ProcessToolError.chatShellDenied(cmd) {
+            #expect(cmd == "echo first && echo second")
+        }
     }
 
     @Test("不存在的命令 exitCode != 0")

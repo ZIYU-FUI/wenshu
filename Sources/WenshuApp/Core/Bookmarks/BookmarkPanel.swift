@@ -45,7 +45,7 @@ public struct BookmarkPanel: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Bookmarks")
+            Text("收藏")
                 .font(.headline)
             Text("书签数: \(viewModel.bookmarks.count)")
             ForEach(viewModel.bookmarks) { bookmark in

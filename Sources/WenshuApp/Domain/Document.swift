@@ -104,6 +104,19 @@ struct Document: Identifiable, Hashable, Codable, Sendable {
     /// v0.04+ will allow an explicit `summary` frontmatter field to
     /// override the auto-extracted one.
     var summary: String
+    /// Cross-references resolved at MD body load time from `@<type>.<name>`
+    /// syntax in the markdown body (= boss 2026-08-26 OOB cross-
+    /// reference feature, ticket 007). Three typed fields rather than
+    /// a single untyped array so the view layer can render each ref
+    /// category distinctly (= character chips, world chips, reference
+    /// chips in the editor sidebar).
+    /// All default to empty array for back-compat with v0.25.x
+    /// documents (= no Codable migration needed; existing .md files
+    /// decode with refIds = [] because the field is missing from the
+    /// file metadata; the @-parser re-extracts on next load).
+    var characterRefIds: [UUID]
+    var worldRefIds: [UUID]
+    var referenceRefIds: [UUID]
     let createdAt: Date
     var updatedAt: Date
 
@@ -114,6 +127,9 @@ struct Document: Identifiable, Hashable, Codable, Sendable {
         title: String,
         byteSize: Int = 0,
         summary: String = "",
+        characterRefIds: [UUID] = [],
+        worldRefIds: [UUID] = [],
+        referenceRefIds: [UUID] = [],
         createdAt: Date = .now,
         updatedAt: Date = .now
     ) {
@@ -123,6 +139,9 @@ struct Document: Identifiable, Hashable, Codable, Sendable {
         self.title = title
         self.byteSize = byteSize
         self.summary = summary
+        self.characterRefIds = characterRefIds
+        self.worldRefIds = worldRefIds
+        self.referenceRefIds = referenceRefIds
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -153,5 +172,144 @@ struct Document: Identifiable, Hashable, Codable, Sendable {
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
+    }
+}
+// MARK: - Cross-reference (@-parser)
+
+// MARK: Reference kind enum
+
+/// Type of cross-reference extracted from the `@<type>.<name>` syntax
+/// in document markdown bodies (= boss 2026-08-26 OOB cross-reference
+/// feature). Three kinds match the three typed refIds fields on
+/// Document.
+enum DocumentRefKind: String, CaseIterable, Codable, Sendable {
+    case character
+    case world
+    case reference
+
+    /// Chinese UI label (= boss 8/25 'UI 全中文' carve-out).
+    var displayName: String {
+        switch self {
+        case .character: return "角色"
+        case .world:     return "世界观"
+        case .reference: return "资料"
+        }
+    }
+
+    /// SF Symbol name (= for chips / badges in the UI).
+    var icon: String {
+        switch self {
+        case .character: return "person.fill"
+        case .world:     return "map.fill"
+        case .reference: return "books.vertical.fill"
+        }
+    }
+}
+
+// MARK: - Parser
+
+/// Parses `@<type>.<name>` cross-references from document markdown bodies.
+///
+/// Syntax: the writer types `@character.zhangsan` (= Chinese UI form:
+/// `@角色.张三`). The parser normalizes to:
+/// - kind: DocumentRefKind (= character / world / reference; mapped
+///   from the English prefix; legacy v0.25.x docs may use Chinese
+///   prefixes which are mapped here)
+/// - name: the slugified identifier after the dot (= zhangsan)
+///
+/// The parser returns a set of `(kind, name)` pairs (= unique). The
+/// caller (= typically FileSystemLibraryStore.loadDocument) is
+/// responsible for resolving `name` -> UUID via the per-Book character/
+/// world/ indexes (= a name "zhangsan" might match a Character named
+/// "张三" via a slug-mapping; v0.27+ may add a proper slug resolver).
+struct DocumentCrossRefParser {
+    /// Parse all cross-refs from a markdown body. Returns unique
+    /// `(kind, name)` pairs (= same name + kind appearing N times = 1
+    /// entry). Caller resolves name -> UUID via per-Book indexes.
+    static func parse(_ markdown: String) -> [(kind: DocumentRefKind, name: String)] {
+        var found: [(kind: DocumentRefKind, name: String)] = []
+        var seen = Set<String>()
+        for match in matches(in: markdown) {
+            let key = "\(match.kind.rawValue).\(match.name)"
+            if seen.insert(key).inserted {
+                found.append((kind: match.kind, name: match.name))
+            }
+        }
+        return found
+    }
+
+    /// Resolve parsed `(kind, name)` pairs into UUID arrays using the
+    /// lookup tables provided. Unresolved names (= no match in any
+    /// index) are silently skipped (= the writer may have referenced
+    /// a name not yet created; v0.27+ may add a "create new entity
+    /// from reference" UX).
+    static func resolve(
+        _ refs: [(kind: DocumentRefKind, name: String)],
+        characterLookup: [String: UUID],
+        worldLookup: [String: UUID],
+        referenceLookup: [String: UUID]
+    ) -> (
+        characterRefIds: [UUID],
+        worldRefIds: [UUID],
+        referenceRefIds: [UUID]
+    ) {
+        var charIds: [UUID] = []
+        var worldIds: [UUID] = []
+        var refIds: [UUID] = []
+        for ref in refs {
+            switch ref.kind {
+            case .character:
+                if let id = characterLookup[ref.name] { charIds.append(id) }
+            case .world:
+                if let id = worldLookup[ref.name] { worldIds.append(id) }
+            case .reference:
+                if let id = referenceLookup[ref.name] { refIds.append(id) }
+            }
+        }
+        return (charIds, worldIds, refIds)
+    }
+
+    // MARK: Private
+
+    /// Returns all regex matches in the markdown (= may include duplicates).
+    private static func matches(in markdown: String) -> [(kind: DocumentRefKind, name: String)] {
+        // Pattern: @(character|world|reference).<slug>
+        // Slug = alphanumerics + underscore + Chinese characters + hyphen.
+        // Matches across newlines (= mode .dotMatchesLineSeparators? No;
+        // we want single-line refs; cross-line refs are rare and v0.26
+        // doesn't need them).
+        //
+        // We accept both English prefixes (character / world / reference)
+        // and Chinese prefixes (角色 / 世界观 / 资料) for back-compat with
+        // any docs the writer may have written by hand using the Chinese
+        // UI form per boss 8/25 'UI 全中文' pattern.
+        let regex: NSRegularExpression
+        do {
+            regex = try NSRegularExpression(
+                pattern: #"@(character|world|reference|角色|世界观|资料)\.([A-Za-z0-9_\-一-鿿]+)"#
+            )
+        } catch {
+            return []
+        }
+        let nsMarkdown = markdown as NSString
+        let range = NSRange(location: 0, length: nsMarkdown.length)
+        var results: [(kind: DocumentRefKind, name: String)] = []
+        regex.enumerateMatches(in: markdown, range: range) { match, _, _ in
+            guard let match = match, match.numberOfRanges == 3 else { return }
+            let kindRaw = nsMarkdown.substring(with: match.range(at: 1))
+            let name = nsMarkdown.substring(with: match.range(at: 2))
+            guard let kind = kindFromRaw(kindRaw) else { return }
+            results.append((kind: kind, name: name))
+        }
+        return results
+    }
+
+    private static func kindFromRaw(_ raw: String) -> DocumentRefKind? {
+        switch raw {
+        case "character", "角色": return .character
+        case "world", "世界观":   return .world
+        case "reference", "资料": return .reference
+        default: return nil
+        }
     }
 }

@@ -204,29 +204,30 @@ def cmd_settings_dump(_args) -> dict:
 
 
 def cmd_keychain_list(_args) -> dict:
-    """List ProviderKeychain's stored providers."""
-    stdout, stderr, rc = _run_cmd(["security", "dump-keychain", "login.keychain-db"], timeout=15)
-    if rc != 0:
-        raise RuntimeError(f"security dump-keychain failed (rc={rc}): {stderr.strip()}")
+    """List ProviderKeychain's stored providers.
+
+    v0.24 fix: was using 'security dump-keychain' which doesn't show
+    generic password account names. Switch to iterating known provider
+    slugs via 'find-generic-password' (returns non-zero if absent = skip).
+    """
+    # v0.24: iterate known provider slugs (hardcoded to avoid Swift import).
+    slugs = [
+        "minimax-cn", "minimax", "anthropic", "openai-codex",
+        "openrouter", "nous-portal", "github-copilot",
+        "github-copilot-acp", "xai-oauth", "minimax-cn-mirror"
+    ]
     providers = []
-    for line in stdout.splitlines():
-        if '"svce"<blob>="com.wenshu.app.provider"' in line:
-            continue
-        if "com.wenshu.app.provider" in line:
-            continue
-        if "com.wenshu.app.minimax" in line:
-            continue
-    for line in stdout.splitlines():
-        if 'com.wenshu.app.provider' in line and 'api.key' in line:
-            start = line.find('"acct"<blob>="') + len('"acct"<blob>="')
-            end = line.find('"', start)
-            if start > len('"acct"<blob>="') - 1 and end > start:
-                account = line[start:end]
-                if account.endswith(".api.key"):
-                    slug = account[: -len(".api.key")]
-                    if slug and slug not in providers:
-                        providers.append(slug)
+    for slug in slugs:
+        stdout, stderr, rc = _run_cmd(
+            ["security", "find-generic-password",
+             "-s", "com.wenshu.app.provider",
+             "-a", f"{slug}.api.key"],
+            timeout=5
+        )
+        if rc == 0:
+            providers.append(slug)
     return {"service": "com.wenshu.app.provider", "providers": sorted(providers)}
+
 
 
 def cmd_keychain_get(args) -> dict:

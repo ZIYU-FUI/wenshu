@@ -59,7 +59,7 @@ public struct SearchPanel: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Search")
+            Text("搜索")
                 .font(.headline)
             TextField("搜索…", text: $queryText)
                 .textFieldStyle(.roundedBorder)

@@ -36,7 +36,8 @@ public actor CronjobStore {
 
     public init() {
         // macOS LaunchAgent 路径真值: ~/Library/LaunchAgents/wenshu.cronjob.<id>.plist
-        let support = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first!
+        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? URL(fileURLWithPath: NSHomeDirectory() + "/Library/Application Support")
         let agents = support.appendingPathComponent("LaunchAgents", isDirectory: true)
         try? FileManager.default.createDirectory(at: agents, withIntermediateDirectories: true)
         self.plistPath = agents

@@ -1,0 +1,64 @@
+---
+# wenshu SwiftLint configuration
+# Per AGENTS.md Section 11.1: engineering management tool, lint-only.
+
+# Skip vendored deps + scratch research + pollution-defense files that
+# legitimately enumerate the forbidden vocab (= per commit_filter.py
+# POLLUTION_ALLOWLIST: WenshuVerifier, WenshuAgentIdentity, commit_filter.py
+# itself, pollution-defense test fixtures, PR/issue templates).
+excluded:
+  - .build
+  - build
+  - DerivedData
+  - .scratch
+  - wenshu-audit-*
+  - backup-pre-ws-migration-*
+  - Sources/WenshuApp/Core/Agent/WenshuVerifier.swift
+  - Sources/WenshuApp/Core/Agent/WenshuAgentIdentity.swift
+  - Sources/WenshuApp/Core/Agent/WenshuConductorIdentity.swift
+  - Tools/wenshu-devtool/commit_filter.py
+  - Tests/WenshuAppTests/.+/test_block_pollution
+
+# Minimal rule set in batch 1 (= scope of issue 08). Default Apple
+# rules were 64k+ violations; ramping up incrementally per future
+# batch. Owner-grill any rule addition to avoid boss trust loss.
+disabled_rules:
+  - superfluous_else
+  - line_length
+  - file_length
+  - function_body_length
+  - function_parameter_count
+  - identifier_name
+  - type_name
+  - variable_name
+  - cyclomatic_complexity
+  - nesting
+  - todo
+  - file_header
+  - redundant_nil_coalescing
+  - unused_optional_binding
+  - large_tuple
+  - force_cast
+  - force_try
+  - trailing_comma
+  - trailing_whitespace
+  - trailing_newline
+  - vertical_whitespace
+  - type_body_length
+
+opt_in_rules:
+  - custom_rules
+
+# Custom rule: 12-token xianxia pollution-defense vocabulary (= per
+# AGENTS.md Section 8 hard rule + WenshuVerifier.shortOutputStopSequencesHex
+# hex-encoding pattern from commit 2748bb8). This is the SOURCE-side
+# defense; commit_filter.py is the message-side defense.
+# Severity: error => swiftlint exits non-zero on any leak => CI step
+# hard-fails the build (= enforces the gate automatically, no human
+# review needed for the forbidden-vocab invariant).
+custom_rules:
+  xianxia_forbidden_vocab:
+    name: "Xianxia forbidden vocab"
+    regex: '(修真|渡劫|筑基|返虚|结丹|金丹|元婴|飞升|天劫|雷劫|心魔|魔障)'
+    message: "Forbidden xianxia-vocab token found. Use hex-encoded form (see WenshuVerifier.shortOutputStopSequencesHex) or describe semantically."
+    severity: error

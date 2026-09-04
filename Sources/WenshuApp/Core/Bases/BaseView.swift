@@ -39,10 +39,10 @@ public struct BaseView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Base")
+            Text("数据库")
                 .font(.headline)
-            Text("view 数: \(viewModel.document.viewCount)")
-            Text("formula 数: \(viewModel.document.formulas.count)")
+            Text("视图数: \(viewModel.document.viewCount)")
+            Text("公式数: \(viewModel.document.formulas.count)")
             if let error = viewModel.error {
                 Text("错误: \(error)")
                     .foregroundStyle(.red)

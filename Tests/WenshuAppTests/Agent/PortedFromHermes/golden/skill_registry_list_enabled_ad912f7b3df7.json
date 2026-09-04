@@ -1,0 +1,12 @@
+{
+  "function": "list_enabled",
+  "generator": "generate_golden.py v0.36",
+  "input": {
+    "scope": "all"
+  },
+  "module": "skill_registry",
+  "output": {
+    "available_count": 15,
+    "enabled_count": 12
+  }
+}

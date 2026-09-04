@@ -8,7 +8,6 @@
 //  业务语言描述 (老板懂):
 //  - BacklinksPanel 是 SwiftUI View, 给一个 docId 显示所有引用它的 source 链接
 //  - 现阶段只做 ViewModel 渲染逻辑, View 体留 placeholder (老板 macOS 验后再补 .body 接入)
-//  - 不接 LayoutShellView, 不接 BookEditorSheet, 不接 LibraryOutlineView
 //
 
 import Foundation
@@ -66,7 +65,7 @@ public struct BacklinksPanel: View {
         // placeholder: 老板 macOS 验后再补实际渲染
         // 现阶段只显示 docId + backlinks 数量, 验证 ViewModel 数据通路
         VStack(alignment: .leading, spacing: 8) {
-            Text("Backlinks")
+            Text("反链")
                 .font(.headline)
             if viewModel.isLoading {
                 Text("加载中…")
@@ -74,7 +73,7 @@ public struct BacklinksPanel: View {
                 Text("错误: \(error)")
                     .foregroundStyle(.red)
             } else {
-                Text("docId: \(viewModel.docId)")
+                Text("文档 ID: \(viewModel.docId)")
                     .font(.caption)
                 Text("链接数: \(viewModel.backlinks.count)")
                 ForEach(viewModel.backlinks, id: \.offset) { link in

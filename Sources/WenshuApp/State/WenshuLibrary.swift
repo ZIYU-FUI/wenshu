@@ -31,6 +31,12 @@ final class WenshuLibrary {
     /// All bookshelves, sorted by updatedAt descending (= Apple HIG Finder
     /// 'Recents' convention).
     private(set) var shelves: [Bookshelf] = []
+    /// v0.24 boss验收fix (Boss 8/25 sixth OOB ticket 015.019): total book
+    /// count across all shelves (= used by projectSidebar bottom toolbar
+    /// right-side status "书: N"). Computed by iterating store.loadBooks
+    /// for each shelf; cached in @Observable mirror so UI updates
+    /// reactively when shelves/books change.
+    private(set) var bookCount: Int = 0
 
     /// The user's current selection (= Apple HIG document-based apps
     /// default to a single selection; v0.02.0 is single-selection only).
@@ -76,6 +82,24 @@ final class WenshuLibrary {
                 // empty state will render and the user can pick one.
             }
         }
+        // v0.24 boss验收fix (Boss 8/25 sixth OOB ticket 015.019): compute
+        // total book count across all shelves (= used by projectSidebar
+        // bottom toolbar right-side status '书: N').
+        recomputeBookCount()
+    }
+
+    /// v0.24 boss验收fix (Boss 8/25 sixth OOB ticket 015.019): recompute
+    /// bookCount by summing books across all shelves. Public so views can
+    /// trigger recomputation after shelf/book add/remove mutations.
+    public func recomputeBookCount() {
+        var total = 0
+        for shelf in shelves {
+            if let books = try? store.loadBooks(shelfId: shelf.id) {
+                total += books.count
+            }
+        }
+        bookCount = total
+        NSLog("[wenshu.library] recomputeBookCount: %d (shelf count=%d)", total, shelves.count)
     }
 
     /// URL to display in the UI (= 'Library at <rootURL>'). The view
@@ -212,6 +236,22 @@ final class WenshuLibrary {
     /// documents in this category yet).
     func documents(in bookId: UUID, category: BookCategory) throws -> [Document] {
         try store.loadDocuments(bookId: bookId, category: category)
+    }
+
+    /// v0.30 boss OOB '为什么角色, 世界观, 后面没有显示数字': count .md
+    /// files directly by folder directory name. Doesn't require
+    /// BookCategory (= which only has 3 cases = chapter/setting/research;
+    /// the 5 user-facing folders use custom directory names like
+    /// 'world' / 'characters' / 'outlines' that aren't in BookCategory).
+    /// Returns 0 for missing folders (= forgiving convention).
+    ///
+    /// v0.30 followup: this can be replaced by a proper BookCategory
+    /// extension (= add `world` / `characters` cases) once the
+    /// Document model migrates to support all 5 folder types.
+    /// Note: delegate to BookStore (= same impl, available there too).
+    func folderDocumentCount(bookId: UUID, folderDirectoryName: String) -> Int {
+        guard let bookStore = store as? BookStore else { return 0 }
+        return bookStore.folderDocumentCount(bookId: bookId, folderDirectoryName: folderDirectoryName)
     }
 
     /// Reads the full MD body of a document (= what the EDITOR will

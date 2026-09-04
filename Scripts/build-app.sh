@@ -26,6 +26,16 @@ cp ".build/release/$BIN_NAME" "$MACOS_DIR/$BIN_NAME"
 # (SwiftPM `-sectcreate __TEXT __info_plist` 是裸 run 用的, .app bundle 不需要)
 cp "Sources/WenshuApp/Resources/Info.plist" "$APP_DIR/Contents/Info.plist"
 
+# v0.34 Issue 11: regenerate upstreams.json + THIRD_PARTY_NOTICES.md
+# (= Apple HIG convention: notice file is always fresh at build
+# time; = no manual sync required). Idempotent (= scanner produces
+# identical output across runs = Git diff stays clean).
+if command -v python3 >/dev/null 2>&1; then
+    python3 Tools/wenshu-devtool/upstreams-scan.py || echo "warning: upstreams-scan.py failed (= skipped; check Python 3 path)"
+else
+    echo "warning: python3 not found (= skipped upstreams-scan.py; notices may be stale)"
+fi
+
 # AppIcon (.icon Icon Composer 格式) → Contents/Resources/AppIcon.icon (CFBundleIconFile="AppIcon" 解析路径)
 cp -R "Sources/WenshuApp/Resources/AppIcon.icon" "$RES_DIR/AppIcon.icon"
 
@@ -35,5 +45,16 @@ cp -R "Sources/WenshuApp/Resources/AppIcon.icon" "$RES_DIR/AppIcon.icon"
 
 echo ">>> ad-hoc codesign"
 codesign --force --deep --sign - "$APP_DIR"
+
+# v0.24 boss验收fix (Boss 8/24 OOB): re-register app with Launch Services
+# so Finder picks up UTExportedTypeDeclarations (com.wenshu.workspace +
+# com.apple.package conformance = .ws files appear as packages, right-click
+# → '显示包内容'). Without lsregister, the new Info.plist is not picked up
+# and Finder treats .ws as ordinary directory (= cannot '显示包内容').
+LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+if [ -x "$LSREGISTER" ]; then
+    echo ">>> lsregister -f $APP_DIR (re-register UTI)"
+    "$LSREGISTER" -f "$APP_DIR" >/dev/null 2>&1 || true
+fi
 
 echo ">>> done. open with: open $APP_DIR"

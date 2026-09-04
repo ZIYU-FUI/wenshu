@@ -1,0 +1,203 @@
+// LucideIcon.swift · Wenshu (文枢) · v0.27
+//
+// Boss 2026-08-27 OOB: '同时现在还在用 apple sf 的，全量替换成 lucide，
+// 我先不指定，你找同名的换'. = replace ALL Image(systemName:) usage
+// with Lucide("...") across the wenshu codebase.
+//
+// This file provides the central Icon helper. Call sites should use:
+//
+//   LucideIcon("folder")                          // direct lookup (Lucide canonical name)
+//   LucideIcon.fromSystemSymbol("checkmark")      // SF Symbol name → Lucide fallback
+
+import SwiftUI
+import Lucide
+
+/// Resolves the macOS sidebar icon size preference (= NSTableViewDefaultSizeMode
+/// in NSGlobalDomain). Maps the 1/2/3 raw integer to a Point size for custom
+/// Lucide icons so they adapt to the user's "Sidebar icon size" system preference
+/// (= Apple HIG Sidebars: 'A sidebar's row height, text, and glyph size depend
+/// on its overall size, which can be small, medium, or large.').
+///
+/// v0.30 boss 8/30 OOB test 'Apple 系统设置 → General → Sidebar icon size = 改
+/// Small/Medium/Large 看 sidebar 是否跟随' = sidebar icons should adapt when
+/// user changes system preference. Custom Lucide icons (= non-SF-Symbol) need
+/// to manually read this setting (= SF Symbols auto-adapt via SwiftUI's
+/// Label intrinsic sizing).
+///
+/// Mapping per Apple HIG (Finder/Mail/Notes sidebar defaults):
+/// - Small  (rawValue 1) → 12 PT
+/// - Medium (rawValue 2) → 14 PT (= default)
+/// - Large  (rawValue 3) → 18 PT
+public func wenshuSidebarIconSize() -> CGFloat {
+    let raw = UserDefaults.standard.integer(forKey: "NSTableViewDefaultSizeMode")
+    switch raw {
+    case 1: return 12   // Small
+    case 3: return 18   // Large
+    default: return 14 // Medium (= 2 OR 0 unset = default fallback)
+    }
+}
+
+/// Wenshu canonical icon helper. Resolves an icon name (= wenshu
+/// convention = Lucide kebab-case) into a Lucide View. Falls back to
+/// an empty 18x18 frame for missing icons (= followup: add the
+/// correct icon name).
+///
+/// Usage:
+/// ```swift
+/// LucideIcon("folder")                          // 18 PT (= general usage)
+/// LucideIcon("chevron-right", size: 12)         // 12 PT explicit override
+/// LucideIcon.sidebar("folder")                  // 14 PT (= sidebar icon size,
+///                                               //  adapts to NSTableViewDefaultSizeMode)
+/// LucideIcon.fromSystemSymbol("checkmark")      // SF 'checkmark' → Lucide 'check'
+/// ```
+@ViewBuilder
+public func LucideIcon(_ name: String, size: CGFloat = 18) -> some View {
+    if let lucide = Lucide(name) {
+        lucide
+            .frame(width: size, height: size)
+            .foregroundStyle(.primary)
+    } else {
+        // Empty placeholder (= icon name not found in lucide; followup
+        // = add the correct icon name).
+        Color.clear
+            .frame(width: size, height: size)
+    }
+}
+
+/// Sidebar icon variant (= size derived from macOS sidebar icon size
+/// system preference). Use this for icons inside List(.sidebar) rows.
+/// Per Apple HIG, sidebar icons MUST adapt to user's "Sidebar icon size"
+/// preference (= Small/Medium/Large). Without this, custom icons stay
+/// fixed while SF Symbols auto-resize, breaking visual harmony.
+@ViewBuilder
+public func LucideIconSidebar(_ name: String) -> some View {
+    LucideIcon(name, size: wenshuSidebarIconSize())
+}
+
+/// Icon helper that takes an SF Symbol name (= legacy / boss shorthand)
+/// and resolves it to the canonical Lucide equivalent. Falls back to
+/// the SF Symbol itself if no Lucide match exists (= preserves
+/// behavior so boss can request a followup rename).
+///
+/// Mapping (= boss 8/27 '你先落地，你找同名的换' = if SF Symbol name
+/// is already valid Lucide, use directly; otherwise try the closest
+/// Lucide equivalent):
+/// - SF 'checkmark' → Lucide 'check'
+/// - SF 'sidebar.left' → Lucide 'panel-left'
+/// - SF 'eye.fill' → Lucide 'eye'
+/// - SF 'wrench.and.screwdriver' → Lucide 'wrench'
+/// - SF 'bubble.left' → Lucide 'message-square'
+/// - SF 'chart.bar' → Lucide 'chart-bar'
+/// - SF 'square.and.arrow.up' → Lucide 'share-2'
+/// - SF 'paperplane.fill' → Lucide 'send'
+/// - SF 'arrow.down.doc' → Lucide 'arrow-down-to-line'
+/// - SF 'square.and.pencil' → Lucide 'square-pen'
+/// - SF 'arrow.down.right.and.arrow.up.left' → Lucide 'minimize-2'
+/// - SF 'arrow.up.left.and.arrow.down.right' → Lucide 'maximize-2'
+/// - SF 'chevron.up.chevron.down' → Lucide 'chevrons-up-down'
+/// - SF 'cpu' → Lucide 'cpu'
+/// - SF 'plus' → Lucide 'plus'
+/// - SF 'folder' → Lucide 'folder'
+/// - SF 'key' / 'key.fill' → Lucide 'key'
+/// - SF 'chevron.right' → Lucide 'chevron-right'
+/// - SF 'chevron.down' → Lucide 'chevron-down'
+/// - SF 'eye' → Lucide 'eye'
+/// - SF 'gauge' → Lucide 'gauge'
+/// - SF 'person' / 'person.crop.circle' → Lucide 'user'
+/// - SF 'tag' → Lucide 'tag'
+@ViewBuilder
+public func LucideIconSystemFallback(_ sfSymbol: String, size: CGFloat = 18) -> some View {
+    let lucideName = sfSymbolToLucideName(sfSymbol)
+    if let lucide = Lucide(lucideName) {
+        lucide
+            .frame(width: size, height: size)
+            .foregroundStyle(.primary)
+    } else if let lucide = Lucide(sfSymbol) {
+        // SF Symbol name is itself valid as Lucide name (= e.g. 'plus',
+        // 'folder', 'cpu', 'tag' which exist in both libraries).
+        lucide
+            .frame(width: size, height: size)
+            .foregroundStyle(.primary)
+    } else {
+        // Final fallback = Image(systemName:) SF Symbol rendering
+        // (= preserves boss's existing behavior; can be removed in a
+        // followup if boss wants strict Lucide-only).
+        Image(systemName: sfSymbol)
+            .frame(width: size, height: size)
+            .foregroundStyle(.primary)
+    }
+}
+
+/// Maps an SF Symbol name to its closest Lucide equivalent (= boss
+/// 8/27 '你找同名的换' rule). Returns the SF Symbol name unchanged
+/// if a direct Lucide equivalent exists (= Lucide's API accepts both
+/// kebab-case and camelCase).
+private func sfSymbolToLucideName(_ sfSymbol: String) -> String {
+    let mapping: [String: String] = [
+        "checkmark": "check",
+        "sidebar.left": "panel-left",
+        "wrench.and.screwdriver": "wrench",
+        "bubble.left": "message-square",
+        "chart.bar": "chart-bar",
+        "square.and.arrow.up": "share-2",
+        "paperplane.fill": "send",
+        "arrow.down.doc": "arrow-down-to-line",
+        "square.and.pencil": "square-pen",
+        "arrow.down.right.and.arrow.up.left": "minimize-2",
+        "arrow.up.left.and.arrow.down.right": "maximize-2",
+        "chevron.up.chevron.down": "chevrons-up-down",
+        "person.crop.circle": "user-round",
+        "person.crop.circle.badge.questionmark": "bot-message-square",
+        "person.crop.square": "user-square",
+        "person.text.rectangle": "user-cog",
+        "exclamationmark.triangle": "triangle-alert",
+        "bubble.left.and.bubble.right": "messages-square",
+        "bubble.left.fill": "message-square",
+        "square.grid.2x2": "layout-grid",
+        "square.grid.3x2": "layout-list",
+        "moon": "moon",
+        "sun.max": "sun",
+        "magnifyingglass": "search",
+        "arrow.up.arrow.down": "arrow-up-down",
+        "arrow.left.arrow.right": "arrow-left-right",
+        "circle": "circle",
+        "circle.fill": "circle-dot",
+        "trash": "trash-2",
+        "pencil": "pen",
+        "doc": "file-text",
+        "doc.fill": "file-text",
+        "doc.on.doc": "copy",
+        "arrow.up.to.line": "arrow-up-to-line",
+        "arrow.down.to.line": "arrow-down-to-line",
+        "arrow.left.to.line": "arrow-left-to-line",
+        "arrow.right.to.line": "arrow-right-to-line",
+        "folder.fill": "folder",
+        "tag.fill": "tag",
+        "eye.fill": "eye",
+        "key.fill": "key",
+        "chart.bar.fill": "chart-bar",
+        "person.fill": "user",
+        // v0.34 boss 2026-09-02 OOB: extend mapping to cover every
+        // LucideIconSystemFallback callsite (= eliminate the Image(systemName:)
+        // fall-through branch in LucideIconSystemFallback's third layer).
+        // All 16 mappings below verified against lucide-swift 1.25.0
+        // (= .build/checkouts/lucide-swift/Sources/Lucide/LucideIcon.swift).
+        "brain": "brain",
+        "checkmark.circle.fill": "circle-check",
+        "circle.dashed": "circle-dashed",
+        "cpu": "cpu",
+        "exclamationmark.circle.fill": "triangle-alert",
+        "git-branch": "git-branch",
+        "git-fork": "git-fork",
+        "inbox": "inbox",
+        "magnifyingglass.circle": "search",
+        "plus": "plus",
+        "square.and.arrow.down": "square-arrow-down",
+        "square-dashed": "square-dashed",
+        "square-dashed-mouse-pointer": "square-dashed-mouse-pointer",
+        "text.book.closed": "book-text",
+        "xmark": "x",
+        "xmark.circle.fill": "x",
+    ]
+    return mapping[sfSymbol] ?? sfSymbol
+}

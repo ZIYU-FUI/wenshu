@@ -43,7 +43,7 @@ public struct GraphView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Graph")
+            Text("关系图")
                 .font(.headline)
             Text("节点数: \(viewModel.graph.nodes.count)")
             Text("边数: \(viewModel.graph.edges.count)")

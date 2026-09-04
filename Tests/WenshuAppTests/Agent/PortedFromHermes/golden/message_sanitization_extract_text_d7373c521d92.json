@@ -1,0 +1,30 @@
+{
+  "function": "extract_text",
+  "generator": "generate_golden.py v0.36",
+  "input": {
+    "blocks": [
+      {
+        "text": "hello world",
+        "type": "text"
+      },
+      {
+        "signature": "sig1",
+        "thinking": "internal monologue",
+        "type": "thinking"
+      },
+      {
+        "id": "t1",
+        "input": "{}",
+        "name": "ReadFile",
+        "type": "tool_use"
+      },
+      {
+        "output": "file content",
+        "tool_use_id": "t1",
+        "type": "tool_result"
+      }
+    ]
+  },
+  "module": "message_sanitization",
+  "output": "hello world"
+}

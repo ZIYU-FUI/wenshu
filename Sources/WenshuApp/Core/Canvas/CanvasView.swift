@@ -58,7 +58,7 @@ public struct CanvasView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Canvas")
+            Text("画布")
                 .font(.headline)
             if viewModel.isLoading {
                 Text("加载中…")
@@ -66,8 +66,8 @@ public struct CanvasView: View {
                 Text("错误: \(error)")
                     .foregroundStyle(.red)
             } else {
-                Text("node 数: \(viewModel.document.nodes.count)")
-                Text("edge 数: \(viewModel.document.edges.count)")
+                Text("节点数: \(viewModel.document.nodes.count)")
+                Text("边数: \(viewModel.document.edges.count)")
                 ForEach(viewModel.document.nodes) { node in
                     Text("[\(node.id)] \(node.type.rawValue) @ (\(Int(node.x)),\(Int(node.y)))")
                         .font(.caption2)
