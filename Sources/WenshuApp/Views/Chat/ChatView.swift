@@ -577,24 +577,39 @@ public struct ChatView: View {
             // `kanban` store the WenshuConductor owns, so tool writes
             // are observable in the OpenBox KanbanView immediately.
             let kanbanTools = KanbanTools(store: kanban)
+            // P0 #4 (WIRE-AGENT-004): register TodoStoreTool so the LLM
+            // can create / list / update / complete / remove Todo items
+            // directly from the chat surface. The TodoStore (SQLite
+            // actor) is the canonical wenshu-side task tracker; the
+            // HermesTodoTool wraps it via the wenshu-side-wins adapter
+            // pattern (= HermesTodoTool.swift header).
+            let todoStore = try TodoStore()
+            try todoStore.bootstrap()
+            let hermesTodoStore = HermesTodoStore()
+            let hermesTodo = HermesTodoTool(store: hermesTodoStore)
             return WenshuConductor(
                 runtime: runtime,
                 verifier: verifier,
                 kanbanStore: kanban,
                 tools: [
                     "ParagraphAI": ParagraphAITool.shared,
-                    "kanban": KanbanStoreTool(kanbanTools: kanbanTools)
+                    "kanban": KanbanStoreTool(kanbanTools: kanbanTools),
+                    "todo": TodoStoreTool(hermesTodo: HermesTodoTool(store: hermesTodoStore), todoStore: todoStore)
                 ]
             )
         } catch {
             let fallback = try! KanbanStore(path: NSTemporaryDirectory() + "wenshu-chat-fallback-\(UUID().uuidString).sqlite")
+            let todoFallback = try! TodoStore(path: NSTemporaryDirectory() + "wenshu-chat-todo-fallback-\(UUID().uuidString).sqlite")
+            try? todoFallback.bootstrap()
+            let hermesTodoFallback = HermesTodoStore()
             return WenshuConductor(
                 runtime: runtime,
                 verifier: verifier,
                 kanbanStore: fallback,
                 tools: [
                     "ParagraphAI": ParagraphAITool.shared,
-                    "kanban": KanbanStoreTool(kanbanTools: KanbanTools(store: fallback))
+                    "kanban": KanbanStoreTool(kanbanTools: KanbanTools(store: fallback)),
+                    "todo": TodoStoreTool(hermesTodo: HermesTodoTool(store: hermesTodoFallback), todoStore: todoFallback)
                 ]
             )
         }
