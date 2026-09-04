@@ -271,7 +271,25 @@ public enum ProviderKeychain {
     // B unlocks. WENSHU_DEBUG_INMEMORY_KEYCHAIN=1 env var still flips
     // to InMemory for cua / dev / CI contexts. Tests inject InMemory
     // via setBackendForTesting().
-    public nonisolated(unsafe) static var backend: any ProviderKeychainStoring = InMemoryKeychainStore()
+    //
+    // B-10 phase B activation (Boss 2026-09-04 OOB '跳过我验收,往后推进'):
+    // `B10_PHASE_B_ENABLED` Swift compile flag, when set via build setting
+    // (`SWIFT_ACTIVE_COMPILATION_CONDITIONS += B10_PHASE_B_ENABLED`), switches
+    // the default backend to `AppleKeychainStore` IF the running binary carries
+    // a real embedded provisioning profile (= Apple Developer Program paid).
+    // Otherwise falls through to `InMemoryKeychainStore` (= safe default).
+    // Default OFF (= Phase A still active). Activation procedure:
+    // `.scratch/2026-09-04-b-10-phase-b-activation.md`.
+    public nonisolated(unsafe) static var backend: any ProviderKeychainStoring = {
+        #if B10_PHASE_B_ENABLED
+        if let signed = Bundle.main.path(forResource: "embedded", ofType: "mobileprovision"),
+           let entitlements = try? Data(contentsOf: URL(fileURLWithPath: signed)),
+           !entitlements.isEmpty {
+            return AppleKeychainStore()
+        }
+        #endif
+        return InMemoryKeychainStore()
+    }()
 
     /// Test-only override. Production code must never call this.
     public static func setBackendForTesting(_ store: any ProviderKeychainStoring) {
