@@ -194,4 +194,26 @@ public enum ToolDispatchInputParser {
         }
         return result
     }
+
+    /// Serialize a `[String: String]` dispatch-layer dictionary back into
+    /// a JSON string suitable for passing to `Tool.execute(input:)`.
+    /// HERMES-PARTIAL-003 wire-up: ToolExecutor's pre-dispatch validator
+    /// returns a `[String: String]` (= the dispatch-layer dict); this
+    /// method reverses ToolDispatchInputParser.parse so the tool receives
+    /// the canonical input envelope.
+    ///
+    /// Returns "{}" for an empty dict (= the parser's empty-dict input).
+    public static func serialize(_ input: [String: String]) -> String {
+        guard !input.isEmpty,
+              JSONSerialization.isValidJSONObject(input),
+              let data = try? JSONSerialization.data(
+                  withJSONObject: input,
+                  options: [.fragmentsAllowed, .sortedKeys]
+              ),
+              let encoded = String(data: data, encoding: .utf8)
+        else {
+            return "{}"
+        }
+        return encoded
+    }
 }
