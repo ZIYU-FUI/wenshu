@@ -1,25 +1,47 @@
 //
-//  ParagraphAITool.swift · Wenshu · P0 #2 (WIRE-AGENT-002, 2026-09-04)
+//  ParagraphAITool.swift · Wenshu · P0 #2 (WIRE-AGENT-002) + P1 #10 (WIRE-PARAGRAPH-001)
 //
-//  STUB implementation of the paragraph AI editing tool. Returns canned
-//  expansion data so the tool dispatch path (= ToolExecutor wired into
-//  ConversationLoop via WenshuConductor.tools) is fully exercisable in
-//  production + tests without an LLM round-trip.
+//  Tool-protocol-facing entry point for the paragraph-level
+//  editor transformations. Replaces the P0 #2 canned-stub body
+//  with a real dispatch through `EditorTransformTools` (the
+//  Swift port of hermes `agent/editing/editor_tools.py` shipped
+//  in PORT-SPECIALIZED-005).
 //
-//  P3 ticket #15 (= .scratch/2026-09-04-wenshu-integration-plan.md)
-//  replaces this stub with the real hermes port of
-//  `agent/editing/paragraph_ai.py` (expand / shorten / rewrite actions
-//  with model-driven rewriting). This stub intentionally:
-//    - returns canned text so production wiring is provably active
-//    - accepts JSON input {"text": "...", "mode": "expand"} and
-//      always echoes the input text wrapped in an "expanded" frame
-//    - exposes a `.shared` singleton so ChatViewModel can register it
-//      with `WenshuConductor(tools: [.shared: ParagraphAITool.shared])`
-//    - parses JSON via ToolInputParser (= single source of truth per
-//      Standards-axis S3 Duplicated Code smell)
+//  The actual rewriting is performed by the LLM (= ConversationLoop
+//  routes the returned prompt prefix + user paragraph text into
+//  the model call). The Swift tool's job is narrower: parse the
+//  LLM's tool_use input, look up the matching transform, and
+//  return the prompt prefix the model will consume.
 //
-//  Tool name = "ParagraphAI" (= matches the convention other wenshu
-//  tools use: ReadFileTool → "ReadFile", WriteFileTool → "WriteFile").
+//  Input contract (= unchanged from the stub; preserves the
+//  ConversationLoop ↔ LLM contract per the P0 #2 acceptance):
+//
+//    {"text": "<paragraph>", "action": "<expand|shorten|rephrase|shiftTone|simplify|dramatize>", "tone": "<formal|casual|literary|punchy|neutral>?"}
+//
+//    - `text`   : the paragraph to transform. Optional (= empty
+//                 yields a deterministic stub frame so the
+//                 ConversationLoop still gets a tool_result back).
+//    - `action` : one of the 6 `EditorTransform` raw values.
+//                 Optional; defaults to "expand" (= mirrors the
+//                 P0 #2 stub default).
+//    - `tone`   : only meaningful when `action == "shiftTone"`.
+//                 Defaults to `EditorTransformTools.defaultTone(for:)`
+//                 for the requested action (= `.formal` for
+//                 shiftTone, `.literary` for dramatize, `nil`
+//                 everywhere else).
+//
+//  Output contract: the LLM-facing prompt prefix for the
+//  requested transform. ChatView's tool surface composes this
+//  with the user paragraph and feeds the combination into the
+//  LLM call (= the model returns the rewritten paragraph; that
+//  flows back through the ConversationLoop assistant-message
+//  path). For empty input the tool still returns a non-empty
+//  stub frame (= preserved from the P0 #2 stub; keeps the
+//  ConversationLoop wiring deterministic for malformed input).
+//
+//  Tool name = "ParagraphAI" (= unchanged from the P0 #2 stub;
+//  matches the convention other wenshu tools use: ReadFileTool
+//  → "ReadFile", WriteFileTool → "WriteFile").
 //
 
 import Foundation
@@ -27,16 +49,26 @@ import Foundation
 public struct ParagraphAITool: Tool, Sendable {
 
     /// Shared singleton (= ChatViewModel registers this with the
-    /// conductor at construction time). The tool is stateless so a
-    /// single instance is sufficient.
-    public static let shared = ParagraphAITool()
+    /// conductor at construction time). The tool holds a
+    /// reference to a single `EditorTransformTools` actor so
+    /// every call site hits the same in-process prompt registry.
+    public static let shared = ParagraphAITool(
+        editorTools: EditorTransformTools()
+    )
 
-    public init() {}
+    private let editorTools: EditorTransformTools
+
+    public init(editorTools: EditorTransformTools) {
+        self.editorTools = editorTools
+    }
 
     public func execute(input: String) async throws -> String {
-        // Parse input JSON. Stub contract: {"text": "...", "mode": "expand"}
-        // `mode` is optional (= default = "expand" matches the boss
-        // OOB use-case for this ticket = one stub action).
+        // Parse input JSON. Stub contract: {"text": "...", "mode": "..."}
+        // The real port accepts {"text": "...", "action": "...",
+        // "tone": "..."} (= matches the LLM tool_use shape the
+        // ConversationLoop emits). Both `action` and `tone` are
+        // optional; default = "expand" + default tone for the
+        // resolved action (= matches the P0 #2 stub default).
         let dict: [String: Any]
         do {
             dict = try ToolInputParser.parseDictionary(input: input)
@@ -44,21 +76,87 @@ public struct ParagraphAITool: Tool, Sendable {
             // Empty / malformed input still returns a valid stub frame
             // (= canned expansion of an empty paragraph is empty +
             // "(no input)" annotation; tests assert non-empty output).
-            return stubFrame(text: "", mode: "expand")
+            return stubFrame(text: "", action: EditorTransform.expand.rawValue)
         }
         let text = (dict["text"] as? String) ?? ""
-        let mode = (dict["mode"] as? String) ?? "expand"
-        return stubFrame(text: text, mode: mode)
+
+        // Resolve the action (= "action" is the canonical name;
+        // "mode" is the legacy alias from the P0 #2 stub; both
+        // resolve to the same EditorTransform so old LLM tool_use
+        // blocks keep working).
+        let actionRaw = (dict["action"] as? String)
+            ?? (dict["mode"] as? String)
+            ?? EditorTransform.expand.rawValue
+        guard let transform = EditorTransform(rawValue: actionRaw) else {
+            // Unknown action = fall back to expand (= matches the
+            // HermesTodoTool / TodoStoreTool "empty input == read"
+            // convention: pick the safe default, do not throw).
+            return await dispatchFrame(
+                text: text,
+                transform: .expand,
+                explicitTone: nil
+            )
+        }
+
+        // Resolve the tone (= only meaningful for shiftTone; for
+        // other transforms `tone` is ignored, but parsing it
+        // first keeps the contract uniform across the 6 cases).
+        let explicitTone: TargetTone?
+        if let toneRaw = dict["tone"] as? String {
+            explicitTone = TargetTone(rawValue: toneRaw)
+        } else {
+            explicitTone = nil
+        }
+
+        return await dispatchFrame(
+            text: text,
+            transform: transform,
+            explicitTone: explicitTone
+        )
     }
 
-    /// Build the canned expansion frame. Real port (= P3 ticket #15)
-    /// replaces this with LLM-driven rewriting.
-    private func stubFrame(text: String, mode: String) -> String {
-        // Stub contract: return a JSON-shaped string the agent can
-        // round-trip without re-parsing. Trim leading/trailing
-        // whitespace for nicer presentation in ChatView.
+    /// Resolve the tone + build the prompt prefix + wrap it in the
+    /// `[ParagraphAI ...]` frame the ConversationLoop + ChatView
+    /// expect (= preserves the P0 #2 stub frame shape so existing
+    /// callers + tests do not break).
+    private func dispatchFrame(
+        text: String,
+        transform: EditorTransform,
+        explicitTone: TargetTone?
+    ) async -> String {
+        let resolvedTone: TargetTone?
+        if let explicitTone {
+            resolvedTone = explicitTone
+        } else {
+            resolvedTone = await editorTools.defaultTone(for: transform)
+        }
+        let prefix = await editorTools.promptPrefix(for: transform, targetTone: resolvedTone)
+        return composeFrame(text: text, transform: transform, tone: resolvedTone, promptPrefix: prefix)
+    }
+
+    /// Build the canned expansion frame (= preserved from the P0 #2
+    /// stub; the body now contains the real prompt prefix instead
+    /// of the literal "expanded" suffix).
+    private func composeFrame(
+        text: String,
+        transform: EditorTransform,
+        tone: TargetTone?,
+        promptPrefix: String
+    ) -> String {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         let body = trimmed.isEmpty ? "(no input)" : trimmed
-        return "[ParagraphAI stub — mode=\(mode)] \(body) [expanded]"
+        let toneSuffix = tone.map { ",tone=\($0.rawValue)" } ?? ""
+        return "[ParagraphAI action=\(transform.rawValue)\(toneSuffix)] prompt=\(promptPrefix) input=\(body)"
+    }
+
+    /// Stub frame used for malformed / empty input that fails
+    /// JSON parsing. Kept (= preserved from the P0 #2 stub; the
+    /// wire test in `WenshuConductorToolWiringTests` still
+    /// matches the "ParagraphAI stub" substring path for the
+    /// parity guard).
+    private func stubFrame(text: String, action: String) -> String {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let body = trimmed.isEmpty ? "(no input)" : trimmed
+        return "[ParagraphAI stub — action=\(action)] \(body) [expanded]"
     }
 }
