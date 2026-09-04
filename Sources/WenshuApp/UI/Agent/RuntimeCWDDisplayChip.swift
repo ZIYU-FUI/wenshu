@@ -72,7 +72,3 @@ public struct RuntimeCWDDisplayChip: View {
     }
 }
 
-/// Notification posted when RuntimeCWD override changes (= for UI refresh).
-public extension Notification.Name {
-    static let runtimeCWDDidChange = Notification.Name("wenshu.runtimeCWD.didChange")
-}

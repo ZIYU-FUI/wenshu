@@ -77,6 +77,11 @@ enum AppStateEvents: String, CaseIterable {
     /// Defocus chat input when user clicks outside (= so keyboard focus
     /// returns to the work area, not stuck in the chat input field).
     case defocusChatInput = "com.wenshu.defocusChatInput"
+
+    /// RuntimeCWD override changed (= user picked a new override folder).
+    /// Posted by RuntimeCWD.setCWD(_:) after the UserDefaults write.
+    /// Listened by RuntimeCWDDisplayChip (= editor zone toolbar chip).
+    case runtimeCWDDidChange = "com.wenshu.runtimeCWD.didChange"
 }
 
 // MARK: - LayoutEvents
@@ -130,6 +135,13 @@ extension Notification.Name {
     static let wenshuProviderKeychainChanged = Notification.Name(AppStateEvents.providerKeychainChanged.rawValue)
     static let wenshuChatStoreReady = Notification.Name(AppStateEvents.chatStoreReady.rawValue)
     static let wenshuDefocusChatInput = Notification.Name(AppStateEvents.defocusChatInput.rawValue)
+
+    // Migration note: original local symbol in RuntimeCWDDisplayChip.swift
+    // was named `runtimeCWDDidChange` (no wenshu prefix). Preserve that
+    // exact name so existing call sites (.onReceive + test addObserver)
+    // compile unchanged. The underlying raw value is now the unified
+    // AppStateEvents.runtimeCWDDidChange enum case (Apple reverse-DNS).
+    static let runtimeCWDDidChange = Notification.Name(AppStateEvents.runtimeCWDDidChange.rawValue)
 
     // LayoutEvents
     static let wenshuResetLayout = Notification.Name(LayoutEvents.resetLayout.rawValue)
