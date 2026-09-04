@@ -45,20 +45,20 @@ public struct ConnectorTestButton: View {
             HStack(spacing: 4) {
                 ProgressView()
                     .controlSize(.small)
-                Text("Testing…")
+                Text(WenshuI18n.t("settings.connector.status.testing"))
             }
         case .success:
             HStack(spacing: 4) {
                 Image(systemName: "checkmark")
-                Text("Test passed")
+                Text(WenshuI18n.t("settings.connector.status.passed"))
             }
         case .failure:
             HStack(spacing: 4) {
                 Image(systemName: "xmark")
-                Text("Retry")
+                Text(WenshuI18n.t("settings.connector.status.retry"))
             }
         case .notTested:
-            Text("Test connection")
+            Text(WenshuI18n.t("settings.connector.field.test"))
         }
     }
 
