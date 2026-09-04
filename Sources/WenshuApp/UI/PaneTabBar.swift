@@ -8,7 +8,8 @@
 // Listed in ComponentIndex.md Level 3.2.
 //
 // = replaces ZoneContentTabBar (166 LOC) + DynamicZoneTabBar (135 LOC) +
-// ChatZoneTopChrome (74 LOC) = 375 LOC of duplicated tab bar code.
+// the chat-zone wrapper (74 LOC, since deleted in v0.34) = 375 LOC of duplicated
+// tab bar code. Only DynamicZoneTabBar survives (= enum↔string binding shim).
 //
 // Use this for ANY per-pane top tab bar (= sidebar/preview/editor/tools/
 // chat/dynamic). Don't write a new tab bar component from scratch.
@@ -208,7 +209,8 @@ public struct PaneTabItem: Identifiable, Sendable {
 // buttons (separate from selection tabs). This helper unifies the
 // self-written copies that had drifted between WorkspaceView.swift
 // (= EditorExpandShrinkTrailingButton) and TabContentDispatcher.swift
-// (= ChatZoneTopChrome archive button).
+// (= chat-zone archive button; was inlined into TabContentDispatcher when
+// the wrapper was deleted in v0.34).
 @MainActor
 public struct PaneTrailingIconButton: View {
     public let icon: String

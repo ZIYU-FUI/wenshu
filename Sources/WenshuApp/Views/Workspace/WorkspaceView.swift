@@ -840,7 +840,7 @@ private struct EditorExpandShrinkTrailingButton: View {
         // shape (Color.clear.frame(28,28).overlay(LucideIcon) + .hoverWash +
         // .plain + .help) was duplicated between WorkspaceView.swift
         // EditorExpandShrinkTrailingButton and TabContentDispatcher.swift
-        // ChatZoneTopChrome. Replaced both with the shared
+        // (chat-zone archive button). Replaced both with the shared
         // PaneTrailingIconButton helper. EditorExpandShrinkTrailingButton
         // now retains only the icon-toggle state (= editorMaximized) and
         // the tooltip string (= editorMaximized ? "恢复布局" : "展开全屏").

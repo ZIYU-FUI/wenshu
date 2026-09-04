@@ -42,13 +42,14 @@ struct TabContentDispatcher: View {
     @Environment(AppState.self) private var appState
 
     // v0.34 boss 2026-09-02 OOB (B-02 multi-layer audit followup):
-    // ChatZoneTopChrome wrapper was deleted. The state and namespace
-    // it owned (= archive-confirm dialog state + per-instance
-    // SwiftUI namespace for the matchedGeometryEffect underline) are
-    // now owned by TabContentDispatcher directly (= single source of
-    // truth for chat zone top chrome). Migration path: see PaneTabBar
-    // documentation in commit dcde7cff5's "top-bar chrome flattening"
-    // section.
+    // The chat-zone tab-bar wrapper (= the since-deleted wrapper that
+    // previously held the chat top tab bar inside `PaneRenderer`) was
+    // deleted. The state and namespace it owned (= archive-confirm
+    // dialog state + per-instance SwiftUI namespace for the
+    // matchedGeometryEffect underline) are now owned by
+    // TabContentDispatcher directly (= single source of truth for chat
+    // zone top chrome). Migration path: see commit a6b6c75d3's "top-bar
+    // chrome flattening" section.
     @State private var showingArchiveConfirm: Bool = false
     @Namespace private var chatTabBarNamespace
 
@@ -196,10 +197,12 @@ struct TabContentDispatcher: View {
             // + archive button on right). The new ChatView doesn't
             // have an internal tab bar.
             // v0.34 boss 2026-09-02 OOB (B-02 multi-layer audit):
-            // the inline ChatZoneTopChrome wrapper was deleted; the
-            // PaneTabBar call now lives directly in this dispatch branch
-            // (= state + namespace held by TabContentDispatcher above).
-            // Single source of truth for chat top chrome.
+            // The chat-zone tab-bar wrapper (= the since-deleted
+            // wrapper that used to host the chat top tab bar) was
+            // deleted; the PaneTabBar call now lives directly in this
+            // dispatch branch (= state + namespace held by
+            // TabContentDispatcher above). Single source of truth for
+            // chat top chrome.
             // NO outer ZonePerRegionChrome (= this PaneTabBar IS the top chrome).
             ZonePerRegionChrome(
                 topActions: [],
@@ -219,7 +222,7 @@ struct TabContentDispatcher: View {
                         // (= content area + small top inset for tab bar).
                         //
                         // v0.34 boss 2026-09-02 OOB: use PaneTabBar directly
-                        // (= no ChatZoneTopChrome wrapper layer). Single
+                        // (= no chat-zone wrapper layer). Single
                         // hard-coded chat tab item + archive trailing button
                         // (= migrated to PaneTrailingIconButton helper from
                         // commit dcde7cff5). namespaceID stays as
