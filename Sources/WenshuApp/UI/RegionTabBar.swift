@@ -9,8 +9,10 @@
 // Liquid Glass background + 1 PT bottom separator + 30 PT height":
 //
 //   1. ZoneContentView.ZoneContentTabBar (= sidebar / preview / editor / tools)
-//   2. PaneRenderer.ChatZoneTopChrome (= chat)
-//   3. DynamicZoneView.DynamicZoneTabBar (= dynamic / kanban)
+//   2. (deleted in v0.34) chat-zone wrapper (= chat, since inlined
+//      into TabContentDispatcher.aiChat via a direct PaneTabBar call)
+//   3. DynamicZoneView.DynamicZoneTabBar (= dynamic / kanban; survives as a
+//      genuine enum↔string binding shim)
 //
 // All three had IDENTICAL configuration but DIFFERENT visual result
 // (= boss observed in screenshot: "每个区域的毛玻璃效果都不一样").
@@ -51,8 +53,11 @@ import SwiftUI
 ///
 /// **SINGLE SOURCE OF TRUTH**: Used by all per-pane tab bars across
 /// the app (= `ZoneContentView.ZoneContentTabBar`,
-/// `PaneRenderer.ChatZoneTopChrome`, `DynamicZoneView.DynamicZoneTabBar`).
-/// All three now render identically because they call this same view.
+/// `DynamicZoneView.DynamicZoneTabBar`). Both now render identically
+/// because they call this same view. The third historical wrapper
+/// (= the chat-zone tab bar that lived inline in `PaneRenderer` before
+/// v0.34) was deleted; its chat-zone call site now lives inline in
+/// `TabContentDispatcher.aiChat`.
 ///
 /// Visual configuration:
 /// - Height: `LayoutTokens.toolbarHeight` (= 30 PT, canonical)

@@ -33,7 +33,9 @@ public enum DesignTokens {
 
     /// Per-pane chrome height (= 30 PT, matches Apple HIG canonical toolbar).
     /// Used by: RegionTabBar, RegionStatusBar, ZonePerRegionChrome.topBar/
-    /// bottomBar, ZoneContentTabBar, DynamicZoneTabBar, ChatZoneTopChrome.
+    /// bottomBar, ZoneContentTabBar, DynamicZoneTabBar. The chat zone's
+    /// tab bar is rendered via a direct PaneTabBar call inside
+    /// TabContentDispatcher.aiChat (= since v0.34, no separate wrapper).
     public static let chromeHeight: CGFloat = 30
 
     /// Per-pane chrome horizontal leading padding (= 18 PT, matches Apple HIG).

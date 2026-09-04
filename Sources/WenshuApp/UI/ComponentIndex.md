@@ -176,7 +176,7 @@ Each component has:
       }
   )
   ```
-- **Replaces**: `ZoneContentTabBar` (166 LOC) + `DynamicZoneTabBar` (135 LOC) + `ChatZoneTopChrome` (74 LOC) = 375 LOC → 80 LOC generic
+- **Replaces**: `ZoneContentTabBar` (166 LOC) + `DynamicZoneTabBar` (135 LOC; survives as the enum↔string binding shim) + the since-deleted chat-zone wrapper (74 LOC) = 375 LOC → 80 LOC generic
 
 ---
 
@@ -288,11 +288,11 @@ These were removed in various phases (= v0.32 Apple-API-first sweep + v0.34 boss
 - **Deleted**: Phase 4 (= v0.28 followup Boss UX round A)
 - **Use instead**: `PaneStatusBar` (= new in Phase 5, file `Sources/WenshuApp/UI/PaneStatusBar.swift`)
 
-### 8.3 ❌ ZoneContentTabBar / DynamicZoneTabBar / ChatZoneTopChrome (custom tab bodies)
+### 8.3 ❌ ZoneContentTabBar / chat-zone wrapper / DynamicZoneTabBar (custom tab bodies)
 - **Was in**: `Sources/WenshuApp/Views/Dynamic/ZoneContentView.swift` + `DynamicZoneView.swift` + `Workspace/TabContentDispatcher.swift`
 - **Refactored**: Phase 2-3 + v0.34 commits `dcde7cff5` + `a6b6c75d3`
 - **Use instead**: `PaneTabBar` + `PaneIconTab` + `PaneTrailingIconButton` (= new generic components in `Sources/WenshuApp/UI/PaneTabBar.swift`)
-- **Note**: `DynamicZoneTabBar` still survives (= enum ↔ string binding shim = SwiftUI Binding limitation; tracked in backlog.md entry B-02)
+- **Note**: `DynamicZoneTabBar` still survives (= enum↔string binding shim = SwiftUI Binding limitation; tracked in backlog.md entry B-02). The chat-zone wrapper (= the since-deleted wrapper that hard-coded the chat tab + archive trailing button, now inlined into `TabContentDispatcher.aiChat` as a single `PaneTabItem(id:"chat")`) was deleted in commit `a6b6c75d3`.
 
 ### 8.4 ❌ zoneContentTabBarIcon / dynamicZoneTabBarIcon / chatZoneTabBarIcon
 - **Was in**: same files as 8.3

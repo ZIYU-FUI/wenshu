@@ -199,21 +199,22 @@ public struct ZonePerRegionChrome<Content: View>: View {
 // was DEAD CODE: all 6 callers in TabContentDispatcher.swift pass
 // topActions: [] + topSkip: true, meaning the topBar was never rendered
 // (= each zone uses its own internal ZoneContentTabBar /
-// ChatZoneTopChrome / DynamicZoneTabBar). Removed in v0.34.
+// DynamicZoneTabBar; the former chat-zone wrapper was inlined in v0.34).
+// Removed in v0.34.
 //
 // Single-source-of-truth for per-pane top chrome (= the actual canonical
-// 3 different components that the 6 zones use) is now split across:
+// 2 different components that the 6 zones use, post-v0.34) is split across:
 //   - ZoneContentTabBar (sidebar/preview/editor/tools) — most common
-//   - ChatZoneTopChrome (aiChat)
 //   - DynamicZoneTabBar (aiDynamic)
-// All three follow the same Apple HIG structure (= HStack + icons +
+// Both follow the same Apple HIG structure (= HStack + icons +
 // selected underline + .controlBackgroundColor + 1 PT .separator).
-// Future ticket (= v0.35+ boss拍): merge these 3 into 1
-// WenshuZoneTopBar<ZoneSlot> generic component. Not done in v0.34
-// because each of the 3 has zone-specific state plumbing
-// (ZoneContentTabBar's matchedGeometryEffect namespace, ChatZoneTopChrome's
-// safeAreaInset integration, DynamicZoneTabBar's DynamicTab enum binding)
-// that would need to be re-architected as a generic state API first.
+// The chat zone's tab bar now lives inline in TabContentDispatcher.aiChat
+// as a direct PaneTabBar call (= PaneTabItem(id:"chat") + archive
+// trailing button). Future ticket (= v0.35+ boss拍): if zone-specific
+// state plumbing can be unified, merge ZoneContentTabBar +
+// DynamicZoneTabBar + the inlined chat call into 1 WenshuZoneTopBar<ZoneSlot>
+// generic component. Not done in v0.34 because DynamicZoneTabBar still
+// needs its enum↔string binding shim (= SwiftUI Binding limitation).
 
 // MARK: - Lucide + SF Symbol fallback icon (= matches old ZoneIcon)
 
