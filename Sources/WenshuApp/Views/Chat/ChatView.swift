@@ -587,6 +587,15 @@ public struct ChatView: View {
             try todoStore.bootstrap()
             let hermesTodoStore = HermesTodoStore()
             let hermesTodo = HermesTodoTool(store: hermesTodoStore)
+            // P2 #20 (WIRE-LIBRARIAN-001): register BookManagerTool so the
+            // LLM can create / rename / delete / list / show books directly
+            // from the chat surface via the "/create-book <title>" slash
+            // command (= canonical wenshu-side library state through
+            // BookStore). The BookStore that BookManager wraps is the
+            // canonical wenshu-side book storage (= same singleton the
+            // sidebar uses); BookManager reads / writes through it via
+            // BookStore.sidebarSaveBook / sidebarDeleteBook / sidebarLoadAllBooks.
+            let bookManager = BookManager(bookStore: bookStoreForChatTool())
             return WenshuConductor(
                 runtime: runtime,
                 verifier: verifier,
@@ -594,7 +603,8 @@ public struct ChatView: View {
                 tools: [
                     "ParagraphAI": ParagraphAITool.shared,
                     "kanban": KanbanStoreTool(kanbanTools: kanbanTools),
-                    "todo": TodoStoreTool(hermesTodo: HermesTodoTool(store: hermesTodoStore), todoStore: todoStore)
+                    "todo": TodoStoreTool(hermesTodo: HermesTodoTool(store: hermesTodoStore), todoStore: todoStore),
+                    "book_manager": BookManagerTool(manager: bookManager)
                 ]
             )
         } catch {
@@ -602,6 +612,7 @@ public struct ChatView: View {
             let todoFallback = try! TodoStore(path: NSTemporaryDirectory() + "wenshu-chat-todo-fallback-\(UUID().uuidString).sqlite")
             try? todoFallback.bootstrap()
             let hermesTodoFallback = HermesTodoStore()
+            let bookManager = BookManager(bookStore: bookStoreForChatTool())
             return WenshuConductor(
                 runtime: runtime,
                 verifier: verifier,
@@ -609,10 +620,41 @@ public struct ChatView: View {
                 tools: [
                     "ParagraphAI": ParagraphAITool.shared,
                     "kanban": KanbanStoreTool(kanbanTools: KanbanTools(store: fallback)),
-                    "todo": TodoStoreTool(hermesTodo: HermesTodoTool(store: hermesTodoFallback), todoStore: todoFallback)
+                    "todo": TodoStoreTool(hermesTodo: HermesTodoTool(store: hermesTodoFallback), todoStore: todoFallback),
+                    "book_manager": BookManagerTool(manager: bookManager)
                 ]
             )
         }
+    }
+
+    /// P2 #20 (WIRE-LIBRARIAN-001): build the BookStore instance that
+    /// BookManagerTool wraps in this fallback conductor. The canonical
+    /// production wiring is `appState.bookStore` (= injected via
+    /// `@Environment(BookStore.self)`); this helper is the fallback /
+    /// standalone path (= ChatView constructs its own conductor
+    /// because no App-supplied conductor was provided). We build a
+    /// minimal BookStore pointing at a unique `/tmp` root (= same
+    /// forgiving pattern as the KanbanStore fallback above) so the
+    /// book_manager tool is fully exercised end-to-end in preview /
+    /// tests even when no real library has been opened.
+    private static func bookStoreForChatTool() -> BookStore {
+        let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-p2-20-chat-tool-\(UUID().uuidString)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
+        let shelvesRoot = tmpRoot.appendingPathComponent("shelves", isDirectory: true)
+        let referenceLibraryRoot = tmpRoot.appendingPathComponent("reference-library", isDirectory: true)
+        let referenceStore = FileSystemReferenceStore(referenceLibraryRoot: referenceLibraryRoot)
+        let stores = LibraryStores(
+            shelvesRoot: shelvesRoot,
+            referenceLibraryRoot: referenceLibraryRoot,
+            referenceStore: referenceStore
+        )
+        let bookStore = BookStore(stores: stores)
+        // Best-effort mirror of any on-disk shelves into the in-memory
+        // `shelves` cache (= mirrors what `LibraryLifecycleHook` /
+        // `reloadAllBooks` do in the production launch path).
+        bookStore.shelves = (try? bookStore.sidebarLoadShelves()) ?? []
+        bookStore.reloadAllBooks()
+        return bookStore
     }
 
     public var body: some View {
