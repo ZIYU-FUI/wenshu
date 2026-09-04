@@ -1525,7 +1525,7 @@ struct ChatZoneView: View {
     init(conductor: WenshuConductor?, store: ChatSessionStore?) {
         self.conductor = conductor
         self.store = store
-        _vm = State(initialValue: ChatViewModel(conductor: conductor, store: store))
+        _vm = State(initialValue: ChatViewModel(conductor: conductor, store: store, appState: appState))
         // v0.21 ticket 43 step 1 NSLog trace
         NSLog("[wenshu.tab] onAppear: selectedTab=%@ currentModel=%@", ChatZoneTab.chat.rawValue, currentModel)
     }
