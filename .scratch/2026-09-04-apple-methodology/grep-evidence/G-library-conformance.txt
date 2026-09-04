@@ -1,0 +1,39 @@
+Sources/WenshuApp/State/WenshuLibrary.swift:4:// v40+) and the storage backend (= LibraryStoring). Owns:
+Sources/WenshuApp/State/WenshuLibrary.swift:11://   - WenshuLibrary depends ONLY on the LibraryStoring protocol, never on
+Sources/WenshuApp/State/WenshuLibrary.swift:16://     LibraryStoring first, not WenshuLibrary.
+Sources/WenshuApp/State/WenshuLibrary.swift:50:    private let store: any LibraryStoring
+Sources/WenshuApp/State/WenshuLibrary.swift:52:    init(store: any LibraryStoring) {
+Sources/WenshuApp/State/WenshuLibrary.swift:118:        // Insert in sorted position. LibraryStoring guarantees the new
+Sources/WenshuApp/State/WenshuLibrary.swift:132:            throw LibraryStoringError(kind: .shelfNotFound(id))
+Sources/WenshuApp/State/WenshuLibrary.swift:206:            throw LibraryStoringError(kind: .bookNotFound(id))
+Sources/WenshuApp/Storage/LibraryStoring.swift:1:// LibraryStoring.swift · Wenshu (Wenshu) · v0.02.0 (bookshelf module)
+Sources/WenshuApp/Storage/LibraryStoring.swift:6:// LibraryStoring defines the contract that all storage backends must
+Sources/WenshuApp/Storage/LibraryStoring.swift:10:// Tests/WenshuAppTests/Storage/LibraryStoringContractTests.swift
+Sources/WenshuApp/Storage/LibraryStoring.swift:27:struct LibraryStoringError: Error, Sendable {
+Sources/WenshuApp/Storage/LibraryStoring.swift:88:protocol LibraryStoring: Sendable {
+Sources/WenshuApp/Storage/FileSystemLibraryStore.swift:3:// Filesystem-backed LibraryStoring implementation. The v0.02.0 default;
+Sources/WenshuApp/Storage/FileSystemLibraryStore.swift:5:// the contract (= LibraryStoring) or any caller (= view layer).
+Sources/WenshuApp/Storage/FileSystemLibraryStore.swift:8:// 东西'. By satisfying LibraryStoringContractTests, this implementation
+Sources/WenshuApp/Storage/FileSystemLibraryStore.swift:29:final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
+Sources/WenshuApp/Storage/FileSystemLibraryStore.swift:36:    // MARK: - LibraryStoring
+Sources/WenshuApp/Storage/FileSystemLibraryStore.swift:49:            throw LibraryStoringError(kind: .rootDirectoryUnavailable(rootURL))
+Sources/WenshuApp/Storage/FileSystemLibraryStore.swift:85:            throw LibraryStoringError(kind: .shelfAlreadyExists(shelf.id))
+Sources/WenshuApp/Storage/FileSystemLibraryStore.swift:93:            throw LibraryStoringError(
+Sources/WenshuApp/Storage/FileSystemLibraryStore.swift:106:            throw LibraryStoringError(
+Sources/WenshuApp/Storage/FileSystemLibraryStore.swift:114:            throw LibraryStoringError(
+Sources/WenshuApp/Storage/FileSystemLibraryStore.swift:133:            throw LibraryStoringError(
+Sources/WenshuApp/Storage/FileSystemLibraryStore.swift:160:            throw LibraryStoringError(
+Sources/WenshuApp/Storage/FileSystemLibraryStore.swift:227:            throw LibraryStoringError(kind: .parentShelfNotFound(book.shelfId))
+Sources/WenshuApp/Storage/FileSystemLibraryStore.swift:232:            throw LibraryStoringError(kind: .bookAlreadyExists(book.id))
+Sources/WenshuApp/Storage/FileSystemLibraryStore.swift:238:            throw LibraryStoringError(
+Sources/WenshuApp/Storage/FileSystemLibraryStore.swift:251:            throw LibraryStoringError(
+Sources/WenshuApp/Storage/FileSystemLibraryStore.swift:259:            throw LibraryStoringError(
+Sources/WenshuApp/Storage/FileSystemLibraryStore.swift:272:            throw LibraryStoringError(
+Sources/WenshuApp/Storage/FileSystemLibraryStore.swift:304:                throw LibraryStoringError(
+Sources/WenshuApp/Storage/FileSystemLibraryStore.swift:410:            throw LibraryStoringError(kind: .documentNotFound(id))
+Sources/WenshuApp/Storage/FileSystemLibraryStore.swift:426:            throw LibraryStoringError(kind: .parentBookNotFound(bookId))
+Sources/WenshuApp/Storage/FileSystemLibraryStore.swift:435:            throw LibraryStoringError(
+Sources/WenshuApp/Storage/FileSystemLibraryStore.swift:449:            throw LibraryStoringError(
+Sources/WenshuApp/Storage/FileSystemLibraryStore.swift:461:            throw LibraryStoringError(
+Sources/WenshuApp/Storage/FileSystemLibraryStore.swift:476:            throw LibraryStoringError(
+Sources/WenshuApp/Storage/FileSystemLibraryStore.swift:517:            throw LibraryStoringError(kind: .parentBookNotFound(bookId))

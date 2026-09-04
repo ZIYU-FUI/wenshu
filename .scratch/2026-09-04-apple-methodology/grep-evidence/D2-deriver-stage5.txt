@@ -1,0 +1,15 @@
+Sources/WenshuApp/Storage/LLMWikiLayerDeriver.swift:1:// LLMWikiLayerDeriver.swift · Wenshu · v0.28
+Sources/WenshuApp/Storage/LLMWikiLayerDeriver.swift:15:// - Sources/WenshuApp/Storage/LLMWikiLayerDeriver.swift (this file,
+Sources/WenshuApp/Storage/LLMWikiLayerDeriver.swift:69:struct LLMWikiLayerDeriver: Sendable {
+Sources/WenshuApp/Storage/LLMWikiLinter.swift:133:                    message: "Raw reference '\(raw.title)' has no abstract (= run LLMWikiLayerDeriver.runDerivation)"
+Tests/WenshuAppTests/Storage/LLMWikiLayerDeriverTests.swift:1:// LLMWikiLayerDeriverTests.swift · Wenshu · v0.28
+Tests/WenshuAppTests/Storage/LLMWikiLayerDeriverTests.swift:3:// Hermes-port validation tests for LLMWikiLayerDeriver.swift +
+Tests/WenshuAppTests/Storage/LLMWikiLayerDeriverTests.swift:20:@Suite("LLMWikiLayerDeriver (hermes verbatim port — M5 ticket 15)")
+Tests/WenshuAppTests/Storage/LLMWikiLayerDeriverTests.swift:21:struct LLMWikiLayerDeriverTests {
+Tests/WenshuAppTests/Storage/LLMWikiLayerDeriverTests.swift:47:        let sut = LLMWikiLayerDeriver(store: store)
+Tests/WenshuAppTests/Storage/LLMWikiLayerDeriverTests.swift:57:        let sut = LLMWikiLayerDeriver(store: store)
+Tests/WenshuAppTests/Storage/LLMWikiLayerDeriverTests.swift:68:        let sut = LLMWikiLayerDeriver(store: store)
+Tests/WenshuAppTests/Storage/LLMWikiLayerDeriverTests.swift:79:        let result = LLMWikiLayerDeriver.firstParagraph(fromMarkdown: md)
+Tests/WenshuAppTests/Storage/LLMWikiLayerDeriverTests.swift:86:        let result = LLMWikiLayerDeriver.firstParagraph(fromMarkdown: md)
+Tests/WenshuAppTests/Storage/LLMWikiLayerDeriverTests.swift:95:        let tokens = LLMWikiLayerDeriver.tokenize(text)
+CONTEXT.md:226:| **LLMWikiLayerDeriver (hermes verbatim port) (M5-15) | hermes-agent `skills/research/llm-wiki/SKILL.md` v2.1.0 L46-58 verbatim port (= Karpathy's LLM Wiki 3-layer architecture). Wenshu 4-layer derivation orchestrator that produces the `abstracts` + `indexes` layers deterministically from the `raw` layer (= no LLM call required). Idempotent: abstracts use replace-or-save (= raw-uuid-as-abstract-id), indexes are cleared before each write. First paragraph extraction skips markdown headings + strips inline emphasis. Token filter: words > 3 chars AND contains at least one letter (= filters out digits + stopwords). Receives EPUB imports via the future M2-03 EPUBKit integration ticket (= extracts core settings + writing-style fingerprint into reference-library). Used by library health dashboard; pure-data port (no LLM call) = safe to run in CI / pre-commit. Bug fixed during development: deleteReference scans all 4 layers for `<id>.md` and would delete the RAW file (= sharing uuid with abstract); solution = use replaceReference for abstracts (= idempotent) instead of delete+save. | v0.28 batch 3 |
