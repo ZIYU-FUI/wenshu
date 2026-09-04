@@ -126,6 +126,16 @@ public final class ChatViewModel {
         self.appState = appState
     }
 
+    // CHATBOX-003 (2026-09-04): shared AsyncDelegationRegistry used by
+    // routeInput() to spawn @-mention sub-agents. Lives on ChatViewModel
+    // (= process-wide singleton via the @MainActor type's static
+    // property) so every ChatViewModel instance routes through the same
+    // registry (= callers can subscribe to AsyncDelegationRegistry.next()
+    // to observe spawns). Using the free `delegate(...)` function with
+    // this shared registry avoids touching AsyncDelegation.swift (= out
+    // of CHATBOX-003 allowlist).
+    nonisolated(unsafe) static let delegationRegistry: AsyncDelegationRegistry = AsyncDelegationRegistry()
+
     public func switchModel(_ id: String) {
         // B-05: write to the canonical owner (= AppState.llmModel),
         // which then mirrors to UserDefaults via its didSet. No raw
@@ -174,6 +184,41 @@ public final class ChatViewModel {
     public func routeInput() async {
         let input = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !input.isEmpty else { return }
+
+        // CHATBOX-003 (2026-09-04): try @-mention subagent trigger
+        // FIRST (= higher priority than slash commands, because @slug
+        // syntax is more specific — it names a known sub-agent).
+        // Multiple mentions in one input spawn multiple sub-agents
+        // concurrently (= AsyncDelegation.delegate is async; awaits
+        // are awaited sequentially so the user sees the spawn order
+        // preserved in the chat log).
+        let mentions = SubAgentMentionParser.parseAll(input)
+        if !mentions.isEmpty {
+            for mention in mentions {
+                do {
+                    let result = try await delegate(
+                        subagentProfile: mention.subagentSlug,
+                        task: mention.task,
+                        context: [:],
+                        registry: ChatViewModel.delegationRegistry
+                    )
+                    let shortId = String(result.handle.id.prefix(8))
+                    messages.append(ChatMessage(
+                        role: .system,
+                        source: .system,
+                        content: "Sub-agent @\(mention.subagentSlug) → handle \(shortId)"
+                    ))
+                } catch {
+                    messages.append(ChatMessage(
+                        role: .system,
+                        source: .system,
+                        content: "Failed to spawn @\(mention.subagentSlug): \(error)"
+                    ))
+                }
+            }
+            inputText = ""
+            return
+        }
 
         // CHATBOX-001: try explicit slash command / keyword match FIRST.
         // SkillAdapter.parseAndInvoke throws SkillAdapterError.noMatch when
