@@ -165,8 +165,17 @@ build_msg_filter() {
 set -euo pipefail
 
 # 1. Split: keep first line (= subject) verbatim; the rest is body.
-FIRST_LINE=$(head -n 1)
-REST=$(tail -n +2)
+#    NB: `head -n 1` then `tail -n +2` in two separate `$(...)`
+#    command substitutions does NOT work -- both substitutions consume
+#    stdin, and the first one eats the entire message before `tail` can
+#    see the body (= B-03 T3b 2026-09-04 lesson learned: an earlier
+#    `git filter-branch --apply` produced 284 commit objects with EMPTY
+#    bodies, discovered on verification and immediately rolled back via
+#    `git reset --hard refs/backup/translate-commit-bodies-pre`). Read
+#    the whole message into a variable first, then split.
+FULL=$(cat)
+FIRST_LINE="${FULL%%$'\n'*}"
+REST="${FULL#*$'\n'}"
 
 # 2. Subject = NEVER translated. Print verbatim.
 printf '%s\n' "$FIRST_LINE"
@@ -174,7 +183,23 @@ printf '\n'
 
 # 3. Body: feed REST through python3 so we can apply the hand-curated
 #    lookup table reliably (= BSD awk byte arithmetic is a footgun).
-printf '%s' "$REST" | python3 - <<'PYEOF'
+#    Use a tempfile for the python script because the heredoc form
+#    `python3 - <<'PYEOF' ... PYEOF` overrides the pipe from `printf`
+#    (= the heredoc redirection for python's stdin takes the body
+#    AWAY from the pipeline; B-03 T3b 2026-09-04 lesson learned). See
+#    `write_msg_filter_py` for the script body.
+MSG_FILTER_PY=$(mktemp -t translate-commit-bodies-py.XXXXXX.py)
+write_msg_filter_py > "$MSG_FILTER_PY"
+printf '%s' "$REST" | python3 "$MSG_FILTER_PY"
+rm -f "$MSG_FILTER_PY"
+FILTER
+}
+
+# Emit the python script that applies the LOOKUPS table to body lines.
+# Kept separate from `build_msg_filter` so the bash heredoc inside
+# `build_msg_filter` does not have to swallow CJK string literals.
+write_msg_filter_py() {
+    cat <<'PYEOF'
 import sys
 
 # Hand-curated lookup table (2026-09-04). Order matters -- longer phrases
@@ -242,7 +267,6 @@ for raw in sys.stdin:
         line = "[AUTO-TRANSLATED, PLEASE REVIEW] " + line
     print(line)
 PYEOF
-FILTER
 }
 
 run_apply() {
