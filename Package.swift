@@ -16,6 +16,15 @@ import PackageDescription
 
 let package = Package(
     name: "Wenshu",
+    // v0.38 ticket P2 (= Apple-standard i18n per boss OOB "走苹果 api,
+    // 英用默认语言先是中英文"): defaultLocalization declares the
+    // baseline language that the build system expects to find in
+    // Resources/<defaultLocalization>.lproj/. Apple canonical default
+    // = user's OS language; for the project baseline (= source of
+    // truth + XLIFF export) we ship en. Per boss OOB, "英用默认" =
+    // English is the default; zh-Hans is the alternate. SPM rejects
+    // bundles with .lproj resources unless this is set.
+    defaultLocalization: "en",
     platforms: [
         .macOS(.v27)
     ],
@@ -204,6 +213,18 @@ let package = Package(
             exclude: [
                 "Resources/Info.plist",
                 "Resources/AppIcon.icon"
+            ],
+            // v0.38 ticket P2 (= Apple-standard i18n per boss OOB):
+            // .process("Resources") ships en.lproj/Localizable.strings +
+            // zh-Hans.lproj/Localizable.strings (= Apple canonical
+            // NSLocalizedString table) + entitlements (= macOS app sandbox
+            // signing artifact; .process copies verbatim). The
+            // Info.plist + AppIcon.icon are excluded above because they
+            // are NOT regular resources (= Info.plist is the macOS bundle
+            // descriptor, AppIcon.icon is an icns container that the
+            // build script extracts separately).
+            resources: [
+                .process("Resources")
             ]
         ),
         .testTarget(

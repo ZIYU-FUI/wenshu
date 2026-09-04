@@ -1,0 +1,99 @@
+/* Wenshu English (en) — baseline / source of truth
+ *
+ * Per AGENTS.md v0.09.0 + v0.38 ticket P2 (= Apple-standard i18n,
+ * en + zh-Hans, default = user's OS language per Apple canonical
+ * Locale.current). Every key here must also exist in zh-Hans.lproj.
+ *
+ * Format: "key" = "value";
+ * Special chars escape: " for quote, \n for newline, \\ for backslash.
+ * Do NOT use format string positional indexes ({0}, {1}) — use
+ * named-style placeholders ({name}) to keep translator order-flexible.
+ *
+ * When adding a new key, add it to BOTH en.lproj and zh-Hans.lproj
+ * in the same commit. tests/WenshuAppTests/I18nParityTests.swift
+ * asserts catalog parity at build time.
+ */
+
+// MARK: - Settings tabs (= App.swift enum SettingsTab case rawValue)
+"settings.tab.general"     = "General";
+"settings.tab.providerApi" = "Provider API";
+"settings.tab.model"       = "Model";
+"settings.tab.agent"       = "Agent";
+"settings.tab.memory"      = "Memory";
+"settings.tab.skills"      = "Skills";
+
+// MARK: - General tab (= App.swift generalTab)
+"settings.general.appearance"           = "Appearance";
+"settings.general.appearance.system"    = "Follow System";
+"settings.general.appearance.dark"      = "Dark";
+"settings.general.appearance.light"     = "Light";
+"settings.general.liquidGlass"          = "Liquid Glass";
+"settings.general.liquidGlass.body"     = "Liquid Glass follows macOS system settings";
+"settings.general.liquidGlass.hint"     = "Adjust appearance: System Settings → Appearance. Adjust transparency: System Settings → Accessibility → Display → Reduce transparency.";
+"settings.general.agentAddress"         = "Agent address";
+"settings.general.agentAddress.prompt"  = "user";
+"settings.general.agentAddress.help"    = "The agent (Wenshu) uses this name to address you. Default: user";
+"settings.general.misc"                 = "General";
+"settings.general.misc.placeholderNote" = "Pages-style, behavior not the focus";
+
+// MARK: - Provider API tab (= App.swift providerApiTab)
+"settings.provider.header"            = "Providers";
+"settings.provider.footer"            = "Set keys %d / %d";
+"settings.provider.status.hasKey"     = "Key set";
+"settings.provider.status.pasteKey"   = "Paste key";
+"settings.provider.status.pasteNamed" = "Paste %@ key";
+"settings.provider.custom.header"     = "Local / Custom endpoint";
+"settings.provider.custom.footer"     = "Point Wenshu at any OpenAI-compatible endpoint (Zyphra, vLLM, llama.cpp, Ollama, etc.).";
+
+// MARK: - Model tab (= App.swift modelTab)
+"settings.model.main"                 = "Main model";
+"settings.model.main.provider"        = "Provider";
+"settings.model.main.model"           = "Model";
+"settings.model.main.footer"          = "Set the global default model.";
+"settings.model.reasoning"            = "Reasoning";
+"settings.model.reasoning.effort"     = "Default reasoning effort";
+"settings.model.reasoning.effortHint" = "EFFORT = Anthropic output_config.effort (low/medium/high/xhigh/max). See minimax docs for available levels.";
+"settings.model.auxiliary"            = "Auxiliary models";
+"settings.model.auxiliary.vision"     = "Vision";
+"settings.model.auxiliary.webExtract" = "Web extract";
+"settings.model.auxiliary.compress"   = "Compress";
+"settings.model.auxiliary.useMain"    = "Use main model";
+"settings.model.auxiliary.change"     = "Change";
+
+// MARK: - Agent tab (= App.swift agentTab → LLMConnectorSettingsView)
+"settings.connector.header"        = "LLM Connector";
+"settings.connector.subtitle"      = "Pick an active LLM provider + supply credentials. Wenshu is BYOK (= bring your own key).";
+"settings.connector.row.use"       = "Use";
+"settings.connector.row.active"    = "Active";
+"settings.connector.field.apiKey"  = "API key";
+"settings.connector.field.endpoint" = "Endpoint";
+"settings.connector.field.test"    = "Test connection";
+
+// MARK: - Memory tab (= App.swift memoryTab → MemorySettingsView)
+"settings.memory.title"       = "Memory";
+"settings.memory.subtitle"    = "Wenshu remembers context from past conversations. Configure scope + retention below.";
+"settings.memory.enable"      = "Enable memory subsystem";
+"settings.memory.scope"       = "Scope";
+"settings.memory.scope.perBook" = "Per-book only";
+"settings.memory.scope.libraryPublic" = "Library-public (cross-book)";
+"settings.memory.retention"   = "Retention";
+"settings.memory.retention.value" = "%d days";
+"settings.memory.recent"      = "Recent memories (%d)";
+"settings.memory.recent.empty" = "No memories yet. Memories will appear here as you chat.";
+
+// MARK: - Skills tab (= App.swift skillsTab → SkillsSettingsView)
+"settings.skills.title"          = "Skills";
+"settings.skills.subtitle"       = "Skills are /-prefixed commands that extend the agent (= /compress, /help, /rewind, etc.).";
+"settings.skills.tryCommand"     = "Try a command:";
+"settings.skills.tryCommand.placeholder" = "/compress focus on chapter 3";
+"settings.skills.parsedHint"     = "→ %@";
+"settings.skills.installed"      = "Installed skills (%d)";
+"settings.skills.installed.empty" = "No skills installed yet. Skills are loaded from the skill registry.";
+
+// MARK: - Status bar (= shared)
+"statusbar.shelf"   = "Shelves: %d";
+"statusbar.book"    = "Books: %d";
+"statusbar.chapter" = "Chapters: %d";
+"statusbar.words"   = "Words: %d";
+"statusbar.backlinks" = "Backlinks: %d";
+"statusbar.toolsReady" = "Tools ready";

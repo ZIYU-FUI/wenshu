@@ -1,0 +1,93 @@
+/* Wenshu 简体中文 (zh-Hans)
+ *
+ * 跟 en.lproj/Localizable.strings 保持 key 完全一致。
+ * 翻译口径: 跟 macOS 系统中文 / 文枢产品已有中文文案一致。
+ * 占位符 (%d / %@) 必须保留,顺序跟 en 一致。
+ *
+ * 测试: tests/WenshuAppTests/I18nParityTests.swift 验证
+ * en + zh-Hans 同步,build 时 fail-fast。
+ */
+
+// MARK: - 设置 tab (= App.swift enum SettingsTab case rawValue)
+"settings.tab.general"     = "通用";
+"settings.tab.providerApi" = "提供方 API";
+"settings.tab.model"       = "模型";
+"settings.tab.agent"       = "Agent";
+"settings.tab.memory"      = "Memory";
+"settings.tab.skills"      = "Skills";
+
+// MARK: - 通用 tab (= App.swift generalTab)
+"settings.general.appearance"           = "外观";
+"settings.general.appearance.system"    = "跟随系统";
+"settings.general.appearance.dark"      = "深色";
+"settings.general.appearance.light"     = "浅色";
+"settings.general.liquidGlass"          = "液态玻璃";
+"settings.general.liquidGlass.body"     = "液态玻璃跟随 macOS 系统设置";
+"settings.general.liquidGlass.hint"     = "调整外观：系统设置 → 外观；调整透明度：系统设置 → 辅助功能 → 显示 → 减少透明度。";
+"settings.general.agentAddress"         = "Agent 称呼";
+"settings.general.agentAddress.prompt"  = "user";
+"settings.general.agentAddress.help"    = "Agent（文枢）用这个称呼叫你。默认：user";
+"settings.general.misc"                 = "通用设置";
+"settings.general.misc.placeholderNote" = "Pages 范式，不用管功能";
+
+// MARK: - 提供方 API tab (= App.swift providerApiTab)
+"settings.provider.header"            = "提供方";
+"settings.provider.footer"            = "已设 key %d / %d";
+"settings.provider.status.hasKey"     = "已设 key";
+"settings.provider.status.pasteKey"   = "粘贴 密钥";
+"settings.provider.status.pasteNamed" = "粘贴 %@ 密钥";
+"settings.provider.custom.header"     = "本地 / 自定义端点";
+"settings.provider.custom.footer"     = "将文枢 指向任意 OpenAI 兼容端点 (Zyphra, vLLM, llama.cpp, Ollama 等).";
+
+// MARK: - 模型 tab (= App.swift modelTab)
+"settings.model.main"                 = "主模型";
+"settings.model.main.provider"        = "提供方";
+"settings.model.main.model"           = "模型";
+"settings.model.main.footer"          = "设置全局默认模型.";
+"settings.model.reasoning"            = "推理";
+"settings.model.reasoning.effort"     = "默认推理强度";
+"settings.model.reasoning.effortHint" = "EFFORT = Anthropic output_config.effort (low/medium/high/xhigh/max). 模型可用级别看 minimax 文档.";
+"settings.model.auxiliary"            = "辅助模型";
+"settings.model.auxiliary.vision"     = "视觉";
+"settings.model.auxiliary.webExtract" = "网页提取";
+"settings.model.auxiliary.compress"   = "压缩";
+"settings.model.auxiliary.useMain"    = "使用主模型";
+"settings.model.auxiliary.change"     = "更改";
+
+// MARK: - Agent tab (= App.swift agentTab → LLMConnectorSettingsView)
+"settings.connector.header"        = "LLM Connector";
+"settings.connector.subtitle"      = "选择一个 LLM 提供方并填写密钥. 文枢走 BYOK (= 你自己的 key).";
+"settings.connector.row.use"       = "使用";
+"settings.connector.row.active"    = "当前";
+"settings.connector.field.apiKey"  = "API 密钥";
+"settings.connector.field.endpoint" = "端点";
+"settings.connector.field.test"    = "测试连接";
+
+// MARK: - Memory tab (= App.swift memoryTab → MemorySettingsView)
+"settings.memory.title"       = "Memory";
+"settings.memory.subtitle"    = "文枢会记住历史对话的上下文. 在下面配置范围 + 保留策略.";
+"settings.memory.enable"      = "开启 Memory 子系统";
+"settings.memory.scope"       = "范围";
+"settings.memory.scope.perBook" = "仅当前书";
+"settings.memory.scope.libraryPublic" = "全库共享 (跨书)";
+"settings.memory.retention"   = "保留";
+"settings.memory.retention.value" = "%d 天";
+"settings.memory.recent"      = "最近记忆 (%d)";
+"settings.memory.recent.empty" = "暂无记忆. 聊天过程中会逐渐出现.";
+
+// MARK: - Skills tab (= App.swift skillsTab → SkillsSettingsView)
+"settings.skills.title"          = "技能";
+"settings.skills.subtitle"       = "技能是 / 前缀的命令,用来扩展 agent 能力 (= /compress、/help、/rewind 等).";
+"settings.skills.tryCommand"     = "试试命令:";
+"settings.skills.tryCommand.placeholder" = "/compress focus on chapter 3";
+"settings.skills.parsedHint"     = "→ %@";
+"settings.skills.installed"      = "已安装技能 (%d)";
+"settings.skills.installed.empty" = "尚未安装技能. 技能从技能注册表加载.";
+
+// MARK: - 状态栏 (= shared)
+"statusbar.shelf"   = "书架: %d";
+"statusbar.book"    = "书: %d";
+"statusbar.chapter" = "章节: %d";
+"statusbar.words"   = "字数: %d";
+"statusbar.backlinks" = "反链 %d";
+"statusbar.toolsReady" = "工具就绪";
