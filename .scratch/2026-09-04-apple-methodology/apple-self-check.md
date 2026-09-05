@@ -193,3 +193,25 @@ The v0.40 batch (per the spec.md §3 scope) had 11 tickets spanning the architec
 - The spec.md §3 verdict table: **unchanged**. The auto-piloted tickets were tracked separately per the architecture refactor decision spec (`e32022cf5`) and the ToolRegistry port spec (`f4ccaedd2`); they did not consume or supersede any row in §3.
 - The Apple 3-tier evidence + 5-stage dead-code grep conclusions: **unchanged**. The ToolRegistry port + Liquid Glass polish are orthogonal to Apple-canonical cleanup.
 - This branch's Q1-Q8 answer-key role: **unchanged**. Boss拍 still pending; the branch remains the answer key.
+
+## §11. 2026-09-05 boss-recommended defaults (= INV-PUSH-6; awaiting boss拍 confirmation)
+
+Section added by INV-PUSH-6 (= boss OOB '推 2345678' = ship spec-only update before the Q&A loop closes). Eight architectural decisions that were sitting in the open-question pile. Each row records the recommended default (= the answer wenshu-side would write if the boss confirmed today). Boss can confirm, amend, or reject any line item; until then, every row is "recommended, not yet拍".
+
+| # | Question | Recommended default (= waiting for boss拍) | Rationale |
+|---|---|---|---|
+| Q1 | `App.swift` extraction: split into `AppShell` + `AppDelegate` + `RootScene`? | **YES** | Boss already accepted §11 apple-methodology direction (= wenshu Apple-canonical cleanup is in scope). Splitting App.swift into three files is the lowest-risk entry point for the cleanup chain; zero behavior change; unblocks downstream view-extraction tickets A and B. |
+| Q2 | `WorkspaceStore` / `WorkspaceSettings` / `UIStateStore` rename to `LayoutTree` / `LayoutConfig` / `UIStore`? | **YES** | Layout-tree naming aligns with boss 8/18 OOB '组件化真值' (= one name per concept; layout-tree = the canonical container-of-truth). Mechanical rename across the state/ directory; low blast radius since these types are not yet part of the public API surface. |
+| Q3 | `CrossRefInject` v2: full rewrite or surgical fix? | **Surgical fix** | Lower risk than full rewrite. v2's FIFO token-cap behavior is correct (= matches what the boss described for the cross-reference injection rule); only the boundary cases (= empty input, oversized tokens, mixed-language characters) need patched. Full rewrite would consume 2-3 sessions for zero user-visible behavior gain. |
+| Q4 | `DesignTokens.swift` coverage: lift all magic-constant sites? | **YES, incremental** | One module per week cadence (= design-system pacing). Start with the top-2 highest-frequency magic-constant sites flagged in §4 (= corner radius + spacing scale). Boss can wave off any individual site via the weekly ticket review. Full sweep is multi-month; incremental keeps every commit reviewable. |
+| Q5 | `EntityStoring` protocol: introduce now or wait for v0.41? | **Wait (= v0.41)** | Not blocking for any shippable ticket in v0.40. The protocol is a test-substitution affordance (= current concrete-type usage compiles and runs clean; the protocol is optional, not required by the Apple canonical path). Introduce when v0.41 adds the first consumer that benefits from protocol-based injection (= LLM Wiki entity store, or per-book foreshadowing store). Deferring avoids speculative protocol design. |
+| Q6 | `WenshuLibrary` → `BookStore` rename: YES / NO? | **NO** | `WenshuLibrary` is part of the public API surface (= used in onboarding, library-properties panel, Settings panes, and the URL-scheme handoff). Rename breaks backward compatibility with every existing `.ws` library that has a saved `WenshuLibrary` reference path. Cost of migration (= documentation update + adapter shim + user-facing changelog) outweighs the naming-consistency gain. Delegate WenshuLibrary → BookStore instead (= per §5 Q7 original recommendation). |
+| Q7 | B-13 scope: global / per-shelf / per-book? | **Per-book** | Highest value per boss 9/2 OOB '上下文关联' (= context-association). Per-book B-13 means the cross-reference injection reads from the current book's characters + foreshadowing + world + placeholders; per-shelf would dilute signal across unrelated books; global would overload with library-wide noise. Per-book is also the smallest blast radius (= one .ws subdirectory to teach). |
+| Q8 | Apply Tier-2 / Tier-3 Apple-API-first sweep this week? | **YES, batch 1** | Tier-2 ships this week (= the 5 highest-frequency Tier-2 sites from the audit verdict table); Tier-3 ships next week (= the 8 Tier-3 sites that need more careful Apple-canonical mapping). Two-week window matches the audit cadence (= every v0.X major version). Boss can defer Tier-3 via the week-2 review if Tier-2 reveals blocking issues. |
+
+### Status
+
+- Section added 2026-09-05 (= this commit).
+- Boss拍 confirmation pending; until confirmed, every recommended default above is advisory (= no code or doc changes outside this spec file consume these defaults yet).
+- This section does NOT modify §5 Q1-Q8 (= those are the original report-acceptance questions); §11 Q1-Q8 are the architectural-decision defaults layer on top.
+- Branch `wt/apple-001/structure-audit` remains the Q&A answer key until boss拍 all rows; no merge to main.
