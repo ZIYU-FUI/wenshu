@@ -1,0 +1,7 @@
+[12:57:34] === verify-frontend.sh start ===
+[12:57:34] Repo:   /Volumes/ANAN/Engineering/wenshu
+[12:57:34] App:    /Volumes/ANAN/Engineering/wenshu/build/Wenshu.app
+[12:57:34] Output: /Volumes/ANAN/Engineering/wenshu/.scratch/2026-09-05-verify-screenshots
+[12:57:34] Launching /Volumes/ANAN/Engineering/wenshu/build/Wenshu.app...
+[12:57:34] Waiting for wenshu.app window to appear...
+[12:59:00] FAIL: wenshu.app window did not appear within 30s.
