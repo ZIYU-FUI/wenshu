@@ -125,3 +125,15 @@
 "paragraph.expand"  = "展开";
 "paragraph.shorten"  = "缩短";
 "paragraph.rephrase" = "改写";
+
+// MARK: - IRON-RULES-RULE-2-FOLLOWUP (= INV-AUTOPI-2). 3 处残留
+//       内联英文字面量移入 catalog: EditModeBadge 的 Text() 一处
+//       (WorkspaceView.swift:2304) + 变换溢出菜单的 .help() 一处
+//       (WorkspaceView.swift:2283) + Ralph 循环目标按钮的 .help()
+//       一处 (ChatView.swift:1063). 任务点名的其余 5 个文件
+//       (RegionTabBar / NewLibraryOutlineView / BacklinksPanel /
+//       RegionContentBackground / PaneTabBar) 经审计无其他内联
+//       英文 Text() / .help() / .accessibilityLabel() 字面量.
+"workspace.layoutEditMode"             = "布局编辑模式";
+"workspace.transforms.moreHelp"         = "更多变换: 调整语气 / 简化 / 戏剧化";
+"chat.ralphLoop.goalHelp"               = "启动长期目标 (Ralph 循环: 代理持续工作, 直至辅助裁判判定完成)";
