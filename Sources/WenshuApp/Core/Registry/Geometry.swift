@@ -1,6 +1,6 @@
-// Geometry.swift · Wenshu (文枢) · v0.28 followup TKT-028-013
+// Geometry.swift · Wenshu · v0.28 followup TKT-028-013
 //
-// Boss 2026-08-29 OOB '完整复刻 hermes app' = port the geometry helper
+// Boss 2026-08-29 OOB 'verbatim port from hermes app' = port the geometry helper
 // from Hermes Desktop verbatim. Computes the native window controls
 // rect (= macOS traffic lights top-left / Windows WSLg overlay top-right)
 // + publishes workspace geometry (= the main pane's left/right edges
