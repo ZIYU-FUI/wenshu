@@ -191,7 +191,20 @@ public struct HermesTodoItem: Codable, Sendable, Equatable, Hashable {
 ///   - content: task description
 ///   - status: pending | in_progress | completed | cancelled
 public final class HermesTodoStore: @unchecked Sendable {
-    private let lock = NSLock()
+    /// Serial queue protecting `items`. We use a serial queue (not a
+    /// concurrent barrier queue) because the public surface mixes
+    /// read + write on the same `items` storage from multiple call
+    /// sites (= `read` is called from inside `write`'s tail, and
+    /// `formatForInjection` snapshots then filters off-queue). A
+    /// serial queue's `.sync` is re-entrant from the same thread when
+    /// NOT nested through another `.sync` -- but to avoid the
+    /// lock-recursion deadlock the previous NSLock implementation
+    /// exhibited (NSLock is non-recursive in Swift; `write` returned
+    /// `read()` while still holding the lock), we extract the
+    /// post-mutation snapshot inside the lock-protected block and
+    /// return it directly. The queue is never re-entered from inside
+    /// a synchronized block, so there is no recursion risk.
+    private let queue = DispatchQueue(label: "com.wenshu.HermesTodoStore")
     private var items: [HermesTodoItem]
 
     public init(items: [HermesTodoItem] = []) {
@@ -206,81 +219,79 @@ public final class HermesTodoStore: @unchecked Sendable {
     /// - `merge=true`: update existing items by id and append new ones.
     @discardableResult
     public func write(todos: [HermesTodoItem], merge: Bool = false) -> [HermesTodoItem] {
-        lock.lock()
-        defer { lock.unlock() }
-
-        if !merge {
-            // Replace mode: new list entirely.
-            let deduped = HermesTodoStore.dedupeByID(todos)
-            items = deduped.map { HermesTodoStore.validate($0) }
-        } else {
-            // Merge mode: update existing items by id, append new ones.
-            var existing: [String: HermesTodoItem] = [:]
-            for item in items {
-                existing[item.id] = item
-            }
-            let deduped = HermesTodoStore.dedupeByID(todos)
-            for raw in deduped {
-                let itemId = raw.id.trimmingCharacters(in: .whitespacesAndNewlines)
-                if itemId.isEmpty { continue }  // can't merge without id
-
-                if var existingItem = existing[itemId] {
-                    // Update only the fields the LLM actually provided.
-                    // (`HermesTodoItem` is fully formed, but we honour
-                    // `merge` semantics: don't replace with empty
-                    // content or unknown status.)
-                    if !raw.content.isEmpty {
-                        existingItem.content = HermesTodoStore.capContent(raw.content.trimmingCharacters(in: .whitespacesAndNewlines))
-                    }
-                    let lowered = raw.status.rawValue
-                    if HermesTodoStatus(rawValue: lowered) != nil {
-                        existingItem.status = raw.status
-                    }
-                    existing[itemId] = existingItem
-                } else {
-                    // New item -- validate fully and append to end.
-                    let validated = HermesTodoStore.validate(raw)
-                    existing[validated.id] = validated
-                    items.append(validated)
+        return queue.sync {
+            if !merge {
+                // Replace mode: new list entirely.
+                let deduped = HermesTodoStore.dedupeByID(todos)
+                items = deduped.map { HermesTodoStore.validate($0) }
+            } else {
+                // Merge mode: update existing items by id, append new ones.
+                var existing: [String: HermesTodoItem] = [:]
+                for item in items {
+                    existing[item.id] = item
                 }
-            }
-            // Rebuild `items` preserving order for existing items
-            // (= mirrors Python rebuild loop).
-            var seen = Set<String>()
-            var rebuilt: [HermesTodoItem] = []
-            for item in items {
-                let current = existing[item.id] ?? item
-                if !seen.contains(current.id) {
-                    rebuilt.append(current)
-                    seen.insert(current.id)
-                }
-            }
-            items = rebuilt
-        }
+                let deduped = HermesTodoStore.dedupeByID(todos)
+                for raw in deduped {
+                    let itemId = raw.id.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if itemId.isEmpty { continue }  // can't merge without id
 
-        // Bound total item count so a replayed/oversized list can't
-        // grow the re-injection block without limit. Keep the
-        // highest-priority head (list order is priority).
-        if items.count > maxTodoItems {
-            items = Array(items.prefix(maxTodoItems))
+                    if var existingItem = existing[itemId] {
+                        // Update only the fields the LLM actually provided.
+                        // (`HermesTodoItem` is fully formed, but we honour
+                        // `merge` semantics: don't replace with empty
+                        // content or unknown status.)
+                        if !raw.content.isEmpty {
+                            existingItem.content = HermesTodoStore.capContent(raw.content.trimmingCharacters(in: .whitespacesAndNewlines))
+                        }
+                        let lowered = raw.status.rawValue
+                        if HermesTodoStatus(rawValue: lowered) != nil {
+                            existingItem.status = raw.status
+                        }
+                        existing[itemId] = existingItem
+                    } else {
+                        // New item -- validate fully and append to end.
+                        let validated = HermesTodoStore.validate(raw)
+                        existing[validated.id] = validated
+                        items.append(validated)
+                    }
+                }
+                // Rebuild `items` preserving order for existing items
+                // (= mirrors Python rebuild loop).
+                var seen = Set<String>()
+                var rebuilt: [HermesTodoItem] = []
+                for item in items {
+                    let current = existing[item.id] ?? item
+                    if !seen.contains(current.id) {
+                        rebuilt.append(current)
+                        seen.insert(current.id)
+                    }
+                }
+                items = rebuilt
+            }
+
+            // Bound total item count so a replayed/oversized list can't
+            // grow the re-injection block without limit. Keep the
+            // highest-priority head (list order is priority).
+            if items.count > maxTodoItems {
+                items = Array(items.prefix(maxTodoItems))
+            }
+            // Return the post-mutation snapshot directly (no nested
+            // `read()` call -- avoids the NSLock recursion deadlock
+            // that bit the previous implementation).
+            return items
         }
-        return read()
     }
 
     // MARK: - read (= mirrors Python `TodoStore.read`)
 
     /// Return a copy of the current list.
     public func read() -> [HermesTodoItem] {
-        lock.lock()
-        defer { lock.unlock() }
-        return items
+        return queue.sync { items }
     }
 
     /// Whether the list has any items (= mirrors `has_items`).
     public func hasItems() -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return !items.isEmpty
+        return queue.sync { !items.isEmpty }
     }
 
     // MARK: - formatForInjection (= mirrors Python)
@@ -292,10 +303,7 @@ public final class HermesTodoStore: @unchecked Sendable {
     /// (= completed / cancelled items are skipped, otherwise the
     /// model re-does finished work after compression).
     public func formatForInjection() -> String? {
-        lock.lock()
-        let snapshot = items
-        lock.unlock()
-
+        let snapshot = queue.sync { items }
         let activeItems = snapshot.filter { $0.status.isActive }
         guard !activeItems.isEmpty else { return nil }
 
