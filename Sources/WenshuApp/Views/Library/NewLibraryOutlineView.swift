@@ -386,6 +386,51 @@ struct NewLibraryOutlineView: View {
         // transparent so the parent's RegionContentBackground shows
         // through (= follows the liquid-glass opacity slider in Settings).
         .scrollContentBackground(.hidden)
+        // POLISH-LIQUIDGLASS-002 (Boss 2026-09-05 OOB '好继续', AGENTS.md
+        // §11 macOS 27 Liquid Glass polish sweep): apply Apple canonical
+        // .glassEffect(.regular) (= macOS 27 Tahoe Liquid Glass) to
+        // NewLibraryOutlineView (= the canonical sidebar = leftmost
+        // pane of the 6-zone workspace). This extends the same
+        // treatment already applied to RegionTabBar in
+        // POLISH-LIQUIDGLASS-001 (= commit 950e46423).
+        //
+        // Why this site:
+        // - .listStyle(.sidebar) draws its own opaque background
+        //   (= macOS 27 canonical sidebar material), so a plain
+        //   .background call would be hidden. The boss 8/31 OOB
+        //   fix above (= .scrollContentBackground(.hidden)) already
+        //   makes the List transparent so the parent's
+        //   RegionContentBackground shows through. Now we replace
+        //   that opaque .controlBackgroundColor fill with the
+        //   canonical Apple Liquid Glass material.
+        // - The exact same .background { Color.clear.glassEffect
+        //   (.regular) } shape was used in POLISH-LIQUIDGLASS-001
+        //   on RegionTabBar (= identical visual depth to the top
+        //   bar; sidebar + top bar now share one Liquid Glass
+        //   material = FCP-style unified chrome).
+        // - .glassEffect(.regular) is a View modifier (= instance
+        //   member), not a ShapeStyle value, so .background
+        //   (.glassEffect(.regular)) does NOT compile. The
+        //   .background { Color.clear.glassEffect(.regular) } form
+        //   (= Color.clear provides the size; .glassEffect applies
+        //   the canonical Liquid Glass material) is the only shape
+        //   that compiles on macOS 27 (= same constraint
+        //   documented in 950e46423).
+        //
+        // Boss 2026-09-02 hard rule re-applied (per
+        // POLISH-LIQUIDGLASS-001 commit message): NO custom
+        // Color.white.opacity border, NO custom .shadow(.black
+        // .opacity(...)) overlay. Every visual element must come
+        // from an Apple API; Apple does not paint dividers /
+        // shadows where they don't read, wenshu shouldn't either.
+        // .glassEffect(.regular) is the single Apple-provided
+        // Liquid Glass primitive = it already includes the
+        // semitransparent blur, the hairline border (= 1 PT Apple
+        // .separator at the edges per Apple HIG), and the
+        // depth shadow (= .05 black, native rendering).
+        .background {
+            Color.clear.glassEffect(.regular)
+        }
         .onAppear {
             reload()
             // v0.30 boss 8/31 OOB '目录树的选定状态没有持久化':
