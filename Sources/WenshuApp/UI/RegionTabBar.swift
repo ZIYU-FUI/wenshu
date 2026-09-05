@@ -111,15 +111,33 @@ public struct RegionTabBar<Content: View>: View {
         // = kChromeHeight = 30 PT = LayoutTokens.toolbarHeight = 30 PT
         // = unified chrome height across the app in round 26).
         .frame(height: LayoutTokens.toolbarHeight)
-        // v0.32 boss 2026-09-02 OOB ('默认不加液态玻璃效果,
-        // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-        // 我们就不加; 默认带的, 我们就默认带; 不能空着,
-        // 空着透明了'): use Apple canonical controlBackgroundColor
-        // (= NSColor controlBackgroundColor; macOS 27 Tahoe default
-        // = system-managed color that adapts to dark / light mode
-        // + accent tint; no per-pane glass specular, no transparent
-        // see-through to the desktop wallpaper).
-        .background(Color(nsColor: .controlBackgroundColor))
+        // POLISH-LIQUIDGLASS-001 (Boss 2026-09-05 OOB '好继续', AGENTS.md
+        // §11 macOS 27 Liquid Glass polish pilot): apply Apple canonical
+        // .glassEffect(.regular) (= macOS 27 Tahoe Liquid Glass) to
+        // RegionTabBar (= the canonical top-bar chrome of every pane
+        // = sidebar / preview / editor / tools / chat / dynamic).
+        // Replaces the previous filled NSColor controlBackgroundColor
+        // (= opaque fill, no see-through). The 1 PT .separator bottom
+        // hairline below is kept (= canonical Apple HIG divider
+        // under glass surfaces; no custom Color.white.opacity border
+        // added — boss 2026-09-02 hard rule '线看不出来就不重要了'
+        // = Apple does not paint dividers where they don't read,
+        // wenshu shouldn't either).
+        //
+        // .glassEffect(.regular) auto-adapts to system settings
+        // (= dark mode / Reduce Transparency / Increase Contrast) per
+        // ComponentIndex.md §4.1. ShapeStyle form = identical visual
+        // result to .containerBackground(for: .window) { Rectangle
+        // .glassEffect(.regular) } used in App.swift (same macOS 27
+        // Liquid Glass material = visual depth matches the window's
+        // own containerBackground). .glassEffect(.regular) is a View
+        // modifier (= instance member), not a ShapeStyle value, so
+        // it must be applied via .background { ... } block with a
+        // Color.clear receiver (= the empty rect provides the size;
+        // .glassEffect applies the canonical Liquid Glass material).
+        .background {
+            Color.clear.glassEffect(.regular)
+        }
         // 1 PT Apple .separator ShapeStyle (= canonical Liquid Glass
         // hairline, semitransparent + dark/light adaptive). Applied
         // ONCE here as bottom overlay (= no manual Color, no NSColor,
