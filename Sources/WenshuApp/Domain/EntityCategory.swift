@@ -1,13 +1,15 @@
 // Sources/WenshuApp/Domain/EntityCategory.swift
 //
-// v0.29 boss 2026-08-30 OOB '资料库里的实体文件夹, 我觉得不能直接
-// [CJK-TRANSLATE] 3 line(s) awaiting manual translation (see git blame for original CJK text)
-// 显示实体, 用户会不知道是什么意思, 实体需要按分类新建成多个文件夹,
-// 这里直接显示这些分类文件夹, 比如, 历史, 科学, 这样的分类,
-// 你可以参考图书馆的分类法, 这一个规则, 自动归类实体':
+// v0.29 boss 2026-08-30 OOB 'entity folders in the reference library,
+// I think we cannot just display the entities directly, the user will not
+// understand what they mean. Entities need to be organized into multiple
+// folders by category, and here we display these category folders
+// directly, e.g., history, science, and similar categories. You can refer
+// to the library classification system, this single rule auto-classifies
+// entities':
 //
-// = Library taxonomy for entity classification. Based on 《中国图书
-// 馆分类法》(CLC = Chinese Library Classification) 5th edition, simplified
+// = Library taxonomy for entity classification. Based on the Chinese
+// Library Classification (CLC) 5th edition, simplified
 // to 22 top-level categories. Each Reference entity (= character,
 // location, organization, event, item from the research library) is
 // auto-classified into one of these categories.
@@ -27,15 +29,15 @@
 //   except 4 letters: L/M/N reserved for future use, 1 letter Q used
 //   for biology specifically)
 // - Each category has a Chinese display name + Lucide icon + subcategories
-//   (= 2nd level for finer classification, e.g. "I 文学" → "I1 文学理论",
-//   "I2 中国文学", "I3 外国文学")
-// - Categories are created INCREMENTALLY (= boss OOB: "分类文件夹随着内容
-//   逐渐增加, 而不是一下子铺满") = sidebar only shows categories that
+//   (= 2nd level for finer classification, e.g. "I Literature" → "I1 Literary theory",
+//   "I2 Chinese literature", "I3 Foreign literature")
+// - Categories are created INCREMENTALLY (= boss OOB: "category folders
+//   grow with the content, instead of being laid out all at once") = sidebar only shows categories that
 //   have at least 1 entity. Empty categories = hidden from sidebar.
 
 import Foundation
 
-/// Top-level entity categories (= 22 大类 based on 《中国图书馆分类法》).
+/// Top-level entity categories (= 22 top-level categories based on the CLC).
 ///
 /// Used by `Reference.category` (= the field added in v0.29) to
 /// organize research entities into library-taxonomy folders.
@@ -46,36 +48,35 @@ import Foundation
 /// entities are added to them (= the UI calls `EntityClassifier`
 /// on save which sets the category, and the sidebar reloads).
 public enum EntityCategory: String, CaseIterable, Codable, Sendable, Identifiable, Hashable {
-    // MARK: - 22 顶级分类 (《中图法》第五版简化)
+    // MARK: - 22 top-level categories (CLC 5th edition, simplified)
 
-    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-    case a = "A"  // 马克思主义、列宁主义、毛泽东思想、邓小平理论
-    case b = "B"  // 哲学、宗教
-    case c = "C"  // 社会科学总论
-    case d = "D"  // 政治、法律
-    case e = "E"  // 军事
-    case f = "F"  // 经济
-    case g = "G"  // 文化、科学、教育、体育
-    case h = "H"  // 语言、文字
-    case i = "I"  // 文学
-    case j = "J"  // 艺术
-    case k = "K"  // 历史、地理
-    case n = "N"  // 自然科学总论
-    case o = "O"  // 数理科学和化学
-    case p = "P"  // 天文学、地球科学
-    case q = "Q"  // 生物科学
-    case r = "R"  // 医药、卫生
-    case s = "S"  // 农业科学
-    case t = "T"  // 工业技术
-    case u = "U"  // 交通运输
-    case v = "V"  // 航空、航天
-    case x = "X"  // 环境科学、安全科学
-    case z = "Z"  // 其它 (= catch-all fallback category, v0.30 boss 8/31)
+    case a = "A"  // Marxism, Leninism, Mao Zedong Thought, Deng Xiaoping Theory
+    case b = "B"  // Philosophy, Religion
+    case c = "C"  // Social Sciences (General)
+    case d = "D"  // Politics, Law
+    case e = "E"  // Military
+    case f = "F"  // Economics
+    case g = "G"  // Culture, Science, Education, Sports
+    case h = "H"  // Language, Linguistics
+    case i = "I"  // Literature
+    case j = "J"  // Arts
+    case k = "K"  // History, Geography
+    case n = "N"  // Natural Sciences (General)
+    case o = "O"  // Mathematics, Physics, Chemistry
+    case p = "P"  // Astronomy, Earth Sciences
+    case q = "Q"  // Biological Sciences
+    case r = "R"  // Medicine, Public Health
+    case s = "S"  // Agricultural Sciences
+    case t = "T"  // Industrial Technology
+    case u = "U"  // Transportation
+    case v = "V"  // Aviation, Aerospace
+    case x = "X"  // Environmental Sciences, Safety Sciences
+    case z = "Z"  // Other (= catch-all fallback category, v0.30 boss 8/31)
 
     public var id: String { rawValue }
 
-    /// Chinese display name (= boss 8/25 'UI 全中文' carve-out).
-    /// E.g. "I" → "文学", "K" → "历史、地理".
+    /// Chinese display name (= boss 8/25 'UI all-Chinese' carve-out).
+    /// E.g. "I" → "Literature", "K" → "History, Geography".
     public var displayName: String {
         switch self {
         case .a: return "马克思列宁毛邓"
@@ -136,7 +137,7 @@ public enum EntityCategory: String, CaseIterable, Codable, Sendable, Identifiabl
     /// `reference-library/entities/`). Stable across rename (= Apple
     /// HIG: directory = identity, not the category's display label).
     /// Uses lowercase letter (= POSIX-compliant) for all cases EXCEPT
-    /// `.z` (= 其他 fallback, uses Chinese name to match the fallback
+    /// `.z` (= Other fallback, uses Chinese name to match the fallback
     /// convention so LLM output is consistent across the system).
     public var directoryName: String {
         switch self {
@@ -148,34 +149,34 @@ public enum EntityCategory: String, CaseIterable, Codable, Sendable, Identifiabl
     /// Lucide icon name for sidebar folder display.
     public var icon: String {
         switch self {
-        case .a: return "book-marked"           // 经典
-        case .b: return "brain"                  // 哲学
-        case .c: return "users"                  // 社科
-        case .d: return "scale"                  // 政法
-        case .e: return "sword"                  // 军事
-        case .f: return "trending-up"            // 经济
-        case .g: return "graduation-cap"         // 文教科
-        case .h: return "alphabet"               // 语言文字
-        case .i: return "book-open"              // 文学
-        case .j: return "palette"                // 艺术
-        case .k: return "landmark"               // 史地
-        case .n: return "atom"                    // 自科
-        case .o: return "sigma"                  // 数理化
-        case .p: return "globe-2"                 // 天文地球
-        case .q: return "leaf"                    // 生物
-        case .r: return "heart-pulse"            // 医药
-        case .s: return "wheat"                  // 农业
-        case .t: return "cog"                     // 工业
-        case .u: return "truck"                  // 交通
-        case .v: return "plane"                  // 航天
-        case .x: return "leaf-2"                  // 环境
-        // v0.30 boss 8/31 OOB: '其它的这个分类，没有 ICON. 需要配上一个'.
+        case .a: return "book-marked"           // classics
+        case .b: return "brain"                  // philosophy
+        case .c: return "users"                  // social sciences
+        case .d: return "scale"                  // politics and law
+        case .e: return "sword"                  // military
+        case .f: return "trending-up"            // economics
+        case .g: return "graduation-cap"         // culture, science, education
+        case .h: return "alphabet"               // language and linguistics
+        case .i: return "book-open"              // literature
+        case .j: return "palette"                // arts
+        case .k: return "landmark"               // history and geography
+        case .n: return "atom"                    // natural sciences
+        case .o: return "sigma"                  // math, physics, chemistry
+        case .p: return "globe-2"                 // astronomy and earth sciences
+        case .q: return "leaf"                    // biology
+        case .r: return "heart-pulse"            // medicine
+        case .s: return "wheat"                  // agriculture
+        case .t: return "cog"                     // industrial technology
+        case .u: return "truck"                  // transportation
+        case .v: return "plane"                  // aerospace
+        case .x: return "leaf-2"                  // environment
+        // v0.30 boss 8/31 OOB: 'the "Other" category has no ICON, it needs one'.
         // Changed from "library" (= too generic; suggests "reference
         // library" not "fallback bucket") to "package-open" (= an
         // unboxed package = uncategorized material waiting to be
         // sorted). The icon now visually conveys 'miscellaneous
         // catch-all' instead of 'main reference library'.
-        case .z: return "package-open"           // 其它 (= catch-all)
+        case .z: return "package-open"           // Other (= catch-all)
         }
     }
 

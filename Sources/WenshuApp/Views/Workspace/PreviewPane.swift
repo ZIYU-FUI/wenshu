@@ -1,13 +1,10 @@
 // Sources/WenshuApp/Views/Workspace/PreviewPane.swift
 //
-// v0.30 boss 2026-08-30 OOB '实体分类在目录树里是最后一层, 点击后,
-// [CJK-TRANSLATE] 2 line(s) awaiting manual translation (see git blame for original CJK text)
-// 实体文档要用随心记的卡片流样式显示在素材管理区, 然后双击卡片才会在
-// 编辑器里打开. 这就是我为什么说想实现编辑器和数据流, 得把这些前置
-// 做完的原因'. Ticket 2 (= the entity card flow).
+// v0.30 boss 2026-08-30 OOB 'entity classification is the last layer in the directory tree, after clicking,
+// the entity document should display in the material management area in a wenshu-style card stream layout, and double-clicking the card opens it
+// in the editor. That's why I said implementing the editor and data flow requires finishing these prerequisites first'. Ticket 2 (= the entity card flow).
 //
-// v0.30 boss 2026-08-31 OOB '点 sidebar row → 右边素材区显示该目录的
-// 文档, 控制目录范围': extended PreviewScope to cover both reference
+// v0.30 boss 2026-08-31 OOB 'click sidebar row → right material area displays that directory's documents, control directory range': extended PreviewScope to cover both reference
 // library (= existing) AND book folder docs. File renamed from
 // EntityPreviewPane.swift to PreviewPane.swift (= it now serves both
 // scopes).
@@ -39,8 +36,7 @@ import AppKit  // v0.34 B-26: NSDoubleClickInterval (= system double-click inter
 // MARK: - Sort order (v0.30 boss OOB)
 //
 // [CJK-TRANSLATE] 2 line(s) awaiting manual translation (see git blame for original CJK text)
-// Boss 2026-08-30: '所有卡片默认排序是拼音首字母先后顺序, 在素材预览顶栏
-// 右边加 icon, 实现重排序功能. 目前选项, 首字母, 创建时间, 修改时间'.
+// Boss 2026-08-30: 'all cards default sort is pinyin initial letter alphabetical, in the material preview top bar add an icon on the right side to implement re-sort. Current options: first letter, creation time, modification time'.
 //
 // 3 sort options:
 // 1. .pinyinFirstLetter (= default) — Chinese pinyin alphabetical
@@ -76,9 +72,9 @@ enum BookFolder: String, CaseIterable {
     var directoryName: String { rawValue }
 
     /// Display name shown in card folder badge. Maps to the 5 sidebar
-    /// folder labels where they overlap (= 世界观 / 角色 / 章节大纲 /
-    /// 小说正文 / 小说草稿) and uses a Chinese label for the 3
-    /// sidebar-hidden folders (= 会话 / 伏笔 / 占位符).
+    /// folder labels where they overlap (= worldview / characters / chapter outline /
+    /// novel body / novel drafts) and uses a Chinese label for the 3
+    /// sidebar-hidden folders (= sessions / foreshadowing / placeholders).
     var displayName: String {
         switch self {
         case .world: return "世界观"
@@ -217,7 +213,7 @@ struct PreviewPane: View {
     /// v0.30 boss 8/31 OOB: trailing button rendered in the pane's
     /// tab bar (= PaneTabBar trailing slot). Used by the project
     /// preview scope to host the sort menu (= sorts the card grid
-    /// by 首字母 / 创建时间 / 修改时间). Default = nil = no trailing
+    /// by first letter / creation time / modification time). Default = nil = no trailing
     /// button (= the scope just renders its tab bar + content).
     var trailingButton: AnyView? = nil
 
@@ -242,8 +238,8 @@ struct PreviewPane: View {
     }
 
     // [CJK-TRANSLATE] 2 line(s) awaiting manual translation (see git blame for original CJK text)
-    /// v0.30 boss OOB: '卡片多列显示, 默认两列, 如果区域被拖拽宽度变窄,
-    /// 不够两列, 自动适配成一列, 人话就是卡片流, 宽度自适应'.
+    /// v0.30 boss OOB: 'cards display in multiple columns, default two columns, if the zone is dragged narrower,
+    /// not enough for two columns, auto-adapt to one column, in plain words it's card flow, width adaptive'.
     ///
     /// Adaptive column count:
     /// - preview pane width >= twoColumnBreakpoint: 2 columns (= default)
@@ -402,16 +398,15 @@ struct PreviewPane: View {
     private func categoryGrid(category: EntityCategory, allEntities: [Reference]) -> some View {
         let inCategory = allEntities.filter { $0.category == category }
         // v0.30 boss 8/31 OOB: removed the category header HStack
-        // (= icon + category.displayName + count). Per boss: '资料
-        // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-        // 库里的, 素材预览区的红框里的这个标题没有用, 不需要,
-        // 删掉'. The sidebar already shows the category name (= when
-        // user clicks 资料库/历史、地理, the sidebar shows the
+        // (= icon + category.displayName + count). Per boss: 'in the reference
+        // library, the title in the red box in the material preview area is unused, not needed,
+        // delete it'. The sidebar already shows the category name (= when
+        // user clicks reference-library/History-Geography, the sidebar shows the
         // selection); the preview pane's category header is
         // redundant. Now the preview pane jumps directly to the
         // card grid (= card thumbnails + card content).
-        // v0.30 boss 8/31 OOB '预览区内容没有显示全，因为宽度调窄了，
-        // 预览区没有自动适配宽度' = preview pane content area is
+        // v0.30 boss 8/31 OOB 'preview area content isn't fully displayed, because the width was narrowed,
+        // preview area doesn't auto-adapt the width' = preview pane content area is
         // narrower than the pane (= 184 PT vs ~430 PT) because the
         // outer VStack has no .frame(maxWidth: .infinity) = the
         // inner GeometryReader takes the parent's intrinsic width
@@ -447,16 +442,15 @@ struct PreviewPane: View {
         if allEntities.isEmpty {
             emptyState(message: "资料库里还没有实体.\n导入研究材料后 LLM 会自动分类.")
         } else {
-            // [CJK-TRANSLATE] 3 line(s) awaiting manual translation (see git blame for original CJK text)
-            // v0.30 boss OOB '因为素材预览区只显示当前选定目录的卡片,
-            // 所以只需要卡片流, 一直铺下去即可' + '素材预览区不需要这个标题,
-            // 卡片平铺即可'.
+            // v0.30 boss OOB 'because the material preview area only displays cards of the currently selected directory,
+            // so only card flow is needed, just lay them out continuously' + 'material preview area doesn't need this title,
+            // cards just tile flat'.
             //
             // Single flat LazyVGrid (= no per-category section headers,
             // no global count header). Cards flow continuously
-            // (= 无边记 sticky-note style). Sort by current `previewSortOrder`
-            // (= boss 8/30 OOB: default 拼音首字母; user can pick
-            // 创建时间 or 修改时间 via top-right sort menu icon).
+            // (= wubi-ji sticky-note style). Sort by current `previewSortOrder`
+            // (= boss 8/30 OOB: default pinyin first letter; user can pick
+            // creation time or modification time via top-right sort menu icon).
             let sorted = sortEntities(allEntities, by: previewSortOrder)
             GeometryReader { geometry in
                 ScrollView {
@@ -680,7 +674,7 @@ struct PreviewPane: View {
         return "~"
     }
 
-    /// v0.30 boss OOB: 卡片多列显示, 默认两列, 宽度不够自动 1 列.
+    /// v0.30 boss OOB: cards display in multiple columns, default two columns, auto-adapt to 1 column if not enough width.
     /// Returns adaptive GridItem array based on the available width.
     /// - width >= twoColumnBreakpoint: 2 columns (= default = boss request)
     /// - width <  twoColumnBreakpoint: 1 column (= narrow, single flow)
@@ -708,7 +702,7 @@ struct PreviewPane: View {
 /// prominent thumbnail (= e.g. user-round for character, lightbulb
 /// for concept). The icon is rendered at 64 PT with a tinted gradient
 /// background (= the type's distinguishing color). This gives each
-/// card a strong visual identity at a glance (= matches 无边记 / Notion
+/// card a strong visual identity at a glance (= matches Wubi-ji / Notion
 /// "card cover" pattern).
 ///
 /// Future: when entities get real images (= e.g. character portrait,
@@ -878,8 +872,8 @@ private struct Card: View {
     }
 
     /// v0.34 B-26: derive the display title for a card (= file basename
-    /// without the .md extension; = boss 9/3 OOB '.md 的拓展名也不用
-    /// 显示'). Placeholder card = 'preview-sample' (= no .md extension,
+    /// without the .md extension; = boss 9/3 OOB '.md extension doesn't need to
+    /// be shown either'). Placeholder card = 'preview-sample' (= no .md extension,
     /// = no path = render the short placeholder name).
     private func tabDisplayTitle(tab: EditorTab) -> String {
         if let path = tab.documentPath, !path.isEmpty {

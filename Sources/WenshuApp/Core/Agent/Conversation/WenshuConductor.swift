@@ -1,13 +1,13 @@
 //
-//  WenshuConductor.swift · Wenshu · v0.21 ticket 04 (文枢单显多 agent 隐身)
+//  WenshuConductor.swift · Wenshu · v0.21 ticket 04 (Wenshu single-display, multi-agent hidden)
 //                          P0 #1 (WIRE-AGENT-001, 2026-09-04)
 //                          P0 #2 (WIRE-AGENT-002, 2026-09-04)
 //
-//  文枢主 agent 调度器: 收 user message → 调 LLM intent classify → 派 0-N 个 v0.19 模块 agent → 等结果 → 调 LLM 合成最终回复.
-//  调度进度走 KanbanStore 看板 (user 查 Kanban), ChatView 不显 subagent 隐身 (老板 2026-08-21 拍).
+//  Wenshu main agent orchestrator: receives user message → calls LLM intent classify → dispatches 0-N v0.19 module agents → waits for results → calls LLM to synthesize final reply.
+//  Dispatch progress goes through KanbanStore (user checks Kanban), ChatView does not show sub-agents (hidden) (boss 2026-08-21 said).
 //
-//  复用 v0.19 12 模块后端 (LinkGraph / Search / Template / Composer / Graph / Canvas / Bases / QuickSwitcher / WordCount / Outline / Bookmarks / Verifier),
-//  范式跟 AgentRuntime 一致 (actor in-process 真值).
+//  Reuses v0.19 12-module backend (LinkGraph / Search / Template / Composer / Graph / Canvas / Bases / QuickSwitcher / WordCount / Outline / Bookmarks / Verifier),
+//  pattern matches AgentRuntime (actor in-process truth).
 //
 //  P0 #2 (WIRE-AGENT-002): the conductor now accepts a `tools: [String:
 //  any Tool]` registry at construction time. When the loop path runs
@@ -23,7 +23,7 @@
 
 import Foundation
 
-/// 文枢调度器 (actor 线程安全, 跟 AgentRuntime / KanbanStore / MemoryStore 一致).
+/// Wenshu orchestrator (actor thread-safe, consistent with AgentRuntime / KanbanStore / MemoryStore).
 public actor WenshuConductor {
     private let runtime: AgentRuntime
     private let verifier: WenshuVerifier
@@ -200,7 +200,7 @@ public actor WenshuConductor {
     /// - vision: input = image path → returns recognized text
     /// - av: input = text → speaks aloud (fire-and-forget)
     public func invokeTool(name: String, input: String, caller: AgentCaller = .main) async -> String {
-        // v0.23 ticket 012: hermes DELEGATE_BLOCKED_TOOLS parity (boss 8/23 拍).
+        // v0.23 ticket 012: hermes DELEGATE_BLOCKED_TOOLS parity (boss 8/23 said).
         // Sub-agents cannot call delegate_task / clarify / send_message / cronjob (any op).
         // Sub-agents can call memory but only for read ops (no add/delete).
         if caller.isSubAgent {
@@ -210,7 +210,7 @@ public actor WenshuConductor {
                 return reason
             }
         }
-        // v0.23 ticket 008.003: tool-level allowlist (boss 8/23 拍: 用户不可通过聊天改系统).
+        // v0.23 ticket 008.003: tool-level allowlist (boss 8/23 said: user cannot change system via chat).
         // input format: "op:arg" (e.g. "read:./file.txt", "write:./Sources/foo.swift")
         // Unknown op = blocked (per-tool allowlist below).
         let parts = input.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
@@ -259,12 +259,12 @@ public actor WenshuConductor {
         return (try? await store.search(userId: "wenshu-user", query: query, limit: limit)) ?? []
     }
 
-    /// handle: 收 user message, 派子 agent, 合成最终回复
-    /// 真值: user 看不到多 agent 调度痕迹, ChatView 永远只看到 .wenshu 1 个回复
-    /// code-review S4 graceful degradation: LLM fail 不抛, fallback synthesis 仍返 reply (老板 macOS 不见 Error 系统消息)
-    /// v0.21 ticket 34: 返回 (reply, totalTokens) — totalTokens = intent + sub-agent + synthesis 真实 LLM API usage 累加
-    /// v0.21 ticket 38: handle 增加 model 参数 (boss 反馈 "切换了 AI 没有真的换" = 原 handle 用 verifier.init 的 hardcoded model)
-    /// v0.21 ticket 39: 加 thinking 字段 (WenshuLLMBlock.thinking footnote UI, Apple HIG footnote 范式)
+    /// handle: receive user message, dispatch sub-agents, synthesize final reply
+    /// Truth: user does not see multi-agent dispatch traces, ChatView always sees only 1 .wenshu reply
+    /// code-review S4 graceful degradation: LLM fail does not throw, fallback synthesis still returns reply (boss doesn't see Error system messages on macOS)
+    /// v0.21 ticket 34: returns (reply, totalTokens) — totalTokens = intent + sub-agent + synthesis real LLM API usage accumulated
+    /// v0.21 ticket 38: handle adds model parameter (boss feedback "switching AI didn't actually switch" = the original handle used verifier.init's hardcoded model)
+    /// v0.21 ticket 39: adds thinking field (WenshuLLMBlock.thinking footnote UI, Apple HIG footnote pattern)
     ///
     /// P0 #1 (WIRE-AGENT-001): when the conductor was constructed with a
     /// `connector` injection, the call is first routed through the full
@@ -386,7 +386,7 @@ public actor WenshuConductor {
         sessionId: String,
         model: String
     ) async -> (reply: String, totalTokens: Int, thinking: String?) {
-        // 步骤 1: 写 1 个 conductor 父 task 到 KanbanStore (看板进度, ChatView 不显)
+        // Step 1: write 1 conductor parent task to KanbanStore (kanban progress, not shown in ChatView)
         let conductorTask: KanbanTask?
         do {
             conductorTask = try await kanbanStore.add(title: "conductor: \(userMessage.prefix(50))", status: .running)
@@ -394,12 +394,12 @@ public actor WenshuConductor {
             conductorTask = nil
         }
 
-        // v0.21 ticket 34: 累加全部 LLM API real usage (intent classify + sub-agent LLM calls + synthesis)
+        // v0.21 ticket 34: accumulate all LLM API real usage (intent classify + sub-agent LLM calls + synthesis)
         var totalTokens = 0
 
-        // 步骤 2: 调 LLM intent classify, 失败 fallback → 0 子 agent, 不抛
+        // Step 2: call LLM intent classify, fallback on failure → 0 sub-agents, don't throw
         var selectedAgents: [String] = []
-        // v0.22 ticket 001: prepend 文枢 agent identity (WenshuConductorIdentity.systemPrompt)
+        // v0.22 ticket 001: prepend Wenshu agent identity (WenshuConductorIdentity.systemPrompt)
         // as system prompt. The send() method already injects the pollution-defense
         // systemPromptEnglishOnly as the first system segment; our identity follows.
         // v0.23 ticket 002: 5 sub-agent names instead of 5 module names.
@@ -428,13 +428,13 @@ public actor WenshuConductor {
                     SubAgentIdentity.Name(rawValue: name) != nil
                 }
             }
-            // v0.21 ticket 34: 累加 intent classify real token usage
+            // v0.21 ticket 34: accumulate intent classify real token usage
             totalTokens += intentResponse.usage?.total_tokens ?? 0
         }
-        // intent classify fail → selectedAgents 仍空 [] → S4 graceful degradation
+        // intent classify fail → selectedAgents still empty [] → S4 graceful degradation
         // v0.23 ticket 002: filter unknown agent names to prevent invalid dispatch
-
-        // 步骤 3: 派 0-N 个子 agent 并行 (TaskGroup) + 收集结果 (v0.23 ticket 002)
+        selectedAgents = selectedAgents.filter { ["writer", "analyst", "researcher", "auditor", "memory"].contains($0) }
+        // Step 3: dispatch 0-N sub-agents in parallel (TaskGroup) + collect results (v0.23 ticket 002)
         // v0.23 ticket 002: TaskGroup parallel dispatch replaces serial for-loop.
         // Each sub-agent has independent system prompt (SubAgentIdentity.systemPrompt).
         var subResults: [(String, String)] = []
@@ -492,10 +492,10 @@ public actor WenshuConductor {
                 }
             }
             // v0.23 ticket 006: write 1-line sub-agent run summary to ChatSessionStore
-            // (boss 8/23 拍: 用户不需要执行细节, 只看结果即可 — no full LLM dialogue stored).
+            // (boss 8/23 said: user doesn't need execution details, just sees results — no full LLM dialogue stored).
             if let session = sessionStore {
                 for (name, result) in subResults {
-                    let summary = String(result.prefix(200))  // 1-line 摘要, not full output
+                    let summary = String(result.prefix(200))  // 1-line summary, not full output
                     let run = SubAgentRun(
                         id: UUID().uuidString,
                         agentName: name,
@@ -533,37 +533,37 @@ public actor WenshuConductor {
             }
         }
 
-        // 步骤 4: 调 LLM 合成最终回复 (S4 fallback: synthesis fail → 返原文 + 默认合成语)
+        // Step 4: call LLM to synthesize final reply (S4 fallback: synthesis fail → return original text + default synthesis text)
         // v0.23 ticket 002: synthesis now includes auditor verdict if any.
         let synthesisPrompt = buildSynthesisPrompt(userMessage: userMessage, subResults: subResults)
         var finalThinking: String?    // v0.21 ticket 39: WenshuLLMBlock.thinking
         let finalReply: String
-        // v0.22 ticket 001: prepend 文枢 agent identity for synthesis call.
+        // v0.22 ticket 001: prepend Wenshu agent identity for synthesis call.
         if let response = try? await verifier.chat(synthesisPrompt, system: WenshuConductorIdentity.systemPrompt, model: model) {
-            // v0.21 ticket 39: union decode concat all text blocks (M2.7 有 thinking block 前置)
+            // v0.21 ticket 39: union decode concat all text blocks (M2.7 has thinking block prefix)
             let text = response.content.map(\.displayText).joined()
             if !text.isEmpty {
                 finalReply = text
                 finalThinking = response.content.compactMap(\.thinkingText).first
             } else if subResults.isEmpty {
-                finalReply = "（文枢暂时无法回复, 请稍后再试）"
+                finalReply = "(Wenshu cannot reply right now, please try again later)"
             } else {
                 let summary = subResults.map { "• \($0.0): \($0.1.prefix(80))" }.joined(separator: "\n")
-                finalReply = "（LLM 合成失败, 下面是子 agent 原始结果）\n\n\(summary)"
+                finalReply = "(LLM synthesis failed, below is the raw sub-agent result)\n\n\(summary)"
             }
-            // v0.21 ticket 34: 累加 synthesis real token usage
+            // v0.21 ticket 34: accumulate synthesis real token usage
             totalTokens += response.usage?.total_tokens ?? 0
         } else {
-            // S4 graceful degradation: synthesis 失败仍返自然回复
+            // S4 graceful degradation: synthesis fail still returns natural reply
             if subResults.isEmpty {
-                finalReply = "（文枢暂时无法回复, 请稍后再试）"
+                finalReply = "(Wenshu cannot reply right now, please try again later)"
             } else {
                 let summary = subResults.map { "• \($0.0): \($0.1.prefix(80))" }.joined(separator: "\n")
-                finalReply = "（LLM 合成失败, 下面是子 agent 原始结果）\n\n\(summary)"
+                finalReply = "(LLM synthesis failed, below is the raw sub-agent result)\n\n\(summary)"
             }
         }
 
-        // 步骤 5: 标 conductor 父 task done (如果有)
+        // Step 5: mark conductor parent task done (if any)
         if let conductorTask = conductorTask {
             // v0.23 audit #014 fix: don't write kanban state if cancelled.
             if !Task.isCancelled {
@@ -574,15 +574,15 @@ public actor WenshuConductor {
         return (finalReply, totalTokens, finalThinking)
     }
 
-    /// parseAgentList: 解析 LLM 输出的 JSON array (容错: 真值会有返 ["search"] 或 [search, outline] 或 ['search'])
+    /// parseAgentList: parse the JSON array output by LLM (fault-tolerant: truth may return ["search"] or [search, outline] or ['search'])
     private func parseAgentList(_ raw: String) -> [String] {
-        // 简单 regex: 抓 [...] 内容
+        // Simple regex: capture [...] contents
         guard let start = raw.firstIndex(of: "["),
               let end = raw[start...].firstIndex(of: "]") else {
             return []
         }
         let inner = String(raw[start...end])
-        // 拆 + 清洗 (去 ", ', 空白)
+        // Split + clean (remove ", ', whitespace)
         return inner
             .components(separatedBy: ",")
             .compactMap { token -> String? in
@@ -593,7 +593,7 @@ public actor WenshuConductor {
             }
     }
 
-    /// buildSynthesisPrompt: 子 agent 结果拼装 prompt
+    /// buildSynthesisPrompt: assemble sub-agent results into prompt
     private func buildSynthesisPrompt(userMessage: String, subResults: [(String, String)]) -> String {
         var prompt = """
         你是 wenshu 文枢. user 问: "\(userMessage)"

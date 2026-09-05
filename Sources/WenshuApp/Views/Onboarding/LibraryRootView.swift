@@ -1,19 +1,18 @@
 //
-//  LibraryRootView.swift · Wenshu · v0.24 boss验收
+//  LibraryRootView.swift · Wenshu · v0.24 boss acceptance
 //
-//  Boss 2026-08-24 OOB 拍: '和 FCP 一样, 首次运行, 无论是否要建书架,
-//  都要先指定一个 .ws 文件的库文件位置' (tactical UX 拍板).
-//  Boss 8/24 follow-up: '文字不要带有我们的决策, 什么和 FCP 一样.
-// [CJK-TRANSLATE] 2 line(s) awaiting manual translation (see git blame for original CJK text)
-//  就直接说, 这个库文件的做用. 也不用说库用件叫 .ws.
-//  就说让客户指定一个文枢仓库'.
+//  Boss 2026-08-24 OOB said: 'like FCP, on first run, whether or not to create a shelf,
+//  must first specify a .ws file library location' (tactical UX decision).
+//  Boss 8/24 follow-up: 'text shouldn't contain our decisions, like "like FCP".
+//  Just say directly, what this library file is for. Also don't say the library file is called .ws.
+//  Just say ask the user to specify a Wenshu repository'.
 //
-//  User-facing text (per boss 拍): no decision words (和 FCP 一样, 比 X 好,
-//  etc.), no .ws 库 件术语, just describe the purpose. Use '文枢仓库'
+//  User-facing text (per boss said): no decision words (like FCP, better than X,
+//  etc.), no .ws library file terminology, just describe the purpose. Use 'Wenshu repository'
 //  terminology.
 //
-//  Apple HIG 参考: 1 个 library file = 1 个 .lrlibrary (Lightroom) /
-//  .photoslibrary (Photos) / .fcpbundle (FCP). Boss 拍 wenshu 用 '仓库'.
+//  Apple HIG reference: 1 library file = 1 .lrlibrary (Lightroom) /
+//  .photoslibrary (Photos) / .fcpbundle (FCP). Boss said wenshu uses 'repository'.
 //  Selected path stored in UserDefaults 'wenshu.libraryPath'.
 //
 //  LibraryRootView behavior:
@@ -21,8 +20,8 @@
 //  2. If 'wenshu.libraryPath' set → show LayoutShellView (main app)
 //  3. User can change library via Settings → '更换仓库' button (future)
 //
-//  文枢仓库 folder structure (planned for ticket 5):
-//  - 仓库根/             = the 仓库 (selected location)
+//  Wenshu repository folder structure (planned for ticket 5):
+//  - repository root/             = the repository (selected location)
 //  - shelves/             = book shelves (sub-libraries)
 //  - books/               = individual book content (.md)
 //  - chat.sqlite          = chat history
@@ -39,21 +38,20 @@ import UniformTypeIdentifiers
 
 /// LibraryRootView: Routes between onboarding (first launch) and main app.
 ///
-/// Trigger condition (Boss 8/24 OOB 拍: '如果持久化信息没有库文件信息,
-// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-/// 就需要进到建库选库页面'):
+/// Trigger condition (Boss 8/24 OOB said: 'if persistent info has no library file info,
+/// need to go to library-creation/library-selection page'):
 /// - if UserDefaults 'wenshu.libraryPath' empty → onboarding
 /// - if UserDefaults 'wenshu.libraryPath' set but path doesn't exist
-///   on disk (= 老板 deleted 仓库 externally, or 仓库 was on a now-disconnected
+///   on disk (= boss deleted repository externally, or repository was on a now-disconnected
 ///   drive) → onboarding (re-pick)
 /// - else (= path set + path exists) → main app LayoutShellView
 public struct LibraryRootView: View {
     @AppStorage("wenshu.libraryPath") private var libraryPath: String = ""
 
     private var shouldShowOnboarding: Bool {
-        // v0.24 boss验收fix (Boss 8/24 OOB): trigger condition strict.
+        // v0.24 boss acceptance fix (Boss 8/24 OOB): trigger condition strict.
         //
-        // Boss 拍 'anbaiqiang.ws' = wenshu 仓库 = .ws directory (= per v0.26 spec ticket 015,
+        // Boss said 'anbaiqiang.ws' = wenshu repository = .ws directory (= per v0.26 spec ticket 015,
         // .ws is now a macOS-style package directory, NOT a single file;
         // LibraryRootView.swift:296-309 creates Info.plist inside it).
         //
