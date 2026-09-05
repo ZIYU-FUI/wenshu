@@ -549,19 +549,41 @@ public struct ChatView: View {
     /// KanbanStore that the WenshuConductor takes ownership of is
     /// the canonical wenshu-side task store; KanbanStoreTool reads /
     /// writes through it via KanbanTools.kanban(action:params:).
-    private static func conductorRegisteringParagraphAI(_ conductor: WenshuConductor?) -> WenshuConductor? {
+    ///
+    /// WIRE-TOOLREGISTRY-003: the explicit `tools: [...]` dict is
+    /// gone. The 12 tools now arrive via `WenshuConductor.buildTools
+    /// (from: ToolRegistry.shared)` (= hermes single-source-of-truth
+    /// pattern = tools self-register at module-import time, the
+    /// conductor reads from the registry). The same `do/catch`
+    /// shape is preserved (= kanban bootstrap may fail in preview /
+    /// CI) but the tool dict is built once via the registry rather
+    /// than constructed per ChatView instance.
+    ///
+    /// `internal` (= default Swift access) so the wiring test
+    /// (`WenshuConductorToolRegistryWiringTests`) can call the
+    /// production code path. The method is a pure factory with no
+    /// observable side effects beyond constructing the conductor, so
+    /// widening from `private` to `internal` does not expose any new
+    /// production surface.
+    internal static func conductorRegisteringParagraphAI(_ conductor: WenshuConductor?) -> WenshuConductor? {
         // No conductor provided → nothing to wrap. ChatViewModel's
         // direct verifier path (= non-conductor branch in send()) does
         // not consult a tool registry, so this is a no-op for preview.
         guard let conductor = conductor else { return nil }
-        // Build a peer conductor with ParagraphAITool registered. We
-        // reuse the public init (= same surface App.swift uses); the
-        // collaborator triple (runtime / verifier / kanbanStore) is
-        // reconstructed (= standalone preview path; production uses
-        // App-supplied collaborators through the canonical ChatZoneView
-        // shared-vm path which does not go through here).
+        // Build a peer conductor with the tool registry populated from
+        // ToolRegistry.shared. We reuse the public init (= same surface
+        // App.swift uses); the collaborator triple (runtime / verifier
+        // / kanbanStore) is reconstructed (= standalone preview path;
+        // production uses App-supplied collaborators through the
+        // canonical ChatZoneView shared-vm path which does not go
+        // through here).
         let runtime = AgentRuntime()
         let verifier = WenshuVerifier()
+        // WIRE-TOOLREGISTRY-003: pull the 12-tool registry from
+        // ToolRegistry.shared (= single source of truth). `buildTools`
+        // polls internally up to `toolRegistryWaitTimeoutMs` for the
+        // module-load `Task { await register(...) }` blocks to settle.
+        let tools = WenshuConductor.buildToolsSync(from: ToolRegistry.shared)
         // KanbanStore construction may fail (= disk-permission issues in
         // preview / CI); fall back to an in-process stub conductor that
         // does not write kanban state but still carries the tool
@@ -570,59 +592,19 @@ public struct ChatView: View {
         do {
             let kanban = try KanbanStore()
             try kanban.bootstrap()
-            // P0 #5 (WIRE-AGENT-005): register KanbanStoreTool so the
-            // LLM can create / list / show / transition / block /
-            // unblock / complete kanban tickets directly from the
-            // chat surface. The KanbanTools actor wraps the same
-            // `kanban` store the WenshuConductor owns, so tool writes
-            // are observable in the OpenBox KanbanView immediately.
-            let kanbanTools = KanbanTools(store: kanban)
-            // P0 #4 (WIRE-AGENT-004): register TodoStoreTool so the LLM
-            // can create / list / update / complete / remove Todo items
-            // directly from the chat surface. The TodoStore (SQLite
-            // actor) is the canonical wenshu-side task tracker; the
-            // HermesTodoTool wraps it via the wenshu-side-wins adapter
-            // pattern (= HermesTodoTool.swift header).
-            let todoStore = try TodoStore()
-            try todoStore.bootstrap()
-            let hermesTodoStore = HermesTodoStore()
-            let hermesTodo = HermesTodoTool(store: hermesTodoStore)
-            // P2 #20 (WIRE-LIBRARIAN-001): register BookManagerTool so the
-            // LLM can create / rename / delete / list / show books directly
-            // from the chat surface via the "/create-book <title>" slash
-            // command (= canonical wenshu-side library state through
-            // BookStore). The BookStore that BookManager wraps is the
-            // canonical wenshu-side book storage (= same singleton the
-            // sidebar uses); BookManager reads / writes through it via
-            // BookStore.sidebarSaveBook / sidebarDeleteBook / sidebarLoadAllBooks.
-            let bookManager = BookManager(bookStore: bookStoreForChatTool())
             return WenshuConductor(
                 runtime: runtime,
                 verifier: verifier,
                 kanbanStore: kanban,
-                tools: [
-                    "ParagraphAI": ParagraphAITool.shared,
-                    "kanban": KanbanStoreTool(kanbanTools: kanbanTools),
-                    "todo": TodoStoreTool(hermesTodo: HermesTodoTool(store: hermesTodoStore), todoStore: todoStore),
-                    "book_manager": BookManagerTool(manager: bookManager)
-                ]
+                tools: tools
             )
         } catch {
             let fallback = try! KanbanStore(path: NSTemporaryDirectory() + "wenshu-chat-fallback-\(UUID().uuidString).sqlite")
-            let todoFallback = try! TodoStore(path: NSTemporaryDirectory() + "wenshu-chat-todo-fallback-\(UUID().uuidString).sqlite")
-            try? todoFallback.bootstrap()
-            let hermesTodoFallback = HermesTodoStore()
-            let bookManager = BookManager(bookStore: bookStoreForChatTool())
             return WenshuConductor(
                 runtime: runtime,
                 verifier: verifier,
                 kanbanStore: fallback,
-                tools: [
-                    "ParagraphAI": ParagraphAITool.shared,
-                    "kanban": KanbanStoreTool(kanbanTools: KanbanTools(store: fallback)),
-                    "todo": TodoStoreTool(hermesTodo: HermesTodoTool(store: hermesTodoFallback), todoStore: todoFallback),
-                    "book_manager": BookManagerTool(manager: bookManager)
-                ]
+                tools: tools
             )
         }
     }
