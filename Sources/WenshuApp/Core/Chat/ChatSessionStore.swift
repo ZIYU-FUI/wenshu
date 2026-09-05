@@ -5,9 +5,9 @@
 import Foundation
 import SQLite3
 
-/// ChatSessionStore: SQLite-backed chat message persistence. 1 session_id = 1 个延续会话 (老板 2026-08-21 拍 "用户永远看到的只有一个会话"). schema 2 表: chat_messages + chat_summaries. 范式跟 TodoStore / MemoryStore / KanbanStore 一致 (actor + SQLite).
+/// ChatSessionStore: SQLite-backed chat message persistence. 1 session_id = 1 ongoing conversation (boss 2026-08-21 said "the user only ever sees one conversation"). Schema = 2 tables: chat_messages + chat_summaries. Pattern matches TodoStore / MemoryStore / KanbanStore (actor + SQLite).
 public actor ChatSessionStore {
-    private nonisolated(unsafe) let dbPtr: SQLitePtr  // v0.24 boss验收fix (F1): nonisolated so nonisolated archiveSession can access SQLite ptr. Caller serializes via actor lock.
+    private nonisolated(unsafe) let dbPtr: SQLitePtr  // v0.24 boss acceptance fix (F1): nonisolated so nonisolated archiveSession can access SQLite ptr. Caller serializes via actor lock.
     private let dbPath: String  // private; callers log their own path (Standards F3 fix)
 
     public init(path: String? = nil) throws {
@@ -49,9 +49,9 @@ public actor ChatSessionStore {
             last_message_id TEXT
         );
         """
-        // v0.24 boss验收fix (Boss 8/25 fourth OOB Spec axis FAIL for ticket
+        // v0.24 boss acceptance fix (Boss 8/25 fourth OOB Spec axis FAIL for ticket
         // 015.014): chat_archives table for durable session archival.
-        // Per Boss spec: '回档现有会话和上下文'. Idempotent migration.
+        // Per Boss spec: 'archive existing session and context'. Idempotent migration.
         let chatArchivesSql = """
         CREATE TABLE IF NOT EXISTS chat_archives (
             id TEXT PRIMARY KEY,
@@ -69,7 +69,7 @@ public actor ChatSessionStore {
             }
         }
 
-        // v0.24 boss验收fix (Boss 8/25 OOB chat persistence bug):
+        // v0.24 boss acceptance fix (Boss 8/25 OOB chat persistence bug):
         // ALTER TABLE chat_messages ADD COLUMN tokens INTEGER (idempotent —
         // SQLite returns "duplicate column name" if already exists, swallowed).
         // Existing chat.sqlite (created before commit 39e8d436c) lacks tokens
@@ -82,8 +82,7 @@ public actor ChatSessionStore {
                 NSLog("[wenshu.chatStore] schema migration warning: %@", errMsg)
             }
         }
-        // v0.23 ticket 006: sub-agent run trace (boss 8/23 拍: "用户不需要执行细节, 只看结果即可").
-        // Schema: id / session_id / agent_name / title / status / started_at / completed_at / result_summary.
+        // v0.23 ticket 006: sub-agent run trace (boss 8/23 said: "user doesn't need execution details, just sees the result").
         // NOT stored: full LLM dialogue, system prompts, intermediate steps.
         let subAgentRunSql = """
         CREATE TABLE IF NOT EXISTS sub_agent_runs (
@@ -103,7 +102,7 @@ public actor ChatSessionStore {
         try exec(subAgentRunSql)
     }
 
-    /// loadMessages: 按 timestamp ASC 加载 1 session 的全部消息 (跟 ChatView UI 渲染顺序一致)
+    /// loadMessages: load all messages of 1 session by timestamp ASC (matches ChatView UI render order)
     public func loadMessages(sessionId: String) throws -> [StoredChatMessage] {
         let sql = "SELECT id, source, content, timestamp, tokens FROM chat_messages WHERE session_id = ? ORDER BY timestamp ASC;"
         var stmt: OpaquePointer?
@@ -125,7 +124,7 @@ public actor ChatSessionStore {
         return results
     }
 
-    /// append: 写 1 条消息到指定 session
+    /// append: write 1 message to the specified session
     public func append(_ message: StoredChatMessage, sessionId: String) throws {
         let sql = "INSERT OR REPLACE INTO chat_messages (id, session_id, source, content, timestamp, tokens) VALUES (?, ?, ?, ?, ?, ?);"
         var stmt: OpaquePointer?
@@ -148,11 +147,11 @@ public actor ChatSessionStore {
         }
     }
 
-    /// v0.24 boss验收fix (Boss 8/25 fourth OOB Spec axis FAIL for ticket
+    /// v0.24 boss acceptance fix (Boss 8/25 fourth OOB Spec axis FAIL for ticket
     /// 015.014): archiveSession writes a snapshot of the current session
-    /// to chat_archives table (= Boss spec '回档现有会话和上下文').
+    /// to chat_archives table (= Boss spec 'archive existing session and context').
     /// Idempotent via primary key conflict (= INSERT OR REPLACE).
-    /// v0.24 boss验收fix (双轴 Standards F1 follow-up): nonisolated so
+    /// v0.24 boss acceptance fix (dual-axis Standards F1 follow-up): nonisolated so
     /// synchronous callers (= archiveAndStartNewSession) don't need await
     /// (= actor's internal lock still serializes SQLite writes; callers
     /// can treat this as a sync API).
@@ -182,7 +181,7 @@ public actor ChatSessionStore {
               id, sessionId, messageCount, contextUsed)
     }
 
-    /// clear: 清空 1 session 的 messages, 保留 summary (老板可以多次开始新 chat, 旧 history 留底)
+    /// clear: clear messages of 1 session, preserve summary (boss can start new chat multiple times, old history retained)
     public func clear(sessionId: String) throws {
         let sql = "DELETE FROM chat_messages WHERE session_id = ?;"
         var stmt: OpaquePointer?
@@ -196,7 +195,7 @@ public actor ChatSessionStore {
         }
     }
 
-    /// count: 1 session 的消息总数 (ticket 05 sliding window 用 threshold 比较)
+    /// count: total message count of 1 session (used for ticket 05 sliding window threshold comparison)
     public func count(sessionId: String) throws -> Int {
         let sql = "SELECT COUNT(*) FROM chat_messages WHERE session_id = ?;"
         var stmt: OpaquePointer?
@@ -209,7 +208,7 @@ public actor ChatSessionStore {
         return Int(sqlite3_column_int(stmt, 0))
     }
 
-    /// loadSummary: 读 1 session 的 summary (ticket 05 持久化摘要)
+    /// loadSummary: read 1 session's summary (ticket 05 persistent summary)
     public func loadSummary(sessionId: String) throws -> String? {
         let sql = "SELECT summary FROM chat_summaries WHERE session_id = ?;"
         var stmt: OpaquePointer?
@@ -222,7 +221,7 @@ public actor ChatSessionStore {
         return ChatSessionStore.textColumn(stmt, 0)
     }
 
-    /// saveSummary: 写 1 session 的 summary (覆盖)
+    /// saveSummary: write 1 session's summary (overwrite)
     public func saveSummary(_ summary: String, sessionId: String, lastMessageId: String) throws {
         let sql = "INSERT OR REPLACE INTO chat_summaries (session_id, summary, updated_at, last_message_id) VALUES (?, ?, ?, ?);"
         var stmt: OpaquePointer?
@@ -239,7 +238,7 @@ public actor ChatSessionStore {
         }
     }
 
-    /// deleteOldMessages: 删 1 session 早于某 timestamp 的旧 messages (ticket 05 summary 生成后删老原文)
+    /// deleteOldMessages: delete old messages of 1 session earlier than a timestamp (ticket 05: delete old originals after summary generated)
     public func deleteOldMessages(sessionId: String, beforeTimestamp: Date) throws {
         let sql = "DELETE FROM chat_messages WHERE session_id = ? AND timestamp < ?;"
         var stmt: OpaquePointer?
@@ -254,11 +253,11 @@ public actor ChatSessionStore {
         }
     }
 
-    /// summaryCutoffTimestamp: 留最新 lastN 条 messages, 返回 cutoff timestamp (比 cutoff 早的全删). 返回 nil 表示不需要触发 summary.
+    /// summaryCutoffTimestamp: keep the most recent lastN messages, return cutoff timestamp (all earlier than cutoff deleted). Return nil = no summary trigger needed.
     public func summaryCutoffTimestamp(sessionId: String, keepLastN: Int) throws -> Date? {
         let count = try count(sessionId: sessionId)
         guard count > keepLastN else { return nil }
-        // 找第 (count - keepLastN) 条消息的 timestamp (= cutoff)
+        // Find the (count - keepLastN)-th message's timestamp (= cutoff)
         let offset = count - keepLastN
         let sql = "SELECT timestamp FROM chat_messages WHERE session_id = ? ORDER BY timestamp ASC LIMIT 1 OFFSET ?;"
         var stmt: OpaquePointer?
@@ -272,7 +271,7 @@ public actor ChatSessionStore {
         return Date(timeIntervalSince1970: sqlite3_column_double(stmt, 0))
     }
 
-    /// messagesBeforeCutoff: 返回 cutoff 之前的 messages (供 LLM summary 生成用)
+    /// messagesBeforeCutoff: return messages before cutoff (for LLM summary generation)
     public func messagesBeforeCutoff(sessionId: String, cutoff: Date) throws -> [StoredChatMessage] {
         let sql = "SELECT id, source, content, timestamp, tokens FROM chat_messages WHERE session_id = ? AND timestamp < ? ORDER BY timestamp ASC;"
         var stmt: OpaquePointer?
@@ -301,8 +300,8 @@ public actor ChatSessionStore {
         }
     }
 
-    /// summarizeIfNeeded: 当 count > threshold 时, 拿前 (count - lastN) 条 messages → 调 LLM 生成 summary → saveSummary → deleteOldMessages.
-    /// 老板 2026-08-21 拍 '看似唯一会话能延续继续聊, 上下文不能爆'. spec ticket 05 真值.
+    /// summarizeIfNeeded: when count > threshold, take the first (count - lastN) messages → call LLM to generate summary → saveSummary → deleteOldMessages.
+    /// Boss 2026-08-21 said 'seems like the only session can continue chatting, the context can't burst'. spec ticket 05 truth.
     public func summarizeIfNeeded(
         sessionId: String,
         lastN: Int = 10,
@@ -310,16 +309,16 @@ public actor ChatSessionStore {
         verifier: WenshuVerifier
     ) async throws -> Bool {
         guard let cutoff = try summaryCutoffTimestamp(sessionId: sessionId, keepLastN: lastN) else {
-            return false  // 不需要 trigger summary
+            return false  // no need to trigger summary
         }
         guard cutoff != Date(timeIntervalSince1970: 0) else {
-            // cutoff 早于 epoch → count > threshold 但 timestamp 异常
+            // cutoff earlier than epoch → count > threshold but timestamp abnormal
             return false
         }
         let oldMessages = try messagesBeforeCutoff(sessionId: sessionId, cutoff: cutoff)
         guard !oldMessages.isEmpty else { return false }
 
-        // 拼装 summary prompt
+        // Assemble summary prompt
         let transcript = oldMessages.prefix(20).map { msg -> String in
             "[\(msg.source)] \(msg.content.prefix(100))"
         }.joined(separator: "\n")
@@ -328,13 +327,12 @@ public actor ChatSessionStore {
 
         \(transcript)
         """
-        // 调 LLM 生成 summary (spec ticket 05 step 1 真值)
+        // Call LLM to generate summary (spec ticket 05 step 1 truth)
         let response = try await verifier.chat(summaryPrompt)
         // v0.21 ticket 39: union decode (text / thinking / tool_use) — concat all text blocks for summary
         let summary = response.content.map(\.displayText).joined()
 
-        // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-        // 写 summary + 删老原文 (顺序不能反, 否则上下文丢失)
+        // Write summary + delete old originals (order matters, otherwise context is lost)
         // v0.34 Issue 08: wrap in transact (= saveSummary +
         // deleteOldMessages run as a single SQLite transaction;
         // = if deleteOldMessages fails after saveSummary succeeded,
@@ -497,8 +495,8 @@ public actor ChatSessionStore {
 
     // MARK: - v0.23 ticket 006: sub-agent run trace
 
-    /// recordSubAgentRun: 写 1 条 sub-agent run summary.
-    /// Boss 8/23 拍: "用户不需要执行细节, 只看结果即可" — 不存 LLM 中间对话, 只存 1-line result summary.
+    /// recordSubAgentRun: write 1 sub-agent run summary entry.
+    /// Boss 8/23 said: "user doesn't need execution details, just sees results" — don't store LLM intermediate dialogue, only 1-line result summary.
     public func recordSubAgentRun(_ run: SubAgentRun, sessionId: String) throws {
         let sql = "INSERT OR REPLACE INTO sub_agent_runs (id, session_id, agent_name, title, status, started_at, completed_at, result_summary) VALUES (?, ?, ?, ?, ?, ?, ?, ?);"
         var stmt: OpaquePointer?
@@ -527,8 +525,8 @@ public actor ChatSessionStore {
         }
     }
 
-    /// loadSubAgentRuns: 按 started_at ASC 加载 1 session 的全部 sub-agent run.
-    /// Used by future "trace replay" view (boss 8/23 拍: 看板任务清单, 任务状态就够).
+    /// loadSubAgentRuns: load all sub-agent runs of 1 session by started_at ASC.
+    /// Used by future "trace replay" view (boss 8/23 said: kanban task list, task status is enough).
     public func loadSubAgentRuns(sessionId: String) throws -> [SubAgentRun] {
         let sql = "SELECT id, agent_name, title, status, started_at, completed_at, result_summary FROM sub_agent_runs WHERE session_id = ? ORDER BY started_at ASC;"
         var stmt: OpaquePointer?
@@ -593,7 +591,7 @@ public enum SubAgentRunStatus: String, Codable, Sendable, CaseIterable {
     case failed
 }
 
-/// StoredChatMessage: DB 层的 chat message 真值 (= ChatMessage 简化, 不带 ChatRole 因为 source 字段已含 role 真值). 范式跟 TodoItem 一致 (id + content + 时间).
+/// StoredChatMessage: DB layer's chat message truth (= ChatMessage simplified, no ChatRole because source field already contains role truth). Pattern matches TodoItem (id + content + timestamp).
 public struct StoredChatMessage: Equatable, Sendable {
     public let id: String
     public let source: String  // user / wenshu / system

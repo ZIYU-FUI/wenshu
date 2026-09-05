@@ -1,23 +1,23 @@
-// App.swift · Wenshu · v0.09.0 6-zone layout shell (老板 8/18 组件化真值, 1920×984 PT)
-// 数据源: Sketch AF7B1C87 / page 文枢 / Artboard 首页
-// 组件化真值: mcp__sketch__run_code (2026-08-18) = 6 SymbolMaster + 13 SymbolInstance
-// 单元: 1 PT = 1 PX (macOS 27 1x), 1:1 落, 不缩放.
+// App.swift · Wenshu · v0.09.0 6-zone layout shell (boss 8/18 component-based truth, 1920×984 PT)
+// Data source: Sketch AF7B1C87 / page Wenshu / Artboard Home
+// Component-based truth: mcp__sketch__run_code (2026-08-18) = 6 SymbolMaster + 13 SymbolInstance
+// Unit: 1 PT = 1 PX (macOS 27 1x), 1:1 mapping, no scaling.
 //
-// 6 master (老板 8/18 组件化规划):
-//   1. 标题栏                (1920×39)
-//   2. 区域顶部工具栏        (758×30)   ← zone 顶栏复用
-//   3. 区域底部工具栏        (200×30)   ← zone 底栏复用
-//   4. 区域模块              (200×472)  ← zone 主容器复用
-//   5. 拖拽线-竖             (1×472)
-//   6. 拖拽线-横             (1920×1)
+// 6 masters (boss 8/18 component planning):
+//   1. Title bar               (1920×39)
+//   2. Zone top toolbar        (758×30)   ← zone top-bar reuse
+//   3. Zone bottom toolbar     (200×30)   ← zone bottom-bar reuse
+//   4. Zone module             (200×472)  ← zone main container reuse
+//   5. Drag line - vertical    (1×472)
+//   6. Drag line - horizontal  (1920×1)
 //
-// 13 instance 全部 1:1 落 SwiftUI, 详见 LayoutTokens.
+// 13 instances all 1:1 mapped to SwiftUI, see LayoutTokens.
 
 import SwiftUI
 import AppKit
 import Lucide
 
-// MARK: - v0.25.1 (= ticket 019 icon button Apple HIG hit area) — Apple官方推荐方法
+// MARK: - v0.25.1 (= ticket 019 icon button Apple HIG hit area) — Apple recommended approach
 /// Per Apple SwiftUI docs (developer.apple.com/documentation/swiftui/buttonstyle
 /// + developer.apple.com/documentation/swiftui/primitivebuttonstyle/plain),
 /// the canonical way to extend a plain-style button's hit area (= Apple
@@ -31,8 +31,8 @@ import Lucide
 /// `Color.clear.frame(28,28).contentShape(Rectangle())` inside the label
 /// closure (= Apple HIG canonical hot-area pattern).
 
-// 老板 8/18 拍 "重置界面布局" 通知桥 (LayoutShellView 用 @State 私有 vm,
-// 顶层 .commands 拿不到 vm 实例, 走 NotificationCenter 转发)
+// Boss 8/18 said "reset layout" notification bridge (LayoutShellView uses @State private vm,
+// top-level .commands can't access vm instance, routed via NotificationCenter)
 
 // v0.24 fix (Boss 8/25 60th OOB '对应功能要在菜单栏实现'): notification
 // name for menu bar zone toggle buttons (= CommandGroup can't directly
@@ -46,15 +46,14 @@ import Lucide
 // the migration window so the 17 existing call sites compile unchanged.
 extension Notification.Name {}  // placeholder; all members moved to AppNotifications.swift
 
-// MARK: - Layout tokens (比例算子 0~1, 老板 8/18 答 "1:1 PT 真值" + 8/18 再拍 "换算成比例")
+// MARK: - Layout tokens (ratio operators 0~1, boss 8/18 answered "1:1 PT truth" + 8/18 said "convert to ratios")
 //
-// 数据源: Sketch AF7B1C87 / Artboard 首页 1920×984 PT 1:1 落
-// 公式: layoutPT(token) = totalW * ratio (e.g. projectSidebar ratio = 200/1920 = 0.1042)
-// Apple HIG responsive: GeometryReader 拿窗口实际尺寸 × 比例 = 任何窗口大小 1:1 自适应
+// Data source: Sketch AF7B1C87 / Artboard Home 1920×984 PT 1:1 mapping
+// Formula: layoutPT(token) = totalW * ratio (e.g. projectSidebar ratio = 200/1920 = 0.1042)
+// Apple HIG responsive: GeometryReader reads actual window size × ratio = 1:1 self-adaptive at any window size
 
-/// Apple Semantic Color — 全 dark mode 适配, 0 RGB 硬编码
-// v0.32 boss 2026-09-02 OOB ('全走 apple api 默认; 不要自写颜色
-// wrapper'): removed the `DesignColor` enum entirely. The 5 static
+/// Apple Semantic Color — fully dark-mode adapted, zero RGB hardcoded
+// v0.32 boss 2026-09-02 OOB ('go all apple api default; don't write your own color wrapper'): removed the `DesignColor` enum entirely. The 5 static
 // lets (= titleBar / zoneSurface / dynamicZoneSurface / accentBlue /
 // splitterLine) were each just a thin wrapper over a bare
 // `Color(nsColor: .NSColorStaticProperty)` Apple API call. The
@@ -66,26 +65,26 @@ extension Notification.Name {}  // placeholder; all members moved to AppNotifica
 // project-local color wrapper enum.
 
 enum LayoutTokens {
-    // 设计基准 (Apple macOS 27 1x 下 1 PT = 1 PX)
-    static let designW: CGFloat = 1600  // v0.15 ticket 024 修: 老板 2026-08-19 拍默认启动大小 1600×980 PT (老板实测真机桌面 大小)
+    // Design baseline (Apple macOS 27 1x = 1 PT = 1 PX)
+    static let designW: CGFloat = 1600  // v0.15 ticket 024 fix: boss 2026-08-19 said default startup size 1600×980 PT (boss measured on real machine desktop)
     static let designH: CGFloat = 980
 
-    // 比例算子 (0~1, 基准 1920×984)
-    // 老板 2026-08-19 拍: 标题栏走 macOS .windowStyle(.titleBar) 52 PT unified chrome, 不再自写
-    // v0.15 ticket 001: 删 LayoutTokens.titleBarHeight / titleRatio 死代码 (Apple window chrome 自带)
-    static let bandRatio: CGFloat = 465.0 / 984.0        // = 0.4726 (老板 8/18 改 465 PT, 总 52+465+2+465 = 984)
-    // v0.15 ticket 008 修: toolbar 高度 = 老板 Sketch 真值 30 PT 硬编码, 1:1 实现不做 PT→PX 换算 (老板 2026-08-19 拍)
-    // 之前 toolbarRatio = 30/465 = 0.0645 算法 base = 465 写死, 但实际 bandH 由 932 算出来 → toolbarH = 932*0.4726*0.0645 ≈ 28 PT (跟老板 30 PT 不符, 视觉上不够)
-    static let toolbarHeight: CGFloat = 30  // 老板 Sketch master 真值: 顶/底栏 30 PT (1:1 实现)
-    // v0.15 重写后改名: editorInset 是单一垂直方向 (左右 flush, spec §3.2 故意两层设计)
-    static let editorVerticalInsetRatio: CGFloat = 4.0 / 984.0  // = 0.0041 (编辑器 4 PT 上下 inset)
-    // v0.15 ticket 005: 删 LayoutTokens.horizontalSplitterRatio dead code
+    // Ratio operators (0~1, baseline 1920×984)
+    // Boss 2026-08-19 said: title bar uses macOS .windowStyle(.titleBar) 52 PT unified chrome, no longer self-written
+    // v0.15 ticket 001: delete dead LayoutTokens.titleBarHeight / titleRatio code (Apple window chrome provides)
+    static let bandRatio: CGFloat = 465.0 / 984.0        // = 0.4726 (boss 8/18 changed to 465 PT, total 52+465+2+465 = 984)
+    // v0.15 ticket 008 fix: toolbar height = boss Sketch truth 30 PT hardcoded, 1:1 implementation without PT→PX conversion (boss 2026-08-19 said)
+    // Previously toolbarRatio = 30/465 = 0.0645 with algorithm base = 465 hardcoded, but actual bandH was 932 so toolbarH = 932*0.4726*0.0645 ≈ 28 PT (didn't match boss's 30 PT, visually insufficient)
+    static let toolbarHeight: CGFloat = 30  // boss Sketch master truth: top/bottom bars 30 PT (1:1 implementation)
+    // v0.15 rewrite renamed: editorInset is single vertical direction (left/right flush, spec §3.2 intentional two-layer design)
+    static let editorVerticalInsetRatio: CGFloat = 4.0 / 984.0  // = 0.0041 (editor 4 PT top/bottom inset)
+    // v0.15 ticket 005: delete dead LayoutTokens.horizontalSplitterRatio code
     // (the drag-to-resize logic is now provided by NSSplitView).
 
-    // 上 band 4 zone 数对公式: (200, 中间 1, 中间 2, 400) = 1920
-    // 老板 8/18 拍 "数对" = 拖拽线 1 PT 视觉线摊给左右 zone (各 0.5 PT)
-    // 中间 1 + 中间 2 = 1920 - 200 - 400 = 1320
-    // 维持原值 558 + 762 (中间 1 + 中间 2 = 1320) = 上 band 4 zone 1920 ✓
+    // Upper band 4 zone count formula: (200, middle 1, middle 2, 400) = 1920
+    // Boss 8/18 said "count formula" = drag line 1 PT visual line distributed to left/right zones (0.5 PT each)
+    // Middle 1 + Middle 2 = 1920 - 200 - 400 = 1320
+    // Preserves original values 558 + 762 (middle 1 + middle 2 = 1320) = upper band 4 zones 1920 ✓
     // v0.24 fix (Boss 8/25 50th OOB '还是差了一两个像素' + 51st OOB '尝试修一下'):
     // hit area 6 -> 4 PT (= the drag-to-resize logic). 3 splitters
     // upper = 12 PT (not 18).
@@ -133,12 +132,12 @@ enum LayoutTokens {
     static let editorInsetRatio: CGFloat = 4.0 / 984.0  // = 0.0041
 
 
-    // 顶栏色块比例 (老板 8/18 Q3 答: 22/82/142 起点 + 38 PT 宽 + 60 PT 等距)
-    static let iconLeadingRatio: CGFloat = 18.0 / 1920.0  // 起点 18 PT (老板 8/18 改 18 PT, 旧 22 PT)
-    static let iconSizeRatio: CGFloat = 18.0 / 1920.0     // 18 PT 边长 (老板 2026-08-26 '改成 18') — was 12 in v0.24 ticket 015.027 (= boss 8/24 '改成 12×12' = mid-step before '改成 18'). Now 18 PT for top-toolbar tab / archive icons.
-    // v0.24 boss验收fix (Boss 8/24): tab icon 12×12 PT (= interim; 老板 8/24 '改成 12×12' after 18×18 too big).
-    // v0.25.1 (= ticket 006 chat-zone icon size): 老板 2026-08-26 OOB '顶栏的 ICON 尺寸 现在有点过于小了 改成 18' = 12 → 18 PT.
-    // Scope = 顶栏 icon class only (= applies to DesignTokens.tabIconSize, used
+    // Top bar color block ratios (boss 8/18 Q3 answer: 22/82/142 origin + 38 PT width + 60 PT spacing)
+    static let iconLeadingRatio: CGFloat = 18.0 / 1920.0  // origin 18 PT (boss 8/18 changed to 18 PT, previously 22 PT)
+    static let iconSizeRatio: CGFloat = 18.0 / 1920.0     // 18 PT side length (boss 2026-08-26 'change to 18') — was 12 in v0.24 ticket 015.027 (= boss 8/24 'change to 12×12' = mid-step before 'change to 18'). Now 18 PT for top-toolbar tab / archive icons.
+    // v0.24 boss acceptance fix (Boss 8/24): tab icon 12×12 PT (= interim; boss 8/24 'change to 12×12' after 18×18 too big).
+    // v0.25.1 (= ticket 006 chat-zone icon size): boss 2026-08-26 OOB 'the top-bar icon size is a bit too small now, change to 18' = 12 → 18 PT.
+    // Scope = top-bar icon class only (= applies to DesignTokens.tabIconSize, used
     // by ChatZoneTabBar tab + archive + DynamicZoneView tab + ZoneContentView
     // item, ALL top-toolbar tab icons). Bottom toolbar status bar (= text not
     // icons) unchanged. Toolbar height hard-capped at 30 PT (= per Boss 8/18
@@ -149,8 +148,7 @@ enum LayoutTokens {
     static let iconSize: CGFloat = 18
     // v0.25.1 (= ticket 007 chat-zone tab hot area): owner 2026-08-26 OOB
     // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-    // '热区有点问题 现在好像是 ICON 本身是热区 需要你让 ICON 18×18 的区域
-    // 是热区 不然很难点的到' = inflate click target from icon visual size
+    // 'the hit area has an issue, it seems like the ICON itself is the hit area, you need to make the ICON's 18×18 area be the hit area, otherwise it's hard to click' = inflate click target from icon visual size
     // (= 18 PT) to a fixed hot area that maps to the boss 8/11 fix3
     // 'four chat tab height set to 28 PT' (= 28 PT). Hot area applied to
     // BOTH chat tabs (.chat + the right archive-flow icon) for consistency.
@@ -159,7 +157,7 @@ enum LayoutTokens {
     // (= 18 PT, ticket 006) so visual size unchanged from previous commit.
     static let chatTabHotArea: CGFloat = 28
     // v0.25.1 (= ticket 008 chat-zone tab hit reliability): owner 2026-08-26
-    // OOB '还是有点问题 响应不是每次都能响应' = prior ticket 007 fix
+    // OOB 'still has an issue, response is not always triggered' = prior ticket 007 fix
     // (= .frame(28,28) + contentShape) was flaky on plain-style Button. Per
     // Apple HIG + SwiftUI Forums canon: reliable hit extension on plain
     // buttons = inline `.padding(.all, hitPad)` inside the label (= the
@@ -169,21 +167,21 @@ enum LayoutTokens {
     // for clarity: hitPad is the lever, hitArea is the resulting size).
     static let chatTabHitPad: CGFloat = 5
     // v0.25.1 (= ticket 015 unified icon button hot area): owner 2026-08-26
-    // OOB '所有的 ICON 的热区都要像归档 ICON 一样处理' = the '归档'
+    // OOB 'all ICON hit areas should be handled the same as the archive ICON' = the 'archive'
     // ICON (= chat zone top-right .inbox button, ticket 007 + 008 pattern)
     // is the canonical hit-area reference for ALL icon buttons in the
     // project. Apply same hot-area treatment (= 28×28 PT inflated hot
     // area via inline .padding(.all, LayoutTokens.iconButtonHotPad); .frame
     // stays 18 PT visual size; .contentShape(Rectangle()); .background
     // (.clear) for SwiftUI hit-tester reliability) to:
-    //  - upper main toolbar (8 global buttons: 新建/打开/导入 + 4 zone
-    //    toggle + 导出)
+    //  - upper main toolbar (8 global buttons: New/Open/Import + 4 zone
+    //    toggle + Export)
     //  - chat zone send button (.paperplane.fill)
     //  - the 11 tab buttons across 3 tab bar classes (= already applied
     //    in ticket 011, kept unchanged).
     static let iconButtonHotPad: CGFloat = 5
     // v0.25.1 (= ticket 010 tab selected-state underline): owner 2026-
-    // 08-26 OOB '现在的 tab 的选定状态 ICON 下没有那个选定的小横线' =
+    // 08-26 OOB 'the current tab's selected state, there's no small underline under the ICON' =
     // Apple HIG canonical selected-tab underline (= ~2 PT height accent
     // bar at bottom of selected tab, full button width). All 3 tab bar
     // classes (DynamicZoneView / ZoneContentView / ChatZoneTabBar) use
@@ -191,7 +189,7 @@ enum LayoutTokens {
     // Color.accentColor (= Apple system accent, matches selected-tab
     // icon color so the visual cue is consistent).
     // v0.25.1 (= ticket 025 underline height = 1 PT per owner spec):
-    // owner 2026-08-26 OOB 'ICON 下划线全部改成 1PT' = bump down
+    // owner 2026-08-26 OOB 'change all ICON underlines to 1PT' = bump down
     // from 3 PT (= ticket 024) to 1 PT (= owner final spec, = a
     // minimal visual hint rather than a heavy accent bar). Apple
     // HIG acceptable range for tab-bar selected indicator =
@@ -200,16 +198,16 @@ enum LayoutTokens {
     // .apple.com/design/human-interface-guidelines/components/
     // navigation/sidebars).
     static let tabUnderlineHeight: CGFloat = 1
-    static let iconSpacingRatio: CGFloat = 18.0 / 1920.0  // 18 PT 等距 (老板 8/18 改 18 PT = icon 间距, 起点 18/54/90 相邻 36 - 18 = 18)
+    static let iconSpacingRatio: CGFloat = 18.0 / 1920.0  // 18 PT spacing (boss 8/18 changed to 18 PT = icon spacing, origins 18/54/90, adjacent 36 - 18 = 18)
 
-    // Bottom Bar Bit Elements (Boss 8/18 decision "icon 18 x 18, in the body size of an apple character style) - Absolute PT does not go
-    static let bottomLeading: CGFloat = 18                 // 18 PT 距左 (左占位文字)
-    static let bottomTrailing: CGFloat = 18                // 18 PT 距右 (右占位 icon)
-    static let placeholderIconSize: CGFloat = 18          // 18 PT 占位 icon 边长 (绝对值)
-    static let placeholderTextLeadingRatio: CGFloat = 0.09  // 占位文字起点 18/200 = 9%
+    // Bottom Bar Bit Elements (Boss 8/18 decision "icon 18 x 18, in the body size of an apple character style) - Absolute PT does not go through the ratio system
+    static let bottomLeading: CGFloat = 18                 // 18 PT from left (left placeholder text)
+    static let bottomTrailing: CGFloat = 18                // 18 PT from right (right placeholder icon)
+    static let placeholderIconSize: CGFloat = 18          // 18 PT placeholder icon side length (absolute)
+    static let placeholderTextLeadingRatio: CGFloat = 0.09  // placeholder text origin 18/200 = 9%
 
-    // v0.28 followup Boss UX round 33 (Boss 2026-08-29 OOB '各区域的
-    // 完整代码, 关于样式的, 不统一, 你要不盘一下'): single source
+    // v0.28 followup Boss UX round 33 (Boss 2026-08-29 OOB 'the per-region
+    // complete code, regarding styles, inconsistent — why don't you audit them'): single source
     // of truth for chrome padding (= replaces magic numbers 4, 6, 8
     // scattered across 15 files). Centralized here so future padding
     // changes apply uniformly across the app (= one place to edit,
@@ -250,7 +248,7 @@ enum LayoutTokens {
     static let tabUnderlineHeightNew: CGFloat = 1  // legacy alias for tabUnderlineHeight
 }
 
-// MARK: - Self screenshot (老板 8/14 12:38 + 8/15 14:48: 每次代码改完必 screenshot)
+// MARK: - Self screenshot (boss 8/14 12:38 + 8/15 14:48: must screenshot after every code change)
 
 enum SelfScreenshot {
     @MainActor

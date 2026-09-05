@@ -1,4 +1,4 @@
-// LibraryMigrator.swift · Wenshu (文枢) · v0.26 (FCP library replica)
+// LibraryMigrator.swift · Wenshu · v0.26 (FCP library replica)
 //
 // One-time v0.x → v0.26 .ws layout migration. Detects v0.x .ws (= has
 // books/ at .ws root, OR no WSSchemaVersion key in Info.plist) and
@@ -191,23 +191,21 @@ struct LibraryMigrator: Sendable {
     }
 
     /// Seed the default help-doc book + doc under '从这里开始' shelf.
-    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-    /// Boss 8/27 OOB: '把这个默认结构落地，写在默认书架里，默认书，
-    /// 然后默认的文档'. Idempotent: only seeds if the default book id
+    ///
+    /// Boss 8/27 OOB: 'land this default structure inside the default
+    /// shelf, the default book, and the default doc'. Idempotent: only seeds if the default book id
     /// (= '11111111-...-111111111111') is absent (= preserved even if
     /// the user has created other books in the same shelf; preserves
     /// user-created content).
     ///
-    /// v0.29 boss 2026-08-30 OOB '用从这里开始教我们的帮助文档, 也当
-    /// 测试用的文件': expanded the seed from 1 help-doc (= in
+    /// v0.29 boss 2026-08-30 OOB 'use the Start Here help docs as
+    /// test files too': expanded the seed from 1 help-doc (= in
     /// chapters/) to 5 .md files across 5 user-facing folders:
-    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-    /// - 世界观: 文枢介绍 + 用户说明
-    /// - 角色: 6 Agent 定位
-    /// - 大纲: 空 (= boss didn't request content)
-    // [CJK-TRANSLATE] 2 line(s) awaiting manual translation (see git blame for original CJK text)
-    /// - 小说正文: 功能模块说明
-    /// - 小说草稿: 规划未实装的功能说明
+    /// - world/: Wenshu introduction + user guide
+    /// - characters/: 6 Agent positioning
+    /// - outlines/: empty (= boss didn't request content)
+    /// - chapters/: feature module overview
+    /// - drafts/: planned-but-not-yet-shipped features
     private func seedDefaultHelpDoc(in shelfDir: URL, fm: FileManager = .default) throws {
         let booksDir = shelfDir.appendingPathComponent("books", isDirectory: true)
         // Skip if the default help-doc book id (= '11111111-...-111111111111')
@@ -258,7 +256,7 @@ struct LibraryMigrator: Sendable {
         // Each .md uses a stable filename so re-seeding doesn't
         // duplicate (= idempotent by filename).
         // =================================================================
-        // 1. 世界观/world.md — 文枢是什么 + 用户说明
+        // 1. worldview/world.md — What is Wenshu + user guide
         let worldBody = """
         # 文枢是什么
 
@@ -301,7 +299,7 @@ struct LibraryMigrator: Sendable {
             atomically: true, encoding: .utf8
         )
 
-        // 2. 角色/characters.md — 6 个 Agent 定位
+        // 2. characters/characters.md — 6 Agent positioning
         let charactersBody = """
         # 文枢的六个 Agent
 
@@ -367,9 +365,9 @@ struct LibraryMigrator: Sendable {
             atomically: true, encoding: .utf8
         )
 
-        // 3. 大纲/outlines.md — 空 (= boss didn't request content)
-        // Boss 8/30 OOB: '大纲空'. We create the .md file with a minimal
-        // anchor (= "用大纲管理你的章节结构") so the folder isn't
+        // 3. outlines/outlines.md — empty (= boss didn't request content)
+        // Boss 8/30 OOB: 'outline empty'. We create the .md file with a minimal
+        // anchor (= "use the outline to manage your chapter structure") so the folder isn't
         // completely empty in the editor preview.
         let outlinesBody = """
         # 大纲
@@ -402,7 +400,7 @@ struct LibraryMigrator: Sendable {
             atomically: true, encoding: .utf8
         )
 
-        // 4. 小说正文/chapters/第一章-说明.md — 功能模块说明
+        // 4. chapters/第一章-说明.md — feature module overview
         let chapterBody = """
         # 文枢的功能模块说明
 
@@ -479,7 +477,7 @@ struct LibraryMigrator: Sendable {
             atomically: true, encoding: .utf8
         )
 
-        // 5. 小说草稿/drafts/规划未实装.md — 规划中的功能
+        // 5. drafts/规划未实装.md — planned features
         let draftsBody = """
         # 规划中, 未实装
 
@@ -519,9 +517,9 @@ struct LibraryMigrator: Sendable {
         )
 
         // =================================================================
-        // 保留原本的 chapters.json (= NewLibraryOutlineView surfaces
+        // Preserve original chapters.json (= NewLibraryOutlineView surfaces
         // book folders including chapters/ in the sidebar tree). Default
-        // chapter = 功能模块说明 (= was 从这里开始). Updated to point to
+        // chapter = feature module overview (= was Start Here). Updated to point to
         // the new help-doc.
         // =================================================================
         let chapter = Document(
@@ -538,8 +536,8 @@ struct LibraryMigrator: Sendable {
     /// v0.29 boss 2026-08-30 OOB: upgrade the existing default help-doc
     /// book (= if user already has the v0.26 default book with only
     /// 1 old help-doc.md) by adding the 4 missing .md files
-    /// (= 世界观 / 角色 / 大纲 / 草稿 + the existing 小说正文's
-    /// 功能模块说明 = new chapters/章节-说明.md).
+    /// (= world / characters / outlines / drafts + the existing chapters's
+    /// feature module overview = new chapters/章节-说明.md = first-chapter explanation).
     ///
     /// Idempotent: only adds files that are missing (= preserves
     /// user-edited content of existing .md files).
@@ -566,7 +564,7 @@ struct LibraryMigrator: Sendable {
         guard fm.fileExists(atPath: bookDir.path) else { return }
 
         // 3. Delete the old single help-doc (= chapters/{uuid}.md)
-        // = replaced by chapters/功能模块说明.md (= cleaner filename
+        // = replaced by chapters/feature-module-overview.md (= cleaner filename
         // = no UUIDs in the editor list).
         let oldHelpDoc = bookDir.appendingPathComponent("chapters")
             .appendingPathComponent("\(defaultBookId.uuidString).md")
@@ -578,7 +576,7 @@ struct LibraryMigrator: Sendable {
         // Idempotent per file: skip if file already exists (= preserves
         // any user edits to the help-doc).
 
-        // 4.1 世界观/world.md
+        // 4.1 worldview/world.md
         let worldFile = bookDir.appendingPathComponent("world")
             .appendingPathComponent("文枢是什么.md")
         if !fm.fileExists(atPath: worldFile.path) {
@@ -622,10 +620,9 @@ struct LibraryMigrator: Sendable {
             try? worldBody.write(to: worldFile, atomically: true, encoding: .utf8)
         }
 
-        // 4.2 角色/characters.md
-        // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-        // v0.30 boss OOB: '角色一个文件拆成六个吧, 正常以后也是一个
-        // 角色一个文档'. The single 六个Agent.md is replaced by
+        // 4.2 characters/characters.md
+        // v0.30 boss OOB: 'split the characters file into six, one per Agent
+        // going forward'. The single 六个Agent.md (the 6-Agent.md file) is replaced by
         // 6 per-agent files (= one per agent). If user already has
         // the split files (= from running Scripts/split-help-docs.py
         // or from a future seed), we skip. If only the merged file
@@ -638,7 +635,7 @@ struct LibraryMigrator: Sendable {
             try? fm.removeItem(at: charactersFile)
         }
 
-        // 4.3 大纲/outlines.md (= minimal anchor; boss said '大纲空')
+        // 4.3 outlines/outlines.md (= minimal anchor; boss said 'outline empty')
         let outlinesFile = bookDir.appendingPathComponent("outlines")
             .appendingPathComponent("大纲用法.md")
         if !fm.fileExists(atPath: outlinesFile.path) {
@@ -671,10 +668,10 @@ struct LibraryMigrator: Sendable {
             try? outlinesBody.write(to: outlinesFile, atomically: true, encoding: .utf8)
         }
 
-        // 4.4 小说正文/chapters/功能模块说明.md
-        // v0.30 boss OOB: '功能模块也是, 一个功能模块拆成一个文档'.
-        // The single 功能模块说明.md is replaced by 9 per-module
-        // files (= 01-项目管理区-Sidebar.md through 09-交互约定-KeyboardShortcuts.md).
+        // 4.4 chapters/chapters/feature-module-overview.md
+        // v0.30 boss OOB: 'the feature modules too, split one feature module per doc'.
+        // The single feature-module-overview.md is replaced by 9 per-module
+        // files (= 01-项目管理区-Sidebar.md (sidebar) through 09-交互约定-KeyboardShortcuts.md (keyboard shortcuts)).
         // Same approach as 4.2: delete the merged file if it exists
         // (= the split script should be run to migrate content).
         let chapterFile = bookDir.appendingPathComponent("chapters")
@@ -683,7 +680,7 @@ struct LibraryMigrator: Sendable {
             try? fm.removeItem(at: chapterFile)
         }
 
-        // 4.5 小说草稿/drafts/规划未实装.md
+        // 4.5 drafts/规划未实装.md (planned-but-not-shipped features)
         let draftsFile = bookDir.appendingPathComponent("drafts")
             .appendingPathComponent("规划未实装的功能.md")
         if !fm.fileExists(atPath: draftsFile.path) {
@@ -726,10 +723,10 @@ struct LibraryMigrator: Sendable {
         // 5. Update chapters.json (= add new chapters to the index if missing).
         // The seed function's chapter entry (= "从这里开始") is the only
         // entry in chapters.json. We don't add new entries for the
-        // .md files in 世界观/角色/大纲/草稿 (= those folders are
+        // .md files in worldview/characters/outline/drafts (= those folders are
         // sidebar-tree-level, not chapters per BookCategory enum).
         // (= so chapters.json stays simple = 1 entry pointing to
-        // "功能模块说明" = the new 5th file under chapters/.)
+        // "feature module overview" = the new 5th file under chapters/.)
         //
         // NOTE: We don't modify the existing chapter title here (= it
         // was already set to "从这里开始" by the original seed). The
