@@ -1,0 +1,40 @@
+Sources/WenshuApp/Core/LinkGraph/LinkIndex.swift:17:/// - source_doc_id: 当前文档 ID (= WenshuLibrary Book.id)
+Sources/WenshuApp/State/WenshuLibrary.swift:1:// WenshuLibrary.swift · Wenshu (Wenshu) · v0.02.0 (bookshelf module)
+Sources/WenshuApp/State/WenshuLibrary.swift:11://   - WenshuLibrary depends ONLY on the LibraryStoring protocol, never on
+Sources/WenshuApp/State/WenshuLibrary.swift:16://     LibraryStoring first, not WenshuLibrary.
+Sources/WenshuApp/State/WenshuLibrary.swift:30:final class WenshuLibrary {
+Sources/WenshuApp/Storage/LibraryStoring.swift:147:    /// match). Required by WenshuLibrary.renameBook.
+Sources/WenshuApp/App.swift:333:    @State private var library = WenshuLibrary(
+Sources/WenshuApp/App.swift:1103:        let library: WenshuLibrary
+Sources/WenshuApp/App.swift:1436:/// BookStore via @Environment). Replaces v0.25.x WenshuLibrary-backed
+Sources/WenshuApp/Views/Library/BookshelfEditorSheet.swift:9:// mutation (= addShelf / renameShelf from WenshuLibrary). No direct
+Sources/WenshuApp/Views/Library/NewLibraryOutlineView.swift:410:            // WenshuLibrary init), but onChange(of: bookStore.selected
+Sources/WenshuApp/Views/Library/NewLibraryOutlineView.swift:1220:        // that surfaced book lookup in WenshuLibrary.
+Sources/WenshuApp/Domain/Book.swift:121:    // WenshuLibrary).
+Sources/WenshuApp/Domain/Document.swift:167:    // @Observable change detection / WenshuLibrary selection all
+Sources/WenshuApp/Domain/World.swift:139:    // @Observable change detection / WenshuLibrary selection all
+Sources/WenshuApp/Domain/Bookshelf.swift:73:    // identification in WenshuLibrary).
+Tests/WenshuAppTests/State/WenshuLibraryBookTests.swift:1:// WenshuLibraryBookTests.swift · Wenshu (Wenshu) · v0.02.1 (book module)
+Tests/WenshuAppTests/State/WenshuLibraryBookTests.swift:4:// 东西'. WenshuLibrary grows by 4 book operations and 2 selection
+Tests/WenshuAppTests/State/WenshuLibraryBookTests.swift:11:@Suite("WenshuLibrary book ops")
+Tests/WenshuAppTests/State/WenshuLibraryBookTests.swift:12:struct WenshuLibraryBookTests {
+Tests/WenshuAppTests/State/WenshuLibraryBookTests.swift:65:        let lib = await WenshuLibrary(store: store)
+Tests/WenshuAppTests/State/WenshuLibraryBookTests.swift:79:        let lib = await WenshuLibrary(store: store)
+Tests/WenshuAppTests/State/WenshuLibraryBookTests.swift:89:        let lib = await WenshuLibrary(store: store)
+Tests/WenshuAppTests/State/WenshuLibraryBookTests.swift:103:        let lib = await WenshuLibrary(store: store)
+Tests/WenshuAppTests/State/WenshuLibraryBookTests.swift:116:        let lib = await WenshuLibrary(store: store)
+Tests/WenshuAppTests/State/WenshuLibraryBookTests.swift:123:        let lib = await WenshuLibrary(store: store)
+Tests/WenshuAppTests/State/WenshuLibraryBookTests.swift:136:        let lib = await WenshuLibrary(store: InMemoryStore())
+Tests/WenshuAppTests/State/WenshuLibraryTests.swift:1:// WenshuLibraryTests.swift · Wenshu (Wenshu) · v0.02.0
+Tests/WenshuAppTests/State/WenshuLibraryTests.swift:4:// These tests lock WenshuLibrary's public behavior so the view layer
+Tests/WenshuAppTests/State/WenshuLibraryTests.swift:11:@Suite("WenshuLibrary")
+Tests/WenshuAppTests/State/WenshuLibraryTests.swift:12:struct WenshuLibraryTests {
+Tests/WenshuAppTests/State/WenshuLibraryTests.swift:73:        let lib = await WenshuLibrary(store: store)
+Tests/WenshuAppTests/State/WenshuLibraryTests.swift:81:        let lib = await WenshuLibrary(store: store)
+Tests/WenshuAppTests/State/WenshuLibraryTests.swift:93:        let lib = await WenshuLibrary(store: store)
+Tests/WenshuAppTests/State/WenshuLibraryTests.swift:107:        let lib = await WenshuLibrary(store: store)
+Tests/WenshuAppTests/State/WenshuLibraryTests.swift:121:        let lib = await WenshuLibrary(store: store)
+Tests/WenshuAppTests/State/WenshuLibraryTests.swift:132:        let lib = await WenshuLibrary(store: store)
+Tests/WenshuAppTests/State/WenshuLibraryTests.swift:139:        let lib = await WenshuLibrary(store: InMemoryStore())
+Tests/WenshuAppTests/State/WenshuLibraryTests.swift:155:        let lib = await WenshuLibrary(store: store)
+Tests/WenshuAppTests/State/WenshuLibraryTests.swift:164:        let lib = await WenshuLibrary(store: InMemoryStore())

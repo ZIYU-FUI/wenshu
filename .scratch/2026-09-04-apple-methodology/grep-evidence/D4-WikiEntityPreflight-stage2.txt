@@ -1,0 +1,6 @@
+Sources/WenshuApp/Domain/EntityIngestion.swift:32:        // v0.34 Issue 04: run preflight (= WikiEntityPreflight)
+Sources/WenshuApp/Domain/EntityIngestion.swift:38:        let issues = WikiEntityPreflight.validate(
+Sources/WenshuApp/Domain/EntityIngestion.swift:43:        if WikiEntityPreflight.hasErrors(issues) {
+Sources/WenshuApp/Domain/WikiEntityPreflight.swift:1:// WikiEntityPreflight.swift · Wenshu (文枢) · v0.34
+Sources/WenshuApp/Domain/WikiEntityPreflight.swift:7:// `WikiEntityPreflight.validate(...)` runs BEFORE `saveReference` is
+Sources/WenshuApp/Domain/WikiEntityPreflight.swift:60:struct WikiEntityPreflight: Sendable {
