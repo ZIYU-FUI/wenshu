@@ -37,6 +37,130 @@ Wenshu v0.37 ship packet followup (= 30+ commits):
 ### Manifest drift fix (= today's editorial cleanup)
 - `.scratch/2026-09-03-hermes-core-translation/hermes-port-manifest.md` updated: chat_completion_helpers moved from ❌ missing → ✅ direct port after TICKET-HERMES-GAP-002 landed; tally 6/17 → 7/18 fully done; 8 ❌ missing → 7 ❌ missing; 26/43 incomplete → 25/43 incomplete (= commit `21aa6f67f`)
 
+## v0.37.2 (2026-09-04 to 2026-09-05)
+
+Wenshu v0.37 ship packet continuation (= +132 commits, +42,177/-437 LOC across 233 Swift files):
+
+### Hermes internal subsystem ports (= HERMES-INTERNAL-001..009 = 9 tickets)
+- HERMES-INTERNAL-001 (web_search): WebSearch actor + protocol + 5-provider rotation + research convenience (= `f92f7481e`)
+- HERMES-INTERNAL-002 (coding_context): CodingContext thin adapter over PromptCaching (= `56a1f808e`)
+- HERMES-INTERNAL-003 (reason_scrub): ReasonScrubber thin specialization over MessageSanitization (= `60f39bf60`)
+- HERMES-INTERNAL-004 (ssl_guard): SSLGuard with strict / allowSelfSigned / bypass modes (= `a9c642364`)
+- HERMES-INTERNAL-005 (curator_backup): CuratorBackup thin adapter over Curator (= `c0405156b`)
+- HERMES-INTERNAL-006 (iteration_budget): IterationBudget extending TurnRetryState (= `c359d645b`)
+- HERMES-INTERNAL-007 (manual_compression_feedback): ManualCompressionFeedback thin adapter (= `457916e45`)
+- HERMES-INTERNAL-008 (title_generator): TitleGenerator with heuristic + LLM modes (= `d50dc772d`)
+- HERMES-INTERNAL-009 (redact): Redactor with configurable rules (= `3d1ca7d1f`)
+
+### Hermes dispatch subsystem ports (= HERMES-DISPATCH-001..004 = 4 tickets)
+- HERMES-DISPATCH-001 (auth_pool): AuthPool multi-key pool + status state machine + persistence + 6 tests (= `c770ecab4`)
+- HERMES-DISPATCH-002 (fallback_chain): FallbackChain ordered provider executor + per-provider timeout + 5 tests (= `623861fb3`)
+- HERMES-DISPATCH-003 (keychain_selector): KeychainSelector priority + status state machine + 6 tests (= `ede30ff43`)
+- HERMES-DISPATCH-004 (auto_rotation): AutoRotatingConnector policy + rotation on 429/503/auth + 5 tests (= `af56bec8d`)
+- HERMES-DISPATCH followup: rename LLMRequest→DispatchRequest (= ShellHookChain.swift collision) + budget-before-pickKey order (= `1ce68c0ea`)
+
+### Hermes hook subsystem (= HOOK-SYSTEM-001..002 = 2 tickets)
+- HOOK-SYSTEM-001: hermes plugin event bus (= `6a0283562`)
+- HOOK-SYSTEM-002: hermes skill implicit keyword detection (= `0fe80dd8d`)
+
+### Chat box wiring (= CHATBOX-001..003 = 3 tickets)
+- CHATBOX-001: ChatView ↔ SkillAdapter.parseSlashCommand (= `/skill_name` triggers skill before LLM; `3e261906c`)
+- CHATBOX-002: ⌘K command palette (= searchable registry of all commands/skills/navigation actions; `8335b0dea`)
+- CHATBOX-003: @-mention subagent trigger (= @writer, @editor, @researcher etc. spawns AsyncDelegation; `483afd218`)
+
+### Specialized tools ports + wire-up (= 24 tickets)
+Ports (= `Sources/WenshuApp/Core/Tools/Specialized/`; each = 5-6 tests):
+- PORT-LONGFORM-001: long_form_guardrails.py (= 8 tests; `95d2170f9`)
+- PORT-SPECIALIZED-002: reader_experience.py (= `c0c8c933d`)
+- PORT-SPECIALIZED-003: plot_thread.py (= 6 tests; `70f30082c`)
+- PORT-SPECIALIZED-004: genre_fit.py (= `dad53a966`)
+- PORT-SPECIALIZED-005: editor_tools.py (= `4962c1d77`)
+- PORT-SPECIALIZED-006: emotion_curve.py (= `b5ea34654`)
+- PORT-SPECIALIZED-007: character_relationships.py (= 6 tests; `e76c8dbd1`)
+- PORT-SPECIALIZED-008: character_lifecycle.py (= `dc0dc67e2`)
+- PORT-SPECIALIZED-009: tag_manager.py (= `b70ef24b5`)
+- PORT-SPECIALIZED-010: idea_library.py (= `435d88192`)
+- PORT-SPECIALIZED-011: book_setting_constraints.py (= `98ff9d17e`)
+- PORT-SPECIALIZED-012: foreshadowing_tracker.py (= `798b2b3b3`)
+- PORT-SPECIALIZED-013: placeholder_scanner.py (= `1e9778071`)
+- PORT-LIBRARIAN-001: book_manager.py (= create / rename / delete / list / show; 5 tests; `651239781`)
+- PORT-TOOLREGISTRY-001: hermes tools/registry.py 1:1 (= ToolRegistry actor + ToolEntry struct + override protection + 8 tests; `a1afdfa7a`)
+
+Wire-up (= per-tab specialized pane wiring; `Sources/WenshuApp/Views/SpecializedTools/`):
+- WIRE-SPECIALIZEDTOOLS-001: LongFormGuardrailsView (3rd tab; `304b11eb5`)
+- WIRE-SPECIALIZEDTOOLS-002: ReaderExperienceView (4th tab; `6e7f189f9`)
+- WIRE-SPECIALIZEDTOOLS-003: PlotThreadView (5th tab; `ae6a2033f`)
+- WIRE-SPECIALIZEDTOOLS-004: GenreFitView (6th tab; `9c9530ca1`)
+- WIRE-SPECIALIZEDTOOLS-005: EmotionCurveView (7th tab; `3fd0d65d8`)
+- WIRE-SPECIALIZEDTOOLS-006: CharacterRelationshipsView (8th tab; `09cbda96d`)
+- WIRE-SPECIALIZEDTOOLS-007: CharacterLifecycleView (9th tab; `e7507eff8`)
+- WIRE-SPECIALIZEDTOOLS-008: TagManagerView (10th tab; `f153bb89d`)
+- WIRE-SPECIALIZEDTOOLS-009: IdeaLibraryView (11th tab; `aea12c0f7`)
+- WIRE-SPECIALIZEDTOOLS-010: BookSettingConstraintsView (12th tab = FINAL; `0391e2795`)
+- WIRE-SPECIALIZEDTOOLS-011: ForeshadowingTracker backend into existing ForeshadowingView (= `6b0bed787`)
+- WIRE-SPECIALIZEDTOOLS-012: PlaceholderScanner backend into existing PlaceholderView (= `0f186c7d1`)
+- WIRE-LIBRARIAN-001: BookManagerTool into ChatView + LibraryRootView (= LLM can create books via chat; `f3addefad`)
+- WIRE-PARAGRAPH-001: replace ParagraphAITool stub with EditorTransformTools dispatch (= LLM gets real prompts; `63d335b20`)
+- WIRE-PARAGRAPH-002: paragraph_ai 3 buttons + keyboard shortcuts (⌘⇧E / ⌘⇧H / ⌘⇧R) into EditorView toolbar (= `b405cab56`)
+
+### v0.40 ToolRegistry (= hermes tools/registry.py 1:1 per boss OOB '1:1 复刻'; 6 commits)
+- Decision spec: 4 candidate refactors + recommendation = Option C ToolRegistry (= `e32022cf5`)
+- 1:1 port spec: reference hermes tools/registry.py (= `f4ccaedd2`)
+- PORT-TOOLREGISTRY-001: ToolRegistry actor + ToolEntry struct + override protection + 8 tests (= `a1afdfa7a`)
+- MIGRATE-TOOLREGISTRY-002: all 12 existing tools migrated to ToolRegistry.shared.register(...) (= `5c4d7afd9`)
+- WIRE-TOOLREGISTRY-003: WenshuConductor.tools reads from ToolRegistry.shared (= single source of truth; `3df14566a`)
+- VERIFY-TOOLREGISTRY-004: e2e exercises 12 tools through ToolRegistry.shared (= `a5e215c8c`)
+
+### v0.40 Liquid Glass polish (= macOS 27 Tahoe; 6 commits)
+- POLISH-LIQUIDGLASS-001: `.glassEffect(.regular)` to TopBar chrome (= `950e46423`)
+- POLISH-LIQUIDGLASS-002: `.glassEffect(.regular)` to Sidebar (= `74b22f73a`)
+- POLISH-LIQUIDGLASS-003: `.glassEffect(.regular)` to Editor chrome + StatusBar chrome (= `be2bfc62d`)
+- POLISH-LIQUIDGLASS-004: `.glassEffect(.regular)` to all modal sheets + alert dialogs (= `dfd97d0e7`)
+- POLISH-LIQUIDGLASS-005: `.glassEffect(.regular)` to menu popovers + dropdown panels + context menus (= `fe68fe2ee`)
+- POLISH-LIQUIDGLASS-006: e2e test asserts all 5 polish surfaces use canonical Apple `.glassEffect` API + no third-party clone (= `fbf3bbe9d`)
+
+### Agent wire-up + integration (= 13 commits)
+- WIRE-AGENT-006: AgentProgressTracker + ConversationLoop step hooks (= per-turn progress; `c04b00e21`)
+- WIRE-OPENBOX-001: Agent progress panel in OpenBox when active (= user sees step-by-step feedback; `110ec4805`)
+- WIRE-OPENBOX-002: TodoListView subscribes to TodoStore + surfaces LLM todo events as a banner (= `30fb9f951`)
+- WIRE-TODO-001: TodoStore subscribe/unsubscribe + AsyncStream notification (= `413e767f4`)
+- Wire HermesTodoTool → TodoStore via TodoStoreTool thin adapter (= LLM writes Todo items; `e39facaee`)
+- Wire KanbanTools → KanbanStore via KanbanStoreTool thin adapter (= LLM writes Kanban tickets; `4ffd5be89`)
+- Wire HermesGoals long-running goal button (⌘⇧G) into ChatView (= Ralph loop accessible; `82828c0a7`)
+- ToolExecutor + ParagraphAITool stub registered in WenshuConductor (= `a7bb85455`)
+- WenshuConductor.handle() → ConversationLoop.runTurn() (= full agent loop path; `1ecccb30d`)
+- VERIFY-INTEGRATION-001: e2e smoke test exercising all 22 shipped wire-up tickets (= `b23ec2358`)
+- HermesTodoStore concurrency tests + 5 deadlock regression tests (= `ca2ca6e00`)
+- HermesTodoStore NSLock → DispatchQueue sync (= deadlock fix; `4b8b13786`)
+- Build-app.sh copy ALL SPM-generated resource bundles (= unblock wenshu.app launch; `e98bc6d42`)
+
+### Integration plan + safety scripts (= 3 commits)
+- Integration plan (= wayfinder map for 18 wire-up tickets across 6 capability areas; `93bc74db9`)
+- Integration gap analysis (= ported modules vs 6 capability areas; `8098c1b27`)
+- Secondary insurance for 4 subagent failure modes (= 4 scripts + 3 spec docs; `1725a56ec`)
+- Merge fix/four-failures-2026-09-04 (= 4 safety scripts + 3 spec docs for subagent failure insurance; `ad9ddfb89`)
+
+### Backlog residue B-07 + B-10
+- B-07 015.019: status bar book count reflects actual library size (= `fcbb0ad99`)
+- B-07 015.015: per-book project files (= autosave cadence + default chapter template + kanban/todo toggles; `e847df272`)
+- B-10 phase B prep: gated AppleKeychainStore activation via B10_PHASE_B_ENABLED build flag (= ready when Apple Dev Program lands; `3f05694e2`)
+
+### Build status
+- `swift build` = BUILD COMPLETE
+- `swift build --target WenshuAppTests` = BUILD COMPLETE
+- All 12 specialized-tools tabs wired and tested (= 5 tests per port × 13 ports = 65+ tests)
+- ToolRegistry e2e = 12 tools verified through ToolRegistry.shared
+
+### Test count delta (= v0.37.1 → v0.37.2)
+- New specialized tools tests: ~65 (5 tests × 13 ports)
+- New hermes internal tests: ~50 (HERMES-INTERNAL-001..009 + HERMES-DISPATCH-001..004)
+- New ToolRegistry tests: 8 (PORT-TOOLREGISTRY-001) + e2e (VERIFY-TOOLREGISTRY-004)
+- New integration tests: ~10 (VERIFY-INTEGRATION-001 + concurrency + deadlock regression)
+- New liquid glass e2e: 1 (POLISH-LIQUIDGLASS-006)
+- New chatbox tests: ⌘K palette + @-mention + /skill parsing
+
+Total: +130+ tests. Cumulative v0.37 + v0.37.1 + v0.37.2: 305+ tests.
+
 ## v0.37 — 2026-09-03 — v0.36 deferred + 7-connector e2e + visual verify packet
 
 This version completes all v0.36 deferred items and adds the
