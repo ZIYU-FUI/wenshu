@@ -2280,7 +2280,7 @@ private struct ParagraphAIToolbarButtons: View {
                     .contentShape(Rectangle())
             }
             .menuStyle(.borderlessButton)
-            .help("More transforms: shift tone, simplify, dramatize")
+            .help(WenshuI18n.t("workspace.transforms.moreHelp"))
             .disabled(selectedText.isEmpty || isApplying)
         }
     }
@@ -2301,7 +2301,7 @@ private struct EditModeBadge: View {
                 Circle()
                     .fill(Color.accentColor)
                     .frame(width: 8, height: 8)
-                Text("Layout edit mode")
+                Text(WenshuI18n.t("workspace.layoutEditMode"))
                     .font(.caption.weight(.medium))
                 Text(HotkeyFormatter.editModeCombo)
                     .font(.caption)

@@ -1060,7 +1060,7 @@ public struct ChatView: View {
                 .controlSize(.regular)
                 .frame(height: LayoutTokens.chromeControlHeight)
                 .disabled(vm.inputText.isEmpty)
-                .help("Start long-running goal (Ralph loop: agent keeps working until the auxiliary judge says done)")
+                .help(WenshuI18n.t("chat.ralphLoop.goalHelp"))
                 .keyboardShortcut("g", modifiers: [.command, .shift])
                 // v0.28 followup Boss UX round 20 (Boss 2026-08-29 OOB
                 // 'text field and send button horizontally aligned'): REMOVED the

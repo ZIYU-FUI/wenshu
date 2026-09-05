@@ -133,3 +133,16 @@
 "paragraph.expand"  = "Expand";
 "paragraph.shorten"  = "Shorten";
 "paragraph.rephrase" = "Rephrase";
+
+// MARK: - IRON-RULES-RULE-2-FOLLOWUP (= INV-AUTOPI-2). 3 remaining
+//       inline English literals moved to catalog: 1 Text() in
+//       EditModeBadge (WorkspaceView.swift:2304) + 1 .help() on the
+//       transforms overflow menu (WorkspaceView.swift:2283) +
+//       1 .help() on the Ralph loop goal button (ChatView.swift:1063).
+//       Named files in the task (RegionTabBar, NewLibraryOutlineView,
+//       ChatView, BacklinksPanel, RegionContentBackground, PaneTabBar)
+//       had no other inline English Text() / .help() / .accessibilityLabel()
+//       literals = audit returned 3 candidates, all moved here.
+"workspace.layoutEditMode"             = "Layout edit mode";
+"workspace.transforms.moreHelp"         = "More transforms: shift tone, simplify, dramatize";
+"chat.ralphLoop.goalHelp"               = "Start long-running goal (Ralph loop: agent keeps working until the auxiliary judge says done)";
