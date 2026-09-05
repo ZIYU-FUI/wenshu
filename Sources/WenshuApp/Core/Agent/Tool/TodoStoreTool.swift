@@ -49,6 +49,37 @@ import Foundation
 
 public struct TodoStoreTool: Tool, Sendable {
 
+    /// Shared singleton for ToolRegistry bootstrap (= lazy in-memory
+    /// HermesTodoTool + a fresh fallback TodoStore on first access).
+    /// Used by the MIGRATE-TOOLREGISTRY-002 module-load registration
+    /// (= `TodoStoreTool._registryBootstrap`); production wiring
+    /// still constructs dedicated instances via the existing
+    /// `init(hermesTodo:todoStore:)` initializer (= e.g. ChatView
+    /// pre-populates the conductor with a per-library instance).
+    ///
+    /// `nonisolated(unsafe)` is required because the initializer
+    /// stores actor-isolated types (`TodoStore`, `HermesTodoTool`)
+    /// from a `static let` (= nonisolated context); the closure
+    /// runs synchronously at first access (= before any actor
+    /// isolation becomes relevant) so the unsafe escape hatch is
+    /// safe here. TodoStore() with no path uses the default App
+    /// Support location (= /tmp fallback if unavailable).
+    public nonisolated(unsafe) static let shared = TodoStoreTool(
+        hermesTodo: HermesTodoTool(store: HermesTodoStore()),
+        todoStore: Self.makeFallback()
+    )
+
+    /// Tiny fallback TodoStore (= /tmp-backed SQLite) for the
+    /// `shared` bootstrap instance. Production wiring uses a
+    /// dedicated per-library store via `init(hermesTodo:todoStore:)`.
+    ///
+    /// `nonisolated(unsafe)` because constructing an actor
+    /// (= TodoStore) from a nonisolated static-let context trips
+    /// Swift 6's strict-concurrency check.
+    nonisolated(unsafe) private static func makeFallback() -> TodoStore {
+        return try! TodoStore(path: "/tmp/wenshu-toolregistry-todo-fallback-\(UUID().uuidString).sqlite")
+    }
+
     /// Tool name (matches HermesTodoSchema.name = "todo"; ToolExecutor
     /// routes one tool_use block to one Tool by name).
     public let name = "todo"
@@ -325,3 +356,74 @@ public struct TodoStoreTool: Tool, Sendable {
         return String(data: data, encoding: .utf8) ?? "{\"ok\":false,\"error\":\"internal: non-utf8 envelope\"}"
     }
 }
+
+// MARK: - ToolRegistry bootstrap (MIGRATE-TOOLREGISTRY-002)
+
+extension TodoStoreTool {
+    /// Module-load registration with `ToolRegistry.shared` (= hermes
+    /// `tools/registry.py` `register()` 1:1). Fires once at first
+    /// type access; the underlying `Task` schedules the async
+    /// `register(...)` call off the init thread.
+    ///
+    /// Idempotency: the registry's `register` method silently replaces
+    /// a same-toolset re-registration. Cross-toolset shadowing is
+    /// blocked unless `override=true` (= matches hermes
+    /// `tools/registry.py` override-protection semantics).
+    public static let _registryBootstrap: Void = {
+        Task {
+            await ToolRegistry.shared.register(
+                name: "todo",
+                toolset: "agent",
+                schema: ToolRegistrySchema(
+                    name: "todo",
+                    description: """
+                    Manage the Todo items for the current session. Actions: \
+                    create / list / update / complete / remove. Each action mirrors \
+                    the canonical TodoStore (= SQLite, user-facing) and the hermes \
+                    internal planning list. Use list to read; create to add; \
+                    complete to mark done; remove to delete.
+                    """,
+                    inputSchema: [
+                        "action": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "The todo operation to perform.",
+                            enumValues: ["create", "list", "update", "complete", "remove"]
+                        ),
+                        "id": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "Todo identifier (= required for update / complete / remove)."
+                        ),
+                        "content": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "Todo title / body (= required for create / update)."
+                        ),
+                        "priority": ToolRegistrySchemaProperty(
+                            type: "integer",
+                            description: "Priority tier (= 0 = low, 1 = medium, 2 = high; optional)."
+                        ),
+                        "status": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "Status filter for list (= pending / running / completed / cancelled). Optional.",
+                            enumValues: ["pending", "running", "completed", "cancelled"]
+                        )
+                    ],
+                    required: []
+                ),
+                handler: TodoStoreTool.shared,
+                description: """
+                Manage the Todo items for the current session. Actions: \
+                create / list / update / complete / remove.
+                """,
+                emoji: "📝"
+            )
+        }
+    }()
+}
+
+// NOTE: Swift 6 forbids top-level expressions, so the static let
+// `_registryBootstrap` initializer runs lazily on first type access
+// (= Swift equivalent of Python module-load statement = hermes
+// `registry.register(...)` at import time). Production code paths
+// that touch this type (= e.g. ChatView constructing
+// `ParagraphAITool.shared`, WenshuConductor constructing `ReadFileTool()`)
+// automatically trigger the bootstrap.

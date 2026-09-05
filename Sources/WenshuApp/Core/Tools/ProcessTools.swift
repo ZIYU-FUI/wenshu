@@ -39,8 +39,23 @@ public enum ProcessToolError: Error, LocalizedError {
 }
 
 /// ProcessTools: 本地 process ops
-public struct ProcessTools: Sendable {
+public struct ProcessTools: Tool, Sendable {
     public init() {}
+
+    /// Tool-protocol adapter (= MIGRATE-TOOLREGISTRY-002): shell
+    /// execution via the existing ProcessTools surface. Mirrors
+    /// `WenshuConductor.invokeTool(name: "process", ...)` which
+    /// is deny-all (= chat-triggered shell blocked per boss 8/23
+    /// rule: 用户不可通过聊天改系统).
+    public func execute(input: String) async throws -> String {
+        // Deny-all for chat-triggered shell (= matches the legacy
+        // `WenshuConductor.invokeTool("process")` behavior). Read-only
+        // commands flow through the dedicated `runReadOnlyShell` path
+        // (= separately registered as `process_readonly` if needed
+        // in a future ticket; for now it stays off the registry).
+        _ = input
+        throw ProcessToolError.chatShellDenied(command: "process tool blocked from chat")
+    }
 
     /// runShell: v0.23 ticket 008.002: blocked from chat path by default (boss 8/23 拍).
     /// Use wenshu-devtool CLI for legitimate shell access.
@@ -139,4 +154,42 @@ public struct ProcessTools: Sendable {
     public func isRunning(processID: Int32) -> Bool {
         kill(processID, 0) == 0
     }
+}
+
+// MARK: - ToolRegistry bootstrap (MIGRATE-TOOLREGISTRY-002)
+
+extension ProcessTools {
+    /// Module-load registration with `ToolRegistry.shared` (= hermes
+    /// `tools/registry.py` `register()` 1:1). Fires once at first
+    /// type access; the underlying `Task` schedules the async
+    /// `register(...)` call off the init thread.
+    ///
+    /// Registered as a stub schema because chat-triggered shell is
+    /// deny-all per boss 8/23 (= the `execute(input:)` adapter always
+    /// throws `ProcessToolError.chatShellDenied`). The schema is here
+    /// so the LLM knows the tool name exists and that it is
+    /// permanently blocked from chat; use wenshu-devtool CLI for
+    /// legitimate shell access.
+    public static let _registryBootstrap: Void = {
+        Task {
+            await ToolRegistry.shared.register(
+                name: "process",
+                toolset: "data",
+                schema: ToolRegistrySchema(
+                    name: "process",
+                    description: "Local shell process execution (= deny-all from chat per boss 8/23 rule: 用户不可通过聊天改系统. Use wenshu-devtool CLI for legitimate shell access.).",
+                    inputSchema: [
+                        "command": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "Shell command to execute. Will always be rejected (= use wenshu-devtool CLI instead)."
+                        )
+                    ],
+                    required: ["command"]
+                ),
+                handler: ProcessTools(),
+                description: "Local shell process execution (= deny-all from chat).",
+                emoji: "⛔"
+            )
+        }
+    }()
 }

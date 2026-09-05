@@ -26,8 +26,28 @@ public struct WebFetchResult: Equatable, Sendable {
 }
 
 /// WebTools: 本地 web 工具 (URLSession 真值)
-public struct WebTools: Sendable {
+public struct WebTools: Tool, Sendable {
     public init() {}
+
+    /// Tool-protocol adapter (= MIGRATE-TOOLREGISTRY-002): parse the
+    /// JSON input envelope and dispatch to `extract(url:)`. Mirrors
+    /// `WenshuConductor.invokeTool(name: "web", ...)` which uses the
+    /// input string verbatim as the URL.
+    public func execute(input: String) async throws -> String {
+        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return "" }
+        // If the input looks like a URL, extract markdown directly.
+        if trimmed.hasPrefix("http://") || trimmed.hasPrefix("https://") {
+            return (try? await extract(url: trimmed)) ?? ""
+        }
+        // Otherwise parse JSON envelope (= {"url": "..."}).
+        if let data = trimmed.data(using: .utf8),
+           let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let url = parsed["url"] as? String {
+            return (try? await extract(url: url)) ?? ""
+        }
+        return ""
+    }
 
     /// fetch: 拿 URL 真值内容 (简化版: 不 JS render, 跟 hermes web_extract / web_search 真值 1:1)
     public func fetch(url: String, timeoutSeconds: TimeInterval = 30) async throws -> WebFetchResult {
@@ -77,4 +97,39 @@ public struct WebTools: Sendable {
 
 public enum WebToolsError: Error {
     case invalidURL(url: String)
+}
+
+// MARK: - ToolRegistry bootstrap (MIGRATE-TOOLREGISTRY-002)
+
+extension WebTools {
+    /// Module-load registration with `ToolRegistry.shared` (= hermes
+    /// `tools/registry.py` `register()` 1:1). Fires once at first
+    /// type access; the underlying `Task` schedules the async
+    /// `register(...)` call off the init thread.
+    public static let _registryBootstrap: Void = {
+        Task {
+            await ToolRegistry.shared.register(
+                name: "web",
+                toolset: "research",
+                schema: ToolRegistrySchema(
+                    name: "web",
+                    description: "Fetch a URL and extract its markdown content (= simplified HTML → markdown conversion, no JS rendering).",
+                    inputSchema: [
+                        "url": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "HTTP or HTTPS URL to fetch."
+                        ),
+                        "timeoutSeconds": ToolRegistrySchemaProperty(
+                            type: "number",
+                            description: "Optional request timeout in seconds (= default 30)."
+                        )
+                    ],
+                    required: ["url"]
+                ),
+                handler: WebTools(),
+                description: "Fetch a URL and extract markdown content.",
+                emoji: "🌐"
+            )
+        }
+    }()
 }

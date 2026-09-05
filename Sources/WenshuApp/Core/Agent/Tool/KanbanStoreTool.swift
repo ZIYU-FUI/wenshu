@@ -67,6 +67,25 @@ import Foundation
 
 public struct KanbanStoreTool: Tool, Sendable {
 
+    /// Shared singleton for ToolRegistry bootstrap (= lazy in-memory
+    /// KanbanTools wrapping a fresh fallback KanbanStore on first
+    /// access). Used by the MIGRATE-TOOLREGISTRY-002 module-load
+    /// registration (= `KanbanStoreTool._registryBootstrap`);
+    /// production wiring still constructs dedicated instances via
+    /// the existing `init(kanbanTools:)` initializer (= e.g.
+    /// ChatView pre-populates the conductor with a per-library
+    /// instance).
+    ///
+    /// `nonisolated(unsafe)` is required because the initializer
+    /// constructs actor-isolated types (`KanbanStore`, `KanbanTools`)
+    /// from a `static let` (= nonisolated context); the closure
+    /// runs synchronously at first access (= before any actor
+    /// isolation becomes relevant) so the unsafe escape hatch is
+    /// safe here. `KanbanTools(store: nil)` is used so the actor
+    /// self-bootstraps its own /tmp-backed store lazily on first
+    /// use, avoiding the actor-init-in-staticlet trap.
+    public nonisolated(unsafe) static let shared: KanbanStoreTool = KanbanStoreTool(kanbanTools: KanbanTools())
+
     /// Tool name. ToolExecutor routes one tool_use block to one Tool
     /// by name (= matches the convention other wenshu tools use:
     /// "ParagraphAI", "todo", "ReadFile", "WriteFile"; for kanban
@@ -257,3 +276,90 @@ public struct KanbanStoreTool: Tool, Sendable {
         return String(data: data, encoding: .utf8) ?? "{\"ok\":false,\"error\":\"internal: non-utf8 envelope\"}"
     }
 }
+
+// MARK: - ToolRegistry bootstrap (MIGRATE-TOOLREGISTRY-002)
+
+extension KanbanStoreTool {
+    /// Module-load registration with `ToolRegistry.shared` (= hermes
+    /// `tools/registry.py` `register()` 1:1). Fires once at first
+    /// type access; the underlying `Task` schedules the async
+    /// `register(...)` call off the init thread.
+    ///
+    /// Idempotent: same-toolset re-registration silently replaces;
+    /// cross-toolset shadowing is blocked unless `override=true`.
+    public static let _registryBootstrap: Void = {
+        Task {
+            await ToolRegistry.shared.register(
+                name: "kanban",
+                toolset: "agent",
+                schema: ToolRegistrySchema(
+                    name: "kanban",
+                    description: """
+                    Manage Kanban tickets in the current book. Actions: create / \
+                    list / show / complete / block / unblock / transition. Each \
+                    action mirrors the canonical wenshu-side KanbanStore (= SQLite, \
+                    user-facing in the OpenBox zone). Use list to read; create to \
+                    add; show to fetch one; complete to mark done; block / unblock \
+                    to toggle blocked status; transition to move between explicit \
+                    states (new / triage / ready / running / blocked / review / done \
+                    / failed).
+                    """,
+                    inputSchema: [
+                        "action": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "The kanban operation to perform.",
+                            enumValues: ["create", "list", "show", "complete", "block", "unblock", "transition"]
+                        ),
+                        "task_id": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "Task identifier (= required for show / complete / block / unblock / transition)."
+                        ),
+                        "title": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "Title for create."
+                        ),
+                        "body": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "Optional body / description for create."
+                        ),
+                        "priority": ToolRegistrySchemaProperty(
+                            type: "integer",
+                            description: "Priority (= higher = more urgent). Optional."
+                        ),
+                        "status": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "Status filter for list (= new / triage / ready / running / blocked / review / done / failed)."
+                        ),
+                        "new_status": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "Target status for transition."
+                        ),
+                        "reason": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "Reason text for block (= surfaced in tool output)."
+                        ),
+                        "limit": ToolRegistrySchemaProperty(
+                            type: "integer",
+                            description: "Maximum number of tasks to return for list."
+                        )
+                    ],
+                    required: []
+                ),
+                handler: KanbanStoreTool.shared,
+                description: """
+                Manage Kanban tickets in the current book. Actions: create / \
+                list / show / complete / block / unblock / transition.
+                """,
+                emoji: "📋"
+            )
+        }
+    }()
+}
+
+// NOTE: Swift 6 forbids top-level expressions, so the static let
+// `_registryBootstrap` initializer runs lazily on first type access
+// (= Swift equivalent of Python module-load statement = hermes
+// `registry.register(...)` at import time). Production code paths
+// that touch this type (= e.g. ChatView constructing
+// `ParagraphAITool.shared`, WenshuConductor constructing `ReadFileTool()`)
+// automatically trigger the bootstrap.

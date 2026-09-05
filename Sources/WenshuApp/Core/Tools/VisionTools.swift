@@ -44,8 +44,44 @@ public struct VisionClassification: Equatable, Sendable {
 }
 
 /// VisionTools: 本地 vision 工具 (Vision framework 真值)
-public struct VisionTools: Sendable {
+public struct VisionTools: Tool, Sendable {
     public init() {}
+
+    /// Tool-protocol adapter (= MIGRATE-TOOLREGISTRY-002): parse the
+    /// JSON input envelope and dispatch to the existing methods
+    /// (= recognizeText / classify). Mirrors the
+    /// `WenshuConductor.invokeTool(name: "vision", ...)` switch
+    /// semantics.
+    public func execute(input: String) async throws -> String {
+        // Empty / whitespace input = treat as default text recognition.
+        // (= matches the legacy `WenshuConductor.invokeTool("vision")`
+        // behavior of using the input string verbatim as the image path.)
+        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return "" }
+        // If the input looks like a file path (= absolute or relative
+        // path that exists), treat as text recognition (= default op).
+        if trimmed.hasPrefix("/") || trimmed.hasPrefix("~") || trimmed.hasPrefix(".") {
+            let results = (try? await recognizeText(imagePath: trimmed)) ?? []
+            return results.map(\.text).joined(separator: "\n")
+        }
+        // Otherwise parse JSON envelope (= {"op": "...", "image_path": "..."}).
+        if let data = trimmed.data(using: .utf8),
+           let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            let op = (parsed["op"] as? String) ?? "recognize_text"
+            let imagePath = (parsed["image_path"] as? String) ?? trimmed
+            switch op {
+            case "recognize_text":
+                let results = (try? await recognizeText(imagePath: imagePath)) ?? []
+                return results.map(\.text).joined(separator: "\n")
+            case "classify":
+                let results = (try? await classify(imagePath: imagePath)) ?? []
+                return results.map { "\($0.identifier):\($0.confidence)" }.joined(separator: "\n")
+            default:
+                return ""
+            }
+        }
+        return ""
+    }
 
     /// recognizeText: 图像文字识别真值 (VNRecognizeTextRequest)
     public func recognizeText(imagePath: String) async throws -> [VisionTextResult] {
@@ -120,4 +156,40 @@ public struct VisionTools: Sendable {
 public enum VisionToolsError: Error {
     case imageLoadFailed(path: String)
     case platformNotSupported
+}
+
+// MARK: - ToolRegistry bootstrap (MIGRATE-TOOLREGISTRY-002)
+
+extension VisionTools {
+    /// Module-load registration with `ToolRegistry.shared` (= hermes
+    /// `tools/registry.py` `register()` 1:1). Fires once at first
+    /// type access; the underlying `Task` schedules the async
+    /// `register(...)` call off the init thread.
+    public static let _registryBootstrap: Void = {
+        Task {
+            await ToolRegistry.shared.register(
+                name: "vision",
+                toolset: "data",
+                schema: ToolRegistrySchema(
+                    name: "vision",
+                    description: "Local Vision framework operations: text recognition (= VNRecognizeTextRequest) and image classification (= VNClassifyImageRequest).",
+                    inputSchema: [
+                        "op": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "Vision operation to perform.",
+                            enumValues: ["recognize_text", "classify"]
+                        ),
+                        "image_path": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "Absolute or relative path to the image file."
+                        )
+                    ],
+                    required: ["op", "image_path"]
+                ),
+                handler: VisionTools(),
+                description: "Local Vision framework operations: text recognition + image classification.",
+                emoji: "👁"
+            )
+        }
+    }()
 }

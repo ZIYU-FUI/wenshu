@@ -50,8 +50,44 @@ public enum FileToolError: Error, LocalizedError {
 }
 
 /// FileTools: 本地 file ops 工具
-public struct FileTools: Sendable {
+public struct FileTools: Tool, Sendable {
     public init() {}
+
+    /// Tool-protocol adapter (= MIGRATE-TOOLREGISTRY-002): parse the
+    /// JSON input envelope and dispatch to the existing methods
+    /// (= read / list / search / write / patch). Mirrors the
+    /// `WenshuConductor.invokeTool(name: "file", ...)` switch
+    /// semantics; the legacy path remains for backward compat.
+    public func execute(input: String) async throws -> String {
+        // Empty / whitespace input = blank parse; mirror the
+        // `WenshuConductor.invokeTool` convention of treating
+        // blank input as a no-op (returns "" so the LLM sees a
+        // deterministic empty result, not a thrown exception).
+        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return "" }
+        // Detect leading `op:arg` envelope (= read:./path,
+        // list:./dir, search:./dir) -- matches the WenshuConductor
+        // `op:arg` convention used in h10-tools-frontend.md.
+        if let colonIdx = trimmed.firstIndex(of: ":"),
+           trimmed[trimmed.startIndex..<colonIdx].allSatisfy({ $0.isLetter || $0 == "_" }) {
+            let op = String(trimmed[trimmed.startIndex..<colonIdx])
+            let arg = String(trimmed[trimmed.index(after: colonIdx)...])
+            switch op {
+            case "read":
+                return (try? read(path: arg)) ?? ""
+            case "list":
+                return ((try? list(path: arg)) ?? []).map { $0.path }.joined(separator: "\n")
+            case "search":
+                return ((try? search(rootDir: arg, pattern: "")) ?? []).joined(separator: "\n")
+            default:
+                break  // fall through to JSON parse
+            }
+        }
+        // Otherwise parse JSON envelope (= {"path": "..."}).
+        let dict = try ToolInputParser.parseDictionary(input: input)
+        let path = try ToolInputParser.requireString(dict, "path")
+        return (try? read(path: path)) ?? ""
+    }
 
     /// pathDenied: 路径 deny-list check (boss 8/23 拍: 用户不可通过聊天改代码 / 改配置).
     /// Returns true if the path matches project code / config / scratch / system files.
@@ -196,4 +232,55 @@ public struct FileTools: Sendable {
 
 public enum FileToolsError: Error {
     case patchNotFound(path: String, oldText: String)
+}
+
+// MARK: - ToolRegistry bootstrap (MIGRATE-TOOLREGISTRY-002)
+
+extension FileTools {
+    /// Module-load registration with `ToolRegistry.shared` (= hermes
+    /// `tools/registry.py` `register()` 1:1). Fires once at first
+    /// type access; the underlying `Task` schedules the async
+    /// `register(...)` call off the init thread.
+    ///
+    /// The `file` tool here is a thin Tool-protocol adapter over the
+    /// existing FileTools methods (= read / list / search / write /
+    /// patch). `WenshuConductor.invokeTool(name: "file", ...)` still
+    /// uses the same FileTools instance via its private property;
+    /// this registration only adds the schema + handler lookup in
+    /// ToolRegistry.shared.
+    public static let _registryBootstrap: Void = {
+        Task {
+            await ToolRegistry.shared.register(
+                name: "file",
+                toolset: "data",
+                schema: ToolRegistrySchema(
+                    name: "file",
+                    description: "Local filesystem operations: read / list / search (= write / patch deny-listed per boss 8/23 rule: chat cannot modify code or config).",
+                    inputSchema: [
+                        "op": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "Operation to perform.",
+                            enumValues: ["read", "list", "search"]
+                        ),
+                        "path": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "Target path for read (= file path) / list (= directory path)."
+                        ),
+                        "rootDir": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "Root directory for search (= recursive substring search)."
+                        ),
+                        "pattern": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "Substring pattern to search for."
+                        )
+                    ],
+                    required: ["op"]
+                ),
+                handler: FileTools(),
+                description: "Local filesystem operations: read / list / search.",
+                emoji: "📁"
+            )
+        }
+    }()
 }
