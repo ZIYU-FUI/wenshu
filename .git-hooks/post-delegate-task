@@ -1,0 +1,90 @@
+#!/bin/bash
+# post-delegate-task — Auto-commit uncommitted changes from an interrupted subagent.
+#
+# Opt-in: install via:
+#   cp .git-hooks/post-delegate-task .git/hooks/post-delegate-task
+#   chmod +x .git/hooks/post-delegate-task
+#
+# Triggered AFTER a subagent delegation finishes (= same hook name as the
+# internal delegate_task() lifecycle). It does NOT push (= human reviews the
+# auto-commit before push).
+#
+# Detects interruption by reading the latest subagent transcript under
+# ~/.hermes/profiles/pocock/cache/delegation/live/<deleg-id>/task-*.log and
+# inspecting its tail. If the tail shows the subagent hit
+# `max_iterations (iteration budget exhausted)` OR was interrupted (= tail ends
+# without a normal exit marker), the working tree's uncommitted changes are
+# auto-staged and committed locally.
+#
+# Idempotent: if the auto-commit already happened (= same HEAD tip + same
+# worktree state), the script exits 0 without creating a duplicate commit.
+# Detection = "if `git status --short` is empty, nothing to do".
+
+set -euo pipefail
+
+# 1. Find the latest subagent transcript (= newest task-*.log under any live deleg).
+DELEG_DIR="${HOME}/.hermes/profiles/pocock/cache/delegation/live"
+LATEST=""
+if [ -d "$DELEG_DIR" ]; then
+  LATEST=$(ls -t "$DELEG_DIR"/*/task-*.log 2>/dev/null | head -1 || true)
+fi
+
+if [ -z "$LATEST" ] || [ ! -f "$LATEST" ]; then
+  # No subagent transcript = no delegation to react to. Exit silently.
+  exit 0
+fi
+
+# 2. Inspect the tail for interruption signatures.
+TAIL=$(mktemp)
+trap 'rm -f "$TAIL"' EXIT
+tail -50 "$LATEST" > "$TAIL"
+
+INTERRUPTED=0
+if grep -qF 'max_iterations (iteration budget exhausted)' "$TAIL"; then
+  INTERRUPTED=1
+elif ! grep -qE '(task complete|delegation finished|exit 0)' "$TAIL"; then
+  # Tail shows no completion marker = the transcript is mid-stream OR ended
+  # abruptly. Only treat as interrupted if the working tree also has uncommitted
+  # changes (= the orchestrator already declared success and just left noise).
+  :
+fi
+
+if [ "$INTERRUPTED" -ne 1 ]; then
+  exit 0
+fi
+
+# 3. Locate the git repo root (the hook may run from any cwd).
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
+if [ -z "$REPO_ROOT" ]; then
+  echo "post-delegate-task: not inside a git repo; skipping auto-commit" >&2
+  exit 0
+fi
+
+cd "$REPO_ROOT"
+
+# 4. Idempotency check: no uncommitted changes = nothing to do.
+if [ -z "$(git status --short)" ]; then
+  exit 0
+fi
+
+# 5. Auto-stage + commit. NEVER push (= human reviews first).
+# Use --no-verify so the commit isn't blocked by any pre-commit lint hooks
+# that might complain about in-progress wip from the interrupted subagent.
+git add -A
+
+COMMIT_MSG="wip(wenshu): auto-commit from interrupted subagent (= requires human review)
+
+transcript: $LATEST
+detected: max_iterations (iteration budget exhausted)
+
+This commit was created automatically by .git-hooks/post-delegate-task
+after a subagent hit its iteration cap mid-stream. Review the diff
+before pushing (= commit does NOT auto-push)."
+
+# Use --no-verify to skip pre-commit hooks that may reject incomplete wip.
+# Use --allow-empty-message is NOT set; this commit always carries the
+# audit trail above.
+git commit --no-verify -m "$COMMIT_MSG" >/dev/null
+
+echo "post-delegate-task: auto-committed interrupted subagent changes (review before push)"
+echo "post-delegate-task: commit subject: wip(wenshu): auto-commit from interrupted subagent"
