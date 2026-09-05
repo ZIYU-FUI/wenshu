@@ -57,6 +57,37 @@ public actor MemoryManager {
         return .prefetched(memories: prefetched, totalChars: totalChars)
     }
 
+    /// prefetch: pre-turn with explicit candidate limit. Used by the
+    /// ContextEngine wiring (ticket-009 followup) so callers can pin
+    /// the up-to-N ceiling without rebuilding the char budget.
+    /// hermes parity: same signature shape as `prefetch_all(user_message)`
+    /// with a caller-supplied top-K.
+    public func prefetch(userMessage: String, limit: Int) async -> PrefetchResult {
+        guard limit > 0 else { return .empty }
+        guard let memories = try? await store.search(userId: "default", query: userMessage, limit: limit), !memories.isEmpty else {
+            return .empty
+        }
+        var totalChars = 0
+        var prefetched: [Memory] = []
+        for memory in memories {
+            let next = totalChars + memory.content.count
+            if next > maxCharBudget { break }
+            prefetched.append(memory)
+            totalChars = next
+        }
+        return .prefetched(memories: prefetched, totalChars: totalChars)
+    }
+
+    /// fetch: raw top-N memory rows, ignoring char budget. Used by
+    /// ContextEngine wiring where the downstream bundle assembly
+    /// decides its own truncation policy (= ticket-009 baseline).
+    /// Limit defaults to 20 to match the ContextEngine "up to 20
+    /// relevant memory items" surface documented in the ticket spec.
+    public func fetch(limit: Int = 20) async -> [Memory] {
+        guard limit > 0 else { return [] }
+        return (try? await store.search(userId: "default", query: "", limit: limit)) ?? []
+    }
+
     /// sync: post-turn — persist assistant's response (or important info from turn).
     /// hermes equivalent: `sync_all(user_msg, assistant_response)`.
     /// Goes through MemoryWriteGate (ticket 013.001) per hermes _apply_write_gate.
