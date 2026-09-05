@@ -143,6 +143,18 @@ struct BookEditorSheet: View {
         }
         .formStyle(.grouped)
         .frame(minWidth: 420)
+        // POLISH-LIQUIDGLASS-004: New Book / Rename Book modal sheet
+        // root uses Apple .glassEffect(.regular) (= macOS 27 Tahoe
+        // Liquid Glass; same shape as POLISH-LIQUIDGLASS-001/002/003
+        // that glassed TopBar + Sidebar + Editor chrome + StatusBar).
+        // Color.clear provides the glass layer size; the modifier
+        // applies the canonical Apple Liquid Glass material. No
+        // custom border or shadow (= boss 2026-09-02 hard rule
+        // 'every color comes from an Apple API'; .glassEffect already
+        // includes the canonical hairline + depth shadow per Apple
+        // HIG). Applied AFTER .formStyle(.grouped) + .frame so the
+        // glass layer sizes to the sheet's minWidth: 420 outer rect.
+        .background { Color.clear.glassEffect(.regular) }
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("取消") { dismiss() }

@@ -398,6 +398,18 @@ struct LongFormGuardrailsView: View {
         }
         .padding(16)
         .frame(width: 360)
+        // POLISH-LIQUIDGLASS-004: Add-guardrail modal sheet root uses
+        // Apple .glassEffect(.regular) (= macOS 27 Tahoe Liquid Glass;
+        // same shape as POLISH-LIQUIDGLASS-001/002/003 that glassed
+        // TopBar + Sidebar + Editor chrome + StatusBar). Color.clear
+        // provides the glass layer size; the modifier applies the
+        // canonical Apple Liquid Glass material. No custom border or
+        // shadow (= boss 2026-09-02 hard rule 'every color comes from
+        // an Apple API'; .glassEffect already includes the canonical
+        // hairline + depth shadow per Apple HIG). Applied AFTER .frame
+        // so the glass layer sizes to the sheet's width: 360 outer
+        // rect.
+        .background { Color.clear.glassEffect(.regular) }
     }
 
     // MARK: - Async actions
