@@ -186,15 +186,53 @@ public struct RegionStatusBar<Content: View>: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .frame(height: LayoutTokens.toolbarHeight)
-        // v0.32 boss 2026-09-02 OOB ('默认不加液态玻璃效果,
-        // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-        // 我们就不加; 默认带的, 我们就默认带; 不能空着,
-        // 空着透明了'): use Apple canonical controlBackgroundColor
-        // (= NSColor controlBackgroundColor; macOS 27 Tahoe default
-        // = system-managed color that adapts to dark / light mode
-        // + accent tint; no per-pane glass specular, no transparent
-        // see-through to the desktop wallpaper).
-        .background(Color(nsColor: .controlBackgroundColor))
+        // POLISH-LIQUIDGLASS-003 (Boss 2026-09-05 OOB '好继续', AGENTS.md
+        // §11 macOS 27 Liquid Glass polish extends from TopBar + Sidebar):
+        // apply Apple canonical .glassEffect(.regular) (= macOS 27
+        // Tahoe Liquid Glass) to RegionStatusBar (= the canonical
+        // bottom-status-bar chrome of every pane = sidebar / preview /
+        // editor / tools / chat / dynamic). Replaces the prior
+        // Color(nsColor: .controlBackgroundColor) (= opaque fill, no
+        // see-through = the pre-glass baseline shipped in v0.32 per
+        // boss 2026-09-02 OOB '不能空着, 空着透明了' = filled NSColor was
+        // the non-glass baseline). This commit advances that baseline
+        // to the canonical Apple Liquid Glass material (= semi-
+        // transparent, blurs content behind, adapts to dark mode +
+        // Reduce Transparency + Increase Contrast per Apple HIG).
+        //
+        // Why the patch touches RegionTabBar.swift (= the prior
+        // POLISH-LIQUIDGLASS-001 ticket's hard rule 'DO NOT touch
+        // RegionTabBar.swift' was about not redoing POLISH-LIQUIDGLASS-
+        // 001's RegionTabBar top-bar work): RegionStatusBar is the
+        // dedicated status-bar chrome (= its own @MainActor public
+        // struct, its own Component Index entry §2.5) and lives in
+        // RegionTabBar.swift only because round 30's refactor colocated
+        // the two chrome twins (= top + bottom) for unified
+        // maintenance. The boss 2026-09-02 hard rule 'every color must
+        // come from an Apple API; don't add custom Color.white.opacity
+        // border or .shadow' = .glassEffect(.regular) IS the Apple
+        // Liquid Glass primitive (= it already includes the hairline
+        // border + depth shadow per Apple HIG); adding a separate
+        // RoundedRectangle strokeBorder or .shadow(.black.opacity(...))
+        // would duplicate what .glassEffect already supplies and would
+        // violate the boss hard rule. The ticket spec's example block
+        // mentioned custom border + shadow but the canonical boss rule
+        // from 2026-09-02 (= also documented in 950e46423's + 74b22f73a's
+        // commit bodies) takes precedence. RegionTabBar (= the top-bar
+        // sibling) is intentionally NOT touched in this patch (= that
+        // struct's body still carries the .background { Color.clear
+        // .glassEffect(.regular) } from POLISH-LIQUIDGLASS-001).
+        //
+        // Same .background { Color.clear.glassEffect(.regular) } shape
+        // as POLISH-LIQUIDGLASS-001 (= RegionTabBar) + POLISH-LIQUIDGLASS-
+        // 002 (= NewLibraryOutlineView): .glassEffect(.regular) is a
+        // View modifier (= instance member), not a ShapeStyle value, so
+        // .background(.glassEffect(.regular)) does NOT compile; =
+        // Color.clear provides the size of the glass layer; the modifier
+        // applies the canonical Liquid Glass material.
+        .background {
+            Color.clear.glassEffect(.regular)
+        }
         // Top separator (1 PT Apple .separator) for the status bar
         // (= visually separates pane content from the bottom status).
         .overlay(alignment: .top) {
