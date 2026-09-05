@@ -1,28 +1,28 @@
 //
-//  BacklinkResolver.swift · Wenshu · v0.19 ticket 12 (Obsidian replica, 后端先做)
-//  老板 2026-08-19 evening 拍 Obsidian 复刻范围 A + '复刻后端, 前端不接入'.
+//  BacklinkResolver.swift · Wenshu · v0.19 ticket 12 (Obsidian replica, backend first)
+//  Boss 2026-08-19 evening decision Obsidian replica scope A + 'port the backend, no frontend integration'.
 //
-//  异步解析 markdown content + 入库 LinkIndex, 拿双向索引.
-//  接口对齐 Obsidian Backlinks plugin 真值:
-//  - resolve(content, sourceDocId, documentIndex): 解析 + 清空旧链接 + 批量入库
-//  - backlinks(forDocId): 反向查所有 source (Backlinks 面板)
-//  - forwardLinks(forDocId): 正向查所有 target (Outgoing links 面板)
+//  Async parse markdown content + insert into LinkIndex, get bidirectional index.
+//  API aligned with Obsidian Backlinks plugin ground truth:
+//  - resolve(content, sourceDocId, documentIndex): parse + clear old links + batch insert
+//  - backlinks(forDocId): reverse-query all sources (Backlinks panel)
+//  - forwardLinks(forDocId): forward-query all targets (Outgoing links panel)
 //
-//  跟 v0.18 ticket 04 AgentRuntime (actor + Sendable + Task) 同范式.
+//  Same actor + Sendable + Task pattern as v0.18 ticket 04 AgentRuntime.
 //
 
 import Foundation
 
-/// DocumentIndex: 把 doc 名 (filename / 显示名) 映射到 doc_id (UUID)
-/// BacklinkResolver 用它解析 `[[name]]` → target_doc_id
+/// DocumentIndex: map doc name (filename / display name) to doc_id (UUID)
+/// BacklinkResolver uses it to resolve `[[name]]` → target_doc_id
 public protocol DocumentIndexing: Sendable {
-    /// 给 doc 显示名 (例如 "林黛玉"), 拿 doc_id (可空, 因为 [[new name]] 暂未对应到已有文档)
+    /// Given a doc display name (e.g. "Lin Daiyu"), return doc_id (may be empty, because [[new name]] has no existing doc yet)
     func docId(forName name: String) async -> String?
     /// To doc id, get a display name (reverse, render the panel)
     func name(forDocId docId: String) async -> String?
 }
 
-/// BacklinkResolver: 异步协调 Markdown 解析 + LinkIndex 入库
+/// BacklinkResolver: async-coordinates Markdown parse + LinkIndex insert
 public actor BacklinkResolver {
     private let index: LinkIndex
     private let documentIndex: DocumentIndexing
@@ -32,12 +32,12 @@ public actor BacklinkResolver {
         self.documentIndex = documentIndex
     }
 
-    /// 解析 markdown content, 清空 sourceDocId 的旧链接, 批量入库新链接
+    /// Parse markdown content, clear old links for sourceDocId, batch insert new links
     public func resolve(content: String, sourceDocId: String) async throws {
         let parsed = InternalLinkParser.parse(content)
-        // Empty old links (when document rewrite)
+        // Clear old links (when document is rewritten)
         try await index.removeAll(sourceDocId: sourceDocId)
-        // Batch Library
+        // Batch insert
         for link in parsed {
             let targetDocId = await documentIndex.docId(forName: link.target)
             try await index.add(
@@ -52,27 +52,27 @@ public actor BacklinkResolver {
         }
     }
 
-    /// 反向查: 给 docId, 拿所有 backlinks (引用它的 source 链接列表)
+    /// Reverse query: given docId, return all backlinks (source link list referencing it)
     public func backlinks(forDocId docId: String) async throws -> [Link] {
-        // 1) 先用 docId 反查 (target 已解析的链接)
+        // 1) First reverse-search by docId (target already resolved links)
         let resolved = try await index.searchBackward(targetDocId: docId)
-        // 2) 再用 doc 显示名反查 (target 未解析的链接, 比如 [[name]] 对应 doc 已改名)
+        // 2) Then reverse-search by doc display name (target unresolved links, e.g. [[name]] whose doc was renamed)
         let name = await documentIndex.name(forDocId: docId) ?? ""
         if !name.isEmpty {
             let unresolved = try await index.searchBackward(targetRef: name)
-            // 合并去重 (Apple HIG: Set 语义)
+            // Merge + deduplicate (Apple HIG: Set semantics)
             let combined = resolved + unresolved.filter { u in !resolved.contains(where: { $0.sourceDocId == u.sourceDocId && $0.offset == u.offset }) }
             return combined.sorted { $0.createdAt > $1.createdAt }
         }
         return resolved
     }
 
-    /// 反向查: 给显示名 (filename), 拿所有 backlinks
+    /// Reverse query: given display name (filename), return all backlinks
     public func backlinks(forName name: String) async throws -> [Link] {
         try await index.searchBackward(targetRef: name)
     }
 
-    /// 正向查: 给 sourceDocId, 拿它引用的所有 target (Outgoing links)
+    /// Forward query: given sourceDocId, return all targets it references (Outgoing links)
     public func forwardLinks(forDocId docId: String) async throws -> [Link] {
         try await index.searchForward(sourceDocId: docId)
     }

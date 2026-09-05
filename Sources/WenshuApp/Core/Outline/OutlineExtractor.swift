@@ -1,20 +1,20 @@
 //
-//  OutlineExtractor.swift · Wenshu · v0.19 ticket 21 (Obsidian replica, 后端先做)
-//  老板 2026-08-19 evening 拍 Obsidian 复刻范围 A + '复刻后端, 前端不接入核心项目'.
+//  OutlineExtractor.swift · Wenshu · v0.19 ticket 21 (Obsidian replica, backend first)
+//  Boss 2026-08-19 evening decision Obsidian replica scope A + 'port the backend, no frontend integration into core project'.
 //
-//  Markdown heading 解析 (H1-H6). 跟 Obsidian Outline plugin 行为对齐 (https://obsidian.md/help/plugins/outline).
-//  Apple HIG: NSRegularExpression 解析 # / ## / ### / #### / ##### / ###### 行首.
+//  Markdown heading parse (H1-H6). Aligned with Obsidian Outline plugin behavior (https://obsidian.md/help/plugins/outline).
+//  Apple HIG: NSRegularExpression parses # / ## / ### / #### / ##### / ###### at line start.
 //
 
 import Foundation
 
-/// 1 个大纲条目 = 1 个 heading
+/// 1 outline entry = 1 heading
 public struct OutlineItem: Equatable, Sendable, Identifiable {
-    public var id: String       // 行内容 hash (或 line+title 组合)
+    public var id: String       // line content hash (or line+title combination)
     public var level: Int       // 1-6 (H1-H6)
-    public var title: String    // heading 文本 (去掉 # 前缀)
-    public var line: Int        // 0-indexed 行号
-    public var offset: Int      // 在 content 里的字符 offset
+    public var title: String    // heading text (after stripping # prefix)
+    public var line: Int        // 0-indexed line number
+    public var offset: Int      // character offset within the content
 
     public init(id: String, level: Int, title: String, line: Int, offset: Int) {
         self.id = id
@@ -25,10 +25,10 @@ public struct OutlineItem: Equatable, Sendable, Identifiable {
     }
 }
 
-/// OutlineExtractor: 静态工具, 解析 markdown heading (H1-H6)
-/// 跟 Obsidian Outline plugin 真值对齐
+/// OutlineExtractor: static utility that parses markdown headings (H1-H6)
+/// Aligned with Obsidian Outline plugin ground truth
 public enum OutlineExtractor {
-    /// Markdown heading 正则: 行首 1-6 个 # + 空格 + 标题文字
+    /// Markdown heading regex: 1-6 leading # + space + heading text
     /// Apple HIG: NSRegularExpression
     private static let pattern: NSRegularExpression = {
         guard let re = try? NSRegularExpression(pattern: #"^(#{1,6})\s+(.+?)\s*$"#, options: [.anchorsMatchLines]) else {
@@ -37,7 +37,7 @@ public enum OutlineExtractor {
         return re
     }()
 
-    /// 解析 markdown content, 拿所有 heading
+    /// Parse markdown content, extract all headings
     public static func extract(_ content: String) -> [OutlineItem] {
         var items: [OutlineItem] = []
         let nsString = content as NSString
@@ -46,7 +46,7 @@ public enum OutlineExtractor {
 
         for (lineIdx, line) in lines.enumerated() {
             let lineRange = NSRange(location: 0, length: (line as NSString).length)
-            // 用 multiline 模式, ^ 匹配行首
+            // Use multiline mode so ^ matches line start
             guard let match = pattern.firstMatch(in: line, range: lineRange) else { continue }
             guard match.numberOfRanges >= 3 else { continue }
 
@@ -59,7 +59,7 @@ public enum OutlineExtractor {
             let titleRange = match.range(at: 2)
             let title = (line as NSString).substring(with: titleRange)
 
-            // 计算 offset 在 content 里的位置
+            // Compute offset within content
             var offset = 0
             for i in 0..<lineIdx {
                 offset += ((lines[i] as NSString).length + 1)  // +1 for \n
@@ -72,29 +72,29 @@ public enum OutlineExtractor {
         return items
     }
 
-    /// 给 outline items 树状结构 (parent → children)
-    /// 算法: 维护栈, root 也入栈.
-    /// Apple HIG: OutlineNode 用 class 引用, 树形 children append 立即生效.
+    /// Convert outline items to tree structure (parent → children)
+    /// Algorithm: maintain a stack, root also goes on stack.
+    /// Apple HIG: OutlineNode uses class references so children append takes effect immediately.
     public static func tree(from items: [OutlineItem]) -> [OutlineNode] {
-        var stack: [OutlineNode] = []  // 当前 parent chain (栈), root 也入栈
+        var stack: [OutlineNode] = []  // current parent chain (stack), root also pushed
 
         for item in items {
             let node = OutlineNode(item: item, children: [])
-            // 弹栈直到栈末 level < 当前 item level
+            // Pop until stack tail level < current item level
             while let last = stack.last, last.item.level >= item.level {
                 stack.removeLast()
             }
             if stack.isEmpty {
-                // root: 直接入栈
+                // root: push directly
                 stack.append(node)
             } else {
-                // 子节点: append 到栈末 (parent) 的 children
+                // child: append to stack tail's (parent's) children
                 stack.last?.children.append(node)
                 stack.append(node)
             }
         }
 
-        // 收集所有 root (level=1, 按出现顺序)
+        // Collect all roots (level=1, in order of appearance)
         var roots: [OutlineNode] = []
         for node in stack {
             if node.item.level == 1 && !roots.contains(node) {
@@ -105,10 +105,10 @@ public enum OutlineExtractor {
     }
 }
 
-/// 大纲节点 (树状结构, class 引用保证 children 同步)
+/// Outline node (tree structure, class reference keeps children in sync)
 ///
-/// Swift HIG: struct 是 value type, 拷贝后 mutations 不影响其他副本. 树形结构需要引用语义,
-/// 用 class 实现. Equatable / Hashable / Sendable 用 NSObject 子类化.
+/// Swift HIG: struct is a value type — after copy, mutations do not affect other copies.
+/// Tree structures need reference semantics, so we use class. Equatable / Hashable / Sendable use NSObject subclassing.
 public final class OutlineNode: NSObject, @unchecked Sendable {
     public let item: OutlineItem
     public var children: [OutlineNode]
