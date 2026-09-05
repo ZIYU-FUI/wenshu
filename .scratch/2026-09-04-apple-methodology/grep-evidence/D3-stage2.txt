@@ -1,0 +1,9 @@
+Sources/WenshuApp/Storage/LLMWikiLayerDeriver.swift:28:// reference extraction that's already stubbed via ReferenceEntityExtractor
+Sources/WenshuApp/Domain/ReferenceEntityExtractor.swift:1:// ReferenceEntityExtractor.swift · Wenshu  · v0.28
+Sources/WenshuApp/Domain/ReferenceEntityExtractor.swift:19:// - ReferenceEntityExtractor.extract(_:) -> [String]
+Sources/WenshuApp/Domain/ReferenceEntityExtractor.swift:35:public struct ReferenceEntityExtractor: Sendable {
+Tests/WenshuAppTests/Domain/ReferenceEntityExtractorTests.swift:1:// ReferenceEntityExtractorTests.swift · Wenshu  · v0.28
+Tests/WenshuAppTests/Domain/ReferenceEntityExtractorTests.swift:3:// Hermes-port validation tests for ReferenceEntityExtractor.swift
+Tests/WenshuAppTests/Domain/ReferenceEntityExtractorTests.swift:16:@Suite("ReferenceEntityExtractor (hermes verbatim port — M5 ticket 12)")
+Tests/WenshuAppTests/Domain/ReferenceEntityExtractorTests.swift:17:struct ReferenceEntityExtractorTests {
+Tests/WenshuAppTests/Domain/ReferenceEntityExtractorTests.swift:19:    let extractor = ReferenceEntityExtractor()

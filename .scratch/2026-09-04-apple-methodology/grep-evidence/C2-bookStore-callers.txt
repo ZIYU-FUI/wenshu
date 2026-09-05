@@ -1,0 +1,49 @@
+Sources/WenshuApp/State/BookStore.swift:1:// BookStore.swift · Wenshu (文枢) · v0.26 (FCP library replica)
+Sources/WenshuApp/State/BookStore.swift:3:// Single BookStore @Observable singleton (= boss 8/26 OOB "反面 apple 标
+Sources/WenshuApp/State/BookStore.swift:8:// Switching books triggers BookStore.reload(bookId:) which reads the
+Sources/WenshuApp/State/BookStore.swift:24:/// BookStore.reload(bookId:).
+Sources/WenshuApp/State/BookStore.swift:43:/// Single @Observable BookStore (= Apple standard pattern: one
+Sources/WenshuApp/State/BookStore.swift:47:/// v0.27 ticket 019 wiring followup: BookStore now holds a
+Sources/WenshuApp/State/BookStore.swift:51:/// lazily resolve the per-book store via `LibraryStores.makeBookStores`.
+Sources/WenshuApp/State/BookStore.swift:53:final class BookStore: @unchecked Sendable {
+Sources/WenshuApp/State/BookStore.swift:86:        self.worldStore = stores.makeBookStores(for: stores.shelvesRoot)
+Sources/WenshuApp/State/BookStore.swift:88:        self.characterStore = stores.makeBookStores(for: stores.shelvesRoot)
+Sources/WenshuApp/State/BookStore.swift:95:    /// migrate views to @Environment(BookStore.self)).
+Sources/WenshuApp/State/BookStore.swift:178:extension BookStore {
+Sources/WenshuApp/State/BookStore.swift:265:                domain: "Wenshu.BookStore.sidebarSaveShelf",
+Sources/WenshuApp/State/BookStore.swift:274:                domain: "Wenshu.BookStore.sidebarSaveShelf",
+Sources/WenshuApp/State/WenshuLibrary.swift:251:    /// Note: delegate to BookStore (= same impl, available there too).
+Sources/WenshuApp/State/WenshuLibrary.swift:253:        guard let bookStore = store as? BookStore else { return 0 }
+Sources/WenshuApp/State/LibraryLifecycleHook.swift:46:    func makeBookStores(for bookDirectory: URL) -> PerBookStores {
+Sources/WenshuApp/State/LibraryLifecycleHook.swift:47:        PerBookStores(
+Sources/WenshuApp/State/LibraryLifecycleHook.swift:54:struct PerBookStores: Sendable {
+Sources/WenshuApp/State/LibraryLifecycleHook.swift:63:// MARK: - BookStore construction
+Sources/WenshuApp/State/LibraryLifecycleHook.swift:66:    /// Build the singleton BookStore (= v0.27 ticket 027-01 wiring).
+Sources/WenshuApp/State/LibraryLifecycleHook.swift:71:    func makeBookStore() -> BookStore {
+Sources/WenshuApp/State/LibraryLifecycleHook.swift:72:        BookStore(stores: stores)
+Sources/WenshuApp/App.swift:1436:/// BookStore via @Environment). Replaces v0.25.x WenshuLibrary-backed
+Sources/WenshuApp/App.swift:1439:        @Environment(BookStore.self) private var bookStore
+Sources/WenshuApp/Views/Layout/PaneNSController.swift:48:    private let bookStore: BookStore
+Sources/WenshuApp/Views/Layout/PaneNSController.swift:73:        bookStore: BookStore,
+Sources/WenshuApp/Views/Layout/PaneSplitHost.swift:26://   1. Listing the env values we need (= AppState, BookStore) in the
+Sources/WenshuApp/Views/Layout/PaneSplitHost.swift:66:    /// Same story as appState (= @Environment(BookStore.self) chain).
+Sources/WenshuApp/Views/Layout/PaneSplitHost.swift:67:    let bookStore: BookStore
+Sources/WenshuApp/Views/Layout/PaneLayout.swift:68:        bookStore: BookStore
+Sources/WenshuApp/Views/Layout/PaneLayout.swift:95:        bookStore: BookStore
+Sources/WenshuApp/Views/Workspace/PreviewPane.swift:200:    @Environment(BookStore.self) private var bookStore
+Sources/WenshuApp/Views/Workspace/WorkspaceView.swift:88:    /// v0.30: BookStore env (= for reference loading in preview pane).
+Sources/WenshuApp/Views/Workspace/WorkspaceView.swift:89:    @Environment(BookStore.self) private var bookStore
+Sources/WenshuApp/Views/Workspace/WorkspaceView.swift:485:    /// ZoneModuleView also needs BookStore to read reference bodies
+Sources/WenshuApp/Views/Workspace/WorkspaceView.swift:489:    @Environment(BookStore.self) private var bookStore
+Sources/WenshuApp/Views/Workspace/TabContentDispatcher.swift:13:// .aiDynamic) to the correct zone view. Reads AppState + BookStore
+Sources/WenshuApp/Views/Workspace/TabContentDispatcher.swift:35:    // from BookStore (= the Environment value already propagated
+Sources/WenshuApp/Views/Workspace/TabContentDispatcher.swift:37:    @Environment(BookStore.self) private var bookStore
+Sources/WenshuApp/Views/Library/SmartQueryView.swift:21:    /// (= ticket 019 BookStore @Environment; v0.26 uses a closure
+Sources/WenshuApp/Views/Library/NewLibraryOutlineView.swift:140:    @Environment(BookStore.self) private var bookStore
+Sources/WenshuApp/Views/Library/NewLibraryOutlineView.swift:1023:            // `BookStore.sidebarLoadShelves()` / `sidebarLoadAllBooks()`
+Sources/WenshuApp/Views/Onboarding/LibraryRootView.swift:91:                // - Construct LibraryStores + BookStore (= single @Observable)
+Sources/WenshuApp/Views/Onboarding/LibraryRootView.swift:92:                // - Inject BookStore via .environment for LayoutShellView + child views
+Sources/WenshuApp/Views/Onboarding/LibraryRootView.swift:100:/// simple). Constructs the BookStore via LibraryLifecycleHook and
+Sources/WenshuApp/Views/Onboarding/LibraryRootView.swift:104:    @State private var bookStore: BookStore?
+Sources/WenshuApp/Views/Onboarding/LibraryRootView.swift:247:            self.bookStore = result.makeBookStore()
+Sources/WenshuApp/Views/Onboarding/LibraryRootView.swift:250:            // fall back to a layout shell without the BookStore so the

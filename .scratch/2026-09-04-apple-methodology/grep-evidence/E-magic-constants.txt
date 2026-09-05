@@ -1,0 +1,6 @@
+Sources/WenshuApp/UI/Memory/MemorySettingsView.swift:12:private let smallChipCornerRadius: CGFloat = 3
+Sources/WenshuApp/UI/Memory/MemorySettingsView.swift:15:private let subtleSurfaceAlpha: CGFloat = 0.05
+Sources/WenshuApp/UI/Skills/SkillsSettingsView.swift:12:private let smallChipCornerRadius: CGFloat = 3
+Sources/WenshuApp/UI/Skills/SkillsSettingsView.swift:15:private let subtleSurfaceAlpha: CGFloat = 0.05
+Sources/WenshuApp/UI/Skills/SkillsSettingsView.swift:100:        .background(Color.secondary.opacity(subtleSurfaceAlpha), in: RoundedRectangle(cornerRadius: smallChipCornerRadius))
+Sources/WenshuApp/DesignTokens.swift:155:    /// same value as `smallChipCornerRadius` in 3 files before H2 fix).

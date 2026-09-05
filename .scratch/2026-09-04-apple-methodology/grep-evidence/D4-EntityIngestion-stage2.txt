@@ -1,0 +1,13 @@
+Sources/WenshuApp/Domain/ChatTrigger.swift:17:/// An LLM Wiki ingestion request (= what the EntityIngestion pipeline
+Sources/WenshuApp/Domain/Capabilities/CapabilityRegistry.swift:11:// capabilities (= ChatTrigger, SmartQueryParser, EntityIngestion,
+Sources/WenshuApp/Domain/Capabilities/CapabilityRegistry.swift:29:/// `ChatTrigger` / `SmartQueryParser` / `EntityIngestion` /
+Sources/WenshuApp/Domain/Capabilities/CapabilityRegistry.swift:142:public struct EntityIngestionCapability: Capability {
+Sources/WenshuApp/Domain/Capabilities/CapabilityRegistry.swift:164:/// `ChatTrigger` / `SmartQueryParser` / `EntityIngestion` /
+Sources/WenshuApp/Domain/Capabilities/CapabilityRegistry.swift:174:        await registry.register(EntityIngestionCapability())
+Sources/WenshuApp/Domain/EntityIngestion.swift:1:// EntityIngestion.swift · Wenshu (文枢) · v0.27 (FCP library replica)
+Sources/WenshuApp/Domain/EntityIngestion.swift:16:struct EntityIngestion: Sendable {
+Sources/WenshuApp/Domain/EntityIngestion.swift:77:/// v0.34 Issue 04: thrown by `EntityIngestion.ingest` when
+Sources/WenshuApp/Domain/WikiEntityPreflight.swift:9:// issues block the write (= `EntityIngestion` throws on .error
+Sources/WenshuApp/Domain/WikiEntityPreflight.swift:32:    case error      // (= block write; = EntityIngestion throws)
+Sources/WenshuApp/Domain/WikiEntityPreflight.swift:62:    /// (= empty = pass; non-empty = issues found; EntityIngestion
+Sources/WenshuApp/Domain/WikiEntityPreflight.swift:145:        // Return sorted (= most-severe first; = EntityIngestion's

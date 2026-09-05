@@ -1,0 +1,6 @@
+53:final class BookStore: @unchecked Sendable {
+56:    var shelves: [Bookshelf] = []
+60:    var selectedBookId: UUID?
+64:    var currentBook: BookBundle?
+71:    var currentBookDirectory: URL?
+75:    var referenceLibrary: ReferenceLibrary = ReferenceLibrary()

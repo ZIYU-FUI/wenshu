@@ -1,0 +1,6 @@
+Sources/WenshuApp/Storage/EntityClassifier.swift:1:// Sources/WenshuApp/Storage/EntityClassifier.swift
+Sources/WenshuApp/Storage/EntityClassifier.swift:48:public struct EntityClassifier: Sendable {
+Sources/WenshuApp/Storage/EntityClassifier.swift:116:        for (category, keywords) in EntityClassifier.keywords {
+Sources/WenshuApp/Domain/Reference.swift:113:    /// at save time by `EntityClassifier`). Optional for backward
+Sources/WenshuApp/Domain/EntityCategory.swift:16://   via EntityClassifier.classify())
+Sources/WenshuApp/Domain/EntityCategory.swift:45:/// entities are added to them (= the UI calls `EntityClassifier`
