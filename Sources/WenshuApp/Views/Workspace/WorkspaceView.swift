@@ -1,4 +1,4 @@
-// WorkspaceView.swift · Wenshu (文枢) · v0.27 ticket 027-34
+// WorkspaceView.swift · Wenshu · v0.27 ticket 027-34
 //
 // SwiftUI host for the user-customizable workspace. Wraps the
 // WorkspaceStore and renders the pane tree via PaneSplitHost (=
@@ -18,18 +18,17 @@ import MarkdownEngine  // v0.39 ticket 001: MarkdownEditorConfiguration type
 /// replacement for LayoutShellView). Boss 2026-08-27 grill D1 chose
 /// this paradigm over the FCP / Hermes alternatives.
 ///
-/// Boss 2026-08-27 standing goal: '重构落地'. This view is the
+/// Boss 2026-08-27 standing goal: 'land the refactor'. This view is the
 /// production (= only) rendering path since v0.30. The v0.27
 /// LayoutShellView legacy path was removed in v0.30 (= 1310 lines
-/// deleted per boss 8/31 OOB '老六区没有用了，数据无用已经过期的代码，
-// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-/// 去人无误后，可以清干净').
+/// deleted per boss 8/31 OOB 'the old 6-zone layout is no longer used,
+/// the data is useless and the code is outdated, after spot-check
+/// you can clean it up').
 struct WorkspaceView: View {
     @ObservedObject var store: WorkspaceStore
 
-    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-    /// v0.30 boss OOB: 实体分类在目录树里是最后一层, 点击后, 实体文档
-    /// 要用随心记的卡片流样式显示在素材管理区 (= projectPreview).
+    /// v0.30 boss OOB: entity classification is the last layer in the directory tree, after clicking,
+    /// the entity document should display in the material management area in a wenshu-style card stream layout (= projectPreview).
     /// Tracks which entity category is currently selected in the sidebar
     /// (= nil = overview mode showing all entities).
     @State private var selectedEntityCategory: EntityCategory? = nil
@@ -38,7 +37,7 @@ struct WorkspaceView: View {
     /// detail mode (= single card with full .md body).
     @State private var selectedEntity: Reference? = nil
 
-    /// v0.30 boss 8/31 OOB '各区域之间的联动' (= option A = global
+    /// v0.30 boss 8/31 OOB 'cross-zone interaction' (= option A = global
     /// @Observable store, = commit eb3066bca). The cross-zone
     /// UI state (= sidebarSelection / selectedEntity / etc.) lives
     /// here, NOT in WorkspaceView's @State. WorkspaceView just
@@ -70,9 +69,9 @@ struct WorkspaceView: View {
         case .shelf(let shelfId):
             // v0.30 boss 8/31 OOB spec criterion #2: clicking a
             // shelf row shows the "select a book" hint. (.shelfScope
-            // maps to emptyState(message: "选中书查看文档") in
+            // maps to emptyState(message: "Select a book to view documents") in
             // PreviewPane.shelfScopeView.) Previously this mapped
-            // to .empty (= "请选择左侧目录查看文档") which the spec
+            // to .empty (= "Please select a directory on the left to view documents") which the spec
             // sub-agent flagged as FAIL.
             return .shelfScope(shelfId: shelfId)
         case .referenceCategory(let dirName):
@@ -108,8 +107,8 @@ struct WorkspaceView: View {
     /// v0.34 B-25 (simplified): card double-click handler. Reads the
     /// .md file (= body content) for the current sidebar selection's
     /// first entity, then either (a) SWITCHES to an existing tab that
-    /// already has the same content loaded (= boss 9/3 OOB '看是不是
-    /// 已有 teb 已经打开了当前 MD' = duplicate-tab check = Safari
+    /// already has the same content loaded (= boss 9/3 OOB 'check whether
+    /// an existing tab has already opened the current MD' = duplicate-tab check = Safari
     /// behavior) or (b) opens a new tab in the editor zone (= B-24
     /// multi-tab data model).
     ///
@@ -190,12 +189,12 @@ struct WorkspaceView: View {
             originalBody: content,
             mode: .preview
         )
-        // v0.34 B-26-FIX (= boss 9/3 '第一次双击可以换, 不是新 teb, 是替换了
-        // 老 teb'): always append a new tab (= Safari multi-tab strip
+        // v0.34 B-26-FIX (= boss 9/3 'first double-click can switch, not a new tab, it replaces
+        // the old tab'): always append a new tab (= Safari multi-tab strip
         // behavior). Duplicate-tab detection (= the fingerprint check
         // earlier in this function) handles the "switch to existing
-        // tab if same .md is open" case (= boss 9/3 '看是不是已有 teb
-        // 已经打开了当前 MD'). = no replacement of the active tab;
+        // tab if same .md is open" case (= boss 9/3 'check whether an existing tab
+        // already opened the current MD'). = no replacement of the active tab;
         // = no "second click fails" race.
         appState.openTabs.append(newTab)
         appState.activeTabId = newTab.id
@@ -238,8 +237,8 @@ struct WorkspaceView: View {
             .onReceive(NotificationCenter.default.publisher(for: .wenshuToggleEditMode)) { _ in
                 editMode.toggle()
             }
-            // v0.30 boss 2026-09-01 OOB fix: the View menu's "恢复默认
-            // 布局" item (= ⌘⇧R; both the SwiftUI Commands entry
+            // v0.30 boss 2026-09-01 OOB fix: the View menu's "Restore Default
+            // Layout" item (= ⌘⇧R; both the SwiftUI Commands entry
             // and the legacy NSMenu entry at App.swift:567 + 1442)
             // posts .wenshuResetLayout. Without this onReceive, the
             // notification had no observer and the menu item was
@@ -296,19 +295,19 @@ struct WorkspaceView: View {
         case .projectSidebar:
             // v0.28 followup Boss UX round 43 (Boss 2026-08-29 OOB
             // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-            // '看一下项目管理区的位置, Y 轴位置和素材管理区好像没对齐'
-            // = sidebar's top chrome (= "书架" tab + 新建/入驻 buttons
+            // 'check the project manager zone position, the Y-axis position and the material management zone do not seem aligned'
+            // = sidebar's top chrome (= "Bookshelf" tab + New/Import buttons
             // inside NewLibraryOutlineView) was at a different Y than
             // Preview/Editor/Tools (= which use ZoneContentView with
             // RegionTabBar = 30 PT tall)). Fix = wrap NewLibraryOutlineView
-            // in ZoneContentView (= 1 "书架" tab + trailing 新建/入驻
+            // in ZoneContentView (= 1 "Bookshelf" tab + trailing New/Import
             // buttons via zoneHeaderButtons). Now sidebar uses the same
             // canonical 30 PT RegionTabBar as the other 3 general
             // panes (= identical Y position for all 4 top tab bars).
             //
             // NewLibraryOutlineView still needs to be inside the tab
             // content slot (not above/around the tab bar) so its tree
-            // outline is the "书架" tab's content.
+            // outline is the "Bookshelf" tab's content.
             // v0.30: pass bindings so sidebar selection → preview pane.
             // The trailingButton uses the default-init (doesn't drive preview).
             ZoneContentView(zoneSlug: "projectSidebar", tabs: [
@@ -319,11 +318,11 @@ struct WorkspaceView: View {
             ], trailingButton: AnyView(NewLibraryOutlineView().zoneHeaderButtons))
         case .projectPreview:
             // v0.28 followup Boss UX round 45 (Boss 2026-08-29 OOB
-            // '顶栏底栏都对不齐' = Preview/Tools were using old
+            // 'top and bottom bars are not aligned' = Preview/Tools were using old
             // ZoneModuleView (= renders BOTH outer ZoneTopToolbar 30 PT
             // + internal ZoneContentView tab bar 30 PT = DOUBLE chrome
             // = 60 PT total, while Sidebar/Editor use only ZoneContentView
-            // = 30 PT SINGLE chrome). Y 错位 = 30 PT difference.
+            // = 30 PT SINGLE chrome). Y misalignment = 30 PT difference.
             // Fix = convert Preview/Tools to use ZoneContentView directly
             // (= single 30 PT chrome layer = matches Sidebar/Editor).
             //
@@ -332,11 +331,11 @@ struct WorkspaceView: View {
             // list), with the actual content view (CanvasView/BaseView
             // for Tools, GraphView for Preview) as the tab's body.
             //
-            // v0.30 boss 8/31 OOB '点 sidebar row → 右边素材区正常显示
-            // 目录下的文档，控制目录范围': PreviewPane is wired here
+            // v0.30 boss 8/31 OOB 'click sidebar row → right material area normally displays
+            // the directory's documents, control directory range': PreviewPane is wired here
             // (= the active WorkspaceView body) with the computed
             // `previewScope` (= driven by sidebarSelection). The tab
-            // "图" stays on GraphView placeholder for future graph
+            // "Map" stays on GraphView placeholder for future graph
             // view work.
             // v0.30 boss 8/31 OOB: the sort menu is now the
             // trailing button of the preview pane's tab bar (=
@@ -369,16 +368,16 @@ struct WorkspaceView: View {
                 ))),
                 ("图", "waypoints", AnyView(GraphView())),
             ], trailingButton: AnyView(
-                // v0.30 boss 8/31 OOB: '排序 ICON 放到顶栏里, 居右,
-                // ▼ 替换成 list-ordered icon'. The sort menu button
+                // v0.30 boss 8/31 OOB: 'place the sort ICON in the top bar, right-aligned,
+                // ▼ replace with list-ordered icon'. The sort menu button
                 // shows [sort rule text (dim)] + [list-ordered icon
-                // (tint)] = icon居右 within the trailing button.
+                // (tint)] = icon right-aligned within the trailing button.
                 PreviewSortMenuButton(sortOrder: $previewSortOrder)
             ))
         case .editor:
             // v0.28 followup Boss UX round 43: switch from
             // EditorPlaceholder (= text-only) to real ZoneContentView
-            // (= 3 tabs 编辑/大纲/反链 + trailing expand/shrink).
+            // (= 3 tabs Edit/Outline/Backlinks + trailing expand/shrink).
             // This makes editor's top chrome consistent with the other
             // 3 general panes (= all use RegionTabBar = 30 PT tall at
             // the same Y).
@@ -397,16 +396,16 @@ struct WorkspaceView: View {
                 ("反链", "link", AnyView(EditorPlaceholder())),
             ], trailingButton: AnyView(EditorExpandShrinkTrailingButton()))
         case .specializedTools:
-            // 老 6区 specializedTools = 5 tabs (= 伏笔 / 占位符 /
+            // Old 6-zone specializedTools = 5 tabs (= Foreshadowing / Placeholder /
             // LongFormGuardrails per P1 ticket #6
             // [WIRE-SPECIALIZEDTOOLS-001] 2026-09-04 +
             // ReaderExperience per P1 ticket #7
             // [WIRE-SPECIALIZEDTOOLS-002] 2026-09-04 +
             // PlotThread per P1 ticket #8
             // [WIRE-SPECIALIZEDTOOLS-003] 2026-09-04).
-            //   - 伏笔 (= git-fork) + 占位符 (= square-dashed) per
-            //     v0.29 boss 2026-08-30 OOB '替换, 用伏笔替换第一个
-            //     teb, 用占位替换第二个 teb. 现在的画布功能以后实现'
+            //   - Foreshadowing (= git-fork) + Placeholder (= square-dashed) per
+            //     v0.29 boss 2026-08-30 OOB 'replace, use Foreshadowing to replace the first
+            //     tab, use Placeholder to replace the second tab. Current canvas feature is for later'
             //   - LongFormGuardrails (= shield-check) per P1
             //     ticket #6 (= port long_form_guardrails.py from
             //     hermes = THE top competitive moat per boss 8/27).
@@ -522,29 +521,29 @@ struct WorkspaceView: View {
 // For now this view renders a placeholder color (= a sane default
 // that the user can see + interact with while the integration lands).
 // ZoneModuleView — verbatim port of the old v0.27 `ZoneModule` (=
-// App.swift:2060-2220). The OLD 6区 had a 3-layer chrome per zone:
+// App.swift:2060-2220). The OLD 6-zone layout had a 3-layer chrome per zone:
 // 1. ZoneTopToolbar (30 PT) with zone actions (Graph / Search / expand
 //    trailing etc.). This layer is now an outer RegionPerRegionChrome.
 // 2. ZoneContentView (internal tab bar with ZoneContentTabBar)
 //    — Apple HIG canonical tab bar (= 28×28 hot area + Lucide icon +
 //    selected indicator underline + matchedGeometryEffect animation).
-//    Each zone has 1-N internal tabs (= e.g. editor has 3: 编辑/大纲/反链).
-// 3. ZoneBottomToolbar (30 PT) with per-zone status text (书架数 / 章节数
-//    / 字数 / 工具就绪 / 看板). Also now an outer ZonePerRegionChrome.
+//    Each zone has 1-N internal tabs (= e.g. editor has 3: Edit/Outline/Backlinks).
+// 3. ZoneBottomToolbar (30 PT) with per-zone status text (bookshelf count / chapter count
+//    / word count / tools ready / kanban). Also now an outer ZonePerRegionChrome.
 //
 // The v0.27 `ZoneModule` had a single case that built the full
 // content view (= ZoneContentView for 4 general zones, ChatZoneView
 // for chat, DynamicZoneView for dynamic). This struct re-implements
 // that case-by-case dispatch using the actual ZoneContentView /
 // ChatView / DynamicZoneView (= the real tabbed views, not
-// placeholders). Boss 2026-08-29 OOB '原来的 teb 在当前框架下是不
-// 是有默认样式' = yes — every zone has a ZoneContentTabBar with
+// placeholders). Boss 2026-08-29 OOB 'are the original tabs in the current framework
+// using the default style' = yes — every zone has a ZoneContentTabBar with
 // Lucide icons + accent underline + selected state. Per Boss
-// '完全不是 1:1' OOB, this commit restores 1:1 match by replacing
+// 'completely not 1:1' OOB, this commit restores 1:1 match by replacing
 // the placeholder text views with the real tabbed zone views.
 //
 // Per v0.27 boss 8/27 OOB #3: projectSidebar zone has `trailingButton`
-// (= NewLibraryOutlineView's zoneHeaderButtons = 新建 + 入驻 icon buttons).
+// (= NewLibraryOutlineView's zoneHeaderButtons = New + Import icon buttons).
 // Per v0.25.1 ticket 029c: editor zone has `trailingButton` (=
 // expand/shrink toggle button, icon swap based on editorMaximized).
 
@@ -558,12 +557,12 @@ struct ZoneModuleView: View {
     @Binding var selectedEntityCategory: EntityCategory?
     @Binding var selectedEntity: Reference?
 
-    /// v0.30 boss 8/31 OOB '各区域之间的联动' (= option A):
+    /// v0.30 boss 8/31 OOB 'cross-zone interaction' (= option A):
     /// AppState is the global @Observable source of truth.
     /// ZoneModuleView reads it directly (= no @Binding chain).
     @Environment(AppState.self) private var appState
 
-    /// v0.34 B-25-fix (= boss 9/3 'PreviewPane双击没打开文档'):
+    /// v0.34 B-25-fix (= boss 9/3 'PreviewPane double-click did not open the document'):
     /// ZoneModuleView also needs BookStore to read reference bodies
     /// (= same as WorkspaceView's openCardInEditor). Injected via
     /// the existing .environment(bookStore) call sites in App.swift
@@ -611,8 +610,8 @@ struct ZoneModuleView: View {
     var body: some View {
         switch zoneSlot {
         case .projectSidebar:
-            // 老 6区 projectSidebar = 1 tab (书架, with book-open icon)
-            // + trailingButton (新建 + 入驻 = NewLibraryOutlineView.zoneHeaderButtons).
+            // Old 6-zone projectSidebar = 1 tab (Bookshelf, with book-open icon)
+            // + trailingButton (New + Import = NewLibraryOutlineView.zoneHeaderButtons).
             // v0.30 boss 8/31 OOB: ZoneModuleView forwards its
             // sidebarSelection binding to NewLibraryOutlineView so
             // the sidebar click → preview pane scope works.
@@ -627,7 +626,7 @@ struct ZoneModuleView: View {
             ).zoneHeaderButtons))
 
         case .projectPreview:
-            // 老 6区 projectPreview = 2 tabs (预览 / 图).
+            // Old 6-zone projectPreview = 2 tabs (Preview / Map).
             // Per v0.25.1 ticket 014: book-open-check + waypoints.
             // v0.28 followup Boss UX round 24: preview tab content uses
             // .ultraThinMaterial (= was DesignColor.zoneSurface =
@@ -644,7 +643,7 @@ struct ZoneModuleView: View {
             ZoneContentView(zoneSlug: "projectPreview", tabs: [
                 ("预览", "book-open-check", AnyView(PreviewPane(
                     scope: previewScope,
-                    // v0.34 B-25-fix (= boss 9/3 '双击卡片没打开文档'):
+                    // v0.34 B-25-fix (= boss 9/3 'double-clicking card did not open the document'):
                     // ZoneModuleView's caller L561 is the ACTIVE path
                     // (= not WorkspaceView's caller L355 which is dead
                     // code). Route double-click to ZoneModuleView's own
@@ -668,7 +667,7 @@ struct ZoneModuleView: View {
             ])
 
         case .specializedTools:
-            // 老 6区 specializedTools = 4 tabs (伏笔 / 占位符 /
+            // Old 6-zone specializedTools = 4 tabs (Foreshadowing / Placeholder /
             // LongFormGuardrails per P1 ticket #6
             // [WIRE-SPECIALIZEDTOOLS-001] 2026-09-04 +
             // ReaderExperience per P1 ticket #7
@@ -682,20 +681,20 @@ struct ZoneModuleView: View {
             ])
 
         case .aiDynamic:
-            // 老 6区 aiDynamic = DynamicZoneView (= has its own
-            // DynamicZoneTabBar with 进度 / 待办 / 搜索).
-            // Per v0.24 boss 8/24 OOB: external toolbar 清空 (= the
+            // Old 6-zone aiDynamic = DynamicZoneView (= has its own
+            // DynamicZoneTabBar with Progress / Todo / Search).
+            // Per v0.24 boss 8/24 OOB: external toolbar cleared (= the
             // outer ZoneTopToolbar is empty placeholder mode).
             DynamicZoneView()
 
         case .aiChat:
-            // 老 6区 aiChat = ChatZoneView (= has its own ChatZoneTabBar
+            // Old 6-zone aiChat = ChatZoneView (= has its own ChatZoneTabBar
             // with chat / search / settings). Per v0.25.1 ticket 005:
             // top icons are Bot + Inbox.
             ChatView()
 
         case .editor:
-            // 老 6区 editor = 3 tabs (编辑 / 大纲 / 反链) + trailingButton
+            // Old 6-zone editor = 3 tabs (Edit / Outline / Backlinks) + trailingButton
             // (expand/shrink toggle). Real ZoneContentView — replaces
             // EditorPlaceholder (= which was just text "Editor zone
             // ticket 027-35 integration pending").
@@ -708,13 +707,13 @@ struct ZoneModuleView: View {
                     // EditorPlaceholder (= ticket 04-10 toolbar + mode toggle).
                     ("编辑", "book-open-text", AnyView(EditorPlaceholder())),
                     ("大纲", "puzzle", AnyView(OutlinePanel())),
-                    // v0.34 B-16: removed the "反链" tab here (= boss 9/2 OOB
-                    // '反链占的区域还是要去掉的'). Backlinks are now
-                    // surfaced via the chrome bottom-right "反链 0"
+                    // v0.34 B-16: removed the "Backlinks" tab here (= boss 9/2 OOB
+                    // 'the Backlinks area still has to be removed'). Backlinks are now
+                    // surfaced via the chrome bottom-right "Backlinks 0"
                     // label click → popover (= spec user stories 8 + 11).
                 ],
                 // v0.25.1 (= ticket 029c-trailing-button): expand/shrink
-                // trailing button. Boss 8/26 OOB '他是一个按钮 不是一个
+                // trailing button. Boss 8/26 OOB 'it is one button, not a tab
                 // teb' = won't be a tab (= no selected underline), just
                 // a button at the right edge of the tab bar.
                 trailingButton: AnyView(
@@ -724,7 +723,7 @@ struct ZoneModuleView: View {
         }
     }
 
-    /// v0.34 B-25-followup (= boss 9/3 '你修到我能用'): ZoneModuleView
+    /// v0.34 B-25-followup (= boss 9/3 'fix it until I can use it'): ZoneModuleView
     /// needs its own openCardInEditor (= WorkspaceView's openCardInEditor
     /// is in a DIFFERENT struct = can't share via this same View type).
     /// Code is mostly duplicated from WorkspaceView's openCardInEditor
@@ -838,8 +837,8 @@ struct ZoneModuleView: View {
             originalBody: content,
             mode: .preview
         )
-        // v0.34 B-26-FIX (= boss 9/3 '第一次双击可以换, 不是新 teb, 是替换了
-        // 老 teb; 第二次双击失效'): the previous implementation tried
+        // v0.34 B-26-FIX (= boss 9/3 'first double-click can switch, not a new tab, it replaces
+        // the old tab; second double-click fails'): the previous implementation tried
         // to be smart (= replace the active tab if clean; append a new
         // tab if dirty; = Safari "reuse clean tab" behavior). That was
         // the wrong call: boss expected a real multi-tab = each
@@ -848,8 +847,8 @@ struct ZoneModuleView: View {
         // replacement of the active tab).
         //
         // v0.34 B-26-FIX: always append (= Safari tab strip behavior).
-        // Duplicate-tab detection (boss 9/3 follow-up: '看是不是已有 teb
-        // 已经打开了当前 MD') happens earlier in this function (= the
+        // Duplicate-tab detection (boss 9/3 follow-up: 'check whether an existing tab
+        // already opened the current MD') happens earlier in this function (= the
         // fingerprint check that switches to the existing tab if the
         // .md body matches an already-open tab). = no replacement
         // behavior; = no "second click fails" race.
@@ -861,14 +860,13 @@ struct ZoneModuleView: View {
 
 /// Editor main content placeholder (= replaces old DesignColor overlay).
 /// Real editor content view = ticket 027-35 followup; for now we
-/// render a subtle placeholder background matching the old 6区
+/// render a subtle placeholder background matching the old 6-zone
 /// "Color.white.opacity(0.55) with 4 PT vertical inset" treatment.
 // v0.28 followup Boss UX round 21: .regularMaterial replaces the
 /// DesignColor.zoneSurface (= solid) so the placeholder matches the
 /// Liquid Glass design language used everywhere else.
-// v0.28 followup Boss UX round 31 (Boss 2026-08-29 OOB '素材预览区,
-// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-// 动态区, 这个区的液态玻璃效果和其他区不一样'): uses
+// v0.28 followup Boss UX round 31 (Boss 2026-08-29 OOB 'material preview zone,
+// dynamic zone, this zone's Liquid Glass effect is different from other zones'): uses
 // RegionContentBackground (= single source of truth for per-pane
 // content backgrounds = .regularMaterial = standard Liquid Glass tint).
 // Previously used .background(.regularMaterial) (= same material but
@@ -885,7 +883,7 @@ private struct EditorContentPlaceholder: View {
         // v0.28 followup Boss UX round 37: REMOVED the
         // Color.white.opacity(0.55) overlay (= was making the editor
         // pane appear LIGHTER than the other 5 panes = boss noticed
-        // "编辑器因为背景是白色? 所有亮度看起来不一样"). Now the
+        // "is the editor background white? all the brightness looks different"). Now the
         // editor placeholder is just empty (= the background is
         // now applied uniformly by ZonePerRegionChrome).
         Color.clear
@@ -894,9 +892,8 @@ private struct EditorContentPlaceholder: View {
 
 
 /// Editor expand/shrink trailing button (= old v0.25.1 ticket 029c).
-// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-/// Per boss 8/26 OOB '点击后 整个编辑器最大化 其它所有栏全都隐藏
-/// 此时 ICON 变成 shrink 点击后 恢复到刚刚点击 expand 前的状态'.
+/// Per boss 8/26 OOB 'after clicking, maximize the entire editor, hide all other
+/// columns, at this point the ICON becomes shrink, after clicking restore to the state just before clicking expand'.
 /// State + snapshot lives in @AppStorage (= ticket 01, v0.34).
 /// v0.34 ticket 03: action closure now posts the .wenshuEditorMaximizedChanged
 /// notification (= PaneNSController listener installed by ticket 02 handles
@@ -907,13 +904,13 @@ private struct EditorExpandShrinkTrailingButton: View {
     // HIG standard storage; the bug ticket 03 fixes = no real persistence,
     // but @AppStorage makes persistence easy to add later if needed). The
     // snapshot key is written by PaneNSController.handleEditorMaximizedChanged
-    // BEFORE the 5 zone-hide animator calls (= Q38 boss "全状态 snapshot"
+    // BEFORE the 5 zone-hide animator calls (= Q38 boss "full-state snapshot"
     // decision; restore-on-shrink must read this JSON).
     @AppStorage("wenshu.editorMaximized") private var editorMaximized: Bool = false
     @AppStorage("wenshu.editorExpand.snapshot") private var editorExpandSnapshotJSON: String = "{}"
 
     var body: some View {
-        // v0.34 boss 2026-09-02 OOB '编辑器右边的 ICON, 尺寸没有遵循组件':
+        // v0.34 boss 2026-09-02 OOB 'the ICON on the right of the editor, the size did not follow the component':
         // the editor expand/shrink trailing button was using raw `Lucide(...)`
         // (= no size parameter = Lucide default size, not Apple HIG standard
         // 18 PT tab icon). Migrated to the SAME icon-rendering pattern as
@@ -933,7 +930,7 @@ private struct EditorExpandShrinkTrailingButton: View {
         // (chat-zone archive button). Replaced both with the shared
         // PaneTrailingIconButton helper. EditorExpandShrinkTrailingButton
         // now retains only the icon-toggle state (= editorMaximized) and
-        // the tooltip string (= editorMaximized ? "恢复布局" : "展开全屏").
+        // the tooltip string (= editorMaximized ? "Restore Layout" : "Expand Fullscreen").
         PaneTrailingIconButton(
             icon: editorMaximized
                 ? "arrow.down.right.and.arrow.up.left"
@@ -982,8 +979,7 @@ struct EditorPlaceholder: View {
     }
 
     /// v0.34 B-26: derive the display title for a tab (= file basename
-    /// without the .md extension; = boss 9/3 OOB '.md 的拓展名也不用
-    /// 显示'). Placeholder tab = 'preview-sample' (= no .md extension,
+    /// without the .md extension; = boss 9/3 OOB 'no .md extension either'). Placeholder tab = 'preview-sample' (= no .md extension,
     /// = no path = render the short placeholder name).
     private func tabDisplayTitle(tab: EditorTab) -> String {
         if let path = tab.documentPath, !path.isEmpty {
@@ -1040,29 +1036,29 @@ struct EditorPlaceholder: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // v0.34 B-26-TABBAR (= boss 9/3 '把整个这一栏改成 teb 栏,
-            // 把后面的三个 ICON 按钮先全都去掉'): editor top bar replaced
+            // v0.34 B-26-TABBAR (= boss 9/3 'change this whole column to a tab bar,
+            // remove the three ICON buttons at the back first'): editor top bar replaced
             // with a Safari-style tab strip showing every tab in
             // `appState.openTabs`. Active tab is highlighted; each tab
             // has a close button (= tap to remove from openTabs). Boss
             // moved the 3 trailing icon buttons (= mode toggle, expand,
-            // close) elsewhere (= per boss OOB '我换个位置实现').
+            // close) elsewhere (= per boss OOB 'I will implement it in a different position').
             //
             // Apple HIG tabbed-document pattern (= NSTabView / Safari
             // tab strip): single-line HStack, scrollable horizontally
             // when tabs overflow. = no formatting toolbar / no save
             // button (= the per-tab formatting + save hotkey move to
             // the new tab-bar layout as boss decides).
-            // v0.34 B-26 boss 9/3 '我打开新文件, 没有出现新 TEB 页' + '参考这个
-            // 样式, 修改 teb 的样式' (= reference image shows plain
+            // v0.34 B-26 boss 9/3 'I open a new file, the new TAB page does not appear' + 'refer to this
+            // style, modify the tab style' (= reference image shows plain
             // all-caps monospaced tab labels; = boss 9/3 follow-up:
             // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-            // '不需要 ICON, 只要文档名就行, .md 的拓展名也不用显示').
+            // 'no ICON needed, just the document name, no .md extension either').
             // Editor top bar = a simple horizontal HStack of tab names
             // (= .monospaced .caption text; = active tab = .tint color
             // + .tint background tint at 0.12). No icons, no .md
-            // extension, no trailing buttons. Boss 9/3 follow-up '切
-            // 换目录后, 会再次识别一次' = when the user switches
+            // extension, no trailing buttons. Boss 9/3 follow-up 'switching
+            // the directory will re-detect once' = when the user switches
             // sidebar scope, the PreviewPane body re-renders AND the
             // EditorTabBarBar (now inlined) re-renders too; = the
             // SwiftUI @State click-count latch is reset (= which is
@@ -1086,7 +1082,7 @@ struct EditorPlaceholder: View {
                     .help(title)
                 }
                 // v0.39 ticket 001-C: mode toggle (= preview <-> edit).
-                // The boss reported '视图无法进入 MD 编辑模式' which
+                // The boss reported 'cannot enter MD edit mode' which
                 // was actually two issues (= default = .preview +
                 // no UI to flip it). openCardInEditor now defaults
                 // to .edit (= the 001-A fix), but users still need
@@ -1140,7 +1136,7 @@ struct EditorPlaceholder: View {
                 Spacer()
             }
             .frame(height: 32)
-            // POLISH-LIQUIDGLASS-003 (Boss 2026-09-05 OOB '好继续', AGENTS.md
+            // POLISH-LIQUIDGLASS-003 (Boss 2026-09-05 OOB 'OK continue', AGENTS.md
             // §11 macOS 27 Liquid Glass polish extends from TopBar + Sidebar):
             // apply Apple canonical .glassEffect(.regular) (= macOS 27
             // Tahoe Liquid Glass) to the EditorPlaceholder tab strip
@@ -1204,7 +1200,7 @@ struct EditorPlaceholder: View {
                 // Placeholder sample body until ticket 027-35 wires the
                 // real document load (= the Apple HIG DocumentGroup
                 // file-open path is the v0.35+ ticket).
-                // v0.34 B-25-FIX (= boss 9/3 'preview BUG 还在'): EditorPlaceholder
+                // v0.34 B-25-FIX (= boss 9/3 'preview BUG is still there'): EditorPlaceholder
                 // preview mode previously rendered `Self.samplePreviewBody`
                 // (= static placeholder string) regardless of which tab
                 // was active. Replaced with `self.draft` (= per-tab
@@ -1277,9 +1273,8 @@ struct EditorPlaceholder: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            // v0.28 followup Boss UX round 19 (Boss 2026-08-29 OOB '所有
-            // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-            // 区域的顶栏, 底栏, 背景, 用的颜色, 可以适配液态玻璃吗'):
+            // v0.28 followup Boss UX round 19 (Boss 2026-08-29 OOB 'all
+            // zone top bars, bottom bars, backgrounds, the colors used, can they adapt to Liquid Glass?'):
             // Use .ultraThinMaterial instead of Color.green.opacity(0.05)
             // (= solid green placeholder = inconsistent with the
             // Liquid Glass design language). Editor zone has no
@@ -1291,7 +1286,7 @@ struct EditorPlaceholder: View {
         // v0.34 B-18: on editor zone mount, seed AppState.editorWordCount
         // with the character count of the initial body (= sample body
         // in placeholder mode; = real document body post-ticket 027-35).
-        // Without this, the chrome bottom-bar left field shows "字数: 0"
+        // Without this, the chrome bottom-bar left field shows "Word count: 0"
         // even when the preview-mode sample body has 200+ chars. The
         // .onChange(of: draft) inside EditorEditContent covers the edit-
         // mode keystroke stream; = this .onAppear covers the initial
@@ -1701,8 +1696,8 @@ struct EditorPlaceholder: View {
             // handles the lifecycle.
             if autoSaveTask == nil {
                 autoSaveTask = Task {
-                    // 3-second debounce (= boss 9/2 'auto-save, 停手
-                    // 3 秒后'). Apple HIG doesn't define a canonical
+                    // 3-second debounce (= boss 9/2 'auto-save, 3 seconds
+                    // after stopping'). Apple HIG doesn't define a canonical
                     // duration; = matches macOS TextEdit / Pages default.
                     try? await Task.sleep(for: .seconds(3))
                     if !Task.isCancelled {
@@ -1812,9 +1807,9 @@ private struct EditorPreviewContent: View {
 
     var body: some View {
         // v0.34 B-17: removed ticket 06's 120 PT inline BacklinksPanel +
-        // Divider + backlinksVM state (= boss 9/2 OOB '反链那 120
-        // 高度的空间还在, 不用在编辑器里占空间'). Backlinks are
-        // surfaced via the chrome bottom-right "反链 0" popover
+        // Divider + backlinksVM state (= boss 9/2 OOB 'the 120-height space
+        // reserved for backlinks is still there, no need to occupy space in the editor'). Backlinks are
+        // surfaced via the chrome bottom-right "Backlinks 0" popover
         // (= B-16 implementation; see TabContentDispatcher.editor case).
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
@@ -2013,9 +2008,9 @@ private struct EditorEditContent: View {
 }
 
 /// v0.34 B-20: FormatToolbarButtons (= boss 9/2 OOB 'format toolbar' =
-/// '都可以搞'). 5 inline MD formatting buttons: bold / italic /
+/// 'all can do'). 5 inline MD formatting buttons: bold / italic /
 /// heading / inline code / bullet list. Sits in the editor top-bar
-/// left slot (= Q21-boss answer = "editor 顶 toolbar 左侧"). Shown
+/// left slot (= Q21-boss answer = "editor top toolbar left side"). Shown
 /// only in .edit mode (= formatting raw MD source; = no-op on the
 /// rendered preview).
 ///
@@ -2333,8 +2328,8 @@ private struct EditModeBadge: View {
 
 // MARK: - PreviewTabBackground (= preview pane content background)
 //
-// v0.28 followup Boss UX round 42 (Boss 2026-08-29 OOB '缺三个区,
-// 项目管理, 工具, 聊天, 都没进你的样式表'): REMOVED the inline
+// v0.28 followup Boss UX round 42 (Boss 2026-08-29 OOB 'missing three zones,
+// project manager, tools, chat, none entered your stylesheet'): REMOVED the inline
 // RegionContentBackground call. The background is now applied
 // uniformly by ZonePerRegionChrome (= single source of truth for
 // per-pane content backgrounds). PreviewTabBackground is now just

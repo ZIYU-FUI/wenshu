@@ -1,6 +1,6 @@
-// NewLibraryOutlineView.swift · Wenshu (文枢) · v0.30 Apple HIG sidebar
+// NewLibraryOutlineView.swift · Wenshu · v0.30 Apple HIG sidebar
 //
-// v0.30 boss 2026-08-30 OOB: '如果你要 100% Apple native, 我想选这个'.
+// v0.30 boss 2026-08-30 OOB: 'if you want 100% Apple native, I would choose this'.
 //
 // 100% Apple HIG standard sidebar (= List(selection:) + .listStyle(.sidebar)).
 //
@@ -68,8 +68,8 @@ enum SidebarItem: Hashable, Codable {
     // highlighted when selected).
     case shelf(UUID)
     // v0.30 boss 8/31 OOB (sidebar feedback bundle #3): folder row
-    // (= third tree level, e.g. 世界观 / 角色 / 章节大纲 / 小说正文 /
-    // / 小说草稿). Tagging with .folder(bookId, folderName) lets
+    // (= third tree level, e.g. Worldview / Characters / Chapter Outline / Novel Body /
+    // Novel Drafts). Tagging with .folder(bookId, folderName) lets
     // the user select a folder directly; preview pane will scope to
     // that folder's content (= shows the .md files inside).
     case folder(bookId: UUID, folderName: String)
@@ -88,7 +88,7 @@ enum SidebarItem: Hashable, Codable {
     //   {"kind": "book", "book": "<UUID>"}
     //   {"kind": "shelf", "shelf": "<UUID>"}
     //   {"kind": "folder", "book": "<UUID>", "folder": "world"}
-    //   {"kind": "referenceCategory", "referenceCategory": "文学"}
+    //   {"kind": "referenceCategory", "referenceCategory": "Literature"}
     private enum CodingKeys: String, CodingKey {
         case kind, book, shelf, folder, referenceCategory
     }
@@ -181,7 +181,7 @@ struct NewLibraryOutlineView: View {
     // patterns).
     @State private var renaming: RenamingTarget?
 
-    /// v0.30 boss 8/31 OOB '各区域之间的联动' (= option A = global
+    /// v0.30 boss 8/31 OOB 'cross-zone interaction' (= option A = global
     /// @Observable store): sidebar selection is now read directly
     /// from AppState via @Environment (= no @Binding threaded
     /// from WorkspaceView).
@@ -192,7 +192,7 @@ struct NewLibraryOutlineView: View {
     // Auto-expanded if any of its books is selected (= overrides user
     // collapse when user selects a book in this shelf).
     //
-    // v0.30 boss 8/31 OOB '目录树的选定状态没有持久化': persist to
+    // v0.30 boss 8/31 OOB 'directory tree selection state does not persist': persist to
     // AppStorage as JSON (= so close + reopen restores which shelf /
     // book folders are expanded, matching the sidebar selection
     // persistence). Uses AppStorage with rawValue = JSON-encoded
@@ -234,10 +234,10 @@ struct NewLibraryOutlineView: View {
         // All rows use Label + .badge (= Apple std). No hardcoded
         // sizes (= Apple HIG: follow user system preference). Selection
         // highlight = automatic (= Apple std).
-        // v0.30 boss 8/31 OOB '双击后蓝色小条消失, 状态和首次进入
-        // 不一样': List(.sidebar) on macOS has a 'click-selected-row-
+        // v0.30 boss 8/31 OOB 'after double-click the blue strip disappears, the state and the first entry
+        // are different': List(.sidebar) on macOS has a 'click-selected-row-
         // again-to-deselect' behavior (= standard Finder pattern).
-        // For wenshu, this means clicking 世界观 a second time clears
+        // For wenshu, this means clicking Worldview a second time clears
         // the entire selection (= no sidebarSelection = no blue strip
         // anywhere = the 'state not persistent' the user observed).
         //
@@ -255,7 +255,7 @@ struct NewLibraryOutlineView: View {
             }
         )) {
             // v0.30 boss 8/31 OOB (sidebar feedback bundle #1+2):
-            // 'shelf "从这里开始" should be in the directory tree as
+            // 'shelf "Start Here" should be in the directory tree as
             // first level (= not a SwiftUI Section header)'. Replaced
             // Section { } header: { Label { Text(shelf.name) } } with
             // DisclosureGroup (= shelf is now a clickable tree row at
@@ -265,7 +265,7 @@ struct NewLibraryOutlineView: View {
             // selected (= appState.sidebarSelection = .book(...)), its own
             // nested DisclosureGroup for folders (= level 3) auto-
             // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-            // expands so 世界观 / 角色 / 章节大纲 / 小说正文 / 小说草稿
+            // expands so Worldview / Characters / Chapter Outline / Novel Body / Novel Drafts
             // are visible without an extra tap (= boss OOB #3 'child
             // folders should be visible immediately on book select').
             ForEach(shelves) { shelf in
@@ -290,13 +290,13 @@ struct NewLibraryOutlineView: View {
                 )) {
                     ForEach(usedCategories(), id: \.directoryName) { category in
                     // Note: double-click on reference library root
-                    // (= 资料库) toggles the section below. The
+                    // (= Reference Library) toggles the section below. The
                     // section's DisclosureGroup handles expand/collapse
                     // natively (= tap on the chevron). Boss OOB
-                    // '双击目录树展开合上' = standard Finder behavior,
+                    // 'double-click directory tree expand/collapse' = standard Finder behavior,
                     // supported here via the DisclosureGroup's built-in
                     // gesture.
-                        // v0.30 boss 2026-09-01 OOB '全 apple api 默认':
+                        // v0.30 boss 2026-09-01 OOB 'full Apple API default':
                         // SwiftUI Label = List(.sidebar) handles icon-
                         // text alignment + hover tint + selection tint
                         // automatically. .badge = standard trailing
@@ -312,11 +312,11 @@ struct NewLibraryOutlineView: View {
                 } label: {
                     // v0.30 boss 8/31 OOB: hover tint scope = whole row
                     // (= icon + text + badge), matches the selection
-                    // tint scope. Boss: '悬浮实现的位置有问题, 不是
-                    // 整条, 不像选定'. Fix: the .background() must be
+                    // tint scope. Boss: 'the hover position is wrong, not
+                    // the whole row, does not look selected'. Fix: the .background() must be
                     // applied AFTER .badge() (= wraps the badge too,
                     // not just the Label).
-                    // v0.30 boss 2026-09-01 OOB '全 apple api 默认': use
+                    // v0.30 boss 2026-09-01 OOB 'full Apple API default': use
                     // SwiftUI Label (= Apple's canonical sidebar
                     // row component = List(.sidebar) handles the
                     // icon-text alignment, hover tint, and selection
@@ -349,10 +349,10 @@ struct NewLibraryOutlineView: View {
         //
         // The menu builder switches on the selected SidebarItem
         // kind (= shelf, book, reference category) to show the
-        // right actions (= '新建书' only on shelves, etc.). The
+        // right actions (= 'New Book' only on shelves, etc.). The
         // reference library section is excluded (= per boss OOB
         // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-        // '资料库不允许删除').
+        // 'Reference Library is not allowed to be deleted').
         .contextMenu(forSelectionType: SidebarItem.self) { selectedItems in
             contextMenuForSelection(selectedItems)
         } primaryAction: { selectedItems in
@@ -366,7 +366,7 @@ struct NewLibraryOutlineView: View {
         // the List (= macOS 14+ behavior: shows when the user right-
         // clicks anywhere inside the List, regardless of row hit).
         // Apple HIG: empty-area context menu = top-level actions
-        // (= 创建新书架 is the canonical "I'm in the sidebar, I want
+        // (= Create New Shelf is the canonical "I'm in the sidebar, I want
         // to add something" action).
         .contextMenu {
             Button("新建书架…") {
@@ -376,9 +376,8 @@ struct NewLibraryOutlineView: View {
                 showNewBookSheet = true
             }
         }
-        // v0.30 boss 8/31 OOB ('Sidebar 背景 不跟液态玻璃透明度调整 / 之前已经实现的,
-        // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-        // 改目录树的时候动到了, 修复'):
+        // v0.30 boss 8/31 OOB ('Sidebar background does not follow Liquid Glass transparency adjustments / previously implemented,
+        // changed the directory tree and bumped it, fix'):
         // Apple HIG .sidebar listStyle draws its own opaque background
         // (= macOS 26 Tahoe canonical sidebar material), which covers
         // the RegionContentBackground applied at ZonePerRegionChrome.
@@ -386,7 +385,7 @@ struct NewLibraryOutlineView: View {
         // transparent so the parent's RegionContentBackground shows
         // through (= follows the liquid-glass opacity slider in Settings).
         .scrollContentBackground(.hidden)
-        // POLISH-LIQUIDGLASS-002 (Boss 2026-09-05 OOB '好继续', AGENTS.md
+        // POLISH-LIQUIDGLASS-002 (Boss 2026-09-05 OOB 'OK continue', AGENTS.md
         // §11 macOS 27 Liquid Glass polish sweep): apply Apple canonical
         // .glassEffect(.regular) (= macOS 27 Tahoe Liquid Glass) to
         // NewLibraryOutlineView (= the canonical sidebar = leftmost
@@ -433,7 +432,7 @@ struct NewLibraryOutlineView: View {
         }
         .onAppear {
             reload()
-            // v0.30 boss 8/31 OOB '目录树的选定状态没有持久化':
+            // v0.30 boss 8/31 OOB 'directory tree selection state does not persist':
             // hydrate shelf/book disclosure states from AppStorage
             // (= so which DisclosureGroups are expanded is preserved
             // across launches).
@@ -446,8 +445,8 @@ struct NewLibraryOutlineView: View {
             // = one property on SidebarState + one line in
             // applySidebarState(_:); no new onAppear hook needed.
             applySidebarState(SidebarState.from(jsonString: persistedSidebarState))
-            // v0.30 boss 8/31 OOB: '首次进入, 选定效果是灰色的, 不是
-            // 系统色. 双击后会变成蓝色'. macOS 26 Tahoe List(.sidebar)
+            // v0.30 boss 8/31 OOB: 'on first entry, the selection color is gray, not
+            // system color. After double-click it turns blue'. macOS 26 Tahoe List(.sidebar)
             // shows the SELECTED row in GRAY (= not accent color) on
             // the very first render pass, then switches to the user's
             // accent color after the user interacts (= SwiftUI's
@@ -518,7 +517,7 @@ struct NewLibraryOutlineView: View {
                 appState.sidebarSelection = .book(id)
             }
         }
-        // v0.30 boss 8/31 OOB '目录树的选定状态没有持久化':
+        // v0.30 boss 8/31 OOB 'directory tree selection state does not persist':
         // persist disclosure state changes (= user clicked chevron
         // to expand/collapse a shelf or book folder DisclosureGroup).
         // v0.34 boss 2026-09-02 OOB: one unified write covers shelf
@@ -555,7 +554,7 @@ struct NewLibraryOutlineView: View {
         .onReceive(NotificationCenter.default.publisher(for: .wenshuNewShelfRequested)) { _ in
             showNewShelfSheet = true
         }
-        // v0.30 boss 8/31 OOB #2 ('弹出菜单没有恢复'):
+        // v0.30 boss 8/31 OOB #2 ('context menu does not restore'):
         // The trailing-slot button posts .wenshuChoiceRequested; the
         // sidebar body NewLibraryOutlineView (= this view, real view
         // hierarchy) toggles its own showNewChoiceSheet @State and
@@ -566,9 +565,9 @@ struct NewLibraryOutlineView: View {
         }
         .sheet(isPresented: $showNewBookSheet) {
             // v0.30 boss 8/31 OOB: pre-fill the new book with the
-            // currently-selected shelf id (= so clicking '新建书'
-            // while '测试书架' is selected creates the book in
-            // '测试书架' instead of always in the default shelf).
+            // currently-selected shelf id (= so clicking 'New Book'
+            // while 'Test Shelf' is selected creates the book in
+            // 'Test Shelf' instead of always in the default shelf).
             // The shelf picker inside the sheet lets the user
             // override this (= change shelf before saving).
             let target = resolveNewBookTargetShelf()
@@ -612,7 +611,7 @@ struct NewLibraryOutlineView: View {
             )
         }
         // v0.30 boss 8/31 OOB: context-menu rename sheet (= opens
-        // when user picks '重命名…' from shelf or book context
+        // when user picks 'Rename...' from shelf or book context
         // menu). The sheet pre-fills with the current name and
         // runs the same duplicate + reserved-name validation as
         // NewShelfSheet. User confirms to apply the rename.
@@ -704,7 +703,7 @@ struct NewLibraryOutlineView: View {
     /// single nested DisclosureGroup chain (= shelf is level 1, books
     /// are level 2, folders under selected book are level 3).
     ///
-    /// - Shelf label = `shelf.name` (= "从这里开始" by default).
+    /// - Shelf label = `shelf.name` (= "Start Here" by default).
     /// - DisclosureGroup auto-expands when any of its child books is
     ///   selected (= user sees the book immediately on shelf select).
     /// - Book row contains its own nested DisclosureGroup of folders
@@ -721,7 +720,7 @@ struct NewLibraryOutlineView: View {
                 bookRowWithFolders(book)
             }
         } label: {
-            // v0.30 boss 2026-09-01 OOB '全 apple api 默认': use
+            // v0.30 boss 2026-09-01 OOB 'full Apple API default': use
             // SwiftUI Label (= Apple's canonical sidebar row
             // component = List(.sidebar) handles icon-text
             // alignment, hover tint, and selection tint
@@ -736,11 +735,11 @@ struct NewLibraryOutlineView: View {
             }
             .badge(books.count > 0 ? books.count : 0)            // v0.30 boss 8/31 OOB: right-click context menu on shelf
             // row. Apple HIG canonical contextMenu pattern. Two
-            // actions: 重命名 (= renames the shelf in place) +
-            // 删除 (= marks shelf for deletion, triggers .alert for
-            // confirmation). The default '从这里开始' shelf is NOT
+            // actions: Rename (= renames the shelf in place) +
+            // Delete (= marks shelf for deletion, triggers .alert for
+            // confirmation). The default 'Start Here' shelf is NOT
             // blocked here (= it has the same context menu as
-            // user-created shelves; the '资料库 不允许删除' rule
+            // user-created shelves; the 'Reference Library cannot be deleted' rule
             // only applies to the reference library Section, which
             // is a different element).
             .contextMenu {
@@ -761,8 +760,8 @@ struct NewLibraryOutlineView: View {
                     )
                 }
             }
-            // v0.30 boss 8/31 OOB '顺手做一下, 双击目录树展开合上
-            // 的交互': double-click on the shelf label toggles the
+            // v0.30 boss 8/31 OOB 'also, double-click directory tree expand/collapse
+            // interaction': double-click on the shelf label toggles the
             // DisclosureGroup (= standard macOS Finder pattern).
             // Single click selects the shelf (= sets sidebarSelection
             // to .shelf(id) for preview pane scope); double click
@@ -782,8 +781,8 @@ struct NewLibraryOutlineView: View {
     /// placeholders (= current docs hidden per boss OOB), so each
     /// folder has no badge (= displays no count).
     ///
-    /// v0.30 boss 8/30 OOB '目录树有一个按文字从这里开始, 那个应该是
-    /// 没用的, 正式的从这里开始缺少 ICON' = book row missing icon. Root
+    /// v0.30 boss 8/30 OOB 'directory tree has a text label Start Here, that should be
+    /// unused, the official Start Here is missing an ICON' = book row missing icon. Root
     /// cause = wrong Lucide icon name 'book.closed' (= doesn't exist in
     /// Lucide; falls back to Color.clear in LucideIcon helper). Correct
     /// Lucide canonical name = 'book' (= case book = "book" in
@@ -814,14 +813,14 @@ struct NewLibraryOutlineView: View {
                     bookId: book.id, folderName: folder.name
                 )
             }
-            // v0.30 boss 8/31 OOB '点世界观那一层会收起': the book
+            // v0.30 boss 8/31 OOB 'clicking the Worldview level collapses it': the book
             // DisclosureGroup previously collapsed when the user
             // clicked a folder inside (= because the binding only
             // checked 'isBookSelected', which is false once the
             // selection moved from .book to .folder). Now we also
             // keep it expanded when ANY folder inside is selected,
-            // so clicking 世界观 / 角色 / 章节大纲 / 小说正文 / 小说
-            // 草稿 keeps the parent expanded (= same visual model
+            // so clicking Worldview / Characters / Chapter Outline / Novel Body / Novel
+            // Drafts keeps the parent expanded (= same visual model
             // as Finder: a folder with a selected child stays open).
             DisclosureGroup(isExpanded: Binding(
                 get: { isBookSelectedNow
@@ -831,7 +830,7 @@ struct NewLibraryOutlineView: View {
             )) {
                 // v0.30 boss 8/31 OOB (sidebar feedback bundle #3):
                 // folder count badge (= number of .md files in this
-                // folder). User reported '子目录后面没有显示数字' =
+                // folder). User reported 'subdirectory does not show count' =
                 // count badges were missing because folder rows
                 // didn't have .badge() modifier.
                 ForEach(folders, id: \.name) { folder in
@@ -886,13 +885,13 @@ struct NewLibraryOutlineView: View {
                 }
                 // v0.30 boss 8/31 OOB: book row count badge (= total
                 // .md files across all folders in this book). User
-                // reported '书后面没有统计数字'.
+                // reported 'book does not show stats'.
                 .badge(folders.reduce(0) { $0 + bookStore.folderDocumentCount(
                     bookId: book.id,
                     folderDirectoryName: $1.name
                 )})
                 .tag(SidebarItem.book(book.id))                // v0.30 boss 8/31 OOB '顺手做一下, 双击目录树展开合上
-                // 的交互': double-click on the book label toggles the
+                // interaction': double-click on the book label toggles the
                 // folder DisclosureGroup (= level 3 expand/collapse).
                 // Single click selects the book (= sets
                 // sidebarSelection to .book(id) for preview pane scope
@@ -902,10 +901,10 @@ struct NewLibraryOutlineView: View {
                     bookDisclosureStates[book.id, default: false].toggle()
                 }
                 // v0.30 boss 8/31 OOB: right-click context menu on book
-                // row. Apple HIG canonical pattern. The 帮助 book in
-                // the default '从这里开始' shelf still gets the
+                // row. Apple HIG canonical pattern. The Help book in
+                // the default 'Start Here' shelf still gets the
                 // menu (= user can delete the help book if they
-                // want; the 资料库 rule is for the reference
+                // want; the Reference Library rule is for the reference
                 // library Section, not for the default help book).
                 .contextMenu {
                     Button("重命名…") {
@@ -930,8 +929,8 @@ struct NewLibraryOutlineView: View {
     }
 
     /// v0.30: 5 user-facing standard folder names + icons (= per spec
-    /// v5 ticket 001 + ticket 026). 3 hidden folders (LLM 会话, 伏笔,
-    /// 占位符) NOT shown per boss 8/30 sidebar cleanup.
+    /// v5 ticket 001 + ticket 026). 3 hidden folders (LLM sessions, Foreshadowing,
+    /// Placeholder) NOT shown per boss 8/30 sidebar cleanup.
     private var standardFolderNames: [(name: String, displayName: String, icon: String)] {
         [
             ("world",      "世界观",      "globe"),
@@ -986,27 +985,27 @@ struct NewLibraryOutlineView: View {
         books.filter { $0.shelfId == shelf.id }
     }
 
-    // MARK: - Zone header buttons (= 新建 + 入驻)
+    // MARK: - Zone header buttons (= New + Import)
     //
-    // Per boss 8/27 '复用 v0.25.x 现有的 toolbar "+" 按钮': the toolbar
+    // Per boss 8/27 'reuse the existing v0.25.x toolbar "+" button': the toolbar
     // '+' button (= main app toolbar, not sidebar header) drives the
-    // "新建书 / 新建书架" menu. This trailingButton is rendered via
+    // "New Book / New Shelf" menu. This trailingButton is rendered via
     // ZoneContentView's trailingButton parameter (= app.swift:2155)
     // and shows icon buttons in the projectSidebar zone header.
 
     /// 2 icon buttons rendered in the projectSidebar zone header
-    /// trailing area. Per boss 8/27 OOB #3 (= commit bca226704): 新建 Menu +
-    /// 入驻 plain Button. Both use the editor-expand + chat-archive
+    /// trailing area. Per boss 8/27 OOB #3 (= commit bca226704): New Menu +
+    /// Import plain Button. Both use the editor-expand + chat-archive
     /// icon-button pattern (= 28x28 hot area + Lucide icon overlay +
     /// .secondary foreground + .contentShape Rectangle).
     ///
-    /// v0.30 boss 8/30 OOB '恢复那两个按钮, 还有 icon' = restore the
+    /// v0.30 boss 8/30 OOB 'restore those two buttons, plus the icon' = restore the
     /// original v0.27-style buttons and icons:
-    /// - 新建 icon = "square-plus" (Lucide canonical, NOT SF "plus")
-    /// - 入驻 icon = "square-arrow-right" (Lucide canonical)
+    /// - New icon = "square-plus" (Lucide canonical, NOT SF "plus")
+    /// - Import icon = "square-arrow-right" (Lucide canonical)
     ///
     /// v0.30 dev drift (= what NOT to do): I had used SF Symbol "plus"
-    /// for the 新建 icon (= losing the Lucide canonical name + visual
+    /// for the New icon (= losing the Lucide canonical name + visual
     /// consistency with the rest of the sidebar tree icons). Boss caught
     /// it. Restored to Lucide canonical per bca226704.
     @ViewBuilder
@@ -1029,14 +1028,14 @@ struct NewLibraryOutlineView: View {
         // (= button is a simple view) but tapping it set
         // showNewChoiceSheet on the standalone instance which never
         // re-rendered the trailing slot. Switched to NotificationCenter
-        // pattern (= mirrors the 入驻 button's .wenshuImportRequested):
+        // pattern (= mirrors the Import button's .wenshuImportRequested):
         // - Button tap posts .wenshuChoiceRequested notification.
         // - The sidebar body NewLibraryOutlineView listens via
         //   .onReceive and toggles its OWN showNewChoiceSheet state.
         //   Sheets on the sidebar body ARE in the real view hierarchy.
         //
-        // v0.30 boss 8/31 OOB '红框里的 ICON 按钮也实现悬浮效果, 和
-        // TEB 同样即可': added @State isHover + .onHover + .background
+        // v0.30 boss 8/31 OOB 'the ICON buttons in the red box also implement hover effect, same as
+        // TAB': added @State isHover + .onHover + .background
         // tint to both buttons (= matches PaneIconTab's hover tint
         // pattern = Color.accentColor.opacity(0.12) on hover).
         HStack(spacing: 0) {
@@ -1106,11 +1105,11 @@ struct NewLibraryOutlineView: View {
     /// for some rows) — this is the Apple HIG canonical path.
     ///
     /// The menu contents depend on what's selected:
-    /// - Shelf selected: 新建书 (= pre-selects this shelf so the
-    ///   new book lands here), 重命名, 删除
-    /// - Book selected: 重命名, 删除
-    /// - Reference category selected: no actions (= per boss OOB
-    ///   '资料库不允许删除' applies to the whole reference section)
+    /// - Shelf selected: New Book (= pre-selects this shelf so the
+    ///   new book lands here), Rename, Delete
+    /// - Book selected: Rename, Delete
+    ///
+    ///   'Reference Library is not allowed to be deleted' applies to the whole reference section)
     /// - Multi-select: only delete (= batch delete shelves / books)
     @ViewBuilder
     private func contextMenuForSelection(_ items: Set<SidebarItem>) -> some View {
@@ -1178,7 +1177,7 @@ struct NewLibraryOutlineView: View {
                 // folder .md content management.
                 EmptyView()
             case .referenceCategory, .referenceLibraryRoot:
-                // No actions (= boss OOB '资料库不允许删除' covers
+                // No actions (= boss OOB 'Reference Library cannot be deleted' covers
                 // the whole reference section, not just the root).
                 EmptyView()
             }
@@ -1214,10 +1213,10 @@ struct NewLibraryOutlineView: View {
     }
 
     /// v0.30 boss 8/31 OOB: resolve the current target shelf id
-    /// for the '新建书' action. Logic (= first non-nil match):
+    /// for the 'New Book' action. Logic (= first non-nil match):
     /// 1. If sidebarSelection is .book → use that book's shelf
     /// 2. If sidebarSelection is .shelf → use that shelf directly
-    /// 3. Fallback: default '从这里开始' shelf (id
+    /// 3. Fallback: default 'Start Here' shelf (id
     ///    00000000-0000-0000-0000-000000000000)
     /// Returns (id, displayName) so the NewBookSheet can show
     /// the shelf name in its picker.
@@ -1239,7 +1238,7 @@ struct NewLibraryOutlineView: View {
 
     // v0.30 boss 8/31 OOB: context-menu actions. Per macOS HIG
     // destructive operations require explicit confirmation (= an
-    // .alert with a '确认删除' button). The pendingDelete state
+    // .alert with a 'Confirm Delete' button). The pendingDelete state
     // is set by the context menu, which triggers the alert; the
     // user confirms to actually execute the delete.
 
@@ -1247,7 +1246,7 @@ struct NewLibraryOutlineView: View {
     /// Apple HIG: requires confirmation because it's destructive
     /// (= the user might not realize the shelf contains books).
     private func deleteShelf(id: UUID) throws {
-        // Boss: '资料库不允许删除'. Enforce here as a defense in
+        // Boss: 'Reference Library cannot be deleted'. Enforce here as a defense in
         // depth (= the reference library is a Section, not a Shelf,
         // so its id is never passed here; but the check is cheap).
         guard id.uuidString != "00000000-0000-0000-0000-000000000000" else {
@@ -1469,7 +1468,7 @@ struct NewLibraryOutlineView: View {
 }
 
 /// v0.30 boss 8/31 OOB: dedicated error case for attempting to
-/// delete the default shelf (= "资料库 不允许删除"). Defense in
+/// delete the default shelf (= "Reference Library is not allowed to be deleted"). Defense in
 /// depth = even if the context menu is bypassed, saveShelf /
 /// deleteShelf will refuse the operation.
 private enum ShelfDeleteError: LocalizedError {
@@ -1500,7 +1499,7 @@ private enum ShelfError: LocalizedError {
     }
 }
 
-// MARK: - Sheets (= 新建书 / 新建书架 modals)
+// MARK: - Sheets (= New Book / New Shelf modals)
 
 private struct NewBookSheet: View {
     let onSave: (Book) -> Void
@@ -1517,7 +1516,7 @@ private struct NewBookSheet: View {
 
     /// v0.30 boss 8/31 OOB: display name of the target shelf (=
     /// shown in the picker as default selection). Lets the user
-    /// see "this book will go into 帮助" before saving.
+    /// see "this book will go into Help" before saving.
     let targetShelfName: String
     /// v0.30 boss 8/31 OOB: all available shelves with their display
     /// names (= the picker shows shelf names, not UUIDs).
@@ -1561,7 +1560,7 @@ private struct NewBookSheet: View {
                 // v0.30 boss 8/31 OOB: shelf picker (= user can
                 // choose which shelf this book goes into). Default
                 // = the currently-selected shelf (= so clicking
-                // 新建书 inside '测试书架' creates the book there).
+                // New Book inside 'Test Shelf' creates the book there).
                 // Picker shows shelf names (= not raw UUIDs).
                 Picker("归属书架", selection: $shelfId) {
                     ForEach(availableShelves, id: \.id) { shelf in
@@ -1669,7 +1668,7 @@ private struct NewShelfSheet: View {
     /// the parent so the sheet can run its own duplicate check on
     /// every keystroke, without round-tripping through the parent
     /// view). Trims whitespace + lowercases for case-insensitive
-    /// comparison. Includes the reserved '资料库' so it's blocked
+    /// comparison. Includes the reserved 'Reference Library' so it's blocked
     /// from being used as a user shelf name.
     let existingNames: [String]
     @State private var name: String = ""
@@ -1881,8 +1880,8 @@ struct NewChoiceSheet: View {
 
 // MARK: - Context menu support (= right-click delete / rename)
 
-// v0.30 boss 8/31 OOB: '在目录树实现右键删除、重命名功能.
-// 资料库不允许删除.' Apple HIG context menu pattern: right-click
+// v0.30 boss 8/31 OOB: 'implement right-click delete and rename in the directory tree.
+// Reference Library is not allowed to be deleted.' Apple HIG context menu pattern: right-click
 // any row to get a context menu with destructive actions (= delete
 // + rename). The reference library section is read-only
 // (= no context menu, because the reference library is a
@@ -2010,7 +2009,7 @@ private struct RenameItemSheet: View {
 }
 
 
-/// Helper for sidebar zone header icon buttons (= 新建 + 入驻).
+/// Helper for sidebar zone header icon buttons (= New + Import).
 /// Wraps the icon in a Button + hover tint + rounded clip (= same
 /// pattern as PaneIconTab). Each call site gets its own @State
 /// hover tracking (= SwiftUI button identity).
@@ -2029,8 +2028,8 @@ private struct NewButtonWithHover: View {
                 .foregroundStyle(Color.secondary)
         }
         .buttonStyle(.plain)
-        // v0.30 boss 8/31 OOB '红框里的 ICON 按钮也实现悬浮效果, 和
-        // TEB 同样即可': matches PaneIconTab hover pattern (= .onHover
+        // v0.30 boss 8/31 OOB 'the ICON buttons in the red box also implement hover effect, same as
+        // TAB': matches PaneIconTab hover pattern (= .onHover
         // + manual .background tint = Color.accentColor.opacity(0.12)
         // on hover, clipped to RoundedRectangle(4)).
         .onHover { hovering in
