@@ -1,6 +1,7 @@
-// UserFacingError.swift · Wenshu (文枢) · v0.34
+// UserFacingError.swift · Wenshu · v0.34
 //
-// v0.34 boss 2026-09-02 OOB '其他工程上的机制我不太懂, 你看着定':
+// v0.34 boss 2026-09-02 OOB 'the rest of the engineering mechanisms,
+// I do not really understand them, you decide':
 // Centralized user-facing error translation (= port of Card-master
 // `src/ai/domain/assistant-presentation.ts` `assistantUserFacingError`).
 //

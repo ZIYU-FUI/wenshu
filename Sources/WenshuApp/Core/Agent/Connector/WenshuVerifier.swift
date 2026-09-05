@@ -1,19 +1,18 @@
 //
 //  WenshuVerifier.swift · Wenshu · v0.18 ticket 31 (verify MiniMax key)
 //
-//  验证 wenshu AgentProtocol 用 MiniMax key 调通.
-//  老板 2026-08-19 拍 "验证, 用我们的 MiniMax 的 key 看能否真的用你复刻的 hermes 核心调通 anget".
+//  Verifier that proves the wenshu AgentProtocol works against the minimax-cn key.
+//  Boss 2026-08-19 decision "verify, use our minimax-cn key to confirm the ported hermes core can drive the agent".
 //
-// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-//  业务语言描述 (老板懂):
-//  - wenshu AgentProtocol (A2A 协议) → MiniMax API (Anthropic 兼容协议)
-//  - 真值: 用 MiniMax key 调 MiniMax-M3 模型, 验证 "ping" 返 200
-//  - 测试: 1) ping 返 200 2) wenshu AgentProtocol 跟 MiniMax API 集成
+//  Plain-language summary (boss-readable):
+//  - wenshu AgentProtocol (A2A protocol) → minimax-cn API (Anthropic-compatible protocol)
+//  - Goal: use the minimax-cn key to call the MiniMax-M3 model, verify "ping" returns 200
+//  - Tests: 1) ping returns 200  2) wenshu AgentProtocol integrates with the minimax-cn API
 //
 
 import Foundation
 
-/// MiniMax 真值 (Anthropic 兼容协议)
+/// minimax-cn ground-truth probe (Anthropic-compatible protocol)
 public struct WenshuLLMMessage: Codable, Sendable {
     public let role: String
     public let content: String
@@ -34,11 +33,12 @@ public struct WenshuLLMRequest: Codable, Sendable {
     }
 }
 
-// v0.21 ticket 39: union content block (Apple Codable enum 真值)
+// v0.21 ticket 39: union content block (Apple Codable enum ground truth)
 // Anthropic-compatible content blocks include text / thinking (CoT) / tool_use variants
-// MiniMax M2.7 returns thinking blocks before text (chain-of-thought 范式)
-// M3 returns plain text blocks. JSONDecoder keyed container 之前 hardcoded require "text" key
-// 在 content[0] → M2.7 thinking block 抛 DecodingError.keyNotFound.
+
+// minimax-cn M2.7 returns thinking blocks before text (chain-of-thought pattern)
+// M3 returns plain text blocks. JSONDecoder keyed container used to hardcode-require "text" key
+// in content[0] → M2.7 thinking block throws DecodingError.keyNotFound.
 public enum WenshuLLMBlock: Codable, Sendable, Equatable {
     case text(String)
     case thinking(text: String, signature: String?)
@@ -66,7 +66,7 @@ public enum WenshuLLMBlock: Codable, Sendable, Equatable {
             let input = try c.decode(String.self, forKey: .input)
             self = .toolUse(id: id, name: name, input: input)
         default:
-            // unknown type: 容错 (Q26 原则 1 优雅降级). raw 只存 type 名, 调试时 NSLog 已印 allKeys
+            // unknown type: graceful fallback (Q26 principle 1 graceful degradation). raw only stores the type name, NSLog already prints allKeys at debug time
             self = .unknown(type: type, raw: type)
         }
     }
@@ -91,7 +91,7 @@ public enum WenshuLLMBlock: Codable, Sendable, Equatable {
         }
     }
 
-    /// 提取用户可见文本 (text blocks concat). Thinking blocks 不在此暴露, 走 ChatMessage.thinking 字段
+    /// Extract user-visible text (text blocks concatenated). Thinking blocks are not surfaced here; they go through ChatMessage.thinking
     public var displayText: String {
         switch self {
         case .text(let s): return s
@@ -101,7 +101,7 @@ public enum WenshuLLMBlock: Codable, Sendable, Equatable {
         }
     }
 
-    /// 提取 thinking 内容 (CoT 范式, Apple HIG footnote)
+    /// Extract thinking content (CoT pattern, Apple HIG footnote)
     public var thinkingText: String? {
         if case .thinking(let s, _) = self { return s }
         return nil
@@ -148,7 +148,7 @@ public struct WenshuLLMResponse: Codable, Sendable {
     }
 }
 
-/// WenshuVerifier: 验证 wenshu AgentProtocol 调 MiniMax API 真值
+/// WenshuVerifier: ground-truth probe for wenshu AgentProtocol against the minimax-cn API
 public actor WenshuVerifier {
     /// System prompt injected on every LLM request. English-only rule + forbidden-vocab list + allowed-token clarification.
     /// Source of truth for wenshu pollution-defense. See .scratch/2026-08-22-pollution-mitigation/.
@@ -180,11 +180,12 @@ public actor WenshuVerifier {
     private let model: String
 
     /// v0.23 ticket 010.002: apiKey + baseURL no longer frozen at init.
-    /// They are resolved PER LLM CALL via resolveCredentials() — boss 8/23 拍:
-    /// 用户切 model/key 后主 + 子 agent 必须同步切,否则 mismatch 卡死.
+    /// They are resolved PER LLM CALL via resolveCredentials() — boss 8/23 decision:
+    /// when the user switches model/key, main + sub-agents must switch together,
+    /// otherwise mismatch deadlock.
     public init(baseURL: String? = nil, apiKey: String? = nil, model: WenshuLLMModel = .m3) {
-        // model 是唯一 capture 的 (它跟 verifier 行为绑定,不像 credentials 是 Settings 配置).
-        // apiKey / baseURL 留作 override-only 参数 (测试用), default = nil → resolveCredentials() 走 UserDefaults + Keychain.
+        // model is the only captured value (it binds to verifier behavior, unlike credentials which are Settings-config).
+        // apiKey / baseURL remain override-only parameters (for testing); default = nil → resolveCredentials() goes through UserDefaults + Keychain.
         _ = baseURL  // unused; resolveCredentials() handles via UserDefaults + ProviderCatalog
         _ = apiKey
         self.model = model.rawValue
@@ -232,7 +233,7 @@ public actor WenshuVerifier {
         )
     }
 
-    /// ping: 简单 1 消息真值
+    /// ping: simple 1-message ground-truth probe
     public func ping() async throws -> WenshuLLMResponse {
         let request = WenshuLLMRequest(
             model: model,
@@ -242,7 +243,7 @@ public actor WenshuVerifier {
         return try await send(request: request, outputKind: .shortText)
     }
 
-    /// chat: 1 消息 user content 真值 (v0.21 ticket 03 fallback 用, AgentProtocol LLM 失败后 ChatViewModel 走这条)
+    /// chat: 1-message user-content ground-truth probe (v0.21 ticket 03 fallback; AgentProtocol LLM failure routes here through ChatViewModel)
     public func chat(_ text: String) async throws -> WenshuLLMResponse {
         let request = WenshuLLMRequest(
             model: model,
@@ -253,7 +254,7 @@ public actor WenshuVerifier {
     }
 
     /// v0.21 ticket 38: chat overload that takes model at call time
-    /// (boss 2026-08-22 反馈 "切换了 AI 没有真的换" = original chat() uses self.model from init = hardcoded)
+    /// (boss 2026-08-22 feedback "switched the AI but it did not actually switch" — original chat() used self.model from init = hardcoded)
     /// This overload lets ChatViewModel pass current model from UserDefaults at call time
     public func chat(_ text: String, model overrideModel: String) async throws -> WenshuLLMResponse {
         let request = WenshuLLMRequest(
@@ -264,7 +265,7 @@ public actor WenshuVerifier {
         return try await send(request: request, outputKind: .shortText)
     }
 
-    /// v0.22 ticket 001 (文枢 agent 基础设定): chat overload that takes an explicit system prompt.
+    /// v0.22 ticket 001 (Wenshu agent base identity): chat overload that takes an explicit system prompt.
     /// Used by WenshuConductor to prepend the agent identity (WenshuConductorIdentity.systemPrompt).
     /// Default model = self.model (conductor uses runtime model).
     public func chat(_ text: String, system: String, model overrideModel: String? = nil) async throws -> WenshuLLMResponse {
@@ -276,7 +277,7 @@ public actor WenshuVerifier {
         return try await send(request: request, outputKind: .shortText, extraSystemPrompt: system)
     }
 
-    /// send: 实际调 MiniMax API (Apple URLSession 真值)
+    /// send: actually call the minimax-cn API (Apple URLSession ground truth)
     /// `extraSystemPrompt` is appended after the built-in English-only constant.
     /// The Anthropic-compatible request body always carries `systemPromptEnglishOnly` as the first system segment.
     /// `outputKind` controls whether `stop_sequences` is attached (short outputs only).
@@ -285,7 +286,7 @@ public actor WenshuVerifier {
         outputKind: OutputKind = .chat,
         extraSystemPrompt: String? = nil
     ) async throws -> WenshuLLMResponse {
-        // v0.23 ticket 010.002: resolve credentials per call (boss 8/23 拍).
+        // v0.23 ticket 010.002: resolve credentials per call (boss 8/23 decision).
         // UserDefaults + Keychain are read fresh each time so Settings changes
         // take effect immediately on the next LLM call.
         let creds = try resolveCredentials()
@@ -307,7 +308,7 @@ public actor WenshuVerifier {
             "model": request.model,
             "max_tokens": request.max_tokens,
             "messages": request.messages.map { ["role": $0.role, "content": $0.content] },
-            // v0.24 boss验收fix (Boss 8/24 OOB): concat system prompts into single string
+            // v0.24 boss acceptance fix (Boss 8/24 OOB): concatenate system prompts into a single string
             // instead of array. Some minimax cn API deployments ignore second
             // entry when 'system' is an array (= single-string protocol fallback).
             // Mirrors hermes-agent/gateway/run.py single context_prompt pattern.

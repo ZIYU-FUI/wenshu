@@ -1,24 +1,23 @@
 //
-//  ChatView.swift · Wenshu · v0.20 ticket 01 (Agent 对话左下区)
+//  ChatView.swift · Wenshu · v0.20 ticket 01 (Agent chat in lower-left zone)
 //
-//  左下角 zone 接入真 Chat UI + Agent 对话 (复刻 hermes 35 skill chat 真值).
-//  老板 2026-08-19 evening 拍 "先实现聊天区, 就是左下角区域, 能进行 Agent 对话".
+//  Wire the lower-left zone to a real chat UI + Agent conversation (port of hermes 35-skill chat ground truth).
+//  Boss 2026-08-19 evening decision "first implement the chat zone, that is the lower-left area, support Agent conversation".
 //
-// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-//  业务语言描述 (老板懂):
-//  - wenshu 左下 zone 改成真 chat (消息列表 + 输入框 + 发送按钮)
-//  - 点发送 → AgentRuntime.delegateTask → WenshuVerifier.ping 调 MiniMax-M3
-//  - MiniMax key 端到端调通 (Q22 真验证, ticket 31 done, HTTP 200)
-// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-//  - 工程管理老板授权 + 不需要验收
+//  Plain-language summary (boss-readable):
+//  - wenshu lower-left zone becomes a real chat (message list + input box + send button)
+//  - Click send → AgentRuntime.delegateTask → WenshuVerifier.ping calls MiniMax-M3
+//  - minimax-cn key end-to-end works (Q22 ground-truth verification, ticket 31 done, HTTP 200)
 //
-//  Apple HIG 真值: SwiftUI VStack + List + TextField + Button 范式 (跟 Pages / Numbers 一样).
+//  - Engineering management: boss authorized + no acceptance required
+//
+//  Apple HIG ground truth: SwiftUI VStack + List + TextField + Button pattern (same as Pages / Numbers).
 //
 
 import SwiftUI
 import Lucide
 
-/// 1 条消息真值 (user / 文枢 / 系统 三方, 文枢背后多 agent 调度不进 ChatMessage 流)
+/// One chat message: three roles (user / Wenshu / system); Wenshu's internal multi-agent dispatch does not surface as ChatMessage (it goes through the Kanban board)
 public struct ChatMessage: Equatable, Identifiable, Sendable {
     public let id: UUID
     public let role: ChatRole
@@ -50,21 +49,21 @@ public struct ChatMessage: Equatable, Identifiable, Sendable {
     }
 }
 
-/// 消息角色真值 (兼容 v0.20 ticket 01, 实际显示走 source)
+/// Chat role ground truth (compatible with v0.20 ticket 01; actual display uses source)
 public enum ChatRole: String, Equatable, Sendable {
     case user
     case agent
     case system
 }
 
-/// 消息来源真值 (user = 用户发的 / wenshu = 文枢回的 / system = 系统报错). 文枢背后多 agent 调度结果不显 ChatMessage, 走 KanbanStore 看板.
+/// Message source ground truth (user = sent by the user / wenshu = Wenshu's reply / system = system error). Wenshu's internal multi-agent dispatch results do not show as ChatMessage; they go through the KanbanStore board.
 public enum ChatSource: String, Equatable, Sendable, Codable {
     case user
     case wenshu
     case system
 }
 
-/// ChatViewModel: 状态管理 (Apple Observable + ChatSessionStore + WenshuConductor)
+/// ChatViewModel: state management (Apple Observable + ChatSessionStore + WenshuConductor)
 @MainActor
 @Observable
 public final class ChatViewModel {
@@ -80,28 +79,28 @@ public final class ChatViewModel {
     // so every read below resolves to the same source of truth, and
     // `switchModel(_:)` writes back to AppState (= triggers the
     // AppState didSet → UserDefaults round-trip).
-    // v0.24 boss验收fix (2026-08-24): default empty string when no provider key
-    // configured (not "MiniMax-M3" which implies a MiniMax provider is
-    // selected even when user has no key). UI shows "无模型可用" placeholder
+    // v0.24 boss acceptance fix (2026-08-24): default empty string when no provider key
+    // configured (not "MiniMax-M3" which implies a minimax-cn provider is
+    // selected even when user has no key). UI shows "no model available" placeholder
     // when this is empty.
     private let appState: AppState?
     public var currentModel: String { appState?.llmModel ?? "" }
     public var availableModels: [String] = []
     public var contextUsed: Int = 0
-        // v0.24 boss验收fix (Boss 8/25 OOB 'minimax m3 is not 1MB context window?
-    // you set 131k'): MiniMax-M3 context window = 1_000_000 tokens per official
-    // docs (https://www.minimax.io/models/text/m3 = '1M Context';
-    // max output 512K). Empirical limit on public anthropic-compatible endpoint
-    // per hermes-agent issue #37289 = ~512K input cap (vendor enforces lower
-    // than marketed). Decision: use official value (1M) so context budgeting
-    // matches docs; actual API may reject >512K (vendor issue, not wenshu).
-    // Note: Live API /v1/models does NOT return context_length field (= no API
-    // to query per Boss 8/25 '没有接口获取的到吗' = boss confirmed no API).
+        // v0.24 boss acceptance fix (Boss 8/25 OOB 'minimax m3 is not 1MB context window?
+        // you set 131k'): minimax-cn M3 context window = 1_000_000 tokens per official
+        // docs (https://www.minimax.io/models/text/m3 = '1M Context';
+        // max output 512K). Empirical limit on public anthropic-compatible endpoint
+        // per hermes-agent issue #37289 = ~512K input cap (vendor enforces lower
+        // than marketed). Decision: use official value (1M) so context budgeting
+        // matches docs; actual API may reject >512K (vendor issue, not wenshu).
+        // Note: Live API /v1/models does NOT return context_length field (= no API
+        // to query per Boss 8/25 'no API to fetch from, right?' = boss confirmed no API).
     public var contextMax: Int = 1_000_000
 
     private let conductor: WenshuConductor?
     private let store: ChatSessionStore?
-    // v0.24 boss验收fix (Boss 8/25 OOB ticket 015.014 + F2 cleanup): @MainActor
+    // v0.24 boss acceptance fix (Boss 8/25 OOB ticket 015.014 + F2 cleanup): @MainActor
     // isolation replaces nonisolated(unsafe) for Swift 6 concurrency safety.
     // Mutable so archive flow can replace. sessionIdPublic accessor dropped
     // (SUGGEST 1 fix = valueForSessionId() already exists).
@@ -144,7 +143,7 @@ public final class ChatViewModel {
     }
 
     public func loadAvailableModels() async {
-        // v0.24 boss验收fix (2026-08-24): use multi-provider discovery.
+        // v0.24 boss acceptance fix (2026-08-24): use multi-provider discovery.
         // Was: fallback to WenshuLLMModel.allCases (3 MiniMax-only cases).
         // Now: query all configured providers via AvailableModelsDiscovery,
         // sectioned by provider per ticket 011 spec.
@@ -245,7 +244,7 @@ public final class ChatViewModel {
         await send()
     }
 
-    /// send: 发消息 → 文枢主 agent 合成
+    /// send: send message → Wenshu main agent synthesis
     public func send() async {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !isSending else { return }
@@ -254,7 +253,7 @@ public final class ChatViewModel {
         inputText = ""
         isSending = true
 
-        // append AI placeholder message (name + avatar + "AI 思考中…" in list immediately)
+        // append AI placeholder message (name + avatar + "AI thinking..." in list immediately)
         let placeholderId = UUID()
         let placeholder = ChatMessage(id: placeholderId, role: .agent, source: .wenshu, content: "AI 思考中…", isPlaceholder: true)
         messages.append(placeholder)
@@ -464,12 +463,11 @@ public final class ChatViewModel {
         }
     }
 
-    /// clear: 清空消息
-    /// v0.24 boss验收fix (Boss 8/25 OOB ticket 015.014): archive current
+    /// clear: clear all messages
+    /// v0.24 boss acceptance fix (Boss 8/25 OOB ticket 015.014): archive current
     /// session + context (= reset messages + contextUsed), generate new
-    /// sessionId, persist new session for future writes. Boss spec: '起一个
-    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-    /// 全新的会话. 上下文重新加载'.
+    /// sessionId, persist new session for future writes. Boss spec: 'start a
+    /// brand new session. Reload the context'.
     public func startNewSession() {
         // 1. Clear in-memory state (= visual reset).
         messages = []
@@ -497,10 +495,10 @@ public final class ChatViewModel {
     }
 }
 
-/// ChatView: 左下 zone UI (Apple SwiftUI + conductor + store)
+/// ChatView: lower-left zone UI (Apple SwiftUI + conductor + store)
 public struct ChatView: View {
     @State private var vm: ChatViewModel
-    // v0.24 boss验收fix (2026-08-24): focus management for input box.
+    // v0.24 boss acceptance fix (2026-08-24): focus management for input box.
     // Boss 8/24 feedback: when no provider key, chat input should be disabled
     // AND lose focus (no cursor blinking, no keyboard capture).
     @FocusState private var inputFocused: Bool
@@ -509,7 +507,7 @@ public struct ChatView: View {
 
     public init(conductor: WenshuConductor? = nil, store: ChatSessionStore? = nil, sessionId: String = "default", vm: ChatViewModel? = nil) {
         // optional ChatViewModel injection (ChatZoneView shared vm for bottom toolbar
-        // 读 vm.contextUsed 自动 propagate. Q51 子组件 override 父组件部分, 不动 ChatViewModel.send() body, 不动 ChatView body)
+        // Read vm.contextUsed auto-propagate. Q51 child overrides parent partial, do not touch ChatViewModel.send() body, do not touch ChatView body)
         // B-05: when ChatZoneView passes a pre-constructed `vm` (=
         // the canonical path), the AppState is already injected into
         // the vm in ChatZoneView.init. When ChatView creates its own
@@ -640,10 +638,10 @@ public struct ChatView: View {
     }
 
     public var body: some View {
-        // v0.24 boss验收fix: listen for global defocus notification.
-        // Boss 8/24 feedback: '点其它区域, 文本框还是不失焦'.
+        // v0.24 boss acceptance fix: listen for global defocus notification.
+        // Boss 8/24 feedback: 'clicking other areas, the textfield still keeps focus'.
         VStack(spacing: 0) {
-            // 消息列表 (ScrollView + LazyVStack 真值)
+            // Message list (ScrollView + LazyVStack ground truth)
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 8) {
@@ -672,7 +670,7 @@ public struct ChatView: View {
                 if let store = vm.valueForStore() {
                     if let loaded = try? await store.loadMessages(sessionId: vm.valueForSessionId()) {
                         let mapped = loaded.map { stored in
-                            // v0.24 boss验收fix: preserve role from stored.source.
+                            // v0.24 boss acceptance fix: preserve role from stored.source.
                             // Was: hardcoded .agent (wrong, user messages shown as agent).
                             // Now: parse source = "user" → .user role, "wenshu" → .agent.
                             let resolvedRole: ChatRole = (stored.source == "user") ? .user : .agent
@@ -696,10 +694,10 @@ public struct ChatView: View {
 
             Divider()
 
-            // 输入框 + 发送按钮 (Apple HIG SwiftUI 真值)
+            // Input box + send button (Apple HIG SwiftUI ground truth)
             // v0.25.1 (= ticket 030 chat send button 8 PT textfield
             // top padding + button vertical center alignment):
-            // owner 2026-08-26 OOB '聊天文本框上加 8 PT 的间隔' =
+            // owner 2026-08-26 OOB 'add 8 PT spacing above the chat text field' =
             // add 8 PT gap between the Divider above and the
             // TextField (= textfield top padding = 8 PT, so the
             // input area has visual breathing room from the divider
@@ -722,8 +720,8 @@ public struct ChatView: View {
             // .center (= button vertically centered relative to the
             // full TextField + padding box).
             // v0.25.1 (= ticket 032 chat textfield height = 32 PT):
-            // owner 2026-08-26 OOB '文本框的高度 和按钮的高度改成一至
-            // 都和按钮一个高' = make the textfield visual height
+            // owner 2026-08-26 OOB 'match the text field and button heights
+            // both same as the button' = make the textfield visual height
             // match the send button height (= 32 PT). Current = textfield
             // visual height 24 PT (= SwiftUI default TextField with
             // .roundedBorder). Button height = ~32 PT (with .padding).
@@ -733,8 +731,8 @@ public struct ChatView: View {
             // ticket 030) so total TextField + padding box = 40 PT
             // (= 8 PT gap + 32 PT textfield visual).
             // v0.25.1 (= ticket 033 chat send button BOTTOM
-            // alignment): owner 2026-08-26 OOB '还是没有对齐 按钮和
-            // 文本框向下对齐' = the previous ticket 031's .center
+            // alignment): owner 2026-08-26 OOB 'still not aligned, button and
+            // text field bottom-aligned' = the previous ticket 031's .center
             // alignment still didn't match. Boss corrected again:
             // button should be aligned to the BOTTOM of the textfield
             // (= .bottom alignment, not .center). The button's
@@ -744,7 +742,7 @@ public struct ChatView: View {
             // v0.25.1 (= ticket 033 followup 2: chat send button
             // CENTER alignment — boss corrected AGAIN): owner
             // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-            // 2026-08-26 OOB '还是不对 你还是文本框和按钮居中对齐吧'
+            // 2026-08-26 OOB 'still wrong, use text field + button center-align'
             // = after 3 alignment attempts (.center, .bottom,
             // .bottom + height 32), the actual visual boss wants
             // is .center alignment. The earlier ticket 031's
@@ -759,7 +757,7 @@ public struct ChatView: View {
             // HORIZONTAL alignment = drop the 8 PT top padding +
             // drop the .frame(height: 32) textfield pin + drop the
             // .frame(height: 32) button pin — owner 2026-08-26 OOB
-            // '还是不对 是水平居中' = the 4 previous attempts all
+            // 'still wrong, it is horizontal center' = the 4 previous attempts all
             // tried to vertically align the textfield with the button,
             // but the actual visual boss wants is HORIZONTAL center
             // alignment (= the .center alignment already does this,
@@ -774,7 +772,7 @@ public struct ChatView: View {
             // with .borderedProminent = ~40 PT). With the 8 PT
             // padding dropped + height pins dropped, the HStack
             // .center alignment = both elements centered at the
-            // natural height axis. But '水平居中' = horizontal
+            // natural height axis. But 'horizontal center' = horizontal
             // center, = the user wants the textfield + button to
             // share the same VERTICAL center line (= each element's
             // vertical center on the same y = the HStack .center
@@ -782,7 +780,7 @@ public struct ChatView: View {
             // not forced 32 PT).
             // Final approach (= this ticket 033 final 2):
             // 1. drop .padding(.top, LayoutTokens.chromePaddingLarge) on TextField (= boss OOB
-            //    interpreted '水平居中' as 'remove my 8 PT top
+            //    interpreted 'horizontal center' as 'remove my 8 PT top
             //    padding that's making the visual center off').
             // 2. drop .frame(height: 32) on TextField (= use natural
             //    TextField height = 24 PT).
@@ -794,7 +792,7 @@ public struct ChatView: View {
             //    elements at their natural heights).
             // v0.25.1 (= ticket 034 final 3): owner 2026-08-26 OOB
             // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-            // '你理解错了 是文本框的外边距 向上 8PT 这个还是要的'
+            // 'you misunderstood, the text field's outer margin, 8 PT up, this still needs to stay'
             // = 8 PT OUTER top margin on the chat input HStack
             // (= between the Divider above and the HStack that
             // contains the textfield + button). The textfield +
@@ -814,7 +812,7 @@ public struct ChatView: View {
             //
             // v0.28 followup Boss UX round 25 (Boss 2026-08-29 OOB
             // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-            // '现在文本框会随着文字输入更多自动向上加高吗?'): changed
+            // 'does the text field auto-grow taller when more text is typed?'): changed
             // HStack alignment from .center → .bottom so the Send
             // button stays anchored at the bottom of the chat input
             // row even as the TextField grows from 24 PT (= 1 line) to
@@ -824,8 +822,8 @@ public struct ChatView: View {
             // upward. This is the same pattern as Apple's chat input
             // everywhere on macOS 26 Tahoe.
             HStack(alignment: .bottom, spacing: 8) {
-                // v0.24 boss验收fix (2026-08-24): placeholder shows different text based on key state.
-                // Boss 8/24 (out-of-band): '请先在设置中设置好大模型提供方'.
+                // v0.24 boss acceptance fix (2026-08-24): placeholder shows different text based on key state.
+                // Boss 8/24 (out-of-band): 'please set up a large-model provider in Settings first'.
                 // v0.25.1 (= ticket 030 chat send button Lucide icon + 8 PT textfield padding):
                 // owner 2026-08-26 OOB '聊天区 聊天文本框后面的按钮 发送的
                 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
@@ -840,7 +838,7 @@ public struct ChatView: View {
                 //    = Apple HIG TextField default padding is 4 PT, owner
                 //    wants 12 PT effective = 4 + 8).
                 // 3) increase HStack(spacing: 8) to HStack(spacing: 16)
-                //    per owner spec '在聊天文本框上加 8 PT 的间隔' = add 8 PT
+                //    per owner spec 'add 8 PT spacing above the chat text field' = add 8 PT
                 //    additional gap between textfield and send button
                 //    (= boss wants more visual breathing room between
                 //    textfield and send button than current 8 PT).
@@ -859,7 +857,7 @@ public struct ChatView: View {
                     // use no special alignment (= SwiftUI TextField
                     // axis: .vertical centers content by default
                     // within the .frame(minHeight: 30) bounds).
-                    // v0.24 boss验收fix: disable when no key configured.
+                    // v0.24 boss acceptance fix: disable when no key configured.
                     .disabled(!hasUsableKey)
                     .focused($inputFocused)
                     .onSubmit { Task { await vm.routeInput() } }
@@ -867,13 +865,13 @@ public struct ChatView: View {
                         if new.isEmpty {
                             inputFocused = false
                         } else {
-                            // v0.24 boss验收fix: focus input when key becomes available.
+                            // v0.24 boss acceptance fix: focus input when key becomes available.
                             inputFocused = true
                         }
                     }
                     // v0.25.1 (= ticket 034 chat textfield 1 PT focus
-                    // ring): owner 2026-08-26 OOB '文本框聚焦时 这个
-                    // 蓝色描边太粗了 改成 1PT 试试' = SwiftUI
+                    // ring): owner 2026-08-26 OOB 'when the text field is focused this
+                    // blue outline is too thick — change to 1PT and try' = SwiftUI
                     // TextField .roundedBorder style has a default
                     // focus ring ~2-3 PT thick. Boss wants the focus
                     // ring thinned to 1 PT. Fix = override the default
@@ -911,7 +909,7 @@ public struct ChatView: View {
                     .textFieldStyle(.plain)
                     // v0.28 followup Boss UX round 25 (Boss 2026-08-29
                     // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-                    // OOB '现在文本框会随着文字输入更多自动向上加高吗?'):
+                    // OOB 'does the text field auto-grow taller when more text is typed?'):
                     // the textfield now has 2 height modes:
                     //
                     // 1. EMPTY STATE (= no text): .frame(minHeight: 30)
@@ -947,14 +945,14 @@ public struct ChatView: View {
                     //
                     // v0.25.1 (= ticket 037): was pinned to 24 PT per
                     // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-                    // boss OOB '现在文本框不是 32 了吗 不管是多少
-                    // 改成和文本框一样高' = at the time, the textfield
+                    // boss OOB 'is the text field not 32 now, no matter what
+                    // change to match the text field height' = at the time, the textfield
                     // visual was 24 PT (= 1 line) so boss wanted to
                     // match the button height.
                     .frame(minHeight: 30)
                     .padding(.horizontal, DesignTokens.chromePaddingMedium)
                     // v0.28 followup Boss UX round 23 (Boss 2026-08-29
-                    // OOB '文本框是液态玻璃样式的吗'): Was using
+                    // OOB 'is the text field in Liquid Glass style?'): Was using
                     // Color.gray.opacity(0.1) (= solid 10% opacity
                     // gray = NOT Liquid Glass). Now uses
                     // .regularMaterial (= macOS 26 Tahoe Liquid Glass
@@ -1006,8 +1004,8 @@ public struct ChatView: View {
                 }
                 // v0.28 followup Boss UX round 18 (Boss 2026-08-29 OOB
                 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-                // '输入信息右边的发送按钮, 用液态玻璃默认按钮的样式,
-                // 换一个'): Use .bordered = the standard macOS Liquid
+                // 'send button next to the input, use the Liquid Glass default button style,
+                // swap it'): Use .bordered = the standard macOS Liquid
                 // Glass secondary button style (= Apple's canonical
                 // "default button" look in macOS 26 Tahoe). Per Apple
                 // developer.apple.com/documentation/SwiftUI/PrimitiveButtonStyle,
@@ -1065,7 +1063,7 @@ public struct ChatView: View {
                 .help("Start long-running goal (Ralph loop: agent keeps working until the auxiliary judge says done)")
                 .keyboardShortcut("g", modifiers: [.command, .shift])
                 // v0.28 followup Boss UX round 20 (Boss 2026-08-29 OOB
-                // '文本框和发送按钮位置上水平对齐'): REMOVED the
+                // 'text field and send button horizontally aligned'): REMOVED the
                 // .padding(.top, DesignTokens.chromePaddingLarge) here (= was misaligning the
                 // button with the TextField because the TextField
                 // had no equivalent top padding = button was 16 PT
@@ -1075,8 +1073,8 @@ public struct ChatView: View {
                 // and HStack(alignment: .center) centers them
                 // vertically (= Apple HIG canonical for chat input
                 // rows in Messages / Slack). The 16 PT outer top
-                // margin (= boss 8/26 OOB '文本框上面 8PT 不够 再
-                // 加 8 吧') is now applied to the entire HStack
+                // margin (= boss 8/26 OOB 'text field top 8PT is not enough, add
+                // another 8') is now applied to the entire HStack
                 // (= both TextField and button offset down together,
                 // = no misalignment).
                 // Apply the outer top margin (= 16 PT = 8 PT existing
@@ -1092,7 +1090,7 @@ public struct ChatView: View {
             .padding(.top, DesignTokens.chromePaddingLarge)
             .padding(.horizontal, DesignTokens.chromePaddingLeading)
             // v0.28 followup Boss UX round 22 (Boss 2026-08-29 OOB
-            // '文本框, 发送按钮, 距离底边都加上 10pt'): 10 PT outer
+            // 'text field, send button, all add 10pt to the bottom edge'): 10 PT outer
             // bottom margin (= both TextField + Send button offset up
             // 10 PT from the bottom edge of the chat pane = not flush
             // against the bottom = Apple HIG canonical for chat input
@@ -1101,18 +1099,18 @@ public struct ChatView: View {
             // room from the window bottom edge).
             .padding(.bottom, DesignTokens.chromePaddingChatBottom)
         }
-        // v0.24 boss验收fix (2026-08-24): help text DIRECTLY below input box.
-        // Boss 8/24 (out-of-band): '请先在设置中设置好大模型提供方。点击设置'
-        // v0.24 boss验收fix: help text moved to ChatZoneView as centered overlay
+        // v0.24 boss acceptance fix (2026-08-24): help text DIRECTLY below input box.
+        // Boss 8/24 (out-of-band): 'please set up a large-model provider in Settings first. Click Settings'
+        // v0.24 boss acceptance fix: help text moved to ChatZoneView as centered overlay
         // (was: bottom of ChatView, not centered per boss 8/24 feedback).
         EmptyView()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // v0.24 boss验收fix: defocus when user clicks outside chat zone.
-// Boss 8/24 feedback: '点其它区域, 文本框还是不失焦'.
+        // v0.24 boss acceptance fix: defocus when user clicks outside chat zone.
+        // Boss 8/24 feedback: 'clicking other areas, the text field still keeps focus'.
 .onReceive(NotificationCenter.default.publisher(for: .wenshuDefocusChatInput)) { _ in
     inputFocused = false
 }
-// v0.24 boss验收fix (Boss 8/24 反馈 '聊天记录持久化, 我没看到'):
+// v0.24 boss acceptance fix (Boss 8/24 feedback 'chat history persistence, I don't see it'):
 // listen for .wenshuChatStoreReady (posted after applicationDidFinishLaunching
 // creates ChatSessionStore). If store wasn't ready at .task time (race
 // condition), retry loading now. Also retry append message if store
@@ -1140,14 +1138,14 @@ public struct ChatView: View {
     }
 }
 
-/// 1 条消息视图 (Apple HIG 真值)
+/// One chat-message view (Apple HIG ground truth)
 struct ChatMessageView: View {
     let message: ChatMessage
     @State private var thinkingExpanded: Bool = false
 
     var body: some View {
         HStack(alignment: .top) {
-            // 消息来源 icon: Lucide .userRound (user) / .botMessageSquare
+            // Message source icon: Lucide .userRound (user) / .botMessageSquare
             // (wenshu agent) per owner 2026-08-26 directive; SF Symbol keeps
             // for .system (= exclamationmark.triangle). Avatar only = no
             // other UI change (= chat zone style/colour/frame preserved).
@@ -1172,7 +1170,7 @@ struct ChatMessageView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 if message.isPlaceholder {
-                    // 文枢 AI placeholder status indicator
+                    // Wenshu AI placeholder status indicator
                     HStack(spacing: 4) {
                         // v0.27 boss 8/27 OOB: replace SF Symbol with
                         // closest Lucide equivalent. 'brain' = closest
@@ -1194,7 +1192,7 @@ struct ChatMessageView: View {
                     .background(sourceColor.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
                 } else {
                     // CoT thinking block collapsed (Apple HIG footnote)
-                    // DisclosureGroup + 圆角 + Apple 默认动画 (.animation(.default, value:) per Q58.4)
+                    // DisclosureGroup + rounded corners + Apple default animation (.animation(.default, value:) per Q58.4)
                     if let thinking = message.thinking, !thinking.isEmpty, message.source == .wenshu {
                         DisclosureGroup(isExpanded: $thinkingExpanded) {
                             Text(thinking)
@@ -1252,7 +1250,7 @@ struct ChatMessageView: View {
         }
     }
 }
-/// compactNumber: 真实 token count 折 compact 格式 (Hermes format_token_count_compact 真值)
+/// compactNumber: real token count folded into compact format (Hermes format_token_count_compact ground truth)
 /// 1k → "1.0k", 1.5M → "1.5M", 200 → "200"
 private func compactNumber(_ n: Int) -> String {
     let d = Double(n)

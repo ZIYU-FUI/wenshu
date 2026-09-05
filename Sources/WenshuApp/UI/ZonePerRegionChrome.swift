@@ -1,36 +1,36 @@
-// ZonePerRegionChrome.swift · Wenshu (文枢) · v0.28 followup Boss UX round 3
-//
-// Boss 2026-08-29 OOB '按老六区已经实现的复刻' = port the OLD 6区
+// ZonePerRegionChrome.swift · Wenshu · v0.28 followup Boss UX round 3
+
+// Boss 2026-08-29 OOB 'port from the already-shipped old 6-region layout' = port the OLD 6-region
 // `ZoneTopToolbar` + `ZoneBottomToolbar` exactly (= 30 PT top + 30 PT
 // bottom + the exact icons + status text per slot).
 //
-// Old 6区 source (= v0.27 = App.swift:1935-2058):
+// Old 6-region source (= v0.27 = App.swift:1935-2058):
 // - ZoneTopToolbar: HStack of buttons (Lucide icons via ZoneIcon),
-//   30 PT height, with placeholder "占位文字" text at top-trailing.
+//   30 PT height, with placeholder text "占位文字" at top-trailing.
 //   Splitter line at bottom (1 PT).
 // - ZoneBottomToolbar: status text at bottom-leading + optional
 //   rightStatus text at bottom-trailing (= or WordCountInlineLabel
 //   fallback). Splitter line at top (1 PT).
 // - zoneStatus(for:) = per-slot left text:
-//   - projectSidebar = "书架: N"
-//   - projectPreview = "章节: N"
-//   - editor = "字数: N"
-//   - specializedTools = "工具就绪"
+//   - projectSidebar = "Bookshelf: N"
+//   - projectPreview = "Chapter: N"
+//   - editor = "Word count: N"
+//   - specializedTools = "Tools ready"
 //   - aiChat = "" (skipped, ChatBottomToolbar internal)
-//   - aiDynamic = "看板"
+//   - aiDynamic = "Kanban"
 // - rightStatus(for:) = per-slot right text:
-//   - projectSidebar = "书: N"
+//   - projectSidebar = "Book: N"
 //   - others = "" (= WordCountInlineLabel fallback)
 // - toolbarActions(for:) = per-slot top icon array:
-//   - projectSidebar = [Templates(doc.badge.plus), 新建(book-open), 入驻(archive)]
+//   - projectSidebar = [Templates(doc.badge.plus), New(book-open), Import(archive)]
 //   - projectPreview = [Graph(waypoints), Search(magnifyingglass hidden in v0.25.1)]
-//   - editor = [编辑(book-open-text), 大纲(puzzle), 反链(link)] + expand/shrink trailing
-//   - specializedTools = [画布(scribble), 数据库(tablecells)]
+//   - editor = [Edit(book-open-text), Outline(puzzle), Backlinks(link)] + expand/shrink trailing
+//   - specializedTools = [Canvas(scribble), Database(tablecells)]
 //   - aiChat = [Bot(bot), Inbox(inbox)]
 //   - aiDynamic = [] (uses internal DynamicZoneTabBar)
 //
 // This file ports all of these as pure value types + per-zone default
-// factories (= boss拍: add 1 per-zone factory = 1 commit, auto-propagates
+// factories (= boss decision: add 1 per-zone factory = 1 commit, auto-propagates
 // to all builtin presets via the existing `RegionPerZoneChrome` wire-up).
 
 import SwiftUI
@@ -38,12 +38,12 @@ import Lucide
 
 // MARK: - Toolbar constants (= matches old LayoutTokens.toolbarHeight = 30 PT)
 
-/// Per-region top + bottom toolbar height (= matches old 6区
+/// Per-region top + bottom toolbar height (= matches old 6-region
 /// `LayoutTokens.toolbarHeight = 30`, also matches v0.27 `ZoneTopToolbar`
 /// + `ZoneBottomToolbar`).
 public let kZoneToolbarHeight: CGFloat = 30
-// v0.28 followup Boss UX round 26 (Boss 2026-08-29 OOB '我发现合底栏
-// 顶栏的高度不一致, 分隔线高度也不一致'): canonical unified
+// v0.28 followup Boss UX round 26 (Boss 2026-08-29 OOB 'I noticed the top bar
+// and bottom bar heights are inconsistent, and so are the divider heights'): canonical unified
 // chrome height = 30 PT (= matches the macOS HIG tab bar / statusbar
 // standard). All per-region toolbars (= zone top tab bar + zone
 // bottom status) AND the Wenshu global statusbar use this same
@@ -79,7 +79,7 @@ public struct ZoneTopAction: Identifiable, Sendable {
 /// Per-region bottom status text (= matches old `ZoneBottomToolbar.status`).
 ///
 /// B-16: added `rightOnTap` closure for clickable right-field text
-/// (= e.g. editor zone "反链 0" label triggers popover). Default nil
+/// (= e.g. editor zone "Backlinks 0" label triggers popover). Default nil
 /// keeps backward compat with sidebar/preview/tools/dynamic zones
 /// whose right text is plain (= no tap affordance). `@Sendable`
 /// wrapper preserves the struct's Sendable conformance (= closure
@@ -126,8 +126,8 @@ public struct ZonePerRegionChrome<Content: View>: View {
         bottomStatus: ZoneBottomStatus = ZoneBottomStatus(),
         topSkip: Bool = false,
         bottomSkip: Bool = false,
-        // v0.32 boss 2026-09-02 OOB ('参考一下 FCP, 各区有不同的
-        // 区域颜色'): the ZoneSlot is now plumbed through to
+        // v0.32 boss 2026-09-02 OOB ('look at FCP, each zone has different
+        // regional colors'): the ZoneSlot is now plumbed through to
         // RegionContentBackground (= single source of truth for
         // per-zone pane content color). Default = nil so legacy
         // callers (= SwiftUI previews, tests) keep working
@@ -149,7 +149,7 @@ public struct ZonePerRegionChrome<Content: View>: View {
             // Region content (= fills remaining space).
             // v0.28 followup Boss UX round 42 (Boss 2026-08-29 OOB
             // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-            // '缺三个区, 项目管理, 工具, 聊天, 都没进你的样式表' =
+            // 'missing three zones, project manager, tools, chat, none entered your stylesheet' =
             // Sidebar / Tools / Chat / Dynamic panes were missing
             // the RegionContentBackground wrapper). Apply it here at
             // the ZonePerRegionChrome layer (= wraps ALL 6 panes
@@ -177,17 +177,16 @@ public struct ZonePerRegionChrome<Content: View>: View {
 
     @MainActor
     private var bottomBar: some View {
-        // v0.28 followup Boss UX round A (Boss 2026-08-30 OOB '你需要做一个
-        // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-        // 组件索引, 以后如果有新的地方用到相同的东西, 会自然而然的找到组件,
-        // 而不是默认自动写个新的'): Phase 5 of refactor. Now uses the
+        // v0.28 followup Boss UX round A (Boss 2026-08-30 OOB 'you need a
+        // component index, so that future use of the same thing naturally finds the component,
+        // instead of defaulting to writing a new one'): Phase 5 of refactor. Now uses the
         // new `PaneStatusBar` component (= ComponentIndex.md Level 2.6)
         // instead of inline HStack { Text + Spacer + Text } pattern.
         // PaneStatusBar wraps RegionStatusBar + applies DesignTokens
         // statusFont + statusForeground + chrome paddings automatically.
         // B-16: forward bottomStatus.rightOnTap so PaneStatusBar can
         // render the right text as a clickable Button (= editor zone's
-        // "反链 0" popover trigger).
+        // "Backlinks 0" popover trigger).
         PaneStatusBar(
             leftText: bottomStatus.left,
             rightText: bottomStatus.right,
@@ -196,7 +195,7 @@ public struct ZonePerRegionChrome<Content: View>: View {
     }
 }
 
-// v0.34 boss 2026-09-02 OOB '所有区域的顶栏, 结构都一样, 为什么不能是一个组件'.
+// v0.34 boss 2026-09-02 OOB 'all zone top bars have the same structure, why cannot it be one component'.
 // The topBar (which used to be a 'private var' in ZonePerRegionChrome)
 // was DEAD CODE: all 6 callers in TabContentDispatcher.swift pass
 // topActions: [] + topSkip: true, meaning the topBar was never rendered
@@ -212,7 +211,7 @@ public struct ZonePerRegionChrome<Content: View>: View {
 // selected underline + .controlBackgroundColor + 1 PT .separator).
 // The chat zone's tab bar now lives inline in TabContentDispatcher.aiChat
 // as a direct PaneTabBar call (= PaneTabItem(id:"chat") + archive
-// trailing button). Future ticket (= v0.35+ boss拍): if zone-specific
+// trailing button). Future ticket (= v0.35+ boss decision): if zone-specific
 // state plumbing can be unified, merge ZoneContentTabBar +
 // DynamicZoneTabBar + the inlined chat call into 1 WenshuZoneTopBar<ZoneSlot>
 // generic component. Not done in v0.34 because DynamicZoneTabBar still
@@ -254,10 +253,10 @@ public struct ZoneChromeIcon: View {
 ///
 /// Top actions (v0.27 boss 8/27 OOB):
 /// - doc.badge.plus (Templates)
-/// - book-open (新建)
-/// - archive (入驻 — same pattern as editor expand/shrink trailing button)
+/// - book-open (New)
+/// - archive (Import — same pattern as editor expand/shrink trailing button)
 ///
-/// Bottom: left = "书架: N", right = "书: N".
+/// Bottom: left = "Bookshelf: N", right = "Book: N".
 public func projectSidebarChrome(shelfCount: Int, bookCount: Int) -> (top: [ZoneTopAction], bottom: ZoneBottomStatus) {
     let top = [
         ZoneTopAction(id: "templates", label: "Templates", icon: "doc.badge.plus"),
@@ -271,11 +270,11 @@ public func projectSidebarChrome(shelfCount: Int, bookCount: Int) -> (top: [Zone
 /// Project preview chrome (= matches old `toolbarActions(for: .projectPreview)` + `zoneStatus(for: .projectPreview)`).
 ///
 /// Top actions (v0.25.1 ticket 012 + 014):
-/// - book-open-check (预览 — replaces "eye", owner 2026-08-26 OOB)
-/// - waypoints (图 — replaces "circle.grid.cross", owner 2026-08-26 OOB)
+/// - book-open-check (Preview — replaces "eye", owner 2026-08-26 OOB)
+/// - waypoints (Map — replaces "circle.grid.cross", owner 2026-08-26 OOB)
 /// - (Search hidden in v0.25.1 per owner 2026-08-26 OOB; code preserved for future)
 ///
-/// Bottom: left = "章节: N", right = "" (empty).
+/// Bottom: left = "Chapter: N", right = "" (empty).
 public func projectPreviewChrome(chapterCount: Int) -> (top: [ZoneTopAction], bottom: ZoneBottomStatus) {
     let top = [
         ZoneTopAction(id: "preview", label: "预览", icon: "book-open-check"),
@@ -288,16 +287,16 @@ public func projectPreviewChrome(chapterCount: Int) -> (top: [ZoneTopAction], bo
 /// Editor chrome (= matches old `ZoneContentView(zoneSlug: "editor", tabs: [...])` icons + `zoneStatus(for: .editor)` + `rightStatus(for: .editor)`).
 ///
 /// Top actions (v0.25.1 tickets 017 + 028):
-/// - book-open-text (编辑 — replaces "pencil")
-/// - puzzle (大纲 — replaces "list.bullet")
-/// - link (反链 — same name in SF + Lucide)
+/// - book-open-text (Edit — replaces "pencil")
+/// - puzzle (Outline — replaces "list.bullet")
+/// - link (Backlinks — same name in SF + Lucide)
 ///
 /// Note: expand/shrink trailing button is NOT in this list (= it's a
-/// separate trailing button per boss 2026-08-26 OOB '他是一个按钮
-/// 不是一个 teb' = wired separately via `editorTrailingAction` param).
+/// separate trailing button per boss 2026-08-26 OOB 'it is one button
+/// not a tab' = wired separately via `editorTrailingAction` param).
 ///
-/// Bottom: left = "字数: N" (= reserved for future real word count
-/// implementation; today = static 0), right = "反链 N" (boss 9/2 OOB:
+/// Bottom: left = "Word count: N" (= reserved for future real word count
+/// implementation; today = static 0), right = "Backlinks N" (boss 9/2 OOB:
 /// REPLACE the legacy "N%" progress placeholder with backlinks count).
 public func editorChrome(wordCount: Int, backlinkCount: Int) -> (top: [ZoneTopAction], bottom: ZoneBottomStatus) {
     let top = [
@@ -311,11 +310,11 @@ public func editorChrome(wordCount: Int, backlinkCount: Int) -> (top: [ZoneTopAc
 
 /// Specialized tools chrome (= matches old `ZoneContentView(zoneSlug: "specializedTools", tabs: [...])` icons + `zoneStatus(for: .specializedTools)`).
 ///
-/// Top actions (after v0.24 boss 8/24 删 '作曲' tab):
-/// - scribble (画布)
-/// - tablecells (数据库)
+/// Top actions (after v0.24 boss 8/24 removed 'Composer' tab):
+/// - scribble (Canvas)
+/// - tablecells (Database)
 ///
-/// Bottom: left = "工具就绪", right = "".
+/// Bottom: left = "Tools ready", right = "".
 public func specializedToolsChrome() -> (top: [ZoneTopAction], bottom: ZoneBottomStatus) {
     let top = [
         ZoneTopAction(id: "canvas", label: "画布", icon: "scribble"),
@@ -345,9 +344,9 @@ public func aiChatChrome() -> (top: [ZoneTopAction], bottom: ZoneBottomStatus) {
 /// AI dynamic chrome (= matches old `ZoneModule` `toolbarActions(for: .aiDynamic)` + `zoneStatus(for: .aiDynamic)`).
 ///
 /// Top actions: EMPTY (= dynamic zone uses internal DynamicZoneTabBar per
-/// v0.24 boss 8/24 OOB 'Toolbar 清空', = placeholder mode).
+/// v0.24 boss 8/24 OOB 'Toolbar cleared', = placeholder mode).
 ///
-/// Bottom: left = "看板", right = "".
+/// Bottom: left = "Kanban", right = "".
 public func aiDynamicChrome() -> (top: [ZoneTopAction], bottom: ZoneBottomStatus) {
     let top: [ZoneTopAction] = []
     let bottom = ZoneBottomStatus(left: "看板", right: "")

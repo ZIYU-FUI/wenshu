@@ -1,9 +1,9 @@
 // Sources/WenshuApp/Domain/EntityType.swift
 //
-// v0.30 boss 2026-08-30 OOB '分类法有没有预置大量, 因为我们无法预知用户
-// [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-// 会调研什么. 实体如何定义, 是不是有规则, 你不是已经复刻了 llm wiki,
-// 那里面有规则吗'. Boss chose option A: 'v0.30 加 EntityType enum +
+// v0.30 boss 2026-08-30 OOB 'is the taxonomy preloaded with a large set,
+// because we cannot predict what the user will research. How are entities
+// defined, are there rules, you already ported llm wiki, are there rules
+// in it'. Boss chose option A: 'v0.30 add EntityType enum +
 // strict schema':
 //
 // = Universal entity-type classification (= orthogonal to EntityCategory).
@@ -15,9 +15,9 @@
 // - Category = subject matter (= library taxonomy)
 // - Type = object nature (= domain ontology)
 //
-// Example: '李白' = character (type) + literature I (category).
-//          '赤壁之战' = event (type) + history K (category).
-//          '唐朝' = era (type) + history K (category).
+// Example: 'Li Bai' = character (type) + literature I (category).
+//          'Battle of Red Cliffs' = event (type) + history K (category).
+//          'Tang dynasty' = era (type) + history K (category).
 //
 // This is the v0.30 strict schema (= codable, validated by linter, enforced
 // by LLM classifier). It is the FIRST explicit entity-definition rule
@@ -71,9 +71,10 @@ public enum EntityType: String, CaseIterable, Codable, Sendable, Identifiable, H
         }
     }
 
-    /// v0.30 boss OOB: '别用缩写, 就是那个念, 地, 人, 全称不也就才两个字,
-    /// 最多四个字, 够显示'. Full Chinese name (= 2-4 chars, plenty of
-    /// sidebar space). Used as inline prefix in sidebar (= '[人物] 李白').
+    /// v0.30 boss OOB: 'do not use abbreviations, just the full characters:
+    /// nian (念), di (地), ren (人), the full names are only 2-4 chars,
+    /// plenty to display'. Full Chinese name (= 2-4 chars, plenty of
+    /// sidebar space). Used as inline prefix in sidebar (= '[人物] Li Bai').
     public var shortName: String {
         switch self {
         case .character: return "人物"
