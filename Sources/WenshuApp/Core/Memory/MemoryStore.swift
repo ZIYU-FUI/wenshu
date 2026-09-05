@@ -1,17 +1,11 @@
 //
 //  MemoryStore.swift · Wenshu · v0.17 ticket 01 (hermes replica)
-//
-//  本地 SQLite 长期记忆 (替代 hermes mem0 云服务).
-//  老板 2026-08-19 拍 "底层依赖复刻" — 不依赖 hermes, wenshu 自己能 search/add memory.
-//
-//  接口对齐 mem0 platform 模式真值: add / search / get / update / delete
-//  SQLite 真值: Apple Foundation 内置 SQLite3, schema = user_id / memory_id / content / created_at / updated_at
+//  + SETTINGS-PERSISTENCE-001 (2026-09-05).
 //
 
 import Foundation
 import SQLite3
 
-/// 1 条记忆 = 1 row, schema = user_id 隔离多用户 + memory_id UUID + content TEXT + 时间戳
 public struct Memory: Equatable, Sendable {
     public let userId: String
     public let memoryId: String
@@ -28,18 +22,15 @@ public struct Memory: Equatable, Sendable {
     }
 }
 
-/// SQLite 透明指针 wrap (SQLite C API 原生 sqlite3*, Swift ARC 友好)
 private final class SQLitePtr {
     var db: OpaquePointer?
     deinit { sqlite3_close(db) }
 }
 
-/// MemoryStore: SQLite-backed 长期记忆, 线程安全 actor, 接口对齐 mem0 platform 模式真值
 public actor MemoryStore {
     private let dbPtr: SQLitePtr
     private let dbPath: String
 
-    /// 初始化 (内存或磁盘) — Apple HIG 真值: 默认磁盘 = Library/Application Support/wenshu/memory.db
     public init(path: String? = nil) throws {
         let url: URL
         if let path = path {
@@ -58,12 +49,10 @@ public actor MemoryStore {
         self.dbPtr = ptr
     }
 
-    /// 启动时调用: 建表 (actor 初始化后才能调 self)
     public func bootstrap() throws {
         try createSchema()
     }
 
-    /// 创建 memories 表 (if not exists)
     private func createSchema() throws {
         let sql = """
         CREATE TABLE IF NOT EXISTS memories (
@@ -78,7 +67,6 @@ public actor MemoryStore {
         try exec(sql)
     }
 
-    /// add: 加 1 条记忆 (mem0 platform add 接口对齐)
     public func add(userId: String, content: String) throws -> Memory {
         let now = Date()
         let memory = Memory(userId: userId, content: content, createdAt: now, updatedAt: now)
@@ -99,7 +87,6 @@ public actor MemoryStore {
         return memory
     }
 
-    /// search: 按 query 模糊匹配 (mem0 platform search 接口对齐, 简化版 LIKE %query%)
     public func search(userId: String, query: String, limit: Int = 10) throws -> [Memory] {
         let sql = "SELECT user_id, memory_id, content, created_at, updated_at FROM memories WHERE user_id = ? AND content LIKE ? ORDER BY updated_at DESC LIMIT ?;"
         var stmt: OpaquePointer?
@@ -112,19 +99,17 @@ public actor MemoryStore {
         sqlite3_bind_int(stmt, 3, Int32(limit))
         var results: [Memory] = []
         while sqlite3_step(stmt) == SQLITE_ROW {
-            let memory = Memory(
+            results.append(Memory(
                 userId: textColumn(stmt, 0) ?? "",
                 memoryId: textColumn(stmt, 1) ?? "",
                 content: textColumn(stmt, 2) ?? "",
                 createdAt: Date(timeIntervalSince1970: sqlite3_column_double(stmt, 3)),
                 updatedAt: Date(timeIntervalSince1970: sqlite3_column_double(stmt, 4))
-            )
-            results.append(memory)
+            ))
         }
         return results
     }
 
-    /// get: 拿 1 条 (mem0 get 接口对齐)
     public func get(memoryId: String) throws -> Memory? {
         let sql = "SELECT user_id, memory_id, content, created_at, updated_at FROM memories WHERE memory_id = ?;"
         var stmt: OpaquePointer?
@@ -143,7 +128,6 @@ public actor MemoryStore {
         )
     }
 
-    /// update: 改 content (mem0 update 接口对齐)
     public func update(memoryId: String, content: String) throws {
         let now = Date()
         let sql = "UPDATE memories SET content = ?, updated_at = ? WHERE memory_id = ?;"
@@ -160,7 +144,6 @@ public actor MemoryStore {
         }
     }
 
-    /// delete: 删 1 条 (mem0 delete 接口对齐)
     public func delete(memoryId: String) throws {
         let sql = "DELETE FROM memories WHERE memory_id = ?;"
         var stmt: OpaquePointer?
@@ -174,7 +157,6 @@ public actor MemoryStore {
         }
     }
 
-    /// count: 拿 user 记忆条数 (测试用)
     public func count(userId: String) throws -> Int {
         let sql = "SELECT COUNT(*) FROM memories WHERE user_id = ?;"
         var stmt: OpaquePointer?
@@ -185,6 +167,47 @@ public actor MemoryStore {
         sqlite3_bind_text(stmt, 1, userId, -1, SQLITE_TRANSIENT)
         guard sqlite3_step(stmt) == SQLITE_ROW else { return 0 }
         return Int(sqlite3_column_int(stmt, 0))
+    }
+
+    public func listRecent(userId: String, limit: Int = 20) throws -> [Memory] {
+        guard limit > 0 else { return [] }
+        let sql = "SELECT user_id, memory_id, content, created_at, updated_at FROM memories WHERE user_id = ? ORDER BY updated_at DESC LIMIT ?;"
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(dbPtr.db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            throw MemoryStoreError.prepareFailed(message: lastErrorMessage(db: dbPtr.db))
+        }
+        defer { sqlite3_finalize(stmt) }
+        sqlite3_bind_text(stmt, 1, userId, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_int(stmt, 2, Int32(limit))
+        var results: [Memory] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            results.append(Memory(
+                userId: textColumn(stmt, 0) ?? "",
+                memoryId: textColumn(stmt, 1) ?? "",
+                content: textColumn(stmt, 2) ?? "",
+                createdAt: Date(timeIntervalSince1970: sqlite3_column_double(stmt, 3)),
+                updatedAt: Date(timeIntervalSince1970: sqlite3_column_double(stmt, 4))
+            ))
+        }
+        return results
+    }
+
+    @discardableResult
+    public func purgeOlderThan(userId: String, retentionDays: Int) throws -> Int {
+        guard retentionDays > 0 else { return 0 }
+        let cutoff = Date().addingTimeInterval(-Double(retentionDays) * 86_400.0)
+        let sql = "DELETE FROM memories WHERE user_id = ? AND created_at < ?;"
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(dbPtr.db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            throw MemoryStoreError.prepareFailed(message: lastErrorMessage(db: dbPtr.db))
+        }
+        defer { sqlite3_finalize(stmt) }
+        sqlite3_bind_text(stmt, 1, userId, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_double(stmt, 2, cutoff.timeIntervalSince1970)
+        guard sqlite3_step(stmt) == SQLITE_DONE else {
+            throw MemoryStoreError.stepFailed(message: lastErrorMessage(db: dbPtr.db))
+        }
+        return Int(sqlite3_changes(dbPtr.db))
     }
 
     private func exec(_ sql: String) throws {
@@ -203,7 +226,6 @@ public actor MemoryStore {
     }
 }
 
-/// MemoryStore 错误
 public enum MemoryStoreError: Error {
     case openFailed(dbPath: String, message: String)
     case prepareFailed(message: String)
@@ -211,10 +233,8 @@ public enum MemoryStoreError: Error {
     case execFailed(message: String)
 }
 
-/// SQLite3 C API 桥接常量 (Apple 内置 libsqlite3)
 private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
-/// SQLite3 错误信息 helper (file-level, 不依赖 self, 用于 actor init)
 private enum SQLiteErmsg {
     static func message(_ db: OpaquePointer?) -> String {
         guard let db = db else { return "no db handle" }

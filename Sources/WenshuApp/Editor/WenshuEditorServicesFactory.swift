@@ -1,44 +1,18 @@
 // Sources/WenshuApp/Editor/WenshuEditorServicesFactory.swift
 //
-// v0.39 ticket 001 -- factory that builds MarkdownEditorConfiguration
-// (= wraps MarkdownEditorServices) from current AppState + BookStore +
-// WenshuLibrary. One configuration instance per edit session (= bound
-// to active tab's chapter). HighlighterSwiftBridge is transitive via
-// MarkdownEngineCodeBlocks product; SwiftMathBridge is NOT wired
-// (= LaTeX is opt-in future).
-//
-// Real API (verified 2026-09-04 from swift-markdown-engine 0.12.0 source):
-//   MarkdownEditorServices.init(
-//     wikiLinks: any WikiLinkResolver = NoOpWikiLinkResolver(),
-//     images: any EmbeddedImageProvider = NoOpEmbeddedImageProvider(),
-//     syntaxHighlighter: any SyntaxHighlighter = PlainTextSyntaxHighlighter(),
-//     latex: any LatexRenderer = NoOpLatexRenderer(),
-//     bus: MarkdownEditorBus = .default
-//   )
-//   MarkdownEditorConfiguration.init(
-//     theme: ...,
-//     services: MarkdownEditorServices = .default,
-//     ...
-//   )
-
+// v0.39 ticket 001 + SMC ticket 003 -- factory + bus builder.
 import Foundation
 import MarkdownEngine
 import MarkdownEngineCodeBlocks
 
 enum WenshuEditorServicesFactory {
-    /// Build a MarkdownEditorConfiguration for the chapter editor.
-    /// Pass `bookStore: nil` to get a no-op configuration (= the
-    /// editor still mounts with full markdown styling + code-fence
-    /// syntax highlight + Apple HIG behaviors, but wiki-link
-    /// resolution and image embeds are no-ops because we don't have
-    /// a wenshu library path to look at). nil-bookStore is the
-    /// v0.39 ticket 001-B defensive path (= on early zone activation
-    /// when the environment chain hasn't reached EditorPlaceholder
-    /// yet via the AnyView wrapper in ZoneContentView.Tab).
-    static func make(bookStore: BookStore?) -> MarkdownEditorConfiguration {
-        // Build services (= wikiLinks + images use the book paths when
-        // available; HighlighterSwiftBridge always wired because it
-        // has no path dependency).
+    /// Build a MarkdownEditorConfiguration. The bus defaults to
+    /// .default; callers pass MarkdownEditorBus.buildWenshu() to
+    /// activate format / find / replace routing.
+    static func make(
+        bookStore: BookStore?,
+        bus: MarkdownEditorBus = .default
+    ) -> MarkdownEditorConfiguration {
         let wikiLinks: any WikiLinkResolver
         let images: any EmbeddedImageProvider
         if let stores = bookStore?.stores {
@@ -50,29 +24,21 @@ enum WenshuEditorServicesFactory {
                 referenceLibraryRoot: stores.referenceLibraryRoot
             )
         } else {
-            // No library available (= early activation or test env) =
-            // engine uses no-op defaults for both protocols (= links
-            // appear as plain text + missing images render the engine's
-            // own broken-embed placeholder). The editor is still
-            // functional for typing, syntax highlight, undo, etc.
             wikiLinks = NoOpWikiLinkResolver()
             images = NoOpEmbeddedImageProvider()
         }
         let services = MarkdownEditorServices(
             wikiLinks: wikiLinks,
             images: images,
-            syntaxHighlighter: HighlighterSwiftBridge()
-            // latex: omit (= NoOpLatexRenderer default)
-            // bus: omit (= .default)
+            syntaxHighlighter: HighlighterSwiftBridge(),
+            bus: bus
         )
         var config = MarkdownEditorConfiguration.default
         config.services = services
         return config
     }
 
-    /// Legacy call site (= explicit reference library + active book
-    /// URLs). Kept for the unit test that doesn't have a BookStore
-    /// fixture (= the test builds a temp dir and passes URLs directly).
+    /// Legacy call site for tests.
     static func make(
         referenceLibraryRoot: URL,
         activeBookRoot: URL?
@@ -84,11 +50,39 @@ enum WenshuEditorServicesFactory {
                 referenceLibraryRoot: referenceLibraryRoot
             ) } ?? NoOpEmbeddedImageProvider(),
             syntaxHighlighter: HighlighterSwiftBridge()
-            // latex: omit (= NoOpLatexRenderer default)
-            // bus: omit (= .default)
         )
         var config = MarkdownEditorConfiguration.default
         config.services = services
         return config
+    }
+}
+
+// MARK: - MarkdownEditorBus construction (SMC ticket 003)
+extension MarkdownEditorBus {
+    static func buildWenshu() -> MarkdownEditorBus {
+        MarkdownEditorBus(
+            applyBoldRequest: Notification.Name("com.wenshu.editor.applyBoldRequest"),
+            applyItalicRequest: Notification.Name("com.wenshu.editor.applyItalicRequest"),
+            applyHeadingRequest: Notification.Name("com.wenshu.editor.applyHeadingRequest"),
+            applyHighlightRequest: Notification.Name("com.wenshu.editor.applyHighlightRequest"),
+            applyStrikethroughRequest: Notification.Name("com.wenshu.editor.applyStrikethroughRequest"),
+            applyInlineCodeRequest: Notification.Name("com.wenshu.editor.applyInlineCodeRequest"),
+            applyBlockquoteRequest: Notification.Name("com.wenshu.editor.applyBlockquoteRequest"),
+            applyUnorderedListRequest: Notification.Name("com.wenshu.editor.applyUnorderedListRequest"),
+            applyOrderedListRequest: Notification.Name("com.wenshu.editor.applyOrderedListRequest"),
+            applyLinkRequest: Notification.Name("com.wenshu.editor.applyLinkRequest"),
+            applyCodeBlockRequest: Notification.Name("com.wenshu.editor.applyCodeBlockRequest"),
+            applyHorizontalRuleRequest: Notification.Name("com.wenshu.editor.applyHorizontalRuleRequest"),
+            applyImageRequest: Notification.Name("com.wenshu.editor.applyImageRequest"),
+            selectionBoldDidChange: Notification.Name("com.wenshu.editor.selectionBoldDidChange"),
+            selectionItalicDidChange: Notification.Name("com.wenshu.editor.selectionItalicDidChange"),
+            selectionHighlightDidChange: Notification.Name("com.wenshu.editor.selectionHighlightDidChange"),
+            findScrollToRange: Notification.Name("com.wenshu.editor.findScrollToRange"),
+            findClearHighlights: Notification.Name("com.wenshu.editor.findClearHighlights"),
+            findQuery: Notification.Name("com.wenshu.editor.findQuery"),
+            findResults: Notification.Name("com.wenshu.editor.findResults"),
+            replaceCurrent: Notification.Name("com.wenshu.editor.replaceCurrent"),
+            replaceAll: Notification.Name("com.wenshu.editor.replaceAll")
+        )
     }
 }

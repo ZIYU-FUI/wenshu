@@ -1212,9 +1212,14 @@ struct EditorPlaceholder: View {
                 // WAS firing correctly; = the bug was the view rendering
                 // the placeholder instead of the active tab).
                 if mode == .preview {
+                    // SMC ticket 003: preview-mode wiki-link nav
+                    // routes through the reference library + active
+                    // book chapter lookup (= real target resolution).
                     EditorPreviewContent(
                         markdownBody: draft,
-                        wikilinkTarget: { _ in /* TODO: ticket 027-35 navigation */ }
+                        wikilinkTarget: { displayName in
+                            handlePreviewWikiLink(displayName: displayName)
+                        }
                     )
                 } else {
                     // v0.34 ticket 07: edit mode uses Apple SwiftUI
@@ -1263,12 +1268,21 @@ struct EditorPlaceholder: View {
                         // when the environment chain hasn't propagated
                         // BookStore yet on early zone activation).
                         configuration: WenshuEditorServicesFactory.make(
-                            bookStore: bookStore
+                            bookStore: bookStore,
+                            // SMC ticket 003: per-active-tab bus so
+                            // engine format / find / replace events
+                            // stay scoped to this document.
+                            bus: MarkdownEditorBus.buildWenshu()
                         ),
                         // v0.39 ticket 001: stable per-tab id, passed
                         // to engine as `documentId` so undo + pending
                         // replacements are scoped to this tab.
-                        draftId: activeTabIdString
+                        draftId: activeTabIdString,
+                        // SMC ticket 003: forward engine wiki-link
+                        // click to the navigation flow.
+                        onLinkClick: { linkId in
+                            handleEditorWikiLink(linkId: linkId)
+                        }
                     )
                 }
             }
@@ -1434,17 +1448,88 @@ struct EditorPlaceholder: View {
         handleDirtyTransition(false)
     }
 
-    // v0.34 B-21: write current draft to documentPath (= atomic UTF-8).
+    // v0.34 B-21 + SMC ticket 003: write the draft to a real
+    // filesystem path. Old flow = /tmp fallback when documentPath
+    // was nil (= dropped real edits). New flow: if the active tab
+    // already has a documentPath, overwrite in place; otherwise
+    // propose a chapters/<uuid>.md path under the active book and
+    // write there (= auto-bind the tab's documentPath so subsequent
+    // saves overwrite the same file).
     private func writeDraftToDisk() {
-        let path = documentPath ?? "/tmp/wenshu-preview-sample.md"
-        let url = URL(fileURLWithPath: path)
-        do {
-            try draft.write(to: url, atomically: true, encoding: .utf8)
-        } catch {
-            #if DEBUG
-            print("[wenshu.editor] auto-save failed: \(error)")
-            #endif
+        if let path = documentPath {
+            let url = URL(fileURLWithPath: path)
+            try? draft.write(to: url, atomically: true, encoding: .utf8)
+            return
         }
+        if let activeTab = activeTab,
+           let proposed = DraftPersistence.proposedPath(
+            for: activeTab, bookStore: bookStore
+           ) {
+            do {
+                let parent = proposed.deletingLastPathComponent()
+                try FileManager.default.createDirectory(
+                    at: parent, withIntermediateDirectories: true
+                )
+                try DraftPersistence.persist(text: draft, to: proposed)
+                documentPath = proposed.path
+            } catch {
+                #if DEBUG
+                print("[wenshu.editor] chapter save failed: \(error)")
+                #endif
+            }
+            return
+        }
+        let url = URL(fileURLWithPath: "/tmp/wenshu-preview-sample.md")
+        try? draft.write(to: url, atomically: true, encoding: .utf8)
+    }
+
+    /// SMC ticket 003: handle a preview-mode wiki-link click.
+    /// Looks up the display name in the reference library first
+    /// (= library-public entities), then in the active book.
+    /// On hit, opens the target as a new tab and switches to it.
+    private func handlePreviewWikiLink(displayName: String) {
+        guard !displayName.isEmpty else { return }
+        guard let result = WikiLinkNavigation.handle(
+            displayName: displayName,
+            referenceStore: bookStore.referenceStore,
+            bookStore: bookStore
+        ) else {
+            #if DEBUG
+            print("[wenshu.editor] wiki-link miss: \(displayName)")
+            #endif
+            return
+        }
+        let fingerprint = String(result.body.prefix(200))
+        if let existingIdx = appState.openTabs.firstIndex(where: {
+            String($0.originalBody.prefix(200)) == fingerprint
+        }) {
+            appState.activeTabId = appState.openTabs[existingIdx].id
+            return
+        }
+        let newTab = EditorTab(
+            id: UUID(),
+            documentPath: nil,
+            draft: result.body,
+            originalBody: result.body,
+            mode: .preview
+        )
+        appState.openTabs.append(newTab)
+        appState.activeTabId = newTab.id
+    }
+
+    /// SMC ticket 003: handle a wiki-link click from the live
+    /// editor surface (= the engine fires onLinkClick with the
+    /// resolved link id, NOT the display name). Resolve the id
+    /// back to the display name via the active
+    /// WikiLinkResolver's name(forID:) and route through the
+    /// preview-mode navigation flow.
+    private func handleEditorWikiLink(linkId: String) {
+        guard !linkId.isEmpty else { return }
+        let resolver = ReferenceLibraryWikiLinkResolver(
+            referenceLibraryRoot: bookStore.stores.referenceLibraryRoot
+        )
+        let displayName = resolver.name(forID: linkId) ?? linkId
+        handlePreviewWikiLink(displayName: displayName)
     }
 
     // MARK: - P2 #19 paragraph_ai apply
@@ -1950,6 +2035,10 @@ private struct EditorEditContent: View {
     // `documentId` so undo history + pending replacements are scoped
     // to each editor instance (= prevents cross-tab state bleed).
     let draftId: String
+    // SMC ticket 003: forwarded engine-side link-click callback.
+    // The engine fires this when the user clicks a `[[Name]]`
+    // token in the live editor surface.
+    var onLinkClick: ((String) -> Void)? = nil
 
     /// Read-only dirty flag (= computed from the binding's current value).
     private var isDirty: Bool { draft != originalBody }
@@ -1963,10 +2052,15 @@ private struct EditorEditContent: View {
         // surface (= Apple-standard undo, find, accessibility, IME).
         // WenshuMarkdownEditor is a thin NSViewRepresentable wrapper
         // (= keeps EditorEditContent a pure rendering surface).
+        //
+        // SMC ticket 003: pass the host's onLinkClick through the
+        // WenshuMarkdownEditor seam so wiki-link clicks in the live
+        // editor surface reach the navigation flow.
         WenshuMarkdownEditor(
             text: $draft,
             draftId: draftId,
-            configuration: configuration
+            configuration: configuration,
+            onLinkClick: onLinkClick
         )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             // v0.34 B-18: write live character count via host callback
