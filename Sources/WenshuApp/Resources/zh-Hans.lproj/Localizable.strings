@@ -117,3 +117,11 @@
 "button.clear"    = "清除";
 "picker.status"   = "状态";
 "picker.character" = "角色";
+
+// MARK: - 段落 AI 工具栏 (WorkspaceView.swift ParagraphAIToolbarButtons,
+//       WIRE-PARAGRAPH-002 b405cab56). 3 个按钮 tooltip 从内联英文
+//       `.help("...")` 字面量移入 catalog (= INV-PUSH-7, iron-rules sweep
+//       Rule 2 typography finding).
+"paragraph.expand"  = "展开";
+"paragraph.shorten"  = "缩短";
+"paragraph.rephrase" = "改写";

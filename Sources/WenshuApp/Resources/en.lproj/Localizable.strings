@@ -124,3 +124,12 @@
 "button.clear"    = "Clear";
 "picker.status"   = "Status";
 "picker.character" = "Character";
+
+// MARK: - Paragraph AI toolbar (WorkspaceView.swift ParagraphAIToolbarButtons,
+//       WIRE-PARAGRAPH-002 b405cab56). 3 button tooltips moved from inline
+//       English `.help("...")` literals to the catalog per iron-rules sweep
+//       Rule 2 typography finding (= INV-PUSH-7). zh-Hans users see 展开 /
+//       缩短 / 改写.
+"paragraph.expand"  = "Expand";
+"paragraph.shorten"  = "Shorten";
+"paragraph.rephrase" = "Rephrase";

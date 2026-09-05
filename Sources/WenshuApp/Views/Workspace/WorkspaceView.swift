@@ -2216,7 +2216,7 @@ private struct ParagraphAIToolbarButtons: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help("Expand selected text (= make longer)")
+            .help(WenshuI18n.t("paragraph.expand"))
             .keyboardShortcut("e", modifiers: [.command, .shift])
             .disabled(selectedText.isEmpty || isApplying)
 
@@ -2237,7 +2237,7 @@ private struct ParagraphAIToolbarButtons: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help("Shorten selected text (= condense)")
+            .help(WenshuI18n.t("paragraph.shorten"))
             .keyboardShortcut("h", modifiers: [.command, .shift])
             .disabled(selectedText.isEmpty || isApplying)
 
@@ -2257,7 +2257,7 @@ private struct ParagraphAIToolbarButtons: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help("Rephrase selected text")
+            .help(WenshuI18n.t("paragraph.rephrase"))
             .keyboardShortcut("r", modifiers: [.command, .shift])
             .disabled(selectedText.isEmpty || isApplying)
 
