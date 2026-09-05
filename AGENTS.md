@@ -9,7 +9,7 @@ AGENTS.md
 - Forbidden Chinese vocabulary: 修真 / 渡劫 / 筑基 / 返虚 / 结丹 / 金丹 / 元婴 / 飞升 / 天劫 / 雷劫 / 心魔 / 魔障. Historical note: 修真 = an earlier agent's typo for 修正. Use 修 / 改 / fix / 替换 / 调整 in commit body / comment / doc / prompt / card body.
 - First line of every doc = fact. Last line of every doc = fact.
 
-This file = wenshu project baseline + cross-role address hard constraint. Single agent (pocock profile) direct dialog with 老板. No dispatch, no board, no 6-role flow. Version 8/18拍 v0.07 (pocock single agent purified version).
+This file = wenshu project baseline + cross-role address hard constraint. Single agent (pocock profile) direct dialog with 老板. No dispatch, no board, no 6-role flow. Version 8/18拍 v0.07 + 2026-09-04/05拍 v0.10 (pocock single agent purified version).
 
 # §11 Project baseline
 
@@ -179,4 +179,23 @@ stable while the per-module work-tree evolves.
 
 ---
 
+# §13 v0.10 changes (2026-09-04 → 2026-09-05 ship burst)
+
+- Scope of the burst: 167 commits over 2 days (= 2026-09-04 and 2026-09-05 CST). Commit-type breakdown: 101 feat(wenshu): + 22 fix(wenshu): + 15 docs(wenshu): + 12 chore(wenshu): + 7 test(wenshu): + 1 merge: (= counted via `git log --oneline --since=2026-09-04`).
+- Comprehensive retrospective (= per-stage table, TL;DR, 14 frontend verification items, 6 boss dependencies) lives at `.scratch/2026-09-05-today-retrospective.md`. This section = short summary; the retrospective = ground truth.
+- v0.38 ship packet: 22 smoke tests + 11 specialized tools port + wire-up tickets + HermesTodoStore DispatchQueue deadlock fix + Localizable.strings i18n groundwork + ContentEngine wire-up + INV-PUSH-5 historical CJK cleanup batch 1.
+- v0.39 ship packet: out-of-scope deferred stub work (= drag-drop image / wiki-link / LaTeX / outline backlinks tabs; full implementation requires boss拍 per the ADR).
+- v0.40 ship packet: ToolRegistry 1:1 port (= hermes tools/registry.py per boss OOB '1:1 复刻') + 12-tool migration to ToolRegistry.shared + 5-surface Liquid Glass polish on macOS 27 (= TopBar + Sidebar + Editor + StatusBar + sheets/popovers/menus) + VERIFY-TOOLREGISTRY-004 e2e test + POLISH-LIQUIDGLASS-006 canonical Apple .glassEffect assertion test.
+- Dead-pin cleanup (= DEAD-PIN-CLEANUP-001): removed 10 third-party libs with zero source consumers (= Defaults, KeyboardShortcuts, Nuke + NukeUI, ZIPFoundation, EPUBKit, SwiftGraph, Grape, MenuBarExtraAccess, Textual, swift-log). Approved runtime list (§11.1) unchanged; only the adoption status changed (= these 10 are now explicitly retired).
+- Iron-rules sweep (= iron-rules-sweep-2026-09-05 + rerun on 2026-09-05): 11-rule zero-config audit over 162 commits + 233 Swift files + 42,177 LOC. Result = 11/11 PASS after followup (= INV-PUSH-7). Sweep is the basis for the §11 hard-rule compliance claim carried over from v0.09.
+- ADR retrospective ratifications: ADR-0008 (= view-framework FORBIDDEN surface; self-implement drag UX), ADR-0009 (= wenshu-side wins pattern for hermes-port code-duplication-forbidden principle; 5 overlap pairs enumerated in §11.3), ADR-0013 (= v0.37/v0.38/v0.39/v0.40 scope decisions). No new ADRs authored in this burst; all decisions retroactively ratified.
+- wenshu-side wins pattern (= §11.3): for the 5 hermes-overlap pairs (= tool_executor, credential_pool, memory_manager, skill_utils, conversation_loop), the existing wenshu Core module is the source of truth; the hermes-port is a thin adapter that delegates to it. Code duplication is forbidden. The 26 incomplete hermes modules (= 18 ⚠️ partial + 8 ❌ missing per the gap audit at `.scratch/2026-09-04-hermes-port-gap-audit.md`) are tracked in the manifest and remain the work-tree to fill in.
+- Frontend verification: verify-frontend.sh was authored and executed; 14 items were marked verify-failed per the script's failure path (= wenshu.app did not appear within 30s in the headless run). Boss must launch + verify manually per the ticket brief's "Frontend verification dependency" note. Subsequent run captured a real wenshu.app launch screenshot at `.scratch/2026-09-05-verify-screenshots/wenshu-launched.png` (= 4.2 MB PNG, 3840x2160, 6-zone layout visible: sidebar + outline + editor preview + status bar + kanban + chat).
+- B-03 historical CJK comment cleanup (= 33 files across 3 batches: INV-BATCH-2-A + INV-BATCH-2-B + INV-BATCH-3): every file in `Sources/WenshuApp/Core/Registry/` plus the largest view files (= WorkspaceView, NewLibraryOutlineView, BacklinkResolver, OutlineExtractor, LinkIndex, GraphBuilder, TemplateEngine, etc.). English-only per the §11 hard rule.
+- INV-PUSH-1..7 sequence: Hermes-port-manifest update + CHANGELOG v0.37.2 amendment + iron-rules sweep + ContextEngine MemoryManager.prefetch wiring + I18N-INLINE-001 (= 5 strings to Localizable.strings) + DEAD-PIN-CLEANUP-001 + apple-001 Q1-Q8 defaults + WORKTREE-SPEC-UPDATE-001.
+- INV-BATCH-1..3 sequence: 33 files CJK cleanup complete (= batch 1 + batch 2 + batch 3 final).
+
+---
+
 *AGENTS.md v0.09.0 · 2026-09-03 pocock single agent · v0.37 ship packet (= hermes core translation complete + 11 port tickets + 7-connector BYOK + visual verify packet + 22 smoke tests + 175+ tests) + ADR-0013 v0.37 scope decisions + CHANGELOG.md v0.37 + Batch 1.1 test target cleanup (35 → 0 errors) + iron rule 6 compliance throughout (= no magic numbers in view code) · English-only · project root = /Volumes/ANAN/Engineering/wenshu/*
+*AGENTS.md v0.10.0 · 2026-09-05 pocock single agent · v0.38 + v0.39 + v0.40 ship packets (= 167 commits across 13 stages 2026-09-04 → 2026-09-05 per retrospective at .scratch/2026-09-05-today-retrospective.md: ToolRegistry 1:1 port (= hermes tools/registry.py) + 12-tool migration + 5-surface Liquid Glass polish on macOS 27 + 5 specialized tools ports + 5 specialized tools wire-ups + HermesTodoStore deadlock fix + 22 smoke tests + 11-rule iron-rules sweep + 33-file B-03 historical CJK comment cleanup + verify-frontend.sh 14-item script + dead-pin cleanup of 10 zero-consumer third-party libs) + ADR-0008/0009/0013 retrospective ratifications + wenshu-side wins pattern for 5 hermes-overlap pairs per §11.3 + CHANGELOG.md v0.38 + INV-PUSH-1..7 + INV-BATCH-1..3 sequences + I18N-INLINE-001 (= 5 strings to Localizable.strings) · English-only · project root = /Volumes/ANAN/Engineering/wenshu/*
