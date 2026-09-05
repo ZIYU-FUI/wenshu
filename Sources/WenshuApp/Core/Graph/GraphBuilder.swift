@@ -10,13 +10,13 @@
 
 import Foundation
 
-/// 图节点 (1 个 note)
+/// Graph node (1 note)
 public struct GraphNode: Equatable, Sendable, Identifiable {
     public var id: String       // docId
-    public var label: String    // 显示名 (从 DocumentIndexing 拿)
+    public var label: String    // display name (from DocumentIndexing)
     public var x: Double        // 布局坐标 (force-directed 输出)
     public var y: Double
-    public var links: Int        // 链接数 (degree)
+    public var links: Int        // link count (degree)
 
     public init(id: String, label: String, x: Double = 0, y: Double = 0, links: Int = 0) {
         self.id = id
@@ -27,7 +27,7 @@ public struct GraphNode: Equatable, Sendable, Identifiable {
     }
 }
 
-/// 图边 (1 条 [[source → target]] 链接)
+/// Graph edge (1 [[source → target]] link)
 public struct GraphEdge: Equatable, Sendable, Identifiable {
     public var id: String       // 唯一 id
     public var sourceId: String // source docId
@@ -40,7 +40,7 @@ public struct GraphEdge: Equatable, Sendable, Identifiable {
     }
 }
 
-/// Graph: 整图 (nodes + edges)
+/// Graph: whole graph (nodes + edges)
 public struct Graph: Equatable, Sendable {
     public var nodes: [GraphNode]
     public var edges: [GraphEdge]
@@ -51,18 +51,18 @@ public struct Graph: Equatable, Sendable {
     }
 }
 
-/// GraphBuilder: 从 LinkIndex + DocumentIndexing 构建图 + 力导向布局
-/// Apple HIG: 简单 spring force, 跟 Apple HIG 物理仿真一致
+/// GraphBuilder: build graph from LinkIndex + DocumentIndexing + force-directed layout
+/// Apple HIG: simple spring force, consistent with Apple HIG physics simulation
 public enum GraphBuilder {
 
-    /// 构建图 (nodes + edges)
-    /// - 从 LinkIndex 拿所有 links (resolved target_doc_id)
-    /// - 收集 doc_ids 作 nodes, 计算 degree
+    /// Build graph (nodes + edges)
+    /// - Get all links from LinkIndex (resolved target_doc_id)
+    /// - Collect doc_ids as nodes, compute degree
     public static func build(
         links: [Link],
         documentIndex: DocumentIndexing
     ) async -> Graph {
-        // 收集所有 source + target doc_ids
+        // Collect all source + target doc_ids
         var docIds = Set<String>()
         var edgePairs: [(String, String)] = []  // (sourceId, targetId)
         var degree: [String: Int] = [:]
@@ -76,14 +76,14 @@ public enum GraphBuilder {
             degree[target, default: 0] += 1
         }
 
-        // 拿每个 doc_id 的显示名
+        // Get display name for each doc_id
         var nodes: [GraphNode] = []
         for docId in docIds {
             let name = await documentIndex.name(forDocId: docId) ?? docId
             nodes.append(GraphNode(id: docId, label: name, links: degree[docId] ?? 0))
         }
 
-        // 构建 edges (去重 source+target pair)
+        // Build edges (deduplicate source+target pair)
         var seenEdgePairs = Set<String>()
         var edges: [GraphEdge] = []
         for (sourceId, targetId) in edgePairs {
@@ -96,23 +96,22 @@ public enum GraphBuilder {
         return Graph(nodes: nodes, edges: edges)
     }
 
-    /// 简单力导向布局 (spring force)
-    /// Apple HIG: 物理仿真算法
-    /// - Exclusion: 节点间距离 < 阈值, 互相排斥
-    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-    /// - 吸引力: 有边连接的节点间距离 > 阈值, 互相吸引
-    /// - Centre gravity: 节点往中心拉
+    /// Simple force-directed layout (spring force)
+    /// Apple HIG: physics simulation algorithm
+    /// - Exclusion: nodes with distance < threshold repel each other
+    /// - Attraction: connected nodes with distance > threshold pull toward each other
+    /// - Center gravity: nodes are pulled toward the center
     public static func layout(_ graph: Graph, iterations: Int = 50) -> Graph {
         var nodes = graph.nodes
         guard nodes.count > 1 else { return graph }
 
         let width: Double = 1000
         let height: Double = 1000
-        let repulsion: Double = 5000  // 排斥力强度
-        let springLength: Double = 100  // 吸引目标距离
-        let springK: Double = 0.05  // 吸引力强度
-        let centerK: Double = 0.01  // 中心引力强度
-        let damping: Double = 0.85  // 阻尼
+        let repulsion: Double = 5000  // repulsion force strength
+        let springLength: Double = 100  // attraction target distance
+        let springK: Double = 0.05  // attraction force strength
+        let centerK: Double = 0.01  // center gravity strength
+        let damping: Double = 0.85  // damping
 
         // Initialization: Random position (certainty seend 0)
         var rng = SeededRandom(seed: 0)
@@ -143,7 +142,7 @@ public enum GraphBuilder {
                 for j in (i + 1)..<nodes.count {
                     let dx = nodes[j].x - nodes[i].x
                     let dy = nodes[j].y - nodes[i].y
-                    let distSq = dx * dx + dy * dy + 1  // +1 避免除零
+                    let distSq = dx * dx + dy * dy + 1  // +1 to avoid divide-by-zero
                     let dist = sqrt(distSq)
                     let force = repulsion / distSq
                     let fx = force * dx / dist
@@ -155,7 +154,7 @@ public enum GraphBuilder {
                 }
             }
 
-            // 吸引力 (spring)
+            // Attraction (spring)
             for (s, t) in edges {
                 let dx = nodes[t].x - nodes[s].x
                 let dy = nodes[t].y - nodes[s].y
@@ -170,7 +169,7 @@ public enum GraphBuilder {
                 forces[t].1 -= fy
             }
 
-            // Centre gravity
+            // Center gravity
             let centerX = width / 2
             let centerY = height / 2
             for i in 0..<nodes.count {
@@ -193,7 +192,7 @@ public enum GraphBuilder {
         return Graph(nodes: nodes, edges: graph.edges)
     }
 
-    /// Local Graph: 给当前 docId, 拿 1-hop / 2-hop 子图
+    /// Local Graph: given current docId, get 1-hop / 2-hop subgraph
     public static func localGraph(fullGraph: Graph, centerId: String, depth: Int = 1) -> Graph {
         guard depth >= 1 else { return Graph() }
 
@@ -219,7 +218,7 @@ public enum GraphBuilder {
     }
 }
 
-/// Apple HIG: 简易确定性随机数 (用于 layout seed)
+/// Apple HIG: simple deterministic RNG (used for layout seed)
 private struct SeededRandom {
     var state: UInt64
     init(seed: UInt64) { self.state = seed }
