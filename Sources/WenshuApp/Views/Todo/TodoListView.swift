@@ -7,9 +7,9 @@
 //  scope` changes, reload from disk.
 //
 //  Layout (Boss B-09 acceptance):
-//    - Top bar: 待办 title + scope picker + "+ 添加待办" button
-//      (= "添加待办" rather than Kanban's "新建" — visual distinction
-//      per boss Issue 1: "Kanban 和 Todo 看起来是一回事呢").
+//    - Top bar: Todo title + scope picker + "+ Add Todo" button
+//      (= "Add Todo" rather than Kanban's "New" — visual distinction
+//      per boss Issue 1: "Kanban and Todo look like the same thing").
 //    - Input row: text field + priority picker + return-to-add
 //      (Apple HIG inline-create).
 //    - Body: per-status sectioned list (= pending / inProgress /
@@ -17,11 +17,11 @@
 //      (= B-13 visual distinction: Todo gets a PROMINENT color-coded
 //      chip with priority text — Kanban doesn't have priority) +
 //      due-date display (= red highlight if past today + no due
-//      date text in `.secondary`) + delete + "开始" / "完成" / "取消"
+//      date text in `.secondary`) + delete + "Start" / "Done" / "Cancel"
 //      context actions.
 //    - Empty state when no book selected / no items.
 //
-//  B-13 (= boss 2026-09-04 OOB "这两个看板都有同一个问题"): the scope
+//  B-13 (= boss 2026-09-04 OOB "both Kanban views have the same problem"): the scope
 //  picker (= .menu Picker over the 8 standard sub-folders + book root
 //  + reference library) drives which JSON file the view reads from /
 //  writes to. Scope is a view filter, not a data-layer change.
@@ -49,13 +49,13 @@
 //
 //  Apple HIG: small icon button + .bordered / .borderedProminent
 //  button styles per macOS 26 Tahoe guidance. No sheet (per
-//  v0.24 boss 8/24 OOB 'dynamic zone 应该是 tab 模式, 不是 sheet').
+//  v0.24 boss 8/24 OOB 'dynamic zone should be tab mode, not sheet').
 //
 
 import SwiftUI
 
 /// Per-(book × scope) todo list view. Mounted by `DynamicZoneView` in
-/// the `aiDynamic` zone (= tab "待办"). Reads from `BookTodoStore`
+/// the `aiDynamic` zone (= tab "Todo"). Reads from `BookTodoStore`
 /// (= scope-aware todo JSON: `todo.json` / `todo-<folder>.json` /
 /// `library-todo.json`).
 public struct TodoListView: View {
@@ -111,7 +111,7 @@ public struct TodoListView: View {
             content
         }
         .padding(8)
-        // v0.24 boss验收fix: flexible sizing (zone size controlled by splitter, not view).
+        // v0.24 boss acceptance fix: flexible sizing (zone size controlled by splitter, not view).
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         // B-09 + B-13: re-load when the active book OR scope changes.
         .onAppear { reloadFromDisk() }
@@ -128,7 +128,7 @@ public struct TodoListView: View {
 
     // MARK: - Subviews
 
-    /// Header: 待办 title + scope picker + count + json hint.
+    /// Header: Todo title + scope picker + count + json hint.
     /// B-13: scope picker drives the JSON file the view reads from.
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -171,8 +171,8 @@ public struct TodoListView: View {
     /// the reason on hover; an inline caption explains why the button
     /// is inactive when no directory is resolved (= Apple HIG
     /// disabled-control feedback).
-    /// B-13 visual distinction: button label = "+ 添加待办" (= not
-    /// Kanban's "+ 新建"). This + the priority chip on each row
+    /// B-13 visual distinction: button label = "+ Add Todo" (= not
+    /// Kanban's "+ New"). This + the priority chip on each row
     /// (= below) are the two boss-Issue-1 differentiators.
     private var inputRow: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -312,7 +312,7 @@ public struct TodoListView: View {
     }
 
     /// Verb shown in the banner per status. Chinese to match the rest
-    /// of the Todo pane (= "添加" is ambiguous because the LLM might
+    /// of the Todo pane (= "Add" is ambiguous because the LLM might
     /// have updated vs created; we keep status-driven verb only).
     private func verb(for status: TodoStatus) -> String {
         switch status {
@@ -536,15 +536,14 @@ public struct TodoListView: View {
 /// priority chip (= B-13 visual distinction), due-date (= red if
 /// overdue), delete button + context actions per status.
 ///
-/// B-13 visual distinction (= boss Issue 1, "Kanban 和 Todo 看起来是
-/// 一回事呢"):
+/// B-13 visual distinction (= boss Issue 1, "Kanban and Todo look the same"):
 ///   - **Priority chip** is now a colored text-in-capsule badge with
-///     the priority label (= "高" / "紧急" etc.) — not just a tiny
+///     the priority label (= "High" / "Urgent" etc.) — not just a tiny
 ///     icon. This makes the priority visible at a glance, distinct
 ///     from Kanban's status badge (= Kanban doesn't track priority).
 ///   - **Due-date display** appears to the right of the title when
 ///     set: gray when future, **red when past today** (= visually
-///     urgent signal). When nil, just "(无截止)" in `.secondary`.
+///     urgent signal). When nil, just "(no due date)" in `.secondary`.
 private struct TodoRow: View {
     let item: PerBookTodoItem
     let onSetStatus: (TodoStatus) -> Void
@@ -583,7 +582,7 @@ private struct TodoRow: View {
     }
 
     /// B-13: due-date display — shows the date in red when overdue
-    /// (= past today), in `.secondary` when future, "(无截止)" when nil.
+    /// (= past today), in `.secondary` when future, "(no due date)" when nil.
     @ViewBuilder
     private var dueDateLabel: some View {
         if let due = item.dueDate {

@@ -1,24 +1,26 @@
 //
-//  WenshuAgentIdentity.swift · Wenshu · v0.22 ticket 001 (文枢 agent 基础设定)
+//  WenshuAgentIdentity.swift · Wenshu · v0.22 ticket 001 (Wenshu agent base identity)
 //
-//  Boss 2026-08-23 拍: 定义文枢 agent 基础设定 (之前没有, 跟裸 LLM 调 API 没区别).
+//  Boss 2026-08-23 decision: define the Wenshu agent base identity (it was missing
+//  before, no different from a bare LLM API call).
 //  Prepended to every LLM call as the first system message.
 //
 
 import Foundation
 
-/// 文枢 agent 基础设定. Static system prompt prepended to every LLM call.
-/// Boss 2026-08-23 拍: 之前 WenshuConductor 只有任务级 prompt, 没有 agent 身份 / 角色 / 能力 / 限制.
-/// This struct defines 文枢 in 6 sections (per Anthropic best practice, Building effective agents 2024-12).
+/// Wenshu agent base identity. Static system prompt prepended to every LLM call.
+/// Boss 2026-08-23 decision: previously WenshuConductor only had task-level prompts,
+/// no agent identity / role / capabilities / limitations.
+/// This struct defines Wenshu in 6 sections (per Anthropic best practice, Building effective agents 2024-12).
 public enum WenshuConductorIdentity {
 
     /// Full system prompt (~700 tokens target). Prepended to every LLM call in WenshuConductor.
     /// Use case: L1 (intent classify) + L3 (synthesis) call sites in handle().
     /// L2 (sub-agent content) is user-driven and does NOT prepend this.
-    // v0.24 boss验收fix (Boss 8/24 OOB '在设置里加一个, LLM 对你的称呼'):
+    // v0.24 boss acceptance fix (Boss 8/24 OOB 'add one in settings, what the LLM calls you'):
     // User address is read from UserDefaults 'wenshu.userAddress' at call
-    // time (= dynamic per-chat). Default = '用户' (boss 拍 default not '老板').
-    // Boss 8/24 clarification: '老板' is hermes-side convention (= used by
+    // time (= dynamic per-chat). Default = 'user' (boss decision: default is 'user', not 'boss').
+    // Boss 8/24 clarification: 'boss' is hermes-side convention (= used by
     // pocock agent in this terminal session), NOT wenshu product default.
     public static var userAddress: String {
         UserDefaults.standard.string(forKey: "wenshu.userAddress") ?? "用户"

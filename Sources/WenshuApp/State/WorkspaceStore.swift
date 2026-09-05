@@ -1,4 +1,4 @@
-// WorkspaceStore.swift · Wenshu (文枢) · v0.28 ticket 028-003
+// WorkspaceStore.swift · Wenshu · v0.28 ticket 028-003
 //
 // Persistence + preset management for the user-customizable workspace
 // (= .scratch/2026-08-28-v0-28-free-layout/spec.md).
@@ -8,7 +8,7 @@
 // one, the other has no purpose. Shipped together per boss 8/22
 // 'atomic coupling' rule. This commit ALSO bumps the built-in default
 // preset (= makeBuiltinWorkspace) to the FCP Browser 3-pane paradigm
-// per boss拍 2026-08-27 (= b/II = WorkspaceView ON default, FCP
+// per boss decision 2026-08-27 (= b/II = WorkspaceView ON default, FCP
 // Browser paradigm). 028-005 ticket will register the preset officially;
 // this commit sets the seed so the FCP Browser shape is in place from
 // day one of v2.
@@ -69,8 +69,8 @@ final class WorkspaceStore: ObservableObject {
         let builtinPresets = Self.makeBuiltinPresets()
         let builtinDefault = builtinPresets.first { $0.isBuiltIn && $0.name == "默认" }!
 
-        // v0.28 Boss UX round 17 (Boss 2026-08-29 OOB '其他模版切换一下,
-        // 然后每个都截个图, 我看适配情况'): honor currentPresetID on
+        // v0.28 Boss UX round 17 (Boss 2026-08-29 OOB 'switch through the other templates,
+        // then screenshot each one, I want to see how they adapt'): honor currentPresetID on
         // FIRST launch too (= not just when the persisted workspace is
         // present). Without this, switching preset via
         // `defaults write wenshu.workspace.currentPresetID` only works
@@ -239,13 +239,13 @@ final class WorkspaceStore: ObservableObject {
     /// Reset the current workspace to the built-in Default preset.
     /// v0.30 boss 2026-09-01 OOB fix: previously this called
     /// `Self.makeBuiltinWorkspace()` (= the FCP Browser 3-pane
-    /// paradigm = sidebar + editor + inspector). Boss's "默认"
+    /// paradigm = sidebar + editor + inspector). Boss's "default"
     /// (= the built-in Default preset the menu restores to) is
     /// the 6-zone layout = upper band 10/20/60/10 weights, lower
     /// band 70/30 weights, root 50/50 column weights (= the
     /// `builtinDefaultPreset()` 6-zone definition at line 424).
     /// Switch the source to `builtinDefaultPreset()` so the menu's
-    /// '恢复默认布局' action actually restores the 6-zone layout
+    /// 'restore default layout' action actually restores the 6-zone layout
     /// (= the same workspace the user would land in on a fresh
     /// app install with the picker 6-zone shape selected).
     func resetToDefault() {
@@ -256,7 +256,7 @@ final class WorkspaceStore: ObservableObject {
         self.currentPresetID = builtinDefault?.id ?? presets.first(where: { $0.isBuiltIn })?.id
         // v0.30 boss 2026-09-01 OOB (zone toggle reset): also
         // reset the 5 `wenshu.zoneVisible.*` UserDefaults flags so
-        // a "恢复默认布局" call returns ALL panes to their visible
+        // a "Restore Default Layout" call returns ALL panes to their visible
         // state. Without this the layout tree resets but hidden
         // panes stay hidden (= toolbar buttons and visible
         // state go out of sync). Removes each flag via standard
@@ -334,7 +334,7 @@ final class WorkspaceStore: ObservableObject {
     /// never fully collapses under drag).
     /// Adjust split weights based on a drag delta.
     ///
-    /// v0.30 boss 8/31 OOB '新比例还是没有实现' (= bug fix): the
+    /// v0.30 boss 8/31 OOB 'new ratios still not implemented' (= bug fix): the
     /// original formula `let dW = delta / total` was unit-broken
     /// (= dividing PT by a dimensionless weight sum). The result
     /// was a single 10 PT drag snapped left/right to the clamp
@@ -349,10 +349,9 @@ final class WorkspaceStore: ObservableObject {
     /// weights (= keeps their ratio, just shifts the total).
     func adjustSplitWeights(splitID: String, childIndex: Int, weightDelta: Double) {
         let minWeight = 0.05
-        // v0.30 boss 2026-08-31 OOB '不能拖. 和 hit area 宽度没有
-        // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-        // 关系, 上半区的比例也还是不对, 编辑器吃掉因为拖拽线产生的
-        // 其它宽度': the previous implementation hardcoded
+        // v0.30 boss 2026-08-31 OOB 'cannot drag. and the hit area width has no
+        // relation, the upper region ratio is still wrong, the editor eats the
+        // other width from the drag line': the previous implementation hardcoded
         // `weightUnit = 100 PT` here AND had the renderer pass a PT
         // delta (= double-conversion: PT -> weight via /100 here, then
         // weight -> PT via *100 elsewhere). On a 997 PT window, the
@@ -481,7 +480,7 @@ final class WorkspaceStore: ObservableObject {
     /// Built-in presets (= the 4 wenshu ships by default per ticket
     /// 028-005; literal port from hermes
     /// `controller.tsx:392-440`). Names per spec.md i18n table:
-    /// "默认" / "Focus" / "Terminal deck" / "Quad".
+    /// "Default" / "Focus" / "Terminal deck" / "Quad".
     ///
     /// Built-in shapes (= per ticket 028-005 §"Built-in shapes"):
     /// - builtinDefault = 6-zone shape (= upper 4 horizontal + lower 2
@@ -545,14 +544,13 @@ final class WorkspaceStore: ObservableObject {
 
         // Tree shape: outer column split (upper band + lower band)
         // with each band being a horizontal row split.
-        // v0.30 boss 8/31 OOB '各栏的默认比例需要调整一下 / 上半区,
+        // v0.30 boss 8/31 OOB 'default ratios for each column need adjustment / upper region,
         // 10/20/60/10': upper band column weights = [1, 2, 6, 1]
         // (= 1+2+6+1 = 10, so sidebar=10%, preview=20%, editor=60%,
         // tools=10%). Previously [1, 1, 3.4, 1.25] ≈ 15/15/51/19.
-        // v0.30 boss 8/31 OOB '如果这是 10, 那就不是 20 视觉效果,
-        // [CJK-TRANSLATE] 2 line(s) awaiting manual translation (see git blame for original CJK text)
-        // 这达不到目录树栏的两倍 / 如果这也是 10 / 这个栏的内容
-        // 没有按栏的大小自动适配, 右半边没有显示': restore the
+        // v0.30 boss 8/31 OOB 'if this is 10, then it does not look like 20,
+        // it does not reach twice the directory tree column / if this is also 10 / this column's content
+        // does not auto-adapt to column size, the right half does not display': restore the
         // original 10/20/60/10 ratio (= sidebar 10%, preview 20%,
         // editor 60%, tools 10%). The earlier commit
         // (04b3e7ed0) bumped toolsWRatio from 1 to 2 (= 18%) but
@@ -761,7 +759,7 @@ final class WorkspaceStore: ObservableObject {
     }
 
     /// Built-in default workspace (= the FCP Browser 3-pane paradigm
-    /// per boss拍 2026-08-27, ticket 028-002 = b/II).
+    /// per boss decision 2026-08-27, ticket 028-002 = b/II).
     ///
     /// Layout (= left to right, three panes separated by two
     /// draggable splitters):
@@ -769,7 +767,7 @@ final class WorkspaceStore: ObservableObject {
     /// - Center pane: editor (= chapter / draft Markdown editor)
     /// - Right pane: aiChat + aiDynamic as inspector tabs (= chat /
     ///   dynamic zone contents in a single tabbed pane; matches the
-    ///   hermes inspector-tab pattern that boss拍 2026-08-27 cited as
+    ///   hermes inspector-tab pattern that boss decision 2026-08-27 cited as
     ///   surface-area reuse).
     ///
     /// Tree shape (= recursive per v2 schema):
