@@ -1140,7 +1140,32 @@ struct EditorPlaceholder: View {
                 Spacer()
             }
             .frame(height: 32)
-            .background(.regularMaterial)
+            // POLISH-LIQUIDGLASS-003 (Boss 2026-09-05 OOB '好继续', AGENTS.md
+            // §11 macOS 27 Liquid Glass polish extends from TopBar + Sidebar):
+            // apply Apple canonical .glassEffect(.regular) (= macOS 27
+            // Tahoe Liquid Glass) to the EditorPlaceholder tab strip
+            // (= the editor zone's top chrome = Safari-style tab strip
+            // + mode toggle + paragraph_ai toolbar). Replaces the prior
+            // .regularMaterial (= Apple Liquid Glass translucency; = one
+            // step LESS transparent than the new .glassEffect(.regular)
+            // canonical material on macOS 27 Tahoe = visible mismatch
+            // with the POLISH-LIQUIDGLASS-001 TopBar chrome the user
+            // sees directly above the editor zone in the same pane).
+            // Same .background { Color.clear.glassEffect(.regular) }
+            // shape as 950e46423 (= TopBar) + 74b22f73a (= Sidebar):
+            // .glassEffect(.regular) is a View modifier (= instance
+            // member), not a ShapeStyle value, so .background(.glassEffect
+            // (.regular)) does NOT compile; = Color.clear provides the
+            // size of the glass layer; the modifier applies the
+            // canonical Liquid Glass material. .glassEffect(.regular)
+            // auto-adapts to system settings (= dark mode / Reduce
+            // Transparency / Increase Contrast) per Apple HIG. The
+            // body-content area's .ultraThinMaterial background (= line
+            // below this tab strip) is intentionally NOT touched
+            // (= content area, not chrome).
+            .background {
+                Color.clear.glassEffect(.regular)
+            }
             // v0.34 ticket 09: dirty-discard confirm dialog. Shown when
             // user tries to close with unsaved changes. Apple HIG
             // 2-option confirm pattern (= destructive + cancel).
