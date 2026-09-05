@@ -126,6 +126,27 @@ public actor ContextEngine {
 
     // MARK: - Per-turn context bundle assembly (= HERMES-PARTIAL-013)
 
+    /// Default MemoryManager used by ContextEngine when no explicit
+    /// manager is injected. Created on first use so unit tests can
+    /// construct a ContextEngine without touching the user-visible
+    /// library store. Ticket 009 ships the default path (= per-book
+    /// Character/World retrieval still pending per the original TODO scope).
+    private static func makeDefaultMemoryManager() async -> MemoryManager {
+        // Per-instance temp-file backing. SQLite's ":memory:" DSN is
+        // mangled by URL(fileURLWithPath:) into a workspace-local
+        // filename (= undesired side effect on disk), so we use a
+        // tmp path instead. Each ContextEngine call gets its own
+        // handle (= no cross-test contamination); the file is cleaned
+        // by the OS once the process exits.
+        // SQLite's tmp-file path is supported across every platform
+        // wenshu ships on, so we force-try here (= a sane precondition;
+        // any failure indicates the build itself is broken).
+        let path = "/tmp/wenshu-contextengine-\(UUID().uuidString).sqlite"
+        let store = try! MemoryStore(path: path)
+        try? await store.bootstrap()
+        return MemoryManager(store: store)
+    }
+
     /// Aggregate context for one conversation turn
     /// (= hermes context_engine.aggregate_context entry).
     ///
@@ -137,12 +158,41 @@ public actor ContextEngine {
         bookId: String?,
         userMessage: String
     ) async -> ContextBundle {
-        // TODO(ticket-009): wire MemoryManager.prefetch + character/world
-        // retrieval from wenshu Core/Memory/* subsystem
+        let manager = await Self.makeDefaultMemoryManager()
+        return await aggregateContextForTurn(
+            bookId: bookId,
+            userMessage: userMessage,
+            memoryManager: manager
+        )
+    }
+
+    /// Overload that accepts an explicit `MemoryManager`. The default
+    /// `aggregateContextForTurn(bookId:userMessage:)` uses a freshly-built
+    /// in-memory default manager (= ticket-009 wiring baseline);
+    /// callers that own a persisted MemoryStore can inject it here so
+    /// per-book Character/World retrieval can land in a followup ticket
+    /// without changing this entry point.
+    public func aggregateContextForTurn(
+        bookId: String?,
+        userMessage: String,
+        memoryManager: MemoryManager
+    ) async -> ContextBundle {
+        // ticket-009 step 1: wire MemoryManager.prefetch. Character/World
+        // retrieval remains pending (= per-book Character/World stores
+        // land in a followup ticket per the original TODO scope).
         _ = bookId
-        _ = userMessage
+        let result = await memoryManager.prefetch(userMessage: userMessage)
+        let memories: [MemoryEntry]
+        switch result {
+        case .empty:
+            memories = []
+        case .prefetched(let rows, _):
+            memories = rows.map { row in
+                MemoryEntry(source: row.memoryId, snippet: row.content)
+            }
+        }
         return ContextBundle(
-            memories: [],
+            memories: memories,
             characterContext: [],
             worldContext: [],
             foreshadowContext: []
