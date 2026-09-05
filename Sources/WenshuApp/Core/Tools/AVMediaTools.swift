@@ -29,8 +29,27 @@ public struct TTSResult: Equatable, Sendable {
 }
 
 /// AVMediaTools: 本地 AV media 工具 (AVSpeechSynthesizer 真值)
-public struct AVMediaTools: Sendable {
+public struct AVMediaTools: Tool, Sendable {
     public init() {}
+
+    /// Tool-protocol adapter (= MIGRATE-TOOLREGISTRY-002): parse the
+    /// JSON input envelope and dispatch to `speak(text:)`. Mirrors
+    /// `WenshuConductor.invokeTool(name: "av", ...)` which uses the
+    /// input string verbatim as the text to speak.
+    public func execute(input: String) async throws -> String {
+        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return "" }
+        // Try to parse JSON envelope (= {"text": "..."}); fall back to
+        // using the raw input as the speak text.
+        var text = trimmed
+        if let data = trimmed.data(using: .utf8),
+           let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let t = parsed["text"] as? String {
+            text = t
+        }
+        speak(text: text)
+        return "[spoken]"
+    }
 
     /// speak: 朗读文字真值 (fire-and-forget, 不等播放完)
     public func speak(text: String, voice: String = "zh-CN", rate: Float = 0.5) {
@@ -69,3 +88,42 @@ public struct AVMediaTools: Sendable {
 // 默认语速常量 (Apple 真值)
 private let AVSpeechUtteranceDefaultSpeechRate: Float = AVSpeechUtteranceDefaultSpeechRate
 #endif
+
+// MARK: - ToolRegistry bootstrap (MIGRATE-TOOLREGISTRY-002)
+
+extension AVMediaTools {
+    /// Module-load registration with `ToolRegistry.shared` (= hermes
+    /// `tools/registry.py` `register()` 1:1). Fires once at first
+    /// type access; the underlying `Task` schedules the async
+    /// `register(...)` call off the init thread.
+    public static let _registryBootstrap: Void = {
+        Task {
+            await ToolRegistry.shared.register(
+                name: "av",
+                toolset: "meta",
+                schema: ToolRegistrySchema(
+                    name: "av",
+                    description: "Local AV media operations: speak text aloud (= AVSpeechSynthesizer, fire-and-forget).",
+                    inputSchema: [
+                        "text": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "Text to speak aloud."
+                        ),
+                        "voice": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "Voice language code (= default zh-CN)."
+                        ),
+                        "rate": ToolRegistrySchemaProperty(
+                            type: "number",
+                            description: "Speech rate (= 0.0 to 1.0; default 0.5)."
+                        )
+                    ],
+                    required: ["text"]
+                ),
+                handler: AVMediaTools(),
+                description: "Local AV media operations: speak text aloud.",
+                emoji: "🔊"
+            )
+        }
+    }()
+}

@@ -160,3 +160,57 @@ public struct ParagraphAITool: Tool, Sendable {
         return "[ParagraphAI stub — action=\(action)] \(body) [expanded]"
     }
 }
+
+// MARK: - ToolRegistry bootstrap (MIGRATE-TOOLREGISTRY-002)
+
+extension ParagraphAITool {
+    /// Module-load registration with `ToolRegistry.shared` (= hermes
+    /// `tools/registry.py` `register()` 1:1). Fires once at first
+    /// type access; the underlying `Task` schedules the async
+    /// `register(...)` call off the init thread (= matches the
+    /// wenshu pattern of not awaiting inside `static let`).
+    ///
+    /// Registration is idempotent (= the registry silently replaces
+    /// a same-toolset re-registration; the override-protection logic
+    /// in ToolRegistry blocks accidental cross-toolset shadowing).
+    public static let _registryBootstrap: Void = {
+        Task {
+            await ToolRegistry.shared.register(
+                name: "ParagraphAI",
+                toolset: "editor",
+                schema: ToolRegistrySchema(
+                    name: "ParagraphAI",
+                    description: "Paragraph-level AI editor transforms (= expand / shorten / rephrase / shiftTone / simplify / dramatize).",
+                    inputSchema: [
+                        "text": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "The paragraph text to transform."
+                        ),
+                        "action": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "The transform to apply (= expand / shorten / rephrase / shiftTone / simplify / dramatize). Defaults to expand.",
+                            enumValues: ["expand", "shorten", "rephrase", "shiftTone", "simplify", "dramatize"]
+                        ),
+                        "tone": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "Target tone for shiftTone (= formal / casual / literary / punchy / neutral). Optional; ignored for non-tone actions.",
+                            enumValues: ["formal", "casual", "literary", "punchy", "neutral"]
+                        )
+                    ],
+                    required: ["text"]
+                ),
+                handler: ParagraphAITool.shared,
+                description: "Paragraph-level AI editor transforms (= expand / shorten / rephrase / shiftTone / simplify / dramatize).",
+                emoji: "✍"
+            )
+        }
+    }()
+}
+
+// NOTE: Swift 6 forbids top-level expressions, so the static let
+// `_registryBootstrap` initializer runs lazily on first type access
+// (= Swift equivalent of Python module-load statement = hermes
+// `registry.register(...)` at import time). Production code paths
+// that touch this type (= e.g. ChatView constructing
+// `ParagraphAITool.shared`, WenshuConductor constructing `ReadFileTool()`)
+// automatically trigger the bootstrap.

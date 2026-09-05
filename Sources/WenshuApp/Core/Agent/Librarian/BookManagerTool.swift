@@ -572,6 +572,38 @@ public actor BookManagerTool: Tool {
     public let name = "book_manager"
     public let description = "Create / rename / delete / list / show books (= canonical wenshu-side library state)."
 
+    /// Shared singleton for ToolRegistry bootstrap (= lazy-init
+    /// fallback BookStore under /tmp so module-load registration
+    /// does not require a real library to be open).
+    /// Used by the MIGRATE-TOOLREGISTRY-002 module-load registration
+    /// (= `BookManagerTool._registryBootstrap`); production wiring
+    /// still constructs dedicated instances via the existing
+    /// `init(manager:)` initializer (= e.g. ChatView pre-populates
+    /// the conductor with a per-library instance).
+    ///
+    /// `nonisolated(unsafe)` is required because the initializer
+    /// constructs `@Observable` BookStore (= which Swift 6 considers
+    /// actor-like under strict concurrency) from a `static let`
+    /// (= nonisolated context). The closure runs synchronously at
+    /// first access, before any concurrency becomes relevant, so the
+    /// unsafe escape hatch is safe here.
+    public nonisolated(unsafe) static let shared: BookManagerTool = {
+        let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-toolregistry-books-\(UUID().uuidString)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
+        let shelvesRoot = tmpRoot.appendingPathComponent("shelves", isDirectory: true)
+        let referenceLibraryRoot = tmpRoot.appendingPathComponent("reference-library", isDirectory: true)
+        let referenceStore = FileSystemReferenceStore(referenceLibraryRoot: referenceLibraryRoot)
+        let stores = LibraryStores(
+            shelvesRoot: shelvesRoot,
+            referenceLibraryRoot: referenceLibraryRoot,
+            referenceStore: referenceStore
+        )
+        let bookStore = BookStore(stores: stores)
+        bookStore.shelves = (try? bookStore.sidebarLoadShelves()) ?? []
+        bookStore.reloadAllBooks()
+        return BookManagerTool(manager: BookManager(bookStore: bookStore))
+    }()
+
     private let manager: BookManager
 
     public init(manager: BookManager) {
@@ -582,3 +614,59 @@ public actor BookManagerTool: Tool {
         try await manager.execute(input: input)
     }
 }
+
+// MARK: - ToolRegistry bootstrap (MIGRATE-TOOLREGISTRY-002)
+
+extension BookManagerTool {
+    /// Module-load registration with `ToolRegistry.shared` (= hermes
+    /// `tools/registry.py` `register()` 1:1). Fires once at first
+    /// type access; the underlying `Task` schedules the async
+    /// `register(...)` call off the init thread.
+    public static let _registryBootstrap: Void = {
+        Task {
+            await ToolRegistry.shared.register(
+                name: "book_manager",
+                toolset: "meta",
+                schema: ToolRegistrySchema(
+                    name: "book_manager",
+                    description: "Create / rename / delete / list / show books in the user's wenshu library (= canonical wenshu-side library state through BookStore).",
+                    inputSchema: [
+                        "action": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "The book operation to perform.",
+                            enumValues: ["create", "rename", "delete", "list", "show"]
+                        ),
+                        "title": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "Title for create / rename."
+                        ),
+                        "book_id": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "Book identifier for rename / delete / show."
+                        ),
+                        "shelf_id": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "Owning shelf id for create / list filter."
+                        ),
+                        "description": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "Optional 1-2 sentence summary for create."
+                        )
+                    ],
+                    required: []
+                ),
+                handler: BookManagerTool.shared,
+                description: "Create / rename / delete / list / show books (= canonical wenshu-side library state).",
+                emoji: "📚"
+            )
+        }
+    }()
+}
+
+// NOTE: Swift 6 forbids top-level expressions, so the static let
+// `_registryBootstrap` initializer runs lazily on first type access
+// (= Swift equivalent of Python module-load statement = hermes
+// `registry.register(...)` at import time). Production code paths
+// that touch this type (= e.g. ChatView constructing
+// `ParagraphAITool.shared`, WenshuConductor constructing `ReadFileTool()`)
+// automatically trigger the bootstrap.

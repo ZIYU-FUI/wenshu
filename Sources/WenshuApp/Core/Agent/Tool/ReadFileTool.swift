@@ -22,7 +22,7 @@ public struct ReadFileTool: Tool, Sendable {
 
     public func execute(input: String) async throws -> String {
         // Parse input JSON via ToolInputParser (= single source of truth per
-        // Standards-axis S3 Duplicated Code smell).
+        // Standard-axis S3 Duplicated Code smell).
         let dict = try ToolInputParser.parseDictionary(input: input)
         let path = try ToolInputParser.requireString(dict, "path")
 
@@ -40,4 +40,35 @@ public struct ReadFileTool: Tool, Sendable {
             try tools.read(path: path)
         }.value
     }
+}
+
+// MARK: - ToolRegistry bootstrap (MIGRATE-TOOLREGISTRY-002)
+
+extension ReadFileTool {
+    /// Module-load registration with `ToolRegistry.shared` (= hermes
+    /// `tools/registry.py` `register()` 1:1). Fires once at first
+    /// type access; the underlying `Task` schedules the async
+    /// `register(...)` call off the init thread.
+    public static let _registryBootstrap: Void = {
+        Task {
+            await ToolRegistry.shared.register(
+                name: "ReadFile",
+                toolset: "data",
+                schema: ToolRegistrySchema(
+                    name: "ReadFile",
+                    description: "Read the UTF-8 contents of a file at the given path. Subject to the wenshu sandbox path deny-list (= Sources / Tests / .scratch / /etc / /System / /usr are blocked).",
+                    inputSchema: [
+                        "path": ToolRegistrySchemaProperty(
+                            type: "string",
+                            description: "Absolute or workspace-relative path to read."
+                        )
+                    ],
+                    required: ["path"]
+                ),
+                handler: ReadFileTool(),
+                description: "Read the UTF-8 contents of a file at the given path.",
+                emoji: "📄"
+            )
+        }
+    }()
 }

@@ -454,6 +454,15 @@ public func hermesTodoToolJSONString(
 ///
 /// Output: JSON-encoded `HermesTodoToolResult`.
 public struct HermesTodoTool: Tool, Sendable {
+    /// Shared singleton for ToolRegistry bootstrap (= lazy in-memory
+    /// HermesTodoStore; no filesystem side effect at module load).
+    /// Used by the MIGRATE-TOOLREGISTRY-002 module-load registration
+    /// (= `HermesTodoTool._registryBootstrap`); production wiring
+    /// still constructs dedicated instances via the existing
+    /// `init(store:)` initializer (= e.g. ChatView pre-populates
+    /// the conductor with a per-session instance).
+    public nonisolated(unsafe) static let shared: HermesTodoTool = HermesTodoTool(store: HermesTodoStore())
+
     private let store: HermesTodoStore
 
     public init(store: HermesTodoStore) {
@@ -500,6 +509,53 @@ public struct HermesTodoTool: Tool, Sendable {
         return try hermesTodoToolJSONString(todos: todos, merge: merge, store: store)
     }
 }
+
+// MARK: - ToolRegistry bootstrap (MIGRATE-TOOLREGISTRY-002)
+
+extension HermesTodoTool {
+    /// Module-load registration with `ToolRegistry.shared` (= hermes
+    /// `tools/registry.py` `register()` 1:1). Fires once at first
+    /// type access; the underlying `Task` schedules the async
+    /// `register(...)` call off the init thread.
+    ///
+    /// HermesTodoTool is the hermes-side state machine (= LLM scratchpad).
+    /// The `todo_hermes` registration name keeps it distinct from the
+    /// wenshu-side TodoStoreTool `todo` (= same domain, different layer).
+    public static let _registryBootstrap: Void = {
+        Task {
+            await ToolRegistry.shared.register(
+                name: "todo_hermes",
+                toolset: "agent",
+                schema: ToolRegistrySchema(
+                    name: "todo_hermes",
+                    description: "Hermes-side internal todo list (= LLM scratchpad that survives context compression via re-injection).",
+                    inputSchema: [
+                        "todos": ToolRegistrySchemaProperty(
+                            type: "array",
+                            description: "Todo items to write (= array of {id, content, status} objects). Omit to read the current list."
+                        ),
+                        "merge": ToolRegistrySchemaProperty(
+                            type: "boolean",
+                            description: "When true (= default false), merge by id with the existing list; when false, replace the list."
+                        )
+                    ],
+                    required: []
+                ),
+                handler: HermesTodoTool.shared,
+                description: "Hermes-side internal todo list (= LLM scratchpad).",
+                emoji: "🧠"
+            )
+        }
+    }()
+}
+
+// NOTE: Swift 6 forbids top-level expressions, so the static let
+// `_registryBootstrap` initializer runs lazily on first type access
+// (= Swift equivalent of Python module-load statement = hermes
+// `registry.register(...)` at import time). Production code paths
+// that touch this type (= e.g. ChatView constructing
+// `ParagraphAITool.shared`, WenshuConductor constructing `ReadFileTool()`)
+// automatically trigger the bootstrap.
 
 // MARK: - TODO_SCHEMA (= mirrors Python TODO_SCHEMA)
 
