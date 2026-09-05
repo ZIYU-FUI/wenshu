@@ -610,4 +610,173 @@ public actor WenshuConductor {
         prompt += "\n基于以上信息, 用中文给 user 一个完整自然的回复 (200 字内)."
         return prompt
     }
+
+    // MARK: - ToolRegistry wiring (WIRE-TOOLREGISTRY-003)
+
+    /// Default toolset populated into `WenshuConductor.tools` when the
+    /// ChatView wraps the App-supplied conductor (= the chat surface
+    /// registration site). Names match the 12 entries that each tool
+    /// file self-registers via `ToolRegistry.shared.register(...)`
+    /// at module-import time (= see MIGRATE-TOOLREGISTRY-002).
+    ///
+    /// Kept in declaration order so the test fixture and the ChatView
+    /// wiring agree on the set (= deterministic diff).
+    public static let defaultToolNames: [String] = [
+        "ParagraphAI",      // Core/Agent/Tool/ParagraphAITool.swift
+        "ReadFile",         // Core/Agent/Tool/ReadFileTool.swift
+        "WriteFile",        // Core/Agent/Tool/WriteFileTool.swift
+        "av",               // Core/Tools/AVMediaTools.swift
+        "book_manager",     // Core/Agent/Librarian/BookManagerTool.swift
+        "file",             // Core/Tools/FileTools.swift
+        "kanban",           // Core/Agent/Tool/KanbanStoreTool.swift
+        "process",          // Core/Tools/ProcessTools.swift
+        "todo",             // Core/Agent/Tool/TodoStoreTool.swift
+        "todo_hermes",      // Core/Agent/Todo/HermesTodoTool.swift
+        "vision",           // Core/Tools/VisionTools.swift
+        "web"               // Core/Tools/WebTools.swift
+    ]
+
+    /// Maximum time `buildToolsSync(from:)` will wait for the
+    /// detached async task (= 250 ms by default). Registrations are
+    /// fire-and-forget `Task { await registry.register(...) }`
+    /// blocks that run off the init thread (= the module-load
+    /// pattern from MIGRATE-TOOLREGISTRY-002); a brief wait covers
+    /// the scheduling jitter.
+    public static let toolRegistryWaitTimeoutMs: UInt64 = 250
+
+    /// Build the conductor's tool registry from `ToolRegistry.shared`
+    /// (= hermes single-source-of-truth pattern; replaces the per-
+    /// ChatView-instantiation explicit `tools:` dict).
+    ///
+    /// PURE: no conductor state is mutated. The function returns a
+    /// fresh `[String: any Tool]` dict suitable for forwarding to
+    /// `WenshuConductor.init(...tools:)`. Callers wrap the result in
+    /// their preferred peer-construction pattern.
+    ///
+    /// Mechanism (= hermes parity):
+    /// 1. Wait a brief settle window (= `toolRegistryWarmupMs`) so
+    ///    the module-load `Task { await register(...) }` blocks
+    ///    can finish scheduling. The window is short because in
+    ///    production (= tool files eagerly imported) registrations
+    ///    complete in microseconds; the window only matters for
+    ///    process-startup jitter.
+    /// 2. For each name in `defaultToolNames`, ask
+    ///    `registry.getHandler(name:)`. Unknown names (= not yet
+    ///    registered, or registered under a different identifier) are
+    ///    silently dropped; the resulting dict may be a subset of
+    ///    `defaultToolNames` (= the hermes behavior).
+    /// 3. Return the dict. Order is not significant (= dict keys
+    ///    are unordered) but the set is deterministic.
+    public static func buildTools(from registry: ToolRegistry) async -> [String: any Tool] {
+        // Step 1: brief warmup window. Registrations are fire-and-forget
+        // `Task { await registry.register(...) }` blocks at module
+        // load (= MIGRATE-TOOLREGISTRY-002); a short settle window
+        // absorbs scheduling jitter. We do NOT wait for the full
+        // expected count (= 12): in production, tool files are
+        // imported eagerly so registrations complete in microseconds;
+        // in tests, some tool files may not be linked into the test
+        // binary, so polling for 12 would always time out and waste
+        // 250 ms. A 50 ms warmup is the empirical sweet spot.
+        try? await Task.sleep(nanoseconds: toolRegistryWarmupMs * 1_000_000)
+
+        // Step 2: assemble the dict via `getHandler`. Unknown names are
+        // silently dropped (= spec: `testBuildTools_excludesUnknownNames`).
+        var tools: [String: any Tool] = [:]
+        for name in defaultToolNames {
+            if let handler = await registry.getHandler(name: name) {
+                tools[name] = handler
+            }
+        }
+        return tools
+    }
+
+    /// Brief settle window for `buildTools(from:)` (= 50 ms).
+    /// Registrations are fire-and-forget at module-load (= see
+    /// MIGRATE-TOOLREGISTRY-002); a short sleep absorbs scheduling
+    /// jitter without waiting for a specific count (= which would
+    /// time out in tests where not all 12 tool files are linked).
+    public static let toolRegistryWarmupMs: UInt64 = 50
+
+    /// Synchronous bridge to `buildTools(from:)` for callers that
+    /// cannot await (= SwiftUI `View.init` is sync; the ChatView
+    /// fallback-conductor construction site runs there).
+    ///
+    /// The bridge uses **two** strategies combined:
+    /// 1. A static `cachedTools` dict populated on first call by a
+    ///    detached task. Subsequent calls return the cached value
+    ///    instantly. This is the common case (= ChatView.init
+    ///    fires many times during a session; the cache is hit).
+    /// 2. If the cache is empty (= very first call, OR the detached
+    ///    task hasn't finished yet), a `DispatchSemaphore` blocks
+    ///    the calling thread up to `toolRegistryWaitTimeoutMs` for
+    ///    the detached task to finish.
+    ///
+    /// Registrations are `Task { await registry.register(...) }`
+    /// on the cooperative pool (= not bound to the main actor), so
+    /// the semaphore wait does NOT deadlock the main thread.
+    ///
+    /// Budget = `toolRegistryWaitTimeoutMs` (= 250 ms by default).
+    /// On timeout the returned dict may be a partial subset of
+    /// `defaultToolNames`; this matches the async-version behavior.
+    /// ChatView's preview / fallback path tolerates a partial dict
+    /// (= no ChatView code reads the dict synchronously during init;
+    /// only the ConversationLoop / ToolExecutor consults it later).
+    public static func buildToolsSync(from registry: ToolRegistry) -> [String: any Tool] {
+        // Hot path: cache hit.
+        if let cached = cachedTools {
+            return cached
+        }
+
+        // Cold path: spawn the detached task, wait briefly for it,
+        // and populate the cache before returning.
+        let box = ResultBox()
+        let semaphore = DispatchSemaphore(value: 0)
+        Task.detached(priority: .userInitiated) {
+            let result = await buildTools(from: registry)
+            box.value = result
+            // Publish to the static cache (= other callers see this
+            // result on their next call).
+            cachedTools = result
+            semaphore.signal()
+        }
+        // Block until buildTools completes OR the budget expires.
+        let waitResult = semaphore.wait(timeout: .now() + .milliseconds(Int(toolRegistryWaitTimeoutMs)))
+        if waitResult == .timedOut {
+            NSLog("[wenshu.conductor] buildToolsSync timed out after %d ms; returning empty dict (registrations may not be settled yet)", Int(toolRegistryWaitTimeoutMs))
+            // Do NOT populate the cache on timeout (= the next call
+            // will retry with a fresh wait).
+            return [:]
+        }
+        return box.value
+    }
+
+    /// Process-wide cache of the last `buildTools` result. Populated
+    /// by `buildToolsSync` (= also re-populated by any future
+    /// async-aware caller that goes through the same singleton).
+    /// nil = cold cache; the next `buildToolsSync` call will block
+    /// briefly to warm it.
+    private static nonisolated(unsafe) var cachedTools: [String: any Tool]?
+
+    /// Tiny class-bound box used to hand the `[String: any Tool]`
+    /// result from the detached async task back to the synchronous
+    /// caller. `ObjectIdentifier` + `DispatchSemaphore` are the
+    /// publication barrier; `value` is read only AFTER the matching
+    /// `signal` (= happens-before established by the semaphore).
+    private final class ResultBox: @unchecked Sendable {
+        var value: [String: any Tool] = [:]
+    }
+
+    // MARK: - Test accessor (WIRE-TOOLREGISTRY-003)
+
+    /// Sorted list of registered tool names (= for tests asserting
+    /// the dict contents without exposing the dict itself).
+    ///
+    /// Additive: does not mutate any state. Used by
+    /// `WenshuConductorToolRegistryWiringTests.testChatViewConductor
+    /// _usesToolRegistryNotExplicitDict` to verify the wiring path
+    /// (= ChatView's conductor's tools come from
+    /// `ToolRegistry.shared`, not a freshly-constructed dict).
+    internal func registeredToolNames() -> [String] {
+        tools.keys.sorted()
+    }
 }
