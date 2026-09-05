@@ -65,6 +65,32 @@ public struct BacklinksPanel: View {
     public var body: some View {
         // placeholder: 老板 macOS 验后再补实际渲染
         // 现阶段只显示 docId + backlinks 数量, 验证 ViewModel 数据通路
+        //
+        // v0.40 POLISH-LIQUIDGLASS-005 (= 9/5 boss OOB 'apply Liquid
+        // Glass to menu popovers + dropdown panels + context menus'):
+        // .background { Color.clear.glassEffect(.regular) } applied
+        // AFTER .padding() so the canonical Apple Liquid Glass material
+        // (= semitransparent, blurs content behind, dark/light adaptive,
+        // adapts to Reduce Transparency + Increase Contrast per Apple HIG)
+        // fills the BacklinksPanel's outer content rect (= the VStack +
+        // its inner padding). Identical pattern to POLISH-LIQUIDGLASS-
+        // 001/002/003/004 (= 950e46423 / 74b22f73a / be2bfc62d /
+        // dfd97d0e7) per the boss 2026-09-02 hard rule 'every color
+        // comes from an Apple API; .glassEffect IS the Apple Liquid
+        // Glass primitive; adding a separate RoundedRectangle
+        // strokeBorder or .shadow would duplicate what .glassEffect
+        // already supplies'.
+        //
+        // BacklinksPanel IS the only custom popover root view in the
+        // wenshu codebase. All other popover-like surfaces (= SwiftUI
+        // native Menu { } label: { } blocks + Picker(...).pickerStyle
+        // (.menu) blocks + .contextMenu { } blocks + .alert(...) +
+        // .confirmationDialog(...)) are Apple system-rendered with the
+        // native Liquid Glass treatment on macOS 27 Tahoe (= no custom
+        // view body exists to apply .background to; Apple owns the
+        // styling per HIG). Same Apple-API-first rationale documented
+        // in dfd97d0e7 (= POLISH-LIQUIDGLASS-004 modal sheets commit
+        // body for .alert / .confirmationDialog).
         VStack(alignment: .leading, spacing: 8) {
             Text("反链")
                 .font(.headline)
@@ -84,5 +110,6 @@ public struct BacklinksPanel: View {
             }
         }
         .padding()
+        .background { Color.clear.glassEffect(.regular) }
     }
 }
