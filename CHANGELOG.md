@@ -1,5 +1,33 @@
 # CHANGELOG · Wenshu
 
+## v0.38 (2026-09-04 to 2026-09-05)
+
+Wenshu v0.37 ship packet continuation (= 240+ commits across 13 stages, +42,177 LOC / 233 Swift files). First line = fact. Last line = fact.
+
+### Backlog closeout (= boss 2026-09-04 OOB 'push all backlog to done')
+
+- Backlog B-01..B-13 closeout (= full backlog sweep; covers remaining residue from v0.37 ship)
+- Hermes 5 subsystem 1:1 port (= Goal / Todo / Kanban / ConversationLoop / Runtime)
+- 18 ⚠️ partial modules 1:1 port (= P0 / P1 / P2 priority tiers; 20 commits across Gap001..Gap018)
+- GAP-001..008 (= 8 module gaps closed; 16 commits = 1 port + 1 test per GAP)
+- §11.2 7-connector profile gap-fill (= DeepSeek + Ollama + OpenRouter + minimax-cn + byte-parity verifier; 5 commits)
+- 9 HERMES-INTERNAL 1:1 port (= web_search + coding_context + reason_scrub + ssl_guard + curator_backup + iteration_budget + 3 more)
+- CHATBOX + HOOK + DISPATCH (= ChatBox + ChatBoxViewModel + MultiAgentDispatch + hook-system dispatcher; 9 commits)
+- Integration plan 23 ticket (= 18 wayfinder-priority + 5 supporting; = full integration sweep)
+- FIX-TODO-LOCK-001 + VERIFY-INTEGRATION-001 (= lock fix + integration test suite)
+- v0.40 ToolRegistry 1:1 port (= 4 tickets: port + migrate + wire + verify; = hermes ToolRegistry 1:1 in Swift)
+- v0.40 Liquid Glass polish (= 6 tickets: 5 surfaces + 1 e2e test; = TopBar + Sidebar + Editor + StatusBar + sheets all .glassEffect)
+- Inventory auto-pilot cleanup (= 7 commits: manifest + CHANGELOG + iron-rules + ContextEngine + I18N + DEAD-PIN + B-03 T3b CSV + B-03 T3b translator)
+- TODAY-RETROSPECTIVE-001 (= comprehensive retrospective spec for 2026-09-04 to 2026-09-05 work; 2345678 push = 6 items: TODOs / B-07 residue / Tier-2 Apple-API-first / v0.40 refactor continuation / Liquid Glass visual verify / 14 frontend verify items)
+
+### Backlog residue: 33 files historical CJK comments (= B-03 T3c)
+
+- Batch 1 (= 8 files: App.swift, WenshuConductor.swift, ChatSessionStore.swift, EntityCategory.swift, EntityClassifier.swift, LibraryMigrator.swift, LibraryRootView.swift, PreviewPane.swift; = `7a194d6ec`)
+- Batch 2 (= 11 files; covers 8 in first commit + 2 large files in second commit; = `94817beb8` + `0b8a3f668`)
+- Batch 3 (= partial: LinkIndex + GraphBuilder + TemplateEngine + BacklinkResolver + OutlineExtractor; = `e09fa7891` + `3fc23b0b7`)
+- First/last line of every doc = fact (= AGENTS.md §11 hard rule compliance)
+- English-only commit subjects and bodies (= no CJK anywhere in the 240+ commit series)
+
 ## v0.37.1 (2026-09-04)
 
 Wenshu v0.37 ship packet followup (= 30+ commits):
