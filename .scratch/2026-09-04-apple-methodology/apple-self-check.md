@@ -143,3 +143,53 @@ python3 Tools/wenshu-devtool/pollution_watchdog.py .   # exits 0 (= no forbidden
 - Done 2026-09-04 14:35 CST (= within this session).
 - Next session, after boss拍 Q1-Q8: ticket A2 (= highest-priority implementation ticket from §4 priority list; defaults to E if boss拍推荐).
 - Repeating audit cadence: every v0.X major version (= re-run `Scripts/apple-self-check.sh` after a feature lands, verify no new dead code introduced).
+
+## §10. 2026-09-05 status update (= v0.40 auto-pilot progress)
+
+Status note added the morning after this report shipped. Branch `wt/apple-001/structure-audit` remains the Q1-Q8 answer key (= no merge to main yet; boss拍 pending).
+
+Per the v0.40 closeout in `git log main` since this branch was cut (= 5bb3f9f8c, 2026-09-04 14:35 CST):
+
+### v0.40 tickets auto-piloted on main (= 6 of 11; do NOT need re-implementation from this branch)
+
+The v0.40 batch (per the spec.md §3 scope) had 11 tickets spanning the architecture refactor decision (= Option C: ToolRegistry) + the Liquid Glass polish suite. As of 2026-09-05 morning CST, **6 v0.40 tickets have already shipped on main**:
+
+| # | Ticket | Commit | What shipped |
+|---|---|---|---|
+| 1 | `PORT-TOOLREGISTRY-001` | `a1afdfa7a` | port hermes `tools/registry.py` 1:1 (= ToolRegistry actor + ToolEntry struct + override protection + 8 tests) |
+| 2 | `MIGRATE-TOOLREGISTRY-002` | `5c4d7afd9` | migrate all 12 existing tools to `ToolRegistry.shared.register(...)` (= hermes-style module-load registration) |
+| 3 | `WIRE-TOOLREGISTRY-003` | `3df14566a` | wire `WenshuConductor.tools` to read from `ToolRegistry.shared` (= single source of truth; hermes pattern) |
+| 4 | `VERIFY-TOOLREGISTRY-004` | `a5e215c8c` | end-to-end test exercises 12 tools through `ToolRegistry.shared` (= hermes pattern verified working in wenshu) |
+| 5 | `VERIFY-INTEGRATION-001` | `b23ec2358` | end-to-end integration smoke test exercising all 22 shipped wire-up tickets |
+| 6 | `POLISH-LIQUIDGLASS-001`..`005` + `VERIFY-006` (= 6 commits) | `950e46423`..`fbf3bbe9d` | apply canonical Apple `.glassEffect(.regular)` to TopBar, Sidebar, Editor chrome, StatusBar chrome, sheets/alert dialogs, menu popovers/dropdown panels/context menus + e2e test asserting all 5 polish surfaces use canonical Apple API + no third-party clone |
+
+**Net**: 4 ToolRegistry commits + 1 integration smoke test + 6 Liquid Glass polish commits + 1 e2e test = **12 commits** (counted per the CHANGELOG v0.37.2 `3a334b81f` "6 v0.40 ToolRegistry + 6 v0.40 Liquid Glass polish" line).
+
+### Impact on this branch's remaining 9 v0.40 tickets
+
+- The ToolRegistry 1:1 port (= the original ticket A2..A4 chain) is **already complete on main**. Boss拍 Q3 should now consider these "already shipped" rather than "next session candidate".
+- The Liquid Glass polish suite (= tickets A5..A8 in the v0.40 sequence) is **already complete on main**. Boss拍 Q3 should treat these as "shipped" too.
+- The remaining items in this branch's §3 self-deduplication (= A / B / C1 / C2 / C3 / D1 / E / G / H — Apple-canonical cleanup candidates) are **unchanged** and still depend on boss拍 Q3-Q8:
+  - **E** (lift 2 magic constants to DesignTokens): still applicable, lowest-risk implementation ticket
+  - **C3** (rename `State/Workspace*` → `State/LayoutTree*`): still applicable, mechanical rename
+  - **C1/F** (lift EditorTab to top-level `@Observable`): still applicable
+  - **A** (extract 6 views from `App.swift`): still applicable, but check `wt/editor-001` merge state before scheduling (= the editor worktree may have already moved some of these views)
+  - **H** (refresh `ComponentIndex.md` Level 8): still applicable as doc-drift cleanup
+  - **C2** (WenshuLibrary vs BookStore SoT): still applicable, recommendation = delegate (low-risk)
+  - **D1** (CrossRefInject_v2 decision): still pending boss拍 (v2 token-cap vs v1 rule-based)
+  - **B** (extract `WorkspaceView.swift` 10 views): blocked on `wt/editor-001` + `wt/frontend-integration` merge (= unchanged)
+  - **G** (optional `EntityStoring` protocol): still optional, wenshu-project decision
+
+### Boss拍 Q1-Q8 status as of 2026-09-05 morning
+
+- **Q1** (accept this report): recommended YES; report stands, verdict table is the basis for next-session work
+- **Q2** (adopt `Scripts/apple-self-check.sh` as recurring audit tool): recommended YES; idempotent, ~30 sec, recoverable
+- **Q3-Q8**: the auto-piloted v0.40 tickets reduce the scope (= 6 of 11 done); the remaining 9 tickets still need拍 per the table above
+- The branch stays (= this worktree branch remains the answer key until boss拍 all of Q1-Q8); no merge to main yet
+
+### What does NOT change (= preserved across the v0.40 auto-pilot)
+
+- This report's §2 verdict table (= 13 rows for the third-party's 12 items + 1 self-deduplicated row): **unchanged**. The auto-piloted v0.40 work was separate (= ToolRegistry + Liquid Glass polish, not the Apple-canonical cleanup candidates in §3).
+- The spec.md §3 verdict table: **unchanged**. The auto-piloted tickets were tracked separately per the architecture refactor decision spec (`e32022cf5`) and the ToolRegistry port spec (`f4ccaedd2`); they did not consume or supersede any row in §3.
+- The Apple 3-tier evidence + 5-stage dead-code grep conclusions: **unchanged**. The ToolRegistry port + Liquid Glass polish are orthogonal to Apple-canonical cleanup.
+- This branch's Q1-Q8 answer-key role: **unchanged**. Boss拍 still pending; the branch remains the answer key.
