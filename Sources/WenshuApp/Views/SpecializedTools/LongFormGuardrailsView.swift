@@ -180,7 +180,7 @@ struct LongFormGuardrailsView: View {
             Button {
                 showAddSheet = true
             } label: {
-                Label("Add", systemImage: "plus")
+                Label(WenshuI18n.t("button.add"), systemImage: "plus")
             }
             .buttonStyle(.borderedProminent)
             .help("Add a user-authored guardrail row.")

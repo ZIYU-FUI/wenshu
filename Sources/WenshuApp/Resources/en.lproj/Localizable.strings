@@ -113,3 +113,14 @@
 "button.zone_editor.cancel" = "Cancel";
 "button.zone_editor.save" = "Save";
 "help.open_target" = "Open: %@";
+
+// MARK: - Button labels (B-01 residue: specialized-tool views still use
+//       inline English `Button("...")` / `Label("...")` literals). The
+//       I18N-INLINE-001 sweep moves the 5 most-frequent ones to the
+//       catalog so zh-Hans users see localized labels. Same convention
+//       as `button.zone_editor.*` above.
+"button.add"      = "Add";
+"button.analyze"  = "Analyze";
+"button.clear"    = "Clear";
+"picker.status"   = "Status";
+"picker.character" = "Character";
