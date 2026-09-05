@@ -13,11 +13,11 @@
 import Foundation
 import SQLite3
 
-/// 1 条链接 = 1 row, schema = source_doc_id / target_ref / target_doc_id / line / offset / created_at
-/// - source_doc_id: 当前文档 ID (= WenshuLibrary Book.id)
-/// - target_ref: `[[name]]` 里的目标引用字符串 (未解析, 保留原样)
-/// - target_doc_id: 解析后的目标文档 ID (可空, 因为 `[[new name]]` 会有对应未存在的文档)
-/// - line / offset: 链接在 source 文档里的位置
+/// 1 link = 1 row, schema = source_doc_id / target_ref / target_doc_id / line / offset / created_at
+/// - source_doc_id: current document ID (= WenshuLibrary Book.id)
+/// - target_ref: target reference string inside `[[name]]` (unresolved, kept as-is)
+/// - target_doc_id: resolved target document ID (may be empty, because `[[new name]]` has no corresponding document yet)
+/// - line / offset: position of the link in the source document
 public struct Link: Equatable, Sendable {
     public let sourceDocId: String
     public let targetRef: String
@@ -36,7 +36,7 @@ public struct Link: Equatable, Sendable {
     }
 }
 
-/// LinkStore 错误 (跟 MemoryStoreError 同范式)
+/// LinkStore error (same pattern as MemoryStoreError)
 public enum LinkStoreError: Error, Equatable {
     case openFailed(dbPath: String, message: String)
     case execFailed(sql: String, message: String)
@@ -44,13 +44,13 @@ public enum LinkStoreError: Error, Equatable {
     case notFound(sourceDocId: String)
 }
 
-/// SQLite 透明指针 wrap (跟 MemoryStore 同)
+/// SQLite transparent pointer wrap (same as MemoryStore)
 private final class SQLitePtr {
     var db: OpaquePointer?
     deinit { sqlite3_close(db) }
 }
 
-/// SQLite emsg helper (跟 MemoryStore SQLiteErmsg 同, per-file private)
+/// SQLite emsg helper (same as MemoryStore SQLiteErmsg, per-file private)
 private enum SQLiteErmsg {
     static func message(_ db: OpaquePointer?) -> String {
         guard let db else { return "no db handle" }
@@ -58,15 +58,15 @@ private enum SQLiteErmsg {
     }
 }
 
-/// SQLite transient destructor (per-file private, 跟 v0.18 MemoryStore 同坑 — actor across files 必须独立定义)
+/// SQLite transient destructor (per-file private, same pitfall as v0.18 MemoryStore — actor across files must define independently)
 private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
-/// LinkIndex: SQLite-backed 双向链接索引, 线程安全 actor, 接口对齐 Obsidian Backlinks plugin
+/// LinkIndex: SQLite-backed bidirectional link index, thread-safe actor, API aligned with Obsidian Backlinks plugin
 public actor LinkIndex {
     private let dbPtr: SQLitePtr
     private let dbPath: String
 
-    /// 初始化 (内存或磁盘) — Apple HIG 真值: 默认磁盘 = Library/Application Support/wenshu/links.db
+    /// Initialize (memory or disk) — Apple HIG ground truth: default disk = Library/Application Support/wenshu/links.db
     public init(path: String? = nil) throws {
         let url: URL
         if let path = path {
@@ -85,12 +85,12 @@ public actor LinkIndex {
         self.dbPtr = ptr
     }
 
-    /// 启动时调用: 建表 (actor 初始化后才能调 self)
+    /// Call on startup: create tables (can only call self after actor is initialized)
     public func bootstrap() throws {
         try createSchema()
     }
 
-    /// 创建 links 表 (if not exists)
+    /// Create links table (if not exists)
     private func createSchema() throws {
         let sql = """
         CREATE TABLE IF NOT EXISTS links (
@@ -109,7 +109,7 @@ public actor LinkIndex {
         try exec(sql)
     }
 
-    /// 执行 SQL (跟 MemoryStore.exec 同范式)
+    /// Execute SQL (same pattern as MemoryStore.exec)
     private func exec(_ sql: String) throws {
         var err: UnsafeMutablePointer<CChar>?
         if sqlite3_exec(dbPtr.db, sql, nil, nil, &err) != SQLITE_OK {
@@ -120,7 +120,7 @@ public actor LinkIndex {
     }
 
     // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-    /// 加 1 条链接
+    /// Add 1 link
     public func add(_ link: Link) throws {
         let sql = """
         INSERT INTO links (source_doc_id, target_ref, target_doc_id, line, offset, created_at)
@@ -146,7 +146,7 @@ public actor LinkIndex {
         }
     }
 
-    /// 删除 source_doc_id 的所有链接 (文档重写/删除时清空)
+    /// Delete all links for source_doc_id (clear when document is rewritten/deleted)
     public func removeAll(sourceDocId: String) throws {
         let sql = "DELETE FROM links WHERE source_doc_id = ?;"
         var stmt: OpaquePointer?
@@ -160,14 +160,14 @@ public actor LinkIndex {
         }
     }
 
-    /// 正向查: 给 source_doc_id, 拿它引用的所有目标 (Obsidian 'Outgoing links')
+    /// Forward query: given source_doc_id, return all targets it references (Obsidian 'Outgoing links')
     public func searchForward(sourceDocId: String) throws -> [Link] {
         try queryLinks(where: "source_doc_id = ?", bind: { stmt in
             sqlite3_bind_text(stmt, 1, sourceDocId, -1, SQLITE_TRANSIENT)
         })
     }
 
-    /// 反向查: 给 target_ref 或 target_doc_id, 拿所有引用它的 source (Obsidian 'Backlinks')
+    /// Backward query: given target_ref or target_doc_id, return all sources that reference it (Obsidian 'Backlinks')
     public func searchBackward(targetRef: String) throws -> [Link] {
         try queryLinks(where: "target_ref = ?", bind: { stmt in
             sqlite3_bind_text(stmt, 1, targetRef, -1, SQLITE_TRANSIENT)
@@ -180,7 +180,7 @@ public actor LinkIndex {
         })
     }
 
-    /// 通用 query helper
+    /// Common query helper
     private func queryLinks(where clause: String, bind: (OpaquePointer?) -> Void) throws -> [Link] {
         let sql = "SELECT source_doc_id, target_ref, target_doc_id, line, offset, created_at FROM links WHERE \(clause) ORDER BY created_at DESC;"
         var stmt: OpaquePointer?

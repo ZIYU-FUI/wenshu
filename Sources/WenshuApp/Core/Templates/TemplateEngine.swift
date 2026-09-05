@@ -1,28 +1,28 @@
 //
-//  TemplateEngine.swift · Wenshu · v0.19 ticket 15 (Obsidian replica, 后端先做)
-//  老板 2026-08-19 evening 拍 Obsidian 复刻范围 A + '复刻后端, 前端不接入核心项目'.
+//  TemplateEngine.swift · Wenshu · v0.19 ticket 15 (Obsidian replica, backend first)
+//  Boss 2026-08-19 evening decision Obsidian replica scope A + 'port the backend, no frontend integration into core project'.
 //
-//  模板引擎: date tokens + 变量替换.
-//  跟 Obsidian Templates plugin 真值对齐 (https://help.obsidian.md/Plugins/Templates).
-//  借鉴 SilverBullet Space Lua '变量 + 模板' 设计思路 (ticket 17 MIT 对照参考).
+//  Template engine: date tokens + variable substitution.
+//  Aligned with Obsidian Templates plugin ground truth (https://help.obsidian.md/Plugins/Templates).
+//  Borrows SilverBullet Space Lua 'variable + template' design idea (ticket 17 MIT reference).
 //
 
 import Foundation
 
-/// 1 个 token = 模板里 {{token}} 占位符
+/// 1 token = {{token}} placeholder in the template
 public enum TemplateToken: Equatable, Sendable {
     case date(format: String)         // {{date}} / {{date:YYYY-MM-DD}} / {{date:YYYY年MM月DD日}}
     case time(format: String)         // {{time}} / {{time:HH:mm}}
-    case title                       // {{title}} (新 note 默认名)
-    case author                      // {{author}} (从 env 或默认)
-    case custom(String, String)      // {{key}} / {{key:default}} (用户自定义变量)
+    case title                       // {{title}} (new note default name)
+    case author                      // {{author}} (from env or default)
+    case custom(String, String)      // {{key}} / {{key:default}} (user-defined variables)
 
-    /// 解析 token 字符串 (在 {{ }} 里)
+    /// Parse token string (inside {{ }})
     /// - "date" / "date:YYYY-MM-DD" → .date
     /// - "time" / "time:HH:mm" → .time
     /// - "title" → .title
     /// - "author" → .author
-    /// - 其他 → .custom(key, default)
+    /// - other → .custom(key, default)
     static func parse(_ raw: String) -> TemplateToken {
         let parts = raw.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
         let name = String(parts[0]).trimmingCharacters(in: .whitespaces)
@@ -42,12 +42,12 @@ public enum TemplateToken: Equatable, Sendable {
     }
 }
 
-/// 模板变量上下文 (供 replaceTokens 使用)
+/// Template variable context (for replaceTokens use)
 public struct TemplateContext: Sendable {
-    public let title: String           // 新 note 的标题
-    public let author: String          // 作者 (默认 "anonymous")
-    public let now: Date               // 当前时间 (默认 Date())
-    public let custom: [String: String]  // 用户自定义变量
+    public let title: String           // new note title
+    public let author: String          // author (default "anonymous")
+    public let now: Date               // current time (default Date())
+    public let custom: [String: String]  // user-defined variables
 
     public init(title: String = "Untitled", author: String = "anonymous", now: Date = Date(), custom: [String: String] = [:]) {
         self.title = title
@@ -57,38 +57,38 @@ public struct TemplateContext: Sendable {
     }
 }
 
-/// TemplateEngine: 模板文件 + token 替换
-/// 跟 Obsidian Templates plugin 真值 1:1, 跟 SilverBullet Space Lua 借鉴
+/// TemplateEngine: template file + token substitution
+/// 1:1 with Obsidian Templates plugin ground truth, borrows SilverBullet Space Lua
 public enum TemplateEngine {
 
-    /// 替换模板里所有 {{token}} 占位符
+    /// Replace all {{token}} placeholders in the template
     public static func render(_ template: String, context: TemplateContext) -> String {
         var result = template
-        // 1. 处理 {{date}} / {{date:format}}
+        // 1. Process {{date}} / {{date:format}}
         result = replaceDateTokens(result, context: context)
-        // 2. 处理 {{time}} / {{time:format}}
+        // 2. Process {{time}} / {{time:format}}
         result = replaceTimeTokens(result, context: context)
-        // 3. 处理 {{title}}
+        // 3. Process {{title}}
         result = result.replacingOccurrences(of: "{{title}}", with: context.title)
-        // 4. 处理 {{author}}
+        // 4. Process {{author}}
         result = result.replacingOccurrences(of: "{{author}}", with: context.author)
-        // 5. 处理 {{custom_key}} / {{custom_key:default}}
+        // 5. Process {{custom_key}} / {{custom_key:default}}
         for (key, value) in context.custom {
             let token = "{{\(key)}}"
             result = result.replacingOccurrences(of: token, with: value)
         }
-        // 6. 处理 {{key:default}} (没在 context 里的, 用 default 值)
+        // 6. Process {{key:default}} (not in context, use the default value)
         result = replaceCustomWithDefaults(result, context: context)
         return result
     }
 
-    /// 替换 {{date}} / {{date:format}} tokens
+    /// Replace {{date}} / {{date:format}} tokens
     private static func replaceDateTokens(_ template: String, context: TemplateContext) -> String {
         guard let regex = try? NSRegularExpression(pattern: #"\{\{date(?::([^\}]*))?\}\}"#) else { return template }
         let nsString = template as NSString
         let range = NSRange(location: 0, length: nsString.length)
         var result = template
-        // 用 enumerateMatches 多次 replace (从后往前避免偏移)
+        // Iterate matches in reverse order to avoid offset drift
         let matches = regex.matches(in: template, range: range).reversed()
         for match in matches {
             let format: String
@@ -128,13 +128,13 @@ public enum TemplateEngine {
         return result
     }
 
-    /// 替换 {{key:defaultValue}} 中, 不在 context.custom 里的, 用 defaultValue 值
+    /// Replace {{key:defaultValue}} — for keys not in context.custom, use the defaultValue
     private static func replaceCustomWithDefaults(_ template: String, context: TemplateContext) -> String {
         guard let regex = try? NSRegularExpression(pattern: #"\{\{([a-zA-Z_][a-zA-Z0-9_]*):([^\}]*)\}\}"#) else { return template }
         let nsString = template as NSString
         let range = NSRange(location: 0, length: nsString.length)
         var result = template
-        // 注意: date / time / title / author 已在前处理, 跳过
+        // Note: date / time / title / author already processed, skip
         let matches = regex.matches(in: template, range: range).reversed()
         for match in matches {
             guard match.numberOfRanges > 2,
@@ -143,9 +143,9 @@ public enum TemplateEngine {
             else { continue }
             let key = String(template[keyRange])
             let defaultValue = String(template[defaultRange])
-            // Skip processed
+            // Skip already-processed reserved keys
             if ["date", "time", "title", "author"].contains(key) { continue }
-            // 如果在 context.custom 里, 已被前处理替换; 跳过
+            // If in context.custom, already replaced above; skip
             if context.custom[key] != nil { continue }
             if let swiftRange = Range(match.range, in: result) {
                 result.replaceSubrange(swiftRange, with: defaultValue)
@@ -154,7 +154,7 @@ public enum TemplateEngine {
         return result
     }
 
-    /// 用 DateFormatter 格式化日期
+    /// Format a Date with DateFormatter
     private static func formatDate(_ date: Date, format: String) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = format
