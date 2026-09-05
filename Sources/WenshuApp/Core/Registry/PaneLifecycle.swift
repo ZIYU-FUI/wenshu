@@ -1,6 +1,6 @@
-// PaneLifecycle.swift · Wenshu (文枢) · v0.28 followup TKT-028-013
+// PaneLifecycle.swift · Wenshu · v0.28 followup TKT-028-013
 //
-// Boss 2026-08-29 OOB '完整复刻 hermes app' = port the 3-state pane
+// Boss 2026-08-29 OOB 'verbatim port from hermes app' = port the 3-state pane
 // lifecycle cache from Hermes Desktop verbatim. The foreground pane
 // is visible; the most recently visible inactive panes stay hot up
 // to a small cap (= default 2); the rest park (= unmounted).

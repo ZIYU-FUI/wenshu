@@ -1,6 +1,6 @@
-// PaneVisibilityStore.swift · Wenshu (文枢) · v0.28 followup TKT-028-014
+// PaneVisibilityStore.swift · Wenshu · v0.28 followup TKT-028-014
 //
-// Boss 2026-08-29 OOB '完整复刻 hermes app' = port the 3 visibility
+// Boss 2026-08-29 OOB 'verbatim port from hermes app' = port the 3 visibility
 // mechanisms from Hermes Desktop verbatim (= hiddenTreePanes /
 // dismissedPanes / collapsePanes) + their binding helpers
 // (bindPaneVisibility / bindToolPaneCollapse / dismissTreePane /

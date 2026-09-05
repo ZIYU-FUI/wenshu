@@ -1,6 +1,6 @@
-// WorkspaceScope.swift · Wenshu (文枢) · v0.28 followup TKT-028-013
+// WorkspaceScope.swift · Wenshu · v0.28 followup TKT-028-013
 //
-// Boss 2026-08-29 OOB '完整复刻 hermes app' = port the workspace-scope
+// Boss 2026-08-29 OOB 'verbatim port from hermes app' = port the workspace-scope
 // pattern from Hermes Desktop verbatim. Owner keys are opaque exact
 // strings (= never parsed, never inferred). Session workspaces use
 // `null` (= established ambient behavior). Bots workspaces publish an

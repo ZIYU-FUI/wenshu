@@ -1,6 +1,6 @@
-// ContributionRegistry.swift · Wenshu (文枢) · v0.28 followup TKT-028-013
+// ContributionRegistry.swift · Wenshu · v0.28 followup TKT-028-013
 //
-// Boss 2026-08-29 OOB '完整复刻 hermes app' = port the Hermes Desktop
+// Boss 2026-08-29 OOB 'verbatim port from hermes app' = port the Hermes Desktop
 // contribution registry pattern verbatim so adding a new pane / titlebar
 // tool / statusbar item / layout preset = 1 register() call (= not edit
 // every preset/template).
