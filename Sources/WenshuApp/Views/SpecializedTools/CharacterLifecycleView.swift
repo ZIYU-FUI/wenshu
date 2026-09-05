@@ -206,7 +206,7 @@ struct CharacterLifecycleView: View {
                     .foregroundStyle(.tertiary)
             }
             HStack(spacing: 8) {
-                Picker("Character", selection: Binding(
+                Picker(WenshuI18n.t("picker.character"), selection: Binding(
                     get: { draftCharacterId ?? characters.first?.id ?? UUID() },
                     set: { draftCharacterId = $0 }
                 )) {

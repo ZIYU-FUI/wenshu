@@ -198,7 +198,7 @@ public struct PlaceholderView: View {
                 .font(.caption)
                 .frame(width: 64)
                 .help("1-indexed line number within the chapter. Optional (defaults to 0).")
-                Picker("Status", selection: $draftStatus) {
+                Picker(WenshuI18n.t("picker.status"), selection: $draftStatus) {
                     ForEach(PlaceholderStatus.allCases) { status in
                         Label(status.displayName, systemImage: status.lucideIcon)
                             .tag(status)

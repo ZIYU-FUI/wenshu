@@ -174,7 +174,7 @@ struct GenreFitView: View {
                 Button {
                     Task { await runAnalyze() }
                 } label: {
-                    Label("Analyze", systemImage: "play")
+                    Label(WenshuI18n.t("button.analyze"), systemImage: "play")
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(chapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || status == .running)
@@ -184,7 +184,7 @@ struct GenreFitView: View {
                     report = nil
                     status = .idle
                 } label: {
-                    Label("Clear", systemImage: "x")
+                    Label(WenshuI18n.t("button.clear"), systemImage: "x")
                 }
                 .buttonStyle(.bordered)
                 .help("Clear the input text and the last report.")

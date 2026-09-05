@@ -108,3 +108,12 @@
 "button.zone_editor.cancel" = "取消";
 "button.zone_editor.save" = "保存";
 "help.open_target" = "打开：%@";
+
+// MARK: - 按钮标签 (= B-01 残留: specialized-tool 视图仍用内联英文 `Button("...")` / `Label("...")`)。
+//       I18N-INLINE-001 把使用频率最高的 5 个移入 catalog,zh-Hans 用户看到本地化标签.
+//       命名约定与上面的 `button.zone_editor.*` 保持一致.
+"button.add"      = "添加";
+"button.analyze"  = "分析";
+"button.clear"    = "清除";
+"picker.status"   = "状态";
+"picker.character" = "角色";
