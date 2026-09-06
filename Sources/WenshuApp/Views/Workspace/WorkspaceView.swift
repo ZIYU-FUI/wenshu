@@ -1578,7 +1578,7 @@ struct EditorPlaceholder: View {
             model: appState.llmModel.isEmpty ? providerDefaultModel : appState.llmModel,
             maxTokens: 2048
         )
-        let connector = activeLLMConnector()
+        let connector = WenshuAppDelegate.activeLLMConnector()
 
         do {
             let rewritten = try await EditorParagraphAI.apply(
@@ -1616,44 +1616,6 @@ struct EditorPlaceholder: View {
         selectedText = ""
     }
 
-    /// P2 #19: resolve the user's active `LLMConnector` profile
-    /// from the `wenshu.llm.activeConnector` UserDefaults slug
-    /// (= the connector profile the user picked in
-    /// LLMConnectorSettingsView; = matches the existing
-    /// ConnectorTestButton switch-on-`apiMode` factory pattern).
-    ///
-    /// Fallback chain (= matches the wenshu defensive-defaults
-    /// rule):
-    /// - missing slug → `AnthropicConnector()` (= the connector
-    ///   the existing ChatView startLongRunningGoal uses; will
-    ///   surface `.missingAPIKey` when no key is configured).
-    /// - unknown slug → `AnthropicConnector()` (= same path).
-    /// - unsupported apiMode → `AnthropicConnector()` (= same
-    ///   path; will surface `.transport` when called).
-    private func activeLLMConnector() -> any LLMConnector {
-        let slug = UserDefaults.standard.string(forKey: "wenshu.llm.activeConnector") ?? "anthropic"
-        let provider = ProviderCatalog.provider(slug: slug)
-        switch provider.apiMode {
-        case "anthropic_messages":
-            // MinimaxConnector is the Anthropic-compatible
-            // wrapper (= wenshu's default provider per
-            // AGENTS.md §11.2); AnthropicConnector is the
-            // native Anthropic API. Build the matching one by
-            // slug (= minimax / minimax-cn / anthropic).
-            if provider.slug == "anthropic" {
-                return AnthropicConnector()
-            }
-            return MinimaxConnector()
-        case "openai_chat":
-            return OpenAICompatibleConnector(provider: provider)
-        default:
-            // Gemini + any other apiMode lands here until the
-            // matching connector lands (= Gemini native connector
-            // is a separate ticket per
-            // ConnectorTestButton.runTest).
-            return AnthropicConnector()
-        }
-    }
 
     // MARK: - B-23 file-system watcher
 
@@ -2218,8 +2180,11 @@ struct EditorParagraphAI {
     ///   - transform: which of the 6 `EditorTransform` cases to
     ///     apply.
     ///   - connector: the active `LLMConnector` (= injected for
-    ///     testability; production calls `activeLLMConnector()`
-    ///     on the view; tests inject `MockLLMConnector`).
+    ///     testability; production calls
+    ///     `WenshuAppDelegate.activeLLMConnector()` (= the
+    ///     module-internal bridge added in apple-001 Q1 slice 2 so
+    ///     the test target can resolve a connector without mounting
+    ///     the full WorkspaceView); tests inject `MockLLMConnector`).
     ///   - options: the per-call `LLMCallOptions` (= model +
     ///     maxTokens).
     /// - Returns: the rewritten paragraph (= the first .text
