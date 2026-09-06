@@ -196,4 +196,12 @@ public enum DesignTokens {
     /// caption-sized). Replaces inline `.padding(.vertical, 2)` in
     /// ConnectorProfileRow.
     public static let badgePaddingVertical: CGFloat = 2
+
+    // v0.40 apple-001 Q8 batch 1 site: max height for the Memory +
+    // Skills settings lists (= 200 PT = the 4-row Mac App Store
+    // "in-app settings" pattern = enough for a feature toggle, a
+    // picker, and a description; beyond this the view should scroll).
+    // Shared between `MemorySettingsView` and `SkillsSettingsView`
+    // (the 2 Settings panes that previously hard-coded the value).
+    public static let settingsListMaxHeight: CGFloat = 200
 }
