@@ -164,3 +164,5 @@
 "tab.title.foreshadowing" = "Foreshadowing";
 "tab.title.placeholder" = "Placeholder";
 "tab.title.reference_library" = "Reference library";
+"workspace.editor.external_change_saved" = "File updated; your edits were saved to %@.";
+"workspace.editor.external_change_save_failed" = "File updated; saving your edits failed (notice: %@).";

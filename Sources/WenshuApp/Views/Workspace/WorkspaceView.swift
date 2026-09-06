@@ -1644,9 +1644,9 @@ struct EditorPlaceholder: View {
                     atomically: true,
                     encoding: .utf8
                 )
-                externalChangeNotice = "文件已更新, 你的编辑已保存到 \(conflictPath)"
+                externalChangeNotice = WenshuI18n.ts("workspace.editor.external_change_saved", conflictPath)
             } catch {
-                externalChangeNotice = "文件已更新, 你的编辑保存失败 (通知: \(error.localizedDescription))"
+                externalChangeNotice = WenshuI18n.t("workspace.editor.external_change_save_failed") + " (" + error.localizedDescription + ")"
             }
         }
         draft = newContent
