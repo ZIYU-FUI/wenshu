@@ -95,7 +95,7 @@ struct DynamicZoneView: View {
             // 🟨 half-visible. The panel is always rendered at the bottom
             // of the DynamicZone (= memory preview is global to all tabs).
             MemoryRetrievalPanel(entries: memoryEntries)
-                .frame(height: 180)
+                .frame(height: DesignTokens.cardPreviewHeight)
                 .padding(.horizontal, DesignTokens.chromePaddingLeading)
                 .padding(.bottom, DesignTokens.chromePaddingVertical)
         }

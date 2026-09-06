@@ -304,7 +304,7 @@ struct ChatZoneView: View {
                         .foregroundStyle(.secondary)
                     ProgressView(value: Double(min(vm.contextUsed, vm.contextMax)), total: Double(max(1, vm.contextMax)))
                         .progressViewStyle(.linear)
-                        .frame(width: 80)
+                        .frame(width: DesignTokens.chatInputMinWidth)
                         .tint(vm.contextUsed >= vm.contextMax ? .red : (vm.contextUsed > vm.contextMax * 3 / 4 ? .orange : .green))
                 }
                 .padding(.trailing, DesignTokens.chromePaddingTrailing)

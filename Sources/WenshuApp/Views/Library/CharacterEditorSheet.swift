@@ -55,7 +55,7 @@ struct CharacterEditorSheet: View {
                     HStack {
                         TextField("年龄 (可选)", text: $ageText)
                             .textFieldStyle(.roundedBorder)
-                            .frame(width: 120)
+                            .frame(width: DesignTokens.formColumnWidth)
                         Picker("角色定位", selection: $role) {
                             ForEach(CharacterRole.allCases, id: \.self) { r in
                                 Label(r.displayName, systemImage: r.icon)

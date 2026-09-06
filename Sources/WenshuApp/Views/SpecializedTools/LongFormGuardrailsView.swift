@@ -216,7 +216,7 @@ struct LongFormGuardrailsView: View {
                         Text("auto")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                            .padding(.horizontal, 4)
+                            .padding(.horizontal, DesignTokens.chromePaddingMicro)
                             .padding(.vertical, DesignTokens.chromePaddingPico)
                             .background(
                                 RoundedRectangle(cornerRadius: 3)
@@ -397,7 +397,7 @@ struct LongFormGuardrailsView: View {
             }
         }
         .padding(DesignTokens.chromePaddingLarge)
-        .frame(width: 360)
+        .frame(width: DesignTokens.guardrailSheetWidth)
         // POLISH-LIQUIDGLASS-004: Add-guardrail modal sheet root uses
         // Apple .glassEffect(.regular) (= macOS 27 Tahoe Liquid Glass;
         // same shape as POLISH-LIQUIDGLASS-001/002/003 that glassed

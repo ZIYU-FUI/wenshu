@@ -145,7 +145,7 @@ public struct RegionTabBar<Content: View>: View {
         .overlay(alignment: .bottom) {
             Rectangle()
                 .fill(.separator as SeparatorShapeStyle)
-                .frame(height: 1)
+                .frame(height: DesignTokens.dividerHeight)
         }
     }
 }
@@ -238,7 +238,7 @@ public struct RegionStatusBar<Content: View>: View {
         .overlay(alignment: .top) {
             Rectangle()
                 .fill(.separator as SeparatorShapeStyle)
-                .frame(height: 1)
+                .frame(height: DesignTokens.dividerHeight)
         }
     }
 }

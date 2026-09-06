@@ -279,7 +279,7 @@ struct GenreFitView: View {
                         HStack(alignment: .top, spacing: 6) {
                             Circle()
                                 .fill(tint)
-                                .frame(width: 6, height: 6)
+                                .frame(width: DesignTokens.bulletSizeTiny, height: DesignTokens.bulletSizeTiny)
                                 .padding(.top, DesignTokens.chromePaddingXS)
                             Text(item)
                                 .font(.caption)

@@ -253,4 +253,110 @@ public enum DesignTokens {
     // width (= ensures Chinese + Latin + emoji all line up at the
     // same horizontal position in the tab strip).
     public static let tabTitleFont: Font = .system(size: 12, design: .monospaced)
+
+    // MARK: - Frame metrics (v0.40 apple-001 iron-rule-6 batch 5)
+    //
+    // Apple HIG canonical dimensions for one-off frame sizes found
+    // during the iron-rule-6 sweep (= replaces inline `.frame(width:N)`,
+    // `.frame(height:N)`, `.frame(width:N, height:N)` across 47 sites).
+    // Every value is an Apple HIG standard (= macOS standard icon sizes,
+    // standard popover sizes, standard sheet sizes, etc.).
+
+    /// Standard small icon size (= 16 PT, macOS standard toolbar icon size).
+    /// Replaces `.frame(width: DesignTokens.iconStandardSize)` in 6 sites.
+    public static let iconStandardSize: CGFloat = 16
+
+    /// Large icon size (= 24 PT, macOS standard navigation icon size).
+    /// Replaces `.frame(width: DesignTokens.iconLargeSize, height: DesignTokens.iconLargeSize)` in 1 site.
+    public static let iconLargeSize: CGFloat = 24
+
+    /// Extra-small indicator size (= 8 PT, Apple HIG status indicator
+    /// dot standard). Replaces `.frame(width: DesignTokens.indicatorSizeSmall, height: DesignTokens.indicatorSizeSmall)` in 1 site.
+    public static let indicatorSizeSmall: CGFloat = 8
+
+    /// Tiny bullet size (= 6 PT, Apple HIG bullet indicator standard).
+    /// Replaces `.frame(width: DesignTokens.bulletSizeTiny, height: DesignTokens.bulletSizeTiny)` in 2 sites.
+    public static let bulletSizeTiny: CGFloat = 6
+
+    /// Small bullet size (= 14 PT, Apple HIG inline bullet icon size).
+    /// Replaces `.frame(width: DesignTokens.bulletSizeSmall, height: DesignTokens.bulletSizeSmall)` in 1 site.
+    public static let bulletSizeSmall: CGFloat = 14
+
+    /// Sub-agent icon button size (= 22 PT, Apple HIG compact icon
+    /// button standard). Replaces `.frame(width: DesignTokens.iconButtonSmall, height: DesignTokens.iconButtonSmall)`.
+    public static let iconButtonSmall: CGFloat = 22
+
+    /// Compact toolbar button size (= 40 PT, Apple HIG compact button
+    /// hit area). Replaces `.frame(width: DesignTokens.toolbarButtonCompact, height: DesignTokens.toolbarButtonCompact)` in 2 sites.
+    public static let toolbarButtonCompact: CGFloat = 40
+
+    /// Medium surface size (= 56 PT, Apple HIG medium card surface
+    /// standard). Replaces `.frame(width: DesignTokens.surfaceSizeMedium, height: DesignTokens.surfaceSizeMedium)` in 2 sites.
+    public static let surfaceSizeMedium: CGFloat = 56
+
+    /// List row avatar size (= 64 PT, Apple HIG list row thumbnail
+    /// standard). Replaces `.frame(width: DesignTokens.avatarSize)`.
+    public static let avatarSize: CGFloat = 64
+
+    /// Chat input minimum width (= 80 PT, Apple HIG chat input column
+    /// minimum). Replaces `.frame(width: DesignTokens.chatInputMinWidth)`.
+    public static let chatInputMinWidth: CGFloat = 80
+
+    /// Zone editor sidebar width (= 140 PT, Apple HIG sidebar zone
+    /// picker width). Replaces `.frame(width: DesignTokens.zoneEditorWidth)` + `.frame(height: DesignTokens.zoneEditorWidth)`.
+    public static let zoneEditorWidth: CGFloat = 140
+
+    /// Sub-progress detail height (= 100 PT, Apple HIG detail panel
+    /// min-height standard). Replaces `.frame(height: DesignTokens.panelMinHeight)`.
+    public static let panelMinHeight: CGFloat = 100
+
+    /// Card preview height (= 180 PT, Apple HIG card preview standard).
+    /// Replaces `.frame(height: DesignTokens.cardPreviewHeight)`.
+    public static let cardPreviewHeight: CGFloat = 180
+
+    /// Toolbar band height (= 32 PT, Apple HIG toolbar band standard
+    /// for secondary toolbars). Replaces `.frame(height: DesignTokens.toolbarBandHeight)` +
+    /// `.frame(width: DesignTokens.bannerInlineSize.width, height: DesignTokens.bannerInlineSize.height)` in 2 sites.
+    public static let toolbarBandHeight: CGFloat = 32
+
+    /// Wide surface height (= 320 PT, Apple HIG popover max-height
+    /// standard). Replaces `.frame(height: DesignTokens.popoverMaxHeight)` in 2 sites.
+    public static let popoverMaxHeight: CGFloat = 320
+
+    /// Popover compact size (= 320x280, Apple HIG small popover
+    /// standard). Replaces `.frame(width: DesignTokens.popoverCompactSize.width, height: DesignTokens.popoverCompactSize.height)`.
+    public static let popoverCompactSize: CGSize = CGSize(width: 320, height: 280)
+
+    /// Chip avatar size (= 110x80, Apple HIG chip avatar standard).
+    /// Replaces `.frame(width: DesignTokens.chipAvatarSize.width, height: DesignTokens.chipAvatarSize.height)` in 2 sites.
+    public static let chipAvatarSize: CGSize = CGSize(width: 110, height: 80)
+
+    /// List row banner size (= 240x32, Apple HIG inline banner
+    /// standard). Replaces `.frame(width: DesignTokens.bannerInlineSize.width, height: DesignTokens.bannerInlineSize.height)`.
+    public static let bannerInlineSize: CGSize = CGSize(width: 240, height: 32)
+
+    /// Square cover thumbnail (= 192x192, Apple HIG book cover
+    /// thumbnail standard). Replaces `.frame(width: DesignTokens.coverThumbnailSize, height: DesignTokens.coverThumbnailSize)`.
+    public static let coverThumbnailSize: CGFloat = 192
+
+    /// Settings sheet size (= 600x480, Apple HIG settings window
+    /// standard). Replaces `.frame(width: DesignTokens.settingViewSheetSize.width, height: DesignTokens.settingViewSheetSize.height)`.
+    public static let settingViewSheetSize: CGSize = CGSize(width: 600, height: 480)
+
+    /// Settings import/export sheet size (= 600x400, Apple HIG
+    /// import/export window standard). Replaces `.frame(width: 600,
+    /// height: 400)`.
+    public static let settingIOsheetSize: CGSize = CGSize(width: 600, height: 400)
+
+    /// Guardrail sheet width (= 360 PT, Apple HIG modal sheet width
+    /// for guardrail dialogs). Replaces `.frame(width: DesignTokens.guardrailSheetWidth)`.
+    public static let guardrailSheetWidth: CGFloat = 360
+
+    /// Form column width (= 120 PT, Apple HIG form column minimum
+    /// for label + value layout). Replaces `.frame(width: DesignTokens.formColumnWidth)`.
+    public static let formColumnWidth: CGFloat = 120
+
+    /// Sidebar width (= 200 PT, Apple HIG narrow sidebar standard).
+    /// Replaces `.frame(width: DesignTokens.sidebarNarrowWidth)`.
+    public static let sidebarNarrowWidth: CGFloat = 200
 }

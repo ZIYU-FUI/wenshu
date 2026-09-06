@@ -104,7 +104,7 @@ struct ZoneEditor: View {
                 model = buildModel(template: newValue, count: zoneCount)
             }
             Stepper("Zones: \(zoneCount)", value: $zoneCount, in: 1...8)
-                .frame(width: 140)
+                .frame(width: DesignTokens.zoneEditorWidth)
                 .onChange(of: zoneCount) { _, newValue in
                     model = buildModel(template: template, count: newValue)
                 }
@@ -364,7 +364,7 @@ struct ZoneEditor: View {
                     Button(action: { splitAtColumn(i) }) {
                         LucideIconSystemFallback("plus", size: 14)
                             .foregroundStyle(.white)
-                            .frame(width: 22, height: 22)
+                            .frame(width: DesignTokens.iconButtonSmall, height: DesignTokens.iconButtonSmall)
                             .background(Circle().fill(Color.accentColor))
                     }
                     .buttonStyle(.plain)

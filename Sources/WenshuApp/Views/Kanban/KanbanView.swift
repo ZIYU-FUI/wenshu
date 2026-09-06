@@ -354,7 +354,7 @@ private struct KanbanColumn: View {
             }
         }
         .padding(DesignTokens.chromePaddingVertical)
-        .frame(width: 200)
+        .frame(width: DesignTokens.sidebarNarrowWidth)
         .background(.background.secondary, in: RoundedRectangle(cornerRadius: 6))
         .overlay(
             RoundedRectangle(cornerRadius: 6)

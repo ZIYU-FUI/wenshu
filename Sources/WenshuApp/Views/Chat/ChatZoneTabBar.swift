@@ -189,7 +189,7 @@ struct ChatZoneTabBar: View {
             // v0.32 boss 2026-09-02 OOB: replace DesignColor.splitterLine
             // wrapper with bare Color(nsColor: .separatorColor) (= Apple
             // canonical separator = dark/light adaptive).
-            Color(nsColor: .separatorColor).frame(height: 1)
+            Color(nsColor: .separatorColor).frame(height: DesignTokens.dividerHeight)
         }
         .animation(.default, value: selectedTab)
     }

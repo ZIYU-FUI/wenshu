@@ -220,7 +220,7 @@ struct EmotionCurveView: View {
     private func resultSection(for report: EmotionCurveReport) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             curveChart(for: report)
-                .frame(height: 140)
+                .frame(height: DesignTokens.zoneEditorWidth)
                 .padding(DesignTokens.chromePaddingVertical)
                 .background(
                     RoundedRectangle(cornerRadius: 6)
@@ -285,7 +285,7 @@ struct EmotionCurveView: View {
                         HStack(alignment: .top, spacing: 6) {
                             Circle()
                                 .fill(tint)
-                                .frame(width: 6, height: 6)
+                                .frame(width: DesignTokens.bulletSizeTiny, height: DesignTokens.bulletSizeTiny)
                                 .padding(.top, DesignTokens.chromePaddingXS)
                             Text(item)
                                 .font(.caption.monospacedDigit())

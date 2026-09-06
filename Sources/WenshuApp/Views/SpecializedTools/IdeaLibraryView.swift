@@ -573,7 +573,7 @@ struct IdeaLibraryView: View {
                             HStack(alignment: .top, spacing: 6) {
                                 LucideIconSystemFallback(idea.status.lucideIcon, size: 12)
                                     .foregroundStyle(.tint)
-                                    .frame(width: 16)
+                                    .frame(width: DesignTokens.iconStandardSize)
                                 Text(idea.title)
                                     .font(.caption)
                                     .foregroundStyle(.primary)

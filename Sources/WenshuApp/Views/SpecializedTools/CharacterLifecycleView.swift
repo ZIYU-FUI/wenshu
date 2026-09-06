@@ -385,7 +385,7 @@ struct CharacterLifecycleView: View {
         HStack(alignment: .top, spacing: 6) {
             LucideIconSystemFallback(event.stage.lucideIcon, size: 12)
                 .foregroundStyle(.tint)
-                .frame(width: 16)
+                .frame(width: DesignTokens.iconStandardSize)
             Text(event.stage.displayName)
                 .font(.caption)
                 .foregroundStyle(.primary)

@@ -71,7 +71,7 @@ struct PresetCard: View {
                     Button(action: onDelete) {
                         LucideIconSystemFallback("xmark", size: 12)
                             .foregroundStyle(.secondary)
-                            .frame(width: 28, height: 28)
+                            .frame(width: DesignTokens.paneTabHotArea, height: DesignTokens.paneTabHotArea)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)

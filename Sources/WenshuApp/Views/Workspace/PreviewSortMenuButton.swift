@@ -33,7 +33,7 @@ struct PreviewSortMenuButton: View {
         // Q34 ticket 01 of v0.30-topbar-card-alignment: PaneIconTab
         // pattern exactly (= Color.clear base + overlay icon +
         // contentShape). The previous "plain Button + LucideIcon
-        // + .frame(width: 28, height: 28)" pattern collapsed to
+        // + .frame(width: DesignTokens.paneTabHotArea, height: DesignTokens.paneTabHotArea)" pattern collapsed to
         // zero size inside ZoneContentView's trailing slot (= AnyView
         // wrapper at ZoneContentTabBar erases intrinsic size).
         // Color.clear base provides a guaranteed 28x28 hit area that

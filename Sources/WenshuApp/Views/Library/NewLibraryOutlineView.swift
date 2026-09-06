@@ -1576,7 +1576,7 @@ private struct NewBookSheet: View {
                         ZStack {
                             RoundedRectangle(cornerRadius: 8)
                                 .fill(.tint.opacity(0.15))
-                                .frame(width: 56, height: 56)
+                                .frame(width: DesignTokens.surfaceSizeMedium, height: DesignTokens.surfaceSizeMedium)
                             LucideIcon(selectedIcon, size: 32)
                                 .foregroundStyle(Color.accentColor)
                         }
@@ -1603,7 +1603,7 @@ private struct NewBookSheet: View {
                                             .fill(selectedIcon == iconName
                                                   ? AnyShapeStyle(.tint.opacity(0.25))
                                                   : AnyShapeStyle(Color.clear))
-                                            .frame(width: 40, height: 40)
+                                            .frame(width: DesignTokens.toolbarButtonCompact, height: DesignTokens.toolbarButtonCompact)
                                         LucideIcon(iconName, size: 24)
                                             .foregroundStyle(selectedIcon == iconName
                                                              ? Color.accentColor
@@ -1624,7 +1624,7 @@ private struct NewBookSheet: View {
                         .padding(.horizontal, DesignTokens.chromePaddingMicro)
                         .padding(.vertical, DesignTokens.chromePaddingVertical)
                     }
-                    .frame(height: 320)
+                    .frame(height: DesignTokens.popoverMaxHeight)
                 } header: {
                     Text("ICON (必选)")
                 }
@@ -1753,7 +1753,7 @@ private struct NewShelfSheet: View {
                         ZStack {
                             RoundedRectangle(cornerRadius: 8)
                                 .fill(.tint.opacity(0.15))
-                                .frame(width: 56, height: 56)
+                                .frame(width: DesignTokens.surfaceSizeMedium, height: DesignTokens.surfaceSizeMedium)
                             LucideIcon(selectedIcon, size: 32)
                                 .foregroundStyle(Color.accentColor)
                         }
@@ -1787,7 +1787,7 @@ private struct NewShelfSheet: View {
                                             .fill(selectedIcon == iconName
                                                   ? AnyShapeStyle(.tint.opacity(0.25))
                                                   : AnyShapeStyle(Color.clear))
-                                            .frame(width: 40, height: 40)
+                                            .frame(width: DesignTokens.toolbarButtonCompact, height: DesignTokens.toolbarButtonCompact)
                                         LucideIcon(iconName, size: 24)
                                             .foregroundStyle(selectedIcon == iconName
                                                              ? Color.accentColor
@@ -1808,7 +1808,7 @@ private struct NewShelfSheet: View {
                         .padding(.horizontal, DesignTokens.chromePaddingMicro)
                         .padding(.vertical, DesignTokens.chromePaddingVertical)
                     }
-                    .frame(height: 320)
+                    .frame(height: DesignTokens.popoverMaxHeight)
                 } header: {
                     Text("ICON (必选)")
                 }
@@ -1856,7 +1856,7 @@ struct NewChoiceSheet: View {
                         LucideIcon("book-plus", size: 32)
                         Text("新建书").font(.body)
                     }
-                    .frame(width: 110, height: 80)
+                    .frame(width: DesignTokens.chipAvatarSize.width, height: DesignTokens.chipAvatarSize.height)
                 }
                 .buttonStyle(.bordered)
 
@@ -1867,7 +1867,7 @@ struct NewChoiceSheet: View {
                         LucideIcon("library", size: 32)
                         Text("新建书架").font(.body)
                     }
-                    .frame(width: 110, height: 80)
+                    .frame(width: DesignTokens.chipAvatarSize.width, height: DesignTokens.chipAvatarSize.height)
                 }
                 .buttonStyle(.bordered)
             }
@@ -2023,7 +2023,7 @@ private struct NewButtonWithHover: View {
     var body: some View {
         Button(action: action) {
             LucideIcon(iconName, size: 18)
-                .frame(width: 28, height: 28)
+                .frame(width: DesignTokens.paneTabHotArea, height: DesignTokens.paneTabHotArea)
                 .contentShape(Rectangle())
                 .foregroundStyle(Color.secondary)
         }
