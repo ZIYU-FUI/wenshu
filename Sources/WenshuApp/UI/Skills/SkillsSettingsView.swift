@@ -17,7 +17,7 @@ public struct SkillsSettingsView: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
             Text(WenshuI18n.t("settings.skills.title"))
                 .font(.headline)
             Text(WenshuI18n.t("settings.skills.subtitle"))
@@ -51,16 +51,16 @@ public struct SkillsSettingsView: View {
                     .padding(.vertical, DesignTokens.chromePaddingSmall)
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
                         ForEach(skills) { skill in
                             SkillRow(skill: skill)
                         }
                     }
                 }
-                .frame(maxHeight: 200)
+                .frame(maxHeight: DesignTokens.settingsListMaxHeight)
             }
         }
-        .padding(12)
+        .padding(DesignTokens.chromePaddingMedium)
         .background(Color(nsColor: .windowBackgroundColor))
     }
 }
@@ -91,7 +91,7 @@ public struct SkillRow: View {
                     SkillAdapter.shared.setEnabled(name: skill.name, enabled: newValue)
                 }
         }
-        .padding(6)
+        .padding(DesignTokens.chromePaddingSmall)
         .background(Color.secondary.opacity(subtleSurfaceAlpha), in: RoundedRectangle(cornerRadius: smallChipCornerRadius))
     }
 }

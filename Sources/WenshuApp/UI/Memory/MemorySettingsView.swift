@@ -30,7 +30,7 @@ public struct MemorySettingsView: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: DesignTokens.chromePaddingMedium) {
             Text(WenshuI18n.t("settings.memory.title"))
                 .font(.headline)
             Text(WenshuI18n.t("settings.memory.subtitle"))
@@ -94,16 +94,16 @@ public struct MemorySettingsView: View {
                     .padding(.vertical, DesignTokens.chromePaddingSmall)
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: DesignTokens.chromePaddingSmall) {
                         ForEach(recentEntries) { entry in
                             MemoryEntryRow(entry: entry, compact: false)
                         }
                     }
                 }
-                .frame(maxHeight: 200)
+                .frame(maxHeight: DesignTokens.settingsListMaxHeight)
             }
         }
-        .padding(12)
+        .padding(DesignTokens.chromePaddingMedium)
         .background(Color(nsColor: .windowBackgroundColor))
         .task {
             await reloadEntries()
