@@ -52,24 +52,33 @@ public enum DesignTokens {
 
     /// Per-pane chrome micro padding (= 4 PT). Used for tight inset inside
     /// chrome chrome (= icon-picker cells, tab handles, divider label gaps).
-    /// Replaces inline `.padding(.horizontal, 4)`.
+    /// Replaces inline `.padding(.horizontal, DesignTokens.chromePaddingMicro)`.
     public static let chromePaddingMicro: CGFloat = 4
     public static let chromePaddingNano: CGFloat = 2
     public static let chromePaddingPico: CGFloat = 1
 
     /// Per-pane chrome small padding (= 6 PT). Used for status bar hover,
     /// tight text padding inside chips, badge interior gaps.
-    /// Replaces inline `.padding(.vertical, 6)`.
+    /// Replaces inline `.padding(.vertical, DesignTokens.chromePaddingSmall)`.
     public static let chromePaddingSmall: CGFloat = 6
+
+    /// Per-pane chrome extra-small padding (= 5 PT, Apple HIG bullet/chip
+    /// baseline alignment standard). Used for bullet-to-text baseline gap
+    /// (= aligns 6 PT circle with caption text baseline = reads as a
+    /// bulleted list) and small chip horizontal padding (= tighter than
+    /// chromePaddingSmall = 6 because chip text is caption2 = smaller).
+    /// Replaces inline `.padding(.horizontal/.top, 5)` in
+    /// BookSettingConstraintsView + EmotionCurveView + GenreFitView.
+    public static let chromePaddingXS: CGFloat = 5
 
     /// Per-pane chrome medium padding (= 12 PT). Apple HIG standard for
     /// bordered content rows (= chat input, popup buttons, picker rows).
-    /// Replaces inline `.padding(.horizontal, 12)`.
+    /// Replaces inline `.padding(.horizontal, DesignTokens.chromePaddingMedium)`.
     public static let chromePaddingMedium: CGFloat = 12
 
     /// Per-pane chrome large padding (= 16 PT). Apple HIG standard for
     /// stacked section separators (= onboarding body, Settings rows).
-    /// Replaces inline `.padding(.top, 16)`.
+    /// Replaces inline `.padding(.top, DesignTokens.chromePaddingLarge)`.
     public static let chromePaddingLarge: CGFloat = 16
 
     /// Per-pane chrome extra-large padding (= 24 PT). Used only for
@@ -86,12 +95,12 @@ public enum DesignTokens {
 
     /// Chat input outer bottom margin (= 10 PT). Apple HIG standard for
     /// chat input row bottom inset (= Messages / Mail / Xcode).
-    /// Replaces inline `.padding(.bottom, 10)`.
+    /// Replaces inline `.padding(.bottom, DesignTokens.chromePaddingChatBottom)`.
     public static let chromePaddingChatBottom: CGFloat = 10
 
     /// Floating edit-mode indicator chip horizontal padding (= 10 PT).
     /// Apple HIG standard for floating chip / badge layout.
-    /// Replaces inline `.padding(.horizontal, 10)`.
+    /// Replaces inline `.padding(.horizontal, DesignTokens.chromePaddingChatBottom)`.
     public static let chromePaddingChipHorizontal: CGFloat = 10
 
     /// Hotkey chip micro vertical padding (= 1 PT). Apple HIG standard

@@ -146,8 +146,8 @@ public struct CommandPaletteView: View {
                     .buttonStyle(.borderless)
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, DesignTokens.chromePaddingLarge)
+            .padding(.vertical, DesignTokens.chromePaddingMedium)
 
             Divider()
 
@@ -178,8 +178,8 @@ public struct CommandPaletteView: View {
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
+            .padding(.horizontal, DesignTokens.chromePaddingLarge)
+            .padding(.vertical, DesignTokens.chromePaddingVertical)
         }
         .frame(width: 600, height: 400)
         // POLISH-LIQUIDGLASS-004: ⌘K palette sheet root uses Apple
@@ -250,14 +250,14 @@ private struct CommandPaletteRow: View {
                     )
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.horizontal, DesignTokens.chromePaddingLarge)
+        .padding(.vertical, DesignTokens.chromePaddingVertical)
         .background(
             isSelected ?
                 RoundedRectangle(cornerRadius: 6).fill(Color(nsColor: .selectedContentBackgroundColor).opacity(0.6)) :
                 nil
         )
-        .padding(.horizontal, 4)
+        .padding(.horizontal, DesignTokens.chromePaddingMicro)
     }
 
     private var categorySymbol: String {

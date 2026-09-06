@@ -40,8 +40,8 @@ struct ParagraphAIToolbarButtons: View {
                 Image(systemName: "arrow.up.left.and.arrow.down.right")
                     .font(DesignTokens.hotkeyComboFont)
                     .foregroundStyle(.secondary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
+                    .padding(.horizontal, DesignTokens.chromePaddingVertical)
+                    .padding(.vertical, DesignTokens.chromePaddingMicro)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -61,8 +61,8 @@ struct ParagraphAIToolbarButtons: View {
                 Image(systemName: "arrow.down.right.and.arrow.up.left")
                     .font(DesignTokens.hotkeyComboFont)
                     .foregroundStyle(.secondary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
+                    .padding(.horizontal, DesignTokens.chromePaddingVertical)
+                    .padding(.vertical, DesignTokens.chromePaddingMicro)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -81,8 +81,8 @@ struct ParagraphAIToolbarButtons: View {
                 Image(systemName: "arrow.triangle.2.circlepath")
                     .font(DesignTokens.hotkeyComboFont)
                     .foregroundStyle(.secondary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
+                    .padding(.horizontal, DesignTokens.chromePaddingVertical)
+                    .padding(.vertical, DesignTokens.chromePaddingMicro)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -110,7 +110,7 @@ struct ParagraphAIToolbarButtons: View {
                     .font(DesignTokens.hotkeyComboFont)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, DesignTokens.chromePaddingSmall)
-                    .padding(.vertical, 4)
+                    .padding(.vertical, DesignTokens.chromePaddingMicro)
                     .contentShape(Rectangle())
             }
             .menuStyle(.borderlessButton)
