@@ -179,3 +179,15 @@
 "settings.model.reasoning_label" = "推理";
 "settings.model.use_main_model" = "使用主模型";
 "settings.model.assistant_model_label" = "辅助模型";
+"settings.provider.key_status_label" = "已设 key";
+"settings.provider.paste_key_label" = "粘贴 密钥";
+"settings.provider.paste_provider_key_label" = "粘贴 %@ 密钥";
+"settings.provider.custom_endpoint_label" = "本地 / 自定义端点";
+"settings.provider.custom_endpoint_caption" = "将文枢 指向任意 OpenAI 兼容端点 (Zyphra, vLLM, llama.cpp, Ollama 等).";
+"settings.provider.key_count_label" = "已设 key %@ / %@";
+"settings.provider.save_button" = "保存";
+"settings.provider.tbd_label" = "待配置";
+"settings.provider.save_failed_message" = "保存失败: %@";
+"settings.model.use_main_model" = "使用主模型";
+"settings.model.change_button" = "更改";
+"settings.assistant.caption" = "辅助任务默认使用主模型. 你可以为任意任务指定专用模型. (wenshu 真值: 辅助任务调度暂未实现, 占位显示 Hermes AUX_TASKS 真值列表)";

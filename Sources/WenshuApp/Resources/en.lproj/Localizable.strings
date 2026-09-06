@@ -188,3 +188,15 @@
 "settings.model.reasoning_label" = "Reasoning";
 "settings.model.use_main_model" = "Use main model";
 "settings.model.assistant_model_label" = "Assistant model";
+"settings.provider.key_status_label" = "Key set";
+"settings.provider.paste_key_label" = "Paste key";
+"settings.provider.paste_provider_key_label" = "Paste %@ key";
+"settings.provider.custom_endpoint_label" = "Local / custom endpoint";
+"settings.provider.custom_endpoint_caption" = "Point wenshu at any OpenAI-compatible endpoint (Zyphra, vLLM, llama.cpp, Ollama, etc.).";
+"settings.provider.key_count_label" = "Keys set %@ / %@";
+"settings.provider.save_button" = "Save";
+"settings.provider.tbd_label" = "To be configured";
+"settings.provider.save_failed_message" = "Save failed: %@";
+"settings.model.use_main_model" = "Use main model";
+"settings.model.change_button" = "Change";
+"settings.assistant.caption" = "Assistant tasks default to the main model. You can assign a dedicated model to any task. (wenshu canonical: assistant task scheduling not yet implemented, placeholder shows Hermes AUX_TASKS canonical list)";
