@@ -47,7 +47,11 @@ struct DynamicZoneView: View {
     }
 
     // v0.24 boss验收fix: persist tab selection across launches.
-    @AppStorage("wenshu.tabIndex.aiDynamic") private var selectedTabRaw: String = "看板"
+// v0.40 apple-001 HIG absent batch: migrated wenshu.tabIndex.aiDynamic
+// from @AppStorage to @SceneStorage (= Apple HIG macOS 14+ per-window
+// tab state restoration). Each window has its own active dynamic
+// tab (= user can have Chat tab in one window + Kanban tab in another).
+    @SceneStorage("wenshu.tabIndex.aiDynamic") private var selectedTabRaw: String = "看板"
 
     private var selectedTab: DynamicTab {
         get { DynamicTab(rawValue: selectedTabRaw) ?? .kanban }
