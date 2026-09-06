@@ -335,7 +335,7 @@ struct IdeaLibraryView: View {
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, DesignTokens.chromePaddingSmall)
-                            .padding(.vertical, 1)
+                            .padding(.vertical, DesignTokens.chromePaddingPico)
                             .background(
                                 RoundedRectangle(cornerRadius: 3)
                                     .fill(.quaternary)
@@ -360,7 +360,7 @@ struct IdeaLibraryView: View {
                                         .font(.caption2)
                                         .foregroundStyle(.primary)
                                         .padding(.horizontal, 5)
-                                        .padding(.vertical, 1)
+                                        .padding(.vertical, DesignTokens.chromePaddingPico)
                                         .background(
                                             RoundedRectangle(cornerRadius: 3)
                                                 .fill(.tint.opacity(0.15))
@@ -509,7 +509,7 @@ struct IdeaLibraryView: View {
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 4)
-                        .padding(.vertical, 1)
+                        .padding(.vertical, DesignTokens.chromePaddingPico)
                         .background(
                             RoundedRectangle(cornerRadius: 3)
                                 .fill(.quaternary)

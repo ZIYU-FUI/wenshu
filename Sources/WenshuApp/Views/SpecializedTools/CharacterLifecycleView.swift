@@ -295,7 +295,7 @@ struct CharacterLifecycleView: View {
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, DesignTokens.chromePaddingSmall)
-                        .padding(.vertical, 1)
+                        .padding(.vertical, DesignTokens.chromePaddingPico)
                         .background(
                             RoundedRectangle(cornerRadius: 3)
                                 .fill(.quaternary)

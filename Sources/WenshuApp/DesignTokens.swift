@@ -55,6 +55,7 @@ public enum DesignTokens {
     /// Replaces inline `.padding(.horizontal, 4)`.
     public static let chromePaddingMicro: CGFloat = 4
     public static let chromePaddingNano: CGFloat = 2
+    public static let chromePaddingPico: CGFloat = 1
 
     /// Per-pane chrome small padding (= 6 PT). Used for status bar hover,
     /// tight text padding inside chips, badge interior gaps.

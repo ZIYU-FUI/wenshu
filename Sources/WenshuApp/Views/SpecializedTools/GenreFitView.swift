@@ -257,7 +257,7 @@ struct GenreFitView: View {
             .font(.caption2)
             .foregroundStyle(.primary)
             .padding(.horizontal, DesignTokens.chromePaddingSmall)
-            .padding(.vertical, 1)
+            .padding(.vertical, DesignTokens.chromePaddingPico)
             .background(
                 RoundedRectangle(cornerRadius: 3)
                     .fill(color)

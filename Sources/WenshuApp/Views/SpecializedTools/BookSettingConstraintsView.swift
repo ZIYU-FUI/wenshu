@@ -288,7 +288,7 @@ struct BookSettingConstraintsView: View {
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, DesignTokens.chromePaddingSmall)
-                            .padding(.vertical, 1)
+                            .padding(.vertical, DesignTokens.chromePaddingPico)
                             .background(
                                 RoundedRectangle(cornerRadius: 3)
                                     .fill(.quaternary)
@@ -297,7 +297,7 @@ struct BookSettingConstraintsView: View {
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, DesignTokens.chromePaddingSmall)
-                            .padding(.vertical, 1)
+                            .padding(.vertical, DesignTokens.chromePaddingPico)
                             .background(
                                 RoundedRectangle(cornerRadius: 3)
                                     .fill(.tint.opacity(0.15))
@@ -322,7 +322,7 @@ struct BookSettingConstraintsView: View {
                                         .font(.caption2)
                                         .foregroundStyle(.primary)
                                         .padding(.horizontal, 5)
-                                        .padding(.vertical, 1)
+                                        .padding(.vertical, DesignTokens.chromePaddingPico)
                                         .background(
                                             RoundedRectangle(cornerRadius: 3)
                                                 .fill(Color(nsColor: .systemRed).opacity(0.15))
