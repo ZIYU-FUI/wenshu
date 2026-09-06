@@ -194,3 +194,9 @@
 "chat.stub.unavailable_label" = "暂不可用";;
 "connector.gemini_unavailable" = "该提供方暂不支持测试连接";
 "settings.search.placeholder" = "搜索";
+"guardrail.add.title" = "新增护栏";
+"library.new_book.title" = "新建书";
+"library.new_shelf.title" = "新建书架";
+"library.new_choice.title" = "新建";
+"smart_query.create.title" = "新建智能查询";
+"command_palette.title" = "命令面板";

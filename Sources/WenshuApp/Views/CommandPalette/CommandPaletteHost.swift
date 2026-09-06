@@ -33,6 +33,15 @@ public struct CommandPaletteHost<Content: View>: View {
             // detents = canonical modal sheet on macOS 27.
             .sheet(isPresented: $sheetVisible) {
                 CommandPaletteView(model: model)
+                    // v0.40 apple-001 HIG absent batch: .navigationTitle
+                    // (= Apple HIG standard for sheet title). Set on
+                    // the sheet content (= outside the inner view)
+                    // since the CommandPaletteView itself doesn't use
+                    // NavigationStack. The title is suppressed by the
+                    // macOS sheet chrome by default for short-lived
+                    // modals, but it's available for VoiceOver / menu
+                    // metadata (= Apple HIG accessibility standard).
+                    .navigationTitle(WenshuI18n.t("command_palette.title"))
             }
             .onReceive(NotificationCenter.default.publisher(for: .wenshuShowCommandPalette)) { _ in
                 sheetVisible = true

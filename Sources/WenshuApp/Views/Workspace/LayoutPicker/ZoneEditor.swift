@@ -89,6 +89,11 @@ struct ZoneEditor: View {
             dismiss()
             return .handled
         }
+        // v0.40 apple-001 HIG absent batch: .navigationTitle (= Apple
+        // HIG standard for window title). ZoneEditor is a sheet, so
+        // the title appears in the sheet's title bar (= automatically
+        // provided by the sheet chrome).
+        .navigationTitle(WenshuI18n.t("layout.zone_editor.title"))
     }
 
     /// Toolbar.
