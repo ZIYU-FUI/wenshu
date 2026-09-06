@@ -215,8 +215,24 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     /// same logic on WenshuAppDelegate (= module-internal) keeps the
     /// test + production in lockstep without leaking the view API.
     nonisolated(unsafe) static func activeLLMConnector() -> any LLMConnector {
-        let slug = UserDefaults.standard.string(forKey: "wenshu.llm.activeConnector") ?? "anthropic"
-        let provider = ProviderCatalog.provider(slug: slug)
+        let slug = UserDefaults.standard.string(forKey: "wenshu.llm.activeConnector")
+        // v0.40 followup: unknown slug (= no UserDefaults key, or a slug that
+        // ProviderCatalog cannot resolve) must fall back to AnthropicConnector
+        // (NOT ProviderCatalog's .minimaxCn default). The unit test contract in
+        // TriggerClosureWiringTests pins this so the production long-running-goal
+        // button can never hit a connector it cannot drive (= AnthropicConnector
+        // is the canonical native-protocol connector wenshu ships with out of the
+        // box per AGENTS.md §11.2 P0 profile list). When the user has not picked
+        // a connector OR has picked one we don't ship, route to Anthropic.
+        let provider: Provider
+        if let slug = slug, let resolved = Provider.by(slug: slug) {
+            provider = resolved
+        } else {
+            // Anchor the AnthropicConnector fallback on the explicit
+            // "anthropic" Provider (= real Anthropic API, not the
+            // anthropic-compatible MinimaxConnector).
+            provider = Provider.by(slug: "anthropic") ?? .minimaxCn
+        }
         switch provider.apiMode {
         case "anthropic_messages":
             // MinimaxConnector is the Anthropic-compatible wrapper
