@@ -9,6 +9,7 @@
 
 import SwiftUI
 
+
 public struct ConnectorTestButton: View {
 
     public let provider: Provider
@@ -82,7 +83,7 @@ public struct ConnectorTestButton: View {
             connector = OpenAICompatibleConnector(provider: provider)
         case "google_genai":
             // Gemini native connector = ticket 007
-            status = .failure("Gemini native connector lands in ticket 007")
+            status = .failure(WenshuI18n.t("connector.gemini_unavailable"))
             return
         default:
             status = .failure("Unsupported provider apiMode: \\(provider.apiMode)")

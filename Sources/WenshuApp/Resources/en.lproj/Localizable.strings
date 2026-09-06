@@ -201,3 +201,4 @@
 "settings.model.change_button" = "Change";
 "settings.assistant.caption" = "Assistant tasks default to the main model. You can assign a dedicated model to any task. (wenshu canonical: assistant task scheduling not yet implemented, placeholder shows Hermes AUX_TASKS canonical list)";
 "chat.stub.unavailable_label" = "Not available yet";;
+"connector.gemini_unavailable" = "This provider does not support test connection yet";;
