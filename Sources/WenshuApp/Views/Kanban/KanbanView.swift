@@ -400,7 +400,7 @@ private struct KanbanCard: View {
                     Text(label(for: ticket.status))
                         .font(.caption)
                         .padding(.horizontal, DesignTokens.chromePaddingSmall)
-                        .padding(.vertical, 2)
+                        .padding(.vertical, DesignTokens.chromePaddingNano)
                         .background(.tint.opacity(0.18), in: Capsule())
                 }
                 .menuStyle(.borderlessButton)

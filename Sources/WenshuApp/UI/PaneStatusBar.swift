@@ -115,7 +115,7 @@ public struct PaneStatusBar: View {
                                 .font(DesignTokens.statusFont)
                                 .foregroundStyle(DesignTokens.statusForeground)
                                 .padding(.horizontal, DesignTokens.chromePaddingSmall)
-                                .padding(.vertical, 2)
+                                .padding(.vertical, DesignTokens.chromePaddingNano)
                         }
                         .buttonStyle(.plain)
                         .padding(.trailing, DesignTokens.chromePaddingTrailing - 6)

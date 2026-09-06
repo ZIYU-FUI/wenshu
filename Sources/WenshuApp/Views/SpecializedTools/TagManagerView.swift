@@ -420,7 +420,7 @@ struct TagManagerView: View {
             .buttonStyle(.borderless)
             .help("Remove this application.")
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, DesignTokens.chromePaddingNano)
     }
 
     // MARK: - Tag cloud
@@ -467,7 +467,7 @@ struct TagManagerView: View {
                         .fill(.quaternary)
                 )
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, DesignTokens.chromePaddingNano)
     }
 
     // MARK: - Filter
@@ -532,7 +532,7 @@ struct TagManagerView: View {
                             }
                         }
                     }
-                    .padding(.vertical, 2)
+                    .padding(.vertical, DesignTokens.chromePaddingNano)
                 }
             }
         }
