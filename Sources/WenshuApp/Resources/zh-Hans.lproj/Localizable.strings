@@ -140,3 +140,5 @@
 "button.continue_edit" = "继续编辑";
 "workspace.editor.discard_changes_confirm" = "编辑器有未保存的更改, 关闭后将丢失.";
 "workspace.preview.sort_method_help" = "排序方式: %@";
+"workspace.editor.restore_layout" = "恢复布局";
+"workspace.editor.expand_fullscreen" = "展开全屏";
