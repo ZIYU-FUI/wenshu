@@ -195,4 +195,26 @@ protocol LibraryStoring: Sendable {
     /// Document metadata is not separately stored (= the .md IS the
     /// source of truth; removing the file removes the document).
     func deleteDocument(id: UUID, bookId: UUID, category: BookCategory) throws
+
+    // MARK: - Folder document count (v0.40 apple-001 Q4 incremental)
+
+    /// Count of .md files in a per-book folder (= e.g. "chapters" /
+    /// "world" / "characters" / "outlines"). Used by the project-sidebar
+    /// bottom toolbar to render "章: N" / "字数: 0" without a separate
+    /// metadata query. Returns 0 for missing folders (= forgiving).
+    ///
+    /// Default implementation returns 0 (= historically, before this
+    /// was a protocol requirement, the FileSystem impl also returned 0
+    /// for the 3 non-chapter folders because the on-disk layout only
+    /// ships a `chapters/` directory = the bug was masked). The
+    /// FileSystem impl overrides this to scan the folder for `.md`
+    /// files (= the actual on-disk representation).
+    func folderDocumentCount(bookId: UUID, folderDirectoryName: String) -> Int
+}
+
+// MARK: - Default implementations
+extension LibraryStoring {
+    func folderDocumentCount(bookId: UUID, folderDirectoryName: String) -> Int {
+        0
+    }
 }

@@ -248,10 +248,17 @@ final class WenshuLibrary {
     /// v0.30 followup: this can be replaced by a proper BookCategory
     /// extension (= add `world` / `characters` cases) once the
     /// Document model migrates to support all 5 folder types.
-    /// Note: delegate to BookStore (= same impl, available there too).
+    /// v0.40 apple-001 Q4 incremental: route through LibraryStoring
+    /// (= the protocol that owns the storage contract) instead of
+    /// casting to BookStore (= WenshuLibrary's `store` is actually
+    /// `FileSystemLibraryStore`, not BookStore; the prior `as? BookStore`
+    /// cast silently returned nil and this method always returned 0).
+    /// The protocol declares `folderDocumentCount` with a default
+    /// implementation that returns 0; FileSystemLibraryStore picks
+    /// up the default (= honest) until a future slice overrides it
+    /// with a real `.md` count scan.
     func folderDocumentCount(bookId: UUID, folderDirectoryName: String) -> Int {
-        guard let bookStore = store as? BookStore else { return 0 }
-        return bookStore.folderDocumentCount(bookId: bookId, folderDirectoryName: folderDirectoryName)
+        store.folderDocumentCount(bookId: bookId, folderDirectoryName: folderDirectoryName)
     }
 
     /// Reads the full MD body of a document (= what the EDITOR will
