@@ -146,3 +146,5 @@
 "workspace.layoutEditMode"             = "Layout edit mode";
 "workspace.transforms.moreHelp"         = "More transforms: shift tone, simplify, dramatize";
 "chat.ralphLoop.goalHelp"               = "Start long-running goal (Ralph loop: agent keeps working until the auxiliary judge says done)";
+"button.continue_edit" = "Continue editing";
+"workspace.editor.discard_changes_confirm" = "The editor has unsaved changes. Closing will discard them.";

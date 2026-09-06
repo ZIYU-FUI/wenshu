@@ -1189,9 +1189,9 @@ struct EditorPlaceholder: View {
                     // the post-discard state).
                     handleDirtyTransition(false)
                 }
-                Button("继续编辑", role: .cancel) { }
+                Button(WenshuI18n.t("button.continue_edit"), role: .cancel) { }
             } message: {
-                Text("编辑器有未保存的更改, 关闭后将丢失.")
+                Text(WenshuI18n.t("workspace.editor.discard_changes_confirm"))
             }
 
             // Body: placeholder content. Ticket 05 swaps this for
