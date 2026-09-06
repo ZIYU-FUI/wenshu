@@ -34,7 +34,20 @@ struct EditorExpandShrinkTrailingButton: View {
     // snapshot key is written by PaneNSController.handleEditorMaximizedChanged
     // BEFORE the 5 zone-hide animator calls (= Q38 boss "full-state snapshot"
     // decision; restore-on-shrink must read this JSON).
-    @AppStorage("wenshu.editorMaximized") private var editorMaximized: Bool = false
+    //
+    // v0.40 apple-001 HIG absent batch: migrated wenshu.editorMaximized
+    // from @AppStorage to @SceneStorage (= Apple HIG macOS 14+ standard for
+    // per-window state restoration). Each window can have a different
+    // editor maximize state (= when the user opens two windows and shrinks
+    // the editor in only one, the other window should keep the unshrunk
+    // state). @SceneStorage is scoped to the Scene (= the window) and
+    // restores on relaunch (= matches Apple HIG "per-window state
+    // restoration" requirement).
+    //
+    // wenshu.editorExpand.snapshot stays on @AppStorage (= the snapshot
+    // JSON is the LAST-SHRUNK layout, = intended to apply across all
+    // windows when the user re-opens one after closing all).
+    @SceneStorage("wenshu.editorMaximized") private var editorMaximized: Bool = false
     @AppStorage("wenshu.editorExpand.snapshot") private var editorExpandSnapshotJSON: String = "{}"
 
     var body: some View {
