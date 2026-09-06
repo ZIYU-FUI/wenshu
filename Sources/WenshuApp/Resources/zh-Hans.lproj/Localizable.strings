@@ -155,3 +155,5 @@
 "tab.title.foreshadowing" = "伏笔";
 "tab.title.placeholder" = "占位符";
 "tab.title.reference_library" = "资料库";
+"workspace.editor.external_change_saved" = "文件已更新, 你的编辑已保存到 %@";
+"workspace.editor.external_change_save_failed" = "文件已更新, 你的编辑保存失败 (通知: %@)";
