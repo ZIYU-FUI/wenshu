@@ -151,3 +151,7 @@
 "workspace.preview.sort_method_help" = "Sort method: %@";
 "workspace.editor.restore_layout" = "Restore Layout";
 "workspace.editor.expand_fullscreen" = "Expand Fullscreen";
+"workspace.editor.switch_to_preview" = "Switch to preview mode";
+"workspace.editor.switch_to_edit" = "Switch to edit mode";
+"workspace.editor.dirty_discard_alert_title" = "Unsaved changes will be discarded.";
+"workspace.editor.dirty_discard_button" = "Discard edits";

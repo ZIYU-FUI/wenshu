@@ -1039,7 +1039,9 @@ struct EditorPlaceholder: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .help(mode == .edit ? "切到预览模式" : "切到编辑模式")
+                .help(mode == .edit
+                    ? WenshuI18n.t("workspace.editor.switch_to_preview")
+                    : WenshuI18n.t("workspace.editor.switch_to_edit"))
                 // P2 #19 (WIRE-PARAGRAPH-002): paragraph_ai toolbar.
                 // 3 buttons with keyboard shortcuts (⌘⇧E expand,
                 // ⌘⇧H shorten, ⌘⇧R rephrase) + a Menu for the 3
@@ -1107,11 +1109,11 @@ struct EditorPlaceholder: View {
             // 2-option confirm pattern (= destructive + cancel).
             // B-24: showDirtyDiscardConfirm is now a computed property;
             // = wrap in Binding(get:set:) for .alert's isPresented:.
-            .alert("未保存的更改将丢失", isPresented: Binding(
+            .alert(WenshuI18n.t("workspace.editor.dirty_discard_alert_title"), isPresented: Binding(
                 get: { self.showDirtyDiscardConfirm },
                 set: { self.showDirtyDiscardConfirm = $0 }
             )) {
-                Button("放弃编辑", role: .destructive) {
+                Button(WenshuI18n.t("workspace.editor.dirty_discard_button"), role: .destructive) {
                     // Discard: clear draft + reset to originalBody + close.
                     // Today = no-op beyond resetting state (= ticket 027-35
                     // wires real document close).
