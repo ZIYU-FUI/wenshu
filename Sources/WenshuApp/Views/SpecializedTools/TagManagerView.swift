@@ -452,7 +452,7 @@ struct TagManagerView: View {
         HStack(spacing: 6) {
             LucideIconSystemFallback(entry.tag.category.lucideIcon, size: 12)
                 .foregroundStyle(.tint)
-                .frame(width: 16)
+                .frame(width: DesignTokens.iconStandardSize)
             Text(entry.tag.label)
                 .font(.caption)
                 .foregroundStyle(.primary)
@@ -523,7 +523,7 @@ struct TagManagerView: View {
                             HStack(spacing: 6) {
                                 LucideIconSystemFallback(draftFilterTarget.lucideIcon, size: 12)
                                     .foregroundStyle(.tint)
-                                    .frame(width: 16)
+                                    .frame(width: DesignTokens.iconStandardSize)
                                 Text(id.uuidString)
                                     .font(.caption2)
                                     .foregroundStyle(.secondary)

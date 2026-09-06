@@ -738,7 +738,7 @@ public struct ChatView: View {
             // match the send button height (= 32 PT). Current = textfield
             // visual height 24 PT (= SwiftUI default TextField with
             // .roundedBorder). Button height = ~32 PT (with .padding).
-            // Fix = add .frame(height: 32) on the TextField (= textfield
+            // Fix = add .frame(height: DesignTokens.toolbarBandHeight) on the TextField (= textfield
             // visual height now matches button = both 32 PT). The 8 PT
             // top padding preserved (= 8 PT gap above textfield per
             // ticket 030) so total TextField + padding box = 40 PT
@@ -763,23 +763,23 @@ public struct ChatView: View {
             // height wasn't pinned (= 40 PT, vs textfield 32 PT),
             // so visually the .center alignment didn't look right
             // because the button was already too tall. Now with
-            // ticket 033 followup's .frame(height: 32) pinning the
+            // ticket 033 followup's .frame(height: DesignTokens.toolbarBandHeight) pinning the
             // button to 32 PT (= matches textfield), boss confirmed
             // .center alignment is the right behavior.
             // v0.25.1 (= ticket 033 final 2: chat send button
             // HORIZONTAL alignment = drop the 8 PT top padding +
-            // drop the .frame(height: 32) textfield pin + drop the
-            // .frame(height: 32) button pin — owner 2026-08-26 OOB
+            // drop the .frame(height: DesignTokens.toolbarBandHeight) textfield pin + drop the
+            // .frame(height: DesignTokens.toolbarBandHeight) button pin — owner 2026-08-26 OOB
             // 'still wrong, it is horizontal center' = the 4 previous attempts all
             // tried to vertically align the textfield with the button,
             // but the actual visual boss wants is HORIZONTAL center
             // alignment (= the .center alignment already does this,
-            // = but with 8 PT top padding + .frame(height: 32) the
+            // = but with 8 PT top padding + .frame(height: DesignTokens.toolbarBandHeight) the
             // textfield is offset down 8 PT + extended to 32 PT,
             // = making the visual center NOT match the button).
             // The right fix = drop the 8 PT top padding (= 0 PT
             // padding = textfield is its natural 24 PT height) AND
-            // drop the .frame(height: 32) on both textfield and
+            // drop the .frame(height: DesignTokens.toolbarBandHeight) on both textfield and
             // button (= let each take its natural default height;
             // SwiftUI TextField with .roundedBorder = 24 PT, Button
             // with .borderedProminent = ~40 PT). With the 8 PT
@@ -795,9 +795,9 @@ public struct ChatView: View {
             // 1. drop .padding(.top, LayoutTokens.chromePaddingLarge) on TextField (= boss OOB
             //    interpreted 'horizontal center' as 'remove my 8 PT top
             //    padding that's making the visual center off').
-            // 2. drop .frame(height: 32) on TextField (= use natural
+            // 2. drop .frame(height: DesignTokens.toolbarBandHeight) on TextField (= use natural
             //    TextField height = 24 PT).
-            // 3. drop .frame(height: 32) on Button (= use natural
+            // 3. drop .frame(height: DesignTokens.toolbarBandHeight) on Button (= use natural
             //    Button height = ~40 PT).
             // 4. KEEP HStack(alignment: .center, spacing: 8) (= the
             //    alignment that boss has been trying to tell us to
@@ -819,7 +819,7 @@ public struct ChatView: View {
             // misalignment). Per Apple HIG for chat input rows in
             // Messages / Slack, TextField and Send button should be
             // vertically centered at the SAME baseline. Both are
-            // 24 PT tall (= TextField.frame(height: 24) + Button
+            // 24 PT tall (= TextField.frame(height: DesignTokens.iconLargeSize) + Button
             // .controlSize(.regular)), and HStack(alignment: .center)
             // centers them vertically at the HStack midline.
             //
@@ -1004,7 +1004,7 @@ public struct ChatView: View {
                         if let lucide = Lucide("send") {
                             lucide
                                 .aspectRatio(contentMode: .fit)
-                                .frame(width: 18, height: 18)  // v0.28 followup Boss UX round 18: shrink to 18 PT (= matches macOS HIG secondary button glyph size = 13-16 PT, but slightly larger to read clearly inside the bordered Liquid Glass capsule)
+                                .frame(width: DesignTokens.tabIconSize, height: DesignTokens.tabIconSize)  // v0.28 followup Boss UX round 18: shrink to 18 PT (= matches macOS HIG secondary button glyph size = 13-16 PT, but slightly larger to read clearly inside the bordered Liquid Glass capsule)
                         } else {
                             // v0.27 boss 8/27 OOB: replace SF Symbol 'paperplane.fill'
                             // with the closest Lucide equivalent = 'send'.
@@ -1064,7 +1064,7 @@ public struct ChatView: View {
                     if let lucide = Lucide("target") {
                         lucide
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: 18, height: 18)
+                            .frame(width: DesignTokens.tabIconSize, height: DesignTokens.tabIconSize)
                     } else {
                         LucideIconSystemFallback("target", size: 18)
                     }
@@ -1177,7 +1177,7 @@ struct ChatMessageView: View {
                 }
             }
             .foregroundStyle(sourceColor)
-            .frame(width: 24, height: 24)
+            .frame(width: DesignTokens.iconLargeSize, height: DesignTokens.iconLargeSize)
             VStack(alignment: .leading, spacing: 4) {
                 Text(sourceLabel)
                     .font(.caption)

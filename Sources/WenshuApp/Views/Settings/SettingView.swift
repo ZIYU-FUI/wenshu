@@ -176,7 +176,7 @@ struct SettingView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .animation(.default, value: selectedTab)
         }
-        .frame(width: 600, height: 480)
+        .frame(width: DesignTokens.settingViewSheetSize.width, height: DesignTokens.settingViewSheetSize.height)
         .task { refreshProviderStatus() }
     }
 
@@ -261,7 +261,7 @@ struct SettingView: View {
                         // v0.27 boss 8/27 OOB: SF 'key' / 'key.fill' → Lucide 'key'.
                         LucideIconSystemFallback(providersWithKeys.contains(p.slug) ? "key.fill" : "key", size: 16)
                             .foregroundStyle(providersWithKeys.contains(p.slug) ? .green : .secondary)
-                            .frame(width: 16)
+                            .frame(width: DesignTokens.iconStandardSize)
                         Text(p.name)
                             .font(.body)
                             .frame(maxWidth: .infinity, alignment: .leading)

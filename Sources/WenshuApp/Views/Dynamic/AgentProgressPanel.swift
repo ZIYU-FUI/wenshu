@@ -122,7 +122,7 @@ public struct AgentProgressPanel: View {
             // status indicator pattern).
             Rectangle()
                 .fill(Color.accentColor)
-                .frame(width: 3),
+                .frame(width: DesignTokens.surfaceActiveBorderWidth),
             alignment: .leading
         )
     }

@@ -239,7 +239,7 @@ enum LayoutTokens {
 
     // v0.28 followup Boss UX round 33: single source of truth for
     // visual divider / separator thickness. All instances of
-    // ".frame(height: 1)" for chrome separators should reference
+    // ".frame(height: DesignTokens.dividerHeight)" for chrome separators should reference
     // chromeDividerThickness (= 1 PT Apple HIG hairline).
     static let chromeDividerThickness: CGFloat = 1
 

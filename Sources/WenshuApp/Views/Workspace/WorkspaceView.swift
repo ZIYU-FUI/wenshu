@@ -1012,7 +1012,7 @@ struct EditorPlaceholder: View {
                             .font(DesignTokens.tabTitleFont.weight(isActive ? .semibold : .regular))
                             .foregroundStyle(isActive ? Color.accentColor : .secondary)
                             .padding(.horizontal, DesignTokens.chromePaddingMedium)
-                            .frame(height: 28)
+                            .frame(height: DesignTokens.paneTabHotArea)
                             .background(
                                 Rectangle()
                                     .fill(isActive ? Color.accentColor.opacity(0.12) : Color.clear)
@@ -1077,7 +1077,7 @@ struct EditorPlaceholder: View {
                 )
                 Spacer()
             }
-            .frame(height: 32)
+            .frame(height: DesignTokens.toolbarBandHeight)
             // POLISH-LIQUIDGLASS-003 (Boss 2026-09-05 OOB 'OK continue', AGENTS.md
             // §11 macOS 27 Liquid Glass polish extends from TopBar + Sidebar):
             // apply Apple canonical .glassEffect(.regular) (= macOS 27

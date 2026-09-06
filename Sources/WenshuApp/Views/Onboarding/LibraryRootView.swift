@@ -354,7 +354,7 @@ Group {
         Image(nsImage: nsImage)
             .resizable()
             .aspectRatio(contentMode: .fit)
-            .frame(width: 192, height: 192)
+            .frame(width: DesignTokens.coverThumbnailSize, height: DesignTokens.coverThumbnailSize)
     } else {
         // Fallback: Lucide canonical if PNG load fails (boss 2026-09-02: SF Symbol fully replaced)
         LucideIconSystemFallback("text.book.closed", size: 96)
@@ -385,7 +385,7 @@ Group {
                     showSavePanel()
                 } label: {
                     Label("新建文枢仓库", systemImage: "doc.badge.plus")
-                        .frame(width: 240, height: 32)
+                        .frame(width: DesignTokens.bannerInlineSize.width, height: DesignTokens.bannerInlineSize.height)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
@@ -394,7 +394,7 @@ Group {
                     showOpenPanel()
                 } label: {
                     Label("打开已有文枢仓库", systemImage: "folder")
-                        .frame(width: 240, height: 32)
+                        .frame(width: DesignTokens.bannerInlineSize.width, height: DesignTokens.bannerInlineSize.height)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.large)

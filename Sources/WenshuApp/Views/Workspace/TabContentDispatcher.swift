@@ -166,7 +166,7 @@ struct TabContentDispatcher: View {
             // 320x280 PT = standard inspector popover footprint.
             .popover(isPresented: $showBacklinksPopover, arrowEdge: .bottom) {
                 BacklinksPanel(viewModel: backlinksVM)
-                    .frame(width: 320, height: 280)
+                    .frame(width: DesignTokens.popoverCompactSize.width, height: DesignTokens.popoverCompactSize.height)
                     .padding(DesignTokens.chromePaddingVertical)
             }
         case .specializedTools:
@@ -328,7 +328,7 @@ private struct GroupTabStrip: View {
                         Button(action: { onClose(paneID) }) {
                             LucideIconSystemFallback("xmark", size: 10)
                                 .foregroundStyle(.secondary)
-                                .frame(width: 14, height: 14)
+                                .frame(width: DesignTokens.bulletSizeSmall, height: DesignTokens.bulletSizeSmall)
                         }
                         .buttonStyle(.plain)
                     }
@@ -341,7 +341,7 @@ private struct GroupTabStrip: View {
                 // for the group header bottom border.
                 .overlay(
                     Rectangle()
-                        .frame(height: 1)
+                        .frame(height: DesignTokens.dividerHeight)
                         .foregroundStyle(.separator),
                     alignment: .bottom
                 )

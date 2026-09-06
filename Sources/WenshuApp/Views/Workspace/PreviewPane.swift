@@ -794,7 +794,7 @@ private struct Card: View {
                 LucideIcon(source.iconName, size: 64)
                     .foregroundStyle(.tint.opacity(0.85))
             }
-            .frame(height: 100)
+            .frame(height: DesignTokens.panelMinHeight)
             .frame(maxWidth: .infinity)
             .clipShape(
                 UnevenRoundedRectangle(

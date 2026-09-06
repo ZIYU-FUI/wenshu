@@ -384,7 +384,7 @@ public struct ForeshadowingView: View {
         HStack(spacing: 6) {
             LucideIconSystemFallback(row.status.lucideIcon, size: 12)
                 .foregroundStyle(.secondary)
-                .frame(width: 16)
+                .frame(width: DesignTokens.iconStandardSize)
             Text(row.title)
                 .font(.caption)
                 .foregroundStyle(.primary)

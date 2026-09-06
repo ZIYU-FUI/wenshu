@@ -181,7 +181,7 @@ public struct CommandPaletteView: View {
             .padding(.horizontal, DesignTokens.chromePaddingLarge)
             .padding(.vertical, DesignTokens.chromePaddingVertical)
         }
-        .frame(width: 600, height: 400)
+        .frame(width: DesignTokens.settingIOsheetSize.width, height: DesignTokens.settingIOsheetSize.height)
         // POLISH-LIQUIDGLASS-004: ⌘K palette sheet root uses Apple
         // .glassEffect(.regular) (= macOS 27 Tahoe Liquid Glass
         // material; same shape as the prior POLISH-LIQUIDGLASS-001/002/003
@@ -227,7 +227,7 @@ private struct CommandPaletteRow: View {
             // user-facing app chrome).
             Image(systemName: categorySymbol)
                 .foregroundStyle(categoryColor)
-                .frame(width: 16, height: 16)
+                .frame(width: DesignTokens.iconStandardSize, height: DesignTokens.iconStandardSize)
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.title)
                     .font(.body)

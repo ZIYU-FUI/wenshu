@@ -196,7 +196,7 @@ public struct PlaceholderView: View {
                 )
                 .textFieldStyle(.roundedBorder)
                 .font(.caption)
-                .frame(width: 64)
+                .frame(width: DesignTokens.avatarSize)
                 .help("1-indexed line number within the chapter. Optional (defaults to 0).")
                 Picker(WenshuI18n.t("picker.status"), selection: $draftStatus) {
                     ForEach(PlaceholderStatus.allCases) { status in
