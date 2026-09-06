@@ -396,7 +396,7 @@ struct LongFormGuardrailsView: View {
                     .disabled(draftName.trimmingCharacters(in: .whitespaces).isEmpty)
             }
         }
-        .padding(16)
+        .padding(DesignTokens.chromePaddingLarge)
         .frame(width: 360)
         // POLISH-LIQUIDGLASS-004: Add-guardrail modal sheet root uses
         // Apple .glassEffect(.regular) (= macOS 27 Tahoe Liquid Glass;
