@@ -158,3 +158,11 @@
 "workspace.editor.external_change_saved" = "文件已更新, 你的编辑已保存到 %@";
 "workspace.editor.external_change_save_failed" = "文件已更新, 你的编辑保存失败 (通知: %@)";
 "chat.stub.in_development_label" = "%@ (开发中)";
+"chat.archive.confirm_title" = "归档当前会话?";
+"chat.archive.cancel_button" = "取消";
+"chat.archive.confirm_button" = "归档并新建";
+"chat.archive.confirm_message" = "当前会话和上下文将归档保存, 然后开启全新会话。";
+"chat.model.empty_placeholder" = "无模型可用";
+"tab.title.search" = "搜索";
+"tab.title.settings" = "设置";
+"tab.title.chat" = "对话";
