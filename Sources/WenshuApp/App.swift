@@ -1151,20 +1151,6 @@ private func compactNumber(_ n: Int) -> String {
 struct ChatZoneView: View {
     let conductor: WenshuConductor?
     let store: ChatSessionStore?
-    // v0.21 ticket 43: chat zone 顶栏 3 个 tab 真切换 (老板 2026-08-22 06:22 拍 backlog 20)
-    enum ChatZoneTab: String, CaseIterable, Identifiable {
-        case chat = "对话"
-        case search = "搜索"
-        case settings = "设置"
-        var id: String { rawValue }
-        var icon: String {
-            switch self {
-            case .chat: return "bot"  // v0.25.1 (= ticket 005): 老板 2026-08-26 拍 .bot 直接替换 SF person.crop... (= Lucide-first helper 在 ChatZoneTabBar 里用了, "bot" 命中 Lucide, SF Symbol 作为 fallback). Old (= ticket 015.014 robot face) was SF `person.crop.circle.badge.questionmark` (= Lucifer 没有同名, 只能 Image(systemName:) fallback, 不再使用).
-            case .search: return "magnifyingglass"  // 老板 8/25 拍 "保留现在的这个"
-            case .settings: return "slider.horizontal.3"  // 老板 8/25 拍 "保留现在的这个"
-            }
-        }
-    }
     // v0.23 ticket 011.002: change from flat [String] to sectioned [AvailableProviderModels].
     // Boss 8/23 decision: I've got three manufacturers' key, model switching should show the available model combinations.
     @State private var availableSections: [AvailableProviderModels] = []
@@ -1467,7 +1453,7 @@ struct ChatZoneView: View {
 /// alert '是否归档本次会话和上下文' (yes / cancel). Confirm archives current
 /// session + context, starts new session, resets context counter.
 struct ChatZoneTabBar: View {
-    @Binding var selectedTab: ChatZoneView.ChatZoneTab
+    @Binding var selectedTab: ChatZoneTab
     // v0.24 boss验收fix (Boss 8/25 OOB ticket 015.014): archive flow state.
     @Binding var showingArchiveAlert: Bool
     // v0.30 boss 8/31 OOB: hover state for the archive button (= passed
@@ -1490,7 +1476,7 @@ struct ChatZoneTabBar: View {
     var body: some View {
         HStack(spacing: 0) {
             HStack(spacing: 9) {
-                ForEach(ChatZoneView.ChatZoneTab.allCases.filter { $0 == .chat }) { tab in
+                ForEach(ChatZoneTab.allCases.filter { $0 == .chat }) { tab in
                     Button {
                         selectedTab = tab
                     } label: {
