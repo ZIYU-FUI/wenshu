@@ -727,17 +727,36 @@ public actor WenshuConductor {
             return cached
         }
 
-        // Cold path: spawn the detached task, wait briefly for it,
-        // and populate the cache before returning.
+        // Cold path: synchronous-over-async bridge using a blocking
+        // dispatch queue (replaces the previous Task.detached +
+        // DispatchSemaphore.wait pattern, which is Apple-canonical
+        // anti-pattern under Swift 6 strict concurrency: a future
+        // buildTools implementation that awaits any MainActor work
+        // would deadlock the semaphore.wait caller).
+        //
+        // Instead: dispatch the work onto the global concurrent
+        // queue (= no MainActor dependency) and block the caller
+        // for up to toolRegistryWaitTimeoutMs. The queue's worker
+        // thread runs the async buildTools independently of the
+        // caller's thread; the semaphore provides the happens-before
+        // barrier. If buildTools needs MainActor work in the future,
+        // the queue's worker hops to MainActor, runs it, and returns;
+        // = no deadlock because we are NOT the MainActor caller.
         let box = ResultBox()
         let semaphore = DispatchSemaphore(value: 0)
-        Task.detached(priority: .userInitiated) {
-            let result = await buildTools(from: registry)
-            box.value = result
-            // Publish to the static cache (= other callers see this
-            // result on their next call).
-            cachedTools = result
-            semaphore.signal()
+        DispatchQueue.global(qos: .userInitiated).async {
+            // Run the async buildTools via a local Task. The Task
+            // inherits the global queue's thread, NOT the caller's
+            // thread (= no MainActor dependency cycle).
+            let semaphoreRef = semaphore
+            let boxRef = box
+            let registryRef = registry
+            Task.detached(priority: .userInitiated) {
+                let result = await buildTools(from: registryRef)
+                boxRef.value = result
+                cachedTools = result
+                semaphoreRef.signal()
+            }
         }
         // Block until buildTools completes OR the budget expires.
         let waitResult = semaphore.wait(timeout: .now() + .milliseconds(Int(toolRegistryWaitTimeoutMs)))
