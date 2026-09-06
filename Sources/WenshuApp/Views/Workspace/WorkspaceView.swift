@@ -1009,7 +1009,7 @@ struct EditorPlaceholder: View {
                     let isActive = (tab.id == appState.activeTabId)
                     Button(action: { appState.activeTabId = tab.id }) {
                         Text(title)
-                            .font(.system(size: 12, weight: isActive ? .semibold : .regular, design: .monospaced))
+                            .font(DesignTokens.tabTitleFont.weight(isActive ? .semibold : .regular))
                             .foregroundStyle(isActive ? Color.accentColor : .secondary)
                             .padding(.horizontal, 12)
                             .frame(height: 28)

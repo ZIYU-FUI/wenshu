@@ -233,4 +233,15 @@ public enum DesignTokens {
     // full surface). Replaces inline `.cornerRadius(6)` in
     // SubAgentProgressView.
     public static let surfaceCornerRadiusProgressCard: CGFloat = 6
+
+    // v0.40 apple-001 iron-rule-6 batch 2 site: tab title font
+    // (= .system(size: 12, design: .monospaced) = monospaced tab
+    // title for the WorkspaceView tab strip. The weight is
+    // applied per-instance (.regular vs .semibold based on active
+    // state) since the same font face supports both weights; the
+    // base token = face + size only).
+    // Apple HIG: tab labels use monospaced for stable character
+    // width (= ensures Chinese + Latin + emoji all line up at the
+    // same horizontal position in the tab strip).
+    public static let tabTitleFont: Font = .system(size: 12, design: .monospaced)
 }
