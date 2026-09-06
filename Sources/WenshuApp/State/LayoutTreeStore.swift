@@ -1,4 +1,4 @@
-// WorkspaceStore.swift · Wenshu · v0.28 ticket 028-003
+// LayoutTreeStore.swift · Wenshu · v0.28 ticket 028-003
 //
 // Persistence + preset management for the user-customizable workspace
 // (= .scratch/2026-08-28-v0-28-free-layout/spec.md).
@@ -30,7 +30,7 @@ import Foundation
 import SwiftUI
 
 @MainActor
-final class WorkspaceStore: ObservableObject {
+final class LayoutTreeStore: ObservableObject {
     /// UserDefaults keys (= centralized for grep-ability).
     private static let workspaceKey = "wenshu.workspace.json"
     private static let presetsKey = "wenshu.workspace.presets"

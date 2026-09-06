@@ -20,7 +20,7 @@ import SwiftUI
 /// `LayoutEditBar`, `PresetCard`, `PresetThumbnail`, and
 /// `SaveCurrentLayoutButton`.
 struct LayoutPicker: View {
-    @ObservedObject var store: WorkspaceStore
+    @ObservedObject var store: LayoutTreeStore
     /// The currently-active preset's ID (= for the accent-border
     /// highlighting per spec §"Acceptance criteria" #10).
     let currentPresetID: UUID?

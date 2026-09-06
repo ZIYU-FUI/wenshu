@@ -95,7 +95,7 @@ enum LayoutTokens {
     // Upper band 4 zones (20/20/40/20 = 100% total):
     // NOTE: these constants are dead code. The active rendering
     // path (v0.28+ WorkspaceView) reads column weights from
-    // WorkspaceStore.builtinDefaultPreset (= [1, 2, 6, 1] after
+    // LayoutTreeStore.builtinDefaultPreset (= [1, 2, 6, 1] after
     // commit b8fb940d2). Kept here for the legacy LayoutShellView
     // path (= unreachable in practice but preserved for
     // backward-compat with the AppStorage flag 'wenshu.useWorkspace'

@@ -53,7 +53,7 @@ protocol PaneLayout {
     /// (= e.g. FCP: upper row 4 + lower row 2; Xcode: 1 + 1 with editor
     /// dominant).
     ///
-    /// `store` = `WorkspaceStore` (read-only here; no writes from this
+    /// `store` = `LayoutTreeStore` (read-only here; no writes from this
     /// method). Used to resolve `PaneNode.frame` (= minWidth / ideal /
     /// flex) into NSSplitViewItem constraints.
     ///
@@ -63,7 +63,7 @@ protocol PaneLayout {
     @MainActor
     func makeSplitController(
         panes: [PaneNode],
-        store: WorkspaceStore,
+        store: LayoutTreeStore,
         appState: AppState,
         bookStore: BookStore
     ) -> NSSplitViewController
@@ -90,7 +90,7 @@ struct FCPLayout: PaneLayout {
     @MainActor
     func makeSplitController(
         panes: [PaneNode],
-        store: WorkspaceStore,
+        store: LayoutTreeStore,
         appState: AppState,
         bookStore: BookStore
     ) -> NSSplitViewController {

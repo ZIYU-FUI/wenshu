@@ -33,7 +33,7 @@ import SwiftUI
 
 /// Native AppKit split container that hosts wenshu's existing SwiftUI
 /// pane views (= `TabContentDispatcher` per pane). Built from a
-/// `WorkspaceStore` snapshot; the tree walk is fully recursive.
+/// `LayoutTreeStore` snapshot; the tree walk is fully recursive.
 ///
 /// Threading: instantiated on the main actor (SwiftUI representable
 /// `makeNSViewController` runs on main). Child `NSHostingController`s
@@ -43,7 +43,7 @@ final class PaneNSController: NSSplitViewController {
 
     // MARK: - Stored dependencies (= set once at init; not mutated)
 
-    private let store: WorkspaceStore
+    private let store: LayoutTreeStore
     private let appState: AppState
     private let bookStore: BookStore
 
@@ -68,7 +68,7 @@ final class PaneNSController: NSSplitViewController {
     // MARK: - Init
 
     init(
-        store: WorkspaceStore,
+        store: LayoutTreeStore,
         appState: AppState,
         bookStore: BookStore,
         layoutID: String,
@@ -1434,7 +1434,7 @@ final class PaneNSController: NSSplitViewController {
         let content = TabContentDispatcher(kind: tab.kind, title: tab.title)
             .environment(appState)
             .environment(bookStore)
-        // WorkspaceStore is an ObservableObject (= passes via .environmentObject
+        // LayoutTreeStore is an ObservableObject (= passes via .environmentObject
         // instead of .environment, which is reserved for @Observable types).
         let hosted = content.environmentObject(store)
         let hosting = NSHostingController(rootView: hosted)
@@ -1534,7 +1534,7 @@ final class PaneNSController: NSSplitViewController {
     /// pane (= Apple NSSplitViewItem.isCollapsed = false) and
     /// re-apply the canonical preset weights (= setPosition on the
     /// owning split). WorkspaceView's `.wenshuResetLayout` observer
-    /// calls this after refreshing WorkspaceStore, so the menu
+    /// calls this after refreshing LayoutTreeStore, so the menu
     /// command actually un-collapses the on-screen layout (= not
     /// just the data model).
     @objc func restoreAllZones() {

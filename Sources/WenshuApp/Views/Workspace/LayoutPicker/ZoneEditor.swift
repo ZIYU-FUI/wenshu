@@ -6,7 +6,7 @@
 // MVP: not implemented per the spec §"v0.28 MVP scope"). Drag
 // across zones rubber-band selects (MVP: not implemented).
 // Save converts the grid to a guillotine tree and registers it
-// as a user preset via WorkspaceStore.saveAsPreset(name:).
+// as a user preset via LayoutTreeStore.saveAsPreset(name:).
 //
 // Per ticket 028-008 §"Acceptance criteria" #3: this is the
 // `ZoneEditor.swift` file referenced in the spec. MVP scope
@@ -18,7 +18,7 @@ import SwiftUI
 /// ZoneEditor — the full-screen grid editor sheet (= presented
 /// from LayoutPicker when the user clicks "+ 新建网格布局").
 struct ZoneEditor: View {
-    @ObservedObject var store: WorkspaceStore
+    @ObservedObject var store: LayoutTreeStore
     @Environment(\.dismiss) private var dismiss
 
     /// The four template types (= per spec §"Acceptance criteria"
@@ -49,7 +49,7 @@ struct ZoneEditor: View {
     // Track the event modifiers flag (= SHIFT held during click for AC#8 SHIFT-flip).
     @State private var eventModifiers: EventModifiers = []
 
-    init(store: WorkspaceStore) {
+    init(store: LayoutTreeStore) {
         self.store = store
         // Initialize with the default template + zone count.
         _model = State(initialValue: initColumns(3))

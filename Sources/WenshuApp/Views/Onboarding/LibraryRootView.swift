@@ -143,7 +143,7 @@ private struct WiredShell: View {
     // v0.27 ticket 027-34 (= boss 8/27 grill D1 'Xcode paradigm +
     // user-customizable layout'): feature flag toggles between the
     // legacy LayoutShellView and the new WorkspaceView (= wraps the
-    // WorkspaceStore).
+    // LayoutTreeStore).
     // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
     // v0.30 boss 8/30 OOB: '我看截图, 你把库管理顶栏右边的新建和导入按钮
     // 改掉了' = trailing 新建/导入 buttons were MISSING in LayoutShellView
@@ -154,22 +154,22 @@ private struct WiredShell: View {
     // buttons render correctly.
     // v0.30 boss 8/31 OOB: removed the legacy useWorkspace toggle
     // (= no Settings/View writes to the AppStorage flag, so it was
-    // always-true dead code). WorkspaceStore is constructed once
+    // always-true dead code). LayoutTreeStore is constructed once
     // per WiredShell lifetime; its UserDefaults round-trip preserves
     // state across launches.
-    @State private var workspaceStore: WorkspaceStore? = nil
+    @State private var workspaceStore: LayoutTreeStore? = nil
     // v0.28 followup Boss UX round 4: zone visibility flags (= for the
     // macOS native toolbar zone toggle buttons). Mirrors LayoutShellView's
     // @AppStorage declarations (= same UserDefaults keys so state is
     // shared across paths).
-    // B-05: `wenshu.zoneVisible.*` are now owned by WorkspaceStore
+    // B-05: `wenshu.zoneVisible.*` are now owned by LayoutTreeStore
     // (single source of truth). The 5 @AppStorage declarations below
     // were dead (= the hand-rolled toolbar block that toggled them
     // was removed by the v0.34 toolbar flatten). The actual
     // hide/show is driven by `.wenshuToggleZone` notifications read
     // by `PaneNSController.applyPersistedZoneVisibility()` at startup
     // (= reads UserDefaults directly, no SwiftUI property wrapper
-    // dance on the AppKit side) and `WorkspaceStore.resetToDefault()`
+    // dance on the AppKit side) and `LayoutTreeStore.resetToDefault()`
     // clears them on '恢复默认布局'.
     //
     // v0.28 followup Boss UX round 4: model name (= for the model picker
@@ -185,7 +185,7 @@ private struct WiredShell: View {
         Group {
             if let bookStore = bookStore {
                 // WorkspaceView path (= v0.28 followup).
-                // WorkspaceStore is constructed once per
+                // LayoutTreeStore is constructed once per
                 // WiredShell lifetime (= a new instance per
                 // window); its UserDefaults round-trip preserves
                 // state across launches.
@@ -193,7 +193,7 @@ private struct WiredShell: View {
                     // Defer to a single task so we don't mutate
                     // @State during view update.
                     Color.clear
-                        .task { workspaceStore = WorkspaceStore() }
+                        .task { workspaceStore = LayoutTreeStore() }
                 } else if let workspaceStore = workspaceStore {
                     WorkspaceView(store: workspaceStore)
                         .environment(bookStore)
@@ -249,8 +249,8 @@ private struct WiredShell: View {
                 // B-05 update: the 'Kept for now' clause above is now
                 // resolved (= the dead declarations were removed
                 // entirely). Persistence for `wenshu.zoneVisible.*` is
-                // owned by WorkspaceStore (single source of truth,
-                // reset in `WorkspaceStore.resetToDefault()`) and
+                // owned by LayoutTreeStore (single source of truth,
+                // reset in `LayoutTreeStore.resetToDefault()`) and
                 // applied on startup by
                 // `PaneNSController.applyPersistedZoneVisibility()`.
                 // The `wenshu.llm.model` value is owned by

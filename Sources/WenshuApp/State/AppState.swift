@@ -99,7 +99,7 @@ final class AppState {
     // existing user choice across launches; Swift `didSet` does NOT
     // fire during init so no redundant write happens on launch) and
     // didSet writes back on every subsequent change (= mirror of the
-    // WorkspaceStore UserDefaults pattern in this same State/ folder).
+    // LayoutTreeStore UserDefaults pattern in this same State/ folder).
     // All callers now read/write `appState.llmModel` (= one path, no
     // synchronization drift across zones).
     var llmModel: String = "" {
