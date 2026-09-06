@@ -213,7 +213,7 @@ public struct KanbanView: View {
                         )
                     }
                 }
-                .padding(.vertical, 4)
+                .padding(.vertical, DesignTokens.chromePaddingMicro)
             }
         }
     }
@@ -331,13 +331,13 @@ private struct KanbanColumn: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            .padding(.horizontal, 4)
+            .padding(.horizontal, DesignTokens.chromePaddingMicro)
             Divider()
             if tickets.isEmpty {
                 Text("(空)")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
-                    .padding(.horizontal, 4)
+                    .padding(.horizontal, DesignTokens.chromePaddingMicro)
             } else {
                 ScrollView(.vertical, showsIndicators: true) {
                     LazyVStack(alignment: .leading, spacing: 6) {

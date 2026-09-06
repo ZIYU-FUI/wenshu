@@ -124,8 +124,8 @@ private struct ChatBookManagerHint: View {
                 .font(.caption.monospaced())
                 .foregroundStyle(.tint)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.horizontal, DesignTokens.chromePaddingMedium)
+        .padding(.vertical, DesignTokens.chromePaddingSmall)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.thinMaterial)
         .overlay(alignment: .bottom) {

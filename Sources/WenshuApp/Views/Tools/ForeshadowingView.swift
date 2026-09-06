@@ -394,7 +394,7 @@ public struct ForeshadowingView: View {
             Spacer(minLength: 0)
         }
         .padding(.vertical, DesignTokens.chromePaddingNano)
-        .padding(.horizontal, 4)
+        .padding(.horizontal, DesignTokens.chromePaddingMicro)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 

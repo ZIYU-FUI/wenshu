@@ -1011,7 +1011,7 @@ struct EditorPlaceholder: View {
                         Text(title)
                             .font(DesignTokens.tabTitleFont.weight(isActive ? .semibold : .regular))
                             .foregroundStyle(isActive ? Color.accentColor : .secondary)
-                            .padding(.horizontal, 12)
+                            .padding(.horizontal, DesignTokens.chromePaddingMedium)
                             .frame(height: 28)
                             .background(
                                 Rectangle()
@@ -1034,8 +1034,8 @@ struct EditorPlaceholder: View {
                     Image(systemName: mode == .edit ? "eye" : "pencil")
                         .font(DesignTokens.hotkeyComboFont)
                         .foregroundStyle(.secondary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
+                        .padding(.horizontal, DesignTokens.chromePaddingChatBottom)
+                        .padding(.vertical, DesignTokens.chromePaddingMicro)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)

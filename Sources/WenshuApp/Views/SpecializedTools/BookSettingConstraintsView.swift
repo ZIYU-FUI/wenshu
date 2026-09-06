@@ -321,7 +321,7 @@ struct BookSettingConstraintsView: View {
                                     Text(pattern)
                                         .font(.caption2)
                                         .foregroundStyle(.primary)
-                                        .padding(.horizontal, 5)
+                                        .padding(.horizontal, DesignTokens.chromePaddingXS)
                                         .padding(.vertical, DesignTokens.chromePaddingPico)
                                         .background(
                                             RoundedRectangle(cornerRadius: 3)

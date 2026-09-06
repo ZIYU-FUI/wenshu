@@ -266,7 +266,7 @@ struct ReaderExperienceView: View {
                         Text(h.label)
                             .font(.caption2)
                             .foregroundStyle(.tint)
-                            .padding(.horizontal, 4)
+                            .padding(.horizontal, DesignTokens.chromePaddingMicro)
                             .padding(.vertical, DesignTokens.chromePaddingPico)
                             .background(
                                 RoundedRectangle(cornerRadius: 3)

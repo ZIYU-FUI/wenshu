@@ -261,8 +261,8 @@ struct EmotionCurveView: View {
                 .font(.callout.monospacedDigit())
                 .foregroundStyle(.primary)
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
+        .padding(.horizontal, DesignTokens.chromePaddingVertical)
+        .padding(.vertical, DesignTokens.chromePaddingMicro)
         .frame(minWidth: 64, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 4)
@@ -286,7 +286,7 @@ struct EmotionCurveView: View {
                             Circle()
                                 .fill(tint)
                                 .frame(width: 6, height: 6)
-                                .padding(.top, 5)
+                                .padding(.top, DesignTokens.chromePaddingXS)
                             Text(item)
                                 .font(.caption.monospacedDigit())
                                 .foregroundStyle(.primary)

@@ -280,7 +280,7 @@ struct GenreFitView: View {
                             Circle()
                                 .fill(tint)
                                 .frame(width: 6, height: 6)
-                                .padding(.top, 5)
+                                .padding(.top, DesignTokens.chromePaddingXS)
                             Text(item)
                                 .font(.caption)
                                 .foregroundStyle(.primary)

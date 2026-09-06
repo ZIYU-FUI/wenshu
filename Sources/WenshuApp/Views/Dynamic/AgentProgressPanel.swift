@@ -109,8 +109,8 @@ public struct AgentProgressPanel: View {
                     .foregroundStyle(.tertiary)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, DesignTokens.chromePaddingMedium)
+        .padding(.vertical, DesignTokens.chromePaddingVertical)
         // Liquid Glass: thinMaterial matches DynamicZoneView's pane
         // chrome (= SubAgentProgressView's task rows use the same
         // pattern). The card is a thin strip pinned to the top of

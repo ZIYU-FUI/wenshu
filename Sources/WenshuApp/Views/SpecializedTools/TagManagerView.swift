@@ -399,7 +399,7 @@ struct TagManagerView: View {
                     Text(application.target.displayName)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
-                        .padding(.horizontal, 4)
+                        .padding(.horizontal, DesignTokens.chromePaddingMicro)
                         .padding(.vertical, DesignTokens.chromePaddingPico)
                         .background(
                             RoundedRectangle(cornerRadius: 3)
