@@ -149,3 +149,5 @@
 "button.continue_edit" = "Continue editing";
 "workspace.editor.discard_changes_confirm" = "The editor has unsaved changes. Closing will discard them.";
 "workspace.preview.sort_method_help" = "Sort method: %@";
+"workspace.editor.restore_layout" = "Restore Layout";
+"workspace.editor.expand_fullscreen" = "Expand Fullscreen";
