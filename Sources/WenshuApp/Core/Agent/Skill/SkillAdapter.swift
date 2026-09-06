@@ -169,9 +169,9 @@ public actor SkillAdapter {
             throw SkillAdapterError.unknownSkill(name: name)
         }
         if !isSkillEnabled(name: name) {
-            return "stub: skill /\(name) is disabled (SETTINGS-PERSISTENCE-002 gate)"
+            return "[skill /\(name) is disabled in settings]\n\n(Available once you enable this skill in Settings → Skills.)"
         }
-        return "stub: invoked \(name) with input length \(input.count)"
+        return "[stub: invoked \(name) — real skill execution lands in v0.41+. The current output above is a placeholder.]"
     }
 
     public struct ParsedInvocation: Sendable, Equatable {
