@@ -142,3 +142,7 @@
 "workspace.preview.sort_method_help" = "排序方式: %@";
 "workspace.editor.restore_layout" = "恢复布局";
 "workspace.editor.expand_fullscreen" = "展开全屏";
+"workspace.editor.switch_to_preview" = "切到预览模式";
+"workspace.editor.switch_to_edit" = "切到编辑模式";
+"workspace.editor.dirty_discard_alert_title" = "未保存的更改将丢失";
+"workspace.editor.dirty_discard_button" = "放弃编辑";
