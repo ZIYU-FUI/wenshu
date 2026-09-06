@@ -217,7 +217,7 @@ struct LongFormGuardrailsView: View {
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, 4)
-                            .padding(.vertical, 1)
+                            .padding(.vertical, DesignTokens.chromePaddingPico)
                             .background(
                                 RoundedRectangle(cornerRadius: 3)
                                     .fill(.quaternary)
@@ -254,7 +254,7 @@ struct LongFormGuardrailsView: View {
             .font(.caption2)
             .foregroundStyle(.secondary)
             .padding(.horizontal, DesignTokens.chromePaddingSmall)
-            .padding(.vertical, 1)
+            .padding(.vertical, DesignTokens.chromePaddingPico)
             .background(
                 RoundedRectangle(cornerRadius: 3)
                     .fill(badgeColor(for: level))
