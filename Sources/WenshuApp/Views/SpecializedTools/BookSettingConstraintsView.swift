@@ -278,7 +278,7 @@ struct BookSettingConstraintsView: View {
             HStack(alignment: .top, spacing: 8) {
                 LucideIconSystemFallback(constraint.severity.lucideIcon, size: 16)
                     .foregroundStyle(constraint.severity == .hard ? AnyShapeStyle(Color(nsColor: .systemRed)) : AnyShapeStyle(.tint))
-                    .frame(width: 18)
+                    .frame(width: DesignTokens.tabIconSize)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(constraint.title)
@@ -407,7 +407,7 @@ struct BookSettingConstraintsView: View {
                 size: 14
             )
             .foregroundStyle(violation.severity == .hard ? AnyShapeStyle(Color(nsColor: .systemRed)) : AnyShapeStyle(Color(nsColor: .systemOrange)))
-            .frame(width: 18)
+            .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 4) {
                     Text(violation.title)

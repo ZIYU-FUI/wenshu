@@ -303,7 +303,7 @@ public struct PlaceholderView: View {
             HStack(alignment: .top, spacing: 8) {
                 LucideIconSystemFallback(row.status.lucideIcon, size: 16)
                     .foregroundStyle(.tint)
-                    .frame(width: 18)
+                    .frame(width: DesignTokens.tabIconSize)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(row.pattern)

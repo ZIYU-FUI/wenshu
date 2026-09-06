@@ -258,7 +258,7 @@ struct TagManagerView: View {
         HStack(alignment: .top, spacing: 8) {
             LucideIconSystemFallback(tag.category.lucideIcon, size: 16)
                 .foregroundStyle(.tint)
-                .frame(width: 18)
+                .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text(tag.label)
@@ -390,7 +390,7 @@ struct TagManagerView: View {
         HStack(alignment: .top, spacing: 6) {
             LucideIconSystemFallback(application.target.lucideIcon, size: 14)
                 .foregroundStyle(.tint)
-                .frame(width: 18)
+                .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 6) {
                     Text(tagLabel(for: application.tagId))
