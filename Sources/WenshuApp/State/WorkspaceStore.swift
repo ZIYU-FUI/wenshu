@@ -3,8 +3,8 @@
 // Persistence + preset management for the user-customizable workspace
 // (= .scratch/2026-08-28-v0-28-free-layout/spec.md).
 //
-// Atomic-coupling with WorkspaceState.swift (= ticket 028-003, same
-// commit): the store reads / writes the WorkspaceState schema; without
+// Atomic-coupling with LayoutTreeState.swift (= ticket 028-003, same
+// commit): the store reads / writes the LayoutTreeState schema; without
 // one, the other has no purpose. Shipped together per boss 8/22
 // 'atomic coupling' rule. This commit ALSO bumps the built-in default
 // preset (= makeBuiltinWorkspace) to the FCP Browser 3-pane paradigm
@@ -18,7 +18,7 @@
 // established in v0.25 for zone visibility flags).
 //
 // v2 migration (= ticket 028-003 acceptance criterion): the store
-// reads / writes the v2 tree schema (= WorkspaceState.root backed by
+// reads / writes the v2 tree schema (= LayoutTreeState.root backed by
 // a LayoutNode tree). On detecting a v1 (= flat array) JSON blob in
 // UserDefaults, the store RETIRES it (= drops the v1 keys wholesale,
 // starts fresh) per the hermes "retire v1 wholesale" pattern. This
@@ -44,7 +44,7 @@ final class WorkspaceStore: ObservableObject {
 
     /// Current workspace state (= ObservableObject for SwiftUI
     /// re-render; mutations via `save()` write to UserDefaults).
-    @Published var workspace: WorkspaceState
+    @Published var workspace: LayoutTreeState
 
     /// Saved presets (= user can have several; the built-in Default
     /// preset is always present).
@@ -90,7 +90,7 @@ final class WorkspaceStore: ObservableObject {
         }
 
         if let data = userDefaults.data(forKey: Self.workspaceKey),
-           let decoded = try? jsonDecoder.decode(WorkspaceState.self, from: data) {
+           let decoded = try? jsonDecoder.decode(LayoutTreeState.self, from: data) {
             // Schema version check: if the persisted JSON is on a
             // different schema version (= e.g. v1 = flat array from
             // v0.27), migrate it (= for v2 from v1: retire v1
@@ -168,7 +168,7 @@ final class WorkspaceStore: ObservableObject {
     /// external users; the only "returning user" is the boss, who
     /// can re-seed the workspace manually (= or via a future
     /// import-from-v1-JSON feature ticket if needed).
-    private static func migrateState(_ old: WorkspaceState) -> WorkspaceState {
+    private static func migrateState(_ old: LayoutTreeState) -> LayoutTreeState {
         switch old.version {
         case 1:
             return makeBuiltinWorkspace()
@@ -223,7 +223,7 @@ final class WorkspaceStore: ObservableObject {
     ///
     /// Apple-API-first check: @Observable macro = Swift native
     /// (= macOS 14+). UserDefaults = Foundation. No third-party deps.
-    func replaceAll(_ newWorkspace: WorkspaceState, presets newPresets: [LayoutPreset], currentPresetID newPresetID: UUID?) {
+    func replaceAll(_ newWorkspace: LayoutTreeState, presets newPresets: [LayoutPreset], currentPresetID newPresetID: UUID?) {
         self.workspace = newWorkspace
         self.presets = newPresets
         self.currentPresetID = newPresetID
@@ -433,7 +433,7 @@ final class WorkspaceStore: ObservableObject {
             // shows the empty-pane fallback). Saving is a no-op
             // for the tree but still useful for the JSON
             // round-trip guarantee.
-            workspace = WorkspaceState(
+            workspace = LayoutTreeState(
                 root: makeGroup(panes: []),
                 panes: workspace.panes,
                 tabs: workspace.tabs,
@@ -610,7 +610,7 @@ final class WorkspaceStore: ObservableObject {
         return LayoutPreset(
             id: LayoutPreset.builtinDefaultID,
             name: "默认",
-            workspace: WorkspaceState(
+            workspace: LayoutTreeState(
                 root: root,
                 panes: panes,
                 tabs: tabs,
@@ -652,7 +652,7 @@ final class WorkspaceStore: ObservableObject {
         return LayoutPreset(
             id: LayoutPreset.builtinFocusID,
             name: "Focus",
-            workspace: WorkspaceState(
+            workspace: LayoutTreeState(
                 root: root,
                 panes: panes,
                 tabs: tabs,
@@ -696,7 +696,7 @@ final class WorkspaceStore: ObservableObject {
         return LayoutPreset(
             id: LayoutPreset.builtinTerminalDeckID,
             name: "Terminal deck",
-            workspace: WorkspaceState(
+            workspace: LayoutTreeState(
                 root: root,
                 panes: panes,
                 tabs: tabs,
@@ -748,7 +748,7 @@ final class WorkspaceStore: ObservableObject {
         return LayoutPreset(
             id: LayoutPreset.builtinQuadID,
             name: "Quad",
-            workspace: WorkspaceState(
+            workspace: LayoutTreeState(
                 root: root,
                 panes: panes,
                 tabs: tabs,
@@ -773,7 +773,7 @@ final class WorkspaceStore: ObservableObject {
     /// Tree shape (= recursive per v2 schema):
     ///   split(row, [group(sidebar), group(editor), split(column,
     ///             [group(chat), group(dynamic)])], [1, 1, 1])
-    static func makeBuiltinWorkspace() -> WorkspaceState {
+    static func makeBuiltinWorkspace() -> LayoutTreeState {
         let sidebar = TabSpec.make(kind: .projectSidebar, title: "项目管理区")
         let editor = TabSpec.make(kind: .editor, title: "编辑器")
         let chat = TabSpec.make(kind: .aiChat, title: "聊天区")
@@ -801,7 +801,7 @@ final class WorkspaceStore: ObservableObject {
             weights: [1, 2, 1]
         )
 
-        return WorkspaceState(
+        return LayoutTreeState(
             root: root,
             panes: panes,
             tabs: tabs,

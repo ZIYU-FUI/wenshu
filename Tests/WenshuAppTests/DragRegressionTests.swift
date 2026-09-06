@@ -38,7 +38,7 @@ final class DragRegressionTests: XCTestCase {
     /// element (= builtinDefault) is the legacy 6-zone shape, which
     /// doesn't have a 2-pane inspector group, so we use
     /// makeBuiltinWorkspace directly).
-    private func makeBuiltinWorkspace() -> WorkspaceState {
+    private func makeBuiltinWorkspace() -> LayoutTreeState {
         WorkspaceStore.makeBuiltinWorkspace()
     }
 
@@ -142,7 +142,7 @@ final class DragRegressionTests: XCTestCase {
         encoder.outputFormatting = [.sortedKeys]
         let data = try encoder.encode(workspace)
         let decoder = JSONDecoder()
-        let restored = try decoder.decode(WorkspaceState.self, from: data)
+        let restored = try decoder.decode(LayoutTreeState.self, from: data)
 
         // Weights must round-trip exactly AND must have changed
         // (= the drag must have taken effect).
@@ -313,7 +313,7 @@ final class DragRegressionTests: XCTestCase {
         encoder.outputFormatting = [.sortedKeys]
         let data = try encoder.encode(workspace)
         let decoder = JSONDecoder()
-        let restored = try decoder.decode(WorkspaceState.self, from: data)
+        let restored = try decoder.decode(LayoutTreeState.self, from: data)
 
         XCTAssertEqual(
             snapshotRootWeights(restored.root),

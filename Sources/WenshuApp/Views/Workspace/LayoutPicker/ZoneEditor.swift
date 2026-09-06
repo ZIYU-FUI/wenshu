@@ -414,7 +414,7 @@ struct ZoneEditor: View {
         let preset = LayoutPreset(
             id: UUID(),
             name: "Custom \(store.presets.filter { !$0.isBuiltIn }.count + 1)",
-            workspace: WorkspaceState(
+            workspace: LayoutTreeState(
                 root: tree,
                 panes: [],
                 tabs: [],

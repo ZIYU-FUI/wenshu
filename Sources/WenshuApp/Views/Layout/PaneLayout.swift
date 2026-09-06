@@ -34,7 +34,7 @@ import Foundation
 /// Each preset declares a `PaneLayout` struct that knows how to construct
 /// its native `NSSplitViewController` (= and child NSSplitViewItems) from
 /// the workspace's existing `PaneNode` list (= no schema change to
-/// WorkspaceState; the existing preset tree stays the source of truth).
+/// LayoutTreeState; the existing preset tree stays the source of truth).
 ///
 /// One preset = one struct, one file. Adding a new preset = new struct
 /// implementing this protocol (= per boss "each layout is custom-developed"; see spec.md rationale).
@@ -81,7 +81,7 @@ protocol PaneLayout {
 //
 // This struct's `makeSplitController` is a stub returning an empty
 // NSSplitViewController. The real implementation (= recursive
-// WorkspaceState tree walk + NSSplitViewItem construction + autosaveName)
+// LayoutTreeState tree walk + NSSplitViewItem construction + autosaveName)
 // lands in ticket 03. This ticket establishes the protocol + struct +
 // file location so subsequent tickets have a home.
 struct FCPLayout: PaneLayout {

@@ -79,7 +79,7 @@ final class Phase1to5IntegrationTests: XCTestCase {
         let preset = LayoutPreset(
             id: presetID,
             name: "test-applyTree",
-            workspace: WorkspaceState(
+            workspace: LayoutTreeState(
                 root: customLayout,
                 panes: builtinDefault.workspace.panes,
                 tabs: builtinDefault.workspace.tabs,

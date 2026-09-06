@@ -286,7 +286,7 @@ private struct GroupTabStrip: View {
     let tabs: [TabSpec]
     /// Per-pane label lookup (= paneID → title). Provided by the
     /// caller (= PaneRenderer) because the strip itself doesn't have
-    /// access to WorkspaceState.
+    /// access to LayoutTreeState.
     let paneLabels: [PaneID: String]
     let onSelect: (PaneID) -> Void
     let onClose: (PaneID) -> Void
