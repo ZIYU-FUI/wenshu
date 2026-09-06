@@ -98,6 +98,10 @@ struct SettingView: View {
     @State private var isLoadingModels = false
     @State private var providersWithKeys: Set<String> = []
     @State private var apiExpandedProviders: Set<String> = []
+    // v0.40 apple-001 HIG absent batch: .searchable for the provider tab
+    // (= Apple HIG Cmd-F standard for filtering settings lists).
+    // Empty string = show all providers.
+    @State private var providerSearchText: String = ""
     @State private var apiDraftKey: String = ""
     @State private var apiError: String?
 
@@ -313,7 +317,7 @@ struct SettingView: View {
     private var providerApiTab: some View {
         Form {
             Section {
-                ForEach(Provider.all) { p in
+                ForEach(filteredProviders) { p in
                     Button {
                         toggleExpand(p: p)
                     } label: {
@@ -328,6 +332,7 @@ struct SettingView: View {
                     }
                 }
                 .animation(.default, value: apiExpandedProviders)
+                .animation(.default, value: providerSearchText)
             } header: {
                 Text(WenshuI18n.t("settings.model.provider_label"))
             } footer: {
@@ -339,6 +344,24 @@ struct SettingView: View {
         }
         .formStyle(.grouped)
         .onAppear { refreshProviderStatus() }
+        // v0.40 apple-001 HIG absent batch: .searchable (= Apple HIG
+        // Cmd-F standard for filtering settings lists). Empty string
+        // shows all providers (= no filtering).
+        .searchable(text: $providerSearchText,
+                    placement: .toolbar,
+                    prompt: WenshuI18n.t("settings.search.placeholder"))
+    }
+
+    // v0.40 apple-001 HIG absent batch: filtered providers for .searchable.
+    // Case-insensitive match against provider name + slug. Empty
+    // search = show all providers.
+    private var filteredProviders: [Provider] {
+        let trimmed = providerSearchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return Provider.all }
+        return Provider.all.filter { p in
+            p.name.localizedCaseInsensitiveContains(trimmed) ||
+            p.slug.localizedCaseInsensitiveContains(trimmed)
+        }
     }
 
     private func toggleExpand(p: Provider) {
