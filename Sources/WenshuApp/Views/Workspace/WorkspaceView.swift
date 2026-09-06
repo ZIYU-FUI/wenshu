@@ -90,11 +90,16 @@ struct WorkspaceView: View {
     /// v0.30: BookStore env (= for reference loading in preview pane).
     @Environment(BookStore.self) private var bookStore
 
-    /// Layout edit mode state (= v0.28 ticket 028-006). Owned by
-    /// the view (= fresh per window) so the per-window state stays
-    /// self-contained. The hotkey binding lives in
-    /// `EditModeHotkey.swift` (= ⌘⇧\ toggle, Escape exit).
-    @State private var editMode = LayoutEditMode()
+    /// Layout edit mode state (= v0.28 ticket 028-006). v0.40
+    /// apple-001 Q3 surgical: hoisted to `appState.editMode` (= the
+    /// shared AppState instance) so all workspace descendants read
+    /// the same one. The hotkey binding lives in
+    /// `EditModeHotkey.swift` (= ⌘⇧\ toggle, Escape exit); the
+    /// hotkey still mutates `appState.editMode` (= same singleton,
+    /// no extra plumbing). Per-window ownership is preserved by
+    /// AppState's per-window `@State` on `WenshuApp` (= each
+    /// WindowGroup instance still has its own edit-mode boolean).
+    private var editMode: LayoutEditMode { appState.editMode }
 
     /// The flat list of panes (= rendered as a horizontal HStack).
     /// The root split direction (= vertical) is applied at the
@@ -226,7 +231,8 @@ struct WorkspaceView: View {
                 // the top-right corner when edit mode is on; the
                 // user can click it to toggle off, or press ⌘⇧\).
                 if editMode.isEnabled {
-                    EditModeBadge(isEnabled: $editMode.isEnabled)
+                    @Bindable var bindableAppState = appState
+                    EditModeBadge(isEnabled: $bindableAppState.editMode.isEnabled)
                         .padding(8)
                 }
             }
