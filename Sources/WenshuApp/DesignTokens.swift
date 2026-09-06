@@ -211,4 +211,14 @@ public enum DesignTokens {
     // The status-bar font is already \`statusFont\` above; this is
     // a sibling token for the runtime chip's smaller size.
     public static let runtimeCwdChipFont: Font = .system(size: 11)
+
+    // v0.40 apple-001 Q8 batch 3 site: monospaced hotkey combo label
+    // font (= .system(size: 12, design: .monospaced) = the 12 PT
+    // monospaced style used by hotkey combo chips in the editor
+    // toolbar (= FormatToolbarButtons / ParagraphAIToolbarButtons)
+    // and in the WorkspaceView tab strip). Apple HIG = monospaced
+    // for all keyboard shortcut glyph rendering (= ensures ⌘⇧E
+    // and ⌘⇧H have the same width across labels; = gives the
+    // chrome a uniform visual rhythm).
+    public static let hotkeyComboFont: Font = .system(size: 12, design: .monospaced)
 }

@@ -1032,7 +1032,7 @@ struct EditorPlaceholder: View {
                 // after v0.34 B-26 stripped the trailing buttons.
                 Button(action: { setMode(mode == .edit ? .preview : .edit) }) {
                     Image(systemName: mode == .edit ? "eye" : "pencil")
-                        .font(.system(size: 12, design: .monospaced))
+                        .font(DesignTokens.hotkeyComboFont)
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
