@@ -273,7 +273,7 @@ public struct TodoListView: View {
                         .truncationMode(.tail)
                     Spacer()
                 }
-                .padding(.horizontal, 6)
+                .padding(.horizontal, DesignTokens.chromePaddingSmall)
                 .padding(.vertical, 2)
                 .background(Color.secondary.opacity(0.08), in: Capsule())
             }
@@ -656,7 +656,7 @@ private struct TodoRow: View {
         return Text(text)
             .font(.caption2.weight(.semibold))
             .foregroundStyle(fg)
-            .padding(.horizontal, 6)
+            .padding(.horizontal, DesignTokens.chromePaddingSmall)
             .padding(.vertical, 2)
             .background(bg, in: Capsule())
             .help("优先级: \(text)")

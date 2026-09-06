@@ -242,7 +242,7 @@ private struct CommandPaletteRow: View {
                 Text(hint)
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
-                    .padding(.horizontal, 6)
+                    .padding(.horizontal, DesignTokens.chromePaddingSmall)
                     .padding(.vertical, 2)
                     .background(
                         RoundedRectangle(cornerRadius: 4)
