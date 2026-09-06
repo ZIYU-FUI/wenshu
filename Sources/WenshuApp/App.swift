@@ -1142,7 +1142,7 @@ struct ChatZoneView: View {
         nonmutating set { appState.llmModel = newValue }
     }
     // Boss 8/24: '每个区域的 tab 选中状态应该持久化'.
-    @AppStorage("wenshu.tabIndex.aiChat") private var selectedTabRaw: String = "对话"
+    @AppStorage("wenshu.tabIndex.aiChat") private var selectedTabRaw: String = "chat"
     // v0.24 boss验收fix (Boss 8/25 OOB ticket 015.014): archive flow state.
     // When user clicks archive icon in ChatZoneTabBar, this toggles true and
     // shows confirmation alert. Confirm = archive current session + start new.

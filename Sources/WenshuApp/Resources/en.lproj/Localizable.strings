@@ -167,3 +167,11 @@
 "workspace.editor.external_change_saved" = "File updated; your edits were saved to %@.";
 "workspace.editor.external_change_save_failed" = "File updated; saving your edits failed (notice: %@).";
 "chat.stub.in_development_label" = "%@ (In Development)";
+"chat.archive.confirm_title" = "Archive current session?";
+"chat.archive.cancel_button" = "Cancel";
+"chat.archive.confirm_button" = "Archive and start new";
+"chat.archive.confirm_message" = "The current session and context will be archived, then a new session will begin.";
+"chat.model.empty_placeholder" = "No models available";
+"tab.title.search" = "Search";
+"tab.title.settings" = "Settings";
+"tab.title.chat" = "Chat";
