@@ -36,7 +36,7 @@ struct PlotThreadView: View {
                 }
             } else { Text("No book selected").foregroundStyle(.secondary) }
             if let errorText { Text(errorText).foregroundStyle(.red).font(.caption) }
-        }.padding(12).task(id: bookStore.selectedBookId) { await reload() }
+        }.padding(DesignTokens.chromePaddingMedium).task(id: bookStore.selectedBookId) { await reload() }
     }
 
     private func reload() async {

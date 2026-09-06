@@ -663,7 +663,7 @@ public struct ChatView: View {
                                 .id(msg.id)
                         }
                     }
-                    .padding(8)
+                    .padding(DesignTokens.chromePaddingVertical)
                 }
                 // Apple SwiftUI 14+ .defaultScrollAnchor(.bottom)
                 // Apple 真值 = ScrollView 内容变化时自动贴底, 兜底 placeholder -> reply 替换时 scrollTo 不触发
@@ -1201,7 +1201,7 @@ struct ChatMessageView: View {
                             .controlSize(.mini)
                             .progressViewStyle(.circular)
                     }
-                    .padding(8)
+                    .padding(DesignTokens.chromePaddingVertical)
                     .background(sourceColor.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
                 } else {
                     // CoT thinking block collapsed (Apple HIG footnote)
@@ -1231,7 +1231,7 @@ struct ChatMessageView: View {
                     }
                     Text(message.content)
                         .textSelection(.enabled)
-                        .padding(8)
+                        .padding(DesignTokens.chromePaddingVertical)
                         .background(sourceColor.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
                 }
             }

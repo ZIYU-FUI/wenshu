@@ -233,7 +233,7 @@ struct WorkspaceView: View {
                 if editMode.isEnabled {
                     @Bindable var bindableAppState = appState
                     EditModeBadge(isEnabled: $bindableAppState.editMode.isEnabled)
-                        .padding(8)
+                        .padding(DesignTokens.chromePaddingVertical)
                 }
             }
             // v0.28 ticket 028-006: View menu's "Layout edit mode"

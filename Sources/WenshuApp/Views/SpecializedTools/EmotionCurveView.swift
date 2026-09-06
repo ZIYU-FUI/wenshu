@@ -93,7 +93,7 @@ struct EmotionCurveView: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(12)
+        .padding(DesignTokens.chromePaddingMedium)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .task {
             ensureAnalyzer()
@@ -175,7 +175,7 @@ struct EmotionCurveView: View {
             TextEditor(text: $chapterText)
                 .font(.caption)
                 .frame(minHeight: 80, maxHeight: 140)
-                .padding(6)
+                .padding(DesignTokens.chromePaddingSmall)
                 .background(
                     RoundedRectangle(cornerRadius: 4)
                         .fill(.quaternary)
@@ -221,7 +221,7 @@ struct EmotionCurveView: View {
         VStack(alignment: .leading, spacing: 10) {
             curveChart(for: report)
                 .frame(height: 140)
-                .padding(8)
+                .padding(DesignTokens.chromePaddingVertical)
                 .background(
                     RoundedRectangle(cornerRadius: 6)
                         .fill(.quaternary)
@@ -245,7 +245,7 @@ struct EmotionCurveView: View {
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(10)
+        .padding(DesignTokens.chromePaddingPickerItem)
         .background(
             RoundedRectangle(cornerRadius: 6)
                 .fill(.quaternary.opacity(0.4))

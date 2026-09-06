@@ -88,7 +88,7 @@ struct GenreFitView: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(12)
+        .padding(DesignTokens.chromePaddingMedium)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .task {
             ensureAnalyzer()
@@ -165,7 +165,7 @@ struct GenreFitView: View {
             TextEditor(text: $chapterText)
                 .font(.caption)
                 .frame(minHeight: 80, maxHeight: 140)
-                .padding(6)
+                .padding(DesignTokens.chromePaddingSmall)
                 .background(
                     RoundedRectangle(cornerRadius: 4)
                         .fill(.quaternary)
@@ -238,7 +238,7 @@ struct GenreFitView: View {
                    items: report.forbiddenHits,
                    tint: Color(nsColor: .systemRed))
         }
-        .padding(10)
+        .padding(DesignTokens.chromePaddingPickerItem)
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .background(
             RoundedRectangle(cornerRadius: 6)

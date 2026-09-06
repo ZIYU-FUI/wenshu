@@ -118,7 +118,7 @@ private struct TaskRowView: View {
             }
             Spacer()
         }
-        .padding(8)
+        .padding(DesignTokens.chromePaddingVertical)
         // v0.28 followup Boss UX round 24: .regularMaterial replaces
         // DesignColor.zoneSurface (= solid Color(nsColor: .controlBackgroundColor)
         // = NOT Liquid Glass). The sub-agent progress card now uses
