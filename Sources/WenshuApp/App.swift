@@ -351,191 +351,19 @@ struct WenshuApp: App {
     @State private var appState = AppState()
 
     var body: some Scene {
-        // v0.24 fix (Boss 8/25 17th OOB 'hide Wenshu title'): WindowGroup
-        // title set to empty string (= no NSWindow title shown). Combined
-        // with .windowToolbarStyle(.unified, showsTitle: false) below for
-        // canonical Apple HIG API to hide title slot in unified chrome.
-        WindowGroup("") {
-            // v0.21 ticket 01 (重做 #10): 撤回 SettingsEnvironmentCapturer wrapper (commit a78d758bc Q15 翻车 #11 dead code)
-            // SettingsEnvironmentCapturer 之前包 LayoutShellView 注入 OpenSettingsAction, 但 openSettings?() → nil (Q15 翻车 #11), 现在 NSMenu 自己装 + 自创建 NSWindow 装 SettingView 不需要 capture
-            // CHATBOX-002 (2026-09-04): wrap with CommandPaletteHost so the
-            // ⌘K sheet binds to the WindowGroup scene (= the sheet
-            // inherits the window's focus + key state per Apple HIG).
-            CommandPaletteHost {
-                SettingsEnvironmentCapturer(library: library, appearanceMode: appearanceMode)
-            }
-                // v0.30 boss 8/31 OOB: inject AppState at root so all
-                // descendants can read cross-zone UI state via
-                // `@Environment(AppState.self)`. Per-window state
-                // (= owned by @State on WenshuApp struct = each
-                // WindowGroup instance has its own AppState).
-                .environment(appState)
-            // v0.28 followup Boss UX round 28 (Boss 2026-08-29 OOB '那是不是
-            // [CJK-TRANSLATE] 4 line(s) awaiting manual translation (see git blame for original CJK text)
-            // 拖拽线也有默认的液态玻璃的样式, 这样的, 你把我们所有用到
-            // 的组件, 用默认的液态玻璃样式实现, 我们最多调一下尺寸,
-            // 动画效果, 过渡效果等等, 都用默认的, 我说的所有的, 不是
-            // 目前可见的, 是有一些弹窗等等, 都用 27 的液态玻璃搞定'):
-        }
-        // Boss 8/24 feedback: 'use the 52 PT one'. Apple SwiftUI macOS 14+ windowToolbarStyle
-        // options: .automatic, .unified (52 PT), .unifiedCompact (28 PT), .expanded.
-        // v0.24 fix (Boss 8/25 28th OOB 'use default size' + Apple docs):
-        // use .unified (52 PT) = macOS default toolbar style. Per Apple
-        // developer.apple.com/documentation/SwiftUI/WindowToolbarStyle,
-        // .unified is the default style (52 PT). .unifiedCompact is
-        // COMPACT (= smaller, NOT default). Boss spec 'default size' = .unified.
-        // v0.28 followup Boss UX round 12 (Boss 2026-08-29 OOB '算了,
-        // [CJK-TRANSLATE] 2 line(s) awaiting manual translation (see git blame for original CJK text)
-        // 本来我们也要伪 apple 官方嘛, 用 52 高的那个原生标题栏,
-        // 把按钮放上面, 去掉自己写的那一栏, 全面适配液态玻璃'):
-        // = adopt Apple Liquid Glass design language fully per
-        // developer.apple.com/documentation/technologyoverviews/
-        // liquid-glass. Use .unified (= 52 PT default macOS chrome)
-        // = the full Liquid Glass titlebar experience (= traffic lights
-        // + grouped toolbar items in 1 unified capsule = the macOS 26
-        // Tahoe canonical look that Pages / Xcode / Mail / Finder all
-        // use). Remove .toolbarBackground(.clear) (= let the default
-        // Liquid Glass material render). 100% native macOS look.
-        //
-        // Final titlebar = 1 macOS native .unified 52 PT titlebar
-        // (= Apple standard = Liquid Glass = 1 unified capsule
-        // containing 8 toolbar items + traffic lights). No custom
-        // chrome above or below (= fully Apple-native = '伪 apple
-        // 官方' per Boss spec).
-        .windowToolbarStyle(.unified)  // 52 PT default macOS chrome with Liquid Glass unified toolbar background
-        // .windowToolbarStyle(.unifiedCompact(showsTitle: false))  // 28 PT compact chrome, no unified toolbar background
-        .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // Boss Sketch design baseline 1920x984 PT
-        // v0.24 boss验收fix: .contentMinSize (window doesn't shrink below initial
-        // size, can grow to fit larger content).
-        .windowResizability(.contentMinSize)
-        .commands {
-            // v0.24 boss验收fix: Settings... menu item (Cmd+,).
-            // This is required for SwiftUI Settings scene to be accessible.
-            // Without this, the menu has no Settings item and showSettingsWindow:
-            // selector doesn't work.
-            CommandGroup(replacing: .appSettings) {
-                // v0.24 boss验收fix: tap menu item = trigger @Environment(\.openSettings).
-                // The Button is a no-op body, but SwiftUI's Commands system
-                // auto-wires this to the @Environment(\.openSettings) closure
-                // captured by SettingsEnvironmentCapturer.
-                Button("设置…") {
-                    WenshuAppDelegate.openSettings?()
-                }
-                .keyboardShortcut(",", modifiers: .command)
-            }
-            // CHATBOX-002 (2026-09-04): ⌘K command palette (= hermes
-            // commands.py + slash_registry.py parity). Replaces
-            // .newItem group so ⌘K shows the palette instead of the
-            // macOS-default "New File" behavior. Posts
-            // .wenshuShowCommandPalette (= the SwiftUI scene listens
-            // and presents the palette sheet).
-            CommandGroup(replacing: .newItem) {
-                Button("Open Command Palette") {
-                    CommandPaletteController.show()
-                }
-                .keyboardShortcut("k", modifiers: .command)
-            }
-            CommandGroup(after: .newItem) {
-                // v0.27 macOS-standard cross-component sync (boss 8/27
-                // OOB): File → 新建项目 is the macOS-standard menu item
-                // (= Cmd+N shortcut) for the file-creation kind. Per boss
-                // 8/27 standing rule 'a new feature should appear
-                // everywhere = synced', this Menu mirrors the toolbar '+'
-                // Menu (= 新建书 / 新建书架). Both sub-items post a
-                // NotificationCenter event that NewLibraryOutlineView
-                // listens for and triggers the matching sheet.
-                Menu("新建项目") {
-                    Button("新建书") {
-                        NotificationCenter.default.post(name: .wenshuNewBookRequested, object: nil)
-                    }
-                    Button("新建书架") {
-                        NotificationCenter.default.post(name: .wenshuNewShelfRequested, object: nil)
-                    }
-                }
-                .keyboardShortcut("n", modifiers: .command)
-                // v0.27 boss 8/27 OOB: 菜单栏同步 toolbar '导入' button.
-                // Per boss 8/27 standing rule 'a new feature should
-                // appear everywhere = synced', the menu bar gets a
-                // matching 导入 entry (= macOS-standard File → Import
-                // Convention; Cmd+Shift+I is the macOS default shortcut
-                // for File → Import per developer.apple.com/design/
-                // human-interface-guidelines/app-architecture/importing-
-                // and-exporting-data). Functionality deferred (= '功能
-                // 一会拷问后规划'); placeholder posts a
-                // NotificationCenter event so v0.27 followups can
-                // listen + implement.
-                Button("导入…") {
-                    NotificationCenter.default.post(name: .wenshuImportRequested, object: nil)
-                }
-                .keyboardShortcut("i", modifiers: [.command, .shift])
-            }
-            CommandGroup(replacing: .undoRedo) {
-                Button("撤销", action: {})
-                    .keyboardShortcut("z", modifiers: .command)
-                Button("重做", action: {})
-                    .keyboardShortcut("Z", modifiers: [.command, .shift])
-            }
-            CommandGroup(after: .sidebar) {
-                Divider()
-                // v0.24 fix (Boss 8/25 60th OOB menu bar primary): 4 zone
-                // toggle menu items. Per Apple HIG Rule 1.3 (toggle
-                // checkmarks for on/off states). Toggle forwards via
-                // NotificationCenter to vm (= .commands block can't access
-                // vm directly per L20). Static labels (= dynamic checkmark
-                // would require vm access which commands lack).
-                Button("显示/隐藏 项目管理区") {
-                    NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.projectSidebar)
-                }
-                .keyboardShortcut("1", modifiers: [.command, .shift])
-                Button("显示/隐藏 素材预览区") {
-                    NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.projectPreview)
-                }
-                Button("显示/隐藏 工具区") {
-                    NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.specializedTools)
-                }
-                .keyboardShortcut("2", modifiers: [.command, .shift])
-                Button("显示/隐藏 聊天区") {
-                    NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.aiChat)
-                }
-                .keyboardShortcut("3", modifiers: [.command, .shift])
-                Button("显示/隐藏 动态区") {
-                    NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.aiDynamic)
-                }
-                .keyboardShortcut("4", modifiers: [.command, .shift])
-                Divider()
-                Button("恢复默认布局") {
-                    NSLog("[wenshu.reset] menu posted wenshuResetLayout")
-                    NotificationCenter.default.post(name: .wenshuResetLayout, object: nil)
-                }
-                .keyboardShortcut("R", modifiers: [.command, .shift])
-                Divider()
-                // v0.28 ticket 028-006: Layout edit mode menu entry
-                // (= ⌘⇧\ toggles edit mode on/off; per the hermes
-                // sibling pattern of `view.flipPanes = mod+\` +
-                // `layout.editMode = mod+shift+\`). Posts a
-                // NotificationCenter event that the active
-                // WorkspaceView's LayoutEditMode singleton listens
-                // for and flips the bool (= the menu and the
-                // in-window hotkey share the same notification
-                // path so the user sees a consistent state).
-                Button(WenshuI18n.t("button.layout_edit_mode")) {
-                    NotificationCenter.default.post(name: .wenshuToggleEditMode, object: nil)
-                }
-                .keyboardShortcut(KeyEquivalent("\\"), modifiers: [.command, .shift])
-            }
-        }
-        Settings {
-            SettingView()
-        }
-        // B-11: inject AppState into the Settings scene so
-        // SettingView's `@Environment(AppState.self) private var
-        // appState` lookup (= appState.llmModel on the model picker
-        // binding) doesn't assert-fail when the user opens Settings
-        // via ⌘,. Without this, opening Settings crashed in
-        // `_assertionFailure` from `EnvironmentValues.subscript.getter`
-        // because the Settings scene had no `.environment(appState)`
-        // modifier (= only the WindowGroup's content view had one).
-        .environment(appState)
+        // v0.40 apple-001 phase 1 Q1 slice 2: Scene composition (= WindowGroup +
+        // .commands + Settings) is now in AppRootScene. WenshuApp stays as the
+        // composition root that owns the state (`library` / `appearanceMode`
+        // / `appState`) and forwards it into AppRootScene as constructor
+        // parameters. The state owner is WenshuApp (= cannot move because
+        // @State + @AppStorage require the @main App struct), so AppRootScene
+        // is a thin Scene assembly that consumes the state and wires the
+        // scene tree.
+        AppRootScene(
+            library: library,
+            appearanceMode: $appearanceMode,
+            appState: appState
+        )
     }
 }
 
@@ -1142,7 +970,10 @@ enum AuxTask: String, CaseIterable, Identifiable {
 /// (Stack Overflow 65355696 + orchetect/SettingsAccess 真值)
 // v0.24 boss验收fix (2026-08-24): accept library + appearanceMode so it can
     // wrap LayoutShellView with the same modifiers as the original WindowGroup.
-    private struct SettingsEnvironmentCapturer: View {
+    // v0.40 apple-001 Q1 slice 2: dropped `private` (= extracted to AppRootScene
+    // in the same App target; the privacy was a holdover from when the capturer
+    // lived inside `struct WenshuApp: App` and was scoped to that one type).
+    struct SettingsEnvironmentCapturer: View {
         @Environment(\.openSettings) private var openSettings
         let library: WenshuLibrary
         let appearanceMode: AppearanceMode
