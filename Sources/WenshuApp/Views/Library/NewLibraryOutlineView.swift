@@ -217,7 +217,13 @@ struct NewLibraryOutlineView: View {
     //
     // Single source of truth: SidebarState = shelf/book/library expansion
     // + sidebar selection. Write/read ONE key in AppStorage.
-    @AppStorage("wenshu.sidebarState") private var persistedSidebarState: String = ""
+    //
+    // v0.40 apple-001 HIG absent batch: migrated wenshu.sidebarState
+    // from @AppStorage to @SceneStorage (= Apple HIG macOS 14+ per-window
+    // sidebar state restoration). Each window can have a different
+    // sidebar expansion/selection state (= useful for multi-window
+    // workflows where the user has different library views open).
+    @SceneStorage("wenshu.sidebarState") private var persistedSidebarState: String = ""
     var body: some View {
         // v0.30: 100% Apple HIG standard sidebar.
         //
