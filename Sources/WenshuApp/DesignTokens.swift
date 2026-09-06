@@ -225,4 +225,12 @@ public enum DesignTokens {
     // and ⌘⇧H have the same width across labels; = gives the
     // chrome a uniform visual rhythm).
     public static let hotkeyComboFont: Font = .system(size: 12, design: .monospaced)
+
+    // v0.40 apple-001 iron-rule-6 batch 1 site: sub-agent progress
+    // card corner radius (= 6 PT, Apple HIG small card standard; = smaller
+    // than the 8 PT surfaceCornerRadiusCard because the sub-agent
+    // progress card is a transient notification card pattern, = not a
+    // full surface). Replaces inline `.cornerRadius(6)` in
+    // SubAgentProgressView.
+    public static let surfaceCornerRadiusProgressCard: CGFloat = 6
 }

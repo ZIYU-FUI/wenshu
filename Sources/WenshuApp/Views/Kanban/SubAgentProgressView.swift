@@ -125,7 +125,7 @@ private struct TaskRowView: View {
         // the standard Liquid Glass card pattern (= matches macOS
         // notification cards / activity cards).
         .background(.regularMaterial)
-        .cornerRadius(6)
+        .cornerRadius(DesignTokens.surfaceCornerRadiusProgressCard)
     }
 
     @ViewBuilder
