@@ -2101,39 +2101,6 @@ private struct EditorEditContent: View {
 /// Per ticket 028-006 §"Acceptance criteria": the badge is the
 /// only edit-mode-related UI shipped in 028-006 (= the TreeEditBar
 /// and LayoutPicker are 028-007 / 028-009).
-private struct EditModeBadge: View {
-    @Binding var isEnabled: Bool
-
-    var body: some View {
-        Button(action: { isEnabled.toggle() }) {
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(Color.accentColor)
-                    .frame(width: 8, height: 8)
-                Text(WenshuI18n.t("workspace.layoutEditMode"))
-                    .font(.caption.weight(.medium))
-                Text(HotkeyFormatter.editModeCombo)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, DesignTokens.chromePaddingChipHorizontal)
-            .padding(.vertical, DesignTokens.chromePaddingSmall)
-            // v0.28 followup Boss UX round 24: .regularMaterial
-            // replaces the solid Color.secondary.opacity(0.15) tint
-            // for the edit-mode badge background (= the floating
-            // badge that shows when ⌘⇧\ edit mode is on).
-            .background(
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(.regularMaterial)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 6)
-                    .stroke(.tint.opacity(0.3), lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
-    }
-}
 
 // MARK: - PreviewTabBackground (= preview pane content background)
 //
