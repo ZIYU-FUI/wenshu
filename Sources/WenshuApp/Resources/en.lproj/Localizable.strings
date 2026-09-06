@@ -175,3 +175,16 @@
 "tab.title.search" = "Search";
 "tab.title.settings" = "Settings";
 "tab.title.chat" = "Chat";
+"settings.model.provider_label" = "Provider";
+"settings.model.model_label" = "Model";
+"settings.model.main_model_label" = "Main model";
+"settings.model.main_model_caption" = "Set the global default model.";
+"settings.model.reasoning_effort_label" = "Default reasoning effort";
+"settings.model.reasoning_effort_low" = "Low";
+"settings.model.reasoning_effort_medium" = "Medium";
+"settings.model.reasoning_effort_high" = "High";
+"settings.model.reasoning_effort_xhigh" = "Extra High";
+"settings.model.reasoning_effort_max" = "Max";
+"settings.model.reasoning_label" = "Reasoning";
+"settings.model.use_main_model" = "Use main model";
+"settings.model.assistant_model_label" = "Assistant model";

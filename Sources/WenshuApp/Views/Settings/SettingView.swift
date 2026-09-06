@@ -329,7 +329,7 @@ struct SettingView: View {
                 }
                 .animation(.default, value: apiExpandedProviders)
             } header: {
-                Text("提供方")
+                Text(WenshuI18n.t("settings.model.provider_label"))
             } footer: {
                 let total = Provider.all.count
                 let set = providersWithKeys.count
@@ -447,7 +447,7 @@ struct SettingView: View {
     private var modelTab: some View {
         Form {
             Section {
-                Picker("提供方", selection: $providerSlug) {
+                Picker(WenshuI18n.t("settings.model.provider_label"), selection: $providerSlug) {
                     ForEach(Provider.all) { p in
                         Text(p.name).tag(p.slug)
                     }
@@ -458,16 +458,16 @@ struct SettingView: View {
                     Task { await reloadModels() }
                 }
 
-                Picker("模型", selection: llmModelBinding) {
+                Picker(WenshuI18n.t("settings.model.model_label"), selection: llmModelBinding) {
                     ForEach(modelIdList, id: \.self) { id in
                         Text(id).tag(id)
                     }
                 }
                 .pickerStyle(.menu)
             } header: {
-                Text("主模型")
+                Text(WenshuI18n.t("settings.model.main_model_label"))
             } footer: {
-                Text("设置全局默认模型.")
+                Text(WenshuI18n.t("settings.model.main_model_caption"))
                     .font(.caption)
             }
 
@@ -475,19 +475,19 @@ struct SettingView: View {
                 // v0.21 ticket 35b: 推理强度 picker aligned with Apple Anthropic API effort parameter (5 valid values per docs)
                 // Source: https://platform.claude.com/docs/en/build-with-claude/effort
                 // NOT hermes custom 7-level (purely decorative overlay, not API)
-                Picker("默认推理强度", selection: $reasoningEffort) {
-                    Text("低").tag("low" as String)
-                    Text("中").tag("medium" as String)
-                    Text("高").tag("high" as String)
-                    Text("极高").tag("xhigh" as String)
-                    Text("最高").tag("max" as String)
+                Picker(WenshuI18n.t("settings.model.reasoning_effort_label"), selection: $reasoningEffort) {
+                    Text(WenshuI18n.t("settings.model.reasoning_effort_low")).tag("low" as String)
+                    Text(WenshuI18n.t("settings.model.reasoning_effort_medium")).tag("medium" as String)
+                    Text(WenshuI18n.t("settings.model.reasoning_effort_high")).tag("high" as String)
+                    Text(WenshuI18n.t("settings.model.reasoning_effort_xhigh")).tag("xhigh" as String)
+                    Text(WenshuI18n.t("settings.model.reasoning_effort_max")).tag("max" as String)
                 }
                 .pickerStyle(.menu)
                 Text(WenshuI18n.t("settings.model.reasoning.effortHint"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } header: {
-                Text("推理")
+                Text(WenshuI18n.t("settings.model.reasoning_label"))
             }
 
             Section {
@@ -511,7 +511,7 @@ struct SettingView: View {
                     }
                 }
             } header: {
-                Text("辅助模型")
+                Text(WenshuI18n.t("settings.model.assistant_model_label"))
             } footer: {
                 Text("辅助任务默认使用主模型. 你可以为任意任务指定专用模型. (wenshu 真值: 辅助任务调度暂未实现, 占位显示 Hermes AUX_TASKS 真值列表)")
                     .font(.caption)
