@@ -347,3 +347,67 @@ This index is the **single source of truth** for "what's reusable in Wenshu". Ne
 - `.scratch/2026-08-30-component-refactor-plan.md` (= Phase 1-5 plan)
 
 Last updated: 2026-08-30 (Phase 1-5 implementation + index)
+
+---
+
+## ✂️ LEVEL 9: Workspace editor sub-views (v0.40 apple-001 Q2 split)
+
+The Workspace editor surface is decomposed into 9 single-file sub-views (= extracted in commits 6df2ed769 through 485c0bf80). Each lives in its own file under `Sources/WenshuApp/Views/Workspace/`. **When extending the editor surface, find the closest match in this list first**; only create a new file if none of these match.
+
+### 9.1 FormatToolbarButtons
+- **Path**: `Sources/WenshuApp/Views/Workspace/FormatToolbarButtons.swift`
+- **Purpose**: The 5 inline-formatting toolbar buttons (bold / italic / heading / code / link). Backed by 2 file-local helpers (wrapSelection + prefixCurrentLine) that mutate the @Binding draft.
+- **Use when**: Building any inline text-formatting toolbar (= SwiftUI editor surface, not NSTextView native menus).
+- **API**: `FormatToolbarButtons(draft: $editorTab.draft)`
+
+### 9.2 ParagraphAIToolbarButtons
+- **Path**: `Sources/WenshuApp/Views/Workspace/ParagraphAIToolbarButtons.swift`
+- **Purpose**: The 3 paragraph-AI transform buttons (expand / shorten / rephrase) + 1 dropdown Menu for 3 more (shiftTone / simplify / dramatize). Stateless: 3 let parameters (selectedText + isApplying + onApply callback).
+- **Use when**: Building a paragraph-level AI transform toolbar (sibling of 9.1, sits to its right in the editor toolbar).
+- **API**: `ParagraphAIToolbarButtons(selectedText:, isApplying:, onApply: applyParagraphAI)`
+
+### 9.3 EditModeBadge
+- **Path**: `Sources/WenshuApp/Views/Workspace/EditModeBadge.swift`
+- **Purpose**: The floating ⌘⇧\ edit-mode badge (8 PT accent dot + label + key combo, .regularMaterial + .tint.opacity(0.3) stroke).
+- **Use when**: Surfacing a layout-edit toggle state in any chrome top bar.
+- **API**: `EditModeBadge(isEnabled: $bindableAppState.editMode.isEnabled)`
+
+### 9.4 PreviewSortMenuButton
+- **Path**: `Sources/WenshuApp/Views/Workspace/PreviewSortMenuButton.swift`
+- **Purpose**: The 3-state cycle sort button on the preview pane top-right (pinyinFirstLetter -> createdAt -> modifiedAt -> ...). 1 @Binding + 1 @State (isHover).
+- **Use when**: Building a sort-cycle icon button with .onHover tracking.
+- **API**: `PreviewSortMenuButton(sortOrder: $previewSortOrder)`
+
+### 9.5 EditorExpandShrinkTrailingButton
+- **Path**: `Sources/WenshuApp/Views/Workspace/EditorExpandShrinkTrailingButton.swift`
+- **Purpose**: The trailing button on the editor pane's top-right that toggles "Expand Fullscreen" <-> "Restore Layout". Backed by 2 @AppStorage (= editorMaximized Bool + editorExpandSnapshotJSON; = posts .wenshuEditorMaximizedChanged notification that PaneNSController listens for).
+- **Use when**: Building a pane expand/shrink trailing button.
+- **API**: `EditorExpandShrinkTrailingButton()`
+
+### 9.6 EditorPreviewContent
+- **Path**: `Sources/WenshuApp/Views/Workspace/EditorPreviewContent.swift`
+- **Purpose**: The SwiftUI ScrollView-based markdown preview renderer for the editor pane (= parses markdown body into Segment[] via parsedSegments + renders each via renderSegment). 2 let parameters (markdownBody: String + wikilinkTarget: EditorPlaceholder.WikilinkAction).
+- **Use when**: Building a pure-SwiftUI markdown preview (= no live edit; = no NSTextView).
+- **API**: `EditorPreviewContent(markdownBody:..., wikilinkTarget:...)`
+
+### 9.7 EditorEditContent
+- **Path**: `Sources/WenshuApp/Views/Workspace/EditorEditContent.swift`
+- **Purpose**: The SwiftUI live-edit surface for the editor pane (= wraps nodes-app/swift-markdown-engine via WenshuMarkdownEditor NSViewRepresentable; forwards engine-side wiki-link clicks back to the host). 8 parameters total (= 1 @Binding + 7 let: originalBody, onSave, onWordCountChange, onDirtyChange, configuration: MarkdownEditorConfiguration, draftId, onLinkClick).
+- **Use when**: Building a markdown live-edit surface (TextKit 2-backed by swift-markdown-engine). Requires `import MarkdownEngine`.
+- **API**: `EditorEditContent(draft:..., originalBody:..., onSave:..., onWordCountChange:..., onDirtyChange:..., configuration:..., draftId:..., onLinkClick:...)`
+
+### 9.8 EditorContentPlaceholder
+- **Path**: `Sources/WenshuApp/Views/Workspace/EditorContentPlaceholder.swift`
+- **Purpose**: Empty Color.clear placeholder for the editor pane (= pane background uniformity is applied by ZonePerRegionChrome; = the placeholder is just empty since v0.28 Boss UX round 37 removed the Color.white.opacity(0.55) overlay).
+- **Use when**: Building an empty placeholder pane (= no content yet = show Color.clear + let chrome fill the visual contract).
+
+### 9.9 PreviewTabBackground
+- **Path**: `Sources/WenshuApp/Views/Workspace/PreviewTabBackground.swift`
+- **Purpose**: Empty Color.clear placeholder for the preview pane tab background. Sibling of 9.8.
+- **Use when**: Sibling of EditorContentPlaceholder; = same uniformity story (= pane background uniformity is applied by ZonePerRegionChrome).
+
+### 9.10 PaneTrailingIconButton (helper, also used outside Workspace)
+- **Path**: `Sources/WenshuApp/UI/PaneTrailingIconButton.swift`
+- **Purpose**: Generic trailing icon button with tooltip (= Color.clear base + 28 PT hot area + icon overlay + hover wash + .help tooltip). Shared by EditorExpandShrinkTrailingButton (9.5) AND the chat-zone archive button.
+- **Use when**: Building any trailing icon button (= matches 28 PT pane-chrome visual contract).
+- **API**: `PaneTrailingIconButton(icon: "...", tooltip: "...", action: { ... })`
