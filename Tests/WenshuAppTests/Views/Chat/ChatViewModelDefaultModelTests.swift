@@ -37,7 +37,7 @@ struct ChatViewModelDefaultModelTests {
 
     // MARK: - App.swift (boss's v0.24 fix — verified)
 
-    @Test("App.swift SettingView.llmModel default = '' when no UserDefaults")
+    @Test("SettingView.swift llmModel default = '' when no UserDefaults")
     func testAppSettingViewDefault() async {
         clearModelDefaults()
         // @AppStorage default is read at runtime — we can't easily construct a
@@ -46,14 +46,14 @@ struct ChatViewModelDefaultModelTests {
         let saved = UserDefaults.standard.string(forKey: "wenshu.llm.model")
         #expect(saved == nil, "UserDefaults 'wenshu.llm.model' should be unset (clean test)")
 
-        // The fix is at App.swift:222: @AppStorage default = "" (not WenshuLLMModel.m3.rawValue)
-        // Source code verification (file:line check):
-        let appSwiftURL = URL(fileURLWithPath: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/App.swift")
-        let appSwift = try? String(contentsOf: appSwiftURL, encoding: .utf8)
-        #expect(appSwift != nil, "App.swift must be readable")
-        // v0.24 boss验收fix line: 222 in App.swift has @AppStorage("wenshu.llm.model") default = "" (NOT WenshuLLMModel.m3.rawValue).
-        let hasEmptyDefault = appSwift!.contains("@AppStorage(\"wenshu.llm.model\") private var llmModel: String = \"\"")
-        #expect(hasEmptyDefault, "App.swift SettingView.llmModel default must be '' (v0.24 boss fix)")
+        // The fix is at SettingView.swift: @AppStorage default = "" (not WenshuLLMModel.m3.rawValue)
+        // v0.40 apple-001 phase 3 ticket 5: this property moved from App.swift to SettingView.swift.
+        let settingViewURL = URL(fileURLWithPath: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Settings/SettingView.swift")
+        let settingView = try? String(contentsOf: settingViewURL, encoding: .utf8)
+        #expect(settingView != nil, "SettingView.swift must be readable")
+        // v0.24 boss验收fix line: SettingView.swift has @AppStorage("wenshu.llm.model") default = "" (NOT WenshuLLMModel.m3.rawValue).
+        let hasEmptyDefault = settingView!.contains("@AppStorage(\"wenshu.llm.model\") private var llmModel: String = \"\"")
+        #expect(hasEmptyDefault, "SettingView.swift llmModel default must be '' (v0.24 boss fix)")
     }
 
     @Test("ChatZoneView.swift currentModel default = '' when no UserDefaults")
