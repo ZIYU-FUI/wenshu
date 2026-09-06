@@ -76,7 +76,7 @@ struct BookshelfEditorSheet: View {
                 .disabled(!canCommit)
             }
         }
-        .padding(20)
+        .padding(DesignTokens.chromePaddingHero)
         .frame(minWidth: 320)
     }
 

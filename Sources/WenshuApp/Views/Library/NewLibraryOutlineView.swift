@@ -1873,7 +1873,7 @@ struct NewChoiceSheet: View {
             }
             Spacer()
         }
-        .padding(20)
+        .padding(DesignTokens.chromePaddingHero)
         .frame(minWidth: 280, idealWidth: 320, minHeight: 180, idealHeight: 200)
     }
 }

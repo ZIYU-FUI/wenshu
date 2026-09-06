@@ -281,7 +281,7 @@ struct PreviewPane: View {
                 }
             }
         }
-        .padding(20)
+        .padding(DesignTokens.chromePaddingHero)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
@@ -383,7 +383,7 @@ struct PreviewPane: View {
                         .foregroundStyle(.tertiary)
                 }
             }
-            .padding(24)
+            .padding(DesignTokens.chromePaddingXLarge)
             .frame(maxWidth: 800, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -820,7 +820,7 @@ private struct Card: View {
                         .multilineTextAlignment(.leading)
                 }
             }
-            .padding(10)
+            .padding(DesignTokens.chromePaddingPickerItem)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
         // Boss 2026-09-02: parent component owns style, child component only does function.

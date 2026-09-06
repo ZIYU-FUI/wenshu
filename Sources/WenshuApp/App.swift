@@ -1128,9 +1128,9 @@ enum ZoneSlot {
             // appear higher than the other 3 general panes'
             // (= "章节:0" / "字数:0" / "工具就绪") = 视觉不对齐.
             // Fix = removed `.padding(.vertical, DesignTokens.chromePaddingNano)`. The horizontal
-            // `.padding(8)` (= 8 PT left/right margin) is preserved
+            // `.padding(DesignTokens.chromePaddingVertical)` (= 8 PT left/right margin) is preserved
             // for the tree outline indentation.
-            .padding(8)
+            .padding(DesignTokens.chromePaddingVertical)
             .environment(bookStore)
     }
 }

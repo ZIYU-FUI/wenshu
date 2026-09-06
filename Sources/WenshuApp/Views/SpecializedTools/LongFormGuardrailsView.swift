@@ -90,7 +90,7 @@ struct LongFormGuardrailsView: View {
                 contentBody
             }
         }
-        .padding(12)
+        .padding(DesignTokens.chromePaddingMedium)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .task(id: activeBookId) {
             await reload()
@@ -283,7 +283,7 @@ struct LongFormGuardrailsView: View {
             TextEditor(text: $checkText)
                 .font(.caption)
                 .frame(minHeight: 80, maxHeight: 120)
-                .padding(6)
+                .padding(DesignTokens.chromePaddingSmall)
                 .background(
                     RoundedRectangle(cornerRadius: 4)
                         .fill(.quaternary)
@@ -341,7 +341,7 @@ struct LongFormGuardrailsView: View {
                 }
             }
         }
-        .padding(8)
+        .padding(DesignTokens.chromePaddingVertical)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 4)

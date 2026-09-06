@@ -70,7 +70,7 @@ struct ZoneEditor: View {
             // Grid canvas (= translucent numbered zones).
             gridCanvas
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(20)
+                .padding(DesignTokens.chromePaddingHero)
         }
         .frame(minWidth: 720, minHeight: 540)
         // POLISH-LIQUIDGLASS-004: ZoneEditor modal sheet root uses
@@ -128,7 +128,7 @@ struct ZoneEditor: View {
                   ? "Save this grid as a new preset"
                   : "This grid can't be expressed as a guillotine tree (= non-guillotine = pinwheel arrangement)")
         }
-        .padding(12)
+        .padding(DesignTokens.chromePaddingMedium)
     }
 
     /// Grid canvas (= translucent numbered zones + rubber-band overlay +

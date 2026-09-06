@@ -57,7 +57,7 @@ struct PresetCard: View {
                 .foregroundStyle(isActive ? Color.accentColor : Color.primary)
                 .lineLimit(1)
         }
-        .padding(6)
+        .padding(DesignTokens.chromePaddingSmall)
         .background(
             RoundedRectangle(cornerRadius: 8)
                 .fill(isActive ? AnyShapeStyle(.quaternary) : AnyShapeStyle(Color.clear))
@@ -75,7 +75,7 @@ struct PresetCard: View {
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .padding(2)
+                    .padding(DesignTokens.chromePaddingNano)
                 }
             }
         }

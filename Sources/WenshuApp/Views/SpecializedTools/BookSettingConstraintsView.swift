@@ -104,7 +104,7 @@ struct BookSettingConstraintsView: View {
                 contentBody
             }
         }
-        .padding(12)
+        .padding(DesignTokens.chromePaddingMedium)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .task(id: activeBookId) {
             await reload()
@@ -363,7 +363,7 @@ struct BookSettingConstraintsView: View {
                 TextEditor(text: $chapterText)
                     .font(.caption)
                     .frame(minHeight: 100, maxHeight: 160)
-                    .padding(4)
+                    .padding(DesignTokens.chromePaddingMicro)
                     .background(
                         RoundedRectangle(cornerRadius: 4)
                             .fill(.quaternary.opacity(0.3))

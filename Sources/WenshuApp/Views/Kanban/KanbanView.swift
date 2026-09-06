@@ -72,7 +72,7 @@ public struct KanbanView: View {
             }
             content
         }
-        .padding(8)
+        .padding(DesignTokens.chromePaddingVertical)
         // v0.24 boss验收fix: flexible size (was: 480x320 min forcing zone to grow).
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         // B-09: re-load when the active book changes (= boss spec:
@@ -353,7 +353,7 @@ private struct KanbanColumn: View {
                 .frame(maxHeight: 360)
             }
         }
-        .padding(8)
+        .padding(DesignTokens.chromePaddingVertical)
         .frame(width: 200)
         .background(.background.secondary, in: RoundedRectangle(cornerRadius: 6))
         .overlay(
@@ -414,7 +414,7 @@ private struct KanbanCard: View {
                 .foregroundStyle(.secondary)
             }
         }
-        .padding(8)
+        .padding(DesignTokens.chromePaddingVertical)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.background, in: RoundedRectangle(cornerRadius: 4))
         .overlay(

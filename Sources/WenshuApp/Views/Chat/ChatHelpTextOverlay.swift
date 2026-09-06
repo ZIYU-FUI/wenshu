@@ -36,7 +36,7 @@ public struct ChatHelpTextOverlay: View {
         }
         .font(.body)
         .multilineTextAlignment(.center)
-        .padding(24)
+        .padding(DesignTokens.chromePaddingXLarge)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 }

@@ -81,6 +81,8 @@ public enum DesignTokens {
     /// standard for inline picker alignment inside Settings rows.
     /// Replaces inline `.padding(.leading, 14)`.
     public static let chromePaddingPickerLeading: CGFloat = 14
+    public static let chromePaddingPickerItem: CGFloat = 10
+    public static let chromePaddingHero: CGFloat = 20
 
     /// Chat input outer bottom margin (= 10 PT). Apple HIG standard for
     /// chat input row bottom inset (= Messages / Mail / Xcode).

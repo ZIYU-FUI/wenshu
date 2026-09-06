@@ -110,7 +110,7 @@ public struct TodoListView: View {
             }
             content
         }
-        .padding(8)
+        .padding(DesignTokens.chromePaddingVertical)
         // v0.24 boss acceptance fix: flexible sizing (zone size controlled by splitter, not view).
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         // B-09 + B-13: re-load when the active book OR scope changes.
@@ -283,7 +283,7 @@ public struct TodoListView: View {
                     .foregroundStyle(.tertiary)
             }
         }
-        .padding(6)
+        .padding(DesignTokens.chromePaddingSmall)
         .background(Color.accentColor.opacity(0.06), in: RoundedRectangle(cornerRadius: 6))
     }
 
