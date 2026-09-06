@@ -92,7 +92,7 @@ enum AppStateEvents: String, CaseIterable {
 enum LayoutEvents: String, CaseIterable {
     /// Reset layout to default (= NSWindow standard ⌘0-style). Posted by
     /// View menu "Reset Layout" entry. Listened by WorkspaceView +
-    /// WorkspaceStore.
+    /// LayoutTreeStore.
     case resetLayout = "com.wenshu.resetLayout"
 
     /// Toggle layout edit mode (= View menu "Layout edit mode" entry,

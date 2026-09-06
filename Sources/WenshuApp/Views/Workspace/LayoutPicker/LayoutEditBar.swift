@@ -27,7 +27,7 @@ import SwiftUI
 /// Position state is per-session @State (= hermes `lastPalettePos`
 /// pattern); first show resets to center.
 struct LayoutEditBar: View {
-    @ObservedObject var store: WorkspaceStore
+    @ObservedObject var store: LayoutTreeStore
     @Bindable var editMode: LayoutEditMode
 
     /// Palette position (= per-session @State). Persists within a

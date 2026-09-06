@@ -37,7 +37,7 @@ final class LayoutEditMode {
     /// via drag gestures; false = static).
     var isEnabled: Bool
 
-    /// UserDefaults key (= mirrors WorkspaceStore's pattern of
+    /// UserDefaults key (= mirrors LayoutTreeStore's pattern of
     /// centralizing keys for grep-ability).
     private static let editModeKey = "wenshu.workspace.editMode"
 

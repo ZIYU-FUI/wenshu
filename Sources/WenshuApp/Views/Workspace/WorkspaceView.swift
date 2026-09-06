@@ -1,7 +1,7 @@
 // WorkspaceView.swift · Wenshu · v0.27 ticket 027-34
 //
 // SwiftUI host for the user-customizable workspace. Wraps the
-// WorkspaceStore and renders the pane tree via PaneSplitHost (=
+// LayoutTreeStore and renders the pane tree via PaneSplitHost (=
 // NSViewControllerRepresentable wrapper around PaneNSController,
 // which is the NSSplitViewController subclass that walks
 // store.workspace.root and builds the native split view).
@@ -25,7 +25,7 @@ import MarkdownEngine  // v0.39 ticket 001: MarkdownEditorConfiguration type
 /// the data is useless and the code is outdated, after spot-check
 /// you can clean it up').
 struct WorkspaceView: View {
-    @ObservedObject var store: WorkspaceStore
+    @ObservedObject var store: LayoutTreeStore
 
     /// v0.30 boss OOB: entity classification is the last layer in the directory tree, after clicking,
     /// the entity document should display in the material management area in a wenshu-style card stream layout (= projectPreview).
@@ -249,7 +249,7 @@ struct WorkspaceView: View {
             // posts .wenshuResetLayout. Without this onReceive, the
             // notification had no observer and the menu item was
             // a no-op. Listening here delegates to
-            // WorkspaceStore.resetToDefault (= reloads the built-in
+            // LayoutTreeStore.resetToDefault (= reloads the built-in
             // Default preset = upper band 10/20/60/10 weights, lower
             // band 70/30 weights, root 50/50 column weights per the
             // boss OOB ratios).
@@ -257,7 +257,7 @@ struct WorkspaceView: View {
             // v0.31 boss 2026-09-02 OOB (Apple canonical reset): the
             // .wenshuResetLayout notification now also un-collapses
             // the on-screen NSSplitView (= the menu item was previously
-            // a no-op for the live layout — only the WorkspaceStore
+            // a no-op for the live layout — only the LayoutTreeStore
             // data model refreshed, while the rendered zones stayed
             // hidden). The BFS finds the root PaneNSController (= the
             // same SwiftUI NSHostingController-wrap workaround used

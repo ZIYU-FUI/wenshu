@@ -97,9 +97,9 @@ public final class TreeHistory: @unchecked Sendable {
     }
 }
 
-// MARK: - WorkspaceStore extension for undo/redo
+// MARK: - LayoutTreeStore extension for undo/redo
 
-extension WorkspaceStore {
+extension LayoutTreeStore {
     /// Undo the most recent tree change (= applies the BEFORE tree).
     /// Pushes the current tree to redo stack.
     func undoTreeChange() -> Bool {
@@ -120,11 +120,11 @@ extension WorkspaceStore {
     }
 }
 
-// MARK: - WorkspaceStore treeHistory (= bound to workspace state)
+// MARK: - LayoutTreeStore treeHistory (= bound to workspace state)
 
 private nonisolated(unsafe) var _treeHistoryKey: UInt8 = 0
 
-extension WorkspaceStore {
+extension LayoutTreeStore {
     /// History bound to this store (= lives for the store's lifetime).
     /// Set up automatically via `prepareUndoRedo` (= one-time setup
     /// on store init).

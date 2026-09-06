@@ -278,7 +278,7 @@ struct TabContentDispatcher: View {
 /// target is the pane host (= see paneHost(.dropDestination)).
 ///
 /// Per ticket 028-004b3: each tab has a close button (= X glyph)
-/// that calls `onClose` (= dispatches to WorkspaceStore.removePane
+/// that calls `onClose` (= dispatches to LayoutTreeStore.removePane
 /// per the hermes pane-close semantics).
 private struct GroupTabStrip: View {
     let panes: [PaneID]

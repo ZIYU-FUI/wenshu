@@ -13,7 +13,7 @@
 // structure canonical (no empty groups, no single-child or same-
 // orientation nested splits).
 //
-// Atomic-coupling with WorkspaceStore.swift (ticket 028-003, same commit):
+// Atomic-coupling with LayoutTreeStore.swift (ticket 028-003, same commit):
 // the schema and its migration logic are inseparable — see ticket spec
 // §"Atomic-coupling justification". Shipped together per boss 8/22 rule.
 
@@ -217,7 +217,7 @@ struct GroupNode: Codable, Equatable, Identifiable {
 ///
 /// Uses a class-level lock-free atomic counter to satisfy Swift 6
 /// concurrency checking. Since `nodeID` is only ever called from the
-/// MainActor (= via WorkspaceStore mutations + the SwiftUI render
+/// MainActor (= via LayoutTreeStore mutations + the SwiftUI render
 /// path) the counter is never actually raced, but Swift 6 still
 /// requires the annotation.
 private final class NodeIDSequence: @unchecked Sendable {
@@ -767,7 +767,7 @@ func isLayoutNode(_ value: Any) -> Bool {
 ///
 /// Persisted to UserDefaults under `wenshu.workspace.json`. Version
 /// field allows schema migrations (= on breaking schema changes,
-/// bump version and migrate in WorkspaceStore.load).
+/// bump version and migrate in LayoutTreeStore.load).
 ///
 /// v2 (= v0.28 ticket 028-003): backed by a recursive split tree
 /// (`root`) per the hermes `LayoutNode` model. Pane metadata (frame,

@@ -39,7 +39,7 @@ final class DragRegressionTests: XCTestCase {
     /// doesn't have a 2-pane inspector group, so we use
     /// makeBuiltinWorkspace directly).
     private func makeBuiltinWorkspace() -> LayoutTreeState {
-        WorkspaceStore.makeBuiltinWorkspace()
+        LayoutTreeStore.makeBuiltinWorkspace()
     }
 
     /// Recursively collect all split IDs in the tree (= order-

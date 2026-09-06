@@ -6,7 +6,7 @@
 //  zones in wenshu's default 6-zone layout).
 //
 //  Replaces the implicit, hard-coded mapping that lived inside
-//  `WorkspaceStore.builtinDefaultPreset()` (= the FCP-Browser /
+//  `LayoutTreeStore.builtinDefaultPreset()` (= the FCP-Browser /
 //  6-zone preset shipped in v0.30) with an explicit, testable
 //  data structure. Future 028-005 followup will have the preset
 //  read `PaneZoneLayout.default.mapping` instead of re-stating the

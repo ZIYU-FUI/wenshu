@@ -57,7 +57,7 @@ import SwiftUI
 /// AppKit). All structural decisions live in `PaneLayout.makeSplitController`.
 struct PaneSplitHost: NSViewControllerRepresentable {
     let layout: PaneLayout
-    let store: WorkspaceStore
+    let store: LayoutTreeStore
     /// Required because SwiftUI's @Environment(AppState.self) lookup
     /// stops at the AppKit boundary. We thread it through explicitly so
     /// each pane's SwiftUI view (inside NSHostingController) can still
