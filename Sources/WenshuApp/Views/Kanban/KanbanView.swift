@@ -82,6 +82,12 @@ public struct KanbanView: View {
         .onAppear { reloadFromDisk() }
         .onChange(of: bookStore.selectedBookId) { _, _ in reloadFromDisk() }
         .onChange(of: scope) { _, _ in reloadFromDisk() }
+        // v0.40 apple-001 HIG absent batch: .refreshable (= Apple
+        // HIG pull-to-refresh standard). On macOS this becomes a
+        // refresh button in the toolbar (= Cmd-R equivalent). The
+        // reloadFromDisk() action re-reads the kanban.json from disk,
+        // = useful when the user edits the JSON file externally.
+        .refreshable { reloadFromDisk() }
     }
 
     // MARK: - Subviews
