@@ -38,7 +38,7 @@ struct LLMConnectorTests {
         if case .text(let s) = response.blocks[0] {
             #expect(s == "echo: hi")
         } else {
-            Issue.record("expected text block, got \\(response.blocks[0])")
+            Issue.record("expected text block, got \(response.blocks[0])")
         }
     }
 
@@ -101,7 +101,7 @@ struct LLMConnectorTests {
         let sevenSlugs = ["anthropic", "openai-codex", "minimax-cn", "openrouter", "gemini", "deepseek", "ollama"]
         let allSlugs = Set(Provider.all.map(\.slug))
         for slug in sevenSlugs {
-            #expect(allSlugs.contains(slug), "missing connector profile: \\(slug)")
+            #expect(allSlugs.contains(slug), "missing connector profile: \(slug)")
         }
     }
 

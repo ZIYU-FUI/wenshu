@@ -21,6 +21,7 @@ import Foundation
 /// verification compile + the type signatures match (= so the visual
 /// activation in DynamicZoneView will not crash on first launch).
 @Suite("v0.36 Visual Verification Smoke Tests")
+@MainActor
 struct v0_36_Visual_Verify {
 
     /// 🟥 act-1: ChatView compression pill + manual button

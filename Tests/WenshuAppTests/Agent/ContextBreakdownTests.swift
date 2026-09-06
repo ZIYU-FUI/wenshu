@@ -29,14 +29,27 @@ struct ContextBreakdownTests {
 
     @Test("ContextBreakdown summary contains all three percentages")
     func summaryFormat() {
+        // Fractions are computed against totalTokens (= system + recent + older).
+        // For input (systemTokens: 100, recentCachedTokens: 200, olderTokens: 100)
+        //   totalTokens = 400
+        //   system:       100/400 = 0.25 → (25%)
+        //   recent cached: 200/400 = 0.50 → (50%)
+        //   older:        100/400 = 0.25 → (25%)
+        // Math: %.0f rounds 0.25 → "25", 0.50 → "50", 0.25 → "25".
+        // Hermes parity: hermes context_breakdown.py
+        //     context_percent = round(context_used / context_max * 100)
+        // is also total-based (estimated_total = sum of category tokens)
+        // and rounded to nearest integer, matching the Swift invariant.
+        // The fractions in the summary are exactly per the production
+        // source line 86 of ContextBreakdown.swift
+        //     format: "... (%.0f%%)..."
         let b = ContextBreakdown(systemTokens: 100, recentCachedTokens: 200, olderTokens: 100)
         let summary = b.summary
         #expect(summary.contains("system: 100"))
         #expect(summary.contains("recent 3 cached: 200"))
         #expect(summary.contains("older: 100"))
-        #expect(summary.contains("(29%"))  // 100/400 = 25%
-        #expect(summary.contains("(57%"))  // 200/400 = 50% (rounded 57)
-        #expect(summary.contains("(29%"))  // 100/400 = 25%
+        #expect(summary.contains("(25%)"))  // 100/400 = 25%
+        #expect(summary.contains("(50%)"))  // 200/400 = 50%
     }
 
     @Test("ContextBreakdown with 0 tokens has 0 fractions (= no divide-by-zero)")

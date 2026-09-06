@@ -61,6 +61,18 @@ public actor RateLimitTracker {
 
     private var records: [String: [RequestRecord]] = [:]
     private var providerLimits: [String: ProviderRateLimit] = ProviderRateLimit.defaults
+    /// Per-provider "post-clear, no activity yet" sentinel. When a slug
+    /// is in this set, `currentBudget(providerSlug:)` returns `nil` even
+    /// though the limit entry is still configured. The next
+    /// `recordRequest(providerSlug:)` removes the slug from the set
+    /// (= activity resumes normal budget reporting). Per ticket 015
+    /// Z contract: `clear()` must reset the budget snapshot back to
+    /// `nil` so callers can distinguish "fresh session after reset" from
+    /// "session with full quota remaining"; without the sentinel,
+    /// `currentBudget` would emit a full-budget snapshot for every
+    /// configured provider (= indistinguishable from pre-clear state
+    /// for providers that never recorded a request).
+    private var postClear: Set<String> = []
 
     public init() {}
 
@@ -90,6 +102,10 @@ public actor RateLimitTracker {
         providerRecords.append(RequestRecord(timestamp: now, tokenCount: tokenCount))
         records[providerSlug] = providerRecords
 
+        // Activity resumed — clear the post-clear sentinel so
+        // currentBudget() emits a budget snapshot for this slug again.
+        postClear.remove(providerSlug)
+
         guard let limit else { return nil }
 
         let remainingRequests = max(0, limit.requestsPerMinute - requestCount)
@@ -104,7 +120,24 @@ public actor RateLimitTracker {
     }
 
     /// Check current budget (= without recording a request).
+    ///
+    /// Returns `nil` if any of these hold:
+    /// - no limit is configured for the slug,
+    /// - the slug was just cleared and has no recorded activity yet
+    ///   (= the `postClear` sentinel is still set; `recordRequest`
+    ///   removes it).
+    ///
+    /// Per ticket 015 Z contract: `clear()` must reset the budget
+    /// snapshot back to `nil` so callers (= tests, UI status bars)
+    /// can distinguish "fresh session after reset" from "session with
+    /// full quota remaining". Without the sentinel, a freshly-cleared
+    /// tracker would emit a full-budget snapshot for every provider
+    /// that had `setLimit(_:)` called before `clear()` (= exactly the
+    /// residual-budget ambiguity the Z contract forbids).
     public func currentBudget(providerSlug: String) -> RateLimitBudget? {
+        // Post-clear sentinel takes precedence over the limit entry.
+        if postClear.contains(providerSlug) { return nil }
+
         let now = Date()
         let windowStart = now.addingTimeInterval(-60)
 
@@ -128,13 +161,27 @@ public actor RateLimitTracker {
     }
 
     /// Clear history (= called on session reset).
+    ///
+    /// Marks every configured provider as `postClear` (= the budget
+    /// snapshot returns `nil` until the next `recordRequest` rebuilds
+    /// activity). The `providerLimits` dict is preserved so the
+    /// post-clear `recordRequest` continues to emit a budget (= the
+    /// limit configuration survives the reset).
     public func clear() {
         records.removeAll()
+        postClear = Set(providerLimits.keys)
     }
 
     /// Clear history for a specific provider (= called after extended idle).
+    ///
+    /// Marks only `providerSlug` as `postClear`. Other providers
+    /// continue reporting their existing budgets (= no cross-provider
+    /// reset triggered).
     public func clear(providerSlug: String) {
         records.removeValue(forKey: providerSlug)
+        if providerLimits[providerSlug] != nil {
+            postClear.insert(providerSlug)
+        }
     }
 
     /// Run `operation` under `RateLimitTracker` + `RetryUtils` so that the

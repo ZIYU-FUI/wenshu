@@ -14,7 +14,7 @@ struct ModelMetadataTests {
         #expect(WenshuModelCatalog.allProfiles.count == 7)
         let slugs = Set(WenshuModelCatalog.allProfiles.map { $0.provider.slug })
         for slug in ["anthropic", "openai-codex", "minimax-cn", "deepseek", "gemini", "ollama", "openrouter"] {
-            #expect(slugs.contains(slug), "missing provider: \\(slug)")
+            #expect(slugs.contains(slug), "missing provider: \(slug)")
         }
     }
 

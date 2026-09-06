@@ -7,6 +7,7 @@ import Foundation
 @testable import WenshuApp
 
 @Suite("SkillsSettingsView (ticket 010)")
+@MainActor
 struct SkillsSettingsViewTests {
 
     @Test("SkillsSettingsView renders without crashing")

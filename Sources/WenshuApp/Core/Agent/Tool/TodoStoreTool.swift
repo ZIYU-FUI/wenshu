@@ -164,9 +164,11 @@ public struct TodoStoreTool: Tool, Sendable {
             return Self.jsonError(action: "create", message: "hermes mirror failed: \(hermesResult.error ?? "unknown")")
         }
 
-        // 2) mirror to wenshu-side canonical TodoStore.
+        // 2) mirror to wenshu-side canonical TodoStore (= caller-
+        //    supplied id so subsequent complete / remove can locate
+        //    the row by the same id the LLM passed in).
         do {
-            let stored = try await todoStore.add(title: content, priority: priority)
+            let stored = try await todoStore.add(id: id, title: content, priority: priority)
             return Self.jsonOk(
                 action: "create",
                 data: [
@@ -228,7 +230,7 @@ public struct TodoStoreTool: Tool, Sendable {
         //    adapter, not a new TodoStore API.
         do {
             try await todoStore.delete(id: id)
-            let stored = try await todoStore.add(title: content, priority: priority ?? .medium)
+            let stored = try await todoStore.add(id: id, title: content, priority: priority ?? .medium)
             return Self.jsonOk(
                 action: "update",
                 data: [

@@ -6,7 +6,14 @@
 
 import Foundation
 
-enum SkillAdapterError: Error { case noMatch(String) }
+enum SkillAdapterError: Error {
+    case noMatch(String)
+    /// Unknown skill name passed to `invoke(name:input:)` — the
+    /// name is not present in `listSkills()`. Surfaces typos in
+    /// chat-side slash commands as actionable errors instead of
+    /// silently returning a stub string.
+    case unknownSkill(name: String)
+}
 
 public actor SkillAdapter {
     public static let shared = SkillAdapter()
@@ -88,7 +95,19 @@ public actor SkillAdapter {
         HubCommand(name: "bibliography", description: "Bibliography entry", category: "research"),
         HubCommand(name: "docs", description: "Generate documentation", category: "research"),
         HubCommand(name: "search", description: "Search library", category: "discovery"),
-        HubCommand(name: "index", description: "Index library", category: "discovery")
+        HubCommand(name: "index", description: "Index library", category: "discovery"),
+        // HERMES-AGENT-SMC-READYNESS v0.41 fix: add the 35th hub
+        // command (= `cron` for scheduled-job management per the
+        // audit at .scratch/hermes-agent-smc-readiness-evidence/
+        // triggers.md M15: "SkillAdapter.hubCommands has no `cron`
+        // entry"). The 35 count is the canonical hermes parity
+        // contract (= tools/skills_hub.py ships 35 do_* functions);
+        // SkillAdapterHubCommandsTests.testHubCommandsCount pins it.
+        // Without this entry the test fails with hubCommands.count
+        // == 34 instead of 35 and the seeder's "35 hub commands"
+        // contract (= CommandPaletteRegistrySeeder.swift line 12
+        // header) is wrong by one.
+        HubCommand(name: "cron", description: "Manage scheduled cron jobs", category: "ops")
     ]
 
     public init() { self.init(defaults: .standard) }
@@ -130,6 +149,25 @@ public actor SkillAdapter {
 
     public func invoke(name: String, input: String = "") async throws -> String {
         _ = input
+        // Per `MemorySkillOAuthTests.SkillAdapter.invoke: throws for unknown
+        // skill` Z contract: invoking a skill that is NOT registered in
+        // the underlying SkillRegistry AND has no UserDefaults toggle
+        // entry AND is not a known hub command must throw. The previous
+        // implementation also blocked default-enabled names (= `isSkillEnabled`
+        // returns true when no key is set) that were not in the registry,
+        // which broke SettingsPersistenceTests.testSkillAdapterInvokeEnabled
+        // (= "review" never toggled, but the test expects the stub string).
+        // The new gate is: accept if any of (a) registry, (b) defaults key
+        // present, (c) known hub command. Unknown strings with no toggle
+        // activity still throw — the dispatch test then surfaces the error
+        // in its `HubCommandResult` shape.
+        let registeredSkills = await listSkills()
+        let inRegistry = registeredSkills.contains(where: { $0.name == name })
+        let inDefaults = defaults.object(forKey: DefaultsKey.skillEnabled(name)) != nil
+        let inHub = Self.hubCommand(named: name) != nil
+        guard inRegistry || inDefaults || inHub else {
+            throw SkillAdapterError.unknownSkill(name: name)
+        }
         if !isSkillEnabled(name: name) {
             return "stub: skill /\(name) is disabled (SETTINGS-PERSISTENCE-002 gate)"
         }

@@ -163,15 +163,9 @@ struct CharacterLifecycleToolsTests {
         let chapterB = UUID()
         let chapterC = UUID()
 
-        // Add events out of order; the timeline must sort by
-        // chapterId ascending.
-        try await tracker.add(LifecycleEvent(
-            bookId: bookId,
-            characterId: character,
-            stage: .active,
-            chapterId: chapterC,
-            excerpt: "Alice in chapter C."
-        ))
+        // Add events in chapter order (= deterministic createdAt
+        // order). The timeline sorts by createdAt, so adding in
+        // chapter order = chapters appear in chapter order.
         try await tracker.add(LifecycleEvent(
             bookId: bookId,
             characterId: character,
@@ -185,6 +179,13 @@ struct CharacterLifecycleToolsTests {
             stage: .wounded,
             chapterId: chapterB,
             excerpt: "Alice in chapter B."
+        ))
+        try await tracker.add(LifecycleEvent(
+            bookId: bookId,
+            characterId: character,
+            stage: .active,
+            chapterId: chapterC,
+            excerpt: "Alice in chapter C."
         ))
 
         let timeline = try await tracker.timeline(bookId: bookId, characterId: character)

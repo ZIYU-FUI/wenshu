@@ -124,6 +124,8 @@ public enum SystemPrompt {
         public var kanbanGuidance: String?
         public var parallelToolGuidance: Bool
         public var taskCompletionGuidance: Bool
+        public var userName: String?
+        public var bookTitle: String?
 
         public init(
             ephemeralHint: String = "",
@@ -135,7 +137,9 @@ public enum SystemPrompt {
             skillGuidance: Bool = false,
             kanbanGuidance: String? = nil,
             parallelToolGuidance: Bool = true,
-            taskCompletionGuidance: Bool = true
+            taskCompletionGuidance: Bool = true,
+            userName: String? = nil,
+            bookTitle: String? = nil
         ) {
             self.ephemeralHint = ephemeralHint
             self.callerMessage = callerMessage
@@ -147,23 +151,34 @@ public enum SystemPrompt {
             self.kanbanGuidance = kanbanGuidance
             self.parallelToolGuidance = parallelToolGuidance
             self.taskCompletionGuidance = taskCompletionGuidance
+            self.userName = userName
+            self.bookTitle = bookTitle
         }
     }
 
-    /// Build the byte-stable system prompt (= hermes build_system_prompt).
+    /// Build the system prompt (= hermes build_system_prompt).
     ///
     /// - Parameters:
     ///   - ephemeralHint: Per-turn dynamic context (= today's date, user
     ///     request summary, etc.). NOT cache-stable.
     ///   - callerMessage: Optional caller-supplied extra instruction
     ///     (= appended after the stable tier + dynamic tier).
+    ///   - userName: Optional user identity (= included in stable tier).
+    ///   - bookTitle: Optional book title (= included in stable tier).
     /// - Returns: Concatenated system prompt string (= ready to be passed
     ///   to LLMCallOptions.systemPrompt).
     public static func build(
         ephemeralHint: String,
-        callerMessage: String? = nil
+        callerMessage: String? = nil,
+        userName: String? = nil,
+        bookTitle: String? = nil
     ) -> String {
-        let parts = buildParts(ephemeralHint: ephemeralHint, callerMessage: callerMessage)
+        let parts = buildParts(
+            ephemeralHint: ephemeralHint,
+            callerMessage: callerMessage,
+            userName: userName,
+            bookTitle: bookTitle
+        )
         var sections: [String] = [parts["stable"] ?? ""]
         if let dynamic = parts["dynamic"], !dynamic.isEmpty {
             sections.append(dynamic)
@@ -182,11 +197,15 @@ public enum SystemPrompt {
     ///   PromptBuilder.composeDynamicTier).
     public static func buildParts(
         ephemeralHint: String,
-        callerMessage: String? = nil
+        callerMessage: String? = nil,
+        userName: String? = nil,
+        bookTitle: String? = nil
     ) -> [String: String] {
         return buildParts(options: BuildOptions(
             ephemeralHint: ephemeralHint,
-            callerMessage: callerMessage
+            callerMessage: callerMessage,
+            userName: userName,
+            bookTitle: bookTitle
         ))
     }
 
@@ -211,7 +230,9 @@ public enum SystemPrompt {
             skillGuidance: options.skillGuidance,
             kanbanGuidance: options.kanbanGuidance,
             parallelToolGuidance: options.parallelToolGuidance,
-            taskCompletionGuidance: options.taskCompletionGuidance
+            taskCompletionGuidance: options.taskCompletionGuidance,
+            userName: options.userName,
+            bookTitle: options.bookTitle
         )
 
         // Dynamic tier: routed through PromptBuilder (= GAP-001 refactor).
@@ -261,9 +282,24 @@ public enum SystemPrompt {
         skillGuidance: Bool,
         kanbanGuidance: String?,
         parallelToolGuidance: Bool,
-        taskCompletionGuidance: Bool
+        taskCompletionGuidance: Bool,
+        userName: String? = nil,
+        bookTitle: String? = nil
     ) -> String {
         var sections: [String] = []
+
+        // Session context (= hermes build_system_prompt user_name / book_title).
+        // Injected into the stable tier so cache-stable across turns of the same session.
+        var sessionLines: [String] = []
+        if let userName, !userName.isEmpty {
+            sessionLines.append("User: \(userName)")
+        }
+        if let bookTitle, !bookTitle.isEmpty {
+            sessionLines.append("Book: \(bookTitle)")
+        }
+        if !sessionLines.isEmpty {
+            sections.append(sessionLines.joined(separator: "\n"))
+        }
 
         // Identity block (= locale-aware base prompt).
         sections.append(localeIdentityBlock(locale: locale))

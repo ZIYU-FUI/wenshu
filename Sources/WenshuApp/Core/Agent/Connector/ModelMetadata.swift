@@ -248,6 +248,10 @@ public struct WenshuModelCatalog: Sendable, Equatable {
         if m.contains("sonnet-4") { return 200_000 }
         if m.contains("haiku-4") { return 200_000 }
         if m.contains("opus-3") { return 200_000 }
+        // Claude 3.5 family (= "claude-3-5-sonnet" + "claude-3-5-haiku")
+        if m.contains("sonnet-3-5") || m.contains("3-5-sonnet") { return 200_000 }
+        if m.contains("haiku-3-5") || m.contains("3-5-haiku") { return 200_000 }
+        // Catch-all for older sonnet-3 / haiku-3 (= "claude-3-sonnet-...")
         if m.contains("sonnet-3") { return 200_000 }
         if m.contains("haiku-3") { return 200_000 }
         if m.contains("gpt-5") || m.contains("gpt-4o") { return 128_000 }

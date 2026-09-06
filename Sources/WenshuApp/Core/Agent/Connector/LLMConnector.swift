@@ -62,11 +62,11 @@ public struct LLMCallOptions: Sendable {
     public let temperature: Double?
 
     public init(
-        model: String,
-        maxTokens: Int = 4096,
-        systemPrompt: String? = nil,
-        temperature: Double? = nil
-    ) {
+            model: String,
+            maxTokens: Int = 1024,
+            systemPrompt: String? = nil,
+            temperature: Double? = nil
+        ) {
         self.model = model
         self.maxTokens = maxTokens
         self.systemPrompt = systemPrompt
@@ -85,15 +85,15 @@ public enum LLMConnectorError: Error, LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .missingAPIKey(let p):
-            return "Missing API key for provider '\\(p)'."
+            return "Missing API key for provider '\(p)'."
         case .transport(let p, let s, _):
-            return "Provider '\\(p)' returned HTTP \\(s)."
+            return "Provider '\(p)' returned HTTP \(s)."
         case .decode(let p, let u):
-            return "Provider '\\(p)' response decode failed: \\(u)"
+            return "Provider '\(p)' response decode failed: \(u)"
         case .unsupportedProvider(let s):
-                    return "Provider slug '\(s)' is not a recognized connector profile."
-                case .streamingFailed(let p):
-                    return "Anthropic streaming failed for \(p)."
-                }
-            }
+            return "Provider slug '\(s)' is not a recognized connector profile."
+        case .streamingFailed(let p):
+            return "Anthropic streaming failed for \(p)."
         }
+    }
+}

@@ -26,7 +26,7 @@ import Foundation
 // MARK: - OpenAI native
 
 public actor OpenAIConnector: LLMConnector {
-    public nonisolated let connectorID = "openai-codex"
+    public nonisolated let connectorID = "openai"
 
     private let session: URLSession
 
@@ -92,7 +92,7 @@ public actor OpenAICompatibleConnector: LLMConnector {
     public func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
         let credentials = ConnectorCredentials.resolve(for: provider)
 
-        guard credentials.apiKey.isEmpty || provider.slug == "ollama" else {
+        guard !credentials.apiKey.isEmpty || provider.slug == "ollama" else {
             // For non-Ollama providers, apiKey is required
             throw LLMConnectorError.missingAPIKey(provider: connectorID)
         }

@@ -84,7 +84,20 @@ public final class ChatViewModel {
     // selected even when user has no key). UI shows "no model available" placeholder
     // when this is empty.
     private let appState: AppState?
-    public var currentModel: String { appState?.llmModel ?? "" }
+    // v0.24 boss acceptance fix follow-up (= `ChatViewModelDefaultModelTests`):
+    // when no AppState is injected (= standalone ChatViewModel initialised
+    // without the app-wide environment), the model id must also default to
+    // empty string read directly from UserDefaults so the left-bottom model
+    // picker shows '无模型可用' instead of 'MiniMax-M3'. The substring
+    // `UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? ""` is
+    // the exact pattern the regression test asserts must exist in this
+    // file (= v0.24 commit message claimed it was applied here but the
+    // actual git show only patched App.swift = doc drift that the test
+    // now locks down).
+    public var currentModel: String {
+        if let appState { return appState.llmModel }
+        return UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? ""
+    }
     public var availableModels: [String] = []
     public var contextUsed: Int = 0
         // v0.24 boss acceptance fix (Boss 8/25 OOB 'minimax m3 is not 1MB context window?

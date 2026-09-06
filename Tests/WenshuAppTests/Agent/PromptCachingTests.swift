@@ -119,8 +119,8 @@ struct PromptCachingTests {
 
         var messages: [LLMMessage] = []
         for i in 1...50 {
-            messages.append(LLMMessage.user("turn \\(i) question"))
-            messages.append(LLMMessage.assistant("turn \\(i) answer"))
+            messages.append(LLMMessage.user("turn \(i) question"))
+            messages.append(LLMMessage.assistant("turn \(i) answer"))
         }
 
         // First turn

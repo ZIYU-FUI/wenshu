@@ -73,10 +73,23 @@ struct ContextEngineE2ETests {
 
         let result = await cc.historyAfterCompression(messages: messages, systemMessage: "sys")
 
-        // Last 4 messages (= 2 turns of user+assistant) preserved
+        // Last 4 messages (= 2 turns of user+assistant) preserved verbatim.
+        //
+        // Parity evidence (hermes context_compressor.py protect_last_n,
+        // L224-L228 + L1216-L1286 _prune_old_tool_results / compact): hermes
+        // preserves the most recent N messages VERBATIM, regardless of role
+        // alternation or message parity. Production ConversationCompression.swift:78
+        // uses `Array(messages.suffix(4))` which is byte-identical to the hermes
+        // tail-preservation contract.
+        //
+        // Data construction (L68-L72) — i=17 odd -> assistant "reply 17",
+        // i=20 even -> user "msg 20". The test's prior assertions of
+        // messages[1] == "msg 17" and messages[4] == "reply 20" were
+        // parity-flipped relative to the data they just constructed; this is
+        // the corrected contract.
         #expect(result.messages.count == 5)  // 1 summary + 4 recent
-        #expect(result.messages[1].plainText == "msg 17")
-        #expect(result.messages[4].plainText == "reply 20")
+        #expect(result.messages[1].plainText == "reply 17")
+        #expect(result.messages[4].plainText == "msg 20")
     }
 
     @Test("ContextEngine + ContextCompressor compose (= system prompt dynamic tier injection)")

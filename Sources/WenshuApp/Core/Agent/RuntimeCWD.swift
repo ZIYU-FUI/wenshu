@@ -63,6 +63,10 @@ public actor RuntimeCWD {
         } else {
             UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
         }
+        // Post via the global Notification.Name extension (= shared with
+        // AppStateEvents enum so observers across the app see the same
+        // raw value).
+        NotificationCenter.default.post(name: .runtimeCWDDidChange, object: self)
     }
 
     /// Reset to library path (= clears override).
@@ -81,7 +85,12 @@ public actor RuntimeCWD {
             return URL(fileURLWithPath: relativePath)
         }
         guard let cwd = currentCWD() else { return nil }
-        return URL(fileURLWithPath: relativePath, relativeTo: cwd)
+        // Concatenate explicitly so `resolved.path` contains the CWD path
+        // segment (= matches the test contract `resolved.path.contains(overridePath)`).
+        // `URL(fileURLWithPath:relativeTo:)` would otherwise return a URL
+        // whose `.path` is the bare relative path (= drops the base).
+        let cwdPath = cwd.path.hasSuffix("/") ? String(cwd.path.dropLast()) : cwd.path
+        return URL(fileURLWithPath: "\(cwdPath)/\(relativePath)")
     }
 
     /// CWD display label (= for UI: "Library: /Users/.../ws" or

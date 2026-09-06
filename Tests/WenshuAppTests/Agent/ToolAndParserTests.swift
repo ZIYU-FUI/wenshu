@@ -134,7 +134,7 @@ struct ToolAndParserDeepTests {
     // MARK: - ReadFileTool end-to-end
 
     @Test("ReadFileTool: read + write + read cycle via filesystem")
-    func readWriteCycle() throws {
+    func readWriteCycle() async throws {
         let tempPath = FileManager.default.temporaryDirectory
             .appendingPathComponent("tool-cycle-\(UUID().uuidString).md")
             .path
@@ -160,6 +160,10 @@ struct ToolAndParserDeepTests {
         let writeContent = try ToolInputParser.requireString(writeDict, "content")
         #expect(writePath == newPath)
         #expect(writeContent == "written content")
+
+        // Actually invoke the WriteFileTool so the file lands on disk
+        // (= the production contract under test).
+        _ = try await writeTool.execute(input: writeInput)
 
         // Verify file was actually written
         #expect(FileManager.default.fileExists(atPath: newPath))

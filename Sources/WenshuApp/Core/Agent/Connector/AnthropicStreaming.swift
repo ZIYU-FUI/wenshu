@@ -36,9 +36,39 @@ public struct AnthropicStreamingChunk: Sendable {
 public enum AnthropicSSEDecoder {
 
     public static func decode(event: String, data: String) -> AnthropicStreamingChunk? {
+        // For events that carry no JSON payload (= message_stop, ping), the
+        // empty `data` arg is intentional and we should NOT gate on
+        // JSONSerialization failure (= otherwise these events return nil
+        // instead of the intended `.messageStop` / `.ping` chunk that
+        // downstream collectors depend on).
+        switch event {
+            case "message_stop":
+                return AnthropicStreamingChunk(kind: .messageStop)
+            case "ping":
+                return AnthropicStreamingChunk(kind: .ping)
+            default:
+                break
+        }
         guard let payload = data.data(using: .utf8) else { return nil }
+        // Empty data on a non-special event (= "unknown_event" with data:""):
+        // treat as `.unknown(event)` (= matches the original "unknown
+        // event returns .unknown" contract for the case where the server
+        // emits an unrecognized event name with no payload).
+        if data.isEmpty {
+            return AnthropicStreamingChunk(kind: .unknown(event))
+        }
         guard let json = try? JSONSerialization.jsonObject(with: payload) as? [String: Any] else {
-            return nil
+            // Known event with malformed JSON → return nil (= fail loudly
+            // so the caller can log + drop the frame). The test
+            // "decode invalid JSON returns nil" asserts this contract.
+            // Unknown event with non-JSON data → fall through to .unknown
+            // so unrecognized server events don't poison the stream.
+            let knownEvents: Set<String> = [
+                "content_block_start", "content_block_delta",
+                "content_block_stop", "message_delta"
+            ]
+            if knownEvents.contains(event) { return nil }
+            return AnthropicStreamingChunk(kind: .unknown(event))
         }
 
         switch event {
@@ -84,12 +114,6 @@ public enum AnthropicSSEDecoder {
             case "message_delta":
                 let stopReason = (json["delta"] as? [String: Any])?["stop_reason"] as? String
                 return AnthropicStreamingChunk(kind: .messageDelta(stopReason: stopReason))
-
-            case "message_stop":
-                return AnthropicStreamingChunk(kind: .messageStop)
-
-            case "ping":
-                return AnthropicStreamingChunk(kind: .ping)
 
             default:
                 return AnthropicStreamingChunk(kind: .unknown(event))

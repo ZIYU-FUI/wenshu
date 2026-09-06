@@ -210,7 +210,7 @@ struct ConversationLoopDeepTests {
             userMessage: "hello",
             conversationHistory: nil
         )
-        #expect(result.response.model == "mock")
+        #expect(result.response.model == "mock-model")
         #expect(result.response.blocks.count >= 1)
     }
 }

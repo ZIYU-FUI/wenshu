@@ -37,6 +37,9 @@ struct ToolExecutorTests {
     @Test("executeSequential processes tool_use blocks in order")
     func testSequentialOrder() async throws {
         let executor = ToolExecutor()
+        let tools: [String: any Tool] = [
+            "Echo": EchoTool()
+        ]
         let assistantMessage = LLMMessage(
             role: .assistant,
             blocks: [
@@ -49,7 +52,8 @@ struct ToolExecutorTests {
         try await executor.executeSequential(
             assistantMessage: assistantMessage,
             messages: &messages,
-            taskId: "task-1"
+            taskId: "task-1",
+            tools: tools
         )
 
         // Expect: 1 assistant + 2 tool messages (= one per tool_use block)
@@ -109,6 +113,10 @@ struct ToolExecutorTests {
     @Test("Individual tool errors don't halt sequential execution")
     func testErrorsDontHalt() async throws {
         let executor = ToolExecutor()
+        let tools: [String: any Tool] = [
+            "Echo": EchoTool(),
+            "Boom": BoomTool()
+        ]
         let assistantMessage = LLMMessage(
             role: .assistant,
             blocks: [
@@ -121,7 +129,8 @@ struct ToolExecutorTests {
         try await executor.executeSequential(
             assistantMessage: assistantMessage,
             messages: &messages,
-            taskId: "task-1"
+            taskId: "task-1",
+            tools: tools
         )
 
         // Both tools ran (= second one survived the first's throw)

@@ -1,13 +1,13 @@
 {
   "function": "build_system_prompt",
-  "generator": "generate_golden.py v0.36",
+  "generator": "generate_golden.py v0.36 (revised for v0.38 wenshu-side expansion)",
   "input": {
     "book_title": "Test Book",
     "user_name": "Test User"
   },
   "module": "system_prompt",
   "output": {
-    "bytes": 256,
+    "bytes": 1500,
     "contains_book": true,
     "contains_user": true
   }

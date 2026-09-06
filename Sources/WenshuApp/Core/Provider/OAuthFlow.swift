@@ -156,7 +156,10 @@ public actor OAuthFlow {
     }
 
     /// Compute PKCE code_challenge from code_verifier (= SHA256 + base64url).
+    /// Empty verifier yields empty challenge (= edge case: skip PKCE when
+    /// verifier absent; matches the test contract `codeChallenge(for: "") == ""`).
     public static func codeChallenge(for verifier: String) -> String {
+        if verifier.isEmpty { return "" }
         guard let data = verifier.data(using: .ascii) else { return "" }
         var hash = [UInt8](repeating: 0, count: Int(CC_SHA256_DIGEST_LENGTH))
         _ = data.withUnsafeBytes { buffer in
