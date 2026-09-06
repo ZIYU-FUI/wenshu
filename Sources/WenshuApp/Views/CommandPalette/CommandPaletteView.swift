@@ -243,7 +243,7 @@ private struct CommandPaletteRow: View {
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, DesignTokens.chromePaddingSmall)
-                    .padding(.vertical, 2)
+                    .padding(.vertical, DesignTokens.chromePaddingNano)
                     .background(
                         RoundedRectangle(cornerRadius: 4)
                             .fill(Color(nsColor: .controlBackgroundColor))

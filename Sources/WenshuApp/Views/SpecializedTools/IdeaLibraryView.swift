@@ -535,7 +535,7 @@ struct IdeaLibraryView: View {
             .buttonStyle(.borderless)
             .help("Remove this link.")
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, DesignTokens.chromePaddingNano)
     }
 
     // MARK: - Suggest section
@@ -582,7 +582,7 @@ struct IdeaLibraryView: View {
                                     .font(.caption2)
                                     .foregroundStyle(.secondary)
                             }
-                            .padding(.vertical, 2)
+                            .padding(.vertical, DesignTokens.chromePaddingNano)
                         }
                     }
                 }

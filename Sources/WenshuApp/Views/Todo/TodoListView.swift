@@ -274,7 +274,7 @@ public struct TodoListView: View {
                     Spacer()
                 }
                 .padding(.horizontal, DesignTokens.chromePaddingSmall)
-                .padding(.vertical, 2)
+                .padding(.vertical, DesignTokens.chromePaddingNano)
                 .background(Color.secondary.opacity(0.08), in: Capsule())
             }
             if recentEvents.count > 5 {
@@ -578,7 +578,7 @@ private struct TodoRow: View {
             .menuStyle(.borderlessButton)
             .fixedSize()
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, DesignTokens.chromePaddingNano)
     }
 
     /// B-13: due-date display — shows the date in red when overdue
@@ -657,7 +657,7 @@ private struct TodoRow: View {
             .font(.caption2.weight(.semibold))
             .foregroundStyle(fg)
             .padding(.horizontal, DesignTokens.chromePaddingSmall)
-            .padding(.vertical, 2)
+            .padding(.vertical, DesignTokens.chromePaddingNano)
             .background(bg, in: Capsule())
             .help("优先级: \(text)")
     }

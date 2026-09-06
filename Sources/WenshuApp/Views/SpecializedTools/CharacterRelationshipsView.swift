@@ -350,7 +350,7 @@ struct CharacterRelationshipsView: View {
                             .foregroundStyle(.primary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .padding(.vertical, 2)
+                    .padding(.vertical, DesignTokens.chromePaddingNano)
                 }
             }
         }

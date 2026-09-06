@@ -393,7 +393,7 @@ public struct ForeshadowingView: View {
                 .foregroundStyle(.secondary)
             Spacer(minLength: 0)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, DesignTokens.chromePaddingNano)
         .padding(.horizontal, 4)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
