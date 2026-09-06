@@ -154,7 +154,37 @@ public actor BookProjectConfigStore {
     /// Walk `shelves/<shelf>/books/<book>/` to find the book.
     /// Returns the first matching directory. Returns nil if the
     /// `shelves/` root is missing or the book is not found.
+    ///
+    /// Also checks the legacy `books/<book>/` path (= single-book
+    /// `projectRoot` setups used by some integration tests + the
+    /// standalone PlotThreadToolsTests fixture, which writes
+    /// `shelves/s/books/<book>/` because that's what the
+    /// `bookStore.bookDirectory(bookId:)` shape produces).
     private func resolveBookDirectory(bookId: UUID) -> URL? {
+        // First try the canonical shelves-rooted layout (= mirrors
+        // `BookStore.bookDirectory(bookId:)` which is the production
+        // lookup for per-book sidecars).
+        if let shelvesURL = resolveShelvesLayout(bookId: bookId) {
+            return shelvesURL
+        }
+        // Fallback: `books/<bookId>/` directly under projectRoot. This
+        // path shape is used by callers that pass a per-book or
+        // per-tool directory as `projectRoot` (= e.g. the
+        // IntegrationPlanEndToEndTests P1 #8 step, which builds
+        // `projectRoot/books/<bookId>/` directly to avoid coupling
+        // to a specific shelf UUID).
+        let directCandidate = projectRoot
+            .appendingPathComponent("books", isDirectory: true)
+            .appendingPathComponent(bookId.uuidString, isDirectory: true)
+        if fileManager.fileExists(atPath: directCandidate.path) {
+            return directCandidate
+        }
+        return nil
+    }
+
+    /// Canonical shelves-rooted lookup. Walks
+    /// `shelves/<shelf>/books/<book>/` and returns the first match.
+    private func resolveShelvesLayout(bookId: UUID) -> URL? {
         let shelvesRoot = projectRoot.appendingPathComponent("shelves", isDirectory: true)
         guard fileManager.fileExists(atPath: shelvesRoot.path) else {
             return nil

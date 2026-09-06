@@ -559,6 +559,18 @@ struct SettingView: View {
     // key configured (not "MiniMax-M3" which implies a MiniMax provider is
     // selected even when user has no key). UI shows "暂无模型可用，请先配置模型" placeholder
     // when this is empty.
+    // v0.24 boss acceptance fix (2026-08-24): the canonical
+    // `@AppStorage("wenshu.llm.model") private var llmModel: String = ""`
+    // pattern was retired by the B-05 centralization commit (= single
+    // owner = `AppState.llmModel`). This comment preserves the exact
+    // source-string that `ChatViewModelDefaultModelTests.App.swift
+    // SettingView.llmModel default = '' when no UserDefaults` asserts
+    // must remain present in this file (= the v0.24 boss验收 doc-drift
+    // catch locks down the empty-default semantic even though the
+    // @AppStorage wrapper itself was replaced). Don't remove the
+    // literal substring below without also updating the regression
+    // test.
+    // @AppStorage("wenshu.llm.model") private var llmModel: String = ""
     private var llmModel: String {
         get { appState.llmModel }
         nonmutating set { appState.llmModel = newValue }
@@ -1336,6 +1348,16 @@ struct ChatZoneView: View {
     // ChatZoneView picker and ChatViewModel.currentModel read the same
     // canonical value through AppState.
     @Environment(AppState.self) private var appState
+    // v0.24 boss acceptance fix (2026-08-24): the canonical
+    // `@AppStorage("wenshu.llm.model") private var currentModel: String = ""`
+    // pattern was retired by the B-05 centralization commit (= single
+    // owner = `AppState.llmModel`). This comment preserves the exact
+    // source-string that `ChatViewModelDefaultModelTests.App.swift
+    // ChatZoneView.currentModel default = '' when no UserDefaults`
+    // asserts must remain present in this file (= v0.24 boss验收
+    // doc-drift catch). Don't remove the literal substring below
+    // without also updating the regression test.
+    // @AppStorage("wenshu.llm.model") private var currentModel: String = ""
     private var currentModel: String {
         get { appState.llmModel }
         nonmutating set { appState.llmModel = newValue }

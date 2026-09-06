@@ -215,18 +215,42 @@ struct PerTicketE2ETests {
         _ = try server.start()
         defer { server.stop() }
 
-        // Make a request to the mock
+        // Make a request to the mock. Use a short-timeout ephemeral
+        // URLSession (= avoids URLSession.shared's connection-pool latency
+        // under full-suite scheduling pressure) and retry once on transport
+        // failure. Production-side MockLLMServer already writes captures
+        // synchronously inside its NWListener receive callback
+        // (= MockLLMServer.swift:155-169), so any successful round-trip is
+        // guaranteed to be captured before the client sees the response.
         let url = server.baseURL!.appendingPathComponent("test")
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.httpBody = "test body".data(using: .utf8)
-        _ = try? await URLSession.shared.data(for: request)
+        let config = URLSessionConfiguration.ephemeral
+        config.timeoutIntervalForRequest = 5.0
+        config.timeoutIntervalForResource = 5.0
+        let session = URLSession(configuration: config)
 
-        // Give the server time to capture
-        try await Task.sleep(nanoseconds: 100_000_000)
+        var attempt = 0
+        let maxAttempts = 3
+        var captured = server.capturedRequests["test"] ?? []
+        let deadline = Date().addingTimeInterval(10.0)
+        while captured.isEmpty && Date() < deadline && attempt < maxAttempts {
+            attempt += 1
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.httpBody = "test body".data(using: .utf8)
+            _ = try? await session.data(for: request)
+
+            // Poll for the server to record the capture (receive callback
+            // → _capturedRequests write is already synchronous inside
+            // MockLLMServer's listener queue, but the kernel may batch the
+            // dispatch).
+            var innerDeadline = Date().addingTimeInterval(1.0)
+            while captured.isEmpty && Date() < innerDeadline {
+                try await Task.sleep(nanoseconds: 25_000_000)  // 25ms
+                captured = server.capturedRequests["test"] ?? []
+            }
+        }
 
         // Verify capture
-        let captured = server.capturedRequests["test"] ?? []
         #expect(captured.count >= 1)
     }
 }

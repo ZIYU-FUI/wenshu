@@ -65,6 +65,18 @@ struct TitleGeneratorTests {
             from: "what is the meaning of life and everything else",
             connector: nil
         )
-        #expect(title == "what is the meaning of...")
+        // Heuristic title contract (TitleGenerator.swift:9 + :19 + :29-30):
+        // first 6 words + ellipsis when input exceeds 6 words. Same file's
+        // testHeuristicTitle_longTruncates (L45-L50) asserts this exact
+        // contract. Hermes title_generator.py:104-105 only caps at >80 chars
+        // and does NOT word-truncate, so wenshu's 6-word cap is a wenshu-side
+        // contract documented in production and re-asserted by the sibling
+        // test. The prior assertion of "what is the meaning of..." (4 words)
+        // contradicted both production and the file's own other test.
+        //
+        // Input word count: 9 ("what is the meaning of life and everything
+        // else"). First 6 words = "what is the meaning of life" (note: "of"
+        // is short, so the title looks like 5 words but is actually 6).
+        #expect(title == "what is the meaning of life...")
     }
 }

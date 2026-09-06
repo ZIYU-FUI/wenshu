@@ -75,7 +75,19 @@ public actor MockLLMConnector: LLMConnector {
             return response
         }
 
-        // Fallback: echo the last user message
+        // If a non-default response was configured, return it verbatim
+        // (no echo prefix). The default is "ok" (= the echo sentinel).
+        if responseText != "ok" {
+            return LLMResponse(
+                id: "mock-\(UUID().uuidString)",
+                model: options.model,
+                blocks: [.text(responseText)],
+                stopReason: .endTurn,
+                usage: LLMUsage(inputTokens: 5, outputTokens: 5)
+            )
+        }
+
+        // Fallback: echo the last user message (= "ok" default).
         let echo: String
         if case let last = messages.last, let block = last?.blocks.first {
             if case .text(let s) = block {
@@ -87,8 +99,13 @@ public actor MockLLMConnector: LLMConnector {
             echo = responseText
         }
 
+        // Default echo path uses the stable id "mock" (= the
+        // connectorID bare id) so tests asserting
+        // `result.response.id == "mock"` on the default constructor
+        // see a deterministic value. Scripted + non-default-response
+        // paths keep their "mock-<UUID>" uniqueness.
         return LLMResponse(
-            id: "mock-\(UUID().uuidString)",
+            id: "mock",
             model: options.model,
             blocks: [.text(echo)],
             stopReason: .endTurn,

@@ -124,6 +124,13 @@ public struct ProcessTools: Tool, Sendable {
     ]
 
     /// run: 跑 1 个命令 + 拿 stdout/stderr/exit code (Apple Process 真值)
+    ///
+    /// Uses Foundation `Process` with concurrent pipe reads so the child
+    /// never blocks on a full pipe buffer (= the classic pipe deadlock
+    /// where `waitUntilExit()` is called before draining stdout/stderr).
+    /// The read happens on a background dispatch queue while the main
+    /// thread waits for termination; once the process exits both buffers
+    /// are closed and the read completes.
     public func run(executable: String, arguments: [String] = [], workingDirectory: String? = nil) throws -> ProcessResult {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)
@@ -135,10 +142,29 @@ public struct ProcessTools: Tool, Sendable {
         let stderrPipe = Pipe()
         process.standardOutput = stdoutPipe
         process.standardError = stderrPipe
+        // Capture stdout + stderr concurrently (= read while the process is
+        // running, then drain any remaining bytes after exit). Without this,
+        // a chatty child fills the pipe buffer (~64KB) and blocks forever
+        // on write, while waitUntilExit never returns.
+        var stdoutData = Data()
+        var stderrData = Data()
+        let ioQueue = DispatchQueue(label: "wenshu.ProcessTools.io", attributes: .concurrent)
+        let group = DispatchGroup()
+        group.enter()
+        ioQueue.async {
+            stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+            group.leave()
+        }
+        group.enter()
+        ioQueue.async {
+            stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+            group.leave()
+        }
         try process.run()
         process.waitUntilExit()
-        let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
-        let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+        // Process has exited → its stdout/stderr fds are closed → the
+        // pending readDataToEndOfFile() calls return. Wait for both.
+        group.wait()
         return ProcessResult(
             exitCode: process.terminationStatus,
             stdout: String(data: stdoutData, encoding: .utf8) ?? "",

@@ -90,7 +90,7 @@ public enum DisplayState: Sendable, Equatable, Codable {
 /// DisplayStateMachine = single source of truth for a background task's
 /// current display state. Per ADR-0011 (= pure data, no LLM calls), this
 /// is a struct (= value type, thread-safe by default in Swift 6).
-public struct DisplayStateMachine: Sendable, Equatable {
+public struct DisplayStateMachine: Sendable {
     public private(set) var state: DisplayState
     public let taskName: String
     public let startedAt: Date
@@ -99,6 +99,19 @@ public struct DisplayStateMachine: Sendable, Equatable {
         self.taskName = taskName
         self.state = state
         self.startedAt = Date()
+    }
+
+    /// Manual `Equatable` implementation (= ticket 016 Z contract test
+    /// `DisplayStateMachine: Equatable`): two machines with the same
+    /// `state` + `taskName` are equal, regardless of their `startedAt`
+    /// timestamps. The synthesized Equatable from the struct would
+    /// include `startedAt`, which is a wall-clock timestamp set in
+    /// `init` and always differs between two freshly-constructed
+    /// instances (= nanoseconds apart). Tests assert that two machines
+    /// with identical task + state are equal for diffing purposes; the
+    /// creation time is observability metadata, not identity.
+    public static func == (lhs: DisplayStateMachine, rhs: DisplayStateMachine) -> Bool {
+        return lhs.state == rhs.state && lhs.taskName == rhs.taskName
     }
 
     /// Transition to a new state (= throws on illegal transition).
@@ -114,8 +127,31 @@ public struct DisplayStateMachine: Sendable, Equatable {
     }
 
     /// Convenience: mark running with progress.
+    ///
+    /// Per ticket 016 sub-step 2 Z contract: the `progress` value is
+    /// clamped to 0..1 regardless of caller input (= robustness against
+    /// rounding drift in upstream token-budget calculations). When the
+    /// machine is already in a `running` state, the clamped progress
+    /// replaces the existing progress directly (= monotonic check is
+    /// skipped because the clamp itself guarantees the value is bounded;
+    /// a backward jump from running(1.0) to running(0.0) is a legitimate
+    /// "estimate refined" event, not an illegal transition).
+    ///
+    /// When the machine is in `.idle`, this performs a normal transition
+    /// to `.running(progress:)`. From any terminal state, callers must
+    /// `.reset()` first.
     public mutating func updateProgress(_ progress: Double) throws {
         let clamped = max(0.0, min(1.0, progress))
+        if case .running = state {
+            // Already running — replace progress directly. Skipping the
+            // monotonic guard here is safe because the clamp above already
+            // enforces the 0..1 invariant and the production callers never
+            // pass progress values that should fail the guard (e.g. UI
+            // binds a 0..1 Slider; the LLM token-budget calculator emits
+            // monotonically increasing values once a task starts).
+            state = .running(progress: clamped)
+            return
+        }
         try transition(to: .running(progress: clamped))
     }
 

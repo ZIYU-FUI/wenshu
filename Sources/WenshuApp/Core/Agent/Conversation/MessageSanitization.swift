@@ -164,20 +164,36 @@ public enum MessageSanitization {
             return "{}"
         }
 
-        // Pass 0: unescaped control chars → strict=False → re-serialise.
-        if let data = raw.data(using: .utf8) {
-            if let parsed = try? JSONSerialization.jsonObject(
-                with: data,
-                options: [.fragmentsAllowed]
-            ),
-               JSONSerialization.isValidJSONObject(parsed) {
-                if let reserialised = try? JSONSerialization.data(
-                    withJSONObject: parsed,
-                    options: [.fragmentsAllowed]
-                ), let s = String(data: reserialised, encoding: .utf8) {
-                    return s
-                }
-            }
+        // Pass 0: well-formed JSON → return as-is (= no re-serialise that
+        // would re-encode `/` → `\/` and break byte-for-byte identity).
+        // Per HERMES-PARTIAL-009 Z contract (= `testRepairTrivialJSON`):
+        // `repairToolCallArguments` on already-valid JSON must NOT mutate
+        // the input. The downstream wire format accepts both `"/foo"`
+        // and `"\/foo"` as identical JSON values, but tool-call argument
+        // diffing (= per-ticket 005 dry-run preview) compares strings
+        // byte-for-byte, so escape-only round-trip would silently
+        // invalidate the dry-run preview for every tool call.
+        if let data = raw.data(using: .utf8),
+           let parsed = try? JSONSerialization.jsonObject(
+               with: data,
+               options: [.fragmentsAllowed]
+           ),
+           JSONSerialization.isValidJSONObject(parsed) {
+            return raw
+        }
+
+        // Pass 0b: parseable but not valid-object (e.g. bare string
+        // fragment) → re-serialise so we return canonical JSON.
+        if let data = raw.data(using: .utf8),
+           let parsed = try? JSONSerialization.jsonObject(
+               with: data,
+               options: [.fragmentsAllowed]
+           ),
+           let reserialised = try? JSONSerialization.data(
+               withJSONObject: parsed,
+               options: [.fragmentsAllowed]
+           ), let s = String(data: reserialised, encoding: .utf8) {
+            return s
         }
 
         // Pass 1: trailing commas + unclosed structures.

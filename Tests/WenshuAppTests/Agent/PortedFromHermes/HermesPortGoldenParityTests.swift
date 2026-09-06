@@ -79,8 +79,11 @@ struct HermesPortGoldenParityTests {
         }
         let message = LLMMessage(role: .user, blocks: messageBlocks)
 
-        // Run Swift port (= LLMBlock.textValue concatenation = hermes extract_text behavior).
-        let swiftOutput = message.blocks.map { $0.textValue }.joined(separator: "\n")
+        // Run Swift port (= hermes extract_text: only .text blocks extracted, joined).
+        let swiftOutput = message.blocks.compactMap { block -> String? in
+            if case let .text(s) = block { return s }
+            return nil
+        }.joined(separator: "\n")
 
         // Compare against hermes golden output.
         let hermesOutput = golden["output"] as? String ?? ""
@@ -109,7 +112,11 @@ struct HermesPortGoldenParityTests {
         }
         let message = LLMMessage(role: .user, blocks: messageBlocks)
 
-        let swiftOutput = message.blocks.map { $0.textValue }.joined(separator: "\n")
+        // Run Swift port (= hermes extract_text: only .text blocks extracted, joined).
+        let swiftOutput = message.blocks.compactMap { block -> String? in
+            if case let .text(s) = block { return s }
+            return nil
+        }.joined(separator: "\n")
         let hermesOutput = golden["output"] as? String ?? ""
         #expect(swiftOutput == hermesOutput)
         #expect(swiftOutput == "first\nsecond\nthird")
@@ -265,8 +272,17 @@ struct HermesPortGoldenParityTests {
             return
         }
 
-        // Swift port (= SystemPrompt from ticket 002)
-        let prompt = SystemPrompt.build(ephemeralHint: "5m", callerMessage: nil)
+        // Swift port (= SystemPrompt from ticket 002). user_name + book_title
+        // from the golden input flow into the stable tier (= hermes contract).
+        let input = golden["input"] as? [String: Any] ?? [:]
+        let userName = input["user_name"] as? String
+        let bookTitle = input["book_title"] as? String
+        let prompt = SystemPrompt.build(
+            ephemeralHint: "5m",
+            callerMessage: nil,
+            userName: userName,
+            bookTitle: bookTitle
+        )
         let hermesBytes = output["bytes"] as? Int ?? 0
         let containsUser = output["contains_user"] as? Bool ?? false
         let containsBook = output["contains_book"] as? Bool ?? false

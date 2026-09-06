@@ -96,6 +96,33 @@ struct TriggerClosureWiringTests {
     @Test("production WenshuConductor builds tools from ToolRegistry.shared (not an empty dict)")
     func testProductionConductor_toolsDictIncludesToolRegistryEntries() async throws {
         let registry = ToolRegistry.shared
+        // HERMES-AGENT-SMC-READYNESS v0.41 fix: trigger the production
+        // tool-bootstrap path (= fire each tool file's
+        // `public static let _registryBootstrap` lazy init) so the
+        // test environment mirrors what the AppKit binary does at
+        // launch. Per ToolRegistryEndToEndTests.swift header (= the
+        // established v0.40 test pattern), these static lets only
+        // fire on first type access; a test that does NOT reference
+        // the tool types will see an empty registry and falsely
+        // report "production wiring broken". Mirroring production
+        // = referencing each known tool type's bootstrap exactly
+        // the way `applicationDidFinishLaunching` does.
+        _ = ParagraphAITool._registryBootstrap
+        _ = ReadFileTool._registryBootstrap
+        _ = WriteFileTool._registryBootstrap
+        _ = AVMediaTools._registryBootstrap
+        _ = BookManagerTool._registryBootstrap
+        _ = FileTools._registryBootstrap
+        _ = KanbanStoreTool._registryBootstrap
+        _ = ProcessTools._registryBootstrap
+        _ = TodoStoreTool._registryBootstrap
+        _ = HermesTodoTool._registryBootstrap
+        _ = VisionTools._registryBootstrap
+        _ = WebTools._registryBootstrap
+        // Allow the fire-and-forget `Task { await register(...) }`
+        // blocks to schedule. 50 ms matches `toolRegistryWarmupMs`
+        // (= the same window `buildTools(from:)` uses).
+        try? await Task.sleep(nanoseconds: 50_000_000)
         let allNames = await registry.getAllToolNames()
         #expect(allNames.count >= 1,
                 "ToolRegistry.shared should have at least one registered tool in the test process (got \(allNames.count))")

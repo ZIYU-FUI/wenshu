@@ -318,7 +318,7 @@ struct RequestHelpersTests {
         let connector = AnthropicConnector(session: session)
         _ = try await connector.send(
             messages: [LLMMessage.user("test")],
-            options: LLMCallOptions(model: "claude-sonnet-4-5", systemPrompt: "stable")
+            options: LLMCallOptions(model: "claude-sonnet-4-5", maxTokens: 4096, systemPrompt: "stable")
         )
 
         // URLSession migrates `httpBody` -> `httpBodyStream` for POST bodies,
@@ -374,7 +374,7 @@ struct RequestHelpersTests {
         let connector = OpenAIConnector(session: session)
         _ = try await connector.send(
             messages: [LLMMessage.user("test")],
-            options: LLMCallOptions(model: "gpt-5", systemPrompt: "stable")
+            options: LLMCallOptions(model: "gpt-5", maxTokens: 4096, systemPrompt: "stable")
         )
 
         let captured = URLProtocolStub.stub?.lastRequest

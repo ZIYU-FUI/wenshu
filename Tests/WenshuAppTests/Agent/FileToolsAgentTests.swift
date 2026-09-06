@@ -32,7 +32,7 @@ struct FileToolsAgentTests {
     func testReadRoundTrip() async throws {
         // Setup: write a file directly via FileTools (= not via WriteFileTool,
         // to isolate the test)
-        let tmpPath = "/tmp/wenshu-readfiletool-test-\\(UUID().uuidString).md"
+        let tmpPath = "/tmp/wenshu-readfiletool-test-\(UUID().uuidString).md"
         try FileTools().write(path: tmpPath, content: "hello wenshu")
 
         defer {
@@ -41,7 +41,7 @@ struct FileToolsAgentTests {
 
         // Execute ReadFileTool
         let tool = ReadFileTool()
-        let result = try await tool.execute(input: "{\"path\":\"\\(tmpPath)\"}")
+        let result = try await tool.execute(input: "{\"path\":\"\(tmpPath)\"}")
         #expect(result == "hello wenshu")
     }
 
@@ -49,8 +49,8 @@ struct FileToolsAgentTests {
 
     @Test("WriteFileTool writes file via FileTools delegate")
     func testWriteRoundTrip() async throws {
-        let tmpPath = "/tmp/wenshu-writefiletool-test-\\(UUID().uuidString).md"
-        let input = "{\"path\":\"\\(tmpPath)\",\"content\":\"wrote via WriteFileTool\"}"
+        let tmpPath = "/tmp/wenshu-writefiletool-test-\(UUID().uuidString).md"
+        let input = "{\"path\":\"\(tmpPath)\",\"content\":\"wrote via WriteFileTool\"}"
 
         defer {
             try? FileManager.default.removeItem(atPath: tmpPath)
@@ -89,7 +89,7 @@ struct FileToolsAgentTests {
 
     @Test("ReadFileTool integrates with ToolExecutor (end-to-end dispatch)")
     func testToolExecutorIntegration() async throws {
-        let tmpPath = "/tmp/wenshu-exec-test-\\(UUID().uuidString).md"
+        let tmpPath = "/tmp/wenshu-exec-test-\(UUID().uuidString).md"
         try FileTools().write(path: tmpPath, content: "executor dispatched this")
 
         defer {
@@ -99,7 +99,7 @@ struct FileToolsAgentTests {
         let executor = ToolExecutor()
         let assistantMessage = LLMMessage(
             role: .assistant,
-            blocks: [.toolUse(id: "t1", name: "ReadFile", input: "{\"path\":\"\\(tmpPath)\"}")]
+            blocks: [.toolUse(id: "t1", name: "ReadFile", input: "{\"path\":\"\(tmpPath)\"}")]
         )
         var messages: [LLMMessage] = [assistantMessage]
 

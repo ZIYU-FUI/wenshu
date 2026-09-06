@@ -88,7 +88,14 @@ public enum AnthropicAdapter {
                 case .base64:
                     return ["type": "base64", "media_type": mediaType, "data": data]
                 case .url:
-                    return ["type": "url", "url": data]
+                    // Per HERMES-PARTIAL-006 Z contract test
+                    // `convertOpenAIMessagesToAnthropic handles document blocks`:
+                    // the wire format must include `media_type` even for
+                    // URL-sourced documents. Anthropic's API expects the
+                    // content-type hint so it knows how to process the
+                    // fetched bytes (= e.g. `application/pdf` triggers the
+                    // PDF ingestion pipeline).
+                    return ["type": "url", "url": data, "media_type": mediaType]
                 }
             }
         }
@@ -125,10 +132,23 @@ public enum AnthropicAdapter {
     /// image source (= hermes _image_source_from_openai_url L1699-1730).
     public static func imageSourceFromOpenAIURL(_ url: String) -> ContentBlock.ImageSource {
         if url.hasPrefix("data:") {
-            // data:<mediatype>;base64,<data>
+            // data:<mediatype>[;base64],<data>
+            // Strip the optional ";base64" payload encoding hint so the
+            // mediaType that flows to the Anthropic wire format matches
+            // the canonical MIME type (= "image/png" not "image/png;base64").
+            // Per HERMES-PARTIAL-006 Z contract test `imageSourceFromOpenAIURL
+            // converts data: URL into base64 source`: the wire format is
+            // `{"type": "base64", "media_type": "image/png", "data": "..."}`.
+            // The ";base64" suffix is a data-URL payload encoding hint, not
+            // part of the media type — leaving it in would cause Anthropic
+            // to reject the request with HTTP 400.
             let stripped = String(url.dropFirst("data:".count))
             let parts = stripped.split(separator: ",", maxSplits: 1)
-            let mediaType = String(parts.first ?? "image/jpeg")
+            let rawMediaType = String(parts.first ?? "image/jpeg")
+            let mediaType = rawMediaType
+                .split(separator: ";", maxSplits: 1, omittingEmptySubsequences: false)
+                .first
+                .map(String.init) ?? "image/jpeg"
             let data = parts.count > 1 ? String(parts[1]) : ""
             return ContentBlock.ImageSource(kind: .base64, mediaType: mediaType, data: data)
         }

@@ -73,8 +73,19 @@ struct AuxiliaryClientCoalescingTests {
         _ = await coalescer.push(SSECoalescedEvent(eventType: "text", data: "b"))
         _ = await coalescer.push(SSECoalescedEvent(eventType: "tool_use", data: "{}"))
         let drained = await coalescer.take()
-        // text was coalesced to "ab", tool_use is separate.
-        #expect(drained.count == 2)
+        // Parity evidence (hermes _coalesce_sse_buffer; AuxiliaryClient.swift:77-104
+        // push implementation): when a new eventType arrives, the prior
+        // pending events with a DIFFERENT eventType are FLUSHED via push's
+        // return value — they are removed from pending immediately. Same
+        // file's testSSECoalesceNewTypeFlushes (L54-L65) asserts this exact
+        // contract: pushed text "hi" then tool_use -> flush returns [text],
+        // and take() returns just [tool_use].
+        //
+        // Sequence: text "a" -> pending {text:"a"}; text "b" -> pending
+        // {text:"ab"}; tool_use "{}" -> flush returns [text:"ab"], pending
+        // {tool_use:"{}"}. take() returns just [tool_use:"{}"].
+        #expect(drained.count == 1)
+        #expect(drained.first?.eventType == "tool_use")
         #expect(await coalescer.pendingCount() == 0)
     }
 

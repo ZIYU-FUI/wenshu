@@ -377,29 +377,18 @@ actor CharacterLifecycleTracker {
     }
 
     /// Build a timeline (= sorted events) for a single character.
-    /// Sorting priority: `chapterId` ascending when set (= events
-    /// without a chapter id sort to the front so the writer can
-    /// see pre-chapter backstory events before any chapter
-    /// anchor); `createdAt` ascending as tiebreaker.
+    /// Sorting priority: `createdAt` ascending (deterministic —
+    /// chapterId is a UUID and UUIDs do not have a natural
+    /// order, so chapter-id-based sorts would be flaky). Tests
+    /// that need a specific chapter ordering should add events
+    /// in chapter order (= events get monotonically increasing
+    /// createdAt timestamps).
     public func timeline(bookId: UUID, characterId: UUID) async throws -> [LifecycleEvent] {
         let sidecar = try await loadOrCreateSidecar(bookId: bookId)
         let filtered = sidecar.events.filter { $0.characterId == characterId }
         return filtered.sorted { lhs, rhs in
-            switch (lhs.chapterId, rhs.chapterId) {
-            case (nil, nil):
-                if lhs.createdAt != rhs.createdAt { return lhs.createdAt < rhs.createdAt }
-                return lhs.id.uuidString < rhs.id.uuidString
-            case (nil, _):
-                // Events without a chapter id come first (= pre-
-                // chapter backstory events).
-                return true
-            case (_, nil):
-                return false
-            case (let l?, let r?):
-                if l.uuidString != r.uuidString { return l.uuidString < r.uuidString }
-                if lhs.createdAt != rhs.createdAt { return lhs.createdAt < rhs.createdAt }
-                return lhs.id.uuidString < rhs.id.uuidString
-            }
+            if lhs.createdAt != rhs.createdAt { return lhs.createdAt < rhs.createdAt }
+            return lhs.id.uuidString < rhs.id.uuidString
         }
     }
 
@@ -420,22 +409,12 @@ actor CharacterLifecycleTracker {
         }
         var output: [LifecycleContradiction] = []
         for (characterId, events) in perCharacter {
-            // Sort by chapterId asc (= nil first), then createdAt
-            // asc (= matches `timeline(...)` order).
+            // Sort by createdAt asc (= matches `timeline(...)` order;
+            // chapterId is a UUID and UUIDs do not have a natural
+            // order, so chapter-id-based sorts would be flaky).
             let sorted = events.sorted { lhs, rhs in
-                switch (lhs.chapterId, rhs.chapterId) {
-                case (nil, nil):
-                    if lhs.createdAt != rhs.createdAt { return lhs.createdAt < rhs.createdAt }
-                    return lhs.id.uuidString < rhs.id.uuidString
-                case (nil, _):
-                    return true
-                case (_, nil):
-                    return false
-                case (let l?, let r?):
-                    if l.uuidString != r.uuidString { return l.uuidString < r.uuidString }
-                    if lhs.createdAt != rhs.createdAt { return lhs.createdAt < rhs.createdAt }
-                    return lhs.id.uuidString < rhs.id.uuidString
-                }
+                if lhs.createdAt != rhs.createdAt { return lhs.createdAt < rhs.createdAt }
+                return lhs.id.uuidString < rhs.id.uuidString
             }
             // Walk forward; track the first terminal event we
             // encounter (= the "death" / "retired" reference

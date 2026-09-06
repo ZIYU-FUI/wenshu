@@ -83,15 +83,15 @@ public enum TurnFinalizer {
     /// Finalize an LLMResponse into the canonical ConversationResult shape.
     ///
     /// Operations (matching hermes turn_finalizer.py):
-    /// - Coalesce adjacent .text blocks into one (= hermes adjacent-text coalesce)
     /// - Drop empty text blocks (= keeps .text("") → nothing)
     /// - Propagate stopReason + usage (= pass-through)
     /// - Preserve block order (= hermes `_emit_terminal_post_tool_call`
     ///   pattern: keep raw order so downstream consumers see the same
-    ///   sequence the model emitted)
+    ///   sequence the model emitted; adjacent non-empty text blocks
+    ///   are NOT merged here — use `coalesceAdjacentText(_:)` directly
+    ///   when callers want a streaming-display merge.)
     public static func finalize(response: LLMResponse) -> LLMResponse {
-        let coalesced = coalesceAdjacentText(response.blocks)
-        let canonical = MessageContent.canonicalize(coalesced)
+        let canonical = MessageContent.canonicalize(response.blocks)
         return LLMResponse(
             id: response.id,
             model: response.model,

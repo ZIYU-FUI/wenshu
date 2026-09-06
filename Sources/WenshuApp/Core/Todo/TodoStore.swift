@@ -105,8 +105,16 @@ public actor TodoStore {
     }
 
     public func add(title: String, priority: TodoPriority = .medium, dueDate: Date? = nil) throws -> TodoItem {
+        return try add(id: UUID().uuidString, title: title, priority: priority, dueDate: dueDate)
+    }
+
+    /// Insert a todo with a caller-supplied id (= bridges to caller-
+    /// managed identifiers such as the `todo` tool's `id` field).
+    /// Collisions throw `TodoStoreError.execFailed` (= the underlying
+    /// SQLite step failure); callers should pick a fresh id on retry.
+    public func add(id: String, title: String, priority: TodoPriority = .medium, dueDate: Date? = nil) throws -> TodoItem {
         let now = Date()
-        let todo = TodoItem(id: UUID().uuidString, title: title, status: .pending, priority: priority, dueDate: dueDate, createdAt: now, updatedAt: now)
+        let todo = TodoItem(id: id, title: title, status: .pending, priority: priority, dueDate: dueDate, createdAt: now, updatedAt: now)
         let sql = "INSERT INTO todos (id, title, status, priority, due_date, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?);"
         var stmt: OpaquePointer?
         guard sqlite3_prepare_v2(dbPtr.db, sql, -1, &stmt, nil) == SQLITE_OK else {

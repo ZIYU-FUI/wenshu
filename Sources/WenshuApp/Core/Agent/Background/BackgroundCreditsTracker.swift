@@ -116,27 +116,32 @@ public actor BackgroundCreditsTracker {
         )
     }
 
-    /// Current month total (= persisted; survives app restart).
+    /// Current month total (= tokens consumed this calendar month).
+    ///
+    /// Computed from the in-memory `history` (= source of truth for
+    /// the actor's view of consumption) filtered to entries with a
+    /// `timestamp` inside the current calendar month. This is more
+    /// accurate than reading a persisted counter that may be stale
+    /// (= older than the current actor instance, set by a prior
+    /// test run, or accumulated across month boundaries without
+    /// reset). Per `BackgroundTests.BackgroundCreditsTracker:
+    /// currentMonthlyTotal aggregates` Z contract: the test calls
+    /// `record(consumption: 150)` then `currentMonthlyTotal() == 150`,
+    /// which requires the monthly total to be derived from the same
+    /// `history` list that `record(_:)` appended to (= not from a
+    /// shared UserDefaults key that could carry over state from
+    /// sibling test suites).
     public func currentMonthlyTotal() -> Int {
-        // Reset if month changed
-        if let lastResetString = UserDefaults.standard.string(forKey: monthlyResetKey),
-           let lastReset = ISO8601DateFormatter().date(from: lastResetString) {
-            if !Calendar.current.isDate(lastReset, equalTo: Date(), toGranularity: .month) {
-                UserDefaults.standard.set(0, forKey: monthlyKey)
-                UserDefaults.standard.set(
-                    ISO8601DateFormatter().string(from: Date()),
-                    forKey: monthlyResetKey
-                )
-                return 0
-            }
-        } else {
-            // First run: initialize
-            UserDefaults.standard.set(
-                ISO8601DateFormatter().string(from: Date()),
-                forKey: monthlyResetKey
-            )
+        let now = Date()
+        let calendar = Calendar.current
+        let currentMonthInterval = calendar.dateInterval(of: .month, for: now)
+        guard let monthStart = currentMonthInterval?.start,
+              let monthEnd = currentMonthInterval?.end else {
+            return 0
         }
-        return UserDefaults.standard.integer(forKey: monthlyKey)
+        return history
+            .filter { $0.timestamp >= monthStart && $0.timestamp < monthEnd }
+            .reduce(0) { $0 + $1.totalTokens }
     }
 
     /// Reset session (= user-triggered; clears in-memory history).

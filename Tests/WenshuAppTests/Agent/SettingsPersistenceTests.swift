@@ -258,19 +258,48 @@ struct SettingsPersistenceTests {
     @Test("SkillAdapter: setEnabled survives an adapter re-init on the same suite")
     func testSkillAdapterPersistenceAcrossInits() async {
         let defaults = makeSuite()
-        // SETTINGS-PERSISTENCE-002: the actor can be reconstructed
-        // against the same UserDefaults suite and read the prior
-        // setEnabled flip (= mirrors the wenshu runtime pattern where
-        // ChatView, ChatViewModel, and the Settings pane each hold
-        // their own SkillAdapter instance against the shared
-        // UserDefaults store).
+        // SETTINGS-PERSISTENCE-002 (2026-09-05): the actor can be
+        // reconstructed against the same `UserDefaults` suite and
+        // read the prior `setEnabled` flip (= mirrors the wenshu
+        // runtime pattern where ChatView, ChatViewModel, and the
+        // Settings pane each hold their own SkillAdapter instance
+        // against the shared UserDefaults store). The two adapter
+        // constructions are sequential; the underlying `UserDefaults`
+        // reference (= `Sendable` class = thread-safe per Apple docs)
+        // is shared across both, so the second adapter sees the
+        // first adapter's persisted state.
         await Self.writeThenRead(defaults: defaults)
     }
 
+    // SETTINGS-PERSISTENCE-002 (2026-09-05 fix): @MainActor static
+    // helper so Swift 6 strict region isolation treats both
+    // `SkillAdapter(defaults:)` calls as happening on the main
+    // actor's region. Each `SkillAdapter` actor init is implicitly
+    // async (cross-actor region transfer), so calling them from the
+    // same isolation context requires both calls to live in one
+    // MainActor-isolated function. The `UserDefaults` reference is
+    // `Sendable` (= a Foundation class with serialized access per
+    // Apple docs) so the cross-call sharing is safe.
+    @MainActor
     private static func writeThenRead(defaults: UserDefaults) async {
-        let writer = SkillAdapter(defaults: defaults)
+        await write(sending: defaults)
+        await read(sending: defaults)
+    }
+
+    /// Write phase: each helper receives its own `sending UserDefaults`
+    /// parameter (= a fresh region consumed at the call boundary =
+    /// satisfies Swift 6 strict region isolation). The underlying
+    /// `UserDefaults` instance (= `Sendable` class) is shared
+    /// across both helpers via the caller's captured reference.
+    @MainActor
+    private static func write(sending suite: sending UserDefaults) async {
+        let writer = SkillAdapter(defaults: suite)
         await writer.setEnabled(name: "compress", enabled: false)
-        let reader = SkillAdapter(defaults: defaults)
+    }
+
+    @MainActor
+    private static func read(sending suite: sending UserDefaults) async {
+        let reader = SkillAdapter(defaults: suite)
         let persisted = await reader.isSkillEnabled(name: "compress")
         #expect(persisted == false)
     }

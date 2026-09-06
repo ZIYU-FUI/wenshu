@@ -141,23 +141,43 @@ struct TurnRetryStateDeepTests {
         #expect(state.remainingAttempts == 0)
     }
 
-    @Test("TurnRetryState: maxAttempts = 1 means no retries")
+    @Test("TurnRetryState: maxAttempts = 1 initial state still allows one attempt")
     func maxAttemptsOne() {
+        // Hermetic contract: maxAttempts = total attempts the state will allow.
+        // Initial state has consumed zero attempts, so remainingAttempts = 1
+        // and canRetry = (0 < 1) = true. After one recordAttempt() the budget
+        // is exhausted. This matches the production invariant
+        //     canRetry = attemptNumber < maxAttempts
+        // and is consistent with the other tests in this suite:
+        //   - initialCanRetry: maxAttempts=3 → canRetry=true, remaining=3
+        //   - canRetryAfterMax: maxAttempts=2, after 2 attempts → !canRetry
+        //   - recordAttemptIncrements: maxAttempts=5 → recordAttempt bumps count
+        // Hermes parity: hermes turn_retry_state.py has NO maxAttempts field
+        // (it is per-attempt recovery bookkeeping, distinct from the
+        // run_conversation while-loop's max_retries local); the Swift
+        // TurnRetryState budget tracker is a wenshu-side invention that
+        // mirrors the local-variable contract used in the run_conversation
+        // loop boundary (attempts-counted, not retries-counted).
         let state = TurnRetryState(maxAttempts: 1)
-        #expect(!state.canRetry)
-        #expect(state.remainingAttempts == 0)
+        #expect(state.canRetry)
+        #expect(state.remainingAttempts == 1)
+        var mutated = state
+        mutated.recordAttempt()
+        #expect(!mutated.canRetry)
+        #expect(mutated.remainingAttempts == 0)
     }
 
-    @Test("TurnRetryState: precondition fails for maxAttempts = 0")
+    @Test("TurnRetryState: init clamps maxAttempts = 0 up to the 1 floor")
     func preconditionFailsForZero() {
-        // This test documents the runtime assertion
-        // (= using a custom assertion to verify the precondition)
-        var didCrash = false
-        // We can't actually trigger fatalError in a test,
-        // but we can verify the init doesn't accept 0 silently
-        let state = TurnRetryState(maxAttempts: 1)  // = minimum valid
-        #expect(state.remainingAttempts == 0)
-        _ = didCrash
+        // Production init uses max(1, maxAttempts) so a 0 input is treated
+        // as the minimum-valid value (= same contract as maxAttempts: 1).
+        // This documents the silent floor (= no fatalError) and verifies
+        // the post-init invariant holds: remainingAttempts = 1 - 0 = 1,
+        // matching the maxAttemptsOne contract above.
+        let state = TurnRetryState(maxAttempts: 0)
+        #expect(state.maxAttempts == 1)
+        #expect(state.canRetry)
+        #expect(state.remainingAttempts == 1)
     }
 }
 

@@ -198,4 +198,41 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         true
     }
+
+    /// v0.37 trigger closure seeders (= commit 266c1c425 followup):
+    /// canonical LLM connector resolver used by the production ChatView
+    /// long-running-goal button (= M14 fix) and the unit-test
+    /// TriggerClosureWiringTests. The resolver reads the
+    /// `wenshu.llm.activeConnector` UserDefaults slug (= the connector
+    /// profile the user picked in LLMConnectorSettingsView) and falls
+    /// back to AnthropicConnector for missing / unknown / unsupported
+    /// apiMode (= never nil, matches wenshu defensive-defaults rule).
+    ///
+    /// Why this lives on WenshuAppDelegate (= not just on WorkspaceView):
+    /// unit tests run in a swift-test helper process that does not
+    /// mount the full view hierarchy, so WorkspaceView.activeLLMConnector
+    /// (= private) is unreachable from the test target. Exposing the
+    /// same logic on WenshuAppDelegate (= module-internal) keeps the
+    /// test + production in lockstep without leaking the view API.
+    nonisolated(unsafe) static func activeLLMConnector() -> any LLMConnector {
+        let slug = UserDefaults.standard.string(forKey: "wenshu.llm.activeConnector") ?? "anthropic"
+        let provider = ProviderCatalog.provider(slug: slug)
+        switch provider.apiMode {
+        case "anthropic_messages":
+            // MinimaxConnector is the Anthropic-compatible wrapper
+            // (= wenshu's default provider per AGENTS.md §11.2);
+            // AnthropicConnector is the native Anthropic API.
+            if provider.slug == "anthropic" {
+                return AnthropicConnector()
+            }
+            return MinimaxConnector()
+        case "openai_chat":
+            return OpenAICompatibleConnector(provider: provider)
+        default:
+            // Gemini + any other apiMode lands here until the matching
+            // connector lands (= Gemini native connector is a separate
+            // ticket per ConnectorTestButton.runTest).
+            return AnthropicConnector()
+        }
+    }
 }

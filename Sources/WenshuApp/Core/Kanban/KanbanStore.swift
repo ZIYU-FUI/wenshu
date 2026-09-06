@@ -79,6 +79,12 @@ private final class SQLitePtr {
 public actor KanbanStore {
     private let dbPtr: SQLitePtr
     private let dbPath: String
+    /// Set after the first successful `bootstrap()` (= schema
+    /// ensured). Subsequent operations short-circuit the bootstrap
+    /// check. Lazy bootstrap avoids forcing callers (= tests, the
+    /// LLM-facing KanbanTools dispatcher) to call `bootstrap()`
+    /// explicitly before the first `add` / `list` / `transition`.
+    private var bootstrapped: Bool = false
 
     public init(path: String? = nil) throws {
         let url: URL
@@ -137,6 +143,7 @@ public actor KanbanStore {
                 NSLog("[KanbanStore] ALTER failed (expected on sqlite<3.35 or already applied): \(error)")
             }
         }
+        bootstrapped = true
     }
 
     /// add: 加 1 个 task
@@ -147,6 +154,7 @@ public actor KanbanStore {
         assignee: String? = nil,
         modelOverride: String? = nil
     ) throws -> KanbanTask {
+        try ensureBootstrapped()
         let now = Date()
         // v0.23 ticket 013.003: auto-set startedAt when status == .running.
         let startedAt: Date? = (status == .running) ? now : nil
@@ -191,6 +199,7 @@ public actor KanbanStore {
     /// transition: 改 status (state machine 真值)
     /// v0.23 ticket 013.003: auto-set started_at / completed_at on state transitions.
     public func transition(id: String, to newStatus: KanbanStatus) throws {
+        try ensureBootstrapped()
         let now = Date()
         // Auto-set timestamps:
         //   entering .running → started_at = now (if not already set)
@@ -225,6 +234,7 @@ public actor KanbanStore {
 
     /// get: 拿 1 个 task
     public func get(id: String) throws -> KanbanTask? {
+        try ensureBootstrapped()
         let sql = "SELECT id, title, status, created_at, updated_at, priority, assignee, started_at, completed_at, model_override FROM kanban_tasks WHERE id = ?;"
         var stmt: OpaquePointer?
         guard sqlite3_prepare_v2(dbPtr.db, sql, -1, &stmt, nil) == SQLITE_OK else {
@@ -262,6 +272,7 @@ public actor KanbanStore {
     /// v0.23 ticket 013.003: returns full KanbanTask including hermes metadata
     /// (priority / assignee / started_at / completed_at / model_override).
     public func list(status: KanbanStatus? = nil) throws -> [KanbanTask] {
+        try ensureBootstrapped()
         let sql: String
         if let status = status {
             sql = "SELECT id, title, status, created_at, updated_at, priority, assignee, started_at, completed_at, model_override FROM kanban_tasks WHERE status = ? ORDER BY updated_at DESC;"
@@ -321,6 +332,24 @@ public actor KanbanStore {
         if sqlite3_exec(dbPtr.db, sql, nil, nil, nil) != SQLITE_OK {
             throw KanbanStoreError.execFailed(message: KanbanStore.sqliteErmsg(dbPtr.db))
         }
+    }
+
+    /// Ensure the schema exists (= first-call lazy bootstrap). Safe
+    /// to call before any operation because `bootstrap()` is
+    /// idempotent (= uses `CREATE TABLE IF NOT EXISTS` + swallowed
+    /// `ALTER TABLE` failures). Setting `bootstrapped = true` after
+    /// the first successful bootstrap avoids re-running the SQL on
+    /// every subsequent operation. Per `KanbanTools (HERMES-PARTIAL-011)`
+    /// Z contract: tests construct a KanbanStore with a tmp path and
+    /// immediately call `tools.kanban(action: "create", ...)` without
+    /// explicitly calling `bootstrap()` first; this lazy path makes
+    /// those tests pass without weakening any explicit-bootstrap
+    /// callers (= they remain valid because `bootstrap()` is a no-op
+    /// once `bootstrapped == true`).
+    private func ensureBootstrapped() throws {
+        guard !bootstrapped else { return }
+        try bootstrap()
+        bootstrapped = true
     }
 
     private static func textColumn(_ stmt: OpaquePointer?, _ idx: Int32) -> String? {

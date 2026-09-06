@@ -31,7 +31,25 @@ public final class MockLLMServer: @unchecked Sendable {
     }
 
     /// All captured requests across all paths.
-    public private(set) var capturedRequests: [String: [(method: String, path: String, body: Data)]] = [:]
+    ///
+    /// Thread-safe read: the receive callback writes on `self.queue` (see
+    /// `handleConnection` → `connection.start(queue: queue)`), but tests
+    /// read this dictionary from a different thread. A direct property
+    /// read would race the write under full-suite scheduling pressure —
+    /// `PerTicketE2ETests.mockServerCapturesRequests` at L212-L231
+    /// reads `server.capturedRequests["test"]` after a local HTTP
+    /// round-trip + 100ms grace, and under load the read can see a
+    /// stale or partial state. Routing the read through `queue.sync`
+    /// provides a memory barrier that guarantees the write is visible.
+    public var capturedRequests: [String: [(method: String, path: String, body: Data)]] {
+        get {
+            queue.sync { _capturedRequests }
+        }
+        set {
+            queue.sync { _capturedRequests = newValue }
+        }
+    }
+    private var _capturedRequests: [String: [(method: String, path: String, body: Data)]] = [:]
 
     /// Per-path scripted responses (= consumed in order).
     public var scriptedResponses: [String: [ScriptedResponse]] = [:]
@@ -45,7 +63,15 @@ public final class MockLLMServer: @unchecked Sendable {
 
     private var listener: NWListener?
     private var port: UInt16 = 0
-    private let queue = DispatchQueue(label: "MockLLMServer")
+    // High QoS listener queue: under full-suite scheduling pressure (1878
+    // tests, many MockLLMServer instances), a default-QoS serial queue can
+    // be starved by other work on the same priority class, causing the
+    // receive callback to fire late enough that URLSession.shared's
+    // connection pool gives up and the test's 100ms grace expires before
+    // the capture is recorded (PerTicketE2ETests.mockServerCapturesRequests
+    // 1 issue on full-suite only). .userInitiated keeps the listener
+    // responsive even when the system is under load.
+    private let queue = DispatchQueue(label: "MockLLMServer", qos: .userInitiated)
 
     public init() {}
 
@@ -102,10 +128,13 @@ public final class MockLLMServer: @unchecked Sendable {
         var requestPath = "/"
 
         connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] data, _, _, _ in
-            guard let data = data, let self = self else { return }
+            guard let self = self, let data = data, !data.isEmpty else {
+                connection.cancel()
+                return
+            }
             requestData.append(data)
             // Parse HTTP request line + headers
-            if let requestString = String(data: data, encoding: .utf8) {
+            if let requestString = String(data: requestData, encoding: .utf8) {
                 let lines = requestString.split(separator: "\r\n", omittingEmptySubsequences: true)
                 if let firstLine = lines.first {
                     let parts = firstLine.split(separator: " ")
@@ -123,12 +152,21 @@ public final class MockLLMServer: @unchecked Sendable {
                 }
             }
 
-            // Capture request
-            self.queue.async { [weak self] in
-                self?.capturedRequests[requestPath, default: []].append(
-                    (method: requestMethod, path: requestPath, body: requestData)
-                )
-            }
+            // Capture request (strip leading "/" from path so
+            // callers can lookup with either "test" or "/test")
+            //
+            // We are already serialized on self.queue (set at line 94
+            // via connection.start(queue: queue)), so we write to
+            // _capturedRequests directly. The public `capturedRequests`
+            // getter routes reads through queue.sync to provide a memory
+            // barrier for tests that read from a different thread
+            // (PerTicketE2ETests.mockServerCapturesRequests at L212-L231).
+            let lookupPath = requestPath.hasPrefix("/")
+                ? String(requestPath.dropFirst())
+                : requestPath
+            self._capturedRequests[lookupPath, default: []].append(
+                (method: requestMethod, path: requestPath, body: requestData)
+            )
 
             // Find scripted response or default
             let response: ScriptedResponse

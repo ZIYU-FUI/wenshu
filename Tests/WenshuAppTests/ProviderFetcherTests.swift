@@ -34,7 +34,7 @@ struct ProviderFetcherTests {
     @Test("Provider 都有 defaultModels curated")
     func testCuratedFallback() {
         for p in Provider.all where p.slug != "custom" {
-            #expect(!p.defaultModels.isEmpty, "\\(p.slug) has empty curated")
+            #expect(!p.defaultModels.isEmpty, "\(p.slug) has empty curated")
         }
     }
 }

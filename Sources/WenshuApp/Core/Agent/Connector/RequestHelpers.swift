@@ -103,11 +103,37 @@ public enum RequestHelpers {
                         if let sig { d["signature"] = sig }
                         return d
                     case .toolUse(let id, let name, let input):
+                        // Anthropic native `tool_use.input` is a JSON
+                        // object (= dict), NOT a base64-encoded Data
+                        // blob. The caller passes a String (= already
+                        // serialized JSON), so we parse it back into a
+                        // [String: Any] so JSONSerialization can write it
+                        // (= Foundation's NSJSONWriter rejects raw Swift
+                        // Data with NSInvalidArgumentException
+                        // "Invalid type in JSON write
+                        // (Foundation.__NSSwiftData)"). When the input
+                        // is not a valid JSON object (= defensive), we
+                        // wrap it under the conventional "_raw" key so
+                        // the Anthropic decoder still surfaces the
+                        // original text and the wire shape stays
+                        // byte-stable with the prior pre-refactor
+                        // AnthropicConnector behavior (= the comment in
+                        // the request-marshaling header at the top of
+                        // this file says tool_use.input was historically
+                        // a Data blob; the canonical contract for v1
+                        // is a JSON object, so we prefer that path).
+                        let parsedInput: [String: Any]
+                        if let data = input.data(using: .utf8),
+                           let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                            parsedInput = object
+                        } else {
+                            parsedInput = ["_raw": input]
+                        }
                         return [
                             "type": "tool_use",
                             "id": id,
                             "name": name,
-                            "input": input.data(using: .utf8) ?? Data()
+                            "input": parsedInput
                         ]
                     case .toolResult(let toolUseID, let output):
                         return [

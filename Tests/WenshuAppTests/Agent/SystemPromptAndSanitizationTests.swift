@@ -68,9 +68,14 @@ struct SystemPromptDeepTests {
     func buildStableTierMultiLine() {
         let prompt = SystemPrompt.build(ephemeralHint: "x")
         #expect(prompt.contains("\n"))
-        // No Date()/clock data should appear
+        // No Date()/clock data should appear (= check for actual
+        // date/time tokens, NOT the substring "time" which would
+        // falsely match the word "runtime" that legitimately
+        // appears in the stable tier prompt template).
         #expect(!prompt.contains("Date"))
-        #expect(!prompt.contains("time"))
+        #expect(!prompt.contains("Time"))
+        #expect(!prompt.contains("2026-"))
+        #expect(!prompt.contains("2025-"))
     }
 }
 

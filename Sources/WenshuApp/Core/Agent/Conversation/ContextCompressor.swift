@@ -63,29 +63,35 @@ public actor ContextCompressor {
     ///   - systemMessage: Current system prompt (= returned unchanged;
     ///     wenshu policy keeps system prompt byte-stable per AGENTS.md §11.3).
     /// - Returns: Tuple of (compressed messages, system message unchanged).
-    ///   When compression is a no-op (e.g. message count <= keepRecentTurns),
-    ///   returns the original messages and system message unchanged.
+    ///   Compression triggers whenever the history is longer than
+    ///   `keepRecentTurns` (= the wenshu-side deterministic rule; this
+    ///   is the binding constraint — the count always drops to
+    ///   `1 summary + keepRecentTurns` when triggered). The `maxTokens`
+    ///   policy field is retained for callers that want to gate on token
+    ///   budget before invoking the compressor (= see
+    ///   `ConversationCompression.manualTrigger` for the manual path,
+    ///   which builds a more aggressive compressor with a low
+    ///   `maxTokens` to force the rewrite regardless of history size).
     public func compressContext(
         messages: [LLMMessage],
         systemMessage: String
     ) -> (messages: [LLMMessage], systemMessage: String) {
-        // 1. Early exit if messages already fit budget
-        let totalTokens = messages.reduce(0) { $0 + tokenEstimator.estimate($1) }
-        if totalTokens <= policy.maxTokens {
+        // 1. Trigger: history exceeds the recent-keep window. The
+        //    wenshu-side deterministic policy is driven by message count
+        //    (= the user said "keep the last N"); when the count is over
+        //    the window we always rewrite — the result is bounded by
+        //    `1 (summary) + keepRecentTurns` regardless of the input
+        //    size.
+        guard messages.count > policy.keepRecentTurns else {
             return (messages, systemMessage)
         }
 
-        // 2. Early exit if message count <= keepRecentTurns
-        if messages.count <= policy.keepRecentTurns {
-            return (messages, systemMessage)
-        }
-
-        // 3. Split: older messages + recent messages
+        // 2. Split: older messages + recent messages
         let splitIndex = messages.count - policy.keepRecentTurns
         let olderMessages = Array(messages[0..<splitIndex])
         let recentMessages = Array(messages[splitIndex..<messages.count])
 
-        // 4. Build synthesized summary message (= hermes behavior:
+        // 3. Build synthesized summary message (= hermes behavior:
         // replace older turns with one summary block)
         let summaryText = String(
             format: policy.summaryTemplate,
@@ -96,11 +102,11 @@ public actor ContextCompressor {
             blocks: [.text(summaryText)]
         )
 
-        // 5. Concatenate: [summary] + recent messages
+        // 4. Concatenate: [summary] + recent messages
         var compressed: [LLMMessage] = [summaryMessage]
         compressed.append(contentsOf: recentMessages)
 
-        // 6. System message preserved byte-stable (= AGENTS.md §11.3)
+        // 5. System message preserved byte-stable (= AGENTS.md §11.3)
         return (compressed, systemMessage)
     }
 }
@@ -124,6 +130,8 @@ public struct CharacterBasedTokenEstimator: TokenEstimator, Sendable {
             case .toolResult(_, let output): sum += output.count
             }
         }
-        return max(1, totalChars / 4)
+        // Ceiling division so any non-empty message yields >=1 token
+        // (= hermes estimate_messages_tokens_rough contract: ceil(chars/4)).
+        return max(1, (totalChars + 3) / 4)
     }
 }

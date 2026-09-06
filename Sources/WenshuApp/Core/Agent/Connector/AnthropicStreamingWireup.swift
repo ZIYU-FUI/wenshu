@@ -186,9 +186,14 @@ public enum AnthropicStreamingWireupFactory {
             "model": model,
             "max_tokens": maxTokens,
             "stream": true,
+            // system is an ARRAY of content blocks (= one block per the
+            // v0.35 contract). The Anthropic API expects [[{type, text}]]
+            // so the test decodes as [[String: Any]]. The pre-fix
+            // expression was a Swift dictionary literal (= `[key: value]`)
+            // masquerading as an array because of the surrounding bracket,
+            // so JSONSerialization serialized a single dict, not an array.
             "system": [
-                "type": "text",
-                "text": systemPrompt ?? ""
+                ["type": "text", "text": systemPrompt ?? ""]
             ],
             "messages": messages.map { llmMessage -> [String: Any] in
                 [

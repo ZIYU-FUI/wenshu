@@ -54,7 +54,7 @@ struct PromptCachingE2ETests {
         // All 50 system prompts must be byte-identical
         let first = capturedSystemPrompts[0]
         for (i, prompt) in capturedSystemPrompts.enumerated() {
-            #expect(prompt == first, "system prompt at turn \\(i) differs from turn 0")
+            #expect(prompt == first, "system prompt at turn \(i) differs from turn 0")
         }
     }
 
@@ -71,13 +71,19 @@ struct PromptCachingE2ETests {
         // Last 3 non-system (= last 3 messages) should carry cache_control
         for i in 1...5 {
             _ = try await loop.runConversation(
-                userMessage: "msg \\(i)",
+                userMessage: "msg \(i)",
                 conversationHistory: previousTurns(i: i)
             )
         }
 
-        let cachedMessageCount = (await connector.snapshot()).messageCount
-        #expect(cachedMessageCount == 5)
+        let snapshot = await connector.snapshot()
+        let cachedMessageCount = snapshot.cachedMessageCount
+        // Hermes system_and_3 contract: last 3 carryable messages carry
+        // a cache_control marker (= the 3-marker tail documented in
+        // PromptCaching.applyCacheControl above). The test comment
+        // explicitly states "Last 3 non-system messages should carry
+        // cache_control", so the assertion = 3.
+        #expect(cachedMessageCount == 3)
     }
 
     // MARK: - Test 3: Cache marker shape
@@ -101,8 +107,8 @@ struct PromptCachingE2ETests {
     private func previousTurns(i: Int) -> [LLMMessage] {
         var msgs: [LLMMessage] = []
         for j in 1..<i {
-            msgs.append(LLMMessage.user("prior msg \\(j)"))
-            msgs.append(LLMMessage.assistant("prior reply \\(j)"))
+            msgs.append(LLMMessage.user("prior msg \(j)"))
+            msgs.append(LLMMessage.assistant("prior reply \(j)"))
         }
         return msgs
     }
@@ -162,8 +168,10 @@ private actor StubMinimaxConnector: LLMConnector {
     /// Snapshot helper for tests (= returns captured state via async call).
     /// Returns only Sendable types (= message count, not the [[String: Any]]
     /// payload which is non-Sendable and cannot cross actor boundary).
-    func snapshot() -> (systemPrompt: String?, messageCount: Int) {
-        (capturedSystemPrompt, capturedMessages?.count ?? 0)
+    func snapshot() -> (systemPrompt: String?, messageCount: Int, cachedMessageCount: Int) {
+        let all = capturedMessages ?? []
+        let cached = all.filter { $0["cache_control"] != nil }.count
+        return (capturedSystemPrompt, all.count, cached)
     }
 }
 
