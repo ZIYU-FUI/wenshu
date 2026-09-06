@@ -266,19 +266,19 @@ struct SettingView: View {
                             .font(.body)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         if providersWithKeys.contains(p.slug) {
-                            Text("已设 key")
+                            Text(WenshuI18n.t("settings.provider.key_status_label"))
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
                         } else if p.requiresOAuth {
-                            Text("粘贴 密钥")
+                            Text(WenshuI18n.t("settings.provider.paste_key_label"))
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
                         } else if p.slug == "custom" {
-                            Text("粘贴 密钥")
+                            Text(WenshuI18n.t("settings.provider.paste_key_label"))
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
                         } else {
-                            Text("粘贴 \(p.name) 密钥")
+                            Text(WenshuI18n.ts("settings.provider.paste_provider_key_label", p.name))
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
                         }
@@ -301,9 +301,9 @@ struct SettingView: View {
                     }
                 }
             } header: {
-                Text("本地 / 自定义端点")
+                Text(WenshuI18n.t("settings.provider.custom_endpoint_label"))
             } footer: {
-                Text("将文枢 指向任意 OpenAI 兼容端点 (Zyphra, vLLM, llama.cpp, Ollama 等).")
+                Text(WenshuI18n.t("settings.provider.custom_endpoint_caption"))
                     .font(.caption)
             }
         }
@@ -333,7 +333,7 @@ struct SettingView: View {
             } footer: {
                 let total = Provider.all.count
                 let set = providersWithKeys.count
-                Text("已设 key \(set) / \(total)")
+                Text(WenshuI18n.tf("settings.provider.key_count_label", String(set), String(total)))
                     .font(.caption)
             }
         }
@@ -379,7 +379,7 @@ struct SettingView: View {
         HStack(spacing: 8) {
             SecureField("sk-...", text: $apiDraftKey)
                 .textFieldStyle(.roundedBorder)
-            Button("保存") {
+            Button(WenshuI18n.t("settings.provider.save_button")) {
                 saveApiKey(for: p)
             }
             .keyboardShortcut(.defaultAction)
@@ -409,7 +409,7 @@ struct SettingView: View {
                     .font(.caption.monospaced())
                     .foregroundStyle(.tertiary)
             } else {
-                Text("待配置")
+                Text(WenshuI18n.t("settings.provider.tbd_label"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
@@ -440,7 +440,7 @@ struct SettingView: View {
                 userInfo: ["slug": provider.slug]
             )
         } catch {
-            apiError = "保存失败: \(error.localizedDescription)"
+            apiError = WenshuI18n.ts("settings.provider.save_failed_message", error.localizedDescription)
         }
     }
 
@@ -501,10 +501,10 @@ struct SettingView: View {
                         Text(task.label)
                             .font(.body)
                         Spacer()
-                        Text("使用主模型")
+                        Text(WenshuI18n.t("settings.model.use_main_model"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        Button("更改") {}
+                        Button(WenshuI18n.t("settings.model.change_button")) {}
                             .buttonStyle(.borderless)
                             .controlSize(.small)
                             .disabled(true)
@@ -513,7 +513,7 @@ struct SettingView: View {
             } header: {
                 Text(WenshuI18n.t("settings.model.assistant_model_label"))
             } footer: {
-                Text("辅助任务默认使用主模型. 你可以为任意任务指定专用模型. (wenshu 真值: 辅助任务调度暂未实现, 占位显示 Hermes AUX_TASKS 真值列表)")
+                Text(WenshuI18n.t("settings.assistant.caption"))
                     .font(.caption)
             }
         }
