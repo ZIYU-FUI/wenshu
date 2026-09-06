@@ -2125,47 +2125,6 @@ private struct PreviewTabBackground: View {
 /// this context). Replaced with simple plain Button + cycle-through
 /// sort order pattern (= mirrors NewButtonWithHover's plain Button
 /// + LucideIcon + frame pattern which DOES render correctly).
-private struct PreviewSortMenuButton: View {
-    @Binding var sortOrder: EntitySortOrder
-    @State private var isHover: Bool = false
-
-    var body: some View {
-        // Q34 ticket 01 of v0.30-topbar-card-alignment: PaneIconTab
-        // pattern exactly (= Color.clear base + overlay icon +
-        // contentShape). The previous "plain Button + LucideIcon
-        // + .frame(width: 28, height: 28)" pattern collapsed to
-        // zero size inside ZoneContentView's trailing slot (= AnyView
-        // wrapper at ZoneContentTabBar erases intrinsic size).
-        // Color.clear base provides a guaranteed 28x28 hit area that
-        // survives AnyView wrapping, matching PaneIconTab which DOES
-        // render in the same slot.
-        //
-        // Tap behavior: cycle through 3 sort orders. Icon updates
-        // to reflect current order.
-        Button {
-            switch sortOrder {
-            case .pinyinFirstLetter: sortOrder = .createdAt
-            case .createdAt: sortOrder = .modifiedAt
-            case .modifiedAt: sortOrder = .pinyinFirstLetter
-            }
-        } label: {
-            // PaneIconTab pattern: Color.clear as BASE, icon as
-            // .overlay centered. Fixed frame = intrinsic size preserved.
-            Color.clear
-                .frame(width: DesignTokens.paneTabHotArea, height: DesignTokens.paneTabHotArea)
-                .overlay(alignment: .center) {
-                    LucideIcon(sortOrder.menuIcon, size: DesignTokens.tabIconSize)
-                        .foregroundStyle(Color.secondary)
-                }
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .onHover { hovering in
-            isHover = hovering
-        }
-        .help("排序方式: \(sortOrder.rawValue)")
-    }
-}
 
 // MARK: - findPaneController (Apple canonical view-tree BFS)
 //
