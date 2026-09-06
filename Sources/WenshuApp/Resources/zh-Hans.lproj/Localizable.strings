@@ -166,3 +166,16 @@
 "tab.title.search" = "搜索";
 "tab.title.settings" = "设置";
 "tab.title.chat" = "对话";
+"settings.model.provider_label" = "提供方";
+"settings.model.model_label" = "模型";
+"settings.model.main_model_label" = "主模型";
+"settings.model.main_model_caption" = "设置全局默认模型.";
+"settings.model.reasoning_effort_label" = "默认推理强度";
+"settings.model.reasoning_effort_low" = "低";
+"settings.model.reasoning_effort_medium" = "中";
+"settings.model.reasoning_effort_high" = "高";
+"settings.model.reasoning_effort_xhigh" = "极高";
+"settings.model.reasoning_effort_max" = "最高";
+"settings.model.reasoning_label" = "推理";
+"settings.model.use_main_model" = "使用主模型";
+"settings.model.assistant_model_label" = "辅助模型";
