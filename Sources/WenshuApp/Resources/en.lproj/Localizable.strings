@@ -155,3 +155,12 @@
 "workspace.editor.switch_to_edit" = "Switch to edit mode";
 "workspace.editor.dirty_discard_alert_title" = "Unsaved changes will be discarded.";
 "workspace.editor.dirty_discard_button" = "Discard edits";
+"tab.title.bookshelf" = "Bookshelf";
+"tab.title.preview" = "Preview";
+"tab.title.graph" = "Graph";
+"tab.title.editor" = "Editor";
+"tab.title.outline" = "Outline";
+"tab.title.backlinks" = "Backlinks";
+"tab.title.foreshadowing" = "Foreshadowing";
+"tab.title.placeholder" = "Placeholder";
+"tab.title.reference_library" = "Reference library";
