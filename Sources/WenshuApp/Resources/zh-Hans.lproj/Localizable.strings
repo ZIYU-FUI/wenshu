@@ -146,3 +146,12 @@
 "workspace.editor.switch_to_edit" = "切到编辑模式";
 "workspace.editor.dirty_discard_alert_title" = "未保存的更改将丢失";
 "workspace.editor.dirty_discard_button" = "放弃编辑";
+"tab.title.bookshelf" = "书架";
+"tab.title.preview" = "预览";
+"tab.title.graph" = "图";
+"tab.title.editor" = "编辑";
+"tab.title.outline" = "大纲";
+"tab.title.backlinks" = "反链";
+"tab.title.foreshadowing" = "伏笔";
+"tab.title.placeholder" = "占位符";
+"tab.title.reference_library" = "资料库";

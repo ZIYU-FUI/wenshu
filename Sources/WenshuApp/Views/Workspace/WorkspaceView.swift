@@ -144,7 +144,7 @@ struct WorkspaceView: View {
                 content = body
                 title = first.title
             } else {
-                path = nil; content = ""; title = category?.displayName ?? "资料库"
+                path = nil; content = ""; title = category?.displayName ?? WenshuI18n.t("tab.title.reference_library")
             }
         case .bookScope:
             // Deferred to ticket 027-35: PreviewPane's private
@@ -317,7 +317,7 @@ struct WorkspaceView: View {
             // v0.30: pass bindings so sidebar selection → preview pane.
             // The trailingButton uses the default-init (doesn't drive preview).
             ZoneContentView(zoneSlug: "projectSidebar", tabs: [
-                ("书架", "book-open", AnyView(NewLibraryOutlineView(
+                (WenshuI18n.t("tab.title.bookshelf"), "book-open", AnyView(NewLibraryOutlineView(
                     selectedEntityCategory: $selectedEntityCategory,
                     selectedEntity: $selectedEntity
                 ))),
@@ -356,7 +356,7 @@ struct WorkspaceView: View {
             // re-renders the card grid (= PreviewPane observes
             // the same @State via its previewSortOrder parameter).
             ZoneContentView(zoneSlug: "projectPreview", tabs: [
-                ("预览", "book-open-check", AnyView(PreviewPane(
+                (WenshuI18n.t("tab.title.preview"), "book-open-check", AnyView(PreviewPane(
                     scope: previewScope,
                     // v0.34 B-25: simplest possible = card double-click
                     // opens the .md file from the card (= Apple HIG
@@ -372,7 +372,7 @@ struct WorkspaceView: View {
                     },
                     previewSortOrder: $previewSortOrder
                 ))),
-                ("图", "waypoints", AnyView(GraphView())),
+                (WenshuI18n.t("tab.title.graph"), "waypoints", AnyView(GraphView())),
             ], trailingButton: AnyView(
                 // v0.30 boss 8/31 OOB: 'place the sort ICON in the top bar, right-aligned,
                 // ▼ replace with list-ordered icon'. The sort menu button
@@ -397,9 +397,9 @@ struct WorkspaceView: View {
                 // (= the ticket 04-10 patched one with toolbar + mode toggle +
                 // save + expand + close; BacklinksPanel in preview mode;
                 // TextEditor in edit mode).
-                ("编辑", "book-open-text", AnyView(EditorPlaceholder())),
-                ("大纲", "puzzle", AnyView(EditorPlaceholder())),
-                ("反链", "link", AnyView(EditorPlaceholder())),
+                (WenshuI18n.t("tab.title.editor"), "book-open-text", AnyView(EditorPlaceholder())),
+                (WenshuI18n.t("tab.title.outline"), "puzzle", AnyView(EditorPlaceholder())),
+                (WenshuI18n.t("tab.title.backlinks"), "link", AnyView(EditorPlaceholder())),
             ], trailingButton: AnyView(EditorExpandShrinkTrailingButton()))
         case .specializedTools:
             // Old 6-zone specializedTools = 5 tabs (= Foreshadowing / Placeholder /
@@ -485,8 +485,8 @@ struct WorkspaceView: View {
             //     FINAL P1 ticket (= 12th and last tab in the
             //     specializedTools pane).
             ZoneContentView(zoneSlug: "specializedTools", tabs: [
-                ("伏笔", "git-fork", AnyView(ForeshadowingView())),
-                ("占位符", "square-dashed", AnyView(PlaceholderView())),
+                (WenshuI18n.t("tab.title.foreshadowing"), "git-fork", AnyView(ForeshadowingView())),
+                (WenshuI18n.t("tab.title.placeholder"), "square-dashed", AnyView(PlaceholderView())),
                 ("Long-Form", "shield-check", AnyView(LongFormGuardrailsView())),
                 ("Reader-Exp", "sparkles", AnyView(ReaderExperienceView())),
                 ("Plot-Thread", "git-branch", AnyView(PlotThreadView())),
@@ -622,7 +622,7 @@ struct ZoneModuleView: View {
             // sidebarSelection binding to NewLibraryOutlineView so
             // the sidebar click → preview pane scope works.
             ZoneContentView(zoneSlug: "projectSidebar", tabs: [
-                ("书架", "book-open", AnyView(NewLibraryOutlineView(
+                (WenshuI18n.t("tab.title.bookshelf"), "book-open", AnyView(NewLibraryOutlineView(
                     selectedEntityCategory: $selectedEntityCategory,
                     selectedEntity: $selectedEntity
                 ))),
@@ -647,7 +647,7 @@ struct ZoneModuleView: View {
             // WorkspaceView path uses PreviewPane directly with the
             // computed previewScope (= supports all 4 sidebar scopes).
             ZoneContentView(zoneSlug: "projectPreview", tabs: [
-                ("预览", "book-open-check", AnyView(PreviewPane(
+                (WenshuI18n.t("tab.title.preview"), "book-open-check", AnyView(PreviewPane(
                     scope: previewScope,
                     // v0.34 B-25-fix (= boss 9/3 'double-clicking card did not open the document'):
                     // ZoneModuleView's caller L561 is the ACTIVE path
@@ -669,7 +669,7 @@ struct ZoneModuleView: View {
                     },
                     previewSortOrder: .constant(.pinyinFirstLetter)
                 ))),
-                ("图", "waypoints", AnyView(GraphView())),
+                (WenshuI18n.t("tab.title.graph"), "waypoints", AnyView(GraphView())),
             ])
 
         case .specializedTools:
@@ -679,8 +679,8 @@ struct ZoneModuleView: View {
             // ReaderExperience per P1 ticket #7
             // [WIRE-SPECIALIZEDTOOLS-002] 2026-09-04).
             ZoneContentView(zoneSlug: "specializedTools", tabs: [
-                ("伏笔", "git-fork", AnyView(ForeshadowingView())),
-                ("占位符", "square-dashed", AnyView(PlaceholderView())),
+                (WenshuI18n.t("tab.title.foreshadowing"), "git-fork", AnyView(ForeshadowingView())),
+                (WenshuI18n.t("tab.title.placeholder"), "square-dashed", AnyView(PlaceholderView())),
                 ("Long-Form", "shield-check", AnyView(LongFormGuardrailsView())),
                 ("Reader-Exp", "sparkles", AnyView(ReaderExperienceView())),
                 ("Plot-Thread", "git-branch", AnyView(PlotThreadView())),
@@ -711,8 +711,8 @@ struct ZoneModuleView: View {
                     // v0.34 B-13 fix (= boss 9/2 'git grep BEFORE patch' rule):
                     // see L279 fix comment above; replace placeholder with
                     // EditorPlaceholder (= ticket 04-10 toolbar + mode toggle).
-                    ("编辑", "book-open-text", AnyView(EditorPlaceholder())),
-                    ("大纲", "puzzle", AnyView(OutlinePanel())),
+                    (WenshuI18n.t("tab.title.editor"), "book-open-text", AnyView(EditorPlaceholder())),
+                    (WenshuI18n.t("tab.title.outline"), "puzzle", AnyView(OutlinePanel())),
                     // v0.34 B-16: removed the "Backlinks" tab here (= boss 9/2 OOB
                     // 'the Backlinks area still has to be removed'). Backlinks are now
                     // surfaced via the chrome bottom-right "Backlinks 0"
@@ -753,7 +753,7 @@ struct ZoneModuleView: View {
                 title = first.title
             } else {
                 path = nil; content = ""
-                title = category?.displayName ?? "资料库"
+                title = category?.displayName ?? WenshuI18n.t("tab.title.reference_library")
             }
         case .bookScope(let bookId, let folderName):
             // Walk shelves/<shelf-uuid>/books/<book-uuid>/<folder>/*.md.
