@@ -1,7 +1,7 @@
 // PresetThumbnail.swift · Wenshu (文枢) · v0.28 ticket 028-007
 //
 // SwiftUI port of `TreeThumbnail` (= hermes `layout-picker.tsx:26-51`).
-// Recursively renders a WorkspaceState as gray rectangles
+// Recursively renders a LayoutTreeState as gray rectangles
 // (= HStack for row splits, VStack for column splits) showing the
 // pane layout at thumbnail scale. Leaf groups render as filled
 // rectangles; splits render as nested containers.
@@ -11,10 +11,10 @@
 //
 import SwiftUI
 
-/// PresetThumbnail — recursive mini-render of a WorkspaceState for
+/// PresetThumbnail — recursive mini-render of a LayoutTreeState for
 /// use in the preset cards (= PresetCard).
 struct PresetThumbnail: View {
-    let workspace: WorkspaceState
+    let workspace: LayoutTreeState
 
     var body: some View {
         GeometryReader { geo in

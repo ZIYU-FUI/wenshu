@@ -212,7 +212,7 @@ struct WorkspaceView: View {
         // fully replicates the old behavior). WorkspaceView now
         // ALWAYS renders the NSSplitView path (= PaneSplitHost +
         // PaneNSController). The `useNSSplitView` feature flag
-        // stays in WorkspaceState for backward Codable
+        // stays in LayoutTreeState for backward Codable
         // compatibility but the UI no longer branches on it.
         PaneSplitHost(
             layout: FCPLayout(),

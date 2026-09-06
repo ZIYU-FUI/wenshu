@@ -4,7 +4,7 @@
 // "Implement the FCP layout using Apple official APIs"; see spec.md
 // for the verbatim Chinese quote). This NSSplitViewController subclass
 // is what FCPLayout.makeSplitController actually returns (= after
-// ticket 01's stub). It walks the recursive WorkspaceState tree
+// ticket 01's stub). It walks the recursive LayoutTreeState tree
 // and builds the matching NSSplitView + NSSplitViewItem hierarchy.
 //
 // Ticket 03 / 4 scope (= this file):
