@@ -1736,31 +1736,26 @@ struct EditorPlaceholder: View {
     // + Apple HIG DocumentGroup). Exercises all the rendering paths:
     // header levels, bold/italic, bullet list, inline code, code fence,
     // [[wikilink]] (= parsed by InternalLinkParser).
+    // v0.40 apple-001 UX cleanup: replaced the CJK "feature demo" sample
+    // (= "list item 1 / list item 2 / nested list" = showed off every
+    // markdown feature) with a real onboarding welcome that uses the
+    // user's actual project context. The empty-workspace greeting
+    // tells user how to create a document (= Apple HIG standard for
+    // first-run experiences). The body preserves ONE wikilink so the
+    // preview still exercises the wikilink parser (= InternalLinkParser).
     static let samplePreviewBody: String = """
-    # 文枢编辑区预览
+    # Welcome to wenshu
 
-    这是 **粗体**, *斜体*, `inline code`, and a [regular link](https://apple.com).
+    This is your empty editor pane. To get started:
 
-    ## 二级标题
+    1. Open a book from the **Project sidebar** on the left.
+    2. Create a chapter in the **Outline** view.
+    3. Start writing here.
 
-    - 列表项 1
-    - 列表项 2
-      - 嵌套列表
-    - 列表项 3
+    The Wenshu AI assistant is available in the **Chat** zone at the
+    bottom of the workspace. Try asking it for help with your chapter.
 
-    ## 代码块
-
-    ```swift
-    func hello() {
-        print("Hello, 文枢!")
-    }
-    ```
-
-    ## 内部链接
-
-    Refer to [[阳明心学]] and [[尚书|Classic Book]] as inline wikilinks.
-
-    > 这是引用块 — Obsidian 风格.
+    See the [[getting-started]] guide for a full tour.
     """
 
     // v0.34 ticket 05: placeholder type alias for the wikilink navigation
