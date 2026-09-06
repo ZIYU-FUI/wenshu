@@ -95,14 +95,7 @@ struct SmartQueryView: View {
 
     @ViewBuilder
     private var createSheet: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Text("新建智能查询")
-                    .font(.headline)
-                Spacer()
-            }
-            .padding()
-            Divider()
+        NavigationStack {
             Form {
                 Section("名称") {
                     TextField("查询名称", text: $newQueryName)
@@ -115,16 +108,20 @@ struct SmartQueryView: View {
                 }
             }
             .formStyle(.grouped)
-            Divider()
-            HStack {
-                Button("取消", role: .cancel) { showCreateSheet = false }
-                Spacer()
-                Button("保存") { create() }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(newQueryName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    .keyboardShortcut(.defaultAction)
+            // v0.40 apple-001 HIG absent batch: .navigationTitle +
+            // .toolbar (= Apple HIG standard for sheet chrome). The
+            // inline HStack { Text + Divider } header was removed.
+            .navigationTitle(WenshuI18n.t("smart_query.create.title"))
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { showCreateSheet = false }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("保存") { create() }
+                        .disabled(newQueryName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .keyboardShortcut(.defaultAction)
+                }
             }
-            .padding()
         }
         .frame(minWidth: 360, idealWidth: 420, minHeight: 280, idealHeight: 340)
         // POLISH-LIQUIDGLASS-004: New Smart Query modal sheet root

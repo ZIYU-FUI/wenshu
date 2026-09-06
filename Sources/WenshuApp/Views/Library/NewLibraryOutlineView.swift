@@ -1544,14 +1544,7 @@ private struct NewBookSheet: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Text("新建书")
-                    .font(.headline)
-                Spacer()
-            }
-            .padding()
-            Divider()
+        NavigationStack {
             Form {
                 TextField("书名", text: $title)
                     .textFieldStyle(.roundedBorder)
@@ -1630,24 +1623,31 @@ private struct NewBookSheet: View {
                 }
             }
             .formStyle(.grouped)
-            Divider()
-            HStack {
-                Button("取消", role: .cancel) { dismiss() }
-                Spacer()
-                Button("保存") {
-                    let book = Book(
-                        title: title,
-                        author: author,
-                        icon: selectedIcon,
-                        shelfId: shelfId
-                    )
-                    onSave(book)
-                    dismiss()
+            // v0.40 apple-001 HIG absent batch: .navigationTitle +
+            // .toolbar (= Apple HIG standard for sheet chrome). The
+            // inline HStack { Text + Divider } header + footer buttons
+            // were removed; the title moves to .navigationTitle and
+            // Cancel/Save move to .toolbar.
+            .navigationTitle(WenshuI18n.t("library.new_book.title"))
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
                 }
-                .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .keyboardShortcut(.defaultAction)
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("保存") {
+                        let book = Book(
+                            title: title,
+                            author: author,
+                            icon: selectedIcon,
+                            shelfId: shelfId
+                        )
+                        onSave(book)
+                        dismiss()
+                    }
+                    .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .keyboardShortcut(.defaultAction)
+                }
             }
-            .padding()
         }
         .frame(minWidth: 480, idealWidth: 540, minHeight: 720, idealHeight: 800)
     }
@@ -1718,14 +1718,7 @@ private struct NewShelfSheet: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Text("新建书架")
-                    .font(.headline)
-                Spacer()
-            }
-            .padding()
-            Divider()
+        NavigationStack {
             Form {
                 Section {
                     TextField("书架名 (例如 长篇网文)", text: $name)
@@ -1814,18 +1807,22 @@ private struct NewShelfSheet: View {
                 }
             }
             .formStyle(.grouped)
-            Divider()
-            HStack {
-                Button("取消", role: .cancel) { dismiss() }
-                Spacer()
-                Button("保存") {
-                    onSave(name, selectedIcon)
-                    dismiss()
+            // v0.40 apple-001 HIG absent batch: .navigationTitle +
+            // .toolbar (= Apple HIG standard for sheet chrome).
+            .navigationTitle(WenshuI18n.t("library.new_shelf.title"))
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
                 }
-                .disabled(!isNameValid)
-                .keyboardShortcut(.defaultAction)
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("保存") {
+                        onSave(name, selectedIcon)
+                        dismiss()
+                    }
+                    .disabled(!isNameValid)
+                    .keyboardShortcut(.defaultAction)
+                }
             }
-            .padding()
         }
         .frame(minWidth: 480, idealWidth: 540, minHeight: 480, idealHeight: 560)
     }
@@ -1841,39 +1838,44 @@ struct NewChoiceSheet: View {
     let onNewShelf: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("新建").font(.headline)
-                Spacer()
-                Button("取消") { dismiss() }
-                    .keyboardShortcut(.cancelAction)
-            }
-            HStack(spacing: 12) {
-                Button {
-                    onNewBook()
-                } label: {
-                    VStack(spacing: 8) {
-                        LucideIcon("book-plus", size: 32)
-                        Text("新建书").font(.body)
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(spacing: 12) {
+                    Button {
+                        onNewBook()
+                    } label: {
+                        VStack(spacing: 8) {
+                            LucideIcon("book-plus", size: 32)
+                            Text("新建书").font(.body)
+                        }
+                        .frame(width: DesignTokens.chipAvatarSize.width, height: DesignTokens.chipAvatarSize.height)
                     }
-                    .frame(width: DesignTokens.chipAvatarSize.width, height: DesignTokens.chipAvatarSize.height)
-                }
-                .buttonStyle(.bordered)
+                    .buttonStyle(.bordered)
 
-                Button {
-                    onNewShelf()
-                } label: {
-                    VStack(spacing: 8) {
-                        LucideIcon("library", size: 32)
-                        Text("新建书架").font(.body)
+                    Button {
+                        onNewShelf()
+                    } label: {
+                        VStack(spacing: 8) {
+                            LucideIcon("library", size: 32)
+                            Text("新建书架").font(.body)
+                        }
+                        .frame(width: DesignTokens.chipAvatarSize.width, height: DesignTokens.chipAvatarSize.height)
                     }
-                    .frame(width: DesignTokens.chipAvatarSize.width, height: DesignTokens.chipAvatarSize.height)
+                    .buttonStyle(.bordered)
                 }
-                .buttonStyle(.bordered)
+                Spacer()
             }
-            Spacer()
+            .padding(DesignTokens.chromePaddingHero)
+            // v0.40 apple-001 HIG absent batch: .navigationTitle +
+            // .toolbar (= Apple HIG standard for sheet chrome).
+            .navigationTitle(WenshuI18n.t("library.new_choice.title"))
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { dismiss() }
+                        .keyboardShortcut(.cancelAction)
+                }
+            }
         }
-        .padding(DesignTokens.chromePaddingHero)
         .frame(minWidth: 280, idealWidth: 320, minHeight: 180, idealHeight: 200)
     }
 }

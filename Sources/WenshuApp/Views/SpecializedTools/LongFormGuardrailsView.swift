@@ -368,36 +368,43 @@ struct LongFormGuardrailsView: View {
     // MARK: - Add sheet
 
     private var addSheet: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Add guardrail")
-                .font(.title3)
-                .foregroundStyle(.primary)
-            Form {
-                Picker("Kind", selection: $draftKind) {
-                    ForEach(LongFormGuardrailKind.allCases, id: \.self) { kind in
-                        Text(kind.displayName).tag(kind)
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 12) {
+                Form {
+                    Picker("Kind", selection: $draftKind) {
+                        ForEach(LongFormGuardrailKind.allCases, id: \.self) { kind in
+                            Text(kind.displayName).tag(kind)
+                        }
                     }
-                }
-                Picker("Enforcement", selection: $draftEnforcement) {
-                    ForEach(LongFormGuardrailEnforcement.allCases, id: \.self) { level in
-                        Text(level.rawValue).tag(level)
+                    Picker("Enforcement", selection: $draftEnforcement) {
+                        ForEach(LongFormGuardrailEnforcement.allCases, id: \.self) { level in
+                            Text(level.rawValue).tag(level)
+                        }
                     }
+                    TextField("Name", text: $draftName)
+                    TextField("Description", text: $draftDescription, axis: .vertical)
+                        .lineLimit(3...6)
                 }
-                TextField("Name", text: $draftName)
-                TextField("Description", text: $draftDescription, axis: .vertical)
-                    .lineLimit(3...6)
             }
-            HStack {
-                Spacer(minLength: 0)
-                Button("Cancel") { showAddSheet = false }
-                    .buttonStyle(.bordered)
-                Button("Save") { Task { await saveDraft() } }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(draftName.trimmingCharacters(in: .whitespaces).isEmpty)
+            .padding(DesignTokens.chromePaddingLarge)
+            .frame(width: DesignTokens.guardrailSheetWidth)
+            // v0.40 apple-001 HIG absent batch: .navigationTitle +
+            // .toolbar (= Apple HIG standard for sheet title bar +
+            // action buttons). The inline Text(\"Add guardrail\") +
+            // Cancel/Save buttons were removed; the title moves to
+            // .navigationTitle and Cancel/Save move to .toolbar
+            // (= Apple canonical pattern for sheet chrome).
+            .navigationTitle(WenshuI18n.t("guardrail.add.title"))
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { showAddSheet = false }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { Task { await saveDraft() } }
+                        .disabled(draftName.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
             }
         }
-        .padding(DesignTokens.chromePaddingLarge)
-        .frame(width: DesignTokens.guardrailSheetWidth)
         // POLISH-LIQUIDGLASS-004: Add-guardrail modal sheet root uses
         // Apple .glassEffect(.regular) (= macOS 27 Tahoe Liquid Glass;
         // same shape as POLISH-LIQUIDGLASS-001/002/003 that glassed

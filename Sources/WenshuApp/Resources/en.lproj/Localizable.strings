@@ -203,3 +203,10 @@
 "chat.stub.unavailable_label" = "Not available yet";;
 "connector.gemini_unavailable" = "This provider does not support test connection yet";
 "settings.search.placeholder" = "Search";
+"guardrail.add.title" = "Add guardrail";
+"library.new_book.title" = "New book";
+"library.new_shelf.title" = "New shelf";
+"library.new_choice.title" = "New";
+"smart_query.create.title" = "New smart query";
+"command_palette.title" = "Command palette";
+"layout.zone_editor.title" = "Zone editor";
