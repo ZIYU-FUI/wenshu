@@ -734,7 +734,7 @@ struct SettingView: View {
             // v0.27 boss 8/27 OOB: SF 'key' / 'key.fill' → Lucide 'key'.
             LucideIconSystemFallback(hasKey ? "key.fill" : "key", size: 18)
                 .foregroundStyle(hasKey ? Color.green : Color.secondary)
-                .frame(width: 18)
+                .frame(width: DesignTokens.tabIconSize)
             Text(p.name)
                 .font(.body)
             Spacer()
@@ -831,7 +831,7 @@ struct SettingView: View {
                         // name string) → Lucide canonical via helper.
                         LucideIconSystemFallback(task.icon, size: 18)
                             .foregroundStyle(.secondary)
-                            .frame(width: 18)
+                            .frame(width: DesignTokens.tabIconSize)
                         Text(task.label)
                             .font(.body)
                         Spacer()

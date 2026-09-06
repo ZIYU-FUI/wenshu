@@ -285,7 +285,7 @@ struct CharacterLifecycleView: View {
         HStack(alignment: .top, spacing: 8) {
             LucideIconSystemFallback(event.stage.lucideIcon, size: 16)
                 .foregroundStyle(.tint)
-                .frame(width: 18)
+                .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text(characterName(for: event.characterId))
@@ -415,7 +415,7 @@ struct CharacterLifecycleView: View {
                     HStack(alignment: .top, spacing: 6) {
                         LucideIconSystemFallback("alert-triangle", size: 14)
                             .foregroundStyle(Color(nsColor: .systemOrange))
-                            .frame(width: 18)
+                            .frame(width: DesignTokens.tabIconSize)
                         VStack(alignment: .leading, spacing: 1) {
                             Text(characterName(for: issue.characterId))
                                 .font(.caption)

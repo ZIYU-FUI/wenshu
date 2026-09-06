@@ -325,7 +325,7 @@ struct IdeaLibraryView: View {
             HStack(alignment: .top, spacing: 8) {
                 LucideIconSystemFallback(idea.status.lucideIcon, size: 16)
                     .foregroundStyle(.tint)
-                    .frame(width: 18)
+                    .frame(width: DesignTokens.tabIconSize)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(idea.title)
@@ -502,7 +502,7 @@ struct IdeaLibraryView: View {
         HStack(alignment: .top, spacing: 6) {
             LucideIconSystemFallback(link.target.lucideIcon, size: 14)
                 .foregroundStyle(.tint)
-                .frame(width: 18)
+                .frame(width: DesignTokens.tabIconSize)
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 6) {
                     Text(link.target.displayName)
