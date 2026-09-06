@@ -38,7 +38,7 @@ struct ParagraphAIToolbarButtons: View {
                 onApply(.expand)
             } label: {
                 Image(systemName: "arrow.up.left.and.arrow.down.right")
-                    .font(.system(size: 12, design: .monospaced))
+                    .font(DesignTokens.hotkeyComboFont)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
@@ -59,7 +59,7 @@ struct ParagraphAIToolbarButtons: View {
                 onApply(.shorten)
             } label: {
                 Image(systemName: "arrow.down.right.and.arrow.up.left")
-                    .font(.system(size: 12, design: .monospaced))
+                    .font(DesignTokens.hotkeyComboFont)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
@@ -79,7 +79,7 @@ struct ParagraphAIToolbarButtons: View {
                 onApply(.rephrase)
             } label: {
                 Image(systemName: "arrow.triangle.2.circlepath")
-                    .font(.system(size: 12, design: .monospaced))
+                    .font(DesignTokens.hotkeyComboFont)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
@@ -107,7 +107,7 @@ struct ParagraphAIToolbarButtons: View {
                     .disabled(selectedText.isEmpty || isApplying)
             } label: {
                 Image(systemName: "ellipsis.circle")
-                    .font(.system(size: 12, design: .monospaced))
+                    .font(DesignTokens.hotkeyComboFont)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 4)
