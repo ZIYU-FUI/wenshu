@@ -256,7 +256,7 @@ struct GenreFitView: View {
         return Text("score \(pct)/100")
             .font(.caption2)
             .foregroundStyle(.primary)
-            .padding(.horizontal, 6)
+            .padding(.horizontal, DesignTokens.chromePaddingSmall)
             .padding(.vertical, 1)
             .background(
                 RoundedRectangle(cornerRadius: 3)

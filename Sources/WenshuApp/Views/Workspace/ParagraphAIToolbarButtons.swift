@@ -109,7 +109,7 @@ struct ParagraphAIToolbarButtons: View {
                 Image(systemName: "ellipsis.circle")
                     .font(DesignTokens.hotkeyComboFont)
                     .foregroundStyle(.secondary)
-                    .padding(.horizontal, 6)
+                    .padding(.horizontal, DesignTokens.chromePaddingSmall)
                     .padding(.vertical, 4)
                     .contentShape(Rectangle())
             }

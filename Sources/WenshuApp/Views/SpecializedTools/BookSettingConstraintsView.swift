@@ -287,7 +287,7 @@ struct BookSettingConstraintsView: View {
                         Text(constraint.severity.displayName)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                            .padding(.horizontal, 6)
+                            .padding(.horizontal, DesignTokens.chromePaddingSmall)
                             .padding(.vertical, 1)
                             .background(
                                 RoundedRectangle(cornerRadius: 3)
@@ -296,7 +296,7 @@ struct BookSettingConstraintsView: View {
                         Text(constraint.scope.displayName)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                            .padding(.horizontal, 6)
+                            .padding(.horizontal, DesignTokens.chromePaddingSmall)
                             .padding(.vertical, 1)
                             .background(
                                 RoundedRectangle(cornerRadius: 3)

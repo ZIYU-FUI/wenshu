@@ -399,7 +399,7 @@ private struct KanbanCard: View {
                 } label: {
                     Text(label(for: ticket.status))
                         .font(.caption)
-                        .padding(.horizontal, 6)
+                        .padding(.horizontal, DesignTokens.chromePaddingSmall)
                         .padding(.vertical, 2)
                         .background(.tint.opacity(0.18), in: Capsule())
                 }
