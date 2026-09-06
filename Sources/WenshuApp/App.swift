@@ -1445,24 +1445,3 @@ struct ChatZoneView: View {
     }
 }
 
-/// v0.21 ticket 43: ChatZoneStubView = 第 2/3 个 tab 占位视图 (老板拍 '先放着, 后面实现')
-/// Apple HIG 真值: VStack 居中 + 大 icon + '开发中' placeholder 文字 + 灰色调
-struct ChatZoneStubView: View {
-    let title: String
-    let icon: String
-
-    var body: some View {
-        VStack(spacing: 12) {
-            // v0.27 boss 8/27 OOB: dynamic icon string → Lucide via helper.
-            LucideIconSystemFallback(icon, size: 48)
-                .foregroundStyle(.tertiary)
-            Text("\(title) (开发中)")
-                .font(.title3)
-                .foregroundStyle(.tertiary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // v0.32 boss 2026-09-02 OOB: replace DesignColor.zoneSurface
-        // wrapper with bare Color(nsColor: .controlBackgroundColor).
-        .background(Color(nsColor: .controlBackgroundColor))
-    }
-}
