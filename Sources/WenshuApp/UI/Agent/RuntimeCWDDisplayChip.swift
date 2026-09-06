@@ -38,10 +38,10 @@ public struct RuntimeCWDDisplayChip: View {
     public var body: some View {
         HStack(spacing: DesignTokens.chromePaddingMicro) {
             Image(systemName: "folder")
-                .font(.system(size: 11))
+                .font(DesignTokens.runtimeCwdChipFont)
                 .foregroundStyle(.secondary)
             Text(displayLabel)
-                .font(.system(size: 11))
+                .font(DesignTokens.runtimeCwdChipFont)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .truncationMode(.middle)

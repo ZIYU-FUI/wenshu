@@ -204,4 +204,11 @@ public enum DesignTokens {
     // Shared between `MemorySettingsView` and `SkillsSettingsView`
     // (the 2 Settings panes that previously hard-coded the value).
     public static let settingsListMaxHeight: CGFloat = 200
+
+    // v0.40 apple-001 Q8 batch 2 site: font size for the runtime CWD
+    // display chip (= `.system(size: 11)` = macOS standard secondary
+    // caption = 1 step smaller than body for status-bar meta text).
+    // The status-bar font is already \`statusFont\` above; this is
+    // a sibling token for the runtime chip's smaller size.
+    public static let runtimeCwdChipFont: Font = .system(size: 11)
 }
