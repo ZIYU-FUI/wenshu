@@ -139,3 +139,4 @@
 "chat.ralphLoop.goalHelp"               = "启动长期目标 (Ralph 循环: 代理持续工作, 直至辅助裁判判定完成)";
 "button.continue_edit" = "继续编辑";
 "workspace.editor.discard_changes_confirm" = "编辑器有未保存的更改, 关闭后将丢失.";
+"workspace.preview.sort_method_help" = "排序方式: %@";
