@@ -280,7 +280,21 @@ public enum ProviderKeychain {
     // Otherwise falls through to `InMemoryKeychainStore` (= safe default).
     // Default OFF (= Phase A still active). Activation procedure:
     // `.scratch/2026-09-04-b-10-phase-b-activation.md`.
+    //
+    // v0.40 fix (apple-001 phase 1 candidate A-revised): the WENSHU_DEBUG_INMEMORY_KEYCHAIN
+    // env check is honoured eagerly here (= the test helper process never calls
+    // WenshuAppDelegate.applicationWillFinishLaunching, so the lazy init in
+    // WenshuAppDelegate.sharedKeychainBackend never fires in tests; reading the env
+    // var here at first access guarantees test bundles pick InMemoryKeychainStore
+    // without touching the real Apple Keychain (= avoids securityd IPC hang in
+    // macOS 27 when running swift test). Production builds never set this env var,
+    // so production behavior is unchanged.
     public nonisolated(unsafe) static var backend: any ProviderKeychainStoring = {
+        // apple-001 phase 1 candidate A-revised: eager env-var check (= test bundles
+        // that never call applicationWillFinishLaunching still honor the override).
+        if ProcessInfo.processInfo.environment["WENSHU_DEBUG_INMEMORY_KEYCHAIN"] == "1" {
+            return InMemoryKeychainStore()
+        }
         #if B10_PHASE_B_ENABLED
         if let signed = Bundle.main.path(forResource: "embedded", ofType: "mobileprovision"),
            let entitlements = try? Data(contentsOf: URL(fileURLWithPath: signed)),
