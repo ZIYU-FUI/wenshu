@@ -56,16 +56,6 @@ struct WorkspaceView: View {
     /// tab bar trailing slot). Default = .pinyinFirstLetter.
     @State private var previewSortOrder: EntitySortOrder = .pinyinFirstLetter
 
-    /// v0.40 boss 9/7 OOB '位置偏低了与右边的的编辑器的二层栏对齐':
-    /// Search bar for the preview pane. Owned at WorkspaceView level
-    /// (= not inside PreviewPane) so it can be rendered ABOVE the
-    /// ZoneContentView's tab strip, at the same Y as the editor's
-    /// RegionTabBar (= the "Edit / Outline / Backlinks" tab strip in
-    /// the right column). SwiftUI @State reactivity re-evaluates
-    /// `body` on every keystroke (= live refresh; = no submit button,
-    /// no .onChange handler).
-    @State private var previewSearchQuery: String = ""
-
     /// v0.30 boss 8/31 OOB: convert sidebar selection to PreviewScope
     /// for the material management zone. Computed on every render so
     /// it stays in sync with `sidebarSelection`.
@@ -365,47 +355,39 @@ struct WorkspaceView: View {
             // previewSortOrder binding so changing the sort
             // re-renders the card grid (= PreviewPane observes
             // the same @State via its previewSortOrder parameter).
-            // v0.40 boss 9/7 OOB '位置偏低了与右边的的编辑器的二层栏对齐':
-            // Wrap the preview ZoneContentView in a VStack with the
-            // search bar ABOVE (= at the same Y as the editor's
-            // RegionTabBar). The search bar is owned by WorkspaceView
-            // (= previewSearchQuery @State below) and bound to
-            // PreviewPane via the new `previewSearchQuery` parameter.
-            VStack(spacing: 0) {
-                // The search bar = 30 PT tall (= matches
-                // LayoutTokens.toolbarHeight used by RegionTabBar
-                // and PaneTabBar) so it sits at the same Y level as
-                // the editor's tab strip (= visually aligned with
-                // the right column's "Edit / Outline / Backlinks"
-                // tabs in the screenshot).
-                previewSearchBar
-                ZoneContentView(zoneSlug: "projectPreview", tabs: [
-                    (WenshuI18n.t("tab.title.preview"), "book-open-check", AnyView(PreviewPane(
-                        scope: previewScope,
-                        // v0.34 B-25: simplest possible = card double-click
-                        // opens the .md file from the card (= Apple HIG
-                        // TextEdit / TextEditor behavior; = no popup, no
-                        // previewScope inference, no alert = just open the
-                        // file). For card = .reference: path = reference-
-                        // library entity path (= wenshu internal). For card
-                        // = .bookDoc: path = book's folder/file .md.
-                        // Falls back to a sample body if the file doesn't
-                        // exist (= ticket 027-35 will wire to real paths).
-                        onDoubleClick: {
-                            openCardInEditor()
-                        },
-                        previewSortOrder: $previewSortOrder,
-                        previewSearchQuery: $previewSearchQuery
-                    ))),
-                    (WenshuI18n.t("tab.title.graph"), "waypoints", AnyView(GraphView())),
-                ], trailingButton: AnyView(
-                    // v0.30 boss 8/31 OOB: 'place the sort ICON in the top bar, right-aligned,
-                    // ▼ replace with list-ordered icon'. The sort menu button
-                    // shows [sort rule text (dim)] + [list-ordered icon
-                    // (tint)] = icon right-aligned within the trailing button.
-                    PreviewSortMenuButton(sortOrder: $previewSortOrder)
-                ))
-            }
+            // v0.40 boss 9/7 OOB '位置错, 在顶栏下方, 不是在顶栏上方.
+            // 你可以参考一下编辑器的代码, 看是如何实现的': the search bar
+            // belongs BELOW the ZoneContentView's tab strip (= inside
+            // PreviewPane's body, = first element rendered after the
+            // tab strip). Pattern matches the editor: ZoneContentView
+            // tab strip → PreviewPane internal search bar → body content.
+            // (= Removed the previous commit's VStack wrapper + previewSearchBar
+            // computed view from this renderTabByKind path.)
+            ZoneContentView(zoneSlug: "projectPreview", tabs: [
+                (WenshuI18n.t("tab.title.preview"), "book-open-check", AnyView(PreviewPane(
+                    scope: previewScope,
+                    // v0.34 B-25: simplest possible = card double-click
+                    // opens the .md file from the card (= Apple HIG
+                    // TextEdit / TextEditor behavior; = no popup, no
+                    // previewScope inference, no alert = just open the
+                    // file). For card = .reference: path = reference-
+                    // library entity path (= wenshu internal). For card
+                    // = .bookDoc: path = book's folder/file .md.
+                    // Falls back to a sample body if the file doesn't
+                    // exist (= ticket 027-35 will wire to real paths).
+                    onDoubleClick: {
+                        openCardInEditor()
+                    },
+                    previewSortOrder: $previewSortOrder
+                ))),
+                (WenshuI18n.t("tab.title.graph"), "waypoints", AnyView(GraphView())),
+            ], trailingButton: AnyView(
+                // v0.30 boss 8/31 OOB: 'place the sort ICON in the top bar, right-aligned,
+                // ▼ replace with list-ordered icon'. The sort menu button
+                // shows [sort rule text (dim)] + [list-ordered icon
+                // (tint)] = icon right-aligned within the trailing button.
+                PreviewSortMenuButton(sortOrder: $previewSortOrder)
+            ))
         case .editor:
             // v0.28 followup Boss UX round 43: switch from
             // EditorPlaceholder (= text-only) to real ZoneContentView
@@ -540,54 +522,6 @@ struct WorkspaceView: View {
     private func renderTab(_ tab: TabSpec) -> some View {
         renderTabByKind(tab.kind)
     }
-
-    /// v0.40 boss 9/7 OOB '位置偏低了与右边的的编辑器的二层栏对齐':
-    /// preview-pane search bar (= 30 PT tall, = matches
-    /// `LayoutTokens.toolbarHeight` used by RegionTabBar /
-    /// PaneTabBar; = visually aligned with the editor's tab
-    /// strip in the right column).
-    ///
-    /// Layout:
-    /// - magnifying-glass icon (left, .secondary, .small)
-    /// - TextField bound to `$previewSearchQuery` (.plain style,
-    ///   placeholder = `preview.search.placeholder`)
-    /// - clear-x button (only when `!previewSearchQuery.isEmpty`)
-    ///
-    /// SwiftUI @State reactivity re-evaluates `body` (= and any
-    /// consumers of `$previewSearchQuery`) on every keystroke
-    /// (= live refresh, no submit button, no .onChange handler).
-    /// Bound to PreviewPane via the `previewSearchQuery: Binding`
-    /// parameter (= filters the card grid by case-insensitive
-    /// substring match on display name + summary).
-    private var previewSearchBar: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
-                .imageScale(.small)
-            TextField(
-                WenshuI18n.t("preview.search.placeholder"),
-                text: $previewSearchQuery
-            )
-            .textFieldStyle(.plain)
-            if !previewSearchQuery.isEmpty {
-                Button {
-                    previewSearchQuery = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                        .imageScale(.small)
-                }
-                .buttonStyle(.plain)
-                .help(WenshuI18n.t("preview.search.clear"))
-            }
-        }
-        .padding(.horizontal, DesignTokens.chromePaddingSmall)
-        // 30 PT height = matches LayoutTokens.toolbarHeight
-        // (= editor's RegionTabBar + preview's PaneTabBar + this
-        // search bar all line up at the same Y).
-        .frame(height: LayoutTokens.toolbarHeight)
-        .background(Color.clear)
-    }
 }
 
 //}
@@ -648,15 +582,6 @@ struct ZoneModuleView: View {
     /// the existing .environment(bookStore) call sites in App.swift
     /// + LibraryRootView.
     @Environment(BookStore.self) private var bookStore
-
-    /// v0.40 boss 9/7 OOB '位置偏低了与右边的的编辑器的二层栏对齐':
-    /// Search bar for the preview pane. Owned at ZoneModuleView
-    /// level (= not inside PreviewPane) so it can be rendered ABOVE
-    /// the ZoneContentView's tab strip, at the same Y as the
-    /// editor's RegionTabBar. SwiftUI @State reactivity
-    /// re-evaluates `body` on every keystroke (= live refresh;
-    /// no submit button, no .onChange handler).
-    @State private var previewSearchQuery: String = ""
 
     /// v0.30 boss 8/31 OOB: computed preview scope (= mirrors
     /// WorkspaceView's `previewScope`; duplicated here to keep
@@ -730,16 +655,16 @@ struct ZoneModuleView: View {
             // WorkspaceView path uses PreviewPane directly with the
             // computed previewScope (= supports all 4 sidebar scopes).
             //
-            // v0.40 boss 9/7 OOB '消失了, 没有实现' (= previous
-            // commit only wrapped WorkspaceView.renderTabByKind =
-            // dead code path; = the active live path is
-            // ZoneModuleView.case .projectPreview via
-            // TabContentDispatcher + RegisteredPanes). Now wrapping
-            // ZoneModuleView with the search bar above
-            // ZoneContentView (= visible in the live preview pane).
-            VStack(spacing: 0) {
-                previewSearchBar
-                ZoneContentView(zoneSlug: "projectPreview", tabs: [
+            // v0.40 boss 9/7 OOB '位置错, 在顶栏下方, 不是在顶栏上方.
+            // 你可以参考一下编辑器的代码, 看是如何实现的': the search bar
+            // belongs BELOW the ZoneContentView's tab strip (= inside
+            // PreviewPane's body, = first element rendered after the
+            // tab strip). Removed the previous commit's VStack
+            // wrapper (= was ABOVE the tab strip, = wrong position).
+            // Search bar now lives inside PreviewPane.body (= same Y
+            // as the editor's pencil/arrow toolbar inside
+            // EditorPlaceholder).
+            ZoneContentView(zoneSlug: "projectPreview", tabs: [
                 (WenshuI18n.t("tab.title.preview"), "book-open-check", AnyView(PreviewPane(
                     scope: previewScope,
                     // v0.34 B-25-fix (= boss 9/3 'double-clicking card did not open the document'):
@@ -760,12 +685,10 @@ struct ZoneModuleView: View {
                     onDoubleClick: {
                         self.openCardInEditor()
                     },
-                    previewSortOrder: .constant(.pinyinFirstLetter),
-                    previewSearchQuery: .constant("")
+                    previewSortOrder: .constant(.pinyinFirstLetter)
                 ))),
                 (WenshuI18n.t("tab.title.graph"), "waypoints", AnyView(GraphView())),
             ])
-            }  // end VStack wrapping search bar + ZoneContentView (preview)
 
         case .specializedTools:
             // Old 6-zone specializedTools = 4 tabs (Foreshadowing / Placeholder /
@@ -955,54 +878,6 @@ struct ZoneModuleView: View {
         // behavior; = no "second click fails" race.
         appState.openTabs.append(newTab)
         appState.activeTabId = newTab.id
-    }
-
-    /// v0.40 boss 9/7 OOB '位置偏低了与右边的的编辑器的二层栏对齐':
-    /// preview-pane search bar (= 30 PT tall, = matches
-    /// `LayoutTokens.toolbarHeight` used by RegionTabBar /
-    /// PaneTabBar; = visually aligned with the editor's tab
-    /// strip in the right column).
-    ///
-    /// Layout:
-    /// - magnifying-glass icon (left, .secondary, .small)
-    /// - TextField bound to `$previewSearchQuery` (.plain style,
-    ///   placeholder = `preview.search.placeholder`)
-    /// - clear-x button (only when `!previewSearchQuery.isEmpty`)
-    ///
-    /// SwiftUI @State reactivity re-evaluates `body` (= and any
-    /// consumers of `$previewSearchQuery`) on every keystroke
-    /// (= live refresh, no submit button, no .onChange handler).
-    /// Bound to PreviewPane via the `previewSearchQuery: Binding`
-    /// parameter (= filters the card grid by case-insensitive
-    /// substring match on display name + summary).
-    private var previewSearchBar: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
-                .imageScale(.small)
-            TextField(
-                WenshuI18n.t("preview.search.placeholder"),
-                text: $previewSearchQuery
-            )
-            .textFieldStyle(.plain)
-            if !previewSearchQuery.isEmpty {
-                Button {
-                    previewSearchQuery = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                        .imageScale(.small)
-                }
-                .buttonStyle(.plain)
-                .help(WenshuI18n.t("preview.search.clear"))
-            }
-        }
-        .padding(.horizontal, DesignTokens.chromePaddingSmall)
-        // 30 PT height = matches LayoutTokens.toolbarHeight
-        // (= editor's RegionTabBar + preview's PaneTabBar + this
-        // search bar all line up at the same Y).
-        .frame(height: LayoutTokens.toolbarHeight)
-        .background(Color.clear)
     }
 
 }
