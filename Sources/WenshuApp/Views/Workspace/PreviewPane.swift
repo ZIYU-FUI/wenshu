@@ -514,7 +514,15 @@ struct PreviewPane: View {
                         .foregroundStyle(.tertiary)
                 }
             }
-            .padding(DesignTokens.chromePaddingXLarge)
+            // ZONE-INSET-001 (2026-09-07): preview zone content inset
+            // = 18 PT all sides (= matches the editor top padding
+            // added in f6655f2bc). Previously `.padding(chromePaddingXLarge)`
+            // = 24 PT (= 6 PT too wide, = the visual mismatch boss
+            // pointed out). The canonical zone inset will eventually
+            // move to a shared `ZonePerRegionChrome` modifier; for
+            // now scope the fix to the preview zone (= the "material
+            // management" zone boss identified by name).
+            .padding(.all, DesignTokens.chromePaddingLeading)
             .frame(maxWidth: 800, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
