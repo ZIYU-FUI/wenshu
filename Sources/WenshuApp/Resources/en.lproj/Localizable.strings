@@ -453,3 +453,20 @@
 "auto2.libraryrootview.l472.h40947105" = "New Wenshu library";
 "auto2.libraryrootview.l473.h20911334" = "Select一个位置Save你的文枢仓库";
 "auto2.libraryrootview.l474.h92696757" = "Create";
+
+
+// v0.40 apple-001 i18n sweep -- batch 3 (manual fixes for the 13 remaining CJK sites)
+"library.properties.move_hint" = "To open this library elsewhere, move the .ws folder in Finder.";
+"chat.archive.confirm_title" = "Archive current session?";
+"chat.archive.confirm_message" = "The current session and context will be archived, and a new session will start.";
+"layout.preset.delete_confirm_message_prefix" = "Cannot undo delete. Preset ";
+"layout.preset.delete_confirm_message_suffix" = " will be removed from all devices.";
+"layout_edit_bar.empty_hint" = "Select a layout, or drag panes between zones";
+"book_editor.premise_label" = "Premise (optional)";
+"book_editor.premise_caption" = "Write your story direction in one sentence; will be used as context for the AI writing assistant later.";
+"todo.empty_state" = "(No todos — type in the input above to create the first one)";
+"kanban.empty_state" = "(No kanban — type in the input above to create the first one)";
+"subagent.empty_state" = "(No sub-agent tasks — chat with Wenshu to trigger one)";
+"subagent.live_update_hint" = "Live updates from KanbanStore (actor) — auto-refresh every 2s + manual refresh button";
+"onboarding.library.welcome_blurb" = "Wenshu stores your shelves, chat history, kanban, todos, and assets in this library.";
+"onboarding.library.new_vs_open" = "New = create new library, Open = select existing library";

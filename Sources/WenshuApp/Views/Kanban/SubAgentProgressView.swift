@@ -36,7 +36,7 @@ public struct SubAgentProgressView: View {
                     .font(.body)
                     .foregroundStyle(.tertiary)
             } else if tasks.isEmpty {
-                Text("(暂无子代理任务 — 与文枢对话以触发)")
+                Text(WenshuI18n.t("subagent.empty_state"))
                     .font(.body)
                     .foregroundStyle(.tertiary)
             } else {
@@ -52,7 +52,7 @@ public struct SubAgentProgressView: View {
             Spacer()
 
             HStack {
-                Text("从 KanbanStore (actor) 实时更新 — 每 2 秒自动刷新 + 手动刷新按钮")
+                Text(WenshuI18n.t("subagent.live_update_hint"))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                 Spacer()

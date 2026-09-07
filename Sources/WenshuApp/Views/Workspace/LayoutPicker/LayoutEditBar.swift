@@ -112,7 +112,7 @@ struct LayoutEditBar: View {
                 Text(WenshuI18n.t("auto.layouteditbar.l112.h90106758"))
                     .font(.body.weight(.semibold))
                 HStack(spacing: 4) {
-                    Text("选择一个布局，或在区域之间拖动面板")
+                    Text(WenshuI18n.t("layout_edit_bar.empty_hint"))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                     Text(HotkeyFormatter.editModeCombo)

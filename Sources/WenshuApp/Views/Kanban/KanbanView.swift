@@ -197,7 +197,7 @@ public struct KanbanView: View {
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         } else if tickets.isEmpty {
-            Text("(暂无看板 — 在上面输入框新建第一条)")
+            Text(WenshuI18n.t("kanban.empty_state"))
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         } else {

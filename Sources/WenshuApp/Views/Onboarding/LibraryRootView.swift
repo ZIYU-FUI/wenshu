@@ -368,7 +368,7 @@ Group {
                 Text(WenshuI18n.t("auto.libraryrootview.l368.h51962802"))
                     .font(.title2)
                     .foregroundStyle(.secondary)
-                Text("文枢会把你的书架、聊天记录、看板、任务、资产都保存在这个仓库里。")
+                Text(WenshuI18n.t("onboarding.library.welcome_blurb"))
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -399,7 +399,7 @@ Group {
                 .buttonStyle(.bordered)
                 .controlSize(.large)
 
-                Text("新建 = 创建新仓库, 打开 = 选择已有仓库")
+                Text(WenshuI18n.t("onboarding.library.new_vs_open"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
