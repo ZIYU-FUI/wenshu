@@ -411,3 +411,75 @@ The Workspace editor surface is decomposed into 9 single-file sub-views (= extra
 - **Purpose**: Generic trailing icon button with tooltip (= Color.clear base + 28 PT hot area + icon overlay + hover wash + .help tooltip). Shared by EditorExpandShrinkTrailingButton (9.5) AND the chat-zone archive button.
 - **Use when**: Building any trailing icon button (= matches 28 PT pane-chrome visual contract).
 - **API**: `PaneTrailingIconButton(icon: "...", tooltip: "...", action: { ... })`
+---
+
+## 🎨 STYLES (= boss 2026-09-07 'ui 与功能分离' architecture)
+
+Boss 9/7 '搞一个样式组件的文件, 用于管理控件样式, 这个文件类似 css, 这样我们以后也好管理, 功能与样式分离' = abstract ALL chrome/content/icon styling into CSS-like style files (= single source of truth for visual tokens + modifiers; = zones own only FUNCTIONAL wiring). Ponytail principle 'use stdlib / Apple-native / existing dependencies before writing new code': the 4 STYLES files below all wrap Apple canonical APIs (= SwiftUI .padding, .font, .buttonStyle, Lucide library) = no new abstractions over Apple primitives.
+
+### The 4 STYLES files (= the "CSS-like" layer)
+
+| File | Layer | Concern |
+|------|-------|---------|
+| `DesignTokens.swift` | VALUES | All chrome dimensions, paddings, font sizes, divider thicknesses (= raw `static let CGFloat` + `Color`) |
+| `ChromeStyles.swift` | CHROME | Background + top bar + bottom bar (= what ZonePerRegionChrome wraps each zone with) |
+| `ContentStyles.swift` | CONTENT | Content-level inset / typography / button styles (= what each zone's inner UI applies) |
+| `IconStyles.swift` | ICONS | Lucide icon size + color presets (= canonical icon appearance) |
+
+### STYLES-001 ContentStyles.swift
+- **Path**: `Sources/WenshuApp/UI/ContentStyles.swift` (NEW, boss 9/7 round 3)
+- **Purpose**: Content-level style primitives (= the inner zone UI; = not the chrome).
+- **API**:
+  ```swift
+  // Inset (= replaces scattered `.padding(.horizontal, 18)` calls):
+  .contentInsetStyle(.standard)  // 18 PT all sides
+  .contentInsetStyle(.compact)   // 12 PT
+  .contentInsetStyle(.none)      // 0 PT (= for List(.sidebar) which has Apple built-in inset)
+  
+  // Typography (= Apple canonical 11 text styles per iron-rule 2):
+  .sectionTypographyStyle(.heading)  // .headline
+  .sectionTypographyStyle(.body)     // .body
+  .sectionTypographyStyle(.caption)  // .caption
+  // ... 11 cases total
+  
+  // Button (= Apple canonical 4 button styles):
+  .actionButtonStyle(.icon)         // .borderless
+  .actionButtonStyle(.secondary)    // .bordered
+  .actionButtonStyle(.primary)      // .borderedProminent
+  .actionButtonStyle(.glassPrimary) // .glassProminent (macOS 27 Tahoe Liquid Glass)
+  ```
+- **Use when**: Building any zone's content UI (= want to apply a content inset / text style / button style in one canonical call).
+- **Don't use when**: You need a one-off local measurement (= then use inline CGFloat / .padding, but mark it with a comment + TODO ticket).
+
+### STYLES-002 IconStyles.swift
+- **Path**: `Sources/WenshuApp/UI/IconStyles.swift` (NEW, boss 9/7 round 3)
+- **Purpose**: Canonical Lucide icon size + color presets (= single source of truth for icon appearance).
+- **API**:
+  ```swift
+  Lucide("library").iconStyle(.chrome)   // 14 PT + secondary (= chrome top bar identity)
+  Lucide("send").iconStyle(.action)       // 18 PT + accent (= button action)
+  Lucide("library").iconStyle(.card)      // 32 PT + tint (= hero / entity badge)
+  Lucide("library").iconStyle(.small, color: .secondary)  // explicit size + color
+  ```
+- **Use when**: Adding any Lucide icon to any view (= .iconStyle replaces scattered `.frame(width:N).foregroundStyle(...)` chains).
+- **Don't use when**: The icon is a non-Lucide (= `SF Symbol` directly = no iconStyle needed).
+
+### Boss 9/7 round 3 audit (= the doubled-padding bug)
+Boss 9/7 '实测一下, 1-2-4 三个区明显过大, 3 区是对的, 6 区过小' =
+- zone 1 sidebar: 23 PT (= List(.sidebar) built-in 8 PT + my ZONE-INSET-002 18 PT = doubled)
+- zone 2 cards: 26 PT (= LazyVGrid built-in 8 PT + my 18 PT = doubled)
+- zone 3 editor: 18 PT (correct = no Apple built-in inset)
+- zone 4 right top: 0 PT (wrong = doesn't route through ZoneContentView at all)
+- zone 6 memory: 28 PT (= own 18 PT + own 10 PT = doubled)
+
+**Fix recipe** (= STYLES-004 followup ticket):
+1. Pass `.contentInsetStyle(.none)` (= 0 PT) on zones with Apple built-in insets (= sidebar / cards).
+2. Pass `.contentInsetStyle(.standard)` (= 18 PT) on zones with no built-in inset (= editor / tools).
+3. Audit DynamicZoneView + MemoryRetrievalPanel for their own inline paddings (= replace with `.contentInsetStyle(.standard)`).
+4. Route aiDynamic through ZoneContentView so it gets the parent's chrome top bar (= boss 9/7 '把背景加顶栏加底栏作为一个父组件').
+
+### Why these files instead of scattered inline styles (= the bigger pattern)
+- **Iron-rule 6**: no magic numbers in view code (= `.padding(18)` instead of `.padding(.chromePaddingLeading)` = .chromePaddingLeading changes don't propagate).
+- **Iron-rule 1**: no hardcoded colors (= `.foregroundStyle(.secondary)` instead of `Color(red: 0.5, green: 0.5, blue: 0.5)` = doesn't auto-adapt to dark mode).
+- **Iron-rule 2**: 11 Apple text styles only (= no `.system(size: 17)` magic numbers).
+- **Boss 9/7 'ui 与功能分离'**: zone's source file = business logic only (= which tabs render, which buttons open which sheet); visual styling = in the 4 STYLES files. Change a chrome height in ChromeStyles.swift = all 6 zones update = no per-zone audit needed.
