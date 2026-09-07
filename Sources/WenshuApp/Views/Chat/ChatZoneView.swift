@@ -194,13 +194,13 @@ struct ChatZoneView: View {
                 // confirmation alert. Boss spec: '点击确认, 回档现有会话和上下文.
                 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
                 // 起一个全新的会话. 上下文重新加载'.
-                .alert("归档当前会话?", isPresented: $showingArchiveAlert) {
+                .alert(WenshuI18n.t("chat.archive.confirm_title"), isPresented: $showingArchiveAlert) {
                     Button(WenshuI18n.t("auto2.chatzoneview.l198.h94569451"), role: .cancel) { }
                     Button(WenshuI18n.t("auto2.chatzoneview.l199.h54186819"), role: .destructive) {
                         archiveAndStartNewSession()
                     }
                 } message: {
-                    Text("当前会话和上下文将归档保存, 然后开启全新会话。")
+                    Text(WenshuI18n.t("chat.archive.confirm_message"))
                 }
                 HStack(spacing: 0) {
                 Menu {

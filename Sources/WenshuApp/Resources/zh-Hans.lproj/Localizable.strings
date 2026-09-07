@@ -437,3 +437,20 @@
 "auto2.libraryrootview.l472.h40947105" = "新建文枢仓库";
 "auto2.libraryrootview.l473.h20911334" = "选择一个位置保存你的文枢仓库";
 "auto2.libraryrootview.l474.h92696757" = "创建";
+
+
+// v0.40 apple-001 i18n sweep -- batch 3 (manual fixes for the 13 remaining CJK sites)
+"library.properties.move_hint" = "如需在其他位置打开本库，请直接在 Finder 中移动整个 .ws 文件夹。";
+"chat.archive.confirm_title" = "归档当前会话?";
+"chat.archive.confirm_message" = "当前会话和上下文将归档保存, 然后开启全新会话。";
+"layout.preset.delete_confirm_message_prefix" = "删除后无法撤销。模板";
+"layout.preset.delete_confirm_message_suffix" = "会从所有设备上移除。";
+"layout_edit_bar.empty_hint" = "选择一个布局，或在区域之间拖动面板";
+"book_editor.premise_label" = "创意点（选填）";
+"book_editor.premise_caption" = "一句话写你的故事方向；以后会用作 AI 写作助手的上下文。";
+"todo.empty_state" = "(暂无待办 — 在上面输入框新建第一条)";
+"kanban.empty_state" = "(暂无看板 — 在上面输入框新建第一条)";
+"subagent.empty_state" = "(暂无子代理任务 — 与文枢对话以触发)";
+"subagent.live_update_hint" = "从 KanbanStore (actor) 实时更新 — 每 2 秒自动刷新 + 手动刷新按钮";
+"onboarding.library.welcome_blurb" = "文枢会把你的书架、聊天记录、看板、任务、资产都保存在这个仓库里。";
+"onboarding.library.new_vs_open" = "新建 = 创建新仓库, 打开 = 选择已有仓库";

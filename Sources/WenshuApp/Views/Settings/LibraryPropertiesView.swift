@@ -93,7 +93,7 @@ struct LibraryPropertiesView: View {
                     }
                 }
                 Section {
-                    Text("如需在其他位置打开本库，请直接在 Finder 中移动整个 .ws 文件夹。")
+                    Text(WenshuI18n.t("library.properties.move_hint"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

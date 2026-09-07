@@ -330,7 +330,7 @@ public struct TodoListView: View {
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         } else if items.isEmpty {
-            Text("(暂无待办 — 在上面输入框新建第一条)")
+            Text(WenshuI18n.t("todo.empty_state"))
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         } else {

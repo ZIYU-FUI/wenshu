@@ -181,7 +181,7 @@ struct LayoutPicker: View {
                 pendingDeletePreset = nil
             }
         } message: { preset in
-            Text("删除后无法撤销。模板 \"\(preset.name)\" 会从所有设备上移除。")
+            Text(WenshuI18n.t("layout.preset.delete_confirm_message_prefix") + preset.name + WenshuI18n.t("layout.preset.delete_confirm_message_suffix"))
         }
     }
 

@@ -133,9 +133,9 @@ struct BookEditorSheet: View {
                     )
                     .lineLimit(2...6)
                 } header: {
-                    Text("创意点（选填）")
+                    Text(WenshuI18n.t("book_editor.premise_label"))
                 } footer: {
-                    Text("一句话写你的故事方向；以后会用作 AI 写作助手的上下文。")
+                    Text(WenshuI18n.t("book_editor.premise_caption"))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
