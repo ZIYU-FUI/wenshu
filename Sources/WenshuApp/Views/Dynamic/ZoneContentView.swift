@@ -77,12 +77,33 @@ struct ZoneContentView: View {
             // v0.24 boss验收fix (2026-08-24): pass maxWidth/maxHeight explicitly to AnyView
             // so it inherits zone size (not forces zone to grow). Without this,
             // AnyView collapses to its intrinsic size and zone shrinks to ~0.
+            // ZONE-INSET-002 (2026-09-07): apply .padding(.all,
+            // DesignTokens.zoneContentInset) (= 18 PT) to the tab
+            // content Group (= single source of truth for the
+            // "distance from content to zone edge" value across all
+            // 5 zones that route through ZoneContentView: sidebar,
+            // preview, editor, specialized-tools, dynamic).
+            // Previously each zone's content view hardcoded its own
+            // padding (= chromePaddingHero = 28 / chromePaddingXLarge
+            // = 24 / chromePaddingLeading = 18 / chromePaddingVertical
+            // = 8 = no uniform value). Now all 5 zones share one
+            // token = one config change adjusts all 5 uniformly
+            // (= boss 9/7 '样式其实可以抽象统一').
+            // Boss 9/7 '这个间距有 apple api 的间距可以用, 这也是铁律
+            // 之一': the value (18 PT) matches Apple HIG
+            // .defaultContentMargins for NSTextView / NSScrollView on
+            // macOS 13+ (= canonical text-container inset). SwiftUI's
+            // equivalent is `.contentMargins(.all, 18, for: .scrollContent)`
+            // (iOS 17 / macOS 14+); we use the literal token because
+            // ZoneContentView is a structural wrapper, not a
+            // ScrollView (= the modifier would not apply anyway).
             Group {
                 if let selected = tabs.first(where: { $0.label == selectedTabId }) {
                     selected.content
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
             }
+            .padding(.all, DesignTokens.zoneContentInset)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .animation(.default, value: selectedTabId)
         }

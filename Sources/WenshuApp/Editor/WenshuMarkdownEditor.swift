@@ -144,17 +144,23 @@ struct WenshuMarkdownEditor: View {
             isEditable: isEditable,
             onLinkClick: onLinkClick
         )
-        // EDITORTOP-001 (2026-09-07): add 18 PT top padding to the
-        // editor text container. Previously only `.padding(.horizontal,
-        // 18)` was applied (= editor text started flush with the zone
-        // top edge). Boss 9/7 OOB '编辑器文字显示区域, 最顶部区域,
-        // 距离顶边留 18pt 间距' = editor text-area must have 18 PT
-        // top inset (= matches Apple HIG canonical text container inset
-        // for macOS 27 Tahoe editor surfaces; = visually consistent
-        // with the 18 PT horizontal inset already applied; = first
-        // text line no longer sits under the tab strip / zone chrome
-        // divider).
-        .padding(.horizontal, DesignTokens.chromePaddingLeading)
-        .padding(.top, DesignTokens.chromePaddingLeading)
+        // ZONE-INSET-002 (2026-09-07): the editor zone content inset
+        // = 18 PT all sides is now applied centrally by ZoneContentView
+        // (= single source of truth for all 5 zones that route
+        // through it). Previously .padding(.horizontal, 18) +
+        // .padding(.top, 18) was applied here (= redundant now;
+        // = ZoneContentView already wraps the editor content with
+        // the same inset). Removed the per-zone call (= boss 9/7
+        // '样式其实可以抽象统一' = the content view should not own
+        // its own edge inset; = the wrapper owns it).
+        //
+        // History of this line (kept for context):
+        //   - ab2b57021 (v0.40 apple-001 Q2): added .padding(.horizontal, 18)
+        //     matching the preview zone.
+        //   - f6655f2bc (boss 9/7 EDITORTOP-001): added .padding(.top, 18)
+        //     matching the boss request '编辑器文字显示区域, 最顶部区域,
+        //     距离顶边留 18pt 间距'.
+        //   - This commit: both removed (= absorbed into ZoneContentView's
+        //     single .padding(.all, DesignTokens.zoneContentInset) = 18 PT).
     }
 }

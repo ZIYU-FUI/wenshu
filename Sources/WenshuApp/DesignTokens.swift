@@ -39,6 +39,32 @@ public enum DesignTokens {
     /// TabContentDispatcher.aiChat (= since v0.34, no separate wrapper).
     public static let chromeHeight: CGFloat = 30
 
+    /// ZONE-INSET-002 (2026-09-07): canonical zone-content inset
+    /// (= 18 PT on all 4 sides) applied by ZoneContentView (= the
+    /// shared chrome wrapper for sidebar / preview / editor /
+    /// specialized-tools / dynamic zones). Centralizes the
+    /// zone-edge padding that was previously scattered as
+    /// hardcoded .padding() calls in each zone's content view
+    /// (= sidebar used chromePaddingHero = 28 PT, editor had
+    /// chromePaddingLeading = 18 PT horizontal only, preview
+    /// had chromePaddingXLarge = 24 PT, kanban had chromePaddingVertical
+    /// = 8 PT vertical only = no uniform value across the 5
+    /// zones using ZoneContentView).
+    ///
+    /// Single-source-of-truth for the "distance from content to
+    /// zone edge" value. Changing this token (= e.g. boss decides
+    /// 22 PT tomorrow) adjusts all 5 zones uniformly without
+    /// per-zone edits.
+    ///
+    /// Value = 18 PT = Apple HIG canonical text-container inset
+    /// for macOS 27 Tahoe (= matches the .defaultContentMargins
+    /// value used by NSTextView / NSScrollView on macOS 13+;
+    /// the SwiftUI equivalent is `.contentMargins(.all, 18, for:
+    /// .scrollContent)` introduced in iOS 17 / macOS 14 — we
+    /// use the literal token here for the same effect because
+    /// ZoneContentView is a structural wrapper, not a ScrollView).
+    public static let zoneContentInset: CGFloat = 18
+
     /// Per-pane chrome horizontal leading padding (= 18 PT, matches Apple HIG).
     public static let chromePaddingLeading: CGFloat = 18
 
