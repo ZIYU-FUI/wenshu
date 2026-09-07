@@ -57,29 +57,31 @@ struct WenshuMarkdownEditor: View {
     // engine's layout pipeline).
     private var adjustedConfiguration: MarkdownEditorConfiguration {
         var config = configuration
-        // v0.40 boss 9/7 OOB '编辑器的字号设计, 参考其它区说的字号,
-        // 现在在整个 APP 页面中, 显得过于大': the editor's previous
-        // base font (= NSFont.preferredFont(forTextStyle: .body) =
-        // 13 PT on macOS 27 Tahoe) was larger than the rest of
-        // wenshu (= sidebar / status bar / kanban all use
-        // .caption/.caption2 = ~10-11 PT). To match the rest of the
-        // app's chrome density, switch the editor base font to
-        // .caption1 (= 11 PT on macOS 27 Tahoe = matches the sidebar
-        // list rows). All heading multipliers then scale from this
-        // new base (= Apple canonical text-style scale preserved,
-        // just shifted one canonical step lower).
+        // v0.40 boss 9/7 OOB 'WenshuMarkdownEditor 的默认字体配置, 与
+        // app 拉齐': align the editor's default font scale to the rest
+        // of wenshu chrome (= sidebar rows / status bar / kanban /
+        // memory panels all use ~11 PT = NSFont.smallSystemFontSize on
+        // macOS 27 Tahoe).
+        //
+        // Strategy: use NSFont.smallSystemFontSize as the editor
+        // base font (= Apple canonical "small body" font for compact
+        // UI chrome = matches DesignTokens.hotkeyComboFont size of
+        // 12 PT + DesignTokens.tabTitleFont size of 12 PT and
+        // MemoryEntryRow's .caption2 / .caption rendering). Heading
+        // multipliers then scale from this new base via Apple
+        // canonical NSFont.preferredFont(forTextStyle:).
         //
         // v0.40 boss 9/7 OOB '你仔细对比一下, 预览和编辑两个模式, 哪
         // 个小统一用小的那个': both modes share this single
         // configuration (= unified component commit), so the
         // smaller-caption base applies to BOTH preview + edit (= no
         // scaling between modes).
-        let base = NSFont.preferredFont(forTextStyle: .caption1).pointSize
+        let base = NSFont.smallSystemFontSize
         let h1 = NSFont.preferredFont(forTextStyle: .body).pointSize
         let h2 = NSFont.preferredFont(forTextStyle: .subheadline).pointSize
         let h3 = NSFont.preferredFont(forTextStyle: .caption2).pointSize
         let h4 = NSFont.preferredFont(forTextStyle: .footnote).pointSize
-        let h5 = NSFont.preferredFont(forTextStyle: .caption2).pointSize
+        let h5 = NSFont.preferredFont(forTextStyle: .footnote).pointSize
         let h6 = NSFont.preferredFont(forTextStyle: .footnote).pointSize
         // Convert each Apple canonical size to a multiplier of the
         // body base font (= preserves the engine's per-level scale
