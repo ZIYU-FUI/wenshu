@@ -65,12 +65,75 @@ final class AppState {
     // watcher). activeTabId identifies the currently focused tab.
     // Single source of truth across views (= TabContentDispatcher,
     // EditorPlaceholder, any future cross-zone tab bar).
-    // The placeholder tab (= shows samplePreviewBody) is seeded with
-    // empty draft; = EditorPlaceholder.onAppear fills it with
-    // samplePreviewBody content (= avoids the circular dependency
-    // between AppState and EditorPlaceholder.samplePreviewBody).
-    var openTabs: [EditorTab] = []
-    var activeTabId: UUID = UUID()
+    // v0.40 boss 9/7 OOB '删除空白预览文档, 取持久化的': persist
+    // openTabs + activeTabId across launches (= JSON in UserDefaults).
+    // Empty array on launch = no persisted tabs = editor zone shows
+    // an onboarding hint instead of the samplePreviewBody.
+    var openTabs: [EditorTab] = [] {
+        didSet {
+            persistOpenTabs()
+        }
+    }
+    var activeTabId: UUID = UUID() {
+        didSet {
+            guard oldValue != activeTabId else { return }
+            UserDefaults.standard.set(activeTabId.uuidString, forKey: AppState.activeTabIdKey)
+        }
+    }
+
+    /// UserDefaults keys for openTabs persistence (= boss 9/7 OOB).
+    /// Mirrors the existing llmModel / sidebarSelection pattern in
+    /// this same file (= small JSON-blob pattern; no SQLite needed
+    /// since openTabs is bounded to the editor-zone session state).
+    static let openTabsKey = "wenshu.editor.openTabs.v1"
+    static let activeTabIdKey = "wenshu.editor.activeTabId.v1"
+
+    /// Persist openTabs to UserDefaults as JSON (= v0.40 boss 9/7).
+    /// Persisted shape = PersistedEditorTab (= id + documentPath +
+    /// draft + originalBody + mode). Tasks / file-watchers / dirty
+    /// state are runtime-only (= recreated on launch when tabs are
+    /// reloaded from disk).
+    private func persistOpenTabs() {
+        let snapshot = openTabs.map {
+            PersistedEditorTab(
+                id: $0.id,
+                documentPath: $0.documentPath,
+                draft: $0.draft,
+                originalBody: $0.originalBody,
+                mode: $0.mode.rawValue
+            )
+        }
+        if let data = try? JSONEncoder().encode(snapshot) {
+            UserDefaults.standard.set(data, forKey: AppState.openTabsKey)
+        }
+    }
+
+    /// Restore openTabs from UserDefaults (= v0.40 boss 9/7). Called
+    /// from init() so subsequent view code reads the restored state
+    /// on the first render.
+    private func restoreOpenTabs() {
+        guard let data = UserDefaults.standard.data(forKey: AppState.openTabsKey),
+              let snapshot = try? JSONDecoder().decode([PersistedEditorTab].self, from: data) else {
+            return
+        }
+        self.openTabs = snapshot.compactMap { p in
+            guard let mode = EditorMode(rawValue: p.mode) else { return nil }
+            return EditorTab(
+                id: p.id,
+                documentPath: p.documentPath,
+                draft: p.draft,
+                originalBody: p.originalBody,
+                mode: mode
+            )
+        }
+        if let activeIdStr = UserDefaults.standard.string(forKey: AppState.activeTabIdKey),
+           let activeId = UUID(uuidString: activeIdStr),
+           openTabs.contains(where: { $0.id == activeId }) {
+            self.activeTabId = activeId
+        } else if let first = openTabs.first {
+            self.activeTabId = first.id
+        }
+    }
 
     // v0.40 apple-001 Q3 surgical: hoist `LayoutEditMode` (= the
     // ⌘⇧\ layout-edit hotkey state) from WorkspaceView-local
@@ -115,7 +178,27 @@ final class AppState {
         // so this assignment does NOT trigger a write back to
         // UserDefaults on launch (= pure read-side migration).
         self.llmModel = UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? ""
+        // v0.40 boss 9/7 OOB: restore persisted open tabs BEFORE
+        // any view reads appState.openTabs (= EditorPlaceholder's
+        // .onAppear reads it). Sets openTabs via the regular
+        // assignment (= triggers didSet → persistOpenTabs = write
+        // back the same data; = harmless redundant write).
+        restoreOpenTabs()
     }
+}
+
+/// v0.40 boss 9/7 OOB: JSON-friendly shape for persisting open
+/// editor tabs to UserDefaults (= small, bounded session state;
+/// not worth a SQLite table). EditorTab itself is not Codable
+/// because it holds runtime-only state (= Tasks, DispatchSource
+/// file-watcher, dirty flag) that doesn't survive a process exit.
+/// PersistedEditorTab = the slice of EditorTab that does.
+struct PersistedEditorTab: Codable {
+    let id: UUID
+    let documentPath: String?
+    let draft: String
+    let originalBody: String
+    let mode: String  // EditorMode.rawValue (= "preview" / "edit")
 }
 
 // v0.34 B-24: per-tab editor state. Holds all data that was previously
@@ -162,12 +245,12 @@ final class EditorTab: Identifiable {
         draft: String,
         originalBody: String,
         // v0.39 ticket 001-A-extended: default to .edit (= was .preview
-    // in v0.34; = the reason the placeholder tab and any caller that
-    // uses the default init landed users in raw-text preview mode
-    // rather than the live-styling editor). openCardInEditor passes
-    // .edit explicitly too, but this default is the one the placeholder
-    // tab + 027-35 document-load ticket use, so it must match.
-    mode: EditorMode = .edit
+        // in v0.34; = the reason the placeholder tab and any caller that
+        // uses the default init landed users in raw-text preview mode
+        // rather than the live-styling editor). openCardInEditor passes
+        // .edit explicitly too, but this default is the one the placeholder
+        // tab + 027-35 document-load ticket use, so it must match.
+        mode: EditorMode = .edit
     ) {
         self.id = id
         self.documentPath = documentPath
@@ -175,15 +258,6 @@ final class EditorTab: Identifiable {
         self.originalBody = originalBody
         self.mode = mode
     }
-
-    /// Placeholder tab (= the default tab that shows samplePreviewBody).
-    /// Single instance = single source of truth for the "no document
-    /// open yet" state. Caller fills draft / originalBody with
-    /// EditorPlaceholder.samplePreviewBody (= can't reference the
-    /// EditorPlaceholder.samplePreviewBody static here because it
-    /// would create a circular dependency between AppState and the
-    /// EditorPlaceholder view file).
-    static let placeholderId = UUID()
 }
 
 // v0.34 B-24: top-level enum (= EditorTab is a top-level class; = can't
