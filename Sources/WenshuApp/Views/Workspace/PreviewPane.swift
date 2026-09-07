@@ -314,7 +314,7 @@ struct PreviewPane: View {
         VStack(spacing: 0) {
             if docs.isEmpty {
                 emptyState(
-                    icon: "circle-help",
+                    icon: "book-open",
                     titleKey: folderName != nil
                         ? "preview.empty_state.book_with_folder"
                         : "preview.empty_state.book_no_folder",
@@ -331,7 +331,7 @@ struct PreviewPane: View {
     @ViewBuilder
     private func shelfScopeView() -> some View {
         emptyState(
-            icon: "circle-help",
+            icon: "book-open",
             titleKey: "preview.empty_state.shelf_empty",
             bodyKey: "preview.empty.pick_book"
         )
@@ -341,7 +341,7 @@ struct PreviewPane: View {
     @ViewBuilder
     private func emptyScopeView() -> some View {
         emptyState(
-            icon: "circle-help",
+            icon: "book-open",
             titleKey: "preview.empty_state.pick_book",
             bodyKey: "preview.empty.scope_hint"
         )
@@ -428,7 +428,7 @@ struct PreviewPane: View {
         VStack(alignment: .leading, spacing: 0) {
             if inCategory.isEmpty {
                 emptyState(
-                    icon: "circle-help",
+                    icon: "book-open",
                     titleKey: "preview.empty_state.category_empty",
                     bodyKey: "preview.empty.import_hint"
                 )
@@ -455,7 +455,7 @@ struct PreviewPane: View {
     private func overviewGrid(allEntities: [Reference]) -> some View {
         if allEntities.isEmpty {
             emptyState(
-                icon: "circle-help",
+                icon: "book-open",
                 titleKey: "preview.empty_state.reference_empty",
                 bodyKey: "preview.empty.import_hint"
             )
@@ -488,14 +488,13 @@ struct PreviewPane: View {
     /// Empty-state placeholder (= boss UX 8/27 '...no markdown body
     /// = leave a clear empty state, not a blank white pane').
     @ViewBuilder
-    /// Canonical empty-state hint (= v0.40 boss 9/7 OOB
-    /// '提示的样式不统一'). Uses the shared EmptyStateHint
-    /// component (= same icon + title + body layout as
-    /// Foreshadowing + EditorPlaceholder empty states). The
-    /// localized title/body keys come from the caller (= this
-    /// helper is just the layout, not the copy).
+    /// v0.40 boss 9/7 OOB follow-up '和编辑器用同一个 ICON': use
+    /// the SAME icon (= book-open) as the editor empty state, so
+    /// all "no content" panels in the workspace share one visual
+    /// icon. Caller can override per-call (= rare; most callers
+    /// use the default).
     private func emptyState(
-        icon: String = "circle-help",
+        icon: String = "book-open",
         titleKey: String,
         bodyKey: String
     ) -> some View {
