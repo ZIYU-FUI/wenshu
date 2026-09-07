@@ -66,7 +66,7 @@ public struct KanbanView: View {
             header
             inputRow
             if let err = loadError {
-                Text("(加载失败: \(err))")
+                Text(WenshuI18n.t("auto.kanbanview.l69.h78022707"))
                     .font(.caption)
                     .foregroundStyle(.red)
             }
@@ -97,7 +97,7 @@ public struct KanbanView: View {
     /// DynamicZone width; boss cadence is `.menu` for narrow zone).
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text("看板")
+            Text(WenshuI18n.t("auto.kanbanview.l100.h57246144"))
                 .font(.headline)
             Picker("scope", selection: $scope) {
                 ForEach(bookStore.availableScopes(bookId: bookStore.selectedBookId)) { s in
@@ -108,7 +108,7 @@ public struct KanbanView: View {
             .fixedSize()
             .help("切换看板数据范围 (= 全书 / 8 标准子目录 / 资料库)")
             Spacer()
-            Text("\(tickets.count) 票 · \(jsonHint)")
+            Text(WenshuI18n.t("auto.kanbanview.l111.h22166662"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -154,7 +154,7 @@ public struct KanbanView: View {
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             } else if newTicketTitle.trimmingCharacters(in: .whitespaces).isEmpty {
-                Text("输入标题后才能新建")
+                Text(WenshuI18n.t("auto.kanbanview.l157.h65127890"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
@@ -340,7 +340,7 @@ private struct KanbanColumn: View {
             .padding(.horizontal, DesignTokens.chromePaddingMicro)
             Divider()
             if tickets.isEmpty {
-                Text("(空)")
+                Text(WenshuI18n.t("auto.kanbanview.l343.h97636928"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .padding(.horizontal, DesignTokens.chromePaddingMicro)

@@ -32,9 +32,9 @@ public struct OutlinePanel: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("大纲")
+            Text(WenshuI18n.t("auto.outlinepanel.l35.h85687200"))
                 .font(.headline)
-            Text("条目数: \(viewModel.items.count)")
+            Text(WenshuI18n.t("auto.outlinepanel.l37.h51803598"))
             ForEach(viewModel.items) { item in
                 HStack {
                     Text(String(repeating: "  ", count: item.level - 1))

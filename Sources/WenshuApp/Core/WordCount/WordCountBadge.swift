@@ -30,19 +30,19 @@ public struct WordCountBadge: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("字数")
+            Text(WenshuI18n.t("auto.wordcountbadge.l33.h32876713"))
                 .font(.headline)
             HStack {
-                Text("总字符: \(viewModel.count.characters)")
-                Text("去空: \(viewModel.count.charactersNoSpaces)")
+                Text(WenshuI18n.t("auto.wordcountbadge.l36.h53222430"))
+                Text(WenshuI18n.t("auto.wordcountbadge.l37.h17621913"))
             }
             HStack {
-                Text("中文字: \(viewModel.count.chineseChars)")
-                Text("英文词: \(viewModel.count.words)")
+                Text(WenshuI18n.t("auto.wordcountbadge.l40.h86545847"))
+                Text(WenshuI18n.t("auto.wordcountbadge.l41.h72922873"))
             }
             HStack {
-                Text("句: \(viewModel.count.sentences)")
-                Text("段: \(viewModel.count.paragraphs)")
+                Text(WenshuI18n.t("auto.wordcountbadge.l44.h87324247"))
+                Text(WenshuI18n.t("auto.wordcountbadge.l45.h78399135"))
             }
         }
         .padding()

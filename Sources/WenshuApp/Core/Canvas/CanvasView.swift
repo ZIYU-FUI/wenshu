@@ -58,16 +58,16 @@ public struct CanvasView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("画布")
+            Text(WenshuI18n.t("auto.canvasview.l61.h64266395"))
                 .font(.headline)
             if viewModel.isLoading {
-                Text("加载中…")
+                Text(WenshuI18n.t("auto.canvasview.l64.h85778528"))
             } else if let error = viewModel.error {
-                Text("错误: \(error)")
+                Text(WenshuI18n.t("auto.canvasview.l66.h21332939"))
                     .foregroundStyle(.red)
             } else {
-                Text("节点数: \(viewModel.document.nodes.count)")
-                Text("边数: \(viewModel.document.edges.count)")
+                Text(WenshuI18n.t("auto.canvasview.l69.h32895149"))
+                Text(WenshuI18n.t("auto.canvasview.l70.h43070160"))
                 ForEach(viewModel.document.nodes) { node in
                     Text("[\(node.id)] \(node.type.rawValue) @ (\(Int(node.x)),\(Int(node.y)))")
                         .font(.caption2)

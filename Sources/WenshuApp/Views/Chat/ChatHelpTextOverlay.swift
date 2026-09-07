@@ -18,19 +18,19 @@ public struct ChatHelpTextOverlay: View {
         // v0.24 boss验收fix: explicit center alignment (horizontal + vertical)
         // so help text floats in chat zone's geometric center.
         VStack(spacing: 8) {
-            Text("请先在")
+            Text(WenshuI18n.t("auto.chathelptextoverlay.l21.h73244487"))
                 .foregroundStyle(.secondary)
             HStack(spacing: 4) {
                 Button(action: onSettingsTap) {
-                    Text("设置")
+                    Text(WenshuI18n.t("auto.chathelptextoverlay.l25.h61781343"))
                         .foregroundStyle(Color.accentColor)
                         .underline()
                 }
                 .buttonStyle(.plain)
-                Text("中设置好大模型提供方")
+                Text(WenshuI18n.t("auto.chathelptextoverlay.l30.h53427819"))
                     .foregroundStyle(.secondary)
             }
-            Text("然后再开始与文枢对话")
+            Text(WenshuI18n.t("auto.chathelptextoverlay.l33.h88773098"))
                 .foregroundStyle(.secondary)
                 .font(.caption)
         }

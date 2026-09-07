@@ -44,12 +44,12 @@ public struct TemplatePicker: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("模板")
+            Text(WenshuI18n.t("auto.templatepicker.l47.h75489066"))
                 .font(.headline)
-            Text("模板字符数: \(viewModel.template.count)")
-            Text("渲染字符数: \(viewModel.rendered.count)")
+            Text(WenshuI18n.t("auto.templatepicker.l49.h95489952"))
+            Text(WenshuI18n.t("auto.templatepicker.l50.h148968"))
             if let error = viewModel.error {
-                Text("错误: \(error)")
+                Text(WenshuI18n.t("auto.templatepicker.l52.h3674797"))
                     .foregroundStyle(.red)
             }
             ScrollView {

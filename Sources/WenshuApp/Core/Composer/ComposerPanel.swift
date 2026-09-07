@@ -38,10 +38,10 @@ public struct ComposerPanel: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("合成器")
+            Text(WenshuI18n.t("auto.composerpanel.l41.h81532393"))
                 .font(.headline)
-            Text("上次操作: \(viewModel.lastOperation)")
-            Text("结果字符数: \(viewModel.lastResult.count)")
+            Text(WenshuI18n.t("auto.composerpanel.l43.h51994109"))
+            Text(WenshuI18n.t("auto.composerpanel.l44.h7571830"))
         }
         .padding()
     }

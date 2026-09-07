@@ -49,7 +49,7 @@ public struct QuickSwitcherWindow: View {
                 .onSubmit {
                     viewModel.setQuery(queryText)
                 }
-            Text("结果数: \(viewModel.results.count)")
+            Text(WenshuI18n.t("auto.quickswitcherwindow.l52.h4024573"))
             ForEach(viewModel.results) { item in
                 VStack(alignment: .leading) {
                     Text(item.title).font(.caption.bold())

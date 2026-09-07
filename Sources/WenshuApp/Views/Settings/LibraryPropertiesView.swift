@@ -45,7 +45,7 @@ struct LibraryPropertiesView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("库属性")
+                Text(WenshuI18n.t("auto.librarypropertiesview.l48.h38942540"))
                     .font(.headline)
                 Spacer()
             }

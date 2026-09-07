@@ -21,7 +21,7 @@ public struct SubAgentProgressView: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("子代理进度")
+                Text(WenshuI18n.t("auto.subagentprogressview.l24.h74924234"))
                     .font(.headline)
                 Spacer()
                 Text("\(runningCount) 进行中 · \(doneCount) 已完成")

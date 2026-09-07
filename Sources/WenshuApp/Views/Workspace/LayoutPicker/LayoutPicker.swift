@@ -78,7 +78,7 @@ struct LayoutPicker: View {
             if !customPresets.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Text("自定义")
+                        Text(WenshuI18n.t("auto.layoutpicker.l81.h19454638"))
                             .font(.caption.weight(.medium))
                             .foregroundStyle(.secondary)
                         Spacer()
@@ -109,7 +109,7 @@ struct LayoutPicker: View {
             }) {
                 HStack(spacing: 6) {
                     LucideIconSystemFallback("plus", size: 12)
-                    Text("新建网格布局")
+                    Text(WenshuI18n.t("auto.layoutpicker.l112.h61862158"))
                         .font(.caption)
                 }
                 .frame(maxWidth: .infinity)
@@ -141,7 +141,7 @@ struct LayoutPicker: View {
                 }) {
                     HStack(spacing: 6) {
                         LucideIconSystemFallback("square.and.arrow.down", size: 12)
-                        Text("将当前排列保存为模板")
+                        Text(WenshuI18n.t("auto.layoutpicker.l144.h96188612"))
                             .font(.caption)
                     }
                     .frame(maxWidth: .infinity)
@@ -207,7 +207,7 @@ struct LayoutPicker: View {
                 .buttonStyle(.borderless)
             }
             .padding(.horizontal, DesignTokens.chromePaddingMedium)
-            Text("保存后会出现在上面的预设网格中")
+            Text(WenshuI18n.t("auto.layoutpicker.l210.h18923044"))
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, DesignTokens.chromePaddingMedium)

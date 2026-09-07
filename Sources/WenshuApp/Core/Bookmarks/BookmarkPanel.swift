@@ -45,14 +45,14 @@ public struct BookmarkPanel: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("收藏")
+            Text(WenshuI18n.t("auto.bookmarkpanel.l48.h89923504"))
                 .font(.headline)
-            Text("书签数: \(viewModel.bookmarks.count)")
+            Text(WenshuI18n.t("auto.bookmarkpanel.l50.h68931603"))
             ForEach(viewModel.bookmarks) { bookmark in
                 Text(bookmark.label).font(.caption)
             }
             if let error = viewModel.error {
-                Text("错误: \(error)")
+                Text(WenshuI18n.t("auto.bookmarkpanel.l55.h42196043"))
                     .foregroundStyle(.red)
             }
         }
