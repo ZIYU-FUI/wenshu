@@ -35,18 +35,19 @@ struct WenshuMarkdownEditor: View {
     // engine's layout pipeline).
     private var adjustedConfiguration: MarkdownEditorConfiguration {
         var config = configuration
-        // Apple HIG canonical text styles (= AppKit equivalents).
-        // Each NSFont.preferredFont(forTextStyle:) returns the system
-        // font at Apple's canonical size for that text style (= no
-        // magic numbers; = automatically follows the user's Dynamic
-        // Type setting per Apple HIG).
+        // v0.40 boss 9/7 OOB '字号还是很大': downshift heading multipliers
+        // to match the downshifted preview-mode text styles (= H1 =
+        // .title2, H2 = .title3, H3 = .headline). Apple canonical text
+        // style point sizes are read via NSFont.preferredFont(forTextStyle:)
+        // (= AppKit canonical API; = no magic numbers; = automatic
+        // Dynamic Type adaptation).
         let base = NSFont.preferredFont(forTextStyle: .body).pointSize
-        let h1 = NSFont.preferredFont(forTextStyle: .largeTitle).pointSize
-        let h2 = NSFont.preferredFont(forTextStyle: .title1).pointSize
-        let h3 = NSFont.preferredFont(forTextStyle: .title2).pointSize
-        let h4 = NSFont.preferredFont(forTextStyle: .title3).pointSize
-        let h5 = NSFont.preferredFont(forTextStyle: .headline).pointSize
-        let h6 = NSFont.preferredFont(forTextStyle: .subheadline).pointSize
+        let h1 = NSFont.preferredFont(forTextStyle: .title1).pointSize
+        let h2 = NSFont.preferredFont(forTextStyle: .title2).pointSize
+        let h3 = NSFont.preferredFont(forTextStyle: .title3).pointSize
+        let h4 = NSFont.preferredFont(forTextStyle: .headline).pointSize
+        let h5 = NSFont.preferredFont(forTextStyle: .subheadline).pointSize
+        let h6 = NSFont.preferredFont(forTextStyle: .footnote).pointSize
         // Convert each Apple canonical size to a multiplier of the
         // body base font (= preserves the engine's per-level scale
         // semantics, = Apple canonical size relationships).
