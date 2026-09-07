@@ -1142,7 +1142,13 @@ struct EditorPlaceholder: View {
                 // is the v0.34 B-25 root-cause fix (= the closure chain
                 // WAS firing correctly; = the bug was the view rendering
                 // the placeholder instead of the active tab).
-                if mode == .preview {
+                // v0.40 boss 9/7 OOB '删除空白预览文档': when no
+                // tab is open, show the empty-state hint instead of
+                // the preview/edit body (= replaces the previous
+                // samplePreviewBody placeholder).
+                if activeTab == nil {
+                    emptyStateHint
+                } else if mode == .preview {
                     // SMC ticket 003: preview-mode wiki-link nav
                     // routes through the reference library + active
                     // book chapter lookup (= real target resolution).
@@ -1237,40 +1243,26 @@ struct EditorPlaceholder: View {
         // mode keystroke stream; = this .onAppear covers the initial
         // state (= Apple HIG = seed reactive state at view mount).
         .onAppear {
-            // v0.34 B-24: seed the placeholder tab on first mount
-            // (= AppState.openTabs defaults to []). Seed with the
-            // samplePreviewBody as the placeholder draft so the
-            // preview-mode body is visible from the start. Single
-            // source of truth for the openTabs array; = no other
-            // view needs to seed.
-            if appState.openTabs.isEmpty {
-                let placeholder = EditorTab(
-                    id: EditorTab.placeholderId,
-                    documentPath: nil,
-                    draft: EditorPlaceholder.samplePreviewBody,
-                    originalBody: EditorPlaceholder.samplePreviewBody
-                    // v0.39 ticket 001-A-extended: mode omitted = uses
-                    // EditorTab default = .edit (= was .preview in
-                    // v0.34; = the user is in the live editor from
-                    // the start, not raw-text preview).
-                )
-                appState.openTabs = [placeholder]
-                appState.activeTabId = EditorTab.placeholderId
-            } else {
-                // v0.39 ticket 001-A-extended: migrate any existing
-                // .preview tab to .edit (= v0.34 default was .preview,
-                // so any tab the user had open at the time of the
-                // upgrade lands in raw-text preview mode without
-                // this upgrade). User can still flip back to .preview
-                // via the mode toggle button (= the eye/pencil icon
-                // in the tab strip = v0.39 ticket 001-C).
-                for idx in appState.openTabs.indices {
-                    if appState.openTabs[idx].mode == .preview {
-                        appState.openTabs[idx].mode = .edit
-                    }
+            // v0.40 boss 9/7 OOB: do NOT seed a placeholder tab when
+            // openTabs is empty. Two paths from here:
+            //   1. Persisted tabs (loaded by AppState.init from
+            //      UserDefaults) → use those directly.
+            //   2. No persisted tabs → editor zone shows the
+            //      empty-state hint (= "请从素材库中双击卡片打开文档")
+            //      via EditorPlaceholder's nil-activeTab branch.
+            // The .edit-mode upgrade from .preview still runs for
+            // any tabs that survived (= v0.39 ticket 001-A-extended).
+            for idx in appState.openTabs.indices {
+                if appState.openTabs[idx].mode == .preview {
+                    appState.openTabs[idx].mode = .edit
                 }
             }
-            appState.editorWordCount = WordCounter.count(originalBody).charactersNoSpaces
+            // Initialize word count from active tab (= 0 when no tab).
+            if let tab = activeTab {
+                appState.editorWordCount = WordCounter.count(tab.originalBody).charactersNoSpaces
+            } else {
+                appState.editorWordCount = 0
+            }
             // v0.34 B-23: start the file-system watcher for the current
             // documentPath (nil = placeholder mode; = no-op). The watcher
             // auto-reloads draft when the file changes externally (= agent
@@ -1302,14 +1294,18 @@ struct EditorPlaceholder: View {
     }
 
     private var draft: String {
-        get { activeTab?.draft ?? EditorPlaceholder.samplePreviewBody }
+        // v0.40 boss 9/7 OOB: when no tab is open, return empty string
+        // (= no samplePreviewBody placeholder). The editor zone
+        // shows its empty-state hint (= "请从素材库中双击卡片打开文档")
+        // via EditorPlaceholder's nil-activeTab branch.
+        get { activeTab?.draft ?? "" }
         nonmutating set {
             guard let idx = activeTabIndex else { return }
             appState.openTabs[idx].draft = newValue
         }
     }
     private var originalBody: String {
-        get { activeTab?.originalBody ?? EditorPlaceholder.samplePreviewBody }
+        get { activeTab?.originalBody ?? "" }
         nonmutating set {
             guard let idx = activeTabIndex else { return }
             appState.openTabs[idx].originalBody = newValue
@@ -1720,27 +1716,50 @@ struct EditorPlaceholder: View {
         }
     }
 
-    // v0.34 ticket 05: sample markdown body shown in preview mode (= used
-    // until ticket 027-35 wires the real .md document load via NSOpenPanel
-    // + Apple HIG DocumentGroup). Exercises all the rendering paths:
-    // header levels, bold/italic, bullet list, inline code, code fence,
-    // [[wikilink]] (= parsed by InternalLinkParser).
-    // v0.40 apple-001 UX cleanup: replaced the CJK "feature demo" sample
-    // (= "list item 1 / list item 2 / nested list" = showed off every
-    // markdown feature) with a real onboarding welcome that uses the
-    // user's actual project context. The empty-workspace greeting
-    // tells user how to create a document (= Apple HIG standard for
-    // first-run experiences). The body preserves ONE wikilink so the
-    // preview still exercises the wikilink parser (= InternalLinkParser).
-    static let samplePreviewBody: String = """
-    # \(WenshuI18n.t("workspace.welcome.title"))
+    // v0.40 boss 9/7 OOB '删除空白预览文档': samplePreviewBody
+    // (= the "Welcome to wenshu" placeholder) is removed. When no
+    // tab is open, the editor zone shows the empty-state hint via
+    // `emptyStateHint` (= tells the user to double-click a card
+    // in the material library). Persisted open tabs (= loaded from
+    // UserDefaults by AppState.init) skip this hint entirely.
+    //
+    // v0.34 ticket 05 (preserved as comment for historical
+    // reference): sample markdown body shown in preview mode
+    // exercised header levels, bold/italic, bullet list, inline
+    // code, code fence, [[wikilink]] (= parsed by InternalLinkParser).
+    // The v0.40 apple-001 UX cleanup replaced its CJK content with
+    // an onboarding welcome. Now removed entirely per boss 9/7 OOB.
 
-    \(WenshuI18n.t("workspace.welcome.body1"))
-
-    \(WenshuI18n.t("workspace.welcome.ai_assistant"))
-
-    \(WenshuI18n.t("workspace.welcome.guide_link"))
-    """
+    /// v0.40 boss 9/7 OOB: empty-state hint shown when no editor
+    /// tab is open. Tells the user to double-click a card in the
+    /// material library (= the canonical wenshu document-open
+    /// path: pick a reference library / book / folder, double-
+    /// click a card → openCardInEditor creates a tab).
+    ///
+    /// Visual style: centered Lucide "book-open" icon + 2 lines
+    /// of copy + a subtle hand pointer. Matches the existing
+    /// PreviewPane empty-state style (= consistent onboarding
+    /// surface across the workspace).
+    private var emptyStateHint: some View {
+        VStack(spacing: DesignTokens.chromePaddingLarge) {
+            LucideIconSystemFallback(
+                "book-open",
+                size: DesignTokens.iconLargeSize
+            )
+            .foregroundStyle(.secondary)
+            VStack(spacing: DesignTokens.chromePaddingSmall) {
+                Text(WenshuI18n.t("workspace.empty.title"))
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                Text(WenshuI18n.t("workspace.empty.body"))
+                    .font(.system(size: 13))
+                    .foregroundStyle(.tertiary)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: 360)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
 
     // v0.34 ticket 05: placeholder type alias for the wikilink navigation
     // closure (= ticket 027-35 will replace with actual NavigationLink).
