@@ -38,11 +38,20 @@ struct v0_36_Visual_Verify {
     }
 
     /// 🟥 act-2: AgentSettingsView 3-pane Settings (= LLM Connector / Memory / Skills)
-    @Test("AgentSettingsView initializer exists (= act-2 wired)")
+    //
+    // v0.40 apple-001 + boss real-device test (2026-09-07) refactor:
+    // AgentSettingsView + LLMConnectorSettingsView were removed
+    // (merged into SettingView's Provider API tab as the canonical
+    // LLM provider config surface). The "3-pane" 3-tab Agent picker
+    // is gone. This test now asserts the canonical SettingView
+    // surface exists.
+    @Test("SettingView (= agent config merged into Provider API tab)")
     func testAct2_AgentSettingsView() {
-        // AgentSettingsView is a struct (= session 8 + act-2-fix commits)
-        // No init params (= uses @State for tab selection).
-        let view = AgentSettingsView()
+        // SettingView is a struct (= the Settings sheet's
+        // 5-tab segmented picker: General / Provider API / Model /
+        // Memory / Skills). The LLM connector config is the
+        // Provider API tab.
+        let view = SettingView()
         _ = view.body
     }
 

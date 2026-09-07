@@ -88,20 +88,27 @@ struct AppRootScene: Scene {
         // size, can grow to fit larger content).
         .windowResizability(.contentMinSize)
         .commands {
-            // v0.24 boss验收fix: Settings... menu item (Cmd+,).
-            // This is required for SwiftUI Settings scene to be accessible.
-            // Without this, the menu has no Settings item and showSettingsWindow:
-            // selector doesn't work.
-            CommandGroup(replacing: .appSettings) {
-                // v0.24 boss验收fix: tap menu item = trigger @Environment(\.openSettings).
-                // The Button is a no-op body, but SwiftUI's Commands system
-                // auto-wires this to the @Environment(\.openSettings) closure
-                // captured by SettingsEnvironmentCapturer.
-                Button("设置…") {
-                    WenshuAppDelegate.openSettings?()
-                }
-                .keyboardShortcut(",", modifiers: .command)
-            }
+            // v0.40 apple-001 + boss real-device test (2026-09-07) fix:
+            // removed the custom `CommandGroup(replacing: .appSettings) { Button("设置…") }`
+            // block. The custom Button was duplicating the macOS system
+            // "Settings..." menu item (= which is auto-rendered when the
+            // App has a `Settings { ... }` scene, see L206). The
+            // duplication showed as 2 menu items: "设置…" (Chinese) +
+            // "Settings..." (English) in the WenshuApp menu.
+            //
+            // Apple HIG: the macOS standard for Settings menu is the
+            // system-default "Settings..." (= Apple-localized, = Cmd+,).
+            // The Settings scene below provides the actual content
+            // (= SettingView, the 6-tab segmented settings panel).
+            //
+            // The previous custom Button was a v0.24 workaround
+            // (= "Settings... menu item is required for SwiftUI
+            // Settings scene to be accessible"). That workaround is
+            // no longer needed (= the Settings scene at L206 is the
+            // real source of the menu entry). Cmd+, opens Settings
+            // automatically when the App has a Settings scene (= no
+            // custom CommandGroup required).
+            //
             // CHATBOX-002 (2026-09-04): ⌘K command palette (= hermes
             // commands.py + slash_registry.py parity). Replaces
             // .newItem group so ⌘K shows the palette instead of the
