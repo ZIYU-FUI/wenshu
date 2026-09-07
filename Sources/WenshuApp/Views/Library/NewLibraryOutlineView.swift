@@ -375,10 +375,10 @@ struct NewLibraryOutlineView: View {
         // (= Create New Shelf is the canonical "I'm in the sidebar, I want
         // to add something" action).
         .contextMenu {
-            Button("新建书架…") {
+            Button(WenshuI18n.t("auto2.newlibraryoutlineview.l378.h6629531")) {
                 showNewShelfSheet = true
             }
-            Button("新建书…") {
+            Button(WenshuI18n.t("auto2.newlibraryoutlineview.l381.h1694446")) {
                 showNewBookSheet = true
             }
         }
@@ -671,10 +671,10 @@ struct NewLibraryOutlineView: View {
             ),
             presenting: pendingDelete
         ) { target in
-            Button("取消", role: .cancel) {
+            Button(WenshuI18n.t("auto2.newlibraryoutlineview.l674.h92868892"), role: .cancel) {
                 pendingDelete = nil
             }
-            Button("删除", role: .destructive) {
+            Button(WenshuI18n.t("auto2.newlibraryoutlineview.l677.h8189648"), role: .destructive) {
                 do {
                     switch target.kind {
                     case .shelf:
@@ -695,9 +695,9 @@ struct NewLibraryOutlineView: View {
             let childCount = pendingDeleteChildCount(target: target)
             if childCount > 0 {
                 let childKindLabel = target.kind == .shelf ? "书" : "文档"
-                Text("将永久删除 \(target.itemName) 以及其中的 \(childCount) 个\(childKindLabel)。此操作不可撤销。")
+                Text(WenshuI18n.t("auto2.newlibraryoutlineview.l698.h35313610"))
             } else {
-                Text("将永久删除 \(target.itemName)。此操作不可撤销。")
+                Text(WenshuI18n.t("auto2.newlibraryoutlineview.l700.h42077726"))
             }
         }
     }
@@ -749,7 +749,7 @@ struct NewLibraryOutlineView: View {
             // only applies to the reference library Section, which
             // is a different element).
             .contextMenu {
-                Button("重命名…") {
+                Button(WenshuI18n.t("auto2.newlibraryoutlineview.l752.h31835725")) {
                     renaming = RenamingTarget(
                         kind: .shelf,
                         itemId: shelf.id,
@@ -758,7 +758,7 @@ struct NewLibraryOutlineView: View {
                     )
                 }
                 Divider()
-                Button("删除…", role: .destructive) {
+                Button(WenshuI18n.t("auto2.newlibraryoutlineview.l761.h28387294"), role: .destructive) {
                     pendingDelete = PendingDelete(
                         kind: .shelf,
                         itemId: shelf.id,
@@ -913,7 +913,7 @@ struct NewLibraryOutlineView: View {
                 // want; the Reference Library rule is for the reference
                 // library Section, not for the default help book).
                 .contextMenu {
-                    Button("重命名…") {
+                    Button(WenshuI18n.t("auto2.newlibraryoutlineview.l916.h31835725")) {
                         renaming = RenamingTarget(
                             kind: .book,
                             itemId: book.id,
@@ -922,7 +922,7 @@ struct NewLibraryOutlineView: View {
                         )
                     }
                     Divider()
-                    Button("删除…", role: .destructive) {
+                    Button(WenshuI18n.t("auto2.newlibraryoutlineview.l925.h28387294"), role: .destructive) {
                         pendingDelete = PendingDelete(
                             kind: .book,
                             itemId: book.id,
@@ -1122,7 +1122,7 @@ struct NewLibraryOutlineView: View {
         // Multi-select = batch delete. Single select = per-item
         // actions.
         if items.count > 1 {
-            Button("删除所选 \(items.count) 项", role: .destructive) {
+            Button(WenshuI18n.t("auto2.newlibraryoutlineview.l1125.h95494717"), role: .destructive) {
                 for item in items {
                     handleContextMenuDelete(item)
                 }
@@ -1130,13 +1130,13 @@ struct NewLibraryOutlineView: View {
         } else if let first = items.first {
             switch first {
             case .shelf(let id):
-                Button("新建书…") {
+                Button(WenshuI18n.t("auto2.newlibraryoutlineview.l1133.h1694446")) {
                     appState.sidebarSelection = .shelf(id)
                     showNewBookSheet = true
                 }
                 Divider()
                 if let shelf = shelves.first(where: { $0.id == id }) {
-                    Button("重命名…") {
+                    Button(WenshuI18n.t("auto2.newlibraryoutlineview.l1139.h31835725")) {
                         renaming = RenamingTarget(
                             kind: .shelf,
                             itemId: id,
@@ -1146,7 +1146,7 @@ struct NewLibraryOutlineView: View {
                     }
                 }
                 Divider()
-                Button("删除…", role: .destructive) {
+                Button(WenshuI18n.t("auto2.newlibraryoutlineview.l1149.h28387294"), role: .destructive) {
                     if let shelf = shelves.first(where: { $0.id == id }) {
                         pendingDelete = PendingDelete(
                             kind: .shelf,
@@ -1157,7 +1157,7 @@ struct NewLibraryOutlineView: View {
                 }
             case .book(let id):
                 if let book = books.first(where: { $0.id == id }) {
-                    Button("重命名…") {
+                    Button(WenshuI18n.t("auto2.newlibraryoutlineview.l1160.h31835725")) {
                         renaming = RenamingTarget(
                             kind: .book,
                             itemId: id,
@@ -1167,7 +1167,7 @@ struct NewLibraryOutlineView: View {
                     }
                 }
                 Divider()
-                Button("删除…", role: .destructive) {
+                Button(WenshuI18n.t("auto2.newlibraryoutlineview.l1170.h28387294"), role: .destructive) {
                     if let book = books.first(where: { $0.id == id }) {
                         pendingDelete = PendingDelete(
                             kind: .book,
@@ -1552,9 +1552,9 @@ private struct NewBookSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                TextField("书名", text: $title)
+                TextField(WenshuI18n.t("auto2.newlibraryoutlineview.l1555.h13591586"), text: $title)
                     .textFieldStyle(.roundedBorder)
-                TextField("作者", text: $author)
+                TextField(WenshuI18n.t("auto2.newlibraryoutlineview.l1557.h62884489"), text: $author)
                     .textFieldStyle(.roundedBorder)
                 // v0.30 boss 8/31 OOB: shelf picker (= user can
                 // choose which shelf this book goes into). Default
@@ -1637,10 +1637,10 @@ private struct NewBookSheet: View {
             .navigationTitle(WenshuI18n.t("library.new_book.title"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(WenshuI18n.t("auto2.newlibraryoutlineview.l1640.h92868892")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") {
+                    Button(WenshuI18n.t("auto2.newlibraryoutlineview.l1643.h37960739")) {
                         let book = Book(
                             title: title,
                             author: author,
@@ -1727,7 +1727,7 @@ private struct NewShelfSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("书架名 (例如 长篇网文)", text: $name)
+                    TextField(WenshuI18n.t("auto2.newlibraryoutlineview.l1730.h19340064"), text: $name)
                         .textFieldStyle(.roundedBorder)
                     // v0.30 boss 8/31 OOB: inline error label under the
                     // name field. Shows when the name is a duplicate
@@ -1818,10 +1818,10 @@ private struct NewShelfSheet: View {
             .navigationTitle(WenshuI18n.t("library.new_shelf.title"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(WenshuI18n.t("auto2.newlibraryoutlineview.l1821.h92868892")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") {
+                    Button(WenshuI18n.t("auto2.newlibraryoutlineview.l1824.h37960739")) {
                         onSave(name, selectedIcon)
                         dismiss()
                     }
@@ -1877,7 +1877,7 @@ struct NewChoiceSheet: View {
             .navigationTitle(WenshuI18n.t("library.new_choice.title"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button(WenshuI18n.t("auto2.newlibraryoutlineview.l1880.h92868892")) { dismiss() }
                         .keyboardShortcut(.cancelAction)
                 }
             }
@@ -1985,7 +1985,7 @@ private struct RenameItemSheet: View {
             .padding()
             Divider()
             Form {
-                TextField("名称", text: $name)
+                TextField(WenshuI18n.t("auto2.newlibraryoutlineview.l1988.h24669799"), text: $name)
                     .textFieldStyle(.roundedBorder)
                 if let nameError = nameError {
                     HStack(spacing: 6) {
@@ -2001,9 +2001,9 @@ private struct RenameItemSheet: View {
             .formStyle(.grouped)
             Divider()
             HStack {
-                Button("取消", role: .cancel) { dismiss() }
+                Button(WenshuI18n.t("auto2.newlibraryoutlineview.l2004.h92868892"), role: .cancel) { dismiss() }
                 Spacer()
-                Button("保存") {
+                Button(WenshuI18n.t("auto2.newlibraryoutlineview.l2006.h37960739")) {
                     onSave(name.trimmingCharacters(in: .whitespacesAndNewlines))
                     dismiss()
                 }

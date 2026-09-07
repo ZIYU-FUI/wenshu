@@ -24,7 +24,7 @@ public struct SubAgentProgressView: View {
                 Text(WenshuI18n.t("auto.subagentprogressview.l24.h74924234"))
                     .font(.headline)
                 Spacer()
-                Text("\(runningCount) 进行中 · \(doneCount) 已完成")
+                Text(WenshuI18n.t("auto2.subagentprogressview.l27.h17103990"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
@@ -56,7 +56,7 @@ public struct SubAgentProgressView: View {
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                 Spacer()
-                Button("刷新") {
+                Button(WenshuI18n.t("auto2.subagentprogressview.l59.h26216387")) {
                     refreshTrigger += 1
                 }
                 .buttonStyle(.bordered)

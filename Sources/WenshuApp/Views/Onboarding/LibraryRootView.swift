@@ -384,7 +384,7 @@ Group {
                 Button {
                     showSavePanel()
                 } label: {
-                    Label("新建文枢仓库", systemImage: "doc.badge.plus")
+                    Label(WenshuI18n.t("auto2.libraryrootview.l387.h40947105"), systemImage: "doc.badge.plus")
                         .frame(width: DesignTokens.bannerInlineSize.width, height: DesignTokens.bannerInlineSize.height)
                 }
                 .buttonStyle(.borderedProminent)
@@ -393,7 +393,7 @@ Group {
                 Button {
                     showOpenPanel()
                 } label: {
-                    Label("打开已有文枢仓库", systemImage: "folder")
+                    Label(WenshuI18n.t("auto2.libraryrootview.l396.h53178210"), systemImage: "folder")
                         .frame(width: DesignTokens.bannerInlineSize.width, height: DesignTokens.bannerInlineSize.height)
                 }
                 .buttonStyle(.bordered)
@@ -421,9 +421,9 @@ Group {
     /// shelves/ + reference-library/ + cache/ + Info.plist + chat.sqlite.
     private func showOpenPanel() {
         let panel = NSOpenPanel()
-        panel.title = "打开已有文枢仓库"
-        panel.message = "选择一个现有的文枢仓库目录"
-        panel.prompt = "打开"
+        panel.title = WenshuI18n.t("auto2.libraryrootview.l424.h53178210")
+        panel.message = WenshuI18n.t("auto2.libraryrootview.l425.h5152056")
+        panel.prompt = WenshuI18n.t("auto2.libraryrootview.l426.h19738884")
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
@@ -469,9 +469,9 @@ Group {
     /// Apple HIG 'create new package' pattern (NSSavePanel with default name).
     private func showSavePanel() {
         let panel = NSSavePanel()
-        panel.title = "新建文枢仓库"
-        panel.message = "选择一个位置保存你的文枢仓库"
-        panel.prompt = "创建"
+        panel.title = WenshuI18n.t("auto2.libraryrootview.l472.h40947105")
+        panel.message = WenshuI18n.t("auto2.libraryrootview.l473.h20911334")
+        panel.prompt = WenshuI18n.t("auto2.libraryrootview.l474.h92696757")
         // v0.24 boss验收fix (Boss 8/24 OOB): default filename = NSUserName() + ".ws"
         // NSUserName() = current Mac username (Apple API, returns "anbaiqiang"
         // on 老板's machine). Boss 拍 '我的电脑应该是 anbaiqiang'.

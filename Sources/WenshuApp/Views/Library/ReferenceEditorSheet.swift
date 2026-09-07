@@ -47,15 +47,15 @@ struct ReferenceEditorSheet: View {
             .padding()
             Divider()
             Form {
-                Section("基本信息") {
-                    TextField("标题", text: $title)
+                Section(WenshuI18n.t("auto2.referenceeditorsheet.l50.h89683680")) {
+                    TextField(WenshuI18n.t("auto2.referenceeditorsheet.l51.h29653796"), text: $title)
                         .textFieldStyle(.roundedBorder)
-                    TextField("来源 (可选, 例如 书籍名 / 作者 / 出版年)", text: $source)
+                    TextField(WenshuI18n.t("auto2.referenceeditorsheet.l53.h27259814"), text: $source)
                         .textFieldStyle(.roundedBorder)
-                    TextField("URL (可选)", text: $url)
+                    TextField(WenshuI18n.t("auto2.referenceeditorsheet.l55.h14949480"), text: $url)
                         .textFieldStyle(.roundedBorder)
                 }
-                Section("分层") {
+                Section(WenshuI18n.t("auto2.referenceeditorsheet.l58.h48790931")) {
                     Picker("所在层", selection: $layer) {
                         ForEach(ReferenceLayer.allCases, id: \.self) { l in
                             if l.isUserFacing {
@@ -71,8 +71,8 @@ struct ReferenceEditorSheet: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                Section("摘要 (一行的中心思想)") {
-                    TextField("摘要", text: $summary, axis: .vertical)
+                Section(WenshuI18n.t("auto2.referenceeditorsheet.l74.h28435064")) {
+                    TextField(WenshuI18n.t("auto2.referenceeditorsheet.l75.h91518509"), text: $summary, axis: .vertical)
                         .lineLimit(2...4)
                         .textFieldStyle(.roundedBorder)
                 }
@@ -80,9 +80,9 @@ struct ReferenceEditorSheet: View {
             .formStyle(.grouped)
             Divider()
             HStack {
-                Button("取消", role: .cancel) { onCancel() }
+                Button(WenshuI18n.t("auto2.referenceeditorsheet.l83.h23911774"), role: .cancel) { onCancel() }
                 Spacer()
-                Button("保存") { save() }
+                Button(WenshuI18n.t("auto2.referenceeditorsheet.l85.h85486397")) { save() }
                     .buttonStyle(.borderedProminent)
                     .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     .keyboardShortcut(.defaultAction)

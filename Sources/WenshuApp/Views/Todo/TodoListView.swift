@@ -141,7 +141,7 @@ public struct TodoListView: View {
             }
             .pickerStyle(.menu)
             .fixedSize()
-            .help("切换待办数据范围 (= 全书 / 8 标准子目录 / 资料库)")
+            .help(WenshuI18n.t("auto2.todolistview.l144.h43082120"))
             Spacer()
             Text(WenshuI18n.t("auto.todolistview.l146.h44817253"))
                 .font(.caption)
@@ -177,7 +177,7 @@ public struct TodoListView: View {
     private var inputRow: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
-                TextField("新待办标题…", text: $newItemTitle)
+                TextField(WenshuI18n.t("auto2.todolistview.l180.h66445661"), text: $newItemTitle)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit { addItem() }
                 Picker("优先级", selection: $newItemPriority) {
@@ -188,7 +188,7 @@ public struct TodoListView: View {
                 .pickerStyle(.menu)
                 .fixedSize()
                 Button(action: addItem) {
-                    Label("添加待办", systemImage: "plus")
+                    Label(WenshuI18n.t("auto2.todolistview.l191.h76640765"), systemImage: "plus")
                 }
                 .disabled(!canAdd)
                 .buttonStyle(.borderedProminent)
@@ -260,7 +260,7 @@ public struct TodoListView: View {
                         .foregroundStyle(.tertiary)
                 }
                 .buttonStyle(.borderless)
-                .help("清除活动横幅")
+                .help(WenshuI18n.t("auto2.todolistview.l263.h94469033"))
             }
             ForEach(Array(recentEvents.prefix(5).enumerated()), id: \.offset) { (_, item) in
                 HStack(spacing: 6) {
@@ -278,7 +278,7 @@ public struct TodoListView: View {
                 .background(Color.secondary.opacity(0.08), in: Capsule())
             }
             if recentEvents.count > 5 {
-                Text("…还有 \(recentEvents.count - 5) 条更早的活动")
+                Text(WenshuI18n.t("auto2.todolistview.l281.h58590360"))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
@@ -563,14 +563,14 @@ private struct TodoRow: View {
             Spacer()
             priorityChip
             Menu {
-                Button("开始") { onSetStatus(.inProgress) }
+                Button(WenshuI18n.t("auto2.todolistview.l566.h96905135")) { onSetStatus(.inProgress) }
                     .disabled(item.status == .inProgress)
-                Button("完成") { onSetStatus(.completed) }
+                Button(WenshuI18n.t("auto2.todolistview.l568.h11194739")) { onSetStatus(.completed) }
                     .disabled(item.status == .completed)
-                Button("取消") { onSetStatus(.cancelled) }
+                Button(WenshuI18n.t("auto2.todolistview.l570.h27285299")) { onSetStatus(.cancelled) }
                     .disabled(item.status == .cancelled)
                 Divider()
-                Button("删除", role: .destructive) { onDelete() }
+                Button(WenshuI18n.t("auto2.todolistview.l573.h2266275"), role: .destructive) { onDelete() }
             } label: {
                 Image(systemName: "ellipsis.circle")
                     .font(.caption)
@@ -627,21 +627,21 @@ private struct TodoRow: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
-            .help("开始")
+            .help(WenshuI18n.t("auto2.todolistview.l630.h96905135"))
         case .inProgress:
             Button(action: { onSetStatus(.completed) }) {
                 Image(systemName: "circle.inset.filled")
                     .foregroundStyle(.tint)
             }
             .buttonStyle(.borderless)
-            .help("完成")
+            .help(WenshuI18n.t("auto2.todolistview.l637.h11194739"))
         case .completed:
             Button(action: { onSetStatus(.pending) }) {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(.green)
             }
             .buttonStyle(.borderless)
-            .help("重开")
+            .help(WenshuI18n.t("auto2.todolistview.l644.h89704149"))
         case .cancelled:
             Image(systemName: "xmark.circle")
                 .foregroundStyle(.tertiary)
@@ -659,7 +659,7 @@ private struct TodoRow: View {
             .padding(.horizontal, DesignTokens.chromePaddingSmall)
             .padding(.vertical, DesignTokens.chromePaddingNano)
             .background(bg, in: Capsule())
-            .help("优先级: \(text)")
+            .help(WenshuI18n.t("auto2.todolistview.l662.h98228791"))
     }
 
     private func chipStyle(for priority: TodoPriority) -> (String, Color, Color) {

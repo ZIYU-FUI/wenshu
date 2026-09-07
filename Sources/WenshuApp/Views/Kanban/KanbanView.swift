@@ -106,7 +106,7 @@ public struct KanbanView: View {
             }
             .pickerStyle(.menu)
             .fixedSize()
-            .help("切换看板数据范围 (= 全书 / 8 标准子目录 / 资料库)")
+            .help(WenshuI18n.t("auto2.kanbanview.l109.h72695635"))
             Spacer()
             Text(WenshuI18n.t("auto.kanbanview.l111.h22166662"))
                 .font(.caption)
@@ -139,11 +139,11 @@ public struct KanbanView: View {
     private var inputRow: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
-                TextField("新看板标题…", text: $newTicketTitle)
+                TextField(WenshuI18n.t("auto2.kanbanview.l142.h68849992"), text: $newTicketTitle)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit { addTicket() }
                 Button(action: addTicket) {
-                    Label("新建", systemImage: "plus")
+                    Label(WenshuI18n.t("auto2.kanbanview.l146.h37112406"), systemImage: "plus")
                 }
                 .disabled(!canAdd)
                 .buttonStyle(.borderedProminent)

@@ -61,7 +61,7 @@ public struct SearchPanel: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(WenshuI18n.t("auto.searchpanel.l62.h62708978"))
                 .font(.headline)
-            TextField("搜索…", text: $queryText)
+            TextField(WenshuI18n.t("auto2.searchpanel.l64.h3828451"), text: $queryText)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit {
                     viewModel.setQuery(queryText)

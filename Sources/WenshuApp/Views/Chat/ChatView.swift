@@ -855,7 +855,7 @@ public struct ChatView: View {
                 //    additional gap between textfield and send button
                 //    (= boss wants more visual breathing room between
                 //    textfield and send button than current 8 PT).
-                TextField("输入消息...",
+                TextField(WenshuI18n.t("auto2.chatview.l858.h59940148"),
                           text: $vm.inputText, axis: .vertical)
                     .lineLimit(1...4)
                     // v0.28 followup Boss UX round 27 (Boss 2026-08-29
