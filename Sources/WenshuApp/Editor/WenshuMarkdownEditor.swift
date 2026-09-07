@@ -98,6 +98,14 @@ struct WenshuMarkdownEditor: View {
         return config
     }
 
+    /// EDITORFONT-002 (2026-09-07): engine base font = caption1
+    /// (= 10 PT = SwiftUI `.caption` on macOS 27). Passed to
+    /// `NativeTextViewWrapper(fontSize:)` below (= the engine
+    /// default is 16 PT which broke the multiplier math).
+    private var caption1BaseFontSize: CGFloat {
+        NSFont.preferredFont(forTextStyle: .caption1).pointSize
+    }
+
     var body: some View {
         // v0.40 boss 9/7 OOB '编辑模式也一样, 左右各留 18PT':
         // apply the same horizontal inset as preview mode (= 18 PT
@@ -122,6 +130,16 @@ struct WenshuMarkdownEditor: View {
         NativeTextViewWrapper(
             text: $text,
             configuration: adjustedConfiguration,
+            // EDITORFONT-002 (2026-09-07): pass fontSize so the engine
+            // base font matches the caption1 multiplier base (= 10 PT).
+            // Without this, NativeTextViewWrapper defaults to 16 PT and
+            // the multiplier math produces H1 = 16 × (13/10) = 20.8 PT
+            // (= still visually dominant vs sidebar/kanban .headline
+            // = 13 PT = the bug boss 9/7 saw). With fontSize=10 here,
+            // engine base = 10 PT, multiplier H1 = 1.3 gives
+            // H1 = 10 × 1.3 = 13 PT = matches Apple `.headline`.
+            fontName: "SF Pro",
+            fontSize: caption1BaseFontSize,
             documentId: draftId,
             isEditable: isEditable,
             onLinkClick: onLinkClick
