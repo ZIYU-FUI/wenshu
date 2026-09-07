@@ -224,6 +224,15 @@ struct PreviewPane: View {
     /// bar trailing button re-renders this view's card grid.
     @Binding var previewSortOrder: EntitySortOrder
 
+    /// v0.40 boss 9/7 OOB '每打一个字, 内容自动刷新. 清空恢复全显':
+    /// search query for the preview pane search bar (= empty
+    /// string = show all cards; non-empty = filter by case-insensitive
+    /// substring match on card display name + summary). SwiftUI
+    /// @State reactivity re-evaluates `body` on every keystroke
+    /// (= live refresh, no submit button, no .onChange handler
+    /// needed).
+    @State private var previewSearchQuery: String = ""
+
     /// Explicit init: required for @Binding in struct (= memberwise
     /// init doesn't support @Binding in non-result-builder structs).
     /// Pass-through of all other fields + wraps the binding.
@@ -265,6 +274,20 @@ struct PreviewPane: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // v0.40 boss 9/7 OOB '在红框处 (= 第二栏 preview 顶部), 加一个
+            // 二层的栏, 搜索功能, 不用要搜索按钮, 每打一个字, 内容自动
+            // 刷新. 清空恢复全显': real-time search field at the top of
+            // the preview pane (= filters the visible cards in real
+            // time; no submit button; each keystroke updates the
+            // visible rows via SwiftUI's reactive observation of
+            // @State). Empty query → show all (= filteredEntities
+            // returns the original arrays).
+            //
+            // Scope: the field is always visible regardless of scope
+            // (= referenceScopeView / bookScopeView / shelfScopeView /
+            // emptyScopeView all show it on top). Filters cards by
+            // display-name + summary substring match.
+            searchBar
             // v0.30 boss 8/31 OOB: scope-driven dispatch. Each scope
             // branch handles its own toolbar (some hide toolbar, e.g.
             // empty state).
@@ -283,6 +306,40 @@ struct PreviewPane: View {
         }
         .padding(DesignTokens.chromePaddingHero)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// v0.40 boss 9/7 OOB: real-time preview search bar.
+    /// Two-line HStack (= magnifying-glass icon + TextField on line
+    /// 1; clear-x button appears on line 1 only when the query is
+    /// non-empty). Bound to `@State previewSearchQuery` (= SwiftUI's
+    /// @State reactivity re-evaluates `body` (= and the `filtered*`
+    /// computed properties below) on every keystroke; = native live
+    /// refresh with no .onChange handler needed).
+    private var searchBar: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+                .imageScale(.small)
+            TextField(
+                WenshuI18n.t("preview.search.placeholder"),
+                text: $previewSearchQuery
+            )
+            .textFieldStyle(.plain)
+            if !previewSearchQuery.isEmpty {
+                Button {
+                    previewSearchQuery = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                        .imageScale(.small)
+                }
+                .buttonStyle(.plain)
+                .help(WenshuI18n.t("preview.search.clear"))
+            }
+        }
+        .padding(.horizontal, DesignTokens.chromePaddingSmall)
+        .padding(.vertical, DesignTokens.chromePaddingSmall)
+        .background(Color.clear)
     }
 
     // MARK: - Scope subviews
