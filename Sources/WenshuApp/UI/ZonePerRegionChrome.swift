@@ -96,6 +96,54 @@ public struct ZoneBottomStatus: Sendable {
     }
 }
 
+// MARK: - Zone identity (= chrome-level zone icon + label)
+
+// CHROME-ARCH-001 (2026-09-07): single source of truth for the
+// per-zone chrome identity (= the icon + label that appears in the
+// parent top bar). Each ZoneSlot maps to a fixed Lucide icon name +
+// an i18n key for the label. Before this commit, every zone's
+// internal tab bar (= e.g. ZoneContentView's PaneTabBar in the
+// sidebar zone) carried its own icon + label per tab (= scattered
+// definition per call site). Now the chrome-level identity is
+// here (= one lookup) and tab-internal labels stay as per-tab
+// content (e.g. "书架 / 预览 / 图" inside the cards zone).
+//
+// Note: ZoneSlot is declared in App.swift without `public`, so this
+// extension is module-internal (= same scope as the existing
+// RegionContentBackground extension).
+extension ZoneSlot {
+    /// Lucide icon name (kebab-case, matches the rest of the
+    /// codebase's icon naming = e.g. "book-open", "waypoints",
+    /// "bot-message-square"). Used in the parent's chrome top bar
+    /// (= the unified 30 PT strip ZonePerRegionChrome renders).
+    var chromeIconName: String {
+        switch self {
+        case .projectSidebar:    return "library"
+        case .projectPreview:    return "book-open-check"
+        case .editor:            return "square-pen"
+        case .specializedTools:   return "spline"
+        case .aiChat:            return "bot-message-square"
+        case .aiDynamic:         return "kanban-square"
+        }
+    }
+
+    /// i18n key for the zone's chrome label (= "书架管理" / "素材预览"
+    /// etc.). Each value is a stable key (= we add both en + zh
+    /// entries to Localizable.strings in this commit). When the
+    /// translation is missing, WenshuI18n.t returns the key path
+    /// itself (= Apple HIG standard fallback policy).
+    var chromeLabelKey: String {
+        switch self {
+        case .projectSidebar:    return "zone.chrome.projectSidebar"
+        case .projectPreview:    return "zone.chrome.projectPreview"
+        case .editor:            return "zone.chrome.editor"
+        case .specializedTools:   return "zone.chrome.specializedTools"
+        case .aiChat:            return "zone.chrome.aiChat"
+        case .aiDynamic:         return "zone.chrome.aiDynamic"
+        }
+    }
+}
+
 // MARK: - Zone chrome (= matches old ZoneModule outer chrome)
 
 /// Per-region chrome = top toolbar (30 PT) + content + bottom toolbar
@@ -144,55 +192,56 @@ public struct ZonePerRegionChrome<Content: View>: View {
     }
 
     public var body: some View {
+        // CHROME-ARCH-001 (2026-09-07): ZonePerRegionChrome is now
+        // a thin composer (= ~25 LOC) that delegates to the chrome
+        // stylesheet file. Boss 9/7 '搞一个样式组件的文件, 用于管理
+        // 控件样式' = the chrome (= background + top bar + bottom
+        // bar) lives in ChromeStyles.swift (= single source of truth
+        // for visual styling; = this file = functional wiring only).
+        //
+        // Composition order (= visual stack from top to bottom):
+        // 1. chromeTopBarStyle (= unified 30 PT top strip with
+        //    ZoneSlot identity; = skipped when topSkip: true)
+        // 2. content() wrapped in chromeZoneBackgroundStyle
+        //    (= per-zone chrome tier / content tier background)
+        // 3. chromeBottomBarStyle (= unified 30 PT status strip;
+        //    = skipped when bottomSkip: true)
         VStack(spacing: 0) {
-            // v0.34: topBar removed (= 0 active caller, see file-bottom comment).
-            // Region content (= fills remaining space).
-            // v0.28 followup Boss UX round 42 (Boss 2026-08-29 OOB
-            // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-            // 'missing three zones, project manager, tools, chat, none entered your stylesheet' =
-            // Sidebar / Tools / Chat / Dynamic panes were missing
-            // the RegionContentBackground wrapper). Apply it here at
-            // the ZonePerRegionChrome layer (= wraps ALL 6 panes
-            // uniformly = single source of truth for the canonical
-            // per-pane content background).
-            // v0.32 boss 2026-09-02 OOB: pass the routed ZoneSlot
-            // through (= chrome tier or content tier per FCP-style
-            // brightness delta). nil falls back to the chrome tier
-            // so SwiftUI previews + tests keep working unchanged.
+            // Top chrome bar (skipped when zone owns its own = e.g.
+            // chat zone renders a top tab bar inline via safeAreaInset;
+            // = zones that have a 2nd-layer top bar pass topSkip: true).
+            if let zone = zone, !topSkip {
+                ChromeTopBar(zone: zone, trailingActions: topActions)
+            }
+            // Region content (= fills remaining space) + per-zone
+            // background. chromeZoneBackgroundStyle is the CSS-like
+            // modifier that owns the visual background fill (= not
+            // the .padding/.frame calls that used to be here).
             content()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(zone.map(RegionContentBackground.init(zone:)) ?? RegionContentBackground())
-            // Bottom toolbar (= 30 PT, matches old ZoneBottomToolbar).
-            // 5 of 6 active callers (sidebar/preview/editor/tools/dynamic)
-            // pass bottomSkip: false; chat passes bottomSkip: true (= chat
-            // uses its own internal ChatBottomToolbar per v0.21 ticket 10).
+                .chromeZoneBackgroundStyle(zone: zone)
+            // Bottom chrome bar (= status text + right-click).
+            // 5 of 6 active callers (sidebar/preview/editor/tools/
+            // dynamic) get the parent's bottom bar; chat zone passes
+            // bottomSkip: true (= chat uses its own internal
+            // ChatBottomToolbar per v0.21 ticket 10).
             if !bottomSkip {
-                bottomBar
+                ChromeBottomBar(
+                    left: bottomStatus.left,
+                    right: bottomStatus.right,
+                    rightOnTap: bottomStatus.rightOnTap
+                )
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    // MARK: - Bottom toolbar (= matches old ZoneBottomToolbar body)
-
-    @MainActor
-    private var bottomBar: some View {
-        // v0.28 followup Boss UX round A (Boss 2026-08-30 OOB 'you need a
-        // component index, so that future use of the same thing naturally finds the component,
-        // instead of defaulting to writing a new one'): Phase 5 of refactor. Now uses the
-        // new `PaneStatusBar` component (= ComponentIndex.md Level 2.6)
-        // instead of inline HStack { Text + Spacer + Text } pattern.
-        // PaneStatusBar wraps RegionStatusBar + applies DesignTokens
-        // statusFont + statusForeground + chrome paddings automatically.
-        // B-16: forward bottomStatus.rightOnTap so PaneStatusBar can
-        // render the right text as a clickable Button (= editor zone's
-        // "Backlinks 0" popover trigger).
-        PaneStatusBar(
-            leftText: bottomStatus.left,
-            rightText: bottomStatus.right,
-            rightOnTap: bottomStatus.rightOnTap
-        )
-    }
+    // CHROME-ARCH-001 (2026-09-07): the `bottomBar` private var
+    // was removed (= ChromeBottomBar in ChromeStyles.swift is the
+    // new single source of truth; = this file = functional wiring
+    // only). Boss 9/7 '搞一个样式组件的文件, 用于管理控件样式'
+    // = the chrome styling lives in ONE file (= no scattered
+    // `.padding(.horizontal, 18).frame(height: 30)` calls).
 }
 
 // v0.34 boss 2026-09-02 OOB 'all zone top bars have the same structure, why cannot it be one component'.
