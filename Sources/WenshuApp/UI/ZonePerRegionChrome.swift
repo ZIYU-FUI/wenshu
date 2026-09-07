@@ -175,18 +175,33 @@ public struct ZonePerRegionChrome<Content: View>: View {
         // 3. chromeBottomBarStyle (= unified 30 PT status strip;
         //    = skipped when bottomSkip: true)
         VStack(spacing: 0) {
-            // Top chrome bar (skipped when zone owns its own = e.g.
-            // chat zone renders a top tab bar inline via safeAreaInset;
-            // = zones that have a 2nd-layer top bar pass topSkip: true).
-            // CHROME-ARCH-001 round 4 (2026-09-07): the chrome top
-            // bar no longer carries zone identity (= icon + label were
-            // removed = boss '不需要标题'). It's now a pure visual
-            // container (= 30 PT control-background strip). Zone
-            // identity comes from the content itself + the zone's
-            // 2nd-layer tab strip (= no redundancy).
-            if !topSkip {
-                ChromeTopBar(trailingActions: topActions)
-            }
+            // CHROME-ARCH-001 round 5 (2026-09-07): REMOVED the
+            // chrome top bar entirely (= boss 9/7 '标题栏好像被空白
+            // 栏加高了' = a 30 PT blank strip with no content is
+            // visual debt that just wastes vertical space). The
+            // chrome top bar was supposed to unify zone identity, but
+            // the round-4 removal of icon + label left it as a pure
+            // visual container (= no functional purpose = dead UI = the
+            // 30 PT becomes wasted space). ponytail rule 'linrear
+            // priority 7-tier ladder' = if it doesn't carry info,
+            // remove it.
+            //
+            // What stays:
+            // - chromeZoneBackgroundStyle (= per-tier background fill).
+            // - chromeBottomBarStyle (= the 30 PT status strip with
+            //   left + right text; = carries actual status info = no
+            //   redundancy).
+            //
+            // Migration note: callers that previously passed
+            // `topSkip: true` (= chat zone, which renders its own
+            // top tab bar via safeAreaInset) keep working unchanged.
+            // Callers that passed `topSkip: false` (= the 5 non-chat
+            // zones = sidebar / preview / editor / tools / dynamic)
+            // now just skip the top bar entirely (= the 30 PT is gone,
+            // = zones that used to have content starting at y≈37 now
+            // start at y≈7 = tighter top = more vertical real estate
+            // for content).
+            //
             // Region content (= fills remaining space) + per-zone
             // background. chromeZoneBackgroundStyle is the CSS-like
             // modifier that owns the visual background fill (= not
