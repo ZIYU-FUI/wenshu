@@ -50,7 +50,7 @@ struct CharacterEditorSheet: View {
             Divider()
             Form {
                 Section(WenshuI18n.t("auto2.charactereditorsheet.l52.h28107626")) {
-                    TextField(WenshuI18n.t("auto2.charactereditorsheet.l53.h66464513"), text: $name)
+                    TextField(WenshuI18n.t("character_editor.name_field"), text: $name)
                         .textFieldStyle(.roundedBorder)
                     HStack {
                         TextField(WenshuI18n.t("auto2.charactereditorsheet.l56.h53671324"), text: $ageText)
@@ -71,7 +71,7 @@ struct CharacterEditorSheet: View {
                         .textFieldStyle(.roundedBorder)
                 }
                 Section(WenshuI18n.t("auto2.charactereditorsheet.l73.h486167")) {
-                    TextField(WenshuI18n.t("auto2.charactereditorsheet.l74.h20415111"), text: $summary, axis: .vertical)
+                    TextField(WenshuI18n.t("character_editor.summary_field"), text: $summary, axis: .vertical)
                         .lineLimit(2...4)
                         .textFieldStyle(.roundedBorder)
                 }

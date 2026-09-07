@@ -166,9 +166,9 @@ public struct KanbanView: View {
     private var scopeUnavailableHint: String {
         switch scope {
         case .referenceLibrary:
-            return "资料库未找到 (= workspace 未 bootstrap)"
+            return WenshuI18n.t("error.reference_library_not_bootstrapped")
         case .book, .folder:
-            return "未选书 — 在左侧书架里选一本书, 看板才会加载"
+            return WenshuI18n.t("kanban.unselected_book")
         }
     }
 
@@ -333,7 +333,7 @@ private struct KanbanColumn: View {
             HStack(spacing: 4) {
                 Text(label(for: status))
                     .font(.subheadline.weight(.semibold))
-                Text("(\(tickets.count))")
+                Text(WenshuI18n.t("b5.kanbanview.l336.h21576137"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

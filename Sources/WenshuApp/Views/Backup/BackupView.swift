@@ -12,9 +12,9 @@ public struct BackupView: View {
     public var body: some View {
         // v0.22 h09: placeholder backup UI. Real backup list / restore in follow-up.
         VStack(alignment: .leading, spacing: 8) {
-            Text("Backup")
+            Text(WenshuI18n.t("b5.backupview.l15.h31510777"))
                 .font(.headline)
-            Text("Replica of hermes backup (BackupTools struct)")
+            Text(WenshuI18n.t("b5.backupview.l17.h75206518"))
                 .font(.body)
                 .foregroundStyle(.secondary)
         }

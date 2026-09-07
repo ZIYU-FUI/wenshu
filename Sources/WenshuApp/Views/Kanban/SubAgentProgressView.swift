@@ -21,7 +21,7 @@ public struct SubAgentProgressView: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(WenshuI18n.t("auto.subagentprogressview.l24.h74924234"))
+                Text(WenshuI18n.t("subagent.progress_title"))
                     .font(.headline)
                 Spacer()
                 Text(WenshuI18n.t("auto2.subagentprogressview.l27.h17103990"))
@@ -32,7 +32,7 @@ public struct SubAgentProgressView: View {
             Divider()
 
             if store == nil {
-                Text("(loading KanbanStore...)")
+                Text(WenshuI18n.t("b5.subagentprogressview.l35.h27766576"))
                     .font(.body)
                     .foregroundStyle(.tertiary)
             } else if tasks.isEmpty {

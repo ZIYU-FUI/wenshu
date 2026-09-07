@@ -48,14 +48,14 @@ struct ReferenceEditorSheet: View {
             Divider()
             Form {
                 Section(WenshuI18n.t("auto2.referenceeditorsheet.l50.h89683680")) {
-                    TextField(WenshuI18n.t("auto2.referenceeditorsheet.l51.h29653796"), text: $title)
+                    TextField(WenshuI18n.t("reference_editor.title_field"), text: $title)
                         .textFieldStyle(.roundedBorder)
                     TextField(WenshuI18n.t("auto2.referenceeditorsheet.l53.h27259814"), text: $source)
                         .textFieldStyle(.roundedBorder)
                     TextField(WenshuI18n.t("auto2.referenceeditorsheet.l55.h14949480"), text: $url)
                         .textFieldStyle(.roundedBorder)
                 }
-                Section(WenshuI18n.t("auto2.referenceeditorsheet.l58.h48790931")) {
+                Section(WenshuI18n.t("reference_editor.layer_field")) {
                     Picker("所在层", selection: $layer) {
                         ForEach(ReferenceLayer.allCases, id: \.self) { l in
                             if l.isUserFacing {
@@ -72,7 +72,7 @@ struct ReferenceEditorSheet: View {
                         .foregroundStyle(.secondary)
                 }
                 Section(WenshuI18n.t("auto2.referenceeditorsheet.l74.h28435064")) {
-                    TextField(WenshuI18n.t("auto2.referenceeditorsheet.l75.h91518509"), text: $summary, axis: .vertical)
+                    TextField(WenshuI18n.t("reference_editor.summary_field"), text: $summary, axis: .vertical)
                         .lineLimit(2...4)
                         .textFieldStyle(.roundedBorder)
                 }

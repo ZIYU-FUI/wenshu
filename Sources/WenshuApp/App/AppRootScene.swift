@@ -116,7 +116,7 @@ struct AppRootScene: Scene {
             // .wenshuShowCommandPalette (= the SwiftUI scene listens
             // and presents the palette sheet).
             CommandGroup(replacing: .newItem) {
-                Button("Open Command Palette") {
+                Button(WenshuI18n.t("b5.approotscene.l119.h40136654")) {
                     CommandPaletteController.show()
                 }
                 .keyboardShortcut("k", modifiers: .command)

@@ -18,7 +18,7 @@ public struct ChatHelpTextOverlay: View {
         // v0.24 boss验收fix: explicit center alignment (horizontal + vertical)
         // so help text floats in chat zone's geometric center.
         VStack(spacing: 8) {
-            Text(WenshuI18n.t("auto.chathelptextoverlay.l21.h73244487"))
+            Text(WenshuI18n.t("chathelp.please_first_goto"))
                 .foregroundStyle(.secondary)
             HStack(spacing: 4) {
                 Button(action: onSettingsTap) {

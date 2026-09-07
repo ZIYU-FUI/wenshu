@@ -122,7 +122,7 @@ public struct CommandPaletteView: View {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
-                TextField("Type a command or skill name…", text: Binding(
+                TextField(WenshuI18n.t("b5.commandpaletteview.l125.h99176598"), text: Binding(
                     get: { model.query },
                     set: { newValue in
                         Task { await model.filter(by: newValue) }
@@ -170,11 +170,11 @@ public struct CommandPaletteView: View {
 
             // Footer (= item count + shortcut hint).
             HStack {
-                Text("\(model.items.count) items")
+                Text(WenshuI18n.t("b5.commandpaletteview.l173.h62846186"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
-                Text("⌘K to toggle · ↵ to invoke · esc to close")
+                Text(WenshuI18n.t("b5.commandpaletteview.l177.h59099234"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }

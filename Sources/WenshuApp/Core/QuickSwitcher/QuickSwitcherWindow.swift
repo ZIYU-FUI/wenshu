@@ -42,7 +42,7 @@ public struct QuickSwitcherWindow: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Quick Switcher")
+            Text(WenshuI18n.t("b5.quickswitcherwindow.l45.h21094551"))
                 .font(.headline)
             TextField(WenshuI18n.t("auto2.quickswitcherwindow.l47.h24962090"), text: $queryText)
                 .textFieldStyle(.roundedBorder)

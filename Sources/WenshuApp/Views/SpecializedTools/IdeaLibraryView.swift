@@ -136,7 +136,7 @@ struct IdeaLibraryView: View {
             LucideIconSystemFallback("lightbulb", size: 28)
                 .foregroundStyle(.tint)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Idea Library")
+                Text(WenshuI18n.t("b5.idealibraryview.l139.h80797504"))
                     .font(.headline)
                     .foregroundStyle(.primary)
                 Text(subtitleText)
@@ -165,10 +165,10 @@ struct IdeaLibraryView: View {
 
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("No book selected")
+            Text(WenshuI18n.t("b5.idealibraryview.l168.h29952029"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            Text("Pick a book from the sidebar to start managing ideas.")
+            Text(WenshuI18n.t("b5.idealibraryview.l171.h83297924"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -200,14 +200,14 @@ struct IdeaLibraryView: View {
 
     private var addIdeaRow: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Add idea")
+            Text(WenshuI18n.t("b5.idealibraryview.l203.h90934644"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             HStack(spacing: 8) {
-                TextField("Title (e.g. The Mirror Motif)", text: $draftTitle, axis: .horizontal)
+                TextField(WenshuI18n.t("b5.idealibraryview.l207.h52593776"), text: $draftTitle, axis: .horizontal)
                     .textFieldStyle(.roundedBorder)
                     .font(.caption)
-                    .help("Short, human-readable title for the idea. Whitespace is trimmed.")
+                    .help(WenshuI18n.t("b5.idealibraryview.l210.h32208877"))
                 Picker("Status", selection: $draftStatus) {
                     ForEach(IdeaStatus.allCases) { status in
                         Label(status.displayName, systemImage: status.lucideIcon)
@@ -220,11 +220,11 @@ struct IdeaLibraryView: View {
                 Button {
                     Task { await addIdea() }
                 } label: {
-                    Label("Add", systemImage: "plus")
+                    Label(WenshuI18n.t("b5.idealibraryview.l223.h11292365"), systemImage: "plus")
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAddIdea)
-                .help("Add a new idea with the supplied title + description + status + tags.")
+                .help(WenshuI18n.t("b5.idealibraryview.l227.h30919951"))
             }
             TextField(
                 "Description (2-3 sentences)",
@@ -234,11 +234,11 @@ struct IdeaLibraryView: View {
             .textFieldStyle(.roundedBorder)
             .font(.caption)
             .lineLimit(2...4)
-            .help("Short description of the idea. Trimmed at save time.")
-            TextField("Tags (comma-separated, e.g. mirror, water)", text: $draftTagsText, axis: .horizontal)
+            .help(WenshuI18n.t("b5.idealibraryview.l237.h77385136"))
+            TextField(WenshuI18n.t("b5.idealibraryview.l238.h26275866"), text: $draftTagsText, axis: .horizontal)
                 .textFieldStyle(.roundedBorder)
                 .font(.caption)
-                .help("Free-form tags. Comma-separated. Trimmed and de-duplicated (case-insensitive) at save time.")
+                .help(WenshuI18n.t("b5.idealibraryview.l241.h11205728"))
         }
     }
 
@@ -250,11 +250,11 @@ struct IdeaLibraryView: View {
 
     private var searchAndFilterRow: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Search + filter")
+            Text(WenshuI18n.t("b5.idealibraryview.l253.h1120848"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             HStack(spacing: 8) {
-                TextField("Search title / description", text: $searchText, axis: .horizontal)
+                TextField(WenshuI18n.t("b5.idealibraryview.l257.h16271775"), text: $searchText, axis: .horizontal)
                     .textFieldStyle(.roundedBorder)
                     .font(.caption)
                     .onChange(of: searchText) { _, _ in
@@ -273,7 +273,7 @@ struct IdeaLibraryView: View {
                         }
                     }
                 )) {
-                    Text("All statuses").tag(IdeaStatus.allCases.first ?? .seedling)
+                    Text(WenshuI18n.t("b5.idealibraryview.l276.h70256740")).tag(IdeaStatus.allCases.first ?? .seedling)
                     ForEach(IdeaStatus.allCases) { status in
                         Label(status.displayName, systemImage: status.lucideIcon).tag(status)
                     }
@@ -283,10 +283,10 @@ struct IdeaLibraryView: View {
                 .onChange(of: draftFilterStatus) { _, _ in
                     Task { await reload() }
                 }
-                TextField("Tag", text: $draftFilterTag, axis: .horizontal)
+                TextField(WenshuI18n.t("b5.idealibraryview.l286.h51468846"), text: $draftFilterTag, axis: .horizontal)
                     .textFieldStyle(.roundedBorder)
                     .font(.caption)
-                    .help("Filter by tag (= case-insensitive exact match).")
+                    .help(WenshuI18n.t("b5.idealibraryview.l289.h36552357"))
                     .onChange(of: draftFilterTag) { _, _ in
                         Task { await reload() }
                     }
@@ -299,11 +299,11 @@ struct IdeaLibraryView: View {
 
     private var ideasListSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Ideas (\(ideas.count))")
+            Text(WenshuI18n.t("b5.idealibraryview.l302.h76254562"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if ideas.isEmpty {
-                Text("(none yet — add the first one above)")
+                Text(WenshuI18n.t("b5.idealibraryview.l306.h5887031"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -341,7 +341,7 @@ struct IdeaLibraryView: View {
                                     .fill(.quaternary)
                             )
                         if idea.links.count > 0 {
-                            Text("\(idea.links.count)× linked")
+                            Text(WenshuI18n.t("b5.idealibraryview.l344.h94081771"))
                                 .font(.caption2)
                                 .foregroundStyle(.tertiary)
                         }
@@ -378,7 +378,7 @@ struct IdeaLibraryView: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.borderless)
-                .help("Remove this idea.")
+                .help(WenshuI18n.t("b5.idealibraryview.l381.h13095850"))
             }
         }
         .padding(.vertical, DesignTokens.chromePaddingSmall)
@@ -394,11 +394,11 @@ struct IdeaLibraryView: View {
 
     private var linkSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Link idea to entity")
+            Text(WenshuI18n.t("b5.idealibraryview.l397.h59697849"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if ideas.isEmpty {
-                Text("Define at least 1 idea above before linking it.")
+                Text(WenshuI18n.t("b5.idealibraryview.l401.h79667379"))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             } else {
@@ -407,7 +407,7 @@ struct IdeaLibraryView: View {
                         get: { draftLinkIdeaId ?? ideas.first?.id ?? UUID() },
                         set: { draftLinkIdeaId = $0 }
                     )) {
-                        Text("(choose)").tag(UUID())
+                        Text(WenshuI18n.t("b5.idealibraryview.l410.h88496035")).tag(UUID())
                         ForEach(ideas) { idea in
                             Text(idea.title).tag(idea.id)
                         }
@@ -429,10 +429,10 @@ struct IdeaLibraryView: View {
                     .pickerStyle(.menu)
                     .labelsHidden()
 
-                    TextField("Entity UUID", text: $draftLinkTargetIdText, axis: .horizontal)
+                    TextField(WenshuI18n.t("b5.idealibraryview.l432.h85354494"), text: $draftLinkTargetIdText, axis: .horizontal)
                         .textFieldStyle(.roundedBorder)
                         .font(.caption)
-                        .help("UUID of the entity to link the idea to. Leave empty to disable Link.")
+                        .help(WenshuI18n.t("b5.idealibraryview.l435.h1142335"))
 
                     Spacer(minLength: 0)
                 }
@@ -444,18 +444,18 @@ struct IdeaLibraryView: View {
                     )
                     .textFieldStyle(.roundedBorder)
                     .font(.caption)
-                    .help("1-sentence description of where the idea appears in the linked entity.")
+                    .help(WenshuI18n.t("b5.idealibraryview.l447.h24911126"))
 
                     Spacer(minLength: 0)
 
                     Button {
                         Task { await linkIdea() }
                     } label: {
-                        Label("Link", systemImage: "link")
+                        Label(WenshuI18n.t("b5.idealibraryview.l454.h37139110"), systemImage: "link")
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(!canLink)
-                    .help("Record a link from the chosen idea to the chosen entity.")
+                    .help(WenshuI18n.t("b5.idealibraryview.l458.h69397371"))
                 }
 
                 linksListForSelectedIdea
@@ -479,7 +479,7 @@ struct IdeaLibraryView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 if selectedIdea.links.isEmpty {
-                    Text("(no links yet)")
+                    Text(WenshuI18n.t("b5.idealibraryview.l482.h84215487"))
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                 } else {
@@ -514,7 +514,7 @@ struct IdeaLibraryView: View {
                             RoundedRectangle(cornerRadius: 3)
                                 .fill(.quaternary)
                         )
-                    Text("→ \(link.targetId.uuidString.prefix(8))…")
+                    Text(WenshuI18n.t("b5.idealibraryview.l517.h19641342"))
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                 }
@@ -533,7 +533,7 @@ struct IdeaLibraryView: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
-            .help("Remove this link.")
+            .help(WenshuI18n.t("b5.idealibraryview.l536.h25568576"))
         }
         .padding(.vertical, DesignTokens.chromePaddingNano)
     }
@@ -542,7 +542,7 @@ struct IdeaLibraryView: View {
 
     private var suggestSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Suggest ideas by context")
+            Text(WenshuI18n.t("b5.idealibraryview.l545.h14750556"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             HStack(spacing: 8) {
@@ -553,18 +553,18 @@ struct IdeaLibraryView: View {
                 )
                 .textFieldStyle(.roundedBorder)
                 .font(.caption)
-                .help("Free-text context. Suggestions match ideas by tag overlap (+2) + title/description token overlap (+1).")
+                .help(WenshuI18n.t("b5.idealibraryview.l556.h41794079"))
 
                 Spacer(minLength: 0)
 
                 Button {
                     Task { await runSuggest() }
                 } label: {
-                    Label("Suggest", systemImage: "wand")
+                    Label(WenshuI18n.t("b5.idealibraryview.l563.h68346633"), systemImage: "wand")
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(draftSuggestContext.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .help("Rank ideas by tag overlap + title/description token match against the context keywords.")
+                .help(WenshuI18n.t("b5.idealibraryview.l567.h20248779"))
             }
             if !suggestions.isEmpty {
                 ScrollView {

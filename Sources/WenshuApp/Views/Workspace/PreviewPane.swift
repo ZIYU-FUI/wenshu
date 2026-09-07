@@ -334,7 +334,7 @@ struct PreviewPane: View {
     /// Empty scope: empty state with hint to select a sidebar item.
     @ViewBuilder
     private func emptyScopeView() -> some View {
-        emptyState(message: "请选择左侧目录查看文档")
+        emptyState(message: WenshuI18n.t("preview.empty_state.pick_book"))
     }
 
 
@@ -350,7 +350,7 @@ struct PreviewPane: View {
                 HStack(spacing: 8) {
                     LucideIcon(entity.entityType.icon, size: 28)
                         .foregroundStyle(.tint)
-                    Text("[\(entity.entityType.displayName)]")
+                    Text(WenshuI18n.t("b5.previewpane.l353.h50033891"))
                         .font(.title3)
                         .foregroundStyle(.secondary)
                     Spacer()

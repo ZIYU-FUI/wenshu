@@ -116,7 +116,7 @@ struct EditorPreviewContent: View {
             Button {
                 wikilinkTarget(target)
             } label: {
-                Text("[[\(display)]]")
+                Text(WenshuI18n.t("b5.editorpreviewcontent.l119.h32983106"))
                     .foregroundStyle(.blue)
                     .underline()
             }

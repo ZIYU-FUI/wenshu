@@ -102,7 +102,7 @@ struct GenreFitView: View {
             LucideIconSystemFallback("book-marked", size: 28)
                 .foregroundStyle(.tint)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Genre Fit")
+                Text(WenshuI18n.t("b5.genrefitview.l105.h52593257"))
                     .font(.headline)
                     .foregroundStyle(.primary)
                 Text(subtitleText)
@@ -129,7 +129,7 @@ struct GenreFitView: View {
 
     private var pickerRow: some View {
         HStack(spacing: 8) {
-            Text("Genre")
+            Text(WenshuI18n.t("b5.genrefitview.l132.h73166390"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             Picker("", selection: $selectedGenre) {
@@ -154,11 +154,11 @@ struct GenreFitView: View {
     private var inputSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
-                Text("Chapter text")
+                Text(WenshuI18n.t("b5.genrefitview.l157.h55071280"))
                     .font(.callout)
                     .foregroundStyle(.primary)
                 Spacer(minLength: 0)
-                Text("\(chapterText.count) chars")
+                Text(WenshuI18n.t("b5.genrefitview.l161.h19367178"))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
@@ -178,7 +178,7 @@ struct GenreFitView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(chapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || status == .running)
-                .help("Score the chapter against \(selectedGenre.displayName) conventions.")
+                .help(WenshuI18n.t("b5.genrefitview.l181.h2218881"))
                 Button {
                     chapterText = ""
                     report = nil
@@ -187,7 +187,7 @@ struct GenreFitView: View {
                     Label(WenshuI18n.t("button.clear"), systemImage: "x")
                 }
                 .buttonStyle(.bordered)
-                .help("Clear the input text and the last report.")
+                .help(WenshuI18n.t("b5.genrefitview.l190.h26662967"))
                 Spacer(minLength: 0)
             }
         }
@@ -197,10 +197,10 @@ struct GenreFitView: View {
 
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("No report yet")
+            Text(WenshuI18n.t("b5.genrefitview.l200.h95444806"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            Text("Paste a chapter, pick a genre, and tap Analyze. The genre-fit analyzer evaluates the draft against the genre's required beats + expected vocabulary + forbidden patterns, and returns a 0–100 score with matched / missing / forbidden lists.")
+            Text(WenshuI18n.t("b5.genrefitview.l203.h79122074"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -253,7 +253,7 @@ struct GenreFitView: View {
             if score >= 40 { return Color(nsColor: .systemOrange).opacity(0.22) }
             return Color(nsColor: .systemRed).opacity(0.22)
         }()
-        return Text("score \(pct)/100")
+        return Text(WenshuI18n.t("b5.genrefitview.l256.h78050164"))
             .font(.caption2)
             .foregroundStyle(.primary)
             .padding(.horizontal, DesignTokens.chromePaddingSmall)
@@ -271,7 +271,7 @@ struct GenreFitView: View {
                 .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 4) {
                 if items.isEmpty {
-                    Text("(none)")
+                    Text(WenshuI18n.t("b5.genrefitview.l274.h53280066"))
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 } else {

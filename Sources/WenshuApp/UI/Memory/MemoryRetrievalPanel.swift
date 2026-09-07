@@ -21,10 +21,10 @@ public struct MemoryRetrievalPanel: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Image(systemName: "brain.head.profile")
-                Text("Memory")
+                Text(WenshuI18n.t("b5.memoryretrievalpanel.l24.h99228791"))
                     .font(.headline)
                 Spacer()
-                Text("\\(entries.count)")
+                Text(WenshuI18n.t("b5.memoryretrievalpanel.l27.h94615601"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -34,7 +34,7 @@ public struct MemoryRetrievalPanel: View {
             if entries.isEmpty {
                 VStack {
                     Spacer()
-                    Text("No memories retrieved this turn")
+                    Text(WenshuI18n.t("memory.no_entries"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Spacer()

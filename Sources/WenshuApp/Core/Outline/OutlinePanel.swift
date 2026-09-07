@@ -34,11 +34,11 @@ public struct OutlinePanel: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(WenshuI18n.t("auto.outlinepanel.l35.h85687200"))
                 .font(.headline)
-            Text(WenshuI18n.t("auto.outlinepanel.l37.h51803598"))
+            Text(WenshuI18n.t("outlinepanel.items_count"))
             ForEach(viewModel.items) { item in
                 HStack {
                     Text(String(repeating: "  ", count: item.level - 1))
-                    Text("#\(item.level) \(item.title)")
+                    Text(WenshuI18n.t("b5.outlinepanel.l41.h2194654"))
                         .font(.caption)
                 }
             }

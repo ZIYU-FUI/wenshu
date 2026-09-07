@@ -28,7 +28,7 @@ struct SmartQueryView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text(WenshuI18n.t("auto.smartqueryview.l31.h18659764"))
+                Text(WenshuI18n.t("smartquery.tab_label"))
                     .font(.headline)
                 Spacer()
                 Button {

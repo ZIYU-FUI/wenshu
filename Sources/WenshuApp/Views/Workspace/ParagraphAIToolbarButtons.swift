@@ -99,11 +99,11 @@ struct ParagraphAIToolbarButtons: View {
             // path with the 3 primary buttons; = no special
             // menu-only branch in `applyParagraphAI`).
             Menu {
-                Button("Shift tone") { onApply(.shiftTone) }
+                Button(WenshuI18n.t("b5.paragraphaitoolbarbuttons.l102.h16970890")) { onApply(.shiftTone) }
                     .disabled(selectedText.isEmpty || isApplying)
-                Button("Simplify") { onApply(.simplify) }
+                Button(WenshuI18n.t("b5.paragraphaitoolbarbuttons.l104.h26270230")) { onApply(.simplify) }
                     .disabled(selectedText.isEmpty || isApplying)
-                Button("Dramatize") { onApply(.dramatize) }
+                Button(WenshuI18n.t("b5.paragraphaitoolbarbuttons.l106.h64972328")) { onApply(.dramatize) }
                     .disabled(selectedText.isEmpty || isApplying)
             } label: {
                 Image(systemName: "ellipsis.circle")
