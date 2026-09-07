@@ -41,15 +41,51 @@ struct I18nParityTests {
     }
 
     private static func loadCatalog(_ name: String, ext: String) -> String? {
+        // v0.40 boss real-device test 2026-09-07: .strings files
+        // are now UTF-16 LE BOM encoded (= Apple canonical format
+        // for NSLocalizedString). The test helper reads with .utf16
+        // (= covers both UTF-16 LE BOM / UTF-16 BE BOM). We detect
+        // the BOM by reading raw bytes first; if no BOM is present,
+        // the file may still be UTF-8 (legacy fallback for tests
+        // running against un-converted files).
+        //
         // Search the test bundle first (= SPM testTarget uses Bundle.module).
         // Fall back to Bundle.main (= WenshuApp target at runtime).
-        if let url = Bundle.module.url(forResource: name, withExtension: ext),
-           let data = try? String(contentsOf: url, encoding: .utf8) {
-            return data
+        if let url = Bundle.module.url(forResource: name, withExtension: ext) {
+            if let data = try? Data(contentsOf: url) {
+                if let s = decodeStringsFile(data) { return s }
+            }
         }
-        if let url = Bundle.main.url(forResource: name, withExtension: ext),
-           let data = try? String(contentsOf: url, encoding: .utf8) {
-            return data
+        if let url = Bundle.main.url(forResource: name, withExtension: ext) {
+            if let data = try? Data(contentsOf: url) {
+                if let s = decodeStringsFile(data) { return s }
+            }
+        }
+        return nil
+    }
+
+    /// Decode a .strings file blob. Supports:
+    /// - UTF-16 LE BOM (FF FE) — Apple canonical for .app bundles
+    /// - UTF-16 BE BOM (FE FF) — Apple canonical for cross-platform .app bundles
+    /// - UTF-8 (no BOM) — fallback for legacy / source .strings files
+    private static func decodeStringsFile(_ data: Data) -> String? {
+        // Strip BOM and decode as UTF-16 if present
+        if data.count >= 2 {
+            let b0 = data[0], b1 = data[1]
+            if b0 == 0xFF && b1 == 0xFE {
+                return String(data: data.dropFirst(2), encoding: .utf16LittleEndian)
+            }
+            if b0 == 0xFE && b1 == 0xFF {
+                return String(data: data.dropFirst(2), encoding: .utf16BigEndian)
+            }
+        }
+        // No BOM: try UTF-8 first (= source-of-truth format)
+        if let s = String(data: data, encoding: .utf8) {
+            return s
+        }
+        // Last resort: try UTF-16 without BOM
+        if let s = String(data: data, encoding: .utf16) {
+            return s
         }
         return nil
     }
