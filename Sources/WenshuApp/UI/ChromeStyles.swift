@@ -2,9 +2,9 @@
 //  ChromeStyles.swift · Wenshu · CHROME-ARCH-001 round 5
 //
 //  Single source of truth for the chrome (= background + bottom bar)
-//  that wraps every zone's content. Boss 9/7 '搞一个样式组件的
-//  文件, 用于管理控件样式, 这个文件类似 css, 这样我们以后也好管理,
-//  功能与样式分离' = abstract the chrome styling into a CSS-like
+//  that wraps every zone's content. Boss 9/7 'make a stylesheet
+//  file like CSS for managing UI control styles; = function
+//  and style separated' = abstract the chrome styling into a CSS-like
 //  file (= one place to manage visual tokens, no scattered
 //  .padding / .frame / Color calls per zone).
 //
@@ -20,9 +20,9 @@
 //  - `ChromeTopBar` (= the 30 PT unified top bar with ZoneSlot
 //    identity = icon + label) was added in CHROME-ARCH-001
 //    commit 198362679, simplified in round 4 (= boss 9/7
-//    '不需要标题' = removed the icon + label leaving an empty
+//    'no title bar needed' = removed the icon + label leaving an empty
 //    30 PT strip), and REMOVED entirely in round 5 (= boss 9/7
-//    '标题栏好像被空白栏加高了' = the empty 30 PT strip was visual
+//    'title bar looks raised by a blank strip' = the empty 30 PT strip was visual
 //    debt that wasted vertical space). The trailing actions
 //    parameter (= sidebar's "+ / ↥" buttons for new shelf /
 //    new book) is preserved as the `topActions` parameter on
