@@ -1231,6 +1231,55 @@ final class PaneNSController: NSSplitViewController {
         let item = NSSplitViewItem(viewController: hosting)
         item.canCollapse = isCollapsiblePane(activePaneID)
         item.minimumThickness = minThickness(for: activePaneID, weight: weight)
+        // ZONE-VIS-FIX-002 (2026-09-08): set
+        // `maximumThickness` (= the upper bound on a pane's
+        // thickness). Prevents the bug symptom from ZONE-VIS-FIX-001
+        // where the editor (= which has zero intrinsic content min
+        // width because TextEditor fills any container size) absorbs
+        // all remaining space after a hide-then-show cycle. With
+        // `maximumThickness` set per zone, NSSplitView's auto-layout
+        // respects the upper bound even after a collapse/restore
+        // animation (= the autosaveName round-trip + the
+        // preferredThicknessFraction interplay no longer allows one
+        // zone to dominate).
+        //
+        // Per-zone maximumThickness (= Apple HIG canonical values
+        // matching FCP / Xcode / Mail inspector patterns):
+        // - sidebar (projectSidebar): 400 PT (= tree outline
+        //   natural; = users rarely want it wider than 400 PT
+        //   on a typical window).
+        // - cards (projectPreview): 500 PT (= card grid natural;
+        //   = wider values push the cards off-screen and give the
+        //   editor less room).
+        // - tools (specializedTools): 300 PT (= icon row natural;
+        //   = matches FCP inspector width).
+        // - chat (aiChat): no upper bound (= chat gets the
+        //   remaining 70% of the lower band; = users expect chat
+        //   to fill whatever space the dynamic zone doesn't claim).
+        // - dynamic (aiDynamic): no upper bound (= lower band's
+        //   30% via preferredThicknessFraction).
+        // - editor: no upper bound (= always takes remaining
+        //   space; = the editor is the primary work surface).
+        if let max = maxThickness(for: tab.kind) {
+            item.maximumThickness = max
+        }
+        // ZONE-VIS-FIX-002 (2026-09-08): REMOVED the `holdingPriority =
+        // .required` for editor — that change caused a degenerate
+        // layout where the editor claimed ALL upper-band space
+        // (because `.required` priority + no maximumThickness on the
+        // editor = editor fills whatever the other panes don't
+        // explicitly reserve via their minimumThickness). The correct
+        // fix for the original bug (= editor absorbs remaining space
+        // after a hide-then-show cycle) is the side-pane
+        // `maximumThickness` constraint above (= sidebar ≤ 400 PT,
+        // cards ≤ 500 PT, tools ≤ 300 PT) — = the side panes claim
+        // their ceiling = the editor naturally gets the remainder
+        // without needing explicit priority manipulation.
+        //
+        // All 6 panes stay at Apple's default `.default` priority
+        // (= rawValue ~251) which produces balanced resizing (= all
+        // visible panes share remaining space proportionally to their
+        // `preferredThicknessFraction`).
         // ZONE-VIS-FIX-001 (2026-09-08): set
         // `preferredThicknessFraction` (= the per-pane weight as a
         // 0-1 fraction of the splitView's total thickness). This is
@@ -1298,6 +1347,26 @@ final class PaneNSController: NSSplitViewController {
         // sidebar minimum); non-collapseable panes (= editor, viewer)
         // default to 100 (= can shrink down to almost nothing).
         return isCollapsiblePane(paneID) ? 200 : 100
+    }
+
+    /// ZONE-VIS-FIX-002 (2026-09-08): canonical per-TabKind
+    /// `maximumThickness` (= the upper bound for a pane's thickness).
+    /// Returning `nil` means "no upper bound" (= Apple default).
+    /// Per-zone rationale (= see the `maximumThickness` setter in
+    /// `makeSplitItems`):
+    /// - sidebar: 400 PT (= tree outline natural max)
+    /// - cards: 500 PT (= card grid natural max)
+    /// - tools: 300 PT (= icon row natural max; = matches FCP
+    ///   inspector width)
+    /// - editor / chat / dynamic: nil (= no upper bound; =
+    ///   always takes remaining space via `preferredThicknessFraction`)
+    private func maxThickness(for kind: TabKind) -> CGFloat? {
+        switch kind {
+        case .projectSidebar:   return 400
+        case .projectPreview:   return 500
+        case .specializedTools: return 300
+        case .editor, .aiChat, .aiDynamic: return nil
+        }
     }
 
     /// Which panes can the user collapse (= via the "Display" menu /
