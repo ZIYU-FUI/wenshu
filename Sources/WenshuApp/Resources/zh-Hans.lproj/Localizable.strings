@@ -200,3 +200,30 @@
 "library.new_choice.title" = "新建";
 "smart_query.create.title" = "新建智能查询";
 "command_palette.title" = "命令面板";
+
+// v0.40 apple-001 i18n sweep (老板实机测试 2026-09-07):
+// Apple HIG 要求菜单项走系统 i18n framework, 写死中文会锁菜单语言.
+
+// v0.40 apple-001 i18n sweep -- File 菜单
+"menu.file.new_project"            = "新建项目";
+"menu.file.new_project.submenu.new_book"  = "新建书";
+"menu.file.new_project.submenu.new_shelf" = "新建书架";
+"menu.file.import"                 = "导入…";
+
+// v0.40 apple-001 i18n sweep -- Edit 菜单
+"menu.edit.undo"  = "撤销";
+"menu.edit.redo"  = "重做";
+
+// v0.40 apple-001 i18n sweep -- View 菜单
+"menu.view.toggle_project_sidebar"  = "显示/隐藏 项目管理区";
+"menu.view.toggle_project_preview"  = "显示/隐藏 素材预览区";
+"menu.view.toggle_specialized_tools" = "显示/隐藏 工具区";
+"menu.view.toggle_ai_chat"          = "显示/隐藏 聊天区";
+"menu.view.toggle_ai_dynamic"        = "显示/隐藏 动态区";
+"menu.view.reset_layout"            = "恢复默认布局";
+"menu.view.layout_edit_mode"        = "布局编辑模式";
+"menu.view.enter_full_screen"       = "进入全屏";
+
+// v0.40 apple-001 i18n sweep -- 打开面板 title/message
+"openpanel.import.title"   = "入驻素材";
+"openpanel.import.message" = "选择一个 .ws 文件或其他研究资料进行入驻";

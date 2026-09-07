@@ -130,11 +130,11 @@ struct AppRootScene: Scene {
                 // Menu (= 新建书 / 新建书架). Both sub-items post a
                 // NotificationCenter event that NewLibraryOutlineView
                 // listens for and triggers the matching sheet.
-                Menu("新建项目") {
-                    Button("新建书") {
+                Menu(WenshuI18n.t("menu.file.new_project")) {
+                    Button(WenshuI18n.t("menu.file.new_project.submenu.new_book")) {
                         NotificationCenter.default.post(name: .wenshuNewBookRequested, object: nil)
                     }
-                    Button("新建书架") {
+                    Button(WenshuI18n.t("menu.file.new_project.submenu.new_shelf")) {
                         NotificationCenter.default.post(name: .wenshuNewShelfRequested, object: nil)
                     }
                 }
@@ -150,15 +150,15 @@ struct AppRootScene: Scene {
                 // 一会拷问后规划'); placeholder posts a
                 // NotificationCenter event so v0.27 followups can
                 // listen + implement.
-                Button("导入…") {
+                Button(WenshuI18n.t("menu.file.import")) {
                     NotificationCenter.default.post(name: .wenshuImportRequested, object: nil)
                 }
                 .keyboardShortcut("i", modifiers: [.command, .shift])
             }
             CommandGroup(replacing: .undoRedo) {
-                Button("撤销", action: {})
+                Button(WenshuI18n.t("menu.edit.undo"), action: {})
                     .keyboardShortcut("z", modifiers: .command)
-                Button("重做", action: {})
+                Button(WenshuI18n.t("menu.edit.redo"), action: {})
                     .keyboardShortcut("Z", modifiers: [.command, .shift])
             }
             CommandGroup(after: .sidebar) {
@@ -169,27 +169,34 @@ struct AppRootScene: Scene {
                 // NotificationCenter to vm (= .commands block can't access
                 // vm directly per L20). Static labels (= dynamic checkmark
                 // would require vm access which commands lack).
-                Button("显示/隐藏 项目管理区") {
+                //
+                // v0.40 apple-001 i18n sweep: all 5 zone-toggle labels
+                // routed through WenshuI18n (= Apple HIG multi-language
+                // framework) so macOS localizes them per system
+                // language. Hard-coded Chinese labels bypassed
+                // NSLocalizedString and locked the menu to Chinese
+                // regardless of the user's system language.
+                Button(WenshuI18n.t("menu.view.toggle_project_sidebar")) {
                     NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.projectSidebar)
                 }
                 .keyboardShortcut("1", modifiers: [.command, .shift])
-                Button("显示/隐藏 素材预览区") {
+                Button(WenshuI18n.t("menu.view.toggle_project_preview")) {
                     NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.projectPreview)
                 }
-                Button("显示/隐藏 工具区") {
+                Button(WenshuI18n.t("menu.view.toggle_specialized_tools")) {
                     NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.specializedTools)
                 }
                 .keyboardShortcut("2", modifiers: [.command, .shift])
-                Button("显示/隐藏 聊天区") {
+                Button(WenshuI18n.t("menu.view.toggle_ai_chat")) {
                     NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.aiChat)
                 }
                 .keyboardShortcut("3", modifiers: [.command, .shift])
-                Button("显示/隐藏 动态区") {
+                Button(WenshuI18n.t("menu.view.toggle_ai_dynamic")) {
                     NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.aiDynamic)
                 }
                 .keyboardShortcut("4", modifiers: [.command, .shift])
                 Divider()
-                Button("恢复默认布局") {
+                Button(WenshuI18n.t("menu.view.reset_layout")) {
                     NSLog("[wenshu.reset] menu posted wenshuResetLayout")
                     NotificationCenter.default.post(name: .wenshuResetLayout, object: nil)
                 }
@@ -204,6 +211,10 @@ struct AppRootScene: Scene {
                 // for and flips the bool (= the menu and the
                 // in-window hotkey share the same notification
                 // path so the user sees a consistent state).
+                //
+                // v0.40 apple-001 i18n sweep: this Button was already
+                // routed through WenshuI18n (= "button.layout_edit_mode"
+                // key) per v0.28; no change needed here.
                 Button(WenshuI18n.t("button.layout_edit_mode")) {
                     NotificationCenter.default.post(name: .wenshuToggleEditMode, object: nil)
                 }
