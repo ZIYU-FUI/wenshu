@@ -144,6 +144,17 @@ struct WenshuMarkdownEditor: View {
             isEditable: isEditable,
             onLinkClick: onLinkClick
         )
+        // EDITORTOP-001 (2026-09-07): add 18 PT top padding to the
+        // editor text container. Previously only `.padding(.horizontal,
+        // 18)` was applied (= editor text started flush with the zone
+        // top edge). Boss 9/7 OOB '编辑器文字显示区域, 最顶部区域,
+        // 距离顶边留 18pt 间距' = editor text-area must have 18 PT
+        // top inset (= matches Apple HIG canonical text container inset
+        // for macOS 27 Tahoe editor surfaces; = visually consistent
+        // with the 18 PT horizontal inset already applied; = first
+        // text line no longer sits under the tab strip / zone chrome
+        // divider).
         .padding(.horizontal, DesignTokens.chromePaddingLeading)
+        .padding(.top, DesignTokens.chromePaddingLeading)
     }
 }
