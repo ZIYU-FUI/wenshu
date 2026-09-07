@@ -314,9 +314,11 @@ struct PreviewPane: View {
         VStack(spacing: 0) {
             if docs.isEmpty {
                 emptyState(
-                    message: folderName != nil
-                        ? "该目录下暂无文档"
-                        : "该书暂无文档"
+                    icon: "circle-help",
+                    titleKey: folderName != nil
+                        ? "preview.empty_state.book_with_folder"
+                        : "preview.empty_state.book_no_folder",
+                    bodyKey: "preview.empty.pick_book"
                 )
             } else {
                 bookDocsGrid(docs: docs)
@@ -328,13 +330,21 @@ struct PreviewPane: View {
     /// Shelf scope: empty state with hint to drill into a book.
     @ViewBuilder
     private func shelfScopeView() -> some View {
-        emptyState(message: "选中书查看文档")
+        emptyState(
+            icon: "circle-help",
+            titleKey: "preview.empty_state.shelf_empty",
+            bodyKey: "preview.empty.pick_book"
+        )
     }
 
     /// Empty scope: empty state with hint to select a sidebar item.
     @ViewBuilder
     private func emptyScopeView() -> some View {
-        emptyState(message: WenshuI18n.t("preview.empty_state.pick_book"))
+        emptyState(
+            icon: "circle-help",
+            titleKey: "preview.empty_state.pick_book",
+            bodyKey: "preview.empty.scope_hint"
+        )
     }
 
 
@@ -417,7 +427,11 @@ struct PreviewPane: View {
         // GeometryReader reports the full pane width.
         VStack(alignment: .leading, spacing: 0) {
             if inCategory.isEmpty {
-                emptyState(message: "该分类下暂无实体")
+                emptyState(
+                    icon: "circle-help",
+                    titleKey: "preview.empty_state.category_empty",
+                    bodyKey: "preview.empty.import_hint"
+                )
             } else {
                 GeometryReader { geometry in
                     ScrollView {
@@ -440,7 +454,11 @@ struct PreviewPane: View {
     @ViewBuilder
     private func overviewGrid(allEntities: [Reference]) -> some View {
         if allEntities.isEmpty {
-            emptyState(message: "资料库里还没有实体.\n导入研究材料后 LLM 会自动分类.")
+            emptyState(
+                icon: "circle-help",
+                titleKey: "preview.empty_state.reference_empty",
+                bodyKey: "preview.empty.import_hint"
+            )
         } else {
             // v0.30 boss OOB 'because the material preview area only displays cards of the currently selected directory,
             // so only card flow is needed, just lay them out continuously' + 'material preview area doesn't need this title,
@@ -470,16 +488,22 @@ struct PreviewPane: View {
     /// Empty-state placeholder (= boss UX 8/27 '...no markdown body
     /// = leave a clear empty state, not a blank white pane').
     @ViewBuilder
-    private func emptyState(message: String) -> some View {
-        VStack(spacing: 12) {
-            LucideIcon("circle-help", size: 48)
-                .foregroundStyle(.tertiary)
-            Text(message)
-                .font(.callout)
-                .foregroundStyle(.tertiary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    /// Canonical empty-state hint (= v0.40 boss 9/7 OOB
+    /// '提示的样式不统一'). Uses the shared EmptyStateHint
+    /// component (= same icon + title + body layout as
+    /// Foreshadowing + EditorPlaceholder empty states). The
+    /// localized title/body keys come from the caller (= this
+    /// helper is just the layout, not the copy).
+    private func emptyState(
+        icon: String = "circle-help",
+        titleKey: String,
+        bodyKey: String
+    ) -> some View {
+        EmptyStateHint(
+            icon: icon,
+            title: WenshuI18n.t(titleKey),
+            body: WenshuI18n.t(bodyKey)
+        )
     }
 
     // MARK: - Data loading

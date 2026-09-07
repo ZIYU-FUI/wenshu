@@ -142,15 +142,17 @@ public struct ForeshadowingView: View {
     }
 
     private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(WenshuI18n.t("b5.foreshadowingview.l146.h86404455"))
-                .font(.callout)
-                .foregroundStyle(.primary)
-            Text(WenshuI18n.t("b5.foreshadowingview.l149.h44610307"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        // v0.40 boss 9/7 OOB '提示的样式不统一': use the shared
+        // EmptyStateHint component (= same icon + title + body
+        // layout as EditorPlaceholder + PreviewPane empty states).
+        // Guarantees consistent visual treatment (= 24 PT icon,
+        // 15 PT semibold title, 13 PT body) across all "no
+        // content" zones in the workspace.
+        EmptyStateHint(
+            icon: "git-fork",
+            title: WenshuI18n.t("foreshadowingview.empty.title"),
+            body: WenshuI18n.t("foreshadowingview.empty.body")
+        )
     }
 
     // MARK: - Body
