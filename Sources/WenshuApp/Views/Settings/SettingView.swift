@@ -113,7 +113,6 @@ struct SettingView: View {
         case general
         case providerApi
         case model
-        case agent
         case memory
         case skills
         var id: String { rawValue }
@@ -125,7 +124,6 @@ struct SettingView: View {
             case .general: return WenshuI18n.t("settings.tab.general")
             case .providerApi: return WenshuI18n.t("settings.tab.providerApi")
             case .model: return WenshuI18n.t("settings.tab.model")
-            case .agent: return WenshuI18n.t("settings.tab.agent")
             case .memory: return WenshuI18n.t("settings.tab.memory")
             case .skills: return WenshuI18n.t("settings.tab.skills")
             }
@@ -135,7 +133,6 @@ struct SettingView: View {
             case .general: return "gearshape"
             case .providerApi: return "key.horizontal"
             case .model: return "cpu"
-            case .agent: return "person.crop.circle"
             case .memory: return "brain"
             case .skills: return "command"
             }
@@ -172,7 +169,6 @@ struct SettingView: View {
                 case .general: generalTab
                 case .providerApi: providerApiTab
                 case .model: modelTab
-                case .agent: agentTab
                 case .memory: memoryTab
                 case .skills: skillsTab
                 }
@@ -542,17 +538,6 @@ struct SettingView: View {
         }
         .formStyle(.grouped)
         .onAppear { Task { await reloadModels() } }
-    }
-
-    private var agentTab: some View {
-        // v0.38 ticket A (= Settings → Agent 3-pane wire-up):
-        // wire LLMConnectorSettingsView (= v0.36 ticket 006 ship, isolated file
-        // pre-wire) into Settings scene. 7 connector profile rows rendered.
-        LLMConnectorSettingsView(
-            activeConnectorID: providerSlug,
-            profiles: ConnectorProfileState.allDefaults
-        )
-        .padding(DesignTokens.chromePaddingMedium)
     }
 
     private var memoryTab: some View {

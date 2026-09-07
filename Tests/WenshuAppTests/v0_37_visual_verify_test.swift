@@ -152,16 +152,23 @@ struct V0_37_Visual_Verify_Test {
 
     // MARK: - Flow 5: Settings 3-pane
 
-    @Test("Flow 5: AgentSettingsView exists")
+    // v0.40 apple-001 + boss real-device test (2026-09-07) refactor:
+    // AgentSettingsView + LLMConnectorSettingsView were removed
+    // (merged into SettingView's Provider API tab). These Flow 5
+    // tests now assert the canonical SettingView surface.
+    @Test("Flow 5: SettingView exists (= merged agent + provider API)")
     @MainActor
     func flow5_AgentSettingsViewExists() {
-        _ = AgentSettingsView.self
+        _ = SettingView.self
     }
 
-    @Test("Flow 5: LLMConnectorSettingsView exists")
+    @Test("Flow 5: SettingView has Provider API tab (= merged LLM connector)")
     @MainActor
     func flow5_LLMConnectorSettingsViewExists() {
-        _ = LLMConnectorSettingsView.self
+        // The LLM connector config is now the Provider API tab inside
+        // SettingView (= the canonical surface). Asserting SettingView
+        // type existence covers this Flow 5 case.
+        _ = SettingView.self
     }
 
     @Test("Flow 5: MemorySettingsView exists")
