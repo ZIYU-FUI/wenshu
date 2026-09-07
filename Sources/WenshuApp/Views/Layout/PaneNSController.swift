@@ -149,8 +149,8 @@ final class PaneNSController: NSSplitViewController {
         // divider entirely (= boss OOB 'completely transparent'); for
         // any other value, use Apple's standard `.thin` divider (= a
         // semitransparent hairline that adapts to dark/light mode).
-        // v0.32 boss 2026-09-02 OOB ('用 macOS 自带液态玻璃,
-        // 跟随系统设置'): removed the user-tunable Liquid Glass
+        // v0.32 boss 2026-09-02 OOB ('use macOS-native Liquid Glass,
+        // follow system settings'): removed the user-tunable Liquid Glass
         // opacity slider + cross-instance notification plumbing.
         // Apple .glassEffect auto-applies via the system without
         // per-app notification plumbing.
@@ -283,9 +283,9 @@ final class PaneNSController: NSSplitViewController {
             // frame at its current bounds (= AppKit's internal
             // divider hit-area is preserved = drag still works).
             //
-            // v0.32 boss 2026-09-02 OOB ('线看不出来就不重要了;
-            // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-            // 你所有用的颜色, 都是 API 给的, 不要自定义'): the
+            // v0.32 boss 2026-09-02 OOB ('if the line can't be seen,
+            // it doesn't matter; all your colors are API-given, do not
+            // customize'): the
             // divider subview is NOT painted (= no NSColor /
             // custom RGB blend). Adjacent panes are differentiated
             // by pane background NSColor (= Apple API only).
@@ -529,7 +529,7 @@ final class PaneNSController: NSSplitViewController {
     // The previous design (= v0.34 ticket 02) snapshotted the 6
     // zone's isCollapsed state + editor split weight to
     // UserDefaults JSON BEFORE hiding the 5 non-editor zones (= Q38
-    // boss "全状态 snapshot" decision), then read the snapshot back
+    // boss "full-state snapshot" decision), then read the snapshot back
     // on shrink to restore the pre-expand layout. That snapshot
     // path (= captureEditorExpandSnapshot +
     // restoreEditorExpandSnapshot) had the same root-cause bug
@@ -1563,7 +1563,7 @@ final class PaneNSController: NSSplitViewController {
         _ = kind  // (= identity; the notification carries `slot`)
     }
 
-    /// Cmd+Shift+R "恢复默认布局" reset action. Un-collapse every
+    /// Cmd+Shift+R "Restore Default Layout" reset action. Un-collapse every
     /// pane (= Apple NSSplitViewItem.isCollapsed = false) and
     /// re-apply the canonical preset weights (= setPosition on the
     /// owning split). WorkspaceView's `.wenshuResetLayout` observer
