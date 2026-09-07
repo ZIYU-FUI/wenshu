@@ -93,8 +93,16 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             queue: .main
         ) { _ in
             let panel = NSOpenPanel()
-            panel.title = "入驻素材"
-            panel.message = "选择一个 .ws 文件或其他研究资料进行入驻"
+            // v0.40 apple-001 i18n sweep (boss real-device test 2026-09-07):
+            // NSOpenPanel title + message are user-visible strings
+            // (= they appear in the open dialog title bar + body).
+            // Per Apple HIG, all user-visible strings must go through
+            // the platform's i18n framework (NSLocalizedString /
+            // .stringsdict) so the dialog auto-localizes per system
+            // language. Hard-coded Chinese strings lock the dialog
+            // to Chinese forever (= breaks users on non-zh-Hans systems).
+            panel.title = WenshuI18n.t("openpanel.import.title")
+            panel.message = WenshuI18n.t("openpanel.import.message")
             panel.allowsMultipleSelection = true
             panel.canChooseFiles = true
             panel.canChooseDirectories = false

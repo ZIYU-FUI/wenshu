@@ -210,3 +210,36 @@
 "smart_query.create.title" = "New smart query";
 "command_palette.title" = "Command palette";
 "layout.zone_editor.title" = "Zone editor";
+
+// v0.40 apple-001 i18n sweep (boss real-device test 2026-09-07):
+// Apple HIG requires menu items to use the platform's i18n framework
+// (NSLocalizedString / .stringsdict / Foundation Bundle API) so macOS
+// can localize them per the user's system language. Hard-coded
+// Chinese strings in SwiftUI Button("…") titles bypass the
+// framework and lock the menu to Chinese forever.
+
+// v0.40 apple-001 i18n sweep -- File menu (= v0.21 ticket 01 baseline)
+"menu.file.new_project"            = "New project";
+"menu.file.new_project.submenu.new_book"  = "New book";
+"menu.file.new_project.submenu.new_shelf" = "New shelf";
+"menu.file.import"                 = "Import…";
+
+// v0.40 apple-001 i18n sweep -- Edit menu (= undo/redo, macOS canonical)
+"menu.edit.undo"  = "Undo";
+"menu.edit.redo"  = "Redo";
+
+// v0.40 apple-001 i18n sweep -- View menu (= the boss's "5 zone
+// toggle" feature that he asked for in v0.24 fix 60th OOB).
+"menu.view.toggle_project_sidebar"  = "Show/Hide Project Sidebar";
+"menu.view.toggle_project_preview"  = "Show/Hide Project Preview";
+"menu.view.toggle_specialized_tools" = "Show/Hide Tools";
+"menu.view.toggle_ai_chat"          = "Show/Hide Chat";
+"menu.view.toggle_ai_dynamic"        = "Show/Hide Dynamic";
+"menu.view.reset_layout"            = "Reset to Default Layout";
+"menu.view.layout_edit_mode"        = "Layout Edit Mode";
+"menu.view.enter_full_screen"       = "Enter Full Screen";
+
+// v0.40 apple-001 i18n sweep -- Open panel title/message
+// (= the "Import material" NSOpenPanel triggered by File → Import)
+"openpanel.import.title"   = "Import material";
+"openpanel.import.message" = "Select a .ws file or other research material to import";
