@@ -28,7 +28,15 @@ public struct MemoryRetrievalPanel: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            .padding(.horizontal, DesignTokens.chromePaddingChipHorizontal)
+            // STYLES-004 (2026-09-07): use the canonical content
+            // inset modifier (= 18 PT horizontal + 6 PT top = boss
+            // 9/7 round 2 audit recipe for memory panel). Previously
+            // this was .padding(.horizontal, chromePaddingChipHorizontal
+            // = 10 PT) + .padding(.top, chromePaddingSmall = 6 PT) =
+            // 10 PT horizontal = too tight (= boss '6 区过小').
+            // chromePaddingLeading (= 18 PT) matches the rest of the
+            // chrome (= zone chrome top bar uses 18 PT).
+            .contentInsetStyle(.custom(18), edges: .horizontal)
             .padding(.top, DesignTokens.chromePaddingSmall)
 
             if entries.isEmpty {
@@ -47,7 +55,9 @@ public struct MemoryRetrievalPanel: View {
                             MemoryEntryRow(entry: entry)
                         }
                     }
-                    .padding(.horizontal, DesignTokens.chromePaddingChipHorizontal)
+                    // STYLES-004 (2026-09-07): use canonical 18 PT
+                    // horizontal inset (= was 10 PT = too tight).
+                    .contentInsetStyle(.custom(18), edges: .horizontal)
                 }
             }
         }
