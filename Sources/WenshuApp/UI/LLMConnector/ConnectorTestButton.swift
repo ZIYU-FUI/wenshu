@@ -74,6 +74,39 @@ public struct ConnectorTestButton: View {
     private func runTest() async {
         status = .testing
 
+        // v0.40 apple-001 + boss real-device test (2026-09-07) fix:
+        // The connectors read the API key from the keychain
+        // (= `WenshuAppDelegate.activeLLMConnector()` reads
+        // `wenshu.llm.<provider>-key` from keychain, = the active
+        // provider's key, NOT the per-row key). When the user types
+        // a key in the per-row field but doesn't press Enter, the
+        // typed value is in-memory only (= `profile.apiKey` is set,
+        // but keychain still has the OLD value or empty for that
+        // provider). Clicking "Test connection" then constructs an
+        // AnthropicConnector / OpenAICompatibleConnector (= no apiKey
+        // param = reads keychain) and calls `.send`, which then reads
+        // the wrong (= stale / empty) key from the active slot.
+        //
+        // Bug reproduction (boss 2026-09-07): user has minimax active
+        // (= wenshu.llm.activeConnector = "minimax"). User types
+        // minimax key in the row's field. User clicks Test connection
+        // on the row. Connector reads wenshu.llm.anthropic-key
+        // (= active provider's key, = empty for the user) and fails
+        // with "Missing API key for provider 'anthropic'".
+        //
+        // Fix: save the typed key to the keychain BEFORE constructing
+        // the connector, so the connector reads the right (= just-typed)
+        // key. The key is saved with the row's provider slug (= the
+        // row being tested), NOT the active provider.
+        if !apiKey.isEmpty {
+            do {
+                try ProviderKeychain.saveKeySync(apiKey, for: provider)
+            } catch {
+                status = .failure("Failed to save key: \(error.localizedDescription)")
+                return
+            }
+        }
+
         // Build the right connector for this provider
         let connector: any LLMConnector
         switch provider.apiMode {
@@ -86,7 +119,7 @@ public struct ConnectorTestButton: View {
             status = .failure(WenshuI18n.t("connector.gemini_unavailable"))
             return
         default:
-            status = .failure("Unsupported provider apiMode: \\(provider.apiMode)")
+            status = .failure("Unsupported provider apiMode: \(provider.apiMode)")
             return
         }
 
