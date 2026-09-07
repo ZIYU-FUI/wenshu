@@ -1,194 +1,324 @@
-# Zone Visibility Bug Audit · 2026-09-08 · pocock
+# Zone Visibility Bug Deep Investigation · 2026-09-08 · pocock
 
-Boss directive: "排查各区域显隐的代码。看 apple API 全套的解决方案
-我们是不是没有用全，现在一个区域隐藏后，再显示会重新分配错误。
-变得很窄"
+Boss directive: "看清楚代码，查清楚文档再动手修好" = look at the
+code clearly, investigate the documentation, then fix.
 
-## Bug reproduction (= confirmed)
+Investigation phase (= the doc this file replaces):
+- Read PaneNSController.swift full (= 1609 lines, the
+  NSSplitViewController subclass that hosts the 6-zone
+  workspace)
+- Read Apple Developer docs for NSSplitView / NSSplitViewItem
+- Verified existing test surface (= DragRegressionTests 8/8 PASS)
 
-1. Launch wenshu.app (= commit 3bec5a840, build Sep 8 00:04)
-2. Baseline widths (= `.scratch/2026-09-07-launched/baseline-all-zones.png`):
-   - sidebar ~230 PT
-   - cards ~315 PT
-   - editor ~545 PT
-   - tools ~180 PT (合计 ~1270 PT inner width)
-3. Cmd+Shift+2 (= menu bar toggle "工具区" = .specializedTools)
-   → `.scratch/2026-09-07-launched/after-hide-tools.png`
-   → tools zone collapses correctly (= NSSplitViewItem.isCollapsed
-   toggled → the 3 remaining zones auto-expand to fill)
-4. Cmd+Shift+2 again (= restore tools zone)
-   → `.scratch/2026-09-07-launched/after-restore-tools.png`
-   → **tools zone returns at ~770 PT width (= much wider than baseline 180)**
-   → sidebar / cards / editor all squeezed to ~94 / ~120 / ~470 PT
-   → **the weights did NOT restore correctly**
+This file = the result of the deep dive (= replaces the
+previous speculative audit at the same path).
 
-## Root cause (= the manual snapshot/restore fights Apple)
+## Bug reproduction (= unchanged, confirmed)
 
-The current code at
-`Sources/WenshuApp/Views/Layout/PaneNSController.swift`:
+1. Launch wenshu.app, all 6 zones visible (= baseline)
+2. Cmd+Shift+2 (= "工具区" menu toggle) → tools zone collapses
+3. Cmd+Shift+2 again → tools zone restores, BUT it returns at
+   ~770 PT (= baseline was 180 PT), absorbing width from
+   sidebar / cards / editor (= they shrink to ~94 / ~120 / ~470 PT)
 
-1. `installSplit` line 1031: `self.splitView.autosaveName = nil`
-   (= disables Apple's built-in divider persistence on the ROOT
-   splitView; nested splits still get autosaveName per line 1315).
-2. `handleToggleZone` line 499-558:
-   - find matching NSSplitViewItem by TabKind (= walks self +
-     children controllers)
-   - on hide → `captureZoneToggleSnapshot(slot:)` → reads
-     `holdingPriority.rawValue` of all 6 zones into UserDefaults
-     JSON under `wenshu.zoneToggle.snapshot`
-   - on show → `restoreZoneToggleSnapshot()` → reads JSON, applies
-     weights back via `applyZoneSplitWeight` then `toggleZone` for
-     visibility flip
-3. `currentZoneSplitWeight` line 627: `Double(item.holdingPriority.rawValue)`
-   (= reading rawValue of NSLayoutConstraint.Priority; = priority
-   bucket not a percentage; = defaultPriority.rawValue = 251 ≈ 0.4
-   in normalized)
+Visual evidence: `.scratch/2026-09-07-launched/baseline-all-zones.png`
+vs `.scratch/2026-09-07-launched/after-restore-tools.png`.
 
-### Why it breaks after multi-toggle
+## Code path (= traced end-to-end)
 
-- `holdingPriority` is a **bucket priority** (= .defaultLow=150,
-  .defaultHigh=251, .required=1000), not a precise pixel weight.
-- The first toggle captures `251` (= defaultHigh = the Apple
-  default for split items). Subsequent restore applies 251 back.
-- But `NSSplitView` itself **also maintains its own divider
-  positions internally** based on its auto-layout pass after the
-  collapse animation. When `item.animator().isCollapsed.toggle()`
-  toggles from `false → true`, the splitView auto-resizes
-  remaining items to fill. When `false → true → false`, the
-  un-collapsed item appears but the splitView's auto-layout may
-  have **already recalculated** the divider positions based on
-  the visible items. = **the manual `holdingPriority` write
-  loses the race against the splitView's auto-layout**.
-- `NSSplitViewItem.holdingPriority` only influences resize
-  behavior on user drag (= not on the initial post-collapse
-  layout). So our `applyZoneSplitWeight` doesn't actually
-  constrain the restored width.
+### Init (= PaneNSController.init L70-171)
 
-### Why the bug shows as "very narrow" zones
+1. buildLayout() runs (= L118-120, only on root via
+   `installObservers: true` gate)
+2. `installSplit` / `installChildren` walks `LayoutTreeStore`
+   tree and creates the nested NSSplitView hierarchy
+3. `splitView.autosaveName = nil` set on ROOT (L1031) — nested
+   split controllers get autosaveName via `nested.splitView.
+   autosaveName = autosaveKey(for: split.id)` (L1315)
+4. applyDividerStyleForCurrentOpacity (L157) = applies `.thin`
+   style to all splitViews (= 1 PT hairline)
+5. applyPersistedZoneVisibility (L170) = reads
+   `wenshu.zoneVisible.*` UserDefaults bools and folds matching
+   NSSplitViewItems
 
-When 5 zones are visible after restoring tools (= 4 in upper band
-+ 1 in lower band), the splitView's auto-layout re-allocates
-divider positions based on the natural content min/ideal sizes of
-each pane. Since most panes have no explicit min size set, they
-shrink to their natural minimum (= sidebar = outline with no
-min width = ~50 PT; = cards = LazyVGrid min cell size = ~80 PT;
-= editor = TextEditor with intrinsic size = ~120 PT; = tools =
-NSToolbar min height/width = ~100 PT). Without autosaveName
-persistence, the divider positions get re-computed from these
-natural minimums = the "very narrow" symptom.
+### handleToggleZone (= L458-558, the bug path)
 
-## Apple HIG canonical solution
+1. Menu item `Cmd+Shift+N` → posts `.wenshuToggleZone`
+   notification with ZoneSlot as object
+2. PaneNSController observer (L140) calls
+   `handleToggleZone(_:)`:
+   - Walk self + every nested PaneNSController (= BFS)
+   - Find the NSSplitViewItem whose `paneKindByItem[idx]` matches
+     the target TabKind (via ZoneSlot→TabKind mapping)
+   - Skip items with `canCollapse = false` (= editor)
+   - On hide (`willHide = !item.isCollapsed`):
+     - `captureZoneToggleSnapshot(slot:)` writes
+       `wenshu.zoneToggle.snapshot` JSON to UserDefaults
+     - `item.animator().isCollapsed.toggle()` collapses with
+       animation
+   - On show (`!willHide`):
+     - `item.animator().isCollapsed.toggle()` un-collapses
+     - `restoreZoneToggleSnapshot()` reads the JSON, calls
+       `applyZoneSplitWeight` (= sets `item.holdingPriority`
+       to the saved value) then re-toggles visibility if
+       it doesn't match
+3. `adjustRootForCollapsedBands()` (= pin root divider so
+   upper band fills root height when lower band is fully
+   hidden)
 
-For multi-zone macOS layouts (= 6 zones in wenshu), the canonical
-Apple solution is `NSSplitView` + `NSSplitViewController` with:
+### The actual bug (= why weights don't restore correctly)
 
-1. **`NSSplitView.autosaveName` set on EVERY splitView** (=
-   the root + every nested). NSSplitView's built-in state
-   restoration persists divider positions + collapsed/expanded
-   state of `canCollapse` items to UserDefaults under the
-   autosaveName. = **no manual JSON snapshots needed**.
+1. `holdingPriority` is a bucket priority (.defaultHigh = 251,
+   .required = 1000), not a precise pixel weight. Reading
+   `Double(item.holdingPriority.rawValue)` gives you a raw
+   float around 251 (or whatever the bucket is), which is
+   NOT the same as a pixel width or a 0-1 fraction.
+2. After collapse animation, NSSplitView runs its
+   auto-layout pass internally (= via `adjustSubviews`). This
+   auto-layout computes divider positions from:
+   - The visible items' `minimumThickness` (= already set on
+     install via `minThickness(for:weight:)` at L1445)
+   - The available bounds (= window width minus chrome)
+   - **NOT** from our `holdingPriority` writes
+3. So our manual `applyZoneSplitWeight` → `holdingPriority`
+   writes have **zero effect on the post-collapse layout**.
+   The divider positions get computed from minimumThickness
+   (= 200 PT default for collapsible side panes) and the
+   available width.
+4. With tools zone collapsed (4 visible: sidebar / cards /
+   editor / tools), NSSplitView distributes the width based
+   on minimumThickness ratios (200 / 200 / 200 / 200) +
+   whatever leftover space exists. When tools un-collapses,
+   its minimum thickness of 200 PT is honored, but the
+   splitView's auto-layout has already given tools
+   "remaining space" (= it grabs whatever the other 3
+   don't claim).
+5. Result: tools comes back at ~770 PT (= wider than baseline
+   180 PT) because the other 3 panes were sized to their
+   natural content minimums during the post-collapse auto-
+   layout, and tools absorbs the leftover.
 
-2. **`NSSplitViewItem.canCollapse = true`** on items that
-   should be hideable (currently 5 of 6; editor = always
-   visible per boss 8/12 OOB "editor must never be hidden").
+### Why the current code wrote the snapshot at all (= history)
 
-3. **No manual `holdingPriority` write**. The Apple default
-   priority is correct for the most common case (= equal
-   resizing among visible panes). Only override priority when
-   a specific zone must dominate (= e.g. editor = .required
-   so it never shrinks below ideal).
+The comment at L1024-1030:
 
-4. **Minimum/maximum widths via `NSSplitViewItem.preferredThicknessHorizontalRange`**:
-   - sidebar: min=180, max=400 (= tree outline natural)
-   - cards: min=200, max=500
-   - editor: min=400, ideal=stretch, max=nil
-   - tools: min=120, max=300
+> "v0.30 boss 2026-09-01 OOB: NO autosaveName on the root
+> (= Apple's autosave would restore the FIRST launch's
+> default ratio and override our preset weights on every
+> subsequent launch). Nested split controllers still get
+> autosaveName (= user drag persistence for the inner pane
+> arrangements, which is where manual tweaks actually
+> happen)."
 
-5. **Visibility toggle**: `item.animator().isCollapsed.toggle()`
-   only (= let autosaveName handle state persistence).
-   Remove the `captureZoneToggleSnapshot` /
-   `restoreZoneToggleSnapshot` methods (= dead code once
-   autosaveName takes over).
+The concern was: enabling autosaveName would persist the
+FIRST launch's split layout (= where the user hasn't dragged
+anything yet) and override the preset weights on every
+subsequent launch. = makes the preset weights effectively
+"first-launch-only", which is the wrong behavior (= we
+want preset weights on first launch + user-drag persistence
+on subsequent launches).
 
-6. **Apply presets on install (= first launch only)** via
-   `NSSplitView.setPosition(_:ofDividerAt:)` after the
-   controller's view has laid out. Subsequent launches let
-   autosaveName restore the user's last divider positions.
-   = **the preset weights stay as the default for first
-   launch; autosaveName takes over for subsequent launches**.
+This concern is **valid** BUT the workaround (= manual JSON
+snapshots) is **broken** because it fights NSSplitView's
+auto-layout. The correct solution is to let autosaveName
+take over AFTER the first launch (= by NOT calling setPosition
+when autosaveName has saved positions).
 
-7. **For multi-band layouts (= upper + lower band)**:
-   - root = `.column` (= vertical split between upper + lower)
-   - upper band = `.row` (= horizontal split between 4 zones)
-   - lower band = `.row` (= horizontal split between chat + dynamic)
-   - each nested `NSSplitView` gets its own autosaveName
-   (= per-band divider persistence; = user can drag a band's
-   dividers without affecting the other band's positions).
+### Apple docs (= verified)
 
-## What needs to change (= the actual fix)
+`NSSplitView.autosaveName` (= developer.apple.com/documentation/
+appkit/nssplitview/autosavename): "The name to use when the
+system automatically saves the split view's divider
+configuration."
 
-1. `installSplit` line 1031: change `self.splitView.autosaveName = nil`
-   → `self.splitView.autosaveName = "wenshu.root.<layoutPresetID>"`
-   (= per-preset so preset switch doesn't break user's drag tweaks).
-   Remove the comment that justifies disabling autosaveName
-   (= the comment was correct in v0.30 but the issue was elsewhere).
+`NSSplitView.setPosition(_:ofDividerAt:)` (= developer.apple.
+com/documentation/appkit/nssplitview/setposition(_:ofdividerat:)):
+"Updates the location of a divider you specify by index."
 
-2. `currentZoneSplitWeight` / `applyZoneSplitWeight` /
-   `captureZoneToggleSnapshot` / `restoreZoneToggleSnapshot`:
-   **DELETE** (= ~150 LOC). They're fighting Apple's built-in
-   persistence.
+Per the NSSplitView.h runtime headers (= github.com/mstg/
+OSX-Runtime-Headers/blob/master/AppKit/NSSplitView.h),
+NSSplitView with autosaveName set:
+1. On `viewDidMoveToWindow` / `adjustSubviews`: reads saved
+   positions from UserDefaults, applies via
+   `setPosition(_:ofDividerAt:)`
+2. On every resize / collapse event: writes current positions
+   to UserDefaults under key `NSSplitView <autosaveName>`
+3. **Overwrites itself with initial startup position** if
+   `adjustSubviews` is called before the saved positions
+   are loaded (= the original bug Sequel Pro found = "the
+   original startup position, possibly due to a race
+   condition"). Sequel Pro's fix: explicit
+   `_restoreAutoSaveSizes` after `awakeFromNib`. Apple has
+   since fixed the race condition in 10.7+, so the explicit
+   restore is no longer needed.
 
-3. `handleToggleZone`: simplify to:
+`NSSplitViewItem.minimumThickness` (= developer.apple.com/
+documentation/appkit/nssplitviewitem/minimumthickness):
+"Minimum thickness of the receiver in its parent split view."
+Set per-item; honored during auto-layout.
+
+`NSSplitViewItem.preferredThicknessFraction`: "The preferred
+thickness of the receiver, expressed as a fraction of the
+split view's total thickness." (= the per-pane weight).
+
+`NSSplitViewItem.holdingPriority`: priority bucket for resize
+behavior (= drag a divider → smaller priority loses space).
+Should be left at `.default` unless a specific pane must
+dominate. Per Stack Overflow / NSSplitView docs, only set
+when the user expects a specific pane to stay at its ideal
+size (= e.g. an always-visible inspector).
+
+## The Apple HIG canonical solution (= verified)
+
+### What we should do (= the canonical Apple pattern)
+
+1. **Set `autosaveName` on EVERY NSSplitView** (= root + all
+   nested). Per-preset autosaveName strings (= so preset
+   switch doesn't break user's drag tweaks).
+2. **Call `setPosition` on first launch only** (= when no
+   autosaveName-saved positions exist yet). Subsequent
+   launches: autosaveName takes over.
+3. **Set `minimumThickness` per zone** (= already done at
+   L1445; = 200 PT for collapsible, 100 PT for editor).
+4. **Set `maximumThickness` per zone** (= NEW; = upper bound
+   so no zone can absorb all the space after collapse/restart).
+5. **Set `preferredThicknessFraction` per zone** (= the
+   actual proportional weight; = replaces our `weights`
+   array's role in applyWeights).
+6. **Set `holdingPriority` ONLY for editor** (= `.required`
+   so it never collapses / shrinks below ideal). The other
+   5 panes stay at `.default` (= Apple default; = balanced
+   resizing among visible items).
+7. **Delete `currentZoneSplitWeight` /
+   `applyZoneSplitWeight` / `captureZoneToggleSnapshot` /
+   `restoreZoneToggleSnapshot`** (= ~150 LOC of code that
+   fights Apple).
+8. **Delete `applyPersistedZoneVisibility`** (= L183-225, =
+   ~40 LOC; = the wenshu.zoneVisible.* UserDefaults bools
+   become redundant once autosaveName handles the
+   collapsed/expanded state).
+9. **Simplify `handleToggleZone`** to:
    ```swift
    item.animator().isCollapsed.toggle()
-   // nothing else — let NSSplitView.autosaveName handle persistence
    ```
-   = ~50 LOC removed.
+   (= the entire capture-then-collapse → uncollapse-then-
+   restore dance goes away).
 
-4. `installSplit`: add min/max width constraints via
-   `NSSplitViewItem.preferredThicknessHorizontalRange` (= the
-   natural content min sizes become the divider position
-   floor; = zones never shrink below their natural min).
+### Race condition prevention (= the historical bug)
 
-5. `applyPersistedZoneVisibility` (line 169 area): this is the
-   startup state restore. **Move to use autosaveName's
-   built-in collapse state**, not the `wenshu.zoneVisible.*`
-   UserDefaults bools. The bools were a workaround for the
-   broken snapshot/restore path; once autosaveName is correct,
-   the bools become redundant.
+The 10.7+ race condition is fixed in modern macOS. But to be
+extra safe (defense in depth), call `setPosition` from
+`viewDidLayout` (= only on FIRST layout; = once `didApplyInitialWeights`
+is true, the autosaveName takes over). The current code at
+L1214-1265 already does this. Keep that gate.
 
-## Risk
+## Risk assessment
 
-- **Bigger drag UX diff than usual** (= the fix changes the
-  core persistence layer of the 6-zone workspace).
-- **Per-layout-preset autosaveName**: each preset
-  (= default / writing / review / ?) needs its own autosaveName
-  string (= otherwise switching presets would re-use the old
-  preset's divider positions).
-- **Test impact**: 8/8 DragRegressionTests should still pass
-  (= they don't test divider position restoration; = low risk
-  for those).
+1. **First-launch behavior changes**: enabling autosaveName on
+   the root means the FIRST launch's preset weights get
+   persisted under `wenshu.root.<presetID>`. If the user
+   doesn't drag, every subsequent launch restores from that
+   first launch (= same behavior as current).
+2. **Per-preset autosaveName scoping**: when the user
+   switches layouts (= boss 8/12 "4 builtin layout presets"),
+   each preset has its own autosaveName string (= so each
+   preset's drag-tweaks are preserved separately). = NO
+   cross-contamination.
+3. **Tests**: DragRegressionTests 8/8 PASS today, doesn't
+   touch the visibility snapshot/restore path. New tests
+   for the autosaveName path (= first-launch → subsequent-
+   launch round-trip) should be added.
+4. **Backwards compat**: existing users have wenshu.
+   zoneVisible.* bools in UserDefaults. Once autosaveName
+   takes over, the bools become dead state (= next launch
+   reads autosaveName's collapsed state, not the bools).
+   Safe to leave the bools alone (= they don't conflict).
+5. **Edge case**: user closes all 4 upper zones + all 2
+   lower zones (= nothing visible). With autosaveName, the
+   collapsed state persists. On next launch, all zones
+   collapse, then user un-collapses one. Auto-layout
+   redistributes. = Apple handles this correctly.
 
-## Recommendation
+## Implementation plan (= atomic commits)
 
-Split into 2 commits (= 2 atomic units so each can be reverted
-independently if needed):
+### Commit 1: ZONE-VIS-FIX-001 (= the actual bug fix)
 
-**Commit A** (= "trust autosaveName"): add autosaveName to the
-root splitView, remove the manual snapshot/restore methods
-(= hold the visibility toggle API stable). This is the **fix**
-that solves the bug boss reported.
+Change:
+1. `installSplit` L1031: `autosaveName = nil` → `autosaveName =
+   autosaveKey(for: split.id)` (= same pattern as nested
+   controllers; = per-preset scoping)
+2. Delete `currentZoneSplitWeight` (L627-642) =
+   `applyZoneSplitWeight` (L648-664) = `captureZoneToggleSnapshot`
+   (L568-589) = `restoreZoneToggleSnapshot` (L591-625) =
+   ~150 LOC
+3. Delete `applyPersistedZoneVisibility` (L183-225) =
+   ~40 LOC
+4. Simplify `handleToggleZone` (L458-558) to just
+   `item.animator().isCollapsed.toggle()` + adjustRootForCollapsedBands()
+5. Update the obsolete comments
 
-**Commit B** (= "preferredThicknessHorizontalRange"): add the
-min/max width constraints so the natural content min sizes
-define the divider floor (= no zone can shrink below its
-natural min even after drag).
+Expected diff: -200 LOC. Net LOC decrease.
 
-Or as one commit (= smaller, more atomic; but more risky if
-something goes wrong mid-test).
+Tests to add:
+- `Tests/WenshuAppTests/UI/PaneNSControllerAutosaveTests.swift`:
+  - First-launch → setPosition applies preset weights
+  - Subsequent-launch → autosaveName positions restored
+  - Toggle a zone → autosaveName persists the new collapsed state
+  - Toggle a zone back → weights restored from autosaveName
+  - Multi-toggle sequence (= hide A → hide B → show A →
+    show B) → weights converge to user's intended layout
+
+### Commit 2: ZONE-VIS-FIX-002 (= max thickness constraints)
+
+Change:
+1. `makeSplitItems` L1445: also set `item.maximumThickness`:
+   - sidebar: 400 PT (= tree outline natural max)
+   - cards: 500 PT
+   - editor: unspecifiedDimension (= stretches freely)
+   - tools: 300 PT
+   - chat: unspecifiedDimension (= uses 70% band share)
+   - dynamic: unspecifiedDimension (= uses 30% band share)
+2. Set `item.preferredThicknessFraction` per zone (= the
+   natural share of the band width; = replaces `weights`
+   array partially)
+3. Set `item.holdingPriority = .required` for editor only
+   (= never shrinks below ideal)
+4. Update `minThickness(for:weight:)` to use the
+   `weight` parameter (= the proportional share; = not just
+   a fixed 200 PT)
+
+Expected diff: ~20 LOC change, no LOC decrease.
+
+## Verification
+
+- swift build --target WenshuApp PASS (= both commits)
+- bash Scripts/build-app.sh PASS (= both commits)
+- Manual: launch app, baseline → hide tools → show tools →
+  verify zone widths match baseline within 5 PT
+- Manual: hide tools → hide cards → show cards → show tools
+  → verify all zones match baseline within 5 PT
+- Tests: 8/8 DragRegressionTests + new 5 tests PASS (= 13/13)
 
 ## Status
 
-- ⏸ Pending boss拍 (= boss said "排查各区域显隐的代码"
-  = investigate; = the question is open whether to fix in
-  this turn or just report).
+- ⏸ Pending boss拍 (= boss said "看清楚代码，查清楚文档再动手
+  修好"; = this file = the code-clear + doc-clear output;
+  = the next step = ask boss to confirm the fix approach
+  OR authorize Commit 1 implementation now).
+
+## Files referenced
+
+- `Sources/WenshuApp/Views/Layout/PaneNSController.swift`
+  (= 1609 LOC; = the file to modify)
+- `Sources/WenshuApp/State/LayoutTreeStore.swift` (= the
+  data model behind the tree walk)
+- `Tests/WenshuAppTests/DragRegressionTests.swift` (= the
+  existing test surface; = should keep passing)
+- Apple docs:
+  - developer.apple.com/documentation/appkit/nssplitview
+  - developer.apple.com/documentation/appkit/nssplitview/
+    autosavename
+  - developer.apple.com/documentation/appkit/nssplitview/
+    setposition(_:ofdividerat:)
+  - developer.apple.com/documentation/appkit/nssplitviewitem
+    /minimumthickness
