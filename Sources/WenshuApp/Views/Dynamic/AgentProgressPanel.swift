@@ -111,11 +111,10 @@ public struct AgentProgressPanel: View {
         }
         .padding(.horizontal, DesignTokens.chromePaddingMedium)
         .padding(.vertical, DesignTokens.chromePaddingVertical)
-        // Liquid Glass: thinMaterial matches DynamicZoneView's pane
-        // chrome (= SubAgentProgressView's task rows use the same
-        // pattern). The card is a thin strip pinned to the top of
-        // the zone, below the tab bar.
-        .background(.thinMaterial)
+        // v0.40 boss real-device test 2026-09-07: removed
+        // .thinMaterial (= Liquid Glass agent progress strip);
+        // now uses Color.clear (= no background).
+        .background(Color.clear)
         .overlay(
             // Subtle accent border on the leading edge so the user
             // can tell at a glance which step is active (Apple HIG

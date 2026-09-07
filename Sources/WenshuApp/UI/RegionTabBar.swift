@@ -135,9 +135,7 @@ public struct RegionTabBar<Content: View>: View {
         // it must be applied via .background { ... } block with a
         // Color.clear receiver (= the empty rect provides the size;
         // .glassEffect applies the canonical Liquid Glass material).
-        .background {
-            Color.clear.glassEffect(.regular)
-        }
+        .background { Color.clear }
         // 1 PT Apple .separator ShapeStyle (= canonical Liquid Glass
         // hairline, semitransparent + dark/light adaptive). Applied
         // ONCE here as bottom overlay (= no manual Color, no NSColor,
@@ -230,9 +228,7 @@ public struct RegionStatusBar<Content: View>: View {
         // .background(.glassEffect(.regular)) does NOT compile; =
         // Color.clear provides the size of the glass layer; the modifier
         // applies the canonical Liquid Glass material.
-        .background {
-            Color.clear.glassEffect(.regular)
-        }
+        .background { Color.clear }
         // Top separator (1 PT Apple .separator) for the status bar
         // (= visually separates pane content from the bottom status).
         .overlay(alignment: .top) {
