@@ -433,9 +433,11 @@ struct NewLibraryOutlineView: View {
         // semitransparent blur, the hairline border (= 1 PT Apple
         // .separator at the edges per Apple HIG), and the
         // depth shadow (= .05 black, native rendering).
-        .background {
-            Color.clear.glassEffect(.regular)
-        }
+        // v0.40 boss real-device test 2026-09-07: removed
+        // .glassEffect(.regular) (= Liquid Glass sidebar background);
+        // now uses Color.clear (= no background = shows the
+        // underlying zone chrome through the .listStyle(.sidebar)).
+        .background { Color.clear }
         .onAppear {
             reload()
             // v0.30 boss 8/31 OOB 'directory tree selection state does not persist':

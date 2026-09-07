@@ -1089,21 +1089,10 @@ struct EditorPlaceholder: View {
             // canonical material on macOS 27 Tahoe = visible mismatch
             // with the POLISH-LIQUIDGLASS-001 TopBar chrome the user
             // sees directly above the editor zone in the same pane).
-            // Same .background { Color.clear.glassEffect(.regular) }
-            // shape as 950e46423 (= TopBar) + 74b22f73a (= Sidebar):
-            // .glassEffect(.regular) is a View modifier (= instance
-            // member), not a ShapeStyle value, so .background(.glassEffect
-            // (.regular)) does NOT compile; = Color.clear provides the
-            // size of the glass layer; the modifier applies the
-            // canonical Liquid Glass material. .glassEffect(.regular)
-            // auto-adapts to system settings (= dark mode / Reduce
-            // Transparency / Increase Contrast) per Apple HIG. The
-            // body-content area's .ultraThinMaterial background (= line
-            // below this tab strip) is intentionally NOT touched
-            // (= content area, not chrome).
-            .background {
-                Color.clear.glassEffect(.regular)
-            }
+            // v0.40 boss real-device test 2026-09-07: removed
+            // .glassEffect(.regular) (= Liquid Glass tab strip);
+            // now uses Color.clear (= no background).
+            .background { Color.clear }
             // v0.34 ticket 09: dirty-discard confirm dialog. Shown when
             // user tries to close with unsaved changes. Apple HIG
             // 2-option confirm pattern (= destructive + cancel).

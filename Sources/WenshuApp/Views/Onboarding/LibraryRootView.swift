@@ -127,7 +127,7 @@ private struct ChatBookManagerHint: View {
         .padding(.horizontal, DesignTokens.chromePaddingMedium)
         .padding(.vertical, DesignTokens.chromePaddingSmall)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.thinMaterial)
+        .background(Color.clear)
         .overlay(alignment: .bottom) {
             Divider()
         }
@@ -407,10 +407,10 @@ Group {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // v0.28 followup Boss UX round 21: .background(.regularMaterial)
-        // (= Liquid Glass) for the onboarding empty state — matches
-        // all other chrome.
-        .background(.regularMaterial)
+        // v0.40 boss real-device test 2026-09-07: removed
+        // .regularMaterial (= Liquid Glass onboarding background);
+        // now uses Color.clear (= no background).
+        .background(Color.clear)
     }
 
     /// showOpenPanel: NSOpenPanel for selecting existing .ws directory.

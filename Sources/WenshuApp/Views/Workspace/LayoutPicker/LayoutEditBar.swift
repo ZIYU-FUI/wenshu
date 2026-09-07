@@ -57,15 +57,13 @@ struct LayoutEditBar: View {
         // v0.28 followup Boss UX round 19 (Boss 2026-08-29 OOB '所有
         // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
         // 区域的顶栏, 底栏, 背景, 用的颜色, 可以适配液态玻璃吗'):
-        // LayoutEditBar floating palette background = .regularMaterial
-        // (= macOS standard Liquid Glass translucent capsule =
-        // matches Apple's canonical floating palette look in Mail /
-        // Pages / Xcode). Previously used
-        // Color(NSColor.windowBackgroundColor).opacity(0.95) (= solid
-        // 95% opaque color = NOT translucent = wrong for Liquid Glass).
+        // v0.40 boss real-device test 2026-09-07: removed
+        // .regularMaterial (= the Liquid Glass translucent
+        // capsule); now uses Color.clear (= no background =
+        // shows the underlying zone chrome).
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .fill(.regularMaterial)
+                .fill(Color.clear)
         )
         .overlay(
             // v0.28 followup Boss UX round 19: 1 PT Apple .separator stroke
@@ -128,7 +126,7 @@ struct LayoutEditBar: View {
                         // added an extra type with no semantic value.
                         .background(
                             RoundedRectangle(cornerRadius: 3)
-                                .fill(.thinMaterial)
+                                .fill(Color.clear)
                         )
                 }
             }
@@ -145,12 +143,12 @@ struct LayoutEditBar: View {
         }
         .padding(.horizontal, DesignTokens.chromePaddingMedium)
         .padding(.vertical, DesignTokens.chromePaddingVertical)
-        // v0.28 followup Boss UX round 24: .regularMaterial replaces
-        // Color.secondary.opacity(0.08) (= solid tinted) for the
-        // header drag handle background.
+        // v0.40 boss real-device test 2026-09-07: removed
+        // .regularMaterial (= Liquid Glass background); now uses
+        // Color.clear (= no background).
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .fill(.regularMaterial)
+                .fill(Color.clear)
         )
         // The header is the drag handle; the rest of the palette
         // (= LayoutPicker) is non-draggable.

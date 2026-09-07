@@ -347,10 +347,9 @@ private struct GroupTabStrip: View {
                 )
             }
         }
-        // v0.28 followup Boss UX round 24: .regularMaterial replaces
-        // Color.secondary.opacity(0.08) for the group tab bar
-        // background (= the floating group header inside a ZoneContentView
-        // that has multiple groups of panes).
-        .background(.regularMaterial)
+        // v0.40 boss real-device test 2026-09-07: removed
+        // .regularMaterial (= Liquid Glass group tab bar);
+        // now uses Color.clear (= no background).
+        .background(Color.clear)
     }
 }

@@ -110,6 +110,9 @@ public struct BacklinksPanel: View {
             }
         }
         .padding()
-        .background { Color.clear.glassEffect(.regular) }
+        // v0.40 boss real-device test 2026-09-07: removed
+        // .glassEffect(.regular) (= Liquid Glass panel background);
+        // now uses Color.clear.
+        .background { Color.clear }
     }
 }
