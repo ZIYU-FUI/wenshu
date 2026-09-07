@@ -296,6 +296,15 @@ public enum DesignTokens {
     /// Replaces `.frame(width: DesignTokens.iconLargeSize, height: DesignTokens.iconLargeSize)` in 1 site.
     public static let iconLargeSize: CGFloat = 24
 
+    /// CHROME-ARCH-001 (2026-09-07): small icon size (= 14 PT)
+    /// used by the chrome top bar (= zone identity icon + trailing
+    /// action buttons). = matches Apple HIG standard for "small
+    /// controls" (= 12-16 PT for inline toolbar icons). Avoids
+    /// inline `.frame(width: 14, height: 14)` in the chrome
+    /// stylesheet file (= iron-rule 6 = no magic numbers in view
+    /// code).
+    public static let iconSmall: CGFloat = 14
+
     /// Extra-small indicator size (= 8 PT, Apple HIG status indicator
     /// dot standard). Replaces `.frame(width: DesignTokens.indicatorSizeSmall, height: DesignTokens.indicatorSizeSmall)` in 1 site.
     public static let indicatorSizeSmall: CGFloat = 8

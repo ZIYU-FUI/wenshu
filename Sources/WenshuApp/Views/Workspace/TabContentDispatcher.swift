@@ -101,7 +101,7 @@ struct TabContentDispatcher: View {
                     shelfCount: bookStore.shelves.count,
                     bookCount: bookStore.books.count
                 ).bottom,
-                topSkip: true,  // ← skip outer top, use internal ZoneContentTabBar only
+                topSkip: false, // CHROME-ARCH-001 (2026-09-07): parent chrome top bar now renders (= unified 30 PT ZoneSlot identity); the zone's internal ZoneContentTabBar is the 2nd-layer tab strip (kept inline).
                 // v0.32 boss 2026-09-02 OOB: sidebar = chrome tier
                 // (= .controlBackgroundColor per Apple HIG "large
                 // controls" = sidebar / inspector / table view).
@@ -116,7 +116,7 @@ struct TabContentDispatcher: View {
             ZonePerRegionChrome(
                 topActions: [],
                 bottomStatus: projectPreviewChrome(chapterCount: 0).bottom,
-                topSkip: true,
+                topSkip: false, // CHROME-ARCH-001 (2026-09-07): parent chrome top bar enabled (= unified ZoneSlot identity across all 6 zones).
                 // v0.32 boss 2026-09-02 OOB: preview = content tier
                 // (= .windowBackgroundColor per Apple HIG "the area
                 // beneath your window's views" = content area;
@@ -145,7 +145,7 @@ struct TabContentDispatcher: View {
                     // (= tap triggers BacklinksPanel popover).
                     rightOnTap: { showBacklinksPopover.toggle() }
                 ),
-                topSkip: true,
+                topSkip: false, // CHROME-ARCH-001 (2026-09-07): parent chrome top bar enabled (= unified ZoneSlot identity across all 6 zones).
                 // v0.32 boss 2026-09-02 OOB: editor = content tier
                 // (= .windowBackgroundColor = matches Xcode editor
                 // and Pages document inset depth).
@@ -175,7 +175,7 @@ struct TabContentDispatcher: View {
             ZonePerRegionChrome(
                 topActions: [],
                 bottomStatus: specializedToolsChrome().bottom,
-                topSkip: true,
+                topSkip: false, // CHROME-ARCH-001 (2026-09-07): parent chrome top bar enabled (= unified ZoneSlot identity across all 6 zones).
                 // v0.32 boss 2026-09-02 OOB: tools = chrome tier
                 // (= .controlBackgroundColor = matches Xcode
                 // inspector / FCP inspector depth).
@@ -200,7 +200,7 @@ struct TabContentDispatcher: View {
             ZonePerRegionChrome(
                 topActions: [],
                 bottomStatus: aiChatChrome().bottom,
-                topSkip: true,
+                topSkip: false, // CHROME-ARCH-001 (2026-09-07): parent chrome top bar enabled (= unified ZoneSlot identity across all 6 zones).
                 bottomSkip: true,  // chat uses internal ChatBottomToolbar per v0.21 ticket 10
                 // v0.32 boss 2026-09-02 OOB: chat = content tier
                 // (= .windowBackgroundColor = matches Mail message
@@ -243,7 +243,7 @@ struct TabContentDispatcher: View {
             ZonePerRegionChrome(
                 topActions: [],
                 bottomStatus: aiDynamicChrome().bottom,
-                topSkip: true,
+                topSkip: false, // CHROME-ARCH-001 (2026-09-07): parent chrome top bar enabled (= unified ZoneSlot identity across all 6 zones).
                 // v0.32 boss 2026-09-02 OOB: dynamic / kanban =
                 // content tier (= .windowBackgroundColor = matches
                 // Xcode issue navigator depth).
