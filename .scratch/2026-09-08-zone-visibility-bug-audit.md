@@ -1,7 +1,6 @@
 # Zone Visibility Bug Deep Investigation · 2026-09-08 · pocock
 
-Boss directive: "看清楚代码，查清楚文档再动手修好" = look at the
-code clearly, investigate the documentation, then fix.
+Boss directive: "look at the code clearly, investigate the documentation, then fix".
 
 Investigation phase (= the doc this file replaces):
 - Read PaneNSController.swift full (= 1609 lines, the
@@ -16,7 +15,7 @@ previous speculative audit at the same path).
 ## Bug reproduction (= unchanged, confirmed)
 
 1. Launch wenshu.app, all 6 zones visible (= baseline)
-2. Cmd+Shift+2 (= "工具区" menu toggle) → tools zone collapses
+2. Cmd+Shift+2 (= "Tools Zone" menu toggle) → tools zone collapses
 3. Cmd+Shift+2 again → tools zone restores, BUT it returns at
    ~770 PT (= baseline was 180 PT), absorbing width from
    sidebar / cards / editor (= they shrink to ~94 / ~120 / ~470 PT)
@@ -348,8 +347,9 @@ Expected diff: ~20 LOC change, no LOC decrease.
 
 ## Status
 
-- ⏸ Pending boss拍 (= boss said "看清楚代码，查清楚文档再动手
-  修好"; = this file = the code-clear + doc-clear output;
+- ⏸ Pending boss decision (= boss said "look at the code clearly,
+investigate the documentation, then fix"; = this file = the
+code-clear + doc-clear output;
   = the next step = ask boss to confirm the fix approach
   OR authorize Commit 1 implementation now).
 
