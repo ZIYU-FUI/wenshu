@@ -1,0 +1,11 @@
+// InfoPlist.strings · Wenshu (zh-Hans) · v0.40 apple-001 i18n
+//
+// 中文版 InfoPlist 本地化 (= Apple 标准做法). 当用户系统语言 = 简体中文时,
+// macOS 用这个文件. 对照 en.lproj/InfoPlist.strings = 英文版.
+
+"CFBundleDisplayName" = "文枢";
+"CFBundleName" = "文枢";
+
+"CFBundleTypeName" = "文枢仓库";
+
+"UTTypeDescription" = "文枢仓库";
