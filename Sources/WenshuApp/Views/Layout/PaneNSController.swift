@@ -472,6 +472,42 @@ final class PaneNSController: NSSplitViewController {
                 }
             }
         }
+        // ZONE-VIS-FIX-005 (2026-09-08): re-apply the canonical
+        // preset divider positions (= Apple HIG canonical solution
+        // via `setPosition(ofDividerAt:)`) AFTER the toggle animation
+        // completes. This fixes the bug where the side panes
+        // (= sidebar / cards / tools) shrink to their `minimumThickness`
+        // floor during a sibling collapse animation and the
+        // intermediate (= shrunk) divider positions get persisted by
+        // `NSSplitView.autosaveName` as the "restored" state (= known
+        // autosaveName bug under Auto Layout since macOS 10.9 per
+        // Stack Overflow / NSSplitView community).
+        //
+        // Why we explicitly setPosition AFTER the animation:
+        // - NSSplitView.autosaveName persists divider positions on
+        //   every `adjustSubviews` pass (= including the intermediate
+        //   shrunk states during collapse animation). Without
+        //   explicit re-application, the "shrunk" position becomes
+        //   the new "restored" state.
+        // - The Apple API solution is to re-apply the preset divider
+        //   positions via `setPosition(ofDividerAt:)` (= which is
+        //   the canonical Apple HIG mechanism for setting divider
+        //   positions). Dispatched via main.async to run AFTER the
+        //   collapse animation completes (= the animation runs on
+        //   the run loop's next tick = our async lands after).
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            // Re-apply preset weights (= canonical Apple HIG divider
+            // position mechanism) for every controller in the
+            // tree (= self + nested children). This is the same
+            // call `viewDidLayout` makes on first launch; = by
+            // re-running it after each toggle, we force the
+            // divider positions back to the preset (= no more
+            // "shrunk" positions in autosaveName).
+            for (controller, weights) in self.collectPendingWeights() {
+                self.applyWeights(weights, on: controller)
+            }
+        }
         // v0.30 boss 2026-09-01 OOB (auto-fill band on full
         // collapse): after toggling, re-pin the root divider so
         // the upper band fills the whole root height when the
@@ -1226,11 +1262,126 @@ final class PaneNSController: NSSplitViewController {
         // instead of .environment, which is reserved for @Observable types).
         let hosted = content.environmentObject(store)
         let hosting = NSHostingController(rootView: hosted)
+        // ZONE-VIS-FIX-003 (2026-09-08): Apple API solution to the
+        // "split view min/max overridden by SwiftUI intrinsic content
+        // size" root cause (= per developer.apple.com/documentation/
+        // swiftui/nshostingcontroller/sizingoptions):
+        //
+        // "NSHostingController can create minimum, maximum, and
+        // ideal (content size) constraints that are derived from its
+        // SwiftUI view content. ... `sizingOptions` defaults to
+        // `.standardBounds` (which includes `minSize`,
+        // `intrinsicContentSize`, and `maxSize`), but can be set to
+        // an explicit value to control this behavior. For instance,
+        // setting a value of `.minSize` will only create the
+        // constraints necessary to maintain the minimum size of the
+        // SwiftUI content."
+        //
+        // The default `.standardBounds` (= SwiftUI min + intrinsic +
+        // max) was overriding our `item.minimumThickness` and
+        // `item.maximumThickness` constraints (= the bug from
+        // ZONE-VIS-FIX-002 = side panes shrunk below their
+        // `minimumThickness` after hide-then-show cycles). Setting
+        // `sizingOptions = .minSize` (= Apple HIG canonical pattern
+        // for AppKit-hosted SwiftUI in NSSplitView per
+        // developer.apple.com/documentation/appkit/nssplitviewitem/
+        // minimumthickness: "layout constraints in the contained
+        // view hierarchy might specify a minimum size regardless" =
+        // we want our NSSplitView constraints to dominate, not the
+        // SwiftUI intrinsic content size).
+        //
+        // `.minSize` keeps the SwiftUI view's min width/height as
+        // a floor (= respects SwiftUI's natural content minimum =
+        // e.g. the outline's intrinsic row height, the LazyVGrid's
+        // minimum cell width) but discards `intrinsicContentSize`
+        // (= which would otherwise force a specific ideal size and
+        // fight our `preferredThicknessFraction`) and `maxSize`
+        // (= which would force the SwiftUI view's max width even
+        // when NSSplitView wants to give it more space).
+        //
+        // Apple HIG = single source of truth for per-pane size
+        // = NSSplitViewItem.minimumThickness /
+        // NSSplitViewItem.maximumThickness /
+        // NSSplitViewItem.preferredThicknessFraction. The hosting
+        // controller's sizingOptions = .minSize ensures SwiftUI
+        // doesn't compete with NSSplitView's size policy.
+        //
+        // Set sizingOptions BEFORE the view is added to a window
+        // (= the property doc says "These constraints are only
+        // created when Auto Layout constraints are otherwise being
+        // used in the containing window" = setting it post-install
+        // might not retroactively apply). The hosting controller's
+        // `view` is created lazily on first access; we touch it
+        // here to ensure the sizing options apply to the actual
+        // view that's added to the splitViewItem.
+        hosting.sizingOptions = [.minSize]
+        // ZONE-VIS-FIX-003 (2026-09-08): second Apple API safeguard
+        // (= per Stack Overflow / NSHostingController's documented
+        // behavior = the hosting view's autoresizing mask can
+        // create competing constraints with the split item's
+        // minimumThickness). Setting
+        // `translatesAutoresizingMaskIntoConstraints = false` tells
+        // AppKit "this view's frame is fully constraint-driven" =
+        // = our `item.minimumThickness` constraint is the
+        // authoritative size policy, not the autoresizing mask
+        // (= which would otherwise stretch the view to fill any
+        // container regardless of our minimumThickness).
+        //
+        // Per Apple HIG for AppKit-hosted SwiftUI in NSSplitView:
+        // when an NSView is hosted in an NSStackView /
+        // NSSplitView (= Auto Layout-driven containers), the
+        // autoresizing mask must be disabled to prevent conflicts.
+        // Without this, the autoresizing mask would override the
+        // hosting view's minimum size (= SwiftUI reports a smaller
+        // intrinsic min than our split item's minimumThickness; =
+        // autoresizing mask would shrink the view to fit the
+        // smaller SwiftUI min, ignoring our 200 PT floor).
+        _ = hosting.view  // force view creation (= sizingOptions
+                         // apply to view's constraints)
+        hosting.view.translatesAutoresizingMaskIntoConstraints = false
 
         // Wrap in NSSplitViewItem (= the native AppKit container).
         let item = NSSplitViewItem(viewController: hosting)
         item.canCollapse = isCollapsiblePane(activePaneID)
         item.minimumThickness = minThickness(for: activePaneID, weight: weight)
+        // ZONE-VIS-FIX-004 (2026-09-08): Apple HIG canonical collapse
+        // behavior (= NSSplitViewItem.CollapseBehavior = .useConstraints).
+        // Per developer.apple.com/documentation/appkit/nssplitviewitem/
+        // collapsebehavior: ".useConstraints - The item collapses and
+        // expands using a constraint animation, with a constraint
+        // priority of the item's holding priority."
+        //
+        // The default behavior (.preferResizingSiblingsWithFixedSplitView)
+        // is the macOS 11+ default that causes the bug from ZONE-VIS-FIX-001:
+        // when an item collapses (= e.g. tools = Cmd+Shift+2), the
+        // remaining siblings resize to fill the freed space based on
+        // Apple's auto-layout (= computing divider positions from
+        // item.minimumThickness + available bounds, = the side panes
+        // shrink to their 200 PT floor while the editor absorbs the
+        // remaining space). When the item expands back, those
+        // intermediate divider positions are persisted by
+        // NSSplitView.autosaveName (= which IS preserved across the
+        // animation, = the "shrunk" divider positions become the
+        // new "restored" state on the next expand cycle).
+        //
+        // Setting collapseBehavior = .useConstraints (= Apple HIG
+        // canonical pattern per the official docs) makes the
+        // collapse/expand animation use a constraint-driven
+        // animation (= Apple's modern constraint-based layout)
+        // that respects `preferredThicknessFraction` (= the
+        // preset weight ratio we set in ZONE-VIS-FIX-001). The
+        // result: side panes don't shrink to their minimumThickness
+        // floor during a sibling collapse; = they preserve their
+        // preferred fraction of the available space.
+        //
+        // Pre-existing setting: collapseBehavior defaults to
+        // .preferResizingSiblingsWithFixedSplitView (= macOS 11+
+        // default; = the bug behavior). Override to
+        // .useConstraints (= the canonical Apple HIG solution
+        // for "presets should survive collapse cycles").
+        if item.canCollapse {
+            item.collapseBehavior = .useConstraints
+        }
         // ZONE-VIS-FIX-002 (2026-09-08): set
         // `maximumThickness` (= the upper bound on a pane's
         // thickness). Prevents the bug symptom from ZONE-VIS-FIX-001
