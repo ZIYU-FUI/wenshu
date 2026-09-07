@@ -57,35 +57,32 @@ struct WenshuMarkdownEditor: View {
     // engine's layout pipeline).
     private var adjustedConfiguration: MarkdownEditorConfiguration {
         var config = configuration
-        // v0.40 boss 9/7 OOB '你整体测一下对比一下, 编辑器的文字,
-        // 还是比别的区大很多': even after the previous commit that
-        // switched the base to .smallSystemFontSize (= 11 PT), the
-        // editor's H1 = .body (= 13 PT) was visibly larger than the
-        // sidebar caption1 (= 10 PT) and the kanban row caption
-        // (= 10 PT). Boss wants true visual parity with the rest of
-        // the chrome (= editor text indistinguishable in size from
-        // sidebar items + kanban rows).
+        // v0.40 boss 9/7 OOB '编辑器的字号, 参考卡片的的标题和正文
+        // 的字号': align the editor's font scale to the card visual
+        // density (= Apple HIG canonical reference card pattern
+        // in PreviewPane.swift Card view).
         //
-        // Strategy: use .caption1 (= 10 PT) as the base (= matches
-        // sidebar items + kanban rows + status bar secondary text).
+        // Card title   = SwiftUI .headline (= 13 PT on macOS 27)
+        // Card summary = SwiftUI .caption  (= 10 PT on macOS 27
+        //   = NSFont.preferredFont(forTextStyle: .caption1).pointSize
+        //   on macOS; = SwiftUI bridges .caption to .caption1 in NSFont)
+        // (= boss 9/7 OOB screenshot: 王阳明心学 card with title
+        // ~13 PT bold + summary ~10 PT regular).
+        //
+        // Strategy: use NSFont.preferredFont(forTextStyle: .caption1)
+        // (= 10 PT = SwiftUI .caption on macOS) as the editor base
+        // = matches card summary.
         // Heading multipliers then scale from this base via Apple
         // canonical NSFont.preferredFont(forTextStyle:):
-        // - H1   = .callout     = 12 PT (= matches DesignTokens.
-        //   tabTitleFont / hotkeyComboFont size of 12 PT, = the
-        //   bold H1 still reads as a heading but at the chrome
-        //   density)
-        // - H2   = .subheadline = 11 PT (= matches MemoryEntryRow
-        //   and other secondary chrome)
-        // - H3-H6= .footnote    = 10 PT (= matches caption1 =
-        //   sidebar rows, = flat with body)
+        // - H1   = .headline     = 13 PT (= matches card title)
+        // - H2   = .footnote     = 10 PT (= matches card summary)
+        // - H3-H6= .footnote     = 10 PT (= flat with body)
         //
         // v0.40 boss 9/7 OOB '你仔细对比一下, 预览和编辑两个模式, 哪
         // 个小统一用小的那个': both modes share this single
-        // configuration (= unified component commit), so the
-        // smaller base applies to BOTH preview + edit (= no
-        // scaling between modes).
+        // configuration (= unified component commit).
         let base = NSFont.preferredFont(forTextStyle: .caption1).pointSize
-        let h1 = NSFont.preferredFont(forTextStyle: .subheadline).pointSize
+        let h1 = NSFont.preferredFont(forTextStyle: .headline).pointSize
         let h2 = NSFont.preferredFont(forTextStyle: .footnote).pointSize
         let h3 = NSFont.preferredFont(forTextStyle: .footnote).pointSize
         let h4 = NSFont.preferredFont(forTextStyle: .footnote).pointSize
