@@ -858,6 +858,17 @@ public struct ChatView: View {
                 TextField(WenshuI18n.t("auto2.chatview.l858.h59940148"),
                           text: $vm.inputText, axis: .vertical)
                     .lineLimit(1...4)
+                    // v0.40 boss 9/7 OOB '这个功能, 应该在聊天区的对话框
+                    // 使用. 这个提示, 应该在 /help 里呈现': the slash-
+                    // command hint (= "/create-book My new novel")
+                    // lives here as the .help() tooltip (= macOS
+                    // NSHelpManager on hover; = Apple HIG canonical
+                    // "explainer tooltip" pattern). Previously was a
+                    // top banner above the workspace (= visual noise,
+                    // = boss wants the chat zone to be the SOLE
+                    // input surface for slash commands; = hint
+                    // moved to non-intrusive tooltip here).
+                    .help(WenshuI18n.t("chat.input.help"))
                     // v0.28 followup Boss UX round 27 (Boss 2026-08-29
                     // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
                     // OOB '你把文本框和按钮的空状态高度统一成 30pt'):

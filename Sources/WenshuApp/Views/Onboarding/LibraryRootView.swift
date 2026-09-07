@@ -91,48 +91,33 @@ public struct LibraryRootView: View {
                 // - Construct LibraryStores + BookStore (= single @Observable)
                 // - Inject BookStore via .environment for LayoutShellView + child views
                 WiredShell(libraryPath: libraryPath)
-                    // P2 #20 (WIRE-LIBRARIAN-001): one-line hint telling
-                    // the user they can ask the chat to create / rename /
-                    // delete books via the slash command. Rendered as a
-                    // thin top banner above the WiredShell content so
-                    // the hint is visible immediately after the library
-                    // is opened (= before the user opens the chat zone).
-                    .safeAreaInset(edge: .top) {
-                        ChatBookManagerHint()
-                    }
+                    // v0.40 boss 9/7 OOB '这个功能, 应该在聊天区的对话框
+                    // 使用. 这个提示, 应该在 /help 里呈现': removed the
+                    // top banner (= ChatBookManagerHint was a hint
+                    // above the workspace, telling users to type
+                    // slash commands in the chat zone). Boss wants
+                    // the chat zone to be the SOLE input surface for
+                    // slash commands (= no duplicate hint above the
+                    // workspace). The hint text (= "Tell the chat
+                    // to create a book: e.g. /create-book My new
+                    // novel") moves to the .help() modifier on the
+                    // chat TextField (= macOS NSHelpManager tooltip
+                    // on hover, = Apple HIG canonical "explainer
+                    // tooltip" pattern). The ChatBookManagerHint
+                    // struct itself is deleted (= no longer
+                    // instantiated).
             }
         }
     }
 }
 
-/// P2 #20 (WIRE-LIBRARIAN-001): one-line hint surfaced above the
-/// WiredShell layout that tells the user the chat surface can
-/// create / rename / delete books via a slash command. Apple HIG
-/// "single-purpose banner" pattern (= thin, non-modal, dismissable
-/// by scrolling). Lives in `LibraryRootView.swift` (= the only
-/// file the WIRE-LIBRARIAN-001 ticket allows touching) so the
-/// hint is visible the moment the library is opened, without
-/// requiring the user to navigate to the chat zone first.
-private struct ChatBookManagerHint: View {
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "wand.and.stars")
-                .font(.caption)
-            Text(WenshuI18n.t("b5.libraryrootview.l121.h66900902"))
-                .font(.caption)
-            Text(WenshuI18n.t("b5.libraryrootview.l123.h5532711"))
-                .font(.caption.monospaced())
-                .foregroundStyle(.tint)
-        }
-        .padding(.horizontal, DesignTokens.chromePaddingMedium)
-        .padding(.vertical, DesignTokens.chromePaddingSmall)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.clear)
-        .overlay(alignment: .bottom) {
-            Divider()
-        }
-    }
-}
+/// v0.40 boss 9/7 OOB '这个功能, 应该在聊天区的对话框使用. 这个
+/// 提示, 应该在 /help 里呈现': ChatBookManagerHint deleted (= top
+/// banner removed in the same commit). The slash-command hint
+/// moves to the .help() modifier on the chat TextField (= macOS
+/// NSHelpManager tooltip on hover; = Apple HIG canonical
+/// "explainer tooltip" pattern, = non-intrusive but always
+/// available on demand).
 
 /// v0.27 wiring wrapper (= isolated to keep LibraryRootView's body
 /// simple). Constructs the BookStore via LibraryLifecycleHook and
