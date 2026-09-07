@@ -1,0 +1,26 @@
+// InfoPlist.strings · Wenshu (en) · v0.40 apple-001 i18n
+//
+// Apple canonical pattern for localizing Info.plist values
+// (= CFBundleDisplayName, CFBundleName, UTTypeDescription,
+// CFBundleTypeName) per the user's system language. When the
+// user's language = English, macOS uses this file; when = zh-Hans,
+// macOS uses Sources/WenshuApp/Resources/zh-Hans.lproj/InfoPlist.strings
+// (= the Chinese version). Per Apple HIG, the localized display
+// name "Wenshu" appears in the Dock + Finder + System Settings
+// when the user's system language is English.
+//
+// CFBundleDisplayName shows the localized app name to the user.
+// CFBundleName is the internal bundle directory name (= the
+// "Wenshu" name in /Applications/).
+
+"CFBundleDisplayName" = "Wenshu";
+"CFBundleName" = "Wenshu";
+
+// CFBundleTypeName (= the document type name shown in Finder's
+// "Open With" menu and in Quick Look panels when a .ws file is
+// selected).
+"CFBundleTypeName" = "Wenshu workspace";
+
+// UTTypeDescription (= the friendly description shown in Finder's
+// "Get Info" panel for the .ws file type).
+"UTTypeDescription" = "Wenshu workspace";
