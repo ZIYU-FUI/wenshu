@@ -111,38 +111,6 @@ public struct ZoneBottomStatus: Sendable {
 // Note: ZoneSlot is declared in App.swift without `public`, so this
 // extension is module-internal (= same scope as the existing
 // RegionContentBackground extension).
-extension ZoneSlot {
-    /// Lucide icon name (kebab-case, matches the rest of the
-    /// codebase's icon naming = e.g. "book-open", "waypoints",
-    /// "bot-message-square"). Used in the parent's chrome top bar
-    /// (= the unified 30 PT strip ZonePerRegionChrome renders).
-    var chromeIconName: String {
-        switch self {
-        case .projectSidebar:    return "library"
-        case .projectPreview:    return "book-open-check"
-        case .editor:            return "square-pen"
-        case .specializedTools:   return "spline"
-        case .aiChat:            return "bot-message-square"
-        case .aiDynamic:         return "kanban-square"
-        }
-    }
-
-    /// i18n key for the zone's chrome label (= "书架管理" / "素材预览"
-    /// etc.). Each value is a stable key (= we add both en + zh
-    /// entries to Localizable.strings in this commit). When the
-    /// translation is missing, WenshuI18n.t returns the key path
-    /// itself (= Apple HIG standard fallback policy).
-    var chromeLabelKey: String {
-        switch self {
-        case .projectSidebar:    return "zone.chrome.projectSidebar"
-        case .projectPreview:    return "zone.chrome.projectPreview"
-        case .editor:            return "zone.chrome.editor"
-        case .specializedTools:   return "zone.chrome.specializedTools"
-        case .aiChat:            return "zone.chrome.aiChat"
-        case .aiDynamic:         return "zone.chrome.aiDynamic"
-        }
-    }
-}
 
 // MARK: - Zone chrome (= matches old ZoneModule outer chrome)
 
@@ -210,8 +178,14 @@ public struct ZonePerRegionChrome<Content: View>: View {
             // Top chrome bar (skipped when zone owns its own = e.g.
             // chat zone renders a top tab bar inline via safeAreaInset;
             // = zones that have a 2nd-layer top bar pass topSkip: true).
-            if let zone = zone, !topSkip {
-                ChromeTopBar(zone: zone, trailingActions: topActions)
+            // CHROME-ARCH-001 round 4 (2026-09-07): the chrome top
+            // bar no longer carries zone identity (= icon + label were
+            // removed = boss '不需要标题'). It's now a pure visual
+            // container (= 30 PT control-background strip). Zone
+            // identity comes from the content itself + the zone's
+            // 2nd-layer tab strip (= no redundancy).
+            if !topSkip {
+                ChromeTopBar(trailingActions: topActions)
             }
             // Region content (= fills remaining space) + per-zone
             // background. chromeZoneBackgroundStyle is the CSS-like

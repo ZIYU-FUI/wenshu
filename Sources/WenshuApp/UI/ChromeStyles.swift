@@ -34,50 +34,63 @@
 import SwiftUI
 import Lucide
 
-// MARK: - Top bar (= boss 9/7 CHROME-ARCH-001)
+// MARK: - Top bar (= boss 9/7 CHROME-ARCH-001, simplified round 4)
 
 /// CHROME-ARCH-001 (2026-09-07): the unified parent top bar =
-/// 30 PT, = single source of truth for the chrome-level identity
-/// (= zone icon + label) across all 6 zones.
+/// 30 PT, = single source of truth for the chrome-level CONTAINER
+/// across all 6 zones.
 ///
-/// Apple HIG alignment: matches FCP's per-pane title bar pattern
-/// (= Apple's standard pattern for top-aligned pane identity).
-/// We use a plain HStack (= simpler than .toolbar { ... } which
-/// requires NavigationStack wrapping and complicates the chrome
-/// tier semantic).
+/// Boss 9/7 round 4 '不需要标题告诉用户每个区是什么, 因为我们的
+/// 功能足够让用户知道每个区功能' = REMOVED the ZoneSlot identity
+/// (= icon + label) that I added in the previous round. The
+/// chrome top bar is a pure visual container (= 30 PT
+/// control-background strip with no title text). Zone identity is
+/// already conveyed by:
+/// 1. the zone's CONTENT itself (= the user sees what the zone
+///    does; = sidebar has tree, editor has markdown, chat has
+///    messages, etc.).
+/// 2. the zone's 2nd-layer tab strip (= e.g. sidebar's single
+///    "书架" item, editor's "📝 大纲 🔗 反链" tabs, etc.).
+/// 3. boss 8/12 OOB '我不懂写代码, 你决定' = the user's domain
+///    knowledge (= wenshu 6-zone layout has been the same since
+///    v0.10 = the user knows which zone is which).
+///
+/// Repeating the zone name in the chrome top bar was a redundancy
+/// (= ponytail rule 7 = '不要重复造轮子' = don't repeat information
+/// the user already has). Removed the leading icon + label.
+/// Trailing actions (= topActions) stay (= e.g. sidebar's "+ / ↥"
+/// for new shelf / new book) = these are FUNCTIONAL actions,
+/// not identity, and are not redundant with anything else.
+///
+/// Apple HIG alignment: this is now an empty header bar (= Apple's
+/// standard pattern for window chrome that needs visual padding
+/// above content without identity disclosure). We use a plain
+/// HStack (= simpler than .toolbar { ... } which requires
+/// NavigationStack wrapping and complicates the chrome tier
+/// semantic).
 ///
 /// Token usage (= iron-rule 6 = no magic numbers):
 /// - height = kZoneToolbarHeight (= 30 PT canonical = matches
 ///   the chrome tier across the workspace)
 /// - horizontal padding = DesignTokens.chromePaddingLeading
 ///   (= 18 PT = Apple HIG canonical)
-/// - icon size = DesignTokens.iconSmall (= 14 PT canonical)
-/// - font = .subheadline + .medium (= Apple HIG standard for
-///   pane title bars)
 struct ChromeTopBar: View {
-    let zone: ZoneSlot?
     /// Optional trailing actions (= per-zone overrides; = e.g.
     /// sidebar's "+ / ↥" buttons for new shelf / new book).
+    /// These are FUNCTIONAL actions, not identity (= the boss 9/7
+    /// round 4 removal was about the leading identity icon + label,
+    /// not about these trailing actions).
     var trailingActions: [ZoneTopAction] = []
 
     var body: some View {
         HStack(spacing: DesignTokens.chromePaddingSmall) {
-            // Leading: zone identity (= icon + label)
-            if let zone = zone {
-                Lucide(zone.chromeIconName)
-                    .frame(width: DesignTokens.iconSmall, height: DesignTokens.iconSmall)
-                    .foregroundStyle(.secondary)
-                Text(WenshuI18n.t(zone.chromeLabelKey))
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.primary)
-            } else {
-                // Legacy callers (= no ZoneSlot routed; = SwiftUI previews
-                // + tests) get an empty chrome top bar (= no identity).
-                EmptyView()
-            }
+            // Leading: intentionally empty (= boss 9/7 round 4
+            // '不需要标题'; = zone identity comes from the content
+            // itself + 2nd-layer tab strip, not from a duplicated
+            // chrome-level label).
             Spacer(minLength: 0)
-            // Trailing: optional per-zone actions
+            // Trailing: optional per-zone actions (= functional,
+            // not identity = not redundant with anything else).
             ForEach(trailingActions) { action in
                 Button {
                     action.onSelect?()
@@ -113,14 +126,14 @@ struct ChromeTopBar: View {
 extension View {
     /// CHROME-ARCH-001 (2026-09-07): render the chrome top bar
     /// (= ChromeTopBar) above this view (= same VStack slot as the
-    /// zone content). Pass nil for zone if you don't want identity
-    /// (= blank top bar; = legacy callers).
+    /// zone content). Pass trailing actions for per-zone buttons
+    /// (= e.g. sidebar's "+ / ↥" actions); leave empty for zones
+    /// with no trailing actions.
     func chromeTopBarStyle(
-        zone: ZoneSlot?,
         trailingActions: [ZoneTopAction] = []
     ) -> some View {
         VStack(spacing: 0) {
-            ChromeTopBar(zone: zone, trailingActions: trailingActions)
+            ChromeTopBar(trailingActions: trailingActions)
             self
         }
     }
