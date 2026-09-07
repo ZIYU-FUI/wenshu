@@ -47,7 +47,7 @@ public struct TemplatePicker: View {
             Text(WenshuI18n.t("auto.templatepicker.l47.h75489066"))
                 .font(.headline)
             Text(WenshuI18n.t("auto.templatepicker.l49.h95489952"))
-            Text(WenshuI18n.t("auto.templatepicker.l50.h148968"))
+            Text(WenshuI18n.t("templatepicker.rendered_count"))
             if let error = viewModel.error {
                 Text(WenshuI18n.t("auto.templatepicker.l52.h3674797"))
                     .foregroundStyle(.red)

@@ -116,7 +116,7 @@ public struct PlaceholderView: View {
             LucideIconSystemFallback("square-dashed", size: 28)
                 .foregroundStyle(.tint)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Placeholder")
+                Text(WenshuI18n.t("b5.placeholderview.l119.h59803634"))
                     .font(.headline)
                     .foregroundStyle(.primary)
                 Text(subtitleText)
@@ -144,10 +144,10 @@ public struct PlaceholderView: View {
 
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("No book selected")
+            Text(WenshuI18n.t("b5.placeholderview.l147.h49322278"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            Text("Pick a book from the sidebar to start tracking placeholders.")
+            Text(WenshuI18n.t("b5.placeholderview.l150.h59639791"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -177,7 +177,7 @@ public struct PlaceholderView: View {
 
     private var addRow: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Add placeholder")
+            Text(WenshuI18n.t("b5.placeholderview.l180.h65038593"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             HStack(spacing: 8) {
@@ -188,7 +188,7 @@ public struct PlaceholderView: View {
                 )
                 .textFieldStyle(.roundedBorder)
                 .font(.caption)
-                .help("UUID of the chapter where this placeholder lives. Required.")
+                .help(WenshuI18n.t("b5.placeholderview.l191.h7844707"))
                 TextField(
                     "Line #",
                     text: $draftLineText,
@@ -197,7 +197,7 @@ public struct PlaceholderView: View {
                 .textFieldStyle(.roundedBorder)
                 .font(.caption)
                 .frame(width: DesignTokens.avatarSize)
-                .help("1-indexed line number within the chapter. Optional (defaults to 0).")
+                .help(WenshuI18n.t("b5.placeholderview.l200.h31066841"))
                 Picker(WenshuI18n.t("picker.status"), selection: $draftStatus) {
                     ForEach(PlaceholderStatus.allCases) { status in
                         Label(status.displayName, systemImage: status.lucideIcon)
@@ -210,11 +210,11 @@ public struct PlaceholderView: View {
                 Button {
                     Task { await addPlaceholder() }
                 } label: {
-                    Label("Add", systemImage: "plus")
+                    Label(WenshuI18n.t("b5.placeholderview.l213.h26972630"), systemImage: "plus")
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAdd)
-                .help("Add a new placeholder row.")
+                .help(WenshuI18n.t("b5.placeholderview.l217.h13887673"))
             }
             TextField(
                 "Pattern (e.g. [TODO: explain the dagger])",
@@ -223,7 +223,7 @@ public struct PlaceholderView: View {
             )
             .textFieldStyle(.roundedBorder)
             .font(.caption)
-            .help("The literal matched text. Whitespace-only values are rejected.")
+            .help(WenshuI18n.t("b5.placeholderview.l226.h23794372"))
             TextField(
                 "Context (the surrounding line)",
                 text: $draftContext,
@@ -232,7 +232,7 @@ public struct PlaceholderView: View {
             .textFieldStyle(.roundedBorder)
             .font(.caption)
             .lineLimit(1...3)
-            .help("Short excerpt of the chapter line containing the placeholder.")
+            .help(WenshuI18n.t("b5.placeholderview.l235.h789414"))
         }
     }
 
@@ -245,7 +245,7 @@ public struct PlaceholderView: View {
 
     private var filterRow: some View {
         HStack(spacing: 8) {
-            Text("Filter by status")
+            Text(WenshuI18n.t("b5.placeholderview.l248.h36078854"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             Picker("Status", selection: Binding(
@@ -259,7 +259,7 @@ public struct PlaceholderView: View {
                     }
                 }
             )) {
-                Text("All statuses").tag(PlaceholderStatus.allCases.first ?? .open)
+                Text(WenshuI18n.t("b5.placeholderview.l262.h44751462")).tag(PlaceholderStatus.allCases.first ?? .open)
                 ForEach(PlaceholderStatus.allCases) { status in
                     Label(status.displayName, systemImage: status.lucideIcon).tag(status)
                 }
@@ -277,11 +277,11 @@ public struct PlaceholderView: View {
 
     private var rowsSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Placeholders (\(rows.count))")
+            Text(WenshuI18n.t("b5.placeholderview.l280.h71851505"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if rows.isEmpty {
-                Text("(none yet — add the first one above or paste chapter text below)")
+                Text(WenshuI18n.t("b5.placeholderview.l284.h44264694"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -326,10 +326,10 @@ public struct PlaceholderView: View {
                             .lineLimit(2)
                     }
                     HStack(spacing: 6) {
-                        Text("Ch: \(row.chapterId.uuidString.prefix(8))…")
+                        Text(WenshuI18n.t("b5.placeholderview.l329.h63216295"))
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
-                        Text("Line: \(row.lineNumber)")
+                        Text(WenshuI18n.t("b5.placeholderview.l332.h25232981"))
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                     }
@@ -344,7 +344,7 @@ public struct PlaceholderView: View {
                                 .foregroundStyle(.secondary)
                         }
                         .buttonStyle(.borderless)
-                        .help("Mark as resolved.")
+                        .help(WenshuI18n.t("b5.placeholderview.l347.h10664820"))
                     }
                     if row.status != .open {
                         Button {
@@ -354,7 +354,7 @@ public struct PlaceholderView: View {
                                 .foregroundStyle(.secondary)
                         }
                         .buttonStyle(.borderless)
-                        .help("Reopen (= set status back to open).")
+                        .help(WenshuI18n.t("b5.placeholderview.l357.h13927368"))
                     }
                     if row.status != .abandoned {
                         Button {
@@ -364,7 +364,7 @@ public struct PlaceholderView: View {
                                 .foregroundStyle(.secondary)
                         }
                         .buttonStyle(.borderless)
-                        .help("Mark as abandoned.")
+                        .help(WenshuI18n.t("b5.placeholderview.l367.h78002103"))
                     }
                     Button(role: .destructive) {
                         Task { await removePlaceholder(row) }
@@ -373,7 +373,7 @@ public struct PlaceholderView: View {
                             .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.borderless)
-                    .help("Remove this placeholder.")
+                    .help(WenshuI18n.t("b5.placeholderview.l376.h1375998"))
                 }
             }
         }
@@ -393,12 +393,12 @@ public struct PlaceholderView: View {
             HStack(spacing: 6) {
                 LucideIconSystemFallback("scan-text", size: 14)
                     .foregroundStyle(.tint)
-                Text("Scan chapter text")
+                Text(WenshuI18n.t("b5.placeholderview.l396.h55542836"))
                     .font(.callout)
                     .foregroundStyle(.primary)
                 Spacer(minLength: 0)
             }
-            Text("Paste a chapter body below. The scanner will use the 7 default patterns (TODO / FIXME / XXX / INSERT / TBD / <HERE> / {{mustache}}). The current book's chapterId = placeholder chapterId.")
+            Text(WenshuI18n.t("b5.placeholderview.l401.h57165595"))
                 .font(.caption2)
                 .foregroundStyle(.secondary)
             TextEditor(text: $scanChapterText)
@@ -412,11 +412,11 @@ public struct PlaceholderView: View {
                 Button {
                     Task { await runScan() }
                 } label: {
-                    Label("Scan + add all", systemImage: "plus-circle")
+                    Label(WenshuI18n.t("b5.placeholderview.l415.h37771405"), systemImage: "plus-circle")
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canScan)
-                .help("Run the scanner against the pasted text and persist every match.")
+                .help(WenshuI18n.t("b5.placeholderview.l419.h11265055"))
                 if let lastScanCount {
                     Text("Last scan: +\(lastScanCount) placeholder\(lastScanCount == 1 ? "" : "s")")
                         .font(.caption2)

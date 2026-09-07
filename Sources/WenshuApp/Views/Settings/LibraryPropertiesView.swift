@@ -71,7 +71,7 @@ struct LibraryPropertiesView: View {
                         .controlSize(.small)
                     }
                     LabeledContent("Schema 版本") {
-                        Text("v\(schemaVersion)")
+                        Text(WenshuI18n.t("b5.librarypropertiesview.l74.h42028628"))
                             .font(.callout.monospacedDigit())
                     }
                 }

@@ -396,7 +396,7 @@ struct SettingView: View {
     @ViewBuilder
     private func providerApiEditor(for p: Provider) -> some View {
         HStack(spacing: 8) {
-            SecureField("sk-...", text: $apiDraftKey)
+            SecureField(WenshuI18n.t("b5.settingview.l399.h87028237"), text: $apiDraftKey)
                 .textFieldStyle(.roundedBorder)
             Button(WenshuI18n.t("settings.provider.save_button")) {
                 saveApiKey(for: p)

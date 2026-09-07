@@ -118,7 +118,7 @@ struct BookSettingConstraintsView: View {
             LucideIconSystemFallback("book-lock", size: 28)
                 .foregroundStyle(.tint)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Book Setting Constraints")
+                Text(WenshuI18n.t("b5.booksettingconstraintsview.l121.h48947841"))
                     .font(.headline)
                     .foregroundStyle(.primary)
                 Text(subtitleText)
@@ -150,10 +150,10 @@ struct BookSettingConstraintsView: View {
 
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("No book selected")
+            Text(WenshuI18n.t("b5.booksettingconstraintsview.l153.h29425451"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            Text("Pick a book from the sidebar to start tracking setting constraints.")
+            Text(WenshuI18n.t("b5.booksettingconstraintsview.l156.h45808897"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -182,13 +182,13 @@ struct BookSettingConstraintsView: View {
 
     private var addRow: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Add constraint")
+            Text(WenshuI18n.t("b5.booksettingconstraintsview.l185.h87583031"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            TextField("Title (e.g. Magic requires eye contact)", text: $draftTitle, axis: .horizontal)
+            TextField(WenshuI18n.t("b5.booksettingconstraintsview.l188.h10634385"), text: $draftTitle, axis: .horizontal)
                 .textFieldStyle(.roundedBorder)
                 .font(.caption)
-                .help("Short, human-readable title for the constraint. Whitespace is trimmed.")
+                .help(WenshuI18n.t("b5.booksettingconstraintsview.l191.h24829594"))
             TextField(
                 "Description (2-3 sentences)",
                 text: $draftDescription,
@@ -197,7 +197,7 @@ struct BookSettingConstraintsView: View {
             .textFieldStyle(.roundedBorder)
             .font(.caption)
             .lineLimit(2...4)
-            .help("Short description of the rule.")
+            .help(WenshuI18n.t("b5.booksettingconstraintsview.l200.h58963992"))
             HStack(spacing: 8) {
                 Picker("Severity", selection: $draftSeverity) {
                     ForEach(ConstraintSeverity.allCases) { severity in
@@ -206,7 +206,7 @@ struct BookSettingConstraintsView: View {
                 }
                 .pickerStyle(.menu)
                 .labelsHidden()
-                .help("Severity: hard (cannot be violated), soft (advisory), preference (style target).")
+                .help(WenshuI18n.t("b5.booksettingconstraintsview.l209.h3955671"))
                 Picker("Scope", selection: $draftScope) {
                     ForEach(ConstraintScope.allCases) { scope in
                         Label(scope.displayName, systemImage: scope.lucideIcon).tag(scope)
@@ -214,7 +214,7 @@ struct BookSettingConstraintsView: View {
                 }
                 .pickerStyle(.menu)
                 .labelsHidden()
-                .help("Scope: world / character / plot / style.")
+                .help(WenshuI18n.t("b5.booksettingconstraintsview.l217.h78462056"))
                 TextField(
                     draftScope.supportsAppliesTo ? "Applies-to UUID (character or plot)" : "Applies-to (not used)",
                     text: $draftAppliesToText
@@ -222,16 +222,16 @@ struct BookSettingConstraintsView: View {
                 .textFieldStyle(.roundedBorder)
                 .font(.caption)
                 .disabled(!draftScope.supportsAppliesTo)
-                .help("Optional UUID of the character or plot this rule applies to.")
+                .help(WenshuI18n.t("b5.booksettingconstraintsview.l225.h9125068"))
                 Spacer(minLength: 0)
                 Button {
                     Task { await addConstraint() }
                 } label: {
-                    Label("Add", systemImage: "plus")
+                    Label(WenshuI18n.t("b5.booksettingconstraintsview.l230.h25158042"), systemImage: "plus")
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAdd)
-                .help("Add a new setting constraint with the supplied fields.")
+                .help(WenshuI18n.t("b5.booksettingconstraintsview.l234.h50733767"))
             }
             TextField(
                 "Forbidden patterns (comma-separated, e.g. cast from behind, came back from the dead)",
@@ -240,7 +240,7 @@ struct BookSettingConstraintsView: View {
             )
             .textFieldStyle(.roundedBorder)
             .font(.caption)
-            .help("Comma-separated phrases or regex patterns that violate this constraint. Trimmed at save time.")
+            .help(WenshuI18n.t("b5.booksettingconstraintsview.l243.h5804737"))
         }
     }
 
@@ -252,11 +252,11 @@ struct BookSettingConstraintsView: View {
 
     private var listSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Constraints (\(constraints.count))")
+            Text(WenshuI18n.t("b5.booksettingconstraintsview.l255.h54115638"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if constraints.isEmpty {
-                Text("(none yet — add the first one above)")
+                Text(WenshuI18n.t("b5.booksettingconstraintsview.l259.h46205528"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -303,7 +303,7 @@ struct BookSettingConstraintsView: View {
                                     .fill(.tint.opacity(0.15))
                             )
                         if let appliesTo = constraint.appliesToId {
-                            Text("→ \(appliesTo.uuidString.prefix(8))")
+                            Text(WenshuI18n.t("b5.booksettingconstraintsview.l306.h56657996"))
                                 .font(.caption2)
                                 .foregroundStyle(.tertiary)
                         }
@@ -340,7 +340,7 @@ struct BookSettingConstraintsView: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.borderless)
-                .help("Remove this constraint.")
+                .help(WenshuI18n.t("b5.booksettingconstraintsview.l343.h49822929"))
             }
         }
         .padding(.vertical, DesignTokens.chromePaddingSmall)
@@ -356,7 +356,7 @@ struct BookSettingConstraintsView: View {
 
     private var checkSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Check chapter against constraints")
+            Text(WenshuI18n.t("b5.booksettingconstraintsview.l359.h58742514"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             HStack(alignment: .top, spacing: 8) {
@@ -368,16 +368,16 @@ struct BookSettingConstraintsView: View {
                         RoundedRectangle(cornerRadius: 4)
                             .fill(.quaternary.opacity(0.3))
                     )
-                    .help("Paste the chapter draft text. The checker scans every line for the forbidden patterns of every active constraint.")
+                    .help(WenshuI18n.t("b5.booksettingconstraintsview.l371.h65632517"))
                 VStack(alignment: .leading, spacing: 6) {
                     Button {
                         Task { await runCheck() }
                     } label: {
-                        Label("Check", systemImage: "search-check")
+                        Label(WenshuI18n.t("b5.booksettingconstraintsview.l376.h23587784"), systemImage: "search-check")
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(chapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || constraints.isEmpty)
-                    .help("Scan the chapter text against every constraint's forbidden patterns.")
+                    .help(WenshuI18n.t("b5.booksettingconstraintsview.l380.h7773239"))
                     if hasChecked {
                         Text("\(violations.count) violation\(violations.count == 1 ? "" : "s")")
                             .font(.caption)
@@ -387,7 +387,7 @@ struct BookSettingConstraintsView: View {
             }
             if hasChecked {
                 if violations.isEmpty {
-                    Text("(no violations — chapter text is clean)")
+                    Text(WenshuI18n.t("b5.booksettingconstraintsview.l390.h74566260"))
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -413,11 +413,11 @@ struct BookSettingConstraintsView: View {
                     Text(violation.title)
                         .font(.caption)
                         .foregroundStyle(.primary)
-                    Text("· \(violation.severity.displayName)")
+                    Text(WenshuI18n.t("b5.booksettingconstraintsview.l416.h60886424"))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                     if let line = violation.lineNumber {
-                        Text("· line \(line)")
+                        Text(WenshuI18n.t("b5.booksettingconstraintsview.l420.h37146244"))
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                     }

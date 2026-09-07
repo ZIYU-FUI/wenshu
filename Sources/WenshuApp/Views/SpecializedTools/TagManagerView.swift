@@ -130,7 +130,7 @@ struct TagManagerView: View {
             LucideIconSystemFallback("tag", size: 28)
                 .foregroundStyle(.tint)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Tag Manager")
+                Text(WenshuI18n.t("b5.tagmanagerview.l133.h78748776"))
                     .font(.headline)
                     .foregroundStyle(.primary)
                 Text(subtitleText)
@@ -159,10 +159,10 @@ struct TagManagerView: View {
 
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("No book selected")
+            Text(WenshuI18n.t("b5.tagmanagerview.l162.h82459098"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            Text("Pick a book from the sidebar to start managing tags.")
+            Text(WenshuI18n.t("b5.tagmanagerview.l165.h1104135"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -196,14 +196,14 @@ struct TagManagerView: View {
 
     private var addTagRow: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Add tag")
+            Text(WenshuI18n.t("b5.tagmanagerview.l199.h92873556"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             HStack(spacing: 8) {
-                TextField("Label (e.g. redemption)", text: $draftLabel, axis: .horizontal)
+                TextField(WenshuI18n.t("b5.tagmanagerview.l203.h87808991"), text: $draftLabel, axis: .horizontal)
                     .textFieldStyle(.roundedBorder)
                     .font(.caption)
-                    .help("Short, human-readable label for the tag. Whitespace is trimmed.")
+                    .help(WenshuI18n.t("b5.tagmanagerview.l206.h48887491"))
                 Picker("Category", selection: $draftCategory) {
                     ForEach(TagCategory.allCases) { category in
                         Label(category.displayName, systemImage: category.lucideIcon)
@@ -216,11 +216,11 @@ struct TagManagerView: View {
                 Button {
                     Task { await addTag() }
                 } label: {
-                    Label("Add", systemImage: "plus")
+                    Label(WenshuI18n.t("b5.tagmanagerview.l219.h42031648"), systemImage: "plus")
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAddTag)
-                .help("Add a new tag with the supplied label + category.")
+                .help(WenshuI18n.t("b5.tagmanagerview.l223.h5074077"))
             }
         }
     }
@@ -233,11 +233,11 @@ struct TagManagerView: View {
 
     private var tagsListSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Tags (\(tags.count))")
+            Text(WenshuI18n.t("b5.tagmanagerview.l236.h12934415"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if tags.isEmpty {
-                Text("(none yet — add the first one above)")
+                Text(WenshuI18n.t("b5.tagmanagerview.l240.h97833218"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -275,7 +275,7 @@ struct TagManagerView: View {
                         )
                     let appCount = applications.filter { $0.tagId == tag.id }.count
                     if appCount > 0 {
-                        Text("\(appCount)× applied")
+                        Text(WenshuI18n.t("b5.tagmanagerview.l278.h7057400"))
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                     }
@@ -289,7 +289,7 @@ struct TagManagerView: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
-            .help("Remove this tag and cascade-delete its applications.")
+            .help(WenshuI18n.t("b5.tagmanagerview.l292.h29196125"))
         }
         .padding(.vertical, DesignTokens.chromePaddingSmall)
         .padding(.horizontal, DesignTokens.chromePaddingVertical)
@@ -304,11 +304,11 @@ struct TagManagerView: View {
 
     private var applyRow: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Apply tag to entity")
+            Text(WenshuI18n.t("b5.tagmanagerview.l307.h96892915"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if tags.isEmpty {
-                Text("Define at least 1 tag above before applying one.")
+                Text(WenshuI18n.t("b5.tagmanagerview.l311.h83311017"))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
@@ -317,9 +317,9 @@ struct TagManagerView: View {
                     get: { draftApplyTagId ?? tags.first?.id ?? UUID() },
                     set: { draftApplyTagId = $0 }
                 )) {
-                    Text("(choose)").tag(UUID())
+                    Text(WenshuI18n.t("b5.tagmanagerview.l320.h7801028")).tag(UUID())
                     ForEach(tags) { tag in
-                        Text("\(tag.label) (\(tag.category.displayName))").tag(tag.id)
+                        Text(WenshuI18n.t("b5.tagmanagerview.l322.h1349617")).tag(tag.id)
                     }
                 }
                 .pickerStyle(.menu)
@@ -335,21 +335,21 @@ struct TagManagerView: View {
                 .pickerStyle(.menu)
                 .labelsHidden()
 
-                TextField("Entity UUID", text: $draftApplyTargetIdText, axis: .horizontal)
+                TextField(WenshuI18n.t("b5.tagmanagerview.l338.h98581825"), text: $draftApplyTargetIdText, axis: .horizontal)
                     .textFieldStyle(.roundedBorder)
                     .font(.caption)
-                    .help("UUID of the entity to attach the tag to. Leave empty to disable Apply.")
+                    .help(WenshuI18n.t("b5.tagmanagerview.l341.h77687966"))
 
                 Spacer(minLength: 0)
 
                 Button {
                     Task { await applyTag() }
                 } label: {
-                    Label("Apply", systemImage: "link")
+                    Label(WenshuI18n.t("b5.tagmanagerview.l348.h96054186"), systemImage: "link")
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canApply)
-                .help("Record an application of the chosen tag to the chosen entity.")
+                .help(WenshuI18n.t("b5.tagmanagerview.l352.h54731122"))
             }
         }
     }
@@ -365,11 +365,11 @@ struct TagManagerView: View {
 
     private var applicationsSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Applications (\(applications.count))")
+            Text(WenshuI18n.t("b5.tagmanagerview.l368.h75731289"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if applications.isEmpty {
-                Text("(none yet — apply a tag to an entity above)")
+                Text(WenshuI18n.t("b5.tagmanagerview.l372.h9838641"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -405,7 +405,7 @@ struct TagManagerView: View {
                             RoundedRectangle(cornerRadius: 3)
                                 .fill(.quaternary)
                         )
-                    Text("→ \(application.targetId.uuidString.prefix(8))…")
+                    Text(WenshuI18n.t("b5.tagmanagerview.l408.h8961516"))
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                 }
@@ -418,7 +418,7 @@ struct TagManagerView: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
-            .help("Remove this application.")
+            .help(WenshuI18n.t("b5.tagmanagerview.l421.h66833572"))
         }
         .padding(.vertical, DesignTokens.chromePaddingNano)
     }
@@ -427,11 +427,11 @@ struct TagManagerView: View {
 
     private var cloudSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Tag cloud (\(cloud.count))")
+            Text(WenshuI18n.t("b5.tagmanagerview.l430.h82273461"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if cloud.isEmpty {
-                Text("(no applications yet — apply a tag to populate the cloud)")
+                Text(WenshuI18n.t("b5.tagmanagerview.l434.h60440302"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -457,7 +457,7 @@ struct TagManagerView: View {
                 .font(.caption)
                 .foregroundStyle(.primary)
             Spacer(minLength: 0)
-            Text("\(entry.count)×")
+            Text(WenshuI18n.t("b5.tagmanagerview.l460.h65001910"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, DesignTokens.chromePaddingSmall)
@@ -474,11 +474,11 @@ struct TagManagerView: View {
 
     private var filterSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Filter by tag")
+            Text(WenshuI18n.t("b5.tagmanagerview.l477.h41034022"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if tags.isEmpty {
-                Text("(define a tag to enable filtering)")
+                Text(WenshuI18n.t("b5.tagmanagerview.l481.h78063039"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             } else {
@@ -487,9 +487,9 @@ struct TagManagerView: View {
                         get: { draftFilterTagId ?? tags.first?.id ?? UUID() },
                         set: { draftFilterTagId = $0 }
                     )) {
-                        Text("(choose)").tag(UUID())
+                        Text(WenshuI18n.t("b5.tagmanagerview.l490.h54878954")).tag(UUID())
                         ForEach(tags) { tag in
-                            Text("\(tag.label) (\(tag.category.displayName))").tag(tag.id)
+                            Text(WenshuI18n.t("b5.tagmanagerview.l492.h77758122")).tag(tag.id)
                         }
                     }
                     .pickerStyle(.menu)
@@ -513,7 +513,7 @@ struct TagManagerView: View {
                     Spacer(minLength: 0)
                 }
                 if filterMatches.isEmpty {
-                    Text("(no entities match the chosen tag + target)")
+                    Text(WenshuI18n.t("b5.tagmanagerview.l516.h78857770"))
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                         .frame(maxWidth: .infinity, alignment: .leading)

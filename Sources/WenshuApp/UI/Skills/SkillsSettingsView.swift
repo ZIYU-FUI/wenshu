@@ -77,7 +77,7 @@ public struct SkillRow: View {
     public var body: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("/\(skill.name)")
+                Text(WenshuI18n.t("b5.skillssettingsview.l80.h81170225"))
                     .font(.system(.caption, design: .monospaced))
                 Text(skill.description)
                     .font(.caption)

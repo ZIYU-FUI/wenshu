@@ -208,7 +208,7 @@ struct ChatZoneView: View {
                     // Each section = provider with a configured Keychain key.
                     // Models = provider.defaultModels (curated list).
                     if availableSections.isEmpty {
-                        Text("No provider keys configured")
+                        Text(WenshuI18n.t("b5.chatzoneview.l211.h10427910"))
                             .font(.caption)
                     } else {
                         ForEach(availableSections, id: \.provider.slug) { section in
@@ -303,7 +303,7 @@ struct ChatZoneView: View {
                 HStack(spacing: 6) {
                     // v0.21 ticket 40: 读 vm.contextUsed (Apple @Observable 自动 propagate, 不再写死 @State contextUsed = 0)
                     // v0.24 boss验收fix: Apple standard dark text (.secondary).
-                    Text("\(compactNumber(vm.contextUsed)) / \(compactNumber(vm.contextMax))")
+                    Text(WenshuI18n.t("b5.chatzoneview.l306.h5786657"))
                         .font(.body)
                         .foregroundStyle(.secondary)
                     ProgressView(value: Double(min(vm.contextUsed, vm.contextMax)), total: Double(max(1, vm.contextMax)))

@@ -143,7 +143,7 @@ public struct TodoListView: View {
             .fixedSize()
             .help(WenshuI18n.t("auto2.todolistview.l144.h43082120"))
             Spacer()
-            Text(WenshuI18n.t("auto.todolistview.l146.h44817253"))
+            Text(WenshuI18n.t("todolist.count_jsonhint"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -211,9 +211,9 @@ public struct TodoListView: View {
     private var scopeUnavailableHint: String {
         switch scope {
         case .referenceLibrary:
-            return "资料库未找到 (= workspace 未 bootstrap)"
+            return WenshuI18n.t("error.reference_library_not_bootstrapped")
         case .book, .folder:
-            return "未选书 — 在左侧书架里选一本书, 待办才会加载"
+            return WenshuI18n.t("todo.unselected_book")
         }
     }
 
@@ -267,7 +267,7 @@ public struct TodoListView: View {
                     Image(systemName: iconName(for: item.status))
                         .font(.caption2)
                         .foregroundStyle(color(for: item.status))
-                    Text("\(verb(for: item.status)) · \(item.title)")
+                    Text(WenshuI18n.t("b5.todolistview.l270.h83263085"))
                         .font(.caption)
                         .lineLimit(1)
                         .truncationMode(.tail)
@@ -278,7 +278,7 @@ public struct TodoListView: View {
                 .background(Color.secondary.opacity(0.08), in: Capsule())
             }
             if recentEvents.count > 5 {
-                Text(WenshuI18n.t("auto2.todolistview.l281.h58590360"))
+                Text(WenshuI18n.t("todolist.more_earlier_events"))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
@@ -596,14 +596,14 @@ private struct TodoRow: View {
                     .font(.caption)
                     .foregroundStyle(isOverdue ? Color.red : Color.secondary)
                 if isOverdue {
-                    Text(WenshuI18n.t("auto.todolistview.l599.h48598096"))
+                    Text(WenshuI18n.t("todolist.overdue"))
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(.red)
                 }
             }
             .help(isOverdue ? "已过期 — 请尽快处理" : "截止日")
         } else {
-            Text(WenshuI18n.t("auto.todolistview.l606.h15488982"))
+            Text(WenshuI18n.t("todolist.no_due_date"))
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }
@@ -641,7 +641,7 @@ private struct TodoRow: View {
                     .foregroundStyle(.green)
             }
             .buttonStyle(.borderless)
-            .help(WenshuI18n.t("auto2.todolistview.l644.h89704149"))
+            .help(WenshuI18n.t("todolist.reopen"))
         case .cancelled:
             Image(systemName: "xmark.circle")
                 .foregroundStyle(.tertiary)
@@ -659,7 +659,7 @@ private struct TodoRow: View {
             .padding(.horizontal, DesignTokens.chromePaddingSmall)
             .padding(.vertical, DesignTokens.chromePaddingNano)
             .background(bg, in: Capsule())
-            .help(WenshuI18n.t("auto2.todolistview.l662.h98228791"))
+            .help(WenshuI18n.t("todolist.priority_label"))
     }
 
     private func chipStyle(for priority: TodoPriority) -> (String, Color, Color) {

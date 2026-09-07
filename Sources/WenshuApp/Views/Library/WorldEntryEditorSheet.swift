@@ -78,7 +78,7 @@ struct WorldEntryEditorSheet: View {
                     }
                 }
                 Section(WenshuI18n.t("auto2.worldentryeditorsheet.l80.h15189232")) {
-                    TextField(WenshuI18n.t("auto2.worldentryeditorsheet.l81.h41043051"), text: $summary, axis: .vertical)
+                    TextField(WenshuI18n.t("world_editor.summary_field"), text: $summary, axis: .vertical)
                         .lineLimit(2...4)
                         .textFieldStyle(.roundedBorder)
                 }

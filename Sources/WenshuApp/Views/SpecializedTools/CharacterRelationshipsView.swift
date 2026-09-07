@@ -113,7 +113,7 @@ struct CharacterRelationshipsView: View {
             LucideIconSystemFallback("users", size: 28)
                 .foregroundStyle(.tint)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Character Relationships")
+                Text(WenshuI18n.t("b5.characterrelationshipsview.l116.h21838570"))
                     .font(.headline)
                     .foregroundStyle(.primary)
                 Text(subtitleText)
@@ -145,10 +145,10 @@ struct CharacterRelationshipsView: View {
 
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("No book selected")
+            Text(WenshuI18n.t("b5.characterrelationshipsview.l148.h14968122"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            Text("Pick a book from the sidebar to start tracking character relationships.")
+            Text(WenshuI18n.t("b5.characterrelationshipsview.l151.h23755386"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -176,11 +176,11 @@ struct CharacterRelationshipsView: View {
 
     private var addRow: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Add relationship")
+            Text(WenshuI18n.t("b5.characterrelationshipsview.l179.h77944637"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if characters.count < 2 {
-                Text("Define at least 2 characters in the Characters pane to add a relationship.")
+                Text(WenshuI18n.t("b5.characterrelationshipsview.l183.h86534805"))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
@@ -189,7 +189,7 @@ struct CharacterRelationshipsView: View {
                     get: { draftFromId ?? characters.first?.id ?? UUID() },
                     set: { draftFromId = $0 }
                 )) {
-                    Text("(choose)").tag(UUID())
+                    Text(WenshuI18n.t("b5.characterrelationshipsview.l192.h15212550")).tag(UUID())
                     ForEach(characters) { c in
                         Text(c.name).tag(c.id)
                     }
@@ -205,7 +205,7 @@ struct CharacterRelationshipsView: View {
                     get: { draftToId ?? characters.dropFirst().first?.id ?? UUID() },
                     set: { draftToId = $0 }
                 )) {
-                    Text("(choose)").tag(UUID())
+                    Text(WenshuI18n.t("b5.characterrelationshipsview.l208.h39347010")).tag(UUID())
                     ForEach(characters) { c in
                         Text(c.name).tag(c.id)
                     }
@@ -227,13 +227,13 @@ struct CharacterRelationshipsView: View {
                 Button {
                     Task { await addRelationship() }
                 } label: {
-                    Label("Add", systemImage: "plus")
+                    Label(WenshuI18n.t("b5.characterrelationshipsview.l230.h80913925"), systemImage: "plus")
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAdd)
-                .help("Add a typed edge between the two selected characters.")
+                .help(WenshuI18n.t("b5.characterrelationshipsview.l234.h8880758"))
             }
-            TextField("Optional 1-sentence context", text: $draftDescription, axis: .horizontal)
+            TextField(WenshuI18n.t("b5.characterrelationshipsview.l236.h75459793"), text: $draftDescription, axis: .horizontal)
                 .textFieldStyle(.roundedBorder)
                 .font(.caption)
                 .disabled(characters.count < 2)
@@ -250,11 +250,11 @@ struct CharacterRelationshipsView: View {
 
     private var listSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Relationships (\(relationships.count))")
+            Text(WenshuI18n.t("b5.characterrelationshipsview.l253.h68099009"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if relationships.isEmpty {
-                Text("(none yet — add the first one above)")
+                Text(WenshuI18n.t("b5.characterrelationshipsview.l257.h87596331"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -296,7 +296,7 @@ struct CharacterRelationshipsView: View {
                                 .fill(.quaternary)
                         )
                     if row.isMutual {
-                        Text("mutual")
+                        Text(WenshuI18n.t("b5.characterrelationshipsview.l299.h17838183"))
                             .font(.caption2)
                             .foregroundStyle(Color(nsColor: .systemBlue))
                     }
@@ -316,7 +316,7 @@ struct CharacterRelationshipsView: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
-            .help("Remove this relationship.")
+            .help(WenshuI18n.t("b5.characterrelationshipsview.l319.h19379525"))
         }
         .padding(.vertical, DesignTokens.chromePaddingSmall)
         .padding(.horizontal, DesignTokens.chromePaddingVertical)
@@ -331,11 +331,11 @@ struct CharacterRelationshipsView: View {
 
     private var inconsistenciesSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Inconsistencies (\(inconsistencies.count))")
+            Text(WenshuI18n.t("b5.characterrelationshipsview.l334.h68375167"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if inconsistencies.isEmpty {
-                Text("(none — every pair has a consistent kind)")
+                Text(WenshuI18n.t("b5.characterrelationshipsview.l338.h51048722"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)

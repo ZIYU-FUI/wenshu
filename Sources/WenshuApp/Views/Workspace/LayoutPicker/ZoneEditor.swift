@@ -321,7 +321,7 @@ struct ZoneEditor: View {
         let frame = zoneRect(zone: zone, in: size)
         ZStack {
             Rectangle().fill(.tint.opacity(0.15))
-            Text("\(zone.index + 1)")
+            Text(WenshuI18n.t("b5.zoneeditor.l324.h54488057"))
                 .font(.title2.weight(.semibold))
                 .foregroundStyle(Color.accentColor)
         }

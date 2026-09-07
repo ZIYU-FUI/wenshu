@@ -107,7 +107,7 @@ struct EmotionCurveView: View {
             LucideIconSystemFallback("activity", size: 28)
                 .foregroundStyle(.tint)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Emotion Curve")
+                Text(WenshuI18n.t("b5.emotioncurveview.l110.h45275644"))
                     .font(.headline)
                     .foregroundStyle(.primary)
                 Text(subtitleText)
@@ -134,20 +134,20 @@ struct EmotionCurveView: View {
 
     private var pickerRow: some View {
         HStack(spacing: 8) {
-            Text("Windows")
+            Text(WenshuI18n.t("b5.emotioncurveview.l137.h23463773"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             Stepper(
                 value: $windowCount,
                 in: 1...32
             ) {
-                Text("\(windowCount)")
+                Text(WenshuI18n.t("b5.emotioncurveview.l144.h9449225"))
                     .font(.callout.monospacedDigit())
                     .frame(minWidth: 28, alignment: .trailing)
             }
-            .help("Number of windows to split the chapter into (1–32).")
+            .help(WenshuI18n.t("b5.emotioncurveview.l148.h87664998"))
             Spacer(minLength: 0)
-            Text("\(windowCount) windows × ~\(estimatedWindowChars) chars each")
+            Text(WenshuI18n.t("b5.emotioncurveview.l150.h38155704"))
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }
@@ -164,11 +164,11 @@ struct EmotionCurveView: View {
     private var inputSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
-                Text("Chapter text")
+                Text(WenshuI18n.t("b5.emotioncurveview.l167.h48770099"))
                     .font(.callout)
                     .foregroundStyle(.primary)
                 Spacer(minLength: 0)
-                Text("\(chapterText.count) chars")
+                Text(WenshuI18n.t("b5.emotioncurveview.l171.h283252"))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
@@ -184,20 +184,20 @@ struct EmotionCurveView: View {
                 Button {
                     Task { await runAnalyze() }
                 } label: {
-                    Label("Analyze", systemImage: "play")
+                    Label(WenshuI18n.t("b5.emotioncurveview.l187.h73202981"), systemImage: "play")
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(chapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || status == .running)
-                .help("Score the chapter across \(windowCount) windows and chart the emotion curve.")
+                .help(WenshuI18n.t("b5.emotioncurveview.l191.h43420055"))
                 Button {
                     chapterText = ""
                     report = nil
                     status = .idle
                 } label: {
-                    Label("Clear", systemImage: "x")
+                    Label(WenshuI18n.t("b5.emotioncurveview.l197.h82618035"), systemImage: "x")
                 }
                 .buttonStyle(.bordered)
-                .help("Clear the input text and the last report.")
+                .help(WenshuI18n.t("b5.emotioncurveview.l200.h12079331"))
                 Spacer(minLength: 0)
             }
         }
@@ -207,10 +207,10 @@ struct EmotionCurveView: View {
 
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("No report yet")
+            Text(WenshuI18n.t("b5.emotioncurveview.l210.h68237505"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            Text("Paste a chapter, pick a window count, and tap Analyze. The emotion-curve analyzer splits the chapter into equal windows, scores each via a small sentiment lexicon, and returns a curve with overall score, volatility, flat-spot indices, and pacing-lift suggestions.")
+            Text(WenshuI18n.t("b5.emotioncurveview.l213.h26939185"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -277,7 +277,7 @@ struct EmotionCurveView: View {
                 .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 4) {
                 if items.isEmpty {
-                    Text("(none)")
+                    Text(WenshuI18n.t("b5.emotioncurveview.l280.h69702322"))
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 } else {
@@ -443,22 +443,22 @@ struct EmotionCurveView: View {
         // 10) Y-axis labels (= +1 / 0 / -1).
         let labelShading = GraphicsContext.Shading.color(Color(nsColor: .secondaryLabelColor))
         context.draw(
-            Text("+1").font(.caption2).foregroundColor(Color(nsColor: .secondaryLabelColor)),
+            Text(WenshuI18n.t("b5.emotioncurveview.l446.h6941667")).font(.caption2).foregroundColor(Color(nsColor: .secondaryLabelColor)),
             at: CGPoint(x: 10, y: topY)
         )
         context.draw(
-            Text("0").font(.caption2).foregroundColor(Color(nsColor: .secondaryLabelColor)),
+            Text(WenshuI18n.t("b5.emotioncurveview.l450.h82202228")).font(.caption2).foregroundColor(Color(nsColor: .secondaryLabelColor)),
             at: CGPoint(x: 10, y: baselineY)
         )
         context.draw(
-            Text("-1").font(.caption2).foregroundColor(Color(nsColor: .secondaryLabelColor)),
+            Text(WenshuI18n.t("b5.emotioncurveview.l454.h50895112")).font(.caption2).foregroundColor(Color(nsColor: .secondaryLabelColor)),
             at: CGPoint(x: 10, y: bottomY)
         )
 
         // 11) Legend (= flat dot + lift triangle), bottom row.
         let legendY = chartRect.maxY + 14
         context.draw(
-            Text("○ flat   ▲ lift").font(.caption2).foregroundColor(Color(nsColor: .secondaryLabelColor)),
+            Text(WenshuI18n.t("b5.emotioncurveview.l461.h66795892")).font(.caption2).foregroundColor(Color(nsColor: .secondaryLabelColor)),
             at: CGPoint(x: chartRect.maxX, y: legendY)
         )
     }

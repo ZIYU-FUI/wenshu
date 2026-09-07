@@ -99,12 +99,12 @@ public struct AgentProgressPanel: View {
                     .fontWeight(.medium)
                     .lineLimit(1)
                 Spacer()
-                Text("\(entry.stepNumber)/\(entry.totalSteps)")
+                Text(WenshuI18n.t("b5.agentprogresspanel.l102.h88801664"))
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.tertiary)
             }
             if let eta = entry.etaSeconds {
-                Text("ETA: \(eta)s")
+                Text(WenshuI18n.t("b5.agentprogresspanel.l107.h24593933"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }

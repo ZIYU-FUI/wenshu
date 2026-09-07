@@ -100,7 +100,7 @@ struct ReaderExperienceView: View {
             LucideIconSystemFallback("sparkles", size: 28)
                 .foregroundStyle(.tint)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Reader Experience")
+                Text(WenshuI18n.t("b5.readerexperienceview.l103.h22896014"))
                     .font(.headline)
                     .foregroundStyle(.primary)
                 Text(subtitleText)
@@ -127,7 +127,7 @@ struct ReaderExperienceView: View {
 
     private var pickerRow: some View {
         HStack(spacing: 8) {
-            Text("Analyzer")
+            Text(WenshuI18n.t("b5.readerexperienceview.l130.h50931159"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             Picker("", selection: $selectedKind) {
@@ -152,11 +152,11 @@ struct ReaderExperienceView: View {
     private var inputSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
-                Text("Chapter text")
+                Text(WenshuI18n.t("b5.readerexperienceview.l155.h15975486"))
                     .font(.callout)
                     .foregroundStyle(.primary)
                 Spacer(minLength: 0)
-                Text("\(chapterText.count) chars")
+                Text(WenshuI18n.t("b5.readerexperienceview.l159.h48868028"))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
@@ -172,20 +172,20 @@ struct ReaderExperienceView: View {
                 Button {
                     Task { await runAnalyze() }
                 } label: {
-                    Label("Analyze", systemImage: "play")
+                    Label(WenshuI18n.t("b5.readerexperienceview.l175.h61672688"), systemImage: "play")
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(chapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || status == .running)
-                .help("Run the selected analyzer against the chapter text above.")
+                .help(WenshuI18n.t("b5.readerexperienceview.l179.h93248900"))
                 Button {
                     chapterText = ""
                     report = nil
                     status = .idle
                 } label: {
-                    Label("Clear", systemImage: "x")
+                    Label(WenshuI18n.t("b5.readerexperienceview.l185.h22504814"), systemImage: "x")
                 }
                 .buttonStyle(.bordered)
-                .help("Clear the input text and the last report.")
+                .help(WenshuI18n.t("b5.readerexperienceview.l188.h90304051"))
                 Spacer(minLength: 0)
             }
         }
@@ -195,10 +195,10 @@ struct ReaderExperienceView: View {
 
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("No report yet")
+            Text(WenshuI18n.t("b5.readerexperienceview.l198.h54334339"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            Text("Paste a chapter, pick an analyzer, and tap Analyze. The 5 reader-experience analyzers (= tension / pacing / foreshadowing / cliffhanger / payoff) all run locally and return deterministic reports.")
+            Text(WenshuI18n.t("b5.readerexperienceview.l201.h81086064"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -244,7 +244,7 @@ struct ReaderExperienceView: View {
             if score >= 0.4 { return Color(nsColor: .systemOrange).opacity(0.22) }
             return Color(nsColor: .systemGray).opacity(0.22)
         }()
-        return Text("score \(pct)%")
+        return Text(WenshuI18n.t("b5.readerexperienceview.l247.h50530381"))
             .font(.caption2)
             .foregroundStyle(.primary)
             .padding(.horizontal, DesignTokens.chromePaddingSmall)
@@ -257,7 +257,7 @@ struct ReaderExperienceView: View {
 
     private func highlightsSection(_ highlights: [ReaderExperienceHighlight]) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Highlights (\(highlights.count))")
+            Text(WenshuI18n.t("b5.readerexperienceview.l260.h48696486"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 4) {
@@ -272,7 +272,7 @@ struct ReaderExperienceView: View {
                                 RoundedRectangle(cornerRadius: 3)
                                     .fill(.quaternary)
                             )
-                        Text("\u{201C}\(h.text)\u{201D}")
+                        Text(WenshuI18n.t("b5.readerexperienceview.l275.h51340592"))
                             .font(.caption)
                             .foregroundStyle(.primary)
                             .lineLimit(2)
@@ -285,13 +285,13 @@ struct ReaderExperienceView: View {
 
     private func suggestionsSection(_ suggestions: [ReaderExperienceSuggestion]) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Suggestions")
+            Text(WenshuI18n.t("b5.readerexperienceview.l288.h40277958"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 4) {
                 ForEach(Array(suggestions.enumerated()), id: \.offset) { _, s in
                     HStack(alignment: .top, spacing: 6) {
-                        Text("\u{2022}")
+                        Text(WenshuI18n.t("b5.readerexperienceview.l294.h54608200"))
                             .font(.caption)
                             .foregroundStyle(.tint)
                         Text(s.text)

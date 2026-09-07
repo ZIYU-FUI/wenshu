@@ -1625,7 +1625,7 @@ private struct NewBookSheet: View {
                     }
                     .frame(height: DesignTokens.popoverMaxHeight)
                 } header: {
-                    Text(WenshuI18n.t("auto.newlibraryoutlineview.l1628.h40388730"))
+                    Text(WenshuI18n.t("library.new_book.icon_required"))
                 }
             }
             .formStyle(.grouped)
@@ -1809,7 +1809,7 @@ private struct NewShelfSheet: View {
                     }
                     .frame(height: DesignTokens.popoverMaxHeight)
                 } header: {
-                    Text(WenshuI18n.t("auto.newlibraryoutlineview.l1812.h40388730"))
+                    Text(WenshuI18n.t("library.new_shelf.icon_required"))
                 }
             }
             .formStyle(.grouped)

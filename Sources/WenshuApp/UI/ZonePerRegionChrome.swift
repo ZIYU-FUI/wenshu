@@ -259,11 +259,14 @@ public struct ZoneChromeIcon: View {
 /// Bottom: left = "Bookshelf: N", right = "Book: N".
 public func projectSidebarChrome(shelfCount: Int, bookCount: Int) -> (top: [ZoneTopAction], bottom: ZoneBottomStatus) {
     let top = [
-        ZoneTopAction(id: "templates", label: "Templates", icon: "doc.badge.plus"),
-        ZoneTopAction(id: "new-book", label: "新建", icon: "book-open"),
-        ZoneTopAction(id: "archive", label: "入驻", icon: "archive"),
+        ZoneTopAction(id: "templates", label: WenshuI18n.t("zone.top_action.templates"), icon: "doc.badge.plus"),
+        ZoneTopAction(id: "new-book", label: WenshuI18n.t("zone.top_action.new_book"), icon: "book-open"),
+        ZoneTopAction(id: "archive", label: WenshuI18n.t("zone.top_action.archive"), icon: "archive"),
     ]
-    let bottom = ZoneBottomStatus(left: "书架: \(shelfCount)", right: "书: \(bookCount)")
+    let bottom = ZoneBottomStatus(
+        left: WenshuI18n.tf("statusbar.format_shelf_count", shelfCount),
+        right: WenshuI18n.tf("statusbar.format_book_count", bookCount)
+    )
     return (top, bottom)
 }
 
@@ -277,10 +280,13 @@ public func projectSidebarChrome(shelfCount: Int, bookCount: Int) -> (top: [Zone
 /// Bottom: left = "Chapter: N", right = "" (empty).
 public func projectPreviewChrome(chapterCount: Int) -> (top: [ZoneTopAction], bottom: ZoneBottomStatus) {
     let top = [
-        ZoneTopAction(id: "preview", label: "预览", icon: "book-open-check"),
-        ZoneTopAction(id: "graph", label: "图", icon: "waypoints"),
+        ZoneTopAction(id: "preview", label: WenshuI18n.t("zone.top_action.preview"), icon: "book-open-check"),
+        ZoneTopAction(id: "graph", label: WenshuI18n.t("zone.top_action.graph"), icon: "waypoints"),
     ]
-    let bottom = ZoneBottomStatus(left: "章节: \(chapterCount)", right: "")
+    let bottom = ZoneBottomStatus(
+        left: WenshuI18n.tf("statusbar.format_chapter_count", chapterCount),
+        right: ""
+    )
     return (top, bottom)
 }
 
@@ -300,11 +306,14 @@ public func projectPreviewChrome(chapterCount: Int) -> (top: [ZoneTopAction], bo
 /// REPLACE the legacy "N%" progress placeholder with backlinks count).
 public func editorChrome(wordCount: Int, backlinkCount: Int) -> (top: [ZoneTopAction], bottom: ZoneBottomStatus) {
     let top = [
-        ZoneTopAction(id: "edit", label: "编辑", icon: "book-open-text"),
-        ZoneTopAction(id: "outline", label: "大纲", icon: "puzzle"),
-        ZoneTopAction(id: "backlinks", label: "反链", icon: "link"),
+        ZoneTopAction(id: "edit", label: WenshuI18n.t("zone.top_action.edit"), icon: "book-open-text"),
+        ZoneTopAction(id: "outline", label: WenshuI18n.t("zone.top_action.outline"), icon: "puzzle"),
+        ZoneTopAction(id: "backlinks", label: WenshuI18n.t("statusbar.backlinks"), icon: "link"),
     ]
-    let bottom = ZoneBottomStatus(left: "字数: \(wordCount)", right: "反链 \(backlinkCount)")
+    let bottom = ZoneBottomStatus(
+        left: WenshuI18n.tf("statusbar.format_word_count", wordCount),
+        right: WenshuI18n.tf("statusbar.format_backlink_count", backlinkCount)
+    )
     return (top, bottom)
 }
 
@@ -317,10 +326,10 @@ public func editorChrome(wordCount: Int, backlinkCount: Int) -> (top: [ZoneTopAc
 /// Bottom: left = "Tools ready", right = "".
 public func specializedToolsChrome() -> (top: [ZoneTopAction], bottom: ZoneBottomStatus) {
     let top = [
-        ZoneTopAction(id: "canvas", label: "画布", icon: "scribble"),
-        ZoneTopAction(id: "database", label: "数据库", icon: "tablecells"),
+        ZoneTopAction(id: "canvas", label: WenshuI18n.t("zone.top_action.canvas"), icon: "scribble"),
+        ZoneTopAction(id: "database", label: WenshuI18n.t("zone.top_action.database"), icon: "tablecells"),
     ]
-    let bottom = ZoneBottomStatus(left: "工具就绪", right: "")
+    let bottom = ZoneBottomStatus(left: WenshuI18n.t("statusbar.tools_ready"), right: "")
     return (top, bottom)
 }
 

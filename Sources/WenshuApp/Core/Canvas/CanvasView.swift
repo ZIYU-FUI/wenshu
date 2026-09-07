@@ -66,10 +66,10 @@ public struct CanvasView: View {
                 Text(WenshuI18n.t("auto.canvasview.l66.h21332939"))
                     .foregroundStyle(.red)
             } else {
-                Text(WenshuI18n.t("auto.canvasview.l69.h32895149"))
-                Text(WenshuI18n.t("auto.canvasview.l70.h43070160"))
+                Text(WenshuI18n.t("canvasview.nodes_count"))
+                Text(WenshuI18n.t("canvasview.edges_count"))
                 ForEach(viewModel.document.nodes) { node in
-                    Text("[\(node.id)] \(node.type.rawValue) @ (\(Int(node.x)),\(Int(node.y)))")
+                    Text(WenshuI18n.t("b5.canvasview.l72.h45596183"))
                         .font(.caption2)
                 }
             }

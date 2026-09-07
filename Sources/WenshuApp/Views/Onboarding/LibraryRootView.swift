@@ -118,9 +118,9 @@ private struct ChatBookManagerHint: View {
         HStack(spacing: 6) {
             Image(systemName: "wand.and.stars")
                 .font(.caption)
-            Text("Tell the chat to create a book: e.g. ")
+            Text(WenshuI18n.t("b5.libraryrootview.l121.h66900902"))
                 .font(.caption)
-            Text("/create-book My new novel")
+            Text(WenshuI18n.t("b5.libraryrootview.l123.h5532711"))
                 .font(.caption.monospaced())
                 .foregroundStyle(.tint)
         }
@@ -365,7 +365,7 @@ Group {
             VStack(spacing: 12) {
                 Text(WenshuI18n.t("auto.libraryrootview.l366.h45346224"))
                     .font(.title.weight(.semibold))
-                Text(WenshuI18n.t("auto.libraryrootview.l368.h51962802"))
+                Text(WenshuI18n.t("onboarding.library.choose_location"))
                     .font(.title2)
                     .foregroundStyle(.secondary)
                 Text(WenshuI18n.t("onboarding.library.welcome_blurb"))

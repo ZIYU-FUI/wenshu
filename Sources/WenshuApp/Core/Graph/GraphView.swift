@@ -45,8 +45,8 @@ public struct GraphView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(WenshuI18n.t("auto.graphview.l46.h27522022"))
                 .font(.headline)
-            Text(WenshuI18n.t("auto.graphview.l48.h95089856"))
-            Text(WenshuI18n.t("auto.graphview.l49.h9956370"))
+            Text(WenshuI18n.t("graphview.nodes_count"))
+            Text(WenshuI18n.t("graphview.edges_count"))
             if let error = viewModel.error {
                 Text(WenshuI18n.t("auto.graphview.l51.h33390865"))
                     .foregroundStyle(.red)

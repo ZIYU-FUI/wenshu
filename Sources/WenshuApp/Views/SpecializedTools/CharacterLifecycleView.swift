@@ -133,7 +133,7 @@ struct CharacterLifecycleView: View {
             LucideIconSystemFallback("clock", size: 28)
                 .foregroundStyle(.tint)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Character Lifecycle")
+                Text(WenshuI18n.t("b5.characterlifecycleview.l136.h46926535"))
                     .font(.headline)
                     .foregroundStyle(.primary)
                 Text(subtitleText)
@@ -165,10 +165,10 @@ struct CharacterLifecycleView: View {
 
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("No book selected")
+            Text(WenshuI18n.t("b5.characterlifecycleview.l168.h1439622"))
                 .font(.callout)
                 .foregroundStyle(.primary)
-            Text("Pick a book from the sidebar to start tracking character lifecycle events.")
+            Text(WenshuI18n.t("b5.characterlifecycleview.l171.h40676736"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -197,11 +197,11 @@ struct CharacterLifecycleView: View {
 
     private var addRow: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Add lifecycle event")
+            Text(WenshuI18n.t("b5.characterlifecycleview.l200.h38389147"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if characters.isEmpty {
-                Text("Define at least 1 character in the Characters pane to add a lifecycle event.")
+                Text(WenshuI18n.t("b5.characterlifecycleview.l204.h79350323"))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
@@ -210,7 +210,7 @@ struct CharacterLifecycleView: View {
                     get: { draftCharacterId ?? characters.first?.id ?? UUID() },
                     set: { draftCharacterId = $0 }
                 )) {
-                    Text("(choose)").tag(UUID())
+                    Text(WenshuI18n.t("b5.characterlifecycleview.l213.h31260689")).tag(UUID())
                     ForEach(characters) { c in
                         Text(c.name).tag(c.id)
                     }
@@ -232,21 +232,21 @@ struct CharacterLifecycleView: View {
                 Button {
                     Task { await addEvent() }
                 } label: {
-                    Label("Add", systemImage: "plus")
+                    Label(WenshuI18n.t("b5.characterlifecycleview.l235.h51075723"), systemImage: "plus")
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAdd)
-                .help("Add a lifecycle event for the selected character and stage.")
+                .help(WenshuI18n.t("b5.characterlifecycleview.l239.h26593030"))
             }
             HStack(spacing: 8) {
-                TextField("Chapter UUID (optional)", text: $draftChapterUUIDText, axis: .horizontal)
+                TextField(WenshuI18n.t("b5.characterlifecycleview.l242.h58864975"), text: $draftChapterUUIDText, axis: .horizontal)
                     .textFieldStyle(.roundedBorder)
                     .font(.caption)
-                    .help("Optional chapter UUID to anchor the event. Leave empty for a pre-chapter backstory entry.")
-                TextField("Excerpt", text: $draftExcerpt, axis: .horizontal)
+                    .help(WenshuI18n.t("b5.characterlifecycleview.l245.h27116037"))
+                TextField(WenshuI18n.t("b5.characterlifecycleview.l246.h53203368"), text: $draftExcerpt, axis: .horizontal)
                     .textFieldStyle(.roundedBorder)
                     .font(.caption)
-                    .help("Short quote from the chapter where this event was observed.")
+                    .help(WenshuI18n.t("b5.characterlifecycleview.l249.h31682361"))
             }
         }
     }
@@ -260,11 +260,11 @@ struct CharacterLifecycleView: View {
 
     private var listSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Events (\(events.count))")
+            Text(WenshuI18n.t("b5.characterlifecycleview.l263.h29792914"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if events.isEmpty {
-                Text("(none yet — add the first one above)")
+                Text(WenshuI18n.t("b5.characterlifecycleview.l267.h43318691"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -301,7 +301,7 @@ struct CharacterLifecycleView: View {
                                 .fill(.quaternary)
                         )
                     if let cid = event.chapterId {
-                        Text("ch. \(cid.uuidString.prefix(8))")
+                        Text(WenshuI18n.t("b5.characterlifecycleview.l304.h73934719"))
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                     }
@@ -321,7 +321,7 @@ struct CharacterLifecycleView: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
-            .help("Remove this lifecycle event.")
+            .help(WenshuI18n.t("b5.characterlifecycleview.l324.h5673239"))
         }
         .padding(.vertical, DesignTokens.chromePaddingSmall)
         .padding(.horizontal, DesignTokens.chromePaddingVertical)
@@ -336,11 +336,11 @@ struct CharacterLifecycleView: View {
 
     private var timelineSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Timeline")
+            Text(WenshuI18n.t("b5.characterlifecycleview.l339.h16422962"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if characters.isEmpty {
-                Text("(define a character to see their timeline)")
+                Text(WenshuI18n.t("b5.characterlifecycleview.l343.h47112699"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -350,7 +350,7 @@ struct CharacterLifecycleView: View {
                         get: { selectedCharacterId ?? characters.first?.id ?? UUID() },
                         set: { selectedCharacterId = $0 }
                     )) {
-                        Text("(choose)").tag(UUID())
+                        Text(WenshuI18n.t("b5.characterlifecycleview.l353.h58360186")).tag(UUID())
                         ForEach(characters) { c in
                             Text(c.name).tag(c.id)
                         }
@@ -363,7 +363,7 @@ struct CharacterLifecycleView: View {
                     Spacer(minLength: 0)
                 }
                 if timelineRows.isEmpty {
-                    Text("(no events for this character yet)")
+                    Text(WenshuI18n.t("b5.characterlifecycleview.l366.h98560518"))
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -390,7 +390,7 @@ struct CharacterLifecycleView: View {
                 .font(.caption)
                 .foregroundStyle(.primary)
             if let cid = event.chapterId {
-                Text("· ch. \(cid.uuidString.prefix(8))")
+                Text(WenshuI18n.t("b5.characterlifecycleview.l393.h77015228"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
@@ -402,11 +402,11 @@ struct CharacterLifecycleView: View {
 
     private var contradictionsSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Contradictions (\(contradictions.count))")
+            Text(WenshuI18n.t("b5.characterlifecycleview.l405.h20963905"))
                 .font(.callout)
                 .foregroundStyle(.primary)
             if contradictions.isEmpty {
-                Text("(none — every character's terminal stage is honored)")
+                Text(WenshuI18n.t("b5.characterlifecycleview.l409.h10185050"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)

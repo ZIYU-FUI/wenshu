@@ -119,7 +119,7 @@ struct BookEditorSheet: View {
                     }
                     .pickerStyle(.segmented)
                 } header: {
-                    Text(WenshuI18n.t("auto.bookeditorsheet.l122.h20025200"))
+                    Text(WenshuI18n.t("book_editor.length"))
                 } footer: {
                     Text(WenshuI18n.t("auto.bookeditorsheet.l124.h18390452"))
                         .font(.footnote)

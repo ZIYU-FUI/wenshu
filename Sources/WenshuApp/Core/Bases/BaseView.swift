@@ -41,8 +41,8 @@ public struct BaseView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(WenshuI18n.t("auto.baseview.l42.h20177652"))
                 .font(.headline)
-            Text(WenshuI18n.t("auto.baseview.l44.h12415794"))
-            Text(WenshuI18n.t("auto.baseview.l45.h14338023"))
+            Text(WenshuI18n.t("baseview.views_count"))
+            Text(WenshuI18n.t("baseview.formulas_count"))
             if let error = viewModel.error {
                 Text(WenshuI18n.t("auto.baseview.l47.h33472306"))
                     .foregroundStyle(.red)

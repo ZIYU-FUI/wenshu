@@ -107,7 +107,7 @@ struct LongFormGuardrailsView: View {
             LucideIconSystemFallback("shield-check", size: 28)
                 .foregroundStyle(.tint)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Long-Form Guardrails")
+                Text(WenshuI18n.t("b5.longformguardrailsview.l110.h34351664"))
                     .font(.headline)
                     .foregroundStyle(.primary)
                 Text(subtitleText)
@@ -141,10 +141,10 @@ struct LongFormGuardrailsView: View {
 
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("No book selected")
+            Text(WenshuI18n.t("b5.longformguardrailsview.l144.h89220000"))
                 .font(.title3)
                 .foregroundStyle(.primary)
-            Text("Open a book to manage its long-form guardrails. The 6 auto-derived guardrails (= constraint / continuity / self-proof / persona / character-arc / world-consistency) will be created on first open.")
+            Text(WenshuI18n.t("b5.longformguardrailsview.l147.h53334640"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -172,10 +172,10 @@ struct LongFormGuardrailsView: View {
             Button {
                 Task { await autoDerive() }
             } label: {
-                Label("Auto-derive", systemImage: "wand.and.stars")
+                Label(WenshuI18n.t("b5.longformguardrailsview.l175.h64020782"), systemImage: "wand.and.stars")
             }
             .buttonStyle(.bordered)
-            .help("Replace the guardrail set with the 6 auto-derived rows (= constraint / continuity / self-proof / persona / character-arc / world-consistency).")
+            .help(WenshuI18n.t("b5.longformguardrailsview.l178.h38811731"))
 
             Button {
                 showAddSheet = true
@@ -183,7 +183,7 @@ struct LongFormGuardrailsView: View {
                 Label(WenshuI18n.t("button.add"), systemImage: "plus")
             }
             .buttonStyle(.borderedProminent)
-            .help("Add a user-authored guardrail row.")
+            .help(WenshuI18n.t("b5.longformguardrailsview.l186.h97888008"))
 
             Spacer(minLength: 0)
         }
@@ -195,7 +195,7 @@ struct LongFormGuardrailsView: View {
                 guardrailRow(row)
             }
             if guardrails.isEmpty {
-                Text("No guardrails yet. Tap Auto-derive to seed the 6 defaults, or Add to create a custom row.")
+                Text(WenshuI18n.t("b5.longformguardrailsview.l198.h9169095"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -213,7 +213,7 @@ struct LongFormGuardrailsView: View {
                         .font(.callout)
                         .foregroundStyle(.primary)
                     if row.isAutoDerived {
-                        Text("auto")
+                        Text(WenshuI18n.t("b5.longformguardrailsview.l216.h73542843"))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, DesignTokens.chromePaddingMicro)
@@ -238,7 +238,7 @@ struct LongFormGuardrailsView: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
-            .help("Remove this guardrail.")
+            .help(WenshuI18n.t("b5.longformguardrailsview.l241.h76114491"))
         }
         .padding(.vertical, DesignTokens.chromePaddingSmall)
         .padding(.horizontal, DesignTokens.chromePaddingVertical)
@@ -274,7 +274,7 @@ struct LongFormGuardrailsView: View {
     private var checkSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
-                Text("Run check")
+                Text(WenshuI18n.t("b5.longformguardrailsview.l277.h87864753"))
                     .font(.callout)
                     .foregroundStyle(.primary)
                 Spacer(minLength: 0)
@@ -292,11 +292,11 @@ struct LongFormGuardrailsView: View {
                 Button {
                     Task { await runCheck() }
                 } label: {
-                    Label("Run check", systemImage: "play")
+                    Label(WenshuI18n.t("b5.longformguardrailsview.l295.h18206542"), systemImage: "play")
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(checkText.isEmpty || guardrails.isEmpty)
-                .help("Evaluate the text above against all active guardrails.")
+                .help(WenshuI18n.t("b5.longformguardrailsview.l299.h65143897"))
                 Spacer(minLength: 0)
             }
         }
@@ -308,7 +308,7 @@ struct LongFormGuardrailsView: View {
             case .idle:
                 EmptyView()
             case .running:
-                Text("Running…")
+                Text(WenshuI18n.t("b5.longformguardrailsview.l311.h19133696"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             case .done(let count, let hasCritical):
@@ -321,7 +321,7 @@ struct LongFormGuardrailsView: View {
 
     private var violationsSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Violations")
+            Text(WenshuI18n.t("b5.longformguardrailsview.l324.h5287930"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
             ForEach(Array(lastViolations.enumerated()), id: \.offset) { _, v in
@@ -334,7 +334,7 @@ struct LongFormGuardrailsView: View {
                         .foregroundStyle(.primary)
                     Spacer(minLength: 0)
                     if let line = v.lineNumber {
-                        Text("L\(line)")
+                        Text(WenshuI18n.t("b5.longformguardrailsview.l337.h13219410"))
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                     }
@@ -381,8 +381,8 @@ struct LongFormGuardrailsView: View {
                             Text(level.rawValue).tag(level)
                         }
                     }
-                    TextField("Name", text: $draftName)
-                    TextField("Description", text: $draftDescription, axis: .vertical)
+                    TextField(WenshuI18n.t("b5.longformguardrailsview.l384.h26664612"), text: $draftName)
+                    TextField(WenshuI18n.t("b5.longformguardrailsview.l385.h2063"), text: $draftDescription, axis: .vertical)
                         .lineLimit(3...6)
                 }
             }
@@ -397,10 +397,10 @@ struct LongFormGuardrailsView: View {
             .navigationTitle(WenshuI18n.t("guardrail.add.title"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { showAddSheet = false }
+                    Button(WenshuI18n.t("b5.longformguardrailsview.l400.h71046230")) { showAddSheet = false }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { Task { await saveDraft() } }
+                    Button(WenshuI18n.t("b5.longformguardrailsview.l403.h11223252")) { Task { await saveDraft() } }
                         .disabled(draftName.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }

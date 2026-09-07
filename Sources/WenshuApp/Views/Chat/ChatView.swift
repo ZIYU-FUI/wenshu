@@ -1222,7 +1222,7 @@ struct ChatMessageView: View {
                                 // needed).
                                 LucideIconSystemFallback("brain")
                                     .font(.caption)
-                                Text(WenshuI18n.t("auto.chatview.l1225.h76447487"))
+                                Text(WenshuI18n.t("chatview.ai_thinking"))
                                     .font(.caption)
                             }
                             .foregroundStyle(.tertiary)

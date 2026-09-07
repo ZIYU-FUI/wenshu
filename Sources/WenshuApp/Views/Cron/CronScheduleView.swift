@@ -14,13 +14,13 @@ public struct CronScheduleView: View {
     public var body: some View {
         // v0.22 h08: placeholder cron UI. Real schedule management in follow-up.
         VStack(alignment: .leading, spacing: 8) {
-            Text("Cron Schedule")
+            Text(WenshuI18n.t("b5.cronscheduleview.l17.h81796733"))
                 .font(.headline)
-            Text("0 schedules · replica of hermes cronjob")
+            Text(WenshuI18n.t("b5.cronscheduleview.l19.h49619526"))
                 .font(.body)
                 .foregroundStyle(.secondary)
             if store == nil {
-                Text("(store unavailable — bootstrap may have failed)")
+                Text(WenshuI18n.t("b5.cronscheduleview.l23.h89948587"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }

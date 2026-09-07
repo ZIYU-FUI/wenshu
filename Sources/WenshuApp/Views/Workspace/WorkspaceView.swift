@@ -1744,18 +1744,13 @@ struct EditorPlaceholder: View {
     // first-run experiences). The body preserves ONE wikilink so the
     // preview still exercises the wikilink parser (= InternalLinkParser).
     static let samplePreviewBody: String = """
-    # Welcome to wenshu
+    # \(WenshuI18n.t("workspace.welcome.title"))
 
-    This is your empty editor pane. To get started:
+    \(WenshuI18n.t("workspace.welcome.body1"))
 
-    1. Open a book from the **Project sidebar** on the left.
-    2. Create a chapter in the **Outline** view.
-    3. Start writing here.
+    \(WenshuI18n.t("workspace.welcome.ai_assistant"))
 
-    The Wenshu AI assistant is available in the **Chat** zone at the
-    bottom of the workspace. Try asking it for help with your chapter.
-
-    See the [[getting-started]] guide for a full tour.
+    \(WenshuI18n.t("workspace.welcome.guide_link"))
     """
 
     // v0.34 ticket 05: placeholder type alias for the wikilink navigation

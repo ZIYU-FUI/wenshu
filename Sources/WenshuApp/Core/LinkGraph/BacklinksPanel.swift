@@ -100,11 +100,11 @@ public struct BacklinksPanel: View {
                 Text(WenshuI18n.t("auto.backlinkspanel.l100.h25269061"))
                     .foregroundStyle(.red)
             } else {
-                Text(WenshuI18n.t("auto.backlinkspanel.l103.h54547610"))
+                Text(WenshuI18n.t("backlinks.document_id"))
                     .font(.caption)
-                Text(WenshuI18n.t("auto.backlinkspanel.l105.h29602002"))
+                Text(WenshuI18n.t("backlinks.links_count"))
                 ForEach(viewModel.backlinks, id: \.offset) { link in
-                    Text("→ \(link.sourceDocId) @ \(link.line):\(link.offset)")
+                    Text(WenshuI18n.t("b5.backlinkspanel.l107.h31356346"))
                         .font(.caption2)
                 }
             }
