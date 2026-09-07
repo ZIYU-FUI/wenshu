@@ -241,23 +241,37 @@ L1214-1265 already does this. Keep that gate.
 
 ## Implementation plan (= atomic commits)
 
-### Commit 1: ZONE-VIS-FIX-001 (= the actual bug fix)
+### Parallel anti-pattern (= editor-expand feature)
 
-Change:
-1. `installSplit` L1031: `autosaveName = nil` → `autosaveName =
-   autosaveKey(for: split.id)` (= same pattern as nested
-   controllers; = per-preset scoping)
-2. Delete `currentZoneSplitWeight` (L627-642) =
-   `applyZoneSplitWeight` (L648-664) = `captureZoneToggleSnapshot`
-   (L568-589) = `restoreZoneToggleSnapshot` (L591-625) =
-   ~150 LOC
-3. Delete `applyPersistedZoneVisibility` (L183-225) =
-   ~40 LOC
-4. Simplify `handleToggleZone` (L458-558) to just
-   `item.animator().isCollapsed.toggle()` + adjustRootForCollapsedBands()
-5. Update the obsolete comments
+Same `snapshot/restore` anti-pattern is used by the
+**editor-expand** feature (= a separate code path for the
+"expand editor to fill workspace" toolbar action):
 
-Expected diff: -200 LOC. Net LOC decrease.
+- `captureEditorExpandSnapshot` (L696-715) — saves 6 zone
+  `isCollapsed` + editor `split weight` (= holdingPriority.
+  rawValue) to `wenshu.editorExpand.snapshot` JSON
+- `restoreEditorExpandSnapshot` (L720-741) — reads the JSON,
+  applies `applyEditorSplitWeight` then re-toggles each
+  zone via `toggleZone(slot:)` if state differs
+- `applyEditorSplitWeight` + `currentEditorSplitWeight`
+  (around L824-870) — the same `holdingPriority` read/write
+  anti-pattern
+
+**Decision (= for ZONE-VIS-FIX-001)**: delete this in the
+same commit (= same root cause; = same broken pattern).
+The editor-expand feature should also use
+`NSSplitView.autosaveName` for state persistence (= Apple
+handles both divider positions AND collapsed/expanded
+state natively).
+
+This expands Commit 1 scope: also delete `captureEditorExpandSnapshot` +
+`restoreEditorExpandSnapshot` + `currentEditorSplitWeight` +
+`applyEditorSplitWeight` (≈ +100 LOC deleted) + simplify
+`handleEditorMaximizedChanged` to:
+```swift
+collapseAllNonEditorZones()  // or restoreAllZones()
+// no snapshot/restore needed; autosaveName takes over
+```
 
 Tests to add:
 - `Tests/WenshuAppTests/UI/PaneNSControllerAutosaveTests.swift`:
@@ -268,7 +282,40 @@ Tests to add:
   - Multi-toggle sequence (= hide A → hide B → show A →
     show B) → weights converge to user's intended layout
 
-### Commit 2: ZONE-VIS-FIX-002 (= max thickness constraints)
+### Commit 1: ZONE-VIS-FIX-001 (= the actual bug fix)
+
+Change:
+1. `installSplit` L1031: `autosaveName = nil` → `autosaveName =
+   autosaveKey(for: split.id)` (= same pattern as nested
+   controllers; = per-preset scoping)
+2. Delete `currentZoneSplitWeight` (L627-642) +
+   `applyZoneSplitWeight` (L648-664) + `captureZoneToggleSnapshot`
+   (L568-589) + `restoreZoneToggleSnapshot` (L591-625) +
+   `applyPersistedZoneVisibility` (L183-225) +
+   `captureEditorExpandSnapshot` (L696-715) +
+   `restoreEditorExpandSnapshot` (L720-741) +
+   `currentEditorSplitWeight` (around L824-870) +
+   `applyEditorSplitWeight` (= all the `holdingPriority` /
+   JSON-snapshot / restore anti-pattern methods) ≈ -290 LOC
+3. Simplify `handleToggleZone` (L458-558) to just
+   `item.animator().isCollapsed.toggle()` + adjustRootForCollapsedBands()
+4. Simplify `handleEditorMaximizedChanged` (L678-690) to
+   `collapseAllNonEditorZones()` or `restoreAllZones()` (= no
+   snapshot/restore; = autosaveName takes over)
+5. Delete the `wenshu.zoneToggle.snapshot` JSON UserDefaults
+   write/read paths (= dead code)
+6. Delete the `wenshu.editorExpand.snapshot` JSON UserDefaults
+   write/read paths (= dead code)
+7. Delete the dead `wenshu.zoneVisible.*` bool reads in
+   `LibraryRootView.swift` (= L150-158 comments already note
+   the @AppStorage declarations were dead since v0.34
+   toolbar flatten)
+8. Delete the `wenshu.zoneVisible.*` reset code in
+   `LayoutTreeStore.resetToDefault()` (L266-274) (= no longer
+   relevant after autosaveName takes over)
+9. Update the obsolete comments
+
+Expected diff: -300 LOC. Net LOC decrease.
 
 Change:
 1. `makeSplitItems` L1445: also set `item.maximumThickness`:
