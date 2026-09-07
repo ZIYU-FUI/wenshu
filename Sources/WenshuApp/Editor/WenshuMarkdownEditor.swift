@@ -15,6 +15,28 @@ struct WenshuMarkdownEditor: View {
     // to the engine's NativeTextViewWrapper.
     var onLinkClick: ((String) -> Void)? = nil
 
+    // v0.40 boss 9/7 OOB '你仔细对比一下, 预览和编辑模式, 整体感觉
+    // 就是缩放了, 你对比两个模式的代码. 我认为, 这个编辑器的样式,
+    // 无论是几种模式, 应该用同一个组件呈现': preview mode and
+    // edit mode should use the SAME component (= no separate
+    // SwiftUI renderer). Previously preview used EditorPreviewContent
+    // (= SwiftUI AttributedString renderer) and edit used
+    // WenshuMarkdownEditor (= swift-markdown-engine NSTextView). Two
+    // different renderers = different visual scaling (= the "缩放感"
+    // boss described).
+    //
+    // Fix: both modes now use WenshuMarkdownEditor. The engine's
+    // NativeTextViewWrapper has an `isEditable: Bool` parameter
+    // (= "When false the editor renders read-only with no caret")
+    // which toggles between edit + preview with the SAME NSTextView
+    // (= zero visual scaling between modes; = Apple HIG canonical
+    // for WYSIWYG / preview-vs-edit surfaces).
+    //
+    // Caller (= EditorPlaceholder / EditorEditContent) passes
+    // `isEditable: (mode == .edit)`. Preview = read-only NSTextView,
+    // edit = editable NSTextView, same component, same font scale,
+    // same line height, same textContainerInset, same NSTextLayoutManager.
+    var isEditable: Bool = true
     // v0.40 boss 9/7 OOB '当前预览模式的字号更合适, 把编辑模式的字号
     // 再往小了调, 和预览模式统一. 最好字号用 apple api 来实现':
     // the engine's NativeTextView has an internal `baseFont` field
@@ -76,10 +98,18 @@ struct WenshuMarkdownEditor: View {
         //
         // top/bottom = 0 (= matches preview mode; = matches
         // NSTextView tight top/bottom inset).
+        //
+        // v0.40 boss 9/7 OOB '编辑器的样式, 无论是几种模式, 应该用同
+        // 一个组件呈现': pass `isEditable` (= boss param on
+        // NativeTextViewWrapper) so the SAME NSTextView renders
+        // both preview (= read-only) and edit (= editable) modes
+        // (= zero visual scaling between modes; = Apple HIG
+        // canonical for WYSIWYG surfaces).
         NativeTextViewWrapper(
             text: $text,
             configuration: adjustedConfiguration,
             documentId: draftId,
+            isEditable: isEditable,
             onLinkClick: onLinkClick
         )
         .padding(.horizontal, DesignTokens.chromePaddingLeading)
