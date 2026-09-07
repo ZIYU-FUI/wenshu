@@ -57,23 +57,30 @@ struct WenshuMarkdownEditor: View {
     // engine's layout pipeline).
     private var adjustedConfiguration: MarkdownEditorConfiguration {
         var config = configuration
-        // v0.40 boss 9/7 OOB '你对比一下两种模式, 预览和编辑两个模式,
-        // 哪个小统一用小的那个': align both modes to use SwiftUI's
-        // macOS text-style scale (= .title2 / .title3 / .headline =
-        // 17 / 15 / 13 PT on macOS 27 Tahoe = matches NSFont.
-        // preferredFont(forTextStyle:) on the same system). Previously
-        // edit H1 multiplier = .title1 (= 22 PT = larger than preview
-        // mode's .title2 = 17 PT). Now both = 17 PT (= unify on the
-        // smaller preview size; = edit mode H1 multiplier reduces from
-        // .title1 to .title2). All other headings also drop one
-        // canonical step to match SwiftUI's macOS scale.
-        let base = NSFont.preferredFont(forTextStyle: .body).pointSize
-        let h1 = NSFont.preferredFont(forTextStyle: .title2).pointSize
-        let h2 = NSFont.preferredFont(forTextStyle: .title3).pointSize
-        let h3 = NSFont.preferredFont(forTextStyle: .headline).pointSize
-        let h4 = NSFont.preferredFont(forTextStyle: .subheadline).pointSize
-        let h5 = NSFont.preferredFont(forTextStyle: .footnote).pointSize
-        let h6 = NSFont.preferredFont(forTextStyle: .caption1).pointSize
+        // v0.40 boss 9/7 OOB '编辑器的字号设计, 参考其它区说的字号,
+        // 现在在整个 APP 页面中, 显得过于大': the editor's previous
+        // base font (= NSFont.preferredFont(forTextStyle: .body) =
+        // 13 PT on macOS 27 Tahoe) was larger than the rest of
+        // wenshu (= sidebar / status bar / kanban all use
+        // .caption/.caption2 = ~10-11 PT). To match the rest of the
+        // app's chrome density, switch the editor base font to
+        // .caption1 (= 11 PT on macOS 27 Tahoe = matches the sidebar
+        // list rows). All heading multipliers then scale from this
+        // new base (= Apple canonical text-style scale preserved,
+        // just shifted one canonical step lower).
+        //
+        // v0.40 boss 9/7 OOB '你仔细对比一下, 预览和编辑两个模式, 哪
+        // 个小统一用小的那个': both modes share this single
+        // configuration (= unified component commit), so the
+        // smaller-caption base applies to BOTH preview + edit (= no
+        // scaling between modes).
+        let base = NSFont.preferredFont(forTextStyle: .caption1).pointSize
+        let h1 = NSFont.preferredFont(forTextStyle: .body).pointSize
+        let h2 = NSFont.preferredFont(forTextStyle: .subheadline).pointSize
+        let h3 = NSFont.preferredFont(forTextStyle: .caption2).pointSize
+        let h4 = NSFont.preferredFont(forTextStyle: .footnote).pointSize
+        let h5 = NSFont.preferredFont(forTextStyle: .caption2).pointSize
+        let h6 = NSFont.preferredFont(forTextStyle: .footnote).pointSize
         // Convert each Apple canonical size to a multiplier of the
         // body base font (= preserves the engine's per-level scale
         // semantics, = Apple canonical size relationships).
