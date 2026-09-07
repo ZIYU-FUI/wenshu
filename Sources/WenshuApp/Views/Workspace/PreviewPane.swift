@@ -290,13 +290,25 @@ struct PreviewPane: View {
         // aligns horizontally with the editor's toolbar in the right
         // column. Body content (Group { switch scope }) goes below
         // the search bar.
+        //
+        // v0.40 boss 9/7 OOB '这个顶栏和搜索之间是多了什么东西占位了吗':
+        // the .padding(DesignTokens.chromePaddingHero) was wrapping
+        // the entire VStack (= search bar + body), = creating a visual
+        // gap between the ZoneContentView tab strip and the search
+        // bar. The padding belongs ONLY on the body content (= scope
+        // Group), NOT on the search bar (= search bar should sit
+        // flush against the tab strip, = Apple HIG canonical toolbar
+        // pattern = no padding between tab strip and toolbar).
         VStack(spacing: 0) {
             // 30 PT tall (= matches LayoutTokens.toolbarHeight =
             // editor's pencil/arrow toolbar inside EditorPlaceholder).
+            // NO outer padding (= sits flush against ZoneContentView's
+            // tab strip; = Apple HIG canonical toolbar pattern).
             previewSearchBar
             // v0.30 boss 8/31 OOB: scope-driven dispatch. Each scope
             // branch handles its own toolbar (some hide toolbar, e.g.
-            // empty state).
+            // empty state). Padding applied here only (= doesn't
+            // affect the search bar's Y position).
             Group {
                 switch scope {
                 case .referenceScope(let category):
@@ -309,8 +321,8 @@ struct PreviewPane: View {
                     emptyScopeView()
                 }
             }
+            .padding(DesignTokens.chromePaddingHero)
         }
-        .padding(DesignTokens.chromePaddingHero)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
