@@ -649,6 +649,15 @@ struct ZoneModuleView: View {
     /// + LibraryRootView.
     @Environment(BookStore.self) private var bookStore
 
+    /// v0.40 boss 9/7 OOB '位置偏低了与右边的的编辑器的二层栏对齐':
+    /// Search bar for the preview pane. Owned at ZoneModuleView
+    /// level (= not inside PreviewPane) so it can be rendered ABOVE
+    /// the ZoneContentView's tab strip, at the same Y as the
+    /// editor's RegionTabBar. SwiftUI @State reactivity
+    /// re-evaluates `body` on every keystroke (= live refresh;
+    /// no submit button, no .onChange handler).
+    @State private var previewSearchQuery: String = ""
+
     /// v0.30 boss 8/31 OOB: computed preview scope (= mirrors
     /// WorkspaceView's `previewScope`; duplicated here to keep
     /// ZoneModuleView self-contained without threading the scope
@@ -720,7 +729,17 @@ struct ZoneModuleView: View {
             // defaults to .empty scope (= empty state). The active
             // WorkspaceView path uses PreviewPane directly with the
             // computed previewScope (= supports all 4 sidebar scopes).
-            ZoneContentView(zoneSlug: "projectPreview", tabs: [
+            //
+            // v0.40 boss 9/7 OOB '消失了, 没有实现' (= previous
+            // commit only wrapped WorkspaceView.renderTabByKind =
+            // dead code path; = the active live path is
+            // ZoneModuleView.case .projectPreview via
+            // TabContentDispatcher + RegisteredPanes). Now wrapping
+            // ZoneModuleView with the search bar above
+            // ZoneContentView (= visible in the live preview pane).
+            VStack(spacing: 0) {
+                previewSearchBar
+                ZoneContentView(zoneSlug: "projectPreview", tabs: [
                 (WenshuI18n.t("tab.title.preview"), "book-open-check", AnyView(PreviewPane(
                     scope: previewScope,
                     // v0.34 B-25-fix (= boss 9/3 'double-clicking card did not open the document'):
@@ -746,6 +765,7 @@ struct ZoneModuleView: View {
                 ))),
                 (WenshuI18n.t("tab.title.graph"), "waypoints", AnyView(GraphView())),
             ])
+            }  // end VStack wrapping search bar + ZoneContentView (preview)
 
         case .specializedTools:
             // Old 6-zone specializedTools = 4 tabs (Foreshadowing / Placeholder /
@@ -935,6 +955,54 @@ struct ZoneModuleView: View {
         // behavior; = no "second click fails" race.
         appState.openTabs.append(newTab)
         appState.activeTabId = newTab.id
+    }
+
+    /// v0.40 boss 9/7 OOB '位置偏低了与右边的的编辑器的二层栏对齐':
+    /// preview-pane search bar (= 30 PT tall, = matches
+    /// `LayoutTokens.toolbarHeight` used by RegionTabBar /
+    /// PaneTabBar; = visually aligned with the editor's tab
+    /// strip in the right column).
+    ///
+    /// Layout:
+    /// - magnifying-glass icon (left, .secondary, .small)
+    /// - TextField bound to `$previewSearchQuery` (.plain style,
+    ///   placeholder = `preview.search.placeholder`)
+    /// - clear-x button (only when `!previewSearchQuery.isEmpty`)
+    ///
+    /// SwiftUI @State reactivity re-evaluates `body` (= and any
+    /// consumers of `$previewSearchQuery`) on every keystroke
+    /// (= live refresh, no submit button, no .onChange handler).
+    /// Bound to PreviewPane via the `previewSearchQuery: Binding`
+    /// parameter (= filters the card grid by case-insensitive
+    /// substring match on display name + summary).
+    private var previewSearchBar: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+                .imageScale(.small)
+            TextField(
+                WenshuI18n.t("preview.search.placeholder"),
+                text: $previewSearchQuery
+            )
+            .textFieldStyle(.plain)
+            if !previewSearchQuery.isEmpty {
+                Button {
+                    previewSearchQuery = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                        .imageScale(.small)
+                }
+                .buttonStyle(.plain)
+                .help(WenshuI18n.t("preview.search.clear"))
+            }
+        }
+        .padding(.horizontal, DesignTokens.chromePaddingSmall)
+        // 30 PT height = matches LayoutTokens.toolbarHeight
+        // (= editor's RegionTabBar + preview's PaneTabBar + this
+        // search bar all line up at the same Y).
+        .frame(height: LayoutTokens.toolbarHeight)
+        .background(Color.clear)
     }
 
 }
