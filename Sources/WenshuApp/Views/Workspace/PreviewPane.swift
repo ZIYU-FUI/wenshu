@@ -378,7 +378,7 @@ struct PreviewPane: View {
                         .font(.body)
                         .textSelection(.enabled)
                 } else {
-                    Text("(空文档)")
+                    Text(WenshuI18n.t("auto.previewpane.l381.h62416093"))
                         .font(.callout)
                         .foregroundStyle(.tertiary)
                 }

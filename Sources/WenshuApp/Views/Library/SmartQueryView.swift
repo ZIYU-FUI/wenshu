@@ -28,7 +28,7 @@ struct SmartQueryView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("智能查询")
+                Text(WenshuI18n.t("auto.smartqueryview.l31.h18659764"))
                     .font(.headline)
                 Spacer()
                 Button {
@@ -63,7 +63,7 @@ struct SmartQueryView: View {
                 VStack(alignment: .leading) {
                     Text(query.name)
                         .font(.headline)
-                    Text("v0.27+ 启用")
+                    Text(WenshuI18n.t("auto.smartqueryview.l66.h44879479"))
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
@@ -83,10 +83,10 @@ struct SmartQueryView: View {
             // v0.27 boss 8/27 OOB: SF Symbol → Lucide canonical.
             LucideIconSystemFallback("magnifyingglass.circle", size: 48)
                 .foregroundStyle(.tertiary)
-            Text("还没有智能查询")
+            Text(WenshuI18n.t("auto.smartqueryview.l86.h89952862"))
                 .font(.headline)
                 .foregroundStyle(.secondary)
-            Text("v0.27+ 将启用搜索功能")
+            Text(WenshuI18n.t("auto.smartqueryview.l89.h6572603"))
                 .font(.callout)
                 .foregroundStyle(.tertiary)
         }

@@ -92,17 +92,17 @@ public struct BacklinksPanel: View {
         // in dfd97d0e7 (= POLISH-LIQUIDGLASS-004 modal sheets commit
         // body for .alert / .confirmationDialog).
         VStack(alignment: .leading, spacing: 8) {
-            Text("反链")
+            Text(WenshuI18n.t("auto.backlinkspanel.l95.h69157839"))
                 .font(.headline)
             if viewModel.isLoading {
-                Text("加载中…")
+                Text(WenshuI18n.t("auto.backlinkspanel.l98.h65489296"))
             } else if let error = viewModel.error {
-                Text("错误: \(error)")
+                Text(WenshuI18n.t("auto.backlinkspanel.l100.h25269061"))
                     .foregroundStyle(.red)
             } else {
-                Text("文档 ID: \(viewModel.docId)")
+                Text(WenshuI18n.t("auto.backlinkspanel.l103.h54547610"))
                     .font(.caption)
-                Text("链接数: \(viewModel.backlinks.count)")
+                Text(WenshuI18n.t("auto.backlinkspanel.l105.h29602002"))
                 ForEach(viewModel.backlinks, id: \.offset) { link in
                     Text("→ \(link.sourceDocId) @ \(link.line):\(link.offset)")
                         .font(.caption2)

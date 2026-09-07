@@ -109,7 +109,7 @@ struct LayoutEditBar: View {
     private var header: some View {
         HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("布局")
+                Text(WenshuI18n.t("auto.layouteditbar.l112.h90106758"))
                     .font(.body.weight(.semibold))
                 HStack(spacing: 4) {
                     Text("选择一个布局，或在区域之间拖动面板")

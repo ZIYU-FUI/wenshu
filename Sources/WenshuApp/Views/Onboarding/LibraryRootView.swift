@@ -363,9 +363,9 @@ Group {
 }
 
             VStack(spacing: 12) {
-                Text("欢迎使用文枢")
+                Text(WenshuI18n.t("auto.libraryrootview.l366.h45346224"))
                     .font(.title.weight(.semibold))
-                Text("请指定文枢仓库的位置")
+                Text(WenshuI18n.t("auto.libraryrootview.l368.h51962802"))
                     .font(.title2)
                     .foregroundStyle(.secondary)
                 Text("文枢会把你的书架、聊天记录、看板、任务、资产都保存在这个仓库里。")

@@ -43,12 +43,12 @@ public struct GraphView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("关系图")
+            Text(WenshuI18n.t("auto.graphview.l46.h27522022"))
                 .font(.headline)
-            Text("节点数: \(viewModel.graph.nodes.count)")
-            Text("边数: \(viewModel.graph.edges.count)")
+            Text(WenshuI18n.t("auto.graphview.l48.h95089856"))
+            Text(WenshuI18n.t("auto.graphview.l49.h9956370"))
             if let error = viewModel.error {
-                Text("错误: \(error)")
+                Text(WenshuI18n.t("auto.graphview.l51.h33390865"))
                     .foregroundStyle(.red)
             }
         }

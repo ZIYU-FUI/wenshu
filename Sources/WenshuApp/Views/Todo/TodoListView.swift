@@ -104,7 +104,7 @@ public struct TodoListView: View {
             }
             inputRow
             if let err = loadError {
-                Text("(加载失败: \(err))")
+                Text(WenshuI18n.t("auto.todolistview.l107.h41709117"))
                     .font(.caption)
                     .foregroundStyle(.red)
             }
@@ -132,7 +132,7 @@ public struct TodoListView: View {
     /// B-13: scope picker drives the JSON file the view reads from.
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text("待办")
+            Text(WenshuI18n.t("auto.todolistview.l135.h30358113"))
                 .font(.headline)
             Picker("scope", selection: $scope) {
                 ForEach(bookStore.availableScopes(bookId: bookStore.selectedBookId)) { s in
@@ -143,7 +143,7 @@ public struct TodoListView: View {
             .fixedSize()
             .help("切换待办数据范围 (= 全书 / 8 标准子目录 / 资料库)")
             Spacer()
-            Text("\(items.count) 项 · \(jsonHint)")
+            Text(WenshuI18n.t("auto.todolistview.l146.h44817253"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -199,7 +199,7 @@ public struct TodoListView: View {
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             } else if newItemTitle.trimmingCharacters(in: .whitespaces).isEmpty {
-                Text("输入标题后才能新建")
+                Text(WenshuI18n.t("auto.todolistview.l202.h74652246"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
@@ -250,7 +250,7 @@ public struct TodoListView: View {
                 Image(systemName: "sparkles")
                     .font(.caption)
                     .foregroundStyle(.tint)
-                Text("LLM 待办活动")
+                Text(WenshuI18n.t("auto.todolistview.l253.h37022798"))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
                 Spacer()
@@ -354,7 +354,7 @@ public struct TodoListView: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.secondary)
             if subset.isEmpty {
-                Text("(空)")
+                Text(WenshuI18n.t("auto.todolistview.l357.h8034177"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             } else {
@@ -596,14 +596,14 @@ private struct TodoRow: View {
                     .font(.caption)
                     .foregroundStyle(isOverdue ? Color.red : Color.secondary)
                 if isOverdue {
-                    Text("已过期")
+                    Text(WenshuI18n.t("auto.todolistview.l599.h48598096"))
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(.red)
                 }
             }
             .help(isOverdue ? "已过期 — 请尽快处理" : "截止日")
         } else {
-            Text("(无截止)")
+            Text(WenshuI18n.t("auto.todolistview.l606.h15488982"))
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }

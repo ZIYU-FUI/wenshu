@@ -59,7 +59,7 @@ public struct SearchPanel: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("搜索")
+            Text(WenshuI18n.t("auto.searchpanel.l62.h62708978"))
                 .font(.headline)
             TextField("搜索…", text: $queryText)
                 .textFieldStyle(.roundedBorder)
@@ -68,12 +68,12 @@ public struct SearchPanel: View {
                     Task { await viewModel.runSearch() }
                 }
             if viewModel.isLoading {
-                Text("搜索中…")
+                Text(WenshuI18n.t("auto.searchpanel.l71.h47979456"))
             } else if let error = viewModel.error {
-                Text("错误: \(error)")
+                Text(WenshuI18n.t("auto.searchpanel.l73.h62446243"))
                     .foregroundStyle(.red)
             } else {
-                Text("结果数: \(viewModel.results.count)")
+                Text(WenshuI18n.t("auto.searchpanel.l76.h29196047"))
                 ForEach(viewModel.results, id: \.docId) { result in
                     VStack(alignment: .leading) {
                         Text(result.docId).font(.caption.bold())

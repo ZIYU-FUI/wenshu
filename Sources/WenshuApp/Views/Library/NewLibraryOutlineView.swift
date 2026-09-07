@@ -332,7 +332,7 @@ struct NewLibraryOutlineView: View {
                     // automatic alignment with the other shelves'
                     // counts).
                     Label {
-                        Text("资料库")
+                        Text(WenshuI18n.t("auto.newlibraryoutlineview.l335.h35976706"))
                     } icon: {
                         LucideIconSidebar("square-library")
                     }
@@ -1580,7 +1580,7 @@ private struct NewBookSheet: View {
                                 .foregroundStyle(Color.accentColor)
                         }
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("已选 ICON")
+                            Text(WenshuI18n.t("auto.newlibraryoutlineview.l1583.h18380292"))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             Text(selectedIcon)
@@ -1625,7 +1625,7 @@ private struct NewBookSheet: View {
                     }
                     .frame(height: DesignTokens.popoverMaxHeight)
                 } header: {
-                    Text("ICON (必选)")
+                    Text(WenshuI18n.t("auto.newlibraryoutlineview.l1628.h40388730"))
                 }
             }
             .formStyle(.grouped)
@@ -1743,7 +1743,7 @@ private struct NewShelfSheet: View {
                         .padding(.top, DesignTokens.chromePaddingMicro)
                     }
                 } header: {
-                    Text("名称")
+                    Text(WenshuI18n.t("auto.newlibraryoutlineview.l1746.h58346771"))
                 }
                 Section {
                     // Icon preview (= shows the selected icon at
@@ -1757,7 +1757,7 @@ private struct NewShelfSheet: View {
                                 .foregroundStyle(Color.accentColor)
                         }
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("已选 ICON")
+                            Text(WenshuI18n.t("auto.newlibraryoutlineview.l1760.h18380292"))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             Text(selectedIcon)
@@ -1809,7 +1809,7 @@ private struct NewShelfSheet: View {
                     }
                     .frame(height: DesignTokens.popoverMaxHeight)
                 } header: {
-                    Text("ICON (必选)")
+                    Text(WenshuI18n.t("auto.newlibraryoutlineview.l1812.h40388730"))
                 }
             }
             .formStyle(.grouped)
@@ -1852,7 +1852,7 @@ struct NewChoiceSheet: View {
                     } label: {
                         VStack(spacing: 8) {
                             LucideIcon("book-plus", size: 32)
-                            Text("新建书").font(.body)
+                            Text(WenshuI18n.t("auto.newlibraryoutlineview.l1855.h10335406")).font(.body)
                         }
                         .frame(width: DesignTokens.chipAvatarSize.width, height: DesignTokens.chipAvatarSize.height)
                     }
@@ -1863,7 +1863,7 @@ struct NewChoiceSheet: View {
                     } label: {
                         VStack(spacing: 8) {
                             LucideIcon("library", size: 32)
-                            Text("新建书架").font(.body)
+                            Text(WenshuI18n.t("auto.newlibraryoutlineview.l1866.h64741338")).font(.body)
                         }
                         .frame(width: DesignTokens.chipAvatarSize.width, height: DesignTokens.chipAvatarSize.height)
                     }

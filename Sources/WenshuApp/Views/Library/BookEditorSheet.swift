@@ -119,9 +119,9 @@ struct BookEditorSheet: View {
                     }
                     .pickerStyle(.segmented)
                 } header: {
-                    Text("篇幅")
+                    Text(WenshuI18n.t("auto.bookeditorsheet.l122.h20025200"))
                 } footer: {
-                    Text("选中后可在书内逐章调整。")
+                    Text(WenshuI18n.t("auto.bookeditorsheet.l124.h18390452"))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
