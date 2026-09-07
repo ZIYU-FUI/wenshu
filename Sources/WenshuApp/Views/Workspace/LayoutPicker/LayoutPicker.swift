@@ -173,11 +173,11 @@ struct LayoutPicker: View {
             ),
             presenting: pendingDeletePreset
         ) { preset in
-            Button("删除", role: .destructive) {
+            Button(WenshuI18n.t("auto2.layoutpicker.l176.h93153796"), role: .destructive) {
                 store.deletePreset(preset)
                 pendingDeletePreset = nil
             }
-            Button("取消", role: .cancel) {
+            Button(WenshuI18n.t("auto2.layoutpicker.l180.h50847315"), role: .cancel) {
                 pendingDeletePreset = nil
             }
         } message: { preset in
@@ -189,16 +189,16 @@ struct LayoutPicker: View {
     private var saveCurrentLayoutInput: some View {
         VStack(spacing: 6) {
             HStack(spacing: 6) {
-                TextField("模板名称", text: $newPresetName)
+                TextField(WenshuI18n.t("auto2.layoutpicker.l192.h42077297"), text: $newPresetName)
                     .textFieldStyle(.roundedBorder)
                     .frame(maxWidth: .infinity)
                     .onSubmit { commitSave() }
-                Button("保存") {
+                Button(WenshuI18n.t("auto2.layoutpicker.l196.h34447881")) {
                     commitSave()
                 }
                 .disabled(newPresetName.trimmingCharacters(in: .whitespaces).isEmpty)
                 .buttonStyle(.borderedProminent)
-                Button("取消") {
+                Button(WenshuI18n.t("auto2.layoutpicker.l201.h50847315")) {
                     withAnimation {
                         showingSaveInput = false
                         newPresetName = ""

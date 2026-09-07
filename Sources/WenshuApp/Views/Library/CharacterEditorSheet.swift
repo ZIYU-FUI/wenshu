@@ -49,11 +49,11 @@ struct CharacterEditorSheet: View {
             .padding()
             Divider()
             Form {
-                Section("基本信息") {
-                    TextField("姓名", text: $name)
+                Section(WenshuI18n.t("auto2.charactereditorsheet.l52.h28107626")) {
+                    TextField(WenshuI18n.t("auto2.charactereditorsheet.l53.h66464513"), text: $name)
                         .textFieldStyle(.roundedBorder)
                     HStack {
-                        TextField("年龄 (可选)", text: $ageText)
+                        TextField(WenshuI18n.t("auto2.charactereditorsheet.l56.h53671324"), text: $ageText)
                             .textFieldStyle(.roundedBorder)
                             .frame(width: DesignTokens.formColumnWidth)
                         Picker("角色定位", selection: $role) {
@@ -65,13 +65,13 @@ struct CharacterEditorSheet: View {
                         .pickerStyle(.menu)
                     }
                 }
-                Section("叙事弧 (主角从 a 状态经过 b 事件最终 c 状态)") {
-                    TextField("叙事弧 (可选)", text: $arc, axis: .vertical)
+                Section(WenshuI18n.t("auto2.charactereditorsheet.l68.h34370280")) {
+                    TextField(WenshuI18n.t("auto2.charactereditorsheet.l69.h8473413"), text: $arc, axis: .vertical)
                         .lineLimit(2...4)
                         .textFieldStyle(.roundedBorder)
                 }
-                Section("摘要 (一行的中心思想)") {
-                    TextField("摘要", text: $summary, axis: .vertical)
+                Section(WenshuI18n.t("auto2.charactereditorsheet.l73.h486167")) {
+                    TextField(WenshuI18n.t("auto2.charactereditorsheet.l74.h20415111"), text: $summary, axis: .vertical)
                         .lineLimit(2...4)
                         .textFieldStyle(.roundedBorder)
                 }
@@ -79,9 +79,9 @@ struct CharacterEditorSheet: View {
             .formStyle(.grouped)
             Divider()
             HStack {
-                Button("取消", role: .cancel) { onCancel() }
+                Button(WenshuI18n.t("auto2.charactereditorsheet.l82.h78730154"), role: .cancel) { onCancel() }
                 Spacer()
-                Button("保存") { save() }
+                Button(WenshuI18n.t("auto2.charactereditorsheet.l84.h77095521")) { save() }
                     .buttonStyle(.borderedProminent)
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     .keyboardShortcut(.defaultAction)

@@ -181,7 +181,7 @@ struct LibraryMigrator: Sendable {
                   var existing = try? JSONDecoder().decode(Book.self, from: data),
                   existing.title == "从这里开始"
             else { continue }
-            existing.title = "帮助"
+            existing.title = WenshuI18n.t("auto2.librarymigrator.l184.h9364478")
             existing.updatedAt = Date()
             let updated = try JSONEncoder().encode(existing)
             try updated.write(to: bookJSONURL)

@@ -34,7 +34,7 @@ struct SmartQueryView: View {
                 Button {
                     showCreateSheet = true
                 } label: {
-                    Label("新建", systemImage: "plus")
+                    Label(WenshuI18n.t("auto2.smartqueryview.l37.h49599855"), systemImage: "plus")
                 }
                 .controlSize(.small)
             }
@@ -70,7 +70,7 @@ struct SmartQueryView: View {
                 Spacer()
             }
             .contextMenu {
-                Button("删除", role: .destructive) {
+                Button(WenshuI18n.t("auto2.smartqueryview.l73.h22475030"), role: .destructive) {
                     delete(query)
                 }
             }
@@ -97,12 +97,12 @@ struct SmartQueryView: View {
     private var createSheet: some View {
         NavigationStack {
             Form {
-                Section("名称") {
-                    TextField("查询名称", text: $newQueryName)
+                Section(WenshuI18n.t("auto2.smartqueryview.l100.h38153477")) {
+                    TextField(WenshuI18n.t("auto2.smartqueryview.l101.h43731610"), text: $newQueryName)
                         .textFieldStyle(.roundedBorder)
                 }
                 Section {
-                    Text("v0.27+ 将提供查询结构定义 (实体类型 + 名称匹配 + 关联过滤)。\nv0.26 阶段智能查询为占位功能。")
+                    Text(WenshuI18n.t("auto2.smartqueryview.l105.h81062794"))
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
@@ -114,10 +114,10 @@ struct SmartQueryView: View {
             .navigationTitle(WenshuI18n.t("smart_query.create.title"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { showCreateSheet = false }
+                    Button(WenshuI18n.t("auto2.smartqueryview.l117.h19213351")) { showCreateSheet = false }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") { create() }
+                    Button(WenshuI18n.t("auto2.smartqueryview.l120.h24989358")) { create() }
                         .disabled(newQueryName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         .keyboardShortcut(.defaultAction)
                 }

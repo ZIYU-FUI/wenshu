@@ -177,7 +177,7 @@ struct ChatZoneTabBar: View {
             .onHover { hovering in
                 showingArchiveAlertHover = hovering
             }
-            .help("归档当前会话")
+            .help(WenshuI18n.t("auto2.chatzonetabbar.l180.h88771180"))
             .padding(.trailing, DesignTokens.chromePaddingTrailing)
         }
         .frame(maxWidth: .infinity)

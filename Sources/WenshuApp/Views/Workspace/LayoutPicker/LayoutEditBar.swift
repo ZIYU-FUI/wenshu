@@ -133,12 +133,12 @@ struct LayoutEditBar: View {
                 }
             }
             Spacer()
-            Button("重置") {
+            Button(WenshuI18n.t("auto2.layouteditbar.l136.h66133888")) {
                 store.resetToDefault()
             }
             .buttonStyle(.borderless)
             .foregroundStyle(.secondary)
-            Button("完成") {
+            Button(WenshuI18n.t("auto2.layouteditbar.l141.h65113621")) {
                 editMode.set(false)
             }
             .buttonStyle(.bordered)

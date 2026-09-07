@@ -96,9 +96,9 @@ struct BookEditorSheet: View {
     var body: some View {
         Form {
             Section {
-                TextField("书名", text: $title)
+                TextField(WenshuI18n.t("auto2.bookeditorsheet.l99.h94921264"), text: $title)
                     .onSubmit(commit)
-                TextField("作者（可选）", text: $author)
+                TextField(WenshuI18n.t("auto2.bookeditorsheet.l101.h15789783"), text: $author)
                     .onSubmit(commit)
             } header: {
                 Text(titleText)
@@ -157,10 +157,10 @@ struct BookEditorSheet: View {
         .background { Color.clear.glassEffect(.regular) }
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("取消") { dismiss() }
+                Button(WenshuI18n.t("auto2.bookeditorsheet.l160.h80176953")) { dismiss() }
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("保存", action: commit)
+                Button(WenshuI18n.t("auto2.bookeditorsheet.l163.h48925685"), action: commit)
                     .keyboardShortcut(.defaultAction)
                     .disabled(!canCommit)
             }

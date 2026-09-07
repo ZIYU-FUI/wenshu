@@ -120,7 +120,7 @@ public struct PaneStatusBar: View {
                         .buttonStyle(.plain)
                         .padding(.trailing, DesignTokens.chromePaddingTrailing - 6)
                         .padding(.bottom, DesignTokens.chromePaddingVertical / 2)
-                        .help("点击查看详情")
+                        .help(WenshuI18n.t("auto2.panestatusbar.l123.h37793039"))
                     } else {
                         Text(rightText)
                             .font(DesignTokens.statusFont)

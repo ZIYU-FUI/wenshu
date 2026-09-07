@@ -57,8 +57,8 @@ struct WorldEntryEditorSheet: View {
             .padding()
             Divider()
             Form {
-                Section("基本信息") {
-                    TextField("名称", text: $name)
+                Section(WenshuI18n.t("auto2.worldentryeditorsheet.l60.h68295865")) {
+                    TextField(WenshuI18n.t("auto2.worldentryeditorsheet.l61.h51100240"), text: $name)
                         .textFieldStyle(.roundedBorder)
                     Picker("类型", selection: $type) {
                         ForEach(WorldEntryType.allCases, id: \.self) { kind in
@@ -69,16 +69,16 @@ struct WorldEntryEditorSheet: View {
                     .pickerStyle(.menu)
                     if type == .other {
                         HStack {
-                            TextField("新类型标识 (英文)", text: $newTypeRaw)
+                            TextField(WenshuI18n.t("auto2.worldentryeditorsheet.l72.h25860463"), text: $newTypeRaw)
                                 .textFieldStyle(.roundedBorder)
-                            TextField("新类型显示名 (中文)", text: $newTypeDisplayName)
+                            TextField(WenshuI18n.t("auto2.worldentryeditorsheet.l74.h3499700"), text: $newTypeDisplayName)
                                 .textFieldStyle(.roundedBorder)
                         }
-                        .help("新类型 = .other 时可指定；留空则保持 .other")
+                        .help(WenshuI18n.t("auto2.worldentryeditorsheet.l77.h96228527"))
                     }
                 }
-                Section("摘要 (一行的中心思想)") {
-                    TextField("摘要", text: $summary, axis: .vertical)
+                Section(WenshuI18n.t("auto2.worldentryeditorsheet.l80.h15189232")) {
+                    TextField(WenshuI18n.t("auto2.worldentryeditorsheet.l81.h41043051"), text: $summary, axis: .vertical)
                         .lineLimit(2...4)
                         .textFieldStyle(.roundedBorder)
                 }
@@ -86,9 +86,9 @@ struct WorldEntryEditorSheet: View {
             .formStyle(.grouped)
             Divider()
             HStack {
-                Button("取消", role: .cancel) { onCancel() }
+                Button(WenshuI18n.t("auto2.worldentryeditorsheet.l89.h29496358"), role: .cancel) { onCancel() }
                 Spacer()
-                Button("保存") { save() }
+                Button(WenshuI18n.t("auto2.worldentryeditorsheet.l91.h21300719")) { save() }
                     .buttonStyle(.borderedProminent)
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     .keyboardShortcut(.defaultAction)

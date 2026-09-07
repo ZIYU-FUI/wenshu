@@ -195,8 +195,8 @@ struct ChatZoneView: View {
                 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
                 // 起一个全新的会话. 上下文重新加载'.
                 .alert("归档当前会话?", isPresented: $showingArchiveAlert) {
-                    Button("取消", role: .cancel) { }
-                    Button("归档并新建", role: .destructive) {
+                    Button(WenshuI18n.t("auto2.chatzoneview.l198.h94569451"), role: .cancel) { }
+                    Button(WenshuI18n.t("auto2.chatzoneview.l199.h54186819"), role: .destructive) {
                         archiveAndStartNewSession()
                     }
                 } message: {

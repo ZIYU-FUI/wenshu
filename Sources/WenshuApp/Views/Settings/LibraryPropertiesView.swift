@@ -52,7 +52,7 @@ struct LibraryPropertiesView: View {
             .padding()
             Divider()
             Form {
-                Section("基本信息") {
+                Section(WenshuI18n.t("auto2.librarypropertiesview.l55.h84342329")) {
                     LabeledContent("当前路径") {
                         Text(libraryPath)
                             .font(.callout)
@@ -65,7 +65,7 @@ struct LibraryPropertiesView: View {
                                 .font(.callout.monospacedDigit())
                         }
                         Spacer()
-                        Button("刷新") {
+                        Button(WenshuI18n.t("auto2.librarypropertiesview.l68.h7832952")) {
                             refreshDiskUsage()
                         }
                         .controlSize(.small)
@@ -75,21 +75,21 @@ struct LibraryPropertiesView: View {
                             .font(.callout.monospacedDigit())
                     }
                 }
-                Section("操作") {
+                Section(WenshuI18n.t("auto2.librarypropertiesview.l78.h53311866")) {
                     Button {
                         onRevealInFinder()
                     } label: {
-                        Label("在 Finder 中显示", systemImage: "folder")
+                        Label(WenshuI18n.t("auto2.librarypropertiesview.l82.h54714643"), systemImage: "folder")
                     }
                     Button {
                         onMoveWarehouse()
                     } label: {
-                        Label("移动仓库到...", systemImage: "arrow.right.square")
+                        Label(WenshuI18n.t("auto2.librarypropertiesview.l87.h35464092"), systemImage: "arrow.right.square")
                     }
                     Button(role: .destructive) {
                         showResetConfirmation = true
                     } label: {
-                        Label("重置库", systemImage: "arrow.uturn.backward")
+                        Label(WenshuI18n.t("auto2.librarypropertiesview.l92.h43224553"), systemImage: "arrow.uturn.backward")
                     }
                 }
                 Section {
@@ -102,7 +102,7 @@ struct LibraryPropertiesView: View {
             Divider()
             HStack {
                 Spacer()
-                Button("关闭") { onClose() }
+                Button(WenshuI18n.t("auto2.librarypropertiesview.l105.h50336293")) { onClose() }
                     .keyboardShortcut(.defaultAction)
             }
             .padding()
@@ -114,12 +114,12 @@ struct LibraryPropertiesView: View {
             isPresented: $showResetConfirmation,
             titleVisibility: .visible
         ) {
-            Button("重置 (清空设置，下次启动重新选库)", role: .destructive) {
+            Button(WenshuI18n.t("auto2.librarypropertiesview.l117.h15214969"), role: .destructive) {
                 onResetLibrary()
             }
-            Button("取消", role: .cancel) {}
+            Button(WenshuI18n.t("auto2.librarypropertiesview.l120.h99009187"), role: .cancel) {}
         } message: {
-            Text("重置不会删除 .ws 目录中的数据。\n仅清空 wenshu.libraryPath 设置，下次启动会回到 onboarding。")
+            Text(WenshuI18n.t("auto2.librarypropertiesview.l122.h75912153"))
         }
     }
 

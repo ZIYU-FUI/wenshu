@@ -44,7 +44,7 @@ public struct QuickSwitcherWindow: View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Quick Switcher")
                 .font(.headline)
-            TextField("搜索 note...", text: $queryText)
+            TextField(WenshuI18n.t("auto2.quickswitcherwindow.l47.h24962090"), text: $queryText)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit {
                     viewModel.setQuery(queryText)

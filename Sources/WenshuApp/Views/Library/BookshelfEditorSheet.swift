@@ -54,7 +54,7 @@ struct BookshelfEditorSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
                 .font(.headline)
-            TextField("书架名称", text: $name)
+            TextField(WenshuI18n.t("auto2.bookshelfeditorsheet.l57.h11927154"), text: $name)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit(commit)
                 .frame(minWidth: 280)
@@ -65,11 +65,11 @@ struct BookshelfEditorSheet: View {
             }
             HStack {
                 Spacer()
-                Button("取消", role: .cancel) {
+                Button(WenshuI18n.t("auto2.bookshelfeditorsheet.l68.h6121979"), role: .cancel) {
                     dismiss()
                 }
                 .keyboardShortcut(.cancelAction)
-                Button("保存") {
+                Button(WenshuI18n.t("auto2.bookshelfeditorsheet.l72.h99792220")) {
                     commit()
                 }
                 .keyboardShortcut(.defaultAction)
