@@ -1167,14 +1167,42 @@ struct EditorPlaceholder: View {
                 if activeTab == nil {
                     emptyStateHint
                 } else if mode == .preview {
-                    // SMC ticket 003: preview-mode wiki-link nav
-                    // routes through the reference library + active
-                    // book chapter lookup (= real target resolution).
-                    EditorPreviewContent(
-                        markdownBody: draft,
-                        wikilinkTarget: { displayName in
-                            handlePreviewWikiLink(displayName: displayName)
-                        }
+                    // v0.40 boss 9/7 OOB '编辑器的样式, 无论是几种模式,
+                    // 应该用同一个组件呈现': preview mode uses the
+                    // SAME WenshuMarkdownEditor component as edit
+                    // mode (= swift-markdown-engine NSTextView), just
+                    // with `isEditable: false` (= read-only NSTextView).
+                    // Previously preview used a separate
+                    // EditorPreviewContent (= SwiftUI AttributedString
+                    // renderer) which produced a different visual scale
+                    // (= the "缩放感" boss described). Unified
+                    // component = zero visual scaling between modes.
+                    //
+                    // SMC ticket 003: wiki-link click navigation routes
+                    // through the reference library + active book
+                    // chapter lookup (= real target resolution).
+                    // Engine's wiki-link click invokes
+                    // `handlePreviewWikiLink` (= preview mode = read,
+                    // = the click is the primary action).
+                    WenshuMarkdownEditor(
+                        text: Binding(
+                            get: { self.draft },
+                            set: { self.draft = $0 }
+                        ),
+                        draftId: activeTabIdString,
+                        configuration: WenshuEditorServicesFactory.make(
+                            bookStore: bookStore,
+                            bus: MarkdownEditorBus.buildWenshu()
+                        ),
+                        onLinkClick: { linkId in
+                            handleEditorWikiLink(linkId: linkId)
+                        },
+                        // v0.40 boss 9/7 OOB '编辑器的样式, 无论是
+                        // 几种模式, 应该用同一个组件呈现': preview
+                        // mode = read-only NSTextView (= same engine
+                        // wrapper as edit, = no scaling between
+                        // modes).
+                        isEditable: false
                     )
                 } else {
                     // v0.34 ticket 07: edit mode uses Apple SwiftUI

@@ -84,7 +84,12 @@ struct EditorEditContent: View {
             text: $draft,
             draftId: draftId,
             configuration: configuration,
-            onLinkClick: onLinkClick
+            onLinkClick: onLinkClick,
+            // v0.40 boss 9/7 OOB '编辑器的样式, 无论是几种模式,
+            // 应该用同一个组件呈现': edit mode = editable NSTextView
+            // (= same engine wrapper as preview, = no scaling
+            // between modes).
+            isEditable: true
         )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             // v0.34 B-18: write live character count via host callback
