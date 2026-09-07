@@ -224,6 +224,35 @@ struct NewLibraryOutlineView: View {
     // sidebar expansion/selection state (= useful for multi-window
     // workflows where the user has different library views open).
     @SceneStorage("wenshu.sidebarState") private var persistedSidebarState: String = ""
+
+    /// v0.40 boss 9/7 OOB '加一个二层的栏, 搜索功能, 不用要搜索按钮,
+    /// 每打一个字, 内容自动刷新. 清空恢复全显': sidebar search
+    /// field (= filters the top-level shelf rows in real time;
+    /// no submit button; = each keystroke updates the visible rows;
+    /// empty query = show all).
+    ///
+    /// v0.40 boss 9/7 OOB follow-up '搜索只匹配顶层 entry (= shelf
+    /// 名 + 资料库目录), 不递归子节点 (= 跟 macOS Finder 一致)':
+    /// filter only matches the top-level entry display name; book /
+    /// folder rows under a shelf are not included in the search
+    /// (= cleaner UI, simpler code; = users who want to find a
+    /// specific book open the shelf first and use Finder-like
+    /// search within it later). Implementation = `filteredShelves`
+    /// computed property below.
+    @State private var searchQuery: String = ""
+
+    /// v0.40 boss 9/7 OOB '清空恢复全显': when `searchQuery` is
+    /// empty (= all-whitespace too), `filteredShelves` returns the
+    /// original shelves array (= show everything). Otherwise filters
+    /// by case-insensitive substring match against the shelf name.
+    private var filteredShelves: [Bookshelf] {
+        let trimmed = searchQuery.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return shelves }
+        return shelves.filter { shelf in
+            shelf.name.localizedCaseInsensitiveContains(trimmed)
+        }
+    }
+
     var body: some View {
         // v0.30: 100% Apple HIG standard sidebar.
         //
@@ -252,6 +281,44 @@ struct NewLibraryOutlineView: View {
         // via List(.sidebar)'s click-to-deselect). The selection is
         // only changed by explicit actions (= button taps, double-
         // click toggles, etc.) — never by List's own deselect gesture.
+        VStack(spacing: 0) {
+            // v0.40 boss 9/7 OOB '加一个二层的栏, 搜索功能, 不用要搜索按钮,
+            // 每打一个字, 内容自动刷新. 清空恢复全显': real-time
+            // sidebar search (= TextField + .onChange, no submit
+            // button; = each keystroke re-evaluates filteredShelves
+            // via SwiftUI's reactive observation of @State).
+            // Empty query → show all (= filteredShelves returns
+            // the original `shelves` array).
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+                    .imageScale(.small)
+                TextField(
+                    WenshuI18n.t("sidebar.search.placeholder"),
+                    text: $searchQuery
+                )
+                .textFieldStyle(.plain)
+                // Boss asked for live refresh on each keystroke
+                // (= no submit button). SwiftUI re-evaluates
+                // `body` (= and the filteredShelves computed
+                // property) on every `searchQuery` change because
+                // @State is reactive; = native live refresh without
+                // any explicit .onChange handler.
+                if !searchQuery.isEmpty {
+                    Button {
+                        searchQuery = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                            .imageScale(.small)
+                    }
+                    .buttonStyle(.plain)
+                    .help(WenshuI18n.t("sidebar.search.clear"))
+                }
+            }
+            .padding(.horizontal, DesignTokens.chromePaddingSmall)
+            .padding(.vertical, DesignTokens.chromePaddingSmall)
+            .background(Color.clear)
         List(selection: Binding(
             get: { appState.sidebarSelection },
             set: { newValue in
@@ -274,7 +341,7 @@ struct NewLibraryOutlineView: View {
             // expands so Worldview / Characters / Chapter Outline / Novel Body / Novel Drafts
             // are visible without an extra tap (= boss OOB #3 'child
             // folders should be visible immediately on book select').
-            ForEach(shelves) { shelf in
+            ForEach(filteredShelves) { shelf in
                 shelfRow(shelf)
             }
             // Reference library (= library's default shelf per boss 8/26
@@ -341,6 +408,7 @@ struct NewLibraryOutlineView: View {
                 }
             }
         }
+        }  // end VStack wrapping search bar + List
         .listStyle(.sidebar)
         // v0.30 boss 8/31 OOB: right-click context menu on
         // selected rows. Apple HIG official pattern in macOS 14+ is
