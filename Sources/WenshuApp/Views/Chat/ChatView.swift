@@ -27,6 +27,18 @@ public struct ChatMessage: Equatable, Identifiable, Sendable {
     public var isPlaceholder: Bool
     public var tokens: Int?    // real LLM API usage.total_tokens (nil if user message or unavailable)
     public var thinking: String?    // CoT thinking content from WenshuLLMBlock.thinking (folded footnote UI)
+    // CHATIMG-001 (2026-09-07): absolute file URL of an attached
+    // screenshot/image. When non-nil, ChatMessageView renders the image
+    // thumbnail above the text content. The file lives in
+    // `<libraryPath>/cache/chat-uploads/` (= per §11 .ws bundle layout =
+    // cache subfolder holds thumbnails + search index + export temp; this
+    // ticket adds `chat-uploads` as the canonical chat-attachment cache
+    // dir). nil = no image attached. Send-time semantics: the user
+    // message carries the path; LLM send path (per §11.3 wenshu-side
+    // wins) does NOT forward the image bytes to the provider this round
+    // (= out-of-scope for ticket CHATIMG-001; ticket CHATIMG-002 covers
+    // the multimodal upload protocol).
+    public var imagePath: String?
 
     public init(
         id: UUID = UUID(),
@@ -36,7 +48,8 @@ public struct ChatMessage: Equatable, Identifiable, Sendable {
         timestamp: Date = Date(),
         isPlaceholder: Bool = false,
         tokens: Int? = nil,
-        thinking: String? = nil
+        thinking: String? = nil,
+        imagePath: String? = nil
     ) {
         self.id = id
         self.role = role
@@ -46,6 +59,7 @@ public struct ChatMessage: Equatable, Identifiable, Sendable {
         self.isPlaceholder = isPlaceholder
         self.tokens = tokens
         self.thinking = thinking
+        self.imagePath = imagePath
     }
 }
 
@@ -69,8 +83,65 @@ public enum ChatSource: String, Equatable, Sendable, Codable {
 public final class ChatViewModel {
     public var messages: [ChatMessage] = []
     public var inputText: String = ""
+    // CHATIMG-001 (2026-09-07): absolute path of an image the user
+    // attached via the chat input row's paperclip button (= draft
+    // state). When non-nil, a small preview chip is rendered above
+    // the TextField; on send the path is moved into the ChatMessage
+    // and the draft is cleared. nil = no pending image.
+    public var attachedImagePath: String?
     public var isSending: Bool = false
     public var lastError: String?
+
+    /// CHATIMG-001 (2026-09-07): copy the picked file into the
+    /// library's `cache/chat-uploads/` dir (= canonical cache
+    /// subfolder per §11 .ws layout; this ticket adds `chat-uploads`
+    /// as the chat-attachment cache dir) and set `attachedImagePath`
+    /// to the new absolute path. Returns false (= no-op) when the
+    /// source file is missing or the library path isn't configured.
+    /// File extension whitelist = .png/.jpg/.jpeg/.gif/.heic (= common
+    /// screenshot formats). The library path is read from
+    /// `wenshu.libraryPath` UserDefaults (= canonical home for the
+    /// .ws bundle path = written by LibraryRootView at onboarding).
+    @discardableResult
+    public func attachImage(at sourceURL: URL) -> Bool {
+        let fm = FileManager.default
+        let ext = sourceURL.pathExtension.lowercased()
+        guard ["png", "jpg", "jpeg", "gif", "heic"].contains(ext) else { return false }
+        guard fm.fileExists(atPath: sourceURL.path) else { return false }
+        let libraryPath = UserDefaults.standard.string(forKey: "wenshu.libraryPath") ?? ""
+        guard !libraryPath.isEmpty else { return false }
+        let uploadsDir = URL(fileURLWithPath: libraryPath)
+            .appendingPathComponent("cache", isDirectory: true)
+            .appendingPathComponent("chat-uploads", isDirectory: true)
+        do {
+            try fm.createDirectory(at: uploadsDir, withIntermediateDirectories: true)
+        } catch {
+            return false
+        }
+        // Unique filename = <uuid>.<ext> so two attachments don't collide.
+        let destName = UUID().uuidString + "." + ext
+        let destURL = uploadsDir.appendingPathComponent(destName)
+        do {
+            // security-scoped resource = NSOpenPanel gives us a URL
+            // with sandbox-scoped access; copying into our own
+            // uploads dir permanently lifts the scope. For the
+            // fileImporter case (= .fileImporter is the entry
+            // point used by the attach button), the picked URL is
+            // already accessible in the process sandbox.
+            try fm.copyItem(at: sourceURL, to: destURL)
+        } catch {
+            return false
+        }
+        attachedImagePath = destURL.path
+        return true
+    }
+
+    /// CHATIMG-001: clear the pending image draft (= called when
+    /// the user clicks the small ✕ on the preview chip, or after
+    /// send).
+    public func clearAttachedImage() {
+        attachedImagePath = nil
+    }
     // B-05: wenshu.llm.model centralization. The model id was
     // previously scattered as 7 different reads/writes (4 @AppStorage
     // + 3 raw UserDefaults); the canonical owner is now
@@ -260,8 +331,15 @@ public final class ChatViewModel {
     /// send: send message → Wenshu main agent synthesis
     public func send() async {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty, !isSending else { return }
-        let userMsg = ChatMessage(role: .user, source: .user, content: text)
+        // CHATIMG-001 (2026-09-07): allow image-only sends (= an
+        // attached screenshot with no text is still a valid send; the
+        // image carries the meaning). Capture + clear the draft path
+        // BEFORE constructing the user message so the message captures
+        // the image atomically.
+        let imagePath = attachedImagePath
+        attachedImagePath = nil
+        guard !text.isEmpty || imagePath != nil, !isSending else { return }
+        let userMsg = ChatMessage(role: .user, source: .user, content: text, imagePath: imagePath)
         messages.append(userMsg)
         inputText = ""
         isSending = true
@@ -522,6 +600,10 @@ public struct ChatView: View {
     // Boss 8/24 feedback: when no provider key, chat input should be disabled
     // AND lose focus (no cursor blinking, no keyboard capture).
     @FocusState private var inputFocused: Bool
+    // CHATIMG-001 (2026-09-07): toggles the .fileImporter sheet when the
+    // user clicks the paperclip button. Bound to .fileImporter(isPresented:)
+    // on the input HStack per Apple HIG SwiftUI fileImporter pattern.
+    @State private var showingImageImporter: Bool = false
     // Reactive check: is the current model usable?
     private var hasUsableKey: Bool { !vm.currentModel.isEmpty && !vm.isSending }
 
@@ -841,7 +923,58 @@ public struct ChatView: View {
             // anchored (= never floats) while the textfield expands
             // upward. This is the same pattern as Apple's chat input
             // everywhere on macOS 26 Tahoe.
+            // CHATIMG-001 (2026-09-07): the chat input is wrapped in a
+            // VStack so a small attachment preview chip can sit above
+            // the HStack (= Apple Messages / Slack attachment preview
+            // pattern). The chip renders only when
+            // `vm.attachedImagePath != nil`. The HStack itself is
+            // unchanged (= paperclip button + TextField + Send +
+            // Goal button + the same outer paddings).
+            VStack(alignment: .leading, spacing: 4) {
+                if let imagePath = vm.attachedImagePath {
+                    // Attachment preview chip: small thumbnail + a
+                    // ✕ button to clear the draft. Sized to fit the
+                    // chat input row width (= bounded by outer
+                    // horizontal padding via the parent's
+                    // .padding(.horizontal, ...) below).
+                    ChatAttachmentPreviewChip(imagePath: imagePath) {
+                        vm.clearAttachedImage()
+                    }
+                }
             HStack(alignment: .bottom, spacing: 8) {
+                // CHATIMG-001 (2026-09-07): paperclip attach button to
+                // the left of the TextField. Toggles .fileImporter on
+                // the input HStack (= canonical Apple HIG SwiftUI
+                // pattern for picking a single file). The picked
+                // image is copied into `<libraryPath>/cache/chat-uploads/`
+                // via ChatViewModel.attachImage(at:) and rendered as a
+                // preview chip above the HStack (= Apple Messages /
+                // Slack attachment preview pattern).
+                Button {
+                    showingImageImporter = true
+                } label: {
+                    if let lucide = Lucide("paperclip") {
+                        lucide
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: DesignTokens.tabIconSize, height: DesignTokens.tabIconSize)
+                    } else {
+                        LucideIconSystemFallback("paperclip", size: 18)
+                    }
+                }
+                .buttonStyle(.borderless)
+                .help(WenshuI18n.t("chat.input.attach.help"))
+                // CHATIMG-001 (2026-09-07): the attach button is
+                // intentionally NOT gated on `hasUsableKey` (=
+                // LLM model availability). Attaching a draft image
+                // is independent of sending (= you can attach + see
+                // the preview chip + clear it even when no LLM
+                // provider is configured). Send itself still
+                // requires `hasUsableKey` via the Send button's own
+                // .disabled check; if you try to send with no
+                // model, the existing routeInput() guard handles
+                // it (= no LLM call = no error message; the
+                // message just persists in the in-memory list).
+                .disabled(vm.isSending)
                 // v0.24 boss acceptance fix (2026-08-24): placeholder shows different text based on key state.
                 // Boss 8/24 (out-of-band): 'please set up a large-model provider in Settings first'.
                 // v0.25.1 (= ticket 030 chat send button Lucide icon + 8 PT textfield padding):
@@ -1111,6 +1244,7 @@ public struct ChatView: View {
                 // Apply the outer top margin (= 16 PT = 8 PT existing
                 // + 8 PT new) to the HStack (= not to the button).
             }
+            }   // CHATIMG-001 (2026-09-07): close inner VStack (preview chip + HStack)
             // v0.28 followup Boss UX round 20: 16 PT outer top margin
             // moved from .padding(.top, DesignTokens.chromePaddingLarge) on the button (= was
             // misaligning the button with TextField) to the HStack
@@ -1129,6 +1263,29 @@ public struct ChatView: View {
             // chat input layout where the input row has breathing
             // room from the window bottom edge).
             .padding(.bottom, DesignTokens.chromePaddingChatBottom)
+            // CHATIMG-001 (2026-09-07): file importer for the
+            // paperclip button. Bound on the outer VStack (= sibling
+            // to the input HStack) per Apple HIG SwiftUI
+            // .fileImporter pattern. allowedContentTypes = image
+            // UTType set (= png + jpeg + gif + heic = common
+            // screenshot formats). On pick, the source URL is handed
+            // to ChatViewModel.attachImage(at:) which copies it into
+            // the library's cache/chat-uploads/ dir and sets
+            // attachedImagePath.
+            .fileImporter(
+                isPresented: $showingImageImporter,
+                allowedContentTypes: [.image, .png, .jpeg, .gif, .heic],
+                allowsMultipleSelection: false
+            ) { result in
+                switch result {
+                case .success(let urls):
+                    if let url = urls.first {
+                        _ = vm.attachImage(at: url)
+                    }
+                case .failure:
+                    break   // user cancelled or sandbox denial; ignore
+                }
+            }
         }
         // v0.24 boss acceptance fix (2026-08-24): help text DIRECTLY below input box.
         // Boss 8/24 (out-of-band): 'please set up a large-model provider in Settings first. Click Settings'
@@ -1246,6 +1403,32 @@ struct ChatMessageView: View {
                             .foregroundStyle(.tertiary)
                         }
                         .animation(.default, value: thinkingExpanded)
+                    }
+                    // CHATIMG-001 (2026-09-07): render attached image
+                    // thumbnail above the text content when the
+                    // message carries an image. Uses SwiftUI Image
+                    // (= no Nuke; Nuke was retired by
+                    // DEAD-PIN-CLEANUP-001 per §13 v0.10). Max
+                    // display size = 240 PT wide (= Apple Messages /
+                    // Slack inline-image convention; image is
+                    // aspect-fit into the constraint). Falls back
+                    // to a small "image missing" placeholder if
+                    // the file was deleted out from under the
+                    // message.
+                    if let imagePath = message.imagePath {
+                        if let nsImage = NSImage(contentsOfFile: imagePath) {
+                            Image(nsImage: nsImage)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(maxWidth: 240, maxHeight: 240)
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                                .padding(.bottom, DesignTokens.chromePaddingMicro)
+                        } else {
+                            Text(WenshuI18n.t("chat.message.imageMissing"))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .padding(.bottom, DesignTokens.chromePaddingMicro)
+                        }
                     }
                     Text(message.content)
                         .textSelection(.enabled)
