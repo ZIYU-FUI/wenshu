@@ -351,6 +351,11 @@ struct PreviewPane: View {
                 text: $previewSearchQuery
             )
             .textFieldStyle(.plain)
+            // v0.40 boss 9/7 OOB '拼音首字母搜索, 没有实现':
+            // .help() on the search TextField advertises the
+            // pinyin feature (= Apple canonical tooltip on hover;
+            // = discoverable feature without needing docs).
+            .help(WenshuI18n.t("preview.search.help_pinyin"))
             if !previewSearchQuery.isEmpty {
                 Button {
                     previewSearchQuery = ""
@@ -377,7 +382,11 @@ struct PreviewPane: View {
     /// entities, flat grid per boss 8/30 OOB); non-nil = category filter.
     @ViewBuilder
     private func referenceScopeView(category: EntityCategory?) -> some View {
-        let allEntities = loadAllEntities()
+        // v0.40 boss 9/7 OOB '拼音首字母搜索, 没有实现': apply the
+        // search filter (= previewSearchQuery) on top of the
+        // category filter. Both filters compose (= all entities →
+        // search filter → category filter).
+        let allEntities = searchFilteredEntities(loadAllEntities())
         VStack(spacing: 0) {
             Group {
                 if let cat = category {
@@ -780,6 +789,64 @@ struct PreviewPane: View {
             return String(first).uppercased()
         }
         return "~"
+    }
+
+    /// v0.40 boss 9/7 OOB '拼音首字母搜索, 没有实现, 比如 d, 可以
+    /// 筛出杜甫': convert a CJK + ASCII title to its FULL pinyin
+    /// first-letter string (= concatenated initial of each pinyin
+    /// syllable, all uppercase, no separator). Examples:
+    /// - "杜甫"          → "DF"
+    /// - "李白"          → "LB"
+    /// - "汉尼拔的战术"  → "HNBDZS"
+    /// - "Hello 世界"    → "HELLO SJ"
+    /// - "AB 测试 CD"    → "AB CD"
+    ///
+    /// Implementation: CFStringTransform to convert CJK to latinized
+    /// pinyin (= "杜甫" → "Du Fu", "李白" → "Li Bai"), strip
+    /// diacritics, then extract the first letter of each whitespace-
+    /// separated word. Uses Apple's CoreFoundation string transform
+    /// (= no third-party pinyin lib = AGENTS.md §11.1 hard rule).
+    private func pinyinFirstLetters(_ title: String) -> String {
+        let mutable = NSMutableString(string: title)
+        CFStringTransform(mutable, nil, kCFStringTransformToLatin, false)
+        CFStringTransform(mutable, nil, kCFStringTransformStripDiacritics, false)
+        let latinized = (mutable as String)
+        // Split on whitespace + extract first letter of each token.
+        // Also drop tokens that are pure punctuation (= e.g. "?").
+        let initials = latinized
+            .split(whereSeparator: { $0.isWhitespace })
+            .compactMap { token -> String? in
+                guard let first = token.first, first.isLetter else { return nil }
+                return String(first).uppercased()
+            }
+            .joined()
+        return String(initials)
+    }
+
+    /// v0.40 boss 9/7 OOB '拼音首字母搜索, 没有实现, 比如 d, 可以
+    /// 筛出杜甫': filter the entity list by the current search query.
+    /// Matches against BOTH:
+    /// 1. Original title / summary substring (= case-insensitive)
+    /// 2. Pinyin first-letter substring (= e.g. "d" matches "杜甫" → DF)
+    /// Empty query = pass-through (= show all entities).
+    private func searchFilteredEntities(_ entities: [Reference]) -> [Reference] {
+        let query = previewSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return entities }
+        let loweredQuery = query.lowercased()
+        return entities.filter { entity in
+            // Original text substring match (= Latin + CJK chars both work
+            // via String.localizedCaseInsensitiveContains).
+            if entity.title.localizedCaseInsensitiveContains(query)
+                || entity.summary.localizedCaseInsensitiveContains(query) {
+                return true
+            }
+            // Pinyin first-letter substring match (= "d" → "DF" match).
+            let pinyinKey = pinyinFirstLetters(entity.title)
+            if pinyinKey.lowercased().contains(loweredQuery) {
+                return true
+            }
+            return false
+        }
     }
 
     /// v0.30 boss OOB: cards display in multiple columns, default two columns, auto-adapt to 1 column if not enough width.
