@@ -32,25 +32,27 @@ struct EditorPreviewContent: View {
     // TabContentDispatcher.editor case), NOT inside the preview body.
 
     var body: some View {
-        // v0.34 B-17: removed ticket 06's 120 PT inline BacklinksPanel +
-        // Divider + backlinksVM state (= boss 9/2 OOB 'the 120-height space
-        // reserved for backlinks is still there, no need to occupy space in the editor'). Backlinks are
-        // surfaced via the chrome bottom-right "Backlinks 0" popover
-        // (= B-16 implementation; see TabContentDispatcher.editor case).
+        // v0.40 boss 9/7 OOB '图一向图二修改, 包括内容的区的边距.
+        // 同意成一样': reduce padding + paragraph spacing to match
+        // the edit mode (= swift-markdown-engine NSTextView density).
+        // Edit mode NSTextView default textContainerInset ≈ 5 PT on
+        // macOS 27 Tahoe (= Apple's default TextKit 2 inset). Line
+        // spacing is NSTextView's default (= tight, ≈ 1.2x font).
+        // Preview mode now mirrors that: 5 PT outer padding, 2 PT
+        // paragraph spacing, 0 PT heading top spacing (= matches
+        // Apple's "tightly packed text content" per Apple HIG macOS
+        // content density guidance).
         ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 2) {
                 ForEach(parsedSegments, id: \.id) { segment in
                     renderSegment(segment)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            // v0.34 B-17: use DesignTokens.chromePaddingLarge (= 16 PT)
-            // instead of inline `.padding(16)`. Iron Rule 6 (= no magic
-            // numbers): all per-pane chrome padding routes through
-            // DesignTokens. Per `DesignTokens.swift` documentation:
-            // chromePaddingLarge = Apple HIG standard for stacked
-            // section separators (= matches preview body inset).
-            .padding(DesignTokens.chromePaddingLarge)
+            // Match edit-mode NSTextView default textContainerInset
+            // (= ~5 PT on macOS 27 Tahoe). Apple HIG canonical text
+            // content padding for read-only rich text views.
+            .padding(DesignTokens.chromePaddingXS)
         }
     }
 
@@ -156,7 +158,13 @@ struct EditorPreviewContent: View {
         if let hashCount = headingLevel(trimmed) {
             let titleText = String(trimmed.dropFirst(hashCount + 1))
             textForHeading(level: hashCount, content: titleText)
-                .padding(.top, hashCount <= 1 ? 4 : 2)
+                // v0.40 boss 9/7 OOB '图一向图二修改, 同意成一样':
+                // match the edit mode's tight paragraph density
+                // (= no extra top padding on headings). Previously
+                // H1 had 4 PT top + H2+ had 2 PT top (= visible gap
+                // between H1 and preceding paragraph). Edit mode
+                // NSTextView uses line-height-only spacing (= tight).
+                .padding(.top, 0)
         }
         // Blockquote (= leading '> ').
         else if trimmed.hasPrefix("> ") {
