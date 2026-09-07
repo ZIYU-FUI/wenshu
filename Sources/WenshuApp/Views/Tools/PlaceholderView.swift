@@ -129,16 +129,18 @@ public struct PlaceholderView: View {
     }
 
     private var subtitleText: String {
+        // v0.40 boss 9/7 OOB: replace hardcoded English strings with
+        // WenshuI18n keys so the subtitle matches the rest of the
+        // UI (= Chinese on zh-Hans system, English on en system).
         switch loadingState {
         case .idle:
-            return "Inline authoring-placeholder scanner."
+            return WenshuI18n.t("placeholder.subtitle.idle")
         case .loading:
-            return "Loading…"
+            return WenshuI18n.t("placeholder.subtitle.loading")
         case .loaded:
-            let rowCount = rows.count
-            return "\(rowCount) placeholder\(rowCount == 1 ? "" : "s")"
+            return WenshuI18n.tf("placeholder.subtitle.loaded", rows.count)
         case .failed(let reason):
-            return "Failed: \(reason)"
+            return WenshuI18n.tf("placeholder.subtitle.failed", reason)
         }
     }
 
