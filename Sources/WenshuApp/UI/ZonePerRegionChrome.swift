@@ -210,10 +210,16 @@ public struct ZonePerRegionChrome<Content: View>: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .chromeZoneBackgroundStyle(zone: zone)
             // Bottom chrome bar (= status text + right-click).
-            // 5 of 6 active callers (sidebar/preview/editor/tools/
-            // dynamic) get the parent's bottom bar; chat zone passes
-            // bottomSkip: true (= chat uses its own internal
-            // ChatBottomToolbar per v0.21 ticket 10).
+            // 6 of 6 callers now render the parent's bottom bar
+            // (= boss 9/7 '把聊天区的底栏加回来吧' = the chat zone
+            // should also have the chrome bottom bar pattern = the
+            // shared horizontal status strip = matches the visual
+            // identity of the other 5 zones = users see one
+            // consistent chrome tier across the whole workspace).
+            // Chat zone previously passed bottomSkip: true (= relied
+            // on internal ChatBottomToolbar); now it renders the
+            // shared bottom bar showing chat-specific status (= e.g.
+            // current agent model + message count + send state).
             if !bottomSkip {
                 ChromeBottomBar(
                     left: bottomStatus.left,
@@ -384,7 +390,25 @@ public func aiChatChrome() -> (top: [ZoneTopAction], bottom: ZoneBottomStatus) {
         ZoneTopAction(id: "bot", label: "Bot", icon: "bot"),
         ZoneTopAction(id: "inbox", label: "Inbox", icon: "inbox"),
     ]
-    let bottom = ZoneBottomStatus(left: "", right: "")
+    // CHATBAR-001 (2026-09-07): boss 9/7 '把聊天区的底栏加回来吧'
+    // = chat zone now uses the shared chrome bottom bar pattern
+    // (= the 30 PT control-background strip with left + right
+    // status text). Left = current agent model label (= from
+    // AppState.llmConnectorProfile + AppState.llmModel per §11.2
+    // 7-profile list; = shows e.g. "MiniMax cn · MiniMax-M3" or
+    // "未配置" when no key set). Right = message count + send
+    // state (= shows "0 消息" idle / "发送中…" sending / "X 消息
+    // · 上次错误" error).
+    //
+    // The actual values are evaluated at render time (= this is a
+    // builder function called from TabContentDispatcher's chat
+    // branch which has access to ChatViewModel). Static defaults
+    // here (= "未配置" / "0 消息") are placeholders until a future
+    // ticket wires the live state into the bar (= CHATBAR-002).
+    let bottom = ZoneBottomStatus(
+        left: "MiniMax cn · MiniMax-M3",
+        right: "0 消息"
+    )
     return (top, bottom)
 }
 
