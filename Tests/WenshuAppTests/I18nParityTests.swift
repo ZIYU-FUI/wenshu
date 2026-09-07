@@ -139,4 +139,75 @@ struct I18nParityTests {
             #expect(keys.contains(required), "en catalog missing key: \(required)")
         }
     }
+
+    /// I18N-CODECOVERAGE-001 (2026-09-07): every WenshuI18n.t("...")
+    /// call in source must resolve to a catalog entry (= catch code that
+    /// uses a key never added to the en/zh catalogs). The existing
+    /// parity tests check en vs zh consistency but do NOT check that
+    /// code references are covered (= the gap that let CHATIMG-001
+    /// ship with 3 missing keys: chat.input.attach.help,
+    /// chat.input.attach.clear, chat.message.imageMissing).
+    ///
+    /// Walk the source tree, regex-extract every WenshuI18n.t("...") /
+    /// WenshuI18n.tf(...) / WenshuI18n.ts(...) literal, deduplicate, and
+    /// assert each is in the en catalog (= ground truth because all
+    /// other languages inherit from en). Skip keys prefixed with "auto."
+    /// (= generated-i18n placeholder keys produced by the i18n scanner
+    /// during build; these are added to catalogs in the same build that
+    /// creates the source reference and are out-of-scope for this test).
+    @Test("source-code WenshuI18n.t() calls all resolve to en catalog")
+    func sourceCallsResolveInCatalog() throws {
+        let en = try #require(Self.loadCatalog("Localizable", ext: "strings"))
+        let catalogKeys = Self.keys(in: en)
+        let sourceKeys = Self.scanSourceForI18nKeys()
+        let missing = sourceKeys
+            .subtracting(catalogKeys)
+            .filter { !$0.hasPrefix("auto.") }
+            .sorted()
+        #expect(missing.isEmpty,
+                "Code uses WenshuI18n keys not in en catalog: \(missing.joined(separator: ", "))")
+    }
+
+    /// Walk Sources/WenshuApp/ and extract every literal key passed to
+    /// WenshuI18n.t / .tf / .ts. Patterns matched:
+    /// - `WenshuI18n.t("...")`
+    /// - `WenshuI18n.tf("...", ...)` (= format variant)
+    /// - `WenshuI18n.ts("...", ...)` (= string-substitution variant)
+    /// Returns a deduplicated set of key strings.
+    private static func scanSourceForI18nKeys() -> Set<String> {
+        var keys: Set<String> = []
+        let fm = FileManager.default
+        // Source root = Package.swift's directory (= wenshu project root).
+        // Resolve from this test file's bundle path: walk up to find
+        // Sources/WenshuApp. For SPM testTarget, the test source lives
+        // at Tests/WenshuAppTests/ (= two levels above Sources/WenshuApp).
+        let thisFile = URL(fileURLWithPath: #filePath)
+        let projectRoot = thisFile
+            .deletingLastPathComponent() // Tests/WenshuAppTests
+            .deletingLastPathComponent() // Tests
+            .deletingLastPathComponent() // wenshu project root
+        let sourceRoot = projectRoot.appendingPathComponent("Sources/WenshuApp")
+        guard let enumerator = fm.enumerator(
+            at: sourceRoot,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            Issue.record("could not enumerate source root at \(sourceRoot.path)")
+            return keys
+        }
+        let pattern = try! NSRegularExpression(
+            pattern: #"WenshuI18n\.(?:t|tf|ts)\(\s*"([^"]+)"\s*[,)]"#,
+            options: []
+        )
+        for case let url as URL in enumerator {
+            guard url.pathExtension == "swift" else { continue }
+            guard let source = try? String(contentsOf: url, encoding: .utf8) else { continue }
+            let range = NSRange(source.startIndex..<source.endIndex, in: source)
+            for match in pattern.matches(in: source, options: [], range: range) {
+                guard let keyRange = Range(match.range(at: 1), in: source) else { continue }
+                keys.insert(String(source[keyRange]))
+            }
+        }
+        return keys
+    }
 }
