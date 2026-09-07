@@ -210,13 +210,20 @@ struct EditorPreviewContent: View {
 
     @ViewBuilder
     private func textForHeading(level: Int, content: String) -> some View {
+        // v0.40 boss 9/7 OOB '字号还是很大': downshift the heading
+        // hierarchy by one Apple canonical level (= .title → .title2
+        // = .title3 → .headline, etc). Body / code / list markers stay
+        // at .body (= unchanged). Net effect: H1 ~22 PT, H2 ~20 PT,
+        // H3 ~17 PT (= ~25% smaller than the previous .title / .title2
+        // / .title3 selection; = matches Apple HIG body-content density
+        // per macOS 27 Tahoe readability guidance).
         switch level {
         case 1:
-            renderInlineMarkdown(content).font(.title.weight(.bold))
-        case 2:
             renderInlineMarkdown(content).font(.title2.weight(.bold))
+        case 2:
+            renderInlineMarkdown(content).font(.title3.weight(.bold))
         case 3:
-            renderInlineMarkdown(content).font(.title3.weight(.semibold))
+            renderInlineMarkdown(content).font(.headline)
         default:
             renderInlineMarkdown(content).font(.headline)
         }
