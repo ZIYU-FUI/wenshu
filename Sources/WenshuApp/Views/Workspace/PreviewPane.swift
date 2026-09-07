@@ -573,7 +573,12 @@ struct PreviewPane: View {
                                 }
                             }
                         }
-                        .padding(.vertical, DesignTokens.chromePaddingVertical)
+                        // STYLES-004 (2026-09-07): apply the canonical
+                        // 18 PT vertical inset via the new STYLES
+                        // content-inset modifier (= replaces
+                        // .padding(.vertical, chromePaddingVertical)
+                        // = 8 PT = the zone was too tight before).
+                        .contentInsetStyle(.standard, edges: .vertical)
                     }
                 }
             }
