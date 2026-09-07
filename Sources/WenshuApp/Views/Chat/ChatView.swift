@@ -369,10 +369,17 @@ public final class ChatViewModel {
             // source of truth for raw-error-to-Chinese translation;
             // = replaces the prior ad-hoc "Error: \(localizedDescription)"
             // which showed the raw English NSError text to the user).
-            let userErr = UserFacingError.from(
-                error,
-                context: currentModel
-            )
+            //
+            // v0.40 boss 9/7 OOB '这个提示错, 用户不一定非要用 minimax 的
+            // key, 换成通用一些的提示词': pass `nil` as the context
+            // (NOT `currentModel`). The previous `context: currentModel`
+            // interpolated the model name (= "MiniMax-M3") as the
+            // "provider", = user-visible message looked like it was
+            // binding them to MiniMax. Now `nil` triggers the
+            // generic, provider-agnostic message in UserFacingError
+            // (= user can pick any of the 7 LLM connectors per
+            // AGENTS.md §11.2).
+            let userErr = UserFacingError.from(error, context: nil)
             let errMsg = userErr.errorDescription ?? "未知错误。"
             if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
                 messages[idx] = ChatMessage(id: placeholderId, role: .system, source: .system, content: errMsg)

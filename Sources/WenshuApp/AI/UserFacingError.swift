@@ -61,13 +61,35 @@ public enum UserFacingError: Error, LocalizedError {
             // time on a transient outage).
             return "网络断开，请检查连接后重试。"
 
-        case .apiKeyMissing(let provider):
-            return "未配置 \(provider) 的 API 密钥。请前往设置 → 服务配置 → \(provider) 填写。"
+        case .apiKeyMissing:
+            // v0.40 boss 9/7 OOB '这个提示错, 用户不一定非要用 minimax 的
+            // key, 换成通用一些的提示词': previously the message
+            // interpolated the model name (= "MiniMax-M3") as if it
+            // were the provider (= users could think the message
+            // was binding them to a specific provider). Now generic:
+            // doesn't mention any specific provider (= user can pick
+            // ANY of the 7 LLM connectors per AGENTS.md §11.2). The
+            // `provider:` associated value is preserved for callers
+            // that want to inspect it (= e.g. logging / analytics),
+            // but the user-visible message is provider-agnostic.
+            return "未配置 LLM API 密钥。请前往 设置 → 服务配置 任选一个 LLM 连接器 (= Anthropic / OpenAI / DeepSeek / Gemini / Ollama / OpenRouter / MiniMax) 填写。"
 
-        case .apiKeyInvalid(let provider):
-            return "\(provider) 的 API 密钥无效或已过期。请前往设置 → 服务配置 → \(provider) 更新。"
+        case .apiKeyInvalid:
+            // v0.40 boss 9/7 OOB: same generic treatment as
+            // apiKeyMissing (= no provider name in user-visible
+            // text; = works whether user is on Anthropic / OpenAI
+            // / any other connector).
+            return "LLM API 密钥无效或已过期。请前往 设置 → 服务配置 更新您的连接器密钥。"
 
         case .rateLimited(let provider):
+            // v0.40 boss 9/7 OOB: provider-specific rate-limit
+            // messages stay provider-bound (= only Anthropic /
+            // DeepSeek / Gemini surface this error per provider
+            // API spec). Generic fallback for any provider that
+            // returns 429 (= OpenAI / OpenRouter / Ollama etc).
+            if provider.isEmpty || provider == "当前 Provider" {
+                return "LLM 限流中，请稍后再试。"
+            }
             return "\(provider) 限流中，请稍后再试。"
 
         case .outputTooLong(let model):
