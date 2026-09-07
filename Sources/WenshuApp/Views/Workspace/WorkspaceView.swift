@@ -1736,29 +1736,18 @@ struct EditorPlaceholder: View {
     /// path: pick a reference library / book / folder, double-
     /// click a card → openCardInEditor creates a tab).
     ///
-    /// Visual style: centered Lucide "book-open" icon + 2 lines
-    /// of copy + a subtle hand pointer. Matches the existing
-    /// PreviewPane empty-state style (= consistent onboarding
-    /// surface across the workspace).
+    /// v0.40 boss 9/7 OOB follow-up '提示的样式不统一': use the
+    /// shared EmptyStateHint component (= same icon + title +
+    /// body layout as Foreshadowing + PreviewPane empty states).
+    /// This guarantees consistent visual treatment (= 24 PT
+    /// icon, 15 PT semibold title, 13 PT body) across all
+    /// "no content" zones in the workspace.
     private var emptyStateHint: some View {
-        VStack(spacing: DesignTokens.chromePaddingLarge) {
-            LucideIconSystemFallback(
-                "book-open",
-                size: DesignTokens.iconLargeSize
-            )
-            .foregroundStyle(.secondary)
-            VStack(spacing: DesignTokens.chromePaddingSmall) {
-                Text(WenshuI18n.t("workspace.empty.title"))
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                Text(WenshuI18n.t("workspace.empty.body"))
-                    .font(.system(size: 13))
-                    .foregroundStyle(.tertiary)
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: 360)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        EmptyStateHint(
+            icon: "book-open",
+            title: WenshuI18n.t("workspace.empty.title"),
+            body: WenshuI18n.t("workspace.empty.body")
+        )
     }
 
     // v0.34 ticket 05: placeholder type alias for the wikilink navigation
