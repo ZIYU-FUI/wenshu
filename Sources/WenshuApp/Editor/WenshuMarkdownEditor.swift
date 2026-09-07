@@ -35,19 +35,23 @@ struct WenshuMarkdownEditor: View {
     // engine's layout pipeline).
     private var adjustedConfiguration: MarkdownEditorConfiguration {
         var config = configuration
-        // v0.40 boss 9/7 OOB '字号还是很大': downshift heading multipliers
-        // to match the downshifted preview-mode text styles (= H1 =
-        // .title2, H2 = .title3, H3 = .headline). Apple canonical text
-        // style point sizes are read via NSFont.preferredFont(forTextStyle:)
-        // (= AppKit canonical API; = no magic numbers; = automatic
-        // Dynamic Type adaptation).
+        // v0.40 boss 9/7 OOB '你对比一下两种模式, 预览和编辑两个模式,
+        // 哪个小统一用小的那个': align both modes to use SwiftUI's
+        // macOS text-style scale (= .title2 / .title3 / .headline =
+        // 17 / 15 / 13 PT on macOS 27 Tahoe = matches NSFont.
+        // preferredFont(forTextStyle:) on the same system). Previously
+        // edit H1 multiplier = .title1 (= 22 PT = larger than preview
+        // mode's .title2 = 17 PT). Now both = 17 PT (= unify on the
+        // smaller preview size; = edit mode H1 multiplier reduces from
+        // .title1 to .title2). All other headings also drop one
+        // canonical step to match SwiftUI's macOS scale.
         let base = NSFont.preferredFont(forTextStyle: .body).pointSize
-        let h1 = NSFont.preferredFont(forTextStyle: .title1).pointSize
-        let h2 = NSFont.preferredFont(forTextStyle: .title2).pointSize
-        let h3 = NSFont.preferredFont(forTextStyle: .title3).pointSize
-        let h4 = NSFont.preferredFont(forTextStyle: .headline).pointSize
-        let h5 = NSFont.preferredFont(forTextStyle: .subheadline).pointSize
-        let h6 = NSFont.preferredFont(forTextStyle: .footnote).pointSize
+        let h1 = NSFont.preferredFont(forTextStyle: .title2).pointSize
+        let h2 = NSFont.preferredFont(forTextStyle: .title3).pointSize
+        let h3 = NSFont.preferredFont(forTextStyle: .headline).pointSize
+        let h4 = NSFont.preferredFont(forTextStyle: .subheadline).pointSize
+        let h5 = NSFont.preferredFont(forTextStyle: .footnote).pointSize
+        let h6 = NSFont.preferredFont(forTextStyle: .caption1).pointSize
         // Convert each Apple canonical size to a multiplier of the
         // body base font (= preserves the engine's per-level scale
         // semantics, = Apple canonical size relationships).

@@ -210,13 +210,15 @@ struct EditorPreviewContent: View {
 
     @ViewBuilder
     private func textForHeading(level: Int, content: String) -> some View {
-        // v0.40 boss 9/7 OOB '字号还是很大': downshift the heading
-        // hierarchy by one Apple canonical level (= .title → .title2
-        // = .title3 → .headline, etc). Body / code / list markers stay
-        // at .body (= unchanged). Net effect: H1 ~22 PT, H2 ~20 PT,
-        // H3 ~17 PT (= ~25% smaller than the previous .title / .title2
-        // / .title3 selection; = matches Apple HIG body-content density
-        // per macOS 27 Tahoe readability guidance).
+        // v0.40 boss 9/7 OOB '你对比一下两种模式, 预览和编辑两个模式,
+        // 哪个小统一用小的那个': align both modes to use SwiftUI's
+        // macOS text-style scale (= .title2 / .title3 / .headline =
+        // 17 / 15 / 13 PT on macOS 27 Tahoe = matches NSFont.
+        // preferredFont(forTextStyle:) on the same system). Previously
+        // preview H1 = .title2 = 17 PT (= smaller) and edit H1 =
+        // baseFont * (NSFont.title1 / NSFont.body) = 22 PT (= larger).
+        // Now both = 17 PT for H1 (= unify on the smaller preview size;
+        // = edit mode H1 multiplier reduces from .title1 to .title2).
         switch level {
         case 1:
             renderInlineMarkdown(content).font(.title2.weight(.bold))
