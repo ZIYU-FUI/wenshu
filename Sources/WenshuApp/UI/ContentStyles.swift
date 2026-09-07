@@ -5,8 +5,8 @@
 //  between the parent's chrome top bar and bottom bar). Companion
 //  to ChromeStyles.swift (= which owns the chrome styling).
 //
-//  Boss 9/7 '样式其实可以抽象统一' (= applied to the content
-//  side too, not just the chrome) + boss 9/7 'ui 与功能分离' = the
+//  Boss 9/7 'styles can actually be unified' (= applied to the content
+//  side too, not just the chrome) + boss 9/7 'UI and function separated' = the
 //  content view (= each zone's actual UI) only owns FUNCTIONAL
 //  wiring (= which tabs render, which buttons open which sheet,
 //  which text shows). The visual styling (padding / spacing /
@@ -40,7 +40,7 @@
 
 import SwiftUI
 
-// MARK: - Content insets (= boss 9/7 '实测一下, 1-2-4 三个区明显过大')
+// MARK: - Content insets (= boss 9/7 'test it, zones 1-2-4 are visibly too large')
 
 /// STYLES-001 (2026-09-07): canonical content inset variants.
 /// Each preset = a complete Apple-canonical edge-to-content
@@ -166,10 +166,10 @@ enum ActionButtonStyle {
     /// Examples: "Cancel" buttons in confirmation dialogs.
     case secondary
     /// Bordered prominent primary action (= Apple HIG primary CTA).
-    /// Examples: "Save" / "Submit" / "新建看板标题" buttons.
+    /// Examples: "Save" / "Submit" / "New Board Title" buttons.
     case primary
     /// Glass prominent (= Apple macOS 26 Liquid Glass primary).
-    /// Examples: chat "发送" button on macOS 27 Tahoe.
+    /// Examples: chat "Send" button on macOS 27 Tahoe.
     case glassPrimary
 }
 

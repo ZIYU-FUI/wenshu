@@ -6,7 +6,7 @@
 //
 // Old 6-region source (= v0.27 = App.swift:1935-2058):
 // - ZoneTopToolbar: HStack of buttons (Lucide icons via ZoneIcon),
-//   30 PT height, with placeholder text "占位文字" at top-trailing.
+//   30 PT height, with placeholder text "Placeholder" at top-trailing.
 //   Splitter line at bottom (1 PT).
 // - ZoneBottomToolbar: status text at bottom-leading + optional
 //   rightStatus text at bottom-trailing (= or WordCountInlineLabel
@@ -85,9 +85,9 @@ public struct ZoneTopAction: Identifiable, Sendable {
 /// wrapper preserves the struct's Sendable conformance (= closure
 /// captures stay on the MainActor; = Swift 6 strict concurrency safe).
 public struct ZoneBottomStatus: Sendable {
-    public let left: String        // left-aligned text (e.g. "章节: 0", "书架: 3")
-    public let right: String       // right-aligned text (e.g. "书: 5", "反链 0")
-    public let rightOnTap: (@Sendable () -> Void)?  // optional tap handler on right text (= boss 9/2 OOB '右下的反链 0, 点击可以弹窗')
+    public let left: String        // left-aligned text (e.g. "Chapter: 0", "Shelf: 3")
+    public let right: String       // right-aligned text (e.g. "Book: 5", "Backlinks: 0")
+    public let rightOnTap: (@Sendable () -> Void)?  // optional tap handler on right text (= boss 9/2 OOB 'right-side backlinks count, clickable to popover')
 
     public init(left: String = "", right: String = "", rightOnTap: (@Sendable () -> Void)? = nil) {
         self.left = left
@@ -106,7 +106,7 @@ public struct ZoneBottomStatus: Sendable {
 // sidebar zone) carried its own icon + label per tab (= scattered
 // definition per call site). Now the chrome-level identity is
 // here (= one lookup) and tab-internal labels stay as per-tab
-// content (e.g. "书架 / 预览 / 图" inside the cards zone).
+// content (e.g. "Shelf / Preview / Image" inside the cards zone).
 //
 // Note: ZoneSlot is declared in App.swift without `public`, so this
 // extension is module-internal (= same scope as the existing
@@ -119,7 +119,7 @@ public struct ZoneBottomStatus: Sendable {
 /// verbatim port of v0.27 implementation). When `topActions` is empty,
 /// renders the old placeholder mode (= shows lucide icon set inline).
 /// When `bottomStatus` is empty, renders the old placeholder text
-/// "占位文字" (= backward compatibility per ticket 015.020 Standards
+/// "Placeholder" (= backward compatibility per ticket 015.020 Standards
 /// F2 fix).
 @MainActor
 public struct ZonePerRegionChrome<Content: View>: View {
@@ -162,8 +162,8 @@ public struct ZonePerRegionChrome<Content: View>: View {
     public var body: some View {
         // CHROME-ARCH-001 (2026-09-07): ZonePerRegionChrome is now
         // a thin composer (= ~25 LOC) that delegates to the chrome
-        // stylesheet file. Boss 9/7 '搞一个样式组件的文件, 用于管理
-        // 控件样式' = the chrome (= background + top bar + bottom
+        // stylesheet file. Boss 9/7 'make a stylesheet file for managing
+        // control styles' = the chrome (= background + top bar + bottom
         // bar) lives in ChromeStyles.swift (= single source of truth
         // for visual styling; = this file = functional wiring only).
         //
@@ -176,8 +176,8 @@ public struct ZonePerRegionChrome<Content: View>: View {
         //    = skipped when bottomSkip: true)
         VStack(spacing: 0) {
             // CHROME-ARCH-001 round 5 (2026-09-07): REMOVED the
-            // chrome top bar entirely (= boss 9/7 '标题栏好像被空白
-            // 栏加高了' = a 30 PT blank strip with no content is
+            // chrome top bar entirely (= boss 9/7 'title bar looks raised by a blank
+            // strip' = a 30 PT blank strip with no content is
             // visual debt that just wastes vertical space). The
             // chrome top bar was supposed to unify zone identity, but
             // the round-4 removal of icon + label left it as a pure
@@ -211,8 +211,6 @@ public struct ZonePerRegionChrome<Content: View>: View {
                 .chromeZoneBackgroundStyle(zone: zone)
             // Bottom chrome bar (= status text + right-click).
             // 6 of 6 callers now render the parent's bottom bar
-            // (= boss 9/7 '把聊天区的底栏加回来吧' = the chat zone
-            // should also have the chrome bottom bar pattern = the
             // shared horizontal status strip = matches the visual
             // identity of the other 5 zones = users see one
             // consistent chrome tier across the whole workspace).
@@ -234,7 +232,7 @@ public struct ZonePerRegionChrome<Content: View>: View {
     // CHROME-ARCH-001 (2026-09-07): the `bottomBar` private var
     // was removed (= ChromeBottomBar in ChromeStyles.swift is the
     // new single source of truth; = this file = functional wiring
-    // only). Boss 9/7 '搞一个样式组件的文件, 用于管理控件样式'
+    // only). Boss 9/7 'make a stylesheet file for managing control styles'
     // = the chrome styling lives in ONE file (= no scattered
     // `.padding(.horizontal, 18).frame(height: 30)` calls).
 }
@@ -390,21 +388,21 @@ public func aiChatChrome() -> (top: [ZoneTopAction], bottom: ZoneBottomStatus) {
         ZoneTopAction(id: "bot", label: "Bot", icon: "bot"),
         ZoneTopAction(id: "inbox", label: "Inbox", icon: "inbox"),
     ]
-    // CHATBAR-001 (2026-09-07): boss 9/7 '把聊天区的底栏加回来吧'
+    // CHATBAR-001 (2026-09-07): boss 9/7 'restore the chat zone's bottom bar'
     // = chat zone now uses the shared chrome bottom bar pattern
     // (= the 30 PT control-background strip with left + right
     // status text). Left = current agent model label (= from
     // AppState.llmConnectorProfile + AppState.llmModel per §11.2
-    // 7-profile list; = shows e.g. "MiniMax cn · MiniMax-M3" or
-    // "未配置" when no key set). Right = message count + send
-    // state (= shows "0 消息" idle / "发送中…" sending / "X 消息
-    // · 上次错误" error).
+    // 7-profile list; = shows e.g. "minimax-cn · MiniMax-M3" or
+    // "Not configured" when no key set). Right = message count + send
+    // state (= shows "0 messages" idle / "Sending..." sending / "X messages
+    // - Last error" error).
     //
     // The actual values are evaluated at render time (= this is a
     // builder function called from TabContentDispatcher's chat
     // branch which has access to ChatViewModel). Static defaults
-    // here (= "未配置" / "0 消息") are placeholders until a future
-    // ticket wires the live state into the bar (= CHATBAR-002).
+    // here are placeholders until a future ticket wires the live
+    // state into the bar (= CHATBAR-002).
     let bottom = ZoneBottomStatus(
         left: "MiniMax cn · MiniMax-M3",
         right: "0 消息"

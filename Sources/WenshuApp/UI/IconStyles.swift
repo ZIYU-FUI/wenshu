@@ -6,7 +6,7 @@
 //  - ChromeStyles.swift (= chrome-level styling)
 //  - ContentStyles.swift (= content-level styling)
 //
-//  Boss 9/7 'ui 与功能分离' = abstract the icon styling into one
+//  Boss 9/7 'UI and function separated' = abstract the icon styling into one
 //  file (= the same pattern as the other styles files; = all
 //  Lucide icon usages in the codebase can reference one
 //  canonical size + color = single source of truth).
@@ -81,7 +81,7 @@ enum IconSize {
 enum IconColor {
     case primary         // .primary (= main text color)
     case secondary       // .secondary (= secondary text)
-    case tint            // .tint (= app accent color = boss 9/2 '区域 tint')
+    case tint            // .tint (= app accent color = boss 9/2 'zone tint')
     case accent          // .accentColor (= explicit accent)
     case control         // Color(nsColor: .controlTextColor)
 }
