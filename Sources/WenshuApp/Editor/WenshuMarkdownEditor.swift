@@ -144,23 +144,25 @@ struct WenshuMarkdownEditor: View {
             isEditable: isEditable,
             onLinkClick: onLinkClick
         )
-        // ZONE-INSET-002 (2026-09-07): the editor zone content inset
-        // = 18 PT all sides is now applied centrally by ZoneContentView
-        // (= single source of truth for all 5 zones that route
-        // through it). Previously .padding(.horizontal, 18) +
-        // .padding(.top, 18) was applied here (= redundant now;
-        // = ZoneContentView already wraps the editor content with
-        // the same inset). Removed the per-zone call (= boss 9/7
-        // '样式其实可以抽象统一' = the content view should not own
-        // its own edge inset; = the wrapper owns it).
+        // ZONE-INSET-002 round 2 (2026-09-07): ZoneContentView's
+        // outer .padding(.all, zoneContentInset) was REMOVED in the
+        // previous commit (= was doubled with Apple HIG built-in
+        // insets in List / LazyVGrid zones = caused zone 1, 2, 4 to
+        // look "too large"). The editor still needs an explicit inset
+        // because WenshuMarkdownEditor wraps NativeTextViewWrapper
+        // (= no Apple built-in content margins). Re-applied the
+        // 18 PT all-sides inset here directly (= uses the same
+        // canonical token DesignTokens.zoneContentInset = 18 PT
+        // for consistency).
         //
-        // History of this line (kept for context):
+        // History:
         //   - ab2b57021 (v0.40 apple-001 Q2): added .padding(.horizontal, 18)
-        //     matching the preview zone.
-        //   - f6655f2bc (boss 9/7 EDITORTOP-001): added .padding(.top, 18)
-        //     matching the boss request '编辑器文字显示区域, 最顶部区域,
-        //     距离顶边留 18pt 间距'.
-        //   - This commit: both removed (= absorbed into ZoneContentView's
-        //     single .padding(.all, DesignTokens.zoneContentInset) = 18 PT).
+        //   - f6655f2bc (EDITORTOP-001): added .padding(.top, 18)
+        //   - 8a52378cc (ZONE-INSET-002): both removed (= absorbed
+        //     into ZoneContentView's outer 18 PT)
+        //   - this commit: re-added with .padding(.all, 18) (= the
+        //     18-PT uniform value stayed the goal = the zone wrapper
+        //     route was the wrong abstraction)
+        .padding(.all, DesignTokens.zoneContentInset)
     }
 }
