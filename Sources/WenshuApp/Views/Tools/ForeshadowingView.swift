@@ -148,8 +148,12 @@ public struct ForeshadowingView: View {
         // Guarantees consistent visual treatment (= 24 PT icon,
         // 15 PT semibold title, 13 PT body) across all "no
         // content" zones in the workspace.
+        // v0.40 boss 9/7 OOB follow-up '和编辑器用同一个 ICON':
+        // use the SAME icon (= book-open) as the editor empty
+        // state (= matches PreviewPane too = unified icon across
+        // all 3 empty-state panels in the workspace).
         EmptyStateHint(
-            icon: "git-fork",
+            icon: "book-open",
             title: WenshuI18n.t("foreshadowingview.empty.title"),
             body: WenshuI18n.t("foreshadowingview.empty.body")
         )
