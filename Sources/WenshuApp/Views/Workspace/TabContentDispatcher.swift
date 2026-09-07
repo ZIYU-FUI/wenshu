@@ -201,7 +201,7 @@ struct TabContentDispatcher: View {
                 topActions: [],
                 bottomStatus: aiChatChrome().bottom,
                 topSkip: false, // CHROME-ARCH-001 (2026-09-07): parent chrome top bar enabled (= unified ZoneSlot identity across all 6 zones).
-                bottomSkip: true,  // chat uses internal ChatBottomToolbar per v0.21 ticket 10
+                bottomSkip: false, // CHATBAR-001 (2026-09-07): chat zone now uses the shared chrome bottom bar (= boss '把聊天区的底栏加回来吧') showing chat-specific status (= current agent model + message count). Previously bottomSkip: true (= chat used internal ChatBottomToolbar per v0.21 ticket 10) but that internal bar was thin / inconsistent with the other 5 zones.
                 // v0.32 boss 2026-09-02 OOB: chat = content tier
                 // (= .windowBackgroundColor = matches Mail message
                 // list / Messages conversation depth).
