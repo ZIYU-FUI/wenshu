@@ -63,11 +63,25 @@ struct WenshuMarkdownEditor: View {
     }
 
     var body: some View {
+        // v0.40 boss 9/7 OOB '编辑模式也一样, 左右各留 18PT':
+        // apply the same horizontal inset as preview mode (= 18 PT
+        // each side = DesignTokens.chromePaddingLeading /
+        // chromePaddingTrailing = wenshu standard read-only text
+        // inset per the sidebar / chrome spec). Edit mode
+        // NativeTextView default textContainerInset is 0
+        // horizontally, so the SwiftUI .padding(.horizontal) here
+        // is the canonical way (= the engine wrapper inherits the
+        // surrounding SwiftUI environment; = no need to reach into
+        // the engine's private NSTextView).
+        //
+        // top/bottom = 0 (= matches preview mode; = matches
+        // NSTextView tight top/bottom inset).
         NativeTextViewWrapper(
             text: $text,
             configuration: adjustedConfiguration,
             documentId: draftId,
             onLinkClick: onLinkClick
         )
+        .padding(.horizontal, DesignTokens.chromePaddingLeading)
     }
 }
