@@ -108,7 +108,7 @@ public enum WenshuI18n {
         // Apple returns the key itself if not found. With our bundle-resolution
         // chain above, the lookup should hit a real catalog for any key the
         // catalogs declare. If it still doesn't (= truly missing key),
-        // returning the key path is the hermes i18n behavior.
+        // returning the key path is the hermes i18n fallback policy.
         return value
     }
 
