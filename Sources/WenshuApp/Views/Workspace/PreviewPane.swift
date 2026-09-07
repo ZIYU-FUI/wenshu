@@ -131,7 +131,12 @@ enum EntitySortOrder: String, CaseIterable, Identifiable {
 // Note: PreviewScope is NOT Equatable (the underlying SidebarItem is,
 // but PreviewScope is constructed from it; equality comparisons
 // happen upstream via sidebarSelection).
-enum PreviewScope: Hashable {
+//
+// v0.40 boss 9/7 OOB '目录树和卡片, 都没有对应的持久化':
+// PreviewScope is Codable so it can be persisted on the active
+// EditorTab (= sourceScope) and restored on launch (= drives
+// sidebar expansion + preview card display).
+enum PreviewScope: Hashable, Codable {
     /// Reference library scope. category nil = root (= all entities);
     /// category non-nil = that category only.
     case referenceScope(EntityCategory?)
@@ -468,7 +473,23 @@ struct PreviewPane: View {
                     }
                 }
                 Text(entity.title)
-                    .font(.largeTitle)
+                    // EDITORFONT-001 (2026-09-07): was .largeTitle (=
+                    // 26 PT on macOS 27 Tahoe) which made the editor
+                    // title visually dominant vs sidebar items
+                    // (".headline" = 13 PT) and kanban cards (=
+                    // .headline). Boss 9/7 OOB: '调成其他区一样大' =
+                    // align editor MD font to the rest of the app
+                    // (= use .headline everywhere chrome uses
+                    // .headline). The recent ab2b57021 fix changed
+                    // WenshuMarkdownEditor (NSTextView edit mode)
+                    // but the PreviewPane's preview-mode render
+                    // path uses SwiftUI `Text(...).font(...)` which
+                    // .largeTitle had been left untouched = this is
+                    // the actual bug the boss saw. .headline here =
+                    // 13 PT = matches sidebar/kanban/character-
+                    // editor titles. Body below stays .body (= 13 PT
+                    // = matches kanban card body).
+                    .font(.headline)
                     .fontWeight(.bold)
                 if !entity.summary.isEmpty {
                     Text(entity.summary)
@@ -479,6 +500,12 @@ struct PreviewPane: View {
                 // Read-only preview of .md body (= full content)
                 if let body = loadBody(for: entity) {
                     Text(body)
+                        // EDITORFONT-001: was .body (= 13 PT) which
+                        // already aligned with kanban card body.
+                        // Explicit comment marks the alignment so
+                        // future "make it bigger" requests don't
+                        // silently grow the editor away from the
+                        // rest of the app chrome.
                         .font(.body)
                         .textSelection(.enabled)
                 } else {
