@@ -225,18 +225,16 @@ struct PreviewPane: View {
     @Binding var previewSortOrder: EntitySortOrder
 
     /// v0.40 boss 9/7 OOB '每打一个字, 内容自动刷新. 清空恢复全显':
-    /// search query for the preview pane. Owned by WorkspaceView
-    /// (= lifted from PreviewPane in the 9/7 follow-up '位置偏低
-    /// 了与右边的的编辑器的二层栏对齐' = the search bar is now
-    /// rendered in WorkspaceView above ZoneContentView, at the
-    /// same Y as the editor's RegionTabBar; = needs to be owned
-    /// at the WorkspaceView level so it persists across preview
-    /// tab switches). Empty string = show all cards; non-empty =
-    /// filter by case-insensitive substring match on card
-    /// display name + summary. SwiftUI @State reactivity
-    /// re-evaluates `body` on every keystroke (= live refresh,
-    /// no submit button, no .onChange handler needed).
-    @Binding var previewSearchQuery: String
+    /// search query for the preview pane. Owned by PreviewPane
+    /// (= previously a @Binding to WorkspaceView, = now reverted
+    /// to @State since the search bar lives inside PreviewPane
+    //  body; = the bind-chain is no longer needed). Empty string
+    /// = show all cards; non-empty = filter by case-insensitive
+    /// substring match on card display name + summary. SwiftUI
+    /// @State reactivity re-evaluates `body` on every keystroke
+    /// (= live refresh, no submit button, no .onChange handler
+    /// needed).
+    @State private var previewSearchQuery: String = ""
 
     /// Explicit init: required for @Binding in struct (= memberwise
     /// init doesn't support @Binding in non-result-builder structs).
@@ -244,13 +242,11 @@ struct PreviewPane: View {
     init(
         scope: PreviewScope,
         onDoubleClick: @escaping () -> Void,
-        previewSortOrder: Binding<EntitySortOrder>,
-        previewSearchQuery: Binding<String>
+        previewSortOrder: Binding<EntitySortOrder>
     ) {
         self.scope = scope
         self.onDoubleClick = onDoubleClick
         self._previewSortOrder = previewSortOrder
-        self._previewSearchQuery = previewSearchQuery
     }
 
     // [CJK-TRANSLATE] 2 line(s) awaiting manual translation (see git blame for original CJK text)
@@ -280,32 +276,86 @@ struct PreviewPane: View {
     private static let twoColumnBreakpoint: CGFloat = 130
 
     var body: some View {
-        // v0.40 boss 9/7 OOB '每打一个字, 内容自动刷新. 清空恢复全显':
-        // Search bar moved OUT of PreviewPane (= was below the body's
-        // chromePaddingHero padding, = visually below the editor's
-        // RegionTabBar in the screenshot). Boss follow-up '位置偏低
-        // 了与右边的的编辑器的二层栏对齐': render it ABOVE the body's
-        // padding (= at the same Y as the editor's tab strip = 30 PT
-        // tall). The search bar is now provided by WorkspaceView (= owns
-        // previewSearchQuery @State + passes it as a binding to
-        // PreviewPane for filtering).
-        // v0.30 boss 8/31 OOB: scope-driven dispatch. Each scope
-        // branch handles its own toolbar (some hide toolbar, e.g.
-        // empty state).
-        Group {
-            switch scope {
-            case .referenceScope(let category):
-                referenceScopeView(category: category)
-            case .bookScope(let bookId, let folderName):
-                bookScopeView(bookId: bookId, folderName: folderName)
-            case .shelfScope:
-                shelfScopeView()
-            case .empty:
-                emptyScopeView()
+        // v0.40 boss 9/7 OOB '位置错, 在顶栏下方, 不是在顶栏上方.
+        // 你可以参考一下编辑器的代码, 看是如何实现的': the search bar
+        // belongs BELOW the ZoneContentView's tab strip (= at the same
+        // Y as the editor's pencil/arrow/refresh toolbar inside
+        // EditorPlaceholder), NOT above the tab strip. Pattern matches
+        // the editor: ZoneContentView tab strip (= top layer) + tab
+        // content (= PreviewPane, = search bar BELOW tab strip + body
+        // content below the search bar).
+        //
+        // Search bar lives at the TOP of PreviewPane's body (= first
+        // element rendered after ZoneContentView's tab strip), so it
+        // aligns horizontally with the editor's toolbar in the right
+        // column. Body content (Group { switch scope }) goes below
+        // the search bar.
+        VStack(spacing: 0) {
+            // 30 PT tall (= matches LayoutTokens.toolbarHeight =
+            // editor's pencil/arrow toolbar inside EditorPlaceholder).
+            previewSearchBar
+            // v0.30 boss 8/31 OOB: scope-driven dispatch. Each scope
+            // branch handles its own toolbar (some hide toolbar, e.g.
+            // empty state).
+            Group {
+                switch scope {
+                case .referenceScope(let category):
+                    referenceScopeView(category: category)
+                case .bookScope(let bookId, let folderName):
+                    bookScopeView(bookId: bookId, folderName: folderName)
+                case .shelfScope:
+                    shelfScopeView()
+                case .empty:
+                    emptyScopeView()
+                }
             }
         }
         .padding(DesignTokens.chromePaddingHero)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// v0.40 boss 9/7 OOB '在顶栏下方, 参考编辑器的代码, 看是如何实现的':
+    /// preview-pane search bar (= 30 PT tall, = matches
+    /// `LayoutTokens.toolbarHeight` = the editor's pencil/arrow toolbar
+    /// inside EditorPlaceholder). Pattern matches the editor:
+    /// tab strip (ZoneContentView) → search bar (this view) → body content.
+    ///
+    /// Layout:
+    /// - magnifying-glass icon (left, .secondary, .small)
+    /// - TextField bound to `$previewSearchQuery` (.plain style,
+    ///   placeholder = `preview.search.placeholder`)
+    /// - clear-x button (only when `!previewSearchQuery.isEmpty`)
+    ///
+    /// SwiftUI @State reactivity re-evaluates `body` (= and any
+    /// consumers of `$previewSearchQuery`) on every keystroke
+    /// (= live refresh, no submit button, no .onChange handler).
+    private var previewSearchBar: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+                .imageScale(.small)
+            TextField(
+                WenshuI18n.t("preview.search.placeholder"),
+                text: $previewSearchQuery
+            )
+            .textFieldStyle(.plain)
+            if !previewSearchQuery.isEmpty {
+                Button {
+                    previewSearchQuery = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                        .imageScale(.small)
+                }
+                .buttonStyle(.plain)
+                .help(WenshuI18n.t("preview.search.clear"))
+            }
+        }
+        .padding(.horizontal, DesignTokens.chromePaddingSmall)
+        // 30 PT height = matches LayoutTokens.toolbarHeight
+        // (= editor's pencil/arrow toolbar + ZoneContentView tab strip).
+        .frame(height: LayoutTokens.toolbarHeight)
+        .background(Color.clear)
     }
 
     // MARK: - Scope subviews
