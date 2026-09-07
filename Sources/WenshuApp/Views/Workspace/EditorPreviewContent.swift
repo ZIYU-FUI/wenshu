@@ -33,15 +33,15 @@ struct EditorPreviewContent: View {
 
     var body: some View {
         // v0.40 boss 9/7 OOB '图一向图二修改, 包括内容的区的边距.
-        // 同意成一样': reduce padding + paragraph spacing to match
-        // the edit mode (= swift-markdown-engine NSTextView density).
-        // Edit mode NSTextView default textContainerInset ≈ 5 PT on
-        // macOS 27 Tahoe (= Apple's default TextKit 2 inset). Line
-        // spacing is NSTextView's default (= tight, ≈ 1.2x font).
-        // Preview mode now mirrors that: 5 PT outer padding, 2 PT
-        // paragraph spacing, 0 PT heading top spacing (= matches
-        // Apple's "tightly packed text content" per Apple HIG macOS
-        // content density guidance).
+        // 同意成一样' + 9/7 follow-up '内间距改反了, 原本的间距没有了,
+        // 所有区域, 内部区域还是左右两边还是需要留出来 18PT':
+        // outer padding is now ONLY horizontal (= 18 PT each side =
+        // DesignTokens.chromePaddingLeading + chromePaddingTrailing =
+        // = per boss 9/7 OOB '左右两边还是需要留出来 18PT').
+        // top + bottom = 0 (= matches edit-mode NSTextView's tight
+        // top/bottom inset; = no extra chrome around the content).
+        // Paragraph spacing = 2 PT (= NSTextView tight line spacing).
+        // Heading top padding = 0 (= NSTextView flush top).
         ScrollView {
             VStack(alignment: .leading, spacing: 2) {
                 ForEach(parsedSegments, id: \.id) { segment in
@@ -49,10 +49,12 @@ struct EditorPreviewContent: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            // Match edit-mode NSTextView default textContainerInset
-            // (= ~5 PT on macOS 27 Tahoe). Apple HIG canonical text
-            // content padding for read-only rich text views.
-            .padding(DesignTokens.chromePaddingXS)
+            // Boss 9/7 OOB '左右两边还是需要留出来 18PT': horizontal
+            // outer padding = 18 PT (= chromePaddingLeading /
+            // chromePaddingTrailing = wenshu's standard read-only
+            // text inset per boss 9/7 OOB). top/bottom = 0 (= tight,
+            // = matches NSTextView density).
+            .padding(.horizontal, DesignTokens.chromePaddingLeading)
         }
     }
 
