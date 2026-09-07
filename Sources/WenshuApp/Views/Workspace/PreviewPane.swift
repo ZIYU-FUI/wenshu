@@ -573,12 +573,21 @@ struct PreviewPane: View {
                                 }
                             }
                         }
-                        // STYLES-004 (2026-09-07): apply the canonical
-                        // 18 PT vertical inset via the new STYLES
-                        // content-inset modifier (= replaces
-                        // .padding(.vertical, chromePaddingVertical)
-                        // = 8 PT = the zone was too tight before).
-                        .contentInsetStyle(.standard, edges: .vertical)
+                        // STYLES-006 (2026-09-07): use the canonical content
+                        // inset modifier (= 0 PT = matches sidebar / editor
+                        // behavior = content sits right below the
+                        // chrome tier separator with no extra gap).
+                        // Previously (.contentInsetStyle(.standard,
+                        // edges: .vertical) = 18 PT) created a 35 PT
+                        // inconsistency vs zone 1 sidebar / zone 3
+                        // editor (= boss 9/7 round 5 '各区域内部元素,
+                        // 符合上下左右间距规则' = all 6 zones should
+                        // share the same chrome-tier-to-content-tier
+                        // inset). The previous 18 PT was Apple's
+                        // .defaultContentMargins (= NSTextView
+                        // internal), which doesn't apply to LazyVGrid
+                        // (= the grid's rows are not text).
+                        .contentInsetStyle(.none, edges: .vertical)
                     }
                 }
             }
