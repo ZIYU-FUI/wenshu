@@ -254,35 +254,15 @@ final class LayoutTreeStore: ObservableObject {
         let builtinWorkspace = builtinDefault?.workspace ?? Self.makeBuiltinWorkspace()
         self.workspace = builtinWorkspace
         self.currentPresetID = builtinDefault?.id ?? presets.first(where: { $0.isBuiltIn })?.id
-        // v0.30 boss 2026-09-01 OOB (zone toggle reset): also
-        // reset the 5 `wenshu.zoneVisible.*` UserDefaults flags so
-        // a "Restore Default Layout" call returns ALL panes to their visible
-        // state. Without this the layout tree resets but hidden
-        // panes stay hidden (= toolbar buttons and visible
-        // state go out of sync). Removes each flag via standard
-        // `removeObject(forKey:)` (= next launch reads
-        // `@AppStorage(...) = true` default).
-        let defaults = UserDefaults.standard
-        for key in [
-            "wenshu.zoneVisible.projectSidebar",
-            "wenshu.zoneVisible.projectPreview",
-            "wenshu.zoneVisible.specializedTools",
-            "wenshu.zoneVisible.aiChat",
-            "wenshu.zoneVisible.aiDynamic"
-        ] {
-            defaults.removeObject(forKey: key)
-        }
-        // v0.30 boss 2026-09-01 OOB (zone toggle reset): force-
-        // broadcast UserDefaults.didChangeNotification so the
-        // SwiftUI @AppStorage wrappers in WiredShell re-read the
-        // cleared keys (= default value `true` kicks in, toolbar
-        // buttons return to accent, panes un-hide). Without this
-        // post, SwiftUI's KVO observer sometimes misses the change
-        // (= view stays stale until the next launch).
-        NotificationCenter.default.post(
-            name: UserDefaults.didChangeNotification,
-            object: nil
-        )
+        // ZONE-VIS-FIX-001 (2026-09-08): removed the dead
+        // `wenshu.zoneVisible.*` UserDefaults reset code (= no
+        // longer relevant after `NSSplitView.autosaveName` takes
+        // over zone collapsed/expanded state persistence; = the
+        // wenshu-side bookkeeping was a duplicate source of
+        // truth that diverged from Apple's built-in state; = the
+        // @AppStorage declarations in LibraryRootView that
+        // referenced these keys were already dead since the
+        // v0.34 toolbar flatten per its L150-158 comments).
         save()
         savePresets()
     }
