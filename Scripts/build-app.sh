@@ -61,6 +61,22 @@ if [ -z "$SPM_BUNDLE_PATH" ]; then
     # Fallback: search anywhere under .build (in case SPM nesting changes)
     SPM_BUNDLE_PATH="$(find .build -name 'Wenshu_WenshuApp.bundle' -type d 2>/dev/null | head -1 || true)"
 fi
+# v0.40 boss 9/7 OOB '刚刚的截图, 又有好多没有正确显示多语言的值':
+# WenshuI18n.bundle (= SPM-generated, contains the Localizable.strings
+# runtime catalogs) was being FOUND by the probe loop above but
+# NEVER COPIED into the .app — only the 3rd-party SPM bundles got
+# copied (= line 75-76 explicitly skipped Wenshu_WenshuApp.bundle).
+# Result at runtime: WenshuI18n.bundle resolution falls back to the
+# source path (= sometimes fails on .app bundle with sandbox
+# restrictions) → WenshuI18n.t("...") returns the raw key path
+# (= user sees "auto.kanbanview.l146.h37..." in the UI instead of
+# the translation).
+# Fix: explicitly cp -R the wenshu bundle into the .app (= same
+# treatment as the 3rd-party bundles below, but unconditional).
+if [ -n "$SPM_BUNDLE_PATH" ]; then
+    cp -R "$SPM_BUNDLE_PATH" "$RES_DIR/"
+    echo ">>> copied SPM bundle: $SPM_BUNDLE_PATH -> $RES_DIR/$(basename "$SPM_BUNDLE_PATH")"
+fi
 # Copy all third-party SPM-generated resource bundles into the .app
 # (= Highlighter_Highlighter, GRDB_GRDB, Defaults_Defaults, etc.) so
 # their `Bundle.module` lookups succeed at runtime. Without these,
