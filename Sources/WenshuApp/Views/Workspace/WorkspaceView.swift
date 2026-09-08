@@ -1421,15 +1421,18 @@ struct EditorPlaceholder: View {
             startFileWatcher()
         }
         // v0.40 boss 2026-09-08 OOB '聊天顶栏有 3 个 tab, 编辑器顶栏
-        // 没有': on first render, if openTabs is empty, inject one
-        // welcome tab (= gives the editor top tab bar at least one
-        // tab to render so the bar is visually present at launch).
-        // Using `.onAppear` (not initializer mutation) because
-        // mutating @Observable state during view body evaluation
-        // triggers an infinite re-render loop.
-        .onAppear {
-            appState.ensureWelcomeTabIfEmpty()
-        }
+        // 没有': REVERTED (= boss 2026-09-08 follow-up '不是, 不要
+        // 纠结文档预览内容, 这个没有任何持久化信息的时候, 默认
+        // 编辑器应该没有任何的 MD 的 tab'). The welcome tab was
+        // visually present but the preview body was empty (= no
+        // document content to render). Boss wants the editor zone
+        // to show NO tab strip at all when there are no persisted
+        // tabs (= the empty-state hint takes the full editor body
+        // = cleaner empty UX than a blank tab + blank content).
+        //
+        // .onAppear {
+        //     appState.ensureWelcomeTabIfEmpty()
+        // }
         // v0.34 B-23: tear down the file watcher when the view goes away
         // (= prevents zombie DispatchSource holding the file descriptor).
         .onDisappear {
