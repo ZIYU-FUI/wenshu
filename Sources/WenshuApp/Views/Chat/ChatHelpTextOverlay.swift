@@ -30,36 +30,53 @@ public struct ChatHelpTextOverlay: View {
         // Implementation: use HStack(spacing: 0) with 3 Text views
         // (= plain + clickable + plain). The middle '设置' is
         // wrapped in a Button with .plain style for tap = onSettingsTap.
+        //
+        // v0.40 boss 2026-09-08 follow-up '这两行字的间距, 和其它的
+        // 不一样': the title → body spacing must match the editor
+        // zone empty state (= EmptyStateHint's inner VStack spacing
+        // = DesignTokens.chromePaddingSmall = 4 PT). The previous
+        // implementation had a flat VStack(spacing: chromePaddingLarge)
+        // between title and body (= 16 PT = too wide). Restructure
+        // = outer VStack spacing chromePaddingLarge (icon → title
+        // block) + inner VStack(spacing: chromePaddingSmall) for
+        // title → body (= matches EmptyStateHint exactly).
         VStack(spacing: DesignTokens.chromePaddingLarge) {
             // Icon (= 24 PT = DesignTokens.iconLargeSize).
             // .secondary tone matches the editor / card zone
             // empty state icons.
             LucideIconSystemFallback("message-square", size: DesignTokens.iconLargeSize)
                 .foregroundStyle(.secondary)
-            // Title (= inline link pattern = Apple's Mail.app /
-            // Notes.app convention for empty-state hints that
-            // include a "settings" CTA inside the title sentence).
-            HStack(spacing: 0) {
-                Text(WenshuI18n.t("chathelp.please_first_goto") + " ")
-                    .foregroundStyle(.secondary)
-                Button(action: onSettingsTap) {
-                    Text(WenshuI18n.t("auto.chathelptextoverlay.l25.h61781343"))
-                        .foregroundStyle(Color.accentColor)
-                        .underline()
+            // Title block (= inner VStack with tight 4 PT spacing
+            // between title + body = matches EmptyStateHint's inner
+            // VStack(spacing: chromePaddingSmall) = Apple HIG canonical
+            // title-body separation).
+            VStack(spacing: DesignTokens.chromePaddingSmall) {
+                // Title (= inline link pattern = Apple's Mail.app /
+                // Notes.app convention for empty-state hints that
+                // include a "settings" CTA inside the title sentence).
+                HStack(spacing: 0) {
+                    Text(WenshuI18n.t("chathelp.please_first_goto") + " ")
+                        .foregroundStyle(.secondary)
+                    Button(action: onSettingsTap) {
+                        Text(WenshuI18n.t("auto.chathelptextoverlay.l25.h61781343"))
+                            .foregroundStyle(Color.accentColor)
+                            .underline()
+                    }
+                    .buttonStyle(.plain)
+                    Text(" " + WenshuI18n.t("auto.chathelptextoverlay.l30.h53427819"))
+                        .foregroundStyle(.secondary)
                 }
-                .buttonStyle(.plain)
-                Text(" " + WenshuI18n.t("auto.chathelptextoverlay.l30.h53427819"))
-                    .foregroundStyle(.secondary)
-            }
-            .font(.system(size: 15, weight: .semibold))
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: 360)
-            // Body (= 13 PT tertiary = Apple HIG tertiary detail).
-            Text(WenshuI18n.t("auto.chathelptextoverlay.l33.h88773098"))
-                .font(.system(size: 13))
-                .foregroundStyle(.tertiary)
+                .font(.system(size: 15, weight: .semibold))
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 360)
+                // Body (= 13 PT tertiary = Apple HIG tertiary detail).
+                Text(WenshuI18n.t("auto.chathelptextoverlay.l33.h88773098"))
+                    .font(.system(size: 13))
+                    .foregroundStyle(.tertiary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 360)
+            }
+            .frame(maxWidth: 360)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
