@@ -96,8 +96,13 @@ struct ChatZoneView: View {
         // v0.34 chrome flatten), so this only matters for the
         // compile path.
         _vm = State(initialValue: ChatViewModel(conductor: conductor, store: store, appState: nil))
-        // v0.21 ticket 43 step 1 NSLog trace
-        NSLog("[wenshu.tab] onAppear: selectedTab=%@ currentModel=%@", ChatZoneTab.chat.rawValue, currentModel)
+        // CHATZONE-CRASH-FIX (2026-09-08): removed `currentModel` from
+        // the NSLog format args (= it reads @Environment AppState in
+        // init = crashes 'No Observable object of type AppState found'
+        // because the env chain is not yet injected at init time).
+        // Logging moved to onAppear (= after the view is mounted in
+        // the hierarchy and the env chain is wired).
+        NSLog("[wenshu.tab] onAppear: selectedTab=%@", ChatZoneTab.chat.rawValue)
     }
 
     // v0.24 boss验收fix (Boss 8/25 OOB ticket 015.014): archive current session
