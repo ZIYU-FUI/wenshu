@@ -124,6 +124,15 @@ public struct LibraryRootView: View {
 /// provides it via @Environment.
 private struct WiredShell: View {
     let libraryPath: String
+    // CHATZONE-CRASH-FIX (2026-09-08, post-docs-check):
+    // Apple HIG canonical guidance is that NavigationSplitView typically
+    // is used as the root view in a Scene. When nested under
+    // WorkspaceView.body (= the prior M1 implementation), child column
+    // views crash with 'No Observable object of type AppState found'
+    // on @Environment lookup. Fix = promote the NavigationSplitView to
+    // the Scene root (= here, inside WiredShell.body, which is what
+    // LibraryRootView embeds directly).
+    @Environment(AppState.self) private var appState
     @State private var bookStore: BookStore?
     // v0.27 ticket 027-34 (= boss 8/27 grill D1 'Xcode paradigm +
     // user-customizable layout'): feature flag toggles between the
@@ -168,95 +177,40 @@ private struct WiredShell: View {
 
     var body: some View {
         Group {
-            if let bookStore = bookStore {
-                // WorkspaceView path (= v0.28 followup).
-                // LayoutTreeStore is constructed once per
-                // WiredShell lifetime (= a new instance per
-                // window); its UserDefaults round-trip preserves
-                // state across launches.
-                if workspaceStore == nil {
-                    // Defer to a single task so we don't mutate
-                    // @State during view update.
-                    Color.clear
-                        .task { workspaceStore = LayoutTreeStore() }
-                } else if let workspaceStore = workspaceStore {
-                    WorkspaceView(store: workspaceStore)
-                        .environment(bookStore)
-                }
+            if appState.useThreeColumnSplit {
+                // Apple-native NavigationSplitView shell (= the macOS 27
+                // recommended 3-column layout per boss 9/8 'Apple framework
+                // 默认是 2-3 栏'). Placed at root-of-Scene position so
+                // @Environment propagation is preserved for descendant column
+                // views (= the env-chain fix that lets ChatZoneView / etc.
+                // access appState).
+                NavigationSplitShell(appState: appState)
             } else {
-                ProgressView("正在启动文枢…")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                // 老 PaneSplitHost path (= unchanged; = the WorkspaceView
+                // View is unchanged from M1).
+                Group {
+                    if let bookStore = bookStore {
+                        // WorkspaceView path (= v0.28 followup).
+                        // LayoutTreeStore is constructed once per
+                        // WiredShell lifetime (= a new instance per
+                        // window); its UserDefaults round-trip preserves
+                        // state across launches.
+                        if workspaceStore == nil {
+                            // Defer to a single task so we don't mutate
+                            // @State during view update.
+                            Color.clear
+                                .task { workspaceStore = LayoutTreeStore() }
+                        } else if let workspaceStore = workspaceStore {
+                            WorkspaceView(store: workspaceStore)
+                                .environment(bookStore)
+                        }
+                    } else {
+                        ProgressView("正在启动文枢…")
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                }
             }
         }
-// v0.28 followup Boss UX round 13 (Boss 2026-08-29 OOB '没有
-        // 分组, 分好组'): Use ToolbarItemGroup(= segmented Liquid
-        // Glass capsule per group, the canonical macOS 26 Tahoe
-        // pattern). Each group = 1 visually-grouped capsule with a
-        // gap between groups (= matches Apple Pages / Xcode / Finder
-        // toolbar style exactly). 3 groups:
-        // - Group 1: 5 zone toggles (sidebar/preview/tools/chat/dynamic)
-        // - Group 2: model picker (= separate capsule after the zone-toggle group)
-        // - Group 3: export (= rightmost, third capsule)
-        // v0.30 boss 2026-09-01 OOB (zone toggle fix): the 5 toolbar
-        // zone-toggle buttons below were toggling only the @AppStorage
-        // booleans (= button tint flipped but the NSSplitView layout
-        // never reacted, because nothing read those keys). The actual
-        // hide/show is driven by `.wenshuToggleZone` notifications
-        // (= PaneNSController.swift:390 handleToggleZone matches the
-        // NSSplitViewItem by TabKind and flips `isCollapsed`).
-                // v0.34 boss 2026-09-02 OOB '用 apple api 的都用 api' (= zero-
-                // config iron rule #9): the wenshu topbar's hand-rolled `.toolbar
-                // { ToolbarItemGroup(placement: .primaryAction) { Button... } }`
-                // block (= 5 zone-toggle Buttons + model + export, each emitting
-                // NotificationCenter.post + keyboard shortcut) DUPLICATED the
-                // canonical macOS menu entries (= App.swift:489-535
-                // CommandGroup(after: .sidebar) — 5 zone-toggle Button + reset
-                // + edit-mode, same ⌘⇧1/2/3/4/R/\ shortcuts).
-                //
-                // Apple HIG canonical: 1 surface per action. The menu bar
-                // (= with ⌘⇧ shortcuts) IS the canonical topbar. Every macOS
-                // app since Finder puts zone controls in the menu bar, NOT in a
-                // custom in-window toolbar. The hand-rolled wenshu toolbar block
-                // was the second source of truth (= 5 Button labels + icons
-                // duplicated what .commands already provides).
-                //
-                // = deleted the hand-rolled toolbar block entirely (= single
-                // source of truth = App.swift .commands). Apple canonical menu
-                // bar + SwiftUI native .toolbar (empty) = correct.
-                //
-                // The 5 @AppStorage('wenshu.zoneVisible.*') Bool + modelName
-                // (above) were dead too (= previously only .toggle()'d by the
-                // deleted toolbar block, no other reader). Kept for now
-                // (WorkspaceView reads them at cold-launch for persistence
-                // restoration; see App.swift:498-513 comment for the canonical
-                // single-source-of-truth wiring).
-                //
-                // B-05 update: the 'Kept for now' clause above is now
-                // resolved (= the dead declarations were removed
-                // entirely). Persistence for `wenshu.zoneVisible.*` is
-                // owned by LayoutTreeStore (single source of truth,
-                // reset in `LayoutTreeStore.resetToDefault()`) and
-                // applied on startup by
-                // `PaneNSController.applyPersistedZoneVisibility()`.
-                // The `wenshu.llm.model` value is owned by
-                // `AppState.llmModel` (= the canonical @Observable
-                // owner, see AppState.swift for the full rationale).
-                //
-                // NOTE: v0.28 followup Boss UX round 11 attempted to remove
-                // the Liquid Glass capsule by passing .toolbarBackground(.clear,
-                // for: .windowToolbar). Boss round 12 overruled that (= decided
-                // to fully adopt Liquid Glass per Apple design language). The
-        // default Liquid Glass background now renders behind the
-        // toolbar items (= canonical macOS 26 Tahoe look matching
-        // Pages / Xcode / Mail / Finder).
-
-        // NOTE: v0.28 followup Boss UX round 11 attempted to remove
-        // the Liquid Glass capsule by passing .toolbarBackground(.clear,
-        // for: .windowToolbar). Boss round 12 overruled that (= decided
-        // to fully adopt Liquid Glass per Apple design language). The
-        // default Liquid Glass background now renders behind the
-        // toolbar items (= canonical macOS 26 Tahoe look matching
-        // Pages / Xcode / Mail / Finder).
         .task {
             await runLaunch()
         }

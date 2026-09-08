@@ -198,24 +198,23 @@ struct ShellContentColumn: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             Divider()
-            // Bottom sub-area: real chat (= the wenshu-app's
-            // existing ChatView; = the LLM conversation
-            // surface with attachment upload + message history).
-            // Wrapped in ZonePerRegionChrome for the bottom
-            // status bar (= boss 9/8 '把聊天区的底栏加回来吧').
-            // The top tab bar is omitted for now (= simpler
-            // approach; = a future ticket adds the chat tab bar
-            // back if the boss wants it).
-            ZonePerRegionChrome(
-                topActions: [],
-                bottomStatus: aiChatChrome().bottom,
-                topSkip: true,  // chat top tab bar deferred (= M3 ticket)
-                bottomSkip: false,
-                zone: .aiChat
-            ) {
-                ChatView()
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Bottom sub-area: real chat wrapped in
+            // ChatZoneView (= the canonical chat-zone wrapper
+            // that provides the top tab bar via safeAreaInset +
+            // the bottom chrome status bar; = boss 9/8
+            // '编辑器区, 和聊天区的顶栏都不见了' = the chat
+            // top tab bar is restored now that the env chain
+            // is intact (= the M1 NavigationSplitShell is at
+            // the root of the Scene, = @Environment
+            // propagation is preserved across column boundaries).
+            //
+            // No outer ZonePerRegionChrome (= the inner
+            // ChatZoneView already provides both top tab bar
+            // and bottom status bar = boss 9/8 '把聊天区的
+            // 底栏加回来吧'). Skipping the outer chrome avoids
+            // double-stacked bottom bars.
+            ChatZoneView(conductor: nil, store: nil)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         // CHATZONE-CRASH-FIX (2026-09-08): re-inject AppState into
         // the env chain. SwiftUI 6+ breaks the @Environment chain
