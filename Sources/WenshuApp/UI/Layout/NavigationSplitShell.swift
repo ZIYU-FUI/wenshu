@@ -266,7 +266,12 @@ struct ShellSidebarColumn: View {
         // column refracts like glass = visually separates from
         // adjacent columns without a drag-handle divider; = matches
         // Pages / Numbers / Keynote canonical look).
-        .background { Rectangle().fill(Color(nsColor: .windowBackgroundColor)) }
+        // v0.40 boss 2026-09-08 OOB '再往上一层, 去掉背景': column-level
+            // .background(.windowBackgroundColor) removed (= was applying
+            // #1E = chrome tier over the entire column = visually distinct
+            // from the zone's own .background(.underPageBackgroundColor)).
+            // Per-zone .background now flows up through the column with
+            // no parent override.
     }
 }
 
@@ -410,7 +415,12 @@ struct ShellContentColumn: View {
         // v0.40: macOS 27 Tahoe Liquid Glass (= see ShellSidebarColumn
         // comment for rationale = columns refract like glass without
         // a drag-handle divider).
-        .background { Rectangle().fill(Color(nsColor: .windowBackgroundColor)) }
+        // v0.40 boss 2026-09-08 OOB '再往上一层, 去掉背景': column-level
+            // .background(.windowBackgroundColor) removed (= was applying
+            // #1E = chrome tier over the entire column = visually distinct
+            // from the zone's own .background(.underPageBackgroundColor)).
+            // Per-zone .background now flows up through the column with
+            // no parent override.
         // CHATZONE-CRASH-FIX (2026-09-08): re-inject AppState into
         // the env chain. SwiftUI 6+ breaks the @Environment chain
         // across NavigationSplitView's 3-column boundary (= the
@@ -474,7 +484,12 @@ struct ShellDetailColumn: View {
         }
         // v0.40: macOS 27 Tahoe Liquid Glass (= see ShellSidebarColumn
         // comment for rationale).
-        .background { Rectangle().fill(Color(nsColor: .windowBackgroundColor)) }
+        // v0.40 boss 2026-09-08 OOB '再往上一层, 去掉背景': column-level
+            // .background(.windowBackgroundColor) removed (= was applying
+            // #1E = chrome tier over the entire column = visually distinct
+            // from the zone's own .background(.underPageBackgroundColor)).
+            // Per-zone .background now flows up through the column with
+            // no parent override.
         // CHATZONE-CRASH-FIX (2026-09-08): re-inject AppState into
         // the env chain. SwiftUI 6+ breaks the @Environment chain
         // across NavigationSplitView's 3-column boundary (= the

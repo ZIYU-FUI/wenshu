@@ -202,13 +202,16 @@ public struct ZonePerRegionChrome<Content: View>: View {
             // start at y≈7 = tighter top = more vertical real estate
             // for content).
             //
-            // Region content (= fills remaining space) + per-zone
-            // background. chromeZoneBackgroundStyle is the CSS-like
-            // modifier that owns the visual background fill (= not
-            // the .padding/.frame calls that used to be here).
+            // v0.40 boss 2026-09-08 OOB '把 Chrome 的父级的背景色删掉':
+            // removed the .chromeZoneBackgroundStyle(zone: zone)
+            // (= the modifier was the only call to chromeZoneBackgroundStyle,
+            // and chromeZoneBackgroundStyle itself was just a no-op
+            // pass-through to ChromeZoneBackground = RegionContentBackground).
+            // The content view is now naked (= no chrome-supplied
+            // background fill). Per-zone background is the
+            // responsibility of the zone's own View.
             content()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .chromeZoneBackgroundStyle(zone: zone)
             // Bottom chrome bar (= status text + right-click).
             // 6 of 6 callers now render the parent's bottom bar
             // shared horizontal status strip = matches the visual
