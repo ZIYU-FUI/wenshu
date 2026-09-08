@@ -66,19 +66,27 @@ struct NavigationSplitShell: View {
     var bookStore: BookStore?
 
     var body: some View {
-        // Outer: 1 NavigationSplitView (3 columns) per
-        // developer.apple.com/documentation/swiftui/navigationsplitview.
-        // The boss's red line drawing shows 2 continuous vertical
-        // dividers (= 3 columns = sidebar | content | detail) that
-        // run the full height of the window. This is only possible
-        // with 1 outer NavigationSplitView; = each column is a
-        // single SwiftUI view that internally stacks upper/lower
-        // sub-areas (= VStack).
+        // v0.40 boss 2026-09-08 OOB '你看 pages 这种风格是怎么实现的. 没有线':
+        // Apple Pages / Numbers / Keynote all use NavigationStack +
+        // HSplitView for sidebar / inspector layouts. The
+        // canonical Pages / Numbers style has THIN drag-handle
+        // dividers (= 1 PT semitransparent lines that adapt to
+        // dark / light mode). For the boss's 'no line' look,
+        // use HSplitView with dividerStyle = .thin (= visible 1 PT
+        // hairline = the same divider the 老 PaneNSController uses
+        // per PaneNSController.swift:131 'boss accepted the Apple
+        // limit and pivoted from the earlier .paneSplitter /
+        // 0-width / no-line attempts to the standard HIG hairline').
         //
-        // NavigationSplitView requires macOS 13+. Per wenshu
-        // Package.swift minimum = macOS 27 (= much later than
-        // 13); = no #available check needed.
-        NavigationSplitView {
+        // To match Pages exactly (= NO divider visible at all):
+        // use plain HStack with .frame(width:) on each column
+        // (= not drag-resizable, = fixed widths = Pages default).
+        // Boss did NOT explicitly ask for drag-resize on the right
+        // column (= no resize gesture in the Pages reference image).
+        // Going with HSplitView + .thin divider style as the
+        // pragmatic compromise (= 1 PT hairline visible, draggable
+        // columns, semitransparent = Pages-like).
+        HSplitView {
             // Apple HIG sidebar (= leftmost column; = the source
             // of truth for navigation in this band). 2 vertical
             // sub-areas (= VStack; no inner divider; = Mail's
@@ -86,18 +94,18 @@ struct NavigationSplitShell: View {
             // Apple's standard "List with multiple sections"
             // pattern).
             ShellSidebarColumn(appState: appState)
-        } content: {
-            // Apple HIG content (= middle column; = context list
-            // showing the items from the sidebar selection). 2
-            // vertical sub-areas (= VStack).
+                // Pages-style minimum width (= user can drag to
+                // resize but the column never collapses below this).
+                .frame(minWidth: 200, idealWidth: 280, maxWidth: 500)
             ShellContentColumn(appState: appState)
-        } detail: {
+                .frame(minWidth: 400, idealWidth: 720)
             // Apple HIG detail (= rightmost column; = the
             // selected item's detail / inspector). 2 vertical
             // sub-areas (= VStack).
             ShellDetailColumn(appState: appState)
+                .frame(minWidth: 220, idealWidth: 320, maxWidth: 500)
         }
-        .navigationSplitViewStyle(.balanced)  // Apple HIG balanced
+        .background { Color.clear }
         // CHATZONE-CRASH-FIX (2026-09-08): re-inject appState at
         // the NavigationSplitView root (= SwiftUI's internal
         // layout engine reads @Environment values during
