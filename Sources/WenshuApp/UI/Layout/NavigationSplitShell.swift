@@ -58,6 +58,12 @@ struct NavigationSplitShell: View {
     /// WorkspaceView's owner; = passed by reference via @Bindable
     /// in the body).
     var appState: AppState
+    /// Optional BookStore for env injection (= descendants
+    /// like ForeshadowingView / PlaceholderView / PreviewPane
+    /// read BookStore from env via @Environment(BookStore.self)).
+    /// Optional because BookStore is constructed asynchronously
+    /// by LibraryLifecycleHook (= may not exist at first frame).
+    var bookStore: BookStore?
 
     var body: some View {
         // Outer: 1 NavigationSplitView (3 columns) per
@@ -92,6 +98,24 @@ struct NavigationSplitShell: View {
             ShellDetailColumn(appState: appState)
         }
         .navigationSplitViewStyle(.balanced)  // Apple HIG balanced
+        // CHATZONE-CRASH-FIX (2026-09-08): re-inject appState at
+        // the NavigationSplitView root (= SwiftUI's internal
+        // layout engine reads @Environment values during
+        // NavigationSplitCoordinator.makeSplitViewController
+        // to compute column min sizes; = the engine needs appState
+        // in env even though no column body reads it directly).
+        // Without this re-injection, the env chain fails at
+        // _FlexFrameLayout.sizeThatFits (= EnvironmentValues
+        // subscript crashes with 'No Observable object of type
+        // AppState found' during view layout pass).
+        .environment(appState)
+        // CHATZONE-CRASH-FIX part 2: also re-inject bookStore if
+        // available (= descendants read BookStore from env via
+        // @Environment(BookStore.self) = ForeshadowingView /
+        // PlaceholderView / PreviewPane / WorkspaceView. Without
+        // this re-injection, the env chain fails at the layout
+        // pass with 'No Observable object of type BookStore found').
+        .environment(bookStore)
     }
 }// MARK: - Sidebar column (= 2 vertical sub-areas)
 

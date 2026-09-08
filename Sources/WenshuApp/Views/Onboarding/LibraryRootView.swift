@@ -178,13 +178,39 @@ private struct WiredShell: View {
     var body: some View {
         Group {
             if appState.useThreeColumnSplit {
-                // Apple-native NavigationSplitView shell (= the macOS 27
-                // recommended 3-column layout per boss 9/8 'Apple framework
-                // 默认是 2-3 栏'). Placed at root-of-Scene position so
-                // @Environment propagation is preserved for descendant column
-                // views (= the env-chain fix that lets ChatZoneView / etc.
-                // access appState).
-                NavigationSplitShell(appState: appState)
+                // CHATZONE-CRASH-FIX part 2 (2026-09-08): defer rendering
+                // NavigationSplitShell until BookStore is constructed
+                // (= descendants like ForeshadowingView / PlaceholderView
+                // / PreviewPane read @Environment(BookStore.self)
+                // non-optional; = SwiftUI crashes if BookStore is
+                // missing from env at layout time). LibraryLifecycleHook
+                // constructs BookStore asynchronously (= nil at first
+                // frame; = we show a ProgressView until ready).
+                if let bookStore = bookStore {
+                    NavigationSplitShell(appState: appState, bookStore: bookStore)
+                        // CHATZONE-CRASH-FIX (2026-09-08): re-inject AppState
+                        // into NavigationSplitView's column env. NavigationSplitView
+                        // re-roots each column view in its own env subgraph
+                        // (= the @Environment chain is broken at the column
+                        // boundary for @Observable types). Re-injecting via
+                        // .environment(appState) at the column-root level
+                        // restores the chain so ChatZoneView / ZoneModuleView /
+                        // NewLibraryOutlineView can read appState from env
+                        // (= previously crashed with 'No Observable object of
+                        // type AppState found' at Environment+Objects.swift:34).
+                        .environment(appState)
+                        // CHATZONE-CRASH-FIX part 2b: also re-inject bookStore
+                        // explicitly (= NavigationSplitView's internal
+                        // layout engine reads env values during
+                        // makeSplitViewController; = without this
+                        // re-injection, the env chain fails at
+                        // _FlexFrameLayout.sizeThatFits with 'No
+                        // Observable object of type BookStore found').
+                        .environment(bookStore)
+                } else {
+                    ProgressView("正在启动文枢…")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             } else {
                 // 老 PaneSplitHost path (= unchanged; = the WorkspaceView
                 // View is unchanged from M1).
@@ -203,6 +229,8 @@ private struct WiredShell: View {
                         } else if let workspaceStore = workspaceStore {
                             WorkspaceView(store: workspaceStore)
                                 .environment(bookStore)
+                                // Same env-chain fix (= see above).
+                                .environment(appState)
                         }
                     } else {
                         ProgressView("正在启动文枢…")
