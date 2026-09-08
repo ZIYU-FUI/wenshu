@@ -1380,10 +1380,12 @@ struct EditorPlaceholder: View {
             // Use .ultraThinMaterial instead of Color.green.opacity(0.05)
             // (= solid green placeholder = inconsistent with the
             // Liquid Glass design language). Editor zone has no
-            // wired-in content yet (= ticket 027-35 followup), so use the
-            // lightest Liquid Glass material as a placeholder that
-            // matches the rest of the workspace.
-            .background(.ultraThinMaterial)
+            // v0.40 boss 2026-09-08 OOB '再往上一层, 去掉背景': drop
+            // .background(.ultraThinMaterial) (= was adding glass
+            // material over the editor zone = visually distinct
+            // from the chat zone's plain background). Editor zone
+            // now has no injected background (= inherits from the
+            // column = no nested layering).
         }
         // v0.34 B-18: on editor zone mount, seed AppState.editorWordCount
         // with the character count of the initial body (= sample body

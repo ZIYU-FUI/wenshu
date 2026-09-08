@@ -494,9 +494,11 @@ LibraryRootView()
             // accessibility overrides compress it. Tahoe will
             // re-expand the tiers when the user disables the
             // accessibility override.
-            .containerBackground(for: .window) {
-                Color(nsColor: .windowBackgroundColor)
-            }
+            // v0.40 boss 2026-09-08 OOB '去掉 windows BG 参数, 先看效果':
+            // temporarily drop the window-level containerBackground
+            // (= was applying windowBackgroundColor = #1E to every
+            // pane in the window). See NavigationSplitShell.swift
+            // for the per-column containerBackground analysis.
             .onAppear {
                 WenshuAppDelegate.openSettings = openSettings
                 // v0.28 followup (Boss 2026-08-29 OOB '调试视图框架'):

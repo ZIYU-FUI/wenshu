@@ -117,11 +117,16 @@ extension View {
     /// CHROME-ARCH-001 (2026-09-07): apply the per-zone chrome tier
     /// background fill. Use this on the content (= between the top
     /// and bottom chrome bars).
-    func chromeZoneBackgroundStyle(zone: ZoneSlot?) -> some View {
-        if let zone = zone {
-            return self.background(ChromeZoneBackground(zone: zone))
-        } else {
-            return self.background(ChromeZoneBackground(zone: nil))
-        }
-    }
+    // v0.40 boss 2026-09-08 OOB '把 Chrome 的父级的背景色删掉':
+    // removed chromeZoneBackgroundStyle(= was applying per-zone
+    // background tier via ChromeZoneBackground -> RegionContentBackground).
+    // The content view (= EditorPlaceholder / ZoneModuleView) is
+    // now naked (= no chrome-supplied background). Per-zone
+    // background is the responsibility of the zone's own View
+    // (= each View sets its own .background via semantic colors;
+    // = no implicit chrome background injection).
+    //
+    // The chromeZoneBackgroundStyle modifier is preserved as a
+    // no-op for backward compat (= future removal once all callers
+    // stop referencing it; = tracked in the chrome-zone-bg ticket).
 }
