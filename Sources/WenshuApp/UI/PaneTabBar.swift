@@ -167,7 +167,11 @@ public struct PaneTabBar<Item: Identifiable & Sendable, Trailing: View>: View {
             // the 6 zones). Apple HIG canonical toolbar = symmetric
             // outer edge inset (Photos / Music / Mail tab bar use the
             // same leading + trailing value). Now both sides use
-            // chromePaddingLeading (= 18 PT) = Apple HIG symmetric.
+            // chromePaddingLeading (= 8 PT = Apple HIG canonical
+            // 'Spacing.small' for inline toolbar items per boss 9/8
+            // 'Apple API default spacing isn't PT, it's a semantic
+            // name' = the semantic name is '.small' = 8 PT) =
+            // Apple HIG symmetric.
             .padding(.horizontal, DesignTokens.chromePaddingLeading)
             // ponytail fix: the inner HStack had only intrinsic width
             // (= sum of children), so the Spacer(minLength: 0) before

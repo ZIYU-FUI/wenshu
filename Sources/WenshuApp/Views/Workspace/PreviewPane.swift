@@ -333,23 +333,23 @@ struct PreviewPane: View {
             // Boss 9/8 round 2: '18 is a bit wide; Apple API default
             // spacing isn't PT, it's a semantic name'.
             //
-            // Apple canonical for the cards grid (= a custom grid
-            // layout that doesn't use Apple's standard container)
-            // = no padding (= SwiftUI's LazyVGrid has its own
-            // item spacing handled by `spacing: 16` in the GridItem
-            // declaration). The cards themselves are flush against
-            // the zone's left edge (= matches Apple HIG Finder /
-            // Photos / Music card grids per the sidebar guidelines
-            // reference = no leading inset on card content).
+            // Boss 9/8 round 3: 'cards zone having no spacing is
+            // not pretty, keep the spacing, all zones use round 2'.
             //
-            // For the search bar's content (= inline toolbar item),
-            // 8 PT is correct (= see above). For the body cards
-            // grid, 0 PT (= no padding = cards flush left). This
-            // matches Apple HIG pattern: search bar has its own
-            // toolbar inset, body content has its own (= possibly
-            // zero) inset.
-            .padding(.horizontal, 0)
-            .padding(.bottom, 8)
+            // Apple HIG = chromePaddingLeading (= horizontal inset
+            // from zone edge to content) = 8 PT (= the canonical
+            // toolbar / inline content inset per SwiftUI 'Spacing.
+            // small'). Used padding(8) (= horizontal + vertical 8
+            // PT) so cards have visible breathing room (= not flush
+            // against the zone edge = not pretty) but match Apple
+            // HIG spacing scale (= 8-point grid).
+            //
+            // Note: per the Apple HIG card grid pattern (= Finder /
+            // Photos / Music), the gap between cards IS the spacing
+            // (= LazyVGrid's `spacing: 16` per GridItem + this outer
+            // 8 PT inset = the canonical 'comfortable but compact'
+            // grid per Apple Design Resources).
+            .padding(8)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -403,14 +403,14 @@ struct PreviewPane: View {
         // Boss 9/8 round 2: '18 is a bit wide; Apple API default
         // spacing isn't PT, it's a semantic name'.
         //
-        // Per Apple HIG Layout (= developer.apple.com/design/
-        // human-interface-guidelines/layout) + macOS HIG spacing
-        // scale (= 4 / 8 / 12 / 16 / 20 / 24 PT), the Apple canonical
-        // value for inline toolbar elements (= text fields + icons
-        // inside a toolbar row) = 8 PT (= SwiftUI's `.small`
-        // standard spacing = the same value Apple uses for
-        // ToolbarItem horizontal spacing + for List row internal
-        // padding per the swiftui-patterns design-polish reference).
+        // Boss 9/8 round 3: 'cards zone having no spacing is
+        // not pretty, keep the spacing, all zones use round 2'.
+        //
+        // Final value: 8 PT (= Apple HIG canonical 'Spacing.small'
+        // for inline toolbar items = SwiftUI's standard small
+        // spacing = the same value Apple uses for ToolbarItem
+        // horizontal spacing + for List row internal padding per
+        // the swiftui-patterns design-polish reference).
         //
         // Per the Apple canonical semantic name (= the 'phrase'
         // boss remembers): SwiftUI exposes `.contentMargins(
@@ -421,6 +421,15 @@ struct PreviewPane: View {
         // search bar) the equivalent = 8 PT (= SwiftUI's standard
         // 'small' spacing semantic = the closest Apple-canonical
         // value for inline controls per HIG spacing).
+        //
+        // Note: instead of using `.padding(.horizontal,
+        // DesignTokens.chromePaddingLeading)`, we use the literal
+        // `8` here (= same value as chromePaddingLeading after
+        // round 3 token change). The literal preserves the
+        // semantic Apple HIG value (= 8 PT) without depending on
+        // the broader DesignTokens token (= the search bar is a
+        // tight inline toolbar = its inset shouldn't drift with
+        // other zone chrome changes).
         //
         // Result: search icon + TextField + clear-x all sit 8 PT
         // from the zone's left edge (= Apple HIG toolbar row

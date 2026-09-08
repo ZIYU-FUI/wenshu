@@ -31,8 +31,8 @@ Each component has:
 - **API**:
   ```swift
   DesignTokens.chromeHeight           // 30 PT
-  DesignTokens.chromePaddingLeading   // 18 PT
-  DesignTokens.chromePaddingTrailing  // 18 PT
+  DesignTokens.chromePaddingLeading   // 8 PT (= Apple HIG canonical 'Spacing.small')
+  DesignTokens.chromePaddingTrailing  // 8 PT (= Apple HIG canonical 'Spacing.small')
   DesignTokens.chromePaddingVertical  // 8 PT
   DesignTokens.paneTabHotArea         // 28 PT (= renamed from chatTabHotArea)
   DesignTokens.tabIconSize            // 18 PT

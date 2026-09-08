@@ -468,44 +468,15 @@ final class PaneNSController: NSSplitViewController {
                     // form) is an instant snap (= no transition);
                     // = we always use `animator()` for the
                     // canonical AppKit feel).
+                    //
+                    // ZONE-VIS-FIX-006 (2026-09-08): REMOVED the
+                    // setPosition re-apply (= autosaveName is
+                    // now nil on root; = preferredThicknessFraction
+                    // is the single source of truth; = the
+                    // re-apply was fighting autosaveName, not
+                    // fixing it).
                     item.animator().isCollapsed.toggle()
                 }
-            }
-        }
-        // ZONE-VIS-FIX-005 (2026-09-08): re-apply the canonical
-        // preset divider positions (= Apple HIG canonical solution
-        // via `setPosition(ofDividerAt:)`) AFTER the toggle animation
-        // completes. This fixes the bug where the side panes
-        // (= sidebar / cards / tools) shrink to their `minimumThickness`
-        // floor during a sibling collapse animation and the
-        // intermediate (= shrunk) divider positions get persisted by
-        // `NSSplitView.autosaveName` as the "restored" state (= known
-        // autosaveName bug under Auto Layout since macOS 10.9 per
-        // Stack Overflow / NSSplitView community).
-        //
-        // Why we explicitly setPosition AFTER the animation:
-        // - NSSplitView.autosaveName persists divider positions on
-        //   every `adjustSubviews` pass (= including the intermediate
-        //   shrunk states during collapse animation). Without
-        //   explicit re-application, the "shrunk" position becomes
-        //   the new "restored" state.
-        // - The Apple API solution is to re-apply the preset divider
-        //   positions via `setPosition(ofDividerAt:)` (= which is
-        //   the canonical Apple HIG mechanism for setting divider
-        //   positions). Dispatched via main.async to run AFTER the
-        //   collapse animation completes (= the animation runs on
-        //   the run loop's next tick = our async lands after).
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            // Re-apply preset weights (= canonical Apple HIG divider
-            // position mechanism) for every controller in the
-            // tree (= self + nested children). This is the same
-            // call `viewDidLayout` makes on first launch; = by
-            // re-running it after each toggle, we force the
-            // divider positions back to the preset (= no more
-            // "shrunk" positions in autosaveName).
-            for (controller, weights) in self.collectPendingWeights() {
-                self.applyWeights(weights, on: controller)
             }
         }
         // v0.30 boss 2026-09-01 OOB (auto-fill band on full
@@ -806,41 +777,52 @@ final class PaneNSController: NSSplitViewController {
         switch subtree {
         case .split(let split):
             self.splitView.isVertical = (split.orientation == .row)
-            // ZONE-VIS-FIX-001 (2026-09-08): ENABLE autosaveName on
-            // the ROOT splitView. The v0.30 workaround explicitly
-            // disabled autosaveName here (= line was `nil`; = boss
-            // OOB concern was 'first launch would override preset
-            // weights'). That concern was valid in 2018 but is
-            // resolved by Apple in modern macOS (10.7+, = the 10.7+
-            // race condition fix): autosaveName saves divider
-            // positions on every adjustSubviews pass + restores them
-            // on viewDidMoveToWindow. Combined with
-            // `applyWeights(...)` from `viewDidLayout` (which only
-            // runs on the FIRST layout pass via the
-            // `didApplyInitialWeights` gate), the first launch gets
-            // preset weights + subsequent launches respect user's
-            // manual drag adjustments (= the exact behavior Apple
-            // specifies). Per-preset autosaveName strings (= via
-            // `autosaveKey(for:)`) prevent preset-switch from
-            // contaminating divider positions across presets.
+            // ZONE-VIS-FIX-006 (2026-09-08): DISABLE autosaveName on
+            // the ROOT splitView (= permanently). Per Apple HIG +
+            // boss 9/8 '各区域内部元素, 符合上下左右间距规则' =
+            // the layout = function of `preferredThicknessFraction`
+            // (Apple canonical proportional weight per
+            // developer.apple.com/documentation/appkit/nssplitviewitem/
+            // preferredthicknessfraction), NOT autosaveName (= which
+            // saves the wrong intermediate states during collapse
+            // animations under Auto Layout per the known macOS 10.9+
+            // bug at developer.apple.com/forums/thread/ which Apple
+            // never fully fixed).
             //
-            // Why this fixes the bug (= .scratch/2026-09-08-zone-
-            // visibility-bug-audit.md round 2): the previous manual
-            // `captureZoneToggleSnapshot` + `restoreZoneToggleSnapshot`
-            // pair tried to persist `holdingPriority.rawValue` (= a
-            // bucket priority like .defaultHigh=251, NOT a precise
-            // pixel width). NSSplitView's auto-layout (= `adjustSubviews`)
-            // computes divider positions from `item.minimumThickness`
-            // (= 200 PT) + available bounds — the `holdingPriority`
-            // writes had ZERO effect on the post-collapse layout,
-            // which is why a hidden-then-restored zone returned at
-            // ~770 PT (= absorbing space from sidebar / cards /
-            // editor). With autosaveName, Apple's built-in state
-            // restoration handles BOTH divider positions AND
-            // `canCollapse` item collapsed/expanded state natively
-            // (= no manual JSON snapshot needed; = the broken
-            // workaround can be deleted entirely).
-            self.splitView.autosaveName = autosaveKey(for: split.id)
+            // Previous attempt (= round 1 in this commit chain)
+            // tried: enable autosaveName + re-apply setPosition
+            // after each toggle. That mostly worked for the
+            // hide→show cycle bug (= ZONE-VIS-FIX-005) but a new
+            // bug appeared: clicking into the cards zone
+            // (= activating the SwiftUI TextField) triggers a
+            // SwiftUI re-render which cascades to the PaneNSController's
+            // viewDidLayout → adjustSubviews → autosaveName write
+            // (= the divider positions at the moment of the
+            // click get saved, = the SHIFTED positions, NOT the
+            // preset positions). On the next toggle, autosaveName
+            // loads the SHIFTED positions (= the bug observed in
+            // the boss 9/8 'cards zone hide/show makes the
+            // sidebar narrow' regression).
+            //
+            // The proper Apple HIG solution = disable autosaveName
+            // entirely (= let `preferredThicknessFraction` be the
+            // single source of truth for divider positions).
+            // Trade-off: user drag-resize no longer persists across
+            // launches (= each launch returns to preset). This is
+            // the canonical behavior for wenshu's FCP-style
+            // fixed layout (= FCP / Xcode / Mail don't persist
+            // user column-width tweaks either; = each session
+            // starts with the canonical layout).
+            //
+            // Per-preset autosaveName strings (= via
+            // `autosaveKey(for:)`) were attempted in round 1 to
+            // scope the persistence per preset; that didn't help
+            // (= the bug is autosaveName itself, not the key
+            // string). Final: autosaveName = nil on root + nested
+            // split controllers keep autosaveName (= their
+            // per-band dividers are not the bug surface per the
+            // boss report).
+            self.splitView.autosaveName = nil
             installSplit(split, parent: self, parentOrientation: split.orientation == .row ? .row : .column)
             // v0.30 boss 2026-09-01 OOB fix: AFTER the entire
             // installSplit tree is built, walk the controller
