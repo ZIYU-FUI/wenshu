@@ -326,7 +326,14 @@ struct ChatZoneView: View {
             // BackgroundColor)) with the bare Apple API call. The
             // wrapper added an extra type with no semantic value
             // (= it just renamed an Apple NSColor static property).
-            .background(Color(nsColor: .controlBackgroundColor))
+            //
+            // v0.40 boss 2026-09-08 OOB '聊天区改成和编辑器区一样的
+            // 背景颜色': the chat zone background should match the
+            // editor zone (= content tier = Color(nsColor:
+            // .underPageBackgroundColor) per RegionContentBackground
+            // .editor case). Switch from controlBackgroundColor
+            // (chrome tier) to underPageBackgroundColor (content tier).
+            .background(Color(nsColor: .underPageBackgroundColor))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)  // prevent window shrink
     }
