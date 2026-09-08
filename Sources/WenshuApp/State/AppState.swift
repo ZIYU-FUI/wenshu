@@ -42,6 +42,29 @@ import SwiftUI
 @Observable
 final class AppState {
 
+    /// M1-shell (2026-09-08): opt-in to the Apple-native
+    /// NavigationSplitView path (= 3-column layout per macOS 27
+    /// `NavigationSplitView` = the canonical Apple HIG pattern
+    /// per developer.apple.com/documentation/swiftui/navigationsplitview).
+    ///
+    /// Default `false` = existing users see ZERO behavior change
+    /// on app upgrade (= 老 `PaneSplitHost` 路径 unchanged per the
+    /// spec's "老路径完全保留" rule).
+    ///
+    /// Set via:
+    ///   defaults write com.wenshu.app wenshu.useThreeColumnSplit -bool true
+    /// Reset via:
+    ///   defaults delete com.wenshu.app wenshu.useThreeColumnSplit
+    ///
+    /// Lives on `AppState` (= the @Observable SwiftUI state; = read
+    /// directly by `WorkspaceView.body` for the flag branch) NOT on
+    /// `LayoutTreeState` (= the Codable workspace tree; = reserved
+    /// for per-pane state like divider positions + column widths). The
+    /// two states serve different scopes:
+    /// - `AppState.useThreeColumnSplit` (= global = app-wide shell choice)
+    /// - `LayoutTreeState.*` (= per-pane = divider positions, weights, collapsed flags)
+    var useThreeColumnSplit: Bool = false
+
     /// Sidebar tree selection (= 5 cases: .book(UUID) / .folder / .shelf
     /// / .referenceCategory / .referenceLibraryRoot, nil = nothing
     /// selected). Drives preview pane scope (= see
