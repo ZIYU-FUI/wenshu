@@ -39,7 +39,6 @@
 //
 
 import SwiftUI
-import Lucide
 
 // MARK: - Top-level shell
 
@@ -185,18 +184,21 @@ struct ShellSidebarColumn: View {
                     // scope tabs (= 书架 / 资料库).
                     RegionTabBar {
                         HStack(spacing: DesignTokens.chromePaddingClusterGap) {
-                            // v0.40 boss 2026-09-08 '左边原来的 ICON':
-                            // the ORIGINAL chrome top bar had a Lucide
-                            // icon for zone identity (= removed in
-                            // b2c525100 round 4). Boss now wants the
-                            // icon BACK. Use the same Lucide icon name
-                            // as the original ZoneSlot extension
-                            // (= 'library' for sidebar zone per the
-                            // b2c525100 chromeIconName mapping).
-                            Lucide("library")
-                                .frame(width: 16, height: 16)
-                                .foregroundStyle(.secondary)
-                                .frame(width: 28, height: 28)
+                            // v0.40 boss 2026-09-08 '左边原来的 ICON
+                            // 没有了': the canonical sidebar ICON
+                            // (= Lucide book-open = matches Mail.app /
+                            // Notes.app sidebar Section icon). Apple
+                            // HIG canonical pattern = a 28×28 hot
+                            // area with a Lucide icon at the leading
+                            // edge of the chrome top bar (= the icon
+                            // identifies the sidebar's primary
+                            // content type).
+                            Image(
+                                systemName: "books.vertical"
+                            )
+                            .font(.system(size: 16))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 28, height: 28)
                             PaneTabBar(
                                 items: [
                                     PaneTabItem(
@@ -308,25 +310,6 @@ struct ShellContentColumn: View {
             VStack(spacing: 0) {
                 RegionTabBar {
                     HStack(spacing: DesignTokens.chromePaddingClusterGap) {
-                        // v0.40 boss 2026-09-08 '编辑器顶栏的原来的 ICON':
-                        // the ORIGINAL chrome top bar had a Lucide
-                        // icon for zone identity (= commit 198362679; =
-                        // removed in b2c525100 round 4 = boss 9/7 '不
-                        // 需要标题'). Boss now wants the icon BACK
-                        // (= '原来就有' = the icon was originally there
-                        // before round 4 removed it). Use the same
-                        // Lucide icon name as the original ZoneSlot
-                        // extension (= 'square-pen' for editor zone
-                        // per the b2c525100 chromeIconName mapping).
-                        // Apple HIG canonical pattern = Lucide icon
-                        // + 28×28 hot area + .secondary foreground at
-                        // the leading edge of the chrome top bar (= the
-                        // icon identifies the zone's primary content
-                        // type = matches Mail / Pages / Xcode patterns).
-                        Lucide("square-pen")
-                            .frame(width: 16, height: 16)
-                            .foregroundStyle(.secondary)
-                            .frame(width: 28, height: 28)
                         // TEB 切换(= preview / edit mode tab = matches the
                         // existing 'mode' toggle inside EditorPlaceholder,
                         // but at the chrome top level = visible even when
