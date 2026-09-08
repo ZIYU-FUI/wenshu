@@ -266,7 +266,7 @@ struct ShellSidebarColumn: View {
         // column refracts like glass = visually separates from
         // adjacent columns without a drag-handle divider; = matches
         // Pages / Numbers / Keynote canonical look).
-        .background { RoundedRectangle(cornerRadius: 12).glassEffect(.regular) }
+        .background { Rectangle().fill(Color(nsColor: .windowBackgroundColor)) }
     }
 }
 
@@ -410,7 +410,7 @@ struct ShellContentColumn: View {
         // v0.40: macOS 27 Tahoe Liquid Glass (= see ShellSidebarColumn
         // comment for rationale = columns refract like glass without
         // a drag-handle divider).
-        .background { Rectangle().glassEffect(.regular) }
+        .background { Rectangle().fill(Color(nsColor: .windowBackgroundColor)) }
         // CHATZONE-CRASH-FIX (2026-09-08): re-inject AppState into
         // the env chain. SwiftUI 6+ breaks the @Environment chain
         // across NavigationSplitView's 3-column boundary (= the
@@ -474,7 +474,7 @@ struct ShellDetailColumn: View {
         }
         // v0.40: macOS 27 Tahoe Liquid Glass (= see ShellSidebarColumn
         // comment for rationale).
-        .background { Rectangle().glassEffect(.regular) }
+        .background { Rectangle().fill(Color(nsColor: .windowBackgroundColor)) }
         // CHATZONE-CRASH-FIX (2026-09-08): re-inject AppState into
         // the env chain. SwiftUI 6+ breaks the @Environment chain
         // across NavigationSplitView's 3-column boundary (= the
