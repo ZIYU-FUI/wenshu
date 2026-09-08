@@ -79,23 +79,21 @@ struct NavigationSplitShell: View {
             // sidebar = inbox + sent + drafts side by side, =
             // Apple's standard "List with multiple sections"
             // pattern).
-            ShellSidebarColumn()
+            ShellSidebarColumn(appState: appState)
         } content: {
             // Apple HIG content (= middle column; = context list
             // showing the items from the sidebar selection). 2
             // vertical sub-areas (= VStack).
-            ShellContentColumn()
+            ShellContentColumn(appState: appState)
         } detail: {
             // Apple HIG detail (= rightmost column; = the
             // selected item's detail / inspector). 2 vertical
             // sub-areas (= VStack).
-            ShellDetailColumn()
+            ShellDetailColumn(appState: appState)
         }
         .navigationSplitViewStyle(.balanced)  // Apple HIG balanced
     }
-}
-
-// MARK: - Sidebar column (= 2 vertical sub-areas)
+}// MARK: - Sidebar column (= 2 vertical sub-areas)
 
 /// Apple HIG sidebar column (= 2 vertical sub-areas: 目录树 +
 /// 卡片网格). Per boss 9/8 '目录+卡片合并成一栏, 但内部还是
@@ -114,6 +112,7 @@ struct NavigationSplitShell: View {
 ///   (real card grid from v0.34+; = displays the documents
 ///   for the current sidebar selection)
 struct ShellSidebarColumn: View {
+    let appState: AppState
 
     var body: some View {
         // VStack (vertical stack) of 2 sub-areas inside one
@@ -123,22 +122,39 @@ struct ShellSidebarColumn: View {
         // users resize the entire column, not the individual
         // sections inside it).
         VStack(spacing: 0) {
-            // Top sub-area: real directory tree (= the
-            // wenshu-app's existing NewLibraryOutlineView;
-            // = manages the library outline + sidebar selection
-            // state via @AppStorage shared with WorkspaceView).
-            NewLibraryOutlineView()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            // Divider (visual separator between the 2 sub-areas).
-            // Apple HIG: a subtle hairline between sidebar sections
-            // = `.divider` modifier (system default tint).
+            // Top sub-area: real directory tree wrapped in
+            // ZonePerRegionChrome (= top tab bar + bottom status
+            // bar; = matches the 老 PaneSplitHost path's chrome
+            // coverage for every zone).
+            ZonePerRegionChrome(
+                topActions: [],
+                bottomStatus: ZoneBottomStatus(
+                    left: "书架:",
+                    right: ""
+                ),
+                topSkip: false,
+                bottomSkip: false,
+                zone: .projectSidebar
+            ) {
+                NewLibraryOutlineView()
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             Divider()
-            // Bottom sub-area: real card grid (= the
-            // wenshu-app's existing ZoneModuleView with the
-            // .projectPreview slot; = PreviewPane's content
-            // driven by the sidebar selection).
-            ZoneModuleView(zoneSlot: .projectPreview)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Bottom sub-area: real card grid wrapped in
+            // ZonePerRegionChrome.
+            ZonePerRegionChrome(
+                topActions: [],
+                bottomStatus: ZoneBottomStatus(
+                    left: "章节:",
+                    right: ""
+                ),
+                topSkip: false,
+                bottomSkip: false,
+                zone: .projectPreview
+            ) {
+                ZoneModuleView(zoneSlot: .projectPreview)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }
@@ -158,22 +174,57 @@ struct ShellSidebarColumn: View {
 /// - bottom sub-area: ChatView (real chat from v0.34+; = the
 ///   LLM conversation surface with attachment upload)
 struct ShellContentColumn: View {
+    let appState: AppState
+
     var body: some View {
         VStack(spacing: 0) {
-            // Top sub-area: real editor (= the wenshu-app's
-            // existing EditorPlaceholder; = the v0.34+
-            // markdown editor that routes to EditorEditContent
-            // internally, with the markdown engine + word
-            // count + auto-save).
-            EditorPlaceholder()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Top sub-area: real editor wrapped in ZonePerRegionChrome
+            // (= adds the top tab bar + bottom status bar that
+            // 老 PaneSplitHost path provided per zone; = boss 9/8
+            // '中间两区的顶栏丢失了' = the chrome was missing because
+            // M2 directly embedded the zone view instead of
+            // wrapping it in ZonePerRegionChrome).
+            ZonePerRegionChrome(
+                topActions: [],
+                bottomStatus: ZoneBottomStatus(
+                    left: "0 字",
+                    right: ""
+                ),
+                topSkip: false,
+                bottomSkip: false,
+                zone: .editor
+            ) {
+                EditorPlaceholder()
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             Divider()
             // Bottom sub-area: real chat (= the wenshu-app's
             // existing ChatView; = the LLM conversation
             // surface with attachment upload + message history).
-            ChatView()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Wrapped in ZonePerRegionChrome for the bottom
+            // status bar (= boss 9/8 '把聊天区的底栏加回来吧').
+            // The top tab bar is omitted for now (= simpler
+            // approach; = a future ticket adds the chat tab bar
+            // back if the boss wants it).
+            ZonePerRegionChrome(
+                topActions: [],
+                bottomStatus: aiChatChrome().bottom,
+                topSkip: true,  // chat top tab bar deferred (= M3 ticket)
+                bottomSkip: false,
+                zone: .aiChat
+            ) {
+                ChatView()
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        // CHATZONE-CRASH-FIX (2026-09-08): re-inject AppState into
+        // the env chain. SwiftUI 6+ breaks the @Environment chain
+        // across NavigationSplitView's 3-column boundary (= the
+        // child column views are re-rooted in their own env
+        // subgraph). Without this re-injection, ChatZoneView /
+        // ZoneModuleView / NewLibraryOutlineView all crash with
+        // 'No Observable object of type AppState found' on access.
+        .environment(appState)
     }
 }
 
@@ -191,22 +242,50 @@ struct ShellContentColumn: View {
 /// - bottom sub-area: ZoneModuleView(zoneSlot: .aiDynamic) (real
 ///   dynamic pane from v0.34+; = kanban + todo + scope status)
 struct ShellDetailColumn: View {
+    let appState: AppState
+
     var body: some View {
         VStack(spacing: 0) {
-            // Top sub-area: real tools (= the wenshu-app's
-            // existing ZoneModuleView with the .specializedTools
-            // slot; = foreshadowing tracking, memory retrieval,
-            // and other writer-craft tools).
-            ZoneModuleView(zoneSlot: .specializedTools)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Top sub-area: real tools wrapped in
+            // ZonePerRegionChrome.
+            ZonePerRegionChrome(
+                topActions: [],
+                bottomStatus: ZoneBottomStatus(
+                    left: "工具就绪",
+                    right: ""
+                ),
+                topSkip: false,
+                bottomSkip: false,
+                zone: .specializedTools
+            ) {
+                ZoneModuleView(zoneSlot: .specializedTools)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             Divider()
-            // Bottom sub-area: real dynamic zone (= the
-            // wenshu-app's existing ZoneModuleView with the
-            // .aiDynamic slot; = kanban + todo + scope status
-            // surface).
-            ZoneModuleView(zoneSlot: .aiDynamic)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Bottom sub-area: real dynamic zone wrapped in
+            // ZonePerRegionChrome.
+            ZonePerRegionChrome(
+                topActions: [],
+                bottomStatus: ZoneBottomStatus(
+                    left: "看板",
+                    right: ""
+                ),
+                topSkip: false,
+                bottomSkip: false,
+                zone: .aiDynamic
+            ) {
+                ZoneModuleView(zoneSlot: .aiDynamic)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        // CHATZONE-CRASH-FIX (2026-09-08): re-inject AppState into
+        // the env chain. SwiftUI 6+ breaks the @Environment chain
+        // across NavigationSplitView's 3-column boundary (= the
+        // child column views are re-rooted in their own env
+        // subgraph). Without this re-injection, ChatZoneView /
+        // ZoneModuleView / NewLibraryOutlineView all crash with
+        // 'No Observable object of type AppState found' on access.
+        .environment(appState)
     }
 }
 

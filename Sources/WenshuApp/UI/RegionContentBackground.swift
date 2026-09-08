@@ -142,12 +142,36 @@ public struct RegionContentBackground: View {
     /// tiers when the accessibility override is disabled.
     private var appleBackground: Color {
         switch zone {
-        case .projectSidebar, .specializedTools:
-            // Chrome tier (= sidebar / inspector / large control).
-            // Dark mode: #1E1E1E (= the deepest of the 4 tiers =
-            // recessed container).
+        case .projectSidebar, .specializedTools, .projectPreview:
+            // Chrome tier (= sidebar / inspector / large control
+            // + the cards zone = which lives inside the sidebar
+            // column in the M2 NavigationSplitShell path). Boss
+            // 9/8 '让卡片区用目录树区一样的背景色' = the cards
+            // zone should share the sidebar's chrome-tier tint
+            // (= visually unified sidebar = no content-tier
+            // brightness delta between the directory tree and
+            // the cards grid).
+            //
+            // In the M2 NavigationSplitShell (= useThreeColumnSplit
+            // flag = true), .projectPreview is nested inside
+            // .projectSidebar's column as a sub-area; = the
+            // chrome tier here is the right tint (= matches
+            // the directory tree's chrome tier above it).
+            //
+            // In the 老 PaneSplitHost path (= useThreeColumnSplit
+            // flag = false), .projectPreview is a standalone
+            // 4th column. Promoting it from content tier to
+            // chrome tier slightly changes the visual contrast
+            // (= the column will be 1 tier lighter / darker
+            // depending on light / dark mode), = this matches
+            // the v0.32 boss 2026-09-02 OOB '各区不同的区域
+            // 颜色' rule but reorganizes which zones share the
+            // chrome tier (= now = sidebar + cards + tools;
+            // = content tier = editor + chat + dynamic). The
+            // 老 PaneSplitHost path's cards column becomes
+            // consistent with the sidebar in the new M2 path.
             return Color(nsColor: .controlBackgroundColor)
-        case .projectPreview, .editor, .aiChat, .aiDynamic:
+        case .editor, .aiChat, .aiDynamic:
             // Content tier (= "the area beneath your window's
             // views" per Apple docs). Dark mode: #282828 (= 1
             // tier lighter than chrome in dark mode = Apple HIG
