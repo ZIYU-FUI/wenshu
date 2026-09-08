@@ -196,6 +196,26 @@ final class AppState {
     }
 
     init() {
+        // M1-shell (2026-09-08): seed `useThreeColumnSplit` from
+        // UserDefaults at app launch. Without this read, the flag
+        // stays at its hard-coded default (= `false`) and the
+        // user's `defaults write` call has no effect (= the
+        // NavigationSplitShell path never activates).
+        //
+        // Set via:
+        //   defaults write com.wenshu.app wenshu.useThreeColumnSplit -bool true
+        // Reset via:
+        //   defaults delete com.wenshu.app wenshu.useThreeColumnSplit
+        //
+        // Mirrors the pattern already used for `llmModel` (= the
+        // property's default `false` is correct for a fresh launch
+        // and for users who never set the flag; = the UserDefaults
+        // read only fires if the key actually exists).
+        if UserDefaults.standard.object(forKey: "wenshu.useThreeColumnSplit") != nil {
+            self.useThreeColumnSplit = UserDefaults.standard.bool(
+                forKey: "wenshu.useThreeColumnSplit"
+            )
+        }
         // B-05: seed from the existing UserDefaults value. didSet is
         // not called during init (= Swift property wrapper semantics),
         // so this assignment does NOT trigger a write back to
@@ -243,6 +263,15 @@ final class EditorTab: Identifiable {
     var originalBody: String
     var mode: EditorMode
 
+    // v0.40 boss 9/7 OOB '卡片区应该显示规划中未实装的
+    // 功能卡片': capture the scope where this doc was opened
+    // from (= drives sidebar selection + preview cards on
+    // restore). = .referenceScope(cat) for library refs,
+    // = .bookScope(bookId, folder) for book docs, etc. Optional
+    // (= the placeholder tab + document-load path don't supply
+    // it; = those default to nil = no restore behavior).
+    var sourceScope: PreviewScope?
+
     // v0.34 B-22 (per-tab): auto-save debounce Task. Replaces
     // EditorPlaceholder's View-local autoSaveTask (= that pattern
     // worked for one tab but doesn't survive a tab switch; = the
@@ -280,6 +309,7 @@ final class EditorTab: Identifiable {
         self.draft = draft
         self.originalBody = originalBody
         self.mode = mode
+        self.sourceScope = nil
     }
 }
 

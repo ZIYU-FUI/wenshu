@@ -237,14 +237,14 @@ struct WorkspaceView: View {
             documentPath: path,
             draft: content,
             originalBody: content,
-            mode: .preview,
-            // v0.40 boss 9/7 OOB '卡片区应该显示规划中未实装的
-            // 功能卡片': capture the scope where this doc was opened
-            // from (= drives sidebar selection + preview cards on
-            // restore). = .referenceScope(cat) for library refs,
-            // = .bookScope(bookId, folder) for book docs, etc.
-            sourceScope: previewScope
+            mode: .preview
         )
+        // v0.40 boss 9/7 OOB '卡片区应该显示规划中未实装的
+        // 功能卡片': capture the scope where this doc was opened
+        // from (= drives sidebar selection + preview cards on
+        // restore). = .referenceScope(cat) for library refs,
+        // = .bookScope(bookId, folder) for book docs, etc.
+        newTab.sourceScope = previewScope
         // v0.34 B-26-FIX (= boss 9/3 'first double-click can switch, not a new tab, it replaces
         // the old tab'): always append a new tab (= Safari multi-tab strip
         // behavior). Duplicate-tab detection (= the fingerprint check
@@ -281,8 +281,7 @@ struct WorkspaceView: View {
             // macOS 27 recommended 3-column layout per boss 9/8
             // 'Apple framework 默认是 2-3 栏').
             NavigationSplitShell(
-                appState: appState,
-                bookStore: bookStore
+                appState: appState
             )
         } else {
             // v0.30 boss 2026-09-01 OOB: the legacy PaneRenderer path
@@ -978,13 +977,13 @@ struct ZoneModuleView: View {
             documentPath: path,
             draft: content,
             originalBody: content,
-            mode: .preview,
-            // v0.40 boss 9/7 OOB '卡片区应该显示规划中未实装的
-            // 功能卡片': capture sourceScope on ZoneModuleView's
-            // openCardInEditor too (= same restore behavior as
-            // WorkspaceView's openCardInEditor).
-            sourceScope: previewScope
+            mode: .preview
         )
+        // v0.40 boss 9/7 OOB '卡片区应该显示规划中未实装的
+        // 功能卡片': capture sourceScope on ZoneModuleView's
+        // openCardInEditor too (= same restore behavior as
+        // WorkspaceView's openCardInEditor).
+        newTab.sourceScope = previewScope
         // v0.34 B-26-FIX (= boss 9/3 'first double-click can switch, not a new tab, it replaces
         // the old tab; second double-click fails'): the previous implementation tried
         // to be smart (= replace the active tab if clean; append a new

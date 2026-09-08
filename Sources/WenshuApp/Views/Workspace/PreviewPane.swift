@@ -292,7 +292,19 @@ struct PreviewPane: View {
     ///   the 10/20/60/10 preset (= ~210 PT). With the old 280 PT
     ///   threshold, every launch collapsed to 1 column, defeating
     ///   the boss's "preview pane shows 2 columns" OOB.
-    private static let twoColumnBreakpoint: CGFloat = 130
+    // M2-shell (2026-09-08): raised from 130 to 350 (= the boss
+    // wants the cards grid to render as a SINGLE column when
+    // embedded inside the M2 NavigationSplitShell's sidebar
+    // column = the boss's red-line drawing shows 1 column for
+    // the cards zone. 350 (= higher than the typical sidebar
+    // sub-area width of ~250 PT in a 1452-wide window with a
+    // 200-PT sidebar column) ensures the cards grid falls
+    // back to 1 column when the preview pane is nested in the
+    // M2 shell's sidebar sub-area. The 老 PaneSplitHost path
+    // (= the preview pane is a standalone 4th column at ~250-400
+    // PT) is unaffected because that column is still wider than
+    // 350 PT = stays in 2-column mode.
+    private static let twoColumnBreakpoint: CGFloat = 350
 
     var body: some View {
         // v0.40 boss 9/7 OOB '位置错, 在顶栏下方, 不是在顶栏上方.
