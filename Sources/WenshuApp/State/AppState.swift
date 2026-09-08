@@ -158,6 +158,48 @@ final class AppState {
         }
     }
 
+    /// v0.40 boss 2026-09-08 OOB '聊天顶栏有 3 个 tab (= 对话 / 搜索 /
+    /// 设置), 编辑器顶栏没有 (= openTabs 默认空)'. Fix = inject a
+    /// single default Welcome tab when openTabs is empty (= gives the
+    /// editor top tab bar at least one tab to render so the bar is
+    /// visually present at launch; = matches chat's fixed-tab-set
+    /// pattern where the tab bar is always visible).
+    ///
+    /// Why a static welcome tab (= not a "no document" placeholder):
+    /// - EditorPlaceholder's tab strip iterates `appState.openTabs`;
+    ///   = an empty list = zero tabs = no tab strip = the editor
+    ///   top tab bar is invisible.
+    /// - The welcome tab has `documentPath = nil` (= renders the
+    ///   sample preview body; = the user sees a visible
+    ///   "Welcome" tab + content; = clicking opens it as the active
+    ///   tab; = deleting it (= the close button on the tab strip)
+    ///   returns to the empty state, which is fine).
+    ///
+    /// Persistence interaction: if the user has persisted real tabs
+    /// from a previous session, those take precedence and this
+    /// welcome tab is NOT injected (= preserves the user's real
+    /// open documents). The welcome tab only appears when the
+    /// persisted tab list is empty (= first launch or after
+    /// "close all tabs").
+    var welcomeTab: EditorTab {
+        EditorTab(
+            id: UUID(),
+            documentPath: nil,
+            draft: "",
+            originalBody: "",
+            mode: .preview
+        )
+    }
+
+    /// Called by WorkspaceView.body at first render if openTabs
+    /// is empty (= injects one welcome tab so the editor top tab
+    /// bar is visible at launch).
+    func ensureWelcomeTabIfEmpty() {
+        guard openTabs.isEmpty else { return }
+        openTabs = [welcomeTab]
+        activeTabId = openTabs[0].id
+    }
+
     // v0.40 apple-001 Q3 surgical: hoist `LayoutEditMode` (= the
     // ⌘⇧\ layout-edit hotkey state) from WorkspaceView-local
     // `@State private var editMode = LayoutEditMode()` into AppState

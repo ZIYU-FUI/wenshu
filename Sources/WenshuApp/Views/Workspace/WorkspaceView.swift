@@ -1420,6 +1420,16 @@ struct EditorPlaceholder: View {
             // write, git pull, terminal `echo > file.md`, etc.).
             startFileWatcher()
         }
+        // v0.40 boss 2026-09-08 OOB '聊天顶栏有 3 个 tab, 编辑器顶栏
+        // 没有': on first render, if openTabs is empty, inject one
+        // welcome tab (= gives the editor top tab bar at least one
+        // tab to render so the bar is visually present at launch).
+        // Using `.onAppear` (not initializer mutation) because
+        // mutating @Observable state during view body evaluation
+        // triggers an infinite re-render loop.
+        .onAppear {
+            appState.ensureWelcomeTabIfEmpty()
+        }
         // v0.34 B-23: tear down the file watcher when the view goes away
         // (= prevents zombie DispatchSource holding the file descriptor).
         .onDisappear {
