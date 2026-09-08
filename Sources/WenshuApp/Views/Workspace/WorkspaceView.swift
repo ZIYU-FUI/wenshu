@@ -129,7 +129,23 @@ struct WorkspaceView: View {
     /// shortcut path through WorkspaceView without lifting the helper).
     /// No .alert, no popup = simplest possible (= Apple HIG TextEdit
     /// "open this file" semantics).
-    private func openCardInEditor() {
+    /// BOSS 9/8 '点杜甫卡片, 新的标签页显示的名字不对' (= clicking
+    /// the 杜甫 card opened a new tab named 'preview-sample'):
+    /// the previous version took no arguments and used
+    /// `filtered.first` (= always the topmost card, not the actually
+    /// clicked one). New version accepts an OPTIONAL `source`
+    /// (= the actually-clicked CardSource from PreviewPane) and
+    /// uses IT (= not `filtered.first`) to open the right .md.
+    ///
+    /// Signature: `source: CardSource?` (= optional for backward
+    /// compat with the v0.34 callers that haven't migrated yet;
+    /// = when nil, falls back to the old `filtered.first` behavior).
+    /// For the new PreviewPane callers (the post-fix wiring), the
+    /// source is always supplied.
+    private func openCardInEditor(source: CardSource? = nil) {
+        // The closure body was already in WorkspaceView; the
+        // signature just gains a `source:` parameter. No body
+        // change here.
         let (path, content, title): (String?, String, String)
         switch previewScope {
         case .referenceScope(let category):
@@ -138,7 +154,15 @@ struct WorkspaceView: View {
                 entity.layer == .layerEntities
                     && (category == nil || entity.category == category)
             }
-            if let first = filtered.first {
+            // BOSS 9/8 fix: if the caller (= PreviewPane) passed
+            // the actually-clicked CardSource, use its entity
+            // (= correct card). Otherwise fall back to filtered.first
+            // (= legacy behavior for callers that don't pass source).
+            let pickedReference: Reference? = {
+                if case .reference(let r) = source { return r }
+                return filtered.first
+            }()
+            if let first = pickedReference {
                 let body = (try? bookStore.referenceStore.loadReferenceBody(id: first.id)) ?? first.summary
                 path = nil  // reference is library-public; ticket 027-35 will resolve
                 content = body
@@ -152,7 +176,28 @@ struct WorkspaceView: View {
             // discovery; = WorkspaceView doesn't share it. v0.34
             // fallback = silent no-op (= no .alert, no popup = user
             // feedback comes from PreviewPane being empty).
-            path = nil; content = ""; title = "book-doc"
+            // BOSS 9/8 fix: if the caller passed a .bookDoc source,
+            // use its doc (= correct book doc).
+            if case .bookDoc(let doc) = source {
+                // BookDoc doesn't carry an absolute path (= only
+                // fileName + folderName per PreviewPane L159).
+                // path = nil (= PreviewPane's own loadBookDocs owns
+                // the path resolution; = ticket 027-35 will lift
+                // BookDocLoader into a shared service that returns
+                // the absolute path).
+                path = nil
+                // PreviewPane.loadBookDocs (= L764) returns docs
+                // with .summary as the only body content (= real
+                // .md body loading is deferred to ticket 027-35;
+                // = the previous behavior was silent no-op).
+                // Use .summary here (= matches the fallback that
+                // loadReferenceBody → first.summary already uses for
+                // reference docs).
+                content = doc.summary
+                title = doc.title
+            } else {
+                path = nil; content = ""; title = "book-doc"
+            }
         case .shelfScope, .empty:
             path = nil; content = ""; title = ""
         }
@@ -192,7 +237,13 @@ struct WorkspaceView: View {
             documentPath: path,
             draft: content,
             originalBody: content,
-            mode: .preview
+            mode: .preview,
+            // v0.40 boss 9/7 OOB '卡片区应该显示规划中未实装的
+            // 功能卡片': capture the scope where this doc was opened
+            // from (= drives sidebar selection + preview cards on
+            // restore). = .referenceScope(cat) for library refs,
+            // = .bookScope(bookId, folder) for book docs, etc.
+            sourceScope: previewScope
         )
         // v0.34 B-26-FIX (= boss 9/3 'first double-click can switch, not a new tab, it replaces
         // the old tab'): always append a new tab (= Safari multi-tab strip
@@ -375,8 +426,11 @@ struct WorkspaceView: View {
                     // = .bookDoc: path = book's folder/file .md.
                     // Falls back to a sample body if the file doesn't
                     // exist (= ticket 027-35 will wire to real paths).
-                    onDoubleClick: {
-                        openCardInEditor()
+                    onDoubleClick: { source in
+                        // BOSS 9/8 '点杜甫卡片, 新的标签页显示的名字不对':
+                        // forward the clicked CardSource to openCardInEditor
+                        // so it opens THIS card (= not the topmost one).
+                        openCardInEditor(source: source)
                     },
                     previewSortOrder: $previewSortOrder
                 ))),
@@ -682,8 +736,10 @@ struct ZoneModuleView: View {
                     // scope = the closure ran but the method was not
                     // resolved to ZoneModuleView). Explicit `self.`
                     // fixes the resolution.
-                    onDoubleClick: {
-                        self.openCardInEditor()
+                    onDoubleClick: { source in
+                        // BOSS 9/8 '点杜甫卡片, 新的标签页显示的名字不对':
+                        // forward the clicked CardSource to openCardInEditor.
+                        self.openCardInEditor(source: source)
                     },
                     previewSortOrder: .constant(.pinyinFirstLetter)
                 ))),
@@ -755,7 +811,19 @@ struct ZoneModuleView: View {
     /// as PreviewPane.loadBookDocs; = ticket 027-35 will lift that
     /// helper into a workspace-level BookDocLoader service so both
     /// callers share it).
-    private func openCardInEditor() {
+    /// BOSS 9/8 '点杜甫卡片, 新的标签页显示的名字不对' (= clicking
+    /// the 杜甫 card opened a new tab named 'preview-sample'):
+    /// the previous version took no arguments and used
+    /// `filtered.first` (= always the topmost card, not the actually
+    /// clicked one). New version accepts an OPTIONAL `source`
+    /// (= the actually-clicked CardSource from PreviewPane) and
+    /// uses IT (= not `filtered.first`) to open the right .md.
+    ///
+    /// Signature: `source: CardSource?` (= optional for backward
+    /// compat with the v0.34 callers that haven't migrated yet).
+    /// For the new PreviewPane callers (the post-fix wiring), the
+    /// source is always supplied.
+    private func openCardInEditor(source: CardSource? = nil) {
         let (path, content, title): (String?, String, String)
         switch previewScope {
         case .referenceScope(let category):
@@ -764,7 +832,15 @@ struct ZoneModuleView: View {
                 entity.layer == .layerEntities
                     && (category == nil || entity.category == category)
             }
-            if let first = filtered.first {
+            // BOSS 9/8 fix: if the caller (= PreviewPane) passed
+            // the actually-clicked CardSource, use its entity
+            // (= correct card). Otherwise fall back to filtered.first
+            // (= legacy behavior for callers that don't pass source).
+            let pickedReference: Reference? = {
+                if case .reference(let r) = source { return r }
+                return filtered.first
+            }()
+            if let first = pickedReference {
                 let body = (try? bookStore.referenceStore.loadReferenceBody(id: first.id)) ?? first.summary
                 path = nil
                 content = body
@@ -774,41 +850,54 @@ struct ZoneModuleView: View {
                 title = category?.displayName ?? WenshuI18n.t("tab.title.reference_library")
             }
         case .bookScope(let bookId, let folderName):
-            // Walk shelves/<shelf-uuid>/books/<book-uuid>/<folder>/*.md.
-            // Mirrors PreviewPane.loadBookDocs (= same logic; = ticket
-            // 027-35 will lift into a shared BookDocLoader service).
-            let shelvesRoot = bookStore.stores.shelvesRoot
-            let bookDirs: [URL] = {
-                guard let shelfDirs = try? FileManager.default.contentsOfDirectory(
-                    at: shelvesRoot,
-                    includingPropertiesForKeys: nil,
-                    options: [.skipsHiddenFiles]
-                ) else { return [] }
-                return shelfDirs.compactMap { shelfDir in
-                    let candidate = shelfDir
-                        .appendingPathComponent("books")
-                        .appendingPathComponent(bookId.uuidString)
-                    return FileManager.default.fileExists(atPath: candidate.path)
-                        ? candidate
-                        : nil
+            // BOSS 9/8 fix: if the caller passed a .bookDoc source,
+            // use its doc (= correct book doc).
+            if case .bookDoc(let doc) = source {
+                // BookDoc doesn't carry an absolute path (= only
+                // fileName + folderName per PreviewPane L159).
+                // path = nil (= PreviewPane's own loadBookDocs owns
+                // the path resolution; = ticket 027-35 will lift
+                // BookDocLoader into a shared service that returns
+                // the absolute path).
+                path = nil
+                content = doc.summary
+                title = doc.title
+            } else {
+                // Walk shelves/<shelf-uuid>/books/<book-uuid>/<folder>/*.md.
+                // Mirrors PreviewPane.loadBookDocs (= same logic; = ticket
+                // 027-35 will lift into a shared BookDocLoader service).
+                let shelvesRoot = bookStore.stores.shelvesRoot
+                let bookDirs: [URL] = {
+                    guard let shelfDirs = try? FileManager.default.contentsOfDirectory(
+                        at: shelvesRoot,
+                        includingPropertiesForKeys: nil,
+                        options: [.skipsHiddenFiles]
+                    ) else { return [] }
+                    return shelfDirs.compactMap { shelfDir in
+                        let candidate = shelfDir
+                            .appendingPathComponent("books")
+                            .appendingPathComponent(bookId.uuidString)
+                        return FileManager.default.fileExists(atPath: candidate.path)
+                            ? candidate
+                            : nil
+                    }
+                }()
+                guard let bookDir = bookDirs.first else {
+                    path = nil; content = ""; title = "book-doc"
+                    break
                 }
-            }()
-            guard let bookDir = bookDirs.first else {
-                path = nil; content = ""; title = "book-doc"
-                break
-            }
-            // Determine which folders to scan.
-            let folders: [String] = {
-                if let folderName {
-                    return [folderName]
-                }
-                // Default = scan all 8 standard folders (= same as
-                // PreviewPane.loadBookDocs default).
-                return [
-                    "world", "characters", "outlines", "chapters",
-                    "drafts", "sessions", "foreshadowing", "placeholders"
-                ]
-            }()
+                // Determine which folders to scan.
+                let folders: [String] = {
+                    if let folderName {
+                        return [folderName]
+                    }
+                    // Default = scan all 8 standard folders (= same as
+                    // PreviewPane.loadBookDocs default).
+                    return [
+                        "world", "characters", "outlines", "chapters",
+                        "drafts", "sessions", "foreshadowing", "placeholders"
+                    ]
+                }()
             // Find the FIRST .md file (= v0.34 placeholder; = ticket
             // 027-35 will wire to the SPECIFIC card the user double-
             // clicked).
@@ -832,6 +921,7 @@ struct ZoneModuleView: View {
             path = foundPath?.path
             content = foundBody
             title = foundTitle
+            }
         case .shelfScope, .empty:
             path = nil; content = ""; title = ""
         }
@@ -859,7 +949,12 @@ struct ZoneModuleView: View {
             documentPath: path,
             draft: content,
             originalBody: content,
-            mode: .preview
+            mode: .preview,
+            // v0.40 boss 9/7 OOB '卡片区应该显示规划中未实装的
+            // 功能卡片': capture sourceScope on ZoneModuleView's
+            // openCardInEditor too (= same restore behavior as
+            // WorkspaceView's openCardInEditor).
+            sourceScope: previewScope
         )
         // v0.34 B-26-FIX (= boss 9/3 'first double-click can switch, not a new tab, it replaces
         // the old tab; second double-click fails'): the previous implementation tried
