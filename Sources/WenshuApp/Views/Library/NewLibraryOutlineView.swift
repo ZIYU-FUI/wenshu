@@ -58,6 +58,19 @@ import Lucide
 /// v0.30: composite enum (= book OR reference category) because
 /// Apple HIG allows ONE selection type per List, so we unify
 /// both selection kinds into one Hashable enum.
+/// v0.40 boss 2026-09-08 OOB '目录树的顶栏也丢了': scope selector
+/// for the sidebar's top tab bar. 2 cases map to the existing
+/// top-level grouping (= 书架 = per-shelf books; = 资料库 =
+/// reference library per EntityCategory). Pass via init to
+/// NewLibraryOutlineView (= filters rows in body). Apple HIG
+/// canonical sidebar pattern = Mail.app's VIP / Flagged tabs
+/// (= top-of-sidebar scope selector).
+enum SidebarScope: String, CaseIterable, Identifiable, Sendable {
+    case shelves = "shelves"
+    case references = "references"
+    var id: String { rawValue }
+}
+
 enum SidebarItem: Hashable, Codable {
     case book(UUID)
     // v0.30 boss 8/31 OOB (sidebar feedback bundle #1+2): shelf
@@ -152,12 +165,28 @@ struct NewLibraryOutlineView: View {
     /// so this initializer takes no binding parameters.
     init(
         selectedEntityCategory: Binding<EntityCategory?> = .constant(nil),
-        selectedEntity: Binding<Reference?> = .constant(nil)
+        selectedEntity: Binding<Reference?> = .constant(nil),
+        // v0.40 boss 2026-09-08 OOB '目录树的顶栏也丢了': scope filter
+        // for the sidebar (= 书架 vs 资料库). Apple HIG canonical
+        // sidebar pattern = Mail.app's VIP / Flagged tabs at the
+        // top of the sidebar = filters which rows are visible. When
+        // scope = .shelves, only the per-shelf book rows + DisclosureGroups
+        // are shown. When scope = .references, only the reference library
+        // rows are shown. Defaults to .shelves for legacy callers
+        // (= no scope param = the original "show everything" behavior).
+        scope: SidebarScope = .shelves
     ) {
         self._selectedEntityCategory = selectedEntityCategory
         self._selectedEntity = selectedEntity
+        self._scope = State(initialValue: scope)
     }
 
+    /// v0.40 boss 2026-09-08 OOB: scope selector for the sidebar's
+    /// top tab bar (= 书架 vs 资料库). Mapped from NavigationSplitShell's
+    /// PaneTabBar selection (= passes scope as init param). Filters
+    /// which rows are visible in the body (= .shelves = book rows;
+    /// = .references = reference library rows).
+    @State private var scope: SidebarScope
     @State private var shelves: [Bookshelf] = []
     @State private var books: [Book] = []
     @State private var references: [Reference] = []
