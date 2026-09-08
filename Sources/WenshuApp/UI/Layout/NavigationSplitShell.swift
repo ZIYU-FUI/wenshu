@@ -174,34 +174,54 @@ struct ShellSidebarColumn: View {
                 zone: .projectSidebar
             ) {
                 VStack(spacing: 0) {
-                    // v0.40 boss 2026-09-08 OOB '目录树的顶栏也丢了':
-                    // 2-tab scope selector (= 书架 / 资料库 = Mail.app's
-                    // VIP / Flagged tabs pattern). Apple HIG canonical
-                    // 28 PT hot area + Lucide icon + matchedGeometry
-                    // selected underline. Selection filters which
-                    // rows are visible in the List below (= scope
-                    // = 书架 = show only shelf rows; = scope = 资料库
-                    // = show only reference library rows).
-                    PaneTabBar(
-                        items: [
-                            PaneTabItem(
-                                id: "shelves",
-                                icon: "book-open",
-                                label: "书架"
-                            ),
-                            PaneTabItem(
-                                id: "references",
-                                icon: "library",
-                                label: "资料库"
-                            ),
-                        ],
-                        selection: Binding(
-                            get: { sidebarScope.rawValue },
-                            set: { sidebarScope = SidebarScope(rawValue: $0) ?? .shelves }
-                        ),
-                        namespace: sidebarTabBarNamespace,
-                        namespaceID: "sidebarTabUnderline"
-                    )
+                    // v0.40 boss 2026-09-08 OOB '目录树的顶栏也丢了' +
+                    // '左边原来的 ICON 没有了': restore the chrome top
+                    // bar (= 30 PT RegionTabBar wrapper) with the
+                    // canonical sidebar ICON (= the book-open icon
+                    // that identifies the library sidebar = matches
+                    // the Mail.app / Notes.app sidebar Section icon
+                    // pattern). The PaneTabBar inside hosts the 2
+                    // scope tabs (= 书架 / 资料库).
+                    RegionTabBar {
+                        HStack(spacing: DesignTokens.chromePaddingClusterGap) {
+                            // v0.40 boss 2026-09-08 '左边原来的 ICON
+                            // 没有了': the canonical sidebar ICON
+                            // (= Lucide book-open = matches Mail.app /
+                            // Notes.app sidebar Section icon). Apple
+                            // HIG canonical pattern = a 28×28 hot
+                            // area with a Lucide icon at the leading
+                            // edge of the chrome top bar (= the icon
+                            // identifies the sidebar's primary
+                            // content type).
+                            Image(
+                                systemName: "books.vertical"
+                            )
+                            .font(.system(size: 16))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 28, height: 28)
+                            PaneTabBar(
+                                items: [
+                                    PaneTabItem(
+                                        id: "shelves",
+                                        icon: "book-open",
+                                        label: "书架"
+                                    ),
+                                    PaneTabItem(
+                                        id: "references",
+                                        icon: "library",
+                                        label: "资料库"
+                                    ),
+                                ],
+                                selection: Binding(
+                                    get: { sidebarScope.rawValue },
+                                    set: { sidebarScope = SidebarScope(rawValue: $0) ?? .shelves }
+                                ),
+                                namespace: sidebarTabBarNamespace,
+                                namespaceID: "sidebarTabUnderline"
+                            )
+                        }
+                        .padding(.horizontal, DesignTokens.chromePaddingLarge)
+                    }
                     // The actual sidebar List (= same Apple HIG
                     // standard sidebar layout as before; = now
                     // filtered by sidebarScope so the scope tab bar
