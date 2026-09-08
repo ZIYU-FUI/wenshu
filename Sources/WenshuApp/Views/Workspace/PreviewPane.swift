@@ -326,7 +326,14 @@ struct PreviewPane: View {
                     emptyScopeView()
                 }
             }
-            .padding(DesignTokens.chromePaddingHero)
+            // boss 9/8 '卡片预览区, 搜索卡片和 icon, 居左位置不对,
+            // 不够 18pt': body content padding was chromePaddingHero
+            // = 20 PT (= cards sat 20 PT from zone edge; = didn't
+            // align with the search bar's now-fixed 18 PT inset).
+            // Bumped to chromePaddingLeading = 18 PT (= matches the
+            // search bar + matches sidebar / editor / tools / all
+            // other zones' canonical zone content inset).
+            .padding(DesignTokens.chromePaddingLeading)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -373,7 +380,17 @@ struct PreviewPane: View {
                 .help(WenshuI18n.t("preview.search.clear"))
             }
         }
-        .padding(.horizontal, DesignTokens.chromePaddingSmall)
+        // boss 9/8 '卡片预览区, 搜索卡片和 icon, 居左位置不对, 不够 18pt':
+        // search bar's left padding was chromePaddingSmall = 6 PT
+        // (= magnifying-glass icon sat 6 PT from the zone edge, way
+        // too close). Bumped to chromePaddingLeading = 18 PT (= the
+        // canonical zone content inset per boss rule + per Apple HIG
+        // `.contentMargins` / `.toolbar` Apple default). Now the
+        // search icon aligns with the cards grid below (= both at
+        // 18 PT from the zone's left edge) and with the other 5
+        // zones (= sidebar / editor / tools all use the same
+        // chromePaddingLeading).
+        .padding(.horizontal, DesignTokens.chromePaddingLeading)
         // 30 PT height = matches LayoutTokens.toolbarHeight
         // (= editor's pencil/arrow toolbar + ZoneContentView tab strip).
         .frame(height: LayoutTokens.toolbarHeight)
