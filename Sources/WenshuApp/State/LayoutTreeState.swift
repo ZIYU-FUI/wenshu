@@ -802,6 +802,29 @@ struct LayoutTreeState: Codable, Equatable {
     /// field) decodes as `nil` (= treated as OFF).
     var useNSSplitView: Bool? = nil
 
+    // MARK: - 3-column NavigationSplitView migration (= M1 shell)
+    /// M1-shell (2026-09-08): opt-in to the Apple-native
+    /// NavigationSplitView path (= the macOS 27 recommended 3-column
+    /// layout per developer.apple.com/documentation/swiftui/navigationsplitview).
+    ///
+    /// Default `false` = existing users see ZERO behavior change on app
+    /// upgrade (= 老 PaneSplitHost 路径 unchanged). Set via:
+    ///   defaults write com.wenshu.app wenshu.useThreeColumnSplit -bool true
+    /// Reset via:
+    ///   defaults delete com.wenshu.app wenshu.useThreeColumnSplit
+    ///
+    /// BOSS 9/8 'Apple framework 默认是 2-3 栏; 我现在这样上半区是四栏的,
+    /// 是不是 Apple 的框架本来就不是很适配' = the current 4-column upper
+    /// band is NOT Apple first-class (= `NSSplitView` nested = workaround);
+    /// = migrate to two nested `NavigationSplitView` (each 3-column =
+    /// Apple canonical). M1 = build the shell skeleton (= new
+    /// `NavigationSplitShell.swift` = outer VSplitView + two
+    /// NavigationSplitView); M2-M5 = migrate zone content (= subsequent
+    /// tickets).
+    ///
+    /// Marked `Optional` (= Codable back-compat for old persisted JSON).
+    var useThreeColumnSplit: Bool? = nil
+
     /// Lookup helper for a tab by ID (= O(n) over tabs; n is small).
     func tab(for id: TabID) -> TabSpec? {
         tabs.first(where: { $0.id == id })

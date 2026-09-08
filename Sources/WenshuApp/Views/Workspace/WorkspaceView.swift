@@ -257,14 +257,42 @@ struct WorkspaceView: View {
     }
 
     var body: some View {
-        // v0.30 boss 2026-09-01 OOB: the legacy PaneRenderer path
-        // (= v0.28 ticket 028-004 hand-rolled split-tree renderer)
-        // was deleted per boss OOB (= the new NSSplitView code
-        // fully replicates the old behavior). WorkspaceView now
-        // ALWAYS renders the NSSplitView path (= PaneSplitHost +
-        // PaneNSController). The `useNSSplitView` feature flag
-        // stays in LayoutTreeState for backward Codable
-        // compatibility but the UI no longer branches on it.
+        // M1-shell (2026-09-08): branch by feature flag.
+        //
+        // Default = false (= `AppState.useThreeColumnSplit` = false
+        // by default per spec §2.3) → 老 `PaneSplitHost` 路径完全保留
+        // = ZERO regression risk for existing users.
+        //
+        // Set `useThreeColumnSplit = true` (= via UserDefaults
+        // `wenshu.useThreeColumnSplit` → read by AppState at init
+        // time, see AppState init defaults) → NEW Apple-native
+        // 3-column NavigationSplitView path (= the macOS 27
+        // canonical per developer.apple.com/documentation/swiftui/
+        // navigationsplitview). M1 = placeholders only; = M2-M5
+        // migrate zone content (= separate tickets per spec §6).
+        //
+        // The 老 PaneSplitHost path (= else branch) is preserved
+        // verbatim per the spec's "老路径完全保留" rule (= the
+        // ZONE-VIS-FIX-001..005 series and the entire existing
+        // layout edit hotkey + EditModeBadge overlay stay
+        // unchanged).
+        if appState.useThreeColumnSplit {
+            // Apple-native NavigationSplitView shell (= the
+            // macOS 27 recommended 3-column layout per boss 9/8
+            // 'Apple framework 默认是 2-3 栏').
+            NavigationSplitShell(
+                appState: appState,
+                bookStore: bookStore
+            )
+        } else {
+            // v0.30 boss 2026-09-01 OOB: the legacy PaneRenderer path
+            // (= v0.28 ticket 028-004 hand-rolled split-tree renderer)
+            // was deleted per boss OOB (= the new NSSplitView code
+            // fully replicates the old behavior). WorkspaceView now
+            // ALWAYS renders the NSSplitView path (= PaneSplitHost +
+            // PaneNSController). The `useNSSplitView` feature flag
+            // stays in LayoutTreeState for backward Codable
+            // compatibility but the UI no longer branches on it.
         PaneSplitHost(
             layout: FCPLayout(),
             store: store,
@@ -340,6 +368,7 @@ struct WorkspaceView: View {
                     LayoutEditBar(store: store, editMode: editMode)
                 }
             }
+        }
     }
 
     /// Render a tab's view (= dispatches on TabKind). Extracted
