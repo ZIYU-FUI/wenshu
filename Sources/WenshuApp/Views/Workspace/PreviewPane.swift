@@ -213,7 +213,21 @@ struct PreviewPane: View {
     /// the Card's own `source` field at call time, not via closure
     /// capture; = same code path handles both reference and bookDoc
     /// sources since B-02's CardSource enum unification).
-    let onDoubleClick: () -> Void
+    ///
+    /// BOSS 9/8 '点杜甫卡片, 新的标签页显示的名字不对' (= clicking
+    /// the 杜甫 card opens a new tab with the wrong name):
+    /// the previous `onDoubleClick: () -> Void` had NO way to
+    /// identify which card was clicked (= the closure was bound
+    /// at ForEach time but didn't capture per-card state). The
+    /// caller (= WorkspaceView.openCardInEditor) had to fall back
+    /// to `filtered.first` (= always the topmost card, not the
+    /// actually-clicked one), opening the wrong .md file.
+    ///
+    /// Fix: onDoubleClick now takes the clicked CardSource (=
+    /// either .reference(Reference) or .bookDoc(BookDoc)). The
+    /// caller passes it to openCardInEditor(source: CardSource?)
+    /// which uses the supplied source instead of `filtered.first`.
+    let onDoubleClick: (CardSource) -> Void
 
     /// v0.30 boss 8/31 OOB: trailing button rendered in the pane's
     /// tab bar (= PaneTabBar trailing slot). Used by the project
@@ -246,7 +260,7 @@ struct PreviewPane: View {
     /// Pass-through of all other fields + wraps the binding.
     init(
         scope: PreviewScope,
-        onDoubleClick: @escaping () -> Void,
+        onDoubleClick: @escaping (CardSource) -> Void,
         previewSortOrder: Binding<EntitySortOrder>
     ) {
         self.scope = scope
@@ -629,8 +643,19 @@ struct PreviewPane: View {
                     ScrollView {
                         LazyVGrid(columns: adaptiveColumns(width: geometry.size.width), spacing: 16) {
                             ForEach(inCategory) { entity in
-                                Card(source: .reference(entity)) {
-                                    onDoubleClick()
+                                Card(source: .reference(entity)) { source in
+                                    // BOSS 9/8 '点杜甫卡片,
+                                    // 新的标签页显示的名字不对':
+                                    // the trailing closure here IS
+                                    // Card's onDoubleClick (= now
+                                    // takes the CardSource as a
+                                    // parameter). Forward that source
+                                    // to PreviewPane's onDoubleClick
+                                    // (= which opens THIS specific
+                                    // card in the editor, not the
+                                    // topmost card = the previous
+                                    // filtered.first bug).
+                                    onDoubleClick(source)
                                 }
                             }
                         }
@@ -680,8 +705,14 @@ struct PreviewPane: View {
                 ScrollView {
                     LazyVGrid(columns: adaptiveColumns(width: geometry.size.width), spacing: 16) {
                         ForEach(sorted) { entity in
-                            Card(source: .reference(entity)) {
-                                onDoubleClick()
+                            Card(source: .reference(entity)) { source in
+                                // BOSS 9/8 '点杜甫卡片,
+                                // 新的标签页显示的名字不对':
+                                // the trailing closure is Card's
+                                // onDoubleClick (= takes CardSource);
+                                // forward to PreviewPane's onDoubleClick
+                                // (= which opens THIS specific card).
+                                onDoubleClick(source)
                             }
                         }
                     }
@@ -874,8 +905,13 @@ struct PreviewPane: View {
                     spacing: 16
                 ) {
                     ForEach(sorted) { doc in
-                        Card(source: .bookDoc(doc)) {
-                            onDoubleClick()
+                        Card(source: .bookDoc(doc)) { source in
+                            // BOSS 9/8 '点杜甫卡片,
+                            // 新的标签页显示的名字不对':
+                            // forward the BookDoc CardSource
+                            // to PreviewPane's onDoubleClick so
+                            // the EXACT clicked book doc opens.
+                            onDoubleClick(source)
                         }
                     }
                 }
@@ -1003,7 +1039,27 @@ struct PreviewPane: View {
 ///
 /// CardSource = the only "data shape" the card knows. Adding a new
 /// source type = one new case + one computed-property branch.
-private enum CardSource {
+/// BOSS 9/8 '点杜甫卡片, 新的标签页显示的名字不对' (= clicking
+/// the 杜甫 card opened a new tab named 'preview-sample'):
+/// the source value is now passed from PreviewPane.Card's
+/// onDoubleClick closure to WorkspaceView's openCardInEditor
+/// so the EXACT clicked card's .md opens (= not the topmost
+/// card = the previous `filtered.first` bug).
+///
+/// internal (= module-scoped access for WorkspaceView to use in
+/// openCardInEditor(source:)). Was `private` (= the Swift
+/// compiler error 'property must be declared fileprivate
+/// because its type uses a private type' = since PreviewPane
+/// exposes this type in its internal `onDoubleClick` signature,
+/// it must be at least as accessible as the type).
+///
+/// Note: PreviewPane itself is `internal` (default for Swift
+/// struct), so `onDoubleClick` is `internal` (= no explicit
+/// access modifier), and CardSource must be `internal` (= same
+/// level of access). fileprivate would also work if PreviewPane
+/// itself were fileprivate, but PreviewPane is referenced by
+/// WorkspaceView (= module-internal access required).
+internal enum CardSource {
     case reference(Reference)
     case bookDoc(BookDoc)
 
@@ -1035,7 +1091,7 @@ private enum CardSource {
 
 private struct Card: View {
     let source: CardSource
-    let onDoubleClick: () -> Void
+    let onDoubleClick: (CardSource) -> Void
 
     @State private var isHovered: Bool = false
 
@@ -1148,7 +1204,12 @@ private struct Card: View {
                 // Second tap within the interval = double click.
                 clickCount = 0
                 lastClickTimestamp = 0
-                onDoubleClick()
+                // BOSS 9/8 '点杜甫卡片, 新的标签页显示的名字不对':
+                // pass the clicked CardSource (= .reference or
+                // .bookDoc) to the parent's onDoubleClick handler so
+                // it can open the EXACT .md file (= not the topmost
+                // card = the previous `filtered.first` bug).
+                onDoubleClick(source)
             }
         }
         // v0.34 B-26: Apple HIG tooltip (= .help = NSWindow tooltip =
