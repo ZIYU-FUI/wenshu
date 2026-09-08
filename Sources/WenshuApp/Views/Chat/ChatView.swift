@@ -1127,13 +1127,21 @@ public struct ChatView: View {
                     // semantic foregroundStyle) on the Liquid Glass
                     // background, just like Apple Messages / Slack.
                     // The 1 PT focus ring (borderColor on focus)
-                    // stays as Color.accentColor / Color.gray.opacity(0.4)
-                    // (= works correctly with Liquid Glass per Apple
-                    // HIG).
+                    // v0.40 boss 2026-09-08 OOB '聊天区的背景色, 没有改成编辑器的
+                    // 颜色': the chat input TextField background was
+                    // .regularMaterial (= glass tier = lighter shade
+                    // in dark mode = visually distinct from the
+                    // surrounding content tier). Boss wants the
+                    // chat input area to match the editor zone
+                    // (= .underPageBackgroundColor = content tier
+                    // = same shade as the empty state background).
+                    // Drop the .regularMaterial glass tier (= was
+                    // Apple Messages / Slack convention, but boss
+                    // wants visual consistency with the editor).
                     .background(
                         ZStack {
                             RoundedRectangle(cornerRadius: 6)
-                                .fill(.regularMaterial)
+                                .fill(Color(nsColor: .underPageBackgroundColor))
                             RoundedRectangle(cornerRadius: 6)
                                 .strokeBorder(inputFocused ? AnyShapeStyle(.tint) : AnyShapeStyle(.separator), lineWidth: 1)
                         }
