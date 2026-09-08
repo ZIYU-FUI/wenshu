@@ -262,6 +262,12 @@ struct ShellSidebarColumn: View {
 struct ShellContentColumn: View {
     let appState: AppState
 
+    // v0.40 boss 2026-09-08 '有 teb 切功能, 右边有展开收起的那个':
+    // RegionTabBar's PaneIconTab requires a matchedGeometryEffect
+    // namespace (= one per tab bar instance; = required by SwiftUI's
+    // .matchedGeometryEffect modifier).
+    @Namespace private var editorChromeNamespace
+
     var body: some View {
         VStack(spacing: 0) {
             // Top sub-area: real editor wrapped in ZonePerRegionChrome
@@ -270,17 +276,77 @@ struct ShellContentColumn: View {
             // '中间两区的顶栏丢失了' = the chrome was missing because
             // M2 directly embedded the zone view instead of
             // wrapping it in ZonePerRegionChrome).
-            ZonePerRegionChrome(
-                topActions: [],
-                bottomStatus: ZoneBottomStatus(
-                    left: "0 字",
-                    right: ""
-                ),
-                topSkip: false,
-                bottomSkip: false,
-                zone: .editor
-            ) {
-                EditorPlaceholder()
+            //
+            // v0.40 boss 2026-09-08 OOB '编辑器区默认显示对了' +
+            // '现在需要把顶栏找回来... 上面还有一层, 有 teb 切功能,
+            // 右边有展开收起的那个': the FIRST-layer chrome top bar
+            // (= the 30 PT RegionTabBar that every pane in the old
+            // 6-region layout had above its content) was removed
+            // during CHROME-ARCH-001. Boss wants it back. Wrap the
+            // editor content with RegionTabBar (= PaneTabBar + trailing
+            // expand button = matches Safari / Pages / Xcode tab bar
+            // pattern). The inner EditorPlaceholder's own tab strip
+            // (= Safari-style file tabs) becomes the SECOND-layer.
+            VStack(spacing: 0) {
+                RegionTabBar {
+                    HStack(spacing: DesignTokens.chromePaddingClusterGap) {
+                        // TEB 切换(= preview / edit mode tab = matches the
+                        // existing 'mode' toggle inside EditorPlaceholder,
+                        // but at the chrome top level = visible even when
+                        // the inner tab strip is empty = no .md tabs open).
+                        // boss 2026-09-08 '有 teb 切功能' = this is the
+                        // 'teb switch' boss references.
+                        //
+                        // Future ticket: wire to appState.openTabs[activeTabIdx]
+                        // (= read mode, write mode via setMode). For now, the
+                        // inner EditorPlaceholder's own mode toggle remains
+                        // canonical; = the chrome-level tabs are visual-only
+                        // (= same icon + label as the inner tabs = boss's
+                        // pattern of stacking chrome layers).
+                        PaneIconTab(
+                            id: "preview-mode",
+                            icon: "eye",
+                            label: "预览",
+                            isSelected: false,
+                            namespace: editorChromeNamespace,
+                            namespaceID: "editorChromeUnderline",
+                            onTap: { /* wired via EditorPlaceholder's mode toggle */ }
+                        )
+                        PaneIconTab(
+                            id: "edit-mode",
+                            icon: "pencil",
+                            label: "编辑",
+                            isSelected: false,
+                            namespace: editorChromeNamespace,
+                            namespaceID: "editorChromeUnderline",
+                            onTap: { /* wired via EditorPlaceholder's mode toggle */ }
+                        )
+                        Spacer()
+                        // 展开收起(= the expand/shrink button boss references;
+                        // = same toggle as the internal editor toolbar's
+                        // expand button; = future ticket: hide other columns
+                        // for distraction-free editing).
+                        PaneTrailingIconButton(
+                            icon: "maximize-2",
+                            tooltip: "展开/收起",
+                            action: { /* future: expand/collapse editor */ }
+                        )
+                    }
+                    .padding(.horizontal, DesignTokens.chromePaddingLarge)
+                }
+                ZonePerRegionChrome(
+                    topActions: [],
+                    bottomStatus: ZoneBottomStatus(
+                        left: "0 字",
+                        right: ""
+                    ),
+                    topSkip: false,
+                    bottomSkip: false,
+                    zone: .editor
+                ) {
+                    EditorPlaceholder()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             Divider()
