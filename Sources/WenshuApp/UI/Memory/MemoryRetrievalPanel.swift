@@ -34,7 +34,11 @@ public struct MemoryRetrievalPanel: View {
             // this was .padding(.horizontal, chromePaddingChipHorizontal
             // = 10 PT) + .padding(.top, chromePaddingSmall = 6 PT) =
             // 10 PT horizontal = too tight (= boss '6 区过小').
-            // chromePaddingLeading (= 18 PT) matches the rest of the
+            // chromePaddingLeading (= 8 PT per Apple HIG; = the value of
+             // DesignTokens.chromePaddingLeading per boss 9/8
+             // 'Apple API default spacing isn't PT, it's a semantic
+             // name' = the semantic name is '.small' = 8 PT)
+             // matches the rest of the
             // chrome (= zone chrome top bar uses 18 PT).
             .contentInsetStyle(.custom(18), edges: .horizontal)
             .padding(.top, DesignTokens.chromePaddingSmall)

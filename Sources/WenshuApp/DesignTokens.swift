@@ -40,36 +40,43 @@ public enum DesignTokens {
     public static let chromeHeight: CGFloat = 30
 
     /// ZONE-INSET-002 (2026-09-07): canonical zone-content inset
-    /// (= 18 PT on all 4 sides) applied by ZoneContentView (= the
-    /// shared chrome wrapper for sidebar / preview / editor /
-    /// specialized-tools / dynamic zones). Centralizes the
-    /// zone-edge padding that was previously scattered as
-    /// hardcoded .padding() calls in each zone's content view
-    /// (= sidebar used chromePaddingHero = 28 PT, editor had
-    /// chromePaddingLeading = 18 PT horizontal only, preview
-    /// had chromePaddingXLarge = 24 PT, kanban had chromePaddingVertical
-    /// = 8 PT vertical only = no uniform value across the 5
-    /// zones using ZoneContentView).
+    /// (= 8 PT on all 4 sides per Apple HIG) applied by
+    /// ZoneContentView (= the shared chrome wrapper for sidebar /
+    /// preview / editor / specialized-tools / dynamic zones).
+    /// Centralizes the zone-edge padding that was previously
+    /// scattered as hardcoded .padding() calls in each zone's
+    /// content view (= sidebar used chromePaddingHero = 28 PT,
+    /// editor had chromePaddingLeading = 18 PT horizontal only,
+    /// preview had chromePaddingXLarge = 24 PT, kanban had
+    /// chromePaddingVertical = 8 PT vertical only = no uniform
+    /// value across the 5 zones using ZoneContentView).
     ///
     /// Single-source-of-truth for the "distance from content to
     /// zone edge" value. Changing this token (= e.g. boss decides
-    /// 22 PT tomorrow) adjusts all 5 zones uniformly without
+    /// 12 PT tomorrow) adjusts all 5 zones uniformly without
     /// per-zone edits.
     ///
-    /// Value = 18 PT = Apple HIG canonical text-container inset
-    /// for macOS 27 Tahoe (= matches the .defaultContentMargins
-    /// value used by NSTextView / NSScrollView on macOS 13+;
-    /// the SwiftUI equivalent is `.contentMargins(.all, 18, for:
-    /// .scrollContent)` introduced in iOS 17 / macOS 14 — we
-    /// use the literal token here for the same effect because
-    /// ZoneContentView is a structural wrapper, not a ScrollView).
-    public static let zoneContentInset: CGFloat = 18
+    /// Value = 8 PT per Apple HIG canonical 'Spacing.small' (= the
+    /// toolbar / inline content inset used by Apple Finder / Photos
+    /// / Music / Mail per developer.apple.com/design/human-
+    /// interface-guidelines/layout 'Use consistent spacing').
+    /// Was 18 PT in a prior OOB (= boss 9/8 'that value is too
+    /// wide; the Apple API default spacing isn't PT, it's a
+    /// semantic name'; = the semantic name is '.small' = 8 PT).
+    public static let zoneContentInset: CGFloat = 8
 
-    /// Per-pane chrome horizontal leading padding (= 18 PT, matches Apple HIG).
-    public static let chromePaddingLeading: CGFloat = 18
+    /// Per-pane chrome horizontal leading padding.
+    /// Apple HIG canonical value = 8 PT (= matches SwiftUI's
+    /// 'Spacing.small' = the toolbar / inline content inset
+    /// used by Apple Finder / Photos / Music / Mail). Was 18 PT
+    /// in a prior OOB (= boss 9/8 'that value is too wide; the
+    /// Apple API default spacing isn't PT, it's a semantic name';
+    /// = the semantic name is '.small' = 8 PT).
+    public static let chromePaddingLeading: CGFloat = 8
 
-    /// Per-pane chrome horizontal trailing padding (= 18 PT, matches Apple HIG).
-    public static let chromePaddingTrailing: CGFloat = 18
+    /// Per-pane chrome horizontal trailing padding.
+    /// Apple HIG canonical value = 8 PT (= matches leading).
+    public static let chromePaddingTrailing: CGFloat = 8
 
     /// Per-pane chrome vertical padding (= 8 PT, Apple HIG standard for
     /// vertically-centered 13 PT text + 18 PT icon). Replaces previous
