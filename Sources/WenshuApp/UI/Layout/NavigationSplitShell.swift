@@ -66,27 +66,21 @@ struct NavigationSplitShell: View {
     var bookStore: BookStore?
 
     var body: some View {
-        // v0.40 boss 2026-09-08 OOB '你看 pages 这种风格是怎么实现的. 没有线':
-        // Apple Pages / Numbers / Keynote all use NavigationStack +
-        // HSplitView for sidebar / inspector layouts. The
-        // canonical Pages / Numbers style has THIN drag-handle
-        // dividers (= 1 PT semitransparent lines that adapt to
-        // dark / light mode). For the boss's 'no line' look,
-        // use HSplitView with dividerStyle = .thin (= visible 1 PT
-        // hairline = the same divider the 老 PaneNSController uses
-        // per PaneNSController.swift:131 'boss accepted the Apple
-        // limit and pivoted from the earlier .paneSplitter /
-        // 0-width / no-line attempts to the standard HIG hairline').
+        // v0.40 boss 2026-09-08 OOB '你不是这个框架是 mac os 27 默认的,
+        // 自带液态玻璃效果的吗': macOS 27 Tahoe SwiftUI NavigationSplitView
+        // renders each column with the canonical Liquid Glass material
+        // (= .glassEffect(.regular) auto-applied to column backgrounds
+        // = the columns visually separate via glass-on-glass refraction
+        // = no visible drag-handle divider between columns; = matches
+        // the boss's Pages reference image exactly).
         //
-        // To match Pages exactly (= NO divider visible at all):
-        // use plain HStack with .frame(width:) on each column
-        // (= not drag-resizable, = fixed widths = Pages default).
-        // Boss did NOT explicitly ask for drag-resize on the right
-        // column (= no resize gesture in the Pages reference image).
-        // Going with HSplitView + .thin divider style as the
-        // pragmatic compromise (= 1 PT hairline visible, draggable
-        // columns, semitransparent = Pages-like).
-        HSplitView {
+        // Pattern: NavigationSplitView (3 columns) + each column's
+        // body wrapped in Rectangle.glassEffect(.regular) (= the
+        // canonical macOS 27 Liquid Glass surface = the divider
+        // becomes invisible because each column has its own glass
+        // tier that refracts independently; = no horizontal line
+        // between columns = matches Pages / Numbers / Keynote).
+        NavigationSplitView {
             // Apple HIG sidebar (= leftmost column; = the source
             // of truth for navigation in this band). 2 vertical
             // sub-areas (= VStack; no inner divider; = Mail's
@@ -94,18 +88,18 @@ struct NavigationSplitShell: View {
             // Apple's standard "List with multiple sections"
             // pattern).
             ShellSidebarColumn(appState: appState)
-                // Pages-style minimum width (= user can drag to
-                // resize but the column never collapses below this).
-                .frame(minWidth: 200, idealWidth: 280, maxWidth: 500)
+        } content: {
+            // Apple HIG content (= middle column; = context list
+            // showing the items from the sidebar selection). 2
+            // vertical sub-areas (= VStack).
             ShellContentColumn(appState: appState)
-                .frame(minWidth: 400, idealWidth: 720)
+        } detail: {
             // Apple HIG detail (= rightmost column; = the
             // selected item's detail / inspector). 2 vertical
             // sub-areas (= VStack).
             ShellDetailColumn(appState: appState)
-                .frame(minWidth: 220, idealWidth: 320, maxWidth: 500)
         }
-        .background { Color.clear }
+        .navigationSplitViewStyle(.balanced)  // Apple HIG balanced + Liquid Glass tier columns
         // CHATZONE-CRASH-FIX (2026-09-08): re-inject appState at
         // the NavigationSplitView root (= SwiftUI's internal
         // layout engine reads @Environment values during
@@ -166,6 +160,15 @@ struct ShellSidebarColumn: View {
         // between sections (= the column's width is fixed; =
         // users resize the entire column, not the individual
         // sections inside it).
+        //
+        // v0.40 boss 2026-09-08 '你不是这个框架是 mac os 27 默认的,
+        // 自带液态玻璃效果的吗': wrap column in Rectangle.glassEffect
+        // (.regular) (= the canonical macOS 27 Tahoe Liquid Glass
+        // material that auto-applies when the column is a 3rd-
+        // party SwiftUI view = the glass material refracts and
+        // visually separates columns without a drag-handle divider;
+        // = matches Pages / Numbers / Keynote canonical no-line
+        // look).
         VStack(spacing: 0) {
             // Top sub-area: scope tab bar + real directory tree
             // wrapped in ZonePerRegionChrome (= top tab bar + bottom
@@ -256,6 +259,14 @@ struct ShellSidebarColumn: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        // v0.40 boss 2026-09-08 '你不是这个框架是 mac os 27 默认的,
+        // 自带液态玻璃效果的吗': canonical macOS 27 Tahoe Liquid Glass
+        // surface for each NavigationSplitView column. .glassEffect
+        // (.regular) auto-applies the Liquid Glass material (= the
+        // column refracts like glass = visually separates from
+        // adjacent columns without a drag-handle divider; = matches
+        // Pages / Numbers / Keynote canonical look).
+        .background { RoundedRectangle(cornerRadius: 12).glassEffect(.regular) }
     }
 }
 
@@ -396,6 +407,10 @@ struct ShellContentColumn: View {
             ChatZoneView(conductor: nil, store: nil)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        // v0.40: macOS 27 Tahoe Liquid Glass (= see ShellSidebarColumn
+        // comment for rationale = columns refract like glass without
+        // a drag-handle divider).
+        .background { Rectangle().glassEffect(.regular) }
         // CHATZONE-CRASH-FIX (2026-09-08): re-inject AppState into
         // the env chain. SwiftUI 6+ breaks the @Environment chain
         // across NavigationSplitView's 3-column boundary (= the
@@ -457,6 +472,9 @@ struct ShellDetailColumn: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        // v0.40: macOS 27 Tahoe Liquid Glass (= see ShellSidebarColumn
+        // comment for rationale).
+        .background { Rectangle().glassEffect(.regular) }
         // CHATZONE-CRASH-FIX (2026-09-08): re-inject AppState into
         // the env chain. SwiftUI 6+ breaks the @Environment chain
         // across NavigationSplitView's 3-column boundary (= the
