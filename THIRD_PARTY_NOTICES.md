@@ -5,7 +5,7 @@ Source of truth = `Package.swift`. Do not edit by hand —
 re-run the scanner (= `bash Scripts/build-app.sh` invokes it
 before build) to refresh after a dependency change.
 
-Total upstreams: **18**.
+Total upstreams: **8**.
 
 ## bring-shrubbery/lucide-swift
 
@@ -14,47 +14,19 @@ Total upstreams: **18**.
 - **License**: MIT
 - **Reason**: 图标集合 (Apple SF Symbol 替代品; 跨平台)
 
-## sindresorhus/Defaults
-
-- **URL**: https://github.com/sindresorhus/Defaults
-- **Version**: 9.0.0
-- **License**: MIT
-- **Reason**: UserDefaults 类型化包装 (Apple @AppStorage 替代品)
-
-## sindresorhus/KeyboardShortcuts
-
-- **URL**: https://github.com/sindresorhus/KeyboardShortcuts
-- **Version**: 2.2.0
-- **License**: MIT
-- **Reason**: 全局快捷键绑定 (Apple .keyboardShortcut 替代品)
-
-## kean/Nuke
-
-- **URL**: https://github.com/kean/Nuke
-- **Version**: 13.2.0
-- **License**: MIT
-- **Reason**: 异步图像加载 (Apple LazyVGrid/AsyncImage 替代品)
-
-## weichsel/ZIPFoundation
-
-- **URL**: https://github.com/weichsel/ZIPFoundation
-- **Version**: 0.9.20
-- **License**: MIT
-- **Reason**: ZIP 读写 (Apple Compression 替代品)
-
-## groue/GRDB.swift
-
-- **URL**: https://github.com/groue/GRDB.swift
-- **Version**: 7.11.1
-- **License**: MIT
-- **Reason**: SQLite 工具包 + FTS5 全文检索 (Apple CoreData 替代品)
-
 ## swiftlang/swift-markdown
 
 - **URL**: https://github.com/swiftlang/swift-markdown
 - **Version**: 0.4.0
 - **License**: Apache-2.0
 - **Reason**: CommonMark/GFM 解析 (Apple AttributedString 替代品)
+
+## nodes-app/swift-markdown-engine
+
+- **URL**: https://github.com/nodes-app/swift-markdown-engine
+- **Version**: 0.12.0
+- **License**: Unknown
+- **Reason**: Wenshu SPM dependency.
 
 ## smittytone/HighlighterSwift
 
@@ -63,47 +35,12 @@ Total upstreams: **18**.
 - **License**: MIT
 - **Reason**: 代码块语法高亮 (Apple TextKit 替代品)
 
-## witekbobrowski/EPUBKit
-
-- **URL**: https://github.com/witekbobrowski/EPUBKit
-- **Version**: 0.5.0
-- **License**: MIT
-- **Reason**: EPUB 2/3 解析 (Apple iBooks 替代品)
-
-## davecom/SwiftGraph
-
-- **URL**: https://github.com/davecom/SwiftGraph
-- **Version**: 4.0.0
-- **License**: Apache-2.0
-- **Reason**: 图算法 (Apple Foundation 替代品)
-
-## li3zhen1/Grape
-
-- **URL**: https://github.com/li3zhen1/Grape
-- **Version**: 1.1.0
-- **License**: MIT
-- **Reason**: 力导向图布局 (Apple HIG 替代品)
-
-## orchetect/MenuBarExtraAccess
-
-- **URL**: https://github.com/orchetect/MenuBarExtraAccess
-- **Version**: 1.3.0
-- **License**: MIT
-- **Reason**: macOS 菜单栏集成 (Apple MenuBarExtra 替代品)
-
 ## mattt/EventSource
 
 - **URL**: https://github.com/mattt/EventSource
 - **Version**: 1.5.1
 - **License**: MIT
 - **Reason**: SSE 客户端 (Apple URLSession.bytes 替代品)
-
-## gonzalezreal/textual
-
-- **URL**: https://github.com/gonzalezreal/textual
-- **Version**: 0.5.0
-- **License**: MIT
-- **Reason**: SwiftUI 富文本引擎 (Apple TextKit 替代品; 同上 slug 变体)
 
 ## krzysztofzablocki/Inject
 
@@ -118,13 +55,6 @@ Total upstreams: **18**.
 - **Version**: 0.10.3
 - **License**: MIT
 - **Reason**: SwiftUI 视图层级反射 (TEST only; Apple HIG 替代品)
-
-## apple/swift-log
-
-- **URL**: https://github.com/apple/swift-log
-- **Version**: 1.15.0
-- **License**: Apache-2.0
-- **Reason**: Apple 一方 Logger API
 
 ## pointfreeco/swift-snapshot-testing
 

@@ -5,51 +5,53 @@
 //  migration (= the worktree = `.worktrees/m1-navigation-split-shell/`;
 //  spec = `.scratch/2026-09-08-m1-shell/spec.md`).
 //
-//  Layout structure (= Apple HIG canonical 3-column per
-//  developer.apple.com/documentation/swiftui/navigationsplitview):
+//  Layout structure (per boss 9/8 red-line drawing = 1 continuous
+//  vertical drag-resizable divider贯穿整个 window = NOT 2 separate
+//  NavigationSplitView, but 1 outer NavigationSplitView with each
+//  column containing 2 vertically-stacked sub-areas):
 //
-//    Outer: VSplitView (Apple 2-column vertical split)
-//    ├── NavigationSplitView #1 (upper band)
-//    │   ├── sidebar:    目录树 + 卡片网格 (HSplit 内部 2 sub-panes)
-//    │   ├── content:    编辑器
-//    │   └── detail:     工具
-//    └── NavigationSplitView #2 (lower band)
-//        ├── sidebar:    空 (boss 9/8 placeholder)
-//        ├── content:    聊天
-//        └── detail:     动态
+//    Outer: NavigationSplitView (3 columns, Apple HIG canonical)
+//    ├── sidebar (1 column, 2 vertical sub-areas, no inner divider):
+//    │   ├── top:    目录树 (M2 = directory tree migrates here)
+//    │   └── bottom: 卡片   (M2 = card grid migrates here)
+//    ├── content (1 column, 2 vertical sub-areas, no inner divider):
+//    │   ├── top:    编辑器 (M3 = editor zone migrates here)
+//    │   └── bottom: 聊天   (M3 = chat zone migrates here)
+//    └── detail (1 column, 2 vertical sub-areas, no inner divider):
+//        ├── top:    工具 (M4 = tools zone migrates here)
+//        └── bottom: 动态 (M4 = dynamic zone migrates here)
 //
-//  Two nested NavigationSplitView (each = 3 columns = Apple
-//  first-class) instead of one NSSplitView with 4 columns (= NOT
-//  Apple first-class; = the current bug pattern from ZONE-VIS-FIX-001..005).
+//  Why 1 outer NavigationSplitView (not 2 + VSplitView): the boss's
+//  red line is 1 continuous vertical line that runs the full
+//  height of the window. That is only possible with 1 outer
+//  NavigationSplitView whose 3 columns have vertical sub-areas
+//  (VStack). Two stacked NavigationSplitView (upper + lower) would
+//  produce 2 separate vertical dividers (= 4 dividers total = NOT
+//  matching the boss's 2-dividers-only red-line).
 //
-//  M1 = build the shell SKELETON only (= placeholders, NO zone content).
-//  M2-M5 = migrate existing zone content into the new panes
-//  (= subsequent tickets; see spec §6).
+//  M1 = build the shell SKELETON only (= placeholders, NO zone
+//  content). M2-M5 = migrate existing zone content into the new
+//  panes (= subsequent tickets; see spec §6).
 //
-//  Activation: LayoutTreeState.useThreeColumnSplit (= optional Bool
-//  = default `nil`/off = 老 PaneSplitHost 路径 = ZERO regression).
+//  Activation: LayoutTreeState.useThreeColumnSplit (= optional
+//  Bool = default `nil`/off = 老 PaneSplitHost 路径 = ZERO
+//  regression).
 //
 
 import SwiftUI
 
 // MARK: - Top-level shell
 
-/// Apple-native 3-column shell (= outer VSplitView + two
-/// NavigationSplitView). Activated by
+/// Apple-native 3-column shell (= 1 outer `NavigationSplitView`
+/// with 3 columns × 2 vertical sub-areas each). Activated by
 /// `LayoutTreeState.useThreeColumnSplit`. Default `nil` (= 老
 /// `PaneSplitHost` 路径完全保留 per M1 spec §2.3 = zero
 /// regression risk).
 ///
-/// Apple HIG rationale (= boss 9/8 'Apple framework 默认是 2-3 栏'
-/// = the previous 4-column `NSSplitView` upper band was NOT
-/// first-class supported = the ZONE-VIS-FIX bug series = time to
-/// migrate to Apple's canonical API):
-/// - `NavigationSplitView` per developer.apple.com/documentation/
-///   swiftui/navigationsplitview = "A view that presents views in
-///   two or three columns"
-/// - `VSplitView` / `HSplitView` per developer.apple.com/documentation/
-///   appkit/nssplitview = Apple's canonical 2-column splits
-/// (= vertical and horizontal respectively)
+/// Apple HIG rationale (= boss 9/8 '按我的红色放拖拽线' = the
+/// 3 columns share 1 continuous vertical divider line that runs
+/// the full window height; = 1 outer `NavigationSplitView` with
+/// each column = 2 vertically-stacked sub-areas (= VStack)).
 struct NavigationSplitShell: View {
     /// Bindable app state (= owns the `useThreeColumnSplit` flag +
     /// any per-pane selection state; = same lifetime as the
@@ -57,196 +59,154 @@ struct NavigationSplitShell: View {
     /// in the body).
     var appState: AppState
 
-    /// BookStore (= read-only access from this shell; = passed
-    /// through to the placeholder views (= M2-M5 will replace
-    /// placeholders with real zone views that actually consume the
-    /// bookStore)).
-    var bookStore: BookStore
-
     var body: some View {
-        // Outer: VSplitView (= Apple 2-column vertical split per
-        // developer.apple.com/documentation/appkit/nssplitview).
-        // Apple HIG = upper/lower bands are vertical siblings.
-        // Each band hosts its own NavigationSplitView (= 3 columns
-        // = Apple first-class).
+        // Outer: 1 NavigationSplitView (3 columns) per
+        // developer.apple.com/documentation/swiftui/navigationsplitview.
+        // The boss's red line drawing shows 2 continuous vertical
+        // dividers (= 3 columns = sidebar | content | detail) that
+        // run the full height of the window. This is only possible
+        // with 1 outer NavigationSplitView; = each column is a
+        // single SwiftUI view that internally stacks upper/lower
+        // sub-areas (= VStack).
         //
-        // Note: NavigationSplitView requires macOS 13+. Per wenshu
+        // NavigationSplitView requires macOS 13+. Per wenshu
         // Package.swift minimum = macOS 27 (= much later than
         // 13); = no #available check needed.
-        VSplitView {
-            // Upper band: 3-column NavigationSplitView
-            UpperSplitView(appState: appState, bookStore: bookStore)
-            // Lower band: 3-column NavigationSplitView
-            LowerSplitView(appState: appState, bookStore: bookStore)
-        }
-    }
-}
-
-// MARK: - Upper band (= 3-column NavigationSplitView)
-
-/// Upper band shell (= NavigationSplitView with 3 columns).
-/// Apple HIG:
-/// - sidebar: 目录树 + 卡片网格 (HSplit 内部 2 sub-panes)
-/// - content: 编辑器
-/// - detail:  工具
-///
-/// M1 = placeholders only. M2 = migrate 目录树 (current sidebar
-/// zone) to the sidebar column. M3 = migrate editor (current
-/// editor zone) to the content column. M4 = migrate tools
-/// (current tools zone) to the detail column (= popover?).
-struct UpperSplitView: View {
-    var appState: AppState
-    var bookStore: BookStore
-
-    var body: some View {
-        // NavigationSplitView 2-column initializer (= sidebar +
-        // detail) per Apple HIG; = the upper band needs 3
-        // columns (= sidebar + content + detail) per boss 9/8 spec.
-        //
-        // The actual API chosen: NavigationSplitView's 3-column
-        // initializer per developer.apple.com/documentation/swiftui/
-        // navigationsplitview. Apple HIG = sidebar drives content
-        // selection (= NavigationSplitView's @State selection
-        // binding = automatic SwiftUI state).
         NavigationSplitView {
             // Apple HIG sidebar (= leftmost column; = the source
-            // of truth for navigation in this band).
-            //
-            // M1 placeholder content = DirectoryTreePlaceholder +
-            // CardGridPlaceholder inside an HSplit (= Apple 2-column
-            // horizontal split). Boss 9/8 spec: '目录+卡片合并成一栏,
-            // 但内部还是要分成两个区, 只不过两区写在一栏中'.
-            UpperSplitSidebar(bookStore: bookStore)
+            // of truth for navigation in this band). 2 vertical
+            // sub-areas (= VStack; no inner divider; = Mail's
+            // sidebar = inbox + sent + drafts side by side, =
+            // Apple's standard "List with multiple sections"
+            // pattern).
+            ShellSidebarColumn()
         } content: {
             // Apple HIG content (= middle column; = context list
-            // showing the items from the sidebar selection).
-            //
-            // M1 placeholder = EditorPlaceholder (= current
-            // editor zone will move here in M3).
-            ShellPlaceholder(
-                name: "编辑器 (upper content)",
-                icon: "square.and.pencil",
-                hint: "M3 = editor zone migrates here"
-            )
+            // showing the items from the sidebar selection). 2
+            // vertical sub-areas (= VStack).
+            ShellContentColumn()
         } detail: {
             // Apple HIG detail (= rightmost column; = the
-            // selected item's detail / inspector).
-            //
-            // M1 placeholder = ToolsPlaceholder (= current tools
-            // zone will move here in M4).
-            ShellPlaceholder(
-                name: "工具 (upper detail)",
-                icon: "wrench.and.screwdriver",
-                hint: "M4 = tools zone migrates here"
-            )
+            // selected item's detail / inspector). 2 vertical
+            // sub-areas (= VStack).
+            ShellDetailColumn()
         }
         .navigationSplitViewStyle(.balanced)  // Apple HIG balanced
     }
 }
 
-/// Upper band's sidebar (= 目录树 + 卡片网格 = two sub-panes
-/// inside one NavigationSplitView sidebar column).
+// MARK: - Sidebar column (= 2 vertical sub-areas)
+
+/// Apple HIG sidebar column (= 2 vertical sub-areas: 目录树 +
+/// 卡片网格). Per boss 9/8 '目录+卡片合并成一栏, 但内部还是
+/// 要分成两个区, 只不过两区写在一栏中' = the 2 sub-areas share
+/// one column without a drag-resizable divider between them
+/// (= Apple HIG's standard "List with multiple sections" pattern
+/// = Mail's sidebar = inbox + sent + drafts stacked vertically
+/// inside one column).
 ///
-/// Apple HIG implementation = HSplitView (= Apple 2-column
-/// horizontal split per developer.apple.com/documentation/appkit/
-/// nssplitview). The sidebar (= outer NavigationSplitView's
-/// leftmost column) is internally divided into:
-/// - left sub-pane: 目录树 (= current sidebar zone content from
-///   NewLibraryOutlineView)
-/// - right sub-pane: 卡片网格 (= current preview pane cards)
-///
-/// Boss 9/8 spec: '目录+卡片合并成一栏, 但内部还是要分成两个区'.
-/// HSplitView is the canonical Apple API for two sub-areas
-/// inside one column (= matches Mail's folder/message-list split
-/// inside the sidebar column on iPad).
-struct UpperSplitSidebar: View {
-    var bookStore: BookStore
+/// M2 (= this commit): swap the M1 placeholders for the real
+/// wenshu zone views:
+/// - top sub-area: NewLibraryOutlineView (real sidebar tree
+///   from v0.34+; = the source of truth for the library
+///   shelf/book/folder hierarchy)
+/// - bottom sub-area: ZoneModuleView(zoneSlot: .projectPreview)
+///   (real card grid from v0.34+; = displays the documents
+///   for the current sidebar selection)
+struct ShellSidebarColumn: View {
 
     var body: some View {
-        // HSplitView (= Apple 2-column horizontal split). Per
-        // developer.apple.com/documentation/appkit/nssplitview:
-        // "By default, a split view arranges its child views
-        // vertically from top to bottom. To specify a horizontal
-        // (side-by-side) arrangement, implement the `isVertical`
-        // property of the `splitView` object to return doc://...
-        // Swift/true."
-        //
-        // SwiftUI doesn't expose HSplitView directly; = HSplitView
-        // is an AppKit view (= wrapped via NSViewControllerRepresentable
-        // if needed). For M1 placeholder simplicity, use SwiftUI
-        // HStack (= native SwiftUI 2-column horizontal layout =
-        // Apple-canonical via SwiftUI). M2 will replace with
-        // HSplitView (= AppKit) if user needs drag-resizable
-        // sub-panes.
-        //
-        // Per Apple HIG for sidebar sub-panes (= Xcode's
-        // navigator + inspector stacked vertically; = Mail's
-        // mailbox + folder list stacked vertically; = the standard
-        // pattern is HORIZONTAL = the 2 sub-panes are side by side
-        // inside the sidebar column).
-        HStack(spacing: 0) {
-            // Left sub-pane: 目录树 (= current sidebar zone)
-            ShellPlaceholder(
-                name: "目录树 (sidebar left)",
-                icon: "folder",
-                hint: "M2 = directory tree migrates here"
-            )
-            // Right sub-pane: 卡片网格 (= current preview pane)
-            ShellPlaceholder(
-                name: "卡片 (sidebar right)",
-                icon: "rectangle.stack",
-                hint: "M2 = card grid migrates here"
-            )
+        // VStack (vertical stack) of 2 sub-areas inside one
+        // column. Apple HIG standard pattern: multiple sections
+        // stacked inside one column, no drag-resizable divider
+        // between sections (= the column's width is fixed; =
+        // users resize the entire column, not the individual
+        // sections inside it).
+        VStack(spacing: 0) {
+            // Top sub-area: real directory tree (= the
+            // wenshu-app's existing NewLibraryOutlineView;
+            // = manages the library outline + sidebar selection
+            // state via @AppStorage shared with WorkspaceView).
+            NewLibraryOutlineView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Divider (visual separator between the 2 sub-areas).
+            // Apple HIG: a subtle hairline between sidebar sections
+            // = `.divider` modifier (system default tint).
+            Divider()
+            // Bottom sub-area: real card grid (= the
+            // wenshu-app's existing ZoneModuleView with the
+            // .projectPreview slot; = PreviewPane's content
+            // driven by the sidebar selection).
+            ZoneModuleView(zoneSlot: .projectPreview)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }
 
-// MARK: - Lower band (= 3-column NavigationSplitView)
+// MARK: - Content column (= 2 vertical sub-areas)
 
-/// Lower band shell (= NavigationSplitView with 3 columns).
-/// Apple HIG:
-/// - sidebar: 空 (boss 9/8 '在聊天加一个区, 先加出来, 先不用管放什么')
-/// - content: 聊天 (current chat zone)
-/// - detail:  动态 (current dynamic zone)
+/// Apple HIG content column (= 2 vertical sub-areas: 编辑器 +
+/// 聊天). Per boss 9/8 '上半 sidebar / content / detail' +
+/// '下半 sidebar / content / detail' but the columns are
+/// CONTINUOUS (1 outer NavigationSplitView, NOT 2 stacked).
 ///
-/// M1 = placeholders only. M3 = migrate chat to the content
-/// column. M4 = migrate dynamic to the detail column. Boss to
-/// decide what goes in the sidebar (= M5 ticket).
-struct LowerSplitView: View {
-    var appState: AppState
-    var bookStore: BookStore
-
+/// M2 (= this commit): swap the M1 placeholders for the real
+/// wenshu zone views:
+/// - top sub-area: EditorPlaceholder (real editor from v0.34+;
+///   = routes to EditorEditContent internally with the markdown
+///   engine + word count + auto-save)
+/// - bottom sub-area: ChatView (real chat from v0.34+; = the
+///   LLM conversation surface with attachment upload)
+struct ShellContentColumn: View {
     var body: some View {
-        NavigationSplitView {
-            // Apple HIG sidebar (= leftmost). Boss 9/8 placeholder
-            // (= '先加出来, 先不用管放什么' = the empty column
-            // shows Apple recognizes the 3-column structure; = the
-            // empty sidebar is a valid NavigationSplitView
-            // configuration per Apple HIG = many production apps
-            // have empty sidebars for navigation discovery).
-            ShellPlaceholder(
-                name: "下栏 sidebar (空)",
-                icon: "rectangle.dashed",
-                hint: "boss 9/8 '先加出来, 先不用管放什么'"
-            )
-        } content: {
-            // Apple HIG content (= middle column; = chat). M1
-            // placeholder; = M3 = chat zone migrates here.
-            ShellPlaceholder(
-                name: "聊天 (lower content)",
-                icon: "bubble.left.and.bubble.right",
-                hint: "M3 = chat zone migrates here"
-            )
-        } detail: {
-            // Apple HIG detail (= rightmost; = dynamic zone). M1
-            // placeholder; = M4 = dynamic zone migrates here.
-            ShellPlaceholder(
-                name: "动态 (lower detail)",
-                icon: "chart.bar.doc.horizontal",
-                hint: "M4 = dynamic zone migrates here"
-            )
+        VStack(spacing: 0) {
+            // Top sub-area: real editor (= the wenshu-app's
+            // existing EditorPlaceholder; = the v0.34+
+            // markdown editor that routes to EditorEditContent
+            // internally, with the markdown engine + word
+            // count + auto-save).
+            EditorPlaceholder()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            Divider()
+            // Bottom sub-area: real chat (= the wenshu-app's
+            // existing ChatView; = the LLM conversation
+            // surface with attachment upload + message history).
+            ChatView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .navigationSplitViewStyle(.balanced)  // Apple HIG balanced
+    }
+}
+
+// MARK: - Detail column (= 2 vertical sub-areas)
+
+/// Apple HIG detail column (= 2 vertical sub-areas: 工具 + 动态).
+/// Per boss 9/8 '上半 right tools / 下半 right dynamic' = the
+/// detail column is also 1 column with 2 stacked sub-areas.
+///
+/// M2 (= this commit): swap the M1 placeholders for the real
+/// wenshu zone views:
+/// - top sub-area: ZoneModuleView(zoneSlot: .specializedTools)
+///   (real tools pane from v0.34+; = foreshadowing tracking,
+///   memory retrieval, etc.)
+/// - bottom sub-area: ZoneModuleView(zoneSlot: .aiDynamic) (real
+///   dynamic pane from v0.34+; = kanban + todo + scope status)
+struct ShellDetailColumn: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            // Top sub-area: real tools (= the wenshu-app's
+            // existing ZoneModuleView with the .specializedTools
+            // slot; = foreshadowing tracking, memory retrieval,
+            // and other writer-craft tools).
+            ZoneModuleView(zoneSlot: .specializedTools)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            Divider()
+            // Bottom sub-area: real dynamic zone (= the
+            // wenshu-app's existing ZoneModuleView with the
+            // .aiDynamic slot; = kanban + todo + scope status
+            // surface).
+            ZoneModuleView(zoneSlot: .aiDynamic)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
     }
 }
 
@@ -282,7 +242,9 @@ struct ShellPlaceholder: View {
         // informational pane layout = centered vertically +
         // horizontally with subtle background tint).
         //
-        // Boss 9/7 'use apple api unless apple api cannot implement the requirement' (= prefer Apple HIG primitives over custom styling).
+        // Boss 9/7 'use apple api unless apple api cannot implement
+        // the requirement' (= prefer Apple HIG primitives over
+        // custom styling).
         VStack(spacing: DesignTokens.chromePaddingLeading) {
             // SF Symbol (= Apple HIG icon system) + macOS 27
             // Liquid Glass material = the icon takes on the
