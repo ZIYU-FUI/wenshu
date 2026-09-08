@@ -320,7 +320,13 @@ struct ChatZoneView: View {
                 .padding(.bottom, DesignTokens.chromePaddingSmall)
                 .frame(height: DesignTokens.chromeHeight, alignment: .bottomTrailing)
             }
-            // v0.32 boss 2026-09-02 OOB ('全走 apple api 默认; 不
+            // v0.40 boss 2026-09-08 OOB '聊天区的背景色, 没有改成编辑器的
+            // 颜色': explicitly set the bottom status HStack background
+            // to content tier (= matches the editor zone). Without this,
+            // the HStack inherits the column background (= chrome tier =
+            // visually distinct from the editor).
+            .background(Color(nsColor: .underPageBackgroundColor))
+        // v0.32 boss 2026-09-02 OOB ('全走 apple api 默认; 不
             // 要自写颜色 wrapper'): replace DesignColor.zoneSurface
             // (= wrapper enum wrapping Color(nsColor: .control
             // BackgroundColor)) with the bare Apple API call. The
