@@ -138,6 +138,19 @@ struct NavigationSplitShell: View {
 struct ShellSidebarColumn: View {
     let appState: AppState
 
+    // v0.40 boss 2026-09-08 OOB '目录树的顶栏也丢了': sidebar
+    // needs its own top tab bar (= matches chat zone's 3 fixed
+    // tabs pattern + editor zone's tab strip). Apple HIG
+    // canonical pattern: PaneTabBar at the top of the column
+    // (= like Notes.app / Mail.app = scope selector at top of
+    // the sidebar). The 2 tabs map to the existing top-level
+    // grouping (= 书架 = per-shelf books; = 资料库 = per-category
+    // reference library). The NewLibraryOutlineView receives
+    // the scope via initializer (= so it can filter which
+    // rows are visible).
+    @Namespace private var sidebarTabBarNamespace
+    @State private var sidebarScope: SidebarScope = .shelves
+
     var body: some View {
         // VStack (vertical stack) of 2 sub-areas inside one
         // column. Apple HIG standard pattern: multiple sections
@@ -146,9 +159,9 @@ struct ShellSidebarColumn: View {
         // users resize the entire column, not the individual
         // sections inside it).
         VStack(spacing: 0) {
-            // Top sub-area: real directory tree wrapped in
-            // ZonePerRegionChrome (= top tab bar + bottom status
-            // bar; = matches the 老 PaneSplitHost path's chrome
+            // Top sub-area: scope tab bar + real directory tree
+            // wrapped in ZonePerRegionChrome (= top tab bar + bottom
+            // status bar; = matches the 老 PaneSplitHost path's chrome
             // coverage for every zone).
             ZonePerRegionChrome(
                 topActions: [],
@@ -160,7 +173,42 @@ struct ShellSidebarColumn: View {
                 bottomSkip: false,
                 zone: .projectSidebar
             ) {
-                NewLibraryOutlineView()
+                VStack(spacing: 0) {
+                    // v0.40 boss 2026-09-08 OOB '目录树的顶栏也丢了':
+                    // 2-tab scope selector (= 书架 / 资料库 = Mail.app's
+                    // VIP / Flagged tabs pattern). Apple HIG canonical
+                    // 28 PT hot area + Lucide icon + matchedGeometry
+                    // selected underline. Selection filters which
+                    // rows are visible in the List below (= scope
+                    // = 书架 = show only shelf rows; = scope = 资料库
+                    // = show only reference library rows).
+                    PaneTabBar(
+                        items: [
+                            PaneTabItem(
+                                id: "shelves",
+                                icon: "book-open",
+                                label: "书架"
+                            ),
+                            PaneTabItem(
+                                id: "references",
+                                icon: "library",
+                                label: "资料库"
+                            ),
+                        ],
+                        selection: Binding(
+                            get: { sidebarScope.rawValue },
+                            set: { sidebarScope = SidebarScope(rawValue: $0) ?? .shelves }
+                        ),
+                        namespace: sidebarTabBarNamespace,
+                        namespaceID: "sidebarTabUnderline"
+                    )
+                    // The actual sidebar List (= same Apple HIG
+                    // standard sidebar layout as before; = now
+                    // filtered by sidebarScope so the scope tab bar
+                    // at the top has functional control).
+                    NewLibraryOutlineView(scope: sidebarScope)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             Divider()
@@ -182,6 +230,20 @@ struct ShellSidebarColumn: View {
         }
     }
 }
+
+/// v0.40 boss 2026-09-08 OOB '目录树的顶栏也丢了': scope selector
+/// for the sidebar top tab bar. 2 cases map to the existing
+/// top-level grouping (= 书架 = per-shelf books; = 资料库 =
+/// reference library per EntityCategory). View-local @State in
+/// ShellSidebarColumn (= no AppState migration needed for M1; =
+/// future ticket can promote to AppState for cross-zone read).
+/// Note: defined as a top-level enum (= used by both
+/// NavigationSplitShell's PaneTabBar items AND
+/// NewLibraryOutlineView's body filter; = placed here in the
+/// NavigationSplitShell file = only NavigationSplitShell
+/// imports it). The actual filtering logic lives in
+/// NewLibraryOutlineView (= the enum travels to the leaf as
+/// an init parameter).
 
 // MARK: - Content column (= 2 vertical sub-areas)
 
