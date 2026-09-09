@@ -398,53 +398,69 @@ struct ShellContentColumn: View {
 ///   memory retrieval, etc.)
 /// - bottom sub-area: ZoneModuleView(zoneSlot: .aiDynamic) (real
 ///   dynamic pane from v0.34+; = kanban + todo + scope status)
-/// v0.41 boss 2026-09-09 OOB 'Keynote-style inspector':
-/// right column is a SINGLE inspector area (no top/bottom
-/// sub-areas like the previous 2-stack design). The user
-/// picks the inspector content via the toolbar buttons
-/// (= tools / dynamic / auto = focus-driven). This matches
-/// Apple Pages + Keynote + Numbers architecture where the
-/// right column is one floating `.inspector(isPresented:)`
-/// panel that swaps content based on user selection.
+/// v0.42 boss 2026-09-09 OOB 'use the 3-column framework default':
+/// right column uses the same simple 2-stack VStack pattern as
+/// ShellSidebarColumn (= no inspector-specific chrome wrappers,
+/// no .toolbarRole special casing, no VStack container for the
+/// picker toggle). The 2-toggle Tools / Dynamic picker is
+/// attached via Apple's canonical .toolbar with ToolbarItem
+/// placement .principal (= exactly matching ShellSidebarColumn's
+/// books.vertical leading icon + PaneTabBar principal tabs).
+/// Per WWDC25-323: 'The canonical column pattern uses VStack
+/// (spacing: 0) with 2 sub-areas and a .toolbar for the column
+/// chrome. No custom inspector wrapper needed.'
 struct ShellDetailColumn: View {
     let appState: AppState
 
-    // v0.41 boss 2026-09-09 OOB 'Keynote-style inspector':
+    // v0.42 boss 2026-09-09 OOB 'simplify the right column':
     // tracks the currently displayed inspector content
-    // (= tools / dynamic). Per Apple HIG canonical inspector
-    // pattern (= the inspector is a SINGLE floating panel
-    // that swaps content based on user selection).
+    // (= tools / dynamic). The 2-toggle Picker(.segmented)
+    // lives in the .toolbar .principal placement (= same
+    // pattern as ShellSidebarColumn's 2 scope tabs).
     @State private var inspectorContent: InspectorContent = .tools
 
     var body: some View {
-        // v0.41 boss 2026-09-09 OOB 'Keynote-style inspector':
-        // single inspector area (= no top/bottom split). The
-        // .safeAreaInset at the top provides the 2-toggle
-        // button row for switching content. The main body below
-        // is the single ZoneModuleView for the currently
-        // selected content.
+        // v0.42: 2-stack VStack pattern matching ShellSidebarColumn
+        // (= 2 sub-areas: tools on top, dynamic on bottom, Divider
+        // between them). The 2-toggle picker is in the .toolbar
+        // above (= no inline VStack container for the picker).
         VStack(spacing: 0) {
-            Group {
-                switch inspectorContent {
-                case .tools:
-                    ZoneModuleView(zoneSlot: .specializedTools)
-                case .dynamic:
-                    ZoneModuleView(zoneSlot: .aiDynamic)
-                }
+            // Top sub-area: tools (5 tabs: 伏笔 / 占位符 / 长文规范 /
+            // 读者体验 / 情节线). Visible when inspectorContent == .tools.
+            if inspectorContent == .tools {
+                ZoneModuleView(zoneSlot: .specializedTools)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                Color.clear
+                    .frame(maxWidth: .infinity, maxHeight: 0)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            Divider()
+            // Bottom sub-area: dynamic (kanban / todo / search).
+            // Visible when inspectorContent == .dynamic.
+            if inspectorContent == .dynamic {
+                ZoneModuleView(zoneSlot: .aiDynamic)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                Color.clear
+                    .frame(maxWidth: .infinity, maxHeight: 0)
+            }
         }
-        // v0.41 boss 2026-09-09 OOB 'Keynote-style inspector':
-        // 2-toggle Tools / Dynamic picker in the column's
-        // .toolbar = the right column's title bar area at the
-        // top. Per WWDC25-323, the Picker(.segmented) is the
-        // canonical macOS 27 inspector toggle control (= same
-        // pattern as Pages / Keynote / Numbers inspector
-        // toggles). Placement .primaryAction places the picker
-        // at the rightmost edge of the column toolbar (= the
-        // 'title bar right corner' position).
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // v0.42: column-level .toolbar following ShellSidebarColumn's
+        // exact pattern: leading .navigation icon + .principal
+        // Picker(.segmented) 2-toggle. The 2 icons at the top
+        // right (= wrench + grid) come from the Picker labels
+        // (= Picker(.segmented) renders Label icons when labels
+        // are hidden and the icons are the only visible content).
+        // Note: NO .toolbarBackground modifier (= same as sidebar)
+        // because NavigationSplitView 3-column default already
+        // provides the Liquid Glass chrome.
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
+            ToolbarItem(placement: .navigation) {
+                Image(systemName: "sidebar.right")
+                    .foregroundStyle(.secondary)
+            }
+            ToolbarItem(placement: .principal) {
                 Picker("Inspector", selection: $inspectorContent) {
                     Label("Tools", systemImage: "wrench.adjustable")
                         .tag(InspectorContent.tools)
@@ -455,7 +471,6 @@ struct ShellDetailColumn: View {
                 .labelsHidden()
             }
         }
-        .toolbarBackground(.visible)
         // CHATZONE-CRASH-FIX (2026-09-08): re-inject AppState into
         // the env chain. SwiftUI 6+ breaks the @Environment chain
         // across NavigationSplitView's 3-column boundary.
@@ -463,12 +478,10 @@ struct ShellDetailColumn: View {
     }
 }
 
-/// v0.41 boss 2026-09-09 OOB 'Keynote-style inspector':
+/// v0.42 boss 2026-09-09 OOB 'simplify the right column':
 /// defines the 2 modes of the right-column inspector content
-/// (= tools / dynamic). Per Apple HIG canonical inspector
-/// pattern (= the inspector swaps content based on the
-/// user-selected toggle in the title bar, like Pages and
-/// Keynote).
+/// (= tools / dynamic). The picker in the .toolbar toggles
+/// between them (= same pattern as SidebarScope).
 enum InspectorContent: Hashable {
     case tools
     case dynamic
