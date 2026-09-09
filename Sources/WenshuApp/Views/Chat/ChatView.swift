@@ -595,6 +595,22 @@ public final class ChatViewModel {
 
 /// ChatView: lower-left zone UI (Apple SwiftUI + conductor + store)
 public struct ChatView: View {
+    /// Works out where a message sits in a run of consecutive messages from
+    /// the same author. iMessage tails only the last bubble of a run and
+    /// squares the corners facing a neighbour, which is what makes a burst
+    /// of replies read as one block instead of a stack of pills.
+    static func bubblePosition(at index: Int, in messages: [ChatMessage]) -> ChatBubblePosition {
+        let source = messages[index].source
+        let samePrevious = index > 0 && messages[index - 1].source == source
+        let sameNext = index + 1 < messages.count && messages[index + 1].source == source
+        switch (samePrevious, sameNext) {
+        case (false, false): return .only
+        case (false, true):  return .first
+        case (true, true):   return .middle
+        case (true, false):  return .last
+        }
+    }
+
     @State private var vm: ChatViewModel
     // v0.24 boss acceptance fix (2026-08-24): focus management for input box.
     // Boss 8/24 feedback: when no provider key, chat input should be disabled
@@ -750,9 +766,19 @@ public struct ChatView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 8) {
-                        ForEach(vm.messages) { msg in
-                            ChatMessageView(message: msg)
-                                .id(msg.id)
+                        ForEach(Array(vm.messages.enumerated()), id: \.element.id) { index, msg in
+                            // v0.57: a bubble needs to know where it sits in
+                            // a run of consecutive messages from one author,
+                            // because iMessage only tails the last one and
+                            // squares off the corners facing a neighbour.
+                            ChatMessageView(
+                                message: msg,
+                                position: Self.bubblePosition(
+                                    at: index,
+                                    in: vm.messages
+                                )
+                            )
+                            .id(msg.id)
                         }
                     }
                     .padding(DesignTokens.chromePaddingVertical)
@@ -1371,6 +1397,9 @@ public struct ChatView: View {
 /// One chat-message view (Apple HIG ground truth)
 struct ChatMessageView: View {
     let message: ChatMessage
+    /// Where this bubble sits in a run of consecutive messages from one
+    /// author, which decides the tail and the merged corners.
+    var position: ChatBubblePosition = .only
     @State private var thinkingExpanded: Bool = false
 
     /// Parses a message body as markdown for display.
@@ -1393,31 +1422,44 @@ struct ChatMessageView: View {
     }
 
     var body: some View {
-        HStack(alignment: .top) {
-            // Message source icon: Lucide .userRound (user) / .botMessageSquare
-            // (wenshu agent) per owner 2026-08-26 directive; SF Symbol keeps
-            // for .system (= exclamationmark.triangle). Avatar only = no
-            // other UI change (= chat zone style/colour/frame preserved).
+        // v0.57 boss 2026-09-09 OOB: push the bubbles toward the iMessage
+        // look. Outgoing messages sit on the trailing side in the accent
+        // colour, incoming ones on the leading side in the neutral fill,
+        // and a run of consecutive messages from one author merges.
+        HStack(alignment: .bottom, spacing: 8) {
+            if isOutgoing { Spacer(minLength: 40) }
+
+            // The avatar only appears on the last bubble of a run, so a
+            // burst of replies is not a column of repeated faces. The
+            // slot stays reserved on the other bubbles to keep the run's
+            // left edge aligned.
             Group {
-                switch message.source {
-                case .user:
-                    Lucide(.userRound)
-                        .aspectRatio(contentMode: .fit)
-                case .wenshu:
-                    Lucide(.botMessageSquare)
-                        .aspectRatio(contentMode: .fit)
-                case .system:
-                    // v0.27 boss 8/27 OOB: SF Symbol name → Lucide canonical
-                    // (= LucideIcon.fromSystemSymbol handles lookup + fallback).
-                    LucideIconSystemFallback(sourceIcon, size: 24)
+                if position.hasTail && !isOutgoing {
+                    switch message.source {
+                    case .user:
+                        Lucide(.userRound).aspectRatio(contentMode: .fit)
+                    case .wenshu:
+                        Lucide(.botMessageSquare).aspectRatio(contentMode: .fit)
+                    case .system:
+                        LucideIconSystemFallback(sourceIcon, size: 24)
+                    }
+                } else if !isOutgoing {
+                    Color.clear
                 }
             }
             .foregroundStyle(sourceColor)
-            .frame(width: DesignTokens.iconLargeSize, height: DesignTokens.iconLargeSize)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(sourceLabel)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            .frame(
+                width: isOutgoing ? 0 : DesignTokens.iconLargeSize,
+                height: isOutgoing ? 0 : DesignTokens.iconLargeSize
+            )
+
+VStack(alignment: isOutgoing ? .trailing : .leading, spacing: 4) {
+                // iMessage names the author once per run, not per bubble.
+                if position == .only || position == .first {
+                    Text(sourceLabel)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 if message.isPlaceholder {
                     // Wenshu AI placeholder status indicator
                     HStack(spacing: 4) {
@@ -1437,8 +1479,9 @@ struct ChatMessageView: View {
                             .controlSize(.mini)
                             .progressViewStyle(.circular)
                     }
-                    .padding(DesignTokens.chromePaddingVertical)
-                    .background(sourceColor.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(bubbleFill, in: bubbleShape)
                 } else {
                     // CoT thinking block collapsed (Apple HIG footnote)
                     // DisclosureGroup + rounded corners + Apple default animation (.animation(.default, value:) per Q58.4)
@@ -1505,12 +1548,46 @@ struct ChatMessageView: View {
                         // interpolates, so the bubble does not flicker on
                         // every chunk.
                         .contentTransition(.interpolate)
-                        .padding(DesignTokens.chromePaddingVertical)
-                        .background(sourceColor.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+                        .foregroundStyle(isOutgoing ? Color.white : Color.primary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(bubbleFill, in: bubbleShape)
                 }
             }
-            Spacer()
+
+            if !isOutgoing { Spacer(minLength: 40) }
         }
+    }
+
+    /// Outgoing messages are the ones this person sent, which iMessage puts
+    /// on the trailing side in the accent colour.
+    private var isOutgoing: Bool { message.source == .user }
+
+    /// Bubble fill.
+    ///
+    /// Measured Messages.app on this machine in dark mode: outgoing
+    /// rgb(29, 143, 250), incoming rgb(51, 52, 54) against an
+    /// rgb(28, 28, 28) transcript. Wenshu uses the semantic equivalents of
+    /// those instead of the literals, so the bubbles track the user's
+    /// accent colour and appearance rather than being pinned to one theme.
+    private var bubbleFill: AnyShapeStyle {
+        if message.source == .system {
+            return AnyShapeStyle(Color.red.opacity(0.15))
+        }
+        return isOutgoing
+            ? AnyShapeStyle(Color.accentColor)
+            // Chosen by measurement. Messages runs a 23-unit gap between
+            // the incoming bubble and the transcript behind it (51 vs 28).
+            // Rendered every candidate semantic style in a sample app and
+            // measured each against the same background: quinary +10, fill.secondary
+            // +17, quaternary +22, fill +22, unemphasized +27, tertiary +55.
+            // .quaternary lands on Messages' gap while still tracking the
+            // user's appearance instead of hard-coding a grey.
+            : AnyShapeStyle(.quaternary)
+    }
+
+    private var bubbleShape: ChatBubbleShape {
+        ChatBubbleShape(isOutgoing: isOutgoing, position: position)
     }
 
     private var sourceIcon: String {
