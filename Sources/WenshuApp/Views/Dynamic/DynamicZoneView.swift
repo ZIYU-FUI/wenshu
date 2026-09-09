@@ -140,10 +140,18 @@ struct DynamicZoneTabBar: View {
         // v0.28 followup Boss UX round A (Phase 3 of refactor): DynamicZoneTabBar
         // body now delegates to `PaneTabBar` generic component (= ComponentIndex.md
         // Level 3.2). Was 135 LOC, now ~10 LOC. Behavior preserved 1:1.
-        PaneTabBar(
-            items: DynamicZoneView.DynamicTab.allCases.map { tab in
-                PaneTabItem(id: tab.id, icon: tab.icon, label: tab.label)
-            },
+        //
+        // v0.40 boss 2026-09-09 OOB 'macOS 27 official API + segmented picker':
+        // replaced the previous PaneTabBar (= custom icon tab bar) with
+        // Apple's canonical Picker(...).pickerStyle(.segmented). Per
+        // WWDC25-323 'Build a SwiftUI app with the new design' (= the
+        // official macOS 27 sample code for tab-style view switching
+        // in a column). The kanban zone has 2 tabs (= perfect for
+        // segmented picker = 2-5 segments = canonical Apple range).
+        // No more custom matchedGeometryEffect / no custom PaneTabBar
+        // wrapper needed (= Apple handles the selection animation).
+        Picker(
+            String(localized: "View", defaultValue: "View"),
             selection: Binding(
                 get: { selectedTab.id },
                 set: { newId in
@@ -151,8 +159,13 @@ struct DynamicZoneTabBar: View {
                         selectedTab = newTab
                     }
                 }
-            ),
-            namespace: tabBarNamespace
-        )
+            )
+        ) {
+            ForEach(DynamicZoneView.DynamicTab.allCases) { tab in
+                Label(tab.label, systemImage: tab.icon).tag(tab.id)
+            }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
     }
 }

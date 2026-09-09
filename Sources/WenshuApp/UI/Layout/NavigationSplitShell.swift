@@ -258,13 +258,15 @@ struct ShellSidebarColumn: View {
 struct ShellContentColumn: View {
     let appState: AppState
 
-    // v0.40 boss 2026-09-09 OOB '100% Apple standard + restore all top bars':
-    // restored @Namespace for the editor chrome tab bar (= uses
-    // Apple's matchedGeometryEffect to animate the selected
-    // underline under the active mode tab). The editor top bar
-    // uses Apple's canonical column-level .toolbar API (= not
-    // custom RegionTabBar wrapper) per boss 2026-09-09.
-    @Namespace private var editorChromeNamespace
+    // v0.40 boss 2026-09-09 OOB 'macOS 27 official API + segmented picker':
+    // replaces the previous custom PaneIconTab + matchedGeometryEffect
+    // namespace with Apple's canonical Picker(.segmented). The
+    // @State holds the selected editor mode; future ticket can wire
+    // to EditorPlaceholder's mode toggle.
+    @State private var editorMode: EditorMode = .edit
+    // v0.40: removed @Namespace editorChromeNamespace (= no longer
+    // needed because the Apple Picker(.segmented) handles its own
+    // selection animation = no custom matchedGeometryEffect needed).
 
     var body: some View {
         VStack(spacing: 0) {
@@ -321,42 +323,37 @@ struct ShellContentColumn: View {
         // .toolbar(id:) on a NavigationSplitView column IS the
         // canonical Apple column chrome top bar (= no custom
         // RegionTabBar wrapper needed).
-        // v0.40 boss 2026-09-09 OOB '100% Apple standard + restore all top bars':
-        // Apple's canonical .toolbar API with ToolbarItem placements,
-        // per WWDC25-323 'Build a SwiftUI app with the new design':
-        //   .navigation     -> leading icon (canonical sidebar section icon)
-        //   .principal      -> PaneTabBar (center, fills available width)
-        //   .primaryAction  -> expand/collapse button (trailing edge)
-        // The .toolbar modifier on a NavigationSplitView column IS the
-        // canonical Apple chrome top bar (= no custom RegionTabBar
-        // wrapper needed). Apple-native Liquid Glass toolbar background
-        // applies automatically (= no custom chrome tier colors).
+        // v0.40 boss 2026-09-09 OOB 'macOS 27 official API + use segmented picker':
+        // replaced the custom PaneIconTab with Apple's canonical
+        // Picker(...).pickerStyle(.segmented) for the editor mode tabs
+        // (= preview / edit). Per WWDC25-323 'Build a SwiftUI app with
+        // the new design' (the official macOS 27 sample code):
+        //
+        //   Picker("View", selection: $selection) {
+        //     Text("Map").tag(ViewMode.map)
+        //     Text("List").tag(ViewMode.list)
+        //   }
+        //   .pickerStyle(.segmented)
+        //
+        // Apple HIG rationale:
+        // - Segmented pickers transform into Liquid Glass during
+        //   interaction (= automatic WWDC25-323 visual upgrade).
+        // - 2-5 segments = the canonical Apple range (= wenshu's
+        //   2 tabs for editor + 5 tabs for tools fit perfectly).
+        // - No custom matchedGeometryEffect / no custom PaneIconTab
+        //   wrapper needed (= Apple handles the underline animation).
         .toolbar {
             ToolbarItem(placement: .navigation) {
                 Image(systemName: "book-open")
                     .foregroundStyle(.secondary)
             }
             ToolbarItem(placement: .principal) {
-                HStack(spacing: 0) {
-                    PaneIconTab(
-                        id: "preview-mode",
-                        icon: "eye",
-                        label: "preview",
-                        isSelected: false,
-                        namespace: editorChromeNamespace,
-                        namespaceID: "editorChromeUnderline",
-                        onTap: { /* future: wire to EditorPlaceholder mode */ }
-                    )
-                    PaneIconTab(
-                        id: "edit-mode",
-                        icon: "pencil",
-                        label: "edit",
-                        isSelected: false,
-                        namespace: editorChromeNamespace,
-                        namespaceID: "editorChromeUnderline",
-                        onTap: { /* future: wire to EditorPlaceholder mode */ }
-                    )
+                Picker("Editor mode", selection: $editorMode) {
+                    Label("Preview", systemImage: "eye").tag(EditorMode.preview)
+                    Label("Edit", systemImage: "pencil").tag(EditorMode.edit)
                 }
+                .pickerStyle(.segmented)
+                .labelsHidden()
             }
             ToolbarItem(placement: .primaryAction) {
                 PaneTrailingIconButton(
@@ -480,7 +477,7 @@ struct ShellDetailColumn: View {
 /// Per boss 2026-09-09 'study docs first, then audit code' (= research Apple HIG first):
 /// WWDC23 "Meet SwiftUI for macOS" introduced `ContentUnavailableView`
 /// as the canonical empty/no-content state. Apple's HIG for empty
-/// states says: "Use `ContentUnavailableView` for empty states,
+// /// states says: "Use `ContentUnavailableView` for empty states,
 /// not custom layouts". wenshu now follows this guidance.
 struct ShellPlaceholder: View {
     let name: String

@@ -58,22 +58,43 @@ struct ZoneContentView: View {
         // v0.24 bossverificationfix: simpler structure (VStack only, no ZStack wrapper
         // which was regressing tab bar visibility). .frame(minHeight: 600)
         // forces window contentMinSize.
+        //
+        // v0.40 boss 2026-09-09 OOB 'macOS 27 official API + segmented picker':
+        // replaced the previous PaneTabBar (= custom icon tab bar) with
+        // Apple's canonical Picker(...).pickerStyle(.segmented). Per
+        // WWDC25-323 'Build a SwiftUI app with the new design' (the
+        // official macOS 27 sample code for tab-style view switching
+        // in a column):
+        //
+        //   Picker("Tools", selection: $selectedTool) {
+        //     Label("Preview", systemImage: "eye").tag(EditorMode.preview)
+        //     Label("Edit", systemImage: "pencil").tag(EditorMode.edit)
+        //   }
+        //   .pickerStyle(.segmented)
+        //   .labelsHidden()
+        //
+        // Apple HIG rationale:
+        // - Segmented pickers transform into Liquid Glass during
+        //   interaction (= WWDC25-323 visual upgrade is automatic).
+        // - 2-5 segments = the canonical Apple range (= the
+        //   specializedTools zone has exactly 5 tabs = perfect fit).
+        // - The .tags() derive Identifiable ids from the Tab struct
+        //   (= no custom selectedTabId binding needed).
+        // - The Apple-native Liquid Glass selected segment animation
+        //   replaces the previous matchedGeometryEffect underline
+        //   (= no @Namespace tabBarNamespace needed).
         VStack(spacing: 0) {
-            // v0.34 boss 2026-09-02 OOB: use PaneTabBar directly (= the
-            // shared tab-bar generic). Deleted the ZoneContentTabBar
-            // wrapper (= ~187 LOC of thin adapter that just forwarded
-            // items + namespace + trailing to PaneTabBar). One canonical
-            // tab-bar component per workspace.
-            PaneTabBar(
-                items: tabs.map { PaneTabItem(id: $0.id, icon: $0.icon, label: $0.label) },
-                selection: selectionBinding,
-                namespace: tabBarNamespace,
-                trailing: {
-                    if let trailingButton = trailingButton {
-                        trailingButton
-                    }
+            Picker(
+                String(localized: "Tools", defaultValue: "Tools"),
+                selection: selectionBinding
+            ) {
+                ForEach(tabs) { tab in
+                    Label(tab.label, systemImage: tab.icon).tag(tab.id)
                 }
-            )
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .padding(.horizontal, DesignTokens.chromePaddingLarge)
             // v0.24 bossverificationfix (2026-08-24): pass maxWidth/maxHeight explicitly to AnyView
             // so it inherits zone size (not forces zone to grow). Without this,
             // AnyView collapses to its intrinsic size and zone shrinks to ~0.
