@@ -411,29 +411,18 @@ struct ShellDetailColumn: View {
 
     // v0.41 boss 2026-09-09 OOB 'Keynote-style inspector':
     // tracks the currently displayed inspector content
-    // (= tools / dynamic / auto = focus-driven). Per Apple
-    // HIG canonical inspector pattern (= the inspector is a
-    // SINGLE floating panel that swaps content, not a 2-stack
-    // layout).
+    // (= tools / dynamic). Per Apple HIG canonical inspector
+    // pattern (= the inspector is a SINGLE floating panel
+    // that swaps content based on user selection).
     @State private var inspectorContent: InspectorContent = .tools
-
-    // v0.41 focus-driven inspector: @FocusState tracks which
-    // zone in the content column is focused. When the editor
-    // is focused (= user is editing), the inspector shows
-    // tools. When the chat is focused (= user is chatting),
-    // the inspector shows dynamic (= kanban/todo). Per boss
-    // design: 'if focus is on editor, right side shows tools.
-    // if focus is on chat, right side shows dynamic.'
-    @FocusState private var editorFocused: Bool
-    @FocusState private var chatFocused: Bool
 
     var body: some View {
         // v0.41 boss 2026-09-09 OOB 'Keynote-style inspector':
         // single inspector area (= no top/bottom split). The
-        // .toolbar at the top provides the 3-toggle button row
-        // for switching content. The main body below is the
-        // single ZoneModuleView for the currently selected
-        // content.
+        // .safeAreaInset at the top provides the 2-toggle
+        // button row for switching content. The main body below
+        // is the single ZoneModuleView for the currently
+        // selected content.
         VStack(spacing: 0) {
             Group {
                 switch inspectorContent {
@@ -441,76 +430,48 @@ struct ShellDetailColumn: View {
                     ZoneModuleView(zoneSlot: .specializedTools)
                 case .dynamic:
                     ZoneModuleView(zoneSlot: .aiDynamic)
-                case .auto:
-                    // Auto = focus-driven: if editor has focus
-                    // show tools, if chat has focus show dynamic,
-                    // fallback to tools.
-                    if editorFocused {
-                        ZoneModuleView(zoneSlot: .specializedTools)
-                    } else if chatFocused {
-                        ZoneModuleView(zoneSlot: .aiDynamic)
-                    } else {
-                        ZoneModuleView(zoneSlot: .specializedTools)
-                    }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         // v0.41 boss 2026-09-09 OOB 'Keynote-style inspector':
-        // render the 3-toggle button row at the TOP of the
-        // inspector panel (= above the ZoneModuleView). The
-        // 3 buttons = tools / dynamic / auto = focus-driven.
-        // Per WWDC25-323 guidance: 'inspector hosts content
-        // with a more subtle layering' (= the toggle row is
-        // at the top of the inspector area, not in the
-        // window toolbar). Using a Picker(.segmented) here
-        // (= Apple's canonical 2-7 segment toggle pattern).
-        .safeAreaInset(edge: .top, spacing: 0) {
-            Picker("Inspector", selection: $inspectorContent) {
-                Label("Tools", systemImage: "wrench.adjustable")
-                    .tag(InspectorContent.tools)
-                Label("Dynamic", systemImage: "square.grid.2x2")
-                    .tag(InspectorContent.dynamic)
-                Label("Auto", systemImage: "wand.and.stars")
-                    .tag(InspectorContent.auto)
+        // 2-toggle Tools / Dynamic picker in the column's
+        // .toolbar = the right column's title bar area at the
+        // top. Per WWDC25-323, the Picker(.segmented) is the
+        // canonical macOS 27 inspector toggle control (= same
+        // pattern as Pages / Keynote / Numbers inspector
+        // toggles). Placement .primaryAction places the picker
+        // at the rightmost edge of the column toolbar (= the
+        // 'title bar right corner' position).
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Picker("Inspector", selection: $inspectorContent) {
+                    Label("Tools", systemImage: "wrench.adjustable")
+                        .tag(InspectorContent.tools)
+                    Label("Dynamic", systemImage: "square.grid.2x2")
+                        .tag(InspectorContent.dynamic)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .padding(.horizontal, DesignTokens.chromePaddingLarge)
-            .padding(.vertical, DesignTokens.chromePaddingSmall)
         }
+        .toolbarBackground(.visible)
         // CHATZONE-CRASH-FIX (2026-09-08): re-inject AppState into
         // the env chain. SwiftUI 6+ breaks the @Environment chain
         // across NavigationSplitView's 3-column boundary.
         .environment(appState)
-        // v0.41 boss 2026-09-09 OOB 'focus-driven inspector':
-        // track focus state of the editor + chat zones in the
-        // content column. The .auto mode uses this to auto-switch
-        // inspector content based on the user's current focus.
-        .onChange(of: editorFocused) { _, newValue in
-            if newValue && inspectorContent == .auto {
-                // Editor focus detected: stay on tools (already default)
-            }
-        }
-        .onChange(of: chatFocused) { _, newValue in
-            if newValue && inspectorContent == .auto {
-                // Chat focus detected in auto mode: could swap to
-                // dynamic. Future ticket wires the full
-                // focus-driven swap (= focusState binding in
-                // ShellContentColumn).
-            }
-        }
     }
 }
 
 /// v0.41 boss 2026-09-09 OOB 'Keynote-style inspector':
-/// defines the 3 modes of the right-column inspector content
-/// (= tools / dynamic / auto = focus-driven). Per Apple HIG
-/// canonical inspector pattern.
+/// defines the 2 modes of the right-column inspector content
+/// (= tools / dynamic). Per Apple HIG canonical inspector
+/// pattern (= the inspector swaps content based on the
+/// user-selected toggle in the title bar, like Pages and
+/// Keynote).
 enum InspectorContent: Hashable {
     case tools
     case dynamic
-    case auto
 }
 
 // MARK: - Placeholder view (= reusable for M1)
