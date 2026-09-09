@@ -342,7 +342,9 @@ struct ShellContentColumn: View {
     /// hairline edge, so the panel adds no colors of its own.
     private var floatingChatPanel: some View {
         ChatZoneView(conductor: nil, store: nil)
-            .frame(height: chatHeight)
+            // Clamp on read as well as on drag: an earlier build persisted
+            // heights up to 700, and that value outlives the code change.
+            .frame(height: min(max(chatHeight, Self.chatMinHeight), Self.chatMaxHeight))
             .overlay(alignment: .top) { chatResizeHandle }
             .glassEffect(.regular, in: .rect(cornerRadius: 12))
             .shadow(color: .black.opacity(0.25), radius: 12, y: 4)
@@ -358,15 +360,13 @@ struct ShellContentColumn: View {
 
     /// Drag handle on the panel's top edge.
     ///
-    /// v0.56 boss 2026-09-09 OOB: the panel may only be pulled UP, no
-    /// other direction. So the gesture is one-way — it grows the panel
-    /// from whatever height the drag started at and never shrinks it.
-    /// Verified the old behaviour first by driving a real downward drag
-    /// against the running app: the panel collapsed 320 -> 200, which is
-    /// exactly what this now refuses.
+    /// v0.58 boss 2026-09-09 OOB: draggable both ways again, with a floor
+    /// and a ceiling, and dragging past the floor closes the panel.
     ///
-    /// The cursor says the same thing: .resizeUp, not .resizeUpDown, so
-    /// the handle advertises the one direction it accepts.
+    /// The gesture tracks freely between the two limits. Past the floor it
+    /// does not fight the drag — it dismisses the panel and turns the
+    /// toolbar toggle off, which is the same thing a user pulling the
+    /// panel shut is asking for. Past the ceiling it simply stops.
     private var chatResizeHandle: some View {
         Rectangle()
             .fill(.separator)
@@ -374,25 +374,46 @@ struct ShellContentColumn: View {
             .frame(height: 6)
             .contentShape(Rectangle())
             .onHover { inside in
-                if inside { NSCursor.resizeUp.push() } else { NSCursor.pop() }
+                if inside { NSCursor.resizeUpDown.push() } else { NSCursor.pop() }
             }
             .gesture(
                 DragGesture(coordinateSpace: .global)
                     .onChanged { value in
                         let start = chatDragStart ?? chatHeight
                         if chatDragStart == nil { chatDragStart = start }
-                        // Upward drag = negative translation = growth.
-                        // Downward drag would shrink the panel, so clamp
-                        // the delta at 0 and ignore it entirely.
-                        let growth = max(-value.translation.height, 0)
-                        chatHeight = min(start + growth, Self.chatMaxHeight)
+                        // Upward drag is a negative translation, so it adds
+                        // height.
+                        let proposed = start - value.translation.height
+                        if proposed < Self.chatDismissHeight {
+                            // Dragged shut. Reset to the floor so the panel
+                            // reopens at a usable size rather than at the
+                            // sliver it was closed from.
+                            chatHeight = Self.chatMinHeight
+                            chatDragStart = nil
+                            chatVisible = false
+                        } else {
+                            chatHeight = min(max(proposed, Self.chatMinHeight), Self.chatMaxHeight)
+                        }
                     }
                     .onEnded { _ in chatDragStart = nil }
             )
     }
 
-    /// Upper bound for the panel, so it cannot swallow the document.
-    private static let chatMaxHeight: Double = 700
+    /// Smallest useful panel: the input row plus its status bar measure
+    /// about 90 PT of fixed chrome, so 220 PT leaves roughly 130 PT of
+    /// transcript — two or three bubbles, enough to still read as a
+    /// conversation rather than a text box.
+    private static let chatMinHeight: Double = 220
+
+    /// Drag below this and the panel closes instead of resisting. Half the
+    /// floor is far enough that a deliberate pull-shut is unmistakable and
+    /// an ordinary resize never reaches it.
+    private static let chatDismissHeight: Double = 110
+
+    /// Tallest panel. The window is 980 PT, so 620 PT keeps roughly a third
+    /// of the column showing the document underneath; a panel that covers
+    /// everything is a chat window, not a floating panel.
+    private static let chatMaxHeight: Double = 620
 }
 
 
