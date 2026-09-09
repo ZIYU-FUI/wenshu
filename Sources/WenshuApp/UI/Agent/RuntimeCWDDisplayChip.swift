@@ -37,7 +37,7 @@ public struct RuntimeCWDDisplayChip: View {
 
     public var body: some View {
         HStack(spacing: DesignTokens.chromePaddingMicro) {
-            Image(systemName: "folder")
+            LucideIcon("folder", size: 16)
                 .font(DesignTokens.runtimeCwdChipFont)
                 .foregroundStyle(.secondary)
             Text(displayLabel)

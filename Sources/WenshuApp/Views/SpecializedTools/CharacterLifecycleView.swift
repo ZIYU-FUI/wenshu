@@ -232,7 +232,7 @@ struct CharacterLifecycleView: View {
                 Button {
                     Task { await addEvent() }
                 } label: {
-                    Label(WenshuI18n.t("b5.characterlifecycleview.l235.h51075723"), systemImage: "plus")
+                    Label { Text(WenshuI18n.t("b5.characterlifecycleview.l235.h51075723")) } icon: { LucideIcon("plus", size: 16) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAdd)

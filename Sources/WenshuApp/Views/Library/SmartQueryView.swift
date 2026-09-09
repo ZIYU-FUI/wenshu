@@ -34,7 +34,7 @@ struct SmartQueryView: View {
                 Button {
                     showCreateSheet = true
                 } label: {
-                    Label(WenshuI18n.t("auto2.smartqueryview.l37.h49599855"), systemImage: "plus")
+                    Label { Text(WenshuI18n.t("auto2.smartqueryview.l37.h49599855")) } icon: { LucideIcon("plus", size: 16) }
                 }
                 .controlSize(.small)
             }

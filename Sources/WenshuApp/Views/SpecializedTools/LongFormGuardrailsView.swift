@@ -172,7 +172,7 @@ struct LongFormGuardrailsView: View {
             Button {
                 Task { await autoDerive() }
             } label: {
-                Label(WenshuI18n.t("b5.longformguardrailsview.l175.h64020782"), systemImage: "wand.and.stars")
+                Label { Text(WenshuI18n.t("b5.longformguardrailsview.l175.h64020782")) } icon: { LucideIcon("wand-sparkles", size: 16) }
             }
             .buttonStyle(.bordered)
             .help(WenshuI18n.t("b5.longformguardrailsview.l178.h38811731"))
@@ -180,7 +180,7 @@ struct LongFormGuardrailsView: View {
             Button {
                 showAddSheet = true
             } label: {
-                Label(WenshuI18n.t("button.add"), systemImage: "plus")
+                Label { Text(WenshuI18n.t("button.add")) } icon: { LucideIcon("plus", size: 16) }
             }
             .buttonStyle(.borderedProminent)
             .help(WenshuI18n.t("b5.longformguardrailsview.l186.h97888008"))
@@ -283,7 +283,7 @@ struct LongFormGuardrailsView: View {
                 Button {
                     Task { await runCheck() }
                 } label: {
-                    Label(WenshuI18n.t("b5.longformguardrailsview.l295.h18206542"), systemImage: "play")
+                    Label { Text(WenshuI18n.t("b5.longformguardrailsview.l295.h18206542")) } icon: { LucideIcon("play", size: 16) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(checkText.isEmpty || guardrails.isEmpty)

@@ -206,7 +206,7 @@ public struct ForeshadowingView: View {
                 Button {
                     Task { await addForeshadowing() }
                 } label: {
-                    Label(WenshuI18n.t("b5.foreshadowingview.l203.h64306591"), systemImage: "plus")
+                    Label { Text(WenshuI18n.t("b5.foreshadowingview.l203.h64306591")) } icon: { LucideIcon("plus", size: 16) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAdd)

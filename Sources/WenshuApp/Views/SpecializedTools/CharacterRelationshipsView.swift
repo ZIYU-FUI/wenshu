@@ -227,7 +227,7 @@ struct CharacterRelationshipsView: View {
                 Button {
                     Task { await addRelationship() }
                 } label: {
-                    Label(WenshuI18n.t("b5.characterrelationshipsview.l230.h80913925"), systemImage: "plus")
+                    Label { Text(WenshuI18n.t("b5.characterrelationshipsview.l230.h80913925")) } icon: { LucideIcon("plus", size: 16) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAdd)

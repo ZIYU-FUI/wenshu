@@ -220,7 +220,7 @@ struct IdeaLibraryView: View {
                 Button {
                     Task { await addIdea() }
                 } label: {
-                    Label(WenshuI18n.t("b5.idealibraryview.l223.h11292365"), systemImage: "plus")
+                    Label { Text(WenshuI18n.t("b5.idealibraryview.l223.h11292365")) } icon: { LucideIcon("plus", size: 16) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAddIdea)
@@ -445,7 +445,7 @@ struct IdeaLibraryView: View {
                     Button {
                         Task { await linkIdea() }
                     } label: {
-                        Label(WenshuI18n.t("b5.idealibraryview.l454.h37139110"), systemImage: "link")
+                        Label { Text(WenshuI18n.t("b5.idealibraryview.l454.h37139110")) } icon: { LucideIcon("link", size: 16) }
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(!canLink)
@@ -551,7 +551,7 @@ struct IdeaLibraryView: View {
                 Button {
                     Task { await runSuggest() }
                 } label: {
-                    Label(WenshuI18n.t("b5.idealibraryview.l563.h68346633"), systemImage: "wand")
+                    Label { Text(WenshuI18n.t("b5.idealibraryview.l563.h68346633")) } icon: { LucideIcon("wand", size: 16) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(draftSuggestContext.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)

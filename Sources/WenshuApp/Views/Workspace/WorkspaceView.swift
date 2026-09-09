@@ -1154,7 +1154,7 @@ struct EditorPlaceholder: View {
                 // strip = the only chrome the editor zone has left
                 // after v0.34 B-26 stripped the trailing buttons.
                 Button(action: { setMode(mode == .edit ? .preview : .edit) }) {
-                    Image(systemName: mode == .edit ? "eye" : "pencil")
+                    LucideIcon(mode == .edit ? "eye" : "pen", size: 14)
                         .font(DesignTokens.hotkeyComboFont)
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, DesignTokens.chromePaddingChatBottom)
