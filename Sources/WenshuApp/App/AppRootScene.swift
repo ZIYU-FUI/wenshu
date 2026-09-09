@@ -42,19 +42,17 @@ struct AppRootScene: Scene {
         // with .windowToolbarStyle(.unified, showsTitle: false) below for
         // canonical Apple HIG API to hide title slot in unified chrome.
         WindowGroup("") {
-            // v0.21 ticket 01 (redo #10): SettingsEnvironmentCapturer wrapper (commit a78d758bc Q15 #11 dead code)
-            // SettingsEnvironmentCapturer LayoutShellView OpenSettingsAction, openSettings?() → nil (Q15 #11), NSMenu + create NSWindow SettingView need capture
-            // CHATBOX-002 (2026-09-04): wrap with CommandPaletteHost so the
-            // ⌘K sheet binds to the WindowGroup scene (= the sheet
-            // inherits the window's focus + key state per Apple HIG).
-            CommandPaletteHost {
-                SettingsEnvironmentCapturer(library: library, appearanceMode: appearanceMode)
-            }
-                // v0.30 boss 8/31 OOB: inject AppState at root so all
-                // descendants can read cross-zone UI state via
-                // `@Environment(AppState.self)`. Per-window state
-                // (= owned by @State on WenshuApp struct = each
-                // WindowGroup instance has its own AppState).
+            // v0.44 M8.1: dropped CommandPaletteHost + SettingsEnvironmentCapturer
+            // wrappers (= 2 non-Apple-canonical layers between
+            // WindowGroup and the root content view). Per Apple
+            // canonical 4-layer architecture:
+            //   WindowGroup → root view (1 view) → NavigationSplitView
+            //                → column body (1 view)
+            // The ⌘K command palette sheet, LayoutEditMode
+            // hotkey, and openSettings binding are now attached
+            // directly to LibraryRootView (= the root view; = 4
+            // view layers total = Apple canonical).
+            LibraryRootView(library: library, appearanceMode: appearanceMode)
                 .environment(appState)
         }
         // Boss 8/24 feedback: 'use the 52 PT one'. Apple SwiftUI macOS 14+ windowToolbarStyle

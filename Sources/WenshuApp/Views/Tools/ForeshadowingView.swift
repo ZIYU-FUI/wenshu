@@ -312,10 +312,11 @@ public struct ForeshadowingView: View {
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, DesignTokens.chromePaddingSmall)
                             .padding(.vertical, DesignTokens.chromePaddingPico)
-                            .background(
-                                RoundedRectangle(cornerRadius: 3)
-                                    .fill(.quaternary)
-                            )
+                            // v0.44 M8.2: removed .background(RoundedRectangle.fill(.quaternary))
+                            // (= macOS 12 chrome tier; = macOS 27
+                            // Tahoe has no 4-tier hierarchy). Now
+                            // the status text is just a styled text
+                            // with no opaque background layer.
                     }
                     if !row.setupExcerpt.isEmpty {
                         Text(row.setupExcerpt)
@@ -350,10 +351,13 @@ public struct ForeshadowingView: View {
         .padding(.vertical, DesignTokens.chromePaddingSmall)
         .padding(.horizontal, DesignTokens.chromePaddingVertical)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 4)
-                .fill(.quaternary.opacity(0.5))
-        )
+        // v0.44 M8.2: removed .background(RoundedRectangle.fill(.quaternary.opacity(0.5)))
+        // (= v0.44 boss 2026-09-09 OOB 'macOS 27 = 1 glass surface
+        // + content underneath, no 4-tier color hierarchy' = the
+        // row's .quaternary background was a macOS 12 Monterey
+        // chrome tier; = macOS 27 Tahoe supersedes it with 1
+        // glass + content). Now the row floats on the column's
+        // liquid glass without an opaque quaternary layer.
     }
 
     // MARK: - Stale section
