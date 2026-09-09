@@ -177,6 +177,14 @@ struct ShellSidebarColumn: View {
     // pattern = same as ShellDetailColumn).
     @State private var sidebarScope: SidebarScope = .shelves
 
+    /// Height of the card region at the bottom of the sidebar.
+    /// Persisted so the split survives relaunch, the same way AppKit
+    /// autosaves a real split-view position.
+    @AppStorage("wenshu.sidebar.cardZoneHeight") private var cardZoneHeight: Double = 260
+    /// Height at the moment the drag started, so the gesture applies a
+    /// delta rather than compounding on every change callback.
+    @State private var cardZoneDragStart: Double?
+
     var body: some View {
         // v0.43 boss 2026-09-09 OOB 'no divider line':
         // Apple HIG canonical sidebar pattern = the column body
@@ -210,11 +218,15 @@ struct ShellSidebarColumn: View {
             // material loss that hit the right column. One List with two
             // Sections keeps the material but cannot host a non-List
             // card grid. safeAreaInset keeps the material AND takes an
-            // arbitrary view; the cost is a fixed height, so there is no
-            // drag handle between the two regions yet.
+            // arbitrary view.
+            //
+            // v0.50: the height is a persisted value with a drag handle
+            // on top of the card zone, so the two regions resize like a
+            // split view while the accessory keeps the sidebar material.
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 ZoneModuleView(zoneSlot: .projectPreview)
-                    .frame(height: 260)
+                    .frame(height: cardZoneHeight)
+                    .overlay(alignment: .top) { cardZoneResizeHandle }
             }
             // v0.45 default-first: Apple canonical sidebar width hint
             // (= HIG sidebar 220-320 PT). Without this modifier the
@@ -237,6 +249,45 @@ struct ShellSidebarColumn: View {
                 .labelsHidden()
             }
         }
+    }
+
+    /// Drag handle between the directory tree and the card zone.
+    ///
+    /// SwiftUI has no resizable equivalent of `safeAreaInset`, and the
+    /// alternative that does resize (`VSplitView`) costs the sidebar
+    /// material. This is the smallest thing that gives the split a drag
+    /// handle: a 1 PT separator with a 6 PT hit area, the resize cursor,
+    /// and a gesture that writes the persisted height.
+    private var cardZoneResizeHandle: some View {
+        Rectangle()
+            .fill(.separator)
+            .frame(height: 1)
+            .frame(height: 6)                 // hit area, per Apple's 6 PT splitter
+            .contentShape(Rectangle())
+            .onHover { inside in
+                if inside {
+                    NSCursor.resizeUpDown.push()
+                } else {
+                    NSCursor.pop()
+                }
+            }
+            .gesture(
+                DragGesture(coordinateSpace: .global)
+                    .onChanged { value in
+                        let start = cardZoneDragStart ?? cardZoneHeight
+                        if cardZoneDragStart == nil { cardZoneDragStart = start }
+                        // Dragging up grows the card zone, so the delta is
+                        // inverted relative to the drag direction.
+                        cardZoneHeight = clampCardZoneHeight(start - value.translation.height)
+                    }
+                    .onEnded { _ in cardZoneDragStart = nil }
+            )
+    }
+
+    /// Keeps both regions usable: the card zone never eats the whole
+    /// column and never collapses to nothing.
+    private func clampCardZoneHeight(_ proposed: Double) -> Double {
+        min(max(proposed, 120), 600)
     }
 }
 
