@@ -100,6 +100,7 @@ struct NavigationSplitShell: View {
             ShellDetailColumn(appState: appState)
         }
         .navigationSplitViewStyle(.balanced)  // Apple HIG balanced + Liquid Glass tier columns
+        .thinColumnDividers()  // v0.42: 1pt thin column dividers (Apple HIG / Pages)
         // CHATZONE-CRASH-FIX (2026-09-08): re-inject appState at
         // the NavigationSplitView root (= SwiftUI's internal
         // layout engine reads @Environment values during
