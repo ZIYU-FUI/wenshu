@@ -341,7 +341,14 @@ struct ShellContentColumn: View {
     /// pane. `.glassEffect` supplies the material, the blur, and the
     /// hairline edge, so the panel adds no colors of its own.
     private var floatingChatPanel: some View {
-        ChatZoneView(conductor: nil, store: nil)
+        // v0.59 boss 2026-09-09: the panel was built with nil dependencies,
+        // so ChatView's .task skipped loadMessages and the transcript was
+        // always empty — the bubbles had nothing to draw. WenshuAppDelegate
+        // already builds both at launch; hand them over.
+        ChatZoneView(
+            conductor: WenshuAppDelegate.sharedConductor,
+            store: WenshuAppDelegate.sharedChatStoreRef
+        )
             // Clamp on read as well as on drag: an earlier build persisted
             // heights up to 700, and that value outlives the code change.
             .frame(height: min(max(chatHeight, Self.chatMinHeight), Self.chatMaxHeight))
