@@ -86,6 +86,10 @@ struct AppRootScene: Scene {
         // size, can grow to fit larger content).
         .windowResizability(.contentMinSize)
         .commands {
+            // v0.48: the trailing panel is an Apple inspector now, so
+            // ship Apple's standard View > Inspector menu item and its
+            // keyboard shortcut instead of a hand-rolled toggle.
+            InspectorCommands()
             // v0.40 apple-001 + boss real-device test (2026-09-07) fix:
             // removed the custom `CommandGroup(replacing: .appSettings) { Button("Settings…") }`
             // block. The custom Button was duplicating the macOS system

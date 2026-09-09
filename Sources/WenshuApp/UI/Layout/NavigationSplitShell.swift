@@ -65,6 +65,11 @@ struct NavigationSplitShell: View {
     /// by LibraryLifecycleHook (= may not exist at first frame).
     var bookStore: BookStore?
 
+    /// Inspector presentation state. Apple restores this across launches
+    /// for trailing-column inspectors, and `InspectorCommands` wires the
+    /// standard View > Inspector menu item plus its keyboard shortcut.
+    @State private var inspectorVisible: Bool = true
+
     var body: some View {
         // v0.40 boss 2026-09-08 OOB 'yesyes mac os 27 default,
         // Liquid Glasseffect': macOS 27 Tahoe SwiftUI NavigationSplitView
@@ -88,16 +93,25 @@ struct NavigationSplitShell: View {
             // Apple's standard "List with multiple sections"
             // pattern).
             ShellSidebarColumn(appState: appState)
-        } content: {
-            // Apple HIG content (= middle column; = context list
-            // showing the items from the sidebar selection). 2
-            // vertical sub-areas (= VStack).
-            ShellContentColumn(appState: appState)
         } detail: {
-            // Apple HIG detail (= rightmost column; = the
-            // selected item's detail / inspector). 2 vertical
-            // sub-areas (= VStack).
-            ShellDetailColumn(appState: appState)
+            // v0.48 boss 2026-09-09 OOB 'in the Apple office apps the
+            // right column is the same color as the left one': the
+            // trailing panel is now an Apple inspector, not a third
+            // NavigationSplitView column.
+            //
+            // Measured on this machine: a 3-column NavigationSplitView
+            // paints sidebar 40/255 but detail 34/255, because detail is
+            // a CONTENT column (Apple's own 3-column sample shows the
+            // same 48 vs 34 split). Pages/Keynote/Numbers do not use a
+            // third column for their format panel — they use an
+            // inspector, which carries the sidebar material. Rebuilt as
+            // a 2-column NavigationSplitView whose detail hosts
+            // .inspector(): measured 40/255 on both sides = match.
+            ShellContentColumn(appState: appState)
+                .inspector(isPresented: $inspectorVisible) {
+                    ShellDetailColumn(appState: appState)
+                        .inspectorColumnWidth(min: 250, ideal: 280, max: 360)
+                }
         }
         // v0.45 boss 2026-09-09 OOB 'revert to Apple default first':
         // removed .thinColumnDividers() (= AppKit KVC hack that set
@@ -270,10 +284,8 @@ struct ShellContentColumn: View {
                 ChatZoneView(conductor: nil, store: nil)
             }
         }
-        // v0.45 default-first: the content column absorbs the window's
-        // slack (= Apple HIG "give every column a minimum width and let
-        // the content column absorb slack"). min only, no max.
-        .navigationSplitViewColumnWidth(min: 420, ideal: 640)
+        // v0.48: this is the detail column now (= the inspector hangs off
+        // it), so it absorbs all window slack with no width hint at all.
         // v0.40 boss 2026-09-09 OOB '100% Apple standard + restore all
         // top bars': attaches the editor chrome top bar via Apple's
         // canonical .toolbar(id:) API (= the column-level toolbar
@@ -399,11 +411,9 @@ struct ShellDetailColumn: View {
                 ZoneModuleView(zoneSlot: .aiDynamic)
             }
         }
-        // v0.45 default-first: Apple HIG inspector column is a narrow
-        // fixed-ish trailing column (250-280 PT), NOT half the window.
-        // Removed the manual .glassEffect(.regular) too — macOS 27
-        // NavigationSplitView applies the column material itself.
-        .navigationSplitViewColumnWidth(min: 250, ideal: 280, max: 360)
+        // v0.48: width is set by .inspectorColumnWidth at the
+        // .inspector() call site, which is the matching API for an
+        // inspector (navigationSplitViewColumnWidth is for columns).
         // v0.42: column-level .toolbar following ShellSidebarColumn's
         // exact pattern: leading .navigation icon + .primaryAction
         // Picker(.segmented) 2-toggle. The 2 icons at the top
