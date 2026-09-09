@@ -327,7 +327,7 @@ struct ChatZoneView: View {
             // the rest of the chat zone (where the Group fills
             // maxHeight: .infinity) with the column's outer
             // .windowBackgroundColor = #1E = chrome tier). The outer
-            // VStack's .background(.underPageBackgroundColor) below
+            // VStack's  below
             // covers the whole chat zone.
         // v0.32 boss 2026-09-02 OOB (' apple api default;
             // color wrapper'): replace DesignColor.zoneSurface
@@ -337,7 +337,7 @@ struct ChatZoneView: View {
             // (= it just renamed an Apple NSColor static property).
             //
             // v0.40 boss 2026-09-08 OOB 'sweep for remaining background colors: removed the
-            // outer VStack's .background(.underPageBackgroundColor).
+            // outer VStack's .
             // This was redundant (= the parent NavigationSplitShell
             // column already provides the content tier color via its
             // .windowBackgroundColor-or-clear background = visually

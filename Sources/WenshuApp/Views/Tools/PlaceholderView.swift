@@ -316,10 +316,7 @@ public struct PlaceholderView: View {
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, DesignTokens.chromePaddingSmall)
                             .padding(.vertical, DesignTokens.chromePaddingPico)
-                            .background(
-                                RoundedRectangle(cornerRadius: 3)
-                                    .fill(.quaternary)
-                            )
+                            
                     }
                     if !row.context.isEmpty {
                         Text(row.context)
@@ -382,10 +379,7 @@ public struct PlaceholderView: View {
         .padding(.vertical, DesignTokens.chromePaddingSmall)
         .padding(.horizontal, DesignTokens.chromePaddingVertical)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 4)
-                .fill(.quaternary.opacity(0.5))
-        )
+        
     }
 
     // MARK: - Scan section

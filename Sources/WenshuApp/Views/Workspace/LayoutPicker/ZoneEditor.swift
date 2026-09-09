@@ -210,7 +210,7 @@ struct ZoneEditor: View {
         let rect = rubberBandRect(start: start, end: end)
         Rectangle()
             .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 1, dash: [4]))
-            .background(.quaternary)
+            
             .frame(width: rect.width, height: rect.height)
             .position(x: rect.midX, y: rect.midY)
     }

@@ -176,10 +176,7 @@ struct EmotionCurveView: View {
                 .font(.caption)
                 .frame(minHeight: 80, maxHeight: 140)
                 .padding(DesignTokens.chromePaddingSmall)
-                .background(
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(.quaternary)
-                )
+                
             HStack(spacing: 8) {
                 Button {
                     Task { await runAnalyze() }
@@ -222,10 +219,7 @@ struct EmotionCurveView: View {
             curveChart(for: report)
                 .frame(height: DesignTokens.zoneEditorWidth)
                 .padding(DesignTokens.chromePaddingVertical)
-                .background(
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(.quaternary)
-                )
+                
             HStack(spacing: 10) {
                 metricBadge(title: "Overall", value: String(format: "%+.2f", report.overallScore))
                 metricBadge(title: "Volatility", value: String(format: "%.2f", report.volatility))
@@ -246,10 +240,7 @@ struct EmotionCurveView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(DesignTokens.chromePaddingPickerItem)
-        .background(
-            RoundedRectangle(cornerRadius: 6)
-                .fill(.quaternary.opacity(0.4))
-        )
+        
     }
 
     private func metricBadge(title: String, value: String) -> some View {
@@ -264,10 +255,7 @@ struct EmotionCurveView: View {
         .padding(.horizontal, DesignTokens.chromePaddingVertical)
         .padding(.vertical, DesignTokens.chromePaddingMicro)
         .frame(minWidth: 64, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 4)
-                .fill(.quaternary)
-        )
+        
     }
 
     private func indexColumn(title: String, items: [String], tint: Color) -> some View {

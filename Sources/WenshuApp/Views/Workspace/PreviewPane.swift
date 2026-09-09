@@ -555,7 +555,7 @@ struct PreviewPane: View {
                             .font(.caption)
                             .padding(.horizontal, DesignTokens.chromePaddingVertical)
                             .padding(.vertical, DesignTokens.chromePaddingMicro)
-                            .background(.quaternary)
+                            
                             .clipShape(Capsule())
                     }
                 }

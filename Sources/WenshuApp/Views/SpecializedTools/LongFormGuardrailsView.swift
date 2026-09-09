@@ -218,10 +218,7 @@ struct LongFormGuardrailsView: View {
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, DesignTokens.chromePaddingMicro)
                             .padding(.vertical, DesignTokens.chromePaddingPico)
-                            .background(
-                                RoundedRectangle(cornerRadius: 3)
-                                    .fill(.quaternary)
-                            )
+                            
                     }
                 }
                 Text(row.description)
@@ -243,10 +240,7 @@ struct LongFormGuardrailsView: View {
         .padding(.vertical, DesignTokens.chromePaddingSmall)
         .padding(.horizontal, DesignTokens.chromePaddingVertical)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 4)
-                .fill(.quaternary)
-        )
+        
     }
 
     private func enforcementBadge(_ level: LongFormGuardrailEnforcement) -> some View {
@@ -284,10 +278,7 @@ struct LongFormGuardrailsView: View {
                 .font(.caption)
                 .frame(minHeight: 80, maxHeight: 120)
                 .padding(DesignTokens.chromePaddingSmall)
-                .background(
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(.quaternary)
-                )
+                
             HStack(spacing: 8) {
                 Button {
                     Task { await runCheck() }
@@ -343,10 +334,7 @@ struct LongFormGuardrailsView: View {
         }
         .padding(DesignTokens.chromePaddingVertical)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 4)
-                .fill(.quaternary)
-        )
+        
     }
 
     private func severityGlyph(_ s: LongFormGuardrailViolation.Severity) -> String {

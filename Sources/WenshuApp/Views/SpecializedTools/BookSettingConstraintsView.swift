@@ -289,10 +289,7 @@ struct BookSettingConstraintsView: View {
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, DesignTokens.chromePaddingSmall)
                             .padding(.vertical, DesignTokens.chromePaddingPico)
-                            .background(
-                                RoundedRectangle(cornerRadius: 3)
-                                    .fill(.quaternary)
-                            )
+                            
                         Text(constraint.scope.displayName)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
@@ -346,10 +343,7 @@ struct BookSettingConstraintsView: View {
         .padding(.vertical, DesignTokens.chromePaddingSmall)
         .padding(.horizontal, DesignTokens.chromePaddingVertical)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 4)
-                .fill(.quaternary.opacity(0.5))
-        )
+        
     }
 
     // MARK: - Check section
@@ -364,10 +358,7 @@ struct BookSettingConstraintsView: View {
                     .font(.caption)
                     .frame(minHeight: 100, maxHeight: 160)
                     .padding(DesignTokens.chromePaddingMicro)
-                    .background(
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(.quaternary.opacity(0.3))
-                    )
+                    
                     .help(WenshuI18n.t("b5.booksettingconstraintsview.l371.h65632517"))
                 VStack(alignment: .leading, spacing: 6) {
                     Button {

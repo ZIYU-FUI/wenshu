@@ -336,10 +336,7 @@ struct IdeaLibraryView: View {
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, DesignTokens.chromePaddingSmall)
                             .padding(.vertical, DesignTokens.chromePaddingPico)
-                            .background(
-                                RoundedRectangle(cornerRadius: 3)
-                                    .fill(.quaternary)
-                            )
+                            
                         if idea.links.count > 0 {
                             Text(WenshuI18n.t("b5.idealibraryview.l344.h94081771"))
                                 .font(.caption2)
@@ -384,10 +381,7 @@ struct IdeaLibraryView: View {
         .padding(.vertical, DesignTokens.chromePaddingSmall)
         .padding(.horizontal, DesignTokens.chromePaddingVertical)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 4)
-                .fill(.quaternary.opacity(0.5))
-        )
+        
     }
 
     // MARK: - Link section
@@ -510,10 +504,7 @@ struct IdeaLibraryView: View {
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, DesignTokens.chromePaddingMicro)
                         .padding(.vertical, DesignTokens.chromePaddingPico)
-                        .background(
-                            RoundedRectangle(cornerRadius: 3)
-                                .fill(.quaternary)
-                        )
+                        
                     Text(WenshuI18n.t("b5.idealibraryview.l517.h19641342"))
                         .font(.caption2)
                         .foregroundStyle(.tertiary)

@@ -166,10 +166,7 @@ struct GenreFitView: View {
                 .font(.caption)
                 .frame(minHeight: 80, maxHeight: 140)
                 .padding(DesignTokens.chromePaddingSmall)
-                .background(
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(.quaternary)
-                )
+                
             HStack(spacing: 8) {
                 Button {
                     Task { await runAnalyze() }
@@ -240,10 +237,7 @@ struct GenreFitView: View {
         }
         .padding(DesignTokens.chromePaddingPickerItem)
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        .background(
-            RoundedRectangle(cornerRadius: 6)
-                .fill(.quaternary)
-        )
+        
     }
 
     private func scoreBadge(_ score: Double) -> some View {

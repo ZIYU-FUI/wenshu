@@ -146,10 +146,7 @@ struct LayoutPicker: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, DesignTokens.chromePaddingVertical)
-                    .background(
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(.quaternary)
-                    )
+                    
                 }
                 .buttonStyle(.plain)
                 .padding(.horizontal, DesignTokens.chromePaddingMedium)
