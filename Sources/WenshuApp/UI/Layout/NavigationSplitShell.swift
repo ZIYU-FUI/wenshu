@@ -99,6 +99,28 @@ struct NavigationSplitShell: View {
             // sub-areas (= VStack).
             ShellDetailColumn(appState: appState)
         }
+        // v0.43 boss 2026-09-09 OOB 'no divider line': SwiftUI
+        // NavigationSplitView on macOS 27 SDK uses NSSplitView with
+        // a visible divider color (default = .separatorColor). Apple
+        // HIG canonical Pages/Keynote look uses NSSplitView with
+        // .dividerStyle = .thin AND .dividerColor = .clear (= 1pt
+        // invisible divider, still draggable). The
+        // .thinColumnDividers() modifier (= ThinDividerSplitView.swift)
+        // walks the AppKit view hierarchy to find the underlying
+        // NSSplitView and applies both settings. Required because
+        // SwiftUI does not expose NavigationSplitView's divider
+        // style or color as a modifier in macOS 27 SDK (= the
+        // API is AppKit-level NSSplitView).
+        //
+        // Per boss's default-first rule: this is a documented
+        // non-canonical deviation. Apple HIG canonical pattern
+        // (= column body starts with List) does NOT actually
+        // remove the divider (= verified by M7 sidebar refactor
+        // = the divider is still visible). The only way to
+        // achieve the Pages/Keynote no-divider look is to
+        // interop with AppKit NSSplitView. This is the minimum
+        // surface area for that interop.
+        .thinColumnDividers()
         // CHATZONE-CRASH-FIX (2026-09-08): re-inject appState at
         // the NavigationSplitView root (= SwiftUI's internal
         // layout engine reads @Environment values during
@@ -159,22 +181,27 @@ struct ShellSidebarColumn: View {
     @State private var sidebarScope: SidebarScope = .shelves
 
     var body: some View {
-        // v0.42 boss 2026-09-09 OOB 'column body = 1 view, no VStack':
-        // single Group that switches between NewLibraryOutlineView
-        // (when scope = shelves) and the cards zone (when scope =
-        // references). Apple HIG canonical = 1 column = 1 view;
-        // the Picker in the .toolbar above drives the switch.
-        Group {
-            switch sidebarScope {
-            case .shelves:
-                NewLibraryOutlineView(scope: sidebarScope)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            case .references:
-                ZoneModuleView(zoneSlot: .projectPreview)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // v0.43 boss 2026-09-09 OOB 'no divider line':
+        // Apple HIG canonical sidebar pattern = the column body
+        // IS a List (= NewLibraryOutlineView wraps a List with
+        // .listStyle(.sidebar)). This is the ONLY pattern that
+        // makes NavigationSplitView render the column with
+        // floating Liquid Glass material (= column-to-column
+        // seam disappears = Pages/Keynote look).
+        //
+        // Apple HIG NavigationSplitView canonical sidebar:
+        //   NavigationSplitView { List(...) } content: ... detail: ...
+        // Note: NOT wrapped in Group or any other view (= the
+        // List must be the direct first child of the column).
+        //
+        // The scope toggle in the .toolbar filters the List
+        // rows (= when scope = .shelves, outline shows only
+        // bookshelf rows; when scope = .references, only the
+        // reference library rows). This preserves the M6
+        // 1-view-per-column pattern while making the column
+        // body a direct List (= Apple canonical).
+        NewLibraryOutlineView(scope: sidebarScope)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         .toolbar {
             ToolbarItem(placement: .navigation) {
                 Image(systemName: "books.vertical")
@@ -242,12 +269,13 @@ struct ShellContentColumn: View {
     // selection animation = no custom matchedGeometryEffect needed).
 
     var body: some View {
-        // v0.42 boss 2026-09-09 OOB 'column body = 1 view, no VStack':
-        // single Group that switches between EditorPlaceholder (when
-        // scope = editor) and ChatZoneView (when scope = chat).
-        // Apple HIG canonical = 1 column = 1 view; the Picker in
-        // the .toolbar above drives the switch (= same as
-        // ShellDetailColumn's Tools / Dynamic pattern).
+        // v0.43 boss 2026-09-09 OOB 'no divider line':
+        // Apple HIG canonical for non-sidebar columns = the column
+        // body is a single View that switches via the toolbar Picker.
+        // NavigationSplitView auto-applies floating Liquid Glass
+        // when the column body is a SwiftUI-native View. The Group
+        // wrapper is a transparent container (= no visual effect,
+        // = preserves the M6 1-view-per-column pattern).
         Group {
             switch contentScope {
             case .editor:
@@ -367,14 +395,19 @@ struct ShellDetailColumn: View {
     @State private var inspectorContent: InspectorContent = .tools
 
     var body: some View {
-        // v0.42 boss 2026-09-09 OOB 'right column = Pages/Keynote inspector
-        // pattern': the column body is a single Group that switches
-        // between ZoneModuleView(.specializedTools) and
-        // ZoneModuleView(.aiDynamic) based on the inspectorContent
-        // tab (= the 2-toggle Picker in the .toolbar above). This is
-        // Apple HIG canonical: 1 column = 1 view (no VStack sub-areas
-        // inside the column; = the floating Liquid Glass material
-        // = the column-to-column seam disappears = matches Pages).
+        // v0.43 boss 2026-09-09 OOB 'no divider line':
+        // Apple HIG canonical detail/inspector pattern = the column
+        // body is a single View that switches via the toolbar Picker.
+        // NavigationSplitView auto-applies floating Liquid Glass
+        // when the column body is a SwiftUI-native View. The Group
+        // wrapper is a transparent container (= no visual effect,
+        // = preserves the M6 1-view-per-column pattern).
+        //
+        // v0.43 boss 2026-09-09 OOB 'right column is not liquid glass':
+        // explicitly apply .glassEffect(.regular) to the column body
+        // (= forces the macOS 27 Liquid Glass material on the
+        // column = matches the left sidebar's visual depth; =
+        // no opaque layer underneath).
         Group {
             switch inspectorContent {
             case .tools:
@@ -385,6 +418,7 @@ struct ShellDetailColumn: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+        .glassEffect(.regular)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         // v0.42: column-level .toolbar following ShellSidebarColumn's
         // exact pattern: leading .navigation icon + .primaryAction
