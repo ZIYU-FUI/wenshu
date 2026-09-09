@@ -124,7 +124,11 @@ public struct LibraryRootView: View {
                     // instantiated).
             }
         }
-        .frame(minWidth: 1280, minHeight: 720)
+        // v0.45 boss 2026-09-09 OOB 'revert to Apple default first':
+        // removed the hard-coded .frame(minWidth:minHeight:) on the
+        // root view. Window sizing is a Scene concern — AppRootScene
+        // already declares .defaultSize + .windowResizability, which
+        // is the Apple canonical API for it.
         .environment(library)
         .preferredColorScheme(appearanceMode.colorScheme)
     }
