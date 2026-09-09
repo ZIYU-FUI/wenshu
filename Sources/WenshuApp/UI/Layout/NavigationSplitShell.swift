@@ -445,7 +445,7 @@ struct ShellDetailColumn: View {
                 Image(systemName: "sidebar.right")
                     .foregroundStyle(.secondary)
             }
-            ToolbarItem(placement: .principal) {
+            ToolbarItem(placement: .primaryAction) {
                 Picker("Inspector", selection: $inspectorContent) {
                     Label("Tools", systemImage: "wrench.adjustable")
                         .tag(InspectorContent.tools)
