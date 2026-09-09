@@ -198,6 +198,24 @@ struct ShellSidebarColumn: View {
         // 1-view-per-column pattern while making the column
         // body a direct List (= Apple canonical).
         NewLibraryOutlineView(scope: sidebarScope)
+            // v0.49 boss 2026-09-09 OOB 'split the left column into a
+            // tree on top and cards below': the card zone is a bottom
+            // safe-area accessory on the sidebar List, which is Apple's
+            // API for attaching a fixed region to a sidebar (Mail's
+            // account bar and Xcode's filter bar are the same shape).
+            //
+            // Measured three ways before picking this one. Wrapping the
+            // column in VSplitView drags the top region down to the
+            // content tier (34/255 against a 40/255 sidebar) — the same
+            // material loss that hit the right column. One List with two
+            // Sections keeps the material but cannot host a non-List
+            // card grid. safeAreaInset keeps the material AND takes an
+            // arbitrary view; the cost is a fixed height, so there is no
+            // drag handle between the two regions yet.
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                ZoneModuleView(zoneSlot: .projectPreview)
+                    .frame(height: 260)
+            }
             // v0.45 default-first: Apple canonical sidebar width hint
             // (= HIG sidebar 220-320 PT). Without this modifier the
             // NSSplitView autosave frame wins and the columns keep
