@@ -150,8 +150,7 @@ struct ShellSidebarColumn: View {
     // reference library). The NewLibraryOutlineView receives
     // the scope via initializer (= so it can filter which
     // rows are visible).
-    @Namespace private var sidebarTabBarNamespace
-    @State private var sidebarScope: SidebarScope = .shelves
+        @State private var sidebarScope: SidebarScope = .shelves
 
     var body: some View {
         // VStack (vertical stack) of 2 sub-areas inside one
@@ -188,20 +187,6 @@ struct ShellSidebarColumn: View {
                     ToolbarItem(placement: .navigation) {
                         Image(systemName: "books.vertical")
                             .foregroundStyle(.secondary)
-                    }
-                    ToolbarItem(placement: .principal) {
-                        PaneTabBar(
-                            items: [
-                                PaneTabItem(id: "shelves", icon: "book-open", label: "shelves"),
-                                PaneTabItem(id: "references", icon: "library", label: "library"),
-                            ],
-                            selection: Binding(
-                                get: { sidebarScope.rawValue },
-                                set: { sidebarScope = SidebarScope(rawValue: $0) ?? .shelves }
-                            ),
-                            namespace: sidebarTabBarNamespace,
-                            namespaceID: "sidebarTabUnderline"
-                        )
                     }
                 }
                 .toolbarBackground(.visible)
