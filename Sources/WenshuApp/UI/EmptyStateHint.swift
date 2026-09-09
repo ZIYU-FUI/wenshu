@@ -78,13 +78,19 @@ public struct EmptyStateHint: View {
     }
 
     public var body: some View {
-        VStack(spacing: DesignTokens.chromePaddingLarge) {
-            // Icon (= 24 PT = DesignTokens.iconLargeSize).
-            // .secondary = Apple's mid-tier icon color
-            // (= visible but not loud; = the same weight
-            // Mail / Notes use for empty-state icons).
-            LucideIconSystemFallback(icon, size: DesignTokens.iconLargeSize)
+        VStack(spacing: 0) {
+            // v0.54 boss 2026-09-09 OOB: Apple's empty states use a much
+            // bigger icon, and it looks good.
+            //
+            // Size measured off a real ContentUnavailableView rather than
+            // guessed: a sample app on this machine draws its glyph 38 PT
+            // tall with a 22 PT gap down to the title. Wenshu was using
+            // 24 PT (DesignTokens.iconLargeSize), which is toolbar scale,
+            // so the empty state read as a small label instead of the
+            // centerpiece Apple makes it.
+            LucideIcon(icon, size: 38)
                 .foregroundStyle(.secondary)
+                .padding(.bottom, 22)
             VStack(spacing: DesignTokens.chromePaddingSmall) {
                 // Title (= Apple HIG .headline semibold = 13 PT
                 // semibold = Apple's standard secondary headline).
