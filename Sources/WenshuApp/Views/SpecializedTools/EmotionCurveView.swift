@@ -235,10 +235,10 @@ struct EmotionCurveView: View {
             HStack(alignment: .top, spacing: 12) {
                 indexColumn(title: "Flat spots",
                             items: report.flatSpots.map { String($0) },
-                            tint: Color(nsColor: .systemGray))
+                            tint: Color.gray)
                 indexColumn(title: "Suggested lifts",
                             items: report.suggestedLifts.map { String($0) },
-                            tint: Color(nsColor: .systemBlue))
+                            tint: Color.blue)
             }
             Text(report.pacingHint)
                 .font(.caption)
@@ -419,7 +419,7 @@ struct EmotionCurveView: View {
             let dotRect = CGRect(x: x - 3, y: markerY - 3, width: 6, height: 6)
             context.stroke(
                 Path(ellipseIn: dotRect),
-                with: .color(Color(nsColor: .systemGray)),
+                with: .color(Color.gray),
                 lineWidth: 1
             )
         }
@@ -436,29 +436,29 @@ struct EmotionCurveView: View {
             triangle.closeSubpath()
             context.fill(
                 triangle,
-                with: .color(Color(nsColor: .systemBlue))
+                with: .color(Color.blue)
             )
         }
 
         // 10) Y-axis labels (= +1 / 0 / -1).
         let labelShading = GraphicsContext.Shading.color(Color(nsColor: .secondaryLabelColor))
         context.draw(
-            Text(WenshuI18n.t("b5.emotioncurveview.l446.h6941667")).font(.caption2).foregroundColor(Color(nsColor: .secondaryLabelColor)),
+            Text(WenshuI18n.t("b5.emotioncurveview.l446.h6941667")).font(.caption2).foregroundStyle(.secondary),
             at: CGPoint(x: 10, y: topY)
         )
         context.draw(
-            Text(WenshuI18n.t("b5.emotioncurveview.l450.h82202228")).font(.caption2).foregroundColor(Color(nsColor: .secondaryLabelColor)),
+            Text(WenshuI18n.t("b5.emotioncurveview.l450.h82202228")).font(.caption2).foregroundStyle(.secondary),
             at: CGPoint(x: 10, y: baselineY)
         )
         context.draw(
-            Text(WenshuI18n.t("b5.emotioncurveview.l454.h50895112")).font(.caption2).foregroundColor(Color(nsColor: .secondaryLabelColor)),
+            Text(WenshuI18n.t("b5.emotioncurveview.l454.h50895112")).font(.caption2).foregroundStyle(.secondary),
             at: CGPoint(x: 10, y: bottomY)
         )
 
         // 11) Legend (= flat dot + lift triangle), bottom row.
         let legendY = chartRect.maxY + 14
         context.draw(
-            Text(WenshuI18n.t("b5.emotioncurveview.l461.h66795892")).font(.caption2).foregroundColor(Color(nsColor: .secondaryLabelColor)),
+            Text(WenshuI18n.t("b5.emotioncurveview.l461.h66795892")).font(.caption2).foregroundStyle(.secondary),
             at: CGPoint(x: chartRect.maxX, y: legendY)
         )
     }

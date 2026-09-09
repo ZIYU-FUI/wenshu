@@ -397,51 +397,33 @@ struct ShellDetailColumn: View {
 /// structure; = future tickets replace each placeholder with a
 /// real zone view).
 ///
-/// Apple HIG implementation notes:
-/// - Uses Apple's `ContentUnavailableView` (= macOS 14+; = Apple
-///   HIG canonical "no content" view = Xcode / Mail / Notes
-///   pattern) — but we want a NAMED placeholder (= showing what
-///   WILL be there) not a "no content" view.
-/// - Falls back to a custom VStack (= macOS 13 compatible = below
-///   the `ContentUnavailableView` floor; = wenshu's minimum
-///   target = macOS 27 but uses AppKit-compatible primitives for
-///   maximum portability).
+/// Per boss 2026-09-09 '全部都修' (= use Apple API unless Apple API
+/// cannot implement the requirement): replaced the previous custom
+/// VStack with `ContentUnavailableView` (= macOS 14+; = Apple HIG
+/// canonical informational view = Xcode / Mail / Notes "no content"
+/// pattern). The custom VStack was 28 LOC of reimplemented chrome;
+/// `ContentUnavailableView` is Apple's first-party replacement and
+/// adapts to Liquid Glass automatically (= no manual `.foregroundStyle`
+/// / `.font` tuning = the platform controls the visual).
+///
+/// wenshu's minimum target is macOS 27 so ContentUnavailableView is
+/// always available (= no fallback needed).
+///
+/// Per boss 2026-09-09 '先学文档再盘查代码' (= research Apple HIG first):
+/// WWDC23 "Meet SwiftUI for macOS" introduced `ContentUnavailableView`
+/// as the canonical empty/no-content state. Apple's HIG for empty
+/// states says: "Use `ContentUnavailableView` for empty states,
+/// not custom layouts". wenshu now follows this guidance.
 struct ShellPlaceholder: View {
     let name: String
     let icon: String
     let hint: String
 
     var body: some View {
-        // VStack with icon + name + hint (= Apple HIG
-        // informational pane layout = centered vertically +
-        // horizontally with subtle background tint).
-        //
-        // Boss 9/7 'use apple api unless apple api cannot implement
-        // the requirement' (= prefer Apple HIG primitives over
-        // custom styling).
-        VStack(spacing: DesignTokens.chromePaddingLeading) {
-            // SF Symbol (= Apple HIG icon system) + macOS 27
-            // Liquid Glass material = the icon takes on the
-            // standard tint automatically.
-            Image(systemName: icon)
-                .font(.system(size: 48))
-                .foregroundStyle(.tertiary)
-            // Name (= the placeholder's canonical label).
-            Text(name)
-                .font(.title2)
-                .foregroundStyle(.secondary)
-            // Hint (= future-ticket reference; = Apple's
-            // standard "this is where X will go" pattern).
-            Text(hint)
-                .font(.callout)
-                .foregroundStyle(.tertiary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // v0.40 boss 2026-09-08 OOB '盘一遍, 还有颜色': removed the
-        // .background(.windowBackgroundColor) on the dead-code
-        // ShellPlaceholder (= was tinting the M1 placeholder view
-        // = not used in the active 3-column path = boss wants
-        // gone per the '再往上一层, 再删一层' cleanup).
+        ContentUnavailableView(
+            name,
+            systemImage: icon,
+            description: Text(hint)
+        )
     }
 }

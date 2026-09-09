@@ -43,7 +43,7 @@ public struct ChatViewCompressionRow: View {
                         .padding(.horizontal, DesignTokens.chromePaddingChipHorizontal)
                         .padding(.vertical, DesignTokens.chromePaddingMicro)
                         .background(
-                            Color(nsColor: .controlBackgroundColor),
+                            .regularMaterial,
                             in: Capsule()
                         )
                 } else {

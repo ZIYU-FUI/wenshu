@@ -83,7 +83,7 @@ enum IconColor {
     case secondary       // .secondary (= secondary text)
     case tint            // .tint (= app accent color = boss 9/2 'zone tint')
     case accent          // .accentColor (= explicit accent)
-    case control         // Color(nsColor: .controlTextColor)
+    case control         // Color.primary
 }
 
 extension Lucide {
@@ -113,9 +113,9 @@ private struct IconColorModifier: ViewModifier {
         switch color {
         case .primary:   content.foregroundStyle(Color.primary)
         case .secondary: content.foregroundStyle(Color.secondary)
-        case .tint:      content.foregroundStyle(Color(nsColor: .controlAccentColor))
+        case .tint:      content.foregroundStyle(Color.accentColor)
         case .accent:    content.foregroundStyle(Color.accentColor)
-        case .control:   content.foregroundStyle(Color(nsColor: .controlTextColor))
+        case .control:   content.foregroundStyle(Color.primary)
         }
     }
 }

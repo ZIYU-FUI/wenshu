@@ -246,7 +246,7 @@ private struct CommandPaletteRow: View {
                     .padding(.vertical, DesignTokens.chromePaddingNano)
                     .background(
                         RoundedRectangle(cornerRadius: 4)
-                            .fill(Color(nsColor: .controlBackgroundColor))
+                            .fill(.regularMaterial)
                     )
             }
         }
@@ -254,7 +254,7 @@ private struct CommandPaletteRow: View {
         .padding(.vertical, DesignTokens.chromePaddingVertical)
         .background(
             isSelected ?
-                RoundedRectangle(cornerRadius: 6).fill(Color(nsColor: .selectedContentBackgroundColor).opacity(0.6)) :
+                RoundedRectangle(cornerRadius: 6).fill(.selection.opacity(0.6)) :
                 nil
         )
         .padding(.horizontal, DesignTokens.chromePaddingMicro)

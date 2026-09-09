@@ -240,9 +240,9 @@ struct ReaderExperienceView: View {
     private func scoreBadge(_ score: Double) -> some View {
         let pct = Int((score * 100.0).rounded())
         let color: Color = {
-            if score >= 0.7 { return Color(nsColor: .systemGreen).opacity(0.22) }
-            if score >= 0.4 { return Color(nsColor: .systemOrange).opacity(0.22) }
-            return Color(nsColor: .systemGray).opacity(0.22)
+            if score >= 0.7 { return Color.green.opacity(0.22) }
+            if score >= 0.4 { return Color.orange.opacity(0.22) }
+            return Color.gray.opacity(0.22)
         }()
         return Text(WenshuI18n.t("b5.readerexperienceview.l247.h50530381"))
             .font(.caption2)

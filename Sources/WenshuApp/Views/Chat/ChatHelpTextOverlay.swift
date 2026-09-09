@@ -66,12 +66,12 @@ public struct ChatHelpTextOverlay: View {
                     Text(" " + WenshuI18n.t("auto.chathelptextoverlay.l30.h53427819"))
                         .foregroundStyle(.secondary)
                 }
-                .font(.system(size: 15, weight: .semibold))
+                .font(.headline)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 360)
-                // Body (= 13 PT tertiary = Apple HIG tertiary detail).
+                // Body (= Apple HIG .callout = 12 PT tertiary).
                 Text(WenshuI18n.t("auto.chathelptextoverlay.l33.h88773098"))
-                    .font(.system(size: 13))
+                    .font(.callout)
                     .foregroundStyle(.tertiary)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 360)

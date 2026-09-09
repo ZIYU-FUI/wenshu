@@ -1141,7 +1141,7 @@ public struct ChatView: View {
                     .background(
                         ZStack {
                             RoundedRectangle(cornerRadius: 6)
-                                .fill(Color(nsColor: .underPageBackgroundColor))
+                                .fill(.regularMaterial)
                             RoundedRectangle(cornerRadius: 6)
                                 .strokeBorder(inputFocused ? AnyShapeStyle(.tint) : AnyShapeStyle(.separator), lineWidth: 1)
                         }
