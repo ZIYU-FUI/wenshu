@@ -356,7 +356,17 @@ struct ShellContentColumn: View {
             // .safeAreaPadding instead.
     }
 
-    /// Drag handle on the panel's top edge, same shape as the sidebar's.
+    /// Drag handle on the panel's top edge.
+    ///
+    /// v0.56 boss 2026-09-09 OOB: the panel may only be pulled UP, no
+    /// other direction. So the gesture is one-way — it grows the panel
+    /// from whatever height the drag started at and never shrinks it.
+    /// Verified the old behaviour first by driving a real downward drag
+    /// against the running app: the panel collapsed 320 -> 200, which is
+    /// exactly what this now refuses.
+    ///
+    /// The cursor says the same thing: .resizeUp, not .resizeUpDown, so
+    /// the handle advertises the one direction it accepts.
     private var chatResizeHandle: some View {
         Rectangle()
             .fill(.separator)
@@ -364,20 +374,25 @@ struct ShellContentColumn: View {
             .frame(height: 6)
             .contentShape(Rectangle())
             .onHover { inside in
-                if inside { NSCursor.resizeUpDown.push() } else { NSCursor.pop() }
+                if inside { NSCursor.resizeUp.push() } else { NSCursor.pop() }
             }
             .gesture(
                 DragGesture(coordinateSpace: .global)
                     .onChanged { value in
                         let start = chatDragStart ?? chatHeight
                         if chatDragStart == nil { chatDragStart = start }
-                        // Dragging up grows the panel, so the delta is
-                        // inverted relative to the drag direction.
-                        chatHeight = min(max(start - value.translation.height, 160), 700)
+                        // Upward drag = negative translation = growth.
+                        // Downward drag would shrink the panel, so clamp
+                        // the delta at 0 and ignore it entirely.
+                        let growth = max(-value.translation.height, 0)
+                        chatHeight = min(start + growth, Self.chatMaxHeight)
                     }
                     .onEnded { _ in chatDragStart = nil }
             )
     }
+
+    /// Upper bound for the panel, so it cannot swallow the document.
+    private static let chatMaxHeight: Double = 700
 }
 
 
