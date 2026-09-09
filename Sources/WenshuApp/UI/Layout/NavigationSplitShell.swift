@@ -196,9 +196,9 @@ struct ShellSidebarColumn: View {
                     // the third-party icon library': every icon in the shell
                     // comes from Lucide (= lucide-swift 1.25.0). Names below
                     // verified against the package's icon catalog.
-                    Label { Text("Shelves") } icon: { LucideIcon("library", size: 16) }
+                    LucideLabel("Shelves", icon: "library")
                         .tag(SidebarScope.shelves)
-                    Label { Text("Reference") } icon: { LucideIcon("book-open", size: 16) }
+                    LucideLabel("Reference", icon: "book-open")
                         .tag(SidebarScope.references)
                 }
                 .pickerStyle(.segmented)
@@ -314,9 +314,9 @@ struct ShellContentColumn: View {
             ToolbarItem(placement: .primaryAction) {
                 Picker("Content", selection: $contentScope) {
                     // v0.46 boss OOB 'SF Symbol dropped, use Lucide'.
-                    Label { Text("Editor") } icon: { LucideIcon("square-pen", size: 16) }
+                    LucideLabel("Editor", icon: "square-pen")
                         .tag(ContentScope.editor)
-                    Label { Text("Chat") } icon: { LucideIcon("messages-square", size: 16) }
+                    LucideLabel("Chat", icon: "messages-square")
                         .tag(ContentScope.chat)
                 }
                 .pickerStyle(.segmented)
@@ -417,9 +417,9 @@ struct ShellDetailColumn: View {
             ToolbarItem(placement: .primaryAction) {
                 Picker("Inspector", selection: $inspectorContent) {
                     // v0.46 boss OOB 'SF Symbol dropped, use Lucide'.
-                    Label { Text("Tools") } icon: { LucideIcon("wrench", size: 16) }
+                    LucideLabel("Tools", icon: "wrench")
                         .tag(InspectorContent.tools)
-                    Label { Text("Dynamic") } icon: { LucideIcon("layout-grid", size: 16) }
+                    LucideLabel("Dynamic", icon: "layout-grid")
                         .tag(InspectorContent.dynamic)
                 }
                 .pickerStyle(.segmented)
