@@ -1,7 +1,7 @@
 //
 //  WenshuWorkspaceMigratorTests.swift · Wenshu · v0.23 ticket 014.002
 //
-//  Boss 2026-08-23 拍: '重点是你如何规避风险'.
+// Boss 2026-08-23: 'yes'.
 //  Tests verify the 5 risk-defense strategies:
 //  R1: Auto-backup before write
 //  R2: dry-run mode (default, no writes)

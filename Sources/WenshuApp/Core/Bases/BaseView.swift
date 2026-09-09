@@ -1,5 +1,5 @@
 //
-//  BaseView.swift · Wenshu · v0.19 ticket 18 (Obsidian replica, 前端做但不接入核心项目)
+// BaseView.swift · Wenshu · v0.19 ticket 18 (Obsidian replica,)
 //
 
 import Foundation
@@ -15,7 +15,7 @@ public final class BaseViewModel {
 
     public init() {}
 
-    /// 从 YAML 字符串加载
+    /// YAML load
     public func load(yaml: String) {
         self.yamlSource = yaml
         do {
@@ -28,8 +28,8 @@ public final class BaseViewModel {
     }
 }
 
-/// BaseView: SwiftUI View, 显示 .base 文档 placeholder
-/// 现阶段不接 LayoutShellView, 留 standalone 等老板 macOS 验
+/// BaseView: SwiftUI View, show .base placeholder
+/// LayoutShellView, standalone wait macOS
 public struct BaseView: View {
     @State private var viewModel: BaseViewModel
 

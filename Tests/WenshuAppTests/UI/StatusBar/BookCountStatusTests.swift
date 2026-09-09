@@ -1,7 +1,7 @@
-// BookCountStatusTests.swift · Wenshu (文枢) · B-07 015.019
+// BookCountStatusTests.swift · Wenshu () · B-07 015.019
 //
-// Boss 2026-09-04 OOB '往后推进': the sidebar bottom status bar's
-// "书: N" must reflect the actual library book count (=
+// Boss 2026-09-04 OOB ': the sidebar bottom status bar's
+// ": N" must reflect the actual library book count (=
 // `BookStore.books.count`) and stay reactive across add / remove.
 //
 // These 3 round-trip tests verify the reactive `books` mirror on

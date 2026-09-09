@@ -58,9 +58,9 @@ import Lucide
 /// v0.30: composite enum (= book OR reference category) because
 /// Apple HIG allows ONE selection type per List, so we unify
 /// both selection kinds into one Hashable enum.
-/// v0.40 boss 2026-09-08 OOB '目录树的顶栏也丢了': scope selector
+/// v0.40 boss 2026-09-08 OOB 'directory tree top bar is also missing': scope selector
 /// for the sidebar's top tab bar. 2 cases map to the existing
-/// top-level grouping (= 书架 = per-shelf books; = 资料库 =
+/// top-level grouping (= = per-shelf books; = =
 /// reference library per EntityCategory). Pass via init to
 /// NewLibraryOutlineView (= filters rows in body). Apple HIG
 /// canonical sidebar pattern = Mail.app's VIP / Flagged tabs
@@ -166,8 +166,8 @@ struct NewLibraryOutlineView: View {
     init(
         selectedEntityCategory: Binding<EntityCategory?> = .constant(nil),
         selectedEntity: Binding<Reference?> = .constant(nil),
-        // v0.40 boss 2026-09-08 OOB '目录树的顶栏也丢了': scope filter
-        // for the sidebar (= 书架 vs 资料库). Apple HIG canonical
+        // v0.40 boss 2026-09-08 OOB 'directory tree top bar is also missing': scope filter
+        // for the sidebar (= vs). Apple HIG canonical
         // sidebar pattern = Mail.app's VIP / Flagged tabs at the
         // top of the sidebar = filters which rows are visible. When
         // scope = .shelves, only the per-shelf book rows + DisclosureGroups
@@ -182,7 +182,7 @@ struct NewLibraryOutlineView: View {
     }
 
     /// v0.40 boss 2026-09-08 OOB: scope selector for the sidebar's
-    /// top tab bar (= 书架 vs 资料库). Mapped from NavigationSplitShell's
+    /// top tab bar (= vs). Mapped from NavigationSplitShell's
     /// PaneTabBar selection (= passes scope as init param). Filters
     /// which rows are visible in the body (= .shelves = book rows;
     /// = .references = reference library rows).
@@ -928,7 +928,7 @@ struct NewLibraryOutlineView: View {
                     bookId: book.id,
                     folderDirectoryName: $1.name
                 )})
-                .tag(SidebarItem.book(book.id))                // v0.30 boss 8/31 OOB '顺手做一下, 双击目录树展开合上
+                .tag(SidebarItem.book(book.id))                // v0.30 boss 8/31 OOB ', double-clickdirectory tree
                 // interaction': double-click on the book label toggles the
                 // folder DisclosureGroup (= level 3 expand/collapse).
                 // Single click selects the book (= sets
@@ -1967,7 +1967,7 @@ private struct RenamingTarget: Identifiable {
 /// supplied closure. Same duplicate-check logic as NewShelfSheet
 /// (= passes existingNames to the validator).
 private struct RenameItemSheet: View {
-    let title: String  // = "重命名书架" or "重命名书"
+    let title: String  // = "rename" or "rename"
     let originalName: String
     let existingNames: [String]
     let onSave: (String) -> Void

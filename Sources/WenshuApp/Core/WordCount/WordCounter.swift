@@ -1,21 +1,21 @@
 //
-//  WordCounter.swift · Wenshu · v0.19 ticket 20 (Obsidian replica, 后端先做)
-//  老板 2026-08-19 evening 拍 Obsidian 复刻范围 A + '复刻后端, 前端不接入核心项目'.
+// WordCounter.swift · Wenshu · v0.19 ticket 20 (Obsidian replica, do first)
+// 2026-08-19 evening Obsidian A + ', '.
 //
-//  Apple HIG 字数统计. 中文按字符算, 英文按 word 算 (跟 Obsidian Word count plugin 行为对齐).
-//  Apple HIG 真值: String.enumerateSubstrings(.byComposedCharacterSequences / .byWords).
+// Apple HIG . in progress, word (Obsidian Word count plugin ok).
+// Apple HIG: String.enumerateSubstrings(.byComposedCharacterSequences / .byWords).
 //
 
 import Foundation
 
-/// WordCount: 字数统计结果 (跟 Obsidian Word count 1:1)
+/// WordCount: (Obsidian Word count 1:1)
 public struct WordCount: Equatable, Sendable {
-    public let words: Int           // 英文 word 数
-    public let characters: Int      // 字符总数 (含空格)
-    public let charactersNoSpaces: Int  // 字符总数 (不含空格)
-    public let chineseChars: Int    // 中文字符数 (CJK)
-    public let sentences: Int       // 句数
-    public let paragraphs: Int     // 段落数
+    public let words: Int           // word
+    public let characters: Int      // ()
+    public let charactersNoSpaces: Int  // ()
+    public let chineseChars: Int    // in progress (CJK)
+    public let sentences: Int       //
+    public let paragraphs: Int     //
 
     public init(words: Int, characters: Int, charactersNoSpaces: Int, chineseChars: Int, sentences: Int, paragraphs: Int) {
         self.words = words
@@ -27,26 +27,26 @@ public struct WordCount: Equatable, Sendable {
     }
 }
 
-/// WordCounter: 静态字数统计工具
-/// 跟 Obsidian Word count plugin 行为对齐 (https://obsidian.md/help/plugins/word-count)
+/// WordCounter:
+/// Obsidian Word count plugin ok (https://obsidian.md/help/plugins/word-count)
 public enum WordCounter {
 
-    /// 统计 markdown content 字数
+    /// markdown content
     public static func count(_ content: String) -> WordCount {
         var words = 0
         var chineseChars = 0
-        // 1. 英文 word 数 (用 .byWords) — 只算包含 ASCII 字母 / 数字的 word (过滤纯 CJK word)
+        // 1. word (.byWords) — ASCII / word (CJK word)
         content.enumerateSubstrings(in: content.startIndex..<content.endIndex, options: .byWords) { substring, range, _, _ in
             if let s = substring, !s.isEmpty {
-                // Apple HIG: 检查是否包含 ASCII 字符 (拉丁字母)
+                // Apple HIG: yesno ASCII ()
                 let hasAscii = s.unicodeScalars.contains { $0.isASCII }
                 if hasAscii {
                     words += 1
                 }
             }
         }
-        // 2. 中文字符数 (CJK Unicode 范围)
-        // Apple HIG: String.unicodeScalars + isChinese 范围
+        // 2. in progress (CJK Unicode)
+        // Apple HIG: String.unicodeScalars + isChinese
         for scalar in content.unicodeScalars {
             if isChinese(scalar) {
                 chineseChars += 1
@@ -57,7 +57,7 @@ public enum WordCounter {
         let charactersNoSpaces = content.filter { $0 != " " && $0 != "\n" && $0 != "\t" }.count
         // 4. Period (Chinese stop / English stop / question mark / exclamation mark)
         let sentences = countSentences(content)
-        // 5. 段落数 (按 \n\n 或 起始分割)
+        // 5. (\n\n)
         let paragraphs = countParagraphs(content)
 
         return WordCount(
@@ -70,8 +70,8 @@ public enum WordCounter {
         )
     }
 
-    /// 中文 unicode 范围 (CJK Unified Ideographs + Extension A)
-    /// Apple HIG: Unicode 4E00-9FFF (基本) + 3400-4DBF (扩展 A)
+    /// in progress unicode (CJK Unified Ideographs + Extension A)
+    /// Apple HIG: Unicode 4E00-9FFF (basic) + 3400-4DBF (A)
     private static func isChinese(_ scalar: Unicode.Scalar) -> Bool {
         let v = scalar.value
         return (v >= 0x4E00 && v <= 0x9FFF) || (v >= 0x3400 && v <= 0x4DBF)
@@ -88,11 +88,11 @@ public enum WordCounter {
     private static func countParagraphs(_ content: String) -> Int {
         let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty { return 0 }
-        // 按 2+ 个连续换行分割 (\n\s*\n)
+        // 2+ ok (\n\s*\n)
         guard let regex = try? NSRegularExpression(pattern: #"\n\s*\n"#) else { return 1 }
         let range = NSRange(location: 0, length: (trimmed as NSString).length)
         let splits = regex.matches(in: trimmed, range: range)
-        // 段数 = split 数 + 1
+        // = split + 1
         return splits.count + 1
     }
 }

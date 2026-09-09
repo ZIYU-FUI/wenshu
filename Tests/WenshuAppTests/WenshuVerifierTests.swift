@@ -1,8 +1,8 @@
 //
 //  WenshuVerifierTests.swift · Wenshu · v0.18 ticket 31 (verify wenshu LLM key)
 //
-//  集成测试 wenshu AgentProtocol (A2A) + MiniMax API 真值连接.
-//  跑: source ~/.hermes/profiles/pocock/.env && MINIMAX_CN_API_KEY="$MINIMAX_CN_API_KEY" swift test
+// test wenshu AgentProtocol (A2A) + MiniMax API .
+//: source ~/.hermes/profiles/pocock/.env && MINIMAX_CN_API_KEY="$MINIMAX_CN_API_KEY" swift test
 //
 
 import Testing
@@ -11,7 +11,7 @@ import Foundation
 
 @Suite("WenshuVerifier (wenshu LLM API integration)")
 struct WenshuVerifierTests {
-    /// 跳过测试如果 env 没 MiniMax key
+    /// skiptest env MiniMax key
     private static var hasAPIKey: Bool {
         let key = ProcessInfo.processInfo.environment["MINIMAX_CN_API_KEY"] ?? ""
         return !key.isEmpty
@@ -35,7 +35,7 @@ struct WenshuVerifierTests {
 
     @Test("MiniMax key 缺失抛错")
     func testMissingAPIKey() async {
-        // 用空 env 创 verifier
+        // env verifier
         let verifier = WenshuVerifier(baseURL: "https://api.minimaxi.com/anthropic", apiKey: "")
         await #expect(throws: WenshuLLMError.self) {
             _ = try await verifier.ping()

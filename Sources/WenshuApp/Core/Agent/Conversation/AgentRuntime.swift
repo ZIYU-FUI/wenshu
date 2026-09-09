@@ -1,16 +1,16 @@
 //
 //  AgentRuntime.swift · Wenshu · v0.18 ticket 04 (hermes replica)
 //
-//  多 agent runtime (复刻 hermes delegation / gateway spawn worker).
-//  老板 2026-08-19 拍 "文枢需要多 agent 需要 a2a 协议" + "用 Apple 体系实现".
+// agent runtime (hermes delegation / gateway spawn worker).
+// 2026-08-19 "need agent need a2a " + " Apple ".
 //
-//  真值: agent registry + spawn + delegateTask (hermes delegation.py 真值简化版).
-//  Apple HIG 真值: actor 线程安全 + Sendable 跨 actor + Task 真值 (Swift 并发).
+//: agent registry + spawn + delegateTask (hermes delegation.py).
+// Apple HIG: actor + Sendable actor + Task (Swift).
 //
 
 import Foundation
 
-/// Agent 注册信息 (hermes delegation card 真值简化版)
+/// Agent registerinfo (hermes delegation card)
 public struct AgentRegistration: Sendable {
     public let name: String
     public let card: AgentCard
@@ -23,15 +23,15 @@ public struct AgentRegistration: Sendable {
     }
 }
 
-/// AgentRuntime: 多 agent registry + delegateTask 真值
+/// AgentRuntime: agent registry + delegateTask
 public actor AgentRuntime {
     private var agents: [String: AgentRegistration] = [:]
-    /// 默认本地主 agent (wenshu 自己)
+    /// defaultlocal agent (wenshu)
     private var mainAgent: AgentRegistration?
 
     public init() {}
 
-    /// register: 注册 1 个 agent
+    /// register: register 1 agent
     public func register(_ agent: AgentRegistration) {
         agents[agent.name] = agent
         if mainAgent == nil {
@@ -39,28 +39,28 @@ public actor AgentRuntime {
         }
     }
 
-    /// unregister: 注销 1 个 agent
+    /// unregister: log out 1 agent
     public func unregister(name: String) {
         agents.removeValue(forKey: name)
     }
 
-    /// list: 列所有 agent names
+    /// list: agent names
     public func list() -> [String] {
         Array(agents.keys).sorted()
     }
 
-    /// resolve: 拿 1 个 agent (按 name)
+    /// resolve: 1 agent (name)
     public func resolve(name: String) -> AgentRegistration? {
         agents[name]
     }
 
-    /// main: 拿默认主 agent
+    /// main: default agent
     public func main() -> AgentRegistration? {
         mainAgent
     }
 
-    /// delegateTask: 派任务给 1 个 agent (hermes delegation.py delegate_task 真值简化版)
-    /// 真值: 发 A2A message/send + 等 reply
+    /// delegateTask: task 1 agent (hermes delegation.py delegate_task)
+    ///: A2A message/send + wait reply
     public func delegateTask(to agentName: String, content: String, fromAgent: String = "main") async throws -> AgentTask {
         guard let agent = agents[agentName] else {
             throw AgentRuntimeError.agentNotFound(name: agentName)
@@ -75,7 +75,7 @@ public actor AgentRuntime {
         guard response.error == nil, case .messageReceived = response.result else {
             throw AgentRuntimeError.delegateFailed(agentName: agentName, error: response.error?.message ?? "unknown")
         }
-        // 拿 task 详情
+        // task
         let getRequest = A2ARequest(method: .taskGet, params: .taskGet(taskId: taskId))
         let getResponse = await agent.process.handle(getRequest)
         guard case .task(let task) = getResponse.result else {
@@ -84,7 +84,7 @@ public actor AgentRuntime {
         return task
     }
 
-    /// broadcast: 广播给所有 agent (hermes delegation swarm 真值简化版)
+    /// broadcast: agent (hermes delegation swarm)
     public func broadcast(content: String, fromAgent: String = "main") async -> [String: Result<AgentTask, Error>] {
         var results: [String: Result<AgentTask, Error>] = [:]
         for name in agents.keys {
@@ -99,7 +99,7 @@ public actor AgentRuntime {
     }
 }
 
-/// AgentRuntime 错误
+/// AgentRuntime error
 public enum AgentRuntimeError: Error {
     case agentNotFound(name: String)
     case delegateFailed(agentName: String, error: String)

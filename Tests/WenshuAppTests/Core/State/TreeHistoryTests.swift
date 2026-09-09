@@ -1,4 +1,4 @@
-// TreeHistoryTests.swift · Wenshu (文枢) · v0.28 followup TKT-028-025
+// TreeHistoryTests.swift · Wenshu () · v0.28 followup TKT-028-025
 //
 // Tests for the bounded undo/redo ring buffer. Boss 2026-08-29 OOB.
 

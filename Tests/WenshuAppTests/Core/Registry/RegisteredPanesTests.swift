@@ -1,4 +1,4 @@
-// RegisteredPanesTests.swift · Wenshu (文枢) · v0.28 followup TKT-028-016
+// RegisteredPanesTests.swift · Wenshu () · v0.28 followup TKT-028-016
 //
 // Tests for registered panes pattern (= new pane = 1 registry.register()
 // call instead of editing PaneRenderer switch). Boss 2026-08-29 OOB.

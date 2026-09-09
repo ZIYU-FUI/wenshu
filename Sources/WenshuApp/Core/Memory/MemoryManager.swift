@@ -1,7 +1,7 @@
 //
 //  MemoryManager.swift · Wenshu · v0.23 ticket 013.009 (hermes gap 8)
 //
-//  Boss 2026-08-23 拍: hermes MemoryManager.prefetch_all + sync_all parity.
+// Boss 2026-08-23: hermes MemoryManager.prefetch_all + sync_all parity.
 //  Source: github.com/NousResearch/hermes-agent/blob/main/agent/memory_manager.py:11
 //
 //  Hermes pattern:

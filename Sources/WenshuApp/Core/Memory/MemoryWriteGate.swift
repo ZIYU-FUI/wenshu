@@ -1,7 +1,7 @@
 //
 //  MemoryWriteGate.swift · Wenshu · v0.23 ticket 013.001 (hermes gap 1)
 //
-//  Boss 2026-08-23 拍: '全修, 参考原则 3' (效果优先不打折).
+// Boss 2026-08-23: ', 3' (effect).
 //  Source: github.com/NousResearch/hermes-agent/blob/main/tools/memory_tool.py:949 _apply_write_gate
 //
 //  Hermes pattern: every memory write (add/replace/remove) goes through a gate

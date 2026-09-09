@@ -2,14 +2,14 @@
 //
 // The 'New Book' / 'Rename Book' modal.
 //
-// v52 (= 老板 8/15 17:32 '书名, 篇幅选择, 创意点, 然后新建') adds the
+// v52 (= 8/15 17:32 ',,, ') adds the
 // New Book Creation Wizard. Three fields:
-//   - 书名 (title)            required, TextField, autofocus
-//   - 篇幅 (length)           Picker (.segmented), default .medium
-//   - 创意点（选填）(idea)     optional, TextField (.axis = .vertical)
+// - (title) required, TextField, autofocus
+// - (length) Picker (.segmented), default .medium
+// - （）(idea) optional, TextField (.axis = .vertical)
 //
-// All three fields live in a single modal (= owner拍 '先实现最简新建书
-// 的逻辑'). Not a multi-step NavigationStack wizard (= overkill for three
+// All three fields live in a single modal (= owner '
+// '). Not a multi-step NavigationStack wizard (= overkill for three
 // fields; the Apple HIG Picker for length gives a quick visual pick
 // without leaving the modal).
 //
@@ -21,7 +21,7 @@
 //   - Picker (.segmented)      length (= 3 options, segmented is the
 //                               HIG-recommended style when there are
 //                               < 5 options)
-//   - Form.footer              the "选填" hint (= Apple HIG: use a footer
+// - Form.footer the "" hint (= Apple HIG: use a footer
 //                               rather than placeholder text for
 //                               optional fields)
 //

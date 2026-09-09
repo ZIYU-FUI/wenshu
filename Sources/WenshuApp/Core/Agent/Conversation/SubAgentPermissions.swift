@@ -1,7 +1,7 @@
 //
 //  SubAgentPermissions.swift · Wenshu · v0.23 ticket 012
 //
-//  Boss 2026-08-23 拍: '去 hermes 源码里扒, 一定有对应的解决方案'.
+// Boss 2026-08-23: ' hermes, must'.
 //  Source: https://github.com/NousResearch/hermes-agent/blob/main/tools/delegate_tool.py
 //
 //  Hermes `DELEGATE_BLOCKED_TOOLS` (tools sub-agents must NEVER have access to):

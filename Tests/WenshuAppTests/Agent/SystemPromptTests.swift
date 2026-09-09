@@ -34,7 +34,7 @@ struct SystemPromptTests {
     func testBuildReturnsString() {
         let prompt = SystemPrompt.build(ephemeralHint: "today is Tuesday", callerMessage: nil)
         #expect(!prompt.isEmpty)
-        // Stable tier should mention 文枢 (= wenshu's writing tool identity)
+        // Stable tier should mention (= wenshu's writing tool identity)
         #expect(prompt.contains("文枢") || prompt.lowercased().contains("writing"))
     }
 

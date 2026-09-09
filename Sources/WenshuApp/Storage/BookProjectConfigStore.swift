@@ -1,4 +1,4 @@
-// BookProjectConfigStore.swift · Wenshu (文枢) · B-07 ticket 015.015 (2026-09-04)
+// BookProjectConfigStore.swift · Wenshu () · B-07 ticket 015.015 (2026-09-04)
 //
 // Per-book project-level configuration JSON store. Mirrors the
 // BookKanbanStore / BookTodoStore persistence pattern but stores a

@@ -1,9 +1,9 @@
 // Sources/WenshuApp/UI/PaneTabBar.swift
 //
-// v0.28 followup Boss UX round A (Boss 2026-08-30 OOB '你需要做一个组件索引,
+// v0.28 followup Boss UX round A (Boss 2026-08-30 OOB 'needgroup,
 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-// 以后如果有新的地方用到相同的东西, 会自然而然的找到组件, 而不是默认自动
-// 写个新的'): Phase 3 of 5-phase component refactor.
+//, group, yesdefaultauto
+// '): Phase 3 of 5-phase component refactor.
 //
 // Generic wrapper for a list of PaneIconTab + optional trailing buttons.
 // Listed in ComponentIndex.md Level 3.2.
@@ -28,7 +28,7 @@ import SwiftUI
 /// - ForEach of PaneIconTab (= Apple HIG 28×28 hot area + Lucide icon +
 ///   matchedGeometry selected-state underline)
 /// - Optional trailing buttons (= e.g. editor's expand/shrink button,
-///   or library's 新建 / 入驻 menu buttons) at the rightmost edge
+/// or library's / menu buttons) at the rightmost edge
 /// - matchedGeometryEffect namespace for slide animation
 ///
 /// Example (single tab + trailing button, like chat zone):
@@ -38,7 +38,7 @@ import SwiftUI
 ///
 /// PaneTabBar(
 ///     items: [
-///         PaneTabItem(id: "chat", icon: "bot", label: "对话"),
+/// PaneTabItem(id: "chat", icon: "bot", label: "dialog"),
 ///     ],
 ///     selection: $selection,
 ///     namespace: tabBarNamespace,
@@ -52,8 +52,8 @@ import SwiftUI
 /// ```swift
 /// PaneTabBar(
 ///     items: [
-///         PaneTabItem(id: "library", icon: "square-library", label: "书架"),
-///         PaneTabItem(id: "preview", icon: "book-open-text", label: "预览"),
+/// PaneTabItem(id: "library", icon: "square-library", label: ""),
+/// PaneTabItem(id: "preview", icon: "book-open-text", label: ""),
 ///     ],
 ///     selection: $selection,
 ///     namespace: tabBarNamespace
@@ -127,7 +127,7 @@ public struct PaneTabBar<Item: Identifiable & Sendable, Trailing: View>: View {
     }
 
     public var body: some View {
-        // v0.40 boss 2026-09-09 OOB '方案 A 全 Apple native': removed
+        // v0.40 boss 2026-09-09 OOB 'Plan A: full Apple native': removed
         // RegionTabBar wrapper (= per Plan A = the tab bar = PaneTabBar
         // = is the direct content = no chrome wrapper above). The
         // PaneTabBar IS the chrome (= Apple-style flat tab bar).
@@ -161,7 +161,7 @@ public struct PaneTabBar<Item: Identifiable & Sendable, Trailing: View>: View {
                 // pass nil).
                 Spacer(minLength: 0)
                 trailing()
-            // v0.34 boss 2026-09-02 OOB '父组件需要定一下, 左右间距对称':
+            // v0.34 boss 2026-09-02 OOB 'groupneed, ':
             // the PaneTabBar chrome parent controls the symmetric outer
             // inset. Previously (.padding(.leading, chromePaddingLeading)
             // only) the inner HStack was left-aligned with 18 PT left

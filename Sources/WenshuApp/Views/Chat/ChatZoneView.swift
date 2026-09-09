@@ -32,10 +32,10 @@ struct ChatZoneView: View {
     // v0.23 ticket 011.002: change from flat [String] to sectioned [AvailableProviderModels].
     // Boss 8/23 decision: I've got three manufacturers' key, model switching should show the available model combinations.
     @State private var availableSections: [AvailableProviderModels] = []
-    // v0.21 ticket 43 step 3: picker ↔ UserDefaults 同步修复 = @AppStorage (Apple SwiftUI 真值, 源单一 UserDefaults, 双向自动同步)
-    // 修复前 ChatZoneView.currentModel 是 @State 不绑 UserDefaults, ChatViewModel.currentModel 是 init default 读 UserDefaults 一次 = 切 picker 后两条状态链断开
-    // @AppStorage 是 Apple HIG 真值, 源单一 UserDefaults, 自动响应变化, 修复 picker 跟 ChatViewModel 同步
-    // v0.24 boss验收fix (2026-08-24): default empty (no key) instead of "MiniMax-M3".
+    // v0.21 ticket 43 step 3: picker ↔ UserDefaults syncfix = @AppStorage (Apple SwiftUI, UserDefaults, autosync)
+    // fix ChatZoneView.currentModel yes @State UserDefaults, ChatViewModel.currentModel yes init default UserDefaults = picker status
+    // @AppStorage yes Apple HIG, UserDefaults, autochange, fix picker ChatViewModel sync
+    // v0.24 bossverificationfix (2026-08-24): default empty (no key) instead of "MiniMax-M3".
     // B-05: `wenshu.llm.model` is now owned by AppState.llmModel (single
     // source of truth). ChatZoneView reads + writes via the env-injected
     // appState (= same proxy pattern as SettingView above) so the
@@ -49,7 +49,7 @@ struct ChatZoneView: View {
     // owner = `AppState.llmModel`). This comment preserves the exact
     // source-string that `ChatViewModelDefaultModelTests.App.swift
     // ChatZoneView.currentModel default = '' when no UserDefaults`
-    // asserts must remain present in this file (= v0.24 boss验收
+    // asserts must remain present in this file (= v0.24 bossverification
     // doc-drift catch). Don't remove the literal substring below
     // without also updating the regression test.
     // @AppStorage("wenshu.llm.model") private var currentModel: String = ""
@@ -57,13 +57,13 @@ struct ChatZoneView: View {
         get { appState.llmModel }
         nonmutating set { appState.llmModel = newValue }
     }
-    // Boss 8/24: '每个区域的 tab 选中状态应该持久化'.
+    // Boss 8/24: 'region tab in progressstatusshould'.
     // v0.40 apple-001 HIG absent batch: migrated wenshu.tabIndex.aiChat
     // from @AppStorage to @SceneStorage (= Apple HIG macOS 14+ per-window
     // tab state restoration). Each window can have a different chat
     // sub-tab (= e.g., chat in window 1 + search in window 2).
     @SceneStorage("wenshu.tabIndex.aiChat") private var selectedTabRaw: String = "chat"
-    // v0.24 boss验收fix (Boss 8/25 OOB ticket 015.014): archive flow state.
+    // v0.24 bossverificationfix (Boss 8/25 OOB ticket 015.014): archive flow state.
     // When user clicks archive icon in ChatZoneTabBar, this toggles true and
     // shows confirmation alert. Confirm = archive current session + start new.
     @State private var showingArchiveAlert: Bool = false
@@ -73,8 +73,8 @@ struct ChatZoneView: View {
         get { ChatZoneTab(rawValue: selectedTabRaw) ?? .chat }
         nonmutating set { selectedTabRaw = newValue.rawValue }
     }
-    // v0.21 ticket 40: 持有 ChatViewModel 实例 + 共享给 ChatView, 让 bottom toolbar 读 vm.contextUsed 自动 propagate
-    // v0.24 boss验收fix (Boss 8/25 OOB 'minimax m3 不是 1mb 的上下文吗', 双轴
+    // v0.21 ticket 40: ChatViewModel + ChatView, bottom toolbar vm.contextUsed auto propagate
+    // v0.24 bossverificationfix (Boss 8/25 OOB 'minimax m3 yes 1mb ',
     // Spec axis sub-agent report FAIL): dead contextMax field removed. Was
     // 131072 (M2 series value) and unused (= UI reads vm.contextMax from
     // ChatViewModel). Stale after commit dc741ceac fix.
@@ -105,10 +105,10 @@ struct ChatZoneView: View {
         NSLog("[wenshu.tab] onAppear: selectedTab=%@", ChatZoneTab.chat.rawValue)
     }
 
-    // v0.24 boss验收fix (Boss 8/25 OOB ticket 015.014): archive current session
-    // + context, then start new session. Boss spec: '点击确认, 回档现有会话和
+    // v0.24 bossverificationfix (Boss 8/25 OOB ticket 015.014): archive current session
+    // + context, then start new session. Boss spec: 'confirm,
     // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-    // 上下文. 起一个全新的会话. 上下文重新加载'.
+    // . . reload'.
     //
     // Flow:
     // 1. Snapshot current session (= sessionId + message count + summary).
@@ -126,9 +126,9 @@ struct ChatZoneView: View {
         let oldSessionId = vm.valueForSessionId()
         let messageCount = vm.messages.count
         let contextUsedBefore = vm.contextUsed
-        // v0.24 boss验收fix (Boss 8/25 fourth OOB Spec axis FAIL for ticket
-        // 015.014): durable archive persistence (= Boss spec '回档现有会话
-        // 和上下文'). Writes to chat_archives table via ChatSessionStore.
+        // v0.24 bossverificationfix (Boss 8/25 fourth OOB Spec axis FAIL for ticket
+        // 015.014): durable archive persistence (= Boss spec '
+        // '). Writes to chat_archives table via ChatSessionStore.
         if let store = store {
             do {
                 try store.archiveSession(sessionId: oldSessionId,
@@ -149,11 +149,11 @@ struct ChatZoneView: View {
 
     var body: some View {
             VStack(spacing: 0) {
-                // v0.21 ticket 43 step 2: 聊天区顶栏 3 个 tab 真切换 (老板拍 backlog 20, 修复 step 1 NSLog 锁 picker sync)
-                // Apple HIG 真值: Button(.plain) + contentShape(Rectangle()) 整条热区响应 (ticket 17 + 21 已修复范式)
-                // + .foregroundStyle(.accentColor) 选中态高亮
-                // + Apple 默认动画 .animation(.default, value: selectedTab) (Q58.4)
-                // v0.24 boss验收fix (Boss 8/25 OOB ticket 015.014): wire
+                // v0.21 ticket 43 step 2: chat zonetop bar 3 tab (backlog 20, fix step 1 NSLog picker sync)
+                // Apple HIG: Button(.plain) + contentShape(Rectangle()) (ticket 17 + 21 fix)
+                // + .foregroundStyle(.accentColor) in progress
+                // + Apple default .animation(.default, value: selectedTab) (Q58.4)
+                // v0.24 bossverificationfix (Boss 8/25 OOB ticket 015.014): wire
                 // archive alert state into ChatZoneTabBar.
                 ChatZoneTabBar(selectedTab: Binding(
                     get: { selectedTab },
@@ -163,7 +163,7 @@ struct ChatZoneView: View {
                 Group {
                     switch selectedTab {
                     case .chat:
-                        // v0.24 boss验收fix: ZStack fills full chat zone, help text centered.
+                        // v0.24 bossverificationfix: ZStack fills full chat zone, help text centered.
                         ZStack {
                             ChatView(conductor: conductor, store: store, vm: vm)
                             if currentModel.isEmpty {
@@ -195,10 +195,10 @@ struct ChatZoneView: View {
                     }
                 }
                 .animation(.default, value: selectedTab)
-                // v0.24 boss验收fix (Boss 8/25 OOB ticket 015.014): archive
-                // confirmation alert. Boss spec: '点击确认, 回档现有会话和上下文.
+                // v0.24 bossverificationfix (Boss 8/25 OOB ticket 015.014): archive
+                // confirmation alert. Boss spec: 'confirm, .
                 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-                // 起一个全新的会话. 上下文重新加载'.
+                // . reload'.
                 .alert(WenshuI18n.t("chat.archive.confirm_title"), isPresented: $showingArchiveAlert) {
                     Button(WenshuI18n.t("auto2.chatzoneview.l198.h94569451"), role: .cancel) { }
                     Button(WenshuI18n.t("auto2.chatzoneview.l199.h54186819"), role: .destructive) {
@@ -209,7 +209,7 @@ struct ChatZoneView: View {
                 }
                 HStack(spacing: 0) {
                 Menu {
-                    // v0.23 ticket 011.002: sectioned picker (boss 8/23 拍).
+                    // v0.23 ticket 011.002: sectioned picker (boss 8/23).
                     // Each section = provider with a configured Keychain key.
                     // Models = provider.defaultModels (curated list).
                     if availableSections.isEmpty {
@@ -238,7 +238,7 @@ struct ChatZoneView: View {
                     // v0.21 ticket 36: explicit .foregroundStyle(.tertiary) per element
                     // v0.21 ticket 37: drop .menuStyle(.borderlessButton) — that wrapper overrides
                     //   foregroundStyle. Default Menu style lets our per-element .tertiary apply.
-                    // v0.21 ticket 42 老板 17:35: .menuStyle(.button) + .buttonStyle(.plain) (Apple deprecated .borderedButton 提示真值组合)
+                    // v0.21 ticket 42 17:35: .menuStyle(.button) + .buttonStyle(.plain) (Apple deprecated .borderedButton hintgroup)
                     HStack(spacing: 4) {
                         // v0.27 boss 8/27 OOB: SF 'cpu' → Lucide 'cpu' (same name).
                         LucideIconSystemFallback("cpu")
@@ -254,7 +254,7 @@ struct ChatZoneView: View {
                     .padding(.bottom, DesignTokens.chromePaddingSmall)
                     .frame(height: DesignTokens.chromeHeight, alignment: .bottomLeading)
                 }
-                // v0.21 ticket 42: Apple 真值组合 .menuStyle(.button) + .buttonStyle(.plain) = 去外壳 (Apple SwiftUI 14+ deprecated .borderedButton 提示路径)
+                // v0.21 ticket 42: Apple group .menuStyle(.button) + .buttonStyle(.plain) = (Apple SwiftUI 14+ deprecated .borderedButton hintpath)
                 .menuStyle(.button)
                 .buttonStyle(.plain)
                 .padding(.leading, DesignTokens.chromePaddingPickerLeading)
@@ -262,9 +262,9 @@ struct ChatZoneView: View {
                     // v0.23 ticket 011.002: load sectioned available models from Keychain.
                     // (was: live-fetch from minimax API; now: discover all configured providers.)
                     availableSections = AvailableModelsDiscovery.loadFromKeychain()
-                    // v0.24 boss验收fix: when currentModel is empty AND at least one
+                    // v0.24 bossverificationfix: when currentModel is empty AND at least one
                     // provider is now configured, auto-select the first available
-                    // model so the user doesn't see "无模型可用" right after saving
+                    // model so the user doesn't see "" right after saving
                     // their first key.
                     if currentModel.isEmpty, let firstSection = availableSections.first, let firstModel = firstSection.models.first {
                         currentModel = firstModel
@@ -280,13 +280,13 @@ struct ChatZoneView: View {
                         ))
                     }
                 }
-                // v0.24 boss验收fix: re-load on ProviderKeychain change
+                // v0.24 bossverificationfix: re-load on ProviderKeychain change
                 // (Settings save key → notification → re-populate availableSections).
                 .onReceive(NotificationCenter.default.publisher(for: .wenshuProviderKeychainChanged)) { _ in
                     availableSections = AvailableModelsDiscovery.loadFromKeychain()
-                    // v0.24 boss验收fix: when currentModel is empty AND at least one
+                    // v0.24 bossverificationfix: when currentModel is empty AND at least one
                     // provider is now configured, auto-select the first available
-                    // model so the user doesn't see "无模型可用" right after saving
+                    // model so the user doesn't see "" right after saving
                     // their first key.
                     if currentModel.isEmpty, let firstSection = availableSections.first, let firstModel = firstSection.models.first {
                         currentModel = firstModel
@@ -306,8 +306,8 @@ struct ChatZoneView: View {
                 Spacer()
 
                 HStack(spacing: 6) {
-                    // v0.21 ticket 40: 读 vm.contextUsed (Apple @Observable 自动 propagate, 不再写死 @State contextUsed = 0)
-                    // v0.24 boss验收fix: Apple standard dark text (.secondary).
+                    // v0.21 ticket 40: vm.contextUsed (Apple @Observable auto propagate, @State contextUsed = 0)
+                    // v0.24 bossverificationfix: Apple standard dark text (.secondary).
                     Text(WenshuI18n.t("b5.chatzoneview.l306.h5786657"))
                         .font(.body)
                         .foregroundStyle(.secondary)
@@ -329,20 +329,20 @@ struct ChatZoneView: View {
             // .windowBackgroundColor = #1E = chrome tier). The outer
             // VStack's .background(.underPageBackgroundColor) below
             // covers the whole chat zone.
-        // v0.32 boss 2026-09-02 OOB ('全走 apple api 默认; 不
-            // 要自写颜色 wrapper'): replace DesignColor.zoneSurface
+        // v0.32 boss 2026-09-02 OOB (' apple api default;
+            // color wrapper'): replace DesignColor.zoneSurface
             // (= wrapper enum wrapping Color(nsColor: .control
             // BackgroundColor)) with the bare Apple API call. The
             // wrapper added an extra type with no semantic value
             // (= it just renamed an Apple NSColor static property).
             //
-            // v0.40 boss 2026-09-08 OOB '盘一遍, 还有颜色': removed the
+            // v0.40 boss 2026-09-08 OOB 'sweep for remaining background colors: removed the
             // outer VStack's .background(.underPageBackgroundColor).
             // This was redundant (= the parent NavigationSplitShell
             // column already provides the content tier color via its
             // .windowBackgroundColor-or-clear background = visually
-            // identical). Removing this layer per the '再往上一层,
-            // 再删一层' cleanup round 3 = no chrome tier distinction
+            // identical). Removing this layer per the ',
+            // ' cleanup round 3 = no chrome tier distinction
             // anywhere in the chat zone.
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)  // prevent window shrink

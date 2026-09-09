@@ -1,6 +1,6 @@
-// CapabilityRegistry.swift · Wenshu (文枢) · v0.34
+// CapabilityRegistry.swift · Wenshu () · v0.34
 //
-// v0.34 boss 2026-09-02 OOB '其他工程上的机制我不太懂, 你看着定':
+// v0.34 boss 2026-09-02 OOB 'engineering, ':
 // Capability registry (= port of Card-master `src/bilibili-capabilities/
 // registry.ts`).
 //
@@ -31,7 +31,7 @@ import Foundation
 public protocol Capability: Sendable {
     /// Stable string id (= e.g. "chat-trigger", "wiki-smart-query").
     var id: String { get }
-    /// Chinese display label (= boss 'UI 全中文' rule).
+    /// Chinese display label (= boss 'UI in progress' rule).
     var displayName: String { get }
     /// v0.34: empty default (= no-op capability). Future tickets
     /// override this to participate in chat processing.

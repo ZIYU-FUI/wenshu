@@ -31,9 +31,9 @@ final class WenshuLibrary {
     /// All bookshelves, sorted by updatedAt descending (= Apple HIG Finder
     /// 'Recents' convention).
     private(set) var shelves: [Bookshelf] = []
-    /// v0.24 boss验收fix (Boss 8/25 sixth OOB ticket 015.019): total book
+    /// v0.24 bossverificationfix (Boss 8/25 sixth OOB ticket 015.019): total book
     /// count across all shelves (= used by projectSidebar bottom toolbar
-    /// right-side status "书: N"). Computed by iterating store.loadBooks
+    /// right-side status ": N"). Computed by iterating store.loadBooks
     /// for each shelf; cached in @Observable mirror so UI updates
     /// reactively when shelves/books change.
     private(set) var bookCount: Int = 0
@@ -70,7 +70,7 @@ final class WenshuLibrary {
         }
         // v53: also auto-select the first book in that shelf (= makes
         // the cards grid visible on first launch with existing data,
-        // instead of the '先在左边选一本书' empty state).
+        // instead of the ' empty state).
         if selectedBookId == nil, let shelfId = selectedShelfId {
             do {
                 let books = try store.loadBooks(shelfId: shelfId)
@@ -82,13 +82,13 @@ final class WenshuLibrary {
                 // empty state will render and the user can pick one.
             }
         }
-        // v0.24 boss验收fix (Boss 8/25 sixth OOB ticket 015.019): compute
+        // v0.24 bossverificationfix (Boss 8/25 sixth OOB ticket 015.019): compute
         // total book count across all shelves (= used by projectSidebar
-        // bottom toolbar right-side status '书: N').
+        // bottom toolbar right-side status ': N').
         recomputeBookCount()
     }
 
-    /// v0.24 boss验收fix (Boss 8/25 sixth OOB ticket 015.019): recompute
+    /// v0.24 bossverificationfix (Boss 8/25 sixth OOB ticket 015.019): recompute
     /// bookCount by summing books across all shelves. Public so views can
     /// trigger recomputation after shelf/book add/remove mutations.
     public func recomputeBookCount() {
@@ -238,7 +238,7 @@ final class WenshuLibrary {
         try store.loadDocuments(bookId: bookId, category: category)
     }
 
-    /// v0.30 boss OOB '为什么角色, 世界观, 后面没有显示数字': count .md
+    /// v0.30 boss OOB ',, show': count .md
     /// files directly by folder directory name. Doesn't require
     /// BookCategory (= which only has 3 cases = chapter/setting/research;
     /// the 5 user-facing folders use custom directory names like

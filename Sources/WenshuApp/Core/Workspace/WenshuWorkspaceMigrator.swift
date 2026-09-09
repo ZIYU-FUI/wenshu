@@ -24,7 +24,7 @@ import Foundation
 import SQLite3
 //  WenshuWorkspaceMigrator.swift · Wenshu · v0.23 ticket 014.002
 //
-//  Boss 2026-08-23 拍: '我想先落地, 类似 FCP 的库文件'.
+// Boss 2026-08-23: ', FCP file'.
 //
 //  Risk-averse migration tool: dry-run by default, explicit --apply to commit.
 //

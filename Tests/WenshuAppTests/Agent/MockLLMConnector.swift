@@ -3,8 +3,8 @@
 //
 //  Shared mock LLMConnector for unit tests with scripted tool_use support.
 //
-//  v0.37 enhancement (= per 老板 cadence '继续移植' + 'PO 全链路方法论执行,
-//  不要跳步骤' + '翻译这个事做完一起验视觉和前端流程' + '1 RULE 1 commit'):
+// v0.37 enhancement (= per cadence 'resume' + 'PO execute,
+// don't' + 'when done, verify visual and frontend flow together' + '1 RULE 1 commit'):
 //  MockLLMConnector now supports scripted responses that emit tool_use
 //  blocks. The v0.36 version only echoed text. The v0.37 version supports:
 //

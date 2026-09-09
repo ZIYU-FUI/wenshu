@@ -1,4 +1,4 @@
-// GridToTree.swift · Wenshu (文枢) · v0.28 ticket 028-008
+// GridToTree.swift · Wenshu () · v0.28 ticket 028-008
 //
 // Grid → tree bridge. A FancyZones grid whose zones can be
 // produced by recursive guillotine cuts (= every FancyZones

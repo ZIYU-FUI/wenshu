@@ -24,7 +24,7 @@
 // 3. Document detail (= single card with full body).
 //
 // Double-click on a card (= will be wired to editor in Ticket 3 = boss:
-// '双击卡片才会在编辑器里打开'). For now, single-click selects.
+// 'double-click to open in editor'). For now, single-click selects.
 //
 // Grid uses LazyVGrid (= Apple standard for variable-height grid;
 // matches Finder icon view style).
@@ -132,7 +132,7 @@ enum EntitySortOrder: String, CaseIterable, Identifiable {
 // but PreviewScope is constructed from it; equality comparisons
 // happen upstream via sidebarSelection).
 //
-// v0.40 boss 9/7 OOB '目录树和卡片, 都没有对应的持久化':
+// v0.40 boss 9/7 OOB 'directory treecard, ':
 // PreviewScope is Codable so it can be persisted on the active
 // EditorTab (= sourceScope) and restored on launch (= drives
 // sidebar expansion + preview card display).
@@ -163,7 +163,7 @@ struct BookDoc: Identifiable, Hashable {
     /// "placeholders"). Used for the folder badge in the card.
     let folderName: String
     /// Full filename including .md extension (= e.g.
-    /// "文枢是什么.md").
+    /// "yes.md").
     let fileName: String
     /// File modification date (= used for sort: createdAt /
     /// modifiedAt).
@@ -184,7 +184,7 @@ struct BookDoc: Identifiable, Hashable {
         String(body.prefix(200))
     }
 
-    /// Path component (= "world/文枢是什么.md") for sort by file
+    /// Path component (= "world/yes.md") for sort by file
     /// name within folder (= boss 8/31 OOB: directory scoping
     /// includes the folder context).
     var displayPath: String {
@@ -214,8 +214,8 @@ struct PreviewPane: View {
     /// capture; = same code path handles both reference and bookDoc
     /// sources since B-02's CardSource enum unification).
     ///
-    /// BOSS 9/8 '点杜甫卡片, 新的标签页显示的名字不对' (= clicking
-    /// the 杜甫 card opens a new tab with the wrong name):
+    /// BOSS 9/8 'clicking the Dufu card opens a tab with wrong name' (= clicking
+    /// the card opens a new tab with the wrong name):
     /// the previous `onDoubleClick: () -> Void` had NO way to
     /// identify which card was clicked (= the closure was bound
     /// at ForEach time but didn't capture per-card state). The
@@ -236,14 +236,14 @@ struct PreviewPane: View {
     /// button (= the scope just renders its tab bar + content).
     var trailingButton: AnyView? = nil
 
-    /// v0.30 boss OOB: '所有卡片默认排序是拼音首字母先后顺序'.
+    /// v0.30 boss OOB: 'carddefaultyes'.
     /// Default = .pinyinFirstLetter (= boss spec). Owned by
     /// WorkspaceView (= shared with PreviewSortMenuButton via
     /// the @State binding) so changing the sort via the tab
     /// bar trailing button re-renders this view's card grid.
     @Binding var previewSortOrder: EntitySortOrder
 
-    /// v0.40 boss 9/7 OOB '每打一个字, 内容自动刷新. 清空恢复全显':
+    /// v0.40 boss 9/7 OOB ', autorefresh. restore':
     /// search query for the preview pane. Owned by PreviewPane
     /// (= previously a @Binding to WorkspaceView, = now reverted
     /// to @State since the search bar lives inside PreviewPane
@@ -300,15 +300,15 @@ struct PreviewPane: View {
     // sub-area width of ~250 PT in a 1452-wide window with a
     // 200-PT sidebar column) ensures the cards grid falls
     // back to 1 column when the preview pane is nested in the
-    // M2 shell's sidebar sub-area. The 老 PaneSplitHost path
+    // M2 shell's sidebar sub-area. The legacy PaneSplitHost path
     // (= the preview pane is a standalone 4th column at ~250-400
     // PT) is unaffected because that column is still wider than
     // 350 PT = stays in 2-column mode.
     private static let twoColumnBreakpoint: CGFloat = 350
 
     var body: some View {
-        // v0.40 boss 9/7 OOB '位置错, 在顶栏下方, 不是在顶栏上方.
-        // 你可以参考一下编辑器的代码, 看是如何实现的': the search bar
+        // v0.40 boss 9/7 OOB ', top bar, yestop bar.
+        // caneditor, yes': the search bar
         // belongs BELOW the ZoneContentView's tab strip (= at the same
         // Y as the editor's pencil/arrow/refresh toolbar inside
         // EditorPlaceholder), NOT above the tab strip. Pattern matches
@@ -322,7 +322,7 @@ struct PreviewPane: View {
         // column. Body content (Group { switch scope }) goes below
         // the search bar.
         //
-        // v0.40 boss 9/7 OOB '这个顶栏和搜索之间是多了什么东西占位了吗':
+        // v0.40 boss 9/7 OOB 'top barsearchyes':
         // the .padding(DesignTokens.chromePaddingHero) was wrapping
         // the entire VStack (= search bar + body), = creating a visual
         // gap between the ZoneContentView tab strip and the search
@@ -352,8 +352,8 @@ struct PreviewPane: View {
                     emptyScopeView()
                 }
             }
-            // boss 9/8 round 1 '卡片预览区, 搜索卡片和 icon, 居左
-            // 位置不对, 不够 18pt': body content padding was
+            // boss 9/8 round 1 'card, searchcard icon,
+            //, 18pt': body content padding was
             // chromePaddingHero = 20 PT; = bumped to 18 PT.
             //
             // Boss 9/8 round 2: '18 is a bit wide; Apple API default
@@ -380,7 +380,7 @@ struct PreviewPane: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    /// v0.40 boss 9/7 OOB '在顶栏下方, 参考编辑器的代码, 看是如何实现的':
+    /// v0.40 boss 9/7 OOB 'top bar, editor, yes':
     /// preview-pane search bar (= 30 PT tall, = matches
     /// `LayoutTokens.toolbarHeight` = the editor's pencil/arrow toolbar
     /// inside EditorPlaceholder). Pattern matches the editor:
@@ -405,7 +405,7 @@ struct PreviewPane: View {
                 text: $previewSearchQuery
             )
             .textFieldStyle(.plain)
-            // v0.40 boss 9/7 OOB '拼音首字母搜索, 没有实现':
+            // v0.40 boss 9/7 OOB 'search, ':
             // .help() on the search TextField advertises the
             // pinyin feature (= Apple canonical tooltip on hover;
             // = discoverable feature without needing docs).
@@ -470,11 +470,11 @@ struct PreviewPane: View {
     // MARK: - Scope subviews
 
     /// Reference library scope: existing entity card flow (= boss 8/30
-    /// OOB: '随心记的卡片流'). category nil = overview (= all
+    /// OOB: 'card'). category nil = overview (= all
     /// entities, flat grid per boss 8/30 OOB); non-nil = category filter.
     @ViewBuilder
     private func referenceScopeView(category: EntityCategory?) -> some View {
-        // v0.40 boss 9/7 OOB '拼音首字母搜索, 没有实现': apply the
+        // v0.40 boss 9/7 OOB 'search, ': apply the
         // search filter (= previewSearchQuery) on top of the
         // category filter. Both filters compose (= all entities →
         // search filter → category filter).
@@ -564,7 +564,7 @@ struct PreviewPane: View {
                     // 26 PT on macOS 27 Tahoe) which made the editor
                     // title visually dominant vs sidebar items
                     // (".headline" = 13 PT) and kanban cards (=
-                    // .headline). Boss 9/7 OOB: '调成其他区一样大' =
+                    // .headline). Boss 9/7 OOB: ' =
                     // align editor MD font to the rest of the app
                     // (= use .headline everywhere chrome uses
                     // .headline). The recent ab2b57021 fix changed
@@ -607,8 +607,8 @@ struct PreviewPane: View {
             // .padding(DesignTokens.chromePaddingLeading) was applied
             // here (= 18 PT), now redundant (= ZoneContentView
             // already wraps this content with the same inset).
-            // Removed the per-zone call (= boss 9/7 '样式其实可以
-            // 抽象统一' = the content view should not own its own
+            // Removed the per-zone call (= boss 9/7 'can
+            // ' = the content view should not own its own
             // edge inset; = the wrapper owns it = one token adjusts
             // all 5 zones).
             .frame(maxWidth: 800, alignment: .leading)
@@ -655,8 +655,8 @@ struct PreviewPane: View {
                         LazyVGrid(columns: adaptiveColumns(width: geometry.size.width), spacing: 16) {
                             ForEach(inCategory) { entity in
                                 Card(source: .reference(entity)) { source in
-                                    // BOSS 9/8 '点杜甫卡片,
-                                    // 新的标签页显示的名字不对':
+                                    // BOSS 9/8 'card,
+                                    // show':
                                     // the trailing closure here IS
                                     // Card's onDoubleClick (= now
                                     // takes the CardSource as a
@@ -677,8 +677,8 @@ struct PreviewPane: View {
                         // Previously (.contentInsetStyle(.standard,
                         // edges: .vertical) = 18 PT) created a 35 PT
                         // inconsistency vs zone 1 sidebar / zone 3
-                        // editor (= boss 9/7 round 5 '各区域内部元素,
-                        // 符合上下左右间距规则' = all 6 zones should
+                        // editor (= boss 9/7 round 5 'region,
+                        // ' = all 6 zones should
                         // share the same chrome-tier-to-content-tier
                         // inset). The previous 18 PT was Apple's
                         // .defaultContentMargins (= NSTextView
@@ -717,8 +717,8 @@ struct PreviewPane: View {
                     LazyVGrid(columns: adaptiveColumns(width: geometry.size.width), spacing: 16) {
                         ForEach(sorted) { entity in
                             Card(source: .reference(entity)) { source in
-                                // BOSS 9/8 '点杜甫卡片,
-                                // 新的标签页显示的名字不对':
+                                // BOSS 9/8 'card,
+                                // show':
                                 // the trailing closure is Card's
                                 // onDoubleClick (= takes CardSource);
                                 // forward to PreviewPane's onDoubleClick
@@ -736,7 +736,7 @@ struct PreviewPane: View {
     /// Empty-state placeholder (= boss UX 8/27 '...no markdown body
     /// = leave a clear empty state, not a blank white pane').
     @ViewBuilder
-    /// v0.40 boss 9/7 OOB follow-up '和编辑器用同一个 ICON': use
+    /// v0.40 boss 9/7 OOB follow-up 'editor ICON': use
     /// the SAME icon (= book-open) as the editor empty state, so
     /// all "no content" panels in the workspace share one visual
     /// icon. Caller can override per-call (= rare; most callers
@@ -917,8 +917,8 @@ struct PreviewPane: View {
                 ) {
                     ForEach(sorted) { doc in
                         Card(source: .bookDoc(doc)) { source in
-                            // BOSS 9/8 '点杜甫卡片,
-                            // 新的标签页显示的名字不对':
+                            // BOSS 9/8 'card,
+                            // show':
                             // forward the BookDoc CardSource
                             // to PreviewPane's onDoubleClick so
                             // the EXACT clicked book doc opens.
@@ -933,11 +933,11 @@ struct PreviewPane: View {
 
     /// Convert Chinese title to its pinyin first letter (= uppercase).
     /// Uses Apple's CFStringTransform (kCFStringTransformToLatin +
-    /// kCFStringTransformStripDiacritics). Example: "李白" → "L",
-    /// "未分类研究材料" → "W", "宋朝海上丝绸之路" → "S".
+    /// kCFStringTransformStripDiacritics). Example: "" → "L",
+    /// "" → "W", "" → "S".
     private func pinyinFirstLetter(_ title: String) -> String {
         let mutable = NSMutableString(string: title)
-        // Convert CJK characters to latinized pinyin (e.g. "李白" → "Lǐ Bái").
+        // Convert CJK characters to latinized pinyin (e.g. "" → "Lǐ Bái").
         CFStringTransform(mutable, nil, kCFStringTransformToLatin, false)
         // Strip diacritics (e.g. "Lǐ Bái" → "Li Bai").
         CFStringTransform(mutable, nil, kCFStringTransformStripDiacritics, false)
@@ -950,18 +950,18 @@ struct PreviewPane: View {
         return "~"
     }
 
-    /// v0.40 boss 9/7 OOB '拼音首字母搜索, 没有实现, 比如 d, 可以
-    /// 筛出杜甫': convert a CJK + ASCII title to its FULL pinyin
+    /// v0.40 boss 9/7 OOB 'search,, d, can
+    /// ': convert a CJK + ASCII title to its FULL pinyin
     /// first-letter string (= concatenated initial of each pinyin
     /// syllable, all uppercase, no separator). Examples:
-    /// - "杜甫"          → "DF"
-    /// - "李白"          → "LB"
-    /// - "汉尼拔的战术"  → "HNBDZS"
-    /// - "Hello 世界"    → "HELLO SJ"
-    /// - "AB 测试 CD"    → "AB CD"
+    /// - "" → "DF"
+    /// - "" → "LB"
+    /// - "" → "HNBDZS"
+    /// - "Hello " → "HELLO SJ"
+    /// - "AB test CD" → "AB CD"
     ///
     /// Implementation: CFStringTransform to convert CJK to latinized
-    /// pinyin (= "杜甫" → "Du Fu", "李白" → "Li Bai"), strip
+    /// pinyin (= "" → "Du Fu", "" → "Li Bai"), strip
     /// diacritics, then extract the first letter of each whitespace-
     /// separated word. Uses Apple's CoreFoundation string transform
     /// (= no third-party pinyin lib = AGENTS.md §11.1 hard rule).
@@ -982,11 +982,11 @@ struct PreviewPane: View {
         return String(initials)
     }
 
-    /// v0.40 boss 9/7 OOB '拼音首字母搜索, 没有实现, 比如 d, 可以
-    /// 筛出杜甫': filter the entity list by the current search query.
+    /// v0.40 boss 9/7 OOB 'search,, d, can
+    /// ': filter the entity list by the current search query.
     /// Matches against BOTH:
     /// 1. Original title / summary substring (= case-insensitive)
-    /// 2. Pinyin first-letter substring (= e.g. "d" matches "杜甫" → DF)
+    /// 2. Pinyin first-letter substring (= e.g. "d" matches "" → DF)
     /// Empty query = pass-through (= show all entities).
     private func searchFilteredEntities(_ entities: [Reference]) -> [Reference] {
         let query = previewSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1030,7 +1030,7 @@ struct PreviewPane: View {
 /// Tap = select (= not wired yet). Double-click = open in editor (= boss
 /// Ticket 3 hook).
 ///
-/// Boss OOB v0.30: '卡片要用我们引入的缩略图的库, 加缩略图'. Thumbnail
+/// Boss OOB v0.30: 'card, '. Thumbnail
 /// strategy: since Reference entities are text-only (= .md bodies with
 /// no associated image), we use the EntityType icon as a large
 /// prominent thumbnail (= e.g. user-round for character, lightbulb
@@ -1050,8 +1050,8 @@ struct PreviewPane: View {
 ///
 /// CardSource = the only "data shape" the card knows. Adding a new
 /// source type = one new case + one computed-property branch.
-/// BOSS 9/8 '点杜甫卡片, 新的标签页显示的名字不对' (= clicking
-/// the 杜甫 card opened a new tab named 'preview-sample'):
+/// BOSS 9/8 'clicking the Dufu card opens a tab with wrong name' (= clicking
+/// the card opened a new tab named 'preview-sample'):
 /// the source value is now passed from PreviewPane.Card's
 /// onDoubleClick closure to WorkspaceView's openCardInEditor
 /// so the EXACT clicked card's .md opens (= not the topmost
@@ -1106,7 +1106,7 @@ private struct Card: View {
 
     @State private var isHovered: Bool = false
 
-    /// v0.34 B-26 boss 9/3 '同目录只有第一次双击响应': Apple's
+    /// v0.34 B-26 boss 9/3 'directorydouble-click': Apple's
     /// `.onTapGesture(count: 2)` was eaten by LazyVGrid's ScrollView
     /// gesture recognizer. The previous attempt (= a timestamp
     /// latch within 300 ms) was too tight (= macOS default
@@ -1131,7 +1131,7 @@ private struct Card: View {
     /// changes (= the ForEach rebuilds the Card when the user
     /// switches sidebar scope; = that is actually the desired
     /// behavior here — switching scope = "fresh start" for the
-    /// double-click detector; = boss OOB '切换目录后, 会再次识别一次').
+    /// double-click detector; = boss OOB 'directory, ').
     @State private var clickCount: Int = 0
     @State private var lastClickTimestamp: TimeInterval = 0
 
@@ -1192,7 +1192,7 @@ private struct Card: View {
         )
         .onHover { isHovered = $0 }
         .contentShape(Rectangle())
-        // v0.34 B-26 boss 9/3 '同目录只有第一次双击响应': click-count
+        // v0.34 B-26 boss 9/3 'directorydouble-click': click-count
         // latch (= more robust than the 300 ms timestamp latch; = the
         // user-reported failure was the timestamp being too tight).
         // v0.34 B-26-FIX: every tap increments `clickCount`. The *next*
@@ -1215,7 +1215,7 @@ private struct Card: View {
                 // Second tap within the interval = double click.
                 clickCount = 0
                 lastClickTimestamp = 0
-                // BOSS 9/8 '点杜甫卡片, 新的标签页显示的名字不对':
+                // BOSS 9/8 'clicking the Dufu card opens a tab with wrong name':
                 // pass the clicked CardSource (= .reference or
                 // .bookDoc) to the parent's onDoubleClick handler so
                 // it can open the EXACT .md file (= not the topmost

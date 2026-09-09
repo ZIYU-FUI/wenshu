@@ -1,16 +1,16 @@
 //
-//  SubAgentProgressView.swift · Wenshu · v0.23 ticket 005 (sub-agent progress 明盒)
+// SubAgentProgressView.swift · Wenshu · v0.23 ticket 005 (sub-agent progress)
 //
 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-//  Boss 2026-08-23 拍: '看板放在聊天动态区, 虽然让用户知道工作进度的明盒'.
+// Boss 2026-08-23: 'kanbanchat, userworkprogress'.
 //  Reads from KanbanStore, renders running / done sub-agent tasks in aiDynamic zone.
 //
 
 import SwiftUI
 
-/// Sub-agent progress view: 明盒 (transparent open box) showing all sub-agent tasks.
+/// Sub-agent progress view: (transparent open box) showing all sub-agent tasks.
 /// Reads KanbanStore (actor) and renders task list with status, title, duration.
-/// Per boss 8/23 拍: '让用户知道工作进度的明盒'.
+/// Per boss 8/23: 'userworkprogress'.
 public struct SubAgentProgressView: View {
     @State private var store: KanbanStore?
     @State private var tasks: [KanbanTask] = []
@@ -64,9 +64,9 @@ public struct SubAgentProgressView: View {
             }
         }
         .padding()
-        // v0.24 boss验收fix (2026-08-24): removed fixed minWidth/minHeight.
+        // v0.24 bossverificationfix (2026-08-24): removed fixed minWidth/minHeight.
         // Tab content must follow zone size, not force zone to be 480x320.
-        // Boss 8/24 feedback: 'tab 视图不改变区域大小, 自动适配区域大小'.
+        // Boss 8/24 feedback: 'tab viewchangechangeregionsize, autoregionsize'.
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .task {
             if store == nil {

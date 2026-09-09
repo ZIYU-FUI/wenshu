@@ -1,9 +1,9 @@
 //
 //  ObsidianFixturesTests.swift · Wenshu · v0.19 ticket 23
-//  老板 2026-08-19 evening 拍 Obsidian 复刻范围 A + '复刻后端, 前端不接入核心项目'.
+// 2026-08-19 evening Obsidian A + ', '.
 //
-//  集成测试: Obsidian 公开示例 fixture 在 wenshu 解析 + 编码 round-trip 1:1.
-//  跟 Obsidian / SilverBullet 双向兼容 (ticket 12 / 13 / 15 / 17 / 18 跨工具兼容汇总).
+// test: Obsidian fixture wenshu + encoding round-trip 1:1.
+// Obsidian / SilverBullet (ticket 12 / 13 / 15 / 17 / 18).
 //
 
 import Testing
@@ -13,7 +13,7 @@ import Foundation
 @Suite("Obsidian 跨工具兼容性集成 (Obsidian replica)")
 struct ObsidianFixturesTests {
 
-    // MARK: - JSON Canvas round-trip (跟 https://jsoncanvas.org/ 首页示例 1:1)
+    // MARK: - JSON Canvas round-trip (https://jsoncanvas.org/ 1:1)
 
     @Test("JSON Canvas jsoncanvas.org 首页示例 round-trip")
     func jsonCanvasSpecExample() throws {
@@ -60,7 +60,7 @@ struct ObsidianFixturesTests {
         #expect(decoded.nodes.map { $0.id } == decodedAgain.nodes.map { $0.id })
     }
 
-    // MARK: - Internal Link 双链 round-trip
+    // MARK: - Internal Link round-trip
 
     @Test("Internal Link [[name]] 双向兼容 Obsidian + SilverBullet")
     func internalLinkBidirectional() {
@@ -72,7 +72,7 @@ struct ObsidianFixturesTests {
         #expect(parsed[1].text == "宝玉")
     }
 
-    // MARK: - Bases .base YAML round-trip (跟 https://obsidian.md/help/bases/syntax 1:1)
+    // MARK: - Bases .base YAML round-trip (https://obsidian.md/help/bases/syntax 1:1)
 
     @Test("Bases syntax 文档示例 round-trip (简化子集)")
     func basesSpecExample() throws {
@@ -88,7 +88,7 @@ struct ObsidianFixturesTests {
         #expect(decoded.viewCount == 0, "简化 parser 不解析 views, 后续 ticket 可加 groupBy / filters nested")
     }
 
-    // MARK: - Template date token round-trip (跟 Obsidian Templates 1:1)
+    // MARK: - Template date token round-trip (Obsidian Templates 1:1)
 
     @Test("Template date tokens {{date}} {{time}} {{title}} 替换")
     func templateTokens() {
@@ -99,19 +99,19 @@ struct ObsidianFixturesTests {
         #expect(result.contains("作者: 曹雪芹"))
     }
 
-    // MARK: - Markdown frontmatter (Obsidian Properties) — wenshu 不解析, 留 raw
+    // MARK: - Markdown frontmatter (Obsidian Properties) — wenshu, raw
 
     @Test("Markdown frontmatter 保留原文 (wenshu 不解析 Properties)")
     func frontmatterPassThrough() {
         let content = "---\ntitle: 我的笔记\ntags: [林黛玉, 贾宝玉]\n---\n# 正文\n林黛玉 进贾府"
-        // wenshu 现阶段不解析 YAML frontmatter (后续 ticket 可加), 留 raw content
-        // 验证 content 完整保留
+        // wenshu YAML frontmatter (ticket), raw content
+        // verify content
         #expect(content.contains("title: 我的笔记"))
         #expect(content.contains("# 正文"))
         #expect(content.contains("林黛玉 进贾府"))
     }
 
-    // MARK: - Outline (跟 Obsidian Outline 1:1)
+    // MARK: - Outline (Obsidian Outline 1:1)
 
     @Test("Outline H1-H6 解析")
     func outlineHierarchical() {
@@ -126,13 +126,13 @@ struct ObsidianFixturesTests {
         #expect(items.map { $0.level } == [1, 2, 3, 1])
     }
 
-    // MARK: - Word count (跟 Obsidian Word count 1:1)
+    // MARK: - Word count (Obsidian Word count 1:1)
 
     @Test("Word count 中英文混合统计")
     func wordCountMixed() {
         let content = "Hello 林黛玉 world"
         let count = WordCounter.count(content)
         #expect(count.words == 2)  // Hello / world
-        #expect(count.chineseChars == 3)  // 林黛玉 = 3 中文字
+        #expect(count.chineseChars == 3)  // = 3 in progress
     }
 }

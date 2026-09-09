@@ -1,4 +1,4 @@
-// Character.swift · Wenshu (文枢) · v0.26 (FCP library replica — character entity)
+// Character.swift · Wenshu () · v0.26 (FCP library replica — character entity)
 //
 // Domain model for a single character (= a fictional person living
 // inside a Book). Book-private (= per FCP Role pattern: a "role" is a
@@ -67,21 +67,21 @@ enum CharacterRole: String, CaseIterable, Codable, Sendable {
 }
 
 /// A single character (= one fictional person inside a Book).
-/// Book-private (= Book 1's "张三" and Book 2's "张三" are unrelated
+/// Book-private (= Book 1's "" and Book 2's "" are unrelated
 /// entries, even though the names are similar — same FCP Event
 /// metadata boundary).
 ///
 /// The full biography lives in the .md body (= free-form markdown
 /// the user writes). This struct holds the structured metadata used
-/// for the second-column card grid (= boss 8/26 '卡片样式就是展示文档
-/// 的重点摘要').
+/// for the second-column card grid (= boss 8/26 'cardyes
+/// ').
 struct Character: Identifiable, Hashable, Codable, Sendable {
     let id: UUID
 
     /// Parent book. Required.
     let bookId: UUID
 
-    /// Character name shown in the card (= 角色名).
+    /// Character name shown in the card (=).
     var name: String
 
     /// Optional age. v0.27+ may add a `birthDate` field for richer
@@ -91,13 +91,13 @@ struct Character: Identifiable, Hashable, Codable, Sendable {
     /// Narrative role (= FCP Role pattern). Drives color coding.
     var role: CharacterRole
 
-    /// Optional one-line narrative arc summary (= 主角从 a 状态经
-    /// 过 b 事件最终 c 状态). Drives the card's secondary line.
+    /// Optional one-line narrative arc summary (= a status
+    /// b c status). Drives the card's secondary line.
     var arc: String?
 
-    /// One-line summary shown on the card (= boss 8/26 '卡片样式就是
+    /// One-line summary shown on the card (= boss 8/26 'cardyes
     // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-    /// 展示文档的重点摘要').
+    /// ').
     var summary: String
 
     /// Optional cross-references to other entities:

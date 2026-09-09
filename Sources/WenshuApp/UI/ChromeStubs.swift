@@ -1,10 +1,10 @@
 // ChromeStubs.swift
 //
-// v0.40 boss 2026-09-09 OOB '方案 A 全 Apple native': stub file
+// v0.40 boss 2026-09-09 OOB 'Plan A: full Apple native': stub file
 // for the deleted chrome types (= ZonePerRegionChrome, RegionTabBar,
 // PaneStatusBar, RegionContentBackground, chromeBottomBarStyle,
 // chromeZoneBackgroundStyle, regionContentBackground) so the
-// 老 PaneSplitHost path (= default flag `wenshu.useThreeColumnSplit = false`)
+// legacy PaneSplitHost path (= default flag `wenshu.useThreeColumnSplit = false`)
 // keeps compiling (= the old path is dead at runtime, but the
 // code is preserved in the tree per project baseline). Each
 // stub is a no-op pass-through (= no chrome wrapping = old path
@@ -12,13 +12,13 @@
 // only).
 //
 // The 3-column M1 NavigationSplitShell is the active path; = the
-// stubs here are ONLY consumed by 老路径 code. When the old path
+// stubs here are ONLY consumed by legacy path code. When the old path
 // is fully removed (= future ticket = cleanup of
 // WorkspaceView + TabContentDispatcher + EditorContentPlaceholder
 // + PreviewTabBackground + ChatZoneTabBar + ZoneContentView +
 // NewLibraryOutlineView), this stub file can be deleted.
 //
-// Per boss 2026-09-08 OOB '方案 A 全 Apple native': the entire
+// Per boss 2026-09-08 OOB 'Plan A: full Apple native': the entire
 // wenshu UI layer must rely on Apple's built-in NavigationSplitView
 // Liquid Glass material (= WWDC25-219 'Liquid Glass is composed
 // of a number of layers that work together' = no custom chrome

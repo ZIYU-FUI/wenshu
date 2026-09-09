@@ -21,7 +21,7 @@
 //   exposes but wenshu's AsyncDelegation does not.
 // - Sources/WenshuApp/Core/Agent/AgentInitDefaults.swift (~100 LOC)
 //   = per-profile defaults extracted at spawn time (= boss OOB
-//   "工程的事你自己决定" -> MVP defaults aligned with hermes).
+// "engineering" -> MVP defaults aligned with hermes).
 // - Tests/WenshuAppTests/Core/Agent/AgentLifecycleTrackerTests.swift
 //   (~120 LOC, ~10 tests).
 //

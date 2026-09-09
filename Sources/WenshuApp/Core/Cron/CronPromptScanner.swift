@@ -1,7 +1,7 @@
 //
 //  CronPromptScanner.swift · Wenshu · v0.23 ticket 013.007 (hermes gap 7)
 //
-//  Boss 2026-08-23 拍: hermes _scan_cron_prompt parity.
+// Boss 2026-08-23: hermes _scan_cron_prompt parity.
 //  Source: github.com/NousResearch/hermes-agent/blob/main/tools/cronjob_tools.py:260
 //
 //  Hermes pattern:

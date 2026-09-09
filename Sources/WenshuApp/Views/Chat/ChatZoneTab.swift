@@ -5,7 +5,7 @@
 //  `enum ChatZoneTab` inside `struct ChatZoneView`, line 1155).
 //
 //  v0.21 ticket 43: chat zone top-bar has 3 tabs to switch between
-//  (boss 2026-08-22 06:22 拍 backlog 20). The nested enum blocked
+// (boss 2026-08-22 06:22 backlog 20). The nested enum blocked
 //  the upcoming ChatZoneTabBar extraction (= ChatZoneTabBar's
 //  parameter type was `ChatZoneTab` = a path-bound
 //  nested type that can't cross file boundaries). Promoting the
@@ -31,9 +31,9 @@
 import SwiftUI
 
 // v0.21 ticket 43: chat zone top-bar has 3 tabs to switch between
-// (boss 2026-08-22 06:22 拍 backlog 20).
+// (boss 2026-08-22 06:22 backlog 20).
 // v0.40 apple-001 phase 3 ticket 4a: rawValue switched from CJK display
-// labels (= "对话" / "搜索" / "设置") to ASCII identifiers (= "chat" /
+// labels (= "dialog" / "search" / "Settings") to ASCII identifiers (= "chat" /
 // "search" / "settings") per Apple HIG convention for enum rawValues
 // (= machine identifiers should be ASCII). Display labels moved to
 // computed `displayLabel` property using WenshuI18n.t() (= "tab.title.chat"
@@ -53,9 +53,9 @@ enum ChatZoneTab: String, CaseIterable, Identifiable {
     }
     var icon: String {
         switch self {
-        case .chat: return "bot"  // v0.25.1 (= ticket 005): 老板 2026-08-26 拍 .bot 直接替换 SF person.crop... (= Lucide-first helper 在 ChatZoneTabBar 里用了, "bot" 命中 Lucide, SF Symbol 作为 fallback). Old (= ticket 015.014 robot face) was SF `person.crop.circle.badge.questionmark` (= Lucide 没有同名, 只能 Image(systemName:) fallback, 不再使用).
-        case .search: return "magnifyingglass"  // 老板 8/25 拍 "保留现在的这个"
-        case .settings: return "slider.horizontal.3"  // 老板 8/25 拍 "保留现在的这个"
+        case .chat: return "bot"  // v0.25.1 (= ticket 005): 2026-08-26 .bot replace SF person.crop... (= Lucide-first helper ChatZoneTabBar, "bot" in progress Lucide, SF Symbol fallback). Old (= ticket 015.014 robot face) was SF `person.crop.circle.badge.questionmark` (= Lucide, Image(systemName:) fallback,).
+        case .search: return "magnifyingglass"  // 8/25 ""
+        case .settings: return "slider.horizontal.3"  // 8/25 ""
         }
     }
 }

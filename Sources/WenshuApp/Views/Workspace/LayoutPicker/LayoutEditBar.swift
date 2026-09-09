@@ -1,4 +1,4 @@
-// LayoutEditBar.swift · Wenshu (文枢) · v0.28 ticket 028-007
+// LayoutEditBar.swift · Wenshu () · v0.28 ticket 028-007
 //
 // Floating TreeEditBar that appears when layout edit mode is on
 // (= hermes `edit-bar.tsx:25-108` port). Hosts the LayoutPicker
@@ -17,12 +17,12 @@
 import SwiftUI
 
 /// LayoutEditBar — the floating palette container. Shows the
-/// LayoutPicker inside (= 4 builtin preset cards + a "+ 新建网格布局"
+/// LayoutPicker inside (= 4 builtin preset cards + a "+ gridlayout"
 /// dashed button + a save-current-as-preset button at the bottom).
 ///
 /// Per ticket 028-007 §"Acceptance criteria": the bar is 26rem wide,
-/// centered, has a draggable header, and shows the "重置" (ghost)
-/// + "完成" (outline) buttons in the header.
+/// centered, has a draggable header, and shows the "reset" (ghost)
+/// + "complete" (outline) buttons in the header.
 ///
 /// Position state is per-session @State (= hermes `lastPalettePos`
 /// pattern); first show resets to center.
@@ -54,9 +54,9 @@ struct LayoutEditBar: View {
             )
         }
         .frame(width: 26 * 16)  // 26rem (= 26 * 16 PT in macOS 1x)
-        // v0.28 followup Boss UX round 19 (Boss 2026-08-29 OOB '所有
+        // v0.28 followup Boss UX round 19 (Boss 2026-08-29 OOB '
         // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-        // 区域的顶栏, 底栏, 背景, 用的颜色, 可以适配液态玻璃吗'):
+        // regiontop bar, bottom bar, background, color, canLiquid Glass'):
         // v0.40 boss real-device test 2026-09-07: removed
         // .regularMaterial (= the Liquid Glass translucent
         // capsule); now uses Color.clear (= no background =
@@ -118,8 +118,8 @@ struct LayoutEditBar: View {
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, DesignTokens.chromePaddingMicro)
                         .padding(.vertical, DesignTokens.chromePaddingHotkeyVertical)
-                        // v0.32 boss 2026-09-02 OOB ('全走 apple api
-                        // 默认'): use bare Apple Material catalog
+                        // v0.32 boss 2026-09-02 OOB (' apple api
+                        // default'): use bare Apple Material catalog
                         // directly (= the canonical SwiftUI .thin
                         // Material from the Material enum). The
                         // previous RegionHoverWashStyle wrapper

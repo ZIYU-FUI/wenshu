@@ -4,9 +4,9 @@
 //  Tests for WenshuLLMMessage + WenshuLLMRequest + WenshuLLMBlock +
 //  WenshuLLMUsage + WenshuLLMResponse + WenshuLLMError (= v0.35 ticket 001).
 //
-//  Per 老板 cadence 2026-09-03 '继续推进移植' (= 长期 auto-pilot mode
-//  per '一直跑移植就行' + '不用问我了') + 'PO 全链路方法论执行,
-//  不要跳步骤' + '1 RULE 1 commit'.
+// Per cadence 2026-09-03 'resume' (= auto-pilot mode
+// per 'ok' + ') + 'PO execute,
+// don't' + '1 RULE 1 commit'.
 //
 //  Safe scope (= NOT v0.34 in-flight) = WenshuVerifier.swift is v0.35
 //  ticket 001 (= my work, modified in v0.36 + v0.37 to add 7-connector

@@ -1,4 +1,4 @@
-// LibraryLifecycleHook.swift · Wenshu (文枢) · v0.27 (FCP library replica wiring)
+// LibraryLifecycleHook.swift · Wenshu () · v0.27 (FCP library replica wiring)
 //
 // v0.27-01 = App.swift wiring deferred from v0.26 ticket 019.
 //

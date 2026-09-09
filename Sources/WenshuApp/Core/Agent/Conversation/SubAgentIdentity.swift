@@ -1,13 +1,13 @@
 //
 //  SubAgentIdentity.swift · Wenshu · v0.23 ticket 001 (5 sub-agent system prompts)
 //
-//  Boss 2026-08-23 拍: "一个类别的工作, 交给一个专职人员".
-//  5 sub-agents under WenshuConductor (文枢 = 主调度):
-//    - Researcher: 找资料 (search / web / linkgraph)
-//    - Writer: 写 (composer / template / wordcount)
-//    - Analyst: 分析结构 (outline / bases / graph)
-//    - Archivist: 管记忆 (memory / bookmark / backup)
-//    - Auditor: 质量门控 (memory read-only, 自动 verify)
+// Boss 2026-08-23: "work, ".
+// 5 sub-agents under WenshuConductor (=):
+// - Researcher: (search / web / linkgraph)
+// - Writer: (composer / template / wordcount)
+// - Analyst: (outline / bases / graph)
+// - Archivist: (memory / bookmark / backup)
+// - Auditor: (memory read-only, auto verify)
 //
 
 import Foundation
@@ -33,7 +33,7 @@ public enum SubAgentIdentity {
         case .archivist: base = archivistPrompt
         case .auditor: base = auditorPrompt
         }
-        // v0.23 ticket 008.004: append shared tool restrictions section (boss 8/23 拍).
+        // v0.23 ticket 008.004: append shared tool restrictions section (boss 8/23).
         return base + toolRestrictionsSection
     }
 

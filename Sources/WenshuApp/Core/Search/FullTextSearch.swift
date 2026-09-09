@@ -1,10 +1,10 @@
 //
-//  FullTextSearch.swift · Wenshu · v0.19 ticket 17 (Obsidian replica, 后端先做)
-//  老板 2026-08-19 evening 拍 Obsidian 复刻范围 A + '复刻后端, 前端不接入核心项目'.
+// FullTextSearch.swift · Wenshu · v0.19 ticket 17 (Obsidian replica, do first)
+// 2026-08-19 evening Obsidian A + ', '.
 //
-//  SQLite FTS5 全文索引 (Apple HIG 真值: SQLite builtin FTS5, https://www.sqlite.org/fts5.html).
-//  跟 v0.18 ticket 01 MemoryStore 同 actor + SQLitePtr + bootstrap() 范式.
-//  接口对齐 Obsidian Search plugin 真值: index / remove / search / highlight.
+// SQLite FTS5 (Apple HIG: SQLite builtin FTS5, https://www.sqlite.org/fts5.html).
+// v0.18 ticket 01 MemoryStore actor + SQLitePtr + bootstrap() .
+// Obsidian Search plugin: index / remove / search / highlight.
 //
 
 
@@ -32,12 +32,12 @@
 import Foundation
 import SQLite3
 
-/// 1 条搜索结果 (跟 Obsidian search result 1:1)
+/// 1 search (Obsidian search result 1:1)
 public struct SearchResult: Equatable, Sendable {
     public let docId: String
-    public let snippet: String       // 含 <mark> 高亮的片段
-    public let rank: Double          // BM25 排名 (越小越相关)
-    public let line: Int             // 命中行号 (0-indexed)
+    public let snippet: String       // <mark>
+    public let rank: Double          // BM25 ()
+    public let line: Int             // in progressok (0-indexed)
 
     public init(docId: String, snippet: String, rank: Double, line: Int) {
         self.docId = docId
@@ -47,14 +47,14 @@ public struct SearchResult: Equatable, Sendable {
     }
 }
 
-/// SearchStore 错误
+/// SearchStore error
 public enum SearchStoreError: Error, Equatable {
     case openFailed(dbPath: String, message: String)
     case execFailed(sql: String, message: String)
     case bindFailed(message: String)
 }
 
-/// SQLite helper (per-file private, 跟 LinkIndex 同范式)
+/// SQLite helper (per-file private, LinkIndex)
 private final class SQLitePtr {
     var db: OpaquePointer?
     deinit { sqlite3_close(db) }
@@ -69,7 +69,7 @@ private enum SQLiteErmsg {
 
 private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
-/// FullTextSearch: SQLite FTS5 全文索引, 线程安全 actor
+/// FullTextSearch: SQLite FTS5, actor
 public actor FullTextSearch {
     private let dbPtr: SQLitePtr
     private let dbPath: String
@@ -96,11 +96,11 @@ public actor FullTextSearch {
         try createSchema()
     }
 
-    /// FTS5 虚拟表 (跟 Obsidian Search 索引结构 1:1, schema = doc_id / title / body)
-    /// Apple HIG 真值: https://www.sqlite.org/fts5.html (built-in virtual table)
-    /// tokenizer 用 trigram (SQLite 3.34+): 支持 CJK 整词匹配 ("林黛玉" → 命中)
+    /// FTS5 (Obsidian Search 1:1, schema = doc_id / title / body)
+    /// Apple HIG: https://www.sqlite.org/fts5.html (built-in virtual table)
+    /// tokenizer trigram (SQLite 3.34+): CJK ("" → in progress)
     // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-    /// 限制: 单字 / 短词搜索不工作 (trigram 需要 3+ 字符) — 写作 app 搜完整角色名 / 章节名 OK
+    ///: / searchwork (trigram need 3+) — app / OK
     private func createSchema() throws {
         let sql = """
         CREATE VIRTUAL TABLE IF NOT EXISTS docs_fts USING fts5(
@@ -123,9 +123,9 @@ public actor FullTextSearch {
     }
 
     // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-    /// 索引 1 个文档 (upsert: 先删除旧的, 再插入新的)
+    /// 1 (upsert: delete, insert)
     public func index(docId: String, title: String, body: String) throws {
-        // FTS5 没有原生 UPDATE, 用 delete + insert
+        // FTS5 UPDATE, delete + insert
         try remove(docId: docId)
         let sql = "INSERT INTO docs_fts (doc_id, title, body) VALUES (?, ?, ?);"
         var stmt: OpaquePointer?
@@ -142,7 +142,7 @@ public actor FullTextSearch {
     }
 
     // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-    /// 删除 1 个文档
+    /// delete 1
     public func remove(docId: String) throws {
         let sql = "DELETE FROM docs_fts WHERE doc_id = ?;"
         var stmt: OpaquePointer?
@@ -156,10 +156,10 @@ public actor FullTextSearch {
         }
     }
 
-    /// 全文搜索 (BM25 ranking + highlight)
-    /// query 走 FTS5 MATCH 语法 (支持 phrase / AND / OR / NOT)
+    /// search (BM25 ranking + highlight)
+    /// query FTS5 MATCH (phrase / AND / OR / NOT)
     public func search(query: String, limit: Int = 20) throws -> [SearchResult] {
-        // FTS5 highlight() 用 \0 分隔开始 / 结束标记
+        // FTS5 highlight() \0 /
         let sql = """
         SELECT doc_id, snippet(docs_fts, 2, '<mark>', '</mark>', '...', 16), rank, -1
         FROM docs_fts

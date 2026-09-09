@@ -1,6 +1,6 @@
 //
 //  BacklinkResolverTests.swift · Wenshu · v0.19 ticket 12
-//  单元测试: BacklinkResolver resolve / backlinks / forwardLinks
+// test: BacklinkResolver resolve / backlinks / forwardLinks
 //
 
 import Testing
@@ -10,7 +10,7 @@ import Foundation
 @Suite("BacklinkResolver (Obsidian replica)")
 struct BacklinkResolverTests {
 
-    // Mock DocumentIndexing, 模拟 doc name ↔ docId 映射
+    // Mock DocumentIndexing, doc name ↔ docId
     actor MockDocumentIndex: DocumentIndexing {
         private var nameToId: [String: String] = [:]
         private var idToName: [String: String] = [:]

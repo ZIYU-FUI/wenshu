@@ -61,9 +61,9 @@ public struct SkillsSettingsView: View {
             }
         }
         .padding(DesignTokens.chromePaddingMedium)
-        // v0.40 boss 2026-09-08 OOB '盘一遍, 还有颜色': removed the
+        // v0.40 boss 2026-09-08 OOB 'sweep for remaining background colors: removed the
         // chrome tier background tint (= .windowBackgroundColor
-        // = boss wants gone per the '再往上一层, 再删一层' cleanup).
+        // = boss wants gone per the 'go up another layer and remove the background' cleanup).
     }
 }
 

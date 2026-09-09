@@ -1,11 +1,11 @@
 //
 //  Backup.swift · Wenshu · v0.18 ticket 26 (hermes replica)
 //
-//  本地项目备份 (复刻 hermes backup 真值简化版).
-//  老板 2026-08-19 拍 "全模块复刻, Apple 体系实现" + "不符合文枢定位的可以复刻".
+// localbackup (hermes backup).
+// 2026-08-19 ", Apple " + "can".
 //
-//  wenshu 定位 = SwiftUI 桌面写作 app. Backup 写作用 (项目 ZIP 备份 / 恢复).
-//  Apple HIG 真值: Foundation FileManager + URL 真值 + Data 真值.
+// wenshu = SwiftUI app. Backup (ZIP backup / restore).
+// Apple HIG: Foundation FileManager + URL + Data .
 //
 
 import Foundation
@@ -27,12 +27,12 @@ public struct BackupMetadata: Equatable, Sendable {
     }
 }
 
-/// Backup 工具 (wenshu 写作用项目备份)
+/// Backup (wenshu backup)
 public struct BackupTools: Sendable {
     public init() {}
 
-    /// backup: 创建项目目录的 ZIP 备份真值
-    /// 简化: 不用 ZIP, 用 .tar.gz 不行 (Apple 没 tar 真值), 改用 NSFileCoordinator + 复制整个目录到备份目录
+    /// backup: createdirectory ZIP backup
+    ///: ZIP, .tar.gz not ok (Apple tar), change NSFileCoordinator + copydirectorybackupdirectory
     public func backup(sourceDir: String, backupDir: String? = nil) throws -> BackupMetadata {
         let fm = FileManager.default
         let sourceURL = URL(fileURLWithPath: sourceDir, isDirectory: true)
@@ -62,7 +62,7 @@ public struct BackupTools: Sendable {
         )
     }
 
-    /// list: 列所有备份真值
+    /// list: backup
     public func list(backupDir: String? = nil) throws -> [BackupMetadata] {
         let fm = FileManager.default
         let destDir: URL
@@ -88,7 +88,7 @@ public struct BackupTools: Sendable {
         }.sorted { $0.createdAt > $1.createdAt }
     }
 
-    /// restore: 从备份恢复真值 (复制回去)
+    /// restore: backuprestore (copy)
     public func restore(backupName: String, to destDir: String, backupDir: String? = nil) throws {
         let fm = FileManager.default
         let destRoot: URL
@@ -104,7 +104,7 @@ public struct BackupTools: Sendable {
         try fm.copyItem(at: archiveURL, to: destURL)
     }
 
-    /// delete: 删 1 个备份真值
+    /// delete: 1 backup
     public func delete(backupName: String, backupDir: String? = nil) throws {
         let fm = FileManager.default
         let destRoot: URL

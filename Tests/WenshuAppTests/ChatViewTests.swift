@@ -1,8 +1,8 @@
 //
 //  ChatViewTests.swift · Wenshu · v0.20 ticket 01 (chat UI)
 //
-//  单元测试 ChatViewModel + ChatMessage 真值.
-//  不测真 UI (sandbox 限制), 测 ChatViewModel 行为.
+// test ChatViewModel + ChatMessage .
+// UI (sandbox), ChatViewModel ok.
 //
 
 import Testing
@@ -39,7 +39,7 @@ struct ChatViewTests {
         let runtime = AgentRuntime()
         let verifier = WenshuVerifier()
         let vm = ChatViewModel()
-        // 直接 push (绕过 send 异步)
+        // push (send)
         vm.messages.append(ChatMessage(role: .user, content: "test"))
         vm.lastError = "some error"
         vm.clear()
@@ -66,9 +66,9 @@ struct ChatViewTests {
         #expect(userMsg.source == .user)
         #expect(wenshuMsg.source == .wenshu)
         #expect(sysMsg.source == .system)
-        // 不同 source 不等
+        // source wait
         #expect(userMsg != wenshuMsg)
-        // 同 source 不同 content 不等
+        // source content wait
         let wenshuMsg2 = ChatMessage(role: .agent, source: .wenshu, content: "different")
         #expect(wenshuMsg != wenshuMsg2)
     }

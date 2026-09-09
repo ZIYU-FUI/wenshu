@@ -1,6 +1,6 @@
-// DropAffordance.swift · Wenshu (文枢) · v0.28 followup TKT-028-021
+// DropAffordance.swift · Wenshu () · v0.28 followup TKT-028-021
 //
-// Boss 2026-08-29 OOB '完整复刻 hermes app, 用户体验第一' = port the
+// Boss 2026-08-29 OOB ' hermes app, user' = port the
 // drop affordance + drag visuals from Hermes Desktop verbatim (= dashed
 // 2 PT rounded sheet, backdrop-blur 2 PX on LIVE drop only, 200ms
 // fade-in animation, NSCursor.dragLink on drag start).

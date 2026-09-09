@@ -44,19 +44,19 @@ import Foundation
 public enum EntityType: String, CaseIterable, Codable, Sendable, Identifiable, Hashable {
     // MARK: - 8 specific types + 1 catch-all
 
-    case character    // 人物: a person (real or fictional)
-    case location     // 地点: a place (city, region, building, geographic feature)
-    case event        // 事件: a historical or fictional happening
-    case concept      // 概念: an abstract idea, theory, ideology, school of thought
-    case artifact     // 物品: a tangible object (weapon, tool, document, relic)
-    case organization // 组织: a group (government, sect, party, company)
-    case era          // 朝代: a time period (dynasty, century, era)
-    case work         // 作品: a creative work (poem, novel, painting, film)
+    case character    //: a person (real or fictional)
+    case location     //: a place (city, region, building, geographic feature)
+    case event        //: a historical or fictional happening
+    case concept      //: an abstract idea, theory, ideology, school of thought
+    case artifact     //: a tangible object (weapon, tool, document, relic)
+    case organization // group: a group (government, sect, party, company)
+    case era          //: a time period (dynasty, century, era)
+    case work         //: a creative work (poem, novel, painting, film)
     case other        // catch-all: doesn't fit any of the above
 
     public var id: String { rawValue }
 
-    /// Chinese display name (= boss 8/25 'UI 全中文' carve-out).
+    /// Chinese display name (= boss 8/25 'UI in progress' carve-out).
     public var displayName: String {
         switch self {
         case .character: return "人物"
@@ -72,9 +72,9 @@ public enum EntityType: String, CaseIterable, Codable, Sendable, Identifiable, H
     }
 
     /// v0.30 boss OOB: 'do not use abbreviations, just the full characters:
-    /// nian (念), di (地), ren (人), the full names are only 2-4 chars,
+    /// nian (), di (), ren (), the full names are only 2-4 chars,
     /// plenty to display'. Full Chinese name (= 2-4 chars, plenty of
-    /// sidebar space). Used as inline prefix in sidebar (= '[人物] Li Bai').
+    /// sidebar space). Used as inline prefix in sidebar (= '[] Li Bai').
     public var shortName: String {
         switch self {
         case .character: return "人物"

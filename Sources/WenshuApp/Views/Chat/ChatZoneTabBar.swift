@@ -6,11 +6,11 @@
 //  (LOW-RISK leg, = the second of two atomic slices).
 //
 //  v0.21 ticket 43: ChatZoneTabBar = chat-zone top-bar with 3 tabs
-//  for real switching (boss拍 backlog 20). Apple HIG canonical:
+// for real switching (boss backlog 20). Apple HIG canonical:
 //  Button(.plain) + contentShape(Rectangle()) whole-strip hot area
 //  + accent selected state + Apple default animation.
 //
-//  v0.24 boss验收fix (boss 8/25 fourth OOB): added archive icon at
+// v0.24 bossverificationfix (boss 8/25 fourth OOB): added archive icon at
 //  top-right (= 18 PT right padding). Click triggers alert. Confirm
 //  archives current session + context, starts new session.
 //
@@ -27,16 +27,16 @@
 
 import SwiftUI
 
-/// v0.21 ticket 43: ChatZoneTabBar = 聊天区顶栏 3 个 tab 真切换 (老板拍 backlog 20)
-/// Apple HIG 真值: Button(.plain) + contentShape(Rectangle()) 整条热区响应 (ticket 17 + 21 已修复范式)
-/// + .foregroundStyle(.accentColor) 选中态高亮 + Apple 默认动画
-/// v0.24 boss验收fix (Boss 8/25 fourth OOB '聊天区顶栏居右 18PT 加归档 ICON'):
+/// v0.21 ticket 43: ChatZoneTabBar = chat zonetop bar 3 tab (backlog 20)
+/// Apple HIG: Button(.plain) + contentShape(Rectangle()) (ticket 17 + 21 fix)
+/// + .foregroundStyle(.accentColor) in progress + Apple default
+/// v0.24 bossverificationfix (Boss 8/25 fourth OOB 'chat zonetop bar 18PT ICON'):
 /// Added archive icon at top-right (18 PT right padding). Click triggers
-/// alert '是否归档本次会话和上下文' (yes / cancel). Confirm archives current
+/// alert 'yesno' (yes / cancel). Confirm archives current
 /// session + context, starts new session, resets context counter.
 struct ChatZoneTabBar: View {
     @Binding var selectedTab: ChatZoneTab
-    // v0.24 boss验收fix (Boss 8/25 OOB ticket 015.014): archive flow state.
+    // v0.24 bossverificationfix (Boss 8/25 OOB ticket 015.014): archive flow state.
     @Binding var showingArchiveAlert: Bool
     // v0.30 boss 8/31 OOB: hover state for the archive button (= passed
     // down from owner struct since SwiftUI @State can't be observed
@@ -44,14 +44,14 @@ struct ChatZoneTabBar: View {
     @Binding var showingArchiveAlertHover: Bool
     // v0.25.1 (= ticket 013 underline slide animation): owner 2026-08-26
     // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-    // OOB '能不能让那个小横线的动画变成左右移动 不是渐隐渐显' =
+    // OOB 'changemove yes' =
     // matchedGeometryEffect pattern (= owner wants L/R slide, NOT
     // crossfade). Even though ChatZoneTabBar currently only shows 1
     // visible tab (= .chat, filtered via ForEach with .chat only),
     // the namespace + matchedGeometryEffect pattern is applied for
     // consistency with DynamicZoneTabBar + ZoneContentTabBar. If owner
     // later unhides .search / .settings tabs (= Boss 8/22 sixth OOB
-    // '老板拍 backlog 20 chat tab 1/2/3 真切换'), the slide animation
+    // ' backlog 20 chat tab 1/2/3 '), the slide animation
     // already works (= no extra retrofit).
     @Namespace private var tabBarNamespace
 
@@ -62,7 +62,7 @@ struct ChatZoneTabBar: View {
                     Button {
                         selectedTab = tab
                     } label: {
-                        // v0.24 boss验收fix: icon only, no title label.
+                        // v0.24 bossverificationfix: icon only, no title label.
                         // v0.25.1 (= ticket 021 followup Apple HIG canonical):
                         // Color.clear as BASE (= label intrinsic = 28×28 =
                         // Button hit area), chatZoneTabBarIcon Lucide .bot /
@@ -78,8 +78,8 @@ struct ChatZoneTabBar: View {
                             }
                             .contentShape(Rectangle())
                             // v0.25.1 (= ticket 018 explicit 28×28 hot zone):
-                            // owner 2026-08-26 OOB '现在的 ICON 还是不是很好点
-                            // 能不能写一个 28×28 的透明矩形的热区' = ticket
+                            // owner 2026-08-26 OOB ' ICON yesyesok
+                            // 28×28 ' = ticket
                             // 008's .padding(.all, chatTabHitPad) was still
                             // flaky (= owner reported icons hard to click).
                             // Replace with explicit Color.clear.frame(28, 28)
@@ -90,8 +90,8 @@ struct ChatZoneTabBar: View {
                             // a no-op pass-through superseded by the outer
                             // `.buttonStyle(.plain)` below.)
                             // v0.25.1 (= ticket 010 tab selected-state underline):
-                            // owner 2026-08-26 OOB '现在的 tab 的选定状态 ICON 下
-                            // 没有那个选定的小横线' = add Apple HIG canonical
+                            // owner 2026-08-26 OOB ' tab status ICON
+                            // ' = add Apple HIG canonical
                             // selected-tab underline (= 2 PT accent bar at
                             // bottom of selected tab, full button width).
                             .overlay(alignment: .bottom) {
@@ -100,7 +100,7 @@ struct ChatZoneTabBar: View {
                                         .fill(Color.accentColor)
                                         .frame(height: DesignTokens.tabUnderlineHeight)
                                         // v0.28 followup Boss UX (Boss 2026-08-30
-                                        // OOB '加满圆角, 两头圆'): .clipShape(Capsule())
+                                        // OOB ', '): .clipShape(Capsule())
                                         // for fully rounded ends on the underline.
                                         .clipShape(Capsule())
                                         // v0.25.1 (= ticket 013): matchedGeometryEffect
@@ -126,22 +126,22 @@ struct ChatZoneTabBar: View {
 
             Spacer()
 
-            // v0.24 boss验收fix (Boss 8/25 fourth OOB ticket 015.014): archive
-            // icon at top-right (= Boss image 红框 position). 18 PT right
+            // v0.24 bossverificationfix (Boss 8/25 fourth OOB ticket 015.014): archive
+            // icon at top-right (= Boss image position). 18 PT right
             // padding per Boss spec. Click triggers showingArchiveAlert.
             // v0.25.1 (= ticket 005): right-side chat-zone icon = Lucide
             // .inbox (= owner 2026-08-26 OOB, replacing the prior "archivebox"
             // SF Symbol archive-flow icon). Minimal-impact same helper.
             // v0.25.1 (= ticket 007 chat-zone tab hot area):
-            // owner 2026-08-26 OOB '热区有点问题 现在好像是 ICON 本身是热区
-            // 需要你让 ICON 18×18 的区域是热区 不然很难点的到' = inflate
+            // owner 2026-08-26 OOB 'issue okyes ICON yes
+            // need ICON 18×18 regionyes ' = inflate
             // the clickable area from 18×18 to 28×28 PT (= boss 8/11 fix3
             // 'four chat tab height set to 28 PT'). Hot zone paired with
             // .contentShape(.rect()) so the entire 28×28 PT box is the
             // click target (= not the visual glyph only).
             //
-            // v0.30 boss 8/31 OOB '红框里的 ICON 按钮也实现悬浮效果, 和
-            // TEB 同样即可': added hover state + .onHover + .background
+            // v0.30 boss 8/31 OOB ' ICON buttoneffect,
+            // TEB ': added hover state + .onHover + .background
             // tint (= matches PaneIconTab's hover pattern = Color
             // .accentColor.opacity(0.12) on hover, clipped to rounded
             // rect).
@@ -149,8 +149,8 @@ struct ChatZoneTabBar: View {
                 showingArchiveAlert = true
             } label: {
                 // v0.25.1 (= ticket 022 chat zone archive button — old
-                // ICON removal): owner 2026-08-26 OOB '聊天右上角 那个
-                // 老的 ICON 又出现了 删掉' = previous ticket 021 patch
+                // ICON removal): owner 2026-08-26 OOB 'chat
+                // ICON delete' = previous ticket 021 patch
                 // wrapped the archive button label in BOTH chatZoneTabBarIcon
                 // ('inbox') AND a redundant Image(systemName: 'archivebox')
                 // inside the Color.clear overlay (= 2 icons rendered at
@@ -182,14 +182,14 @@ struct ChatZoneTabBar: View {
         }
         .frame(maxWidth: .infinity)
         .frame(height: DesignTokens.chromeHeight)
-        // v0.40 boss 2026-09-08 OOB '盘一遍, 还有颜色': removed the
+        // v0.40 boss 2026-09-08 OOB 'sweep for remaining background colors: removed the
         // chrome tier background tint + the 1 PT .separator overlay
         // (= the 2 layers that distinguished the chat zone's top tab
         // bar from the pane content = matches the recent v0.40 chrome
         // cleanup of RegionTabBar + RegionStatusBar in Round 2 =
         // boss wants no chrome tier distinction across the app).
         // ChatZoneTabBar is now a bare 30 PT HStack with the
-        // archive icon = the top tabs (对话/搜索/设置) inherit the
+        // archive icon = the top tabs (dialog/search/Settings) inherit the
         // pane's content tier color.
         .animation(.default, value: selectedTab)
     }

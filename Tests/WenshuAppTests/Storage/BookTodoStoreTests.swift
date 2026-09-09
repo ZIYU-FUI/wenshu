@@ -1,5 +1,5 @@
 //
-//  BookTodoStoreTests.swift · Wenshu (文枢) · B-09 (kanban + todo UI functional linkage)
+// BookTodoStoreTests.swift · Wenshu () · B-09 (kanban + todo UI functional linkage)
 //
 //  Round-trip persistence tests for the per-book Todo JSON store
 //  (= spec v5 ticket 026). Mirrors the BookKanbanStoreTests pattern.

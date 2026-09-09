@@ -1,6 +1,6 @@
 // WenshuLibraryTests.swift · Wenshu (Wenshu) · v0.02.0
 //
-// Owner 8/15 15:55: '架构需要先定好, 不能没事加个东西, 然后重构一堆东西'.
+// Owner 8/15 15:55: 'needok,, refactor'.
 // These tests lock WenshuLibrary's public behavior so the view layer
 // (= v40 BookshelfListView) can rely on it without re-implementing logic.
 

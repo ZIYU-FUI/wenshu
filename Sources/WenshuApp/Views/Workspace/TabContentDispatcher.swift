@@ -1,9 +1,9 @@
-// TabContentDispatcher.swift · Wenshu (文枢) · v0.28 ticket 028-004
+// TabContentDispatcher.swift · Wenshu () · v0.28 ticket 028-004
 //
 // Extracted from PaneRenderer.swift on 2026-09-01 (= when the
 // legacy PaneRenderer/PaneSplitRenderer/NativeSplitter/PaneSplitter
-// were deleted as dead code per boss OOB "既然新代码已经完整复刻
-// 了代码, 那旧代码就可以不要了"). The TabContentDispatcher struct
+// were deleted as dead code per boss OOB "
+//, candon't"). The TabContentDispatcher struct
 // itself is still alive (= used by PaneNSController to host each
 // pane's SwiftUI content via NSHostingController), so it moved to its
 // own file instead of being deleted.
@@ -26,17 +26,17 @@ struct TabContentDispatcher: View {
     let kind: TabKind
     let title: String
 
-    /// v0.30 boss 8/31 OOB '各区域之间的联动' (= option A =
+    /// v0.30 boss 8/31 OOB 'region' (= option A =
     /// global @Observable store). TabContentDispatcher reads
     /// AppState directly via @Environment (= no @Binding chain).
 
     // v0.30 boss 8/31 OOB (sidebar feedback bundle #3): bottom status
-    // '书架: N / 书: N' was hardcoded to 0. Now reads live counts
+    // ': N /: N' was hardcoded to 0. Now reads live counts
     // from BookStore (= the Environment value already propagated
     // from App.swift via .environment(bookStore)).
     @Environment(BookStore.self) private var bookStore
 
-    /// v0.30 boss 8/31 OOB '各区域之间的联动' (= option A =
+    /// v0.30 boss 8/31 OOB 'region' (= option A =
     /// global @Observable store). TabContentDispatcher reads sidebar
     /// selection directly from AppState (= no @Binding chain).
     @Environment(AppState.self) private var appState
@@ -54,7 +54,7 @@ struct TabContentDispatcher: View {
     @Namespace private var chatTabBarNamespace
 
     // v0.34 B-15 (= boss 9/2 OOB follow-up to B-14): the chrome bottom
-    // status now reads "字数: 0 / 反链 N" (= replaces the legacy "N%"
+    // status now reads ": 0 / N" (= replaces the legacy "N%"
     // progress placeholder). BacklinksViewModel lives here too (= own
     // loader for the chrome status; EditorPlaceholder holds its own
     // copy for the popover content. Slight redundancy vs single source
@@ -64,7 +64,7 @@ struct TabContentDispatcher: View {
     // backlinks.count stays in sync).
     @State private var backlinksVM = BacklinksViewModel()
     @State private var backlinksCount: Int = 0
-    // B-16: popover state for the chrome bottom-right "反链 0" button.
+    // B-16: popover state for the chrome bottom-right " 0" button.
     // When the user taps the chrome bottom right text (= rendered as a
     // clickable Button by PaneStatusBar when rightOnTap is non-nil),
     // showBacklinksPopover flips true and a .popover with the full
@@ -76,20 +76,20 @@ struct TabContentDispatcher: View {
         case .projectSidebar:
             // v0.28 followup Boss UX round 14 (Boss 2026-08-29 OOB
             // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-            // '检查各区的顶栏个底栏, 配合截图看, 有的实现了两层, 解
-            // 决一下'): No outer ZonePerRegionChrome (= the old
+            // 'top barbottom bar,,,
+            // '): No outer ZonePerRegionChrome (= the old
             // ZoneTopToolbar outer 30 PT) — the internal
-            // ZoneContentTabBar (= 1 tab 书架 + trailing 新建/入驻
+            // ZoneContentTabBar (= 1 tab + trailing /
             // buttons) IS the top chrome. Otherwise we'd have 2 layers
             // (= 30 PT outer + 28 PT inner ZoneContentTabBar = 58 PT
             // per-pane chrome = ugly).
             //
-            // The bottom status text (= 书架: N / 书: N) still comes
+            // The bottom status text (=: N /: N) still comes
             // from a single ZoneBottomStatus (= no duplicate with the
             // internal ZoneContentView).
             ZonePerRegionChrome(
                 topActions: [],  // empty (= no outer top toolbar)
-                // B-07 015.019 (boss 2026-09-04 OOB '往后推进'):
+                // B-07 015.019 (boss 2026-09-04 OOB '):
                 // bottom status book count now reads from
                 // `bookStore.books.count` (= reactive, kept in sync
                 // by `BookStore.sidebarSaveBook` /
@@ -111,7 +111,7 @@ struct TabContentDispatcher: View {
             }
         case .projectPreview:
             // Same: no outer top toolbar (= internal ZoneContentTabBar
-            // for 预览 / 图 tabs IS the top chrome). Just the bottom
+            // for / tabs IS the top chrome). Just the bottom
             // status text.
             ZonePerRegionChrome(
                 topActions: [],
@@ -127,8 +127,8 @@ struct TabContentDispatcher: View {
                 ZoneModuleView(zoneSlot: .projectPreview)
             }
         case .editor:
-            // No outer top (= internal ZoneContentTabBar for 编辑 /
-            // 大纲 / 反链 IS the top chrome). Bottom status = 字数 / 反链
+            // No outer top (= internal ZoneContentTabBar for edit /
+            // / IS the top chrome). Bottom status = /
             // (= boss 9/2 OOB replaces the legacy "N%" progress text
             // with backlinks count; = spec spec v0.34 B-15).
             ZonePerRegionChrome(
@@ -161,7 +161,7 @@ struct TabContentDispatcher: View {
                 backlinksCount = backlinksVM.backlinks.count
             }
             // B-16: BacklinksPanel popover, anchored to the chrome
-            // bottom-right (= the "反链 0" button). Apple HIG
+            // bottom-right (= the " 0" button). Apple HIG
             // non-modal popover for contextual reference info.
             // 320x280 PT = standard inspector popover footprint.
             .popover(isPresented: $showBacklinksPopover, arrowEdge: .bottom) {
@@ -170,8 +170,8 @@ struct TabContentDispatcher: View {
                     .padding(DesignTokens.chromePaddingVertical)
             }
         case .specializedTools:
-            // No outer top (= internal ZoneContentTabBar for 画布 /
-            // 数据库 IS the top chrome). Bottom status = 工具就绪.
+            // No outer top (= internal ZoneContentTabBar for /
+            // IS the top chrome). Bottom status = .
             ZonePerRegionChrome(
                 topActions: [],
                 bottomStatus: specializedToolsChrome().bottom,
@@ -185,8 +185,8 @@ struct TabContentDispatcher: View {
             }
         case .aiChat:
             // v0.28 followup Boss UX round 16 (Boss 2026-08-29 OOB
-            // '聊天区的顶栏消失了') = restoring the chat top tab bar.
-            // Old 6区 had ChatZoneTabBar (= 3 tabs: 对话 / 搜索 / 设置
+            // 'chat zonetop bar') = restoring the chat top tab bar.
+            // Old 6 had ChatZoneTabBar (= 3 tabs: dialog / search / Settings
             // + archive button on right). The new ChatView doesn't
             // have an internal tab bar.
             // v0.34 boss 2026-09-02 OOB (B-02 multi-layer audit):
@@ -201,7 +201,7 @@ struct TabContentDispatcher: View {
                 topActions: [],
                 bottomStatus: aiChatChrome().bottom,
                 topSkip: false, // CHROME-ARCH-001 (2026-09-07): parent chrome top bar enabled (= unified ZoneSlot identity across all 6 zones).
-                bottomSkip: false, // CHATBAR-001 (2026-09-07): chat zone now uses the shared chrome bottom bar (= boss '把聊天区的底栏加回来吧') showing chat-specific status (= current agent model + message count). Previously bottomSkip: true (= chat used internal ChatBottomToolbar per v0.21 ticket 10) but that internal bar was thin / inconsistent with the other 5 zones.
+                bottomSkip: false, // CHATBAR-001 (2026-09-07): chat zone now uses the shared chrome bottom bar (= boss 'bring back the chat zone bottom bar') showing chat-specific status (= current agent model + message count). Previously bottomSkip: true (= chat used internal ChatBottomToolbar per v0.21 ticket 10) but that internal bar was thin / inconsistent with the other 5 zones.
                 // v0.32 boss 2026-09-02 OOB: chat = content tier
                 // (= .windowBackgroundColor = matches Mail message
                 // list / Messages conversation depth).
@@ -237,8 +237,8 @@ struct TabContentDispatcher: View {
                     }
             }
         case .aiDynamic:
-            // No outer top (= internal DynamicZoneTabBar for 进度 /
-            // 待办 / 搜索 IS the top chrome). Just the bottom 看板
+            // No outer top (= internal DynamicZoneTabBar for progress /
+            // / search IS the top chrome). Just the bottom kanban
             // status text.
             ZonePerRegionChrome(
                 topActions: [],

@@ -1,5 +1,5 @@
 //
-//  BookmarkPanel.swift · Wenshu · v0.19 ticket 22 (Obsidian replica, 前端做但不接入核心项目)
+// BookmarkPanel.swift · Wenshu · v0.19 ticket 22 (Obsidian replica,)
 //
 
 import Foundation
@@ -34,8 +34,8 @@ public final class BookmarkViewModel {
     }
 }
 
-/// BookmarkPanel: SwiftUI View, 显示书签 placeholder
-/// 现阶段不接 LayoutShellView, 留 standalone 等老板 macOS 验
+/// BookmarkPanel: SwiftUI View, show placeholder
+/// LayoutShellView, standalone wait macOS
 public struct BookmarkPanel: View {
     @State private var viewModel: BookmarkViewModel
 

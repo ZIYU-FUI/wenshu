@@ -1,7 +1,7 @@
 //
 //  CronjobTests.swift · Wenshu · v0.18 ticket 21 (cron)
 //
-//  单元测试 CronjobStore + Cronjob.parseSchedule + Cronjob.nextRun.
+// test CronjobStore + Cronjob.parseSchedule + Cronjob.nextRun.
 //
 
 import Testing
@@ -19,8 +19,8 @@ struct CronjobTests {
 
     @Test("parseSchedule 无效")
     func testParseScheduleInvalid() {
-        #expect(CronjobStore.parseSchedule("0 * * *") == false)  // 4 字段
-        #expect(CronjobStore.parseSchedule("0 * * * * *") == false)  // 6 字段
+        #expect(CronjobStore.parseSchedule("0 * * *") == false)  // 4 field
+        #expect(CronjobStore.parseSchedule("0 * * * * *") == false)  // 6 field
         #expect(CronjobStore.parseSchedule("invalid") == false)
     }
 

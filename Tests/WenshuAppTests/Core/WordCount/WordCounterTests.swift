@@ -23,7 +23,7 @@ struct WordCounterTests {
     func englishWords() {
         let count = WordCounter.count("The quick brown fox")
         #expect(count.words == 4)
-        #expect(count.characters == 19)  // 含 3 个空格
+        #expect(count.characters == 19)  // 3
         #expect(count.charactersNoSpaces == 16)
         #expect(count.chineseChars == 0)
     }
@@ -63,21 +63,21 @@ struct WordCounterTests {
     @Test("中文标点 + 句数")
     func chineseSentences() {
         let count = WordCounter.count("林黛玉哭了。宝玉走了！宝钗问：为什么？")
-        // Apple HIG: 中文标点 。！？ + 英文标点 .!? 都算 1 个句末标点
-        // "林黛玉哭了。" "宝玉走了！" "宝钗问：为什么？" = 3 句 (regex 把 "？" 算 1 个)
+        // Apple HIG: in progress 。！？ + .!? 1
+        // "。" "！" "：？" = 3 (regex "？" 1)
         #expect(count.sentences == 3)
     }
 
     @Test("markdown 内容 (含 # ## 等)")
     func markdownContent() {
         let count = WordCounter.count("# 第一章\n\n林黛玉进贾府，与贾宝玉初见。\n\n## 第一节")
-        #expect(count.chineseChars >= 14)  // "第一章林黛玉进贾府与贾宝玉初见第一节" 中文字
-        #expect(count.paragraphs >= 3)  // "# 第一章" / "林黛玉..." / "## 第一节"
+        #expect(count.chineseChars >= 14)  // "" in progress
+        #expect(count.paragraphs >= 3)  // "# " / "..." / "## "
     }
 
     @Test("中文标点 . 不算英文句号")
     func mixedPunctuation() {
-        // "林黛玉. 贾宝玉" 中 . 是英文句号, 算 1 句
+        // ". " in progress . yes, 1
         let count = WordCounter.count("林黛玉. 贾宝玉")
         #expect(count.sentences == 1)
     }

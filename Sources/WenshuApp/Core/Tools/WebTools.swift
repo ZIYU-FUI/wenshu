@@ -1,16 +1,16 @@
 //
 //  WebTools.swift · Wenshu · v0.18 ticket 09 (hermes replica)
 //
-//  本地 web 工具 (复刻 hermes web 真值简化版).
-//  老板 2026-08-19 拍 "全模块复刻, Apple 体系实现" + "不符合文枢定位的可以复刻".
+// local web (hermes web).
+// 2026-08-19 ", Apple " + "can".
 //
-//  wenshu 定位 = SwiftUI 桌面写作 app. WebTools 写作用 (查资料 / 抓网页).
-//  Apple HIG 真值: URLSession + URL 真值.
+// wenshu = SwiftUI app. WebTools (/).
+// Apple HIG: URLSession + URL .
 //
 
 import Foundation
 
-/// Web fetch 结果真值
+/// Web fetch
 public struct WebFetchResult: Equatable, Sendable {
     public let url: String
     public let statusCode: Int
@@ -25,7 +25,7 @@ public struct WebFetchResult: Equatable, Sendable {
     }
 }
 
-/// WebTools: 本地 web 工具 (URLSession 真值)
+/// WebTools: local web (URLSession)
 public struct WebTools: Tool, Sendable {
     public init() {}
 
@@ -49,7 +49,7 @@ public struct WebTools: Tool, Sendable {
         return ""
     }
 
-    /// fetch: 拿 URL 真值内容 (简化版: 不 JS render, 跟 hermes web_extract / web_search 真值 1:1)
+    /// fetch: URL (: JS render, hermes web_extract / web_search 1:1)
     public func fetch(url: String, timeoutSeconds: TimeInterval = 30) async throws -> WebFetchResult {
         guard let requestURL = URL(string: url) else {
             throw WebToolsError.invalidURL(url: url)
@@ -64,13 +64,13 @@ public struct WebTools: Tool, Sendable {
         return WebFetchResult(url: url, statusCode: statusCode, contentType: contentType, body: body)
     }
 
-    /// extract: 提取 URL 中 markdown 文本 (简化: 拿 fetch + 粗提取 h1 / p / a)
+    /// extract: URL in progress markdown (: fetch + h1 / p / a)
     public func extract(url: String, timeoutSeconds: TimeInterval = 30) async throws -> String {
         let result = try await fetch(url: url, timeoutSeconds: timeoutSeconds)
         return WebTools.htmlToMarkdown(result.body)
     }
 
-    /// htmlToMarkdown: 简化 HTML → markdown 转换 (hermes web_extract 简化版)
+    /// htmlToMarkdown: HTML → markdown (hermes web_extract)
     public static func htmlToMarkdown(_ html: String) -> String {
         var output = html
         // Simple Tab Replace

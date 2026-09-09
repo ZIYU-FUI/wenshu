@@ -63,7 +63,7 @@ struct PromptBuilderTests {
 
         // Stable tier = non-empty wenshu identity string
         #expect(!stable.isEmpty)
-        // Stable tier contains the canonical 文枢 (= wenshu) identity anchor
+        // Stable tier contains the canonical (= wenshu) identity anchor
         #expect(stable.contains("文枢"))
         // Dynamic tier = empty when no inputs
         #expect(dynamic.isEmpty)

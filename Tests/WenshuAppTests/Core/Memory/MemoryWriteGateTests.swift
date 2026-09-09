@@ -1,7 +1,7 @@
 //
 //  MemoryWriteGateTests.swift · Wenshu · v0.23 ticket 013.001 (hermes gap 1)
 //
-//  Boss 2026-08-23 拍: hermes _apply_write_gate parity.
+// Boss 2026-08-23: hermes _apply_write_gate parity.
 //
 
 import Foundation

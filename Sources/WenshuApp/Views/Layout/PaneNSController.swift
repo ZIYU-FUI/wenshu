@@ -779,7 +779,7 @@ final class PaneNSController: NSSplitViewController {
             self.splitView.isVertical = (split.orientation == .row)
             // ZONE-VIS-FIX-006 (2026-09-08): DISABLE autosaveName on
             // the ROOT splitView (= permanently). Per Apple HIG +
-            // boss 9/8 '各区域内部元素, 符合上下左右间距规则' =
+            // boss 9/8 'region, ' =
             // the layout = function of `preferredThicknessFraction`
             // (Apple canonical proportional weight per
             // developer.apple.com/documentation/appkit/nssplitviewitem/

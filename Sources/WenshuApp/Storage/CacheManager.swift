@@ -1,4 +1,4 @@
-// CacheManager.swift · Wenshu (文枢) · v0.26 (FCP library replica)
+// CacheManager.swift · Wenshu () · v0.26 (FCP library replica)
 //
 // Cache directory manager (= spec v5 ticket 020). Holds thumbnails +
 // search index + export temp under `<.ws>/cache/`. v0.26 ships the

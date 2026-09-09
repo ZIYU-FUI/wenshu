@@ -1,9 +1,9 @@
-// PaneVisibilityStoreTests.swift · Wenshu (文枢) · v0.28 followup TKT-028-014
+// PaneVisibilityStoreTests.swift · Wenshu () · v0.28 followup TKT-028-014
 //
 // Tests for the 3 visibility mechanisms (= hiddenTreePanes / dismissedPanes
 // / collapsePanes) + bindings (bindPaneVisibility / bindToolPaneCollapse)
 // + pane size persistence + statusbar per-item visibility. Boss
-// 2026-08-29 OOB '完整复刻 hermes app'.
+// 2026-08-29 OOB ' hermes app'.
 
 import XCTest
 @testable import WenshuApp

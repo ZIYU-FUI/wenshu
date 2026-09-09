@@ -2,7 +2,7 @@
 //  ParagraphAIToolbarButtons.swift · Wenshu · v0.40 apple-001 Q2 slice 3
 //
 //  Extracted from WorkspaceView.swift (formerly inline private
-//  struct at line 2097). Q2 boss拍 split WorkspaceView; after
+// struct at line 2097). Q2 boss split WorkspaceView; after
 //  slice 2 (= FormatToolbarButtons extracted) this slice pulls
 //  the next self-contained view = the paragraph AI toolbar
 //  (= 3 primary transform buttons + 1 dropdown Menu for 3 more).

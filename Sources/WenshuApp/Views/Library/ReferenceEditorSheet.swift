@@ -1,4 +1,4 @@
-// ReferenceEditorSheet.swift · Wenshu (文枢) · v0.26 (FCP library replica)
+// ReferenceEditorSheet.swift · Wenshu () · v0.26 (FCP library replica)
 //
 // Editor sheet for a single reference. Library-public (= cross-book
 // shared; boss 8/26 OOB). The user can import a source (= a book

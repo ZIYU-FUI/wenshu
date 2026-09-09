@@ -2,7 +2,7 @@
 //  EditorExpandShrinkTrailingButton.swift · Wenshu · v0.40 apple-001 Q2 slice 6
 //
 //  Extracted from WorkspaceView.swift (formerly inline private
-//  struct at line 908). Q2 boss拍 split WorkspaceView. Slice 6
+// struct at line 908). Q2 boss split WorkspaceView. Slice 6
 //  = the trailing button on the editor pane's top-right that
 //  toggles "Expand Fullscreen" <-> "Restore Layout".
 //
@@ -14,8 +14,8 @@
 //
 //  This slice ALSO bundles an AGENTS.md English-only sweep:
 //  the original tooltip strings were CJK literals:
-//    - "恢复布局" (= "Restore Layout")
-//    - "展开全屏" (= "Expand Fullscreen")
+// - "restorelayout" (= "Restore Layout")
+// - "full screen" (= "Expand Fullscreen")
 //  Replaced with WenshuI18n.t() lookups. Both en + zh-Hans
 //  Localizable.strings receive the 2 new keys in this same commit
 //  (= I18n parity invariant maintained).

@@ -1,5 +1,5 @@
 //
-//  SearchPanel.swift · Wenshu · v0.19 ticket 17 (Obsidian replica, 前端做但不接入核心项目)
+// SearchPanel.swift · Wenshu · v0.19 ticket 17 (Obsidian replica,)
 //
 
 import Foundation
@@ -20,7 +20,7 @@ public final class SearchViewModel {
         self.search = search
     }
 
-    /// 设置 query (debounce 留给 View 层)
+    /// Settings query (debounce View)
     public func setQuery(_ q: String) {
         self.query = q
     }
@@ -47,8 +47,8 @@ public final class SearchViewModel {
     }
 }
 
-/// SearchPanel: SwiftUI View, 全文搜索结果列表
-/// 现阶段不接 LayoutShellView, 留 standalone 等老板 macOS 验
+/// SearchPanel: SwiftUI View, searchlist
+/// LayoutShellView, standalone wait macOS
 public struct SearchPanel: View {
     @State private var viewModel: SearchViewModel
     @State private var queryText: String = ""

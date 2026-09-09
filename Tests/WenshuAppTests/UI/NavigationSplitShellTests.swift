@@ -17,7 +17,7 @@
 //
 //  Acceptance per M1 spec §2.3:
 //  - swift test --filter NavigationSplitShellTests PASS (= 3 tests)
-//  - The PaneSplitHost 老路径 unaffected (= verified by the existing
+// - The PaneSplitHost legacy path unaffected (= verified by the existing
 //    DragRegressionTests 8/8 PASS, NOT by this file)
 //
 
@@ -27,8 +27,8 @@ import XCTest
 @MainActor
 final class NavigationSplitShellTests: XCTestCase {
 
-    /// M1 spec §2.3: default `false` (= 老 PaneSplitHost 路径
-    /// 完全保留 per the "老路径完全保留" rule). If this ever flips
+    /// M1 spec §2.3: default `false` (= PaneSplitHost path
+    /// per the "legacy path" rule). If this ever flips
     /// to `true` by accident, existing users will see the new
     /// 3-column shell (= a breaking UX change = must ship as a
     /// major version bump + migration guide).
@@ -85,7 +85,7 @@ final class NavigationSplitShellTests: XCTestCase {
     /// ZoneModuleView(specializedTools), ZoneModuleView(aiDynamic))
     /// all wire up cleanly to the NavigationSplitView 3-column
     /// shell without SwiftUI constraint cycles (= boss 9/8's
-    /// '框架可以, 先用这个框架往里套我们之前的代码').
+    /// 'can, ').
     ///
     /// M2 smoke test = shell assembles without throwing; =
     /// this test only needs AppState (= BookStore requires a

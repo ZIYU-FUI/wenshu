@@ -129,8 +129,8 @@ struct WorkspaceView: View {
     /// shortcut path through WorkspaceView without lifting the helper).
     /// No .alert, no popup = simplest possible (= Apple HIG TextEdit
     /// "open this file" semantics).
-    /// BOSS 9/8 '点杜甫卡片, 新的标签页显示的名字不对' (= clicking
-    /// the 杜甫 card opened a new tab named 'preview-sample'):
+    /// BOSS 9/8 'clicking the Dufu card opens a tab with wrong name' (= clicking
+    /// the card opened a new tab named 'preview-sample'):
     /// the previous version took no arguments and used
     /// `filtered.first` (= always the topmost card, not the actually
     /// clicked one). New version accepts an OPTIONAL `source`
@@ -239,8 +239,8 @@ struct WorkspaceView: View {
             originalBody: content,
             mode: .preview
         )
-        // v0.40 boss 9/7 OOB '卡片区应该显示规划中未实装的
-        // 功能卡片': capture the scope where this doc was opened
+        // v0.40 boss 9/7 OOB 'card zoneshouldshowin progress
+        // card': capture the scope where this doc was opened
         // from (= drives sidebar selection + preview cards on
         // restore). = .referenceScope(cat) for library refs,
         // = .bookScope(bookId, folder) for book docs, etc.
@@ -275,7 +275,7 @@ struct WorkspaceView: View {
         // now hoisted up to `LibraryRootView.body` (= root-of-Scene
         // position; = env chain stays intact). The branch
         // remains here as a no-op fallback (= the WorkspaceView
-        // still exists, = 老 PaneSplitHost 路径 is the only
+        // still exists, = PaneSplitHost path is the only
         // remaining path; = unchanged behavior).
             PaneSplitHost(
                 layout: FCPLayout(),
@@ -418,8 +418,8 @@ struct WorkspaceView: View {
             // previewSortOrder binding so changing the sort
             // re-renders the card grid (= PreviewPane observes
             // the same @State via its previewSortOrder parameter).
-            // v0.40 boss 9/7 OOB '位置错, 在顶栏下方, 不是在顶栏上方.
-            // 你可以参考一下编辑器的代码, 看是如何实现的': the search bar
+            // v0.40 boss 9/7 OOB ', top bar, yestop bar.
+            // caneditor, yes': the search bar
             // belongs BELOW the ZoneContentView's tab strip (= inside
             // PreviewPane's body, = first element rendered after the
             // tab strip). Pattern matches the editor: ZoneContentView
@@ -439,7 +439,7 @@ struct WorkspaceView: View {
                     // Falls back to a sample body if the file doesn't
                     // exist (= ticket 027-35 will wire to real paths).
                     onDoubleClick: { source in
-                        // BOSS 9/8 '点杜甫卡片, 新的标签页显示的名字不对':
+                        // BOSS 9/8 'clicking the Dufu card opens a tab with wrong name':
                         // forward the clicked CardSource to openCardInEditor
                         // so it opens THIS card (= not the topmost one).
                         openCardInEditor(source: source)
@@ -719,8 +719,8 @@ struct ZoneModuleView: View {
             // WorkspaceView path uses PreviewPane directly with the
             // computed previewScope (= supports all 4 sidebar scopes).
             //
-            // v0.40 boss 9/7 OOB '位置错, 在顶栏下方, 不是在顶栏上方.
-            // 你可以参考一下编辑器的代码, 看是如何实现的': the search bar
+            // v0.40 boss 9/7 OOB ', top bar, yestop bar.
+            // caneditor, yes': the search bar
             // belongs BELOW the ZoneContentView's tab strip (= inside
             // PreviewPane's body, = first element rendered after the
             // tab strip). Removed the previous commit's VStack
@@ -747,7 +747,7 @@ struct ZoneModuleView: View {
                     // resolved to ZoneModuleView). Explicit `self.`
                     // fixes the resolution.
                     onDoubleClick: { source in
-                        // BOSS 9/8 '点杜甫卡片, 新的标签页显示的名字不对':
+                        // BOSS 9/8 'clicking the Dufu card opens a tab with wrong name':
                         // forward the clicked CardSource to openCardInEditor.
                         self.openCardInEditor(source: source)
                     },
@@ -821,8 +821,8 @@ struct ZoneModuleView: View {
     /// as PreviewPane.loadBookDocs; = ticket 027-35 will lift that
     /// helper into a workspace-level BookDocLoader service so both
     /// callers share it).
-    /// BOSS 9/8 '点杜甫卡片, 新的标签页显示的名字不对' (= clicking
-    /// the 杜甫 card opened a new tab named 'preview-sample'):
+    /// BOSS 9/8 'clicking the Dufu card opens a tab with wrong name' (= clicking
+    /// the card opened a new tab named 'preview-sample'):
     /// the previous version took no arguments and used
     /// `filtered.first` (= always the topmost card, not the actually
     /// clicked one). New version accepts an OPTIONAL `source`
@@ -961,8 +961,8 @@ struct ZoneModuleView: View {
             originalBody: content,
             mode: .preview
         )
-        // v0.40 boss 9/7 OOB '卡片区应该显示规划中未实装的
-        // 功能卡片': capture sourceScope on ZoneModuleView's
+        // v0.40 boss 9/7 OOB 'card zoneshouldshowin progress
+        // card': capture sourceScope on ZoneModuleView's
         // openCardInEditor too (= same restore behavior as
         // WorkspaceView's openCardInEditor).
         newTab.sourceScope = previewScope
@@ -1265,22 +1265,22 @@ struct EditorPlaceholder: View {
                 // is the v0.34 B-25 root-cause fix (= the closure chain
                 // WAS firing correctly; = the bug was the view rendering
                 // the placeholder instead of the active tab).
-                // v0.40 boss 9/7 OOB '删除空白预览文档': when no
+                // v0.40 boss 9/7 OOB 'delete': when no
                 // tab is open, show the empty-state hint instead of
                 // the preview/edit body (= replaces the previous
                 // samplePreviewBody placeholder).
                 if activeTab == nil {
                     emptyStateHint
                 } else if mode == .preview {
-                    // v0.40 boss 9/7 OOB '编辑器的样式, 无论是几种模式,
-                    // 应该用同一个组件呈现': preview mode uses the
+                    // v0.40 boss 9/7 OOB 'editor, yes,
+                    // shouldgroup': preview mode uses the
                     // SAME WenshuMarkdownEditor component as edit
                     // mode (= swift-markdown-engine NSTextView), just
                     // with `isEditable: false` (= read-only NSTextView).
                     // Previously preview used a separate
                     // EditorPreviewContent (= SwiftUI AttributedString
                     // renderer) which produced a different visual scale
-                    // (= the "缩放感" boss described). Unified
+                    // (= the "" boss described). Unified
                     // component = zero visual scaling between modes.
                     //
                     // SMC ticket 003: wiki-link click navigation routes
@@ -1302,8 +1302,8 @@ struct EditorPlaceholder: View {
                         onLinkClick: { linkId in
                             handleEditorWikiLink(linkId: linkId)
                         },
-                        // v0.40 boss 9/7 OOB '编辑器的样式, 无论是
-                        // 几种模式, 应该用同一个组件呈现': preview
+                        // v0.40 boss 9/7 OOB 'editor, yes
+                        //, shouldgroup': preview
                         // mode = read-only NSTextView (= same engine
                         // wrapper as edit, = no scaling between
                         // modes).
@@ -1380,7 +1380,7 @@ struct EditorPlaceholder: View {
             // Use .ultraThinMaterial instead of Color.green.opacity(0.05)
             // (= solid green placeholder = inconsistent with the
             // Liquid Glass design language). Editor zone has no
-            // v0.40 boss 2026-09-08 OOB '再往上一层, 去掉背景': drop
+            // v0.40 boss 2026-09-08 OOB 'go up one layer and remove the background': drop
             // .background(.ultraThinMaterial) (= was adding glass
             // material over the editor zone = visually distinct
             // from the chat zone's plain background). Editor zone
@@ -1401,7 +1401,7 @@ struct EditorPlaceholder: View {
             //   1. Persisted tabs (loaded by AppState.init from
             //      UserDefaults) → use those directly.
             //   2. No persisted tabs → editor zone shows the
-            //      empty-state hint (= "请从素材库中双击卡片打开文档")
+            // empty-state hint (= "libraryin progressdouble-clickcardopen")
             //      via EditorPlaceholder's nil-activeTab branch.
             // The .edit-mode upgrade from .preview still runs for
             // any tabs that survived (= v0.39 ticket 001-A-extended).
@@ -1422,10 +1422,10 @@ struct EditorPlaceholder: View {
             // write, git pull, terminal `echo > file.md`, etc.).
             startFileWatcher()
         }
-        // v0.40 boss 2026-09-08 OOB '聊天顶栏有 3 个 tab, 编辑器顶栏
-        // 没有': REVERTED (= boss 2026-09-08 follow-up '不是, 不要
-        // 纠结文档预览内容, 这个没有任何持久化信息的时候, 默认
-        // 编辑器应该没有任何的 MD 的 tab'). The welcome tab was
+        // v0.40 boss 2026-09-08 OOB 'chattop bar 3 tab, editortop bar
+        // ': REVERTED (= boss 2026-09-08 follow-up 'yes, don't
+        //, info, default
+        // editorshould MD tab'). The welcome tab was
         // visually present but the preview body was empty (= no
         // document content to render). Boss wants the editor zone
         // to show NO tab strip at all when there are no persisted
@@ -1462,7 +1462,7 @@ struct EditorPlaceholder: View {
     private var draft: String {
         // v0.40 boss 9/7 OOB: when no tab is open, return empty string
         // (= no samplePreviewBody placeholder). The editor zone
-        // shows its empty-state hint (= "请从素材库中双击卡片打开文档")
+        // shows its empty-state hint (= "libraryin progressdouble-clickcardopen")
         // via EditorPlaceholder's nil-activeTab branch.
         get { activeTab?.draft ?? "" }
         nonmutating set {
@@ -1882,7 +1882,7 @@ struct EditorPlaceholder: View {
         }
     }
 
-    // v0.40 boss 9/7 OOB '删除空白预览文档': samplePreviewBody
+    // v0.40 boss 9/7 OOB 'delete': samplePreviewBody
     // (= the "Welcome to wenshu" placeholder) is removed. When no
     // tab is open, the editor zone shows the empty-state hint via
     // `emptyStateHint` (= tells the user to double-click a card
@@ -1902,7 +1902,7 @@ struct EditorPlaceholder: View {
     /// path: pick a reference library / book / folder, double-
     /// click a card → openCardInEditor creates a tab).
     ///
-    /// v0.40 boss 9/7 OOB follow-up '提示的样式不统一': use the
+    /// v0.40 boss 9/7 OOB follow-up 'hint': use the
     /// shared EmptyStateHint component (= same icon + title +
     /// body layout as Foreshadowing + PreviewPane empty states).
     /// This guarantees consistent visual treatment (= 24 PT

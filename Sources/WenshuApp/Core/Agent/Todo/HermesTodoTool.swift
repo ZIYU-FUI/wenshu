@@ -8,7 +8,7 @@
 //  todo (= TodoStore.swift / BookTodoStore.swift), which is kept intact
 //  per boss wenshu-side-wins pattern.
 //
-//  Boss 2026-09-04 OOB: 'Subsystem 4 -- hermes todo,要走 hermes' (=
+// Boss 2026-09-04 OOB: 'Subsystem 4 -- hermes todo, hermes' (=
 //  override earlier SKIP, AGENTS.md §11.3 default = port hermes as-is).
 //
 //  ------------------------------------------------------------------------

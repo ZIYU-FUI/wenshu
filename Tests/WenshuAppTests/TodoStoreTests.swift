@@ -1,7 +1,7 @@
 //
 //  TodoStoreTests.swift · Wenshu · v0.18 ticket 06 (hermes replica)
 //
-//  单元测试本地 Todo. cwd 下临时 db.
+// testlocal Todo. cwd db.
 //
 
 import Testing

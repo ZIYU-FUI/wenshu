@@ -1,6 +1,6 @@
-// NativeControlsInspector.swift · Wenshu (文枢) · v0.28 followup TKT-028-022
+// NativeControlsInspector.swift · Wenshu () · v0.28 followup TKT-028-022
 //
-// Boss 2026-08-29 OOB '完整复刻 hermes app, 用户体验第一' = port the
+// Boss 2026-08-29 OOB ' hermes app, user' = port the
 // native window controls inspector + drag strip from Hermes Desktop
 // verbatim (= traffic-light rect, fullscreen handling, workspace
 // geometry publishing).
@@ -93,7 +93,7 @@ public func windowDragStripWidth(
         // canonical 12 PT symmetric cluster edge inset; canonical
         // value, not a project token, per boss 2026-09-02 OOB
         // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-        // '用 api 默认间距, 不用换算, 不用管值').
+        // ' api default,, ').
         return 12
     }
     // Drag strip = width of controls rect (= the entire traffic-light band).

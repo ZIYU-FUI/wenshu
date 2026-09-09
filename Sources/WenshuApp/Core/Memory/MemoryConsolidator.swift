@@ -1,7 +1,7 @@
 //
 //  MemoryConsolidator.swift · Wenshu · v0.23 ticket 013.005 (hermes gap 4)
 //
-//  Boss 2026-08-23 拍: hermes memory char budget + consolidation parity.
+// Boss 2026-08-23: hermes memory char budget + consolidation parity.
 //  Source: github.com/NousResearch/hermes-agent/blob/main/tools/memory_tool.py
 //
 //  Hermes pattern:

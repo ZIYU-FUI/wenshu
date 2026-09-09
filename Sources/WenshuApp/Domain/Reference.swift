@@ -1,9 +1,9 @@
-// Reference.swift · Wenshu (文枢) · v0.26 (FCP library replica — reference-library entity)
+// Reference.swift · Wenshu () · v0.26 (FCP library replica — reference-library entity)
 //
 // Domain model for a single reference (= one piece of research material
 // inside the library's ReferenceLibrary). Library-public (= shelf-shared,
 // reusable across all books; boss 2026-08-26 OOB clarification:
-// '明代调研可以跨书复用' = a single research source can back many books).
+// 'can' = a single research source can back many books).
 //
 // Each reference is stored as a `.md` file under
 // `<.ws>/reference-library/<layer>/<ref-uuid>.md` where <layer> is one of
@@ -38,7 +38,7 @@ enum ReferenceLayer: String, CaseIterable, Codable, Sendable {
         }
     }
 
-    /// Chinese display label (= boss 8/25 'UI 全中文').
+    /// Chinese display label (= boss 8/25 'UI in progress').
     var displayName: String {
         switch self {
         case .layerRaw:       return "原始资料"
@@ -50,8 +50,8 @@ enum ReferenceLayer: String, CaseIterable, Codable, Sendable {
 
     /// Whether this layer is user-facing (= visible in the UI).
     ///
-    /// v0.29 boss 2026-08-30 OOB '资料库的原始文件目录也是, 用户不需要
-    /// 看到. 实体保留': `.layerRaw` (= original source files = user
+    /// v0.29 boss 2026-08-30 OOB 'filedirectoryyes, userneed
+    /// . ': `.layerRaw` (= original source files = user
     /// doesn't need to browse these directly = they're for LLM ingestion)
     /// is now NOT user-facing. `.layerEntities` remains user-facing.
     /// `.layerAbstracts` + `.layerIndexes` are LLM-derived (= already
@@ -70,8 +70,8 @@ enum ReferenceLayer: String, CaseIterable, Codable, Sendable {
     /// Lucide icon name (= for direct Lucide lookup via Lucide("name")).
     /// v0.27 boss 8/27 OOB: was SF Symbol name ('tray.full.fill' / etc.);
     /// Lucide doesn't have those names (= returned nil → sidebar rows
-    /// rendered empty per boss 8/27 '资料库下面的两个文件夹没有
-    /// ICON'). Boss 8/27 '你查一下 lucide 的文档' = use the closest
+    /// rendered empty per boss 8/27 'folder
+    /// ICON'). Boss 8/27 ' lucide ' = use the closest
     /// Lucide equivalent that exists.
     var icon: String {
         switch self {
@@ -98,7 +98,7 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
     /// convention).
     var title: String
 
-    /// Optional bibliographic source (= e.g. '万历十五年', 'Smith 2020').
+    /// Optional bibliographic source (= e.g. ', 'Smith 2020').
     /// Display-only (= does not affect search or cross-ref matching).
     var source: String?
 
@@ -114,7 +114,7 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
     /// compatibility (= legacy raw materials may not have a category).
     var category: EntityCategory?
 
-    /// Optional 2nd-level subcategory code (= e.g. "I2" for "中国文学").
+    /// Optional 2nd-level subcategory code (= e.g. "I2" for "in progress").
     /// Set by the LLM classifier when it picks a fine-grained match.
     /// Optional (= most entities fit in the top-level bucket).
     var subcategory: String?
@@ -198,9 +198,9 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
         try c.encode(updatedAt, forKey: .updatedAt)
     }
 
-    /// One-line summary shown on the card (= boss 8/26 '卡片样式就是
+    /// One-line summary shown on the card (= boss 8/26 'cardyes
     // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-    /// 展示文档的重点摘要').
+    /// ').
     var summary: String
 
     /// Optional cross-references to other entities (= where this

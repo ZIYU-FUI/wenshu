@@ -1,16 +1,16 @@
 //
 //  ProcessTools.swift · Wenshu · v0.18 ticket 08 (hermes replica)
 //
-//  本地 process tools (复刻 hermes terminal / process tool 真值).
-//  老板 2026-08-19 拍 "全模块复刻, Apple 体系实现" + "不符合文枢定位的可以复刻".
+// local process tools (hermes terminal / process tool).
+// 2026-08-19 ", Apple " + "can".
 //
-//  wenshu 定位 = SwiftUI 桌面写作 app. ProcessTools 写作用 (跑脚本 / 查文档).
-//  Apple HIG 真值: Foundation Process 真值.
+// wenshu = SwiftUI app. ProcessTools (/).
+// Apple HIG: Foundation Process .
 //
 
 import Foundation
 
-/// Process 结果真值
+/// Process
 public struct ProcessResult: Equatable, Sendable {
     public let exitCode: Int32
     public let stdout: String
@@ -38,7 +38,7 @@ public enum ProcessToolError: Error, LocalizedError {
     }
 }
 
-/// ProcessTools: 本地 process ops
+/// ProcessTools: local process ops
 public struct ProcessTools: Tool, Sendable {
     public init() {}
 
@@ -46,7 +46,7 @@ public struct ProcessTools: Tool, Sendable {
     /// execution via the existing ProcessTools surface. Mirrors
     /// `WenshuConductor.invokeTool(name: "process", ...)` which
     /// is deny-all (= chat-triggered shell blocked per boss 8/23
-    /// rule: 用户不可通过聊天改系统).
+    /// rule: user cannot change system via chat).
     public func execute(input: String) async throws -> String {
         // Deny-all for chat-triggered shell (= matches the legacy
         // `WenshuConductor.invokeTool("process")` behavior). Read-only
@@ -57,7 +57,7 @@ public struct ProcessTools: Tool, Sendable {
         throw ProcessToolError.chatShellDenied(command: "process tool blocked from chat")
     }
 
-    /// runShell: v0.23 ticket 008.002: blocked from chat path by default (boss 8/23 拍).
+    /// runShell: v0.23 ticket 008.002: blocked from chat path by default (boss 8/23).
     /// Use wenshu-devtool CLI for legitimate shell access.
     /// v0.23 ticket 013.011: read-only commands are now allowed via `runReadOnlyShell`.
     public func runShell(_ command: String, workingDirectory: String? = nil) throws -> ProcessResult {
@@ -123,7 +123,7 @@ public struct ProcessTools: Tool, Sendable {
         "uname",   // system info
     ]
 
-    /// run: 跑 1 个命令 + 拿 stdout/stderr/exit code (Apple Process 真值)
+    /// run: 1 + stdout/stderr/exit code (Apple Process)
     ///
     /// Uses Foundation `Process` with concurrent pipe reads so the child
     /// never blocks on a full pipe buffer (= the classic pipe deadlock
@@ -172,11 +172,11 @@ public struct ProcessTools: Tool, Sendable {
         )
     }
 
-    /// runShell: 已弃用 — v0.23 ticket 008: chat-triggered shell blocked (boss 8/23 拍).
+    /// runShell: — v0.23 ticket 008: chat-triggered shell blocked (boss 8/23).
     /// Use wenshu-devtool CLI for legitimate shell access.
     /// (stub below replaced by the deny-only runShell earlier in this file.)
 
-    /// isRunning: 查 process 是否在跑 (Apple Process 真值)
+    /// isRunning: process yesno (Apple Process)
     public func isRunning(processID: Int32) -> Bool {
         kill(processID, 0) == 0
     }

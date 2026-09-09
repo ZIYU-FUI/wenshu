@@ -1,4 +1,4 @@
-// ZoneEditor.swift · Wenshu (文枢) · v0.28 ticket 028-008
+// ZoneEditor.swift · Wenshu () · v0.28 ticket 028-008
 //
 // SwiftUI full-screen grid editor (= hermes
 // `zone-editor.tsx` port). User clicks on a column boundary to
@@ -16,7 +16,7 @@
 import SwiftUI
 
 /// ZoneEditor — the full-screen grid editor sheet (= presented
-/// from LayoutPicker when the user clicks "+ 新建网格布局").
+/// from LayoutPicker when the user clicks "+ gridlayout").
 struct ZoneEditor: View {
     @ObservedObject var store: LayoutTreeStore
     @Environment(\.dismiss) private var dismiss

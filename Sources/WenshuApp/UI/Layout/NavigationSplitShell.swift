@@ -6,20 +6,20 @@
 //  spec = `.scratch/2026-09-08-m1-shell/spec.md`).
 //
 //  Layout structure (per boss 9/8 red-line drawing = 1 continuous
-//  vertical drag-resizable divider贯穿整个 window = NOT 2 separate
+// vertical drag-resizable divider window = NOT 2 separate
 //  NavigationSplitView, but 1 outer NavigationSplitView with each
 //  column containing 2 vertically-stacked sub-areas):
 //
 //    Outer: NavigationSplitView (3 columns, Apple HIG canonical)
 //    ├── sidebar (1 column, 2 vertical sub-areas, no inner divider):
-//    │   ├── top:    目录树 (M2 = directory tree migrates here)
-//    │   └── bottom: 卡片   (M2 = card grid migrates here)
+// │ ├── top: directory tree (M2 = directory tree migrates here)
+// │ └── bottom: card (M2 = card grid migrates here)
 //    ├── content (1 column, 2 vertical sub-areas, no inner divider):
-//    │   ├── top:    编辑器 (M3 = editor zone migrates here)
-//    │   └── bottom: 聊天   (M3 = chat zone migrates here)
+// │ ├── top: editor (M3 = editor zone migrates here)
+// │ └── bottom: chat (M3 = chat zone migrates here)
 //    └── detail (1 column, 2 vertical sub-areas, no inner divider):
-//        ├── top:    工具 (M4 = tools zone migrates here)
-//        └── bottom: 动态 (M4 = dynamic zone migrates here)
+// ├── top: (M4 = tools zone migrates here)
+// └── bottom: (M4 = dynamic zone migrates here)
 //
 //  Why 1 outer NavigationSplitView (not 2 + VSplitView): the boss's
 //  red line is 1 continuous vertical line that runs the full
@@ -34,7 +34,7 @@
 //  panes (= subsequent tickets; see spec §6).
 //
 //  Activation: LayoutTreeState.useThreeColumnSplit (= optional
-//  Bool = default `nil`/off = 老 PaneSplitHost 路径 = ZERO
+// Bool = default `nil`/off = PaneSplitHost path = ZERO
 //  regression).
 //
 
@@ -44,11 +44,11 @@ import SwiftUI
 
 /// Apple-native 3-column shell (= 1 outer `NavigationSplitView`
 /// with 3 columns × 2 vertical sub-areas each). Activated by
-/// `LayoutTreeState.useThreeColumnSplit`. Default `nil` (= 老
-/// `PaneSplitHost` 路径完全保留 per M1 spec §2.3 = zero
+/// `LayoutTreeState.useThreeColumnSplit`. Default `nil` (=
+/// `PaneSplitHost` path per M1 spec §2.3 = zero
 /// regression risk).
 ///
-/// Apple HIG rationale (= boss 9/8 '按我的红色放拖拽线' = the
+/// Apple HIG rationale (= boss 9/8 'drag line' = the
 /// 3 columns share 1 continuous vertical divider line that runs
 /// the full window height; = 1 outer `NavigationSplitView` with
 /// each column = 2 vertically-stacked sub-areas (= VStack)).
@@ -66,8 +66,8 @@ struct NavigationSplitShell: View {
     var bookStore: BookStore?
 
     var body: some View {
-        // v0.40 boss 2026-09-08 OOB '你不是这个框架是 mac os 27 默认的,
-        // 自带液态玻璃效果的吗': macOS 27 Tahoe SwiftUI NavigationSplitView
+        // v0.40 boss 2026-09-08 OOB 'yesyes mac os 27 default,
+        // Liquid Glasseffect': macOS 27 Tahoe SwiftUI NavigationSplitView
         // renders each column with the canonical Liquid Glass material
         // (= .glassEffect(.regular) auto-applied to column backgrounds
         // = the columns visually separate via glass-on-glass refraction
@@ -121,9 +121,9 @@ struct NavigationSplitShell: View {
     }
 }// MARK: - Sidebar column (= 2 vertical sub-areas)
 
-/// Apple HIG sidebar column (= 2 vertical sub-areas: 目录树 +
-/// 卡片网格). Per boss 9/8 '目录+卡片合并成一栏, 但内部还是
-/// 要分成两个区, 只不过两区写在一栏中' = the 2 sub-areas share
+/// Apple HIG sidebar column (= 2 vertical sub-areas: directory tree +
+/// cardgrid). Per boss 9/8 'directory+cardmerge, yes
+///, in progress' = the 2 sub-areas share
 /// one column without a drag-resizable divider between them
 /// (= Apple HIG's standard "List with multiple sections" pattern
 /// = Mail's sidebar = inbox + sent + drafts stacked vertically
@@ -140,13 +140,13 @@ struct NavigationSplitShell: View {
 struct ShellSidebarColumn: View {
     let appState: AppState
 
-    // v0.40 boss 2026-09-08 OOB '目录树的顶栏也丢了': sidebar
+    // v0.40 boss 2026-09-08 OOB 'directory tree top bar is also missing': sidebar
     // needs its own top tab bar (= matches chat zone's 3 fixed
     // tabs pattern + editor zone's tab strip). Apple HIG
     // canonical pattern: PaneTabBar at the top of the column
     // (= like Notes.app / Mail.app = scope selector at top of
     // the sidebar). The 2 tabs map to the existing top-level
-    // grouping (= 书架 = per-shelf books; = 资料库 = per-category
+    // grouping (= = per-shelf books; = = per-category
     // reference library). The NewLibraryOutlineView receives
     // the scope via initializer (= so it can filter which
     // rows are visible).
@@ -161,8 +161,8 @@ struct ShellSidebarColumn: View {
         // users resize the entire column, not the individual
         // sections inside it).
         //
-        // v0.40 boss 2026-09-08 '你不是这个框架是 mac os 27 默认的,
-        // 自带液态玻璃效果的吗': wrap column in Rectangle.glassEffect
+        // v0.40 boss 2026-09-08 'yesyes mac os 27 default,
+        // Liquid Glasseffect': wrap column in Rectangle.glassEffect
         // (.regular) (= the canonical macOS 27 Tahoe Liquid Glass
         // material that auto-applies when the column is a 3rd-
         // party SwiftUI view = the glass material refracts and
@@ -172,13 +172,13 @@ struct ShellSidebarColumn: View {
         VStack(spacing: 0) {
             // Top sub-area: scope tab bar + real directory tree
             // wrapped in ZonePerRegionChrome (= top tab bar + bottom
-            // status bar; = matches the 老 PaneSplitHost path's chrome
+            // status bar; = matches the legacy PaneSplitHost path's chrome
             // coverage for every zone).
-            // v0.40 boss 2026-09-09 OOB '方案 A 全 Apple native': removed
+            // v0.40 boss 2026-09-09 OOB 'Plan A: full Apple native': removed
             // ZonePerRegionChrome wrapper + RegionTabBar wrapper (= per
-            // boss 2026-09-08 '方案 A' = rely on Apple's built-in
+            // boss 2026-09-08 'Plan A' = rely on Apple's built-in
             // NavigationSplitView column chrome = no custom chrome
-            // wrappers). The sidebar scope tab bar (书架 / 资料库) is
+            // wrappers). The sidebar scope tab bar (shelves / reference library tabs) is
             // preserved as inline content (= the functionality = scope
             // filtering = is kept; = only the visual chrome wrapper =
             // the 30 PT RegionTabBar chrome = is removed).
@@ -215,14 +215,14 @@ struct ShellSidebarColumn: View {
             ZoneModuleView(zoneSlot: .projectPreview)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        // v0.40 boss 2026-09-08 '你不是这个框架是 mac os 27 默认的,
-        // 自带液态玻璃效果的吗': canonical macOS 27 Tahoe Liquid Glass
+        // v0.40 boss 2026-09-08 'yesyes mac os 27 default,
+        // Liquid Glasseffect': canonical macOS 27 Tahoe Liquid Glass
         // surface for each NavigationSplitView column. .glassEffect
         // (.regular) auto-applies the Liquid Glass material (= the
         // column refracts like glass = visually separates from
         // adjacent columns without a drag-handle divider; = matches
         // Pages / Numbers / Keynote canonical look).
-        // v0.40 boss 2026-09-08 OOB '再往上一层, 去掉背景': column-level
+        // v0.40 boss 2026-09-08 OOB 'go up one layer and remove the background': column-level
             // .background(.windowBackgroundColor) removed (= was applying
             // #1E = chrome tier over the entire column = visually distinct
             // from the zone's own .background(.underPageBackgroundColor)).
@@ -231,9 +231,9 @@ struct ShellSidebarColumn: View {
     }
 }
 
-/// v0.40 boss 2026-09-08 OOB '目录树的顶栏也丢了': scope selector
+/// v0.40 boss 2026-09-08 OOB 'directory tree top bar is also missing': scope selector
 /// for the sidebar top tab bar. 2 cases map to the existing
-/// top-level grouping (= 书架 = per-shelf books; = 资料库 =
+/// top-level grouping (= = per-shelf books; = =
 /// reference library per EntityCategory). View-local @State in
 /// ShellSidebarColumn (= no AppState migration needed for M1; =
 /// future ticket can promote to AppState for cross-zone read).
@@ -247,9 +247,9 @@ struct ShellSidebarColumn: View {
 
 // MARK: - Content column (= 2 vertical sub-areas)
 
-/// Apple HIG content column (= 2 vertical sub-areas: 编辑器 +
-/// 聊天). Per boss 9/8 '上半 sidebar / content / detail' +
-/// '下半 sidebar / content / detail' but the columns are
+/// Apple HIG content column (= 2 vertical sub-areas: editor +
+/// chat). Per boss 9/8 ' sidebar / content / detail' +
+/// ' sidebar / content / detail' but the columns are
 /// CONTINUOUS (1 outer NavigationSplitView, NOT 2 stacked).
 ///
 /// M2 (= this commit): swap the M1 placeholders for the real
@@ -262,7 +262,7 @@ struct ShellSidebarColumn: View {
 struct ShellContentColumn: View {
     let appState: AppState
 
-    // v0.40 boss 2026-09-09 OOB '方案 A 全 Apple native': removed
+    // v0.40 boss 2026-09-09 OOB 'Plan A: full Apple native': removed
     // @Namespace private var editorChromeNamespace (= the
     // PaneIconTab matchedGeometryEffect namespace = no longer
     // needed because the editor chrome tab bar was deleted
@@ -272,14 +272,14 @@ struct ShellContentColumn: View {
         VStack(spacing: 0) {
             // Top sub-area: real editor wrapped in ZonePerRegionChrome
             // (= adds the top tab bar + bottom status bar that
-            // 老 PaneSplitHost path provided per zone; = boss 9/8
-            // '中间两区的顶栏丢失了' = the chrome was missing because
+            // legacy PaneSplitHost path provided per zone; = boss 9/8
+            // 'middle two zones lost their top bars' = the chrome was missing because
             // M2 directly embedded the zone view instead of
             // wrapping it in ZonePerRegionChrome).
             //
-            // v0.40 boss 2026-09-08 OOB '编辑器区默认显示对了' +
-            // '现在需要把顶栏找回来... 上面还有一层, 有 teb 切功能,
-            // 右边有展开收起的那个': the FIRST-layer chrome top bar
+            // v0.40 boss 2026-09-08 OOB 'editor zone default display is correct' +
+            // 'needtop bar..., teb,
+            // expand/collapse': the FIRST-layer chrome top bar
             // (= the 30 PT RegionTabBar that every pane in the old
             // 6-region layout had above its content) was removed
             // during CHROME-ARCH-001. Boss wants it back. Wrap the
@@ -287,9 +287,9 @@ struct ShellContentColumn: View {
             // expand button = matches Safari / Pages / Xcode tab bar
             // pattern). The inner EditorPlaceholder's own tab strip
             // (= Safari-style file tabs) becomes the SECOND-layer.
-            // v0.40 boss 2026-09-09 OOB '方案 A 全 Apple native': removed
+            // v0.40 boss 2026-09-09 OOB 'Plan A: full Apple native': removed
             // RegionTabBar wrapper + ZonePerRegionChrome wrapper (= per
-            // boss 2026-09-08 '方案 A' = rely on Apple's built-in
+            // boss 2026-09-08 'Plan A' = rely on Apple's built-in
             // NavigationSplitView column chrome = no custom chrome
             // wrappers). The editor zone now goes straight to
             // EditorPlaceholder (= Apple-native = no chrome layer).
@@ -300,7 +300,7 @@ struct ShellContentColumn: View {
             // ChatZoneView (= the canonical chat-zone wrapper
             // that provides the top tab bar via safeAreaInset +
             // the bottom chrome status bar; = boss 9/8
-            // '编辑器区, 和聊天区的顶栏都不见了' = the chat
+            // 'editor zone, chat zonetop bar' = the chat
             // top tab bar is restored now that the env chain
             // is intact (= the M1 NavigationSplitShell is at
             // the root of the Scene, = @Environment
@@ -308,8 +308,8 @@ struct ShellContentColumn: View {
             //
             // No outer ZonePerRegionChrome (= the inner
             // ChatZoneView already provides both top tab bar
-            // and bottom status bar = boss 9/8 '把聊天区的
-            // 底栏加回来吧'). Skipping the outer chrome avoids
+            // and bottom status bar = boss 9/8 'chat zone
+            // bottom bar'). Skipping the outer chrome avoids
             // double-stacked bottom bars.
             ChatZoneView(conductor: nil, store: nil)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -317,7 +317,7 @@ struct ShellContentColumn: View {
         // v0.40: macOS 27 Tahoe Liquid Glass (= see ShellSidebarColumn
         // comment for rationale = columns refract like glass without
         // a drag-handle divider).
-        // v0.40 boss 2026-09-08 OOB '再往上一层, 去掉背景': column-level
+        // v0.40 boss 2026-09-08 OOB 'go up one layer and remove the background': column-level
             // .background(.windowBackgroundColor) removed (= was applying
             // #1E = chrome tier over the entire column = visually distinct
             // from the zone's own .background(.underPageBackgroundColor)).
@@ -336,8 +336,8 @@ struct ShellContentColumn: View {
 
 // MARK: - Detail column (= 2 vertical sub-areas)
 
-/// Apple HIG detail column (= 2 vertical sub-areas: 工具 + 动态).
-/// Per boss 9/8 '上半 right tools / 下半 right dynamic' = the
+/// Apple HIG detail column (= 2 vertical sub-areas: +).
+/// Per boss 9/8 ' right tools / right dynamic' = the
 /// detail column is also 1 column with 2 stacked sub-areas.
 ///
 /// M2 (= this commit): swap the M1 placeholders for the real
@@ -352,7 +352,7 @@ struct ShellDetailColumn: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // v0.40 boss 2026-09-09 OOB '方案 A 全 Apple native': removed
+            // v0.40 boss 2026-09-09 OOB 'Plan A: full Apple native': removed
             // ZonePerRegionChrome wrapper (= per Plan A = rely on
             // Apple's built-in NavigationSplitView column chrome =
             // no custom chrome wrappers). The specialized tools zone
@@ -367,7 +367,7 @@ struct ShellDetailColumn: View {
         }
         // v0.40: macOS 27 Tahoe Liquid Glass (= see ShellSidebarColumn
         // comment for rationale).
-        // v0.40 boss 2026-09-08 OOB '再往上一层, 去掉背景': column-level
+        // v0.40 boss 2026-09-08 OOB 'go up one layer and remove the background': column-level
             // .background(.windowBackgroundColor) removed (= was applying
             // #1E = chrome tier over the entire column = visually distinct
             // from the zone's own .background(.underPageBackgroundColor)).
@@ -391,13 +391,13 @@ struct ShellDetailColumn: View {
 /// informational view showing what WILL go there in a future
 /// ticket).
 ///
-/// Per boss 9/3 '父组件不动, 在聊天区关联父组件, 生成子组件,
-/// 在子组件做聊天区底栏实现功能. 替换占位文字' (= placeholders
+/// Per boss 9/3 'group, chat zonegroup, group,
+/// groupchat zonebottom bar. replace' (= placeholders
 /// are first-class Apple HIG pattern; = the shell renders the
 /// structure; = future tickets replace each placeholder with a
 /// real zone view).
 ///
-/// Per boss 2026-09-09 '全部都修' (= use Apple API unless Apple API
+/// Per boss 2026-09-09 'fix everything' (= use Apple API unless Apple API
 /// cannot implement the requirement): replaced the previous custom
 /// VStack with `ContentUnavailableView` (= macOS 14+; = Apple HIG
 /// canonical informational view = Xcode / Mail / Notes "no content"
@@ -409,7 +409,7 @@ struct ShellDetailColumn: View {
 /// wenshu's minimum target is macOS 27 so ContentUnavailableView is
 /// always available (= no fallback needed).
 ///
-/// Per boss 2026-09-09 '先学文档再盘查代码' (= research Apple HIG first):
+/// Per boss 2026-09-09 'study docs first, then audit code' (= research Apple HIG first):
 /// WWDC23 "Meet SwiftUI for macOS" introduced `ContentUnavailableView`
 /// as the canonical empty/no-content state. Apple's HIG for empty
 /// states says: "Use `ContentUnavailableView` for empty states,

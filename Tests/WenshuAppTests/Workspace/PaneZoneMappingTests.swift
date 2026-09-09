@@ -1,5 +1,5 @@
 //
-//  PaneZoneMappingTests.swift · Wenshu (文枢) · B-07 ticket 028-003
+// PaneZoneMappingTests.swift · Wenshu () · B-07 ticket 028-003
 //
 //  Four-test validation suite for `PaneZoneLayout` (= the
 //  single-source-of-truth for which `TabKind` ships into which

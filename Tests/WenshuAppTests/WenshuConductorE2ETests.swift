@@ -1,7 +1,7 @@
 //
 //  WenshuConductorE2ETests.swift · Wenshu · v0.23 ticket 007 (end-to-end pipeline test)
 //
-//  Boss 2026-08-23 拍: '主 agent 派单, 全流程, 能测一下不'.
+// Boss 2026-08-23: ' agent,, '.
 //
 //  This test exercises the FULL conductor pipeline WITHOUT calling real LLM:
 //    1. handle() entry point
@@ -115,7 +115,7 @@ struct WenshuConductorE2ETests {
         #expect(forbidden.count == 12, "main agent should have 12 forbidden tokens")
     }
 
-    // MARK: - v0.23 ticket 009: single-key contract (boss 8/23 拍)
+    // MARK: - v0.23 ticket 009: single-key contract (boss 8/23)
 
     @Test("v0.23 ticket 009: WenshuVerifier.singleKeyContractNote exists (docs contract)")
     func testSingleKeyContractNoteExists() {
@@ -141,7 +141,7 @@ struct WenshuConductorE2ETests {
     @Test("v0.23 ticket 009: SubAgentIdentity exposes no API key field")
     func testSubAgentsHaveNoKey() {
         // Sub-agent identity is just system prompts + tool lists + display names.
-        // No key, no config — boss 8/23 拍: 用户不能改 sub-agent 配置.
+        // No key, no config — boss 8/23: userchange sub-agent config.
         for name in SubAgentIdentity.Name.allCases {
             // Verify the public API surface has no key field.
             // (Compile-time guarantee: SubAgentIdentity only exposes

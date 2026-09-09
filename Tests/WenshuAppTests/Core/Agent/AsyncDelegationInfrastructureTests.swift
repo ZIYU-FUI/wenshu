@@ -1,7 +1,7 @@
 //
 //  AsyncDelegationTests.swift · Wenshu · v0.23 ticket 013.010 (hermes gap 9)
 //
-//  Boss 2026-08-23 拍: hermes async delegation infrastructure parity.
+// Boss 2026-08-23: hermes async delegation infrastructure parity.
 //
 
 import Foundation

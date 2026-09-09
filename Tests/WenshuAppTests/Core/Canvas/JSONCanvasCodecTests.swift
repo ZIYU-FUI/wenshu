@@ -1,6 +1,6 @@
 //
 //  JSONCanvasCodecTests.swift · Wenshu · v0.19 ticket 13
-//  单元测试: JSON Canvas 1:1 round-trip + spec 兼容性
+// test: JSON Canvas 1:1 round-trip + spec
 //
 
 import Testing
@@ -56,7 +56,7 @@ struct JSONCanvasCodecTests {
 
     @Test("1:1 兼容 jsoncanvas.org spec 示例 (4 nodes + 4 edges)")
     func specExample() throws {
-        // 跟 https://jsoncanvas.org/ 首页示例 1:1
+        // https://jsoncanvas.org/ 1:1
         let json = """
         {
           "nodes": [

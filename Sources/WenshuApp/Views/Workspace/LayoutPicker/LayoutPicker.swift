@@ -1,10 +1,10 @@
-// LayoutPicker.swift · Wenshu (文枢) · v0.28 ticket 028-007
+// LayoutPicker.swift · Wenshu () · v0.28 ticket 028-007
 //
 // Inner picker UI (= hermes `layout-picker.tsx:111-203` port). Shows
 // the 4 builtin preset cards in a 4-column grid (= or however many
 // the active preset list contains, including user-saved presets).
-// Below the grid is a "+ 新建网格布局" dashed button and a
-// "将当前排列保存为模板" reveal-to-input button at the bottom.
+// Below the grid is a "+ gridlayout" dashed button and a
+// "save" reveal-to-input button at the bottom.
 // Active preset card has an accent border + active background
 // fill. Custom (non-built-in) preset cards show a delete (×)
 // button on hover; built-in presets have no delete button.
@@ -29,7 +29,7 @@ struct LayoutPicker: View {
     /// current-as-preset input reveal so the picker can stay pure).
     var onSelectPreset: (LayoutPreset) -> Void
 
-    /// Local state for the "+ 新建网格布局" button (= the future
+    /// Local state for the "+ gridlayout" button (= the future
     /// ticket 028-008 will wire this into the ZoneEditor).
     @State private var showingNewGridHint: Bool = false
 
@@ -102,7 +102,7 @@ struct LayoutPicker: View {
                 }
             }
 
-            // "+ 新建网格布局" button (= v0.28 ticket 028-008c
+            // "+ gridlayout" button (= v0.28 ticket 028-008c
             // integration: opens the ZoneEditor sheet on tap).
             Button(action: {
                 showingZoneEditor = true

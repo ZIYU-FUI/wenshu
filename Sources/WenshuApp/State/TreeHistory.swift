@@ -1,6 +1,6 @@
-// TreeHistory.swift · Wenshu (文枢) · v0.28 followup TKT-028-025
+// TreeHistory.swift · Wenshu () · v0.28 followup TKT-028-025
 //
-// Boss 2026-08-29 OOB '完整复刻 hermes app, 用户体验第一' = port the
+// Boss 2026-08-29 OOB ' hermes app, user' = port the
 // undo/redo pattern (= pure tree operations, each destructive op
 // pushes the previous tree to history) from Hermes Desktop verbatim.
 //

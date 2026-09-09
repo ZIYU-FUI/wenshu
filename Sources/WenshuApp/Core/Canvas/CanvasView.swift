@@ -1,9 +1,9 @@
 //
-//  CanvasView.swift · Wenshu · v0.19 ticket 13 (Obsidian replica, 前端做但不接入核心项目)
-//  老板 2026-08-19 evening 拍 '前端要做但先不接入核心项目'.
+// CanvasView.swift · Wenshu · v0.19 ticket 13 (Obsidian replica,)
+// 2026-08-19 evening '.
 //
-//  Standalone SwiftUI View + ViewModel, 不接 LayoutShellView, 等老板验 macOS.
-//  现阶段只做 ViewModel 数据通路 + View placeholder (跟 ticket 12 BacklinksPanel 同范式).
+// Standalone SwiftUI View + ViewModel, LayoutShellView, wait macOS.
+// ViewModel + View placeholder (ticket 12 BacklinksPanel).
 //
 
 import Foundation
@@ -19,7 +19,7 @@ public final class CanvasViewModel {
 
     public init() {}
 
-    /// 从 .canvas 文件路径加载
+    /// .canvas filepathload
     public func load(path: String) async {
         self.isLoading = true
         self.error = nil
@@ -35,7 +35,7 @@ public final class CanvasViewModel {
         }
     }
 
-    /// 从字符串加载 (test 用)
+    /// load (test)
     public func loadFromString(_ content: String) {
         self.error = nil
         do {
@@ -47,8 +47,8 @@ public final class CanvasViewModel {
     }
 }
 
-/// CanvasView: SwiftUI View, 显示 .canvas 文件 (node + edge placeholder)
-/// 现阶段不接 LayoutShellView, 留 standalone 等老板 macOS 验
+/// CanvasView: SwiftUI View, show .canvas file (node + edge placeholder)
+/// LayoutShellView, standalone wait macOS
 public struct CanvasView: View {
     @State private var viewModel: CanvasViewModel
 

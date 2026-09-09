@@ -2,14 +2,14 @@
 //  AvailableModelsDiscovery.swift · Wenshu · v0.23 ticket 011.001
 //
 // [CJK-TRANSLATE] 2 line(s) awaiting manual translation (see git blame for original CJK text)
-//  Boss 2026-08-23 拍: '聊天区低栏的模型切换现在是否支持从配置文件里读可用模型,
-//  比如我配了三个厂家的 key, 那模型切换就应该分组展示我三个厂家的可用模型的合集'.
+// Boss 2026-08-23: 'chat zoneyesnoconfigfile,
+// key, shouldgroup'.
 //
 
 import Foundation
 
 /// One provider's available models (filtered by Keychain presence).
-/// Boss 8/23 拍: 每个 provider 配了 key 才显示该 provider 的 defaultModels.
+/// Boss 8/23: provider key show provider defaultModels.
 public struct AvailableProviderModels: Sendable, Equatable {
     public let provider: Provider
     public let models: [String]

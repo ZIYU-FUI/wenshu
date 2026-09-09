@@ -10,7 +10,7 @@ import Foundation
 struct TemplateEngineTests {
 
     private func fixedDate() -> Date {
-        // 2026-08-19 14:30:00 CST (UTC+8) — 系统默认 timezone, 跟 DateFormatter 一致
+        // 2026-08-19 14:30:00 CST (UTC+8) — default timezone, DateFormatter
         var components = DateComponents()
         components.year = 2026
         components.month = 8
@@ -26,7 +26,7 @@ struct TemplateEngineTests {
     func dateDefault() {
         let context = TemplateContext(now: fixedDate())
         let result = TemplateEngine.render("Date: {{date}}", context: context)
-        // 验证基本格式 "Date: YYYY-MM-DD" (用 contains 避免 timezone 硬编码)
+        // verifybasicformat "Date: YYYY-MM-DD" (contains timezone encoding)
         #expect(result.hasPrefix("Date: "))
         #expect(result.count == "Date: YYYY-MM-DD".count)
     }
@@ -42,7 +42,7 @@ struct TemplateEngineTests {
     func dateChineseFormat() {
         let context = TemplateContext(now: fixedDate())
         let result = TemplateEngine.render("{{date:YYYY年MM月DD日}}", context: context)
-        // 验证基本格式 "YYYY年MM月DD日" (跟 day / month 数字拼接, 不用具体日期硬编码避免 timezone 问题)
+        // verifybasicformat "YYYYMMDD" (day / month, dateencoding timezone issue)
         #expect(result.contains("年") && result.contains("月") && result.contains("日"))
         #expect(result.hasPrefix("2026年"))
     }
@@ -71,7 +71,7 @@ struct TemplateEngineTests {
 
     @Test("{{author}} 默认 anonymous")
     func authorDefault() {
-        let context = TemplateContext()  // 默认 anonymous
+        let context = TemplateContext()  // default anonymous
         let result = TemplateEngine.render("{{author}}", context: context)
         #expect(result == "anonymous")
     }
@@ -85,7 +85,7 @@ struct TemplateEngineTests {
 
     @Test("{{key:default}} 没在 context 用 default")
     func customWithDefault() {
-        let context = TemplateContext()  // 无 custom
+        let context = TemplateContext()  // custom
         let result = TemplateEngine.render("{{mood:happy}}", context: context)
         #expect(result == "happy")
     }

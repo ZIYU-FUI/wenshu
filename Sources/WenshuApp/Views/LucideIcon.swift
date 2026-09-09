@@ -1,7 +1,7 @@
-// LucideIcon.swift · Wenshu (文枢) · v0.27
+// LucideIcon.swift · Wenshu () · v0.27
 //
-// Boss 2026-08-27 OOB: '同时现在还在用 apple sf 的，全量替换成 lucide，
-// 我先不指定，你找同名的换'. = replace ALL Image(systemName:) usage
+// Boss 2026-08-27 OOB: ' apple sf ，replace lucide，
+// ，'. = replace ALL Image(systemName:) usage
 // with Lucide("...") across the wenshu codebase.
 //
 // This file provides the central Icon helper. Call sites should use:
@@ -18,8 +18,8 @@ import Lucide
 /// (= Apple HIG Sidebars: 'A sidebar's row height, text, and glyph size depend
 /// on its overall size, which can be small, medium, or large.').
 ///
-/// v0.30 boss 8/30 OOB test 'Apple 系统设置 → General → Sidebar icon size = 改
-/// Small/Medium/Large 看 sidebar 是否跟随' = sidebar icons should adapt when
+/// v0.30 boss 8/30 OOB test 'Apple Settings → General → Sidebar icon size = change
+/// Small/Medium/Large sidebar yesno' = sidebar icons should adapt when
 /// user changes system preference. Custom Lucide icons (= non-SF-Symbol) need
 /// to manually read this setting (= SF Symbols auto-adapt via SwiftUI's
 /// Label intrinsic sizing).
@@ -79,7 +79,7 @@ public func LucideIconSidebar(_ name: String) -> some View {
 /// the SF Symbol itself if no Lucide match exists (= preserves
 /// behavior so boss can request a followup rename).
 ///
-/// Mapping (= boss 8/27 '你先落地，你找同名的换' = if SF Symbol name
+/// Mapping (= boss 8/27 '，' = if SF Symbol name
 /// is already valid Lucide, use directly; otherwise try the closest
 /// Lucide equivalent):
 /// - SF 'checkmark' → Lucide 'check'
@@ -129,7 +129,7 @@ public func LucideIconSystemFallback(_ sfSymbol: String, size: CGFloat = 18) -> 
 }
 
 /// Maps an SF Symbol name to its closest Lucide equivalent (= boss
-/// 8/27 '你找同名的换' rule). Returns the SF Symbol name unchanged
+/// 8/27 ' rule). Returns the SF Symbol name unchanged
 /// if a direct Lucide equivalent exists (= Lucide's API accepts both
 /// kebab-case and camelCase).
 private func sfSymbolToLucideName(_ sfSymbol: String) -> String {

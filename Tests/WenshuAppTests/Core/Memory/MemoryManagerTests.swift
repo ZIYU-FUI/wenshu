@@ -1,7 +1,7 @@
 //
 //  MemoryManagerTests.swift · Wenshu · v0.23 ticket 013.009 (hermes gap 8)
 //
-//  Boss 2026-08-23 拍: hermes MemoryManager.prefetch + sync parity.
+// Boss 2026-08-23: hermes MemoryManager.prefetch + sync parity.
 //
 
 import Foundation

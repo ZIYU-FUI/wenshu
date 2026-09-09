@@ -1,4 +1,4 @@
-// LibraryBootstrapper.swift · Wenshu (文枢) · v0.26 (FCP library replica)
+// LibraryBootstrapper.swift · Wenshu () · v0.26 (FCP library replica)
 //
 // One-time setup + ongoing self-heal for the .ws library structure.
 // Per spec v5 ticket 021:

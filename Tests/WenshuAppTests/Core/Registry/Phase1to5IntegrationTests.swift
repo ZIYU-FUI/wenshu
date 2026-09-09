@@ -1,8 +1,8 @@
-// Phase1to5IntegrationTests.swift · Wenshu (文枢) · v0.28 followup TKT-028-018
+// Phase1to5IntegrationTests.swift · Wenshu () · v0.28 followup TKT-028-018
 //
 // Integration tests for the full Phase 1-5 stack (= contribution
 // registry + visibility + chrome + panes + sash + applyTree deep-clone).
-// Boss 2026-08-29 OOB '完整复刻 hermes app, 用户体验第一'.
+// Boss 2026-08-29 OOB ' hermes app, user'.
 
 import XCTest
 @testable import WenshuApp

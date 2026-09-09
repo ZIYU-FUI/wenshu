@@ -1,11 +1,11 @@
 //
-//  GraphBuilder.swift · Wenshu · v0.19 ticket 14 (Obsidian replica, 后端先做)
-//  老板 2026-08-19 evening 拍 Obsidian 复刻范围 A + '复刻后端, 前端不接入核心项目'.
+// GraphBuilder.swift · Wenshu · v0.19 ticket 14 (Obsidian replica, do first)
+// 2026-08-19 evening Obsidian A + ', '.
 //
 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-//  全 vault 节点关系图构建 + 简单力导向布局.
-//  跟 Obsidian Graph view 行为对齐 (https://obsidian.md/help/plugins/graph).
-//  Apple HIG: 简单 spring force 算法, 跟 Apple HIG 物理仿真一致.
+// vault build + simplelayout.
+// Obsidian Graph view ok (https://obsidian.md/help/plugins/graph).
+// Apple HIG: simple spring force, Apple HIG .
 //
 
 import Foundation
@@ -14,7 +14,7 @@ import Foundation
 public struct GraphNode: Equatable, Sendable, Identifiable {
     public var id: String       // docId
     public var label: String    // display name (from DocumentIndexing)
-    public var x: Double        // 布局坐标 (force-directed 输出)
+    public var x: Double        // layout (force-directed output)
     public var y: Double
     public var links: Int        // link count (degree)
 
@@ -29,7 +29,7 @@ public struct GraphNode: Equatable, Sendable, Identifiable {
 
 /// Graph edge (1 [[source → target]] link)
 public struct GraphEdge: Equatable, Sendable, Identifiable {
-    public var id: String       // 唯一 id
+    public var id: String       // id
     public var sourceId: String // source docId
     public var targetId: String // target docId (resolved)
 
@@ -120,13 +120,13 @@ public enum GraphBuilder {
             nodes[i].y = Double(rng.next() % UInt64(height))
         }
 
-        // 构建 id → index 映射
+        // build id → index
         var indexMap: [String: Int] = [:]
         for (i, node) in nodes.enumerated() {
             indexMap[node.id] = i
         }
 
-        // 边集合 (source, target)
+        // (source, target)
         let edges = graph.edges.compactMap { edge -> (Int, Int)? in
             guard let s = indexMap[edge.sourceId], let t = indexMap[edge.targetId] else { return nil }
             return (s, t)

@@ -2,7 +2,7 @@
 //  EditorEditContent.swift · Wenshu · v0.40 apple-001 Q2 slice 8
 //
 //  Extracted from WorkspaceView.swift (formerly inline private
-//  struct at line 1820). Q2 boss拍 split WorkspaceView. Slice 8
+// struct at line 1820). Q2 boss split WorkspaceView. Slice 8
 //  = the SwiftUI live-edit surface for the editor pane. Wraps
 //  nodes-app/swift-markdown-engine (TextKit 2) via
 //  WenshuMarkdownEditor (NSViewRepresentable). Forwards the
@@ -85,8 +85,8 @@ struct EditorEditContent: View {
             draftId: draftId,
             configuration: configuration,
             onLinkClick: onLinkClick,
-            // v0.40 boss 9/7 OOB '编辑器的样式, 无论是几种模式,
-            // 应该用同一个组件呈现': edit mode = editable NSTextView
+            // v0.40 boss 9/7 OOB 'editor, yes,
+            // shouldgroup': edit mode = editable NSTextView
             // (= same engine wrapper as preview, = no scaling
             // between modes).
             isEditable: true

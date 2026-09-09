@@ -1,5 +1,5 @@
 //
-//  BookKanbanStoreScopeTests.swift · Wenshu (文枢) · B-13 scope unification
+// BookKanbanStoreScopeTests.swift · Wenshu () · B-13 scope unification
 //
 //  Round-trip persistence tests for BookKanbanStore across every
 //  scope variant (= book root / 8 standard sub-folders / reference

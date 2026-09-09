@@ -18,7 +18,7 @@ struct ProcessToolsTests {
 
     @Test("runShell 跑多命令")
     func testRunShell() async throws {
-        // v0.23 ticket 008: runShell always throws (boss 8/23 拍: 用户不可通过聊天改系统).
+        // v0.23 ticket 008: runShell always throws (boss 8/23: user cannot change system via chat).
         // Use wenshu-devtool CLI for legitimate shell access.
         let tools = ProcessTools()
         do {
@@ -36,7 +36,7 @@ struct ProcessToolsTests {
             let result = try tools.run(executable: "/bin/nonexistent-command-xyz")
             #expect(result.exitCode != 0)
         } catch {
-            // Process.run 抛错也算 expected (file not found)
+            // Process.run expected (file not found)
             #expect(true)
         }
     }

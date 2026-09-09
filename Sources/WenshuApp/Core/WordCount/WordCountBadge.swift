@@ -1,5 +1,5 @@
 //
-//  WordCountBadge.swift · Wenshu · v0.19 ticket 20 (Obsidian replica, 前端做但不接入核心项目)
+// WordCountBadge.swift · Wenshu · v0.19 ticket 20 (Obsidian replica,)
 //
 
 import Foundation
@@ -13,14 +13,14 @@ public final class WordCountViewModel {
 
     public init() {}
 
-    /// 统计 content 字数
+    /// content
     public func update(content: String) {
         self.count = WordCounter.count(content)
     }
 }
 
-/// WordCountBadge: SwiftUI View, 显示字数 badge placeholder
-/// 现阶段不接 LayoutShellView, 留 standalone 等老板 macOS 验
+/// WordCountBadge: SwiftUI View, show badge placeholder
+/// LayoutShellView, standalone wait macOS
 public struct WordCountBadge: View {
     @State private var viewModel: WordCountViewModel
 
@@ -50,7 +50,7 @@ public struct WordCountBadge: View {
 }
 
 /// WordCountInlineLabel: tiny inline text for toolbar (v0.22 ticket o09).
-/// Reads a WordCountViewModel and renders "1.2k 字" or "0 字" compact text.
+/// Reads a WordCountViewModel and renders "1.2k " or "0 " compact text.
 /// Use case: Z-TITLE toolbar always-visible word count badge (Apple HIG compact label).
 public struct WordCountInlineLabel: View {
     @Bindable var viewModel: WordCountViewModel

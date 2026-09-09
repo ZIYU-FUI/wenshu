@@ -1,4 +1,4 @@
-// SmartQueryView.swift · Wenshu (文枢) · v0.26 (FCP library replica)
+// SmartQueryView.swift · Wenshu () · v0.26 (FCP library replica)
 //
 // Saved-search UI (= FCP Library Smart Collection analogue).
 // v0.26 ships a static placeholder UI (= list + add/edit/delete);

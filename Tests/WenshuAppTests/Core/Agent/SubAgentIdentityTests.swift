@@ -1,7 +1,7 @@
 //
 //  SubAgentIdentityTests.swift · Wenshu · v0.23 ticket 001 (5 sub-agent system prompts)
 //
-//  Boss 2026-08-23 拍: verify 5 sub-agent identity is defined.
+// Boss 2026-08-23: verify 5 sub-agent identity is defined.
 //
 
 import Foundation

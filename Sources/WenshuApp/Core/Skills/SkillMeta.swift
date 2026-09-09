@@ -48,7 +48,7 @@
 // to follow-up commits, justified by:
 //
 // 1. SkillSource + SkillProvenance: wenshu has no trust-policy concept in v1
-//    (= single-trust model; boss 8/28 OOB "v1 没有三方库下载, 信任模式不适用").
+// (= single-trust model; boss 8/28 OOB "v1 download, ").
 // 2. HubStateDir + SkillLedger: wenshu uses filesystem JSON, not hermes's
 //    SQLite hub-state surface (= GRDB hub migration lands with v0.29+ chat-history).
 // 3. SkillGuard + SkillLinter: hermes's skill-content static-analysis gate;

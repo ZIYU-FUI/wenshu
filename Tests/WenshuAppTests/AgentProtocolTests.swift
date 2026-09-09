@@ -1,7 +1,7 @@
 //
 //  AgentProtocolTests.swift · Wenshu · v0.18 ticket 03 (A2A protocol)
 //
-//  单元测试 A2A 协议真值: message/send + task/get + task/list + JSON encode/decode.
+// test A2A: message/send + task/get + task/list + JSON encode/decode.
 //
 
 import Testing
@@ -11,8 +11,8 @@ import Foundation
 @Suite("AgentProtocol (A2A 协议)")
 struct AgentProtocolTests {
     private static func makeProtocol() -> AgentProtocol {
-        // v0.21 ticket 03 + code-review S3: handle 无 verifier 时 throw (echo 已删), 测试期望走 fallback error 路径
-        // 测试 agent 真值用 WenshuVerifier (没 key → ping fail → error 路径, 但不是 echo)
+        // v0.21 ticket 03 + code-review S3: handle verifier throw (echo), test fallback error path
+        // test agent WenshuVerifier (key → ping fail → error path, yes echo)
         AgentProtocol(agentCard: AgentCard(
             name: "test-agent",
             description: "测试 agent",
@@ -31,8 +31,8 @@ struct AgentProtocolTests {
             fromAgent: "user"
         ))
         let response = await protocol_.handle(request)
-        // v0.21 ticket 03 + code-review S3: handle 无 echo fallback, 没 LLM 成功 → error != nil
-        // 测试 agent WenshuVerifier 没 key → LLM fail → error 是 LLM failed
+        // v0.21 ticket 03 + code-review S3: handle echo fallback, LLM → error != nil
+        // test agent WenshuVerifier key → LLM fail → error yes LLM failed
         #expect(response.error != nil)
         if response.error == nil {
             Issue.record("expected LLM failure (no API key), got success")
@@ -57,9 +57,9 @@ struct AgentProtocolTests {
             return
         }
         #expect(task.id == taskId)
-        // v0.21 ticket 03 + code-review S3: handle 失败 (LLM fail) → task.status = .failed, 没 agent reply message
+        // v0.21 ticket 03 + code-review S3: handle (LLM fail) → task.status = .failed, agent reply message
         #expect(task.status == .failed)
-        #expect(task.messages.count == 1)  // 只 user message, 没 agent echo
+        #expect(task.messages.count == 1)  // user message, agent echo
     }
 
     @Test("task/get 没找到返回 taskNotFound error")
@@ -79,7 +79,7 @@ struct AgentProtocolTests {
         let protocol_ = Self.makeProtocol()
         let taskId1 = UUID()
         let taskId2 = UUID()
-        // v0.21 ticket 03 + code-review S3: handle 失败时 task 仍保存 (status = .failed)
+        // v0.21 ticket 03 + code-review S3: handle task save (status = .failed)
         _ = await protocol_.handle(A2ARequest(method: .messageSend, params: .messageSend(
             taskId: taskId1, message: AgentMessage(role: .user, content: "1"), fromAgent: "user")))
         _ = await protocol_.handle(A2ARequest(method: .messageSend, params: .messageSend(
@@ -89,7 +89,7 @@ struct AgentProtocolTests {
             Issue.record("expected taskList")
             return
         }
-        // task 仍保存 (status = .failed 因为 LLM fail, 但 task 本身仍 record)
+        // task save (status = .failed LLM fail, task record)
         #expect(tasks.count == 2)
     }
 
@@ -117,7 +117,7 @@ struct AgentProtocolTests {
     @Test("invalid params 返回 invalidParams error")
     func testInvalidParams() async throws {
         let protocol_ = Self.makeProtocol()
-        // 故意 mismatch: .messageSend method + .taskGet params
+        // mismatch: .messageSend method + .taskGet params
         let request = A2ARequest(method: .messageSend, params: .taskGet(taskId: UUID()))
         let response = await protocol_.handle(request)
         guard case .invalidParams = response.error else {

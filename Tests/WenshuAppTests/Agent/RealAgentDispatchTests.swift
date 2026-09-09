@@ -6,11 +6,11 @@
 //    ConversationLoop + ReadFileTool + WriteFileTool + ToolExecutor
 //    against a MockLLMConnector that emits tool_use blocks.
 //
-//  Per 老板 cadence 2026-09-03 '采纳你的推荐' (= approve full 30-commit
-//  plan per v0.37-full-translation-plan.md) + 'push 不归 ANAN 管 =
-//  之前 push 就是你的活' (= 我 (pocock PO) have push authority) +
-//  'PO 全链路方法论执行,不要跳步骤' + '1 RULE 1 commit' + '翻译这个事
-//  做完一起验视觉和前端流程'.
+// Per cadence 2026-09-03 ' (= approve full 30-commit
+// plan per v0.37-full-translation-plan.md) + 'push ANAN =
+// push yes' (= (pocock PO) have push authority) +
+// 'PO execute,don't' + '1 RULE 1 commit' + '
+// when done, verify visual and frontend flow together'.
 //
 
 import Testing

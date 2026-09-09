@@ -1,4 +1,4 @@
-// CrossRefInjectTests.swift · Wenshu (文枢) · v0.27 (FCP library replica)
+// CrossRefInjectTests.swift · Wenshu () · v0.27 (FCP library replica)
 //
 // Contract tests for the CrossRefInject pipeline. Mirrors the
 // SmartQueryParserTests pattern.

@@ -1,7 +1,7 @@
 //
 //  VisionToolsTests.swift · Wenshu · v0.18 ticket 10 (vision tools)
 //
-//  单元测试 VisionTools. 只测错误路径 (图片加载失败), 不测真 Vision 跑 (避免 sandbox 限制).
+// test VisionTools. errorpath (load), Vision (sandbox).
 //
 
 import Testing
@@ -28,7 +28,7 @@ struct VisionToolsTests {
 
     @Test("recognizeText 文本文件不抛 throw 而是 imageLoadFailed")
     func testRecognizeTextTextFile() async {
-        // 文本文件不是图片 → 是 imageLoadFailed
+        // fileyes → yes imageLoadFailed
         let tools = VisionTools()
         let textPath = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
             .appendingPathComponent(".test-vision-\(UUID().uuidString.prefix(8)).txt").path

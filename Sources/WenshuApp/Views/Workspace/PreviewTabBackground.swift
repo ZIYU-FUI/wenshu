@@ -2,7 +2,7 @@
 //  PreviewTabBackground.swift · Wenshu · v0.40 apple-001 Q2 slice 9b
 //
 //  Extracted from WorkspaceView.swift (formerly inline private
-//  struct at line 1862). Q2 boss拍 split WorkspaceView. Slice 9b
+// struct at line 1862). Q2 boss split WorkspaceView. Slice 9b
 //  = the empty Color.clear placeholder for the preview pane tab
 //  background. Pane background uniformity is now applied by
 //  ZonePerRegionChrome.

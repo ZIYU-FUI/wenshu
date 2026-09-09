@@ -27,7 +27,7 @@ struct ProviderFetcherTests {
             provider: .anthropic,
             apiKey: "sk-invalid-test"
         )
-        // 网络请求会失败, 返 anthropic curated fallback (claude-opus-4...)
+        // network, anthropic curated fallback (claude-opus-4...)
         #expect(models == Provider.anthropic.defaultModels)
     }
 

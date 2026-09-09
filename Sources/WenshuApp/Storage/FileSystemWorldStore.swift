@@ -1,4 +1,4 @@
-// FileSystemWorldStore.swift · Wenshu (文枢) · v0.26 (FCP library replica)
+// FileSystemWorldStore.swift · Wenshu () · v0.26 (FCP library replica)
 //
 // Per-Book world-building storage layer (= ticket 004 of the FCP
 // library replica spec).

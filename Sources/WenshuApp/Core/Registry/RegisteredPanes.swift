@@ -1,6 +1,6 @@
-// RegisteredPanes.swift · Wenshu (文枢) · v0.28 followup TKT-028-016
+// RegisteredPanes.swift · Wenshu () · v0.28 followup TKT-028-016
 //
-// Boss 2026-08-29 OOB '完整复刻 hermes app, 用户体验第一' = port the
+// Boss 2026-08-29 OOB ' hermes app, user' = port the
 // pane registration pattern from Hermes Desktop verbatim. New pane
 // type = 1 registry.register() call (= no edit to PaneRenderer).
 //

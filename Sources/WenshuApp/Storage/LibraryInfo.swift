@@ -1,4 +1,4 @@
-// LibraryInfo.swift · Wenshu (文枢) · v0.26 (FCP library replica)
+// LibraryInfo.swift · Wenshu () · v0.26 (FCP library replica)
 //
 // Reads the .ws library's Info.plist metadata (= Apple HIG bundle
 // pattern). Per spec v5 ticket 018:

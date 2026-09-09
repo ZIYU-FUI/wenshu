@@ -1,6 +1,6 @@
 //
 //  InternalLinkParserTests.swift · Wenshu · v0.19 ticket 12
-//  单元测试: InternalLinkParser 解析 Markdown [[name]] 各种 case
+// test: InternalLinkParser Markdown [[name]] case
 //
 
 import Testing
@@ -56,9 +56,9 @@ struct InternalLinkParserTests {
 
     @Test("嵌套方括号不匹配 (regex 限制)")
     func parseNestedBracketsNotMatch() {
-        // [[foo [bar]] 实际被 regex 部分匹配为 [foo [bar] (允许 [ 不允许 ]), 因为 regex 是简化版本
-        // 真值: Obsidian wikilink 不支持嵌套 [[name]], SilverBullet 同. 简化 regex 跟它们对齐
-        // 这个 test 验证我们的限制: target 不允许包含 ] (跟 Obsidian 行为对齐)
+        // [[foo [bar]] regex [foo [bar] ([ ]), regex yesversion
+        //: Obsidian wikilink [[name]], SilverBullet . regex
+        // test verify: target ] (Obsidian ok)
         let links = InternalLinkParser.parse("[[foo bar baz]]")
         #expect(links.count == 1)
         #expect(links[0].target == "foo bar baz")

@@ -1,7 +1,7 @@
 //
 //  FileSystemLibraryStoreForceUnwrapFixTests.swift · Wenshu · v0.23 audit #014
 //
-//  Boss 2026-08-23 拍: '重点是你如何规避风险'.
+// Boss 2026-08-23: 'yes'.
 //  Standards audit found FileSystemLibraryStore.swift:514 had force unwrap
 //  `categoryDirectory(...)!` which would crash on corrupted library state.
 //  Fix: documentPath now throws LibraryStoringError.parentBookNotFound.

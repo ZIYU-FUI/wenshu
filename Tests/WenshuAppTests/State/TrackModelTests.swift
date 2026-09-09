@@ -1,4 +1,4 @@
-// TrackModelTests.swift · Wenshu (文枢) · v0.28 followup TKT-028-033
+// TrackModelTests.swift · Wenshu () · v0.28 followup TKT-028-033
 
 import XCTest
 import SwiftUI

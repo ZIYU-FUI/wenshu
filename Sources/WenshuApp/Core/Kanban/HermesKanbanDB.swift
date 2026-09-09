@@ -74,7 +74,7 @@ private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.sel
 // MARK: - Domain models (= 1:1 mirror of hermes kanban_db.Task + Comment + Event + Attachment)
 
 /// Hermes kanban task (= 1:1 mirror of hermes kanban_db.Task dataclass).
-/// boss 2026-09-04 OOB "要 1:1" → status enum is the canonical hermes set.
+/// boss 2026-09-04 OOB " 1:1" → status enum is the canonical hermes set.
 public struct HermesKanbanTask: Sendable, Codable, Equatable, Identifiable {
     public let id: UUID
     public var boardId: String
@@ -245,7 +245,7 @@ public enum HermesKanbanError: Error, Sendable, Equatable {
 
 // MARK: - SQLite3 pointer wrapper (= opaque handle with thread-safe init)
 
-/// SQLite 透明指针 wrap (= identical pattern to KanbanStore.swift SQLitePtr).
+/// SQLite wrap (= identical pattern to KanbanStore.swift SQLitePtr).
 private final class HermesKanbanSQLitePtr {
     var db: OpaquePointer?
     deinit { sqlite3_close(db) }

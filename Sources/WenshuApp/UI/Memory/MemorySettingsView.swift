@@ -104,10 +104,10 @@ public struct MemorySettingsView: View {
             }
         }
         .padding(DesignTokens.chromePaddingMedium)
-        // v0.40 boss 2026-09-08 OOB '盘一遍, 还有颜色': removed the
+        // v0.40 boss 2026-09-08 OOB 'sweep for remaining background colors: removed the
         // chrome tier background tint (= .windowBackgroundColor
         // = #1E = creates a visible lighter strip = boss wants
-        // gone per the '再往上一层, 再删一层' cleanup). Settings
+        // gone per the 'go up another layer and remove the background' cleanup). Settings
         // panel now matches the surrounding Settings content.
         .task {
             await reloadEntries()

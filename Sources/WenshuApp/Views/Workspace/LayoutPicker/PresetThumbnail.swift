@@ -1,4 +1,4 @@
-// PresetThumbnail.swift · Wenshu (文枢) · v0.28 ticket 028-007
+// PresetThumbnail.swift · Wenshu () · v0.28 ticket 028-007
 //
 // SwiftUI port of `TreeThumbnail` (= hermes `layout-picker.tsx:26-51`).
 // Recursively renders a LayoutTreeState as gray rectangles

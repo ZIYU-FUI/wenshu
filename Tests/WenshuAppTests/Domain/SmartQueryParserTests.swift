@@ -1,4 +1,4 @@
-// SmartQueryParserTests.swift · Wenshu (文枢) · v0.27 (FCP library replica)
+// SmartQueryParserTests.swift · Wenshu () · v0.27 (FCP library replica)
 //
 // Contract tests for the SmartQueryPredicate parser + evaluator
 // (= ticket 027-02). Mirrors the WorldStoringContractTests pattern.

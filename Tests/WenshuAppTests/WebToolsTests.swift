@@ -1,7 +1,7 @@
 //
 //  WebToolsTests.swift · Wenshu · v0.18 ticket 09 (web tools)
 //
-//  单元测试 WebTools. 测 htmlToMarkdown (本地), 跳过真 URL fetch (网络依赖).
+// test WebTools. htmlToMarkdown (local), skip URL fetch (network).
 //
 
 import Testing
@@ -50,7 +50,7 @@ struct WebToolsTests {
     func testFetchInvalidURL() async {
         let tools = WebTools()
         await #expect(throws: (any Error).self) {
-            _ = try await tools.fetch(url: "ht!tp:/invalid")  // 任何错误都行 (system URLError 或 WebToolsError)
+            _ = try await tools.fetch(url: "ht!tp:/invalid")  // errorok (system URLError WebToolsError)
         }
     }
 }

@@ -1,16 +1,16 @@
 //
 //  FileTools.swift · Wenshu · v0.18 ticket 07 (hermes replica)
 //
-//  本地 file tools (复刻 hermes file tool 真值).
-//  老板 2026-08-19 拍 "全模块复刻, Apple 体系实现" + "不符合文枢定位的可以复刻".
+// local file tools (hermes file tool).
+// 2026-08-19 ", Apple " + "can".
 //
-//  wenshu 定位 = SwiftUI 桌面写作 app. FileTools 写作用 (read / write / patch / search / list).
-//  Apple HIG 真值: FileManager + URL + Data + String.
+// wenshu = SwiftUI app. FileTools (read / write / patch / search / list).
+// Apple HIG: FileManager + URL + Data + String.
 //
 
 import Foundation
 
-/// File entry 真值 (hermes list 真值)
+/// File entry (hermes list)
 public struct FileEntry: Equatable, Sendable {
     public let path: String
     public let name: String
@@ -27,7 +27,7 @@ public struct FileEntry: Equatable, Sendable {
     }
 }
 
-/// Patch 1 处真值 (hermes patch 真值)
+/// Patch 1 (hermes patch)
 public struct PatchHunk: Sendable {
     public let oldText: String
     public let newText: String
@@ -49,7 +49,7 @@ public enum FileToolError: Error, LocalizedError {
     }
 }
 
-/// FileTools: 本地 file ops 工具
+/// FileTools: local file ops
 public struct FileTools: Tool, Sendable {
     public init() {}
 
@@ -89,7 +89,7 @@ public struct FileTools: Tool, Sendable {
         return (try? read(path: path)) ?? ""
     }
 
-    /// pathDenied: 路径 deny-list check (boss 8/23 拍: 用户不可通过聊天改代码 / 改配置).
+    /// pathDenied: path deny-list check (boss 8/23: userchatchange / changeconfig).
     /// Returns true if the path matches project code / config / scratch / system files.
     /// Uses (path as NSString).standardizingPath to normalize symlinks / . / ..
     /// v0.23 ticket 013.002: hermes _is_blocked_device parity.
@@ -168,12 +168,12 @@ public struct FileTools: Tool, Sendable {
         return false
     }
 
-    /// read: 读文件真值
+    /// read: file
     public func read(path: String) throws -> String {
         try String(contentsOfFile: path, encoding: .utf8)
     }
 
-    /// write: 写文件真值 (原子写, Apple 真值: .atomicWrite)
+    /// write: file (, Apple: .atomicWrite)
     /// v0.23 ticket 008: path guard rejects deny-list paths.
     public func write(path: String, content: String) throws {
         if pathDenied(path) { throw FileToolError.pathDenied(path: path) }
@@ -181,7 +181,7 @@ public struct FileTools: Tool, Sendable {
         try content.write(to: url, atomically: true, encoding: .utf8)
     }
 
-    /// patch: 1 处替换真值 (hermes patch 1 处简化)
+    /// patch: 1 replace (hermes patch 1)
     /// v0.23 ticket 008: path guard rejects deny-list paths.
     public func patch(path: String, hunk: PatchHunk) throws {
         if pathDenied(path) { throw FileToolError.pathDenied(path: path) }
@@ -193,7 +193,7 @@ public struct FileTools: Tool, Sendable {
         try write(path: path, content: patched)
     }
 
-    /// search: 目录递归搜索真值
+    /// search: directorysearch
     public func search(rootDir: String, pattern: String, fileExtension: String? = nil) throws -> [String] {
         var results: [String] = []
         let fm = FileManager.default
@@ -215,7 +215,7 @@ public struct FileTools: Tool, Sendable {
         return results
     }
 
-    /// list: 列目录真值
+    /// list: directory
     public func list(path: String) throws -> [FileEntry] {
         let url = URL(fileURLWithPath: path, isDirectory: true)
         let contents = try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: [.isDirectoryKey, .fileSizeKey, .contentModificationDateKey])

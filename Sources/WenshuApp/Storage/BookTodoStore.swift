@@ -1,11 +1,11 @@
-// BookTodoStore.swift · Wenshu (文枢) · v0.26 (FCP library replica) + B-13
+// BookTodoStore.swift · Wenshu () · v0.26 (FCP library replica) + B-13
 //
 // Per-(book × scope) todo JSON store (= spec v5 ticket 026 + B-13 scope
 // unification). Replaces v0.25.x app-level TodoStore (SQLite) with a
 // per-book JSON file (books/<book-id>/todo.json).
 //
-// Per boss 2026-08-26 OOB: 'todo ... 没有现成数据要迁移' (= todo
-//功能没实装, 没有现成数据要迁移). v0.26 starts with empty per-book
+// Per boss 2026-08-26 OOB: 'todo ... ' (= todo
+//,). v0.26 starts with empty per-book
 // JSON files (per LibraryBootstrapper).
 //
 // B-13 (= boss 2026-09-04 OOB): scope picker lets the user target one of
@@ -28,7 +28,7 @@ import Foundation
 /// Per-book JSON-serialized TodoItem (= distinct from v0.25.x
 /// WenshuApp.Core.Todo.TodoItem which is Equatable + Sendable but
 /// not Codable). Used by BookTodoStore for per-book JSON
-/// serialization per boss 2026-08-26 OOB '切书=切数据源'.
+/// serialization per boss 2026-08-26 OOB '='.
 struct PerBookTodoItem: Identifiable, Hashable, Codable, Sendable {
     let id: UUID
     var title: String
