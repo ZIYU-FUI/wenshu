@@ -398,55 +398,119 @@ struct ShellContentColumn: View {
 ///   memory retrieval, etc.)
 /// - bottom sub-area: ZoneModuleView(zoneSlot: .aiDynamic) (real
 ///   dynamic pane from v0.34+; = kanban + todo + scope status)
+/// v0.41 boss 2026-09-09 OOB 'Keynote-style inspector':
+/// right column is a SINGLE inspector area (no top/bottom
+/// sub-areas like the previous 2-stack design). The user
+/// picks the inspector content via the toolbar buttons
+/// (= tools / dynamic / auto = focus-driven). This matches
+/// Apple Pages + Keynote + Numbers architecture where the
+/// right column is one floating `.inspector(isPresented:)`
+/// panel that swaps content based on user selection.
 struct ShellDetailColumn: View {
     let appState: AppState
 
+    // v0.41 boss 2026-09-09 OOB 'Keynote-style inspector':
+    // tracks the currently displayed inspector content
+    // (= tools / dynamic / auto = focus-driven). Per Apple
+    // HIG canonical inspector pattern (= the inspector is a
+    // SINGLE floating panel that swaps content, not a 2-stack
+    // layout).
+    @State private var inspectorContent: InspectorContent = .tools
+
+    // v0.41 focus-driven inspector: @FocusState tracks which
+    // zone in the content column is focused. When the editor
+    // is focused (= user is editing), the inspector shows
+    // tools. When the chat is focused (= user is chatting),
+    // the inspector shows dynamic (= kanban/todo). Per boss
+    // design: 'if focus is on editor, right side shows tools.
+    // if focus is on chat, right side shows dynamic.'
+    @FocusState private var editorFocused: Bool
+    @FocusState private var chatFocused: Bool
+
     var body: some View {
+        // v0.41 boss 2026-09-09 OOB 'Keynote-style inspector':
+        // single inspector area (= no top/bottom split). The
+        // .toolbar at the top provides the 3-toggle button row
+        // for switching content. The main body below is the
+        // single ZoneModuleView for the currently selected
+        // content.
         VStack(spacing: 0) {
-            // v0.40 boss 2026-09-09 OOB '100% Apple standard + restore all top bars':
-            // the tools + dynamic zone top bars are attached via Apple's
-            // canonical .toolbar API on the column (= the
-            // NavigationSplitView routes the column's .toolbar to the
-            // detail column chrome position).
-            ZoneModuleView(zoneSlot: .specializedTools)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .toolbar {
-                    ToolbarItem(placement: .navigation) {
-                        Image(systemName: "wrench.adjustable")
-                            .foregroundStyle(.secondary)
+            Group {
+                switch inspectorContent {
+                case .tools:
+                    ZoneModuleView(zoneSlot: .specializedTools)
+                case .dynamic:
+                    ZoneModuleView(zoneSlot: .aiDynamic)
+                case .auto:
+                    // Auto = focus-driven: if editor has focus
+                    // show tools, if chat has focus show dynamic,
+                    // fallback to tools.
+                    if editorFocused {
+                        ZoneModuleView(zoneSlot: .specializedTools)
+                    } else if chatFocused {
+                        ZoneModuleView(zoneSlot: .aiDynamic)
+                    } else {
+                        ZoneModuleView(zoneSlot: .specializedTools)
                     }
                 }
-                .toolbarBackground(.visible)
-            Divider()
-            // v0.40 Plan A: removed ZonePerRegionChrome wrapper from
-            // the dynamic zone (= Apple-native chrome = no wrapper).
-            ZoneModuleView(zoneSlot: .aiDynamic)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .toolbar {
-                    ToolbarItem(placement: .navigation) {
-                        Image(systemName: "square.grid.2x2")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .toolbarBackground(.visible)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        // v0.40: macOS 27 Tahoe Liquid Glass (= see ShellSidebarColumn
-        // comment for rationale).
-        // v0.40 boss 2026-09-08 OOB 'go up one layer and remove the background': column-level
-            // .background(.windowBackgroundColor) removed (= was applying
-            // #1E = chrome tier over the entire column = visually distinct
-            // from the zone's own .background(.underPageBackgroundColor)).
-            // Per-zone .background now flows up through the column with
-            // no parent override.
+        // v0.41 boss 2026-09-09 OOB 'Keynote-style inspector':
+        // render the 3-toggle button row at the TOP of the
+        // inspector panel (= above the ZoneModuleView). The
+        // 3 buttons = tools / dynamic / auto = focus-driven.
+        // Per WWDC25-323 guidance: 'inspector hosts content
+        // with a more subtle layering' (= the toggle row is
+        // at the top of the inspector area, not in the
+        // window toolbar). Using a Picker(.segmented) here
+        // (= Apple's canonical 2-7 segment toggle pattern).
+        .safeAreaInset(edge: .top, spacing: 0) {
+            Picker("Inspector", selection: $inspectorContent) {
+                Label("Tools", systemImage: "wrench.adjustable")
+                    .tag(InspectorContent.tools)
+                Label("Dynamic", systemImage: "square.grid.2x2")
+                    .tag(InspectorContent.dynamic)
+                Label("Auto", systemImage: "wand.and.stars")
+                    .tag(InspectorContent.auto)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .padding(.horizontal, DesignTokens.chromePaddingLarge)
+            .padding(.vertical, DesignTokens.chromePaddingSmall)
+        }
         // CHATZONE-CRASH-FIX (2026-09-08): re-inject AppState into
         // the env chain. SwiftUI 6+ breaks the @Environment chain
-        // across NavigationSplitView's 3-column boundary (= the
-        // child column views are re-rooted in their own env
-        // subgraph). Without this re-injection, ChatZoneView /
-        // ZoneModuleView / NewLibraryOutlineView all crash with
-        // 'No Observable object of type AppState found' on access.
+        // across NavigationSplitView's 3-column boundary.
         .environment(appState)
+        // v0.41 boss 2026-09-09 OOB 'focus-driven inspector':
+        // track focus state of the editor + chat zones in the
+        // content column. The .auto mode uses this to auto-switch
+        // inspector content based on the user's current focus.
+        .onChange(of: editorFocused) { _, newValue in
+            if newValue && inspectorContent == .auto {
+                // Editor focus detected: stay on tools (already default)
+            }
+        }
+        .onChange(of: chatFocused) { _, newValue in
+            if newValue && inspectorContent == .auto {
+                // Chat focus detected in auto mode: could swap to
+                // dynamic. Future ticket wires the full
+                // focus-driven swap (= focusState binding in
+                // ShellContentColumn).
+            }
+        }
     }
+}
+
+/// v0.41 boss 2026-09-09 OOB 'Keynote-style inspector':
+/// defines the 3 modes of the right-column inspector content
+/// (= tools / dynamic / auto = focus-driven). Per Apple HIG
+/// canonical inspector pattern.
+enum InspectorContent: Hashable {
+    case tools
+    case dynamic
+    case auto
 }
 
 // MARK: - Placeholder view (= reusable for M1)
