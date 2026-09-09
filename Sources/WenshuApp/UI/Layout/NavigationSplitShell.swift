@@ -299,6 +299,15 @@ struct ShellContentColumn: View {
     @AppStorage("wenshu.chat.floatingVisible") private var chatVisible: Bool = false
     /// Height of the floating chat panel, also persisted.
     @AppStorage("wenshu.chat.floatingHeight") private var chatHeight: Double = 320
+    /// How opaque the floating chat panel renders.
+    ///
+    /// Boss 2026-09-09 OOB: add a step toward opaque. The old
+    /// 5-stop .regular → .thick ladder was too subtle to feel like a
+    /// real change at either end, so this is just two stops, with the
+    /// opaque one the new addition. Persisted under the same key the
+    /// 5-stop slider used, so the user's previous value carries over:
+    /// 0 = previous .regular (= glass), 1 = new opaque step.
+    @AppStorage("wenshu.liquidGlassOpacity") private var chatPanelOpaque: Bool = false
     /// Height at drag start, so the gesture applies a delta instead of
     /// compounding on every change callback.
     @State private var chatDragStart: Double?
@@ -329,6 +338,15 @@ struct ShellContentColumn: View {
                     }
                     .toggleStyle(.button)
                     .help(chatVisible ? "隐藏聊天" : "显示聊天")
+                    // v0.60: a second toggle beside Chat that flips the
+                    // panel between translucent glass and an opaque
+                    // surface. The default is glass (= the previous
+                    // behaviour).
+                    Toggle(isOn: $chatPanelOpaque) {
+                        LucideImage("circle.lefthalf.filled", size: 16)
+                    }
+                    .toggleStyle(.button)
+                    .help(chatPanelOpaque ? "半透明" : "不透明")
                 }
             }
             .environment(appState)
@@ -353,6 +371,18 @@ struct ShellContentColumn: View {
             // heights up to 700, and that value outlives the code change.
             .frame(height: min(max(chatHeight, Self.chatMinHeight), Self.chatMaxHeight))
             .overlay(alignment: .top) { chatResizeHandle }
+            // v0.60 boss 2026-09-09 OOB 'add a step toward opaque': a second
+            // toggle in the toolbar flips the panel between translucent
+            // glass and a solid surface. Default is glass (= previous).
+            // .background must come BEFORE .glassEffect so the opaque fill
+            // sits behind the glass layer; the glass draws nothing when
+            // the toggle is on, so the solid fill wins.
+            .background {
+                if chatPanelOpaque {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(nsColor: .controlBackgroundColor))
+                }
+            }
             .glassEffect(.regular, in: .rect(cornerRadius: 12))
             .shadow(color: .black.opacity(0.25), radius: 12, y: 4)
             // Inset from the column edges so the panel reads as floating
