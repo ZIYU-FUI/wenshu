@@ -192,13 +192,13 @@ struct ShellSidebarColumn: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Picker("Sidebar Scope", selection: $sidebarScope) {
-                    // v0.45 default-first: "book-open" and "library" are
-                    // NOT SF Symbols (= NSImage(systemSymbolName:) returns
-                    // nil = the segment renders empty). Replaced with real
-                    // SF Symbol names verified against the macOS 27 catalog.
-                    Label("Shelves", systemImage: "books.vertical")
+                    // v0.46 boss 2026-09-09 OOB 'SF Symbol is dropped, use
+                    // the third-party icon library': every icon in the shell
+                    // comes from Lucide (= lucide-swift 1.25.0). Names below
+                    // verified against the package's icon catalog.
+                    Label { Text("Shelves") } icon: { LucideIcon("library", size: 16) }
                         .tag(SidebarScope.shelves)
-                    Label("Reference", systemImage: "text.book.closed")
+                    Label { Text("Reference") } icon: { LucideIcon("book-open", size: 16) }
                         .tag(SidebarScope.references)
                 }
                 .pickerStyle(.segmented)
@@ -313,9 +313,10 @@ struct ShellContentColumn: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Picker("Content", selection: $contentScope) {
-                    Label("Editor", systemImage: "square.and.pencil")
+                    // v0.46 boss OOB 'SF Symbol dropped, use Lucide'.
+                    Label { Text("Editor") } icon: { LucideIcon("square-pen", size: 16) }
                         .tag(ContentScope.editor)
-                    Label("Chat", systemImage: "bubble.left.and.bubble.right")
+                    Label { Text("Chat") } icon: { LucideIcon("messages-square", size: 16) }
                         .tag(ContentScope.chat)
                 }
                 .pickerStyle(.segmented)
@@ -415,9 +416,10 @@ struct ShellDetailColumn: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Picker("Inspector", selection: $inspectorContent) {
-                    Label("Tools", systemImage: "wrench.adjustable")
+                    // v0.46 boss OOB 'SF Symbol dropped, use Lucide'.
+                    Label { Text("Tools") } icon: { LucideIcon("wrench", size: 16) }
                         .tag(InspectorContent.tools)
-                    Label("Dynamic", systemImage: "square.grid.2x2")
+                    Label { Text("Dynamic") } icon: { LucideIcon("layout-grid", size: 16) }
                         .tag(InspectorContent.dynamic)
                 }
                 .pickerStyle(.segmented)
@@ -488,11 +490,15 @@ struct ShellPlaceholder: View {
     let hint: String
 
     var body: some View {
-        ContentUnavailableView(
-            name,
-            systemImage: icon,
-            description: Text(hint)
-        )
+        // v0.46 boss OOB 'SF Symbol dropped, use Lucide': the
+        // systemImage: overload of ContentUnavailableView only accepts
+        // SF Symbol names. The label: closure overload takes any View,
+        // so the Lucide glyph goes there.
+        ContentUnavailableView {
+            Label { Text(name) } icon: { LucideIcon(icon, size: 36) }
+        } description: {
+            Text(hint)
+        }
     }
 }
 
