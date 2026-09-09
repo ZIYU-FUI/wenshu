@@ -174,90 +174,46 @@ struct ShellSidebarColumn: View {
             // wrapped in ZonePerRegionChrome (= top tab bar + bottom
             // status bar; = matches the 老 PaneSplitHost path's chrome
             // coverage for every zone).
-            ZonePerRegionChrome(
-                topActions: [],
-                bottomStatus: ZoneBottomStatus(
-                    left: "书架:",
-                    right: ""
-                ),
-                topSkip: false,
-                bottomSkip: false,
-                zone: .projectSidebar
-            ) {
-                VStack(spacing: 0) {
-                    // v0.40 boss 2026-09-08 OOB '目录树的顶栏也丢了' +
-                    // '左边原来的 ICON 没有了': restore the chrome top
-                    // bar (= 30 PT RegionTabBar wrapper) with the
-                    // canonical sidebar ICON (= the book-open icon
-                    // that identifies the library sidebar = matches
-                    // the Mail.app / Notes.app sidebar Section icon
-                    // pattern). The PaneTabBar inside hosts the 2
-                    // scope tabs (= 书架 / 资料库).
-                    RegionTabBar {
-                        HStack(spacing: DesignTokens.chromePaddingClusterGap) {
-                            // v0.40 boss 2026-09-08 '左边原来的 ICON
-                            // 没有了': the canonical sidebar ICON
-                            // (= Lucide book-open = matches Mail.app /
-                            // Notes.app sidebar Section icon). Apple
-                            // HIG canonical pattern = a 28×28 hot
-                            // area with a Lucide icon at the leading
-                            // edge of the chrome top bar (= the icon
-                            // identifies the sidebar's primary
-                            // content type).
-                            Image(
-                                systemName: "books.vertical"
-                            )
-                            .font(.system(size: 16))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 28, height: 28)
-                            PaneTabBar(
-                                items: [
-                                    PaneTabItem(
-                                        id: "shelves",
-                                        icon: "book-open",
-                                        label: "书架"
-                                    ),
-                                    PaneTabItem(
-                                        id: "references",
-                                        icon: "library",
-                                        label: "资料库"
-                                    ),
-                                ],
-                                selection: Binding(
-                                    get: { sidebarScope.rawValue },
-                                    set: { sidebarScope = SidebarScope(rawValue: $0) ?? .shelves }
-                                ),
-                                namespace: sidebarTabBarNamespace,
-                                namespaceID: "sidebarTabUnderline"
-                            )
-                        }
-                        .padding(.horizontal, DesignTokens.chromePaddingLarge)
-                    }
-                    // The actual sidebar List (= same Apple HIG
-                    // standard sidebar layout as before; = now
-                    // filtered by sidebarScope so the scope tab bar
-                    // at the top has functional control).
-                    NewLibraryOutlineView(scope: sidebarScope)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // v0.40 boss 2026-09-09 OOB '方案 A 全 Apple native': removed
+            // ZonePerRegionChrome wrapper + RegionTabBar wrapper (= per
+            // boss 2026-09-08 '方案 A' = rely on Apple's built-in
+            // NavigationSplitView column chrome = no custom chrome
+            // wrappers). The sidebar scope tab bar (书架 / 资料库) is
+            // preserved as inline content (= the functionality = scope
+            // filtering = is kept; = only the visual chrome wrapper =
+            // the 30 PT RegionTabBar chrome = is removed).
+            VStack(spacing: 0) {
+                HStack(spacing: DesignTokens.chromePaddingClusterGap) {
+                    Image(systemName: "books.vertical")
+                        .font(.system(size: 16))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 28, height: 28)
+                    PaneTabBar(
+                        items: [
+                            PaneTabItem(id: "shelves", icon: "book-open", label: "书架"),
+                            PaneTabItem(id: "references", icon: "library", label: "资料库"),
+                        ],
+                        selection: Binding(
+                            get: { sidebarScope.rawValue },
+                            set: { sidebarScope = SidebarScope(rawValue: $0) ?? .shelves }
+                        ),
+                        namespace: sidebarTabBarNamespace,
+                        namespaceID: "sidebarTabUnderline"
+                    )
                 }
+                .padding(.horizontal, DesignTokens.chromePaddingLarge)
+                // The actual sidebar List (= same Apple HIG
+                // standard sidebar layout as before; = now
+                // filtered by sidebarScope so the scope tab bar
+                // at the top has functional control).
+                NewLibraryOutlineView(scope: sidebarScope)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             Divider()
-            // Bottom sub-area: real card grid wrapped in
-            // ZonePerRegionChrome.
-            ZonePerRegionChrome(
-                topActions: [],
-                bottomStatus: ZoneBottomStatus(
-                    left: "章节:",
-                    right: ""
-                ),
-                topSkip: false,
-                bottomSkip: false,
-                zone: .projectPreview
-            ) {
-                ZoneModuleView(zoneSlot: .projectPreview)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Bottom sub-area: cards zone (= Apple-native chrome = no wrapper).
+            ZoneModuleView(zoneSlot: .projectPreview)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         // v0.40 boss 2026-09-08 '你不是这个框架是 mac os 27 默认的,
         // 自带液态玻璃效果的吗': canonical macOS 27 Tahoe Liquid Glass
@@ -306,11 +262,11 @@ struct ShellSidebarColumn: View {
 struct ShellContentColumn: View {
     let appState: AppState
 
-    // v0.40 boss 2026-09-08 '有 teb 切功能, 右边有展开收起的那个':
-    // RegionTabBar's PaneIconTab requires a matchedGeometryEffect
-    // namespace (= one per tab bar instance; = required by SwiftUI's
-    // .matchedGeometryEffect modifier).
-    @Namespace private var editorChromeNamespace
+    // v0.40 boss 2026-09-09 OOB '方案 A 全 Apple native': removed
+    // @Namespace private var editorChromeNamespace (= the
+    // PaneIconTab matchedGeometryEffect namespace = no longer
+    // needed because the editor chrome tab bar was deleted
+    // per Plan A).
 
     var body: some View {
         VStack(spacing: 0) {
@@ -331,68 +287,14 @@ struct ShellContentColumn: View {
             // expand button = matches Safari / Pages / Xcode tab bar
             // pattern). The inner EditorPlaceholder's own tab strip
             // (= Safari-style file tabs) becomes the SECOND-layer.
-            VStack(spacing: 0) {
-                RegionTabBar {
-                    HStack(spacing: DesignTokens.chromePaddingClusterGap) {
-                        // TEB 切换(= preview / edit mode tab = matches the
-                        // existing 'mode' toggle inside EditorPlaceholder,
-                        // but at the chrome top level = visible even when
-                        // the inner tab strip is empty = no .md tabs open).
-                        // boss 2026-09-08 '有 teb 切功能' = this is the
-                        // 'teb switch' boss references.
-                        //
-                        // Future ticket: wire to appState.openTabs[activeTabIdx]
-                        // (= read mode, write mode via setMode). For now, the
-                        // inner EditorPlaceholder's own mode toggle remains
-                        // canonical; = the chrome-level tabs are visual-only
-                        // (= same icon + label as the inner tabs = boss's
-                        // pattern of stacking chrome layers).
-                        PaneIconTab(
-                            id: "preview-mode",
-                            icon: "eye",
-                            label: "预览",
-                            isSelected: false,
-                            namespace: editorChromeNamespace,
-                            namespaceID: "editorChromeUnderline",
-                            onTap: { /* wired via EditorPlaceholder's mode toggle */ }
-                        )
-                        PaneIconTab(
-                            id: "edit-mode",
-                            icon: "pencil",
-                            label: "编辑",
-                            isSelected: false,
-                            namespace: editorChromeNamespace,
-                            namespaceID: "editorChromeUnderline",
-                            onTap: { /* wired via EditorPlaceholder's mode toggle */ }
-                        )
-                        Spacer()
-                        // 展开收起(= the expand/shrink button boss references;
-                        // = same toggle as the internal editor toolbar's
-                        // expand button; = future ticket: hide other columns
-                        // for distraction-free editing).
-                        PaneTrailingIconButton(
-                            icon: "maximize-2",
-                            tooltip: "展开/收起",
-                            action: { /* future: expand/collapse editor */ }
-                        )
-                    }
-                    .padding(.horizontal, DesignTokens.chromePaddingLarge)
-                }
-                ZonePerRegionChrome(
-                    topActions: [],
-                    bottomStatus: ZoneBottomStatus(
-                        left: "0 字",
-                        right: ""
-                    ),
-                    topSkip: false,
-                    bottomSkip: false,
-                    zone: .editor
-                ) {
-                    EditorPlaceholder()
-                }
+            // v0.40 boss 2026-09-09 OOB '方案 A 全 Apple native': removed
+            // RegionTabBar wrapper + ZonePerRegionChrome wrapper (= per
+            // boss 2026-09-08 '方案 A' = rely on Apple's built-in
+            // NavigationSplitView column chrome = no custom chrome
+            // wrappers). The editor zone now goes straight to
+            // EditorPlaceholder (= Apple-native = no chrome layer).
+            EditorPlaceholder()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
             Divider()
             // Bottom sub-area: real chat wrapped in
             // ChatZoneView (= the canonical chat-zone wrapper
@@ -450,37 +352,18 @@ struct ShellDetailColumn: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Top sub-area: real tools wrapped in
-            // ZonePerRegionChrome.
-            ZonePerRegionChrome(
-                topActions: [],
-                bottomStatus: ZoneBottomStatus(
-                    left: "工具就绪",
-                    right: ""
-                ),
-                topSkip: false,
-                bottomSkip: false,
-                zone: .specializedTools
-            ) {
-                ZoneModuleView(zoneSlot: .specializedTools)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // v0.40 boss 2026-09-09 OOB '方案 A 全 Apple native': removed
+            // ZonePerRegionChrome wrapper (= per Plan A = rely on
+            // Apple's built-in NavigationSplitView column chrome =
+            // no custom chrome wrappers). The specialized tools zone
+            // goes straight to ZoneModuleView.
+            ZoneModuleView(zoneSlot: .specializedTools)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             Divider()
-            // Bottom sub-area: real dynamic zone wrapped in
-            // ZonePerRegionChrome.
-            ZonePerRegionChrome(
-                topActions: [],
-                bottomStatus: ZoneBottomStatus(
-                    left: "看板",
-                    right: ""
-                ),
-                topSkip: false,
-                bottomSkip: false,
-                zone: .aiDynamic
-            ) {
-                ZoneModuleView(zoneSlot: .aiDynamic)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // v0.40 Plan A: removed ZonePerRegionChrome wrapper from
+            // the dynamic zone (= Apple-native chrome = no wrapper).
+            ZoneModuleView(zoneSlot: .aiDynamic)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         // v0.40: macOS 27 Tahoe Liquid Glass (= see ShellSidebarColumn
         // comment for rationale).

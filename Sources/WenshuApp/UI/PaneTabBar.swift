@@ -127,22 +127,25 @@ public struct PaneTabBar<Item: Identifiable & Sendable, Trailing: View>: View {
     }
 
     public var body: some View {
-        RegionTabBar {
-            HStack(spacing: DesignTokens.chromePaddingClusterGap) {
-                ForEach(items) { item in
-                    PaneIconTab(
-                        id: item[keyPath: idKeyPath],
-                        icon: item[keyPath: iconKeyPath],
-                        label: item[keyPath: labelKeyPath],
-                        isSelected: item[keyPath: idKeyPath] == selection,
-                        namespace: namespace,
-                        namespaceID: namespaceID,
-                        onTap: { selection = item[keyPath: idKeyPath] }
-                    )
-                }
-                // Trailing buttons: pushed to the right edge via Spacer
-                // (= independent of how many tabs the pane has = always
-                // sits at the rightmost position). Apple HIG canonical
+        // v0.40 boss 2026-09-09 OOB '方案 A 全 Apple native': removed
+        // RegionTabBar wrapper (= per Plan A = the tab bar = PaneTabBar
+        // = is the direct content = no chrome wrapper above). The
+        // PaneTabBar IS the chrome (= Apple-style flat tab bar).
+        HStack(spacing: DesignTokens.chromePaddingClusterGap) {
+            ForEach(items) { item in
+                PaneIconTab(
+                    id: item[keyPath: idKeyPath],
+                    icon: item[keyPath: iconKeyPath],
+                    label: item[keyPath: labelKeyPath],
+                    isSelected: item[keyPath: idKeyPath] == selection,
+                    namespace: namespace,
+                    namespaceID: namespaceID,
+                    onTap: { selection = item[keyPath: idKeyPath] }
+                )
+            }
+            // Trailing buttons: pushed to the right edge via Spacer
+            // (= independent of how many tabs the pane has = always
+            // sits at the rightmost position). Apple HIG canonical
                 // toolbar pattern (toolbars.action buttons at trailing edge).
                 // v0.30 ponytail fix v2: remove `Trailing.self == EmptyView.self`
                 // check (= always render trailing). Previous code skipped
@@ -158,7 +161,6 @@ public struct PaneTabBar<Item: Identifiable & Sendable, Trailing: View>: View {
                 // pass nil).
                 Spacer(minLength: 0)
                 trailing()
-            }
             // v0.34 boss 2026-09-02 OOB '父组件需要定一下, 左右间距对称':
             // the PaneTabBar chrome parent controls the symmetric outer
             // inset. Previously (.padding(.leading, chromePaddingLeading)
@@ -178,10 +180,9 @@ public struct PaneTabBar<Item: Identifiable & Sendable, Trailing: View>: View {
             // trailing() had zero extra space to consume = trailing
             // collapsed to sit immediately after the last tab. Adding
             // .frame(maxWidth: .infinity) forces the inner HStack to
-            // fill the outer RegionTabBar's full width (= RegionTabBar
-            // already has .frame(maxWidth: .infinity) on its outer
-            // HStack), giving the Spacer real horizontal space to
-            // expand into = trailing button pushed to the right edge.
+            // fill the pane's full width (= gives the Spacer real
+            // horizontal space to expand into = trailing button pushed
+            // to the right edge).
             .frame(maxWidth: .infinity)
         }
         .animation(.default, value: selection)

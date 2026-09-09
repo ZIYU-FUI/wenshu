@@ -104,12 +104,16 @@ struct DynamicZoneView: View {
                 .padding(.bottom, DesignTokens.chromePaddingVertical)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)  // prevent window shrink
-        // v0.28 followup Boss UX round 31 (Boss 2026-08-29 OOB '素材预览区,
-        // 动态区, 这个区的液态玻璃效果和其他区不一样'): .ultraThinMaterial
-        // replaced with RegionContentBackground (= single source of truth
-        // for per-pane content backgrounds = .regularMaterial = standard
-        // Liquid Glass tint = matches other panes including Preview).
-        .regionContentBackground()
+        // v0.40 boss 2026-09-09 OOB '方案 A 全 Apple native': removed
+        // .regionContentBackground() (= per Plan A = the pane
+        // relies on NavigationSplitView's built-in Liquid Glass
+        // material = no custom per-pane background paint). The
+        // previous .ultraThinMaterial / RegionContentBackground
+        // double-layer was the source of '液态玻璃效果和其他区
+        // 不一样' = per Apple's WWDC25-219 'Liquid Glass is
+        // composed of a number of layers that work together' =
+        // removing the custom layer lets Apple's native material
+        // flow uniformly across all 6 zones.
         .onAppear { loadRecentMemory() }
     }
 
