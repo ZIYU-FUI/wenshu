@@ -173,7 +173,7 @@ public struct ForeshadowingView: View {
             if let errorText {
                 Text(errorText)
                     .font(.caption)
-                    .foregroundStyle(Color(nsColor: .systemRed))
+                    .foregroundStyle(Color.red)
             }
         }
     }
@@ -362,7 +362,7 @@ public struct ForeshadowingView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
                 LucideIconSystemFallback("alert-triangle", size: 14)
-                    .foregroundStyle(Color(nsColor: .systemOrange))
+                    .foregroundStyle(Color.orange)
                 Text(WenshuI18n.t("b5.foreshadowingview.l360.h31137580"))
                     .font(.callout)
                     .foregroundStyle(.primary)

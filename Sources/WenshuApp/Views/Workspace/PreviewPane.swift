@@ -577,7 +577,6 @@ struct PreviewPane: View {
                     // editor titles. Body below stays .body (= 13 PT
                     // = matches kanban card body).
                     .font(.headline)
-                    .fontWeight(.bold)
                 if !entity.summary.isEmpty {
                     Text(entity.summary)
                         .font(.body)

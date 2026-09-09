@@ -188,7 +188,7 @@ struct CharacterLifecycleView: View {
             if let errorText {
                 Text(errorText)
                     .font(.caption)
-                    .foregroundStyle(Color(nsColor: .systemRed))
+                    .foregroundStyle(Color.red)
             }
         }
     }
@@ -414,7 +414,7 @@ struct CharacterLifecycleView: View {
                 ForEach(Array(contradictions.enumerated()), id: \.offset) { _, issue in
                     HStack(alignment: .top, spacing: 6) {
                         LucideIconSystemFallback("alert-triangle", size: 14)
-                            .foregroundStyle(Color(nsColor: .systemOrange))
+                            .foregroundStyle(Color.orange)
                             .frame(width: DesignTokens.tabIconSize)
                         VStack(alignment: .leading, spacing: 1) {
                             Text(characterName(for: issue.characterId))

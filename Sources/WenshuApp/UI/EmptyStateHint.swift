@@ -86,18 +86,20 @@ public struct EmptyStateHint: View {
             LucideIconSystemFallback(icon, size: DesignTokens.iconLargeSize)
                 .foregroundStyle(.secondary)
             VStack(spacing: DesignTokens.chromePaddingSmall) {
-                // Title (= 15 PT semibold secondary). The
-                // .secondary tone (= not .primary) keeps the
+                // Title (= Apple HIG .headline semibold = 13 PT
+                // semibold = Apple's standard secondary headline).
+                // The .secondary tone (= not .primary) keeps the
                 // hint feeling like a suggestion, not an error.
                 Text(title)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.headline)
                     .foregroundStyle(.secondary)
-                // Body (= 13 PT tertiary, centered, max 360 PT
-                // wide). The .tertiary tone + center alignment
-                // signals "this is supporting detail" (= Apple
-                // Mail / Notes convention).
+                // Body (= Apple HIG .callout = 12 PT secondary =
+                // Apple's standard secondary text). The .tertiary
+                // tone + center alignment signals "this is
+                // supporting detail" (= Apple Mail / Notes
+                // convention).
                 Text(detail)
-                    .font(.system(size: 13))
+                    .font(.callout)
                     .foregroundStyle(.tertiary)
                     .multilineTextAlignment(.center)
             }

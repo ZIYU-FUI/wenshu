@@ -167,7 +167,7 @@ struct CharacterRelationshipsView: View {
             if let errorText {
                 Text(errorText)
                     .font(.caption)
-                    .foregroundStyle(Color(nsColor: .systemRed))
+                    .foregroundStyle(Color.red)
             }
         }
     }
@@ -298,7 +298,7 @@ struct CharacterRelationshipsView: View {
                     if row.isMutual {
                         Text(WenshuI18n.t("b5.characterrelationshipsview.l299.h17838183"))
                             .font(.caption2)
-                            .foregroundStyle(Color(nsColor: .systemBlue))
+                            .foregroundStyle(Color.blue)
                     }
                 }
                 if !row.description.isEmpty {
@@ -343,7 +343,7 @@ struct CharacterRelationshipsView: View {
                 ForEach(Array(inconsistencies.enumerated()), id: \.offset) { _, issue in
                     HStack(alignment: .top, spacing: 6) {
                         LucideIconSystemFallback("alert-triangle", size: 14)
-                            .foregroundStyle(Color(nsColor: .systemOrange))
+                            .foregroundStyle(Color.orange)
                             .frame(width: DesignTokens.tabIconSize)
                         Text(issue.message)
                             .font(.caption)
