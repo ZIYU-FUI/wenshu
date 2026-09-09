@@ -99,28 +99,11 @@ struct NavigationSplitShell: View {
             // sub-areas (= VStack).
             ShellDetailColumn(appState: appState)
         }
-        // v0.43 boss 2026-09-09 OOB 'no divider line': SwiftUI
-        // NavigationSplitView on macOS 27 SDK uses NSSplitView with
-        // a visible divider color (default = .separatorColor). Apple
-        // HIG canonical Pages/Keynote look uses NSSplitView with
-        // .dividerStyle = .thin AND .dividerColor = .clear (= 1pt
-        // invisible divider, still draggable). The
-        // .thinColumnDividers() modifier (= ThinDividerSplitView.swift)
-        // walks the AppKit view hierarchy to find the underlying
-        // NSSplitView and applies both settings. Required because
-        // SwiftUI does not expose NavigationSplitView's divider
-        // style or color as a modifier in macOS 27 SDK (= the
-        // API is AppKit-level NSSplitView).
-        //
-        // Per boss's default-first rule: this is a documented
-        // non-canonical deviation. Apple HIG canonical pattern
-        // (= column body starts with List) does NOT actually
-        // remove the divider (= verified by M7 sidebar refactor
-        // = the divider is still visible). The only way to
-        // achieve the Pages/Keynote no-divider look is to
-        // interop with AppKit NSSplitView. This is the minimum
-        // surface area for that interop.
-        .thinColumnDividers()
+        // v0.45 boss 2026-09-09 OOB 'revert to Apple default first':
+        // removed .thinColumnDividers() (= AppKit KVC hack that set
+        // NSSplitView.dividerColor = .clear + dividerStyle = .thin).
+        // That is not an Apple SwiftUI API; macOS 27 NavigationSplitView
+        // owns its own column separation. Default-first = no interop.
         // CHATZONE-CRASH-FIX (2026-09-08): re-inject appState at
         // the NavigationSplitView root (= SwiftUI's internal
         // layout engine reads @Environment values during
@@ -201,24 +184,27 @@ struct ShellSidebarColumn: View {
         // 1-view-per-column pattern while making the column
         // body a direct List (= Apple canonical).
         NewLibraryOutlineView(scope: sidebarScope)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // v0.45 default-first: Apple canonical sidebar width hint
+            // (= HIG sidebar 220-320 PT). Without this modifier the
+            // NSSplitView autosave frame wins and the columns keep
+            // whatever width a prior build left in UserDefaults.
+            .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 320)
         .toolbar {
-            ToolbarItem(placement: .navigation) {
-                Image(systemName: "books.vertical")
-                    .foregroundStyle(.secondary)
-            }
             ToolbarItem(placement: .primaryAction) {
                 Picker("Sidebar Scope", selection: $sidebarScope) {
-                    Label("Shelves", systemImage: "book-open")
+                    // v0.45 default-first: "book-open" and "library" are
+                    // NOT SF Symbols (= NSImage(systemSymbolName:) returns
+                    // nil = the segment renders empty). Replaced with real
+                    // SF Symbol names verified against the macOS 27 catalog.
+                    Label("Shelves", systemImage: "books.vertical")
                         .tag(SidebarScope.shelves)
-                    Label("Reference", systemImage: "library")
+                    Label("Reference", systemImage: "text.book.closed")
                         .tag(SidebarScope.references)
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
             }
         }
-        .toolbarBackground(.visible)
     }
 }
 
@@ -280,12 +266,14 @@ struct ShellContentColumn: View {
             switch contentScope {
             case .editor:
                 EditorPlaceholder()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             case .chat:
                 ChatZoneView(conductor: nil, store: nil)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+        // v0.45 default-first: the content column absorbs the window's
+        // slack (= Apple HIG "give every column a minimum width and let
+        // the content column absorb slack"). min only, no max.
+        .navigationSplitViewColumnWidth(min: 420, ideal: 640)
         // v0.40 boss 2026-09-09 OOB '100% Apple standard + restore all
         // top bars': attaches the editor chrome top bar via Apple's
         // canonical .toolbar(id:) API (= the column-level toolbar
@@ -323,10 +311,6 @@ struct ShellContentColumn: View {
         // toolbar). The .primaryAction slot is now used by the
         // Editor / Chat Picker.
         .toolbar {
-            ToolbarItem(placement: .navigation) {
-                Image(systemName: "book-open")
-                    .foregroundStyle(.secondary)
-            }
             ToolbarItem(placement: .primaryAction) {
                 Picker("Content", selection: $contentScope) {
                     Label("Editor", systemImage: "square.and.pencil")
@@ -338,8 +322,6 @@ struct ShellContentColumn: View {
                 .labelsHidden()
             }
         }
-        .toolbarBackground(.visible)
-        .toolbarRole(.editor)
         // v0.40: macOS 27 Tahoe Liquid Glass (= see ShellSidebarColumn
         // comment for rationale = columns refract like glass without
         // a drag-handle divider).
@@ -412,14 +394,15 @@ struct ShellDetailColumn: View {
             switch inspectorContent {
             case .tools:
                 ZoneModuleView(zoneSlot: .specializedTools)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             case .dynamic:
                 ZoneModuleView(zoneSlot: .aiDynamic)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .glassEffect(.regular)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // v0.45 default-first: Apple HIG inspector column is a narrow
+        // fixed-ish trailing column (250-280 PT), NOT half the window.
+        // Removed the manual .glassEffect(.regular) too — macOS 27
+        // NavigationSplitView applies the column material itself.
+        .navigationSplitViewColumnWidth(min: 250, ideal: 280, max: 360)
         // v0.42: column-level .toolbar following ShellSidebarColumn's
         // exact pattern: leading .navigation icon + .primaryAction
         // Picker(.segmented) 2-toggle. The 2 icons at the top
@@ -430,10 +413,6 @@ struct ShellDetailColumn: View {
         // because NavigationSplitView 3-column default already
         // provides the Liquid Glass chrome.
         .toolbar {
-            ToolbarItem(placement: .navigation) {
-                Image(systemName: "sidebar.right")
-                    .foregroundStyle(.secondary)
-            }
             ToolbarItem(placement: .primaryAction) {
                 Picker("Inspector", selection: $inspectorContent) {
                     Label("Tools", systemImage: "wrench.adjustable")
