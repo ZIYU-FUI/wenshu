@@ -604,6 +604,9 @@ public struct ChatView: View {
     // user clicks the paperclip button. Bound to .fileImporter(isPresented:)
     // on the input HStack per Apple HIG SwiftUI fileImporter pattern.
     @State private var showingImageImporter: Bool = false
+    /// True while a drag is hovering the input row, so the row can show a
+    /// drop highlight. Apple's .dropDestination reports this for free.
+    @State private var isDropTargeted: Bool = false
     // Reactive check: is the current model usable?
     private var hasUsableKey: Bool { !vm.currentModel.isEmpty && !vm.isSending }
 
@@ -1164,6 +1167,18 @@ public struct ChatView: View {
                             lucide
                                 .aspectRatio(contentMode: .fit)
                                 .frame(width: DesignTokens.tabIconSize, height: DesignTokens.tabIconSize)  // v0.28 followup Boss UX round 18: shrink to 18 PT (= matches macOS HIG secondary button glyph size = 13-16 PT, but slightly larger to read clearly inside the bordered Liquid Glass capsule)
+                                // v0.55: pulse the glyph while a reply is
+                                // streaming, so the button itself carries
+                                // the busy state instead of needing a
+                                // separate spinner next to it.
+                                .opacity(vm.isSending ? 0.5 : 1)
+                                .scaleEffect(vm.isSending ? 0.92 : 1)
+                                .animation(
+                                    vm.isSending
+                                        ? .easeInOut(duration: 0.7).repeatForever(autoreverses: true)
+                                        : .default,
+                                    value: vm.isSending
+                                )
                         } else {
                             // v0.27 boss 8/27 OOB: replace SF Symbol 'paperplane.fill'
                             // with the closest Lucide equivalent = 'send'.
@@ -1294,6 +1309,25 @@ public struct ChatView: View {
                     break   // user cancelled or sandbox denial; ignore
                 }
             }
+            // v0.55 boss OOB 'use the ones we have not used yet': accept
+            // images dropped onto the input row, which is the same thing
+            // the paperclip does through .fileImporter. .dropDestination is
+            // Apple's typed drop API, so the row only lights up for payloads
+            // it can actually take.
+            .dropDestination(for: URL.self) { urls, _ in
+                guard let url = urls.first else { return false }
+                return vm.attachImage(at: url)
+            } isTargeted: { targeted in
+                isDropTargeted = targeted
+            }
+            .overlay {
+                if isDropTargeted {
+                    RoundedRectangle(cornerRadius: 8)
+                        .strokeBorder(Color.accentColor, lineWidth: 2)
+                        .allowsHitTesting(false)
+                }
+            }
+            .animation(.snappy, value: isDropTargeted)
         }
         // v0.24 boss acceptance fix (2026-08-24): help text DIRECTLY below input box.
         // Boss 8/24 (out-of-band): 'please set up a large-model provider in Settings first. Click Settings'
@@ -1338,6 +1372,25 @@ public struct ChatView: View {
 struct ChatMessageView: View {
     let message: ChatMessage
     @State private var thinkingExpanded: Bool = false
+
+    /// Parses a message body as markdown for display.
+    ///
+    /// `.inlineOnlyPreservingWhitespace`, not `.full`. Verified by parsing
+    /// a multi-paragraph sample three ways: `.full` applies block intents
+    /// and drops every newline, so a model reply arrives as one run-on
+    /// block; the inline-preserving option keeps all 5 newlines and still
+    /// resolves bold, code spans and links. Chat bubbles want inline
+    /// formatting with the author's line breaks intact, which is exactly
+    /// that option.
+    ///
+    /// Invalid markdown falls back to the plain string rather than
+    /// throwing, so a stray bracket never blanks a message.
+    static func markdown(_ raw: String) -> AttributedString {
+        (try? AttributedString(
+            markdown: raw,
+            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        )) ?? AttributedString(raw)
+    }
 
     var body: some View {
         HStack(alignment: .top) {
@@ -1438,8 +1491,20 @@ struct ChatMessageView: View {
                                 .padding(.bottom, DesignTokens.chromePaddingMicro)
                         }
                     }
-                    Text(message.content)
+                    // v0.55 boss 2026-09-09 OOB 'use the ones we have not
+                    // used yet': render the bubble as markdown. SwiftUI's
+                    // Text takes an AttributedString, and AttributedString
+                    // parses markdown natively, so bold / italic / code /
+                    // links in a model reply show as formatting instead of
+                    // raw asterisks. Falls back to the plain string when the
+                    // content is not valid markdown.
+                    Text(Self.markdown(message.content))
                         .textSelection(.enabled)
+                        // Streaming replies grow token by token. The default
+                        // Text transition re-renders the whole run; this one
+                        // interpolates, so the bubble does not flicker on
+                        // every chunk.
+                        .contentTransition(.interpolate)
                         .padding(DesignTokens.chromePaddingVertical)
                         .background(sourceColor.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
                 }
