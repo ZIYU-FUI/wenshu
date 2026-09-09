@@ -11,6 +11,7 @@
 
 import SwiftUI
 import Lucide
+import AppKit
 
 /// Resolves the macOS sidebar icon size preference (= NSTableViewDefaultSizeMode
 /// in NSGlobalDomain). Maps the 1/2/3 raw integer to a Point size for custom
@@ -207,4 +208,70 @@ private func sfSymbolToLucideName(_ sfSymbol: String) -> String {
         "xmark.circle.fill": "x",
     ]
     return mapping[sfSymbol] ?? sfSymbol
+}
+
+
+// MARK: - Rasterized Lucide glyph (= for controls that only accept Image)
+
+/// Cache of rendered Lucide glyphs, keyed by name + point size.
+/// `ImageRenderer` is not free, and a segmented Picker re-evaluates its
+/// label on every selection change.
+@MainActor
+private var lucideImageCache: [String: NSImage] = [:]
+
+/// Renders a Lucide glyph into a template `NSImage`.
+///
+/// Why this exists: `Lucide` is a `Shape`-filling `View`. AppKit-backed
+/// SwiftUI controls that only accept `Text` or `Image` in their labels
+/// (= `Picker(.segmented)`, `Menu`, `NSToolbarItem`) silently DROP any
+/// other view type, so a Lucide glyph passed straight into a segmented
+/// Picker renders as an empty capsule. Rasterizing to a template
+/// `NSImage` and handing back an `Image(nsImage:)` makes the glyph a
+/// first-class control label that also picks up the control's tint.
+///
+/// Boss 2026-09-09 OOB 'SF Symbol is dropped, use the third-party icon
+/// library': this is the bridge that keeps segmented controls on Lucide
+/// instead of falling back to SF Symbols.
+@MainActor
+public func LucideImage(_ name: String, size: CGFloat = 16) -> Image? {
+    let key = "\(name)@\(size)"
+    if let cached = lucideImageCache[key] {
+        return Image(nsImage: cached)
+    }
+    guard let glyph = Lucide(name) else { return nil }
+    let renderer = ImageRenderer(
+        content: glyph
+            .frame(width: size, height: size)
+            .foregroundStyle(.black)
+    )
+    renderer.scale = NSScreen.main?.backingScaleFactor ?? 2
+    guard let nsImage = renderer.nsImage else { return nil }
+    // Template rendering = the control tints the glyph (= selected
+    // segment gets the accent color, unselected gets the label color),
+    // exactly like SF Symbols behaved.
+    nsImage.isTemplate = true
+    lucideImageCache[key] = nsImage
+    return Image(nsImage: nsImage)
+}
+
+/// Label whose icon is a rasterized Lucide glyph. Use inside
+/// `Picker(.segmented)`, `Menu`, and toolbar items.
+public struct LucideLabel: View {
+    private let title: String
+    private let icon: String
+    private let size: CGFloat
+
+    public init(_ title: String, icon: String, size: CGFloat = 16) {
+        self.title = title
+        self.icon = icon
+        self.size = size
+    }
+
+    public var body: some View {
+        if let image = LucideImage(icon, size: size) {
+            Label { Text(title) } icon: { image }
+        } else {
+            Text(title)
+        }
+    }
 }
