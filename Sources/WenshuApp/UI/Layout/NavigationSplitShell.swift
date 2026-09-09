@@ -555,8 +555,10 @@ struct ShellPlaceholder: View {
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // Background tint (= Apple HIG .background hierarchy
-        // = .background for content area per zone tier).
-        .background(Color(nsColor: .windowBackgroundColor))
+        // v0.40 boss 2026-09-08 OOB '盘一遍, 还有颜色': removed the
+        // .background(.windowBackgroundColor) on the dead-code
+        // ShellPlaceholder (= was tinting the M1 placeholder view
+        // = not used in the active 3-column path = boss wants
+        // gone per the '再往上一层, 再删一层' cleanup).
     }
 }

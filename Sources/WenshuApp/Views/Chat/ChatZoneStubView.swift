@@ -46,6 +46,8 @@ struct ChatZoneStubView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         // v0.32 boss 2026-09-02 OOB: replace DesignColor.zoneSurface
         // wrapper with bare Color(nsColor: .controlBackgroundColor).
-        .background(Color(nsColor: .controlBackgroundColor))
+        // v0.40 boss 2026-09-08 OOB '盘一遍, 还有颜色': removed the
+        // chrome tier background tint (= .controlBackgroundColor
+        // = boss wants gone per the '再往上一层, 再删一层' cleanup).
     }
 }

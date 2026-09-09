@@ -336,13 +336,14 @@ struct ChatZoneView: View {
             // wrapper added an extra type with no semantic value
             // (= it just renamed an Apple NSColor static property).
             //
-            // v0.40 boss 2026-09-08 OOB '聊天区改成和编辑器区一样的
-            // 背景颜色': the chat zone background should match the
-            // editor zone (= content tier = Color(nsColor:
-            // .underPageBackgroundColor) per RegionContentBackground
-            // .editor case). Switch from controlBackgroundColor
-            // (chrome tier) to underPageBackgroundColor (content tier).
-            .background(Color(nsColor: .underPageBackgroundColor))
+            // v0.40 boss 2026-09-08 OOB '盘一遍, 还有颜色': removed the
+            // outer VStack's .background(.underPageBackgroundColor).
+            // This was redundant (= the parent NavigationSplitShell
+            // column already provides the content tier color via its
+            // .windowBackgroundColor-or-clear background = visually
+            // identical). Removing this layer per the '再往上一层,
+            // 再删一层' cleanup round 3 = no chrome tier distinction
+            // anywhere in the chat zone.
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)  // prevent window shrink
     }
