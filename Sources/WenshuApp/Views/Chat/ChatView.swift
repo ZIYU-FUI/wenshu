@@ -798,7 +798,10 @@ public struct ChatView: View {
             // async load history via .task modifier (non-blocking)
             .task {
                 await vm.loadAvailableModels()
-                if let store = vm.valueForStore() {
+                // Fall back to the delegate's store: on a cold launch the
+                // view can run before applicationDidFinishLaunching has
+                // built one, so the vm's snapshot is nil.
+                if let store = vm.valueForStore() ?? WenshuAppDelegate.sharedChatStoreRef {
                     if let loaded = try? await store.loadMessages(sessionId: vm.valueForSessionId()) {
                         let mapped = loaded.map { stored in
                             // v0.24 boss acceptance fix: preserve role from stored.source.
@@ -1372,7 +1375,14 @@ public struct ChatView: View {
 // condition), retry loading now. Also retry append message if store
 // was nil at send time (we just store in memory, then re-append here).
 .onReceive(NotificationCenter.default.publisher(for: .wenshuChatStoreReady)) { _ in
-    if let store = vm.valueForStore() {
+    // v0.59: read the delegate's store, not vm.valueForStore(). The vm
+    // captured whatever the store was at construction time, and when the
+    // view is built before applicationDidFinishLaunching finishes that
+    // snapshot is nil forever — which is exactly the race this handler
+    // exists to repair. Measured on this machine: the view's .task logged
+    // store=nil at 23:56:42.032 and the store finished initialising at
+    // .295, 263 ms later.
+    if let store = vm.valueForStore() ?? WenshuAppDelegate.sharedChatStoreRef {
         Task { @MainActor in
             if let loaded = try? await store.loadMessages(sessionId: vm.valueForSessionId()) {
                 let mapped = loaded.map { stored in
