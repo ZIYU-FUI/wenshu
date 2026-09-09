@@ -182,15 +182,15 @@ struct ChatZoneTabBar: View {
         }
         .frame(maxWidth: .infinity)
         .frame(height: DesignTokens.chromeHeight)
-        // v0.32 boss 2026-09-02 OOB: replace DesignColor.zoneSurface
-        // wrapper with bare Color(nsColor: .controlBackgroundColor).
-        .background(Color(nsColor: .controlBackgroundColor))
-        .overlay(alignment: .bottom) {
-            // v0.32 boss 2026-09-02 OOB: replace DesignColor.splitterLine
-            // wrapper with bare Color(nsColor: .separatorColor) (= Apple
-            // canonical separator = dark/light adaptive).
-            Color(nsColor: .separatorColor).frame(height: DesignTokens.dividerHeight)
-        }
+        // v0.40 boss 2026-09-08 OOB '盘一遍, 还有颜色': removed the
+        // chrome tier background tint + the 1 PT .separator overlay
+        // (= the 2 layers that distinguished the chat zone's top tab
+        // bar from the pane content = matches the recent v0.40 chrome
+        // cleanup of RegionTabBar + RegionStatusBar in Round 2 =
+        // boss wants no chrome tier distinction across the app).
+        // ChatZoneTabBar is now a bare 30 PT HStack with the
+        // archive icon = the top tabs (对话/搜索/设置) inherit the
+        // pane's content tier color.
         .animation(.default, value: selectedTab)
     }
 
