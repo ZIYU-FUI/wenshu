@@ -158,24 +158,12 @@ struct NavigationSplitShell: View {
 struct ShellSidebarColumn: View {
     let appState: AppState
 
-    // v0.40 boss 2026-09-08 OOB 'directory tree top bar is also missing': sidebar
-    // needs its own top tab bar (= matches chat zone's 3 fixed
-    // tabs pattern + editor zone's tab strip). Apple HIG
-    // canonical pattern: PaneTabBar at the top of the column
-    // (= like Notes.app / Mail.app = scope selector at top of
-    // the sidebar). The 2 tabs map to the existing top-level
-    // grouping (= = per-shelf books; = = per-category
-    // reference library). The NewLibraryOutlineView receives
-    // the scope via initializer (= so it can filter which
-    // rows are visible).
-        // v0.42 boss 2026-09-09 OOB 'use the right column's tab-switch
-    // pattern for all 3 columns (= column body = single view, switch
-    // via Picker in .toolbar)': the sidebar column body is a
-    // single NewLibraryOutlineView (or the cards zone) selected
-    // by sidebarScope. The 2-toggle Picker in the .toolbar above
-    // switches the column content (= Apple canonical inspector
-    // pattern = same as ShellDetailColumn).
-    @State private var sidebarScope: SidebarScope = .shelves
+    // v0.51 boss 2026-09-09 OOB 'the sidebar toolbar toggle can go now
+    // that both regions share one column': the Shelves / Reference
+    // Picker is deleted. It switched the whole column between the tree
+    // and the cards, which the vertical split made redundant. The scope
+    // value it produced was never read either — NewLibraryOutlineView
+    // took it as an init parameter and never filtered on it.
 
     /// Height of the card region at the bottom of the sidebar.
     /// Persisted so the split survives relaunch, the same way AppKit
@@ -205,7 +193,7 @@ struct ShellSidebarColumn: View {
         // reference library rows). This preserves the M6
         // 1-view-per-column pattern while making the column
         // body a direct List (= Apple canonical).
-        NewLibraryOutlineView(scope: sidebarScope)
+        NewLibraryOutlineView()
             // v0.49 boss 2026-09-09 OOB 'split the left column into a
             // tree on top and cards below': the card zone is a bottom
             // safe-area accessory on the sidebar List, which is Apple's
@@ -233,22 +221,6 @@ struct ShellSidebarColumn: View {
             // NSSplitView autosave frame wins and the columns keep
             // whatever width a prior build left in UserDefaults.
             .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 320)
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Picker("Sidebar Scope", selection: $sidebarScope) {
-                    // v0.46 boss 2026-09-09 OOB 'SF Symbol is dropped, use
-                    // the third-party icon library': every icon in the shell
-                    // comes from Lucide (= lucide-swift 1.25.0). Names below
-                    // verified against the package's icon catalog.
-                    LucideLabel("Shelves", icon: "library")
-                        .tag(SidebarScope.shelves)
-                    LucideLabel("Reference", icon: "book-open")
-                        .tag(SidebarScope.references)
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-            }
-        }
     }
 
     /// Drag handle between the directory tree and the card zone.
@@ -515,7 +487,7 @@ struct ShellDetailColumn: View {
 /// v0.42 boss 2026-09-09 OOB 'simplify the right column':
 /// defines the 2 modes of the right-column inspector content
 /// (= tools / dynamic). The picker in the .toolbar toggles
-/// between them (= same pattern as SidebarScope).
+/// between them.
 enum InspectorContent: Hashable {
     case tools
     case dynamic
