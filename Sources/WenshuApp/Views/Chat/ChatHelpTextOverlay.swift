@@ -40,12 +40,15 @@ public struct ChatHelpTextOverlay: View {
         // = outer VStack spacing chromePaddingLarge (icon → title
         // block) + inner VStack(spacing: chromePaddingSmall) for
         // title → body (= matches EmptyStateHint exactly).
-        VStack(spacing: DesignTokens.chromePaddingLarge) {
-            // Icon (= 24 PT = DesignTokens.iconLargeSize).
-            // .secondary tone matches the editor / card zone
-            // empty state icons.
-            LucideIconSystemFallback("message-square", size: DesignTokens.iconLargeSize)
+        VStack(spacing: 0) {
+            // v0.54: 38 PT + 22 PT gap, matching EmptyStateHint and the
+            // measurement taken off Apple's own ContentUnavailableView.
+            // This overlay is a hand-rolled twin of EmptyStateHint, so it
+            // has to move with it or the chat panel keeps a toolbar-sized
+            // icon while every other empty state grew.
+            LucideIcon("message-square", size: 38)
                 .foregroundStyle(.secondary)
+                .padding(.bottom, 22)
             // Title block (= inner VStack with tight 4 PT spacing
             // between title + body = matches EmptyStateHint's inner
             // VStack(spacing: chromePaddingSmall) = Apple HIG canonical

@@ -521,7 +521,9 @@ struct ShellPlaceholder: View {
         // SF Symbol names. The label: closure overload takes any View,
         // so the Lucide glyph goes there.
         ContentUnavailableView {
-            Label { Text(name) } icon: { LucideIcon(icon, size: 36) }
+            // 38 PT matches the glyph height Apple's own
+            // ContentUnavailableView renders, measured on this machine.
+            Label { Text(name) } icon: { LucideIcon(icon, size: 38) }
         } description: {
             Text(hint)
         }
