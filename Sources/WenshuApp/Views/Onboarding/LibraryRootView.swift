@@ -90,47 +90,80 @@ public struct LibraryRootView: View {
         return false
     }
 
+    // v0.47 boss 2026-09-09 OOB 'fix the layer count to Apple canonical':
+    // the state below was owned by the WiredShell wrapper struct, which
+    // sat between LibraryRootView and NavigationSplitShell. That wrapper
+    // is gone; its state and its launch task live here now, so the view
+    // hierarchy is WindowGroup -> LibraryRootView -> NavigationSplitView
+    // -> column body = the Apple canonical 4 layers.
+    @Environment(AppState.self) private var appState
+    @State private var bookStore: BookStore?
+    @State private var commandPaletteModel = CommandPaletteModel()
+    @State private var commandPaletteVisible: Bool = false
+    @State private var editMode = LayoutEditMode()
+    @Environment(\.openSettings) private var openSettings
+
     public var body: some View {
-        // v0.44 M8.1: the .frame + .environment + .preferredColorScheme
-        // modifiers that were in the now-removed
-        // SettingsEnvironmentCapturer wrapper are now applied directly
-        // to the root view (= Apple canonical = no extra wrapper).
-        Group {
-            if shouldShowOnboarding {
-                LibraryOnboardingView(onLibraryPicked: { url in
-                    libraryPath = url.path
-                })
-            } else {
-                // v0.27 wiring: run the LibraryLifecycleHook at layout entry.
-                // - LibraryMigrator.migrateIfNeeded (= v0.x → v0.26)
-                // - LibraryBootstrapper.ensureValidStructure (= self-heal)
-                // - Construct LibraryStores + BookStore (= single @Observable)
-                // - Inject BookStore via .environment for LayoutShellView + child views
-                WiredShell(libraryPath: libraryPath)
-                    // v0.40 boss 9/7 OOB ', shouldchat zonedialog
-                    // . hint, should /help ': removed the
-                    // top banner (= ChatBookManagerHint was a hint
-                    // above the workspace, telling users to type
-                    // slash commands in the chat zone). Boss wants
-                    // the chat zone to be the SOLE input surface for
-                    // slash commands (= no duplicate hint above the
-                    // workspace). The hint text (= "Tell the chat
-                    // to create a book: e.g. /create-book My new
-                    // novel") moves to the .help() modifier on the
-                    // chat TextField (= macOS NSHelpManager tooltip
-                    // on hover, = Apple HIG canonical "explainer
-                    // tooltip" pattern). The ChatBookManagerHint
-                    // struct itself is deleted (= no longer
-                    // instantiated).
+        // No Group wrapper: a @ViewBuilder computed property is inlined
+        // by the result builder, so `content` costs zero view layers,
+        // while `Group { ... }` is a real View in the hierarchy.
+        content
+            .environment(library)
+            .preferredColorScheme(appearanceMode.colorScheme)
+            .task { await runLaunch() }
+            .sheet(isPresented: $commandPaletteVisible) {
+                CommandPaletteView(model: commandPaletteModel)
+                    .navigationTitle(WenshuI18n.t("command_palette.title"))
             }
+            .onReceive(NotificationCenter.default.publisher(for: .wenshuShowCommandPalette)) { _ in
+                commandPaletteVisible = true
+                commandPaletteModel.show()
+            }
+            .layoutEditHotkey(editMode)
+            .onReceive(NotificationCenter.default.publisher(for: .wenshuToggleEditMode)) { _ in
+                editMode.toggle()
+            }
+            .onAppear {
+                WenshuAppDelegate.openSettings = openSettings
+            }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if shouldShowOnboarding {
+            LibraryOnboardingView(onLibraryPicked: { url in
+                libraryPath = url.path
+            })
+        } else if let bookStore {
+            // NavigationSplitShell is the NavigationSplitView. Nothing
+            // wraps it: it is the direct child of the root view, which is
+            // what Apple's NavigationSplitView documentation asks for
+            // ("typically use it as the root view in a Scene").
+            NavigationSplitShell(appState: appState, bookStore: bookStore)
+        } else {
+            // BookStore is built asynchronously by LibraryLifecycleHook.
+            // Column bodies read it as a non-optional @Environment value,
+            // so the shell cannot render before it exists.
+            ProgressView()
         }
-        // v0.45 boss 2026-09-09 OOB 'revert to Apple default first':
-        // removed the hard-coded .frame(minWidth:minHeight:) on the
-        // root view. Window sizing is a Scene concern — AppRootScene
-        // already declares .defaultSize + .windowResizability, which
-        // is the Apple canonical API for it.
-        .environment(library)
-        .preferredColorScheme(appearanceMode.colorScheme)
+    }
+
+    @MainActor
+    private func runLaunch() async {
+        guard !shouldShowOnboarding, bookStore == nil else { return }
+        let wsRoot = URL(fileURLWithPath: libraryPath)
+        let hook = LibraryLifecycleHook(wsRoot: wsRoot)
+        do {
+            let result = try hook.runLaunch()
+            self.bookStore = result.makeBookStore()
+            // Populate the reactive `books` mirror at launch so
+            // bookStore.books.count is correct on the first render.
+            self.bookStore?.reloadAllBooks()
+        } catch {
+            #if DEBUG
+            print("LibraryLifecycleHook failed: \(error)")
+            #endif
+        }
     }
 }
 
@@ -142,188 +175,13 @@ public struct LibraryRootView: View {
 /// "explainer tooltip" pattern, = non-intrusive but always
 /// available on demand).
 
-/// v0.27 wiring wrapper (= isolated to keep LibraryRootView's body
-/// simple). Constructs the BookStore via LibraryLifecycleHook and
-/// provides it via @Environment.
-private struct WiredShell: View {
-    let libraryPath: String
-    // CHATZONE-CRASH-FIX (2026-09-08, post-docs-check):
-    // Apple HIG canonical guidance is that NavigationSplitView typically
-    // is used as the root view in a Scene. When nested under
-    // WorkspaceView.body (= the prior M1 implementation), child column
-    // views crash with 'No Observable object of type AppState found'
-    // on @Environment lookup. Fix = promote the NavigationSplitView to
-    // the Scene root (= here, inside WiredShell.body, which is what
-    // LibraryRootView embeds directly).
-    @Environment(AppState.self) private var appState
-    @State private var bookStore: BookStore?
-    // v0.44 M8.1: CommandPalette sheet state was in CommandPaletteHost
-    // wrapper (= removed; = the sheet is now attached directly to
-    // the root view per Apple HIG canonical = no extra wrapper
-    // layer between WindowGroup and the content view).
-    @State private var commandPaletteModel = CommandPaletteModel()
-    @State private var commandPaletteVisible: Bool = false
-    // v0.44 M8.1: LayoutEditMode + openSettings binding were in
-    // SettingsEnvironmentCapturer wrapper (= removed). These are
-    // the actual side effects of the old wrapper (= 1 .onAppear
-    // setter, 1 .layoutEditHotkey, 1 .onReceive) = now attached
-    // directly to the root view.
-    @State private var editMode = LayoutEditMode()
-    @Environment(\.openSettings) private var openSettings
-    // v0.27 ticket 027-34 (= boss 8/27 grill D1 'Xcode paradigm +
-    // user-customizable layout'): feature flag toggles between the
-    // legacy LayoutShellView and the new WorkspaceView (= wraps the
-    // LayoutTreeStore).
-    // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-    // v0.30 boss 8/30 OOB: ', top barimportbutton
-    // change' = trailing /import buttons were MISSING in LayoutShellView
-    // path's screenshots because LayoutShellView uses ZoneModule (=
-    // no ZoneContentView trailingButton slot). Flipping default to
-    // true = WorkspaceView path (= has ZoneContentView trailingButton
-    // wiring per App.swift:2626 + v0.27 commit bca226704) = trailing
-    // buttons render correctly.
-    // v0.30 boss 8/31 OOB: removed the legacy useWorkspace toggle
-    // (= no Settings/View writes to the AppStorage flag, so it was
-    // always-true dead code). LayoutTreeStore is constructed once
-    // per WiredShell lifetime; its UserDefaults round-trip preserves
-    // state across launches.
-    @State private var workspaceStore: LayoutTreeStore? = nil
-    // v0.28 followup Boss UX round 4: zone visibility flags (= for the
-    // macOS native toolbar zone toggle buttons). Mirrors LayoutShellView's
-    // @AppStorage declarations (= same UserDefaults keys so state is
-    // shared across paths).
-    // B-05: `wenshu.zoneVisible.*` are now owned by LayoutTreeStore
-    // (single source of truth). The 5 @AppStorage declarations below
-    // were dead (= the hand-rolled toolbar block that toggled them
-    // was removed by the v0.34 toolbar flatten). The actual
-    // hide/show is driven by `.wenshuToggleZone` notifications read
-    // by `PaneNSController.applyPersistedZoneVisibility()` at startup
-    // (= reads UserDefaults directly, no SwiftUI property wrapper
-    // dance on the AppKit side) and `LayoutTreeStore.resetToDefault()`
-    // clears them on 'restoredefaultlayout'.
-    //
-    // v0.28 followup Boss UX round 4: model name (= for the model picker
-    // icon in the macOS native toolbar). Mirrors SettingsEnvironmentCapturer's
-    // modelName definition (= same UserDefaults key "wenshu.llm.model").
-    // B-05: `wenshu.llm.model` now has a single owner =
-    // AppState.llmModel. The dead `modelName` @AppStorage declaration
-    // (= removed by the v0.34 toolbar flatten) is dropped. The model
-    // picker reads `appState.llmModel` directly via
-    // `@Environment(AppState.self)`.
+// v0.47 boss 2026-09-09 OOB 'fix the layer count to Apple canonical':
+// the WiredShell wrapper struct is deleted. It existed only to own the
+// BookStore construction and the command-palette / edit-mode state, and
+// it added a whole view layer between the root view and the
+// NavigationSplitView. All of it moved onto LibraryRootView above.
 
-    var body: some View {
-        Group {
-            if appState.useThreeColumnSplit {
-                // CHATZONE-CRASH-FIX part 2 (2026-09-08): defer rendering
-                // NavigationSplitShell until BookStore is constructed
-                // (= descendants like ForeshadowingView / PlaceholderView
-                // / PreviewPane read @Environment(BookStore.self)
-                // non-optional; = SwiftUI crashes if BookStore is
-                // missing from env at layout time). LibraryLifecycleHook
-                // constructs BookStore asynchronously (= nil at first
-                // frame; = we show a ProgressView until ready).
-                if let bookStore = bookStore {
-                    NavigationSplitShell(appState: appState, bookStore: bookStore)
-                        // CHATZONE-CRASH-FIX (2026-09-08): re-inject AppState
-                        // into NavigationSplitView's column env. NavigationSplitView
-                        // re-roots each column view in its own env subgraph
-                        // (= the @Environment chain is broken at the column
-                        // boundary for @Observable types). Re-injecting via
-                        // .environment(appState) at the column-root level
-                        // restores the chain so ChatZoneView / ZoneModuleView /
-                        // NewLibraryOutlineView can read appState from env
-                        // (= previously crashed with 'No Observable object of
-                        // type AppState found' at Environment+Objects.swift:34).
-                        .environment(appState)
-                        // CHATZONE-CRASH-FIX part 2b: also re-inject bookStore
-                        // explicitly (= NavigationSplitView's internal
-                        // layout engine reads env values during
-                        // makeSplitViewController; = without this
-                        // re-injection, the env chain fails at
-                        // _FlexFrameLayout.sizeThatFits with 'No
-                        // Observable object of type BookStore found').
-                        .environment(bookStore)
-                } else {
-                    ProgressView("正在启动文枢…")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
-            } else {
-                // legacy PaneSplitHost path (= unchanged; = the WorkspaceView
-                // View is unchanged from M1).
-                Group {
-                    if let bookStore = bookStore {
-                        // WorkspaceView path (= v0.28 followup).
-                        // LayoutTreeStore is constructed once per
-                        // WiredShell lifetime (= a new instance per
-                        // window); its UserDefaults round-trip preserves
-                        // state across launches.
-                        if workspaceStore == nil {
-                            // Defer to a single task so we don't mutate
-                            // @State during view update.
-                            Color.clear
-                                .task { workspaceStore = LayoutTreeStore() }
-                        } else if let workspaceStore = workspaceStore {
-                            WorkspaceView(store: workspaceStore)
-                                .environment(bookStore)
-                                // Same env-chain fix (= see above).
-                                .environment(appState)
-                        }
-                    } else {
-                        ProgressView("正在启动文枢…")
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    }
-                }
-            }
-        }
-        .task {
-            await runLaunch()
-        }
-        // v0.44 M8.1: CommandPalette sheet attached directly to
-        // the root view (= was in CommandPaletteHost wrapper;
-        // = removed for Apple canonical 4-layer WindowGroup →
-        // root view → NavigationSplitView → column body).
-        .sheet(isPresented: $commandPaletteVisible) {
-            CommandPaletteView(model: commandPaletteModel)
-                .navigationTitle(WenshuI18n.t("command_palette.title"))
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .wenshuShowCommandPalette)) { _ in
-            commandPaletteVisible = true
-            commandPaletteModel.show()
-        }
-        // v0.44 M8.1: Layout edit hotkey + openSettings setter
-        // attached directly to the root view (= was in
-        // SettingsEnvironmentCapturer wrapper; = removed).
-        .layoutEditHotkey(editMode)
-        .onReceive(NotificationCenter.default.publisher(for: .wenshuToggleEditMode)) { _ in
-            editMode.toggle()
-        }
-        .onAppear {
-            WenshuAppDelegate.openSettings = openSettings
-        }
-    }
 
-    @MainActor
-    private func runLaunch() async {
-        let wsRoot = URL(fileURLWithPath: libraryPath)
-        let hook = LibraryLifecycleHook(wsRoot: wsRoot)
-        do {
-            let result = try hook.runLaunch()
-            self.bookStore = result.makeBookStore()
-            // B-07 015.019 (boss 2026-09-04 OOB '):
-            // populate the reactive `books` mirror at launch so
-            // `bookStore.books.count` (= the sidebar bottom-status
-            // ": N" source) is correct on the first render.
-            self.bookStore?.reloadAllBooks()
-        } catch {
-            // v0.27 MVP: log + show alert would be ideal; for now,
-            // fall back to a layout shell without the BookStore so the
-            // user sees the app rather than a blank screen.
-            #if DEBUG
-            print("LibraryLifecycleHook failed: \(error)")
-            #endif
-        }
-    }
-}
 
 
 
