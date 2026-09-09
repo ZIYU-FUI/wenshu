@@ -1,24 +1,24 @@
 //
-//  ZoneContentView.swift · Wenshu · v0.24 boss验收
+// ZoneContentView.swift · Wenshu · v0.24 bossverification
 //
-//  Boss 2026-08-24 拍 (out-of-band): 所有区域都 一样, 可以叫 tab 视图.
+// Boss 2026-08-24 (out-of-band): region, can tab view.
 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-//  不可以加顶栏, 只保留一层顶栏, 可以多 tab.
+// not oktop bar, top bar, can tab.
 //
-//  Pattern (跟 ChatZoneView 的 ChatZoneTabBar + DynamicZoneView 的 DynamicZoneTabBar 统一):
+// Pattern (ChatZoneView ChatZoneTabBar + DynamicZoneView DynamicZoneTabBar):
 //  - 1 layer per zone (no ZoneTopToolbar / ZoneBottomToolbar outer shells)
-//  - 多 internal tabs (Apple HIG Button(.plain) + .accentColor on selected)
-//  - 中文 tab labels (per AGENTS.md §12 中文为主)
+// - internal tabs (Apple HIG Button(.plain) + .accentColor on selected)
+// - in progress tab labels (per AGENTS.md §12 in progress)
 //
 //  Applied to 4 zones:
-//  - projectSidebar: 大纲 / 收藏 / 模板
-//  - projectPreview: 预览 / 图 / 搜索
-//  - editor: 编辑 / 大纲 / 反链
-//  - specializedTools: 画布 / 数据库 / 词数
+// - projectSidebar: / /
+// - projectPreview: / / search
+// - editor: edit / /
+// - specializedTools: / /
 //
 //  Other 2 zones (chat, dynamic) have their own specialized tab bars:
 //  - ChatZoneView: ChatZoneTabBar (chat / search / settings)
-//  - DynamicZoneView: DynamicZoneTabBar (进度 / 待办 / 搜索)
+// - DynamicZoneView: DynamicZoneTabBar (progress / / search)
 //
 
 import SwiftUI
@@ -28,7 +28,7 @@ import Lucide
 /// Used by the 4 "general" zones (projectSidebar / projectPreview / editor / specializedTools).
 struct ZoneContentView: View {
     struct Tab: Identifiable {
-        // v0.24 boss验收fix: use String label as ID (UUID auto-generated per re-render
+        // v0.24 bossverificationfix: use String label as ID (UUID auto-generated per re-render
         // → stale selectedTabId after re-render → no tab marked selected).
         let id: String
         let label: String
@@ -38,8 +38,8 @@ struct ZoneContentView: View {
 
     let tabs: [Tab]
     // v0.25.1 (= ticket 029c-trailing-button editor zone expand/shrink):
-    // owner 2026-08-26 OOB '这个展开 要放在居右 他是一个按钮 不是
-    // 一个 teb' = optional trailing button rendered at the right
+    // owner 2026-08-26 OOB ' yesbutton yes
+    // teb' = optional trailing button rendered at the right
     // edge of the tab bar (= independent of tab count). nil = no
     // trailing button = default behavior preserved for all OTHER
     // zone-content tab bars; only the editor zone passes a
@@ -55,7 +55,7 @@ struct ZoneContentView: View {
     @Namespace private var tabBarNamespace
 
     var body: some View {
-        // v0.24 boss验收fix: simpler structure (VStack only, no ZStack wrapper
+        // v0.24 bossverificationfix: simpler structure (VStack only, no ZStack wrapper
         // which was regressing tab bar visibility). .frame(minHeight: 600)
         // forces window contentMinSize.
         VStack(spacing: 0) {
@@ -74,14 +74,14 @@ struct ZoneContentView: View {
                     }
                 }
             )
-            // v0.24 boss验收fix (2026-08-24): pass maxWidth/maxHeight explicitly to AnyView
+            // v0.24 bossverificationfix (2026-08-24): pass maxWidth/maxHeight explicitly to AnyView
             // so it inherits zone size (not forces zone to grow). Without this,
             // AnyView collapses to its intrinsic size and zone shrinks to ~0.
             // ZONE-INSET-002 (2026-09-07): the unified zone-content
             // inset (= 18 PT all sides) was originally applied here
             // as a single source of truth for all 5 zones. Boss 9/7
-            // round 2 '实测一下, 1-2-4 三个区明显过大, 3 区是对的, 6 区
-            // 过小' = the outer 18 PT wraps Apple HIG components (=
+            // round 2 ', zones 1-2-4 too large, zone 3 correct, 6
+            // ' = the outer 18 PT wraps Apple HIG components (=
             // List(.sidebar) in zone 1, LazyVGrid in zone 2) that
             // already have their own canonical padding (= Apple HIG
             // designed them to be used with the system default
@@ -106,7 +106,7 @@ struct ZoneContentView: View {
             // HIG components and skips them (= needs Apple API
             // research).
             //
-            // Boss 9/7 round 2 '这个间距有 apple api 的间距可以用'
+            // Boss 9/7 round 2 ' apple api can'
             // = the right place for the inset IS Apple's built-in
             // content margins (= List, LazyVGrid, ScrollView all
             // have them); = we shouldn't duplicate them with our
@@ -125,8 +125,8 @@ struct ZoneContentView: View {
         // (which is only ~485 PT tall, 600 PT min would push it out of view).
     }
 
-    // v0.24 boss验收fix (2026-08-24): persist tab selection per zone across launches.
-// Boss 8/24 feedback: '每个区域的 tab 应该有一个是选中的, 选中状态应该持久化'.
+    // v0.24 bossverificationfix (2026-08-24): persist tab selection per zone across launches.
+// Boss 8/24 feedback: 'region tab shouldyesin progress, in progressstatusshould'.
 // Implemented via zone-specific UserDefaults key (one per zone).
     private let storageKey: String
 
@@ -134,14 +134,14 @@ struct ZoneContentView: View {
         let mapped = tabs.map { Tab(id: $0.label, label: $0.label, icon: $0.icon, content: $0.content) }
         self.tabs = mapped
         // v0.25.1 (= ticket 029c-trailing-button editor zone expand/shrink):
-        // owner 2026-08-26 OOB '这个展开 要放在居右 他是一个按钮 不是
-        // 一个 teb' = optional trailing button parameter passed through
+        // owner 2026-08-26 OOB ' yesbutton yes
+        // teb' = optional trailing button parameter passed through
         // to ZoneContentTabBar (= rendered at the right edge of the tab
         // bar via Spacer()).
         self.trailingButton = trailingButton
         self.storageKey = "wenshu.tabIndex.\(zoneSlug)"
         // Restore selected tab from UserDefaults (or default to first tab).
-        // v0.24 boss验收fix: handle invalid saved value (e.g. tab list changed)
+        // v0.24 bossverificationfix: handle invalid saved value (e.g. tab list changed)
         // by falling back to first tab + resetting stored index.
         let savedIndex = UserDefaults.standard.integer(forKey: self.storageKey)
         let initialLabel: String
@@ -189,15 +189,15 @@ private struct ZoneContentTabBar: View {
     @Binding var selection: String
     // v0.25.1 (= ticket 013 underline slide animation): owner 2026-08-26
     // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-    // OOB '能不能让那个小横线的动画变成左右移动 不是渐隐渐显'. See
+    // OOB 'changemove yes'. See
     // PaneTabBar comment (= matchedGeometryEffect pattern). One
     // namespace per tab bar class (= SwiftUI requires the namespace to
     // scope within a single view tree).
     @Namespace private var tabBarNamespace
 
     // v0.25.1 (= ticket 029c-trailing-button editor zone expand/shrink):
-    // owner 2026-08-26 OOB '这个展开 要放在居右 他是一个按钮 不是
-    // 一个 teb' = the expand/shrink toggle is NOT a tab (= no underline
+    // owner 2026-08-26 OOB ' yesbutton yes
+    // teb' = the expand/shrink toggle is NOT a tab (= no underline
     // selected indicator, no selected-tab highlighting), it's a
     // SEPARATE button pushed to the trailing edge of the tab bar
     // (= per Apple HIG canonical toolbar pattern where action
@@ -211,14 +211,14 @@ private struct ZoneContentTabBar: View {
     // the zone has).
     var trailingButton: AnyView? = nil
 
-    // v0.24 boss验收fix: selectedItem (Item with matching label) for icon highlighting.
+    // v0.24 bossverificationfix: selectedItem (Item with matching label) for icon highlighting.
     private var selectedItem: Item? {
         items.first(where: { $0.id == selection })
     }
 
     var body: some View {
-        // v0.28 followup Boss UX round A (Boss 2026-08-30 OOB '你需要做一个
-        // 组件索引'): Phase 3 of refactor. ZoneContentTabBar body now
+        // v0.28 followup Boss UX round A (Boss 2026-08-30 OOB 'need
+        // group'): Phase 3 of refactor. ZoneContentTabBar body now
         // delegates to the new `PaneTabBar` generic component (=
         // ComponentIndex.md Level 3.2). PaneTabBar wraps RegionTabBar
         // chrome + ForEach of PaneIconTab + optional trailing buttons.

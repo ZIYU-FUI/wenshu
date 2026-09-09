@@ -3,7 +3,7 @@
 //
 //  Comprehensive interface-level test suite for v0.36 critical interfaces.
 //
-//  Per 老板 cadence 2026-09-03 '全面接口级测试,写完整测试用例,继续推进':
+// Per cadence 2026-09-03 'test,test,resume':
 //  each v0.36 public interface (= LLMConnector / ProviderKeychain /
 //  OAuthFlow / ToolGuardrails / ErrorClassifier / RateLimitTracker /
 //  BackgroundCreditsTracker / DisplayStateMachine / BackgroundReview /
@@ -15,7 +15,7 @@
 //  - error case test
 //  - thread-safety test (= for actors)
 //
-//  Per boss cadence '1 RULE 1 commit' + PO 6 步 method论.
+// Per boss cadence '1 RULE 1 commit' + PO 6 method.
 //  Total: ~80 test cases across 20 interfaces.
 //
 

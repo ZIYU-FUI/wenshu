@@ -1,5 +1,5 @@
 //
-//  QuickSwitcherWindow.swift · Wenshu · v0.19 ticket 19 (Obsidian replica, 前端做但不接入核心项目)
+// QuickSwitcherWindow.swift · Wenshu · v0.19 ticket 19 (Obsidian replica,)
 //
 
 import Foundation
@@ -18,20 +18,20 @@ public final class QuickSwitcherViewModel {
         self.allItems = items
     }
 
-    /// 设置 query
+    /// Settings query
     public func setQuery(_ q: String) {
         self.query = q
         self.results = QuickSwitcherIndex.search(query: q, in: allItems)
     }
 
-    /// 添加 note 进索引
+    /// add note
     public func addItem(_ item: SwitcherItem) {
         allItems.append(item)
     }
 }
 
-/// QuickSwitcherWindow: SwiftUI View, ⌘O 弹出式搜索
-/// 现阶段不接 LayoutShellView, 留 standalone 等老板 macOS 验
+/// QuickSwitcherWindow: SwiftUI View, ⌘O popupsearch
+/// LayoutShellView, standalone wait macOS
 public struct QuickSwitcherWindow: View {
     @State private var viewModel: QuickSwitcherViewModel
     @State private var queryText: String = ""

@@ -88,8 +88,8 @@ struct ChatSessionStoreTests {
         }
         let cutoff = try await store.summaryCutoffTimestamp(sessionId: "default", keepLastN: 10)
         #expect(cutoff != nil)
-        // SQLite LIMIT 1 OFFSET N: skip N rows, 取第 N+1 行. count=25, keepLastN=10, offset=15 → 取 index 15 (timestamp = t0 + 15 = 15.0)
-        // 但实际 SQLite timeIntervalSince1970 double 精度有 +/- 1 偏移, 用容差 0.001
+        // SQLite LIMIT 1 OFFSET N: skip N rows, N+1 ok. count=25, keepLastN=10, offset=15 → index 15 (timestamp = t0 + 15 = 15.0)
+        // SQLite timeIntervalSince1970 double +/- 1, 0.001
         let cutoffTime = cutoff!.timeIntervalSince(t0)
         #expect(abs(cutoffTime - 15.0) < 0.001)
     }
@@ -114,7 +114,7 @@ struct ChatSessionStoreTests {
     @Test("v0.23 ticket 006: bootstrap 创建 sub_agent_runs 表 (不抛错)")
     func testSubAgentRunBootstrap() async throws {
         let store = try ChatSessionStore(path: tmpPath("subrun-bootstrap"))
-        try await store.bootstrap()  // sub_agent_runs 表也创建
+        try await store.bootstrap()  // sub_agent_runs create
     }
 
     @Test("v0.23 ticket 006: recordSubAgentRun 写 + loadSubAgentRuns 读 (round-trip)")

@@ -1,7 +1,7 @@
-// CharacterEditorSheet.swift · Wenshu (文枢) · v0.26 (FCP library replica)
+// CharacterEditorSheet.swift · Wenshu () · v0.26 (FCP library replica)
 //
 // Editor sheet for a single character. Per boss 2026-08-26 OOB
-// '人物设定' = each character has name + role + narrative arc +
+// ' = each character has name + role + narrative arc +
 // summary. Color-coded by role (Apple HIG semantic color convention,
 // mirrors FCP Role's color pattern).
 //

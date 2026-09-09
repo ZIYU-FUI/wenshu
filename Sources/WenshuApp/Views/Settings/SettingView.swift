@@ -33,12 +33,12 @@
 
 import SwiftUI
 
-/// 设置页: Pages 范式真值 (v0.21 ticket 06)
-/// 老板 8/21 拍 'Pages 范式实现设置面板的 UI, 用 macOS 27 的组件'
-/// = 顶部 toolbar (3 个 segmented tab, Pages 真值, 老板画的图 2 红框位置)
-/// 不是 macOS Settings { } Scene 自动装标题栏 segmented tab 按钮 (commit 0082bd1fe + 030a58355 真硬违反)
+/// Settings: Pages (v0.21 ticket 06)
+/// 8/21 'Pages Settingspanel UI, macOS 27 group'
+/// = toolbar (3 segmented tab, Pages, 2)
+/// yes macOS Settings { } Scene autotitle segmented tab button (commit 0082bd1fe + 030a58355)
 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-/// Pages 真值 (红框位置) = 窗口内容顶部 toolbar 切换, 不是窗口标题栏按钮
+/// Pages () = window toolbar, yeswindowtitlebutton
 struct SettingView: View {
     @Environment(AppState.self) private var appState
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
@@ -49,9 +49,9 @@ struct SettingView: View {
     // property) and uses a custom Binding for the Picker so the
     // existing `$llmModel` selection API still works without
     // touching the surrounding body.
-    // v0.24 boss验收fix (2026-08-24): default to empty string when no provider
+    // v0.24 bossverificationfix (2026-08-24): default to empty string when no provider
     // key configured (not "MiniMax-M3" which implies a MiniMax provider is
-    // selected even when user has no key). UI shows "暂无模型可用，请先配置模型" placeholder
+    // selected even when user has no key). UI shows "，config" placeholder
     // when this is empty.
     // v0.24 boss acceptance fix (2026-08-24): the canonical
     // `@AppStorage("wenshu.llm.model") private var llmModel: String = ""`
@@ -59,7 +59,7 @@ struct SettingView: View {
     // owner = `AppState.llmModel`). This comment preserves the exact
     // source-string that `ChatViewModelDefaultModelTests.App.swift
     // SettingView.llmModel default = '' when no UserDefaults` asserts
-    // must remain present in this file (= the v0.24 boss验收 doc-drift
+    // must remain present in this file (= the v0.24 bossverification doc-drift
     // catch locks down the empty-default semantic even though the
     // @AppStorage wrapper itself was replaced). Don't remove the
     // literal substring below without also updating the regression
@@ -76,13 +76,13 @@ struct SettingView: View {
         )
     }
     @AppStorage("wenshu.llm.reasoningEffort") private var reasoningEffort: String = "medium"
-    // v0.24 boss验收fix: @AppStorage so chat '设置' link can jump to provider tab.
+    // v0.24 bossverificationfix: @AppStorage so chat 'Settings' link can jump to provider tab.
     @AppStorage("wenshu.settingsTab") private var selectedTabRaw: String = "general"
     // v0.24 fix: Settings UI exposes user-set value for agent-to-user address.
     // WenshuConductorIdentity.userAddress reads this key at LLM call time.
     // Boss 8/24 clarification: default = 'user' (not 'boss' = hermes-side convention).
     @AppStorage("wenshu.userAddress") private var userAddress: String = "user"
-    // v0.32 boss 2026-09-02 OOB ('用 macOS 自带液态玻璃, 跟随系统设置'):
+    // v0.32 boss 2026-09-02 OOB (' macOS Liquid Glass, Settings'):
     // the user-tunable Liquid Glass opacity slider + manual @State mirror
     // + UserDefaults key + NotificationCenter wiring was removed
     // (= 134 LOC of self-rolled ladder across App.swift + LiquidGlassOpacity.swift
@@ -141,7 +141,7 @@ struct SettingView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // 顶部 toolbar (Pages 范式, 老板画的图 2 红框位置): 3 个 segmented tab
+            // toolbar (Pages, 2): 3 segmented tab
             Picker("", selection: Binding(
                     get: { selectedTab },
                     set: { selectedTab = $0 }
@@ -163,7 +163,7 @@ struct SettingView: View {
 
             Divider()
 
-            // tab 内容 (Pages 范式, .formStyle(.grouped) 真值 Apple)
+            // tab (Pages, .formStyle(.grouped) Apple)
             Group {
                 switch selectedTab {
                 case .general: generalTab
@@ -205,7 +205,7 @@ struct SettingView: View {
     }
 
     private var generalTab: some View {
-        // Pages 范式参考 UI, 不用管功能 (老板 8/21 拍 "参考 UI 用 Apple 标准, 不是让你做一个一样的通用设置")
+        // Pages UI, (8/21 " UI Apple, yesgeneralSettings")
         Form {
             Section(WenshuI18n.t("settings.general.appearance")) {
                 Picker(WenshuI18n.t("settings.general.appearance"), selection: $appearanceMode) {
@@ -253,7 +253,7 @@ struct SettingView: View {
     }
 
     private var providerTab: some View {
-        // Hermes 真值: 顶部 SearchField + List providers with status icon + "粘贴 X 密钥" 提示
+        // Hermes: SearchField + List providers with status icon + "paste X " hint
         Form {
             Section {
                 ForEach(Provider.all) { p in
@@ -450,7 +450,7 @@ struct SettingView: View {
             apiError = nil
             apiExpandedProviders.remove(provider.slug)
             refreshProviderStatus()
-            // v0.24 boss验收fix: notify ChatZoneView (and other listeners) that
+            // v0.24 bossverificationfix: notify ChatZoneView (and other listeners) that
             // the keychain changed so they can refresh their model pickers without
             // requiring an app restart.
             NotificationCenter.default.post(
@@ -491,7 +491,7 @@ struct SettingView: View {
             }
 
             Section {
-                // v0.21 ticket 35b: 推理强度 picker aligned with Apple Anthropic API effort parameter (5 valid values per docs)
+                // v0.21 ticket 35b: picker aligned with Apple Anthropic API effort parameter (5 valid values per docs)
                 // Source: https://platform.claude.com/docs/en/build-with-claude/effort
                 // NOT hermes custom 7-level (purely decorative overlay, not API)
                 Picker(WenshuI18n.t("settings.model.reasoning_effort_label"), selection: $reasoningEffort) {

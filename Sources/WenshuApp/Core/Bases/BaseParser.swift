@@ -1,21 +1,21 @@
 //
-//  BaseParser.swift · Wenshu · v0.19 ticket 18 (Obsidian replica, 后端先做)
-//  老板 2026-08-19 evening 拍 Obsidian 复刻范围 A + '复刻后端, 前端不接入核心项目'.
+// BaseParser.swift · Wenshu · v0.19 ticket 18 (Obsidian replica, do first)
+// 2026-08-19 evening Obsidian A + ', '.
 //
-//  .base YAML 文件解析. 跟 Obsidian Bases 真值对齐 (https://obsidian.md/help/bases/syntax).
-//  Apple HIG: 纯 Foundation String 解析, 不依赖三方 YAML 库.
+// .base YAML file. Obsidian Bases (https://obsidian.md/help/bases/syntax).
+// Apple HIG: Foundation String, YAML .
 //
 
 import Foundation
 
-/// Base view 类型 (跟 Obsidian Bases §view-types)
+/// Base view type (Obsidian Bases §view-types)
 public enum BaseViewType: String, Codable, Sendable {
     case table
     case card
     case kanban
 }
 
-/// Base formula property (跟 Obsidian Bases §formulas)
+/// Base formula property (Obsidian Bases §formulas)
 public struct BaseFormula: Codable, Equatable, Sendable {
     public var name: String
     public var expression: String
@@ -26,11 +26,11 @@ public struct BaseFormula: Codable, Equatable, Sendable {
     }
 }
 
-/// Base document (跟 Obsidian Bases .base YAML 文件 1:1, 简化子集)
-/// Apple HIG: Codable 简化 (无递归 BaseFilter, 用 simple String 表达)
+/// Base document (Obsidian Bases .base YAML file 1:1,)
+/// Apple HIG: Codable (BaseFilter, simple String)
 public struct BaseDocument: Codable, Equatable, Sendable {
     public var formulas: [BaseFormula]
-    public var viewCount: Int  // views 数组大小 (实际 parsing 暂跳过)
+    public var viewCount: Int  // views groupsize (parsing skip)
 
     public init(formulas: [BaseFormula] = [], viewCount: Int = 0) {
         self.formulas = formulas
@@ -38,12 +38,12 @@ public struct BaseDocument: Codable, Equatable, Sendable {
     }
 }
 
-/// BaseParser: 简易 YAML 解析 (支持 Obsidian .base 子集)
-/// Apple HIG: Foundation String 解析
+/// BaseParser: YAML (Obsidian .base)
+/// Apple HIG: Foundation String
 public enum BaseParser {
 
-    /// 从字符串解析 .base YAML
-    /// 现阶段只支持 formulas (top-level key: value, nested key: value), views 简化计数
+    /// .base YAML
+    /// formulas (top-level key: value, nested key: value), views
     public static func parse(_ content: String) throws -> BaseDocument {
         var formulas: [BaseFormula] = []
         var viewCount = 0
@@ -54,7 +54,7 @@ public enum BaseParser {
             let trimmed = rawLine.trimmingCharacters(in: .whitespaces)
             if trimmed.isEmpty || trimmed.hasPrefix("#") { continue }
 
-            // 检测 section
+            // section
             if !rawLine.hasPrefix(" ") && !rawLine.hasPrefix("\t") {
                 inFormulas = (trimmed == "formulas:")
                 if trimmed.hasPrefix("- ") && !inFormulas {

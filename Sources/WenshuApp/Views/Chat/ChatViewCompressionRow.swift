@@ -67,16 +67,16 @@ public struct ChatViewCompressionRow: View {
             }
             .padding(.horizontal, DesignTokens.chromePaddingMedium)
             .padding(.vertical, DesignTokens.chromePaddingSmall)
-            // v0.40 boss 2026-09-08 OOB '盘一遍, 还有颜色': removed the
+            // v0.40 boss 2026-09-08 OOB 'sweep for remaining background colors: removed the
             // chrome tier background tint (= .windowBackgroundColor
-            // = boss wants gone per the '再往上一层, 再删一层' cleanup).
+            // = boss wants gone per the 'go up another layer and remove the background' cleanup).
         }
     }
 
     /// Trigger manual compression (lives here, not in extension; reads
     /// vm.messages directly + writes compressionSummary to @State).
     ///
-    /// 真实修改 path (= ticket 003 sub-step 5 acceptance criteria):
+    /// modify path (= ticket 003 sub-step 5 acceptance criteria):
     /// 1. map vm.messages -> [LLMMessage]
     /// 2. cc.manualTrigger returns compressed [LLMMessage]
     /// 3. map [LLMMessage] -> [ChatMessage] preserving id + timestamp

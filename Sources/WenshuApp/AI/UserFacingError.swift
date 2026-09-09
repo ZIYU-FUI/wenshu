@@ -62,8 +62,8 @@ public enum UserFacingError: Error, LocalizedError {
             return "网络断开，请检查连接后重试。"
 
         case .apiKeyMissing:
-            // v0.40 boss 9/7 OOB '这个提示错, 用户不一定非要用 minimax 的
-            // key, 换成通用一些的提示词': previously the message
+            // v0.40 boss 9/7 OOB 'hint, usermust minimax
+            // key, generalhint': previously the message
             // interpolated the model name (= "MiniMax-M3") as if it
             // were the provider (= users could think the message
             // was binding them to a specific provider). Now generic:

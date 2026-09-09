@@ -1,8 +1,8 @@
 // Document.swift · Wenshu (Wenshu) · v0.03.0 (document module)
 //
 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-// v53 (= 老板 8/15 17:48 '在第二栏里, 显示书的所有章节, 设定, 资料库, 这
-// 里的文档需要分类'): the second column of the layout shows a card
+// v53 (= 8/15 17:48 ', show,,,
+// need'): the second column of the layout shows a card
 // grid (= FCP Browser filmstrip pattern) of MD documents grouped by
 // category.
 //
@@ -14,8 +14,8 @@
 // H1 is present).
 //
 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-// Owner 8/15 15:55: '架构需要先定好, 不能没事加个东西, 然后重构一堆
-// 东西'. The shape of Document is locked by `Tests/WenshuAppTests/
+// Owner 8/15 15:55: 'needok,, refactor
+// '. The shape of Document is locked by `Tests/WenshuAppTests/
 // Domain/DocumentTests.swift`. Adding any required field forces the
 // architectural decision to surface.
 //
@@ -32,8 +32,8 @@
 import Foundation
 
 /// Document category (= what kind of MD file this is in the book).
-/// v53 (= 老板 8/15 17:48 '3 个分类') — three cases: 章节 / 设定 / 资料
-/// 库 (= chapters / settings / research). Three cases is the v0.03.0
+/// v53 (= 8/15 17:48 '3 ') — three cases: / /
+/// (= chapters / settings / research). Three cases is the v0.03.0
 /// minimum; v0.04+ can add more (= outline / foreshadowing / notes /
 /// drafts) without breaking the contract (= Codable default value
 /// handles unknown strings, and the card UI iterates `allCases` so
@@ -60,7 +60,7 @@ enum BookCategory: String, CaseIterable, Codable, Sendable {
         }
     }
 
-    /// Chinese display label for the card section header (= "章节 (3)"
+    /// Chinese display label for the card section header (= " (3)"
     /// in the second-column cards view).
     var displayName: String {
         switch self {
@@ -189,7 +189,7 @@ enum DocumentRefKind: String, CaseIterable, Codable, Sendable {
     case world
     case reference
 
-    /// Chinese UI label (= boss 8/25 'UI 全中文' carve-out).
+    /// Chinese UI label (= boss 8/25 'UI in progress' carve-out).
     var displayName: String {
         switch self {
         case .character: return "角色"
@@ -213,7 +213,7 @@ enum DocumentRefKind: String, CaseIterable, Codable, Sendable {
 /// Parses `@<type>.<name>` cross-references from document markdown bodies.
 ///
 /// Syntax: the writer types `@character.zhangsan` (= Chinese UI form:
-/// `@角色.张三`). The parser normalizes to:
+/// `@.`). The parser normalizes to:
 /// - kind: DocumentRefKind (= character / world / reference; mapped
 ///   from the English prefix; legacy v0.25.x docs may use Chinese
 ///   prefixes which are mapped here)
@@ -223,7 +223,7 @@ enum DocumentRefKind: String, CaseIterable, Codable, Sendable {
 /// caller (= typically FileSystemLibraryStore.loadDocument) is
 /// responsible for resolving `name` -> UUID via the per-Book character/
 /// world/ indexes (= a name "zhangsan" might match a Character named
-/// "张三" via a slug-mapping; v0.27+ may add a proper slug resolver).
+/// "" via a slug-mapping; v0.27+ may add a proper slug resolver).
 struct DocumentCrossRefParser {
     /// Parse all cross-refs from a markdown body. Returns unique
     /// `(kind, name)` pairs (= same name + kind appearing N times = 1
@@ -282,9 +282,9 @@ struct DocumentCrossRefParser {
         // doesn't need them).
         //
         // We accept both English prefixes (character / world / reference)
-        // and Chinese prefixes (角色 / 世界观 / 资料) for back-compat with
+        // and Chinese prefixes (/ /) for back-compat with
         // any docs the writer may have written by hand using the Chinese
-        // UI form per boss 8/25 'UI 全中文' pattern.
+        // UI form per boss 8/25 'UI in progress' pattern.
         let regex: NSRegularExpression
         do {
             regex = try NSRegularExpression(

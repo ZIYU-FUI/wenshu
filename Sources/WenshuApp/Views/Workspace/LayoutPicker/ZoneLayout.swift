@@ -1,5 +1,5 @@
 //
-//  ZoneLayout.swift · Wenshu (文枢) · B-07 ticket 028-003
+// ZoneLayout.swift · Wenshu () · B-07 ticket 028-003
 //
 //  Single source of truth for which `TabKind` (= which functional
 //  module / pane) ships into which `ZoneSlot` (= which of the six

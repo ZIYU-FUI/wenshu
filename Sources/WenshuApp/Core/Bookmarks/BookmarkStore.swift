@@ -1,10 +1,10 @@
 //
-//  BookmarkStore.swift · Wenshu · v0.19 ticket 22 (Obsidian replica, 后端先做)
-//  老板 2026-08-19 evening 拍 Obsidian 复刻范围 A + '复刻后端, 前端不接入核心项目'.
+// BookmarkStore.swift · Wenshu · v0.19 ticket 22 (Obsidian replica, do first)
+// 2026-08-19 evening Obsidian A + ', '.
 //
-//  跨 note 收藏夹 (actor SQLite-backed).
-//  跟 Obsidian Bookmarks plugin 行为对齐 (https://obsidian.md/help/plugins/bookmarks).
-//  Apple HIG: actor + SQLite + Codable 跟 v0.18 ticket 01 MemoryStore 同范式.
+// note (actor SQLite-backed).
+// Obsidian Bookmarks plugin ok (https://obsidian.md/help/plugins/bookmarks).
+// Apple HIG: actor + SQLite + Codable v0.18 ticket 01 MemoryStore .
 //
 
 
@@ -32,11 +32,11 @@
 import Foundation
 import SQLite3
 
-/// 1 条书签 = 1 row
+/// 1 = 1 row
 public struct Bookmark: Equatable, Sendable, Identifiable {
     public var id: String          // UUID
-    public var docId: String       // 收藏的 doc_id
-    public var label: String       // 显示标签
+    public var docId: String       // doc_id
+    public var label: String       // show
     public var createdAt: Date
 
     public init(id: String = UUID().uuidString, docId: String, label: String, createdAt: Date = Date()) {
@@ -47,13 +47,13 @@ public struct Bookmark: Equatable, Sendable, Identifiable {
     }
 }
 
-/// BookmarkStore 错误
+/// BookmarkStore error
 public enum BookmarkStoreError: Error, Equatable {
     case openFailed(dbPath: String, message: String)
     case execFailed(sql: String, message: String)
 }
 
-/// SQLite helper (per-file private, 跟 LinkIndex 同范式)
+/// SQLite helper (per-file private, LinkIndex)
 private final class SQLitePtr {
     var db: OpaquePointer?
     deinit { sqlite3_close(db) }
@@ -68,7 +68,7 @@ private enum SQLiteErmsg {
 
 private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
-/// BookmarkStore: SQLite-backed 收藏夹
+/// BookmarkStore: SQLite-backed
 public actor BookmarkStore {
     private let dbPtr: SQLitePtr
     private let dbPath: String
@@ -119,7 +119,7 @@ public actor BookmarkStore {
     }
 
     // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-    /// 加书签
+    ///
     public func add(_ bookmark: Bookmark) throws {
         let sql = "INSERT INTO bookmarks (id, doc_id, label, created_at) VALUES (?, ?, ?, ?);"
         var stmt: OpaquePointer?
@@ -136,7 +136,7 @@ public actor BookmarkStore {
         }
     }
 
-    /// 删书签 (按 id)
+    /// (id)
     public func remove(id: String) throws {
         let sql = "DELETE FROM bookmarks WHERE id = ?;"
         var stmt: OpaquePointer?
@@ -150,7 +150,7 @@ public actor BookmarkStore {
         }
     }
 
-    /// 列所有书签 (按 created_at DESC)
+    /// (created_at DESC)
     public func list() throws -> [Bookmark] {
         let sql = "SELECT id, doc_id, label, created_at FROM bookmarks ORDER BY created_at DESC;"
         var stmt: OpaquePointer?

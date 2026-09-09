@@ -48,8 +48,8 @@ final class AppState {
     /// per developer.apple.com/documentation/swiftui/navigationsplitview).
     ///
     /// Default `false` = existing users see ZERO behavior change
-    /// on app upgrade (= 老 `PaneSplitHost` 路径 unchanged per the
-    /// spec's "老路径完全保留" rule).
+    /// on app upgrade (= `PaneSplitHost` path unchanged per the
+    /// spec's "legacy path" rule).
     ///
     /// Set via:
     ///   defaults write com.wenshu.app wenshu.useThreeColumnSplit -bool true
@@ -74,9 +74,9 @@ final class AppState {
     /// (= JSON shape, = set by WorkspaceView's `.onChange`).
     var sidebarSelection: SidebarItem? = nil
 
-    // v0.34 B-18 (= boss 9/2 OOB '现在用的, 这个编辑器, 是否自带
-    // 字数统计'): editor zone's live word count, owned globally so
-    // both the chrome bottom-bar left field (= "字数: N" in
+    // v0.34 B-18 (= boss 9/2 OOB ', editor, yesno
+    // '): editor zone's live word count, owned globally so
+    // both the chrome bottom-bar left field (= ": N" in
     // TabContentDispatcher.editor case) and any future editor-zone
     // status widgets share one source of truth. EditorPlaceholder
     // writes via .onChange(of: draft); chrome reads via @Environment.
@@ -88,7 +88,7 @@ final class AppState {
     // watcher). activeTabId identifies the currently focused tab.
     // Single source of truth across views (= TabContentDispatcher,
     // EditorPlaceholder, any future cross-zone tab bar).
-    // v0.40 boss 9/7 OOB '删除空白预览文档, 取持久化的': persist
+    // v0.40 boss 9/7 OOB 'delete, ': persist
     // openTabs + activeTabId across launches (= JSON in UserDefaults).
     // Empty array on launch = no persisted tabs = editor zone shows
     // an onboarding hint instead of the samplePreviewBody.
@@ -158,8 +158,8 @@ final class AppState {
         }
     }
 
-    /// v0.40 boss 2026-09-08 OOB '聊天顶栏有 3 个 tab (= 对话 / 搜索 /
-    /// 设置), 编辑器顶栏没有 (= openTabs 默认空)'. Fix = inject a
+    /// v0.40 boss 2026-09-08 OOB 'chattop bar 3 tab (= dialog / search /
+    /// Settings), editortop bar (= openTabs default)'. Fix = inject a
     /// single default Welcome tab when openTabs is empty (= gives the
     /// editor top tab bar at least one tab to render so the bar is
     /// visually present at launch; = matches chat's fixed-tab-set
@@ -305,8 +305,8 @@ final class EditorTab: Identifiable {
     var originalBody: String
     var mode: EditorMode
 
-    // v0.40 boss 9/7 OOB '卡片区应该显示规划中未实装的
-    // 功能卡片': capture the scope where this doc was opened
+    // v0.40 boss 9/7 OOB 'card zoneshouldshowin progress
+    // card': capture the scope where this doc was opened
     // from (= drives sidebar selection + preview cards on
     // restore). = .referenceScope(cat) for library refs,
     // = .bookScope(bookId, folder) for book docs, etc. Optional

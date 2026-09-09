@@ -2,7 +2,7 @@
 //  FormatToolbarButtons.swift · Wenshu · v0.40 apple-001 Q2 slice 2
 //
 //  Extracted from WorkspaceView.swift (formerly inline private
-//  struct at line 2097). Q2 boss拍 split WorkspaceView; this
+// struct at line 2097). Q2 boss split WorkspaceView; this
 //  slice = the lowest-risk, highest-payoff extraction (= the
 //  view is fully self-contained = no @State, no @Environment,
 //  no @Observable; just @Binding var draft + two file-local

@@ -1,6 +1,6 @@
 // BookTests.swift · Wenshu (Wenshu) · v0.02.1 (book module)
 //
-// Owner 8/15 15:55: '架构需要先定好, 不能没事加个东西, 然后重构一堆东西'.
+// Owner 8/15 15:55: 'needok,, refactor'.
 // Same pattern as BookshelfTests (v38): lock the domain model shape
 // before storage / view code touches it. If Book's fields, identity, or
 // Codable strategy change, these tests fail and force the architectural
@@ -71,9 +71,9 @@ struct BookTests {
     }
 
     // v52: New Book Creation Wizard
-    // Boss 8/15 17:32: '新建书架, 然后新建书, 然后在新建书的时候, 就是是
-    // 我说的那个新建的场景了, 先实现最简新建书的逻辑, 书名, 篇幅选择, 创意
-    // 点, 然后新建'.
+    // Boss 8/15 17:32: ',,, yesyes
+    //,,,,
+    //, '.
     //
     // Two new optional fields on Book (= length enum + idea string).
     // Optional so v0.02.x fixtures (which predate these fields) still

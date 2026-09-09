@@ -1,12 +1,12 @@
 //
 //  TodoStore.swift · Wenshu · v0.18 ticket 06 (hermes replica)
 //
-//  本地 Todo (复刻 hermes todo 真值简化版).
-//  老板 2026-08-19 拍 "全模块复刻, Apple 体系实现" + "不符合文枢定位的可以复刻".
+// local Todo (hermes todo).
+// 2026-08-19 ", Apple " + "can".
 //
-//  wenshu 定位 = SwiftUI 桌面写作 app. TodoStore = wenshu 项目内任务调度 (比 KanbanStore 轻量).
-//  真值: hermes todo / goals 真值 (4 状态 + priority + due).
-//  简化版: 1 todos 表 + 4 status + SQLite + actor.
+// wenshu = SwiftUI app. TodoStore = wenshu task (KanbanStore).
+//: hermes todo / goals (4 status + priority + due).
+//: 1 todos + 4 status + SQLite + actor.
 //
 
 
@@ -34,7 +34,7 @@
 import Foundation
 import SQLite3
 
-/// Todo 状态真值
+/// Todo status
 public enum TodoStatus: String, Codable, Sendable, CaseIterable {
     case pending
     case inProgress = "in_progress"
@@ -42,7 +42,7 @@ public enum TodoStatus: String, Codable, Sendable, CaseIterable {
     case cancelled
 }
 
-/// Todo 优先级真值
+/// Todo
 public enum TodoPriority: Int, Codable, Sendable, CaseIterable {
     case low = 0
     case medium = 1
@@ -50,7 +50,7 @@ public enum TodoPriority: Int, Codable, Sendable, CaseIterable {
     case urgent = 3
 }
 
-/// Todo 真值
+/// Todo
 public struct TodoItem: Equatable, Sendable {
     public let id: String
     public var title: String
@@ -71,7 +71,7 @@ public struct TodoItem: Equatable, Sendable {
     }
 }
 
-/// SQLite 透明指针 wrap
+/// SQLite wrap
 private final class SQLitePtr {
     var db: OpaquePointer?
     deinit { sqlite3_close(db) }

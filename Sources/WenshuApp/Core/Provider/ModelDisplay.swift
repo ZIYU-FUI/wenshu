@@ -29,7 +29,7 @@ public struct ModelDisplayEntry: Hashable, Sendable {
 
 /// Static default display-name table (boss can override via @AppStorage "wenshu.modelDisplayOverrides").
 /// Documented defaults = clean model names (no tier suffix).
-/// Per-call reasoning strength (最小/低/中/高/极高/最高/超高) = ChatSettings concept, NOT here.
+/// Per-call reasoning strength (//in progress////) = ChatSettings concept, NOT here.
 public enum ModelDisplay {
     /// Documented default display names (boss can override).
     /// No tier concept — display = model name only.

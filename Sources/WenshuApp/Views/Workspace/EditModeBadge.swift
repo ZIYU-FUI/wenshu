@@ -2,7 +2,7 @@
 //  EditModeBadge.swift · Wenshu · v0.40 apple-001 Q2 slice 4
 //
 //  Extracted from WorkspaceView.swift (formerly inline private
-//  struct at line 2104). Q2 boss拍 split WorkspaceView. Slice 4
+// struct at line 2104). Q2 boss split WorkspaceView. Slice 4
 //  = the smallest + most self-contained view left after slices 2
 //  and 3 (= 33 LOC + 1 @Binding, otherwise stateless).
 //

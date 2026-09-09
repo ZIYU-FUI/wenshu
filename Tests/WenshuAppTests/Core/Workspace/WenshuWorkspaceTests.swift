@@ -1,7 +1,7 @@
 //
 //  WenshuWorkspaceTests.swift · Wenshu · v0.23 ticket 014.001
 //
-//  Boss 2026-08-23 拍: '我想先落地, 类似 FCP 的库文件'.
+// Boss 2026-08-23: ', FCP file'.
 //  Tests for WenshuWorkspace actor (single-file workspace).
 //
 

@@ -1,7 +1,7 @@
 //
 //  CronPromptScannerTests.swift · Wenshu · v0.23 ticket 013.007 (hermes gap 7)
 //
-//  Boss 2026-08-23 拍: hermes _scan_cron_prompt parity.
+// Boss 2026-08-23: hermes _scan_cron_prompt parity.
 //
 
 import Foundation

@@ -1,6 +1,6 @@
 // BookshelfTests.swift · Wenshu (Wenshu) · v0.02.0
 //
-// Owner 8/15 15:55: '架构需要先定好, 不能没事加个东西, 然后重构一堆东西'.
+// Owner 8/15 15:55: 'needok,, refactor'.
 // These tests lock the Bookshelf domain model before any storage / view code
 // touches it. If Bookshelf's shape changes (= adds a required field, renames
 // id, etc.), these tests fail and force the architectural decision to surface

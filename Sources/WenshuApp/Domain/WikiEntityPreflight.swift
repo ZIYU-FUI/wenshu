@@ -1,6 +1,6 @@
-// WikiEntityPreflight.swift · Wenshu (文枢) · v0.34
+// WikiEntityPreflight.swift · Wenshu () · v0.34
 //
-// v0.34 boss 2026-09-02 OOB '其他工程上的机制我不太懂, 你看着定':
+// v0.34 boss 2026-09-02 OOB 'engineering, ':
 // LLM Wiki entity preflight validation (= port of Card-master
 // `src/userscript/application/preflight.ts` `userscriptInstallationDiagnostics`).
 //
@@ -48,7 +48,7 @@ enum PreflightSeverity: String, Codable, Sendable, Comparable {
 struct PreflightIssue: Identifiable, Hashable, Codable, Sendable {
     let id: String
     let severity: PreflightSeverity
-    /// Chinese user-facing message (= boss 'UI 全中文' rule).
+    /// Chinese user-facing message (= boss 'UI in progress' rule).
     let message: String
     /// Stable code (= user can grep / count; = e.g. "title.empty").
     let code: String
@@ -97,7 +97,7 @@ struct WikiEntityPreflight: Sendable {
             ))
         }
 
-        // Check 3: summary present (= boss 8/26 '卡片要 1 句话说明').
+        // Check 3: summary present (= boss 8/26 'card 1 ').
         let summaryTrimmed = reference.summary.trimmingCharacters(in: .whitespacesAndNewlines)
         if summaryTrimmed.isEmpty {
             issues.append(PreflightIssue(

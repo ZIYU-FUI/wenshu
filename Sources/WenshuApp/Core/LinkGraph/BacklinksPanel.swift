@@ -1,20 +1,20 @@
 //
-//  BacklinksPanel.swift · Wenshu · v0.19 ticket 12 (Obsidian replica, 前端做但不接入核心项目)
-//  老板 2026-08-19 evening 拍 '前端要做但先不接入核心项目'.
+// BacklinksPanel.swift · Wenshu · v0.19 ticket 12 (Obsidian replica,)
+// 2026-08-19 evening '.
 //
-//  Standalone SwiftUI View + ViewModel, 不接 LayoutShellView, 等老板验 macOS.
-//  ViewModel 跟 v0.18 ticket 04 AgentRuntime 同范式: @MainActor + Observable (苹果 Swift 6 strict concurrency).
+// Standalone SwiftUI View + ViewModel, LayoutShellView, wait macOS.
+// ViewModel v0.18 ticket 04 AgentRuntime: @MainActor + Observable (Swift 6 strict concurrency).
 //
 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-//  业务语言描述 (老板懂):
-//  - BacklinksPanel 是 SwiftUI View, 给一个 docId 显示所有引用它的 source 链接
-//  - 现阶段只做 ViewModel 渲染逻辑, View 体留 placeholder (老板 macOS 验后再补 .body 接入)
+// ():
+// - BacklinksPanel yes SwiftUI View, docId show source link
+// - ViewModel, View placeholder (macOS .body)
 //
 
 import Foundation
 import SwiftUI
 
-/// BacklinksViewModel: @MainActor Observable, 给 SwiftUI View 用的渲染数据源
+/// BacklinksViewModel: @MainActor Observable, SwiftUI View
 @MainActor
 @Observable
 public final class BacklinksViewModel {
@@ -31,7 +31,7 @@ public final class BacklinksViewModel {
         self.documentIndex = documentIndex
     }
 
-    /// 加载指定 docId 的 backlinks
+    /// load docId backlinks
     public func load(docId: String) async {
         self.docId = docId
         self.isLoading = true
@@ -39,7 +39,7 @@ public final class BacklinksViewModel {
         defer { self.isLoading = false }
 
         guard let resolver else {
-            // 老板 macOS 验后再接 resolver. 现阶段返回空数组
+            // macOS resolver. group
             self.backlinks = []
             return
         }
@@ -53,8 +53,8 @@ public final class BacklinksViewModel {
     }
 }
 
-/// BacklinksPanel: SwiftUI View, 右栏显示当前 note 的 backlinks
-/// 现阶段不接 LayoutShellView, 留 standalone 等老板 macOS 验
+/// BacklinksPanel: SwiftUI View, show note backlinks
+/// LayoutShellView, standalone wait macOS
 public struct BacklinksPanel: View {
     @State private var viewModel: BacklinksViewModel
 
@@ -63,8 +63,8 @@ public struct BacklinksPanel: View {
     }
 
     public var body: some View {
-        // placeholder: 老板 macOS 验后再补实际渲染
-        // 现阶段只显示 docId + backlinks 数量, 验证 ViewModel 数据通路
+        // placeholder: macOS
+        // show docId + backlinks, verify ViewModel
         //
         // v0.40 POLISH-LIQUIDGLASS-005 (= 9/5 boss OOB 'apply Liquid
         // Glass to menu popovers + dropdown panels + context menus'):

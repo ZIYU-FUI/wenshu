@@ -1,4 +1,4 @@
-// FileSystemCharacterStore.swift · Wenshu (文枢) · v0.26 (FCP library replica)
+// FileSystemCharacterStore.swift · Wenshu () · v0.26 (FCP library replica)
 //
 // Per-Book character storage layer (= ticket 005 of the FCP library
 // replica spec).

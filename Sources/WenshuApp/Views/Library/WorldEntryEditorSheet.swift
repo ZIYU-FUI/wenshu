@@ -1,7 +1,7 @@
-// WorldEntryEditorSheet.swift · Wenshu (文枢) · v0.26 (FCP library replica)
+// WorldEntryEditorSheet.swift · Wenshu () · v0.26 (FCP library replica)
 //
 // Editor sheet for a single world-building entry. Per boss 2026-08-26
-// OOB '按文件夹分开管理' = each world entry is a discrete .md file
+// OOB 'folder' = each world entry is a discrete .md file
 // with a structured metadata header.
 //
 // v0.26 FCP library replica spec at

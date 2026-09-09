@@ -1,15 +1,15 @@
 //
-//  DynamicZoneView.swift · Wenshu · v0.24 boss验收 + v0.41 WIRE-OPENBOX-001
+// DynamicZoneView.swift · Wenshu · v0.24 bossverification + v0.41 WIRE-OPENBOX-001
 //
-//  Boss 2026-08-24 拍: dynamic zone 应该是 tab 模式 (跟 chat zone 的 ChatZoneTabBar 一致),
-//  不应该是 sheet 模式 (sheet 一次只能看一个, 不能 tab 切换).
+// Boss 2026-08-24: dynamic zone shouldyes tab (chat zone ChatZoneTabBar),
+// shouldyes sheet (sheet, tab).
 //
 //  Tab order (per boss 8/24 explicit feedback):
-//  - tab1: 任务 (Todo) — TodoListView (h07)
-//  - tab2: 进度 (Sub-agent progress) — SubAgentProgressView
-//  - tab3: 搜索 (Search) — SearchPanel (o06)
+// - tab1: task (Todo) — TodoListView (h07)
+// - tab2: progress (Sub-agent progress) — SubAgentProgressView
+// - tab3: search (Search) — SearchPanel (o06)
 //
-//  Per AGENTS.md §12 中文为主, tab labels 中文.
+// Per AGENTS.md §12 in progress, tab labels in progress.
 //
 //  v0.41 WIRE-OPENBOX-001 (P2 #21): agent progress panel added at the
 //  top of the zone (= below the tab bar, above the kanban/todo body).
@@ -20,14 +20,14 @@
 import SwiftUI
 import Lucide
 
-/// DynamicZoneView: 动态区 body. 3 tabs (任务 / 进度 / 搜索) + Apple HIG TabBar pattern
-/// (跟 ChatZoneTabBar 范式一致: 顶栏 SF Symbol + .accentColor 高亮选中态).
+/// DynamicZoneView: body. 3 tabs (task / progress / search) + Apple HIG TabBar pattern
+/// (ChatZoneTabBar: top bar SF Symbol + .accentColor in progress).
 struct DynamicZoneView: View {
     enum DynamicTab: String, CaseIterable, Identifiable {
-        // v0.24 boss验收fix (2026-08-24 OOB): Boss 拍 '这里不是看板吗, 这里怎么变成
-        // 会话记录了' = dynamic zone 应该 be 看板 (kanban), not 子代理进度 (debug).
-        // Per boss 8/24 拍 'dynamic zone 改 2 tab' = 看板 + 待办 only.
-        // Hide: 子代理进度 (debug feature) + 搜索 (per 5c9ef2ee6 + chat zone pattern).
+        // v0.24 bossverificationfix (2026-08-24 OOB): Boss 'yeskanban, change
+        // ' = dynamic zone should be kanban (kanban), not progress (debug).
+        // Per boss 8/24 'dynamic zone change 2 tab' = kanban + only.
+        // Hide: progress (debug feature) + search (per 5c9ef2ee6 + chat zone pattern).
         case kanban = "看板"
         case todo = "待办"
         var id: String { rawValue }
@@ -35,18 +35,18 @@ struct DynamicZoneView: View {
         var icon: String {
             switch self {
             // v0.25.1 (= ticket 022 dynamic zone tab icons): owner
-            // 2026-08-26 OOB 右下角区 两个 teb 切换: teb1 -> layout-grid, teb2 -> layout-list
-            // layout-grid teb2 换成 layout-list' = SF rectangle.split.3x1
-            // → Lucide layout-grid (= 4-cell grid icon, 看板 board
+            // 2026-08-26 OOB teb: teb1 -> layout-grid, teb2 -> layout-list
+            // layout-grid teb2 layout-list' = SF rectangle.split.3x1
+            // → Lucide layout-grid (= 4-cell grid icon, kanban board
             // visual metaphor). SF checklist → Lucide layout-list
-            // (= row-based list icon, 待办 list visual metaphor).
+            // (= row-based list icon, list visual metaphor).
             case .kanban: return "layout-grid"
             case .todo: return "layout-list"
             }
         }
     }
 
-    // v0.24 boss验收fix: persist tab selection across launches.
+    // v0.24 bossverificationfix: persist tab selection across launches.
 // v0.40 apple-001 HIG absent batch: migrated wenshu.tabIndex.aiDynamic
 // from @AppStorage to @SceneStorage (= Apple HIG macOS 14+ per-window
 // tab state restoration). Each window has its own active dynamic
@@ -69,7 +69,7 @@ struct DynamicZoneView: View {
         // v0.30 boss 8/31 OOB: alignment: .leading so the top tab bar
         // (= DynamicZoneTabBar) is left-aligned instead of default
         // center-aligned (= SwiftUI VStack defaults to .center). Boss
-        // spec: "动态 teb 图标改成居左" = the dynamic zone tabs should
+        // spec: " teb iconchange" = the dynamic zone tabs should
         // sit at the left edge (= 18 PT padding from pane left) like
         // every other zone's top bar.
         VStack(alignment: .leading, spacing: 0) {
@@ -104,13 +104,13 @@ struct DynamicZoneView: View {
                 .padding(.bottom, DesignTokens.chromePaddingVertical)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)  // prevent window shrink
-        // v0.40 boss 2026-09-09 OOB '方案 A 全 Apple native': removed
+        // v0.40 boss 2026-09-09 OOB 'Plan A: full Apple native': removed
         // .regionContentBackground() (= per Plan A = the pane
         // relies on NavigationSplitView's built-in Liquid Glass
         // material = no custom per-pane background paint). The
         // previous .ultraThinMaterial / RegionContentBackground
-        // double-layer was the source of '液态玻璃效果和其他区
-        // 不一样' = per Apple's WWDC25-219 'Liquid Glass is
+        // double-layer was the source of 'Liquid Glasseffect
+        // ' = per Apple's WWDC25-219 'Liquid Glass is
         // composed of a number of layers that work together' =
         // removing the custom layer lets Apple's native material
         // flow uniformly across all 6 zones.
@@ -126,7 +126,7 @@ struct DynamicZoneView: View {
     }
 }
 
-/// DynamicZoneTabBar: 顶栏 3 SF Symbol tab + 选中态 .accentColor (跟 ChatZoneTabBar 范式一致)
+/// DynamicZoneTabBar: top bar 3 SF Symbol tab + in progress .accentColor (ChatZoneTabBar)
 struct DynamicZoneTabBar: View {
     @Binding var selectedTab: DynamicZoneView.DynamicTab
     // v0.25.1 (= ticket 013 underline slide animation): matchedGeometry

@@ -1,5 +1,5 @@
 //
-//  TemplatePicker.swift · Wenshu · v0.19 ticket 15 (Obsidian replica, 前端做但不接入核心项目)
+// TemplatePicker.swift · Wenshu · v0.19 ticket 15 (Obsidian replica,)
 //
 
 import Foundation
@@ -33,8 +33,8 @@ public final class TemplateViewModel {
     }
 }
 
-/// TemplatePicker: SwiftUI View, 显示模板 + 渲染结果 placeholder
-/// 现阶段不接 LayoutShellView, 留 standalone 等老板 macOS 验
+/// TemplatePicker: SwiftUI View, show + placeholder
+/// LayoutShellView, standalone wait macOS
 public struct TemplatePicker: View {
     @State private var viewModel: TemplateViewModel
 

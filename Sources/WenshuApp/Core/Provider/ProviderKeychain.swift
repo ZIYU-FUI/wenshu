@@ -104,7 +104,7 @@ public struct ProviderKeychainMetadata: Sendable, Equatable, Codable {
 
 /// Default production backend — Apple Security framework (`kSecClassGenericPassword`).
 ///
-/// B-10 EMERGENCY in-place revert (Boss 2026-09-04 OOB '进设置页面闪退'):
+/// B-10 EMERGENCY in-place revert (Boss 2026-09-04 OOB 'Settings'):
 /// the public methods below are stubs (= early-return + debug key) so the
 /// macOS Security framework is never invoked at Settings-open time. The
 /// real SecItemAdd / SecItemCopyMatching / SecItemDelete implementations
@@ -116,7 +116,7 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
     public init() {}
 
     public func saveKeySync(_ key: String, for provider: Provider) throws {
-        // EMERGENCY in-place revert (Boss 2026-09-04 OOB '进设置页面闪退'):
+        // EMERGENCY in-place revert (Boss 2026-09-04 OOB 'Settings'):
         // B-10 commit faa5edc0e reactivated real SecItemAdd calls; on
         // ad-hoc signed wenshu.app without the keychain-access-groups
         // entitlement, SecItemAdd can SIGABRT the process at first
@@ -140,7 +140,7 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
             kSecAttrAccount as String: account,
             kSecValueData as String: keyData,
             kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock
-            // v0.24 boss验收fix (2026-08-24): removed 'kSecUseDataProtectionKeychain: true'.
+            // v0.24 bossverificationfix (2026-08-24): removed 'kSecUseDataProtectionKeychain: true'.
             // This iOS-only flag on macOS requires explicit entitlement
             // (kSecAttrAccessGroupFile or similar) and triggers -34018
             // errSecMissingEntitlement on ad-hoc signed apps. The default
@@ -152,7 +152,7 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
     }
 
     public func loadKeySync(for provider: Provider) -> String? {
-        // EMERGENCY in-place revert (Boss 2026-09-04 OOB '进设置页面闪退'):
+        // EMERGENCY in-place revert (Boss 2026-09-04 OOB 'Settings'):
         // bypass macOS Keychain entirely (= avoid SecurityAgent modal
         // prompt AND ad-hoc-signing SIGABRT). Returns a debug key string
         // so LLM calls can complete the request flow without prompting
@@ -177,7 +177,7 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
     }
 
     public func deleteKeySync(for provider: Provider) throws {
-        // EMERGENCY in-place revert (Boss 2026-09-04 OOB '进设置页面闪退'): bypass.
+        // EMERGENCY in-place revert (Boss 2026-09-04 OOB 'Settings'): bypass.
         return
         /*
         let account = "\(provider.slug).api.key"
@@ -194,7 +194,7 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
     }
 
     public func listProvidersWithKeys() -> [String] {
-        // EMERGENCY in-place revert (Boss 2026-09-04 OOB '进设置页面闪退'): bypass.
+        // EMERGENCY in-place revert (Boss 2026-09-04 OOB 'Settings'): bypass.
         return []
         /*
         let query: [String: Any] = [
@@ -272,7 +272,7 @@ public enum ProviderKeychain {
     // to InMemory for cua / dev / CI contexts. Tests inject InMemory
     // via setBackendForTesting().
     //
-    // B-10 phase B activation (Boss 2026-09-04 OOB '跳过我验收,往后推进'):
+    // B-10 phase B activation (Boss 2026-09-04 OOB 'skipverification,'):
     // `B10_PHASE_B_ENABLED` Swift compile flag, when set via build setting
     // (`SWIFT_ACTIVE_COMPILATION_CONDITIONS += B10_PHASE_B_ENABLED`), switches
     // the default backend to `AppleKeychainStore` IF the running binary carries

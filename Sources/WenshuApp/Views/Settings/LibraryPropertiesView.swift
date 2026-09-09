@@ -1,7 +1,7 @@
-// LibraryPropertiesView.swift · Wenshu (文枢) · v0.26 (FCP library replica)
+// LibraryPropertiesView.swift · Wenshu () · v0.26 (FCP library replica)
 //
-// FCP-style "Library Properties" panel (= boss 8/26 Q1=c, "用户体
-// 验最完整"). Modal sheet triggered from Settings menu (= 库属性...).
+// FCP-style "Library Properties" panel (= boss 8/26 Q1=c, "user
+// "). Modal sheet triggered from Settings menu (= ...).
 // Shows the .ws library's current state + management actions.
 //
 // v0.26 boss 8/26 OOB (per spec v5 ticket 014):

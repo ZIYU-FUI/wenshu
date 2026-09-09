@@ -1,8 +1,8 @@
 // Sources/WenshuApp/Views/Tools/PlaceholderView.swift
 //
-// v0.29 boss 2026-08-30 OOB '替换, 用伏笔替换第一个 teb, 用占位
-// 替换第二个 teb. 现在的画布功能以后实现': tools pane tab 2 is now
-// 占位符 (= Placeholder) instead of 数据库 (= BaseView).
+// v0.29 boss 2026-08-30 OOB 'replace, Foreshadowingreplace teb,
+// replace teb. ': tools pane tab 2 is now
+// Placeholder (= Placeholder) instead of (= BaseView).
 //
 // v0.39 P2 ticket #18 (WIRE-SPECIALIZEDTOOLS-012, 2026-09-04):
 // this view is now wired to the PlaceholderScanner actor (= legacy
@@ -45,11 +45,11 @@
 
 import SwiftUI
 
-/// Tools pane tab 2: 占位符 (= Placeholder) per v0.29 boss OOB.
+/// Tools pane tab 2: Placeholder (= Placeholder) per v0.29 boss OOB.
 ///
 /// **Use this** for the second tab of the specializedTools pane.
 /// Replaces the old BaseView (= which moved to a future ticket
-/// per the v0.29 boss OOB '现在的画布功能以后实现').
+/// per the v0.29 boss OOB ').
 ///
 /// State: backed by the `PlaceholderScanner` actor (= per-book
 /// JSON sidecar at `books/<bookId>/placeholders.json`).

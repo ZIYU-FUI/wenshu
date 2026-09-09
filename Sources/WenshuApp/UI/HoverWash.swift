@@ -1,6 +1,6 @@
 // Sources/WenshuApp/UI/HoverWash.swift
 //
-// v0.34 boss 2026-09-02 OOB 'hover 效果也拉齐, 用 apple api' (= hover
+// v0.34 boss 2026-09-02 OOB 'hover effect, apple api' (= hover
 // effect should be unified, use Apple API).
 //
 // Apple HIG canonical macOS 26+ hover wash (= .quaternary ShapeStyle

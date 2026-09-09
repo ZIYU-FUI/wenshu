@@ -8,7 +8,7 @@
 //       embedded.mobileprovision presence (= Phase B behavior; only runs
 //       when the test target is compiled with the flag set).
 //
-//  Spec axis: B-10 phase B prep (Boss 2026-09-04 OOB '跳过我验收,往后推进').
+// Spec axis: B-10 phase B prep (Boss 2026-09-04 OOB 'skipverification,').
 //  Activation procedure: `.scratch/2026-09-04-b-10-phase-b-activation.md`.
 //
 

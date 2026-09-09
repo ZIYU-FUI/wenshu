@@ -1,11 +1,11 @@
 //
 //  AVMediaTools.swift · Wenshu · v0.18 ticket 11 (hermes replica)
 //
-//  本地 AV media 工具 (复刻 hermes tts 真值).
-//  老板 2026-08-19 拍 "全模块复刻, Apple 体系实现" + "不符合文枢定位的可以复刻".
+// local AV media (hermes tts).
+// 2026-08-19 ", Apple " + "can".
 //
-//  wenshu 定位 = SwiftUI 桌面写作 app. AVMediaTools 写作用 (听写 / 朗读).
-//  Apple HIG 真值: AVFoundation AVSpeechSynthesizer.
+// wenshu = SwiftUI app. AVMediaTools (/).
+// Apple HIG: AVFoundation AVSpeechSynthesizer.
 //
 
 import Foundation
@@ -13,7 +13,7 @@ import Foundation
 import AVFoundation
 #endif
 
-/// TTS 合成结果真值 (hermes tts 真值)
+/// TTS (hermes tts)
 public struct TTSResult: Equatable, Sendable {
     public let text: String
     public let voice: String
@@ -28,7 +28,7 @@ public struct TTSResult: Equatable, Sendable {
     }
 }
 
-/// AVMediaTools: 本地 AV media 工具 (AVSpeechSynthesizer 真值)
+/// AVMediaTools: local AV media (AVSpeechSynthesizer)
 public struct AVMediaTools: Tool, Sendable {
     public init() {}
 
@@ -51,7 +51,7 @@ public struct AVMediaTools: Tool, Sendable {
         return "[spoken]"
     }
 
-    /// speak: 朗读文字真值 (fire-and-forget, 不等播放完)
+    /// speak: (fire-and-forget, wait)
     public func speak(text: String, voice: String = "zh-CN", rate: Float = 0.5) {
         #if canImport(AVFoundation)
         let synthesizer = AVSpeechSynthesizer()
@@ -62,15 +62,15 @@ public struct AVMediaTools: Tool, Sendable {
         #endif
     }
 
-    /// estimateDuration: 估算朗读时长真值 (不真播放, 算法估算)
+    /// estimateDuration: (,)
     // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-    /// 简化公式: 字符数 / 语速 (中英文 ~3-5 字/秒, 默认 4 字/秒)
+    ///: / (in progress ~3-5 /, default 4 /)
     public func estimateDuration(text: String, rate: Float = 0.5) -> TimeInterval {
         let charactersPerSecond = 4.0 * Double(rate / 0.5)
         return TimeInterval(Double(text.count) / charactersPerSecond)
     }
 
-    /// availableVoices: 列可用语音真值
+    /// availableVoices:
     public func availableVoices(languagePrefix: String? = nil) -> [String] {
         #if canImport(AVFoundation)
         let voices = AVSpeechSynthesisVoice.speechVoices()
@@ -85,7 +85,7 @@ public struct AVMediaTools: Tool, Sendable {
 }
 
 #if canImport(AVFoundation)
-// 默认语速常量 (Apple 真值)
+// default (Apple)
 private let AVSpeechUtteranceDefaultSpeechRate: Float = AVSpeechUtteranceDefaultSpeechRate
 #endif
 

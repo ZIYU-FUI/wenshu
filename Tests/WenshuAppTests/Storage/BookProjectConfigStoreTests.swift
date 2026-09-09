@@ -1,5 +1,5 @@
 //
-//  BookProjectConfigStoreTests.swift · Wenshu (文枢) · B-07 ticket 015.015
+// BookProjectConfigStoreTests.swift · Wenshu () · B-07 ticket 015.015
 //
 //  Round-trip persistence tests for the per-book project-config JSON
 //  store added in B-07 015.015.

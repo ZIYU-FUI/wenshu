@@ -12,7 +12,7 @@
 //  To regenerate golden files (= when hermes Python behavior changes):
 //      python3 Tests/WenshuAppTests/Agent/PortedFromHermes/scripts/generate_golden.py
 //
-//  Per boss cadence '1 RULE 1 commit' + PO method论 step 5 /implement.
+// Per boss cadence '1 RULE 1 commit' + PO method step 5 /implement.
 //
 
 import Testing

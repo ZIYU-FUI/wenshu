@@ -1,16 +1,16 @@
 //  WenshuVerifier.swift · Wenshu · v0.23 ticket 009 (single-API-key default for all agents)
 //
-//  Boss 2026-08-23 拍: '让所有 agent 有同一个 key, 这是一个默认行为'.
+// Boss 2026-08-23: 'make all agents share a single key as default behavior'.
 //
 //  Design contract (clarified boss 8/23):
 //  - WenshuVerifier holds exactly 1 apiKey (sourced from Keychain via LLMKeychain).
 //  - WenshuConductor holds exactly 1 WenshuVerifier instance.
-//  - All 6 agents (1 main 文枢 + 5 sub-agents: researcher / writer /
+// - All 6 agents (1 main + 5 sub-agents: researcher / writer /
 //    analyst / archivist / auditor) call into the same verifier.
 //  - Sub-agents do NOT have their own API key.
-//  - User cannot configure a different key per agent (boss 8/23 拍:
+// - User cannot configure a different key per agent (boss 8/23:
 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-//    '用户不能改相关配置. 我们的设置都有 gui 的设置页面').
+// 'user cannot change related config. all settings have a GUI settings page').
 //
 //  This is the default behavior — no code change needed. This commit
 //  documents the contract via inline comments + a unit test verifying

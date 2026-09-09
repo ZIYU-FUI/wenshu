@@ -1,8 +1,8 @@
 //
 //  BacklinksPanelTests.swift · Wenshu · v0.19 ticket 12
-//  单元测试: BacklinksViewModel 数据通路 (不渲染实际 View, 老板 macOS 验后再补)
+// test: BacklinksViewModel (View, macOS)
 //
-//  Swift 6 strict concurrency: ViewModel 是 @MainActor, test 用 @MainActor func 跨 actor 安全访问.
+// Swift 6 strict concurrency: ViewModel yes @MainActor, test @MainActor func actor access.
 //
 
 import Testing

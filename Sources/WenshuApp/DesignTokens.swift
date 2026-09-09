@@ -1,9 +1,9 @@
 // Sources/WenshuApp/UI/DesignTokens.swift
 //
-// v0.28 followup Boss UX round A (Boss 2026-08-30 OOB '你需要做一个组件索引,
+// v0.28 followup Boss UX round A (Boss 2026-08-30 OOB 'needgroup,
 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-// 以后如果有新的地方用到相同的东西, 会自然而然的找到组件, 而不是默认自动
-// 写个新的'): Phase 1 of 5-phase component refactor.
+//, group, yesdefaultauto
+// '): Phase 1 of 5-phase component refactor.
 //
 // Single source of truth for all chrome dimensions, paddings, font sizes,
 // dividers, tab metrics (= extracted from LayoutTokens + 16 files of
@@ -166,7 +166,7 @@ public enum DesignTokens {
     /// Per-pane tab selected-state underline height (= 1 PT, Apple HIG
     /// standard for tab bar selected indicator). The line is rendered
     /// with `.clipShape(Capsule())` for fully rounded ends (= two
-    /// round caps on both sides, per boss 2026-08-30 OOB '加满圆角, 两头圆').
+    /// round caps on both sides, per boss 2026-08-30 OOB ', ').
     public static let tabUnderlineHeight: CGFloat = 1
 
     // MARK: - Dividers

@@ -159,7 +159,7 @@ public final class ChatViewModel {
     // when no AppState is injected (= standalone ChatViewModel initialised
     // without the app-wide environment), the model id must also default to
     // empty string read directly from UserDefaults so the left-bottom model
-    // picker shows '无模型可用' instead of 'MiniMax-M3'. The substring
+    // picker shows ' instead of 'MiniMax-M3'. The substring
     // `UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? ""` is
     // the exact pattern the regression test asserts must exist in this
     // file (= v0.24 commit message claimed it was applied here but the
@@ -448,8 +448,8 @@ public final class ChatViewModel {
             // = replaces the prior ad-hoc "Error: \(localizedDescription)"
             // which showed the raw English NSError text to the user).
             //
-            // v0.40 boss 9/7 OOB '这个提示错, 用户不一定非要用 minimax 的
-            // key, 换成通用一些的提示词': pass `nil` as the context
+            // v0.40 boss 9/7 OOB 'hint, usermust minimax
+            // key, generalhint': pass `nil` as the context
             // (NOT `currentModel`). The previous `context: currentModel`
             // interpolated the model name (= "MiniMax-M3") as the
             // "provider", = user-visible message looked like it was
@@ -583,11 +583,11 @@ public final class ChatViewModel {
         lastError = nil
     }
 
-    /// valueForStore: 暴露 store 给 ChatView .task modifier (避免 init race condition)
+    /// valueForStore: store ChatView .task modifier (init race condition)
     public nonisolated func valueForStore() -> ChatSessionStore? { store }
-    public func valueForSessionId() -> String { sessionId }  // v0.24 boss验收fix (F2): @MainActor-isolated with sessionId
+    public func valueForSessionId() -> String { sessionId }  // v0.24 bossverificationfix (F2): @MainActor-isolated with sessionId
 
-    /// replaceMessages: ChatView .task 加载完成后整体替换 (避免增量 append 重复)
+    /// replaceMessages: ChatView .task loadcompletereplace (append)
     public func replaceMessages(_ newMessages: [ChatMessage]) {
         self.messages = newMessages
     }
@@ -755,11 +755,11 @@ public struct ChatView: View {
                     .padding(DesignTokens.chromePaddingVertical)
                 }
                 // Apple SwiftUI 14+ .defaultScrollAnchor(.bottom)
-                // Apple 真值 = ScrollView 内容变化时自动贴底, 兜底 placeholder -> reply 替换时 scrollTo 不触发
+                // Apple = ScrollView changeauto, placeholder -> reply replace scrollTo
                 .defaultScrollAnchor(.bottom)
                 // onChange of lastContent, not just count
-                // placeholder 创建时 content="AI 思考中…" (15 chars), reply 替换后 content=长 reply (~hundreds chars)
-                // content 变化触发 onChange, scrollTo 新 last.id
+                // placeholder create content="AI in progress…" (15 chars), reply replace content= reply (~hundreds chars)
+                // content change onChange, scrollTo last.id
                 .onChange(of: vm.messages.last?.content ?? "") { _, _ in
                     if let last = vm.messages.last {
                         proxy.scrollTo(last.id, anchor: .bottom)
@@ -810,9 +810,9 @@ public struct ChatView: View {
             // .padding(.top, LayoutTokens.chromePaddingLarge) (= 8 PT gap above the textfield,
             // = the actual boss OOB intent).
             // v0.25.1 (= ticket 031 chat send button vertical
-            // center alignment): owner 2026-08-26 OOB '按钮也
+            // center alignment): owner 2026-08-26 OOB 'button
             // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-            // 跟上上去了 把按钮改成与文本框居中' = with the 8 PT
+            // buttonchangein progress' = with the 8 PT
             // top padding on TextField, the TextField's effective
             // top edge shifted down 8 PT (= 24 PT height + 8 PT top
             // padding = 32 PT total box). The send button's default
@@ -978,9 +978,9 @@ public struct ChatView: View {
                 // v0.24 boss acceptance fix (2026-08-24): placeholder shows different text based on key state.
                 // Boss 8/24 (out-of-band): 'please set up a large-model provider in Settings first'.
                 // v0.25.1 (= ticket 030 chat send button Lucide icon + 8 PT textfield padding):
-                // owner 2026-08-26 OOB '聊天区 聊天文本框后面的按钮 发送的
+                // owner 2026-08-26 OOB 'chat zone chatbutton
                 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-                // 小飞机换成 send 聊天文本框上加 8 PT 的间隔' =
+                // send chat 8 PT ' =
                 // 1) replace SF paperplane.fill (= Apple Send ICON) with
                 //    Lucide .send (= paper plane icon, same visual
                 //    metaphor as SF paperplane but Lucide outline style
@@ -998,8 +998,8 @@ public struct ChatView: View {
                 TextField(WenshuI18n.t("auto2.chatview.l858.h59940148"),
                           text: $vm.inputText, axis: .vertical)
                     .lineLimit(1...4)
-                    // v0.40 boss 9/7 OOB '这个功能, 应该在聊天区的对话框
-                    // 使用. 这个提示, 应该在 /help 里呈现': the slash-
+                    // v0.40 boss 9/7 OOB ', shouldchat zonedialog
+                    // . hint, should /help ': the slash-
                     // command hint (= "/create-book My new novel")
                     // lives here as the .help() tooltip (= macOS
                     // NSHelpManager on hover; = Apple HIG canonical
@@ -1011,7 +1011,7 @@ public struct ChatView: View {
                     .help(WenshuI18n.t("chat.input.help"))
                     // v0.28 followup Boss UX round 27 (Boss 2026-08-29
                     // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-                    // OOB '你把文本框和按钮的空状态高度统一成 30pt'):
+                    // OOB 'buttonstatus 30pt'):
                     // .multilineTextAlignment(.leading) + the default
                     // .leading-to-trailing text flow makes the text
                     // top-aligned by default (= text sits at the top
@@ -1044,11 +1044,11 @@ public struct ChatView: View {
                     // system focus ring) + add a conditional
                     // RoundedRectangle stroke (lineWidth: 1) on focus.
                     // v0.25.1 (= ticket 035 chat textfield placeholder
-                    // color + position): owner 2026-08-26 OOB '输入
+                    // color + position): owner 2026-08-26 OOB 'input
                     // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-                    // 消息... 这个提示 查官方文档 默认是什么样的 现在
-                    // 颜色过亮 位置也不对' = the placeholder text
-                    // '输入消息...' currently looks too bright (= high
+                    // message... hint defaultyes
+                    // color ' = the placeholder text
+                    // 'inputmessage...' currently looks too bright (= high
                     // contrast, = looks like real text) and is in
                     // the wrong position (= too far left, no left
                     // padding). Per Apple HIG (developer.apple.com/
@@ -1102,7 +1102,7 @@ public struct ChatView: View {
                     //
                     // v0.28 followup Boss UX round 27 (Boss 2026-08-29
                     // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-                    // OOB '你把文本框和按钮的空状态高度统一成 30pt'):
+                    // OOB 'buttonstatus 30pt'):
                     // unified both empty-state heights at 30 PT
                     // (= matches kZoneToolbarHeight = canonical chrome
                     // height across the app).
@@ -1127,8 +1127,8 @@ public struct ChatView: View {
                     // semantic foregroundStyle) on the Liquid Glass
                     // background, just like Apple Messages / Slack.
                     // The 1 PT focus ring (borderColor on focus)
-                    // v0.40 boss 2026-09-08 OOB '聊天区的背景色, 没有改成编辑器的
-                    // 颜色': the chat input TextField background was
+                    // v0.40 boss 2026-09-08 OOB 'chat zonebackground color, changeeditor
+                    // color': the chat input TextField background was
                     // .regularMaterial (= glass tier = lighter shade
                     // in dark mode = visually distinct from the
                     // surrounding content tier). Boss wants the
@@ -1191,7 +1191,7 @@ public struct ChatView: View {
                 // (= same as the TextField so they align flush).
                 // v0.28 followup Boss UX round 27 (Boss 2026-08-29
                 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-                // OOB '你把文本框和按钮的空状态高度统一成 30pt'):
+                // OOB 'buttonstatus 30pt'):
                 // both TextField and Send button pinned to 30 PT
                 // (= canonical macOS HIG chat input height, same
                 // as zone tab bar / statusbar). Previously the

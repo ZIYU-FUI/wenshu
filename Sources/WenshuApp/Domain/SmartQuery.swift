@@ -1,4 +1,4 @@
-// SmartQuery.swift · Wenshu (文枢) · v0.26 (FCP library replica)
+// SmartQuery.swift · Wenshu () · v0.26 (FCP library replica)
 //
 // Saved-search query (= FCP Library Smart Collection). v0.26 ships the
 // static skeleton (= schema + storage); v0.27+ implements the search

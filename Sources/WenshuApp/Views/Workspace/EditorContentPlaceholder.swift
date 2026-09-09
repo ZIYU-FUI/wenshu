@@ -2,7 +2,7 @@
 //  EditorContentPlaceholder.swift · Wenshu · v0.40 apple-001 Q2 slice 9a
 //
 //  Extracted from WorkspaceView.swift (formerly inline private
-//  struct at line 887). Q2 boss拍 split WorkspaceView. Slice 9a
+// struct at line 887). Q2 boss split WorkspaceView. Slice 9a
 //  = the empty Color.clear placeholder for the editor pane.
 //  Pane background uniformity is now applied by ZonePerRegionChrome
 //  (= the editor placeholder is just empty since v0.28 Boss UX

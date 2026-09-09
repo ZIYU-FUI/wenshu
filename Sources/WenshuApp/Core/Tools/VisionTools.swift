@@ -1,11 +1,11 @@
 //
 //  VisionTools.swift · Wenshu · v0.18 ticket 10 (hermes replica)
 //
-//  本地 vision 工具 (复刻 hermes vision_analyze 真值).
-//  老板 2026-08-19 拍 "全模块复刻, Apple 体系实现" + "不符合文枢定位的可以复刻".
+// local vision (hermes vision_analyze).
+// 2026-08-19 ", Apple " + "can".
 //
-//  wenshu 定位 = SwiftUI 桌面写作 app. VisionTools 写作用 (图片分析 / 文字识别 / 图像特征).
-//  Apple HIG 真值: Vision framework (VNRecognizeTextRequest / VNGenerateImageFeaturePrintRequest / VNClassifyImageRequest).
+// wenshu = SwiftUI app. VisionTools (/ /).
+// Apple HIG: Vision framework (VNRecognizeTextRequest / VNGenerateImageFeaturePrintRequest / VNClassifyImageRequest).
 //
 
 import Foundation
@@ -19,7 +19,7 @@ import CoreImage
 import AppKit
 #endif
 
-/// 文字识别结果真值 (hermes vision_analyze text 字段)
+/// (hermes vision_analyze text field)
 public struct VisionTextResult: Equatable, Sendable {
     public let text: String
     public let confidence: Float
@@ -32,7 +32,7 @@ public struct VisionTextResult: Equatable, Sendable {
     }
 }
 
-/// 图像分类结果真值 (hermes vision_analyze classifications 字段)
+/// (hermes vision_analyze classifications field)
 public struct VisionClassification: Equatable, Sendable {
     public let identifier: String
     public let confidence: Float
@@ -43,7 +43,7 @@ public struct VisionClassification: Equatable, Sendable {
     }
 }
 
-/// VisionTools: 本地 vision 工具 (Vision framework 真值)
+/// VisionTools: local vision (Vision framework)
 public struct VisionTools: Tool, Sendable {
     public init() {}
 
@@ -83,7 +83,7 @@ public struct VisionTools: Tool, Sendable {
         return ""
     }
 
-    /// recognizeText: 图像文字识别真值 (VNRecognizeTextRequest)
+    /// recognizeText: (VNRecognizeTextRequest)
     public func recognizeText(imagePath: String) async throws -> [VisionTextResult] {
         #if canImport(Vision) && canImport(AppKit)
         guard let image = NSImage(contentsOfFile: imagePath),
@@ -121,7 +121,7 @@ public struct VisionTools: Tool, Sendable {
         #endif
     }
 
-    /// classify: 图像分类真值 (VNClassifyImageRequest)
+    /// classify: (VNClassifyImageRequest)
     public func classify(imagePath: String, limit: Int = 5) async throws -> [VisionClassification] {
         #if canImport(Vision) && canImport(AppKit)
         guard let image = NSImage(contentsOfFile: imagePath),

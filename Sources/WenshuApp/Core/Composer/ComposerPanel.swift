@@ -1,5 +1,5 @@
 //
-//  ComposerPanel.swift · Wenshu · v0.19 ticket 16 (Obsidian replica, 前端做但不接入核心项目)
+// ComposerPanel.swift · Wenshu · v0.19 ticket 16 (Obsidian replica,)
 //
 
 import Foundation
@@ -14,21 +14,21 @@ public final class ComposerViewModel {
 
     public init() {}
 
-    /// 执行 rename
+    /// execute rename
     public func rename(oldName: String, newName: String, content: String) {
         self.lastOperation = "rename '\(oldName)' → '\(newName)'"
         self.lastResult = NoteComposer.rename(oldName: oldName, newName: newName, content: content)
     }
 
-    /// 执行 merge
+    /// execute merge
     public func merge(targetName: String, sources: [(name: String, content: String)]) {
         self.lastOperation = "merge \(sources.count) sources → '\(targetName)'"
         self.lastResult = NoteComposer.merge(targetName: targetName, sourceContents: sources)
     }
 }
 
-/// ComposerPanel: SwiftUI View, 显示 Composer 操作 placeholder
-/// 现阶段不接 LayoutShellView, 留 standalone 等老板 macOS 验
+/// ComposerPanel: SwiftUI View, show Composer placeholder
+/// LayoutShellView, standalone wait macOS
 public struct ComposerPanel: View {
     @State private var viewModel: ComposerViewModel
 

@@ -5,19 +5,19 @@
 //  JSON file (= BookKanbanStore). Switches the data source when the
 //  active book OR the active scope changes (= bookStore.selectedBookId
 //  + the local `@State scope`, both read via @Environment per v0.30 boss
-//  8/31 OOB '各区域之间的联动' = option A = global @Observable store).
+// 8/31 OOB 'region' = option A = global @Observable store).
 //
 //  Layout (Boss B-09 acceptance):
-//    - Top bar: 看板 title + scope picker + "+ 新建" button.
+// - Top bar: kanban title + scope picker + "+ " button.
 //    - Input row: text field + return-to-add (per Apple HIG inline-create).
 //    - Body: per-status columns (new / ready / running / blocked /
-//      review / done) + a "+ 新建到 X" affordance per column
+// review / done) + a "+ X" affordance per column
 //      (= cursor-on-column context menu not in scope for v0.40;
 //      default add = .new).
 //    - Each ticket card: title + status badge + delete button.
 //    - Empty state when no book selected / no tickets.
 //
-//  B-13 (= boss 2026-09-04 OOB "这两个看板都有同一个问题"): the scope
+// B-13 (= boss 2026-09-04 OOB "kanbanissue"): the scope
 //  picker (= .menu Picker over the 8 standard sub-folders + book root
 //  + reference library) drives which JSON file the view reads from /
 //  writes to. Scope is a view filter, not a data-layer change.
@@ -29,13 +29,13 @@
 //
 //  Apple HIG: small icon button + .bordered / .borderedProminent
 //  button styles per macOS 26 Tahoe guidance. No sheet (per
-//  v0.24 boss 8/24 OOB 'dynamic zone 应该是 tab 模式, 不是 sheet').
+// v0.24 boss 8/24 OOB 'dynamic zone shouldyes tab, yes sheet').
 //
 
 import SwiftUI
 
 /// Per-(book × scope) kanban board view. Mounted by `DynamicZoneView`
-/// in the `aiDynamic` zone (= tab "看板"). Reads from `BookKanbanStore`
+/// in the `aiDynamic` zone (= tab "kanban"). Reads from `BookKanbanStore`
 /// (= scope-aware kanban JSON: `kanban.json` / `kanban-<folder>.json`
 /// / `library-kanban.json`).
 public struct KanbanView: View {
@@ -73,10 +73,10 @@ public struct KanbanView: View {
             content
         }
         .padding(DesignTokens.chromePaddingVertical)
-        // v0.24 boss验收fix: flexible size (was: 480x320 min forcing zone to grow).
+        // v0.24 bossverificationfix: flexible size (was: 480x320 min forcing zone to grow).
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         // B-09: re-load when the active book changes (= boss spec:
-        // "切书=切数据源" per ticket 026 v0.26).
+        // "=" per ticket 026 v0.26).
         // B-13: re-load when the active scope changes (= user picked a
         // different sub-folder / reference library from the picker).
         .onAppear { reloadFromDisk() }
@@ -92,7 +92,7 @@ public struct KanbanView: View {
 
     // MARK: - Subviews
 
-    /// Header: 看板 title + scope picker + ticket count + json hint.
+    /// Header: kanban title + scope picker + ticket count + json hint.
     /// B-13: the scope picker is a `.menu` Picker (= compact for the
     /// DynamicZone width; boss cadence is `.menu` for narrow zone).
     private var header: some View {

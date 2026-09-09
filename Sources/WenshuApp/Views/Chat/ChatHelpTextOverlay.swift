@@ -1,7 +1,7 @@
 //
-//  ChatHelpTextOverlay.swift · Wenshu · v0.24 boss验收
+// ChatHelpTextOverlay.swift · Wenshu · v0.24 bossverification
 //
-//  Boss 2026-08-24 反馈: 帮助文字应放在聊天视图的上下左右正居中 (was: bottom-right).
+// Boss 2026-08-24: chatviewin progress (was: bottom-right).
 //
 //  Pattern: ZStack + .frame(maxWidth: .infinity, maxHeight: .infinity)
 //  overlay in ChatZoneView body so help text floats centered over the chat zone.
@@ -9,30 +9,30 @@
 
 import SwiftUI
 
-/// ChatHelpTextOverlay: 帮助文字 (centered, large) shown when no API key configured.
-/// Tapping '设置' jumps to Settings → 提供方 API tab.
+/// ChatHelpTextOverlay: (centered, large) shown when no API key configured.
+/// Tapping 'Settings' jumps to Settings → API tab.
 public struct ChatHelpTextOverlay: View {
     let onSettingsTap: () -> Void
 
     public var body: some View {
-        // v0.40 boss 2026-09-08 OOB '聊天区的提示空态提示, 和编辑器
-        // 和卡片区一致': the chat empty state must use the SAME
+        // v0.40 boss 2026-09-08 OOB 'chat zonehinthint, editor
+        // card zone': the chat empty state must use the SAME
         // EmptyStateHint pattern (= icon + title + body) as the
         // editor zone and the card zone. Previously was a multi-line
         // Text + Button link.
         //
-        // v0.40 boss 2026-09-08 follow-up '少字了': the title must
-        // be the FULL sentence '请先在 设置 中设置好大模型提供方'
-        // (not just '请先在'). Per Apple HIG the inline '设置' text
+        // v0.40 boss 2026-09-08 follow-up 'missing characters in the title': the title must
+        // be the FULL sentence ' Settings in progressSettingsok'
+        // (not just '). Per Apple HIG the inline 'Settings' text
         // inside the title is the clickable link (= the link is
         // inside the title sentence, not a separate Button below).
         //
         // Implementation: use HStack(spacing: 0) with 3 Text views
-        // (= plain + clickable + plain). The middle '设置' is
+        // (= plain + clickable + plain). The middle 'Settings' is
         // wrapped in a Button with .plain style for tap = onSettingsTap.
         //
-        // v0.40 boss 2026-09-08 follow-up '这两行字的间距, 和其它的
-        // 不一样': the title → body spacing must match the editor
+        // v0.40 boss 2026-09-08 follow-up 'ok,
+        // ': the title → body spacing must match the editor
         // zone empty state (= EmptyStateHint's inner VStack spacing
         // = DesignTokens.chromePaddingSmall = 4 PT). The previous
         // implementation had a flat VStack(spacing: chromePaddingLarge)

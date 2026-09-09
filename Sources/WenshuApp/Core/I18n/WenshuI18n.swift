@@ -6,7 +6,7 @@
 //  2. Falls back to the key path itself (= broken catalog never crashes the UI)
 //  3. Supports format strings via %d / %@ / %f placeholders (= identical to NSLocalizedString)
 //
-//  Per boss OOB 2026-09-04 (= "走苹果 api, 英用默认语言先是中英文, 你移植 hermes 涉及到前端 UI 的你自动解决语言问题"):
+// Per boss OOB 2026-09-04 (= " api, defaultyesin progress, hermes UI autoissue"):
 //  - default = en (= user's OS language per Apple canonical Locale.current)
 //  - bundled catalogs = en + zh-Hans
 //  - no per-app language picker (= Apple standard means OS language decides)

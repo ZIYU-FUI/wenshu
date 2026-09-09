@@ -3,8 +3,8 @@
 //
 //  Tests for the RuntimeCWDDisplayChip UI component.
 //
-//  Per 老板 cadence 2026-09-03 '继续' + 'PO 全链路方法论执行,不要跳步骤'
-//  + '翻译这个事做完一起验视觉和前端流程' + '1 RULE 1 commit'.
+// Per cadence 2026-09-03 'resume' + 'PO execute,don't'
+// + 'when done, verify visual and frontend flow together' + '1 RULE 1 commit'.
 //
 
 import Testing

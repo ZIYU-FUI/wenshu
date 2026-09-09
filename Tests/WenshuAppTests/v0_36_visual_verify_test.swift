@@ -1,14 +1,14 @@
 //
 //  v0.36_visual_verify_test.swift · Wenshu · v0.36 ship packet
 //
-//  Smoke test for v0.36 visual verification (= 老板 launches wenshu.app
+// Smoke test for v0.36 visual verification (= launches wenshu.app
 //  and checks each item in this checklist).
 //
 //  This file ships with v0.36 (= not a separate ticket; included in
 //  the v0.36 ship packet). NOT a regression test (= it requires the
 //  app to be running interactively).
 //
-//  Per boss cadence '1 RULE 1 commit' + 'PO 全链路 method 论' + ship
+// Per boss cadence '1 RULE 1 commit' + 'PO method ' + ship
 //  packet preparation per CHANGELOG.md v0.36 acceptance section.
 //
 
@@ -163,7 +163,7 @@ struct v0_36_Visual_Verify {
 //
 //    3f. 🟨 DynamicZone right-bottom panel
 //        - MemoryRetrievalPanel visible at bottom of DynamicZone
-//        - Both 看板 + 待办 tabs show the panel
+// - Both kanban + tabs show the panel
 //
 // 4. If all 6 visual checks pass, v0.36 visual verification = complete.
 //
@@ -190,13 +190,13 @@ struct v0_36_Visual_Verify {
 //     python3 scripts/generate_golden.py --module message_sanitization
 //
 // ========================================================================
-// To push v0.36 (= NOT auto-push; user must拍 per boss cadence)
+// To push v0.36 (= NOT auto-push; user must per boss cadence)
 // ========================================================================
 //
 // From terminal:
 //     cd /Volumes/ANAN/Engineering/wenshu
 //     git push origin wt/multi-agent-dispatch
-//     # (= unblock boss cadence '不擅自抢跑 + 等我拍')
+// # (= unblock boss cadence ' + wait')
 //
 // Then merge to main (= per boss cadence):
 //     git checkout main

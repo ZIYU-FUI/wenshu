@@ -1,7 +1,7 @@
 //
 //  KanbanStoreTests.swift · Wenshu · v0.18 ticket 05 (hermes replica)
 //
-//  单元测试本地 Kanban. cwd 下临时 db, 测试后清理.
+// testlocal Kanban. cwd db, testclean.
 //
 
 import Testing

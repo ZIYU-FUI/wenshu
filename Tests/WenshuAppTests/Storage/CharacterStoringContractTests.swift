@@ -1,4 +1,4 @@
-// CharacterStoringContractTests.swift · Wenshu (文枢) · v0.26 (FCP library replica)
+// CharacterStoringContractTests.swift · Wenshu () · v0.26 (FCP library replica)
 //
 // Contract tests for the CharacterStoring protocol (= ticket 023).
 // Mirrors the WorldStoringContractTests pattern at WorldStoringContractTests.swift.

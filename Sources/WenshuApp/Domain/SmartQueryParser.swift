@@ -1,4 +1,4 @@
-// SmartQueryParser.swift · Wenshu (文枢) · v0.27 (FCP library replica)
+// SmartQueryParser.swift · Wenshu () · v0.27 (FCP library replica)
 //
 // Search predicate parser + evaluator (= ticket 027-02 = v0.27
 // placeholder for SmartQuery engine; v0.26 only had schema + UI).

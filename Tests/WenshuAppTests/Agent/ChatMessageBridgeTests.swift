@@ -4,13 +4,13 @@
 //  Tests for ChatMessage + ChatRole + ChatMessageBridge + LLMMessage bridge
 //  extensions (= v0.35 ticket 003 sub-step 5 followup + v0.36).
 //
-//  Per 老板 cadence 2026-09-03 '继续推进移植' (= 长期 auto-pilot mode
-//  per '一直跑移植就行' + '不用问我了') + 'PO 全链路方法论执行,
-//  不要跳步骤' + '1 RULE 1 commit'.
+// Per cadence 2026-09-03 'resume' (= auto-pilot mode
+// per 'ok' + ') + 'PO execute,
+// don't' + '1 RULE 1 commit'.
 //
 //  Safe scope: this test file only USES ChatMessage/ChatRole/ChatMessageBridge
 //  from existing v0.35+ work; it does NOT modify any source files. Per boss
-//  cadence '不擅自抢跑' + '不破坏 v0.34 ship sequence', ChatView.swift is
+// cadence ' + ' v0.34 ship sequence', ChatView.swift is
 //  v0.34 in-flight and is NOT modified.
 //
 

@@ -1,4 +1,4 @@
-// LayoutTreeState.swift · Wenshu (文枢) · v0.28 ticket 028-003
+// LayoutTreeState.swift · Wenshu () · v0.28 ticket 028-003
 //
 // Bumped from v1 (= flat array of panes) to v2 (= recursive split tree).
 // 1:1 port of /Volumes/ANAN/.hermes/hermes-agent/apps/desktop/src/
@@ -808,13 +808,13 @@ struct LayoutTreeState: Codable, Equatable {
     /// layout per developer.apple.com/documentation/swiftui/navigationsplitview).
     ///
     /// Default `false` = existing users see ZERO behavior change on app
-    /// upgrade (= 老 PaneSplitHost 路径 unchanged). Set via:
+    /// upgrade (= PaneSplitHost path unchanged). Set via:
     ///   defaults write com.wenshu.app wenshu.useThreeColumnSplit -bool true
     /// Reset via:
     ///   defaults delete com.wenshu.app wenshu.useThreeColumnSplit
     ///
-    /// BOSS 9/8 'Apple framework 默认是 2-3 栏; 我现在这样上半区是四栏的,
-    /// 是不是 Apple 的框架本来就不是很适配' = the current 4-column upper
+    /// BOSS 9/8 'Apple framework defaultyes 2-3; yes,
+    /// yesyes Apple yes' = the current 4-column upper
     /// band is NOT Apple first-class (= `NSSplitView` nested = workaround);
     /// = migrate to two nested `NavigationSplitView` (each 3-column =
     /// Apple canonical). M1 = build the shell skeleton (= new
@@ -871,7 +871,7 @@ private func walkRoot(_ node: LayoutNode) -> [LayoutNode] {
 ///
 /// Persisted to UserDefaults under `wenshu.workspace.presets`. The
 /// `Default` preset (= isBuiltIn = true) is the FCP Browser 3-pane
-/// layout per the v0.28 free-layout boss拍 (b/II). It is recreated
+/// layout per the v0.28 free-layout boss (b/II). It is recreated
 /// on demand; user cannot delete it.
 struct LayoutPreset: Codable, Equatable, Identifiable {
     var id: UUID

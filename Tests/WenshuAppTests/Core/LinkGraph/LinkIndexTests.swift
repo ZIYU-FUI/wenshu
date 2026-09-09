@@ -1,6 +1,6 @@
 //
 //  LinkIndexTests.swift · Wenshu · v0.19 ticket 12
-//  单元测试: LinkIndex actor SQLite add / remove / searchForward / searchBackward
+// test: LinkIndex actor SQLite add / remove / searchForward / searchBackward
 //
 
 import Testing
@@ -10,7 +10,7 @@ import Foundation
 @Suite("LinkIndex (Obsidian replica)")
 struct LinkIndexTests {
 
-    // 每个 test 用独立临时 SQLite, 避免互相污染 (v0.18 ticket 05 KanbanStore 同范式: cwd + UUID 临时目录)
+    // test SQLite, (v0.18 ticket 05 KanbanStore: cwd + UUID directory)
     private func makeTempIndex() async throws -> LinkIndex {
         let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".db")
         let index = try LinkIndex(path: tmp.path)

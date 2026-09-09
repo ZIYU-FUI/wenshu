@@ -5,8 +5,8 @@
 //  Canonical empty-state surface for all "no content selected"
 //  zones (= editor zone, PreviewPane, specialized tool panes
 //  like Foreshadowing). Boss real-device test (2026-09-07)
-//  '提示的样式不统一, 有的有 ICON, 有没有, 字号有的大有的小, 把
-//  规则固定下来, 统一字号': consolidate 3 inconsistent
+// 'hint, ICON,,,
+//, ': consolidate 3 inconsistent
 //  empty-state patterns into 1 reusable component.
 //
 //  Design contract (= what each caller MUST honor):

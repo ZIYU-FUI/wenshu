@@ -5,7 +5,7 @@
 //  Shared URLProtocol stub for HTTP interceptor tests (= OpenAIConnector,
 //  GeminiNativeConnector, etc.).
 //
-//  v0.36 fix (= per 老板 cadence 'fix pre-existing tests'):
+// v0.36 fix (= per cadence 'fix pre-existing tests'):
 //  URLProtocolStub was previously referenced from multiple test files
 //  (= OpenAIConnectorTests + GeminiNativeConnectorTests) but never
 //  defined. Promoting it to a shared test file in WenshuAppTests target.

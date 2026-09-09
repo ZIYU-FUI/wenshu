@@ -2,7 +2,7 @@
 //  PreviewSortMenuButton.swift · Wenshu · v0.40 apple-001 Q2 slice 5
 //
 //  Extracted from WorkspaceView.swift (formerly inline private
-//  struct at line 2128). Q2 boss拍 split WorkspaceView. Slice 5
+// struct at line 2128). Q2 boss split WorkspaceView. Slice 5
 //  = the sort-order cycle button on the preview pane top-right.
 //
 //  Apple HIG = one view per file. PreviewSortMenuButton has 1
@@ -11,8 +11,8 @@
 //  DesignTokens.paneTabHotArea + DesignTokens.tabIconSize.
 //
 //  This slice ALSO bundles an AGENTS.md English-only sweep:
-//  the original line 2157 = `.help("排序方式: \(sortOrder.rawValue)")`
-//  (= the literal Chinese word 排序方式 = "sort method"). The
+// the original line 2157 = `.help(": \(sortOrder.rawValue)")`
+// (= the literal Chinese word = "sort method"). The
 //  new value = `WenshuI18n.t("workspace.preview.sort_method_help")`
 //  with a `ts(_:arg:)` variant (= the WenshuI18n.ts signature takes
 //  a String interpolation arg). Both en + zh-Hans Localizable.strings

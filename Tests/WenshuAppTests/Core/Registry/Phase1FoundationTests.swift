@@ -1,8 +1,8 @@
-// Phase1FoundationTests.swift · Wenshu (文枢) · v0.28 followup TKT-028-013
+// Phase1FoundationTests.swift · Wenshu () · v0.28 followup TKT-028-013
 //
 // Tests for Phase 1 foundation components (= WorkspaceScope,
 // PaneLifecycle, PaneVisibleContext, Geometry). Boss 2026-08-29 OOB
-// '完整复刻 hermes app'.
+// ' hermes app'.
 
 import XCTest
 import SwiftUI

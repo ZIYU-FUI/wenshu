@@ -1,6 +1,6 @@
 // AppRootScene.swift · Wenshu · v0.40 apple-001 phase 1 Q1 slice 2
 //
-// Q1 boss拍 split App.swift. After slice 1 (= extract WenshuAppDelegate
+// Q1 boss split App.swift. After slice 1 (= extract WenshuAppDelegate
 // to App/WenshuAppDelegate.swift), the next slice pulls the Scene
 // assembly out of `WenshuApp.body` so the @main struct itself becomes
 // a minimal composition root (= declares the state owners + delegates
@@ -42,8 +42,8 @@ struct AppRootScene: Scene {
         // with .windowToolbarStyle(.unified, showsTitle: false) below for
         // canonical Apple HIG API to hide title slot in unified chrome.
         WindowGroup("") {
-            // v0.21 ticket 01 (重做 #10): 撤回 SettingsEnvironmentCapturer wrapper (commit a78d758bc Q15 翻车 #11 dead code)
-            // SettingsEnvironmentCapturer 之前包 LayoutShellView 注入 OpenSettingsAction, 但 openSettings?() → nil (Q15 翻车 #11), 现在 NSMenu 自己装 + 自创建 NSWindow 装 SettingView 不需要 capture
+            // v0.21 ticket 01 (redo #10): SettingsEnvironmentCapturer wrapper (commit a78d758bc Q15 #11 dead code)
+            // SettingsEnvironmentCapturer LayoutShellView OpenSettingsAction, openSettings?() → nil (Q15 #11), NSMenu + create NSWindow SettingView need capture
             // CHATBOX-002 (2026-09-04): wrap with CommandPaletteHost so the
             // ⌘K sheet binds to the WindowGroup scene (= the sheet
             // inherits the window's focus + key state per Apple HIG).
@@ -64,9 +64,9 @@ struct AppRootScene: Scene {
         // developer.apple.com/documentation/SwiftUI/WindowToolbarStyle,
         // .unified is the default style (52 PT). .unifiedCompact is
         // COMPACT (= smaller, NOT default). Boss spec 'default size' = .unified.
-        // v0.28 followup Boss UX round 12 (Boss 2026-08-29 OOB '算了,
-        // 本来我们也要伪 apple 官方嘛, 用 52 高的那个原生标题栏,
-        // 把按钮放上面, 去掉自己写的那一栏, 全面适配液态玻璃'):
+        // v0.28 followup Boss UX round 12 (Boss 2026-08-29 OOB ',
+        // apple, 52 title,
+        // button, remove, Liquid Glass'):
         // = adopt Apple Liquid Glass design language fully per
         // developer.apple.com/documentation/technologyoverviews/
         // liquid-glass. Use .unified (= 52 PT default macOS chrome)
@@ -79,21 +79,21 @@ struct AppRootScene: Scene {
         // Final titlebar = 1 macOS native .unified 52 PT titlebar
         // (= Apple standard = Liquid Glass = 1 unified capsule
         // containing 8 toolbar items + traffic lights). No custom
-        // chrome above or below (= fully Apple-native = '伪 apple
-        // 官方' per Boss spec).
+        // chrome above or below (= fully Apple-native = ' apple
+        // ' per Boss spec).
         .windowToolbarStyle(.unified)  // 52 PT default macOS chrome with Liquid Glass unified toolbar background
         // .windowToolbarStyle(.unifiedCompact(showsTitle: false))  // 28 PT compact chrome, no unified toolbar background
         .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // Boss Sketch design baseline 1920x984 PT
-        // v0.24 boss验收fix: .contentMinSize (window doesn't shrink below initial
+        // v0.24 bossverificationfix: .contentMinSize (window doesn't shrink below initial
         // size, can grow to fit larger content).
         .windowResizability(.contentMinSize)
         .commands {
             // v0.40 apple-001 + boss real-device test (2026-09-07) fix:
-            // removed the custom `CommandGroup(replacing: .appSettings) { Button("设置…") }`
+            // removed the custom `CommandGroup(replacing: .appSettings) { Button("Settings…") }`
             // block. The custom Button was duplicating the macOS system
             // "Settings..." menu item (= which is auto-rendered when the
             // App has a `Settings { ... }` scene, see L206). The
-            // duplication showed as 2 menu items: "设置…" (Chinese) +
+            // duplication showed as 2 menu items: "Settings…" (Chinese) +
             // "Settings..." (English) in the WenshuApp menu.
             //
             // Apple HIG: the macOS standard for Settings menu is the
@@ -123,11 +123,11 @@ struct AppRootScene: Scene {
             }
             CommandGroup(after: .newItem) {
                 // v0.27 macOS-standard cross-component sync (boss 8/27
-                // OOB): File → 新建项目 is the macOS-standard menu item
+                // OOB): File → is the macOS-standard menu item
                 // (= Cmd+N shortcut) for the file-creation kind. Per boss
                 // 8/27 standing rule 'a new feature should appear
                 // everywhere = synced', this Menu mirrors the toolbar '+'
-                // Menu (= 新建书 / 新建书架). Both sub-items post a
+                // Menu (= /). Both sub-items post a
                 // NotificationCenter event that NewLibraryOutlineView
                 // listens for and triggers the matching sheet.
                 Menu(WenshuI18n.t("menu.file.new_project")) {
@@ -139,15 +139,15 @@ struct AppRootScene: Scene {
                     }
                 }
                 .keyboardShortcut("n", modifiers: .command)
-                // v0.27 boss 8/27 OOB: 菜单栏同步 toolbar '导入' button.
+                // v0.27 boss 8/27 OOB: menusync toolbar 'import' button.
                 // Per boss 8/27 standing rule 'a new feature should
                 // appear everywhere = synced', the menu bar gets a
-                // matching 导入 entry (= macOS-standard File → Import
+                // matching import entry (= macOS-standard File → Import
                 // Convention; Cmd+Shift+I is the macOS default shortcut
                 // for File → Import per developer.apple.com/design/
                 // human-interface-guidelines/app-architecture/importing-
-                // and-exporting-data). Functionality deferred (= '功能
-                // 一会拷问后规划'); placeholder posts a
+                // and-exporting-data). Functionality deferred (= '
+                // '); placeholder posts a
                 // NotificationCenter event so v0.27 followups can
                 // listen + implement.
                 Button(WenshuI18n.t("menu.file.import")) {

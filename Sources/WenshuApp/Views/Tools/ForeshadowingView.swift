@@ -1,8 +1,8 @@
 // Sources/WenshuApp/Views/Tools/ForeshadowingView.swift
 //
-// v0.29 boss 2026-08-30 OOB '替换, 用伏笔替换第一个 teb, 用占位
-// 替换第二个 teb. 现在的画布功能以后实现': tools pane tab 1 is now
-// 伏笔 (= Foreshadowing) instead of 画布 (= Canvas).
+// v0.29 boss 2026-08-30 OOB 'replace, Foreshadowingreplace teb,
+// replace teb. ': tools pane tab 1 is now
+// Foreshadowing (= Foreshadowing) instead of (= Canvas).
 //
 // v0.39 P2 ticket #17 (WIRE-SPECIALIZEDTOOLS-011, 2026-09-04):
 // this view is now wired to the ForeshadowingTracker actor (=
@@ -47,11 +47,11 @@
 
 import SwiftUI
 
-/// Tools pane tab 1: 伏笔 (= Foreshadowing) per v0.29 boss OOB.
+/// Tools pane tab 1: Foreshadowing (= Foreshadowing) per v0.29 boss OOB.
 ///
 /// **Use this** for the first tab of the specializedTools pane.
 /// Replaces the old CanvasView (= which moved to a future ticket
-/// per the v0.29 boss OOB '现在的画布功能以后实现').
+/// per the v0.29 boss OOB ').
 ///
 /// State: backed by the `ForeshadowingTracker` actor (= per-book
 /// JSON sidecar at `books/<bookId>/foreshadowings.json`).
@@ -142,13 +142,13 @@ public struct ForeshadowingView: View {
     }
 
     private var emptyState: some View {
-        // v0.40 boss 9/7 OOB '提示的样式不统一': use the shared
+        // v0.40 boss 9/7 OOB 'hint': use the shared
         // EmptyStateHint component (= same icon + title + body
         // layout as EditorPlaceholder + PreviewPane empty states).
         // Guarantees consistent visual treatment (= 24 PT icon,
         // 15 PT semibold title, 13 PT body) across all "no
         // content" zones in the workspace.
-        // v0.40 boss 9/7 OOB follow-up '和编辑器用同一个 ICON':
+        // v0.40 boss 9/7 OOB follow-up 'editor ICON':
         // use the SAME icon (= book-open) as the editor empty
         // state (= matches PreviewPane too = unified icon across
         // all 3 empty-state panels in the workspace).

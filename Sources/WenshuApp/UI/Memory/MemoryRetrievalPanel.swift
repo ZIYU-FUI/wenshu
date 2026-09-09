@@ -33,7 +33,7 @@ public struct MemoryRetrievalPanel: View {
             // 9/7 round 2 audit recipe for memory panel). Previously
             // this was .padding(.horizontal, chromePaddingChipHorizontal
             // = 10 PT) + .padding(.top, chromePaddingSmall = 6 PT) =
-            // 10 PT horizontal = too tight (= boss '6 区过小').
+            // 10 PT horizontal = too tight (= boss 'zone 6 too small').
             // chromePaddingLeading (= 8 PT per Apple HIG; = the value of
              // DesignTokens.chromePaddingLeading per boss 9/8
              // 'Apple API default spacing isn't PT, it's a semantic
@@ -65,11 +65,11 @@ public struct MemoryRetrievalPanel: View {
                 }
             }
         }
-        // v0.40 boss 2026-09-08 OOB '盘一遍, 还有颜色': removed the
+        // v0.40 boss 2026-09-08 OOB 'sweep for remaining background colors: removed the
         // chrome tier background tint (= .controlBackgroundColor
         // = #1E = visible chrome tier = lighter than the surrounding
         // pane content = creates a visible strip in the memory
-        // panel area = boss wants gone per the '再往上一层, 再删一层'
+        // panel area = boss wants gone per the 'go up another layer and remove the background'
         // cleanup round). MemoryRetrievalPanel now matches the
         // surrounding tool zone's content tier (= no chrome tier
         // distinction per the v0.40 chrome cleanup).

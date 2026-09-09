@@ -1,8 +1,8 @@
 //
 //  SkillRegistryTests.swift · Wenshu · v0.18 ticket 02 (hermes replica)
 //
-//  单元测试本地 SkillRegistry. 直接在 cwd 创建临时 SKILL.md, 测试后清理.
-//  测试不用临时目录 (Xcode test sandbox 隔离 temp path 不可靠).
+// testlocal SkillRegistry. cwd create SKILL.md, testclean.
+// testdirectory (Xcode test sandbox temp path).
 //
 
 import Testing
@@ -11,7 +11,7 @@ import Foundation
 
 @Suite("SkillRegistry (hermes replica)")
 struct SkillRegistryTests {
-    /// cwd 下创建临时 skill 目录, 返回绝对路径
+    /// cwd create skill directory, path
     private static func setupTestSkill(name: String = "test-skill", body: String = "# test body\n") throws -> URL {
         let cwd = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
         let skillsRoot = cwd.appendingPathComponent(".test-skills-\(UUID().uuidString.prefix(8))", isDirectory: true)

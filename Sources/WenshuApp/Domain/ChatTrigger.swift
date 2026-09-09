@@ -1,14 +1,14 @@
-// ChatTrigger.swift · Wenshu (文枢) · v0.27 (FCP library replica)
+// ChatTrigger.swift · Wenshu () · v0.27 (FCP library replica)
 //
 // Detects when a chat message hints at a new entity (= a character /
 // world fact / research reference) and emits an `IngestionRequest`
-// for the LLM Wiki pipeline. v0.27 spec: '用户聊着小说的剧情，实体就
+// for the LLM Wiki pipeline. v0.27 spec: 'user，
 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-// 调研出来了，然后又被整个项目自动引用'.
+// ，auto'.
 //
 // Trigger heuristics (v0.27 MVP, conservative):
-// 1. Chinese quoted names (= 「张三」, 「万历十五年」)
-// 2. BookTitle patterns (= 万历 / 永乐 / 大明 ...)
+// 1. Chinese quoted names (= 「」, 「」)
+// 2. BookTitle patterns (= / / ...)
 //
 // v0.27 followups can add LLM-based extraction; v0.27-03 ships the
 // rule-based trigger as the scaffolding.
@@ -19,7 +19,7 @@ import Foundation
 /// picks up to write entities into the reference library).
 struct IngestionRequest: Identifiable, Hashable, Codable, Sendable {
     let id: UUID
-    let surfaceForm: String          // = e.g. "张三" / "万历十五年"
+    let surfaceForm: String          // = e.g. "" / ""
     let kind: SmartQueryEntityType   // = .character / .world / .reference
     let sourceMessageId: UUID?       // = which chat message triggered this
     let createdAt: Date

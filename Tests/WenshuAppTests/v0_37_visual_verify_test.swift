@@ -4,12 +4,12 @@
 //  Visual verification smoke tests for v0.37 ship packet.
 //
 //  19+ smoke tests covering all 6 frontend flows per
-//  v0.37-full-translation-plan.md Section 3 (= 一次性 visual + flow
-//  verify by 老板 when Mac accessible).
+// v0.37-full-translation-plan.md Section 3 (= visual + flow
+// verify by when Mac accessible).
 //
-//  Per 老板 cadence 2026-09-03 '一直跑移植就行' + '不用问我了' +
-//  'PO 全链路方法论执行,不要跳步骤' + '翻译这个事做完一起验视觉和
-//  前端流程' + '1 RULE 1 commit'.
+// Per cadence 2026-09-03 'ok' + ' +
+// 'PO execute,don't' + 'finish firstvisual
+// ' + '1 RULE 1 commit'.
 //
 
 import Testing
@@ -17,7 +17,7 @@ import Foundation
 import SwiftUI
 @testable import WenshuApp
 
-/// v0.37 visual verification packet (= 老板一次性 verify when Mac accessible).
+/// v0.37 visual verification packet (= verify when Mac accessible).
 ///
 /// Covers 6 frontend flows (= per v0.37-full-translation-plan.md):
 /// 1. Onboarding → 7-connector config

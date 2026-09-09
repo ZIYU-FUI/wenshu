@@ -21,7 +21,7 @@
 // So we use keyword for the easy cases, and LLM only for the ambiguous
 // ones (= ~5% of entities that don't have obvious keyword signals).
 //
-// "增量" (incremental) rule: the sidebar only shows categories that
+// "" (incremental) rule: the sidebar only shows categories that
 // have at least 1 entity. Empty categories = hidden. So as entities
 // are added, new category folders appear in the sidebar (= exactly
 // what boss wants).
@@ -36,8 +36,8 @@ import Foundation
 ///
 /// **Two-pass strategy**:
 /// 1. **Keyword pass** (default, no LLM): scan title + summary for
-///    category-specific keywords (= e.g. "将军" → E Military, "唐朝" → K
-///    History, "细胞" → Q Biology). If a clear winner emerges (= 1 category
+/// category-specific keywords (= e.g. "" → E Military, "" → K
+/// History, "" → Q Biology). If a clear winner emerges (= 1 category
 ///    has 2x score of any other), use it directly.
 /// 2. **LLM pass** (fallback for ambiguous): if keyword scores are tied
 ///    or all categories score < 2 points, ask the LLM to classify with
@@ -220,11 +220,11 @@ public struct EntityClassifier: Sendable {
     ///
     /// Keywords are LOWER-CASE Chinese + English (= covers both).
     /// They should be:
-    /// - Domain-specific (= "细胞" → Biology, not Medicine)
-    /// - Common in fiction (= "将军" → Military, "公主" → Politics or Literature)
+    /// - Domain-specific (= "" → Biology, not Medicine)
+    /// - Common in fiction (= "" → Military, "" → Politics or Literature)
     /// - Not too generic (= "the", "and" would match everything = useless)
     ///
-    /// For ambiguous entities (= e.g. "皇帝" = politics K/D or
+    /// For ambiguous entities (= e.g. "" = politics K/D or
     /// history K), the LLM pass is the tie-breaker.
     public static let keywords: [EntityCategory: [String]] = [
         // A- Marx Lenin Mao Zedong Deng.

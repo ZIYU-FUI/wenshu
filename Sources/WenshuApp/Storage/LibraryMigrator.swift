@@ -29,11 +29,11 @@ struct LibraryMigrator: Sendable {
         let fm = FileManager.default
         // 0. ALWAYS-RUN housekeeping (= runs on every launch, even when
         // schema is already current): rename default shelf + seed
-        // default help-doc anchor (= boss 8/27 OOB '从这里开始' rename
+        // default help-doc anchor (= boss 8/27 OOB ' rename
         // and the default book + default doc seed). These are pure
         // idempotent upgrades that need to converge to the latest naming
         // convention regardless of schema version (= so existing .ws
-        // with the legacy '默认书架' name picks up the rename even
+        // with the legacy 'default' name picks up the rename even
         // though no schema change happened).
         try alwaysRunOnLaunch(fm: fm)
         // 1. Idempotency check: read Info.plist; if WSSchemaVersion = 1
@@ -99,7 +99,7 @@ struct LibraryMigrator: Sendable {
             try fm.createDirectory(at: shelvesRoot, withIntermediateDirectories: true)
         }
         // 2. Create the default shelf (= id = '00000000-0000-0000-0000-000000000000',
-        // name = '从这里开始' per boss 8/27 OOB (= used as the help-doc
+        // name = ' per boss 8/27 OOB (= used as the help-doc
         // anchor shelf; the user can delete it once they have their own
         // shelves; until deleted it holds the default book + default
         // doc).
@@ -136,8 +136,8 @@ struct LibraryMigrator: Sendable {
 
     /// Always-run-on-launch housekeeping (= boss 8/27 OOB rename +
     /// help-doc seed). Runs BEFORE the schema-version idempotency
-    /// check (= so existing .ws with the legacy '默认书架' name picks
-    /// up the rename to '从这里开始' even when no schema change is
+    /// check (= so existing .ws with the legacy 'default' name picks
+    /// up the rename to ' even when no schema change is
     /// needed). All operations are idempotent (= safe to run on
     /// every launch).
     private func alwaysRunOnLaunch(fm: FileManager) throws {
@@ -146,7 +146,7 @@ struct LibraryMigrator: Sendable {
         let defaultShelfId = UUID(uuidString: "00000000-0000-0000-0000-000000000000") ?? UUID()
         let defaultShelfDir = shelvesRoot.appendingPathComponent(defaultShelfId.uuidString, isDirectory: true)
         guard fm.fileExists(atPath: defaultShelfDir.path) else { return }
-        // 2. Rename legacy '默认书架' → '从这里开始' (idempotent).
+        // 2. Rename legacy 'default' → ' (idempotent).
         let shelfJSONURL = defaultShelfDir.appendingPathComponent("shelf.json")
         if fm.fileExists(atPath: shelfJSONURL.path),
            let data = try? Data(contentsOf: shelfJSONURL),
@@ -158,7 +158,7 @@ struct LibraryMigrator: Sendable {
             try updated.write(to: shelfJSONURL)
         }
         // 2b. v0.30 boss 8/31 OOB (sidebar feedback bundle #1):
-        // rename existing default book title '从这里开始' → '帮助'
+        // rename existing default book title ' → '
         // (= disambiguates from the parent shelf name; applies to
         // existing .ws installations so old libraries upgrade).
         // Both possible book IDs are checked (= the current
@@ -190,7 +190,7 @@ struct LibraryMigrator: Sendable {
         try seedDefaultHelpDoc(in: defaultShelfDir, fm: fm)
     }
 
-    /// Seed the default help-doc book + doc under '从这里开始' shelf.
+    /// Seed the default help-doc book + doc under ' shelf.
     ///
     /// Boss 8/27 OOB: 'land this default structure inside the default
     /// shelf, the default book, and the default doc'. Idempotent: only seeds if the default book id
@@ -238,10 +238,10 @@ struct LibraryMigrator: Sendable {
         let defaultBook = Book(
             id: defaultBookId,
             // v0.30 boss 8/31 OOB (sidebar feedback bundle #1):
-            // renamed default book title from '从这里开始' to '帮助'
+            // renamed default book title from ' to '
             // (= to disambiguate from the parent shelf, which has the
-            // same '从这里开始' name; the default book contains the
-            // official help-doc + test content, so '帮助' is more
+            // same ' name; the default book contains the
+            // official help-doc + test content, so ' is more
             // descriptive).
             title: WenshuI18n.t("library.default.book_title"),
             author: "wenshu",
@@ -252,7 +252,7 @@ struct LibraryMigrator: Sendable {
         // =================================================================
         // v0.29 boss OOB: seed 5 .md files (= 1 per visible folder).
         // These are the official help-doc + test-content for the app.
-        // Style: plain language (= "说人话") like a SpaceX user manual.
+        // Style: plain language (= "") like a SpaceX user manual.
         // Each .md uses a stable filename so re-seeding doesn't
         // duplicate (= idempotent by filename).
         // =================================================================
@@ -400,7 +400,7 @@ struct LibraryMigrator: Sendable {
             atomically: true, encoding: .utf8
         )
 
-        // 4. chapters/第一章-说明.md — feature module overview
+        // 4. chapters/-.md — feature module overview
         let chapterBody = """
         # 文枢的功能模块说明
 
@@ -477,7 +477,7 @@ struct LibraryMigrator: Sendable {
             atomically: true, encoding: .utf8
         )
 
-        // 5. drafts/规划未实装.md — planned features
+        // 5. drafts/.md — planned features
         let draftsBody = """
         # 规划中, 未实装
 
@@ -537,7 +537,7 @@ struct LibraryMigrator: Sendable {
     /// book (= if user already has the v0.26 default book with only
     /// 1 old help-doc.md) by adding the 4 missing .md files
     /// (= world / characters / outlines / drafts + the existing chapters's
-    /// feature module overview = new chapters/章节-说明.md = first-chapter explanation).
+    /// feature module overview = new chapters/-.md = first-chapter explanation).
     ///
     /// Idempotent: only adds files that are missing (= preserves
     /// user-edited content of existing .md files).
@@ -622,7 +622,7 @@ struct LibraryMigrator: Sendable {
 
         // 4.2 characters/characters.md
         // v0.30 boss OOB: 'split the characters file into six, one per Agent
-        // going forward'. The single 六个Agent.md (the 6-Agent.md file) is replaced by
+        // going forward'. The single Agent.md (the 6-Agent.md file) is replaced by
         // 6 per-agent files (= one per agent). If user already has
         // the split files (= from running Scripts/split-help-docs.py
         // or from a future seed), we skip. If only the merged file
@@ -671,7 +671,7 @@ struct LibraryMigrator: Sendable {
         // 4.4 chapters/chapters/feature-module-overview.md
         // v0.30 boss OOB: 'the feature modules too, split one feature module per doc'.
         // The single feature-module-overview.md is replaced by 9 per-module
-        // files (= 01-项目管理区-Sidebar.md (sidebar) through 09-交互约定-KeyboardShortcuts.md (keyboard shortcuts)).
+        // files (= 01--Sidebar.md (sidebar) through 09--KeyboardShortcuts.md (keyboard shortcuts)).
         // Same approach as 4.2: delete the merged file if it exists
         // (= the split script should be run to migrate content).
         let chapterFile = bookDir.appendingPathComponent("chapters")
@@ -680,7 +680,7 @@ struct LibraryMigrator: Sendable {
             try? fm.removeItem(at: chapterFile)
         }
 
-        // 4.5 drafts/规划未实装.md (planned-but-not-shipped features)
+        // 4.5 drafts/.md (planned-but-not-shipped features)
         let draftsFile = bookDir.appendingPathComponent("drafts")
             .appendingPathComponent("规划未实装的功能.md")
         if !fm.fileExists(atPath: draftsFile.path) {
@@ -721,7 +721,7 @@ struct LibraryMigrator: Sendable {
         }
 
         // 5. Update chapters.json (= add new chapters to the index if missing).
-        // The seed function's chapter entry (= "从这里开始") is the only
+        // The seed function's chapter entry (= "") is the only
         // entry in chapters.json. We don't add new entries for the
         // .md files in worldview/characters/outline/drafts (= those folders are
         // sidebar-tree-level, not chapters per BookCategory enum).
@@ -729,8 +729,8 @@ struct LibraryMigrator: Sendable {
         // "feature module overview" = the new 5th file under chapters/.)
         //
         // NOTE: We don't modify the existing chapter title here (= it
-        // was already set to "从这里开始" by the original seed). The
-        // actual .md content is now "功能模块说明.md" but the chapter
+        // was already set to "" by the original seed). The
+        // actual .md content is now ".md" but the chapter
         // title stays as the user's anchor (= boss's anchor naming).
     }
 

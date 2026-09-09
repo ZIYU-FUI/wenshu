@@ -1,7 +1,7 @@
 //
 //  FileSafetyTests.swift · Wenshu · v0.23 ticket 013.002 (hermes gap 2)
 //
-//  Boss 2026-08-23 拍: hermes _is_blocked_device + symlink hop parity.
+// Boss 2026-08-23: hermes _is_blocked_device + symlink hop parity.
 //
 
 import Foundation

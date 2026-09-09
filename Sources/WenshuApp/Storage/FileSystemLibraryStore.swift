@@ -5,8 +5,8 @@
 // the contract (= LibraryStoring) or any caller (= view layer).
 //
 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-// Owner 8/15 15:55: '架构需要先定好, 不能没事加个东西, 然后重构一堆
-// 东西'. By satisfying LibraryStoringContractTests, this implementation
+// Owner 8/15 15:55: 'needok,, refactor
+// '. By satisfying LibraryStoringContractTests, this implementation
 // is the architectural reference: any future impl must behave the same.
 //
 // Apple HIG document-based-app convention (= Pages / TextEdit / Numbers):
@@ -337,9 +337,9 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
 
     // MARK: - Document ops (v0.03.0)
     //
-    // Layout (= 老板 8/15 15:55 '架构需要先定好, 不能没事加个东西, 然后
+    // Layout (= 8/15 15:55 'needok,,
     // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-    // 重构一堆东西'):
+    // refactor'):
     //   ~/Documents/wenshu/<shelf>/<book>/
     //     book.json
     //     chapters/<docId>.md   BookCategory.chapter
@@ -557,7 +557,7 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
     }
 
     /// First ~100 chars of the MD body, with frontmatter stripped and
-    /// newlines collapsed to spaces. This is the '中心思想' the user
+    /// newlines collapsed to spaces. This is the 'in progress' the user
     /// sees at a glance in the card. (v0.04+ adds an explicit
     /// `summary` frontmatter field to override.)
     static func extractSummary(from body: String) -> String {

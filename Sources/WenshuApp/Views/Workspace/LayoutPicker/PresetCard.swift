@@ -1,4 +1,4 @@
-// PresetCard.swift · Wenshu (文枢) · v0.28 ticket 028-007
+// PresetCard.swift · Wenshu () · v0.28 ticket 028-007
 //
 // Single preset thumbnail card (= hermes `layout-picker.tsx:62-109`
 // port). Shows a 4:3 mini-render of the split tree (= via
@@ -33,8 +33,8 @@ struct PresetCard: View {
                 .frame(maxWidth: .infinity)
                 // v0.28 followup Boss UX round 19 (Boss 2026-08-29 OOB
                 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-                // '所有区域的顶栏, 底栏, 背景, 用的颜色, 可以适配液
-                // 态玻璃吗'): preset card thumbnail background =
+                // 'regiontop bar, bottom bar, background, color, can
+                // '): preset card thumbnail background =
                 // .ultraThinMaterial (= the lightest Liquid Glass
                 // material = subtle tint without overwhelming the
                 // thumbnail preview). Per Apple HIG (= macOS 26 Tahoe

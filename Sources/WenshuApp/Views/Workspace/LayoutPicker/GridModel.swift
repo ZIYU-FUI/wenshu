@@ -1,4 +1,4 @@
-// GridModel.swift · Wenshu (文枢) · v0.28 ticket 028-008
+// GridModel.swift · Wenshu () · v0.28 ticket 028-008
 //
 // FancyZones grid model — faithful port of hermes
 // `grid-model.ts` (= PowerToys' `FancyZonesEditor/GridLayoutModel.cs`

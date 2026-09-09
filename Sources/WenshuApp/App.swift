@@ -34,7 +34,7 @@ import Lucide
 // Boss 8/18 said "reset layout" notification bridge (LayoutShellView uses @State private vm,
 // top-level .commands can't access vm instance, routed via NotificationCenter)
 
-// v0.24 fix (Boss 8/25 60th OOB '对应功能要在菜单栏实现'): notification
+// v0.24 fix (Boss 8/25 60th OOB 'corresponding feature should be implemented in menu bar'): notification
 // name for menu bar zone toggle buttons (= CommandGroup can't directly
 // access vm instance, so menu items post notification, vm listens).
 // v0.34 boss 2026-09-02 OOB (B-04 backlog entry): all Notification.Name
@@ -85,7 +85,7 @@ enum LayoutTokens {
     // Boss 8/18 said "count formula" = drag line 1 PT visual line distributed to left/right zones (0.5 PT each)
     // Middle 1 + Middle 2 = 1920 - 200 - 400 = 1320
     // Preserves original values 558 + 762 (middle 1 + middle 2 = 1320) = upper band 4 zones 1920 ✓
-    // v0.24 fix (Boss 8/25 50th OOB '还是差了一两个像素' + 51st OOB '尝试修一下'):
+    // v0.24 fix (Boss 8/25 50th OOB 'still off by one or two pixels' + 51st OOB 'try to fix it'):
     // hit area 6 -> 4 PT (= the drag-to-resize logic). 3 splitters
     // upper = 12 PT (not 18).
     // Splitter hit area counted into the largest column (= editor),
@@ -116,10 +116,10 @@ enum LayoutTokens {
     // original 8/18 design values).
     // Real problem = same 400 PT visually different widths (= need to check
     // official docs for proper fix).
-    // v0.24 fix (Boss 8/25 44th OOB '代码宽度不对'): drop aiChatRatio 1518 -> 1514
+    // v0.24 fix (Boss 8/25 44th OOB 'code width is wrong'): drop aiChatRatio 1518 -> 1514
     // to absorb 1 splitter hit area (1 × 6 PT = 6 PT). New sum = 1514+400
     // = 1914 + 6 splitter = 1920 PT (= exact window width, no HStack shrinkage).
-    // v0.24 fix (Boss 8/25 50th OOB '还是差了一两个像素' + 51st OOB '尝试修一下'):
+    // v0.24 fix (Boss 8/25 50th OOB 'still off by one or two pixels' + 51st OOB 'try to fix it'):
     // hit area 6 -> 4 PT. 1 splitter lower = 4 PT (not 6).
     // aiChat itself contains 1 splitter (= 4 PT hit area @ 4 PT).
     // 800 (= 80% design) - 4 (= 1 × 4 splitter) = 796 (= design includes splitter)
@@ -255,7 +255,7 @@ enum SelfScreenshot {
     static func run() {
         let env = ProcessInfo.processInfo.environment
         let path = env["WS_SCREENSHOT_PATH"] ?? "/tmp/wenshu-selfshot.png"
-        let delay = Double(env["WS_SCREENSHOT_DELAY"] ?? "5.0") ?? 5.0  // v0.10.7: 5s 避免 layout race condition
+        let delay = Double(env["WS_SCREENSHOT_DELAY"] ?? "5.0") ?? 5.0  // v0.10.7: 5s layout race condition
         let shouldExit = env["WS_SCREENSHOT_EXIT"] != "0"
 
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
@@ -302,7 +302,7 @@ enum SelfScreenshot {
 
 // MARK: - App entry
 
-// wenshu 外观三态 (system / dark / light), 用于 Settings 弹窗 + 持久化 @AppStorage
+// wenshu (system / dark / light), Settings + @AppStorage
 enum AppearanceMode: String, CaseIterable, Identifiable {
     case system
     case dark
@@ -315,7 +315,7 @@ enum AppearanceMode: String, CaseIterable, Identifiable {
         case .light:  return "浅色"
         }
     }
-    /// 映射到 SwiftUI ColorScheme (system 传 nil 让 SwiftUI 跟系统)
+    /// SwiftUI ColorScheme (system nil SwiftUI)
     var colorScheme: ColorScheme? {
         switch self {
         case .system: return nil
@@ -332,9 +332,9 @@ struct WenshuApp: App {
     @State private var library = WenshuLibrary(
         store: FileSystemLibraryStore(rootURL: LibraryRoot.ensureDefault())
     )
-    // v0.21 ticket 01 (重做 #11): 加回 @AppStorage("appearanceMode") (撤回 commit 4ef3e2e77 硬解字符串, 改回 @AppStorage 真值响应式)
-    // 真因 (Standards sub-agent report H3 真硬违反): preferredColorScheme 之前用 UserDefaults.standard.string 硬解, 跟 SettingView 的 $appearanceMode 不是同一个 binding source-of-truth
-    // 撤回 commit 4ef3e2e77 的 UserDefaults.standard.string 硬解, 改用 @AppStorage 真值响应式 (跟 SettingView 共享同一 key)
+    // v0.21 ticket 01 (redo #11): @AppStorage("appearanceMode") (commit 4ef3e2e77, change @AppStorage)
+    // (Standards sub-agent report H3): preferredColorScheme UserDefaults.standard.string, SettingView $appearanceMode yes binding source-of-truth
+    // commit 4ef3e2e77 UserDefaults.standard.string, change @AppStorage (SettingView key)
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
 
     /// v0.30 boss 8/31 OOB "option A for cross-zone communication"
@@ -367,7 +367,7 @@ struct WenshuApp: App {
     }
 }
 
-/// 辅助任务 (Hermes AUX_TASKS 真值: vision/web_extract/compression/skills_hub/approval/mcp/title_generation/curator)
+/// task (Hermes AUX_TASKS: vision/web_extract/compression/skills_hub/approval/mcp/title_generation/curator)
 enum AuxTask: String, CaseIterable, Identifiable {
     case vision = "vision"
     case webExtract = "web_extract"
@@ -407,10 +407,10 @@ enum AuxTask: String, CaseIterable, Identifiable {
     }
 }
 
-/// v0.21 ticket 01 (重做 #7): 透明 helper view — 在 view tree 内捕获 @Environment(\.openSettings) OpenSettingsAction,
-/// 注入到 WenshuAppDelegate.openSettings 静态字段, NSMenu "设置…" action 调 closure 弹 SwiftUI Settings { { } Scene
-/// (Stack Overflow 65355696 + orchetect/SettingsAccess 真值)
-// v0.24 boss验收fix (2026-08-24): accept library + appearanceMode so it can
+/// v0.21 ticket 01 (redo #7): helper view — view tree @Environment(\.openSettings) OpenSettingsAction,
+/// WenshuAppDelegate.openSettings field, NSMenu "Settings…" action closure SwiftUI Settings { { } Scene
+/// (Stack Overflow 65355696 + orchetect/SettingsAccess)
+// v0.24 bossverificationfix (2026-08-24): accept library + appearanceMode so it can
     // wrap LayoutShellView with the same modifiers as the original WindowGroup.
     // v0.40 apple-001 Q1 slice 2: dropped `private` (= extracted to AppRootScene
     // in the same App target; the privacy was a holdover from when the capturer
@@ -439,9 +439,9 @@ enum AuxTask: String, CaseIterable, Identifiable {
         @AppStorage("wenshu.llm.status") private var llmStatus: String = "Idle"
         @AppStorage("wenshu.context.usagePercent") private var contextUsagePercent: Int = 0
         var body: some View {
-            // v0.24 boss验收fix (Boss 8/24 OOB 拍 '和 FCP 一样, 首次运行, 无论
+            // v0.24 bossverificationfix (Boss 8/24 OOB ' FCP, run,
             // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-            // 是否要建书架, 都要先指定一个 .ws 文件的库文件位置'): first-launch
+            // yesno, .ws filefile'): first-launch
             // .ws file picker. NSOpenPanel for selecting .ws file location
             // (FCP-style Event Library UX). Save to UserDefaults wenshu.libraryPath.
             // WenshuWorkspace is initialized with the picked path (WenshuWorkspace
@@ -462,17 +462,17 @@ LibraryRootView()
             .frame(minWidth: 1280, minHeight: 720)
             .environment(library)
             .preferredColorScheme(appearanceMode.colorScheme)
-            // v0.32 boss 2026-09-02 OOB ('窗口级背景用
+            // v0.32 boss 2026-09-02 OOB ('windowbackground
             // windowBackgroundColor'): restore the window-level
             // opaque background = Apple canonical
             // windowBackgroundColor. Per boss 2026-09-02 OOB
             // correction, the Monterey 12.0.1 Dark Mode
             // reference values for the 4-tier dynamic system
             // color hierarchy are:
-            // - windowBackgroundColor    = #323232 (浅, 容器)
-            // - underPageBackgroundColor = #282828 (中, 内容)
-            // - controlBackgroundColor   = #1E1E1E (深, chrome)
-            // - textBackgroundColor      = #1E1E1E (深, chrome)
+            // - windowBackgroundColor = #323232 (,)
+            // - underPageBackgroundColor = #282828 (in progress,)
+            // - controlBackgroundColor = #1E1E1E (, chrome)
+            // - textBackgroundColor = #1E1E1E (, chrome)
             //
             // The window background is the lightest tier (= the
             // outermost container). The content panes tint darker
@@ -494,14 +494,14 @@ LibraryRootView()
             // accessibility overrides compress it. Tahoe will
             // re-expand the tiers when the user disables the
             // accessibility override.
-            // v0.40 boss 2026-09-08 OOB '去掉 windows BG 参数, 先看效果':
+            // v0.40 boss 2026-09-08 OOB 'drop the window BG parameter and check the visual effect first':
             // temporarily drop the window-level containerBackground
             // (= was applying windowBackgroundColor = #1E to every
             // pane in the window). See NavigationSplitShell.swift
             // for the per-column containerBackground analysis.
             .onAppear {
                 WenshuAppDelegate.openSettings = openSettings
-                // v0.28 followup (Boss 2026-08-29 OOB '调试视图框架'):
+                // v0.28 followup (Boss 2026-08-29 OOB 'debugview'):
                 // removed the titlebar hide loop (= was causing
                 // re-render loop). Re-add with proper delay in a
                 // follow-up commit.
@@ -522,40 +522,40 @@ LibraryRootView()
             .onReceive(NotificationCenter.default.publisher(for: .wenshuToggleEditMode)) { _ in
                 editMode.toggle()
             }
-            // v0.24 boss验收fix: Apple macOS 52 PT toolbar chrome via
+            // v0.24 bossverificationfix: Apple macOS 52 PT toolbar chrome via
             // .toolbar { ToolbarItem(placement: .principal) }.
-            // Boss 8/24 拍: '用 52 的那个'.
+            // Boss 8/24: ' 52 '.
             // - .windowToolbarStyle(.unified) (= 52 PT chrome) is applied at WindowGroup level
             // - but .toolbar content is needed to actually render the toolbar area at 52 PT.
-            // - ToolbarItem(placement: .principal) puts '文枢' title in the center.
-            // v0.24 boss验收fix (Boss 8/25 tenth OOB ticket 015.023):
+            // - ToolbarItem(placement: .principal) puts ' title in the center.
+            // v0.24 bossverificationfix (Boss 8/25 tenth OOB ticket 015.023):
             // toolbar buttons moved to LayoutShellView body (= this
             // outer view doesn't have access to vm; inner view does).
         }
     }
 
-// v0.21 ticket 01 (重做 #10): 删 SettingsEnvironmentCapturer (Q15 翻车链 #11 dead code) + VibeMeter Mirror reflection NSApp.openSettings extension (Q15 翻车链 #12 dead code)
-// Spec sub-agent 报告 (deleg_10289a6b): installMainMenu 装 6 项 + 自创建 NSWindow 装 SettingView = 真稳方案
-// Settings { } Scene 留着 (ticket 04 commit 984ea556b 已装 模型 Picker, 老板 8/21 拍 "配完省略显示")
+// v0.21 ticket 01 (redo #10): SettingsEnvironmentCapturer (Q15 #11 dead code) + VibeMeter Mirror reflection NSApp.openSettings extension (Q15 #12 dead code)
+// Spec sub-agent (deleg_10289a6b): installMainMenu 6 + create NSWindow SettingView =
+// Settings { } Scene (ticket 04 commit 984ea556b Picker, 8/21 "show")
 
 
 /// Zone slot enum (= 6 named cases, one per functional module in
 /// the new framework). Used by WorkspaceView's renderTabByKind to
 /// dispatch to the right view (= projectSidebar → NewLibraryOutlineView,
 /// projectPreview → EntityPreviewPane, editor → editor, etc.).
-/// v0.10.3 拆分 chatSidebar + chatDialogue 2 子区后续用, 当前单 aiChat.
+/// v0.10.3 split chatSidebar + chatDialogue 2, aiChat.
 enum ZoneSlot {
     case projectSidebar
     case projectPreview
     case editor
     case specializedTools
-    case aiChat        // 老板 8/18 拍 "上四下两", 下 band 整宽 AI聊天 (含原 v0.10.3 拆的 chatSidebar + chatDialogue)
+    case aiChat        // 8/18 "four on top, two on bottom", lower band full-width AI chat (v0.10.3 chatSidebar + chatDialogue)
     case aiDynamic
 }
 
-// MARK: - Library outline (项目侧栏嵌入)
+// MARK: - Library outline (sidebar)
 
-/// 项目侧栏内容 (= v0.27 wiring: NewLibraryOutlineView reads from
+/// sidebar (= v0.27 wiring: NewLibraryOutlineView reads from
 /// BookStore via @Environment). Replaces v0.25.x WenshuLibrary-backed
 /// LibraryOutlineView (= no longer used in production zone).
     struct LibraryOutlineViewContent: View {
@@ -565,12 +565,12 @@ enum ZoneSlot {
             NewLibraryOutlineView()
             // v0.28 followup Boss UX round 44 (Boss 2026-08-29 OOB
             // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-            // '项目管理区和素材管理区的接缝, 顶栏底栏都对不齐' = the
+            // ', top barbottom bar' = the
             // `.padding(.vertical, DesignTokens.chromePaddingNano)` was pushing the sidebar content
             // (= NewLibraryOutlineView's tree outline) up by 2 PT,
-            // which made the sidebar's bottom status bar (= "书:0")
+            // which made the sidebar's bottom status bar (= ":0")
             // appear higher than the other 3 general panes'
-            // (= "章节:0" / "字数:0" / "工具就绪") = 视觉不对齐.
+            // (= ":0" / ":0" / "") = visual.
             // Fix = removed `.padding(.vertical, DesignTokens.chromePaddingNano)`. The horizontal
             // `.padding(DesignTokens.chromePaddingVertical)` (= 8 PT left/right margin) is preserved
             // for the tree outline indentation.

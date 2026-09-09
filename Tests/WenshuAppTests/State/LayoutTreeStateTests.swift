@@ -1,4 +1,4 @@
-// WorkspaceStateTests.swift · Wenshu (文枢) · v0.28 ticket 028-003
+// WorkspaceStateTests.swift · Wenshu () · v0.28 ticket 028-003
 //
 // Unit tests for the LayoutTreeState v2 split-tree model (= 1:1 port
 // of /Volumes/ANAN/.hermes/hermes-agent/apps/desktop/src/components/

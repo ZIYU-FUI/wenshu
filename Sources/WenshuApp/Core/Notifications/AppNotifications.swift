@@ -1,4 +1,4 @@
-// AppNotifications.swift · Wenshu (文枢) · v0.34
+// AppNotifications.swift · Wenshu () · v0.34
 //
 // v0.34 boss 2026-09-02 OOB (B-04 backlog entry): Notification.Name
 // naming convention scattered (= 6 wenshu.X + 5 com.wenshu.X across
@@ -28,7 +28,7 @@ import Foundation
 // other AppKit menu item surfaces. Listened by views that don't share
 // a direct @Environment / @Binding with the menu source.
 //
-// Boss 2026-08-19 OOB §Commands: 老板 rejected @FocusedValue as a
+// Boss 2026-08-19 OOB §Commands: rejected @FocusedValue as a
 // substitute for these specific notifications (= .commands Button -> View
 // is the reverse direction from @FocusedValue's View -> commands
 // capability; v0.34 commit 85f87a68f Apple-API-first #6 documented this).
@@ -50,7 +50,7 @@ enum AppCommands: String, CaseIterable {
 
     /// Request to present the NewChoiceSheet (= new project / new book /
     /// new shelf picker). Posted by zone-header buttons, consumed by
-    /// NewLibraryOutlineView body. v0.30 boss 8/31 OOB #2 '弹出菜单没有恢复'
+    /// NewLibraryOutlineView body. v0.30 boss 8/31 OOB #2 'popupmenurestore'
     /// tracks this notification's lifecycle.
     case choiceRequested = "com.wenshu.choiceRequested"
 
@@ -105,7 +105,7 @@ enum LayoutEvents: String, CaseIterable {
     /// EditorExpandShrinkTrailingButton when @AppStorage("wenshu.editorMaximized")
     /// changes. Listened by PaneNSController.handleEditorMaximizedChanged(:_)
     /// which snapshots 6-zone visibility + editor weight BEFORE hiding other
-    /// zones (= shrink restore per Q38 boss "全状态 snapshot" decision).
+    /// zones (= shrink restore per Q38 boss "status snapshot" decision).
     /// v0.34 ticket 01 (= spec: .scratch/v0.34-editor-preview-and-expand/spec.md).
     case editorMaximizedChanged = "com.wenshu.editorMaximizedChanged"
 }

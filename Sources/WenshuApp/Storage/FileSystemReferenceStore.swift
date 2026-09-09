@@ -1,4 +1,4 @@
-// FileSystemReferenceStore.swift · Wenshu (文枢) · v0.26 (FCP library replica)
+// FileSystemReferenceStore.swift · Wenshu () · v0.26 (FCP library replica)
 //
 // Reference-library storage layer (= ticket 006 of the FCP library
 // replica spec).
@@ -191,7 +191,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
                 )
             }
             let references = try decoder.decode([Reference].self, from: data)
-            // v0.30 boss 8/31 OOB: normalize nil category to .z (= 其它)
+            // v0.30 boss 8/31 OOB: normalize nil category to .z (=)
             // so unclassified references always show up in the sidebar
             // under the catch-all category. The on-disk file remains
             // unchanged (= category field still serialized as null);
@@ -307,22 +307,22 @@ struct FileSystemReferenceStore: ReferenceStoring {
     /// v0.29 boss 2026-08-30 OOB: when saving an entity (= layer == .layerEntities)
     /// with a category, ensure the category subdirectory exists. The category
     /// folder is created LAZILY (= only when the first entity in that category
-    /// is saved). This is the "增量" rule (= boss: '分类文件夹随着内容
+    /// is saved). This is the "" rule (= boss: 'folder
     // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-    /// 逐渐增加, 而不是一下子铺满').
+    ///, yes').
     ///
     /// v0.30 boss 8/31 OOB: when category is nil (= unclassified entity
     /// OR raw material that the user hasn't tagged), route to the
-    /// `.z` (= 其它) catch-all category instead of falling back to
-    /// the flat layer dir. Boss reported '资料库下级目录缺一个其它
-    /// 分类' — entities with nil category were invisible in the
+    /// `.z` (=) catch-all category instead of falling back to
+    /// the flat layer dir. Boss reported 'directory
+    /// ' — entities with nil category were invisible in the
     /// sidebar but still counted (= hidden count).
     private func ensureEntityCategoryDirectoryExists(
         category: EntityCategory?,
         layer: ReferenceLayer
     ) throws {
         guard layer == .layerEntities else { return }
-        // v0.30 boss 8/31 OOB: nil category now routes to .z (= 其它)
+        // v0.30 boss 8/31 OOB: nil category now routes to .z (=)
         // so unclassified entities have a visible sidebar bucket.
         let effectiveCategory = category ?? .z
         let categoryDir = referenceLibraryRoot

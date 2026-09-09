@@ -1,15 +1,15 @@
 //
-//  NoteComposer.swift · Wenshu · v0.19 ticket 16 (Obsidian replica, 后端先做)
-//  老板 2026-08-19 evening 拍 Obsidian 复刻范围 A + '复刻后端, 前端不接入核心项目'.
+// NoteComposer.swift · Wenshu · v0.19 ticket 16 (Obsidian replica, do first)
+// 2026-08-19 evening Obsidian A + ', '.
 //
-//  Note Composer: 合并 / 拆分 / 重命名 + 自动跟随 [[name]] 链接.
-//  跟 Obsidian Note Composer plugin 行为对齐 (https://obsidian.md/help/plugins/note-composer).
-//  Apple HIG: Foundation String 操作 + regex 替换 [[name]] 链接.
+// Note Composer: merge / split / rename + auto [[name]] link.
+// Obsidian Note Composer plugin ok (https://obsidian.md/help/plugins/note-composer).
+// Apple HIG: Foundation String + regex replace [[name]] link.
 //
 
 import Foundation
 
-/// Composer 错误
+/// Composer error
 public enum ComposerError: Error, Equatable {
     case sourceNotFound(docId: String)
     case targetNotFound(docId: String)
@@ -17,26 +17,26 @@ public enum ComposerError: Error, Equatable {
     case emptyContent(docId: String)
 }
 
-/// NoteComposer: 静态工具集 (合并 / 拆分 / 重命名 note)
+/// NoteComposer: (merge / split / rename note)
 ///
-/// 重要: 所有操作自动重写 markdown content 里的 [[old_name]] / [[old_name|alias]] → [[new_name]] / [[new_name|alias]]
-/// Apple HIG: NSRegularExpression 替换 [[wikilink]]
+///: autorewrite markdown content [[old_name]] / [[old_name|alias]] → [[new_name]] / [[new_name|alias]]
+/// Apple HIG: NSRegularExpression replace [[wikilink]]
 public enum NoteComposer {
 
     // MARK: - Rename
 
-    /// 重命名 note (用 doc_name 映射 + content 操作)
-    /// - 重命名后自动重写所有 source content 里的 [[old_name]] → [[new_name]] (含 alias 形式)
-    /// - 返回旧名 → 新名 的映射 (给 DocumentIndexing 更新反向索引)
+    /// rename note (doc_name + content)
+    /// - renameautorewrite source content [[old_name]] → [[new_name]] (alias)
+    /// - → (DocumentIndexing update)
     public static func rename(oldName: String, newName: String, content: String) -> String {
         return rewriteWikilinks(replacing: oldName, with: newName, in: content)
     }
 
     // MARK: - Merge
 
-    /// 合并多个 note → 1 个 note
-    /// 现阶段: source contents 拼接, 中间空行分隔, 每个 source 的 [[source_name]] 链接重写为 [[target_name]]
-    /// Apple HIG: NSRegularExpression 批量重写
+    /// merge note → 1 note
+    ///: source contents, in progressok, source [[source_name]] linkrewrite [[target_name]]
+    /// Apple HIG: NSRegularExpression rewrite
     public static func merge(
         targetName: String,
         sourceContents: [(name: String, content: String)]
@@ -46,13 +46,13 @@ public enum NoteComposer {
             if idx > 0 {
                 result += "\n\n"
             }
-            // 重写 [[src.name]] 链接 → [[target_name]] (仅 source 自己的链接)
+            // rewrite [[src.name]] link → [[target_name]] (source link)
             result += rewriteWikilinks(replacing: src.name, with: targetName, in: src.content)
         }
         return result
     }
 
-    /// 通用 [[old]] / [[old|alias]] 重写 helper
+    /// general [[old]] / [[old|alias]] rewrite helper
     private static func rewriteWikilinks(replacing oldName: String, with newName: String, in content: String) -> String {
         guard oldName != newName else { return content }
         let pattern = try? NSRegularExpression(pattern: "\\[\\[(\(NSRegularExpression.escapedPattern(for: oldName)))(\\|[^\\]]+)?\\]\\]")
@@ -81,7 +81,7 @@ public enum NoteComposer {
     // MARK: - Split
 
     // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-    /// 拆分 note (按指定行范围拆)
+    /// split note (ok)
     /// Apple HIG: String.components(separatedBy: \n)
     public static func split(
         content: String,

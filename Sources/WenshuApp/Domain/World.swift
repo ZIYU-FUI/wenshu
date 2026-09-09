@@ -1,4 +1,4 @@
-// World.swift · Wenshu (文枢) · v0.26 (FCP library replica — world-building entity)
+// World.swift · Wenshu () · v0.26 (FCP library replica — world-building entity)
 //
 // Domain model for a single world-building entry (= a fact about the
 // fictional world, geography / lore / event / object / etc.) living
@@ -14,8 +14,8 @@
 // `.scratch/2026-08-26-fcp-library-replica/spec.md` ticket 001.
 //
 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-// Owner 8/15 15:55: '架构需要先定好, 不能没事加个东西, 然后重构一堆
-// 东西'. The shape of WorldEntry is locked by the spec + the contract
+// Owner 8/15 15:55: 'needok,, refactor
+// '. The shape of WorldEntry is locked by the spec + the contract
 // tests in ticket 023.
 
 import Foundation
@@ -34,7 +34,7 @@ enum WorldEntryType: String, CaseIterable, Codable, Sendable {
     case other
 
     /// Chinese display label for the card section header. Matches
-    /// wenshu design vocabulary (= boss 8/25 'UI 全中文').
+    /// wenshu design vocabulary (= boss 8/25 'UI in progress').
     var displayName: String {
         switch self {
         case .geography: return "地理"
@@ -65,9 +65,9 @@ enum WorldEntryType: String, CaseIterable, Codable, Sendable {
 ///
 /// The full lore text lives in the .md body (= free-form markdown
 /// the user writes). This struct holds the structured metadata used
-/// for the second-column card grid (= file 001 / boss 8/26 '卡片
+/// for the second-column card grid (= file 001 / boss 8/26 'card
 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-/// 样式就是展示文档的重点摘要').
+/// yes').
 struct WorldEntry: Identifiable, Hashable, Codable, Sendable {
     let id: UUID
 
@@ -85,12 +85,12 @@ struct WorldEntry: Identifiable, Hashable, Codable, Sendable {
     /// convention).
     var name: String
 
-    /// One-line summary shown on the card (= 老板 8/26 '卡片样式就是
-    /// 展示文档的重点摘要'). Optional: explicit frontmatter `summary`
+    /// One-line summary shown on the card (= 8/26 'cardyes
+    /// '). Optional: explicit frontmatter `summary`
     /// field overrides auto-extracted first ~100 chars of the .md body.
     var summary: String
 
-    /// Optional cross-references to other entities (= 老板 8/26
+    /// Optional cross-references to other entities (= 8/26
     /// '@<type>.<name>' syntax). Resolved at load time by ticket 007
     /// `Document.refIds` parser. Stored as plain UUIDs here (= not
     /// `@<type>.<name>` strings) so SwiftUI can directly dereference

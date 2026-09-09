@@ -4,7 +4,7 @@ import Lucide
 
 /// AppDelegate: WenshuCore runtime + macOS app init
 final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
-    // v0.24 boss验收fix (Boss 8/25 OOB Spec axis GAP): one-time migration
+    // v0.24 bossverificationfix (Boss 8/25 OOB Spec axis GAP): one-time migration
     // from legacy chat.sqlite to warehouse. Preserves chat history when
     // user first picks a .ws warehouse in onboarding (= avoids silent data loss).
     // Idempotent: if legacy file doesn't exist or new file already exists, skip.
@@ -40,7 +40,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     
-    // v0.21 ticket 01 (重做 #7): 持 SwiftUI 14+ OpenSettingsAction (LayoutShellView .onAppear 注入, OpenSettingsAction.callAsFunction() 触发)
+    // v0.21 ticket 01 (redo #7): SwiftUI 14+ OpenSettingsAction (LayoutShellView .onAppear, OpenSettingsAction.callAsFunction())
     nonisolated(unsafe) static var openSettings: OpenSettingsAction?
 
     /// v0.28 followup: debug Keychain override for cua / dev env without
@@ -59,17 +59,17 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     static let sharedRuntime = AgentRuntime()
     static let sharedVerifier = WenshuVerifier()
     static let sharedChatStore: ChatSessionStore? = {
-        // v0.21 ticket 06: actor init 不能在 static let 闭包里直接调用 (Swift 6 strict concurrency)
-        // 退回 nil, applicationDidFinishLaunching 重新创建并赋值给 var sharedChatStore
+        // v0.21 ticket 06: actor init static let (Swift 6 strict concurrency)
+        // nil, applicationDidFinishLaunching redocreate var sharedChatStore
         return nil
     }()
     static nonisolated(unsafe) var sharedConductor: WenshuConductor?
 
-    static nonisolated(unsafe) var sharedChatStoreRef: ChatSessionStore?  // code-review H1 修法: 用 unsafe var 替代 let nil
+    static nonisolated(unsafe) var sharedChatStoreRef: ChatSessionStore?  // code-review H1: unsafe var let nil
 
-    static let sharedkanbanStore: KanbanStore? = nil  // 同上, 在 applicationDidFinishLaunching 赋值
+    static let sharedkanbanStore: KanbanStore? = nil  //, applicationDidFinishLaunching
 
-    // v0.21 ticket 01 (重做 #7): "显示" → "恢复默认布局" NSMenu action (Q28 真值: 走 NSMenu 自己装中文 6 项, 不靠 SwiftUI commands 范式)
+    // v0.21 ticket 01 (redo #7): "show" → "restoredefaultlayout" NSMenu action (Q28: NSMenu in progress 6, SwiftUI commands)
     @MainActor @objc func resetLayout(_ sender: Any?) {
         NSLog("[wenshu.reset] NSMenu resetLayout(_:) called, posting")
         NotificationCenter.default.post(name: .wenshuResetLayout, object: nil)
@@ -82,7 +82,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // debug override takes effect before any Keychain access.
         _ = Self.sharedKeychainBackend
         // v0.30 boss 8/31 followup (= Spec C2 fix): install a receiver
-        // for .wenshuImportRequested (= fired by the zone-header 入驻
+        // for .wenshuImportRequested (= fired by the zone-header
         // button). Previously the button was producer-only; this
         // commit adds the matching listener that opens an NSOpenPanel
         // for the user to select an external .ws file or research
@@ -113,8 +113,8 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // v0.28 followup Boss UX round 9 (Boss 2026-08-29 OOB '等下,
-        // 那样会没有红黄绿按钮, 也不可以双击放大, 试过了' =
+        // v0.28 followup Boss UX round 9 (Boss 2026-08-29 OOB 'wait,
+        // button, not okdouble-click, ' =
         // titlebarAppearsTransparent + titleVisibility = .hidden
         // removes traffic lights AND double-click-to-zoom
         // (= breaks macOS standard window controls). Don't do that.
@@ -124,13 +124,13 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // (= exactly macOS standard = native toolbar buttons next to
         // traffic lights = matches Apple Pages / Xcode / Mail etc.).
         //
-        // v0.21 ticket 06: 同步创建 ChatSessionStore + KanbanStore + WenshuConductor (不能在 static let 闭包里调 actor init)
-        // 用 unsafeMutablePointer / 临时 instance var 临时持有 — 因为 static let 是 immutable, 不能后续赋值
-// v0.24 boss验收fix (Boss 8/24 反馈 '聊天记录持久化, 我没看到'):
-        // add NSLog for chat store init + bootstrap errors (silent catch 之前
+        // v0.21 ticket 06: synccreate ChatSessionStore + KanbanStore + WenshuConductor (static let actor init)
+        // unsafeMutablePointer / instance var — static let yes immutable,
+// v0.24 bossverificationfix (Boss 8/24 'chat, '):
+        // add NSLog for chat store init + bootstrap errors (silent catch
         // makes debugging hard), and post .wenshuChatStoreReady notification
         // so ChatView can retry load when store becomes available.
-        // v0.24 boss验收fix (Boss 8/25 OOB '你的会话记录是存在 .ws 文件里吗'):
+        // v0.24 bossverificationfix (Boss 8/25 OOB 'yes .ws file'):
         // ChatSessionStore location = wenshu warehouse (anbaiqiang.ws/) if set,
         // else fall back to legacy ~/Library/Application Support/wenshu/chat.sqlite.
         // Per boss spec: chat data must be part of the warehouse file so the
@@ -142,7 +142,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             // Place chat.sqlite inside it.
             (path as NSString).appendingPathComponent("chat.sqlite")
         }
-        // v0.24 boss验收fix (Boss 8/25 OOB Spec axis GAP): one-time migration
+        // v0.24 bossverificationfix (Boss 8/25 OOB Spec axis GAP): one-time migration
         // from legacy chat.sqlite to warehouse (preserves chat history when
         // user first picks a .ws warehouse in onboarding).
         if let warehouse = warehousePath {
@@ -154,16 +154,16 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             let store = try ChatSessionStore(path: chatDbPath)
             try store.bootstrap()
             chatStore = store
-            // v0.24 boss验收fix (Standards F3): log caller-side path (chatDbPath)
+            // v0.24 bossverificationfix (Standards F3): log caller-side path (chatDbPath)
             // instead of store.dbPath — keeps dbPath encapsulated (= private).
             NSLog("[wenshu.chatStore] init OK: store created at %@", chatDbPath ?? "<legacy>")
         } catch {
             chatStore = nil
-            // v0.24 boss验收fix: also log the attempted path on failure
+            // v0.24 bossverificationfix: also log the attempted path on failure
             // (was missing path info, made debugging hard).
             NSLog("[wenshu.chatStore] init FAILED at %@: %@", chatDbPath ?? "<legacy>", String(describing: error))
         }
-        Self.sharedChatStoreRef = chatStore  // code-review H1 修法
+        Self.sharedChatStoreRef = chatStore  // code-review H1
         if chatStore != nil {
             NotificationCenter.default.post(name: .wenshuChatStoreReady, object: nil)
         }
@@ -183,8 +183,8 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
                 sessionStore: chatStore
             )
         }
-        // v0.21 ticket 06: NSApp.mainMenu 移 applicationWillFinishLaunching (= 上一段, 早于 SwiftUI 初始化)
-        // v0.20 ticket 01: 启动时注册 wenshu 主 agent (左下 zone chat UI 调用)
+        // v0.21 ticket 06: NSApp.mainMenu applicationWillFinishLaunching (=, SwiftUI)
+        // v0.20 ticket 01: startregister wenshu agent (zone chat UI)
         let card = AgentCard(
             name: "wenshu",
             description: "wenshu 本地主 agent, 接 MiniMax key, 支持 chat UI",

@@ -1,7 +1,7 @@
 //
 //  MemoryStoreTests.swift · Wenshu · v0.17 ticket 01 (hermes replica)
 //
-//  单元测试 SQLite-backed MemoryStore. 临时文件 db, 测试后自动删除.
+// test SQLite-backed MemoryStore. file db, testautodelete.
 //
 
 import Testing
@@ -10,7 +10,7 @@ import Foundation
 
 @Suite("MemoryStore (hermes replica)")
 struct MemoryStoreTests {
-    /// 测试用临时 db 路径
+    /// test db path
     private static func tempDBPath() -> String {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)

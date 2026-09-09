@@ -11,7 +11,7 @@ import Foundation
 
 /// 1 token = {{token}} placeholder in the template
 public enum TemplateToken: Equatable, Sendable {
-    case date(format: String)         // {{date}} / {{date:YYYY-MM-DD}} / {{date:YYYY年MM月DD日}}
+    case date(format: String)         // {{date}} / {{date:YYYY-MM-DD}} / {{date:YYYYMMDD}}
     case time(format: String)         // {{time}} / {{time:HH:mm}}
     case title                       // {{title}} (new note default name)
     case author                      // {{author}} (from env or default)

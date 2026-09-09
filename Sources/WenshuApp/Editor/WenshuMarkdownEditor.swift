@@ -15,14 +15,14 @@ struct WenshuMarkdownEditor: View {
     // to the engine's NativeTextViewWrapper.
     var onLinkClick: ((String) -> Void)? = nil
 
-    // v0.40 boss 9/7 OOB '你仔细对比一下, 预览和编辑模式, 整体感觉
-    // 就是缩放了, 你对比两个模式的代码. 我认为, 这个编辑器的样式,
-    // 无论是几种模式, 应该用同一个组件呈现': preview mode and
+    // v0.40 boss 9/7 OOB ', edit,
+    // yes, ., editor,
+    // yes, shouldgroup': preview mode and
     // edit mode should use the SAME component (= no separate
     // SwiftUI renderer). Previously preview used EditorPreviewContent
     // (= SwiftUI AttributedString renderer) and edit used
     // WenshuMarkdownEditor (= swift-markdown-engine NSTextView). Two
-    // different renderers = different visual scaling (= the "缩放感"
+    // different renderers = different visual scaling (= the ""
     // boss described).
     //
     // Fix: both modes now use WenshuMarkdownEditor. The engine's
@@ -37,8 +37,8 @@ struct WenshuMarkdownEditor: View {
     // edit = editable NSTextView, same component, same font scale,
     // same line height, same textContainerInset, same NSTextLayoutManager.
     var isEditable: Bool = true
-    // v0.40 boss 9/7 OOB '当前预览模式的字号更合适, 把编辑模式的字号
-    // 再往小了调, 和预览模式统一. 最好字号用 apple api 来实现':
+    // v0.40 boss 9/7 OOB ', edit
+    //, . ok apple api ':
     // the engine's NativeTextView has an internal `baseFont` field
     // (= NSFont.systemFont(ofSize: NSFont.systemFontSize) by default,
     // = Apple canonical system default font size).
@@ -57,8 +57,8 @@ struct WenshuMarkdownEditor: View {
     // engine's layout pipeline).
     private var adjustedConfiguration: MarkdownEditorConfiguration {
         var config = configuration
-        // v0.40 boss 9/7 OOB '编辑器的字号, 参考卡片的的标题和正文
-        // 的字号': align the editor's font scale to the card visual
+        // v0.40 boss 9/7 OOB 'editor, cardtitle
+        // ': align the editor's font scale to the card visual
         // density (= Apple HIG canonical reference card pattern
         // in PreviewPane.swift Card view).
         //
@@ -66,7 +66,7 @@ struct WenshuMarkdownEditor: View {
         // Card summary = SwiftUI .caption  (= 10 PT on macOS 27
         //   = NSFont.preferredFont(forTextStyle: .caption1).pointSize
         //   on macOS; = SwiftUI bridges .caption to .caption1 in NSFont)
-        // (= boss 9/7 OOB screenshot: 王阳明心学 card with title
+        // (= boss 9/7 OOB screenshot: card with title
         // ~13 PT bold + summary ~10 PT regular).
         //
         // Strategy: use NSFont.preferredFont(forTextStyle: .caption1)
@@ -78,8 +78,8 @@ struct WenshuMarkdownEditor: View {
         // - H2   = .footnote     = 10 PT (= matches card summary)
         // - H3-H6= .footnote     = 10 PT (= flat with body)
         //
-        // v0.40 boss 9/7 OOB '你仔细对比一下, 预览和编辑两个模式, 哪
-        // 个小统一用小的那个': both modes share this single
+        // v0.40 boss 9/7 OOB ', edit,
+        // ': both modes share this single
         // configuration (= unified component commit).
         let base = NSFont.preferredFont(forTextStyle: .caption1).pointSize
         let h1 = NSFont.preferredFont(forTextStyle: .headline).pointSize
@@ -107,7 +107,7 @@ struct WenshuMarkdownEditor: View {
     }
 
     var body: some View {
-        // v0.40 boss 9/7 OOB '编辑模式也一样, 左右各留 18PT':
+        // v0.40 boss 9/7 OOB 'edit, 18PT':
         // apply the same horizontal inset as preview mode (= 18 PT
         // each side = DesignTokens.chromePaddingLeading /
         // chromePaddingTrailing = wenshu standard read-only text
@@ -121,8 +121,8 @@ struct WenshuMarkdownEditor: View {
         // top/bottom = 0 (= matches preview mode; = matches
         // NSTextView tight top/bottom inset).
         //
-        // v0.40 boss 9/7 OOB '编辑器的样式, 无论是几种模式, 应该用同
-        // 一个组件呈现': pass `isEditable` (= boss param on
+        // v0.40 boss 9/7 OOB 'editor, yes, should
+        // group': pass `isEditable` (= boss param on
         // NativeTextViewWrapper) so the SAME NSTextView renders
         // both preview (= read-only) and edit (= editable) modes
         // (= zero visual scaling between modes; = Apple HIG

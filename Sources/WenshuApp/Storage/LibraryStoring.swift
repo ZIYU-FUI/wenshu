@@ -1,7 +1,7 @@
 // LibraryStoring.swift · Wenshu (Wenshu) · v0.02.0 (bookshelf module)
 //
 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-// Owner 8/15 15:55: '架构需要先定好, 不能没事加个东西, 然后重构一堆东西'.
+// Owner 8/15 15:55: 'needok,, refactor'.
 //
 // This file is the architectural root of the wenshu library system.
 // LibraryStoring defines the contract that all storage backends must
@@ -150,7 +150,7 @@ protocol LibraryStoring: Sendable {
 
     // MARK: - Document operations (v0.03.0, = document module end-to-end)
     //
-    // v53 (= 老板 8/15 17:48 '3 类, 卡片显示文档的中心思想'). The library
+    // v53 (= 8/15 17:48 '3, cardshowin progress'). The library
     // grew document operations: each book has three categories of MD
     // files (= chapters / settings / research). The storage layer reads
     // the .md bytes, extracts the title (= first H1, falling back to a
@@ -200,7 +200,7 @@ protocol LibraryStoring: Sendable {
 
     /// Count of .md files in a per-book folder (= e.g. "chapters" /
     /// "world" / "characters" / "outlines"). Used by the project-sidebar
-    /// bottom toolbar to render "章: N" / "字数: 0" without a separate
+    /// bottom toolbar to render ": N" / ": 0" without a separate
     /// metadata query. Returns 0 for missing folders (= forgiving).
     ///
     /// Default implementation returns 0 (= historically, before this

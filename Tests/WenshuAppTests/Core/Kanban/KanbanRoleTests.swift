@@ -1,7 +1,7 @@
 //
 //  KanbanRoleTests.swift · Wenshu · v0.23 ticket 013.006 (hermes gap 6)
 //
-//  Boss 2026-08-23 拍: hermes _require_orchestrator_tool parity.
+// Boss 2026-08-23: hermes _require_orchestrator_tool parity.
 //
 
 import Foundation
