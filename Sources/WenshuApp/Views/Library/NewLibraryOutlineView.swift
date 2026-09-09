@@ -2078,7 +2078,7 @@ private struct NewButtonWithHover: View {
         .background(
             RoundedRectangle(cornerRadius: 4)
                 .fill(isHover
-                    ? AnyShapeStyle(.quaternary)
+                    ? AnyShapeStyle(.tertiary)
                     : AnyShapeStyle(Color.clear))
         )
         .help(help)

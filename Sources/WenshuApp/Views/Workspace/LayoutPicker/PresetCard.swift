@@ -60,7 +60,7 @@ struct PresetCard: View {
         .padding(DesignTokens.chromePaddingSmall)
         .background(
             RoundedRectangle(cornerRadius: 8)
-                .fill(isActive ? AnyShapeStyle(.quaternary) : AnyShapeStyle(Color.clear))
+                .fill(isActive ? AnyShapeStyle(.tertiary) : AnyShapeStyle(Color.clear))
         )
         .overlay(alignment: .topTrailing) {
             // Delete button (= only for user presets, only on

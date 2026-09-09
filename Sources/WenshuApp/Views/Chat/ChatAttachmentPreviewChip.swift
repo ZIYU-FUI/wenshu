@@ -68,7 +68,7 @@ struct ChatAttachmentPreviewChip: View {
             // unreadable). Still shows the clear button so the user
             // can dismiss.
             RoundedRectangle(cornerRadius: 6)
-                .fill(.quaternary)
+                .fill(.clear)
                 .frame(width: 48, height: 48)
         }
     }

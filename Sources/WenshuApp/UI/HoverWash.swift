@@ -75,7 +75,7 @@ private struct HoverWashModifier: ViewModifier {
             .background(
                 RoundedRectangle(cornerRadius: 4)
                     .fill(isHover
-                        ? AnyShapeStyle(.quaternary)
+                        ? AnyShapeStyle(.tertiary)
                         : AnyShapeStyle(Color.clear))
             )
     }

@@ -1181,7 +1181,7 @@ private struct Card: View {
         // Hover tint (= matches PaneIconTab hover pattern).
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(isHovered ? AnyShapeStyle(.quaternary) : AnyShapeStyle(Color.clear))
+                .fill(isHovered ? AnyShapeStyle(.tertiary) : AnyShapeStyle(Color.clear))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
