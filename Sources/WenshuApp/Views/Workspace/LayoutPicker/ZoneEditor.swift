@@ -142,7 +142,7 @@ struct ZoneEditor: View {
         GeometryReader { geo in
             ZStack {
                 // Background.
-                Rectangle().fill(.quaternary)
+                Rectangle().fill(.clear)
                 // Zones.
                 ForEach(modelToZones(model) ?? []) { zone in
                     zoneView(for: zone, in: geo.size)
