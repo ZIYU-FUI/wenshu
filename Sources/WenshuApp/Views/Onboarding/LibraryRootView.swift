@@ -46,7 +46,19 @@ import UniformTypeIdentifiers
 ///   drive) → onboarding (re-pick)
 /// - else (= path set + path exists) → main app LayoutShellView
 public struct LibraryRootView: View {
+    // v0.44 M8.1: LibraryRootView now owns the library + appearance
+    // bindings (= were previously held by the now-removed
+    // SettingsEnvironmentCapturer wrapper). The root view
+    // receives them as constructor parameters from the App's
+    // WindowGroup (= single source of truth = AppRootScene).
+    let library: WenshuLibrary
+    let appearanceMode: AppearanceMode
     @AppStorage("wenshu.libraryPath") private var libraryPath: String = ""
+
+    init(library: WenshuLibrary, appearanceMode: AppearanceMode) {
+        self.library = library
+        self.appearanceMode = appearanceMode
+    }
 
     private var shouldShowOnboarding: Bool {
         // v0.24 boss acceptance fix (Boss 8/24 OOB): trigger condition strict.
@@ -79,6 +91,10 @@ public struct LibraryRootView: View {
     }
 
     public var body: some View {
+        // v0.44 M8.1: the .frame + .environment + .preferredColorScheme
+        // modifiers that were in the now-removed
+        // SettingsEnvironmentCapturer wrapper are now applied directly
+        // to the root view (= Apple canonical = no extra wrapper).
         Group {
             if shouldShowOnboarding {
                 LibraryOnboardingView(onLibraryPicked: { url in
@@ -108,6 +124,9 @@ public struct LibraryRootView: View {
                     // instantiated).
             }
         }
+        .frame(minWidth: 1280, minHeight: 720)
+        .environment(library)
+        .preferredColorScheme(appearanceMode.colorScheme)
     }
 }
 
@@ -134,6 +153,19 @@ private struct WiredShell: View {
     // LibraryRootView embeds directly).
     @Environment(AppState.self) private var appState
     @State private var bookStore: BookStore?
+    // v0.44 M8.1: CommandPalette sheet state was in CommandPaletteHost
+    // wrapper (= removed; = the sheet is now attached directly to
+    // the root view per Apple HIG canonical = no extra wrapper
+    // layer between WindowGroup and the content view).
+    @State private var commandPaletteModel = CommandPaletteModel()
+    @State private var commandPaletteVisible: Bool = false
+    // v0.44 M8.1: LayoutEditMode + openSettings binding were in
+    // SettingsEnvironmentCapturer wrapper (= removed). These are
+    // the actual side effects of the old wrapper (= 1 .onAppear
+    // setter, 1 .layoutEditHotkey, 1 .onReceive) = now attached
+    // directly to the root view.
+    @State private var editMode = LayoutEditMode()
+    @Environment(\.openSettings) private var openSettings
     // v0.27 ticket 027-34 (= boss 8/27 grill D1 'Xcode paradigm +
     // user-customizable layout'): feature flag toggles between the
     // legacy LayoutShellView and the new WorkspaceView (= wraps the
@@ -241,6 +273,28 @@ private struct WiredShell: View {
         }
         .task {
             await runLaunch()
+        }
+        // v0.44 M8.1: CommandPalette sheet attached directly to
+        // the root view (= was in CommandPaletteHost wrapper;
+        // = removed for Apple canonical 4-layer WindowGroup →
+        // root view → NavigationSplitView → column body).
+        .sheet(isPresented: $commandPaletteVisible) {
+            CommandPaletteView(model: commandPaletteModel)
+                .navigationTitle(WenshuI18n.t("command_palette.title"))
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .wenshuShowCommandPalette)) { _ in
+            commandPaletteVisible = true
+            commandPaletteModel.show()
+        }
+        // v0.44 M8.1: Layout edit hotkey + openSettings setter
+        // attached directly to the root view (= was in
+        // SettingsEnvironmentCapturer wrapper; = removed).
+        .layoutEditHotkey(editMode)
+        .onReceive(NotificationCenter.default.publisher(for: .wenshuToggleEditMode)) { _ in
+            editMode.toggle()
+        }
+        .onAppear {
+            WenshuAppDelegate.openSettings = openSettings
         }
     }
 
