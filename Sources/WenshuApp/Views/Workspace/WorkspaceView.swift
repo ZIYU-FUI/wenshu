@@ -561,9 +561,9 @@ struct WorkspaceView: View {
             ZoneContentView(zoneSlug: "specializedTools", tabs: [
                 (WenshuI18n.t("tab.title.foreshadowing"), "git-fork", AnyView(ForeshadowingView())),
                 (WenshuI18n.t("tab.title.placeholder"), "square-dashed", AnyView(PlaceholderView())),
-                ("Long-Form", "shield-check", AnyView(LongFormGuardrailsView())),
-                ("Reader-Exp", "sparkles", AnyView(ReaderExperienceView())),
-                ("Plot-Thread", "git-branch", AnyView(PlotThreadView())),
+                (WenshuI18n.t("tab.title.long_form"), "shield-check", AnyView(LongFormGuardrailsView())),
+                (WenshuI18n.t("tab.title.reader_experience"), "sparkles", AnyView(ReaderExperienceView())),
+                (WenshuI18n.t("tab.title.plot_thread"), "git-branch", AnyView(PlotThreadView())),
                 ("Genre-Fit", "book-marked", AnyView(GenreFitView())),
                 ("Emotion-Curve", "activity", AnyView(EmotionCurveView())),
                 ("Chars-Rel", "users", AnyView(CharacterRelationshipsView())),
@@ -765,9 +765,9 @@ struct ZoneModuleView: View {
             ZoneContentView(zoneSlug: "specializedTools", tabs: [
                 (WenshuI18n.t("tab.title.foreshadowing"), "git-fork", AnyView(ForeshadowingView())),
                 (WenshuI18n.t("tab.title.placeholder"), "square-dashed", AnyView(PlaceholderView())),
-                ("Long-Form", "shield-check", AnyView(LongFormGuardrailsView())),
-                ("Reader-Exp", "sparkles", AnyView(ReaderExperienceView())),
-                ("Plot-Thread", "git-branch", AnyView(PlotThreadView())),
+                (WenshuI18n.t("tab.title.long_form"), "shield-check", AnyView(LongFormGuardrailsView())),
+                (WenshuI18n.t("tab.title.reader_experience"), "sparkles", AnyView(ReaderExperienceView())),
+                (WenshuI18n.t("tab.title.plot_thread"), "git-branch", AnyView(PlotThreadView())),
             ])
 
         case .aiDynamic:
