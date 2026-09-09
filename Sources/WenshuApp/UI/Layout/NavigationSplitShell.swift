@@ -176,45 +176,41 @@ struct ShellSidebarColumn: View {
             // coverage for every zone).
             // v0.40 boss 2026-09-09 OOB 'Plan A: full Apple native': removed
             // ZonePerRegionChrome wrapper + RegionTabBar wrapper (= per
-            // boss 2026-09-08 'Plan A' = rely on Apple's built-in
-            // NavigationSplitView column chrome = no custom chrome
-            // wrappers). The sidebar scope tab bar (shelves / reference library tabs) is
-            // preserved as inline content (= the functionality = scope
-            // filtering = is kept; = only the visual chrome wrapper =
-            // the 30 PT RegionTabBar chrome = is removed).
-            VStack(spacing: 0) {
-                HStack(spacing: DesignTokens.chromePaddingClusterGap) {
-                    Image(systemName: "books.vertical")
-                        .font(.system(size: 16))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 28, height: 28)
-                    PaneTabBar(
-                        items: [
-                            PaneTabItem(id: "shelves", icon: "book-open", label: "书架"),
-                            PaneTabItem(id: "references", icon: "library", label: "资料库"),
-                        ],
-                        selection: Binding(
-                            get: { sidebarScope.rawValue },
-                            set: { sidebarScope = SidebarScope(rawValue: $0) ?? .shelves }
-                        ),
-                        namespace: sidebarTabBarNamespace,
-                        namespaceID: "sidebarTabUnderline"
-                    )
+            // v0.40 boss 2026-09-09 OOB '100% Apple standard + restore all top bars':
+            // the sidebar chrome top bar (= leading icon + shelves/reference library tabs)
+            // is attached via Apple's canonical .toolbar API on the column.
+            // The NavigationSplitView routes the sidebar toolbar to the
+            // sidebar chrome position (= top edge of the sidebar column).
+            // No more inline HStack wrapper (= Apple-native).
+            NewLibraryOutlineView(scope: sidebarScope)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .toolbar {
+                    ToolbarItem(placement: .navigation) {
+                        Image(systemName: "books.vertical")
+                            .foregroundStyle(.secondary)
+                    }
+                    ToolbarItem(placement: .principal) {
+                        PaneTabBar(
+                            items: [
+                                PaneTabItem(id: "shelves", icon: "book-open", label: "shelves"),
+                                PaneTabItem(id: "references", icon: "library", label: "library"),
+                            ],
+                            selection: Binding(
+                                get: { sidebarScope.rawValue },
+                                set: { sidebarScope = SidebarScope(rawValue: $0) ?? .shelves }
+                            ),
+                            namespace: sidebarTabBarNamespace,
+                            namespaceID: "sidebarTabUnderline"
+                        )
+                    }
                 }
-                .padding(.horizontal, DesignTokens.chromePaddingLarge)
-                // The actual sidebar List (= same Apple HIG
-                // standard sidebar layout as before; = now
-                // filtered by sidebarScope so the scope tab bar
-                // at the top has functional control).
-                NewLibraryOutlineView(scope: sidebarScope)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .toolbarBackground(.visible)
             Divider()
             // Bottom sub-area: cards zone (= Apple-native chrome = no wrapper).
             ZoneModuleView(zoneSlot: .projectPreview)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         // v0.40 boss 2026-09-08 'yesyes mac os 27 default,
         // Liquid Glasseffect': canonical macOS 27 Tahoe Liquid Glass
         // surface for each NavigationSplitView column. .glassEffect
@@ -262,11 +258,13 @@ struct ShellSidebarColumn: View {
 struct ShellContentColumn: View {
     let appState: AppState
 
-    // v0.40 boss 2026-09-09 OOB 'Plan A: full Apple native': removed
-    // @Namespace private var editorChromeNamespace (= the
-    // PaneIconTab matchedGeometryEffect namespace = no longer
-    // needed because the editor chrome tab bar was deleted
-    // per Plan A).
+    // v0.40 boss 2026-09-09 OOB '100% Apple standard + restore all top bars':
+    // restored @Namespace for the editor chrome tab bar (= uses
+    // Apple's matchedGeometryEffect to animate the selected
+    // underline under the active mode tab). The editor top bar
+    // uses Apple's canonical column-level .toolbar API (= not
+    // custom RegionTabBar wrapper) per boss 2026-09-09.
+    @Namespace private var editorChromeNamespace
 
     var body: some View {
         VStack(spacing: 0) {
@@ -287,12 +285,11 @@ struct ShellContentColumn: View {
             // expand button = matches Safari / Pages / Xcode tab bar
             // pattern). The inner EditorPlaceholder's own tab strip
             // (= Safari-style file tabs) becomes the SECOND-layer.
-            // v0.40 boss 2026-09-09 OOB 'Plan A: full Apple native': removed
-            // RegionTabBar wrapper + ZonePerRegionChrome wrapper (= per
-            // boss 2026-09-08 'Plan A' = rely on Apple's built-in
-            // NavigationSplitView column chrome = no custom chrome
-            // wrappers). The editor zone now goes straight to
-            // EditorPlaceholder (= Apple-native = no chrome layer).
+            // v0.40 boss 2026-09-09 OOB '100% Apple standard + restore all top bars':
+            // the editor chrome top bar is attached via Apple's
+            // canonical .toolbar(id:) modifier on the column
+            // (see the .toolbar call on ShellContentColumn.body below).
+            // No inline chrome wrapper here (= Apple-native).
             EditorPlaceholder()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             Divider()
@@ -314,6 +311,63 @@ struct ShellContentColumn: View {
             ChatZoneView(conductor: nil, store: nil)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        // v0.40 boss 2026-09-09 OOB '100% Apple standard + restore all
+        // top bars': attaches the editor chrome top bar via Apple's
+        // canonical .toolbar(id:) API (= the column-level toolbar
+        // appears at the column's chrome position = the top edge
+        // of the content column). Uses Apple-native ToolbarContent
+        // (= no custom HStack / no custom chrome background colors).
+        // Per WWDC25-323 'Build a SwiftUI app with the new design',
+        // .toolbar(id:) on a NavigationSplitView column IS the
+        // canonical Apple column chrome top bar (= no custom
+        // RegionTabBar wrapper needed).
+        // v0.40 boss 2026-09-09 OOB '100% Apple standard + restore all top bars':
+        // Apple's canonical .toolbar API with ToolbarItem placements,
+        // per WWDC25-323 'Build a SwiftUI app with the new design':
+        //   .navigation     -> leading icon (canonical sidebar section icon)
+        //   .principal      -> PaneTabBar (center, fills available width)
+        //   .primaryAction  -> expand/collapse button (trailing edge)
+        // The .toolbar modifier on a NavigationSplitView column IS the
+        // canonical Apple chrome top bar (= no custom RegionTabBar
+        // wrapper needed). Apple-native Liquid Glass toolbar background
+        // applies automatically (= no custom chrome tier colors).
+        .toolbar {
+            ToolbarItem(placement: .navigation) {
+                Image(systemName: "book-open")
+                    .foregroundStyle(.secondary)
+            }
+            ToolbarItem(placement: .principal) {
+                HStack(spacing: 0) {
+                    PaneIconTab(
+                        id: "preview-mode",
+                        icon: "eye",
+                        label: "preview",
+                        isSelected: false,
+                        namespace: editorChromeNamespace,
+                        namespaceID: "editorChromeUnderline",
+                        onTap: { /* future: wire to EditorPlaceholder mode */ }
+                    )
+                    PaneIconTab(
+                        id: "edit-mode",
+                        icon: "pencil",
+                        label: "edit",
+                        isSelected: false,
+                        namespace: editorChromeNamespace,
+                        namespaceID: "editorChromeUnderline",
+                        onTap: { /* future: wire to EditorPlaceholder mode */ }
+                    )
+                }
+            }
+            ToolbarItem(placement: .primaryAction) {
+                PaneTrailingIconButton(
+                    icon: "maximize-2",
+                    tooltip: "Expand / collapse",
+                    action: { /* future: expand/collapse editor */ }
+                )
+            }
+        }
+        .toolbarBackground(.visible)
+        .toolbarRole(.editor)
         // v0.40: macOS 27 Tahoe Liquid Glass (= see ShellSidebarColumn
         // comment for rationale = columns refract like glass without
         // a drag-handle divider).
@@ -352,18 +406,32 @@ struct ShellDetailColumn: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // v0.40 boss 2026-09-09 OOB 'Plan A: full Apple native': removed
-            // ZonePerRegionChrome wrapper (= per Plan A = rely on
-            // Apple's built-in NavigationSplitView column chrome =
-            // no custom chrome wrappers). The specialized tools zone
-            // goes straight to ZoneModuleView.
+            // v0.40 boss 2026-09-09 OOB '100% Apple standard + restore all top bars':
+            // the tools + dynamic zone top bars are attached via Apple's
+            // canonical .toolbar API on the column (= the
+            // NavigationSplitView routes the column's .toolbar to the
+            // detail column chrome position).
             ZoneModuleView(zoneSlot: .specializedTools)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .toolbar {
+                    ToolbarItem(placement: .navigation) {
+                        Image(systemName: "wrench.adjustable")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .toolbarBackground(.visible)
             Divider()
             // v0.40 Plan A: removed ZonePerRegionChrome wrapper from
             // the dynamic zone (= Apple-native chrome = no wrapper).
             ZoneModuleView(zoneSlot: .aiDynamic)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .toolbar {
+                    ToolbarItem(placement: .navigation) {
+                        Image(systemName: "square.grid.2x2")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .toolbarBackground(.visible)
         }
         // v0.40: macOS 27 Tahoe Liquid Glass (= see ShellSidebarColumn
         // comment for rationale).
@@ -427,3 +495,4 @@ struct ShellPlaceholder: View {
         )
     }
 }
+
