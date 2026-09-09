@@ -164,10 +164,7 @@ struct ReaderExperienceView: View {
                 .font(.caption)
                 .frame(minHeight: 80, maxHeight: 140)
                 .padding(DesignTokens.chromePaddingSmall)
-                .background(
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(.quaternary)
-                )
+                
             HStack(spacing: 8) {
                 Button {
                     Task { await runAnalyze() }
@@ -231,10 +228,7 @@ struct ReaderExperienceView: View {
         }
         .padding(DesignTokens.chromePaddingPickerItem)
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        .background(
-            RoundedRectangle(cornerRadius: 6)
-                .fill(.quaternary)
-        )
+        
     }
 
     private func scoreBadge(_ score: Double) -> some View {
@@ -268,10 +262,7 @@ struct ReaderExperienceView: View {
                             .foregroundStyle(.tint)
                             .padding(.horizontal, DesignTokens.chromePaddingMicro)
                             .padding(.vertical, DesignTokens.chromePaddingPico)
-                            .background(
-                                RoundedRectangle(cornerRadius: 3)
-                                    .fill(.quaternary)
-                            )
+                            
                         Text(WenshuI18n.t("b5.readerexperienceview.l275.h51340592"))
                             .font(.caption)
                             .foregroundStyle(.primary)

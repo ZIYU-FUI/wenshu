@@ -291,10 +291,7 @@ struct CharacterRelationshipsView: View {
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, DesignTokens.chromePaddingSmall)
                         .padding(.vertical, DesignTokens.chromePaddingPico)
-                        .background(
-                            RoundedRectangle(cornerRadius: 3)
-                                .fill(.quaternary)
-                        )
+                        
                     if row.isMutual {
                         Text(WenshuI18n.t("b5.characterrelationshipsview.l299.h17838183"))
                             .font(.caption2)
@@ -321,10 +318,7 @@ struct CharacterRelationshipsView: View {
         .padding(.vertical, DesignTokens.chromePaddingSmall)
         .padding(.horizontal, DesignTokens.chromePaddingVertical)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 4)
-                .fill(.quaternary.opacity(0.5))
-        )
+        
     }
 
     // MARK: - Inconsistencies

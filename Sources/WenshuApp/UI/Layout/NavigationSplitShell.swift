@@ -346,7 +346,7 @@ struct ShellContentColumn: View {
         // v0.40 boss 2026-09-08 OOB 'go up one layer and remove the background': column-level
             // .background(.windowBackgroundColor) removed (= was applying
             // #1E = chrome tier over the entire column = visually distinct
-            // from the zone's own .background(.underPageBackgroundColor)).
+            // from the zone's own ).
             // Per-zone .background now flows up through the column with
             // no parent override.
         // CHATZONE-CRASH-FIX (2026-09-08): re-inject AppState into

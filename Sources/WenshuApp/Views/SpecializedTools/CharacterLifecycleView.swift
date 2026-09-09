@@ -296,10 +296,7 @@ struct CharacterLifecycleView: View {
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, DesignTokens.chromePaddingSmall)
                         .padding(.vertical, DesignTokens.chromePaddingPico)
-                        .background(
-                            RoundedRectangle(cornerRadius: 3)
-                                .fill(.quaternary)
-                        )
+                        
                     if let cid = event.chapterId {
                         Text(WenshuI18n.t("b5.characterlifecycleview.l304.h73934719"))
                             .font(.caption2)
@@ -326,10 +323,7 @@ struct CharacterLifecycleView: View {
         .padding(.vertical, DesignTokens.chromePaddingSmall)
         .padding(.horizontal, DesignTokens.chromePaddingVertical)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 4)
-                .fill(.quaternary.opacity(0.5))
-        )
+        
     }
 
     // MARK: - Timeline
