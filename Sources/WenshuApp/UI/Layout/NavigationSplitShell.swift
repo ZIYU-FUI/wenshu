@@ -294,107 +294,92 @@ struct ShellSidebarColumn: View {
 struct ShellContentColumn: View {
     let appState: AppState
 
-    // v0.40 boss 2026-09-09 OOB 'macOS 27 official API + segmented picker':
-    // replaces the previous custom PaneIconTab + matchedGeometryEffect
-    // namespace with Apple's canonical Picker(.segmented). The
-    // @State holds the selected editor mode; future ticket can wire
-    // to EditorPlaceholder's mode toggle.
-    @State private var editorMode: EditorMode = .edit
-    // v0.42 boss 2026-09-09 OOB 'use the right column tab-switch
-    // pattern for all 3 columns': the content column body is a
-    // single EditorPlaceholder (or ChatZoneView) selected by
-    // contentScope.
-    @State private var contentScope: ContentScope = .editor
-    // v0.40: removed @Namespace editorChromeNamespace (= no longer
-    // needed because the Apple Picker(.segmented) handles its own
-    // selection animation = no custom matchedGeometryEffect needed).
+    /// Whether the chat panel floats over the document.
+    /// Persisted so the panel is where the user left it after a relaunch.
+    @AppStorage("wenshu.chat.floatingVisible") private var chatVisible: Bool = false
+    /// Height of the floating chat panel, also persisted.
+    @AppStorage("wenshu.chat.floatingHeight") private var chatHeight: Double = 320
+    /// Height at drag start, so the gesture applies a delta instead of
+    /// compounding on every change callback.
+    @State private var chatDragStart: Double?
 
     var body: some View {
-        // v0.43 boss 2026-09-09 OOB 'no divider line':
-        // Apple HIG canonical for non-sidebar columns = the column
-        // body is a single View that switches via the toolbar Picker.
-        // NavigationSplitView auto-applies floating Liquid Glass
-        // when the column body is a SwiftUI-native View. The Group
-        // wrapper is a transparent container (= no visual effect,
-        // = preserves the M6 1-view-per-column pattern).
-        Group {
-            switch contentScope {
-            case .editor:
-                EditorPlaceholder()
-            case .chat:
-                ChatZoneView(conductor: nil, store: nil)
-            }
-        }
-        // v0.48: this is the detail column now (= the inspector hangs off
-        // it), so it absorbs all window slack with no width hint at all.
-        // v0.40 boss 2026-09-09 OOB '100% Apple standard + restore all
-        // top bars': attaches the editor chrome top bar via Apple's
-        // canonical .toolbar(id:) API (= the column-level toolbar
-        // appears at the column's chrome position = the top edge
-        // of the content column). Uses Apple-native ToolbarContent
-        // (= no custom HStack / no custom chrome background colors).
-        // Per WWDC25-323 'Build a SwiftUI app with the new design',
-        // .toolbar(id:) on a NavigationSplitView column IS the
-        // canonical Apple column chrome top bar (= no custom
-        // RegionTabBar wrapper needed).
-        // v0.40 boss 2026-09-09 OOB 'macOS 27 official API + use segmented picker':
-        // replaced the custom PaneIconTab with Apple's canonical
-        // Picker(...).pickerStyle(.segmented) for the editor mode tabs
-        // (= preview / edit). Per WWDC25-323 'Build a SwiftUI app with
-        // the new design' (the official macOS 27 sample code):
+        // v0.53 boss 2026-09-09 OOB: float a chat panel over the lower
+        // half of the middle column.
         //
-        //   Picker("View", selection: $selection) {
-        //     Text("Map").tag(ViewMode.map)
-        //     Text("List").tag(ViewMode.list)
-        //   }
-        //   .pickerStyle(.segmented)
-        //
-        // Apple HIG rationale:
-        // - Segmented pickers transform into Liquid Glass during
-        //   interaction (= automatic WWDC25-323 visual upgrade).
-        // - 2-5 segments = the canonical Apple range (= wenshu's
-        //   2 tabs for editor + 5 tabs for tools fit perfectly).
-        // - No custom matchedGeometryEffect / no custom PaneIconTab
-        //   wrapper needed (= Apple handles the underline animation).
-        // v0.42: the preview/edit editor mode toggle was inside the
-        // editor content (= EditorPlaceholder's own tab strip).
-        // Now that the column body is a single view switchable via
-        // contentScope, the preview/edit toggle stays inside
-        // EditorPlaceholder (no need to surface it in the column
-        // toolbar). The .primaryAction slot is now used by the
-        // Editor / Chat Picker.
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Picker("Content", selection: $contentScope) {
-                    // v0.46 boss OOB 'SF Symbol dropped, use Lucide'.
-                    LucideLabel("Editor", icon: "square-pen")
-                        .tag(ContentScope.editor)
-                    LucideLabel("Chat", icon: "messages-square")
-                        .tag(ContentScope.chat)
+        // Chat used to be the other half of a Picker: picking it REPLACED
+        // the document. Floating means both are on screen at once, so the
+        // Picker becomes a show/hide toggle and the panel is an overlay
+        // pinned to the bottom edge. The document keeps the full column
+        // underneath and is never resized by the panel.
+        EditorPlaceholder()
+            .overlay(alignment: .bottom) {
+                if chatVisible {
+                    floatingChatPanel
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 16)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                .pickerStyle(.segmented)
-                .labelsHidden()
             }
-        }
-        // v0.40: macOS 27 Tahoe Liquid Glass (= see ShellSidebarColumn
-        // comment for rationale = columns refract like glass without
-        // a drag-handle divider).
-        // v0.40 boss 2026-09-08 OOB 'go up one layer and remove the background': column-level
-            // .background(.windowBackgroundColor) removed (= was applying
-            // #1E = chrome tier over the entire column = visually distinct
-            // from the zone's own ).
-            // Per-zone .background now flows up through the column with
-            // no parent override.
-        // CHATZONE-CRASH-FIX (2026-09-08): re-inject AppState into
-        // the env chain. SwiftUI 6+ breaks the @Environment chain
-        // across NavigationSplitView's 3-column boundary (= the
-        // child column views are re-rooted in their own env
-        // subgraph). Without this re-injection, ChatZoneView /
-        // ZoneModuleView / NewLibraryOutlineView all crash with
-        // 'No Observable object of type AppState found' on access.
-        .environment(appState)
+            .animation(.snappy, value: chatVisible)
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Toggle(isOn: $chatVisible) {
+                        LucideLabel("Chat", icon: "messages-square")
+                    }
+                    .toggleStyle(.button)
+                    .help(chatVisible ? "隐藏聊天" : "显示聊天")
+                }
+            }
+            .environment(appState)
+    }
+
+    /// The floating panel itself.
+    ///
+    /// Liquid Glass is what macOS 26 uses for content floating above other
+    /// content, so the panel reads as hovering rather than as another
+    /// pane. `.glassEffect` supplies the material, the blur, and the
+    /// hairline edge, so the panel adds no colors of its own.
+    private var floatingChatPanel: some View {
+        ChatZoneView(conductor: nil, store: nil)
+            .frame(height: chatHeight)
+            .overlay(alignment: .top) { chatResizeHandle }
+            .glassEffect(.regular, in: .rect(cornerRadius: 12))
+            .shadow(color: .black.opacity(0.25), radius: 12, y: 4)
+            // Inset from the column edges so the panel reads as floating
+            // ON the column rather than docked to it.
+            //
+            // The padding has to be applied by the container, not by the
+            // panel: an overlay is sized against its host, so padding on
+            // this side of .glassEffect insets the glass while the panel
+            // still lays out edge to edge. The container applies it via
+            // .safeAreaPadding instead.
+    }
+
+    /// Drag handle on the panel's top edge, same shape as the sidebar's.
+    private var chatResizeHandle: some View {
+        Rectangle()
+            .fill(.separator)
+            .frame(height: 1)
+            .frame(height: 6)
+            .contentShape(Rectangle())
+            .onHover { inside in
+                if inside { NSCursor.resizeUpDown.push() } else { NSCursor.pop() }
+            }
+            .gesture(
+                DragGesture(coordinateSpace: .global)
+                    .onChanged { value in
+                        let start = chatDragStart ?? chatHeight
+                        if chatDragStart == nil { chatDragStart = start }
+                        // Dragging up grows the panel, so the delta is
+                        // inverted relative to the drag direction.
+                        chatHeight = min(max(start - value.translation.height, 160), 700)
+                    }
+                    .onEnded { _ in chatDragStart = nil }
+            )
     }
 }
+
 
 // MARK: - Detail column (= 2 vertical sub-areas)
 
@@ -493,16 +478,6 @@ enum InspectorContent: Hashable {
     case dynamic
 }
 
-/// v0.42 boss 2026-09-09 OOB 'column body = 1 view, no VStack':
-/// scope enum for the ShellContentColumn's tab switch
-/// (= Apple canonical inspector pattern: 1 column = 1 view,
-/// the Picker above drives the switch). 2 modes:
-/// - .editor: EditorPlaceholder (the markdown editor + tabs)
-/// - .chat: ChatZoneView (the LLM chat surface)
-enum ContentScope: Hashable {
-    case editor
-    case chat
-}
 
 
 // MARK: - Placeholder view (= reusable for M1)
