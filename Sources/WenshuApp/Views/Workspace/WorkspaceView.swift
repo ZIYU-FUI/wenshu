@@ -1271,107 +1271,121 @@ struct EditorPlaceholder: View {
                 // samplePreviewBody placeholder).
                 if activeTab == nil {
                     emptyStateHint
-                } else if mode == .preview {
-                    // v0.40 boss 9/7 OOB 'editor, yes,
-                    // shouldgroup': preview mode uses the
-                    // SAME WenshuMarkdownEditor component as edit
-                    // mode (= swift-markdown-engine NSTextView), just
-                    // with `isEditable: false` (= read-only NSTextView).
-                    // Previously preview used a separate
-                    // EditorPreviewContent (= SwiftUI AttributedString
-                    // renderer) which produced a different visual scale
-                    // (= the "" boss described). Unified
-                    // component = zero visual scaling between modes.
-                    //
-                    // SMC ticket 003: wiki-link click navigation routes
-                    // through the reference library + active book
-                    // chapter lookup (= real target resolution).
-                    // Engine's wiki-link click invokes
-                    // `handlePreviewWikiLink` (= preview mode = read,
-                    // = the click is the primary action).
-                    WenshuMarkdownEditor(
-                        text: Binding(
-                            get: { self.draft },
-                            set: { self.draft = $0 }
-                        ),
-                        draftId: activeTabIdString,
-                        configuration: WenshuEditorServicesFactory.make(
-                            bookStore: bookStore,
-                            bus: MarkdownEditorBus.buildWenshu()
-                        ),
-                        onLinkClick: { linkId in
-                            handleEditorWikiLink(linkId: linkId)
-                        },
-                        // v0.40 boss 9/7 OOB 'editor, yes
-                        //, shouldgroup': preview
-                        // mode = read-only NSTextView (= same engine
-                        // wrapper as edit, = no scaling between
-                        // modes).
-                        isEditable: false
-                    )
                 } else {
-                    // v0.34 ticket 07: edit mode uses Apple SwiftUI
-                    // TextEditor (= HIG standard multi-line text input).
-                    // @State draft holds the working copy; dirty detection
-                    // = draft != originalBody (character-level diff per
-                    // Q22 boss decision). Save button (added by ticket 08)
-                    // .tint highlights when dirty; Cmd+S hotkey (ticket
-                    // 10) triggers save.
-                    // B-24: draft is a computed property (= reads active
-                    // tab). Wrap in Binding(get:set:) so EditorEditContent
-                    // can still use @Binding draft (SwiftUI 2-way binding
-                    // contract).
-                    EditorEditContent(
-                        draft: Binding(
-                            get: { self.draft },
-                            set: { self.draft = $0 }
-                        ),
-                        originalBody: originalBody,
-                        onSave: { saveDraft() },
-                        // v0.34 B-18: route live word count into shared
-                        // AppState.editorWordCount (= chrome bottom-bar
-                        // left field reads it). Recompute is per-
-                        // keystroke; = Foundation-only = microseconds.
-                        onWordCountChange: { count in
-                            appState.editorWordCount = count
-                        },
-                        // v0.34 B-22: route dirty-state transitions
-                        // (= false→true = user started editing;
-                        // true→false = Cmd+S or auto-save completed).
-                        // The handler runs ONCE per transition (= no
-                        // per-keystroke Task churn; = Apple HIG
-                        // TextEdit / Pages behavior).
-                        onDirtyChange: { newDirty in
-                            handleDirtyTransition(newDirty)
-                        },
-                        // v0.39 ticket 001: pre-built markdown engine
-                        // configuration. Built once per active-tab switch
-                        // (= rebuilds the WikiLinkResolver + ImageProvider
-                        // against the active book's path). Engine
-                        // configuration is captured by the editor view
-                        // (= stable across onChange of draft).
-                        // v0.39 ticket 001-B: pass bookStore directly;
-                        // factory handles nil (= the v0.39 path that
-                        // survives the AnyView-wrapped EditorPlaceholder
-                        // when the environment chain hasn't propagated
-                        // BookStore yet on early zone activation).
-                        configuration: WenshuEditorServicesFactory.make(
-                            bookStore: bookStore,
-                            // SMC ticket 003: per-active-tab bus so
-                            // engine format / find / replace events
-                            // stay scoped to this document.
-                            bus: MarkdownEditorBus.buildWenshu()
-                        ),
-                        // v0.39 ticket 001: stable per-tab id, passed
-                        // to engine as `documentId` so undo + pending
-                        // replacements are scoped to this tab.
-                        draftId: activeTabIdString,
-                        // SMC ticket 003: forward engine wiki-link
-                        // click to the navigation flow.
-                        onLinkClick: { linkId in
-                            handleEditorWikiLink(linkId: linkId)
+                    // v0.52 boss 2026-09-09 OOB: give the middle column a
+                    // sheet of paper like Pages, with the markdown engine
+                    // sitting on the white area.
+                    //
+                    // Paper width comes from measuring Pages on this
+                    // machine: its canvas renders a 593 PT sheet, i.e. A4
+                    // (595 PT) at 100%. Wenshu uses the exact A4 width so
+                    // a document lines up with what Pages would show.
+                    EditorPaperCanvas {
+                        Group {
+                            if mode == .preview {
+                        // v0.40 boss 9/7 OOB 'editor, yes,
+                        // shouldgroup': preview mode uses the
+                        // SAME WenshuMarkdownEditor component as edit
+                        // mode (= swift-markdown-engine NSTextView), just
+                        // with `isEditable: false` (= read-only NSTextView).
+                        // Previously preview used a separate
+                        // EditorPreviewContent (= SwiftUI AttributedString
+                        // renderer) which produced a different visual scale
+                        // (= the "" boss described). Unified
+                        // component = zero visual scaling between modes.
+                        //
+                        // SMC ticket 003: wiki-link click navigation routes
+                        // through the reference library + active book
+                        // chapter lookup (= real target resolution).
+                        // Engine's wiki-link click invokes
+                        // `handlePreviewWikiLink` (= preview mode = read,
+                        // = the click is the primary action).
+                        WenshuMarkdownEditor(
+                            text: Binding(
+                                get: { self.draft },
+                                set: { self.draft = $0 }
+                            ),
+                            draftId: activeTabIdString,
+                            configuration: WenshuEditorServicesFactory.make(
+                                bookStore: bookStore,
+                                bus: MarkdownEditorBus.buildWenshu()
+                            ),
+                            onLinkClick: { linkId in
+                                handleEditorWikiLink(linkId: linkId)
+                            },
+                            // v0.40 boss 9/7 OOB 'editor, yes
+                            //, shouldgroup': preview
+                            // mode = read-only NSTextView (= same engine
+                            // wrapper as edit, = no scaling between
+                            // modes).
+                            isEditable: false
+                        )
+                    } else {
+                        // v0.34 ticket 07: edit mode uses Apple SwiftUI
+                        // TextEditor (= HIG standard multi-line text input).
+                        // @State draft holds the working copy; dirty detection
+                        // = draft != originalBody (character-level diff per
+                        // Q22 boss decision). Save button (added by ticket 08)
+                        // .tint highlights when dirty; Cmd+S hotkey (ticket
+                        // 10) triggers save.
+                        // B-24: draft is a computed property (= reads active
+                        // tab). Wrap in Binding(get:set:) so EditorEditContent
+                        // can still use @Binding draft (SwiftUI 2-way binding
+                        // contract).
+                        EditorEditContent(
+                            draft: Binding(
+                                get: { self.draft },
+                                set: { self.draft = $0 }
+                            ),
+                            originalBody: originalBody,
+                            onSave: { saveDraft() },
+                            // v0.34 B-18: route live word count into shared
+                            // AppState.editorWordCount (= chrome bottom-bar
+                            // left field reads it). Recompute is per-
+                            // keystroke; = Foundation-only = microseconds.
+                            onWordCountChange: { count in
+                                appState.editorWordCount = count
+                            },
+                            // v0.34 B-22: route dirty-state transitions
+                            // (= false→true = user started editing;
+                            // true→false = Cmd+S or auto-save completed).
+                            // The handler runs ONCE per transition (= no
+                            // per-keystroke Task churn; = Apple HIG
+                            // TextEdit / Pages behavior).
+                            onDirtyChange: { newDirty in
+                                handleDirtyTransition(newDirty)
+                            },
+                            // v0.39 ticket 001: pre-built markdown engine
+                            // configuration. Built once per active-tab switch
+                            // (= rebuilds the WikiLinkResolver + ImageProvider
+                            // against the active book's path). Engine
+                            // configuration is captured by the editor view
+                            // (= stable across onChange of draft).
+                            // v0.39 ticket 001-B: pass bookStore directly;
+                            // factory handles nil (= the v0.39 path that
+                            // survives the AnyView-wrapped EditorPlaceholder
+                            // when the environment chain hasn't propagated
+                            // BookStore yet on early zone activation).
+                            configuration: WenshuEditorServicesFactory.make(
+                                bookStore: bookStore,
+                                // SMC ticket 003: per-active-tab bus so
+                                // engine format / find / replace events
+                                // stay scoped to this document.
+                                bus: MarkdownEditorBus.buildWenshu()
+                            ),
+                            // v0.39 ticket 001: stable per-tab id, passed
+                            // to engine as `documentId` so undo + pending
+                            // replacements are scoped to this tab.
+                            draftId: activeTabIdString,
+                            // SMC ticket 003: forward engine wiki-link
+                            // click to the navigation flow.
+                            onLinkClick: { linkId in
+                                handleEditorWikiLink(linkId: linkId)
+                            }
+                        )
+                            }
                         }
-                    )
+                    }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -2069,4 +2083,51 @@ fileprivate func findPaneController(in root: NSViewController?) -> PaneNSControl
     }
     NSLog("[wenshu.reset] BFS failed: scanned \(scanned) obj(s), no PaneNSController found under root=\(type(of: root))")
     return nil
+}
+
+
+/// The sheet of paper the editor sits on, in the shape Pages uses.
+///
+/// Boss 2026-09-09 OOB: give the middle column a paper-sized area and put
+/// the markdown engine on the white part.
+///
+/// Width is A4 (595 PT). Measured Pages on this machine: its canvas draws
+/// a 593 PT sheet against a dark surround, which is A4 at 100% zoom. The
+/// sheet keeps that width and never stretches with the window; the column
+/// around it scrolls and centers, exactly like a document canvas.
+struct EditorPaperCanvas<Content: View>: View {
+    /// A4 width in points. Apple's own default for a new Pages document
+    /// in a metric locale, and what the measurement above confirmed.
+    private static var paperWidth: CGFloat { 595 }
+    /// Page margin. Pages ships 1 inch (72 PT) on a new document.
+    private static var paperMargin: CGFloat { 72 }
+
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        ScrollView {
+            content
+                .padding(Self.paperMargin)
+                .frame(width: Self.paperWidth, alignment: .topLeading)
+                .frame(minHeight: 842)          // A4 height, so a short
+                                                // document still looks
+                                                // like a page
+                // Paper stays white in dark mode, which is what Pages
+                // does: measured its canvas at 255/255/255 while the app
+                // chrome around it was dark. .textBackgroundColor would
+                // follow the system appearance and turn the sheet dark.
+                .background(Color.white)
+                // Forcing the light appearance on the sheet's subtree
+                // makes the engine render dark text on it. Without this
+                // the NSTextView keeps dark-mode label colors and the
+                // text is white-on-white.
+                .environment(\.colorScheme, .light)
+                .shadow(color: .black.opacity(0.35), radius: 8, y: 2)
+                .padding(.vertical, 24)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // The surround stays on the column's own material, which is the
+        // content tier, so the white sheet reads as paper on a desk.
+        .scrollContentBackground(.hidden)
+    }
 }
