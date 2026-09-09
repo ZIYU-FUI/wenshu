@@ -149,65 +149,49 @@ struct ShellSidebarColumn: View {
     // reference library). The NewLibraryOutlineView receives
     // the scope via initializer (= so it can filter which
     // rows are visible).
-        @State private var sidebarScope: SidebarScope = .shelves
+        // v0.42 boss 2026-09-09 OOB 'use the right column's tab-switch
+    // pattern for all 3 columns (= column body = single view, switch
+    // via Picker in .toolbar)': the sidebar column body is a
+    // single NewLibraryOutlineView (or the cards zone) selected
+    // by sidebarScope. The 2-toggle Picker in the .toolbar above
+    // switches the column content (= Apple canonical inspector
+    // pattern = same as ShellDetailColumn).
+    @State private var sidebarScope: SidebarScope = .shelves
 
     var body: some View {
-        // VStack (vertical stack) of 2 sub-areas inside one
-        // column. Apple HIG standard pattern: multiple sections
-        // stacked inside one column, no drag-resizable divider
-        // between sections (= the column's width is fixed; =
-        // users resize the entire column, not the individual
-        // sections inside it).
-        //
-        // v0.40 boss 2026-09-08 'yesyes mac os 27 default,
-        // Liquid Glasseffect': wrap column in Rectangle.glassEffect
-        // (.regular) (= the canonical macOS 27 Tahoe Liquid Glass
-        // material that auto-applies when the column is a 3rd-
-        // party SwiftUI view = the glass material refracts and
-        // visually separates columns without a drag-handle divider;
-        // = matches Pages / Numbers / Keynote canonical no-line
-        // look).
-        VStack(spacing: 0) {
-            // Top sub-area: scope tab bar + real directory tree
-            // wrapped in ZonePerRegionChrome (= top tab bar + bottom
-            // status bar; = matches the legacy PaneSplitHost path's chrome
-            // coverage for every zone).
-            // v0.40 boss 2026-09-09 OOB 'Plan A: full Apple native': removed
-            // ZonePerRegionChrome wrapper + RegionTabBar wrapper (= per
-            // v0.40 boss 2026-09-09 OOB '100% Apple standard + restore all top bars':
-            // the sidebar chrome top bar (= leading icon + shelves/reference library tabs)
-            // is attached via Apple's canonical .toolbar API on the column.
-            // The NavigationSplitView routes the sidebar toolbar to the
-            // sidebar chrome position (= top edge of the sidebar column).
-            // No more inline HStack wrapper (= Apple-native).
-            NewLibraryOutlineView(scope: sidebarScope)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .toolbar {
-                    ToolbarItem(placement: .navigation) {
-                        Image(systemName: "books.vertical")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .toolbarBackground(.visible)
-            Divider()
-            // Bottom sub-area: cards zone (= Apple-native chrome = no wrapper).
-            ZoneModuleView(zoneSlot: .projectPreview)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // v0.42 boss 2026-09-09 OOB 'column body = 1 view, no VStack':
+        // single Group that switches between NewLibraryOutlineView
+        // (when scope = shelves) and the cards zone (when scope =
+        // references). Apple HIG canonical = 1 column = 1 view;
+        // the Picker in the .toolbar above drives the switch.
+        Group {
+            switch sidebarScope {
+            case .shelves:
+                NewLibraryOutlineView(scope: sidebarScope)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            case .references:
+                ZoneModuleView(zoneSlot: .projectPreview)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // v0.40 boss 2026-09-08 'yesyes mac os 27 default,
-        // Liquid Glasseffect': canonical macOS 27 Tahoe Liquid Glass
-        // surface for each NavigationSplitView column. .glassEffect
-        // (.regular) auto-applies the Liquid Glass material (= the
-        // column refracts like glass = visually separates from
-        // adjacent columns without a drag-handle divider; = matches
-        // Pages / Numbers / Keynote canonical look).
-        // v0.40 boss 2026-09-08 OOB 'go up one layer and remove the background': column-level
-            // .background(.windowBackgroundColor) removed (= was applying
-            // #1E = chrome tier over the entire column = visually distinct
-            // from the zone's own .background(.underPageBackgroundColor)).
-            // Per-zone .background now flows up through the column with
-            // no parent override.
+        .toolbar {
+            ToolbarItem(placement: .navigation) {
+                Image(systemName: "books.vertical")
+                    .foregroundStyle(.secondary)
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Picker("Sidebar Scope", selection: $sidebarScope) {
+                    Label("Shelves", systemImage: "book-open")
+                        .tag(SidebarScope.shelves)
+                    Label("Reference", systemImage: "library")
+                        .tag(SidebarScope.references)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+            }
+        }
+        .toolbarBackground(.visible)
     }
 }
 
@@ -248,54 +232,31 @@ struct ShellContentColumn: View {
     // @State holds the selected editor mode; future ticket can wire
     // to EditorPlaceholder's mode toggle.
     @State private var editorMode: EditorMode = .edit
+    // v0.42 boss 2026-09-09 OOB 'use the right column tab-switch
+    // pattern for all 3 columns': the content column body is a
+    // single EditorPlaceholder (or ChatZoneView) selected by
+    // contentScope.
+    @State private var contentScope: ContentScope = .editor
     // v0.40: removed @Namespace editorChromeNamespace (= no longer
     // needed because the Apple Picker(.segmented) handles its own
     // selection animation = no custom matchedGeometryEffect needed).
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Top sub-area: real editor wrapped in ZonePerRegionChrome
-            // (= adds the top tab bar + bottom status bar that
-            // legacy PaneSplitHost path provided per zone; = boss 9/8
-            // 'middle two zones lost their top bars' = the chrome was missing because
-            // M2 directly embedded the zone view instead of
-            // wrapping it in ZonePerRegionChrome).
-            //
-            // v0.40 boss 2026-09-08 OOB 'editor zone default display is correct' +
-            // 'needtop bar..., teb,
-            // expand/collapse': the FIRST-layer chrome top bar
-            // (= the 30 PT RegionTabBar that every pane in the old
-            // 6-region layout had above its content) was removed
-            // during CHROME-ARCH-001. Boss wants it back. Wrap the
-            // editor content with RegionTabBar (= PaneTabBar + trailing
-            // expand button = matches Safari / Pages / Xcode tab bar
-            // pattern). The inner EditorPlaceholder's own tab strip
-            // (= Safari-style file tabs) becomes the SECOND-layer.
-            // v0.40 boss 2026-09-09 OOB '100% Apple standard + restore all top bars':
-            // the editor chrome top bar is attached via Apple's
-            // canonical .toolbar(id:) modifier on the column
-            // (see the .toolbar call on ShellContentColumn.body below).
-            // No inline chrome wrapper here (= Apple-native).
-            EditorPlaceholder()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            Divider()
-            // Bottom sub-area: real chat wrapped in
-            // ChatZoneView (= the canonical chat-zone wrapper
-            // that provides the top tab bar via safeAreaInset +
-            // the bottom chrome status bar; = boss 9/8
-            // 'editor zone, chat zonetop bar' = the chat
-            // top tab bar is restored now that the env chain
-            // is intact (= the M1 NavigationSplitShell is at
-            // the root of the Scene, = @Environment
-            // propagation is preserved across column boundaries).
-            //
-            // No outer ZonePerRegionChrome (= the inner
-            // ChatZoneView already provides both top tab bar
-            // and bottom status bar = boss 9/8 'chat zone
-            // bottom bar'). Skipping the outer chrome avoids
-            // double-stacked bottom bars.
-            ChatZoneView(conductor: nil, store: nil)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // v0.42 boss 2026-09-09 OOB 'column body = 1 view, no VStack':
+        // single Group that switches between EditorPlaceholder (when
+        // scope = editor) and ChatZoneView (when scope = chat).
+        // Apple HIG canonical = 1 column = 1 view; the Picker in
+        // the .toolbar above drives the switch (= same as
+        // ShellDetailColumn's Tools / Dynamic pattern).
+        Group {
+            switch contentScope {
+            case .editor:
+                EditorPlaceholder()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            case .chat:
+                ChatZoneView(conductor: nil, store: nil)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         }
         // v0.40 boss 2026-09-09 OOB '100% Apple standard + restore all
         // top bars': attaches the editor chrome top bar via Apple's
@@ -326,25 +287,27 @@ struct ShellContentColumn: View {
         //   2 tabs for editor + 5 tabs for tools fit perfectly).
         // - No custom matchedGeometryEffect / no custom PaneIconTab
         //   wrapper needed (= Apple handles the underline animation).
+        // v0.42: the preview/edit editor mode toggle was inside the
+        // editor content (= EditorPlaceholder's own tab strip).
+        // Now that the column body is a single view switchable via
+        // contentScope, the preview/edit toggle stays inside
+        // EditorPlaceholder (no need to surface it in the column
+        // toolbar). The .primaryAction slot is now used by the
+        // Editor / Chat Picker.
         .toolbar {
             ToolbarItem(placement: .navigation) {
                 Image(systemName: "book-open")
                     .foregroundStyle(.secondary)
             }
-            ToolbarItem(placement: .principal) {
-                Picker("Editor mode", selection: $editorMode) {
-                    Label("Preview", systemImage: "eye").tag(EditorMode.preview)
-                    Label("Edit", systemImage: "pencil").tag(EditorMode.edit)
+            ToolbarItem(placement: .primaryAction) {
+                Picker("Content", selection: $contentScope) {
+                    Label("Editor", systemImage: "square.and.pencil")
+                        .tag(ContentScope.editor)
+                    Label("Chat", systemImage: "bubble.left.and.bubble.right")
+                        .tag(ContentScope.chat)
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
-            }
-            ToolbarItem(placement: .primaryAction) {
-                PaneTrailingIconButton(
-                    icon: "maximize-2",
-                    tooltip: "Expand / collapse",
-                    action: { /* future: expand/collapse editor */ }
-                )
             }
         }
         .toolbarBackground(.visible)
@@ -404,34 +367,27 @@ struct ShellDetailColumn: View {
     @State private var inspectorContent: InspectorContent = .tools
 
     var body: some View {
-        // v0.42: 2-stack VStack pattern matching ShellSidebarColumn
-        // (= 2 sub-areas: tools on top, dynamic on bottom, Divider
-        // between them). The 2-toggle picker is in the .toolbar
-        // above (= no inline VStack container for the picker).
-        VStack(spacing: 0) {
-            // Top sub-area: tools (5 tabs: 伏笔 / 占位符 / 长文规范 /
-            // 读者体验 / 情节线). Visible when inspectorContent == .tools.
-            if inspectorContent == .tools {
+        // v0.42 boss 2026-09-09 OOB 'right column = Pages/Keynote inspector
+        // pattern': the column body is a single Group that switches
+        // between ZoneModuleView(.specializedTools) and
+        // ZoneModuleView(.aiDynamic) based on the inspectorContent
+        // tab (= the 2-toggle Picker in the .toolbar above). This is
+        // Apple HIG canonical: 1 column = 1 view (no VStack sub-areas
+        // inside the column; = the floating Liquid Glass material
+        // = the column-to-column seam disappears = matches Pages).
+        Group {
+            switch inspectorContent {
+            case .tools:
                 ZoneModuleView(zoneSlot: .specializedTools)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                Color.clear
-                    .frame(maxWidth: .infinity, maxHeight: 0)
-            }
-            Divider()
-            // Bottom sub-area: dynamic (kanban / todo / search).
-            // Visible when inspectorContent == .dynamic.
-            if inspectorContent == .dynamic {
+            case .dynamic:
                 ZoneModuleView(zoneSlot: .aiDynamic)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                Color.clear
-                    .frame(maxWidth: .infinity, maxHeight: 0)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         // v0.42: column-level .toolbar following ShellSidebarColumn's
-        // exact pattern: leading .navigation icon + .principal
+        // exact pattern: leading .navigation icon + .primaryAction
         // Picker(.segmented) 2-toggle. The 2 icons at the top
         // right (= wrench + grid) come from the Picker labels
         // (= Picker(.segmented) renders Label icons when labels
@@ -470,6 +426,18 @@ enum InspectorContent: Hashable {
     case tools
     case dynamic
 }
+
+/// v0.42 boss 2026-09-09 OOB 'column body = 1 view, no VStack':
+/// scope enum for the ShellContentColumn's tab switch
+/// (= Apple canonical inspector pattern: 1 column = 1 view,
+/// the Picker above drives the switch). 2 modes:
+/// - .editor: EditorPlaceholder (the markdown editor + tabs)
+/// - .chat: ChatZoneView (the LLM chat surface)
+enum ContentScope: Hashable {
+    case editor
+    case chat
+}
+
 
 // MARK: - Placeholder view (= reusable for M1)
 
