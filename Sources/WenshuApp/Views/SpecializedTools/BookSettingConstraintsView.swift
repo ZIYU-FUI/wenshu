@@ -227,7 +227,7 @@ struct BookSettingConstraintsView: View {
                 Button {
                     Task { await addConstraint() }
                 } label: {
-                    Label(WenshuI18n.t("b5.booksettingconstraintsview.l230.h25158042"), systemImage: "plus")
+                    Label { Text(WenshuI18n.t("b5.booksettingconstraintsview.l230.h25158042")) } icon: { LucideIcon("plus", size: 16) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canAdd)
@@ -364,7 +364,7 @@ struct BookSettingConstraintsView: View {
                     Button {
                         Task { await runCheck() }
                     } label: {
-                        Label(WenshuI18n.t("b5.booksettingconstraintsview.l376.h23587784"), systemImage: "search-check")
+                        Label { Text(WenshuI18n.t("b5.booksettingconstraintsview.l376.h23587784")) } icon: { LucideIcon("search-check", size: 16) }
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(chapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || constraints.isEmpty)

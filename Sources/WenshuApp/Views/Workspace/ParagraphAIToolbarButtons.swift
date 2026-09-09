@@ -37,7 +37,7 @@ struct ParagraphAIToolbarButtons: View {
             Button {
                 onApply(.expand)
             } label: {
-                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                LucideIcon("maximize-2", size: 16)
                     .font(DesignTokens.hotkeyComboFont)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, DesignTokens.chromePaddingVertical)
@@ -58,7 +58,7 @@ struct ParagraphAIToolbarButtons: View {
             Button {
                 onApply(.shorten)
             } label: {
-                Image(systemName: "arrow.down.right.and.arrow.up.left")
+                LucideIcon("minimize-2", size: 16)
                     .font(DesignTokens.hotkeyComboFont)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, DesignTokens.chromePaddingVertical)
@@ -78,7 +78,7 @@ struct ParagraphAIToolbarButtons: View {
             Button {
                 onApply(.rephrase)
             } label: {
-                Image(systemName: "arrow.triangle.2.circlepath")
+                LucideIcon("refresh-cw", size: 16)
                     .font(DesignTokens.hotkeyComboFont)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, DesignTokens.chromePaddingVertical)
@@ -106,7 +106,7 @@ struct ParagraphAIToolbarButtons: View {
                 Button(WenshuI18n.t("b5.paragraphaitoolbarbuttons.l106.h64972328")) { onApply(.dramatize) }
                     .disabled(selectedText.isEmpty || isApplying)
             } label: {
-                Image(systemName: "ellipsis.circle")
+                LucideIcon("ellipsis", size: 16)
                     .font(DesignTokens.hotkeyComboFont)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, DesignTokens.chromePaddingSmall)

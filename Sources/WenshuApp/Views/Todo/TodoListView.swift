@@ -188,7 +188,7 @@ public struct TodoListView: View {
                 .pickerStyle(.menu)
                 .fixedSize()
                 Button(action: addItem) {
-                    Label(WenshuI18n.t("auto2.todolistview.l191.h76640765"), systemImage: "plus")
+                    Label { Text(WenshuI18n.t("auto2.todolistview.l191.h76640765")) } icon: { LucideIcon("plus", size: 16) }
                 }
                 .disabled(!canAdd)
                 .buttonStyle(.borderedProminent)
@@ -247,7 +247,7 @@ public struct TodoListView: View {
     private var llmActivityBanner: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
-                Image(systemName: "sparkles")
+                LucideIcon("sparkles", size: 16)
                     .font(.caption)
                     .foregroundStyle(.tint)
                 Text(WenshuI18n.t("auto.todolistview.l253.h37022798"))
@@ -255,7 +255,7 @@ public struct TodoListView: View {
                     .foregroundStyle(.secondary)
                 Spacer()
                 Button(action: { recentEvents.removeAll() }) {
-                    Image(systemName: "xmark.circle.fill")
+                    LucideIcon("circle-x", size: 16)
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
@@ -264,7 +264,7 @@ public struct TodoListView: View {
             }
             ForEach(Array(recentEvents.prefix(5).enumerated()), id: \.offset) { (_, item) in
                 HStack(spacing: 6) {
-                    Image(systemName: iconName(for: item.status))
+                    LucideIcon(iconName(for: item.status), size: 16)
                         .font(.caption2)
                         .foregroundStyle(color(for: item.status))
                     Text(WenshuI18n.t("b5.todolistview.l270.h83263085"))
@@ -293,10 +293,12 @@ public struct TodoListView: View {
     /// `TodoRow.statusToggle` for visual consistency.
     private func iconName(for status: TodoStatus) -> String {
         switch status {
+        // v0.46 boss OOB 'SF Symbol dropped, use Lucide': names are
+        // Lucide, resolved through LucideIcon at the call site.
         case .pending: return "circle"
-        case .inProgress: return "circle.inset.filled"
-        case .completed: return "checkmark.circle.fill"
-        case .cancelled: return "xmark.circle"
+        case .inProgress: return "circle-dot"
+        case .completed: return "circle-check"
+        case .cancelled: return "circle-x"
         }
     }
 
@@ -572,7 +574,7 @@ private struct TodoRow: View {
                 Divider()
                 Button(WenshuI18n.t("auto2.todolistview.l573.h2266275"), role: .destructive) { onDelete() }
             } label: {
-                Image(systemName: "ellipsis.circle")
+                LucideIcon("ellipsis", size: 16)
                     .font(.caption)
             }
             .menuStyle(.borderlessButton)
@@ -590,7 +592,7 @@ private struct TodoRow: View {
                 && item.status != .completed
                 && item.status != .cancelled
             HStack(spacing: 4) {
-                Image(systemName: "calendar")
+                LucideIcon("calendar", size: 16)
                     .font(.caption2)
                 Text(Self.dueDateFormatter.string(from: due))
                     .font(.caption)
@@ -623,27 +625,27 @@ private struct TodoRow: View {
         switch item.status {
         case .pending:
             Button(action: { onSetStatus(.inProgress) }) {
-                Image(systemName: "circle")
+                LucideIcon("circle", size: 16)
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
             .help(WenshuI18n.t("auto2.todolistview.l630.h96905135"))
         case .inProgress:
             Button(action: { onSetStatus(.completed) }) {
-                Image(systemName: "circle.inset.filled")
+                LucideIcon("circle-dot", size: 16)
                     .foregroundStyle(.tint)
             }
             .buttonStyle(.borderless)
             .help(WenshuI18n.t("auto2.todolistview.l637.h11194739"))
         case .completed:
             Button(action: { onSetStatus(.pending) }) {
-                Image(systemName: "checkmark.circle.fill")
+                LucideIcon("circle-check", size: 16)
                     .foregroundStyle(.green)
             }
             .buttonStyle(.borderless)
             .help(WenshuI18n.t("todolist.reopen"))
         case .cancelled:
-            Image(systemName: "xmark.circle")
+            LucideIcon("circle-x", size: 16)
                 .foregroundStyle(.tertiary)
         }
     }

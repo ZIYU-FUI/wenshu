@@ -20,7 +20,7 @@ public struct MemoryRetrievalPanel: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Image(systemName: "brain.head.profile")
+                LucideIcon("brain", size: 16)
                 Text(WenshuI18n.t("b5.memoryretrievalpanel.l24.h99228791"))
                     .font(.headline)
                 Spacer()

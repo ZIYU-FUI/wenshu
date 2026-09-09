@@ -120,7 +120,7 @@ public struct CommandPaletteView: View {
             // text-field render; no custom frame / border / Liquid Glass
             // paint = boss 2026-09-02 OOB 'let Apple defaults through').
             HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
+                LucideIcon("search", size: 16)
                     .foregroundStyle(.secondary)
                 TextField(WenshuI18n.t("b5.commandpaletteview.l125.h99176598"), text: Binding(
                     get: { model.query },
@@ -140,7 +140,7 @@ public struct CommandPaletteView: View {
                     Button {
                         Task { await model.filter(by: "") }
                     } label: {
-                        Image(systemName: "xmark.circle.fill")
+                        LucideIcon("circle-x", size: 16)
                             .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.borderless)
@@ -225,7 +225,7 @@ private struct CommandPaletteRow: View {
             // "chat" / "custom"). SF Symbol fallback is acceptable here
             // because this is a debug/internal UX surface (= not the
             // user-facing app chrome).
-            Image(systemName: categorySymbol)
+            LucideIcon(categorySymbol, size: 16)
                 .foregroundStyle(categoryColor)
                 .frame(width: DesignTokens.iconStandardSize, height: DesignTokens.iconStandardSize)
             VStack(alignment: .leading, spacing: 2) {
@@ -262,12 +262,13 @@ private struct CommandPaletteRow: View {
 
     private var categorySymbol: String {
         switch item.category {
-        case "skill": return "wand.and.stars"
-        case "navigate": return "arrow.right.circle"
+        // v0.46 boss OOB 'SF Symbol dropped, use Lucide'.
+        case "skill": return "wand-sparkles"
+        case "navigate": return "circle-arrow-right"
         case "command": return "terminal"
-        case "chat": return "bubble.left"
-        case "custom": return "puzzlepiece"
-        default: return "questionmark.circle"
+        case "chat": return "message-square"
+        case "custom": return "puzzle"
+        default: return "circle-question-mark"
         }
     }
 

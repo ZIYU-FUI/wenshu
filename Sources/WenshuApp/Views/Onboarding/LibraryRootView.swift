@@ -409,7 +409,7 @@ Group {
                 Button {
                     showSavePanel()
                 } label: {
-                    Label(WenshuI18n.t("auto2.libraryrootview.l387.h40947105"), systemImage: "doc.badge.plus")
+                    Label { Text(WenshuI18n.t("auto2.libraryrootview.l387.h40947105")) } icon: { LucideIcon("file-plus", size: 16) }
                         .frame(width: DesignTokens.bannerInlineSize.width, height: DesignTokens.bannerInlineSize.height)
                 }
                 .buttonStyle(.borderedProminent)
@@ -418,7 +418,7 @@ Group {
                 Button {
                     showOpenPanel()
                 } label: {
-                    Label(WenshuI18n.t("auto2.libraryrootview.l396.h53178210"), systemImage: "folder")
+                    Label { Text(WenshuI18n.t("auto2.libraryrootview.l396.h53178210")) } icon: { LucideIcon("folder", size: 16) }
                         .frame(width: DesignTokens.bannerInlineSize.width, height: DesignTokens.bannerInlineSize.height)
                 }
                 .buttonStyle(.bordered)

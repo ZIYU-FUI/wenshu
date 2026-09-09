@@ -171,7 +171,7 @@ struct GenreFitView: View {
                 Button {
                     Task { await runAnalyze() }
                 } label: {
-                    Label(WenshuI18n.t("button.analyze"), systemImage: "play")
+                    Label { Text(WenshuI18n.t("button.analyze")) } icon: { LucideIcon("play", size: 16) }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(chapterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || status == .running)
@@ -181,7 +181,7 @@ struct GenreFitView: View {
                     report = nil
                     status = .idle
                 } label: {
-                    Label(WenshuI18n.t("button.clear"), systemImage: "x")
+                    Label { Text(WenshuI18n.t("button.clear")) } icon: { LucideIcon("x", size: 16) }
                 }
                 .buttonStyle(.bordered)
                 .help(WenshuI18n.t("b5.genrefitview.l190.h26662967"))

@@ -119,12 +119,19 @@ public func LucideIconSystemFallback(_ sfSymbol: String, size: CGFloat = 18) -> 
             .frame(width: size, height: size)
             .foregroundStyle(.primary)
     } else {
-        // Final fallback = Image(systemName:) SF Symbol rendering
-        // (= preserves boss's existing behavior; can be removed in a
-        // followup if boss wants strict Lucide-only).
-        Image(systemName: sfSymbol)
-            .frame(width: size, height: size)
-            .foregroundStyle(.primary)
+        // v0.46 boss 2026-09-09 OOB 'SF Symbol is dropped, use the
+        // third-party icon library': the Image(systemName:) fall-through
+        // is gone. wenshu is strict Lucide-only now. An unmapped name
+        // renders the Lucide question-mark glyph so a missing mapping is
+        // visible on screen instead of silently blank.
+        if let placeholder = Lucide("circle-question-mark") {
+            placeholder
+                .frame(width: size, height: size)
+                .foregroundStyle(.secondary)
+        } else {
+            Color.clear
+                .frame(width: size, height: size)
+        }
     }
 }
 

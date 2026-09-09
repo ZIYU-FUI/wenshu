@@ -397,7 +397,7 @@ struct PreviewPane: View {
     /// (= live refresh, no submit button, no .onChange handler).
     private var previewSearchBar: some View {
         HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass")
+            LucideIcon("search", size: 16)
                 .foregroundStyle(.secondary)
                 .imageScale(.small)
             TextField(
@@ -414,7 +414,7 @@ struct PreviewPane: View {
                 Button {
                     previewSearchQuery = ""
                 } label: {
-                    Image(systemName: "xmark.circle.fill")
+                    LucideIcon("circle-x", size: 16)
                         .foregroundStyle(.secondary)
                         .imageScale(.small)
                 }

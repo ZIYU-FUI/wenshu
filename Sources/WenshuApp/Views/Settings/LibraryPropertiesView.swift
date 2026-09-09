@@ -79,17 +79,17 @@ struct LibraryPropertiesView: View {
                     Button {
                         onRevealInFinder()
                     } label: {
-                        Label(WenshuI18n.t("auto2.librarypropertiesview.l82.h54714643"), systemImage: "folder")
+                        Label { Text(WenshuI18n.t("auto2.librarypropertiesview.l82.h54714643")) } icon: { LucideIcon("folder", size: 16) }
                     }
                     Button {
                         onMoveWarehouse()
                     } label: {
-                        Label(WenshuI18n.t("auto2.librarypropertiesview.l87.h35464092"), systemImage: "arrow.right.square")
+                        Label { Text(WenshuI18n.t("auto2.librarypropertiesview.l87.h35464092")) } icon: { LucideIcon("square-arrow-right", size: 16) }
                     }
                     Button(role: .destructive) {
                         showResetConfirmation = true
                     } label: {
-                        Label(WenshuI18n.t("auto2.librarypropertiesview.l92.h43224553"), systemImage: "arrow.uturn.backward")
+                        Label { Text(WenshuI18n.t("auto2.librarypropertiesview.l92.h43224553")) } icon: { LucideIcon("undo-2", size: 16) }
                     }
                 }
                 Section {
