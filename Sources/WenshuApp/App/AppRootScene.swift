@@ -84,7 +84,17 @@ struct AppRootScene: Scene {
         .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // Boss Sketch design baseline 1920x984 PT
         // v0.24 bossverificationfix: .contentMinSize (window doesn't shrink below initial
         // size, can grow to fit larger content).
-        .windowResizability(.contentMinSize)
+        // v0.91 boss 2026-09-10 OOB '1480 也可以': change to
+        // .contentSize so the defaultSize (= 1480 PT width) is
+        // actually applied. The previous `.contentMinSize` made
+        // the window grow to fit the NavigationSplitView's
+        // content minimum (= the 4-column ideal-width sum + drag
+        // handles + window chrome = ~2205 PT), overriding
+        // defaultSize entirely. .contentSize lets the window
+        // resize freely (= not anchored to content minimum), so
+        // defaultSize 1480 PT is the initial window size and the
+        // user can shrink or grow from there.
+        .windowResizability(.contentSize)
         // v0.81 boss 2026-09-10 OOB: the inspector toggle button
         // (= ⌥⌘I = Lucide "panel-right" icon = the canonical Apple
         // toolbar affordance for NavigationSplitView `.inspector`)
