@@ -110,18 +110,19 @@ public struct LibraryRootView: View {
         content
             .environment(library)
             .preferredColorScheme(appearanceMode.colorScheme)
-            // Apple HIG Inventory 2026-09-06 listed `.navigationSubtitle`
-            // as a missing API (0 hits). Per boss 2026-09-10 'add HIG
-            // APIs that are currently absent', set the window subtitle
-            // to the library path basename (= Apple canonical Pages /
-            // Numbers look; macOS 11+). The basename is the library
-            // folder's last URL component (= e.g. "MyLibrary" for a
-            // .ws at /Users/me/WenshuLibraries/MyLibrary/).
-            .navigationSubtitle(
-                (libraryPath as NSString)
-                    .lastPathComponent
-                    .isEmpty ? "Wenshu" : (libraryPath as NSString).lastPathComponent
-            )
+            // v0.74 boss 2026-09-10 OOB '这个库文件名也不需要显示':
+            // drop the `.navigationSubtitle(libraryPath.lastPathComponent)`.
+            // It was originally added (= ticket 008, commit a0e9b509d) to
+            // match Apple's Pages / Numbers 'document basename in the
+            // window subtitle' pattern, but per the boss's most recent
+            // visual iteration the column-top subtitle (= 'anbaiqiang.ws'
+            // in the screenshot) is noise on a single-library app (= the
+            // user knows which library they opened = the .ws picker is
+            // onboarding-only = no per-document title bar is needed).
+            // Per Apple HIG Inventory 2026-09-06 the API is still
+            // available for future use (= .navigationSubtitle remains
+            // imported at the call site below via SwiftUI re-export;
+            // = we just don't call it from this root view anymore).
             .task { await runLaunch() }
             .sheet(isPresented: $commandPaletteVisible) {
                 CommandPaletteView(model: commandPaletteModel)
