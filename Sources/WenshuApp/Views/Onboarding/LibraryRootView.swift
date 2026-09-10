@@ -110,6 +110,18 @@ public struct LibraryRootView: View {
         content
             .environment(library)
             .preferredColorScheme(appearanceMode.colorScheme)
+            // Apple HIG Inventory 2026-09-06 listed `.navigationSubtitle`
+            // as a missing API (0 hits). Per boss 2026-09-10 'add HIG
+            // APIs that are currently absent', set the window subtitle
+            // to the library path basename (= Apple canonical Pages /
+            // Numbers look; macOS 11+). The basename is the library
+            // folder's last URL component (= e.g. "MyLibrary" for a
+            // .ws at /Users/me/WenshuLibraries/MyLibrary/).
+            .navigationSubtitle(
+                (libraryPath as NSString)
+                    .lastPathComponent
+                    .isEmpty ? "Wenshu" : (libraryPath as NSString).lastPathComponent
+            )
             .task { await runLaunch() }
             .sheet(isPresented: $commandPaletteVisible) {
                 CommandPaletteView(model: commandPaletteModel)
