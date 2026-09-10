@@ -173,7 +173,6 @@ struct SettingView: View {
                 case .skills: skillsTab
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .animation(.default, value: selectedTab)
         }
         .frame(width: DesignTokens.settingViewSheetSize.width, height: DesignTokens.settingViewSheetSize.height)

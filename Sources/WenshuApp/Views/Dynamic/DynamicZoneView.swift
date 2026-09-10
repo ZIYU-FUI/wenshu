@@ -91,7 +91,6 @@ struct DynamicZoneView: View {
                     TodoListView()
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .animation(.default, value: selectedTab)
 
             // v0.36 ticket 013 sub-step 3: MemoryRetrievalPanel
@@ -103,7 +102,6 @@ struct DynamicZoneView: View {
                 .padding(.horizontal, DesignTokens.chromePaddingLeading)
                 .padding(.bottom, DesignTokens.chromePaddingVertical)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)  // prevent window shrink
         // v0.40 boss 2026-09-09 OOB 'Plan A: full Apple native': removed
         // .regionContentBackground() (= per Plan A = the pane
         // relies on NavigationSplitView's built-in Liquid Glass

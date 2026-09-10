@@ -117,7 +117,6 @@ struct TagManagerView: View {
             }
         }
         .padding(DesignTokens.chromePaddingMedium)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .task(id: activeBookId) {
             await reload()
         }

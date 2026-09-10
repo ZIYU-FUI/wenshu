@@ -112,8 +112,6 @@ public struct TodoListView: View {
         }
         .padding(DesignTokens.chromePaddingVertical)
         // v0.24 boss acceptance fix: flexible sizing (zone size controlled by splitter, not view).
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        // B-09 + B-13: re-load when the active book OR scope changes.
         .onAppear { reloadFromDisk() }
         .onChange(of: bookStore.selectedBookId) { _, _ in reloadFromDisk() }
         .onChange(of: scope) { _, _ in reloadFromDisk() }

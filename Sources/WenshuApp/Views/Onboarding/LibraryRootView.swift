@@ -289,8 +289,6 @@ Group {
 
             Spacer()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // v0.40 boss real-device test 2026-09-07: removed
         // .regularMaterial (= Liquid Glass onboarding background);
         // now uses Color.clear (= no background).
         .background(Color.clear)

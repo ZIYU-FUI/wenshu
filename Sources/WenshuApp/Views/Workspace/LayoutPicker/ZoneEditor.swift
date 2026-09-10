@@ -69,7 +69,6 @@ struct ZoneEditor: View {
             Divider()
             // Grid canvas (= translucent numbered zones).
             gridCanvas
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(DesignTokens.chromePaddingHero)
         }
         .frame(minWidth: 720, minHeight: 540)

@@ -377,7 +377,6 @@ struct PreviewPane: View {
             // grid per Apple Design Resources).
             .padding(8)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     /// v0.40 boss 9/7 OOB 'top bar, editor, yes':
@@ -488,7 +487,6 @@ struct PreviewPane: View {
                 }
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)  // v0.30 fix
     }
 
     /// Book scope: scan filesystem for .md files in the book folders.
@@ -510,7 +508,6 @@ struct PreviewPane: View {
                 bookDocsGrid(docs: docs)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)  // v0.30 fix
     }
 
     /// Shelf scope: empty state with hint to drill into a book.
@@ -689,7 +686,6 @@ struct PreviewPane: View {
                 }
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     /// Mode 3: all-entities overview grid (= group by category inline).

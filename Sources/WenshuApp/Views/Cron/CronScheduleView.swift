@@ -27,7 +27,6 @@ public struct CronScheduleView: View {
         }
         .padding()
         // v0.24 bossverificationfix: flexible sizing (zone size controlled by splitter, not view).
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .task {
             if store == nil { store = CronjobStore() }
         }

@@ -3,8 +3,7 @@
 //
 // Boss 2026-08-24: chatviewin progress (was: bottom-right).
 //
-//  Pattern: ZStack + .frame(maxWidth: .infinity, maxHeight: .infinity)
-//  overlay in ChatZoneView body so help text floats centered over the chat zone.
+//  Pattern: ZStack +
 //
 
 import SwiftUI
@@ -81,6 +80,5 @@ public struct ChatHelpTextOverlay: View {
             }
             .frame(maxWidth: 360)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

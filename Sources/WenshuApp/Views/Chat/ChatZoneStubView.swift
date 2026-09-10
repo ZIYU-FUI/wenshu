@@ -43,8 +43,6 @@ struct ChatZoneStubView: View {
                 .font(.title3)
                 .foregroundStyle(.tertiary)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // v0.32 boss 2026-09-02 OOB: replace DesignColor.zoneSurface
         // wrapper with bare Color(nsColor: .controlBackgroundColor).
         // v0.40 boss 2026-09-08 OOB 'sweep for remaining background colors: removed the
         // chrome tier background tint (= .controlBackgroundColor

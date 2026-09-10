@@ -91,8 +91,6 @@ struct EditorEditContent: View {
             // between modes).
             isEditable: true
         )
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            // v0.34 B-18: write live character count via host callback
             // (= per-keystroke; = Foundation-only recompute). Host
             // (EditorPlaceholder) routes the value into
             // AppState.editorWordCount for the chrome bottom-bar left
