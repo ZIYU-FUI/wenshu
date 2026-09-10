@@ -115,18 +115,13 @@ struct AppRootScene: Scene {
             // automatically when the App has a Settings scene (= no
             // custom CommandGroup required).
             //
-            // CHATBOX-002 (2026-09-04): ⌘K command palette (= hermes
-            // commands.py + slash_registry.py parity). Replaces
-            // .newItem group so ⌘K shows the palette instead of the
-            // macOS-default "New File" behavior. Posts
-            // .wenshuShowCommandPalette (= the SwiftUI scene listens
-            // and presents the palette sheet).
-            CommandGroup(replacing: .newItem) {
-                Button(WenshuI18n.t("b5.approotscene.l119.h40136654")) {
-                    CommandPaletteController.show()
-                }
-                .keyboardShortcut("k", modifiers: .command)
-            }
+            // Boss 2026-09-10 OOB "drop menu items": ⌘K Command Palette
+            // was a hermes parity carryover from v0.40. Restore the
+            // macOS-default File > New behavior (= ⌘N for new
+            // document) by removing the .newItem replacement.
+            //
+            // The post-.newItem block below (File > New Project
+            // submenu + Import at ⇧⌘I) is preserved.
             CommandGroup(after: .newItem) {
                 // v0.27 macOS-standard cross-component sync (boss 8/27
                 // OOB): File → is the macOS-standard menu item
