@@ -20,6 +20,5 @@ public struct BackupView: View {
         }
         .padding()
         // v0.24 bossverificationfix: flexible sizing (zone size controlled by splitter, not view).
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }

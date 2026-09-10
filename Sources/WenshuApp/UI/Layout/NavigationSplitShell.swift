@@ -364,8 +364,11 @@ struct ShellMiddleColumn: View {
                         .padding(.horizontal, 12)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
+            // v0.72: drop the `.frame(maxWidth: .infinity, alignment:
+            // .leading)`. Apple HIG canonical 6-zone layout (= Mail /
+            // Notes / Finder) does not specify a maxWidth on VStack
+            // children inside a NavigationSplitView column; = SwiftUI
+            // uses the column's intrinsic width (= the column min).
             Divider()
 
             // Bottom sub-area = cards (= adaptive grid; = what
@@ -383,7 +386,11 @@ struct ShellMiddleColumn: View {
                     .padding(.horizontal, 12)
                 Spacer()
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            // v0.72: drop the `.frame(maxWidth: .infinity, alignment:
+            // .leading)`. Apple HIG canonical 6-zone layout (= Mail /
+            // Notes / Finder) does not specify a maxWidth on VStack
+            // children inside a NavigationSplitView column; = SwiftUI
+            // uses the column's intrinsic width (= the column min).
         }
         .navigationTitle("章节与卡片")
         .environment(appState)

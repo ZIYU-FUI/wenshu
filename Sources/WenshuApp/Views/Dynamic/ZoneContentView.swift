@@ -135,13 +135,10 @@ struct ZoneContentView: View {
             Group {
                 if let selected = tabs.first(where: { $0.label == selectedTabId }) {
                     selected.content
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .animation(.default, value: selectedTabId)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)  // prevent window shrink
         // Note: do NOT add .frame(minHeight: 600) - it breaks upper band
         // (which is only ~485 PT tall, 600 PT min would push it out of view).
     }

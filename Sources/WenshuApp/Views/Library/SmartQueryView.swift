@@ -90,7 +90,6 @@ struct SmartQueryView: View {
                 .font(.callout)
                 .foregroundStyle(.tertiary)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     @ViewBuilder

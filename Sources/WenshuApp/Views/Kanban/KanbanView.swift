@@ -74,8 +74,6 @@ public struct KanbanView: View {
         }
         .padding(DesignTokens.chromePaddingVertical)
         // v0.24 bossverificationfix: flexible size (was: 480x320 min forcing zone to grow).
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        // B-09: re-load when the active book changes (= boss spec:
         // "=" per ticket 026 v0.26).
         // B-13: re-load when the active scope changes (= user picked a
         // different sub-folder / reference library from the picker).

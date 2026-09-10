@@ -111,6 +111,5 @@ public struct EmptyStateHint: View {
             }
             .frame(maxWidth: 360)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

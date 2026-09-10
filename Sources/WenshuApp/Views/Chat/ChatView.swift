@@ -1387,8 +1387,6 @@ public struct ChatView: View {
         // v0.24 boss acceptance fix: help text moved to ChatZoneView as centered overlay
         // (was: bottom of ChatView, not centered per boss 8/24 feedback).
         EmptyView()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // v0.24 boss acceptance fix: defocus when user clicks outside chat zone.
         // Boss 8/24 feedback: 'clicking other areas, the text field still keeps focus'.
 .onReceive(NotificationCenter.default.publisher(for: .wenshuDefocusChatInput)) { _ in
     inputFocused = false

@@ -187,7 +187,6 @@ struct ChatZoneView: View {
                                 .allowsHitTesting(true)
                             }
                         }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                     case .search:
                         ChatZoneStubView(title: "搜索", icon: "magnifyingglass")
                     case .settings:
@@ -345,7 +344,6 @@ struct ChatZoneView: View {
             // ' cleanup round 3 = no chrome tier distinction
             // anywhere in the chat zone.
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)  // prevent window shrink
     }
 
     /// compactNumber: real token count folded into compact format (Hermes format_token_count_compact canonical).

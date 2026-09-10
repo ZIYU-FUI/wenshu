@@ -89,7 +89,6 @@ struct GenreFitView: View {
             Spacer(minLength: 0)
         }
         .padding(DesignTokens.chromePaddingMedium)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .task {
             ensureAnalyzer()
         }
