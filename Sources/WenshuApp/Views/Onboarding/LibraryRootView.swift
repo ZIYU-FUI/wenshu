@@ -213,6 +213,13 @@ private func loadWenshuLogo() -> NSImage? {
 public struct LibraryOnboardingView: View {
     let onLibraryPicked: (URL) -> Void
 
+    /// Apple HIG Inventory 2026-09-06 listed `.fileImporter` as a
+    /// missing API (0 hits). Per boss 2026-09-10 'add HIG APIs that
+    /// are currently absent', replace the legacy NSOpenPanel call
+    /// below with SwiftUI's `.fileImporter` modifier (= Apple-
+    /// standard sheet UX; macOS 14+).
+    @State private var isImporterPresented: Bool = false
+
     public var body: some View {
         VStack(spacing: 24) {
             Spacer()
@@ -274,7 +281,7 @@ Group {
                 .controlSize(.large)
 
                 Button {
-                    showOpenPanel()
+                    isImporterPresented = true
                 } label: {
                     Label { Text(WenshuI18n.t("auto2.libraryrootview.l396.h53178210")) } icon: { LucideIcon("folder", size: 16) }
                         .frame(width: DesignTokens.bannerInlineSize.width, height: DesignTokens.bannerInlineSize.height)
@@ -292,6 +299,24 @@ Group {
         // .regularMaterial (= Liquid Glass onboarding background);
         // now uses Color.clear (= no background).
         .background(Color.clear)
+        // Apple HIG Inventory 2026-09-06: .fileImporter was 0 hits.
+        // Apple-standard sheet for selecting an existing .ws directory.
+        // UTType 'com.wenshu.workspace' (= the exported UTI from
+        // Info.plist) is the allowed content type; macOS auto-filters
+        // Finder to .ws packages in the picker.
+        .fileImporter(
+            isPresented: $isImporterPresented,
+            allowedContentTypes: [UTType("com.wenshu.workspace") ?? .folder]
+        ) { result in
+            switch result {
+            case .success(let url):
+                onLibraryPicked(url)
+            case .failure:
+                // User cancelled (= no action). Apple-standard UX:
+                // cancel silently closes the sheet.
+                break
+            }
+        }
     }
 
     /// showOpenPanel: NSOpenPanel for selecting existing .ws directory.
