@@ -92,8 +92,30 @@ struct NavigationSplitShell: View {
             // sidebar = inbox + sent + drafts side by side, =
             // Apple's standard "List with multiple sections"
             // pattern).
+            //
+            // v0.71 boss 2026-09-10 OOB 'left + content + inspector
+            // widths follow Apple's NSV default ranges; the same for
+            // the middle column': no `.navigationSplitViewColumnWidth`
+            // modifier on any column (= SwiftUI's own defaults for
+            // min / ideal / max take over). Mail / Notes / Finder
+            // also do not specify column widths (= the same defaults).
             ShellSidebarColumn(appState: appState)
+        } content: {
+            // v0.69 boss 2026-09-10 OOB 'land the canonical 6-zone
+            // layout from the probe (= NavigationSplitView 3 columns
+            // + .inspector() + VSplitView in the detail +
+            // .safeAreaInset on the sidebar)': the middle column
+            // (= the section between sidebar and detail) is the
+            // outline + cards band, exactly as in the probe's
+            // ContentZone. The probe measured window = 1449, sidebar
+            // = 240, content = 280, detail = 648 with this layout.
+            ShellMiddleColumn(appState: appState)
         } detail: {
+            // Apple HIG detail column = the editor + chat sub-areas
+            // in a vertical split (= VSplitView is what Mail uses
+            // for inbox/message inside the same column; the probe
+            // also uses VSplitView in the detail).
+            //
             // v0.48 boss 2026-09-09 OOB 'in the Apple office apps the
             // right column is the same color as the left one': the
             // trailing panel is now an Apple inspector, not a third
@@ -104,13 +126,16 @@ struct NavigationSplitShell: View {
             // a CONTENT column (Apple's own 3-column sample shows the
             // same 48 vs 34 split). Pages/Keynote/Numbers do not use a
             // third column for their format panel — they use an
-            // inspector, which carries the sidebar material. Rebuilt as
-            // a 2-column NavigationSplitView whose detail hosts
-            // .inspector(): measured 40/255 on both sides = match.
+            // inspector, which carries the sidebar material. The 3-
+            // column NSV + inspector pattern is the canonical Apple
+            // 6-zone layout (= the probe confirms window = 1449
+            // with this exact combination).
             ShellContentColumn(appState: appState)
                 .inspector(isPresented: $inspectorVisible) {
+                    // v0.71: inspector width follows SwiftUI's default
+                    // range (= no `.inspectorColumnWidth` modifier; =
+                    // Mail / Notes inspector range).
                     ShellDetailColumn(appState: appState)
-                        .inspectorColumnWidth(min: 250, ideal: 280, max: 360)
                 }
         }
         // v0.45 boss 2026-09-09 OOB 'revert to Apple default first':
@@ -216,11 +241,12 @@ struct ShellSidebarColumn: View {
                     .frame(height: cardZoneHeight)
                     .overlay(alignment: .top) { cardZoneResizeHandle }
             }
-            // v0.45 default-first: Apple canonical sidebar width hint
-            // (= HIG sidebar 220-320 PT). Without this modifier the
-            // NSSplitView autosave frame wins and the columns keep
-            // whatever width a prior build left in UserDefaults.
-            .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 320)
+            // v0.71: drop `.navigationSplitViewColumnWidth(min:ideal:max:)`
+            // (= previously v0.45 default-first Apple canonical sidebar
+            // width hint = HIG 220-320 PT). Per boss 2026-09-10 OOB
+            // 'Apple default ranges': let SwiftUI's own defaults for
+            // column min / ideal / max take over (= Mail / Notes /
+            // Finder = same).
     }
 
     /// Drag handle between the directory tree and the card zone.
@@ -302,6 +328,80 @@ struct ShellSidebarColumn: View {
 /// inbox/message stack). AppKit's split handles the divider, the
 /// drag, and the position persistence (= same widget Mail uses for
 /// inbox/message, Xcode for editor/inspector).
+/// v0.69 boss 2026-09-10 OOB 'land the canonical 6-zone layout from
+/// the probe': the middle column (= between the sidebar and the
+/// detail) is the outline + cards band, exactly as the probe's
+/// ContentZone. The probe uses an outline section (= list of chapter
+/// nodes) plus a card section (= adaptive grid of card tiles).
+/// This commit places an Apple HIG empty-state placeholder (= the
+/// standard "what will live here" pattern Xcode and Mail use for
+/// newly opened panes), so the column has the right 280 PT ideal
+/// width while the real outline + cards widgets land in the
+/// next ticket.
+struct ShellMiddleColumn: View {
+    let appState: AppState
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Top sub-area = outline (= list of chapter nodes for
+            // the active tab; = what the probe's `OutlineNode.samples`
+            // section shows).
+            VStack(alignment: .leading, spacing: 6) {
+                Text("大纲")
+                    .font(.headline)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 12)
+                ForEach(appState.openTabs) { tab in
+                    Label(tabDisplayTitle(tab: tab), systemImage: "circle.fill")
+                        .font(.callout)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 4)
+                }
+                if appState.openTabs.isEmpty {
+                    Text("（暂无打开的章节）")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 12)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Divider()
+
+            // Bottom sub-area = cards (= adaptive grid; = what
+            // the probe's `Card.samples` section shows). Real
+            // cards widget lands in the next ticket; placeholder
+            // is the empty-state pattern (Xcode / Mail).
+            VStack(alignment: .leading, spacing: 8) {
+                Text("卡片")
+                    .font(.headline)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 12)
+                Text("（卡片网格将在这里落地）")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 12)
+                Spacer()
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .navigationTitle("章节与卡片")
+        .environment(appState)
+    }
+
+    private func tabDisplayTitle(tab: EditorTab) -> String {
+        if let path = tab.documentPath, !path.isEmpty {
+            let url = URL(fileURLWithPath: path)
+            let basename = url.deletingPathExtension().lastPathComponent
+            return basename.isEmpty ? "preview-sample" : basename
+        }
+        return "preview-sample"
+    }
+}
+
+
+// MARK: - Detail column (= 2 vertical sub-areas)
+
 struct ShellContentColumn: View {
     let appState: AppState
 

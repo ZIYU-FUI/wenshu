@@ -1388,7 +1388,17 @@ struct EditorPlaceholder: View {
                     }
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // v0.70: drop the outer VStack's `.frame(maxWidth: .infinity,
+            // maxHeight: .infinity)`. Apple HIG canonical 6-zone layout
+            // has no custom frame on the column body (= NavigationSplitView
+            // owns the natural-width algorithm). The previous v0.30 fix
+            // (which kept this frame in to "prevent window shrink")
+            // inflated the detail column to 1763 because WenshuMarkdownEditor's
+            // NSTextView intrinsic width is unbounded. Removing this
+            // frame is what the canonical 6-zone probe (= window 1449,
+            // detail 648) requires. v0.30 window-shrink protection has
+            // to come from elsewhere (= .frame on toolbar / status bar,
+            // not on the column body).
             // v0.28 followup Boss UX round 19 (Boss 2026-08-29 OOB 'all
             // zone top bars, bottom bars, backgrounds, the colors used, can they adapt to Liquid Glass?'):
             // Use .ultraThinMaterial instead of Color.green.opacity(0.05)
@@ -2125,7 +2135,12 @@ struct EditorPaperCanvas<Content: View>: View {
                 .shadow(color: .black.opacity(0.35), radius: 8, y: 2)
                 .padding(.vertical, 24)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // v0.70: drop the ScrollView's `.frame(maxWidth: .infinity,
+        // maxHeight: .infinity)`. Apple HIG canonical 6-zone layout
+        // (= probe window 1449, detail 648) has no custom frame on
+        // the column body. Pages / Numbers / Keynote = no custom
+        // frame either. .scrollContentBackground stays (= Apple API
+        // for the scroll-view chrome tier, = not a layout frame).
         // The surround stays on the column's own material, which is the
         // content tier, so the white sheet reads as paper on a desk.
         .scrollContentBackground(.hidden)
