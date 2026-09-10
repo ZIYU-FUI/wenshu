@@ -378,16 +378,24 @@ struct PreviewPane: View {
             // NO outer padding (= sits flush against ZoneContentView's
             // tab strip; = Apple HIG canonical toolbar pattern).
             //
-            // v0.73 boss 2026-09-10 OOB '两个搜索框的样式不一样, 需要按
-            // apple api 默认样式统一': suppress the internal
-            // handwritten search bar when an external `.searchable`
-            // modifier is bound (= the sidebar and the card pane
-            // both use Apple's canonical macOS 13+ search field).
-            // Legacy callers (= no external Binding) keep the
-            // internal bar.
-            if showsInternalSearchBar {
-                previewSearchBar
-            }
+            // v0.77 boss 2026-09-10 OOB '位置不对, 是要放在中左栏内部的顶上':
+            // the preview-pane search bar ALWAYS renders inline at
+            // the top of the middle column body (= same visual slot
+            // as the sidebar's `.searchable` field at the top of
+            // the sidebar column). The previous `if showsInternal
+            // SearchBar` branch (= commit 4a0453516) was the
+            // workaround for the `.searchable(placement: .toolbar)`
+            // routing-to-window-toolbar bug; with that workaround
+            // removed (= the next commit drops the column toolbar
+            // and lets PreviewPane render its own search bar at
+            // the top of the column body), PreviewPane is the
+            // single source of truth for the search bar visual
+            // (= the sidebar's `.searchable` is Apple's first-
+            // party widget for the sidebar column; the card pane's
+            // inline `previewSearchBar` is Apple's macOS 13+
+            // rounded-pill pattern hosted inline because `.searchable`
+            // has no 'middle column top' placement).
+            previewSearchBar
             // v0.30 boss 8/31 OOB: scope-driven dispatch. Each scope
             // branch handles its own toolbar (some hide toolbar, e.g.
             // empty state). Padding applied here only (= doesn't
@@ -448,74 +456,56 @@ struct PreviewPane: View {
     /// (= live refresh, no submit button, no .onChange handler).
     private var previewSearchBar: some View {
         HStack(spacing: 6) {
-            LucideIcon("search", size: 16)
+            LucideIcon("search", size: 14)
                 .foregroundStyle(.secondary)
-                .imageScale(.small)
             TextField(
                 WenshuI18n.t("preview.search.placeholder"),
-                text: $previewSearchQuery
+                text: Binding(
+                    get: { resolvedSearchQuery },
+                    set: { newValue in
+                        if searchQuery != nil {
+                            searchQuery = newValue
+                        } else {
+                            previewSearchQuery = newValue
+                        }
+                    }
+                )
             )
             .textFieldStyle(.plain)
-            // v0.40 boss 9/7 OOB 'search, ':
+            // v0.40 boss 9/7 OOB 'search, pinyin, yes':
             // .help() on the search TextField advertises the
-            // pinyin feature (= Apple canonical tooltip on hover;
-            // = discoverable feature without needing docs).
+            // pinyin feature.
             .help(WenshuI18n.t("preview.search.help_pinyin"))
-            if !previewSearchQuery.isEmpty {
+            if !resolvedSearchQuery.isEmpty {
                 Button {
-                    previewSearchQuery = ""
+                    if searchQuery != nil {
+                        searchQuery = ""
+                    } else {
+                        previewSearchQuery = ""
+                    }
                 } label: {
-                    LucideIcon("circle-x", size: 16)
+                    LucideIcon("circle-x", size: 14)
                         .foregroundStyle(.secondary)
-                        .imageScale(.small)
                 }
                 .buttonStyle(.plain)
                 .help(WenshuI18n.t("preview.search.clear"))
             }
         }
-        // boss 9/8 round 1 'cards preview zone, search bar and icon, left
-        // position wrong, not enough 18pt' = bumped from 6 PT to
-        // chromePaddingLeading = 18 PT.
-        //
-        // Boss 9/8 round 2: '18 is a bit wide; Apple API default
-        // spacing isn't PT, it's a semantic name'.
-        //
-        // Boss 9/8 round 3: 'cards zone having no spacing is
-        // not pretty, keep the spacing, all zones use round 2'.
-        //
-        // Final value: 8 PT (= Apple HIG canonical 'Spacing.small'
-        // for inline toolbar items = SwiftUI's standard small
-        // spacing = the same value Apple uses for ToolbarItem
-        // horizontal spacing + for List row internal padding per
-        // the swiftui-patterns design-polish reference).
-        //
-        // Per the Apple canonical semantic name (= the 'phrase'
-        // boss remembers): SwiftUI exposes `.contentMargins(
-        // .horizontal, _, for: .scrollContent)` (= the Apple-
-        // provided semantic API for content margins per developer.
-        // apple.com/documentation/swiftui/view/contentmargins(_:for:)).
-        // For non-ScrollView inline toolbars (= this HStack-based
-        // search bar) the equivalent = 8 PT (= SwiftUI's standard
-        // 'small' spacing semantic = the closest Apple-canonical
-        // value for inline controls per HIG spacing).
-        //
-        // Note: instead of using `.padding(.horizontal,
-        // DesignTokens.chromePaddingLeading)`, we use the literal
-        // `8` here (= same value as chromePaddingLeading after
-        // round 3 token change). The literal preserves the
-        // semantic Apple HIG value (= 8 PT) without depending on
-        // the broader DesignTokens token (= the search bar is a
-        // tight inline toolbar = its inset shouldn't drift with
-        // other zone chrome changes).
-        //
-        // Result: search icon + TextField + clear-x all sit 8 PT
-        // from the zone's left edge (= Apple HIG toolbar row
-        // inset for inline controls).
-        .padding(.horizontal, 8)
-        // 30 PT height = matches LayoutTokens.toolbarHeight
-        // (= editor's pencil/arrow toolbar + ZoneContentView tab strip).
+        .padding(.horizontal, 10)
         .frame(height: LayoutTokens.toolbarHeight)
-        .background(Color.clear)
+        // v0.77 boss 2026-09-10 OOB '位置不对, 是要放在中左栏内部的顶上':
+        // Apple HIG rounded-pill background (= identical visual to
+        // the sidebar's `.searchable` field): 8 PT corner radius,
+        // .textBackgroundColor at 0.4 opacity + .separator hairline
+        // at 0.3 opacity.
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color(nsColor: .textBackgroundColor).opacity(0.4))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color(nsColor: .separatorColor).opacity(0.3), lineWidth: 0.5)
+        )
     }
 
     // MARK: - Scope subviews
