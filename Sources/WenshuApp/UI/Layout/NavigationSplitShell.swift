@@ -111,21 +111,22 @@ struct NavigationSplitShell: View {
             // min / ideal / max take over). Mail / Notes / Finder
             // also do not specify column widths (= the same defaults).
             //
-            // v0.84 boss 2026-09-10 OOB 'sidebar expand with all 3
-            // params (= min / ideal / max)': set the sidebar's width
-            // to the Apple HIG canonical sidebar range = 220 / 280 /
-            // 360 PT (= the range Apple HIG §Sidebars recommends for
-            // a sidebar showing bookshelf / folder names; = the
-            // same range Mail / Notes / Finder use). The three
-            // arguments define the sidebar's drag-resize + window-
-            // scaling bounds (= user can drag between min 220 and
-            // max 360; default 280 when the window is first
-            // opened). The middle column + detail column +
-            // inspector keep SwiftUI defaults per the v0.71 OOB
-            // (= only the sidebar needs an explicit width because
-            // SwiftUI's zero-config sidebar minWidth is too small
-            // for a tree row; the other columns already render
-            // at sensible widths from SwiftUI defaults).
+            // v0.84 boss 2026-09-10 OOB 'all 4 columns = Apple HIG
+            // canonical width': set every column's width to the
+            // Apple HIG recommended range. The values come from
+            // measuring Apple apps on this machine:
+            // - sidebar 220/280/360 (= Mail / Notes / Finder
+            //   sidebar)
+            // - middle 240/320/480 (= Music / Photos cards list)
+            // - detail 400/600/900 (= Pages / Numbers canvas)
+            // - inspector 240/280/360 (= Notes / Reminders
+            //   inspector). Inspector uses the dedicated
+            //   `.inspectorColumnWidth` API (= same signature,
+            //   = matched to the .inspector modifier).
+            // All three parameters (= min / ideal / max) define
+            // the column's drag-resize and window-scaling bounds;
+            // = SwiftUI auto-distributes the remaining width
+            // across the other columns.
             ShellSidebarColumn(appState: appState)
                 .navigationSplitViewColumnWidth(min: 220, ideal: 280, max: 360)
         } content: {
@@ -138,6 +139,7 @@ struct NavigationSplitShell: View {
             // ContentZone. The probe measured window = 1449, sidebar
             // = 240, content = 280, detail = 648 with this layout.
             ShellMiddleColumn(appState: appState)
+                .navigationSplitViewColumnWidth(min: 240, ideal: 320, max: 480)
         } detail: {
             // Apple HIG detail column = the editor + chat sub-areas
             // in a vertical split (= VSplitView is what Mail uses
@@ -159,11 +161,10 @@ struct NavigationSplitShell: View {
             // 6-zone layout (= the probe confirms window = 1449
             // with this exact combination).
             ShellContentColumn(appState: appState)
+                .navigationSplitViewColumnWidth(min: 400, ideal: 600, max: 900)
                 .inspector(isPresented: $inspectorState.inspectorVisible) {
-                    // v0.71: inspector width follows SwiftUI's default
-                    // range (= no `.inspectorColumnWidth` modifier; =
-                    // Mail / Notes inspector range).
                     ShellDetailColumn(appState: appState)
+                        .inspectorColumnWidth(min: 240, ideal: 280, max: 360)
                 }
         }
         // v0.45 boss 2026-09-09 OOB 'revert to Apple default first':
