@@ -167,25 +167,26 @@ struct NavigationSplitShell: View {
     }
 }// MARK: - Sidebar column (= 2 vertical sub-areas)
 
-/// Apple HIG sidebar column (= 2 vertical sub-areas: directory tree +
-/// card grid). Per boss 2026-09-10 OOB "Apple default" = the 2
-/// sub-areas use Apple's canonical vertical split (= VSplitView
-/// = developer.apple.com/documentation/swiftui/vsplitview).
-/// VSplitView gives AppKit-standard 8 PT thick divider with grab
-/// handle and auto-saves position via `.autosaveName`. The previous
-/// v0.50 hand-rolled split (= @AppStorage height + Rectangle separator
-/// + DragGesture + NSCursor) is replaced by the SwiftUI API.
+/// Apple HIG sidebar column (= 1 vertical sub-area: directory tree).
+/// Per boss 2026-09-10 second OOB 'NAV default 3 columns + each
+/// column's sub-areas = visual 5 columns' = the card grid migrates
+/// out of the sidebar bottom into the middle column bottom
+/// (= ticket 001 of 2026-09-10-six-zone-ui-rewrite). The sidebar
+/// is left as a single-area column (= no VSplitView) so the
+/// directory tree owns the whole column.
+///
+/// Boss 2026-09-10 'Apple default' = no custom chrome wrappers;
+/// Plan A pass-through ZonePerRegionChrome stub stays as-is
+/// (per boss 9/8 OOB).
 struct ShellSidebarColumn: View {
     let appState: AppState
 
     var body: some View {
-        // Apple HIG canonical vertical split inside one sidebar column.
-        // VSplitView is what Mail uses for inbox/message stack; SwiftUI
-        // renders the standard AppKit thick divider with grab handle.
-        VSplitView {
-            NewLibraryOutlineView()
-            ZoneModuleView(zoneSlot: .projectPreview)
-        }
+        // Sidebar = 1 zone (directory tree). The previous 9/9
+        // v0.49 sidebar card-zone pattern is reverted per the
+        // 8/30 boss red-line drawing (= cards in the middle
+        // column, not the sidebar).
+        NewLibraryOutlineView()
     }
 }
 
