@@ -390,6 +390,28 @@ struct NewLibraryOutlineView: View {
             // No primary action (= double-click = open in editor
             // for books in a future ticket; for now, just no-op).
         }
+        // v0.76 boss 2026-09-10 OOB '在红框处写新建按钮': attach
+        // a '新建书架' button to the sidebar bottom via
+        // `.safeAreaInset(edge: .bottom)` (= Apple's canonical API
+        // for a fixed accessory attached to the bottom of a
+        // sidebar List). The previous commit-history recorded a
+        // similar pattern for sidebar cards (commit 108778611)
+        // but that was reverted when the cards card moved to the
+        // middle column. This safeAreaInset is the canonical
+        // sidebar bottom accessory (= Mail's 'New Folder' button,
+        // Notes' 'New Folder' button, Finder's bottom status row
+        // — all use the same .safeAreaInset primitive per
+        // developer.apple.com/documentation/swiftui/view/
+        // safeareainset(edge:spacing:content:)).
+        //
+        // The button reuses the existing `showNewShelfSheet` state
+        // (= same .sheet bound at line 571 that the global
+        // '.wenshuNewShelfRequested' notification also flips).
+        // Tapping the button = same UX as the menu / keyboard
+        // shortcut: open the NewShelfSheet (= name + icon picker).
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            sidebarBottomNewButton
+        }
         // v0.30 boss 8/31 OOB: right-click on EMPTY area of sidebar
         // (= the gap below the last row, before the next Section).
         // .contextMenu(forSelectionType:) only fires on row hits;
@@ -1447,6 +1469,53 @@ struct NewLibraryOutlineView: View {
             }
         }
         return result
+    }
+
+    /// v0.76 boss 2026-09-10 OOB '我们有一个中间的弹窗, 点新建,
+    /// 会让用户选是建书还是书架, 按钮就写新建, 然后接那个弹窗':
+    /// sidebar bottom accessory button (= single '新建' button,
+    /// posts .wenshuChoiceRequested = the existing global
+    /// notification bound at line 546 that flips
+    /// `showNewChoiceSheet` and presents NewChoiceSheet =
+    /// the modal sheet with '建书 / 建书架' choice).
+    ///
+    /// Style: per Apple HIG = a sidebar bottom accessory is a
+    /// full-width row at the column's bottom safe area. The button
+    /// itself uses Apple's `.borderless` button style with a
+    /// plus icon (= Lucide 'plus' = same icon the column's
+    /// internal 'New Book' / 'New Shelf' rows use; = the
+    /// canonical Finder / Notes 'sidebar action button' visual).
+    ///
+    /// Padding: 8 PT horizontal (= matches the sidebar's row
+    /// internal padding), 8 PT vertical (= the safeAreaInset's
+    /// own separator hairline above the button = the Apple HIG
+    /// 'accessory separator' = Mail / Notes / Finder pattern).
+    private var sidebarBottomNewButton: some View {
+        // Divider above the button = the Apple HIG 'accessory
+        // separator' (= a 1 PT hairline tinted with .separator,
+        // same primitive as the between-section Divider added
+        // earlier in this view).
+        VStack(spacing: 0) {
+            Divider()
+            Button {
+                NotificationCenter.default.post(
+                    name: .wenshuChoiceRequested, object: nil
+                )
+            } label: {
+                HStack(spacing: 6) {
+                    LucideIcon("plus", size: 14)
+                        .foregroundStyle(.secondary)
+                    Text("新建")
+                        .font(.callout)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 8)
+                .padding(.horizontal, 8)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(WenshuI18n.t("sidebar.new_button.help"))
+        }
     }
 }
 
