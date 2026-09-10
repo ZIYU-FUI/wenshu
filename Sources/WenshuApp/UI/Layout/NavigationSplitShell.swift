@@ -67,16 +67,19 @@ struct NavigationSplitShell: View {
 
     /// Inspector presentation state.
     /// Apple default for `.inspector(isPresented:)` is `false` on first launch;
-    /// user reveals it via the inspector chevron rendered automatically by
-    /// the modifier. The previous hardcoded `true` was a v0.48 boss OOB that
-    /// pre-set the inspector visible — per boss 2026-09-10 "Apple default",
-    /// SwiftUI's own default behavior takes over.
-    ///
-    /// Apple HIG Inventory 2026-09-06 listed `@SceneStorage` as a
-    /// missing API (0 hits). Per boss 2026-09-10 'add HIG APIs that
-    /// are currently absent', persist inspector visibility per
-    /// scene (= each window owns its own toggle state).
-    @SceneStorage("wenshu.inspectorVisible") private var inspectorVisible: Bool = false
+    /// the toolbar inspector toggle button (LibraryRootView) is the user-facing
+    /// affordance to flip it on. The flag lives on `AppState` (= the
+    /// @Observable shared store) rather than `@SceneStorage` (= per-window
+    /// persistence), because the toolbar button (View) and the shell (View)
+    /// must share one source of truth and AppRootScene (= Scene) cannot
+    /// pass a Binding through the Scene protocol boundary.
+    @Bindable private var inspectorState: AppState
+
+    init(appState: AppState, bookStore: BookStore?) {
+        self.appState = appState
+        self.bookStore = bookStore
+        self._inspectorState = Bindable(appState)
+    }
 
     var body: some View {
         // v0.40 boss 2026-09-08 OOB 'yesyes mac os 27 default,
@@ -139,7 +142,7 @@ struct NavigationSplitShell: View {
             // 6-zone layout (= the probe confirms window = 1449
             // with this exact combination).
             ShellContentColumn(appState: appState)
-                .inspector(isPresented: $inspectorVisible) {
+                .inspector(isPresented: $inspectorState.inspectorVisible) {
                     // v0.71: inspector width follows SwiftUI's default
                     // range (= no `.inspectorColumnWidth` modifier; =
                     // Mail / Notes inspector range).

@@ -85,6 +85,16 @@ struct AppRootScene: Scene {
         // v0.24 bossverificationfix: .contentMinSize (window doesn't shrink below initial
         // size, can grow to fit larger content).
         .windowResizability(.contentMinSize)
+        // v0.81 boss 2026-09-10 OOB: the inspector toggle button
+        // (= ⌥⌘I = Lucide "panel-right" icon = the canonical Apple
+        // toolbar affordance for NavigationSplitView `.inspector`)
+        // is attached to LibraryRootView (= the content view)
+        // because `some Scene` (= AppRootScene) does not expose
+        // a `.toolbar` modifier; = Scene-level `.toolbar` is not
+        // a SwiftUI API. LibraryRootView reads AppState directly
+        // (= it already injects AppState via @Environment), so the
+        // button writes the same property NavigationSplitShell
+        // binds into `.inspector(isPresented:)`.
         .commands {
             // Boss 2026-09-10 OOB "Apple default": drop InspectorCommands().
             // NSV .inspector(isPresented:) modifier already renders a

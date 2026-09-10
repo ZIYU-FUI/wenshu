@@ -65,6 +65,17 @@ final class AppState {
     /// - `LayoutTreeState.*` (= per-pane = divider positions, weights, collapsed flags)
     var useThreeColumnSplit: Bool = false
 
+    /// v0.81 boss 2026-09-10 OOB: inspector visibility for the
+    /// macOS 27 NavigationSplitView `.inspector` modifier. Lives on
+    /// AppState (= @Observable, app-wide, single source of truth
+    /// shared between NavigationSplitShell = which reads it to
+    /// bind into `.inspector(isPresented:)` and AppRootScene =
+    /// which renders the toolbar toggle button). Default `false`
+    /// per boss 9/10 Apple-default-first OOB (= SwiftUI's own
+    /// default; = the toolbar button is the user-facing affordance
+    /// to flip it on).
+    var inspectorVisible: Bool = false
+
     /// Sidebar tree selection (= 5 cases: .book(UUID) / .folder / .shelf
     /// / .referenceCategory / .referenceLibraryRoot, nil = nothing
     /// selected). Drives preview pane scope (= see
