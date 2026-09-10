@@ -98,36 +98,93 @@ public enum WenshuI18n {
         return .main
     }()
 
-    /// Lookup a localized string by key. If the key is missing from all
-    /// bundled catalogs (= broken catalog), returns the key itself so the
-    /// UI shows something instead of crashing. Matches hermes i18n fallback
-    /// policy (= i18n.py returns the key path when both en + user lang
-    /// catalogs are missing the key).
-    public static func t(_ key: String) -> String {
-        let value = NSLocalizedString(key, bundle: bundle, comment: "")
-        // Apple returns the key itself if not found. With our bundle-resolution
-        // chain above, the lookup should hit a real catalog for any key the
-        // catalogs declare. If it still doesn't (= truly missing key),
-        // returning the key path is the hermes i18n fallback policy.
-        return value
+    /// Apple HIG canonical lookup. Per
+    /// developer.apple.com/tutorials/data/documentation/xcode/
+    /// preparing-your-apps-text-for-translation:
+    ///
+    ///   > "Use the String(localized: 'key') initializer when
+    ///   > creating String and AttributedString objects
+    ///   > that contain text you want to localize. ...
+    ///   > To create localizable strings with different keys
+    ///   > and values, use the String(localized:defaultValue:
+    ///   > options:table:bundle:locale:comment:) initializer.
+    ///   > Xcode uses the first parameter as the key and
+    ///   > the second parameter as the default source string."
+    ///
+    /// We delegate to `NSLocalizedString` (= the macOS
+    /// Foundation equivalent of Apple's recommended
+    /// `String(localized:defaultValue:)` initializer). Per
+    /// the NSLocalizedString docs:
+    ///
+    /// 1. `key` is the lookup string (= rows in
+    ///    Localizable.strings under the resolved .lproj).
+    /// 2. `value` (= Apple calls it `defaultValue`) is the
+    ///    source string shown to the user in development
+    ///    language when the key is missing from the .strings
+    ///    catalog; AND exported to translators as the value
+    ///    to translate.
+    /// 3. `comment` is the developer annotation shown next
+    ///    to the row in the .strings catalog and in the
+    ///    Xcode String Catalog editor.
+    ///
+    /// Apple HIG says: the defaultValue is NOT a runtime
+    /// fallback (= if the key is missing AND the language
+    /// has its own catalog, the user sees the key string;
+    /// the defaultValue is only used for the development
+    /// language and as a hint to translators). For wenshu,
+    /// the development language is en (= `Info.plist`
+    /// `CFBundleDevelopmentRegion`), so an English default
+    /// for new keys is the canonical pattern. When the
+    /// user's locale is zh-Hans, missing keys fall back
+    /// to the en catalog; if still missing, the key string
+    /// itself (= hermes i18n fallback policy).
+    public static func t(_ key: String, defaultValue: String, comment: String? = nil) -> String {
+        NSLocalizedString(
+            key,
+            tableName: nil,
+            bundle: bundle,
+            value: defaultValue,
+            comment: comment ?? ""
+        )
     }
 
-    /// Format-string variant: t(key) + substitute %d / %f / %@ placeholders.
-    /// Uses Apple String(format:) which handles CVarArg arrays via
-    /// NSString.localizedStringWithFormat under the hood (= respects
-    /// the user's locale for number formatting). Order matches the
-    /// placeholder positions in the Localizable.strings value.
+    /// Backward-compat 1-arg form (= no defaultValue).
+    /// Existing call sites (and any string catalog entries
+    /// without a defaultValue) still work. New call sites
+    /// should use the 2-arg form (= t(_:defaultValue:))
+    /// per Apple HIG.
+    public static func t(_ key: String) -> String {
+        // No defaultValue available here, so the user will
+        // see the key string if the catalog is missing the
+        // key (= hermes i18n fallback policy + Apple
+        // NSLocalizedString behavior). For 2-arg correctness,
+        // call sites should use t(_:defaultValue:).
+        t(key, defaultValue: key)
+    }
+
+    /// Format-string variant: t(key, defaultValue:) + substitute
+    /// %d / %f / %@ placeholders. Uses Apple String(format:)
+    /// which handles CVarArg arrays via NSString.localizedStringWithFormat
+    /// under the hood (= respects the user's locale for number
+    /// formatting). Order matches the placeholder positions in
+    /// the Localizable.strings value.
+    public static func tf(_ key: String, defaultValue: String, _ args: CVarArg..., comment: String? = nil) -> String {
+        let format = t(key, defaultValue: defaultValue, comment: comment)
+        return String(format: format, arguments: args)
+    }
+
+    /// Backward-compat format-string 1-arg form.
     public static func tf(_ key: String, _ args: CVarArg...) -> String {
         let format = t(key)
-        // String(format:) takes CVarArg... and passes them through
-        // localizedStringWithFormat. Apple canonical: localizedStringWithFormat
-        // uses the *format string's* locale for substitution rules
-        // (= "%d" with thousands separators in zh-Hans), which is what we want.
         return String(format: format, arguments: args)
     }
 
     /// %@-style variant for object substitutions (provider names, model IDs).
-    /// Equivalent to tf() but reads better at the call site.
+    public static func ts(_ key: String, defaultValue: String, _ arg: String, comment: String? = nil) -> String {
+        tf(key, defaultValue: defaultValue, arg, comment: comment)
+    }
+
+    /// Backward-compat %@ 1-arg form.
     public static func ts(_ key: String, _ arg: String) -> String {
         tf(key, arg)
     }

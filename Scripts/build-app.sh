@@ -77,6 +77,52 @@ if [ -n "$SPM_BUNDLE_PATH" ]; then
     cp -R "$SPM_BUNDLE_PATH" "$RES_DIR/"
     echo ">>> copied SPM bundle: $SPM_BUNDLE_PATH -> $RES_DIR/$(basename "$SPM_BUNDLE_PATH")"
 fi
+
+# v0.94 boss 2026-09-10 OOB '多语言 key 又坏了, 反反复复出现过很我次了':
+# Wenshu_WenshuApp.bundle (= the SPM-generated resource bundle
+# for the executable target) is EMPTY at runtime — SPM's executable
+# target resource processing does not actually copy .lproj contents
+# into the resulting bundle (= only Library/library targets get the
+# auto-generated Wenshu_WenshuApp.bundle with contents; executable
+# targets get an empty bundle directory by default, even with
+# `.process("Resources")` declared in Package.swift).
+#
+# Empirical evidence (2026-09-10):
+#   $ find .build -name 'Wenshu_WenshuApp.bundle' -type d
+#   .build/out/Products/Debug/Wenshu_WenshuApp.bundle
+#   $ ls .build/.../Debug/Wenshu_WenshuApp.bundle/Contents/Resources/
+#   (empty)
+#
+# Result: WenshuI18n.bundle probe loop above finds the bundle
+# directory, copies the empty shell into the .app (= no
+# Localizable.strings), and at runtime every
+# `WenshuI18n.t("...")` lookup misses → returns the key string
+# (= user sees 'auto.kanbanview.l146.h37...' in the UI).
+#
+# Fix: copy the lproj directories DIRECTLY from the source
+# tree (= Sources/WenshuApp/Resources/{en,zh-Hans}.lproj/) into
+# the .app's Resources directory. WenshuI18n.bundle's resolver
+# chain has a Bundle.main fallback that will find
+# .app/Contents/Resources/{en,zh-Hans}.lproj/Localizable.strings
+# (= Apple-canonical .app bundle layout for localized
+# resources).
+#
+# Per developer.apple.com/documentation/swift/localizedstringresource:
+# > "Place your localized strings in language-specific .lproj
+# > subdirectories in your project. Place these directories in
+# > your app bundle, typically in the Resources directory."
+#
+# This is the canonical Apple HIG layout, and it works without
+# the SPM bundle dance (= which doesn't actually package the
+# .strings files for executable targets). It also makes the
+# .app self-contained (= the Localizable.strings travel with
+# the .app, not in a separate bundle that could be missed).
+for lang_dir in "Sources/WenshuApp/Resources"/*; do
+    if [ -d "$lang_dir" ] && [[ "$lang_dir" == *.lproj ]]; then
+        cp -R "$lang_dir" "$RES_DIR/"
+        echo ">>> copied lproj: $lang_dir -> $RES_DIR/$(basename "$lang_dir")"
+    fi
+done
 # Copy all third-party SPM-generated resource bundles into the .app
 # (= Highlighter_Highlighter, GRDB_GRDB, Defaults_Defaults, etc.) so
 # their `Bundle.module` lookups succeed at runtime. Without these,
