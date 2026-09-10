@@ -300,8 +300,33 @@ struct NewLibraryOutlineView: View {
             // row internal padding = the divider sits in the same
             // visual slot as a row, not flush against the shelf
             // icons above / below).
+            // v0.78 boss 2026-09-10 OOB '资料库距离分割线中间有一个高度空占':
+            // reduce the divider's vertical padding from 8 PT per
+            // side (= 16 PT total gap, way larger than an Apple
+            // HIG sidebar row's natural spacing) to 4 PT per side
+            // (= 8 PT total gap, matching the sidebar's natural
+            // row-to-row spacing when sections sit adjacent).
+            //
+            // Apple HIG canonical sidebar spacing: List(.sidebar)
+            // rows are 22 PT tall with ~1-2 PT between rows; an
+            // explicit Divider between two user-visible groups
+            // needs ~8 PT total vertical space (= 4 PT top +
+            // 4 PT bottom) to read as a 'group separator' rather
+            // than as a 'gap row' (= the previous 16 PT total
+            // pushed the two groups apart by ~3 row-heights = the
+            // user-perceived empty band in the boss's screenshot).
+            //
+            // The Apple-native equivalent (= no manual Divider at
+            // all, = a `Section` per group) gives the spacing for
+            // free via `Section` internals; we keep the explicit
+            // Divider here because the previous commit
+            // (= `b6aba7950`) added it per boss's reference-image
+            // Keynote '幻灯片' layout (a literal 1 PT hairline +
+            // tiny gap = a section-divider visual that matches the
+            // Keynote sidebar more closely than List's built-in
+            // Section).
             Divider()
-                .padding(.vertical, 8)
+                .padding(.vertical, 4)
             // Reference library (= library's default shelf per boss 8/26
             // OOB; user CANNOT delete or rename). Treated as a single
             // Section per Apple HIG; categories expand via
