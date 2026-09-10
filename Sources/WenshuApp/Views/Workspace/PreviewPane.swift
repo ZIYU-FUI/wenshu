@@ -253,7 +253,47 @@ struct PreviewPane: View {
     /// @State reactivity re-evaluates `body` on every keystroke
     /// (= live refresh, no submit button, no .onChange handler
     /// needed).
+    ///
+    /// v0.73 boss 2026-09-10 OOB '两个搜索框的样式不一样, 需要按 apple
+    /// api 默认样式统一': callers can pass an OPTIONAL external
+    /// `searchQuery` Binding to use an EXTERNAL `.searchable(...)`
+    /// modifier (= the canonical macOS 13+ Apple HIG search field;
+    /// = identical visual to the sidebar `.searchable` field).
+    /// When `searchQuery` is non-nil, the internal handwritten
+    /// search bar is suppressed (= one canonical Apple search
+    /// field per pane, not two competing ones). When nil, the
+    /// legacy internal `@State private previewSearchQuery` is
+    /// used (= the legacy PaneSplitHost path = backward compat).
+    ///
+    /// Use `Binding<String>?` for the OPTIONAL external query
+    /// (= nil means "no external binding = render internal search
+    /// bar"). When non-nil, the Binding's wrapped value is the
+    /// search query (= one source of truth, fed from the external
+    /// `.searchable` modifier).
+    @Binding var searchQuery: String?
+
+    /// Legacy internal search state. Used when `searchQuery`
+    /// (= the new external Binding) is nil. Kept as `@State` so
+    /// legacy callers = no behavior change.
     @State private var previewSearchQuery: String = ""
+
+    /// Resolved search query used by `searchFilteredEntities`.
+    /// Reads from the external Binding when present, else from
+    /// the legacy internal `@State`.
+    private var resolvedSearchQuery: String {
+        if let external = searchQuery {
+            return external
+        }
+        return previewSearchQuery
+    }
+
+    /// Whether the pane renders its internal handwritten search
+    /// bar (= legacy path = no external `.searchable` modifier).
+    /// True exactly when `searchQuery` is nil (= no external
+    /// Binding was supplied).
+    private var showsInternalSearchBar: Bool {
+        searchQuery == nil
+    }
 
     /// Explicit init: required for @Binding in struct (= memberwise
     /// init doesn't support @Binding in non-result-builder structs).
@@ -261,11 +301,13 @@ struct PreviewPane: View {
     init(
         scope: PreviewScope,
         onDoubleClick: @escaping (CardSource) -> Void,
-        previewSortOrder: Binding<EntitySortOrder>
+        previewSortOrder: Binding<EntitySortOrder>,
+        searchQuery: Binding<String?>? = nil
     ) {
         self.scope = scope
         self.onDoubleClick = onDoubleClick
         self._previewSortOrder = previewSortOrder
+        self._searchQuery = searchQuery ?? .constant(nil)
     }
 
     // [CJK-TRANSLATE] 2 line(s) awaiting manual translation (see git blame for original CJK text)
@@ -335,7 +377,17 @@ struct PreviewPane: View {
             // editor's pencil/arrow toolbar inside EditorPlaceholder).
             // NO outer padding (= sits flush against ZoneContentView's
             // tab strip; = Apple HIG canonical toolbar pattern).
-            previewSearchBar
+            //
+            // v0.73 boss 2026-09-10 OOB '两个搜索框的样式不一样, 需要按
+            // apple api 默认样式统一': suppress the internal
+            // handwritten search bar when an external `.searchable`
+            // modifier is bound (= the sidebar and the card pane
+            // both use Apple's canonical macOS 13+ search field).
+            // Legacy callers (= no external Binding) keep the
+            // internal bar.
+            if showsInternalSearchBar {
+                previewSearchBar
+            }
             // v0.30 boss 8/31 OOB: scope-driven dispatch. Each scope
             // branch handles its own toolbar (some hide toolbar, e.g.
             // empty state). Padding applied here only (= doesn't
@@ -985,7 +1037,7 @@ struct PreviewPane: View {
     /// 2. Pinyin first-letter substring (= e.g. "d" matches "" → DF)
     /// Empty query = pass-through (= show all entities).
     private func searchFilteredEntities(_ entities: [Reference]) -> [Reference] {
-        let query = previewSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        let query = resolvedSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return entities }
         let loweredQuery = query.lowercased()
         return entities.filter { entity in
