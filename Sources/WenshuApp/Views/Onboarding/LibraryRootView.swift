@@ -123,31 +123,16 @@ public struct LibraryRootView: View {
             // available for future use (= .navigationSubtitle remains
             // imported at the call site below via SwiftUI re-export;
             // = we just don't call it from this root view anymore).
-            // v0.81 boss 2026-09-10 OOB: inspector toggle button on
-            // the root toolbar (= placement .primaryAction = the
-            // macOS 27 trailing toolbar slot = where Apple Notes /
-            // Reminders / Xcode place their inspector toggle).
-            // Writes AppState.inspectorVisible (= the same property
-            // NavigationSplitShell binds into `.inspector(isPresented:)`;
-            // = the toggle round-trips through one @Observable
-            // property shared between the toolbar View and the NSV
-            // View, both reading the AppState injected via
-            // .environment(appState) at the WindowGroup level in
-            // AppRootScene). Lucide "panel-right" icon is the Apple
-            // HIG canonical for an inspector-toggle (= matches what
-            // Apple ships in Pages' Format panel toggle).
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    @Bindable var bindableAppState = appState
-                    Button {
-                        bindableAppState.inspectorVisible.toggle()
-                    } label: {
-                        LucideLabel("Inspector", icon: "panel-right")
-                    }
-                    .help(WenshuI18n.t("toolbar.inspector.toggle", defaultValue: "Show or hide the inspector"))
-                    .keyboardShortcut("i", modifiers: [.command, .option])
-                }
-            }
+            // v0.81 boss 2026-09-10 OOB 'inspector toggle button':
+            // REMOVED. Per boss 2026-09-10 OOB 'Apple Pages/Numbers/
+            // Keynote 不隐藏右栏' + 'Apple 没给右栏默认折叠按钮',
+            // inspector is permanently visible (= no toggle, no
+            // hide affordance). NavigationSplitShell wires
+            // `.inspector(isPresented: .constant(true))`; this
+            // toolbar toggle was the wrong abstraction (= it tried
+            // to expose a feature Apple does not expose in office
+            // apps). The toolbar now hosts only wenshu's own
+            // chrome (= no NSV-default buttons added).
             .task { await runLaunch() }
             .sheet(isPresented: $commandPaletteVisible) {
                 CommandPaletteView(model: commandPaletteModel)
