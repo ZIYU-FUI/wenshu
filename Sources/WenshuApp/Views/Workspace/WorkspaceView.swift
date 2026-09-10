@@ -2120,6 +2120,12 @@ fileprivate func findPaneController(in root: NSViewController?) -> PaneNSControl
 struct EditorPaperCanvas<Content: View>: View {
     /// A4 width in points. Apple's own default for a new Pages document
     /// in a metric locale, and what the measurement above confirmed.
+    /// Boss 2026-09-10 OOB '纸就按一张 A4 去设计就好了': keep
+    /// paperWidth = 595 PT (= Pages / Numbers use the same). The
+    /// ScrollView wraps the sheet; when the detail column is
+    /// narrower than 595 PT, the user can scroll horizontally to
+    /// see the rest of the page (= Pages does the same when its
+    /// window is narrower than A4).
     private static var paperWidth: CGFloat { 595 }
     /// Page margin. Pages ships 1 inch (72 PT) on a new document.
     private static var paperMargin: CGFloat { 72 }
@@ -2127,7 +2133,7 @@ struct EditorPaperCanvas<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
-        ScrollView {
+        ScrollView([.horizontal, .vertical]) {
             content
                 .padding(Self.paperMargin)
                 .frame(width: Self.paperWidth, alignment: .topLeading)
