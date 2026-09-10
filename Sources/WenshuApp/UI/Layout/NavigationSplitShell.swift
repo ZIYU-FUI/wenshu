@@ -229,39 +229,34 @@ struct ShellSidebarColumn: View {
 
 // MARK: - Content column (= 2 vertical sub-areas)
 
-/// Apple HIG content column (= 2 vertical sub-areas: editor +
-/// chat). Per boss 9/8 ' sidebar / content / detail' +
-/// ' sidebar / content / detail' but the columns are
-/// CONTINUOUS (1 outer NavigationSplitView, NOT 2 stacked).
+/// Apple HIG content column (= 2 vertical sub-areas: cards on
+/// top + chapter outline on bottom). Per boss 2026-09-10 'visual
+/// 5 columns' + second OOB '卡片区放在中左': the middle column
+/// carries 2 sub-areas. Top = PreviewPane (= the card grid =
+/// adaptive 2-column LazyVGrid of card tiles + a 30 PT search
+/// bar above the grid + the canonical empty-state when no book
+/// is selected). Bottom = NewLibraryOutlineView (= chapter
+/// nodes for the active book, = the same component the sidebar
+/// uses for the directory tree).
 ///
-/// M2 (= this commit): swap the M1 placeholders for the real
-/// wenshu zone views:
-/// - top sub-area: EditorPlaceholder (real editor from v0.34+;
-///   = routes to EditorEditContent internally with the markdown
-///   engine + word count + auto-save)
-/// - bottom sub-area: ChatView (real chat from v0.34+; = the
-///   LLM conversation surface with attachment upload)
+/// Boss 2026-09-10 '删除 tab, 只留卡片内容 + 图反正没有实现, 直接先删掉':
+/// the sidebar bottom card zone (= previously ZoneContentView
+/// with two tabs '预览 / 图' = a .pickerStyle(.segmented) TabBar
+/// over a PreviewPane) is gone. PreviewPane now renders the
+/// card grid without any tab chrome (= Apple's empty state +
+/// search bar + the actual grid = the canonical pattern Xcode /
+/// Photos / Music use for unfiltered list views).
 ///
 /// v0.66 boss 2026-09-10 OOB 'drop the floating panel, just split the
 /// middle column in two': the previous float-over-document layout
 /// fought NSTextView's hit test (= an NSTextView on top of another
 /// NSTextView makes cursor + click ownership ambiguous). VSplitView
-/// gives the editor and the chat non-overlapping rectangles inside
-/// the same detail column, so each NSTextView owns its own
-/// rectangle (= cursor and hit test work as they do in Mail's
+/// gives the cards and the outline non-overlapping rectangles
+/// inside the same column, so each NSTextView / List owns its
+/// own rectangle (= cursor and hit test work as they do in Mail's
 /// inbox/message stack). AppKit's split handles the divider, the
-/// drag, and the position persistence (= same widget Mail uses for
-/// inbox/message, Xcode for editor/inspector).
-/// v0.69 boss 2026-09-10 OOB 'land the canonical 6-zone layout from
-/// the probe': the middle column (= between the sidebar and the
-/// detail) is the outline + cards band, exactly as the probe's
-/// ContentZone. The probe uses an outline section (= list of chapter
-/// nodes) plus a card section (= adaptive grid of card tiles).
-/// This commit places an Apple HIG empty-state placeholder (= the
-/// standard "what will live here" pattern Xcode and Mail use for
-/// newly opened panes), so the column has the right 280 PT ideal
-/// width while the real outline + cards widgets land in the
-/// next ticket.
+/// drag, and the position persistence (= same widget Mail uses
+/// for inbox/message, Xcode for editor/inspector).
 struct ShellMiddleColumn: View {
     let appState: AppState
 
@@ -274,29 +269,34 @@ struct ShellMiddleColumn: View {
         // Apple HIG canonical vertical split inside one NSV column.
         // VSplitView is what Mail uses for inbox/message stack; SwiftUI
         // renders the standard AppKit thick divider with grab handle.
-        // Boss 2026-09-10 second OOB 'visual 5 columns' = the middle
-        // column carries 2 sub-areas: outline (top) + cards (bottom).
+        // Boss 2026-09-10 '卡片区放在中左': the middle column's
+        // top sub-area is the card grid (= PreviewPane), the bottom
+        // sub-area is the chapter outline.
         VSplitView {
-            // Top sub-area = outline for the currently selected book.
-            // When no book is selected, show Apple's ContentUnavailableView
-            // (= Xcode's "No Editor" / Mail's "No Message Selected" =
-            // canonical empty state). The sidebar's NewLibraryOutlineView
-            // drives the selection; the middle column mirrors it scoped
-            // to the active book (= AppState.openTabs derives from the
-            // sidebar selection via the unified SidebarState).
-            outlineSubArea
-            // Bottom sub-area = card grid (= PreviewPane). Migrated
-            // from sidebar bottom per ticket 001; lands as the real
-            // 1240-LOC PreviewPane component. Scope = .empty by default
-            // (= shows Apple's empty-state hint until a sidebar row
-            // routes a real scope into AppState via .sidebarSelection).
+            // Top sub-area = card grid (= PreviewPane). Migrated from
+            // sidebar bottom per ticket 001 (formerly VSplitView sidebar
+            // bottom ZoneContentView with 2 tabs '预览 / 图'); now lands
+            // as the real 1240-LOC PreviewPane component with no tab
+            // chrome (= boss 2026-09-10 '只留卡片内容 + 图反正没有实现,
+            // 直接先删掉'). Scope = .empty by default (= shows Apple's
+            // empty-state hint until a sidebar row routes a real scope
+            // into AppState via .sidebarSelection).
             PreviewPane(
                 scope: PreviewScope.empty,
                 onDoubleClick: { _ in },
                 previewSortOrder: $previewSortOrder
             )
+            // Bottom sub-area = chapter outline for the active book.
+            // The sidebar's NewLibraryOutlineView drives the selection;
+            // the middle column mirrors it scoped to the active book
+            // (= AppState.openTabs derives from the sidebar selection
+            // via the unified SidebarState). Falls back to
+            // ContentUnavailableView when openTabs is empty (= Xcode's
+            // "No Editor" / Mail's "No Message Selected" = canonical
+            // empty state).
+            outlineSubArea
         }
-        .navigationTitle("Outline & Cards")
+        .navigationTitle("Cards & Outline")
     }
 
     /// Outline sub-area = real chapters tree for the selected book.
