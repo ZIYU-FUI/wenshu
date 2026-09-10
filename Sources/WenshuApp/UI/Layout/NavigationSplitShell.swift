@@ -229,15 +229,14 @@ struct ShellSidebarColumn: View {
 
 // MARK: - Content column (= 2 vertical sub-areas)
 
-/// Apple HIG content column (= 2 vertical sub-areas: cards on
-/// top + chapter outline on bottom). Per boss 2026-09-10 'visual
-/// 5 columns' + second OOB '卡片区放在中左': the middle column
-/// carries 2 sub-areas. Top = PreviewPane (= the card grid =
-/// adaptive 2-column LazyVGrid of card tiles + a 30 PT search
-/// bar above the grid + the canonical empty-state when no book
-/// is selected). Bottom = NewLibraryOutlineView (= chapter
-/// nodes for the active book, = the same component the sidebar
-/// uses for the directory tree).
+/// Apple HIG content column (= 1 zone: the card grid).
+/// Per boss 2026-09-10 'visual 5 columns' + '卡片区放在中左, 错了,
+/// 不需要红框这块': the middle column carries exactly 1 zone
+/// (PreviewPane = the card grid). The previously rendered bottom
+/// outline sub-area (= NewLibraryOutlineView = the same
+/// directory tree the sidebar uses) is removed (= the outline
+/// is the sidebar's job; duplicating it in the middle column
+/// is noise).
 ///
 /// Boss 2026-09-10 '删除 tab, 只留卡片内容 + 图反正没有实现, 直接先删掉':
 /// the sidebar bottom card zone (= previously ZoneContentView
@@ -250,13 +249,11 @@ struct ShellSidebarColumn: View {
 /// v0.66 boss 2026-09-10 OOB 'drop the floating panel, just split the
 /// middle column in two': the previous float-over-document layout
 /// fought NSTextView's hit test (= an NSTextView on top of another
-/// NSTextView makes cursor + click ownership ambiguous). VSplitView
-/// gives the cards and the outline non-overlapping rectangles
-/// inside the same column, so each NSTextView / List owns its
-/// own rectangle (= cursor and hit test work as they do in Mail's
-/// inbox/message stack). AppKit's split handles the divider, the
-/// drag, and the position persistence (= same widget Mail uses
-/// for inbox/message, Xcode for editor/inspector).
+/// NSTextView makes cursor + click ownership ambiguous). The
+/// previous VSplitView held cards on top + outline on bottom; per
+/// the next boss OOB (= '不需要红框这块' = the outline sub-area)
+/// the VSplitView is gone too and the card zone owns the full
+/// column height.
 struct ShellMiddleColumn: View {
     let appState: AppState
 
@@ -266,53 +263,33 @@ struct ShellMiddleColumn: View {
     @State private var previewSortOrder: EntitySortOrder = .pinyinFirstLetter
 
     var body: some View {
-        // Apple HIG canonical vertical split inside one NSV column.
-        // VSplitView is what Mail uses for inbox/message stack; SwiftUI
-        // renders the standard AppKit thick divider with grab handle.
-        // Boss 2026-09-10 '卡片区放在中左': the middle column's
-        // top sub-area is the card grid (= PreviewPane), the bottom
-        // sub-area is the chapter outline.
-        VSplitView {
-            // Top sub-area = card grid (= PreviewPane). Migrated from
-            // sidebar bottom per ticket 001 (formerly VSplitView sidebar
-            // bottom ZoneContentView with 2 tabs '预览 / 图'); now lands
-            // as the real 1240-LOC PreviewPane component with no tab
-            // chrome (= boss 2026-09-10 '只留卡片内容 + 图反正没有实现,
-            // 直接先删掉'). Scope = .empty by default (= shows Apple's
-            // empty-state hint until a sidebar row routes a real scope
-            // into AppState via .sidebarSelection).
-            PreviewPane(
-                scope: PreviewScope.empty,
-                onDoubleClick: { _ in },
-                previewSortOrder: $previewSortOrder
-            )
-            // Bottom sub-area = chapter outline for the active book.
-            // The sidebar's NewLibraryOutlineView drives the selection;
-            // the middle column mirrors it scoped to the active book
-            // (= AppState.openTabs derives from the sidebar selection
-            // via the unified SidebarState). Falls back to
-            // ContentUnavailableView when openTabs is empty (= Xcode's
-            // "No Editor" / Mail's "No Message Selected" = canonical
-            // empty state).
-            outlineSubArea
-        }
-        .navigationTitle("Cards & Outline")
-    }
-
-    /// Outline sub-area = real chapters tree for the selected book.
-    /// Uses NewLibraryOutlineView (= same component the sidebar uses).
-    /// Falls back to ContentUnavailableView when openTabs is empty.
-    @ViewBuilder
-    private var outlineSubArea: some View {
-        if appState.openTabs.isEmpty {
-            ContentUnavailableView(
-                "No chapter open",
-                systemImage: "books.vertical",
-                description: Text("Select a chapter in the sidebar to view its outline.")
-            )
-        } else {
-            NewLibraryOutlineView()
-        }
+        // Boss 2026-09-10 '卡片区放在中左' + '只需要原来的素材卡片':
+        // the middle column is exactly 1 zone = the reference library
+        // overview grid (= PreviewPane with scope = .referenceScope(nil)
+        // = ALL entities across categories). This is the canonical
+        // 'material cards' view = Xcode's project navigator cards /
+        // Photos' library = unfiltered entity grid per category with
+        // sort = first letter (= the boss 8/30 OOB default).
+        //
+        // Why .referenceScope(nil) and not .empty:
+        // - .empty renders Apple's ContentUnavailableView (= an
+        //   informational placeholder = NOT the cards themselves).
+        //   Per boss 2026-09-10 '只需要原来的素材卡片', the column
+        //   must show the actual card grid (= the entities), even
+        //   with no sidebar selection.
+        // - .referenceScope(nil) = overview grid of all entities in
+        //   the reference library (= 角色 / 世界观 / 书 / 部 等). When
+        //   the user later clicks a sidebar row, AppState can route
+        //   a category-scoped scope (= .referenceScope(.some)) into
+        //   the PreviewPane for filtered view.
+        //
+        // No VSplitView wrapper, no outline sub-area, no chapter tree.
+        PreviewPane(
+            scope: .referenceScope(nil),
+            onDoubleClick: { _ in },
+            previewSortOrder: $previewSortOrder
+        )
+        .navigationTitle("Cards")
     }
 }
 
