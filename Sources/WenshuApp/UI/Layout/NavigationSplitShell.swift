@@ -186,30 +186,30 @@ struct NavigationSplitShell: View {
 struct ShellSidebarColumn: View {
     let appState: AppState
 
-    /// Apple HIG canonical search field for the sidebar List.
-    /// When non-empty, NewLibraryOutlineView filters its rows by
-    /// title contains the query (case-insensitive). Apple owns the
-    /// search field rendering + placement (= sidebar; macOS 14+).
-    @State private var sidebarSearchText: String = ""
-
     var body: some View {
         // Sidebar = 1 zone (directory tree). The previous 9/9
         // v0.49 sidebar card-zone pattern is reverted per the
         // 8/30 boss red-line drawing (= cards in the middle
         // column, not the sidebar).
         //
-        // Apple HIG Inventory 2026-09-06 listed `.searchable` as
-        // a missing API (0 hits). Added per ticket 004 of the
-        // 2026-09-10-six-zone-ui-rewrite batch (= boss 2026-09-10
-        // 'add HIG APIs that are currently absent'). The search
-        // field is column-level (= applies to the List inside
-        // NewLibraryOutlineView automatically per SwiftUI routing).
+        // v0.79 boss 2026-09-10 OOB '目录树, 不需要搜索框, 删掉':
+        // the sidebar's `.searchable` field (= the macOS 13+
+        // Apple HIG sidebar search widget = the search field at
+        // the top of the sidebar column = ticket 004 of the
+        // 2026-09-10-six-zone-ui-rewrite batch) is removed.
+        // All sidebar rows render unconditionally (= no
+        // case-insensitive substring match on title; = the
+        // directory tree is its own document = the user sees
+        // the whole tree and navigates by clicking rows =
+        // standard macOS Finder behavior when the search field is
+        // hidden). The previous commit's `sidebarSearchText`
+        // @State + the `.searchable(text:placement:prompt:)`
+        // modifier (= Apple HIG Inventory 2026-09-06 §
+        // 'add HIG APIs that are currently absent') are both
+        // dropped; NewLibraryOutlineView never read this
+        // binding directly (= its filter reads SidebarState, not
+        // sidebarSearchText; = the binding is fully removable).
         NewLibraryOutlineView()
-            .searchable(
-                text: $sidebarSearchText,
-                placement: .sidebar,
-                prompt: "Filter shelves, books, folders"
-            )
     }
 }
 
