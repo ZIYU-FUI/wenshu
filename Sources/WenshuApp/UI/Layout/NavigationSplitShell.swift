@@ -291,151 +291,30 @@ struct ShellSidebarColumn: View {
 ///   engine + word count + auto-save)
 /// - bottom sub-area: ChatView (real chat from v0.34+; = the
 ///   LLM conversation surface with attachment upload)
+///
+/// v0.66 boss 2026-09-10 OOB 'drop the floating panel, just split the
+/// middle column in two': the previous float-over-document layout
+/// fought NSTextView's hit test (= an NSTextView on top of another
+/// NSTextView makes cursor + click ownership ambiguous). VSplitView
+/// gives the editor and the chat non-overlapping rectangles inside
+/// the same detail column, so each NSTextView owns its own
+/// rectangle (= cursor and hit test work as they do in Mail's
+/// inbox/message stack). AppKit's split handles the divider, the
+/// drag, and the position persistence (= same widget Mail uses for
+/// inbox/message, Xcode for editor/inspector).
 struct ShellContentColumn: View {
     let appState: AppState
 
-    /// Whether the chat panel floats over the document.
-    /// Persisted so the panel is where the user left it after a relaunch.
-    @AppStorage("wenshu.chat.floatingVisible") private var chatVisible: Bool = false
-    /// Height of the floating chat panel, also persisted.
-    @AppStorage("wenshu.chat.floatingHeight") private var chatHeight: Double = 320
-    /// Height at drag start, so the gesture applies a delta instead of
-    /// compounding on every change callback.
-    @State private var chatDragStart: Double?
-
     var body: some View {
-        // v0.53 boss 2026-09-09 OOB: float a chat panel over the lower
-        // half of the middle column.
-        //
-        // Chat used to be the other half of a Picker: picking it REPLACED
-        // the document. Floating means both are on screen at once, so the
-        // Picker becomes a show/hide toggle and the panel is an overlay
-        // pinned to the bottom edge. The document keeps the full column
-        // underneath and is never resized by the panel.
-        EditorPlaceholder()
-            .overlay(alignment: .bottom) {
-                if chatVisible {
-                    floatingChatPanel
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 16)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-            }
-            .animation(.snappy, value: chatVisible)
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Toggle(isOn: $chatVisible) {
-                        LucideLabel("Chat", icon: "messages-square")
-                    }
-                    .toggleStyle(.button)
-                    .help(chatVisible ? "隐藏聊天" : "显示聊天")
-                }
-            }
-            .environment(appState)
-    }
-
-    /// The floating panel itself.
-    ///
-    /// Liquid Glass is what macOS 26 uses for content floating above other
-    /// content, so the panel reads as hovering rather than as another
-    /// pane. `.glassEffect` supplies the material, the blur, and the
-    /// hairline edge, so the panel adds no colors of its own.
-    private var floatingChatPanel: some View {
-        // v0.59 boss 2026-09-09: the panel was built with nil dependencies,
-        // so ChatView's .task skipped loadMessages and the transcript was
-        // always empty — the bubbles had nothing to draw. WenshuAppDelegate
-        // already builds both at launch; hand them over.
-        ChatZoneView(
-            conductor: WenshuAppDelegate.sharedConductor,
-            store: WenshuAppDelegate.sharedChatStoreRef
-        )
-            // Clamp on read as well as on drag: an earlier build persisted
-            // heights up to 700, and that outlives the code change.
-            .frame(height: min(max(chatHeight, Self.chatMinHeight), Self.chatMaxHeight))
-            .overlay(alignment: .top) { chatResizeHandle }
-            .glassEffect(.regular, in: .rect(cornerRadius: 12))
-            // v0.62 boss 2026-09-10 OOB 'the cursor in the middle of the
-            // panel fights the cursor over the paper': the panel's
-            // body hosts an NSTextView (= markdown editor / message
-            // bubbles) that defaults to I-beam on hover. Without
-            // overriding, a mouse over the panel's glass body
-            // (anything except the top resize handle) shows an
-            // I-beam even though the panel is a separate floating
-            // surface with no editable text in its chrome. Apple
-            // conventions: hovering an inert overlay that sits on top
-            // of editable content shows the arrow cursor, not the
-            // edit cursor — the surface owns its own pointer signal.
-            .onHover { inside in
-                if inside { NSCursor.arrow.push() }
-                else { NSCursor.pop() }
-            }
-            .shadow(color: .black.opacity(0.25), radius: 12, y: 4)
-            // Inset from the column edges so the panel reads as floating
-            // ON the column rather than docked to it.
-            //
-            // The padding has to be applied by the container, not by the
-            // panel: an overlay is sized against its host, so padding on
-            // this side of .glassEffect insets the glass while the panel
-            // still lays out edge to edge. The container applies it via
-            // .safeAreaPadding instead.
-    }
-
-    /// Drag handle on the panel's top edge.
-    ///
-    /// v0.58 boss 2026-09-09 OOB: draggable both ways again, with a floor
-    /// and a ceiling, and dragging past the floor closes the panel.
-    ///
-    /// The gesture tracks freely between the two limits. Past the floor it
-    /// does not fight the drag — it dismisses the panel and turns the
-    /// toolbar toggle off, which is the same thing a user pulling the
-    /// panel shut is asking for. Past the ceiling it simply stops.
-    private var chatResizeHandle: some View {
-        Rectangle()
-            .fill(.separator)
-            .frame(height: 1)
-            .frame(height: 6)
-            .contentShape(Rectangle())
-            .onHover { inside in
-                if inside { NSCursor.resizeUpDown.push() } else { NSCursor.pop() }
-            }
-            .gesture(
-                DragGesture(coordinateSpace: .global)
-                    .onChanged { value in
-                        let start = chatDragStart ?? chatHeight
-                        if chatDragStart == nil { chatDragStart = start }
-                        // Upward drag is a negative translation, so it adds
-                        // height.
-                        let proposed = start - value.translation.height
-                        if proposed < Self.chatDismissHeight {
-                            // Dragged shut. Reset to the floor so the panel
-                            // reopens at a usable size rather than at the
-                            // sliver it was closed from.
-                            chatHeight = Self.chatMinHeight
-                            chatDragStart = nil
-                            chatVisible = false
-                        } else {
-                            chatHeight = min(max(proposed, Self.chatMinHeight), Self.chatMaxHeight)
-                        }
-                    }
-                    .onEnded { _ in chatDragStart = nil }
+        VSplitView {
+            EditorPlaceholder()
+            ChatZoneView(
+                conductor: WenshuAppDelegate.sharedConductor,
+                store: WenshuAppDelegate.sharedChatStoreRef
             )
+        }
+        .environment(appState)
     }
-
-    /// Smallest useful panel: the input row plus its status bar measure
-    /// about 90 PT of fixed chrome, so 220 PT leaves roughly 130 PT of
-    /// transcript — two or three bubbles, enough to still read as a
-    /// conversation rather than a text box.
-    private static let chatMinHeight: Double = 220
-
-    /// Drag below this and the panel closes instead of resisting. Half the
-    /// floor is far enough that a deliberate pull-shut is unmistakable and
-    /// an ordinary resize never reaches it.
-    private static let chatDismissHeight: Double = 110
-
-    /// Tallest panel. The window is 980 PT, so 620 PT keeps roughly a third
-    /// of the column showing the document underneath; a panel that covers
-    /// everything is a chat window, not a floating panel.
-    private static let chatMaxHeight: Double = 620
 }
 
 
