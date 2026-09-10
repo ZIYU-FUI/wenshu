@@ -96,7 +96,7 @@ struct NavigationSplitShell: View {
         // becomes invisible because each column has its own glass
         // tier that refracts independently; = no horizontal line
         // between columns = matches Pages / Numbers / Keynote).
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: .constant(.all)) {
             // Apple HIG sidebar (= leftmost column; = the source
             // of truth for navigation in this band). 2 vertical
             // sub-areas (= VStack; no inner divider; = Mail's
@@ -110,7 +110,24 @@ struct NavigationSplitShell: View {
             // modifier on any column (= SwiftUI's own defaults for
             // min / ideal / max take over). Mail / Notes / Finder
             // also do not specify column widths (= the same defaults).
+            //
+            // v0.84 boss 2026-09-10 OOB 'sidebar expand with all 3
+            // params (= min / ideal / max)': set the sidebar's width
+            // to the Apple HIG canonical sidebar range = 220 / 280 /
+            // 360 PT (= the range Apple HIG §Sidebars recommends for
+            // a sidebar showing bookshelf / folder names; = the
+            // same range Mail / Notes / Finder use). The three
+            // arguments define the sidebar's drag-resize + window-
+            // scaling bounds (= user can drag between min 220 and
+            // max 360; default 280 when the window is first
+            // opened). The middle column + detail column +
+            // inspector keep SwiftUI defaults per the v0.71 OOB
+            // (= only the sidebar needs an explicit width because
+            // SwiftUI's zero-config sidebar minWidth is too small
+            // for a tree row; the other columns already render
+            // at sensible widths from SwiftUI defaults).
             ShellSidebarColumn(appState: appState)
+                .navigationSplitViewColumnWidth(min: 220, ideal: 280, max: 360)
         } content: {
             // v0.69 boss 2026-09-10 OOB 'land the canonical 6-zone
             // layout from the probe (= NavigationSplitView 3 columns
