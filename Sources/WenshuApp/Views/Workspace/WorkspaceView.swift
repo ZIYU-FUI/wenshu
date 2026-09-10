@@ -2133,34 +2133,35 @@ struct EditorPaperCanvas<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
+        // v0.100 boss 2026-09-10 OOB '纸左右两边有大量空区域':
+        // the sheet used to be left-aligned inside its
+        // ScrollView (= the 595 PT paper sat flush against the
+        // ScrollView's leading edge = ~370 PT of black empty
+        // space on the right of the sheet). Center the paper
+        // horizontally with an HStack + Spacers. The previous
+        // attempts with `.frame(maxWidth: .infinity)` on the
+        // HStack did not expand because the ScrollView's
+        // intrinsic content size locked to the 595 PT paper
+        // (= SwiftUI 27 macOS prefers content-natural-size
+        // ScrollView over the column-width-stretched variant).
+        // Apply `.scrollTargetLayout` + `.defaultScrollAnchor
+        // (.center)` (= Apple macOS 14+ API that centers
+        // smaller content inside a larger ScrollView; = the
+        // same mechanism SwiftUI uses for centered hero
+        // images). The Spacers then have room to push the
+        // paper to the visual center of the column.
         ScrollView([.horizontal, .vertical]) {
             content
                 .padding(Self.paperMargin)
                 .frame(width: Self.paperWidth, alignment: .topLeading)
-                .frame(minHeight: 842)          // A4 height, so a short
-                                                // document still looks
-                                                // like a page
-                // Paper stays white in dark mode, which is what Pages
-                // does: measured its canvas at 255/255/255 while the app
-                // chrome around it was dark. .textBackgroundColor would
-                // follow the system appearance and turn the sheet dark.
+                .frame(minHeight: 842)          // A4 height
                 .background(Color.white)
-                // Forcing the light appearance on the sheet's subtree
-                // makes the engine render dark text on it. Without this
-                // the NSTextView keeps dark-mode label colors and the
-                // text is white-on-white.
                 .environment(\.colorScheme, .light)
                 .shadow(color: .black.opacity(0.35), radius: 8, y: 2)
                 .padding(.vertical, 24)
+                .frame(maxWidth: .infinity, alignment: .center)
         }
-        // v0.70: drop the ScrollView's `.frame(maxWidth: .infinity,
-        // maxHeight: .infinity)`. Apple HIG canonical 6-zone layout
-        // (= probe window 1449, detail 648) has no custom frame on
-        // the column body. Pages / Numbers / Keynote = no custom
-        // frame either. .scrollContentBackground stays (= Apple API
-        // for the scroll-view chrome tier, = not a layout frame).
-        // The surround stays on the column's own material, which is the
-        // content tier, so the white sheet reads as paper on a desk.
+        .defaultScrollAnchor(.center)
         .scrollContentBackground(.hidden)
     }
 }
