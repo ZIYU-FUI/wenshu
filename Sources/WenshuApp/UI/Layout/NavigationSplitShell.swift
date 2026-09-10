@@ -284,12 +284,17 @@ struct ShellMiddleColumn: View {
         //   the PreviewPane for filtered view.
         //
         // No VSplitView wrapper, no outline sub-area, no chapter tree.
+        // No navigationTitle: per boss 2026-09-10 OOB '红框里的标题可以不要吗',
+        // the column-level header (= the NavigationSplitView column
+        // title bar = 'Cards' + library subtitle 'anbaiqiang.ws') is
+        // removed. The column content (= the cards themselves) is
+        // self-explanatory; an extra title bar is noise on a single-
+        // zone column.
         PreviewPane(
             scope: .referenceScope(nil),
             onDoubleClick: { _ in },
             previewSortOrder: $previewSortOrder
         )
-        .navigationTitle("Cards")
     }
 }
 
