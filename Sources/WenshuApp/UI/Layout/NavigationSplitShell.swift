@@ -65,10 +65,13 @@ struct NavigationSplitShell: View {
     /// by LibraryLifecycleHook (= may not exist at first frame).
     var bookStore: BookStore?
 
-    /// Inspector presentation state. Apple restores this across launches
-    /// for trailing-column inspectors, and `InspectorCommands` wires the
-    /// standard View > Inspector menu item plus its keyboard shortcut.
-    @State private var inspectorVisible: Bool = true
+    /// Inspector presentation state.
+    /// Apple default for `.inspector(isPresented:)` is `false` on first launch;
+    /// user reveals it via the inspector chevron rendered automatically by
+    /// the modifier. The previous hardcoded `true` was a v0.48 boss OOB that
+    /// pre-set the inspector visible — per boss 2026-09-10 "Apple default",
+    /// SwiftUI's own default behavior takes over.
+    @State private var inspectorVisible: Bool = false
 
     var body: some View {
         // v0.40 boss 2026-09-08 OOB 'yesyes mac os 27 default,
