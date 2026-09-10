@@ -278,6 +278,30 @@ struct NewLibraryOutlineView: View {
             ForEach(shelves) { shelf in
                 shelfRow(shelf)
             }
+            // v0.75 boss 2026-09-10 OOB '学习这个布局, 有一个小标题,
+            // 有分割线。可以在书架管理, 和资料库之间也加一条分割线':
+            // reference image shows the Apple HIG 'section header
+            // pattern' (a small section title + a Divider below it)
+            // used to visually separate adjacent groups in a
+            // sidebar / inspector / settings list. Apply the same
+            // pattern here: a single Divider between the
+            // user-managed shelves group ('从这里开始' / '测试书架')
+            // and the built-in Reference Library section ('资料库').
+            //
+            // Per developer.apple.com/documentation/swiftui/divider:
+            // `Divider()` renders as a 1 PT horizontal hairline
+            // tinted with the platform's `.separator` color (= a
+            // subtle, non-noisy group separator = the canonical
+            // Apple visual for grouped list sections, identical
+            // to the hairline above / below '幻灯片' in the
+            // reference Keynote screenshot).
+            //
+            // Padding: 8 PT vertical (= matches List(.sidebar)'s
+            // row internal padding = the divider sits in the same
+            // visual slot as a row, not flush against the shelf
+            // icons above / below).
+            Divider()
+                .padding(.vertical, 8)
             // Reference library (= library's default shelf per boss 8/26
             // OOB; user CANNOT delete or rename). Treated as a single
             // Section per Apple HIG; categories expand via
