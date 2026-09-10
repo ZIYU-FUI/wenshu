@@ -65,21 +65,14 @@ struct NavigationSplitShell: View {
     /// by LibraryLifecycleHook (= may not exist at first frame).
     var bookStore: BookStore?
 
-    /// Inspector presentation state.
-    /// Apple default for `.inspector(isPresented:)` is `false` on first launch;
-    /// the toolbar inspector toggle button (LibraryRootView) is the user-facing
-    /// affordance to flip it on. The flag lives on `AppState` (= the
-    /// @Observable shared store) rather than `@SceneStorage` (= per-window
-    /// persistence), because the toolbar button (View) and the shell (View)
-    /// must share one source of truth and AppRootScene (= Scene) cannot
-    /// pass a Binding through the Scene protocol boundary.
-    @Bindable private var inspectorState: AppState
-
-    init(appState: AppState, bookStore: BookStore?) {
-        self.appState = appState
-        self.bookStore = bookStore
-        self._inspectorState = Bindable(appState)
-    }
+    /// v0.88 boss 2026-09-10 OOB 'inspector 长显 + 有值必传':
+    /// `.inspector(isPresented:)` is wired with `.constant(true)`
+    /// below (= inspector is permanently visible = the same
+    /// pattern Apple Pages / Numbers / Keynote use; = Apple does
+    /// not expose an inspector toggle button on these apps).
+    /// Therefore no `inspectorVisible` state on AppState, no
+    /// `@Bindable inspectorState`, no toolbar toggle button.
+    /// The `.constant(true)` binding is the source of truth.
 
     var body: some View {
         // v0.40 boss 2026-09-08 OOB 'yesyes mac os 27 default,
@@ -96,7 +89,20 @@ struct NavigationSplitShell: View {
         // becomes invisible because each column has its own glass
         // tier that refracts independently; = no horizontal line
         // between columns = matches Pages / Numbers / Keynote).
-        NavigationSplitView(columnVisibility: .constant(.all)) {
+        // v0.87 boss 2026-09-10 OOB '有值必传 = 工程实践原则':
+        // NavigationSplitView's `init(columnVisibility:sidebar:content:detail:)`
+        // requires an explicit `Binding<NavigationSplitViewVisibility>`
+        // when the column visibility is intentional (= even though
+        // SwiftUI's no-binding init defaults to `.automatic`, an
+        // explicit `.constant(.automatic)` documents the intent in
+        // code = the reader does not need to consult the SDK to
+        // know which visibility is in effect; = future SDK default
+        // changes do not silently shift wenshu's behavior). Per
+        // useyourloaf.com SwiftUI Split View Configuration =
+        // `automatic` provides a platform suitable display mode
+        // (= on macOS, this maps to `.all` because macOS always
+        // displays the content column regardless of size class).
+        NavigationSplitView(columnVisibility: .constant(.automatic)) {
             // Apple HIG sidebar (= leftmost column; = the source
             // of truth for navigation in this band). 2 vertical
             // sub-areas (= VStack; no inner divider; = Mail's
@@ -162,7 +168,7 @@ struct NavigationSplitShell: View {
             // with this exact combination).
             ShellContentColumn(appState: appState)
                 .navigationSplitViewColumnWidth(min: 400, ideal: 600, max: 900)
-                .inspector(isPresented: $inspectorState.inspectorVisible) {
+                .inspector(isPresented: .constant(true)) {
                     ShellDetailColumn(appState: appState)
                         .inspectorColumnWidth(min: 240, ideal: 280, max: 360)
                 }
