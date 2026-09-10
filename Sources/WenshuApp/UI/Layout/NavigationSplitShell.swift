@@ -89,20 +89,21 @@ struct NavigationSplitShell: View {
         // becomes invisible because each column has its own glass
         // tier that refracts independently; = no horizontal line
         // between columns = matches Pages / Numbers / Keynote).
-        // v0.87 boss 2026-09-10 OOB '有值必传 = 工程实践原则':
-        // NavigationSplitView's `init(columnVisibility:sidebar:content:detail:)`
-        // requires an explicit `Binding<NavigationSplitViewVisibility>`
-        // when the column visibility is intentional (= even though
-        // SwiftUI's no-binding init defaults to `.automatic`, an
-        // explicit `.constant(.automatic)` documents the intent in
-        // code = the reader does not need to consult the SDK to
-        // know which visibility is in effect; = future SDK default
-        // changes do not silently shift wenshu's behavior). Per
-        // useyourloaf.com SwiftUI Split View Configuration =
-        // `automatic` provides a platform suitable display mode
-        // (= on macOS, this maps to `.all` because macOS always
-        // displays the content column regardless of size class).
-        NavigationSplitView(columnVisibility: .constant(.automatic)) {
+        // v0.89 boss 2026-09-10 OOB 'columnVisibility with binding
+        // made sidebar collapse to 8 PT': use the parameter-less
+        // `NavigationSplitView { sidebar content detail }` init
+        // (= SwiftUI's no-binding default). Per Apple docs, the
+        // no-binding init uses an internal SwiftUI-managed
+        // visibility state (= macOS always shows all three
+        // columns; = the sidebar remains visible at its
+        // `navigationSplitViewColumnWidth` ideal = 280 PT).
+        // Passing `columnVisibility: .constant(.automatic)`
+        // (= our v0.87 attempt) created a non-default code path
+        // that collapsed the sidebar to its absolute minimum
+        // width even when `navigationSplitViewColumnWidth`
+        // specified a 220-PT minimum. The no-binding init lets
+        // SwiftUI's layout engine use the column widths we set.
+        NavigationSplitView {
             // Apple HIG sidebar (= leftmost column; = the source
             // of truth for navigation in this band). 2 vertical
             // sub-areas (= VStack; no inner divider; = Mail's
