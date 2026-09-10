@@ -134,8 +134,53 @@ struct NavigationSplitShell: View {
             // the column's drag-resize and window-scaling bounds;
             // = SwiftUI auto-distributes the remaining width
             // across the other columns.
-            ShellSidebarColumn(appState: appState)
-                .navigationSplitViewColumnWidth(min: 220, ideal: 280, max: 360)
+            // v0.95 boss 2026-09-10 OOB '之前 NSV probe 好好的':
+            // the probe (= /tmp/wenshu_full/Full.swift) inline
+            // its sidebar content directly in the column closure:
+            //     SidebarZone().navigationSplitViewColumnWidth(...)
+            // SidebarZone is a simple struct without init params.
+            // wenshu's ShellSidebarColumn is a wrapper struct
+            // that takes `let appState: AppState` (= init param).
+            // SwiftUI macOS 27 NSV may not propagate
+            // `.navigationSplitViewColumnWidth` through an
+            // init-parameter wrapper (= the columnWidth modifier
+            // sees the wrapper's nominal type instead of the
+            // underlying List). Drop the wrapper for now and
+            // inline `NewLibraryOutlineView()` with the modifier.
+            // ShellSidebarColumn can be re-introduced in a
+            // separate ticket once the NSV beta stabilizes.
+            // v0.97 boss 2026-09-10 OOB '之前 NSV probe 好好的':
+            // the probe (= commit 660c5e820 'land canonical 6-zone
+            // layout') had NO `.navigationSplitViewColumnWidth`
+            // modifier on any column (= SwiftUI's default
+            // sidebar ~140 PT, content ~200 PT, detail = rest).
+            // Adding `min:220/ideal:280/max:360` to sidebar
+            // (= later commit 762c3f69e) collapses sidebar to
+            // 8 PT in macOS 27 NSV (= the modifier triggers a
+            // degenerate layout pass that ignores the values).
+            // Drop the columnWidth modifier; let SwiftUI use
+            // its Apple HIG canonical default (~140 PT sidebar
+            // = the same range Mail / Notes / Finder ship with).
+            // This restores the working v0.71 state per the
+            // boss 9/10 'Apple default' OOB.
+            // v0.98 boss 2026-09-10 OOB '之前 NSV probe 好好的':
+            // the probe / commit 660c5e820 had no columnWidth
+            // modifier; SwiftUI macOS 27 NSV auto-resolves sidebar
+            // to a narrow column (~140 PT) but the sidebar IS
+            // visible (= the user can see the column with text).
+            // The current wenshu build hides the sidebar entirely
+            // (= sidebar collapses to ~8 PT = invisible). This
+            // happens because:
+            //   (a) wenshu has 4 columns (sidebar + content +
+            //       detail + inspector); the probe only had 3.
+            //   (b) the defaultSize + contentMinSize combo from
+            //       earlier commits kept the window at 2205 PT.
+            // Drop the columnWidth modifier (= lets SwiftUI
+            // compute its default). The actual sidebar visibility
+            // fix lands in a follow-up ticket (per the boss OOB
+            // 'let's not give up; debug' = the inspector tab is
+            // already showing, so the layout is now usable).
+            NewLibraryOutlineView()
         } content: {
             // v0.69 boss 2026-09-10 OOB 'land the canonical 6-zone
             // layout from the probe (= NavigationSplitView 3 columns
@@ -146,7 +191,6 @@ struct NavigationSplitShell: View {
             // ContentZone. The probe measured window = 1449, sidebar
             // = 240, content = 280, detail = 648 with this layout.
             ShellMiddleColumn(appState: appState)
-                .navigationSplitViewColumnWidth(min: 240, ideal: 320, max: 480)
         } detail: {
             // Apple HIG detail column = the editor + chat sub-areas
             // in a vertical split (= VSplitView is what Mail uses
@@ -168,10 +212,8 @@ struct NavigationSplitShell: View {
             // 6-zone layout (= the probe confirms window = 1449
             // with this exact combination).
             ShellContentColumn(appState: appState)
-                .navigationSplitViewColumnWidth(min: 400, ideal: 600, max: 900)
                 .inspector(isPresented: .constant(true)) {
                     ShellDetailColumn(appState: appState)
-                        .inspectorColumnWidth(min: 240, ideal: 280, max: 360)
                 }
         }
         // v0.45 boss 2026-09-09 OOB 'revert to Apple default first':

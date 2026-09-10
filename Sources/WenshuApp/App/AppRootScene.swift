@@ -79,9 +79,40 @@ struct AppRootScene: Scene {
         // containing 8 toolbar items + traffic lights). No custom
         // chrome above or below (= fully Apple-native = ' apple
         // ' per Boss spec).
-        .windowToolbarStyle(.unified)  // 52 PT default macOS chrome with Liquid Glass unified toolbar background
+        // v0.93 boss 2026-09-10 OOB '之前 NSV probe 好好的':
+        // the probe (/tmp/wenshu_full/Full.swift, = the
+        // 2026-09-10 morning NSV test) used
+        // `.windowToolbarStyle(.unifiedCompact)` (= 28 PT compact
+        // chrome) and showed all 4 columns at their Apple HIG
+        // ideal widths. Switching to `.unified` (= 52 PT default
+        // chrome) on the wenshu shell broke columnWidth (=
+        // sidebar collapsed to 8 PT, inspector content went
+        // blank). The 52-PT titlebar reserves more vertical
+        // space at the top of the window, which apparently
+        // changes NavigationSplitView's intrinsic-content-size
+        // calculation (= the 4-column minimum widens
+        // disproportionately). Per Apple docs, `.unifiedCompact`
+        // is the recommended style for dense workspace apps
+        // (= Mail / Notes / Finder all use it = their toolbars
+        // do not steal vertical space from the work area). Match
+        // the probe's style.
+        .windowToolbarStyle(.unifiedCompact)  // 28 PT compact chrome (matches probe / Mail / Notes / Finder)
         // .windowToolbarStyle(.unifiedCompact(showsTitle: false))  // 28 PT compact chrome, no unified toolbar background
-        .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // Boss Sketch design baseline 1920x984 PT
+        // v0.96 boss 2026-09-10 OOB '之前 NSV probe 好好的': the
+        // probe (/tmp/wenshu_full/Full.swift) had no
+        // `.defaultSize(width:height:)` (= SwiftUI used the
+        // window's natural default size = ~1429 PT). With no
+        // explicit defaultSize, NavigationSplitView's auto
+        // layout takes over (= columns get their canonical
+        // SwiftUI default widths: sidebar ~140, content ~200,
+        // detail = remaining). Adding `defaultSize(1480, 980)`
+        // (= earlier boss OOB) and `.unified` (= 52 PT titlebar)
+        // seems to push NavigationSplitView into a degenerate
+        // layout pass that collapses the sidebar to ~8 PT and
+        // ignores every `navigationSplitViewColumnWidth`
+        // modifier. Comment out defaultSize to restore SwiftUI's
+        // default window sizing (= matches the working probe).
+        // .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // Boss Sketch design baseline 1920x984 PT
         // v0.24 bossverificationfix: .contentMinSize (window doesn't shrink below initial
         // size, can grow to fit larger content).
         // v0.91 boss 2026-09-10 OOB '1480 也可以': change to
