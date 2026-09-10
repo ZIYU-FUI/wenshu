@@ -66,7 +66,7 @@ extension Notification.Name {}  // placeholder; all members moved to AppNotifica
 
 enum LayoutTokens {
     // Design baseline (Apple macOS 27 1x = 1 PT = 1 PX)
-    static let designW: CGFloat = 1480  // v0.90 boss 2026-09-10 OOB '1480 也可以': window width that fits 4 columns at their Apple HIG canonical ideal widths = sidebar 280 + content 320 + detail 600 + inspector 280 = 1480 PT (= each column gets its ideal width = the boss's preferred column balance). The previous v0.15 default of 1600 was wider than needed; the temporary v0.90 attempt of 1100 only fit the min widths (= cramped). 1480 is the ideal-sum baseline.
+    static let designW: CGFloat = 1480  // v0.90 boss 2026-09-10 OOB '1480 也可以': boss's preferred column balance. Note: macOS 27 NavigationSplitView appears to ignore this defaultSize and force a minimum window width of ~2205 PT (= 4 columns + drag handles + chrome); the user can manually resize to 1480 but the initial launch is always wider.
     static let designH: CGFloat = 980
 
     // Ratio operators (0~1, baseline 1920×984)
