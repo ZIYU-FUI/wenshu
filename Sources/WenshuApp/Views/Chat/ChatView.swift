@@ -624,7 +624,22 @@ public struct ChatView: View {
     /// drop highlight. Apple's .dropDestination reports this for free.
     @State private var isDropTargeted: Bool = false
     // Reactive check: is the current model usable?
-    private var hasUsableKey: Bool { !vm.currentModel.isEmpty && !vm.isSending }
+    // v0.61 boss 2026-09-10 OOB 'put the no-key overlay back': the vm's
+    // snapshot of the model id lags when the key is configured from
+    // Settings, so the input was disabling itself even though the user
+    // had just set a key. Read the same UserDefaults the Settings pane
+    // writes to (= the canonical source for `wenshu.llm.model`), so the
+    // chat input and the ChatZoneView overlay above it answer to the same
+    // signal.
+    private var hasUsableKey: Bool {
+        // ChatViewModel exposes a live read of AppState.llmModel when an
+        // appState was injected at init; otherwise it falls back to
+        // UserDefaults. Both look at the same key.
+        let model = !vm.currentModel.isEmpty
+            ? vm.currentModel
+            : (UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? "")
+        return !model.isEmpty && !vm.isSending
+    }
 
     public init(conductor: WenshuConductor? = nil, store: ChatSessionStore? = nil, sessionId: String = "default", vm: ChatViewModel? = nil) {
         // optional ChatViewModel injection (ChatZoneView shared vm for bottom toolbar
@@ -993,7 +1008,16 @@ public struct ChatView: View {
                         LucideIconSystemFallback("paperclip", size: 18)
                     }
                 }
-                .buttonStyle(.borderless)
+                // v0.61 boss 2026-09-10 OOB 'the attach button and the
+                // send button should match styles': they are both in the
+                // same HStack, so any visual mismatch reads as a bug.
+                // Send uses .bordered (= Apple standard Liquid Glass
+                // capsule, per boss 8/29 OOB); attach was .borderless
+                // (the older CHATIMG-001 default). The two are now the
+                // same style, which is also what Apple uses for the
+                // paperclip in Messages and the send in every chat app
+                // that ships with the platform.
+                .buttonStyle(.bordered)
                 .help(WenshuI18n.t("chat.input.attach.help"))
                 // CHATIMG-001 (2026-09-07): the attach button is
                 // intentionally NOT gated on `hasUsableKey` (=
