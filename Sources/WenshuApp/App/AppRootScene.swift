@@ -167,65 +167,6 @@ struct AppRootScene: Scene {
                 Button(WenshuI18n.t("menu.edit.redo"), action: {})
                     .keyboardShortcut("Z", modifiers: [.command, .shift])
             }
-            CommandGroup(after: .sidebar) {
-                Divider()
-                // v0.24 fix (Boss 8/25 60th OOB menu bar primary): 4 zone
-                // toggle menu items. Per Apple HIG Rule 1.3 (toggle
-                // checkmarks for on/off states). Toggle forwards via
-                // NotificationCenter to vm (= .commands block can't access
-                // vm directly per L20). Static labels (= dynamic checkmark
-                // would require vm access which commands lack).
-                //
-                // v0.40 apple-001 i18n sweep: all 5 zone-toggle labels
-                // routed through WenshuI18n (= Apple HIG multi-language
-                // framework) so macOS localizes them per system
-                // language. Hard-coded Chinese labels bypassed
-                // NSLocalizedString and locked the menu to Chinese
-                // regardless of the user's system language.
-                Button(WenshuI18n.t("menu.view.toggle_project_sidebar")) {
-                    NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.projectSidebar)
-                }
-                .keyboardShortcut("1", modifiers: [.command, .shift])
-                Button(WenshuI18n.t("menu.view.toggle_project_preview")) {
-                    NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.projectPreview)
-                }
-                Button(WenshuI18n.t("menu.view.toggle_specialized_tools")) {
-                    NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.specializedTools)
-                }
-                .keyboardShortcut("2", modifiers: [.command, .shift])
-                Button(WenshuI18n.t("menu.view.toggle_ai_chat")) {
-                    NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.aiChat)
-                }
-                .keyboardShortcut("3", modifiers: [.command, .shift])
-                Button(WenshuI18n.t("menu.view.toggle_ai_dynamic")) {
-                    NotificationCenter.default.post(name: .wenshuToggleZone, object: ZoneSlot.aiDynamic)
-                }
-                .keyboardShortcut("4", modifiers: [.command, .shift])
-                Divider()
-                Button(WenshuI18n.t("menu.view.reset_layout")) {
-                    NSLog("[wenshu.reset] menu posted wenshuResetLayout")
-                    NotificationCenter.default.post(name: .wenshuResetLayout, object: nil)
-                }
-                .keyboardShortcut("R", modifiers: [.command, .shift])
-                Divider()
-                // v0.28 ticket 028-006: Layout edit mode menu entry
-                // (= ⌘⇧\ toggles edit mode on/off; per the hermes
-                // sibling pattern of `view.flipPanes = mod+\` +
-                // `layout.editMode = mod+shift+\`). Posts a
-                // NotificationCenter event that the active
-                // WorkspaceView's LayoutEditMode singleton listens
-                // for and flips the bool (= the menu and the
-                // in-window hotkey share the same notification
-                // path so the user sees a consistent state).
-                //
-                // v0.40 apple-001 i18n sweep: this Button was already
-                // routed through WenshuI18n (= "button.layout_edit_mode"
-                // key) per v0.28; no change needed here.
-                Button(WenshuI18n.t("button.layout_edit_mode")) {
-                    NotificationCenter.default.post(name: .wenshuToggleEditMode, object: nil)
-                }
-                .keyboardShortcut(KeyEquivalent("\\"), modifiers: [.command, .shift])
-            }
         }
         Settings {
             SettingView()
