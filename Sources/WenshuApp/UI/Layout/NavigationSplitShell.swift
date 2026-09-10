@@ -242,68 +242,54 @@ struct ShellSidebarColumn: View {
 struct ShellMiddleColumn: View {
     let appState: AppState
 
-    var body: some View {
-        VStack(spacing: 0) {
-            // Top sub-area = outline (= list of chapter nodes for
-            // the active tab; = what the probe's `OutlineNode.samples`
-            // section shows).
-            VStack(alignment: .leading, spacing: 6) {
-                Text("大纲")
-                    .font(.headline)
-                    .padding(.horizontal, 12)
-                    .padding(.top, 12)
-                ForEach(appState.openTabs) { tab in
-                    Label(tabDisplayTitle(tab: tab), systemImage: "circle.fill")
-                        .font(.callout)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 4)
-                }
-                if appState.openTabs.isEmpty {
-                    Text("（暂无打开的章节）")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 12)
-                }
-            }
-            // v0.72: drop the `.frame(maxWidth: .infinity, alignment:
-            // .leading)`. Apple HIG canonical 6-zone layout (= Mail /
-            // Notes / Finder) does not specify a maxWidth on VStack
-            // children inside a NavigationSplitView column; = SwiftUI
-            // uses the column's intrinsic width (= the column min).
-            Divider()
+    /// Sort order for the preview pane card grid. Owned locally
+    /// (= PreviewPane requires @Binding; = AppState migration is
+    /// out of ticket scope).
+    @State private var previewSortOrder: EntitySortOrder = .pinyinFirstLetter
 
-            // Bottom sub-area = cards (= adaptive grid; = what
-            // the probe's `Card.samples` section shows). Real
-            // cards widget lands in the next ticket; placeholder
-            // is the empty-state pattern (Xcode / Mail).
-            VStack(alignment: .leading, spacing: 8) {
-                Text("卡片")
-                    .font(.headline)
-                    .padding(.horizontal, 12)
-                    .padding(.top, 12)
-                Text("（卡片网格将在这里落地）")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 12)
-                Spacer()
-            }
-            // v0.72: drop the `.frame(maxWidth: .infinity, alignment:
-            // .leading)`. Apple HIG canonical 6-zone layout (= Mail /
-            // Notes / Finder) does not specify a maxWidth on VStack
-            // children inside a NavigationSplitView column; = SwiftUI
-            // uses the column's intrinsic width (= the column min).
+    var body: some View {
+        // Apple HIG canonical vertical split inside one NSV column.
+        // VSplitView is what Mail uses for inbox/message stack; SwiftUI
+        // renders the standard AppKit thick divider with grab handle.
+        // Boss 2026-09-10 second OOB 'visual 5 columns' = the middle
+        // column carries 2 sub-areas: outline (top) + cards (bottom).
+        VSplitView {
+            // Top sub-area = outline for the currently selected book.
+            // When no book is selected, show Apple's ContentUnavailableView
+            // (= Xcode's "No Editor" / Mail's "No Message Selected" =
+            // canonical empty state). The sidebar's NewLibraryOutlineView
+            // drives the selection; the middle column mirrors it scoped
+            // to the active book (= AppState.openTabs derives from the
+            // sidebar selection via the unified SidebarState).
+            outlineSubArea
+            // Bottom sub-area = card grid (= PreviewPane). Migrated
+            // from sidebar bottom per ticket 001; lands as the real
+            // 1240-LOC PreviewPane component. Scope = .empty by default
+            // (= shows Apple's empty-state hint until a sidebar row
+            // routes a real scope into AppState via .sidebarSelection).
+            PreviewPane(
+                scope: PreviewScope.empty,
+                onDoubleClick: { _ in },
+                previewSortOrder: $previewSortOrder
+            )
         }
-        .navigationTitle("章节与卡片")
-        .environment(appState)
+        .navigationTitle("Outline & Cards")
     }
 
-    private func tabDisplayTitle(tab: EditorTab) -> String {
-        if let path = tab.documentPath, !path.isEmpty {
-            let url = URL(fileURLWithPath: path)
-            let basename = url.deletingPathExtension().lastPathComponent
-            return basename.isEmpty ? "preview-sample" : basename
+    /// Outline sub-area = real chapters tree for the selected book.
+    /// Uses NewLibraryOutlineView (= same component the sidebar uses).
+    /// Falls back to ContentUnavailableView when openTabs is empty.
+    @ViewBuilder
+    private var outlineSubArea: some View {
+        if appState.openTabs.isEmpty {
+            ContentUnavailableView(
+                "No chapter open",
+                systemImage: "books.vertical",
+                description: Text("Select a chapter in the sidebar to view its outline.")
+            )
+        } else {
+            NewLibraryOutlineView()
         }
-        return "preview-sample"
     }
 }
 
