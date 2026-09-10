@@ -350,10 +350,25 @@ struct ShellContentColumn: View {
             store: WenshuAppDelegate.sharedChatStoreRef
         )
             // Clamp on read as well as on drag: an earlier build persisted
-            // heights up to 700, and that value outlives the code change.
+            // heights up to 700, and that outlives the code change.
             .frame(height: min(max(chatHeight, Self.chatMinHeight), Self.chatMaxHeight))
             .overlay(alignment: .top) { chatResizeHandle }
             .glassEffect(.regular, in: .rect(cornerRadius: 12))
+            // v0.62 boss 2026-09-10 OOB 'the cursor in the middle of the
+            // panel fights the cursor over the paper': the panel's
+            // body hosts an NSTextView (= markdown editor / message
+            // bubbles) that defaults to I-beam on hover. Without
+            // overriding, a mouse over the panel's glass body
+            // (anything except the top resize handle) shows an
+            // I-beam even though the panel is a separate floating
+            // surface with no editable text in its chrome. Apple
+            // conventions: hovering an inert overlay that sits on top
+            // of editable content shows the arrow cursor, not the
+            // edit cursor — the surface owns its own pointer signal.
+            .onHover { inside in
+                if inside { NSCursor.arrow.push() }
+                else { NSCursor.pop() }
+            }
             .shadow(color: .black.opacity(0.25), radius: 12, y: 4)
             // Inset from the column edges so the panel reads as floating
             // ON the column rather than docked to it.
