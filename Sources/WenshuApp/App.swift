@@ -66,7 +66,7 @@ extension Notification.Name {}  // placeholder; all members moved to AppNotifica
 
 enum LayoutTokens {
     // Design baseline (Apple macOS 27 1x = 1 PT = 1 PX)
-    static let designW: CGFloat = 1600  // v0.15 ticket 024 fix: boss 2026-08-19 said default startup size 1600×980 PT (boss measured on real machine desktop)
+    static let designW: CGFloat = 1100  // v0.90 boss 2026-09-10 OOB '设置成 1100': minimum width that fits 4 columns at their Apple HIG canonical minWidths = sidebar 220 + content 240 + detail 400 + inspector 240 = 1100 PT (= fits exactly; = NSV will use the minWidth on each column = no leftover space). Boss measured that 1100 PT is the minimum wenshu can shrink to without collapsing a column.
     static let designH: CGFloat = 980
 
     // Ratio operators (0~1, baseline 1920×984)
