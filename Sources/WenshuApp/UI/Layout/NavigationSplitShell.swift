@@ -134,15 +134,7 @@ struct NavigationSplitShell: View {
             // the column's drag-resize and window-scaling bounds;
             // = SwiftUI auto-distributes the remaining width
             // across the other columns.
-            // v0.92 boss 2026-09-10 OOB '.frame workaround for sidebar':
-            // `navigationSplitViewColumnWidth` does not expand the
-            // sidebar on macOS 27 (= sidebar stays at 8 PT regardless
-            // of the modifier). Workaround = combine with
-            // `.frame(minWidth:idealWidth:maxWidth:)` so the underlying
-            // view requests the column width explicitly. Apple HIG
-            // canonical sidebar range = 220 / 280 / 360 PT.
             ShellSidebarColumn(appState: appState)
-                .frame(minWidth: 220, idealWidth: 280, maxWidth: 360)
                 .navigationSplitViewColumnWidth(min: 220, ideal: 280, max: 360)
         } content: {
             // v0.69 boss 2026-09-10 OOB 'land the canonical 6-zone
