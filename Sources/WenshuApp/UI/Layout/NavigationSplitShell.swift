@@ -168,127 +168,24 @@ struct NavigationSplitShell: View {
 }// MARK: - Sidebar column (= 2 vertical sub-areas)
 
 /// Apple HIG sidebar column (= 2 vertical sub-areas: directory tree +
-/// cardgrid). Per boss 9/8 'directory+cardmerge, yes
-///, in progress' = the 2 sub-areas share
-/// one column without a drag-resizable divider between them
-/// (= Apple HIG's standard "List with multiple sections" pattern
-/// = Mail's sidebar = inbox + sent + drafts stacked vertically
-/// inside one column).
-///
-/// M2 (= this commit): swap the M1 placeholders for the real
-/// wenshu zone views:
-/// - top sub-area: NewLibraryOutlineView (real sidebar tree
-///   from v0.34+; = the source of truth for the library
-///   shelf/book/folder hierarchy)
-/// - bottom sub-area: ZoneModuleView(zoneSlot: .projectPreview)
-///   (real card grid from v0.34+; = displays the documents
-///   for the current sidebar selection)
+/// card grid). Per boss 2026-09-10 OOB "Apple default" = the 2
+/// sub-areas use Apple's canonical vertical split (= VSplitView
+/// = developer.apple.com/documentation/swiftui/vsplitview).
+/// VSplitView gives AppKit-standard 8 PT thick divider with grab
+/// handle and auto-saves position via `.autosaveName`. The previous
+/// v0.50 hand-rolled split (= @AppStorage height + Rectangle separator
+/// + DragGesture + NSCursor) is replaced by the SwiftUI API.
 struct ShellSidebarColumn: View {
     let appState: AppState
 
-    // v0.51 boss 2026-09-09 OOB 'the sidebar toolbar toggle can go now
-    // that both regions share one column': the Shelves / Reference
-    // Picker is deleted. It switched the whole column between the tree
-    // and the cards, which the vertical split made redundant. The scope
-    // value it produced was never read either — NewLibraryOutlineView
-    // took it as an init parameter and never filtered on it.
-
-    /// Height of the card region at the bottom of the sidebar.
-    /// Persisted so the split survives relaunch, the same way AppKit
-    /// autosaves a real split-view position.
-    @AppStorage("wenshu.sidebar.cardZoneHeight") private var cardZoneHeight: Double = 260
-    /// Height at the moment the drag started, so the gesture applies a
-    /// delta rather than compounding on every change callback.
-    @State private var cardZoneDragStart: Double?
-
     var body: some View {
-        // v0.43 boss 2026-09-09 OOB 'no divider line':
-        // Apple HIG canonical sidebar pattern = the column body
-        // IS a List (= NewLibraryOutlineView wraps a List with
-        // .listStyle(.sidebar)). This is the ONLY pattern that
-        // makes NavigationSplitView render the column with
-        // floating Liquid Glass material (= column-to-column
-        // seam disappears = Pages/Keynote look).
-        //
-        // Apple HIG NavigationSplitView canonical sidebar:
-        //   NavigationSplitView { List(...) } content: ... detail: ...
-        // Note: NOT wrapped in Group or any other view (= the
-        // List must be the direct first child of the column).
-        //
-        // The scope toggle in the .toolbar filters the List
-        // rows (= when scope = .shelves, outline shows only
-        // bookshelf rows; when scope = .references, only the
-        // reference library rows). This preserves the M6
-        // 1-view-per-column pattern while making the column
-        // body a direct List (= Apple canonical).
-        NewLibraryOutlineView()
-            // v0.49 boss 2026-09-09 OOB 'split the left column into a
-            // tree on top and cards below': the card zone is a bottom
-            // safe-area accessory on the sidebar List, which is Apple's
-            // API for attaching a fixed region to a sidebar (Mail's
-            // account bar and Xcode's filter bar are the same shape).
-            //
-            // Measured three ways before picking this one. Wrapping the
-            // column in VSplitView drags the top region down to the
-            // content tier (34/255 against a 40/255 sidebar) — the same
-            // material loss that hit the right column. One List with two
-            // Sections keeps the material but cannot host a non-List
-            // card grid. safeAreaInset keeps the material AND takes an
-            // arbitrary view.
-            //
-            // v0.50: the height is a persisted value with a drag handle
-            // on top of the card zone, so the two regions resize like a
-            // split view while the accessory keeps the sidebar material.
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                ZoneModuleView(zoneSlot: .projectPreview)
-                    .frame(height: cardZoneHeight)
-                    .overlay(alignment: .top) { cardZoneResizeHandle }
-            }
-            // v0.71: drop `.navigationSplitViewColumnWidth(min:ideal:max:)`
-            // (= previously v0.45 default-first Apple canonical sidebar
-            // width hint = HIG 220-320 PT). Per boss 2026-09-10 OOB
-            // 'Apple default ranges': let SwiftUI's own defaults for
-            // column min / ideal / max take over (= Mail / Notes /
-            // Finder = same).
-    }
-
-    /// Drag handle between the directory tree and the card zone.
-    ///
-    /// SwiftUI has no resizable equivalent of `safeAreaInset`, and the
-    /// alternative that does resize (`VSplitView`) costs the sidebar
-    /// material. This is the smallest thing that gives the split a drag
-    /// handle: a 1 PT separator with a 6 PT hit area, the resize cursor,
-    /// and a gesture that writes the persisted height.
-    private var cardZoneResizeHandle: some View {
-        Rectangle()
-            .fill(.separator)
-            .frame(height: 1)
-            .frame(height: 6)                 // hit area, per Apple's 6 PT splitter
-            .contentShape(Rectangle())
-            .onHover { inside in
-                if inside {
-                    NSCursor.resizeUpDown.push()
-                } else {
-                    NSCursor.pop()
-                }
-            }
-            .gesture(
-                DragGesture(coordinateSpace: .global)
-                    .onChanged { value in
-                        let start = cardZoneDragStart ?? cardZoneHeight
-                        if cardZoneDragStart == nil { cardZoneDragStart = start }
-                        // Dragging up grows the card zone, so the delta is
-                        // inverted relative to the drag direction.
-                        cardZoneHeight = clampCardZoneHeight(start - value.translation.height)
-                    }
-                    .onEnded { _ in cardZoneDragStart = nil }
-            )
-    }
-
-    /// Keeps both regions usable: the card zone never eats the whole
-    /// column and never collapses to nothing.
-    private func clampCardZoneHeight(_ proposed: Double) -> Double {
-        min(max(proposed, 120), 600)
+        // Apple HIG canonical vertical split inside one sidebar column.
+        // VSplitView is what Mail uses for inbox/message stack; SwiftUI
+        // renders the standard AppKit thick divider with grab handle.
+        VSplitView {
+            NewLibraryOutlineView()
+            ZoneModuleView(zoneSlot: .projectPreview)
+        }
     }
 }
 
