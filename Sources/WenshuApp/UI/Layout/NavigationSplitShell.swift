@@ -71,7 +71,12 @@ struct NavigationSplitShell: View {
     /// the modifier. The previous hardcoded `true` was a v0.48 boss OOB that
     /// pre-set the inspector visible — per boss 2026-09-10 "Apple default",
     /// SwiftUI's own default behavior takes over.
-    @State private var inspectorVisible: Bool = false
+    ///
+    /// Apple HIG Inventory 2026-09-06 listed `@SceneStorage` as a
+    /// missing API (0 hits). Per boss 2026-09-10 'add HIG APIs that
+    /// are currently absent', persist inspector visibility per
+    /// scene (= each window owns its own toggle state).
+    @SceneStorage("wenshu.inspectorVisible") private var inspectorVisible: Bool = false
 
     var body: some View {
         // v0.40 boss 2026-09-08 OOB 'yesyes mac os 27 default,
