@@ -1270,7 +1270,19 @@ struct EditorPlaceholder: View {
                 // the preview/edit body (= replaces the previous
                 // samplePreviewBody placeholder).
                 if activeTab == nil {
-                    emptyStateHint
+                    // Boss 2026-09-10 OOB: editor empty state = a
+                    // blank sheet of paper like Pages / Notes, not
+                    // the prior "No document open" icon + text. The
+                    // paper is the same EditorPaperCanvas used when
+                    // a tab is open (= 595 PT A4 width, white surface,
+                    // drop shadow). With no active tab there is no
+                    // markdown engine to render, so the body is just
+                    // an empty scroll view (the sheet itself is the
+                    // signal = same affordance as Apple's "Untitled"
+                    // blank document).
+                    EditorPaperCanvas {
+                        Color.clear
+                    }
                 } else {
                     // v0.52 boss 2026-09-09 OOB: give the middle column a
                     // sheet of paper like Pages, with the markdown engine
