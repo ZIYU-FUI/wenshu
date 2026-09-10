@@ -262,6 +262,14 @@ struct ShellMiddleColumn: View {
     /// out of ticket scope).
     @State private var previewSortOrder: EntitySortOrder = .pinyinFirstLetter
 
+    /// Search query for the card pane. Per boss 2026-09-10 OOB
+    /// '两个搜索框的样式不一样, 需要按 apple api 默认样式统一':
+    /// fed to PreviewPane's external `searchQuery` binding so the
+    /// pane renders NO internal handwritten search bar (= Apple
+    /// native .searchable below = identical visual to the sidebar's
+    /// .searchable = canonical macOS 13+ search field).
+    @State private var cardsSearchQuery: String? = ""
+
     var body: some View {
         // Boss 2026-09-10 '卡片区放在中左' + '只需要原来的素材卡片':
         // the middle column is exactly 1 zone = the reference library
@@ -290,10 +298,30 @@ struct ShellMiddleColumn: View {
         // removed. The column content (= the cards themselves) is
         // self-explanatory; an extra title bar is noise on a single-
         // zone column.
+        //
+        // Apple HIG canonical search field: boss 2026-09-10 OOB
+        // '两个搜索框的样式不一样, 需要按 apple api 默认样式统一':
+        // attach `.searchable(text: $cardsSearchQuery, placement:
+        // .sidebar, prompt: '搜索卡片...')` so the middle column's
+        // search bar uses Apple's first-party macOS 13+ search
+        // widget (= identical visual to the sidebar's search field,
+        // = canonical Apple HIG pattern). PreviewPane suppresses
+        // its internal handwritten search bar when this external
+        // binding is supplied (= no two competing search fields in
+        // the same column).
         PreviewPane(
             scope: .referenceScope(nil),
             onDoubleClick: { _ in },
-            previewSortOrder: $previewSortOrder
+            previewSortOrder: $previewSortOrder,
+            searchQuery: $cardsSearchQuery
+        )
+        .searchable(
+            text: Binding(
+                get: { cardsSearchQuery ?? "" },
+                set: { cardsSearchQuery = $0 }
+            ),
+            placement: .sidebar,
+            prompt: "搜索卡片..."
         )
     }
 }
