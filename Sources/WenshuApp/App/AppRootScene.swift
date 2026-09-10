@@ -86,10 +86,14 @@ struct AppRootScene: Scene {
         // size, can grow to fit larger content).
         .windowResizability(.contentMinSize)
         .commands {
-            // v0.48: the trailing panel is an Apple inspector now, so
-            // ship Apple's standard View > Inspector menu item and its
-            // keyboard shortcut instead of a hand-rolled toggle.
-            InspectorCommands()
+            // Boss 2026-09-10 OOB "Apple default": drop InspectorCommands().
+            // NSV .inspector(isPresented:) modifier already renders a
+            // column-header chevron for inspector visibility; the
+            // duplicated View > Inspector menu item (⌥⌘I) was a
+            // v0.48 convenience that bypassed SwiftUI default
+            // behavior. The chevron + drag header are the Apple
+            // canonical affordance.
+
             // v0.40 apple-001 + boss real-device test (2026-09-07) fix:
             // removed the custom `CommandGroup(replacing: .appSettings) { Button("Settings…") }`
             // block. The custom Button was duplicating the macOS system
