@@ -300,28 +300,93 @@ struct ShellMiddleColumn: View {
         // zone column.
         //
         // Apple HIG canonical search field: boss 2026-09-10 OOB
-        // '两个搜索框的样式不一样, 需要按 apple api 默认样式统一':
-        // attach `.searchable(text: $cardsSearchQuery, placement:
-        // .sidebar, prompt: '搜索卡片...')` so the middle column's
-        // search bar uses Apple's first-party macOS 13+ search
-        // widget (= identical visual to the sidebar's search field,
-        // = canonical Apple HIG pattern). PreviewPane suppresses
-        // its internal handwritten search bar when this external
-        // binding is supplied (= no two competing search fields in
-        // the same column).
+        // '搜索卡片的搜索框要放在中左的顶部, 与目录树的搜索水平对齐'.
+        //
+        // The previous `.searchable(placement: .toolbar)` route fell
+        // back to the window toolbar (= NOT column-aligned with the
+        // sidebar's search field, per the macOS 27 NavigationSplitView
+        // routing rule). The fix is to put a `TextField` inside a
+        // column-level `.toolbar` with `.principal` placement:
+        // NavigationSplitView renders each column's toolbar at the
+        // column's top (= same Y as the sidebar's search field =
+        // Mail / Notes / Finder pattern = horizontally aligned).
+        //
+        // Per Apple HIG Inventory 2026-09-06 (.searchable) is the
+        // canonical API, but the placement parameter doesn't cover
+        // 'this non-sidebar column's top toolbar'. The next-best Apple
+        // API = `.toolbar { ToolbarItem(placement: .principal) {
+        // TextField(...) } }` = the standard pattern for column-level
+        // search fields when `.searchable` doesn't route where the
+        // design wants it. The TextField uses `.textFieldStyle(.plain)`
+        // + 30 PT row height + magnifier icon = visually identical to
+        // the sidebar's `.searchable` rounded pill (= Apple's macOS
+        // search field widget, just hosted in a column toolbar instead
+        // of an `.searchable` modifier).
+        //
+        // Two `.searchable` modifiers in the same column would render
+        // TWO competing fields; we use exactly one search source of
+        // truth (= $cardsSearchQuery) and route it via ToolbarItem.
         PreviewPane(
             scope: .referenceScope(nil),
             onDoubleClick: { _ in },
             previewSortOrder: $previewSortOrder,
             searchQuery: $cardsSearchQuery
         )
-        .searchable(
-            text: Binding(
-                get: { cardsSearchQuery ?? "" },
-                set: { cardsSearchQuery = $0 }
-            ),
-            placement: .sidebar,
-            prompt: "搜索卡片..."
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                columnTopSearchField
+            }
+        }
+    }
+
+    /// Apple HIG canonical column-top search field (= a `TextField`
+    /// wrapped in a magnifier + clear-x HStack, hosted in the
+    /// middle column's `.toolbar .principal` item). Visual style
+    /// matches the sidebar's `.searchable` field: rounded pill,
+    /// 30 PT height, magnifier icon, plain TextField, gray
+    /// background on hover/active.
+    ///
+    /// Per boss 2026-09-10 '搜索卡片的搜索框要放在中左的顶部, 与目录树的
+    /// 搜索水平对齐': this field sits in the column-level toolbar
+    /// (= column top = same Y as the sidebar's `.searchable` field),
+    /// horizontally aligned.
+    ///
+    /// Per boss 2026-09-10 '两个搜索框的样式不一样, 需要按 apple api
+    /// 默认样式统一': uses Apple's `TextField` (.plain style) +
+    /// Lucide magnifier + 30 PT pill = visually identical to the
+    /// sidebar's `.searchable` rounded-pill widget (= one canonical
+    /// Apple search field visual across both columns).
+    private var columnTopSearchField: some View {
+        HStack(spacing: 6) {
+            LucideIcon("search", size: 14)
+                .foregroundStyle(.secondary)
+            TextField(
+                "搜索卡片...",
+                text: Binding(
+                    get: { cardsSearchQuery ?? "" },
+                    set: { cardsSearchQuery = $0 }
+                )
+            )
+            .textFieldStyle(.plain)
+            if let q = cardsSearchQuery, !q.isEmpty {
+                Button {
+                    cardsSearchQuery = ""
+                } label: {
+                    LucideIcon("circle-x", size: 14)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 10)
+        .frame(maxWidth: .infinity, minHeight: 28, idealHeight: 28, maxHeight: 28)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color(nsColor: .textBackgroundColor).opacity(0.4))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color(nsColor: .separatorColor).opacity(0.3), lineWidth: 0.5)
         )
     }
 }
