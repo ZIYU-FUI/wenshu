@@ -66,7 +66,7 @@ extension Notification.Name {}  // placeholder; all members moved to AppNotifica
 
 enum LayoutTokens {
     // Design baseline (Apple macOS 27 1x = 1 PT = 1 PX)
-    static let designW: CGFloat = 1100  // v0.90 boss 2026-09-10 OOB '设置成 1100': minimum width that fits 4 columns at their Apple HIG canonical minWidths = sidebar 220 + content 240 + detail 400 + inspector 240 = 1100 PT (= fits exactly; = NSV will use the minWidth on each column = no leftover space). Boss measured that 1100 PT is the minimum wenshu can shrink to without collapsing a column.
+    static let designW: CGFloat = 1480  // v0.90 boss 2026-09-10 OOB '1480 也可以': window width that fits 4 columns at their Apple HIG canonical ideal widths = sidebar 280 + content 320 + detail 600 + inspector 280 = 1480 PT (= each column gets its ideal width = the boss's preferred column balance). The previous v0.15 default of 1600 was wider than needed; the temporary v0.90 attempt of 1100 only fit the min widths (= cramped). 1480 is the ideal-sum baseline.
     static let designH: CGFloat = 980
 
     // Ratio operators (0~1, baseline 1920×984)
