@@ -702,25 +702,32 @@ struct ShellDetailColumn: View {
             }
         }
         .toolbar {
-            // v1.0.0-m1-shell boss 2026-09-10 OOB 'keynote 三个办公
-            // 软件全是这个逻辑': the inspector's own toolbar
-            // hosts a toggle button (= the same pattern Keynote
-            // / Pages / Numbers use for the 'presenter notes'
-            // / 'format' panel reopen action). Per WWDC23-10161:
-            // 'We can also add a toolbar button to toggle the
-            // presented property.' The button lives in the
-            // inspector's toolbar (= the `.toolbar` modifier on
-            // the view inside the `.inspector { ... }` closure)
-            // and toggles `appState.inspectorVisible` (= the
-            // canonical Keynote pattern = the same toggle that
-            // opens the right column when the user clicks the
-            // sidebar's chevron right edge).
+            // v1.0.0-m1-shell boss 2026-09-10 OOB '按钮的位置不对, 默认
+            // 是放在最右边': place the toggle button AFTER the
+            // 3-tab Picker in the toolbar (= SwiftUI renders
+            // multiple .primaryAction items in declaration order;
+            // = the toggle button is the last declared =
+            // rightmost). Per Apple's ToolbarItemPlacement docs:
+            // '.primaryAction: An item that represents the primary
+            // action of the toolbar, typically positioned at the
+            // trailing edge.' = Keynote / Pages / Numbers also put
+            // the right-panel toggle at the trailing edge.
             //
             // The toggle button is ALWAYS visible (= even when the
             // inspector is collapsed, the toolbar still shows the
             // button; = the user can re-open the inspector at any
             // time; = matches Keynote / Pages / Numbers).
-            ToolbarItem(placement: .navigation) {
+            ToolbarItem(placement: .primaryAction) {
+                Picker("Inspector", selection: $inspectorContent) {
+                    ForEach(InspectorContent.allCases, id: \.self) { content in
+                        LucideLabel(textualLabel(for: content), icon: content.icon)
+                            .tag(content)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+            }
+            ToolbarItem(placement: .primaryAction) {
                 Button {
                     appState.inspectorVisible.toggle()
                 } label: {
@@ -733,16 +740,6 @@ struct ShellDetailColumn: View {
                 }
                 .buttonStyle(.plain)
                 .help(WenshuI18n.t("inspector.toggle.help"))
-            }
-            ToolbarItem(placement: .primaryAction) {
-                Picker("Inspector", selection: $inspectorContent) {
-                    ForEach(InspectorContent.allCases, id: \.self) { content in
-                        LucideLabel(textualLabel(for: content), icon: content.icon)
-                            .tag(content)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
             }
         }
         // CHATZONE-CRASH-FIX (2026-09-08): re-inject AppState into
