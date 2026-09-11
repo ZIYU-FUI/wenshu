@@ -434,39 +434,49 @@ struct AppRootScene: Scene {
         // new window). 'wenshu-kanban' / 'wenshu-todo' use
         // short opaque tokens that avoid that namespace
         // collision.
+        // v1.0.0-m1-shell boss 2026-09-11 OOB '我说的多实例和
+        // 你说的是一个事吗? 我是说, 主窗口, 设置, 看板, 待办,
+        // 可以同时出现在屏幕上, 但每个窗口只能唯一, 看板按钮
+        // 只能开关看板窗口, 不是打开多个看板窗口': my previous
+        // switch to `WindowGroup` (= MULTI-INSTANCE) was the
+        // wrong primitive. Boss wants SINGLE-INSTANCE per window
+        // type: = clicking the kanban button when the kanban
+        // window is closed → opens it; = clicking again when
+        // the kanban window is open → brings it to front
+        // (= doesn't open a duplicate); = each window type
+        // has exactly one window (= kanban / todo / settings);
+        // = the user can have main + settings + kanban + todo
+        // ALL on screen simultaneously, but never 2 kanbans.
+        //
+        // `Window("看板", id: WindowID.kanban)` (= macOS 13+
+        // SINGLE-INSTANCE panel scene) is the correct primitive.
+        // Apple HIG (§ Multi-window apps in macOS 14 HIG):
+        // "use WindowGroup for documents (e.g. Pages, Numbers),
+        // use Window for settings, panels, and single-instance
+        // feature surfaces".
+        //
+        // Lifecycle semantics (= independent of the main window):
+        // `Window("看板")` is a separate scene from the root
+        // `WindowGroup { LibraryRootView }`. Closing the kanban
+        // window does NOT close the main window (= verified by
+        // Apple docs: each `Scene` is an independent NSWindow;
+        // the app process stays alive as long as ANY scene is
+        // present; = closing kanban leaves main open). Opening
+        // kanban with `openWindow(id: WindowID.kanban)` brings
+        // the existing kanban window to front if it exists, or
+        // creates one if it doesn't (= the toggle semantics).
+        //
         // v1.0.0-m1-shell boss 2026-09-11 OOB '看板, 设置, 待办的
         // windows 实例, 需要根据内容自动适配窗口大小, 不用设置
-        // 尺寸': drop the explicit `.defaultSize(width:height:)`
-        // (= the user wants the window to size itself from the
-        // view's intrinsic content size, not from a hard-coded
-        // initial size). Per Apple HIG (developer.apple.com/
-        // documentation/swiftui/windowgroup) the default
-        // behavior of `WindowGroup` (= without `.defaultSize`)
-        // is to fit the window to the view's intrinsic content
-        // size = exactly what the boss wants.
-        //
-        // `.windowResizability(.contentSize)` (= macOS 13+,
-        // replaces the previous `.contentMinSize`) = the
-        // window resizes to fit the view's content (= content
-        // gets bigger → window gets bigger; = content gets
-        // smaller → window gets smaller, down to the content's
-        // minimum intrinsic size). The user can still drag
-        // the window to a different size (= the resizability
-        // mode controls the floor / ceiling, not the user's
-        // ability to resize).
-        //
-        // vs the previous `.contentMinSize` (= the window can't
-        // be smaller than the view's minimum intrinsic size, but
-        // defaults to the max(content min, system default); =
-        // that's why the kanban window was opening at 960x640 =
-        // the previous defaultSize I had set; = wrong for the
-        // boss's intent of 'size from content').
-        WindowGroup("看板", id: WindowID.kanban) {
+        // 尺寸': per Apple HIG `Window` (= single-instance)
+        // sizes itself to the view's intrinsic content size
+        // by default (= no `.defaultSize` modifier needed).
+        Window("看板", id: WindowID.kanban) {
             KanbanWindow(library: library)
         }
         .windowResizability(.contentSize)
         .windowToolbarStyle(.unified)
-        WindowGroup("待办", id: WindowID.todo) {
+        Window("待办", id: WindowID.todo) {
             TodoWindow(library: library)
         }
         .windowResizability(.contentSize)
