@@ -102,6 +102,22 @@ final class EditorChatNSController: NSSplitViewController {
         // Apple-standard 1 PT hairline; = matches Pages / Numbers /
         // Keynote).
         self.splitView.dividerStyle = .thin
+        // v1.0.0-m1-shell boss 2026-09-10 OOB '左右结构的, 不能上下吗':
+        // switch the split view to vertical layout (= editor on top,
+        // chat on bottom; = top-to-bottom stack). NSSplitView's
+        // default `isVertical = true` produces a left-to-right
+        // (= editor | chat) layout, but Keynote's speaker-notes
+        // pattern (= and the previous SwiftUI VSplitView behavior)
+        // is top-to-bottom (= editor above, chat below; = the
+        // divider is horizontal). Setting `isVertical = false`
+        // makes the divider horizontal (= the user drags the
+        // horizontal divider up/down to resize the chat zone =
+        // the canonical Keynote speaker-notes pattern).
+        //
+        // Apple HIG developer.apple.com/documentation/appkit/nssplitview:
+        // 'If false, the split view is oriented horizontally
+        // (= items are arranged top to bottom).'
+        self.splitView.isVertical = false
         // Autosave the divider position (= Apple HIG default
         // behavior; = the user's drag-to-resize survives relaunch).
         self.splitView.autosaveName = Self.autosaveName
