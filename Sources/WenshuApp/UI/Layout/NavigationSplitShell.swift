@@ -400,6 +400,21 @@ struct ShellMiddleColumn: View {
     /// out of ticket scope).
     @State private var previewSortOrder: EntitySortOrder = .pinyinFirstLetter
 
+    /// v1.0.0-m1-shell boss 2026-09-10 OOB '如果 apple api 支持,
+    /// 那就直接用, 我们别自己写搜索, 好麻烦的': use Apple's
+    /// canonical `.searchable(text:placement:prompt:)` modifier (=
+    /// developer.apple.com/documentation/swiftui/view/
+    /// searchable(text:placement:prompt:)). Owned here (= the
+    /// parent of PreviewPane) so the search text survives
+    /// PreviewPane re-instantiation (= the boss's '输入 x, 出来的
+    /// 和 X 都无关' bug was that the previous internal
+    /// `@State private var previewSearchQuery` got reset when
+    /// NavigationSplitShell rebuilt PreviewPane on sidebar
+    /// selection change; = .searchable at the parent level +
+    /// passing a Binding<String> to PreviewPane's `searchQuery`
+    /// fixes the lifecycle reset issue).
+    @State private var searchText: String = ""
+
     /// v1.0.0-m1-shell boss 2026-09-10 OOB '目录选择, 卡片栏没有
     /// 根据目录选择变化卡片内容' + follow-up '左边的目录树选择,
     /// 中间的素材区没有出现卡片' (= selecting .book(worldview)
@@ -522,10 +537,38 @@ struct ShellMiddleColumn: View {
         // All branches are exhaustive over SidebarItem cases (= no
         // unknown-sidebar-selection fallback path = the bug can't
         // reappear silently).
+        // v1.0.0-m1-shell boss 2026-09-10 OOB '如果 apple api 支持, 那就直接用':
+        // wire the Apple `.searchable` system-styled search field to
+        // a parent-level `@State searchText` (= survives PreviewPane
+        // re-instantiation; = the boss's '输入 x, 出来的和 X 都无关'
+        // bug was that the previous internal `previewSearchQuery`
+        // `@State` was reset on PreviewPane re-creation). Pass the
+        // binding to PreviewPane so its `searchQuery` Binding resolves
+        // to the live `searchText` (= the filter applies correctly).
+        // The binding is always non-optional now (= the previous
+        // optional path was the source of the lifecycle-reset bug).
         PreviewPane(
             scope: previewScope(),
             onDoubleClick: { _ in },
-            previewSortOrder: $previewSortOrder
+            previewSortOrder: $previewSortOrder,
+            // v1.0.0-m1-shell: convert `Binding<String>` to `Binding<String?>`
+            // so PreviewPane's @Binding var searchQuery: String? is
+            // satisfied. SwiftUI's Binding doesn't have a built-in
+            // .map (= unlike Combine's Publishers.map), so construct
+            // a new Binding<String?> with explicit get/set that
+            // proxies the live `searchText` @State. The .searchable
+            // Apple API uses `searchText` as its text source (=
+            // String, not String?); = PreviewPane wraps it via this
+            // String <-> String? bridge.
+            searchQuery: Binding<String?>(
+                get: { searchText },
+                set: { newValue in searchText = newValue ?? "" }
+            )
+        )
+        .searchable(
+            text: $searchText,
+            placement: .toolbar,
+            prompt: WenshuI18n.t("preview.search.placeholder")
         )
     }
 }

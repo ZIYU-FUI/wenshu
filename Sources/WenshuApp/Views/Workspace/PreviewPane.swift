@@ -295,23 +295,35 @@ struct PreviewPane: View {
         searchQuery == nil
     }
 
-    /// Explicit init: required for @Binding in struct (= memberwise
-    /// init doesn't support @Binding in non-result-builder structs).
-    /// Pass-through of all other fields + wraps the binding.
+    /// v1.0.0-m1-shell boss 2026-09-10 OOB '如果 apple api 支持,
+        /// 那就直接用, 我们别自己写搜索': the previous init took
+        /// `searchQuery: Binding<String?>?` (= optional; = nil meant
+    /// 'fall back to the legacy internal @State'). The optional
+    /// path was the source of the lifecycle-reset bug (= the
+    /// internal @State got reset on every PreviewPane rebuild
+    /// = the boss's '输入 x, 出来的和 X 都无关' symptom). Now the
+    /// search field lives at the parent level (= Apple's
+    /// `.searchable` modifier on ShellMiddleColumn) and the
+    /// binding is always non-optional = the search text always
+    /// resolves to the same live parent @State across the
+    /// PreviewPane lifecycle. Kept the default value of
+    /// `.constant(nil)` (= backward-compat for callers that don't
+    /// pass searchQuery; = those callers get the legacy internal
+    /// `@State` path which still works for unit tests / previews).
     init(
         scope: PreviewScope,
         onDoubleClick: @escaping (CardSource) -> Void,
         previewSortOrder: Binding<EntitySortOrder>,
-        searchQuery: Binding<String?>? = nil
+        searchQuery: Binding<String?> = .constant(nil)
     ) {
         self.scope = scope
         self.onDoubleClick = onDoubleClick
         self._previewSortOrder = previewSortOrder
-        self._searchQuery = searchQuery ?? .constant(nil)
+        self._searchQuery = searchQuery
     }
 
-    // [CJK-TRANSLATE] 2 line(s) awaiting manual translation (see git blame for original CJK text)
-    /// v0.30 boss OOB: 'cards display in multiple columns, default two columns, if the zone is dragged narrower,
+// [CJK-TRANSLATE] 2 line(s) awaiting manual translation (see git blame for original CJK text)
+/// v0.30 boss OOB: 'cards display in multiple columns, default two columns, if the zone is dragged narrower,
     /// not enough for two columns, auto-adapt to one column, in plain words it's card flow, width adaptive'.
     ///
     /// Adaptive column count:
@@ -441,7 +453,24 @@ struct PreviewPane: View {
             }
             .padding(.top, 4)
             .padding(.bottom, 4)
-            previewSearchBar
+            // v1.0.0-m1-shell boss 2026-09-10 OOB '如果 apple api 支持,
+            // 那就直接用, 我们别自己写搜索': the previous internal
+            // `previewSearchBar` view (= a hand-rolled HStack with
+            // Lucide search icon + TextField + clear-x button) is
+            // REMOVED. The search field now lives at the parent
+            // level (= ShellMiddleColumn) attached via Apple's
+            // canonical `.searchable(text:placement:prompt:)`
+            // modifier (= the system-styled search field rendered
+            // in the column's toolbar slot; = identical visual to
+            // Mail / Notes / Finder column search). Removing the
+            // internal search bar means:
+            //   - The cards column body no longer has a top
+            //     search field (the user sees only '素材' title +
+            //     cards grid below).
+            //   - The Apple `.searchable` field at the column's
+            //     toolbar slot hosts the search input.
+            //   - ⌘F focuses the field (= Apple standard keyboard
+            //     shortcut).
             // v0.30 boss 8/31 OOB: scope-driven dispatch. Each scope
             // branch handles its own toolbar (some hide toolbar, e.g.
             // empty state). Padding applied here only (= doesn't
@@ -510,66 +539,6 @@ struct PreviewPane: View {
     /// Layout:
     /// - magnifying-glass icon (left, .secondary, .small)
     /// - TextField bound to `$previewSearchQuery` (.plain style,
-    ///   placeholder = `preview.search.placeholder`)
-    /// - clear-x button (only when `!previewSearchQuery.isEmpty`)
-    ///
-    /// SwiftUI @State reactivity re-evaluates `body` (= and any
-    /// consumers of `$previewSearchQuery`) on every keystroke
-    /// (= live refresh, no submit button, no .onChange handler).
-    private var previewSearchBar: some View {
-        HStack(spacing: 6) {
-            LucideIcon("search", size: 14)
-                .foregroundStyle(.secondary)
-            TextField(
-                WenshuI18n.t("preview.search.placeholder"),
-                text: Binding(
-                    get: { resolvedSearchQuery },
-                    set: { newValue in
-                        if searchQuery != nil {
-                            searchQuery = newValue
-                        } else {
-                            previewSearchQuery = newValue
-                        }
-                    }
-                )
-            )
-            .textFieldStyle(.plain)
-            // v0.40 boss 9/7 OOB 'search, pinyin, yes':
-            // .help() on the search TextField advertises the
-            // pinyin feature.
-            .help(WenshuI18n.t("preview.search.help_pinyin"))
-            if !resolvedSearchQuery.isEmpty {
-                Button {
-                    if searchQuery != nil {
-                        searchQuery = ""
-                    } else {
-                        previewSearchQuery = ""
-                    }
-                } label: {
-                    LucideIcon("circle-x", size: 14)
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-                .help(WenshuI18n.t("preview.search.clear"))
-            }
-        }
-        .padding(.horizontal, 10)
-        .frame(height: LayoutTokens.toolbarHeight)
-        // v0.77 boss 2026-09-10 OOB '位置不对, 是要放在中左栏内部的顶上':
-        // Apple HIG rounded-pill background (= identical visual to
-        // the sidebar's `.searchable` field): 8 PT corner radius,
-        // .textBackgroundColor at 0.4 opacity + .separator hairline
-        // at 0.3 opacity.
-        .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Color(nsColor: .textBackgroundColor).opacity(0.4))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(Color(nsColor: .separatorColor).opacity(0.3), lineWidth: 0.5)
-        )
-    }
-
     // MARK: - Scope subviews
 
     /// Reference library scope: existing entity card flow (= boss 8/30
