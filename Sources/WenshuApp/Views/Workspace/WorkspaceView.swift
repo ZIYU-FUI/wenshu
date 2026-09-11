@@ -1099,33 +1099,23 @@ struct EditorPlaceholder: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // v0.34 B-26-TABBAR (= boss 9/3 'change this whole column to a tab bar,
-            // remove the three ICON buttons at the back first'): editor top bar replaced
-            // with a Safari-style tab strip showing every tab in
-            // `appState.openTabs`. Active tab is highlighted; each tab
-            // has a close button (= tap to remove from openTabs). Boss
-            // moved the 3 trailing icon buttons (= mode toggle, expand,
-            // close) elsewhere (= per boss OOB 'I will implement it in a different position').
+            // v1.0.0-m1-shell boss 2026-09-10 OOB '编辑器顶部就留着
+            // 做标签档, 显示多文档' (= keep the tab strip = the
+            // multi-document title bar; = delete every other chrome
+            // element on the editor top bar: the mode toggle Button,
+            // ParagraphAIToolbarButtons, Spacer, .frame toolbar
+            // height, and the .background { Color.clear } glass
+            // material). The editor top bar = a Safari-style tab
+            // strip ONLY (= Apple HIG tabbed-document pattern;
+            // = Finder / Safari / Terminal all use a plain tab
+            // strip without formatting chrome; = the user said
+            // '就留着做标签档' = nothing else on this bar).
             //
             // Apple HIG tabbed-document pattern (= NSTabView / Safari
             // tab strip): single-line HStack, scrollable horizontally
             // when tabs overflow. = no formatting toolbar / no save
             // button (= the per-tab formatting + save hotkey move to
             // the new tab-bar layout as boss decides).
-            // v0.34 B-26 boss 9/3 'I open a new file, the new TAB page does not appear' + 'refer to this
-            // style, modify the tab style' (= reference image shows plain
-            // all-caps monospaced tab labels; = boss 9/3 follow-up:
-            // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)
-            // 'no ICON needed, just the document name, no .md extension either').
-            // Editor top bar = a simple horizontal HStack of tab names
-            // (= .monospaced .caption text; = active tab = .tint color
-            // + .tint background tint at 0.12). No icons, no .md
-            // extension, no trailing buttons. Boss 9/3 follow-up 'switching
-            // the directory will re-detect once' = when the user switches
-            // sidebar scope, the PreviewPane body re-renders AND the
-            // EditorTabBarBar (now inlined) re-renders too; = the
-            // SwiftUI @State click-count latch is reset (= which is
-            // the desired "fresh start" per boss OOB).
             HStack(spacing: 0) {
                 ForEach(appState.openTabs) { tab in
                     let title = tabDisplayTitle(tab: tab)
@@ -1144,78 +1134,7 @@ struct EditorPlaceholder: View {
                     .buttonStyle(.plain)
                     .help(title)
                 }
-                // v0.39 ticket 001-C: mode toggle (= preview <-> edit).
-                // The boss reported 'cannot enter MD edit mode' which
-                // was actually two issues (= default = .preview +
-                // no UI to flip it). openCardInEditor now defaults
-                // to .edit (= the 001-A fix), but users still need
-                // a way to flip back to .preview when they want the
-                // rendered-only view. This button lives in the tab
-                // strip = the only chrome the editor zone has left
-                // after v0.34 B-26 stripped the trailing buttons.
-                Button(action: { setMode(mode == .edit ? .preview : .edit) }) {
-                    LucideIcon(mode == .edit ? "eye" : "pen", size: 14)
-                        .font(DesignTokens.hotkeyComboFont)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, DesignTokens.chromePaddingChatBottom)
-                        .padding(.vertical, DesignTokens.chromePaddingMicro)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .help(mode == .edit
-                    ? WenshuI18n.t("workspace.editor.switch_to_preview")
-                    : WenshuI18n.t("workspace.editor.switch_to_edit"))
-                // P2 #19 (WIRE-PARAGRAPH-002): paragraph_ai toolbar.
-                // 3 buttons with keyboard shortcuts (⌘⇧E expand,
-                // ⌘⇧H shorten, ⌘⇧R rephrase) + a Menu for the 3
-                // less-common transforms (shiftTone / simplify /
-                // dramatize). The buttons fire applyParagraphAI(...)
-                // which calls the active LLM connector (= the
-                // v0.35 LLMConnector layer) with the editor
-                // transform prompt prefix + selected text, then
-                // replaces the selection (= today: whole draft) with
-                // the LLM response.
-                //
-                // Apple HIG toolbar pattern: `.help(...)` provides
-                // the tooltip (= Apple-native NSWindow tooltip, =
-                // per the wenshu-apple-api-first hard rule), and
-                // `.keyboardShortcut(...)` registers the global key
-                // binding via SwiftUI's native command system (= no
-                // third-party shortcut lib required; matches the
-                // boss 2026-08-27 OOB 'Apple-stack-except-where-
-                // Apple-doesn't-ship' carve-out).
-                //
-                // Disabled state (= `selectedText.isEmpty`):
-                // matches the boss spec's wire-up; until the
-                // engine selection bridge lands, `selectedText`
-                // defaults to "" so the buttons stay disabled
-                // (= the buttons currently never fire from the
-                // UI; tests cover the apply path directly).
-                ParagraphAIToolbarButtons(
-                    selectedText: selectedText,
-                    isApplying: isApplyingParagraphAI,
-                    onApply: { transform in
-                        Task { await applyParagraphAI(transform) }
-                    }
-                )
-                Spacer()
             }
-            .frame(height: DesignTokens.toolbarBandHeight)
-            // POLISH-LIQUIDGLASS-003 (Boss 2026-09-05 OOB 'OK continue', AGENTS.md
-            // §11 macOS 27 Liquid Glass polish extends from TopBar + Sidebar):
-            // apply Apple canonical .glassEffect(.regular) (= macOS 27
-            // Tahoe Liquid Glass) to the EditorPlaceholder tab strip
-            // (= the editor zone's top chrome = Safari-style tab strip
-            // + mode toggle + paragraph_ai toolbar). Replaces the prior
-            // .regularMaterial (= Apple Liquid Glass translucency; = one
-            // step LESS transparent than the new .glassEffect(.regular)
-            // canonical material on macOS 27 Tahoe = visible mismatch
-            // with the POLISH-LIQUIDGLASS-001 TopBar chrome the user
-            // sees directly above the editor zone in the same pane).
-            // v0.40 boss real-device test 2026-09-07: removed
-            // .glassEffect(.regular) (= Liquid Glass tab strip);
-            // now uses Color.clear (= no background).
-            .background { Color.clear }
             // v0.34 ticket 09: dirty-discard confirm dialog. Shown when
             // user tries to close with unsaved changes. Apple HIG
             // 2-option confirm pattern (= destructive + cancel).
