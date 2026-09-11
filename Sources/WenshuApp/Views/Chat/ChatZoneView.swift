@@ -305,9 +305,22 @@ struct ChatZoneView: View {
                 Spacer()
 
                 HStack(spacing: 6) {
-                    // v0.21 ticket 40: vm.contextUsed (Apple @Observable auto propagate, @State contextUsed = 0)
-                    // v0.24 bossverificationfix: Apple standard dark text (.secondary).
-                    Text(WenshuI18n.t("b5.chatzoneview.l306.h5786657"))
+                    // v0.21 ticket 40: read vm.contextUsed (Apple @Observable auto-propagates; no longer hardcode @State contextUsed = 0)
+                    // v0.24 boss acceptance fix: Apple standard dark text (.secondary).
+                    // v1.0.0-m1-shell boss 2026-09-10 OOB: Localizable.strings
+                    // value for `b5.chatzoneview.l306.h5786657` was the
+                    // literal source string
+                    // `\(compactNumber(vm.contextUsed)) / \(compactNumber(vm.contextMax))`
+                    // (= someone pasted a SwiftUI Text expression into
+                    // the catalog by mistake; the file:line anchor
+                    // `b5.chatzoneview.l306.h5786657` is the auto-linter
+                    // marker for this bug). Build the text inline with
+                    // Swift string interpolation (= the SwiftUI Text
+                    // initializer resolves `\(expr)` at view-eval time;
+                    // = a literal `\(expr)` in a strings file would just
+                    // print the symbols). Use the existing private
+                    // `compactNumber(_:)` helper (= 1.5k / 800 / 1.2M).
+                    Text("\(compactNumber(vm.contextUsed)) / \(compactNumber(vm.contextMax))")
                         .font(.body)
                         .foregroundStyle(.secondary)
                     ProgressView(value: Double(min(vm.contextUsed, vm.contextMax)), total: Double(max(1, vm.contextMax)))
