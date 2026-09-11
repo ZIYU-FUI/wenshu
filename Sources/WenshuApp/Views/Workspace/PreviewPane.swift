@@ -598,7 +598,17 @@ struct PreviewPane: View {
     /// just that folder.
     @ViewBuilder
     private func bookScopeView(bookId: UUID, folderName: String?) -> some View {
-        let docs = loadBookDocs(bookId: bookId, folderName: folderName)
+        let allDocs = loadBookDocs(bookId: bookId, folderName: folderName)
+        // v1.0.0-m1-shell boss 2026-09-10 OOB '素材栏的搜索, 没有
+        // 真的过滤卡片' (= typing in the search field did not
+        // filter cards in the book scope). The previous code passed
+        // the unfiltered `docs` to `bookDocsGrid(docs:)`; = the
+        // search field only filtered reference entities (= in
+        // `referenceScopeView`), but book .md cards bypassed the
+        // filter entirely. Apply the same shape as
+        // `searchFilteredEntities` (= title / summary / pinyin
+        // first-letter substring) to book docs.
+        let docs = searchFilteredBookDocs(allDocs)
         VStack(spacing: 0) {
             if docs.isEmpty {
                 emptyState(
@@ -606,13 +616,14 @@ struct PreviewPane: View {
                     titleKey: folderName != nil
                         ? "preview.empty_state.book_with_folder"
                         : "preview.empty_state.book_no_folder",
-                    bodyKey: "preview.empty.pick_book"
+                    bodyKey: "preview.pick_book"
                 )
             } else {
                 bookDocsGrid(docs: docs)
             }
         }
     }
+
 
     /// Shelf scope: empty state with hint to drill into a book.
     @ViewBuilder
@@ -1065,7 +1076,30 @@ struct PreviewPane: View {
     /// diacritics, then extract the first letter of each whitespace-
     /// separated word. Uses Apple's CoreFoundation string transform
     /// (= no third-party pinyin lib = AGENTS.md §11.1 hard rule).
-    private func pinyinFirstLetters(_ title: String) -> String {
+    /// v1.0.0-m1-shell boss 2026-09-10 OOB '拼音首字母 + 中文搜索, 之前
+        /// 已经支持, 应该有现成的代码': extract the search-match
+        /// predicate (= title / summary / pinyin first-letter
+        /// substring) into a shared helper so reference entities
+        /// AND book docs use the same filter (= per boss '走同一个
+        /// 接口'). Previously each filter was a private inline
+        /// closure that duplicated the same pinyin + localized
+        /// substring logic.
+        private func matchesSearch(title: String, summary: String, query: String) -> Bool {
+            let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return true }
+            let lowered = trimmed.lowercased()
+            if title.localizedCaseInsensitiveContains(trimmed)
+                || summary.localizedCaseInsensitiveContains(trimmed) {
+                return true
+            }
+            let pinyinKey = pinyinFirstLetters(title)
+            if pinyinKey.lowercased().contains(lowered) {
+                return true
+            }
+            return false
+        }
+
+        private func pinyinFirstLetters(_ title: String) -> String {
         let mutable = NSMutableString(string: title)
         CFStringTransform(mutable, nil, kCFStringTransformToLatin, false)
         CFStringTransform(mutable, nil, kCFStringTransformStripDiacritics, false)
@@ -1088,24 +1122,22 @@ struct PreviewPane: View {
     /// 1. Original title / summary substring (= case-insensitive)
     /// 2. Pinyin first-letter substring (= e.g. "d" matches "" → DF)
     /// Empty query = pass-through (= show all entities).
-    private func searchFilteredEntities(_ entities: [Reference]) -> [Reference] {
-        let query = resolvedSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return entities }
-        let loweredQuery = query.lowercased()
-        return entities.filter { entity in
-            // Original text substring match (= Latin + CJK chars both work
-            // via String.localizedCaseInsensitiveContains).
-            if entity.title.localizedCaseInsensitiveContains(query)
-                || entity.summary.localizedCaseInsensitiveContains(query) {
-                return true
-            }
-            // Pinyin first-letter substring match (= "d" → "DF" match).
-            let pinyinKey = pinyinFirstLetters(entity.title)
-            if pinyinKey.lowercased().contains(loweredQuery) {
-                return true
-            }
-            return false
+    /// v1.0.0-m1-shell boss 2026-09-10 OOB '素材栏的搜索, 没有真的过滤卡片':
+        /// same filter shape as `searchFilteredEntities` but for book
+        /// docs (= filesystem .md files loaded by `loadBookDocs`).
+        /// Uses the shared `matchesSearch` helper (= title / summary /
+        /// pinyin first-letter substring match) = same logic as the
+        /// reference-entity filter; = the user's previous
+        /// '搜索没有真的过滤卡片' bug was that bookDocsGrid was called
+        /// with the unfiltered docs.
+        private func searchFilteredBookDocs(_ docs: [BookDoc]) -> [BookDoc] {
+            let query = resolvedSearchQuery
+            return docs.filter { matchesSearch(title: $0.title, summary: $0.summary, query: query) }
         }
+
+        private func searchFilteredEntities(_ entities: [Reference]) -> [Reference] {
+        let query = resolvedSearchQuery
+        return entities.filter { matchesSearch(title: $0.title, summary: $0.summary, query: query) }
     }
 
     /// v0.30 boss OOB: cards display in multiple columns, default two columns, auto-adapt to 1 column if not enough width.
