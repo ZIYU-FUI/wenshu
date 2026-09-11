@@ -434,55 +434,42 @@ struct AppRootScene: Scene {
         // new window). 'wenshu-kanban' / 'wenshu-todo' use
         // short opaque tokens that avoid that namespace
         // collision.
-        // v1.0.0-m1-shell boss 2026-09-11 OOB '单实例是不是用错了,
-        // 但实例是 wenshu 只有一个 windows 的意思, 那我们可能
-        // 用错了, 我需要主窗口和看板窗口同时显示': the previous
-        // `Window("看板", id: "...")` (= macOS 13+ SINGLE-INSTANCE
-        // panel scene) was the wrong primitive (= closing the
-        // kanban window also killed the main wenshu process;
-        // = the kanban window was 'all or nothing' = the boss
-        // couldn't have the kanban AND the main window visible
-        // at the same time, which is the whole point of a
-        // multi-window app).
+        // v1.0.0-m1-shell boss 2026-09-11 OOB '看板, 设置, 待办的
+        // windows 实例, 需要根据内容自动适配窗口大小, 不用设置
+        // 尺寸': drop the explicit `.defaultSize(width:height:)`
+        // (= the user wants the window to size itself from the
+        // view's intrinsic content size, not from a hard-coded
+        // initial size). Per Apple HIG (developer.apple.com/
+        // documentation/swiftui/windowgroup) the default
+        // behavior of `WindowGroup` (= without `.defaultSize`)
+        // is to fit the window to the view's intrinsic content
+        // size = exactly what the boss wants.
         //
-        // `WindowGroup("看板", id: "...")` (= the macOS 14+ scene
-        // type Apple recommends for multi-instance / multi-window
-        // feature surfaces) is the correct primitive (= Pages
-        // / Numbers / Keynote each open documents in
-        // independent windows; = Mail opens a compose window
-        // alongside the main window; = the user can keep the
-        // kanban + the main window both on screen, the kanban
-        // has its own traffic lights + toolbar, the main window
-        // is independent of the kanban's lifecycle).
+        // `.windowResizability(.contentSize)` (= macOS 13+,
+        // replaces the previous `.contentMinSize`) = the
+        // window resizes to fit the view's content (= content
+        // gets bigger → window gets bigger; = content gets
+        // smaller → window gets smaller, down to the content's
+        // minimum intrinsic size). The user can still drag
+        // the window to a different size (= the resizability
+        // mode controls the floor / ceiling, not the user's
+        // ability to resize).
         //
-        // `openWindow(id:)` resolves to a WindowGroup ID =
-        // SwiftUI finds the matching WindowGroup scene and opens
-        // (= or brings to front, if a single-instance policy
-        // were set; = not set here; = each tap of the toolbar
-        // button opens a NEW kanban window).
-        //
-        // v1.0.0-m1-shell boss 2026-09-11 OOB '把看板窗口关了,
-        // 估计是看板窗口做的太大了, 把主窗口挡住了': the
-        // 960x640 default was too large (= kanban window covered
-        // the 1480x980 main window; = boss couldn't see the
-        // main window after opening kanban). Drop to a
-        // 720x520 default (= fits to the right of the main
-        // window on a standard 1920x1080 screen; = leaves the
-        // main window fully visible). User can still drag the
-        // window to expand it (= the `.contentMinSize`
-        // resizability allows the user to make the window as
-        // large as they want).
+        // vs the previous `.contentMinSize` (= the window can't
+        // be smaller than the view's minimum intrinsic size, but
+        // defaults to the max(content min, system default); =
+        // that's why the kanban window was opening at 960x640 =
+        // the previous defaultSize I had set; = wrong for the
+        // boss's intent of 'size from content').
         WindowGroup("看板", id: WindowID.kanban) {
             KanbanWindow(library: library)
         }
-        .defaultSize(width: 720, height: 520)
-        .windowResizability(.contentMinSize)
+        .windowResizability(.contentSize)
         .windowToolbarStyle(.unified)
         WindowGroup("待办", id: WindowID.todo) {
             TodoWindow(library: library)
         }
-        .defaultSize(width: 720, height: 560)
-        .windowResizability(.contentMinSize)
+        .windowResizability(.contentSize)
         .windowToolbarStyle(.unified)
     }
 }
