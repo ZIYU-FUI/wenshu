@@ -510,13 +510,34 @@ struct PreviewPane: View {
             // one (= `customLeadingSearch != nil`). Default = nil
             // = no field (= legacy callers / tests still work).
             if let customSearch = customLeadingSearch {
-                HStack {
-                    customSearch
-                    Spacer()
-                }
-                .padding(.horizontal, 8)
-                .padding(.top, 4)
-                .padding(.bottom, 6)
+                // v1.0.0-m1-shell boss 2026-09-11 OOB '宽度自动填满
+                // 宽度, 和卡片一样随着拖拽变宽': render the
+                // search field at the FULL column width (= the
+                // outer `.frame(maxWidth: .infinity)` makes
+                // SwiftUI stretch this view to consume all
+                // available horizontal space in the parent VStack;
+                // = the search field now matches the LazyVGrid's
+                // full grid width; = as the user drags the column
+                // wider, both the cards and the search field
+                // stretch together).
+                //
+                // Why wrap with `.frame(maxWidth: .infinity,
+                // alignment: .center)` (= not just rely on the
+                // inner AnyView's `.frame`):
+                // SwiftUI AnyView wrappers lose layout intent
+                // (= the framework can't see through them at
+                // compile time; = the `customSearch` AnyView
+                // measures itself as its intrinsic content size,
+                // not the parent's full width). The OUTER
+                // `.frame(maxWidth: .infinity, alignment:
+                // .center)` (= applied by the parent VStack that
+                // can see the column width) is what forces the
+                // stretch.
+                customSearch
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.horizontal, 8)
+                    .padding(.top, 4)
+                    .padding(.bottom, 6)
             }
             // v1.0.0-m1-shell boss 2026-09-10 OOB '如果 apple api 支持,
             // 那就直接用, 我们别自己写搜索': the previous internal

@@ -584,18 +584,14 @@ struct ShellMiddleColumn: View {
             // system shortcut) because the search field IS in the
             // view hierarchy.
             //
-            // v1.0.0-m1-shell boss 2026-09-11 OOB '位置调整一下,
-            // 放在标题和分割线下方, 第一张卡片上方': move the
-            // custom search field INTO PreviewPane itself (= after
-            // the '素材' title + Divider, before the cards grid) =
-            // the Apple HIG "sticky section header + inline search
-            // field below" pattern (= Mail / Notes / Pages all
-            // put the search field below the column section
-            // header). The external `HStack { search; PreviewPane }`
-            // wrapper is dropped (= now PreviewPane owns the search
-            // field placement internally = the search field is
-            // permanently coupled with its column = correct
-            // binding lifetime).
+            // v1.0.0-m1-shell boss 2026-09-11 OOB '宽度自动填满宽度,
+            // 和卡片一样随着拖拽变宽': the search field now fills
+            // the full column width (= .frame(maxWidth: .infinity,
+            // alignment: .leading) so it stretches as the user
+            // drags the column wider, matching the card grid's
+            // intrinsic width). Removed the previous hard-coded
+            // .frame(minWidth: 120, maxWidth: 240) (= a fixed 120-240
+            // PT search bar that didn't track the column's width).
             //
             // Note: dropped `.searchable` because the framework's
             // own search box was rendering trailing regardless of
@@ -633,10 +629,33 @@ struct ShellMiddleColumn: View {
                             )
                         )
                         .textFieldStyle(.plain)
-                        .frame(minWidth: 120, maxWidth: 240)
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
+                    // v1.0.0-m1-shell boss 2026-09-11 OOB '宽度自动填满宽度,
+                    // 和卡片一样随着拖拽变宽': the search field
+                    // now fills the full column width (= the
+                    // `.frame(maxWidth: .infinity)` modifier
+                    // forces SwiftUI to stretch this HStack to
+                    // consume all available horizontal space in
+                    // its parent; = the search field now matches
+                    // the LazyVGrid's full grid width; = as the
+                    // user drags the column wider, both the cards
+                    // and the search field stretch together).
+                    //
+                    // Why not use `alignment: .leading` (= the
+                    // boss's earlier preference for left-alignment):
+                    // the LazyVGrid cards are center-aligned within
+                    // the column (= the card grid is centered to
+                    // keep the 2-column rhythm visually balanced);
+                    // = the search field should also be center-
+                    // aligned to track the cards' visual position.
+                    // The inner HStack's leading-left Image +
+                    // TextField still keep the icon flush to the
+                    // search field's left edge (= the field is
+                    // wider but the icon stays at the field's own
+                    // left; = no visual change inside the field).
+                    .frame(maxWidth: .infinity)
                     .background(
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
                             .fill(Color(nsColor: .textBackgroundColor).opacity(0.5))
