@@ -133,7 +133,7 @@ public struct LibraryRootView: View {
             // to expose a feature Apple does not expose in office
             // apps). The toolbar now hosts only wenshu's own
             // chrome (= no NSV-default buttons added).
-            .task { await runLaunch() }
+            .task(id: libraryPath) { await runLaunch() }
             .sheet(isPresented: $commandPaletteVisible) {
                 CommandPaletteView(model: commandPaletteModel)
                     .navigationTitle(WenshuI18n.t("command_palette.title"))
@@ -183,9 +183,20 @@ public struct LibraryRootView: View {
             // bookStore.books.count is correct on the first render.
             self.bookStore?.reloadAllBooks()
         } catch {
-            #if DEBUG
-            print("LibraryLifecycleHook failed: \(error)")
-            #endif
+            // v1.0.0-m1-shell boss 2026-09-10 OOB 'UI 不加载, 一直菊花':
+            // the previous `#if DEBUG print` was suppressed in
+            // release builds (= the boss is running a release .app
+            // bundle). NSLog works in both DEBUG and RELEASE so the
+            // user can see the actual lifecycle error from
+            // Console.app (= the standard macOS log viewer; = the
+            // same path the previous `[wenshu.library]` and
+            // `[wenshu.chatStore]` NSLog lines use for diagnostics).
+            // Without this, a silent failure here (= e.g. a missing
+            // shelves root, or a thrown error inside
+            // LibraryBootstrapper.ensureValidStructure) would
+            // leave bookStore = nil forever and the window stuck
+            // on the loading spinner (= exactly what boss saw).
+            NSLog("[wenshu.library.lifecycle] runLaunch failed: %@", String(describing: error))
         }
     }
 }

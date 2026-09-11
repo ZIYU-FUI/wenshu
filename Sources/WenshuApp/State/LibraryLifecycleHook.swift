@@ -15,11 +15,15 @@ struct LibraryLifecycleHook: Sendable {
     let wsRoot: URL
 
     func runLaunch() throws -> LibraryLaunchResult {
+        NSLog("[wenshu.library.lifecycle] runLaunch start wsRoot=%@", wsRoot.path)
         let migrator = LibraryMigrator(wsRoot: wsRoot)
         try migrator.migrateIfNeeded()
+        NSLog("[wenshu.library.lifecycle] runLaunch: migrateIfNeeded done")
         let bootstrapper = LibraryBootstrapper(wsRoot: wsRoot)
         try bootstrapper.ensureValidStructure()
+        NSLog("[wenshu.library.lifecycle] runLaunch: ensureValidStructure done")
         let stores = try constructStores(wsRoot: wsRoot)
+        NSLog("[wenshu.library.lifecycle] runLaunch: constructStores done; shelvesRoot=%@", stores.shelvesRoot.path)
         return LibraryLaunchResult(stores: stores)
     }
 
