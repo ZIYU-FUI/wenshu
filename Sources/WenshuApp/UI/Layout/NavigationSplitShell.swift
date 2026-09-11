@@ -406,6 +406,18 @@ struct ShellMiddleColumn: View {
     /// Without this fix, selecting ANY user-scope sidebar row (=
     /// book / shelf / folder) showed '请选择左侧目录查看文档' even
     /// though a real selection was active (= the boss's bug).
+    /// v1.0.0-m1-shell boss 2026-09-10 OOB '资料库的目录选择, 和
+    /// 素材区的卡片对不齐, 没有过滤': map sidebarSelection →
+    /// PreviewScope. The case-mismatch bug (sidebar wrote lowercase
+    /// directoryName 'b' but entities JSON stored uppercase
+    /// rawValue 'B') was fixed at the sidebar tag + onChange lookup
+    /// sites (= see NewLibraryOutlineView.swift line ~371 and ~543);
+    /// by the time `previewScope()` reads `appState.sidebarSelection`,
+    /// the dirName is already the uppercase rawValue, so
+    /// `EntityCategory(rawValue: dirName)` succeeds (= .b for
+    /// Philosophy / 'B') and `.referenceScope(cat)` reaches
+    /// `categoryGrid(category: cat, ...)` which filters
+    /// `allEntities.filter { $0.category == category }` correctly.
     private func previewScope() -> PreviewScope {
         switch appState.sidebarSelection {
         case .referenceLibraryRoot:

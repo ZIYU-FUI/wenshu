@@ -368,7 +368,32 @@ struct NewLibraryOutlineView: View {
                             LucideIconSidebar(category.icon)
                         }
                         .badge(entitiesCount(in: category))
-                        .tag(SidebarItem.referenceCategory(category.directoryName))
+                        // v1.0.0-m1-shell boss 2026-09-10 OOB '资料库的目录选择, 和
+                        // 素材区的卡片对不齐, 没有过滤': the previous code used
+                        // `category.directoryName` (= rawValue.lowercased(), e.g.
+                        // 'b' for Philosophy) as the SidebarItem tag. The entity
+                        // JSON stores the category as the UPPERCASE rawValue
+                        // (e.g. 'B' for Philosophy = see
+                        // /Users/anbaiqiang/Documents/anbaiqiang.ws/reference-library/
+                        // entities/entities.json `"category": "B"`). The case
+                        // mismatch broke `EntityCategory(rawValue: dirName)` lookup
+                        // (= returned nil → previewScope fell back to
+                        // `.referenceScope(nil)` → the cards column showed every
+                        // entity unfiltered).
+                        //
+                        // Fix: tag with `category.rawValue` (= the uppercase enum
+                        // rawValue, e.g. 'B' for Philosophy) so the sidebar tag
+                        // matches the entity JSON's stored category. The onChange
+                        // handler below also resolves the dirName via rawValue
+                        // lookup (= EntityCategory(rawValue: dirName)) for
+                        // consistency.
+                        //
+                        // Why `rawValue` (not `directoryName`): rawValue IS the
+                        // canonical enum identifier (= EntityCategory(rawValue:) is
+                        // the only safe construction). directoryName is the
+                        // filesystem-side label (= rawValue.lowercased()) and only
+                        // matches the directory layout, not the entity records.
+                        .tag(SidebarItem.referenceCategory(category.rawValue))
                     }
                 } label: {
                     // v0.30 boss 8/31 OOB: hover tint scope = whole row
@@ -540,7 +565,12 @@ struct NewLibraryOutlineView: View {
             case .referenceCategory(let dirName):
                 if dirName == "__root__" {
                     selectedEntityCategory = nil
-                } else if let cat = EntityCategory.allCases.first(where: { $0.directoryName == dirName }) {
+                // v1.0.0-m1-shell boss 2026-09-10 OOB: see the comment block at the
+                // sidebar tag line above. dirName is now the
+                // EntityCategory.rawValue (e.g. 'B' for Philosophy),
+                // not directoryName (e.g. 'b'). Lookup uses rawValue
+                // for consistency.
+                } else if let cat = EntityCategory.allCases.first(where: { $0.rawValue == dirName }) {
                     selectedEntityCategory = cat
                     selectedEntity = nil
                 }
