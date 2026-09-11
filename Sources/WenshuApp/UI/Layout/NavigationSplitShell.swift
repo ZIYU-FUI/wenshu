@@ -583,48 +583,46 @@ struct ShellDetailColumn: View {
     // pattern as ShellSidebarColumn's 2 scope tabs).
     @State private var inspectorContent: InspectorContent = .tools
 
+    /// v1.0.0-m1-shell boss 2026-09-10 OOB: localized label for
+    /// each InspectorContent case (= used in the toolbar Picker
+    /// labels via LucideLabel(text:); = the i18n keys are stable
+    /// and round-trip through Localizable.strings so the picker
+    /// displays the right text in each language).
+    private func textualLabel(for content: InspectorContent) -> String {
+        switch content {
+        case .tools:
+            return WenshuI18n.t("inspector.tab.tools")
+        case .kanban:
+            return WenshuI18n.t("inspector.tab.kanban")
+        case .todo:
+            return WenshuI18n.t("inspector.tab.todo")
+        }
+    }
+
     var body: some View {
-        // v0.43 boss 2026-09-09 OOB 'no divider line':
-        // Apple HIG canonical detail/inspector pattern = the column
-        // body is a single View that switches via the toolbar Picker.
-        // NavigationSplitView auto-applies floating Liquid Glass
-        // when the column body is a SwiftUI-native View. The Group
-        // wrapper is a transparent container (= no visual effect,
-        // = preserves the M6 1-view-per-column pattern).
-        //
-        // v0.43 boss 2026-09-09 OOB 'right column is not liquid glass':
-        // explicitly apply .glassEffect(.regular) to the column body
-        // (= forces the macOS 27 Liquid Glass material on the
-        // column = matches the left sidebar's visual depth; =
-        // no opaque layer underneath).
+        // v1.0.0-m1-shell boss 2026-09-10 OOB '用 keynote, pages,
+        // numbers 内容中心的逻辑, 实现看板/待办页': the inspector
+        // column (= the rightmost NSV column) is now a 3-tab content
+        // center. The 3-toggle Picker(.segmented) lives in the
+        // .toolbar .principal placement (= same pattern as
+        // ShellSidebarColumn's 2 scope tabs).
         Group {
             switch inspectorContent {
             case .tools:
                 ZoneModuleView(zoneSlot: .specializedTools)
-            case .dynamic:
-                ZoneModuleView(zoneSlot: .aiDynamic)
+            case .kanban:
+                KanbanView()
+            case .todo:
+                TodoListView()
             }
         }
-        // v0.48: width is set by .inspectorColumnWidth at the
-        // .inspector() call site, which is the matching API for an
-        // inspector (navigationSplitViewColumnWidth is for columns).
-        // v0.42: column-level .toolbar following ShellSidebarColumn's
-        // exact pattern: leading .navigation icon + .primaryAction
-        // Picker(.segmented) 2-toggle. The 2 icons at the top
-        // right (= wrench + grid) come from the Picker labels
-        // (= Picker(.segmented) renders Label icons when labels
-        // are hidden and the icons are the only visible content).
-        // Note: NO .toolbarBackground modifier (= same as sidebar)
-        // because NavigationSplitView 3-column default already
-        // provides the Liquid Glass chrome.
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Picker("Inspector", selection: $inspectorContent) {
-                    // v0.46 boss OOB 'SF Symbol dropped, use Lucide'.
-                    LucideLabel("Tools", icon: "wrench")
-                        .tag(InspectorContent.tools)
-                    LucideLabel("Dynamic", icon: "layout-grid")
-                        .tag(InspectorContent.dynamic)
+                    ForEach(InspectorContent.allCases, id: \.self) { content in
+                        LucideLabel(textualLabel(for: content), icon: content.icon)
+                            .tag(content)
+                    }
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
@@ -637,13 +635,45 @@ struct ShellDetailColumn: View {
     }
 }
 
-/// v0.42 boss 2026-09-09 OOB 'simplify the right column':
-/// defines the 2 modes of the right-column inspector content
-/// (= tools / dynamic). The picker in the .toolbar toggles
-/// between them.
-enum InspectorContent: Hashable {
+/// v1.0.0-m1-shell boss 2026-09-10 OOB '用 keynote, pages,
+/// numbers 内容中心的逻辑, 实现看板/待办页, 让看板和待办从右栏
+/// 独立出来': the previous `InspectorContent` enum had two
+/// (= tools / dynamic) which conflated the specialized tools pane
+/// (= foreshadowing, memory retrieval, scope status) with the
+/// AI-dynamic zone (= also tools, just categorized differently).
+/// The previous naming was a leftover from when the column
+/// was empty placeholders (= the v0.42 commit filled them with
+/// the two zone modules).
+///
+/// Re-categorize the inspector (= the rightmost NSV column) along
+/// Apple HIG content-center lines (= Keynote Media Browser /
+/// Pages Template Picker / Numbers Sheet Templates = a
+/// popover-shaped chrome with a search bar at top, segmented tabs
+/// for content type, and a main grid below). The 3 categories
+/// that map to the wenshu 'content center' (= the user's written
+/// material + agent-tracked work) are:
+//  - .tools      (= existing specialized tools zone: foreshadowing,
+///                  placeholder, style guide, etc.; = kept as
+///                  'tools' = the 'inspector' panel of the editor,
+///                  = the canonical Apple HIG inspector placement)
+//  - .kanban     (= KanbanView; = the user's tickets board =
+///                  agent-tracked work = the Keynote 'media' analog
+///                  for wenshu)
+//  - .todo       (= TodoListView; = the user's todo items =
+///                  daily-actionable work = the Pages 'template'
+///                  analog for wenshu)
+enum InspectorContent: Hashable, CaseIterable {
     case tools
-    case dynamic
+    case kanban
+    case todo
+
+    var icon: String {
+        switch self {
+        case .tools: return "wrench"
+        case .kanban: return "kanban"   // Lucide kanban icon
+        case .todo: return "list-checks"  // Lucide list-checks icon
+        }
+    }
 }
 
 
