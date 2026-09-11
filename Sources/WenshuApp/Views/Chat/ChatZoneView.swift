@@ -161,52 +161,49 @@ struct ChatZoneView: View {
         // available space' (= same pattern used by ShellMiddleColumn
         // and ShellContentColumn VStacks elsewhere in this file).
         VStack(spacing: 0) {
-                // v0.21 ticket 43 step 2: chat zone top bar 3 tab
-                // (backlog 20, fix step 1 NSLog picker sync)
-                // Apple HIG: Button(.plain) + contentShape(Rectangle()) (ticket 17 + 21 fix)
-                // + .foregroundStyle(.accentColor) in progress
-                // + Apple default .animation(.default, value: selectedTab) (Q58.4)
-                // v0.24 bossverificationfix (Boss 8/25 OOB ticket 015.014): wire
-                // archive alert state into ChatZoneTabBar.
-                ChatZoneTabBar(selectedTab: Binding(
-                    get: { selectedTab },
-                    set: { selectedTab = $0 }
-                ), showingArchiveAlert: $showingArchiveAlert,
-                showingArchiveAlertHover: $showingArchiveAlertHover)
-                Group {
-                    switch selectedTab {
-                    case .chat:
-                        // v0.24 bossverificationfix: ZStack fills full chat zone, help text centered.
-                        ZStack {
-                            ChatView(conductor: conductor, store: store, vm: vm)
-                            if currentModel.isEmpty {
-                                ChatHelpTextOverlay {
-                                    // v0.34 Apple-API-first #5: the UserDefaults
-                                    // .set below writes the same key the
-                                    // SettingView's @AppStorage reads (= the
-                                    // canonical 'jump to providerApi tab on
-                                    // open Settings' pattern, see App.swift:559
-                                    // = SettingView's @AppStorage). The previous
-                                    // code wrote the key TWICE in a row (= dead
-                                    // 2nd write = typo from earlier ticket).
-                                    // Kept as UserDefaults because ChatView is a
-                                    // Model (= not a View), so @AppStorage is
-                                    // not applicable (= @AppStorage requires View
-                                    // context). UserDefaults IS the source of
-                                    // truth that @AppStorage reads from.
-                                    UserDefaults.standard.set("providerApi", forKey: "wenshu.settingsTab")
-                                    WenshuAppDelegate.openSettings?()
-                                }
-                                .allowsHitTesting(true)
-                            }
+                // v1.0.0-m1-shell boss 2026-09-10 OOB '我说的是聊天区的
+                // 整个顶栏都不要了, 原来六区架构的东西, 在 NSV 基础上,
+                // 没有意义, 任何 TEB 都没有, 和编辑器只有一条拖拽线分割':
+                // = drop the entire ChatZoneTabBar (= 3-tab legacy
+                // top bar from the old 6-region architecture; =
+                // TabViews Apple HIG docs say 'if you only need to
+                // show ONE tab, don't show a tab bar at all'; =
+                // in the NSV 4-column layout the chat zone is a
+                // child column under the editor = no separate
+                // chrome tier on top; = the chat zone body starts
+                // directly with the chat history + input field;
+                // = no 'TEB' (= top-edge button / tab-edge button);
+                // = editor and chat share a single divider line
+                // (= the NSSplitView drag handle, see
+                // EditorChatNSController).
+                //
+                // The chat zone body now starts directly with the
+                // ChatView (= chat history + input field); = no
+                // chrome above; = no chrome below; = bare ChatView
+                // fills the chat zone column.
+                ZStack {
+                    ChatView(conductor: conductor, store: store, vm: vm)
+                    if currentModel.isEmpty {
+                        ChatHelpTextOverlay {
+                            // v0.34 Apple-API-first #5: the UserDefaults
+                            // .set below writes the same key the
+                            // SettingView's @AppStorage reads (= the
+                            // canonical 'jump to providerApi tab on
+                            // open Settings' pattern, see App.swift:559
+                            // = SettingView's @AppStorage). The previous
+                            // code wrote the key TWICE in a row (= dead
+                            // 2nd write = typo from earlier ticket).
+                            // Kept as UserDefaults because ChatView is a
+                            // Model (= not a View), so @AppStorage is
+                            // not applicable (= @AppStorage requires View
+                            // context). UserDefaults IS the source of
+                            // truth that @AppStorage reads from.
+                            UserDefaults.standard.set("providerApi", forKey: "wenshu.settingsTab")
+                            WenshuAppDelegate.openSettings?()
                         }
-                    case .search:
-                        ChatZoneStubView(title: "搜索", icon: "magnifyingglass")
-                    case .settings:
-                        ChatZoneStubView(title: "设置", icon: "slider.horizontal.3")
+                        .allowsHitTesting(true)
                     }
                 }
-                .animation(.default, value: selectedTab)
                 // v0.24 bossverificationfix (Boss 8/25 OOB ticket 015.014): archive
                 // confirmation alert. Boss spec: 'confirm, .
                 // [CJK-TRANSLATE] 1 line(s) awaiting manual translation (see git blame for original CJK text)

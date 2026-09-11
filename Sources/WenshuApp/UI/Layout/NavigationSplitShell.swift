@@ -622,15 +622,36 @@ struct ShellContentColumn: View {
         // height when the user wants the editor to fill the whole
         // window (= the VSplitView divider is draggable down to
         // hide the chat; = same as Keynote's speaker notes panel).
-        VSplitView {
-            EditorPlaceholder()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            ChatZoneView(
-                conductor: WenshuAppDelegate.sharedConductor,
-                store: WenshuAppDelegate.sharedChatStoreRef
-            )
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
+        // v1.0.0-m1-shell boss 2026-09-10 OOB '改用 NSSplitViewController:
+        // 原生 isCollapsed + 动画, 但整个 detail 列重写': the
+        // detail column is now hosted by `EditorChatNSController`
+        // (= AppKit NSSplitViewController with canCollapse=true
+        // on the chat item; = the canonical Apple HIG Keynote
+        // speaker-notes pattern; = native isCollapsed +
+        // animator() animation; = per developer.apple.com/design/
+        // human-interface-guidelines/split-views 'A split view
+        // can collapse one of its panes by dragging the divider
+        // past the edge of the split view, by clicking the
+        // collapse button in the divider, or programmatically.').
+        //
+        // The SwiftUI `VSplitView` (= the previous implementation)
+        // does NOT expose canCollapse / isCollapsed / native
+        // divider-collapse animation. The Apple HIG canonical way
+        // to get the Keynote speaker-notes hide/show behavior is
+        // the AppKit NSSplitViewController.
+        //
+        // The .navigationSplitViewColumnWidth(min: 400, ideal: 600,
+        // max: 900) is applied DIRECTLY on the ShellContentColumn
+        // (= the view that lives inside NavigationSplitView's
+        // detail: closure) per Apple docs: 'You can specify a
+        // different modifier in each column. The navigation split
+        // view does its best to accommodate the preferences that
+        // you specify'. = the NSV honors the 400/600/900 detail
+        // column width even with NSSplitViewController inside.
+        EditorChatSplitHost(
+            conductor: WenshuAppDelegate.sharedConductor,
+            chatStore: WenshuAppDelegate.sharedChatStoreRef
+        )
         .environment(appState)
     }
 }

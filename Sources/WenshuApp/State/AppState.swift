@@ -93,6 +93,24 @@ final class AppState {
     // "presenter notes" / inspector reopen action; = per WWDC23).
     var inspectorVisible: Bool = true
 
+    // v1.0.0-m1-shell boss 2026-09-10 OOB 'NSV 默认, 聊天区这个区域
+    // 是可以显隐的, 但功能在菜单栏里, 没有专门的按钮, 我现在需要
+    // 让这个区可以实现显隐, 先有菜单栏, 以后是否有按钮, 再研究':
+    // the chat zone (= the bottom half of the detail column =
+    // hosted by an `NSSplitViewItem` inside
+    // `EditorChatNSController`) has a Show/Hide toggle that lives
+    // in the macOS menu bar (= Apple HIG canonical pattern for
+    // View > Show/Hide {Pane Name} menu items; = NO toolbar
+    // button today; = matches the boss's '先有菜单栏, 以后是否
+    // 有按钮, 再研究' directive).
+    //
+    // When `chatVisible = true`, the chat zone NSSplitViewItem is
+    // visible (= editor + chat zone = 50/50 detail column).
+    // When `chatVisible = false`, the NSSplitViewItem.isCollapsed
+    // = true (= the editor fills the full detail column; =
+    // matches Keynote's 'presenter notes' Show/Hide behavior).
+    var chatVisible: Bool = true
+
     // v1.0.0-m1-shell boss 2026-09-10 OOB '目录树写法, 不符合
     // Apple API': 3 sheet-request triggers moved from
     // NotificationCenter (.wenshuNewBookRequested /

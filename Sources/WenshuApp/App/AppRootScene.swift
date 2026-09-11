@@ -96,8 +96,7 @@ struct AppRootScene: Scene {
         // (= Mail / Notes / Finder all use it = their toolbars
         // do not steal vertical space from the work area). Match
         // the probe's style.
-        .windowToolbarStyle(.unifiedCompact)  // 28 PT compact chrome (matches probe / Mail / Notes / Finder)
-        // .windowToolbarStyle(.unifiedCompact(showsTitle: false))  // 28 PT compact chrome, no unified toolbar background
+        .windowToolbarStyle(.unified)  // v1.0.0-m1-shell boss 2026-09-10 OOB '把标题栏, 或者说工具栏, 用 apple 52 PT 高的那个, 按钮大一些': Apple HIG standard toolbar height = 52 PT per developer.apple.com/design/human-interface-guidelines/toolbars 'A standard toolbar is 52 PT tall'; = matches Mail / Notes / Finder / Safari / TextEdit / Pages / Keynote / Numbers standard toolbar; = the previous `.unifiedCompact` (= 28 PT compact toolbar) was a v0.95 cosmetic attempt that the boss rejected; = the larger 52 PT toolbar lets the icon buttons render at the canonical Apple HIG size (= the user wants the buttons to look bigger and more clickable; = the 52 PT toolbar height makes the icon-button frames at the canonical 28-32 PT icon size).
         // v0.96 boss 2026-09-10 OOB '之前 NSV probe 好好的': the
         // probe (/tmp/wenshu_full/Full.swift) had no
         // `.defaultSize(width:height:)` (= SwiftUI used the
@@ -268,6 +267,46 @@ struct AppRootScene: Scene {
                     .keyboardShortcut("z", modifiers: .command)
                 Button(WenshuI18n.t("menu.edit.redo"), action: {})
                     .keyboardShortcut("Z", modifiers: [.command, .shift])
+            }
+            // v1.0.0-m1-shell boss 2026-09-10 OOB 'NSV 默认, 聊天区
+            // 这个区域是可以显隐的, 但功能在菜单栏里, 没有专门的
+            // 按钮, 先有菜单栏, 以后是否有按钮, 再研究': the View
+            // menu (= Apple's canonical menu for pane visibility
+            // toggles; = per Apple HIG developer.apple.com/design/
+            // human-interface-guidelines/menus 'The View menu lets
+            // people toggle the visibility of interface components,
+            // like the sidebar, inspector, or other panes') hosts
+            // the chat zone Show/Hide command.
+            //
+            // Implementation: the chat zone is hosted by an
+            // `NSSplitViewItem` inside `EditorChatNSController`
+            // (= the detail column = AppKit NSSplitViewController;
+            // = the canonical Apple Keynote speaker-notes API;
+            // = native isCollapsed + animator() animation; =
+            // per developer.apple.com/design/human-interface-
+            // guidelines/split-views 'A split view can collapse
+            // one of its panes by dragging the divider past the
+            // edge of the split view, by clicking the collapse
+            // button in the divider, or programmatically.').
+            //
+            // The toggle action posts an NSNotification on
+            // `Notification.Name.wenshuToggleChatZone`. The
+            // `EditorChatNSController` instance (the detail
+            // column's NSViewControllerRepresentable child)
+            // listens and calls
+            // `splitViewItems[chat].animator().isCollapsed.toggle()`.
+            CommandGroup(after: .toolbar) {
+                Toggle(WenshuI18n.t("menu.view.show_chat_zone"), isOn: Binding(
+                    get: { appState.chatVisible },
+                    set: { newValue in
+                        appState.chatVisible = newValue
+                        NotificationCenter.default.post(
+                            name: .wenshuToggleChatZone,
+                            object: nil
+                        )
+                    }
+                ))
+                .keyboardShortcut("k", modifiers: [.command, .option])
             }
         }
         Settings {

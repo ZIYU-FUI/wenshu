@@ -1,0 +1,187 @@
+// EditorChatNSController.swift · Wenshu · v1.0.0-m1-shell
+//
+// Native AppKit split container for the wenshu editor column.
+//
+// Why NSSplitViewController (= not SwiftUI VSplitView)?
+// ----------------------------------------------------
+//
+// v1.0.0-m1-shell boss 2026-09-10 OOB 'keynote 那种演讲者注释,
+// 划出来的分区, 是否有官方的 API':
+// the canonical Apple HIG pattern for Keynote's 'presenter notes'
+// pane (= hideable + resizable + drag-collapse + animated toggle)
+// is `NSSplitViewController` + `NSSplitViewItem.canCollapse`
+// + `NSSplitViewItem.animator().isCollapsed` per Apple's
+// documentation: developer.apple.com/design/human-interface-
+// guidelines/split-views 'A split view can collapse one of
+// its panes by dragging the divider past the edge of the split
+// view, by clicking the collapse button in the divider, or
+// programmatically.' = the user-facing hide/show + the
+// programmatic hide/show (= menu bar View > Show/Hide Chat
+// Zone) + the animation + the divider drag-to-collapse are
+// all native macOS behaviors.
+//
+// SwiftUI's `VSplitView` does NOT expose `canCollapse` /
+// `isCollapsed` / native divider collapse animation. Per Apple's
+// macOS 14+ SwiftUI release notes, VSplitView is a thin wrapper
+// over NSSplitView but does NOT bridge the canCollapse API.
+// The Apple HIG canonical way to get the Keynote speaker-notes
+// hide/show + animated toggle is the AppKit NSSplitViewController.
+//
+// Implementation:
+// - `EditorChatNSController: NSSplitViewController`
+// - 2 `NSSplitViewItem`s: top = editor, bottom = chat zone
+// - chat zone `NSSplitViewItem.canCollapse = true`
+// - each item hosts an `NSHostingController(rootView: SwiftUIView)`
+// - dividerStyle = .thin (= matches Apple HIG thin divider pattern)
+// - autosaveName persists the divider position across launches
+// - `toggleChatZone()` (= the menu action) calls
+//   `splitViewItems[1].animator().isCollapsed.toggle()`
+//   = native NSSplitView animation
+//
+// SwiftUI hosting:
+// - `EditorChatSplitHost: NSViewControllerRepresentable`
+//   wraps the controller for SwiftUI's NavigationSplitView detail
+//   closure (= same pattern as PaneSplitHost)
+//
+// Reference:
+// - developer.apple.com/design/human-interface-guidelines/split-views
+// - developer.apple.com/documentation/appkit/nssplitviewcontroller
+// - developer.apple.com/documentation/appkit/nssplitviewitem
+
+import AppKit
+import SwiftUI
+
+extension Notification.Name {
+    /// v1.0.0-m1-shell boss 2026-09-10 OOB '菜单栏 View > Show/Hide
+    /// Chat Zone': posted when the user toggles the chat zone
+    /// visibility from the menu bar. The `EditorChatNSController`
+    /// (= the detail column's NSSplitViewController child) listens
+    /// and calls `splitViewItems[chat].animator().isCollapsed.toggle()`.
+    static let wenshuToggleChatZone = Notification.Name("wenshu.editor.toggleChatZone")
+}
+
+/// Native AppKit split container (= editor on top, chat zone on bottom).
+/// Hosts SwiftUI views via `NSHostingController`.
+@MainActor
+final class EditorChatNSController: NSSplitViewController {
+
+    /// Stable identifier for the chat zone item (= used by the menu
+    /// action to find the right item to toggle).
+    static let chatItemIdentifier = "wenshu.editor.chat"
+
+    /// Persisted divider position (= Apple HIG autosave behavior; =
+    /// the user's manual drag positions survive app relaunch).
+    private static let autosaveName = "wenshu.editor.split.autosave"
+
+    /// Reference to the chat-zone split item (= set in viewDidLoad).
+    /// Stored so the menu action can call `isCollapsed.toggle()`
+    /// on it (= the canonical Apple Keynote speaker-notes API).
+    private var chatItem: NSSplitViewItem?
+
+    /// External dependencies the SwiftUI views need (passed through
+    /// `NSHostingController(rootView:).environment(...)`).
+    private let conductor: WenshuConductor?
+    private let chatStore: ChatSessionStore?
+
+    init(conductor: WenshuConductor?, chatStore: ChatSessionStore?) {
+        self.conductor = conductor
+        self.chatStore = chatStore
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("EditorChatNSController must be initialized via init(conductor:chatStore:)")
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        // v1.0.0-m1-shell: Apple HIG thin divider style (= the
+        // canonical Keynote speaker-notes divider; = the
+        // Apple-standard 1 PT hairline; = matches Pages / Numbers /
+        // Keynote).
+        self.splitView.dividerStyle = .thin
+        // Autosave the divider position (= Apple HIG default
+        // behavior; = the user's drag-to-resize survives relaunch).
+        self.splitView.autosaveName = Self.autosaveName
+
+        // Top pane (= editor).
+        let editorItem = NSSplitViewItem(viewController: NSHostingController(
+            rootView: EditorPlaceholder()
+        ))
+        editorItem.canCollapse = false   // editor is always visible
+        editorItem.minimumThickness = 200
+        addSplitViewItem(editorItem)
+
+        // Bottom pane (= chat zone).
+        let chatViewController = NSHostingController(
+            rootView: ChatZoneView(
+                conductor: WenshuAppDelegate.sharedConductor,
+                store: WenshuAppDelegate.sharedChatStoreRef
+            )
+        )
+        let chatItemLocal = NSSplitViewItem(viewController: chatViewController)
+        chatItemLocal.canCollapse = true   // Keynote speaker-notes pattern
+        chatItemLocal.minimumThickness = 100
+        addSplitViewItem(chatItemLocal)
+        self.chatItem = chatItemLocal
+
+        // v1.0.0-m1-shell boss 2026-09-10 OOB '菜单栏 View > Show/Hide
+        // Chat Zone': observe the wenshuToggleChatZone notification
+        // posted by AppRootScene's CommandGroup(after: .toolbar). When
+        // the user clicks View > Show Chat Zone in the macOS menu
+        // bar, the AppState's chatVisible flag flips AND we get the
+        // notification; we mirror the flag onto the native NSSplitViewItem
+        // by toggling isCollapsed via animator() (= the native Keynote
+        // speaker-notes collapse animation).
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleChatToggleNotification),
+            name: .wenshuToggleChatZone,
+            object: nil
+        )
+    }
+
+    @objc private func handleChatToggleNotification() {
+        toggleChatZone()
+    }
+
+    /// Programmatic toggle (= called from the menu bar View >
+    /// Show/Hide Chat Zone item). Uses `animator()` so the collapse
+    /// / expand animates per NSSplitView's standard animation.
+    /// This is the canonical Apple HIG Keynote speaker-notes API.
+    func toggleChatZone() {
+        guard let item = chatItem else { return }
+        item.animator().isCollapsed.toggle()
+    }
+
+    /// Query helper for menu state (= show checkmark when chat zone
+    /// is currently visible).
+    var isChatZoneVisible: Bool {
+        chatItem.map { !$0.isCollapsed } ?? true
+    }
+}
+
+/// SwiftUI wrapper that hosts `EditorChatNSController` inside the
+/// `NavigationSplitView` detail closure (= same pattern as
+/// `PaneSplitHost`; = AppKit boundary; = SwiftUI @Environment chain
+/// breaks at the AppKit boundary; = we thread dependencies explicitly
+/// into NSHostingController via `.environment(...)` if/when needed).
+struct EditorChatSplitHost: NSViewControllerRepresentable {
+    let conductor: WenshuConductor?
+    let chatStore: ChatSessionStore?
+
+    func makeNSViewController(context: Context) -> EditorChatNSController {
+        let controller = EditorChatNSController(
+            conductor: conductor,
+            chatStore: chatStore
+        )
+        return controller
+    }
+
+    func updateNSViewController(_ nsViewController: EditorChatNSController, context: Context) {
+        // No-op for now (= editor + chat content is static; = the
+        // chat zone's internal state lives in ChatZoneView itself).
+    }
+}
