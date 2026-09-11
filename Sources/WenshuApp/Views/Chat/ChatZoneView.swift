@@ -148,8 +148,21 @@ struct ChatZoneView: View {
     }
 
     var body: some View {
-            VStack(spacing: 0) {
-                // v0.21 ticket 43 step 2: chat zonetop bar 3 tab (backlog 20, fix step 1 NSLog picker sync)
+        // v1.0.0-m1-shell boss 2026-09-10 OOB '聊天区没有左右撑满':
+        // apply `.frame(maxWidth: .infinity, maxHeight: .infinity)` to
+        // the outer VStack so the chat zone fills the full width
+        // and height of its VSplitView slot (= without the frame
+        // modifier, the VStack sizes to its intrinsic content width;
+        // = chat messages + input bar shift to the right side of
+        // the column with empty space on the left; = the boss's
+        // '聊天区没有左右撑满' symptom). The `.frame(maxWidth:
+        // .infinity, maxHeight: .infinity)` modifier is the
+        // canonical SwiftUI pattern for 'fill the parent's
+        // available space' (= same pattern used by ShellMiddleColumn
+        // and ShellContentColumn VStacks elsewhere in this file).
+        VStack(spacing: 0) {
+                // v0.21 ticket 43 step 2: chat zone top bar 3 tab
+                // (backlog 20, fix step 1 NSLog picker sync)
                 // Apple HIG: Button(.plain) + contentShape(Rectangle()) (ticket 17 + 21 fix)
                 // + .foregroundStyle(.accentColor) in progress
                 // + Apple default .animation(.default, value: selectedTab) (Q58.4)
@@ -357,6 +370,16 @@ struct ChatZoneView: View {
             // ' cleanup round 3 = no chrome tier distinction
             // anywhere in the chat zone.
         }
+        // v1.0.0-m1-shell boss 2026-09-10 OOB '聊天区没有左右撑满':
+        // apply `.frame(maxWidth: .infinity, maxHeight: .infinity)`
+        // after the outer VStack (= the canonical SwiftUI pattern
+        // for 'fill the parent's available space'). Without this
+        // modifier, the VStack sizes to its intrinsic content width
+        // and the chat messages + input bar shift to the right side
+        // of the column with empty space on the left (= the boss's
+        // symptom). Same pattern used by ShellMiddleColumn and
+        // ShellContentColumn VStacks elsewhere in this file.
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     /// compactNumber: real token count folded into compact format (Hermes format_token_count_compact canonical).
