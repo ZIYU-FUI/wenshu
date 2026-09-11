@@ -370,6 +370,29 @@ struct ShellSidebarColumn: View {
 /// the VSplitView is gone too and the card zone owns the full
 /// column height.
 struct ShellMiddleColumn: View {
+    // v1.0.0-m1-shell boss 2026-09-10 OOB '资料库的目录选择, 和
+    // 素材区的卡片对不齐, 没有过滤' (= the cards column did not
+    // re-render when the user clicked a reference category in the
+    // sidebar). Root cause: `let appState: AppState` (= a plain
+    // stored property holding an `@Observable` instance) does NOT
+    // participate in SwiftUI's Observation Framework tracking when
+    // the view body reads `appState.sidebarSelection`. The
+    // `@Observable` macro generates `withObservationTracking`
+    // hooks keyed to the *direct* property access on a tracked
+    // reference (= `@Environment` / `@State` / `@Bindable`); a
+    // plain `let` field is treated as a non-tracked read, so the
+    // view body never re-renders when `sidebarSelection` mutates.
+    //
+    // Fix: switch to `@Environment(AppState.self)` (= the
+    // canonical SwiftUI Observation entry point for `@Observable`
+    // instances; = reads of `appState.x` register tracking; = body
+    // re-renders on every mutation). The `init` / call sites that
+    // previously passed `appState: appState` as a parameter can
+    // keep passing it for backwards compat (= the let field is
+    // kept as a no-op shim so callers don't have to change) but
+    // the @Environment entry takes precedence for observation
+    // tracking inside body.
+    @Environment(AppState.self) private var envAppState
     let appState: AppState
 
     /// Sort order for the preview pane card grid. Owned locally
@@ -419,7 +442,12 @@ struct ShellMiddleColumn: View {
     /// `categoryGrid(category: cat, ...)` which filters
     /// `allEntities.filter { $0.category == category }` correctly.
     private func previewScope() -> PreviewScope {
-        switch appState.sidebarSelection {
+        // v1.0.0-m1-shell boss 2026-09-10 OOB: read from envAppState
+        // (= the @Environment-tracked Observable instance), NOT
+        // from the `let appState` field (= which doesn't register
+        // Observation tracking; = previous code's `previewScope()`
+        // read stale data because the body never re-rendered).
+        switch envAppState.sidebarSelection {
         case .referenceLibraryRoot:
             return .referenceScope(nil)
         case .referenceCategory(let dirName):
