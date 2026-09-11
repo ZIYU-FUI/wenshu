@@ -130,11 +130,20 @@ struct AppRootScene: Scene {
         // the window grow to fit the NavigationSplitView's
         // content minimum (= the 4-column ideal-width sum + drag
         // handles + window chrome = ~2205 PT), overriding
-        // defaultSize entirely. .contentSize lets the window
-        // resize freely (= not anchored to content minimum), so
-        // defaultSize 1480 PT is the initial window size and the
-        // user can shrink or grow from there.
-        .windowResizability(.contentSize)
+        // defaultSize entirely.
+        //
+        // v1.0.0-m1-shell boss 2026-09-10 OOB 'APP initial size, very small':
+        // the onboarding flow uses `.windowResizability(.contentSize)`
+        // which forces the window = the view's intrinsic content size
+        // (= VStack + cover thumbnail + buttons = ~360 PT wide x ~500 PT
+        // tall). The outer frame on LibraryOnboardingView's VStack
+        // is treated as a soft hint (= .contentSize overrides it).
+        // Switch back to `.contentMinSize` (= content size is the
+        // minimum, = window can grow larger) so the onboarding
+        // VStack's outer frame is respected as the floor (= 640 x 720),
+        // and the NSV detail view's ideal width (= 1480 PT) is the
+        // floor for the main workspace window.
+        .windowResizability(.contentMinSize)
         // v0.81 boss 2026-09-10 OOB: the inspector toggle button
         // (= ⌥⌘I = Lucide "panel-right" icon = the canonical Apple
         // toolbar affordance for NavigationSplitView `.inspector`)
