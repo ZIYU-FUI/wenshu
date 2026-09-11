@@ -578,12 +578,35 @@ struct ShellContentColumn: View {
     let appState: AppState
 
     var body: some View {
+        // v1.0.0-m1-shell boss 2026-09-10 OOB '整个聊天这个区, 都变窄了,
+        // 逻辑上应该是跟随中栏宽度的' + '没在拉开, 你查一下文档':
+        //
+        // Per Apple's VSplitView documentation (= NSSplitView wrapper
+        // on macOS 14+), VSplitView measures each child at its IDEAL
+        // size by default (= content-sized, not column-sized). To make
+        // a child fill the available column slot (= follow the column
+        // width), the .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // modifier MUST be attached to VSplitView's DIRECT child
+        // (= not deeper in the hierarchy), because VSplitView has
+        // already decided the child's size by the time deeper
+        // frames are evaluated.
+        //
+        // The previous attempts put the .frame on ChatZoneView.body
+        // and ChatView.body (= deeper in the hierarchy), which
+        // VSplitView had already content-sized by the time those
+        // frames ran (= the chat zone sized to its content width
+        // = the boss's '整个聊天这个区, 都变窄了' symptom).
+        //
+        // The empty-state top half (= EditorPlaceholder { EmptyStateHint })
+        // needs the same treatment for the same reason.
         VSplitView {
             EditorPlaceholder()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             ChatZoneView(
                 conductor: WenshuAppDelegate.sharedConductor,
                 store: WenshuAppDelegate.sharedChatStoreRef
             )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .environment(appState)
     }

@@ -776,15 +776,6 @@ public struct ChatView: View {
     public var body: some View {
         // v0.24 boss acceptance fix: listen for global defocus notification.
         // Boss 8/24 feedback: 'clicking other areas, the textfield still keeps focus'.
-        // v1.0.0-m1-shell boss 2026-09-10 OOB '聊天区没有左右撑满':
-        // apply `.frame(maxWidth: .infinity)` to the outer VStack so
-        // the chat zone fills the full width of the column slot.
-        // Without this frame modifier, the VStack + ScrollView +
-        // HStack input row all size to their intrinsic content width
-        // (= the ScrollView only scrolls inside the intrinsic width;
-        // = the input HStack + status bar sit at intrinsic width
-        // and shift to the right side of the column with empty
-        // space on the left = the boss's symptom).
         VStack(spacing: 0) {
             // Message list (ScrollView + LazyVStack ground truth)
             ScrollViewReader { proxy in
@@ -1432,21 +1423,6 @@ public struct ChatView: View {
         }
     }
 }
-        // v1.0.0-m1-shell boss 2026-09-10 OOB '聊天区没有左右撑满':
-        // apply `.frame(maxWidth: .infinity)` after the outer
-        // VStack (= the canonical SwiftUI pattern for 'fill the
-        // parent's available space'). Same pattern used by
-        // ShellMiddleColumn / ShellContentColumn VStacks
-        // elsewhere in NavigationSplitShell. Without this
-        // modifier, the VStack sizes to its intrinsic content
-        // width and the chat messages + input row shift to the
-        // right side of the column with empty space on the left
-        // (= the boss's symptom). maxHeight: .infinity is NOT
-        // applied here (= the parent ChatZoneView's VStack
-        // already provides maxHeight: .infinity via its own
-        // .frame modifier = the chat view fills the chat zone's
-        // height = no double-nested infinite frames).
-        .frame(maxWidth: .infinity)
     }
 }
 

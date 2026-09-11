@@ -370,16 +370,6 @@ struct ChatZoneView: View {
             // ' cleanup round 3 = no chrome tier distinction
             // anywhere in the chat zone.
         }
-        // v1.0.0-m1-shell boss 2026-09-10 OOB '聊天区没有左右撑满':
-        // apply `.frame(maxWidth: .infinity, maxHeight: .infinity)`
-        // after the outer VStack (= the canonical SwiftUI pattern
-        // for 'fill the parent's available space'). Without this
-        // modifier, the VStack sizes to its intrinsic content width
-        // and the chat messages + input bar shift to the right side
-        // of the column with empty space on the left (= the boss's
-        // symptom). Same pattern used by ShellMiddleColumn and
-        // ShellContentColumn VStacks elsewhere in this file.
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     /// compactNumber: real token count folded into compact format (Hermes format_token_count_compact canonical).
