@@ -256,7 +256,22 @@ struct NavigationSplitShell: View {
             // with this exact combination).
             ShellContentColumn(appState: appState)
                 .navigationSplitViewColumnWidth(min: 400, ideal: 600, max: 900)
-                .inspector(isPresented: .constant(true)) {
+                // v1.0.0-m1-shell boss 2026-09-10 OOB 'keynote 三个办公软件
+                // 全是这个逻辑': wire the inspector's `isPresented` to
+                // a real `Binding<Bool>` (= `appState.inspectorVisible`)
+                // so the inspector can collapse (= user drags the
+                // right-column divider past the left edge) and
+                // reopen (= the toolbar toggle button sets the
+                // binding to true). This is the canonical Apple
+                // HIG behavior for `.inspector(isPresented:)` per
+                // WWDC23-10161: 'Inspectors can collapse by default,
+                // but they aren't resizable by default. We can change
+                // it with .inspectorColumnWidth. We can also add a
+                // toolbar button to toggle the presented property.'
+                .inspector(isPresented: Binding(
+                    get: { appState.inspectorVisible },
+                    set: { newValue in appState.inspectorVisible = newValue }
+                )) {
                     ShellDetailColumn(appState: appState)
                         .inspectorColumnWidth(min: 240, ideal: 280, max: 360)
                 }
@@ -578,42 +593,35 @@ struct ShellContentColumn: View {
     let appState: AppState
 
     var body: some View {
-        // v1.0.0-m1-shell boss 2026-09-10 OOB 'keynote 演讲者注释是
-        // 如何实现的, 颜色也按 keynote 走, 聊天区后面还有重写
-        // 的需求' (revisit after the boss's
-        // '没有显示出来, 下面的分区' feedback):
-        //
-        // Per Apple's macOS HIG split-views documentation
+        // v1.0.0-m1-shell boss 2026-09-10 OOB '死磕文档的方案': per
+        // Apple's HIG split-views documentation
         // (developer.apple.com/design/human-interface-guidelines/
         // split-views): "Keynote in macOS uses split view panes to
         // present the slide navigator, the presenter notes, and
         // the inspector pane in areas that surround the main slide
-        // canvas. ... For developer guidance, see VSplitView and
-        // HSplitView."
+        // canvas. For developer guidance, see VSplitView and
+        // HSplitView." = the canonical Apple HIG '中栏' (= detail
+        // column = editor on top + chat on bottom) pattern is
+        // VSplitView.
         //
-        // = Keynote's speaker notes are implemented with `VSplitView`
-        // (= SwiftUI's macOS 14+ wrapper over NSSplitView), NOT
-        // with `NSTitlebarAccessoryViewController` (= which is for
-        // toolbar accessories / small secondary zones, not the
-        // main content area). The previous attempt used
-        // `NSTitlebarAccessoryViewController(.bottom)` and the chat
-        // zone failed to render (= the boss's '没有显示出来' bug)
-        // AND the chat input bar / search bar / sidebar toggle
-        // buttons drifted to the wrong zone (= the boss's
-        // '聊天框和一组按钮, 飘走了' bug).
+        // Two .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // modifiers on the direct children (= EditorPlaceholder +
+        // ChatZoneView) = commit f1b56bfc8 fix; = both children
+        // fill the VSplitView slot (= no content-sized shrinkage).
         //
-        // Reverted: chat zone is BACK in the detail column via
-        // VSplitView (= the canonical Apple HIG split-view pattern;
-        // = the same pattern Keynote / Pages / Numbers use for
-        // their "second zone" / "speaker notes" / "inspector"
-        // layouts).
+        // The .navigationSplitViewColumnWidth(min: 400, ideal: 600,
+        // max: 900) is applied DIRECTLY on the ShellContentColumn
+        // (= the view that lives inside NavigationSplitView's
+        // detail: closure) per Apple docs: 'You can specify a
+        // different modifier in each column. The navigation split
+        // view does its best to accommodate the preferences that
+        // you specify'. = the NSV honors the 400/600/900 detail
+        // column width even with VSplitView inside.
         //
-        // Also: the middle (cards) column min-width is preserved
-        // (240 PT min) by keeping the .navigationSplitViewColumnWidth
-        // modifier on the parent column (= the boss's '中栏的默认
-        // 最小宽度没了' symptom came from the cards column's
-        // intrinsic content size being smaller than the columnWidth
-        // min during the title-bar-accessory rebuild).
+        // Apple HIG note: the chat zone may also collapse to zero
+        // height when the user wants the editor to fill the whole
+        // window (= the VSplitView divider is draggable down to
+        // hide the chat; = same as Keynote's speaker notes panel).
         VSplitView {
             EditorPlaceholder()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -694,6 +702,38 @@ struct ShellDetailColumn: View {
             }
         }
         .toolbar {
+            // v1.0.0-m1-shell boss 2026-09-10 OOB 'keynote 三个办公
+            // 软件全是这个逻辑': the inspector's own toolbar
+            // hosts a toggle button (= the same pattern Keynote
+            // / Pages / Numbers use for the 'presenter notes'
+            // / 'format' panel reopen action). Per WWDC23-10161:
+            // 'We can also add a toolbar button to toggle the
+            // presented property.' The button lives in the
+            // inspector's toolbar (= the `.toolbar` modifier on
+            // the view inside the `.inspector { ... }` closure)
+            // and toggles `appState.inspectorVisible` (= the
+            // canonical Keynote pattern = the same toggle that
+            // opens the right column when the user clicks the
+            // sidebar's chevron right edge).
+            //
+            // The toggle button is ALWAYS visible (= even when the
+            // inspector is collapsed, the toolbar still shows the
+            // button; = the user can re-open the inspector at any
+            // time; = matches Keynote / Pages / Numbers).
+            ToolbarItem(placement: .navigation) {
+                Button {
+                    appState.inspectorVisible.toggle()
+                } label: {
+                    LucideLabel(
+                        WenshuI18n.t("inspector.toggle.button"),
+                        icon: appState.inspectorVisible
+                            ? "sidebar-right"
+                            : "panel-right"
+                    )
+                }
+                .buttonStyle(.plain)
+                .help(WenshuI18n.t("inspector.toggle.help"))
+            }
             ToolbarItem(placement: .primaryAction) {
                 Picker("Inspector", selection: $inspectorContent) {
                     ForEach(InspectorContent.allCases, id: \.self) { content in

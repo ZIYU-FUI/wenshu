@@ -74,6 +74,25 @@ final class AppState {
     /// (= JSON shape, = set by WorkspaceView's `.onChange`).
     var sidebarSelection: SidebarItem? = nil
 
+    // v1.0.0-m1-shell boss 2026-09-10 OOB 'keynote 三个办公软件全是
+    // 这个逻辑' (= 'Keynote / Pages / Numbers all use the same
+    // inspector toggle logic'): the user can drag the right-column
+    // divider to close the inspector, and clicking the right
+    // content toggle in the top-right toolbar reopens the inspector
+    // AND restores the previous content. This is the canonical
+    // Apple HIG behavior for `.inspector(isPresented:)` per Apple's
+    // WWDC23-10161 documentation: 'Inspectors can collapse by
+    // default, but they aren't resizable by default. We can change
+    // it with .inspectorColumnWidth. We can also add a toolbar
+    // button to toggle the presented property.'
+    //
+    // Was previously removed by commit 5ad064686 (the boss's
+    // earlier directive that 'Apple Pages/Keynote don't show a
+    // inspector toggle button' = incorrect; = the toolbar toggle
+    // button IS the Keynote/Pages/Numbers pattern for the
+    // "presenter notes" / inspector reopen action; = per WWDC23).
+    var inspectorVisible: Bool = true
+
     // v1.0.0-m1-shell boss 2026-09-10 OOB '目录树写法, 不符合
     // Apple API': 3 sheet-request triggers moved from
     // NotificationCenter (.wenshuNewBookRequested /
