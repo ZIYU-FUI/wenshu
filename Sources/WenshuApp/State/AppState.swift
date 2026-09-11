@@ -94,8 +94,15 @@ final class AppState {
             // migration). Encoded as JSON via the existing Codable
             // conformance (= SidebarItem: Hashable, Codable, declared
             // at NewLibraryOutlineView.swift:61).
+            //
+            // v1.0.0-m1-shell diagnostic: print the FULL encoded JSON
+            // (= the previous write produced a truncated 80-byte
+            // blob ending in `{"kind":"folder"`; = the diagnostic
+            // tells us whether the truncation is in our encode, in
+            // the UserDefaults write, or somewhere else).
             if let item = sidebarSelection,
                let data = try? JSONEncoder().encode(item) {
+                NSLog("[wenshu.sidebarSelection] WRITE: %@", String(data: data, encoding: .utf8) ?? "<invalid utf8>")
                 UserDefaults.standard.set(data, forKey: Self.sidebarSelectionKey)
             } else {
                 UserDefaults.standard.removeObject(forKey: Self.sidebarSelectionKey)

@@ -204,7 +204,14 @@ struct NewLibraryOutlineView: View {
     // immediately on book tap). Keys = book.id, value = isExpanded.
     @State private var bookDisclosureStates: [UUID: Bool] = [:]
     // v0.34 boss 2026-09-02 OOB: reference-library DisclosureGroup expansion state.
-    @State private var referenceLibraryDisclosureExpanded: Bool = false
+    // v1.0.0-m1-shell boss 2026-09-10 OOB '之前想实现资料库默认展开,
+    // 好像是已经实现过, 这次修目录树的写法, 消失了': default to
+    // `true` (= reference library expanded by default on launch).
+    // Boss said the previous implementation had it expand by
+    // default and the refactor removed it. Restoring the default
+    // to true (= the user sees 世界 / 角色 / 章节大纲 / etc. on
+    // first launch without having to click the chevron).
+    @State private var referenceLibraryDisclosureExpanded: Bool = true
 
     // v0.34 boss 2026-09-02 OOB 'sidebar + preview should share one unified
     // persistence interface': ONE AppStorage key, ONE Codable struct, ONE onAppear + ONE onChange.
