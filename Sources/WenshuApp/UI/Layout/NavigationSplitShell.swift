@@ -195,8 +195,30 @@ struct NavigationSplitShell: View {
             // + no defaultSize (= let SwiftUI auto-size the window
             // like the probe), the columnWidth values now apply
             // cleanly and each column lands at its ideal width.
+            // v1.0.0-m1-shell boss 2026-09-10 OOB '初始启动时, 让左, 左2,
+            // 两个栏都用最小尺寸, 其它两栏先不变': set the sidebar +
+            // content (= left + left-2) ideal widths to their min
+            // values (= sidebar 220, content 240) so the columns
+            // open at their tightest legal width (= no extra padding
+            // room = the user sees the smallest sidebar + cards band
+            // that still fits the row icons + labels). The detail +
+            // inspector ideal widths stay as-is (= 600 / 280) per the
+            // boss's '其它两栏先不变' instruction.
+            //
+            // Why this works: `navigationSplitViewColumnWidth(min: X,
+            // ideal: Y, max: Z)` sets Y as the initial width when
+            // the column first appears; = setting ideal = min gives
+            // the minimum-width initial state without losing the
+            // user's ability to drag wider (= max is unchanged =
+            // user can drag sidebar up to 360 PT and content up to
+            // 480 PT).
+            //
+            // Window total: 220 + 240 + 600 + 280 = 1340 PT + chrome
+            // ~28 PT = ~1368 PT initial width (= smaller than the
+            // previous 1480 PT 'ideal sum' = the cards band gets the
+            // min treatment).
             NewLibraryOutlineView()
-                .navigationSplitViewColumnWidth(min: 220, ideal: 280, max: 360)
+                .navigationSplitViewColumnWidth(min: 220, ideal: 220, max: 360)
         } content: {
             // v0.69 boss 2026-09-10 OOB 'land the canonical 6-zone
             // layout from the probe (= NavigationSplitView 3 columns
@@ -206,8 +228,12 @@ struct NavigationSplitShell: View {
             // outline + cards band, exactly as in the probe's
             // ContentZone. The probe measured window = 1449, sidebar
             // = 240, content = 280, detail = 648 with this layout.
+            // v1.0.0-m1-shell boss 2026-09-10 OOB '左左2 用最小':
+            // content ideal 320 → 240 (= matches sidebar's
+            // 'min-width' pattern; = user can still drag wider up
+            // to 480 PT via max).
             ShellMiddleColumn(appState: appState)
-                .navigationSplitViewColumnWidth(min: 240, ideal: 320, max: 480)
+                .navigationSplitViewColumnWidth(min: 240, ideal: 240, max: 480)
         } detail: {
             // Apple HIG detail column = the editor + chat sub-areas
             // in a vertical split (= VSplitView is what Mail uses
