@@ -687,7 +687,7 @@ struct ShellDetailColumn: View {
     // (= tools / dynamic). The 2-toggle Picker(.segmented)
     // lives in the .toolbar .principal placement (= same
     // pattern as ShellSidebarColumn's 2 scope tabs).
-    @State private var inspectorContent: InspectorContent = .tools
+    @State private var inspectorPage: InspectorPage = .authoringFiction
 
     // v1.0.0-m1-shell boss 2026-09-11 OOB '看板和待办独立窗口':
     // wire `@Environment(\.openWindow)` so the toolbar buttons can
@@ -709,18 +709,123 @@ struct ShellDetailColumn: View {
         }
     }
 
-    var body: some View {
-        // v1.0.0-m1-shell boss 2026-09-10 OOB '用 keynote, pages,
-        // numbers 内容中心的逻辑, 实现看板/待办页': the inspector
-        // column (= the rightmost NSV column) is now a 3-tab content
-        // center. The 3-toggle Picker(.segmented) lives in the
-        // .toolbar .principal placement (= same pattern as
-        // ShellSidebarColumn's 2 scope tabs).
-        Group {
-            switch inspectorContent {
-            case .tools:
-                ZoneModuleView(zoneSlot: .specializedTools)
+    /// v1.0.0-m1-shell boss 2026-09-11 OOB '拆成两个页': each
+    /// InspectorPage (= .authoring / .craft) renders 1+
+    /// specialized tools. Tools are selected via a 2nd segmented
+    /// Picker in the body (= above the tool content; = the page
+    /// Picker lives in the toolbar .principal placement; = the
+    /// per-tool Picker lives at the top of the column body). The
+    /// tools themselves are hosted by ZoneContentView (=
+    /// .specializedTools with a per-tab `currentTab` selection).
+    ///
+    /// `filteredToolsForCurrentPage` returns the array of
+    /// (label, icon, content) tuples for the active page (= the
+    /// 2-3 tools the user wants visible on this page). The
+    /// underlying ZoneContentView renders a segmented Picker over
+    /// these tabs (= the 2-tab page Picker is already in the
+    /// toolbar; = the 2-3 tab per-tool Picker is inside the
+    /// column body, above the tool content).
+    private var filteredToolsForCurrentPage: [(label: String, icon: String, content: AnyView)] {
+        let allTools: [(label: String, icon: String, content: AnyView)] = [
+            (WenshuI18n.t("tab.title.foreshadowing"),      "git-fork",       AnyView(ForeshadowingView())),
+            (WenshuI18n.t("tab.title.placeholder"),        "square-dashed",  AnyView(PlaceholderView())),
+            (WenshuI18n.t("tab.title.long_form"),           "shield-check",   AnyView(LongFormGuardrailsView())),
+            (WenshuI18n.t("tab.title.reader_experience"),   "sparkles",       AnyView(ReaderExperienceView())),
+            (WenshuI18n.t("tab.title.plot_thread"),         "git-branch",     AnyView(PlotThreadView())),
+            ("Genre-Fit",                                  "book-marked",    AnyView(GenreFitView())),
+            ("Emotion-Curve",                               "activity",       AnyView(EmotionCurveView())),
+            ("Chars-Rel",                                   "users",          AnyView(CharacterRelationshipsView())),
+            ("Chars-Life",                                  "clock",          AnyView(CharacterLifecycleView())),
+            ("Tag-Manager",                                 "tag",            AnyView(TagManagerView())),
+            ("Idea-Library",                                "lightbulb",      AnyView(IdeaLibraryView())),
+            ("Book-Settings",                               "book-lock",      AnyView(BookSettingConstraintsView())),
+        ]
+        let perPageLabels: Set<String> = {
+            switch inspectorPage {
+            case .authoringFiction:
+                // v1.0.0-m1-shell boss 2026-09-11 OOB '一页三个,
+                // 分成四页, 全都显示出来': Page 1 = 写作期 +
+                // 情节 / 占位 / 伏笔 = the structural / plot
+                // tracking tools.
+                return [
+                    WenshuI18n.t("tab.title.foreshadowing"),
+                    WenshuI18n.t("tab.title.placeholder"),
+                    WenshuI18n.t("tab.title.plot_thread"),
+                ]
+            case .authoringStyle:
+                // Page 2 = 写作期 + 风格 / 体验 / 体裁 = the
+                // readability / style reference tools.
+                return [
+                    WenshuI18n.t("tab.title.long_form"),
+                    WenshuI18n.t("tab.title.reader_experience"),
+                    "Genre-Fit",
+                ]
+            case .authoringCharacters:
+                // Page 3 = 写作期 + 人物 / 关系 / 情绪 = the
+                // character-driven analysis tools.
+                return [
+                    "Chars-Rel",
+                    "Chars-Life",
+                    "Emotion-Curve",
+                ]
+            case .projectManagement:
+                // Page 4 = 项目管理 + 灵感 / 标签 / 书籍设置 =
+                // the cross-document project scaffolding.
+                return [
+                    "Idea-Library",
+                    "Tag-Manager",
+                    "Book-Settings",
+                ]
             }
+        }()
+        return allTools.filter { perPageLabels.contains($0.label) }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // v1.0.0-m1-shell boss 2026-09-11 OOB '工具栏按钮做对了,
+            // 现在就调整好居右就好了': render the inspector page
+            // Picker AT THE TOP of the inspector column body (= the
+            // Apple HIG "inspector tab strip" position = Pages /
+            // Numbers / Keynote all put their Format / Layout /
+            // Style tabs at the top of the inspector). Right-align
+            // it (= Apple's "right-justified" inspector tabs =
+            // .frame(maxWidth: .infinity, alignment: .trailing) =
+            // the Picker sits flush to the column's right edge).
+            //
+            // vs the previous attempts:
+            // 1. Picker in the MAIN NSWindow toolbar (.principal)
+            //    — failed because the editor's toolbar already
+            //    owns the .principal slot = conflict = 0 segments
+            //    rendered.
+            // 2. Picker in the INSPECTOR column's `.toolbar` block
+            //    (= ToolbarItem(.primaryAction)) — failed because
+            //    the toolbar is shared with the editor's kanban /
+            //    todo / chat / search buttons = no room for a
+            //    320 PT-wide segmented control.
+            // 3. The current solution = put the Picker at the top
+            //    of the inspector body, right-aligned. Pages
+            //    inspector tabs render the same way.
+            Picker("Inspector Page", selection: $inspectorPage) {
+                ForEach(InspectorPage.allCases, id: \.self) { page in
+                    Label {
+                        Text(page.localizedTitle)
+                    } icon: {
+                        LucideImage(page.icon)
+                    }
+                    .tag(page)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .help(WenshuI18n.t("inspector.page.help"))
+
+            Divider()
+
+            ZoneContentView(zoneSlug: "specializedTools", tabs: filteredToolsForCurrentPage)
         }
         .toolbar {
             // v1.0.0-m1-shell boss 2026-09-10 OOB '按钮的位置不对, 默认
@@ -778,6 +883,32 @@ struct ShellDetailColumn: View {
                 }
                 .help(WenshuI18n.t("inspector.toggle.help"))
             }
+            // v1.0.0-m1-shell boss 2026-09-11 OOB '拆成两个页':
+            // 2-page segmented Picker for the inspector column.
+            // .placement(.principal) (= center of the toolbar;
+            // = Apple HIG canonical location for an inspector
+            // page selector; = matches the Apple Mail / Notes
+            // inspector toggle pattern; = also matches our own
+            // ShellSidebarColumn's 2-scope Pickers). The 2
+            // Picker segments are the .authoring / .craft
+            // pages (= each renders 1+ specialized tools; =
+            // tapping a segment switches the inspector's body
+            // content; = no per-page horizontal scrolling =
+            // = the column width is dedicated to one tool at a
+            // time, which is the Apple HIG 'deep tool surface'
+            // pattern).
+            //
+            // v1.0.0-m1-shell boss 2026-09-11 OOB '拆成两个页,
+            // 伏笔, 占位符, 右栏的第一页, 长文规范, 读者体验,
+            // 情节线, 右栏的第二页' (= later relaxed to 4 pages
+            // × 3 tools per page): the Picker is now INSIDE the
+            // inspector column body (see the `body` above) =
+            // attaching it to the .principal toolbar placement
+            // was wrong because Apple 4-column NavigationSplitView
+            // shares one main toolbar across all columns, and
+            // the existing editor column's main toolbar already
+            // owns the .principal slot. Drop the toolbar
+            // ToolbarItem here.
             // v1.0.0-m1-shell boss 2026-09-11 OOB '看板和待办,
             // 独立的窗口显示, 普通苹果的其他软件, 集成不到主
             // windows 的功能就独立窗口, 正好看板横向需要很大
@@ -831,33 +962,74 @@ struct ShellDetailColumn: View {
     }
 }
 
-/// v1.0.0-m1-shell boss 2026-09-10 OOB '用 keynote, pages,
-/// numbers 内容中心的逻辑, 实现看板/待办页, 让看板和待办从右栏
-/// 独立出来': the previous `InspectorContent` enum had two
-/// (= tools / dynamic) which conflated the specialized tools pane
-/// (= foreshadowing, memory retrieval, scope status) with the
-/// AI-dynamic zone (= also tools, just categorized differently).
-/// The previous naming was a leftover from when the column
-/// was empty placeholders (= the v0.42 commit filled them with
-/// the two zone modules).
+/// v1.0.0-m1-shell boss 2026-09-11 OOB '拆成两个页, 伏笔, 占位符
+/// 右栏的第一页, 长文规范, 读者体验, 情节线, 右栏的第二页':
+/// the inspector column (= the rightmost NSV column) was
+/// previously 1 page with 5 RadioButton tabs (= 伏笔/占位符/
+/// 长文规范/读者体验/情节线 = 5 specialized tools fighting
+/// for a ~240-360 PT-wide column; = the tab labels overflow
+/// horizontally; = the body is cramped on every page). Per
+/// Apple HIG 'Inspector' (developer.apple.com/design/
+/// human-interface-guidelines/inspector) the inspector
+/// surface is best organized as a **paged layout** when
+/// there are more than 3 unrelated content types (= each
+/// page = a distinct, deep tool surface; = the user picks
+/// a page with the segmented control and gets the full
+/// column width for the chosen page's content; = no per-tab
+/// horizontal scrolling).
 ///
-/// Re-categorize the inspector (= the rightmost NSV column) along
-/// Apple HIG content-center lines (= Keynote Media Browser /
-/// Pages Template Picker / Numbers Sheet Templates = a
-/// popover-shaped chrome with a search bar at top, segmented tabs
-/// for content type, and a main grid below). The 3 categories
-/// that map to the wenshu 'content center' (= the user's written
-/// material + agent-tracked work) are:
-//  - .tools      (= existing specialized tools zone: foreshadowing,
-///                  placeholder, style guide, etc.; = kept as
-///                  'tools' = the 'inspector' panel of the editor,
-///                  = the canonical Apple HIG inspector placement)
-//  - .kanban     (= KanbanView; = the user's tickets board =
-///                  agent-tracked work = the Keynote 'media' analog
-///                  for wenshu)
-//  - .todo       (= TodoListView; = the user's todo items =
-///                  daily-actionable work = the Pages 'template'
-///                  analog for wenshu)
+/// v1.0.0-m1-shell boss 2026-09-11 OOB '一页三个, 分成四页, 全都
+/// 显示出来, 先显示出来, 以后我再来决定功能怎么安排': expand
+/// from 2 pages / 5 tools (= .authoring / .craft) to **4 pages
+/// × 3 tools = 12 tools** (= every tool in the specializedTools
+/// zone gets a page; = the user wants to see all 12 in the
+/// toolbar picker; = the actual page→tool mapping is provisional
+/// and the boss will reassign tools to pages later).
+///
+/// Page 1 (= .authoringFiction) = 写作期, 跟情节 / 人物 / 设定:
+///   - 伏笔 (Foreshadowing)
+///   - 占位符 (Placeholder)
+///   - 情节线 (PlotThread)
+///
+/// Page 2 (= .authoringStyle) = 写作期, 风格 / 体验:
+///   - 长文规范 (LongFormGuardrails)
+///   - 读者体验 (ReaderExperience)
+///   - 体裁适配 (GenreFit)
+///
+/// Page 3 (= .authoringCharacters) = 写作期, 人物相关:
+///   - 人物关系 (CharacterRelationships)
+///   - 人物生命周期 (CharacterLifecycle)
+///   - 情绪曲线 (EmotionCurve)
+///
+/// Page 4 (= .projectManagement) = 项目管理 / 灵感 / 设置:
+///   - 灵感库 (IdeaLibrary)
+///   - 标签管理 (TagManager)
+///   - 书籍设置 (BookSettingConstraints)
+enum InspectorPage: Hashable, CaseIterable {
+    case authoringFiction
+    case authoringStyle
+    case authoringCharacters
+    case projectManagement
+
+    var localizedTitle: String {
+        switch self {
+        case .authoringFiction:     return WenshuI18n.t("inspector.page.authoringFiction")
+        case .authoringStyle:       return WenshuI18n.t("inspector.page.authoringStyle")
+        case .authoringCharacters:  return WenshuI18n.t("inspector.page.authoringCharacters")
+        case .projectManagement:    return WenshuI18n.t("inspector.page.projectManagement")
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .authoringFiction:     return "book-text"      // Lucide book-text = fiction
+        case .authoringStyle:       return "palette"        // Lucide palette = style
+        case .authoringCharacters:  return "users"          // Lucide users = characters
+        case .projectManagement:    return "folder-cog"     // Lucide folder-cog = project settings
+        }
+    }
+}
+
 enum InspectorContent: Hashable, CaseIterable {
     case tools
 
