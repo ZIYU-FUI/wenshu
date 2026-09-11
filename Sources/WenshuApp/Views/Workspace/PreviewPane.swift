@@ -272,6 +272,34 @@ struct PreviewPane: View {
     /// `.searchable` modifier).
     @Binding var searchQuery: String?
 
+    /// v1.0.0-m1-shell boss 2026-09-11 OOB '位置调整一下, 放在标题
+    /// 和分割线下方, 第一张卡片上方': per the boss's request, the
+    /// search field renders BELOW the '素材' section header + Divider
+    /// and ABOVE the first card (= the Apple HIG "sticky header +
+    /// inline search" pattern, not "search on top of header").
+    ///
+    /// Why a custom AnyView (= not Apple's `.searchable`):
+    /// 1. Apple HIG macOS 27 forces `.searchable` to render at
+    ///    the column's trailing edge (= a documented framework
+    ///    limitation in NavigationSplit columns; = boss's
+    ///    preference for a leading-positioned search field can't
+    ///    be satisfied with `.searchable`).
+    /// 2. The custom search field IS leading-aligned per the boss's
+    ///    earlier preference (= "search box on the left").
+    ///
+    /// Why threaded through WorkspaceView (= not inlined in the
+    /// caller): PreviewPane is a stable component (= other callers
+    /// in tests / kanban previews use it too); = keeping the
+    /// search field position inside PreviewPane (= "sticky header
+    /// + search below + grid") preserves the component contract
+    /// while satisfying the boss's placement request.
+    ///
+    /// Default = nil = no custom search field rendered (= the
+    /// legacy code path; = old callers and tests still work).
+    /// Pass `customLeadingSearch: AnyView(...)` from
+    /// WorkspaceView to inject the custom search field.
+    var customLeadingSearch: AnyView? = nil
+
     /// Legacy internal search state. Used when `searchQuery`
     /// (= the new external Binding) is nil. Kept as `@State` so
     /// legacy callers = no behavior change.
@@ -314,12 +342,14 @@ struct PreviewPane: View {
         scope: PreviewScope,
         onDoubleClick: @escaping (CardSource) -> Void,
         previewSortOrder: Binding<EntitySortOrder>,
-        searchQuery: Binding<String?> = .constant(nil)
+        searchQuery: Binding<String?> = .constant(nil),
+        customLeadingSearch: AnyView? = nil
     ) {
         self.scope = scope
         self.onDoubleClick = onDoubleClick
         self._previewSortOrder = previewSortOrder
         self._searchQuery = searchQuery
+        self.customLeadingSearch = customLeadingSearch
     }
 
 // [CJK-TRANSLATE] 2 line(s) awaiting manual translation (see git blame for original CJK text)
@@ -460,6 +490,34 @@ struct PreviewPane: View {
             }
             .padding(.top, 4)
             .padding(.bottom, 4)
+            // v1.0.0-m1-shell boss 2026-09-11 OOB '位置调整一下,
+            // 放在标题和分割线下方, 第一张卡片上方': render the
+            // custom leading-aligned search field HERE (= below the
+            // '素材' title + Divider; above the first card grid) =
+            // the Apple HIG "sticky header + inline search field
+            // below" pattern (= the canonical Mail / Notes / Pages
+            // section-header-then-search layout). The previous
+            // attempt (commit 71daf8311) put the search field in
+            // a wrapper HStack ABOVE PreviewPane (= visually wrong
+            // = the search field rendered above the title and the
+            // boss immediately asked to move it). The fix = move
+            // the search field into the PreviewPane body, between
+            // the title block and the scope body, so it sits
+            // exactly where the boss requested (= below the
+            // divider, above the first card).
+            //
+            // Only render the custom field when the caller passed
+            // one (= `customLeadingSearch != nil`). Default = nil
+            // = no field (= legacy callers / tests still work).
+            if let customSearch = customLeadingSearch {
+                HStack {
+                    customSearch
+                    Spacer()
+                }
+                .padding(.horizontal, 8)
+                .padding(.top, 4)
+                .padding(.bottom, 6)
+            }
             // v1.0.0-m1-shell boss 2026-09-10 OOB '如果 apple api 支持,
             // 那就直接用, 我们别自己写搜索': the previous internal
             // `previewSearchBar` view (= a hand-rolled HStack with

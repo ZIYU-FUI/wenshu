@@ -584,6 +584,19 @@ struct ShellMiddleColumn: View {
             // system shortcut) because the search field IS in the
             // view hierarchy.
             //
+            // v1.0.0-m1-shell boss 2026-09-11 OOB '位置调整一下,
+            // 放在标题和分割线下方, 第一张卡片上方': move the
+            // custom search field INTO PreviewPane itself (= after
+            // the '素材' title + Divider, before the cards grid) =
+            // the Apple HIG "sticky section header + inline search
+            // field below" pattern (= Mail / Notes / Pages all
+            // put the search field below the column section
+            // header). The external `HStack { search; PreviewPane }`
+            // wrapper is dropped (= now PreviewPane owns the search
+            // field placement internally = the search field is
+            // permanently coupled with its column = correct
+            // binding lifetime).
+            //
             // Note: dropped `.searchable` because the framework's
             // own search box was rendering trailing regardless of
             // the `placement:` parameter (= `.automatic` /
@@ -591,38 +604,15 @@ struct ShellMiddleColumn: View {
             // columns; = a documented framework limitation).
             // The custom TextField below gives us full control
             // over placement (= left-aligned, per the boss).
-            HStack {
-                HStack(spacing: 4) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.secondary)
-                    TextField(
-                        WenshuI18n.t("preview.search.placeholder"),
-                        text: Binding(
-                            get: { envAppState.searchText },
-                            set: { newValue in envAppState.searchText = newValue }
-                        )
-                    )
-                    .textFieldStyle(.plain)
-                    .frame(minWidth: 120, maxWidth: 240)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(Color(nsColor: .textBackgroundColor).opacity(0.5))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .stroke(Color(nsColor: .separatorColor), lineWidth: 0.5)
-                )
-                Spacer()
-            }
-            .padding(.horizontal, 8)
-            .padding(.top, 8)
-            .padding(.bottom, 4)
-
-            Divider()
-
+            //
+            // Note: PreviewPane does NOT take a `searchText:` arg
+            // (= the search state lives in envAppState.searchText,
+            // a global; = PreviewPane's `searchQuery: Binding<String?>`
+            // already reads/writes through envAppState). The
+            // wrapper stays as a thin pass-through; = the search
+            // field rendered here and the search filter inside
+            // PreviewPane share the SAME binding = typing in one
+            // updates the other live (= the same envAppState.searchText).
             PreviewPane(
                 scope: previewScope(),
                 onDoubleClick: { _ in },
@@ -630,6 +620,31 @@ struct ShellMiddleColumn: View {
                 searchQuery: Binding<String?>(
                     get: { envAppState.searchText },
                     set: { newValue in envAppState.searchText = newValue ?? "" }
+                ),
+                customLeadingSearch: AnyView(
+                    HStack(spacing: 4) {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundStyle(.secondary)
+                        TextField(
+                            WenshuI18n.t("preview.search.placeholder"),
+                            text: Binding(
+                                get: { envAppState.searchText },
+                                set: { newValue in envAppState.searchText = newValue }
+                            )
+                        )
+                        .textFieldStyle(.plain)
+                        .frame(minWidth: 120, maxWidth: 240)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(Color(nsColor: .textBackgroundColor).opacity(0.5))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .stroke(Color(nsColor: .separatorColor), lineWidth: 0.5)
+                    )
                 )
             )
         }
