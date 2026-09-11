@@ -373,6 +373,36 @@ struct PreviewPane: View {
         // flush against the tab strip, = Apple HIG canonical toolbar
         // pattern = no padding between tab strip and toolbar).
         VStack(spacing: 0) {
+            // v1.0.0-m1-shell boss 2026-09-10 OOB '从搜索往上都
+            // 居顶, 空态继续居中': the section-header block (= '素材'
+            // title + Pages hairline) and the search bar must STICK
+            // TO THE TOP of the cards column. The empty-state hint
+            // (= icon + 请选择左侧目录查看文档 + 在左侧选择资料库、
+            // 书籍或文件夹。) must stay vertically CENTERED in the
+            // REMAINING space below the header + search bar. This
+            // is the Apple HIG canonical 'sticky toolbar + centered
+            // empty state' pattern (= Finder / Photos / Music
+            // empty-state visuals when a sidebar selection is made
+            // but the right-hand column has no content yet).
+            //
+            // v0.77 boss 2026-09-10 OOB '位置不对, 是要放在中左栏内部的顶上':
+            // the preview-pane search bar ALWAYS renders inline at
+            // the top of the middle column body (= same visual slot
+            // as the sidebar's `.searchable` field at the top of
+            // the sidebar column). The previous `if showsInternal
+            // SearchBar` branch (= commit 4a0453516) was the
+            // workaround for the `.searchable(placement: .toolbar)`
+            // routing-to-window-toolbar bug; with that workaround
+            // removed (= the next commit drops the column toolbar
+            // and lets PreviewPane render its own search bar at
+            // the top of the column body), PreviewPane is the
+            // single source of truth for the search bar visual
+            // (= the sidebar's `.searchable` is Apple's first-
+            // party widget for the sidebar column; the card pane's
+            // inline `previewSearchBar` is Apple's macOS 13+
+            // rounded-pill pattern hosted inline because `.searchable`
+            // has no 'middle column top' placement).
+            //
             // v1.0.0-m1-shell boss 2026-09-10 OOB '卡片区, 加和目录
             // 一样的标题 "素材" + 分割线, 然后搜索': mirror the
             // sidebar's Pages-style section header (centered title
@@ -416,17 +446,33 @@ struct PreviewPane: View {
             // branch handles its own toolbar (some hide toolbar, e.g.
             // empty state). Padding applied here only (= doesn't
             // affect the search bar's Y position).
-            Group {
-                switch scope {
-                case .referenceScope(let category):
-                    referenceScopeView(category: category)
-                case .bookScope(let bookId, let folderName):
-                    bookScopeView(bookId: bookId, folderName: folderName)
-                case .shelfScope:
-                    shelfScopeView()
-                case .empty:
-                    emptyScopeView()
+            //
+            // v1.0.0-m1-shell boss 2026-09-10 OOB '空态继续居中':
+            // wrap the scope Group in an explicit `VStack { Spacer;
+            // Group; Spacer }` (= top + bottom spacers push the
+            // Group to vertical center inside the remaining space
+            // BELOW the sticky header + search bar). Without the
+            // Spacers, the Group rendered at the top of its slot
+            // (= immediately below the search bar) and the empty-
+            // state hint appeared squashed against the search bar.
+            // With the Spacers, the empty-state hint stays centered
+            // in the residual space (= the canonical Apple HIG
+            // empty-state layout).
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                Group {
+                    switch scope {
+                    case .referenceScope(let category):
+                        referenceScopeView(category: category)
+                    case .bookScope(let bookId, folderName: let folderName):
+                        bookScopeView(bookId: bookId, folderName: folderName)
+                    case .shelfScope:
+                        shelfScopeView()
+                    case .empty:
+                        emptyScopeView()
+                    }
                 }
+                Spacer(minLength: 0)
             }
             // boss 9/8 round 1 'card, searchcard icon,
             //, 18pt': body content padding was
@@ -452,8 +498,8 @@ struct PreviewPane: View {
             // 8 PT inset = the canonical 'comfortable but compact'
             // grid per Apple Design Resources).
             .padding(8)
-        }
-    }
+                }
+            }
 
     /// v0.40 boss 9/7 OOB 'top bar, editor, yes':
     /// preview-pane search bar (= 30 PT tall, = matches
