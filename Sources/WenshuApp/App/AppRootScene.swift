@@ -157,7 +157,35 @@ struct AppRootScene: Scene {
         // ignoring the onboarding's outer frame as a hint; =
         // `.contentSize` actually DOES honour the outer frame as
         // the intrinsic content size).
-        .windowResizability(.contentSize)
+        //
+        // v1.0.0-m1-shell boss 2026-09-10 OOB '中栏的默认宽度没有
+        // 写吧好像, 需要补一下': the `.contentSize` resizability
+        // was making the window size = NavigationSplitView's
+        // intrinsic content size (= the sum of each column's
+        // MIN width = sidebar 220 + cards 240 + detail 400 +
+        // inspector 240 = 1100 PT; = detail only gets its MIN
+        // width 400 PT = the boss's '中栏看着窄' symptom).
+        // Switching to `.contentMinSize` + keeping
+        // `.defaultSize(1480, 980)` means:
+        //   - defaultSize 1480 PT = the INITIAL window width
+        //   - `.contentMinSize` = window never shrinks BELOW the
+        //     4-column min sum (= 1100 PT floor; = the user can
+        //     drag the window smaller but the columns don't collapse
+        //     past their min)
+        //   - NSV honors each column's `navigationSplitViewColumnWidth
+        //     (ideal: ...)` because the window is large enough to
+        //     accommodate the ideal sum 1340 PT (= sidebar 220 +
+        //     cards 240 + detail 600 + inspector 280 = 1340 PT)
+        //     = detail gets 600 PT (= its ideal = the boss's
+        //     '中栏默认宽度' expectation).
+        //
+        // Per Apple HIG developer.apple.com/documentation/swiftui/
+        // view/windowresizability: 'contentMinSize: The window
+        // can't be smaller than its content's minimum size, but
+        // can be larger.' = the right resizability mode for a
+        // window whose ideal content size is larger than its min
+        // (= 4-column NSV; = sidebar+cards+detail+inspector).
+        .windowResizability(.contentMinSize)
         // v0.81 boss 2026-09-10 OOB: the inspector toggle button
         // (= ⌥⌘I = Lucide "panel-right" icon = the canonical Apple
         // toolbar affordance for NavigationSplitView `.inspector`)
