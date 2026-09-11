@@ -55,6 +55,46 @@ struct AppRootScene: Scene {
             LibraryRootView(library: library, appearanceMode: appearanceMode)
                 .environment(appState)
         }
+        // v1.0.0-m1-shell boss 2026-09-10 OOB '.ws 打开后的持久化,
+        // 不知道怎么回事, 会消失, 最新 N 次我都需求手动打开.ws 库':
+        // the previous `WindowGroup` (= no `restorationBehavior`)
+        // inherited the macOS system-wide state-restoration setting.
+        // On this machine (= state restoration ON), the system
+        // restored the previously-saved window frame (= 1134 PT
+        // wide, captured from an earlier launch when the window
+        // was smaller than the current `.defaultSize(1480, 980)`).
+        // The restored frame overrode `.defaultSize`, so the
+        // window opened at 1134 PT (= the saved frame), which is
+        // narrower than the 4-column `ideal` sum (1340 PT) = NSV
+        // had to compress each column from `ideal` down to ~`min`,
+        // making the sidebar + cards + detail + inspector all
+        // visibly squished. Worse: the saved frame did NOT match
+        // the saved `.ws` library path on disk, so on every
+        // subsequent launch the user saw a too-narrow window AND
+        // had to manually re-open the `.ws` (= the boss's '持久化
+        // 会消失' symptom = the saved frame and the saved library
+        // path drifted apart over time).
+        //
+        // Fix: `.restorationBehavior(.disabled)` (= the canonical
+        // Apple HIG way to opt a window OUT of state restoration;
+        // = per developer.apple.com/documentation/swiftui/
+        // restorationbehavior 'Use disabled for windows that should
+        // not reopen on next launch, such as About panels,
+        // transient support/info windows, or first-run welcome
+        // surfaces.' = wenshu is a single-window app where the
+        // `.defaultSize(1480, 980)` IS the desired initial state
+        // every launch; = the saved frame is never the correct
+        // frame; = opt out of restoration so `.defaultSize` always
+        // wins).
+        //
+        // Note: we DO still persist the `.ws` library path via
+        // `@AppStorage("wenshu.libraryPath")` (= UserDefaults) and
+        // the editor's split-position via
+        // `NSSplitView.autosaveName` (= AppKit-side, separate from
+        // the window frame). Only the WINDOW FRAME restoration is
+        // disabled (= the right choice for a single-window app
+        // with a fixed initial size).
+        .restorationBehavior(.disabled)
         // Boss 8/24 feedback: 'use the 52 PT one'. Apple SwiftUI macOS 14+ windowToolbarStyle
         // options: .automatic, .unified (52 PT), .unifiedCompact (28 PT), .expanded.
         // v0.24 fix (Boss 8/25 28th OOB 'use default size' + Apple docs):
