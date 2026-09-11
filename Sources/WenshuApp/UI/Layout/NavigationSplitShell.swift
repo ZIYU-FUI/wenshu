@@ -579,25 +579,50 @@ struct ShellContentColumn: View {
 
     var body: some View {
         // v1.0.0-m1-shell boss 2026-09-10 OOB 'keynote 演讲者注释是
-        // 如何实现的, 颜色也按 keynote 走': the chat zone is
-        // NO LONGER part of the window body. It moved out of the
-        // VSplitView to an `NSTitlebarAccessoryViewController` (=
-        // Apple's canonical "second zone" / speaker-notes pattern
-        // = per developer.apple.com/documentation/appkit/
-        // nstitlebaraccessoryviewcontroller). The previous
-        // `VSplitView { EditorPlaceholder(); ChatZoneView() }`
-        // placed both halves inside the window body (= wrong API
-        // for the "second zone" pattern). Now: the window body
-        // is just the editor / empty state (= the upper half); the
-        // chat zone lives in the title bar accessory below the
-        // toolbar (= the lower half / speaker notes / second zone).
+        // 如何实现的, 颜色也按 keynote 走, 聊天区后面还有重写
+        // 的需求' (revisit after the boss's
+        // '没有显示出来, 下面的分区' feedback):
         //
-        // Apple HIG note: the chat zone may also collapse to zero
-        // height when the user wants the editor to fill the whole
-        // window (= the title bar accessory can be dragged down to
-        // hide it; = same as Keynote's speaker notes panel).
-        EditorPlaceholder()
+        // Per Apple's macOS HIG split-views documentation
+        // (developer.apple.com/design/human-interface-guidelines/
+        // split-views): "Keynote in macOS uses split view panes to
+        // present the slide navigator, the presenter notes, and
+        // the inspector pane in areas that surround the main slide
+        // canvas. ... For developer guidance, see VSplitView and
+        // HSplitView."
+        //
+        // = Keynote's speaker notes are implemented with `VSplitView`
+        // (= SwiftUI's macOS 14+ wrapper over NSSplitView), NOT
+        // with `NSTitlebarAccessoryViewController` (= which is for
+        // toolbar accessories / small secondary zones, not the
+        // main content area). The previous attempt used
+        // `NSTitlebarAccessoryViewController(.bottom)` and the chat
+        // zone failed to render (= the boss's '没有显示出来' bug)
+        // AND the chat input bar / search bar / sidebar toggle
+        // buttons drifted to the wrong zone (= the boss's
+        // '聊天框和一组按钮, 飘走了' bug).
+        //
+        // Reverted: chat zone is BACK in the detail column via
+        // VSplitView (= the canonical Apple HIG split-view pattern;
+        // = the same pattern Keynote / Pages / Numbers use for
+        // their "second zone" / "speaker notes" / "inspector"
+        // layouts).
+        //
+        // Also: the middle (cards) column min-width is preserved
+        // (240 PT min) by keeping the .navigationSplitViewColumnWidth
+        // modifier on the parent column (= the boss's '中栏的默认
+        // 最小宽度没了' symptom came from the cards column's
+        // intrinsic content size being smaller than the columnWidth
+        // min during the title-bar-accessory rebuild).
+        VSplitView {
+            EditorPlaceholder()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            ChatZoneView(
+                conductor: WenshuAppDelegate.sharedConductor,
+                store: WenshuAppDelegate.sharedChatStoreRef
+            )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
         .environment(appState)
     }
 }
