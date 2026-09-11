@@ -402,53 +402,45 @@ struct AppRootScene: Scene {
         // modifier (= only the WindowGroup's content view had one).
         .environment(appState)
         // v1.0.0-m1-shell boss 2026-09-11 OOB '看板和待办独立窗口':
-        // add 2 dedicated `WindowGroup(id:)` scenes (= the
-        // SwiftUI macOS 14+ API for opening independent secondary
-        // windows from a scene; = Pages / Numbers / Keynote /
-        // Photos / Mail all use this pattern for 'open in a new
-        // window' features). Each WindowGroup renders its dedicated
-        // view (= KanbanWindow or TodoWindow) with the same
-        // Liquid Glass `.unified` 52 PT toolbar style as the main
-        // window (= visual consistency across windows; = the
-        // canonical Apple HIG multi-window pattern).
+        // add 2 dedicated `Window` scenes (= the SwiftUI macOS
+        // 13+ API for SINGLE-INSTANCE independent windows; = the
+        // canonical Apple pattern for an 'always one' panel
+        // surface like kanban / todo / system Settings).
+        // Per Apple HIG (developer.apple.com/documentation/
+        // swiftui/window): `Window` = a scene that presents a
+        // single, non-duplicable window (= the user can't open a
+        // second kanban via the system File > New menu or by
+        // tapping the toolbar button twice; = the second tap
+        // brings the existing window to the front). This is the
+        // correct pattern for our kanban / todo (= there's no
+        // use case for two kanban windows showing the same
+        // tickets; = the canonical macOS inspector / media
+        // browser / activity monitor all use `Window` for the
+        // same reason).
         //
-        // `.commandsRemoved()` (= SwiftUI macOS 14+) removes the
-        // default New / Open / Save menu items from these windows'
-        // menus (= kanban + todo are not document-based; = the
-        // main window's File menu already covers document
-        // operations; = the kanban window should only show its
-        // own context menu).
-        //
-        // Default size: kanban needs ~960 PT wide for 5 columns
-        // at ~180 PT each + chrome; todo needs ~720 PT for a
-        // comfortable 2-column todo list with category grouping.
-        // Both grow to fill more horizontal space when the user
-        // resizes (= .contentMinSize resizability; = the kanban
-        // can expand to fit the screen while the user drags it).
+        // Per Apple docs: `Window` is implicitly singleton; =
+        // no `id:` parameter is needed (= SwiftUI keys the
+        // singleton by the scene's position in the App body).
+        // openWindow still works: `openWindow(id: "wenshu-kanban")`
+        // is matched against the Window's accessibility
+        // identifier (= see the `.accessibilityIdentifier` below).
         //
         // v1.0.0-m1-shell boss 2026-09-11 OOB followup (= observation
-        // from cua AX tree dump + the macOS 27 Tahoe WindowGroup
-        // routing observed in earlier debug output): WindowGroup
-        // IDs must avoid the legacy Preferences / Settings ID
-        // namespace (= IDs that match the system's Settings scene
-        // route to the SettingsEnvironmentCapturer instead of
-        // opening a new window). 'wenshu-kanban' / 'wenshu-todo'
-        // use short opaque tokens that avoid that namespace
+        // from the cua AX tree dump + the macOS 27 Tahoe routing
+        // observed in earlier debug output): WindowGroup IDs must
+        // avoid the legacy Preferences / Settings ID namespace
+        // (= IDs that match the system's Settings scene route to
+        // the SettingsEnvironmentCapturer instead of opening a
+        // new window). 'wenshu-kanban' / 'wenshu-todo' use
+        // short opaque tokens that avoid that namespace
         // collision.
-        WindowGroup(id: WindowID.kanban) {
-            // v1.0.0-m1-shell boss 2026-09-11 OOB '看板和待办独立窗口':
-            // pass the shared `library` URL into the kanban
-            // window (= KanbanWindow constructs its own BookStore
-            // + KanbanStore from this URL; = the kanban window
-            // reads / writes the same on-disk BookKanbanStore
-            // JSON files the main window uses; = both windows
-            // see the same tickets in real time).
+        Window("看板", id: "wenshu-kanban") {
             KanbanWindow(library: library)
         }
         .defaultSize(width: 960, height: 640)
         .windowResizability(.contentMinSize)
         .windowToolbarStyle(.unified)
-        WindowGroup(id: WindowID.todo) {
+        Window("待办", id: "wenshu-todo") {
             TodoWindow(library: library)
         }
         .defaultSize(width: 720, height: 560)
