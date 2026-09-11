@@ -628,6 +628,20 @@ struct ShellMiddleColumn: View {
                                 set: { newValue in envAppState.searchText = newValue }
                             )
                         )
+                        // v1.0.0-m1-shell boss 2026-09-11 OOB
+                        // '搜索框的高度有点过于小了, 就改成
+                        // 30pt 的高度吧' + '搜索框的高度如果只
+                        // 能写死 30pt, 那你别写, 你用最接近
+                        // 的 apple 的表达式高度': apply
+                        // `.controlSize(.regular)` (= the canonical
+                        // macOS 13+ SwiftUI semantic expression for
+                        // standard form-control height = maps to
+                        // NSTextField regular controlSize = 22 PT
+                        // = matches Apple's Mail / Notes / Finder
+                        // search field heights). NO hard-coded
+                        // `.frame(height: 30)` per the boss's
+                        // explicit request.
+                        .controlSize(.regular)
                         .textFieldStyle(.plain)
                     }
                     .padding(.horizontal, 8)

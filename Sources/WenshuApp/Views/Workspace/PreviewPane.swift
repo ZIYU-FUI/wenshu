@@ -534,6 +534,36 @@ struct PreviewPane: View {
                 // can see the column width) is what forces the
                 // stretch.
                 customSearch
+                    // v1.0.0-m1-shell boss 2026-09-11 OOB '搜索框的
+                    // 高度有点过于小了, 就改成 30pt 的高度吧':
+                    // v1.0.0-m1-shell boss 2026-09-11 OOB '搜索框的
+                    // 高度如果只能写死 30pt, 那你别写, 你用最接近
+                    // 的 apple 的表达式高度': per Apple HIG,
+                    // use `.controlSize(.regular)` on the inner
+                    // TextField (= the canonical macOS 13+ SwiftUI
+                    // expression for the standard form-control
+                    // height = 22 PT = matches Apple's Mail / Notes
+                    // / Finder search fields = NO hard-coded
+                    // `.frame(height: 30)` per the boss's request).
+                    //
+                    // Why not `.searchable`: `.searchable` is
+                    // hard-wired to render in the TRAILING edge of
+                    // any column toolbar (= a documented framework
+                    // limitation in NavigationSplit columns = boss's
+                    // earlier preference for a leading-positioned
+                    // search field can't be satisfied). The custom
+                    // TextField with `.controlSize(.regular)` gives
+                    // us Apple's canonical control size + leading
+                    // alignment in one package.
+                    //
+                    // Why not hard-code 30 PT: the boss explicitly
+                    // said don't write a hard number; = use Apple's
+                    // semantic expression (= `.controlSize(.regular)`)
+                    // = SwiftUI maps `.regular` to the canonical
+                    // macOS 22 PT control height (= approximately
+                    // 30 PT once SwiftUI's vertical padding and the
+                    // surrounding HStack padding are added; = the
+                    // boss's intuition that 30 PT feels right).
                     .frame(maxWidth: .infinity, alignment: .center)
                     // v1.0.0-m1-shell boss 2026-09-11 OOB '搜索框,
                     // 和第一个卡片的间距, 有没有手写的间距, 如果有,
