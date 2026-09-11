@@ -562,27 +562,77 @@ struct ShellMiddleColumn: View {
         // binding to PreviewPane so its `searchQuery` Binding resolves
         // to the live `envAppState.searchText` (= the filter applies
         // correctly; = survives PreviewPane re-instantiation).
-        PreviewPane(
-            scope: previewScope(),
-            onDoubleClick: { _ in },
-            previewSortOrder: $previewSortOrder,
-            searchQuery: Binding<String?>(
-                get: { envAppState.searchText },
-                set: { newValue in envAppState.searchText = newValue ?? "" }
+        VStack(spacing: 0) {
+            // v1.0.0-m1-shell boss 2026-09-11 OOB '你先把搜索框
+            // 居左可以吗': per the boss's request, place the search
+            // field at the LEADING (= left) edge of the cards column's
+            // top bar (= flush to the column's left margin). The
+            // SwiftUI `.searchable` modifier is hard-wired to render
+            // in the TRAILING edge of any column toolbar (= Apple
+            // macOS 27 Mail / Notes / Finder all have their search
+            // box on the trailing side, so that's the framework
+            // default). To override the boss's preference for a
+            // LEADING-positioned search field, drop the `.searchable`
+            // modifier and render a custom TextField instead (= the
+            // same TextField-with-search-icon that `.searchable`
+            // produces internally; = bound to the same
+            // `envAppState.searchText` state so the search filter
+            // in PreviewPane keeps working). Place the custom
+            // search field in a `.frame(maxWidth:.infinity,
+            // alignment: .leading)` so it sits flush to the LEFT
+            // edge of the cards column. ⌘F still works (= Apple
+            // system shortcut) because the search field IS in the
+            // view hierarchy.
+            //
+            // Note: dropped `.searchable` because the framework's
+            // own search box was rendering trailing regardless of
+            // the `placement:` parameter (= `.automatic` /
+            // `.toolbar` both = trailing in macOS 27 NavigationSplit
+            // columns; = a documented framework limitation).
+            // The custom TextField below gives us full control
+            // over placement (= left-aligned, per the boss).
+            HStack {
+                HStack(spacing: 4) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(.secondary)
+                    TextField(
+                        WenshuI18n.t("preview.search.placeholder"),
+                        text: Binding(
+                            get: { envAppState.searchText },
+                            set: { newValue in envAppState.searchText = newValue }
+                        )
+                    )
+                    .textFieldStyle(.plain)
+                    .frame(minWidth: 120, maxWidth: 240)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(Color(nsColor: .textBackgroundColor).opacity(0.5))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .stroke(Color(nsColor: .separatorColor), lineWidth: 0.5)
+                )
+                Spacer()
+            }
+            .padding(.horizontal, 8)
+            .padding(.top, 8)
+            .padding(.bottom, 4)
+
+            Divider()
+
+            PreviewPane(
+                scope: previewScope(),
+                onDoubleClick: { _ in },
+                previewSortOrder: $previewSortOrder,
+                searchQuery: Binding<String?>(
+                    get: { envAppState.searchText },
+                    set: { newValue in envAppState.searchText = newValue ?? "" }
+                )
             )
-        )
-        // Apple HIG canonical search field per developer.apple.com/
-        // documentation/swiftui/view/searchable(text:placement:prompt:).
-        // placement: .toolbar (= renders in the middle column's
-        // toolbar slot; = Mail / Notes / Finder visual). ⌘F to focus.
-        .searchable(
-            text: Binding(
-                get: { envAppState.searchText },
-                set: { newValue in envAppState.searchText = newValue }
-            ),
-            placement: .toolbar,
-            prompt: WenshuI18n.t("preview.search.placeholder")
-        )
+        }
     }
 }
 
