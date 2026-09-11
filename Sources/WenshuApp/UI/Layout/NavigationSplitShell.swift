@@ -378,29 +378,46 @@ struct ShellMiddleColumn: View {
     @State private var previewSortOrder: EntitySortOrder = .pinyinFirstLetter
 
     /// v1.0.0-m1-shell boss 2026-09-10 OOB '目录选择, 卡片栏没有
-    /// 根据目录选择变化卡片内容': derive PreviewScope from
-    /// `appState.sidebarSelection`. The 5 SidebarItem cases map to:
-    /// - .referenceLibraryRoot / nil → .referenceScope(nil) (= all
-    ///   entities; = the overview grid = the default fallback)
-    /// - .referenceCategory(let dirName) → .referenceScope(.some)
-    ///   (= dirName is EntityCategory.rawValue; = the picked category
-    ///   only). Invalid dirName (= no matching EntityCategory) also
-    ///   falls back to .referenceScope(nil) so a broken selection
-    ///   doesn't lock the user out of the preview.
-    /// - .book / .shelf / .folder → .empty (= no preview for user-
-    ///   scope rows; = the preview pane intentionally blanks out
-    ///   until a future ticket wires book-level preview).
-    /// Without this helper, PreviewPane was hardcoded to
-    /// `.referenceScope(nil)` (= the overview grid; = ignored
-    /// sidebar selection entirely; = the bug boss is reporting).
+    /// 根据目录选择变化卡片内容' + follow-up '左边的目录树选择,
+    /// 中间的素材区没有出现卡片' (= selecting .book(worldview)
+    /// in the sidebar showed .empty in the cards column instead of
+    /// the book's .md cards). The previous version mapped .book /
+    /// .shelf / .folder ALL to .empty (= cards column blanked out
+    /// for any user-scope row). The correct mapping per PreviewScope
+    /// enum (= see PreviewPane.swift lines 139-152):
+    /// - .referenceLibraryRoot / nil → .referenceScope(nil)
+    ///   (= overview grid of all entities across categories)
+    /// - .referenceCategory(let dirName) → .referenceScope(
+    ///   EntityCategory(rawValue: dirName)) (= one category only)
+    /// - .book(let id) → .bookScope(bookId: id, folderName: nil)
+    ///   (= the book with ALL its folders' .md cards = the user
+    ///   wants to see the book's content; = the boss's report
+    ///   '左边选世界观, 中间不出现卡片' = the book WAS selected
+    ///   but the preview was .empty)
+    /// - .shelf(let id) → .shelfScope(shelfId: id) (= shelf hint,
+    ///   per PreviewScope comment: 'shelves are a tree level, not
+    ///   a document scope' = the preview pane shows a hint to
+    ///   drill into a book)
+    /// - .folder(let bookId, let folderName) → .bookScope(bookId,
+    ///   folderName: folderName) (= the folder's .md cards only)
+    /// - Invalid dirName (= no matching EntityCategory) falls back
+    ///   to .referenceScope(nil) so a broken reference selection
+    ///   doesn't lock the user out.
+    /// Without this fix, selecting ANY user-scope sidebar row (=
+    /// book / shelf / folder) showed '请选择左侧目录查看文档' even
+    /// though a real selection was active (= the boss's bug).
     private func previewScope() -> PreviewScope {
         switch appState.sidebarSelection {
         case .referenceLibraryRoot:
             return .referenceScope(nil)
         case .referenceCategory(let dirName):
             return .referenceScope(EntityCategory(rawValue: dirName))
-        case .book, .shelf, .folder:
-            return .empty
+        case .book(let bookId):
+            return .bookScope(bookId: bookId, folderName: nil)
+        case .shelf(let shelfId):
+            return .shelfScope(shelfId: shelfId)
+        case .folder(let bookId, let folderName):
+            return .bookScope(bookId: bookId, folderName: folderName)
         case nil:
             return .referenceScope(nil)
         }
