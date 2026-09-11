@@ -373,28 +373,44 @@ struct PreviewPane: View {
         // flush against the tab strip, = Apple HIG canonical toolbar
         // pattern = no padding between tab strip and toolbar).
         VStack(spacing: 0) {
-            // 30 PT tall (= matches LayoutTokens.toolbarHeight =
-            // editor's pencil/arrow toolbar inside EditorPlaceholder).
-            // NO outer padding (= sits flush against ZoneContentView's
-            // tab strip; = Apple HIG canonical toolbar pattern).
-            //
-            // v0.77 boss 2026-09-10 OOB '位置不对, 是要放在中左栏内部的顶上':
-            // the preview-pane search bar ALWAYS renders inline at
-            // the top of the middle column body (= same visual slot
-            // as the sidebar's `.searchable` field at the top of
-            // the sidebar column). The previous `if showsInternal
-            // SearchBar` branch (= commit 4a0453516) was the
-            // workaround for the `.searchable(placement: .toolbar)`
-            // routing-to-window-toolbar bug; with that workaround
-            // removed (= the next commit drops the column toolbar
-            // and lets PreviewPane render its own search bar at
-            // the top of the column body), PreviewPane is the
-            // single source of truth for the search bar visual
-            // (= the sidebar's `.searchable` is Apple's first-
-            // party widget for the sidebar column; the card pane's
-            // inline `previewSearchBar` is Apple's macOS 13+
-            // rounded-pill pattern hosted inline because `.searchable`
-            // has no 'middle column top' placement).
+            // v1.0.0-m1-shell boss 2026-09-10 OOB '卡片区, 加和目录
+            // 一样的标题 "素材" + 分割线, 然后搜索': mirror the
+            // sidebar's Pages-style section header (centered title
+            // text + 1 PT hairline spanning the full column width
+            // below). Same visual rule as the sidebar's '书房' /
+            // 'Library' header:
+            // - .font(.body) (= matches the card row text below; =
+            //   Pages sidebar visual reference).
+            // - .foregroundStyle(.primary) (= Pages uses primary
+            //   tint for sidebar title; = the previous small-
+            //   caption secondary-tint was the generic SwiftUI
+            //   sidebar style, not Pages).
+            // - Divider below with .padding(.top, 4) (= Pages
+            //   leaves ~4 PT gap between title text and hairline).
+            // - .padding(.bottom, 4) (= Pages hairline sits ~4 PT
+            //   above the search bar; = the canonical Apple HIG
+            //   toolbar-below-section-header spacing).
+            // - Always rendered (= present in BOTH the populated-
+            //   card state AND the empty state; = the previous
+            //   empty state hid the search bar visually but the
+            //   search bar still rendered at the top; = the boss's
+            //   report '空态时搜索框还是居顶' = the search bar is
+            //   always there but the title was missing; = adding
+            //   the title above the search bar fixes the visual
+            //   alignment in both states).
+            VStack(spacing: 4) {
+                HStack {
+                    Spacer()
+                    Text(WenshuI18n.t("preview.column.title"))
+                        .font(.body)
+                        .foregroundStyle(.primary)
+                        .textCase(nil)
+                    Spacer()
+                }
+                Divider()
+            }
+            .padding(.top, 4)
+            .padding(.bottom, 4)
             previewSearchBar
             // v0.30 boss 8/31 OOB: scope-driven dispatch. Each scope
             // branch handles its own toolbar (some hide toolbar, e.g.
