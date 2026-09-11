@@ -71,8 +71,40 @@ final class AppState {
     /// WorkspaceView.previewScope).
     ///
     /// Persisted to `wenshu.sidebarSelection` UserDefaults key
-    /// (= JSON shape, = set by WorkspaceView's `.onChange`).
-    var sidebarSelection: SidebarItem? = nil
+    /// (= JSON shape via Codable; = set by didSet = write back on
+    /// every change; = read by AppState.init() at launch).
+    ///
+    /// v1.0.0-m1-shell boss 2026-09-10 OOB '看这部分的持久化, 目录
+    /// 我选的是帮助世界观, 卡片显示是什么是文枢. 你现在重启一下. 我
+    /// 看一下. 应该会消失': the comment here previously claimed
+    /// 'Persisted to wenshu.sidebarSelection' but the actual write
+    /// / read code was missing (= only `useThreeColumnSplit`,
+    /// `llmModel`, and `openTabs` had real persistence in init +
+    /// didSet; = `sidebarSelection` was an in-memory @Observable
+    /// property that reset to `nil` on every launch; = the boss's
+    /// 'should disappear on restart' prediction was correct). This
+    /// change restores the documented behavior: write the JSON
+    /// encoding to UserDefaults on every set, read it back at
+    /// AppState.init() (= the same pattern used for `openTabs`).
+    var sidebarSelection: SidebarItem? = nil {
+        didSet {
+            // B-05: didSet is NOT called during init (= Swift property
+            // wrapper semantics), so this does NOT trigger a write
+            // back to UserDefaults on launch (= pure read-side
+            // migration). Encoded as JSON via the existing Codable
+            // conformance (= SidebarItem: Hashable, Codable, declared
+            // at NewLibraryOutlineView.swift:61).
+            if let item = sidebarSelection,
+               let data = try? JSONEncoder().encode(item) {
+                UserDefaults.standard.set(data, forKey: Self.sidebarSelectionKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: Self.sidebarSelectionKey)
+            }
+        }
+    }
+
+    /// UserDefaults key for sidebar selection persistence (= JSON).
+    static let sidebarSelectionKey = "wenshu.sidebarSelection"
 
     // v1.0.0-m1-shell boss 2026-09-10 OOB 'keynote 三个办公软件全是
     // 这个逻辑' (= 'Keynote / Pages / Numbers all use the same
@@ -346,6 +378,24 @@ final class AppState {
         // assignment (= triggers didSet → persistOpenTabs = write
         // back the same data; = harmless redundant write).
         restoreOpenTabs()
+        // v1.0.0-m1-shell boss 2026-09-10 OOB '看这部分的持久化,
+        // 目录我选的是帮助世界观, 卡片显示是什么是文枢. 你现在重启
+        // 一下. 我看一下. 应该会消失': restore the sidebar
+        // selection from UserDefaults (= JSON-encoded via Codable;
+        // = same pattern as openTabs). Without this read, the
+        // sidebar selection resets to nil on every launch (= the
+        // boss's prediction that 'it will disappear' was correct
+        // before this fix).
+        //
+        // Assignment via `self.sidebarSelection = ...` does NOT
+        // trigger the didSet write-back (= Swift property wrapper
+        // semantics; = didSet is suppressed during init). So this
+        // read is purely load-side (= no UserDefaults write during
+        // launch = no extra disk churn).
+        if let data = UserDefaults.standard.data(forKey: AppState.sidebarSelectionKey),
+           let decoded = try? JSONDecoder().decode(SidebarItem.self, from: data) {
+            self.sidebarSelection = decoded
+        }
     }
 }
 
