@@ -95,6 +95,25 @@ final class AppState {
     var newShelfRequestCount: Int = 0
     var choiceRequestCount: Int = 0
 
+    // v1.0.0-m1-shell boss 2026-09-10 OOB '全局搜索': promote
+    // the search text to AppState (= a single source of truth
+    // shared across all `.searchable` modifiers attached to
+    // different column views). Per Apple SwiftUI docs, multiple
+    // `.searchable` modifiers on the same binding (= Binding<String>
+    // bound to this @Observable property) will all reflect the
+    // same live value, but only the active-focused column's
+    // search field is rendered visible (= the others auto-focus
+    // when the user activates their column).
+    //
+    // Use case: user types in the cards column's toolbar search
+    // field → searchText updates → the sidebar / inspector
+    // `.searchable` modifiers all see the same value → future
+    // filters can read searchText from AppState instead of
+    // threading bindings. This is the canonical SwiftUI Observation
+    // pattern for app-wide search state (= developer.apple.com/
+    // documentation/swiftui/view/searchable).
+    var searchText: String = ""
+
     // v0.34 B-18 (= boss 9/2 OOB ', editor, yesno
     // '): editor zone's live word count, owned globally so
     // both the chrome bottom-bar left field (= ": N" in
