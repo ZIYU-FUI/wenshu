@@ -299,22 +299,37 @@ struct NewLibraryOutlineView: View {
                     shelfRow(shelf)
                 }
             } header: {
-                // v1.0.0-m1-shell boss 2026-09-10 OOB 'section
-                // title 没显示, 顺手改名叫书房': Section header
-                // is hidden by List(.sidebar) on macOS 27 by default
-                // (= SwiftUI does NOT render Section headers in
-                // the sidebar style unless `headerProminence(
-                    // .increased)` is set). Add `.headerProminence(
-                    // .increased)` to render the header with the
-                    // increased style (= the canonical Apple HIG
-                    // sidebar section title visual = a small caption
-                    // with secondary tint, sitting above the section's
-                    // rows). The header text is i18n (= 'Library' /
-                    // '书房' = boss OOB '顺手改名叫书房').
-                    Text(WenshuI18n.t("sidebar.section.shelves.title"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .textCase(nil)
+                // v1.0.0-m1-shell boss 2026-09-10 OOB 'section title
+                // 书房 像 pages 那样处理' (Pages sidebar pattern:
+                // centered title text + a single 1 PT hairline
+                // spanning the full sidebar width below the text).
+                // The text uses `.font(.body)` (= Pages-equivalent
+                // size; = SwiftUI's default sidebar text; =
+                // matches the row text below), `.foregroundStyle(
+                // .primary)` (= Pages uses primary tint for the
+                // sidebar title; = secondary tint is too dim per
+                // Pages's sidebar visual reference). The Divider
+                // below is `.padding(.top, 4)` (= Pages leaves ~4 PT
+                // gap between the title text and the hairline) and
+                // `.padding(.horizontal, 0)` (= Pages's hairline
+                // spans the FULL sidebar width with no inset; = the
+                // canonical Apple pattern; = the previous List's
+                // built-in section padding would have inset the
+                // hairline ~16 PT from the left edge, = wrong per
+                // Pages visual reference).
+                VStack(spacing: 4) {
+                    HStack {
+                        Spacer()
+                        Text(WenshuI18n.t("sidebar.section.shelves.title"))
+                            .font(.body)
+                            .foregroundStyle(.primary)
+                            .textCase(nil)
+                        Spacer()
+                    }
+                    Divider()
+                }
+                .padding(.top, 4)
+                .padding(.bottom, 4)
             }
             .headerProminence(.increased)
             // Reference library (= library's default shelf per boss 8/26
