@@ -116,15 +116,26 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
     public init() {}
 
     public func saveKeySync(_ key: String, for provider: Provider) throws {
-        // EMERGENCY in-place revert (Boss 2026-09-04 OOB 'Settings'):
-        // B-10 commit faa5edc0e reactivated real SecItemAdd calls; on
-        // ad-hoc signed wenshu.app without the keychain-access-groups
-        // entitlement, SecItemAdd can SIGABRT the process at first
-        // launch (= Settings window crash). Stub returns success so no
-        // Keychain is touched. Restore the real implementation when
-        // boss returns to Mac and accepts the SecurityAgent modal.
-        return
-        /*
+        // v1.0.0-m1-shell boss 2026-09-10 OOB '配置 key 没有持久化,
+        // 需要实现, 如果能走 apple api 的钥匙串更好': restore the
+        // real SecItemAdd implementation (= the canonical Apple
+        // Security framework keychain path; = the canonical wenshu
+        // architecture per AGENTS.md §11 hard rule 'API keys via
+        // AppleKeychain NEVER plaintext SQLite'; = the previous
+        // B-10 emergency revert stubbed this out because ad-hoc
+        // signed wenshu.app triggered SecurityAgent modal + SIGABRT
+        // on the Settings window). The canonical Apple HIG path for
+        // API keys = the user's macOS Keychain = persists across
+        // app restarts + sandbox-safe + encrypted at rest by the
+        // OS. Per developer.apple.com/documentation/security/
+        // keychain_services: `kSecClassGenericPassword` items with
+        // `kSecAttrAccessibleAfterFirstUnlock` (= accessible after
+        // the user logs in once; = the canonical 'user API key'
+        // accessibility tier).
+        //
+        // Per AGENTS.md §11 baseline + boss direction '能走 apple
+        // api 的钥匙串更好': Apple Keychain is the canonical wenshu
+        // path. This is the right restore.
         guard !key.isEmpty else { throw ProviderKeychainError.invalidKeyFormat }
         let keyData = Data(key.utf8)
         let account = "\(provider.slug).api.key"
@@ -148,19 +159,10 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
         ]
         let status = SecItemAdd(addQuery as CFDictionary, nil)
         guard status == errSecSuccess else { throw ProviderKeychainError.keychainStatus(status) }
-        */
     }
 
     public func loadKeySync(for provider: Provider) -> String? {
-        // EMERGENCY in-place revert (Boss 2026-09-04 OOB 'Settings'):
-        // bypass macOS Keychain entirely (= avoid SecurityAgent modal
-        // prompt AND ad-hoc-signing SIGABRT). Returns a debug key string
-        // so LLM calls can complete the request flow without prompting
-        // for user credentials. Restore the real SecItemCopyMatching
-        // code below when boss returns to Mac and accepts the
-        // SecurityAgent modal.
-        return "wenshu.debug.api.key"
-        /*
+        // v1.0.0-m1-shell: restore the real SecItemCopyMatching.
         let account = "\(provider.slug).api.key"
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -173,13 +175,10 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
         let status = SecItemCopyMatching(query as CFDictionary, &item)
         guard status == errSecSuccess, let data = item as? Data else { return nil }
         return String(data: data, encoding: .utf8)
-        */
     }
 
     public func deleteKeySync(for provider: Provider) throws {
-        // EMERGENCY in-place revert (Boss 2026-09-04 OOB 'Settings'): bypass.
-        return
-        /*
+        // v1.0.0-m1-shell: restore the real SecItemDelete.
         let account = "\(provider.slug).api.key"
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -190,13 +189,11 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
         guard status == errSecSuccess || status == errSecItemNotFound else {
             throw ProviderKeychainError.keychainStatus(status)
         }
-        */
     }
 
     public func listProvidersWithKeys() -> [String] {
-        // EMERGENCY in-place revert (Boss 2026-09-04 OOB 'Settings'): bypass.
-        return []
-        /*
+        // v1.0.0-m1-shell: restore the real SecItemCopyMatching
+        // (= queries all generic-password items under our service).
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: AppleKeychainStore.service,
@@ -208,7 +205,6 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
         guard status == errSecSuccess, let array = items as? [[String: Any]] else { return [] }
         return array.compactMap { $0[kSecAttrAccount as String] as? String }
             .compactMap { $0.hasSuffix(".api.key") ? String($0.dropLast(".api.key".count)) : nil }
-        */
     }
 }
 
@@ -289,20 +285,33 @@ public enum ProviderKeychain {
     // without touching the real Apple Keychain (= avoids securityd IPC hang in
     // macOS 27 when running swift test). Production builds never set this env var,
     // so production behavior is unchanged.
+    // v1.0.0-m1-shell boss 2026-09-10 OOB '配置 key 没有持久化, 需要
+    // 实现, 如果能走 apple api 的钥匙串更好': flip the default
+    // backend back to AppleKeychainStore (= the canonical wenshu
+    // path per AGENTS.md §11 hard rule 'API keys via AppleKeychain
+    // NEVER plaintext SQLite'; = the previous B-10 revert flipped
+    // the default to InMemoryKeychainStore as an emergency stop-
+    // gap to avoid ad-hoc-signing SIGABRT on the Settings window).
+    //
+    // The AppleKeychainStore's public methods are now restored
+    // (= SecItemAdd / SecItemCopyMatching / SecItemDelete / list
+    // over real macOS Keychain). The WENSHU_DEBUG_INMEMORY_KEYCHAIN=1
+    // env var remains as an opt-in escape hatch (= for cua / dev /
+    // CI contexts where ad-hoc signing triggers SecurityAgent modal
+    // = production users never see this).
+    //
+    // Production path = AppleKeychainStore (= the user's macOS
+    // Keychain = persists across app restarts + encrypted at rest
+    // by the OS + sandbox-safe + survives wenshu updates).
     public nonisolated(unsafe) static var backend: any ProviderKeychainStoring = {
-        // apple-001 phase 1 candidate A-revised: eager env-var check (= test bundles
-        // that never call applicationWillFinishLaunching still honor the override).
+        // apple-001 phase 1 candidate A-revised: eager env-var check
+        // (= test bundles that never call applicationWillFinishLaunching
+        // still honor the override; = cua / dev / CI overrides also
+        // honored).
         if ProcessInfo.processInfo.environment["WENSHU_DEBUG_INMEMORY_KEYCHAIN"] == "1" {
             return InMemoryKeychainStore()
         }
-        #if B10_PHASE_B_ENABLED
-        if let signed = Bundle.main.path(forResource: "embedded", ofType: "mobileprovision"),
-           let entitlements = try? Data(contentsOf: URL(fileURLWithPath: signed)),
-           !entitlements.isEmpty {
-            return AppleKeychainStore()
-        }
-        #endif
-        return InMemoryKeychainStore()
+        return AppleKeychainStore()
     }()
 
     /// Test-only override. Production code must never call this.
