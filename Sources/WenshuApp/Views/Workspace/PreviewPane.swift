@@ -567,17 +567,27 @@ struct PreviewPane: View {
                     .frame(maxWidth: .infinity, alignment: .center)
                     // v1.0.0-m1-shell boss 2026-09-11 OOB '搜索框,
                     // 和第一个卡片的间距, 有没有手写的间距, 如果有,
-                    // 需要去掉': drop the manual top/bottom padding
-                    // around the search field (= the .padding(.top,
-                    // 4) and .padding(.bottom, 6) the previous
-                    // attempt added; = those were hand-rolled
-                    // vertical breathing room; = removing them
+                    // 需要去掉': drop the manual BOTTOM padding
+                    // around the search field (= the previous
+                    // `.padding(.bottom, 6)` was a hand-rolled
+                    // vertical breathing room between the search
+                    // field and the first card; = removing it
                     // makes the search field sit flush against the
-                    // section header above AND the first card
-                    // below). The boss's request was to leave only
-                    // Apple-HIG defaults (= no manual padding
-                    // between the search field and its neighbors).
+                    // first card below; = the cards' own LazyVGrid
+                    // spacing controls the gap to the next card).
+                    //
+                    // v1.0.0-m1-shell boss 2026-09-11 OOB '你刚好
+                    // 改间距扩大了我的范围, 分割线和搜索框之间的 4,
+                    // 你多删了, 需要加回了': re-add `.padding(.top,
+                    // 4)` (= the 4 PT breathing room between the
+                    // section header's Divider above and the search
+                    // field below; = NOT a manual hard-coded gap,
+                    // = part of the canonical title-block padding
+                    // pattern that was always there in Pages
+                    // sidebar header). Keep horizontal padding 8 PT
+                    // (= Apple HIG 8-point grid for inline content).
                     .padding(.horizontal, 8)
+                    .padding(.top, 4)
             }
             // v1.0.0-m1-shell boss 2026-09-10 OOB '如果 apple api 支持,
             // 那就直接用, 我们别自己写搜索': the previous internal

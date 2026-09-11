@@ -645,7 +645,19 @@ struct ShellMiddleColumn: View {
                         .textFieldStyle(.plain)
                     }
                     .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
+                    // v1.0.0-m1-shell boss 2026-09-11 OOB '搜索框,
+                    // 和第一个卡片的间距, 有没有手写的间距, 如果有,
+                    // 需要去掉': drop the manual `.padding(.vertical,
+                    // 4)` (= 4 PT top + 4 PT bottom = hand-rolled
+                    // breathing room inside the search HStack) =
+                    // the outer PreviewPane layer handles vertical
+                    // spacing (= `.padding(.top, 4)` for the gap
+                    // above the search field; = no bottom padding
+                    // so the search field sits flush against the
+                    // first card; = the LazyVGrid handles card-to-
+                    // card spacing). Keep only the `.padding(.horizontal,
+                    // 8)` (= Apple HIG 8-point grid for inline
+                    // content horizontal inset).
                     // v1.0.0-m1-shell boss 2026-09-11 OOB '宽度自动填满宽度,
                     // 和卡片一样随着拖拽变宽': the search field
                     // now fills the full column width (= the
