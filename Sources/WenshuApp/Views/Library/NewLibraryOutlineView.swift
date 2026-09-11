@@ -326,6 +326,22 @@ struct NewLibraryOutlineView: View {
                             .textCase(nil)
                         Spacer()
                     }
+                    // v1.0.0-m1-shell boss 2026-09-10 OOB '现在是各区,
+                    // 左右边距都是多少, 是苹果表达示吧':
+                    // = the dividers use the SwiftUI List's default
+                    // horizontal inset (= the system-defined row
+                    // separator padding; = Apple API's built-in
+                    // standard List horizontal padding on both sides;
+                    // = no custom modifier; = all 3 dividers use the
+                    // SAME no-modifier default = the boss's
+                    // '用同样的修饰符' instruction; = the dividers
+                    // appear shorter than the sidebar with a
+                    // standard right padding = the boss's '都不边长,
+                    // 右边都留一个标准间距' = the canonical Apple
+                    // HIG List row separator pattern; = DO NOT
+                    // add `.frame(maxWidth: .infinity)` because that
+                    // would force the divider to span the full
+                    // sidebar width = wrong = not the Apple default).
                     Divider()
                 }
                 .padding(.top, 4)
@@ -361,6 +377,14 @@ struct NewLibraryOutlineView: View {
             // text or padding = the hairline sits at the natural
             // inter-Section gap).
             Section {
+                // v1.0.0-m1-shell boss 2026-09-10 OOB '现在是各区,
+                // 左右边距都是多少, 是苹果表达示吧':
+                // = bare `Divider()` (= NO custom modifier; =
+                // the SwiftUI List's default row separator
+                // padding is applied; = all 3 dividers use the
+                // same no-modifier default; = matches the Apple
+                // HIG List row separator pattern = standard
+                // horizontal inset on both sides).
                 Divider()
             }
             // Reference library (= library's default shelf per boss 8/26
