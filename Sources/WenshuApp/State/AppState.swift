@@ -67,12 +67,33 @@ final class AppState {
 
     /// Sidebar tree selection (= 5 cases: .book(UUID) / .folder / .shelf
     /// / .referenceCategory / .referenceLibraryRoot, nil = nothing
-    /// selected). Drives preview pane scope (= see
+    /// selected). Drives Preview pane scope (= see
     /// WorkspaceView.previewScope).
     ///
     /// Persisted to `wenshu.sidebarSelection` UserDefaults key
     /// (= JSON shape, = set by WorkspaceView's `.onChange`).
     var sidebarSelection: SidebarItem? = nil
+
+    // v1.0.0-m1-shell boss 2026-09-10 OOB '目录树写法, 不符合
+    // Apple API': 3 sheet-request triggers moved from
+    // NotificationCenter (.wenshuNewBookRequested /
+    // .wenshuNewShelfRequested / .wenshuChoiceRequested) into
+    // @Observable shared state. The toolbar Menu in AppRootScene
+    // (.keyboardShortcut("n", modifiers: .command)) and the
+    // sidebar's own New buttons (zoneHeaderButtons +
+    // sidebarBottomNewButton) all need to flip the same `showNewX
+    // Sheet` @State on the sidebar body. Cross-component writes
+    // belong in shared @Observable state, not in a Notification
+    // channel (= NotificationCenter is fire-and-forget, no observed
+    // binding, requires manual @State copy on receiver side, =
+    // fragile data flow). The pattern: the toolbar Menu or
+    // sidebar button mutates appState.newBookRequestCount += 1;
+    // the sidebar body observes via .onChange(of: appState.
+    // newBookRequestCount) and flips its local showNewBookSheet.
+    // Same approach for newShelfRequestCount + choiceRequestCount.
+    var newBookRequestCount: Int = 0
+    var newShelfRequestCount: Int = 0
+    var choiceRequestCount: Int = 0
 
     // v0.34 B-18 (= boss 9/2 OOB ', editor, yesno
     // '): editor zone's live word count, owned globally so

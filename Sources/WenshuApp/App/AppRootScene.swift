@@ -215,12 +215,19 @@ struct AppRootScene: Scene {
                 // Menu (= /). Both sub-items post a
                 // NotificationCenter event that NewLibraryOutlineView
                 // listens for and triggers the matching sheet.
+                // v1.0.0-m1-shell boss 2026-09-10 OOB '目录树写法, 不符合
+                // Apple API': switch the poster from
+                // NotificationCenter.post (= fire-and-forget) to
+                // the @Observable AppState counter (= the sidebar
+                // body's `.onChange(of: appState.newXRequestCount)`
+                // is the canonical SwiftUI binding for cross-
+                // component sheet triggers).
                 Menu(WenshuI18n.t("menu.file.new_project")) {
                     Button(WenshuI18n.t("menu.file.new_project.submenu.new_book")) {
-                        NotificationCenter.default.post(name: .wenshuNewBookRequested, object: nil)
+                        appState.newBookRequestCount += 1
                     }
                     Button(WenshuI18n.t("menu.file.new_project.submenu.new_shelf")) {
-                        NotificationCenter.default.post(name: .wenshuNewShelfRequested, object: nil)
+                        appState.newShelfRequestCount += 1
                     }
                 }
                 .keyboardShortcut("n", modifiers: .command)
