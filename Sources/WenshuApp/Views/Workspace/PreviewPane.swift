@@ -535,9 +535,19 @@ struct PreviewPane: View {
                 // stretch.
                 customSearch
                     .frame(maxWidth: .infinity, alignment: .center)
+                    // v1.0.0-m1-shell boss 2026-09-11 OOB '搜索框,
+                    // 和第一个卡片的间距, 有没有手写的间距, 如果有,
+                    // 需要去掉': drop the manual top/bottom padding
+                    // around the search field (= the .padding(.top,
+                    // 4) and .padding(.bottom, 6) the previous
+                    // attempt added; = those were hand-rolled
+                    // vertical breathing room; = removing them
+                    // makes the search field sit flush against the
+                    // section header above AND the first card
+                    // below). The boss's request was to leave only
+                    // Apple-HIG defaults (= no manual padding
+                    // between the search field and its neighbors).
                     .padding(.horizontal, 8)
-                    .padding(.top, 4)
-                    .padding(.bottom, 6)
             }
             // v1.0.0-m1-shell boss 2026-09-10 OOB '如果 apple api 支持,
             // 那就直接用, 我们别自己写搜索': the previous internal
@@ -612,7 +622,22 @@ struct PreviewPane: View {
             // (= LazyVGrid's `spacing: 16` per GridItem + this outer
             // 8 PT inset = the canonical 'comfortable but compact'
             // grid per Apple Design Resources).
-            .padding(8)
+            //
+            // v1.0.0-m1-shell boss 2026-09-11 OOB '搜索框,
+            // 和第一个卡片的间距, 有没有手写的间距, 如果有,
+            // 需要去掉': the previous `.padding(8)` (= 8 PT
+            // top + bottom + leading + trailing) added a hand-
+            // rolled 8 PT gap between the search field above and
+            // the first card below. Per the boss's request to
+            // keep only Apple-HIG defaults, drop the manual
+            // top padding (= the cards' own LazyVGrid spacing
+            // controls vertical spacing between cards; = no extra
+            // top inset between the search field and the first
+            // card needed). Keep leading + bottom padding (= 8 PT)
+            // so cards still have breathing room from the column
+            // edges (= Apple HIG 8-point grid for inline content).
+            .padding(.horizontal, 8)
+            .padding(.bottom, 8)
                 }
             }
 
