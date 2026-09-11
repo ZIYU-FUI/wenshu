@@ -892,51 +892,35 @@ struct ShellDetailColumn: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            // v1.0.0-m1-shell boss 2026-09-11 OOB '工具栏按钮做对了,
-            // 现在就调整好居右就好了': render the inspector page
-            // Picker AT THE TOP of the inspector column body (= the
-            // Apple HIG "inspector tab strip" position = Pages /
-            // Numbers / Keynote all put their Format / Layout /
-            // Style tabs at the top of the inspector). Right-align
-            // it (= Apple's "right-justified" inspector tabs =
-            // .frame(maxWidth: .infinity, alignment: .trailing) =
-            // the Picker sits flush to the column's right edge).
-            //
-            // vs the previous attempts:
-            // 1. Picker in the MAIN NSWindow toolbar (.principal)
-            //    — failed because the editor's toolbar already
-            //    owns the .principal slot = conflict = 0 segments
-            //    rendered.
-            // 2. Picker in the INSPECTOR column's `.toolbar` block
-            //    (= ToolbarItem(.primaryAction)) — failed because
-            //    the toolbar is shared with the editor's kanban /
-            //    todo / chat / search buttons = no room for a
-            //    320 PT-wide segmented control.
-            // 3. The current solution = put the Picker at the top
-            //    of the inspector body, right-aligned. Pages
-            //    inspector tabs render the same way.
-            Picker("Inspector Page", selection: $inspectorPage) {
-                ForEach(InspectorPage.allCases, id: \.self) { page in
-                    Label {
-                        Text(page.localizedTitle)
-                    } icon: {
-                        LucideImage(page.icon)
-                    }
-                    .tag(page)
-                }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .frame(maxWidth: .infinity, alignment: .trailing)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
-            .help(WenshuI18n.t("inspector.page.help"))
-
-            Divider()
-
-            ZoneContentView(zoneSlug: "specializedTools", tabs: filteredToolsForCurrentPage)
-        }
+        // v1.0.0-m1-shell boss 2026-09-11 OOB '那对了, 把右栏
+        // 四页切换放在Trailing, 居右': per the boss's request,
+        // the 4-page Picker (= 写作 (小说) / 风格 / 人物 / 项目
+        // 管理) now lives in the NSWindow main toolbar's trailing
+        // placement (= `.toolbar { ToolbarItem(placement:
+        // .primaryAction) { Picker(...) } }` below) = NOT in the
+        // inspector column body anymore. The inspector column
+        // body now renders ONLY the active page's tool (= no
+        // internal Picker; = the body is dedicated to the tool
+        // itself; = the toolbar owns the page switch).
+        //
+        // vs the previous attempts (= documented in the
+        // ToolbarItem comment below):
+        // 1. Picker in body, right-aligned — worked, but the
+        //    boss asked for the toolbar placement instead.
+        // 2. Picker in INSPECTOR column's `.toolbar` block — same
+        //    as current target (= NSWindow toolbar; the
+        //    InspectorColumn's `.toolbar` block attaches to the
+        //    NSWindow main toolbar).
+        //
+        // Why this works (= state binding crosses column
+        // boundaries): `inspectorPage` is `@State` on
+        // ShellDetailColumn; = ToolbarItem(placement: .primaryAction)
+        // inside the same view's `.toolbar` block can bind
+        // directly to `$inspectorPage`; = the state change in
+        // the toolbar Picker propagates to the body below via
+        // SwiftUI's normal state binding; = no env-chain work
+        // needed (= the binding is local to ShellDetailColumn).
+        ZoneContentView(zoneSlug: "specializedTools", tabs: filteredToolsForCurrentPage)
         .toolbar {
             // v1.0.0-m1-shell boss 2026-09-10 OOB '按钮的位置不对, 默认
             // 是放在最右边': place the toggle button AFTER the
@@ -953,6 +937,34 @@ struct ShellDetailColumn: View {
             // inspector is collapsed, the toolbar still shows the
             // button; = the user can re-open the inspector at any
             // time; = matches Keynote / Pages / Numbers).
+            //
+            // v1.0.0-m1-shell boss 2026-09-11 OOB '那对了, 把右栏
+            // 四页切换放在Trailing, 居右': the 4-page Picker is
+            // declared FIRST (= leftmost in trailing order;
+            // = SwiftUI renders ToolbarItem(.primaryAction) in
+            // declaration order = the Picker sits adjacent to
+            // the center area = the kanban + todo + toggle buttons
+            // stack after it on the right = the Picker is the
+            // leftmost item in the trailing toolbar slot = the
+            // boss's "放在Trailing, 居右" intent = "put it in the
+            // trailing toolbar area, with the page-switcher
+            // visually closest to the editor's content (= the
+            // Pages / Numbers inspector tab strip pattern)).
+            ToolbarItem(placement: .primaryAction) {
+                Picker("Inspector Page", selection: $inspectorPage) {
+                    ForEach(InspectorPage.allCases, id: \.self) { page in
+                        Label {
+                            Text(page.localizedTitle)
+                        } icon: {
+                            LucideImage(page.icon)
+                        }
+                        .tag(page)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .help(WenshuI18n.t("inspector.page.help"))
+            }
             ToolbarItem(placement: .primaryAction) {
                 Button {
                     appState.inspectorVisible.toggle()
