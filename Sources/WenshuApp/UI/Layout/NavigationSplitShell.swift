@@ -965,7 +965,20 @@ struct ShellDetailColumn: View {
                 .labelsHidden()
                 .help(WenshuI18n.t("inspector.page.help"))
             }
-            ToolbarItem(placement: .primaryAction) {
+            // v1.0.0-m1-shell boss 2026-09-11 OOB 'kanban/todo/toggl, 放在
+            // Center 里': per the boss's request, the inspector
+            // toggle button moves from the trailing area (= the
+            // previous `.primaryAction` placement = the rightmost
+            // position) to the center area (= `.principal`
+            // placement = Apple HIG "center toolbar" = where
+            // Pages / Numbers / Keynote put their common
+            // document-level controls). Combined with the page
+            // Picker already in the trailing area (= previous
+            // commit), the toolbar is now a clean 3-zone Apple
+            // HIG layout: leading = window chrome (= traffic lights
+            // + title), center = inspector toggle, trailing =
+            // page picker + kanban + todo (per the next change).
+            ToolbarItem(placement: .principal) {
                 Button {
                     appState.inspectorVisible.toggle()
                 } label: {
@@ -1050,7 +1063,15 @@ struct ShellDetailColumn: View {
             // the right answer (= kanban + todo are also
             // user-pinned surfaces that the user wants to keep
             // visible while editing).
-            ToolbarItem(placement: .primaryAction) {
+            //
+            // v1.0.0-m1-shell boss 2026-09-11 OOB 'kanban/todo/toggl,
+            // 放在Center 里': per the boss's request, the kanban
+            // button moves from the trailing area (= the previous
+            // `.primaryAction` placement) to the center area
+            // (= `.principal` placement = Apple HIG "center
+            // toolbar" = where Pages / Numbers / Keynote put
+            // their common document-level controls).
+            ToolbarItem(placement: .principal) {
                 Button {
                     NSLog("[wenshu.window] click: openWindow id=\(WindowID.kanban)")
                     openWindow(id: WindowID.kanban)
@@ -1063,7 +1084,7 @@ struct ShellDetailColumn: View {
                 }
                 .help(WenshuI18n.t("window.kanban.help"))
             }
-            ToolbarItem(placement: .primaryAction) {
+            ToolbarItem(placement: .principal) {
                 Button {
                     NSLog("[wenshu.window] click: openWindow id=\(WindowID.todo)")
                     openWindow(id: WindowID.todo)
