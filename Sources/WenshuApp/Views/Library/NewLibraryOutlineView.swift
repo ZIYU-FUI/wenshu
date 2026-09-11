@@ -317,12 +317,26 @@ struct NewLibraryOutlineView: View {
                 // built-in section padding would have inset the
                 // hairline ~16 PT from the left edge, = wrong per
                 // Pages visual reference).
+                // v1.0.0-m1-shell boss 2026-09-10 OOB '那个标题的文字
+                // 颜色, 苹果都偏灰一些, 不是纯白的, 和分割线的
+                // 颜色接近': section header text uses
+                // `.foregroundStyle(.secondary)` (= the Apple
+                // system secondary label color; = ~60% opacity; =
+                // light mode = mid-gray; = dark mode = mid-gray;
+                // = matches the visual weight of the system
+                // separator color; = the Pages / Finder / Mail
+                // sidebar section header color; = Apple HIG
+                // 'Color: Use secondary text colors for less
+                // important or de-emphasized text, such as
+                // labels and section headers.' = NO pure white
+                // = NO pure black = the boss's '不是纯白的'
+                // requirement).
                 VStack(spacing: 4) {
                     HStack {
                         Spacer()
                         Text(WenshuI18n.t("sidebar.section.shelves.title"))
                             .font(.body)
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(.secondary)
                             .textCase(nil)
                         Spacer()
                     }

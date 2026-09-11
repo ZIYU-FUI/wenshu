@@ -445,7 +445,14 @@ struct PreviewPane: View {
                     Spacer()
                     Text(WenshuI18n.t("preview.column.title"))
                         .font(.body)
-                        .foregroundStyle(.primary)
+                        // v1.0.0-m1-shell boss 2026-09-10 OOB '那个标题
+                        // 的文字颜色, 苹果都偏灰一些, 不是纯白的,
+                        // 和分割线的颜色接近': section header
+                        // text uses `.secondary` (= same as the
+                        // sidebar's '书房' header; = same Apple HIG
+                        // pattern; = format identical across all
+                        // wenshu section headers; = NO pure white).
+                        .foregroundStyle(.secondary)
                         .textCase(nil)
                     Spacer()
                 }
