@@ -1189,19 +1189,28 @@ struct EditorPlaceholder: View {
                 // the preview/edit body (= replaces the previous
                 // samplePreviewBody placeholder).
                 if activeTab == nil {
-                    // Boss 2026-09-10 OOB: editor empty state = a
-                    // blank sheet of paper like Pages / Notes, not
-                    // the prior "No document open" icon + text. The
-                    // paper is the same EditorPaperCanvas used when
-                    // a tab is open (= 595 PT A4 width, white surface,
-                    // drop shadow). With no active tab there is no
-                    // markdown engine to render, so the body is just
-                    // an empty scroll view (the sheet itself is the
-                    // signal = same affordance as Apple's "Untitled"
-                    // blank document).
-                    EditorPaperCanvas {
-                        Color.clear
-                    }
+                    // v1.0.0-m1-shell boss 2026-09-10 OOB '在没有打开任何文档的时候,
+                    // 纸只占位, 不渲染, 不要这个白色, 还是提示空态,
+                    // 如果非要用一张纸占位的话, 如果可以不用纸占位,
+                    // 也能固定当前区域宽度, 那就不要任何东西, 显示
+                    // 空态'. The previous code rendered a blank
+                    // EditorPaperCanvas { Color.clear } (= a 595 PT
+                    // A4 white sheet with no content = the boss's
+                    // '纸只占位, 不渲染, 不要这个白色'). Replace with
+                    // Apple's canonical ContentUnavailableView (= the
+                    // macOS 14+ standard empty-state UI; = identical
+                    // visual to Mail / Notes / Finder / Xcode
+                    // empty-state; = no hand-rolled icon + text).
+                    // The column width is still held (= the column
+                    // keeps its idealWidth range via the .navigation
+                    // SplitViewColumnWidth modifier on the parent;
+                    // ContentUnavailableView renders inside that
+                    // column's existing geometry; = no column shrink).
+                    ContentUnavailableView(
+                        WenshuI18n.t("editor.empty.title"),
+                        systemImage: "doc.text",
+                        description: Text(WenshuI18n.t("editor.empty.description"))
+                    )
                 } else {
                     // v0.52 boss 2026-09-09 OOB: give the middle column a
                     // sheet of paper like Pages, with the markdown engine
