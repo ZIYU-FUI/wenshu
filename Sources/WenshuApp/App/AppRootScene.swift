@@ -132,18 +132,33 @@ struct AppRootScene: Scene {
         // handles + window chrome = ~2205 PT), overriding
         // defaultSize entirely.
         //
-        // v1.0.0-m1-shell boss 2026-09-10 OOB 'APP initial size, very small':
-        // the onboarding flow uses `.windowResizability(.contentSize)`
-        // which forces the window = the view's intrinsic content size
-        // (= VStack + cover thumbnail + buttons = ~360 PT wide x ~500 PT
-        // tall). The outer frame on LibraryOnboardingView's VStack
-        // is treated as a soft hint (= .contentSize overrides it).
-        // Switch back to `.contentMinSize` (= content size is the
-        // minimum, = window can grow larger) so the onboarding
-        // VStack's outer frame is respected as the floor (= 640 x 720),
-        // and the NSV detail view's ideal width (= 1480 PT) is the
-        // floor for the main workspace window.
-        .windowResizability(.contentMinSize)
+        // v1.0.0-m1-shell boss 2026-09-10 OOB '各栏的初始大小, 按最小算':
+        // `.windowResizability(.contentMinSize)` (= the current
+        // setting) makes the initial window = the sum of every
+        // column's MIN width (= sidebar 220 + cards 240 + detail
+        // 400 + inspector 240 = ~1100 PT). All four columns render
+        // at their minWidth (= no ideal-Width breathing room =
+        // every column is squashed = the cards column devours the
+        // detail column = no A4 paper visible = no inspector
+        // visible). `.contentMinSize` is correct for "user can
+        // shrink down to the content minimum" (= the user wants
+        // this) but it is WRONG for the initial size (= we want
+        // the initial size to use the idealWidth column widths =
+        // 280 + 320 + 600 + 280 = ~1480 PT).
+        //
+        // Switch back to `.contentSize` (= the previous v0.91
+        // setting): the window is sized by its intrinsic content
+        // (= NavigationSplitView's 4 columns at their ideal
+        // widths; = ~1480 PT = exactly the defaultSize 1480 PT).
+        // The onboarding form already has its own
+        // `.frame(minWidth:idealWidth:maxWidth:minHeight:...)`
+        // (= 640 x 720) so `.contentSize` does NOT collapse the
+        // onboarding window (= the previous v1.0.0-m1-shell OOB
+        // 'APP initial size, very small' was caused by `.contentMinSize`
+        // ignoring the onboarding's outer frame as a hint; =
+        // `.contentSize` actually DOES honour the outer frame as
+        // the intrinsic content size).
+        .windowResizability(.contentSize)
         // v0.81 boss 2026-09-10 OOB: the inspector toggle button
         // (= ⌥⌘I = Lucide "panel-right" icon = the canonical Apple
         // toolbar affordance for NavigationSplitView `.inspector`)
