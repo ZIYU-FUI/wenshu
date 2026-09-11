@@ -351,6 +351,35 @@ struct ShellMiddleColumn: View {
     /// out of ticket scope).
     @State private var previewSortOrder: EntitySortOrder = .pinyinFirstLetter
 
+    /// v1.0.0-m1-shell boss 2026-09-10 OOB '目录选择, 卡片栏没有
+    /// 根据目录选择变化卡片内容': derive PreviewScope from
+    /// `appState.sidebarSelection`. The 5 SidebarItem cases map to:
+    /// - .referenceLibraryRoot / nil → .referenceScope(nil) (= all
+    ///   entities; = the overview grid = the default fallback)
+    /// - .referenceCategory(let dirName) → .referenceScope(.some)
+    ///   (= dirName is EntityCategory.rawValue; = the picked category
+    ///   only). Invalid dirName (= no matching EntityCategory) also
+    ///   falls back to .referenceScope(nil) so a broken selection
+    ///   doesn't lock the user out of the preview.
+    /// - .book / .shelf / .folder → .empty (= no preview for user-
+    ///   scope rows; = the preview pane intentionally blanks out
+    ///   until a future ticket wires book-level preview).
+    /// Without this helper, PreviewPane was hardcoded to
+    /// `.referenceScope(nil)` (= the overview grid; = ignored
+    /// sidebar selection entirely; = the bug boss is reporting).
+    private func previewScope() -> PreviewScope {
+        switch appState.sidebarSelection {
+        case .referenceLibraryRoot:
+            return .referenceScope(nil)
+        case .referenceCategory(let dirName):
+            return .referenceScope(EntityCategory(rawValue: dirName))
+        case .book, .shelf, .folder:
+            return .empty
+        case nil:
+            return .referenceScope(nil)
+        }
+    }
+
     var body: some View {
         // Boss 2026-09-10 '卡片区放在中左' + '只需要原来的素材卡片':
         // the middle column is exactly 1 zone = the reference library
@@ -389,8 +418,29 @@ struct ShellMiddleColumn: View {
         // rounded-pill pattern hosted at the top of the column
         // body = same visual slot as the sidebar's `.searchable`
         // field at the top of the sidebar column).
+        //
+        // v1.0.0-m1-shell boss 2026-09-10 OOB '目录选择, 卡片栏没有根据
+        // 目录选择变化卡片内容': the previous `.referenceScope(nil)`
+        // (= unfiltered overview grid of every entity in the library)
+        // ignored sidebar selection entirely (= clicking 哲学宗教
+        // / 军事 / 经济 / 文学 / 历史地理 / 其它 in the sidebar had
+        // no effect on the cards column = the bug boss is reporting).
+        // Switch the scope based on `appState.sidebarSelection` so the
+        // cards column follows the sidebar:
+        //   - sidebarSelection == .referenceLibraryRoot or nil
+        //     → .referenceScope(nil) (= overview; = the 6 categories
+        //     collapse state on the sidebar root; = same as before)
+        //   - sidebarSelection == .referenceCategory(let dirName)
+        //     → .referenceScope(.some(dirName)) (= only entities in
+        //     the picked category show up)
+        //   - sidebarSelection == .book(let bookId) / .shelf(...) /
+        //     .folder(...) → .empty (= no preview yet; = clicking a
+        //     user shelf or book is preview-zone's blank state)
+        // All branches are exhaustive over SidebarItem cases (= no
+        // unknown-sidebar-selection fallback path = the bug can't
+        // reappear silently).
         PreviewPane(
-            scope: .referenceScope(nil),
+            scope: previewScope(),
             onDoubleClick: { _ in },
             previewSortOrder: $previewSortOrder
         )
