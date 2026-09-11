@@ -115,6 +115,29 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
 
     public init() {}
 
+    /// v1.0.0-m1-shell boss 2026-09-10 OOB '做一个远程调试模式,
+    /// 打开后, 不要钥匙, 远程我也测试不了聊天, 只能调 ui': the
+    /// Apple Security framework backend (SecItemAdd /
+    /// SecItemCopyMatching / SecItemDelete) triggers the macOS
+    /// SecurityAgent modal on ad-hoc-signed wenshu.app (= no
+    /// Apple Developer Program paid enrollment = no embedded
+    /// provisioning profile = securityd prompts on every keychain
+    /// access). For the boss's off-site UI iteration (= no way to
+    /// dismiss the modal remotely), this backend must NEVER touch
+    /// the real keychain. The `wenshu.debugNoKeychain` UserDefaults
+    /// (= set via `defaults write com.wenshu.app wenshu.debugNoKeychain
+    /// -bool YES`) makes ALL Apple Security framework methods no-op
+    /// (= saveKeySync = silent no-op; loadKeySync = nil; deleteKeySync
+    /// = silent no-op; listProvidersWithKeys = empty array). The
+    /// ProviderKeychain.backend lazy-init (= elsewhere in this
+    /// file) ALSO checks the same UserDefaults and returns
+    /// InMemoryKeychainStore when set; = belt-and-braces =
+    /// the OS-level SecurityAgent modal is suppressed even if a
+    /// future caller forgets the in-method check.
+    private var debugNoKeychain: Bool {
+        UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain")
+    }
+
     public func saveKeySync(_ key: String, for provider: Provider) throws {
         // v1.0.0-m1-shell boss 2026-09-10 OOB '配置 key 没有持久化,
         // 需要实现, 如果能走 apple api 的钥匙串更好': restore the
@@ -136,6 +159,11 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
         // Per AGENTS.md §11 baseline + boss direction '能走 apple
         // api 的钥匙串更好': Apple Keychain is the canonical wenshu
         // path. This is the right restore.
+        // v1.0.0-m1-shell boss 2026-09-10 OOB '做一个远程调试模式':
+        // short-circuit when debugNoKeychain UserDefaults is set (= the
+        // remote-debug mode toggle). Silent no-op (= no throw; =
+        // callers = Settings Save button = silently accept and move on).
+        if debugNoKeychain { return }
         guard !key.isEmpty else { throw ProviderKeychainError.invalidKeyFormat }
         let keyData = Data(key.utf8)
         let account = "\(provider.slug).api.key"
@@ -163,6 +191,26 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
 
     public func loadKeySync(for provider: Provider) -> String? {
         // v1.0.0-m1-shell: restore the real SecItemCopyMatching.
+        //
+        // v1.0.0-m1-shell boss 2026-09-10 OOB '做一个远程调试模式,
+        // 打开后, 不要钥匙, 远程我也测试不了聊天, 只能调 ui': also
+        // short-circuit the Apple Security framework call here (= the
+        // OS-level SecurityAgent modal still prompts even when the
+        // ProviderKeychain.backend lazy-init returned InMemoryKeychainStore;
+        // = the OS scans the keychain at first access regardless of which
+        // Swift object made the call; = the only way to suppress the
+        // modal is to never enter SecItemCopyMatching at all). Check the
+        // remote-debug UserDefaults at the top of every Apple Security
+        // framework method (= saveKeySync / loadKeySync / deleteKeySync /
+        // listProvidersWithKeys) and short-circuit (= saveKeySync /
+        // deleteKeySync = no-op success; loadKeySync / listProvidersWithKeys
+        // = nil / []). Belt-and-braces with the ProviderKeychain.backend
+        // lazy-init override (= both paths converge to 'no keychain
+        // touches' = boss can launch wenshu.app remotely without ever
+        // seeing the SecurityAgent modal prompt).
+        if UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain") {
+            return nil
+        }
         let account = "\(provider.slug).api.key"
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -179,6 +227,8 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
 
     public func deleteKeySync(for provider: Provider) throws {
         // v1.0.0-m1-shell: restore the real SecItemDelete.
+        // See saveKeySync (= same remote-debug short-circuit).
+        if debugNoKeychain { return }
         let account = "\(provider.slug).api.key"
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -194,6 +244,10 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
     public func listProvidersWithKeys() -> [String] {
         // v1.0.0-m1-shell: restore the real SecItemCopyMatching
         // (= queries all generic-password items under our service).
+        // See loadKeySync (= same remote-debug short-circuit).
+        if UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain") {
+            return []
+        }
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: AppleKeychainStore.service,
@@ -308,7 +362,37 @@ public enum ProviderKeychain {
         // (= test bundles that never call applicationWillFinishLaunching
         // still honor the override; = cua / dev / CI overrides also
         // honored).
+        //
+        // v1.0.0-m1-shell boss 2026-09-10 OOB '做一个远程调试模式,
+        // 打开后, 不要钥匙, 远程我也测试不了聊天, 只能调 ui':
+        // add a UserDefaults-based remote-debug switch (= boss is
+        // off-site, = the macOS Keychain prompt for ad-hoc-signed
+        // wenshu.app hangs onboarding with no remote way to dismiss
+        // it; = for UI iteration over NavigationSplitView / sidebar
+        // / preview / editor / chat layout, the boss needs to be
+        // able to launch wenshu.app WITHOUT touching keychain at
+        // all). 3 sources of the override, checked in this order
+        // (= first hit wins):
+        // 1. `WENSHU_DEBUG_INMEMORY_KEYCHAIN=1` env var (cua / dev
+        //    / CI; pre-existing convention from B-10 phase A).
+        // 2. UserDefaults key `wenshu.debugNoKeychain = YES` (NEW;
+        //    boss-set on the 公司 Mac via `defaults write com.wenshu.
+        //    app wenshu.debugNoKeychain -bool YES` before launching
+        //    wenshu.app via `open`; = persists across launches; = the
+        //    canonical 'remote debug mode' toggle for off-site UI
+        //    iteration).
+        // 3. Default: AppleKeychainStore (= the production path; =
+        //    the user's real API keys).
+        //
+        // Override flips the backend to InMemoryKeychainStore (=
+        // loadKeySync returns nil for every provider = ChatZoneView
+        // shows the empty-state hint '请先在设置 中设置好大模型提供方'
+        // = no LLM call can be sent = boss can iterate on UI
+        // without ever touching macOS Keychain).
         if ProcessInfo.processInfo.environment["WENSHU_DEBUG_INMEMORY_KEYCHAIN"] == "1" {
+            return InMemoryKeychainStore()
+        }
+        if UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain") {
             return InMemoryKeychainStore()
         }
         return AppleKeychainStore()
@@ -320,16 +404,39 @@ public enum ProviderKeychain {
     }
 
     public static func saveKeySync(_ key: String, for provider: Provider) throws {
+        // v1.0.0-m1-shell: belt-and-braces remote-debug short-circuit
+        // at the ProviderKeychain shim level (= the dispatch layer
+        // that all call sites reach). Combined with the backend lazy
+        // init override (= InMemoryKeychainStore when
+        // `wenshu.debugNoKeychain = YES`) and the AppleKeychainStore
+        // method-level short-circuits (= every SecItem* call is
+        // no-op'd), this gives 3 layers of defense against the
+        // macOS SecurityAgent modal prompt.
+        if UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain") {
+            return
+        }
         try backend.saveKeySync(key, for: provider)
     }
     public static func loadKeySync(for provider: Provider) -> String? {
-        backend.loadKeySync(for: provider)
+        // See saveKeySync.
+        if UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain") {
+            return nil
+        }
+        return backend.loadKeySync(for: provider)
     }
     public static func deleteKeySync(for provider: Provider) throws {
+        // See saveKeySync.
+        if UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain") {
+            return
+        }
         try backend.deleteKeySync(for: provider)
     }
     public static func listProvidersWithKeys() -> [String] {
-        backend.listProvidersWithKeys()
+        // See saveKeySync.
+        if UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain") {
+            return []
+        }
+        return backend.listProvidersWithKeys()
     }
     // v0.36 ticket 012 shim methods (= delegate to backend).
     public static func loadMetadata(for provider: Provider) -> ProviderKeychainMetadata? {

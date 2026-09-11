@@ -49,10 +49,24 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     /// on the Keychain permission modal during dev/verify). Gated by
     /// WENSHU_DEBUG_INMEMORY_KEYCHAIN env var (= 1 = use in-memory stub,
     /// 0 = use real Apple keychain). Production builds never set this.
+    ///
+    /// v1.0.0-m1-shell boss 2026-09-10 OOB '做一个远程调试模式, 打开
+    /// 后, 不要钥匙, 远程我也测试不了聊天, 只能调 ui': add the same
+    /// UserDefaults override (= `wenshu.debugNoKeychain = YES`) for
+    /// the boss's off-site UI iteration. The boss-set UserDefaults
+    /// flip persists across launches (= the canonical 'remote debug
+    /// mode' toggle = no keychain modal prompts = boss can iterate
+    /// on UI without touching macOS Keychain). ProviderKeychain.backend
+    /// also reads this UserDefaults (= two paths converge to the same
+    /// InMemoryKeychainStore = no race condition on first keychain
+    /// access).
     static let sharedKeychainBackend: Void = {
         if ProcessInfo.processInfo.environment["WENSHU_DEBUG_INMEMORY_KEYCHAIN"] == "1" {
             ProviderKeychain.setBackendForTesting(InMemoryKeychainStore())
-            NSLog("[wenshu.debug] keychain backend = InMemoryKeychainStore (debug override)")
+            NSLog("[wenshu.debug] keychain backend = InMemoryKeychainStore (env var override)")
+        } else if UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain") {
+            ProviderKeychain.setBackendForTesting(InMemoryKeychainStore())
+            NSLog("[wenshu.debug] keychain backend = InMemoryKeychainStore (UserDefaults override)")
         }
     }()
 
