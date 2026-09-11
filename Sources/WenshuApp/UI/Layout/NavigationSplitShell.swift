@@ -920,7 +920,65 @@ struct ShellDetailColumn: View {
         // the toolbar Picker propagates to the body below via
         // SwiftUI's normal state binding; = no env-chain work
         // needed (= the binding is local to ShellDetailColumn).
-        ZoneContentView(zoneSlug: "specializedTools", tabs: filteredToolsForCurrentPage)
+        //
+        // v1.0.0-m1-shell boss 2026-09-11 OOB '每一个页, 都加一
+        // 个标题和分割线的那个组合, 居顶, 然后把 teb 放在分割
+        // 线下面, teb 栏, 全宽, 自动适配右栏宽度': per the
+        // boss's request, the inspector column body now opens
+        // with a sticky Pages-style title + Divider (= the
+        // canonical Pages / Numbers inspector page header
+        // pattern; = the title text reads the active page's
+        // `localizedTitle` and updates automatically as the
+        // toolbar Picker switches pages; = the Divider sits 4
+        // PT below the title per the Pages header spec); the
+        // ZoneContentView (= the per-page tab strip) renders
+        // immediately below the Divider and stretches to the
+        // full column width (= no center-aligned card column;
+        // = the tab strip fills the inspector column edge-to-
+        // edge like Apple Mail / Notes / Pages inspector tabs).
+        //
+        // vs the previous (= pre-this-commit) inspector body:
+        // the body rendered ONLY the ZoneContentView (= the
+        // tabs were the FIRST thing in the column with no
+        // page title above; = looked like a naked tab strip
+        // floating in space). Per the boss's request, add the
+        // standard Pages page header above the tab strip.
+        VStack(spacing: 0) {
+            // Pages-style page header: centered title text
+            // (.font(.body) + .foregroundStyle(.secondary) per
+            // the canonical Pages sidebar header pattern; = the
+            // .secondary color matches the divider color so the
+            // header reads as one visual unit; = the same
+            // format as the '书房' / '素材' headers used
+            // elsewhere in wenshu; = format LOCKED per memory).
+            VStack(spacing: 4) {
+                HStack {
+                    Spacer()
+                    Text(inspectorPage.localizedTitle)
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .textCase(nil)
+                    Spacer()
+                }
+                Divider()
+            }
+            .padding(.top, 4)
+            .padding(.bottom, 4)
+            // v1.0.0-m1-shell boss 2026-09-11 OOB '...teb 栏,
+            // 全宽, 自动适配右栏宽度': the tab strip below
+            // the divider must fill the inspector column's
+            // full width (= no inner margin eating into the
+            // tab strip; = the per-tool picker renders at
+            // full column width instead of as a centered
+            // pill). `.frame(maxWidth: .infinity)` on the
+            // ZoneContentView (= the inner tab strip) forces
+            // it to stretch to the column's full width.
+            ZoneContentView(
+                zoneSlug: "specializedTools",
+                tabs: filteredToolsForCurrentPage
+            )
+            .frame(maxWidth: .infinity)
+        }
         .toolbar {
             // v1.0.0-m1-shell boss 2026-09-10 OOB '按钮的位置不对, 默认
             // 是放在最右边': place the toggle button AFTER the
