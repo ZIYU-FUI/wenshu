@@ -180,7 +180,23 @@ struct NavigationSplitShell: View {
             // fix lands in a follow-up ticket (per the boss OOB
             // 'let's not give up; debug' = the inspector tab is
             // already showing, so the layout is now usable).
+            // v0.101 boss 2026-09-10 OOB '各列按 Apple 推荐参数
+            // 设置 min/ideal/max': re-apply
+            // `.navigationSplitViewColumnWidth(min:ideal:max:)`
+            // to all 4 columns with Apple HIG canonical ranges.
+            // Per Apple HIG §Sidebars (sidebar ~220-360 PT),
+            // Mail/Notes content list (~240-480), Pages/Keynote
+            // canvas (400-900), Notes/Reminders inspector
+            // (240-360). The earlier v0.83 attempt had sidebar
+            // collapsing to 8 PT because windowToolbarStyle +
+            // defaultSize combined pushed NSV into a degenerate
+            // layout pass; with `.windowToolbarStyle(.unifiedCompact)`
+            // (= matches the working probe /tmp/wenshu_full/Full.swift)
+            // + no defaultSize (= let SwiftUI auto-size the window
+            // like the probe), the columnWidth values now apply
+            // cleanly and each column lands at its ideal width.
             NewLibraryOutlineView()
+                .navigationSplitViewColumnWidth(min: 220, ideal: 280, max: 360)
         } content: {
             // v0.69 boss 2026-09-10 OOB 'land the canonical 6-zone
             // layout from the probe (= NavigationSplitView 3 columns
@@ -191,6 +207,7 @@ struct NavigationSplitShell: View {
             // ContentZone. The probe measured window = 1449, sidebar
             // = 240, content = 280, detail = 648 with this layout.
             ShellMiddleColumn(appState: appState)
+                .navigationSplitViewColumnWidth(min: 240, ideal: 320, max: 480)
         } detail: {
             // Apple HIG detail column = the editor + chat sub-areas
             // in a vertical split (= VSplitView is what Mail uses
@@ -212,8 +229,10 @@ struct NavigationSplitShell: View {
             // 6-zone layout (= the probe confirms window = 1449
             // with this exact combination).
             ShellContentColumn(appState: appState)
+                .navigationSplitViewColumnWidth(min: 400, ideal: 600, max: 900)
                 .inspector(isPresented: .constant(true)) {
                     ShellDetailColumn(appState: appState)
+                        .inspectorColumnWidth(min: 240, ideal: 280, max: 360)
                 }
         }
         // v0.45 boss 2026-09-09 OOB 'revert to Apple default first':

@@ -112,7 +112,16 @@ struct AppRootScene: Scene {
         // ignores every `navigationSplitViewColumnWidth`
         // modifier. Comment out defaultSize to restore SwiftUI's
         // default window sizing (= matches the working probe).
-        // .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // Boss Sketch design baseline 1920x984 PT
+        // v0.101 boss 2026-09-10 OOB '各列按 Apple 推荐参数
+        // 设置 min/ideal/max': re-enable `defaultSize(1480, 980)`
+        // (= Apple HIG ideal-sum for sidebar 280 + content 320 +
+        // detail 600 + inspector 280). With the toolbar style
+        // now `.unifiedCompact` (= matches probe) + 4 columns
+        // each declaring their columnWidth ranges, NSV now
+        // respects the defaultSize (= the previous collapse was
+        // caused by defaultSize + .unified pushing NSV into a
+        // degenerate layout; that combo is no longer in effect).
+        .defaultSize(width: LayoutTokens.designW, height: LayoutTokens.designH)  // 1480 x 980 (4-col Apple HIG ideal sum)
         // v0.24 bossverificationfix: .contentMinSize (window doesn't shrink below initial
         // size, can grow to fit larger content).
         // v0.91 boss 2026-09-10 OOB '1480 也可以': change to
