@@ -434,6 +434,33 @@ struct AppRootScene: Scene {
         // new window). 'wenshu-kanban' / 'wenshu-todo' use
         // short opaque tokens that avoid that namespace
         // collision.
+        // v1.0.0-m1-shell boss 2026-09-11 OOB '单实例是不是用错了,
+        // 但实例是 wenshu 只有一个 windows 的意思, 那我们可能
+        // 用错了, 我需要主窗口和看板窗口同时显示': the previous
+        // `Window("看板", id: "...")` (= macOS 13+ SINGLE-INSTANCE
+        // panel scene) was the wrong primitive (= closing the
+        // kanban window also killed the main wenshu process;
+        // = the kanban window was 'all or nothing' = the boss
+        // couldn't have the kanban AND the main window visible
+        // at the same time, which is the whole point of a
+        // multi-window app).
+        //
+        // `WindowGroup("看板", id: "...")` (= the macOS 14+ scene
+        // type Apple recommends for multi-instance / multi-window
+        // feature surfaces) is the correct primitive (= Pages
+        // / Numbers / Keynote each open documents in
+        // independent windows; = Mail opens a compose window
+        // alongside the main window; = the user can keep the
+        // kanban + the main window both on screen, the kanban
+        // has its own traffic lights + toolbar, the main window
+        // is independent of the kanban's lifecycle).
+        //
+        // `openWindow(id:)` resolves to a WindowGroup ID =
+        // SwiftUI finds the matching WindowGroup scene and opens
+        // (= or brings to front, if a single-instance policy
+        // were set; = not set here; = each tap of the toolbar
+        // button opens a NEW kanban window).
+        //
         // v1.0.0-m1-shell boss 2026-09-11 OOB '把看板窗口关了,
         // 估计是看板窗口做的太大了, 把主窗口挡住了': the
         // 960x640 default was too large (= kanban window covered
@@ -445,13 +472,13 @@ struct AppRootScene: Scene {
         // window to expand it (= the `.contentMinSize`
         // resizability allows the user to make the window as
         // large as they want).
-        Window("看板", id: "wenshu-kanban") {
+        WindowGroup("看板", id: WindowID.kanban) {
             KanbanWindow(library: library)
         }
         .defaultSize(width: 720, height: 520)
         .windowResizability(.contentMinSize)
         .windowToolbarStyle(.unified)
-        Window("待办", id: "wenshu-todo") {
+        WindowGroup("待办", id: WindowID.todo) {
             TodoWindow(library: library)
         }
         .defaultSize(width: 720, height: 560)
