@@ -52,8 +52,51 @@ struct AppRootScene: Scene {
             // hotkey, and openSettings binding are now attached
             // directly to LibraryRootView (= the root view; = 4
             // view layers total = Apple canonical).
+            //
+            // v1.0.0-m1-shell boss 2026-09-10 OOB 'keynote 演讲者注释
+            // 是如何实现的, 颜色也按 keynote 走': the chat zone is
+            // implemented as an `NSTitlebarAccessoryViewController`
+            // attached to the window's title bar (= Apple's
+            // canonical "second zone" / speaker-notes pattern;
+            // = per developer.apple.com/documentation/appkit/
+            // nstitlebaraccessoryviewcontroller). The accessory
+            // sits BELOW the title bar / toolbar but ABOVE the
+            // main window content (= the same layout Keynote
+            // uses for its speaker notes panel). Use
+            // `.background(windowAccessor:)` to call AppKit
+            // (= attach the accessory to the NSWindow once
+            // SwiftUI has created it) = the canonical SwiftUI
+            // → AppKit bridge per WWDC22.
             LibraryRootView(library: library, appearanceMode: appearanceMode)
                 .environment(appState)
+                .onAppear {
+                    // v1.0.0-m1-shell boss 2026-09-10 OOB 'keynote 演讲者
+                    // 注释是如何实现的, 颜色也按 keynote 走': attach
+                    // the title bar accessory (= the "second zone"
+                    // = the Keynote-style speaker notes panel; =
+                    // chat zone in wenshu's case) once the NSWindow
+                    // is available. Use AppKit's NSApp (= the
+                    // canonical AppKit entry per WWDC22 "Use SwiftUI
+                    // with AppKit") to look up the window, then
+                    // call addTitlebarAccessoryViewController per
+                    // Apple's NSTitlebarAccessoryViewController
+                    // documentation.
+                    //
+                    // The .onAppear fires once the SwiftUI view
+                    // is in the view hierarchy (= the NSWindow is
+                    // already created by AppKit by this point).
+                    // The dispatch is wrapped in a `Task { @MainActor }`
+                    // to ensure we run on the main thread (= the
+                    // AppKit calls require main-thread access).
+                    Task { @MainActor in
+                        guard
+                            let window = NSApp.keyWindow
+                                ?? NSApp.windows.first(where: { $0.contentViewController != nil })
+                        else { return }
+                        let chat = ChatAccessoryController()
+                        chat.attach(to: window)
+                    }
+                }
         }
         // Boss 8/24 feedback: 'use the 52 PT one'. Apple SwiftUI macOS 14+ windowToolbarStyle
         // options: .automatic, .unified (52 PT), .unifiedCompact (28 PT), .expanded.
