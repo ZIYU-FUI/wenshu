@@ -319,8 +319,23 @@ Group {
 
             Spacer()
         }
-        // .regularMaterial (= Liquid Glass onboarding background);
-        // now uses Color.clear (= no background).
+        // v1.0.0-m1-shell boss 2026-09-10 OOB '初始大小, 很小':
+        // the onboarding body has no explicit outer frame, so
+        // `.windowResizability(.contentSize)` (= applied at the
+        // Scene root in AppRootScene) shrinks the window to the
+        // VStack's intrinsic content size (= roughly the cover
+        // thumbnail + a few buttons = ~360 PT wide x ~500 PT tall
+        // in default layout = the small launcher-sized window
+        // boss observed 9/10). Force a canonical onboarding
+        // window size = 640 x 720 PT (= Apple HIG installer sheet
+        // canonical; = big enough to show the logo + 2-line title +
+        // body + 2 buttons + hint at full readability, = small
+        // enough to not feel like a modal blocking the user's
+        // workspace). The user's macOS still lets them resize
+        // from this canonical size (= .contentSize keeps the
+        // window resizable; = the .frame(minWidth:idealWidth:
+        // maxHeight:) is just a starting size, not a hard cap).
+        .frame(minWidth: 640, idealWidth: 640, maxWidth: 800, minHeight: 720, idealHeight: 720, maxHeight: 900)
         .background(Color.clear)
         // Apple HIG Inventory 2026-09-06: .fileImporter was 0 hits.
         // Apple-standard sheet for selecting an existing .ws directory.
