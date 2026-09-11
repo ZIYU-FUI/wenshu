@@ -36,6 +36,18 @@ struct AppRootScene: Scene {
     @Binding var appearanceMode: AppearanceMode
     let appState: AppState
 
+    // v1.0.0-m1-shell boss 2026-09-11 OOB '看板和待办独立窗口':
+    // the kanban + todo Windows each construct their own BookStore /
+    // KanbanStore / TodoStore from the shared `library` URL (= see
+    // KanbanWindow / TodoWindow for the env-chain fix rationale).
+    // The Windows are SIBLING scenes (= not children of the main
+    // WindowGroup; = SwiftUI does NOT propagate env values across
+    // WindowGroup boundaries). The kanban + todo Windows therefore
+    // build their own env chain from the same .ws package the main
+    // window uses (= edits in the kanban / todo window are
+    // immediately visible in the main window and vice versa via
+    // the shared on-disk JSON files).
+
     var body: some Scene {
         // v0.24 fix (Boss 8/25 17th OOB 'hide Wenshu title'): WindowGroup
         // title set to empty string (= no NSWindow title shown). Combined
@@ -389,5 +401,58 @@ struct AppRootScene: Scene {
         // because the Settings scene had no `.environment(appState)`
         // modifier (= only the WindowGroup's content view had one).
         .environment(appState)
+        // v1.0.0-m1-shell boss 2026-09-11 OOB '看板和待办独立窗口':
+        // add 2 dedicated `WindowGroup(id:)` scenes (= the
+        // SwiftUI macOS 14+ API for opening independent secondary
+        // windows from a scene; = Pages / Numbers / Keynote /
+        // Photos / Mail all use this pattern for 'open in a new
+        // window' features). Each WindowGroup renders its dedicated
+        // view (= KanbanWindow or TodoWindow) with the same
+        // Liquid Glass `.unified` 52 PT toolbar style as the main
+        // window (= visual consistency across windows; = the
+        // canonical Apple HIG multi-window pattern).
+        //
+        // `.commandsRemoved()` (= SwiftUI macOS 14+) removes the
+        // default New / Open / Save menu items from these windows'
+        // menus (= kanban + todo are not document-based; = the
+        // main window's File menu already covers document
+        // operations; = the kanban window should only show its
+        // own context menu).
+        //
+        // Default size: kanban needs ~960 PT wide for 5 columns
+        // at ~180 PT each + chrome; todo needs ~720 PT for a
+        // comfortable 2-column todo list with category grouping.
+        // Both grow to fill more horizontal space when the user
+        // resizes (= .contentMinSize resizability; = the kanban
+        // can expand to fit the screen while the user drags it).
+        //
+        // v1.0.0-m1-shell boss 2026-09-11 OOB followup (= observation
+        // from cua AX tree dump + the macOS 27 Tahoe WindowGroup
+        // routing observed in earlier debug output): WindowGroup
+        // IDs must avoid the legacy Preferences / Settings ID
+        // namespace (= IDs that match the system's Settings scene
+        // route to the SettingsEnvironmentCapturer instead of
+        // opening a new window). 'wenshu-kanban' / 'wenshu-todo'
+        // use short opaque tokens that avoid that namespace
+        // collision.
+        WindowGroup(id: WindowID.kanban) {
+            // v1.0.0-m1-shell boss 2026-09-11 OOB '看板和待办独立窗口':
+            // pass the shared `library` URL into the kanban
+            // window (= KanbanWindow constructs its own BookStore
+            // + KanbanStore from this URL; = the kanban window
+            // reads / writes the same on-disk BookKanbanStore
+            // JSON files the main window uses; = both windows
+            // see the same tickets in real time).
+            KanbanWindow(library: library)
+        }
+        .defaultSize(width: 960, height: 640)
+        .windowResizability(.contentMinSize)
+        .windowToolbarStyle(.unified)
+        WindowGroup(id: WindowID.todo) {
+            TodoWindow(library: library)
+        }
+        .defaultSize(width: 720, height: 560)
+        .windowResizability(.contentMinSize)
+        .windowToolbarStyle(.unified)
     }
 }

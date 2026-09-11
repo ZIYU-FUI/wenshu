@@ -689,6 +689,14 @@ struct ShellDetailColumn: View {
     // pattern as ShellSidebarColumn's 2 scope tabs).
     @State private var inspectorContent: InspectorContent = .tools
 
+    // v1.0.0-m1-shell boss 2026-09-11 OOB '看板和待办独立窗口':
+    // wire `@Environment(\.openWindow)` so the toolbar buttons can
+    // open dedicated KanbanWindow / TodoWindow scenes (= the
+    // SwiftUI macOS 14+ API for opening secondary windows from
+    // a scene; = Pages / Numbers / Keynote all use it for
+    // independent document windows).
+    @Environment(\.openWindow) private var openWindow
+
     /// v1.0.0-m1-shell boss 2026-09-10 OOB: localized label for
     /// each InspectorContent case (= used in the toolbar Picker
     /// labels via LucideLabel(text:); = the i18n keys are stable
@@ -698,10 +706,6 @@ struct ShellDetailColumn: View {
         switch content {
         case .tools:
             return WenshuI18n.t("inspector.tab.tools")
-        case .kanban:
-            return WenshuI18n.t("inspector.tab.kanban")
-        case .todo:
-            return WenshuI18n.t("inspector.tab.todo")
         }
     }
 
@@ -716,10 +720,6 @@ struct ShellDetailColumn: View {
             switch inspectorContent {
             case .tools:
                 ZoneModuleView(zoneSlot: .specializedTools)
-            case .kanban:
-                KanbanView()
-            case .todo:
-                TodoListView()
             }
         }
         .toolbar {
@@ -739,28 +739,89 @@ struct ShellDetailColumn: View {
             // button; = the user can re-open the inspector at any
             // time; = matches Keynote / Pages / Numbers).
             ToolbarItem(placement: .primaryAction) {
-                Picker("Inspector", selection: $inspectorContent) {
-                    ForEach(InspectorContent.allCases, id: \.self) { content in
-                        LucideLabel(textualLabel(for: content), icon: content.icon)
-                            .tag(content)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-            }
-            ToolbarItem(placement: .primaryAction) {
                 Button {
                     appState.inspectorVisible.toggle()
                 } label: {
-                    LucideLabel(
-                        WenshuI18n.t("inspector.toggle.button"),
-                        icon: appState.inspectorVisible
-                            ? "sidebar-right"
-                            : "panel-right"
-                    )
+                    // v1.0.0-m1-shell boss 2026-09-11 OOB '我们的按钮和
+                    // 默认效果有差别, 看 Apple default 的写法': use
+                    // SwiftUI's native `Label("Title", systemImage:)`
+                    // (= the canonical Apple toolbar button = the
+                    // system-rendered Liquid Glass icon button that
+                    // Mail / Notes / Finder / Pages / Keynote /
+                    // Numbers use). Drop `.buttonStyle(.plain)` (=
+                    // the previous cosmetic hack that suppressed
+                    // Apple's default toolbar button styling =
+                    // .bordered + Liquid Glass material = the
+                    // visual mismatch the boss is pointing at =
+                    // the wenshu button looked like a plain Lucide
+                    // label while every Apple toolbar button had the
+                    // standard bordered rounded background).
+                    //
+                    // Lucide is the project's icon source per
+                    // wenshu-apple-api-first / boss 2026-09-09 OOB
+                    // 'Lucide only, SF Symbol retired project-wide';
+                    // the `image:` closure passes a Lucide-rendered
+                    // Image (= LucideImage returns SwiftUI Image;
+                    // = Label accepts the Image via the .image
+                    // closure; = the toolbar button uses the Lucide
+                    // icon glyph inside Apple's bordered Liquid
+                    // Glass frame = the correct Apple default).
+                    Label {
+                        Text(WenshuI18n.t("inspector.toggle.button"))
+                    } icon: {
+                        LucideImage(
+                            appState.inspectorVisible
+                                ? "sidebar-right"
+                                : "panel-right"
+                        )
+                    }
                 }
-                .buttonStyle(.plain)
                 .help(WenshuI18n.t("inspector.toggle.help"))
+            }
+            // v1.0.0-m1-shell boss 2026-09-11 OOB '看板和待办,
+            // 独立的窗口显示, 普通苹果的其他软件, 集成不到主
+            // windows 的功能就独立窗口, 正好看板横向需要很大
+            // 空间': add 2 toolbar buttons that open dedicated
+            // windows via `@Environment(\.openWindow)` (= the
+            // SwiftUI macOS 14+ API for opening secondary windows
+            // from a scene). Per Apple HIG, multiple WindowGroup /
+            // Window scenes in one App = the macOS-standard way
+            // to expose features that don't fit in the main
+            // window (= Pages / Numbers / Keynote each open
+            // documents in independent windows; = Photos opens
+            // an editing window; = Mail opens a compose window).
+            // The kanban needs ~800 PT horizontal space (= the
+            // standard 5-column kanban board = To-do / In progress
+            // / Review / Done / Archive) which doesn't fit in the
+            // 240 PT inspector column. Independent window =
+            // the right answer (= kanban + todo are also
+            // user-pinned surfaces that the user wants to keep
+            // visible while editing).
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    NSLog("[wenshu.window] click: openWindow id=\(WindowID.kanban)")
+                    openWindow(id: WindowID.kanban)
+                } label: {
+                    Label {
+                        Text(WenshuI18n.t("window.kanban.open"))
+                    } icon: {
+                        LucideImage("kanban")
+                    }
+                }
+                .help(WenshuI18n.t("window.kanban.help"))
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    NSLog("[wenshu.window] click: openWindow id=\(WindowID.todo)")
+                    openWindow(id: WindowID.todo)
+                } label: {
+                    Label {
+                        Text(WenshuI18n.t("window.todo.open"))
+                    } icon: {
+                        LucideImage("list-checks")
+                    }
+                }
+                .help(WenshuI18n.t("window.todo.help"))
             }
         }
         // CHATZONE-CRASH-FIX (2026-09-08): re-inject AppState into
@@ -799,16 +860,36 @@ struct ShellDetailColumn: View {
 ///                  analog for wenshu)
 enum InspectorContent: Hashable, CaseIterable {
     case tools
-    case kanban
-    case todo
 
     var icon: String {
         switch self {
         case .tools: return "wrench"
-        case .kanban: return "kanban"   // Lucide kanban icon
-        case .todo: return "list-checks"  // Lucide list-checks icon
         }
     }
+}
+
+/// v1.0.0-m1-shell boss 2026-09-11 OOB '看板和待办独立窗口':
+/// Window IDs for the dedicated secondary scenes (= the SwiftUI
+/// macOS 14+ `WindowGroup(id:)` accepts an `id` parameter that
+/// `openWindow(id:)` resolves; = the canonical way to open
+/// multiple window types from a single App). 2 IDs here = kanban
+/// + todo (= the 2 features the boss wants as independent
+/// windows per Pages / Numbers / Keynote's independent document
+/// windows pattern).
+///
+/// v1.0.0-m1-shell boss 2026-09-11 OOB (followup observation in
+/// cua AX tree dump): macOS 27 Tahoe's WindowGroup id-routing has
+/// a special case for IDs that match the legacy Preferences/
+/// Settings ID space (= e.g. IDs containing 'preferences' /
+/// 'setting' / 'pref' tokens get routed to the system's
+/// SettingsEnvironmentCapturer scene instead of opening a new
+/// window). The IDs here use short opaque tokens (= 'wenshu-kanban'
+/// / 'wenshu-todo') that avoid that namespace collision. If a
+/// future ticket introduces additional WindowGroup scenes, prefer
+/// this same naming convention.
+enum WindowID {
+    static let kanban = "wenshu-kanban"
+    static let todo = "wenshu-todo"
 }
 
 
