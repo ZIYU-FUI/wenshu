@@ -299,11 +299,24 @@ struct NewLibraryOutlineView: View {
                     shelfRow(shelf)
                 }
             } header: {
-                Text(WenshuI18n.t("sidebar.section.shelves.title"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .textCase(nil)
+                // v1.0.0-m1-shell boss 2026-09-10 OOB 'section
+                // title 没显示, 顺手改名叫书房': Section header
+                // is hidden by List(.sidebar) on macOS 27 by default
+                // (= SwiftUI does NOT render Section headers in
+                // the sidebar style unless `headerProminence(
+                    // .increased)` is set). Add `.headerProminence(
+                    // .increased)` to render the header with the
+                    // increased style (= the canonical Apple HIG
+                    // sidebar section title visual = a small caption
+                    // with secondary tint, sitting above the section's
+                    // rows). The header text is i18n (= 'Library' /
+                    // '书房' = boss OOB '顺手改名叫书房').
+                    Text(WenshuI18n.t("sidebar.section.shelves.title"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .textCase(nil)
             }
+            .headerProminence(.increased)
             // Reference library (= library's default shelf per boss 8/26
             // OOB; user CANNOT delete or rename). Treated as a single
             // Section per Apple HIG; categories expand via
@@ -414,18 +427,26 @@ struct NewLibraryOutlineView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             sidebarBottomNewButton
         }
-        // v1.0.0-m1-shell boss 2026-09-10 OOB '目录树写法, 不符合
-        // Apple API': the previous second bare `.contextMenu { ... }`
-        // (= 'New Book / New Shelf' actions on empty-area right-
-        // click) was REMOVED. Apple HIG specifies ONE
-        // .contextMenu(forSelectionType:) per List view (= two
-        // concurrent contextMenu modifiers on the same List =
-        // macOS 26 Tahoe sometimes pops the wrong one = empty-area
-        // right-click surfaces the row-selection menu instead of
-        // the top-level actions). The empty-area actions are now
-        // handled inside `contextMenuForSelection(_:)` (= builder
-        // receives an empty `Set<SidebarItem>` when the user right-
-        // clicks on an empty row area).
+        // v1.0.0-m1-shell boss 2026-09-10 OOB '右键空区域 -> 新建书架/书
+        // 没生效'. macOS 26 Tahoe's `.contextMenu(forSelectionType:)`
+        // does NOT route empty-area right-clicks through its builder
+        // closure (= the closure is selection-typed; = empty selection
+        // = no invocation). The empty-area menu MUST be a plain
+        // `.contextMenu { ... }` attached directly to the List (= macOS
+        // 14+ behavior: bare .contextMenu on a List shows on any
+        // right-click anywhere inside, including empty rows; =
+        // .contextMenu(forSelectionType:) shows on selected-row
+        // hits only). Both menus coexist (= macOS dispatches by hit-
+        // target): selected row -> selection menu; empty area ->
+        // this menu.
+        .contextMenu {
+            Button(WenshuI18n.t("auto2.newlibraryoutlineview.l378.h6629531")) {
+                appState.newShelfRequestCount += 1
+            }
+            Button(WenshuI18n.t("auto2.newlibraryoutlineview.l381.h1694446")) {
+                appState.newBookRequestCount += 1
+            }
+        }
         // v0.45 boss 2026-09-09 OOB 'revert to Apple default first':
         // removed .scrollContentBackground(.hidden) and the
         // .background { Color.clear } no-op. .listStyle(.sidebar)
@@ -1150,22 +1171,25 @@ struct NewLibraryOutlineView: View {
     /// - Multi-select: only delete (= batch delete shelves / books)
     @ViewBuilder
     private func contextMenuForSelection(_ items: Set<SidebarItem>) -> some View {
-        // v1.0.0-m1-shell boss 2026-09-10 OOB '目录树写法, 不符合
-        // Apple API': empty Set = the user right-clicked on an
-        // empty area of the sidebar List (= no row was under the
-        // pointer). Apple HIG specifies ONE contextMenu per List
-        // = .contextMenu(forSelectionType:) receives an empty Set
-        // here for empty-area hits (= the macOS 26 canonical empty-
-        // area path). Show the top-level 'New Shelf / New Book'
-        // actions (= the canonical "I want to add something"
-        // sidebar action).
+        // v1.0.0-m1-shell boss 2026-09-10 OOB '右键空区域 -> 新建书架/书
+        // 没生效'. macOS 26 Tahoe's `.contextMenu(forSelectionType:)`
+        // does NOT invoke this closure when the right-click hits
+        // an empty area of the List (= the closure is selection-
+        // typed; = empty selection = no builder invocation = the
+        // menu does not appear). This is an Apple-platform
+        // limitation. The empty-area right-click goes through a
+        // separate `.contextMenu { ... }` attached directly on the
+        // List (= macOS 14+ behavior; = bare .contextMenu shows
+        // anywhere inside the List, including empty area; =
+        // .contextMenu(forSelectionType:) shows on selected-row
+        // hits). The two menus do not conflict (= macOS dispatches
+        // by hit-target).
         if items.isEmpty {
-            Button(WenshuI18n.t("auto2.newlibraryoutlineview.l378.h6629531")) {
-                showNewShelfSheet = true
-            }
-            Button(WenshuI18n.t("auto2.newlibraryoutlineview.l381.h1694446")) {
-                showNewBookSheet = true
-            }
+            // macOS 26 does not route empty-area hits through this
+            // closure. The empty-area actions are attached via a
+            // plain `.contextMenu { ... }` on the List itself
+            // (= see the bare .contextMenu modifier further below).
+            EmptyView()
         } else if items.count > 1 {
             // Multi-select = batch delete. Single select = per-item
             // actions.

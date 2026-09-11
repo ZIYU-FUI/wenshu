@@ -215,22 +215,38 @@ struct AppRootScene: Scene {
                 // Menu (= /). Both sub-items post a
                 // NotificationCenter event that NewLibraryOutlineView
                 // listens for and triggers the matching sheet.
-                // v1.0.0-m1-shell boss 2026-09-10 OOB '目录树写法, 不符合
-                // Apple API': switch the poster from
-                // NotificationCenter.post (= fire-and-forget) to
-                // the @Observable AppState counter (= the sidebar
-                // body's `.onChange(of: appState.newXRequestCount)`
-                // is the canonical SwiftUI binding for cross-
-                // component sheet triggers).
+                // v1.0.0-m1-shell boss 2026-09-10 OOB '⌘N 打开新文枢': the
+                // previous `.keyboardShortcut("n", modifiers:
+                // .command)` was attached to the OUTER Menu (= a
+                // scene-level Menu = the File menu's "New Project"
+                // submenu). macOS interprets ⌘N on a scene-level
+                // Menu as "open new window" (= the system-level
+                // default for any DocumentGroup / WindowGroup
+                // scene = ⌘N opens a new window of the same type).
+                // We do NOT want that behavior here (= wenshu is
+                // single-window per the §11 baseline; = ⌘N should
+                // trigger the NewChoiceSheet inside the current
+                // window, not open a second wenshu instance).
+                //
+                // Fix: attach `.keyboardShortcut("n", modifiers:
+                // .command)` to the FIRST Button (= "New Book" =
+                // the canonical submenu item = the user-facing
+                // "what ⌘N does" action). macOS binds ⌘N to the
+                // first visible menu item by convention (= Mail /
+                // Notes / Pages / Numbers all bind ⌘N to the first
+                // item in File > New). We bind ⌘N to "New Book" =
+                // the new-choice sheet opens (= user picks Book /
+                // Shelf inside the sheet = same UX as the button-
+                // triggered flow).
                 Menu(WenshuI18n.t("menu.file.new_project")) {
                     Button(WenshuI18n.t("menu.file.new_project.submenu.new_book")) {
                         appState.newBookRequestCount += 1
                     }
+                    .keyboardShortcut("n", modifiers: .command)
                     Button(WenshuI18n.t("menu.file.new_project.submenu.new_shelf")) {
                         appState.newShelfRequestCount += 1
                     }
                 }
-                .keyboardShortcut("n", modifiers: .command)
                 // v0.27 boss 8/27 OOB: menusync toolbar 'import' button.
                 // Per boss 8/27 standing rule 'a new feature should
                 // appear everywhere = synced', the menu bar gets a
