@@ -332,6 +332,37 @@ struct NewLibraryOutlineView: View {
                 .padding(.bottom, 4)
             }
             .headerProminence(.increased)
+            // v1.0.0-m1-shell boss 2026-09-10 OOB '在资料库和书架之间
+            // 加一条分割线, 但除了分割线自带的间隔, 不另加间隔':
+            // add a single `Divider()` BETWEEN the shelves Section
+            // and the reference library Section (= visually separates
+            // the user-managed shelves group from the built-in
+            // reference library group; = matches the typical macOS
+            // sidebar pattern of grouping 'user content' vs. 'system
+            // / built-in content' with a single hairline).
+            //
+            // No additional padding (= boss's '除了分割线自带的
+            // 间隔, 不另加间隔'): the SwiftUI List auto-applies
+            // standard vertical spacing between Sections (= the
+            // 1 PT hairline + List's intrinsic inter-Section gap;
+            // = the Apple HIG canonical sidebar pattern; = no
+            // .padding modifiers added here = the visual gap
+            // = exactly the Divider's intrinsic height = the
+            // hairline floats naturally between the two Section
+            // groups without extra chrome).
+            //
+            // Implementation: SwiftUI's List only accepts Section
+            // or ForEach as direct children (= a bare Divider()
+            // is not allowed). To draw a single hairline between
+            // the two Sections, we wrap the Divider in a Section
+            // (= it becomes the section's only row = the hairline
+            // spans the full List width = visual match to a `Divider()`).
+            // The Section has an empty header (= no extra header
+            // text or padding = the hairline sits at the natural
+            // inter-Section gap).
+            Section {
+                Divider()
+            }
             // Reference library (= library's default shelf per boss 8/26
             // OOB; user CANNOT delete or rename). Treated as a single
             // Section per Apple HIG; categories expand via
