@@ -132,10 +132,42 @@ struct ZoneContentView: View {
             // content margins (= List, LazyVGrid, ScrollView all
             // have them); = we shouldn't duplicate them with our
             // own outer wrapper.
-            Group {
-                if let selected = tabs.first(where: { $0.label == selectedTabId }) {
-                    selected.content
+            // v1.0.0-m1-shell boss 2026-09-11 OOB '现在都是垂直
+            // 居中的, 空态保持垂直居中, 标题栏, 分割线, teb 栏,
+            // 居顶, teb 栏整栏宽度撑满没改': per the boss's
+            // request, the content area BELOW the tab strip is
+            // vertically centered when the content is empty
+            // (= the empty state hint sits in the middle of the
+            // remaining space below the tabs; = the canonical
+            // Apple HIG 'empty state in a tool pane' pattern =
+            // Mail / Notes / Pages all center the empty-state
+            // hint vertically). Per the same request, the title
+            // / Divider / tab bar stay anchored to the top (= the
+            // sticky header pattern), and the tab strip already
+            // fills the column width (= no change to the tab bar's
+            // horizontal extent).
+            //
+            // Implementation: wrap the content Group in
+            // `Spacer(minLength: 0) + Group + Spacer(minLength: 0)`
+            // (= both above and below the content; = with both
+            // spacers the Group renders centered vertically inside
+            // the VStack's remaining height; = with content the
+            // top Spacer collapses to 0 (= no gap above); = the
+            // Apple HIG canonical 'centered empty state' layout).
+            //
+            // Note: do NOT add `.frame(maxHeight: .infinity, ...)`
+            // on the Group itself (= that would also force the
+            // content Group to fill the column height even when
+            // it has natural height; = we want the Group to be
+            // centered, not stretched).
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                Group {
+                    if let selected = tabs.first(where: { $0.label == selectedTabId }) {
+                        selected.content
+                    }
                 }
+                Spacer(minLength: 0)
             }
             .animation(.default, value: selectedTabId)
         }
