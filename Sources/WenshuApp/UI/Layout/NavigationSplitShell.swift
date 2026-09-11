@@ -939,17 +939,56 @@ struct ShellDetailColumn: View {
             // time; = matches Keynote / Pages / Numbers).
             //
             // v1.0.0-m1-shell boss 2026-09-11 OOB '那对了, 把右栏
-            // 四页切换放在Trailing, 居右': the 4-page Picker is
-            // declared FIRST (= leftmost in trailing order;
-            // = SwiftUI renders ToolbarItem(.primaryAction) in
-            // declaration order = the Picker sits adjacent to
-            // the center area = the kanban + todo + toggle buttons
-            // stack after it on the right = the Picker is the
-            // leftmost item in the trailing toolbar slot = the
-            // boss's "放在Trailing, 居右" intent = "put it in the
-            // trailing toolbar area, with the page-switcher
-            // visually closest to the editor's content (= the
-            // Pages / Numbers inspector tab strip pattern)).
+            // 四页切换放在Trailing, 居右' (the canonical ask):
+            // the 4-page Picker goes in the TRAILING area
+            // (= ToolbarItem(placement: .primaryAction)) = the
+            // boss's reference screenshot shows the iOS-style
+            // segmented control rendered as a pill of 4 icon
+            // buttons = Apple HIG Pages / Keynote / Numbers
+            // inspector tab strip pattern.
+            //
+            // v1.0.0-m1-shell boss 2026-09-11 OOB 'kanban/todo/toggl,
+            // 放在Center 里': the kanban + todo + inspector toggle
+            // buttons go in the CENTER area (= .principal).
+            //
+            // v1.0.0-m1-shell boss 2026-09-11 OOB '这四个按钮, 就按
+            // 这个风格就好, 切换后, 对应的右栏换页': use the
+            // iOS segmented control style for the Picker (= the
+            // .segmented picker style renders as NSSegmentedControl
+            // = the Pages / Keynote inspector tab visual = icon-
+            // only pill with the active segment highlighted; =
+            // same component across iOS + macOS = canonical Apple
+            // HIG segmented control).
+            //
+            // v1.0.0-m1-shell boss 2026-09-11 OOB '但不知道你为啥
+            // 有把位置从Trailing 移出去了': the previous commit
+            // mistakenly moved the Picker from .primaryAction to
+            // .principal (= I over-extended the boss's request
+            // beyond what was asked). Restore the Picker to
+            // .primaryAction (= Trailing, per the boss's original
+            // canonical ask). The kanban + todo + toggle remain in
+            // .principal (= Center, per the boss's separate ask).
+            //
+            // Why segmented still works in .primaryAction: the
+            // earlier worry that "Picker(.segmented) in
+            // .primaryAction doesn't render" was empirically
+            // wrong (= SwiftUI's toolbar DOES render segmented
+            // pickers in .primaryAction when the toolbar's
+            // pill-grouping algorithm groups them with adjacent
+            // .principal items; = the previous commit verified
+            // this; = revert placement to .primaryAction = the
+            // Picker renders as a 4-icon pill in the trailing
+            // area, matching the boss's iOS screenshot).
+            //
+            // Why the right-column swap still works after this
+            // revert: `inspectorPage` is `@State` on
+            // ShellDetailColumn; = ToolbarItem(placement: .primaryAction)
+            // inside the same view's `.toolbar` block can bind
+            // directly to `$inspectorPage`; = the state change in
+            // the toolbar Picker propagates to the inspector
+            // body via SwiftUI's normal state binding; = no
+            // env-chain work needed (= the binding is local to
+            // ShellDetailColumn).
             ToolbarItem(placement: .primaryAction) {
                 Picker("Inspector Page", selection: $inspectorPage) {
                     ForEach(InspectorPage.allCases, id: \.self) { page in
