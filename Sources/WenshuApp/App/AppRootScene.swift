@@ -434,10 +434,21 @@ struct AppRootScene: Scene {
         // new window). 'wenshu-kanban' / 'wenshu-todo' use
         // short opaque tokens that avoid that namespace
         // collision.
+        // v1.0.0-m1-shell boss 2026-09-11 OOB '把看板窗口关了,
+        // 估计是看板窗口做的太大了, 把主窗口挡住了': the
+        // 960x640 default was too large (= kanban window covered
+        // the 1480x980 main window; = boss couldn't see the
+        // main window after opening kanban). Drop to a
+        // 720x520 default (= fits to the right of the main
+        // window on a standard 1920x1080 screen; = leaves the
+        // main window fully visible). User can still drag the
+        // window to expand it (= the `.contentMinSize`
+        // resizability allows the user to make the window as
+        // large as they want).
         Window("看板", id: "wenshu-kanban") {
             KanbanWindow(library: library)
         }
-        .defaultSize(width: 960, height: 640)
+        .defaultSize(width: 720, height: 520)
         .windowResizability(.contentMinSize)
         .windowToolbarStyle(.unified)
         Window("待办", id: "wenshu-todo") {
