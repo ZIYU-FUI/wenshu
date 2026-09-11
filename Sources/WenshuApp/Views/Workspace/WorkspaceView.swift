@@ -1189,28 +1189,36 @@ struct EditorPlaceholder: View {
                 // the preview/edit body (= replaces the previous
                 // samplePreviewBody placeholder).
                 if activeTab == nil {
-                    // v1.0.0-m1-shell boss 2026-09-10 OOB '在没有打开任何文档的时候,
-                    // 纸只占位, 不渲染, 不要这个白色, 还是提示空态,
-                    // 如果非要用一张纸占位的话, 如果可以不用纸占位,
-                    // 也能固定当前区域宽度, 那就不要任何东西, 显示
-                    // 空态'. The previous code rendered a blank
-                    // EditorPaperCanvas { Color.clear } (= a 595 PT
-                    // A4 white sheet with no content = the boss's
-                    // '纸只占位, 不渲染, 不要这个白色'). Replace with
-                    // Apple's canonical ContentUnavailableView (= the
-                    // macOS 14+ standard empty-state UI; = identical
-                    // visual to Mail / Notes / Finder / Xcode
-                    // empty-state; = no hand-rolled icon + text).
-                    // The column width is still held (= the column
-                    // keeps its idealWidth range via the .navigation
-                    // SplitViewColumnWidth modifier on the parent;
-                    // ContentUnavailableView renders inside that
-                    // column's existing geometry; = no column shrink).
-                    ContentUnavailableView(
-                        WenshuI18n.t("editor.empty.title"),
-                        systemImage: "doc.text",
-                        description: Text(WenshuI18n.t("editor.empty.description"))
-                    )
+                    // v1.0.0-m1-shell boss 2026-09-10 OOB '没有打开任何文档的时候,
+                    // 纸只占位, 不渲染, 不要这个白色, 还是提示空态'
+                    // + follow-up '不是, 我想的是没有打开文档的时候,
+                    // 两个区域也都还在, 上下还是 50/50, 只不过上面
+                    // 是空态':
+                    //
+                    // Use wenshu's own EmptyStateHint (= the same
+                    // 38 PT icon + title + body style used by the
+                    // cards / book / reference empty states; =
+                    // unified visual across all of wenshu's
+                    // empty states; = matches the boss's '空态样式
+                    // 和文枢现在用的样式不同' fix).
+                    //
+                    // Wrap the EmptyStateHint in a vertical layout
+                    // that pushes it to vertical center inside the
+                    // upper half of the VSplitView (= the upper
+                    // half keeps its 50/50 share with the chat
+                    // zone; = the chat zone stays at full size
+                    // below; = no VSplitView divider math bug; =
+                    // the boss's '两个区域也都还在, 上下还是 50/50,
+                    // 只不过上面是空态').
+                    VStack(spacing: 0) {
+                        Spacer(minLength: 0)
+                        EmptyStateHint(
+                            icon: "file-text",
+                            title: WenshuI18n.t("editor.empty.title"),
+                            body: WenshuI18n.t("editor.empty.description")
+                        )
+                        Spacer(minLength: 0)
+                    }
                 } else {
                     // v0.52 boss 2026-09-09 OOB: give the middle column a
                     // sheet of paper like Pages, with the markdown engine
