@@ -1347,6 +1347,29 @@ struct EditorPlaceholder: View {
             // detail 648) requires. v0.30 window-shrink protection has
             // to come from elsewhere (= .frame on toolbar / status bar,
             // not on the column body).
+            //
+            // v1.0.0-m1-shell: RESTORE `.frame(maxWidth: .infinity,
+            // maxHeight: .infinity)` on the outer VStack because the
+            // detail column is now hosted by `EditorChatNSController`
+            // (= AppKit NSSplitViewController, NOT NavigationSplitView;
+            // = see NavigationSplitShell.swift detail column closure).
+            // NSSplitViewController allocates a fixed-size slot per
+            // NSSplitViewItem and the SwiftUI view inside the
+            // NSHostingController must explicitly claim that slot via
+            // `.frame(maxWidth: .infinity, maxHeight: .infinity)`. Without
+            // this frame, the editor VStack shrinks to its intrinsic
+            // content width (= the WenshuMarkdownEditor NSTextView's
+            // minimum width = ~400 PT; = leaves the right side of the
+            // detail column empty = the boss's '宽度没有撑满' symptom).
+            //
+            // The v0.30 'inflated the detail column to 1763' concern
+            // (= caused by the previous NavigationSplitView layout)
+            // no longer applies because NSSplitViewController does
+            // not have the unbounded-width issue (= NSSplitViewItem
+            // gives a bounded slot).
+            //
+            // boss 9/10 OOB '宽度没有撑满' (= 'width did not fill').
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             // v0.28 followup Boss UX round 19 (Boss 2026-08-29 OOB 'all
             // zone top bars, bottom bars, backgrounds, the colors used, can they adapt to Liquid Glass?'):
             // Use .ultraThinMaterial instead of Color.green.opacity(0.05)
