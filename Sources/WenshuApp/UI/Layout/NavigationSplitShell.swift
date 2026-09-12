@@ -842,13 +842,19 @@ struct ShellDetailColumn: View {
             (WenshuI18n.t("tab.title.long_form"),           "shield-check",   AnyView(LongFormGuardrailsView())),
             (WenshuI18n.t("tab.title.reader_experience"),   "sparkles",       AnyView(ReaderExperienceView())),
             (WenshuI18n.t("tab.title.plot_thread"),         "git-branch",     AnyView(PlotThreadView())),
-            ("Genre-Fit",                                  "book-marked",    AnyView(GenreFitView())),
-            ("Emotion-Curve",                               "activity",       AnyView(EmotionCurveView())),
-            ("Chars-Rel",                                   "users",          AnyView(CharacterRelationshipsView())),
-            ("Chars-Life",                                  "clock",          AnyView(CharacterLifecycleView())),
-            ("Tag-Manager",                                 "tag",            AnyView(TagManagerView())),
-            ("Idea-Library",                                "lightbulb",      AnyView(IdeaLibraryView())),
-            ("Book-Settings",                               "book-lock",      AnyView(BookSettingConstraintsView())),
+            // v1.0.0-m1-shell boss 2026-09-12 OOB '12teb 的多语言不全':
+            // these 7 hardcoded English labels bypassed i18n
+            // lookup; = the rendered tabs displayed raw English
+            // even on zh-Hans systems; = migrate them through
+            // WenshuI18n.t() so the new tab.title.* keys (= added
+            // in the previous commit) resolve correctly.
+            (WenshuI18n.t("tab.title.genre_fit"),            "book-marked",    AnyView(GenreFitView())),
+            (WenshuI18n.t("tab.title.emotion_curve"),        "activity",       AnyView(EmotionCurveView())),
+            (WenshuI18n.t("tab.title.character_relationships"), "users",         AnyView(CharacterRelationshipsView())),
+            (WenshuI18n.t("tab.title.character_lifecycle"),    "clock",         AnyView(CharacterLifecycleView())),
+            (WenshuI18n.t("tab.title.tag_manager"),           "tag",           AnyView(TagManagerView())),
+            (WenshuI18n.t("tab.title.idea_library"),          "lightbulb",     AnyView(IdeaLibraryView())),
+            (WenshuI18n.t("tab.title.book_setting_constraints"), "book-lock",  AnyView(BookSettingConstraintsView())),
         ]
         let perPageLabels: Set<String> = {
             switch inspectorPage {
@@ -865,26 +871,31 @@ struct ShellDetailColumn: View {
             case .authoringStyle:
                 // Page 2 = 写作期 + 风格 / 体验 / 体裁 = the
                 // readability / style reference tools.
+                // v1.0.0-m1-shell boss 2026-09-12 OOB '12teb 的
+                // 多语言不全': use WenshuI18n.t() (= same value
+                // as the allTools entry above) so the Set
+                // membership check below correctly filters the
+                // 3 tabs for this page.
                 return [
                     WenshuI18n.t("tab.title.long_form"),
                     WenshuI18n.t("tab.title.reader_experience"),
-                    "Genre-Fit",
+                    WenshuI18n.t("tab.title.genre_fit"),
                 ]
             case .authoringCharacters:
                 // Page 3 = 写作期 + 人物 / 关系 / 情绪 = the
                 // character-driven analysis tools.
                 return [
-                    "Chars-Rel",
-                    "Chars-Life",
-                    "Emotion-Curve",
+                    WenshuI18n.t("tab.title.character_relationships"),
+                    WenshuI18n.t("tab.title.character_lifecycle"),
+                    WenshuI18n.t("tab.title.emotion_curve"),
                 ]
             case .projectManagement:
                 // Page 4 = 项目管理 + 灵感 / 标签 / 书籍设置 =
                 // the cross-document project scaffolding.
                 return [
-                    "Idea-Library",
-                    "Tag-Manager",
-                    "Book-Settings",
+                    WenshuI18n.t("tab.title.idea_library"),
+                    WenshuI18n.t("tab.title.tag_manager"),
+                    WenshuI18n.t("tab.title.book_setting_constraints"),
                 ]
             }
         }()
