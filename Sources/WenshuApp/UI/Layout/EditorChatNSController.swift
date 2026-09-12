@@ -82,10 +82,33 @@ final class EditorChatNSController: NSSplitViewController {
     /// `NSHostingController(rootView:).environment(...)`).
     private let conductor: WenshuConductor?
     private let chatStore: ChatSessionStore?
+    // v1.0.0-m1-shell boss 2026-09-12 OOB '文档打开链路修复:
+    // 文档在中栏编辑器区打开. 不要单独 windows. 编辑器区就是
+    // 文档的编辑区, 打开的文档是编辑状态. 编辑器使用 SM 我们引入
+    // 的一个第三方 md 编辑器, 后端已经接好了': inject
+    // AppState + BookStore into the editor pane's
+    // NSHostingController (= the SwiftUI @Environment chain
+    // breaks at the AppKit NSSplitViewController boundary; =
+    // EditorPlaceholder's @Environment(AppState.self) +
+    // @Environment(BookStore.self) won't see the parent
+    // NavigationSplitView's environment; = the editor pane
+    // would always render the empty-state hint even with tabs
+    // in appState.openTabs; = without this injection, the
+    // editor pane is just a placeholder regardless of double-
+    // click on a card).
+    private let appState: AppState?
+    private let bookStore: BookStore?
 
-    init(conductor: WenshuConductor?, chatStore: ChatSessionStore?) {
+    init(
+        conductor: WenshuConductor?,
+        chatStore: ChatSessionStore?,
+        appState: AppState? = nil,
+        bookStore: BookStore? = nil
+    ) {
         self.conductor = conductor
         self.chatStore = chatStore
+        self.appState = appState
+        self.bookStore = bookStore
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -123,8 +146,10 @@ final class EditorChatNSController: NSSplitViewController {
         self.splitView.autosaveName = Self.autosaveName
 
         // Top pane (= editor).
+        let editorRoot = EditorPlaceholder()
+            .applyOptionalEnvironment(appState: appState, bookStore: bookStore)
         let editorItem = NSSplitViewItem(viewController: NSHostingController(
-            rootView: EditorPlaceholder()
+            rootView: editorRoot
         ))
         editorItem.canCollapse = false   // editor is always visible
         editorItem.minimumThickness = 200
@@ -187,11 +212,19 @@ final class EditorChatNSController: NSSplitViewController {
 struct EditorChatSplitHost: NSViewControllerRepresentable {
     let conductor: WenshuConductor?
     let chatStore: ChatSessionStore?
+    // v1.0.0-m1-shell boss 2026-09-12 OOB '文档打开链路修复':
+    // thread appState + bookStore through the SwiftUI →
+    // AppKit boundary so the editor pane's @Environment
+    // lookups (= AppState + BookStore) actually resolve.
+    let appState: AppState?
+    let bookStore: BookStore?
 
     func makeNSViewController(context: Context) -> EditorChatNSController {
         let controller = EditorChatNSController(
             conductor: conductor,
-            chatStore: chatStore
+            chatStore: chatStore,
+            appState: appState,
+            bookStore: bookStore
         )
         return controller
     }
@@ -199,5 +232,26 @@ struct EditorChatSplitHost: NSViewControllerRepresentable {
     func updateNSViewController(_ nsViewController: EditorChatNSController, context: Context) {
         // No-op for now (= editor + chat content is static; = the
         // chat zone's internal state lives in ChatZoneView itself).
+    }
+}
+
+// v1.0.0-m1-shell boss 2026-09-12 OOB '文档打开链路修复': helper
+// that applies AppState + BookStore to a SwiftUI view IF they're
+// non-nil (= the editor pane's NSHostingController is created in
+// AppKit code where the SwiftUI @Environment chain doesn't
+// propagate; = this helper bridges AppState + BookStore across the
+// boundary without forcing every caller to know the env keys).
+extension View {
+    @ViewBuilder
+    func applyOptionalEnvironment(appState: AppState?, bookStore: BookStore?) -> some View {
+        if let appState = appState, let bookStore = bookStore {
+            self.environment(appState).environment(bookStore)
+        } else if let appState = appState {
+            self.environment(appState)
+        } else if let bookStore = bookStore {
+            self.environment(bookStore)
+        } else {
+            self
+        }
     }
 }

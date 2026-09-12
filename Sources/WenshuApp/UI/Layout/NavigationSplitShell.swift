@@ -254,7 +254,7 @@ struct NavigationSplitShell: View {
             // column NSV + inspector pattern is the canonical Apple
             // 6-zone layout (= the probe confirms window = 1449
             // with this exact combination).
-            ShellContentColumn(appState: appState)
+            ShellContentColumn(appState: appState, bookStore: bookStore)
                 .navigationSplitViewColumnWidth(min: 400, ideal: 600, max: 900)
                 // v1.0.0-m1-shell boss 2026-09-10 OOB 'keynote 三个办公软件
                 // 全是这个逻辑': wire the inspector's `isPresented` to
@@ -409,6 +409,16 @@ struct ShellMiddleColumn: View {
     // tracking inside body.
     @Environment(AppState.self) private var envAppState
     let appState: AppState
+    // v1.0.0-m1-shell boss 2026-09-12 OOB '文档打开链路修复':
+    // openCardInEditor needs BookStore.referenceStore to load
+    // reference bodies for double-clicked cards (= the same env
+    // chain WorkspaceView.openCardInEditor uses via
+    // @Environment(BookStore.self)). Optional because the
+    // env chain may not be ready on early launch (= silent
+    // no-op fallback in openCardInEditor).
+    @Environment(BookStore.self) private var envBookStore
+
+    private var bookStore: BookStore? { envBookStore }
 
     /// Sort order for the preview pane card grid. Owned locally
     /// (= PreviewPane requires @Binding; = AppState migration is
@@ -492,6 +502,100 @@ struct ShellMiddleColumn: View {
         case nil:
             return .referenceScope(nil)
         }
+    }
+
+    // v1.0.0-m1-shell boss 2026-09-12 OOB '文档打开链路修复:
+    // 文档在中栏编辑器区打开. 不要单独 windows. 编辑器区就是
+    // 文档的编辑区, 打开的文档是编辑状态. 编辑器使用 SM 我们引入
+    // 的一个第三方 md 编辑器, 后端已经接好了': card double-
+    // click handler (= the user double-clicks a card in the cards
+    // column = PreviewPane's onDoubleClick fires). Mirrors
+    // WorkspaceView.openCardInEditor logic (= reads the actually-
+    // clicked CardSource from the parameter, not the topmost
+    // card; = prevents the 'clicking Dufu card opens a tab with
+    // wrong name' regression = boss 9/8 OOB).
+    //
+    // Differences from WorkspaceView.openCardInEditor:
+    // 1. Reads `previewScope()` (= NavigationSplitShell's helper;
+    //    = the equivalent of WorkspaceView's `previewScope`
+    //    computed property).
+    // 2. mode = .edit (= boss's '打开的文档是编辑状态' = the
+    //    user wants the WenshuMarkdownEditor's editable NSTextView,
+    //    NOT the read-only preview; = uses the SM third-party md
+    //    editor's edit surface directly).
+    // 3. Reads `bookStore?` (= NavigationSplitShell threads it as
+    //    an optional via @Environment(BookStore.self); = if nil,
+    //    falls back to the empty body path).
+    //
+    // The duplicate-tab fingerprint check (= first 200 chars of
+    // content) is preserved (= the boss 9/3 OOB Safari-style
+    // 'switch to existing tab if same .md already open' behavior
+    // still applies; = no duplicate tabs).
+    private func openCardInEditor(source: CardSource?) {
+        let scope = previewScope()
+        let (path, content, title): (String?, String, String)
+        switch scope {
+        case .referenceScope(let category):
+            // Mirror WorkspaceView.openCardInEditor's reference-scope
+            // logic. Use the actually-clicked card's Reference if the
+            // caller passed one (= BOSS 9/8 'clicking Dufu card
+            // opens tab with wrong name' fix); fall back to
+            // filtered.first otherwise.
+            let entities: [Reference] = (try? bookStore?.referenceStore.loadAllReferences()) ?? []
+            let filtered = entities.filter { entity in
+                entity.layer == .layerEntities
+                    && (category == nil || entity.category == category)
+            }
+            let picked: Reference? = {
+                if case .reference(let r) = source { return r }
+                return filtered.first
+            }()
+            if let first = picked {
+                let body = (try? bookStore?.referenceStore.loadReferenceBody(id: first.id)) ?? first.summary
+                path = nil
+                content = body
+                title = first.title
+            } else {
+                path = nil; content = ""; title = category?.displayName ?? WenshuI18n.t("tab.title.reference_library")
+            }
+        case .bookScope:
+            // Deferred to ticket 027-35 for absolute path resolution.
+            if case .bookDoc(let doc) = source {
+                path = nil
+                content = doc.summary
+                title = doc.title
+            } else {
+                path = nil; content = ""; title = "book-doc"
+            }
+        case .shelfScope, .empty:
+            path = nil; content = ""; title = ""
+        }
+
+        // No content = silent no-op per boss 9/3 feedback.
+        guard !content.isEmpty else { return }
+
+        // Duplicate-tab fingerprint check (= Safari behavior).
+        let fingerprint = String(content.prefix(200))
+        if let existingIdx = envAppState.openTabs.firstIndex(where: {
+            String($0.originalBody.prefix(200)) == fingerprint
+        }) {
+            envAppState.activeTabId = envAppState.openTabs[existingIdx].id
+            return
+        }
+
+        // Open as new tab. mode = .edit per boss's '打开的文档是
+        // 编辑状态' directive (= the WenshuMarkdownEditor editable
+        // surface from the start; = no separate preview step).
+        let newTab = EditorTab(
+            id: UUID(),
+            documentPath: path,
+            draft: content,
+            originalBody: content,
+            mode: .edit
+        )
+        newTab.sourceScope = scope
+        envAppState.openTabs.append(newTab)
+        envAppState.activeTabId = newTab.id
     }
 
     var body: some View {
@@ -611,7 +715,17 @@ struct ShellMiddleColumn: View {
             // updates the other live (= the same envAppState.searchText).
             PreviewPane(
                 scope: previewScope(),
-                onDoubleClick: { _ in },
+                // v1.0.0-m1-shell boss 2026-09-12 OOB '文档打开链路修复':
+                // card double-click opens the document in the editor
+                // pane (= mode = .edit = the WenshuMarkdownEditor
+                // editable surface from the start; = not a separate
+                // window). Forward the clicked CardSource so the
+                // correct entity opens (= not the topmost card =
+                // BOSS 9/8 'clicking Dufu card opens tab with wrong
+                // name' regression).
+                onDoubleClick: { source in
+                    openCardInEditor(source: source)
+                },
                 previewSortOrder: $previewSortOrder,
                 searchQuery: Binding<String?>(
                     get: { envAppState.searchText },
@@ -701,6 +815,13 @@ struct ShellMiddleColumn: View {
 
 struct ShellContentColumn: View {
     let appState: AppState
+    // v1.0.0-m1-shell boss 2026-09-12 OOB '文档打开链路修复':
+    // pass BookStore through to EditorChatSplitHost (= the editor
+    // pane's EditorPlaceholder needs bookStore for
+    // WenshuEditorServicesFactory = builds the engine's
+    // WikiLinkResolver + ImageProvider against the active book
+    // root).
+    let bookStore: BookStore?
 
     var body: some View {
         // v1.0.0-m1-shell boss 2026-09-10 OOB '死磕文档的方案': per
@@ -760,7 +881,15 @@ struct ShellContentColumn: View {
         // column width even with NSSplitViewController inside.
         EditorChatSplitHost(
             conductor: WenshuAppDelegate.sharedConductor,
-            chatStore: WenshuAppDelegate.sharedChatStoreRef
+            chatStore: WenshuAppDelegate.sharedChatStoreRef,
+            // v1.0.0-m1-shell boss 2026-09-12 OOB '文档打开链路修复':
+            // thread AppState + BookStore through the SwiftUI →
+            // AppKit boundary (= NSViewControllerRepresentable)
+            // so the editor pane's EditorPlaceholder can read
+            // appState.openTabs + activeTabId + bookStore for
+            // WenshuEditorServicesFactory.
+            appState: appState,
+            bookStore: bookStore
         )
         .environment(appState)
     }
