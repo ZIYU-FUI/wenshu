@@ -95,7 +95,6 @@ public struct PlaceholderView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            header
             if activeBookId == nil {
                 emptyState
             } else {
@@ -108,52 +107,22 @@ public struct PlaceholderView: View {
         }
     }
 
-    // MARK: - Header
-
-    private var header: some View {
-        HStack(spacing: 10) {
-            LucideIconSystemFallback("square-dashed", size: 28)
-                .foregroundStyle(.tint)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(WenshuI18n.t("b5.placeholderview.l119.h59803634"))
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                Text(subtitleText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var subtitleText: String {
-        // v0.40 boss 9/7 OOB: replace hardcoded English strings with
-        // WenshuI18n keys so the subtitle matches the rest of the
-        // UI (= Chinese on zh-Hans system, English on en system).
-        switch loadingState {
-        case .idle:
-            return WenshuI18n.t("placeholder.subtitle.idle")
-        case .loading:
-            return WenshuI18n.t("placeholder.subtitle.loading")
-        case .loaded:
-            return WenshuI18n.tf("placeholder.subtitle.loaded", rows.count)
-        case .failed(let reason):
-            return WenshuI18n.tf("placeholder.subtitle.failed", reason)
-        }
-    }
-
     private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(WenshuI18n.t("b5.placeholderview.l147.h49322278"))
-                .font(.callout)
-                .foregroundStyle(.primary)
-            Text(WenshuI18n.t("b5.placeholderview.l150.h59639791"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        // v1.0.0-m1-shell boss 2026-09-12 OOB '现在的空态不是
+        // 一个组件, 你能抽象一个 UI 组件吗? 顺手把空态的
+        // ICON 放大一倍, 同时用最细的线条. 目的是统一所有
+        // 空态的样式. 右栏 12 个 teb, 很多都缺少空态': use
+        // the unified EmptyStateView component (= Lucide icon
+        // at 76 PT + 1 PT stroke via LucideThinIcon + standard
+        // title/body hierarchy). Same visual treatment as every
+        // other empty state in the workspace.
+        EmptyStateView(
+            icon: "square-dashed",
+            title: WenshuI18n.t("b5.placeholderview.l147.h49322278"),
+            body: WenshuI18n.t("b5.placeholderview.l150.h59639791")
+        )
     }
+
 
     // MARK: - Body
 

@@ -93,7 +93,6 @@ public struct ForeshadowingView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            header
             if activeBookId == nil {
                 emptyState
             } else {
@@ -106,57 +105,22 @@ public struct ForeshadowingView: View {
         }
     }
 
-    // MARK: - Header
-
-    private var header: some View {
-        HStack(spacing: 10) {
-            LucideIconSystemFallback("git-fork", size: 28)
-                .foregroundStyle(.tint)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(WenshuI18n.t("b5.foreshadowingview.l117.h92910251"))
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                Text(subtitleText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var subtitleText: String {
-        switch loadingState {
-        case .idle:
-            return "Cross-chapter foreshadowing tracker."
-        case .loading:
-            return "Loading…"
-        case .loaded:
-            let rowCount = rows.count
-            let staleCount = staleRows.count
-            return "\(rowCount) foreshadowing\(rowCount == 1 ? "" : "s"), \(staleCount) stale"
-        case .failed(let reason):
-            return "Failed: \(reason)"
-        }
-    }
-
     private var emptyState: some View {
-        // v0.40 boss 9/7 OOB 'hint': use the shared
-        // EmptyStateHint component (= same icon + title + body
-        // layout as EditorPlaceholder + PreviewPane empty states).
-        // Guarantees consistent visual treatment (= 24 PT icon,
-        // 15 PT semibold title, 13 PT body) across all "no
-        // content" zones in the workspace.
-        // v0.40 boss 9/7 OOB follow-up 'editor ICON':
-        // use the SAME icon (= book-open) as the editor empty
-        // state (= matches PreviewPane too = unified icon across
-        // all 3 empty-state panels in the workspace).
-        EmptyStateHint(
-            icon: "book-open",
-            title: WenshuI18n.t("foreshadowingview.empty.title"),
-            body: WenshuI18n.t("foreshadowingview.empty.body")
+        // v1.0.0-m1-shell boss 2026-09-12 OOB '现在的空态不是
+        // 一个组件, 你能抽象一个 UI 组件吗? 顺手把空态的
+        // ICON 放大一倍, 同时用最细的线条. 目的是统一所有
+        // 空态的样式. 右栏 12 个 teb, 很多都缺少空态': use
+        // the unified EmptyStateView component (= Lucide icon
+        // at 76 PT + 1 PT stroke via LucideThinIcon + standard
+        // title/body hierarchy). Same visual treatment as every
+        // other empty state in the workspace.
+        EmptyStateView(
+            icon: "git-fork",
+            title: WenshuI18n.t("b5.foreshadowingview.l146.h86404455"),
+            body: WenshuI18n.t("b5.foreshadowingview.l149.h44610307")
         )
     }
+
 
     // MARK: - Body
 

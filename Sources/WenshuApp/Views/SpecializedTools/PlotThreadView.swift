@@ -34,7 +34,18 @@ struct PlotThreadView: View {
                         }
                     }
                 }
-            } else { Text(WenshuI18n.t("b5.plotthreadview.l37.h49866041")).foregroundStyle(.secondary) }
+            } else {
+                // v1.0.0-m1-shell boss 2026-09-12 OOB '统一所有空态的样式':
+                // use the unified EmptyStateView (= 76 PT Lucide icon
+                // + 1 PT stroke via LucideThinIcon + standard
+                // title/body hierarchy). Same visual treatment as the
+                // other 11 tabs.
+                EmptyStateView(
+                    icon: "git-branch",
+                    title: WenshuI18n.t("b5.plotthreadview.l37.h49866041"),
+                    body: WenshuI18n.t("b5.plotthreadview.l17.h33003032")
+                )
+            }
             if let errorText { Text(errorText).foregroundStyle(.red).font(.caption) }
         }.padding(DesignTokens.chromePaddingMedium).task(id: bookStore.selectedBookId) { await reload() }
     }

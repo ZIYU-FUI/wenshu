@@ -83,7 +83,6 @@ struct LongFormGuardrailsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            header
             if activeBookId == nil {
                 emptyState
             } else {
@@ -99,35 +98,6 @@ struct LongFormGuardrailsView: View {
         }
     }
 
-    // MARK: - Header
-
-    private var header: some View {
-        HStack(spacing: 10) {
-            LucideIconSystemFallback("shield-check", size: 28)
-                .foregroundStyle(.tint)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(WenshuI18n.t("b5.longformguardrailsview.l110.h34351664"))
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                Text(subtitleText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var subtitleText: String {
-        switch loadingState {
-        case .idle:        return "Loading…"
-        case .loading:     return "Loading guardrails…"
-        case .loaded:      return "\(guardrails.count) guardrails (= \(autoDerivedCount) auto / \(userCount) user)"
-        case .failed(let reason):
-            return "Failed: \(reason)"
-        }
-    }
-
     private var autoDerivedCount: Int {
         guardrails.filter { $0.isAutoDerived }.count
     }
@@ -139,16 +109,21 @@ struct LongFormGuardrailsView: View {
     // MARK: - Empty state
 
     private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(WenshuI18n.t("b5.longformguardrailsview.l144.h89220000"))
-                .font(.title3)
-                .foregroundStyle(.primary)
-            Text(WenshuI18n.t("b5.longformguardrailsview.l147.h53334640"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        // v1.0.0-m1-shell boss 2026-09-12 OOB '现在的空态不是
+        // 一个组件, 你能抽象一个 UI 组件吗? 顺手把空态的
+        // ICON 放大一倍, 同时用最细的线条. 目的是统一所有
+        // 空态的样式. 右栏 12 个 teb, 很多都缺少空态': use
+        // the unified EmptyStateView component (= Lucide icon
+        // at 76 PT + 1 PT stroke via LucideThinIcon + standard
+        // title/body hierarchy). Same visual treatment as every
+        // other empty state in the workspace.
+        EmptyStateView(
+            icon: "shield-check",
+            title: WenshuI18n.t("b5.longformguardrailsview.l144.h89220000"),
+            body: WenshuI18n.t("b5.longformguardrailsview.l147.h53334640")
+        )
     }
+
 
     // MARK: - Content body
 

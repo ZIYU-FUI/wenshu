@@ -92,7 +92,6 @@ struct CharacterRelationshipsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            header
             if activeBookId == nil {
                 emptyState
             } else {
@@ -105,54 +104,22 @@ struct CharacterRelationshipsView: View {
         }
     }
 
-    // MARK: - Header
-
-    private var header: some View {
-        HStack(spacing: 10) {
-            LucideIconSystemFallback("users", size: 28)
-                .foregroundStyle(.tint)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(WenshuI18n.t("b5.characterrelationshipsview.l116.h21838570"))
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                Text(subtitleText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var subtitleText: String {
-        switch status {
-        case .idle:
-            return "Track how the characters in the active book relate to each other."
-        case .loading:
-            return "Loading…"
-        case .loaded:
-            let count = relationships.count
-            let issueCount = inconsistencies.count
-            if issueCount > 0 {
-                return "\(count) relationship\(count == 1 ? "" : "s"), \(issueCount) inconsistency\(issueCount == 1 ? "" : "ies")"
-            }
-            return "\(count) relationship\(count == 1 ? "" : "s")"
-        case .failed(let reason):
-            return "Failed: \(reason)"
-        }
-    }
-
     private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(WenshuI18n.t("b5.characterrelationshipsview.l148.h14968122"))
-                .font(.callout)
-                .foregroundStyle(.primary)
-            Text(WenshuI18n.t("b5.characterrelationshipsview.l151.h23755386"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        // v1.0.0-m1-shell boss 2026-09-12 OOB '现在的空态不是
+        // 一个组件, 你能抽象一个 UI 组件吗? 顺手把空态的
+        // ICON 放大一倍, 同时用最细的线条. 目的是统一所有
+        // 空态的样式. 右栏 12 个 teb, 很多都缺少空态': use
+        // the unified EmptyStateView component (= Lucide icon
+        // at 76 PT + 1 PT stroke via LucideThinIcon + standard
+        // title/body hierarchy). Same visual treatment as every
+        // other empty state in the workspace.
+        EmptyStateView(
+            icon: "users",
+            title: WenshuI18n.t("b5.characterrelationshipsview.l148.h14968122"),
+            body: WenshuI18n.t("b5.characterrelationshipsview.l151.h23755386")
+        )
     }
+
 
     // MARK: - Body
 

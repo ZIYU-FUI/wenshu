@@ -77,7 +77,6 @@ struct GenreFitView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            header
             pickerRow
             inputSection
             Divider()
@@ -91,36 +90,6 @@ struct GenreFitView: View {
         .padding(DesignTokens.chromePaddingMedium)
         .task {
             ensureAnalyzer()
-        }
-    }
-
-    // MARK: - Header
-
-    private var header: some View {
-        HStack(spacing: 10) {
-            LucideIconSystemFallback("book-marked", size: 28)
-                .foregroundStyle(.tint)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(WenshuI18n.t("b5.genrefitview.l105.h52593257"))
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                Text(subtitleText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var subtitleText: String {
-        switch status {
-        case .idle:
-            return "Paste a finished chapter and pick a genre to score how well it fits the conventions."
-        case .running:
-            return "Scoring \(selectedGenre.displayName)…"
-        case .failed(let reason):
-            return "Failed: \(reason)"
         }
     }
 
@@ -192,16 +161,21 @@ struct GenreFitView: View {
     // MARK: - Result
 
     private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(WenshuI18n.t("b5.genrefitview.l200.h95444806"))
-                .font(.callout)
-                .foregroundStyle(.primary)
-            Text(WenshuI18n.t("b5.genrefitview.l203.h79122074"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        // v1.0.0-m1-shell boss 2026-09-12 OOB '现在的空态不是
+        // 一个组件, 你能抽象一个 UI 组件吗? 顺手把空态的
+        // ICON 放大一倍, 同时用最细的线条. 目的是统一所有
+        // 空态的样式. 右栏 12 个 teb, 很多都缺少空态': use
+        // the unified EmptyStateView component (= Lucide icon
+        // at 76 PT + 1 PT stroke via LucideThinIcon + standard
+        // title/body hierarchy). Same visual treatment as every
+        // other empty state in the workspace.
+        EmptyStateView(
+            icon: "book-marked",
+            title: WenshuI18n.t("b5.genrefitview.l200.h95444806"),
+            body: WenshuI18n.t("b5.genrefitview.l203.h79122074")
+        )
     }
+
 
     private func resultSection(for report: GenreFitReport) -> some View {
         VStack(alignment: .leading, spacing: 8) {
