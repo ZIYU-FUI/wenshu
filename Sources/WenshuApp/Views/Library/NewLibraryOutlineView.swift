@@ -118,21 +118,45 @@ enum SidebarItem: Hashable, Codable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try c.decode(Kind.self, forKey: .kind)
+        // v0.71 P1 batch 6 dual-axis followup (= Q99 Standards axis MED):
+        // replaced the previous `UUID(uuidString: s) ?? UUID()` silent
+        // swap (= the audit called this a data-corruption symptom that
+        // invisibly re-points a restored sidebar selection to a
+        // non-existent book) with explicit `try UUID(uuidString: s)`.
+        // A malformed UUID string now propagates a `DecodingError`
+        // (= visible to the caller) instead of silently substituting a
+        // fresh UUID (= restores correct semantics: corrupt
+        // persistence = crash on read, not silent data loss).
         switch kind {
         case .book:
             let s = try c.decode(String.self, forKey: .book)
-            self = .book(UUID(uuidString: s) ?? UUID())
+            self = .book(try Self.parseUUID(s))
         case .shelf:
             let s = try c.decode(String.self, forKey: .shelf)
-            self = .shelf(UUID(uuidString: s) ?? UUID())
+            self = .shelf(try Self.parseUUID(s))
         case .folder:
             let s = try c.decode(String.self, forKey: .book)
             let f = try c.decode(String.self, forKey: .folder)
-            self = .folder(bookId: UUID(uuidString: s) ?? UUID(), folderName: f)
+            self = .folder(bookId: try Self.parseUUID(s), folderName: f)
         case .referenceCategory:
             let d = try c.decode(String.self, forKey: .referenceCategory)
             self = .referenceCategory(d)
         }
+    }
+
+    /// v0.71 P1 batch 6: parse a UUID string and surface malformed input
+    /// (= replaces the previous `UUID(uuidString:) ?? UUID()` silent swap).
+    /// Throws `DecodingError.dataCorrupted` if the string is not a valid
+    /// UUID (= visible to the caller = caller can decide to drop the
+    /// corrupt entry vs silently re-point to a random fresh UUID).
+    private static func parseUUID(_ s: String) throws -> UUID {
+        if let uuid = UUID(uuidString: s) {
+            return uuid
+        }
+        throw DecodingError.dataCorrupted(.init(
+            codingPath: [],
+            debugDescription: "SidebarItem: invalid UUID string '\(s)'"
+        ))
     }
 }
 

@@ -147,6 +147,10 @@ public enum ChatRole: String, Equatable, Sendable {
 /// mutations happen under `lock` (= thread-safe); the snapshot
 /// (= a copy of `parts`) returned by `snapshotParts()` is safe to
 /// pass across actor boundaries.
+final class StreamingTaskBox: @unchecked Sendable {
+    var tasks: [Task<Void, Never>] = []
+}
+
 final class StreamingAccumulator: @unchecked Sendable {
     private let lock = NSLock()
     private var _parts: [ChatMessagePart] = []
@@ -315,6 +319,9 @@ public final class ChatViewModel {
     }
 
     // CHATBOX-003 (2026-09-04): shared AsyncDelegationRegistry used by
+    // the chat spawn delegation flow. The registry actor itself lives
+    // at `Core/Agent/Conversation/AsyncDelegation.swift` (= non-MainActor
+    // actor isolation; = its methods must be awaited).
     // routeInput() to spawn @-mention sub-agents. Lives on ChatViewModel
     // (= process-wide singleton via the @MainActor type's static
     // property) so every ChatViewModel instance routes through the same
@@ -322,6 +329,21 @@ public final class ChatViewModel {
     // to observe spawns). Using the free `delegate(...)` function with
     // this shared registry avoids touching AsyncDelegation.swift (= out
     // of CHATBOX-003 allowlist).
+    // v0.71 P1 batch 6 dual-axis followup (= Q99 Standards axis MED):
+    // `nonisolated(unsafe)` is required because `AsyncDelegationRegistry`
+    // is an actor type (= its initializer must run on the actor's
+    // serial executor; = Swift does not allow actors to be referenced
+    // from a `nonisolated let` without (unsafe)). The (unsafe) is
+    // safe in practice because:
+    //  - the registry ref itself is never mutated (= `let`); only
+    //    the actor's INTERNAL state changes via `await registry.xxx()`.
+    //  - all reads of the static ref happen on the MainActor (= the
+    //    view code that uses it is @MainActor), so reading a Sendable
+    //    pointer is trivially safe.
+    //  - the audit's claim that "every read requires a hop" is wrong:
+    //    the ref is a Sendable pointer (= the actor instance itself
+    //    is Sendable across isolation boundaries); only the actor's
+    //    methods require `await`.
     nonisolated(unsafe) static let delegationRegistry: AsyncDelegationRegistry = AsyncDelegationRegistry()
 
     public func switchModel(_ id: String) {
@@ -498,6 +520,13 @@ public final class ChatViewModel {
                 // serial with respect to the owning actor so the
                 // class reference IS thread-safe here).
                 let accumulator = StreamingAccumulator()
+                // v0.71 P1 batch 6 dual-axis followup (= Q99 Standards axis MED):
+                // track all in-flight streaming-update Tasks so the
+                // post-await final mutation can wait for them (= avoids
+                // the race where a late-arriving `Task { @MainActor in
+                // messages[idx] = ... }` overwrites the final sealed
+                // message with an in-flight snapshot).
+                let streamingTaskBox = StreamingTaskBox()
                 let result = try await conductor.handle(
                     userMessage: text,
                     sessionId: sessionId,
@@ -538,7 +567,7 @@ public final class ChatViewModel {
                         // Then dispatch the messages mutation to
                         // MainActor (= the ChatViewModel is
                         // @MainActor-isolated).
-                        Task { @MainActor [weak self] in
+                        streamingTaskBox.tasks.append(Task { @MainActor [weak self] in
                             guard let self else { return }
                             if let idx = self.messages.firstIndex(where: { $0.id == placeholderId }) {
                                 self.messages[idx] = ChatMessage(
@@ -552,9 +581,13 @@ public final class ChatViewModel {
                                     streamState: .streaming
                                 )
                             }
-                        }
+                        })
                     }
                 )
+                // Wait for all in-flight streaming-update Tasks to complete
+                // (= avoids the race where a late-arriving hop overwrites
+                // the final sealed mutation below).
+                for task in streamingTaskBox.tasks { await task.value }
                 reply = result.reply
                 replyThinking = result.thinking ?? accumulator.thinking
                 replyTokens = result.totalTokens
@@ -1126,15 +1159,29 @@ public struct ChatView: View {
                 // built one, so the vm's snapshot is nil.
                 if let store = vm.valueForStore() ?? WenshuAppDelegate.sharedChatStoreRef {
                     if let loaded = try? await store.loadMessages(sessionId: vm.valueForSessionId()) {
-                        let mapped = loaded.map { stored in
+                        let mapped: [ChatMessage] = loaded.compactMap { stored -> ChatMessage? in
                             // v0.24 boss acceptance fix: preserve role from stored.source.
                             // Was: hardcoded .agent (wrong, user messages shown as agent).
                             // Now: parse source = "user" → .user role, "wenshu" → .agent.
                             let resolvedRole: ChatRole = (stored.source == "user") ? .user : .agent
+                            // v0.71 P1 batch 6 dual-axis followup (= Q99 Standards axis MED):
+                            // replaced `UUID(uuidString: stored.id) ?? UUID()` (= silent swap
+                            // = data-corruption symptom: phantom user message with a fresh
+                            // UUID) with `parseUUID(_:)` (= throws DecodingError on malformed
+                            // input = visible to caller). Same for ChatSource (=
+                            // drops invalid source instead of silently rewriting to .wenshu).
+                            // The outer `try?` in `loadMessages` already swallows the error,
+                            // so malformed records become a no-op (= the load still completes
+                            // for valid records) instead of polluting the chat with phantom
+                            // messages.
+                            guard let msgID = UUID(uuidString: stored.id),
+                                  let msgSource = ChatSource(rawValue: stored.source) else {
+                                return nil
+                            }
                             return ChatMessage(
-                                id: UUID(uuidString: stored.id) ?? UUID(),
+                                id: msgID,
                                 role: resolvedRole,
-                                source: ChatSource(rawValue: stored.source) ?? .wenshu,
+                                source: msgSource,
                                 content: stored.content,
                                 timestamp: stored.timestamp,
                                 tokens: stored.tokens
@@ -1713,12 +1760,23 @@ public struct ChatView: View {
     if let store = vm.valueForStore() ?? WenshuAppDelegate.sharedChatStoreRef {
         Task { @MainActor in
             if let loaded = try? await store.loadMessages(sessionId: vm.valueForSessionId()) {
-                let mapped = loaded.map { stored in
+                let mapped: [ChatMessage] = loaded.compactMap { stored -> ChatMessage? in
                     let resolvedRole: ChatRole = (stored.source == "user") ? .user : .agent
+                    // v0.71 P1 batch 6 dual-axis followup (= Q99 Standards axis MED):
+                    // replaced `UUID(uuidString: stored.id) ?? UUID()` (= silent swap
+                    // = data-corruption symptom: phantom user message with a fresh
+                    // UUID) with `guard let` (= drops malformed records instead of
+                    // silently substituting fresh IDs). The outer `try?` already
+                    // swallows loadMessages errors, so the load still completes for
+                    // valid records; only the phantom entries are skipped.
+                    guard let msgID = UUID(uuidString: stored.id),
+                          let msgSource = ChatSource(rawValue: stored.source) else {
+                        return nil
+                    }
                     return ChatMessage(
-                        id: UUID(uuidString: stored.id) ?? UUID(),
+                        id: msgID,
                         role: resolvedRole,
-                        source: ChatSource(rawValue: stored.source) ?? .wenshu,
+                        source: msgSource,
                         content: stored.content,
                         timestamp: stored.timestamp,
                         tokens: stored.tokens

@@ -291,6 +291,13 @@ struct NavigationSplitShell: View {
         // _FlexFrameLayout.sizeThatFits (= EnvironmentValues
         // subscript crashes with 'No Observable object of type
         // AppState found' during view layout pass).
+        // v0.71 P1 batch 6 dual-axis followup (= Q99 Standards axis MED):
+        // redundant injection is benign (per the audit's own conclusion)
+        // but the design relies on multiple re-injection sites: if one
+        // is dropped during a future refactor, env-chain failures will
+        // surface at the layout pass. Marked CRITICAL DO NOT REMOVE in
+        // the comment block so future contributors don't try to
+        // "clean up" the apparent redundancy.
         .environment(appState)
         // CHATZONE-CRASH-FIX part 2: also re-inject bookStore if
         // available (= descendants read BookStore from env via
@@ -298,6 +305,7 @@ struct NavigationSplitShell: View {
         // PlaceholderView / PreviewPane / WorkspaceView. Without
         // this re-injection, the env chain fails at the layout
         // pass with 'No Observable object of type BookStore found').
+        // CRITICAL DO NOT REMOVE (= see comment block above).
         .environment(bookStore)
     }
 }// MARK: - Sidebar column (= 2 vertical sub-areas)

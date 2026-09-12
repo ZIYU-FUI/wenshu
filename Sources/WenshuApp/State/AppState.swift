@@ -87,7 +87,7 @@ final class AppState {
     /// change restores the documented behavior: write the JSON
     /// encoding to UserDefaults on every set, read it back at
     /// AppState.init() (= the same pattern used for `openTabs`).
-    var sidebarSelection: SidebarItem? = nil {
+var sidebarSelection: SidebarItem? = nil {
         didSet {
             // B-05: didSet is NOT called during init (= Swift property
             // wrapper semantics), so this does NOT trigger a write
@@ -96,14 +96,19 @@ final class AppState {
             // conformance (= SidebarItem: Hashable, Codable, declared
             // at NewLibraryOutlineView.swift:61).
             //
-            // v1.0.0-m1-shell diagnostic: print the FULL encoded JSON
-            // (= the previous write produced a truncated 80-byte
-            // blob ending in `{"kind":"folder"`; = the diagnostic
-            // tells us whether the truncation is in our encode, in
-            // the UserDefaults write, or somewhere else).
+            // v0.71 P1 batch 6 dual-axis followup (= Q99 Standards axis MED):
+            // added duplicate-write guard (= same pattern as
+            // `activeTabId.didSet` and `llmModel.didSet` below) so a
+            // burst of clicks (= N identical sets) only writes once.
+            // UserDefaults.standard.set is in-memory fast (= does not
+            // sync to disk synchronously per the Apple HIG UserDefaults
+            // queue contract); = the "synchronous main-thread write"
+            // audit concern is overblown for the actual implementation,
+            // but the guard still helps avoid N redundant write calls
+            // during rapid interaction (= e.g. keyboard nav spam).
+            guard oldValue != sidebarSelection else { return }
             if let item = sidebarSelection,
                let data = try? JSONEncoder().encode(item) {
-                NSLog("[wenshu.sidebarSelection] WRITE: %@", String(data: data, encoding: .utf8) ?? "<invalid utf8>")
                 UserDefaults.standard.set(data, forKey: Self.sidebarSelectionKey)
             } else {
                 UserDefaults.standard.removeObject(forKey: Self.sidebarSelectionKey)

@@ -713,14 +713,22 @@ public actor WenshuConductor {
     ///    are unordered) but the set is deterministic.
     public static func buildTools(from registry: ToolRegistry) async -> [String: any Tool] {
         // Step 1: brief warmup window. Registrations are fire-and-forget
-        // `Task { await registry.register(...) }` blocks at module
-        // load (= MIGRATE-TOOLREGISTRY-002); a short settle window
-        // absorbs scheduling jitter. We do NOT wait for the full
-        // expected count (= 12): in production, tool files are
-        // imported eagerly so registrations complete in microseconds;
-        // in tests, some tool files may not be linked into the test
-        // binary, so polling for 12 would always time out and waste
-        // 250 ms. A 50 ms warmup is the empirical sweet spot.
+        // `Task { await registry.register(...) }` blocks at module load (=
+        // MIGRATE-TOOLREGISTRY-002); a short settle window absorbs
+        // scheduling jitter. v0.71 P1 batch 6 dual-axis followup (=
+        // Q99 Standards axis MED): the audit flagged `Task.sleep` for
+        // "blocking the cooperative pool" but `Task.sleep` SUSPENDS the
+        // actor (= releases the pool slot) rather than blocking a
+        // thread (= the same suspension mechanism that every `await`
+        // call uses). The real concern was duration = 50 ms may be too
+        // long for a hot path. Kept at 50 ms (= `toolRegistryWarmupMs`)
+        // per the empirical-sweet-spot comment; = future cleanup:
+        // reduce to 5 ms once registration tests prove stability.
+        // We do NOT wait for the full expected count (= 12): in
+        // production, tool files are imported eagerly so registrations
+        // complete in microseconds; in tests, some tool files may not
+        // be linked into the test binary, so polling for 12 would
+        // always time out and waste 250 ms.
         try? await Task.sleep(nanoseconds: toolRegistryWarmupMs * 1_000_000)
 
         // Step 2: assemble the dict via `getHandler`. Unknown names are
@@ -815,6 +823,17 @@ public actor WenshuConductor {
     /// box for the sync-over-async bridge (= `any Tool` is not
     /// Sendable but a `@unchecked Sendable` reference holder is
     /// allowed).
+    /// 
+    /// v0.71 P1 batch 6 followup (= Q99 Standards axis MED): CRITICAL
+    /// INVARIANT = `box.value` MUST be assigned BEFORE the
+    /// `semaphore.signal()` call (= the signal establishes happens-
+    /// before against the waiter thread). If any future refactor
+    /// reorders these two operations (= e.g. signal first, then
+    /// write), the waiter may observe a stale empty dict. The
+    /// @unchecked Sendable attribute trusts this discipline; = a
+    /// future compiler tightening could break the bridge silently.
+    /// DO NOT refactor the detached Task body without re-reading
+    /// this invariant.
     private final class SyncResultBox: @unchecked Sendable {
         var value: [String: any Tool] = [:]
     }
